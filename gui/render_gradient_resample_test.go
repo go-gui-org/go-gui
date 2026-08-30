@@ -8,7 +8,7 @@ import (
 // Stop resampling is the one GPU-only behaviour no other gate can see:
 // the soft and web backends honour the full stop list, and the golden
 // files record the pre-resample list, so nothing but these tests
-// notices when the shader path's five stops land in the wrong places.
+// notices when the shader path's stops land in the wrong places.
 
 // haloCurve is the accumulated-ring glow profile from
 // examples/solar_system: alpha 1-exp(-k*(1-u)^e) over the falloff,
@@ -122,10 +122,11 @@ func haloTestCurves() []struct {
 // is measured alongside it so a regression to positional spacing shows
 // up as a number rather than as a shrug.
 func TestResampleStopsBeatsEvenSpacing(t *testing.T) {
-	// Measured worst case is 19 at a five-stop limit. Raising the
-	// limit lowers this; the bound tracks the limit, so tighten it
-	// when gradientShaderStopLimit moves.
-	const bound = 22
+	// Measured worst case is 7 at an eight-stop limit, which is the
+	// source list's own sampling error against the same curve: past
+	// this point the stop count, not the placement, is the floor.
+	// Tighten or loosen with gradientShaderStopLimit.
+	const bound = 8
 	for _, tc := range haloTestCurves() {
 		t.Run(tc.name, func(t *testing.T) {
 			src := tc.h.stops()
@@ -187,14 +188,16 @@ func TestResampleStopsShape(t *testing.T) {
 // so the resample has to spend budget on a flat stop at each missing
 // end or the GPU extrapolates past the ramp.
 func TestResampleStopsPinsPartialRange(t *testing.T) {
-	src := []GradientStop{
-		{Color: RGBA(255, 0, 0, 255), Pos: 0.2},
-		{Color: RGBA(240, 30, 0, 255), Pos: 0.3},
-		{Color: RGBA(200, 90, 0, 255), Pos: 0.4},
-		{Color: RGBA(120, 160, 0, 255), Pos: 0.5},
-		{Color: RGBA(40, 220, 0, 255), Pos: 0.6},
-		{Color: RGBA(0, 255, 60, 255), Pos: 0.7},
-		{Color: RGBA(0, 200, 180, 255), Pos: 0.8},
+	// Long enough to be over the limit, so the resample runs at all.
+	src := make([]GradientStop, gradientShaderStopLimit+4)
+	for i := range src {
+		u := float32(i) / float32(len(src)-1)
+		src[i] = GradientStop{
+			// A curve, not a line: a straight ramp would let any
+			// placement through.
+			Color: RGBA(uint8(255*(1-u*u)), uint8(255*u), 60, 255),
+			Pos:   0.2 + 0.6*u,
+		}
 	}
 	var norm, sampled []GradientStop
 	got := NormalizeGradientStopsInto(src, &norm, &sampled)

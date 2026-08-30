@@ -236,11 +236,12 @@ func (b *windowState) drawGradient(w *gui.Window, r *gui.RenderCmd) {
 		w.DebugGradientResampled(r.X, r.Y, len(stops), len(r.Gradient.Stops))
 	}
 
-	tm := gpu.PackGradientUniforms(r.Gradient, stops, width, h)
+	tm, tm2 := gpu.PackGradientUniforms(r.Gradient, stops, width, h)
 
 	C.metalSetPipeline(b.ctx, C.int(pipeGradient))
 	C.metalSetMVP(b.ctx, (*C.float)(&b.mvp[0]))
 	C.metalSetTM(b.ctx, (*C.float)(&tm[0]))
+	C.metalSetGradientTM2(b.ctx, (*C.float)(&tm2[0]))
 
 	verts := gpu.BuildQuad(x, y, width, h, gui.White, rad, 0)
 	C.metalDrawQuad(b.ctx, (*C.float)(unsafe.Pointer(&verts[0])))

@@ -22,6 +22,7 @@
 static GLuint _programs[PIPE_COUNT];
 static GLint  _mvpLocs[PIPE_COUNT];
 static GLint  _tmLocs[PIPE_COUNT];
+static GLint  _tm2Locs[PIPE_COUNT];
 
 // Quad geometry (shared index buffer).
 static GLuint _quadVAO, _quadVBO, _quadIBO;
@@ -220,7 +221,7 @@ static const char* vs_gradient_src =
     "out float params;\n"
     "out vec4 stop12;\n"
     "out vec4 stop34;\n"
-    "out vec4 stop56;\n"
+    "out vec4 axis;\n"
     "out vec4 meta;\n"
     "void main() {\n"
     "    gl_Position = mvp * vec4(position.xy, 0.0, 1.0);\n"
@@ -229,7 +230,7 @@ static const char* vs_gradient_src =
     "    params = position.z;\n"
     "    stop12 = tm[0];\n"
     "    stop34 = tm[1];\n"
-    "    stop56 = tm[2];\n"
+    "    axis = tm[2];\n"
     "    meta = tm[3];\n"
     "}\n";
 
@@ -238,12 +239,15 @@ static const char* fs_gradient_src =
     "precision highp float;\n"
     "precision highp int;\n"
     "uniform sampler2D tex;\n"
+    // Stops 4-7. Constant across the quad, so reading the uniform in
+    // the fragment stage beats four more varyings carrying it there.
+    "uniform mat4 tm2;\n"
     "in vec2 uv;\n"
     "in vec4 color;\n"
     "in float params;\n"
     "in vec4 stop12;\n"
     "in vec4 stop34;\n"
-    "in vec4 stop56;\n"
+    "in vec4 axis;\n"
     "in vec4 meta;\n"
     "out vec4 frag_color;\n"
     "float random(vec2 coords) {\n"
@@ -271,26 +275,28 @@ static const char* fs_gradient_src =
     "    float sdf_alpha = 1.0 - smoothstep(-0.59, 0.59, d);\n"
     "    float t;\n"
     "    if (grad_type > 0.5) {\n"
-    "        float target_radius = stop56.w;\n"
+    "        float target_radius = axis.w;\n"
     "        t = length(pos) / target_radius;\n"
     "    } else {\n"
-    "        vec2 stop_dir = vec2(stop56.z, stop56.w);\n"
+    "        vec2 stop_dir = vec2(axis.z, axis.w);\n"
     "        t = dot(uv, stop_dir) * 0.5 + 0.5;\n"
     "    }\n"
     "    t = clamp(t, 0.0, 1.0);\n"
-    "    vec4 stop_colors[6];\n"
-    "    float stop_positions[6];\n"
+    "    vec4 stop_colors[8];\n"
+    "    float stop_positions[8];\n"
     "    unpack_gradient_data(stop12.x, stop12.y, stop_colors[0], stop_positions[0]);\n"
     "    unpack_gradient_data(stop12.z, stop12.w, stop_colors[1], stop_positions[1]);\n"
     "    unpack_gradient_data(stop34.x, stop34.y, stop_colors[2], stop_positions[2]);\n"
     "    unpack_gradient_data(stop34.z, stop34.w, stop_colors[3], stop_positions[3]);\n"
-    "    unpack_gradient_data(stop56.x, stop56.y, stop_colors[4], stop_positions[4]);\n"
-    "    stop_colors[5] = stop_colors[4]; stop_positions[5] = stop_positions[4];\n"
+    "    unpack_gradient_data(tm2[0].x, tm2[0].y, stop_colors[4], stop_positions[4]);\n"
+    "    unpack_gradient_data(tm2[0].z, tm2[0].w, stop_colors[5], stop_positions[5]);\n"
+    "    unpack_gradient_data(tm2[1].x, tm2[1].y, stop_colors[6], stop_positions[6]);\n"
+    "    unpack_gradient_data(tm2[1].z, tm2[1].w, stop_colors[7], stop_positions[7]);\n"
     "    vec4 c1 = stop_colors[0];\n"
     "    vec4 c2 = c1;\n"
     "    float p1 = stop_positions[0];\n"
     "    float p2 = p1;\n"
-    "    for (int i = 1; i < 6; i++) {\n"
+    "    for (int i = 1; i < 8; i++) {\n"
     "        if (i >= stop_count) break;\n"
     "        if (t <= stop_positions[i]) {\n"
     "            c2 = stop_colors[i];\n"
@@ -663,6 +669,10 @@ int glesInit(void) {
             glGetUniformLocation(_programs[i], "mvp");
         _tmLocs[i] =
             glGetUniformLocation(_programs[i], "tm");
+        // Only the gradient program declares tm2; the rest resolve
+        // to -1 and glesSetTM2 skips them.
+        _tm2Locs[i] =
+            glGetUniformLocation(_programs[i], "tm2");
     }
 
     // Create quad VAO/VBO/IBO.
@@ -772,6 +782,14 @@ void glesSetMVP(const float* m) {
 void glesSetTM(const float* m) {
     if (_curPipeline < 0 || _curPipeline >= PIPE_COUNT) return;
     GLint loc = _tmLocs[_curPipeline];
+    if (loc >= 0) {
+        glUniformMatrix4fv(loc, 1, GL_FALSE, m);
+    }
+}
+
+void glesSetTM2(const float* m) {
+    if (_curPipeline < 0 || _curPipeline >= PIPE_COUNT) return;
+    GLint loc = _tm2Locs[_curPipeline];
     if (loc >= 0) {
         glUniformMatrix4fv(loc, 1, GL_FALSE, m);
     }

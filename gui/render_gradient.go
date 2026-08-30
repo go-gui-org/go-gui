@@ -8,7 +8,10 @@ import (
 // render_gradient.go — pure-Go gradient math ported from V's
 // render_gradient.v. No GPU calls.
 
-const gradientShaderStopLimit = 5
+// gradientShaderStopLimit is how many gradient stops the GPU shaders'
+// uniforms carry. Must stay in step with gpu.GradientStopSlots, which
+// packs what this produces.
+const gradientShaderStopLimit = 8
 
 func clampUnit(v float32) float32 {
 	// NaN compares false both ways; fold to 0 instead of propagating.

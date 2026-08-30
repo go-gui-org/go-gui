@@ -229,7 +229,7 @@ const (
     out float params;
     out vec4 stop12;
     out vec4 stop34;
-    out vec4 stop56;
+    out vec4 axis;
     out vec4 meta;
 
     void main() {
@@ -239,7 +239,7 @@ const (
         params = position.z;
         stop12 = tm[0];
         stop34 = tm[1];
-        stop56 = tm[2];
+        axis = tm[2];
         meta = tm[3];
     }
 `
@@ -247,12 +247,18 @@ const (
 	FsGradientGLSL = `
     #version 330
     uniform sampler2D tex;
+    // Stops 4-7. Read here rather than passed through the vertex
+    // stage: they are constant across the quad, so interpolating them
+    // would cost four more varyings to deliver the same numbers.
+    uniform mat4 tm2;
     in vec2 uv;
     in vec4 color;
     in float params;
     in vec4 stop12;
     in vec4 stop34;
-    in vec4 stop56;
+    // axis carries the linear direction (zw) or the radial target
+    // radius (w). Its xy pair is spare.
+    in vec4 axis;
     in vec4 meta;
 
     out vec4 frag_color;
@@ -296,25 +302,27 @@ const (
         // Unified gradient t calculation
         float t;
         if (grad_type > 0.5) {
-            float target_radius = stop56.w; // Packed in tm_data[11]
+            float target_radius = axis.w; // Packed in tm_data[11]
             t = length(pos) / target_radius;
         } else {
-            vec2 stop_dir = vec2(stop56.z, stop56.w); // tm_data[10, 11]
+            vec2 stop_dir = vec2(axis.z, axis.w); // tm_data[10, 11]
             t = dot(uv, stop_dir) * 0.5 + 0.5;
         }
         t = clamp(t, 0.0, 1.0);
 
-        // Unpack stops (up to 5 fully supported with metadata packing)
-        vec4 stop_colors[6];
-        float stop_positions[6];
+        // Four stops per matrix: tm's tail is spoken for by the axis
+        // and metadata columns, so stops 4-7 live in tm2.
+        vec4 stop_colors[8];
+        float stop_positions[8];
 
         unpack_gradient_data(stop12.x, stop12.y, stop_colors[0], stop_positions[0]);
         unpack_gradient_data(stop12.z, stop12.w, stop_colors[1], stop_positions[1]);
         unpack_gradient_data(stop34.x, stop34.y, stop_colors[2], stop_positions[2]);
         unpack_gradient_data(stop34.z, stop34.w, stop_colors[3], stop_positions[3]);
-        unpack_gradient_data(stop56.x, stop56.y, stop_colors[4], stop_positions[4]);
-        // Stop 6 slot partially used for metadata, but we only have 5 stops in demo
-        stop_colors[5] = stop_colors[4]; stop_positions[5] = stop_positions[4];
+        unpack_gradient_data(tm2[0].x, tm2[0].y, stop_colors[4], stop_positions[4]);
+        unpack_gradient_data(tm2[0].z, tm2[0].w, stop_colors[5], stop_positions[5]);
+        unpack_gradient_data(tm2[1].x, tm2[1].y, stop_colors[6], stop_positions[6]);
+        unpack_gradient_data(tm2[1].z, tm2[1].w, stop_colors[7], stop_positions[7]);
 
         // Multi-stop interpolation loop
         vec4 c1 = stop_colors[0];
@@ -322,7 +330,7 @@ const (
         float p1 = stop_positions[0];
         float p2 = p1;
 
-        for (int i = 1; i < 6; i++) {
+        for (int i = 1; i < 8; i++) {
             if (i >= stop_count) break;
             if (t <= stop_positions[i]) {
                 c2 = stop_colors[i];
