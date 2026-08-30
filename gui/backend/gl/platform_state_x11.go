@@ -108,6 +108,19 @@ func (p *platformState) setCursor(mc gui.MouseCursor) {
 
 // wake sends a no-op ClientMessage to our own window from a second
 // connection so the event-pump goroutine unblocks from WaitForEvent.
+//
+// Deliberately unchecked. Every redraw request calls this (see
+// (*gui.Window).UpdateWindow), and the overwhelming majority already run
+// on the frame thread where the loop is not parked and the wake is
+// redundant — so it must not cost a server round trip. It does not:
+// xgb's NewRequest hands the buffer to the sendRequests goroutine and
+// blocks until writeBuffer has put it on the wire, so the message is
+// flushed by the time this returns. Check() would only add a wait for an
+// error reply, and the error was never actionable here anyway.
+//
+// Nothing drains errors from wakeConn, so its cookie buffer still forces
+// an occasional round trip once it fills (xgb amortizes this at one per
+// cookieBuffer requests, ~1000) — bounded, and not per call.
 func (p *platformState) wake() {
 	if p.wakeConn == nil {
 		return
@@ -118,8 +131,7 @@ func (p *platformState) wake() {
 		Type:   p.wakeAtom,
 		Data:   xproto.ClientMessageDataUnionData32New([]uint32{0, 0, 0, 0, 0}),
 	}
-	cookie := xproto.SendEventChecked(p.wakeConn, false, p.window, 0, string(ev.Bytes()))
-	_ = cookie.Check() // forces a flush; error is not actionable here
+	xproto.SendEvent(p.wakeConn, false, p.window, 0, string(ev.Bytes()))
 }
 
 func (p *platformState) destroy() {

@@ -369,6 +369,66 @@ func TestQueueCommandWakesMain(t *testing.T) {
 	}
 }
 
+// TestRefreshRequestsWakeMain pins the contract that setting a refresh
+// flag also wakes the backend. Backends block indefinitely when FrameFn
+// reports nothing to draw, so a request that does not wake is only
+// painted when unrelated input happens to arrive — a frozen window for
+// any async caller (background samplers, image downloads, datagrid data
+// sources). macOS masked this for a long time because AppKit's idle
+// event traffic ends the block on its own; X11 is genuinely silent.
+func TestRefreshRequestsWakeMain(t *testing.T) {
+	tests := []struct {
+		name string
+		call func(*Window)
+		// The flag each entry must raise. Asserted alongside the wake so
+		// the test cannot pass on a wake that schedules nothing — the two
+		// halves are only useful together.
+		wantLayout     bool
+		wantRenderOnly bool
+	}{
+		{
+			name:       "UpdateWindow",
+			call:       func(w *Window) { w.UpdateWindow() },
+			wantLayout: true,
+		},
+		{
+			name:           "RequestRedraw",
+			call:           func(w *Window) { w.RequestRedraw() },
+			wantRenderOnly: true,
+		},
+		{
+			name: "UpdateView",
+			call: func(w *Window) {
+				w.UpdateView(func(*Window) View { return nil })
+			},
+			wantLayout: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			w := NewWindow(WindowCfg{})
+			// markRenderOnlyRefresh defers to a pending full rebuild, so
+			// start from a clean slate rather than whatever NewWindow left.
+			w.refreshLayout = false
+			w.refreshRenderOnly = false
+			wakes := 0
+			w.wakeMainFn = func() { wakes++ }
+			tt.call(w)
+			if wakes != 1 {
+				t.Errorf("wakeMain called %d times, want 1", wakes)
+			}
+			if w.refreshLayout != tt.wantLayout {
+				t.Errorf("refreshLayout = %v, want %v",
+					w.refreshLayout, tt.wantLayout)
+			}
+			if w.refreshRenderOnly != tt.wantRenderOnly {
+				t.Errorf("refreshRenderOnly = %v, want %v",
+					w.refreshRenderOnly, tt.wantRenderOnly)
+			}
+		})
+	}
+}
+
 func TestSetClipboard(t *testing.T) {
 	w := &Window{}
 	var got string

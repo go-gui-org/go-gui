@@ -90,7 +90,8 @@ func main() {
 // startSampler launches the background sampling loop. Sampling spawns a
 // subprocess (ps/tasklist), so it must run off the frame thread. Each pass
 // takes a snapshot, then publishes it under the window lock and requests a
-// layout refresh; the backend's idle poll repaints within ~100ms.
+// layout refresh; UpdateWindow wakes the backend's idle loop, which
+// otherwise blocks until input arrives and would leave the readings stale.
 func startSampler(w *gui.Window) {
 	go func() {
 		for {
