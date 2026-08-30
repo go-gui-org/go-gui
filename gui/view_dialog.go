@@ -327,8 +327,10 @@ func (w *Window) Dialog(cfg DialogCfg) {
 	// action, a QueueCommand from a worker) leaves the window otherwise idle,
 	// and the render-only frames a blinking cursor produces reuse the existing
 	// layout tree — the dialog would stay invisible until an unrelated event
-	// forced a rebuild.
+	// forced a rebuild. wakeMain pairs with the flag for the same reason:
+	// without it a sleeping backend never learns the flag was set.
 	w.markLayoutRefresh()
+	w.wakeMain()
 	w.SetFocus(dialogFocusID(cfg))
 }
 
@@ -337,8 +339,10 @@ func (w *Window) DialogDismiss() {
 	oldFocus := w.dialogCfg.oldFocusID
 	w.dialogCfg = DialogCfg{}
 	// Same reasoning as Dialog: without a rebuild the overlay stays on screen
-	// after a programmatic dismiss.
+	// after a programmatic dismiss, and without the wake a sleeping backend
+	// never learns the flag was set.
 	w.markLayoutRefresh()
+	w.wakeMain()
 	w.SetFocus(oldFocus)
 }
 

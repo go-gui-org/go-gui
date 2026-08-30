@@ -116,6 +116,12 @@ func (w *Window) flushCommands() {
 
 // markLayoutRefresh requests a full layout rebuild next frame.
 // Overrides any pending render-only refresh.
+//
+// Setting the flag is not the whole request: a public entry point must also
+// call wakeMain, because backends block indefinitely when FrameFn reports
+// nothing to draw and a flag alone is only read the next time something else
+// wakes the loop. Frame-thread sites (svg, command queue, testing hooks)
+// correctly do not wake — the loop is already running.
 func (w *Window) markLayoutRefresh() {
 	w.refreshLayout = true
 	w.refreshRenderOnly = false
