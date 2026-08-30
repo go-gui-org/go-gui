@@ -249,11 +249,14 @@ func loadCursors(p *platformState) {
 	}
 
 	// Theme and size are resolved once: each step reads X root-window
-	// properties. Xcursor sizes are logical pixels; scaledCursorSize
-	// multiplies by the monitor scale to pick the image the theme
-	// intended for this DPI (issue #453).
+	// properties. The resolved size is already in device pixels — the
+	// compositor/settings daemon publishes the scaled value to X
+	// clients (mutter multiplies cursor-size by the scale factor for
+	// XSETTINGS and XCURSOR_SIZE), and libXcursor applies no scale of
+	// its own. Multiplying by p.scale here doubled the cursor on a
+	// 200% desktop (issue #453 follow-up).
 	theme := xcursorThemeName(p.conn, p.root)
-	size := scaledCursorSize(xcursorThemeSize(p.conn, p.root), p.scale)
+	size := xcursorThemeSize(p.conn, p.root)
 	load := func(names []string, glyph uint16) xproto.Cursor {
 		if c := xcursorThemeCursor(p, theme, size, names); c != 0 {
 			return c
@@ -271,25 +274,7 @@ func loadCursors(p *platformState) {
 	p.cursors[gui.CursorResizeNESW] = load(neswCursorNames, xcBottomLeftCorner)
 	p.cursors[gui.CursorResizeAll] = load(moveCursorNames, xcFleur)
 	p.cursors[gui.CursorNotAllowed] = load(notAllowedCursorNames, xcXCursor)
-	// reloadCursors calls this again per DPI rescale, so the font can't
-	// stay open; X protocol ordering runs the glyph-cursor creations
-	// queued above before this closes the font.
+	// X protocol ordering runs the glyph-cursor creations queued above
+	// before this closes the font.
 	xproto.CloseFont(p.conn, font)
-}
-
-// reloadCursors frees the current cursor handles and loads a fresh set
-// at the current monitor scale. Called when the window moves to a
-// monitor with a different DPI so themed cursors stay correctly sized
-// (issue #453). curCursor is reset so setCursor re-applies the active
-// shape next frame. The window keeps showing the freed cursor until
-// then — the server holds its own reference from the window attribute.
-func (p *platformState) reloadCursors() {
-	for i, c := range p.cursors {
-		if c != 0 {
-			xproto.FreeCursor(p.conn, c)
-			p.cursors[i] = 0
-		}
-	}
-	p.curCursor = 0
-	loadCursors(p)
 }

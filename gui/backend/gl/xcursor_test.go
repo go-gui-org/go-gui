@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -135,29 +136,18 @@ func TestParseXcursorFileMalformed(t *testing.T) {
 	}
 }
 
-// TestScaledCursorSize covers the HiDPI size multiplier applied to the
-// logical Xcursor size: unknown/bogus scales leave the size untouched,
-// fractional scales round, and a rounded-to-zero result clamps to 1
-// (issue #453).
-func TestScaledCursorSize(t *testing.T) {
-	cases := []struct {
-		size  int
-		scale float32
-		want  int
-	}{
-		{24, 1, 24},
-		{24, 2, 48},
-		{24, 1.5, 36},
-		{33, 1.96, 65},
-		{24, 0, 24},   // unknown scale: unscaled
-		{24, -1, 24},  // bogus scale: unscaled
-		{12, 0.25, 3}, // fractional downscale
-		{1, 0.01, 1},  // clamps, never rounds to zero
-	}
-	for _, c := range cases {
-		if got := scaledCursorSize(c.size, c.scale); got != c.want {
-			t.Errorf("scaledCursorSize(%d, %g) = %d, want %d",
-				c.size, c.scale, got, c.want)
+// TestXcursorThemeSizeEnv pins the sizing contract behind the #453
+// follow-up: the resolved Xcursor size is passed through in device
+// pixels, never multiplied by the monitor scale. A 200%-scale desktop
+// publishes 48 and must get 48 — the scaled re-multiply doubled the
+// cursor. The env branch returns before any X round trip, so a nil
+// conn is never dereferenced here.
+func TestXcursorThemeSizeEnv(t *testing.T) {
+	for _, want := range []int{24, 48, 96} {
+		t.Setenv("XCURSOR_SIZE", strconv.Itoa(want))
+		if got := xcursorThemeSize(nil, 0); got != want {
+			t.Errorf("xcursorThemeSize(XCURSOR_SIZE=%d) = %d, want %d",
+				want, got, want)
 		}
 	}
 }

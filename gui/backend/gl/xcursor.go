@@ -161,18 +161,6 @@ func parseXcursorChunk(data []byte, pos, end uint32) (xcursorImage, error) {
 	return img, nil
 }
 
-// scaledCursorSize converts the logical Xcursor size (logical pixels)
-// to the physical-pixel size the monitor's scale needs. scale ≤ 0
-// means "unknown" and leaves the size untouched; otherwise it
-// multiplies, rounds to the nearest integer, and clamps to ≥ 1 so a
-// fractional scale never rounds down to zero.
-func scaledCursorSize(size int, scale float32) int {
-	if scale <= 0 {
-		return size
-	}
-	return max(1, int(float64(size)*float64(scale)+0.5))
-}
-
 // bestFit selects the image libXcursor would render for size: the
 // largest image no larger than size, or the smallest when every image
 // is larger. Images are compared by width, as the format is square.
