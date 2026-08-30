@@ -160,9 +160,147 @@ func (a *App) beginTransition() {
 	a.TweenT = 0
 }
 
+// zoomRho is the curvature of the zoom-and-pan path: how much the view
+// is allowed to widen in order to cover ground. sqrt(2) is Van Wijk and
+// Nuij's own measured optimum and is what every implementation of this
+// uses; larger zooms out more and arrives sooner, smaller flies lower
+// and further.
+const zoomRho = math.Sqrt2
+
+// zoomPath is a camera move that zooms and pans as one motion.
+//
+// Interpolating the center and the zoom separately is what made a
+// selection read as two steps. Zoom is a *ratio*, so a straight line
+// through it spends its first half covering most of the magnification
+// — from the full system to a planet that is five of the seventeen
+// times over in the first quarter of the tween — while the center is
+// only a quarter of the way across. The remaining pan then happens at
+// high magnification, where a world unit is many pixels, so the
+// destination first slides off toward the edge of the screen and only
+// afterwards swings back to the middle. Zooming in on the sun, then
+// sliding, is exactly what that looks like.
+//
+// The fix is to ask for the right thing: a path along which the view
+// appears to move at a constant rate. That is Van Wijk and Nuij,
+// "Smooth and efficient zooming and panning" (InfoVis 2003). Their
+// result is that the optimal path is a straight line in the plane
+// traversed on a hyperbolic schedule, with the view width following
+// from it — the view widens while crossing distance and narrows on
+// arrival, and the two are one motion rather than two.
+//
+// The state it interpolates is a center and a *view width* in world
+// units, not a zoom factor: the whole derivation is about how much
+// world the screen shows, and a width is what makes distance and
+// magnification the same currency.
+type zoomPath struct {
+	x0, y0, w0 float32
+	dx, dy     float32 // full displacement, in world units
+
+	// r0 and s scale the hyperbolic schedule; u1 is the displacement
+	// fraction the schedule reaches at t = 1, which normalizes the
+	// path so it lands exactly on the target.
+	r0, s, u1 float32
+
+	// pure is the degenerate straight zoom, taken when the two centers
+	// coincide and there is no direction to travel in.
+	pure bool
+}
+
+// newZoomPath solves the path from one (center, view width) to another.
+//
+// Distances are measured with the vertical axis pre-squashed by
+// diskTilt, because that is what the projection does to it: the path
+// has to be even in *apparent* motion, and a world unit north covers
+// less screen than a world unit east.
+func newZoomPath(x0, y0, w0, x1, y1, w1 float32) zoomPath {
+	p := zoomPath{x0: x0, y0: y0, w0: w0, dx: x1 - x0, dy: y1 - y0}
+	if w0 <= 0 || w1 <= 0 {
+		// No usable width to interpolate. Hold the one we have rather
+		// than invent a rate: s = 0 makes at() a straight pan.
+		p.pure = true
+		return p
+	}
+	// The apparent displacement, which is what the schedule is solved
+	// against; dx and dy stay unsquashed for reconstructing the center.
+	ex, ey := p.dx, p.dy*diskTilt
+	d2 := float64(ex*ex + ey*ey)
+	b0 := float64(w0)
+	b1 := float64(w1)
+	// A move too short to have a direction is a straight zoom, and the
+	// width is exponential in t so that equal steps are equal ratios.
+	if d2 < 1e-9 {
+		p.pure = true
+		p.s = float32(math.Log(b1 / b0))
+		return p
+	}
+	d1 := math.Sqrt(d2)
+	const rho2, rho4 = 2.0, 4.0
+	c0 := (b1*b1 - b0*b0 + rho4*d2) / (2 * b0 * rho2 * d1)
+	c1 := (b1*b1 - b0*b0 - rho4*d2) / (2 * b1 * rho2 * d1)
+	// The two path ends, in the standard asinh(-c) form. Written out
+	// as log(sqrt(c*c+1) - c) it loses the whole result to
+	// cancellation once c passes about 1e7 and returns -Inf by 1e8,
+	// which a short pan under a large change of width does reach.
+	r0 := math.Asinh(-c0)
+	r1 := math.Asinh(-c1)
+	p.r0 = float32(r0)
+	p.s = float32((r1 - r0) / zoomRho)
+	// Where the schedule lands at t = 1. Solving for it rather than
+	// trusting it to be 1 keeps rounding out of the arrival: the tween
+	// is also read at t = 1 every frame once it has settled, and a
+	// camera that stopped a hair short of a planet would never catch up
+	// to it.
+	p.u1 = p.displacement(1)
+	if p.u1 == 0 {
+		p.pure = true
+	}
+	return p
+}
+
+// displacement is the un-normalized fraction of the way along the line
+// at t, on the hyperbolic schedule.
+func (p zoomPath) displacement(t float32) float32 {
+	r0 := float64(p.r0)
+	x := zoomRho*float64(t*p.s) + r0
+	return float32(math.Cosh(r0)*math.Tanh(x) - math.Sinh(r0))
+}
+
+// at returns the center and view width at t in [0,1].
+func (p zoomPath) at(t float32) (x, y, w float32) {
+	if p.pure {
+		// Exponential in the width, linear in the center — which for a
+		// pure zoom is the same constant-rate path the general case
+		// gives, with the hyperbolic part degenerate.
+		return p.x0 + t*p.dx, p.y0 + t*p.dy,
+			p.w0 * float32(math.Exp(float64(t*p.s)))
+	}
+	u := p.displacement(t) / p.u1
+	r0 := float64(p.r0)
+	x = p.x0 + u*p.dx
+	y = p.y0 + u*p.dy
+	w = p.w0 * float32(math.Cosh(r0)/
+		math.Cosh(zoomRho*float64(t*p.s)+r0))
+	return x, y, w
+}
+
+// viewWidth is how much world the canvas spans at a given camera zoom.
+// It is the currency zoomPath works in. UserZoom is deliberately left
+// out: it is the viewer's own multiplier, and folding it in would let a
+// scroll mid-flight bend the path.
+func (a *App) viewWidth(camZoom float32) float32 {
+	if camZoom <= 0 || a.CanvasW <= 0 {
+		return 0
+	}
+	return a.CanvasW / camZoom
+}
+
 // advanceCamera steps the tween by dt and blends toward the live
 // target. At TweenT == 1 the camera equals the target exactly, so it
 // simply follows from then on.
+//
+// The path is re-solved every tick against the *live* target, for the
+// same reason target() is re-read: a selected planet keeps orbiting,
+// and a path captured at click time would aim at where it used to be.
 func (a *App) advanceCamera(dt float32) {
 	tx, ty, tz := a.target()
 	if a.TweenT < 1 {
@@ -171,10 +309,27 @@ func (a *App) advanceCamera(dt float32) {
 			a.TweenT = 1
 		}
 	}
+	if a.TweenT >= 1 {
+		// Settled: the camera simply follows its target. Solving the
+		// path here would land on exactly this and pay four logs and
+		// three hyperbolics for it, every tick, for the whole time a
+		// planet stays selected.
+		a.CamX, a.CamY, a.CamZoom = tx, ty, tz
+		return
+	}
 	k := gui.EaseInOutQuad(a.TweenT)
-	a.CamX = lerp(a.FromX, tx, k)
-	a.CamY = lerp(a.FromY, ty, k)
-	a.CamZoom = lerp(a.FromZoom, tz, k)
+	w0, w1 := a.viewWidth(a.FromZoom), a.viewWidth(tz)
+	if w0 <= 0 || w1 <= 0 {
+		// No canvas yet, or a degenerate zoom. Nothing to solve; fall
+		// back to the plain blend so the camera still tracks.
+		a.CamX = lerp(a.FromX, tx, k)
+		a.CamY = lerp(a.FromY, ty, k)
+		a.CamZoom = lerp(a.FromZoom, tz, k)
+		return
+	}
+	x, y, w := newZoomPath(a.FromX, a.FromY, w0, tx, ty, w1).at(k)
+	a.CamX, a.CamY = x, y
+	a.CamZoom = a.CanvasW / w
 }
 
 // cosElev is the cosine of the camera's elevation above the orbital

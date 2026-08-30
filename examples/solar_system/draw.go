@@ -738,15 +738,18 @@ func drawPlanet(a *App, dc *gui.DrawContext, i int) {
 		}
 		// Back half of the rings first, then the body, then the front
 		// half — which is what makes the rings pass behind Saturn.
+		// drawRings splits the two by the sign of the depth, so the
+		// seam is where the ring actually crosses the plane of the
+		// limb rather than wherever a fixed angle put it.
 		//
 		// The phase is read off lz rather than by calling litFraction,
 		// which would redo orbitPos and the normalization for the vector
 		// already in hand. litFraction is this same expression; see it
 		// for why the z component is the cosine of the phase angle.
 		k := (1 + lz) / 2
-		drawRings(dc, cx, cy, r, math.Pi, math.Pi, k)
+		drawRings(a, dc, p, cx, cy, r, false, k)
 		drawBody(dc, &a.body, cx, cy, r, p.Color, lx, ly, lz, sp)
-		drawRings(dc, cx, cy, r, 0, math.Pi, k)
+		drawRings(a, dc, p, cx, cy, r, true, k)
 		if hasAxis {
 			drawAxisHalf(dc, cx, cy, ax, ay, az, r, false)
 		}
@@ -868,11 +871,17 @@ type ringTex struct {
 	c0, c1, c2 float32 // quadrature component
 	spin       float32
 	k, w       float32
+
+	// lod is the pyramid level matched to this ring's vertex spacing.
+	// It is a ring property, not a vertex one: the spacing is uniform
+	// along a ring by construction, so the level is chosen once and
+	// every vertex on the ring reuses it.
+	lod float32
 }
 
 // ringTexFor folds the per-body projection and the per-ring geometry
 // into the coefficients appendRing consumes.
-func (p surfaceProj) ringTexFor(s *surface, cosPhi, sinPhi, k, w float32) ringTex {
+func (p surfaceProj) ringTexFor(s *surface, cosPhi, sinPhi, k, w, lod float32) ringTex {
 	return ringTex{
 		tex: s.tex,
 		a0:  cosPhi * p.la, a1: sinPhi * p.ua, a2: sinPhi * p.va,
@@ -880,7 +889,40 @@ func (p surfaceProj) ringTexFor(s *surface, cosPhi, sinPhi, k, w float32) ringTe
 		c0: cosPhi * p.l2, c1: sinPhi * p.u2, c2: sinPhi * p.v2,
 		spin: s.spin,
 		k:    k, w: w,
+		lod: lod,
 	}
+}
+
+// ringFootprint is the widest gap between neighbouring mesh vertices
+// around ring i, in radians of arc on the unit sphere. It is what the
+// pyramid level is chosen from: detail finer than this gap is detail
+// the mesh has no vertex to carry, so sampling it can only alias.
+//
+// Two directions have to be measured, because the mesh is not square.
+// Around the ring the gap is the ring's own radius times its angular
+// step; across rings it is the change in polar angle to the neighbour.
+// The larger of the two governs, since blurring is the safe error and
+// aliasing is not.
+//
+// cosPhi and sinPhi are ring i's own, passed in because the caller has
+// just computed them and the sine costs a square root.
+func ringFootprint(p ringPlan, b lightBasis, i, arc int,
+	cosPhi, sinPhi float32,
+) float32 {
+	phi := acos32(clamp32(cosPhi, -1, 1))
+	// Neighbour toward the far side where there is one, otherwise the
+	// neighbour behind: the two gaps differ little and the last ring is
+	// on the far side of the terminator anyway.
+	j := i + 1
+	if j >= p.count() {
+		j = i - 1
+	}
+	var dPhi float32
+	if j >= 0 {
+		dPhi = abs32(acos32(clamp32(p.cosPhi(j), -1, 1)) - phi)
+	}
+	dAz := sinPhi * 2 * b.visibleAzimuth(cosPhi, sinPhi) / float32(arc)
+	return max(dPhi, dAz)
 }
 
 // ringRamp is sphereTone rewritten as the affine map it already is.
@@ -1228,7 +1270,8 @@ func drawBody(dc *gui.DrawContext, m *bodyMesh, cx, cy, r float32,
 		var rt ringTex
 		if s != nil {
 			k, w := ringRamp(intensity)
-			rt = proj.ringTexFor(s, c, sn, k, w)
+			lod := s.tex.lodFor(ringFootprint(p, b, i, arc, c, sn))
+			rt = proj.ringTexFor(s, c, sn, k, w, lod)
 		}
 		m.cur, m.curCol = appendRing(m.cur[:0], m.curCol[:0],
 			b, r, cx, cy, c, sn, arc, col, rt)
@@ -1348,7 +1391,7 @@ func appendRing(dst []float32, cdst []gui.Color, b lightBasis,
 		sinLat := rt.a0 + ct*rt.a1 + st*rt.a2
 		p1 := rt.b0 + ct*rt.b1 + st*rt.b2
 		p2 := rt.c0 + ct*rt.c1 + st*rt.c2
-		texel := rt.tex.at(sinLat, atan2Turns(p2, p1)-rt.spin)
+		texel := rt.tex.atLod(rt.lod, sinLat, atan2Turns(p2, p1)-rt.spin)
 		cdst = append(cdst, gui.RGBA(
 			chan8(float32(texel.R)*rt.k+rt.w),
 			chan8(float32(texel.G)*rt.k+rt.w),
@@ -1441,10 +1484,64 @@ func mixColor(a, b gui.Color, t float32) gui.Color {
 // chan8 clamps a float channel into a byte.
 func chan8(v float32) uint8 { return uint8(clamp32(v, 0, 255)) }
 
-// drawRings draws Saturn's rings as three concentric ellipse arcs over
-// the given angular span.
-func drawRings(dc *gui.DrawContext, cx, cy, r, start, sweep,
-	litFrac float32,
+// ringBasis resolves a planet's ring plane into two screen-space
+// vectors, in the same camera coordinates axisDir uses.
+//
+// The rings lie in the planet's *equatorial* plane, so the plane's
+// normal is the spin axis and the projected ring is an ellipse whose
+// minor axis lies along the axis's own screen direction. Drawing an
+// axis-aligned ellipse instead — which is what this did — leaves the
+// rings level while the pole line leans, and for Saturn that is a
+// 30-degree disagreement between two things drawn from the same fact.
+//
+// e1 is the in-plane direction that lies flat in the screen, so it
+// carries no depth and is a unit vector: the ellipse's semi-major
+// axis. e2 completes the plane and carries all of it; its screen
+// length works out to |az|, which is the semi-minor axis, and its own
+// depth component is m. So a ring point at parameter theta is
+//
+//	P = R*(cos(theta)*e1 + sin(theta)*e2)
+//
+// with depth R*sin(theta)*m — the near half is exactly sin(theta) > 0,
+// which is what lets the caller split front from back without a guess.
+//
+// The degenerate case is an axis pointing straight at the viewer: the
+// ring is then face-on, m is zero and e1 is undefined. Any in-plane
+// direction will do there, so it takes screen right.
+func ringBasis(p *Planet) (e1x, e1y, e2x, e2y float32) {
+	ax, ay, az := axisDir(p)
+	m := sqrt32(ax*ax + ay*ay)
+	if m < 1e-6 {
+		return 1, 0, 0, 1
+	}
+	// e1 = normalize(axis x viewer) in screen terms: perpendicular to
+	// the axis's screen direction.
+	e1x, e1y = -ay/m, ax/m
+	// e2 = axis x e1, whose screen part is -(az/m) * (ax, ay).
+	e2x, e2y = -az*ax/m, -az*ay/m
+	return e1x, e1y, e2x, e2y
+}
+
+// ringSegs is how many line segments one half-ring is drawn with.
+// Scaled by radius for the same reason the sphere mesh is: a small
+// Saturn cannot show the difference and a zoomed one can.
+func ringSegs(rx float32) int {
+	return int(clamp32(rx*0.35, 14, 72))
+}
+
+// drawRings draws Saturn's rings as three concentric ellipse arcs in
+// the planet's equatorial plane.
+//
+// near selects the half in front of the body (depth > 0) or behind it.
+// The two calls together draw the whole ring, and the body drawn
+// between them is what makes it pass behind.
+//
+// gui.DrawContext.Arc can only draw an axis-aligned ellipse, so the
+// arc is walked as a polyline instead. That is not a workaround with a
+// cost: the same walk is what gives the exact front/back split, since
+// the sign of sin(theta) is the sign of the depth.
+func drawRings(a *App, dc *gui.DrawContext, p *Planet, cx, cy, r float32,
+	near bool, litFrac float32,
 ) {
 	// The rings take the same sunlight the body does, so they fade with
 	// the phase rather than staying bright over a night-side Saturn.
@@ -1452,13 +1549,31 @@ func drawRings(dc *gui.DrawContext, cx, cy, r, start, sweep,
 	// Stroke width scales with the body but stays hairline-ish: at
 	// r*0.10 the bands read as three brown tubes rather than rings.
 	width := clamp32(r*0.035, 1, 5)
+
+	e1x, e1y, e2x, e2y := ringBasis(p)
+	// The near half is sin(theta) > 0, so it runs theta over (0, pi)
+	// and the far half over (pi, 2pi) — a sign on the e2 term.
+	depth := float32(1)
+	if !near {
+		depth = -1
+	}
+
 	for _, k := range [3]float32{1.42, 1.70, 1.96} {
 		rx := r * k
-		ry := rx * 0.26
 		if rx < 3 {
 			continue
 		}
-		dc.Arc(cx, cy, rx, ry, start, sweep, col, width)
+		n := ringSegs(rx)
+		pts := a.ringPts[:0]
+		for i := 0; i <= n; i++ {
+			th := float32(math.Pi) * float32(i) / float32(n)
+			c, sn := cos32(th), depth*sin32(th)
+			pts = append(pts,
+				cx+rx*(c*e1x+sn*e2x),
+				cy+rx*(c*e1y+sn*e2y))
+		}
+		a.ringPts = pts
+		dc.Polyline(pts, col, width)
 	}
 }
 

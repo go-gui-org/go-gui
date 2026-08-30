@@ -42,16 +42,57 @@ const (
 // instead of crowding the poles — and, because the mesh hands sampling
 // a direction whose sin(latitude) it already has, it removes an asin
 // from the per-vertex path entirely.
-type bodyTexture struct {
+type texLevel struct {
 	w, h  int
 	texel []gui.Color
 }
+
+// bodyTexture is that grid at a pyramid of resolutions: lod[0] is full
+// detail and each level after it is a box filter of the one above, half
+// the columns and half the rows.
+//
+// The pyramid exists because the mesh cannot carry full detail. Vertices
+// are laid out in the *light* basis, so at a small body's tessellation
+// one vertex step spans about four texels — four times past the rate at
+// which the surface can be point-sampled without aliasing. The grid also
+// stands still on screen while the body turns underneath it, so the
+// alias pattern does not merely look wrong, it crawls: rings of moire
+// concentric with the sub-solar point, sweeping the lit side. Mercury
+// showed it worst because its craters are a threshold on a noise field,
+// and a step edge has no highest frequency to be under.
+//
+// Prefiltering is the fix and more vertices are not. Doubling the mesh
+// buys one octave for four times the triangles; picking a level matched
+// to the vertex spacing removes every octave the mesh cannot represent,
+// for eight texel reads.
+type bodyTexture struct {
+	lod []texLevel
+}
+
+// maxLodDim stops the pyramid while a level still has enough rows to
+// interpolate over. Below this the surface is its mean color and a
+// further level would say nothing new.
+const maxLodDim = 4
 
 // at samples the surface at a latitude given as its sine and a
 // longitude given in turns. turn is wrapped, so a caller may add spin
 // to it without normalizing; sinLat is clamped, which only matters for
 // float error at the poles.
-func (t *bodyTexture) at(sinLat, turn float32) gui.Color {
+//
+// The sample is bilinear, and that is not a quality nicety: it is what
+// keeps a spinning planet from jittering. The mesh's vertices are laid
+// out in the *light* basis, so they sit still on screen while the body
+// turns underneath them. A nearest-texel lookup therefore holds each
+// vertex's color constant for a whole texel of spin and then snaps —
+// 1/128 of a turn, about 3 px of feature travel on a mid-size disc —
+// and every vertex snaps at its own moment, which reads as the surface
+// crawling rather than rotating. Interpolating makes each vertex's
+// color a continuous function of spin, so the pattern slides.
+//
+// Longitude wraps between the last column and the first, because the
+// grid is a full circle. Latitude clamps, because the rows stop at the
+// poles.
+func (t *texLevel) at(sinLat, turn float32) gui.Color {
 	// Clamp before the float-to-int below, not after: NaN compares
 	// false against both bounds, so a clamp on the integer row would
 	// let it slip through with an unspecified value. Catch it with a
@@ -65,25 +106,178 @@ func (t *bodyTexture) at(sinLat, turn float32) gui.Color {
 	} else if sinLat != sinLat {
 		sinLat = 1
 	}
-	row := int((1 - sinLat) * 0.5 * float32(t.h))
-	if row < 0 {
-		row = 0
-	} else if row >= t.h {
-		row = t.h - 1
+	// Row centers sit at sinLat = 1 - 2*(row+0.5)/h (see makeTexture),
+	// so inverting gives a continuous coordinate whose integers land on
+	// centers once the half-texel is taken back off.
+	ry := (1-sinLat)*0.5*float32(t.h) - 0.5
+	r0 := int(floor32(ry))
+	fy := ry - float32(r0)
+	r1 := r0 + 1
+	// Above the first center and below the last there is no second row
+	// to blend with; clamping both ends onto the same row makes the
+	// blend a no-op there instead of a wrap onto the far pole.
+	if r0 < 0 {
+		r0 = 0
+	} else if r0 >= t.h {
+		r0 = t.h - 1
 	}
+	if r1 < 0 {
+		r1 = 0
+	} else if r1 >= t.h {
+		r1 = t.h - 1
+	}
+
 	// Wrap into [0,1) without math.Floor: the truncation toward zero
-	// is corrected by the negative branch.
+	// is corrected by the negative branch. NaN is caught here for the
+	// same reason it is caught above, and it has to be caught *here*
+	// rather than on the column: int(NaN) is implementation-defined,
+	// and on amd64 it is math.MinInt64, which no clamp on the column
+	// recovers from before the index.
 	f := turn - float32(int(turn))
-	if f < 0 {
+	if f != f {
+		f = 0
+	} else if f < 0 {
 		f++
 	}
-	col := int(f * float32(t.w))
-	if col < 0 {
-		col = 0
-	} else if col >= t.w {
-		col = t.w - 1
+	rx := f*float32(t.w) - 0.5
+	c0 := int(floor32(rx))
+	fx := rx - float32(c0)
+	// f is in [0,1), so rx is in [-0.5, w-0.5) and c0 is in [-1, w-1]:
+	// it can only be one step below zero, never past the far end. One
+	// conditional is enough; no modulo needed.
+	if c0 < 0 {
+		c0 += t.w
 	}
-	return t.texel[row*t.w+col]
+	c1 := c0 + 1
+	if c1 >= t.w {
+		c1 = 0
+	}
+
+	a := t.texel[r0*t.w+c0]
+	b := t.texel[r0*t.w+c1]
+	c := t.texel[r1*t.w+c0]
+	d := t.texel[r1*t.w+c1]
+	return gui.RGB(
+		bilerp8(a.R, b.R, c.R, d.R, fx, fy),
+		bilerp8(a.G, b.G, c.G, d.G, fx, fy),
+		bilerp8(a.B, b.B, c.B, d.B, fx, fy),
+	)
+}
+
+// lerp8 blends two bytes. Rounding is by the +0.5 truncation rather
+// than chan8's clamp or mixColor, because a convex combination of two
+// bytes cannot leave the byte range and the clamp would be dead work
+// on a per-vertex path.
+func lerp8(a, b uint8, t float32) uint8 {
+	return uint8(lerp(float32(a), float32(b), t) + 0.5)
+}
+
+// bilerp8 blends the four corners of one texel cell on a single
+// channel. It rounds the way lerp8 does but only once, at the end:
+// rounding the two row blends first would cost a count of bias on
+// every sample.
+func bilerp8(a, b, c, d uint8, fx, fy float32) uint8 {
+	top := lerp(float32(a), float32(b), fx)
+	bot := lerp(float32(c), float32(d), fx)
+	return uint8(lerp(top, bot, fy) + 0.5)
+}
+
+// at samples the finest level. Kept for callers with no footprint to
+// offer — the tests, and any sampling that is not per mesh vertex.
+func (t *bodyTexture) at(sinLat, turn float32) gui.Color {
+	return t.lod[0].at(sinLat, turn)
+}
+
+// atLod samples at a fractional pyramid level, blending the two levels
+// that bracket it.
+//
+// The blend is what keeps the level choice invisible. Adjacent rings of
+// one body land on different footprints and so on different levels; a
+// hard switch would draw that boundary as a visible ring of changing
+// sharpness, which is the artifact this whole path exists to remove.
+func (t *bodyTexture) atLod(lod, sinLat, turn float32) gui.Color {
+	if lod <= 0 {
+		return t.lod[0].at(sinLat, turn)
+	}
+	top := len(t.lod) - 1
+	if lod >= float32(top) {
+		return t.lod[top].at(sinLat, turn)
+	}
+	i := int(lod)
+	f := lod - float32(i)
+	a := t.lod[i].at(sinLat, turn)
+	b := t.lod[i+1].at(sinLat, turn)
+	return gui.RGB(
+		lerp8(a.R, b.R, f), lerp8(a.G, b.G, f), lerp8(a.B, b.B, f))
+}
+
+// maxLod is the coarsest level the pyramid holds, as the caller's
+// clamp bound.
+func (t *bodyTexture) maxLod() float32 { return float32(len(t.lod) - 1) }
+
+// lodFor turns a vertex spacing, in radians of arc on the unit sphere,
+// into a pyramid level.
+//
+// The reference is one texel of the longitude grid at the equator,
+// 2*pi/texW: level 0 resolves that, and every level after it doubles
+// the span. A spacing at or below one texel asks for full detail and
+// clamps to zero.
+func (t *bodyTexture) lodFor(ds float32) float32 {
+	l := log2f(ds * float32(texW) * (1 / (2 * math.Pi)))
+	return clamp32(l, 0, t.maxLod())
+}
+
+// log2f is log2 for positive floats, taken from the exponent field with
+// the mantissa folded in linearly. Worst case is about 0.086 of a level,
+// which moves the blend weight and never the choice of levels — and it
+// costs no library call on a path that runs once per ring.
+func log2f(v float32) float32 {
+	if v <= 0 {
+		return 0
+	}
+	b := math.Float32bits(v)
+	e := float32(int32(b>>23) - 127)
+	m := math.Float32frombits((b & 0x007FFFFF) | 0x3F800000)
+	return e + (m - 1)
+}
+
+// downsample box-filters a surface into one of half the columns and
+// half the rows, in place of a new buffer.
+//
+// It works on the unquantized floats rather than on the level above's
+// bytes, and that is deliberate: rounding to bytes at every level
+// compounds its own bias, so a five-level pyramid built from bytes
+// walks its mean off the planet's table color. Filtering the source
+// once per level keeps every level's mean the source's mean, and each
+// is quantized exactly once.
+//
+// A plain 2x2 average is area-correct here and would not be on most
+// lat/lon grids: rows are uniform in sin(latitude), so every texel of
+// every row covers the same area of the sphere and none of them needs
+// weighting.
+func downsample(src []rgbF, w, h int) ([]rgbF, int, int) {
+	dw, dh := w/2, h/2
+	dst := make([]rgbF, dw*dh)
+	for row := range dh {
+		s0 := (row * 2) * w
+		s1 := s0 + w
+		for col := range dw {
+			c0, c1 := col*2, col*2+1
+			sum := src[s0+c0].add(src[s0+c1]).
+				add(src[s1+c0]).add(src[s1+c1])
+			dst[row*dw+col] = sum.scale(0.25)
+		}
+	}
+	return dst, dw, dh
+}
+
+// quantize freezes a float surface into one pyramid level.
+func quantize(src []rgbF, w, h int) texLevel {
+	l := texLevel{w: w, h: h, texel: make([]gui.Color, len(src))}
+	for i, c := range src {
+		l.texel[i] = c.color()
+	}
+	return l
 }
 
 // planetTextures is built once for the process, not once per App:
@@ -383,7 +577,6 @@ func makeTextures() [len(planets)]*bodyTexture {
 // and a planet too small to show any texture still reads as the same
 // planet it did before.
 func makeTexture(base rgbF, fn texFn) *bodyTexture {
-	t := &bodyTexture{w: texW, h: texH}
 	buf := make([]rgbF, texW*texH)
 
 	for row := range texH {
@@ -403,9 +596,12 @@ func makeTexture(base rgbF, fn texFn) *bodyTexture {
 
 	normalizeMean(buf, base)
 
-	t.texel = make([]gui.Color, len(buf))
-	for i, c := range buf {
-		t.texel[i] = c.color()
+	// Build down until a level is too small to interpolate over. The
+	// whole pyramid costs a third again of the base level.
+	t := &bodyTexture{lod: []texLevel{quantize(buf, texW, texH)}}
+	for w, h := texW, texH; w/2 >= maxLodDim && h/2 >= maxLodDim; {
+		buf, w, h = downsample(buf, w, h)
+		t.lod = append(t.lod, quantize(buf, w, h))
 	}
 	return t
 }
