@@ -62,6 +62,8 @@ func renderDrawCanvas(shape *Shape, clip drawClip, w *Window) {
 			Scale:      scale,
 			Batches:    dc.batches,
 			spare:      dc.batchPool,
+			Gradients:  dc.gradients,
+			gradSpare:  dc.gradientPool,
 			Texts:      dc.texts,
 			Images:     dc.images,
 		}
@@ -71,7 +73,7 @@ func renderDrawCanvas(shape *Shape, clip drawClip, w *Window) {
 	}
 
 	if len(cached.Batches) == 0 && len(cached.Texts) == 0 &&
-		len(cached.Images) == 0 {
+		len(cached.Images) == 0 && len(cached.Gradients) == 0 {
 		return
 	}
 
@@ -112,17 +114,13 @@ func renderDrawCanvas(shape *Shape, clip drawClip, w *Window) {
 	// that consumes RenderSvg already reads that channel for SVG
 	// gradients, so a canvas gradient needs nothing below this line.
 	// validSvgCmd rejects a batch whose two lengths disagree.
-	for _, batch := range cached.Batches {
-		emitRenderer(RenderCmd{
-			Kind:         RenderSvg,
-			Triangles:    batch.Triangles,
-			VertexColors: batch.VertexColors,
-			Color:        batch.Color,
-			X:            ox,
-			Y:            oy,
-			Scale:        1.0,
-		}, w)
-	}
+	//
+	// Lowered radial fills interleave here by the batch counter each
+	// one recorded, so a halo drawn before the disc it surrounds still
+	// paints before it. This is the only ordering the canvas keeps:
+	// images are always the back layer and text always the front,
+	// whatever order the OnDraw callback used.
+	emitDrawCanvasGeometry(&cached, ox, oy, w)
 
 	// Emit deferred text commands.
 	for i := range cached.Texts {
@@ -205,6 +203,51 @@ func renderDrawCanvas(shape *Shape, clip drawClip, w *Window) {
 // since RenderClip *replaces* the scissor rather than nesting) and
 // restores clip afterwards, so a clipped entry cannot leak its
 // scissor onto the entries that follow.
+// emitDrawCanvasGeometry emits the triangle batches and the lowered
+// radial fills in the order the OnDraw callback produced them, walking
+// the two lists together by each gradient's batch counter.
+func emitDrawCanvasGeometry(cached *drawCanvasCache,
+	ox, oy float32, w *Window) {
+	gi := 0
+	for bi := range cached.Batches {
+		for gi < len(cached.Gradients) &&
+			cached.Gradients[gi].afterBatch <= bi {
+			emitDrawCanvasGradient(&cached.Gradients[gi], ox, oy, w)
+			gi++
+		}
+		batch := &cached.Batches[bi]
+		emitRenderer(RenderCmd{
+			Kind:         RenderSvg,
+			Triangles:    batch.Triangles,
+			VertexColors: batch.VertexColors,
+			Color:        batch.Color,
+			X:            ox,
+			Y:            oy,
+			Scale:        1.0,
+		}, w)
+	}
+	for ; gi < len(cached.Gradients); gi++ {
+		emitDrawCanvasGradient(&cached.Gradients[gi], ox, oy, w)
+	}
+}
+
+// emitDrawCanvasGradient emits one lowered radial fill. The quad is
+// the circle's bounding square, so the command's corner radius is
+// half its width: that rounds the quad down to exactly the circle the
+// shader's radial ramp already reaches the end of.
+func emitDrawCanvasGradient(e *DrawCanvasGradientEntry,
+	ox, oy float32, w *Window) {
+	emitRenderer(RenderCmd{
+		Kind:     RenderGradient,
+		Gradient: &e.Def,
+		X:        ox + e.X,
+		Y:        oy + e.Y,
+		W:        e.W,
+		H:        e.H,
+		Radius:   e.W / 2,
+	}, w)
+}
+
 func emitDrawCanvasImages(
 	images []DrawCanvasImageEntry, ox, oy float32, clip drawClip, w *Window,
 ) {

@@ -35,6 +35,7 @@ void metalEndFrame(void);
 void metalSetPipeline(int id);
 void metalSetMVP(const float* m);
 void metalSetTM(const float* m);
+void metalSetGradientTM2(const float* m);
 
 // Scissor
 void metalSetScissor(int x, int y, int w, int h, int viewH);

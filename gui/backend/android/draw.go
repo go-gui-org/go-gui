@@ -227,10 +227,11 @@ func (b *Backend) drawGradient(w *gui.Window, r *gui.RenderCmd) {
 		w.DebugGradientResampled(r.X, r.Y, len(stops), len(r.Gradient.Stops))
 	}
 
-	tm := gpu.PackGradientUniforms(r.Gradient, stops, width, h)
+	tm, tm2 := gpu.PackGradientUniforms(r.Gradient, stops, width, h)
 
 	b.SetPipeline(pipeGradient)
 	C.glesSetTM((*C.float)(&tm[0]))
+	C.glesSetTM2((*C.float)(&tm2[0]))
 
 	verts := gpu.BuildQuad(x, y, width, h, gui.White, rad, 0)
 	C.glesDrawQuad((*C.float)(unsafe.Pointer(&verts[0])))

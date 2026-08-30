@@ -10,10 +10,15 @@ type drawCanvasCache struct {
 	// header array itself off the per-frame allocation path, and the
 	// stale headers left in spare past its new length are never read —
 	// takeBatch only ever indexes below len(pool).
-	spare   []DrawCanvasTriBatch
-	Texts   []DrawCanvasTextEntry
-	Images  []DrawCanvasImageEntry
-	Version uint64
+	spare  []DrawCanvasTriBatch
+	Texts  []DrawCanvasTextEntry
+	Images []DrawCanvasImageEntry
+	// Gradients holds the radial fills that were lowered to a shader
+	// quad instead of a ring mesh, and gradSpare is their pool. The
+	// two ping-pong exactly as Batches and spare do.
+	Gradients []DrawCanvasGradientEntry
+	gradSpare []DrawCanvasGradientEntry
+	Version   uint64
 	// pass is the Window.renderPass that last wrote this entry. A
 	// redraw recycles the entry's buffers only when it belongs to an
 	// earlier pass, so a canvas rendered twice in one list — which
@@ -23,6 +28,33 @@ type drawCanvasCache struct {
 	tessWidth  float32
 	tessHeight float32
 	Scale      float32
+}
+
+// DrawCanvasGradientEntry is a radial gradient fill the canvas hands
+// to the backend as one RenderGradient quad rather than tessellating
+// it. X/Y/W/H are the quad in the same content-relative coordinates
+// the triangle batches use; the fill is a circle inscribed in it, so
+// the command's corner radius is W/2 and the shader's radial ramp,
+// which is always centered on the quad with radius max(W,H)/2, lands
+// exactly on the circle.
+//
+// Def carries only Stops and Type: GradientDef has no center, radius,
+// focal or spread of its own, which is why only the concentric case
+// can take this path at all.
+//
+// afterBatch is how many triangle batches had been recorded when this
+// fill arrived. It stays unexported because it is bookkeeping for the
+// emission walk, not something a consumer of Gradients() can act on:
+// renderDrawCanvas walks batches and gradients together, emitting a
+// gradient before the batch its counter names.
+//
+// Lifetime matches DrawCanvasTriBatch: Def.Stops belongs to the
+// canvas's cache entry and is recycled by the next redraw.
+// exportaudit:keep — reachable from an exported signature
+type DrawCanvasGradientEntry struct {
+	Def        GradientDef
+	X, Y, W, H float32
+	afterBatch int
 }
 
 // DrawCanvasTextEntry stores a deferred text drawing command.

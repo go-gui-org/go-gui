@@ -8,7 +8,10 @@ import (
 // render_gradient.go — pure-Go gradient math ported from V's
 // render_gradient.v. No GPU calls.
 
-const gradientShaderStopLimit = 5
+// gradientShaderStopLimit is how many gradient stops the GPU shaders'
+// uniforms carry. Must stay in step with gpu.GradientStopSlots, which
+// packs what this produces.
+const gradientShaderStopLimit = 12
 
 func clampUnit(v float32) float32 {
 	// NaN compares false both ways; fold to 0 instead of propagating.
@@ -292,8 +295,9 @@ func NormalizeGradientStops(stops []GradientStop, norm *[]GradientStop) []Gradie
 
 // NormalizeGradientStopsInto is the non-allocating variant that
 // reuses caller-provided slices. Stops beyond gradientShaderStopLimit
-// are resampled to evenly spaced positions; NormalizeGradientStops is
-// the no-resample variant for backends without a stop limit.
+// are resampled down to the limit by resampleStopsInto;
+// NormalizeGradientStops is the no-resample variant for backends
+// without a stop limit.
 func NormalizeGradientStopsInto(stops []GradientStop, norm, sampled *[]GradientStop) []GradientStop {
 	if norm == nil || sampled == nil {
 		return nil
@@ -307,16 +311,165 @@ func NormalizeGradientStopsInto(stops []GradientStop, norm, sampled *[]GradientS
 		*sampled = (*sampled)[:0]
 		return result
 	}
+	return resampleStopsInto(result, sampled)
+}
+
+// maxPremulStopErr returns the largest premultiplied-channel gap
+// between two stop lists, in 0..255 units — how far apart the two
+// would paint at their worst point.
+//
+// Exact rather than sampled. Both lists are piecewise linear in
+// premultiplied channels between their own stops, so their difference
+// is too, and a piecewise-linear function takes its extremes at a
+// breakpoint: evaluating at every stop of either list finds the worst
+// case with nothing left to miss.
+func maxPremulStopErr(a, b []GradientStop) float32 {
+	if len(a) == 0 || len(b) == 0 {
+		return 0
+	}
+	var worst float32
+	at := func(pos float32) {
+		pa := premulChannels(SampleGradientStopColor(a, pos))
+		pb := premulChannels(SampleGradientStopColor(b, pos))
+		for ch := range 4 {
+			d := pa[ch] - pb[ch]
+			if d < 0 {
+				d = -d
+			}
+			if d > worst {
+				worst = d
+			}
+		}
+	}
+	for i := range a {
+		at(a[i].Pos)
+	}
+	for i := range b {
+		at(b[i].Pos)
+	}
+	return worst
+}
+
+// premulChannels returns the four channels a compositor actually
+// receives: RGB scaled by alpha, plus alpha, in 0..255 units.
+//
+// Stop placement is judged here rather than in straight-alpha space
+// because a hue error underneath a near-zero alpha never reaches the
+// framebuffer, and a straight-alpha metric would spend stops chasing
+// it — exactly the tail of a glow, where the budget is scarcest.
+func premulChannels(c Color) [4]float32 {
+	a := float32(c.A) / 255
+	return [4]float32{
+		float32(c.R) * a, float32(c.G) * a, float32(c.B) * a,
+		float32(c.A),
+	}
+}
+
+// segmentWorstStop finds the stop strictly inside [lo,hi] that the
+// straight line from lo to hi misses by the most, and reports that
+// error. Returns -1 when the span holds no interior stop.
+func segmentWorstStop(stops []GradientStop, lo, hi int) (int, float32) {
+	a := premulChannels(stops[lo].Color)
+	b := premulChannels(stops[hi].Color)
+	span := stops[hi].Pos - stops[lo].Pos
+	idx, worst := -1, float32(0)
+	for m := lo + 1; m < hi; m++ {
+		var u float32
+		if span > 0 {
+			u = (stops[m].Pos - stops[lo].Pos) / span
+		}
+		cur := premulChannels(stops[m].Color)
+		var e float32
+		for ch := range 4 {
+			d := a[ch] + (b[ch]-a[ch])*u - cur[ch]
+			if d < 0 {
+				d = -d
+			}
+			if d > e {
+				e = d
+			}
+		}
+		if idx < 0 || e > worst {
+			idx, worst = m, e
+		}
+	}
+	return idx, worst
+}
+
+// resampleStopsInto cuts an over-long stop list down to
+// gradientShaderStopLimit by keeping the stops that carry the shape,
+// not by spacing them evenly.
+//
+// Even spacing is the wrong default for the curves that actually run
+// over the limit. A glow's opacity piles into the innermost third of
+// its ramp, so five evenly spaced samples put four of them in the flat
+// part and one in the falloff — measured against the analytic curve
+// that is up to 80/255 off in the composited channels, while the same
+// five stops placed by error land within 18 and eight within 8, which
+// is the source list's own sampling error. Soft and web honour the
+// full list, so this divergence was GPU-only and no golden could see
+// it.
+//
+// The placement is a Douglas-Peucker split: keep the two ends, then
+// repeatedly promote the stop that the current piecewise line misses
+// by the most. O(n*k), the same order as the even path it replaces
+// (which scanned the list once per sample), and it keeps the source
+// stops' own colors and positions rather than resampling them.
+func resampleStopsInto(result []GradientStop, sampled *[]GradientStop) []GradientStop {
 	*sampled = (*sampled)[:0]
 	if cap(*sampled) < gradientShaderStopLimit {
 		*sampled = make([]GradientStop, 0, gradientShaderStopLimit)
 	}
-	for i := range gradientShaderStopLimit {
-		samplePos := float32(i) / float32(gradientShaderStopLimit-1)
+
+	// A list that does not span the whole ramp needs a flat stop at
+	// each end it misses. SampleGradientStopColor clamps outside the
+	// stop range, but the GPU shader interpolates from the first
+	// stop's position outward, so without these it extrapolates past
+	// the ramp instead of holding the end color. The even path got
+	// this for free by always emitting positions 0 and 1.
+	lead := result[0].Pos > 0
+	tail := result[len(result)-1].Pos < 1
+	budget := gradientShaderStopLimit
+	if lead {
+		budget--
+	}
+	if tail {
+		budget--
+	}
+	budget = max(budget, 2)
+
+	var chosen [gradientShaderStopLimit]int
+	n := 2
+	chosen[0] = 0
+	chosen[1] = len(result) - 1
+	for n < budget {
+		bestErr := float32(0)
+		bestSeg, bestIdx := -1, -1
+		for s := 0; s+1 < n; s++ {
+			idx, e := segmentWorstStop(result, chosen[s], chosen[s+1])
+			if idx >= 0 && (bestIdx < 0 || e > bestErr) {
+				bestErr, bestSeg, bestIdx = e, s, idx
+			}
+		}
+		if bestIdx < 0 {
+			// Every remaining stop already lies on a chosen line.
+			break
+		}
+		copy(chosen[bestSeg+2:n+1], chosen[bestSeg+1:n])
+		chosen[bestSeg+1] = bestIdx
+		n++
+	}
+
+	if lead {
+		*sampled = append(*sampled,
+			GradientStop{Color: result[0].Color, Pos: 0})
+	}
+	for _, i := range chosen[:n] {
+		*sampled = append(*sampled, result[i])
+	}
+	if tail {
 		*sampled = append(*sampled, GradientStop{
-			Color: SampleGradientStopColor(result, samplePos),
-			Pos:   samplePos,
-		})
+			Color: result[len(result)-1].Color, Pos: 1})
 	}
 	return *sampled
 }

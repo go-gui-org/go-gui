@@ -64,7 +64,12 @@ struct GradientOut {
     float  params;
     float4 stop12;
     float4 stop34;
-    float4 stop56;
+    // axis carries the linear direction (zw) or the radial target
+    // radius (w). Its xy pair is spare; stops 4-7 are read straight
+    // from the tm2 buffer in the fragment stage instead of riding
+    // four more interpolators to deliver values constant across the
+    // quad.
+    float4 axis;
     float4 meta;
 };
 
@@ -128,7 +133,7 @@ vertex GradientOut vs_gradient(
     out.params   = in.position.z;
     out.stop12   = tm[0];
     out.stop34   = tm[1];
-    out.stop56   = tm[2];
+    out.axis     = tm[2];
     out.meta     = tm[3];
     return out;
 }
@@ -271,7 +276,10 @@ static void unpack_stop(float val1, float val2,
     c = float4(r/255.0, g/255.0, b/255.0, a/255.0);
 }
 
-fragment float4 fs_gradient(GradientOut in [[stage_in]]) {
+fragment float4 fs_gradient(
+    GradientOut in [[stage_in]],
+    constant float4x4 &tm2 [[buffer(0)]]
+) {
     float radius = floor(in.params / 4096.0) / 4.0;
 
     float hw = in.meta.x;
@@ -291,17 +299,18 @@ fragment float4 fs_gradient(GradientOut in [[stage_in]]) {
 
     float t;
     if (grad_type > 0.5) {
-        float target_radius = in.stop56.w;
+        float target_radius = in.axis.w;
         t = length(pos) / target_radius;
     } else {
-        float2 stop_dir = float2(in.stop56.z, in.stop56.w);
+        float2 stop_dir = float2(in.axis.z, in.axis.w);
         t = dot(in.uv, stop_dir) * 0.5 + 0.5;
     }
     t = clamp(t, 0.0, 1.0);
 
-    // Unpack gradient stops.
-    float4 stop_colors[6];
-    float  stop_positions[6];
+    // Unpack gradient stops. Four per matrix: tm's tail is spoken
+    // for by the axis and metadata columns, so stops 4-7 live in tm2.
+    float4 stop_colors[12];
+    float  stop_positions[12];
 
     unpack_stop(in.stop12.x, in.stop12.y,
                 stop_colors[0], stop_positions[0]);
@@ -311,17 +320,29 @@ fragment float4 fs_gradient(GradientOut in [[stage_in]]) {
                 stop_colors[2], stop_positions[2]);
     unpack_stop(in.stop34.z, in.stop34.w,
                 stop_colors[3], stop_positions[3]);
-    unpack_stop(in.stop56.x, in.stop56.y,
+    unpack_stop(tm2[0].x, tm2[0].y,
                 stop_colors[4], stop_positions[4]);
-    stop_colors[5]    = stop_colors[4];
-    stop_positions[5] = stop_positions[4];
+    unpack_stop(tm2[0].z, tm2[0].w,
+                stop_colors[5], stop_positions[5]);
+    unpack_stop(tm2[1].x, tm2[1].y,
+                stop_colors[6], stop_positions[6]);
+    unpack_stop(tm2[1].z, tm2[1].w,
+                stop_colors[7], stop_positions[7]);
+    unpack_stop(tm2[2].x, tm2[2].y,
+                stop_colors[8], stop_positions[8]);
+    unpack_stop(tm2[2].z, tm2[2].w,
+                stop_colors[9], stop_positions[9]);
+    unpack_stop(tm2[3].x, tm2[3].y,
+                stop_colors[10], stop_positions[10]);
+    unpack_stop(tm2[3].z, tm2[3].w,
+                stop_colors[11], stop_positions[11]);
 
     float4 c1 = stop_colors[0];
     float4 c2 = c1;
     float  p1 = stop_positions[0];
     float  p2 = p1;
 
-    for (int i = 1; i < 6; i++) {
+    for (int i = 1; i < 12; i++) {
         if (i >= stop_count) break;
         if (t <= stop_positions[i]) {
             c2 = stop_colors[i];

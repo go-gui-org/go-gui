@@ -209,7 +209,8 @@ struct VertexOut {
     float params;
     float4 stop12;
     float4 stop34;
-    float4 stop56;
+    // axis: linear direction (zw) or radial target radius (w).
+    float4 axis;
     float4 meta;
 };
 
@@ -228,7 +229,7 @@ vertex VertexOut vs_main(VertexIn in [[stage_in]], constant Uniforms &uniforms [
     // Pass packed gradient data to FS via varyings
     out.stop12 = uniforms.tm[0];
     out.stop34 = uniforms.tm[1];
-    out.stop56 = uniforms.tm[2];
+    out.axis = uniforms.tm[2];
     out.meta = uniforms.tm[3];
     return out;
 }
@@ -245,7 +246,8 @@ struct VertexOut {
     float params;
     float4 stop12;
     float4 stop34;
-    float4 stop56;
+    // axis: linear direction (zw) or radial target radius (w).
+    float4 axis;
     float4 meta;
 };
 
@@ -264,7 +266,7 @@ void unpack_gradient_data(float val1, float val2, thread float4& c, thread float
     c = float4(r/255.0, g/255.0, b/255.0, a/255.0);
 }
 
-fragment float4 fs_main(VertexOut in [[stage_in]], texture2d<float> tex [[texture(0)]], sampler smp [[sampler(0)]]) {
+fragment float4 fs_main(VertexOut in [[stage_in]], constant float4x4 &tm2 [[buffer(0)]], texture2d<float> tex [[texture(0)]], sampler smp [[sampler(0)]]) {
     float radius = floor(in.params / 4096.0) / 4.0;
 
     // Metadata extraction
@@ -287,25 +289,31 @@ fragment float4 fs_main(VertexOut in [[stage_in]], texture2d<float> tex [[textur
     // Unified gradient t calculation
     float t;
     if (grad_type > 0.5) {
-        float target_radius = in.stop56.w; // Packed in tm_data[11]
+        float target_radius = in.axis.w; // Packed in tm_data[11]
         t = length(pos) / target_radius;
     } else {
-        float2 stop_dir = float2(in.stop56.z, in.stop56.w); // tm_data[10, 11]
+        float2 stop_dir = float2(in.axis.z, in.axis.w); // tm_data[10, 11]
         t = dot(in.uv, stop_dir) * 0.5 + 0.5;
     }
     t = clamp(t, 0.0, 1.0);
 
-    // Unpack stops (up to 5 fully supported with metadata packing)
-    float4 stop_colors[6];
-    float stop_positions[6];
+    // Four stops per matrix: tm's tail is spoken for by the axis and
+    // metadata columns, so stops 4-7 live in tm2.
+    float4 stop_colors[12];
+    float stop_positions[12];
 
     unpack_gradient_data(in.stop12.x, in.stop12.y, stop_colors[0], stop_positions[0]);
     unpack_gradient_data(in.stop12.z, in.stop12.w, stop_colors[1], stop_positions[1]);
     unpack_gradient_data(in.stop34.x, in.stop34.y, stop_colors[2], stop_positions[2]);
     unpack_gradient_data(in.stop34.z, in.stop34.w, stop_colors[3], stop_positions[3]);
-    unpack_gradient_data(in.stop56.x, in.stop56.y, stop_colors[4], stop_positions[4]);
-    // Stop 6 slot partially used for metadata
-    stop_colors[5] = stop_colors[4]; stop_positions[5] = stop_positions[4];
+    unpack_gradient_data(tm2[0].x, tm2[0].y, stop_colors[4], stop_positions[4]);
+    unpack_gradient_data(tm2[0].z, tm2[0].w, stop_colors[5], stop_positions[5]);
+    unpack_gradient_data(tm2[1].x, tm2[1].y, stop_colors[6], stop_positions[6]);
+    unpack_gradient_data(tm2[1].z, tm2[1].w, stop_colors[7], stop_positions[7]);
+    unpack_gradient_data(tm2[2].x, tm2[2].y, stop_colors[8], stop_positions[8]);
+    unpack_gradient_data(tm2[2].z, tm2[2].w, stop_colors[9], stop_positions[9]);
+    unpack_gradient_data(tm2[3].x, tm2[3].y, stop_colors[10], stop_positions[10]);
+    unpack_gradient_data(tm2[3].z, tm2[3].w, stop_colors[11], stop_positions[11]);
 
     // Multi-stop interpolation loop
     float4 c1 = stop_colors[0];
@@ -313,7 +321,7 @@ fragment float4 fs_main(VertexOut in [[stage_in]], texture2d<float> tex [[textur
     float p1 = stop_positions[0];
     float p2 = p1;
 
-    for (int i = 1; i < 6; i++) {
+    for (int i = 1; i < 12; i++) {
         if (i >= stop_count) break;
         if (t <= stop_positions[i]) {
             c2 = stop_colors[i];

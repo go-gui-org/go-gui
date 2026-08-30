@@ -234,11 +234,15 @@ func (b *Backend) drawGradient(w *gui.Window, r *gui.RenderCmd) {
 		w.DebugGradientResampled(r.X, r.Y, len(stops), len(r.Gradient.Stops))
 	}
 
-	tm := gpu.PackGradientUniforms(r.Gradient, stops, width, h)
+	tm, tm2 := gpu.PackGradientUniforms(r.Gradient, stops, width, h)
 
 	b.usePipeline(&b.pipelines.gradient)
 	gogl.UniformMatrix4fv(b.pipelines.gradient.uTM, 1, false,
 		&tm[0])
+	// Stops 4-7 go straight to the fragment stage; uniforms are
+	// program-scoped in GL, so this is the same program object.
+	gogl.UniformMatrix4fv(b.pipelines.gradient.uTM2, 1, false,
+		&tm2[0])
 
 	b.drawQuad(x, y, width, h, gui.White, rad, 0)
 }

@@ -40,6 +40,7 @@ void metalEndFrame(MetalCtx ctx);
 void metalSetPipeline(MetalCtx ctx, int id);
 void metalSetMVP(MetalCtx ctx, const float* m);
 void metalSetTM(MetalCtx ctx, const float* m);
+void metalSetGradientTM2(MetalCtx ctx, const float* m);
 
 // Scissor
 void metalSetScissor(MetalCtx ctx,

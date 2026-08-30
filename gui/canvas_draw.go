@@ -15,7 +15,12 @@ type DrawContext struct {
 	// buffers it left behind instead of allocating fresh ones. Nil for
 	// a context the caller built directly, which then behaves exactly
 	// as it did before pooling existed.
-	batchPool       []DrawCanvasTriBatch
+	batchPool []DrawCanvasTriBatch
+	// gradients holds radial fills lowered to a shader quad, and
+	// gradientPool is the previous redraw's list, handed in for its
+	// stop buffers exactly as batchPool is for its triangles.
+	gradients       []DrawCanvasGradientEntry
+	gradientPool    []DrawCanvasGradientEntry
 	texts           []DrawCanvasTextEntry
 	images          []DrawCanvasImageEntry
 	arcBuf          []float32
@@ -26,6 +31,7 @@ type DrawContext struct {
 	gradIsolineBuf  []float32
 	gradOffsetBuf   []float32
 	gradStopBuf     []GradientStop
+	gradSampleBuf   []GradientStop
 	gradRampBuf     []gradRampSegment
 	gradRingBuf     []gradRing
 	lineBuf         [4]float32
@@ -732,6 +738,15 @@ func (dc *DrawContext) Images() []DrawCanvasImageEntry {
 // testing DrawCanvas output.
 func (dc *DrawContext) Batches() []DrawCanvasTriBatch {
 	return dc.batches
+}
+
+// Gradients returns the radial fills this context lowered to shader
+// quads instead of tessellating. A consumer counting what a canvas
+// produced needs both this and Batches: a concentric radial fill
+// appears in exactly one of them.
+// exportaudit:keep — dev/test observability, paired with Batches
+func (dc *DrawContext) Gradients() []DrawCanvasGradientEntry {
+	return dc.gradients
 }
 
 // NewDrawContext creates a DrawContext for headless rendering.

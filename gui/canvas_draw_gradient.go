@@ -203,10 +203,111 @@ func (dc *DrawContext) FilledRectGradient(x, y, w, h float32,
 //	})
 func (dc *DrawContext) FilledCircleGradient(cx, cy, radius float32,
 	g *CanvasGradient) {
+	if dc.emitRadialGradient(cx, cy, radius, g) {
+		return
+	}
 	if dc.fillConcentricRings(cx, cy, radius, g) {
 		return
 	}
 	dc.FilledArcGradient(cx, cy, radius, radius, 0, 2*math.Pi, g)
+}
+
+// concentricRadial reports whether this fill is the one shape the two
+// closed-form paths below can take: a pad-spread radial ramp centered
+// on the circle it fills, with no recorder attached to claim the raw
+// geometry instead.
+//
+// Two ways to be concentric, tested against what the caller wrote
+// rather than against a resolved copy. Resolving first and comparing
+// the result would mean comparing cx to ((cx-r)+(cx+r))*0.5, which
+// float32 does not always round back to cx — a fill would fall off the
+// fast path for no reason a caller could see.
+func (dc *DrawContext) concentricRadial(cx, cy, r float32,
+	g *CanvasGradient) bool {
+	if dc.recorder != nil || g == nil || len(g.Stops) == 0 {
+		return false
+	}
+	if !g.Radial || g.Spread != SpreadPad || !(r > 0) {
+		return false
+	}
+	if !(g.R > 0) {
+		// Left to default. resolveCanvasGradient centers a degenerate
+		// radial on the fill's bounds with R at half its larger
+		// extent, which for a full circle's fan is this circle.
+		return true
+	}
+	if g.R != r || g.CX != cx || g.CY != cy {
+		return false
+	}
+	// FX/FY at the origin means "unset", and the resolve puts them on
+	// the center; anywhere else is a real focal offset.
+	return (g.FX == 0 && g.FY == 0) || (g.FX == cx && g.FY == cy)
+}
+
+// maxLoweredStopErr is how far a resampled ramp may paint from the
+// full one, in premultiplied 0..255 channels, and still take the
+// shader path.
+//
+// One 8-bit step. At that size the two are the same picture — the
+// gradient shader's own dither moves a channel by half a step anyway —
+// and the ring mesh it replaces costs hundreds of triangles per fill.
+// Anything coarser is a visible band, and no amount of speed buys that
+// back.
+const maxLoweredStopErr = 1.0
+
+// emitRadialGradient records a concentric radial fill as one shader
+// quad instead of a triangle mesh, and reports whether it took it.
+//
+// The fragment shader already knows length(p - center) in closed form,
+// so a ring mesh's hundreds of triangles buy nothing: they exist only
+// to carry a distance the shader recomputes per pixel anyway, and
+// every one of their vertices is re-validated and mean-colored on the
+// way out of the frame. A large glow was a measurable share of the
+// frame purely in that bookkeeping.
+//
+// The quad is the circle's bounding square, which is what makes the
+// substitution exact. GradientDef carries no geometry of its own — no
+// center, no radius, no focal point, no spread — because the shader's
+// radial ramp is always centered on the quad with radius max(W,H)/2.
+// Around a circle of radius r that is r, and the command's corner
+// radius of W/2 rounds the quad down to the same circle. Every shape
+// the ring mesh already declines is also a shape this cannot express,
+// so concentricRadial gates both.
+//
+// The one thing the shader can lose is stop count: a ramp longer than
+// its uniform slots is resampled. That is measured rather than
+// assumed. maxPremulStopErr compares the resampled ramp to the full
+// one exactly, and anything the eye could pick out goes back to the
+// mesh — so a ten-stop glow, whose resampled form differs by under an
+// 8-bit step, is lowered, while a ramp the slots genuinely cannot
+// carry keeps its mesh.
+func (dc *DrawContext) emitRadialGradient(cx, cy, r float32,
+	g *CanvasGradient) bool {
+	if !dc.concentricRadial(cx, cy, r, g) {
+		return false
+	}
+	dc.gradStopBuf = dc.gradStopBuf[:0]
+	stops := NormalizeGradientStopsInto(g.Stops,
+		&dc.gradStopBuf, &dc.gradSampleBuf)
+	if len(stops) == 0 {
+		return false
+	}
+	if len(dc.gradSampleBuf) > 0 &&
+		maxPremulStopErr(dc.gradStopBuf, stops) > maxLoweredStopErr {
+		// The ramp was resampled to fit the uniforms and the result
+		// would not paint the same. Hand it back to the mesh, which
+		// reproduces every stop.
+		return false
+	}
+	e := dc.takeGradient()
+	// Copied rather than aliased: gradStopBuf is scratch the next fill
+	// overwrites, while this list has to outlive the whole redraw.
+	e.Def.Stops = append(e.Def.Stops[:0], stops...)
+	e.Def.Type = GradientRadial
+	e.X, e.Y = cx-r, cy-r
+	e.W, e.H = 2*r, 2*r
+	e.afterBatch = len(dc.batches)
+	return true
 }
 
 // concentricMinSegs is the angular resolution the ring mesh needs
@@ -250,34 +351,18 @@ type gradRing struct {
 // field linearly across a split triangle is only as good as the split
 // was fine, while a ring boundary lies exactly on its isoline.
 //
-// Bails out to the general path for anything else: an ellipse, an
-// off-center or offset-focal ramp, a non-pad spread (whose isolines
-// repeat past the rim), or an active recorder, whose gradient contract
-// is the raw geometry plus the gradient.
+// Bails out to the general path for anything concentricRadial
+// declines: an ellipse, an off-center or offset-focal ramp, a non-pad
+// spread (whose isolines repeat past the rim), or an active recorder,
+// whose gradient contract is the raw geometry plus the gradient.
+//
+// Still the path for a concentric fill whose ramp has more stops than
+// the GPU shader's uniforms hold: emitRadialGradient takes the same
+// shapes first but hands those back, because it would have to resample
+// them and this mesh does not.
 func (dc *DrawContext) fillConcentricRings(cx, cy, r float32,
 	g *CanvasGradient) bool {
-	if dc.recorder != nil || g == nil || len(g.Stops) == 0 {
-		return false
-	}
-	if !g.Radial || g.Spread != SpreadPad || !(r > 0) {
-		return false
-	}
-	// Two ways to be concentric, tested against what the caller wrote
-	// rather than against a resolved copy. Resolving first and
-	// comparing the result would mean comparing cx to
-	// ((cx-r)+(cx+r))*0.5, which float32 does not always round back to
-	// cx — a fill would fall off the fast path for no reason a caller
-	// could see.
-	if !(g.R > 0) {
-		// Left to default. resolveCanvasGradient centers a degenerate
-		// radial on the fill's bounds with R at half its larger
-		// extent, which for a full circle's fan is this circle.
-	} else if g.R != r || g.CX != cx || g.CY != cy {
-		return false
-	} else if !(g.FX == 0 && g.FY == 0) &&
-		!(g.FX == cx && g.FY == cy) {
-		// FX/FY at the origin means "unset", and the resolve puts them
-		// on the center; anywhere else is a real focal offset.
+	if !dc.concentricRadial(cx, cy, r, g) {
 		return false
 	}
 
