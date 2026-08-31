@@ -133,9 +133,16 @@ type ShowcaseApp struct {
 	SplitterDetailState gui.SplitterState
 	RangeValue          float32
 	AudioVolume         float64
-	AudioMusicLoaded    bool
-	AudioMusicPlaying   bool
-	AudioMusicPaused    bool
+	// WidgetSoundOn tracks the widget-sound opt-in (issue #446). Two
+	// things must be true for a widget to sound: a theme naming a cue
+	// per role, and an installed SoundPlayer. The switch does both.
+	WidgetSoundOn     bool
+	WidgetSoundVolume float32
+	WidgetSoundDemoOn bool
+	WidgetSoundBeep   bool
+	AudioMusicLoaded  bool
+	AudioMusicPlaying bool
+	AudioMusicPaused  bool
 
 	AnimTweenX    float32
 	AnimSpringX   float32
@@ -218,6 +225,7 @@ func newShowcaseApp() *ShowcaseApp {
 		BCPath:               append([]gui.BreadcrumbItemCfg(nil), showcaseBreadcrumbPath...),
 		TabSelected:          "overview",
 		AudioVolume:          0.8,
+		WidgetSoundVolume:    0.5,
 		SplitterMainState:    gui.SplitterState{Ratio: 0.30},
 		SplitterDetailState:  gui.SplitterState{Ratio: 0.55},
 		SidebarOpen:          true,
@@ -306,6 +314,7 @@ type DemoGroup struct {
 var demoEntries = []DemoEntry{
 	{ID: "welcome", Label: "Welcome", Group: groupWelcome, Summary: "Start here for a quick introduction to Go-Gui and this showcase.", Tags: []string{"start", "intro", "overview"}},
 	{ID: "commands", Label: "Commands & Hotkeys", Group: groupWelcome, Summary: "Centralized command registry with keyboard shortcuts, menu integration, and command palette.", Tags: []string{"command", "hotkey", "shortcut", "keyboard", "palette"}},
+	{ID: "sound", Label: "Sound Feedback", Group: groupWelcome, Summary: "Opt-in interaction sounds: semantic cues, an injected player, per-widget override.", Tags: []string{"sound", "audio", "cue", "feedback", "click", "beep", "volume"}},
 
 	{ID: "color_picker", Label: "Color Picker", Group: groupSelection, Summary: "Pick RGBA and optional HSV values.", Tags: []string{"color", "hsv", "rgba"}},
 	{ID: "date_picker", Label: "Date Picker", Group: groupSelection, Summary: "Select one or many dates from a calendar.", Tags: []string{"calendar", "dates", "selection"}},

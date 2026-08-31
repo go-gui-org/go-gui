@@ -55,6 +55,17 @@ type ButtonCfg struct {
 	// The event's HoverEntered field indicates direction.
 	OnHover func(EventCtx)
 
+	// Sound overrides the theme's click cue for this button.
+	// SoundNone (the zero value) takes Theme.Sounds.Click, which is
+	// itself silent unless the app opted in (issue #446).
+	// exportaudit:keep — caller-facing config (issue #446)
+	Sound SoundCue
+
+	// SoundDisabled suppresses this button's sound regardless of the
+	// theme and of Sound above.
+	// exportaudit:keep — caller-facing config (issue #446)
+	SoundDisabled bool
+
 	// AmendLayout runs after sizing. Use to reposition child
 	// overlays or adjust layout post-arrange.
 	AmendLayout func(EventCtx)
@@ -265,6 +276,11 @@ func Button(cfg ButtonCfg) View {
 
 	onClick := cfg.OnClick
 
+	// Resolved here, not at dispatch: the cue is a generation-time
+	// decision, so it rides the shape as a value rather than a closure.
+	soundCue := resolveSoundCue(
+		guiTheme.Sounds.Click, cfg.Sound, cfg.SoundDisabled)
+
 	a11yRole := cfg.A11YRole
 	if a11yRole == AccessRoleNone {
 		a11yRole = AccessRoleButton
@@ -315,6 +331,7 @@ func Button(cfg ButtonCfg) View {
 		FloatOffsetX: cfg.FloatOffsetX,
 		FloatOffsetY: cfg.FloatOffsetY,
 		OnClick:      onClick,
+		Sound:        soundCue,
 		ClickOnSpace: true,
 		ClickOnEnter: true,
 		// A button's label takes the optical correction (issue #346);

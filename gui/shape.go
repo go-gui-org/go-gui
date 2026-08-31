@@ -452,6 +452,12 @@ type eventHandlers struct {
 	clickButton  MouseButton // non-zero filters OnClick by mouse button
 	clickOnSpace bool        // fire OnClick on spacebar via OnChar dispatch
 	clickOnEnter bool        // fire OnClick on Enter key via OnKeyDown dispatch
+
+	// soundCue is the cue dispatch emits when this shape's OnClick
+	// fires. Resolved at generation time from the theme and the
+	// widget's Cfg, and stored here rather than in a closure for the
+	// same reason as the flags above (issue #446). SoundNone = silent.
+	soundCue SoundCue
 }
 
 // shapeButtonColors holds per-button color state read by

@@ -31,6 +31,17 @@ type ToggleCfg struct {
 	Disabled    bool
 	Invisible   bool
 	Selected    bool
+
+	// Sound overrides the theme's toggle cue for this instance.
+	// SoundNone (the zero value) takes Theme.Sounds.ToggleOn or
+	// ToggleOff depending on what the next click will do (issue #446).
+	// exportaudit:keep — caller-facing config (issue #446)
+	Sound SoundCue
+
+	// SoundDisabled suppresses this toggle's sound regardless of the
+	// theme and of Sound above.
+	// exportaudit:keep — caller-facing config (issue #446)
+	SoundDisabled bool
 }
 
 // LabeledToggle is the thin form of Toggle for the common case: a
@@ -110,6 +121,16 @@ func Toggle(cfg ToggleCfg) View {
 		a11yState = AccessStateChecked
 	}
 
+	// The cue names what the click will do, not the current state: a
+	// selected toggle is about to turn off. Resolved at generation
+	// time, where the state is already known, so no runtime branch and
+	// no closure (issue #446).
+	themeCue := guiTheme.Sounds.ToggleOn
+	if cfg.Selected {
+		themeCue = guiTheme.Sounds.ToggleOff
+	}
+	soundCue := resolveSoundCue(themeCue, cfg.Sound, cfg.SoundDisabled)
+
 	return Row(ContainerCfg{
 		ID:         cfg.ID,
 		Focusable:  !cfg.FocusDisabled,
@@ -126,6 +147,7 @@ func Toggle(cfg ToggleCfg) View {
 		},
 		ClickOnSpace: true,
 		OnClick:      cfg.OnClick,
+		Sound:        soundCue,
 		clickButton:  MouseLeft,
 		MinWidth:     cfg.MinWidth,
 		OnHover: func(ctx EventCtx) {

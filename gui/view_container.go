@@ -46,6 +46,14 @@ type ContainerCfg struct {
 	// exportaudit:keep — caller-facing config (issue #372)
 	ClickOnEnter bool
 
+	// Sound is the cue emitted when OnClick fires. SoundNone (the
+	// zero value) is silent. Widget factories resolve this from the
+	// theme's SoundSet before building the container, so a caller
+	// setting it here overrides the theme for this instance.
+	// Nothing is audible until the app installs a SoundPlayer.
+	// exportaudit:keep — caller-facing config (issue #446)
+	Sound SoundCue
+
 	// OnScroll fires when the container receives scroll events.
 	// Requires Scrollable and a scrollable Overflow/ScrollMode.
 	// exportaudit:keep — caller-facing config (issue #372)
@@ -375,7 +383,8 @@ func makeContainerEvents(c *ContainerCfg) (eventHandlers, bool) {
 		c.OnMouseDown == nil &&
 		c.OnHover == nil && c.OnGesture == nil &&
 		c.OnFileDrop == nil && c.OnIMECommit == nil &&
-		c.OnScroll == nil && c.AmendLayout == nil {
+		c.OnScroll == nil && c.AmendLayout == nil &&
+		c.Sound == SoundNone {
 		return eventHandlers{}, false
 	}
 	return eventHandlers{
@@ -395,6 +404,7 @@ func makeContainerEvents(c *ContainerCfg) (eventHandlers, bool) {
 		clickButton:  c.clickButton,
 		clickOnSpace: c.ClickOnSpace,
 		clickOnEnter: c.ClickOnEnter,
+		soundCue:     c.Sound,
 	}, true
 }
 

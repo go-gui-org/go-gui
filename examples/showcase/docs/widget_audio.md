@@ -10,21 +10,24 @@ import "github.com/go-gui-org/go-gui/gui/audio"
 if err := audio.Init(); err != nil {
     log.Fatal(err)
 }
-defer audio.Quit()
 ```
+
+Init is idempotent, so a lazy "initialize on first sound" helper is the usual
+pattern. There is no exported shutdown: the mixer lives for the process.
 
 ## Sound Effects
 
 ```go
-// Load from file.
-click, _ := audio.LoadSound("click.wav")
-defer click.Free()
-click.PlayOnce()
-
-// Load from embedded bytes.
+// Load from embedded bytes (WAV, OGG, MP3, FLAC).
 snd, _ := audio.LoadSoundBytes(wavData)
-snd.Play(-1, 0) // channel -1 = first free, 0 = no loop
+defer snd.Free()
+
+snd.PlayOnce()   // channel -1 = first free, no loop
+snd.Play(-1, 0)  // the long form: channel, loop count
 ```
+
+Loading is bytes-only: pair it with `//go:embed` and the sound ships inside the
+binary with no path handling.
 
 ## Music
 
@@ -34,9 +37,8 @@ defer bgm.Free()
 bgm.Play(-1)          // -1 = loop forever
 bgm.FadeIn(-1, 2000)  // fade in over 2 s
 
-audio.PauseMusic()
-audio.ResumeMusic()
 audio.FadeOutMusic(1000)
+audio.HaltMusic()
 ```
 
 The showcase demo loads its music clip via `embeddedAssetPath`. The clip is the
@@ -92,11 +94,15 @@ bookkeeping is needed.
 ## Volume
 
 ```go
-audio.SetMasterVolume(0.8) // sound effects 0.0–1.0
-audio.SetMusicVolume(0.5)  // music channel 0.0–1.0
+audio.SetMasterVolume(0.8) // all sound channels 0.0–1.0
+v := audio.MasterVolume()  // read it back
 
-snd.SetVolume(0.3)         // per-sound volume
+vol := snd.Volume()        // per-sound volume, read-only today
 ```
+
+Per-sound volume has a getter but no exported setter, so normalize assets before
+embedding them, or scale a synthesized voice's own amplitude — see
+[Widget Sound Feedback](widget_sound.md).
 
 ## audio.Cfg
 
@@ -109,15 +115,14 @@ snd.SetVolume(0.3)         // per-sound volume
 
 ## Sound API
 
-| Function              | Description                          |
-| --------------------- | ------------------------------------ |
-| LoadSound(path)       | Load from file (WAV, OGG, MP3, FLAC) |
-| LoadSoundBytes(data)  | Load from byte slice                 |
-| Play(channel, loops)  | Play on channel (-1 = auto)          |
-| PlayOnce()            | Shorthand for Play(-1, 0)            |
-| FadeIn(ch, loops, ms) | Play with fade-in                    |
-| SetVolume(v)          | Per-sound volume 0.0–1.0             |
-| Free()                | Release resources                    |
+| Function              | Description                                |
+| --------------------- | ------------------------------------------ |
+| LoadSoundBytes(data)  | Load from byte slice (WAV, OGG, MP3, FLAC) |
+| Play(channel, loops)  | Play on channel (-1 = auto)                |
+| PlayOnce()            | Shorthand for Play(-1, 0)                  |
+| FadeIn(ch, loops, ms) | Play with fade-in                          |
+| Volume()              | Per-sound volume 0.0–1.0                   |
+| Free()                | Release resources                          |
 
 ## Music API
 
@@ -130,22 +135,21 @@ snd.SetVolume(0.3)         // per-sound volume
 
 ## Global Controls
 
-| Function               | Description                |
-| ---------------------- | -------------------------- |
-| SetMasterVolume(v)     | All sound channels 0.0–1.0 |
-| SetMusicVolume(v)      | Music channel 0.0–1.0      |
-| HaltChannel(ch)        | Stop channel (-1 = all)    |
-| FadeOutChannel(ch, ms) | Fade out channel           |
-| HaltMusic()            | Stop music immediately     |
-| FadeOutMusic(ms)       | Fade out music then halt   |
-| PauseMusic()           | Pause music                |
-| ResumeMusic()          | Resume music               |
-| PauseChannel(ch)       | Pause channel (-1 = all)   |
-| ResumeChannel(ch)      | Resume channel (-1 = all)  |
-| RewindMusic()          | Rewind to beginning        |
-| IsMusicPlaying()       | Whether music is playing   |
-| IsMusicPaused()        | Whether music is paused    |
-| IsPlaying(ch)          | Whether channel is playing |
+| Function           | Description                    |
+| ------------------ | ------------------------------ |
+| SetMasterVolume(v) | All sound channels 0.0–1.0     |
+| MasterVolume()     | Read the master volume         |
+| HaltChannel(ch)    | Stop channel (-1 = all)        |
+| IsPlaying(ch)      | Whether channel is playing     |
+| HaltMusic()        | Stop music immediately         |
+| FadeOutMusic(ms)   | Fade out music then halt       |
+| PlaySource(ch, s)  | Stream a live Source           |
+| SampleRate()       | Configured rate, 0 before Init |
+
+For **widget interaction sounds** — a click on a Button, a Toggle flipping — see
+[Widget Sound Feedback](widget_sound.md). That is a separate, higher-level
+opt-in: `gui` emits semantic cues and your player, built on this package,
+decides what they sound like.
 
 ## Notes
 

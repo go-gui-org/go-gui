@@ -10,6 +10,34 @@ and this project adheres to
 
 ### Added
 
+- **Opt-in widget audio feedback** (#446) — widgets can now play a sound when
+  the user activates them. Silent by default, and silent unless the app opts in
+  twice: a theme naming a cue per role (`theme.Sounds = gui.SoundsDefault()`)
+  and a player installed on the window (`w.SetSoundPlayer(...)`).
+
+  New in `gui`: `SoundCue` (`SoundNone`, `SoundClick`, `SoundToggleOn`,
+  `SoundToggleOff`, `SoundError`), the injected `SoundPlayer` interface,
+  `SoundSet` with `SoundsDefault()`, `Theme.Sounds` / `ThemeCfg.Sounds`,
+  `NewBeepSoundPlayer` (system alert on `SoundError`, no assets, no audio
+  library), and `(*Window).SetSoundPlayer` / `SoundPlayer` / `SetSoundVolume` /
+  `SoundVolume`. Volume is window state clamped to `0..1` where `0` is mute —
+  there is no separate mute flag.
+
+  A cue is semantic, not a sample path, which is why `gui` still does not import
+  `gui/audio`. The player is injected like `TextMeasurer` and `SvgParser` and is
+  nil in tests. `Button` and `Toggle` carry `Sound` and `SoundDisabled`;
+  precedence is `SoundDisabled > Cfg.Sound > Theme.Sounds.<role>`, resolved at
+  generation time, so a `Toggle` picks on-vs-off from its own state with no
+  extra field pair. The cue rides the shape's event record rather than a
+  closure, and fires before `OnClick` independently of `ctx.Consume()` on all
+  four activation paths: mouse, Space, Enter, and the accessibility press
+  action.
+
+  Guides at `docs/widget-sound.md` and `examples/showcase/docs/widget_sound.md`,
+  design record in `docs/specs/widget-audio-feedback.md`, and a "Sound Feedback"
+  page plus a working synthesized player in the showcase. Remaining widgets are
+  phased in as follow-ups to #446: #467, #468 and #469.
+
 - **`examples/solar_system`: calendar ring, asteroid belt and rotation axes**
   (#437) — three antique-orrery elements, all in the example, no engine change.
 
@@ -141,6 +169,15 @@ and this project adheres to
   measures tessellation rather than submission: full-system 778 -> 725 us and
   jupiter 1168 -> 1096 us, both about 6-7%. The counts above are now enforced as
   regression budgets rather than logged and forgotten.
+
+### Fixed
+
+- **`examples/showcase/docs/widget_audio.md` documented functions that are not
+  exported** — `audio.Quit`, `audio.LoadSound`, `Sound.SetVolume`,
+  `SetMusicVolume`, `PauseMusic`, `ResumeMusic`, `RewindMusic`,
+  `FadeOutChannel`, `PauseChannel`, `ResumeChannel`, `IsMusicPlaying` and
+  `IsMusicPaused` are all unexported in `gui/audio`. Corrected to the surface
+  the package actually has.
 
 ## [v0.65.0] - 2026-08-25
 

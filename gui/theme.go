@@ -201,6 +201,14 @@ type Theme struct {
 	ScrollDeltaPage float32
 	inspectorStyle  InspectorStyle
 
+	// Sounds maps interaction roles onto cues. The zero set is silent
+	// and is the intended default, so ThemeDark and ThemeLight make no
+	// sound. An app opts the whole widget set in with
+	// theme.Sounds = gui.SoundsDefault() and an installed SoundPlayer
+	// (issue #446).
+	// exportaudit:keep — caller-facing config (issue #446)
+	Sounds SoundSet
+
 	// id identifies this exact theme value. Stamped by ThemeMaker and
 	// re-stamped by every with*Style helper, so a derived theme never
 	// reuses its parent's id. Zero means "built outside ThemeMaker" and
@@ -286,6 +294,11 @@ type ThemeCfg struct {
 	//
 	// exportaudit:keep — themable form density.
 	SizeFieldMinWidth float32
+
+	// Sounds seeds Theme.Sounds; see there. Zero is silent, which is
+	// the default for every built-in theme.
+	// exportaudit:keep — caller-facing config (issue #446)
+	Sounds SoundSet
 
 	SizeBorder float32
 	Radius     float32

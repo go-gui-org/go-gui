@@ -94,8 +94,63 @@ func TestComponentDocsExist(t *testing.T) {
 }
 
 func TestDocPagesExist(t *testing.T) {
-	if doc := docPageSource("welcome"); doc == "" {
-		t.Fatal("expected doc page for welcome")
+	// Every registered doc-only page must resolve: the nav entry, the
+	// detail branch and the embedded file have to agree, and a missing
+	// mirror is otherwise only visible at runtime.
+	for id := range docPageFiles {
+		if doc := docPageSource(id); doc == "" {
+			t.Errorf("expected doc page for %s", id)
+		}
+	}
+	for _, id := range []string{"welcome", "commands", "sound"} {
+		if doc := docPageSource(id); doc == "" {
+			t.Errorf("expected doc page for %s", id)
+		}
+	}
+}
+
+// soundWiringSpy stands in for the real cue player, which needs an
+// audio device.
+type soundWiringSpy struct{ cues []gui.SoundCue }
+
+func (s *soundWiringSpy) PlaySound(c gui.SoundCue, _ float32) {
+	s.cues = append(s.cues, c)
+}
+
+func (s *soundWiringSpy) SoundAvailable() bool { return true }
+
+// Exercises the showcase's own opt-in path end to end: the theme
+// rebuild inside installWidgetSounds, then a click on a real showcase
+// button. Without this the wiring is only observable by ear.
+func TestShowcaseWidgetSoundWiring(t *testing.T) {
+	app := newShowcaseApp()
+	app.SelectedGroup = groupFeedback
+	app.SelectedComponent = "audio"
+	w := gui.NewTestWindow(gui.WindowCfg{State: app})
+	w.UpdateView(mainView)
+
+	installWidgetSounds(w, false)
+	spy := &soundWiringSpy{}
+	w.SetSoundPlayer(spy)
+	w.SetSoundVolume(0.5)
+	w.TestRender(nil)
+
+	// The demo panel sits under the "detail" scope, so the effective ID
+	// is what the public Test* API takes.
+	if err := w.TestClick("detail:widget-sound-click"); err != nil {
+		t.Fatalf("TestClick: %v", err)
+	}
+	if len(spy.cues) != 1 || spy.cues[0] != gui.SoundClick {
+		t.Fatalf("cues = %v, want [SoundClick]", spy.cues)
+	}
+
+	// SoundDisabled on one instance must stay silent.
+	spy.cues = nil
+	if err := w.TestClick("detail:widget-sound-muted"); err != nil {
+		t.Fatalf("TestClick muted: %v", err)
+	}
+	if len(spy.cues) != 0 {
+		t.Fatalf("SoundDisabled button emitted %v", spy.cues)
 	}
 }
 
