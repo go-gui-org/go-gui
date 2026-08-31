@@ -1,5 +1,6 @@
-// Draw_canvas demonstrates the DrawCanvas widget: a line chart, and
-// the gradient fills DrawContext offers alongside its flat ones.
+// Draw_canvas demonstrates the DrawCanvas widget: a line chart, the
+// gradient fills DrawContext offers alongside its flat ones, and the
+// translate/scale transform stack.
 package main
 
 import (
@@ -95,7 +96,64 @@ func mainView(w *gui.Window) gui.View {
 				Padding: gui.PadAll(16),
 				OnDraw:  drawVertexColors,
 			}),
+			gui.Text(gui.TextCfg{
+				Text:      "Transform",
+				TextStyle: gui.CurrentTheme().B1,
+			}),
+			gui.DrawCanvas(gui.DrawCanvasCfg{
+				ID:      "transform",
+				Version: 1,
+				Width:   560,
+				Height:  180,
+				Color:   gui.RGBA(30, 30, 40, 255),
+				Radius:  8,
+				Padding: gui.PadAll(16),
+				OnDraw:  drawTransform,
+			}),
 		},
+	})
+}
+
+// drawTransform draws one badge, then the same drawing code again at
+// three scales. Nothing in badge() knows about the transform: it draws
+// once, in its own 0..60 coordinate space, and Translate/ScaleBy place
+// and size every copy.
+//
+// Save and Restore bracket each copy so the transform each one sets
+// cannot leak into the next.
+func drawTransform(dc *gui.DrawContext) {
+	x := float32(0)
+	for _, scale := range []float32{1, 1.5, 2} {
+		dc.Save()
+		dc.Translate(x, 0)
+		dc.ScaleBy(scale, scale)
+		badge(dc)
+		dc.Restore()
+		// The next copy starts past this one, in canvas units.
+		x += 60*scale + 20
+	}
+
+	// A negative scale mirrors geometry. Text is positioned and sized
+	// by the transform but never mirrored, so this badge's ring and
+	// wedge flip while its label stays readable.
+	dc.Save()
+	dc.Translate(x+120, 0)
+	dc.ScaleBy(-1.5, 1.5)
+	badge(dc)
+	dc.Restore()
+}
+
+// badge draws a ring, a wedge and a label in a fixed 60x60 box. The
+// stroke width and the font size are in that same local space, so
+// both scale with the badge rather than staying at a fixed pixel size.
+func badge(dc *gui.DrawContext) {
+	dc.FilledCircle(30, 30, 26, gui.RGBA(45, 55, 80, 255))
+	dc.Circle(30, 30, 26, gui.RGBA(120, 170, 255, 255), 2)
+	dc.FilledArc(30, 30, 20, 20, -math.Pi/2, math.Pi*1.2,
+		gui.RGBA(90, 200, 160, 255))
+	dc.Text(22, 24, "go", gui.TextStyle{
+		Size:  16,
+		Color: gui.RGBA(240, 240, 250, 255),
 	})
 }
 

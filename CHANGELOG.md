@@ -10,6 +10,40 @@ and this project adheres to
 
 ### Added
 
+- **Canvas transform stack** (#474) — `DrawContext` gained `Translate`,
+  `ScaleBy`, `Save` and `Restore`, so drawing code written once in its own
+  coordinate space can be placed and resized without transforming a single
+  coordinate by hand. Both are relative and compose: `Translate(dx, dy)` shifts
+  the origin in current local units, `ScaleBy` multiplies the scale on each
+  axis, and `Save`/`Restore` bracket a change so it cannot leak into what
+  follows. `Restore` on an empty stack does nothing — `OnDraw` runs inside the
+  frame, so a panic there would take the window down.
+
+  The method is `ScaleBy`, not `Scale`, because `DrawContext.Scale` is the
+  device pixel ratio field. It is unrelated and unchanged.
+
+  The transform applies to everything: positions, stroke widths, font sizes,
+  image rects and gradients. Geometry is not rewritten on the CPU — the matrix
+  rides on the render command, where every backend already applies it — so a
+  transformed canvas costs no more per vertex than an untransformed one. Four
+  limits follow from that: curves are flattened in local space, so scaling a
+  circle up leaves it as faceted as the unscaled one; a non-uniform scale
+  positions and sizes a text run but does not shear its glyphs; a negative scale
+  moves an image's rect but never mirrors its content; and a concentric radial
+  gradient under a non-uniform scale gives up the single-quad shader path for
+  the ring mesh, which is more triangles for the same picture.
+
+  `TextWidth` and `FontHeight` answer in local units — the space `Text` takes
+  its arguments in — so their results must not be scaled again. A transform
+  derived from application state is an `OnDraw` input like any other: bump
+  `DrawCanvasCfg.Version` when it changes, or the cached tessellation is reused.
+
+  A `DrawRecorder` (SVG/PDF export) receives transformed coordinates, so
+  existing implementations need no change. PDF export now honors a command's
+  affine, which also fixes animated SVG printing at the wrong position. New:
+  `DrawCanvasTriBatch.Transform`. See `examples/draw_canvas` and
+  `docs/specs/draw-canvas-transform.md`.
+
 - **Frameless windows** (#473) — `WindowCfg.Decorations` selects the native
   window frame. `gui.DecorationNone` removes it entirely;
   `DecorationHiddenTitlebar` hides the macOS title bar while leaving the window

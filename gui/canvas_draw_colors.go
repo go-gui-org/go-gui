@@ -32,7 +32,7 @@ func (dc *DrawContext) FillTrianglesColors(tris []float32,
 		return
 	}
 	if dc.recorder != nil {
-		if vr, ok := dc.recorder.(DrawVertexColorRecorder); ok {
+		if vr, ok := dc.vertexColorRecorder(); ok {
 			vr.FillTrianglesColors(tris, colors)
 			return
 		}

@@ -1,0 +1,6 @@
+Svg xy=15.00,15.00 wh=0.00,0.00 color=#ff0000ff tris=12 bbox=4.00,4.00..24.00,24.00 centroid=14.00,14.00 digest=22b833b5
+Svg xy=15.00,15.00 wh=0.00,0.00 color=#ff0000ff tris=12 xform=[2.00,2.00,40.00,10.00] bbox=0.00,0.00..20.00,20.00 centroid=10.00,10.00 digest=9e03c1f5
+Svg xy=15.00,15.00 wh=0.00,0.00 color=#0000ffff tris=48 xform=[2.00,2.00,40.00,10.00] bbox=-1.00,-1.00..21.00,21.00 centroid=10.00,10.00 digest=086c9525
+Svg xy=15.00,15.00 wh=0.00,0.00 color=#00ff00ff tris=12 bbox=4.00,40.00..24.00,60.00 centroid=14.00,50.00 digest=e4e34eb2
+Svg xy=15.00,15.00 wh=0.00,0.00 color=#ffffff80 tris=966 vcols=483 first=#ffffffff last=#ffffff00 xform=[1.00,2.00,0.00,0.00] bbox=105.01,5.00..135.00,35.00 centroid=115.90,20.00 digest=8e0ba80d
+Text xy=59.00,73.00 wh=0.00,0.00 color=#000000ff text="T" size=16.00

@@ -110,6 +110,12 @@ func validSvgCmd(r RenderCmd) bool {
 	if !f32AllFinite3(r.X, r.Y, r.Scale) || r.Scale <= 0 {
 		return false
 	}
+	// The xform is applied per vertex in every backend, so a NaN
+	// scale would poison every triangle rather than drop one command.
+	if r.HasXform &&
+		!f32AllFinite4(r.ScaleX, r.ScaleY, r.TransX, r.TransY) {
+		return false
+	}
 	if r.HasVertexAlpha &&
 		(!f32IsFinite(r.VertexAlphaScale) ||
 			r.VertexAlphaScale < 0 ||

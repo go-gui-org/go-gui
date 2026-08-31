@@ -81,10 +81,34 @@ type DrawCanvasTextEntry struct {
 // recycled by its next redraw (DrawContext.resetFor). A consumer that
 // keeps a RenderCmd past the frame it was emitted in — the print export
 // is the one in-tree case — must copy the geometry out first.
+//
+// A batch also carries the canvas transform in force when it was
+// recorded (issue #474). Geometry is stored in the local coordinates
+// the caller drew in; the matrix rides on the RenderCmd, where every
+// backend already applies it per vertex. hasXform is what makes the
+// zero value an untransformed batch — the identity is {1,1,0,0}, not
+// the zero canvasXform.
 type DrawCanvasTriBatch struct {
 	Triangles    []float32
 	VertexColors []Color
 	Color        Color
+	xf           canvasXform
+	hasXform     bool
+}
+
+// Transform reports the translate+scale in force when the batch was
+// recorded, mapping a stored vertex to canvas space as
+// (x*sx+tx, y*sy+ty). ok is false for an untransformed batch, whose
+// vertices are already in canvas space.
+//
+// It exists because Batches() hands out geometry that is no longer
+// self-describing without it.
+// exportaudit:keep — paired with Batches for out-of-package consumers
+func (b DrawCanvasTriBatch) Transform() (sx, sy, tx, ty float32, ok bool) {
+	if !b.hasXform {
+		return 1, 1, 0, 0, false
+	}
+	return b.xf.sx, b.xf.sy, b.xf.tx, b.xf.ty, true
 }
 
 // DrawCanvasImageEntry stores a deferred image drawing command.

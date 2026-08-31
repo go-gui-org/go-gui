@@ -216,6 +216,11 @@ func emitDrawCanvasGeometry(cached *drawCanvasCache,
 			gi++
 		}
 		batch := &cached.Batches[bi]
+		// The canvas transform rides on the command, not on the
+		// vertices: every backend applies v*S+T before the X/Y
+		// origin and Scale below, so the triangles stay in the local
+		// coordinates the caller drew in. Scale stays 1 — it is the
+		// SVG path's own factor, and the two compose correctly.
 		emitRenderer(RenderCmd{
 			Kind:         RenderSvg,
 			Triangles:    batch.Triangles,
@@ -224,6 +229,11 @@ func emitDrawCanvasGeometry(cached *drawCanvasCache,
 			X:            ox,
 			Y:            oy,
 			Scale:        1.0,
+			HasXform:     batch.hasXform,
+			ScaleX:       batch.xf.sx,
+			ScaleY:       batch.xf.sy,
+			TransX:       batch.xf.tx,
+			TransY:       batch.xf.ty,
 		}, w)
 	}
 	for ; gi < len(cached.Gradients); gi++ {

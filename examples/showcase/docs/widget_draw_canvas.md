@@ -83,6 +83,54 @@ dc.Image(0, 0, 64, 64,
     gui.SomeF(0.85), gui.Black)
 ```
 
+### Transform
+
+Every drawing method takes local coordinates. `Translate` and `ScaleBy` move and
+size that local space, so drawing code written once can be placed and resized
+without touching a single coordinate.
+
+| Method    | Signature        | Description                              |
+| --------- | ---------------- | ---------------------------------------- |
+| Translate | (dx, dy float32) | Shift the origin, in current local units |
+| ScaleBy   | (sx, sy float32) | Multiply the scale on each axis          |
+| Save      | ()               | Push the current transform               |
+| Restore   | ()               | Pop back to the transform `Save` pushed  |
+
+Both are relative: they compose with what is already in force rather than
+replacing it. `Save` and `Restore` bracket a change so it cannot leak into the
+drawing that follows. Restoring with an empty stack does nothing.
+
+`ScaleBy` is not called `Scale` because `DrawContext.Scale` is the device pixel
+ratio field. The two are unrelated.
+
+```go
+for i, scale := range []float32{1, 1.5, 2} {
+    dc.Save()
+    dc.Translate(float32(i)*80, 0)
+    dc.ScaleBy(scale, scale)
+    badge(dc) // draws in its own 0..60 space, unaware of any of this
+    dc.Restore()
+}
+```
+
+The transform applies to everything: positions, stroke widths, font sizes, image
+rects and gradients. A scale of 2 doubles the width of a 1px line and the size
+of a 10px font, because both are stated in local units.
+
+Four limits are worth knowing:
+
+- Curves are flattened in local space, so scaling a circle up leaves it as
+  faceted as the unscaled one. Draw it at its final size for a smooth result.
+- A non-uniform scale positions and sizes a text run but does not shear its
+  glyphs.
+- A negative scale moves an image's rect but never mirrors its content.
+- `TextWidth` and `FontHeight` answer in local units, which is the space `Text`
+  takes its arguments in. Do not scale their results.
+
+A transform that comes from application state — a zoom level, say — is an
+`OnDraw` input like any other, so bump `Version` when it changes or the cached
+tessellation is reused.
+
 ## Keyboard Focus
 
 Setting `Focusable: true` opts the canvas into tab order (with a non-empty

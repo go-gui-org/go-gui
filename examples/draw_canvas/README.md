@@ -1,7 +1,7 @@
 # Draw Canvas
 
-> **Framework:** graphics **Description:** Line chart and gradient fills using
-> DrawCanvas and DrawContext. Shows flat and gradient rendering primitives.
+> **Framework:** graphics **Description:** Line chart, gradient fills and the
+> translate/scale transform stack, using DrawCanvas and DrawContext.
 
 ![Preview](screenshot.png)
 
@@ -17,7 +17,13 @@ go run ./examples/draw_canvas/
 
 ## What it demonstrates
 
-Line chart and gradient fills using DrawCanvas and DrawContext. Shows flat and
-gradient rendering primitives.
+Line chart, gradient fills, per-vertex colors and the transform stack, using
+DrawCanvas and DrawContext.
+
+The Transform panel draws one `badge` function four times. The function draws in
+its own fixed 0..60 space and knows nothing about placement or size; `Translate`
+and `ScaleBy` do the rest, including scaling its stroke widths and font size.
+The last copy uses a negative scale, which mirrors the geometry but leaves the
+label readable.
 
 See `main.go` for the implementation.

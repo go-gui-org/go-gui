@@ -904,3 +904,87 @@ func TestDrawCanvasAlwaysRedrawReachesShape(t *testing.T) {
 		t.Error("AlwaysRedraw did not reach Shape.alwaysRedraw")
 	}
 }
+
+// A canvas transform reaches the backend on the command, not baked
+// into the vertices, so both halves have to be asserted: the matrix is
+// present and the triangles are still in local coordinates.
+func TestRenderDrawCanvasEmitsXform(t *testing.T) {
+	w := makeWindowWithScratch()
+	shape := &Shape{
+		shapeType: shapeDrawCanvas,
+		X:         10, Y: 20,
+		Width: 100, Height: 100,
+		Color: RGB(100, 100, 100),
+		events: &eventHandlers{
+			OnDraw: func(dc *DrawContext) {
+				dc.FilledRect(0, 0, 4, 4, Blue) // untransformed
+				dc.Translate(5, 7)
+				dc.ScaleBy(2, 3)
+				dc.FilledRect(0, 0, 4, 4, Blue) // transformed
+			},
+		},
+	}
+	renderDrawCanvas(shape, makeClip(0, 0, 200, 200), w)
+
+	var svg []RenderCmd
+	for _, r := range w.renderers {
+		if r.Kind == RenderSvg {
+			svg = append(svg, r)
+		}
+	}
+	if len(svg) != 2 {
+		t.Fatalf("RenderSvg commands = %d, want 2 (the transform breaks "+
+			"the same-color merge)", len(svg))
+	}
+	if svg[0].HasXform {
+		t.Error("first batch was drawn before any transform")
+	}
+	got := svg[1]
+	if !got.HasXform {
+		t.Fatal("second batch lost its transform")
+	}
+	if got.ScaleX != 2 || got.ScaleY != 3 || got.TransX != 5 || got.TransY != 7 {
+		t.Errorf("xform = %v,%v,%v,%v, want 2,3,5,7",
+			got.ScaleX, got.ScaleY, got.TransX, got.TransY)
+	}
+	// Local coordinates, and the origin still rides on X/Y.
+	if got.Triangles[0] != 0 || got.Triangles[2] != 4 {
+		t.Errorf("triangles were baked: %v", got.Triangles[:4])
+	}
+	if got.X != 10 || got.Y != 20 {
+		t.Errorf("origin = %v,%v, want the shape's 10,20", got.X, got.Y)
+	}
+}
+
+// The stamp has to survive the buffer pooling in takeBatch, which
+// claims the previous redraw's slices by index.
+func TestRenderDrawCanvasXformSurvivesPooling(t *testing.T) {
+	w := makeWindowWithScratch()
+	shape := &Shape{
+		shapeType: shapeDrawCanvas,
+		ID:        "pooled",
+		Width:     100, Height: 100,
+		alwaysRedraw: true,
+		Color:        RGB(100, 100, 100),
+		events: &eventHandlers{
+			OnDraw: func(dc *DrawContext) {
+				dc.ScaleBy(2, 2)
+				dc.FilledRect(0, 0, 4, 4, Blue)
+			},
+		},
+	}
+	for pass := range 3 {
+		w.renderPass++
+		w.renderers = w.renderers[:0]
+		renderDrawCanvas(shape, makeClip(0, 0, 200, 200), w)
+		for _, r := range w.renderers {
+			if r.Kind != RenderSvg {
+				continue
+			}
+			if !r.HasXform || r.ScaleX != 2 || r.ScaleY != 2 {
+				t.Fatalf("pass %d: xform lost (has=%v sx=%v sy=%v)",
+					pass, r.HasXform, r.ScaleX, r.ScaleY)
+			}
+		}
+	}
+}

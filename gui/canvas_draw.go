@@ -43,6 +43,18 @@ type DrawContext struct {
 	// Always > 0; defaults to 1.0 when the backend has not reported a valid scale.
 	Scale float32
 
+	// xf is the active translate+scale, xfStack the Save/Restore
+	// stack, and xfActive the gate that keeps a zero-value
+	// DrawContext behaving as an untransformed one. xfPtBuf holds a
+	// transformed copy of a caller's point slice on the recorder
+	// path, and xfRec is the lazily built recorder decorator. See
+	// canvas_draw_transform.go.
+	xf       canvasXform
+	xfStack  []canvasXform
+	xfPtBuf  []float32
+	xfRec    *xformRecorder
+	xfActive bool
+
 	lastColor Color
 	// batchIsGradient marks the current batch as vertex-colored, which
 	// blocks the run-length merge below: a flat fill must never append
@@ -56,8 +68,15 @@ type DrawContext struct {
 func (dc *DrawContext) SetRecorder(r DrawRecorder) { dc.recorder = r }
 
 func (dc *DrawContext) getBatch(color Color) *DrawCanvasTriBatch {
+	// The transform joins the run-length merge key: a batch carries
+	// one matrix for all its triangles, so a transform change must
+	// start a new batch. Compared against the live batch rather than
+	// a mirror field so there is one source of truth.
+	xf, hasXf := dc.activeXform()
 	if len(dc.batches) > 0 && !dc.batchIsGradient &&
-		dc.lastColor == color {
+		dc.lastColor == color &&
+		dc.batches[dc.currentBatchIdx].hasXform == hasXf &&
+		dc.batches[dc.currentBatchIdx].xf == xf {
 		return &dc.batches[dc.currentBatchIdx]
 	}
 	b := dc.takeBatch(color, false, defaultBatchVerts)
@@ -72,7 +91,7 @@ func (dc *DrawContext) FilledRect(x, y, w, h float32, color Color) {
 		return
 	}
 	if dc.recorder != nil {
-		dc.recorder.FilledRect(x, y, w, h, color)
+		dc.rec().FilledRect(x, y, w, h, color)
 		return
 	}
 	b := dc.getBatch(color)
@@ -89,7 +108,7 @@ func (dc *DrawContext) FilledRect(x, y, w, h float32, color Color) {
 // Line draws a single line segment.
 func (dc *DrawContext) Line(x0, y0, x1, y1 float32, color Color, width float32) {
 	if dc.recorder != nil {
-		dc.recorder.Line(x0, y0, x1, y1, color, width)
+		dc.rec().Line(x0, y0, x1, y1, color, width)
 		return
 	}
 	// Through a reused array rather than a literal: Polyline hands its
@@ -107,7 +126,7 @@ func (dc *DrawContext) Polyline(points []float32, color Color, width float32) {
 		return
 	}
 	if dc.recorder != nil {
-		dc.recorder.Polyline(points, color, width)
+		dc.rec().Polyline(points, color, width)
 		return
 	}
 	hw := width / 2
@@ -144,7 +163,7 @@ func (dc *DrawContext) Rect(x, y, w, h float32, color Color, width float32) {
 		return
 	}
 	if dc.recorder != nil {
-		dc.recorder.Rect(x, y, w, h, color, width)
+		dc.rec().Rect(x, y, w, h, color, width)
 		return
 	}
 	hw := width / 2
@@ -178,7 +197,7 @@ func (dc *DrawContext) FilledPolygon(points []float32, color Color) {
 		return
 	}
 	if dc.recorder != nil {
-		dc.recorder.FilledPolygon(points, color)
+		dc.rec().FilledPolygon(points, color)
 		return
 	}
 	b := dc.getBatch(color)
@@ -188,7 +207,7 @@ func (dc *DrawContext) FilledPolygon(points []float32, color Color) {
 // FilledCircle draws a filled circle.
 func (dc *DrawContext) FilledCircle(cx, cy, radius float32, color Color) {
 	if dc.recorder != nil {
-		dc.recorder.FilledCircle(cx, cy, radius, color)
+		dc.rec().FilledCircle(cx, cy, radius, color)
 		return
 	}
 	dc.FilledArc(cx, cy, radius, radius, 0, 2*math.Pi, color)
@@ -197,7 +216,7 @@ func (dc *DrawContext) FilledCircle(cx, cy, radius float32, color Color) {
 // Circle draws a stroked circle.
 func (dc *DrawContext) Circle(cx, cy, radius float32, color Color, width float32) {
 	if dc.recorder != nil {
-		dc.recorder.Circle(cx, cy, radius, color, width)
+		dc.rec().Circle(cx, cy, radius, color, width)
 		return
 	}
 	dc.Arc(cx, cy, radius, radius, 0, 2*math.Pi, color, width)
@@ -209,7 +228,7 @@ func (dc *DrawContext) Arc(cx, cy, rx, ry, start, sweep float32, color Color, wi
 		return
 	}
 	if dc.recorder != nil {
-		dc.recorder.Arc(cx, cy, rx, ry, start, sweep, color, width)
+		dc.rec().Arc(cx, cy, rx, ry, start, sweep, color, width)
 		return
 	}
 	pts := dc.arcPoints(cx, cy, rx, ry, start, sweep)
@@ -223,7 +242,7 @@ func (dc *DrawContext) Arc(cx, cy, rx, ry, start, sweep float32, color Color, wi
 // avoiding an intermediate polygon allocation.
 func (dc *DrawContext) FilledArc(cx, cy, rx, ry, start, sweep float32, color Color) {
 	if dc.recorder != nil {
-		dc.recorder.FilledArc(cx, cy, rx, ry, start, sweep, color)
+		dc.rec().FilledArc(cx, cy, rx, ry, start, sweep, color)
 		return
 	}
 	pts := dc.arcPoints(cx, cy, rx, ry, start, sweep)
@@ -292,7 +311,7 @@ func (dc *DrawContext) FilledRoundedRect(x, y, w, h, radius float32, color Color
 		return
 	}
 	if dc.recorder != nil {
-		dc.recorder.FilledRoundedRect(x, y, w, h, radius, color)
+		dc.rec().FilledRoundedRect(x, y, w, h, radius, color)
 		return
 	}
 	radius = min(radius, w/2, h/2)
@@ -310,7 +329,7 @@ func (dc *DrawContext) RoundedRect(x, y, w, h, radius float32, color Color, widt
 		return
 	}
 	if dc.recorder != nil {
-		dc.recorder.RoundedRect(x, y, w, h, radius, color, width)
+		dc.rec().RoundedRect(x, y, w, h, radius, color, width)
 		return
 	}
 	radius = min(radius, w/2, h/2)
@@ -348,7 +367,7 @@ func (dc *DrawContext) DashedLine(
 		return
 	}
 	if dc.recorder != nil {
-		dc.recorder.DashedLine(x0, y0, x1, y1, color, width, dashLen, gapLen)
+		dc.rec().DashedLine(x0, y0, x1, y1, color, width, dashLen, gapLen)
 		return
 	}
 	dx := x1 - x0
@@ -389,7 +408,7 @@ func (dc *DrawContext) DashedPolyline(
 		return
 	}
 	if dc.recorder != nil {
-		dc.recorder.DashedPolyline(points, color, width, dashLen, gapLen)
+		dc.rec().DashedPolyline(points, color, width, dashLen, gapLen)
 		return
 	}
 	patternLen := dashLen + gapLen
@@ -442,7 +461,7 @@ func (dc *DrawContext) PolylineJoined(
 		return
 	}
 	if dc.recorder != nil {
-		dc.recorder.PolylineJoined(points, color, width)
+		dc.rec().PolylineJoined(points, color, width)
 		return
 	}
 	hw := width / 2
@@ -575,7 +594,7 @@ func (dc *DrawContext) QuadBezier(
 		return
 	}
 	if dc.recorder != nil {
-		dc.recorder.QuadBezier(x0, y0, cx, cy, x1, y1, color, width)
+		dc.rec().QuadBezier(x0, y0, cx, cy, x1, y1, color, width)
 		return
 	}
 	dc.bezierBuf = dc.resetBezierBuf(x0, y0)
@@ -597,7 +616,7 @@ func (dc *DrawContext) CubicBezier(
 		return
 	}
 	if dc.recorder != nil {
-		dc.recorder.CubicBezier(x0, y0, c1x, c1y, c2x, c2y, x1, y1,
+		dc.rec().CubicBezier(x0, y0, c1x, c1y, c2x, c2y, x1, y1,
 			color, width)
 		return
 	}
@@ -613,8 +632,15 @@ func (dc *DrawContext) CubicBezier(
 // The position is the top-left of the text bounding box.
 func (dc *DrawContext) Text(x, y float32, text string, style TextStyle) {
 	if dc.recorder != nil {
-		dc.recorder.Text(x, y, text, style)
+		dc.rec().Text(x, y, text, style)
 		return
+	}
+	// Text bakes: RenderText has no xform fields to ride on, and Text
+	// is a leaf — no primitive delegates to it, so this cannot
+	// double-apply.
+	if _, ok := dc.activeXform(); ok {
+		x, y = dc.xf.apply(x, y)
+		style = dc.xf.scaleTextStyle(style)
 	}
 	dc.texts = append(dc.texts, DrawCanvasTextEntry{
 		X: x, Y: y, Text: text, Style: style,
@@ -670,14 +696,17 @@ func (dc *DrawContext) ImageWithFetcher(
 		return
 	}
 	if dc.recorder != nil {
-		if ir, ok := dc.recorder.(interface {
-			Image(x, y, w, h float32, src string,
-				bgOpacity Opt[float32], bgColor Color)
-		}); ok {
+		if ir, ok := dc.imageRecorder(); ok {
 			ir.Image(x, y, w, h, src, bgOpacity, bgColor)
 			return
 		}
 	}
+	// Baked and normalized: a negative scale must land the rect at
+	// the mirrored position with positive extents, or the w <= 0
+	// guard in emitDrawCanvasImages drops it. Image content is never
+	// mirrored. The finite guards above deliberately ran on the
+	// caller's values.
+	x, y, w, h = dc.xfRect(x, y, w, h)
 	dc.images = append(dc.images, DrawCanvasImageEntry{
 		X: x, Y: y, W: w, H: h,
 		Src: src, bgOpacity: bgOpacity, BgColor: bgColor,
@@ -712,7 +741,9 @@ func (dc *DrawContext) ImageClipped(
 		return // rejected (bad geometry) or routed to a recorder
 	}
 	e := &dc.images[len(dc.images)-1]
-	e.ClipX, e.ClipY, e.ClipW, e.ClipH = clipX, clipY, clipW, clipH
+	// The image rect was baked by ImageWithFetcher; the clip rect is
+	// in the same local space and bakes here.
+	e.ClipX, e.ClipY, e.ClipW, e.ClipH = dc.xfRect(clipX, clipY, clipW, clipH)
 	e.Clipped = true
 }
 

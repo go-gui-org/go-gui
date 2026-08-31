@@ -426,19 +426,21 @@ func pdfRenderSvg(ctx *pdfCtx, cmd RenderCmd) {
 		return
 	}
 	// Render SVG triangles as filled polygons.
-	// Vertices are in local SVG space; transform with
-	// cmd.X/Y offset and cmd.Scale (matching GPU backends).
+	// Vertices are in local SVG space; transform with the command's
+	// own affine (animateTransform, or a canvas Translate/ScaleBy)
+	// first, then the cmd.X/Y offset and cmd.Scale — the same order
+	// the GPU and soft backends apply.
 	svgScale := cmd.Scale
 	if svgScale == 0 {
 		svgScale = 1
 	}
 	for i := 0; i+5 < len(cmd.Triangles); i += 6 {
-		x1 := cmd.X + cmd.Triangles[i]*svgScale
-		y1 := cmd.Y + cmd.Triangles[i+1]*svgScale
-		x2 := cmd.X + cmd.Triangles[i+2]*svgScale
-		y2 := cmd.Y + cmd.Triangles[i+3]*svgScale
-		x3 := cmd.X + cmd.Triangles[i+4]*svgScale
-		y3 := cmd.Y + cmd.Triangles[i+5]*svgScale
+		x1, y1 := svgCmdVertex(cmd, svgScale,
+			cmd.Triangles[i], cmd.Triangles[i+1])
+		x2, y2 := svgCmdVertex(cmd, svgScale,
+			cmd.Triangles[i+2], cmd.Triangles[i+3])
+		x3, y3 := svgCmdVertex(cmd, svgScale,
+			cmd.Triangles[i+4], cmd.Triangles[i+5])
 
 		// Use vertex color if available, else cmd color.
 		var vc Color

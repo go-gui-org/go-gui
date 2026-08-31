@@ -257,6 +257,14 @@ func serializeCmd(c RenderCmd) string {
 				colorStr(c.VertexColors[0]),
 				colorStr(c.VertexColors[len(c.VertexColors)-1]))
 		}
+		// A canvas transform rides on the command rather than on the
+		// vertices, so the fingerprint below is identical with and
+		// without it. Record the matrix or a transform golden proves
+		// nothing.
+		if c.HasXform {
+			fmt.Fprintf(&b, " xform=[%s,%s,%s,%s]",
+				f2(c.ScaleX), f2(c.ScaleY), f2(c.TransX), f2(c.TransY))
+		}
 		// Counts and endpoint colors say how much was emitted and how
 		// it was shaded; the fingerprint says where the vertices are.
 		b.WriteString(triFingerprint(c.Triangles))
