@@ -66,6 +66,8 @@ func (p cueSoundPlayer) PlaySound(cue gui.SoundCue, gain float32) {
 		freq = 880 * 4 / 3 // a fourth up
 	case gui.SoundToggleOff:
 		freq = 880 * 3 / 4 // a fourth down
+	case gui.SoundSelection:
+		freq = 880 * 3 / 2 // a fifth up: "picked", against click's neutral A5
 	case gui.SoundError:
 		freq = 220
 		env = errorEnv

@@ -28,6 +28,17 @@ type ColorSwatchCfg struct {
 	Width  float32
 	Height float32
 	Radius Opt[float32]
+
+	// Sound overrides the theme's selection cue for this instance.
+	// SoundNone (the zero value) takes the theme's cue for that role,
+	// which is itself silent unless the app opted in (issue #446).
+	// exportaudit:keep — caller-facing config (issue #467)
+	Sound SoundCue
+
+	// SoundDisabled suppresses the swatch's sound regardless of the theme
+	// and of Sound above.
+	// exportaudit:keep — caller-facing config (issue #467)
+	SoundDisabled bool
 }
 
 type colorSwatchView struct {
@@ -90,6 +101,12 @@ func (sv *colorSwatchView) GenerateLayout(w *Window) Layout {
 	// belongs to the swatch, and AmendLayout's ctx reaches only the
 	// layer's shape.
 	effID := w.EffID(cfg.ID)
+
+	soundCue := SoundNone
+	if cfg.OnClick != nil {
+		soundCue = resolveSoundCue(
+			guiTheme.Sounds.Selection, cfg.Sound, cfg.SoundDisabled)
+	}
 	colorCfg := ContainerCfg{
 		Float:  true,
 		Width:  cfg.Width,
@@ -126,8 +143,14 @@ func (sv *colorSwatchView) GenerateLayout(w *Window) Layout {
 			ClickOnSpace: cfg.OnClick != nil,
 			ClickOnEnter: cfg.OnClick != nil,
 			OnClick:      cfg.OnClick,
-			Width:        cfg.Width,
-			Height:       cfg.Height,
+			// Activating a swatch picks the color it shows, so the
+			// selection role, not the plain click one. A passive
+			// preview has no OnClick and so stays silent, which the
+			// nil check makes explicit rather than leaving to
+			// playShapeSound (issue #467).
+			Sound:  soundCue,
+			Width:  cfg.Width,
+			Height: cfg.Height,
 			// Fixed: the checkerboard is generated at this size.
 			Sizing:     FixedFixed,
 			Padding:    NoPadding,

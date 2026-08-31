@@ -101,6 +101,20 @@ type DatePickerCfg struct {
 	HideTodayIndicator   bool
 	MondayFirstDayOfWeek bool
 	ShowAdjacentMonths   bool
+
+	// Sound overrides the theme's selection cue for a day cell.
+	// SoundNone (the zero value) takes Theme.Sounds.Selection, which
+	// is itself silent unless the app opted in (issue #446). The
+	// field itself stays silent: clicking it only takes focus, and a
+	// cue there would fire on every tab-through of a form
+	// (issue #467).
+	// exportaudit:keep — caller-facing config (issue #467)
+	Sound SoundCue
+
+	// SoundDisabled suppresses every day cell's sound regardless of
+	// the theme and of Sound above.
+	// exportaudit:keep — caller-facing config (issue #467)
+	SoundDisabled bool
 }
 
 type datePickerView struct {

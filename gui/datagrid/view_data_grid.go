@@ -311,6 +311,35 @@ type DataGridCfg struct {
 	Scrollbar              gg.ScrollbarOverflow
 	Disabled               bool
 	Invisible              bool
+
+	// Sound overrides the theme's cue for every control the grid
+	// builds. Row activation, the toolbar and the pager take the
+	// click role; sorting, pinning and reordering a column take the
+	// selection role. SoundNone (the zero value) takes the theme's
+	// cue for whichever applies, which is itself silent unless the
+	// app opted in (issue #446).
+	// exportaudit:keep — caller-facing config (issue #467)
+	Sound gg.SoundCue
+
+	// SoundDisabled suppresses every grid control's sound regardless
+	// of the theme and of Sound above.
+	// exportaudit:keep — caller-facing config (issue #467)
+	SoundDisabled bool
+
+	// sounds is Sound/SoundDisabled resolved against the theme once
+	// per generate, in applyDataGridDefaults. datagrid is outside
+	// gui/, so it cannot read the package-global guiTheme the way a
+	// gui/ factory does; resolving per control would mean one
+	// CurrentTheme() call per row (issue #467).
+	sounds dataGridSounds
+}
+
+// dataGridSounds holds the grid's cues after resolution. Two roles,
+// not one per control: a control either activates (click) or picks one
+// of several (selection).
+type dataGridSounds struct {
+	click     gg.SoundCue
+	selection gg.SoundCue
 }
 
 // boolDefault returns *p if non-nil, else def.
@@ -325,6 +354,15 @@ func boolDefault(p *bool, def bool) bool {
 // defaults and sensible fallbacks.
 func applyDataGridDefaults(cfg *DataGridCfg) {
 	s := gg.DefaultDataGridStyle
+	// One theme read for the whole grid. Every control downstream
+	// takes its cue from this struct rather than resolving its own.
+	sounds := gg.CurrentTheme().Sounds
+	cfg.sounds = dataGridSounds{
+		click: gg.ResolveSoundCue(
+			sounds.Click, cfg.Sound, cfg.SoundDisabled),
+		selection: gg.ResolveSoundCue(
+			sounds.Selection, cfg.Sound, cfg.SoundDisabled),
+	}
 	cfg.Sizing = cfg.Sizing.Or(gg.FillFill)
 	if cfg.RowHeight == 0 {
 		cfg.RowHeight = dataGridDefaultRowHeight

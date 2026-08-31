@@ -83,6 +83,10 @@ func dataGridCellEditorView(cfg *DataGridCfg, rowID string, rowIdx int, col Grid
 			ID:       editorID,
 			Selected: checked,
 			Padding:  gg.NoPadding,
+			// Forwarded, not resolved: Toggle picks the on/off role
+			// from its own state (issue #467).
+			Sound:         cfg.Sound,
+			SoundDisabled: cfg.SoundDisabled,
 			OnClick: func(ctx gg.EventCtx) {
 				nextValue := editorFalseValue
 				if !checked {

@@ -67,6 +67,17 @@ type SelectCfg struct {
 	NoWrap    bool
 	Disabled  bool
 	Invisible bool
+
+	// Sound overrides the theme's toggle (the field) and selection (an option) cue for this instance.
+	// SoundNone (the zero value) takes the theme's cue for that role,
+	// which is itself silent unless the app opted in (issue #446).
+	// exportaudit:keep — caller-facing config (issue #467)
+	Sound SoundCue
+
+	// SoundDisabled suppresses both the field's and the options' sound regardless of the theme
+	// and of Sound above.
+	// exportaudit:keep — caller-facing config (issue #467)
+	SoundDisabled bool
 }
 
 // selectView implements View for select (dropdown).
@@ -185,6 +196,16 @@ func (sv *selectView) GenerateLayout(w *Window) Layout {
 	}
 
 	// Build the outer row layout directly.
+	// Two cues, two roles. Clicking the field opens or closes the
+	// dropdown, so it names what the click is about to do; clicking an
+	// option picks one of several, so it is a selection (issue #467).
+	fieldThemeCue := guiTheme.Sounds.ToggleOn
+	if isOpen {
+		fieldThemeCue = guiTheme.Sounds.ToggleOff
+	}
+	fieldSound := resolveSoundCue(
+		fieldThemeCue, cfg.Sound, cfg.SoundDisabled)
+
 	ccfg := ContainerCfg{
 		ID:        cfg.ID,
 		Focusable: !cfg.FocusDisabled,
@@ -215,6 +236,7 @@ func (sv *selectView) GenerateLayout(w *Window) Layout {
 		AmendLayout: amendAll(
 			opticalAmend,
 			focusRingAmend(colorFocus, colorBorderFocus)),
+		Sound:     fieldSound,
 		OnKeyDown: makeSelectOnKeyDown(&sv.cfg, id, dropdownScrollID),
 		OnClick: func(ctx EventCtx) {
 			ss := StateMap[string, bool](
@@ -259,10 +281,14 @@ func selectOptionView(
 		checkColor = cfg.TextStyle.Color
 	}
 
+	optionSound := resolveSoundCue(
+		guiTheme.Sounds.Selection, cfg.Sound, cfg.SoundDisabled)
+
 	return Row(ContainerCfg{
 		Color:   optColor,
 		Padding: NewPadding(0, PadSmall, 0, 1),
 		Sizing:  FillFit,
+		Sound:   optionSound,
 		Content: []View{
 			Row(ContainerCfg{
 				Padding: padTBLR(2, 0),

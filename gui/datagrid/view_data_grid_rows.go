@@ -167,6 +167,10 @@ func dataGridRowView(dctx dataGridCtx, rowData GridRow, rowIdx int, showDeleteAc
 			Radius:     gg.SomeF(0),
 			Color:      gg.ColorTransparent,
 			Colors:     gg.ColorSet{Base: gg.ColorTransparent, Hover: cfg.ColorHeaderHover, Click: cfg.ColorHeaderHover, Focus: gg.ColorTransparent, Border: cfg.ColorBorder, BorderFocus: cfg.ColorBorder},
+			// SoundDisabled as well as Sound: a resolved gg.SoundNone
+			// reads as "unset" inside gg.ButtonCfg (issue #467).
+			Sound:         cfg.sounds.click,
+			SoundDisabled: cfg.sounds.click == gg.SoundNone,
 			OnClick: func(ctx gg.EventCtx) {
 				dataGridCrudDeleteRows(gridID, selection, onSelectionChange, []string{rowID}, focusID, ctx.Event, ctx.Window)
 			},
@@ -201,6 +205,9 @@ func dataGridRowView(dctx dataGridCtx, rowData GridRow, rowIdx int, showDeleteAc
 		SizeBorder:  gg.SomeF(0),
 		Padding:     gg.NoPadding,
 		Spacing:     gg.Some(-cfg.SizeBorder.Get(0)),
+		// Clicking a row selects it, which is the same activation a
+		// button makes — the grid's own click role (issue #467).
+		Sound: cfg.sounds.click,
 		OnClick: func(ctx gg.EventCtx) {
 			dataGridRowClick(rows, selection, gridID, multiSelect, rangeSelect,
 				onSelectionChange, editEnabled, editorFocusBase, colCount,
@@ -379,14 +386,16 @@ func dataGridDetailToggleControl(cfg *DataGridCfg, rowID string, expanded, enabl
 	onDetailExpandedChange := cfg.OnDetailExpandedChange
 	detailExpandedRowIDs := cfg.DetailExpandedRowIDs
 	return gg.Button(gg.ButtonCfg{
-		ID:         gg.ScopeID(cfg.ID, "detail_toggle", rowID),
-		Width:      dataGridHeaderControlWidth,
-		Sizing:     gg.FixedFill,
-		Padding:    gg.NoPadding,
-		SizeBorder: gg.SomeF(0),
-		Radius:     gg.SomeF(0),
-		Color:      gg.ColorTransparent,
-		Colors:     gg.ColorSet{Base: gg.ColorTransparent, Hover: cfg.ColorRowHover, Click: cfg.ColorRowHover, Focus: gg.ColorTransparent, Border: gg.ColorTransparent, BorderFocus: gg.ColorTransparent},
+		ID:            gg.ScopeID(cfg.ID, "detail_toggle", rowID),
+		Width:         dataGridHeaderControlWidth,
+		Sizing:        gg.FixedFill,
+		Padding:       gg.NoPadding,
+		SizeBorder:    gg.SomeF(0),
+		Radius:        gg.SomeF(0),
+		Color:         gg.ColorTransparent,
+		Colors:        gg.ColorSet{Base: gg.ColorTransparent, Hover: cfg.ColorRowHover, Click: cfg.ColorRowHover, Focus: gg.ColorTransparent, Border: gg.ColorTransparent, BorderFocus: gg.ColorTransparent},
+		Sound:         cfg.sounds.click,
+		SoundDisabled: cfg.sounds.click == gg.SoundNone,
 		OnClick: func(ctx gg.EventCtx) {
 			if rowID == "" || onDetailExpandedChange == nil {
 				// Nothing to toggle: pass the click on

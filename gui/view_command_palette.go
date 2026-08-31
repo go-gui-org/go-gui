@@ -64,6 +64,20 @@ type CommandPaletteCfg struct {
 	// the theme default.
 	// exportaudit:keep — caller-facing config (issue #372)
 	BackdropColor Color
+
+	// Sound overrides the theme's click cue for dismissing the palette
+	// by clicking the backdrop. SoundNone (the zero value) takes
+	// Theme.Sounds.Click, which is itself silent unless the app opted
+	// in (issue #446). The card itself stays silent: its OnClick only
+	// absorbs, so a cue there would fire on every click into the
+	// palette (issue #467).
+	// exportaudit:keep — caller-facing config (issue #467)
+	Sound SoundCue
+
+	// SoundDisabled suppresses the backdrop's sound regardless of the
+	// theme and of Sound above.
+	// exportaudit:keep — caller-facing config (issue #467)
+	SoundDisabled bool
 }
 
 // commandPaletteView implements View for command palette.
@@ -194,6 +208,8 @@ func (cp *commandPaletteView) GenerateLayout(w *Window) Layout {
 		VAlign:      VAlignTop,
 		HAlign:      HAlignCenter,
 		Padding:     NoPadding,
+		Sound: resolveSoundCue(
+			guiTheme.Sounds.Click, cfg.Sound, cfg.SoundDisabled),
 		OnClick: func(ctx EventCtx) {
 			commandPaletteDismiss(paletteID, ctx.Window)
 			if onDismiss != nil {

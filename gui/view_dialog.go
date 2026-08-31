@@ -69,6 +69,19 @@ type DialogCfg struct {
 	// actions. Ignored for non-confirm dialog types.
 	defaultButton dialogButton
 
+	// Sound overrides the theme's click cue for every dialog button.
+	// SoundNone (the zero value) takes Theme.Sounds.Click, which is
+	// itself silent unless the app opted in (issue #446). All five
+	// buttons take the same role: dismissing a dialog is an
+	// activation, not a rejection (issue #467).
+	// exportaudit:keep — caller-facing config (issue #467)
+	Sound SoundCue
+
+	// SoundDisabled suppresses every dialog button's sound regardless
+	// of the theme and of Sound above.
+	// exportaudit:keep — caller-facing config (issue #467)
+	SoundDisabled bool
+
 	// unexported
 	visible bool
 }
@@ -149,8 +162,10 @@ func messageView(cfg DialogCfg) View {
 		SizeBorder: NoBorder,
 		Content: []View{
 			Button(ButtonCfg{
-				ID:      cfg.FocusID,
-				Content: []View{Text(TextCfg{Text: "OK"})},
+				Sound:         cfg.Sound,
+				SoundDisabled: cfg.SoundDisabled,
+				ID:            cfg.FocusID,
+				Content:       []View{Text(TextCfg{Text: "OK"})},
 				OnClick: func(ctx EventCtx) {
 					ctx.Window.DialogDismiss()
 					if onOkYes != nil {
@@ -174,8 +189,10 @@ func confirmView(cfg DialogCfg) View {
 		Spacing:    Some(SpacingMedium),
 		Content: []View{
 			Button(ButtonCfg{
-				ID:      ScopeIDN(cfg.FocusID, "", 1),
-				Content: []View{Text(TextCfg{Text: "Yes"})},
+				Sound:         cfg.Sound,
+				SoundDisabled: cfg.SoundDisabled,
+				ID:            ScopeIDN(cfg.FocusID, "", 1),
+				Content:       []View{Text(TextCfg{Text: "Yes"})},
 				OnClick: func(ctx EventCtx) {
 					ctx.Window.DialogDismiss()
 					if onOkYes != nil {
@@ -184,8 +201,10 @@ func confirmView(cfg DialogCfg) View {
 				},
 			}),
 			Button(ButtonCfg{
-				ID:      cfg.FocusID,
-				Content: []View{Text(TextCfg{Text: "No"})},
+				Sound:         cfg.Sound,
+				SoundDisabled: cfg.SoundDisabled,
+				ID:            cfg.FocusID,
+				Content:       []View{Text(TextCfg{Text: "No"})},
 				OnClick: func(ctx EventCtx) {
 					ctx.Window.DialogDismiss()
 					if onCancelNo != nil {
@@ -221,9 +240,11 @@ func promptView(cfg DialogCfg) []View {
 		Spacing:    Some(SpacingMedium),
 		Content: []View{
 			Button(ButtonCfg{
-				ID:       ScopeIDN(cfg.FocusID, "", 1),
-				Disabled: len(cfg.Reply) == 0,
-				Content:  []View{Text(TextCfg{Text: "OK"})},
+				Sound:         cfg.Sound,
+				SoundDisabled: cfg.SoundDisabled,
+				ID:            ScopeIDN(cfg.FocusID, "", 1),
+				Disabled:      len(cfg.Reply) == 0,
+				Content:       []View{Text(TextCfg{Text: "OK"})},
 				OnClick: func(ctx EventCtx) {
 					reply := ctx.Window.dialogCfg.Reply
 					ctx.Window.DialogDismiss()
@@ -233,8 +254,10 @@ func promptView(cfg DialogCfg) []View {
 				},
 			}),
 			Button(ButtonCfg{
-				ID:      ScopeIDN(cfg.FocusID, "", 2),
-				Content: []View{Text(TextCfg{Text: "Cancel"})},
+				Sound:         cfg.Sound,
+				SoundDisabled: cfg.SoundDisabled,
+				ID:            ScopeIDN(cfg.FocusID, "", 2),
+				Content:       []View{Text(TextCfg{Text: "Cancel"})},
 				OnClick: func(ctx EventCtx) {
 					ctx.Window.DialogDismiss()
 					if onCancelNo != nil {

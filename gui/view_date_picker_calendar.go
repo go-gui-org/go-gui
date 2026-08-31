@@ -153,8 +153,18 @@ func datePickerMonth(
 
 			dayVal := d
 			cfgID := cfg.ID
+			daySound := resolveSoundCue(guiTheme.Sounds.Selection,
+				cfg.Sound, cfg.SoundDisabled)
 			cells = append(cells, Button(ButtonCfg{
 				ID: ScopeIDN(cfg.ID, "day", d),
+				// Picking a day is choosing one of a month's worth,
+				// so the selection role rather than Button's own
+				// click default. SoundDisabled goes through too: a
+				// resolved SoundNone reads as "unset" inside
+				// ButtonCfg and would fall back to the theme
+				// (issue #467).
+				Sound:         daySound,
+				SoundDisabled: daySound == SoundNone,
 				// A day number is digits by construction, and figures
 				// measure shorter than caps: on the cap band every cell
 				// would land low (issue #346).
@@ -244,6 +254,9 @@ func datePickerAdjacentCell(
 		idSuffix = "next"
 	}
 
+	adjSound := resolveSoundCue(guiTheme.Sounds.Selection,
+		cfg.Sound, cfg.SoundDisabled)
+
 	return Button(ButtonCfg{
 		ID: ScopeIDN(ScopeID(cfg.ID, "day", idSuffix), "", adjDay),
 		// Digits, like the in-month cells beside it, and it has to sit
@@ -251,10 +264,14 @@ func datePickerAdjacentCell(
 		opticalDigitLabel: true,
 		Color:             ColorTransparent,
 		Colors:            ColorSet{Border: ColorTransparent}.resolved(ColorTransparent, themeButtonSet()),
-		MinWidth:          cellSize,
-		MaxWidth:          cellSize,
-		MaxHeight:         cellSize,
-		Padding:           paddingThree,
+		// An adjacent-month cell selects a day too — it just navigates
+		// first — so it takes the same cue as an in-month one.
+		Sound:         adjSound,
+		SoundDisabled: adjSound == SoundNone,
+		MinWidth:      cellSize,
+		MaxWidth:      cellSize,
+		MaxHeight:     cellSize,
+		Padding:       paddingThree,
 		Content: []View{Text(TextCfg{
 			Text:      strconv.Itoa(adjDay),
 			TextStyle: ts,

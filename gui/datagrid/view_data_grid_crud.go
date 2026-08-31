@@ -189,17 +189,17 @@ func dataGridCrudToolbarRow(cfg *DataGridCfg, state dataGridCrudState, caps Grid
 		VAlign:      gg.VAlignMiddle,
 		Content: []gg.View{
 			dataGridIndicatorButton(gg.ScopeID(gridID, "crud_add"), gg.ActiveLocale.StrAdd, cfg.TextStyleFilter, cfg.ColorHeaderHover,
-				!canCreate || state.Saving, 0, func(ctx gg.EventCtx) {
+				!canCreate || state.Saving, 0, cfg.sounds.click, func(ctx gg.EventCtx) {
 					dataGridCrudAddRow(gridID, columns, onSelectionChange, focusID,
 						scrollID, pageSize, pageIndex, onPageChange, ctx.Event, ctx.Window)
 				}),
 			dataGridIndicatorButton(gg.ScopeID(gridID, "crud_delete"), gg.ActiveLocale.StrDelete, cfg.TextStyleFilter, cfg.ColorHeaderHover,
-				!canDelete || selectedCount == 0 || state.Saving, 0, func(ctx gg.EventCtx) {
+				!canDelete || selectedCount == 0 || state.Saving, 0, cfg.sounds.click, func(ctx gg.EventCtx) {
 					dataGridCrudDeleteSelected(gridID, selection, onSelectionChange,
 						focusID, ctx.Event, ctx.Window)
 				}),
 			dataGridIndicatorButton(gg.ScopeID(gridID, "crud_save"), gg.ActiveLocale.StrSave, cfg.TextStyleFilter, cfg.ColorHeaderHover,
-				!hasUnsaved || state.Saving, 0, func(ctx gg.EventCtx) {
+				!hasUnsaved || state.Saving, 0, cfg.sounds.click, func(ctx gg.EventCtx) {
 					dataGridCrudSave(dataGridCrudSaveContext{
 						gridID:            gridID,
 						dataSource:        dataSource,
@@ -214,7 +214,7 @@ func dataGridCrudToolbarRow(cfg *DataGridCfg, state dataGridCrudState, caps Grid
 					}, ctx.Event, ctx.Window)
 				}),
 			dataGridIndicatorButton(gg.ScopeID(gridID, "crud_cancel"), gg.ActiveLocale.StrCancel, cfg.TextStyleFilter, cfg.ColorHeaderHover,
-				(!hasUnsaved && state.SaveError == "") || state.Saving, 0, func(ctx gg.EventCtx) {
+				(!hasUnsaved && state.SaveError == "") || state.Saving, 0, cfg.sounds.click, func(ctx gg.EventCtx) {
 					dataGridCrudCancel(gridID, focusID, ctx.Event, ctx.Window)
 				}),
 			gg.Row(gg.ContainerCfg{

@@ -99,6 +99,17 @@ type BreadcrumbCfg struct {
 	Sizing             Sizing
 	Disabled           bool
 	Invisible          bool
+
+	// Sound overrides the theme's selection cue for this instance.
+	// SoundNone (the zero value) takes the theme's cue for that role,
+	// which is itself silent unless the app opted in (issue #446).
+	// exportaudit:keep — caller-facing config (issue #467)
+	Sound SoundCue
+
+	// SoundDisabled suppresses every crumb's sound regardless of the theme
+	// and of Sound above.
+	// exportaudit:keep — caller-facing config (issue #467)
+	SoundDisabled bool
 }
 
 func applyBreadcrumbDefaults(cfg *BreadcrumbCfg) {
@@ -178,6 +189,12 @@ func Breadcrumb(cfg BreadcrumbCfg) View {
 
 	selectedIdx := bcSelectedIndex(cfg.Items, cfg.Selected)
 
+	// One resolve for the whole trail: every crumb takes the same
+	// role, so hoisting it out of the loop keeps the per-item cost to
+	// a value copy (issue #467).
+	soundCue := resolveSoundCue(
+		guiTheme.Sounds.Selection, cfg.Sound, cfg.SoundDisabled)
+
 	trailItems := make([]View, 0, len(cfg.Items)*2)
 	hasContent := bcHasAnyContent(cfg.Items)
 
@@ -218,9 +235,14 @@ func Breadcrumb(cfg BreadcrumbCfg) View {
 
 		var onClick func(EventCtx)
 		var onHover func(EventCtx)
+		// A disabled crumb gets no handler and no cue: navigating the
+		// trail is a selection, and a crumb that cannot be navigated
+		// to must not answer the click at all (issue #467).
+		crumbSound := SoundNone
 		if !isDisabled {
 			onClick = makeBcOnClick(cfg.OnSelect, item.ID, cfg.ID)
 			onHover = makeBcOnHover(hoverColor, clickColor)
+			crumbSound = soundCue
 		}
 
 		crumbContent := []View{
@@ -229,6 +251,7 @@ func Breadcrumb(cfg BreadcrumbCfg) View {
 
 		trailItems = append(trailItems, Row(ContainerCfg{
 			ID:      bcCrumbID(cfg.ID, item.ID),
+			Sound:   crumbSound,
 			Color:   crumbColor,
 			Padding: cfg.PaddingCrumb,
 			Radius:  Some(radiusCrumb),

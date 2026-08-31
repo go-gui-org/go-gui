@@ -234,7 +234,7 @@ func dataGridSourcePagerRow(cfg *DataGridCfg, focusID string, state dataGridSour
 
 	// Prev button.
 	content = append(content, dataGridIndicatorButton(gg.ScopeID(gridID, "src_prev"), "\u25C0", cfg.TextStyleHeader, cfg.ColorHeaderHover,
-		state.Loading || !hasPrev, dataGridHeaderControlWidth+10, func(ctx gg.EventCtx) {
+		state.Loading || !hasPrev, dataGridHeaderControlWidth+10, cfg.sounds.click, func(ctx gg.EventCtx) {
 			dataGridSourcePrevPage(gridID, kind, pageLimit, ctx.Window)
 			if focusID != "" {
 				ctx.Window.SetFocus(focusID)
@@ -249,7 +249,7 @@ func dataGridSourcePagerRow(cfg *DataGridCfg, focusID string, state dataGridSour
 	}))
 	// Next button.
 	content = append(content, dataGridIndicatorButton(gg.ScopeID(gridID, "src_next"), "\u25B6", cfg.TextStyleHeader, cfg.ColorHeaderHover,
-		state.Loading || !hasNext, dataGridHeaderControlWidth+10, func(ctx gg.EventCtx) {
+		state.Loading || !hasNext, dataGridHeaderControlWidth+10, cfg.sounds.click, func(ctx gg.EventCtx) {
 			dataGridSourceNextPage(gridID, kind, pageLimit, ctx.Window)
 			if focusID != "" {
 				ctx.Window.SetFocus(focusID)

@@ -73,6 +73,17 @@ type ComboboxCfg struct {
 	Colors   ColorSet
 	Sizing   Sizing
 	Disabled bool
+
+	// Sound overrides the theme's toggle cue for this instance.
+	// SoundNone (the zero value) takes the theme's cue for that role,
+	// which is itself silent unless the app opted in (issue #446).
+	// exportaudit:keep — caller-facing config (issue #467)
+	Sound SoundCue
+
+	// SoundDisabled suppresses the field's sound regardless of the theme
+	// and of Sound above.
+	// exportaudit:keep — caller-facing config (issue #467)
+	SoundDisabled bool
 }
 
 // comboboxView implements View for combobox.
@@ -272,6 +283,16 @@ func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 	colorFocus := cfg.ColorFocus
 	colorBorderFocus := cfg.ColorBorderFocus
 
+	// The field click opens or closes the dropdown, so the cue names
+	// what it is about to do (issue #467). Rows in the dropdown are
+	// ListBox items and carry the ListBox's own selection cue.
+	fieldThemeCue := guiTheme.Sounds.ToggleOn
+	if isOpen {
+		fieldThemeCue = guiTheme.Sounds.ToggleOff
+	}
+	fieldSound := resolveSoundCue(
+		fieldThemeCue, cfg.Sound, cfg.SoundDisabled)
+
 	ccfg := ContainerCfg{
 		ID:        cfg.ID,
 		Focusable: !cfg.FocusDisabled,
@@ -292,6 +313,7 @@ func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 		axis:        axisLeftToRight,
 		VAlign:      VAlignMiddle,
 		AmendLayout: focusRingAmend(colorFocus, colorBorderFocus),
+		Sound:       fieldSound,
 		OnKeyDown: makeComboboxOnKeyDown(id, onSelect, id, filteredIDs,
 			dropdownScrollID, rowH, listH),
 		OnChar: makeComboboxOnChar(id),

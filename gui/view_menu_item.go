@@ -186,6 +186,17 @@ func menuItem(menubarCfg MenubarCfg, itemCfg MenuItemCfg, extra ...View) View {
 		}
 	}
 
+	// A separator and a subtitle are not activations — they carry no
+	// Action and a subtitle is disabled — so they stay silent. A live
+	// item is a momentary activation, which is the click role, not the
+	// selection one: a menu is a list of commands, not of options
+	// (issue #467).
+	itemSound := SoundNone
+	if !itemCfg.Separator && !itemCfg.disabled {
+		itemSound = resolveSoundCue(
+			guiTheme.Sounds.Click, menubarCfg.Sound, menubarCfg.SoundDisabled)
+	}
+
 	itemContent := make([]View, 0, 1+len(extra))
 	itemContent = append(itemContent, content)
 	itemContent = append(itemContent, extra...)
@@ -199,6 +210,7 @@ func menuItem(menubarCfg MenubarCfg, itemCfg MenuItemCfg, extra ...View) View {
 		Padding:  itemCfg.Padding,
 		Radius:   Some(itemCfg.radius),
 		Disabled: itemCfg.disabled,
+		Sound:    itemSound,
 		OnClick:  menuItemClick(menubarCfg, itemCfg),
 		OnHover:  onHover,
 		// Reaches the label only: an attached submenu is a container,

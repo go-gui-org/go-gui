@@ -34,6 +34,20 @@ type ToastCfg struct {
 	// Severity picks the accent color and icon.
 	// exportaudit:keep — caller-facing config (issue #372)
 	Severity ToastSeverity
+
+	// Sound overrides the theme's click cue for this toast's action
+	// and dismiss buttons. SoundNone (the zero value) takes
+	// Theme.Sounds.Click, which is itself silent unless the app opted
+	// in (issue #446). Severity does not pick the cue: an error toast
+	// is a report, and the failure it reports has already sounded
+	// wherever it happened (issue #467).
+	// exportaudit:keep — caller-facing config (issue #467)
+	Sound SoundCue
+
+	// SoundDisabled suppresses this toast's button sounds regardless
+	// of the theme and of Sound above.
+	// exportaudit:keep — caller-facing config (issue #467)
+	SoundDisabled bool
 }
 
 // toastNotification is an active toast instance.
@@ -177,9 +191,11 @@ func toastItemView(toast *toastNotification, style ToastStyle) View {
 	if toast.cfg.ActionLabel != "" && toast.cfg.OnAction != nil {
 		onAction := toast.cfg.OnAction
 		buttons = append(buttons, Button(ButtonCfg{
-			ID:      toastBtnID(id, "action"),
-			Color:   ColorTransparent,
-			Content: []View{Text(TextCfg{Text: toast.cfg.ActionLabel, TextStyle: style.TextStyle})},
+			ID:            toastBtnID(id, "action"),
+			Color:         ColorTransparent,
+			Sound:         toast.cfg.Sound,
+			SoundDisabled: toast.cfg.SoundDisabled,
+			Content:       []View{Text(TextCfg{Text: toast.cfg.ActionLabel, TextStyle: style.TextStyle})},
 			OnClick: func(ctx EventCtx) {
 				onAction(ctx)
 				toastStartExit(ctx.Window, id)
@@ -187,9 +203,11 @@ func toastItemView(toast *toastNotification, style ToastStyle) View {
 		}))
 	}
 	buttons = append(buttons, Button(ButtonCfg{
-		ID:         toastBtnID(id, "dismiss"),
-		Color:      ColorTransparent,
-		SizeBorder: NoBorder,
+		ID:            toastBtnID(id, "dismiss"),
+		Color:         ColorTransparent,
+		Sound:         toast.cfg.Sound,
+		SoundDisabled: toast.cfg.SoundDisabled,
+		SizeBorder:    NoBorder,
 		Content: []View{Text(TextCfg{
 			Text: "\u00d7", TextStyle: glyphStyle(style.TextStyle),
 		})},

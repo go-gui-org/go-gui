@@ -147,6 +147,15 @@ func listBoxItemView(
 		a11yState = AccessStateSelected
 	}
 
+	// A subheading is a caption, not a choice, and a list with no
+	// OnSelect answers nothing — both stay silent. Otherwise the row
+	// picks one of several, which is the selection role (issue #467).
+	rowSound := SoundNone
+	if hasOnSelect && !isSub {
+		rowSound = resolveSoundCue(
+			guiTheme.Sounds.Selection, cfg.Sound, cfg.SoundDisabled)
+	}
+
 	return Row(ContainerCfg{
 		A11YRole:  AccessRoleListItem,
 		A11YCfg:   A11YCfg{A11YLabel: dat.Name},
@@ -159,6 +168,7 @@ func listBoxItemView(
 		// which runs after arrange and therefore moves nothing.
 		SizeBorder: NoBorder,
 		Sizing:     FillFit,
+		Sound:      rowSound,
 		Content:    []View{content},
 		// The ring paints only while the list itself holds window
 		// focus. Focus is resolved after layout, so it cannot be
@@ -229,6 +239,15 @@ func listBoxReorderItemView(
 		a11yState = AccessStateSelected
 	}
 
+	// The cue marks the selection the click makes, not the drag it
+	// also starts: a drag has no activation moment to sound at, and
+	// dragging is phase 3's question (issue #467).
+	rowSound := SoundNone
+	if hasOnSelect {
+		rowSound = resolveSoundCue(
+			guiTheme.Sounds.Selection, cfg.Sound, cfg.SoundDisabled)
+	}
+
 	return Row(ContainerCfg{
 		ID:        layoutID,
 		A11YRole:  AccessRoleListItem,
@@ -241,6 +260,7 @@ func listBoxReorderItemView(
 		// listBoxItemRingAmend.
 		SizeBorder: NoBorder,
 		Sizing:     FillFit,
+		Sound:      rowSound,
 		Content:    []View{content},
 		AmendLayout: listBoxItemRingAmend(
 			isFocusRow, cfg.ID, cfg.ColorBorderFocus),
