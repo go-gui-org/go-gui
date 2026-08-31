@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "go-gui Layout Pipeline — Immediate Mode",
+    "viewBox": [1080, 620],
+    "animation": "trace",
+    "quality_profile": "showcase",
+    "views": [
+      { "id": "happy-path", "label": "Happy path", "focus": ["viewFn", "genLayout", "layoutTree", "arrange", "pipeline", "renderLayout", "backend"], "note": "View → Layout → Arrange → Render → Backend in one frame." },
+      { "id": "identity-scope", "label": "Identity & scope", "focus": ["resolveIDs", "layoutTree", "arrange"], "note": "ID scoping stamps effID before any sizing pass." },
+      { "id": "emit-present", "label": "Emit & present", "focus": ["renderLayout", "measured", "backend", "windowOut"], "note": "Flat RenderCmd slice dispatch to Metal / native GL." }
+    ]
+  },
+  "stages": [
+    { "label": "Define" },
+    { "label": "Generate" },
+    { "label": "Arrange" },
+    { "label": "Emit" },
+    { "label": "Present" }
+  ],
+  "nodes": [
+    { "id": "viewFn", "type": "frontend", "label": "View function", "sublabel": "View + Content() []View", "stage": 0, "row": 0, "width": 148, "tag": "immediate" },
+    { "id": "widgets", "type": "frontend", "label": "Widget factories", "sublabel": "Button / Text / Column", "stage": 0, "row": 2, "width": 148, "tag": "Cfg structs" },
+    { "id": "genLayout", "type": "backend", "label": "generateViewLayout", "sublabel": "recursive + ensureShape", "stage": 1, "row": 0, "width": 152, "tag": "view.go:57" },
+    { "id": "layoutTree", "type": "backend", "label": "Layout tree", "sublabel": "Shape + []Layout values", "stage": 1, "row": 2, "width": 152, "tag": "arena-pooled" },
+    { "id": "resolveIDs", "type": "security", "label": "resolveShapeIDs", "sublabel": "effID = ScopeID ancestors", "stage": 2, "row": 0, "width": 152, "tag": "id_resolve.go" },
+    { "id": "arrange", "type": "backend", "label": "layoutArrange", "sublabel": "parents → floats → pipeline", "stage": 2, "row": 1, "width": 152, "tag": "orchestrator" },
+    { "id": "pipeline", "type": "backend", "label": "layoutPipeline", "sublabel": "12 passes: widths→heights", "stage": 2, "row": 3, "width": 152, "tag": "Fill / Wrap / Clip" },
+    { "id": "measured", "type": "cloud", "label": "Injected services", "sublabel": "TextMeasurer / SvgParser", "stage": 3, "row": 0, "width": 148, "tag": "nil in tests" },
+    { "id": "renderLayout", "type": "messagebus", "label": "renderLayout", "sublabel": "walk → w.renderers", "stage": 3, "row": 2, "width": 148, "tag": "[]RenderCmd" },
+    { "id": "backend", "type": "backend", "label": "GPU backend", "sublabel": "Metal / GL dispatch", "stage": 4, "row": 0, "width": 148, "tag": "no CGo on Linux" },
+    { "id": "windowOut", "type": "frontend", "label": "Window display", "sublabel": "composeLayer + present", "stage": 4, "row": 2, "width": 148, "tag": "FrameFn" }
+  ],
+  "flows": [
+    { "from": "viewFn", "to": "genLayout", "label": "GenerateLayout(w)", "classification": "per-frame", "route": "straight", "labelAt": [132, 95] },
+    { "from": "widgets", "to": "genLayout", "label": "returns View", "classification": "declarative", "labelAt": [132, 300] },
+    { "from": "genLayout", "to": "layoutTree", "label": "Layout nodes", "classification": "recursive tree", "route": "straight", "labelAt": [315, 200] },
+    { "from": "layoutTree", "to": "resolveIDs", "label": "raw IDs", "classification": "before floats", "labelAt": [423, 314] },
+    { "from": "resolveIDs", "to": "arrange", "label": "effID stamped", "classification": "ScopeID join", "route": "straight", "labelAt": [530, 200] },
+    { "from": "arrange", "to": "pipeline", "label": "per layer", "classification": "main + floating Z", "route": "straight", "labelAt": [530, 314] },
+    { "from": "pipeline", "to": "renderLayout", "label": "sized & positioned", "classification": "absolute coords", "labelAt": [700, 500] },
+    { "from": "measured", "to": "pipeline", "label": "measure", "classification": "glyph metrics", "labelAt": [620, 200] },
+    { "from": "measured", "to": "renderLayout", "label": "shaped glyphs", "classification": "LayoutPtr / Affine", "labelAt": [745, 200] },
+    { "from": "renderLayout", "to": "backend", "label": "[]RenderCmd", "classification": "flat discriminated", "labelAt": [820, 428] },
+    { "from": "backend", "to": "windowOut", "label": "GPU draw", "classification": "Rect / Text / Svg", "route": "straight", "labelAt": [960, 200] },
+    { "from": "pipeline", "to": "windowOut", "label": "post-position", "classification": "AmendLayout", "variant": "dashed", "route": "bottom-channel", "labelAt": [680, 620] }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "One frame — no diff",
+      "items": [
+        "View fn → generateViewLayout → Layout tree → layoutArrange → renderLayout → backend",
+        "FillFill root pinned min=max; 12 passes: widths → heights → positions → AmendLayout (w.mu)"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Identity before geometry",
+      "items": [
+        "resolveShapeIDs stamps effID (ScopeID join) before floats extracted",
+        "Focus / scroll / transitions all key on effID; injected glyph/svg services nil in tests"
+      ]
+    }
+  ]
+}
