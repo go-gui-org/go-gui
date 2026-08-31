@@ -10,6 +10,21 @@ and this project adheres to
 
 ### Added
 
+- **Frameless windows** (#473) — `WindowCfg.Decorations` selects the native
+  window frame. `gui.DecorationNone` removes it entirely;
+  `DecorationHiddenTitlebar` hides the macOS title bar while leaving the window
+  controls floating over the content. The zero value, `DecorationDefault`, is
+  the standard frame every existing caller already gets. Honored by the macOS,
+  Windows and X11 backends; a documented no-op on web, iOS and Android.
+
+  A window with no frame has nothing the user can grab, so two gestures ship
+  with it: `Window.StartWindowDrag` and `Window.StartWindowResize(edge)`, both
+  called from an `OnMouseDown` handler. Each hands the gesture to the OS, so
+  window snapping and edge tiling keep working. macOS needs no resize grip — a
+  borderless window still resizes from its edges — so `StartWindowResize` is a
+  no-op there. New: `gui.WindowDecoration`, `gui.WindowEdge`. See
+  `examples/frameless` and `docs/specs/frameless-windows.md`.
+
 - **Widget audio feedback reaches the whole widget set** (#467) — the sound seam
   from #446 proved itself on `Button` and `Toggle`; every other mechanical
   widget now emits a cue, plus `gui/datagrid`. `Switch`, `Radio`,

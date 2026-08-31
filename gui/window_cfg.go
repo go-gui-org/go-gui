@@ -64,6 +64,12 @@ type WindowCfg struct {
 	// FixedSize disables user-driven window resizing when supported
 	// by the active backend.
 	FixedSize bool
+	// Decorations selects the native window frame. The zero value
+	// keeps the platform's standard title bar and border. A
+	// DecorationNone window has nothing the user can grab, so it
+	// needs Window.StartWindowDrag to stay movable. Honored by the
+	// macOS, Windows and X11 backends; ignored elsewhere.
+	Decorations WindowDecoration
 	// Timings enables per-frame pipeline timing instrumentation.
 	Timings bool
 	// DebugTimeTravel enables time-travel snapshot capture and

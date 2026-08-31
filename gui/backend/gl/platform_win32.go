@@ -190,10 +190,13 @@ func wndProc(hwnd, msg, wparam, lparam uintptr) uintptr {
 // --- platformState (Win32 + WGL) ---
 
 type platformState struct {
-	hwnd      uintptr
-	hdc       uintptr
-	hglrc     uintptr
-	hIcon     uintptr
+	hwnd  uintptr
+	hdc   uintptr
+	hglrc uintptr
+	hIcon uintptr
+	// frameless records DecorationNone: WM_NCCALCSIZE and
+	// WM_GETMINMAXINFO only deviate from the default for such a window.
+	frameless bool
 	cursors   [11]uintptr
 	curCursor uintptr
 	w         *gui.Window
@@ -436,12 +439,7 @@ func New(w *gui.Window) (*Backend, error) {
 		height = 480
 	}
 
-	style := uintptr(wsClipSiblings | wsClipChildren)
-	if cfg.FixedSize {
-		style |= wsFixed
-	} else {
-		style |= wsOverlappedWindow
-	}
+	style := windowStyleFor(cfg)
 
 	// Size the window so its client area matches the requested
 	// logical size at the current system DPI.
@@ -467,6 +465,7 @@ func New(w *gui.Window) (*Backend, error) {
 
 	b := &Backend{}
 	b.plat.hwnd = hwnd
+	b.plat.frameless = cfg.Decorations == gui.DecorationNone
 	registerWindow(hwnd, b)
 	// Detach the IME until a text widget takes focus and IMEStart
 	// re-attaches it, matching the focus gating on macOS and X11. Without

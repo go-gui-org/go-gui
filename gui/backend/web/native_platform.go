@@ -398,6 +398,10 @@ func (n *nativePlatform) TitlebarDark(_ bool) {}
 
 func (n *nativePlatform) SetWindowVibrancy(_ gui.VibrancyMaterial) {}
 
+// No window manager to hand a move or resize gesture to.
+func (n *nativePlatform) StartWindowDrag()                   {}
+func (n *nativePlatform) StartWindowResize(_ gui.WindowEdge) {}
+
 // --- Spell check (no browser JS API exposes spell results) ---
 
 func (n *nativePlatform) SpellCheck(_ string) []gui.SpellRange     { return nil }

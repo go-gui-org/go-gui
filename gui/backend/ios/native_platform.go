@@ -84,6 +84,10 @@ func (n *nativePlatform) SpellCheck(text string) []gui.SpellRange { return spell
 
 func (n *nativePlatform) SetWindowVibrancy(_ gui.VibrancyMaterial) {}
 
+// No window manager to hand a move or resize gesture to.
+func (n *nativePlatform) StartWindowDrag()                   {}
+func (n *nativePlatform) StartWindowResize(_ gui.WindowEdge) {}
+
 func (n *nativePlatform) SpellSuggest(text string, s, l int) []string {
 	return spellcheck.Suggest(text, s, l)
 }

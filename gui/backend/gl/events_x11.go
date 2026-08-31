@@ -101,6 +101,12 @@ func (b *Backend) handleXEvent(ev xgb.Event) {
 		case 7:
 			b.emitScroll(-x11ScrollLines, 0, e.EventX, e.EventY, e.State)
 		default:
+			// Remember the press for a later StartWindowDrag /
+			// StartWindowResize, which reports it to the WM.
+			b.plat.pressRootX = e.RootX
+			b.plat.pressRootY = e.RootY
+			b.plat.pressButton = byte(e.Detail)
+			b.plat.havePress = true
 			x, y := b.logicalXY(int32(e.EventX), int32(e.EventY))
 			b.emit(gui.Event{
 				Type:        gui.EventMouseDown,

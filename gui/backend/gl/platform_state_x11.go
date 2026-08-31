@@ -56,6 +56,14 @@ type platformState struct {
 	lastRootY   int16
 	haveLastPos bool
 
+	// Last mouse-press position in root coordinates, kept for
+	// _NET_WM_MOVERESIZE: the window manager needs the press that
+	// started the gesture, which the Go-side event no longer carries.
+	pressRootX  int16
+	pressRootY  int16
+	pressButton byte
+	havePress   bool
+
 	physW, physH int32
 	scale        float32
 

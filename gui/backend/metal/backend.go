@@ -506,7 +506,7 @@ func createWindowState(w *gui.Window) (*windowState, error) {
 	cTitle := C.CString(title)
 	defer C.free(unsafe.Pointer(cTitle))
 	win := C.metalWindowCreate(cTitle, C.int(width), C.int(height),
-		C.int(fixed))
+		C.int(fixed), C.int(cfg.Decorations))
 	if win == nil {
 		return nil, errors.New("metalWindowCreate failed")
 	}

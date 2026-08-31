@@ -120,6 +120,7 @@ func New(w *gui.Window) (*Backend, error) {
 
 	setWindowTitle(conn, win, title)
 	setWindowIcon(conn, win, cfg)
+	setWindowDecorations(conn, win, cfg.Decorations)
 	if cfg.WMClass != "" {
 		setWMClass(conn, win, cfg.WMClass)
 	}
