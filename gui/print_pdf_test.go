@@ -707,3 +707,43 @@ func assertPDFExists(t *testing.T, path string) {
 		t.Fatal("PDF file is empty")
 	}
 }
+
+// The PDF export applies a command's affine before the origin and
+// scale, matching every GPU backend and the soft one. Without this a
+// canvas transform — or an animated SVG — printed at the wrong place.
+func TestPDFSvgVertexAppliesXform(t *testing.T) {
+	base := RenderCmd{Kind: RenderSvg, X: 100, Y: 200, Scale: 1}
+	if x, y := svgCmdVertex(base, 1, 5, 7); x != 105 || y != 207 {
+		t.Errorf("no xform: got %v,%v want 105,207", x, y)
+	}
+
+	xf := base
+	xf.HasXform = true
+	xf.ScaleX, xf.ScaleY = 2, 3
+	xf.TransX, xf.TransY = 10, 20
+	// 5*2+10 = 20, then +100. 7*3+20 = 41, then +200.
+	if x, y := svgCmdVertex(xf, 1, 5, 7); x != 120 || y != 241 {
+		t.Errorf("with xform: got %v,%v want 120,241", x, y)
+	}
+
+	// The command scale multiplies the transformed vertex, not the
+	// raw one — the order the backends use.
+	if x, y := svgCmdVertex(xf, 2, 5, 7); x != 140 || y != 282 {
+		t.Errorf("with xform and scale 2: got %v,%v want 140,282", x, y)
+	}
+}
+
+func TestRenderToPDF_SvgTrianglesXform(t *testing.T) {
+	j := testPrintJob(t)
+	cmds := []RenderCmd{{
+		Kind:      RenderSvg,
+		Triangles: []float32{0, 0, 50, 0, 25, 50},
+		Color:     RGBA(0, 128, 0, 255),
+		HasXform:  true,
+		ScaleX:    2, ScaleY: 2, TransX: 10, TransY: 10,
+	}}
+	if err := renderToPDF(cmds, j, 800, 600); err != nil {
+		t.Fatal(err)
+	}
+	assertPDFExists(t, j.OutputPath)
+}

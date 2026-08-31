@@ -161,3 +161,18 @@ func quantizedScissorClip(clip drawClip, scale float32) drawClip {
 		Height: float32(sh) / scale,
 	}
 }
+
+// svgCmdVertex maps one vertex of a RenderSvg command to page space,
+// in the same order the GPU and soft backends use: the command's own
+// affine (an animateTransform, or a canvas Translate/ScaleBy) first,
+// then the command origin and scale.
+//
+// Split out from pdfRenderSvg so the order is assertable without a
+// PDF writer in the way.
+func svgCmdVertex(cmd RenderCmd, svgScale, vx, vy float32) (float32, float32) {
+	if cmd.HasXform {
+		vx = vx*cmd.ScaleX + cmd.TransX
+		vy = vy*cmd.ScaleY + cmd.TransY
+	}
+	return cmd.X + vx*svgScale, cmd.Y + vy*svgScale
+}

@@ -36,7 +36,7 @@ func (dc *DrawContext) FillTrianglesGradient(tris []float32,
 		return
 	}
 	if dc.recorder != nil {
-		if gr, ok := dc.recorder.(DrawGradientRecorder); ok {
+		if gr, ok := dc.gradientRecorder(); ok {
 			gr.FillTrianglesGradient(tris, g)
 			return
 		}
@@ -131,7 +131,7 @@ func (dc *DrawContext) recordTriangles(tris []float32, cols []Color,
 			v := i / 2
 			col = meanColor(cols[v : v+3])
 		}
-		dc.recorder.FilledPolygon(tri[:], col)
+		dc.rec().FilledPolygon(tri[:], col)
 	}
 }
 
@@ -157,7 +157,7 @@ func (dc *DrawContext) gradientRecorderFallback(
 	if dc.recorder == nil {
 		return Color{}, false
 	}
-	if _, ok := dc.recorder.(DrawGradientRecorder); ok {
+	if _, ok := dc.gradientRecorder(); ok {
 		// The recorder handles gradients; let the shape tessellate and
 		// hand the geometry over in FillTrianglesGradient.
 		return Color{}, false
@@ -179,7 +179,7 @@ func (dc *DrawContext) FilledRectGradient(x, y, w, h float32,
 		return
 	}
 	if mid, ok := dc.gradientRecorderFallback(g); ok {
-		dc.recorder.FilledRect(x, y, w, h, mid)
+		dc.rec().FilledRect(x, y, w, h, mid)
 		return
 	}
 	dst := dc.gradScratch()
@@ -225,6 +225,14 @@ func (dc *DrawContext) FilledCircleGradient(cx, cy, radius float32,
 func (dc *DrawContext) concentricRadial(cx, cy, r float32,
 	g *CanvasGradient) bool {
 	if dc.recorder != nil || g == nil || len(g.Stops) == 0 {
+		return false
+	}
+	// A non-uniform canvas transform turns the circle into an
+	// ellipse, and the shader quad below cannot express one: its ramp
+	// is always centered with radius max(W,H)/2. Decline, and the
+	// caller falls back to the ring mesh, which lands in a normal
+	// batch and so is transformed exactly, ellipse included.
+	if xf, ok := dc.activeXform(); ok && !xf.uniform() {
 		return false
 	}
 	if !g.Radial || g.Spread != SpreadPad || !(r > 0) {
@@ -304,8 +312,12 @@ func (dc *DrawContext) emitRadialGradient(cx, cy, r float32,
 	// overwrites, while this list has to outlive the whole redraw.
 	e.Def.Stops = append(e.Def.Stops[:0], stops...)
 	e.Def.Type = GradientRadial
-	e.X, e.Y = cx-r, cy-r
-	e.W, e.H = 2*r, 2*r
+	// Baked: RenderGradient has no xform fields to ride on. The scale
+	// is uniform here (concentricRadial declined otherwise), so the
+	// circle stays a circle and |sx| is the whole story.
+	// xfRect normalizes, so a negative (mirroring) scale still yields
+	// the bounding square's top-left corner rather than its far one.
+	e.X, e.Y, e.W, e.H = dc.xfRect(cx-r, cy-r, 2*r, 2*r)
 	e.afterBatch = len(dc.batches)
 	return true
 }
@@ -470,7 +482,7 @@ func (dc *DrawContext) concentricRings(stops []GradientStop,
 func (dc *DrawContext) FilledArcGradient(cx, cy, rx, ry, start,
 	sweep float32, g *CanvasGradient) {
 	if mid, ok := dc.gradientRecorderFallback(g); ok {
-		dc.recorder.FilledArc(cx, cy, rx, ry, start, sweep, mid)
+		dc.rec().FilledArc(cx, cy, rx, ry, start, sweep, mid)
 		return
 	}
 	pts := dc.arcPoints(cx, cy, rx, ry, start, sweep)
@@ -490,7 +502,7 @@ func (dc *DrawContext) FilledPolygonGradient(points []float32,
 		return
 	}
 	if mid, ok := dc.gradientRecorderFallback(g); ok {
-		dc.recorder.FilledPolygon(points, mid)
+		dc.rec().FilledPolygon(points, mid)
 		return
 	}
 	dst := dc.gradScratch()
@@ -506,7 +518,7 @@ func (dc *DrawContext) FilledRoundedRectGradient(x, y, w, h,
 		return
 	}
 	if mid, ok := dc.gradientRecorderFallback(g); ok {
-		dc.recorder.FilledRoundedRect(x, y, w, h, radius, mid)
+		dc.rec().FilledRoundedRect(x, y, w, h, radius, mid)
 		return
 	}
 	radius = min(radius, w/2, h/2)

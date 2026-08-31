@@ -888,7 +888,69 @@ func goldenCases() []goldenCase {
 			name:  "canvas_vertex_colors",
 			build: buildCanvasVertexColors,
 		},
+		{
+			// The canvas transform stack (issue #474). The transform
+			// rides on the command rather than on the vertices, so
+			// the triangle fingerprint alone cannot see it — this
+			// case is what makes serializeCmd's xform token earn its
+			// place. It pins four things at once: that an
+			// untransformed batch stays untransformed, that a
+			// transform breaks the same-color batch merge, that text
+			// and stroke widths take the scale, and that a concentric
+			// radial under a non-uniform scale gives up the shader
+			// quad for the ring mesh.
+			name:  "canvas_transform",
+			build: buildCanvasTransform,
+		},
 	}
+}
+
+// buildCanvasTransform draws each primitive twice where it can: once
+// at the identity and once under a Save/Translate/ScaleBy/Restore, so
+// the diff between the two is the whole feature. Colors are fixed
+// literals for the same reason buildCanvasGradient's are.
+func buildCanvasTransform(_ *Window) View {
+	return DrawCanvas(DrawCanvasCfg{
+		ID:      "canvas_transform",
+		Sizing:  FixedFixed,
+		Width:   160,
+		Height:  100,
+		Version: 1,
+		OnDraw: func(dc *DrawContext) {
+			red := RGB(255, 0, 0)
+			// Identity: the batch must record no transform at all.
+			dc.FilledRect(4, 4, 20, 20, red)
+
+			dc.Save()
+			dc.Translate(40, 10)
+			dc.ScaleBy(2, 2)
+			// Same color as the rect above. A shared batch would fold
+			// two matrices into one, so this must land in its own.
+			dc.FilledRect(0, 0, 20, 20, red)
+			// A stroke width is in local units and scales with the
+			// batch, which is the point of not baking vertices.
+			dc.Rect(0, 0, 20, 20, RGB(0, 0, 255), 2)
+			dc.Text(2, 24, "T", TextStyle{Size: 8, Color: RGB(0, 0, 0)})
+			dc.Restore()
+
+			// Back at the identity, and merging with nothing above.
+			dc.FilledRect(4, 40, 20, 20, RGB(0, 255, 0))
+
+			// A non-uniform scale turns the circle into an ellipse,
+			// which the single-quad shader cannot express: this must
+			// come out as the ring mesh, in a transformed batch.
+			dc.Save()
+			dc.ScaleBy(1, 2)
+			dc.FilledCircleGradient(120, 20, 15, &CanvasGradient{
+				Radial: true,
+				Stops: []GradientStop{
+					{Color: RGBA(255, 255, 255, 255), Pos: 0},
+					{Color: RGBA(255, 255, 255, 0), Pos: 1},
+				},
+			})
+			dc.Restore()
+		},
+	})
 }
 
 // buildCanvasVertexColors draws a hand-colored two-triangle mesh, then

@@ -30,7 +30,12 @@ const defaultBatchVerts = 64
 // they stay distinguishable from a gradient batch carrying no colors.
 func (dc *DrawContext) takeBatch(color Color, gradient bool,
 	numVerts int) *DrawCanvasTriBatch {
+	// The transform is stamped once per batch, not per vertex: the
+	// primitives append local coordinates and the matrix travels with
+	// the command. getBatch keeps a transform change from merging two
+	// matrices into one batch.
 	nb := DrawCanvasTriBatch{Color: color}
+	nb.xf, nb.hasXform = dc.activeXform()
 	if i := len(dc.batches); i < len(dc.batchPool) {
 		// Reused at any size, deliberately. A cap on it would only
 		// force a reallocation: the cache entry holds this geometry
@@ -102,6 +107,10 @@ func (dc *DrawContext) resetFor(w, h, scale float32, tm TextMeasurer,
 	dc.lastColor = Color{}
 	dc.batchIsGradient = false
 	dc.currentBatchIdx = 0
+	// The single reset point for the transform. It runs immediately
+	// before every OnDraw, so an unbalanced Save cannot survive into
+	// the next redraw or into another canvas sharing this context.
+	dc.resetXform()
 
 	dc.arcBuf = keepScratch(dc.arcBuf)
 	dc.bezierBuf = keepScratch(dc.bezierBuf)
