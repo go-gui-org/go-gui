@@ -209,6 +209,22 @@ func (b *Backend) handleMessage(msg, wparam, lparam uintptr) (uintptr, bool) {
 		}
 		return 0, false
 
+	case wmNcCalcSize:
+		// Returning zero with wparam set keeps the proposed rect as the
+		// client rect, so the client area covers the whole window and
+		// no caption strip is drawn. The resize border stays usable
+		// because WS_THICKFRAME is still in the style.
+		if b.plat.frameless && wparam != 0 {
+			return 0, true
+		}
+		return 0, false
+
+	case wmGetMinMaxInfo:
+		if b.plat.frameless {
+			return b.clampMaximizeToWorkArea(lparam)
+		}
+		return 0, false
+
 	case wmClose:
 		gui.DispatchCloseRequest(w)
 		return 0, true

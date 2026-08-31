@@ -92,6 +92,8 @@ type NativePlatform interface {
 	OpenURI(uri string) error
 	TitlebarDark(dark bool)
 	SetWindowVibrancy(material VibrancyMaterial)
+	StartWindowDrag()
+	StartWindowResize(edge WindowEdge)
 }
 
 // SpellRange represents a misspelled byte range in text.

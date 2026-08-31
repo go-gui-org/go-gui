@@ -45,6 +45,8 @@ func (noopNativePlatform) IMESetRect(_, _, _, _ int32)                         {
 func (noopNativePlatform) OpenURI(_ string) error                              { return nil }
 func (noopNativePlatform) TitlebarDark(_ bool)                                 {}
 func (noopNativePlatform) SetWindowVibrancy(_ VibrancyMaterial)                {}
+func (noopNativePlatform) StartWindowDrag()                                    {}
+func (noopNativePlatform) StartWindowResize(_ WindowEdge)                      {}
 func (noopNativePlatform) SpellCheck(_ string) []SpellRange                    { return nil }
 func (noopNativePlatform) SpellSuggest(_ string, _, _ int) []string            { return nil }
 func (noopNativePlatform) SpellLearn(_ string)                                 {}

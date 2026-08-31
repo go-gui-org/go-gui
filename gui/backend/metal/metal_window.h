@@ -19,9 +19,15 @@ typedef void *GoGuiNSWindow;
 // title: UTF-8 window title.
 // width, height: logical pixels.
 // fixedSize: if non-zero, window is not resizable.
+// decorations: 0 standard frame, 1 hidden title bar (window controls
+//   stay, content runs full height), 2 borderless.
 // Returns NULL on failure.
 GoGuiNSWindow metalWindowCreate(const char *title, int width, int height,
-                                int fixedSize);
+                                int fixedSize, int decorations);
+
+// Hand the window to AppKit's own move loop, using the last mouse-down
+// event as the gesture's origin. No-op when no press has been seen.
+void metalWindowStartDrag(GoGuiNSWindow w);
 
 // Destroy the window and release all resources.
 void metalWindowDestroy(GoGuiNSWindow w);

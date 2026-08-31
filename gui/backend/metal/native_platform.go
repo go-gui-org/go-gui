@@ -117,6 +117,15 @@ func (n *nativePlatform) SetWindowVibrancy(m gui.VibrancyMaterial) {
 	C.metalWindowSetVibrancy(n.window, C.int(m))
 }
 
+func (n *nativePlatform) StartWindowDrag() {
+	C.metalWindowStartDrag(n.window)
+}
+
+// StartWindowResize is a no-op on macOS: a borderless window keeps
+// NSWindowStyleMaskResizable, so AppKit still resizes it from the
+// edges and an app-drawn grip has nothing to add.
+func (n *nativePlatform) StartWindowResize(_ gui.WindowEdge) {}
+
 // --- Spell check ---
 
 func (n *nativePlatform) SpellCheck(text string) []gui.SpellRange {

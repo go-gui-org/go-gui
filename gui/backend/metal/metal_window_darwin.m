@@ -644,10 +644,21 @@ typedef struct {
     uint32_t            windowID;
 } GoGuiWindow;
 
+// Mirrors gui.WindowDecoration.
+enum {
+    GOGUI_DECORATION_DEFAULT         = 0,
+    GOGUI_DECORATION_HIDDEN_TITLEBAR = 1,
+    GOGUI_DECORATION_NONE            = 2,
+};
+
+// Most recent mouse-down, retained for metalWindowStartDrag. Strong
+// under ARC, replaced on every press, so at most one event is held.
+static NSEvent *_lastMouseDown = nil;
+
 // ─── Lifecycle ─────────────────────────────────────────────────
 
 GoGuiNSWindow metalWindowCreate(const char *title, int width, int height,
-                                int fixedSize) {
+                                int fixedSize, int decorations) {
     id<MTLDevice> device = MTLCreateSystemDefaultDevice();
     if (!device) return NULL;
 
@@ -656,9 +667,20 @@ GoGuiNSWindow metalWindowCreate(const char *title, int width, int height,
     if (width < 1)  width = 1;
     if (height < 1) height = 1;
 
-    NSWindowStyleMask style = NSWindowStyleMaskTitled
-                            | NSWindowStyleMaskClosable
-                            | NSWindowStyleMaskMiniaturizable;
+    // decorations: 0 standard, 1 hidden title bar, 2 borderless. A
+    // borderless window keeps Resizable so AppKit still resizes it from
+    // the edges -- that is why macOS needs no client-drawn grip.
+    NSWindowStyleMask style;
+    if (decorations == GOGUI_DECORATION_NONE) {
+        style = NSWindowStyleMaskBorderless;
+    } else {
+        style = NSWindowStyleMaskTitled
+              | NSWindowStyleMaskClosable
+              | NSWindowStyleMaskMiniaturizable;
+        if (decorations == GOGUI_DECORATION_HIDDEN_TITLEBAR) {
+            style |= NSWindowStyleMaskFullSizeContentView;
+        }
+    }
     if (!fixedSize) {
         style |= NSWindowStyleMaskResizable;
     }
@@ -680,6 +702,12 @@ GoGuiNSWindow metalWindowCreate(const char *title, int width, int height,
     }
     if (nsTitle) {
         [win setTitle:nsTitle];
+    }
+    if (decorations == GOGUI_DECORATION_HIDDEN_TITLEBAR) {
+        // Content runs the full height, with the traffic lights left
+        // floating over whatever the app draws up there.
+        win.titlebarAppearsTransparent = YES;
+        win.titleVisibility = NSWindowTitleHidden;
     }
     [win center];
 
@@ -744,6 +772,14 @@ void metalWindowSetTitle(GoGuiNSWindow w, const char *title) {
     GoGuiWindow *gw = (GoGuiWindow *)w;
     NSString *nsTitle = [NSString stringWithUTF8String:title];
     if (nsTitle) [gw->nsWindow setTitle:nsTitle];
+}
+
+void metalWindowStartDrag(GoGuiNSWindow w) {
+    if (!w || !_lastMouseDown) return;
+    GoGuiWindow *gw = (GoGuiWindow *)w;
+    // AppKit owns the pointer from here until the button comes up, so
+    // no move events reach Go for the duration of the drag.
+    [gw->nsWindow performWindowDragWithEvent:_lastMouseDown];
 }
 
 void metalWindowGetSize(GoGuiNSWindow w, int *width, int *height) {
@@ -884,6 +920,10 @@ static void storeEvent(NSEvent *event, uint32_t wid) {
         case NSEventTypeLeftMouseDown:
         case NSEventTypeRightMouseDown:
         case NSEventTypeOtherMouseDown:
+            // Kept for metalWindowStartDrag: performWindowDragWithEvent
+            // wants the press that started the gesture, and Go only
+            // gets the flattened coordinates.
+            _lastMouseDown = event;
             _evType = METAL_EVENT_MOUSE_DOWN;
             _evMouseX = (float)[event locationInWindow].x;
             _evMouseY = (float)flippedY;

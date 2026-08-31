@@ -108,7 +108,7 @@ Go-Gui is also an ecosystem of composable libraries. **go-glyph** handles text,
 - **Professional text & accessibility** — text shaping, rendering, bidirectional
   layout, font fallback, IME, spell checking, and full accessibility support
 - **Native application integration** — file dialogs, menus, notifications,
-  printing, PDF, system tray, and other platform services
+  printing, PDF, system tray, frameless windows, and other platform services
 - **Developer tools** — time-travel debugging, headless testing, headless
   rendering, layout inspection, and pixel-level regression testing
 
