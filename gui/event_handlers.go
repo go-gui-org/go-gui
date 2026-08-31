@@ -50,6 +50,7 @@ func charHandler(layout *Layout, e *Event, w *Window) {
 		events.OnClick != nil {
 		if isFocusedTarget(layout, w) {
 			e.IsHandled = true
+			playShapeSound(layout, w)
 			events.OnClick(EventCtx{layout, e, w})
 		}
 	}
@@ -106,6 +107,7 @@ func keydownHandler(layout *Layout, e *Event, w *Window) {
 		e.KeyCode == KeyEnter &&
 		events.OnClick != nil {
 		e.IsHandled = true
+		playShapeSound(layout, w)
 		events.OnClick(EventCtx{layout, e, w})
 		return
 	}

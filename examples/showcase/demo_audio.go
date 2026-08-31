@@ -147,6 +147,14 @@ func demoAudio(w *gui.Window) gui.View {
 						Max:    100,
 						Sizing: gui.FillFit,
 						OnChange: func(v float32, ctx gui.EventCtx) {
+							if math.IsNaN(float64(v)) || math.IsInf(float64(v), 0) {
+								v = 0
+							}
+							if v < 0 {
+								v = 0
+							} else if v > 100 {
+								v = 100
+							}
 							a := appState(ctx.Window)
 							a.AudioVolume = float64(v) / 100
 							audio.SetMasterVolume(a.AudioVolume)
@@ -161,10 +169,148 @@ func demoAudio(w *gui.Window) gui.View {
 				},
 			}),
 
+			sectionLabel(t, "Widget Sound Feedback"),
+			widgetSoundPanel(t, app),
+
 			gui.Text(gui.TextCfg{
 				Text:      app.AudioStatus,
 				TextStyle: t.N4,
 				Mode:      gui.TextModeWrap,
+			}),
+		},
+	})
+}
+
+// widgetSoundControls is the same panel, reached from the "Sound
+// Feedback" page so the guide and its switch sit together.
+func widgetSoundControls(w *gui.Window) gui.View {
+	return widgetSoundPanel(gui.CurrentTheme(), appState(w))
+}
+
+// widgetSoundPanel is the interactive half of the "Sound Feedback"
+// doc page: the opt-in switch, the window gain, and two widgets whose
+// cues differ, so the click and the two toggle cues can be compared
+// side by side.
+func widgetSoundPanel(t gui.Theme, app *ShowcaseApp) gui.View {
+	return gui.Column(gui.ContainerCfg{
+		Sizing:  gui.FillFit,
+		Spacing: gui.SomeF(8),
+		Padding: gui.NoPadding,
+		Content: []gui.View{
+			gui.Text(gui.TextCfg{
+				Text: "Silent until you opt in twice: a theme that " +
+					"names a cue per role, and an installed " +
+					"SoundPlayer. See the Sound Feedback page.",
+				TextStyle: t.N4,
+				Mode:      gui.TextModeWrap,
+			}),
+			gui.Switch(gui.SwitchCfg{
+				ID:       "widget-sound-on",
+				Label:    "Widget sounds",
+				Selected: app.WidgetSoundOn,
+				OnClick: func(ctx gui.EventCtx) {
+					a := appState(ctx.Window)
+					a.WidgetSoundOn = !a.WidgetSoundOn
+					if a.WidgetSoundOn {
+						installWidgetSounds(ctx.Window, a.WidgetSoundBeep)
+						ctx.Window.SetSoundVolume(a.WidgetSoundVolume)
+					} else {
+						removeWidgetSounds(ctx.Window)
+					}
+					ctx.Consume()
+				},
+			}),
+			// The zero-dependency player: system alert on SoundError,
+			// silence otherwise, no audio library and no assets.
+			gui.Switch(gui.SwitchCfg{
+				ID:       "widget-sound-beep",
+				Label:    "System alert only (no audio library)",
+				Selected: app.WidgetSoundBeep,
+				OnClick: func(ctx gui.EventCtx) {
+					a := appState(ctx.Window)
+					a.WidgetSoundBeep = !a.WidgetSoundBeep
+					if a.WidgetSoundOn {
+						installWidgetSounds(ctx.Window, a.WidgetSoundBeep)
+					}
+					ctx.Consume()
+				},
+			}),
+			gui.Row(gui.ContainerCfg{
+				Sizing:  gui.FillFit,
+				Spacing: gui.SomeF(8),
+				Padding: gui.NoPadding,
+				VAlign:  gui.VAlignMiddle,
+				Content: []gui.View{
+					gui.Text(gui.TextCfg{
+						Text:      "Cue volume",
+						TextStyle: t.N4,
+						MinWidth:  90,
+					}),
+					gui.Slider(gui.SliderCfg{
+						ID:     "widget-sound-vol",
+						Value:  app.WidgetSoundVolume * 100,
+						Min:    0,
+						Max:    100,
+						Sizing: gui.FillFit,
+						OnChange: func(v float32, ctx gui.EventCtx) {
+							if math.IsNaN(float64(v)) || math.IsInf(float64(v), 0) {
+								v = 0
+							}
+							if v < 0 {
+								v = 0
+							} else if v > 100 {
+								v = 100
+							}
+							a := appState(ctx.Window)
+							a.WidgetSoundVolume = v / 100
+							// 0 is mute; there is no separate flag.
+							ctx.Window.SetSoundVolume(a.WidgetSoundVolume)
+						},
+					}),
+					gui.Text(gui.TextCfg{
+						Text: fmt.Sprintf("%.0f%%",
+							app.WidgetSoundVolume*100),
+						TextStyle: t.N4,
+						MinWidth:  40,
+					}),
+				},
+			}),
+			gui.Row(gui.ContainerCfg{
+				Sizing:  gui.FillFit,
+				Spacing: gui.SomeF(12),
+				Padding: gui.NoPadding,
+				VAlign:  gui.VAlignMiddle,
+				Content: []gui.View{
+					gui.Button(gui.ButtonCfg{
+						ID:      "widget-sound-click",
+						Label:   "Click me",
+						Padding: gui.NewPadding(8, 16, 8, 16),
+						OnClick: func(ctx gui.EventCtx) {
+							ctx.Consume()
+						},
+					}),
+					gui.Toggle(gui.ToggleCfg{
+						ID:       "widget-sound-toggle",
+						Label:    "Toggle me",
+						Selected: app.WidgetSoundDemoOn,
+						OnClick: func(ctx gui.EventCtx) {
+							a := appState(ctx.Window)
+							a.WidgetSoundDemoOn = !a.WidgetSoundDemoOn
+							ctx.Consume()
+						},
+					}),
+					// SoundDisabled opts one instance out, whatever the
+					// theme says.
+					gui.Button(gui.ButtonCfg{
+						ID:            "widget-sound-muted",
+						Label:         "Silent button",
+						Padding:       gui.NewPadding(8, 16, 8, 16),
+						SoundDisabled: true,
+						OnClick: func(ctx gui.EventCtx) {
+							ctx.Consume()
+						},
+					}),
+				},
 			}),
 		},
 	})
@@ -212,7 +358,7 @@ var synthPadRows = [2][]synthPadDef{
 // audio-thread-exclusive apart from the release flag.
 var synthActive [len(synthPadRows) * synthPadsPerRow]*synthVoice
 
-// Envelope timings in seconds.
+// Envelope timings in seconds for the pad voice.
 const (
 	synthAttackS  = 0.01
 	synthDecayS   = 0.25
@@ -220,11 +366,35 @@ const (
 	synthSustain  = 0.35 // sustain level as a fraction of the peak
 )
 
+// voiceEnv holds the timings one voice runs on, so the pad voice and
+// the UI cue voice share Fill and envelope instead of forking the
+// oscillator (issue #446).
+type voiceEnv struct {
+	attackS  float64
+	decayS   float64
+	releaseS float64
+	// sustain is the level held after decay, as a fraction of the peak.
+	sustain float64
+	// oneShot ends the voice when the decay finishes, freeing its mixer
+	// channel with no note-off. A pad sustains until release; a UI cue
+	// has no key to lift.
+	oneShot bool
+}
+
+// padEnv is the sustaining envelope the synth pads play.
+var padEnv = voiceEnv{
+	attackS:  synthAttackS,
+	decayS:   synthDecayS,
+	releaseS: synthReleaseS,
+	sustain:  synthSustain,
+}
+
 // synthVoice is a live audio source: three harmonics of the pad's
 // frequency shaped by an ADSR envelope. Fill runs on the audio thread,
 // so the envelope state lives entirely there; the note-off arrives via
 // an atomic flag set from the UI thread.
 type synthVoice struct {
+	env          voiceEnv
 	sampleRate   float64
 	freq         float64
 	phase        float64
@@ -236,12 +406,29 @@ type synthVoice struct {
 }
 
 func newSynthVoice(freq float64) *synthVoice {
+	return newVoice(freq, 0.2, padEnv)
+}
+
+// newVoice builds a voice at the given peak level and envelope.
+func newVoice(freq, level float64, env voiceEnv) *synthVoice {
+	if math.IsNaN(freq) || math.IsInf(freq, 0) || freq <= 0 {
+		freq = 440
+	}
+	if math.IsNaN(level) || math.IsInf(level, 0) {
+		level = 0
+	}
+	if level < 0 {
+		level = 0
+	} else if level > 1 {
+		level = 1
+	}
 	v := &synthVoice{
+		env:        env,
 		sampleRate: float64(audio.SampleRate()),
 		freq:       freq,
-		level:      0.2,
+		level:      level,
 	}
-	if v.sampleRate == 0 {
+	if v.sampleRate == 0 || math.IsNaN(v.sampleRate) || math.IsInf(v.sampleRate, 0) || v.sampleRate <= 0 {
 		v.sampleRate = 44100
 	}
 	return v
@@ -277,29 +464,56 @@ func (v *synthVoice) Fill(samples [][2]float64) (int, bool) {
 // envelope advances the ADSR state by dt and returns the current
 // amplitude. Called once per sample from Fill.
 func (v *synthVoice) envelope(dt float64) float64 {
+	e := &v.env
+	// Defensive: a zero or negative timing would divide by zero and
+	// propagate Inf/NaN into the mixer. Treat it as an instant stage.
+	if e.attackS <= 0 {
+		e.attackS = 1e-6
+	}
+	if e.decayS <= 0 {
+		e.decayS = 1e-6
+	}
+	if e.releaseS <= 0 {
+		e.releaseS = 1e-6
+	}
+	if math.IsNaN(e.attackS) || math.IsInf(e.attackS, 0) {
+		e.attackS = 1e-6
+	}
+	if math.IsNaN(e.decayS) || math.IsInf(e.decayS, 0) {
+		e.decayS = 1e-6
+	}
+	if math.IsNaN(e.releaseS) || math.IsInf(e.releaseS, 0) {
+		e.releaseS = 1e-6
+	}
 	if v.releasing.Load() {
-		if v.elapsed >= synthReleaseS {
+		if v.elapsed >= e.releaseS {
 			v.done = true
 			return 0
 		}
-		amp := v.releaseLevel * (1 - v.elapsed/synthReleaseS)
+		amp := v.releaseLevel * (1 - v.elapsed/e.releaseS)
 		v.elapsed += dt
 		return amp
 	}
 	switch {
-	case v.elapsed < synthAttackS:
-		amp := v.level * (v.elapsed / synthAttackS)
+	case v.elapsed < e.attackS:
+		amp := v.level * (v.elapsed / e.attackS)
 		v.elapsed += dt
 		v.releaseLevel = amp
 		return amp
-	case v.elapsed < synthAttackS+synthDecayS:
-		t := (v.elapsed - synthAttackS) / synthDecayS
-		amp := v.level * (1 - (1-synthSustain)*t)
+	case v.elapsed < e.attackS+e.decayS:
+		t := (v.elapsed - e.attackS) / e.decayS
+		amp := v.level * (1 - (1-e.sustain)*t)
 		v.elapsed += dt
 		v.releaseLevel = amp
 		return amp
 	default:
-		amp := v.level * synthSustain
+		// A one-shot has nothing to sustain into: end it here so the
+		// mixer channel is freed without a note-off.
+		if e.oneShot {
+			v.done = true
+			return 0
+		}
+		amp := v.level * e.sustain
 		v.releaseLevel = amp
 		return amp
 	}

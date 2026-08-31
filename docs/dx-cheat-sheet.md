@@ -254,6 +254,15 @@ Nothing is marked handled for you. A callback that acts on an event calls
 in `AmendLayout` and `OnScroll`, and both `EventCtx` methods are nil-safe. See
 `docs/specs/eventctx-callback-refactor.md`.
 
+## Widget sound
+
+Silent unless the app opts in twice: `theme.Sounds = gui.SoundsDefault()` names
+a cue per role, and `w.SetSoundPlayer(...)` renders them. Either alone is
+silent, and a nil player is the default, so tests need no setup. Per instance,
+`Cfg.Sound` overrides the theme cue and `Cfg.SoundDisabled` suppresses it;
+`w.SetSoundVolume(0..1)` is the gain, where `0` is mute. The cue fires before
+`OnClick` and regardless of `ctx.Consume()`. See `docs/widget-sound.md`.
+
 ## Find it early
 
 `gui.Debug(true)`, or `GOGUI_DEBUG=1`, checks the layout every frame. It reports

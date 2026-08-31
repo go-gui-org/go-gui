@@ -18,3 +18,14 @@ func demoAudio(w *gui.Window) gui.View {
 		},
 	})
 }
+
+// widgetSoundControls has no audio backend on these targets, so the
+// Sound Feedback page shows why rather than a dead switch.
+func widgetSoundControls(_ *gui.Window) gui.View {
+	t := gui.CurrentTheme()
+	return gui.Text(gui.TextCfg{
+		Text:      "Widget sound is not available on this platform.",
+		TextStyle: t.N4,
+		Mode:      gui.TextModeWrap,
+	})
+}

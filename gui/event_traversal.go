@@ -58,6 +58,12 @@ func callRelative(
 	saved := *e
 	e.MouseX = saved.MouseX - layout.Shape.X
 	e.MouseY = saved.MouseY - layout.Shape.Y
+	// Sound fires before the callback and independently of whether the
+	// callback consumes: the cue confirms the widget was activated, it
+	// is not a propagation decision (issue #446).
+	if class == evClick {
+		playShapeSound(layout, w)
+	}
 	callback(EventCtx{layout, e, w})
 	handled := e.IsHandled
 	*e = saved

@@ -46,6 +46,15 @@ type windowBackend struct {
 	textMeasurer   TextMeasurer
 	svgParser      SvgParser
 	nativePlatform NativePlatform
+	// soundPlayer renders widget sound cues. Unlike the three above
+	// the backend installs none: the app opts in with
+	// SetSoundPlayer, so the default is silence (issue #446).
+	soundPlayer SoundPlayer
+	// soundVolume is the gain handed to soundPlayer, 0..1. Read
+	// through SoundVolume, which reports 1 until soundVolumeSet — a
+	// zero-value window is full volume, not muted.
+	soundVolume    float32
+	soundVolumeSet bool
 	clipboardSetFn func(string)
 	clipboardGetFn func() string
 	// primarySetFn/primaryGetFn drive the X11 PRIMARY selection — the

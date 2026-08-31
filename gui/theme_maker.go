@@ -689,6 +689,8 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 		SizeTextLarge:  ladder.large,
 		SizeTextXLarge: ladder.xLarge,
 
+		Sounds: cfg.Sounds,
+
 		ScrollMultiplier: cfg.ScrollMultiplier,
 		ScrollDeltaLine:  cfg.ScrollDeltaLine,
 		ScrollDeltaPage:  cfg.ScrollDeltaPage,
