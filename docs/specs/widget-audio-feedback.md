@@ -1,10 +1,40 @@
 # Spec: opt-in widget audio feedback
 
-Status: **phase 1 implemented** — `SoundCue`, `SoundPlayer`, `Theme.Sounds`,
-window volume, and the `Button` / `Toggle` proof. Phases 2–4 are follow-up
-issues.
+Status: **phases 1 and 2 implemented** — phase 1 landed `SoundCue`,
+`SoundPlayer`, `Theme.Sounds`, window volume, and the `Button` / `Toggle` proof;
+phase 2 (#467) carried the seam to every remaining mechanical widget and to
+`gui/datagrid`. Phases 3 and 4 are follow-up issues.
 
-Issue: #446 — "Widgets have no audio feedback for interactions".
+Issue: #446 — "Widgets have no audio feedback for interactions". Phase 2: #467 —
+"Widget audio feedback phase 2: the mechanical widget pass".
+
+## Phase 2 decisions
+
+- **A fifth role, `SoundSelection`.** The phase-2 inventory assigns "selection"
+  to about ten widgets — a radio, a list row, a tab, a calendar day — and
+  `SoundSet` had only click, toggle and error. Overloading `Click` would have
+  made a tab indistinguishable from a button, so the constant and the
+  `SoundSet.Selection` field were added instead. The cue enum is open and
+  append-only, so `SoundSelection` sits after `SoundError`.
+- **`ResolveSoundCue` is exported.** `gui/datagrid` is outside `gui/` and cannot
+  reach the unexported `resolveSoundCue` or the package-global `guiTheme`. It
+  reads `gg.CurrentTheme().Sounds` once per generate and resolves through the
+  exported seam, rather than re-deriving the precedence.
+- **A resolved cue fed into a nested `ButtonCfg` carries `SoundDisabled` too.**
+  `ButtonCfg` and `ToggleCfg` resolve their own precedence, so a resolved
+  `SoundNone` reads there as "unset" and falls back to the theme's click cue.
+  Every site that hands a resolved cue to one of them passes
+  `SoundDisabled: cue == SoundNone` alongside it. `ContainerCfg` is a pure
+  carrier and needs no such pairing.
+- **All five `Dialog` buttons take `Click`.** There is no cancel or dismiss
+  role, and `Error` would misread a cancellation as a failure. A dismiss cue can
+  land in phase 4 with the other non-click semantics.
+- **`gui.Text` stays out of scope.** `textEventHandlers` is a package-level
+  handler record shared by every text shape, so a per-instance cue would cost
+  the zero-allocation sharing.
+- **Drag starts stay silent.** A `Tree` row, a `ListBox` reorder row and a
+  `DockLayout` tab all start a drag from the same handler that activates them.
+  The cue marks the activation; sounding a drag is phase 3's question.
 
 ## Motivation
 

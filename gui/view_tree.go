@@ -64,6 +64,19 @@ type TreeCfg struct {
 	Disabled    bool
 	Invisible   bool
 	Reorderable bool
+
+	// Sound overrides the theme's cue for a row activation. A row
+	// with children toggles, so it takes the toggle role; a leaf row
+	// selects, so it takes the selection role. SoundNone (the zero
+	// value) takes the theme's cue for whichever role applies, which
+	// is itself silent unless the app opted in (issue #446).
+	// exportaudit:keep — caller-facing config (issue #467)
+	Sound SoundCue
+
+	// SoundDisabled suppresses every row's sound regardless of the
+	// theme and of Sound above.
+	// exportaudit:keep — caller-facing config (issue #467)
+	SoundDisabled bool
 }
 
 // TreeNodeCfg configures a single tree node.

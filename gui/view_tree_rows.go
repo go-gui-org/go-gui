@@ -139,6 +139,21 @@ func treeArrowIcon(row treeFlatRow) string {
 	return IconDropRight
 }
 
+// treeRowSound resolves the cue one row's activation emits. A row with
+// children opens or closes, so the cue names what the click will do; a
+// leaf row picks one node out of the tree, which is a selection
+// (issue #467).
+func treeRowSound(cfg *TreeCfg, row treeFlatRow) SoundCue {
+	themeCue := guiTheme.Sounds.Selection
+	if row.HasChildren {
+		themeCue = guiTheme.Sounds.ToggleOn
+		if row.IsExpanded {
+			themeCue = guiTheme.Sounds.ToggleOff
+		}
+	}
+	return resolveSoundCue(themeCue, cfg.Sound, cfg.SoundDisabled)
+}
+
 func treeRowView(
 	cfg TreeCfg,
 	row treeFlatRow,
@@ -174,6 +189,7 @@ func treeRowView(
 	rootFocusID := cfg.ID
 	onSelect := cfg.OnSelect
 	onLazyLoad := cfg.OnLazyLoad
+	rowSound := treeRowSound(&cfg, row)
 
 	return Row(ContainerCfg{
 		A11YRole:  AccessRoleTreeItem,
@@ -187,6 +203,7 @@ func treeRowView(
 		),
 		Sizing:  FillFit,
 		Spacing: NoSpacing,
+		Sound:   rowSound,
 		Content: treeRowContentViews(row, iconWidth),
 		OnClick: func(ctx EventCtx) {
 			treeRowClick(
@@ -232,6 +249,9 @@ func treeDragRowView(
 	onReorder := cfg.OnReorder
 	treeID := cfg.ID
 	layoutID := treeRowID(cfg.ID, row.ID)
+	// Same cue as the plain row: the drag this handler also starts has
+	// no activation moment to sound at (issue #467).
+	rowSound := treeRowSound(&cfg, row)
 
 	return Row(ContainerCfg{
 		ID:        layoutID,
@@ -246,6 +266,7 @@ func treeDragRowView(
 		),
 		Sizing:  FillFit,
 		Spacing: NoSpacing,
+		Sound:   rowSound,
 		Content: treeRowContentViews(row, iconWidth),
 		OnClick: func(ctx EventCtx) {
 			dragReorderStart(dragReorderStartCfg{

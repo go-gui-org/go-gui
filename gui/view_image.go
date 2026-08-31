@@ -28,6 +28,17 @@ type ImageCfg struct {
 	BgColor   Color // opaque fill drawn behind image (e.g. white for mermaid PNGs)
 
 	Invisible bool
+
+	// Sound overrides the theme's click cue for this instance.
+	// SoundNone (the zero value) takes Theme.Sounds.Click, which is
+	// itself silent unless the app opted in (issue #446).
+	// exportaudit:keep — caller-facing config (issue #467)
+	Sound SoundCue
+
+	// SoundDisabled suppresses this image's sound regardless of the theme
+	// and of Sound above.
+	// exportaudit:keep — caller-facing config (issue #467)
+	SoundDisabled bool
 }
 
 // imageView implements View for image rendering.
@@ -86,12 +97,18 @@ func (iv *imageView) GenerateLayout(w *Window) Layout {
 		height = 100
 	}
 
+	// The guard stays keyed on the callbacks, not widened to include
+	// the cue: playShapeSound only runs on the OnClick path, so a cue
+	// with no OnClick could never fire and the record would be
+	// allocated for nothing (issue #467).
 	var events *eventHandlers
 	if c.OnClick != nil || c.OnHover != nil {
 		events = w.allocEventHandlers(eventHandlers{
 			OnClick:     c.OnClick,
 			clickButton: c.clickButton,
 			OnHover:     c.OnHover,
+			soundCue: resolveSoundCue(
+				guiTheme.Sounds.Click, c.Sound, c.SoundDisabled),
 		})
 	}
 	layout := Layout{

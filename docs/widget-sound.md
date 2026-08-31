@@ -19,6 +19,7 @@ running showcase has it under **Welcome → Sound Feedback**.
 | `gui.SoundToggleOn`  | A state went off → on                         |
 | `gui.SoundToggleOff` | A state went on → off                         |
 | `gui.SoundError`     | Rejection: invalid input, refused commit      |
+| `gui.SoundSelection` | One option picked out of several              |
 
 The framework decides _which_ cue an interaction is. Your player decides what a
 cue sounds like. That split is why `gui` never imports `gui/audio`, and why an
@@ -117,6 +118,8 @@ func (p cueSoundPlayer) PlaySound(cue gui.SoundCue, gain float32) {
 		freq = 880 * 4 / 3 // a fourth up
 	case gui.SoundToggleOff:
 		freq = 880 * 3 / 4 // a fourth down
+	case gui.SoundSelection:
+		freq = 880 * 3 / 2 // a fifth up: "picked", against click's neutral A5
 	case gui.SoundError:
 		freq = 220
 		env = errorEnv
@@ -240,11 +243,36 @@ off, so it emits `SoundToggleOff`. You do not need an on/off field pair.
 
 ## Which widgets sound
 
-Currently `Button` and `Toggle`. The seam itself is generic — the cue rides the
-shape's event record, so any widget can adopt it — and the remaining widgets are
-being phased in (#467, #468, #469). Widgets that only absorb clicks stay silent
-by design: the toast scrim, the context-menu dismiss layer, scrollbar tracks,
-and the caret-placement click inside an `Input`.
+Every widget below emits a cue once the app has opted in. A widget that toggles
+names what the click will do, not what the state is, so an open panel about to
+close emits `SoundToggleOff`.
+
+| Widget                                     | Cue on activation                         |
+| ------------------------------------------ | ----------------------------------------- |
+| `Button`, `MenuItem`, `Dialog` buttons     | `Click`                                   |
+| `Toast` buttons, `CommandPalette` backdrop | `Click`                                   |
+| `Image`, `Svg`                             | `Click`                                   |
+| `Toggle`, `Switch`, `ExpandPanel`          | `ToggleOn` / `ToggleOff`                  |
+| `Select`, `Combobox`, `ThemePicker`        | `ToggleOn` / `ToggleOff` (the field)      |
+| `Radio`, `RadioButtonGroup`                | `Selection`                               |
+| `ListBox` rows, `Select` options           | `Selection`                               |
+| `TabControl`, `DockLayout` tabs            | `Selection`                               |
+| `Breadcrumb`, `ColorSwatch`                | `Selection`                               |
+| `DatePicker` day cells                     | `Selection`                               |
+| `Tree` rows                                | `Selection`, or toggle if it has children |
+| `datagrid` rows, toolbar, pager            | `Click`                                   |
+| `datagrid` sort, pin, column reorder       | `Selection`                               |
+
+Widgets that only absorb clicks stay silent by design: the toast scrim, the
+context-menu dismiss layer, scrollbar tracks, the `CommandPalette` card, the
+`DatePicker` field itself (its click only takes focus), and the caret-placement
+click inside an `Input`. So do a disabled control, a `Breadcrumb` crumb marked
+disabled, a `ListBox` subheading, and a menu separator.
+
+Text is not covered: `gui.Text` shares one package-level handler record across
+every text shape, so it cannot carry a per-instance cue without giving up that
+zero-allocation sharing. Drag, hover, focus and notification cues are still to
+come (#468, #469).
 
 ## Platform reality
 

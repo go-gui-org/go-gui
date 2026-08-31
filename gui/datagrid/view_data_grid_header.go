@@ -89,6 +89,11 @@ func dataGridHeaderCell(cfg *DataGridCfg, col GridColumnCfg, colIdx, colCount in
 		headerA11YState = gg.AccessStateSelected
 	}
 
+	headerSound := gg.SoundNone
+	if colSortable && onQueryChange != nil {
+		headerSound = cfg.sounds.selection
+	}
+
 	return gg.Row(gg.ContainerCfg{
 		ID:          dataGridHeaderCellID(cfg.ID, col.ID),
 		A11YRole:    gg.AccessRoleGridCell,
@@ -102,6 +107,10 @@ func dataGridHeaderCell(cfg *DataGridCfg, col GridColumnCfg, colIdx, colCount in
 		ColorBorder: cfg.ColorBorder,
 		SizeBorder:  cfg.SizeBorder,
 		Spacing:     gg.SomeF(0),
+		// Sorting picks one of the column's orders, so the selection
+		// role. A non-sortable column has nothing to pick and stays
+		// silent (issue #467).
+		Sound: headerSound,
 		OnClick: func(ctx gg.EventCtx) {
 			ctx.Consume()
 			if colSortable && onQueryChange != nil {
@@ -223,14 +232,14 @@ func dataGridReorderControls(cfg *DataGridCfg, col GridColumnCfg) gg.View {
 		Width:   dataGridHeaderControlsWidth(true, false, false),
 		Sizing:  gg.FixedFill,
 		Content: []gg.View{
-			dataGridOrderButton(gg.ScopeID(cfg.ID, "reorder_left", colID), leftArrow, cfg.TextStyleHeader, cfg.ColorHeaderHover, reorderCB(-1)),
-			dataGridOrderButton(gg.ScopeID(cfg.ID, "reorder_right", colID), rightArrow, cfg.TextStyleHeader, cfg.ColorHeaderHover, reorderCB(1)),
+			dataGridOrderButton(gg.ScopeID(cfg.ID, "reorder_left", colID), leftArrow, cfg.TextStyleHeader, cfg.ColorHeaderHover, cfg.sounds.selection, reorderCB(-1)),
+			dataGridOrderButton(gg.ScopeID(cfg.ID, "reorder_right", colID), rightArrow, cfg.TextStyleHeader, cfg.ColorHeaderHover, cfg.sounds.selection, reorderCB(1)),
 		},
 	})
 }
 
-func dataGridOrderButton(id, label string, baseStyle gg.TextStyle, hoverColor gg.Color, cb func(*gg.Event, *gg.Window)) gg.View {
-	return dataGridIndicatorButton(id, label, baseStyle, hoverColor, false, dataGridHeaderControlWidth,
+func dataGridOrderButton(id, label string, baseStyle gg.TextStyle, hoverColor gg.Color, cue gg.SoundCue, cb func(*gg.Event, *gg.Window)) gg.View {
+	return dataGridIndicatorButton(id, label, baseStyle, hoverColor, false, dataGridHeaderControlWidth, cue,
 		func(ctx gg.EventCtx) {
 			cb(ctx.Event, ctx.Window)
 		})
@@ -242,7 +251,10 @@ func dataGridOrderButton(id, label string, baseStyle gg.TextStyle, hoverColor gg
 // locale string (gg.ActiveLocale.StrAdd and friends). An ID that
 // tracked the label would change identity on a locale switch, moving
 // the button's focus and per-widget state with it.
-func dataGridIndicatorButton(id, label string, baseStyle gg.TextStyle, hoverColor gg.Color, disabled bool, width float32, onClick func(gg.EventCtx)) gg.View {
+// cue is a parameter rather than read from a Cfg here: this helper is
+// shared by the header, the toolbar and both pagers, and each of those
+// already knows which role its control takes (issue #467).
+func dataGridIndicatorButton(id, label string, baseStyle gg.TextStyle, hoverColor gg.Color, disabled bool, width float32, cue gg.SoundCue, onClick func(gg.EventCtx)) gg.View {
 	sizing := gg.FitFill
 	if width > 0 {
 		sizing = gg.FixedFill
@@ -257,6 +269,12 @@ func dataGridIndicatorButton(id, label string, baseStyle gg.TextStyle, hoverColo
 		Color:      gg.ColorTransparent,
 		Colors:     gg.ColorSet{Base: gg.ColorTransparent, Hover: hoverColor, Click: hoverColor, Focus: gg.ColorTransparent, Border: gg.ColorTransparent, BorderFocus: gg.ColorTransparent},
 		Disabled:   disabled,
+		// SoundDisabled as well as Sound: gg.ButtonCfg resolves its
+		// own precedence, and a resolved gg.SoundNone reads there as
+		// "unset" and falls back to the theme. Saying both makes
+		// silence stick (issue #467).
+		Sound:         cue,
+		SoundDisabled: cue == gg.SoundNone,
 		// Wrapped rather than passed through: every toolbar control
 		// sits inside the focusable grid, which takes focus on any
 		// click that reaches it. The consume-class pre-mark stops that
@@ -291,7 +309,7 @@ func dataGridPinControl(cfg *DataGridCfg, col GridColumnCfg) gg.View {
 	colPin := col.Pin
 
 	return dataGridIndicatorButton(gg.ScopeID(cfg.ID, "pin", col.ID), label, cfg.TextStyleHeader, cfg.ColorHeaderHover,
-		false, dataGridHeaderControlWidth, func(ctx gg.EventCtx) {
+		false, dataGridHeaderControlWidth, cfg.sounds.selection, func(ctx gg.EventCtx) {
 			if onColumnPinChange == nil {
 				return
 			}

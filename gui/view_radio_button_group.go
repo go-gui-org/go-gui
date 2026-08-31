@@ -38,6 +38,17 @@ type RadioButtonGroupCfg struct {
 	TitleBG       Color
 	Sizing        Sizing
 	Disabled      bool
+
+	// Sound overrides the theme's selection cue for this instance.
+	// SoundNone (the zero value) takes the theme's cue for that role,
+	// which is itself silent unless the app opted in (issue #446).
+	// exportaudit:keep — caller-facing config (issue #467)
+	Sound SoundCue
+
+	// SoundDisabled suppresses every option's sound regardless of the theme
+	// and of Sound above.
+	// exportaudit:keep — caller-facing config (issue #467)
+	SoundDisabled bool
 }
 
 // RadioButtonGroupColumn creates a vertically stacked radio
@@ -96,6 +107,11 @@ func buildRadioOptions(cfg RadioButtonGroupCfg) []View {
 			Selected:      cfg.Value == opt.Value,
 			Disabled:      cfg.Disabled,
 			TextStyle:     cfg.TextStyle,
+			// Forwarded, not resolved here: Radio owns the
+			// precedence, so the group only has to hand its own
+			// choice down to every option (issue #467).
+			Sound:         cfg.Sound,
+			SoundDisabled: cfg.SoundDisabled,
 			OnClick: func(ctx EventCtx) {
 				if onSelect != nil {
 					onSelect(optValue, ctx)

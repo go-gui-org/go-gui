@@ -50,6 +50,17 @@ type SvgCfg struct {
 	// NoAnimate disables SMIL animation (default: animated).
 	// exportaudit:keep — caller-facing config (issue #372)
 	NoAnimate bool // disable SMIL animation (default: animated)
+
+	// Sound overrides the theme's click cue for this instance.
+	// SoundNone (the zero value) takes Theme.Sounds.Click, which is
+	// itself silent unless the app opted in (issue #446).
+	// exportaudit:keep — caller-facing config (issue #467)
+	Sound SoundCue
+
+	// SoundDisabled suppresses this svg's sound regardless of the theme
+	// and of Sound above.
+	// exportaudit:keep — caller-facing config (issue #467)
+	SoundDisabled bool
 }
 
 // svgView implements View for SVG rendering.
@@ -139,11 +150,15 @@ func (sv *svgView) GenerateLayout(w *Window) Layout {
 		}
 	}
 
+	// Guard unchanged: a cue with no OnClick can never sound, because
+	// playShapeSound only runs on the OnClick path (issue #467).
 	var events *eventHandlers
 	if c.OnClick != nil {
 		events = w.allocEventHandlers(eventHandlers{
 			OnClick:     c.OnClick,
 			clickButton: MouseLeft,
+			soundCue: resolveSoundCue(
+				guiTheme.Sounds.Click, c.Sound, c.SoundDisabled),
 		})
 	}
 	layout := Layout{

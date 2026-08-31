@@ -35,6 +35,17 @@ type ExpandPanelCfg struct {
 	// its focus ring. Use it for decorative or demo panels where
 	// keyboard toggling is not wanted.
 	FocusDisabled bool
+
+	// Sound overrides the theme's toggle cue for this instance.
+	// SoundNone (the zero value) takes the theme's cue for that role,
+	// which is itself silent unless the app opted in (issue #446).
+	// exportaudit:keep — caller-facing config (issue #467)
+	Sound SoundCue
+
+	// SoundDisabled suppresses the header's sound regardless of the theme
+	// and of Sound above.
+	// exportaudit:keep — caller-facing config (issue #467)
+	SoundDisabled bool
 }
 
 // ExpandPanel creates an expandable panel view.
@@ -59,6 +70,14 @@ func ExpandPanel(cfg ExpandPanelCfg) View {
 	if cfg.Open {
 		a11yState = AccessStateExpanded
 	}
+
+	// The cue names what the click will do: an open panel is about to
+	// close (issue #467).
+	themeCue := guiTheme.Sounds.ToggleOn
+	if cfg.Open {
+		themeCue = guiTheme.Sounds.ToggleOff
+	}
+	soundCue := resolveSoundCue(themeCue, cfg.Sound, cfg.SoundDisabled)
 
 	// The header row joins the tab order: Space/Enter toggle the
 	// panel (issue #345). The body's own focusables sit after it in
@@ -90,6 +109,7 @@ func ExpandPanel(cfg ExpandPanelCfg) View {
 				Focusable:    headFocusable,
 				ClickOnSpace: true,
 				ClickOnEnter: true,
+				Sound:        soundCue,
 				AmendLayout:  headAmend,
 				Content: []View{
 					cfg.Head,

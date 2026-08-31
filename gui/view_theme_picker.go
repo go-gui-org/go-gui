@@ -11,6 +11,17 @@ type ThemePickerCfg struct {
 	Sizing       Sizing
 	FloatAnchor  floatAttach
 	FloatTieOff  floatAttach
+
+	// Sound overrides the theme's toggle cue for this instance.
+	// SoundNone (the zero value) takes the theme's cue for that role,
+	// which is itself silent unless the app opted in (issue #446).
+	// exportaudit:keep — caller-facing config (issue #467)
+	Sound SoundCue
+
+	// SoundDisabled suppresses the picker's sound regardless of the theme
+	// and of Sound above.
+	// exportaudit:keep — caller-facing config (issue #467)
+	SoundDisabled bool
 }
 
 // ThemePicker creates a palette icon that opens a dropdown of
@@ -88,6 +99,15 @@ func (tv *themePickerView) GenerateLayout(w *Window) Layout {
 		}))
 	}
 
+	// The click opens or closes the dropdown, so the cue names what it
+	// is about to do (issue #467). Picking a theme from the list is
+	// the ListBox's own selection cue, not this one.
+	themeCue := guiTheme.Sounds.ToggleOn
+	if isOpen {
+		themeCue = guiTheme.Sounds.ToggleOff
+	}
+	soundCue := resolveSoundCue(themeCue, cfg.Sound, cfg.SoundDisabled)
+
 	colorFocus := guiTheme.toggleStyle.ColorFocus
 	colorBorderFocus := guiTheme.toggleStyle.ColorBorderFocus
 
@@ -101,6 +121,7 @@ func (tv *themePickerView) GenerateLayout(w *Window) Layout {
 		},
 		Sizing:  cfg.Sizing,
 		Padding: PaddingSmall,
+		Sound:   soundCue,
 		OnClick: func(ctx EventCtx) {
 			ss := StateMap[string, bool](ctx.Window, nsSelect, capModerate)
 			ss.Clear()

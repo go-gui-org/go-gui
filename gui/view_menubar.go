@@ -75,6 +75,17 @@ type MenubarCfg struct {
 	// would cross the window edge.
 	// exportaudit:keep — caller-facing config (issue #372)
 	FloatAutoFlip bool
+
+	// Sound overrides the theme's click cue for this instance.
+	// SoundNone (the zero value) takes the theme's cue for that role,
+	// which is itself silent unless the app opted in (issue #446).
+	// exportaudit:keep — caller-facing config (issue #467)
+	Sound SoundCue
+
+	// SoundDisabled suppresses every item's sound regardless of the theme
+	// and of Sound above.
+	// exportaudit:keep — caller-facing config (issue #467)
+	SoundDisabled bool
 }
 
 // Menubar creates a horizontal menubar with keyboard

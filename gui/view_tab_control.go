@@ -114,6 +114,17 @@ type TabControlCfg struct {
 	Disabled            bool
 	Invisible           bool
 	Reorderable         bool
+
+	// Sound overrides the theme's selection cue for this instance.
+	// SoundNone (the zero value) takes the theme's cue for that role,
+	// which is itself silent unless the app opted in (issue #446).
+	// exportaudit:keep — caller-facing config (issue #467)
+	Sound SoundCue
+
+	// SoundDisabled suppresses every tab's sound regardless of the theme
+	// and of Sound above.
+	// exportaudit:keep — caller-facing config (issue #467)
+	SoundDisabled bool
 }
 
 type tabControlView struct {
@@ -346,6 +357,15 @@ func (tv *tabControlView) GenerateLayout(w *Window) Layout {
 			a11yState = AccessStateSelected
 		}
 
+		// A disabled tab gets no handler, so it gets no cue either;
+		// picking a tab is choosing one of several, which is the
+		// selection role (issue #467).
+		tabSound := SoundNone
+		if !isDisabled {
+			tabSound = resolveSoundCue(
+				guiTheme.Sounds.Selection, cfg.Sound, cfg.SoundDisabled)
+		}
+
 		var onClick func(EventCtx)
 		if cfg.Reorderable && !isDisabled {
 			onClick = makeTabDragClick(cfg.ID, tabDragIdx[i],
@@ -368,6 +388,12 @@ func (tv *tabControlView) GenerateLayout(w *Window) Layout {
 			Radius:     SomeF(radiusTab),
 			Disabled:   isDisabled,
 			OnClick:    onClick,
+			// SoundDisabled as well as Sound: ButtonCfg resolves its
+			// own precedence, and a resolved SoundNone reads there as
+			// "unset" and falls back to the theme. Saying both makes
+			// silence stick.
+			Sound:         tabSound,
+			SoundDisabled: tabSound == SoundNone,
 			Content: []View{
 				Text(TextCfg{Text: item.Label, TextStyle: ts}),
 			},

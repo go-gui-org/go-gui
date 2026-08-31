@@ -10,6 +10,26 @@ and this project adheres to
 
 ### Added
 
+- **Widget audio feedback reaches the whole widget set** (#467) — the sound seam
+  from #446 proved itself on `Button` and `Toggle`; every other mechanical
+  widget now emits a cue, plus `gui/datagrid`. `Switch`, `Radio`,
+  `RadioButtonGroup`, `ExpandPanel`, `ColorSwatch`, `Breadcrumb`, `ThemePicker`,
+  `Select`, `Combobox`, `ListBox`, `Tree`, `TabControl`, `MenuItem`, `Dialog`,
+  `Toast`, `DatePicker`, `CommandPalette`, `DockLayout`, `Image` and `Svg` each
+  gained the same `Sound` / `SoundDisabled` pair, and `DataGridCfg` gained one
+  for the whole grid. Still silent by default: an app opts in exactly as before.
+
+  New: `gui.SoundSelection` and `SoundSet.Selection`, the role for picking one
+  option out of several — a radio, a list row, a tab, a calendar day — which
+  `SoundsDefault()` now fills. `gui.ResolveSoundCue` is exported so a widget
+  package outside `gui/` spells the precedence the same way instead of
+  re-deriving it.
+
+  Widgets that only absorb clicks stay silent by design: the toast scrim, the
+  context-menu dismiss layer, scrollbar tracks, the command-palette card, the
+  `DatePicker` field, and the caret-placement click inside an `Input`.
+  `gui.Text` is out of scope — its handler record is shared package-wide.
+
 - **Opt-in widget audio feedback** (#446) — widgets can now play a sound when
   the user activates them. Silent by default, and silent unless the app opts in
   twice: a theme naming a cue per role (`theme.Sounds = gui.SoundsDefault()`)

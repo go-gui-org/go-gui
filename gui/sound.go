@@ -33,6 +33,12 @@ const (
 	// SoundError marks a rejection: invalid input, a refused commit, a
 	// failed action.
 	SoundError
+	// SoundSelection marks a choice being picked out of several — a
+	// radio, a list row, a tab, a calendar day. Distinct from
+	// SoundClick, which is a momentary activation with no "one of
+	// these" reading. Appended, not inserted: the enum is open and
+	// values are only ever added at the end (issue #467).
+	SoundSelection
 )
 
 // SoundPlayer renders semantic UI cues as audible feedback. The
@@ -76,6 +82,9 @@ type SoundSet struct {
 	// Error is the cue for a rejection.
 	// exportaudit:keep — caller-facing config (issue #446)
 	Error SoundCue
+	// Selection is the cue for picking one option out of several.
+	// exportaudit:keep — caller-facing config (issue #467)
+	Selection SoundCue
 }
 
 // SoundsDefault returns the natural cue for every role — the one-liner
@@ -86,15 +95,23 @@ func SoundsDefault() SoundSet {
 		ToggleOn:  SoundToggleOn,
 		ToggleOff: SoundToggleOff,
 		Error:     SoundError,
+		Selection: SoundSelection,
 	}
 }
 
-// resolveSoundCue applies the precedence a widget Cfg promises:
+// ResolveSoundCue applies the precedence a widget Cfg promises:
 // SoundDisabled beats an explicit Cfg.Sound, which beats the theme's
-// cue for that role. Called at generation time, where the widget
+// cue for that role. Call it at generation time, where the widget
 // already knows its own state, so a state-dependent cue (toggle on vs
 // off) costs no runtime branch and no allocation.
-func resolveSoundCue(themeCue, cfgCue SoundCue, disabled bool) SoundCue {
+//
+// Exported for widget packages outside gui/ — gui/datagrid is the one
+// in-repo case — so that a second widget set spells the precedence the
+// same way rather than re-deriving it.
+//
+// exportaudit:keep — the precedence seam for out-of-package widgets
+// (issue #467)
+func ResolveSoundCue(themeCue, cfgCue SoundCue, disabled bool) SoundCue {
 	if disabled {
 		return SoundNone
 	}
@@ -102,6 +119,13 @@ func resolveSoundCue(themeCue, cfgCue SoundCue, disabled bool) SoundCue {
 		return cfgCue
 	}
 	return themeCue
+}
+
+// resolveSoundCue is the in-package spelling of ResolveSoundCue. Every
+// gui/ widget factory goes through it, so the exported name stays a
+// seam rather than something call sites have to notice.
+func resolveSoundCue(themeCue, cfgCue SoundCue, disabled bool) SoundCue {
+	return ResolveSoundCue(themeCue, cfgCue, disabled)
 }
 
 // SetSoundPlayer installs the window's sound player. Nil disables

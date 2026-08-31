@@ -78,7 +78,7 @@ func dataGridQuickFilterRow(cfg *DataGridCfg, w *gg.Window) gg.View {
 				TextStyle: dataGridIndicatorTextStyle(cfg.TextStyleFilter),
 			}),
 			dataGridIndicatorButton(gg.ScopeID(gridID, "filter_clear"), gg.ActiveLocale.StrClear, cfg.TextStyleFilter, cfg.ColorHeaderHover,
-				clearDisabled, 0, func(ctx gg.EventCtx) {
+				clearDisabled, 0, cfg.sounds.click, func(ctx gg.EventCtx) {
 					if queryCallback == nil {
 						return
 					}
@@ -186,7 +186,7 @@ func dataGridColumnChooserRow(cfg *DataGridCfg, isOpen bool, focusID string) gg.
 		VAlign:  gg.VAlignMiddle,
 		Content: []gg.View{
 			dataGridIndicatorButton(gg.ScopeID(gridID, "column_chooser"), chooserLabel, cfg.TextStyleFilter, cfg.ColorHeaderHover,
-				false, 0, func(ctx gg.EventCtx) {
+				false, 0, cfg.sounds.click, func(ctx gg.EventCtx) {
 					dataGridToggleColumnChooserOpen(gridID, ctx.Window)
 					if focusID != "" {
 						ctx.Window.SetFocus(focusID)
@@ -208,6 +208,10 @@ func dataGridColumnChooserRow(cfg *DataGridCfg, isOpen bool, focusID string) gg.
 				Label:    col.Title,
 				Selected: !hidden,
 				Disabled: !hasVisibilityCallback,
+				// Forwarded, not resolved: Toggle picks the on/off
+				// role from its own state (issue #467).
+				Sound:         cfg.Sound,
+				SoundDisabled: cfg.SoundDisabled,
 				OnClick: dataGridMakeColumnChooserOnClick(onHiddenColumnsChange,
 					cfg.HiddenColumnIDs, columns, colID, focusID),
 			}))

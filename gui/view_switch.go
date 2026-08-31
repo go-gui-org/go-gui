@@ -27,6 +27,17 @@ type SwitchCfg struct {
 	Disabled      bool
 	Invisible     bool
 	Selected      bool
+
+	// Sound overrides the theme's toggle cue for this instance.
+	// SoundNone (the zero value) takes the theme's cue for that role,
+	// which is itself silent unless the app opted in (issue #446).
+	// exportaudit:keep — caller-facing config (issue #467)
+	Sound SoundCue
+
+	// SoundDisabled suppresses this switch's sound regardless of the theme
+	// and of Sound above.
+	// exportaudit:keep — caller-facing config (issue #467)
+	SoundDisabled bool
 }
 
 // LabeledSwitch is the thin form of Switch for the common case: a
@@ -105,6 +116,15 @@ func Switch(cfg SwitchCfg) View {
 		a11yState = AccessStateChecked
 	}
 
+	// The cue names what the click will do, not the current state: a
+	// selected switch is about to turn off. Resolved at generation
+	// time, so no runtime branch and no closure (issue #467).
+	themeCue := guiTheme.Sounds.ToggleOn
+	if cfg.Selected {
+		themeCue = guiTheme.Sounds.ToggleOff
+	}
+	soundCue := resolveSoundCue(themeCue, cfg.Sound, cfg.SoundDisabled)
+
 	return Row(ContainerCfg{
 		ID:         cfg.ID,
 		Focusable:  !cfg.FocusDisabled,
@@ -123,6 +143,7 @@ func Switch(cfg SwitchCfg) View {
 		},
 		ClickOnSpace: true,
 		OnClick:      cfg.OnClick,
+		Sound:        soundCue,
 		clickButton:  MouseLeft,
 		OnHover: func(ctx EventCtx) {
 			if ctx.Layout.Shape.Disabled ||

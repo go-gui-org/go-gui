@@ -245,7 +245,7 @@ func TestHeaderControlStateWithPadding(t *testing.T) {
 
 func TestOrderButtonReturnsView(t *testing.T) {
 	v := dataGridOrderButton("grid:reorder_left:col1", "◀",
-		gg.DefaultTextStyle, gg.RGBA(200, 200, 200, 255),
+		gg.DefaultTextStyle, gg.RGBA(200, 200, 200, 255), gg.SoundNone,
 		func(_ *gg.Event, _ *gg.Window) {})
 	if v == nil {
 		t.Fatal("order button should return a view")
@@ -259,8 +259,10 @@ func TestOrderButtonIDIsPerGridAndColumn(t *testing.T) {
 	hover := gg.RGBA(200, 200, 200, 255)
 	cb := func(_ *gg.Event, _ *gg.Window) {}
 
-	a := dataGridOrderButton("gridA:reorder_left:col1", "◀", style, hover, cb)
-	b := dataGridOrderButton("gridB:reorder_left:col1", "◀", style, hover, cb)
+	a := dataGridOrderButton("gridA:reorder_left:col1", "◀", style, hover,
+		gg.SoundNone, cb)
+	b := dataGridOrderButton("gridB:reorder_left:col1", "◀", style, hover,
+		gg.SoundNone, cb)
 
 	// GenerateLayout needs a usable window: a container now generates
 	// its children itself, and the Text children read window state.

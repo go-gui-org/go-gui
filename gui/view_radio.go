@@ -26,6 +26,17 @@ type RadioCfg struct {
 	Disabled      bool
 	Selected      bool
 	Invisible     bool
+
+	// Sound overrides the theme's selection cue for this instance.
+	// SoundNone (the zero value) takes the theme's cue for that role,
+	// which is itself silent unless the app opted in (issue #446).
+	// exportaudit:keep — caller-facing config (issue #467)
+	Sound SoundCue
+
+	// SoundDisabled suppresses this radio's sound regardless of the theme
+	// and of Sound above.
+	// exportaudit:keep — caller-facing config (issue #467)
+	SoundDisabled bool
 }
 
 // Radio creates a radio button view.
@@ -69,6 +80,11 @@ func Radio(cfg RadioCfg) View {
 		a11yState = AccessStateSelected
 	}
 
+	// A radio picks one option out of several, so it takes the
+	// selection role rather than the plain click one (issue #467).
+	soundCue := resolveSoundCue(
+		guiTheme.Sounds.Selection, cfg.Sound, cfg.SoundDisabled)
+
 	return Row(ContainerCfg{
 		ID:        cfg.ID,
 		Focusable: !cfg.FocusDisabled,
@@ -83,6 +99,7 @@ func Radio(cfg RadioCfg) View {
 			A11YDescription: cfg.A11YDescription,
 		},
 		OnClick:      cfg.OnClick,
+		Sound:        soundCue,
 		clickButton:  MouseLeft,
 		ClickOnSpace: true,
 		AmendLayout: amendAll(

@@ -44,6 +44,20 @@ type DockLayoutCfg struct {
 	// panel.
 	// exportaudit:keep — caller-facing config (issue #372)
 	HideSingleTab bool
+
+	// Sound overrides the theme's cue for the tab strip. A tab picks
+	// one panel of several, so it takes the selection role; the close
+	// button is a momentary activation, so it takes the click one.
+	// SoundNone (the zero value) takes the theme's cue for whichever
+	// applies, which is itself silent unless the app opted in
+	// (issue #446).
+	// exportaudit:keep — caller-facing config (issue #467)
+	Sound SoundCue
+
+	// SoundDisabled suppresses the tab strip's sounds regardless of
+	// the theme and of Sound above.
+	// exportaudit:keep — caller-facing config (issue #467)
+	SoundDisabled bool
 }
 
 // dockLayoutCore holds callback-relevant fields without content
@@ -336,6 +350,11 @@ func dockTabButton(
 	}
 	colorHover := cfg.ColorTabHover
 
+	closeSound := resolveSoundCue(
+		guiTheme.Sounds.Click, cfg.Sound, cfg.SoundDisabled)
+	tabSound := resolveSoundCue(
+		guiTheme.Sounds.Selection, cfg.Sound, cfg.SoundDisabled)
+
 	btnContent := make([]View, 0, 3)
 	btnContent = append(btnContent, Text(TextCfg{Text: panel.Label}))
 
@@ -352,6 +371,10 @@ func dockTabButton(
 			Color:      colorTab,
 			Colors:     ColorSet{Hover: guiTheme.ColorHover}.resolved(colorTab, themeButtonSet()),
 			Radius:     SomeF(2),
+			// SoundDisabled as well as Sound: a resolved SoundNone
+			// reads as "unset" inside ButtonCfg (issue #467).
+			Sound:         closeSound,
+			SoundDisabled: closeSound == SoundNone,
 			OnClick: func(ctx EventCtx) {
 				onPanelClose(panelID, ctx)
 				// The close button sits inside its own tab button, which
@@ -380,6 +403,10 @@ func dockTabButton(
 		SizeBorder: NoBorder,
 		Color:      colorTab,
 		Colors:     ColorSet{Hover: colorHover}.resolved(colorTab, themeButtonSet()),
+		// The cue marks selecting the panel, not the drag this handler
+		// also starts: dragging is phase 3's question (issue #467).
+		Sound:         tabSound,
+		SoundDisabled: tabSound == SoundNone,
 		OnClick: func(ctx EventCtx) {
 			dockDragStart(dockID, panelID, groupID, root,
 				onLayoutChange, ctx.Layout, ctx.Event, ctx.Window)
