@@ -113,26 +113,31 @@ const (
 
 // dragReorderState tracks an in-progress drag-reorder operation.
 type dragReorderState struct {
-	itemID            string
-	itemLayoutIDs     []string
-	itemMids          []float32
-	sourceIndex       int
-	currentIndex      int
-	itemCount         int
-	idsLen            int
-	idsHash           uint64
-	midsOffset        int
-	startMouseX       float32
-	startMouseY       float32
-	mouseX            float32
-	mouseY            float32
-	itemX             float32
-	itemY             float32
-	itemWidth         float32
-	itemHeight        float32
-	parentX           float32
-	parentY           float32
-	scrollID          string
+	itemID        string
+	itemLayoutIDs []string
+	itemMids      []float32
+	sourceIndex   int
+	currentIndex  int
+	itemCount     int
+	idsLen        int
+	idsHash       uint64
+	midsOffset    int
+	startMouseX   float32
+	startMouseY   float32
+	mouseX        float32
+	mouseY        float32
+	itemX         float32
+	itemY         float32
+	itemWidth     float32
+	itemHeight    float32
+	parentX       float32
+	parentY       float32
+	scrollID      string
+	// dropCue is resolved by the widget at generation time and rides
+	// the drag state: the drop fires from a MouseLock callback with a
+	// nil Layout, so there is no shape left to read a cue off
+	// (issue #468).
+	dropCue           SoundCue
 	containerStart    float32
 	containerEnd      float32
 	startScrollX      float32
@@ -209,6 +214,10 @@ type dragReorderStartCfg struct {
 	MidsOffset    int
 	scrollID      string
 	Axis          dragReorderAxis
+	// DropCue sounds when the drag ends on a real move. A cancel and
+	// a drop that lands where the item already was stay silent: the
+	// drag itself is never the cue (issue #468).
+	DropCue SoundCue
 }
 
 // dragReorderStart initiates a drag-reorder from an OnClick
@@ -289,6 +298,7 @@ func dragReorderStart(cfg dragReorderStartCfg, w *Window) {
 		parentY:        parentY,
 		itemID:         itemID,
 		scrollID:       scrollID,
+		dropCue:        cfg.DropCue,
 		containerStart: containerStart,
 		containerEnd:   containerEnd,
 		startScrollX:   startScrollX,
@@ -495,6 +505,7 @@ func dragReorderOnMouseUp(
 	if wasActive && !state.cancelled &&
 		gap != src && gap != src+1 {
 		if onReorder != nil && src >= 0 && src < len(itemIDs) {
+			playSoundCue(state.dropCue, w)
 			movedID := itemIDs[src]
 			beforeID := ""
 			if gap < len(itemIDs) {
@@ -582,6 +593,7 @@ func dragReorderKeyboardMove(
 	currentIndex int,
 	itemIDs []string,
 	onReorder func(string, string, EventCtx),
+	dropCue SoundCue,
 	w *Window,
 ) bool {
 	itemCount := len(itemIDs)
@@ -628,6 +640,9 @@ func dragReorderKeyboardMove(
 		beforeID = itemIDs[newIndex]
 	}
 	w.AnimateLayout(LayoutTransitionCfg{})
+	// Alt+arrow commits a reorder without a drag; same cue, same
+	// reason dispatch cannot raise it (issue #468).
+	playSoundCue(dropCue, w)
 	onReorder(movedID, beforeID, EventCtx{nil, nil, w})
 	return true
 }

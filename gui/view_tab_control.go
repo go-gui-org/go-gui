@@ -229,10 +229,12 @@ func makeTabDragClick(
 	tabLayoutIDs []string,
 	onSelect func(string, EventCtx),
 	focusID string,
+	dropCue SoundCue,
 ) func(EventCtx) {
 	return func(ctx EventCtx) {
 		dragReorderStart(dragReorderStartCfg{
 			DragKey:       controlID,
+			DropCue:       dropCue,
 			Index:         dragIdx,
 			ItemID:        itemID,
 			Axis:          dragReorderHorizontal,
@@ -370,7 +372,7 @@ func (tv *tabControlView) GenerateLayout(w *Window) Layout {
 		if cfg.Reorderable && !isDisabled {
 			onClick = makeTabDragClick(cfg.ID, tabDragIdx[i],
 				item.ID, tabIDs, onReorder, tabLayoutIDs,
-				cfg.OnSelect, cfg.ID)
+				cfg.OnSelect, cfg.ID, tabSound)
 		} else if !isDisabled {
 			onClick = makeTabOnClick(
 				cfg.OnSelect, item.ID, cfg.ID)
@@ -433,6 +435,10 @@ func (tv *tabControlView) GenerateLayout(w *Window) Layout {
 	onSelect := cfg.OnSelect
 	focusID := cfg.ID
 	reorderable := cfg.Reorderable
+	// Resolved at generation time: the Alt+arrow reorder commits with
+	// a nil Layout, so it carries its cue by value (issue #468).
+	tabDropCue := resolveSoundCue(
+		guiTheme.Sounds.Selection, cfg.Sound, cfg.SoundDisabled)
 	controlID := cfg.ID
 
 	return generateViewLayout(Column(ContainerCfg{
@@ -464,7 +470,7 @@ func (tv *tabControlView) GenerateLayout(w *Window) Layout {
 						if dragReorderKeyboardMove(
 							ctx.Event.KeyCode, ctx.Event.Modifiers,
 							dragReorderHorizontal,
-							idx, tabIDs, onReorder, ctx.Window) {
+							idx, tabIDs, onReorder, tabDropCue, ctx.Window) {
 							ctx.Consume()
 							return
 						}

@@ -59,6 +59,33 @@ and this project adheres to
   no-op there. New: `gui.WindowDecoration`, `gui.WindowEdge`. See
   `examples/frameless` and `docs/specs/frameless-windows.md`.
 
+- **Widget audio feedback reaches the keyboard and drag paths** (#468) — phases
+  1 and 2 hooked every interaction event dispatch can see. The interactions that
+  call a callback directly, usually with a nil `Layout`, now raise their own
+  cue: `Table`, `ListBox` and `Tree` keyboard activation sound `Selection`,
+  `Menu` keyboard activation sounds `Click`, a drag-reorder drop and a dock
+  panel drop sound `Selection`, and the splitter's collapse toggle sounds
+  `ToggleOn` / `ToggleOff`.
+
+  `SoundError` gets its first real consumer, which is what `NewBeepSoundPlayer`
+  was built for: an `Input` sounds it whenever a keystroke is refused — a
+  character a mask has no slot for, a paste that does not fit, a backspace over
+  a mask literal, or a `PreTextChange` veto — and an arrow key or a step that
+  cannot move sounds it too. A successful Enter commit sounds `Click`.
+
+  Movement is silent, refusal is not: an arrow key that moves a selection makes
+  no sound, because a held key would machine-gun the cue. Continuous drag stays
+  silent throughout — slider thumb, splitter handle, colour plane and wheel — as
+  do a drag cancelled with Escape, a drop that lands where the item already was,
+  and an `Input` commit caused by blur. Each of those is a recorded decision in
+  `docs/specs/widget-audio-feedback.md`, not an omission.
+
+  New: `TableCfg`, `InputCfg` and `SplitterCfg` gained the `Sound` /
+  `SoundDisabled` pair. `SliderCfg` and `NumericInputCfg` gained `SoundDisabled`
+  alone — neither has an activation moment to sound at, so a `Sound` field would
+  name a cue that never plays. On an `Input`, `Sound` names the Enter-commit cue
+  only; rejection always takes the theme's `Error` role.
+
 - **Widget audio feedback reaches the whole widget set** (#467) — the sound seam
   from #446 proved itself on `Button` and `Toggle`; every other mechanical
   widget now emits a cue, plus `gui/datagrid`. `Switch`, `Radio`,

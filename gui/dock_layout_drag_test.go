@@ -100,6 +100,7 @@ func TestDockDragCaptureLossDoesNotDrop(t *testing.T) {
 		root := DockPanelGroup("g1", []string{"p1", "p2"}, "p1")
 		dockDragStart("dock", "p1", "g1", root,
 			func(*DockNode, EventCtx) { *dropped = true },
+			SoundNone,
 			&Layout{Shape: &Shape{ID: "tab"}}, &Event{}, w)
 		// Hovering a drop zone: a release here would dock the panel.
 		state := dockDragGet(w, "dock")

@@ -274,6 +274,9 @@ func (tv *treeView) GenerateLayout(w *Window) Layout {
 					return
 				}
 				if ctx.Event.Modifiers.Has(ModAlt) {
+					treeDropCue := resolveSoundCue(
+						guiTheme.Sounds.Selection,
+						cfg.Sound, cfg.SoundDisabled)
 					fid := StateReadOr(
 						ctx.Window, nsTreeFocus, cfg.ID, "")
 					if fid != "" {
@@ -284,7 +287,7 @@ func (tv *treeView) GenerateLayout(w *Window) Layout {
 							dragReorderKeyboardMove(
 								ctx.Event.KeyCode, ctx.Event.Modifiers,
 								dragReorderVertical,
-								si, sibs, onReorder, ctx.Window) {
+								si, sibs, onReorder, treeDropCue, ctx.Window) {
 							ctx.Consume()
 							return
 						}
@@ -293,7 +296,10 @@ func (tv *treeView) GenerateLayout(w *Window) Layout {
 			}
 			treeOnKeyDown(cfg.ID, visibleIDs, rowByID,
 				cfg.OnSelect, cfg.OnLazyLoad,
-				scrollID, rowHeight, listHeight, ctx.Event, ctx.Window)
+				scrollID, rowHeight, listHeight,
+				resolveSoundCues(guiTheme.Sounds.Selection,
+					cfg.Sound, cfg.SoundDisabled),
+				ctx.Event, ctx.Window)
 		},
 		Sizing:      cfg.Sizing,
 		Width:       cfg.Width,

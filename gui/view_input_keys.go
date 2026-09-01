@@ -225,12 +225,15 @@ func inputKeyPaste(
 			})
 			return res.Text, true
 		}
+		// The mask has no room for the pasted text (issue #468).
+		playSoundCue(hcfg.cues.reject, w)
 		return text, false
 	}
 	if hcfg.preTextChange != nil {
 		proposed := inputProposedText(text, clip, id, w)
 		adjusted, ok := hcfg.preTextChange(text, proposed)
 		if !ok {
+			playSoundCue(hcfg.cues.reject, w)
 			return text, false
 		}
 		if adjusted == proposed {
@@ -248,6 +251,11 @@ func inputCommitEnter(
 	hcfg inputHandlerCfg,
 	layout *Layout, text string, e *Event, w *Window,
 ) {
+	// Enter is a deliberate activation, so it sounds like one — before
+	// the callbacks and independently of whether they consume, the way
+	// dispatch sounds a click. The blur commit stays silent by
+	// decision: it is incidental, not an activation (issue #468).
+	playSoundCue(hcfg.cues.act, w)
 	commitText := text
 	if normalized := hcfg.normalizeOnCommit(
 		text, InputCommitEnter,

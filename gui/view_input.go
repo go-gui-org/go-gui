@@ -96,6 +96,21 @@ type InputCfg struct {
 	// interaction entirely and announces AccessStateDisabled.
 	ReadOnly bool
 
+	// Sound overrides the theme's click cue for an Enter commit.
+	// SoundNone (the zero value) takes Theme.Sounds.Click.
+	//
+	// Rejection is separate and always takes Theme.Sounds.Error: a
+	// keystroke a mask or a PreTextChange validator refuses, whether
+	// typed, pasted, or a delete over a mask literal. Both are
+	// suppressed by SoundDisabled below (issue #468).
+	// exportaudit:keep — caller-facing config (issue #468)
+	Sound SoundCue
+
+	// SoundDisabled suppresses this field's sound regardless of the
+	// theme and of Sound above.
+	// exportaudit:keep — caller-facing config (issue #468)
+	SoundDisabled bool
+
 	// Scrollable opts a multiline input into the scroll system.
 	// Scroll state is keyed by Cfg.ID - pass that same id to
 	// Window.ScrollVerticalTo. Requires Mode == InputMultiline.
@@ -202,6 +217,8 @@ func Input(cfg InputCfg) View {
 		OnKeyUp:             cfg.OnKeyUp,
 		preTextChange:       cfg.PreTextChange,
 		postCommitNormalize: cfg.PostCommitNormalize,
+		cues: resolveSoundCues(
+			guiTheme.Sounds.Click, cfg.Sound, cfg.SoundDisabled),
 	}
 	hcfg.CompiledMask = hcfg.compiledMask()
 
@@ -372,14 +389,19 @@ type inputHandlerCfg struct {
 	OnKeyUp             func(EventCtx)
 	preTextChange       func(current, proposed string) (string, bool)
 	postCommitNormalize func(text string, reason InputCommitReason) string
-	Mask                string
-	maskTokens          []MaskTokenDef
-	FocusID             string
-	scrollID            string
-	IsPassword          bool
-	ReadOnly            bool
-	Mode                inputMode
-	MaskPreset          InputMaskPreset
+	// cues are resolved at generation time and travel by value:
+	// act sounds an Enter commit, reject sounds a refused keystroke.
+	// Neither path reaches event dispatch, so neither can read a cue
+	// off the shape (issue #468).
+	cues       soundCues
+	Mask       string
+	maskTokens []MaskTokenDef
+	FocusID    string
+	scrollID   string
+	IsPassword bool
+	ReadOnly   bool
+	Mode       inputMode
+	MaskPreset InputMaskPreset
 }
 
 // fireTextChanged notifies the caller that the text changed. Every

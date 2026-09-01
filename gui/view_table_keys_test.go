@@ -23,7 +23,7 @@ func TestTableOnKeyDownMovesSelection(t *testing.T) {
 	key := func(k KeyCode) {
 		e := &Event{KeyCode: k}
 		tableOnKeyDown(tableTestRows(), nil, false, onSelect,
-			"tbl", "", 0, 0, 0, e, w)
+			"tbl", "", 0, 0, 0, soundCues{}, e, w)
 	}
 
 	key(KeyDown)
@@ -63,7 +63,7 @@ func TestTableOnKeyDownShiftRange(t *testing.T) {
 	key := func(k KeyCode, mods Modifier) {
 		e := &Event{KeyCode: k, Modifiers: mods}
 		tableOnKeyDown(tableTestRows(), nil, true, onSelect,
-			"tbl", "", 0, 0, 0, e, w)
+			"tbl", "", 0, 0, 0, soundCues{}, e, w)
 	}
 
 	// Plain movement anchors; Shift extends from the anchor.
@@ -90,7 +90,7 @@ func TestTableOnKeyDownNoOnSelectStillMoves(t *testing.T) {
 	w := &Window{}
 	e := &Event{KeyCode: KeyDown}
 	tableOnKeyDown(tableTestRows(), nil, false, nil,
-		"tbl", "", 0, 0, 0, e, w)
+		"tbl", "", 0, 0, 0, soundCues{}, e, w)
 	if !e.IsHandled {
 		t.Fatal("movement without OnSelect must still consume")
 	}
@@ -110,7 +110,7 @@ func TestTableOnKeyDownActivate(t *testing.T) {
 	w := &Window{}
 	key := func(k KeyCode) {
 		tableOnKeyDown(rows, nil, false, nil,
-			"tbl", "", 0, 0, 0, &Event{KeyCode: k}, w)
+			"tbl", "", 0, 0, 0, soundCues{}, &Event{KeyCode: k}, w)
 	}
 
 	key(KeyDown) // active -> 1
@@ -133,7 +133,7 @@ func TestTableOnKeyDownActivateTogglesSelection(t *testing.T) {
 	selected := map[int]bool{1: true}
 	key := func(k KeyCode) {
 		tableOnKeyDown(tableTestRows(), selected, true,
-			onSelect, "tbl", "", 0, 0, 0, &Event{KeyCode: k}, w)
+			onSelect, "tbl", "", 0, 0, 0, soundCues{}, &Event{KeyCode: k}, w)
 		selected = got
 	}
 
@@ -156,7 +156,7 @@ func TestTableOnKeyDownIgnoresUnrelatedKeys(t *testing.T) {
 	for _, k := range []KeyCode{KeyEscape, KeyPageUp, KeyA} {
 		e := &Event{KeyCode: k}
 		tableOnKeyDown(tableTestRows(), nil, false, nil,
-			"tbl", "", 0, 0, 0, e, w)
+			"tbl", "", 0, 0, 0, soundCues{}, e, w)
 		if e.IsHandled {
 			t.Errorf("KeyCode %d consumed; want travel", k)
 		}
@@ -171,14 +171,14 @@ func TestTableOnKeyDownClampedEdgesConsume(t *testing.T) {
 	for _, k := range []KeyCode{KeyUp, KeyHome} {
 		e := &Event{KeyCode: k}
 		tableOnKeyDown(tableTestRows(), nil, false, nil,
-			"tbl", "", 0, 0, 0, e, w)
+			"tbl", "", 0, 0, 0, soundCues{}, e, w)
 		if !e.IsHandled {
 			t.Errorf("KeyCode %d at row 0 must consume", k)
 		}
 	}
 	e := &Event{KeyCode: KeyEnd}
 	tableOnKeyDown(tableTestRows(), nil, false, nil,
-		"tbl", "", 0, 0, 0, e, w)
+		"tbl", "", 0, 0, 0, soundCues{}, e, w)
 	if !e.IsHandled {
 		t.Error("End at the last row must consume")
 	}
@@ -190,7 +190,7 @@ func TestTableOnKeyDownModifiedKeysTravel(t *testing.T) {
 	e := &Event{KeyCode: KeyDown, Modifiers: ModCtrl}
 	tableOnKeyDown(tableTestRows(), nil, false,
 		func(_ map[int]bool, _ int, _ EventCtx) { called = true },
-		"tbl", "", 0, 0, 0, e, w)
+		"tbl", "", 0, 0, 0, soundCues{}, e, w)
 	if e.IsHandled || called {
 		t.Error("Ctrl+Down must travel untouched")
 	}
@@ -199,7 +199,7 @@ func TestTableOnKeyDownModifiedKeysTravel(t *testing.T) {
 func TestTableOnKeyDownEmptyDataTravels(t *testing.T) {
 	w := &Window{}
 	e := &Event{KeyCode: KeyDown}
-	tableOnKeyDown(nil, nil, false, nil, "tbl", "", 0, 0, 0, e, w)
+	tableOnKeyDown(nil, nil, false, nil, "tbl", "", 0, 0, 0, soundCues{}, e, w)
 	if e.IsHandled {
 		t.Error("empty table must not consume keys")
 	}
@@ -214,7 +214,7 @@ func TestTableOnKeyDownScrollsIntoView(t *testing.T) {
 	// rowH 20, listH 40: End lands on row 9, whose bottom (200) is
 	// past the 40px viewport, so the scroll settles at 200-40.
 	tableOnKeyDown(rows, nil, false, nil, "tbl", "sc", 20, 40, 0,
-		&Event{KeyCode: KeyEnd}, w)
+		soundCues{}, &Event{KeyCode: KeyEnd}, w)
 	if got := w.scrollY().GetOr("sc", 0); got != -160 {
 		t.Fatalf("scroll = %v, want -160", got)
 	}
@@ -231,12 +231,12 @@ func TestTableOnKeyDownFreezeBodyOffset(t *testing.T) {
 	// Move to row 1: body row 0, no scroll. Then End: data 9 ->
 	// body 8, bottom 180 > 40 -> 180-40.
 	tableOnKeyDown(rows, nil, false, nil, "tbl", "sc", 20, 40, 1,
-		&Event{KeyCode: KeyDown}, w)
+		soundCues{}, &Event{KeyCode: KeyDown}, w)
 	if got := w.scrollY().GetOr("sc", 0); got != 0 {
 		t.Fatalf("scroll after row 1 = %v, want 0", got)
 	}
 	tableOnKeyDown(rows, nil, false, nil, "tbl", "sc", 20, 40, 1,
-		&Event{KeyCode: KeyEnd}, w)
+		soundCues{}, &Event{KeyCode: KeyEnd}, w)
 	if got := w.scrollY().GetOr("sc", 0); got != -140 {
 		t.Fatalf("scroll after End = %v, want -140", got)
 	}

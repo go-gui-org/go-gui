@@ -91,6 +91,12 @@ func menuOnKeyDown(cfg MenubarCfg,
 		if !found {
 			return
 		}
+		// Keyboard activation reaches the item's Action directly,
+		// with a nil Layout, so dispatch never sees it and the item's
+		// own click cue cannot fire. The cue leads the callbacks and
+		// ignores consumption, matching the mouse path (issue #468).
+		playSoundCue(resolveSoundCue(guiTheme.Sounds.Click,
+			cfg.Sound, cfg.SoundDisabled), w)
 		if item.Action != nil {
 			item.Action(&item, EventCtx{nil, e, w})
 		}
@@ -129,6 +135,11 @@ func menuOnKeyDown(cfg MenubarCfg,
 		if target != "" && target != sel {
 			sm.Set(cfg.ID, target)
 			w.viewState.menuKeyNav = true
+		} else {
+			// No neighbour that way: the edge of the menu. Movement
+			// itself stays silent (issue #468).
+			playSoundCue(resolveSoundCue(guiTheme.Sounds.Error,
+				SoundNone, cfg.SoundDisabled), w)
 		}
 		e.IsHandled = true
 	}

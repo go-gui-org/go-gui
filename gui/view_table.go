@@ -113,6 +113,17 @@ type TableCfg struct {
 	// display surface until its rows are navigable.
 	Focusable bool
 
+	// Sound overrides the theme's selection cue for keyboard row
+	// activation. SoundNone (the zero value) takes
+	// Theme.Sounds.Selection, itself silent unless the app opted in.
+	// exportaudit:keep — caller-facing config (issue #468)
+	Sound SoundCue
+
+	// SoundDisabled suppresses this table's sound regardless of the
+	// theme and of Sound above.
+	// exportaudit:keep — caller-facing config (issue #468)
+	SoundDisabled bool
+
 	// Sizing
 	Sizing       Sizing
 	BorderStyle  TableBorderStyle

@@ -37,13 +37,18 @@ func tableFocusWiring(
 	}
 	data := cfg.Data
 	activeKey := cfg.ID
+	// Resolved here, at generation time, and captured by value: the
+	// handler below gets a nil ctx.Layout on the activate path, so
+	// there is no Shape for dispatch to read a cue off (issue #468).
+	cues := resolveSoundCues(
+		guiTheme.Sounds.Selection, cfg.Sound, cfg.SoundDisabled)
 	return tableFocusState{
 		focusable: true,
 		ring:      focusRingAmend(Color{}, cfg.ColorBorderFocus),
 		onKeyDown: func(ctx EventCtx) {
 			tableOnKeyDown(data, selected, multiSelect, onSelect,
 				activeKey, scrollID, rowH, listH, bodyRowOffset,
-				ctx.Event, ctx.Window)
+				cues, ctx.Event, ctx.Window)
 		},
 	}
 }
@@ -100,6 +105,7 @@ func tableOnKeyDown(
 	activeKey, scrollID string,
 	rowH, listH float32,
 	bodyRowOffset int,
+	cues soundCues,
 	e *Event, w *Window,
 ) {
 	if len(data) == 0 {
@@ -129,6 +135,9 @@ func tableOnKeyDown(
 	}
 
 	if action == listCoreSelectItem {
+		// The cue fires before the callbacks and independently of
+		// whether they consume, matching the mouse path.
+		playSoundCue(cues.act, w)
 		// Activate the active row as a click on it would.
 		if row := data[cur]; row.OnClick != nil {
 			row.OnClick(EventCtx{nil, e, w})
@@ -145,7 +154,9 @@ func tableOnKeyDown(
 	if !changed {
 		// Already clamped at an edge (Up at row 0, End at the last):
 		// still consume, so the key does not fall through to the
-		// page — ListBox and datagrid do the same.
+		// page — ListBox and datagrid do the same. Nothing moved, so
+		// the refusal is what there is to hear (issue #468).
+		playSoundCue(cues.reject, w)
 		e.IsHandled = true
 		return
 	}

@@ -84,8 +84,8 @@ func TestSliderKeyDown(t *testing.T) {
 			var got float32
 			onChange := func(v float32, ctx EventCtx) { got = v }
 			e := &Event{KeyCode: tt.key}
-			sliderOnKeyDown(nil, e, &Window{},
-				onChange, 50, 0, 100, 1, false)
+			sliderOnKeyDown(e, &Window{},
+				onChange, 50, 0, 100, 1, false, SoundNone)
 			if got != tt.want {
 				t.Errorf("key %d: got %f, want %f",
 					tt.key, got, tt.want)
@@ -193,15 +193,15 @@ func TestSliderKeyDownHandled(t *testing.T) {
 	onChange := func(_ float32, ctx EventCtx) {}
 	// Recognized key sets IsHandled
 	e := &Event{KeyCode: KeyRight}
-	sliderOnKeyDown(nil, e, &Window{},
-		onChange, 50, 0, 100, 1, false)
+	sliderOnKeyDown(e, &Window{},
+		onChange, 50, 0, 100, 1, false, SoundNone)
 	if !e.IsHandled {
 		t.Error("arrow key should set IsHandled")
 	}
 	// Unrecognized key does not set IsHandled
 	e2 := &Event{KeyCode: KeyA}
-	sliderOnKeyDown(nil, e2, &Window{},
-		onChange, 50, 0, 100, 1, false)
+	sliderOnKeyDown(e2, &Window{},
+		onChange, 50, 0, 100, 1, false, SoundNone)
 	if e2.IsHandled {
 		t.Error("unrecognized key should not set IsHandled")
 	}

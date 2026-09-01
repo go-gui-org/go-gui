@@ -65,6 +65,15 @@ type NumericInputCfg struct {
 	// entirely.
 	ReadOnly bool
 
+	// SoundDisabled suppresses the field's sound regardless of the
+	// theme. There is no Sound field to pair with it: the step
+	// buttons already sound through the ordinary click path, so the
+	// only cue this control raises on its own is Theme.Sounds.Error
+	// for a step refused because the value already sits at Min or
+	// Max (issue #468).
+	// exportaudit:keep — caller-facing config (issue #468)
+	SoundDisabled bool
+
 	Disabled  bool
 	Invisible bool
 }
@@ -346,10 +355,19 @@ func numericInputApplyStep(
 		return
 	}
 	modeCfg := numericModeCfgFromInput(cfg)
-	value, committed := numericInputStepResultMode(
+	value, committed, clamped := numericInputStepResultClamped(
 		cfg.Text, cfg.Value, cfg.Min, cfg.Max,
 		cfg.Decimals, stepCfg, locale, dir,
 		e.Modifiers, modeCfg)
+	if clamped {
+		// The step was understood but the value could not move: it
+		// already sat at Min or Max. The button's own click cue, if
+		// the theme sets one, still fires through dispatch; this
+		// adds the refusal on top (issue #468).
+		playSoundCue(
+			resolveSoundCue(guiTheme.Sounds.Error, SoundNone,
+				cfg.SoundDisabled), w)
+	}
 	if cfg.OnValueCommit != nil {
 		cfg.OnValueCommit(value, committed, EventCtx{layout, nil, w})
 	}

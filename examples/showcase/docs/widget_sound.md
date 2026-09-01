@@ -239,6 +239,14 @@ gui.Button(gui.ButtonCfg{ID: "tick", Label: "Tick", SoundDisabled: true})
 A `Toggle` picks its own cue from its state: a selected toggle is about to turn
 off, so it emits `SoundToggleOff`. You do not need an on/off field pair.
 
+`SliderCfg` and `NumericInputCfg` take `SoundDisabled` alone. Neither has an
+activation moment to sound at, so their only cue is the `Error` a refused step
+or a refused arrow key emits, and a `Sound` field would name a cue that never
+plays.
+
+On an `Input`, `Sound` names the Enter-commit cue only. Rejection always takes
+`Theme.Sounds.Error`; `SoundDisabled` silences both.
+
 ## Which widgets sound
 
 Every widget below emits a cue once the app has opted in. A widget that toggles
@@ -261,6 +269,29 @@ close emits `SoundToggleOff`.
 | `datagrid` rows, toolbar, pager            | `Click`                                   |
 | `datagrid` sort, pin, column reorder       | `Selection`                               |
 
+Keyboard and drag paths sound too, and refusal is its own cue:
+
+| Interaction                                    | Cue                      |
+| ---------------------------------------------- | ------------------------ |
+| `Table`, `ListBox`, `Tree` keyboard activation | `Selection`              |
+| `Menu` keyboard activation                     | `Click`                  |
+| `Input` Enter commit                           | `Click`                  |
+| `Input` rejection (mask, paste, delete, veto)  | `Error`                  |
+| Arrow key already at a bound or list edge      | `Error`                  |
+| `NumericInput` step at `Min` or `Max`          | `Error`                  |
+| Drag-reorder drop that moves an item           | `Selection`              |
+| Dock panel dropped into a zone                 | `Selection`              |
+| `Splitter` collapse toggle                     | `ToggleOn` / `ToggleOff` |
+
+Movement is silent, refusal is not. An arrow key that moves a selection makes no
+sound — a held arrow key would machine-gun the cue — while an arrow key that
+cannot move emits `Error`. Continuous drag is silent for the same reason: the
+slider thumb, the splitter handle and the colour plane and wheel say nothing
+while dragging, and only the splitter's collapse toggle and a drop that really
+moves something are cues. A drag cancelled with Escape, a drop that lands where
+the item already was, and an `Input` commit caused by blur are all silent by
+decision.
+
 Widgets that only absorb clicks stay silent by design: the toast scrim, the
 context-menu dismiss layer, scrollbar tracks, the `CommandPalette` card, the
 `DatePicker` field itself (its click only takes focus), and the caret-placement
@@ -269,8 +300,8 @@ disabled, a `ListBox` subheading, and a menu separator.
 
 Text is not covered: `gui.Text` shares one package-level handler record across
 every text shape, so it cannot carry a per-instance cue without giving up that
-zero-allocation sharing. Drag, hover, focus and notification cues are still to
-come (#468, #469).
+zero-allocation sharing. Hover, focus and notification cues are still to come
+(#469).
 
 ## Platform reality
 
@@ -292,7 +323,10 @@ calls `ctx.Consume()`**. The sound confirms that the widget was activated; it
 does not take part in event propagation.
 
 Every activation path sounds, not just the mouse: click, Space, Enter, and the
-accessibility press action all emit the same cue.
+accessibility press action all emit the same cue. Keyboard activation that never
+reaches event dispatch — a `Table` row activated with Enter, an `Input`
+rejection, a drag-reorder drop — raises its cue at its own call site, with the
+same ordering.
 
 ## Testing
 
