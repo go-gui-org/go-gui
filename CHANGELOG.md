@@ -239,7 +239,31 @@ and this project adheres to
   jupiter 1168 -> 1096 us, both about 6-7%. The counts above are now enforced as
   regression budgets rather than logged and forgotten.
 
+- **`audio.LoadMusicBytes`** — loads a music track from in-memory bytes, so a
+  track embedded in the binary can stream as music instead of being buffered
+  whole as a `Sound`. Mirrors `LoadSoundBytes`; format is detected from the
+  leading magic bytes. `examples/solar_system` now loads its ambience this way,
+  which drops about 22 MB of resident decoded audio.
+
 ### Fixed
+
+- **Audio played at the wrong pitch and speed unless the asset happened to match
+  the output rate** — `gui/audio` decoded WAV/OGG/FLAC/MP3 and fed the result
+  straight into a mixer running at the rate `audio.Init` opened (44100 Hz by
+  default), with no rate conversion anywhere in the package. A 16 kHz file
+  therefore played 2.76x too fast, about 1.5 octaves sharp, which is what the
+  solar_system ambience track was doing. Decoded audio now converts to the
+  output rate: a `Sound` converts once in `LoadSoundBytes`, so playback stays a
+  plain buffer read with no per-play cost, and music converts as it streams
+  because its decoder must stay seekable for looping and rewind. Assets already
+  authored at the output rate take an identity path and are untouched.
+
+- **`audio.RewindMusic` never rewound anything** — it type-asserted the playing
+  streamer to a `beep.StreamSeeker`, but the chain's outermost wrapper is a
+  volume control, so the assert always failed and the call was a silent no-op.
+  The decoder is now reached through a handle held for that purpose, and the
+  seek runs on the audio thread at the top of the next fill rather than from the
+  caller's goroutine, where it would tear the decoder mid-read.
 
 - **`examples/showcase/docs/widget_audio.md` documented functions that are not
   exported** — `audio.Quit`, `audio.LoadSound`, `Sound.SetVolume`,

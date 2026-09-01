@@ -10,6 +10,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/gopxl/beep/v2"
 )
 
 // TestMain skips the whole package under the race detector. Many tests
@@ -911,5 +913,357 @@ func TestMusicPlayLoopForever(t *testing.T) {
 
 	if err := m.Play(-1); err != nil {
 		t.Errorf("Play with loops=-1 returned error: %v", err)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// resampling
+// ---------------------------------------------------------------------------
+
+// countingStreamer yields n frames of silence, then drains.  Used to
+// measure how many output frames a resampler produces for a known input
+// length, which is the pitch/speed bug expressed as a count.
+type countingStreamer struct {
+	left int
+}
+
+func (c *countingStreamer) Stream(samples [][2]float64) (int, bool) {
+	if c.left <= 0 {
+		return 0, false
+	}
+	n := min(len(samples), c.left)
+	clear(samples[:n])
+	c.left -= n
+	return n, true
+}
+
+func (c *countingStreamer) Err() error { return nil }
+
+// TestResampleToIdentity gates the no-alloc claim: matching or unknown
+// rates must hand back the very same streamer, not a wrapper.
+func TestResampleToIdentity(t *testing.T) {
+	src := &countingStreamer{left: 10}
+	tests := []struct {
+		name     string
+		from, to beep.SampleRate
+	}{
+		{name: "equal", from: 44100, to: 44100},
+		{name: "zero source", from: 0, to: 44100},
+		{name: "zero dest", from: 44100, to: 0},
+		{name: "both zero", from: 0, to: 0},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := resampleTo(tt.from, tt.to, src); got != beep.Streamer(src) {
+				t.Errorf("resampleTo(%d, %d, s) wrapped the streamer, want identity",
+					tt.from, tt.to)
+			}
+		})
+	}
+}
+
+// TestResampleToStretches is the headless form of the bug report: a
+// stream decoded at 8000 Hz must produce 44100/8000 as many frames when
+// converted, or it plays that many times too fast.
+func TestResampleToStretches(t *testing.T) {
+	const (
+		inFrames = 8000
+		from     = beep.SampleRate(8000)
+		to       = beep.SampleRate(44100)
+	)
+	s := resampleTo(from, to, &countingStreamer{left: inFrames})
+	if _, isSame := s.(*countingStreamer); isSame {
+		t.Fatal("resampleTo returned the source streamer for mismatched rates")
+	}
+
+	var (
+		buf   [512][2]float64
+		total int
+	)
+	for {
+		n, ok := s.Stream(buf[:])
+		total += n
+		if !ok {
+			break
+		}
+	}
+
+	want := inFrames * int(to) / int(from)
+	// beep's interpolator can be a window short at the tail; a couple of
+	// frames of slack keeps the test about rate, not about edge handling.
+	if diff := total - want; diff < -8 || diff > 8 {
+		t.Errorf("streamed %d frames, want ~%d (diff %d)", total, want, diff)
+	}
+}
+
+// TestLoadSoundBytesResamples checks the load-time conversion: the
+// 8000 Hz wavSilence fixture must land in the buffer at the output rate.
+func TestLoadSoundBytesResamples(t *testing.T) {
+	if err := Init(); err != nil {
+		t.Skipf("audio init unavailable: %v", err)
+	}
+	defer quit()
+
+	snd, err := LoadSoundBytes(wavSilence)
+	if err != nil {
+		t.Fatalf("LoadSoundBytes returned error: %v", err)
+	}
+	defer snd.Free()
+
+	if got, want := int(snd.format.SampleRate), SampleRate(); got != want {
+		t.Errorf("buffer sample rate = %d, want %d", got, want)
+	}
+	if snd.format.Precision < 2 {
+		t.Errorf("buffer precision = %d, want >= 2 after resampling",
+			snd.format.Precision)
+	}
+	// wavSilence holds 10 frames at 8000 Hz.
+	want := 10 * SampleRate() / 8000
+	if diff := snd.buffer.Len() - want; diff < -8 || diff > 8 {
+		t.Errorf("buffer length = %d frames, want ~%d", snd.buffer.Len(), want)
+	}
+}
+
+// TestSoundPlayResampled plays a resampled sound on a loop, which is the
+// wrapping order most at risk: Loop2 needs the seeker underneath.
+func TestSoundPlayResampled(t *testing.T) {
+	if err := Init(); err != nil {
+		t.Skipf("audio init unavailable: %v", err)
+	}
+	defer quit()
+
+	snd, err := LoadSoundBytes(wavSilence)
+	if err != nil {
+		t.Fatalf("LoadSoundBytes returned error: %v", err)
+	}
+	defer snd.Free()
+
+	ch, err := snd.Play(-1, -1)
+	if err != nil {
+		t.Fatalf("Play returned error: %v", err)
+	}
+	if ch < 0 {
+		t.Fatalf("Play returned channel %d, want >= 0", ch)
+	}
+	HaltChannel(ch)
+}
+
+// TestMusicPlayResampled exercises the play-time conversion path, which
+// music takes because its decoder stream must stay seekable.
+func TestMusicPlayResampled(t *testing.T) {
+	if err := Init(); err != nil {
+		t.Skipf("audio init unavailable: %v", err)
+	}
+	defer quit()
+
+	path := filepath.Join(t.TempDir(), "silence.wav")
+	if err := os.WriteFile(path, wavSilence, 0644); err != nil {
+		t.Skipf("cannot write temp WAV: %v", err)
+	}
+	m, err := LoadMusic(path)
+	if err != nil {
+		t.Skipf("LoadMusic failed: %v", err)
+	}
+	defer m.Free()
+
+	if int(m.format.SampleRate) == SampleRate() {
+		t.Fatalf("fixture rate %d matches output rate; test proves nothing",
+			m.format.SampleRate)
+	}
+	if err := m.Play(-1); err != nil {
+		t.Fatalf("Play returned error: %v", err)
+	}
+	if !isMusicPlaying() {
+		t.Error("music not playing after Play")
+	}
+	HaltMusic()
+}
+
+// ---------------------------------------------------------------------------
+// rewind
+// ---------------------------------------------------------------------------
+
+// seekSpy is a StreamSeeker that records Seek calls and the position it
+// streams from, so a test can tell a real rewind from a silent no-op.
+type seekSpy struct {
+	pos   int
+	total int
+	seeks int
+}
+
+func (s *seekSpy) Stream(samples [][2]float64) (int, bool) {
+	if s.pos >= s.total {
+		return 0, false
+	}
+	n := min(len(samples), s.total-s.pos)
+	clear(samples[:n])
+	s.pos += n
+	return n, true
+}
+
+func (s *seekSpy) Err() error    { return nil }
+func (s *seekSpy) Len() int      { return s.total }
+func (s *seekSpy) Position() int { return s.pos }
+func (s *seekSpy) Seek(p int) error {
+	s.seeks++
+	s.pos = p
+	return nil
+}
+
+// TestRewindStreamerDefersSeek pins the two properties the wrapper
+// exists for: nothing is seeked until the audio thread streams again,
+// and one request produces exactly one seek.
+func TestRewindStreamerDefersSeek(t *testing.T) {
+	spy := &seekSpy{total: 100}
+	rw := &rewindStreamer{StreamSeeker: spy}
+
+	var buf [10][2]float64
+	rw.Stream(buf[:])
+	if spy.pos != 10 {
+		t.Fatalf("position after one Stream = %d, want 10", spy.pos)
+	}
+
+	rw.request()
+	if spy.seeks != 0 {
+		t.Errorf("request() seeked immediately (%d seeks); the seek must "+
+			"wait for the audio thread", spy.seeks)
+	}
+
+	rw.Stream(buf[:])
+	if spy.seeks != 1 {
+		t.Errorf("seeks after Stream = %d, want 1", spy.seeks)
+	}
+	if spy.pos != 10 {
+		t.Errorf("position after rewind + Stream = %d, want 10 "+
+			"(rewound to 0, then streamed 10)", spy.pos)
+	}
+
+	// The request is one-shot: a later Stream must not seek again.
+	rw.Stream(buf[:])
+	if spy.seeks != 1 {
+		t.Errorf("seeks after extra Stream = %d, want 1 (request is "+
+			"one-shot)", spy.seeks)
+	}
+}
+
+// TestRewindStreamerIsSeekable gates the embedding: beep.Loop2 rejects a
+// source that is not a StreamSeeker, so losing that would silently drop
+// looping back to play-once.
+func TestRewindStreamerIsSeekable(t *testing.T) {
+	rw := &rewindStreamer{StreamSeeker: &seekSpy{total: 100}}
+	if _, ok := beep.Streamer(rw).(beep.StreamSeeker); !ok {
+		t.Fatal("rewindStreamer is not a beep.StreamSeeker")
+	}
+	if _, err := beep.Loop2(rw); err != nil {
+		t.Errorf("beep.Loop2 rejected rewindStreamer: %v", err)
+	}
+}
+
+// TestRewindMusicReachesDecoder is the regression: RewindMusic used to
+// type-assert ctrl.Streamer to a beep.StreamSeeker, which never held
+// because the chain's outermost wrapper is a volumeStreamer.
+func TestRewindMusicReachesDecoder(t *testing.T) {
+	if err := Init(); err != nil {
+		t.Skipf("audio init unavailable: %v", err)
+	}
+	defer quit()
+
+	path := filepath.Join(t.TempDir(), "silence.wav")
+	if err := os.WriteFile(path, wavSilence, 0644); err != nil {
+		t.Skipf("cannot write temp WAV: %v", err)
+	}
+	m, err := LoadMusic(path)
+	if err != nil {
+		t.Skipf("LoadMusic failed: %v", err)
+	}
+	defer m.Free()
+
+	if err := m.Play(0); err != nil {
+		t.Fatalf("Play returned error: %v", err)
+	}
+	bb, ok := backend.(*beepBackend)
+	if !ok {
+		t.Fatalf("backend is %T, want *beepBackend", backend)
+	}
+	// The old implementation asserted this to a beep.StreamSeeker and
+	// gave up when it was not one. Pin that it never is, so the handle
+	// below stays the only way in.
+	if _, seekable := bb.music.ctrl.Streamer.(beep.StreamSeeker); seekable {
+		t.Error("ctrl.Streamer is seekable; the outer chain is expected " +
+			"not to be, and the rewind handle exists for that reason")
+	}
+	if bb.music.rewind.Load() == nil {
+		t.Fatal("playing music left no rewind handle; RewindMusic is a no-op")
+	}
+	rewindMusic()
+	if !bb.music.rewind.Load().pending.Load() {
+		t.Error("rewindMusic did not mark a pending seek")
+	}
+
+	HaltMusic()
+	if bb.music.rewind.Load() != nil {
+		t.Error("HaltMusic left a stale rewind handle")
+	}
+}
+
+// TestLoadMusicBytes covers the in-memory loader added so embedded
+// tracks can stream instead of being buffered as a Sound.
+func TestLoadMusicBytes(t *testing.T) {
+	if err := Init(); err != nil {
+		t.Skipf("audio init unavailable: %v", err)
+	}
+	defer quit()
+
+	m, err := LoadMusicBytes(wavSilence)
+	if err != nil {
+		t.Fatalf("LoadMusicBytes returned error: %v", err)
+	}
+	defer m.Free()
+
+	if got := int(m.format.SampleRate); got != 8000 {
+		t.Errorf("decoded sample rate = %d, want 8000 (the fixture's own "+
+			"rate; music converts at play time)", got)
+	}
+	if err := m.Play(-1); err != nil {
+		t.Fatalf("Play returned error: %v", err)
+	}
+	if !isMusicPlaying() {
+		t.Error("music not playing after Play")
+	}
+	HaltMusic()
+}
+
+// TestLoadMusicBytesErrors covers the rejected inputs.
+func TestLoadMusicBytesErrors(t *testing.T) {
+	tests := []struct {
+		name string
+		data []byte
+	}{
+		{name: "empty", data: nil},
+		{name: "too short", data: []byte{'R', 'I'}},
+		{name: "unrecognized", data: []byte("not audio at all")},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if _, err := LoadMusicBytes(tt.data); err == nil {
+				t.Error("LoadMusicBytes returned nil error, want failure")
+			}
+		})
+	}
+}
+
+// TestDecodeBytesID3 exercises the MP3 branch that starts with an
+// ID3v2 tag rather than a sync word, which a naive magic check would
+// miss.  The fixture is a synthetic ID3 header with valid sync after
+// it; the decoder is expected to accept it or fail at decode time, but
+// not with "unrecognized audio format".
+func TestDecodeBytesID3(t *testing.T) {
+	// ID3v2 header: "ID3" + ver(3,0) + flags(0) + size(0,0,0,10)
+	// followed by a fake MP3 frame sync 0xFF 0xFB.  If the magic check
+	// does not recognise ID3, decodeBytes returns "unrecognized".
+	id3 := []byte{'I', 'D', '3', 3, 0, 0, 0, 0, 0, 10, 0xFF, 0xFB, 0x90, 0x00}
+	if _, _, err := decodeBytes(id3); err != nil &&
+		strings.Contains(err.Error(), "unrecognized") {
+		t.Errorf("decodeBytes(ID3) = unrecognized, want mp3 branch: %v", err)
 	}
 }
