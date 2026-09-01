@@ -1,10 +1,10 @@
 # Markdown render callback
 
-Status: proposed. Written 2026-08-24. Revised 2026-08-28 after review against
-`gui/view_markdown.go`. Modeled on Bun's `bun:markdown`
-`renderMarkdown({ data, callback })`: the caller gets every parsed markdown
-element in a callback and can replace its output. Additive, not a breaking
-change.
+Issue: #484. Status: landed. Written 2026-08-24. Revised 2026-08-28 after review
+against `gui/view_markdown.go`, and again on 2026-09-01 as it landed. Modeled on
+Bun's `bun:markdown` `renderMarkdown({ data, callback })`: the caller gets every
+parsed markdown element in a callback and can replace its output. Additive, not
+a breaking change.
 
 ## Problem
 
@@ -155,7 +155,8 @@ diagrams. `mdRenderImage` is suppressed when the hook replaces an image block.
 
 Hook writers own their IDs and a11y: compose with `ScopeID(el.DocID, …)` or
 `ScopeIDN(el.DocID, …, el.Index)` (the `gui.Debug` gate catches collisions), and
-set `A11YRole`/`A11YLabel` where appropriate — `AccessRoleNote` for callouts.
+set `A11YRole`/`A11YLabel` where appropriate. There is no `AccessRoleNote`; a
+callout takes `AccessRoleGroup` with a label naming its kind.
 
 The hook runs during `GenerateLayout`, under the frame lock. `SetFocus`,
 `ClearFocus`, `UpdateView`, `ClearDrawCanvasCache` and `Window.Lock` all take
@@ -240,14 +241,18 @@ place; `(nil, true)` drops the block. Plus one test per loop-state rule —
   `CodeLanguage == "mermaid"`; a block with overlapping flags resolves to the
   branch the render switch would take.
 
-Golden: add a `gui/golden_test.go` case with a `RenderBlock` (callout or heading
-wrap) in both `ThemeDark` and `ThemeLight`. Existing markdown goldens must be
-unchanged by the tail-flush move — that is the proof it is behavior-preserving.
-`TestDuplicateIDs` over a hooked document with an ID collision proves the debug
-gate covers hook-built views. New exports (`MarkdownElement`,
-`MarkdownBlockKind` and its eleven constants, `MarkdownTable`, `RenderBlock`)
-need consumers or `// exportaudit:keep`; the showcase covers `RenderBlock`,
-`MarkdownElement` and a few kinds, the rest take markers.
+Golden: the markdown widget had no golden coverage at all, so there were no
+existing recordings for the tail-flush move to be checked against. Two cases
+were added to `gui/golden_cases_test.go`, both in `ThemeDark` and `ThemeLight`:
+`markdown_blocks`, recorded **before** any change to the loop, is the baseline
+that proves the tail-flush move is behavior-preserving; `markdown_callout`
+renders the same source under a `RenderBlock` that tints the blockquote, so the
+diff between the two is exactly what a hook can move. `TestDuplicateIDs` over a
+hooked document with an ID collision proves the debug gate covers hook-built
+views. New exports (`MarkdownElement`, `MarkdownBlockKind` and its eleven
+constants, `MarkdownTable`, `RenderBlock`) need consumers or
+`// exportaudit:keep`; the showcase covers `RenderBlock`, `MarkdownElement` and
+a few kinds, the rest take markers.
 
 ## Out of scope
 

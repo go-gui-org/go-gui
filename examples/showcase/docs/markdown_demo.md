@@ -88,6 +88,19 @@ combine with bold: ++**bold underline**++.
 > > within quoted material. This is useful for email threads or forum
 > > discussions where multiple levels of response exist.
 
+### Callouts
+
+Callouts are not markdown. The showcase renders them with
+`MarkdownCfg.RenderBlock`, which replaces the output of any block the app
+recognises. A blockquote that opens with a marker becomes a tinted panel; every
+other block falls through to the default renderer.
+
+> [!NOTE] Blockquotes that start with a marker render as a callout. The marker
+> is stripped and the rest of the quote becomes the body.
+
+> [!WARNING] The convention is the app's, not the parser's. Another app can read
+> the same source and render plain blockquotes.
+
 ## Code
 
 ### Inline Code

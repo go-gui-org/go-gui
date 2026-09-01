@@ -1,0 +1,14 @@
+RTF xy=30.00,33.00 wh=0.00,0.00 text="" +glyphlayout
+RTF xy=30.00,33.00 wh=0.00,0.00 text="" +glyphlayout
+Rect xy=30.00,33.00 wh=260.00,37.60 color=#4d82f028 radius=6.00 fill
+StrokeRect xy=30.00,33.00 wh=260.00,37.60 color=#4d82f0ff radius=6.00 thickness=1.00
+Text xy=39.00,42.00 wh=0.00,0.00 color=#e6e8ebff text="A quoted line." size=14.00
+Clip xy=0.00,0.00 wh=0.00,0.00
+Clip xy=0.00,0.00 wh=320.00,240.00
+Rect xy=30.00,98.60 wh=260.00,1.00 color=#ffffff14 fill
+Text xy=30.00,99.60 wh=0.00,0.00 color=#e6e8ebff text="• " size=14.00
+RTF xy=60.80,99.60 wh=0.00,0.00 text="" +glyphlayout
+Text xy=30.00,119.20 wh=0.00,0.00 color=#e6e8ebff text="• " size=14.00
+RTF xy=60.80,119.20 wh=0.00,0.00 text="" +glyphlayout
+Text xy=275.40,77.57 wh=0.00,0.00 color=#808080ff text="\uf1b1" size=11.00
+Text xy=290.40,21.97 wh=0.00,0.00 color=#808080ff text="\uf1b1" size=11.00

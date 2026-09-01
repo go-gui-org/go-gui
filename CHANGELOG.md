@@ -8,6 +8,27 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- **Markdown render callback** (#484) — `MarkdownCfg.RenderBlock` is consulted
+  for every parsed block during layout, so an app can add a block type markdown
+  does not have (callouts, numbered headings) or drop one, without rewriting the
+  source string. It receives a styled `MarkdownElement` — the block's kind, its
+  runs, its plain text, its index, and the document's resolved effective ID —
+  and returns a replacement view, `nil` to drop the block, or `ok=false` to take
+  the default renderer. The showcase dog-foods it with `> [!NOTE]` /
+  `> [!WARNING]` / `> [!TIP]` callouts. Spec:
+  `docs/specs/markdown-render-callback.md`.
+
+### Fixed
+
+- **Markdown list at the end of a document** (#484) — the pending-list flush
+  lived inside the list branch of `markdownBuildContent` and fired only on the
+  last block, so a document ending in a list depended on that branch being
+  reached. It now runs after the loop, where every exit path reaches it. Output
+  for existing documents is unchanged, pinned by the new `markdown_blocks`
+  golden.
+
 ## [v0.66.1] - 2026-09-01
 
 ### Fixed

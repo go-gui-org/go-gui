@@ -1,6 +1,8 @@
 package main
 
 import (
+	"strings"
+
 	"github.com/go-gui-org/go-glyph"
 	"github.com/go-gui-org/go-gui/gui"
 	"github.com/go-gui-org/go-gui/gui/highlight"
@@ -417,12 +419,83 @@ func demoMarkdown(w *gui.Window) gui.View {
 	style := gui.DefaultMarkdownStyle()
 	style.CodeHighlighter = highlight.Default()
 	return w.Markdown(gui.MarkdownCfg{
-		ID:        "showcase_markdown",
-		Focusable: true,
-		Style:     style,
-		Padding:   gui.NoPadding,
-		Source:    embeddedText("docs/markdown_demo.md"),
+		ID:          "showcase_markdown",
+		Focusable:   true,
+		Style:       style,
+		Padding:     gui.NoPadding,
+		Source:      embeddedText("docs/markdown_demo.md"),
+		RenderBlock: renderMarkdownCallout,
 	})
+}
+
+// calloutMarkers are the blockquote prefixes the showcase promotes to
+// a callout, each with the theme color it tints. The convention is the
+// app's: markdown has no callouts, and RenderBlock is what lets an app
+// add one without rewriting the source string.
+var calloutMarkers = []struct {
+	marker string
+	label  string
+	color  func(gui.Theme) gui.Color
+}{
+	{"[!NOTE]", "Note",
+		func(t gui.Theme) gui.Color { return t.ColorAccentSubtle }},
+	{"[!WARNING]", "Warning",
+		func(t gui.Theme) gui.Color { return t.ColorWarningSubtle }},
+	{"[!TIP]", "Tip",
+		func(t gui.Theme) gui.Color { return t.ColorSuccessSubtle }},
+}
+
+// renderMarkdownCallout is the showcase's MarkdownCfg.RenderBlock. It
+// claims blockquotes whose text opens with a known marker and returns
+// a tinted panel; everything else returns ok=false and takes the
+// default renderer.
+//
+// The body renders as plain text rather than as el.Content, because
+// the marker has to come off the front and trimming it out of styled
+// runs is more machinery than a demo needs. A hook that must keep
+// inline styling would slice el.Content instead.
+func renderMarkdownCallout(
+	w *gui.Window, el gui.MarkdownElement,
+) (gui.View, bool) {
+	if el.Kind != gui.MarkdownKindBlockquote {
+		return nil, false
+	}
+	text := strings.TrimSpace(el.PlainText)
+	for _, c := range calloutMarkers {
+		body, found := strings.CutPrefix(text, c.marker)
+		if !found {
+			continue
+		}
+		t := w.Theme()
+		return gui.Column(gui.ContainerCfg{
+			// Index, not the marker: two notes in one document would
+			// otherwise claim the same identity.
+			ID:      gui.ScopeIDN(el.DocID, "callout", el.Index),
+			Sizing:  gui.FillFit,
+			Padding: gui.PadAll(t.SpacingMedium),
+			Spacing: gui.Some(t.SpacingSmall),
+			// The tint is the whole signal, so no border: a container
+			// reserves border space whether or not it paints one, and
+			// an unset SizeBorder would inherit the theme's and add
+			// height for a line this design does not draw.
+			SizeBorder: gui.NoBorder,
+			Radius:     gui.SomeF(6),
+			Color:      c.color(t),
+			A11YRole:   gui.AccessRoleGroup,
+			A11YCfg:    gui.A11YCfg{A11YLabel: c.label},
+			Content: []gui.View{
+				gui.Text(gui.TextCfg{
+					Text:      c.label,
+					TextStyle: t.B4,
+				}),
+				gui.Text(gui.TextCfg{
+					Text: strings.TrimSpace(body),
+					Mode: gui.TextModeWrap,
+				}),
+			},
+		}), true
+	}
+	return nil, false
 }
 
 func sectionLabel(t gui.Theme, text string) gui.View {
