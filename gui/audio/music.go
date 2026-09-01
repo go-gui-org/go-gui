@@ -20,6 +20,18 @@ func LoadMusic(path string) (*Music, error) {
 	return backend.LoadMusic(path)
 }
 
+// LoadMusicBytes loads a music track from in-memory bytes, for a track
+// embedded in the binary.  The format is detected from the leading
+// magic bytes; WAV, MP3, OGG and FLAC are supported.  The caller must
+// not modify data after this call.
+//
+// Prefer this over [LoadSoundBytes] for anything long — a [Music]
+// decodes as it plays, where a [Sound] holds the whole track decoded at
+// the output rate.
+func LoadMusicBytes(data []byte) (*Music, error) {
+	return backend.LoadMusicBytes(data)
+}
+
 // Play starts music playback.  loops is the number of extra loops
 // (0 = play once, -1 = loop forever).  Any currently playing music
 // is halted first.

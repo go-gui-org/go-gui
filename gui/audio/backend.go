@@ -26,6 +26,7 @@ type Backend interface {
 	SetMusicVolume(v float64)
 	MusicVolume() float64
 	LoadMusic(path string) (*Music, error)
+	LoadMusicBytes(data []byte) (*Music, error)
 	LoadSound(path string) (*Sound, error)
 	LoadSoundBytes(data []byte) (*Sound, error)
 	MusicFree(m *Music)

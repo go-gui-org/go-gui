@@ -68,6 +68,8 @@ func decodeBytes(data []byte) (beep.StreamSeekCloser, beep.Format, error) {
 		return wav.Decode(newReadSeekCloser(data))
 	case data[0] == 0xFF && len(data) > 1 && data[1]&0xE0 == 0xE0:
 		return mp3.Decode(newReadCloser(data))
+	case len(data) >= 3 && string(data[:3]) == "ID3":
+		return mp3.Decode(newReadCloser(data))
 	case string(data[:4]) == "OggS":
 		return vorbis.Decode(newReadCloser(data))
 	case string(data[:4]) == "fLaC":

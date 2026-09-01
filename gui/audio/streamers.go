@@ -4,6 +4,7 @@ package audio
 
 import (
 	"sync"
+	"sync/atomic"
 
 	"github.com/gopxl/beep/v2"
 )
@@ -277,4 +278,33 @@ func (n *neverDrain) Err() error {
 		return nil
 	}
 	return n.streamer.Err()
+}
+
+// ---------------------------------------------------------------------------
+// rewindStreamer
+// ---------------------------------------------------------------------------
+
+// rewindStreamer wraps a seekable decoder so a rewind asked for by the
+// app goroutine happens on the audio thread, at the top of the next
+// Stream call.  Seeking the decoder directly from the caller would tear
+// its internal state while the sink is mid-read.
+//
+// The embedded [beep.StreamSeeker] supplies Seek, Len, Position and Err
+// unchanged, so [beep.Loop2] still accepts this wrapper as its source.
+type rewindStreamer struct {
+	beep.StreamSeeker
+	pending atomic.Bool
+}
+
+// request marks a rewind.  Safe from any goroutine; the seek itself is
+// deferred to the next Stream call.
+func (r *rewindStreamer) request() { r.pending.Store(true) }
+
+func (r *rewindStreamer) Stream(samples [][2]float64) (int, bool) {
+	if r.pending.CompareAndSwap(true, false) {
+		// A failed seek leaves the stream where it was — playback
+		// continues rather than dropping out, and Err reports it.
+		_ = r.Seek(0)
+	}
+	return r.StreamSeeker.Stream(samples)
 }
