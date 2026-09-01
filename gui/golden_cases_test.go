@@ -902,7 +902,62 @@ func goldenCases() []goldenCase {
 			name:  "canvas_transform",
 			build: buildCanvasTransform,
 		},
+		{
+			// The markdown block loop (issue #484). The render switch
+			// in markdownBuildContent carries cross-block state --
+			// pending list items, the blockquote closing spacer, and
+			// the rune offsets selection keys on -- none of which any
+			// other case reaches. The source ends on a list item so
+			// the tail flush is recorded: that flush is what moves
+			// when RenderBlock lands, and this recording is the proof
+			// the move is behavior-preserving.
+			name:  "markdown_blocks",
+			build: buildMarkdownBlocks,
+		},
+		{
+			// The same source under a RenderBlock hook (issue #484).
+			// Diffed against markdown_blocks it shows exactly what a
+			// hook can move: the blockquote becomes a tinted callout
+			// container, and everything else -- the heading, the code
+			// block, the rule, the list and its tail flush -- is
+			// byte-identical, which is what "falls back to the default
+			// renderer" has to mean.
+			name:  "markdown_callout",
+			build: buildMarkdownCallout,
+		},
 	}
+}
+
+// goldenMarkdownSource exercises one block of every kind the loop
+// dispatches without a fetch: heading, paragraph, blockquote, fenced
+// code, horizontal rule, and a list that runs to the end of the
+// document. Math and mermaid are left out -- both go out to a fetcher
+// and would record a loading placeholder rather than a block.
+const goldenMarkdownSource = `# Heading
+
+A paragraph of body text.
+
+> A quoted line.
+
+` + "```go" + `
+x := 1
+` + "```" + `
+
+---
+
+- first item
+- second item
+`
+
+// buildMarkdownBlocks records the document focusable, so makeCtx takes
+// the per-block branch and the rune offsets reach the recording
+// through each block's stamped start.
+func buildMarkdownBlocks(w *Window) View {
+	return w.Markdown(MarkdownCfg{
+		ID:        "md",
+		Focusable: true,
+		Source:    goldenMarkdownSource,
+	})
 }
 
 // buildCanvasTransform draws each primitive twice where it can: once
@@ -1173,4 +1228,35 @@ func TestGoldenNegativeZero(t *testing.T) {
 	if got := f2(neg); got != "0.00" {
 		t.Errorf("f2(-0): got %q, want %q", got, "0.00")
 	}
+}
+
+// buildMarkdownCallout hooks the one blockquote in
+// goldenMarkdownSource and returns a tinted container in its place --
+// the callout shape the showcase dog-foods. Every other kind falls
+// through to the default renderer.
+func buildMarkdownCallout(w *Window) View {
+	return w.Markdown(MarkdownCfg{
+		ID:        "md",
+		Focusable: true,
+		Source:    goldenMarkdownSource,
+		RenderBlock: func(win *Window, el MarkdownElement) (View, bool) {
+			if el.Kind != MarkdownKindBlockquote {
+				return nil, false
+			}
+			t := win.Theme()
+			return Column(ContainerCfg{
+				ID:          ScopeIDN(el.DocID, "callout", el.Index),
+				Sizing:      FillFit,
+				Padding:     PadAll(8),
+				SizeBorder:  SomeF(1),
+				Color:       t.ColorAccentSubtle,
+				ColorBorder: t.ColorAccent,
+				A11YRole:    AccessRoleGroup,
+				A11YCfg:     A11YCfg{A11YLabel: "Note"},
+				Content: []View{
+					Text(TextCfg{Text: el.PlainText}),
+				},
+			}), true
+		},
+	})
 }

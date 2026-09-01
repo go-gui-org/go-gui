@@ -160,6 +160,21 @@ type MarkdownCfg struct {
 	// when DisableExternalAPIs is true.
 	// exportaudit:keep — caller-facing config (issue #372)
 	MermaidFetcher MermaidFetcher
+
+	// RenderBlock, when non-nil, is consulted for every block during
+	// layout. Return ok=false to fall back to the default renderer;
+	// ok=true replaces the block's output, with a view or with nil to
+	// drop the block entirely.
+	//
+	// It runs once per block per frame over the cached styled blocks,
+	// so it must be cheap and pure: build View structs, do not fetch
+	// or parse. It runs during GenerateLayout, under the frame lock,
+	// so SetFocus, ClearFocus, UpdateView, ClearDrawCanvasCache and
+	// Window.Lock all panic from it; QueueCommand is the remedy and
+	// is permitted. Hook writers own their IDs — compose them with
+	// ScopeID(el.DocID, …) or ScopeIDN — and their a11y roles.
+	// exportaudit:keep — caller-facing config (issue #484)
+	RenderBlock func(w *Window, el MarkdownElement) (View, bool)
 }
 
 // MathFetcher fetches a LaTeX math expression as a PNG image.
@@ -412,6 +427,99 @@ func markdownTriggerMathFetches(
 	}
 }
 
+// mdKindOf names the branch markdownBuildContent's render switch
+// would take for a block. The flags are not mutually exclusive, so
+// the test order here copies that switch exactly; a second
+// hand-written order would silently disagree with the fallthrough
+// dispatch. Mermaid is deliberately absent: it dispatches from inside
+// the code branch on CodeLanguage, so it reads as code here.
+func mdKindOf(block markdownBlock) MarkdownBlockKind {
+	switch {
+	case block.IsMath:
+		return MarkdownKindMath
+	case block.IsCode:
+		return MarkdownKindCode
+	case block.IsTable:
+		return MarkdownKindTable
+	case block.IsHR:
+		return MarkdownKindHR
+	case block.IsBlockquote:
+		return MarkdownKindBlockquote
+	case block.IsImage:
+		return MarkdownKindImage
+	case block.HeaderLevel > 0:
+		return MarkdownKindHeading
+	case block.IsDefTerm:
+		return MarkdownKindDefTerm
+	case block.IsDefValue:
+		return MarkdownKindDefValue
+	case block.IsList:
+		return MarkdownKindList
+	default:
+		return MarkdownKindParagraph
+	}
+}
+
+// mdKindSelectable reports whether a kind's default renderer takes a
+// per-block ctx, and so advances the document's rune offsets. Six of
+// the eleven do; math, code, tables, rules and images do not. It sits
+// beside mdKindOf so the two lists cannot drift.
+func mdKindSelectable(kind MarkdownBlockKind) bool {
+	switch kind {
+	case MarkdownKindBlockquote, MarkdownKindHeading,
+		MarkdownKindDefTerm, MarkdownKindDefValue,
+		MarkdownKindList, MarkdownKindParagraph:
+		return true
+	default:
+		return false
+	}
+}
+
+// mdElementOf copies a styled block into the exported form the render
+// hook sees. PlainText and the table copy are built here rather than
+// cached on markdownBlock, so a document with no hook pays neither.
+func mdElementOf(
+	block markdownBlock, kind MarkdownBlockKind, index int, docID string,
+) MarkdownElement {
+	el := MarkdownElement{
+		DocID:           docID,
+		PlainText:       richTextPlain(block.Content),
+		ListPrefix:      block.ListPrefix,
+		ImageSrc:        block.ImageSrc,
+		ImageAlt:        block.ImageAlt,
+		CodeLanguage:    block.CodeLanguage,
+		MathLatex:       block.MathLatex,
+		AnchorSlug:      block.AnchorSlug,
+		Content:         block.Content,
+		Kind:            kind,
+		Index:           index,
+		HeaderLevel:     block.HeaderLevel,
+		BlockquoteDepth: block.BlockquoteDepth,
+		ListIndent:      block.ListIndent,
+		ImageWidth:      block.ImageWidth,
+		ImageHeight:     block.ImageHeight,
+		IsCode:          block.IsCode,
+		IsHR:            block.IsHR,
+		IsBlockquote:    block.IsBlockquote,
+		IsImage:         block.IsImage,
+		IsTable:         block.IsTable,
+		IsList:          block.IsList,
+		IsMath:          block.IsMath,
+		IsDefTerm:       block.IsDefTerm,
+		IsDefValue:      block.IsDefValue,
+		IsTaskItem:      block.IsTaskItem,
+		TaskChecked:     block.TaskChecked,
+	}
+	if block.TableData != nil {
+		el.TableData = &MarkdownTable{
+			Headers:    block.TableData.Headers,
+			Alignments: block.TableData.Alignments,
+			Rows:       block.TableData.Rows,
+		}
+	}
+	return el
+}
+
 // markdownBuildContent converts parsed blocks into views,
 // handling list accumulation and blockquote spacing.
 func markdownBuildContent(
@@ -460,6 +568,37 @@ func markdownBuildContent(
 			listItems = nil
 		}
 
+		if cfg.RenderBlock != nil {
+			kind := mdKindOf(block)
+			v, ok := cfg.RenderBlock(w,
+				mdElementOf(block, kind, i, cfg.ID))
+			if ok {
+				// Rune offsets belong to the document, not to the
+				// renderer. Advancing them here for a kind whose
+				// default branch never would -- code, a table -- gives
+				// a hooked document different offsets from the same
+				// document unhooked, so selection breaks in the hooked
+				// case only. makeCtx is what advances them; the ctx
+				// itself is unused because a hooked block is not
+				// selectable text.
+				if selEnabled && mdKindSelectable(kind) {
+					makeCtx(block)
+				}
+				// A hooked list item skips the accumulator, so any
+				// items already pending have to land before it or they
+				// render after their own siblings.
+				if len(listItems) > 0 {
+					content = append(content,
+						mdFlushListItems(listItems, cfg))
+					listItems = nil
+				}
+				if v != nil {
+					content = append(content, v)
+				}
+				continue
+			}
+		}
+
 		switch {
 		case block.IsMath:
 			content = append(content, mdRenderMathBlock(block, cfg, w))
@@ -488,15 +627,18 @@ func markdownBuildContent(
 		case block.IsList:
 			listItems = append(listItems,
 				mdRenderListItem(block, cfg, mode, makeCtx(block)))
-			if i == len(blocks)-1 && len(listItems) > 0 {
-				content = append(content,
-					mdFlushListItems(listItems, cfg))
-				listItems = nil
-			}
 		default:
 			content = append(content,
 				mdRenderParagraph(block, cfg, mode, makeCtx(block)))
 		}
+	}
+
+	// A document that ends inside a list has no following block to
+	// flush it, so the tail flush lives here rather than in the list
+	// case: every way out of the loop reaches it, including a block
+	// the render hook took over.
+	if len(listItems) > 0 {
+		content = append(content, mdFlushListItems(listItems, cfg))
 	}
 	return content
 }

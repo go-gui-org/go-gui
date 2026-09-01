@@ -1,0 +1,12 @@
+RTF xy=30.00,33.00 wh=0.00,0.00 text="" +glyphlayout
+RTF xy=30.00,33.00 wh=0.00,0.00 text="" +glyphlayout
+RTF xy=47.00,33.00 wh=0.00,0.00 text="" +glyphlayout
+Clip xy=0.00,0.00 wh=0.00,0.00
+Clip xy=0.00,0.00 wh=320.00,240.00
+Rect xy=30.00,61.00 wh=260.00,1.00 color=#ffffff14 fill
+Text xy=30.00,62.00 wh=0.00,0.00 color=#e6e8ebff text="• " size=14.00
+RTF xy=60.80,62.00 wh=0.00,0.00 text="" +glyphlayout
+Text xy=30.00,81.60 wh=0.00,0.00 color=#e6e8ebff text="• " size=14.00
+RTF xy=60.80,81.60 wh=0.00,0.00 text="" +glyphlayout
+Text xy=275.40,39.97 wh=0.00,0.00 color=#808080ff text="\uf1b1" size=11.00
+Text xy=290.40,21.97 wh=0.00,0.00 color=#808080ff text="\uf1b1" size=11.00
