@@ -8,6 +8,19 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [v0.66.1] - 2026-09-01
+
+### Fixed
+
+- **iOS simulator link** (#482) — `ff3287d8` raised the gradient shader to
+  twelve stops and added `metalSetGradientTM2` to the macOS Metal backend and to
+  the iOS header/Go call, but never added the body to
+  `gui/backend/ios/metal_darwin.m`. The static archive built, but `xcodebuild`
+  linking `IOSDemo.app` failed with
+  `Undefined symbols: _metalSetGradientTM2 for arm64`. The missing symbol is now
+  implemented (`setFragmentBytes` at index 0, matching macOS), and CI now builds
+  the simulator `.app` so a future mismatch fails the PR instead of the release.
+
 ## [v0.66.0] - 2026-09-01
 
 Widget audio feedback covers every mechanical widget and every remaining
