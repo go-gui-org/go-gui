@@ -140,6 +140,7 @@ type dataGridCrudSaveContext struct {
 	query             GridQueryState
 	gridID            string
 	focusID           string
+	errCue            gg.SoundCue
 	caps              GridDataCapabilities
 	hasSource         bool
 }
@@ -169,17 +170,17 @@ func dataGridCrudSave(ctx dataGridCrudSaveContext, e *gg.Event, w *gg.Window) {
 		// Pre-validate capabilities.
 		if len(createRows) > 0 && !ctx.caps.supportsCreate {
 			dataGridCrudRestoreOnError(gridID, "create", ctx.onCRUDError,
-				e, w, snapshotRows, "grid: create not supported")
+				e, w, snapshotRows, "grid: create not supported", ctx.errCue)
 			return
 		}
 		if len(updateEdits) > 0 && !ctx.caps.supportsUpdate {
 			dataGridCrudRestoreOnError(gridID, "update", ctx.onCRUDError,
-				e, w, snapshotRows, "grid: update not supported")
+				e, w, snapshotRows, "grid: update not supported", ctx.errCue)
 			return
 		}
 		if len(deleteIDs) > 0 && !ctx.caps.supportsDelete {
 			dataGridCrudRestoreOnError(gridID, "delete", ctx.onCRUDError,
-				e, w, snapshotRows, "grid: delete not supported")
+				e, w, snapshotRows, "grid: delete not supported", ctx.errCue)
 			return
 		}
 		query := ctx.query
@@ -188,6 +189,7 @@ func dataGridCrudSave(ctx dataGridCrudSaveContext, e *gg.Event, w *gg.Window) {
 		selection := ctx.selection
 		onSelectionChange := ctx.onSelectionChange
 		focusID := ctx.focusID
+		errCue := ctx.errCue
 		wCtx := w.Ctx()
 		// Cancel any prior in-flight save and set up abort for
 		// this save so slow mutations can observe cancellation.
@@ -209,7 +211,7 @@ func dataGridCrudSave(ctx dataGridCrudSaveContext, e *gg.Event, w *gg.Window) {
 			w.QueueCommand(func(w *gg.Window) {
 				dataGridCrudApplySaveResult(gridID, result, snapshotRows,
 					onCRUDError, onRowsChange, selection, onSelectionChange,
-					focusID, w)
+					focusID, errCue, w)
 			})
 		}()
 	} else {
@@ -286,11 +288,11 @@ func dataGridCrudExecMutations(source DataGridDataSource, gridID string, query G
 	}
 }
 
-func dataGridCrudApplySaveResult(gridID string, result dataGridCrudMutationResult, snapshotRows []GridRow, onCRUDError func(string, gg.EventCtx), onRowsChange func([]GridRow, gg.EventCtx), selection GridSelection, onSelectionChange func(GridSelection, gg.EventCtx), focusID string, w *gg.Window) {
+func dataGridCrudApplySaveResult(gridID string, result dataGridCrudMutationResult, snapshotRows []GridRow, onCRUDError func(string, gg.EventCtx), onRowsChange func([]GridRow, gg.EventCtx), selection GridSelection, onSelectionChange func(GridSelection, gg.EventCtx), focusID string, errCue gg.SoundCue, w *gg.Window) {
 	e := &gg.Event{}
 	if result.errMsg != "" {
 		dataGridCrudRestoreOnError(gridID, result.errPhase, onCRUDError,
-			e, w, snapshotRows, result.errMsg)
+			e, w, snapshotRows, result.errMsg, errCue)
 		return
 	}
 	dgCrud := gg.StateMap[string, dataGridCrudState](w, nsDgCrud, capModerate)
@@ -300,7 +302,7 @@ func dataGridCrudApplySaveResult(gridID string, result dataGridCrudMutationResul
 		state.WorkingRows, result.createRows, result.created)
 	if createWarn != "" {
 		dataGridCrudRestoreOnError(gridID, "create", onCRUDError,
-			e, w, snapshotRows, createWarn)
+			e, w, snapshotRows, createWarn, errCue)
 		return
 	}
 	dgCrud.Set(gridID, state)
@@ -339,7 +341,7 @@ func dataGridCrudFinishSave(gridID string, _ map[string]string, rowCount int, on
 	}
 }
 
-func dataGridCrudRestoreOnError(gridID, phase string, onCRUDError func(string, gg.EventCtx), e *gg.Event, w *gg.Window, snapshotRows []GridRow, errMsg string) {
+func dataGridCrudRestoreOnError(gridID, phase string, onCRUDError func(string, gg.EventCtx), e *gg.Event, w *gg.Window, snapshotRows []GridRow, errMsg string, errCue gg.SoundCue) {
 	dgCrud := gg.StateMap[string, dataGridCrudState](w, nsDgCrud, capModerate)
 	// Default zero state: absent entry means nothing to restore on error.
 	state := dgCrud.GetOr(gridID, dataGridCrudState{})
@@ -358,6 +360,11 @@ func dataGridCrudRestoreOnError(gridID, phase string, onCRUDError func(string, g
 	dgCrud.Set(gridID, state)
 	dataGridClearEditingRow(gridID, w)
 	dataGridSourceForceRefetch(gridID, w)
+	// Every CRUD failure funnels through here, so this is the one emit
+	// site. Before the callback, like every other cue. datagrid is
+	// outside gui/, so it goes through the exported seam rather than
+	// the unexported playSoundCue (issue #469).
+	w.PlaySoundCue(errCue)
 	if onCRUDError != nil {
 		onCRUDError(errMsg, gg.EventCtx{Layout: nil, Event: e, Window: w})
 	}

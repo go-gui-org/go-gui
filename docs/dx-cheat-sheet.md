@@ -262,10 +262,16 @@ silent, and a nil player is the default, so tests need no setup. Per instance,
 `Cfg.Sound` overrides the theme cue and `Cfg.SoundDisabled` suppresses it;
 `w.SetSoundVolume(0..1)` is the gain, where `0` is mute. The cue fires before
 `OnClick` and regardless of `ctx.Consume()`. Roles are `Click`, `ToggleOn`,
-`ToggleOff`, `Selection` and `Error`; a widget picks the role, the app picks the
-sound. Feeding a resolved cue into a nested `ButtonCfg` or `ToggleCfg` means
-passing `SoundDisabled` too — those resolve their own precedence, and a resolved
-`SoundNone` reads there as "unset". See `docs/widget-sound.md`.
+`ToggleOff`, `Selection`, `Error`, `Notify`, `Open` and `Success`; a widget
+picks the role, the app picks the sound. Four interactions sound without a
+click: a toast appearing (`Notify`, or `Error` at `ToastError` severity), a
+dialog opening (`Open`), a form submit accepted (`Success`) or blocked
+(`Error`), and a `datagrid` CRUD save failure (`Error`).
+`gui.NewSystemSoundPlayer(w)` renders every cue with the platform's own event
+sounds, no assets and no audio library; it ignores gain. Feeding a resolved cue
+into a nested `ButtonCfg` or `ToggleCfg` means passing `SoundDisabled` too —
+those resolve their own precedence, and a resolved `SoundNone` reads there as
+"unset". See `docs/widget-sound.md`.
 
 ## Find it early
 

@@ -1,14 +1,107 @@
 # Spec: opt-in widget audio feedback
 
-Status: **phases 1, 2 and 3 implemented** — phase 1 landed `SoundCue`,
+Status: **phases 1 to 4 implemented** — phase 1 landed `SoundCue`,
 `SoundPlayer`, `Theme.Sounds`, window volume, and the `Button` / `Toggle` proof;
 phase 2 (#467) carried the seam to every remaining mechanical widget and to
-`gui/datagrid`; phase 3 (#468) reached the paths dispatch never sees. Phase 4 is
-a follow-up issue.
+`gui/datagrid`; phase 3 (#468) reached the paths dispatch never sees; phase 4
+(#469) added the non-click semantics and a player backed by the platform's own
+event sounds.
 
 Issue: #446 — "Widgets have no audio feedback for interactions". Phase 2: #467 —
 "Widget audio feedback phase 2: the mechanical widget pass". Phase 3: #468 —
-"Widget audio feedback phase 3: paths dispatch does not see".
+"Widget audio feedback phase 3: paths dispatch does not see". Phase 4: #469 —
+"Widget audio feedback phase 4: non-click cues and a native system-sound
+player".
+
+## Phase 4 decisions
+
+Phase 4 covers the interactions with no click site at all, and the second
+built-in player.
+
+- **Three new cues, not seven.** `SoundNotify` (a toast appeared), `SoundOpen`
+  (a dialog opened) and `SoundSuccess` (a submit was accepted), appended after
+  `SoundSelection`, with matching `SoundSet` fields. Every refusal reuses
+  `SoundError`: an error-severity toast, a blocked submit and a failed CRUD save
+  are all rejections, and a separate cue per site would say nothing extra. No
+  code in `gui/` switches exhaustively over the enum, so the additions break no
+  player.
+- **`(*Window).PlaySoundCue` is exported.** `gui/datagrid` is outside `gui/` and
+  cannot reach `playSoundCue`; a CRUD failure has no button to hang a cue off,
+  so the emit seam had to be public. It applies no precedence — resolve with
+  `ResolveSoundCue` first — and keeps every guarantee of the unexported helper.
+- **The cue rides the imperative entry point, never the per-frame view.**
+  `(*Window).Toast` and `(*Window).Dialog` are called once per appearance;
+  `toastItemView` and `dialogViewGenerator` run every frame. The toast cue is
+  emitted at the append rather than in the enter tween's `OnDone`, which a toast
+  dismissed early never reaches. Both read `w.Theme()` rather than the
+  `guiTheme` mirror: they run outside generation, and `themeRef` takes
+  `w.themeMu`, not the frame lock.
+- **Toast severity picks the cue; `ToastCfg.Sound` does not.** This is the one
+  place a severity chooses a cue. `Sound` names the toast's buttons — an
+  activation — so it does not reach the appear cue, while `SoundDisabled`
+  suppresses both. The same split governs `DialogCfg` and `FormCfg`.
+- **Form submit resolves at generation time and emits under the frame lock.**
+  `formProcessRequests` runs from `AmendLayout`, so the `soundCues` pair is
+  resolved in `GenerateLayout` and captured by value; the `submitReq` latch
+  makes the emit one-shot even though the pass runs every frame. Emitting inline
+  is safe because `playSoundCue` takes no lock, but it does mean app player code
+  runs under `w.mu` — the `SoundPlayer` contract now says a player must not call
+  a window-mutating API.
+- **A blocked submit sounds where nothing else reports it.** The
+  `blockedInvalid || blockedPending` branch has no callback: the cue is the only
+  feedback the app gets for free.
+- **One emit site for the grid.** Every DataGrid CRUD failure funnels through
+  `dataGridCrudRestoreOnError`, so the cue lives there and `dataGridSounds`
+  gains an `err` role resolved beside `click` and `selection`. Keying off
+  `state.SaveError` would have fired once per frame.
+- **The native player is a second player, not a replacement.**
+  `NewSystemSoundPlayer` maps every cue onto the platform's own event sounds;
+  `NewBeepSoundPlayer` stays the right choice for an app that only wants to
+  signal rejection.
+- **It ignores gain, deliberately.** macOS `NSSound` exposes `setVolume`, but
+  Windows `PlaySound` and `canberra-gtk-play` do not, so honouring gain would
+  make one platform behave differently from the other two. Mute still works: the
+  `gain <= 0` gate sits ahead of the player.
+- **The native capability is an optional interface, not a `NativePlatform`
+  method.** `systemSoundPlatform` (`gui/sound_system.go`) is type-asserted on
+  `w.nativePlatform`. Adding the methods to the exported `NativePlatform`
+  interface would break every out-of-repo implementation; a platform that does
+  not implement the capability is silent, which is also what keeps the noop
+  platform and headless tests quiet.
+- **`sysbeep` keeps `Play` and gains `PlayEvent`.** `Play` is still the
+  out-of-band alert. The event API is a separate, open enum with its own
+  per-platform mapping table, so `sysbeep` needs no knowledge of widgets and
+  `gui` needs none of system sounds; `nativehost` holds the one map between
+  them. An unmapped or out-of-range event is silent.
+
+### Phase 4 sound mapping
+
+| Event     | macOS `NSSound(named:)` | Windows `SND_ALIAS`    | Linux freedesktop id |
+| --------- | ----------------------- | ---------------------- | -------------------- |
+| Click     | `Tink`                  | `MenuCommand`          | `button-pressed`     |
+| ToggleOn  | `Pop`                   | `MenuCommand`          | `button-pressed`     |
+| ToggleOff | `Bottle`                | `MenuCommand`          | `button-released`    |
+| Selection | `Ping`                  | `MenuPopup`            | `button-pressed`     |
+| Error     | `Basso`                 | `SystemHand`           | `dialog-error`       |
+| Notify    | `Purr`                  | `Notification.Default` | `message`            |
+| Open      | `Blow`                  | `SystemAsterisk`       | `dialog-information` |
+| Success   | `Glass`                 | `.Default`             | `complete`           |
+
+macOS caches each `NSSound` by name and restarts it on retrigger, so a second
+cue is not swallowed by the first. Windows passes `SND_NODEFAULT` so an alias
+the user's scheme leaves unset is silent rather than a default beep. Linux
+spawns one `canberra-gtk-play` per cue — acceptable for a dialog or a toast,
+wrong for a click-heavy UI, and the guides say so.
+
+### Phase 4 silences
+
+- **`DialogDismiss` and `ToastDismiss`.** The button that closed the surface has
+  already sounded through the ordinary click path, so a dismiss cue would double
+  up. This retires the dismiss-cue question phase 2 deferred.
+- **Native dialogs** (`gui/native_dialog.go`) — the OS plays its own.
+- **A save that fails with no data source attached.** It reports through
+  `state.SaveError` and never calls `OnCRUDError`, so it never reaches the emit
+  site; that path is a wiring mistake, not a user-facing rejection.
 
 ## Phase 3 decisions
 
@@ -275,11 +368,9 @@ release commits nothing.
   Keyboard movement and continuous drag were decided silent; the decisions are
   in "What stays silent" above.
 - **Phase 4** (#469) — non-click semantics (Toast appear, Dialog open, Form
-  submit, DataGrid `OnCRUDError`) and a native system-sound player:
-  `NSSound(named:)`, `PlaySound` with `SND_ALIAS`, freedesktop sound-naming IDs
-  on Linux (the beep backend already shells to `canberra-gtk-play -i bell`, so
-  `-i button-pressed` is a short step). That is cross-platform native work,
-  including ObjC, and belongs in `gui/backend/sysbeep`.
+  submit, DataGrid `OnCRUDError`) and `NewSystemSoundPlayer`, backed by
+  `sysbeep.PlayEvent`: `NSSound(named:)` on macOS, `PlaySound` with `SND_ALIAS`
+  on Windows, freedesktop sound-naming ids on Linux. Decisions above.
 
 ## Showcase sounds are synthesized
 

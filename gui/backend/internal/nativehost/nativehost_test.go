@@ -186,3 +186,37 @@ func TestDialogAndPrintForwardersNoPanic(t *testing.T) {
 	// Print forwarder is safe on all platforms (returns error without UI).
 	_ = ShowPrintDialog(gui.NativePrintParams{})
 }
+
+// PlaySystemSound must be silent — never a panic — for the zero cue,
+// every cue the table names, and a value outside the enum, which is
+// what an older backend paired with a newer gui would pass (issue #469).
+func TestPlaySystemSoundDoesNotPanic(t *testing.T) {
+	cues := []gui.SoundCue{
+		gui.SoundNone,
+		gui.SoundClick, gui.SoundToggleOn, gui.SoundToggleOff,
+		gui.SoundSelection, gui.SoundError,
+		gui.SoundNotify, gui.SoundOpen, gui.SoundSuccess,
+		gui.SoundCue(200),
+	}
+	for _, cue := range cues {
+		PlaySystemSound(cue)
+	}
+}
+
+// The soundEvents table is the only place the real platforms learn
+// which cue is which event — the gui-side tests install a spy and
+// never see it. The enum is open: a cue added later is deliberately
+// silent until the table names it, but a cue the table drops never
+// sounds on any platform, and no other test would notice (issue #469).
+func TestSoundEventsNamesEveryCurrentCue(t *testing.T) {
+	cues := []gui.SoundCue{
+		gui.SoundClick, gui.SoundToggleOn, gui.SoundToggleOff,
+		gui.SoundSelection, gui.SoundError,
+		gui.SoundNotify, gui.SoundOpen, gui.SoundSuccess,
+	}
+	for _, cue := range cues {
+		if _, ok := soundEvents[cue]; !ok {
+			t.Errorf("soundEvents dropped %v", cue)
+		}
+	}
+}

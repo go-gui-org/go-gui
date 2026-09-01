@@ -139,7 +139,7 @@ type ShowcaseApp struct {
 	WidgetSoundOn     bool
 	WidgetSoundVolume float32
 	WidgetSoundDemoOn bool
-	WidgetSoundBeep   bool
+	WidgetSoundPlayer soundPlayerKind
 	AudioMusicLoaded  bool
 	AudioMusicPlaying bool
 	AudioMusicPaused  bool

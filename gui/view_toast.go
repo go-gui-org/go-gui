@@ -38,14 +38,13 @@ type ToastCfg struct {
 	// Sound overrides the theme's click cue for this toast's action
 	// and dismiss buttons. SoundNone (the zero value) takes
 	// Theme.Sounds.Click, which is itself silent unless the app opted
-	// in (issue #446). Severity does not pick the cue: an error toast
-	// is a report, and the failure it reports has already sounded
-	// wherever it happened (issue #467).
+	// in (issue #446). It names an activation sound, so it does not
+	// reach the appear cue below (issue #467).
 	// exportaudit:keep — caller-facing config (issue #467)
 	Sound SoundCue
 
-	// SoundDisabled suppresses this toast's button sounds regardless
-	// of the theme and of Sound above.
+	// SoundDisabled suppresses this toast's sounds — both the buttons
+	// and the appear cue — regardless of the theme and of Sound above.
 	// exportaudit:keep — caller-facing config (issue #467)
 	SoundDisabled bool
 }
@@ -451,6 +450,26 @@ func toastScopeID(id uint64) string {
 	return ScopeIDN("toast", "", int(id))
 }
 
+// toastAppearCue resolves the cue a toast plays when it appears. This
+// is the one place severity picks a cue: an error toast is a report of
+// a failure and takes the theme's Error role, everything else takes
+// Notify. cfg.Sound is not consulted — it names the activation sound of
+// the toast's buttons — but cfg.SoundDisabled suppresses both.
+//
+// Reads w.Theme() rather than the guiTheme mirror: Toast runs outside
+// generation, and themeRef takes w.themeMu rather than the frame lock,
+// so this is safe from a callback that already holds w.mu (issue #469).
+func toastAppearCue(w *Window, cfg ToastCfg) SoundCue {
+	if cfg.SoundDisabled {
+		return SoundNone
+	}
+	sounds := w.Theme().Sounds
+	if cfg.Severity == ToastError {
+		return sounds.Error
+	}
+	return sounds.Notify
+}
+
 // Toast shows a toast notification. Returns the toast id.
 func (w *Window) Toast(cfg ToastCfg) uint64 {
 	w.toastCounter++
@@ -461,6 +480,7 @@ func (w *Window) Toast(cfg ToastCfg) uint64 {
 		phase: toastEntering,
 	}
 	w.toasts = append(w.toasts, n)
+	playSoundCue(toastAppearCue(w, cfg), w)
 	toastStartEnter(w, id)
 	toastEnforceMaxVisible(w)
 	w.UpdateWindow()

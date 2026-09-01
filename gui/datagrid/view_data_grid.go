@@ -334,12 +334,14 @@ type DataGridCfg struct {
 	sounds dataGridSounds
 }
 
-// dataGridSounds holds the grid's cues after resolution. Two roles,
-// not one per control: a control either activates (click) or picks one
-// of several (selection).
+// dataGridSounds holds the grid's cues after resolution. Two
+// interaction roles — a control either activates (click) or picks one
+// of several (selection) — plus the error role a failed CRUD save
+// emits, which has no control of its own (issue #469).
 type dataGridSounds struct {
 	click     gg.SoundCue
 	selection gg.SoundCue
+	err       gg.SoundCue
 }
 
 // boolDefault returns *p if non-nil, else def.
@@ -362,6 +364,11 @@ func applyDataGridDefaults(cfg *DataGridCfg) {
 			sounds.Click, cfg.Sound, cfg.SoundDisabled),
 		selection: gg.ResolveSoundCue(
 			sounds.Selection, cfg.Sound, cfg.SoundDisabled),
+		// cfg.Sound names an activation, never a refusal, so the error
+		// role takes the theme's cue alone — the same rule gui's
+		// resolveSoundCues keeps for its reject cue (issue #469).
+		err: gg.ResolveSoundCue(
+			sounds.Error, gg.SoundNone, cfg.SoundDisabled),
 	}
 	cfg.Sizing = cfg.Sizing.Or(gg.FillFill)
 	if cfg.RowHeight == 0 {

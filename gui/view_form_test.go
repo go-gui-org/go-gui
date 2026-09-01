@@ -177,7 +177,7 @@ func TestFormSubmitBlock(t *testing.T) {
 	// Request and process submit.
 	state := formRuntime(w, formID)
 	state.submitReq = true
-	formProcessRequests(w, formID, onSubmit, nil)
+	formProcessRequests(w, formID, onSubmit, nil, soundCues{})
 
 	if submitted {
 		t.Fatal("should not submit when field is invalid")
@@ -190,7 +190,7 @@ func TestFormSubmitBlock(t *testing.T) {
 		SyncValidators: []FormSyncValidator{required},
 	})
 	state.submitReq = true
-	formProcessRequests(w, formID, onSubmit, nil)
+	formProcessRequests(w, formID, onSubmit, nil, soundCues{})
 
 	if !submitted {
 		t.Fatal("should submit when field is valid")
@@ -217,7 +217,7 @@ func TestFormReset(t *testing.T) {
 
 	state := formRuntime(w, formID)
 	state.resetReq = true
-	formProcessRequests(w, formID, nil, onReset)
+	formProcessRequests(w, formID, nil, onReset, soundCues{})
 
 	if resetEvent.formID != formID {
 		t.Fatalf("expected form ID %q, got %q",

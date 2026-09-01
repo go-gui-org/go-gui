@@ -118,3 +118,52 @@ func TestGridSoundDisabledSuppresses(t *testing.T) {
 		t.Errorf("SoundDisabled emitted %v, want nothing", spy.cues)
 	}
 }
+
+// Phase 4 (issue #469): a CRUD save failure sounds. It has no control
+// of its own, so the cue is resolved with the grid's other two and
+// emitted at dataGridCrudRestoreOnError, the one point every failure
+// path funnels through.
+
+// gridErrCue resolves the grid's error cue the way a generate does.
+func gridErrCue(cfg DataGridCfg) gg.SoundCue {
+	applyDataGridDefaults(&cfg)
+	return cfg.sounds.err
+}
+
+func TestSoundGridCRUDErrorEmitsOnce(t *testing.T) {
+	w, spy := soundGrid(t, soundGridCfg())
+	spy.cues = nil
+
+	var gotMsg string
+	snapshot := []GridRow{{ID: "r1", Cells: map[string]string{"c1": "a"}}}
+	dataGridCrudRestoreOnError("g1", "save",
+		func(msg string, _ gg.EventCtx) { gotMsg = msg },
+		&gg.Event{}, w, snapshot, "save failed", gridErrCue(soundGridCfg()))
+
+	if len(spy.cues) != 1 || spy.cues[0] != gg.SoundError {
+		t.Errorf("cues = %v, want [SoundError]", spy.cues)
+	}
+	// The cue does not replace the callback.
+	if gotMsg != "save failed" {
+		t.Errorf("OnCRUDError msg = %q, want %q", gotMsg, "save failed")
+	}
+}
+
+func TestSoundGridCRUDErrorResolution(t *testing.T) {
+	// Installs the sounding theme; applyDataGridDefaults resolves
+	// against gg.CurrentTheme(), which is package-global, so the
+	// window has to exist before the resolution below.
+	soundGrid(t, soundGridCfg())
+
+	// cfg.Sound names an activation, so it must not reach the error
+	// cue; cfg.SoundDisabled must suppress it.
+	cfg := soundGridCfg()
+	cfg.Sound = gg.SoundClick
+	if got := gridErrCue(cfg); got != gg.SoundError {
+		t.Errorf("Sound override leaked into the error cue: %v", got)
+	}
+	cfg.SoundDisabled = true
+	if got := gridErrCue(cfg); got != gg.SoundNone {
+		t.Errorf("SoundDisabled error cue = %v, want SoundNone", got)
+	}
+}

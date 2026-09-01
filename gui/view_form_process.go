@@ -178,6 +178,7 @@ func formProcessRequests(
 	formID string,
 	onSubmit func(FormSubmitEvent, EventCtx),
 	onReset func(FormResetEvent, EventCtx),
+	cues soundCues,
 ) {
 	state := formRuntime(w, formID)
 	stateChanged := false
@@ -245,6 +246,15 @@ func formProcessRequests(
 	summary := formComputeSummary(state)
 	blockedInvalid := state.blockInvalid && summary.InvalidCount > 0
 	blockedPending := state.blockPending && summary.Pending
+	// Before the callback and independent of consumption, the same
+	// ordering every other cue keeps. The submitReq latch above makes
+	// this one-shot even though AmendLayout runs every frame; emitting
+	// inline is safe because playSoundCue takes no lock (issue #469).
+	if blockedInvalid || blockedPending {
+		playSoundCue(cues.reject, w)
+	} else {
+		playSoundCue(cues.act, w)
+	}
 	if !blockedInvalid && !blockedPending && onSubmit != nil {
 		onSubmit(FormSubmitEvent{
 			formID:  formID,
