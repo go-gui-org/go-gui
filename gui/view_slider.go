@@ -35,8 +35,17 @@ type SliderCfg struct {
 	// FocusDisabled opts out of the default-on focus. Focus also
 	// requires a non-empty ID; without one the control is inert.
 	FocusDisabled bool
-	Color         Color
-	ColorBorder   Color
+
+	// SoundDisabled suppresses the slider's sound regardless of the
+	// theme. There is no Sound field to pair with it: a slider has
+	// no activation moment to sound at — arrow movement and drag are
+	// both deliberately silent — so Theme.Sounds.Error on an arrow
+	// key already at Min or Max is the only cue it emits (#468).
+	// exportaudit:keep — caller-facing config (issue #468)
+	SoundDisabled bool
+
+	Color       Color
+	ColorBorder Color
 	// ColorThumb paints the thumb. Unset takes the theme default.
 	// exportaudit:keep — caller-facing config (issue #372)
 	ColorThumb Color
@@ -119,6 +128,11 @@ func Slider(cfg SliderCfg) View {
 	step := cfg.Step
 	vertical := cfg.Vertical
 	roundValue := cfg.RoundValue
+	// Resolved at generation time and captured by value: the key
+	// handler reports a refused move, which dispatch never sees
+	// because nothing was activated (issue #468).
+	rejectCue := resolveSoundCue(
+		guiTheme.Sounds.Error, SoundNone, cfg.SoundDisabled)
 	size := cfg.Size
 	szBorder := sizeBorder
 	thumbSize := cfg.ThumbSize
@@ -218,8 +232,9 @@ func Slider(cfg SliderCfg) View {
 			}
 		},
 		OnKeyDown: func(ctx EventCtx) {
-			sliderOnKeyDown(ctx.Layout, ctx.Event, ctx.Window,
-				onChange, value, minVal, maxVal, step, roundValue)
+			sliderOnKeyDown(ctx.Event, ctx.Window,
+				onChange, value, minVal, maxVal, step, roundValue,
+				rejectCue)
 		},
 		Content: []View{
 			container(ContainerCfg{
@@ -386,10 +401,16 @@ func sliderMouseMove(
 	}
 }
 
+// sliderOnKeyDown moves the value by one step, or to a bound.
+//
+// rejectCue sounds when the key was understood but the value could not
+// move — an arrow already at Min or Max. Movement itself is silent by
+// decision: a held arrow key would machine-gun the cue (issue #468).
 func sliderOnKeyDown(
-	_ *Layout, e *Event, w *Window,
+	e *Event, w *Window,
 	onChange func(float32, EventCtx),
 	curValue, minVal, maxVal, step float32, roundValue bool,
+	rejectCue SoundCue,
 ) {
 	if onChange == nil || e.Modifiers != ModNone {
 		return
@@ -413,7 +434,9 @@ func sliderOnKeyDown(
 	}
 	if v != curValue {
 		onChange(v, EventCtx{nil, e, w})
+		return
 	}
+	playSoundCue(rejectCue, w)
 }
 
 // applySliderDefaults fills zero-value color fields from the theme.

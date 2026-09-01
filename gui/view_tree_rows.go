@@ -271,6 +271,7 @@ func treeDragRowView(
 		OnClick: func(ctx EventCtx) {
 			dragReorderStart(dragReorderStartCfg{
 				DragKey:       treeID,
+				DropCue:       rowSound,
 				Index:         sibIdx,
 				ItemID:        rowID,
 				Axis:          dragReorderVertical,
@@ -392,6 +393,7 @@ func treeOnKeyDown(
 	scrollID string,
 	rowHeight float32,
 	listHeight float32,
+	cues soundCues,
 	e *Event,
 	w *Window,
 ) {
@@ -408,6 +410,11 @@ func treeOnKeyDown(
 		if cur > 0 {
 			next = cur - 1
 		}
+		if next == cur {
+			// Already on the first row. Movement is silent by
+			// decision; only the refusal sounds (issue #468).
+			playSoundCue(cues.reject, w)
+		}
 		focusMap.Set(treeID, visibleIDs[next])
 		treeScrollTo(scrollID, next, rowHeight, listHeight, w)
 		e.IsHandled = true
@@ -415,6 +422,9 @@ func treeOnKeyDown(
 		next := 0
 		if cur >= 0 {
 			next = min(cur+1, len(visibleIDs)-1)
+		}
+		if next == cur {
+			playSoundCue(cues.reject, w)
 		}
 		focusMap.Set(treeID, visibleIDs[next])
 		treeScrollTo(scrollID, next, rowHeight, listHeight, w)
@@ -467,6 +477,9 @@ func treeOnKeyDown(
 		if cur < 0 {
 			return
 		}
+		// Keyboard activation, with a nil Layout: dispatch never sees
+		// it, so the row's own cue cannot fire (issue #468).
+		playSoundCue(cues.act, w)
 		if onSelect != nil {
 			onSelect(focusedID, EventCtx{nil, e, w})
 		}

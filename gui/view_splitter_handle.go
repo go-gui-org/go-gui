@@ -96,6 +96,14 @@ func splitterButton(cfg *SplitterCfg, core *splitterCore,
 		Size:  size,
 	}
 	icon := splitterButtonIcon(core, target)
+	// State-dependent, resolved here: clicking a pane that is already
+	// collapsed expands it. A resolved cue fed into a nested ButtonCfg
+	// must also pass SoundDisabled, or the theme's Click would win
+	// where the cue came out silent (issue #467's convention).
+	btnSound := core.soundCollapse
+	if splitterEffectiveCollapsed(core, core.collapsed) == target {
+		btnSound = core.soundExpand
+	}
 	return Button(ButtonCfg{
 		ID:      id + splitterButtonSuffix[target],
 		Width:   size,
@@ -108,10 +116,12 @@ func splitterButton(cfg *SplitterCfg, core *splitterCore,
 		// hook skips a disabled button, so a disabled one keeps the
 		// uncorrected position — cosmetic, and disabled splitter buttons
 		// are not a state the widget produces today.
-		AmendLayout: centerGlyphOnInk(icon, ts),
-		Color:       cfg.ColorButton,
-		Colors:      ColorSet{Hover: cfg.ColorButtonHover, Click: cfg.ColorButtonActive, Focus: cfg.ColorButtonHover}.resolved(cfg.ColorButton, themeButtonSet()),
-		Radius:      cfg.RadiusBorder,
+		AmendLayout:   centerGlyphOnInk(icon, ts),
+		Color:         cfg.ColorButton,
+		Colors:        ColorSet{Hover: cfg.ColorButtonHover, Click: cfg.ColorButtonActive, Focus: cfg.ColorButtonHover}.resolved(cfg.ColorButton, themeButtonSet()),
+		Radius:        cfg.RadiusBorder,
+		Sound:         btnSound,
+		SoundDisabled: btnSound == SoundNone,
 		OnClick: func(ctx EventCtx) {
 			splitterOnButtonClick(core, target, ctx.Event, ctx.Window)
 		},
@@ -188,11 +198,13 @@ func splitterOnKeydown(core *splitterCore, e *Event, w *Window) {
 		if isNone && core.first.collapsible {
 			nextCollapsed = SplitterCollapseFirst
 			handled = true
+			playSoundCue(core.soundCollapse, w)
 		}
 	case KeyEnd:
 		if isNone && core.second.collapsible {
 			nextCollapsed = SplitterCollapseSecond
 			handled = true
+			playSoundCue(core.soundCollapse, w)
 		}
 	// Space reads from KeyCode, not CharCode: backends populate
 	// CharCode only on EventChar, so a keydown-only handler that tested
@@ -202,6 +214,16 @@ func splitterOnKeydown(core *splitterCore, e *Event, w *Window) {
 		if isNone {
 			nextCollapsed, handled = splitterToggleCollapse(
 				core, nextCollapsed)
+			if handled {
+				// splitterCollapseNone as the *next* state means a
+				// pane just expanded; anything else means one just
+				// collapsed (issue #468).
+				cue := core.soundCollapse
+				if nextCollapsed == splitterCollapseNone {
+					cue = core.soundExpand
+				}
+				playSoundCue(cue, w)
+			}
 		}
 	}
 	// Arrow keys clear collapse state.

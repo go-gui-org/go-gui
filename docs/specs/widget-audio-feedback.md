@@ -1,12 +1,69 @@
 # Spec: opt-in widget audio feedback
 
-Status: **phases 1 and 2 implemented** — phase 1 landed `SoundCue`,
+Status: **phases 1, 2 and 3 implemented** — phase 1 landed `SoundCue`,
 `SoundPlayer`, `Theme.Sounds`, window volume, and the `Button` / `Toggle` proof;
 phase 2 (#467) carried the seam to every remaining mechanical widget and to
-`gui/datagrid`. Phases 3 and 4 are follow-up issues.
+`gui/datagrid`; phase 3 (#468) reached the paths dispatch never sees. Phase 4 is
+a follow-up issue.
 
 Issue: #446 — "Widgets have no audio feedback for interactions". Phase 2: #467 —
-"Widget audio feedback phase 2: the mechanical widget pass".
+"Widget audio feedback phase 2: the mechanical widget pass". Phase 3: #468 —
+"Widget audio feedback phase 3: paths dispatch does not see".
+
+## Phase 3 decisions
+
+Phase 3 covers the interactions that call a callback directly, usually with a
+nil `Layout`, so `playShapeSound` has no shape to read a cue off.
+
+- **A second helper, `playSoundCue(SoundCue, *Window)`.** Factored out of
+  `playShapeSound`, which now resolves the cue off the shape and delegates.
+  Every guard past the shape — nil window, `SoundNone`, nil player, zero or
+  non-finite gain — lives in the new helper, so a new call site inherits the
+  silence guarantees rather than restating them. `(*Window).SoundVolume` does
+  not go through `lockForAPI`, so a cue may be emitted inline even under the
+  frame lock; no phase-3 site needs `deferCallback`.
+- **A resolved pair, `soundCues{act, reject}`.** Most phase-3 paths need two
+  cues: the one for a change that lands and the one for a change refused.
+  `resolveSoundCues` builds the pair at generation time and it travels by value,
+  so a handler closure captures a `SoundCue` rather than a `*Layout` the arena
+  pools. Only `act` takes the `Cfg.Sound` override — `Cfg.Sound` names a
+  widget's activation sound, not its refusal, so `reject` stays on the theme's
+  `Error` role. `SoundDisabled` suppresses both.
+- **Refusal sounds; movement does not.** An arrow key that moves a selection is
+  silent, because a held arrow key would machine-gun the cue. An arrow key that
+  cannot move — already at `Min`, at row 0, at the last row, at the end of a
+  menu — emits `Theme.Sounds.Error`. The asymmetry is the point: silence is the
+  normal case, so the cue carries information.
+- **`NumericInput` reports its own clamp.** `numericInputStepResultClamped`
+  returns whether the step was refused, rather than the call site re-deriving it
+  by recomputing the seed — a duplicate that would drift the moment the stepping
+  rule changed. `numericInputStepResultMode` stays as the two-value wrapper its
+  existing callers use.
+- **A drag never sounds; a drop sometimes does.** Continuous drag — slider
+  thumb, splitter handle, colour plane and wheel — stays silent throughout: it
+  has no activation moment, and a cue per move would be a buzz. Only a
+  drag-reorder drop that actually moves an item sounds, on `Selection`. A cancel
+  (Escape), a drop that lands where the item already was, and a dock panel
+  released outside every zone are all silent, and the guards that distinguish
+  them were already in the code.
+- **The splitter's collapse toggle is the one drag-adjacent activation.**
+  `splitterToggleCollapse` already reports direction, so collapse takes
+  `ToggleOn` and expand takes `ToggleOff`. The collapse buttons carry the same
+  state-dependent cue through the ordinary click path.
+- **The Input's Enter commit sounds; its blur commit does not.** Enter is a
+  deliberate activation and takes `Click`. Blur is incidental — focus moved for
+  some other reason — and its commit runs under the frame lock through
+  `deferCallback`, so keeping it silent avoids that seam entirely.
+- **`SoundError` gets its first real consumer.** Every Input rejection sounds
+  it: a character a mask has no slot for, a paste the mask cannot fit, a
+  backspace over a mask literal, and a `PreTextChange` veto. That is what
+  `NewBeepSoundPlayer` was built for — it plays `SoundError` and nothing else.
+  An unmasked field that cannot delete is at the start or end of its text; that
+  is an edge, not a rejection, and stays silent.
+- **Five widgets gained sound config.** `TableCfg`, `InputCfg` and `SplitterCfg`
+  take the usual `Sound` / `SoundDisabled` pair. `SliderCfg` and
+  `NumericInputCfg` take `SoundDisabled` alone: neither has an activation moment
+  to sound at, so a `Sound` field would name a cue that never plays.
 
 ## Phase 2 decisions
 
@@ -154,6 +211,24 @@ It is not routed through `deferCallback`. Dispatch runs from `EventFn` with no
 frame lock held, and a deferred callback may not capture a `*Layout` — the arena
 pools it.
 
+The paths dispatch never sees raise their own cue with
+`playSoundCue(SoundCue, *Window)`, at the call site, keeping the same ordering:
+before the callback, independent of consumption.
+
+| Path                     | Site                                              |
+| ------------------------ | ------------------------------------------------- |
+| Table keyboard activate  | `tableOnKeyDown`, the `listCoreSelectItem` branch |
+| ListBox keyboard select  | `listBoxOnKeyDown`, same branch                   |
+| Tree keyboard select     | `treeOnKeyDown`, `KeyEnter`/`KeySpace`            |
+| Menu keyboard activate   | `menuOnKeyDown`, `KeySpace`/`KeyEnter`            |
+| Input Enter commit       | `inputCommitEnter`                                |
+| Input reject             | `inputTextChange`, `inputKeyPaste`, delete        |
+| NumericInput clamp       | `numericInputApplyStep`                           |
+| Slider clamp             | `sliderOnKeyDown`                                 |
+| Drag-reorder drop        | `dragReorderOnMouseUp`, `dragReorderKeyboardMove` |
+| Dock panel drop          | `dockDragOnMouseUp`                               |
+| Splitter collapse toggle | `splitterOnHandleKeyDown`                         |
+
 ## What stays silent
 
 Pure click absorbers must never sound, and opt-in-by-default protects them with
@@ -166,6 +241,25 @@ One known exclusion: `gui/view_text.go` uses a package-level shared
 `textEventHandlers` singleton, which cannot carry a per-instance cue without
 becoming per-view. Link-click sound is out of scope.
 
+Phase 3 adds these deliberate silences. Each was decided, not omitted:
+
+- **Arrow-key movement** in ListBox, Menu, Tree, Table and Slider. Only a move
+  that is refused sounds.
+- **Tree expand and collapse** on Left and Right. They are arrow keys, and the
+  rule above governs them.
+- **Continuous drag** — `sliderMouseMove`, `splitterEmitChange` from a drag
+  move, and `colorDragTrack` in `gui/view_color_drag.go`.
+- **The Input blur commit**, in `inputAmendLayout`.
+- **A drag cancel and a no-op drop**, including a dock panel released outside
+  every drop zone.
+- **An unmasked Input delete at the start or end of its text.**
+
+Two candidates were deferred rather than decided against. A slider **snap or
+detent** cue needs drag-path snapping that does not exist — `SliderCfg.Step` is
+consulted only by the keyboard path. A **colour drag-end** cue needs a commit
+moment the colour widgets do not have: they write the value on every move, so
+release commits nothing.
+
 ## Rollout
 
 - **Phase 1 (this change)** — the seam, `Button`, `Toggle`, headless tests, both
@@ -175,10 +269,11 @@ becoming per-view. Link-click sound is out of scope.
   Select, Combobox, ListBox, Tree, TabControl, Menu, Dialog, Toast, DatePicker,
   CommandPalette, DockLayout, Image, Svg, and `gui/datagrid`). Split by file
   count, not one 40-file diff.
-- **Phase 3** (#468) — bespoke paths dispatch never sees: Table keyboard
-  activation (calls `OnClick` with a nil `Layout`), Input commit vs reject,
-  InputNumeric clamp, keyboard navigation (probably silent — decide it
-  explicitly), drag-terminated changes, drag-reorder drop.
+- **Phase 3** (#468) — the paths dispatch never sees: Table, ListBox, Tree and
+  Menu keyboard activation, Input commit and reject, NumericInput and Slider
+  clamp, the splitter's collapse toggle, and the drag-reorder and dock drops.
+  Keyboard movement and continuous drag were decided silent; the decisions are
+  in "What stays silent" above.
 - **Phase 4** (#469) — non-click semantics (Toast appear, Dialog open, Form
   submit, DataGrid `OnCRUDError`) and a native system-sound player:
   `NSSound(named:)`, `PlaySound` with `SND_ALIAS`, freedesktop sound-naming IDs

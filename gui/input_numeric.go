@@ -586,16 +586,31 @@ func numericInputCommitResultMode(text string, value, minVal, maxVal Opt[float64
 }
 
 func numericInputStepResultMode(text string, value, minVal, maxVal Opt[float64], decimals int, stepCfg NumericStepCfg, locale NumericLocaleCfg, direction float64, modifiers Modifier, mc numericModeCfg) (Opt[float64], string) {
+	v, s, _ := numericInputStepResultClamped(text, value, minVal, maxVal, decimals, stepCfg, locale, direction, modifiers, mc)
+	return v, s
+}
+
+// numericInputStepResultClamped is numericInputStepResultMode plus the
+// fact the caller needs to sound a cue: whether the step was refused
+// because the value already sat at Min or Max.
+//
+// Reported here rather than re-derived at the call site, which would
+// have to recompute the seed and would drift the moment the stepping
+// rule changes (issue #468). Always false for direction == 0, which is
+// a commit, not a step.
+func numericInputStepResultClamped(text string, value, minVal, maxVal Opt[float64], decimals int, stepCfg NumericStepCfg, locale NumericLocaleCfg, direction float64, modifiers Modifier, mc numericModeCfg) (Opt[float64], string, bool) {
 	loc := numericLocaleNormalize(locale)
 	if direction == 0 {
-		return numericInputCommitResultMode(text, value, minVal, maxVal, decimals, loc, mc)
+		v, s := numericInputCommitResultMode(text, value, minVal, maxVal, decimals, loc, mc)
+		return v, s, false
 	}
 	normalized := numericStepCfgNormalize(stepCfg)
 	stepDisplay := numericStepDelta(normalized, modifiers)
 	delta := numericModeStepDelta(stepDisplay, mc)
 	seed := numericStepSeedMode(text, value, minVal, decimals, loc, mc)
 	clamped := numericClamp(seed+(delta*direction), minVal, maxVal)
-	return Some(clamped), numericModeFormatValue(clamped, decimals, loc, mc)
+	return Some(clamped), numericModeFormatValue(clamped, decimals, loc, mc),
+		clamped == seed
 }
 
 func numericInputPreCommitTransformMode(current, proposed string, decimals int, locale NumericLocaleCfg, mc numericModeCfg) (string, bool) {

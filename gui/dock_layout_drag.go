@@ -29,6 +29,10 @@ const (
 
 // dockDragState tracks an in-progress dock panel drag.
 type dockDragState struct {
+	// dropCue sounds when the panel lands in a zone. Resolved by the
+	// caller at generation time and carried here, because the drop
+	// fires from a MouseLock callback with a nil Layout (issue #468).
+	dropCue      SoundCue
 	panelID      string
 	sourceGroup  string
 	hoverGroupID string
@@ -73,6 +77,7 @@ func dockDragStart(
 	dockID, panelID, sourceGroup string,
 	root *DockNode,
 	onLayoutChange func(*DockNode, EventCtx),
+	dropCue SoundCue,
 	layout *Layout, e *Event, w *Window,
 ) {
 	// Ghost base offset: tab position relative to dock container.
@@ -88,6 +93,7 @@ func dockDragStart(
 	absMouseY := layout.Shape.Y + e.MouseY
 	state := dockDragState{
 		active:      false,
+		dropCue:     dropCue,
 		panelID:     panelID,
 		sourceGroup: sourceGroup,
 		mouseX:      absMouseX,
@@ -156,6 +162,9 @@ func dockDragOnMouseUp(
 	w.MouseUnlock()
 
 	if state.active && state.hoverZone != dockDropNone && onLayoutChange != nil {
+		// A drop that lands nowhere falls through to the clear below
+		// and stays silent, as does a cancel (issue #468).
+		playSoundCue(state.dropCue, w)
 		newRoot := dockTreeMovePanel(
 			root, state.panelID, state.hoverGroupID,
 			state.hoverZone)

@@ -160,6 +160,11 @@ func ListBox(cfg ListBoxCfg) View {
 	isMultiple := cfg.Multiple
 	onSelect := cfg.OnSelect
 	selectedIDs := cfg.SelectedIDs
+	// Resolved once, at generation time: the keyboard path calls
+	// onSelect with a nil Layout, so it carries its cues by value
+	// rather than reading them off a shape (issue #468).
+	keyCues := resolveSoundCues(
+		guiTheme.Sounds.Selection, cfg.Sound, cfg.SoundDisabled)
 
 	return Column(ContainerCfg{
 		ID:       cfg.ID,
@@ -174,7 +179,7 @@ func ListBox(cfg ListBoxCfg) View {
 		OnKeyDown: func(ctx EventCtx) {
 			listBoxOnKeyDown(listBoxID, itemIDs,
 				isMultiple, onSelect, selectedIDs,
-				"", 0, 0, nil, ctx.Event, ctx.Window)
+				"", 0, 0, nil, keyCues, ctx.Event, ctx.Window)
 		},
 		Width:       cfg.MaxWidth,
 		Height:      cfg.Height,
@@ -223,6 +228,11 @@ func (lv *listBoxView) GenerateLayout(w *Window) Layout {
 	isMultiple := cfg.Multiple
 	onSelect := cfg.OnSelect
 	selectedIDs := cfg.SelectedIDs
+	// Resolved once, at generation time: the keyboard path calls
+	// onSelect with a nil Layout, so it carries its cues by value
+	// rather than reading them off a shape (issue #468).
+	keyCues := resolveSoundCues(
+		guiTheme.Sounds.Selection, cfg.Sound, cfg.SoundDisabled)
 	itemIDs := cache.itemIDs
 	itemDataIndices := cache.itemDataIndices
 
@@ -293,14 +303,16 @@ func (lv *listBoxView) GenerateLayout(w *Window) Layout {
 				if curIdx >= 0 && curIdx < len(itemIDs) &&
 					dragReorderKeyboardMove(ctx.Event.KeyCode,
 						ctx.Event.Modifiers, dragReorderVertical,
-						curIdx, itemIDs, onReorder, ctx.Window) {
+						curIdx, itemIDs, onReorder, keyCues.act,
+						ctx.Window) {
 					ctx.Consume()
 					return
 				}
 			}
 			listBoxOnKeyDown(listBoxID, itemIDs,
 				isMultiple, onSelect, selectedIDs,
-				scrollID, rowH, listH, itemDataIndices, ctx.Event, ctx.Window)
+				scrollID, rowH, listH, itemDataIndices, keyCues,
+				ctx.Event, ctx.Window)
 		},
 		Width:       cfg.MaxWidth,
 		Height:      cfg.Height,
@@ -441,6 +453,7 @@ func listBoxOnKeyDown(
 	selectedIDs []string,
 	scrollID string, rowH, listH float32,
 	itemDataIndices []int,
+	cues soundCues,
 	e *Event,
 	w *Window,
 ) {
@@ -466,6 +479,10 @@ func listBoxOnKeyDown(
 			datID := itemIDs[curIdx]
 			ids := listBoxNextSelectedIDs(
 				selectedIDs, datID, isMultiple)
+			// Keyboard activation reaches onSelect directly, with a
+			// nil Layout, so dispatch never sees it and the row's own
+			// cue cannot fire (issue #468).
+			playSoundCue(cues.act, w)
 			onSelect(ids, EventCtx{nil, e, w})
 		}
 		return
@@ -480,7 +497,12 @@ func listBoxOnKeyDown(
 				rowH, listH, w)
 		}
 		w.UpdateWindow()
+		return
 	}
+	// Already at the first or last row. Movement itself is silent by
+	// decision — a held arrow key would machine-gun the cue — so the
+	// refusal is the only thing worth hearing (issue #468).
+	playSoundCue(cues.reject, w)
 }
 
 func applyListBoxDefaults(cfg *ListBoxCfg) {

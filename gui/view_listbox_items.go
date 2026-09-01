@@ -242,6 +242,11 @@ func listBoxReorderItemView(
 	// The cue marks the selection the click makes, not the drag it
 	// also starts: a drag has no activation moment to sound at, and
 	// dragging is phase 3's question (issue #467).
+	// The drop cue is resolved unconditionally: a reorder is a change
+	// whether or not the list also reports selection (issue #468).
+	dropCue := resolveSoundCue(
+		guiTheme.Sounds.Selection, cfg.Sound, cfg.SoundDisabled)
+
 	rowSound := SoundNone
 	if hasOnSelect {
 		rowSound = resolveSoundCue(
@@ -267,6 +272,7 @@ func listBoxReorderItemView(
 		OnClick: func(ctx EventCtx) {
 			dragReorderStart(dragReorderStartCfg{
 				DragKey:       listBoxID,
+				DropCue:       dropCue,
 				Index:         dragIdx,
 				ItemID:        datID,
 				Axis:          dragReorderVertical,

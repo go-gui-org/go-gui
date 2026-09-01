@@ -253,7 +253,8 @@ func TestDragReorderKeyboardMoveRequiresAlt(t *testing.T) {
 	handled := dragReorderKeyboardMove(
 		KeyDown, ModNone, dragReorderVertical, 1,
 		[]string{"a", "b", "c"},
-		func(string, string, EventCtx) { called = true }, w)
+		func(string, string, EventCtx) { called = true },
+		SoundNone, w)
 	if handled || called {
 		t.Error("should not handle without Alt modifier")
 	}
@@ -271,7 +272,7 @@ func TestDragReorderKeyboardMovePayloadAndBoundary(t *testing.T) {
 			called = true
 			moved = m
 			before = b
-		}, w)
+		}, SoundNone, w)
 	if !handled || !called {
 		t.Error("Alt+Right should be handled")
 	}
@@ -284,7 +285,8 @@ func TestDragReorderKeyboardMovePayloadAndBoundary(t *testing.T) {
 	handled = dragReorderKeyboardMove(
 		KeyLeft, ModAlt, dragReorderHorizontal, 0,
 		[]string{"a", "b", "c"},
-		func(string, string, EventCtx) { boundaryCalled = true }, w)
+		func(string, string, EventCtx) { boundaryCalled = true },
+		SoundNone, w)
 	if handled || boundaryCalled {
 		t.Error("Alt+Left at 0 should be a no-op")
 	}
@@ -390,7 +392,8 @@ func TestDragReorderCancelsOnMidDragMutation(t *testing.T) {
 	// Simulate list mutation before mouse-up.
 	dragReorderIDsMetaSet(w, dragKey, []string{"a", "c"})
 	dragReorderOnMouseUp(dragKey, []string{"a", "c"},
-		func(string, string, EventCtx) { called = true }, w)
+		func(string, string, EventCtx) { called = true },
+		w)
 	if called {
 		t.Error("callback should not fire on mutation")
 	}

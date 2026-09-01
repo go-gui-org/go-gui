@@ -49,6 +49,11 @@ func inputTextChange(hcfg inputHandlerCfg, layout *Layout, text, ins string, id 
 		text = inputInsert(text, ins, id, w)
 		return text, true
 	}
+	// The one line both refusals reach: a mask with no slot for this
+	// character, or a PreTextChange validator that vetoed it. Nothing
+	// changed and nothing consumed the event in a way dispatch could
+	// sound, so the cue is raised here (issue #468).
+	playSoundCue(hcfg.cues.reject, w)
 	return text, false
 }
 
@@ -196,10 +201,10 @@ func makeInputOnKeyDown(hcfg inputHandlerCfg) func(EventCtx) {
 				text, id, ctx.Event, ctx.Window)
 		case KeyBackspace:
 			text, textChanged = inputKeyBackspaceOrDelete(
-				text, id, false, mask, ctx.Layout, ctx.Window)
+				text, id, false, mask, ctx.Layout, ctx.Window, hcfg.cues.reject)
 		case KeyDelete:
 			text, textChanged = inputKeyBackspaceOrDelete(
-				text, id, true, mask, ctx.Layout, ctx.Window)
+				text, id, true, mask, ctx.Layout, ctx.Window, hcfg.cues.reject)
 		default:
 			handled = false
 		}
@@ -294,14 +299,24 @@ func inputKeyUndoRedo(
 	return text, false, true
 }
 
+// inputKeyBackspaceOrDelete removes a grapheme, or refuses to.
+//
+// rejectCue sounds only for a masked field: the delete landed on a mask
+// literal, which is a refusal the user should hear. An unmasked field
+// that cannot delete is at the start or end of its text — an edge, not
+// a rejection — and stays silent (issue #468).
 func inputKeyBackspaceOrDelete(
 	text string, id string, forward bool,
 	mask *CompiledInputMask, layout *Layout, w *Window,
+	rejectCue SoundCue,
 ) (string, bool) {
 	if newText, ok := inputHandleDelete(
 		text, id, forward, mask, layout, w,
 	); ok {
 		return newText, true
+	}
+	if mask != nil {
+		playSoundCue(rejectCue, w)
 	}
 	return text, false
 }

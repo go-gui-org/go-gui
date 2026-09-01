@@ -128,6 +128,31 @@ func resolveSoundCue(themeCue, cfgCue SoundCue, disabled bool) SoundCue {
 	return ResolveSoundCue(themeCue, cfgCue, disabled)
 }
 
+// soundCues is the resolved pair a path outside event dispatch needs:
+// the cue for a change that lands, and the cue for one that is refused
+// — an arrow key already at the bound, a keystroke a mask rejects.
+//
+// Resolved at generation time and passed by value, so a handler closure
+// captures a plain SoundCue rather than a *Layout the arena pools
+// (issue #468).
+type soundCues struct {
+	act    SoundCue
+	reject SoundCue
+}
+
+// resolveSoundCues resolves that pair from a widget Cfg.
+//
+// Only act takes the Cfg override: Cfg.Sound names the widget's
+// activation sound, not its refusal, so the reject cue stays the
+// theme's Error role. SoundDisabled suppresses both — a widget opted
+// out of sound must not still beep.
+func resolveSoundCues(themeAct, cfgAct SoundCue, disabled bool) soundCues {
+	return soundCues{
+		act:    resolveSoundCue(themeAct, cfgAct, disabled),
+		reject: resolveSoundCue(guiTheme.Sounds.Error, SoundNone, disabled),
+	}
+}
+
 // SetSoundPlayer installs the window's sound player. Nil disables
 // widget sound without changing any theme or Cfg.
 func (w *Window) SetSoundPlayer(p SoundPlayer) {
@@ -191,8 +216,20 @@ func playShapeSound(l *Layout, w *Window) {
 	if l.Shape.Disabled {
 		return
 	}
-	cue := l.Shape.events.soundCue
-	if cue == SoundNone {
+	playSoundCue(l.Shape.events.soundCue, w)
+}
+
+// playSoundCue emits an already-resolved cue on the paths dispatch never
+// sees — table keyboard activation, an Input reject, a drag drop — where
+// there is no Shape to read the cue off (issue #468).
+//
+// Every guard playShapeSound relies on past the shape lives here, so a
+// new call site inherits the nil-player, zero-Theme.Sounds and muted
+// cases for free. It takes no lock: SoundVolume does not go through
+// lockForAPI, so a cue may be emitted inline even under the frame lock,
+// and no site needs deferCallback.
+func playSoundCue(cue SoundCue, w *Window) {
+	if cue == SoundNone || w == nil {
 		return
 	}
 	p := w.soundPlayer

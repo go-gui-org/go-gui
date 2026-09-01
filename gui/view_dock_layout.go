@@ -409,7 +409,8 @@ func dockTabButton(
 		SoundDisabled: tabSound == SoundNone,
 		OnClick: func(ctx EventCtx) {
 			dockDragStart(dockID, panelID, groupID, root,
-				onLayoutChange, ctx.Layout, ctx.Event, ctx.Window)
+				onLayoutChange, tabSound,
+				ctx.Layout, ctx.Event, ctx.Window)
 			if onPanelSelect != nil {
 				onPanelSelect(groupID, panelID, ctx)
 			}

@@ -174,8 +174,21 @@ type SplitterCfg struct {
 	Orientation         splitterOrientation
 	Collapsed           SplitterCollapsed
 	ShowCollapseButtons bool
-	Disabled            bool
-	Invisible           bool
+
+	// Sound overrides the theme's toggle cues for the collapse
+	// toggle — Theme.Sounds.ToggleOn when a pane collapses,
+	// ToggleOff when it expands again. Dragging the handle is never
+	// a cue: it is continuous, not an activation (issue #468).
+	// exportaudit:keep — caller-facing config (issue #468)
+	Sound SoundCue
+
+	// SoundDisabled suppresses the splitter's sound regardless of
+	// the theme and of Sound above.
+	// exportaudit:keep — caller-facing config (issue #468)
+	SoundDisabled bool
+
+	Disabled  bool
+	Invisible bool
 }
 
 // splitterCore holds callback-relevant fields.
@@ -199,6 +212,11 @@ type splitterCore struct {
 	colorHandle       Color
 	colorHandleHover  Color
 	colorHandleActive Color
+	// Collapse cues, resolved at generation time. The handle's key
+	// path reaches onChange directly, so dispatch never sees the
+	// toggle (issue #468).
+	soundCollapse SoundCue
+	soundExpand   SoundCue
 }
 
 type splitterComputed struct {
@@ -237,6 +255,10 @@ func newSplitterCore(cfg *SplitterCfg) *splitterCore {
 		colorHandle:       cfg.ColorHandle,
 		colorHandleHover:  cfg.ColorHandleHover,
 		colorHandleActive: cfg.ColorHandleActive,
+		soundCollapse: resolveSoundCue(
+			guiTheme.Sounds.ToggleOn, cfg.Sound, cfg.SoundDisabled),
+		soundExpand: resolveSoundCue(
+			guiTheme.Sounds.ToggleOff, cfg.Sound, cfg.SoundDisabled),
 	}
 }
 
