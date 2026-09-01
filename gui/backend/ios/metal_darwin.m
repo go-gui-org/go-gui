@@ -624,6 +624,16 @@ void metalSetTM(const float* m) {
     [_enc setVertexBytes:m length:64 atIndex:2];
 }
 
+// metalSetGradientTM2 hands the gradient fragment shader stops 4-7.
+// The fragment stage has its own buffer index space, and the gradient
+// pipeline binds nothing else there, so index 0 is free. Bound to the
+// fragment stage rather than passed down as varyings because the
+// values are constant across the quad.
+void metalSetGradientTM2(const float* m) {
+    if (!_enc) return;
+    [_enc setFragmentBytes:m length:64 atIndex:0];
+}
+
 void metalSetScissor(int x, int y, int w, int h, int viewH) {
     if (!_enc) return;
     // Clamp to viewport.

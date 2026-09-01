@@ -266,6 +266,30 @@ jobs:
             CGO_LDFLAGS="-isysroot $SDK -arch arm64 -miphoneos-version-min=15.0" \
             go build -buildmode=c-archive -tags ios -o /dev/null .
 
+      - name: Build c-archive (simulator)
+        working-directory: examples/ios_demo
+        run: |
+          SDK=$(xcrun --sdk iphonesimulator --show-sdk-path)
+          CC=$(xcrun --sdk iphonesimulator --find clang)
+          CGO_ENABLED=1 GOOS=ios GOARCH=arm64 \
+            CC="$CC" \
+            CGO_CFLAGS="-isysroot $SDK -arch arm64 -mios-simulator-version-min=17.0" \
+            CGO_LDFLAGS="-isysroot $SDK -arch arm64 -mios-simulator-version-min=17.0" \
+            go build -buildmode=c-archive -tags ios -o ios/libgoguiapp.a .
+
+      - name: Build simulator .app (link check)
+        working-directory: examples/ios_demo
+        run: |
+          xcodebuild -project ios/IOSDemo.xcodeproj \
+            -scheme IOSDemo \
+            -sdk iphonesimulator \
+            -arch arm64 \
+            -derivedDataPath /tmp/ios-build \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
       - name: Vet backend
         run: |
           SDK=$(xcrun --sdk iphoneos --show-sdk-path)
