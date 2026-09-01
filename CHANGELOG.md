@@ -8,6 +8,15 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [v0.66.0] - 2026-09-01
+
+Widget audio feedback covers every mechanical widget and every remaining
+interaction — keyboard activation, drag-drop and input rejection — with a native
+system-sound player that needs no assets; the canvas gains a transform stack,
+windows gain frameless mode, the solar-system example gains a calendar ring,
+asteroid belt and rotation axes, and audio resampling and music playback are
+fixed alongside an allocation-free DrawCanvas redraw.
+
 ### Added
 
 - **Widget audio feedback phase 4** (#469) — the interactions with no click site
