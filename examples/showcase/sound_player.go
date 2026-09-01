@@ -71,6 +71,12 @@ func (p cueSoundPlayer) PlaySound(cue gui.SoundCue, gain float32) {
 	case gui.SoundError:
 		freq = 220
 		env = errorEnv
+	case gui.SoundNotify:
+		freq = 880 * 5 / 6 // a whole tone below A5: soft, unasked for
+	case gui.SoundOpen:
+		freq = 880 / 2 // an octave down: something larger arrived
+	case gui.SoundSuccess:
+		freq = 880 * 2 // an octave up: the brightest cue in the set
 	default:
 		// An unrecognised cue is ignored, not an error: gui adds cues
 		// over time and a player must not break when it does.
@@ -93,15 +99,29 @@ func (p cueSoundPlayer) SoundAvailable() bool { return true }
 
 // doc:snippet-end player
 
+// soundPlayerKind picks which of the three players the showcase
+// installs. All three render the same cues; they differ in what a cue
+// sounds like and in what they cost to ship.
+type soundPlayerKind uint8
+
+const (
+	// soundPlayerSynth is the synthesized player above: every cue is a
+	// blip, no assets, gain honoured.
+	soundPlayerSynth soundPlayerKind = iota
+	// soundPlayerBeep is the zero-dependency path from the guide: the
+	// system alert on SoundError and silence otherwise, with no audio
+	// library. What an app wants when it only needs to signal a
+	// rejection.
+	soundPlayerBeep
+	// soundPlayerSystem is the platform's own event sounds: a cue for
+	// every role, no assets, no audio library, gain ignored.
+	soundPlayerSystem
+)
+
 // installWidgetSounds turns widget sound on for the window: a theme
 // that names a cue per role, and a player that renders them. Both are
 // required — either alone is silent.
-//
-// beepOnly picks the zero-dependency path from the guide: the system
-// alert on SoundError and silence otherwise, with no audio library and
-// no assets. It is what an app wants when it only needs to signal a
-// rejection.
-func installWidgetSounds(w *gui.Window, beepOnly bool) {
+func installWidgetSounds(w *gui.Window, kind soundPlayerKind) {
 	// Rebuild through ThemeMaker rather than mutating the theme in
 	// place: a Theme carries an id, and installTheme skips a theme
 	// whose id is already installed, so a mutated copy can silently
@@ -111,8 +131,11 @@ func installWidgetSounds(w *gui.Window, beepOnly bool) {
 	w.SetTheme(gui.ThemeMaker(cfg))
 
 	var p gui.SoundPlayer = cueSoundPlayer{w: w}
-	if beepOnly {
+	switch kind {
+	case soundPlayerBeep:
 		p = gui.NewBeepSoundPlayer(w)
+	case soundPlayerSystem:
+		p = gui.NewSystemSoundPlayer(w)
 	}
 	w.SetSoundPlayer(p)
 }

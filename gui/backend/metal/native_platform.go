@@ -175,3 +175,10 @@ func (n *nativePlatform) RemoveSystemTray(id int) {
 func (n *nativePlatform) Beep() { nativehost.Beep() }
 
 func (n *nativePlatform) BeepAvailable() bool { return nativehost.BeepAvailable() }
+
+// PlaySystemSound and SystemSoundAvailable satisfy gui's optional
+// system-sound capability, which gui.NewSystemSoundPlayer type-asserts
+// for (issue #469).
+func (n *nativePlatform) PlaySystemSound(cue gui.SoundCue) { nativehost.PlaySystemSound(cue) }
+
+func (n *nativePlatform) SystemSoundAvailable() bool { return nativehost.SystemSoundAvailable() }

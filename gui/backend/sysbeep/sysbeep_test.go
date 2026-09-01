@@ -21,3 +21,26 @@ func TestAvailableMatchesPlatform(t *testing.T) {
 		t.Errorf("Available not stable: %v then %v", first, second)
 	}
 }
+
+// PlayEvent must be silent, never a panic, for every event — including
+// on targets with no event sounds at all — and for a value outside the
+// enum, which is what an older backend paired with a newer gui would
+// pass (issue #469).
+func TestPlayEventDoesNotPanic(t *testing.T) {
+	for e := range int(eventCount) {
+		PlayEvent(Event(e))
+	}
+	PlayEvent(eventCount)
+	PlayEvent(Event(200))
+}
+
+// EventAvailable is a property of the platform, so it must not change
+// between calls; a caller uses it to decide on a visual fallback once.
+func TestEventAvailableStable(t *testing.T) {
+	first := EventAvailable()
+	for range 3 {
+		if EventAvailable() != first {
+			t.Fatal("EventAvailable changed between calls")
+		}
+	}
+}

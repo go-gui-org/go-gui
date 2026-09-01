@@ -212,7 +212,7 @@ func widgetSoundPanel(t gui.Theme, app *ShowcaseApp) gui.View {
 					a := appState(ctx.Window)
 					a.WidgetSoundOn = !a.WidgetSoundOn
 					if a.WidgetSoundOn {
-						installWidgetSounds(ctx.Window, a.WidgetSoundBeep)
+						installWidgetSounds(ctx.Window, a.WidgetSoundPlayer)
 						ctx.Window.SetSoundVolume(a.WidgetSoundVolume)
 					} else {
 						removeWidgetSounds(ctx.Window)
@@ -220,17 +220,22 @@ func widgetSoundPanel(t gui.Theme, app *ShowcaseApp) gui.View {
 					ctx.Consume()
 				},
 			}),
-			// The zero-dependency player: system alert on SoundError,
-			// silence otherwise, no audio library and no assets.
-			gui.Switch(gui.SwitchCfg{
-				ID:       "widget-sound-beep",
-				Label:    "System alert only (no audio library)",
-				Selected: app.WidgetSoundBeep,
-				OnClick: func(ctx gui.EventCtx) {
+			// Which player renders the cues. The synthesized one needs
+			// gui/audio; the other two need neither assets nor an
+			// audio library.
+			gui.Select(gui.SelectCfg{
+				ID:       "widget-sound-player",
+				Label:    "Player",
+				Options:  soundPlayerLabels,
+				Selected: []string{soundPlayerValue(app.WidgetSoundPlayer)},
+				OnSelect: func(selected []string, ctx gui.EventCtx) {
+					if len(selected) == 0 {
+						return
+					}
 					a := appState(ctx.Window)
-					a.WidgetSoundBeep = !a.WidgetSoundBeep
+					a.WidgetSoundPlayer = soundPlayerKindFor(selected[0])
 					if a.WidgetSoundOn {
-						installWidgetSounds(ctx.Window, a.WidgetSoundBeep)
+						installWidgetSounds(ctx.Window, a.WidgetSoundPlayer)
 					}
 					ctx.Consume()
 				},
@@ -312,8 +317,92 @@ func widgetSoundPanel(t gui.Theme, app *ShowcaseApp) gui.View {
 					}),
 				},
 			}),
+			widgetSoundNonClickRow(),
 		},
 	})
+}
+
+// widgetSoundNonClickRow demonstrates the cues that no click produces:
+// a toast appearing and a dialog opening (issue #469). Both are
+// imperative APIs, so each button just calls one and the cue rides the
+// call, not the click.
+func widgetSoundNonClickRow() gui.View {
+	return gui.Row(gui.ContainerCfg{
+		Sizing:  gui.FillFit,
+		Spacing: gui.SomeF(12),
+		Padding: gui.NoPadding,
+		VAlign:  gui.VAlignMiddle,
+		Content: []gui.View{
+			gui.Button(gui.ButtonCfg{
+				ID:      "widget-sound-toast",
+				Label:   "Toast",
+				Padding: gui.NewPadding(8, 16, 8, 16),
+				OnClick: func(ctx gui.EventCtx) {
+					ctx.Window.Toast(gui.ToastCfg{
+						Title: "Notify",
+						Body:  "An info toast takes the Notify cue.",
+					})
+					ctx.Consume()
+				},
+			}),
+			gui.Button(gui.ButtonCfg{
+				ID:      "widget-sound-toast-error",
+				Label:   "Error toast",
+				Padding: gui.NewPadding(8, 16, 8, 16),
+				OnClick: func(ctx gui.EventCtx) {
+					ctx.Window.Toast(gui.ToastCfg{
+						Title:    "Error",
+						Body:     "An error toast takes the Error cue.",
+						Severity: gui.ToastError,
+					})
+					ctx.Consume()
+				},
+			}),
+			gui.Button(gui.ButtonCfg{
+				ID:      "widget-sound-dialog",
+				Label:   "Dialog",
+				Padding: gui.NewPadding(8, 16, 8, 16),
+				OnClick: func(ctx gui.EventCtx) {
+					ctx.Window.Dialog(gui.DialogCfg{
+						Title: "Open",
+						Body:  "Opening a dialog takes the Open cue.",
+					})
+					ctx.Consume()
+				},
+			}),
+		},
+	})
+}
+
+// soundPlayerLabels are the Select's options, and soundPlayerValue /
+// soundPlayerKindFor map them onto the player kind so the app state
+// stays typed rather than holding a string.
+var soundPlayerLabels = []string{
+	"Synthesized (gui/audio)",
+	"System event sounds",
+	"System alert on errors only",
+}
+
+func soundPlayerValue(kind soundPlayerKind) string {
+	switch kind {
+	case soundPlayerBeep:
+		return soundPlayerLabels[2]
+	case soundPlayerSystem:
+		return soundPlayerLabels[1]
+	default:
+		return soundPlayerLabels[0]
+	}
+}
+
+func soundPlayerKindFor(label string) soundPlayerKind {
+	switch label {
+	case soundPlayerLabels[2]:
+		return soundPlayerBeep
+	case soundPlayerLabels[1]:
+		return soundPlayerSystem
+	default:
+		return soundPlayerSynth
+	}
 }
 
 // ---------------------------------------------------------------------------

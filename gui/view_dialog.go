@@ -77,8 +77,8 @@ type DialogCfg struct {
 	// exportaudit:keep — caller-facing config (issue #467)
 	Sound SoundCue
 
-	// SoundDisabled suppresses every dialog button's sound regardless
-	// of the theme and of Sound above.
+	// SoundDisabled suppresses this dialog's sounds — every button and
+	// the open cue — regardless of the theme and of Sound above.
 	// exportaudit:keep — caller-facing config (issue #467)
 	SoundDisabled bool
 
@@ -345,6 +345,13 @@ func (w *Window) Dialog(cfg DialogCfg) {
 	cfg.visible = true
 	cfg.oldFocusID = w.viewState.focusID
 	w.dialogCfg = cfg
+	// The open cue, not cfg.Sound: Sound names the buttons' activation
+	// sound. w.Theme() rather than guiTheme — Dialog runs outside
+	// generation (issue #469). DialogDismiss stays silent: the button
+	// that closed the dialog has already sounded.
+	if !cfg.SoundDisabled {
+		playSoundCue(w.Theme().Sounds.Open, w)
+	}
 	// The dialog overlay is built during a full layout pass, so the flag has
 	// to be set explicitly: a caller outside the event path (a native menu
 	// action, a QueueCommand from a worker) leaves the window otherwise idle,

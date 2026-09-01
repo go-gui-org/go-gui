@@ -129,7 +129,7 @@ func TestShowcaseWidgetSoundWiring(t *testing.T) {
 	w := gui.NewTestWindow(gui.WindowCfg{State: app})
 	w.UpdateView(mainView)
 
-	installWidgetSounds(w, false)
+	installWidgetSounds(w, soundPlayerSynth)
 	spy := &soundWiringSpy{}
 	w.SetSoundPlayer(spy)
 	w.SetSoundVolume(0.5)
@@ -151,6 +151,23 @@ func TestShowcaseWidgetSoundWiring(t *testing.T) {
 	}
 	if len(spy.cues) != 0 {
 		t.Fatalf("SoundDisabled button emitted %v", spy.cues)
+	}
+}
+
+// The player Select maps labels onto player kinds and back; a slipped
+// mapping installs a different player than the one the user picked.
+func TestSoundPlayerKindRoundTrip(t *testing.T) {
+	for _, kind := range []soundPlayerKind{
+		soundPlayerSynth, soundPlayerSystem, soundPlayerBeep,
+	} {
+		label := soundPlayerValue(kind)
+		if got := soundPlayerKindFor(label); got != kind {
+			t.Errorf("round trip %v → %q → %v", kind, label, got)
+		}
+	}
+	// An unrecognised label falls back to the synthesized player.
+	if got := soundPlayerKindFor("nonsense"); got != soundPlayerSynth {
+		t.Errorf("unknown label → %v, want soundPlayerSynth", got)
 	}
 }
 

@@ -19,6 +19,9 @@ This page is mirrored in the repo at `docs/widget-sound.md`.
 | `gui.SoundToggleOff` | A state went on → off                         |
 | `gui.SoundError`     | Rejection: invalid input, refused commit      |
 | `gui.SoundSelection` | One option picked out of several              |
+| `gui.SoundNotify`    | Something appeared unasked: a toast           |
+| `gui.SoundOpen`      | A modal surface opened: a dialog              |
+| `gui.SoundSuccess`   | A multi-field action was accepted: a submit   |
 
 The framework decides _which_ cue an interaction is. Your player decides what a
 cue sounds like. That split is why `gui` never imports `gui/audio`, and why an
@@ -122,6 +125,12 @@ func (p cueSoundPlayer) PlaySound(cue gui.SoundCue, gain float32) {
 	case gui.SoundError:
 		freq = 220
 		env = errorEnv
+	case gui.SoundNotify:
+		freq = 880 * 5 / 6 // a whole tone below A5: soft, unasked for
+	case gui.SoundOpen:
+		freq = 880 / 2 // an octave down: something larger arrived
+	case gui.SoundSuccess:
+		freq = 880 * 2 // an octave up: the brightest cue in the set
 	default:
 		// An unrecognised cue is ignored, not an error: gui adds cues
 		// over time and a player must not break when it does.
@@ -216,6 +225,44 @@ Embed the WAVs with `//go:embed` and pass the bytes — `audio.LoadSoundBytes`
 avoids the temp-file dance a path-based load needs. The repo ships no sound
 assets of its own, so the showcase uses the synthesized player above.
 
+## System event sounds, with no assets
+
+`NewSystemSoundPlayer` plays the sounds the platform already ships and the user
+has already configured, so an app sounds native without shipping a single file:
+
+```go
+w.SetSoundPlayer(gui.NewSystemSoundPlayer(w))
+```
+
+It has a sound for every cue, unlike `NewBeepSoundPlayer`, which only covers
+`SoundError`. The mapping:
+
+| Cue         | macOS `NSSound` | Windows alias          | Linux (freedesktop)  |
+| ----------- | --------------- | ---------------------- | -------------------- |
+| `Click`     | `Tink`          | `MenuCommand`          | `button-pressed`     |
+| `ToggleOn`  | `Pop`           | `MenuCommand`          | `button-pressed`     |
+| `ToggleOff` | `Bottle`        | `MenuCommand`          | `button-released`    |
+| `Selection` | `Ping`          | `MenuPopup`            | `button-pressed`     |
+| `Error`     | `Basso`         | `SystemHand`           | `dialog-error`       |
+| `Notify`    | `Purr`          | `Notification.Default` | `message`            |
+| `Open`      | `Blow`          | `SystemAsterisk`       | `dialog-information` |
+| `Success`   | `Glass`         | `.Default`             | `complete`           |
+
+Three things to know before you pick it:
+
+- **It ignores gain.** System event sounds follow the user's own event-sound
+  settings and expose no app-level volume on any of the three platforms, so
+  honouring `SetSoundVolume` on one of them would make the same app behave
+  differently per platform. `SetSoundVolume(0)` still mutes: the gate sits ahead
+  of the player.
+- **A sound the user's scheme leaves unset is silence, not a fallback beep.**
+  That is deliberate on all three platforms.
+- **On Linux it spawns `canberra-gtk-play` per cue.** Fine for a dialog or a
+  toast, wrong for a click-heavy UI — that app wants the sampled player above.
+
+`SoundAvailable()` is false on mobile and wasm, and on Linux with no
+`canberra-gtk-play`.
+
 ## Per-widget control
 
 Two fields on the widget's `Cfg`:
@@ -300,8 +347,29 @@ disabled, a `ListBox` subheading, and a menu separator.
 
 Text is not covered: `gui.Text` shares one package-level handler record across
 every text shape, so it cannot carry a per-instance cue without giving up that
-zero-allocation sharing. Hover, focus and notification cues are still to come
-(#469).
+zero-allocation sharing. Hover and focus cues are still to come.
+
+## Cues with no click
+
+Four interactions sound without a widget being clicked:
+
+| Interaction                                    | Cue       |
+| ---------------------------------------------- | --------- |
+| A toast appears (info, success, warning)       | `Notify`  |
+| A toast appears with `ToastError` severity     | `Error`   |
+| `(*Window).Dialog` opens a dialog              | `Open`    |
+| `Form` submit accepted                         | `Success` |
+| `Form` submit blocked by validation or pending | `Error`   |
+| `datagrid` CRUD save failure                   | `Error`   |
+
+Toast severity is the one place severity picks a cue. `ToastCfg.Sound` still
+names the toast's buttons, not its appearance; `ToastCfg.SoundDisabled` silences
+both. The same split holds for `DialogCfg` and for `FormCfg`, where `Sound`
+names the accepted submit and a refusal always takes `Theme.Sounds.Error`.
+
+Closing is silent: `DialogDismiss` and `ToastDismiss` make no sound, because the
+button that closed the surface has already sounded. A native dialog is silent
+too — the OS plays its own.
 
 ## Platform reality
 

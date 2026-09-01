@@ -204,6 +204,20 @@ type FormCfg struct {
 	AllowPendingSubmit bool
 	Disabled           bool
 	Invisible          bool
+
+	// Sound overrides the theme's success cue for a submit this form
+	// accepts. SoundNone (the zero value) takes Theme.Sounds.Success,
+	// which is itself silent unless the app opted in. A submit blocked
+	// by validation or by a pending validator always takes the theme's
+	// Error role: Sound names the acceptance, not the refusal
+	// (issue #469).
+	// exportaudit:keep — caller-facing config (issue #469)
+	Sound SoundCue
+
+	// SoundDisabled suppresses both submit cues regardless of the
+	// theme and of Sound above.
+	// exportaudit:keep — caller-facing config (issue #469)
+	SoundDisabled bool
 }
 
 // ---------- formView ----------
@@ -231,6 +245,10 @@ func (fv *formView) GenerateLayout(w *Window) Layout {
 	formID := cfg.ID
 	onSubmit := cfg.OnSubmit
 	onReset := cfg.OnReset
+	// Resolved here, at generation time, so the AmendLayout closure
+	// below captures two SoundCue values rather than anything the
+	// layout arena pools (issue #468's rule, issue #469's site).
+	cues := resolveSoundCues(guiTheme.Sounds.Success, cfg.Sound, cfg.SoundDisabled)
 	formApplyCfg(w, formID, cfg)
 
 	summary := w.FormSummary(formID)
@@ -274,7 +292,7 @@ func (fv *formView) GenerateLayout(w *Window) Layout {
 		Invisible:   cfg.Invisible,
 		AmendLayout: func(ctx EventCtx) {
 			formCleanupStale(ctx.Window, formID)
-			formProcessRequests(ctx.Window, formID, onSubmit, onReset)
+			formProcessRequests(ctx.Window, formID, onSubmit, onReset, cues)
 		},
 	})
 

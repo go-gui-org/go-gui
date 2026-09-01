@@ -39,6 +39,17 @@ const (
 	// these" reading. Appended, not inserted: the enum is open and
 	// values are only ever added at the end (issue #467).
 	SoundSelection
+	// SoundNotify marks something that appeared without being asked
+	// for — a toast. Not a rejection: an error-severity toast takes
+	// SoundError instead.
+	SoundNotify
+	// SoundOpen marks a modal surface opening — a dialog. Distinct
+	// from SoundClick, which is the button that opened it.
+	SoundOpen
+	// SoundSuccess marks a multi-field action the framework accepted —
+	// a form submit that passed validation. Its refusal is SoundError.
+	// Appended, not inserted (issue #469).
+	SoundSuccess
 )
 
 // SoundPlayer renders semantic UI cues as audible feedback. The
@@ -53,6 +64,12 @@ type SoundPlayer interface {
 	// window). Called on the event-dispatch goroutine, so it must be
 	// fire-and-forget: no blocking, no allocation on an audio thread.
 	// An unrecognised cue must be ignored, not reported as an error.
+	//
+	// Some cues are emitted from a path that already holds the frame
+	// lock — a form submit runs from AmendLayout — so an implementation
+	// must not call a window-mutating API (SetFocus, UpdateView,
+	// Window.Lock): those take w.mu, which is not reentrant, and panic
+	// naming themselves.
 	PlaySound(cue SoundCue, gain float32)
 	// SoundAvailable reports whether PlaySound can actually produce
 	// sound on this platform. Callers that need the user to notice an
@@ -85,6 +102,16 @@ type SoundSet struct {
 	// Selection is the cue for picking one option out of several.
 	// exportaudit:keep — caller-facing config (issue #467)
 	Selection SoundCue
+	// Notify is the cue for something appearing unasked — a toast.
+	// exportaudit:keep — caller-facing config (issue #469)
+	Notify SoundCue
+	// Open is the cue for a modal surface opening — a dialog.
+	// exportaudit:keep — caller-facing config (issue #469)
+	Open SoundCue
+	// Success is the cue for a multi-field action being accepted — a
+	// form submit that passed validation.
+	// exportaudit:keep — caller-facing config (issue #469)
+	Success SoundCue
 }
 
 // SoundsDefault returns the natural cue for every role — the one-liner
@@ -96,6 +123,9 @@ func SoundsDefault() SoundSet {
 		ToggleOff: SoundToggleOff,
 		Error:     SoundError,
 		Selection: SoundSelection,
+		Notify:    SoundNotify,
+		Open:      SoundOpen,
+		Success:   SoundSuccess,
 	}
 }
 
@@ -241,6 +271,23 @@ func playSoundCue(cue SoundCue, w *Window) {
 		return
 	}
 	p.PlaySound(cue, gain)
+}
+
+// PlaySoundCue emits an already-resolved cue from a path that has no
+// Shape to read one off. Same guarantees as every other seam: a
+// SoundNone cue, no installed player or a muted window are silent, and
+// it takes no lock, so it is safe from a callback running under the
+// frame lock.
+//
+// Exported for widget packages outside gui/ — gui/datagrid is the one
+// in-repo case, whose CRUD failure has no button to hang a cue off.
+// Resolve the cue with ResolveSoundCue first; this method does not
+// apply the precedence.
+//
+// exportaudit:keep — the emit seam for out-of-package widgets
+// (issue #469)
+func (w *Window) PlaySoundCue(cue SoundCue) {
+	playSoundCue(cue, w)
 }
 
 // beepSoundPlayer is the zero-dependency default: it maps SoundError

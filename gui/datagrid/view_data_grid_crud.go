@@ -151,6 +151,7 @@ func dataGridCrudToolbarRow(cfg *DataGridCfg, state dataGridCrudState, caps Grid
 	dataSource := cfg.DataSource
 	query := cfg.Query
 	onCRUDError := cfg.OnCRUDError
+	errCue := cfg.sounds.err
 	onRowsChange := cfg.OnRowsChange
 	onPageChange := cfg.OnPageChange
 	pageSize := cfg.PageSize
@@ -211,6 +212,7 @@ func dataGridCrudToolbarRow(cfg *DataGridCfg, state dataGridCrudState, caps Grid
 						hasSource:         hasSource,
 						caps:              caps,
 						focusID:           focusID,
+						errCue:            errCue,
 					}, ctx.Event, ctx.Window)
 				}),
 			dataGridIndicatorButton(gg.ScopeID(gridID, "crud_cancel"), gg.ActiveLocale.StrCancel, cfg.TextStyleFilter, cfg.ColorHeaderHover,

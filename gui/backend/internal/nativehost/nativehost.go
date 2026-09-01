@@ -250,3 +250,34 @@ func Beep() { sysbeep.Play() }
 
 // BeepAvailable reports whether Beep is audible on this platform.
 func BeepAvailable() bool { return sysbeep.Available() }
+
+// soundEvents maps gui.SoundCue onto sysbeep.Event. Not a switch on
+// the cue value with a default: gui adds cues over time, and a cue this
+// table does not name is silent rather than wrong. The two enums are
+// deliberately separate — sysbeep knows nothing about widgets, and gui
+// knows nothing about system sounds (issue #469).
+var soundEvents = map[gui.SoundCue]sysbeep.Event{
+	gui.SoundClick:     sysbeep.EventClick,
+	gui.SoundToggleOn:  sysbeep.EventToggleOn,
+	gui.SoundToggleOff: sysbeep.EventToggleOff,
+	gui.SoundSelection: sysbeep.EventSelection,
+	gui.SoundError:     sysbeep.EventError,
+	gui.SoundNotify:    sysbeep.EventNotify,
+	gui.SoundOpen:      sysbeep.EventOpen,
+	gui.SoundSuccess:   sysbeep.EventSuccess,
+}
+
+// PlaySystemSound plays the platform's system sound for cue. An
+// unmapped cue is silent, not an error. Thin forwarder to sysbeep,
+// like Beep above.
+func PlaySystemSound(cue gui.SoundCue) {
+	event, ok := soundEvents[cue]
+	if !ok {
+		return
+	}
+	sysbeep.PlayEvent(event)
+}
+
+// SystemSoundAvailable reports whether PlaySystemSound is audible on
+// this platform.
+func SystemSoundAvailable() bool { return sysbeep.EventAvailable() }

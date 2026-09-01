@@ -10,6 +10,39 @@ and this project adheres to
 
 ### Added
 
+- **Widget audio feedback phase 4** (#469) — the interactions with no click site
+  now sound, and a second built-in player renders every cue with the platform's
+  own event sounds.
+
+  Three cues joined the vocabulary: `SoundNotify` (a toast appeared),
+  `SoundOpen` (a dialog opened) and `SoundSuccess` (a submit was accepted), with
+  matching `Theme.Sounds` fields. Every refusal reuses `SoundError` — an
+  error-severity toast, a submit blocked by validation or a pending validator,
+  and a `datagrid` CRUD save failure. Toast severity is the one place a severity
+  picks a cue; `ToastCfg.Sound` still names the toast's buttons, and
+  `SoundDisabled` silences both. `FormCfg` gained the usual `Sound` /
+  `SoundDisabled` pair, where `Sound` names the accepted submit and a refusal
+  always takes the theme's error role. Closing stays silent: `DialogDismiss` and
+  `ToastDismiss` make no sound, because the button that closed the surface
+  already did.
+
+  `gui.NewSystemSoundPlayer(w)` is the new player: `NSSound` on macOS,
+  `PlaySound` with a registry alias on Windows, freedesktop sound-naming ids
+  through `canberra-gtk-play` on Linux. Unlike `NewBeepSoundPlayer`, which plays
+  the system alert and so only suits `SoundError`, it has a sound for every cue,
+  and it needs no assets and no audio library. It ignores gain — system event
+  sounds carry no app-level volume on any of the three platforms — while
+  `SetSoundVolume(0)` still mutes, because the gate sits ahead of the player.
+  The capability reaches the platform through an optional interface rather than
+  a new `NativePlatform` method, so no out-of-repo backend breaks, and a
+  platform without it is silent rather than broken.
+
+  `(*Window).PlaySoundCue` is exported for widget packages outside `gui/`:
+  `gui/datagrid` has no button to hang a CRUD failure's cue off. The enum stays
+  open and append-only — a player must keep ignoring cues it does not recognise.
+
+  See `docs/widget-sound.md` and `docs/specs/widget-audio-feedback.md`.
+
 - **Canvas transform stack** (#474) — `DrawContext` gained `Translate`,
   `ScaleBy`, `Save` and `Restore`, so drawing code written once in its own
   coordinate space can be placed and resized without transforming a single

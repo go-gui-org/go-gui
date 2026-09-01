@@ -806,7 +806,7 @@ func TestCrudRestoreOnError(t *testing.T) {
 		errMsg = msg
 	}
 	e := &gg.Event{}
-	dataGridCrudRestoreOnError("g1", "save", cb, e, w, snapshot, "save failed")
+	dataGridCrudRestoreOnError("g1", "save", cb, e, w, snapshot, "save failed", gg.SoundNone)
 	if errMsg != "save failed" {
 		t.Errorf("error callback: got %q, want 'save failed'", errMsg)
 	}
@@ -829,7 +829,7 @@ func TestCrudRestoreOnErrorNoPhase(t *testing.T) {
 	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
 	snapshot := []GridRow{{ID: "r1", Cells: map[string]string{}}}
-	dataGridCrudRestoreOnError("g1", "", nil, &gg.Event{}, w, snapshot, "generic error")
+	dataGridCrudRestoreOnError("g1", "", nil, &gg.Event{}, w, snapshot, "generic error", gg.SoundNone)
 	dgCrud := gg.StateMap[string, dataGridCrudState](w, nsDgCrud, 4)
 	state, _ := dgCrud.Get("g1")
 	if state.SaveError != "generic error" {
