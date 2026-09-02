@@ -1,4 +1,7 @@
-VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
+# No --dirty: CI runs `go mod edit -replace` before every build, so the
+# tree is always dirty at build time and every release binary would
+# report a -dirty version.
+VERSION ?= $(shell git describe --tags --always 2>/dev/null || echo "dev")
 COMMIT  ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 LDFLAGS  = -X github.com/go-gui-org/go-gui/gui.Version=$(VERSION) \
            -X github.com/go-gui-org/go-gui/gui.Commit=$(COMMIT)
@@ -14,14 +17,21 @@ LINT_ARGS ?=
 # Desktop builds are cgo-free since the purego GL bindings (#155): the
 # backend/gl uses X11/xgb + purego EGL on Linux and Win32 syscalls on
 # Windows. Only macOS (Metal) and the mobile backends need cgo.
+# GOOS/GOARCH are explicit: without them a macOS developer running
+# `make release` gets a Mach-O binary in the "linux" tarball.  The
+# purego backend cross-compiles cleanly, so this costs nothing on a
+# Linux host either.
 build-linux:
-	CGO_ENABLED=0 \
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
 	go build -ldflags "$(LDFLAGS)" \
 	  -o build/showcase-linux ./examples/showcase/
 
+# -H windowsgui marks the PE as a GUI-subsystem image.  Without it the
+# Windows loader allocates a console for the process, so every launch
+# shows an empty terminal window behind the app window.
 build-windows:
 	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 \
-	go build -ldflags "$(LDFLAGS)" \
+	go build -ldflags "$(LDFLAGS) -H windowsgui" \
 	  -o build/showcase-windows.exe ./examples/showcase/
 
 build-macos:
@@ -72,11 +82,21 @@ build-examples:
 		echo "All buildable examples compiled to examples/bin/."; \
 	fi
 
+# Packaging goes through cmd/buildapp on all three desktop targets, so
+# each archive carries what its platform needs to look like an
+# application: a .desktop entry and icon on Linux, an icon resource on
+# Windows, a signed .app on macOS.  The binary is staged under
+# build/pkg/ first because buildapp takes the installed executable's
+# name from the file's basename, and "showcase-linux" would end up in
+# the Exec= line of the desktop entry.
 release: build-linux build-windows build-macos build-wasm
-	tar czf build/go-gui-showcase-$(VERSION)-linux-amd64.tar.gz \
-	  -C build showcase-linux
-	cd build && zip go-gui-showcase-$(VERSION)-windows-amd64.zip \
-	  showcase-windows.exe
+	mkdir -p build/pkg
+	cp build/showcase-linux build/pkg/showcase
+	cp build/showcase-windows.exe build/pkg/showcase.exe
+	go run ./cmd/buildapp -platform linux -o build -version $(VERSION) \
+	  -name "Go-Gui Showcase" -icon gui/default_icon.png build/pkg/showcase
+	go run ./cmd/buildapp -platform windows -o build -version $(VERSION) \
+	  -name "Go-Gui Showcase" -icon gui/default_icon.png build/pkg/showcase.exe
 	cd build && go run ../cmd/buildapp -version $(VERSION) \
 	  -name "Go-Gui Showcase" showcase-macos
 	hdiutil create -srcfolder "build/Go-Gui Showcase.app" \

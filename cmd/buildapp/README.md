@@ -1,8 +1,18 @@
 # buildapp
 
-Wraps a compiled go-gui binary into a macOS `.app` bundle. You can then
-double-click the bundle, drag it to `/Applications`, and display it in the Dock
-with a proper name and icon.
+Packages a compiled go-gui binary as a release artefact. One binary in, one
+artefact out.
+
+| Platform | Output                 | What it adds                                                        |
+| -------- | ---------------------- | ------------------------------------------------------------------- |
+| macOS    | signed `.app`          | `Info.plist`, `.icns` icon, code signature, optional bundled dylibs |
+| Windows  | `.zip` with the `.exe` | icon resource in the PE image                                       |
+| Linux    | `.tar.gz`              | `.desktop` entry, icon, `install.sh`                                |
+
+The macOS bundle can be double-clicked, dragged to `/Applications`, and shows in
+the Dock with a proper name and icon. The Linux archive installs into `~/.local`
+and shows in the application menu. The Windows `.exe` shows its icon in
+Explorer, the taskbar and Alt-Tab.
 
 ## Install
 
@@ -19,20 +29,30 @@ go run ./cmd/buildapp [flags] <binary>
 ## Usage
 
 ```
-buildapp [-o outdir] [-name Name] [-id bundle.id] [-icon icon.png|.icns] [-version 1.0] [-sign identity] <binary>
+buildapp [-platform darwin|windows|linux] [-o outdir] [-name Name] [-id bundle.id]
+         [-icon icon.png|.icns|.ico] [-version 1.0] [-sign identity] <binary>
 ```
 
-Positional arg: path to a compiled Mach-O executable.
+Positional arg: path to the compiled executable. It must match `-platform`:
+Mach-O for `darwin`, PE for `windows`, ELF for `linux`.
 
-| Flag           | Default                        | Purpose                                             |
-| -------------- | ------------------------------ | --------------------------------------------------- |
-| `-o`           | `.`                            | Output directory                                    |
-| `-name`        | binary basename, capped        | Bundle display name                                 |
-| `-id`          | `local.gogui.<name>`           | `CFBundleIdentifier`                                |
-| `-icon`        | none                           | `.png` (auto-converted) or `.icns`                  |
-| `-version`     | `1.0`                          | `CFBundleVersion` / short version                   |
-| `-bundle-deps` | `false`                        | Bundle non-system dylibs into `Contents/Frameworks` |
-| `-sign`        | `$BUILDAPP_SIGN_IDENTITY`, `-` | `codesign` identity. `-` is ad-hoc                  |
+**The executable's basename becomes the installed program name** (the `Exec=`
+line on Linux, the file inside the `.zip` on Windows, `Contents/MacOS/<name>` on
+macOS). Stage it under a clean name before packaging; `showcase-linux` in,
+`Exec=showcase-linux` out.
+
+| Flag           | Default                        | Purpose                                                    |
+| -------------- | ------------------------------ | ---------------------------------------------------------- |
+| `-platform`    | host `GOOS`                    | Target packager: `darwin`, `windows` or `linux`            |
+| `-o`           | `.`                            | Output directory                                           |
+| `-name`        | binary basename, capped        | Bundle display name                                        |
+| `-id`          | `local.gogui.<name>`           | `CFBundleIdentifier`                                       |
+| `-icon`        | none                           | `.png` everywhere; also `.icns` (macOS), `.ico` (Windows)  |
+| `-version`     | `1.0`                          | `CFBundleVersion` / short version                          |
+| `-bundle-deps` | `false`                        | macOS: bundle non-system dylibs into `Contents/Frameworks` |
+| `-sign`        | `$BUILDAPP_SIGN_IDENTITY`, `-` | macOS: `codesign` identity. `-` is ad-hoc                  |
+
+## macOS
 
 ### Signing
 
@@ -137,15 +157,7 @@ buildapp converts `.png` icons to `.icns` via `sips` and `iconutil` (both ship
 with macOS). Intermediate iconset files live in the system temp directory, and
 the tool removes them on exit.
 
-## Example
-
-```
-go build -o /tmp/getstarted ./examples/get_started
-buildapp -o /tmp -name GetStarted -icon gui/default_icon.png /tmp/getstarted
-open /tmp/GetStarted.app
-```
-
-## Bundle layout
+### macOS bundle layout
 
 ```
 GetStarted.app/
@@ -155,11 +167,79 @@ GetStarted.app/
     Resources/getstarted.icns   (only when -icon supplied)
 ```
 
-## Notes
+Notes:
 
-- macOS only.
 - The tool overwrites an existing `.app` at the destination without prompting.
 - The bundle is always signed — ad-hoc by default, see [Signing](#signing). It
   does not perform notarization. Run `notarytool` separately for distribution.
 - Shared libraries are bundled only with `-bundle-deps`. Without it, the target
   machine must have them installed.
+- The macOS packager runs on macOS only: it needs `sips`, `iconutil` and
+  `codesign`.
+
+## Windows
+
+Two things make a Go binary look like an application on Windows. Only the second
+is buildapp's job.
+
+**1. Build with the GUI subsystem.** Without this the loader gives the process a
+console, so an empty terminal window appears behind the app window:
+
+```
+CGO_ENABLED=0 GOOS=windows GOARCH=amd64 \
+  go build -ldflags "-H windowsgui" -o build/showcase.exe ./examples/showcase/
+```
+
+**2. Embed an icon.** `buildapp -platform windows` appends a `.rsrc` section
+carrying `RT_ICON` and `RT_GROUP_ICON` resources, then zips the result:
+
+```
+buildapp -platform windows -o dist -name "Go-Gui Showcase" -version 1.2.3 \
+  -icon gui/default_icon.png build/showcase.exe
+# dist/go-gui-showcase-1.2.3-windows-amd64.zip
+```
+
+`-icon` takes a `.png` or a `.ico`. A PNG is embedded as-is: since Vista an icon
+directory entry may hold a PNG stream verbatim, so no conversion and no external
+tool is needed. A `.ico` contributes all of its images.
+
+Injection is refused when the binary already carries a resource directory, which
+happens when a `.syso` was linked in. Use one or the other, not both.
+
+Notarization has no Windows equivalent here: the `.exe` is not Authenticode
+signed. Run `signtool` separately if you need that.
+
+## Linux
+
+`buildapp -platform linux` writes a tarball with the freedesktop.org layout, so
+the app can appear in the application menu:
+
+```
+buildapp -platform linux -o dist -name "Go-Gui Showcase" -version 1.2.3 \
+  -icon gui/default_icon.png build/showcase
+# dist/go-gui-showcase-1.2.3-linux-amd64.tar.gz
+```
+
+```
+go-gui-showcase-1.2.3-linux-amd64/
+  bin/showcase
+  share/applications/local.gogui.go-gui-showcase.desktop
+  share/icons/hicolor/256x256/apps/local.gogui.go-gui-showcase.png
+  install.sh
+```
+
+The user runs `./install.sh` to copy those into `~/.local` (no privileges
+needed), or `./install.sh /usr/local` with `sudo` for a system-wide install.
+
+`-icon` must be a `.png` here. The `.desktop` entry sets `Terminal=false`, which
+is what stops a terminal emulator opening beside the app.
+
+## Example
+
+```
+go build -o /tmp/getstarted ./examples/get_started
+buildapp -o /tmp -name GetStarted -icon gui/default_icon.png /tmp/getstarted
+open /tmp/GetStarted.app
+```
+
+`make release` runs all three packagers over `examples/showcase`.
