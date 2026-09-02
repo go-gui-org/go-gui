@@ -10,6 +10,17 @@ and this project adheres to
 
 ### Added
 
+- **`buildapp` packages Windows and Linux, not only macOS** — `-platform`
+  selects the packager, defaulting to the host `GOOS` so every existing
+  invocation keeps working. `-platform windows` embeds an icon into the PE image
+  (a `.rsrc` section carrying `RT_ICON` and `RT_GROUP_ICON`, from a `.png` or a
+  `.ico`) and writes a `.zip`; `-platform linux` writes a `.tar.gz` holding the
+  binary, a freedesktop `.desktop` entry with `Terminal=false`, a hicolor icon
+  and an `install.sh` that installs into `~/.local`. `make release` and the
+  release workflow now package all three targets through it, so the Linux
+  tarball is menu-installable and the Windows `.exe` carries its icon. Details:
+  `cmd/buildapp/README.md`.
+
 - **Markdown render callback** (#484) — `MarkdownCfg.RenderBlock` is consulted
   for every parsed block during layout, so an app can add a block type markdown
   does not have (callouts, numbered headings) or drop one, without rewriting the
@@ -22,12 +33,25 @@ and this project adheres to
 
 ### Fixed
 
+- **Windows builds opened a console window** — neither `make build-windows` nor
+  the release workflow passed `-H windowsgui`, so the loader gave the process a
+  console and every launch showed an empty terminal window behind the app
+  window. Both now set it.
+
 - **Markdown list at the end of a document** (#484) — the pending-list flush
   lived inside the list branch of `markdownBuildContent` and fired only on the
   last block, so a document ending in a list depended on that branch being
   reached. It now runs after the loop, where every exit path reaches it. Output
   for existing documents is unchanged, pinned by the new `markdown_blocks`
   golden.
+
+### Changed
+
+- **Default bundle identifier is now slugged** — `buildapp` derived it by
+  lower-casing the display name, so `-name "Go-Gui Showcase"` produced
+  `local.gogui.go-gui showcase`: invalid as a `CFBundleIdentifier` and unusable
+  as a freedesktop icon key. It is now `local.gogui.go-gui-showcase`. A name
+  with no spaces or punctuation is unaffected. Pass `-id` to pin the old value.
 
 ## [v0.66.1] - 2026-09-01
 

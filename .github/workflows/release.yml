@@ -55,8 +55,12 @@ jobs:
         working-directory: go-gui
         run: |
           VERSION=$(git describe --tags --always 2>/dev/null || echo "dev")
-          tar czf "go-gui-showcase-${VERSION}-linux-amd64.tar.gz" \
-            -C build showcase-linux
+          # buildapp names the installed executable after the file's
+          # basename, so stage it as plain "showcase" first.
+          mkdir -p build/pkg && cp build/showcase-linux build/pkg/showcase
+          go run ./cmd/buildapp -platform linux -o . \
+            -version "${VERSION}" -name "Go-Gui Showcase" \
+            -icon gui/default_icon.png build/pkg/showcase
 
       - uses: actions/upload-artifact@v7
         with:
@@ -120,8 +124,10 @@ jobs:
           repository: go-gui-org/go-glyph
           path: go-glyph
 
-      # msys2 is kept only for the `zip` tool the Package step uses; the
-      # showcase itself builds cgo-free (purego GL bindings, #155).
+      # msys2 gives the job a POSIX shell and `make`, so the Build step
+      # runs the same build-windows target a developer runs locally.
+      # The `zip` tool is no longer needed: buildapp writes the archive
+      # itself.  The showcase builds cgo-free (purego GL bindings, #155).
       - uses: msys2/setup-msys2@v2
         with:
           msystem: MINGW64
@@ -129,7 +135,7 @@ jobs:
           release: false
           path-type: inherit
           install: >-
-            zip
+            make
 
       - uses: actions/setup-go@v6
         with:
@@ -141,20 +147,16 @@ jobs:
 
       - name: Build showcase
         working-directory: go-gui
-        run: |
-          VERSION=$(git describe --tags --always 2>/dev/null || echo "dev")
-          CGO_ENABLED=0 GOOS=windows GOARCH=amd64 \
-            go build -ldflags \
-              "-X github.com/go-gui-org/go-gui/gui.Version=${VERSION} \
-               -X github.com/go-gui-org/go-gui/gui.Commit=$(git rev-parse --short HEAD)" \
-            -o build/showcase-windows.exe ./examples/showcase/
+        run: make build-windows
 
       - name: Package
         working-directory: go-gui
         run: |
           VERSION=$(git describe --tags --always 2>/dev/null || echo "dev")
-          zip "go-gui-showcase-${VERSION}-windows-amd64.zip" \
-            build/showcase-windows.exe
+          mkdir -p build/pkg && cp build/showcase-windows.exe build/pkg/showcase.exe
+          go run ./cmd/buildapp -platform windows -o . \
+            -version "${VERSION}" -name "Go-Gui Showcase" \
+            -icon gui/default_icon.png build/pkg/showcase.exe
 
       - uses: actions/upload-artifact@v7
         with:

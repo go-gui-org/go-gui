@@ -25,7 +25,7 @@ jobs:
         run: |
           cd examples/showcase
           GOOS=js GOARCH=wasm go build \
-            -ldflags "-X github.com/go-gui-org/go-gui/gui.Version=$(git describe --tags --always --dirty)" \
+            -ldflags "-X github.com/go-gui-org/go-gui/gui.Version=$(git describe --tags --always)" \
             -o main.wasm .
           cp "$(go env GOROOT)/lib/wasm/wasm_exec.js" .
 
