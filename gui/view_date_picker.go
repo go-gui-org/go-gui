@@ -168,15 +168,21 @@ func (dv *datePickerView) GenerateLayout(w *Window) Layout {
 		content = append(content, datePickerCalendar(cfg, state, w))
 	}
 
-	// Stable size: 7 columns wide, 6 day rows + gaps tall.
-	// Include padding + border so min covers full outer box.
+	// Stable width: 7 columns wide + gaps, plus padding and border so
+	// the min covers the full outer box. Width has to be pinned
+	// because the month/year roller is narrower than the grid.
+	//
+	// Height is deliberately NOT pinned. A cell's height comes from
+	// its measured text, which is well short of cellSize (that value
+	// is a column width), so a 6*cellSize floor left a blank band
+	// under the last week row. The grid always emits six rows, so the
+	// natural height is already stable month to month, and the roller
+	// matches it through CalBodyHeight above.
 	cellSize := datePickerCellSize(cfg)
 	pad := cfg.Padding.Or(dn.Padding)
 	sizeBorder := cfg.SizeBorder.Get(dn.SizeBorder)
 	padW := float32(pad.Left+pad.Right) + 2*sizeBorder
-	padH := float32(pad.Top+pad.Bottom) + 2*sizeBorder
 	minWidth := 7*cellSize + 6*cellSpacing + padW
-	minHeight := 6*cellSize + 6*cellSpacing + padH
 
 	cfgID := cfg.ID
 	col := Column(ContainerCfg{
@@ -194,7 +200,6 @@ func (dv *datePickerView) GenerateLayout(w *Window) Layout {
 		Padding:     cfg.Padding,
 		Spacing:     Some(cellSpacing),
 		MinWidth:    minWidth,
-		MinHeight:   minHeight,
 		Disabled:    cfg.Disabled,
 		Invisible:   cfg.Invisible,
 		Content:     content,

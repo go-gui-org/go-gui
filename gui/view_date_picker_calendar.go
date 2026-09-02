@@ -117,8 +117,14 @@ func datePickerMonth(
 						MinWidth:          cellSize,
 						MaxWidth:          cellSize,
 						MaxHeight:         cellSize,
-						Padding:           paddingThree,
-						Content:           []View{Text(TextCfg{Text: " "})},
+						// Transparent, but the same 2px the in-month
+						// cells reserve: a row of spacers measures 4px
+						// shorter without it, so a month that fills
+						// only five rows would size the whole picker
+						// shorter than a six-row one.
+						SizeBorder: SomeF(2),
+						Padding:    paddingThree,
+						Content:    []View{Text(TextCfg{Text: " "})},
 					}))
 				}
 				continue
@@ -271,7 +277,10 @@ func datePickerAdjacentCell(
 		MinWidth:      cellSize,
 		MaxWidth:      cellSize,
 		MaxHeight:     cellSize,
-		Padding:       paddingThree,
+		// Matches the in-month cells' reserve so every row measures
+		// the same height — see the spacer cell above.
+		SizeBorder: SomeF(2),
+		Padding:    paddingThree,
 		Content: []View{Text(TextCfg{
 			Text:      strconv.Itoa(adjDay),
 			TextStyle: ts,
