@@ -103,6 +103,8 @@ deep-dive/
 .direnv/
 .tokensave/
 .codegraph/
+.codehound-cache/
+.goslop-cache/
 
 # Pinned linter binary, built by `make lint` from tools/lint.
 /.bin/

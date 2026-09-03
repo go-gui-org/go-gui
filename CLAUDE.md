@@ -255,6 +255,8 @@ walks the composed tree every frame and reports to stderr (`gui/debug.go`):
 - a scrollable listbox that resolved to height 0
 - a container setting both `Wrap` and `Overflow` (wrap wins)
 - a callback that acted without `ctx.Consume()` while an ancestor also handles
+- a link the user activated that opened nothing (unknown anchor, relative link,
+  failed platform opener)
 
 Findings are warn-once per window. The gate allocates and walks the whole tree —
 dev only, never production. Categories gate independently via

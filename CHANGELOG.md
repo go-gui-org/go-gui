@@ -33,6 +33,37 @@ and this project adheres to
 
 ### Fixed
 
+- **RTF link activation dropped anchors and relative links** (#488) — the
+  context menu's "Open Link" had no anchor branch, so `#some-heading` went to
+  the platform opener, which rejects every scheme outside http/https/mailto, and
+  the error was discarded: left-click scrolled to the heading, the menu did
+  nothing. Relative links (`/docs/x`, `./y`, `?q=1`) failed the same way on both
+  paths. Both call sites now share one `rtfOpenLink` path: an anchor scrolls, an
+  http/https/mailto link opens, and anything else — a relative link with no
+  document base URI, an unresolved anchor, a failed opener — is reported through
+  the `gui.Debug` gate (`DebugCallbacks`) instead of failing in silence.
+
+- **A link click in selectable text started a drag-select** (#488) — both
+  selectable paths (`rtfSelectOnClick` and `markdownBlockOnClick`) ran link
+  activation and then armed drag-select on the same click, locking the mouse.
+  The release never came back to the widget — the link had opened a browser,
+  scrolled the view away, or raised the context menu over the pointer — so the
+  lock stayed up and the pointer kept extending the selection with no button
+  held. A click that activated a link now still collapses the selection under
+  the pointer, the way a browser drops the old highlight, but no longer arms the
+  drag. A click on a non-link run is unchanged.
+
+- **Drag-selecting past the top or bottom of a paragraph stopped mid-line** —
+  `glyph.GetClosestOffset` snaps an out-of-band y to the nearest line and then
+  still reads the column from x, so a drag carried above a paragraph selected
+  its first line only as far as the pointer's column, and one carried below
+  selected the last line only that far. All four drag paths (Text, Input, RTF
+  and markdown) now widen the hit test once the pointer leaves the text band:
+  upward takes the line through its beginning, downward through its end, which
+  is what every platform's text view does. Inside the text nothing changes. The
+  markdown path gets the same rule in the gap between two blocks, where the hit
+  test picks the block above.
+
 - **Windows builds opened a console window** — neither `make build-windows` nor
   the release workflow passed `-H windowsgui`, so the loader gave the process a
   console and every launch showed an empty terminal window behind the app

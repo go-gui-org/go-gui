@@ -482,40 +482,138 @@ func rtfTooltipView(ts *tooltipState) View {
 }
 
 func rtfOnClick(ctx EventCtx) {
+	rtfClickLink(ctx)
+}
+
+// rtfClickLink activates the link under the pointer, if there is one,
+// and reports whether it took the click. A selectable RTF needs the
+// answer: a click that navigated must not also start a drag-select,
+// which would lock the mouse and leave the caller tracking the pointer
+// after the button is released (the release lands on whatever the
+// navigation put in front, so the lock is never lifted).
+func rtfClickLink(ctx EventCtx) bool {
 	if !ctx.Layout.Shape.hasRtfLayout() {
-		return
+		return false
 	}
 	layout := ctx.Layout.Shape.TC.rTFLayout
 	for _, run := range layout.Items {
 		if run.IsObject {
 			continue
 		}
-		if rtfHitTest(run, ctx.Event.MouseX, ctx.Event.MouseY) {
-			found := rtfFindRunAtIndex(ctx.Layout, run.StartIndex)
-			if found.Link != "" && markdown.IsSafeURL(found.Link) {
-				if ctx.Event.MouseButton == MouseRight {
-					showLinkContextMenu(ctx.Window, found.Link,
-						ctx.Event.MouseX,
-						ctx.Event.MouseY,
-						rtfRunsKey(ctx.Layout.Shape.TC.rTFRuns))
-					ctx.Consume()
-					return
-				}
-				if len(found.Link) > 0 &&
-					found.Link[0] == '#' {
-					if id, ok := rtfResolveAnchor(ctx.Window,
-						ctx.Layout.Shape.TC.markdownID,
-						found.Link[1:]); ok {
-						ctx.Window.scrollToView(id)
-					}
-				} else if ctx.Window.nativePlatform != nil {
-					_ = ctx.Window.nativePlatform.OpenURI(found.Link)
-				}
-				ctx.Consume()
-			}
+		if !rtfHitTest(run, ctx.Event.MouseX, ctx.Event.MouseY) {
+			continue
+		}
+		found := rtfFindRunAtIndex(ctx.Layout, run.StartIndex)
+		if found.Link == "" || !markdown.IsSafeURL(found.Link) {
+			return false
+		}
+		if ctx.Event.MouseButton == MouseRight {
+			showLinkContextMenu(ctx.Window, found.Link,
+				ctx.Event.MouseX,
+				ctx.Event.MouseY,
+				rtfRunsKey(ctx.Layout.Shape.TC.rTFRuns),
+				ctx.Layout.Shape.TC.markdownID)
+			ctx.Consume()
+			return true
+		}
+		rtfOpenLink(ctx.Window, found.Link,
+			ctx.Layout.Shape.TC.markdownID)
+		ctx.Consume()
+		return true
+	}
+	return false
+}
+
+// rtfOpenLink activates a link the user clicked or chose "Open Link"
+// on. It is the single activation path: left-click and the context
+// menu both route here, so an in-document anchor behaves the same way
+// from either. markdownID scopes the anchor lookup (see
+// [rtfResolveAnchor]); it is "" for a standalone RTF block.
+//
+// Three kinds of link reach this point, because the render gate
+// (markdown.IsSafeURL) admits all three:
+//
+//   - '#slug' — scroll the named target into view.
+//   - http/https/mailto — hand to the platform opener.
+//   - anything else (relative paths, '?query') — nothing the widget
+//     can act on. There is no document base URI to resolve against, so
+//     the link is reported and dropped rather than handed to OpenURI,
+//     which rejects every scheme outside the allowlist anyway.
+//
+// Failures are reported through the [Debug] gate; a link that will not
+// open is a development-time mistake, not something the frame can act
+// on at runtime.
+func rtfOpenLink(w *Window, link, markdownID string) {
+	// markdown.IsSafeURL classifies the trimmed link, so " #slug" is
+	// rendered as an anchor. Trim here too, or the branch below reads
+	// the space and the anchor is reported as unopenable.
+	link = strings.TrimSpace(link)
+	if link == "" {
+		return
+	}
+	if link[0] == '#' {
+		if id, ok := rtfResolveAnchor(w, markdownID, link[1:]); ok {
+			w.scrollToView(id)
 			return
 		}
+		short := rtfLinkShort(link)
+		w.debugWarn(debugCheckLinkNotOpened, short,
+			"link %q names no target in this window "+
+				"(anchor unresolved)", short)
+		return
 	}
+	if !rtfLinkIsOpenable(link) {
+		short := rtfLinkShort(link)
+		w.debugWarn(debugCheckLinkNotOpened, short,
+			"link %q is relative; the platform opener takes only "+
+				"http, https and mailto URIs, and the widget has no "+
+				"base URI to resolve against", short)
+		return
+	}
+	if w.nativePlatform == nil {
+		return
+	}
+	if err := w.nativePlatform.OpenURI(link); err != nil {
+		short := rtfLinkShort(link)
+		w.debugWarn(debugCheckLinkNotOpened, short,
+			"link %q could not be opened: %v", short, err)
+	}
+}
+
+// rtfLinkMaxReportLen caps the link text a diagnostic carries. A link
+// comes from the rendered document, so its length is the document
+// author's choice, and the warn-once key is retained for the life of
+// the window: a document full of long links would otherwise grow the
+// warn map by their full size.
+const rtfLinkMaxReportLen = 120
+
+// rtfLinkShort caps a link for a diagnostic. The shortened text is
+// both the message and the warn-once key, so one bad link reports once
+// per window and the retained key stays bounded.
+func rtfLinkShort(link string) string {
+	if len(link) > rtfLinkMaxReportLen {
+		return link[:rtfLinkMaxReportLen] + "..."
+	}
+	return link
+}
+
+// rtfLinkOpenableSchemes mirrors the scheme allowlist in
+// nativehost.ValidateOpenURI, which lives in a backend-internal
+// package the gui package cannot import. Package level so the
+// activation path ranges over it without copying the array.
+var rtfLinkOpenableSchemes = [...]string{
+	"http://", "https://", "mailto:",
+}
+
+// rtfLinkIsOpenable reports whether the platform opener accepts link.
+func rtfLinkIsOpenable(link string) bool {
+	for _, scheme := range &rtfLinkOpenableSchemes {
+		if len(link) >= len(scheme) &&
+			strings.EqualFold(link[:len(scheme)], scheme) {
+			return true
+		}
+	}
+	return false
 }
 
 // rtfResolveAnchor resolves an in-document anchor ('#slug') to the
@@ -545,11 +643,15 @@ func rtfResolveAnchor(
 
 // rtfLinkMenuState holds state for the RTF link context menu.
 type rtfLinkMenuState struct {
-	Link     string
-	BlockKey uint64 // identifies the owning RTF block
-	X        float32
-	Y        float32
-	Open     bool
+	Link string
+	// MarkdownID scopes an anchor link's target lookup, captured from
+	// the owning block when the menu opened. The Action callback runs
+	// with no RTF layout in reach, so it cannot read it back.
+	MarkdownID string
+	BlockKey   uint64 // identifies the owning RTF block
+	X          float32
+	Y          float32
+	Open       bool
 }
 
 // Absolute: the popup is generated as a child of the RTF block, so a
@@ -562,16 +664,17 @@ const rtfLinkMenuFocusID = "gui:rtf:link_menu"
 // showLinkContextMenu opens a context menu for an RTF link.
 func showLinkContextMenu(
 	w *Window, link string, mx, my float32,
-	blockKey uint64,
+	blockKey uint64, markdownID string,
 ) {
 	sm := StateMap[string, rtfLinkMenuState](
 		w, nsRtfLinkMenu, capFew)
 	sm.Set(nsRtfLinkMenu, rtfLinkMenuState{
-		Open:     true,
-		Link:     link,
-		X:        mx,
-		Y:        my,
-		BlockKey: blockKey,
+		Open:       true,
+		Link:       link,
+		MarkdownID: markdownID,
+		X:          mx,
+		Y:          my,
+		BlockKey:   blockKey,
 	})
 	w.SetFocus(rtfLinkMenuFocusID)
 }
@@ -590,6 +693,7 @@ func rtfLinkMenuDismiss(w *Window) {
 // for RTF link right-click.
 func rtfLinkMenuView(w *Window, st rtfLinkMenuState) View {
 	link := st.Link
+	markdownID := st.MarkdownID
 	return menu(w, MenubarCfg{
 		ID: rtfLinkMenuFocusID,
 		Items: []MenuItemCfg{
@@ -599,9 +703,8 @@ func rtfLinkMenuView(w *Window, st rtfLinkMenuState) View {
 		Action: func(id string, ctx EventCtx) {
 			switch id {
 			case "open_link":
-				if ctx.Window.nativePlatform != nil &&
-					markdown.IsSafeURL(link) {
-					_ = ctx.Window.nativePlatform.OpenURI(link)
+				if markdown.IsSafeURL(link) {
+					rtfOpenLink(ctx.Window, link, markdownID)
 				}
 			case "copy_link":
 				ctx.Window.SetClipboard(link)

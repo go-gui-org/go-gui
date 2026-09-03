@@ -28,7 +28,10 @@ func rtfMarkdownAmendLayout(ctx EventCtx) {
 // rtfSelectOnClick handles clicks for an RTF widget with selection enabled.
 // Link navigation (rtfOnClick) runs first; selection state is always updated.
 func rtfSelectOnClick(ctx EventCtx) {
-	rtfOnClick(ctx)
+	// A link click still collapses the selection under the pointer, the
+	// way a browser drops the old highlight — but it must not arm the
+	// drag below. See the linkHit guard before MouseLock.
+	linkHit := rtfClickLink(ctx)
 	if ctx.Event.MouseButton == MouseRight {
 		return
 	}
@@ -76,6 +79,16 @@ func rtfSelectOnClick(ctx EventCtx) {
 	imap.Set(focusID, is)
 	ctx.Consume()
 
+	// The click activated a link, so it is spent: navigation owns it.
+	// Arming the drag here would lock the mouse for a release that
+	// never reaches this widget — the link opened a browser, scrolled
+	// the view away, or raised a context menu over the pointer — and
+	// the pointer would then keep extending the selection with no
+	// button held.
+	if linkHit {
+		return
+	}
+
 	anchorPos := is.selectBeg
 	anchorEnd := is.selectEnd
 	dragShapeX := shape.X
@@ -102,6 +115,10 @@ func rtfSelectOnClick(ctx EventCtx) {
 		}
 	}
 
+	// The drag extends to a line's edge once it leaves the text band;
+	// see textDragEdgeX.
+	dragTop, dragBot := glyphTextBand(gl)
+
 	computeRunePos := func(mx, my float32, w *Window) int {
 		scrollDelta := float32(0)
 		if scrollID != "" {
@@ -110,8 +127,8 @@ func rtfSelectOnClick(ctx EventCtx) {
 			sNow := sy.GetOr(scrollID, 0)
 			scrollDelta = sNow - dragScrollY0
 		}
-		rx := mx - dragShapeX
 		ry := my - (dragShapeY + scrollDelta)
+		rx := textDragEdgeX(mx-dragShapeX, ry, dragTop, dragBot)
 		bi := gl.GetClosestOffset(rx, ry)
 		return byteToRuneIndex(flatText, bi)
 	}

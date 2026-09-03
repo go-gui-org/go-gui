@@ -85,10 +85,12 @@ const (
 	// exportaudit:keep — dev-diagnostic API for app authors
 	DebugWrapOverflow
 
-	// DebugCallbacks reports an app callback the frame pass could not
-	// run: deferred callbacks that kept re-queueing themselves round
-	// after round, so the frame bounded the loop and dropped the rest
-	// rather than spin forever.
+	// DebugCallbacks reports a user-visible action the frame pass could
+	// not carry out: deferred callbacks that kept re-queueing
+	// themselves round after round, so the frame bounded the loop and
+	// dropped the rest rather than spin forever; and a link activation
+	// that resolved to nothing (an unknown anchor, a relative link with
+	// no base URI, or a platform opener that failed).
 	// exportaudit:keep — dev-diagnostic API for app authors
 	DebugCallbacks
 
@@ -243,6 +245,10 @@ const (
 	// debugCheckDeferredLoop fires from flushDeferredCallbacks when
 	// deferred app callbacks keep re-queueing past the batch bound.
 	debugCheckDeferredLoop
+	// debugCheckLinkNotOpened fires from rtfOpenLink when a link the
+	// user activated does nothing: an unresolved anchor, a relative
+	// reference with no base URI, or a platform opener that failed.
+	debugCheckLinkNotOpened
 )
 
 // checkCategory maps an internal check to the public category that
@@ -265,7 +271,7 @@ func checkCategory(check debugCheck) DebugCategory {
 		return DebugGradientResampled
 	case debugCheckWrapOverflow:
 		return DebugWrapOverflow
-	case debugCheckDeferredLoop:
+	case debugCheckDeferredLoop, debugCheckLinkNotOpened:
 		return DebugCallbacks
 	}
 	return 0
