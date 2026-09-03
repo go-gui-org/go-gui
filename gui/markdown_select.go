@@ -162,7 +162,10 @@ func mdWalkBlocks(l *Layout, mdID string, out *[]mdBlockInfo) {
 // markdownBlockOnClick is the OnClick handler for RTF blocks inside a
 // markdown widget with cross-block selection enabled.
 func markdownBlockOnClick(ctx EventCtx) {
-	rtfOnClick(ctx)
+	// A link click still collapses the selection under the pointer, the
+	// way a browser drops the old highlight — but it must not arm the
+	// drag below. See the linkHit guard before MouseLock.
+	linkHit := rtfClickLink(ctx)
 	if ctx.Event.MouseButton == MouseRight {
 		return
 	}
@@ -211,6 +214,16 @@ func markdownBlockOnClick(ctx EventCtx) {
 	}
 	imap.Set(mdID, st)
 	ctx.Consume()
+
+	// The click activated a link, so it is spent: navigation owns it.
+	// Arming the drag here would lock the mouse for a release that
+	// never reaches this widget — the link opened a browser, scrolled
+	// the view away, or raised a context menu over the pointer — and
+	// the pointer would then keep extending the selection with no
+	// button held.
+	if linkHit {
+		return
+	}
 
 	// Capture drag state. Copy layout value so it's safe across frames.
 	anchorBeg := st.SelBeg
@@ -265,7 +278,9 @@ func mdHitAbsRune(
 	fallbackStart uint32,
 ) uint32 {
 	if len(blocks) == 0 {
-		bi := fallbackGL.GetClosestOffset(mx, my)
+		top, bot := glyphTextBand(&fallbackGL)
+		x := textDragEdgeX(mx, my, top, bot)
+		bi := fallbackGL.GetClosestOffset(x, my)
 		return fallbackStart + uint32(byteToRuneIndex(fallbackText, bi))
 	}
 	// Find the block the mouse is over, defaulting to the last block above.
@@ -280,8 +295,13 @@ func mdHitAbsRune(
 			best = b
 		}
 	}
-	relX := mx - best.ShapeX
 	relY := my - best.ShapeY
+	// Above the first block or below the last one — and in the gap
+	// between two blocks, where the block above is chosen — the drag
+	// takes the whole line rather than stopping at the pointer's
+	// column; see textDragEdgeX.
+	top, bot := glyphTextBand(&best.Layout)
+	relX := textDragEdgeX(mx-best.ShapeX, relY, top, bot)
 	bi := best.Layout.GetClosestOffset(relX, relY)
 	localRune := uint32(byteToRuneIndex(best.FlatText, bi))
 	return best.StartRune + localRune

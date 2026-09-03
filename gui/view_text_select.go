@@ -11,6 +11,42 @@ const (
 	doubleClickThresholdMs = 400
 )
 
+// textDragReach is a horizontal distance no laid-out line can span,
+// used to push a drag hit test past one end of a line.
+const textDragReach = 1e6
+
+// textDragEdgeX widens a drag hit test that has left the text band.
+// glyph.GetClosestOffset snaps an out-of-band y to the nearest line
+// and then still reads the column from x, so a drag carried above a
+// paragraph stops part-way along its first line. Every platform's text
+// view instead selects through the beginning of that line going up,
+// and through the end of it going down, which is what pushing x past
+// the line's end produces. y, top and bottom are all in the glyph
+// layout's own coordinates. Inside the band x is returned unchanged,
+// so this only ever affects a drag that has left the text.
+func textDragEdgeX(x, y, top, bottom float32) float32 {
+	switch {
+	case y < top:
+		return -textDragReach
+	case y > bottom:
+		return textDragReach
+	}
+	return x
+}
+
+// glyphTextBand returns a laid-out text's vertical extent in its own
+// coordinates. An empty layout gives an empty band at the origin;
+// either edge then reads as out of band, which costs nothing because
+// a layout with no lines has no offset but zero to return.
+func glyphTextBand(l *glyph.Layout) (top, bottom float32) {
+	if len(l.Lines) == 0 {
+		return 0, 0
+	}
+	first := l.Lines[0].Rect
+	last := l.Lines[len(l.Lines)-1].Rect
+	return first.Y, last.Y + last.Height
+}
+
 // textOnClick handles click events for text selection.
 // Single-click places cursor, double-click selects word,
 // drag-to-select via MouseLock.
@@ -86,6 +122,10 @@ func textOnClick(ctx EventCtx) {
 	anchorEnd := is.selectEnd
 	dragGL := gl
 	dragGLOK := glOK
+	// The drag extends to a line's edge once it leaves the text band;
+	// see textDragEdgeX. Constant for the drag, so read it once here
+	// rather than on every mouse-move.
+	dragTop, dragBot := glyphTextBand(&dragGL)
 	dragFocusID := focusID
 	dragShapeX := shape.X
 	dragShapeY := shape.Y
@@ -124,8 +164,9 @@ func textOnClick(ctx EventCtx) {
 				sNow := sy.GetOr(scrollID, 0)
 				scrollDelta = sNow - dragScrollY0
 			}
-			rx := mx - dragShapeX
 			ry := my - (dragShapeY + scrollDelta)
+			rx := textDragEdgeX(mx-dragShapeX, ry,
+				dragTop, dragBot)
 			bi := dragGL.GetClosestOffset(rx, ry)
 			return byteToRuneIndex(text, bi)
 		}

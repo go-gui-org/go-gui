@@ -144,11 +144,12 @@ func TestMarkdownAnchorLinkScrollsToView(t *testing.T) {
 				MouseX: x, MouseY: y}
 			w.EventFn(&down)
 			w.settle()
-			// Selection-enabled documents lock the mouse on click to
-			// drive drag-select; plain documents must not.
-			if locked := w.mouseIsLocked(); locked != tc.focusable {
-				t.Errorf("mouse locked = %v, want %v",
-					locked, tc.focusable)
+			// A click that activated a link never arms drag-select,
+			// selection-enabled or not: the release lands on whatever
+			// the navigation put under the pointer, so a lock taken
+			// here would never be lifted (issue #488).
+			if w.mouseIsLocked() {
+				t.Error("link click locked the mouse for drag-select")
 			}
 			w.EventFn(&Event{Type: EventMouseUp, MouseButton: MouseLeft,
 				MouseX: x, MouseY: y})

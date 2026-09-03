@@ -651,7 +651,7 @@ func rtfLayoutCacheLen(w *Window) int {
 
 func TestShowLinkContextMenuSetsState(t *testing.T) {
 	w := newTestWindow()
-	showLinkContextMenu(w, "https://example.com", 50, 100, 42)
+	showLinkContextMenu(w, "https://example.com", 50, 100, 42, "")
 
 	st := StateReadOr(
 		w, nsRtfLinkMenu, nsRtfLinkMenu, rtfLinkMenuState{})
@@ -677,7 +677,7 @@ func TestShowLinkContextMenuSetsState(t *testing.T) {
 
 func TestRtfLinkMenuDismissClearsState(t *testing.T) {
 	w := newTestWindow()
-	showLinkContextMenu(w, "https://example.com", 50, 100, 0)
+	showLinkContextMenu(w, "https://example.com", 50, 100, 0, "")
 	rtfLinkMenuDismiss(w)
 
 	st := StateReadOr(
@@ -741,7 +741,7 @@ func TestRtfOnClickRightClickShowsMenu(t *testing.T) {
 
 func TestRtfAmendTooltipDismissesMenuOnFocusLoss(t *testing.T) {
 	w := newTestWindow()
-	showLinkContextMenu(w, "https://example.com", 50, 100, 0)
+	showLinkContextMenu(w, "https://example.com", 50, 100, 0, "")
 	// Simulate focus moving away.
 	w.ClearFocus()
 

@@ -194,8 +194,12 @@ func (d *inputDragState) computeRunePos(
 		sNow := sy.GetOr(d.scrollID, 0)
 		scrollDelta = sNow - d.scrollY0
 	}
-	relX := mx - d.txtOffX
 	relY := my - (d.txtOffY + scrollDelta)
+	// A drag carried above or below the text selects to the line's
+	// edge rather than stopping at the pointer's column; see
+	// textDragEdgeX.
+	top, bot := glyphTextBand(&d.gl)
+	relX := textDragEdgeX(mx-d.txtOffX, relY, top, bot)
 	byteIdx := d.gl.GetClosestOffset(relX, relY)
 	return byteToRuneIndex(d.displayText, byteIdx)
 }

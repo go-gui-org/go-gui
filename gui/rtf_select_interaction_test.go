@@ -898,9 +898,8 @@ func TestRtfSelectScrollDragEdgeScrolls(t *testing.T) {
 	}
 
 	// Drag below the viewport (y=810): arms edge scroll. The mouse is
-	// far below both text lines, so the x coordinate resolves within
-	// the nearest (second) line: window x = ShapeX + byte*10 + 5 with
-	// byte 19 ('e' of "beta") at the cursor.
+	// far below both text lines, so the drag takes the last line whole
+	// (textDragEdgeX) and the column under the cursor stops mattering.
 	const dragX = 86.5
 	move(dragX, 810)
 	if !w.HasAnimation(animIDTextDragScroll) {
@@ -923,9 +922,26 @@ func TestRtfSelectScrollDragEdgeScrolls(t *testing.T) {
 			y, preDragY)
 	}
 	is = StateReadOr(w, nsInput, "view:rtf", inputState{})
-	if is.selectBeg != 2 || is.selectEnd != 19 {
-		t.Errorf("selection after tick = [%d,%d), want [2,19)",
+	if is.selectBeg != 2 || is.selectEnd != 22 {
+		t.Errorf("selection after tick = [%d,%d), want [2,22) — "+
+			"a drag below the text takes the last line whole",
 			is.selectBeg, is.selectEnd)
+	}
+
+	// Drag back onto the press point, which the scroll moved up the
+	// window: the selection must collapse to rune 2 again. This is
+	// what proves the ShapeX/ShapeY/scrollDelta translation survives
+	// the container scrolling under the cursor — the edge-clamped
+	// assertions above no longer read the column.
+	//
+	// The animation moved the offset without a re-arrange, so the drag
+	// path — not the layout — carries the delta: the press point is
+	// now that much further up the window.
+	move(x0, y0+(y-preDragY))
+	is = StateReadOr(w, nsInput, "view:rtf", inputState{})
+	if is.selectBeg != 2 || is.selectEnd != 2 {
+		t.Errorf("selection back at the press point = [%d,%d), "+
+			"want [2,2)", is.selectBeg, is.selectEnd)
 	}
 
 	// Dragging back inside the viewport disarms the animation.
@@ -942,8 +958,8 @@ func TestRtfSelectScrollDragEdgeScrolls(t *testing.T) {
 		t.Error("edge-scroll animation survived the release")
 	}
 	is = StateReadOr(w, nsInput, "view:rtf", inputState{})
-	if is.selectBeg != 2 || is.selectEnd != 19 {
-		t.Errorf("selection after release = [%d,%d), want [2,19)",
+	if is.selectBeg != 2 || is.selectEnd != 22 {
+		t.Errorf("selection after release = [%d,%d), want [2,22)",
 			is.selectBeg, is.selectEnd)
 	}
 }
