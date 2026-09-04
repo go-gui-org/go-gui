@@ -83,65 +83,50 @@ func demoThemeGen(w *gui.Window) gui.View {
 								Spacing: gui.SomeF(12),
 								Padding: gui.NoPadding,
 								Content: []gui.View{
-									gui.Column(gui.ContainerCfg{
-										Sizing:  gui.FitFit,
-										Spacing: gui.SomeF(6),
-										Padding: gui.NoPadding,
-										Content: []gui.View{
-											gui.Text(gui.TextCfg{Text: "Radius", TextStyle: t.N3}),
-											gui.NumericInput(gui.NumericInputCfg{
-												ID:       "theme-gen-radius",
-												Disabled: pickText,
-												Text:     app.ThemeGenRadiusText,
-												Value:    gui.Some(float64(app.ThemeGenRadius)),
-												Decimals: 1,
-												Min:      gui.Some(0.0),
-												Max:      gui.Some(30.0),
-												Width:    80,
-												Sizing:   gui.FixedFit,
-												OnTextChanged: func(text string, ctx gui.EventCtx) {
-													appState(ctx.Window).ThemeGenRadiusText = text
-												},
-												OnValueCommit: func(value gui.Opt[float64], text string, ctx gui.EventCtx) {
-													app := appState(ctx.Window)
-													app.ThemeGenRadiusText = text
-													if v, ok := value.Value(); ok {
-														app.ThemeGenRadius = float32(v)
-														applyGenTheme(ctx.Window)
-													}
-												},
-											}),
-										},
+									themeGenNumField(t, themeGenField{
+										ID: "theme-gen-radius", Label: "Radius",
+										Text: app.ThemeGenRadiusText, Value: app.ThemeGenRadius,
+										Max: 30, Disabled: pickText,
+										SetText:  func(a *ShowcaseApp, text string) { a.ThemeGenRadiusText = text },
+										SetValue: func(a *ShowcaseApp, v float32) { a.ThemeGenRadius = v },
 									}),
-									gui.Column(gui.ContainerCfg{
-										Sizing:  gui.FitFit,
-										Spacing: gui.SomeF(6),
-										Padding: gui.NoPadding,
-										Content: []gui.View{
-											gui.Text(gui.TextCfg{Text: "Border", TextStyle: t.N3}),
-											gui.NumericInput(gui.NumericInputCfg{
-												ID:       "theme-gen-border",
-												Disabled: pickText,
-												Text:     app.ThemeGenBorderText,
-												Value:    gui.Some(float64(app.ThemeGenBorder)),
-												Decimals: 1,
-												Min:      gui.Some(0.0),
-												Max:      gui.Some(10.0),
-												Width:    80,
-												Sizing:   gui.FixedFit,
-												OnTextChanged: func(text string, ctx gui.EventCtx) {
-													appState(ctx.Window).ThemeGenBorderText = text
-												},
-												OnValueCommit: func(value gui.Opt[float64], text string, ctx gui.EventCtx) {
-													app := appState(ctx.Window)
-													app.ThemeGenBorderText = text
-													if v, ok := value.Value(); ok {
-														app.ThemeGenBorder = float32(v)
-														applyGenTheme(ctx.Window)
-													}
-												},
-											}),
-										},
+									themeGenNumField(t, themeGenField{
+										ID: "theme-gen-border", Label: "Border",
+										Text: app.ThemeGenBorderText, Value: app.ThemeGenBorder,
+										Max: 10, Disabled: pickText,
+										SetText:  func(a *ShowcaseApp, text string) { a.ThemeGenBorderText = text },
+										SetValue: func(a *ShowcaseApp, v float32) { a.ThemeGenBorder = v },
+									}),
+									themeGenNumField(t, themeGenField{
+										ID: "theme-gen-pad", Label: "Pad",
+										Text: app.ThemeGenPadText, Value: app.ThemeGenPad,
+										Max: 40, Disabled: pickText,
+										SetText:  func(a *ShowcaseApp, text string) { a.ThemeGenPadText = text },
+										SetValue: func(a *ShowcaseApp, v float32) { a.ThemeGenPad = v },
+									}),
+								},
+							}),
+							// Scrollbar geometry gets its own row: it is a
+							// separate decision from the shape knobs above,
+							// and five fields on one line overflow the column.
+							gui.Row(gui.ContainerCfg{
+								Sizing:  gui.FillFit,
+								Spacing: gui.SomeF(12),
+								Padding: gui.NoPadding,
+								Content: []gui.View{
+									themeGenNumField(t, themeGenField{
+										ID: "theme-gen-scrollbar", Label: "Scrollbar",
+										Text: app.ThemeGenScrollbarText, Value: app.ThemeGenScrollbar,
+										Max: 24, Disabled: pickText,
+										SetText:  func(a *ShowcaseApp, text string) { a.ThemeGenScrollbarText = text },
+										SetValue: func(a *ShowcaseApp, v float32) { a.ThemeGenScrollbar = v },
+									}),
+									themeGenNumField(t, themeGenField{
+										ID: "theme-gen-scroll-gap", Label: "Offset",
+										Text: app.ThemeGenScrollGapText, Value: app.ThemeGenScrollGap,
+										Max: 12, Disabled: pickText,
+										SetText:  func(a *ShowcaseApp, text string) { a.ThemeGenScrollGapText = text },
+										SetValue: func(a *ShowcaseApp, v float32) { a.ThemeGenScrollGap = v },
 									}),
 								},
 							}),
@@ -221,8 +206,7 @@ func demoThemeGen(w *gui.Window) gui.View {
 														gui.CurrentTheme().TitlebarDark,
 														app.ThemeGenTint,
 														app.ThemeGenText,
-														app.ThemeGenRadius,
-														app.ThemeGenBorder,
+														themeGenSizesOf(app),
 													)
 													path := result.Paths[0].Path
 													if err := themeCfgSave(path, cfg); err != nil {
@@ -290,6 +274,84 @@ func demoThemeGen(w *gui.Window) gui.View {
 	})
 }
 
+// themeGenField describes one numeric knob on the theme maker page.
+// The five knobs differ only in label, ID, range and which state
+// fields they write, so they share one builder instead of repeating
+// the NumericInput block five times.
+type themeGenField struct {
+	SetText  func(app *ShowcaseApp, text string)
+	SetValue func(app *ShowcaseApp, v float32)
+	ID       string
+	Label    string
+	Text     string
+	Value    float32
+	Max      float64
+	Disabled bool
+}
+
+// themeGenNumField builds one labelled numeric knob. SetText runs on
+// every keystroke so a half-typed value survives the frame; SetValue
+// plus the theme rebuild run only once the value parses.
+func themeGenNumField(t gui.Theme, f themeGenField) gui.View {
+	return gui.Column(gui.ContainerCfg{
+		Sizing:  gui.FitFit,
+		Spacing: gui.SomeF(6),
+		Padding: gui.NoPadding,
+		Content: []gui.View{
+			gui.Text(gui.TextCfg{Text: f.Label, TextStyle: t.N3}),
+			gui.NumericInput(gui.NumericInputCfg{
+				ID:       f.ID,
+				Disabled: f.Disabled,
+				Text:     f.Text,
+				Value:    gui.Some(float64(f.Value)),
+				Decimals: 1,
+				Min:      gui.Some(0.0),
+				Max:      gui.Some(f.Max),
+				Width:    80,
+				Sizing:   gui.FixedFit,
+				OnTextChanged: func(text string, ctx gui.EventCtx) {
+					f.SetText(appState(ctx.Window), text)
+				},
+				OnValueCommit: func(value gui.Opt[float64], text string, ctx gui.EventCtx) {
+					app := appState(ctx.Window)
+					f.SetText(app, text)
+					if v, ok := value.Value(); ok {
+						f.SetValue(app, float32(v))
+						applyGenTheme(ctx.Window)
+					}
+				},
+			}),
+		},
+	})
+}
+
+// themeGenDefaultScrollGap is the scrollbar edge inset a theme that
+// leaves ThemeCfg.SizeScrollbarGap unset renders with. Spelled here
+// because the library constant behind it is unexported.
+const themeGenDefaultScrollGap float32 = 3
+
+// themeGenSizes carries the theme maker's numeric knobs. A struct
+// rather than five trailing float32 parameters, which no call site
+// could read.
+type themeGenSizes struct {
+	Radius    float32
+	Border    float32
+	Pad       float32
+	Scrollbar float32
+	ScrollGap float32
+}
+
+// themeGenSizesOf snapshots the knobs out of app state.
+func themeGenSizesOf(app *ShowcaseApp) themeGenSizes {
+	return themeGenSizes{
+		Radius:    app.ThemeGenRadius,
+		Border:    app.ThemeGenBorder,
+		Pad:       app.ThemeGenPad,
+		Scrollbar: app.ThemeGenScrollbar,
+		ScrollGap: app.ThemeGenScrollGap,
+	}
+}
+
 // themeContrastPreview renders the same widgets under the light preset
 // while the rest of the window keeps its own theme. gui.Themed scopes a
 // theme to one subtree; its builder runs at layout-generation time,
@@ -352,6 +414,13 @@ func syncThemeGenFromCfg(app *ShowcaseApp, cfg gui.ThemeCfg) {
 	app.ThemeGenRadiusText = floatString(cfg.Radius)
 	app.ThemeGenBorder = cfg.SizeBorder
 	app.ThemeGenBorderText = floatString(cfg.SizeBorder)
+	app.ThemeGenPad = cfg.Padding.Top
+	app.ThemeGenPadText = floatString(cfg.Padding.Top)
+	app.ThemeGenScrollbar = cfg.SizeScrollbar
+	app.ThemeGenScrollbarText = floatString(cfg.SizeScrollbar)
+	gap := cfg.SizeScrollbarGap.Get(themeGenDefaultScrollGap)
+	app.ThemeGenScrollGap = gap
+	app.ThemeGenScrollGapText = floatString(gap)
 	app.ThemeGenText = cfg.TextStyleDef.Color
 	app.ThemeGenPickText = false
 }
@@ -364,13 +433,19 @@ func applyGenTheme(w *gui.Window) {
 		gui.CurrentTheme().TitlebarDark,
 		app.ThemeGenTint,
 		app.ThemeGenText,
-		app.ThemeGenRadius,
-		app.ThemeGenBorder,
+		themeGenSizesOf(app),
 	)
 	w.SetTheme(gui.ThemeMaker(cfg))
 }
 
-func generateThemeCfg(seed gui.Color, strategy string, isDark bool, tint float32, textColor gui.Color, radius, border float32) gui.ThemeCfg {
+func generateThemeCfg(
+	seed gui.Color,
+	strategy string,
+	isDark bool,
+	tint float32,
+	textColor gui.Color,
+	sizes themeGenSizes,
+) gui.ThemeCfg {
 	h, s, _ := seed.ToHSV()
 	tintFactor := tint / 100.0
 
@@ -426,11 +501,23 @@ func generateThemeCfg(seed gui.Color, strategy string, isDark bool, tint float32
 		cfg.TextStyleDef.Color = textColor
 	}
 	cfg.Name = "generated"
-	cfg.SizeBorder = border
-	cfg.Radius = radius
-	cfg.RadiusSmall = radius * 0.64
-	cfg.RadiusMedium = radius
-	cfg.RadiusLarge = radius * 1.36
+	cfg.SizeBorder = sizes.Border
+	cfg.Radius = sizes.Radius
+	cfg.RadiusSmall = sizes.Radius * 0.64
+	cfg.RadiusMedium = sizes.Radius
+	cfg.RadiusLarge = sizes.Radius * 1.36
+	// One Pad value drives the whole ladder, the same way one Radius
+	// value drives the radius ladder above. PaddingField stays alone:
+	// it is the text inset that sets form-control height, so scaling
+	// it with container padding would break row alignment.
+	cfg.Padding = gui.PadAll(sizes.Pad)
+	cfg.PaddingSmall = gui.PadAll(sizes.Pad * 0.5)
+	cfg.PaddingMedium = gui.PadAll(sizes.Pad)
+	cfg.PaddingLarge = gui.PadAll(sizes.Pad * 1.5)
+	cfg.SizeScrollbar = sizes.Scrollbar
+	// Some, not the plain value: zero offset is a bar flush against
+	// the edge, which must not read as "unset".
+	cfg.SizeScrollbarGap = gui.SomeF(sizes.ScrollGap)
 	return cfg
 }
 

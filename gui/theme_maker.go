@@ -248,8 +248,8 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			ColorBackground: ColorTransparent,
 			Radius:          sbRadius,
 			radiusThumb:     sbRadius,
-			GapEdge:         3,
-			GapEnd:          2,
+			GapEdge:         cfg.SizeScrollbarGap.Get(scrollbarGapEdge),
+			GapEnd:          cfg.SizeScrollbarGapEnd.Get(scrollbarGapEnd),
 		},
 		radioStyle: RadioStyle{
 			Size:             cfg.SizeRadio,

@@ -307,6 +307,56 @@ func TestShowcaseDataGridApplyQuery(t *testing.T) {
 	}
 }
 
+// TestThemeGenFieldsPresent guards the five density knobs on the theme
+// maker page. They are built from one shared helper, so a wiring
+// mistake would drop all of them at once rather than fail visibly.
+func TestThemeGenFieldsPresent(t *testing.T) {
+	w := gui.NewWindow(gui.WindowCfg{State: newShowcaseApp()})
+	layout := gui.GenerateViewLayout(demoThemeGen(w), w)
+
+	for _, id := range []string{
+		"theme-gen-radius",
+		"theme-gen-border",
+		"theme-gen-pad",
+		"theme-gen-scrollbar",
+		"theme-gen-scroll-gap",
+	} {
+		if _, ok := layout.FindByID(id); !ok {
+			t.Errorf("theme maker page is missing %s", id)
+		}
+	}
+}
+
+// TestGenerateThemeCfgDerivesPaddingLadder pins the "one Pad value
+// drives the ladder" rule, including that a zero scrollbar offset
+// survives as an explicit choice.
+func TestGenerateThemeCfgDerivesPaddingLadder(t *testing.T) {
+	cfg := generateThemeCfg(
+		gui.RGB(0, 128, 255),
+		"mono",
+		true,
+		0,
+		gui.White,
+		themeGenSizes{Radius: 6, Border: 1, Pad: 10, Scrollbar: 12, ScrollGap: 0},
+	)
+
+	if got, want := cfg.Padding.Top, float32(10); got != want {
+		t.Errorf("cfg.Padding.Top = %v, want %v", got, want)
+	}
+	if got, want := cfg.PaddingSmall.Top, float32(5); got != want {
+		t.Errorf("cfg.PaddingSmall.Top = %v, want %v", got, want)
+	}
+	if got, want := cfg.PaddingLarge.Top, float32(15); got != want {
+		t.Errorf("cfg.PaddingLarge.Top = %v, want %v", got, want)
+	}
+	if got, want := cfg.SizeScrollbar, float32(12); got != want {
+		t.Errorf("cfg.SizeScrollbar = %v, want %v", got, want)
+	}
+	if gap, ok := cfg.SizeScrollbarGap.Value(); !ok || gap != 0 {
+		t.Errorf("cfg.SizeScrollbarGap = %v set=%v, want 0 set=true", gap, ok)
+	}
+}
+
 func TestThemeCfgSaveLoadRoundTrip(t *testing.T) {
 	cfg := generateThemeCfg(
 		gui.RGB(255, 85, 0),
@@ -314,8 +364,13 @@ func TestThemeCfgSaveLoadRoundTrip(t *testing.T) {
 		true,
 		35,
 		gui.White,
-		7,
-		2,
+		themeGenSizes{
+			Radius:    7,
+			Border:    2,
+			Pad:       9,
+			Scrollbar: 11,
+			ScrollGap: 0,
+		},
 	)
 
 	path := filepath.Join(t.TempDir(), "theme.json")
@@ -336,6 +391,21 @@ func TestThemeCfgSaveLoadRoundTrip(t *testing.T) {
 	}
 	if got.SizeBorder != cfg.SizeBorder {
 		t.Fatalf("expected border %.1f, got %.1f", cfg.SizeBorder, got.SizeBorder)
+	}
+	if got.Padding != cfg.Padding {
+		t.Fatalf("expected padding %v, got %v", cfg.Padding, got.Padding)
+	}
+	if got.PaddingLarge != cfg.PaddingLarge {
+		t.Fatalf("expected large padding %v, got %v", cfg.PaddingLarge, got.PaddingLarge)
+	}
+	if got.SizeScrollbar != cfg.SizeScrollbar {
+		t.Fatalf("expected scrollbar %.1f, got %.1f", cfg.SizeScrollbar, got.SizeScrollbar)
+	}
+	// ScrollGap 0 is the interesting case: it must come back as an
+	// explicitly-set zero, not as unset.
+	gap, ok := got.SizeScrollbarGap.Value()
+	if !ok || gap != 0 {
+		t.Fatalf("expected scrollbar gap set to 0, got %v set=%v", gap, ok)
 	}
 }
 
@@ -537,5 +607,55 @@ func TestDemoColorPickerBuildsComponents(t *testing.T) {
 		if _, ok := layout.FindByID(id); !ok {
 			t.Errorf("color picker demo is missing %q", id)
 		}
+	}
+}
+
+// TestThemeCfgLoadOmittedGapIsUnset covers the nil arm of
+// optFloatFromJSON: a theme file written before the offset existed has
+// no size_scrollbar_gap key, and must load as unset — not as an
+// explicit zero, which would flatten the bar against the edge.
+func TestThemeCfgLoadOmittedGapIsUnset(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "legacy.json")
+	if err := os.WriteFile(path, []byte(`{"name":"legacy","radius":6}`), 0o600); err != nil {
+		t.Fatalf("write failed: %v", err)
+	}
+
+	got, err := themeCfgLoad(path)
+	if err != nil {
+		t.Fatalf("themeCfgLoad failed: %v", err)
+	}
+	if got.SizeScrollbarGap.IsSet() {
+		t.Errorf("SizeScrollbarGap is set, want unset")
+	}
+	// Unset must reach ThemeMaker's built-in inset, not zero.
+	if gap := gui.ThemeMaker(got).ScrollbarStyle.GapEdge; gap != themeGenDefaultScrollGap {
+		t.Errorf("GapEdge = %v, want %v", gap, themeGenDefaultScrollGap)
+	}
+}
+
+// TestSyncThemeGenFromCfgMirrorsDensity pins the read-back path: after
+// Load Theme or a preset reset, the three density knobs must show the
+// values the cfg actually carries, text buffers included.
+func TestSyncThemeGenFromCfgMirrorsDensity(t *testing.T) {
+	app := newShowcaseApp()
+	cfg := gui.ThemeDark.Cfg
+	cfg.Padding = gui.PadAll(9)
+	cfg.SizeScrollbar = 11
+	cfg.SizeScrollbarGap = gui.SomeF(0)
+
+	syncThemeGenFromCfg(app, cfg)
+
+	if got, want := app.ThemeGenPad, float32(9); got != want {
+		t.Errorf("ThemeGenPad = %v, want %v", got, want)
+	}
+	if got, want := app.ThemeGenPadText, floatString(9); got != want {
+		t.Errorf("ThemeGenPadText = %q, want %q", got, want)
+	}
+	if got, want := app.ThemeGenScrollbar, float32(11); got != want {
+		t.Errorf("ThemeGenScrollbar = %v, want %v", got, want)
+	}
+	// An explicit zero gap must show as 0, not as the fallback 3.
+	if got := app.ThemeGenScrollGap; got != 0 {
+		t.Errorf("ThemeGenScrollGap = %v, want 0", got)
 	}
 }

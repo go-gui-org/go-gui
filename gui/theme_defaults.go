@@ -29,6 +29,14 @@ const (
 	scrollMultiplier float32 = 20
 	scrollDeltaLine  float32 = 1
 	scrollDeltaPage  float32 = 10
+
+	// Scrollbar insets. GapEdge holds the bar off the edge it
+	// tracks; GapEnd shortens the track at both ends. Not seeded
+	// into baseCfg: ThemeCfg leaves them unset so every preset keeps
+	// these values, and a theme that states one gets exactly what it
+	// states, zero included.
+	scrollbarGapEdge float32 = 3
+	scrollbarGapEnd  float32 = 2
 )
 
 // Dark elevation tiers (visual-refresh §5.3). Floating surfaces only:

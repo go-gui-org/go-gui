@@ -231,7 +231,7 @@ func leftPane(w *gui.Window, app *ExplorerApp) gui.View {
 				Sizing:        gui.FillFill,
 				Padding:       gui.NewPadding(0, t.ScrollbarStyle.Size+4, 0, 0),
 				Spacing:       gui.SomeF(2),
-				ScrollbarCfgY: &gui.ScrollbarCfg{GapEdge: 3},
+				ScrollbarCfgY: &gui.ScrollbarCfg{GapEdge: gui.SomeF(3)},
 				Content:       exampleRows(filtered, app),
 			}),
 			gui.Row(gui.ContainerCfg{
@@ -463,7 +463,7 @@ func rightPane(w *gui.Window, app *ExplorerApp) gui.View {
 		Sizing:        gui.FillFill,
 		Padding:       gui.NewPadding(16, 16, 20, 16),
 		Spacing:       gui.SomeF(4),
-		ScrollbarCfgY: &gui.ScrollbarCfg{GapEdge: 3},
+		ScrollbarCfgY: &gui.ScrollbarCfg{GapEdge: gui.SomeF(3)},
 		Content:       detailContent,
 	})
 }

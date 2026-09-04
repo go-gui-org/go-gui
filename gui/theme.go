@@ -347,6 +347,19 @@ type ThemeCfg struct {
 	SizeScrollbar float32
 	// exportaudit:keep — caller-facing config (issue #372)
 	SizeScrollbarMin float32
+	// SizeScrollbarGap seeds ScrollbarStyle.GapEdge — the inset
+	// between the scrollbar and the edge it tracks. Unset takes the
+	// built-in scrollbarGapEdge; zero is a legitimate choice (a bar
+	// flush against the edge), which is why this is an Opt.
+	//
+	// exportaudit:keep — themable scrollbar geometry.
+	SizeScrollbarGap Opt[float32]
+	// SizeScrollbarGapEnd seeds ScrollbarStyle.GapEnd — the inset at
+	// the two ends of the track. Unset takes the built-in
+	// scrollbarGapEnd; zero is a full-length track.
+	//
+	// exportaudit:keep — themable scrollbar geometry.
+	SizeScrollbarGapEnd Opt[float32]
 	// exportaudit:keep — caller-facing config (issue #372)
 	SizeProgressBar float32
 	// exportaudit:keep — caller-facing config (issue #372)
