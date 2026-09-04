@@ -777,3 +777,31 @@ func TestThemeMakerProgressReadoutIsSecondary(t *testing.T) {
 			ThemeLight.progressBarStyle.TextStyle, ThemeLight.TextStyleSecondary)
 	}
 }
+
+// TestThemeMakerScrollbarGapsDefault pins the fallback: a ThemeCfg
+// that says nothing about the gaps keeps the values ThemeMaker used
+// before they were themable.
+func TestThemeMakerScrollbarGapsDefault(t *testing.T) {
+	th := ThemeMaker(ThemeDark.Cfg)
+	if got, want := th.ScrollbarStyle.GapEdge, float32(3); got != want {
+		t.Errorf("GapEdge = %v, want %v", got, want)
+	}
+	if got, want := th.ScrollbarStyle.GapEnd, float32(2); got != want {
+		t.Errorf("GapEnd = %v, want %v", got, want)
+	}
+}
+
+// TestThemeMakerScrollbarGapsZero is why the fields are Opt: an
+// explicit zero must reach the style, not fall back to the default.
+func TestThemeMakerScrollbarGapsZero(t *testing.T) {
+	cfg := ThemeDark.Cfg
+	cfg.SizeScrollbarGap = SomeF(0)
+	cfg.SizeScrollbarGapEnd = SomeF(0)
+	th := ThemeMaker(cfg)
+	if got := th.ScrollbarStyle.GapEdge; got != 0 {
+		t.Errorf("GapEdge = %v, want 0", got)
+	}
+	if got := th.ScrollbarStyle.GapEnd; got != 0 {
+		t.Errorf("GapEnd = %v, want 0", got)
+	}
+}

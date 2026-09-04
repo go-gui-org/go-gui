@@ -98,7 +98,12 @@ type ShowcaseApp struct {
 	ThemeGenStrategy   string
 	ThemeGenRadiusText string
 	ThemeGenBorderText string
-	ThemeGenName       string
+	// Text buffers for the three density knobs. NumericInput keeps
+	// the raw string so a half-typed value survives the frame.
+	ThemeGenPadText       string
+	ThemeGenScrollbarText string
+	ThemeGenScrollGapText string
+	ThemeGenName          string
 
 	GesturePadLabel string
 
@@ -148,9 +153,14 @@ type ShowcaseApp struct {
 	AnimSpringX   float32
 	AnimKeyframeX float32
 
-	ThemeGenTint       float32
-	ThemeGenRadius     float32
-	ThemeGenBorder     float32
+	ThemeGenTint   float32
+	ThemeGenRadius float32
+	ThemeGenBorder float32
+	// ThemeGenPad is the base padding the whole ladder derives from;
+	// ThemeGenScrollGap is ScrollbarStyle.GapEdge.
+	ThemeGenPad        float32
+	ThemeGenScrollbar  float32
+	ThemeGenScrollGap  float32
 	MultiWindowChildID uint32
 
 	GesturePadOffsetX  float32
@@ -203,39 +213,45 @@ func appState(w *gui.Window) *ShowcaseApp {
 
 func newShowcaseApp() *ShowcaseApp {
 	return &ShowcaseApp{
-		ShaderStartTime:      time.Now(),
-		SelectedGroup:        groupAll,
-		SelectedComponent:    "welcome",
-		InputMultiline:       "Now is the time for all good men to come to the aid of their country",
-		RadioValue:           "go",
-		RangeValue:           50,
-		NumericENText:        "1,234.50",
-		NumericENValue:       gui.Some(1234.5),
-		NumericDEText:        "1.234,50",
-		NumericDEValue:       gui.Some(1234.5),
-		NumericCurrencyText:  "$1,234.50",
-		NumericCurrencyValue: gui.Some(1234.5),
-		NumericPercentText:   "12.50%",
-		NumericPercentValue:  gui.Some(0.125),
-		InputDate:            time.Now(),
-		RollerDate:           time.Now(),
-		ColorPickerColor:     gui.RGBA(51, 79, 103, 255),
-		ColorHSLA:            gui.HSLA{H: 205, S: 0.34, L: 0.3, A: 1},
-		BCSelected:           "page",
-		BCPath:               append([]gui.BreadcrumbItemCfg(nil), showcaseBreadcrumbPath...),
-		TabSelected:          "overview",
-		AudioVolume:          0.8,
-		WidgetSoundVolume:    0.5,
-		SplitterMainState:    gui.SplitterState{Ratio: 0.30},
-		SplitterDetailState:  gui.SplitterState{Ratio: 0.55},
-		SidebarOpen:          true,
-		ThemeGenSeed:         gui.ThemeDark.Cfg.ColorSelect,
-		ThemeGenStrategy:     "mono",
-		ThemeGenRadius:       gui.ThemeDark.Cfg.Radius,
-		ThemeGenRadiusText:   floatString(gui.ThemeDark.Cfg.Radius),
-		ThemeGenBorder:       gui.ThemeDark.Cfg.SizeBorder,
-		ThemeGenBorderText:   floatString(gui.ThemeDark.Cfg.SizeBorder),
-		ThemeGenText:         gui.ThemeDark.Cfg.TextStyleDef.Color,
+		ShaderStartTime:       time.Now(),
+		SelectedGroup:         groupAll,
+		SelectedComponent:     "welcome",
+		InputMultiline:        "Now is the time for all good men to come to the aid of their country",
+		RadioValue:            "go",
+		RangeValue:            50,
+		NumericENText:         "1,234.50",
+		NumericENValue:        gui.Some(1234.5),
+		NumericDEText:         "1.234,50",
+		NumericDEValue:        gui.Some(1234.5),
+		NumericCurrencyText:   "$1,234.50",
+		NumericCurrencyValue:  gui.Some(1234.5),
+		NumericPercentText:    "12.50%",
+		NumericPercentValue:   gui.Some(0.125),
+		InputDate:             time.Now(),
+		RollerDate:            time.Now(),
+		ColorPickerColor:      gui.RGBA(51, 79, 103, 255),
+		ColorHSLA:             gui.HSLA{H: 205, S: 0.34, L: 0.3, A: 1},
+		BCSelected:            "page",
+		BCPath:                append([]gui.BreadcrumbItemCfg(nil), showcaseBreadcrumbPath...),
+		TabSelected:           "overview",
+		AudioVolume:           0.8,
+		WidgetSoundVolume:     0.5,
+		SplitterMainState:     gui.SplitterState{Ratio: 0.30},
+		SplitterDetailState:   gui.SplitterState{Ratio: 0.55},
+		SidebarOpen:           true,
+		ThemeGenSeed:          gui.ThemeDark.Cfg.ColorSelect,
+		ThemeGenStrategy:      "mono",
+		ThemeGenRadius:        gui.ThemeDark.Cfg.Radius,
+		ThemeGenRadiusText:    floatString(gui.ThemeDark.Cfg.Radius),
+		ThemeGenBorder:        gui.ThemeDark.Cfg.SizeBorder,
+		ThemeGenBorderText:    floatString(gui.ThemeDark.Cfg.SizeBorder),
+		ThemeGenPad:           gui.ThemeDark.Cfg.Padding.Top,
+		ThemeGenPadText:       floatString(gui.ThemeDark.Cfg.Padding.Top),
+		ThemeGenScrollbar:     gui.ThemeDark.Cfg.SizeScrollbar,
+		ThemeGenScrollbarText: floatString(gui.ThemeDark.Cfg.SizeScrollbar),
+		ThemeGenScrollGap:     themeGenDefaultScrollGap,
+		ThemeGenScrollGapText: floatString(themeGenDefaultScrollGap),
+		ThemeGenText:          gui.ThemeDark.Cfg.TextStyleDef.Color,
 		DataGridSelection: datagrid.GridSelection{
 			SelectedRowIDs: map[string]bool{},
 		},

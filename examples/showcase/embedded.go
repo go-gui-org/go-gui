@@ -192,25 +192,51 @@ func themeCfgLoad(path string) (gui.ThemeCfg, error) {
 }
 
 type themeCfgJSON struct {
-	TextStyleDef      textStyleJSON `json:"text_style_def"`
-	Name              string        `json:"name"`
-	SizeBorder        float32       `json:"size_border"`
-	Radius            float32       `json:"radius"`
-	RadiusSmall       float32       `json:"radius_small"`
-	RadiusMedium      float32       `json:"radius_medium"`
-	RadiusLarge       float32       `json:"radius_large"`
-	ColorBackground   colorJSON     `json:"color_background"`
-	ColorPanel        colorJSON     `json:"color_panel"`
-	ColorInterior     colorJSON     `json:"color_interior"`
-	ColorHover        colorJSON     `json:"color_hover"`
-	ColorFocus        colorJSON     `json:"color_focus"`
-	ColorActive       colorJSON     `json:"color_active"`
-	ColorBorder       colorJSON     `json:"color_border"`
-	ColorBorderFocus  colorJSON     `json:"color_border_focus"`
-	ColorSeparator    colorJSON     `json:"color_separator"`
-	ColorSelect       colorJSON     `json:"color_select"`
-	ColorTextOnSelect colorJSON     `json:"color_text_on_select"`
-	TitlebarDark      bool          `json:"titlebar_dark"`
+	TextStyleDef  textStyleJSON `json:"text_style_def"`
+	Name          string        `json:"name"`
+	SizeBorder    float32       `json:"size_border"`
+	Radius        float32       `json:"radius"`
+	RadiusSmall   float32       `json:"radius_small"`
+	RadiusMedium  float32       `json:"radius_medium"`
+	RadiusLarge   float32       `json:"radius_large"`
+	Padding       paddingJSON   `json:"padding"`
+	PaddingSmall  paddingJSON   `json:"padding_small"`
+	PaddingMedium paddingJSON   `json:"padding_medium"`
+	PaddingLarge  paddingJSON   `json:"padding_large"`
+	SizeScrollbar float32       `json:"size_scrollbar"`
+	// Pointer, not float32: nil is "unset", which an Opt zero and an
+	// explicit zero gap must stay distinguishable from.
+	SizeScrollbarGap  *float32  `json:"size_scrollbar_gap"`
+	ColorBackground   colorJSON `json:"color_background"`
+	ColorPanel        colorJSON `json:"color_panel"`
+	ColorInterior     colorJSON `json:"color_interior"`
+	ColorHover        colorJSON `json:"color_hover"`
+	ColorFocus        colorJSON `json:"color_focus"`
+	ColorActive       colorJSON `json:"color_active"`
+	ColorBorder       colorJSON `json:"color_border"`
+	ColorBorderFocus  colorJSON `json:"color_border_focus"`
+	ColorSeparator    colorJSON `json:"color_separator"`
+	ColorSelect       colorJSON `json:"color_select"`
+	ColorTextOnSelect colorJSON `json:"color_text_on_select"`
+	TitlebarDark      bool      `json:"titlebar_dark"`
+}
+
+// paddingJSON mirrors gui.Padding. gui.Padding carries an unexported
+// set flag, so it is rebuilt with gui.NewPadding on the way back in
+// rather than unmarshalled directly.
+type paddingJSON struct {
+	Top    float32 `json:"top"`
+	Right  float32 `json:"right"`
+	Bottom float32 `json:"bottom"`
+	Left   float32 `json:"left"`
+}
+
+func paddingJSONFromPadding(p gui.Padding) paddingJSON {
+	return paddingJSON{Top: p.Top, Right: p.Right, Bottom: p.Bottom, Left: p.Left}
+}
+
+func (p paddingJSON) toPadding() gui.Padding {
+	return gui.NewPadding(p.Top, p.Right, p.Bottom, p.Left)
 }
 
 type colorJSON struct {
@@ -276,8 +302,31 @@ func themeCfgJSONFromCfg(cfg gui.ThemeCfg) themeCfgJSON {
 		RadiusSmall:       cfg.RadiusSmall,
 		RadiusMedium:      cfg.RadiusMedium,
 		RadiusLarge:       cfg.RadiusLarge,
+		Padding:           paddingJSONFromPadding(cfg.Padding),
+		PaddingSmall:      paddingJSONFromPadding(cfg.PaddingSmall),
+		PaddingMedium:     paddingJSONFromPadding(cfg.PaddingMedium),
+		PaddingLarge:      paddingJSONFromPadding(cfg.PaddingLarge),
+		SizeScrollbar:     cfg.SizeScrollbar,
+		SizeScrollbarGap:  optFloatJSON(cfg.SizeScrollbarGap),
 		TextStyleDef:      textStyleJSONFromTextStyle(cfg.TextStyleDef),
 	}
+}
+
+// optFloatJSON flattens an Opt into a nullable JSON number.
+func optFloatJSON(o gui.Opt[float32]) *float32 {
+	v, ok := o.Value()
+	if !ok {
+		return nil
+	}
+	return &v
+}
+
+// optFloatFromJSON is the inverse of optFloatJSON.
+func optFloatFromJSON(p *float32) gui.Opt[float32] {
+	if p == nil {
+		return gui.Opt[float32]{}
+	}
+	return gui.SomeF(*p)
 }
 
 func (cfg themeCfgJSON) toThemeCfg() gui.ThemeCfg {
@@ -300,6 +349,12 @@ func (cfg themeCfgJSON) toThemeCfg() gui.ThemeCfg {
 		RadiusSmall:       cfg.RadiusSmall,
 		RadiusMedium:      cfg.RadiusMedium,
 		RadiusLarge:       cfg.RadiusLarge,
+		Padding:           cfg.Padding.toPadding(),
+		PaddingSmall:      cfg.PaddingSmall.toPadding(),
+		PaddingMedium:     cfg.PaddingMedium.toPadding(),
+		PaddingLarge:      cfg.PaddingLarge.toPadding(),
+		SizeScrollbar:     cfg.SizeScrollbar,
+		SizeScrollbarGap:  optFloatFromJSON(cfg.SizeScrollbarGap),
 		TextStyleDef:      cfg.TextStyleDef.toTextStyle(),
 	}
 }

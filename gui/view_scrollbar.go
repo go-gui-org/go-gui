@@ -23,9 +23,13 @@ type ScrollbarCfg struct {
 	// RadiusThumb rounds the thumb. Zero takes the theme default.
 	// exportaudit:keep — caller-facing config (issue #372)
 	RadiusThumb float32
-	GapEdge     float32
-	GapEnd      float32
-	scrollID    string `gui:"required"`
+	// GapEdge insets the bar from the edge it tracks; GapEnd shortens
+	// the track at both ends. Opt, not plain float32: zero is a real
+	// choice (a bar flush against the edge, a full-length track), so
+	// it must stay distinguishable from unset, which takes the theme.
+	GapEdge  Opt[float32]
+	GapEnd   Opt[float32]
+	scrollID string `gui:"required"`
 	// ColorThumb paints the thumb. Unset takes the theme default.
 	// exportaudit:keep — caller-facing config (issue #372)
 	ColorThumb      Color
@@ -61,11 +65,11 @@ func applyScrollbarDefaults(cfg *ScrollbarCfg) {
 	if cfg.RadiusThumb == 0 {
 		cfg.RadiusThumb = DefaultScrollbarStyle.radiusThumb
 	}
-	if cfg.GapEdge == 0 {
-		cfg.GapEdge = DefaultScrollbarStyle.GapEdge
+	if !cfg.GapEdge.IsSet() {
+		cfg.GapEdge = SomeF(DefaultScrollbarStyle.GapEdge)
 	}
-	if cfg.GapEnd == 0 {
-		cfg.GapEnd = DefaultScrollbarStyle.GapEnd
+	if !cfg.GapEnd.IsSet() {
+		cfg.GapEnd = SomeF(DefaultScrollbarStyle.GapEnd)
 	}
 }
 
@@ -143,6 +147,11 @@ func scrollbarAmendLayout(
 	// the scrollable is one of them. cfg is already a copy, so this
 	// costs nothing beyond the lookup.
 	cfg.scrollID = ctx.EffID(cfg.scrollID)
+	// applyScrollbarDefaults has already filled both gaps, so the
+	// zero fallback here is unreachable; read them once rather than
+	// unwrap the Opt at every arithmetic site below.
+	gapEdge := cfg.GapEdge.Get(0)
+	gapEnd := cfg.GapEnd.Get(0)
 	parent := layout.Parent
 
 	if cfg.Orientation == scrollbarHorizontal {
@@ -165,9 +174,9 @@ func scrollbarAmendLayout(
 			scrollOffset = -v
 		}
 
-		layout.Shape.X -= cfg.GapEnd
-		layout.Shape.Y -= cfg.GapEdge
-		layout.Shape.Width -= cfg.GapEnd + cfg.GapEnd
+		layout.Shape.X -= gapEnd
+		layout.Shape.Y -= gapEdge
+		layout.Shape.Width -= gapEnd + gapEnd
 
 		offset := float32(0)
 		if availWidth > 0 {
@@ -177,7 +186,7 @@ func scrollbarAmendLayout(
 		}
 		layout.Children[thumbIndex].Shape.X = layout.Shape.X + offset
 		layout.Children[thumbIndex].Shape.Y = layout.Shape.Y
-		layout.Children[thumbIndex].Shape.Width = thumbWidth - cfg.GapEnd - cfg.GapEnd
+		layout.Children[thumbIndex].Shape.Width = thumbWidth - gapEnd - gapEnd
 		layout.Children[thumbIndex].Shape.Height = cfg.Size
 
 		if (cfg.Overflow != ScrollbarVisible && availWidth < 0.1) ||
@@ -204,9 +213,9 @@ func scrollbarAmendLayout(
 			scrollOffset = -v
 		}
 
-		layout.Shape.X -= cfg.GapEdge
-		layout.Shape.Y += cfg.GapEnd
-		layout.Shape.Height -= cfg.GapEnd + cfg.GapEnd
+		layout.Shape.X -= gapEdge
+		layout.Shape.Y += gapEnd
+		layout.Shape.Height -= gapEnd + gapEnd
 
 		layout.Children[thumbIndex].Shape.X = layout.Shape.X
 		offset := float32(0)
@@ -216,7 +225,7 @@ func scrollbarAmendLayout(
 				0, availHeight)
 		}
 		layout.Children[thumbIndex].Shape.Y = layout.Shape.Y + offset
-		layout.Children[thumbIndex].Shape.Height = thumbHeight - cfg.GapEnd - cfg.GapEnd
+		layout.Children[thumbIndex].Shape.Height = thumbHeight - gapEnd - gapEnd
 		layout.Children[thumbIndex].Shape.Width = cfg.Size
 
 		if (cfg.Overflow != ScrollbarVisible && availHeight < 0.1) ||

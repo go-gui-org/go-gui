@@ -9,7 +9,7 @@ gui.Column(gui.ContainerCfg{
     ID:            "scrolling-panel",
     Scrollable:    true,
     ScrollbarCfgY: &gui.ScrollbarCfg{
-        GapEdge:  4,
+        GapEdge:  gui.SomeF(4),
     },
     Content: views,
 })
@@ -30,17 +30,17 @@ gui.Column(gui.ContainerCfg{
 
 ## Key Properties
 
-| Property     | Type                 | Description             |
-| ------------ | -------------------- | ----------------------- |
-| ID           | string               | Unique identifier       |
-| Orientation  | ScrollbarOrientation | Horizontal or vertical  |
-| Size         | float32              | Scrollbar thickness     |
-| MinThumbSize | float32              | Minimum thumb length    |
-| Radius       | float32              | Track corner radius     |
-| RadiusThumb  | float32              | Thumb corner radius     |
-| GapEdge      | float32              | Gap from container edge |
-| GapEnd       | float32              | Gap from track ends     |
-| Overflow     | ScrollbarOverflow    | Visibility mode         |
+| Property     | Type                 | Description                                    |
+| ------------ | -------------------- | ---------------------------------------------- |
+| ID           | string               | Unique identifier                              |
+| Orientation  | ScrollbarOrientation | Horizontal or vertical                         |
+| Size         | float32              | Scrollbar thickness                            |
+| MinThumbSize | float32              | Minimum thumb length                           |
+| Radius       | float32              | Track corner radius                            |
+| RadiusThumb  | float32              | Thumb corner radius                            |
+| GapEdge      | Opt[float32]         | Gap from container edge; unset takes the theme |
+| GapEnd       | Opt[float32]         | Gap from track ends; unset takes the theme     |
+| Overflow     | ScrollbarOverflow    | Visibility mode                                |
 
 ## Appearance
 

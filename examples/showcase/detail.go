@@ -17,9 +17,6 @@ func detailPanel(w *gui.Window) gui.View {
 			SizeBorder: gui.NoBorder,
 			Padding:    detailPanelPadding(),
 
-			ScrollbarCfgY: &gui.ScrollbarCfg{
-				GapEdge: 4,
-			},
 			Content: []gui.View{
 				gui.Text(gui.TextCfg{
 					Text:      "No component matches filter",
@@ -76,9 +73,6 @@ func detailPanel(w *gui.Window) gui.View {
 		Padding:    detailPanelPadding(),
 
 		Spacing: gui.Some(gui.CurrentTheme().SpacingLarge),
-		ScrollbarCfgY: &gui.ScrollbarCfg{
-			GapEdge: 4,
-		},
 		Content: []gui.View{
 			viewTitleBar(entry, app.ShowDocs),
 			gui.Text(gui.TextCfg{Text: entry.Summary, TextStyle: gui.CurrentTheme().N3, Mode: gui.TextModeWrap}),

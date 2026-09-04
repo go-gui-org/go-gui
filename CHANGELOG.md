@@ -6,6 +6,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Themable scrollbar insets** — `ThemeCfg` gains `SizeScrollbarGap` and
+  `SizeScrollbarGapEnd`, which seed `ScrollbarStyle.GapEdge` (the inset from the
+  edge the bar tracks) and `ScrollbarStyle.GapEnd` (the inset at the two ends of
+  the track). Both were hardcoded to 3 and 2 in `ThemeMaker`. They are
+  `Opt[float32]`, so a theme can ask for a zero gap — a scrollbar flush against
+  the edge — without that reading as "unset". Unset keeps the previous values,
+  so no built-in theme changes.
+- **`ScrollbarCfg.GapEdge` and `GapEnd` are now `Opt[float32]`** — breaking for
+  call sites that set them: wrap the value, `GapEdge: gui.SomeF(4)`. Zero used
+  to read as "unset" and silently take the theme's inset, so a widget could not
+  ask for a scrollbar flush against its edge. Unset still takes the theme.
+- **Showcase theme maker: pad, scrollbar and offset knobs** — the Theme page
+  gains three numeric fields beside Radius and Border. Pad drives the whole
+  padding ladder from one value (`PaddingField` stays alone, since it sets
+  form-control height). Scrollbar sets `SizeScrollbar`; Offset sets
+  `SizeScrollbarGap`. All three round-trip through Save Theme / Load Theme. The
+  showcase's own detail panel and sidebar dropped their hardcoded `GapEdge`
+  overrides, which had been masking the theme value.
+
 ## [v0.67.0] - 2026-09-04
 
 ### Added

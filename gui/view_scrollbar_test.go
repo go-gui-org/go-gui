@@ -363,3 +363,53 @@ func TestGutterClickSetsOffsetAndLocks(t *testing.T) {
 		t.Error("expected event handled")
 	}
 }
+
+// scrollbarTrackX arranges a scrolling column with the given
+// scrollbar override and returns the resolved track X.
+func scrollbarTrackX(t *testing.T, override *ScrollbarCfg) float32 {
+	t.Helper()
+
+	w := NewWindow(WindowCfg{State: new(int), Width: 300, Height: 200})
+	w.viewGenerator = func(*Window) View {
+		rows := make([]View, 40)
+		for i := range rows {
+			rows[i] = Column(ContainerCfg{Sizing: FillFixed, Height: 20})
+		}
+		return Column(ContainerCfg{
+			ID:            "scroller",
+			Sizing:        FillFill,
+			Scrollable:    true,
+			ScrollMode:    ScrollVerticalOnly,
+			ScrollbarCfgY: override,
+			Content:       rows,
+		})
+	}
+	w.refreshLayout = true
+	w.FrameFn()
+
+	sc, ok := w.layout.FindByID("scroller")
+	if !ok {
+		t.Fatal("scroller not found")
+	}
+	// The bar is appended after the content, so it is the last child.
+	return sc.Children[len(sc.Children)-1].Shape.X
+}
+
+// TestScrollbarGapEdgeExplicitZero is why ScrollbarCfg.GapEdge is an
+// Opt: an override asking for zero must sit flush against the edge,
+// not fall back to the theme's inset.
+func TestScrollbarGapEdgeExplicitZero(t *testing.T) {
+	unset := scrollbarTrackX(t, nil)
+	zero := scrollbarTrackX(t, &ScrollbarCfg{GapEdge: SomeF(0)})
+	wide := scrollbarTrackX(t, &ScrollbarCfg{GapEdge: SomeF(20)})
+
+	if zero <= unset {
+		t.Errorf("explicit zero gap X = %v, want right of the themed %v", zero, unset)
+	}
+	if got, want := zero-unset, DefaultScrollbarStyle.GapEdge; got != want {
+		t.Errorf("themed inset = %v, want %v", got, want)
+	}
+	if got, want := zero-wide, float32(20); got != want {
+		t.Errorf("20px gap moved the bar %v, want %v", got, want)
+	}
+}
