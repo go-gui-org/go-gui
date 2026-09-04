@@ -261,10 +261,20 @@ func (b *Backend) handleMessage(msg, wparam, lparam uintptr) (uintptr, bool) {
 		return 0, false
 
 	case wmGetMinMaxInfo:
+		// Two independent concerns write different MINMAXINFO fields:
+		// the frameless clamp fixes the maximize rect, the size limits
+		// fix the track sizes. Both may apply to the same window, so
+		// neither short-circuits the other.
+		handled := false
 		if b.plat.frameless {
-			return b.clampMaximizeToWorkArea(lparam)
+			if _, ok := b.clampMaximizeToWorkArea(lparam); ok {
+				handled = true
+			}
 		}
-		return 0, false
+		if b.applySizeLimits(lparam) {
+			handled = true
+		}
+		return 0, handled
 
 	case wmClose:
 		gui.DispatchCloseRequest(w)

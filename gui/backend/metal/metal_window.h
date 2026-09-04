@@ -25,6 +25,14 @@ typedef void *GoGuiNSWindow;
 GoGuiNSWindow metalWindowCreate(const char *title, int width, int height,
                                 int fixedSize, int decorations);
 
+// Constrain interactive resizing to the given content-size bounds, in
+// logical pixels (points, which is what AppKit's content size uses, so
+// no DPI scaling applies here). A zero minimum means no floor; a zero
+// maximum means no ceiling. setContentMaxSize: also caps the maximize
+// (zoom) button, not only the drag.
+void metalWindowSetSizeLimits(GoGuiNSWindow w, int minW, int minH,
+                              int maxW, int maxH);
+
 // Hand the window to AppKit's own move loop, using the last mouse-down
 // event as the gesture's origin. No-op when no press has been seen.
 void metalWindowStartDrag(GoGuiNSWindow w);

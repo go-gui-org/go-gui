@@ -789,6 +789,23 @@ void metalWindowSetTitle(GoGuiNSWindow w, const char *title) {
     if (nsTitle) [gw->nsWindow setTitle:nsTitle];
 }
 
+void metalWindowSetSizeLimits(GoGuiNSWindow w, int minW, int minH,
+                              int maxW, int maxH) {
+    if (!w) return;
+    GoGuiWindow *gw = (GoGuiWindow *)w;
+    // A zero on either axis means "unconstrained on that axis", so each
+    // axis is decided on its own rather than skipping the whole call.
+    NSSize minSize = NSMakeSize(minW > 0 ? (CGFloat)minW : 0.0,
+                                minH > 0 ? (CGFloat)minH : 0.0);
+    [gw->nsWindow setContentMinSize:minSize];
+
+    // AppKit has no "no maximum" sentinel; CGFLOAT_MAX is the idiom,
+    // and is what a window carries before anyone sets a ceiling.
+    NSSize maxSize = NSMakeSize(maxW > 0 ? (CGFloat)maxW : CGFLOAT_MAX,
+                                maxH > 0 ? (CGFloat)maxH : CGFLOAT_MAX);
+    [gw->nsWindow setContentMaxSize:maxSize];
+}
+
 void metalWindowStartDrag(GoGuiNSWindow w) {
     if (!w || !_lastMouseDown) return;
     GoGuiWindow *gw = (GoGuiWindow *)w;
@@ -1624,6 +1641,23 @@ void metalStopFramePump(void) {
 // split would force exposing those symbols via the header, widening
 // the production surface just to relocate test code. Keeping the
 // helpers here preserves that encapsulation.
+
+// metalTestSizeLimits reports the window's content size limits so a
+// test can confirm setContentMinSize:/setContentMaxSize: actually
+// landed on the NSWindow. An unset maximum comes back as 0 rather than
+// CGFLOAT_MAX, so the caller does not have to know AppKit's sentinel.
+void metalTestSizeLimits(GoGuiNSWindow w, int *minW, int *minH,
+                         int *maxW, int *maxH) {
+    *minW = 0; *minH = 0; *maxW = 0; *maxH = 0;
+    if (!w) return;
+    GoGuiWindow *gw = (GoGuiWindow *)w;
+    NSSize mn = [gw->nsWindow contentMinSize];
+    NSSize mx = [gw->nsWindow contentMaxSize];
+    *minW = (int)mn.width;
+    *minH = (int)mn.height;
+    *maxW = mx.width  >= CGFLOAT_MAX ? 0 : (int)mx.width;
+    *maxH = mx.height >= CGFLOAT_MAX ? 0 : (int)mx.height;
+}
 
 int metalTestActivationPolicyIsRegular(void) {
     return [NSApp activationPolicy] == NSApplicationActivationPolicyRegular ? 1 : 0;

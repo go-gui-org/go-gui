@@ -45,10 +45,9 @@ func BenchmarkComboboxGenerateLayout(b *testing.B) {
 	options := benchmarkOptions(500)
 	w := newTestWindow()
 	cfg := ComboboxCfg{
-		ID:         "bench-cb",
-		Options:    options,
-		OnSelect:   func(_ string, ctx EventCtx) {},
-		Scrollable: true,
+		ID:       "bench-cb",
+		Options:  options,
+		OnSelect: func(_ string, ctx EventCtx) {},
 	}
 
 	b.Run("closed", func(b *testing.B) {

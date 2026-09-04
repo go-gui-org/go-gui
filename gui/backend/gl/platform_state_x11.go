@@ -67,6 +67,11 @@ type platformState struct {
 	physW, physH int32
 	scale        float32
 
+	// limits holds the configured resize bounds in logical pixels, kept
+	// so a DPI change can rewrite WM_NORMAL_HINTS at the new scale
+	// without re-reading the window config.
+	limits gui.SizeLimits
+
 	// Input method. ime is nil when none is reachable, in which case
 	// key presses keep going straight through the keysym path. imeBuf
 	// is reused by drainIME to keep the handoff allocation-free.

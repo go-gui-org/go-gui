@@ -115,3 +115,9 @@ coordinates, which the Go-side event no longer carries.
   event paths in `platform_win32.go`, `platform_x11.go`, `events_win32.go`,
   `events_x11.go`.
 - `examples/frameless/`.
+
+## See also
+
+- `docs/specs/window-size-limits.md` — `MinWidth`/`MaxWidth` and friends. It
+  extends the Win32 `WM_GETMINMAXINFO` handler described here, and it is what
+  finally makes `FixedSize` work on X11.

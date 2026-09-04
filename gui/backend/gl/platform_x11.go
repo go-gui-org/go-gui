@@ -119,6 +119,9 @@ func New(w *gui.Window) (*Backend, error) {
 	b.plat.curCrtc = crtc
 
 	setWindowTitle(conn, win, title)
+	// Hints are in physical pixels, matching the CreateWindow call.
+	b.plat.limits = gui.WindowSizeLimits(cfg)
+	setSizeHints(conn, win, b.plat.limits.Scaled(scale))
 	setWindowIcon(conn, win, cfg)
 	setWindowDecorations(conn, win, cfg.Decorations)
 	if cfg.WMClass != "" {
@@ -197,6 +200,84 @@ func setWindowTitle(conn *xgb.Conn, win xproto.Window, title string) {
 	xproto.ChangeProperty(conn, xproto.PropModeReplace, win,
 		xproto.AtomWmName, xproto.AtomString, 8,
 		uint32(len(title)), []byte(title))
+}
+
+// XSizeHints flag bits (Xutil.h). Only the two size bounds are used;
+// the rest of the structure is left zeroed.
+const (
+	sizeHintPMinSize = 1 << 4
+	sizeHintPMaxSize = 1 << 5
+)
+
+// sizeHintWords is the length of XSizeHints in 32-bit words. The
+// property is written whole even though only a few words are set,
+// because window managers read it by fixed offset.
+const sizeHintWords = 18
+
+// maxSizeHintExtent is the largest extent an X drawable coordinate can
+// carry, since they are 16-bit signed. Stands in for "no maximum".
+const maxSizeHintExtent = 1<<15 - 1
+
+// setSizeHints writes WM_NORMAL_HINTS so the window manager enforces
+// the resize bounds. X11 has no resizable style bit — this property is
+// the only way to constrain a drag, which is also why it is what makes
+// WindowCfg.FixedSize work here (WindowSizeLimits reports a fixed
+// window as min == max).
+//
+// Sizes must be physical pixels, since that is the unit CreateWindow
+// was given; the caller scales before calling. A window with nothing
+// constrained writes no property at all, leaving the WM's defaults.
+func setSizeHints(conn *xgb.Conn, win xproto.Window, limits gui.SizeLimits) {
+	if limits.None() {
+		return
+	}
+	words := sizeHintWordsFor(limits)
+
+	buf := make([]byte, 0, sizeHintWords*4)
+	for _, wd := range words {
+		buf = append(buf,
+			byte(wd), byte(wd>>8), byte(wd>>16), byte(wd>>24))
+	}
+	xproto.ChangeProperty(conn, xproto.PropModeReplace, win,
+		xproto.AtomWmNormalHints, xproto.AtomWmSizeHints, 32,
+		sizeHintWords, buf)
+}
+
+// sizeHintWordsFor lays the limits out in the XSizeHints word order.
+// Split from setSizeHints so the flag bits and the word offsets -- the
+// part a window manager reads positionally, and the easiest thing here
+// to get wrong -- are testable without an X server.
+func sizeHintWordsFor(limits gui.SizeLimits) [sizeHintWords]uint32 {
+	var words [sizeHintWords]uint32
+	// A flag covers both axes at once, so a one-axis limit still has to
+	// say something about the other. For a minimum, zero already means
+	// "no floor", so an unset axis is written as it stands.
+	if limits.MinW > 0 || limits.MinH > 0 {
+		words[0] |= sizeHintPMinSize
+		words[5] = uint32(limits.MinW)
+		words[6] = uint32(limits.MinH)
+	}
+	// A maximum has no such luck: zero there would read as "0 pixels"
+	// and pin the window shut, so an unset axis needs maxHintOr.
+	if limits.MaxW > 0 || limits.MaxH > 0 {
+		words[0] |= sizeHintPMaxSize
+		words[7] = maxHintOr(limits.MaxW)
+		words[8] = maxHintOr(limits.MaxH)
+	}
+	return words
+}
+
+// maxHintOr substitutes a practically unbounded extent for an unset
+// axis. X11 has no "no maximum" sentinel, and a zero would pin the
+// window shut, so an unconstrained axis gets the largest size the
+// 16-bit X drawable coordinate space can express. A set value is
+// already inside that range: gui.WindowSizeLimits caps every bound at
+// the same ceiling.
+func maxHintOr(v int) uint32 {
+	if v <= 0 {
+		return maxSizeHintExtent
+	}
+	return uint32(v)
 }
 
 // setupCloseProtocol registers WM_DELETE_WINDOW so the window manager's

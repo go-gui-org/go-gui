@@ -512,6 +512,15 @@ func createWindowState(w *gui.Window) (*windowState, error) {
 		return nil, errors.New("metalWindowCreate failed")
 	}
 
+	// Cocoa content sizes are points, the same unit WindowCfg uses, so
+	// the limits go across unscaled. Skipped entirely when nothing is
+	// constrained, leaving the window's AppKit defaults untouched.
+	if limits := gui.WindowSizeLimits(cfg); !limits.None() {
+		C.metalWindowSetSizeLimits(win,
+			C.int(limits.MinW), C.int(limits.MinH),
+			C.int(limits.MaxW), C.int(limits.MaxH))
+	}
+
 	iconPNG := cfg.IconPNG
 	if len(iconPNG) == 0 {
 		iconPNG = gui.DefaultIconPNG

@@ -10,6 +10,7 @@ package metal
 
 // Test helpers — defined in metal_window.m.
 int metalTestActivationPolicyIsRegular(void);
+void metalTestSizeLimits(GoGuiNSWindow w, int *minW, int *minH, int *maxW, int *maxH);
 int metalTestDelegateIsSet(void);
 int metalTestMainMenuExists(void);
 int metalTestMenuQuitWired(void);
@@ -124,6 +125,15 @@ func goMetalPumpFrames() {
 
 func testActivationPolicyRegular() bool {
 	return C.metalTestActivationPolicyIsRegular() != 0
+}
+
+// testSizeLimits reads back the window's content size limits. Used to
+// confirm the WindowCfg limits reached AppKit, which no Go-side check
+// can observe.
+func testSizeLimits(win C.GoGuiNSWindow) (minW, minH, maxW, maxH int) {
+	var a, b, c, d C.int
+	C.metalTestSizeLimits(win, &a, &b, &c, &d)
+	return int(a), int(b), int(c), int(d)
 }
 
 func testDelegateSet() bool {

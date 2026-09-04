@@ -10,6 +10,16 @@ and this project adheres to
 
 ### Added
 
+- **Minimum and maximum window size** (#494) — `WindowCfg` gains `MinWidth`,
+  `MinHeight`, `MaxWidth` and `MaxHeight`, in the same logical pixels as
+  `Width`/`Height`. The limits are handed to the OS at window creation, so the
+  resize drag itself stops at the bound instead of the app trying to correct an
+  already-applied size. Zero on a field leaves that bound unset; a ceiling below
+  its floor is raised to the floor; `FixedSize` still wins over all four. On
+  macOS and Windows the ceiling also caps the maximize button. Honored by the
+  macOS, Windows and X11 backends; the web backend fills its viewport as before
+  and ignores them. Details: `docs/specs/window-size-limits.md`.
+
 - **`buildapp` packages Windows and Linux, not only macOS** — `-platform`
   selects the packager, defaulting to the host `GOOS` so every existing
   invocation keeps working. `-platform windows` embeds an icon into the PE image
@@ -31,14 +41,33 @@ and this project adheres to
   `> [!WARNING]` / `> [!TIP]` callouts. Spec:
   `docs/specs/markdown-render-callback.md`.
 
+### Changed
+
+- **BREAKING: `ComboboxCfg.Scrollable` is removed; the dropdown always scrolls**
+  (#492) — the field was opt-in, so a caller who set `MaxDropdownHeight` or took
+  the theme default got a cap that did not cap. Scrolling is now the behaviour,
+  not a choice, which is what `Select`'s dropdown already did
+  (`gui/view_select.go`). Callers that set `Scrollable: true` delete the line;
+  callers that never set it gain a reachable list. A dropdown short enough to
+  fit is unchanged, because the scroll system adds no scrollbar when the content
+  fits.
+
 ### Fixed
+
+- **`WindowCfg.FixedSize` was a silent no-op on X11** (#494) — only the macOS
+  and Windows backends honored it; an X11 window stayed freely resizable. X11
+  has no resizable style bit, so the fix rides on the `WM_NORMAL_HINTS` property
+  added for the window size limits: a fixed window is expressed as minimum ==
+  maximum. Linux apps that set `FixedSize` will see their windows stop resizing,
+  which is the documented behavior they already asked for.
 
 - **A combobox dropdown painted its rows outside itself** (#492) —
   `MaxDropdownHeight` capped the dropdown container but nothing held the rows
   in, so a list longer than the cap drew over whatever was behind the dropdown.
-  A dropdown that does not scroll now clips its contents, which truncates the
-  list at the border instead. The rows below the cap stay unreachable without
-  `ComboboxCfg.Scrollable`; issue #492 tracks making scrolling the default.
+  The dropdown now scrolls, so its viewport clips the overflow and the rows
+  below the cap stay reachable with the wheel and the arrow keys. Found in
+  go-speedtest, where a 40-entry server list drew about 12 rows past the bottom
+  border, over the chart behind it.
 
 - **Text stayed pinned to the old monitor's DPI after a window moved between
   displays** (#490) — a `TextSystem` reads its scale from the backend once, at
