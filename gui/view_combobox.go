@@ -184,39 +184,38 @@ func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 
 	content := make([]View, 0, 4)
 
+	// What the field shows: the live query while open, the picked
+	// value (or the placeholder) while closed.
+	txt := cfg.Value
+	ts := cfg.TextStyle
 	if isOpen {
-		txt := query
-		ts := cfg.TextStyle
-		if len(txt) == 0 {
-			txt = cfg.Placeholder
-			ts = cfg.PlaceholderStyle
-		}
-		content = append(content, Text(TextCfg{
-			Text:      txt,
-			TextStyle: ts,
-			Mode:      TextModeSingleLine,
-		}))
-	} else {
-		empty := len(cfg.Value) == 0
-		txt := cfg.Value
-		ts := cfg.TextStyle
-		if empty {
-			txt = cfg.Placeholder
-			ts = cfg.PlaceholderStyle
-		}
-		content = append(content, Text(TextCfg{
-			Text:      txt,
-			TextStyle: ts,
-			Mode:      TextModeSingleLine,
-		}))
+		txt = query
+	}
+	if len(txt) == 0 {
+		txt = cfg.Placeholder
+		ts = cfg.PlaceholderStyle
 	}
 
-	content = append(content,
-		Row(ContainerCfg{
-			Sizing:  FillFill,
-			Padding: NoPadding,
-		}),
-	)
+	// The label sits in a clipping fill Row, not directly in the field.
+	// A single-line Text pins its MinWidth to the measured string, so a
+	// value wider than MaxWidth cannot shrink and used to push the
+	// arrow out past the border (issue #5). A Clip container drops its
+	// children's MinWidth floor (layoutWidths), so this wrapper shrinks
+	// to whatever is left after the arrow and clips the overflow. It
+	// also fills the free space, which is what the old spacer Row did.
+	content = append(content, Row(ContainerCfg{
+		Sizing:  FillFit,
+		Padding: NoPadding,
+		// The wrapper is scaffolding, not a box: a theme border here
+		// would add its own inset and grow the field.
+		SizeBorder: NoBorder,
+		Clip:       true,
+		Content: []View{Text(TextCfg{
+			Text:      txt,
+			TextStyle: ts,
+			Mode:      TextModeSingleLine,
+		})},
+	}))
 
 	content = append(content, disclosureArrow(isOpen, cfg.TextStyle))
 

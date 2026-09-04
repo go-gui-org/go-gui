@@ -1,3 +1,5 @@
 Rect xy=14.00,14.00 wh=160.00,29.60 color=#ffffff7f radius=6.00 fill
+Clip xy=24.00,19.00 wh=120.96,19.60
 Text xy=24.00,19.00 wh=0.00,0.00 color=#1a1d2195 text="alpha" size=14.00
+Clip xy=0.00,0.00 wh=320.00,240.00
 Text xy=158.96,23.76 wh=0.00,0.00 color=#1a1d2195 text="▼" size=8.40
