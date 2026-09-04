@@ -157,11 +157,13 @@ need the knobs — fonts, colors, sizing, padding, events:
 
 ```go
 w := gui.NewWindow(gui.WindowCfg{
-    State:  &App{},
-    Title:  "Counter",
-    Width:  300,
-    Height: 150,
-    OnInit: func(w *gui.Window) { w.UpdateView(mainView) },
+    State:     &App{},
+    Title:     "Counter",
+    Width:     300,
+    Height:    150,
+    MinWidth:  200, // the OS stops the resize drag here
+    MinHeight: 120,
+    OnInit:    func(w *gui.Window) { w.UpdateView(mainView) },
 })
 
 gui.Button(gui.ButtonCfg{

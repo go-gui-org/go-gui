@@ -41,6 +41,23 @@ type WindowCfg struct {
 	WMClass string
 	Width   int
 	Height  int
+	// MinWidth and MinHeight set the smallest size the user can drag
+	// the window to, in the same logical pixels as Width and Height.
+	// Zero means no floor. Honored by the macOS, Windows and X11
+	// backends; ignored elsewhere. FixedSize wins over both.
+	// exportaudit:keep — caller-facing config (issue #494)
+	MinWidth int
+	// exportaudit:keep — caller-facing config (issue #494)
+	MinHeight int
+	// MaxWidth and MaxHeight set the largest size the user can drag
+	// the window to, in logical pixels. Zero means no ceiling. A
+	// ceiling below its floor is raised to the floor. On Windows and
+	// macOS the ceiling also caps the maximize button, not only the
+	// drag.
+	// exportaudit:keep — caller-facing config (issue #494)
+	MaxWidth int
+	// exportaudit:keep — caller-facing config (issue #494)
+	MaxHeight int
 	// MaxImageBytes caps source image file size for decoded image
 	// loads. Zero or negative selects backend defaults.
 	MaxImageBytes int64

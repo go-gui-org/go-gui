@@ -108,6 +108,36 @@ func runMainThreadTests() {
 		panic("metal.New with activation: " + err.Error())
 	}
 
+	// 5b. WindowCfg size limits must reach the NSWindow. Nothing on
+	//     the Go side can observe this: AppKit enforces the bound
+	//     inside the resize drag, so a wrong handle cast or a missed
+	//     call is invisible until a user drags the window.
+	lw := gui.NewWindow(gui.WindowCfg{
+		State:  new(int),
+		Width:  400,
+		Height: 400,
+		// Only MaxWidth is set, so the readback also proves an unset
+		// axis is left unconstrained rather than pinned to zero.
+		MinWidth: 300, MinHeight: 250, MaxWidth: 900,
+	})
+	lb, err := New(lw)
+	if err != nil {
+		panic("metal.New with size limits: " + err.Error())
+	}
+	minW, minH, maxW, maxH := testSizeLimits(lb.window)
+	if minW != 300 || minH != 250 {
+		panic(fmt.Sprintf(
+			"contentMinSize = %dx%d, want 300x250", minW, minH))
+	}
+	if maxW != 900 {
+		panic(fmt.Sprintf("contentMaxSize width = %d, want 900", maxW))
+	}
+	if maxH != 0 {
+		panic(fmt.Sprintf(
+			"contentMaxSize height = %d, want unconstrained", maxH))
+	}
+	lb.Destroy()
+
 	// 6. Window must have a delegate for close/resize/focus
 	//    callbacks. Regression test for single-window close
 	//    button not working.

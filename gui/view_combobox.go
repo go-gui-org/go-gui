@@ -53,9 +53,6 @@ type ComboboxCfg struct {
 	// requires a non-empty ID; without one the control is inert.
 	FocusDisabled bool
 
-	// Scrollable opts the dropdown into the scroll system. Scroll
-	// state is keyed by ScopeID(Cfg.ID, "dropdown").
-	Scrollable       bool
 	Color            Color
 	ColorBorder      Color
 	ColorBorderFocus Color
@@ -156,16 +153,14 @@ func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 		cfg.TextStyle, cfg.Padding.Or(PaddingNone), w)
 	pad := cfg.Padding.Or(PaddingNone)
 	listH := cfg.MaxDropdownHeight - 2*sizeBorder - pad.Top - pad.Bottom
-	var scrollY float32
 	// The dropdown is a child of the container that claims cfg.ID, so
 	// its shape carries the plain leaf below and the framework joins it.
 	// The key here is that same join, spelled out because this read
 	// happens during generation.
 	dropdownScrollID := ScopeID(id, "dropdown")
-	if cfg.Scrollable {
-		// Default 0: unscrolled dropdown before first scroll event.
-		scrollY = w.scrollY().GetOr(dropdownScrollID, 0)
-	}
+	// The dropdown always scrolls, so the offset is always live.
+	// Default 0: unscrolled dropdown before the first scroll event.
+	scrollY := w.scrollY().GetOr(dropdownScrollID, 0)
 	first, last := listCoreVisibleRange(len(filtered), rowH, listH, scrollY)
 	// Index space: the *filtered* items, so it moves with the query.
 	listHeightRegisterUniform(w, dropdownScrollID, len(filtered),
@@ -257,17 +252,16 @@ func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 			FloatTieOff:  FloatTopLeft,
 			FloatOffsetY: -sizeBorder,
 			FloatZIndex:  cfg.FloatZIndex,
-			Scrollable:   cfg.Scrollable,
 			// MaxHeight alone does not hold the rows in: a list
-			// taller than the cap paints its overflow over whatever
-			// is under the dropdown. A scrollable dropdown already
-			// clips through its viewport, so the stencil is only
-			// needed for the other one, where it truncates the list
-			// instead of letting it escape.
-			ClipContents: !cfg.Scrollable,
-			Padding:      cfg.Padding,
-			Spacing:      SomeF(0),
-			Content:      dropdownContent,
+			// taller than the cap would paint its overflow over
+			// whatever is under the dropdown. The scroll viewport
+			// both clips it and gives the caller a way to reach the
+			// rows below the cap, so it is not optional (issue #492).
+			// Scroll state is keyed by ScopeID(Cfg.ID, "dropdown").
+			Scrollable: true,
+			Padding:    cfg.Padding,
+			Spacing:    SomeF(0),
+			Content:    dropdownContent,
 			AmendLayout: func(ctx EventCtx) {
 				if ctx.Layout.Parent == nil {
 					return

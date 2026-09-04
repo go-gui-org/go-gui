@@ -198,6 +198,12 @@ type platformState struct {
 	// frameless records DecorationNone: WM_NCCALCSIZE and
 	// WM_GETMINMAXINFO only deviate from the default for such a window.
 	frameless bool
+	// minTrack and maxTrack are the outer-frame resize bounds in
+	// physical pixels, precomputed at create time so the
+	// WM_GETMINMAXINFO handler does no conversion per message. A zero
+	// component means that axis is unconstrained.
+	minTrack  pointL
+	maxTrack  pointL
 	cursors   [11]uintptr
 	curCursor uintptr
 	w         *gui.Window
@@ -451,6 +457,11 @@ func New(w *gui.Window) (*Backend, error) {
 	winW := rc.right - rc.left
 	winH := rc.bottom - rc.top
 
+	// Resize bounds share the style and DPI used for the initial size,
+	// so the floor means the same client area as Width/Height does.
+	limits := gui.WindowSizeLimits(cfg)
+	minTrack, maxTrack := trackSizeFor(limits, style, dpi)
+
 	hwnd, _, err := pCreateWindowExW.Call(
 		0,
 		uintptr(unsafe.Pointer(className)),
@@ -467,6 +478,8 @@ func New(w *gui.Window) (*Backend, error) {
 	b := &Backend{}
 	b.plat.hwnd = hwnd
 	b.plat.frameless = cfg.Decorations == gui.DecorationNone
+	b.plat.minTrack = minTrack
+	b.plat.maxTrack = maxTrack
 	registerWindow(hwnd, b)
 	// Detach the IME until a text widget takes focus and IMEStart
 	// re-attaches it, matching the focus gating on macOS and X11. Without

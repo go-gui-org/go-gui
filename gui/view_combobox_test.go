@@ -347,10 +347,9 @@ func TestComboboxScrollEndToEnd(t *testing.T) {
 
 	// Generate the layout (simulates next frame).
 	v := Combobox(ComboboxCfg{
-		ID:         "cb-e2e",
-		Scrollable: true,
-		Options:    options,
-		OnSelect:   func(_ string, ctx EventCtx) {},
+		ID:       "cb-e2e",
+		Options:  options,
+		OnSelect: func(_ string, ctx EventCtx) {},
 	})
 	layout := generateViewLayout(v, w)
 

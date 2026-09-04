@@ -216,7 +216,6 @@ func demoCombobox(w *gui.Window) gui.View {
 			}),
 			gui.Combobox(gui.ComboboxCfg{
 				ID:          "combobox-demo",
-				Scrollable:  true,
 				Placeholder: "Type to search...",
 				Value:       app.ComboboxValue,
 				Options:     []string{"Go", "Rust", "Zig", "C", "C++", "Python", "TypeScript", "JavaScript", "Ruby", "Elixir"},

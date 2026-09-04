@@ -136,5 +136,9 @@ func (b *Backend) maybeRescaleDPI() bool {
 	}
 	b.plat.scale = scale
 	b.applyDPIScale(scale)
+	// The hints were written in physical pixels for the old scale, so a
+	// monitor move would otherwise leave the floor enforcing the wrong
+	// logical size.
+	setSizeHints(b.plat.conn, b.plat.window, b.plat.limits.Scaled(scale))
 	return true
 }
