@@ -440,3 +440,41 @@ func TestComboboxItemsCacheInvalidatesOnOptionsChange(t *testing.T) {
 		t.Fatalf("cache items len = %d, want 2", got)
 	}
 }
+
+// A value wider than MaxWidth must not push the disclosure arrow past
+// the field's right edge: the label shrinks and clips, the arrow stays
+// inside the border.
+func TestComboboxLongValueKeepsArrowInside(t *testing.T) {
+	w := &Window{}
+	w.windowWidth = 800
+	w.windowHeight = 600
+	w.textMeasurer = &stubTextMeasurer{charWidth: 8, fontHeight: 16}
+
+	const maxW float32 = 200
+	v := Combobox(ComboboxCfg{
+		ID:       "cb-long",
+		Value:    "Atlanta, United States (Clouvider) — a very long label",
+		Options:  []string{"Atlanta, United States (Clouvider)"},
+		MinWidth: maxW,
+		MaxWidth: maxW,
+	})
+	layout := generateViewLayout(v, w)
+	layoutWidths(&layout)
+	layoutHeights(&layout)
+	layoutFillWidths(&layout, nil)
+	layoutFillHeights(&layout, nil)
+	layoutPositions(&layout, 0, 0, w)
+
+	if layout.Shape.Width > maxW {
+		t.Fatalf("field width = %f, want <= %f", layout.Shape.Width, maxW)
+	}
+	right := layout.Shape.X + layout.Shape.Width
+	// The arrow is the last non-floating child of the field row.
+	for i := range layout.Children {
+		c := &layout.Children[i]
+		if c.Shape.X+c.Shape.Width > right {
+			t.Errorf("child %d spills past field: x=%f w=%f right=%f",
+				i, c.Shape.X, c.Shape.Width, right)
+		}
+	}
+}

@@ -125,24 +125,54 @@ func (sv *selectView) GenerateLayout(w *Window) Layout {
 		wrapMode = TextModeWrap
 	}
 
-	spacerSizing := FillFill
-	if wrapMode != TextModeSingleLine {
-		spacerSizing = FitFill
+	// A wrapping multi-select is excluded from the optical correction:
+	// its label is a block whose lines after the first are placed by the
+	// text layout, so there is no single centred line to correct. Same
+	// exclusion Input makes for multiline. Resolved here because the
+	// single-line label carries the amend on its own wrapper below.
+	var opticalAmend func(EventCtx)
+	if wrapMode == TextModeSingleLine {
+		opticalAmend = opticalCenterLabelText
 	}
 
+	label := Text(TextCfg{
+		Text:      txt,
+		TextStyle: txtStyle,
+		Mode:      wrapMode,
+	})
+
 	content := make([]View, 0, 4)
-	content = append(content,
-		Text(TextCfg{
-			Text:      txt,
-			TextStyle: txtStyle,
-			Mode:      wrapMode,
-		}),
-		Row(ContainerCfg{
-			Sizing:  spacerSizing,
+	if wrapMode == TextModeSingleLine {
+		// The label sits in a clipping fill Row, not directly in the
+		// field. A single-line Text pins its MinWidth to the measured
+		// string, so a value wider than MaxWidth cannot shrink and used
+		// to push the arrow out past the border. A Clip container drops
+		// its children's MinWidth floor (layoutWidths), so this wrapper
+		// shrinks to what the arrow leaves and clips the overflow. It
+		// fills the free space too, which is what the spacer Row did.
+		content = append(content, Row(ContainerCfg{
+			Sizing:  FillFit,
 			Padding: NoPadding,
-		}),
-		disclosureArrow(isOpen, cfg.TextStyle),
-	)
+			// Scaffolding, not a box: a theme border here would add its
+			// own inset and grow the field.
+			SizeBorder:  NoBorder,
+			Clip:        true,
+			AmendLayout: opticalAmend,
+			Content:     []View{label},
+		}))
+	} else {
+		// Wrapping label: it is a block, and its height — not its width
+		// — is what has to give, so it stays a direct child with the
+		// spacer beside it.
+		content = append(content,
+			label,
+			Row(ContainerCfg{
+				Sizing:  FitFill,
+				Padding: NoPadding,
+			}),
+		)
+	}
+	content = append(content, disclosureArrow(isOpen, cfg.TextStyle))
 
 	if isOpen {
 		highlightedIdx := StateReadOr(
@@ -186,15 +216,6 @@ func (sv *selectView) GenerateLayout(w *Window) Layout {
 	colorFocus := cfg.ColorFocus
 	colorBorderFocus := cfg.ColorBorderFocus
 
-	// A wrapping multi-select is excluded: its label is a block whose
-	// lines after the first are placed by the text layout, so there is no
-	// single centred line to correct. Same exclusion Input makes for
-	// multiline.
-	var opticalAmend func(EventCtx)
-	if wrapMode == TextModeSingleLine {
-		opticalAmend = opticalCenterLabelText
-	}
-
 	// Build the outer row layout directly.
 	// Two cues, two roles. Clicking the field opens or closes the
 	// dropdown, so it names what the click is about to do; clicking an
@@ -227,17 +248,13 @@ func (sv *selectView) GenerateLayout(w *Window) Layout {
 		Invisible:   cfg.Invisible,
 		axis:        axisLeftToRight,
 		VAlign:      VAlignMiddle,
-		// The label is the widget's own text — a placeholder, or the
-		// options joined — so it takes the optical correction; it is
-		// also swapped as the selection changes, so it takes the
-		// content-free cap-band form rather than the measured one
-		// (issue #346). The disclosure arrow is wrapped in its own row
-		// and carries its own nudge, so this reaches the label only.
-		AmendLayout: amendAll(
-			opticalAmend,
-			focusRingAmend(colorFocus, colorBorderFocus)),
-		Sound:     fieldSound,
-		OnKeyDown: makeSelectOnKeyDown(&sv.cfg, id, dropdownScrollID),
+		// The label takes the optical correction on its own wrapper
+		// above (issue #346); the arrow is wrapped in its own row and
+		// carries its own nudge. Nothing here is a direct text child,
+		// so the field itself only draws the focus ring.
+		AmendLayout: focusRingAmend(colorFocus, colorBorderFocus),
+		Sound:       fieldSound,
+		OnKeyDown:   makeSelectOnKeyDown(&sv.cfg, id, dropdownScrollID),
 		OnClick: func(ctx EventCtx) {
 			ss := StateMap[string, bool](
 				ctx.Window, nsSelect, capModerate)

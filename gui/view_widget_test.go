@@ -464,9 +464,9 @@ func TestSelectGeneratesLayout(t *testing.T) {
 	if layout.Shape.A11YRole != AccessRoleComboBox {
 		t.Fatalf("got role %d, want ComboBox", layout.Shape.A11YRole)
 	}
-	// Content: text + spacer + arrow
-	if len(layout.Children) < 3 {
-		t.Fatalf("got %d children, want >= 3", len(layout.Children))
+	// Content: label wrapper + arrow
+	if len(layout.Children) < 2 {
+		t.Fatalf("got %d children, want >= 2", len(layout.Children))
 	}
 }
 
@@ -482,8 +482,8 @@ func TestSelectPlaceholder(t *testing.T) {
 	if len(layout.Children) == 0 {
 		t.Fatal("no children")
 	}
-	txt := layout.Children[0]
-	if txt.Shape.TC == nil || txt.Shape.TC.Text != "Choose..." {
+	// The label lives inside the field's clipping wrapper row.
+	if txt := firstTextShape(&layout); txt == nil || txt.TC.Text != "Choose..." {
 		t.Fatalf("placeholder not rendered")
 	}
 }
@@ -500,10 +500,26 @@ func TestSelectShowsSelected(t *testing.T) {
 	if len(layout.Children) == 0 {
 		t.Fatal("no children")
 	}
-	txt := layout.Children[0]
-	if txt.Shape.TC == nil || txt.Shape.TC.Text != "B" {
-		t.Fatalf("got %q, want B", txt.Shape.TC.Text)
+	txt := firstTextShape(&layout)
+	if txt == nil || txt.TC.Text != "B" {
+		t.Fatalf("got %+v, want B", txt)
 	}
+}
+
+// firstTextShape returns the first text shape in the tree, depth first.
+// Widgets wrap their label in scaffolding rows, so the label is not
+// always a direct child.
+func firstTextShape(layout *Layout) *Shape {
+	if layout.Shape != nil && layout.Shape.shapeType == shapeText &&
+		layout.Shape.TC != nil {
+		return layout.Shape
+	}
+	for i := range layout.Children {
+		if s := firstTextShape(&layout.Children[i]); s != nil {
+			return s
+		}
+	}
+	return nil
 }
 
 // --- NumericInput ---

@@ -83,10 +83,10 @@ func TestSelectGeneratesDropdownWhenOpen(t *testing.T) {
 	sv := v.(*selectView)
 	layout := sv.GenerateLayout(w)
 
-	// When open, layout should have 4 children: text, spacer,
-	// arrow, and the float dropdown.
-	if len(layout.Children) != 4 {
-		t.Errorf("expected 4 children when open, got %d",
+	// When open, layout should have 3 children: the label wrapper,
+	// the arrow, and the float dropdown.
+	if len(layout.Children) != 3 {
+		t.Errorf("expected 3 children when open, got %d",
 			len(layout.Children))
 	}
 	last := layout.Children[len(layout.Children)-1]
@@ -104,19 +104,19 @@ func TestSelectArrowChangesWithState(t *testing.T) {
 	})
 	sv := v.(*selectView)
 
-	// Closed: 3 children (text, spacer, arrow).
+	// Closed: 2 children (label wrapper, arrow).
 	layout := sv.GenerateLayout(w)
-	if len(layout.Children) != 3 {
-		t.Fatalf("expected 3 children when closed, got %d",
+	if len(layout.Children) != 2 {
+		t.Fatalf("expected 2 children when closed, got %d",
 			len(layout.Children))
 	}
 
-	// Open: 4 children (text, spacer, arrow, dropdown).
+	// Open: 3 children (label wrapper, arrow, dropdown).
 	ss := StateMap[string, bool](w, nsSelect, capModerate)
 	ss.Set("s3", true)
 	layout = sv.GenerateLayout(w)
-	if len(layout.Children) != 4 {
-		t.Errorf("expected 4 children when open, got %d",
+	if len(layout.Children) != 3 {
+		t.Errorf("expected 3 children when open, got %d",
 			len(layout.Children))
 	}
 }
@@ -365,12 +365,12 @@ func TestSelectPlaceholderWhenEmpty(t *testing.T) {
 	})
 	sv := v.(*selectView)
 	layout := sv.GenerateLayout(w)
-	// First child is the text; should show placeholder.
-	if len(layout.Children) < 1 || layout.Children[0].Shape == nil {
+	// The label sits inside the field's clipping wrapper row.
+	txt := firstTextShape(&layout)
+	if txt == nil {
 		t.Fatal("expected text child")
 	}
-	if layout.Children[0].Shape.TC == nil ||
-		layout.Children[0].Shape.TC.Text != "Choose..." {
+	if txt.TC.Text != "Choose..." {
 		t.Error("expected placeholder text 'Choose...'")
 	}
 }
@@ -405,11 +405,14 @@ func selectLabelY(t *testing.T, cfg SelectCfg) float32 {
 	if !ok {
 		t.Fatal("no select in the rendered window")
 	}
-	if len(field.Children) == 0 || field.Children[0].Shape == nil ||
-		field.Children[0].Shape.shapeType != shapeText {
-		t.Fatal("first child of the select is not its label")
+	// Depth first: the label is the field's first text shape, whether
+	// it sits in the clipping wrapper (single line) or directly in the
+	// field (wrapping multi-select).
+	label := firstTextShape(field)
+	if label == nil {
+		t.Fatal("the select has no label")
 	}
-	return field.Children[0].Shape.Y
+	return label.Y
 }
 
 // A Select swaps its label as the selection changes, so the correction
@@ -445,5 +448,41 @@ func TestSelectOpticalCenterIsApplied(t *testing.T) {
 	if corrected <= uncorrected {
 		t.Errorf("corrected label Y %v, want below uncorrected %v",
 			corrected, uncorrected)
+	}
+}
+
+// Same shape as the combobox case: a selected value wider than MaxWidth
+// must clip, not push the disclosure arrow past the field's edge.
+func TestSelectLongValueKeepsArrowInside(t *testing.T) {
+	w := &Window{}
+	w.windowWidth = 800
+	w.windowHeight = 600
+	w.textMeasurer = &stubTextMeasurer{charWidth: 8, fontHeight: 16}
+
+	const maxW float32 = 200
+	v := Select(SelectCfg{
+		ID:       "sel-long",
+		Selected: []string{"Atlanta, United States (Clouvider) — a long one"},
+		Options:  []string{"Atlanta, United States (Clouvider)"},
+		MinWidth: maxW,
+		MaxWidth: maxW,
+	})
+	layout := generateViewLayout(v, w)
+	layoutWidths(&layout)
+	layoutHeights(&layout)
+	layoutFillWidths(&layout, nil)
+	layoutFillHeights(&layout, nil)
+	layoutPositions(&layout, 0, 0, w)
+
+	if layout.Shape.Width > maxW {
+		t.Fatalf("field width = %f, want <= %f", layout.Shape.Width, maxW)
+	}
+	right := layout.Shape.X + layout.Shape.Width
+	for i := range layout.Children {
+		c := &layout.Children[i]
+		if c.Shape.X+c.Shape.Width > right {
+			t.Errorf("child %d spills past field: x=%f w=%f right=%f",
+				i, c.Shape.X, c.Shape.Width, right)
+		}
 	}
 }

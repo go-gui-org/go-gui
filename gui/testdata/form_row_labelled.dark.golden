@@ -7,5 +7,7 @@ Clip xy=0.00,0.00 wh=320.00,240.00
 Text xy=163.00,30.00 wh=0.00,0.00 color=#e6e8ebb2 text="Role" size=11.00
 Rect xy=163.00,51.40 wh=127.00,31.60 color=#262a2fff radius=6.00 fill
 StrokeRect xy=163.00,51.40 wh=127.00,31.60 color=#ffffff1c radius=6.00 thickness=1.00
+Clip xy=174.00,57.40 wh=83.96,19.60
 Text xy=174.00,58.64 wh=0.00,0.00 color=#e6e8ebff text="user" size=14.00
+Clip xy=0.00,0.00 wh=320.00,240.00
 Text xy=272.96,62.16 wh=0.00,0.00 color=#e6e8ebff text="▼" size=8.40
