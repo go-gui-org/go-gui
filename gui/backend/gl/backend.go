@@ -12,6 +12,7 @@ package gl
 
 import (
 	"log"
+	"math"
 	"os"
 	"sync"
 
@@ -223,9 +224,44 @@ func (b *Backend) renderFrame(w *gui.Window) {
 // platform window and updates the viewport and projection.
 func (b *Backend) handleResize() {
 	b.physW, b.physH = b.plat.drawableSize()
-	b.dpiScale = b.plat.dpiScale()
+	b.applyDPIScale(b.plat.dpiScale())
 	gogl.Viewport(0, 0, b.physW, b.physH)
 	b.updateProjection()
+}
+
+// applyDPIScale adopts a new device scale for the whole backend. Text
+// needs both halves: glyphBack.dpiScale places the quads, and the text
+// system shapes and rasterizes at the new density. Without the second
+// half a window moved to a differently scaled monitor keeps rendering
+// glyphs at the density of the monitor it was created on, so text drifts
+// out of the boxes laid out for it.
+func (b *Backend) applyDPIScale(s float32) {
+	if b == nil {
+		return
+	}
+	// Guard against NaN/Inf/zero/negative and absurd scales that would
+	// make the glyph rasterizer allocate excessively or divide by zero.
+	// Plausible desktop scales are ~0.5-5.0; cap at 8.
+	if s != s || math.IsInf(float64(s), 0) || s <= 0 || s > 8 {
+		// An implausible value means the platform DPI query failed.
+		// Keeping the old scale beats adopting a broken one, but the
+		// symptom is mis-sized text with no trace of the cause, so
+		// leave evidence when the dev gate is on.
+		if gui.DebugEnabled() {
+			log.Printf("gl: rejected implausible dpi scale %v", s)
+		}
+		return
+	}
+	if s == b.dpiScale {
+		return
+	}
+	b.dpiScale = s
+	if b.glyphBack != nil {
+		b.glyphBack.dpiScale = s
+	}
+	if b.textSys != nil {
+		b.textSys.SetDPIScale(s)
+	}
 }
 
 func (b *Backend) updateProjection() {

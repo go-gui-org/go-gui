@@ -4,6 +4,7 @@ package gl
 
 import (
 	"testing"
+	"unsafe"
 
 	"github.com/go-gui-org/go-gui/gui"
 )
@@ -140,5 +141,51 @@ func TestNotchesToLines_HonoursSystemSetting(t *testing.T) {
 func TestSysParamUint_FallsBackOnBogusAction(t *testing.T) {
 	if got := sysParamUint(0xFFFF, defaultScrollLines); got != defaultScrollLines {
 		t.Errorf("fallback = %d, want %d", got, defaultScrollLines)
+	}
+}
+
+// WM_DPICHANGED carries the rect Windows wants the window moved to. The
+// decode must survive negative screen coordinates, which is what a
+// monitor placed left of or above the primary one produces.
+func TestDPIChangedBounds(t *testing.T) {
+	rc := rectW{left: -1920, top: -200, right: -640, bottom: 520}
+
+	x, y, cx, cy, ok := dpiChangedBounds(uintptr(unsafe.Pointer(&rc)))
+
+	if !ok {
+		t.Fatal("ok = false, want true for a non-nil rect")
+	}
+	if x != -1920 || y != -200 {
+		t.Errorf("position = (%d,%d), want (-1920,-200)", x, y)
+	}
+	if cx != 1280 || cy != 720 {
+		t.Errorf("size = (%d,%d), want (1280,720)", cx, cy)
+	}
+}
+
+// A null lParam must be reported, not dereferenced.
+func TestDPIChangedBoundsNil(t *testing.T) {
+	if _, _, _, _, ok := dpiChangedBounds(0); ok {
+		t.Error("ok = true for a nil lParam, want false")
+	}
+}
+
+func TestDPIChangedBoundsDegenerate(t *testing.T) {
+	cases := []struct {
+		name string
+		rc   rectW
+	}{
+		{"zero width", rectW{left: 0, top: 0, right: 0, bottom: 100}},
+		{"zero height", rectW{left: 0, top: 0, right: 100, bottom: 0}},
+		{"negative width", rectW{left: 100, top: 0, right: 0, bottom: 100}},
+		{"negative height", rectW{left: 0, top: 100, right: 100, bottom: 0}},
+		{"too large", rectW{left: 0, top: 0, right: 20000, bottom: 20000}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if _, _, _, _, ok := dpiChangedBounds(uintptr(unsafe.Pointer(&tc.rc))); ok {
+				t.Errorf("dpiChangedBounds(%v) = ok true, want false", tc.rc)
+			}
+		})
 	}
 }
