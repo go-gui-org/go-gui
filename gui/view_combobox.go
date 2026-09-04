@@ -258,6 +258,13 @@ func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 			FloatOffsetY: -sizeBorder,
 			FloatZIndex:  cfg.FloatZIndex,
 			Scrollable:   cfg.Scrollable,
+			// MaxHeight alone does not hold the rows in: a list
+			// taller than the cap paints its overflow over whatever
+			// is under the dropdown. A scrollable dropdown already
+			// clips through its viewport, so the stencil is only
+			// needed for the other one, where it truncates the list
+			// instead of letting it escape.
+			ClipContents: !cfg.Scrollable,
 			Padding:      cfg.Padding,
 			Spacing:      SomeF(0),
 			Content:      dropdownContent,

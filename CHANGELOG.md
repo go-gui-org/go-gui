@@ -33,6 +33,13 @@ and this project adheres to
 
 ### Fixed
 
+- **A combobox dropdown painted its rows outside itself** (#492) —
+  `MaxDropdownHeight` capped the dropdown container but nothing held the rows
+  in, so a list longer than the cap drew over whatever was behind the dropdown.
+  A dropdown that does not scroll now clips its contents, which truncates the
+  list at the border instead. The rows below the cap stay unreachable without
+  `ComboboxCfg.Scrollable`; issue #492 tracks making scrolling the default.
+
 - **Text stayed pinned to the old monitor's DPI after a window moved between
   displays** (#490) — a `TextSystem` reads its scale from the backend once, at
   construction, so glyph shaping and rasterization kept the density of the
