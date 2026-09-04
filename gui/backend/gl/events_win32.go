@@ -33,6 +33,12 @@ const (
 	wmMButtonUp   = 0x0208
 	wmMouseWheel  = 0x020A
 	wmMouseHWheel = 0x020E
+	wmDPIChanged  = 0x02E0
+
+	// SetWindowPos flags used when adopting the rect Windows suggests
+	// for a new monitor: move and size only, leave stacking and focus.
+	swpNoZOrder   = 0x0004
+	swpNoActivate = 0x0010
 
 	wmCaptureChanged = 0x0215
 
@@ -76,6 +82,25 @@ func (b *Backend) logicalXY(px, py int32) (float32, float32) {
 		s = 1
 	}
 	return float32(px) / s, float32(py) / s
+}
+
+// dpiChangedBounds reads the suggested window rect WM_DPICHANGED passes
+// in lParam and returns it as SetWindowPos arguments. Screen coordinates
+// are signed: a monitor left of or above the primary one yields negative
+// positions, which the Win32 call takes as 32-bit ints.
+func dpiChangedBounds(lparam uintptr) (x, y, cx, cy int32, ok bool) {
+	if lparam == 0 {
+		return 0, 0, 0, 0, false
+	}
+	rc := (*rectW)(ptrFromLParam(lparam))
+	// Use 64-bit intermediate to avoid int32 overflow on degenerate
+	// inputs, then bound the result to a plausible window size.
+	w := int64(rc.right) - int64(rc.left)
+	h := int64(rc.bottom) - int64(rc.top)
+	if w <= 0 || h <= 0 || w > 16384 || h > 16384 {
+		return 0, 0, 0, 0, false
+	}
+	return rc.left, rc.top, int32(w), int32(h), true
 }
 
 // handleMessage translates a window message to a gui.Event and
@@ -185,6 +210,22 @@ func (b *Backend) handleMessage(msg, wparam, lparam uintptr) (uintptr, bool) {
 		// Repaint live during modal drag-resize.
 		w.FrameFn()
 		b.renderFrame(w)
+		return 0, true
+
+	case wmDPIChanged:
+		// The process is per-monitor-v2 aware, so DefWindowProc does
+		// not resize a top-level window when it crosses to a monitor
+		// with another scale factor: the app must adopt the rect
+		// Windows suggests, already scaled for the new monitor. That
+		// SetWindowPos is what produces the WM_SIZE below, which
+		// refreshes the client size and the DPI scale. Skipping this
+		// message leaves text and geometry pinned to the DPI the
+		// window was created at (issue #490).
+		if x, y, cx, cy, ok := dpiChangedBounds(lparam); ok {
+			pSetWindowPos.Call(b.plat.hwnd, 0,
+				uintptr(x), uintptr(y), uintptr(cx), uintptr(cy),
+				swpNoZOrder|swpNoActivate)
+		}
 		return 0, true
 
 	case wmPaint:

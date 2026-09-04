@@ -18,6 +18,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math"
 	"os"
 	"runtime"
 	"unsafe"
@@ -686,10 +687,42 @@ func (ws *windowState) handleResize() {
 	ws.physW = int32(fbW)
 	ws.physH = int32(fbH)
 	if logW > 0 {
-		ws.dpiScale = float32(fbW) / float32(logW)
+		ws.applyDPIScale(float32(fbW) / float32(logW))
 	}
 	C.metalResize(ws.ctx, fbW, fbH)
 	ws.updateProjection()
+}
+
+// applyDPIScale adopts a new backing scale for the whole window. Text
+// needs both halves: glyphBack.dpiScale places the quads, and the text
+// system shapes and rasterizes at the new density. Without the second
+// half a window dragged between a Retina and a non-Retina display keeps
+// rendering glyphs at the density it was created at, so text drifts out
+// of the boxes laid out for it.
+func (ws *windowState) applyDPIScale(s float32) {
+	if ws == nil {
+		return
+	}
+	if s != s || math.IsInf(float64(s), 0) || s <= 0 || s > 8 {
+		// An implausible value means the backing-scale query failed.
+		// Keeping the old scale beats adopting a broken one, but the
+		// symptom is mis-sized text with no trace of the cause, so
+		// leave evidence when the dev gate is on.
+		if gui.DebugEnabled() {
+			log.Printf("metal: rejected implausible dpi scale %v", s)
+		}
+		return
+	}
+	if s == ws.dpiScale {
+		return
+	}
+	ws.dpiScale = s
+	if ws.glyphBack != nil {
+		ws.glyphBack.dpiScale = s
+	}
+	if ws.textSys != nil {
+		ws.textSys.SetDPIScale(s)
+	}
 }
 
 func (ws *windowState) updateProjection() {

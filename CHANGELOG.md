@@ -33,6 +33,20 @@ and this project adheres to
 
 ### Fixed
 
+- **Text stayed pinned to the old monitor's DPI after a window moved between
+  displays** (#490) — a `TextSystem` reads its scale from the backend once, at
+  construction, so glyph shaping and rasterization kept the density of the
+  display the window was created on while shapes and canvases followed the new
+  one, and text spilled out of the boxes laid out for it. Every backend now
+  pushes a changed scale into both halves of the text stack (quad placement and
+  `(*glyph.TextSystem).SetDPIScale`). Windows additionally handles
+  `WM_DPICHANGED`, which was unhandled: the process is per-monitor-v2 aware, so
+  the system does not resize the window itself and no `WM_SIZE` followed a
+  monitor move — nothing resynced at all. macOS gains
+  `windowDidChangeBackingProperties`, which is the only notification a
+  Retina-to-non-Retina move sends when the window's content size does not
+  change. Requires go-glyph v1.25.0.
+
 - **RTF link activation dropped anchors and relative links** (#488) — the
   context menu's "Open Link" had no anchor branch, so `#some-heading` went to
   the platform opener, which rejects every scheme outside http/https/mailto, and

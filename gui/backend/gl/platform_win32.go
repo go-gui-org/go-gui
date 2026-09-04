@@ -48,6 +48,7 @@ var (
 	pSetCursor        = user32.NewProc("SetCursor")
 	pGetClientRect    = user32.NewProc("GetClientRect")
 	pSetWindowTextW   = user32.NewProc("SetWindowTextW")
+	pSetWindowPos     = user32.NewProc("SetWindowPos")
 	pScreenToClient   = user32.NewProc("ScreenToClient")
 	pSetCapture       = user32.NewProc("SetCapture")
 	pReleaseCapture   = user32.NewProc("ReleaseCapture")

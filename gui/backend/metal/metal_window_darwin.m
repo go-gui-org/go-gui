@@ -593,6 +593,21 @@ static uint32_t _nextWindowID = 1;
                          (int)bounds.size.height);
 }
 
+- (void)windowDidChangeBackingProperties:(NSNotification *)notification {
+    // A window dragged between a Retina and a non-Retina display changes
+    // backing scale without changing its content size, so windowDidResize
+    // never fires and the text stack would keep rasterizing at the old
+    // density. Route it through the same path: metalWindowGetFramebufferSize
+    // recomputes the drawable from the new backingScaleFactor, and the Go
+    // side re-derives the DPI scale from it. The notification also covers
+    // color-space changes, where the recomputed scale is unchanged and the
+    // Go side does nothing.
+    NSRect bounds = self.contentView.bounds;
+    goMetalWindowResized(_windowID,
+                         (int)bounds.size.width,
+                         (int)bounds.size.height);
+}
+
 - (BOOL)windowShouldClose:(NSWindow *)sender {
     goMetalWindowShouldClose(_windowID);
     return NO; // Go decides when to destroy

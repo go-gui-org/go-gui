@@ -12,7 +12,7 @@ Go toolchain pin: `go 1.26.0`.
 | ------ | ------- | ------- |
 | `github.com/alecthomas/chroma/v2` | v2.27.0 | Syntax highlighting in the markdown widget. |
 | `github.com/ebitengine/purego` | v0.10.2 | cgo-free dynamic loading of libEGL and the OpenGL entry points (`gui/backend/internal/glbind`) for the native Linux and Windows backends. |
-| `github.com/go-gui-org/go-glyph` | v1.24.0 | Text shaping + glyph rasterization. Required by every backend. |
+| `github.com/go-gui-org/go-glyph` | v1.25.0 | Text shaping + glyph rasterization. Required by every backend. |
 | `github.com/go-pdf/fpdf` | v0.9.0 | PDF generation for the print-dialog backend. |
 | `github.com/godbus/dbus/v5` | v5.2.2 | Linux native platform: notifications, portals. |
 | `github.com/gopxl/beep/v2` | v2.1.1 | Audio decode + mixing (sound effects, music, mixer, fade) for `gui/audio`. |
