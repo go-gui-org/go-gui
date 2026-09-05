@@ -22,6 +22,29 @@ and this project adheres to
 
 ### Changed
 
+- **BREAKING: `Scrollable` is removed from `ListBoxCfg`, `TreeCfg`, `TableCfg`
+  and `CommandPaletteCfg`; these widgets always scroll** (#504) — following
+  `ComboboxCfg` in v0.68.0. A list that does not scroll is not a choice anyone
+  makes, and the flag also gated virtualization, so a 10k-row `ListBox` without
+  it built every row: a performance cliff hidden behind an ergonomics flag. On
+  `CommandPalette` the flag was worse than useless — the results column was
+  hardcoded scrollable while the flag only gated reading the offset, so a
+  scrolled palette rendered blank rows (fixed separately in v0.68.1). Delete the
+  line; scroll state is still keyed by `Cfg.ID`. Content that fits gains an
+  inert scroll region: `scrollVertical` clamps and returns false when the offset
+  does not move, so the wheel event still bubbles to the page.
+- **`TableCfg.FreezeHeader` now works on its own** (#504) — it used to require
+  `Scrollable` as well (`freeze := cfg.FreezeHeader && cfg.Scrollable && ...`),
+  so a caller who set only `FreezeHeader` got nothing, with no report. Removing
+  `Scrollable` dissolves the dependency. **This is a visible layout change in
+  code you did not touch:** a table that set `FreezeHeader` without `Scrollable`
+  renders as a header zone plus a body zone instead of one flat column, and its
+  scroll key becomes `ScopeID(Cfg.ID, "scroll")`.
+- **A `Table` with no `ID` no longer joins the scroll system** (#504) — scroll
+  state is keyed by ID, so there is nothing to key. `TableCfg.ID` is
+  `gui:"required"`, so `go vet` already rejects this; `gui.Debug` reports it at
+  runtime. The alternative was `requireScrollID` panicking on a decision the
+  caller never made.
 - **BREAKING: `NumericStepCfg.Keyboard` is now `KeyboardDisabled`** (#503) — the
   field never did anything: nothing read it, so a `NumericInput` could not step
   by keyboard whatever the caller set. Now that stepping works it defaults on,

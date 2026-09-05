@@ -1,6 +1,12 @@
 Rect xy=15.00,15.00 wh=82.00,100.80 color=#262a2fff radius=6.00 fill
 StrokeRect xy=15.00,15.00 wh=82.00,100.80 color=#ffffff1c radius=6.00 thickness=1.00
+Clip xy=30.00,30.00 wh=52.00,70.80
 Text xy=35.00,32.00 wh=0.00,0.00 color=#e6e8ebff text="one" size=14.00
 Rect xy=30.00,53.60 wh=52.00,23.60 color=#4d82f028 radius=6.00 fill
 Text xy=35.00,55.60 wh=0.00,0.00 color=#e6e8ebff text="two" size=14.00
 Text xy=35.00,79.20 wh=0.00,0.00 color=#e6e8ebff text="three" size=14.00
+Clip xy=30.00,105.80 wh=52.00,7.00
+Clip xy=30.00,30.00 wh=52.00,70.80
+Clip xy=87.00,30.00 wh=7.00,70.80
+Clip xy=30.00,30.00 wh=52.00,70.80
+Clip xy=0.00,0.00 wh=320.00,240.00

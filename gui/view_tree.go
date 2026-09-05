@@ -39,10 +39,6 @@ type TreeCfg struct {
 	// requires a non-empty ID; without one the control is inert.
 	FocusDisabled bool
 
-	// Scrollable opts the tree into the scroll system. Scroll state
-	// is keyed by Cfg.ID - pass that same id to Window.ScrollVerticalTo.
-	Scrollable bool
-
 	Width     float32
 	Height    float32
 	MinWidth  float32
@@ -201,7 +197,7 @@ func (tv *treeView) GenerateLayout(w *Window) Layout {
 	if listHeight <= 0 {
 		listHeight = cfg.MaxHeight
 	}
-	virtualize := cfg.Scrollable && listHeight > 0 && len(flatRows) > 0
+	virtualize := listHeight > 0 && len(flatRows) > 0
 	rowHeight := float32(0)
 	first, last := 0, len(flatRows)-1
 	if virtualize {
@@ -266,7 +262,7 @@ func (tv *treeView) GenerateLayout(w *Window) Layout {
 		// caller's description with the label.
 		a11Y:       cfg.a11yInfo(cfg.ID),
 		Focusable:  !cfg.FocusDisabled,
-		Scrollable: cfg.Scrollable,
+		Scrollable: true,
 		OnKeyDown: func(ctx EventCtx) {
 			if canReorder {
 				if dragReorderEscape(cfg.ID, ctx.Event.KeyCode, ctx.Window) {

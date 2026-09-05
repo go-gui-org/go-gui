@@ -95,10 +95,9 @@ func BenchmarkCommandPaletteGenerateLayout(b *testing.B) {
 		Set(id, "49")
 
 	v := CommandPalette(CommandPaletteCfg{
-		ID:         id,
-		Items:      items,
-		OnAction:   func(_ string, ctx EventCtx) {},
-		Scrollable: true,
+		ID:       id,
+		Items:    items,
+		OnAction: func(_ string, ctx EventCtx) {},
 	})
 
 	b.ReportAllocs()
@@ -143,7 +142,6 @@ func BenchmarkListBoxGenerateLayout(b *testing.B) {
 		w.scrollY().Set(scrollID, 1000)
 		v := ListBox(ListBoxCfg{
 			ID:          "bench-lb-v",
-			Scrollable:  true,
 			MaxHeight:   220,
 			Data:        data,
 			SelectedIDs: selected,
@@ -165,11 +163,10 @@ func BenchmarkListBoxGenerateLayout(b *testing.B) {
 		big := listBoxTestData(10_000)
 		w := newTestWindow()
 		cfg := ListBoxCfg{
-			ID:         "bench-lb-fill",
-			Scrollable: true,
-			Sizing:     FillFill,
-			Data:       big,
-			OnSelect:   func(_ []string, ctx EventCtx) {},
+			ID:       "bench-lb-fill",
+			Sizing:   FillFill,
+			Data:     big,
+			OnSelect: func(_ []string, ctx EventCtx) {},
 		}
 		cache := listBoxEnsureCache(&cfg, w)
 		cache.resolvedH = 300

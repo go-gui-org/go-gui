@@ -1,4 +1,8 @@
+Clip xy=16.00,16.00 wh=277.00,47.20
 Text xy=29.20,18.00 wh=0.00,0.00 color=#e6e8ebff text="Name" size=14.00
 Text xy=89.20,18.00 wh=0.00,0.00 color=#e6e8ebff text="Size" size=14.00
 Text xy=21.00,41.60 wh=0.00,0.00 color=#e6e8ebff text="alpha" size=14.00
 Text xy=81.00,41.60 wh=0.00,0.00 color=#e6e8ebff text="12" size=14.00
+Clip xy=295.00,16.00 wh=7.00,47.20
+Clip xy=16.00,16.00 wh=277.00,47.20
+Clip xy=0.00,0.00 wh=320.00,240.00

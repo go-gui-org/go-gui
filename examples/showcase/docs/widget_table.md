@@ -45,12 +45,11 @@ w.Table(gui.TableCfg{
 
 ## Virtualization
 
-Renders only visible rows when scrolling is enabled. Requires `Scrollable: true`
-and `Height` or `MaxHeight > 0`. Scroll state is keyed by `cfg.ID`, or
+Renders only visible rows. The table always scrolls, so `Height` or
+`MaxHeight > 0` is the only requirement. Scroll state is keyed by `cfg.ID`, or
 `cfg.ID + ":scroll"` when `FreezeHeader` is set.
 
 ```go
-cfg.Scrollable = true
 cfg.MaxHeight = 260
 ```
 
@@ -82,26 +81,25 @@ When `RawData` is set, `Data` is ignored.
 
 ## Key Properties
 
-| Property           | Type              | Description                                    |
-| ------------------ | ----------------- | ---------------------------------------------- |
-| RawData            | [][]string        | CSV-style data (alt. to Data)                  |
-| Data               | []TableRowCfg     | Row data with cells                            |
-| ColumnAlignments   | []HorizontalAlign | Per-column alignment                           |
-| ColumnWidthDefault | float32           | Default column width                           |
-| ColumnWidthMin     | float32           | Minimum column width                           |
-| AlignHead          | HorizontalAlign   | Header row alignment                           |
-| MultiSelect        | bool              | Allow multi-row selection                      |
-| Selected           | map[int]bool      | Selected row indices                           |
-| Scrollable         | bool              | Opt into the scroll system (state keyed by ID) |
-| Scrollbar          | ScrollbarOverflow | Scrollbar overflow mode                        |
-| BorderStyle        | TableBorderStyle  | Cell border style                              |
-| Sizing             | Sizing            | Combined axis sizing mode                      |
-| Width              | float32           | Fixed width                                    |
-| Height             | float32           | Fixed height                                   |
-| MinWidth           | float32           | Minimum width                                  |
-| MaxWidth           | float32           | Maximum width                                  |
-| MinHeight          | float32           | Minimum height                                 |
-| MaxHeight          | float32           | Maximum height                                 |
+| Property           | Type              | Description                   |
+| ------------------ | ----------------- | ----------------------------- |
+| RawData            | [][]string        | CSV-style data (alt. to Data) |
+| Data               | []TableRowCfg     | Row data with cells           |
+| ColumnAlignments   | []HorizontalAlign | Per-column alignment          |
+| ColumnWidthDefault | float32           | Default column width          |
+| ColumnWidthMin     | float32           | Minimum column width          |
+| AlignHead          | HorizontalAlign   | Header row alignment          |
+| MultiSelect        | bool              | Allow multi-row selection     |
+| Selected           | map[int]bool      | Selected row indices          |
+| Scrollbar          | ScrollbarOverflow | Scrollbar overflow mode       |
+| BorderStyle        | TableBorderStyle  | Cell border style             |
+| Sizing             | Sizing            | Combined axis sizing mode     |
+| Width              | float32           | Fixed width                   |
+| Height             | float32           | Fixed height                  |
+| MinWidth           | float32           | Minimum width                 |
+| MaxWidth           | float32           | Maximum width                 |
+| MinHeight          | float32           | Minimum height                |
+| MaxHeight          | float32           | Maximum height                |
 
 ## Appearance
 

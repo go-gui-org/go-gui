@@ -396,8 +396,7 @@ func TestPaletteKeyboardDispatchIntegration(t *testing.T) {
 
 	selected := ""
 	v := CommandPalette(CommandPaletteCfg{
-		ID:         id,
-		Scrollable: true,
+		ID: id,
 		Items: []CommandPaletteItem{
 			{ID: "alpha", Label: "Alpha"},
 			{ID: "beta", Label: "Beta"},

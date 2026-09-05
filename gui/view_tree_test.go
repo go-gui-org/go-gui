@@ -2,6 +2,21 @@ package gui
 
 import "testing"
 
+// treeRows returns a rendered Tree's row children, dropping the
+// scrollbar pair. Every tree joins the scroll system since #504 removed
+// the Scrollable opt-in; scrollbars are OverDraw children, which is
+// what marks them as not rows.
+func treeRows(layout *Layout) []Layout {
+	rows := make([]Layout, 0, len(layout.Children))
+	for _, c := range layout.Children {
+		if c.Shape.OverDraw {
+			continue
+		}
+		rows = append(rows, c)
+	}
+	return rows
+}
+
 func TestTreeNodeIDFallback(t *testing.T) {
 	if got := treeNodeID(TreeNodeCfg{Text: "alpha"}); got != "alpha" {
 		t.Errorf("treeNodeID(Text=alpha) = %q, want %q", got, "alpha")
@@ -392,8 +407,8 @@ func TestTreeGenerateLayoutA11Y(t *testing.T) {
 	if layout.Shape.A11YRole != AccessRoleTree {
 		t.Fatalf("layout.Shape.A11YRole = %d, want %d", layout.Shape.A11YRole, AccessRoleTree)
 	}
-	if got := len(layout.Children); got != 2 {
-		t.Fatalf("len(layout.Children) = %d, want 2", got)
+	if got := len(treeRows(&layout)); got != 2 {
+		t.Fatalf("len(treeRows(&layout)) = %d, want 2", got)
 	}
 
 	rootRow := layout.Children[0]
@@ -470,8 +485,8 @@ func TestTreeItemPaths(t *testing.T) {
 		ID:        "tree-paths",
 		ItemPaths: []string{"src/main.go", "src/lib.go", "docs/readme.md"},
 	}), w)
-	if len(layout.Children) != 2 {
-		t.Fatalf("children = %d, want 2", len(layout.Children))
+	if len(treeRows(&layout)) != 2 {
+		t.Fatalf("children = %d, want 2", len(treeRows(&layout)))
 	}
 }
 
@@ -506,9 +521,9 @@ func TestTreeItemPathsPrecedence(t *testing.T) {
 			{ID: "ignored", Text: "Ignored"},
 		},
 	}), w)
-	if len(layout.Children) != 2 {
+	if len(treeRows(&layout)) != 2 {
 		t.Fatalf("children = %d, want 2 (ItemPaths)",
-			len(layout.Children))
+			len(treeRows(&layout)))
 	}
 }
 
@@ -692,7 +707,7 @@ func TestTreeGenerateLayoutReorderable(t *testing.T) {
 			{ID: "b", Text: "B"},
 		},
 	}), w)
-	if got := len(layout.Children); got != 2 {
+	if got := len(treeRows(&layout)); got != 2 {
 		t.Fatalf("children = %d, want 2", got)
 	}
 	if got := layout.Children[0].Shape.ID; got != "tree-reo:row:a" {

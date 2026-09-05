@@ -14,11 +14,10 @@ func scrollIndexListWindow(id string, n int) *Window {
 		return Column(ContainerCfg{
 			Sizing: FillFill,
 			Content: []View{ListBox(ListBoxCfg{
-				ID:         id,
-				Scrollable: true,
-				Height:     200,
-				Sizing:     FillFixed,
-				Data:       listBoxTestData(n),
+				ID:     id,
+				Height: 200,
+				Sizing: FillFixed,
+				Data:   listBoxTestData(n),
 			})},
 		})
 	}
@@ -218,7 +217,6 @@ func TestScrollToIndexOnTableRespectsFreeze(t *testing.T) {
 			Sizing: FillFill,
 			Content: []View{Table(TableCfg{
 				ID:           "tbl",
-				Scrollable:   true,
 				FreezeHeader: true,
 				Height:       200,
 				Sizing:       FillFixed,

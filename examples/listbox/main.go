@@ -80,8 +80,7 @@ func mainView(w *gui.Window) gui.View {
 				TextStyle: theme.N5,
 			}),
 			gui.ListBox(gui.ListBoxCfg{
-				ID:         "virtual-listbox-10k",
-				Scrollable: true,
+				ID: "virtual-listbox-10k",
 				// Fill takes whatever the two labels above leave, so no
 				// "window height minus 70" guess to keep in sync.
 				Sizing:      gui.FillFill,

@@ -6,9 +6,8 @@ results list.
 
 ```go
 gui.CommandPalette(gui.CommandPaletteCfg{
-    ID:         "cmd",
-    Scrollable: true,
-    Items:      items,
+    ID:    "cmd",
+    Items: items,
     OnAction: func(id string, ctx gui.EventCtx) {
         // handle action
     },
@@ -29,15 +28,14 @@ gui.CommandPaletteToggle("cmd", w)
 
 ## Key Properties
 
-| Property    | Type                 | Description                                    |
-| ----------- | -------------------- | ---------------------------------------------- |
-| ID          | string               | Unique identifier                              |
-| Items       | []CommandPaletteItem | Available commands                             |
-| Placeholder | string               | Search input hint text                         |
-| Width       | float32              | Palette width                                  |
-| MaxHeight   | float32              | Maximum dropdown height                        |
-| Scrollable  | bool                 | Opt into the scroll system (state keyed by ID) |
-| FloatZIndex | int                  | Z-index for float layering                     |
+| Property    | Type                 | Description                |
+| ----------- | -------------------- | -------------------------- |
+| ID          | string               | Unique identifier          |
+| Items       | []CommandPaletteItem | Available commands         |
+| Placeholder | string               | Search input hint text     |
+| Width       | float32              | Palette width              |
+| MaxHeight   | float32              | Maximum dropdown height    |
+| FloatZIndex | int                  | Z-index for float layering |
 
 ## Appearance
 

@@ -6,6 +6,21 @@ import (
 	"testing"
 )
 
+// listBoxRows returns a rendered ListBox's row children, dropping the
+// scrollbar pair. Every list joins the scroll system since #504 removed
+// the Scrollable opt-in, so the container always carries scrollbars;
+// they are OverDraw children, which is what marks them as not rows.
+func listBoxRows(layout *Layout) []Layout {
+	rows := make([]Layout, 0, len(layout.Children))
+	for _, c := range layout.Children {
+		if c.Shape.OverDraw {
+			continue
+		}
+		rows = append(rows, c)
+	}
+	return rows
+}
+
 func TestListBoxIDPassthrough(t *testing.T) {
 	w := &Window{}
 	layout := generateViewLayout(ListBox(ListBoxCfg{
@@ -27,8 +42,8 @@ func TestListBoxChildCount(t *testing.T) {
 			{ID: "c", Name: "Gamma"},
 		},
 	}), w)
-	if len(layout.Children) != 3 {
-		t.Errorf("children: got %d, want 3", len(layout.Children))
+	if got := len(listBoxRows(&layout)); got != 3 {
+		t.Errorf("rows: got %d, want 3", got)
 	}
 }
 
@@ -107,8 +122,8 @@ func TestListBoxItems(t *testing.T) {
 		ID:    "lb-items",
 		Items: []string{"Go", "Rust", "Zig"},
 	}), w)
-	if len(layout.Children) != 3 {
-		t.Fatalf("children = %d, want 3", len(layout.Children))
+	if len(listBoxRows(&layout)) != 3 {
+		t.Fatalf("rows = %d, want 3", len(listBoxRows(&layout)))
 	}
 }
 
@@ -120,8 +135,8 @@ func TestListBoxItemsPrecedence(t *testing.T) {
 		Items: []string{"Alpha", "Beta"},
 		Data:  []ListBoxOption{{ID: "ignored", Name: "Ignored"}},
 	}), w)
-	if len(layout.Children) != 2 {
-		t.Fatalf("children = %d, want 2", len(layout.Children))
+	if got := len(listBoxRows(&layout)); got != 2 {
+		t.Fatalf("rows = %d, want 2", got)
 	}
 }
 
@@ -156,8 +171,8 @@ func TestListBoxItemsEmptyKeepsData(t *testing.T) {
 		Items: []string{},
 		Data:  []ListBoxOption{{ID: "a", Name: "Alpha"}},
 	}), w)
-	if len(layout.Children) != 1 {
-		t.Fatalf("children = %d, want 1 (Data preserved)", len(layout.Children))
+	if len(listBoxRows(&layout)) != 1 {
+		t.Fatalf("rows = %d, want 1 (Data preserved)", len(listBoxRows(&layout)))
 	}
 }
 
@@ -170,8 +185,8 @@ func TestListBoxSubheadingCount(t *testing.T) {
 			{ID: "a", Name: "Alpha"},
 		},
 	}), w)
-	if len(layout.Children) != 2 {
-		t.Errorf("children: got %d, want 2", len(layout.Children))
+	if got := len(listBoxRows(&layout)); got != 2 {
+		t.Errorf("rows: got %d, want 2", got)
 	}
 }
 
@@ -191,10 +206,9 @@ func TestListBoxFillVirtualizesNextFrame(t *testing.T) {
 	// hook), the view phase builds only the visible rows.
 	w := newTestWindow()
 	cfg := ListBoxCfg{
-		ID:         "lb-fill",
-		Scrollable: true,
-		Sizing:     FillFill,
-		Data:       listBoxTestData(10_000),
+		ID:     "lb-fill",
+		Sizing: FillFill,
+		Data:   listBoxTestData(10_000),
 	}
 	v := ListBox(cfg)
 	if _, ok := v.(*listBoxView); !ok {
@@ -236,9 +250,8 @@ func TestListBoxFillVirtualizesNextFrame(t *testing.T) {
 func TestListBoxAmendStoresResolvedHeight(t *testing.T) {
 	w := newTestWindow()
 	cfg := ListBoxCfg{
-		ID:         "lb-amend",
-		Scrollable: true,
-		Data:       listBoxTestData(10),
+		ID:   "lb-amend",
+		Data: listBoxTestData(10),
 	}
 	v := ListBox(cfg)
 	layout := generateViewLayout(v, w)
@@ -297,11 +310,10 @@ func TestListBoxVisibleRangeHeightPriority(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			cfg := ListBoxCfg{
-				ID:         "lb-prio-" + tc.name,
-				Scrollable: true,
-				Height:     tc.height,
-				MaxHeight:  tc.maxHeight,
-				Data:       data,
+				ID:        "lb-prio-" + tc.name,
+				Height:    tc.height,
+				MaxHeight: tc.maxHeight,
+				Data:      data,
 			}
 			cache := &listBoxCache{resolvedH: tc.resolvedH, hSeen: true}
 			first, last, virtualize, listH, _ :=
@@ -382,9 +394,8 @@ func TestListBoxNoHeightWarning(t *testing.T) {
 	var found []string
 	w.debug.collect = &found
 	cfg := ListBoxCfg{
-		ID:         "lb-warn",
-		Scrollable: true,
-		Data:       listBoxTestData(500),
+		ID:   "lb-warn",
+		Data: listBoxTestData(500),
 	}
 	v := ListBox(cfg)
 
@@ -416,9 +427,8 @@ func TestListBoxNoHeightGatedByCategory(t *testing.T) {
 	defer DebugCategories(prevMask)
 	w := newTestWindow()
 	cfg := ListBoxCfg{
-		ID:         "lb-cat",
-		Scrollable: true,
-		Data:       listBoxTestData(500),
+		ID:   "lb-cat",
+		Data: listBoxTestData(500),
 	}
 	v := ListBox(cfg)
 
@@ -839,5 +849,50 @@ func TestListBoxReorderClickMovesKeyboardFocus(t *testing.T) {
 
 	if got := StateReadOr(w, nsListBoxFocus, "lb-reo-click", -1); got != 1 {
 		t.Errorf("focus index = %d, want 1", got)
+	}
+}
+
+func TestListBoxAlwaysScrollable(t *testing.T) {
+	// #504: the Scrollable opt-in is gone, so a plain list joins the
+	// scroll system with no flag. Previously this shape carried
+	// Scrollable=false and its wheel events went nowhere.
+	w := &Window{}
+	layout := generateViewLayout(ListBox(ListBoxCfg{
+		ID:        "lb-always",
+		MaxHeight: 60,
+		Data: []ListBoxOption{
+			{ID: "a", Name: "Alpha"},
+			{ID: "b", Name: "Beta"},
+			{ID: "c", Name: "Gamma"},
+		},
+	}), w)
+	if !layout.Shape.Scrollable {
+		t.Error("a list must be scrollable without being asked")
+	}
+}
+
+func TestListBoxZeroHeightSkipsVirtualization(t *testing.T) {
+	// The edge #504 calls out: with no resolved height there is nothing
+	// to window against, so virtualization stays off and every row
+	// builds. It must degrade quietly, not panic or drop rows.
+	w := &Window{}
+	cfg := &ListBoxCfg{
+		ID: "lb-zero",
+		Data: []ListBoxOption{
+			{ID: "a", Name: "Alpha"},
+			{ID: "b", Name: "Beta"},
+		},
+	}
+	cache := &listBoxCache{}
+	first, last, virtualize, listH, _ := listBoxVisibleRange(cfg, cache, w)
+	if virtualize {
+		t.Error("virtualization must stay off with no resolved height")
+	}
+	if listH != 0 {
+		t.Errorf("listH = %v, want 0", listH)
+	}
+	if first != 0 || last != len(cfg.Data)-1 {
+		t.Errorf("range = (%d,%d), want all rows (0,%d)",
+			first, last, len(cfg.Data)-1)
 	}
 }

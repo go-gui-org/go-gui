@@ -334,7 +334,6 @@ func TestTableFreezeFocusWiring(t *testing.T) {
 	l := generateViewLayout(Table(TableCfg{
 		ID:           "ft",
 		Focusable:    true,
-		Scrollable:   true,
 		MaxHeight:    100,
 		FreezeHeader: true,
 		Data:         tableTestRows(),

@@ -77,11 +77,6 @@ type TableCfg struct {
 	SizeBorder       float32 // ergonomics-audit:opt-plain — 0 = no borders, applied as-is; public API kept plain
 	SizeBorderHeader float32 // ergonomics-audit:opt-plain — 0 = no header separator; public API kept plain
 
-	// Scrollable enables scrolling. When set with Height or
-	// MaxHeight, virtualization renders only visible rows. Scroll
-	// state is keyed by Cfg.ID, or ScopeID(Cfg.ID, "scroll") when
-	// FreezeHeader is set — pass that to Window.ScrollVerticalTo.
-	Scrollable  bool
 	Width       float32
 	Height      float32
 	MinWidth    float32
@@ -265,7 +260,10 @@ func tableView(cfg TableCfg, w *Window) View {
 	}
 
 	columnWidths := tableColumnWidths(&cfg, w)
-	freeze := cfg.FreezeHeader && cfg.Scrollable && len(cfg.Data) > 1
+	// FreezeHeader no longer depends on a Scrollable opt-in (#504): the
+	// table always scrolls, so the caller's intent is the whole
+	// condition. A header still needs a body row to freeze above.
+	freeze := cfg.FreezeHeader && len(cfg.Data) > 1
 	// Derived once per view: the freeze path's concatenation must not
 	// be repeated at each use (virtualization read + bodyCfg literal).
 	scrollID := tableScrollID(&cfg, freeze)
@@ -289,8 +287,7 @@ func tableView(cfg TableCfg, w *Window) View {
 		dataCount = len(cfg.Data) - 1
 	}
 
-	virtualize := cfg.Scrollable && listHeight > 0 &&
-		dataCount > 0 && w != nil
+	virtualize := listHeight > 0 && dataCount > 0 && w != nil
 	rowHeight := float32(0)
 	first, last := dataStart, lastRowIdx
 	if virtualize {
@@ -346,16 +343,21 @@ func tableView(cfg TableCfg, w *Window) View {
 	// state carries false/nil/nil, which is what outerCfg already is.
 	tableWireFocus(&outerCfg, fw)
 
-	if cfg.Scrollable {
-		outerCfg.Scrollable = true
-		outerCfg.Padding = NewPadding(0, DefaultScrollbarStyle.Size+PadXSmall, 0, 0)
-		outerCfg.ScrollbarCfgX = &ScrollbarCfg{
-			Overflow: ScrollbarHidden,
-		}
-		if cfg.Scrollbar != ScrollbarAuto {
-			outerCfg.ScrollbarCfgY = &ScrollbarCfg{
-				Overflow: cfg.Scrollbar,
-			}
+	// The table always scrolls now that #504 removed the Scrollable
+	// opt-in -- but scroll state is keyed by ID, so an ID-less table has
+	// nothing to key and must not join the scroll system. Cfg.ID is
+	// gui:"required", so this is the un-vetted path (and the library's
+	// own tableCfgFromCSV / tableCfgError build one); gui.Debug reports
+	// it under the scrollable-without-ID check. Declining here beats
+	// requireScrollID panicking on a decision the caller did not make.
+	outerCfg.Scrollable = cfg.ID != ""
+	outerCfg.Padding = NewPadding(0, DefaultScrollbarStyle.Size+PadXSmall, 0, 0)
+	outerCfg.ScrollbarCfgX = &ScrollbarCfg{
+		Overflow: ScrollbarHidden,
+	}
+	if cfg.Scrollbar != ScrollbarAuto {
+		outerCfg.ScrollbarCfgY = &ScrollbarCfg{
+			Overflow: cfg.Scrollbar,
 		}
 	}
 

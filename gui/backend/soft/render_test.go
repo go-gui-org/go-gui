@@ -464,10 +464,9 @@ func TestListBoxVirtualizedFillsViewport(t *testing.T) {
 			Sizing:     gui.FillFill,
 			Content: []gui.View{
 				gui.ListBox(gui.ListBoxCfg{
-					ID:         "lb",
-					Scrollable: true,
-					Height:     listH,
-					Data:       items,
+					ID:     "lb",
+					Height: listH,
+					Data:   items,
 				}),
 			},
 		})

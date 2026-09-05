@@ -1,6 +1,12 @@
+Clip xy=14.00,14.00 wh=84.00,47.20
 Text xy=19.00,16.00 wh=0.00,0.00 color=#1a1d2195 text="  " size=12.00
 Text xy=35.00,16.00 wh=0.00,0.00 color=#1a1d2195 text=" " size=12.00
 Text xy=51.00,16.00 wh=0.00,0.00 color=#1a1d2195 text="Alpha" size=14.00
 Text xy=19.00,39.60 wh=0.00,0.00 color=#1a1d2195 text="  " size=12.00
 Text xy=35.00,39.60 wh=0.00,0.00 color=#1a1d2195 text=" " size=12.00
 Text xy=51.00,39.60 wh=0.00,0.00 color=#1a1d2195 text="Beta" size=14.00
+Clip xy=14.00,51.20 wh=84.00,7.00
+Clip xy=14.00,14.00 wh=84.00,47.20
+Clip xy=88.00,14.00 wh=7.00,47.20
+Clip xy=14.00,14.00 wh=84.00,47.20
+Clip xy=0.00,0.00 wh=320.00,240.00
