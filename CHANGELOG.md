@@ -8,6 +8,20 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Fixed
+
+- **A scrolled command palette showed blank rows** (#504) — the results viewport
+  is always `Scrollable`, but the virtualized window read the scroll offset only
+  when the caller had set `CommandPaletteCfg.Scrollable`. With the flag unset
+  the window stayed pinned at index 0 while the viewport scrolled, so scrolling
+  past the first screen revealed the trailing transparent spacer instead of
+  items. The offset is now always read.
+
+### Deprecated
+
+- **`CommandPaletteCfg.Scrollable` is a no-op** and is scheduled for removal in
+  #504. The results list always scrolls. Callers can delete the line now.
+
 ## [v0.68.0] - 2026-09-05
 
 ### Added

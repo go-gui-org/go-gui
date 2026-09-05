@@ -49,8 +49,10 @@ type CommandPaletteCfg struct {
 	Width       float32
 	MaxHeight   float32
 
-	// Scrollable opts the results list into the scroll system. Scroll
-	// state is keyed by ScopeID(Cfg.ID, "scroll").
+	// Scrollable is a no-op and is scheduled for removal (issue #504).
+	// The results list always scrolls; scroll state is keyed by
+	// ScopeID(Cfg.ID, "scroll").
+	// exportaudit:keep — deprecated caller-facing config (issue #504)
 	Scrollable     bool
 	Color          Color
 	ColorBorder    Color
@@ -149,11 +151,13 @@ func (cp *commandPaletteView) GenerateLayout(w *Window) Layout {
 	rowH := listCoreRowHeightEstimate(
 		cfg.TextStyle, PaddingTwoFive, w)
 	scrollID := ScopeID(id, "scroll")
-	var scrollY float32
-	if cfg.Scrollable {
-		// Default 0: unscrolled list before first scroll event.
-		scrollY = w.scrollY().GetOr(scrollID, 0)
-	}
+	// The results viewport is always Scrollable (see the layout below),
+	// so the virtualized window must always follow the real offset.
+	// Reading it only when Cfg.Scrollable was set left the window
+	// pinned at index 0 while the viewport scrolled, so a scrolled
+	// palette showed the trailing spacer instead of rows.
+	// Default 0: unscrolled list before first scroll event.
+	scrollY := w.scrollY().GetOr(scrollID, 0)
 	first, last := listCoreVisibleRange(len(filtered), rowH, cfg.MaxHeight, scrollY)
 	// Index space: the *filtered* items, so it moves with the query.
 	listHeightRegisterUniform(w, scrollID, len(filtered), rowH, 0, 0)

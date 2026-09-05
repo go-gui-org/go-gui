@@ -1,6 +1,10 @@
 package gui
 
-import "testing"
+import (
+	"strconv"
+	"strings"
+	"testing"
+)
 
 func TestCommandPaletteHidden(t *testing.T) {
 	w := &Window{}
@@ -439,4 +443,104 @@ func TestPaletteFloatZIndexDefault(t *testing.T) {
 	if cfg.FloatZIndex != 1000 {
 		t.Errorf("FloatZIndex = %d, want 1000", cfg.FloatZIndex)
 	}
+}
+
+// The results viewport is always Scrollable, so the virtualized
+// window has to follow the real scroll offset. It used to be read
+// only when Cfg.Scrollable was set, which pinned the window at index
+// 0: the viewport scrolled but the rows did not, so a scrolled
+// palette showed the trailing transparent spacer instead of items.
+// Cfg.Scrollable is left unset here on purpose — that is the case
+// that used to break.
+func TestCommandPaletteScrollFollowsOffset(t *testing.T) {
+	w := &Window{}
+	const id = "cp-scroll-follow"
+	commandPaletteShow(id, w)
+
+	items := make([]CommandPaletteItem, 200)
+	for i := range items {
+		items[i] = CommandPaletteItem{
+			ID:    "cmd-" + itoa(i),
+			Label: "Command " + itoa(i),
+		}
+	}
+	cfg := CommandPaletteCfg{
+		ID:        id,
+		Items:     items,
+		MaxHeight: 200,
+		OnAction:  func(_ string, _ EventCtx) {},
+	}
+
+	// Unscrolled: the window starts at the top.
+	if first, _ := paletteRowRange(t, w, cfg); first != 0 {
+		t.Fatalf("unscrolled palette: first row = %d, want 0", first)
+	}
+
+	// Scroll well past the first screen. Offsets are negative.
+	w.scrollY().Set(ScopeID(id, "scroll"), -1000)
+	first, last := paletteRowRange(t, w, cfg)
+	if first == 0 {
+		t.Error("scrolled palette still renders from row 0; the " +
+			"virtualized window is not following the scroll offset")
+	}
+	if last <= first {
+		t.Errorf("scrolled palette rendered no rows: first=%d last=%d",
+			first, last)
+	}
+
+	// Scrolled past the end: the range clamps to the last index, so the
+	// tail renders. This is the symptom the bug produced -- an offset
+	// beyond the window used to leave only the trailing spacer.
+	w.scrollY().Set(ScopeID(id, "scroll"), -1_000_000)
+	_, last = paletteRowRange(t, w, cfg)
+	if want := len(items) - 1; last != want {
+		t.Errorf("palette scrolled to the bottom: last row = %d, want %d",
+			last, want)
+	}
+}
+
+// paletteRowRange returns the index of the first and last item row
+// the palette actually built, read back from the rendered labels.
+func paletteRowRange(
+	t *testing.T, w *Window, cfg CommandPaletteCfg,
+) (int, int) {
+	t.Helper()
+	layout := generateViewLayout(CommandPalette(cfg), w)
+	first, last := -1, -1
+	var walk func(Layout)
+	walk = func(l Layout) {
+		if l.Shape != nil && l.Shape.shapeType == shapeText &&
+			l.Shape.TC != nil {
+			if idx, ok := paletteLabelIndex(l.Shape.TC.Text); ok {
+				if first < 0 || idx < first {
+					first = idx
+				}
+				if idx > last {
+					last = idx
+				}
+			}
+		}
+		for i := range l.Children {
+			walk(l.Children[i])
+		}
+	}
+	walk(layout)
+	if first < 0 {
+		t.Fatal("palette rendered no item rows")
+	}
+	return first, last
+}
+
+// paletteLabelIndex parses "Command 42" back to 42. Anything else --
+// the placeholder, a detail line -- is not an item row.
+func paletteLabelIndex(text string) (int, bool) {
+	rest, ok := strings.CutPrefix(text, "Command ")
+	if !ok {
+		return 0, false
+	}
+	n, err := strconv.Atoi(rest)
+	if err != nil {
+		return 0, false
+	}
+	return n, true
 }
