@@ -50,15 +50,22 @@ type InputDateCfg struct {
 	// ColorTextOnSelect is the text color drawn over the selected
 	// day's fill. Unset takes the theme's.
 	// exportaudit:keep — caller-facing config (issue #372)
-	ColorTextOnSelect    Color
-	Sizing               Sizing
-	WeekdaysLen          DatePickerWeekdayLen
-	Disabled             bool
-	Invisible            bool
-	SelectMultiple       bool
+	ColorTextOnSelect Color
+	Sizing            Sizing
+	WeekdaysLen       DatePickerWeekdayLen
+	Disabled          bool
+	Invisible         bool
+	SelectMultiple    bool
+	// HideTodayIndicator turns off the border drawn around today's cell,
+	// which is otherwise on. Named for the opt-out because the indicator is
+	// the default: a calendar that does not mark today is the rare choice
+	// (issue #504).
 	HideTodayIndicator   bool
 	MondayFirstDayOfWeek bool
-	ShowAdjacentMonths   bool
+	// ShowAdjacentMonths fills the grid's leading and trailing cells with
+	// the neighboring months' days, which is otherwise off. Named for the
+	// opt-in because the plain grid is the default (issue #504).
+	ShowAdjacentMonths bool
 
 	// ReadOnly blocks date edits while the field stays focusable and
 	// selectable, mirroring InputCfg.ReadOnly. Typing is blocked on the
