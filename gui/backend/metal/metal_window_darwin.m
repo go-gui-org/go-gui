@@ -657,6 +657,8 @@ typedef struct {
     MetalContentView   *contentView;
     NSVisualEffectView *effectView;  // vibrancy backdrop; nil when opaque
     uint32_t            windowID;
+    BOOL                transparent;  // WindowCfg.Transparent; vibrancy
+                                      // disable restores this, not opaque
 } GoGuiWindow;
 
 // Mirrors gui.WindowDecoration.
@@ -872,18 +874,37 @@ static NSVisualEffectMaterial vibrancyMaterial(int material) {
     }
 }
 
+// Switch the window and its Metal drawable between opaque and
+// see-through. Shared by vibrancy and by plain transparency so the two
+// paths cannot drift; only vibrancy adds a backdrop view on top.
+static void setWindowOpacity(GoGuiWindow *gw, BOOL opaque) {
+    CAMetalLayer *layer = (CAMetalLayer *)gw->contentView.layer;
+    gw->nsWindow.opaque = opaque;
+    gw->nsWindow.backgroundColor =
+        opaque ? [NSColor windowBackgroundColor] : [NSColor clearColor];
+    layer.opaque = opaque;
+}
+
+// Plain per-pixel window transparency: the desktop shows through
+// wherever the rendered content is not opaque, with no blur. This is
+// WindowCfg.Transparent; metalWindowSetVibrancy is the blurred variant.
+void metalWindowSetTransparent(GoGuiNSWindow w, int enable) {
+    if (!w) return;
+    GoGuiWindow *gw = (GoGuiWindow *)w;
+    gw->transparent = enable ? YES : NO;
+    setWindowOpacity(gw, enable ? NO : YES);
+}
+
 void metalWindowSetVibrancy(GoGuiNSWindow w, int material) {
     if (!w) return;
     GoGuiWindow *gw = (GoGuiWindow *)w;
-    CAMetalLayer *layer = (CAMetalLayer *)gw->contentView.layer;
 
     if (material == 0) {
-        // Disable: remove the backdrop and restore an opaque window.
+        // Disable: remove the backdrop and restore whatever opacity
+        // the window had — a Transparent window stays see-through.
         [gw->effectView removeFromSuperview];
         gw->effectView = nil;
-        gw->nsWindow.opaque = YES;
-        gw->nsWindow.backgroundColor = [NSColor windowBackgroundColor];
-        layer.opaque = YES;
+        setWindowOpacity(gw, gw->transparent ? NO : YES);
         return;
     }
 
@@ -906,9 +927,7 @@ void metalWindowSetVibrancy(GoGuiNSWindow w, int material) {
 
     // Make the window and drawable non-opaque so the backdrop shows through
     // content cleared with a translucent color (see renderFrame in Go).
-    gw->nsWindow.opaque = NO;
-    gw->nsWindow.backgroundColor = [NSColor clearColor];
-    layer.opaque = NO;
+    setWindowOpacity(gw, NO);
 }
 
 // ─── Event callbacks (weak, defined in Go) ─────────────────────

@@ -194,11 +194,7 @@ func prepare(w *gui.Window, scale float32) (*textMeasurer, error) {
 // backgroundColor is the window's clear color, matching what the GPU
 // backends paint before replaying the command stream.
 func backgroundColor(w *gui.Window) gui.Color {
-	bg := w.Config.BgColor
-	if bg == (gui.Color{}) {
-		bg = w.Theme().ColorBackground
-	}
-	return bg
+	return w.FrameBackground()
 }
 
 // imageLimit resolves a WindowCfg image cap, where zero or negative

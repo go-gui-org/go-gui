@@ -94,6 +94,13 @@ const (
 	// exportaudit:keep — dev-diagnostic API for app authors
 	DebugCallbacks
 
+	// DebugWindowDegraded reports a window-level feature the platform
+	// could not deliver, so the window opened without it: a
+	// WindowCfg.Transparent window that found no ARGB visual, or one
+	// running with no compositing manager to blend it against.
+	// exportaudit:keep — dev-diagnostic API for app authors
+	DebugWindowDegraded
+
 	// DebugUnscopedIDs reports a focusable or scrollable shape whose ID
 	// resolves to itself — no ID-bearing ancestor above it — so its
 	// identity competes in the window-global namespace and cannot be
@@ -112,7 +119,7 @@ const (
 	// exportaudit:keep — dev-diagnostic API for app authors
 	DebugAll = DebugDuplicates | DebugMissingIDs | DebugUnconsumed |
 		DebugListBoxNoHeight | DebugGradientResampled | DebugWrapOverflow |
-		DebugCallbacks
+		DebugCallbacks | DebugWindowDegraded
 )
 
 func init() {
@@ -249,6 +256,9 @@ const (
 	// user activated does nothing: an unresolved anchor, a relative
 	// reference with no base URI, or a platform opener that failed.
 	debugCheckLinkNotOpened
+	// debugCheckWindowTransparency fires from a backend's window
+	// creation when WindowCfg.Transparent could not be honoured.
+	debugCheckWindowTransparency
 )
 
 // checkCategory maps an internal check to the public category that
@@ -273,6 +283,8 @@ func checkCategory(check debugCheck) DebugCategory {
 		return DebugWrapOverflow
 	case debugCheckDeferredLoop, debugCheckLinkNotOpened:
 		return DebugCallbacks
+	case debugCheckWindowTransparency:
+		return DebugWindowDegraded
 	}
 	return 0
 }
@@ -491,6 +503,17 @@ func (w *Window) DebugGradientResampled(x, y float32, kept, total int) {
 		fmt.Sprintf("gradient %g,%g", x, y),
 		"gradient at (%g, %g) has %d stops; resampled to %d "+
 			"(GPU shader uniform limit)", x, y, total, kept)
+}
+
+// DebugWindowTransparency reports that WindowCfg.Transparent did not
+// take effect, and why. Called by a backend at window creation, where
+// the platform answer is known and the app author's only clue would
+// otherwise be a window that looks wrong. reason is the warn-once
+// discriminator, so each distinct cause is reported once.
+// exportaudit:keep — dev-diagnostic API called from gui/backend
+func (w *Window) DebugWindowTransparency(reason string) {
+	w.debugWarn(debugCheckWindowTransparency, reason,
+		"window: Transparent requested but %s", reason)
 }
 
 // debugPath renders a tree path as "0/3/1". The root is "root".

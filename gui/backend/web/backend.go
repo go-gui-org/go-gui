@@ -257,13 +257,7 @@ func (b *Backend) run(w *gui.Window) {
 func (b *Backend) renderFrame(w *gui.Window) {
 	// Zero Color (transparent black) falls through to theme
 	// default — not distinguishable from unset.
-	bg := w.Config.BgColor
-	if bg == (gui.Color{}) {
-		// Runs after FrameFn on the same thread, so the installed
-		// theme happens to be right; w.Theme() makes it right by
-		// construction instead of by timing.
-		bg = w.Theme().ColorBackground
-	}
+	bg := w.FrameBackground()
 	b.glyphBack.BeginFrame(
 		float32(bg.R)/255, float32(bg.G)/255,
 		float32(bg.B)/255, float32(bg.A)/255)

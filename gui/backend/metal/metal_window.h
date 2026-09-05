@@ -150,6 +150,12 @@ void metalWindowSetCursor(GoGuiNSWindow w, const char *cursorName,
 // drawn with a translucent clear color.
 void metalWindowSetVibrancy(GoGuiNSWindow w, int material);
 
+// Set plain per-pixel window transparency (WindowCfg.Transparent): the
+// window and its CAMetalLayer become non-opaque, so a frame cleared with
+// alpha < 255 shows the desktop behind it. No blur — that is
+// metalWindowSetVibrancy. enable: non-zero on, zero back to opaque.
+void metalWindowSetTransparent(GoGuiNSWindow w, int enable);
+
 // ─── Clipboard ─────────────────────────────────────────────────
 
 // Get the clipboard text. Returns NULL if empty or not a string.

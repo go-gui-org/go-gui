@@ -143,13 +143,7 @@ func (fs *FrameState) HandleResize(w, h int32, scale float32) {
 // unset. Returns normalized 0..1 components ready for the C
 // begin-frame call.
 func (fs *FrameState) FrameBg(w *gui.Window) (r, g, b, a float32) {
-	bg := w.Config.BgColor
-	if bg == (gui.Color{}) {
-		// Runs after FrameFn on the same thread, so the installed
-		// theme happens to be right; w.Theme() makes it right by
-		// construction instead of by timing.
-		bg = w.Theme().ColorBackground
-	}
+	bg := w.FrameBackground()
 	return float32(bg.R) / 255.0,
 		float32(bg.G) / 255.0,
 		float32(bg.B) / 255.0,

@@ -257,6 +257,7 @@ func TestCheckCategoryMapping(t *testing.T) {
 		{debugCheckGradientResampled, DebugGradientResampled},
 		{debugCheckWrapOverflow, DebugWrapOverflow},
 		{debugCheckDeferredLoop, DebugCallbacks},
+		{debugCheckWindowTransparency, DebugWindowDegraded},
 	}
 	for _, tc := range tests {
 		if got := checkCategory(tc.check); got != tc.want {
@@ -266,7 +267,7 @@ func TestCheckCategoryMapping(t *testing.T) {
 	// DebugAll covers every category Debug(true) turns on.
 	// DebugUnscopedIDs is opt-in and deliberately outside it: it reports
 	// a design property, not a defect.
-	if DebugAll != DebugDuplicates|DebugMissingIDs|DebugUnconsumed|DebugListBoxNoHeight|DebugGradientResampled|DebugWrapOverflow|DebugCallbacks {
+	if DebugAll != DebugDuplicates|DebugMissingIDs|DebugUnconsumed|DebugListBoxNoHeight|DebugGradientResampled|DebugWrapOverflow|DebugCallbacks|DebugWindowDegraded {
 		t.Fatal("DebugAll must cover every category Debug(true) enables")
 	}
 	if DebugAll&DebugUnscopedIDs != 0 {

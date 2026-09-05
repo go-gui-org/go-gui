@@ -77,7 +77,43 @@ type WindowCfg struct {
 	// is true.
 	// exportaudit:keep — caller-facing config (issue #372)
 	HistoryBytes int
-	BgColor      Color
+	// BgColor is the color every frame is cleared with, behind all
+	// rendered content. Unset takes the theme's background.
+	//
+	// The alpha channel is how much of the window is see-through, but
+	// it only reaches the compositor on a Transparent window: on an
+	// ordinary one the alpha is discarded and any value looks fully
+	// opaque. Read every frame, so an app may assign it at runtime;
+	// Transparent, by contrast, is fixed when the window is made.
+	// exportaudit:keep — caller-facing config
+	BgColor Color
+	// Transparent makes the window's alpha channel reach the
+	// compositor, so whatever is behind the window shows through
+	// wherever the rendered content is not opaque.
+	//
+	// How see-through the window is comes from BgColor's alpha, not
+	// from this flag: RGBA(0, 0, 0, 128) is a half-visible ground,
+	// RGBA(0, 0, 0, 0) a fully clear one. An unset BgColor is treated
+	// as fully transparent rather than taking the opaque theme
+	// background, so the flag on its own is enough to see through.
+	// Widgets keep whatever alpha their own colors carry — a solid
+	// button stays solid.
+	//
+	// The flag stays separate from that alpha deliberately. It asks
+	// the platform for a capability and can be refused, which BgColor
+	// cannot, and it is answered once at creation, while BgColor is
+	// read every frame.
+	//
+	// Creation-time only: the X11 visual and the Win32 pixel format
+	// are fixed when the window is made, so there is no runtime
+	// setter. This is plain transparency, not blur —
+	// Window.SetWindowVibrancy is the separate macOS-only blur API.
+	//
+	// Honored by the macOS, Windows and X11 backends; ignored
+	// elsewhere. On X11 it needs a running compositing manager. With
+	// no compositor the window renders black, which gui.Debug
+	// reports.
+	Transparent bool
 	// FixedSize disables user-driven window resizing when supported
 	// by the active backend.
 	FixedSize bool
@@ -143,4 +179,22 @@ func NewWindow(cfg WindowCfg) *Window {
 	// that follow the app default. Dropped again in WindowCleanup.
 	registerWindow(w)
 	return w
+}
+
+// FrameBackground is the color a backend clears the window with each
+// frame. An unset BgColor normally takes the theme background, which is
+// opaque; a Transparent window instead falls back to fully transparent,
+// so the flag on its own is enough to see through the window.
+//
+// Backends call this after FrameFn on the same thread, so the installed
+// theme happens to be right; w.Theme() makes it right by construction
+// instead of by timing.
+func (w *Window) FrameBackground() Color {
+	if bg := w.Config.BgColor; bg != (Color{}) {
+		return bg
+	}
+	if w.Config.Transparent {
+		return ColorTransparent
+	}
+	return w.Theme().ColorBackground
 }
