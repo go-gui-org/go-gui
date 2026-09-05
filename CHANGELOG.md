@@ -19,10 +19,6 @@ and this project adheres to
   `Opt[float32]`, so a theme can ask for a zero gap — a scrollbar flush against
   the edge — without that reading as "unset". Unset keeps the previous values,
   so no built-in theme changes.
-- **`ScrollbarCfg.GapEdge` and `GapEnd` are now `Opt[float32]`** — breaking for
-  call sites that set them: wrap the value, `GapEdge: gui.SomeF(4)`. Zero used
-  to read as "unset" and silently take the theme's inset, so a widget could not
-  ask for a scrollbar flush against its edge. Unset still takes the theme.
 - **Showcase theme maker: pad, scrollbar and offset knobs** — the Theme page
   gains three numeric fields beside Radius and Border. Pad drives the whole
   padding ladder from one value (`PaddingField` stays alone, since it sets
@@ -30,6 +26,13 @@ and this project adheres to
   `SizeScrollbarGap`. All three round-trip through Save Theme / Load Theme. The
   showcase's own detail panel and sidebar dropped their hardcoded `GapEdge`
   overrides, which had been masking the theme value.
+
+### Changed
+
+- **BREAKING: `ScrollbarCfg.GapEdge` and `GapEnd` are now `Opt[float32]`**
+  (#498) — zero used to read as "unset" and silently take the theme's inset, so
+  a widget could not ask for a scrollbar flush against its edge. Wrap the value,
+  `GapEdge: gui.SomeF(4)`; unset still takes the theme.
 
 ### Fixed
 
