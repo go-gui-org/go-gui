@@ -8,6 +8,8 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [v0.68.0] - 2026-09-05
+
 ### Added
 
 - **Themable scrollbar insets** — `ThemeCfg` gains `SizeScrollbarGap` and
@@ -28,6 +30,17 @@ and this project adheres to
   `SizeScrollbarGap`. All three round-trip through Save Theme / Load Theme. The
   showcase's own detail panel and sidebar dropped their hardcoded `GapEdge`
   overrides, which had been masking the theme value.
+
+### Fixed
+
+- **Combobox and select label clipping** (#496) — a value wider than the field
+  pushed the disclosure arrow out past the border instead of being cut off at
+  it. Both widgets now put the label in a clipping fill row that drops its
+  `MinWidth` floor so the arrow stays inside the field.
+- **Horizontal scrollbar track inset** (#497) (#499) — the horizontal branch of
+  `scrollbarAmendLayout` subtracted `GapEnd` from `X` instead of adding it, so
+  the track began 2px outside its container and was 4px short on the other side.
+  The thumb inherited the shift. Now both axes inset symmetrically.
 
 ## [v0.67.0] - 2026-09-04
 
