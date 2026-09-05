@@ -203,6 +203,9 @@ platform-specific instructions.
 | Linux          | [go-gui-showcase-<version>-linux-amd64.tar.gz](https://github.com/go-gui-org/go-gui/releases)  |
 | Windows        | [go-gui-showcase-<version>-windows-amd64.zip](https://github.com/go-gui-org/go-gui/releases)   |
 
+See [Deploying your app](docs/deployment.md) to ship your own `.app`/`.dmg`,
+icon-embedded `.exe`, or menu-installable Linux tarball.
+
 ---
 
 ## Contributing
