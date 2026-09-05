@@ -413,3 +413,65 @@ func TestScrollbarGapEdgeExplicitZero(t *testing.T) {
 		t.Errorf("20px gap moved the bar %v, want %v", got, want)
 	}
 }
+
+// scrollbarTrackH arranges a horizontally scrolling row and returns
+// the horizontal bar's track layout together with the scroller it
+// rides in, so a test can state the inset against the container
+// rather than against a hard-coded pixel.
+func scrollbarTrackH(t *testing.T, override *ScrollbarCfg) (track, scroller *Layout) {
+	t.Helper()
+
+	w := NewWindow(WindowCfg{State: new(int), Width: 300, Height: 200})
+	w.viewGenerator = func(*Window) View {
+		// Fixed-width cells wider than the 300px window, so the bar
+		// has something to scroll and stays visible.
+		cells := make([]View, 40)
+		for i := range cells {
+			cells[i] = Column(ContainerCfg{Sizing: FixedFill, Width: 40})
+		}
+		return Row(ContainerCfg{
+			ID:            "scroller",
+			Sizing:        FillFill,
+			Scrollable:    true,
+			ScrollMode:    ScrollHorizontalOnly,
+			ScrollbarCfgX: override,
+			Content:       cells,
+		})
+	}
+	w.refreshLayout = true
+	w.FrameFn()
+
+	sc, ok := w.layout.FindByID("scroller")
+	if !ok {
+		t.Fatal("scroller not found")
+	}
+	// container() appends the horizontal bar first, then the
+	// vertical one, so the horizontal track is the second to last
+	// child.
+	return &sc.Children[len(sc.Children)-2], sc
+}
+
+// TestScrollbarGapEndHorizontal pins the direction GapEnd is applied
+// in. The horizontal branch used to subtract it, putting the track
+// outside its container instead of inset at both ends (issue #497).
+func TestScrollbarGapEndHorizontal(t *testing.T) {
+	track, sc := scrollbarTrackH(t, nil)
+	gapEnd := DefaultScrollbarStyle.GapEnd
+
+	gutterX := sc.Shape.X + sc.Shape.Padding.Left
+	gutterWidth := sc.Shape.Width - sc.Shape.Padding.Width()
+
+	if got, want := track.Shape.X, gutterX+gapEnd; got != want {
+		t.Errorf("track X = %v, want %v (inset by GapEnd, not outset)", got, want)
+	}
+	if got, want := track.Shape.Width, gutterWidth-gapEnd-gapEnd; got != want {
+		t.Errorf("track width = %v, want %v", got, want)
+	}
+	// The two end insets must match: that is what "centred in the
+	// gutter" means, and it is the property the sign bug broke.
+	leadIn := track.Shape.X - gutterX
+	trailIn := (gutterX + gutterWidth) - (track.Shape.X + track.Shape.Width)
+	if leadIn != trailIn {
+		t.Errorf("end insets = %v and %v, want equal", leadIn, trailIn)
+	}
+}

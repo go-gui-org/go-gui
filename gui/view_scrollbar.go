@@ -174,7 +174,7 @@ func scrollbarAmendLayout(
 			scrollOffset = -v
 		}
 
-		layout.Shape.X -= gapEnd
+		layout.Shape.X += gapEnd
 		layout.Shape.Y -= gapEdge
 		layout.Shape.Width -= gapEnd + gapEnd
 
