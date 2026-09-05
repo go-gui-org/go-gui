@@ -1,0 +1,10 @@
+Rect xy=14.00,14.00 wh=160.00,29.60 color=#ffffffff radius=6.00 fill
+Clip xy=14.00,14.00 wh=160.00,29.60
+Clip xy=24.00,19.00 wh=128.00,19.60
+Text xy=24.00,19.99 wh=0.00,0.00 color=#1a1d21ff text="42.5" size=14.00
+Clip xy=14.00,14.00 wh=160.00,29.60
+Rect xy=162.00,14.00 wh=6.00,14.80 color=#ffffffff fill
+Text xy=162.00,15.29 wh=0.00,0.00 color=#1a1d21ff text="▲" size=10.00
+Rect xy=162.00,28.80 wh=6.00,14.80 color=#ffffffff fill
+Text xy=162.00,30.09 wh=0.00,0.00 color=#1a1d21ff text="▼" size=10.00
+Clip xy=0.00,0.00 wh=320.00,240.00

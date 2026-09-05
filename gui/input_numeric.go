@@ -50,12 +50,18 @@ type NumericStepCfg struct {
 	// exportaudit:keep — caller-facing config (issue #372)
 	AltMultiplier float64
 	// MouseWheel enables stepping via the mouse wheel over the field.
+	// Opt-in, not default-on: a wheel that steps is a wheel that no
+	// longer scrolls the page under the pointer, and a numeric field
+	// inside a long form is the common case (issue #503).
 	// exportaudit:keep — caller-facing config (issue #372)
 	MouseWheel bool
-	// Keyboard enables stepping via Up/Down arrow keys.
+	// KeyboardDisabled turns off Up/Down arrow stepping, which is
+	// otherwise on: arrow keys are the spinbox convention, so opting
+	// out is the rare choice. Named for the opt-out to match the
+	// FocusDisabled house style.
 	// exportaudit:keep — caller-facing config (issue #372)
-	Keyboard    bool
-	ShowButtons bool
+	KeyboardDisabled bool
+	ShowButtons      bool
 }
 
 // NumericCurrencyModeCfg defines currency symbol placement.
@@ -135,25 +141,30 @@ func numericLocaleNormalize(cfg NumericLocaleCfg) NumericLocaleCfg {
 }
 
 func numericStepCfgNormalize(cfg NumericStepCfg) NumericStepCfg {
+	// !(x > 0) rather than x <= 0: NaN fails every comparison,
+	// so the naive form passes a NaN step through and the field
+	// commits "NaN" on the next arrow key (issue #503 made
+	// stepping default-on, so every NumericInput is exposed).
+	// Inf is likewise unsteppable: it clamps straight to Min/Max.
 	step := cfg.Step
-	if step <= 0 {
+	if !(step > 0) || math.IsInf(step, 0) {
 		step = 1.0
 	}
 	shift := cfg.ShiftMultiplier
-	if shift <= 0 {
+	if !(shift > 0) || math.IsInf(shift, 0) {
 		shift = 10.0
 	}
 	alt := cfg.AltMultiplier
-	if alt <= 0 {
+	if !(alt > 0) || math.IsInf(alt, 0) {
 		alt = 0.1
 	}
 	return NumericStepCfg{
-		Step:            step,
-		ShiftMultiplier: shift,
-		AltMultiplier:   alt,
-		MouseWheel:      cfg.MouseWheel,
-		Keyboard:        cfg.Keyboard,
-		ShowButtons:     cfg.ShowButtons,
+		Step:             step,
+		ShiftMultiplier:  shift,
+		AltMultiplier:    alt,
+		MouseWheel:       cfg.MouseWheel,
+		KeyboardDisabled: cfg.KeyboardDisabled,
+		ShowButtons:      cfg.ShowButtons,
 	}
 }
 
@@ -347,14 +358,15 @@ func numericParse(raw string, loc NumericLocaleCfg) (float64, bool) {
 }
 
 // numericClamp clamps value between optional min and max. Unset
-// Opt means unbounded.
+// Opt means unbounded, and so does a NaN bound: NaN fails every
+// comparison, so letting it through silently disables that side.
 func numericClamp(value float64, minVal, maxVal Opt[float64]) float64 {
 	lo := math.Inf(-1)
 	hi := math.Inf(1)
-	if v, ok := minVal.Value(); ok {
+	if v, ok := minVal.Value(); ok && !math.IsNaN(v) {
 		lo = v
 	}
-	if v, ok := maxVal.Value(); ok {
+	if v, ok := maxVal.Value(); ok && !math.IsNaN(v) {
 		hi = v
 	}
 	if lo > hi {
@@ -556,13 +568,15 @@ func numericStepDelta(cfg NumericStepCfg, modifiers Modifier) float64 {
 }
 
 func numericStepSeedMode(text string, value, minVal Opt[float64], decimals int, loc NumericLocaleCfg, mc numericModeCfg) float64 {
-	if v, ok := value.Value(); ok {
+	// A NaN Value or Min is caller garbage, not a seed: NaN
+	// poisons the addition below and the field commits "NaN".
+	if v, ok := value.Value(); ok && !math.IsNaN(v) {
 		return v
 	}
 	if parsed, ok := numericModeParseValue(text, decimals, loc, mc); ok {
 		return parsed
 	}
-	if v, ok := minVal.Value(); ok {
+	if v, ok := minVal.Value(); ok && !math.IsNaN(v) {
 		return v
 	}
 	return 0.0
@@ -578,7 +592,7 @@ func numericInputCommitResultMode(text string, value, minVal, maxVal Opt[float64
 		clamped := numericClamp(parsed, minVal, maxVal)
 		return Some(clamped), numericModeFormatValue(clamped, decimals, loc, mc)
 	}
-	if v, ok := value.Value(); ok {
+	if v, ok := value.Value(); ok && !math.IsNaN(v) {
 		clamped := numericClamp(v, minVal, maxVal)
 		return Some(clamped), numericModeFormatValue(clamped, decimals, loc, mc)
 	}

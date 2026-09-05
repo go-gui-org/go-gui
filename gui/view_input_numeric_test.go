@@ -1,6 +1,9 @@
 package gui
 
-import "testing"
+import (
+	"math"
+	"testing"
+)
 
 // TestNumericInputStepTriangleBounds locks the named bounds of the step
 // triangle (issue #335 §2): it sits 4pt below the field text, never
@@ -227,5 +230,272 @@ func TestNumericInputReadOnlyStepButtonsGated(t *testing.T) {
 	}
 	if step(true) {
 		t.Error("read-only numeric input stepped the value")
+	}
+}
+
+// numericStepProbe builds a NumericInput and returns its handlers plus a
+// recorder for the committed value. It drives the factories directly:
+// the inner Input reaches them through makeInputOnKeyDown's
+// unhandled-key delegation, which TestNumericInputWiresStepHandlers
+// covers separately.
+func numericStepProbe(
+	t *testing.T, cfg NumericInputCfg,
+) (onKey, onWheel func(EventCtx), got *string, w *Window, ly *Layout) {
+	t.Helper()
+	committed := ""
+	got = &committed
+	cfg.OnValueCommit = func(_ Opt[float64], text string, _ EventCtx) {
+		committed = text
+	}
+	applyNumericInputDefaults(&cfg)
+	locale := numericLocaleNormalize(cfg.Locale)
+	stepCfg := numericStepCfgNormalize(cfg.StepCfg)
+
+	w = &Window{}
+	layout := generateViewLayout(NumericInput(cfg), w)
+	ly = &layout
+	return numericInputOnKeyDown(cfg, locale, stepCfg),
+		numericInputOnWheel(cfg, locale, stepCfg), got, w, ly
+}
+
+func TestNumericInputArrowKeysStepByDefault(t *testing.T) {
+	// StepCfg carries no Keyboard flag at all: stepping is on because
+	// it is the spinbox convention, which is the whole point of #503.
+	onKey, _, got, w, ly := numericStepProbe(t, NumericInputCfg{
+		ID:      "ni-arrows",
+		Text:    "5",
+		StepCfg: NumericStepCfg{Step: 1},
+	})
+	if onKey == nil {
+		t.Fatal("arrow stepping should be on by default")
+	}
+
+	up := &Event{KeyCode: KeyUp}
+	onKey(EventCtx{ly, up, w})
+	if *got != "6" {
+		t.Errorf("Up stepped to %q, want \"6\"", *got)
+	}
+	if !up.IsHandled {
+		t.Error("a key that stepped must be consumed")
+	}
+
+	down := &Event{KeyCode: KeyDown}
+	onKey(EventCtx{ly, down, w})
+	if *got != "4" {
+		t.Errorf("Down stepped to %q, want \"4\"", *got)
+	}
+}
+
+func TestNumericInputNonArrowKeyBubbles(t *testing.T) {
+	// The acceptance criterion from #503: an unhandled arrow still
+	// reaches an enclosing list, so consume only on the stepping paths.
+	onKey, _, got, w, ly := numericStepProbe(t, NumericInputCfg{
+		ID:      "ni-bubble",
+		Text:    "5",
+		StepCfg: NumericStepCfg{Step: 1},
+	})
+	e := &Event{KeyCode: KeyLeft}
+	onKey(EventCtx{ly, e, w})
+	if e.IsHandled {
+		t.Error("a key that did not step must not be consumed")
+	}
+	if *got != "" {
+		t.Errorf("KeyLeft committed %q, want no commit", *got)
+	}
+}
+
+func TestNumericInputKeyboardDisabledOptsOut(t *testing.T) {
+	onKey, _, _, _, _ := numericStepProbe(t, NumericInputCfg{
+		ID:      "ni-nokeys",
+		Text:    "5",
+		StepCfg: NumericStepCfg{Step: 1, KeyboardDisabled: true},
+	})
+	if onKey != nil {
+		t.Error("KeyboardDisabled should leave no key handler")
+	}
+}
+
+func TestNumericInputReadOnlyDeclinesArrows(t *testing.T) {
+	onKey, _, got, w, ly := numericStepProbe(t, NumericInputCfg{
+		ID:       "ni-ro-keys",
+		Text:     "5",
+		ReadOnly: true,
+		StepCfg:  NumericStepCfg{Step: 1},
+	})
+	e := &Event{KeyCode: KeyUp}
+	onKey(EventCtx{ly, e, w})
+	if *got != "" {
+		t.Errorf("read-only field stepped to %q, want no commit", *got)
+	}
+	if e.IsHandled {
+		t.Error("read-only field must decline the key, not swallow it")
+	}
+}
+
+func TestNumericInputWheelIsOptIn(t *testing.T) {
+	_, off, _, _, _ := numericStepProbe(t, NumericInputCfg{
+		ID:      "ni-nowheel",
+		Text:    "5",
+		StepCfg: NumericStepCfg{Step: 1},
+	})
+	if off != nil {
+		t.Fatal("wheel stepping must stay opt-in")
+	}
+
+	_, on, got, w, ly := numericStepProbe(t, NumericInputCfg{
+		ID:      "ni-wheel",
+		Text:    "5",
+		StepCfg: NumericStepCfg{Step: 1, MouseWheel: true},
+	})
+	if on == nil {
+		t.Fatal("MouseWheel should install a wheel handler")
+	}
+	// Only the sign of ScrollY is portable: lines for a wheel, points
+	// for a trackpad. A large delta is still one step.
+	e := &Event{ScrollY: 12}
+	on(EventCtx{ly, e, w})
+	if *got != "6" {
+		t.Errorf("wheel up stepped to %q, want \"6\"", *got)
+	}
+	if !e.IsHandled {
+		t.Error("a wheel event that stepped must be consumed")
+	}
+
+	zero := &Event{ScrollY: 0}
+	on(EventCtx{ly, zero, w})
+	if zero.IsHandled {
+		t.Error("a zero-delta wheel event must not be consumed")
+	}
+}
+
+func TestNumericInputWiresStepHandlers(t *testing.T) {
+	// Proves the handlers actually reach the field's shape, which the
+	// factory tests above cannot show.
+	w := &Window{}
+	committed := ""
+	v := NumericInput(NumericInputCfg{
+		ID:      "ni-wired",
+		Text:    "5",
+		StepCfg: NumericStepCfg{Step: 1, MouseWheel: true},
+		OnValueCommit: func(_ Opt[float64], text string, _ EventCtx) {
+			committed = text
+		},
+	})
+	layout := generateViewLayout(v, w)
+	layoutArrange(&layout, w)
+
+	field := findShapeByID(&layout, "ni-wired")
+	if field == nil {
+		t.Fatal("numeric field not found")
+	}
+	if field.Shape.events == nil {
+		t.Fatal("field shape carries no events")
+	}
+	if field.Shape.events.OnMouseScroll == nil {
+		t.Error("field shape carries no OnMouseScroll")
+	}
+
+	// Asserting OnKeyDown is non-nil would prove nothing -- Input always
+	// installs one. What has to hold is that an arrow reaches the step
+	// path THROUGH it, by makeInputOnKeyDown's unhandled-key delegation.
+	// Stepping is focus-gated there, so focus the field first.
+	w.SetFocus(field.Shape.idKey())
+	e := &Event{KeyCode: KeyUp}
+	field.Shape.events.OnKeyDown(EventCtx{field, e, w})
+	if committed != "6" {
+		t.Errorf("arrow through the real handler committed %q, want \"6\"",
+			committed)
+	}
+}
+
+func TestNumericInputNaNInfStepFallsBackToOne(t *testing.T) {
+	// NaN fails every comparison, so a naive <= 0 check passes it
+	// through and the field commits "NaN" on the next arrow key.
+	for _, step := range []float64{math.NaN(), math.Inf(1), math.Inf(-1)} {
+		got := numericStepCfgNormalize(NumericStepCfg{Step: step})
+		if got.Step != 1 {
+			t.Errorf("Step %v normalized to %v, want 1", step, got.Step)
+		}
+	}
+	for _, m := range []float64{math.NaN(), math.Inf(1)} {
+		got := numericStepCfgNormalize(NumericStepCfg{
+			Step: 1, ShiftMultiplier: m, AltMultiplier: m,
+		})
+		if got.ShiftMultiplier != 10.0 {
+			t.Errorf("Shift %v normalized to %v, want 10", m, got.ShiftMultiplier)
+		}
+		if got.AltMultiplier != 0.1 {
+			t.Errorf("Alt %v normalized to %v, want 0.1", m, got.AltMultiplier)
+		}
+	}
+
+	// End to end: a NaN step still steps by one through the key path.
+	onKey, _, got, w, ly := numericStepProbe(t, NumericInputCfg{
+		ID:      "ni-nan",
+		Text:    "5",
+		StepCfg: NumericStepCfg{Step: math.NaN()},
+	})
+	e := &Event{KeyCode: KeyUp}
+	onKey(EventCtx{ly, e, w})
+	if *got != "6" {
+		t.Errorf("NaN step committed %q, want \"6\"", *got)
+	}
+}
+
+func TestNumericInputStepHandlersNilEventNoPanic(t *testing.T) {
+	onKey, onWheel, got, w, ly := numericStepProbe(t, NumericInputCfg{
+		ID:      "ni-nilev",
+		Text:    "5",
+		StepCfg: NumericStepCfg{Step: 1, MouseWheel: true},
+	})
+	// Handlers run on dispatch events, which are never nil, but a
+	// synthesized call must decline rather than panic.
+	onKey(EventCtx{ly, nil, w})
+	onWheel(EventCtx{ly, nil, w})
+	if *got != "" {
+		t.Errorf("nil event committed %q, want no commit", *got)
+	}
+
+	// The shared apply path takes the raw click event, which a
+	// programmatic click may leave nil; modifiers default to none.
+	committed := ""
+	cfg := NumericInputCfg{ID: "ni-nilapply", Text: "5"}
+	cfg.OnValueCommit = func(_ Opt[float64], text string, _ EventCtx) {
+		committed = text
+	}
+	applyNumericInputDefaults(&cfg)
+	numericInputApplyStep(nil, cfg,
+		numericLocaleNormalize(cfg.Locale),
+		numericStepCfgNormalize(cfg.StepCfg), 1, nil, w)
+	if committed != "6" {
+		t.Errorf("nil-event apply committed %q, want \"6\"", committed)
+	}
+}
+
+func TestNumericInputWheelReadOnlyNoHandler(t *testing.T) {
+	_, on, _, _, _ := numericStepProbe(t, NumericInputCfg{
+		ID:       "ni-rowheel",
+		Text:     "5",
+		ReadOnly: true,
+		StepCfg:  NumericStepCfg{Step: 1, MouseWheel: true},
+	})
+	if on != nil {
+		t.Error("read-only field with MouseWheel should install no handler")
+	}
+}
+
+func TestNumericInputArrowShiftStepsTenfold(t *testing.T) {
+	onKey, _, got, w, ly := numericStepProbe(t, NumericInputCfg{
+		ID:      "ni-shift",
+		Text:    "5",
+		StepCfg: NumericStepCfg{Step: 1},
+	})
+	e := &Event{KeyCode: KeyUp, Modifiers: ModShift}
+	onKey(EventCtx{ly, e, w})
+	if *got != "15" {
+		t.Errorf("Shift+Up committed %q, want \"15\"", *got)
+	}
+	if !e.IsHandled {
+		t.Error("a Shift step that moved must be consumed")
 	}
 }

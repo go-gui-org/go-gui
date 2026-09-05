@@ -398,6 +398,30 @@ func goldenCases() []goldenCase {
 			},
 		},
 		{
+			// Arrow-key stepping (#503) changes no pixel by itself, but
+			// it makes the field interactive, so both the resting and
+			// focused appearances are now worth pinning.
+			name: "numericinput",
+			build: func(_ *Window) View {
+				return NumericInput(NumericInputCfg{
+					ID:      "num",
+					Text:    "42.5",
+					StepCfg: NumericStepCfg{Step: 1, ShowButtons: true},
+				})
+			},
+		},
+		{
+			name:    "numericinput_focused",
+			focusID: "num",
+			build: func(_ *Window) View {
+				return NumericInput(NumericInputCfg{
+					ID:      "num",
+					Text:    "42.5",
+					StepCfg: NumericStepCfg{Step: 1, ShowButtons: true},
+				})
+			},
+		},
+		{
 			name: "numericinput_disabled",
 			build: func(_ *Window) View {
 				return NumericInput(NumericInputCfg{

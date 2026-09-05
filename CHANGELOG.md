@@ -10,6 +10,25 @@ and this project adheres to
 
 ### Added
 
+- **`NumericInput` steps with the arrow keys** (#503) — Up and Down step by
+  `StepCfg.Step`, with the existing Shift (10x) and Alt (0.1x) multipliers.
+  Stepping is on by default because arrow keys are the spinbox convention; turn
+  it off with `StepCfg.KeyboardDisabled`. The handler consumes the event only
+  when it actually steps, so an arrow that does not step still reaches an
+  enclosing list, and a read-only field declines the key rather than swallowing
+  it. Wheel stepping stays opt-in behind `StepCfg.MouseWheel`, because a field
+  that eats the wheel stops the form under the pointer from scrolling; it is now
+  wired up rather than merely accepted.
+
+### Changed
+
+- **BREAKING: `NumericStepCfg.Keyboard` is now `KeyboardDisabled`** (#503) — the
+  field never did anything: nothing read it, so a `NumericInput` could not step
+  by keyboard whatever the caller set. Now that stepping works it defaults on,
+  and the field spells the opt-out to match the `FocusDisabled` house style.
+  Delete `Keyboard: true`; replace `Keyboard: false` with
+  `KeyboardDisabled: true`.
+
 - **`ergonomics-audit -mode deadcfg`** (#505) — a gate for exported `*Cfg`
   fields nothing consumes. It classifies every read rather than counting
   references, so it catches a field that is only ever copied into a field of the
