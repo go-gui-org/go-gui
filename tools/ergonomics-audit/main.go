@@ -12,6 +12,7 @@
 //	go run ./tools/ergonomics-audit/ -mode theme [repo...]
 //	go run ./tools/ergonomics-audit/ -mode a11y [repo...]
 //	go run ./tools/ergonomics-audit/ -mode visual [repo...]
+//	go run ./tools/ergonomics-audit/ -mode deadcfg [repo...]
 //
 // With no repo arguments both modes audit the current directory.
 //
@@ -64,6 +65,14 @@
 // unmarked finding, so it gates. See visual.go for what counts and how to
 // mark an exception.
 //
+// Mode deadcfg answers: can a caller set an exported *Cfg field and have
+// it change nothing? It classifies every read as consuming or as a mere
+// forward into another Cfg field of the same name — which is what catches
+// a field copied around forever and acted on never (issue #503). A field
+// is live exactly when it has one consuming read. It exits non-zero on any
+// unmarked finding, so it gates. See deadcfg.go for the name-keyed
+// limitation.
+//
 // All modes parse with go/ast: composite literals and func literals
 // span lines, and regex cannot bracket-match them.
 package main
@@ -83,7 +92,7 @@ import (
 var listShape *string
 
 func main() {
-	mode := flag.String("mode", "focus", "audit to run: focus | callbacks | ids | opt | literals | theme | a11y | visual")
+	mode := flag.String("mode", "focus", "audit to run: focus | callbacks | ids | opt | literals | theme | a11y | visual | deadcfg")
 	guiRoot := flag.String("gui", ".", "path to the go-gui repo (source of truth for mode=focus)")
 	listShape = flag.String("list", "", "mode=callbacks: also list distinct signatures of this shape, or \"all\"")
 	fix := flag.Bool("fix", false, "mode=focus: rewrite broken literals in place, adding a generated ID")
@@ -127,8 +136,10 @@ func main() {
 		err = runA11Y(repos)
 	case "visual":
 		err = runVisual(repos)
+	case "deadcfg":
+		err = runDeadCfg(repos)
 	default:
-		err = fmt.Errorf("unknown -mode %q (want focus, callbacks, ids, opt, literals, theme, a11y or visual)", *mode)
+		err = fmt.Errorf("unknown -mode %q (want focus, callbacks, ids, opt, literals, theme, a11y, visual or deadcfg)", *mode)
 	}
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "ergonomics-audit:", err)

@@ -305,7 +305,13 @@ type ThemeCfg struct {
 
 	RadiusSmall  float32
 	RadiusMedium float32
-	RadiusLarge  float32
+	// RadiusLarge seeds Theme.RadiusLarge, which no widget reads yet. It
+	// is the reserved top tier of the radius ladder: themes set it so the
+	// ladder stays complete, and a widget that needs the largest corner
+	// takes it from here instead of spelling a number.
+	//
+	// ergonomics-audit:deadcfg-keep — reserved radius tier, set by themes
+	RadiusLarge float32
 
 	// SpacingTight seeds Theme.SpacingTight; see there.
 	//
@@ -475,6 +481,8 @@ type ThemeCfg struct {
 
 	TitlebarDark bool
 	// exportaudit:keep — documented public API (showcase docs)
+	//
+	// ergonomics-audit:deadcfg-keep — documented public API (showcase docs)
 	FillBorder bool
 }
 

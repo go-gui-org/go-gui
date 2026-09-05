@@ -8,6 +8,18 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- **`ergonomics-audit -mode deadcfg`** (#505) — a gate for exported `*Cfg`
+  fields nothing consumes. It classifies every read rather than counting
+  references, so it catches a field that is only ever copied into a field of the
+  same name and never acted on: the shape that let `NumericStepCfg.Keyboard` and
+  `.MouseWheel` ship inert (#503). Wired into `make ergonomics-audit`, advisory
+  until its findings clear. The first run also turned up `ThemeCfg.RadiusLarge`
+  and `ThemeCfg.FillBorder`, which no code reads; both are kept on purpose and
+  now carry a marker. Mark a deliberate keep with
+  `ergonomics-audit:deadcfg-keep <reason>`.
+
 ### Fixed
 
 - **A scrolled command palette showed blank rows** (#504) — the results viewport

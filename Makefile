@@ -342,6 +342,12 @@ ergonomics-audit:
 	go run ./tools/ergonomics-audit/ -mode theme .
 	go run ./tools/ergonomics-audit/ -mode a11y .
 	go run ./tools/ergonomics-audit/ -mode visual .
+# deadcfg is ADVISORY until its findings clear. The mode itself gates
+# (exit non-zero on any unmarked finding), but the two fields it
+# currently reports -- NumericStepCfg.MouseWheel and .Keyboard -- are
+# known and tracked as #503. Delete the `|| true` in the PR that removes
+# them -- leaving it there turns a gate into decoration.
+	go run ./tools/ergonomics-audit/ -mode deadcfg . || true
 
 # Insert a generated ID into every broken literal in this repo's tests
 # and examples. Scoped away from gui/ deliberately: go-gui's own widget
