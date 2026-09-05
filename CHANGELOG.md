@@ -8,6 +8,8 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [v0.69.0] - 2026-09-05
+
 ### Added
 
 - **`NumericInput` steps with the arrow keys** (#503) — Up and Down step by
@@ -20,6 +22,16 @@ and this project adheres to
   that eats the wheel stops the form under the pointer from scrolling; it is now
   wired up rather than merely accepted.
 
+- **`ergonomics-audit -mode deadcfg`** (#505) — a gate for exported `*Cfg`
+  fields nothing consumes. It classifies every read rather than counting
+  references, so it catches a field that is only ever copied into a field of the
+  same name and never acted on: the shape that let `NumericStepCfg.Keyboard` and
+  `.MouseWheel` ship inert (#503). Wired into `make ergonomics-audit`, advisory
+  until its findings clear. The first run also turned up `ThemeCfg.RadiusLarge`
+  and `ThemeCfg.FillBorder`, which no code reads; both are kept on purpose and
+  now carry a marker. Mark a deliberate keep with
+  `ergonomics-audit:deadcfg-keep <reason>`.
+
 ### Changed
 
 - **BREAKING: `Scrollable` is removed from `ListBoxCfg`, `TreeCfg`, `TableCfg`
@@ -29,10 +41,10 @@ and this project adheres to
   it built every row: a performance cliff hidden behind an ergonomics flag. On
   `CommandPalette` the flag was worse than useless — the results column was
   hardcoded scrollable while the flag only gated reading the offset, so a
-  scrolled palette rendered blank rows (fixed separately in v0.68.1). Delete the
-  line; scroll state is still keyed by `Cfg.ID`. Content that fits gains an
-  inert scroll region: `scrollVertical` clamps and returns false when the offset
-  does not move, so the wheel event still bubbles to the page.
+  scrolled palette rendered blank rows (see Fixed, below). Delete the line;
+  scroll state is still keyed by `Cfg.ID`. Content that fits gains an inert
+  scroll region: `scrollVertical` clamps and returns false when the offset does
+  not move, so the wheel event still bubbles to the page.
 - **`TableCfg.FreezeHeader` now works on its own** (#504) — it used to require
   `Scrollable` as well (`freeze := cfg.FreezeHeader && cfg.Scrollable && ...`),
   so a caller who set only `FreezeHeader` got nothing, with no report. Removing
@@ -52,16 +64,6 @@ and this project adheres to
   Delete `Keyboard: true`; replace `Keyboard: false` with
   `KeyboardDisabled: true`.
 
-- **`ergonomics-audit -mode deadcfg`** (#505) — a gate for exported `*Cfg`
-  fields nothing consumes. It classifies every read rather than counting
-  references, so it catches a field that is only ever copied into a field of the
-  same name and never acted on: the shape that let `NumericStepCfg.Keyboard` and
-  `.MouseWheel` ship inert (#503). Wired into `make ergonomics-audit`, advisory
-  until its findings clear. The first run also turned up `ThemeCfg.RadiusLarge`
-  and `ThemeCfg.FillBorder`, which no code reads; both are kept on purpose and
-  now carry a marker. Mark a deliberate keep with
-  `ergonomics-audit:deadcfg-keep <reason>`.
-
 ### Fixed
 
 - **A scrolled command palette showed blank rows** (#504) — the results viewport
@@ -70,11 +72,6 @@ and this project adheres to
   the window stayed pinned at index 0 while the viewport scrolled, so scrolling
   past the first screen revealed the trailing transparent spacer instead of
   items. The offset is now always read.
-
-### Deprecated
-
-- **`CommandPaletteCfg.Scrollable` is a no-op** and is scheduled for removal in
-  #504. The results list always scrolls. Callers can delete the line now.
 
 ## [v0.68.0] - 2026-09-05
 
