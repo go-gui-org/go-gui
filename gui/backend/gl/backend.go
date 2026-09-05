@@ -195,13 +195,7 @@ func (b *Backend) destroyGLResources() {
 // buffers. Makes this window's GL context current first.
 func (b *Backend) renderFrame(w *gui.Window) {
 	b.plat.makeCurrent()
-	bg := w.Config.BgColor
-	if bg == (gui.Color{}) {
-		// Runs after FrameFn on the same thread, so the installed
-		// theme happens to be right; w.Theme() makes it right by
-		// construction instead of by timing.
-		bg = w.Theme().ColorBackground
-	}
+	bg := w.FrameBackground()
 	gogl.ClearColor(
 		float32(bg.R)/255.0,
 		float32(bg.G)/255.0,

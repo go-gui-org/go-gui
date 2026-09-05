@@ -512,6 +512,11 @@ func createWindowState(w *gui.Window) (*windowState, error) {
 		return nil, errors.New("metalWindowCreate failed")
 	}
 
+	// Before the first frame, so no opaque frame is composited first.
+	if cfg.Transparent {
+		C.metalWindowSetTransparent(win, 1)
+	}
+
 	// Cocoa content sizes are points, the same unit WindowCfg uses, so
 	// the limits go across unscaled. Skipped entirely when nothing is
 	// constrained, leaving the window's AppKit defaults untouched.
@@ -651,13 +656,7 @@ func (ws *windowState) destroy() {
 }
 
 func (ws *windowState) renderFrame(w *gui.Window) {
-	bg := w.Config.BgColor
-	if bg == (gui.Color{}) {
-		// Runs after FrameFn on the same thread, so the installed
-		// theme happens to be right; w.Theme() makes it right by
-		// construction instead of by timing.
-		bg = w.Theme().ColorBackground
-	}
+	bg := w.FrameBackground()
 	rc := C.metalBeginFrame(ws.ctx,
 		C.float(float32(bg.R)/255.0),
 		C.float(float32(bg.G)/255.0),

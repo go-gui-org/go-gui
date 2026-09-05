@@ -481,6 +481,12 @@ func New(w *gui.Window) (*Backend, error) {
 	b.plat.minTrack = minTrack
 	b.plat.maxTrack = maxTrack
 	registerWindow(hwnd, b)
+	if cfg.Transparent {
+		// Before the pixel format is set: DWM must already be off the
+		// opaque composition path when the GL surface is bound to the
+		// window, or the first frames composite opaque.
+		enableWindowTransparency(w, hwnd)
+	}
 	// Detach the IME until a text widget takes focus and IMEStart
 	// re-attaches it, matching the focus gating on macOS and X11. Without
 	// this a composition can begin with nothing to render the preedit.

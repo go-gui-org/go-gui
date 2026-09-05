@@ -8,6 +8,21 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- **Transparent windows on macOS, Windows and X11** (#515) —
+  `WindowCfg.Transparent` lets the window's alpha channel reach the compositor,
+  so the desktop behind shows through wherever the content is not opaque. Plain
+  transparency, no blur: `SetWindowVibrancy` remains the separate macOS-only
+  blurred backdrop. macOS uses a non-opaque `NSWindow` and `CAMetalLayer`,
+  Windows uses `DwmEnableBlurBehindWindow` with an empty blur region, and X11
+  picks a depth-32 ARGB visual. On X11 it needs a running compositing manager;
+  without one, or with a driver that offers no ARGB visual, the window degrades
+  and the new `gui.DebugWindowDegraded` category says so rather than failing to
+  open. An unset `BgColor` on a transparent window now clears to fully
+  transparent instead of the opaque theme background. See
+  `examples/transparent/` and `docs/specs/transparent-windows.md`.
+
 ## [v0.69.0] - 2026-09-05
 
 ### Added

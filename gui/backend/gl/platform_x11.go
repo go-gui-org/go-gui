@@ -50,7 +50,7 @@ func New(w *gui.Window) (*Backend, error) {
 	setup := xproto.Setup(conn)
 	screen := setup.DefaultScreen(conn)
 
-	dpy, config, visualID, err := eglInitDisplay()
+	dpy, cands, err := eglInitDisplayN()
 	if err != nil {
 		conn.Close()
 		return nil, fmt.Errorf("gl: %w", err)
@@ -77,13 +77,17 @@ func New(w *gui.Window) (*Backend, error) {
 	physW := int32(float32(width) * scale)
 	physH := int32(float32(height) * scale)
 
-	depth := screen.RootDepth
-	for _, d := range screen.AllowedDepths {
-		for _, v := range d.Visuals {
-			if uint32(v.VisualId) == visualID {
-				depth = d.Depth
-			}
-		}
+	// A transparent window needs an ARGB (depth-32) visual, which the
+	// driver does not offer first, so the config is chosen against this
+	// screen's visual list rather than taken from EGL's own ordering.
+	chosen, depth, gotARGB := pickVisual(cands,
+		visualDepths(screen.AllowedDepths), cfg.Transparent)
+	config, visualID := chosen.config, chosen.visualID
+	if depth == 0 {
+		depth = screen.RootDepth
+	}
+	if cfg.Transparent {
+		warnTransparency(w, gotARGB, hasCompositor(conn, conn.DefaultScreen))
 	}
 
 	cmID, err := conn.NewId()

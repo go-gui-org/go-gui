@@ -96,11 +96,26 @@ func eglProc(name string) uintptr {
 	return uintptr(eglGetProcAddress(name))
 }
 
-// eglInitDisplay initializes EGL, binds the desktop-OpenGL API, and
-// chooses a framebuffer config. It returns the display, the config, and
-// the X visual id the window must be created with so the surface
-// matches. EGL opens its own X connection from $DISPLAY.
-func eglInitDisplay() (dpy, config uintptr, visualID uint32, err error) {
+// eglConfigVisual pairs an EGL framebuffer config with the X visual id
+// a window using it must be created with.
+type eglConfigVisual struct {
+	config   uintptr
+	visualID uint32
+}
+
+// eglMaxConfigs caps how many candidates eglInitDisplayN collects. A
+// transparent window needs a config whose native visual has depth 32,
+// and drivers list the depth-24 ones first, so one config is not
+// enough. Beyond a handful the extras are colour-depth variants that
+// pickVisual would reject anyway.
+const eglMaxConfigs = 32
+
+// eglInitDisplayN initializes EGL, binds the desktop-OpenGL API, and
+// returns every matching framebuffer config in the driver's own
+// preference order, each paired with the X visual id a window using it
+// must be created with so the surface matches. EGL opens its own X
+// connection from $DISPLAY. The slice is never empty on a nil error.
+func eglInitDisplayN() (dpy uintptr, cands []eglConfigVisual, err error) {
 	if err = loadEGL(); err != nil {
 		return
 	}
@@ -130,18 +145,25 @@ func eglInitDisplay() (dpy, config uintptr, visualID uint32, err error) {
 		eglStencilSize, 8,
 		eglNone,
 	}
-	var cfg uintptr
+	cfgs := make([]uintptr, eglMaxConfigs)
 	var n int32
 	ok := eglChooseConfig(dpy, unsafe.Pointer(&attribs[0]),
-		unsafe.Pointer(&cfg), 1, unsafe.Pointer(&n))
-	if ok == 0 || n == 0 {
+		unsafe.Pointer(&cfgs[0]), int32(len(cfgs)), unsafe.Pointer(&n))
+	if ok == 0 || n <= 0 {
 		err = fmt.Errorf("eglChooseConfig: no matching config (egl error 0x%x)", eglGetError())
 		return
 	}
-	var vid int32
-	eglGetConfigAttrib(dpy, cfg, eglNativeVisualID, unsafe.Pointer(&vid))
-	config = cfg
-	visualID = uint32(vid)
+	// A misbehaving driver must not push n past the buffer it was
+	// given; cfgs[:n] below would panic.
+	if int(n) > len(cfgs) {
+		n = int32(len(cfgs))
+	}
+	cands = make([]eglConfigVisual, 0, n)
+	for _, cfg := range cfgs[:n] {
+		var vid int32
+		eglGetConfigAttrib(dpy, cfg, eglNativeVisualID, unsafe.Pointer(&vid))
+		cands = append(cands, eglConfigVisual{config: cfg, visualID: uint32(vid)})
+	}
 	return
 }
 
