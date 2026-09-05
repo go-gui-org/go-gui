@@ -207,7 +207,7 @@ jobs:
         run: go mod edit -replace=github.com/go-gui-org/go-glyph=./go-glyph
 
       - name: Run gate checks
-        run: make vet deps-doc-check large-files generate-check
+        run: make vet deps-doc-check large-files generate-check changelog-check
 
       # Markdown formatting is a repo convention with no compiler behind
       # it, so it drifts silently -- CHANGELOG.md accumulated hand-wrapping

@@ -218,9 +218,13 @@ coverage-gate:
 	go test -count=1 -coverprofile=/tmp/go-gui-coverage-gate.out ./gui/...
 	scripts/coverage-gate.sh /tmp/go-gui-coverage-gate.out
 
+# Keep-a-Changelog shape: breaking API changes must be under ### Changed with BREAKING label.
+changelog-check:
+	@scripts/changelog-check.sh
+
 # Run non-duplicated validation steps for CI gate.
 # test and lint run as separate CI jobs with OS matrices.
-check: vet deps-doc-check large-files generate-check tidy-check fmt-md-check
+check: vet deps-doc-check large-files generate-check tidy-check fmt-md-check changelog-check
 
 # Run all validation steps: test, vet, lint, and gate checks.
 check-all: test lint check
