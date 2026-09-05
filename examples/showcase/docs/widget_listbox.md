@@ -35,16 +35,15 @@ gui.ListBox(gui.ListBoxCfg{
 
 ## Virtualization
 
-Renders only visible rows when height is constrained. Requires
-`Scrollable: true` and `Height` or `MaxHeight > 0`. Scroll state is keyed by the
-widget's string ID.
+Renders only visible rows when height is constrained. The list always scrolls,
+so `Height` or `MaxHeight > 0` is the only requirement. Scroll state is keyed by
+the widget's string ID.
 
 ```go
 gui.ListBox(gui.ListBoxCfg{
-    ID:         "virt-lb",
-    Scrollable: true,
-    MaxHeight:  200,
-    Data:       items,
+    ID:        "virt-lb",
+    MaxHeight: 200,
+    Data:      items,
 })
 ```
 
@@ -66,22 +65,21 @@ When `Items` is set, `Data` is ignored.
 
 ## Key Properties
 
-| Property    | Type            | Description                                    |
-| ----------- | --------------- | ---------------------------------------------- |
-| SelectedIDs | []string        | Selected item IDs                              |
-| Items       | []string        | Simple string list (alt. to Data)              |
-| Data        | []ListBoxOption | Items (ID, Name, Value, IsSubhead)             |
-| Multiple    | bool            | Allow multi-select                             |
-| Height      | float32         | Fixed height (activates virtualization)        |
-| MinWidth    | float32         | Minimum width                                  |
-| MaxWidth    | float32         | Maximum width                                  |
-| MinHeight   | float32         | Minimum height                                 |
-| MaxHeight   | float32         | Maximum height                                 |
-| Scrollable  | bool            | Opt into the scroll system (state keyed by ID) |
-| Reorderable | bool            | Enable drag-reorder                            |
-| Sizing      | Sizing          | Combined axis sizing mode                      |
-| Disabled    | bool            | Disable interaction                            |
-| Invisible   | bool            | Hide without removing from layout              |
+| Property    | Type            | Description                             |
+| ----------- | --------------- | --------------------------------------- |
+| SelectedIDs | []string        | Selected item IDs                       |
+| Items       | []string        | Simple string list (alt. to Data)       |
+| Data        | []ListBoxOption | Items (ID, Name, Value, IsSubhead)      |
+| Multiple    | bool            | Allow multi-select                      |
+| Height      | float32         | Fixed height (activates virtualization) |
+| MinWidth    | float32         | Minimum width                           |
+| MaxWidth    | float32         | Maximum width                           |
+| MinHeight   | float32         | Minimum height                          |
+| MaxHeight   | float32         | Maximum height                          |
+| Reorderable | bool            | Enable drag-reorder                     |
+| Sizing      | Sizing          | Combined axis sizing mode               |
+| Disabled    | bool            | Disable interaction                     |
+| Invisible   | bool            | Hide without removing from layout       |
 
 ## Appearance
 

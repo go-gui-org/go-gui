@@ -5,8 +5,7 @@ navigation, and drag-reorder support.
 
 ```go
 gui.Tree(gui.TreeCfg{
-    ID:         "project-tree",
-    Scrollable: true,
+    ID:        "project-tree",
     MaxHeight: 240,
     OnSelect: func(nodeID string, ctx gui.EventCtx) {
         gui.State[AppState](ctx.Window).SelectedNode = nodeID
@@ -44,10 +43,10 @@ a tree.
 
 ## Virtualization
 
-Renders only visible nodes (flattened) when height is constrained. Requires
-`Scrollable: true` and `Height` or `MaxHeight > 0`. Scroll state is keyed by the
-widget's string ID. The main usage example above shows the required
-configuration.
+Renders only visible nodes (flattened) when height is constrained. The tree
+always scrolls, so `Height` or `MaxHeight > 0` is the only requirement. Scroll
+state is keyed by the widget's string ID. The main usage example above shows the
+required configuration.
 
 ## Keyboard Navigation
 
@@ -71,23 +70,22 @@ When `ItemPaths` is set, `Nodes` is ignored.
 
 ## Key Properties
 
-| Property    | Type          | Description                                    |
-| ----------- | ------------- | ---------------------------------------------- |
-| ItemPaths   | []string      | Flat slash-separated paths (alt.)              |
-| Nodes       | []TreeNodeCfg | Root-level tree nodes                          |
-| Indent      | float32       | Indent per nesting level                       |
-| Spacing     | Opt[float32]  | Vertical spacing between rows                  |
-| Scrollable  | bool          | Opt into the scroll system (state keyed by ID) |
-| Reorderable | bool          | Enable drag-reorder of siblings                |
-| Disabled    | bool          | Disable interaction                            |
-| Invisible   | bool          | Hide without removing from layout              |
-| Sizing      | Sizing        | Combined axis sizing mode                      |
-| Width       | float32       | Fixed width                                    |
-| Height      | float32       | Fixed height                                   |
-| MinWidth    | float32       | Minimum width                                  |
-| MaxWidth    | float32       | Maximum width                                  |
-| MinHeight   | float32       | Minimum height                                 |
-| MaxHeight   | float32       | Maximum height                                 |
+| Property    | Type          | Description                       |
+| ----------- | ------------- | --------------------------------- |
+| ItemPaths   | []string      | Flat slash-separated paths (alt.) |
+| Nodes       | []TreeNodeCfg | Root-level tree nodes             |
+| Indent      | float32       | Indent per nesting level          |
+| Spacing     | Opt[float32]  | Vertical spacing between rows     |
+| Reorderable | bool          | Enable drag-reorder of siblings   |
+| Disabled    | bool          | Disable interaction               |
+| Invisible   | bool          | Hide without removing from layout |
+| Sizing      | Sizing        | Combined axis sizing mode         |
+| Width       | float32       | Fixed width                       |
+| Height      | float32       | Fixed height                      |
+| MinWidth    | float32       | Minimum width                     |
+| MaxWidth    | float32       | Maximum width                     |
+| MinHeight   | float32       | Minimum height                    |
+| MaxHeight   | float32       | Maximum height                    |
 
 ## TreeNodeCfg
 

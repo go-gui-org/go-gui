@@ -63,12 +63,6 @@ type ListBoxCfg struct {
 	// MaxHeight caps the list's height. Like Height, it resolves the
 	// height virtualization needs.
 	MaxHeight float32
-	// Scrollable opts the list into the scroll system. Scroll state
-	// is keyed by Cfg.ID — pass that same id to Window.ScrollVerticalTo.
-	// Virtualization is automatic; it requires a resolved height, so
-	// pair Scrollable with Height or MaxHeight, or rely on Fill
-	// sizing (which virtualizes from the second frame).
-	Scrollable bool
 	// FocusDisabled opts out of the default-on focus. Focus also
 	// requires a non-empty ID; without one the control is inert.
 	FocusDisabled bool
@@ -174,7 +168,7 @@ func ListBox(cfg ListBoxCfg) View {
 			A11YDescription: cfg.A11YDescription,
 		},
 		Focusable:   !cfg.FocusDisabled,
-		Scrollable:  cfg.Scrollable,
+		Scrollable:  true,
 		AmendLayout: focusRingAmend(Color{}, cfg.ColorBorderFocus),
 		OnKeyDown: func(ctx EventCtx) {
 			listBoxOnKeyDown(listBoxID, itemIDs,
@@ -201,11 +195,11 @@ func ListBox(cfg ListBoxCfg) View {
 }
 
 // listBoxCanVirtualize reports whether the list takes the
-// virtualizing path. Scrollable alone qualifies: with no configured
-// height, virtualization starts on the second frame once Arrange has
-// resolved one.
+// virtualizing path. Every list qualifies since #504 removed the
+// Scrollable opt-in: with no configured height, virtualization starts
+// on the second frame once Arrange has resolved one.
 func listBoxCanVirtualize(cfg *ListBoxCfg) bool {
-	return cfg != nil && cfg.Scrollable
+	return cfg != nil
 }
 
 func (lv *listBoxView) GenerateLayout(w *Window) Layout {
@@ -285,7 +279,7 @@ func (lv *listBoxView) GenerateLayout(w *Window) Layout {
 			A11YDescription: cfg.A11YDescription,
 		},
 		Focusable:  !cfg.FocusDisabled,
-		Scrollable: cfg.Scrollable,
+		Scrollable: true,
 		AmendLayout: amendAll(
 			listBoxAmendLayout(cache),
 			focusRingAmend(Color{}, cfg.ColorBorderFocus)),
@@ -370,7 +364,7 @@ func listBoxVisibleRange(
 ) (first, last int, virtualize bool, listH, rowH float32) {
 	first = 0
 	last = len(cfg.Data) - 1
-	virtualize = cfg.Scrollable
+	virtualize = true
 	listH = cfg.Height
 	if listH <= 0 {
 		listH = cfg.MaxHeight
@@ -390,8 +384,7 @@ func listBoxVisibleRange(
 		listHeightRegisterUniform(w, cfg.ID, len(cfg.Data), rowH, 0, 0)
 	} else {
 		virtualize = false
-		if cfg.Scrollable && cache.hSeen &&
-			len(cfg.Data) > 0 && DebugEnabled() {
+		if cache.hSeen && len(cfg.Data) > 0 && DebugEnabled() {
 			// The layout has run at least once and still gave the
 			// list no height, so every row builds each frame.
 			w.debugWarn(debugCheckListBoxNoHeight, cfg.ID,

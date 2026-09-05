@@ -134,7 +134,8 @@ per-shape opt-in.
 ## Virtualized lists
 
 `ListBox`, `Table`, `Tree` and `Combobox` virtualize automatically when the
-scroll container has a bounded height. That means `Scrollable` plus `Height` or
+scroll container has a bounded height. They always scroll — there is no
+`Scrollable` opt-in — so a bounded height is the whole requirement: `Height` or
 `MaxHeight`, or — `ListBox` only — a height Fill sizing resolved last frame.
 Every row is the same height there, which is exact because the widget owns the
 row shape.

@@ -147,11 +147,10 @@ func mainView(w *gui.Window) gui.View {
 			body(app, theme),
 			statusBar(app, theme),
 			gui.CommandPalette(gui.CommandPaletteCfg{
-				ID:         "palette",
-				Scrollable: true,
-				Items:      w.CommandPaletteItems(),
-				OnAction:   paletteAction,
-				OnDismiss:  func(_ *gui.Window) {},
+				ID:        "palette",
+				Items:     w.CommandPaletteItems(),
+				OnAction:  paletteAction,
+				OnDismiss: func(_ *gui.Window) {},
 			}),
 		},
 	})

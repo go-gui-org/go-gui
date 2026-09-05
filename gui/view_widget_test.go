@@ -581,8 +581,8 @@ func TestListBoxGeneratesLayout(t *testing.T) {
 	if layout.Shape.A11YRole != AccessRoleList {
 		t.Fatalf("got role %d, want List", layout.Shape.A11YRole)
 	}
-	if len(layout.Children) != 3 {
-		t.Fatalf("got %d children, want 3", len(layout.Children))
+	if got := len(listBoxRows(&layout)); got != 3 {
+		t.Fatalf("got %d rows, want 3", got)
 	}
 }
 
@@ -639,8 +639,8 @@ func TestListBoxSubheading(t *testing.T) {
 		OnSelect: func(_ []string, ctx EventCtx) {},
 	})
 	layout := generateViewLayout(v, w)
-	if len(layout.Children) != 2 {
-		t.Fatalf("got %d children, want 2", len(layout.Children))
+	if got := len(listBoxRows(&layout)); got != 2 {
+		t.Fatalf("got %d rows, want 2", got)
 	}
 }
 

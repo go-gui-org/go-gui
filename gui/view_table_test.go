@@ -6,6 +6,22 @@ import (
 	"github.com/go-gui-org/go-glyph"
 )
 
+// tableRows returns a rendered Table's row children, dropping the
+// scrollbar. Every table joins the scroll system since #504 removed the
+// Scrollable opt-in, so the outer container always carries one; it is
+// an OverDraw child, which is what marks it as not a row. (The
+// horizontal bar is ScrollbarHidden, so only the vertical one appears.)
+func tableRows(layout *Layout) []Layout {
+	rows := make([]Layout, 0, len(layout.Children))
+	for _, c := range layout.Children {
+		if c.Shape.OverDraw {
+			continue
+		}
+		rows = append(rows, c)
+	}
+	return rows
+}
+
 func TestTableBasic(t *testing.T) {
 	v := Table(TableCfg{
 		ID: "tbl-test",
@@ -17,8 +33,8 @@ func TestTableBasic(t *testing.T) {
 	})
 	w := &Window{}
 	layout := generateViewLayout(v, w)
-	if len(layout.Children) != 3 {
-		t.Fatalf("rows = %d, want 3", len(layout.Children))
+	if len(tableRows(&layout)) != 3 {
+		t.Fatalf("rows = %d, want 3", len(tableRows(&layout)))
 	}
 }
 
@@ -26,8 +42,8 @@ func TestTableEmpty(t *testing.T) {
 	v := Table(TableCfg{ID: "tbl-test"})
 	w := &Window{}
 	layout := generateViewLayout(v, w)
-	if len(layout.Children) != 0 {
-		t.Errorf("children = %d, want 0", len(layout.Children))
+	if len(tableRows(&layout)) != 0 {
+		t.Errorf("children = %d, want 0", len(tableRows(&layout)))
 	}
 }
 
@@ -43,7 +59,6 @@ func TestTableA11Y(t *testing.T) {
 		{name: "plain"},
 		{name: "freeze", cfg: TableCfg{
 			FreezeHeader: true,
-			Scrollable:   true,
 		}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -85,8 +100,8 @@ func TestTableBorderAll(t *testing.T) {
 	w := &Window{}
 	layout := generateViewLayout(v, w)
 	// 2 rows (cell borders with negative spacing, no separators).
-	if len(layout.Children) != 2 {
-		t.Errorf("children = %d, want 2", len(layout.Children))
+	if len(tableRows(&layout)) != 2 {
+		t.Errorf("children = %d, want 2", len(tableRows(&layout)))
 	}
 	// Each cell should have a border.
 	row := layout.Children[0]
@@ -110,8 +125,8 @@ func TestTableBorderHorizontal(t *testing.T) {
 	w := &Window{}
 	layout := generateViewLayout(v, w)
 	// 3 rows + 2 separators (between 0-1 and 1-2; not after last).
-	if len(layout.Children) != 5 {
-		t.Errorf("children = %d, want 5", len(layout.Children))
+	if len(tableRows(&layout)) != 5 {
+		t.Errorf("children = %d, want 5", len(tableRows(&layout)))
 	}
 }
 
@@ -129,8 +144,8 @@ func TestTableBorderHeaderOnly(t *testing.T) {
 	w := &Window{}
 	layout := generateViewLayout(v, w)
 	// 3 rows + 1 separator (after header only).
-	if len(layout.Children) != 4 {
-		t.Errorf("children = %d, want 4", len(layout.Children))
+	if len(tableRows(&layout)) != 4 {
+		t.Errorf("children = %d, want 4", len(tableRows(&layout)))
 	}
 }
 
@@ -145,8 +160,8 @@ func TestTableRawData(t *testing.T) {
 	})
 	w := &Window{}
 	layout := generateViewLayout(v, w)
-	if len(layout.Children) != 3 {
-		t.Fatalf("rows = %d, want 3", len(layout.Children))
+	if len(tableRows(&layout)) != 3 {
+		t.Fatalf("rows = %d, want 3", len(tableRows(&layout)))
 	}
 }
 
@@ -164,9 +179,9 @@ func TestTableRawDataPrecedence(t *testing.T) {
 	})
 	w := &Window{}
 	layout := generateViewLayout(v, w)
-	if len(layout.Children) != 2 {
+	if len(tableRows(&layout)) != 2 {
 		t.Fatalf("rows = %d, want 2 (RawData)",
-			len(layout.Children))
+			len(tableRows(&layout)))
 	}
 }
 
@@ -182,8 +197,8 @@ func TestTableRawDataHeaderRow(t *testing.T) {
 	})
 	w := &Window{}
 	layout := generateViewLayout(v, w)
-	if len(layout.Children) != 2 {
-		t.Fatalf("rows = %d, want 2", len(layout.Children))
+	if len(tableRows(&layout)) != 2 {
+		t.Fatalf("rows = %d, want 2", len(tableRows(&layout)))
 	}
 }
 
@@ -197,8 +212,8 @@ func TestTableRawDataHeaderOnly(t *testing.T) {
 	})
 	w := &Window{}
 	layout := generateViewLayout(v, w)
-	if len(layout.Children) != 1 {
-		t.Fatalf("rows = %d, want 1 (header-only)", len(layout.Children))
+	if len(tableRows(&layout)) != 1 {
+		t.Fatalf("rows = %d, want 1 (header-only)", len(tableRows(&layout)))
 	}
 }
 
@@ -289,8 +304,8 @@ func TestTableSelectedRowTextColor(t *testing.T) {
 		},
 		Selected: map[int]bool{1: true},
 	}), w)
-	if len(layout.Children) < 2 {
-		t.Fatalf("rows = %d, want 2", len(layout.Children))
+	if len(tableRows(&layout)) < 2 {
+		t.Fatalf("rows = %d, want 2", len(tableRows(&layout)))
 	}
 	unselected := layout.Children[0].Children[0].Children[0].Shape.TC
 	selected := layout.Children[1].Children[0].Children[0].Shape.TC
@@ -402,8 +417,8 @@ func TestWindowTable(t *testing.T) {
 		},
 	})
 	layout := generateViewLayout(v, w)
-	if len(layout.Children) != 2 {
-		t.Fatalf("rows = %d, want 2", len(layout.Children))
+	if len(tableRows(&layout)) != 2 {
+		t.Fatalf("rows = %d, want 2", len(tableRows(&layout)))
 	}
 }
 
@@ -424,8 +439,8 @@ func TestTableColumnWidthCaching(t *testing.T) {
 	// Second call should hit cache.
 	v2 := w.Table(cfg)
 	layout2 := generateViewLayout(v2, w)
-	if len(layout2.Children) != 2 {
-		t.Fatalf("rows = %d, want 2", len(layout2.Children))
+	if got := len(tableRows(&layout2)); got != 2 {
+		t.Fatalf("rows = %d, want 2", got)
 	}
 }
 
@@ -462,17 +477,16 @@ func TestTableVirtualization(t *testing.T) {
 	}
 
 	v := w.Table(TableCfg{
-		ID:         "virtual-test",
-		Scrollable: true,
-		MaxHeight:  200,
-		Data:       data,
+		ID:        "virtual-test",
+		MaxHeight: 200,
+		Data:      data,
 	})
 	layout := generateViewLayout(v, w)
 	// Should have fewer children than total rows due to
 	// virtualization (visible rows + spacers).
-	if len(layout.Children) >= 101 {
+	if len(tableRows(&layout)) >= 101 {
 		t.Errorf("expected virtualized children < 101, got %d",
-			len(layout.Children))
+			len(tableRows(&layout)))
 	}
 }
 
@@ -497,8 +511,8 @@ func TestTableFromCSV(t *testing.T) {
 	w := &Window{}
 	v := w.tableFromCSV("A,B\n1,2\n")
 	layout := generateViewLayout(v, w)
-	if len(layout.Children) != 2 {
-		t.Fatalf("rows = %d, want 2", len(layout.Children))
+	if len(tableRows(&layout)) != 2 {
+		t.Fatalf("rows = %d, want 2", len(tableRows(&layout)))
 	}
 }
 
@@ -507,8 +521,8 @@ func TestTableFromCSVError(t *testing.T) {
 	v := w.tableFromCSV("\"unclosed")
 	layout := generateViewLayout(v, w)
 	// Should produce error table with 1 row.
-	if len(layout.Children) != 1 {
-		t.Fatalf("rows = %d, want 1", len(layout.Children))
+	if len(tableRows(&layout)) != 1 {
+		t.Fatalf("rows = %d, want 1", len(tableRows(&layout)))
 	}
 }
 
@@ -517,7 +531,6 @@ func TestTableFreezeHeader(t *testing.T) {
 	w.textMeasurer = &tableTestMeasurer{}
 	v := w.Table(TableCfg{
 		ID:           "freeze-test",
-		Scrollable:   true,
 		MaxHeight:    200,
 		FreezeHeader: true,
 		Data: []TableRowCfg{
@@ -528,8 +541,8 @@ func TestTableFreezeHeader(t *testing.T) {
 	})
 	layout := generateViewLayout(v, w)
 	// Outer has 2 children: header zone, body zone.
-	if len(layout.Children) != 2 {
-		t.Fatalf("outer children = %d, want 2", len(layout.Children))
+	if len(tableRows(&layout)) != 2 {
+		t.Fatalf("outer children = %d, want 2", len(tableRows(&layout)))
 	}
 	headerZone := layout.Children[0]
 	bodyZone := layout.Children[1]
@@ -550,7 +563,6 @@ func TestTableFreezeHeaderWithSeparator(t *testing.T) {
 	w.textMeasurer = &tableTestMeasurer{}
 	v := w.Table(TableCfg{
 		ID:           "freeze-sep-test",
-		Scrollable:   true,
 		MaxHeight:    200,
 		FreezeHeader: true,
 		BorderStyle:  TableBorderHeaderOnly,
@@ -562,8 +574,8 @@ func TestTableFreezeHeaderWithSeparator(t *testing.T) {
 		},
 	})
 	layout := generateViewLayout(v, w)
-	if len(layout.Children) != 2 {
-		t.Fatalf("outer children = %d, want 2", len(layout.Children))
+	if len(tableRows(&layout)) != 2 {
+		t.Fatalf("outer children = %d, want 2", len(tableRows(&layout)))
 	}
 	headerZone := layout.Children[0]
 	bodyZone := layout.Children[1]
@@ -579,8 +591,11 @@ func TestTableFreezeHeaderWithSeparator(t *testing.T) {
 	}
 }
 
-func TestTableFreezeHeaderNoScroll(t *testing.T) {
-	// FreezeHeader=true but Scrollable=false → falls back to single Column.
+func TestTableFreezeHeaderNeedsNoScrollableFlag(t *testing.T) {
+	// #504 item 2: FreezeHeader used to require Scrollable as well, so
+	// setting it alone silently did nothing. The table always scrolls
+	// now, so the caller's intent is the whole condition -- this same
+	// config used to render one flat Column of 3 rows.
 	v := Table(TableCfg{
 		ID:           "tbl-test",
 		FreezeHeader: true,
@@ -592,9 +607,15 @@ func TestTableFreezeHeaderNoScroll(t *testing.T) {
 	})
 	w := &Window{}
 	layout := generateViewLayout(v, w)
-	// Same as non-frozen: 3 rows, single Column.
-	if len(layout.Children) != 3 {
-		t.Errorf("children = %d, want 3", len(layout.Children))
+	// Frozen shape: a header zone and a body zone, not a flat row list.
+	if got := len(tableRows(&layout)); got != 2 {
+		t.Fatalf("outer children = %d, want 2 (header zone + body zone)",
+			got)
+	}
+	headerZone := layout.Children[0]
+	if len(headerZone.Children) != 1 {
+		t.Errorf("header zone children = %d, want 1 (the header row)",
+			len(headerZone.Children))
 	}
 }
 
@@ -610,14 +631,13 @@ func TestTableFreezeHeaderVirtualization(t *testing.T) {
 
 	v := w.Table(TableCfg{
 		ID:           "freeze-virtual-test",
-		Scrollable:   true,
 		MaxHeight:    200,
 		FreezeHeader: true,
 		Data:         data,
 	})
 	layout := generateViewLayout(v, w)
-	if len(layout.Children) != 2 {
-		t.Fatalf("outer children = %d, want 2", len(layout.Children))
+	if len(tableRows(&layout)) != 2 {
+		t.Fatalf("outer children = %d, want 2", len(tableRows(&layout)))
 	}
 	bodyZone := layout.Children[1]
 	// Body should have fewer than 100 children due to virtualization.
@@ -643,8 +663,8 @@ func TestTableRichTextCell(t *testing.T) {
 	})
 	w := &Window{}
 	layout := generateViewLayout(v, w)
-	if len(layout.Children) != 1 {
-		t.Fatalf("rows = %d, want 1", len(layout.Children))
+	if len(tableRows(&layout)) != 1 {
+		t.Fatalf("rows = %d, want 1", len(tableRows(&layout)))
 	}
 }
 

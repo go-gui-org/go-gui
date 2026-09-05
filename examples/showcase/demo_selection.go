@@ -173,7 +173,6 @@ func demoListBox(w *gui.Window) gui.View {
 			gui.Text(gui.TextCfg{Text: "Virtualized list (scroll)", TextStyle: t.B3}),
 			gui.ListBox(gui.ListBoxCfg{
 				ID:          "listbox-demo",
-				Scrollable:  true,
 				Sizing:      gui.FillFit,
 				MaxHeight:   200,
 				Multiple:    true,
@@ -264,7 +263,6 @@ func demoDragReorder(w *gui.Window) gui.View {
 				ID:          "drag-listbox",
 				Sizing:      gui.FillFit,
 				MaxHeight:   200,
-				Scrollable:  true,
 				Data:        app.DragListItems,
 				Reorderable: true,
 				OnReorder: func(movedID string, beforeID string, ctx gui.EventCtx) {
@@ -304,7 +302,6 @@ func demoDragReorder(w *gui.Window) gui.View {
 				Nodes:       app.DragTreeNodes,
 				Sizing:      gui.FillFit,
 				MaxHeight:   250,
-				Scrollable:  true,
 				Reorderable: true,
 				OnReorder: func(movedID string, beforeID string, ctx gui.EventCtx) {
 					a := appState(ctx.Window)
