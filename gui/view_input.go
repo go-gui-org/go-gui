@@ -156,6 +156,14 @@ type InputCfg struct {
 	// the whole control wider than the theme asked for.
 	noMinWidthFloor bool
 
+	// onMouseScroll attaches a wheel handler to the field's own shape.
+	// Set only by widgets that wrap an Input and give the wheel a
+	// meaning of their own -- NumericInput's wheel stepping. Private
+	// because the general case is wrong: an Input that eats the wheel
+	// stops the page under it from scrolling, so this is opt-in per
+	// wrapping widget rather than a caller-facing field.
+	onMouseScroll func(EventCtx)
+
 	// SpellCheck enables platform spell checking. Mac only.
 	SpellCheck bool
 
@@ -341,7 +349,7 @@ func Input(cfg InputCfg) View {
 			}
 		},
 		AmendLayout: inputAmendLayout(hcfg, focusID,
-			colorBorderFocus, spellChk, onBlur),
+			colorBorderFocus, spellChk, onBlur, cfg.onMouseScroll),
 		Content: []View{inner},
 	})
 	return labelledField(cfg.Label, cfg.TextStyle, HAlignLeft, cfg.Sizing, field)
@@ -613,11 +621,20 @@ func inputOnClick(leafID, leafScrollID string, canFocus bool) func(EventCtx) {
 func inputAmendLayout(
 	hcfg inputHandlerCfg, focusID string,
 	colorBorderFocus Color, spellChk bool,
-	onBlur func(EventCtx),
+	onBlur func(EventCtx), onMouseScroll func(EventCtx),
 ) func(EventCtx) {
 	// Captured at generation; see focusRingAmend.
 	ring := guiTheme.focusRing
 	return func(ctx EventCtx) {
+		// Attached ahead of the focus gate below: the wheel does not
+		// need focus, and a FocusDisabled numeric field should still
+		// step under the pointer if its wrapper asked for it.
+		if onMouseScroll != nil {
+			if ctx.Layout.Shape.events == nil {
+				ctx.Layout.Shape.events = &eventHandlers{}
+			}
+			ctx.Layout.Shape.events.OnMouseScroll = onMouseScroll
+		}
 		if !ctx.Layout.Shape.Focusable || ctx.Layout.Shape.ID == "" {
 			return
 		}

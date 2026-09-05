@@ -1,0 +1,12 @@
+Shadow xy=15.00,15.00 wh=160.00,33.60 color=#4d82f03f radius=6.00 blur=2.00 offset=0.00,0.00
+Rect xy=15.00,15.00 wh=160.00,33.60 color=#262a2fff radius=6.00 fill
+StrokeRect xy=15.00,15.00 wh=160.00,33.60 color=#4d82f0ff radius=6.00 thickness=1.00
+Clip xy=16.00,16.00 wh=158.00,31.60
+Clip xy=27.00,22.00 wh=122.00,19.60
+Text xy=27.00,22.99 wh=0.00,0.00 color=#e6e8ebff text="42.5" size=14.00
+Clip xy=16.00,16.00 wh=158.00,31.60
+Rect xy=161.00,17.00 wh=6.00,14.80 color=#262a2fff fill
+Text xy=161.00,18.29 wh=0.00,0.00 color=#e6e8ebff text="▲" size=10.00
+Rect xy=161.00,31.80 wh=6.00,14.80 color=#262a2fff fill
+Text xy=161.00,33.09 wh=0.00,0.00 color=#e6e8ebff text="▼" size=10.00
+Clip xy=0.00,0.00 wh=320.00,240.00

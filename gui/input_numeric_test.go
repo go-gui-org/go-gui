@@ -410,3 +410,52 @@ func TestNumericEmptyPrefixSpacing(t *testing.T) {
 		t.Fatalf("got %q, want %q", got, "$")
 	}
 }
+
+func TestNumericClampNaNBoundsIgnored(t *testing.T) {
+	t.Parallel()
+	// A NaN bound is caller garbage, not a constraint: NaN fails
+	// every comparison, so it must behave as unset.
+	nan := Some(math.NaN())
+	if got := numericClamp(5, nan, Opt[float64]{}); got != 5 {
+		t.Errorf("NaN min clamped 5 to %v", got)
+	}
+	if got := numericClamp(-500, nan, Some(10.0)); got != -500 {
+		t.Errorf("NaN min clamped -500 to %v", got)
+	}
+	if got := numericClamp(500, Some(5.0), nan); got != 500 {
+		t.Errorf("NaN max clamped 500 to %v", got)
+	}
+	if got := numericClamp(3, Some(5.0), Some(10.0)); got != 5 {
+		t.Errorf("real bounds clamped 3 to %v, want 5", got)
+	}
+}
+
+func TestNumericStepNaNSeedsFallBack(t *testing.T) {
+	t.Parallel()
+	// Unparseable text forces the seed onto Value/Min. NaN there
+	// must fall through to 0 rather than committing "NaN".
+	_, s := numericInputStepResult("abc", Some(math.NaN()),
+		Opt[float64]{}, Opt[float64]{}, 0,
+		NumericStepCfg{Step: 1}, NumericLocaleCfg{}, 1, ModNone)
+	if s != "1" {
+		t.Errorf("NaN value seeded %q, want \"1\"", s)
+	}
+	_, s = numericInputStepResult("abc", Opt[float64]{},
+		Some(math.NaN()), Opt[float64]{}, 0,
+		NumericStepCfg{Step: 1}, NumericLocaleCfg{}, 1, ModNone)
+	if s != "1" {
+		t.Errorf("NaN min seeded %q, want \"1\"", s)
+	}
+}
+
+func TestNumericCommitNaNValueStaysUnset(t *testing.T) {
+	t.Parallel()
+	v, s := numericInputCommitResult("abc", Some(math.NaN()),
+		Opt[float64]{}, Opt[float64]{}, 0, NumericLocaleCfg{})
+	if _, ok := v.Value(); ok {
+		t.Errorf("NaN value fallback committed %v, want unset", v)
+	}
+	if s != "" {
+		t.Errorf("NaN value fallback formatted %q, want \"\"", s)
+	}
+}

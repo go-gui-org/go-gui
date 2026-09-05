@@ -151,7 +151,10 @@ func NumericInput(cfg NumericInputCfg) View {
 	return labelledField(cfg.Label, cfg.TextStyle, HAlignLeft, cfg.Sizing, control)
 }
 
-func numericInputField(cfg NumericInputCfg, locale NumericLocaleCfg, _ NumericStepCfg, fillParent bool) View {
+func numericInputField(
+	cfg NumericInputCfg, locale NumericLocaleCfg,
+	stepCfg NumericStepCfg, fillParent bool,
+) View {
 	sizing := cfg.Sizing
 	var width, height, minWidth, maxWidth, minHeight, maxHeight float32
 	if fillParent {
@@ -219,6 +222,8 @@ func numericInputField(cfg NumericInputCfg, locale NumericLocaleCfg, _ NumericSt
 		Disabled:           cfg.Disabled,
 		Invisible:          cfg.Invisible,
 		OnTextChanged:      cfg.OnTextChanged,
+		OnKeyDown:          numericInputOnKeyDown(cfg, locale, stepCfg),
+		onMouseScroll:      numericInputOnWheel(cfg, locale, stepCfg),
 		PreTextChange: func(current, proposed string) (string, bool) {
 			return numericInputPreCommitTransformMode(
 				current, proposed, cfg.Decimals, locale, modeCfg)
@@ -339,6 +344,73 @@ func numericInputStepButtons(cfg NumericInputCfg, locale NumericLocaleCfg, stepC
 	})
 }
 
+// numericInputOnKeyDown returns the Up/Down stepping handler, or nil
+// when the caller opted out. Stepping is default-on because arrow keys
+// are the spinbox convention (issue #503); before this the field
+// carried a Keyboard flag that nothing read.
+func numericInputOnKeyDown(
+	cfg NumericInputCfg, locale NumericLocaleCfg, stepCfg NumericStepCfg,
+) func(EventCtx) {
+	if stepCfg.KeyboardDisabled {
+		return nil
+	}
+	return func(ctx EventCtx) {
+		if ctx.Event == nil {
+			return
+		}
+		var dir float64
+		switch ctx.Event.KeyCode {
+		case KeyUp:
+			dir = 1
+		case KeyDown:
+			dir = -1
+		default:
+			return
+		}
+		// A read-only field declines the key rather than swallowing it,
+		// so an enclosing list still moves its selection. Consume only
+		// on the paths that actually step.
+		if cfg.ReadOnly {
+			return
+		}
+		numericInputApplyStep(ctx.Layout, cfg, locale, stepCfg,
+			dir, ctx.Event, ctx.Window)
+		ctx.Consume()
+	}
+}
+
+// numericInputOnWheel returns the wheel stepping handler, or nil unless
+// the caller opted in. Opt-in by design: a field that eats the wheel
+// stops the form under the pointer from scrolling.
+func numericInputOnWheel(
+	cfg NumericInputCfg, locale NumericLocaleCfg, stepCfg NumericStepCfg,
+) func(EventCtx) {
+	if !stepCfg.MouseWheel || cfg.ReadOnly {
+		return nil
+	}
+	return func(ctx EventCtx) {
+		if ctx.Event == nil {
+			return
+		}
+		// ScrollY carries lines for a wheel and points for a trackpad
+		// (see the Event doc), so only the sign is portable here: one
+		// step per event, with Shift/Alt applying their multipliers
+		// through numericInputStepResultClamped.
+		var dir float64
+		switch {
+		case ctx.Event.ScrollY > 0:
+			dir = 1
+		case ctx.Event.ScrollY < 0:
+			dir = -1
+		default:
+			return
+		}
+		numericInputApplyStep(ctx.Layout, cfg, locale, stepCfg,
+			dir, ctx.Event, ctx.Window)
+		ctx.Consume()
+	}
+}
+
 func numericInputApplyStep(
 	layout *Layout,
 	cfg NumericInputCfg,
@@ -355,10 +427,14 @@ func numericInputApplyStep(
 		return
 	}
 	modeCfg := numericModeCfgFromInput(cfg)
+	modifiers := ModNone
+	if e != nil {
+		modifiers = e.Modifiers
+	}
 	value, committed, clamped := numericInputStepResultClamped(
 		cfg.Text, cfg.Value, cfg.Min, cfg.Max,
 		cfg.Decimals, stepCfg, locale, dir,
-		e.Modifiers, modeCfg)
+		modifiers, modeCfg)
 	if clamped {
 		// The step was understood but the value could not move: it
 		// already sat at Min or Max. The button's own click cue, if
