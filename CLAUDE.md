@@ -11,7 +11,7 @@ make check-all                  # test + lint + vet (what .githooks/pre-push run
 make check                      # fast subset (vet, deps-doc, large-files, generate/tidy/fmt-md checks)
 make test / lint / vet          # individually
 make fmt-md                     # Prettier over tracked .md (.prettierrc holds the flags)
-make ergonomics-audit           # focus/callbacks inventory + ID/a11y/theme/visual/literals gates
+make ergonomics-audit           # focus/callbacks inventory + ID/a11y/theme/visual/literals/deadcfg gates
 make export-audit               # exported surface (advisory in-repo)
 ./scripts/large-files.sh        # Go files >800 lines in gui/
 git config core.hooksPath .githooks  # enable tracked hooks
