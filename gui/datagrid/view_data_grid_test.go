@@ -702,3 +702,84 @@ func TestDataGridRowsDataEmptyFirstRow(t *testing.T) {
 		t.Fatal("expected children (empty-first-row)")
 	}
 }
+
+// --- ID scoping (issue #519) ---
+
+// A grid inside an ID-bearing panel keys its state on the effective ID,
+// not the leaf. The check is the audit rather than a hand-read of one
+// namespace: the grid owns column widths, presentation, CRUD and
+// data-source state, and a missed resolve in any of them is the defect.
+func TestDataGridStateKeysResolveUnderScope(t *testing.T) {
+	w := gg.NewTestWindow(gg.WindowCfg{})
+	w.UpdateView(func(_ *gg.Window) gg.View {
+		return gg.Column(gg.ContainerCfg{
+			ID:      "detail",
+			Sizing:  gg.FillFill,
+			Content: []gg.View{scopedTestGrid(w)},
+		})
+	})
+
+	if found := w.TestFindings(gg.DebugAll); len(found) != 0 {
+		t.Fatalf("scoped grid must leave no unresolved state key, got %q", found)
+	}
+}
+
+// The grid's own shape answers to the scoped name, which is what
+// SetFocus and FindByID must be given.
+func TestDataGridRootResolvesToEffectiveID(t *testing.T) {
+	w := gg.NewTestWindow(gg.WindowCfg{})
+	w.UpdateView(func(_ *gg.Window) gg.View {
+		return gg.Column(gg.ContainerCfg{
+			ID:      "detail",
+			Sizing:  gg.FillFill,
+			Content: []gg.View{scopedTestGrid(w)},
+		})
+	})
+	root := w.TestRender(nil)
+	if root == nil {
+		t.Fatal("render produced no layout")
+	}
+
+	if _, ok := root.FindByID("detail:grid"); !ok {
+		t.Fatal("grid must be addressable by its effective ID")
+	}
+	if _, ok := root.FindByID("grid"); ok {
+		t.Fatal("the bare leaf must no longer name the grid")
+	}
+}
+
+// Two grids sharing one cfg.ID under different panels are distinct
+// identities, which is the case the unresolved key silently merged.
+func TestDataGridTwoScopesAreDistinct(t *testing.T) {
+	w := gg.NewTestWindow(gg.WindowCfg{})
+	w.UpdateView(func(_ *gg.Window) gg.View {
+		return gg.Column(gg.ContainerCfg{
+			Sizing: gg.FillFill,
+			Content: []gg.View{
+				gg.Column(gg.ContainerCfg{ID: "left",
+					Content: []gg.View{scopedTestGrid(w)}}),
+				gg.Column(gg.ContainerCfg{ID: "right",
+					Content: []gg.View{scopedTestGrid(w)}}),
+			},
+		})
+	})
+
+	if found := w.TestFindings(gg.DebugAll); len(found) != 0 {
+		t.Fatalf("two scoped grids must not collide, got %q", found)
+	}
+}
+
+// scopedTestGrid builds the same small grid for every scoping test, so
+// a change to the fixture cannot make one of them pass for the wrong
+// reason.
+func scopedTestGrid(w *gg.Window) gg.View {
+	return New(w, DataGridCfg{
+		ID: "grid",
+		Columns: []GridColumnCfg{
+			{ID: "name", Title: "Name"},
+		},
+		Rows: []GridRow{
+			{ID: "r1", Cells: map[string]string{"name": "one"}},
+		},
+	})
+}

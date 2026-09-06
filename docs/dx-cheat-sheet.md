@@ -302,24 +302,21 @@ panel as it stands. When you plan to reuse a screen, ask for it:
 gui.DebugCategories(gui.DebugAll | gui.DebugUnscopedIDs)
 ```
 
-`DebugUnresolvedKeys` is opt-in for the same reason. It reports per-widget state
-stored under a leaf ID that an ancestor join rewrote, so the widget's state key
-and its shape's identity are different strings. Such a widget works while it is
-the only instance of its `cfg.ID`, and two of them under different scopes share
-one state slot. Ask for it with the same call:
-
-```go
-gui.DebugCategories(gui.DebugAll | gui.DebugUnresolvedKeys)
-```
+`DebugUnresolvedKeys` is part of `DebugAll`, so `gui.Debug(true)` already runs
+it. It reports per-widget state stored under a leaf ID that an ancestor join
+rewrote, so the widget's state key and its shape's identity are different
+strings. Such a widget works while it is the only instance of its `cfg.ID`, and
+two of them under different scopes share one state slot.
 
 The remedy is a resolved key: `w.EffID(cfg.ID)` during `GenerateLayout`, or
 `ctx.EffID(leaf)` in a handler.
 
-`DebugCategories` prints to stderr. To assert an opt-in category in a test, use
-`(*Window).TestFindings(mask)`, which returns the findings as data:
+`DebugCategories` prints to stderr. To assert a category in a test, including an
+opt-in one, use `(*Window).TestFindings(mask)`, which returns the findings as
+data:
 
 ```go
-if found := w.TestFindings(gui.DebugAll | gui.DebugUnresolvedKeys); len(found) > 0 {
-	t.Fatalf("unresolved state keys: %v", found)
+if found := w.TestFindings(gui.DebugAll | gui.DebugUnscopedIDs); len(found) > 0 {
+	t.Fatalf("ID defects: %v", found)
 }
 ```

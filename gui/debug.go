@@ -131,24 +131,21 @@ const (
 	// is the signature of a missed resolve rather than of an unrelated
 	// key that happens to collide.
 	//
-	// Latent rather than broken, which is why [Debug] does not turn it
-	// on: a widget that keys both the write and the read on the same
-	// unresolved leaf works, and fails only when a second instance of
-	// it appears under a different scope with the same cfg.ID. Some
-	// widgets are also window-global by decision — gui/datagrid is the
-	// documented case. Ask for the category explicitly when auditing a
-	// screen for reuse, alongside [DebugUnscopedIDs].
+	// The finding is latent rather than immediate — a widget that keys
+	// both the write and the read on the same unresolved leaf works,
+	// and fails only when a second instance of it appears under a
+	// different scope with the same cfg.ID — but it is a defect either
+	// way, so [Debug] turns it on.
 	// exportaudit:keep — dev-diagnostic API for app authors
 	DebugUnresolvedKeys
 
 	// DebugAll is every category [Debug] turns on. [DebugUnscopedIDs]
-	// and [DebugUnresolvedKeys] are deliberately absent: both report a
-	// design property rather than a present defect, and both fire on
-	// widgets that work today.
+	// is deliberately absent: it reports a design property rather than
+	// a defect, and fires on widgets that are correct as written.
 	// exportaudit:keep — dev-diagnostic API for app authors
 	DebugAll = DebugDuplicates | DebugMissingIDs | DebugUnconsumed |
 		DebugListBoxNoHeight | DebugGradientResampled | DebugWrapOverflow |
-		DebugCallbacks | DebugWindowDegraded
+		DebugCallbacks | DebugWindowDegraded | DebugUnresolvedKeys
 )
 
 func init() {
