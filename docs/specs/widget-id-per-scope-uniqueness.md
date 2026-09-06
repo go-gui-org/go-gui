@@ -81,9 +81,23 @@ implementation, and the code is the authority.
    `(*Window).EffID` is unchanged and still necessary: a widget that reads its
    own state inside `GenerateLayout` cannot wait for its own shape to be
    stamped. It joins the same ambient scope through the same `resolveLeaf`. The
-   eager-factory failure (#528) is also unchanged — a factory body runs before
-   the descent that opens its scope, so there is nothing to stamp yet, and
-   `DebugUnresolvedKeys` still reports it.
+   eager-factory failure is also unchanged — a factory body runs before the
+   descent that opens its scope, so there is nothing to stamp yet, and
+   `DebugUnresolvedKeys` still reports it (see point 6).
+
+6. **The last two eager factories are gone** (#528, 2026-09-06). `WithTooltip`
+   and `Menubar` were the remainder of the class #518, #519 and #520 addressed,
+   found by auditing every `w.EffID` call site against its enclosing function.
+   `WithTooltip` resolved in the factory body, which runs while the parent's
+   `Content` slice is built, so the tip ID joined the enclosing scope while the
+   popup's shape landed under the panel — two tooltips with the same text in two
+   panels shared one hover entry. `Menubar` resolved nowhere at all: every key
+   was the bare leaf while the `Row` it returns carried an ID that generation
+   joined. Both now defer behind `viewFunc` and resolve inside the deferred
+   build, which is the remedy this spec already prescribes and the one
+   `ContextMenu` and `Table` use. Every remaining `EffID` call site in `gui/`
+   either sits in a `GenerateLayout` method or in a helper that is itself
+   deferred.
 
 Phase A.4 (producer simplification) was applied where a composite's own nesting
 already mirrors `ScopeID(cfg.ID, part)` — combobox and select now set a plain

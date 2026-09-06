@@ -343,3 +343,99 @@ func TestTooltipExplicitTopLeft(t *testing.T) {
 			layout.Shape.FloatAnchor)
 	}
 }
+
+// tooltipPanel names one panel and the tooltip inside it. An empty
+// tipID exercises the fallback to the label text as the leaf.
+type tooltipPanel struct {
+	panelID string
+	tipID   string
+	text    string
+}
+
+// tooltipsInPanels renders one tooltip wrapper inside each ID-bearing
+// panel, with the mouse parked inside the first panel's trigger so that
+// wrapper's AmendLayout runs hovered and every later one runs outside.
+// The trigger is a fixed-size rectangle so the hit test does not depend
+// on text measurement, which is a nil-measurer approximation in tests.
+func tooltipsInPanels(panels ...tooltipPanel) *Window {
+	w := NewTestWindow(WindowCfg{})
+	w.viewState.mousePosX = 60
+	w.viewState.mousePosY = 60
+	w.UpdateView(func(vw *Window) View {
+		views := make([]View, 0, len(panels))
+		for _, p := range panels {
+			views = append(views, Column(ContainerCfg{
+				ID: p.panelID,
+				Content: []View{
+					// Called while the panel's Content slice is built,
+					// which is the eager-factory position issue #528 is
+					// about.
+					WithTooltip(vw, WithTooltipCfg{
+						ID:   p.tipID,
+						Text: p.text,
+						Content: []View{
+							Rectangle(RectangleCfg{
+								Width:  100,
+								Height: 50,
+								Sizing: FixedFixed,
+							}),
+						},
+					}),
+				},
+			}))
+		}
+		return Column(ContainerCfg{Sizing: FillFill, Content: views})
+	})
+	return w
+}
+
+// A tooltip built inside an ID-bearing panel must key its hover state on
+// the identity its own shape resolves to, not on the scope of whatever
+// was being built when the factory ran (issue #528).
+func TestWithTooltipScopesHoverStateToPanel(t *testing.T) {
+	w := tooltipsInPanels(tooltipPanel{"panel", "tip1", "hello"})
+	w.TestRender(nil)
+
+	if got := w.viewState.tooltip.hoverID; got != "panel:tip1" {
+		t.Fatalf("hover key = %q, want %q", got, "panel:tip1")
+	}
+}
+
+// The same label in two panels is two tooltips, in one window. Pre-fix
+// both wrappers keyed hover on the bare "hello": the second wrapper saw
+// its own tipID in ts.hoverID while the mouse was outside it and cleared
+// the first wrapper's hover. The observable result is that hovering a
+// tooltip did nothing whenever a same-labelled twin existed elsewhere.
+func TestWithTooltipSameTextInTwoPanelsIsTwoKeys(t *testing.T) {
+	w := tooltipsInPanels(
+		tooltipPanel{panelID: "a", text: "hello"},
+		tooltipPanel{panelID: "b", text: "hello"},
+	)
+	w.TestRender(nil)
+
+	if got := w.viewState.tooltip.hoverID; got != "a:hello" {
+		t.Fatalf("hover key = %q, want %q", got, "a:hello")
+	}
+}
+
+// The popup's own shape resolves under the panel too, so the identity
+// and the state key are one string.
+func TestWithTooltipPopupIDResolvesUnderPanel(t *testing.T) {
+	w := tooltipsInPanels(tooltipPanel{"panel", "tip1", "hello"})
+	w.viewState.tooltip.id = "panel:tip1"
+	w.viewState.tooltip.popupID = ScopeID("panel:tip1", "popup")
+	root := w.TestRender(nil)
+
+	if _, ok := root.FindByID("panel:tip1:popup"); !ok {
+		t.Fatalf("FindByID(%q) = false", "panel:tip1:popup")
+	}
+}
+
+// The dev-mode gate that reports an eagerly resolved key must stay quiet
+// for the fixed widget.
+func TestWithTooltipUnderPanelIsQuiet(t *testing.T) {
+	w := tooltipsInPanels(tooltipPanel{"panel", "tip1", "hello"})
+	if found := w.TestFindings(DebugAll); len(found) != 0 {
+		t.Fatalf("findings = %v, want none", found)
+	}
+}

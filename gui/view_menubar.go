@@ -90,10 +90,31 @@ type MenubarCfg struct {
 
 // Menubar creates a horizontal menubar with keyboard
 // navigation.
-func Menubar(w *Window, cfg MenubarCfg) View {
-	applyMenubarDefaults(&cfg)
+//
+// The build is deferred to layout generation, like [ContextMenu]. It is
+// load-bearing rather than a style choice: menubarBuild resolves cfg.ID
+// with [Window.EffID] and keys the selection, the focus check and the
+// AmendLayout closure on the result, and the generation-time ID scope
+// is only live while the framework descends the View tree. Building
+// here would leave those keys as the bare leaf while the bar's own
+// shape resolved under the panel it sits in. See issue #528.
+func Menubar(_ *Window, cfg MenubarCfg) View {
+	// Eager, so a missing ID or a duplicate item ID fails at the call
+	// site rather than a frame later.
 	RequireID("Menubar", cfg.ID)
 	checkForDuplicateMenuIDs(cfg.Items)
+	return viewFunc(func(vw *Window) View {
+		return menubarBuild(vw, cfg)
+	})
+}
+
+// menubarBuild assembles the bar under the ID scope of the panel it
+// sits in.
+func menubarBuild(w *Window, cfg MenubarCfg) View {
+	applyMenubarDefaults(&cfg)
+
+	// One resolved identity for every key below; see (*Window).EffID.
+	cfg.ID = w.EffID(cfg.ID)
 
 	// On focus with no selection, select first item.
 	if w.IsFocus(cfg.ID) {

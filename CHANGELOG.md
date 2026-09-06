@@ -96,6 +96,22 @@ and this project adheres to
 
 ### Fixed
 
+- **WithTooltip and Menubar now resolve their IDs at generation time** (#528) —
+  the last two widgets of the class #518, #519 and #520 fixed. Both took a
+  `*Window` and built eagerly in the factory body, which runs while the parent's
+  `Content` slice is assembled — before the framework descends into the
+  container the widget will sit in. `WithTooltip` therefore called `w.EffID`
+  against the enclosing scope, so the same tooltip text in two ID-bearing panels
+  shared one hover entry, and `Menubar` never resolved at all, keying selection,
+  focus and its AmendLayout closure on the bare leaf while its own shape
+  resolved under the panel. Each now defers the build behind the documented
+  pattern, so the resolve happens with the scope live.
+
+  **Behavior change.** A tooltip or menubar inside an ID-bearing ancestor now
+  carries the effective ID it always should have, so a hand-spelled
+  `SetFocus("bar")` on a scoped menubar must become `SetFocus("panel:bar")`.
+  Both are window-global in the common case, where nothing changes.
+
 - **Sidebar, InputDate and Table now resolve their IDs at generation time**
   (#518) — all three built eagerly in the `(*Window)` factory, which runs
   _before_ `generateViewLayout` descends the View tree. The ID scope stack is
