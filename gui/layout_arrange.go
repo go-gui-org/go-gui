@@ -12,13 +12,13 @@ func layoutArrange(layout *Layout, w *Window) []Layout {
 	// Set parent pointers.
 	layoutParents(layout, nil)
 
-	// Resolve identities before anything reads one, and before the
-	// floats are split out: a float written inside an ID-bearing panel
-	// keeps that panel's scope, which it could not if it were resolved
-	// after extraction as a bare root. Every pass downstream — sizing's
-	// overflow map, scroll, hover, focus, the transition and hero
-	// snapshots, the debug audit — keys on what this stamps.
-	resolveShapeIDs(layout, w)
+	// Identities were stamped at generation. What is left is the
+	// focusOwner references, which name an ancestor by leaf and so need
+	// the ancestor stack a walk has and a stamp does not. It runs before
+	// the floats are split out because focusKey is read downstream by
+	// every pass — render, hover, focus, IME, spell check — and a float
+	// lifted out of the tree has lost the ancestors the reference names.
+	resolveFocusOwners(layout, w)
 
 	// Extract floating layouts from main tree.
 	floatingLayouts := w.scratch.takeFloatingLayouts(len(layout.Children))
@@ -90,7 +90,8 @@ func injectFloatingLayer(v View, w *Window, floatingLayouts *[]*Layout) {
 	layoutParents(heap, nil)
 	// An injected overlay is generated outside the main tree, so it is
 	// its own scope root: it picks up prefixes only from ID-bearing
-	// shapes inside itself. Generation saw the same empty scope.
-	resolveShapeIDs(heap, w)
+	// shapes inside itself. generateViewLayout above cleared the scope
+	// for exactly that reason, so the stamps inside it already agree.
+	resolveFocusOwners(heap, w)
 	*floatingLayouts = append(*floatingLayouts, heap)
 }

@@ -68,13 +68,17 @@ Slider, Tree, …); everything else is opt-in via `Focusable: true`. Current
 inventory: `ergonomics-audit -mode focus`. See
 `docs/specs/focusable-default-input.md`.
 
-**`Shape.ID` is a leaf; identity is the effective ID.** `resolveShapeIDs`
-(`gui/id_resolve.go`, run from `layoutArrange`) stamps `Shape.effID` = the leaf
-joined to the IDs of its **ID-bearing ancestors**. Read `shape.idKey()`, never
-`shape.ID`, at a keying site. Only explicit IDs join (never position, never
-child index); an ID-less container adds no scope. A leaf already containing `:`
-is **absolute** and is not joined again. Effective IDs must be unique per
-window.
+**`Shape.ID` is a leaf; identity is the effective ID.** Layout **generation**
+stamps `Shape.effID` = the leaf joined to the IDs of its **ID-bearing
+ancestors**: `generateViewLayout` stamps whatever a view returned and
+`appendChildViews` stamps a parent on its way to pushing that parent's scope
+(`gui/view.go`, `stampEffID` in `gui/id_resolve.go`). Nothing derives an
+identity a second time afterwards, so there is nothing to drift against; a shape
+that reaches a frame unstamped is reported by `DebugStampDrift`. Read
+`shape.idKey()`, never `shape.ID`, at a keying site. Only explicit IDs join
+(never position, never child index); an ID-less container adds no scope. A leaf
+already containing `:` is **absolute** and is not joined again. Effective IDs
+must be unique per window.
 
 Public APIs (`SetFocus`, `FindByID`, `IsFocus`, `ScrollVerticalTo`, `Test*`)
 take the **effective** ID. Two seams for widget code: `w.EffID(cfg.ID)` for
@@ -102,8 +106,11 @@ hand-rolled composition; see `docs/specs/widget-id-scoping.md`.
 Uniqueness is strict, including within one widget: a composite widget's inner
 shape that needs the owning widget's focus or spell-check state sets
 `Shape.focusOwner` (a reference) instead of repeating its `ID` (an identity) —
-see `Input`'s text shape and `Shape.focusKey()`. `(*Window).TestDuplicateIDs`
-asserts a rendered window is clean.
+see `Input`'s text shape and `Shape.focusKey()`. That reference is the one
+identity generation cannot stamp, because it names an ancestor by leaf:
+`resolveFocusOwners` (run from `layoutArrange`) rewrites it in place, and is all
+that is left of the old resolve pass. `(*Window).TestDuplicateIDs` asserts a
+rendered window is clean.
 
 #### Accessibility fields
 

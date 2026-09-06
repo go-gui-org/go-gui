@@ -316,7 +316,7 @@ func applySplitterDefaults(cfg *SplitterCfg) {
 // composed from the widget's *effective* ID, which only exists once a
 // Window is in hand (see docs/specs/widget-id-per-scope-uniqueness.md).
 // Composing them in the factory produced absolute strings that
-// resolveShapeIDs never joins, so every part stayed window-global under
+// the resolve never joins, so every part stayed window-global under
 // an ID-bearing ancestor (issue #264).
 type splitterView struct {
 	core *splitterCore
@@ -412,7 +412,7 @@ func splitterAmendLayout(core *splitterCore, layout *Layout, w *Window) {
 		return
 	}
 	// The core is built in the factory and holds the leaf cfg.ID; only
-	// the resolve pass (via the shape's idKey) knows the effective path,
+	// the stamped shape (via its idKey) knows the effective path,
 	// so Amend — which runs on the splitter's own shape, every frame,
 	// before any handler that looks the splitter up (FindByID) or moves
 	// focus to it — is where the leaf becomes the identity.

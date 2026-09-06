@@ -64,8 +64,8 @@ Two accessors read the identity, and they answer different questions:
 
 - `shape.idKey()` — the identity of this shape. Read it at every keying site,
   never the bare `Shape.ID`. It returns the resolved `effID`, and falls back to
-  the leaf only on a tree that `resolveShapeIDs` has not walked, such as a
-  hand-built `Layout` in a test.
+  the leaf only on a shape that generation never stamped, such as a hand-built
+  `Layout` in a test.
 - `shape.focusKey()` — the identity whose focus, input and spell-check state
   this shape renders. It returns `focusOwner` when the shape belongs to a
   composite widget, and `idKey()` when it does not. It is empty for a shape that

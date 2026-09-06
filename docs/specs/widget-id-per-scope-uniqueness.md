@@ -51,6 +51,40 @@ implementation, and the code is the authority.
    `gui.DebugUnknownFocus` reports the other half — a frame that finished with a
    focus ID nothing focusable claims.
 
+5. **Generation owns the stamp** (#527, 2026-09-06). The spec put the join in a
+   pass over the built tree, and `appendChildViews` computed the same string a
+   second time to give a widget its scope while generating. Two implementations
+   of one rule drifted, and #518, #519 and #520 are what that looked like from
+   outside. Identity is now stamped **once, during generation**, where the scope
+   is known: `stampEffID` is the only writer of `effID`, called from
+   `generateViewLayout` for whatever a view returned and from `appendChildViews`
+   for a parent on its way to pushing that parent's scope. Nothing recomputes an
+   identity afterwards. Points 1 and 2 above are unaffected in behaviour and
+   both now hold by construction rather than by agreement between two passes;
+   the float rule in particular is no longer a consequence of pass ordering,
+   because a float is stamped where it was written and extraction cannot move
+   it.
+
+   What is left of the pass is `resolveFocusOwners`, which rewrites a
+   `Shape.focusOwner` reference. That one names an ancestor by its **leaf**, so
+   resolving it needs the ancestor stack a walk has and a downward scope string
+   does not. It joins nothing on the common path — the scope it carries is read
+   back off the stamps — and `BenchmarkLayoutArrange` measured −2%.
+
+   The single implementation is kept honest by `gui.DebugStampDrift`, in
+   `DebugAll`, which runs from that same walk (the last pass that sees a shape
+   next to its scope; by frame-audit time the floats have been lifted into their
+   own layers) and reports a shape whose stamp disagrees with the scope it was
+   arranged under, or an ID-bearing shape with no stamp at all — the signature
+   of a hand-built `Layout` appended to a generated tree.
+
+   `(*Window).EffID` is unchanged and still necessary: a widget that reads its
+   own state inside `GenerateLayout` cannot wait for its own shape to be
+   stamped. It joins the same ambient scope through the same `resolveLeaf`. The
+   eager-factory failure (#528) is also unchanged — a factory body runs before
+   the descent that opens its scope, so there is nothing to stamp yet, and
+   `DebugUnresolvedKeys` still reports it.
+
 Phase A.4 (producer simplification) was applied where a composite's own nesting
 already mirrors `ScopeID(cfg.ID, part)` — combobox and select now set a plain
 `"dropdown"` leaf. Composites whose inner IDs are reverse-parsed or whose owner
@@ -59,11 +93,13 @@ is not an ancestor keep absolute IDs, and the remaining stateful widgets resolve
 absolute strings equal to their own effective paths. Datagrid is untouched, as
 decided below.
 
-**Phase C is done, and the benchmark decided it.** Without a cache the join cost
-one allocation per ID-bearing widget per frame, measured on `BenchmarkViewFrame`
-as 202 → 252 allocs/op (rows_50) and 802 → 1002 (rows_200) — exactly +1 per row.
-`(*Window).joinLeaf` memoizes `(scope, leaf) → joined` in a bounded map shared
-by both paths, which puts every one of those numbers back on its baseline.
+**Phase C is done, and the benchmark decided it.** (Re-measured on #527, after
+generation took over the stamp: removing the memo still costs +25% allocs/op, so
+the cache stays.) Without a cache the join cost one allocation per ID-bearing
+widget per frame, measured on `BenchmarkViewFrame` as 202 → 252 allocs/op
+(rows_50) and 802 → 1002 (rows_200) — exactly +1 per row. `(*Window).joinLeaf`
+memoizes `(scope, leaf) → joined` in a bounded map shared by both paths, which
+puts every one of those numbers back on its baseline.
 `TestJoinLeafCachedIsAllocationFree` gates it. A hit is always correct and an
 eviction only recomputes, because the key is identity, not position — the
 objection to a positional cache never applied here.

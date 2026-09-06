@@ -177,7 +177,7 @@ func TestIMEEditContextThroughRealFrame(t *testing.T) {
 }
 
 // The focus ID is the effective one, and Input's inner text shape
-// carries only the leaf in focusOwner. resolveShapeIDs reconciles the
+// carries only the leaf in focusOwner. resolveFocusOwners reconciles the
 // two; assert the edit context still resolves under a scope.
 func TestIMEEditContextUnderIDScope(t *testing.T) {
 	w := NewWindow(WindowCfg{State: new(int), Width: 200, Height: 100})

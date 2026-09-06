@@ -242,11 +242,10 @@ policy from code that drifts.
 
 ### ID scoping
 
-- `Shape.ID` is a leaf. `resolveShapeIDs` (run from `layoutArrange`) stamps
-  `Shape.effID` = the leaf joined to its ID-bearing ancestors. Every ID-keyed
-  store and lookup uses `shape.idKey()`, never bare `Shape.ID` at a keying site.
-  Effective IDs must be unique per window. A leaf containing `:` is absolute and
-  is not joined again.
+- `Shape.ID` is a leaf. Layout generation stamps `Shape.effID` = the leaf joined
+  to its ID-bearing ancestors. Every ID-keyed store and lookup uses
+  `shape.idKey()`, never bare `Shape.ID` at a keying site. Effective IDs must be
+  unique per window. A leaf containing `:` is absolute and is not joined again.
 - Compose inner IDs with `gui.ScopeID`/`gui.ScopeIDN`, never by hand. A part
   (row key, heading slug) must not contain `:`. Rebuilding an ID at a lookup
   site is how producers and consumers drift. A composite widget's inner shape

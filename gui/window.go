@@ -149,7 +149,7 @@ type Window struct {
 	// than once per widget per frame. See (*Window).joinLeaf.
 	idJoinCache *BoundedMap[idJoinKey, string]
 
-	// idScopeStack is the ancestor stack resolveShapeIDs walks with,
+	// idScopeStack is the ancestor stack resolveFocusOwners walks with,
 	// kept here so its backing array is reused frame to frame rather
 	// than allocated per pipeline root. See gui/id_resolve.go.
 	idScopeStack []idFrame
