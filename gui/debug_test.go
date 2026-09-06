@@ -777,3 +777,131 @@ func TestTestFindingsRestoresMask(t *testing.T) {
 		t.Fatalf("want the caller's mask restored, got %v", got)
 	}
 }
+
+// EffID outside generation returns the leaf, which is indistinguishable
+// from a correct resolve at the top level. The finding is the only
+// thing that separates them, so it has to fire on the call itself.
+func TestEffIDOutsideGenerationReports(t *testing.T) {
+	buf := captureDebugMask(t, DebugUnresolvedKeys)
+	w := NewTestWindow(WindowCfg{})
+
+	if got := w.EffID("save"); got != "save" {
+		t.Fatalf("EffID must still answer with the leaf, got %q", got)
+	}
+	if !strings.Contains(buf.String(), `EffID("save")`) {
+		t.Fatalf("want a phase finding naming the leaf, got %q", buf.String())
+	}
+}
+
+// A resolve made from GenerateLayout is the supported call and must
+// stay silent, whether or not the widget has a scope above it.
+func TestEffIDDuringGenerationIsQuiet(t *testing.T) {
+	buf := captureDebugMask(t, DebugUnresolvedKeys)
+	w := NewTestWindow(WindowCfg{})
+
+	var scoped, unscoped string
+	w.UpdateView(func(_ *Window) View {
+		return Column(ContainerCfg{
+			ID:     "panel",
+			Sizing: FillFill,
+			Content: []View{viewFunc(func(vw *Window) View {
+				scoped = vw.EffID("save")
+				return Column(ContainerCfg{})
+			})},
+		})
+	})
+	w.TestRender(nil)
+	w.UpdateView(func(vw *Window) View {
+		unscoped = vw.EffID("save")
+		return Column(ContainerCfg{Sizing: FillFill})
+	})
+	w.TestRender(nil)
+
+	if scoped != "panel:save" {
+		t.Errorf("scoped resolve = %q, want %q", scoped, "panel:save")
+	}
+	if unscoped != "save" {
+		t.Errorf("top-level resolve = %q, want %q", unscoped, "save")
+	}
+	if buf.String() != "" {
+		t.Errorf("a resolve at generation time must be quiet, got %q", buf.String())
+	}
+}
+
+// The depth is restored when a view function panics, so one bad frame
+// does not leave every later EffID call looking correctly timed.
+func TestGenDepthUnwindsOnPanic(t *testing.T) {
+	w := NewTestWindow(WindowCfg{})
+	func() {
+		defer func() { _ = recover() }()
+		generateViewLayout(viewFunc(func(_ *Window) View {
+			panic("boom")
+		}), w)
+	}()
+
+	if got := w.viewState.genDepth; got != 0 {
+		t.Fatalf("genDepth = %d after a panic, want 0", got)
+	}
+}
+
+// eagerFactoryParent reproduces the shape all four migrated widgets had
+// (issues #518, #519): a factory body that resolves while the parent's
+// Content slice is being built, which is before the descent into the
+// container the widget will sit in.
+type eagerFactoryParent struct {
+	resolved *string
+}
+
+func (p *eagerFactoryParent) GenerateLayout(w *Window) Layout {
+	return generateViewLayout(Column(ContainerCfg{
+		ID:     "panel",
+		Sizing: FillFill,
+		Content: []View{
+			func() View {
+				*p.resolved = w.EffID("save")
+				return Button(ButtonCfg{ID: "save", Label: "Save"})
+			}(),
+		},
+	}), w)
+}
+
+// The generation depth is non-zero inside a nested GenerateLayout, so
+// the depth check cannot see this one. Comparing the answer with where
+// the shape resolved is what catches it.
+func TestEffIDEagerFactoryUnderPanelReports(t *testing.T) {
+	buf := captureDebugMask(t, DebugUnresolvedKeys)
+	w := NewTestWindow(WindowCfg{})
+
+	var resolved string
+	w.UpdateView(func(_ *Window) View {
+		return &eagerFactoryParent{resolved: &resolved}
+	})
+	w.TestRender(nil)
+
+	if resolved != "save" {
+		t.Fatalf("fixture no longer reproduces the bug: resolved = %q", resolved)
+	}
+	if !strings.Contains(buf.String(), `resolved to "panel:save"`) {
+		t.Fatalf("want a finding naming the scope the shape landed in, got %q",
+			buf.String())
+	}
+}
+
+// The record is per frame. A widget corrected between frames must stop
+// being reported, and a frame that resolves nothing must not inherit
+// the previous frame's answers.
+func TestEffIDAnswersAreFrameScoped(t *testing.T) {
+	captureDebugMask(t, DebugUnresolvedKeys)
+	w := NewTestWindow(WindowCfg{})
+
+	var resolved string
+	w.UpdateView(func(_ *Window) View {
+		return &eagerFactoryParent{resolved: &resolved}
+	})
+	w.TestRender(nil)
+
+	if len(w.debug.effIDAnswers) != 0 {
+		t.Fatalf("the record must be cleared after the audit, got %v",
+			w.debug.effIDAnswers)
+	}
+}

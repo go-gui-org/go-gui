@@ -315,7 +315,12 @@ func (w *Window) updateLocked() {
 	// access scratch pools (frame-scoped, single-goroutine), atomic
 	// inputCursorOn, and animations (guarded by w.animMu).
 	w.mu.Unlock()
+	// The root view function is generation too, so a resolve made in
+	// its body is correctly timed and must not be reported as a
+	// depth-zero call. The empty scope it sees is the real one.
+	w.viewState.genDepth++
 	view := w.viewGenerator(w)
+	w.viewState.genDepth--
 	rootLayout := generateViewLayout(view, w)
 	w.mu.Lock()
 	defer w.mu.Unlock()

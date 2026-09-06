@@ -303,13 +303,28 @@ gui.DebugCategories(gui.DebugAll | gui.DebugUnscopedIDs)
 ```
 
 `DebugUnresolvedKeys` is part of `DebugAll`, so `gui.Debug(true)` already runs
-it. It reports per-widget state stored under a leaf ID that an ancestor join
-rewrote, so the widget's state key and its shape's identity are different
-strings. Such a widget works while it is the only instance of its `cfg.ID`, and
-two of them under different scopes share one state slot.
+it. It reports a widget whose state key and whose identity are different strings
+— either because the widget never resolved its `cfg.ID`, or because it resolved
+at the wrong time and got the bare leaf back. Such a widget works while it is
+the only instance of its `cfg.ID`, and two of them under different scopes share
+one state slot.
 
 The remedy is a resolved key: `w.EffID(cfg.ID)` during `GenerateLayout`, or
 `ctx.EffID(leaf)` in a handler.
+
+**Resolve during `GenerateLayout`, never in a factory body.** A factory runs
+while the parent's `Content` slice is being built, which is before the framework
+descends into the container the widget will sit in. `w.EffID` there joins the
+enclosing scope, not the widget's own. The answer it returns for a widget with
+no scope above it is the same string a correct resolve returns, so the mistake
+is invisible until someone puts the widget in a panel. A factory that needs to
+resolve returns a view struct, or defers its body:
+
+```go
+func (w *Window) Thing(cfg ThingCfg) View {
+	return viewFunc(func(vw *Window) View { return thingView(cfg, vw) })
+}
+```
 
 `DebugCategories` prints to stderr. To assert a category in a test, including an
 opt-in one, use `(*Window).TestFindings(mask)`, which returns the findings as

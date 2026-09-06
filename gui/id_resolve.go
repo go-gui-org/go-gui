@@ -122,14 +122,35 @@ func (w *Window) joinLeaf(scope, leaf string) string {
 // as the ancestor IDs above the widget do, and when one of those
 // changes the widget's identity has changed by design.
 //
-// Outside layout generation the scope is empty, so EffID returns the
-// leaf unchanged.
+// Call it during layout generation and nowhere else. The ID scope is
+// only live while the framework descends the View tree, so a call from
+// a widget factory body, an event handler or app code has no scope to
+// join and returns the leaf. That answer is also the correct answer for
+// a top-level widget, so the mistake is invisible until the widget is
+// put inside a panel — which is why [DebugUnresolvedKeys] reports the
+// call rather than letting it pass. Handlers have [EventCtx.EffID],
+// which cannot be called at the wrong time.
 // exportaudit:keep — public seam for widget code (see CLAUDE.md)
 func (w *Window) EffID(leaf string) string {
 	if w == nil {
 		return leaf
 	}
-	return w.joinLeaf(w.viewState.idScope, leaf)
+	if w.viewState.genDepth == 0 {
+		w.debugWarn(debugCheckEffIDPhase, leaf,
+			"EffID(%q) was called outside layout generation, where the "+
+				"ID scope is empty, so it returned the leaf unchanged. "+
+				"That is the right answer only for a top-level widget. "+
+				"Move the call into GenerateLayout — a factory that "+
+				"builds eagerly must defer — or use ctx.EffID in a "+
+				"handler.", leaf)
+	}
+	effID := w.joinLeaf(w.viewState.idScope, leaf)
+	// A call from inside the tree has a non-zero depth and still misses
+	// the scope when the factory body runs before the descent that
+	// opens it. Depth cannot see that; the frame audit can, by
+	// comparing this answer with where the shape resolved.
+	w.debugNoteEffID(leaf, effID)
+	return effID
 }
 
 // childScopeID returns the scope a shape's children generate and

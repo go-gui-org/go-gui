@@ -55,6 +55,15 @@ func GenerateViewLayout(view View, w *Window) Layout {
 // GenerateLayout via appendChildViews; the only remaining invariant
 // this function owns is shape normalization.
 func generateViewLayout(view View, w *Window) Layout {
+	// The depth is what lets EffID tell "no scope, top of the tree"
+	// from "no scope, not generating at all". Every generation path
+	// runs through here, so counting in one place covers them all.
+	// Deferred, so a panic in a view function cannot leave the window
+	// looking as if generation were still in progress.
+	if w != nil {
+		w.viewState.genDepth++
+		defer func() { w.viewState.genDepth-- }()
+	}
 	layout := view.GenerateLayout(w)
 	ensureLayoutShape(&layout)
 	return layout

@@ -115,7 +115,14 @@ type ViewState struct {
 	// idScope is the effective ID of the innermost ID-bearing shape
 	// currently being generated. Maintained by generateViewLayout and
 	// read by (*Window).EffID; empty outside the view phase.
-	idScope                  string
+	idScope string
+
+	// genDepth counts the generateViewLayout frames currently on the
+	// stack, so EffID can tell an empty scope at the top of the tree
+	// from an empty scope because no tree is being generated. The two
+	// produce the same answer, which is why the second went unnoticed
+	// in four widgets; see issue #520.
+	genDepth                 int
 	mousePosX                float32
 	mousePosY                float32
 	mouseButtonHeld          MouseButton
