@@ -783,3 +783,31 @@ func scopedTestGrid(w *gg.Window) gg.View {
 		},
 	})
 }
+
+// The grid spells its child IDs absolutely, from its own resolved ID,
+// because dataGridHeaderColIDFromLayoutID recovers a column by trimming
+// that prefix back off. Identity is stamped during generation now, so
+// this checks the stamp leaves an absolute leaf alone rather than
+// joining the enclosing scope onto a name that already carries it.
+func TestDataGridChildIDsAreNotJoinedTwice(t *testing.T) {
+	w := gg.NewTestWindow(gg.WindowCfg{})
+	w.UpdateView(func(_ *gg.Window) gg.View {
+		return gg.Column(gg.ContainerCfg{
+			ID:      "detail",
+			Sizing:  gg.FillFill,
+			Content: []gg.View{scopedTestGrid(w)},
+		})
+	})
+	root := w.TestRender(nil)
+	if root == nil {
+		t.Fatal("render produced no layout")
+	}
+
+	const header = "detail:grid:header:name"
+	if _, ok := root.FindByID(header); !ok {
+		t.Fatalf("header cell must be addressable as %q", header)
+	}
+	if _, ok := root.FindByID("detail:" + header); ok {
+		t.Fatal("the enclosing scope was joined onto an absolute ID")
+	}
+}

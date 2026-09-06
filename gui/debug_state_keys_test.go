@@ -6,7 +6,7 @@ import (
 )
 
 // stateKeyTree builds a tree whose single leaf carries the given
-// effective ID, which is what resolveShapeIDs would have stamped.
+// effective ID, which is what generation would have stamped.
 func stateKeyTree(effID string) Layout {
 	s := &Shape{ID: "name"}
 	s.effID = effID
@@ -30,7 +30,7 @@ func TestDebugStateKeysUnresolvedLeaf(t *testing.T) {
 	}
 }
 
-// The correct spelling: the key matches what the resolve pass stamped.
+// The correct spelling: the key matches what generation stamped.
 func TestDebugStateKeysResolvedIsQuiet(t *testing.T) {
 	buf := captureDebugMask(t, DebugAll|DebugUnresolvedKeys)
 	w := &Window{}

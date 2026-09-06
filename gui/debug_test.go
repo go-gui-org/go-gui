@@ -30,6 +30,18 @@ func captureDebugMask(t *testing.T, mask DebugCategory) *strings.Builder {
 
 // debugTree builds a two-level layout from the given shapes: root
 // with each shape as a direct child.
+// generatedTree builds a tree the way the framework does, through
+// generateViewLayout, which is what stamps effID. A hand-built Layout
+// carries no identity now that generation owns the stamp, so any test
+// that reads an effective ID has to generate its tree.
+func generatedTree(w *Window, children ...ContainerCfg) Layout {
+	content := make([]View, 0, len(children))
+	for _, c := range children {
+		content = append(content, Column(c))
+	}
+	return generateViewLayout(Column(ContainerCfg{Content: content}), w)
+}
+
 func debugTree(shapes ...*Shape) Layout {
 	root := Layout{Shape: &Shape{}}
 	for _, s := range shapes {
@@ -259,6 +271,7 @@ func TestCheckCategoryMapping(t *testing.T) {
 		{debugCheckDeferredLoop, DebugCallbacks},
 		{debugCheckWindowTransparency, DebugWindowDegraded},
 		{debugCheckUnresolvedKey, DebugUnresolvedKeys},
+		{debugCheckStampDrift, DebugStampDrift},
 		{debugCheckUnknownFocus, DebugUnknownFocus},
 	}
 	for _, tc := range tests {
@@ -269,7 +282,7 @@ func TestCheckCategoryMapping(t *testing.T) {
 	// DebugAll covers every category Debug(true) turns on.
 	// DebugUnscopedIDs is opt-in and deliberately outside it: it reports
 	// a design property, not a defect.
-	if DebugAll != DebugDuplicates|DebugMissingIDs|DebugUnconsumed|DebugListBoxNoHeight|DebugGradientResampled|DebugWrapOverflow|DebugCallbacks|DebugWindowDegraded|DebugUnresolvedKeys|DebugUnknownFocus {
+	if DebugAll != DebugDuplicates|DebugMissingIDs|DebugUnconsumed|DebugListBoxNoHeight|DebugGradientResampled|DebugWrapOverflow|DebugCallbacks|DebugWindowDegraded|DebugUnresolvedKeys|DebugStampDrift|DebugUnknownFocus {
 		t.Fatal("DebugAll must cover every category Debug(true) enables")
 	}
 	if DebugAll&DebugUnscopedIDs != 0 {
@@ -614,9 +627,8 @@ func TestTestDuplicateIDsRestoresDebugState(t *testing.T) {
 func TestDebugUnscopedIDsReportsGlobalLeaf(t *testing.T) {
 	buf := captureDebug(t)
 	DebugCategories(DebugUnscopedIDs)
-	w := &Window{}
-	tree := debugTree(&Shape{ID: "save", Focusable: true})
-	resolveShapeIDs(&tree, w)
+	w := NewTestWindow(WindowCfg{})
+	tree := generatedTree(w, ContainerCfg{ID: "save", Focusable: true})
 
 	w.debugAudit(&tree)
 	if got := buf.String(); !strings.Contains(got, `ID "save"`) ||
@@ -626,14 +638,12 @@ func TestDebugUnscopedIDsReportsGlobalLeaf(t *testing.T) {
 
 	// Scoped: the same widget under a panel resolves to "panel:save"
 	// and is no longer competing globally.
-	scoped := Layout{Shape: &Shape{}}
-	scoped.Children = append(scoped.Children, Layout{
-		Shape: &Shape{ID: "panel"},
-		Children: []Layout{
-			{Shape: &Shape{ID: "save", Focusable: true}},
+	scoped := generatedTree(w, ContainerCfg{
+		ID: "panel",
+		Content: []View{
+			Column(ContainerCfg{ID: "save", Focusable: true}),
 		},
 	})
-	resolveShapeIDs(&scoped, w)
 	buf.Reset()
 	w.debug.warned = nil
 	w.debugAudit(&scoped)
@@ -647,9 +657,8 @@ func TestDebugUnscopedIDsReportsGlobalLeaf(t *testing.T) {
 func TestDebugAllExcludesUnscopedIDs(t *testing.T) {
 	buf := captureDebug(t)
 	Debug(true)
-	w := &Window{}
-	tree := debugTree(&Shape{ID: "save", Focusable: true})
-	resolveShapeIDs(&tree, w)
+	w := NewTestWindow(WindowCfg{})
+	tree := generatedTree(w, ContainerCfg{ID: "save", Focusable: true})
 
 	w.debugAudit(&tree)
 	if got := buf.String(); strings.Contains(got, "no ID-bearing ancestor") {

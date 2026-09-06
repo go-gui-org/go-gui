@@ -29,17 +29,18 @@ type Shape struct {
 	// form field lookup, and debugging. Optional but recommended for
 	// interactive widgets.
 	//
-	// ID is the *leaf* name. The window-unique identity is effID, which
-	// resolveShapeIDs derives by joining the IDs of ID-bearing ancestors
-	// (see id_resolve.go). Read idKey() — never ID — when using a shape
-	// as a key into focus, scroll, hover or per-widget state.
+	// ID is the *leaf* name. The window-unique identity is effID, the
+	// leaf joined to the IDs of its ID-bearing ancestors (see
+	// id_resolve.go). Read idKey() — never ID — when using a shape as a
+	// key into focus, scroll, hover or per-widget state.
 	ID string
 
 	// effID is the resolved, window-unique identity: the leaf joined to
-	// the enclosing scope. Stamped by resolveShapeIDs, which runs from
-	// layoutArrange before any pass reads an identity, so it is empty
-	// only on a tree that has not been arranged — idKey() falls back to
-	// ID there.
+	// the enclosing scope. Stamped during layout generation, where the
+	// scope is known, by generateViewLayout and appendChildViews. It is
+	// empty only on a shape that never went through generation — a
+	// hand-built Layout in a test — where idKey() falls back to ID.
+	// DebugStampDrift reports one that reached a real frame.
 	effID string
 
 	// focusOwner is the ID of the widget this shape renders for. A
@@ -50,9 +51,12 @@ type Shape struct {
 	// identity and must be unique per window; focusOwner is a
 	// reference and deliberately is not.
 	//
-	// The widget writes the owner's *leaf*; resolveShapeIDs rewrites it
-	// in place to the owner's effID, because that is the key the focus
-	// and input-state stores hold. In place rather than in a second
+	// The widget writes the owner's *leaf*; resolveFocusOwners rewrites
+	// it in place to the owner's effID, because that is the key the
+	// focus and input-state stores hold. That reference is the one
+	// identity generation cannot stamp: it names an ancestor by leaf, so
+	// resolving it needs the ancestor stack a walk has and a downward
+	// scope string does not. In place rather than in a second
 	// field: adding effID already moved Shape from the 288-byte size
 	// class to the 320-byte one, and a second string would leave only 8
 	// bytes of headroom before the next jump. It is safe on two counts —
@@ -563,9 +567,9 @@ func (s *Shape) hasEvents() bool {
 
 // idKey returns the identity this shape is keyed by in every ID-keyed
 // store and match: the resolved effID, falling back to the leaf ID on a
-// tree resolveShapeIDs has not walked yet (a hand-built Layout in a
-// test). Under an empty scope the two are equal, so the fallback only
-// ever matters before the pipeline runs.
+// shape that generation never stamped (a hand-built Layout in a test).
+// Under an empty scope the two are equal, so the fallback only ever
+// matters outside the generation path.
 func (s *Shape) idKey() string {
 	if s.effID != "" {
 		return s.effID

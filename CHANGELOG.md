@@ -70,6 +70,30 @@ and this project adheres to
   from `SetFocus`, because focusing a widget the current frame has not built yet
   is legitimate. Every public API that takes an effective ID now says so.
 
+### Changed
+
+- **Effective IDs are stamped once, during layout generation** (#527) — identity
+  used to be computed twice from the same information: `appendChildViews` knew a
+  shape's exact scope while generating it and threw the answer away, then
+  `resolveShapeIDs` walked the built tree at arrange time and derived the same
+  string again. Two implementations of one rule drift, and #518, #519 and #520
+  are what that looked like from outside. `stampEffID` is now the only writer of
+  `Shape.effID`, called from `generateViewLayout` and `appendChildViews`, and
+  nothing recomputes an identity afterwards. Behaviour is unchanged — the golden
+  tests record no diff — and two properties that used to depend on pass ordering
+  now hold by construction: a float keeps the scope of the panel it was written
+  in whatever extraction later does with it, and an injected overlay (toast,
+  dialog, inspector) is its own scope root. What remains of the old pass is
+  `resolveFocusOwners`, which rewrites a `Shape.focusOwner` reference — the one
+  identity that names an ancestor by leaf and so still needs a walk.
+  `BenchmarkLayoutArrange` is 2% faster; allocations are unchanged.
+- **New `gui.DebugStampDrift` category, in `DebugAll`** — reports a shape whose
+  stamped identity disagrees with the scope the frame arranged it under, or an
+  ID-bearing shape with no stamp at all. The second is what a hand-built
+  `Layout` appended to a generated tree looks like: every store keys it on its
+  bare leaf, and nothing else about the frame looks wrong. Assertable with
+  `w.TestFindings(gui.DebugStampDrift)`.
+
 ### Fixed
 
 - **Sidebar, InputDate and Table now resolve their IDs at generation time**

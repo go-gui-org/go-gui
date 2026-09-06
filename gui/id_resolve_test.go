@@ -316,13 +316,24 @@ func TestGenerationScopeRestoredForSiblings(t *testing.T) {
 func TestEventCtxEffID(t *testing.T) {
 	// panel(outer) -> input(name) -> inner(no ID). Handlers hang off the
 	// inner shape, which is where Input's OnClick actually runs.
-	inner := Layout{Shape: &Shape{}}
-	input := Layout{Shape: &Shape{ID: "name"}, Children: []Layout{inner}}
-	panel := Layout{Shape: &Shape{ID: "outer"}, Children: []Layout{input}}
-	root := Layout{Shape: &Shape{}, Children: []Layout{panel}}
+	//
+	// Generated rather than hand-built: identity is stamped during
+	// generation, so a tree assembled from Shape literals carries none.
+	w := NewTestWindow(WindowCfg{})
+	root := generateViewLayout(Column(ContainerCfg{
+		Content: []View{
+			Column(ContainerCfg{
+				ID: "outer",
+				Content: []View{
+					Column(ContainerCfg{
+						ID:      "name",
+						Content: []View{Column(ContainerCfg{})},
+					}),
+				},
+			}),
+		},
+	}), w)
 	layoutParents(&root, nil)
-	w := &Window{}
-	resolveShapeIDs(&root, w)
 
 	innerLy := &root.Children[0].Children[0].Children[0]
 	ctx := EventCtx{Layout: innerLy, Window: w}
@@ -407,39 +418,82 @@ var sinkEffID string
 
 // focusOwner is resolved in place, so resolving twice — two frames over
 // a retained tree, or an extra pass — must not compound the prefix.
-func TestResolveShapeIDsIsIdempotent(t *testing.T) {
-	txt := Layout{Shape: &Shape{focusOwner: "name"}}
-	input := Layout{Shape: &Shape{ID: "name"}, Children: []Layout{txt}}
-	panel := Layout{Shape: &Shape{ID: "settings"}, Children: []Layout{input}}
-	root := Layout{Shape: &Shape{}, Children: []Layout{panel}}
-	w := &Window{}
+func TestResolveFocusOwnersIsIdempotent(t *testing.T) {
+	w := NewTestWindow(WindowCfg{})
+	// Input is the widget that sets focusOwner: its text shape reads the
+	// container's focus state without claiming the container's ID.
+	root := generateViewLayout(Column(ContainerCfg{
+		ID:      "settings",
+		Content: []View{Input(InputCfg{ID: "name"})},
+	}), w)
 
-	resolveShapeIDs(&root, w)
-	txtShape := root.Children[0].Children[0].Children[0].Shape
+	txtShape := findFocusOwnerShape(&root)
+	if txtShape == nil {
+		t.Fatal("no shape carries focusOwner")
+	}
+	inputShape := findShapeByLeaf(&root, "name")
+	if inputShape == nil {
+		t.Fatal("no shape carries the input's leaf ID")
+	}
+
+	resolveFocusOwners(&root, w)
 	first := txtShape.focusKey()
 	if first != "settings:name" {
 		t.Fatalf("focusKey() = %q, want %q", first, "settings:name")
 	}
 
-	resolveShapeIDs(&root, w)
+	resolveFocusOwners(&root, w)
 	if got := txtShape.focusKey(); got != first {
 		t.Fatalf("second resolve changed focusKey to %q, want %q",
 			got, first)
 	}
-	if got := root.Children[0].Children[0].Shape.idKey(); got != "settings:name" {
+	if got := inputShape.idKey(); got != "settings:name" {
 		t.Fatalf("second resolve changed effID to %q, want %q",
 			got, "settings:name")
 	}
 }
 
+// findFocusOwnerShape returns the first shape in the tree that names an
+// owner, which is how a composite's inner shape borrows the owner's
+// focus state.
+func findFocusOwnerShape(layout *Layout) *Shape {
+	if s := layout.Shape; s != nil && s.focusOwner != "" {
+		return s
+	}
+	for i := range layout.Children {
+		if s := findFocusOwnerShape(&layout.Children[i]); s != nil {
+			return s
+		}
+	}
+	return nil
+}
+
+// findShapeByLeaf searches on Shape.ID rather than the effective ID, so
+// a caller can reach a shape without spelling the scope it landed in.
+func findShapeByLeaf(layout *Layout, leaf string) *Shape {
+	if s := layout.Shape; s != nil && s.ID == leaf {
+		return s
+	}
+	for i := range layout.Children {
+		if s := findShapeByLeaf(&layout.Children[i], leaf); s != nil {
+			return s
+		}
+	}
+	return nil
+}
+
 // A view function that escapes generation without restoring the scope
-// (a panic recovered upstream) must not prefix every later frame. The
-// resolve pass clears it at the start of each arrange.
-func TestResolveShapeIDsClearsGenerationScope(t *testing.T) {
-	w := &Window{}
+// (a panic recovered upstream) must not prefix every later frame.
+// Generation clears the scope whenever it starts from the top, which is
+// the main tree and every injected overlay.
+func TestGenerationClearsStaleScope(t *testing.T) {
+	w := NewTestWindow(WindowCfg{})
 	w.viewState.idScope = "stale"
-	root := Layout{Shape: &Shape{ID: "root"}}
-	resolveShapeIDs(&root, w)
+	root := generateViewLayout(Column(ContainerCfg{ID: "root"}), w)
+
+	if got := root.Shape.idKey(); got != "root" {
+		t.Fatalf("effID = %q under a stale scope, want %q", got, "root")
+	}
 
 	if w.viewState.idScope != "" {
 		t.Fatalf("idScope = %q after resolve, want empty",

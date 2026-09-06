@@ -24,23 +24,29 @@ import (
 // ScopeID(cfg.ID, part) composites produce, which is why they keep
 // working unchanged.
 //
-// Two paths compute the join, and they must not drift, so both go
-// through resolveLeaf:
+// Generation owns the join. generateViewLayout stamps Shape.effID from
+// the scope it built the shape under, and appendChildViews stamps a
+// parent on its way to pushing that parent's scope. Nothing derives an
+// identity a second time afterwards, so there is nothing to drift
+// against: what every later pass reads — focus traversal, hover,
+// scroll, hero, the duplicate audit — is what generation wrote.
 //
-//   - resolveShapeIDs stamps Shape.effID over a built tree, from
-//     layoutArrange, before the layout passes run. It serves everything
-//     that happens after layout generation: focus traversal, hover,
-//     scroll, hero, the duplicate audit.
-//   - (*Window).EffID serves a widget that reads its own state *during*
-//     GenerateLayout — a combobox whose open/closed flag decides the
-//     subtree it returns cannot wait for a pass that runs afterwards.
-//     generateViewLayout maintains the scope for it.
+// (*Window).EffID answers the same question for a widget that reads its
+// own state *during* GenerateLayout — a combobox whose open/closed flag
+// decides the subtree it returns cannot wait for its own shape to be
+// stamped. It joins against the same ambient scope through the same
+// resolveLeaf, so the two agree by construction.
+//
+// One job is left for arrange. resolveFocusOwners rewrites a
+// Shape.focusOwner reference, which names an ancestor by its leaf and
+// so needs the ancestor stack that a single downward scope string
+// cannot carry.
 //
 // See docs/specs/widget-id-per-scope-uniqueness.md.
 
 // resolveLeaf joins one leaf to the enclosing scope. It is the single
-// definition of the rule; both the resolve pass and the generation-time
-// scope call it.
+// definition of the rule; the stamp and (*Window).EffID both reach it,
+// and the drift check recomputes through it.
 //
 // An empty leaf stays empty: an ID-less shape has no identity and adds
 // no scope. An absolute leaf (one containing IDSep) passes through
@@ -66,8 +72,9 @@ type idJoinKey struct {
 // joinLeaf is resolveLeaf with a cross-frame memo.
 //
 // The join is one allocation, and it runs once per ID-bearing widget
-// per frame on both paths — generation and the resolve pass — which
-// measured as +1 alloc per row on BenchmarkViewFrame. Scope and leaf
+// per frame — measured as +1 alloc per row on BenchmarkViewFrame back
+// when it ran on two paths. It still pays with generation as the only
+// stamper: removing the memo measured +25% allocs/op. Scope and leaf
 // repeat frame to frame (a row's leaf is a constant or a stable key,
 // and the scope is the parent's memoized result), so the memo turns
 // that back into a map hit.
@@ -100,8 +107,8 @@ func (w *Window) joinLeaf(scope, leaf string) string {
 //
 // Call it in a widget factory that keys per-widget state on cfg.ID and
 // reads that state inside GenerateLayout, for both the read and the
-// write, so the key matches the effID the resolve pass will stamp on
-// the same shape:
+// write, so the key matches the effID generation stamps on the same
+// shape:
 //
 //	key := w.EffID(cfg.ID)
 //	open := StateReadOr(w, nsCombobox, key, false)
@@ -153,22 +160,38 @@ func (w *Window) EffID(leaf string) string {
 	return effID
 }
 
-// childScopeID returns the scope a shape's children generate and
-// resolve under. Only an ID-bearing shape opens a scope; an ID-less one
-// passes its own through, which keeps its children flat and keeps their
-// collisions as loud as they are today.
+// stampEffID resolves a shape's leaf against the scope it was
+// generated under and records the answer on the shape. It is the only
+// writer of effID.
 //
-// A float is not a boundary. It is written inside the tree, so it keeps
-// the scope of the panel it was written in — two panels may each hold a
-// combobox with the same leaf and get distinct dropdowns. That works
-// because layoutArrange resolves before it extracts the floats; an
-// *injected* overlay (toast, dialog, inspector) is generated outside
-// the tree and so starts from an empty scope either way.
+// A shape with no ID has no identity, so it is left alone rather than
+// stamped with the empty string the rule would return: skipping it
+// keeps the join off the path for the majority of shapes in a frame.
+func stampEffID(w *Window, s *Shape, scope string) string {
+	if s == nil || s.ID == "" {
+		return ""
+	}
+	s.effID = w.joinLeaf(scope, s.ID)
+	return s.effID
+}
+
+// childScopeID stamps a shape and returns the scope its children
+// generate under. Only an ID-bearing shape opens a scope; an ID-less
+// one passes its own through, which keeps its children flat and keeps
+// their collisions as loud as they are today.
+//
+// A float is not a boundary. It is written inside the tree and stamped
+// where it was written, so it keeps the scope of the panel it was
+// written in — two panels may each hold a combobox with the same leaf
+// and get distinct dropdowns — and float extraction, which happens
+// much later, can no longer affect that. An *injected* overlay (toast,
+// dialog, inspector) is generated outside the tree and so starts from
+// an empty scope.
 func childScopeID(w *Window, scope string, s *Shape) string {
 	if s == nil || s.ID == "" {
 		return scope
 	}
-	return w.joinLeaf(scope, s.ID)
+	return stampEffID(w, s, scope)
 }
 
 // idFrame is one ID-bearing ancestor on the resolve stack, holding the
@@ -179,30 +202,32 @@ type idFrame struct {
 	eff  string
 }
 
-// resolveShapeIDs stamps effID on every shape in one tree.
+// resolveFocusOwners rewrites every focusOwner reference in one tree.
 //
-// Called from layoutArrange: once on the whole main tree before the
-// floats are extracted, and once on each injected overlay. Both start
-// from an empty scope. Missing a root would leave a whole layer keyed
-// on leaves.
-func resolveShapeIDs(layout *Layout, w *Window) {
+// Identity itself was stamped at generation, so what is left here is
+// the one question a downward scope string cannot answer: focusOwner
+// names an ancestor by its *leaf*, and finding that ancestor needs the
+// stack of ID-bearing shapes above the reference.
+//
+// Called from layoutArrange: once on the whole main tree, and once on
+// each injected overlay. The walk joins nothing on the common path —
+// the scope it carries is read back off the stamps — so it costs the
+// pointer walk and no allocation.
+func resolveFocusOwners(layout *Layout, w *Window) {
 	if layout == nil {
 		return
 	}
 	var frames []idFrame
 	if w != nil {
-		// Generation is over by the time this runs, so the view phase's
-		// scope must be back at "". Clear it rather than assume: a view
-		// function that panics past the restore in generateViewLayout
-		// would otherwise poison every later frame's keys with a stale
-		// prefix, which is silent and window-wide.
-		w.viewState.idScope = ""
 		// Reuse the backing array across frames: the stack is at most as
 		// deep as the ID-bearing nesting, so it stops growing after the
 		// first few frames.
 		frames = w.idScopeStack[:0]
 	}
-	frames = resolveShapeIDsWalk(w, layout, "", frames)
+	// Read once per tree, not once per shape: the walk visits every
+	// shape in the frame and the gate cannot move while it does.
+	frames = resolveFocusOwnersWalk(
+		w, layout, "", frames, w.debugStampsChecked())
 	if w != nil {
 		// Drop a backing array one pathologically deep frame grew, so a
 		// transient tree cannot pin memory for the window's lifetime.
@@ -218,34 +243,57 @@ func resolveShapeIDs(layout *Layout, w *Window) {
 // optimising for, so its buffer is released instead of pinned.
 const maxIDScopeStackKeep = 256
 
-// resolveShapeIDsWalk resolves one node and its children, returning the
-// frame stack so a grown backing array survives to the next sibling.
-func resolveShapeIDsWalk(
+// resolveFocusOwnersWalk resolves one node and its children, returning
+// the frame stack so a grown backing array survives to the next
+// sibling.
+func resolveFocusOwnersWalk(
 	w *Window, layout *Layout, scope string, frames []idFrame,
+	checkStamps bool,
 ) []idFrame {
 	s := layout.Shape
 	if s == nil {
 		for i := range layout.Children {
-			frames = resolveShapeIDsWalk(w, &layout.Children[i], scope, frames)
+			frames = resolveFocusOwnersWalk(
+				w, &layout.Children[i], scope, frames, checkStamps)
 		}
 		return frames
 	}
 
-	s.effID = w.joinLeaf(scope, s.ID)
+	if checkStamps {
+		w.debugCheckStamp(s, scope)
+	}
+
 	if s.focusOwner != "" {
 		// In place: after this pass focusOwner is the owner's effID,
 		// which is what focusKey hands to the stores. See Shape.
 		s.focusOwner = resolveOwnerID(w, frames, scope, s.focusOwner)
 	}
 
-	childScope := childScopeID(w, scope, s)
+	// Read back rather than re-joined: the child scope of an ID-bearing
+	// shape is the identity generation already stamped on it. An
+	// unstamped shape (a hand-built Layout that skipped generation)
+	// carries no stamp, so fall back to the join there: otherwise its
+	// children would inherit the grandparent scope and both the drift
+	// check and focusOwner resolution would answer for the wrong
+	// position. Common path costs nothing — the join runs only for a
+	// shape generation never stamped.
+	childScope := scope
 	pushed := false
 	if s.ID != "" {
-		frames = append(frames, idFrame{leaf: s.ID, eff: s.effID})
+		childScope = s.effID
+		if childScope == "" {
+			childScope = w.joinLeaf(scope, s.ID)
+		}
+		// The frame carries the recovered identity too, not the empty
+		// stamp: resolveOwnerID answers with a frame's eff verbatim, so
+		// an unstamped ancestor would otherwise blank out every
+		// focusOwner beneath it rather than merely misplace it.
+		frames = append(frames, idFrame{leaf: s.ID, eff: childScope})
 		pushed = true
 	}
 	for i := range layout.Children {
-		frames = resolveShapeIDsWalk(w, &layout.Children[i], childScope, frames)
+		frames = resolveFocusOwnersWalk(
+			w, &layout.Children[i], childScope, frames, checkStamps)
 	}
 	if pushed {
 		frames = frames[:len(frames)-1]

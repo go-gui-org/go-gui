@@ -162,6 +162,23 @@ const (
 	// exportaudit:keep — dev-diagnostic API for app authors
 	DebugUnknownFocus
 
+	// DebugStampDrift reports a shape whose effective ID is not the one
+	// its position in the tree calls for: either it disagrees with the
+	// scope the shape was arranged under, or an ID-bearing shape has no
+	// stamp at all.
+	//
+	// Identity is stamped once, during layout generation, by
+	// generateViewLayout and appendChildViews. A shape that never went
+	// through either — a hand-built Layout spliced into a generated
+	// tree — carries no stamp, and every store then keys it on its bare
+	// leaf, which works until a second widget of that leaf appears
+	// somewhere else in the window.
+	//
+	// This is the check that keeps the single stamping rule honest, so
+	// [Debug] turns it on.
+	// exportaudit:keep — dev-diagnostic API for app authors
+	DebugStampDrift
+
 	// DebugAll is every category [Debug] turns on. [DebugUnscopedIDs]
 	// is deliberately absent: it reports a design property rather than
 	// a defect, and fires on widgets that are correct as written.
@@ -169,7 +186,7 @@ const (
 	DebugAll = DebugDuplicates | DebugMissingIDs | DebugUnconsumed |
 		DebugListBoxNoHeight | DebugGradientResampled | DebugWrapOverflow |
 		DebugCallbacks | DebugWindowDegraded | DebugUnresolvedKeys |
-		DebugUnknownFocus
+		DebugUnknownFocus | DebugStampDrift
 )
 
 func init() {
@@ -317,6 +334,10 @@ const (
 	// outside layout generation, where the ID scope is empty and the
 	// call cannot do its job.
 	debugCheckEffIDPhase
+	// debugCheckStampDrift fires from resolveFocusOwners when a shape's
+	// stamped identity does not match the scope it was arranged under,
+	// which is what a shape that skipped layout generation looks like.
+	debugCheckStampDrift
 	// debugCheckUnknownFocus fires from the frame audit when the
 	// window's focus ID names no focusable shape in the frame.
 	debugCheckUnknownFocus
@@ -348,6 +369,8 @@ func checkCategory(check debugCheck) DebugCategory {
 		return DebugWindowDegraded
 	case debugCheckUnresolvedKey, debugCheckEffIDPhase:
 		return DebugUnresolvedKeys
+	case debugCheckStampDrift:
+		return DebugStampDrift
 	case debugCheckUnknownFocus:
 		return DebugUnknownFocus
 	}
@@ -450,6 +473,51 @@ func (w *Window) debugCheckFocusTarget(ids *debugIDs) {
 			"it, so the keyboard has nowhere to go; %s. SetFocus takes "+
 			"the effective ID — read it back with (*Window).ResolveID.",
 		id, hint)
+}
+
+// debugStampsChecked reports whether the stamp check is on. Read once
+// per tree rather than per shape: resolveFocusOwners walks every shape
+// in the frame and the answer cannot change while it does.
+func (w *Window) debugStampsChecked() bool {
+	return w != nil &&
+		DebugCategory(debugMask.Load())&DebugStampDrift != 0
+}
+
+// debugCheckStamp verifies one shape's identity against the scope it
+// was arranged under.
+//
+// It runs from resolveFocusOwners, the one pass that still sees a
+// shape next to its scope, rather than from the frame audit: by audit
+// time the floats have been lifted into their own layers, so the
+// composed tree no longer says what scope a float was written in.
+//
+// The recomputation here is a check, not a second source. It fires only
+// under the debug gate and its answer is never stored.
+func (w *Window) debugCheckStamp(s *Shape, scope string) {
+	// A shape with no ID has no identity to check, and a diagnostic is
+	// never the pass that panics on a tree the pipeline tolerates.
+	if s == nil || s.ID == "" {
+		return
+	}
+	want := w.joinLeaf(scope, s.ID)
+	if s.effID == want {
+		return
+	}
+	if s.effID == "" {
+		w.debugWarn(debugCheckStampDrift, s.ID,
+			"shape %q carries no effective ID, so every store keys it "+
+				"on the bare leaf while the frame arranged it at %q; it "+
+				"was not built through GenerateViewLayout. Build child "+
+				"views with appendChildViews or GenerateViewLayout "+
+				"rather than appending a hand-built Layout.",
+			s.ID, want)
+		return
+	}
+	w.debugWarn(debugCheckStampDrift, s.ID,
+		"shape %q was stamped %q but the frame arranged it under scope "+
+			"%q, where it resolves to %q; its state, focus and scroll "+
+			"slots are keyed on the stamp and nothing else will find "+
+			"them.", s.ID, s.effID, scope, want)
 }
 
 // debugWalk is the depth-first audit. path is the index chain from
