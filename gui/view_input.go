@@ -259,6 +259,12 @@ func Input(cfg InputCfg) View {
 			IsPassword:        cfg.IsPassword,
 			placeholderActive: placeholderActive,
 			readOnly:          cfg.ReadOnly,
+			// Multiline wraps, so a run with no break opportunity is
+			// the only thing that can reach past the field. Record it
+			// so the field's horizontal scroll can follow the cursor
+			// into it. Single-line never wraps, so its text shape is
+			// already full width and needs no overflow accounting.
+			scrollOverflowX: cfg.Mode == InputMultiline,
 		}),
 	}
 
@@ -485,14 +491,18 @@ func (h *inputHandlerCfg) compiledMask() *CompiledInputMask {
 	return &c
 }
 
-// inputScrollIDFor returns the scroll key for a multiline input, or
-// "" when the input does not opt into scrolling. Multiline-only:
-// single-line inputs never scroll vertically.
+// inputScrollIDFor returns the key an input's scroll offsets are stored
+// under, or "" for an input with no identity to key them by.
+//
+// Every input follows the caret horizontally, which is what a
+// conventional text field does, so every input needs a key. What
+// cfg.Scrollable decides is only how the offset is applied: a
+// Scrollable multiline field is a real scroll container, with
+// scrollbars and the pipeline folding the offset into its children;
+// anything else has the offset applied to its text shape alone, in
+// inputApplyScrollX.
 func inputScrollIDFor(cfg *InputCfg) string {
-	if cfg.Mode == InputMultiline && cfg.Scrollable {
-		return cfg.ID
-	}
-	return ""
+	return cfg.ID
 }
 
 // inputOnClick handles a click on the inner row that wraps the text
@@ -550,7 +560,7 @@ func inputOnClick(leafID, leafScrollID string, canFocus bool) func(EventCtx) {
 		byteIdx := gl.GetClosestOffset(relX, relY)
 		displayText := text
 		if ly.Shape.TC.textIsPassword {
-			displayText = passwordMask(text)
+			displayText = maskPassword(text)
 		}
 		runePos := byteToRuneIndex(displayText, byteIdx)
 		imap := StateMap[string, inputState](
@@ -613,6 +623,16 @@ func inputOnClick(leafID, leafScrollID string, canFocus bool) func(EventCtx) {
 			ds.viewBot = ds.viewTop + viewH
 			ds.maxScrollNeg = f32Min(0,
 				viewH-ctx.Layout.Shape.Height)
+
+			// Same frame on X, clamped against the same extent the
+			// follow writes against (see inputScrollContentW).
+			sx := ctx.Window.scrollX()
+			ds.scrollX0 = sx.GetOr(scrollID, 0)
+			ds.viewLeft = p.X + p.Padding.Left
+			viewW := p.Width - p.paddingWidth()
+			ds.viewRight = ds.viewLeft + viewW
+			ds.maxScrollNegX = f32Min(0, viewW-inputScrollContentW(
+				ctx.Layout.Parent, ly.Shape))
 		}
 		startInputDrag(ds, ctx.Window)
 	}
@@ -635,6 +655,7 @@ func inputAmendLayout(
 			}
 			ctx.Layout.Shape.events.OnMouseScroll = onMouseScroll
 		}
+		inputApplyScrollX(hcfg, ctx.Layout, ctx.Window)
 		if !ctx.Layout.Shape.Focusable || ctx.Layout.Shape.ID == "" {
 			return
 		}

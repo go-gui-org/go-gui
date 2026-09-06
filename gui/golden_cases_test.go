@@ -71,6 +71,63 @@ func goldenCases() []goldenCase {
 			},
 		},
 		{
+			// Issue #534: a single-line field scrolled horizontally.
+			// The offset is set here rather than driven, the way
+			// virtual_list pins its scroll — a golden records
+			// appearance, and a fixed offset is the same every run.
+			// This case needs no measurer: the shift is arithmetic in
+			// AmendLayout, so it records headlessly.
+			name:    "input_scrolled_x",
+			focusID: "in",
+			build: func(w *Window) View {
+				w.scrollX().Set("in", -60)
+				return Input(InputCfg{
+					ID: "in",
+					// Fixed width, long text: the field cannot hug its
+					// content, so the golden records the shift itself
+					// rather than the end of the scroll range.
+					Width:  200,
+					Sizing: FixedFit,
+					Text: "a long value that runs a very long way " +
+						"past the right edge of the field it sits in",
+				})
+			},
+		},
+		{
+			// Pins that a placeholder is never shifted, however the
+			// field was left scrolled: it is not the user's text.
+			name: "input_scrolled_x_placeholder",
+			build: func(w *Window) View {
+				w.scrollX().Set("in", -60)
+				return Input(InputCfg{
+					ID:          "in",
+					Placeholder: "enter a value",
+				})
+			},
+		},
+		{
+			// Pins that the horizontal bar of a scrollable multiline
+			// input stays invisible while nothing overflows.
+			//
+			// Only the hidden state is recordable here. Ink overflow is
+			// discovered from a glyph layout, and layoutPlainText
+			// returns before that path when there is no measurer, so a
+			// headless frame can never make the bar appear. The visible
+			// case is covered by the unit tests in
+			// view_input_scroll_test.go.
+			name: "input_multiline_hscroll_hidden",
+			build: func(_ *Window) View {
+				return Input(InputCfg{
+					ID:         "in",
+					Mode:       InputMultiline,
+					Scrollable: true,
+					Height:     80,
+					Sizing:     FillFixed,
+					Text:       "one two three four five six seven",
+				})
+			},
+		},
+		{
 			name: "input_disabled",
 			build: func(_ *Window) View {
 				return Input(InputCfg{

@@ -121,6 +121,23 @@ and this project adheres to
 
 ### Fixed
 
+- **Input now scrolls horizontally to follow the caret** (#534) — text wider
+  than the field was clipped with no way to reach it, so the caret went
+  invisible as soon as typing passed the right edge. Both modes are fixed.
+  Single-line always follows the caret, the way a conventional text field does.
+  Multiline wraps as before, but a run with no break opportunity is wider than
+  the width it was wrapped to, and that overflow is now recorded on the shape
+  (`Shape.inkOverflowW`) and counted by `computeContentWidth`, so the field can
+  scroll to reach it and a `Scrollable` multiline input shows its horizontal bar
+  — hidden until needed, like the vertical one. A field that is not a scroll
+  container gets the offset applied to its text shape alone: making a
+  single-line field `Scrollable` would trip two sizing rules that treat any
+  `Scrollable` `Fill` container as elastic, resizing Inputs in a `Row` and
+  collapsing data grid cells. Drag-to-select auto-scrolls on both axes now, and
+  a password field's caret geometry and measured width are read against the
+  bullets it renders rather than the raw text, which had put the caret at the
+  wrong offset.
+
 - **WithTooltip and Menubar now resolve their IDs at generation time** (#528) —
   the last two widgets of the class #518, #519 and #520 fixed. Both took a
   `*Window` and built eagerly in the factory body, which runs while the parent's

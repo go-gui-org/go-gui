@@ -1,0 +1,9 @@
+Rect xy=15.00,15.00 wh=290.00,80.00 color=#262a2fff radius=6.00 fill
+StrokeRect xy=15.00,15.00 wh=290.00,80.00 color=#ffffff1c radius=6.00 thickness=1.00
+Clip xy=26.00,21.00 wh=268.00,68.00
+Text xy=26.00,21.00 wh=268.00,0.00 color=#e6e8ebff text="one two three four five six seven" size=14.00
+Clip xy=26.00,85.00 wh=268.00,7.00
+Clip xy=26.00,21.00 wh=268.00,68.00
+Clip xy=295.00,21.00 wh=7.00,68.00
+Clip xy=26.00,21.00 wh=268.00,68.00
+Clip xy=0.00,0.00 wh=320.00,240.00

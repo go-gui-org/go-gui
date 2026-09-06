@@ -213,6 +213,17 @@ type Shape struct {
 	// child-tree summation in position and scroll passes.
 	contentW, contentH float32
 
+	// inkOverflowW is how far painted ink reaches past Shape.Width on
+	// the X axis. Text that cannot wrap (an unbreakable run wider than
+	// the wrap width) overflows its box instead of growing it, because
+	// the wrap width and Shape.Width are the same number and widening
+	// the shape would re-wrap the text. Recording the overflow here
+	// instead lets computeContentWidth report the true extent, so a
+	// scroll container above the text can scroll to reach it. Set in
+	// layoutPlainText, propagated upward by propagateInkOverflow, and
+	// zero for everything that does not overflow.
+	inkOverflowW float32
+
 	// siblingSumGen matches scratchPools.fillGen when
 	// siblingSumW and siblingSumH are valid for the current
 	// frame. Separate from fillGen because sibling sums are
@@ -406,6 +417,12 @@ type shapeTextConfig struct {
 	wrapCacheValid  bool
 	textLayoutValid bool
 	textLayoutMode  textMode
+	// overflowScrollX opts this shape into ink-overflow accounting:
+	// layoutPlainText records how far an unbreakable run reaches past
+	// the wrap width in Shape.inkOverflowW so an ancestor scroll
+	// container can reach it. Only Input's text shape sets it, which
+	// keeps the content-width change off every other wrapped text.
+	overflowScrollX bool
 }
 
 // hasRtfLayout returns true if the shape has an RTF layout.
