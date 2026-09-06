@@ -284,6 +284,10 @@ func (w *Window) scrollHorizontalBy(id string, delta float32) {
 
 // ScrollHorizontalTo scrolls the given scrollable to offset
 // (negative).
+//
+// id is the widget's effective ID: a leaf under an ID-bearing
+// ancestor is addressed by its full path ("detail:nav"), not by the
+// leaf its Cfg was written with. Read it back with [Window.ResolveID].
 func (w *Window) ScrollHorizontalTo(id string, offset float32) {
 	scrollSmoothCancel(w, id, scrollAxisX)
 	sx := w.scrollX()
@@ -362,6 +366,10 @@ func (w *Window) scrollVerticalBy(id string, delta float32) {
 
 // ScrollVerticalTo scrolls the given scrollable to offset
 // (negative).
+//
+// id is the widget's effective ID: a leaf under an ID-bearing
+// ancestor is addressed by its full path ("detail:nav"), not by the
+// leaf its Cfg was written with. Read it back with [Window.ResolveID].
 func (w *Window) ScrollVerticalTo(id string, offset float32) {
 	scrollSmoothCancel(w, id, scrollAxisY)
 	sy := w.scrollY()
@@ -388,6 +396,10 @@ func (w *Window) scrollVerticalToSmooth(id string, offset float32) {
 // ScrollVerticalToPct scrolls to a vertical percentage.
 // pct: 0.0 = top, 1.0 = bottom. Clamped to [0, 1].
 // No-op if the scroll id is not found or content fits viewport.
+//
+// id is the widget's effective ID: a leaf under an ID-bearing
+// ancestor is addressed by its full path ("detail:nav"), not by the
+// leaf its Cfg was written with. Read it back with [Window.ResolveID].
 func (w *Window) ScrollVerticalToPct(id string, pct float32) {
 	ly, ok := findLayoutByScrollID(&w.layout, id)
 	if !ok {
@@ -405,6 +417,10 @@ func (w *Window) ScrollVerticalToPct(id string, pct float32) {
 // ScrollVerticalOffset returns the current vertical scroll offset of
 // the given scrollable: <= 0, where 0 is the top. Unknown ids read
 // as 0 (unscrolled).
+//
+// id is the widget's effective ID: a leaf under an ID-bearing
+// ancestor is addressed by its full path ("detail:nav"), not by the
+// leaf its Cfg was written with. Read it back with [Window.ResolveID].
 func (w *Window) ScrollVerticalOffset(id string) float32 {
 	// Default 0: unscrolled position when no offset recorded yet.
 	return w.scrollY().GetOr(id, 0)
@@ -413,6 +429,10 @@ func (w *Window) ScrollVerticalOffset(id string) float32 {
 // ScrollVerticalPct returns the current vertical scroll
 // position as a percentage (0.0 = top, 1.0 = bottom).
 // Returns 0 if not found or content fits viewport.
+//
+// id is the widget's effective ID: a leaf under an ID-bearing
+// ancestor is addressed by its full path ("detail:nav"), not by the
+// leaf its Cfg was written with. Read it back with [Window.ResolveID].
 func (w *Window) ScrollVerticalPct(id string) float32 {
 	ly, ok := findLayoutByScrollID(&w.layout, id)
 	if !ok {

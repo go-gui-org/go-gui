@@ -86,6 +86,11 @@ trimming that prefix back off. The grid root resolves like any other widget
 (#519), so a scoped grid's children are scoped with it. See
 `docs/specs/widget-id-per-scope-uniqueness.md`.
 
+**Read an effective ID back rather than spelling it.** `w.ResolveID("nav")`
+returns the identities the last frame stamped for that leaf (`["detail:nav"]`);
+`w.EffectiveIDs()` lists the whole frame. Both read the arranged tree, so they
+answer what the addressing APIs take (#521).
+
 **Compose inner IDs with `gui.ScopeID` / `gui.ScopeIDN`, never by hand.** An ID
 is a `:`-joined path (`grid:header:name:resize`); composition is associative.
 `ScopeIDN` appends a numeric segment without allocating for the number — use it
@@ -284,6 +289,13 @@ different strings. The failure is latent: the widget works until a second
 instance of the same `cfg.ID` appears under another scope, and then both share
 one state slot. Remedy is `w.EffID(cfg.ID)` in `GenerateLayout` or
 `ctx.EffID(leaf)` in a handler. See issues #518, #519 and #520.
+
+**`DebugUnknownFocus` is in `DebugAll`.** It reports a frame that ended with a
+focus ID no focusable shape claims, which is what `SetFocus` on a misspelled or
+unscoped ID leaves behind: the call is accepted, stored, and never matched. The
+message names the spelling the frame did stamp. It runs from the frame audit,
+not from `SetFocus`, because focusing a widget the current frame has not built
+yet is legitimate (#521).
 
 **A widget factory that reads window state must defer its build.** A factory
 body runs while the _parent's_ `Content` slice is being built, before the

@@ -4,7 +4,9 @@ import "time"
 
 // window_focus.go — keyboard focus management.
 
-// FocusID returns the current focus ID.
+// FocusID returns the current focus ID. The value is an effective ID,
+// so it is already in the form [Window.SetFocus] and [Layout.FindByID]
+// take.
 func (w *Window) FocusID() string {
 	return w.viewState.focusID
 }
@@ -15,6 +17,10 @@ func (w *Window) FocusID() string {
 // (focusID); the caret-blink animation is managed from the render
 // pass, not here (see syncBlinkCursor). Use ClearFocus to remove
 // focus.
+//
+// id is the widget's effective ID: a leaf under an ID-bearing
+// ancestor is addressed by its full path ("detail:nav"), not by the
+// leaf its Cfg was written with. Read it back with [Window.ResolveID].
 func (w *Window) SetFocus(id string) {
 	w.lockForAPI("SetFocus")
 	defer w.mu.Unlock()
@@ -73,6 +79,10 @@ func resetBlinkCursorVisible(w *Window) {
 }
 
 // IsFocus tests if the given focus id equals the window's focus id.
+//
+// id is the widget's effective ID: a leaf under an ID-bearing
+// ancestor is addressed by its full path ("detail:nav"), not by the
+// leaf its Cfg was written with. Read it back with [Window.ResolveID].
 func (w *Window) IsFocus(id string) bool {
 	return w.viewState.focusID != "" && w.viewState.focusID == id
 }

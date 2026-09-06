@@ -41,6 +41,15 @@ implementation, and the code is the authority.
    deliberately **outside** `DebugAll` — it reports a design property, not a
    defect, and fires on most widgets in a small app. Enable it with
    `gui.DebugCategories(gui.DebugUnscopedIDs)`.
+4. **A read-back seam was added** (#521). The spec made effective IDs the form
+   every addressing API takes but gave an app no way to learn one: the author
+   had to apply the join rule to their own View tree by hand, and a wrong
+   spelling failed silently. `(*Window).ResolveID(leaf)` answers with the
+   identities the last frame stamped for that leaf, and
+   `(*Window).EffectiveIDs()` lists the frame. Both read the arranged tree
+   rather than re-deriving the rule, so they cannot drift from it.
+   `gui.DebugUnknownFocus` reports the other half — a frame that finished with a
+   focus ID nothing focusable claims.
 
 Phase A.4 (producer simplification) was applied where a composite's own nesting
 already mirrors `ScopeID(cfg.ID, part)` — combobox and select now set a plain

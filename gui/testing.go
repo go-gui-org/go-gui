@@ -210,6 +210,10 @@ func testHitPoint(ly *Layout, id string) (x, y float32, err error) {
 // Returns ErrTestNoHandler when the widget has neither an OnClick, an
 // OnMouseDown nor focusability, since a click on such a widget cannot
 // have any effect worth asserting on.
+//
+// id is the widget's effective ID: a leaf under an ID-bearing
+// ancestor is addressed by its full path ("detail:nav"), not by the
+// leaf its Cfg was written with. Read it back with [Window.ResolveID].
 func (w *Window) TestClick(id string) error {
 	ly, err := w.testTarget(id)
 	if err != nil {
@@ -283,6 +287,10 @@ func (w *Window) testFocus(id string) error {
 // global commands, tab traversal and container scrolling — "nothing
 // consumed it" is normal, not a defect. Assert on the state change
 // instead.
+//
+// id is the widget's effective ID: a leaf under an ID-bearing
+// ancestor is addressed by its full path ("detail:nav"), not by the
+// leaf its Cfg was written with. Read it back with [Window.ResolveID].
 func (w *Window) TestKey(id string, key KeyCode, mods Modifier) error {
 	if err := w.testFocus(id); err != nil {
 		return err
@@ -302,6 +310,10 @@ func (w *Window) TestKey(id string, key KeyCode, mods Modifier) error {
 // Character events, not key events: typing is EventChar, and an input
 // that only handled EventKeyDown would wrongly appear to work if this
 // sent key codes. Empty text focuses the widget and delivers nothing.
+//
+// id is the widget's effective ID: a leaf under an ID-bearing
+// ancestor is addressed by its full path ("detail:nav"), not by the
+// leaf its Cfg was written with. Read it back with [Window.ResolveID].
 func (w *Window) TestType(id string, text string) error {
 	if err := w.testFocus(id); err != nil {
 		return err
@@ -364,6 +376,10 @@ func (w *Window) testTab(dir TabDirection) (focusedID string, err error) {
 // container whose content already fits, and ErrTestUnhandled when the
 // event reached no one — including the case where it fell through to a
 // scrollable already pinned at its limit.
+//
+// id is the widget's effective ID: a leaf under an ID-bearing
+// ancestor is addressed by its full path ("detail:nav"), not by the
+// leaf its Cfg was written with. Read it back with [Window.ResolveID].
 func (w *Window) TestScroll(id string, dx, dy float32) error {
 	ly, err := w.testTarget(id)
 	if err != nil {
@@ -438,6 +454,10 @@ func testScrollRoomErr(ly *Layout, id string, dx, dy float32) error {
 // non-scrollable widget has no offset rather than an offset of zero, and
 // silently reporting 0 would make an over-scroll assertion pass for the
 // wrong reason.
+//
+// id is the widget's effective ID: a leaf under an ID-bearing
+// ancestor is addressed by its full path ("detail:nav"), not by the
+// leaf its Cfg was written with. Read it back with [Window.ResolveID].
 func (w *Window) TestScrollOffset(id string) (x, y float32, err error) {
 	ly, err := w.testTarget(id)
 	if err != nil {
