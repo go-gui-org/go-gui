@@ -23,6 +23,42 @@ and this project adheres to
   transparent instead of the opaque theme background. See
   `examples/transparent/` and `docs/specs/transparent-windows.md`.
 
+- **`gui.DebugUnresolvedKeys` and `(*Window).TestFindings`** (#518) — a dev-mode
+  gate for the quietest identity mistake: a widget that keys its internal state
+  on the raw `cfg.ID` while `resolveShapeIDs` gives its shape a scoped effective
+  ID, so state is written and read under different strings. The audit runs once
+  per frame from the existing debug walk, over the identities the walk already
+  collected, and does not instrument the state store. It reports only when an
+  ancestor join really rewrote a shape of that leaf, so a cache keyed by a file
+  name stays quiet. Like `DebugUnscopedIDs` it is **not** in `DebugAll`, because
+  `gui/datagrid` is window-global by decision (#519); ask for it by name.
+  `(*Window).TestFindings(mask)` is the general assertable form of
+  `TestDuplicateIDs`: it takes the categories to run, so an opt-in category is
+  testable as data instead of stderr-only.
+
+  ```go
+  found := w.TestFindings(gui.DebugAll | gui.DebugUnresolvedKeys)
+  ```
+
+### Fixed
+
+- **Sidebar, InputDate and Table now resolve their IDs at generation time**
+  (#518) — all three built eagerly in the `(*Window)` factory, which runs
+  _before_ `generateViewLayout` descends the View tree. The ID scope stack is
+  empty there, so `w.EffID` returned the leaf unchanged and the widget keyed
+  scroll offset, focus, open state and row heights on a name that is
+  window-global. One instance worked; a second instance of the same `cfg.ID`
+  under another panel shared its state. Each now defers the build, so the
+  resolve happens with the scope live.
+
+  **Behavior change.** A Sidebar, InputDate or Table inside an ID-bearing
+  ancestor now carries the effective ID it always should have. Public APIs take
+  the effective ID, so a hand-spelled call must follow: a table with
+  `ID: "catalog"` inside a panel with `ID: "detail"` moves from
+  `w.SetFocus("catalog")` to `w.SetFocus("detail:catalog")`. Compose it with
+  `gui.ScopeID`, never by hand. Unscoped widgets are unaffected. Turn on
+  `DebugUnresolvedKeys` to find the rest.
+
 ## [v0.69.0] - 2026-09-05
 
 ### Added

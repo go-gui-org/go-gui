@@ -271,8 +271,22 @@ explicitly when auditing a screen for reusability:
 gui.DebugCategories(gui.DebugAll | gui.DebugUnscopedIDs)
 ```
 
+**`DebugUnresolvedKeys` is not in `DebugAll` either.** It reports a `StateMap`
+key that is a bare leaf while an ancestor join rewrote the shape of that name —
+the widget closed over the raw `cfg.ID` instead of resolving it, so its state
+key and its identity are different strings. Latent, not broken: it works until a
+second instance of the same `cfg.ID` appears under another scope, and
+`gui/datagrid` is window-global by decision. Remedy is `w.EffID(cfg.ID)` in
+`GenerateLayout` or `ctx.EffID(leaf)` in a handler. See issue #518.
+
 Assertable forms for tests, which return findings as data:
 `(*Window).TestDuplicateIDs` and `(*Window).TestUnconsumedEvents`.
+`(*Window).TestFindings(mask)` is the general form: it takes the categories to
+run, so an opt-in category is assertable instead of stderr-only.
+
+```go
+found := w.TestFindings(gui.DebugAll | gui.DebugUnresolvedKeys)
+```
 
 ## Coding Conventions
 

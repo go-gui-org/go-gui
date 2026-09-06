@@ -39,8 +39,28 @@ type SidebarCfg struct {
 	Invisible bool
 }
 
+// sidebarView defers the sidebar's construction to layout-generation
+// time.
+//
+// The deferral is load-bearing, not a style choice. A factory body runs
+// while the application builds its View tree, before generateViewLayout
+// descends it, so the generation-time ID scope is still empty there and
+// (*Window).EffID would answer with the bare leaf. The animation state
+// below is keyed by the sidebar's identity, so it must resolve that
+// identity in the phase that knows the scope. See issue #518.
+type sidebarView struct {
+	cfg SidebarCfg
+}
+
 // Sidebar creates an animated panel that slides in/out.
 func (w *Window) Sidebar(cfg SidebarCfg) View {
+	return &sidebarView{cfg: cfg}
+}
+
+func (sv *sidebarView) GenerateLayout(w *Window) Layout {
+	// A copy, because the defaults and the resolved ID below are
+	// per-generation values and the view outlives none of them.
+	cfg := sv.cfg
 	if cfg.Width == 0 {
 		cfg.Width = 250
 	}
@@ -60,10 +80,11 @@ func (w *Window) Sidebar(cfg SidebarCfg) View {
 	}
 
 	if cfg.Invisible {
-		return invisibleContainerView()
+		return generateViewLayout(invisibleContainerView(), w)
 	}
 
 	// One resolved identity for every key below; see (*Window).EffID.
+	// This runs during generation, so the scope is live.
 	cfg.ID = w.EffID(cfg.ID)
 
 	animW := sidebarAnimatedWidth(w, cfg)
@@ -84,7 +105,7 @@ func (w *Window) Sidebar(cfg SidebarCfg) View {
 		content = nil
 	}
 
-	return Column(ContainerCfg{
+	return generateViewLayout(Column(ContainerCfg{
 		ID:       cfg.ID,
 		Sizing:   cfg.Sizing,
 		Width:    animW,
@@ -100,7 +121,7 @@ func (w *Window) Sidebar(cfg SidebarCfg) View {
 			A11YDescription: cfg.A11YDescription,
 		},
 		Content: content,
-	})
+	}), w)
 }
 
 func sidebarAnimatedWidth(w *Window, cfg SidebarCfg) float32 {

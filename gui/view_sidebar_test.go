@@ -1,6 +1,9 @@
 package gui
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestSidebarOpenWidth(t *testing.T) {
 	w := &Window{}
@@ -95,12 +98,15 @@ func TestSidebarA11YRole(t *testing.T) {
 
 func TestSidebarRuntimeStateInit(t *testing.T) {
 	w := &Window{}
-	_ = w.Sidebar(SidebarCfg{
+	v := w.Sidebar(SidebarCfg{
 		ID:      "sb",
 		Open:    true,
 		Width:   100,
 		Content: []View{Text(TextCfg{Text: "x"})},
 	})
+	// The state is written during generation, not by the factory call:
+	// only generation knows the ID scope the key must carry.
+	_ = generateViewLayout(v, w)
 	sm := StateMap[string, sidebarRuntimeState](
 		w, nsSidebar, capFew)
 	rt, ok := sm.Get("sb")
@@ -280,5 +286,64 @@ func TestSidebarNoDoubleAnimation(t *testing.T) {
 	rt2, _ := sm.Get("sb")
 	if rt2.prevOpen != false {
 		t.Errorf("PrevOpen after second call = %v, want false", rt2.prevOpen)
+	}
+}
+
+// TestSidebarStateKeyIsScoped pins the fix for the defect
+// DebugUnresolvedKeys reports: the sidebar's animation state must be
+// keyed by the effective ID, so two sidebars written with the same leaf
+// under different panels animate independently.
+//
+// The factory body cannot resolve the key. It runs while the
+// application builds its View tree, before generateViewLayout descends
+// it, so the scope is still empty there. sidebarView.GenerateLayout
+// resolves it in the phase that knows the scope.
+func TestSidebarStateKeyIsScoped(t *testing.T) {
+	w := NewTestWindow(WindowCfg{})
+	w.TestRender(func(w *Window) View {
+		return Column(ContainerCfg{
+			ID:     "detail",
+			Sizing: FillFill,
+			Content: []View{
+				w.Sidebar(SidebarCfg{
+					ID:      "nav",
+					Open:    true,
+					Width:   100,
+					Content: []View{Text(TextCfg{Text: "x"})},
+				}),
+			},
+		})
+	})
+
+	sm := StateMap[string, sidebarRuntimeState](w, nsSidebar, capFew)
+	if _, ok := sm.Get("detail:nav"); !ok {
+		t.Fatalf("want state under the effective ID, keys are %q", sm.Keys())
+	}
+	if _, ok := sm.Get("nav"); ok {
+		t.Error("state must not also live under the bare leaf")
+	}
+}
+
+// The audit that found this defect must now be silent on the widget.
+func TestSidebarNoUnresolvedKeyFinding(t *testing.T) {
+	buf := captureDebugMask(t, DebugAll|DebugUnresolvedKeys)
+	w := NewTestWindow(WindowCfg{})
+	w.TestRender(func(w *Window) View {
+		return Column(ContainerCfg{
+			ID:     "detail",
+			Sizing: FillFill,
+			Content: []View{
+				w.Sidebar(SidebarCfg{
+					ID:      "nav",
+					Open:    true,
+					Width:   100,
+					Content: []View{Text(TextCfg{Text: "x"})},
+				}),
+			},
+		})
+	})
+
+	if got := buf.String(); strings.Contains(got, nsSidebar) {
+		t.Fatalf("want no sidebar finding, got %q", got)
 	}
 }

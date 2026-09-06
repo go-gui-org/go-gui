@@ -258,6 +258,7 @@ func TestCheckCategoryMapping(t *testing.T) {
 		{debugCheckWrapOverflow, DebugWrapOverflow},
 		{debugCheckDeferredLoop, DebugCallbacks},
 		{debugCheckWindowTransparency, DebugWindowDegraded},
+		{debugCheckUnresolvedKey, DebugUnresolvedKeys},
 	}
 	for _, tc := range tests {
 		if got := checkCategory(tc.check); got != tc.want {
@@ -272,6 +273,9 @@ func TestCheckCategoryMapping(t *testing.T) {
 	}
 	if DebugAll&DebugUnscopedIDs != 0 {
 		t.Fatal("DebugUnscopedIDs must stay opt-in, outside DebugAll")
+	}
+	if DebugAll&DebugUnresolvedKeys != 0 {
+		t.Fatal("DebugUnresolvedKeys must stay opt-in, outside DebugAll")
 	}
 }
 
@@ -736,5 +740,43 @@ func TestWrapOverflowGatedByCategory(t *testing.T) {
 	layoutOverflow(layout, w)
 	if got := buf.String(); got != "" {
 		t.Fatalf("mask without DebugWrapOverflow reported %q", got)
+	}
+}
+
+// The point of the seam: an opt-in category is invisible through
+// TestDuplicateIDs, which asks for DebugAll, and reachable by naming
+// it. DebugUnscopedIDs is the case — a window-global ID is a design
+// property, not a defect, so the default sweep stays quiet on it.
+func TestTestFindingsReachesOptInCategory(t *testing.T) {
+	w := NewTestWindow(WindowCfg{})
+	w.UpdateView(func(_ *Window) View {
+		return Column(ContainerCfg{
+			Sizing:  FillFill,
+			Content: []View{Button(ButtonCfg{ID: "bare", Label: "Save"})},
+		})
+	})
+
+	if got := w.TestDuplicateIDs(); len(got) != 0 {
+		t.Fatalf("DebugAll must stay quiet on an unscoped ID, got %q", got)
+	}
+	got := w.TestFindings(DebugAll | DebugUnscopedIDs)
+	if len(got) != 1 || !strings.Contains(got[0], `"bare"`) {
+		t.Fatalf("want one unscoped-ID finding naming the ID, got %q", got)
+	}
+}
+
+// The call installs its mask only for its own duration. A narrower
+// gate a caller had installed must survive it unwidened.
+func TestTestFindingsRestoresMask(t *testing.T) {
+	captureDebugMask(t, DebugMissingIDs)
+	w := NewTestWindow(WindowCfg{})
+	w.UpdateView(func(_ *Window) View {
+		return Column(ContainerCfg{Sizing: FillFill})
+	})
+
+	w.TestFindings(DebugAll | DebugUnresolvedKeys)
+
+	if got := DebugCategory(debugMask.Load()); got != DebugMissingIDs {
+		t.Fatalf("want the caller's mask restored, got %v", got)
 	}
 }

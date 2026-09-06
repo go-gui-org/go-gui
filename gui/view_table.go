@@ -184,8 +184,19 @@ func Table(cfg TableCfg) View {
 
 // Table generates a table with text measurement, column width
 // caching, and optional virtualization.
-func (w *Window) Table(cfg TableCfg) View {
-	return tableView(cfg, w)
+//
+// The build is deferred to layout generation, like the package-level
+// [Table]. It is load-bearing rather than a style choice: tableView
+// resolves cfg.ID with (*Window).EffID and keys scroll offset, focus
+// and row heights on the result, and the generation-time ID scope is
+// only live while generateViewLayout descends the View tree. Building
+// here instead would resolve against an empty scope, so a table inside
+// an ID-bearing panel would key its state on the bare leaf. See issue
+// #518.
+func (*Window) Table(cfg TableCfg) View {
+	return viewFunc(func(w *Window) View {
+		return tableView(cfg, w)
+	})
 }
 
 // tableScrollID returns the scroll key for a table. The freeze path
