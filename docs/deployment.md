@@ -40,6 +40,11 @@ becomes the installed program name (the `Exec=` line on Linux, the file inside
 the `.zip` on Windows, `Contents/MacOS/<name>` on macOS). `myapp-linux` in means
 `Exec=myapp-linux` out.
 
+On Linux/X11, transparent and translucent windows need a running compositing
+manager at runtime — without one the window renders black, which `gui.Debug`
+reports. Either depend on one in the package or document it for the user. See
+`docs/specs/transparent-windows.md`.
+
 ## Step 2: package with buildapp
 
 A `.png` icon works on every platform. macOS also accepts `.icns`, Windows also

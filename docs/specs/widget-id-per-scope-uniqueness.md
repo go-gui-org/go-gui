@@ -26,15 +26,15 @@ implementation, and the code is the authority.
    menus injected from outside the tree holds.
 2. **`EventCtx.EffID` was added.** Decision 7 assumed a stateful widget always
    has a `*Window` while it composes. Several do not: `Input`, `Slider`,
-   `Splitter`, `ProgressBar`, `Skeleton` and `Scrollbar` build their trees in
-   plain factories and capture `cfg.ID` as a leaf. Their handlers resolve at
-   dispatch time instead, walking the ancestor chain for the shape that carries
-   the leaf. Same `resolveLeaf`, so the two paths cannot drift. `Splitter` is
-   now converted (issue #264): it is a struct view whose `GenerateLayout`
-   resolves the effective ID once (`id := w.EffID(cfg.ID)`) and composes every
-   inner ID (panes, handle, collapse buttons) from that path — the root shape
-   stays on the plain leaf and the framework joins it to the same string, while
-   the composed children are absolute.
+   `ProgressBar`, `Skeleton` and `Scrollbar` build their trees in plain
+   factories and capture `cfg.ID` as a leaf. Their handlers resolve at dispatch
+   time instead, walking the ancestor chain for the shape that carries the leaf.
+   Same `resolveLeaf`, so the two paths cannot drift. `Splitter` was one of
+   these and is now converted (issue #264): it is a struct view whose
+   `GenerateLayout` resolves the effective ID once (`id := w.EffID(cfg.ID)`) and
+   composes every inner ID (panes, handle, collapse buttons) from that path —
+   the root shape stays on the plain leaf and the framework joins it to the same
+   string, while the composed children are absolute.
 3. **The "still globally competing" warning is a debug category, not an
    ergonomics-audit mode.** "Has no ID-bearing ancestor" is a property of the
    composed tree, which the AST does not have. It is `gui.DebugUnscopedIDs`,
@@ -214,9 +214,9 @@ Rules:
   loud, as today.
 - An absolute ancestor still contributes its full `effID` as the join prefix:
   leaf `"name"` under `"app:settings"` → `"app:settings:name"`.
-- A leaf that already contains `:` is an **absolute** identity. The resolution
-  pass does not join further. That is the compatibility path for today's
-  `ScopeID` results.
+- A leaf that already contains `:` is an **absolute** identity. Generation does
+  not join it further. That is the compatibility path for today's `ScopeID`
+  results.
 - Absolute (`:`) is not an opt-out that keeps a bare global leaf under an ID'd
   ancestor. Under an ID'd ancestor, a plain leaf always becomes `ancestor:leaf`.
   There is no "stay bare `ok` under panel `p`" mode.
@@ -233,11 +233,13 @@ These supersede parent Decisions 1–2 for identity resolution. The `:` grammar
 and no-escaping rules stay.
 
 This is **not** a widget-side ID stack inside `GenerateLayout`. Widget factories
-still set leaf `Shape.ID` (plain or absolute). Scope is the framework's job. A
-post-build resolve pass stamps `effID` before any ID-keyed store or match that
-runs after layout generation. Widget-internal state read **during**
-`GenerateLayout` cannot wait for that pass — Decision 7 gives widgets their
-scope at generation time instead.
+still set leaf `Shape.ID` (plain or absolute). Scope is the framework's job.
+Identity is stamped **once, during generation** (`stampEffID`, called from
+`generateViewLayout` and `appendChildViews` — point 5 above), so there is no
+second pass for a widget to wait for. Widget-internal state read **during**
+`GenerateLayout` cannot wait for its own shape to be stamped — Decision 7 gives
+widgets their scope at generation time instead, through the same `resolveLeaf`
+the stamp uses.
 
 1. **Framework join on ID-bearing ancestors.** Containers with an ID push a
    namespace for descendants that use plain leaf IDs. Moving a widget under a
@@ -269,17 +271,18 @@ scope at generation time instead.
    input-state / spell-check maps hold `effID`.
 7. **Generation-time scope for widget-state keys.** Widgets that read `StateMap`
    inside `GenerateLayout` (combobox open/query/highlight/items, theme-picker
-   select, tree / sidebar / listbox state, …) cannot wait for the resolve pass —
-   their tree shape depends on the read. `generateViewLayout` maintains a
-   framework-side scope: before recursing into a child it pushes the child's
-   `effID`. `w.EffID(leaf)` joins the current scope with the leaf (absolute `:`
-   leaves pass through unchanged). Stateful widgets key every `ns*` map on
-   `w.EffID(cfg.ID)`, reads and writes alike (event handlers close the key over
-   at generation. It stays valid while ancestor IDs do). The float boundary
-   resets scope to `""` at each float root during generation, matching the
-   resolve pass. One `resolveLeaf(scope, leaf)` helper implements both paths so
-   they cannot drift. Cost: one `:`-join per stateful widget per frame — Phase
-   C's memo is shared with this path.
+   select, tree / sidebar / listbox state, …) cannot wait for their own shape to
+   be stamped — their tree shape depends on the read. `appendChildViews`
+   maintains a framework-side scope: on its way to pushing a parent's scope it
+   stamps the parent, so `w.EffID(leaf)` joins the current scope with the leaf
+   (absolute `:` leaves pass through unchanged). Stateful widgets key every
+   `ns*` map on `w.EffID(cfg.ID)`, reads and writes alike (event handlers close
+   the key over at generation. It stays valid while ancestor IDs do). A float is
+   not a scope boundary: it is stamped where it was written, so the
+   generation-time scope and the stamp agree with no float special case. One
+   `resolveLeaf(scope, leaf)` helper implements both paths so they cannot drift.
+   Cost: one `:`-join per stateful widget per frame — Phase C's memo is shared
+   with this path.
 
 ## Worked examples
 
@@ -304,12 +307,11 @@ Panel{ID: "profile",  Content: ColorPicker{ID: "palette"}} // owner → profile:
 ```
 
 A composite whose own container nesting already mirrors `ScopeID(owner, part)`
-**must** drop that `ScopeID` and set a plain leaf (no `:`) once
-`resolveShapeIDs` exists. Until those producers simplify, reuse under ID'd
-ancestors is **not** safe for that widget — `TestDuplicateIDs` will still report
-the absolute children. Leave absolute only when the leaf needs `:` (`ScopeIDN`)
-or the owner is not an ancestor ID (synthetic prefixes, toast, command-button
-scopes).
+**must** drop that `ScopeID` and set a plain leaf (no `:`) now that generation
+stamps `effID`. Until those producers simplify, reuse under ID'd ancestors is
+**not** safe for that widget — `TestDuplicateIDs` will still report the absolute
+children. Leave absolute only when the leaf needs `:` (`ScopeIDN`) or the owner
+is not an ancestor ID (synthetic prefixes, toast, command-button scopes).
 
 ```go
 // App content under ID'd panels — the composability win
@@ -362,26 +364,24 @@ not `IDSep`: a node ID is tree data fed into `ScopeID` as a **part**, and an
 `IDSep` in a part makes the composed leaf absolute in the wrong way —
 window-global, outside the dock scope.
 
-## Resolution pass
+## Identity stamping (was: resolution pass)
 
-`resolveShapeIDs(layout, scope string)` runs **first** in every `layoutPipeline`
-call (`gui/layout_pipeline.go`) — before width/height passes and before
-`applyLayoutTransition` / `applyHeroTransition`. It stamps `effID` on every
-shape before any ID-keyed store or match that runs after layout generation.
+Identity is stamped during generation, not by a pass over the built tree (point
+5 above): `generateViewLayout` stamps whatever a view returned and
+`appendChildViews` stamps a parent on its way to pushing that parent's scope.
+What is left of the pass this section originally described is
+`resolveFocusOwners`, run from `layoutArrange`, which rewrites `focusOwner`
+references in place. Injected overlays (toast, dialog, inspector) arrange as
+their own roots with an empty scope.
 
-Wire it for **every root** `layoutArrange` feeds the pipeline
-(`gui/layout_arrange.go`): main layout and each floating layout. A miss on any
-root is a silent break.
+**Float scope boundary:** a float is stamped where it was written, so it keeps
+the scope of the ID-bearing ancestors around its write site — a combobox
+dropdown or popover inside a panel carries that panel's scope, and extraction
+cannot move it. Injected tooltips/menus only pick up scope from ID'd ancestors
+**inside their own tree**.
 
-**Float scope boundary:** each float/dialog is its own pipeline root with an
-empty initial scope. It does **not** inherit ID-bearing ancestors from the main
-tree. Injected tooltips/menus only pick up scope from ID'd ancestors **inside
-their own tree**. Authors who need the triggering panel's prefix must set an
-absolute ID (or put an ID'd ancestor in the float tree).
-
-The Decision 7 generation-time scope resets identically: a `Float` layout's
-subtree generates with empty scope, so a widget inside a float reads the same
-keys the resolve pass produces. Both rules go through the shared
+The Decision 7 generation-time scope agrees by construction: a widget inside a
+float reads the same keys the stamp produces. Both go through the shared
 `resolveLeaf(scope, leaf)` helper.
 
 ## Migrate keying and match sites
@@ -412,9 +412,8 @@ one commit each with a test:
   spell-check). After the change those stores hold `effID`. "Already a full path
   string" is not enough once producers emit plain leaves. Fix `focusKey()` per
   Decision 6 so Input's inner text keeps working. Note the `AmendLayout`
-  `IsFocus` call sites that pass the leaf today — for example the combobox's
-  `AmendLayout` uses `ctx.Layout.Shape.ID` (`gui/view_combobox.go`) — they
-  become `effID` (or `w.EffID`).
+  `IsFocus` call sites that pass the leaf today — they become `effID` (or
+  `w.EffID`), read back with `shape.idKey()` rather than the bare `Shape.ID`.
 
 ## Implementation phases
 
@@ -431,9 +430,10 @@ one commit each with a test:
    `ScopeID(cfg.ID, part)` producer to a plain leaf. Leave absolute leaves that
    cannot simplify. Until this lands, two instances of the same composite under
    different ID'd panels still collide on absolute children.
-5. ergonomics-audit `ids` mode: warn on state-keyed shapes (focusable /
-   scrollable / stateful) with a plain leaf and no ID-bearing ancestor (still
-   globally competing).
+5. Warn on state-keyed shapes (focusable / scrollable / stateful) with a plain
+   leaf and no ID-bearing ancestor (still globally competing) — landed as
+   `gui.DebugUnscopedIDs`, deliberately outside `DebugAll` (point 3 above), not
+   as an ergonomics-audit mode.
 6. Docs: CLAUDE.md Focus section, parent Remaining work pointer, showcase
    regression. Showcase win requires ID-bearing demo/panel ancestors.
 
@@ -463,11 +463,11 @@ so a miss recomputes identically.
 
 ## Relation to `widget-id-scoping.md`
 
-| Parent                                                      | This spec                                                                                                                                                         |
-| ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Decision 1: helper only, containers do not push a namespace | Superseded for plain leaves under ID-bearing ancestors — via post-build resolve plus a framework-side generation-time scope (Decision 7), not a widget-side stack |
-| Decision 2: flat window-global strings, per-scope deferred  | Effective IDs stay flat strings. Uniqueness is on `effID`. Leaf reuse across scopes is allowed                                                                    |
-| Grammar / no escaping / `ScopeID`                           | Unchanged. Absolute leaves are today's composed strings                                                                                                           |
+| Parent                                                      | This spec                                                                                                                                              |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Decision 1: helper only, containers do not push a namespace | Superseded for plain leaves under ID-bearing ancestors — generation stamps the join (Decision 7 gives widgets the same scope), not a widget-side stack |
+| Decision 2: flat window-global strings, per-scope deferred  | Effective IDs stay flat strings. Uniqueness is on `effID`. Leaf reuse across scopes is allowed                                                         |
+| Grammar / no escaping / `ScopeID`                           | Unchanged. Absolute leaves are today's composed strings                                                                                                |
 
 ## Closed questions
 
@@ -480,8 +480,8 @@ so a miss recomputes identically.
    during resolve or `*Shape` reference. Bare leaf `focusKey` is invalid after
    stores migrate.
 5. **Widget-state keys read during `GenerateLayout`:** migrate to
-   `w.EffID(cfg.ID)` (Decision 7) — the resolve pass alone cannot serve reads
-   that happen before it.
+   `w.EffID(cfg.ID)` (Decision 7) — the widget's own shape is not stamped yet at
+   that point, so only the ambient scope answers.
 6. **Datagrid:** stays a permanent absolute-leaf exception in spelling only. Its
    root resolves like any other widget and every child ID is built from that
    resolved prefix (#519), so two grids sharing a `cfg.ID` under different

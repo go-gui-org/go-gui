@@ -98,8 +98,6 @@ coordinates, which the Go-side event no longer carries.
 
 ## Not included
 
-- `FixedSize` is still ignored on X11 (no `WM_NORMAL_HINTS`). A pre-existing
-  gap, left alone to keep this change scoped.
 - No `gui.TitleBar` widget. `examples/frameless` builds its header from a plain
   `Row` and a `Button`.
 - Web, software, iOS and Android backends are no-ops.

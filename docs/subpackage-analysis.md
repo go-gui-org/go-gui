@@ -5,16 +5,15 @@ root `gui` package into subpackages (`gui/layout/`, `gui/animation/`, and more).
 
 ## Current state
 
-- Root `gui/` package: ~200 non-test .go files at top level (~400 including
-  tests)
-- 25 library packages under `gui/` (16 under `backend/`). 82 total in the module
-  including examples and tools
+- Root `gui/` package: ~270 non-test .go files at top level
+- 31 library packages under `gui/` (21 under `backend/`). 104 total in the
+  module including examples and tools
 - Compile time: 0.28s — not a problem
 - File naming convention: `layout_*.go`, `render_*.go`, `view_*.go`,
   `animation_*.go` — provides grep-level discoverability
 - Existing subpackages: `datagrid`, `markdown`, `svg`, `svg/css`, `highlight`,
-  `audio`, `shader` — leaf subsystems that import `gui` but are not imported by
-  it
+  `audio`, `shader`, `backend`, `internal`, `locales`, `assets` — leaf
+  subsystems that import `gui` but are not imported by it
 
 ## Why core subsystems can't move
 

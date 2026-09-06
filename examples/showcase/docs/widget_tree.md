@@ -70,22 +70,25 @@ When `ItemPaths` is set, `Nodes` is ignored.
 
 ## Key Properties
 
-| Property    | Type          | Description                       |
-| ----------- | ------------- | --------------------------------- |
-| ItemPaths   | []string      | Flat slash-separated paths (alt.) |
-| Nodes       | []TreeNodeCfg | Root-level tree nodes             |
-| Indent      | float32       | Indent per nesting level          |
-| Spacing     | Opt[float32]  | Vertical spacing between rows     |
-| Reorderable | bool          | Enable drag-reorder of siblings   |
-| Disabled    | bool          | Disable interaction               |
-| Invisible   | bool          | Hide without removing from layout |
-| Sizing      | Sizing        | Combined axis sizing mode         |
-| Width       | float32       | Fixed width                       |
-| Height      | float32       | Fixed height                      |
-| MinWidth    | float32       | Minimum width                     |
-| MaxWidth    | float32       | Maximum width                     |
-| MinHeight   | float32       | Minimum height                    |
-| MaxHeight   | float32       | Maximum height                    |
+| Property      | Type          | Description                       |
+| ------------- | ------------- | --------------------------------- |
+| ItemPaths     | []string      | Flat slash-separated paths (alt.) |
+| Nodes         | []TreeNodeCfg | Root-level tree nodes             |
+| Indent        | float32       | Indent per nesting level          |
+| Spacing       | Opt[float32]  | Vertical spacing between rows     |
+| Reorderable   | bool          | Enable drag-reorder of siblings   |
+| Disabled      | bool          | Disable interaction               |
+| Invisible     | bool          | Hide without removing from layout |
+| Sizing        | Sizing        | Combined axis sizing mode         |
+| Width         | float32       | Fixed width                       |
+| Height        | float32       | Fixed height                      |
+| MinWidth      | float32       | Minimum width                     |
+| MaxWidth      | float32       | Maximum width                     |
+| MinHeight     | float32       | Minimum height                    |
+| MaxHeight     | float32       | Maximum height                    |
+| FocusDisabled | bool          | Opt out of default-on focus       |
+| Sound         | SoundCue      | Row-activation cue                |
+| SoundDisabled | bool          | Suppress row sounds               |
 
 ## TreeNodeCfg
 
@@ -107,7 +110,7 @@ When `ItemPaths` is set, `Nodes` is ignored.
 | ColorHover  | Color        | Hover background        |
 | ColorFocus  | Color        | Focused node background |
 | ColorBorder | Color        | Border color            |
-| Padding     | Opt[Padding] | Inner padding           |
+| Padding     | Padding      | Inner padding           |
 | SizeBorder  | Opt[float32] | Border width            |
 | Radius      | Opt[float32] | Corner radius           |
 

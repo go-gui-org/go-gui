@@ -205,15 +205,17 @@ gui.Command{
 Handle palette selection:
 
 ```go
-func paletteAction(id string, e *gui.Event, w *gui.Window) {
-    cmd, ok := w.CommandByID(id)
+func paletteAction(id string, ctx gui.EventCtx) {
+    cmd, ok := ctx.Window.CommandByID(id)
     if ok && cmd.Execute != nil {
-        cmd.Execute(e, w)
+        cmd.Execute(ctx.Event, ctx.Window)
     }
 }
 ```
 
 ### Visibility Functions
+
+Only toggling is public — show, dismiss and visibility read are unexported:
 
 | Function                      | Description       |
 | ----------------------------- | ----------------- |

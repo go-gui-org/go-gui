@@ -40,8 +40,8 @@ type stringKeyed interface {
 //     shape whose state this key was meant to be.
 //
 // The third condition is what keeps the audit quiet. It reads
-// debugIDs.scoped, which holds only the leaves the resolve pass
-// actually changed, so a widget that builds its own absolute ID —
+// debugIDs.scoped, which holds only the leaves an ancestor join
+// actually rewrote, so a widget that builds its own absolute ID —
 // Form composes "form:login" from cfg.ID "login" — is absent from the
 // index and keys its state on cfg.ID without a finding. A cache keyed
 // by a file name or a URL satisfies the first two conditions and is

@@ -215,7 +215,7 @@ func envTruthy(name string) bool {
 // Debug turns dev-mode diagnostics on or off. When on, every category
 // of finding is checked:
 //
-//   - two shapes sharing one ID
+//   - two shapes sharing one effective ID
 //   - a focusable shape with no ID (never keyboard-reachable)
 //   - a scrollable shape with no ID (scroll offset shared with every
 //     other ID-less scrollable in the window)
@@ -226,12 +226,19 @@ func envTruthy(name string) bool {
 //     (silently resampled down to the limit on GPU backends)
 //   - a container that sets both Wrap and Overflow (wrap wins, overflow
 //     is ignored)
+//   - a state key that is a bare leaf while an ancestor join rewrote
+//     the shape of that name (the widget never resolved its cfg.ID, or
+//     resolved at the wrong time)
+//   - a frame that finished with a focus ID no focusable shape claims
+//   - a shape whose stamp disagrees with the scope it was arranged
+//     under, or an ID-bearing shape with no stamp at all
+//   - a window-level feature the platform could not deliver
 //
-// It also reports, from dispatch rather than from the frame audit, any
-// consume-class callback that relies on automatic handling while an
-// ancestor would also have received the event — the sites that would
-// silently start firing twice under the one-rule event model. See
-// debug_event.go.
+// It also reports, from dispatch rather than from the frame audit, a
+// callback that acted on an event without consuming it while an
+// ancestor also received it; deferred callbacks that kept re-queueing
+// themselves until the frame bounded the loop; and a link activation
+// that resolved to nothing. See debug_event.go.
 //
 // [DebugCategories] enables these classes independently; Debug is the
 // same API with both extremes (all on, all off).

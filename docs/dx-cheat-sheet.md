@@ -21,7 +21,7 @@ Input{ID: "name", FocusDisabled: true} // not in the tab order
 
 Most input controls are focusable by default. They are `Button`,
 `ColorChannelSlider`, `ColorPicker`, `ColorPlane`, `ColorWheel`, `Combobox`,
-`DatePicker`, `Input`, `InputDate`, `ListBox`, `NumericInput`,
+`DatePicker`, `ExpandPanel`, `Input`, `InputDate`, `ListBox`, `NumericInput`,
 `RadioButtonGroup`, `Radio`, `Select`, `Slider`, `Switch`, `Toggle`, `Tree`,
 `VirtualList`. Everything else opts in with `Focusable: true`. If a control
 never answers the keyboard, the usual cause is a missing `ID`. The `requiredid`
@@ -54,7 +54,8 @@ all := w.EffectiveIDs()    // every identity in the frame, tree order
 ```
 
 An empty answer means no widget of that name is in the current frame: either the
-spelling is wrong or the widget is not rendered.
+spelling is wrong or the widget is not rendered. More than one answer means the
+leaf is used under more than one scope, which is legal — pick the scope meant.
 
 A part (a row key, a heading slug) must not contain `:`. A composite widget's
 inner shape sets `Shape.focusOwner` to the owner's leaf instead of repeating its
@@ -87,7 +88,9 @@ is a real choice:
 
 `SizeBorder` is the example: `0` means "no border", so a plain `float32` cannot
 tell that from "not specified". `Color` and `Padding` carry their own set flag
-and stay plain.
+and stay plain. `ScrollbarCfg.GapEdge`/`GapEnd` are the same case — `0` is a
+real inset — so they are `Opt[float32]` defaulting to the theme's
+`SizeScrollbarGap`/`SizeScrollbarGapEnd` (write `gui.SomeF(4)`).
 
 ## Colors
 
@@ -162,7 +165,8 @@ scroll container has a bounded height. They always scroll — there is no
 `Scrollable` opt-in — so a bounded height is the whole requirement: `Height` or
 `MaxHeight`, or — `ListBox` only — a height Fill sizing resolved last frame.
 Every row is the same height there, which is exact because the widget owns the
-row shape.
+row shape. `Combobox` additionally clips its label so the arrow stays inside the
+field, and its dropdown scrolls unconditionally.
 
 For rows the app builds, of heights only the layout engine knows, use
 `VirtualList`:
@@ -209,6 +213,19 @@ These work on the uniform widgets too, in each one's own index space (a frozen
 table header is data index 0 but sits outside the scrollable). Call
 `w.InvalidateListHeights(id)` when a row's content changed under a stable key —
 nothing detects that. See `docs/specs/virtualized-variable-height-lists.md`.
+
+## Numeric input steps
+
+`NumericInput` steps on Up/Down by default (`KeyboardDisabled` opts out) and on
+the mouse wheel only when `MouseWheel` is set. Shift scales the step 10x, Alt
+0.1x; `ShiftMultiplier`/`AltMultiplier` override each (zero takes the default).
+
+## Date picker sizing
+
+`DatePicker` is self-sized: `Height` is deliberately not pinned. A cell's height
+comes from the theme font, and the month grid keeps it across months through the
+internal `CalBodyHeight`. `HideTodayIndicator` opts out of the today ring;
+`ShowAdjacentMonths` opts into filling the edge cells.
 
 ## `Wrap` with Fit width
 
@@ -272,6 +289,13 @@ triangle wound against its neighbors cancels along their shared edge and cuts a
 hairline through the mesh. Share vertices between adjacent triangles rather than
 overlapping them. With per-vertex color, an overlap paints twice and shows.
 
+## Canvas transforms
+
+A `DrawContext` carries a transform stack: `Translate(dx, dy)`,
+`ScaleBy(sx, sy)`, `Save()` and `Restore()`. The matrix is batch-stamped, so a
+transform between two fills does not merge them. See
+`docs/specs/draw-canvas-transform.md`.
+
 ## The one-event rule
 
 Nothing is marked handled for you. A callback that acts on an event calls
@@ -298,12 +322,26 @@ into a nested `ButtonCfg` or `ToggleCfg` means passing `SoundDisabled` too —
 those resolve their own precedence, and a resolved `SoundNone` reads there as
 "unset". See `docs/widget-sound.md`.
 
+## Markdown render callback
+
+`MarkdownCfg.RenderBlock(w, el)` overrides rendering per block: return a `View`
+and `true` to replace the block (or nil to drop it), `false` to keep the
+default. The hook runs every frame over cached blocks, so it must be cheap and
+pure — build `View` structs, do not fetch or parse. It runs during
+`GenerateLayout` under the frame lock: no window-mutating calls, `QueueCommand`
+for those. Hook writers own their IDs: compose with `ScopeID(el.DocID, …)`. See
+`docs/specs/markdown-render-callback.md`.
+
 ## Find it early
 
 `gui.Debug(true)`, or `GOGUI_DEBUG=1`, checks the layout every frame. It reports
-duplicate IDs, focusable shapes without IDs, and handlers that act without
-consuming. Findings print once per window. In tests, use
-`(*Window).TestDuplicateIDs` and `(*Window).TestUnconsumedEvents`.
+duplicate IDs, focusable shapes without IDs, handlers that act without
+consuming, and the rest of the sweep: scrollable or `OnMouseLeave` shapes
+without IDs, a height-0 virtualized listbox, an over-stop gradient, a
+`Wrap`+`Overflow` container, unresolved state keys, unclaimed focus IDs, stamp
+drift, dropped callbacks and links, and refused window features. Findings print
+once per window. In tests, use `(*Window).TestDuplicateIDs` and
+`(*Window).TestUnconsumedEvents`.
 
 `DebugUnscopedIDs` is separate and opt-in: it is not part of `DebugAll`. It
 reports an ID with no ID-bearing ancestor — the widget cannot move into a second
@@ -350,6 +388,12 @@ which is what `SetFocus("nav")` leaves behind when the frame stamped
 `"detail:nav"`. The finding names the spelling that would have worked. It fires
 from the frame audit, not from `SetFocus`, because a view function may
 legitimately focus a control it is still returning.
+
+`DebugStampDrift` is also part of `DebugAll`. It reports a shape whose stamp
+disagrees with the scope it was arranged under, or an ID-bearing shape with no
+stamp at all — the signature of a hand-built `Layout` spliced into a generated
+tree. Every store then keys it on its bare leaf, which works until a second
+widget of that leaf appears elsewhere in the window.
 
 `DebugCategories` prints to stderr. To assert a category in a test, including an
 opt-in one, use `(*Window).TestFindings(mask)`, which returns the findings as

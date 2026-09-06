@@ -100,6 +100,10 @@ When `RawData` is set, `Data` is ignored.
 | MaxWidth           | float32           | Maximum width                 |
 | MinHeight          | float32           | Minimum height                |
 | MaxHeight          | float32           | Maximum height                |
+| FreezeHeader       | bool              | Pin header outside the scroll |
+| Focusable          | bool              | Opt in to keyboard focus      |
+| Sound              | SoundCue          | Row-activation cue            |
+| SoundDisabled      | bool              | Suppress row sounds           |
 
 ## Appearance
 

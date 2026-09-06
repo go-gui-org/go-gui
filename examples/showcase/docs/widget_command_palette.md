@@ -19,36 +19,39 @@ gui.CommandPaletteToggle("cmd", w)
 
 ## API
 
-| Function                            | Description            |
-| ----------------------------------- | ---------------------- |
-| CommandPaletteShow(id, w)           | Show and focus palette |
-| CommandPaletteDismiss(id, w)        | Hide palette           |
-| CommandPaletteToggle(id, w)         | Toggle visibility      |
-| CommandPaletteIsVisible(id, w) bool | Check if visible       |
+| Function                    | Description       |
+| --------------------------- | ----------------- |
+| CommandPaletteToggle(id, w) | Toggle visibility |
+
+Show, dismiss and visibility read are unexported; `Toggle` is the only public
+control.
 
 ## Key Properties
 
-| Property    | Type                 | Description                |
-| ----------- | -------------------- | -------------------------- |
-| ID          | string               | Unique identifier          |
-| Items       | []CommandPaletteItem | Available commands         |
-| Placeholder | string               | Search input hint text     |
-| Width       | float32              | Palette width              |
-| MaxHeight   | float32              | Maximum dropdown height    |
-| FloatZIndex | int                  | Z-index for float layering |
+| Property      | Type                 | Description                |
+| ------------- | -------------------- | -------------------------- |
+| ID            | string               | Unique identifier          |
+| Items         | []CommandPaletteItem | Available commands         |
+| Placeholder   | string               | Search input hint text     |
+| Width         | float32              | Palette width              |
+| MaxHeight     | float32              | Maximum dropdown height    |
+| FloatZIndex   | int                  | Z-index for float layering |
+| Sound         | SoundCue             | Backdrop-dismiss cue       |
+| SoundDisabled | bool                 | Suppress backdrop sound    |
 
 ## Appearance
 
-| Property       | Type         | Description               |
-| -------------- | ------------ | ------------------------- |
-| Color          | Color        | Card background color     |
-| ColorBorder    | Color        | Card border color         |
-| ColorHighlight | Color        | Highlighted item color    |
-| BackdropColor  | Color        | Semi-transparent backdrop |
-| SizeBorder     | Opt[float32] | Border width              |
-| Radius         | Opt[float32] | Corner radius             |
-| TextStyle      | TextStyle    | Item label text styling   |
-| DetailStyle    | TextStyle    | Item detail text styling  |
+| Property             | Type         | Description                 |
+| -------------------- | ------------ | --------------------------- |
+| Color                | Color        | Card background color       |
+| ColorBorder          | Color        | Card border color           |
+| ColorHighlight       | Color        | Highlighted item color      |
+| ColorHighlightSubtle | Color        | Tint behind highlighted row |
+| BackdropColor        | Color        | Semi-transparent backdrop   |
+| SizeBorder           | Opt[float32] | Border width                |
+| Radius               | Opt[float32] | Corner radius               |
+| TextStyle            | TextStyle    | Item label text styling     |
+| DetailStyle          | TextStyle    | Item detail text styling    |
 
 ## CommandPaletteItem
 

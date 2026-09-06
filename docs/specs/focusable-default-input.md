@@ -4,6 +4,13 @@ Status: **implemented** — Phase 1 shipped v0.36.0 (Input, Select, Slider,
 Toggle, Switch). Phase 2 shipped v0.37.0, dropping `Focusable bool` for
 `FocusDisabled bool` on the remaining nine controls. Both phases in CHANGELOG.
 
+Follow-up landed: the deferred bucket (Decision 8) is empty. `Combobox`,
+`DatePicker`, `ListBox`, `RadioButtonGroup`, `NumericInput` and `InputDate` are
+all focusable by default now, as are `Tree` and `ColorPicker` from the
+borderline set (Decision 9) — twenty Cfgs in total. Only `ThemePicker` (and the
+non-input opt-ins) keeps `Focusable bool`. The table and Decisions 8–9 below
+keep their original verdicts as history; read them as landed.
+
 Base: `main` @ `8522098` Target release: go-gui `v0.36.0` (breaking)
 
 ## Motivation
@@ -70,12 +77,13 @@ at every read, loud break at the call site.
    the same author (matches idfocus-to-focusable decision #5).
 7. **Phase 1 and Phase 2 ship together** as a single `v0.36.0` migration (one
    break for consumers, not two).
-8. **Composites and Input wrappers deferred** (Combobox, DatePicker, Listbox,
-   RadioButtonGroup, **NumericInput, InputDate**) — each either governs focus
-   over internal children or has a focus-model defect the flip exposes (see
-   [Deferred — why](#deferred--why)). Revisit in a follow-up.
-9. **Borderline widgets stay opt-in** (ColorPicker, ThemePicker, Tree) — Tree is
-   navigation, the pickers are composite.
+8. **Composites and Input wrappers deferred, then landed** (Combobox,
+   DatePicker, Listbox, RadioButtonGroup, **NumericInput, InputDate**) — each
+   either governs focus over internal children or had a focus-model defect the
+   flip exposed (see [Deferred — why](#deferred--why)). All six flipped in a
+   follow-up; the bucket is empty.
+9. **Borderline widgets stay opt-in** (ThemePicker) — `Tree` and `ColorPicker`
+   landed in the follow-up; `ThemePicker` keeps `Focusable bool`.
 10. **Analyzer stays silent** on an in-scope input with no `ID`. Inert is a
     valid choice. No positive lint.
 11. **In-scope invariant** — a widget qualifies for the flip only if it (a)
@@ -90,16 +98,16 @@ Only widgets that satisfy the Decision-11 invariant are in scope. Audit against
 the two failure modes (fabricated ID from empty `cfg.ID`, and more than one
 focus candidate):
 
-| Cfg                                                                 | Focus candidates                                           | Fabricates ID? | Verdict                 |
-| ------------------------------------------------------------------- | ---------------------------------------------------------- | -------------- | ----------------------- |
-| `InputCfg`                                                          | 1 (outer `Column`, inner `Text` is `FocusSkip`, same `ID`) | no             | ✅ in — Phase 1         |
-| `SelectCfg`                                                         | 1 (`cfg.ID`, dropdown never focusable)                     | no¹            | ✅ in — Phase 2         |
-| `SliderCfg`                                                         | 1 (`cfg.ID`)                                               | no             | ✅ in — Phase 2         |
-| `ToggleCfg`                                                         | 1 (`cfg.ID`)                                               | no             | ✅ in — Phase 2         |
-| `SwitchCfg`                                                         | 1 (`cfg.ID`)                                               | no             | ✅ in — Phase 2         |
-| `NumericInputCfg`                                                   | **2** (outer Row `cfg.ID` + inner Input `cfg.ID+"_field"`) | no (gated)     | ❌ deferred             |
-| `InputDateCfg`                                                      | 1, but inner Input `ID = cfgID+".input"` **ungated**       | **yes**        | ❌ deferred             |
-| `ComboboxCfg`, `DatePickerCfg`, `ListBoxCfg`, `RadioButtonGroupCfg` | focus over internal children                               | —              | ❌ deferred (composite) |
+| Cfg                                                                 | Focus candidates                                           | Fabricates ID? | Verdict               |
+| ------------------------------------------------------------------- | ---------------------------------------------------------- | -------------- | --------------------- |
+| `InputCfg`                                                          | 1 (outer `Column`, inner `Text` is `FocusSkip`, same `ID`) | no             | ✅ in — Phase 1       |
+| `SelectCfg`                                                         | 1 (`cfg.ID`, dropdown never focusable)                     | no¹            | ✅ in — Phase 2       |
+| `SliderCfg`                                                         | 1 (`cfg.ID`)                                               | no             | ✅ in — Phase 2       |
+| `ToggleCfg`                                                         | 1 (`cfg.ID`)                                               | no             | ✅ in — Phase 2       |
+| `SwitchCfg`                                                         | 1 (`cfg.ID`)                                               | no             | ✅ in — Phase 2       |
+| `NumericInputCfg`                                                   | **2** (outer Row `cfg.ID` + inner Input `cfg.ID+"_field"`) | no (gated)     | ✅ landed (follow-up) |
+| `InputDateCfg`                                                      | 1, but inner Input `ID = cfgID+".input"` **ungated**       | **yes**        | ✅ landed (follow-up) |
+| `ComboboxCfg`, `DatePickerCfg`, `ListBoxCfg`, `RadioButtonGroupCfg` | focus over internal children                               | —              | ✅ landed (follow-up) |
 
 ¹ `SelectCfg.ID` is optional. An empty `ID` yields one _inert_ focus target but
 its open-state (`nsSelect`) is keyed on `""` and thus shared across ID-less
@@ -109,10 +117,11 @@ recommended in practice, not required for the flip.
 **Phase 1:** `InputCfg` (single-line + multiline, the 96% case). **Phase 2:**
 `SelectCfg`, `SliderCfg` (`gui:"required"` ID), `ToggleCfg`, `SwitchCfg`.
 
-### Deferred — why
+### Deferred — why (landed; kept as the defect record)
 
-The two Input **wrappers** each break the Decision-11 invariant and need a
-dedicated focus-model fix before they can flip:
+The two Input **wrappers** each broke the Decision-11 invariant and needed a
+dedicated focus-model fix before they could flip. The fixes landed in the
+follow-up; what follows is the defect record, not open work:
 
 - **`InputDate`** — `inputDateTextField` sets the inner Input's `ID` to
   `cfgID + ".input"` unconditionally (`view_input_date.go:233`). With an empty
