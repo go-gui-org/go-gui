@@ -137,3 +137,129 @@ func TestFindMenuByID(t *testing.T) {
 		t.Error("should not find z")
 	}
 }
+
+// menubarInPanels renders one menubar, all named "bar", inside each of
+// the given ID-bearing panels. The bar's identity is therefore
+// "<panel>:bar", which is what every assertion below is about.
+func menubarInPanels(panelIDs ...string) *Window {
+	w := NewTestWindow(WindowCfg{})
+	w.UpdateView(func(vw *Window) View {
+		panels := make([]View, 0, len(panelIDs))
+		for _, id := range panelIDs {
+			panels = append(panels, Column(ContainerCfg{
+				ID: id,
+				Content: []View{
+					// Called while the panel's Content slice is built,
+					// which is the eager-factory position issue #528 is
+					// about.
+					Menubar(vw, MenubarCfg{
+						ID: "bar",
+						Items: []MenuItemCfg{
+							MenuItemText("file", "File"),
+							MenuItemText("edit", "Edit"),
+						},
+					}),
+				},
+			}))
+		}
+		return Column(ContainerCfg{Sizing: FillFill, Content: panels})
+	})
+	return w
+}
+
+// A menubar inside an ID-bearing panel keys its selection on the
+// identity its shape resolves to. Window-global is the common case, not
+// the only one (issue #528).
+func TestMenubarScopesSelectionToPanel(t *testing.T) {
+	w := menubarInPanels("panel")
+	// Focus drives the auto-select branch, which is the write this test
+	// is about.
+	w.SetFocus("panel:bar")
+	root := w.TestRender(nil)
+
+	if _, ok := root.FindByID("panel:bar"); !ok {
+		t.Fatalf("FindByID(%q) = false", "panel:bar")
+	}
+	sm := StateMapRead[string, string](w, nsMenu)
+	if sm == nil {
+		t.Fatal("no menu state written")
+	}
+	if _, stale := sm.Get("bar"); stale {
+		t.Error("selection keyed on the bare leaf \"bar\"")
+	}
+	sel, ok := sm.Get("panel:bar")
+	if !ok || sel != "file" {
+		t.Fatalf("selection under %q = (%q, %v), want (%q, true)",
+			"panel:bar", sel, ok, "file")
+	}
+}
+
+// The same leaf in two panels is two menubars, in one window. Pre-fix
+// both keyed selection on the bare "bar", so the focused bar's
+// auto-select and the unfocused bar's AmendLayout cleanup fought over
+// one entry.
+func TestMenubarSameIDInTwoPanelsIsTwoKeys(t *testing.T) {
+	w := menubarInPanels("a", "b")
+	w.SetFocus("a:bar")
+	w.TestRender(nil)
+
+	sm := StateMapRead[string, string](w, nsMenu)
+	if sm == nil {
+		t.Fatal("no menu state written")
+	}
+	if sel, ok := sm.Get("a:bar"); !ok || sel != "file" {
+		t.Errorf("selection under %q = (%q, %v), want (%q, true)",
+			"a:bar", sel, ok, "file")
+	}
+	// The unfocused twin must not have been given a selection, and
+	// neither bar may key on the bare leaf.
+	if _, ok := sm.Get("b:bar"); ok {
+		t.Error("unfocused menubar in panel b holds a selection")
+	}
+	if _, stale := sm.Get("bar"); stale {
+		t.Error("selection keyed on the bare leaf \"bar\"")
+	}
+}
+
+// The dev-mode gate that reports an unresolved state key must stay quiet
+// for the fixed widget.
+func TestMenubarUnderPanelIsQuiet(t *testing.T) {
+	w := menubarInPanels("panel")
+	w.SetFocus("panel:bar")
+	if found := w.TestFindings(DebugAll); len(found) != 0 {
+		t.Fatalf("findings = %v, want none", found)
+	}
+}
+
+// The build is deferred, but validation is not: a missing ID or a
+// duplicate item ID must still fail where the app wrote the call, not a
+// frame later inside generation. Asserted by never generating.
+func TestMenubarValidatesAtCallSite(t *testing.T) {
+	cases := []struct {
+		name string
+		cfg  MenubarCfg
+	}{
+		{"missing ID", MenubarCfg{
+			Items: []MenuItemCfg{MenuItemText("file", "File")},
+		}},
+		{"duplicate item ID", MenubarCfg{
+			ID: "bar",
+			Items: []MenuItemCfg{
+				MenuItemText("file", "File"),
+				MenuItemText("file", "Again"),
+			},
+		}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			defer func() {
+				if r := recover(); r == nil {
+					t.Fatal("no panic; validation is no longer eager")
+				}
+			}()
+			// The window is unused by the eager half, so a nil one is
+			// enough to show nothing was deferred.
+			Menubar(nil, tc.cfg)
+		})
+	}
+}

@@ -134,7 +134,24 @@ type WithTooltipCfg struct {
 
 // WithTooltip wraps content and shows a tooltip on hover after
 // a delay. Tooltip state is managed via AmendLayout.
-func WithTooltip(w *Window, cfg WithTooltipCfg) View {
+//
+// The build is deferred to layout generation. It is load-bearing
+// rather than a style choice: withTooltipBuild resolves the tip ID
+// with [Window.EffID] and keys the hover state, the popup's own ID and
+// the AmendLayout closure on the result, and the generation-time ID
+// scope is only live while the framework descends the View tree.
+// Building here would resolve against the enclosing scope, so the same
+// label in two ID-bearing panels would share one hover entry. See
+// issue #528.
+func WithTooltip(_ *Window, cfg WithTooltipCfg) View {
+	return viewFunc(func(w *Window) View {
+		return withTooltipBuild(w, cfg)
+	})
+}
+
+// withTooltipBuild assembles the wrapper under the ID scope of the
+// panel it sits in.
+func withTooltipBuild(w *Window, cfg WithTooltipCfg) View {
 	tipID := cfg.ID
 	if tipID == "" {
 		tipID = cfg.Text
