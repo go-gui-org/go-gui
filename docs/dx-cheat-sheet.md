@@ -47,9 +47,22 @@ with `ScopeID` or `ScopeIDN`, never by hand. Public APIs — `SetFocus`,
 
 A part (a row key, a heading slug) must not contain `:`. A composite widget's
 inner shape sets `Shape.focusOwner` to the owner's leaf instead of repeating its
-`ID`. Duplicates are loud: `gui.Debug` reports them, and
-`(*Window).TestDuplicateIDs` asserts a clean window. See
-`docs/specs/widget-id-scoping.md` and
+`ID`.
+
+Two accessors read the identity, and they answer different questions:
+
+- `shape.idKey()` — the identity of this shape. Read it at every keying site,
+  never the bare `Shape.ID`. It returns the resolved `effID`, and falls back to
+  the leaf only on a tree that `resolveShapeIDs` has not walked, such as a
+  hand-built `Layout` in a test.
+- `shape.focusKey()` — the identity whose focus, input and spell-check state
+  this shape renders. It returns `focusOwner` when the shape belongs to a
+  composite widget, and `idKey()` when it does not. It is empty for a shape that
+  participates in neither, which is the signal to draw no caret and no
+  selection.
+
+Duplicates are loud: `gui.Debug` reports them, and `(*Window).TestDuplicateIDs`
+asserts a clean window. See `docs/specs/widget-id-scoping.md` and
 `docs/specs/widget-id-per-scope-uniqueness.md`.
 
 ## `Opt[T]` vs plain fields
@@ -287,4 +300,26 @@ panel as it stands. When you plan to reuse a screen, ask for it:
 
 ```go
 gui.DebugCategories(gui.DebugAll | gui.DebugUnscopedIDs)
+```
+
+`DebugUnresolvedKeys` is opt-in for the same reason. It reports per-widget state
+stored under a leaf ID that an ancestor join rewrote, so the widget's state key
+and its shape's identity are different strings. Such a widget works while it is
+the only instance of its `cfg.ID`, and two of them under different scopes share
+one state slot. Ask for it with the same call:
+
+```go
+gui.DebugCategories(gui.DebugAll | gui.DebugUnresolvedKeys)
+```
+
+The remedy is a resolved key: `w.EffID(cfg.ID)` during `GenerateLayout`, or
+`ctx.EffID(leaf)` in a handler.
+
+`DebugCategories` prints to stderr. To assert an opt-in category in a test, use
+`(*Window).TestFindings(mask)`, which returns the findings as data:
+
+```go
+if found := w.TestFindings(gui.DebugAll | gui.DebugUnresolvedKeys); len(found) > 0 {
+	t.Fatalf("unresolved state keys: %v", found)
+}
 ```

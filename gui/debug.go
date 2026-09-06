@@ -113,9 +113,38 @@ const (
 	// exportaudit:keep — dev-diagnostic API for app authors
 	DebugUnscopedIDs
 
-	// DebugAll is every category [Debug] turns on. [DebugUnscopedIDs] is
-	// deliberately absent: it reports a design property, not a bug, and
-	// would fire on most widgets in a small app.
+	// DebugUnresolvedKeys reports per-widget state stored under a leaf
+	// ID that an ancestor join rewrote, so the widget's state key and
+	// its shape's identity are different strings.
+	//
+	// A factory that closes over the raw cfg.ID and keys StateMap on it
+	// works while the widget sits at the top level, where the scope is
+	// empty and the leaf is already the identity. Put the same widget
+	// under an ID-bearing ancestor and its shape resolves to
+	// "panel:leaf" while its state still lives at "leaf". Nothing
+	// panics and nothing looks wrong; the widget stops responding. The
+	// two EffID seams exist to prevent this, and neither is required by
+	// the compiler.
+	//
+	// The finding is raised when a state key names no shape in the
+	// window and an ancestor join rewrote a shape of that leaf, which
+	// is the signature of a missed resolve rather than of an unrelated
+	// key that happens to collide.
+	//
+	// Latent rather than broken, which is why [Debug] does not turn it
+	// on: a widget that keys both the write and the read on the same
+	// unresolved leaf works, and fails only when a second instance of
+	// it appears under a different scope with the same cfg.ID. Some
+	// widgets are also window-global by decision — gui/datagrid is the
+	// documented case. Ask for the category explicitly when auditing a
+	// screen for reuse, alongside [DebugUnscopedIDs].
+	// exportaudit:keep — dev-diagnostic API for app authors
+	DebugUnresolvedKeys
+
+	// DebugAll is every category [Debug] turns on. [DebugUnscopedIDs]
+	// and [DebugUnresolvedKeys] are deliberately absent: both report a
+	// design property rather than a present defect, and both fire on
+	// widgets that work today.
 	// exportaudit:keep — dev-diagnostic API for app authors
 	DebugAll = DebugDuplicates | DebugMissingIDs | DebugUnconsumed |
 		DebugListBoxNoHeight | DebugGradientResampled | DebugWrapOverflow |
@@ -259,6 +288,10 @@ const (
 	// debugCheckWindowTransparency fires from a backend's window
 	// creation when WindowCfg.Transparent could not be honoured.
 	debugCheckWindowTransparency
+	// debugCheckUnresolvedKey fires from the state-key audit when a
+	// StateMap key is a bare leaf that the resolve pass scoped; see
+	// debug_state_keys.go.
+	debugCheckUnresolvedKey
 )
 
 // checkCategory maps an internal check to the public category that
@@ -285,6 +318,8 @@ func checkCategory(check debugCheck) DebugCategory {
 		return DebugCallbacks
 	case debugCheckWindowTransparency:
 		return DebugWindowDegraded
+	case debugCheckUnresolvedKey:
+		return DebugUnresolvedKeys
 	}
 	return 0
 }
@@ -311,8 +346,8 @@ type debugState struct {
 // debugAudit runs the dev-mode checks over one frame's composed
 // layout tree. No-op unless an audit category is on.
 //
-// The tree walk is skipped unless a category that audits the frame —
-// duplicates or missing IDs — is on; the unconsumed check runs from
+// The tree walk is skipped unless a category that reads the frame is
+// on; walkCategories below lists them. The unconsumed check runs from
 // dispatch and the listbox check from the view phase, so they gate
 // themselves.
 //
@@ -320,22 +355,24 @@ type debugState struct {
 // same tree the renderer does, including floating and overlay layers.
 func (w *Window) debugAudit(root *Layout) {
 	const walkCategories = DebugDuplicates | DebugMissingIDs |
-		DebugUnscopedIDs
+		DebugUnscopedIDs | DebugUnresolvedKeys
 	if DebugCategory(debugMask.Load())&walkCategories == 0 {
 		return
 	}
-	// ids maps an ID to the path of the shape that claimed it first,
-	// so a duplicate can name both sites. Frame-scoped, unlike
-	// w.debug.warned.
-	ids := make(map[string]string)
+	// ids is frame-scoped, unlike w.debug.warned.
+	ids := &debugIDs{claimed: make(map[string]string)}
 	var path []int
 	w.debugWalk(root, &path, ids)
+	// The state-key audit compares the identities this walk collected
+	// against the keys the state maps hold, so it runs after the walk
+	// and gates itself.
+	w.debugCheckStateKeys(ids)
 }
 
 // debugWalk is the depth-first audit. path is the index chain from
 // the root to layout, maintained in place to keep the walk to one
 // allocation.
-func (w *Window) debugWalk(layout *Layout, path *[]int, ids map[string]string) {
+func (w *Window) debugWalk(layout *Layout, path *[]int, ids *debugIDs) {
 	if s := layout.Shape; s != nil {
 		w.debugCheckShape(s, *path, ids)
 	}
@@ -346,24 +383,53 @@ func (w *Window) debugWalk(layout *Layout, path *[]int, ids map[string]string) {
 	}
 }
 
+// debugIDs is what the audit walk collects about identity, shared by
+// the checks that need the whole frame rather than one shape.
+type debugIDs struct {
+	// claimed maps an effective ID to the path of the shape that
+	// claimed it first, so a duplicate can name both sites.
+	claimed map[string]string
+	// scoped maps a leaf to the effective ID an ancestor join gave it.
+	// Only shapes whose identity actually changed under the join
+	// appear, so a widget that composes its own absolute ID is absent.
+	// The state-key audit reads it; see debug_state_keys.go.
+	scoped map[string]string
+}
+
+// noteScoped records a leaf that an ancestor join rewrote. The first
+// claim wins, which keeps the finding stable across runs.
+func (d *debugIDs) noteScoped(leaf, effID string) {
+	if leaf == "" || leaf == effID {
+		return
+	}
+	if _, seen := d.scoped[leaf]; seen {
+		return
+	}
+	if d.scoped == nil {
+		d.scoped = make(map[string]string)
+	}
+	d.scoped[leaf] = effID
+}
+
 // debugCheckShape runs the per-shape checks. path is the shape's
 // index chain from the root; ids records which path first claimed
 // each ID this frame.
-func (w *Window) debugCheckShape(s *Shape, path []int, ids map[string]string) {
+func (w *Window) debugCheckShape(s *Shape, path []int, ids *debugIDs) {
 	if s.ID != "" {
 		// Uniqueness is on the *effective* ID: the same leaf under two
 		// different ID-bearing ancestors is two identities and is not a
 		// duplicate. The message names the effective path, since that is
 		// the string the stores and the public APIs use.
 		key := s.idKey()
-		if first, dup := ids[key]; dup {
+		ids.noteScoped(s.ID, key)
+		if first, dup := ids.claimed[key]; dup {
 			w.debugWarn(debugCheckDupID, key,
 				"duplicate ID %q at %s, first claimed at %s; ID is the "+
 					"identity key for focus, scroll, and per-widget state, so "+
 					"the two collapse to one tab stop and one state slot",
 				key, debugPath(path), first)
 		} else {
-			ids[key] = debugPath(path)
+			ids.claimed[key] = debugPath(path)
 		}
 		// An identity that resolves to itself has no ID-bearing ancestor
 		// to scope it, so the leaf is still a window-global name and the
@@ -426,20 +492,47 @@ func (w *Window) debugCheckShape(s *Shape, path []int, ids map[string]string) {
 //
 // The debug gate is turned on for the duration and restored after.
 func (w *Window) TestDuplicateIDs() []string {
+	return w.TestFindings(DebugAll)
+}
+
+// TestFindings renders the window and returns, as data, every finding
+// the given categories report. An empty result means the categories
+// found nothing in the frame.
+//
+// [Window.TestDuplicateIDs] is this call with [DebugAll]. Use this form
+// to reach a category that [Debug] leaves off, which is otherwise
+// reported only on stderr:
+//
+//	found := w.TestFindings(gui.DebugAll | gui.DebugUnresolvedKeys)
+//
+// The mask replaces the process gate for the duration of the call, and
+// the previous mask is restored after. That gate is process-wide, so
+// this is not safe to call from a parallel test. Like
+// [Window.TestDuplicateIDs] it dispatches nothing and fires no
+// callbacks, and it covers the window as rendered, not the app: drive
+// the app into each interesting state and check again.
+// exportaudit:keep — dev-diagnostic API for app authors
+func (w *Window) TestFindings(mask DebugCategory) []string {
 	root := w.TestRender(nil)
 	if root == nil {
 		return nil
 	}
 	var found []string
-	prevOn := DebugEnabled()
+	// Restore the exact mask, not just on/off: a caller may have a
+	// narrower gate installed that this call must not widen for good.
+	prevMask := DebugCategory(debugMask.Load())
 	// A fresh warn-once map: a sweep should report the window in front
 	// of it, not skip what an earlier sweep or a stray frame reported.
 	prevWarned := w.debug.warned
 	w.debug.warned = nil
 	w.debug.collect = &found
-	Debug(true)
+	DebugCategories(mask)
+	// The generation only moves on an off -> on transition, so widening
+	// an already-on gate would keep stale warn-once memory. The nil map
+	// above covers that; this keeps the two in step.
+	w.debug.gen = debugGen.Load()
 	defer func() {
-		Debug(prevOn)
+		DebugCategories(prevMask)
 		w.debug.collect = nil
 		w.debug.warned = prevWarned
 	}()

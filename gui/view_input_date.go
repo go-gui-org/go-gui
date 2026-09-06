@@ -92,11 +92,17 @@ func InputDate(cfg InputDateCfg) View {
 func (idv *inputDateView) GenerateLayout(w *Window) Layout {
 	cfg := &idv.cfg
 
+	// Resolve once, here: every state key and every inner ID below is
+	// built from cfgID, and only generation time knows the ID scope the
+	// field sits in. A resolve in the InputDate factory would be a
+	// no-op — the factory runs before generateViewLayout descends the
+	// View tree, so the scope stack is still empty there. See issue
+	// #518.
+	cfgID := w.EffID(cfg.ID)
 	// A read-only date field never opens the calendar popup, closing
 	// the picker's OnSelect mutation path structurally regardless of any
 	// stored open state.
-	isOpen := StateReadOr(w, nsInputDate, cfg.ID, false) && !cfg.ReadOnly
-	cfgID := cfg.ID
+	isOpen := StateReadOr(w, nsInputDate, cfgID, false) && !cfg.ReadOnly
 
 	// Format date for display.
 	dates := cfg.Dates

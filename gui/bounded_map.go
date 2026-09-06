@@ -224,3 +224,29 @@ func (m *BoundedMap[K, V]) compactOrder() {
 	m.order = m.order[:dst]
 	m.head = 0
 }
+
+// stringKeys returns the map's keys when they are strings, and nil
+// otherwise. The signature names no type parameter, so a caller
+// holding a BoundedMap boxed in an `any` can ask for its keys through
+// an interface assertion without knowing K.
+//
+// Only the dev-mode state-key audit calls it (see
+// debug_state_keys.go), so the per-key type assertion is not on a
+// frame path.
+func (m *BoundedMap[K, V]) stringKeys() []string {
+	if m == nil {
+		return nil
+	}
+	var out []string
+	m.rangeKeys(func(k K) bool {
+		s, ok := any(k).(string)
+		if !ok {
+			// A non-string key type: the whole map is uninteresting,
+			// and one key is enough to establish that.
+			return false
+		}
+		out = append(out, s)
+		return true
+	})
+	return out
+}
