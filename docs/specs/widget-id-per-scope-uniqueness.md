@@ -99,6 +99,24 @@ implementation, and the code is the authority.
    either sits in a `GenerateLayout` method or in a helper that is itself
    deferred.
 
+7. **`EventCtx.EffID` keeps its argument** (#526, 2026-09-06). #518 left a
+   second option open: stamp the resolved ID on the shape and give handlers a
+   `ctx.Key()` that reads it, retiring `ctx.EffID(leaf)` "for the common case
+   where the leaf names the handler's own shape". That case does not exist. All
+   ten non-test call sites resolve a leaf naming a shape **at or above** the
+   handler — a scrollbar resolves the scrollable ancestor it drives, and
+   `inputOnClick` sits on an ID-less inner row and resolves the outer
+   container's leaf — so `ctx.Key()` would have replaced none of them and would
+   have become a second seam beside the one it was meant to retire. A rename was
+   rejected too: the seam is `exportaudit:keep`, so it costs either a break for
+   third-party widget code or a deprecated alias, and a name like
+   `ResolveAncestorID` would misdescribe the fallback branch, which joins the
+   nearest scope for a leaf that names no ancestor at all. The trap the option
+   was meant to close is now covered by `DebugUnresolvedKeys` (#520) and
+   `DebugUnknownFocus` (#521), which report the bare-leaf key and the unclaimed
+   focus ID respectively. The doc comment on `EffID` states the contract
+   instead.
+
 Phase A.4 (producer simplification) was applied where a composite's own nesting
 already mirrors `ScopeID(cfg.ID, part)` — combobox and select now set a plain
 `"dropdown"` leaf. Composites whose inner IDs are reverse-parsed or whose owner
