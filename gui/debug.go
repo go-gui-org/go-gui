@@ -289,6 +289,10 @@ const (
 	// StateMap key is a bare leaf that the resolve pass scoped; see
 	// debug_state_keys.go.
 	debugCheckUnresolvedKey
+	// debugCheckEffIDPhase fires from (*Window).EffID when it is called
+	// outside layout generation, where the ID scope is empty and the
+	// call cannot do its job.
+	debugCheckEffIDPhase
 )
 
 // checkCategory maps an internal check to the public category that
@@ -315,7 +319,7 @@ func checkCategory(check debugCheck) DebugCategory {
 		return DebugCallbacks
 	case debugCheckWindowTransparency:
 		return DebugWindowDegraded
-	case debugCheckUnresolvedKey:
+	case debugCheckUnresolvedKey, debugCheckEffIDPhase:
 		return DebugUnresolvedKeys
 	}
 	return 0
@@ -333,6 +337,11 @@ type debugWarnKey struct {
 // debugState is a window's warn-once memory. Zero value is ready.
 type debugState struct {
 	warned map[debugWarnKey]struct{}
+	// effIDAnswers records what (*Window).EffID returned for each leaf
+	// this frame, so the audit can compare a resolve against the scope
+	// the shape actually landed in. Frame-scoped and filled only while
+	// DebugUnresolvedKeys is on; see debug_state_keys.go.
+	effIDAnswers map[string]string
 	// collect, when non-nil, receives findings instead of debugOut. Set
 	// only by TestUnconsumedEvents, which needs the findings as data
 	// rather than as text on stderr.
@@ -510,10 +519,6 @@ func (w *Window) TestDuplicateIDs() []string {
 // the app into each interesting state and check again.
 // exportaudit:keep — dev-diagnostic API for app authors
 func (w *Window) TestFindings(mask DebugCategory) []string {
-	root := w.TestRender(nil)
-	if root == nil {
-		return nil
-	}
 	var found []string
 	// Restore the exact mask, not just on/off: a caller may have a
 	// narrower gate installed that this call must not widen for good.
@@ -533,6 +538,14 @@ func (w *Window) TestFindings(mask DebugCategory) []string {
 		w.debug.collect = nil
 		w.debug.warned = prevWarned
 	}()
+	// The gate goes on before the render, not after it: a check that
+	// records during layout generation — the EffID phase check — sees
+	// nothing if the frame it is meant to inspect was drawn with the
+	// categories still off.
+	root := w.TestRender(nil)
+	if root == nil {
+		return nil
+	}
 	w.debugAudit(root)
 	return found
 }

@@ -51,6 +51,7 @@ func (w *Window) debugCheckStateKeys(ids *debugIDs) {
 	if DebugCategory(debugMask.Load())&DebugUnresolvedKeys == 0 {
 		return
 	}
+	w.debugCheckEffIDAnswers(ids)
 	if len(ids.scoped) == 0 {
 		// No shape in this window was rewritten by a join, so no key
 		// can be the unresolved form of one.
@@ -105,5 +106,71 @@ func (w *Window) debugScanKeys(ns string, m any, ids *debugIDs) {
 				"leaf with w.EffID during GenerateLayout, or with "+
 				"ctx.EffID in a handler.",
 			key, ns, effID)
+	}
+}
+
+// maxEffIDAnswers bounds the per-frame record. A window with more
+// distinct resolves than this in one frame is past the point where
+// naming one more of them helps, and the bound is what keeps a gate
+// left on in a long-running app from growing without limit.
+const maxEffIDAnswers = 4096
+
+// debugNoteEffID records what EffID answered for a leaf this frame.
+// Only the first answer per leaf is kept: a widget that resolves the
+// same leaf twice in one frame gets one finding, not two.
+func (w *Window) debugNoteEffID(leaf, effID string) {
+	if leaf == "" || DebugCategory(debugMask.Load())&DebugUnresolvedKeys == 0 {
+		return
+	}
+	if len(w.debug.effIDAnswers) >= maxEffIDAnswers {
+		return
+	}
+	if w.debug.effIDAnswers == nil {
+		w.debug.effIDAnswers = make(map[string]string)
+	}
+	if _, seen := w.debug.effIDAnswers[leaf]; seen {
+		return
+	}
+	w.debug.effIDAnswers[leaf] = effID
+}
+
+// debugCheckEffIDAnswers reports a resolve that returned the bare leaf
+// while the shape of that leaf landed under a scope.
+//
+// This is the general form of the state-key audit, and it catches the
+// case the depth check cannot. A factory body called while building a
+// parent's Content slice runs at a non-zero generation depth — the
+// framework is descending, just not into the container this widget is
+// about to sit in — so the scope EffID joins to is the enclosing one,
+// not the widget's own. The answer is the bare leaf, the shape resolves
+// to "panel:leaf", and the two disagree.
+//
+// It reports whatever the widget did with the result: a state key, an
+// inner ID composed with ScopeID, a focus check, a value simply stored
+// in a struct. The state-key scan below sees only what reached a
+// scanned map.
+func (w *Window) debugCheckEffIDAnswers(ids *debugIDs) {
+	// Cleared whether or not anything is reported, so the next frame
+	// starts from what that frame actually resolved.
+	defer clear(w.debug.effIDAnswers)
+	for leaf, answered := range w.debug.effIDAnswers {
+		if answered != leaf {
+			// The resolve picked up a scope. Whether it picked up the
+			// right one is the duplicate-ID check's business.
+			continue
+		}
+		effID, ok := ids.scoped[leaf]
+		if !ok {
+			// No shape of this leaf was rewritten by a join, so the
+			// bare answer is the identity.
+			continue
+		}
+		w.debugWarn(debugCheckEffIDPhase, leaf,
+			"EffID(%q) returned the bare leaf, but the shape of that "+
+				"name resolved to %q. The call ran before the descent "+
+				"into the scope it belongs to — a widget factory that "+
+				"builds eagerly resolves against the enclosing scope, "+
+				"not its own. Defer the build to GenerateLayout.",
+			leaf, effID)
 	}
 }

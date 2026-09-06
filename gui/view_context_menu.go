@@ -77,9 +77,28 @@ type ContextMenuCfg struct {
 
 // ContextMenu creates a container that opens a floating menu
 // on right-click at the cursor position.
+//
+// The build is deferred to layout generation. It is load-bearing rather
+// than a style choice: contextMenuBuild resolves cfg.ID with
+// [Window.EffID] and keys the open state, the saved focus and the
+// popup's own ID on the result, and the generation-time ID scope is
+// only live while the framework descends the View tree. Building here
+// would resolve against the enclosing scope, so a context menu inside
+// an ID-bearing panel would key its state on the bare leaf. See issue
+// #520.
 func ContextMenu(w *Window, cfg ContextMenuCfg) View {
+	// Eager, so a missing ID or a duplicate item ID fails at the call
+	// site rather than a frame later.
 	RequireID("ContextMenu", cfg.ID)
 	checkForDuplicateMenuIDs(cfg.Items)
+	return viewFunc(func(vw *Window) View {
+		return contextMenuBuild(vw, cfg)
+	})
+}
+
+// contextMenuBuild assembles the menu under the ID scope of the panel
+// it sits in.
+func contextMenuBuild(w *Window, cfg ContextMenuCfg) View {
 	applyContextMenuDefaults(&cfg)
 
 	// One resolved identity for every key below; see (*Window).EffID.

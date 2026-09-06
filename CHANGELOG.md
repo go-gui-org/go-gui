@@ -37,8 +37,21 @@ and this project adheres to
   testable as data instead of stderr-only.
 
   ```go
-  found := w.TestFindings(gui.DebugAll | gui.DebugUnresolvedKeys)
+  found := w.TestFindings(gui.DebugAll | gui.DebugUnscopedIDs)
   ```
+
+- **`EffID` reports a mistimed resolve** (#520) — `w.EffID` answers with the
+  bare leaf when it is called before the framework descends into the scope the
+  widget belongs to, and that is also the correct answer for a widget with no
+  scope above it. Failure and success were byte-identical, which is why six
+  widgets carried the same bug and no test saw it. `DebugUnresolvedKeys` now
+  reports the call itself: it records what each resolve answered and compares
+  that with where the shape of that leaf actually landed. It fires whatever the
+  widget does with the result — a state key, an inner `ScopeID`, a focus check —
+  rather than only what reaches a scanned state map, and a call made entirely
+  outside layout generation is reported separately with its own message.
+  `(*Window).TestFindings` now installs the categories before it renders, so a
+  check that records during generation is assertable.
 
 ### Fixed
 
@@ -75,6 +88,13 @@ and this project adheres to
   by hand for `gg.FindByID`, `gg.SetFocus`, `gg.ScrollVerticalTo` or
   `datagrid.GetSourceStats` must pass the effective form. Compose it with
   `gg.ScopeID`, never by hand. An unscoped grid is unaffected.
+
+- **`ContextMenu` resolves its ID at generation time** (#520) — the resolve was
+  present but ran in the factory body, before the descent into the panel the
+  menu sits in, so a context menu inside an ID-bearing ancestor keyed its open
+  state, its saved focus and its popup ID on the bare leaf. The build is now
+  deferred. Same behavior change as the widgets above: a scoped context menu
+  carries the effective ID, so a hand-spelled `SetFocus` must follow.
 
 ## [v0.69.0] - 2026-09-05
 

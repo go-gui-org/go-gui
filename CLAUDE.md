@@ -274,13 +274,23 @@ explicitly when auditing a screen for reusability:
 gui.DebugCategories(gui.DebugAll | gui.DebugUnscopedIDs)
 ```
 
-**`DebugUnresolvedKeys` is in `DebugAll`.** It reports a `StateMap` key that is
-a bare leaf while an ancestor join rewrote the shape of that name — the widget
-closed over the raw `cfg.ID` instead of resolving it, so its state key and its
-identity are different strings. The failure is latent: the widget works until a
-second instance of the same `cfg.ID` appears under another scope, and then both
-share one state slot. Remedy is `w.EffID(cfg.ID)` in `GenerateLayout` or
-`ctx.EffID(leaf)` in a handler. See issues #518 and #519.
+**`DebugUnresolvedKeys` is in `DebugAll`.** It reports two things. First, a
+resolve that answered with the bare leaf while the shape of that name landed
+under a scope — the call ran before the descent that opens the scope, which is
+what an eagerly built widget factory does. Second, a `StateMap` key that is a
+bare leaf while an ancestor join rewrote the shape of that name — the widget
+never resolved at all. Either way the widget's state key and its identity are
+different strings. The failure is latent: the widget works until a second
+instance of the same `cfg.ID` appears under another scope, and then both share
+one state slot. Remedy is `w.EffID(cfg.ID)` in `GenerateLayout` or
+`ctx.EffID(leaf)` in a handler. See issues #518, #519 and #520.
+
+**A widget factory that reads window state must defer its build.** A factory
+body runs while the _parent's_ `Content` slice is being built, before the
+framework descends into the container the widget will sit in, so `w.EffID` there
+joins the enclosing scope rather than the widget's own. Return a view struct or
+a `viewFunc` and resolve inside `GenerateLayout`. Six widgets carried this bug
+before anything checked for it.
 
 Assertable forms for tests, which return findings as data:
 `(*Window).TestDuplicateIDs` and `(*Window).TestUnconsumedEvents`.
