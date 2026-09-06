@@ -323,6 +323,13 @@ one state slot.
 The remedy is a resolved key: `w.EffID(cfg.ID)` during `GenerateLayout`, or
 `ctx.EffID(leaf)` in a handler.
 
+The two seams are not interchangeable. `w.EffID(cfg.ID)` takes a leaf in the
+**current** scope and joins it. `ctx.EffID(leaf)` takes a leaf captured at build
+time that names a shape **at or above** the handler, and searches the ancestor
+chain for it — which is why a handler attached to an ID-less shape can still
+resolve its owner's key. Pass the leaf the owner was written with, not the
+handler's own (issue #526).
+
 **Resolve during `GenerateLayout`, never in a factory body.** A factory runs
 while the parent's `Content` slice is being built, which is before the framework
 descends into the container the widget will sit in. `w.EffID` there joins the

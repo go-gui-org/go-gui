@@ -72,6 +72,16 @@ and this project adheres to
 
 ### Changed
 
+- **`EventCtx.EffID` keeps its argument** (#526) — documentation only, no API
+  change. #518 left open a `ctx.Key()` that would read the handler's own stamped
+  identity and retire `ctx.EffID(leaf)`. An audit of every call site shows the
+  seam never resolves the handler's own shape: it resolves a leaf naming a shape
+  at or above the handler, and the handler's shape is often ID-less, so
+  `ctx.Key()` would have replaced nothing. A rename was rejected as well — the
+  seam is a kept public export, and the fallback branch joins a scope rather
+  than finding an ancestor. The doc comment now states that contract, and
+  `docs/specs/widget-id-per-scope-uniqueness.md` records the decision.
+
 - **Effective IDs are stamped once, during layout generation** (#527) — identity
   used to be computed twice from the same information: `appendChildViews` knew a
   shape's exact scope while generating it and threw the answer away, then
