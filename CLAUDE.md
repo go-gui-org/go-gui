@@ -7,11 +7,11 @@ Guidance for Claude Code (claude.ai/code) in this repo.
 ```
 go run ./examples/get_started/  # run the example app
 make prepush                    # full gate (race, cross-lint, cross-compile, coverage, export audit)
-make check-all                  # test + lint + vet (what .githooks/pre-push runs)
-make check                      # fast subset (vet, deps-doc, large-files, generate/tidy/fmt-md checks)
+make check-all                  # test + lint + check (.githooks/pre-push runs this)
+make check                      # fast gate (vet, deps-doc, large-files, generate/tidy/fmt-md/changelog checks)
 make test / lint / vet          # individually
 make fmt-md                     # Prettier over tracked .md (.prettierrc holds the flags)
-make ergonomics-audit           # focus/callbacks inventory + ID/a11y/theme/visual/literals/deadcfg gates
+make ergonomics-audit           # focus/callbacks/opt/ids/literals/theme/a11y/visual/deadcfg gates
 make export-audit               # exported surface (advisory in-repo)
 ./scripts/large-files.sh        # Go files >800 lines in gui/
 git config core.hooksPath .githooks  # enable tracked hooks
@@ -63,9 +63,10 @@ silent no-op. The `requiredid` analyzer flags it; `gui.Debug` reports it at
 runtime.
 
 **Input controls are focusable by default; opt out with `FocusDisabled`, never
-with `Focusable: false`.** Sixteen input Cfgs default on (Button, Input, Select,
-Slider, Tree, …); everything else is opt-in via `Focusable: true`. Current
-inventory: `ergonomics-audit -mode focus`. See
+with `Focusable: false`.** Twenty Cfgs default on (Button, Input, Select,
+Slider, Tree, Combobox, DatePicker, ListBox, … — full list in
+`docs/architecture.md`); everything else is opt-in via `Focusable: true`.
+Current inventory: `ergonomics-audit -mode focus`. See
 `docs/specs/focusable-default-input.md`.
 
 **`Shape.ID` is a leaf; identity is the effective ID.** Layout **generation**
@@ -269,6 +270,11 @@ walks the composed tree every frame and reports to stderr (`gui/debug.go`):
 - `OnMouseLeave` with no `ID` (callback never fires)
 - a scrollable listbox that resolved to height 0
 - a container setting both `Wrap` and `Overflow` (wrap wins)
+- a fill gradient with more stops than the GPU shader limit (silently resampled)
+- a window-level feature the platform refused (no ARGB visual, no compositor,
+  refused opacity)
+- a shape whose stamp disagrees with its scope, or an ID-bearing shape with no
+  stamp (`DebugStampDrift` — a hand-built `Layout` in a generated tree)
 - a callback that acted without `ctx.Consume()` while an ancestor also handles
 - a link the user activated that opened nothing (unknown anchor, relative link,
   failed platform opener)

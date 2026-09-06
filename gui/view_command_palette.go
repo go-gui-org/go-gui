@@ -83,7 +83,7 @@ type commandPaletteView struct {
 }
 
 // CommandPalette creates the palette view. Include in view tree;
-// hidden unless CommandPaletteShow was called.
+// hidden until shown with CommandPaletteToggle.
 func CommandPalette(cfg CommandPaletteCfg) View {
 	RequireID("CommandPalette", cfg.ID)
 	applyCommandPaletteDefaults(&cfg)

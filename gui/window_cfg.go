@@ -53,7 +53,7 @@ type WindowCfg struct {
 	// the window to, in logical pixels. Zero means no ceiling. A
 	// ceiling below its floor is raised to the floor. On Windows and
 	// macOS the ceiling also caps the maximize button, not only the
-	// drag.
+	// drag. FixedSize wins over both, pinning the ceiling too.
 	// exportaudit:keep — caller-facing config (issue #494)
 	MaxWidth int
 	// exportaudit:keep — caller-facing config (issue #494)

@@ -23,7 +23,8 @@ Every widget has a `*Cfg` struct. Conventions:
   Slider, Select). Focus always requires a non-empty `ID`. Without one, the
   control never joins the tab order. Container-like widgets add `Sizing Sizing`,
   `Float bool`, `FloatAnchor FloatAttach`, `FloatTieOff FloatAttach`,
-  `Padding Padding`, `Radius Opt[float32]`, `SizeBorder Opt[float32]`.
+  `Padding Padding`, `Radius Opt[float32]`, `SizeBorder Opt[float32]` (`Table`
+  is the exception: its `SizeBorder` is a plain `float32` applied as-is).
 - **Callbacks** — one func field per event. Sig: `func(EventCtx)`. One rule for
   all of them: call `ctx.Consume()` on any path that acts on the event. On any
   path that means "not mine", call nothing. Nothing is marked handled for you. A
@@ -179,7 +180,8 @@ ClickOnSpace: true,
 
 **Hover/focus feedback** — use `OnHover` for mouse hover, `AmendLayout` for
 keyboard focus. `AmendLayout` runs every frame after sizing. Use it to update
-child colors based on `w.IsFocus(layout.Shape.ID)`.
+child colors based on `w.IsFocus(layout.Shape.idKey())` — never the bare
+`Shape.ID`, which is the leaf, not the identity.
 
 **Inner IDs** — a composite widget's inner shapes need their own IDs. Compose
 them with `gui.ScopeID(cfg.ID, "part")`, or `gui.ScopeIDN(cfg.ID, "row", i)`
@@ -237,7 +239,7 @@ func applyToggleDefaults(cfg *ToggleCfg) {
         cfg.TextSelect = "✓"
     }
     if !cfg.Padding.IsSet() {
-        cfg.Padding = Some(d.Padding)
+        cfg.Padding = d.Padding
     }
     if cfg.TextStyle == (TextStyle{}) {
         cfg.TextStyle = d.TextStyleNormal
@@ -303,7 +305,7 @@ In `examples/showcase/`, create a demo function and register it:
 // examples/showcase/demo_toggle.go
 func demoToggle(_ *gui.Window) gui.View {
     return gui.Column(gui.ContainerCfg{
-        Padding: gui.Some(gui.PaddingMedium),
+        Padding: gui.PadAll(8),
         Spacing: gui.SomeF(8),
         Content: []gui.View{
             gui.Toggle(gui.ToggleCfg{

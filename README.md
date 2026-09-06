@@ -240,7 +240,9 @@ work.
 Set `GOGUI_DEBUG=1` (or `gui.Debug(true)`) to audit every frame for duplicate
 widget IDs and focusable widgets without IDs. `gui.DebugCategories` enables each
 class of finding — duplicates, missing IDs, unconsumed events, listbox
-virtualization — independently. See the
+virtualization, over-stop gradients, unresolved state keys, unclaimed focus IDs,
+stamp drift, dropped callbacks and links, refused window features —
+independently. See the
 [Debugging](https://github.com/go-gui-org/go-gui/wiki/Debugging) wiki page.
 
 ## License

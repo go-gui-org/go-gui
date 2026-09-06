@@ -13,9 +13,9 @@ import "strings"
 // ScrollVerticalTo writes an offset no scrollable reads.
 //
 // These two functions answer from the frame instead. They read the
-// arranged tree, which carries the identity the resolve pass actually
-// stamped, so the answer is what the addressing APIs expect rather
-// than a second implementation of the rule. See issue #521.
+// arranged tree, which carries the identity generation stamped, so the
+// answer is what the addressing APIs expect rather than a second
+// implementation of the rule. See issue #521.
 
 // EffectiveIDs returns every effective ID in the last laid-out frame,
 // in tree order, with duplicates kept.
@@ -26,7 +26,7 @@ import "strings"
 // hiding it here would make this the one view that looks clean.
 //
 // The list is empty before the first frame is laid out: identities are
-// stamped during arrange, so a window that has never rendered has
+// stamped during generation, so a window that has never rendered has
 // none.
 // exportaudit:keep — dev-diagnostic API for app authors (issue #521)
 func (w *Window) EffectiveIDs() []string {

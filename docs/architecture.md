@@ -27,7 +27,7 @@ frame rebuilds the entire UI from the view function.
 │                                                      ▼              │
 │  ┌───────────────────────────────────────────────────────────────┐  │
 │  │ layoutArrange()                                               │  │
-│  │  ├─ resolve Sizing (Fit/Fixed/Grow per axis)                  │  │
+│  │  ├─ resolve Sizing (Fit/Fixed/Fill per axis)                  │  │
 │  │  ├─ layoutFillWidths / layoutFillHeights                      │  │
 │  │  ├─ spacing() — visible-children-only gap calc                │  │
 │  │  └─ AmendLayout hooks (overlay repositioning)                 │  │
@@ -75,7 +75,8 @@ frame rebuilds the entire UI from the view function.
 │  ├─ SvgParser (SVG parse + tessellate)                              │
 │  ├─ NativeDialogs (filedialog / printdialog)                        │
 │  └─ NativePlatform (a11y, IME, tray, menubar, spellcheck,           │
-│       notifications, bookmarks, URI opening)                        │
+│       notifications, bookmarks, URI opening, window opacity,        │
+│       frameless drag/resize)                                        │
 │                                                                     │
 │  ┌──────────────────────────────────────────────────────┐           │
 │  │ Tests: nil injected interfaces — no backend needed   │           │
@@ -100,7 +101,7 @@ frame rebuilds the entire UI from the view function.
 │  ├─ Parent   *Layout        ← pointer up                         │
 │  ├─ Children []Layout       ← values down (no pointer cycles)    │
 │  ├─ Axis     AxisType       ← Row / Column / None                │
-│  └─ Sizing   SizingType     ← Fit/Fixed/Grow per axis            │
+ │  └─ Sizing   SizingType     ← Fit/Fixed/Fill per axis           │
 ├──────────────────────────────────────────────────────────────────┤
 │ Shape                                                            │
 │  ├─ Pos, Size              ← absolute coordinates                │
@@ -166,7 +167,7 @@ frame rebuilds the entire UI from the view function.
 
 ```
 go-gui/
-├── gui/                          ← core (~200 non-test .go files at top level)
+├── gui/                          ← core (~270 non-test .go files at top level)
 │   ├── view*.go                  ← View interface, generateViewLayout
 │   ├── layout*.go                ← Layout tree, arrange, query
 │   ├── shape*.go                 ← Shape type + ShapeTextConfig
@@ -211,10 +212,11 @@ policy from code that drifts.
 ### Frame lifecycle
 
 - Every frame runs on the one main OS thread, in order: `generateViewLayout`
-  (builds the Layout tree) → `layoutArrange` (sizing, ID resolution, float
-  extraction) → `renderLayout` (emits into `w.renderers`) → backend
-  `renderersDraw` (drains read-only). All `*Window` access is main-thread-only.
-  Backends wake the loop from other threads via `SetWakeMainFn`.
+  (builds the Layout tree and stamps each shape's `effID`) → `layoutArrange`
+  (sizing, `focusOwner` resolution, float extraction) → `renderLayout` (emits
+  into `w.renderers`) → backend `renderersDraw` (drains read-only). All
+  `*Window` access is main-thread-only. Backends wake the loop from other
+  threads via `SetWakeMainFn`.
 - Frame-scoped objects come from the `w.scratch` pools (`allocShape`,
   `allocEventHandlers`, `allocEffects`, layer slices). Pointers are valid only
   until the next frame's pool reset — never store them in window/app state.
@@ -309,14 +311,30 @@ policy from code that drifts.
 ### Native platform boundaries
 
 - Backends inject `TextMeasurer` (glyph metrics), `SvgParser`, and
-  `NativePlatform` (dialogs, notifications, print, a11y, IME, titlebar) at
-  startup. All are nil in tests — test code must never require a backend.
+  `NativePlatform` (dialogs, notifications, print, a11y, IME, titlebar, window
+  opacity, frameless drag/resize) at startup. All are nil in tests — test code
+  must never require a backend.
 - `gui/` never imports backend packages. `NativePlatform` is the only seam to
   platform services.
 - **Where to change:** a new platform capability is a new `NativePlatform`
   method implemented per backend, not a direct call from `gui/`.
 - **Catches:** `make test` runs with nil injected interfaces. `make vet` (incl.
   the `requiredid` analyzer) flags structural mistakes.
+
+### Window furniture
+
+- `WindowCfg` carries the frame: `Transparent` (creation-time only, needs a
+  compositor on X11), `BgColor` alpha (read every frame), `Min/MaxWidth/Height`
+  (`FixedSize` pins both), and `Decorations` (frameless needs an app drag handle
+  via `StartWindowDrag`/`StartWindowResize`). Opacity is the runtime setter
+  `SetWindowOpacity` / `WindowOpacity`, refused on a transparent Windows window.
+- **Where to change:** `gui/window_cfg.go` for config, `gui/window_opacity.go`
+  and `gui/window_decoration.go` for runtime, one `NativePlatform` method per
+  capability, implemented per backend.
+- **Catches:** `gui.Debug` (category `DebugWindowDegraded`) reports a refused
+  feature. Specs: `docs/specs/transparent-windows.md`,
+  `docs/specs/window-opacity.md`, `docs/specs/window-size-limits.md`,
+  `docs/specs/frameless-windows.md`.
 
 ### Widget Cfg invariants
 
@@ -355,18 +373,18 @@ policy from code that drifts.
 
 ### Validation map
 
-| Invariant class                    | Local / CI gate                                                                |
-| ---------------------------------- | ------------------------------------------------------------------------------ |
-| Frame lifecycle, concurrency       | `make test-race`, `make bench-gate` (alloc gates)                              |
-| Event consumption                  | `TestUnconsumedEvents`, `gui.Debug` (`DebugUnconsumed`), ergoaudit `callbacks` |
-| Duplicate / mis-scoped IDs         | `TestDuplicateIDs`, `gui.Debug` (`DebugDuplicates`), ergoaudit `ids`           |
-| Render command stream              | `gui/render_layout_test.go`, backend render tests                              |
-| Backend build matrix, threading    | `make cross-compile`, `make lint-cross`, `make test` (`CGO_ENABLED=0` GL)      |
-| Theme single source                | `TestDefaultStylesMirrorThemeDark`, ergoaudit `theme`                          |
-| Native platform seam               | `make test` (nil interfaces), `make vet` (`requiredid`)                        |
-| Focusable + ID, a11y, Opt/literals | `make vet`, ergoaudit `focus`/`a11y`/`opt`/`literals`, `gui.Debug`             |
-| Generated files                    | `make generate-check`                                                          |
-| Exported surface                   | `make export-audit` — see `docs/specs/exportaudit-surface-policy.md`           |
+| Invariant class                    | Local / CI gate                                                                                                                     |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Frame lifecycle, concurrency       | `make test-race`, `make bench-gate` (alloc gates)                                                                                   |
+| Event consumption                  | `TestUnconsumedEvents`, `gui.Debug` (`DebugUnconsumed`), ergoaudit `callbacks`                                                      |
+| Duplicate / mis-scoped IDs         | `TestDuplicateIDs`, `gui.Debug` (`DebugDuplicates`, `DebugUnresolvedKeys`, `DebugUnknownFocus`, `DebugStampDrift`), ergoaudit `ids` |
+| Render command stream              | `gui/render_layout_test.go`, backend render tests                                                                                   |
+| Backend build matrix, threading    | `make cross-compile`, `make lint-cross`, `make test` (`CGO_ENABLED=0` GL)                                                           |
+| Theme single source                | `TestDefaultStylesMirrorThemeDark`, ergoaudit `theme`                                                                               |
+| Native platform seam               | `make test` (nil interfaces), `make vet` (`requiredid`)                                                                             |
+| Focusable + ID, a11y, Opt/literals | `make vet`, ergoaudit `focus`/`a11y`/`opt`/`literals`, `gui.Debug`                                                                  |
+| Generated files                    | `make generate-check`                                                                                                               |
+| Exported surface                   | `make export-audit` — see `docs/specs/exportaudit-surface-policy.md`                                                                |
 
 ## Future Directions
 

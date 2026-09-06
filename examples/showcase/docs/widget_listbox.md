@@ -65,27 +65,30 @@ When `Items` is set, `Data` is ignored.
 
 ## Key Properties
 
-| Property    | Type            | Description                             |
-| ----------- | --------------- | --------------------------------------- |
-| SelectedIDs | []string        | Selected item IDs                       |
-| Items       | []string        | Simple string list (alt. to Data)       |
-| Data        | []ListBoxOption | Items (ID, Name, Value, IsSubhead)      |
-| Multiple    | bool            | Allow multi-select                      |
-| Height      | float32         | Fixed height (activates virtualization) |
-| MinWidth    | float32         | Minimum width                           |
-| MaxWidth    | float32         | Maximum width                           |
-| MinHeight   | float32         | Minimum height                          |
-| MaxHeight   | float32         | Maximum height                          |
-| Reorderable | bool            | Enable drag-reorder                     |
-| Sizing      | Sizing          | Combined axis sizing mode               |
-| Disabled    | bool            | Disable interaction                     |
-| Invisible   | bool            | Hide without removing from layout       |
+| Property      | Type            | Description                             |
+| ------------- | --------------- | --------------------------------------- |
+| SelectedIDs   | []string        | Selected item IDs                       |
+| Items         | []string        | Simple string list (alt. to Data)       |
+| Data          | []ListBoxOption | Items (ID, Name, Value, IsSubhead)      |
+| Multiple      | bool            | Allow multi-select                      |
+| Height        | float32         | Fixed height (activates virtualization) |
+| MinWidth      | float32         | Minimum width                           |
+| MaxWidth      | float32         | Maximum width                           |
+| MinHeight     | float32         | Minimum height                          |
+| MaxHeight     | float32         | Maximum height                          |
+| Reorderable   | bool            | Enable drag-reorder                     |
+| Sizing        | Sizing          | Combined axis sizing mode               |
+| Disabled      | bool            | Disable interaction                     |
+| Invisible     | bool            | Hide without removing from layout       |
+| FocusDisabled | bool            | Opt out of default-on focus             |
+| Sound         | SoundCue        | Row-activation cue                      |
+| SoundDisabled | bool            | Suppress row sounds                     |
 
 ## Appearance
 
 | Property        | Type         | Description             |
 | --------------- | ------------ | ----------------------- |
-| Padding         | Opt[Padding] | Inner padding           |
+| Padding         | Padding      | Inner padding           |
 | Radius          | Opt[float32] | Corner radius           |
 | SizeBorder      | Opt[float32] | Border width            |
 | Color           | Color        | Background color        |
