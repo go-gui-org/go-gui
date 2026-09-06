@@ -556,10 +556,53 @@ type dataGridCtx struct {
 	scrollID  string
 }
 
+// dataGridView defers the grid build to layout generation.
+//
+// It is load-bearing rather than a style choice. dataGridBuild resolves
+// cfg.ID with (*gg.Window).EffID and derives every state key, every
+// child ID and the header reverse-parse prefix from the result, and the
+// generation-time ID scope is only live while the framework descends
+// the View tree. A build at New time would resolve against an empty
+// scope, so two grids sharing a cfg.ID under different panels would
+// share one set of column widths, presentation cache, CRUD working copy
+// and data-source state. See issue #519.
+type dataGridView struct {
+	cfg DataGridCfg
+}
+
+// GenerateLayout builds the grid under the scope of the panel it sits
+// in, then hands the assembled View back to the framework.
+func (v *dataGridView) GenerateLayout(w *gg.Window) gg.Layout {
+	return gg.GenerateViewLayout(dataGridBuild(w, v.cfg), w)
+}
+
 // New creates a controlled, virtualized data grid view.
+//
+// The grid's identity is its effective ID: the leaf joined to the IDs
+// of its ID-bearing ancestors. Every ID the grid publishes is built
+// from that, so a grid with ID "catalog" inside a panel with ID
+// "detail" answers to "detail:catalog" and its rows to
+// "detail:catalog:row:<key>". Public APIs that name a grid or one of
+// its parts — gg.SetFocus, gg.FindByID, [GetSourceStats] — take that
+// form. Compose it with gg.ScopeID, never by hand.
 func New(w *gg.Window, cfg DataGridCfg) gg.View {
+	// Eager, so an empty ID fails at the call site rather than a frame
+	// later with no clue which grid is at fault.
 	gg.RequireID("DataGrid", cfg.ID)
+	return &dataGridView{cfg: cfg}
+}
+
+// dataGridBuild assembles the grid. It runs at layout generation time,
+// under the ID scope of the enclosing panel.
+func dataGridBuild(w *gg.Window, cfg DataGridCfg) gg.View {
 	applyDataGridDefaults(&cfg)
+	// Resolve once, here, before anything reads cfg.ID. Everything
+	// below flows from this string: the state keys, focusID, scrollID,
+	// the child IDs and the header prefix that
+	// dataGridHeaderColIDFromLayoutID trims back off. Resolving in one
+	// place is what keeps the forward build and the reverse parse
+	// spelling the same name.
+	cfg.ID = w.EffID(cfg.ID)
 	if len(cfg.RowsData) > 0 && cfg.DataSource == nil {
 		n := min(len(cfg.RowsData), maxDataConvLen)
 		// Auto-generate columns from sorted keys of first row

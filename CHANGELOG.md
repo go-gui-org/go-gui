@@ -59,6 +59,23 @@ and this project adheres to
   `gui.ScopeID`, never by hand. Unscoped widgets are unaffected. Turn on
   `DebugUnresolvedKeys` to find the rest.
 
+- **`datagrid` resolves the grid's own ID** (#519) — `datagrid.New` built
+  eagerly and never resolved `cfg.ID`, so every state slot the grid owns (column
+  widths, presentation cache, CRUD working copy, data-source state) was keyed on
+  the raw leaf while the grid's root shape resolved to its effective ID. Two
+  grids sharing a `cfg.ID` under different panels were distinct shapes with one
+  state slot, and their children collided outright. `New` now returns a deferred
+  view; the build resolves once, at the top, and every state key, child ID and
+  header reverse-parse prefix derives from that one string.
+  `DebugUnresolvedKeys` moves into `DebugAll` as a result, so `gui.Debug(true)`
+  reports an unresolved state key without being asked.
+
+  **Behavior change.** Every ID a scoped grid publishes moves: `catalog:row:3`
+  becomes `detail:catalog:row:3`. An app that spells a grid or one of its parts
+  by hand for `gg.FindByID`, `gg.SetFocus`, `gg.ScrollVerticalTo` or
+  `datagrid.GetSourceStats` must pass the effective form. Compose it with
+  `gg.ScopeID`, never by hand. An unscoped grid is unaffected.
+
 ## [v0.69.0] - 2026-09-05
 
 ### Added

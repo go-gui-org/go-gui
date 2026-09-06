@@ -258,12 +258,18 @@ parses a header cell ID by trimming `dataGridHeaderPrefix(gridID)` off a
 `ScopeID(gridID, "header", col)` leaf (`gui/datagrid/view_data_grid_header.go`),
 and row keys (`ScopeID(cfg.ID, "row", rowID)`) and the scroll child
 (`dataGridScrollID`) are likewise multi-part. Absolute leaves skip the join, so
-two grids with the same `cfg.ID` under different ID'd panels **still collide on
-every child ID** — the composability win does not extend to datagrid, and the
-children must stay absolute because the reverse parse requires it. The grid
-root's own leaf becomes `panel:grid`. Audit its leaf-ID consumers
-(`FindByID(cfg.ID)`, `IsFocus(cfg.ID)`, reverse-parse callers) as migration
-work. A future per-grid prefix fix parses against the grid's `effID`.
+the children can never pick up the surrounding scope from the resolve pass, and
+they must stay absolute because the reverse parse requires it.
+
+**The prefix they are built from is now the grid's resolved ID** (#519).
+`datagrid.New` returns a deferred view; the build resolves `cfg.ID` with
+`w.EffID` once, at the top, and every state key, child ID and reverse-parse
+prefix derives from that one string. So a grid with `cfg.ID` `"grid"` inside a
+panel `"detail"` is `detail:grid` and its rows are `detail:grid:row:<key>`, and
+two grids sharing a `cfg.ID` under different panels no longer collide. The
+exception that remains is the spelling: the children are composed absolutely
+rather than joined by the pass. Leaf-ID consumers take the effective form —
+`FindByID`, `IsFocus`, and `datagrid.GetSourceStats`.
 
 **Dock is the second deliberate absolute composite, for the opposite reason.** A
 dock group container takes `ScopeID(dockID, node.ID)` and a dock splitter takes
@@ -399,7 +405,10 @@ so a miss recomputes identically.
 5. **Widget-state keys read during `GenerateLayout`:** migrate to
    `w.EffID(cfg.ID)` (Decision 7) — the resolve pass alone cannot serve reads
    that happen before it.
-6. **Datagrid:** stays a permanent absolute-leaf exception. The composability
-   claim explicitly excludes it until a per-grid `effID`-based parse exists.
+6. **Datagrid:** stays a permanent absolute-leaf exception in spelling only. Its
+   root resolves like any other widget and every child ID is built from that
+   resolved prefix (#519), so two grids sharing a `cfg.ID` under different
+   scopes are distinct. What stays absolute is how the children are composed,
+   because `dataGridHeaderColIDFromLayoutID` trims the prefix back off.
 7. **Joined vs absolute collision** (`"a:b"` from two spellings): allowed,
    reported loudly by the duplicate-ID check. No escaping, per parent spec.

@@ -80,7 +80,10 @@ Public APIs (`SetFocus`, `FindByID`, `IsFocus`, `ScrollVerticalTo`, `Test*`)
 take the **effective** ID. Two seams for widget code: `w.EffID(cfg.ID)` for
 state read during `GenerateLayout`, and `ctx.EffID(leaf)` for handlers in
 factories that build eagerly with no `Window`. `gui/datagrid` is the documented
-exception — its child IDs are absolute by design and stay window-global. See
+exception — it spells its child IDs absolutely, built from the grid's own
+resolved ID, because `dataGridHeaderColIDFromLayoutID` recovers a column by
+trimming that prefix back off. The grid root resolves like any other widget
+(#519), so a scoped grid's children are scoped with it. See
 `docs/specs/widget-id-per-scope-uniqueness.md`.
 
 **Compose inner IDs with `gui.ScopeID` / `gui.ScopeIDN`, never by hand.** An ID
@@ -271,13 +274,13 @@ explicitly when auditing a screen for reusability:
 gui.DebugCategories(gui.DebugAll | gui.DebugUnscopedIDs)
 ```
 
-**`DebugUnresolvedKeys` is not in `DebugAll` either.** It reports a `StateMap`
-key that is a bare leaf while an ancestor join rewrote the shape of that name —
-the widget closed over the raw `cfg.ID` instead of resolving it, so its state
-key and its identity are different strings. Latent, not broken: it works until a
-second instance of the same `cfg.ID` appears under another scope, and
-`gui/datagrid` is window-global by decision. Remedy is `w.EffID(cfg.ID)` in
-`GenerateLayout` or `ctx.EffID(leaf)` in a handler. See issue #518.
+**`DebugUnresolvedKeys` is in `DebugAll`.** It reports a `StateMap` key that is
+a bare leaf while an ancestor join rewrote the shape of that name — the widget
+closed over the raw `cfg.ID` instead of resolving it, so its state key and its
+identity are different strings. The failure is latent: the widget works until a
+second instance of the same `cfg.ID` appears under another scope, and then both
+share one state slot. Remedy is `w.EffID(cfg.ID)` in `GenerateLayout` or
+`ctx.EffID(leaf)` in a handler. See issues #518 and #519.
 
 Assertable forms for tests, which return findings as data:
 `(*Window).TestDuplicateIDs` and `(*Window).TestUnconsumedEvents`.
@@ -285,7 +288,7 @@ Assertable forms for tests, which return findings as data:
 run, so an opt-in category is assertable instead of stderr-only.
 
 ```go
-found := w.TestFindings(gui.DebugAll | gui.DebugUnresolvedKeys)
+found := w.TestFindings(gui.DebugAll | gui.DebugUnscopedIDs)
 ```
 
 ## Coding Conventions

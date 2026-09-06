@@ -18,6 +18,12 @@ type SourceStats struct {
 }
 
 // GetSourceStats returns async stats for the named grid.
+//
+// gridID is the grid's effective ID, the same form gg.FindByID and
+// gg.SetFocus take: a grid with cfg.ID "catalog" inside a panel with ID
+// "detail" answers to "detail:catalog". Compose it with gg.ScopeID. An
+// unknown ID reads as a grid with no source, so a stale bare leaf
+// returns a zero SourceStats rather than an error (issue #519).
 func GetSourceStats(w *gg.Window, gridID string) SourceStats {
 	dgSrc := gg.StateMapRead[string, dataGridSourceState](w, nsDgSource)
 	if dgSrc == nil {
