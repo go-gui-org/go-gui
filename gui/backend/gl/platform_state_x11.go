@@ -25,10 +25,15 @@ type platformState struct {
 	cursors   [11]xproto.Cursor
 	curCursor xproto.Cursor
 
-	wmDelete   xproto.Atom
-	wakeAtom   xproto.Atom
-	keymap     *xproto.GetKeyboardMappingReply
-	minKeycode xproto.Keycode
+	wmDelete xproto.Atom
+	wakeAtom xproto.Atom
+	// atomOpacity caches _NET_WM_WINDOW_OPACITY. An atom is fixed for
+	// the life of a connection, and a fade animation would otherwise
+	// pay a blocking InternAtom round trip every frame. Zero means
+	// not interned yet.
+	atomOpacity xproto.Atom
+	keymap      *xproto.GetKeyboardMappingReply
+	minKeycode  xproto.Keycode
 
 	// Selections. X11 has two independent text buffers: CLIPBOARD (explicit
 	// copy/paste) and PRIMARY (filled by selecting text, pasted with the

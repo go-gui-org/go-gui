@@ -198,6 +198,10 @@ type platformState struct {
 	// frameless records DecorationNone: WM_NCCALCSIZE and
 	// WM_GETMINMAXINFO only deviate from the default for such a window.
 	frameless bool
+	// transparent records WindowCfg.Transparent, read by the opacity
+	// guard. Kept here rather than reached through w, which is nil
+	// until Run.
+	transparent bool
 	// minTrack and maxTrack are the outer-frame resize bounds in
 	// physical pixels, precomputed at create time so the
 	// WM_GETMINMAXINFO handler does no conversion per message. A zero
@@ -478,6 +482,7 @@ func New(w *gui.Window) (*Backend, error) {
 	b := &Backend{}
 	b.plat.hwnd = hwnd
 	b.plat.frameless = cfg.Decorations == gui.DecorationNone
+	b.plat.transparent = cfg.Transparent
 	b.plat.minTrack = minTrack
 	b.plat.maxTrack = maxTrack
 	registerWindow(hwnd, b)
@@ -486,6 +491,11 @@ func New(w *gui.Window) (*Backend, error) {
 		// opaque composition path when the GL surface is bound to the
 		// window, or the first frames composite opaque.
 		enableWindowTransparency(w, hwnd)
+	}
+	// Replay a SetWindowOpacity made before the native platform was
+	// attached (in OnInit, or before backend.Run).
+	if o := w.WindowOpacity(); o < 1 {
+		applyWindowOpacity(w, hwnd, b.plat.transparent, o)
 	}
 	// Detach the IME until a text widget takes focus and IMEStart
 	// re-attaches it, matching the focus gating on macOS and X11. Without
@@ -539,6 +549,18 @@ func New(w *gui.Window) (*Backend, error) {
 func (b *Backend) Destroy() {
 	b.destroyGLResources()
 	b.plat.destroy()
+}
+
+// SetWindowOpacity fades the whole window. Refused on a Transparent
+// window, where the layered-window path and per-pixel alpha do not
+// compose; see layeredOpacityAllowed.
+func (n *nativePlatform) SetWindowOpacity(opacity float32) {
+	// Transparent comes from plat, not from plat.w.Config: plat.w is
+	// only filled once Run starts, and a nil there would read as "not
+	// Transparent" and let the guard through on the one window it
+	// exists to refuse.
+	applyWindowOpacity(n.b.plat.w, n.b.plat.hwnd,
+		n.b.plat.transparent, opacity)
 }
 
 // Run starts the event loop. Blocks until the window is closed.

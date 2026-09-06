@@ -98,7 +98,9 @@ const (
 	// DebugWindowDegraded reports a window-level feature the platform
 	// could not deliver, so the window opened without it: a
 	// WindowCfg.Transparent window that found no ARGB visual, or one
-	// running with no compositing manager to blend it against.
+	// running with no compositing manager to blend it against; or a
+	// Window.SetWindowOpacity the platform refused, which on Windows
+	// is what a Transparent window gets.
 	// exportaudit:keep — dev-diagnostic API for app authors
 	DebugWindowDegraded
 
@@ -326,6 +328,9 @@ const (
 	// debugCheckWindowTransparency fires from a backend's window
 	// creation when WindowCfg.Transparent could not be honoured.
 	debugCheckWindowTransparency
+	// debugCheckWindowOpacity fires from a backend when
+	// Window.SetWindowOpacity could not be honoured.
+	debugCheckWindowOpacity
 	// debugCheckUnresolvedKey fires from the state-key audit when a
 	// StateMap key is a bare leaf that the resolve pass scoped; see
 	// debug_state_keys.go.
@@ -365,7 +370,7 @@ func checkCategory(check debugCheck) DebugCategory {
 		return DebugWrapOverflow
 	case debugCheckDeferredLoop, debugCheckLinkNotOpened:
 		return DebugCallbacks
-	case debugCheckWindowTransparency:
+	case debugCheckWindowTransparency, debugCheckWindowOpacity:
 		return DebugWindowDegraded
 	case debugCheckUnresolvedKey, debugCheckEffIDPhase:
 		return DebugUnresolvedKeys
@@ -761,17 +766,6 @@ func (w *Window) DebugGradientResampled(x, y float32, kept, total int) {
 		fmt.Sprintf("gradient %g,%g", x, y),
 		"gradient at (%g, %g) has %d stops; resampled to %d "+
 			"(GPU shader uniform limit)", x, y, total, kept)
-}
-
-// DebugWindowTransparency reports that WindowCfg.Transparent did not
-// take effect, and why. Called by a backend at window creation, where
-// the platform answer is known and the app author's only clue would
-// otherwise be a window that looks wrong. reason is the warn-once
-// discriminator, so each distinct cause is reported once.
-// exportaudit:keep — dev-diagnostic API called from gui/backend
-func (w *Window) DebugWindowTransparency(reason string) {
-	w.debugWarn(debugCheckWindowTransparency, reason,
-		"window: Transparent requested but %s", reason)
 }
 
 // debugPath renders a tree path as "0/3/1". The root is "root".

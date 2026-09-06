@@ -143,6 +143,13 @@ func New(w *gui.Window) (*Backend, error) {
 	loadCursors(&b.plat)
 	xproto.MapWindow(conn, win)
 
+	// Replay a SetWindowOpacity made before the native platform was
+	// attached (in OnInit, or before backend.Run). After MapWindow, so
+	// the compositor sees the property on a window it already tracks.
+	if o := w.WindowOpacity(); o < 1 {
+		applyWindowOpacity(w, &b.plat, o)
+	}
+
 	// Flush all pending X requests and wait for the server to realize
 	// the window before EGL (on its own X connection) wraps it.
 	conn.Sync()
@@ -188,6 +195,13 @@ func New(w *gui.Window) (*Backend, error) {
 	w.SetPrimaryGetFn(func() string { return getPrimary(&b.plat) })
 
 	return b, nil
+}
+
+// SetWindowOpacity fades the whole window through the window manager's
+// _NET_WM_WINDOW_OPACITY property. Independent of WindowCfg.Transparent
+// on X11: one is a visual, the other a hint.
+func (n *nativePlatform) SetWindowOpacity(opacity float32) {
+	applyWindowOpacity(n.b.plat.w, &n.b.plat, opacity)
 }
 
 // --- helpers ---

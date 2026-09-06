@@ -165,6 +165,7 @@ var relatedExampleMap = map[string][]string{
 	"sidebar":             {"examples/showcase/demo_layout.go"},
 	"dock_layout":         {"examples/showcase/demo_dock_layout.go", "examples/dock_layout/main.go"},
 	"multi_window":        {"examples/showcase/demo_layout.go", "examples/multi_window/main.go"},
+	"window_opacity":      {"examples/showcase/demo_window_opacity.go", "examples/transparent/main.go"},
 	"command_button":      {"examples/showcase/demo_feedback.go", "examples/command_demo/main.go"},
 	"theme_picker":        {"examples/showcase/demo_feedback.go"},
 }

@@ -517,6 +517,13 @@ func createWindowState(w *gui.Window) (*windowState, error) {
 		C.metalWindowSetTransparent(win, 1)
 	}
 
+	// Replay a SetWindowOpacity made before the native platform was
+	// attached (in OnInit, or before backend.Run). Same reason as
+	// above: apply it before the first frame is composited.
+	if o := w.WindowOpacity(); o < 1 {
+		C.metalWindowSetAlpha(win, C.float(o))
+	}
+
 	// Cocoa content sizes are points, the same unit WindowCfg uses, so
 	// the limits go across unscaled. Skipped entirely when nothing is
 	// constrained, leaving the window's AppKit defaults untouched.

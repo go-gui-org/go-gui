@@ -156,6 +156,13 @@ void metalWindowSetVibrancy(GoGuiNSWindow w, int material);
 // metalWindowSetVibrancy. enable: non-zero on, zero back to opaque.
 void metalWindowSetTransparent(GoGuiNSWindow w, int enable);
 
+// Set the whole-window fade (Window.SetWindowOpacity): NSWindow's
+// alphaValue, which AppKit applies above the Metal layer, so it fades
+// the rendered content too. Distinct from metalWindowSetTransparent,
+// which decides whether per-pixel alpha reaches the compositor at all.
+// alpha: 1 fully opaque, 0 invisible.
+void metalWindowSetAlpha(GoGuiNSWindow w, float alpha);
+
 // ─── Clipboard ─────────────────────────────────────────────────
 
 // Get the clipboard text. Returns NULL if empty or not a string.

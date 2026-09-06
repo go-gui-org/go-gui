@@ -117,6 +117,10 @@ func (n *nativePlatform) SetWindowVibrancy(m gui.VibrancyMaterial) {
 	C.metalWindowSetVibrancy(n.window, C.int(m))
 }
 
+func (n *nativePlatform) SetWindowOpacity(opacity float32) {
+	C.metalWindowSetAlpha(n.window, C.float(opacity))
+}
+
 func (n *nativePlatform) StartWindowDrag() {
 	C.metalWindowStartDrag(n.window)
 }

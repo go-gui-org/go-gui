@@ -10,6 +10,21 @@ and this project adheres to
 
 ### Added
 
+- **Whole-window opacity** (#516) — `Window.SetWindowOpacity` fades the entire
+  window, content included, and `Window.WindowOpacity` reads the value back. A
+  runtime setter rather than a `WindowCfg` field: unlike `Transparent` it fixes
+  nothing about the window, so it can change after creation for a fade-in on
+  show or a dim on focus loss. This is a compositor-level fade above the GL or
+  Metal surface, so it composes with per-pixel `Transparent` rather than
+  replacing it — macOS uses `NSWindow.alphaValue` and X11 the
+  `_NET_WM_WINDOW_OPACITY` property. On Windows it uses `WS_EX_LAYERED` plus
+  `SetLayeredWindowAttributes`, which the transparency path deliberately avoids,
+  so a window created `Transparent` is refused the fade and told why through
+  `gui.DebugWindowDegraded`. A call made before the backend attaches is replayed
+  at window creation. Demonstrated by the Window Opacity page in
+  `examples/showcase/` and by `examples/transparent/`; see
+  `docs/specs/window-opacity.md`.
+
 - **Transparent windows on macOS, Windows and X11** (#515) —
   `WindowCfg.Transparent` lets the window's alpha channel reach the compositor,
   so the desktop behind shows through wherever the content is not opaque. Plain

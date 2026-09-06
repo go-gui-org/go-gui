@@ -270,6 +270,7 @@ func TestCheckCategoryMapping(t *testing.T) {
 		{debugCheckWrapOverflow, DebugWrapOverflow},
 		{debugCheckDeferredLoop, DebugCallbacks},
 		{debugCheckWindowTransparency, DebugWindowDegraded},
+		{debugCheckWindowOpacity, DebugWindowDegraded},
 		{debugCheckUnresolvedKey, DebugUnresolvedKeys},
 		{debugCheckStampDrift, DebugStampDrift},
 		{debugCheckUnknownFocus, DebugUnknownFocus},

@@ -21,6 +21,9 @@ func (n *nativePlatform) IMEStart()                    {}
 func (n *nativePlatform) IMEStop()                     {}
 func (n *nativePlatform) IMESetRect(_, _, _, _ int32)  {}
 
+// No window system here to fade a window with.
+func (n *nativePlatform) SetWindowOpacity(_ float32) {}
+
 // No window system here to hand a move or resize gesture to.
 func (n *nativePlatform) StartWindowDrag()                   {}
 func (n *nativePlatform) StartWindowResize(_ gui.WindowEdge) {}

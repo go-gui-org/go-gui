@@ -55,6 +55,7 @@ var widgetDocFiles = map[string]string{
 	"markdown":           "docs/widget_markdown.md",
 	"menus":              "docs/widget_menus.md",
 	"multi_window":       "docs/widget_multi_window.md",
+	"window_opacity":     "docs/widget_window_opacity.md",
 	"notification":       "docs/widget_notification.md",
 	"numeric_input":      "docs/widget_numeric_input.md",
 	"overflow_panel":     "docs/widget_overflow_panel.md",

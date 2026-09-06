@@ -155,6 +155,7 @@ func NewWindow(cfg WindowCfg) *Window {
 		state:         cfg.State,
 		windowWidth:   cfg.Width,
 		windowHeight:  cfg.Height,
+		windowOpacity: 1,
 		focused:       true,
 		refreshLayout: true,
 		OnEvent:       cfg.OnEvent,
