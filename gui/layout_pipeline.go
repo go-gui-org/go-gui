@@ -191,6 +191,48 @@ func layoutWrapTextWalk(layout *Layout, w *Window) {
 			return
 		}
 		layoutPlainText(shape, tc, style, w)
+		if shape.inkOverflowW > 0 {
+			propagateInkOverflow(layout)
+		}
+	}
+}
+
+// propagateInkOverflow tells the ancestors of an overflowing text shape
+// how far its ink actually reaches, so a scroll container above it can
+// scroll to the ink instead of stopping at the box.
+//
+// Two things happen per ancestor. Its contentW cache is refreshed,
+// because layoutFillWidths cached it one pass before the glyph layout
+// existed (refitFitAncestors in layout_wrap.go does the same for the
+// wrap pass). And the overflow is carried one level further up, unless
+// this ancestor is a viewport — a Clip or Scrollable node is where the
+// ink stops being visible, so it takes the refreshed contentW (that is
+// what makes scrolling possible) but does not leak the overflow to its
+// own parent, which would widen the whole page.
+//
+// Ordering: called from layoutWrapTextWalk, which runs after the fill
+// widths and before layoutAdjustScrollOffsets, so a width discovered
+// here still reaches the scroll clamp, positioning and the scrollbar
+// thumb in the same frame. Parent pointers are set by layoutParents at
+// the top of layoutArrange, and shapes are rebuilt every frame, so
+// inkOverflowW needs no reset.
+func propagateInkOverflow(node *Layout) {
+	if node == nil || node.Shape == nil {
+		return
+	}
+	ink := node.Shape.inkOverflowW
+	if !f32IsFinite(ink) || ink <= 0 {
+		return
+	}
+	for p := node.Parent; p != nil; p = p.Parent {
+		if p.Shape == nil {
+			return
+		}
+		p.Shape.contentW = computeContentWidth(p)
+		if p.Shape.Clip || p.Shape.Scrollable {
+			return
+		}
+		p.Shape.inkOverflowW = f32Max(p.Shape.inkOverflowW, ink)
 	}
 }
 
@@ -326,5 +368,21 @@ func layoutPlainText(
 	if tc.TextMode == TextModeMultiline &&
 		shape.Sizing.Width != sizingFixed && l.Width > 0 {
 		shape.Width = l.Width
+	}
+	// A wrapped run with no break opportunity is wider than the width it
+	// was wrapped to. Record the excess rather than growing the shape:
+	// the shape's width IS the wrap width, so growing it would re-wrap
+	// the text and undo the overflow that is being measured.
+	if tc.overflowScrollX && f32IsFinite(l.Width) &&
+		l.Width > shape.Width+f32Tolerance &&
+		(tc.TextMode == TextModeWrap ||
+			tc.TextMode == TextModeWrapKeepSpaces) {
+		// Plus the caret: it is painted ink too, and the extent recorded
+		// here is what layoutAdjustScrollOffsets clamps the field's
+		// horizontal offset against. Without it the pipeline clamps the
+		// caret's own width back off and the caret at the end of the run
+		// is never quite reachable. Only Input's text sets
+		// overflowScrollX, so no other shape pays for the caret.
+		shape.inkOverflowW = l.Width + inputCaretW
 	}
 }

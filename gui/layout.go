@@ -59,6 +59,9 @@ func layoutPlaceholder() Layout {
 // skipLayoutChild reports whether a child should be excluded
 // from spacing, content-size, and overflow calculations.
 func skipLayoutChild(s *Shape) bool {
+	if s == nil {
+		return true
+	}
 	return s.Float || s.shapeType == shapeNone || s.OverDraw
 }
 
@@ -84,11 +87,31 @@ func contentWidth(layout *Layout) float32 {
 	return computeContentWidth(layout)
 }
 
+// childExtentW is how far one child reaches on the X axis: its Width,
+// or Shape.inkOverflowW where painted ink reaches further. Only text
+// that cannot wrap sets that field (see Shape.inkOverflowW), so for
+// every other child this is just Width. A non-finite overflow is
+// ignored rather than poisoning the sum.
+func childExtentW(s *Shape) float32 {
+	ink := s.inkOverflowW
+	if !f32IsFinite(ink) {
+		return s.Width
+	}
+	return f32Max(s.Width, ink)
+}
+
 // computeContentWidth iterates children to calculate total content
 // width. Called during the fill pass to populate the cache and as a
-// fallback when no cached value exists.
+// fallback when no cached value exists. Each child's extent comes
+// from childExtentW.
 func computeContentWidth(layout *Layout) float32 {
 	var width float32
+	if layout == nil || layout.Shape == nil {
+		return 0
+	}
+	// Both axes measure a child the same way; only the combining
+	// operator differs. See childExtentW.
+
 	if layout.Shape.Axis == axisLeftToRight {
 		width += layout.spacing()
 		for i := range layout.Children {
@@ -96,7 +119,7 @@ func computeContentWidth(layout *Layout) float32 {
 			if skipLayoutChild(c.Shape) {
 				continue
 			}
-			width += c.Shape.Width
+			width += childExtentW(c.Shape)
 		}
 	} else {
 		for i := range layout.Children {
@@ -104,7 +127,7 @@ func computeContentWidth(layout *Layout) float32 {
 			if skipLayoutChild(c.Shape) {
 				continue
 			}
-			width = f32Max(width, c.Shape.Width)
+			width = f32Max(width, childExtentW(c.Shape))
 		}
 	}
 	return width

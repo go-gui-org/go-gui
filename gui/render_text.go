@@ -40,7 +40,16 @@ func renderText(shape *Shape, clip drawClip, w *Window) {
 		}
 		return
 	}
-	if !rectsOverlap(shapeBounds(shape), clip) {
+	// Cull against the ink, not just the box. A run that could not wrap
+	// paints past its shape's right edge (see Shape.inkOverflowW), and
+	// once the field is scrolled the box can sit entirely left of the
+	// clip while the visible part of the text does not.
+	bounds := shapeBounds(shape)
+	if f32IsFinite(shape.inkOverflowW) &&
+		shape.inkOverflowW > bounds.Width {
+		bounds.Width = shape.inkOverflowW
+	}
+	if !rectsOverlap(bounds, clip) {
 		return
 	}
 	c := tc.TextStyle.Color
@@ -222,7 +231,7 @@ func renderInputCursor(shape *Shape, text string, baseX, baseY float32,
 
 	style := textStyleOrDefault(shape)
 	byteIdx := runeToByteIndex(text, pos)
-	cursorW := float32(1.5)
+	cursorW := inputCaretW
 
 	layout := preLayout
 	ok := hasPreLayout
@@ -494,7 +503,7 @@ func textWidthFallback(text string, runePos int, tc *shapeTextConfig, style Text
 	runePos = min(runePos, runeLen)
 	prefix := text[:runeToByteIndex(text, runePos)]
 	if tc != nil && tc.textIsPassword {
-		prefix = passwordMask(prefix)
+		prefix = maskPassword(prefix)
 	}
 	if w.textMeasurer != nil {
 		return w.textMeasurer.TextWidth(prefix, style)

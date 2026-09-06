@@ -46,6 +46,12 @@ type TextCfg struct {
 	// renders from. See Shape.focusOwner. Unexported: a standalone
 	// Text owns its identity through ID.
 	focusOwner string
+
+	// scrollOverflowX opts this text into ink-overflow accounting, so a
+	// run too wide to wrap can be reached by an ancestor scroll
+	// container. See Shape.inkOverflowW. Set by Input; unexported
+	// because a standalone Text has no scroll container to reach it.
+	scrollOverflowX bool
 }
 
 // textView implements View for text rendering.
@@ -74,6 +80,7 @@ func (tv *textView) GenerateLayout(w *Window) Layout {
 		TextMode:          c.Mode,
 		TextTabSize:       c.TabSize,
 		textReadOnly:      c.readOnly,
+		overflowScrollX:   c.scrollOverflowX,
 	}
 
 	layout := Layout{
@@ -95,7 +102,17 @@ func (tv *textView) GenerateLayout(w *Window) Layout {
 		}),
 	}
 
-	layout.Shape.Width = w.TextWidth(c.Text, *ts)
+	// Measure what is painted, not what is stored: a password renders
+	// as bullets, whose advance differs from the raw text's. Measuring
+	// the raw text would size the box wrong and, for an Input, park the
+	// horizontal scroll at the wrong maximum offset. maskPassword is
+	// the same helper renderText masks with, so the measured string and
+	// the painted one agree, newlines included.
+	measured := c.Text
+	if c.IsPassword {
+		measured = maskPassword(measured)
+	}
+	layout.Shape.Width = w.TextWidth(measured, *ts)
 	if w.textMeasurer != nil {
 		layout.Shape.Height = w.textMeasurer.FontHeight(*ts)
 	} else {

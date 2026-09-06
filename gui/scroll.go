@@ -39,24 +39,23 @@ func adjustCursorTrailing(
 	}
 }
 
-// inputScrollCursorIntoView adjusts the vertical scroll of a
-// multiline input so the cursor remains visible.
-// layout must be the outer scroll container (Column with a scroll ID).
+// inputCaretW is the painted width of the text caret. Shared with
+// renderInputCursor so the horizontal follow below scrolls the whole
+// caret into view, not just the edge the glyph layout reports.
+const inputCaretW = float32(1.5)
+
+// inputScrollCursorIntoView adjusts an input's scroll so the cursor
+// stays visible: vertically for a multiline input, and horizontally in
+// both modes.
+// layout must be the outer field container (the Column holding cfg.ID).
 func inputScrollCursorIntoView(
 	id string, text string, layout *Layout, w *Window,
 ) {
 	if id == "" || w.textMeasurer == nil {
 		return
 	}
-	if len(layout.Children) == 0 {
-		return
-	}
-	inner := &layout.Children[0]
-	if len(inner.Children) == 0 {
-		return
-	}
-	txtShape := inner.Children[0].Shape
-	if txtShape == nil || txtShape.TC == nil {
+	txtShape := inputTextShapeFromLayout(layout)
+	if txtShape == nil {
 		return
 	}
 	style := textStyleOrDefault(txtShape)
@@ -70,13 +69,25 @@ func inputScrollCursorIntoView(
 	runeLen := utf8RuneCount(text)
 	pos := is.CursorPos
 	pos = min(pos, runeLen)
-	byteIdx := runeToByteIndex(text, pos)
+	// The glyph layout above was built from the masked text for a
+	// password field (inputGlyphLayoutResolved masks internally), so the
+	// byte index has to be taken against that same string. A bullet and
+	// the rune it hides are different byte lengths, so indexing the raw
+	// text lands the caret in the wrong place.
+	idxText := text
+	if txtShape.TC.textIsPassword {
+		idxText = maskPassword(text)
+		pos = min(pos, utf8RuneCount(idxText))
+	}
+	byteIdx := runeToByteIndex(idxText, pos)
 
 	cp, ok := gl.GetCursorPos(byteIdx)
 	if !ok {
 		return
 	}
 	adjustCursorTrailing(&cp, gl.Lines, byteIdx, is.cursorTrailing)
+
+	inputScrollCursorIntoViewX(id, layout, txtShape, cp, w)
 
 	// Default 0: unscrolled position when no offset recorded yet.
 	sy := w.scrollY()
@@ -94,6 +105,58 @@ func inputScrollCursorIntoView(
 	} else if cursorBot > visibleBot {
 		sy.Set(id, -(cursorBot - viewportH))
 		scrollSmoothCancel(w, id, scrollAxisY)
+	}
+}
+
+// inputScrollCursorIntoViewX is the horizontal half of the follow. It
+// runs for both modes: single-line text never wraps, and a multiline
+// run with no break opportunity overflows the wrap width, so either can
+// put the caret outside the field.
+//
+// Unlike the vertical branch, the offset is clamped here at the write.
+// A single-line field is deliberately not Scrollable (see
+// inputAmendLayout), so layoutAdjustScrollOffsets never sees it and
+// would not clamp a stale offset for it. For a multiline field this is
+// the same clamp the pipeline applies, so doing it twice is harmless.
+func inputScrollCursorIntoViewX(
+	id string, layout *Layout, txtShape *Shape,
+	cp glyph.CursorPosition, w *Window,
+) {
+	if layout == nil || layout.Shape == nil || txtShape == nil {
+		return
+	}
+	viewportW := layout.Shape.Width - layout.Shape.paddingWidth()
+	if viewportW <= 0 || !f32IsFinite(viewportW) {
+		return
+	}
+	if !f32IsFinite(cp.X) {
+		return
+	}
+	// The caret is painted ink, so the extent the offset is clamped
+	// against has to include it. That is not pedantry: this runs from a
+	// key handler, so layout still holds the arrangement of the frame
+	// before the keystroke and inputScrollContentW is one character
+	// short, while cp comes from a glyph layout built on the new text.
+	// Clamping to the stale extent alone parks the caret exactly one
+	// character past the right edge and keeps it there.
+	maxNegX := f32Min(0, viewportW-f32Max(
+		inputScrollContentW(layout, txtShape), cp.X+inputCaretW))
+
+	// Default 0: unscrolled position when no offset recorded yet.
+	sx := w.scrollX()
+	offset := sx.GetOr(id, 0)
+	cursorLeft := cp.X
+	cursorRight := cp.X + inputCaretW
+	visibleLeft := -offset
+	visibleRight := visibleLeft + viewportW
+
+	switch {
+	case cursorLeft < visibleLeft:
+		sx.Set(id, f32Clamp(-cursorLeft, maxNegX, 0))
+		scrollSmoothCancel(w, id, scrollAxisX)
+	case cursorRight > visibleRight:
+		sx.Set(id, f32Clamp(-(cursorRight-viewportW), maxNegX, 0))
+		scrollSmoothCancel(w, id, scrollAxisX)
 	}
 }
 
@@ -446,4 +509,52 @@ func (w *Window) ScrollVerticalPct(id string) float32 {
 	// Default 0: unscrolled position when no offset recorded yet.
 	current := sy.GetOr(id, 0)
 	return f32Clamp(current/maxOffset, 0, 1)
+}
+
+// inputScrollContentW returns how far an input's content reaches on the
+// X axis, which is what its horizontal offset is clamped against.
+//
+// The two modes reach past the viewport by opposite routes, and each
+// one's measure is the other's noise, so this picks rather than maxes.
+//
+// Multiline wraps, so its text shape is pinned to the wrap width and is
+// always exactly the viewport — it says nothing. What reaches past is
+// the ink recorded for a run that could not wrap, carried up to the
+// field by propagateInkOverflow and read back through contentWidth.
+// That figure already includes the caret (see layoutPlainText).
+//
+// Single-line never wraps, so the full text width is its intrinsic
+// width — but read that from MinWidth, not Width. Text pins its
+// measurement as a minimum and its Fill parent then stretches it, so
+// for text that fits, Width is the viewport and says nothing, exactly
+// like the container's content width. Plus the caret, painted just past
+// the last glyph: without it a caret at the end of the text sits
+// exactly on the clamp and renders half-clipped.
+//
+// Taking the max of every candidate instead would floor every input at
+// the viewport plus a caret, so even a field whose text fits would
+// report 1.5px of scrollable range and could paint itself shifted.
+func inputScrollContentW(layout *Layout, txtShape *Shape) float32 {
+	if layout == nil || txtShape == nil {
+		return 0
+	}
+	if txtShape.TC != nil && txtShape.TC.overflowScrollX {
+		content := contentWidth(layout)
+		ink := txtShape.inkOverflowW
+		if !f32IsFinite(content) {
+			content = 0
+		}
+		if !f32IsFinite(ink) {
+			ink = 0
+		}
+		return f32Max(content, ink)
+	}
+	intrinsic := txtShape.MinWidth
+	if intrinsic <= 0 {
+		intrinsic = txtShape.Width
+	}
+	if !f32IsFinite(intrinsic) || intrinsic < 0 {
+		intrinsic = 0
+	}
+	return intrinsic + inputCaretW
 }
