@@ -163,6 +163,12 @@ type ShowcaseApp struct {
 	ThemeGenScrollGap  float32
 	MultiWindowChildID uint32
 
+	// WindowOpacity mirrors Window.SetWindowOpacity so the slider has a
+	// value to render. Seeded to 1 in newShowcaseApp, matching a window
+	// that was never faded; the zero value would draw the slider at
+	// "invisible" while the window was fully opaque.
+	WindowOpacity float32
+
 	GesturePadOffsetX  float32
 	GesturePadOffsetY  float32
 	GesturePadScale    float32
@@ -215,6 +221,7 @@ func newShowcaseApp() *ShowcaseApp {
 	return &ShowcaseApp{
 		ShaderStartTime:       time.Now(),
 		SelectedGroup:         groupAll,
+		WindowOpacity:         1,
 		SelectedComponent:     "welcome",
 		InputMultiline:        "Now is the time for all good men to come to the aid of their country",
 		RadioValue:            "go",
@@ -407,6 +414,7 @@ var demoEntries = []DemoEntry{
 	{ID: "scrollbar", Label: "Scrollable Containers", Group: groupLayout, Summary: "Bind scrollable layouts to shared scroll ids.", Tags: []string{"scrollbar", "scroll", "container", "layout"}},
 	{ID: "splitter", Label: "Splitter", Group: groupLayout, Summary: "Resizable panes with drag, keyboard, and collapse.", Tags: []string{"split", "pane", "resize", "layout"}},
 	{ID: "dock_layout", Label: "Dock Layout", Group: groupLayout, Summary: "IDE-style docking panels with splits, tabs, and drag-and-drop.", Tags: []string{"dock", "split", "tabs", "drag", "ide", "layout"}},
+	{ID: "window_opacity", Label: "Window Opacity", Group: groupLayout, Summary: "Fade the whole window, content included, with a runtime setter.", Tags: []string{"window", "opacity", "fade", "alpha", "transparent", "compositor"}},
 	{ID: "multi_window", Label: "Multi-Window", Group: groupLayout, Summary: "Open and manage additional windows with cross-window communication.", Tags: []string{"window", "multi", "app", "broadcast", "layout"}},
 }
 

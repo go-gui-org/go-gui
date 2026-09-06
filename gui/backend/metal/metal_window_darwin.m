@@ -895,6 +895,15 @@ void metalWindowSetTransparent(GoGuiNSWindow w, int enable) {
     setWindowOpacity(gw, enable ? NO : YES);
 }
 
+// Whole-window fade. This is the compositor-level knob and is
+// independent of gw->transparent above: alphaValue scales everything
+// AppKit composites for the window, content included.
+void metalWindowSetAlpha(GoGuiNSWindow w, float alpha) {
+    if (!w) return;
+    GoGuiWindow *gw = (GoGuiWindow *)w;
+    gw->nsWindow.alphaValue = alpha;
+}
+
 void metalWindowSetVibrancy(GoGuiNSWindow w, int material) {
     if (!w) return;
     GoGuiWindow *gw = (GoGuiWindow *)w;

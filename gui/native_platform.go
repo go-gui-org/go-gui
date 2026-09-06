@@ -92,6 +92,7 @@ type NativePlatform interface {
 	OpenURI(uri string) error
 	TitlebarDark(dark bool)
 	SetWindowVibrancy(material VibrancyMaterial)
+	SetWindowOpacity(opacity float32)
 	StartWindowDrag()
 	StartWindowResize(edge WindowEdge)
 }

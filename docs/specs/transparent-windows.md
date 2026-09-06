@@ -130,3 +130,6 @@ way when the DWM call is unavailable or fails. Nothing fails window creation.
   macOS-only.
 - **Click-through.** A fully transparent region still takes mouse input. That is
   a separate feature (an input region / `WS_EX_TRANSPARENT`).
+- **A whole-window fade.** Per-pixel alpha cannot dim the content itself. That
+  is `Window.SetWindowOpacity` (#516), a compositor-level knob that composes on
+  top of this one; see `window-opacity.md`.

@@ -398,6 +398,8 @@ func (n *nativePlatform) TitlebarDark(_ bool) {}
 
 func (n *nativePlatform) SetWindowVibrancy(_ gui.VibrancyMaterial) {}
 
+func (n *nativePlatform) SetWindowOpacity(_ float32) {}
+
 // No window manager to hand a move or resize gesture to.
 func (n *nativePlatform) StartWindowDrag()                   {}
 func (n *nativePlatform) StartWindowResize(_ gui.WindowEdge) {}

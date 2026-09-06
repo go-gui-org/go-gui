@@ -189,6 +189,13 @@ type Window struct {
 	windowWidth  int
 	windowHeight int
 
+	// windowOpacity is the whole-window fade set by SetWindowOpacity,
+	// in [0, 1]. Seeded to 1 by NewWindow: the zero value would read as
+	// an invisible window. Cached so WindowOpacity can answer, and so a
+	// backend can replay it at window creation for a call made before
+	// the native platform was attached.
+	windowOpacity float32
+
 	// headlessRender suppresses wall-clock-driven visuals so a
 	// captured frame is reproducible. See gui/headless.go.
 	headlessRender bool
