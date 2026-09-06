@@ -254,6 +254,10 @@ func datePickerGetState(w *Window, cfg *DatePickerCfg) datePickerState {
 }
 
 // DatePickerReset clears the state for a date picker instance.
+//
+// id is the widget's effective ID: a leaf under an ID-bearing
+// ancestor is addressed by its full path ("detail:nav"), not by the
+// leaf its Cfg was written with. Read it back with [Window.ResolveID].
 func (w *Window) DatePickerReset(id string) {
 	sm := StateMap[string, datePickerState](w, nsDatePicker, capModerate)
 	sm.Delete(id)

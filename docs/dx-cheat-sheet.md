@@ -45,6 +45,17 @@ Two panels can contain the same leaf ID. Each is a different widget. Compose IDs
 with `ScopeID` or `ScopeIDN`, never by hand. Public APIs — `SetFocus`,
 `FindByID`, `IsFocus`, `ScrollVerticalTo`, `Test*` — take the effective ID.
 
+Do not spell one by hand. Ask the frame:
+
+```go
+ids := w.ResolveID("nav")  // ["detail:nav"] under Panel{ID:"detail"}
+w.SetFocus(ids[0])
+all := w.EffectiveIDs()    // every identity in the frame, tree order
+```
+
+An empty answer means no widget of that name is in the current frame: either the
+spelling is wrong or the widget is not rendered.
+
 A part (a row key, a heading slug) must not contain `:`. A composite widget's
 inner shape sets `Shape.focusOwner` to the owner's leaf instead of repeating its
 `ID`.
@@ -325,6 +336,13 @@ func (w *Window) Thing(cfg ThingCfg) View {
 	return viewFunc(func(vw *Window) View { return thingView(cfg, vw) })
 }
 ```
+
+`DebugUnknownFocus` is also part of `DebugAll`. It reports the same mistake from
+the other side: a frame that finished with a focus ID nothing focusable claims,
+which is what `SetFocus("nav")` leaves behind when the frame stamped
+`"detail:nav"`. The finding names the spelling that would have worked. It fires
+from the frame audit, not from `SetFocus`, because a view function may
+legitimately focus a control it is still returning.
 
 `DebugCategories` prints to stderr. To assert a category in a test, including an
 opt-in one, use `(*Window).TestFindings(mask)`, which returns the findings as

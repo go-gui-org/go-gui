@@ -32,7 +32,8 @@ and this project adheres to
   ancestor join really rewrote a shape of that leaf, so a cache keyed by a file
   name stays quiet. Like `DebugUnscopedIDs` it is **not** in `DebugAll`, because
   `gui/datagrid` is window-global by decision (#519); ask for it by name.
-  `(*Window).TestFindings(mask)` is the general assertable form of
+  _Superseded below: #519 fixed the datagrid and moved the category into
+  `DebugAll`._ `(*Window).TestFindings(mask)` is the general assertable form of
   `TestDuplicateIDs`: it takes the categories to run, so an opt-in category is
   testable as data instead of stderr-only.
 
@@ -52,6 +53,22 @@ and this project adheres to
   outside layout generation is reported separately with its own message.
   `(*Window).TestFindings` now installs the categories before it renders, so a
   check that records during generation is assertable.
+
+- **`(*Window).EffectiveIDs`, `(*Window).ResolveID` and
+  `gui.DebugUnknownFocus`** (#521) — the effective ID is what every addressing
+  API takes, and until now an app could not learn one. It had to spell the
+  string by hand from the join rule and its own View tree, and a wrong spelling
+  failed in silence: `SetFocus` on an unknown ID focuses nothing,
+  `ScrollVerticalTo` writes an offset no scrollable reads. `ResolveID("nav")`
+  now answers with the identities the last frame stamped for that leaf —
+  `["detail:nav"]` under a panel with `ID: "detail"` — and `EffectiveIDs()`
+  lists the whole frame. Both read the arranged tree, so the answer is what the
+  addressing APIs expect rather than a second implementation of the rule.
+  `DebugUnknownFocus`, in `DebugAll`, closes the other half: a frame that ends
+  with a focus ID nothing focusable claims is reported, and the message offers
+  the spelling that would have worked. It runs from the frame audit rather than
+  from `SetFocus`, because focusing a widget the current frame has not built yet
+  is legitimate. Every public API that takes an effective ID now says so.
 
 ### Fixed
 

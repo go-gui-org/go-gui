@@ -261,12 +261,20 @@ func virtualListMeasure(m *listHeightModel) func(EventCtx) {
 // keyboard navigation currently sits on. ItemView reads it to render
 // the focused row — an unbuilt row has no shape to hold focus, so the
 // focus lives on the list and is expressed as an index.
+//
+// id is the widget's effective ID: a leaf under an ID-bearing
+// ancestor is addressed by its full path ("detail:nav"), not by the
+// leaf its Cfg was written with. Read it back with [Window.ResolveID].
 func (w *Window) VirtualListFocusedIndex(id string) int {
 	return StateReadOr(w, nsVirtualListFocus, id, 0)
 }
 
 // SetVirtualListFocusedIndex moves a virtual list's keyboard focus to
 // index and scrolls it into view. Main goroutine only.
+//
+// id is the widget's effective ID: a leaf under an ID-bearing
+// ancestor is addressed by its full path ("detail:nav"), not by the
+// leaf its Cfg was written with. Read it back with [Window.ResolveID].
 // exportaudit:keep — the write half of the focused-index pair
 func (w *Window) SetVirtualListFocusedIndex(id string, index int) {
 	StateMap[string, int](w, nsVirtualListFocus, capModerate).

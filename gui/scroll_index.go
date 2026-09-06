@@ -61,6 +61,10 @@ func (w *Window) ScrollToIndex(id string, index int) {
 
 // ScrollToIndexAt scrolls the given list so item index lands at frac
 // of the viewport: 0 top, 0.5 middle, 1 bottom. Main goroutine only.
+//
+// id is the widget's effective ID: a leaf under an ID-bearing
+// ancestor is addressed by its full path ("detail:nav"), not by the
+// leaf its Cfg was written with. Read it back with [Window.ResolveID].
 func (w *Window) ScrollToIndexAt(id string, index int, frac float32) {
 	w.scrollIndexRequest(id, index, virtualScrollAt,
 		f32Clamp(frac, 0, 1))
@@ -70,6 +74,10 @@ func (w *Window) ScrollToIndexAt(id string, index int, frac float32) {
 // brings item index fully into the viewport, and does nothing when it
 // is already visible. This is the one to call when moving a selection
 // with the arrow keys. Main goroutine only.
+//
+// id is the widget's effective ID: a leaf under an ID-bearing
+// ancestor is addressed by its full path ("detail:nav"), not by the
+// leaf its Cfg was written with. Read it back with [Window.ResolveID].
 // exportaudit:keep — the selection-following form of the index API
 func (w *Window) ScrollIndexIntoView(id string, index int) {
 	w.scrollIndexRequest(id, index, virtualScrollIntoView, 0)
@@ -79,6 +87,10 @@ func (w *Window) ScrollIndexIntoView(id string, index int) {
 // differs from ScrollVerticalToPct(id, 1) under virtualization, where
 // the content height is assembled from spacers over an estimated row
 // height and a percentage therefore drifts. Main goroutine only.
+//
+// id is the widget's effective ID: a leaf under an ID-bearing
+// ancestor is addressed by its full path ("detail:nav"), not by the
+// leaf its Cfg was written with. Read it back with [Window.ResolveID].
 func (w *Window) ScrollToEnd(id string) {
 	w.scrollIndexRequest(id, 0, virtualScrollEnd, 0)
 }

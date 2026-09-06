@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -139,13 +140,36 @@ const (
 	// exportaudit:keep — dev-diagnostic API for app authors
 	DebugUnresolvedKeys
 
+	// DebugUnknownFocus reports a window whose focus ID names no
+	// focusable shape in the frame, so the keyboard has nowhere to go.
+	//
+	// [Window.SetFocus] takes the *effective* ID and accepts any
+	// string. A leaf spelled without the scope its widget sits under —
+	// "nav" where the frame stamped "detail:nav" — is accepted, stored
+	// and never matched, which is the same silent shape the resolve
+	// checks report from the other side.
+	//
+	// The check runs from the frame audit rather than from SetFocus,
+	// because setting focus on a widget the current frame has not built
+	// yet is legitimate and common: a view function may focus a control
+	// it is in the middle of returning. Only a frame that finished with
+	// nothing focusable under that name is a finding.
+	//
+	// It also fires when the focused widget leaves the tree — a tab
+	// switch, a closed dialog — which is a real dangling focus rather
+	// than a false alarm: the keyboard is dead until something takes
+	// focus back. [Window.ClearFocus] is how a view drops it on purpose.
+	// exportaudit:keep — dev-diagnostic API for app authors
+	DebugUnknownFocus
+
 	// DebugAll is every category [Debug] turns on. [DebugUnscopedIDs]
 	// is deliberately absent: it reports a design property rather than
 	// a defect, and fires on widgets that are correct as written.
 	// exportaudit:keep — dev-diagnostic API for app authors
 	DebugAll = DebugDuplicates | DebugMissingIDs | DebugUnconsumed |
 		DebugListBoxNoHeight | DebugGradientResampled | DebugWrapOverflow |
-		DebugCallbacks | DebugWindowDegraded | DebugUnresolvedKeys
+		DebugCallbacks | DebugWindowDegraded | DebugUnresolvedKeys |
+		DebugUnknownFocus
 )
 
 func init() {
@@ -293,6 +317,9 @@ const (
 	// outside layout generation, where the ID scope is empty and the
 	// call cannot do its job.
 	debugCheckEffIDPhase
+	// debugCheckUnknownFocus fires from the frame audit when the
+	// window's focus ID names no focusable shape in the frame.
+	debugCheckUnknownFocus
 )
 
 // checkCategory maps an internal check to the public category that
@@ -321,6 +348,8 @@ func checkCategory(check debugCheck) DebugCategory {
 		return DebugWindowDegraded
 	case debugCheckUnresolvedKey, debugCheckEffIDPhase:
 		return DebugUnresolvedKeys
+	case debugCheckUnknownFocus:
+		return DebugUnknownFocus
 	}
 	return 0
 }
@@ -361,7 +390,7 @@ type debugState struct {
 // same tree the renderer does, including floating and overlay layers.
 func (w *Window) debugAudit(root *Layout) {
 	const walkCategories = DebugDuplicates | DebugMissingIDs |
-		DebugUnscopedIDs | DebugUnresolvedKeys
+		DebugUnscopedIDs | DebugUnresolvedKeys | DebugUnknownFocus
 	if DebugCategory(debugMask.Load())&walkCategories == 0 {
 		return
 	}
@@ -373,6 +402,54 @@ func (w *Window) debugAudit(root *Layout) {
 	// against the keys the state maps hold, so it runs after the walk
 	// and gates itself.
 	w.debugCheckStateKeys(ids)
+	// Reads the identities the walk collected, so it runs after it.
+	w.debugCheckFocusTarget(ids)
+}
+
+// focusableByLeaf returns the identities of the focusable shapes this
+// frame stamped for one leaf, sorted so the message is the same on
+// every run. It reads what the audit walk collected rather than the
+// window's tree, so the finding describes the frame it inspected.
+func focusableByLeaf(ids *debugIDs, leaf string) []string {
+	var out []string
+	for id := range ids.focusable {
+		if lastIDSegment(id) == leaf {
+			out = append(out, id)
+		}
+	}
+	slices.Sort(out)
+	return out
+}
+
+// debugCheckFocusTarget reports a focus ID that names no focusable
+// shape in the frame.
+//
+// The message offers the effective IDs the frame did stamp for the
+// same leaf, because the usual cause is a leaf spelled without its
+// scope and the right answer is one short string away.
+func (w *Window) debugCheckFocusTarget(ids *debugIDs) {
+	if DebugCategory(debugMask.Load())&DebugUnknownFocus == 0 {
+		return
+	}
+	id := w.viewState.focusID
+	if id == "" {
+		return
+	}
+	if _, ok := ids.focusable[id]; ok {
+		return
+	}
+	hint := "no widget of that name is in this frame"
+	if _, claimed := ids.claimed[id]; claimed {
+		hint = "a shape of that name is in this frame but is not focusable"
+	} else if near := focusableByLeaf(ids, lastIDSegment(id)); len(near) > 0 {
+		hint = "the frame stamped " + strings.Join(near, ", ") +
+			" for that leaf"
+	}
+	w.debugWarn(debugCheckUnknownFocus, id,
+		"focus is set to %q but nothing focusable in the frame claims "+
+			"it, so the keyboard has nowhere to go; %s. SetFocus takes "+
+			"the effective ID — read it back with (*Window).ResolveID.",
+		id, hint)
 }
 
 // debugWalk is the depth-first audit. path is the index chain from
@@ -400,6 +477,10 @@ type debugIDs struct {
 	// appear, so a widget that composes its own absolute ID is absent.
 	// The state-key audit reads it; see debug_state_keys.go.
 	scoped map[string]string
+	// focusable holds the identity of every shape the focus system can
+	// land on, so the focus-target check can tell "no such widget" from
+	// "a widget of that name exists but cannot take focus".
+	focusable map[string]struct{}
 }
 
 // noteScoped records a leaf that an ancestor join rewrote. The first
@@ -428,6 +509,12 @@ func (w *Window) debugCheckShape(s *Shape, path []int, ids *debugIDs) {
 		// the string the stores and the public APIs use.
 		key := s.idKey()
 		ids.noteScoped(s.ID, key)
+		if s.Focusable {
+			if ids.focusable == nil {
+				ids.focusable = make(map[string]struct{})
+			}
+			ids.focusable[key] = struct{}{}
+		}
 		if first, dup := ids.claimed[key]; dup {
 			w.debugWarn(debugCheckDupID, key,
 				"duplicate ID %q at %s, first claimed at %s; ID is the "+
