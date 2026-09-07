@@ -27,45 +27,24 @@ jobs:
         with:
           go-version: stable
 
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libgl1-mesa-dev \
-            libfreetype6-dev libharfbuzz-dev libpango1.0-dev \
-            libfontconfig1-dev libglib2.0-dev \
-            libx11-dev libxext-dev libxcursor-dev libxinerama-dev \
-            libxi-dev libxrandr-dev libxfixes-dev libxkbcommon-dev \
-            libwayland-dev libdbus-1-dev libpulse-dev libasound2-dev
-
+      # No system packages. `make build-linux` is CGO_ENABLED=0, so the
+      # showcase links no C at all: X11 is jezek/xgb over a socket, GL is
+      # dlopened through purego, and audio defaults to the pure-Go
+      # PulseAudio sink. None of the headers installed here had a caller.
       - name: Add go-glyph replace
         working-directory: go-gui
         run: go mod edit -replace=github.com/go-gui-org/go-glyph=../go-glyph
 
-      - name: Build showcase
+      # Same target a developer runs locally, so a release can be
+      # rehearsed with `make release` before the tag is pushed.
+      - name: Package amd64 and arm64
         working-directory: go-gui
-        run: make build-linux
-
-      - name: Verify static linking
-        working-directory: go-gui
-        run: |
-          echo "OK: binary built successfully"
-
-      - name: Package
-        working-directory: go-gui
-        run: |
-          VERSION=$(git describe --tags --always 2>/dev/null || echo "dev")
-          # buildapp names the installed executable after the file's
-          # basename, so stage it as plain "showcase" first.
-          mkdir -p build/pkg && cp build/showcase-linux build/pkg/showcase
-          go run ./cmd/buildapp -platform linux -o . \
-            -version "${VERSION}" -name "Go-Gui Showcase" \
-            -icon gui/default_icon.png build/pkg/showcase
+        run: make package-linux
 
       - uses: actions/upload-artifact@v7
         with:
           name: linux-asset
-          path: go-gui/go-gui-showcase-*.tar.gz
+          path: go-gui/dist/go-gui-showcase-*.tar.gz
 
   macos:
     name: macOS
@@ -88,25 +67,17 @@ jobs:
         working-directory: go-gui
         run: go mod edit -replace=github.com/go-gui-org/go-glyph=../go-glyph
 
-      - name: Build showcase
+      # Builds arm64 and amd64, fuses them with lipo, bundles the result
+      # as Go-Gui Showcase.app and writes an ad-hoc signed .dmg.  One
+      # download serves Apple silicon and Intel.
+      - name: Package universal .dmg
         working-directory: go-gui
-        run: make build-macos
-
-      - name: Package
-        working-directory: go-gui
-        run: |
-          VERSION=$(git describe --tags --always 2>/dev/null || echo "dev")
-          go run ./cmd/buildapp -version "${VERSION#v}" \
-            -bundle-deps -name "Go-Gui Showcase" build/showcase-macos
-          hdiutil create -srcfolder "Go-Gui Showcase.app" \
-            -volname "Go-Gui Showcase ${VERSION}" \
-            -format UDZO "Go-Gui-Showcase-${VERSION}.dmg"
-          codesign -s - --force "Go-Gui-Showcase-${VERSION}.dmg"
+        run: make package-macos
 
       - uses: actions/upload-artifact@v7
         with:
           name: macos-asset
-          path: go-gui/Go-Gui-Showcase-*.dmg
+          path: go-gui/dist/Go-Gui-Showcase-*.dmg
 
   windows:
     name: Windows
@@ -145,23 +116,16 @@ jobs:
         working-directory: go-gui
         run: go mod edit -replace=github.com/go-gui-org/go-glyph=../go-glyph
 
-      - name: Build showcase
+      # Each .exe is linked -H windowsgui, so no console window opens
+      # behind the showcase.
+      - name: Package amd64 and arm64
         working-directory: go-gui
-        run: make build-windows
-
-      - name: Package
-        working-directory: go-gui
-        run: |
-          VERSION=$(git describe --tags --always 2>/dev/null || echo "dev")
-          mkdir -p build/pkg && cp build/showcase-windows.exe build/pkg/showcase.exe
-          go run ./cmd/buildapp -platform windows -o . \
-            -version "${VERSION}" -name "Go-Gui Showcase" \
-            -icon gui/default_icon.png build/pkg/showcase.exe
+        run: make package-windows
 
       - uses: actions/upload-artifact@v7
         with:
           name: windows-asset
-          path: go-gui/go-gui-showcase-*.zip
+          path: go-gui/dist/go-gui-showcase-*.zip
 
   ios:
     name: iOS
@@ -299,7 +263,11 @@ jobs:
           merge-multiple: true
           path: assets
 
+      # Pinned to a commit rather than the v3 tag: a tag can be moved to
+      # point at different code, a commit cannot.  This commit is release
+      # 3.0.3, which is what refs/tags/v3 dereferenced to when it was
+      # written.  Bump it deliberately, after reading the diff.
       - name: Create Release
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64
         with:
           files: assets/*

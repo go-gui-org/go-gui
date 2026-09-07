@@ -86,6 +86,8 @@ Thumbs.db
 
 # Build output
 build/
+# Release archives written by `make package-*`.
+dist/
 
 # Serena
 .serena/
