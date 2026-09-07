@@ -301,9 +301,15 @@ coverage-gate:
 changelog-check:
 	@scripts/changelog-check.sh
 
+# Keep-a-Changelog presence: a user-facing branch must carry its Unreleased
+# entry, rather than have it reconstructed in the release PR. No-op on the
+# default branch, where there is no delta to judge.
+changelog-entry-check:
+	@scripts/changelog-entry-check.sh
+
 # Run non-duplicated validation steps for CI gate.
 # test and lint run as separate CI jobs with OS matrices.
-check: vet deps-doc-check large-files generate-check tidy-check fmt-md-check changelog-check
+check: vet deps-doc-check large-files generate-check tidy-check fmt-md-check changelog-check changelog-entry-check
 
 # Run all validation steps: test, vet, lint, and gate checks.
 check-all: test lint check
