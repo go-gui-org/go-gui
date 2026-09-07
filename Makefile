@@ -6,13 +6,23 @@ COMMIT  ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 LDFLAGS  = -X github.com/go-gui-org/go-gui/gui.Version=$(VERSION) \
            -X github.com/go-gui-org/go-gui/gui.Commit=$(COMMIT)
 
+# CFBundleShortVersionString must be a bare dotted number, so drop the
+# leading v that `git describe` puts on a tag.
+BUNDLE_VER = $(patsubst v%,%,$(VERSION))
+
+# Finished archives land here, separate from the loose binaries and
+# staging directories under build/. The release workflow uploads from
+# this directory.
+DIST = dist
+
 # Repo-local bin for the pinned linter. The pinned VERSION itself lives in
 # tools/lint/go.mod -- see the $(LINT_BIN) rule below.
 LINT_DIR = $(CURDIR)/.bin
 LINT_BIN = $(LINT_DIR)/golangci-lint
 LINT_ARGS ?=
 
-.PHONY: build-linux build-windows build-macos build-wasm build-ios build-android build-examples release clean test test-race vet lint lint-bin lint-cross cross-compile coverage-gate prepush check bench bench-gate deps-doc deps-doc-check security gosec govulncheck large-files deadcode generate-check tidy-check workflow-audit cov-report license-check ergonomics-audit ergonomics-audit-fix ergonomics-audit-fix-dry fmt-md fmt-md-check
+.PHONY: build-linux build-windows build-macos build-wasm build-ios build-android build-examples \
+	package-linux package-windows package-macos release clean test test-race vet lint lint-bin lint-cross cross-compile coverage-gate prepush check bench bench-gate deps-doc deps-doc-check security gosec govulncheck large-files deadcode generate-check tidy-check workflow-audit cov-report license-check ergonomics-audit ergonomics-audit-fix ergonomics-audit-fix-dry fmt-md fmt-md-check
 
 # Desktop builds are cgo-free since the purego GL bindings (#155): the
 # backend/gl uses X11/xgb + purego EGL on Linux and Win32 syscalls on
@@ -21,23 +31,53 @@ LINT_ARGS ?=
 # `make release` gets a Mach-O binary in the "linux" tarball.  The
 # purego backend cross-compiles cleanly, so this costs nothing on a
 # Linux host either.
+# Both architectures on every desktop platform.  The cgo-free
+# cross-compile costs almost nothing and it covers arm64 Linux servers
+# and Windows on ARM, which amd64-only archives left with nothing to
+# download.
 build-linux:
+	@mkdir -p build
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
 	go build -ldflags "$(LDFLAGS)" \
-	  -o build/showcase-linux ./examples/showcase/
+	  -o build/showcase-linux-amd64 ./examples/showcase/
+	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 \
+	go build -ldflags "$(LDFLAGS)" \
+	  -o build/showcase-linux-arm64 ./examples/showcase/
 
 # -H windowsgui marks the PE as a GUI-subsystem image.  Without it the
 # Windows loader allocates a console for the process, so every launch
 # shows an empty terminal window behind the app window.
 build-windows:
+	@mkdir -p build
 	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 \
 	go build -ldflags "$(LDFLAGS) -H windowsgui" \
-	  -o build/showcase-windows.exe ./examples/showcase/
+	  -o build/showcase-windows-amd64.exe ./examples/showcase/
+	CGO_ENABLED=0 GOOS=windows GOARCH=arm64 \
+	go build -ldflags "$(LDFLAGS) -H windowsgui" \
+	  -o build/showcase-windows-arm64.exe ./examples/showcase/
 
+# Universal binary, so one .dmg serves Apple silicon and Intel.  A bare
+# `go build` here inherits the host arch, which on a macos-latest runner
+# meant the release .dmg would not run on an Intel Mac at all.
+#
+# Each half is a separate cgo build -- the Metal backend is ObjC -- and
+# needs its own -arch in CGO_CFLAGS/CGO_LDFLAGS, because the C compiler
+# does not read GOARCH.  lipo then fuses the two Mach-O files.  macOS
+# only: cross-compiling this from Linux would need the macOS SDK.
 build-macos:
-	CGO_LDFLAGS="-Wl,-no_warn_duplicate_libraries" \
-	go build -ldflags "$(LDFLAGS)" \
-	  -o build/showcase-macos ./examples/showcase/
+	@mkdir -p build
+	CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 \
+	  CGO_CFLAGS="-arch arm64" \
+	  CGO_LDFLAGS="-arch arm64 -Wl,-no_warn_duplicate_libraries" \
+	  go build -ldflags "$(LDFLAGS)" \
+	  -o build/showcase-darwin-arm64 ./examples/showcase/
+	CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 \
+	  CGO_CFLAGS="-arch x86_64" \
+	  CGO_LDFLAGS="-arch x86_64 -Wl,-no_warn_duplicate_libraries" \
+	  go build -ldflags "$(LDFLAGS)" \
+	  -o build/showcase-darwin-amd64 ./examples/showcase/
+	lipo -create -output build/showcase-macos \
+	  build/showcase-darwin-arm64 build/showcase-darwin-amd64
 
 build-wasm:
 	GOOS=js GOARCH=wasm \
@@ -85,23 +125,61 @@ build-examples:
 # Packaging goes through cmd/buildapp on all three desktop targets, so
 # each archive carries what its platform needs to look like an
 # application: a .desktop entry and icon on Linux, an icon resource on
-# Windows, a signed .app on macOS.  The binary is staged under
-# build/pkg/ first because buildapp takes the installed executable's
-# name from the file's basename, and "showcase-linux" would end up in
-# the Exec= line of the desktop entry.
-release: build-linux build-windows build-macos build-wasm
-	mkdir -p build/pkg
-	cp build/showcase-linux build/pkg/showcase
-	cp build/showcase-windows.exe build/pkg/showcase.exe
-	go run ./cmd/buildapp -platform linux -o build -version $(VERSION) \
-	  -name "Go-Gui Showcase" -icon gui/default_icon.png build/pkg/showcase
-	go run ./cmd/buildapp -platform windows -o build -version $(VERSION) \
-	  -name "Go-Gui Showcase" -icon gui/default_icon.png build/pkg/showcase.exe
-	cd build && go run ../cmd/buildapp -version $(VERSION) \
-	  -name "Go-Gui Showcase" showcase-macos
+# Windows, a signed .app on macOS.
+#
+# Each binary is staged under its own build/pkg-* directory as plain
+# "showcase" first, because buildapp takes the installed executable's
+# name from the file's basename -- package it as "showcase-linux-amd64"
+# and that string lands in the desktop entry's Exec= line.  buildapp
+# reads the target architecture from the ELF/PE machine field, not from
+# the name, so the two archives per platform get distinct names on their
+# own.
+#
+# The release workflow calls these same targets, so CI and a local
+# `make release` cannot drift apart.
+
+package-linux: build-linux
+	@mkdir -p build/pkg-linux-amd64 build/pkg-linux-arm64 $(DIST)
+	cp build/showcase-linux-amd64 build/pkg-linux-amd64/showcase
+	cp build/showcase-linux-arm64 build/pkg-linux-arm64/showcase
+	go run ./cmd/buildapp -platform linux -o $(DIST) -version $(VERSION) \
+	  -name "Go-Gui Showcase" -icon gui/default_icon.png \
+	  build/pkg-linux-amd64/showcase
+	go run ./cmd/buildapp -platform linux -o $(DIST) -version $(VERSION) \
+	  -name "Go-Gui Showcase" -icon gui/default_icon.png \
+	  build/pkg-linux-arm64/showcase
+
+package-windows: build-windows
+	@mkdir -p build/pkg-windows-amd64 build/pkg-windows-arm64 $(DIST)
+	cp build/showcase-windows-amd64.exe build/pkg-windows-amd64/showcase.exe
+	cp build/showcase-windows-arm64.exe build/pkg-windows-arm64/showcase.exe
+	go run ./cmd/buildapp -platform windows -o $(DIST) -version $(VERSION) \
+	  -name "Go-Gui Showcase" -icon gui/default_icon.png \
+	  build/pkg-windows-amd64/showcase.exe
+	go run ./cmd/buildapp -platform windows -o $(DIST) -version $(VERSION) \
+	  -name "Go-Gui Showcase" -icon gui/default_icon.png \
+	  build/pkg-windows-arm64/showcase.exe
+
+# No -bundle-deps.  install_name_tool cannot rewrite a load command in a
+# fat Mach-O, so passing it aborts the whole target the moment the
+# binary goes universal.  Nothing is lost: the showcase links only
+# /System and /usr/lib, which every macOS already has.
+package-macos: build-macos
+	@mkdir -p build/pkg-macos $(DIST)
+	cp build/showcase-macos build/pkg-macos/showcase
+	rm -rf "build/Go-Gui Showcase.app"
+	go run ./cmd/buildapp -o build -version $(BUNDLE_VER) \
+	  -name "Go-Gui Showcase" build/pkg-macos/showcase
+	rm -f "$(DIST)/Go-Gui-Showcase-$(VERSION).dmg"
 	hdiutil create -srcfolder "build/Go-Gui Showcase.app" \
 	  -volname "Go-Gui Showcase $(VERSION)" \
-	  -format UDZO "build/Go-Gui-Showcase-$(VERSION).dmg"
+	  -format UDZO "$(DIST)/Go-Gui-Showcase-$(VERSION).dmg"
+	codesign -s - --force "$(DIST)/Go-Gui-Showcase-$(VERSION).dmg"
+
+# Every desktop artifact the release workflow attaches.  package-macos
+# needs a Mac; on Linux run package-linux and package-windows only.
+release: package-linux package-windows package-macos build-wasm
+	@ls -la $(DIST)
 
 # Run all benchmarks with allocation reporting (matching CI baseline job).
 bench:
@@ -119,6 +197,7 @@ bench-gate:
 # binaries belong in build/ or examples/bin/, never the repo root.
 clean:
 	rm -rf build/
+	rm -rf $(DIST)
 	rm -rf $(LINT_DIR)
 	rm -rf examples/bin/
 	rm -f showcase fontviewer listbox get_started command_demo \

@@ -34,17 +34,9 @@ jobs:
           go-version: stable
           cache: false
 
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            pkg-config \
-            libfreetype6-dev \
-            libharfbuzz-dev \
-            libpango1.0-dev \
-            libfontconfig1-dev \
-            libhunspell-dev
-
+      # No system packages. `go test -fuzz` builds the module cgo-free:
+      # go-glyph shapes in pure Go, and the Linux spellcheck backend that
+      # wants hunspell is behind -tags hunspell, which no job sets.
       - name: Add go-glyph replace
         working-directory: go-gui
         run: go mod edit -replace=github.com/go-gui-org/go-glyph=../go-glyph
