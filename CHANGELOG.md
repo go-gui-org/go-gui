@@ -10,6 +10,21 @@ and this project adheres to
 
 ### Added
 
+- **A debug gate for a lookup that misses on an unscoped ID** (#536) — the
+  addressing APIs take the effective ID, and a leaf spelled without the scope
+  its widget sits under reaches nothing: `Layout.FindByID` returns
+  `(nil, false)` into the caller's usual `if !ok { return }`, and
+  `Window.ScrollVerticalTo` / `Window.ScrollVerticalToPct` write an offset no
+  scrollable reads. The failure is latent — a leaf is the identity at the top
+  level, so the call works until the widget is dropped under a panel with an ID.
+  The new `gui.DebugUnknownLookup` category, part of `gui.DebugAll`, reports the
+  miss and names the identity the frame did stamp
+  (`FindByID("nav") found nothing, but the frame stamped "detail:nav"`). It
+  fires only on such a near miss, so probing for a widget that may be absent and
+  setting a scroll offset before the first frame both stay silent. Warn-once
+  memory is package-level, so findings are asserted through the debug output
+  rather than through `(*Window).TestFindings`.
+
 - **Whole-window opacity** (#516) — `Window.SetWindowOpacity` fades the entire
   window, content included, and `Window.WindowOpacity` reads the value back. A
   runtime setter rather than a `WindowCfg` field: unlike `Transparent` it fixes
