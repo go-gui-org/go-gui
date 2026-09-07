@@ -8,6 +8,8 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [v0.70.0] - 2026-09-07
+
 ### Added
 
 - **A debug gate for a lookup that misses on an unscoped ID** (#536) — the
@@ -101,6 +103,23 @@ and this project adheres to
   is legitimate. Every public API that takes an effective ID now says so.
 
 ### Changed
+
+- **Release archives cover both architectures, and the macOS `.dmg` is
+  universal** — packaging moved into the Makefile as `package-linux`,
+  `package-windows` and `package-macos`, and the release workflow calls those
+  same targets, so a release can be rehearsed with `make release` before the tag
+  is pushed. amd64-only archives previously left arm64 Linux and Windows on ARM
+  with nothing to download, and the macOS build inherited the runner's
+  architecture, so the `.dmg` would not run on an Intel Mac at all. The Windows
+  binaries are linked `-H windowsgui`, so no console window opens behind the
+  app.
+
+- **CI installs 3 Ubuntu packages instead of 16** — the Linux build has been
+  cgo-free since X11 moved to `jezek/xgb` and GL moved to purego, and go-glyph
+  now shapes in pure Go. FreeType, HarfBuzz, Pango, fontconfig and every
+  `libx*-dev` header had no caller. What remains is `pkg-config` and
+  `libasound2-dev` for oto's ALSA driver, built under `-tags otoaudio`, and
+  `libegl1`, which is dlopened by soname at runtime rather than linked.
 
 - **`EventCtx.EffID` keeps its argument** (#526) — documentation only, no API
   change. #518 left open a `ctx.Key()` that would read the handler's own stamped
