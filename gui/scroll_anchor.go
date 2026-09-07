@@ -59,7 +59,7 @@ func (w *Window) scrollAnchorRequest(scrollID, anchorID string, reveal bool) {
 	if !ok {
 		return
 	}
-	target, ok := sc.FindByID(anchorID)
+	target, ok := sc.findByID(anchorID)
 	if !ok {
 		return
 	}
@@ -114,7 +114,7 @@ func layoutApplyScrollAnchors(layout *Layout, w *Window) {
 // the positioned subtree for the current frame and, for reveal
 // requests, arms the ease back to the top.
 func applyScrollAnchor(a scrollAnchor, sc *Layout, w *Window) {
-	target, ok := sc.FindByID(a.anchorID)
+	target, ok := sc.findByID(a.anchorID)
 	if !ok {
 		return // anchor left the view; jump
 	}

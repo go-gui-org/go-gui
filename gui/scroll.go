@@ -442,6 +442,11 @@ func (w *Window) ScrollVerticalTo(id string, offset float32) {
 		fireOnScroll(ly, w)
 		return
 	}
+	// The offset is still recorded: setting one before the scrollable
+	// is built is legitimate, and the next frame reads it. The gate
+	// reports only the case that is not — a leaf spelled without the
+	// scope the frame stamped it under.
+	debugLookupMiss(&w.layout, "ScrollVerticalTo", id)
 	sy.Set(id, offset)
 }
 
@@ -466,6 +471,7 @@ func (w *Window) scrollVerticalToSmooth(id string, offset float32) {
 func (w *Window) ScrollVerticalToPct(id string, pct float32) {
 	ly, ok := findLayoutByScrollID(&w.layout, id)
 	if !ok {
+		debugLookupMiss(&w.layout, "ScrollVerticalToPct", id)
 		return
 	}
 	maxOffset := scrollMaxOffsetY(ly)

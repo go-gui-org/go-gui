@@ -630,12 +630,12 @@ func rtfResolveAnchor(
 ) (id string, ok bool) {
 	if markdownID != "" {
 		if scoped := ScopeID(markdownID, "h", slug); scoped != "" {
-			if _, found := w.layout.FindByID(scoped); found {
+			if _, found := w.layout.findByID(scoped); found {
 				return scoped, true
 			}
 		}
 	}
-	if _, found := w.layout.FindByID(slug); found {
+	if _, found := w.layout.findByID(slug); found {
 		return slug, true
 	}
 	return "", false

@@ -181,6 +181,36 @@ const (
 	// exportaudit:keep — dev-diagnostic API for app authors
 	DebugStampDrift
 
+	// DebugUnknownLookup reports an ID lookup that found nothing while
+	// the frame stamped the same leaf under a scope, so the caller
+	// spelled a leaf where an effective ID was wanted.
+	//
+	// [Layout.FindByID], [Window.ScrollVerticalTo] and
+	// [Window.ScrollVerticalToPct] all take the *effective* ID and all
+	// answer a wrong spelling by doing nothing: FindByID returns
+	// (nil, false) into the caller's usual `if !ok { return }`, and the
+	// scroll calls store an offset no scrollable ever reads. The
+	// failure is latent — a leaf is the identity at the top level, so
+	// the call works until the widget is dropped under a panel with an
+	// ID, and then the feature stops with no output.
+	//
+	// The finding is raised only when the frame stamped an identity
+	// whose last segment is the leaf that was asked for, which is the
+	// signature of a missed scope rather than of a lookup for something
+	// that is simply not rendered. Probing for a widget that may or may
+	// not be in the frame is a legitimate pattern — rtfResolveAnchor
+	// does it — and stays silent, as does a lookup made before the
+	// first frame is laid out.
+	//
+	// Warn-once memory for this category is package-level rather than
+	// per-window: [Layout.FindByID] is reached from a Layout, which
+	// does not name the window that stamped it. A finding is therefore
+	// reported once per process per (call, id) pair, and is asserted
+	// through the debug output rather than through
+	// [Window.TestFindings].
+	// exportaudit:keep — dev-diagnostic API for app authors
+	DebugUnknownLookup
+
 	// DebugAll is every category [Debug] turns on. [DebugUnscopedIDs]
 	// is deliberately absent: it reports a design property rather than
 	// a defect, and fires on widgets that are correct as written.
@@ -188,7 +218,7 @@ const (
 	DebugAll = DebugDuplicates | DebugMissingIDs | DebugUnconsumed |
 		DebugListBoxNoHeight | DebugGradientResampled | DebugWrapOverflow |
 		DebugCallbacks | DebugWindowDegraded | DebugUnresolvedKeys |
-		DebugUnknownFocus | DebugStampDrift
+		DebugUnknownFocus | DebugStampDrift | DebugUnknownLookup
 )
 
 func init() {
@@ -291,103 +321,6 @@ func DebugCategories(mask DebugCategory) {
 // DebugEnabled reports whether any dev-mode category is on.
 // exportaudit:keep — dev-diagnostic API for app authors
 func DebugEnabled() bool { return debugMask.Load() != 0 }
-
-// debugCheck identifies one class of finding. Warn-once state is
-// keyed by (check, subject), so a window reports each distinct defect
-// once rather than at the frame rate.
-type debugCheck uint8
-
-const (
-	debugCheckDupID debugCheck = iota
-	debugCheckFocusNoID
-	debugCheckScrollNoID
-	debugCheckMouseLeaveNoID
-	// debugCheckUnconsumed is the only check that runs from dispatch
-	// rather than from the per-frame layout audit; see debug_event.go.
-	debugCheckUnconsumed
-	// debugCheckListBoxNoHeight fires from the listbox view phase
-	// rather than from the layout audit; see listBoxVisibleRange.
-	debugCheckListBoxNoHeight
-	// debugCheckListHeightsCapped fires from the list height registry
-	// when a variable-height list is too large for per-item storage.
-	debugCheckListHeightsCapped
-	// debugCheckListWidthRatchet fires from the VirtualList measurement
-	// hook when the list widens frame after frame with the window
-	// standing still; see virtualListNoteWidth.
-	debugCheckListWidthRatchet
-	// debugCheckUnscopedID reports an identity that has no ID-bearing
-	// ancestor, so it is still a window-global name.
-	debugCheckUnscopedID
-	// debugCheckGradientResampled fires from the GPU backends' draw
-	// pass when a fill gradient has more stops than the shader uniform
-	// layout can carry.
-	debugCheckGradientResampled
-	// debugCheckWrapOverflow fires from layoutOverflow when a container
-	// sets both Wrap and Overflow; wrap wins and overflow is ignored.
-	debugCheckWrapOverflow
-	// debugCheckDeferredLoop fires from flushDeferredCallbacks when
-	// deferred app callbacks keep re-queueing past the batch bound.
-	debugCheckDeferredLoop
-	// debugCheckLinkNotOpened fires from rtfOpenLink when a link the
-	// user activated does nothing: an unresolved anchor, a relative
-	// reference with no base URI, or a platform opener that failed.
-	debugCheckLinkNotOpened
-	// debugCheckWindowTransparency fires from a backend's window
-	// creation when WindowCfg.Transparent could not be honoured.
-	debugCheckWindowTransparency
-	// debugCheckWindowOpacity fires from a backend when
-	// Window.SetWindowOpacity could not be honoured.
-	debugCheckWindowOpacity
-	// debugCheckUnresolvedKey fires from the state-key audit when a
-	// StateMap key is a bare leaf that the resolve pass scoped; see
-	// debug_state_keys.go.
-	debugCheckUnresolvedKey
-	// debugCheckEffIDPhase fires from (*Window).EffID when it is called
-	// outside layout generation, where the ID scope is empty and the
-	// call cannot do its job.
-	debugCheckEffIDPhase
-	// debugCheckStampDrift fires from resolveFocusOwners when a shape's
-	// stamped identity does not match the scope it was arranged under,
-	// which is what a shape that skipped layout generation looks like.
-	debugCheckStampDrift
-	// debugCheckUnknownFocus fires from the frame audit when the
-	// window's focus ID names no focusable shape in the frame.
-	debugCheckUnknownFocus
-)
-
-// checkCategory maps an internal check to the public category that
-// gates it. debugWarn consults this so every finding site stays behind
-// the mask even when reached outside the gated entry points.
-func checkCategory(check debugCheck) DebugCategory {
-	switch check {
-	case debugCheckDupID:
-		return DebugDuplicates
-	case debugCheckFocusNoID, debugCheckScrollNoID, debugCheckMouseLeaveNoID:
-		return DebugMissingIDs
-	case debugCheckUnconsumed:
-		return DebugUnconsumed
-	case debugCheckListBoxNoHeight, debugCheckListHeightsCapped,
-		debugCheckListWidthRatchet:
-		return DebugListBoxNoHeight
-	case debugCheckUnscopedID:
-		return DebugUnscopedIDs
-	case debugCheckGradientResampled:
-		return DebugGradientResampled
-	case debugCheckWrapOverflow:
-		return DebugWrapOverflow
-	case debugCheckDeferredLoop, debugCheckLinkNotOpened:
-		return DebugCallbacks
-	case debugCheckWindowTransparency, debugCheckWindowOpacity:
-		return DebugWindowDegraded
-	case debugCheckUnresolvedKey, debugCheckEffIDPhase:
-		return DebugUnresolvedKeys
-	case debugCheckStampDrift:
-		return DebugStampDrift
-	case debugCheckUnknownFocus:
-		return DebugUnknownFocus
-	}
-	return 0
-}
 
 // debugWarnKey is the warn-once key. For the ID-less checks the
 // subject is the shape's path in the layout tree ("0/3/1"), because

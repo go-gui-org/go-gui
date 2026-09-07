@@ -278,6 +278,8 @@ walks the composed tree every frame and reports to stderr (`gui/debug.go`):
 - a callback that acted without `ctx.Consume()` while an ancestor also handles
 - a link the user activated that opened nothing (unknown anchor, relative link,
   failed platform opener)
+- an ID lookup that missed while the frame stamped the same leaf under a scope
+  (`FindByID`, `ScrollVerticalTo`, `ScrollVerticalToPct`)
 
 Findings are warn-once per window. The gate allocates and walks the whole tree —
 dev only, never production. Categories gate independently via
@@ -316,6 +318,19 @@ framework descends into the container the widget will sit in, so `w.EffID` there
 joins the enclosing scope rather than the widget's own. Return a view struct or
 a `viewFunc` and resolve inside `GenerateLayout`. Six widgets carried this bug
 before anything checked for it.
+
+**`DebugUnknownLookup` is in `DebugAll`.** It reports an ID lookup that found
+nothing while the frame stamped the same leaf under a scope — `FindByID("nav")`
+where the frame stamped `"detail:nav"` — which is what spelling a leaf into an
+effective-ID API looks like from the outside. It covers `FindByID`,
+`ScrollVerticalTo` and `ScrollVerticalToPct`. Only a **near miss** reports: a
+lookup for a name the frame stamped nowhere is a probe, not a misspelling, so
+`rtfResolveAnchor` and a scroll offset set before the first frame stay silent.
+Library code that probes on purpose calls the unexported `findByID`. Warn-once
+memory is package-level, not per-window, because `FindByID` is a `Layout` method
+and a `Layout` does not name the window that stamped it — so this one category
+is asserted through the debug output (`captureDebugMask`), not through
+`TestFindings` (#536).
 
 Assertable forms for tests, which return findings as data:
 `(*Window).TestDuplicateIDs` and `(*Window).TestUnconsumedEvents`.

@@ -70,7 +70,24 @@ func findLayoutByScrollID(layout *Layout, id string) (*Layout, bool) {
 // has been laid out), so there is nothing to find. Guarding here rather
 // than in each caller matches findScrollLayout, which already treats a
 // nil root Shape as "not found".
+//
+// A miss is reported by the [DebugUnknownLookup] gate when the frame
+// stamped the same leaf under a scope, which is what spelling a leaf
+// here looks like from the outside. Library code that probes for a
+// widget which may legitimately be absent calls findByID instead; see
+// debug_lookup.go.
 func (layout *Layout) FindByID(id string) (*Layout, bool) {
+	res, ok := layout.findByID(id)
+	if !ok {
+		debugLookupMiss(layout, "FindByID", id)
+	}
+	return res, ok
+}
+
+// findByID is FindByID without the debug report: the lookup itself,
+// for callers whose miss is a legitimate answer rather than a
+// misspelling.
+func (layout *Layout) findByID(id string) (*Layout, bool) {
 	if id == "" {
 		return nil, false
 	}
@@ -81,7 +98,7 @@ func (layout *Layout) FindByID(id string) (*Layout, bool) {
 		return layout, true
 	}
 	for i := range layout.Children {
-		if res, ok := layout.Children[i].FindByID(id); ok {
+		if res, ok := layout.Children[i].findByID(id); ok {
 			return res, true
 		}
 	}

@@ -51,6 +51,20 @@ implementation, and the code is the authority.
    `gui.DebugUnknownFocus` reports the other half — a frame that finished with a
    focus ID nothing focusable claims.
 
+4a. **A lookup that misses is reported** (#536, 2026-09-07). `ResolveID` answers
+the question, but nothing made an author ask it: `FindByID`, `ScrollVerticalTo`
+and `ScrollVerticalToPct` all take the effective ID and all answer a
+leaf-spelled argument by doing nothing, into the caller's usual
+`if !ok { return }`. `gui.DebugUnknownLookup` (in `DebugAll`) reports the miss
+and names the spelling the frame did stamp. Two properties keep it honest: it
+fires **only on a near miss** — an identity in the frame whose last segment is
+the leaf asked for — so probing for a widget that may be absent
+(`rtfResolveAnchor`) and setting a scroll offset before the first frame stay
+silent; and its warn-once memory is **package-level**, because `FindByID` is a
+`Layout` method and a `Layout` does not name the window that stamped it. That
+last point is why this category is asserted through the debug output rather than
+through `(*Window).TestFindings`.
+
 5. **Generation owns the stamp** (#527, 2026-09-06). The spec put the join in a
    pass over the built tree, and `appendChildViews` computed the same string a
    second time to give a widget its scope while generating. Two implementations
