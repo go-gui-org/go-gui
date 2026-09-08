@@ -128,6 +128,11 @@ type ShowcaseApp struct {
 
 	ButtonClicks int
 
+	// TextAnimReplay gives the entrance labels in demoTextAnim a new
+	// identity on every click, which is what replays a one-shot text
+	// animation: progress is keyed by effective ID.
+	TextAnimReplay int
+
 	CmdButtonCount    int
 	TableSortBy       int
 	GesturePadVersion uint64
@@ -374,6 +379,7 @@ var demoEntries = []DemoEntry{
 	{ID: "markdown", Label: "Markdown", Group: groupText, Summary: "Render markdown into styled rich content.", Tags: []string{"docs", "text", "rich"}},
 	{ID: "rtf", Label: "Rich Text Format", Group: groupText, Summary: "Mixed styles, links, and inline rich runs.", Tags: []string{"rich text", "link", "style"}},
 	{ID: "text", Label: "Text", Group: groupText, Summary: "Typography, gradients, outlines, and curved text.", Tags: []string{"font", "type", "styles", "gradient", "outline", "stroke", "curve"}},
+	{ID: "text_anim", Label: "Text Animation", Group: groupText, Summary: "Canned text animations from TextCfg.Anim, plus the Custom hook.", Tags: []string{"animation", "fade", "slide", "pulse", "shimmer", "typewriter", "shake", "motion"}},
 	{ID: "icons", Label: "Icons", Group: groupText, Summary: "Icon font catalog and glyph references.", Tags: []string{"icon", "font", "glyph"}},
 
 	{ID: "table", Label: "Table", Group: groupData, Summary: "Declarative and sortable table data.", Tags: []string{"rows", "columns", "csv"}},

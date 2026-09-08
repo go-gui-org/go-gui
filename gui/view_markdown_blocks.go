@@ -144,7 +144,10 @@ func mdCopyButton(
 	animID string, w *Window,
 	onClick func(EventCtx),
 ) View {
-	copied := w.hasAnimationLocked(animID)
+	// HasAnimation, not hasAnimationLocked: this runs in a view
+	// function, which holds w.mu but not w.animMu, and the animation
+	// loop writes w.animations from its own goroutine under animMu.
+	copied := w.HasAnimation(animID)
 
 	iconStyle := guiTheme.Icon5
 	iconStyle.Color = Gray
