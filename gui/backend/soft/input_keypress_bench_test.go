@@ -1,3 +1,9 @@
+//go:build !wasm
+
+// The whole keypress runs against the real shaper, whose construction
+// needs a DOM (syscall/js) the node-based CI harness does not provide
+// — same exclusion as the other text-system tests in this package.
+
 package soft
 
 import (
