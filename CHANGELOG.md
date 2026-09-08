@@ -8,6 +8,8 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [v0.71.0] - 2026-09-08
+
 ### Added
 
 - **`DialogCfg.DefaultButton` is exported again (#19)** — the field and its
