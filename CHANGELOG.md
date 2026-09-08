@@ -8,6 +8,27 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- **`DialogCfg.DefaultButton` is exported again (#19)** — the field and its
+  `DialogButtonNo`/`DialogButtonYes` constants were unexported by the #230 sweep
+  with no caller to keep them alive. A confirm dialog reached only by a
+  deliberate gesture (a quit prompt, for instance) wants Enter on "Yes"; the
+  behaviour was already implemented, only unreachable from outside the package.
+  Any value other than `DialogButtonYes` keeps the safe "No" default.
+- **Native file dialogs take a `StartDir` again (#372)** — `StartDir` on
+  `NativeOpenDialogCfg`, `NativeSaveDialogCfg` and `NativeFolderDialogCfg` was
+  unexported by the #230 sweep, so every picker passed an empty directory to the
+  platform no matter what the app set. The backends already honoured the value.
+  An empty `StartDir` still means "platform default", and so does a value that
+  cannot name a directory: the Linux backend spends the path as an argv element
+  for zenity/kdialog, so a value starting with `-` or holding a NUL is screened
+  back to the default rather than reaching the tool as an option.
+- **`AccessiblePath` is exported (#372)** — the element type of
+  `NativeDialogResult.Paths`. Callers could read `.Path` and `.Grant` inline but
+  could not name the type, so a helper taking one, or a slice of their own, was
+  impossible. `PathStrings()` is unchanged.
+
 ## [v0.70.0] - 2026-09-07
 
 ### Added

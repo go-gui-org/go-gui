@@ -118,7 +118,7 @@ func TestNativeSaveExtensionsNoDuplicate(t *testing.T) {
 
 func TestNativeDialogResultPathStrings(t *testing.T) {
 	r := NativeDialogResult{
-		Paths: []accessiblePath{
+		Paths: []AccessiblePath{
 			{Path: "/a/b.txt"},
 			{Path: "/c/d.pdf", Grant: Grant{ID: 1}},
 		},
@@ -509,5 +509,133 @@ func TestNativeOpenDialogPlatformError(t *testing.T) {
 	}
 	if result.ErrorMessage != "disk full" {
 		t.Errorf("ErrorMessage: got %q", result.ErrorMessage)
+	}
+}
+
+// startDirRecorder captures the startDir argument each dialog entry point
+// hands the platform, so the tests below can assert the Cfg field actually
+// reaches the backend rather than being dropped on the way (issue #372).
+type startDirRecorder struct {
+	noopNativePlatform
+	got string
+}
+
+func (r *startDirRecorder) ShowOpenDialog(_, startDir string, _ []string, _ bool) PlatformDialogResult {
+	r.got = startDir
+	return PlatformDialogResult{Status: DialogCancel}
+}
+
+func (r *startDirRecorder) ShowSaveDialog(_, startDir, _, _ string, _ []string, _ bool) PlatformDialogResult {
+	r.got = startDir
+	return PlatformDialogResult{Status: DialogCancel}
+}
+
+func (r *startDirRecorder) ShowFolderDialog(_, startDir string) PlatformDialogResult {
+	r.got = startDir
+	return PlatformDialogResult{Status: DialogCancel}
+}
+
+// TestNativeDialogStartDirReachesPlatform pins the exported StartDir field on
+// all three file-dialog Cfgs. The field was unexported by the #230 sweep, so
+// every dialog passed "" no matter what the app wanted; these three arms fail
+// if that regresses.
+func TestNativeDialogStartDirReachesPlatform(t *testing.T) {
+	const want = "/tmp/projects"
+	tests := []struct {
+		name string
+		show func(w *Window)
+	}{
+		{"open", func(w *Window) {
+			nativeOpenDialogImpl(w, NativeOpenDialogCfg{StartDir: want})
+		}},
+		{"save", func(w *Window) {
+			nativeSaveDialogImpl(w, NativeSaveDialogCfg{StartDir: want, DefaultName: "n.txt"})
+		}},
+		{"folder", func(w *Window) {
+			nativeFolderDialogImpl(w, NativeFolderDialogCfg{StartDir: want})
+		}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rec := &startDirRecorder{}
+			w := &Window{}
+			w.nativePlatform = rec
+			tt.show(w)
+			if rec.got != want {
+				t.Fatalf("startDir = %q, want %q", rec.got, want)
+			}
+		})
+	}
+}
+
+// TestNativeDialogStartDirEmptyByDefault records the safe default: an unset
+// StartDir stays empty, which every backend reads as "platform default
+// directory" rather than as a path to resolve.
+func TestNativeDialogStartDirEmptyByDefault(t *testing.T) {
+	rec := &startDirRecorder{}
+	w := &Window{}
+	w.nativePlatform = rec
+	nativeOpenDialogImpl(w, NativeOpenDialogCfg{})
+	if rec.got != "" {
+		t.Fatalf("startDir = %q, want empty", rec.got)
+	}
+}
+
+// TestSafeStartDir covers the screen directly: an ordinary path passes
+// through untouched, and the two shapes that would be misread by a backend
+// degrade to "" (the documented platform default).
+func TestSafeStartDir(t *testing.T) {
+	tests := []struct {
+		name string
+		in   string
+		want string
+	}{
+		{"absolute", "/tmp/projects", "/tmp/projects"},
+		{"relative", "projects/src", "projects/src"},
+		{"empty", "", ""},
+		{"dot", ".", "."},
+		{"leading dash reads as a flag", "--help", ""},
+		{"single dash", "-rf", ""},
+		{"nul byte", "/tmp/a\x00b", ""},
+		{"dash inside is fine", "/tmp/my-dir", "/tmp/my-dir"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := safeStartDir(tt.in); got != tt.want {
+				t.Fatalf("safeStartDir(%q) = %q, want %q", tt.in, got, tt.want)
+			}
+		})
+	}
+}
+
+// TestNativeDialogStartDirScreenedAtEveryEntryPoint pins that all three
+// dialog entry points route StartDir through the screen, not just the open
+// dialog — a backend must never receive a flag-shaped directory.
+func TestNativeDialogStartDirScreenedAtEveryEntryPoint(t *testing.T) {
+	const hostile = "--title=pwn"
+	tests := []struct {
+		name string
+		show func(w *Window)
+	}{
+		{"open", func(w *Window) {
+			nativeOpenDialogImpl(w, NativeOpenDialogCfg{StartDir: hostile})
+		}},
+		{"save", func(w *Window) {
+			nativeSaveDialogImpl(w, NativeSaveDialogCfg{StartDir: hostile, DefaultName: "n.txt"})
+		}},
+		{"folder", func(w *Window) {
+			nativeFolderDialogImpl(w, NativeFolderDialogCfg{StartDir: hostile})
+		}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rec := &startDirRecorder{}
+			w := &Window{}
+			w.nativePlatform = rec
+			tt.show(w)
+			if rec.got != "" {
+				t.Fatalf("startDir = %q, want it screened to empty", rec.got)
+			}
+		})
 	}
 }
