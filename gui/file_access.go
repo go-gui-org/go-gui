@@ -9,11 +9,17 @@ type Grant struct {
 	ID uint64 // 0 = no grant (no-op on release)
 }
 
-// accessiblePath pairs a filesystem path with an optional
+// AccessiblePath pairs a filesystem path with an optional
 // security-scoped grant. On macOS sandboxed apps the grant
 // keeps the path accessible across relaunches.
-type accessiblePath struct {
-	Path  string
+// exportaudit:keep — caller-facing config (issue #372)
+type AccessiblePath struct {
+	// Path is the filesystem path the user chose.
+	// exportaudit:keep — caller-facing config (issue #372)
+	Path string
+	// Grant is the security-scoped grant that keeps Path reachable on a
+	// sandboxed macOS app. The zero Grant means no scope was needed.
+	// exportaudit:keep — caller-facing config (issue #372)
 	Grant Grant
 }
 

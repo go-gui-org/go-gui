@@ -14,12 +14,15 @@ const (
 // DialogButton identifies which button of a confirm dialog receives
 // initial keyboard focus. The zero value (DialogButtonNo) keeps the safe
 // default for destructive actions.
-type dialogButton uint8
+// exportaudit:keep — caller-facing config (issue #372)
+type DialogButton uint8
 
 // DialogButton constants.
 const (
-	dialogButtonNo dialogButton = iota
-	dialogButtonYes
+	// exportaudit:keep — caller-facing config (issue #372)
+	DialogButtonNo DialogButton = iota
+	// exportaudit:keep — caller-facing config (issue #372)
+	DialogButtonYes
 )
 
 const dialogBaseFocusID = "__gui_dialog__"
@@ -67,7 +70,8 @@ type DialogCfg struct {
 	// keyboard focus (so Enter/Space activate it). Defaults to
 	// DialogButtonNo, preserving the safe default for destructive
 	// actions. Ignored for non-confirm dialog types.
-	defaultButton dialogButton
+	// exportaudit:keep — caller-facing config (issue #372)
+	DefaultButton DialogButton
 
 	// Sound overrides the theme's click cue for every dialog button.
 	// SoundNone (the zero value) takes Theme.Sounds.Click, which is
@@ -333,7 +337,7 @@ func applyDialogDefaults(cfg *DialogCfg) {
 // DialogButtonYes, this is the "Yes" button (scoped ":1"); otherwise
 // the base focus ID (the "No"/"OK"/input element).
 func dialogFocusID(cfg DialogCfg) string {
-	if cfg.DialogType == DialogConfirm && cfg.defaultButton == dialogButtonYes {
+	if cfg.DialogType == DialogConfirm && cfg.DefaultButton == DialogButtonYes {
 		return ScopeIDN(cfg.FocusID, "", 1)
 	}
 	return cfg.FocusID

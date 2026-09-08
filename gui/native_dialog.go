@@ -21,7 +21,7 @@ const (
 type NativeDialogResult struct {
 	ErrorCode    string
 	ErrorMessage string
-	Paths        []accessiblePath
+	Paths        []AccessiblePath
 	Status       NativeDialogStatus
 }
 
@@ -42,18 +42,28 @@ type NativeFileFilter struct {
 
 // NativeOpenDialogCfg configures the native open-file dialog.
 type NativeOpenDialogCfg struct {
-	OnDone        func(NativeDialogResult, *Window)
-	Title         string
-	startDir      string
+	OnDone func(NativeDialogResult, *Window)
+	Title  string
+	// StartDir is the directory the picker opens in. Empty (the zero
+	// value) takes the platform default — the last-used directory on
+	// most desktops. A value that cannot name a directory (one starting
+	// with "-", or holding a NUL) is screened back to that default; see
+	// safeStartDir.
+	// exportaudit:keep — caller-facing config (issue #372)
+	StartDir      string
 	Filters       []NativeFileFilter
 	AllowMultiple bool
 }
 
 // NativeSaveDialogCfg configures the native save-file dialog.
 type NativeSaveDialogCfg struct {
-	OnDone           func(NativeDialogResult, *Window)
-	Title            string
-	startDir         string
+	OnDone func(NativeDialogResult, *Window)
+	Title  string
+	// StartDir is the directory the picker opens in. Empty (the zero
+	// value) takes the platform default, as does a value screened out by
+	// safeStartDir.
+	// exportaudit:keep — caller-facing config (issue #372)
+	StartDir         string
 	DefaultName      string
 	DefaultExtension string
 	Filters          []NativeFileFilter
@@ -62,9 +72,13 @@ type NativeSaveDialogCfg struct {
 
 // NativeFolderDialogCfg configures the native folder picker.
 type NativeFolderDialogCfg struct {
-	OnDone   func(NativeDialogResult, *Window)
-	Title    string
-	startDir string
+	OnDone func(NativeDialogResult, *Window)
+	Title  string
+	// StartDir is the directory the picker opens in. Empty (the zero
+	// value) takes the platform default, as does a value screened out by
+	// safeStartDir.
+	// exportaudit:keep — caller-facing config (issue #372)
+	StartDir string
 }
 
 // NativeAlertLevel controls the severity icon of a message/confirm dialog.
@@ -177,7 +191,7 @@ func nativeOpenDialogImpl(w *Window, cfg NativeOpenDialogCfg) {
 		return
 	}
 	defer markNativeDialogVisible(w)()
-	pr := w.nativePlatform.ShowOpenDialog(cfg.Title, cfg.startDir, extensions, cfg.AllowMultiple)
+	pr := w.nativePlatform.ShowOpenDialog(cfg.Title, safeStartDir(cfg.StartDir), extensions, cfg.AllowMultiple)
 	dispatchDialogDone(w, cfg.OnDone, nativeResultFromPlatform(pr, w))
 }
 
@@ -197,7 +211,7 @@ func nativeSaveDialogImpl(w *Window, cfg NativeSaveDialogCfg) {
 		return
 	}
 	defer markNativeDialogVisible(w)()
-	pr := w.nativePlatform.ShowSaveDialog(cfg.Title, cfg.startDir, cfg.DefaultName, defaultExt, extensions, cfg.ConfirmOverwrite)
+	pr := w.nativePlatform.ShowSaveDialog(cfg.Title, safeStartDir(cfg.StartDir), cfg.DefaultName, defaultExt, extensions, cfg.ConfirmOverwrite)
 	dispatchDialogDone(w, cfg.OnDone, nativeResultFromPlatform(pr, w))
 }
 
@@ -207,7 +221,7 @@ func nativeFolderDialogImpl(w *Window, cfg NativeFolderDialogCfg) {
 		return
 	}
 	defer markNativeDialogVisible(w)()
-	pr := w.nativePlatform.ShowFolderDialog(cfg.Title, cfg.startDir)
+	pr := w.nativePlatform.ShowFolderDialog(cfg.Title, safeStartDir(cfg.StartDir))
 	dispatchDialogDone(w, cfg.OnDone, nativeResultFromPlatform(pr, w))
 }
 
@@ -263,14 +277,31 @@ func nativeAlertErrorResult(code, message string) NativeAlertResult {
 	return NativeAlertResult{Status: DialogError, ErrorCode: code, ErrorMessage: message}
 }
 
+// safeStartDir screens a caller-supplied StartDir before it reaches a
+// platform backend. StartDir became caller-settable with issue #372, and the
+// Linux backend spends it as an argv element for zenity/kdialog — kdialog
+// takes the directory positionally, so a value that begins with "-" is read
+// as an option rather than a path. A NUL byte is rejected for the same class
+// of reason: exec refuses it and the Cocoa path would truncate at it.
+//
+// Neither case is worth an error. The documented meaning of an empty
+// StartDir is "platform default", so an unusable value degrades to exactly
+// that instead of failing a dialog the user asked for.
+func safeStartDir(dir string) string {
+	if strings.HasPrefix(dir, "-") || strings.ContainsRune(dir, 0) {
+		return ""
+	}
+	return dir
+}
+
 func nativeResultFromPlatform(pr PlatformDialogResult, w *Window) NativeDialogResult {
-	paths := make([]accessiblePath, len(pr.Paths))
+	paths := make([]AccessiblePath, len(pr.Paths))
 	for i, pp := range pr.Paths {
 		var grant Grant
 		if len(pp.BookmarkData) > 0 {
 			grant = w.storeBookmark(pp.Path, pp.BookmarkData)
 		}
-		paths[i] = accessiblePath{Path: pp.Path, Grant: grant}
+		paths[i] = AccessiblePath{Path: pp.Path, Grant: grant}
 	}
 	return NativeDialogResult{
 		Status:       pr.Status,
