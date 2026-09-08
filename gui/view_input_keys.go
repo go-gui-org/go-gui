@@ -239,6 +239,7 @@ func inputKeyPaste(
 		if adjusted == proposed {
 			return inputInsert(text, clip, id, w), true
 		}
+		adjusted = capCallbackText(adjusted)
 		inputSetTextAndCursorAtEnd(text, adjusted, id, w)
 		return adjusted, true
 	}

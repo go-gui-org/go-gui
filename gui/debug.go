@@ -522,7 +522,7 @@ func (w *Window) debugCheckShape(s *Shape, path []int, ids *debugIDs) {
 		// the string the stores and the public APIs use.
 		key := s.idKey()
 		ids.noteScoped(s.ID, key)
-		if s.Focusable {
+		if s.canTakeFocus() {
 			if ids.focusable == nil {
 				ids.focusable = make(map[string]struct{})
 			}

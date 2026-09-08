@@ -40,7 +40,7 @@ func focusableIDs(layout *Layout) []string {
 	var out []string
 	var walk func(*Layout)
 	walk = func(l *Layout) {
-		if s := l.Shape; s != nil && s.Focusable && !s.FocusSkip && !s.Disabled {
+		if s := l.Shape; s != nil && s.canTakeFocus() && !s.FocusSkip {
 			out = append(out, s.ID)
 		}
 		for i := range l.Children {

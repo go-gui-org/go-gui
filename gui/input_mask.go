@@ -2,6 +2,7 @@ package gui
 
 import (
 	"errors"
+	"sync"
 	"unicode"
 	"unicode/utf8"
 )
@@ -73,6 +74,39 @@ func inputMaskDefaultTokens() []MaskTokenDef {
 	}
 }
 
+// defaultMaskTokens is the shared default table compileInputMask
+// reads from. Package-level because the mask compiles on every Input
+// generation — once per field per frame — and rebuilding the table
+// each time is pure garbage. Read-only after init; never mutated.
+var defaultMaskTokens = inputMaskDefaultTokens()
+
+// compiledMaskCache shares compiled masks across generations. A mask
+// is read-only after compile, so one instance serves every field
+// using the pattern. Keyed by pattern only when no custom tokens are
+// in play: custom tables make the key unbounded, and those fields
+// compile fresh. Patterns are static app strings, so the map settles
+// at a handful of entries and never grows per frame.
+var compiledMaskCache = struct {
+	sync.RWMutex
+	m map[string]*CompiledInputMask
+}{m: make(map[string]*CompiledInputMask)}
+
+// cachedCompiledMask returns the shared instance for pattern, or nil
+// when no custom tokens apply and the pattern is not cached yet.
+func cachedCompiledMask(pattern string) *CompiledInputMask {
+	compiledMaskCache.RLock()
+	c := compiledMaskCache.m[pattern]
+	compiledMaskCache.RUnlock()
+	return c
+}
+
+// storeCompiledMaskCache records a compiled mask for reuse.
+func storeCompiledMaskCache(pattern string, c *CompiledInputMask) {
+	compiledMaskCache.Lock()
+	compiledMaskCache.m[pattern] = c
+	compiledMaskCache.Unlock()
+}
+
 // InputMaskFromPreset returns the mask pattern for a preset.
 func inputMaskFromPreset(preset InputMaskPreset) string {
 	switch preset {
@@ -99,7 +133,7 @@ func compileInputMask(mask string, custom []MaskTokenDef) (CompiledInputMask, er
 	}
 
 	tokenMap := make(map[rune]MaskTokenDef)
-	for _, def := range inputMaskDefaultTokens() {
+	for _, def := range defaultMaskTokens {
 		tokenMap[def.Symbol] = def
 	}
 	for _, def := range custom {

@@ -608,6 +608,20 @@ func (s *Shape) focusKey() string {
 	return s.idKey()
 }
 
+// canTakeFocus reports whether a shape is eligible to hold keyboard
+// focus: focusable, addressed by a non-empty ID, and not disabled.
+// FocusSkip is deliberately absent: a skipped widget is out of tab
+// order but still takes click-focus. There is no Invisible arm:
+// invisibility never reaches a shape, because every widget maps an
+// invisible Cfg to the disabled invisibleContainerView singleton, so
+// an invisible widget is already disabled here. The single predicate
+// keeps dispatch (isFocusedTarget), tab order
+// (collectFocusCandidates), mouse focus (mouseDownHandler) and the
+// debug gate's focusable set from drifting apart again.
+func (s *Shape) canTakeFocus() bool {
+	return s.Focusable && s.ID != "" && !s.Disabled
+}
+
 // rendersFocusState reports whether this shape draws caret, selection
 // or spell-check state for some widget: for itself when Focusable, or
 // for the owner named by focusOwner. False for ordinary text, which

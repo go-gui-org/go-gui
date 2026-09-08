@@ -56,6 +56,28 @@ and this project adheres to
   page to keep the animation loop running, which is what an animated text next
   to a code block now does.
 
+- **Focus follows a widget that loses it** — disabling or removing the focused
+  widget moves focus to the first tab stop (or clears it when none remains) on
+  the next frame, instead of parking it on a dead ID that swallowed keys
+  silently. One shared predicate — focusable, non-empty ID, not disabled — now
+  decides dispatch, tab order, mouse focus, test targeting and the debug gate
+  together, so the five can no longer disagree. Behavior change: `SetFocus` on a
+  disabled or absent ID does not stick past the frame; the blur commit for the
+  old field still fires through the usual `AmendLayout` path.
+
+- **Untrusted text is size-bounded** — the X11 clipboard read stops at 16 MiB,
+  matching the Win32 bound, so a hostile selection owner cannot grow the buffer
+  without bound; `PreTextChange` and `PostCommitNormalize` returns are capped at
+  the keystroke insert budget, so one runaway callback cannot pin unbounded
+  per-window state.
+
+- **Input hardening and cheaper masks** — char/key/click handlers with no
+  originating event decline instead of panicking, negative cursor positions
+  clamp instead of wrapping through the selection casts, event dispatch and
+  focus lookups stop descending past 256 levels, and mask patterns without
+  custom tokens share one compiled instance (an alloc-gate test pins the
+  per-generation budget) instead of recompiling on every frame.
+
 ## [v0.71.0] - 2026-09-08
 
 ### Added

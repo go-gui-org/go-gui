@@ -357,6 +357,10 @@ func comboboxClose(id string, w *Window) {
 
 func makeComboboxOnChar(cfgID string) func(EventCtx) {
 	return func(ctx EventCtx) {
+		// No originating event: no character to append, so decline.
+		if ctx.Event == nil {
+			return
+		}
 		ss := StateMap[string, bool](ctx.Window, nsCombobox, capModerate)
 		// Default false: absent entry means "not open".
 		isOpen := ss.GetOr(cfgID, false)
@@ -383,6 +387,10 @@ func makeComboboxOnChar(cfgID string) func(EventCtx) {
 
 func makeComboboxOnKeyDown(cfgID string, onSelect func(string, EventCtx), focusID string, filteredIDs []string, scrollID string, rowH, listH float32) func(EventCtx) {
 	return func(ctx EventCtx) {
+		// No originating event: no key to act on, so decline.
+		if ctx.Event == nil {
+			return
+		}
 		comboboxOnKeyDown(cfgID, onSelect, focusID, filteredIDs, scrollID, rowH, listH, ctx.Event, ctx.Window)
 	}
 }
