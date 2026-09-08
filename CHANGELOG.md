@@ -10,6 +10,23 @@ and this project adheres to
 
 ### Added
 
+- **Shaper refusals are reported instead of degrading silently** — text the
+  glyph shaper refuses, past its 10KB byte budget for example, falls back to
+  approximate metrics: caret placement, selection rectangles and grapheme-aware
+  delete all lose precision with nothing saying why. The new
+  `DebugGlyphLayoutFallback` category (part of `DebugAll`) reports the shape
+  once, with its byte length and the shaper's error.
+
+  Profiling behind this: a keypress reshapes the whole buffer on every
+  keystroke, linear in bytes (about 2.4ms and 7MB of garbage at 10KB of ASCII),
+  because the layout cache keys on the full text and the caret needs character
+  boundaries. Typical fields under 1KB cost about 0.25ms. An allocation gate
+  (`TestInputKeypressAllocBudget`, 10KB field, real shaper) pins the
+  steady-state budget so it cannot regress unnoticed; timing stays out of the
+  gate as machine variance. Windowed or incremental shaping was rejected:
+  shaping is not prefix-stable under wrapping and ligatures, and a wrong caret
+  is worse than a slow one.
+
 - **Canned text animations on `TextCfg.Anim` (#543)** — a `Text` can now animate
   itself. `TextAnimCfg` takes a `Kind` — fade in or out, pulse, slide from any
   of four directions, pop, shake, typewriter, shimmer — plus `Duration`,

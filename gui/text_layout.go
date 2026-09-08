@@ -129,6 +129,16 @@ func plainTextLayoutResolved(
 	}
 	layout, err := w.textMeasurer.LayoutText(text, style, widthArg)
 	if err != nil {
+		// The shaper refused the text — past its byte budget, for
+		// example — so the frame falls back to approximate metrics.
+		// Report once per identity: without this the caret,
+		// selection and grapheme delete silently lose precision,
+		// and nothing else in the frame says why.
+		w.debugWarn(debugCheckGlyphLayoutFallback, shape.idKey(),
+			"glyph layout failed for %q (%d bytes): %v; "+
+				"using approximate metrics with degraded caret, "+
+				"selection and delete precision",
+			shape.idKey(), len(text), err)
 		return glyph.Layout{}, false
 	}
 	tc.textLayout = &layout
