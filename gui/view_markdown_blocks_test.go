@@ -229,3 +229,33 @@ func TestMarkdownBuildContentRendersHRInPipeline(t *testing.T) {
 			layout.Shape.Color, style.hRColor)
 	}
 }
+
+// TestMdCopyButtonAnimationReadIsLocked is a race regression test.
+// mdCopyButton runs in a view function, which holds w.mu but not
+// w.animMu, while the animation loop writes w.animations from its own
+// goroutine. Reading the map without animMu is a data race that only
+// shows once some other widget on the page keeps the loop running —
+// which is why it stayed latent until an animated text landed on the
+// same page as a markdown code block. Fails under -race before the
+// fix.
+func TestMdCopyButtonAnimationReadIsLocked(t *testing.T) {
+	w := &Window{}
+	const animID = "md-copy-race"
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		// Stands in for animationLoop: the same map, the same lock.
+		for range 200 {
+			w.AnimationAdd(newBlinkCursorAnimation())
+			w.AnimationRemove(blinkCursorAnimationID)
+		}
+	}()
+
+	for range 200 {
+		if v := mdCopyButton(animID, w, nil); v == nil {
+			t.Fatal("mdCopyButton returned nil")
+		}
+	}
+	<-done
+}

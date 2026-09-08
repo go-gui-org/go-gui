@@ -1,5 +1,7 @@
 package gui
 
+import "github.com/go-gui-org/go-glyph"
+
 // TextCfg configures a text view. Use for labels, headings, or
 // multiline text blocks. Set Focusable to enable text selection
 // and clipboard copy.
@@ -36,6 +38,12 @@ type TextCfg struct {
 	// animations between views.
 	Hero bool
 
+	// Anim animates the text. The zero value animates nothing. An
+	// animated text needs a non-empty ID, because the animation is
+	// keyed by identity; without one it is a silent no-op that
+	// gui.Debug reports.
+	Anim TextAnimCfg
+
 	// readOnly is set by input widgets (view_input.go) to suppress
 	// IME preedit on a read-only field that stays Focusable.
 	// Unexported: not a meaningful knob for standalone Text callers.
@@ -58,6 +66,12 @@ type TextCfg struct {
 type textView struct {
 	cfg TextCfg
 	tc  shapeTextConfig
+
+	// affine and shimmer are scratch for TextCfg.Anim. They live on
+	// the view so the style can point at them for the frame: the view
+	// outlives generation and render, which a local would not.
+	affine  glyph.AffineTransform
+	shimmer textAnimShimmer
 }
 
 // textEventHandlers is a shared handler set for focused text
@@ -102,6 +116,12 @@ func (tv *textView) GenerateLayout(w *Window) Layout {
 		}),
 	}
 
+	// The animation runs before measuring: a typewriter reveal must
+	// reach tc.Text in time to shorten what is painted. Measuring below
+	// still uses the full string, so a reveal reserves its final width
+	// and nothing around it reflows as the text types itself out.
+	animFrame := applyTextAnim(tv, w, layout.Shape)
+
 	// Measure what is painted, not what is stored: a password renders
 	// as bullets, whose advance differs from the raw text's. Measuring
 	// the raw text would size the box wrong and, for an Input, park the
@@ -133,6 +153,10 @@ func (tv *textView) GenerateLayout(w *Window) Layout {
 		layout.Shape.Height = layout.Shape.MinHeight
 	}
 	applyFixedSizingConstraints(layout.Shape)
+
+	// After sizing: the frame's scale and rotation turn about the
+	// measured box's center.
+	applyTextAnimTransform(tv, layout.Shape, animFrame)
 
 	if c.Focusable {
 		layout.Shape.events = textEventHandlers

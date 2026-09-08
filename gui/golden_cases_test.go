@@ -24,6 +24,88 @@ var goldenHSLA = HSLA{H: 210, S: 0.6, L: 0.5, A: 1}
 
 func goldenCases() []goldenCase {
 	return []goldenCase{
+		// The text animations, each pinned at one point in its cycle.
+		// build seeds the progress so the recording is deterministic:
+		// a live animation would record whatever frame the clock
+		// happened to land on. Seeding also marks the state done,
+		// which keeps the recording from starting a real animation.
+		//
+		// What these pin is the alpha and the painted string. They do
+		// not pin the transform: this harness runs with a nil
+		// TextMeasurer, so renderText can never build the glyph layout
+		// a transformed draw needs and always takes the plain
+		// RenderText path. TestTextAnimEmitsTransformedCommand covers
+		// the transform, with a stub measurer.
+		{
+			// Mid-fade, so the recording pins a partial alpha rather
+			// than the resting appearance a plain Text already covers.
+			name: "text_anim_fade",
+			build: func(w *Window) View {
+				seedTextAnim(w, "fade", 0.5)
+				return Text(TextCfg{
+					ID:   "fade",
+					Text: "Fading in",
+					Anim: TextAnimCfg{Kind: TextAnimFadeIn},
+				})
+			},
+		},
+		{
+			// Mid-slide. Here this pins the alpha the slide fades
+			// through; the offset itself rides the transform.
+			name: "text_anim_slide",
+			build: func(w *Window) View {
+				seedTextAnim(w, "slide", 0.25)
+				return Text(TextCfg{
+					ID:   "slide",
+					Text: "Sliding up",
+					Anim: TextAnimCfg{Kind: TextAnimSlideUp},
+				})
+			},
+		},
+		{
+			// Pop past its overshoot, where easeOutBack has carried
+			// progress above 1. This is the case that would notice the
+			// alpha clamp going missing and the color turning invalid.
+			name: "text_anim_pop",
+			build: func(w *Window) View {
+				seedTextAnim(w, "pop", 0.4)
+				return Text(TextCfg{
+					ID:   "pop",
+					Text: "Popping",
+					Anim: TextAnimCfg{Kind: TextAnimPop},
+				})
+			},
+		},
+		{
+			// The typewriter pins two things at once: the painted
+			// substring, and the full string's width beside it.
+			name: "text_anim_typewriter",
+			build: func(w *Window) View {
+				seedTextAnim(w, "type", 0.5)
+				return Text(TextCfg{
+					ID:   "type",
+					Text: "Typing this out",
+					Anim: TextAnimCfg{Kind: TextAnimTypewriter},
+				})
+			},
+		},
+		{
+			// Shimmer keeps its resting alpha: the sweep lives in the
+			// gradient, which the plain-text path carries but this
+			// serialization does not spell out.
+			name: "text_anim_shimmer",
+			build: func(w *Window) View {
+				seedTextAnim(w, "shimmer", 0.5)
+				return Text(TextCfg{
+					ID:   "shimmer",
+					Text: "Shimmering",
+					Anim: TextAnimCfg{
+						Kind:   TextAnimShimmer,
+						Repeat: true,
+					},
+				})
+			},
+		},
 		{
 			// The dock had no golden coverage at all (issue #389). One
 			// two-group split pins the tab strip, the separator, and the

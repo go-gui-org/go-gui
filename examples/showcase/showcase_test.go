@@ -85,10 +85,24 @@ func TestRelatedExamplesMap(t *testing.T) {
 	}
 }
 
+// docPageExempt names the catalog entries that carry no widget doc.
+// These pages build their own markdown source rather than reading it
+// from widgetDocFiles. Everything else must have a doc, which is what
+// keeps a new demo from shipping with an empty Docs panel.
+var docPageExempt = map[string]bool{
+	"welcome":  true,
+	"commands": true,
+	"sound":    true,
+}
+
 func TestComponentDocsExist(t *testing.T) {
-	for _, id := range []string{"data_source", "tree", "drag_reorder"} {
-		if doc := componentDoc(id); doc == "" {
-			t.Fatalf("expected docs for %s", id)
+	for _, entry := range demoEntries {
+		if docPageExempt[entry.ID] {
+			continue
+		}
+		if doc := componentDoc(entry.ID); doc == "" {
+			t.Errorf("no docs for %q; add docs/widget_%s.md and "+
+				"register it in widgetDocFiles", entry.ID, entry.ID)
 		}
 	}
 }
@@ -658,4 +672,39 @@ func TestSyncThemeGenFromCfgMirrorsDensity(t *testing.T) {
 	if got := app.ThemeGenScrollGap; got != 0 {
 		t.Errorf("ThemeGenScrollGap = %v, want 0", got)
 	}
+}
+
+func TestDemoTextAnimLayout(t *testing.T) {
+	// demoTextAnim reads app state for the replay counter, so this
+	// needs a window with the state slot filled, not a bare one.
+	w := gui.NewTestWindow(gui.WindowCfg{State: newShowcaseApp()})
+	layout := gui.GenerateViewLayout(demoTextAnim(w), w)
+
+	t.Run("entrance labels carry the replay counter", func(t *testing.T) {
+		// The counter is part of the ID, not a separate knob: that is
+		// what makes a click replay a one-shot animation.
+		for _, part := range []string{"fade", "slide-up", "slide-left", "pop"} {
+			id := gui.ScopeIDN("text-anim", part, 0)
+			if _, ok := layout.FindByID(id); !ok {
+				t.Fatalf("%s not found", id)
+			}
+		}
+	})
+
+	t.Run("loop and custom labels exist", func(t *testing.T) {
+		for _, id := range []string{
+			"text-anim-pulse", "text-anim-shimmer", "text-anim-shake",
+			"text-anim-typewriter", "text-anim-custom",
+		} {
+			if _, ok := layout.FindByID(id); !ok {
+				t.Fatalf("%s not found", id)
+			}
+		}
+	})
+
+	t.Run("replay button exists", func(t *testing.T) {
+		if _, ok := layout.FindByID("text-anim-replay"); !ok {
+			t.Fatal("text-anim-replay not found")
+		}
+	})
 }

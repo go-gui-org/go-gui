@@ -8,6 +8,54 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- **Canned text animations on `TextCfg.Anim` (#543)** — a `Text` can now animate
+  itself. `TextAnimCfg` takes a `Kind` — fade in or out, pulse, slide from any
+  of four directions, pop, shake, typewriter, shimmer — plus `Duration`,
+  `Delay`, `Easing` and `Repeat`. Every field has a default chosen per kind: an
+  entrance eases out over 300ms, a loop stays linear so its cycle joins up with
+  no seam, and a typewriter scales its duration with the length of the text.
+  `Custom func(p float32) TextAnimFrame` is the escape hatch for an effect no
+  kind covers, and `TextAnimFrame` is the same value the canned kinds produce:
+  opacity, reveal, offset, scale and rotation.
+
+  An animated text needs a non-empty `ID`, because the animation and its
+  progress are keyed by the effective ID — one without an ID is inert and is
+  reported under `gui.Debug`'s `DebugMissingIDs`, the same way a `Focusable`
+  shape with no ID already is. Nothing else changes for an existing `Text`: the
+  zero `TextAnimCfg` animates nothing.
+
+  Two behaviours worth knowing. A typewriter reserves the full string's width
+  while it types, so nothing around it reflows rune by rune. And an effect with
+  no motion — a fade or a pulse — deliberately installs no transform, which
+  keeps it on the fast text render path; only offset, scale and rotation pay for
+  the glyph-layout path.
+
+  Per-character effects (wave, staggered fade, rainbow) are not included: they
+  need per-glyph render commands in every backend. The `Kind` enum keeps that
+  boundary inside `gui/`, so they can land later without an API change.
+
+  `examples/animations/` gains a row of the looping kinds, and the showcase
+  gains a **Text Animation** page under Text, which adds the entrance kinds and
+  a Replay button. Replay works by giving the labels a new ID, which is how a
+  one-shot animation is retriggered today: progress is keyed by identity, so a
+  finished entrance stays finished until the identity changes.
+
+  The showcase's docs sweep now covers every catalog entry rather than three
+  hardcoded ones, so a demo cannot ship with an empty Docs panel again. That
+  turned up the Inspector page, which had no doc either; it has one now.
+
+### Fixed
+
+- **Markdown copy button read the animation map without its lock (#543)** — a
+  code block's copy button asked whether its check-mark animation was running
+  from inside a view function, which holds the frame lock but not the animation
+  lock, while the animation goroutine writes that same map. The read now goes
+  through `HasAnimation`. The race was latent: it needs some other widget on the
+  page to keep the animation loop running, which is what an animated text next
+  to a code block now does.
+
 ## [v0.71.0] - 2026-09-08
 
 ### Added

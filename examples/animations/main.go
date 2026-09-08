@@ -4,6 +4,7 @@
 package main
 
 import (
+	"math"
 	"time"
 
 	"flag"
@@ -26,6 +27,7 @@ import (
 // 5. KEYFRAME - multi-waypoint animation (shake effect)
 // 6. LAYOUT  - automatic position/size interpolation between frames
 // 7. HERO    - morph elements between different views
+// 8. TEXT    - canned per-widget text animations from TextCfg.Anim
 
 type AppState struct {
 	SidebarWidth float32
@@ -182,7 +184,67 @@ func mainView(w *gui.Window) gui.View {
 					}),
 				},
 			}),
+			textAnimPanel(),
 		},
+	})
+}
+
+// textAnimPanel shows the canned text animations. Unlike everything
+// above it, nothing here is wired to a button: an animation declared on
+// TextCfg.Anim registers itself the first time the text is generated
+// and retires on its own once the text leaves the view tree.
+//
+// The row is given an ID, so each label's effective ID is scoped to it
+// ("text_anim_row:pulse" and friends) and the same labels could be
+// dropped into a second panel without the two sharing progress.
+func textAnimPanel() gui.View {
+	// The loop kinds only. The entrance kinds play once and then sit at
+	// their resting appearance, which in a demo that stays open reads
+	// as a still label rather than as an animation.
+	return gui.Row(gui.ContainerCfg{
+		ID:      "text_anim_row",
+		Sizing:  gui.FillFit,
+		Spacing: gui.Some[float32](24),
+		Content: []gui.View{
+			animatedLabel("pulse", "Pulse", gui.TextAnimCfg{
+				Kind:   gui.TextAnimPulse,
+				Repeat: true,
+			}),
+			animatedLabel("shimmer", "Shimmer", gui.TextAnimCfg{
+				Kind:   gui.TextAnimShimmer,
+				Repeat: true,
+			}),
+			animatedLabel("shake", "Shake", gui.TextAnimCfg{
+				Kind:   gui.TextAnimShake,
+				Repeat: true,
+			}),
+			animatedLabel("type", "Typing this out", gui.TextAnimCfg{
+				Kind:   gui.TextAnimTypewriter,
+				Repeat: true,
+			}),
+			// The escape hatch: a rise and fall no canned kind covers,
+			// written as a function of progress.
+			animatedLabel("custom", "Custom", gui.TextAnimCfg{
+				Duration: 2 * time.Second,
+				Repeat:   true,
+				Custom: func(p float32) gui.TextAnimFrame {
+					return gui.TextAnimFrame{
+						OffsetY:  6 * float32(math.Sin(float64(p)*2*math.Pi)),
+						Rotation: 0.1 * float32(math.Sin(float64(p)*4*math.Pi)),
+					}
+				},
+			}),
+		},
+	})
+}
+
+// animatedLabel is one entry in the text animation row. Every animated
+// text needs an ID: the animation and its progress are keyed by it.
+func animatedLabel(id, text string, anim gui.TextAnimCfg) gui.View {
+	return gui.Text(gui.TextCfg{
+		ID:   id,
+		Text: text,
+		Anim: anim,
 	})
 }
 

@@ -65,6 +65,10 @@ const (
 	// debugCheckUnknownFocus fires from the frame audit when the
 	// window's focus ID names no focusable shape in the frame.
 	debugCheckUnknownFocus
+	// debugCheckTextAnimNoID fires from applyTextAnim when a TextCfg
+	// asks for an animation but carries no ID; the animation and its
+	// progress are keyed by identity, so there is nothing to key on.
+	debugCheckTextAnimNoID
 )
 
 // checkCategory maps an internal check to the public category that
@@ -74,7 +78,8 @@ func checkCategory(check debugCheck) DebugCategory {
 	switch check {
 	case debugCheckDupID:
 		return DebugDuplicates
-	case debugCheckFocusNoID, debugCheckScrollNoID, debugCheckMouseLeaveNoID:
+	case debugCheckFocusNoID, debugCheckScrollNoID,
+		debugCheckMouseLeaveNoID, debugCheckTextAnimNoID:
 		return DebugMissingIDs
 	case debugCheckUnconsumed:
 		return DebugUnconsumed
