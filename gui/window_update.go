@@ -353,6 +353,11 @@ func (w *Window) updateLocked() {
 	}
 
 	w.layout = composeLayout(layers, w)
+	// Repair focus before anything reads it: a widget disabled or
+	// removed since the last frame cannot keep holding it. Runs under
+	// w.mu, ahead of the debug audit and renderer build, so neither
+	// sees the dead ID.
+	w.fixupFocusLocked()
 	// Dev-mode identity checks. One atomic load when the gate is off.
 	w.debugAudit(&w.layout)
 	w.buildRenderers(w.Config.BgColor, w.windowRect())

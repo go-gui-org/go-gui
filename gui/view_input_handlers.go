@@ -39,6 +39,7 @@ func inputTextChange(hcfg inputHandlerCfg, layout *Layout, text, ins string, id 
 			if adjusted == proposed {
 				text = inputInsert(text, ins, id, w)
 			} else {
+				adjusted = capCallbackText(adjusted)
 				inputSetTextAndCursorAtEnd(
 					text, adjusted, id, w)
 				text = adjusted
@@ -59,6 +60,11 @@ func inputTextChange(hcfg inputHandlerCfg, layout *Layout, text, ins string, id 
 
 func makeInputOnChar(hcfg inputHandlerCfg) func(EventCtx) {
 	return func(ctx EventCtx) {
+		// No originating event (a synthetic dispatch): there is no
+		// character to insert, so decline and let it travel on.
+		if ctx.Event == nil {
+			return
+		}
 		// The captured IDs are leaves (Input builds its tree with no
 		// Window in hand); ctx.EffID turns them into the identities the
 		// focus and state stores hold.
@@ -123,6 +129,10 @@ func inputKeyMutatesText(e *Event, mode inputMode) bool {
 func makeInputOnKeyDown(hcfg inputHandlerCfg) func(EventCtx) {
 	mask := hcfg.CompiledMask
 	return func(ctx EventCtx) {
+		// No originating event: no key to act on, so decline.
+		if ctx.Event == nil {
+			return
+		}
 		id := ctx.EffID(hcfg.FocusID)
 		if id == "" || !ctx.Window.IsFocus(id) {
 			return
@@ -226,6 +236,10 @@ func makeInputOnKeyDown(hcfg inputHandlerCfg) func(EventCtx) {
 
 func makeInputOnKeyUp(hcfg inputHandlerCfg) func(EventCtx) {
 	return func(ctx EventCtx) {
+		// No originating event: nothing to forward, so decline.
+		if ctx.Event == nil {
+			return
+		}
 		id := ctx.EffID(hcfg.FocusID)
 		if id == "" || !ctx.Window.IsFocus(id) {
 			return

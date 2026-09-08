@@ -13,6 +13,13 @@ import (
 // selection owner cannot hang the UI thread.
 const clipReadTimeout = time.Second
 
+// maxClipboardChars bounds a clipboard read. Any process can place
+// arbitrary data on the selection, so a hostile owner must not grow
+// our buffer past this. Twin of the Win32 bound in platform_win32.go;
+// the two files never compile together, so the constant lives in
+// both rather than behind a third build tag.
+const maxClipboardChars = 16 << 20
+
 // selectionState returns pointers to the cached text and owner flag backing
 // sel, so the set/get/serve paths can treat CLIPBOARD and PRIMARY uniformly.
 // Reports false for any other selection (e.g. SECONDARY), which we neither
@@ -149,8 +156,11 @@ func readClipProperty(conn *xgb.Conn, win xproto.Window, prop xproto.Atom) strin
 		if err != nil || reply == nil || reply.Format == 0 {
 			break
 		}
-		out = append(out, reply.Value...)
-		if reply.BytesAfter == 0 {
+		buf, room := appendClipChunk(out, reply.Value, maxClipboardChars)
+		out = buf
+		// Done when the owner has no more, or when the cap stopped
+		// the buffer: the owner may have more, but we stop.
+		if reply.BytesAfter == 0 || !room {
 			break
 		}
 		// long-offset is in 32-bit units; ValueLen counts Format/8 (=1)

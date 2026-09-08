@@ -201,6 +201,18 @@ func inputInsert(text string, insertText string, focusID string, w *Window) stri
 	return nextText
 }
 
+// capCallbackText bounds text an app callback returns (PreTextChange
+// adjusted, PostCommitNormalize output). The callback is trusted code
+// but not size-checked code: without a bound one runaway return pins
+// unbounded memory in per-window state. inputMaxInsertRunes is the
+// same budget keystroke inserts get.
+func capCallbackText(s string) string {
+	if utf8RuneCount(s) <= inputMaxInsertRunes {
+		return s
+	}
+	return s[:runeToByteIndex(s, inputMaxInsertRunes)]
+}
+
 // inputSetTextAndCursorAtEnd pushes undo and places cursor at end
 // of newText. Used when PreTextChange returns adjusted text where
 // positional cursor mapping is unreliable.
@@ -369,7 +381,9 @@ func inputSelectAll(text string, focusID string, w *Window) {
 }
 
 // updateCursorAndSelection moves cursor to newPos, extending
-// or resetting selection based on shift modifier.
+// or resetting selection based on shift modifier. Negative positions
+// (corrupt state, never produced by the cursor functions) clamp to
+// zero rather than wrapping through the uint32 selection casts below.
 func updateCursorAndSelection(
 	imap *BoundedMap[string, inputState],
 	focusID string,
@@ -377,14 +391,16 @@ func updateCursorAndSelection(
 	newPos int,
 	isShift bool,
 ) {
+	newPos = max(newPos, 0)
+	anchor := max(is.CursorPos, 0)
 	if isShift {
 		if is.selectBeg == is.selectEnd {
 			// Start new selection from current cursor.
-			is.selectBeg = uint32(is.CursorPos)
+			is.selectBeg = uint32(anchor)
 			is.selectEnd = uint32(newPos)
 		} else {
 			// Extend: move the end that matches current cursor.
-			if uint32(is.CursorPos) == is.selectEnd {
+			if uint32(anchor) == is.selectEnd {
 				is.selectEnd = uint32(newPos)
 			} else {
 				is.selectBeg = uint32(newPos)

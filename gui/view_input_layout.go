@@ -310,6 +310,10 @@ func dragScrollDelta(pos, lo, hi float32) float32 {
 func startInputDrag(d *inputDragState, w *Window) {
 	w.MouseLock(MouseLockCfg{
 		MouseMove: func(ctx EventCtx) {
+			// No originating event: no pointer position, so decline.
+			if ctx.Event == nil {
+				return
+			}
 			d.lastMouseX = ctx.Event.MouseX
 			d.lastMouseY = ctx.Event.MouseY
 			rp := d.computeRunePos(ctx.Event.MouseX, ctx.Event.MouseY, ctx.Window)

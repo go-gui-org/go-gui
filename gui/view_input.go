@@ -43,13 +43,15 @@ type InputCfg struct {
 	// proposed), or ("", false) to reject. Undo/redo bypass this
 	// callback by design — if security invariants (max length,
 	// forbidden chars) must be enforced unconditionally, use
-	// OnTextChanged instead.
+	// OnTextChanged instead. Adjusted text is capped at
+	// inputMaxInsertRunes runes.
 	// exportaudit:keep — caller-facing config (issue #372)
 	PreTextChange func(current, proposed string) (string, bool)
 
 	// PostCommitNormalize transforms the final text before
 	// OnTextCommit fires. Use for trimming whitespace,
-	// normalizing case, or formatting.
+	// normalizing case, or formatting. Returned text is capped at
+	// inputMaxInsertRunes runes.
 	// exportaudit:keep — caller-facing config (issue #372)
 	PostCommitNormalize func(text string, reason InputCommitReason) string
 
@@ -470,7 +472,7 @@ func (h *inputHandlerCfg) normalizeOnCommit(
 	if h.ReadOnly || h.postCommitNormalize == nil {
 		return text
 	}
-	return h.postCommitNormalize(text, reason)
+	return capCallbackText(h.postCommitNormalize(text, reason))
 }
 
 // compiledMask returns a non-nil *CompiledInputMask if the
@@ -483,10 +485,22 @@ func (h *inputHandlerCfg) compiledMask() *CompiledInputMask {
 	if pattern == "" {
 		return nil
 	}
+	// No custom tokens: share one compiled instance per pattern
+	// across every field and frame, because a mask is read-only
+	// after compile and recompiling per generation is pure garbage.
+	if len(h.maskTokens) == 0 {
+		if c := cachedCompiledMask(pattern); c != nil {
+			return c
+		}
+	}
 	c, err := compileInputMask(pattern, h.maskTokens)
 	if err != nil {
 		log.Printf("input: mask compile failed: %v", err)
 		return nil
+	}
+	if len(h.maskTokens) == 0 {
+		storeCompiledMaskCache(pattern, &c)
+		return &c
 	}
 	return &c
 }
@@ -513,6 +527,11 @@ func inputScrollIDFor(cfg *InputCfg) string {
 // of its own (see Shape.focusOwner).
 func inputOnClick(leafID, leafScrollID string, canFocus bool) func(EventCtx) {
 	return func(ctx EventCtx) {
+		// Cursor placement needs the click coordinates and the inner
+		// tree; without either there is nothing to place.
+		if ctx.Event == nil || ctx.Layout == nil {
+			return
+		}
 		if len(ctx.Layout.Children) < 1 {
 			// No inner text shape: not ours
 			return

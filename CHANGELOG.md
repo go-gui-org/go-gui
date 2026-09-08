@@ -10,6 +10,23 @@ and this project adheres to
 
 ### Added
 
+- **Shaper refusals are reported instead of degrading silently** — text the
+  glyph shaper refuses, past its 10KB byte budget for example, falls back to
+  approximate metrics: caret placement, selection rectangles and grapheme-aware
+  delete all lose precision with nothing saying why. The new
+  `DebugGlyphLayoutFallback` category (part of `DebugAll`) reports the shape
+  once, with its byte length and the shaper's error.
+
+  Profiling behind this: a keypress reshapes the whole buffer on every
+  keystroke, linear in bytes (about 2.4ms and 7MB of garbage at 10KB of ASCII),
+  because the layout cache keys on the full text and the caret needs character
+  boundaries. Typical fields under 1KB cost about 0.25ms. An allocation gate
+  (`TestInputKeypressAllocBudget`, 10KB field, real shaper) pins the
+  steady-state budget so it cannot regress unnoticed; timing stays out of the
+  gate as machine variance. Windowed or incremental shaping was rejected:
+  shaping is not prefix-stable under wrapping and ligatures, and a wrong caret
+  is worse than a slow one.
+
 - **Canned text animations on `TextCfg.Anim` (#543)** — a `Text` can now animate
   itself. `TextAnimCfg` takes a `Kind` — fade in or out, pulse, slide from any
   of four directions, pop, shake, typewriter, shimmer — plus `Duration`,
@@ -55,6 +72,28 @@ and this project adheres to
   through `HasAnimation`. The race was latent: it needs some other widget on the
   page to keep the animation loop running, which is what an animated text next
   to a code block now does.
+
+- **Focus follows a widget that loses it** — disabling or removing the focused
+  widget moves focus to the first tab stop (or clears it when none remains) on
+  the next frame, instead of parking it on a dead ID that swallowed keys
+  silently. One shared predicate — focusable, non-empty ID, not disabled — now
+  decides dispatch, tab order, mouse focus, test targeting and the debug gate
+  together, so the five can no longer disagree. Behavior change: `SetFocus` on a
+  disabled or absent ID does not stick past the frame; the blur commit for the
+  old field still fires through the usual `AmendLayout` path.
+
+- **Untrusted text is size-bounded** — the X11 clipboard read stops at 16 MiB,
+  matching the Win32 bound, so a hostile selection owner cannot grow the buffer
+  without bound; `PreTextChange` and `PostCommitNormalize` returns are capped at
+  the keystroke insert budget, so one runaway callback cannot pin unbounded
+  per-window state.
+
+- **Input hardening and cheaper masks** — char/key/click handlers with no
+  originating event decline instead of panicking, negative cursor positions
+  clamp instead of wrapping through the selection casts, event dispatch and
+  focus lookups stop descending past 256 levels, and mask patterns without
+  custom tokens share one compiled instance (an alloc-gate test pins the
+  per-generation budget) instead of recompiling on every frame.
 
 ## [v0.71.0] - 2026-09-08
 

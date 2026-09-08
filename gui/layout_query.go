@@ -32,11 +32,18 @@ func (layout *Layout) FindLayout(predicate func(Layout) bool) (*Layout, bool) {
 // resolves to under its ID-bearing ancestors, which is what the focus
 // store holds.
 func findLayoutByFocusID(layout *Layout, id string) (*Layout, bool) {
+	return findLayoutByFocusIDDepth(layout, id, 0)
+}
+
+func findLayoutByFocusIDDepth(layout *Layout, id string, depth int) (*Layout, bool) {
+	if overMaxDepth(depth) {
+		return nil, false
+	}
 	if id != "" && layout.Shape.Focusable && layout.Shape.idKey() == id {
 		return layout, true
 	}
 	for i := range layout.Children {
-		if ly, ok := findLayoutByFocusID(&layout.Children[i], id); ok {
+		if ly, ok := findLayoutByFocusIDDepth(&layout.Children[i], id, depth+1); ok {
 			return ly, true
 		}
 	}
@@ -47,11 +54,18 @@ func findLayoutByFocusID(layout *Layout, id string) (*Layout, bool) {
 // with matching scroll ID. An empty id never matches. id is an
 // effective ID, as in [FindLayoutByFocusID].
 func findLayoutByScrollID(layout *Layout, id string) (*Layout, bool) {
+	return findLayoutByScrollIDDepth(layout, id, 0)
+}
+
+func findLayoutByScrollIDDepth(layout *Layout, id string, depth int) (*Layout, bool) {
+	if overMaxDepth(depth) {
+		return nil, false
+	}
 	if id != "" && layout.Shape.Scrollable && layout.Shape.idKey() == id {
 		return layout, true
 	}
 	for i := range layout.Children {
-		if ly, ok := findLayoutByScrollID(&layout.Children[i], id); ok {
+		if ly, ok := findLayoutByScrollIDDepth(&layout.Children[i], id, depth+1); ok {
 			return ly, true
 		}
 	}
@@ -88,6 +102,13 @@ func (layout *Layout) FindByID(id string) (*Layout, bool) {
 // for callers whose miss is a legitimate answer rather than a
 // misspelling.
 func (layout *Layout) findByID(id string) (*Layout, bool) {
+	return layout.findByIDDepth(id, 0)
+}
+
+func (layout *Layout) findByIDDepth(id string, depth int) (*Layout, bool) {
+	if overMaxDepth(depth) {
+		return nil, false
+	}
 	if id == "" {
 		return nil, false
 	}
@@ -98,7 +119,7 @@ func (layout *Layout) findByID(id string) (*Layout, bool) {
 		return layout, true
 	}
 	for i := range layout.Children {
-		if res, ok := layout.Children[i].findByID(id); ok {
+		if res, ok := layout.Children[i].findByIDDepth(id, depth+1); ok {
 			return res, true
 		}
 	}
@@ -111,8 +132,15 @@ type focusCandidate struct {
 }
 
 func collectFocusCandidates(layout *Layout, candidates *[]focusCandidate, seen map[string]struct{}) {
+	collectFocusCandidatesDepth(layout, candidates, seen, 0)
+}
+
+func collectFocusCandidatesDepth(layout *Layout, candidates *[]focusCandidate, seen map[string]struct{}, depth int) {
+	if overMaxDepth(depth) {
+		return
+	}
 	s := layout.Shape
-	if s.Focusable && !s.FocusSkip && !s.Disabled && s.ID != "" {
+	if s.canTakeFocus() && !s.FocusSkip {
 		// Candidates carry the effective ID: it is what the focus store
 		// holds, so it is what focusFindNext/Previous compare against.
 		//
@@ -129,7 +157,7 @@ func collectFocusCandidates(layout *Layout, candidates *[]focusCandidate, seen m
 		}
 	}
 	for i := range layout.Children {
-		collectFocusCandidates(&layout.Children[i], candidates, seen)
+		collectFocusCandidatesDepth(&layout.Children[i], candidates, seen, depth+1)
 	}
 }
 

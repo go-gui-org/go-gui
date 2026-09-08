@@ -69,12 +69,6 @@ func TestByteToRuneIndex(t *testing.T) {
 	assertEqual(t, byteToRuneIndex(text, 4), 2)
 }
 
-func TestSelectionRange(t *testing.T) {
-	beg, end := selectionRange(5, 2)
-	assertEqual(t, int(beg), 2)
-	assertEqual(t, int(end), 5)
-}
-
 func assertEqual(t *testing.T, got, want int) {
 	t.Helper()
 	if got != want {

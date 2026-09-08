@@ -2,18 +2,46 @@ package gui
 
 import "slices"
 
+// Event consumption convention, stated once because the two spellings
+// look interchangeable and are not. A shape callback holding an
+// EventCtx reports by calling ctx.Consume(); one that does not lets
+// the event travel on, and there is no ctx.Bubble. Dispatch internals
+// and (e, w) helpers below them hold no ctx, so they set e.IsHandled
+// directly — including the spacebar/enter-to-click pre-marks, which
+// claim the key for click activation before the callback runs.
+
 // maxEventChildren caps traversal depth to prevent DoS from
 // maliciously deep or wide layout trees.
 const maxEventChildren = 10000
+
+// maxEventDepth caps recursion depth for the tree walks below. The
+// breadth guard above cannot see a chain of single-child layouts,
+// which would otherwise recurse until the stack gives out. Real trees
+// nest dozens deep at most; past this the walk stops descending, so
+// the frame drops input rather than the process.
+const maxEventDepth = 256
 
 // overMaxChildren reports whether layout has excessive children.
 func overMaxChildren(layout *Layout) bool {
 	return len(layout.Children) > maxEventChildren
 }
 
+// overMaxDepth reports whether a tree walk has descended past the
+// depth budget.
+func overMaxDepth(depth int) bool {
+	return depth > maxEventDepth
+}
+
 // charHandler handles character input events (typing).
 // Traverses forward (depth-first) and delivers to focused element.
 func charHandler(layout *Layout, e *Event, w *Window) {
+	charHandlerDepth(layout, e, w, 0)
+}
+
+func charHandlerDepth(layout *Layout, e *Event, w *Window, depth int) {
+	if overMaxDepth(depth) {
+		return
+	}
 	if overMaxChildren(layout) {
 		return
 	}
@@ -21,7 +49,7 @@ func charHandler(layout *Layout, e *Event, w *Window) {
 		if !isChildEnabled(&layout.Children[i]) {
 			continue
 		}
-		charHandler(&layout.Children[i], e, w)
+		charHandlerDepth(&layout.Children[i], e, w, depth+1)
 		if e.IsHandled {
 			return
 		}
@@ -35,15 +63,15 @@ func charHandler(layout *Layout, e *Event, w *Window) {
 		onChar = layout.Shape.events.OnChar
 		events = layout.Shape.events
 	}
-	// OnChar is consume-class: pre-marked handled before the callback.
+	// Delivers to the focused target, which consumes explicitly.
 	if executeFocusCallback(layout, e, w, onChar, evChar) {
 		return
 	}
 	// Spacebar-to-click: when ClickOnSpace is set, fire OnClick
 	// on spacebar instead of requiring a separate OnChar wrapper.
-	// OnClick is consume-class, so pre-mark before the call rather
-	// than marking after — marking after would override a
-	// ctx.Bubble() the callback made.
+	// The space is claimed for click activation before the call, so
+	// it never also types; an OnClick that declines cannot release
+	// it back to the character path.
 	if events != nil &&
 		events.clickOnSpace &&
 		e.CharCode == charSpace &&
@@ -67,6 +95,13 @@ func imeCompositionHandler(_ *Layout, e *Event, w *Window) {
 // Traverses forward and delivers to focused element. Falls back to
 // keyboard scroll if the focused scroll container has no handler.
 func keydownHandler(layout *Layout, e *Event, w *Window) {
+	keydownHandlerDepth(layout, e, w, 0)
+}
+
+func keydownHandlerDepth(layout *Layout, e *Event, w *Window, depth int) {
+	if overMaxDepth(depth) {
+		return
+	}
 
 	// Guard against excessive children count to prevent DoS.
 	if overMaxChildren(layout) {
@@ -77,7 +112,7 @@ func keydownHandler(layout *Layout, e *Event, w *Window) {
 		if !isChildEnabled(&layout.Children[i]) {
 			continue
 		}
-		keydownHandler(&layout.Children[i], e, w)
+		keydownHandlerDepth(&layout.Children[i], e, w, depth+1)
 		if e.IsHandled {
 			return
 		}
@@ -91,17 +126,17 @@ func keydownHandler(layout *Layout, e *Event, w *Window) {
 		onKeyDown = layout.Shape.events.OnKeyDown
 		events = layout.Shape.events
 	}
-	// OnKeyDown is notify-class: it receives every key, so auto-consume
-	// would silently kill tab traversal and accelerators in any widget
-	// that has a key handler.
+	// Nothing is pre-marked: OnKeyDown receives every key, so an
+	// implicit claim here would silently kill tab traversal and
+	// accelerators in any widget that has a key handler.
 	executeFocusCallback(layout, e, w, onKeyDown, evNotify)
 	if e.IsHandled {
 		return
 	}
 	// Enter-to-click: when ClickOnEnter is set, fire OnClick on
 	// Enter key instead of requiring a separate OnKeyDown wrapper.
-	// OnClick is consume-class, so pre-mark here — the surrounding
-	// OnKeyDown dispatch does not.
+	// Claimed here, the way the spacebar path above claims its key:
+	// the surrounding OnKeyDown dispatch never pre-marks.
 	if events != nil &&
 		events.clickOnEnter &&
 		e.KeyCode == KeyEnter &&
@@ -119,8 +154,16 @@ func keydownHandler(layout *Layout, e *Event, w *Window) {
 // keyupHandler handles key up events.
 // Traverses forward and delivers to focused element.
 func keyupHandler(layout *Layout, e *Event, w *Window) {
+	keyupHandlerDepth(layout, e, w, 0)
+}
+
+func keyupHandlerDepth(layout *Layout, e *Event, w *Window, depth int) {
 	// Guard against nil layout to prevent panic
 	if layout == nil {
+		return
+	}
+
+	if overMaxDepth(depth) {
 		return
 	}
 
@@ -133,7 +176,7 @@ func keyupHandler(layout *Layout, e *Event, w *Window) {
 		if !isChildEnabled(&layout.Children[i]) {
 			continue
 		}
-		keyupHandler(&layout.Children[i], e, w)
+		keyupHandlerDepth(&layout.Children[i], e, w, depth+1)
 		if e.IsHandled {
 			return
 		}
@@ -145,7 +188,7 @@ func keyupHandler(layout *Layout, e *Event, w *Window) {
 	if layout.Shape.hasEvents() {
 		onKeyUp = layout.Shape.events.OnKeyUp
 	}
-	// OnKeyUp is notify-class, like OnKeyDown.
+	// OnKeyUp, like OnKeyDown, is never pre-marked.
 	executeFocusCallback(layout, e, w, onKeyUp, evNotify)
 }
 
@@ -194,6 +237,15 @@ func keyDownScrollHandler(layout *Layout, e *Event, w *Window) {
 func mouseDownHandler(
 	layout *Layout, inHandler bool, e *Event, w *Window,
 ) {
+	mouseDownHandlerDepth(layout, inHandler, e, w, 0)
+}
+
+func mouseDownHandlerDepth(
+	layout *Layout, inHandler bool, e *Event, w *Window, depth int,
+) {
+	if overMaxDepth(depth) {
+		return
+	}
 	// Check mouse lock (only at top level).
 	if !inHandler {
 		if w.viewState.mouseLock.mouseDown != nil {
@@ -207,7 +259,7 @@ func mouseDownHandler(
 		if !isChildEnabled(&layout.Children[i]) {
 			continue
 		}
-		mouseDownHandler(&layout.Children[i], true, e, w)
+		mouseDownHandlerDepth(&layout.Children[i], true, e, w, depth+1)
 		if e.IsHandled {
 			e.MouseX, e.MouseY = ox, oy
 			return
@@ -218,7 +270,7 @@ func mouseDownHandler(
 		return
 	}
 	if layout.Shape.PointInShape(e.MouseX, e.MouseY) {
-		if layout.Shape.Focusable && layout.Shape.ID != "" &&
+		if layout.Shape.canTakeFocus() &&
 			e.MouseButton != MouseRight {
 			w.SetFocus(layout.Shape.idKey())
 			e.IsHandled = true
@@ -227,7 +279,8 @@ func mouseDownHandler(
 		if layout.Shape.hasEvents() {
 			onMouseDown = layout.Shape.events.OnMouseDown
 		}
-		// OnMouseDown is consume-class.
+		// evMouseDown names the event for the unconsumed-event debug
+		// check; the callback itself consumes explicitly.
 		executeMouseCallback(layout, e, w, onMouseDown, evMouseDown)
 		var onClick shapeCallback
 		if layout.Shape.hasEvents() {
@@ -237,7 +290,8 @@ func mouseDownHandler(
 				onClick = events.OnClick
 			}
 		}
-		// OnClick is consume-class.
+		// evClick additionally plays the shape's click cue before
+		// the callback, independently of whether it consumes.
 		executeMouseCallback(layout, e, w, onClick, evClick)
 	}
 }
@@ -245,6 +299,13 @@ func mouseDownHandler(
 // mouseMoveHandler handles mouse movement events.
 // Traverses reverse (topmost first).
 func mouseMoveHandler(layout *Layout, e *Event, w *Window) {
+	mouseMoveHandlerDepth(layout, e, w, 0)
+}
+
+func mouseMoveHandlerDepth(layout *Layout, e *Event, w *Window, depth int) {
+	if overMaxDepth(depth) {
+		return
+	}
 	if w.viewState.mouseLock.MouseMove != nil {
 		w.viewState.mouseLock.MouseMove(EventCtx{layout, e, w})
 		return
@@ -257,7 +318,7 @@ func mouseMoveHandler(layout *Layout, e *Event, w *Window) {
 		if !isChildEnabled(&layout.Children[i]) {
 			continue
 		}
-		mouseMoveHandler(&layout.Children[i], e, w)
+		mouseMoveHandlerDepth(&layout.Children[i], e, w, depth+1)
 		if e.IsHandled {
 			e.MouseX, e.MouseY = ox, oy
 			return
@@ -271,14 +332,21 @@ func mouseMoveHandler(layout *Layout, e *Event, w *Window) {
 	if layout.Shape.hasEvents() {
 		onMouseMove = layout.Shape.events.OnMouseMove
 	}
-	// OnMouseMove is notify-class: nested shapes legitimately all
-	// want move notifications.
+	// evNotify carries no ancestor rule, so nested shapes
+	// legitimately all want move notifications.
 	executeMouseCallback(layout, e, w, onMouseMove, evNotify)
 }
 
 // mouseUpHandler handles mouse button release events.
 // Traverses reverse (topmost first).
 func mouseUpHandler(layout *Layout, e *Event, w *Window) {
+	mouseUpHandlerDepth(layout, e, w, 0)
+}
+
+func mouseUpHandlerDepth(layout *Layout, e *Event, w *Window, depth int) {
+	if overMaxDepth(depth) {
+		return
+	}
 	if w.viewState.mouseLock.MouseUp != nil {
 		w.viewState.mouseLock.MouseUp(EventCtx{layout, e, w})
 		return
@@ -288,7 +356,7 @@ func mouseUpHandler(layout *Layout, e *Event, w *Window) {
 		if !isChildEnabled(&layout.Children[i]) {
 			continue
 		}
-		mouseUpHandler(&layout.Children[i], e, w)
+		mouseUpHandlerDepth(&layout.Children[i], e, w, depth+1)
 		if e.IsHandled {
 			e.MouseX, e.MouseY = ox, oy
 			return
@@ -302,7 +370,8 @@ func mouseUpHandler(layout *Layout, e *Event, w *Window) {
 	if layout.Shape.hasEvents() {
 		onMouseUp = layout.Shape.events.OnMouseUp
 	}
-	// OnMouseUp is consume-class.
+	// evMouseUp names the event for the unconsumed-event debug
+	// check; the callback itself consumes explicitly.
 	executeMouseCallback(layout, e, w, onMouseUp, evMouseUp)
 }
 
@@ -328,8 +397,9 @@ func focusedScrollTarget(layout *Layout, w *Window) *Layout {
 // and falls back to the scroll container under cursor.
 func mouseScrollHandler(layout *Layout, e *Event, w *Window) {
 	if ly := focusedScrollTarget(layout, w); ly != nil {
-		// OnMouseScroll is notify-class: cascade-on-unhandled is the
-		// designed contract, so there is no pre-mark here.
+		// Cascade-on-unhandled is the designed contract, so there
+		// is no pre-mark here: an unhandled scroll falls through to
+		// the container below.
 		if callRelative(ly, e, w, ly.Shape.events.OnMouseScroll, evNotify) {
 			return
 		}
@@ -338,12 +408,19 @@ func mouseScrollHandler(layout *Layout, e *Event, w *Window) {
 }
 
 func mouseScrollFallbackHandler(layout *Layout, e *Event, w *Window) {
+	mouseScrollFallbackHandlerDepth(layout, e, w, 0)
+}
+
+func mouseScrollFallbackHandlerDepth(layout *Layout, e *Event, w *Window, depth int) {
+	if overMaxDepth(depth) {
+		return
+	}
 	ox, oy := rotateMouseInverse(layout.Shape, e)
 	for i := range slices.Backward(layout.Children) {
 		if !isChildEnabled(&layout.Children[i]) {
 			continue
 		}
-		mouseScrollFallbackHandler(&layout.Children[i], e, w)
+		mouseScrollFallbackHandlerDepth(&layout.Children[i], e, w, depth+1)
 		if e.IsHandled {
 			e.MouseX, e.MouseY = ox, oy
 			return
@@ -357,8 +434,8 @@ func mouseScrollFallbackHandler(layout *Layout, e *Event, w *Window) {
 	if layout.Shape.hasEvents() &&
 		layout.Shape.events.OnMouseScroll != nil {
 		if layout.Shape.PointInShape(e.MouseX, e.MouseY) {
-			// Notify-class: no pre-mark, so an unhandled scroll falls
-			// through to the scroll container below.
+			// No pre-mark, so an unhandled scroll falls through to
+			// the scroll container below.
 			layout.Shape.events.OnMouseScroll(EventCtx{layout, e, w})
 			if e.IsHandled {
 				return
@@ -391,12 +468,19 @@ func mouseScrollFallbackHandler(layout *Layout, e *Event, w *Window) {
 
 // fileDropHandler handles file-drop events. Does not change focus.
 func fileDropHandler(layout *Layout, e *Event, w *Window) {
+	fileDropHandlerDepth(layout, e, w, 0)
+}
+
+func fileDropHandlerDepth(layout *Layout, e *Event, w *Window, depth int) {
+	if overMaxDepth(depth) {
+		return
+	}
 	ox, oy := rotateMouseInverse(layout.Shape, e)
 	for i := range slices.Backward(layout.Children) {
 		if !isChildEnabled(&layout.Children[i]) {
 			continue
 		}
-		fileDropHandler(&layout.Children[i], e, w)
+		fileDropHandlerDepth(&layout.Children[i], e, w, depth+1)
 		if e.IsHandled {
 			e.MouseX, e.MouseY = ox, oy
 			return
@@ -410,6 +494,7 @@ func fileDropHandler(layout *Layout, e *Event, w *Window) {
 	if layout.Shape.hasEvents() {
 		onFileDrop = layout.Shape.events.OnFileDrop
 	}
-	// OnFileDrop is consume-class.
+	// evFileDrop names the event for the unconsumed-event debug
+	// check; the callback itself consumes explicitly.
 	executeMouseCallback(layout, e, w, onFileDrop, evFileDrop)
 }

@@ -211,6 +211,15 @@ const (
 	// exportaudit:keep — dev-diagnostic API for app authors
 	DebugUnknownLookup
 
+	// DebugGlyphLayoutFallback reports a text shape the glyph shaper
+	// refused — past its byte budget, for example — so the frame fell
+	// back to approximate metrics. Caret placement, selection
+	// rectangles and grapheme-aware delete all lose precision past
+	// that point, silently without this finding: nothing errors, the
+	// text still renders, only the boundaries drift.
+	// exportaudit:keep — dev-diagnostic API for app authors
+	DebugGlyphLayoutFallback
+
 	// DebugAll is every category [Debug] turns on. [DebugUnscopedIDs]
 	// is deliberately absent: it reports a design property rather than
 	// a defect, and fires on widgets that are correct as written.
@@ -218,7 +227,8 @@ const (
 	DebugAll = DebugDuplicates | DebugMissingIDs | DebugUnconsumed |
 		DebugListBoxNoHeight | DebugGradientResampled | DebugWrapOverflow |
 		DebugCallbacks | DebugWindowDegraded | DebugUnresolvedKeys |
-		DebugUnknownFocus | DebugStampDrift | DebugUnknownLookup
+		DebugUnknownFocus | DebugStampDrift | DebugUnknownLookup |
+		DebugGlyphLayoutFallback
 )
 
 func init() {
@@ -522,7 +532,7 @@ func (w *Window) debugCheckShape(s *Shape, path []int, ids *debugIDs) {
 		// the string the stores and the public APIs use.
 		key := s.idKey()
 		ids.noteScoped(s.ID, key)
-		if s.Focusable {
+		if s.canTakeFocus() {
 			if ids.focusable == nil {
 				ids.focusable = make(map[string]struct{})
 			}

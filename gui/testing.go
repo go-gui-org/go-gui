@@ -252,15 +252,16 @@ func (w *Window) TestClick(id string) error {
 }
 
 // testFocusable resolves id and rejects it unless it can actually hold
-// focus. Both conditions are required by isFocusedTarget; a widget with
-// Focusable set but no ID is the silent no-op the requiredid analyzer
-// and the RequireID panic exist to prevent.
+// focus. Decided by Shape.canTakeFocus, the same predicate dispatch
+// and tab order use; a widget with Focusable set but no ID is the
+// silent no-op the requiredid analyzer and the RequireID panic exist
+// to prevent.
 func (w *Window) testFocusable(id string) (*Layout, error) {
 	ly, err := w.testTarget(id)
 	if err != nil {
 		return nil, err
 	}
-	if !ly.Shape.Focusable {
+	if !ly.Shape.canTakeFocus() {
 		return nil, fmt.Errorf("%w: %q", errTestNotFocusable, id)
 	}
 	return ly, nil

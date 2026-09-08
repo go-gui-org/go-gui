@@ -21,6 +21,11 @@ func (w *Window) FocusID() string {
 // id is the widget's effective ID: a leaf under an ID-bearing
 // ancestor is addressed by its full path ("detail:nav"), not by the
 // leaf its Cfg was written with. Read it back with [Window.ResolveID].
+// No existence check runs here — a View function may set focus before
+// the widget exists — so a misspelled or stale ID parks focus in the
+// void until the next frame's fixup moves it on. Turn on gui.Debug to
+// hear about it (DebugUnknownFocus), or assert with
+// (*Window).TestFindings in tests.
 func (w *Window) SetFocus(id string) {
 	w.lockForAPI("SetFocus")
 	defer w.mu.Unlock()
@@ -65,6 +70,33 @@ func (w *Window) setFocusLocked(id string) {
 	// input method may be activated for — may claim it. syncIMEEditContext
 	// decides that from the arranged tree each frame (gui/ime_context.go,
 	// issue #393).
+}
+
+// fixupFocusLocked moves focus off a widget that can no longer take
+// it: disabled since the last frame, or gone from the tree entirely.
+// Runs once per full Update, after the arranged tree is composed and
+// before renderers build, so the frame never draws a focus ring for a
+// widget that cannot be reached, and the blur commit for the old field
+// fires on the following frame through the usual AmendLayout path.
+// A surviving focus ID is untouched: this is a repair pass, not a
+// traversal, and costs one findByID walk only while something holds
+// focus. Must run under w.mu; use SetFocus outside the frame pass.
+func (w *Window) fixupFocusLocked() {
+	id := w.viewState.focusID
+	if id == "" {
+		return
+	}
+	if ly, ok := w.layout.findByID(id); ok && ly.Shape.canTakeFocus() {
+		return
+	}
+	// The invalid ID is not among the tab candidates, so this lands on
+	// the first tab stop in DFS order; with no candidates at all the
+	// window ends unfocused rather than parked on a dead ID.
+	if next, ok := w.layout.nextFocusable(w); ok {
+		w.setFocusLocked(next.idKey())
+		return
+	}
+	w.setFocusLocked("")
 }
 
 // resetBlinkCursorVisible resets the blink timer so the cursor

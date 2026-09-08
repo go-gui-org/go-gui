@@ -79,11 +79,3 @@ func truncatePreview(s string, maxRunes int) string {
 	byteIdx := runeToByteIndex(s, maxRunes)
 	return s[:byteIdx] + "..."
 }
-
-// selectionRange returns (beg, end) with beg <= end.
-func selectionRange(a, b int) (uint32, uint32) {
-	if a <= b {
-		return uint32(a), uint32(b)
-	}
-	return uint32(b), uint32(a)
-}

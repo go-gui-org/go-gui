@@ -14,7 +14,7 @@ func isFocusedTarget(layout *Layout, w *Window) bool {
 	if layout.Shape.ID == reservedDialogID {
 		return true
 	}
-	if !layout.Shape.Focusable || layout.Shape.ID == "" {
+	if !layout.Shape.canTakeFocus() {
 		return false
 	}
 	// The focus store holds effective IDs, so compare on idKey, not on
@@ -81,9 +81,9 @@ func callRelative(
 
 // executeMouseCallback executes a callback if the mouse is
 // within shape bounds. Coordinates are made relative before
-// calling. Returns true if handled. class is passed through to
-// callRelative — this helper serves both classes (OnClick/OnMouseUp/
-// OnFileDrop consume, OnMouseMove notifies).
+// calling. Returns true if handled. class names the event for the
+// unconsumed-event debug check, nothing more: the callback itself
+// decides consumption with ctx.Consume().
 func executeMouseCallback(
 	layout *Layout, e *Event, w *Window,
 	callback shapeCallback, class evClass,
