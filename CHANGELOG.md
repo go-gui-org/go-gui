@@ -8,6 +8,8 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [v0.72.0] - 2026-09-09
+
 ### Added
 
 - **Shaper refusals are reported instead of degrading silently** — text the
