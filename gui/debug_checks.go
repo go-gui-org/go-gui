@@ -74,6 +74,10 @@ const (
 	// approximate metrics with degraded caret, selection and delete
 	// precision.
 	debugCheckGlyphLayoutFallback
+	// debugCheckTextTruncated fires from textView.GenerateLayout when
+	// app-supplied input text exceeds the rune budget and is
+	// truncated to it, so the frame never shapes unbounded content.
+	debugCheckTextTruncated
 )
 
 // checkCategory maps an internal check to the public category that
@@ -107,7 +111,7 @@ func checkCategory(check debugCheck) DebugCategory {
 		return DebugStampDrift
 	case debugCheckUnknownFocus:
 		return DebugUnknownFocus
-	case debugCheckGlyphLayoutFallback:
+	case debugCheckGlyphLayoutFallback, debugCheckTextTruncated:
 		return DebugGlyphLayoutFallback
 	}
 	return 0

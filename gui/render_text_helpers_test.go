@@ -1,11 +1,14 @@
 package gui
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestPasswordMaskKeepNewlinesBasic(t *testing.T) {
 	got := passwordMaskKeepNewlines("abc")
-	if got != "***" {
-		t.Errorf("got %q, want %q", got, "***")
+	if got != "•••" {
+		t.Errorf("got %q, want %q", got, "•••")
 	}
 }
 
@@ -18,15 +21,15 @@ func TestPasswordMaskKeepNewlinesEmpty(t *testing.T) {
 
 func TestPasswordMaskKeepNewlinesPreservesNewlines(t *testing.T) {
 	got := passwordMaskKeepNewlines("ab\ncd\n")
-	if got != "**\n**\n" {
-		t.Errorf("got %q, want %q", got, "**\\n**\\n")
+	if got != "••\n••\n" {
+		t.Errorf("got %q, want %q", got, "••\\n••\\n")
 	}
 }
 
 func TestPasswordMaskKeepNewlinesUnicode(t *testing.T) {
 	got := passwordMaskKeepNewlines("🔑key")
-	if got != "****" {
-		t.Errorf("got %q, want %q", got, "****")
+	if got != "••••" {
+		t.Errorf("got %q, want %q", got, "••••")
 	}
 }
 
@@ -94,3 +97,31 @@ func TestHashCombineU64SeedMatters(t *testing.T) {
 		t.Error("different seeds should produce different outputs")
 	}
 }
+
+// TestPasswordMaskKeepNewlinesLong crosses the 64-rune stack-buffer
+// boundary: the heap path must produce byte-identical output to the
+// stack path, newlines included.
+func TestPasswordMaskKeepNewlinesLong(t *testing.T) {
+	in := strings.Repeat("ab\n", 40) // 120 runes, 40 newlines
+	got := passwordMaskKeepNewlines(in)
+	want := strings.Repeat("••\n", 40)
+	if got != want {
+		t.Errorf("long mask = %q, want %q", got, want)
+	}
+	// The stack path and the heap path must agree on a shared prefix.
+	short := strings.Repeat("ab\n", 20) // 60 runes
+	if passwordMaskKeepNewlines(short) != strings.Repeat("••\n", 20) {
+		t.Error("stack path disagrees with the heap path")
+	}
+}
+
+func TestPasswordMaskKeepNewlinesNoAlloc(t *testing.T) {
+	in := "secret\npassword"
+	if n := testing.AllocsPerRun(100, func() {
+		sinkMask = passwordMaskKeepNewlines(in)
+	}); n > 1 {
+		t.Errorf("allocs = %v, want <= 1 (the result string only)", n)
+	}
+}
+
+var sinkMask string

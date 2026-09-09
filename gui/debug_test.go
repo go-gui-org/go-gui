@@ -275,6 +275,7 @@ func TestCheckCategoryMapping(t *testing.T) {
 		{debugCheckStampDrift, DebugStampDrift},
 		{debugCheckUnknownFocus, DebugUnknownFocus},
 		{debugCheckGlyphLayoutFallback, DebugGlyphLayoutFallback},
+		{debugCheckTextTruncated, DebugGlyphLayoutFallback},
 	}
 	for _, tc := range tests {
 		if got := checkCategory(tc.check); got != tc.want {

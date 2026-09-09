@@ -15,15 +15,8 @@ func inputTextChange(hcfg inputHandlerCfg, layout *Layout, text, ins string, id 
 			// inputInsert does for a paste. Only the ">1 rune"
 			// question matters, and ins is caller-sized input that
 			// inputMaskInsert bounds, so count with an early exit.
-			n := 0
-			for range ins {
-				n++
-				if n > 1 {
-					break
-				}
-			}
 			op := inputOpInsert
-			if n > 1 {
+			if isMultiRuneInsert(ins) {
 				op = inputOpNone
 			}
 			undo := inputPushUndo(is, text, op)

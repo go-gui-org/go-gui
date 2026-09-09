@@ -747,10 +747,32 @@ func TestTextWidthFallbackPasswordMask(t *testing.T) {
 	w := makeWindow()
 	style := TextStyle{Size: 14}
 	tc := &shapeTextConfig{textIsPassword: true}
-	got := textWidthFallback("abc", 3, tc, style, w)
+	got := textWidthFallback("abc", 3, tc, style, w, false)
 	// Password: 3 mask chars * size * 0.6
 	want := float32(3) * 14 * 0.6
 	if !f32AreClose(got, want) {
 		t.Errorf("textWidthFallback = %f, want %f", got, want)
 	}
+	// textAlreadyMasked: the render path hands in text masked at the
+	// top of the frame. The width is identical either way (a mask is
+	// one bullet per rune, so masking bullets changes nothing), so
+	// only the allocation distinguishes the two paths — assert that,
+	// not the width, or the flag can be deleted with the test green.
+	masked := maskPassword("abc")
+	if got = textWidthFallback(masked, 3, tc, style, w, true); !f32AreClose(got, want) {
+		t.Errorf("pre-masked textWidthFallback = %f, want %f", got, want)
+	}
+	if n := testing.AllocsPerRun(100, func() {
+		sinkWidth = textWidthFallback(masked, 3, tc, style, w, true)
+	}); n != 0 {
+		t.Errorf("pre-masked allocs = %v, want 0 (no second mask)", n)
+	}
+	if n := testing.AllocsPerRun(100, func() {
+		sinkWidth = textWidthFallback(masked, 3, tc, style, w, false)
+	}); n == 0 {
+		t.Error("unmasked path must still allocate a mask; " +
+			"if it does not, the flag is measuring nothing")
+	}
 }
+
+var sinkWidth float32

@@ -1,6 +1,10 @@
 package gui
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/go-gui-org/go-glyph"
+)
 
 func TestTextSelectAllAndCopy(t *testing.T) {
 	w := newTestWindow()
@@ -309,5 +313,38 @@ func TestTextDragCancelCollapsedSelectionHarmless(t *testing.T) {
 	}
 	if is.CursorPos != 2 {
 		t.Errorf("cursor = %d, want 2", is.CursorPos)
+	}
+}
+
+// TestTextKeyVerticalSnapsToGrapheme is the regression test for
+// vertical motion in a selectable multiline Text parking the caret
+// inside a grapheme cluster. Without a shaped layout (glOK false) the
+// fallback walks byte columns, and a column that lands between a base
+// rune and its combining mark must snap back to a cluster boundary —
+// the same guarantee inputKeyVertical already gave an Input.
+func TestTextKeyVerticalSnapsToGrapheme(t *testing.T) {
+	// Line 0 "ab"; line 1 "e" + U+0301 (one cluster, two runes) + "cd".
+	// Moving down from rune column 1 targets rune 4, the combining
+	// mark — inside the cluster.
+	text := "ab\ne\u0301cd"
+	imap := NewBoundedMap[string, inputState](8)
+	is := inputState{CursorPos: 1}
+	imap.Set("t", is)
+
+	raw := moveCursorDown(text, 1)
+	stops := graphemeStops(text)
+	if closestGraphemeStop(stops, raw) == raw {
+		t.Fatalf("test text no longer exercises the snap: "+
+			"moveCursorDown gave %d, already a stop", raw)
+	}
+
+	if !textKeyVertical(imap, "t", is, text, 1, false, -1, false,
+		TextModeMultiline, glyph.Layout{}, false) {
+		t.Fatal("multiline vertical motion must report handled")
+	}
+	got, _ := imap.Get("t")
+	if closestGraphemeStop(stops, got.CursorPos) != got.CursorPos {
+		t.Errorf("cursor = %d, not a grapheme stop (stops %v)",
+			got.CursorPos, stops)
 	}
 }

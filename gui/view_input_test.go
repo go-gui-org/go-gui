@@ -884,24 +884,24 @@ func TestWordBoundsAtClassRuns(t *testing.T) {
 }
 
 func TestMoveCursorUpDown(t *testing.T) {
-	runes := []rune("abc\ndef\nghi")
+	text := "abc\ndef\nghi"
 	// From middle of line 1 → line 0.
-	assertEqual(t, moveCursorUp(runes, 5), 1)
+	assertEqual(t, moveCursorUp(text, 5), 1)
 	// From line 0 → stays at 0.
-	assertEqual(t, moveCursorUp(runes, 1), 0)
+	assertEqual(t, moveCursorUp(text, 1), 0)
 	// From line 0 → line 1.
-	assertEqual(t, moveCursorDown(runes, 1), 5)
+	assertEqual(t, moveCursorDown(text, 1), 5)
 	// From line 1 → line 2.
-	assertEqual(t, moveCursorDown(runes, 5), 9)
+	assertEqual(t, moveCursorDown(text, 5), 9)
 	// From last line → end.
-	assertEqual(t, moveCursorDown(runes, 9), 11)
+	assertEqual(t, moveCursorDown(text, 9), 11)
 }
 
 func TestMoveCursorLineStartEnd(t *testing.T) {
-	runes := []rune("abc\ndef")
-	assertEqual(t, moveCursorLineStart(runes, 5), 4)
-	assertEqual(t, moveCursorLineEnd(runes, 0), 3)
-	assertEqual(t, moveCursorLineEnd(runes, 4), 7)
+	text := "abc\ndef"
+	assertEqual(t, moveCursorLineStart(text, 5), 4)
+	assertEqual(t, moveCursorLineEnd(text, 0), 3)
+	assertEqual(t, moveCursorLineEnd(text, 4), 7)
 }
 
 // --- Cursor render tests ---
