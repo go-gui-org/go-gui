@@ -368,7 +368,14 @@ func (w *Window) ScrollHorizontalTo(effectiveID string, offset float32) {
 // mouse-wheel scrolling. No-op if the scroll id is not found or the
 // target equals the current offset. Use ScrollHorizontalTo for an
 // instant jump.
-func (w *Window) scrollHorizontalToSmooth(effectiveID string, offset float32) {
+//
+// effectiveID is the widget's effective ID: a leaf under an ID-bearing
+// ancestor is addressed by its full path ("detail:nav"), not by the
+// leaf its Cfg was written with. Read it back with [Window.ResolveID].
+//
+// exportaudit:keep — caller-facing scroll setter, axis twin of
+// ScrollVerticalToSmooth
+func (w *Window) ScrollHorizontalToSmooth(effectiveID string, offset float32) {
 	if ly, ok := findScrollLayout(w, effectiveID); ok {
 		scrollSmoothTo(w, ly, scrollAxisX, offset)
 	}
@@ -377,10 +384,18 @@ func (w *Window) scrollHorizontalToSmooth(effectiveID string, offset float32) {
 // ScrollHorizontalToPct scrolls to a horizontal percentage.
 // pct: 0.0 = left, 1.0 = right. Clamped to [0, 1].
 // No-op if the scroll id is not found or content fits viewport.
-func (w *Window) scrollHorizontalToPct(effectiveID string, pct float32) {
+//
+// effectiveID is the widget's effective ID: a leaf under an ID-bearing
+// ancestor is addressed by its full path ("detail:nav"), not by the
+// leaf its Cfg was written with. Read it back with [Window.ResolveID].
+//
+// exportaudit:keep — caller-facing scroll setter, axis twin of
+// ScrollVerticalToPct
+func (w *Window) ScrollHorizontalToPct(effectiveID string, pct float32) {
 	// See ScrollHorizontalPct: the walk faults on an un-arranged tree.
 	ly, ok := findScrollLayout(w, effectiveID)
 	if !ok {
+		debugLookupMiss(&w.layout, "ScrollHorizontalToPct", effectiveID)
 		return
 	}
 	maxOffset := scrollMaxOffsetX(ly)
@@ -438,7 +453,14 @@ func (w *Window) ScrollVerticalTo(effectiveID string, offset float32) {
 // mouse-wheel scrolling. No-op if the scroll id is not found or the
 // target equals the current offset. Use ScrollVerticalTo for an
 // instant jump.
-func (w *Window) scrollVerticalToSmooth(effectiveID string, offset float32) {
+//
+// effectiveID is the widget's effective ID: a leaf under an ID-bearing
+// ancestor is addressed by its full path ("detail:nav"), not by the
+// leaf its Cfg was written with. Read it back with [Window.ResolveID].
+//
+// exportaudit:keep — caller-facing scroll setter, axis twin of
+// ScrollHorizontalToSmooth
+func (w *Window) ScrollVerticalToSmooth(effectiveID string, offset float32) {
 	if ly, ok := findScrollLayout(w, effectiveID); ok {
 		scrollSmoothTo(w, ly, scrollAxisY, offset)
 	}

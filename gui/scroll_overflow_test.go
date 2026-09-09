@@ -219,5 +219,5 @@ func TestScrollPctBeforeFirstArrangeDoesNotPanic(t *testing.T) {
 	}
 	// Setters take the same walk; a no-op is the whole assertion.
 	w.ScrollVerticalToPct("any", 0.5)
-	w.scrollHorizontalToPct("any", 0.5)
+	w.ScrollHorizontalToPct("any", 0.5)
 }

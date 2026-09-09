@@ -238,7 +238,7 @@ func TestScrollToPctAndPct(t *testing.T) {
 			Children: []Layout{layout},
 		}
 
-		w.scrollHorizontalToPct("4", 1.0)
+		w.ScrollHorizontalToPct("4", 1.0)
 		sx := w.scrollX()
 		v, _ := sx.Get("4")
 		if v != -300 {
