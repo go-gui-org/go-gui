@@ -101,7 +101,7 @@ func inputKeyHome(
 			}
 		}
 	} else {
-		lineStart := moveCursorLineStart([]rune(text), pos)
+		lineStart := moveCursorLineStart(text, pos)
 		if pos != lineStart {
 			newPos = lineStart
 		} else {
@@ -139,7 +139,7 @@ func inputKeyEnd(
 			}
 		}
 	} else {
-		lineEnd := moveCursorLineEnd([]rune(text), pos)
+		lineEnd := moveCursorLineEnd(text, pos)
 		if pos != lineEnd {
 			newPos = lineEnd
 			trailing = true
@@ -183,11 +183,11 @@ func inputKeyVertical(
 		}
 	} else {
 		if up {
-			newPos = moveCursorUp([]rune(text), pos)
+			newPos = moveCursorUp(text, pos)
 		} else {
-			newPos = moveCursorDown([]rune(text), pos)
+			newPos = moveCursorDown(text, pos)
 		}
-		// Line-column math is rune-based; snap the result to the
+		// Line-column math is byte-based; snap the result to the
 		// nearest cluster boundary so vertical motion cannot park
 		// the caret inside a multi-rune grapheme.
 		newPos = closestGraphemeStop(graphemeStops(text), newPos)
@@ -208,6 +208,9 @@ func inputKeyPaste(
 	if len(clip) == 0 {
 		return text, false
 	}
+	// Bound before any []rune conversion downstream: clipboard
+	// content is platform-sized, not app-sized.
+	clip = truncateToMaxRunes(clip)
 	if mask != nil {
 		cis := inputStateOrDefault(id, w)
 		res := inputMaskInsert(text,

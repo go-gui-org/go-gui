@@ -277,7 +277,7 @@ func renderInputCursor(shape *Shape, text string, baseX, baseY float32,
 
 	// Fallback for nil textMeasurer (tests).
 	fh := fontHeight(style, w)
-	cx := textWidthFallback(text, pos, shape.TC, style, w)
+	cx := textWidthFallback(text, pos, shape.TC, style, w, true)
 	emitCaretCmd(RenderCmd{
 		Kind:  RenderRect,
 		X:     baseX + cx,
@@ -384,8 +384,8 @@ func renderInputSelection(shape *Shape, text string, baseX, baseY float32,
 
 	// Fallback for nil textMeasurer (tests).
 	fh := fontHeight(style, w)
-	x0 := textWidthFallback(text, int(beg), tc, style, w)
-	x1 := textWidthFallback(text, int(end), tc, style, w)
+	x0 := textWidthFallback(text, int(beg), tc, style, w, true)
+	x1 := textWidthFallback(text, int(end), tc, style, w, true)
 	emitRenderer(RenderCmd{
 		Kind:  RenderRect,
 		X:     baseX + x0,
@@ -498,11 +498,14 @@ func fontHeight(style TextStyle, w *Window) float32 {
 }
 
 // textWidthFallback approximates text width for tests (no glyph).
-func textWidthFallback(text string, runePos int, tc *shapeTextConfig, style TextStyle, w *Window) float32 {
+// textAlreadyMasked skips password masking: renderText's fallback
+// sites pass text masked at the top of the frame, and masking bullets
+// again is a wasted allocation for an identical string.
+func textWidthFallback(text string, runePos int, tc *shapeTextConfig, style TextStyle, w *Window, textAlreadyMasked bool) float32 {
 	runeLen := utf8RuneCount(text)
 	runePos = min(runePos, runeLen)
 	prefix := text[:runeToByteIndex(text, runePos)]
-	if tc != nil && tc.textIsPassword {
+	if tc != nil && tc.textIsPassword && !textAlreadyMasked {
 		prefix = maskPassword(prefix)
 	}
 	if w.textMeasurer != nil {

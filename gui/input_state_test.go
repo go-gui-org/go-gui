@@ -1,6 +1,10 @@
 package gui
 
-import "testing"
+import (
+	"strings"
+	"testing"
+	"unicode/utf8"
+)
 
 // inputHasSelection returns true if text is selected.
 func inputHasSelection(focusID string, w *Window) bool {
@@ -646,5 +650,146 @@ func TestInputSetTextAndCursorAtEnd(t *testing.T) {
 	}
 	if is.Undo == nil {
 		t.Fatal("undo stack must be pushed with the old text")
+	}
+}
+
+func TestTruncateToMaxRunes(t *testing.T) {
+	if got := truncateToMaxRunes(""); got != "" {
+		t.Errorf("empty = %q, want empty", got)
+	}
+	if got := truncateToMaxRunes("hello"); got != "hello" {
+		t.Errorf("short = %q, want unchanged", got)
+	}
+	exact := strings.Repeat("x", inputMaxInsertRunes)
+	if got := truncateToMaxRunes(exact); got != exact {
+		t.Error("exact-budget input must pass through untouched")
+	}
+	over := strings.Repeat("y", inputMaxInsertRunes+1)
+	if got := truncateToMaxRunes(over); utf8RuneCount(got) != inputMaxInsertRunes {
+		t.Errorf("over-budget runes = %d, want %d",
+			utf8RuneCount(got), inputMaxInsertRunes)
+	}
+	multi := strings.Repeat("é", inputMaxInsertRunes+10)
+	got := truncateToMaxRunes(multi)
+	if utf8RuneCount(got) != inputMaxInsertRunes || !utf8.ValidString(got) {
+		t.Error("multibyte truncation must keep the budget on a rune boundary")
+	}
+	big := strings.Repeat("z", inputMaxInsertRunes*4)
+	if got := truncateToMaxRunes(big); utf8RuneCount(got) != inputMaxInsertRunes {
+		t.Errorf("large runes = %d, want %d",
+			utf8RuneCount(got), inputMaxInsertRunes)
+	}
+	invalid := strings.Repeat("a", inputMaxInsertRunes) + "\xff\xfe"
+	got = truncateToMaxRunes(invalid)
+	if utf8RuneCount(got) != inputMaxInsertRunes {
+		t.Errorf("invalid-tail runes = %d, want %d (bad bytes cap cleanly)",
+			utf8RuneCount(got), inputMaxInsertRunes)
+	}
+}
+
+func TestIsMultiRuneInsert(t *testing.T) {
+	if isMultiRuneInsert("") {
+		t.Error("empty must be single")
+	}
+	if isMultiRuneInsert("a") {
+		t.Error("one ASCII rune must be single")
+	}
+	if isMultiRuneInsert("é") {
+		t.Error("one multibyte rune must be single")
+	}
+	if !isMultiRuneInsert("ab") {
+		t.Error("two runes must be multi")
+	}
+	if !isMultiRuneInsert("aé") {
+		t.Error("mixed-width pair must be multi")
+	}
+}
+
+func TestMoveCursorUpDownMultibyte(t *testing.T) {
+	// Regression: the column must be counted in runes. With a byte
+	// column, a 4-byte rune on the destination line made Up answer an
+	// index still on the SOURCE line (the caret never moved up) and
+	// made Down answer an index past the end of the text. Both wrong
+	// answers land on ordinary grapheme stops, so the caller's
+	// closestGraphemeStop snap could not repair either one.
+
+	// Line 0 is one 4-byte rune; line 1 is ASCII. Runes: 0=emoji,
+	// 1='\n', 2..7='a'..'f'. Line 0 ends at rune 1.
+	up := "\U0001F389\nabcdef"
+	assertEqual(t, utf8RuneCount(up), 8)
+	// Column 0 of line 1 -> start of line 0.
+	assertEqual(t, moveCursorUp(up, 2), 0)
+	// Columns past the end of line 0 clamp to its end, never to a
+	// position back on line 1.
+	assertEqual(t, moveCursorUp(up, 4), 1)
+	assertEqual(t, moveCursorUp(up, 7), 1)
+
+	// Line 1 is one 4-byte rune. Runes: 0..5='a'..'f', 6='\n', 7=emoji.
+	down := "abcdef\n\U0001F389"
+	assertEqual(t, utf8RuneCount(down), 8)
+	assertEqual(t, moveCursorDown(down, 0), 7)
+	// Column 2 exceeds line 1's single rune, so it clamps to the end
+	// of the text (8), not past it.
+	assertEqual(t, moveCursorDown(down, 2), 8)
+	assertEqual(t, moveCursorDown(down, 5), 8)
+
+	// Moving right on the source line must not move the target left.
+	// A byte column made Up(9) answer 1 while Up(8) answered 2.
+	cjk := "\u6f22\u5b57\u30c6\u30b9\u30c8\nabcdefghijklmno"
+	assertEqual(t, moveCursorUp(cjk, 8), 2)
+	assertEqual(t, moveCursorUp(cjk, 9), 3)
+
+	// Line start/end stay exact across multibyte lines.
+	assertEqual(t, moveCursorLineStart(cjk, 8), 6)
+	assertEqual(t, moveCursorLineEnd(cjk, 2), 5)
+
+	// Every result is a legal cursor position.
+	for _, s := range []string{up, down, cjk} {
+		n := utf8RuneCount(s)
+		for pos := 0; pos <= n; pos++ {
+			for _, got := range []int{
+				moveCursorUp(s, pos), moveCursorDown(s, pos),
+				moveCursorLineStart(s, pos), moveCursorLineEnd(s, pos),
+			} {
+				if got < 0 || got > n {
+					t.Fatalf("%q pos %d: got %d, out of range 0..%d",
+						s, pos, got, n)
+				}
+			}
+		}
+	}
+}
+
+func TestTextViewTruncatesOverlongProgrammaticText(t *testing.T) {
+	buf := captureDebugMask(t, DebugGlyphLayoutFallback)
+	w := caretTestWindow(400, 60)
+	big := strings.Repeat("a", inputMaxInsertRunes+100)
+	_, field := arrangeInput(t, w, InputCfg{ID: "big", Text: big})
+	if got := utf8RuneCount(inputTextFromLayout(field)); got != inputMaxInsertRunes {
+		t.Errorf("input text runes = %d, want %d (clamped)",
+			got, inputMaxInsertRunes)
+	}
+	if buf.Len() == 0 {
+		t.Error("expected a truncation finding under DebugGlyphLayoutFallback")
+	}
+}
+
+func TestStandaloneTextStaysUnbounded(t *testing.T) {
+	buf := captureDebugMask(t, DebugGlyphLayoutFallback)
+	w := newTestWindow()
+	big := strings.Repeat("a", inputMaxInsertRunes+100)
+	root := generateViewLayout(Column(ContainerCfg{
+		Content: []View{Text(TextCfg{ID: "big", Text: big})},
+	}), w)
+	ly := findLayoutByID(&root, "big")
+	if ly == nil {
+		t.Fatal("no layout with ID \"big\" after generate")
+	}
+	if got := utf8RuneCount(ly.Shape.TC.Text); got != inputMaxInsertRunes+100 {
+		t.Errorf("display text runes = %d, want untouched %d",
+			got, inputMaxInsertRunes+100)
+	}
+	if buf.Len() != 0 {
+		t.Errorf("display text must stay silent, got %q", buf.String())
 	}
 }

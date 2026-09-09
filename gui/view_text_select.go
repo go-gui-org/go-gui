@@ -392,10 +392,14 @@ func textKeyVertical(
 		}
 	} else {
 		if up {
-			newPos = moveCursorUp([]rune(text), pos)
+			newPos = moveCursorUp(text, pos)
 		} else {
-			newPos = moveCursorDown([]rune(text), pos)
+			newPos = moveCursorDown(text, pos)
 		}
+		// Line-column math is byte-based; snap the result to the
+		// nearest cluster boundary so vertical motion cannot park
+		// the caret inside a multi-rune grapheme (inputKeyVertical).
+		newPos = closestGraphemeStop(graphemeStops(text), newPos)
 	}
 	updateCursorAndSelection(imap, id, is, newPos, isShift)
 	return true

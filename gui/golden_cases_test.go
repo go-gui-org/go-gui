@@ -210,6 +210,38 @@ func goldenCases() []goldenCase {
 			},
 		},
 		{
+			// A masked single-line field: pins the bullet glyph and
+			// the advance it measures at. maskPassword is what both
+			// the measure and the paint path go through, so a change
+			// to the mask character moves this file.
+			name: "input_password",
+			build: func(_ *Window) View {
+				return Input(InputCfg{
+					ID:         "in",
+					Text:       "hunter2",
+					IsPassword: true,
+				})
+			},
+		},
+		{
+			// The multiline mask is a separate helper
+			// (passwordMaskKeepNewlines) reached only when the text
+			// holds a newline. It rendered '*' against the single-line
+			// bullet until this was recorded, with no golden to catch
+			// the mismatch.
+			name: "input_password_multiline",
+			build: func(_ *Window) View {
+				return Input(InputCfg{
+					ID:         "in",
+					Mode:       InputMultiline,
+					Height:     80,
+					Sizing:     FillFixed,
+					Text:       "one two\nthree four",
+					IsPassword: true,
+				})
+			},
+		},
+		{
 			name: "input_disabled",
 			build: func(_ *Window) View {
 				return Input(InputCfg{

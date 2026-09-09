@@ -1,6 +1,10 @@
 package gui
 
-import "github.com/go-gui-org/go-glyph"
+import (
+	"unicode/utf8"
+
+	"github.com/go-gui-org/go-glyph"
+)
 
 const inputMaxInsertRunes = 65_536
 
@@ -118,10 +122,7 @@ func inputProposedText(text, insertText string, focusID string, w *Window) strin
 	if len(insertText) == 0 {
 		return text
 	}
-	insertRunes := []rune(insertText)
-	if len(insertRunes) > inputMaxInsertRunes {
-		insertRunes = insertRunes[:inputMaxInsertRunes]
-	}
+	insertRunes := []rune(truncateToMaxRunes(insertText))
 	runes := []rune(text)
 	is := inputStateOrDefault(focusID, w)
 	cursorPos := min(is.CursorPos, len(runes))
@@ -152,10 +153,7 @@ func inputInsert(text string, insertText string, focusID string, w *Window) stri
 	if len(insertText) == 0 {
 		return text
 	}
-	insertRunes := []rune(insertText)
-	if len(insertRunes) > inputMaxInsertRunes {
-		insertRunes = insertRunes[:inputMaxInsertRunes]
-	}
+	insertRunes := []rune(truncateToMaxRunes(insertText))
 
 	runes := []rune(text)
 	is := inputStateOrDefault(focusID, w)
@@ -185,7 +183,7 @@ func inputInsert(text string, insertText string, focusID string, w *Window) stri
 
 	nextText := string(runes)
 	op := inputOpInsert
-	if len(insertRunes) > 1 {
+	if isMultiRuneInsert(insertText) {
 		// Multi-rune inserts (paste, IME commits) are one undo step
 		// even after a typing run, so they break the run.
 		op = inputOpNone
@@ -201,16 +199,40 @@ func inputInsert(text string, insertText string, focusID string, w *Window) stri
 	return nextText
 }
 
+// isMultiRuneInsert reports whether s holds more than one rune,
+// stopping at the second. Paste and IME commits (multi-rune) break
+// the typing undo run; single keystrokes coalesce into one step.
+func isMultiRuneInsert(s string) bool {
+	n := 0
+	for range s {
+		n++
+		if n > 1 {
+			return true
+		}
+	}
+	return false
+}
+
+// truncateToMaxRunes caps s at inputMaxInsertRunes runes without
+// converting the whole string to []rune first. Callers pass
+// unbounded input (clipboard, app callbacks); the conversion alone
+// would allocate for all of it before any cap applies.
+func truncateToMaxRunes(s string) string {
+	if len(s) <= inputMaxInsertRunes {
+		return s // byte length bounds rune count from above
+	}
+	// runeToByteIndex stops at len(s), so a string with fewer runes
+	// than the budget slices to itself.
+	return s[:runeToByteIndex(s, inputMaxInsertRunes)]
+}
+
 // capCallbackText bounds text an app callback returns (PreTextChange
 // adjusted, PostCommitNormalize output). The callback is trusted code
 // but not size-checked code: without a bound one runaway return pins
 // unbounded memory in per-window state. inputMaxInsertRunes is the
 // same budget keystroke inserts get.
 func capCallbackText(s string) string {
-	if utf8RuneCount(s) <= inputMaxInsertRunes {
-		return s
-	}
-	return s[:runeToByteIndex(s, inputMaxInsertRunes)]
+	return truncateToMaxRunes(s)
 }
 
 // inputSetTextAndCursorAtEnd pushes undo and places cursor at end
@@ -463,69 +485,93 @@ func wordBoundsAt(text string, pos int) (int, int) {
 	return byteToRuneIndex(text, beg), byteToRuneIndex(text, end)
 }
 
+// Line scanning below walks bytes: '\n' never appears inside a
+// multibyte sequence, so finding line boundaries needs no []rune
+// conversion and allocates nothing.
+//
+// The column, however, is counted in RUNES. A byte column carried
+// onto a line whose runes have different widths lands mid-rune, and
+// byteToRuneIndex counts each partial byte as a RuneError — so the
+// answer drifts by up to three and lands on some unrelated valid
+// grapheme stop, which closestGraphemeStop then leaves alone. That
+// made Up fail to leave a line at all when the line above held a
+// 4-byte rune, and made Down return an index past the end of the
+// text. Counting the column in runes is what makes the round trip
+// exact; it costs a scan of one line and still allocates nothing.
+
 // moveCursorUp moves cursor up one line in multiline text.
-func moveCursorUp(runes []rune, pos int) int {
+func moveCursorUp(text string, pos int) int {
+	bytePos := runeToByteIndex(text, pos)
 	// Find start of current line.
-	lineStart := pos
-	for lineStart > 0 && runes[lineStart-1] != '\n' {
+	lineStart := bytePos
+	for lineStart > 0 && text[lineStart-1] != '\n' {
 		lineStart--
 	}
 	if lineStart == 0 {
 		return 0 // Already on first line.
 	}
-	col := pos - lineStart
+	col := utf8.RuneCountInString(text[lineStart:bytePos])
 	// Find start of previous line.
 	prevLineEnd := lineStart - 1
 	prevLineStart := prevLineEnd
-	for prevLineStart > 0 && runes[prevLineStart-1] != '\n' {
+	for prevLineStart > 0 && text[prevLineStart-1] != '\n' {
 		prevLineStart--
 	}
-	prevLineLen := prevLineEnd - prevLineStart
-	col = min(col, prevLineLen)
-	return prevLineStart + col
+	prevLen := utf8.RuneCountInString(text[prevLineStart:prevLineEnd])
+	// Rune index of prevLineStart, walking back from pos: the column
+	// runs, then the '\n', then the whole previous line.
+	prevStartRune := pos - col - 1 - prevLen
+	return prevStartRune + min(col, prevLen)
 }
 
 // moveCursorDown moves cursor down one line in multiline text.
-func moveCursorDown(runes []rune, pos int) int {
-	n := len(runes)
+func moveCursorDown(text string, pos int) int {
+	n := len(text)
+	bytePos := runeToByteIndex(text, pos)
 	// Find start of current line.
-	lineStart := pos
-	for lineStart > 0 && runes[lineStart-1] != '\n' {
+	lineStart := bytePos
+	for lineStart > 0 && text[lineStart-1] != '\n' {
 		lineStart--
 	}
-	col := pos - lineStart
+	col := utf8.RuneCountInString(text[lineStart:bytePos])
 	// Find end of current line (next \n).
-	lineEnd := pos
-	for lineEnd < n && runes[lineEnd] != '\n' {
+	lineEnd := bytePos
+	for lineEnd < n && text[lineEnd] != '\n' {
 		lineEnd++
 	}
 	if lineEnd >= n {
-		return n // Already on last line.
+		return utf8RuneCount(text) // Already on last line.
 	}
 	// Next line starts after \n.
 	nextLineStart := lineEnd + 1
 	nextLineEnd := nextLineStart
-	for nextLineEnd < n && runes[nextLineEnd] != '\n' {
+	for nextLineEnd < n && text[nextLineEnd] != '\n' {
 		nextLineEnd++
 	}
-	nextLineLen := nextLineEnd - nextLineStart
-	col = min(col, nextLineLen)
-	return nextLineStart + col
+	nextLen := utf8.RuneCountInString(text[nextLineStart:nextLineEnd])
+	// Rune index of nextLineStart, walking forward from pos: the rest
+	// of this line, then the '\n'.
+	nextStartRune := pos + utf8.RuneCountInString(text[bytePos:lineEnd]) + 1
+	return nextStartRune + min(col, nextLen)
 }
 
 // moveCursorLineStart returns the start of the current line.
-func moveCursorLineStart(runes []rune, pos int) int {
-	for pos > 0 && runes[pos-1] != '\n' {
-		pos--
+func moveCursorLineStart(text string, pos int) int {
+	bytePos := runeToByteIndex(text, pos)
+	lineStart := bytePos
+	for lineStart > 0 && text[lineStart-1] != '\n' {
+		lineStart--
 	}
-	return pos
+	return pos - utf8.RuneCountInString(text[lineStart:bytePos])
 }
 
 // moveCursorLineEnd returns the end of the current line.
-func moveCursorLineEnd(runes []rune, pos int) int {
-	n := len(runes)
-	for pos < n && runes[pos] != '\n' {
-		pos++
+func moveCursorLineEnd(text string, pos int) int {
+	n := len(text)
+	bytePos := runeToByteIndex(text, pos)
+	lineEnd := bytePos
+	for lineEnd < n && text[lineEnd] != '\n' {
+		lineEnd++
 	}
-	return pos
+	return pos + utf8.RuneCountInString(text[bytePos:lineEnd])
 }

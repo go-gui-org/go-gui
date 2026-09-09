@@ -84,6 +84,27 @@ var textEventHandlers = &eventHandlers{
 
 func (tv *textView) GenerateLayout(w *Window) Layout {
 	c := &tv.cfg
+	// App-supplied input text bypasses the insert/paste/callback
+	// caps, so bound it here. Scoped to Input's inner text
+	// (focusOwner): standalone Text has no undo history or
+	// per-keystroke reshape, so long-form display stays unbounded.
+	// Warn-once per identity. The byte-length guard skips the rune
+	// scan for small texts.
+	if c.focusOwner != "" && len(c.Text) > inputMaxInsertRunes &&
+		utf8RuneCount(c.Text) > inputMaxInsertRunes {
+		// Gated at the call site, not only inside debugWarn: the
+		// app hands the same oversize string back every frame, so
+		// the preview and the args slice would allocate per frame.
+		// The gate is this check's own category, not DebugEnabled():
+		// any other category being on would otherwise pay the same
+		// per-frame allocation for a finding debugWarn discards.
+		if DebugCategory(debugMask.Load())&DebugGlyphLayoutFallback != 0 {
+			w.debugWarn(debugCheckTextTruncated, c.focusOwner,
+				"text exceeds %d runes; truncating to budget (preview %q)",
+				inputMaxInsertRunes, truncatePreview(c.Text, 30))
+		}
+		c.Text = truncateToMaxRunes(c.Text)
+	}
 	ts := &c.TextStyle
 
 	tv.tc = shapeTextConfig{

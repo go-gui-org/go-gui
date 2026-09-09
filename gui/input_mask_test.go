@@ -1,6 +1,9 @@
 package gui
 
-import "testing"
+import (
+	"fmt"
+	"testing"
+)
 
 func TestInputMaskPresets(t *testing.T) {
 	assertEqual(t, len(inputMaskFromPreset(maskNone)), 0)
@@ -154,5 +157,59 @@ func TestIsMaskAlnum(t *testing.T) {
 			t.Errorf("isMaskAlnum(%q) = %v, want %v",
 				tc.r, got, tc.want)
 		}
+	}
+}
+
+// TestCompiledMaskCacheCapped pins the bound on the shared mask cache:
+// a dynamic pattern source degrades to recompiling, not to unbounded
+// growth. Patterns use a unique prefix to avoid colliding with the
+// suite's real masks.
+func TestCompiledMaskCacheCapped(t *testing.T) {
+	// The cache is process-global. Swap in an empty map and put the
+	// original back, so filling it here cannot starve the caching
+	// other tests (an alloc gate among them) rely on.
+	compiledMaskCache.Lock()
+	saved := compiledMaskCache.m
+	compiledMaskCache.m = make(map[string]*CompiledInputMask)
+	compiledMaskCache.Unlock()
+	t.Cleanup(func() {
+		compiledMaskCache.Lock()
+		compiledMaskCache.m = saved
+		compiledMaskCache.Unlock()
+	})
+
+	pat := func(i int) string { return fmt.Sprintf("test-cap-9-%d-999", i) }
+	for i := range compiledMaskCacheMax + 50 {
+		p := pat(i)
+		c, err := compileInputMask(p, nil)
+		if err != nil {
+			t.Fatalf("compile %q: %v", p, err)
+		}
+		storeCompiledMaskCache(p, &c)
+	}
+	compiledMaskCache.RLock()
+	n := len(compiledMaskCache.m)
+	compiledMaskCache.RUnlock()
+	if n > compiledMaskCacheMax {
+		t.Errorf("cache size = %d, want <= %d", n, compiledMaskCacheMax)
+	}
+	// Overflow must not lock the newcomer out. compiledMask() runs
+	// every frame, so a pattern the cache refuses forever recompiles
+	// forever; the last one stored has to be cached.
+	last := pat(compiledMaskCacheMax + 49)
+	if cachedCompiledMask(last) == nil {
+		t.Error("last pattern not cached; overflow must admit the newcomer")
+	}
+	// Re-storing an admitted pattern keeps the original instance:
+	// fields built from one pattern must share it, which is the
+	// sharing the per-generation alloc gate counts on.
+	orig := cachedCompiledMask(last)
+	fresh, err := compileInputMask(last, nil)
+	if err != nil {
+		t.Fatalf("recompile %q: %v", last, err)
+	}
+	storeCompiledMaskCache(last, &fresh)
+	if cachedCompiledMask(last) != orig {
+		t.Error("re-store replaced the cached instance; must keep the first")
 	}
 }

@@ -22,7 +22,10 @@ func runeToByteIndex(text string, runeIdx int) int {
 	return idx
 }
 
-// byteToRuneIndex converts a byte index to a rune index.
+// byteToRuneIndex converts a byte index to a rune index. byteIdx must
+// be a rune boundary: slicing mid-rune counts the partial tail as a
+// RuneError and the result drifts by one. All callers pass aligned
+// indices (glyph layout offsets or runeToByteIndex output).
 func byteToRuneIndex(text string, byteIdx int) int {
 	if byteIdx <= 0 {
 		return 0

@@ -85,7 +85,11 @@ var defaultMaskTokens = inputMaskDefaultTokens()
 // using the pattern. Keyed by pattern only when no custom tokens are
 // in play: custom tables make the key unbounded, and those fields
 // compile fresh. Patterns are static app strings, so the map settles
-// at a handful of entries and never grows per frame.
+// at a handful of entries and never grows per frame. Capped anyway:
+// a dynamic pattern source must degrade to recompiling, not to
+// unbounded growth.
+const compiledMaskCacheMax = 256
+
 var compiledMaskCache = struct {
 	sync.RWMutex
 	m map[string]*CompiledInputMask
@@ -100,11 +104,23 @@ func cachedCompiledMask(pattern string) *CompiledInputMask {
 	return c
 }
 
-// storeCompiledMaskCache records a compiled mask for reuse.
+// storeCompiledMaskCache records a compiled mask for reuse. On
+// overflow the cache is emptied and refilled from the newcomer rather
+// than the newcomer being refused: compiledMask() runs from the Input
+// factory every frame, so a pattern that can never be admitted
+// recompiles every frame forever — the exact per-frame garbage this
+// cache exists to remove. Dropping the whole set costs one recompile
+// per live pattern and cannot pin a live field behind 256 dead ones.
 func storeCompiledMaskCache(pattern string, c *CompiledInputMask) {
 	compiledMaskCache.Lock()
+	defer compiledMaskCache.Unlock()
+	if _, ok := compiledMaskCache.m[pattern]; ok {
+		return
+	}
+	if len(compiledMaskCache.m) >= compiledMaskCacheMax {
+		clear(compiledMaskCache.m)
+	}
 	compiledMaskCache.m[pattern] = c
-	compiledMaskCache.Unlock()
 }
 
 // InputMaskFromPreset returns the mask pattern for a preset.

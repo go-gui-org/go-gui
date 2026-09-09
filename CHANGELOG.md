@@ -95,6 +95,35 @@ and this project adheres to
   custom tokens share one compiled instance (an alloc-gate test pins the
   per-generation budget) instead of recompiling on every frame.
 
+- **Vertical caret motion in a selectable `Text` stays on cluster boundaries** —
+  with no shaped layout to consult, Up/Down fell back to line-column math and
+  could park the caret between a base rune and its combining mark, so the next
+  delete cut a cluster in half. The fallback now snaps to the nearest grapheme
+  stop, which `Input` already did. The line-column math behind it finds line
+  boundaries by scanning bytes, which needs no `[]rune` copy of the buffer, but
+  counts the column in runes: a byte column carried onto a line of different
+  rune widths lands mid-rune, which made Up fail to leave a line at all when the
+  line above held a 4-byte rune, and made Down answer past the end of the text.
+  The snap cannot repair that, because a drifted index is usually itself a valid
+  cluster boundary.
+
+- **Password fields mask with bullets everywhere** — multiline passwords
+  rendered `*` while single-line fields rendered `•`, with different advances.
+  The multiline mask now emits the same bullet, so measuring and painting agree
+  on one glyph in both modes.
+
+- **Programmatic input text is size-bounded like typed text** — `Input` content
+  assigned by the app bypassed the keystroke/paste/callback rune budget, so an
+  oversize string shaped every frame and filled the 50-deep undo history.
+  Generation now truncates to the budget and reports once per identity under the
+  `DebugGlyphLayoutFallback` category. Standalone `Text` stays unbounded: with
+  no undo history or per-keystroke reshape, long-form display has nothing to
+  bound. Clipboard pastes are pre-capped before any `[]rune` conversion, so a
+  platform-sized paste no longer allocates transiently, and the shared mask
+  cache stops at 256 patterns, emptying and refilling on overflow rather than
+  refusing the newcomer — a pattern the cache could never admit would recompile
+  on every frame, which is the cost the cache exists to remove.
+
 ## [v0.71.0] - 2026-09-08
 
 ### Added
