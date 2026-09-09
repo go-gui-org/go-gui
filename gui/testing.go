@@ -156,18 +156,18 @@ func (w *Window) settle() {
 	}
 }
 
-// testTarget resolves id to a layout and rejects the two states in
-// which dispatching any event is meaningless.
-func (w *Window) testTarget(id string) (*Layout, error) {
-	ly, ok := w.layout.FindByID(id)
+// testTarget resolves effectiveID to a layout and rejects the two
+// states in which dispatching any event is meaningless.
+func (w *Window) testTarget(effectiveID string) (*Layout, error) {
+	ly, ok := w.layout.FindByID(effectiveID)
 	if !ok {
-		return nil, fmt.Errorf("%w: %q", errTestNoSuchID, id)
+		return nil, fmt.Errorf("%w: %q", errTestNoSuchID, effectiveID)
 	}
 	if ly.Shape == nil {
-		return nil, fmt.Errorf("%w: %q", errTestNoSuchID, id)
+		return nil, fmt.Errorf("%w: %q", errTestNoSuchID, effectiveID)
 	}
 	if ly.Shape.Disabled {
-		return nil, fmt.Errorf("%w: %q", errTestDisabled, id)
+		return nil, fmt.Errorf("%w: %q", errTestDisabled, effectiveID)
 	}
 	return ly, nil
 }
@@ -178,10 +178,10 @@ func (w *Window) testTarget(id string) (*Layout, error) {
 // The center of shapeClip, not of the shape: PointInShape tests the
 // clip rectangle, so a widget partly scrolled out of its container has
 // a shape center that misses and a clip center that does not.
-func testHitPoint(ly *Layout, id string) (x, y float32, err error) {
+func testHitPoint(ly *Layout, effectiveID string) (x, y float32, err error) {
 	c := ly.Shape.shapeClip
 	if c.Width <= 0 || c.Height <= 0 {
-		return 0, 0, fmt.Errorf("%w: %q", errTestNotVisible, id)
+		return 0, 0, fmt.Errorf("%w: %q", errTestNotVisible, effectiveID)
 	}
 	return c.X + c.Width/2, c.Y + c.Height/2, nil
 }
@@ -211,11 +211,11 @@ func testHitPoint(ly *Layout, id string) (x, y float32, err error) {
 // OnMouseDown nor focusability, since a click on such a widget cannot
 // have any effect worth asserting on.
 //
-// id is the widget's effective ID: a leaf under an ID-bearing
+// effectiveID is the widget's effective ID: a leaf under an ID-bearing
 // ancestor is addressed by its full path ("detail:nav"), not by the
 // leaf its Cfg was written with. Read it back with [Window.ResolveID].
-func (w *Window) TestClick(id string) error {
-	ly, err := w.testTarget(id)
+func (w *Window) TestClick(effectiveID string) error {
+	ly, err := w.testTarget(effectiveID)
 	if err != nil {
 		return err
 	}
@@ -224,9 +224,9 @@ func (w *Window) TestClick(id string) error {
 		(ev.OnClick != nil || ev.OnMouseDown != nil)
 	if !hasClick && !ly.Shape.Focusable {
 		return fmt.Errorf("%w: %q has no click handler and is not focusable",
-			errTestNoHandler, id)
+			errTestNoHandler, effectiveID)
 	}
-	x, y, err := testHitPoint(ly, id)
+	x, y, err := testHitPoint(ly, effectiveID)
 	if err != nil {
 		return err
 	}
@@ -246,23 +246,23 @@ func (w *Window) TestClick(id string) error {
 	w.EventFn(&up)
 	w.settle()
 	if !down.IsHandled {
-		return fmt.Errorf("%w: click on %q", errTestUnhandled, id)
+		return fmt.Errorf("%w: click on %q", errTestUnhandled, effectiveID)
 	}
 	return nil
 }
 
-// testFocusable resolves id and rejects it unless it can actually hold
+// testFocusable resolves effectiveID and rejects it unless it can actually hold
 // focus. Decided by Shape.canTakeFocus, the same predicate dispatch
 // and tab order use; a widget with Focusable set but no ID is the
 // silent no-op the requiredid analyzer and the RequireID panic exist
 // to prevent.
-func (w *Window) testFocusable(id string) (*Layout, error) {
-	ly, err := w.testTarget(id)
+func (w *Window) testFocusable(effectiveID string) (*Layout, error) {
+	ly, err := w.testTarget(effectiveID)
 	if err != nil {
 		return nil, err
 	}
 	if !ly.Shape.canTakeFocus() {
-		return nil, fmt.Errorf("%w: %q", errTestNotFocusable, id)
+		return nil, fmt.Errorf("%w: %q", errTestNotFocusable, effectiveID)
 	}
 	return ly, nil
 }
@@ -272,11 +272,11 @@ func (w *Window) testFocusable(id string) (*Layout, error) {
 //
 // FocusSkip is not rejected: a skipped widget is out of tab order but
 // can still be focused programmatically, which is what this does.
-func (w *Window) testFocus(id string) error {
-	if _, err := w.testFocusable(id); err != nil {
+func (w *Window) testFocus(effectiveID string) error {
+	if _, err := w.testFocusable(effectiveID); err != nil {
 		return err
 	}
-	w.SetFocus(id)
+	w.SetFocus(effectiveID)
 	w.settle()
 	return nil
 }
@@ -289,11 +289,11 @@ func (w *Window) testFocus(id string) error {
 // consumed it" is normal, not a defect. Assert on the state change
 // instead.
 //
-// id is the widget's effective ID: a leaf under an ID-bearing
+// effectiveID is the widget's effective ID: a leaf under an ID-bearing
 // ancestor is addressed by its full path ("detail:nav"), not by the
 // leaf its Cfg was written with. Read it back with [Window.ResolveID].
-func (w *Window) TestKey(id string, key KeyCode, mods Modifier) error {
-	if err := w.testFocus(id); err != nil {
+func (w *Window) TestKey(effectiveID string, key KeyCode, mods Modifier) error {
+	if err := w.testFocus(effectiveID); err != nil {
 		return err
 	}
 	down := Event{Type: EventKeyDown, KeyCode: key, Modifiers: mods}
@@ -312,11 +312,11 @@ func (w *Window) TestKey(id string, key KeyCode, mods Modifier) error {
 // that only handled EventKeyDown would wrongly appear to work if this
 // sent key codes. Empty text focuses the widget and delivers nothing.
 //
-// id is the widget's effective ID: a leaf under an ID-bearing
+// effectiveID is the widget's effective ID: a leaf under an ID-bearing
 // ancestor is addressed by its full path ("detail:nav"), not by the
 // leaf its Cfg was written with. Read it back with [Window.ResolveID].
-func (w *Window) TestType(id string, text string) error {
-	if err := w.testFocus(id); err != nil {
+func (w *Window) TestType(effectiveID string, text string) error {
+	if err := w.testFocus(effectiveID); err != nil {
 		return err
 	}
 	for _, r := range text {
@@ -378,20 +378,20 @@ func (w *Window) testTab(dir TabDirection) (focusedID string, err error) {
 // event reached no one — including the case where it fell through to a
 // scrollable already pinned at its limit.
 //
-// id is the widget's effective ID: a leaf under an ID-bearing
+// effectiveID is the widget's effective ID: a leaf under an ID-bearing
 // ancestor is addressed by its full path ("detail:nav"), not by the
 // leaf its Cfg was written with. Read it back with [Window.ResolveID].
-func (w *Window) TestScroll(id string, dx, dy float32) error {
-	ly, err := w.testTarget(id)
+func (w *Window) TestScroll(effectiveID string, dx, dy float32) error {
+	ly, err := w.testTarget(effectiveID)
 	if err != nil {
 		return err
 	}
 	hasScroll := ly.Shape.hasEvents() && ly.Shape.events.OnMouseScroll != nil
 	if !ly.Shape.Scrollable && !hasScroll {
 		return fmt.Errorf("%w: %q is not Scrollable and has no OnMouseScroll",
-			errTestNoHandler, id)
+			errTestNoHandler, effectiveID)
 	}
-	x, y, err := testHitPoint(ly, id)
+	x, y, err := testHitPoint(ly, effectiveID)
 	if err != nil {
 		return err
 	}
@@ -405,12 +405,12 @@ func (w *Window) TestScroll(id string, dx, dy float32) error {
 	if !e.IsHandled {
 		// Re-resolve: settle() rebuilt the tree, so the ly captured
 		// above is stale (see TestRender's doc comment).
-		if cur, rerr := w.testTarget(id); rerr == nil {
-			if err = testScrollRoomErr(cur, id, dx, dy); err != nil {
+		if cur, rerr := w.testTarget(effectiveID); rerr == nil {
+			if err = testScrollRoomErr(cur, effectiveID, dx, dy); err != nil {
 				return err
 			}
 		}
-		return fmt.Errorf("%w: scroll on %q", errTestUnhandled, id)
+		return fmt.Errorf("%w: scroll on %q", errTestUnhandled, effectiveID)
 	}
 	return nil
 }
@@ -423,7 +423,7 @@ func (w *Window) TestScroll(id string, dx, dy float32) error {
 // Room is measured the same way layoutAdjustScrollOffsets clamps —
 // viewport minus content — so this cannot disagree with the clamp that
 // actually swallowed the scroll.
-func testScrollRoomErr(ly *Layout, id string, dx, dy float32) error {
+func testScrollRoomErr(ly *Layout, effectiveID string, dx, dy float32) error {
 	if !ly.Shape.Scrollable {
 		return nil
 	}
@@ -437,7 +437,7 @@ func testScrollRoomErr(ly *Layout, id string, dx, dy float32) error {
 	}
 	return fmt.Errorf(
 		"%w: %q content is %.0fx%.0f inside a %.0fx%.0f viewport",
-		errTestNoScrollRoom, id,
+		errTestNoScrollRoom, effectiveID,
 		contentWidth(ly), contentHeight(ly),
 		ly.Shape.Width-ly.Shape.paddingWidth(),
 		ly.Shape.Height-ly.Shape.paddingHeight(),
@@ -456,24 +456,24 @@ func testScrollRoomErr(ly *Layout, id string, dx, dy float32) error {
 // silently reporting 0 would make an over-scroll assertion pass for the
 // wrong reason.
 //
-// id is the widget's effective ID: a leaf under an ID-bearing
+// effectiveID is the widget's effective ID: a leaf under an ID-bearing
 // ancestor is addressed by its full path ("detail:nav"), not by the
 // leaf its Cfg was written with. Read it back with [Window.ResolveID].
-func (w *Window) TestScrollOffset(id string) (x, y float32, err error) {
-	ly, err := w.testTarget(id)
+func (w *Window) TestScrollOffset(effectiveID string) (x, y float32, err error) {
+	ly, err := w.testTarget(effectiveID)
 	if err != nil {
 		return 0, 0, err
 	}
 	if !ly.Shape.Scrollable {
-		return 0, 0, fmt.Errorf("%w: %q is not Scrollable", errTestNoHandler, id)
+		return 0, 0, fmt.Errorf("%w: %q is not Scrollable", errTestNoHandler, effectiveID)
 	}
 	// Read-only accessors: a query must not allocate the state maps as a
 	// side effect of being asked about a container that never scrolled.
 	if sx := w.scrollXRead(); sx != nil {
-		x = sx.GetOr(id, 0)
+		x = sx.GetOr(effectiveID, 0)
 	}
 	if sy := w.scrollYRead(); sy != nil {
-		y = sy.GetOr(id, 0)
+		y = sy.GetOr(effectiveID, 0)
 	}
 	return x, y, nil
 }

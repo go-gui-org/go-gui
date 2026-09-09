@@ -53,8 +53,8 @@ var (
 //
 // Called only from a miss path, so a lookup that finds its target
 // costs nothing beyond the branch it was already taking.
-func debugLookupMiss(layout *Layout, api, id string) {
-	if id == "" || layout == nil {
+func debugLookupMiss(layout *Layout, api, effectiveID string) {
+	if effectiveID == "" || layout == nil {
 		return
 	}
 	if DebugCategory(debugMask.Load())&DebugUnknownLookup == 0 {
@@ -64,20 +64,20 @@ func debugLookupMiss(layout *Layout, api, id string) {
 	// the frame rate, and the finding is printed once, so the second
 	// frame onwards must not pay for a tree walk whose result is
 	// already known.
-	if lookupWarnSeen(api, id, false) {
+	if lookupWarnSeen(api, effectiveID, false) {
 		return
 	}
 	root := layout
 	for root.Parent != nil {
 		root = root.Parent
 	}
-	near := lookupNearMisses(root, id)
+	near := lookupNearMisses(root, effectiveID)
 	if len(near) == 0 {
 		// Nothing to report *yet*: the widget may be built by a later
 		// frame, so the pair stays unmarked and can still report then.
 		return
 	}
-	if lookupWarnSeen(api, id, true) {
+	if lookupWarnSeen(api, effectiveID, true) {
 		return
 	}
 	// Diagnostics are best-effort; a failed write to stderr is not
@@ -86,19 +86,19 @@ func debugLookupMiss(layout *Layout, api, id string) {
 		"gui: %s(%q) found nothing, but the frame stamped %s for that "+
 			"leaf; %s takes the effective ID — read it back with "+
 			"(*Window).ResolveID.\n",
-		api, id, quoteJoin(near), api)
+		api, effectiveID, quoteJoin(near), api)
 }
 
 // lookupNearMisses returns the identities in one frame whose last
-// segment is the leaf of id, excluding id itself. Sorted and
-// deduplicated so the message is the same on every run.
-func lookupNearMisses(root *Layout, id string) []string {
-	leaf := lastIDSegment(id)
+// segment is the leaf of effectiveID, excluding effectiveID itself.
+// Sorted and deduplicated so the message is the same on every run.
+func lookupNearMisses(root *Layout, effectiveID string) []string {
+	leaf := lastIDSegment(effectiveID)
 	var ids []string
 	collectEffectiveIDs(root, &ids)
 	out := ids[:0]
 	for _, got := range ids {
-		if got != id && lastIDSegment(got) == leaf {
+		if got != effectiveID && lastIDSegment(got) == leaf {
 			out = append(out, got)
 		}
 	}
@@ -106,15 +106,15 @@ func lookupNearMisses(root *Layout, id string) []string {
 	return slices.Compact(out)
 }
 
-// lookupWarnSeen reports whether this (api, id) pair has already been
-// reported under the current generation of the gate. When mark is set
-// and the pair is new, it is remembered before returning, so the next
-// call answers true.
+// lookupWarnSeen reports whether this (api, effectiveID) pair has
+// already been reported under the current generation of the gate.
+// When mark is set and the pair is new, it is remembered before
+// returning, so the next call answers true.
 //
 // Split from the report itself so debugLookupMiss can ask the cheap
 // question (peek) before the expensive one (walk the frame for near
 // misses) and mark only what it actually printed.
-func lookupWarnSeen(api, id string, mark bool) bool {
+func lookupWarnSeen(api, effectiveID string, mark bool) bool {
 	lookupWarnMu.Lock()
 	defer lookupWarnMu.Unlock()
 	// Discard memory built under an older generation, so Debug(false)
@@ -123,7 +123,7 @@ func lookupWarnSeen(api, id string, mark bool) bool {
 		lookupWarnGen = gen
 		lookupWarned = nil
 	}
-	key := debugLookupKey{api: api, id: id}
+	key := debugLookupKey{api: api, id: effectiveID}
 	if _, seen := lookupWarned[key]; seen {
 		return true
 	}

@@ -28,22 +28,22 @@ func (layout *Layout) FindLayout(predicate func(Layout) bool) (*Layout, bool) {
 
 // FindLayoutByFocusID recursively searches for a layout with matching focus ID.
 //
-// id is an effective ID (see gui/id_resolve.go): the full path a widget
-// resolves to under its ID-bearing ancestors, which is what the focus
-// store holds.
-func findLayoutByFocusID(layout *Layout, id string) (*Layout, bool) {
-	return findLayoutByFocusIDDepth(layout, id, 0)
+// effectiveID is an effective ID (see gui/id_resolve.go): the full path
+// a widget resolves to under its ID-bearing ancestors, which is what
+// the focus store holds.
+func findLayoutByFocusID(layout *Layout, effectiveID string) (*Layout, bool) {
+	return findLayoutByFocusIDDepth(layout, effectiveID, 0)
 }
 
-func findLayoutByFocusIDDepth(layout *Layout, id string, depth int) (*Layout, bool) {
+func findLayoutByFocusIDDepth(layout *Layout, effectiveID string, depth int) (*Layout, bool) {
 	if overMaxDepth(depth) {
 		return nil, false
 	}
-	if id != "" && layout.Shape.Focusable && layout.Shape.idKey() == id {
+	if effectiveID != "" && layout.Shape.Focusable && layout.Shape.idKey() == effectiveID {
 		return layout, true
 	}
 	for i := range layout.Children {
-		if ly, ok := findLayoutByFocusIDDepth(&layout.Children[i], id, depth+1); ok {
+		if ly, ok := findLayoutByFocusIDDepth(&layout.Children[i], effectiveID, depth+1); ok {
 			return ly, true
 		}
 	}
@@ -51,21 +51,21 @@ func findLayoutByFocusIDDepth(layout *Layout, id string, depth int) (*Layout, bo
 }
 
 // FindLayoutByScrollID recursively searches for a Scrollable layout
-// with matching scroll ID. An empty id never matches. id is an
-// effective ID, as in [FindLayoutByFocusID].
-func findLayoutByScrollID(layout *Layout, id string) (*Layout, bool) {
-	return findLayoutByScrollIDDepth(layout, id, 0)
+// with matching scroll ID. An empty ID never matches. effectiveID is
+// an effective ID, as in [FindLayoutByFocusID].
+func findLayoutByScrollID(layout *Layout, effectiveID string) (*Layout, bool) {
+	return findLayoutByScrollIDDepth(layout, effectiveID, 0)
 }
 
-func findLayoutByScrollIDDepth(layout *Layout, id string, depth int) (*Layout, bool) {
+func findLayoutByScrollIDDepth(layout *Layout, effectiveID string, depth int) (*Layout, bool) {
 	if overMaxDepth(depth) {
 		return nil, false
 	}
-	if id != "" && layout.Shape.Scrollable && layout.Shape.idKey() == id {
+	if effectiveID != "" && layout.Shape.Scrollable && layout.Shape.idKey() == effectiveID {
 		return layout, true
 	}
 	for i := range layout.Children {
-		if ly, ok := findLayoutByScrollIDDepth(&layout.Children[i], id, depth+1); ok {
+		if ly, ok := findLayoutByScrollIDDepth(&layout.Children[i], effectiveID, depth+1); ok {
 			return ly, true
 		}
 	}
@@ -73,11 +73,11 @@ func findLayoutByScrollIDDepth(layout *Layout, id string, depth int) (*Layout, b
 }
 
 // FindByID searches the layout tree for a layout with the given ID.
-// An empty id never matches — a widget without an ID cannot be
-// addressed — matching the id != "" guards in FindLayoutByScrollID and
-// FindLayoutByFocusID.
+// An empty effectiveID never matches — a widget without an ID cannot
+// be addressed — matching the effectiveID != "" guards in
+// FindLayoutByScrollID and FindLayoutByFocusID.
 //
-// id is the widget's effective ID: a leaf under an ID-bearing ancestor
+// effectiveID is the widget's effective ID: a leaf under an ID-bearing ancestor
 // is addressed by its full path ("settings:name"), not by the leaf its
 // Cfg was written with. See gui/id_resolve.go.
 // A nil Shape means the layout tree has not been built yet (no frame
@@ -90,10 +90,10 @@ func findLayoutByScrollIDDepth(layout *Layout, id string, depth int) (*Layout, b
 // here looks like from the outside. Library code that probes for a
 // widget which may legitimately be absent calls findByID instead; see
 // debug_lookup.go.
-func (layout *Layout) FindByID(id string) (*Layout, bool) {
-	res, ok := layout.findByID(id)
+func (layout *Layout) FindByID(effectiveID string) (*Layout, bool) {
+	res, ok := layout.findByID(effectiveID)
 	if !ok {
-		debugLookupMiss(layout, "FindByID", id)
+		debugLookupMiss(layout, "FindByID", effectiveID)
 	}
 	return res, ok
 }
@@ -101,25 +101,25 @@ func (layout *Layout) FindByID(id string) (*Layout, bool) {
 // findByID is FindByID without the debug report: the lookup itself,
 // for callers whose miss is a legitimate answer rather than a
 // misspelling.
-func (layout *Layout) findByID(id string) (*Layout, bool) {
-	return layout.findByIDDepth(id, 0)
+func (layout *Layout) findByID(effectiveID string) (*Layout, bool) {
+	return layout.findByIDDepth(effectiveID, 0)
 }
 
-func (layout *Layout) findByIDDepth(id string, depth int) (*Layout, bool) {
+func (layout *Layout) findByIDDepth(effectiveID string, depth int) (*Layout, bool) {
 	if overMaxDepth(depth) {
 		return nil, false
 	}
-	if id == "" {
+	if effectiveID == "" {
 		return nil, false
 	}
 	if layout.Shape == nil {
 		return nil, false
 	}
-	if layout.Shape.idKey() == id {
+	if layout.Shape.idKey() == effectiveID {
 		return layout, true
 	}
 	for i := range layout.Children {
-		if res, ok := layout.Children[i].findByIDDepth(id, depth+1); ok {
+		if res, ok := layout.Children[i].findByIDDepth(effectiveID, depth+1); ok {
 			return res, true
 		}
 	}

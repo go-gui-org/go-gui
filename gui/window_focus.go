@@ -18,7 +18,7 @@ func (w *Window) FocusID() string {
 // pass, not here (see syncBlinkCursor). Use ClearFocus to remove
 // focus.
 //
-// id is the widget's effective ID: a leaf under an ID-bearing
+// effectiveID is the widget's effective ID: a leaf under an ID-bearing
 // ancestor is addressed by its full path ("detail:nav"), not by the
 // leaf its Cfg was written with. Read it back with [Window.ResolveID].
 // No existence check runs here — a View function may set focus before
@@ -26,10 +26,10 @@ func (w *Window) FocusID() string {
 // void until the next frame's fixup moves it on. Turn on gui.Debug to
 // hear about it (DebugUnknownFocus), or assert with
 // (*Window).TestFindings in tests.
-func (w *Window) SetFocus(id string) {
+func (w *Window) SetFocus(effectiveID string) {
 	w.lockForAPI("SetFocus")
 	defer w.mu.Unlock()
-	w.setFocusLocked(id)
+	w.setFocusLocked(effectiveID)
 }
 
 // ClearFocus removes keyboard focus from any widget.
@@ -37,7 +37,7 @@ func (w *Window) ClearFocus() {
 	w.SetFocus("")
 }
 
-func (w *Window) setFocusLocked(id string) {
+func (w *Window) setFocusLocked(effectiveID string) {
 	prev := w.viewState.focusID
 	// Only a real focus *change* drops selections and clears the IME.
 	// Re-asserting focus on the widget that already holds it must leave
@@ -46,7 +46,7 @@ func (w *Window) setFocusLocked(id string) {
 	// inside their View function, which runs on every layout rebuild,
 	// so an unconditional selection clear wiped every nsInput selection
 	// window-wide on each re-assert. Real transitions still clear both.
-	if id != prev {
+	if effectiveID != prev {
 		w.clearInputSelections()
 		w.imeClear()
 		// The a11y snapshot carries the focused index but no layout
@@ -54,8 +54,8 @@ func (w *Window) setFocusLocked(id string) {
 		// here or syncA11y would skip the push (issue #407).
 		w.a11y.dirty = true
 	}
-	w.viewState.focusID = id
-	if id != "" {
+	w.viewState.focusID = effectiveID
+	if effectiveID != "" {
 		w.viewState.inputCursorOn.Store(true)
 	}
 	// The caret-blink animation is not started here. Whether the new
@@ -112,11 +112,11 @@ func resetBlinkCursorVisible(w *Window) {
 
 // IsFocus tests if the given focus id equals the window's focus id.
 //
-// id is the widget's effective ID: a leaf under an ID-bearing
+// effectiveID is the widget's effective ID: a leaf under an ID-bearing
 // ancestor is addressed by its full path ("detail:nav"), not by the
 // leaf its Cfg was written with. Read it back with [Window.ResolveID].
-func (w *Window) IsFocus(id string) bool {
-	return w.viewState.focusID != "" && w.viewState.focusID == id
+func (w *Window) IsFocus(effectiveID string) bool {
+	return w.viewState.focusID != "" && w.viewState.focusID == effectiveID
 }
 
 // hasFocus returns true if the window has focus.

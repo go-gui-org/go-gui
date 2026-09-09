@@ -211,21 +211,21 @@ func listHeightEnsureVariable(
 // InvalidateListHeights drops every measured height for the given
 // list, so the next frames re-measure from the estimate. Call it when
 // a row's content changed under a stable key — nothing detects that,
-// because the model keys on identity, not on content. id is the
-// effective scroll ID. Main goroutine only.
+// because the model keys on identity, not on content. effectiveID is
+// the widget's effective ID. Main goroutine only.
 // exportaudit:keep — the only escape hatch for content edited under a
 // stable key; nothing detects that case
-func (w *Window) InvalidateListHeights(id string) {
-	m, ok := listHeightLookup(w, id)
+func (w *Window) InvalidateListHeights(effectiveID string) {
+	m, ok := listHeightLookup(w, effectiveID)
 	if !ok || m.uniform {
 		return
 	}
 	sy := w.scrollY()
 	// Default 0: absent entry means the list has not been scrolled.
-	anchor := listHeightCaptureAnchor(m, sy.GetOr(id, 0))
+	anchor := listHeightCaptureAnchor(m, sy.GetOr(effectiveID, 0))
 	m.ResetToEstimate(m.estimate)
 	if off, restored := listHeightRestoreAnchor(m, anchor); restored {
-		sy.Set(id, off)
+		sy.Set(effectiveID, off)
 	}
 	w.UpdateWindow()
 }

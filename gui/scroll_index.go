@@ -50,23 +50,23 @@ type virtualScrollReq struct {
 const virtualScrollMaxAge = 4
 
 // ScrollToIndex scrolls the given list so item index sits at the top
-// of the viewport. id is the list's effective scroll ID; index is in
+// of the viewport. effectiveID is the list's effective ID; index is in
 // the widget's own index space (see the retrofit table in
 // docs/specs/virtualized-variable-height-lists.md — a frozen table
 // header, for instance, is data index 0 but sits outside the
 // scrollable). Main goroutine only.
-func (w *Window) ScrollToIndex(id string, index int) {
-	w.scrollIndexRequest(id, index, virtualScrollAt, 0)
+func (w *Window) ScrollToIndex(effectiveID string, index int) {
+	w.scrollIndexRequest(effectiveID, index, virtualScrollAt, 0)
 }
 
 // ScrollToIndexAt scrolls the given list so item index lands at frac
 // of the viewport: 0 top, 0.5 middle, 1 bottom. Main goroutine only.
 //
-// id is the widget's effective ID: a leaf under an ID-bearing
+// effectiveID is the widget's effective ID: a leaf under an ID-bearing
 // ancestor is addressed by its full path ("detail:nav"), not by the
 // leaf its Cfg was written with. Read it back with [Window.ResolveID].
-func (w *Window) ScrollToIndexAt(id string, index int, frac float32) {
-	w.scrollIndexRequest(id, index, virtualScrollAt,
+func (w *Window) ScrollToIndexAt(effectiveID string, index int, frac float32) {
+	w.scrollIndexRequest(effectiveID, index, virtualScrollAt,
 		f32Clamp(frac, 0, 1))
 }
 
@@ -75,12 +75,12 @@ func (w *Window) ScrollToIndexAt(id string, index int, frac float32) {
 // is already visible. This is the one to call when moving a selection
 // with the arrow keys. Main goroutine only.
 //
-// id is the widget's effective ID: a leaf under an ID-bearing
+// effectiveID is the widget's effective ID: a leaf under an ID-bearing
 // ancestor is addressed by its full path ("detail:nav"), not by the
 // leaf its Cfg was written with. Read it back with [Window.ResolveID].
 // exportaudit:keep — the selection-following form of the index API
-func (w *Window) ScrollIndexIntoView(id string, index int) {
-	w.scrollIndexRequest(id, index, virtualScrollIntoView, 0)
+func (w *Window) ScrollIndexIntoView(effectiveID string, index int) {
+	w.scrollIndexRequest(effectiveID, index, virtualScrollIntoView, 0)
 }
 
 // ScrollToEnd pins the given list to the bottom of its content. It
@@ -88,24 +88,24 @@ func (w *Window) ScrollIndexIntoView(id string, index int) {
 // the content height is assembled from spacers over an estimated row
 // height and a percentage therefore drifts. Main goroutine only.
 //
-// id is the widget's effective ID: a leaf under an ID-bearing
+// effectiveID is the widget's effective ID: a leaf under an ID-bearing
 // ancestor is addressed by its full path ("detail:nav"), not by the
 // leaf its Cfg was written with. Read it back with [Window.ResolveID].
-func (w *Window) ScrollToEnd(id string) {
-	w.scrollIndexRequest(id, 0, virtualScrollEnd, 0)
+func (w *Window) ScrollToEnd(effectiveID string) {
+	w.scrollIndexRequest(effectiveID, 0, virtualScrollEnd, 0)
 }
 
 // scrollIndexRequest applies the request against the current layout
 // when it can, and queues it either way so later passes converge it
 // as rows are measured.
 func (w *Window) scrollIndexRequest(
-	id string, index int, mode virtualScrollMode, frac float32,
+	effectiveID string, index int, mode virtualScrollMode, frac float32,
 ) {
-	if w == nil || id == "" {
+	if w == nil || effectiveID == "" {
 		return
 	}
 	r := virtualScrollReq{
-		scrollID: id,
+		scrollID: effectiveID,
 		index:    index,
 		frac:     frac,
 		frame:    w.frameCount,
@@ -113,10 +113,10 @@ func (w *Window) scrollIndexRequest(
 	}
 	// A jump and a pending anchor both write the same offset; the
 	// explicit jump is the later intent, so drop the anchor.
-	w.dropScrollAnchor(id)
-	scrollSmoothCancel(w, id, scrollAxisY)
+	w.dropScrollAnchor(effectiveID)
+	scrollSmoothCancel(w, effectiveID, scrollAxisY)
 
-	if sc, ok := findScrollLayout(w, id); ok {
+	if sc, ok := findScrollLayout(w, effectiveID); ok {
 		applyVirtualScroll(r, sc, w, false)
 	}
 	w.queueVirtualScroll(r)

@@ -4,11 +4,11 @@ import "github.com/go-gui-org/go-glyph"
 
 // findScrollLayout returns the layout for the scroll id, or false
 // if the layout tree is not yet built or the id is not found.
-func findScrollLayout(w *Window, id string) (*Layout, bool) {
+func findScrollLayout(w *Window, effectiveID string) (*Layout, bool) {
 	if w.layout.Shape == nil {
 		return nil, false
 	}
-	return findLayoutByScrollID(&w.layout, id)
+	return findLayoutByScrollID(&w.layout, effectiveID)
 }
 
 // fireOnScroll fires the OnScroll callback if set.
@@ -301,8 +301,8 @@ func scrollVertical(layout *Layout, delta float32, w *Window) bool {
 
 // ScrollToView scrolls the parent scroll container to make
 // the view with the given id visible.
-func (w *Window) scrollToView(id string) {
-	target, ok := w.layout.FindByID(id)
+func (w *Window) scrollToView(effectiveID string) {
+	target, ok := w.layout.FindByID(effectiveID)
 	if !ok {
 		return
 	}
@@ -327,40 +327,40 @@ func (w *Window) scrollToView(id string) {
 	}
 }
 
-// ScrollHorizontalBy scrolls the given scrollable by delta. id is
+// ScrollHorizontalBy scrolls the given scrollable by delta. effectiveID is
 // the scrollable's scroll key (see the Scrollable doc on each Cfg).
-func (w *Window) scrollHorizontalBy(id string, delta float32) {
-	scrollSmoothCancel(w, id, scrollAxisX)
+func (w *Window) scrollHorizontalBy(effectiveID string, delta float32) {
+	scrollSmoothCancel(w, effectiveID, scrollAxisX)
 	sx := w.scrollX()
 	// Default 0: unscrolled position when no offset recorded yet.
-	current := sx.GetOr(id, 0)
+	current := sx.GetOr(effectiveID, 0)
 	newVal := current + delta
-	if ly, ok := findScrollLayout(w, id); ok {
+	if ly, ok := findScrollLayout(w, effectiveID); ok {
 		maxOffset := scrollMaxOffsetX(ly)
 		newVal = f32Clamp(newVal, maxOffset, 0)
-		sx.Set(id, newVal)
+		sx.Set(effectiveID, newVal)
 		fireOnScroll(ly, w)
 		return
 	}
-	sx.Set(id, newVal)
+	sx.Set(effectiveID, newVal)
 }
 
 // ScrollHorizontalTo scrolls the given scrollable to offset
 // (negative).
 //
-// id is the widget's effective ID: a leaf under an ID-bearing
+// effectiveID is the widget's effective ID: a leaf under an ID-bearing
 // ancestor is addressed by its full path ("detail:nav"), not by the
 // leaf its Cfg was written with. Read it back with [Window.ResolveID].
-func (w *Window) ScrollHorizontalTo(id string, offset float32) {
-	scrollSmoothCancel(w, id, scrollAxisX)
+func (w *Window) ScrollHorizontalTo(effectiveID string, offset float32) {
+	scrollSmoothCancel(w, effectiveID, scrollAxisX)
 	sx := w.scrollX()
-	if ly, ok := findScrollLayout(w, id); ok {
+	if ly, ok := findScrollLayout(w, effectiveID); ok {
 		maxOffset := scrollMaxOffsetX(ly)
-		sx.Set(id, f32Clamp(offset, maxOffset, 0))
+		sx.Set(effectiveID, f32Clamp(offset, maxOffset, 0))
 		fireOnScroll(ly, w)
 		return
 	}
-	sx.Set(id, offset)
+	sx.Set(effectiveID, offset)
 }
 
 // ScrollHorizontalToSmooth eases the given scrollable to offset
@@ -368,8 +368,8 @@ func (w *Window) ScrollHorizontalTo(id string, offset float32) {
 // mouse-wheel scrolling. No-op if the scroll id is not found or the
 // target equals the current offset. Use ScrollHorizontalTo for an
 // instant jump.
-func (w *Window) scrollHorizontalToSmooth(id string, offset float32) {
-	if ly, ok := findScrollLayout(w, id); ok {
+func (w *Window) scrollHorizontalToSmooth(effectiveID string, offset float32) {
+	if ly, ok := findScrollLayout(w, effectiveID); ok {
 		scrollSmoothTo(w, ly, scrollAxisX, offset)
 	}
 }
@@ -377,9 +377,9 @@ func (w *Window) scrollHorizontalToSmooth(id string, offset float32) {
 // ScrollHorizontalToPct scrolls to a horizontal percentage.
 // pct: 0.0 = left, 1.0 = right. Clamped to [0, 1].
 // No-op if the scroll id is not found or content fits viewport.
-func (w *Window) scrollHorizontalToPct(id string, pct float32) {
+func (w *Window) scrollHorizontalToPct(effectiveID string, pct float32) {
 	// See ScrollHorizontalPct: the walk faults on an un-arranged tree.
-	ly, ok := findScrollLayout(w, id)
+	ly, ok := findScrollLayout(w, effectiveID)
 	if !ok {
 		return
 	}
@@ -388,40 +388,40 @@ func (w *Window) scrollHorizontalToPct(id string, pct float32) {
 		return
 	}
 	sx := w.scrollX()
-	sx.Set(id, maxOffset*f32Clamp(pct, 0, 1))
-	scrollSmoothCancel(w, id, scrollAxisX)
+	sx.Set(effectiveID, maxOffset*f32Clamp(pct, 0, 1))
+	scrollSmoothCancel(w, effectiveID, scrollAxisX)
 }
 
-// ScrollVerticalBy scrolls the given scrollable by delta. id is
+// ScrollVerticalBy scrolls the given scrollable by delta. effectiveID is
 // the scrollable's scroll key (see the Scrollable doc on each Cfg).
-func (w *Window) scrollVerticalBy(id string, delta float32) {
-	scrollSmoothCancel(w, id, scrollAxisY)
+func (w *Window) scrollVerticalBy(effectiveID string, delta float32) {
+	scrollSmoothCancel(w, effectiveID, scrollAxisY)
 	sy := w.scrollY()
 	// Default 0: unscrolled position when no offset recorded yet.
-	current := sy.GetOr(id, 0)
+	current := sy.GetOr(effectiveID, 0)
 	newVal := current + delta
-	if ly, ok := findScrollLayout(w, id); ok {
+	if ly, ok := findScrollLayout(w, effectiveID); ok {
 		maxOffset := scrollMaxOffsetY(ly)
 		newVal = f32Clamp(newVal, maxOffset, 0)
-		sy.Set(id, newVal)
+		sy.Set(effectiveID, newVal)
 		fireOnScroll(ly, w)
 		return
 	}
-	sy.Set(id, newVal)
+	sy.Set(effectiveID, newVal)
 }
 
 // ScrollVerticalTo scrolls the given scrollable to offset
 // (negative).
 //
-// id is the widget's effective ID: a leaf under an ID-bearing
+// effectiveID is the widget's effective ID: a leaf under an ID-bearing
 // ancestor is addressed by its full path ("detail:nav"), not by the
 // leaf its Cfg was written with. Read it back with [Window.ResolveID].
-func (w *Window) ScrollVerticalTo(id string, offset float32) {
-	scrollSmoothCancel(w, id, scrollAxisY)
+func (w *Window) ScrollVerticalTo(effectiveID string, offset float32) {
+	scrollSmoothCancel(w, effectiveID, scrollAxisY)
 	sy := w.scrollY()
-	if ly, ok := findScrollLayout(w, id); ok {
+	if ly, ok := findScrollLayout(w, effectiveID); ok {
 		maxOffset := scrollMaxOffsetY(ly)
-		sy.Set(id, f32Clamp(offset, maxOffset, 0))
+		sy.Set(effectiveID, f32Clamp(offset, maxOffset, 0))
 		fireOnScroll(ly, w)
 		return
 	}
@@ -429,8 +429,8 @@ func (w *Window) ScrollVerticalTo(id string, offset float32) {
 	// is built is legitimate, and the next frame reads it. The gate
 	// reports only the case that is not — a leaf spelled without the
 	// scope the frame stamped it under.
-	debugLookupMiss(&w.layout, "ScrollVerticalTo", id)
-	sy.Set(id, offset)
+	debugLookupMiss(&w.layout, "ScrollVerticalTo", effectiveID)
+	sy.Set(effectiveID, offset)
 }
 
 // ScrollVerticalToSmooth eases the given scrollable to offset
@@ -438,8 +438,8 @@ func (w *Window) ScrollVerticalTo(id string, offset float32) {
 // mouse-wheel scrolling. No-op if the scroll id is not found or the
 // target equals the current offset. Use ScrollVerticalTo for an
 // instant jump.
-func (w *Window) scrollVerticalToSmooth(id string, offset float32) {
-	if ly, ok := findScrollLayout(w, id); ok {
+func (w *Window) scrollVerticalToSmooth(effectiveID string, offset float32) {
+	if ly, ok := findScrollLayout(w, effectiveID); ok {
 		scrollSmoothTo(w, ly, scrollAxisY, offset)
 	}
 }
@@ -448,14 +448,14 @@ func (w *Window) scrollVerticalToSmooth(id string, offset float32) {
 // pct: 0.0 = top, 1.0 = bottom. Clamped to [0, 1].
 // No-op if the scroll id is not found or content fits viewport.
 //
-// id is the widget's effective ID: a leaf under an ID-bearing
+// effectiveID is the widget's effective ID: a leaf under an ID-bearing
 // ancestor is addressed by its full path ("detail:nav"), not by the
 // leaf its Cfg was written with. Read it back with [Window.ResolveID].
-func (w *Window) ScrollVerticalToPct(id string, pct float32) {
+func (w *Window) ScrollVerticalToPct(effectiveID string, pct float32) {
 	// See ScrollHorizontalPct: the walk faults on an un-arranged tree.
-	ly, ok := findScrollLayout(w, id)
+	ly, ok := findScrollLayout(w, effectiveID)
 	if !ok {
-		debugLookupMiss(&w.layout, "ScrollVerticalToPct", id)
+		debugLookupMiss(&w.layout, "ScrollVerticalToPct", effectiveID)
 		return
 	}
 	maxOffset := scrollMaxOffsetY(ly)
@@ -463,33 +463,33 @@ func (w *Window) ScrollVerticalToPct(id string, pct float32) {
 		return
 	}
 	sy := w.scrollY()
-	sy.Set(id, maxOffset*f32Clamp(pct, 0, 1))
-	scrollSmoothCancel(w, id, scrollAxisY)
+	sy.Set(effectiveID, maxOffset*f32Clamp(pct, 0, 1))
+	scrollSmoothCancel(w, effectiveID, scrollAxisY)
 }
 
 // ScrollVerticalOffset returns the current vertical scroll offset of
 // the given scrollable: <= 0, where 0 is the top. Unknown ids read
 // as 0 (unscrolled).
 //
-// id is the widget's effective ID: a leaf under an ID-bearing
+// effectiveID is the widget's effective ID: a leaf under an ID-bearing
 // ancestor is addressed by its full path ("detail:nav"), not by the
 // leaf its Cfg was written with. Read it back with [Window.ResolveID].
-func (w *Window) ScrollVerticalOffset(id string) float32 {
+func (w *Window) ScrollVerticalOffset(effectiveID string) float32 {
 	// Default 0: unscrolled position when no offset recorded yet.
-	return w.scrollY().GetOr(id, 0)
+	return w.scrollY().GetOr(effectiveID, 0)
 }
 
 // ScrollVerticalPct returns the current vertical scroll
 // position as a percentage (0.0 = top, 1.0 = bottom).
 // Returns 0 if not found or content fits viewport.
 //
-// id is the widget's effective ID: a leaf under an ID-bearing
+// effectiveID is the widget's effective ID: a leaf under an ID-bearing
 // ancestor is addressed by its full path ("detail:nav"), not by the
 // leaf its Cfg was written with. Read it back with [Window.ResolveID].
-func (w *Window) ScrollVerticalPct(id string) float32 {
+func (w *Window) ScrollVerticalPct(effectiveID string) float32 {
 	// See ScrollHorizontalPct: guard the un-arranged tree before the
 	// walk dereferences the root Shape.
-	ly, ok := findScrollLayout(w, id)
+	ly, ok := findScrollLayout(w, effectiveID)
 	if !ok {
 		return 0
 	}
@@ -499,7 +499,7 @@ func (w *Window) ScrollVerticalPct(id string) float32 {
 	}
 	sy := w.scrollY()
 	// Default 0: unscrolled position when no offset recorded yet.
-	current := sy.GetOr(id, 0)
+	current := sy.GetOr(effectiveID, 0)
 	return f32Clamp(current/maxOffset, 0, 1)
 }
 
@@ -507,13 +507,13 @@ func (w *Window) ScrollVerticalPct(id string) float32 {
 // of the given scrollable: <= 0, where 0 is the left edge. Unknown ids
 // read as 0 (unscrolled).
 //
-// id is the widget's effective ID: a leaf under an ID-bearing
+// effectiveID is the widget's effective ID: a leaf under an ID-bearing
 // ancestor is addressed by its full path ("detail:nav"), not by the
 // leaf its Cfg was written with. Read it back with [Window.ResolveID].
 //
 // exportaudit:keep — caller-facing scroll query, axis twin of
 // ScrollVerticalOffset (issue #546)
-func (w *Window) ScrollHorizontalOffset(id string) float32 {
+func (w *Window) ScrollHorizontalOffset(effectiveID string) float32 {
 	// Read-only accessor: a query must not allocate the state map as a
 	// side effect of being asked about a container that never scrolled.
 	sx := w.scrollXRead()
@@ -521,26 +521,26 @@ func (w *Window) ScrollHorizontalOffset(id string) float32 {
 		return 0
 	}
 	// Default 0: unscrolled position when no offset recorded yet.
-	return sx.GetOr(id, 0)
+	return sx.GetOr(effectiveID, 0)
 }
 
 // ScrollHorizontalPct returns the current horizontal scroll
 // position as a percentage (0.0 = left, 1.0 = right).
 // Returns 0 if not found or content fits viewport.
 //
-// id is the widget's effective ID: a leaf under an ID-bearing
+// effectiveID is the widget's effective ID: a leaf under an ID-bearing
 // ancestor is addressed by its full path ("detail:nav"), not by the
 // leaf its Cfg was written with. Read it back with [Window.ResolveID].
 //
 // exportaudit:keep — caller-facing scroll query, axis twin of
 // ScrollVerticalPct (issue #546)
-func (w *Window) ScrollHorizontalPct(id string) float32 {
+func (w *Window) ScrollHorizontalPct(effectiveID string) float32 {
 	// findScrollLayout, not findLayoutByScrollID: the walk reads
 	// Shape.Scrollable, so a window whose first frame has not been
 	// arranged yet has a nil root Shape and would fault.
-	ly, ok := findScrollLayout(w, id)
+	ly, ok := findScrollLayout(w, effectiveID)
 	if !ok {
-		debugLookupMiss(&w.layout, "ScrollHorizontalPct", id)
+		debugLookupMiss(&w.layout, "ScrollHorizontalPct", effectiveID)
 		return 0
 	}
 	maxOffset := scrollMaxOffsetX(ly)
@@ -549,7 +549,7 @@ func (w *Window) ScrollHorizontalPct(id string) float32 {
 	}
 	sx := w.scrollX()
 	// Default 0: unscrolled position when no offset recorded yet.
-	current := sx.GetOr(id, 0)
+	current := sx.GetOr(effectiveID, 0)
 	return f32Clamp(current/maxOffset, 0, 1)
 }
 
@@ -579,18 +579,18 @@ func (w *Window) ScrollHorizontalPct(id string) float32 {
 // Reserve on an axis unconditionally, or hold the reservation once
 // taken, rather than tracking this value directly.
 //
-// id is the widget's effective ID: a leaf under an ID-bearing
+// effectiveID is the widget's effective ID: a leaf under an ID-bearing
 // ancestor is addressed by its full path ("detail:nav"), not by the
 // leaf its Cfg was written with. Read it back with [Window.ResolveID].
 //
 // exportaudit:keep — caller-facing overflow query (issue #546)
-func (w *Window) ScrollOverflowX(id string) (float32, bool) {
-	ly, ok := findScrollLayout(w, id)
+func (w *Window) ScrollOverflowX(effectiveID string) (float32, bool) {
+	ly, ok := findScrollLayout(w, effectiveID)
 	if !ok {
 		// A leaf spelled without its scope reaches here, and ok alone
 		// does not say which mistake it was. Name the spelling the
 		// frame stamped.
-		debugLookupMiss(&w.layout, "ScrollOverflowX", id)
+		debugLookupMiss(&w.layout, "ScrollOverflowX", effectiveID)
 		return 0, false
 	}
 	// scrollMaxOffsetX is the most-negative reachable offset, so its
@@ -606,16 +606,16 @@ func (w *Window) ScrollOverflowX(id string) (float32, bool) {
 // scrollbar-visibility caveat are all as described on
 // [Window.ScrollOverflowX].
 //
-// id is the widget's effective ID: a leaf under an ID-bearing
+// effectiveID is the widget's effective ID: a leaf under an ID-bearing
 // ancestor is addressed by its full path ("detail:nav"), not by the
 // leaf its Cfg was written with. Read it back with [Window.ResolveID].
 //
 // exportaudit:keep — caller-facing overflow query (issue #546)
-func (w *Window) ScrollOverflowY(id string) (float32, bool) {
-	ly, ok := findScrollLayout(w, id)
+func (w *Window) ScrollOverflowY(effectiveID string) (float32, bool) {
+	ly, ok := findScrollLayout(w, effectiveID)
 	if !ok {
 		// See ScrollOverflowX.
-		debugLookupMiss(&w.layout, "ScrollOverflowY", id)
+		debugLookupMiss(&w.layout, "ScrollOverflowY", effectiveID)
 		return 0, false
 	}
 	// scrollMaxOffsetY is the most-negative reachable offset, so its
