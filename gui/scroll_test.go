@@ -244,7 +244,7 @@ func TestScrollToPctAndPct(t *testing.T) {
 		if v != -300 {
 			t.Errorf("expected -300, got %v", v)
 		}
-		pct := w.scrollHorizontalPct("4")
+		pct := w.ScrollHorizontalPct("4")
 		if math.Abs(float64(pct-1.0)) > 0.01 {
 			t.Errorf("expected ~1.0, got %v", pct)
 		}
@@ -258,7 +258,7 @@ func TestScrollPctNoScrollNeeded(t *testing.T) {
 	if pct != 0 {
 		t.Errorf("expected 0, got %v", pct)
 	}
-	pct = w.scrollHorizontalPct("6")
+	pct = w.ScrollHorizontalPct("6")
 	if pct != 0 {
 		t.Errorf("expected 0, got %v", pct)
 	}

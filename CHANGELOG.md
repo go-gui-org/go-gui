@@ -8,6 +8,52 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- **Scroll overflow is queryable, on both axes (#546)** — `ScrollOverflowX` and
+  `ScrollOverflowY` report how much content a scrollable currently hides, as a
+  positive number of pixels, and 0 when the content fits. Nothing exported
+  answered this before: `ScrollVerticalPct` reads 0 both at the top of a long
+  list and when there is nothing to scroll at all, so it cannot be used as the
+  test. An application can now react to overflow appearing, for example to
+  reserve space so an overlay scrollbar stops covering the last pixels of
+  content.
+
+  Both return `(float32, bool)`. The bool is false before the first frame is
+  arranged and for an id nothing stamped, because the width alone cannot carry
+  it — a miss and a scrollable with nothing to scroll both read 0, and a caller
+  sizing a reservation from that would silently reserve nothing. A miss is a
+  routine startup condition rather than a failure, so this is a bool and not an
+  error; a misspelled id is additionally named by the `DebugUnknownLookup` gate.
+
+  The value reports overflow, not scrollbar visibility — a scrollbar set to
+  `ScrollbarVisible` paints over content that fits. It also describes the frame
+  that was last arranged, so sizing a reservation from it feeds back into the
+  measurement that produced it; reserve unconditionally, or hold a reservation
+  once taken, rather than following the value every frame.
+
+  Growing a scrollable by the scrollbar's thickness automatically was rejected:
+  sizing resolves before overflow is known, so it is a fixed point, and Fixed
+  and Fill sizing cannot grow at all. A change callback was rejected too — the
+  state is recomputed every frame and would have to fire from the arrange pass
+  under the frame lock, while a view function reading the getter is already the
+  poll.
+
+- **`ScrollHorizontalOffset` and `ScrollHorizontalPct` (#546)** — the horizontal
+  getters were missing while their vertical twins were exported, so an
+  application could set a horizontal offset but never read one back.
+
+### Fixed
+
+- **Scroll percentage APIs no longer crash before the first frame (#546)** —
+  `ScrollVerticalPct` and `ScrollVerticalToPct` walked the layout tree without
+  checking that a frame had been arranged, so calling either on a window whose
+  first frame has not run — during setup, or from a command that fires before
+  the view does — dereferenced a nil root shape and crashed the process. Both
+  now take the same guard the rest of the scroll API already used and answer 0
+  (or do nothing) instead. The newly exported `ScrollHorizontalPct` carried the
+  same fault and is fixed with them.
+
 ## [v0.72.0] - 2026-09-09
 
 ### Added
