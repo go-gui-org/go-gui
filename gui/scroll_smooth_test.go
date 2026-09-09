@@ -331,7 +331,7 @@ func TestScrollVerticalToSmoothEasesToAbsoluteTarget(t *testing.T) {
 	_, w := makeScrollLayout("14", 100, 100, 100, 300)
 	w.scrollY().Set("14", -100)
 
-	w.scrollVerticalToSmooth("14", 0)
+	w.ScrollVerticalToSmooth("14", 0)
 
 	e := w.scrollSmooth.findEntry("14", scrollAxisY)
 	if e == nil || !e.active {
@@ -344,7 +344,7 @@ func TestScrollVerticalToSmoothEasesToAbsoluteTarget(t *testing.T) {
 		t.Errorf("current = %v, want -100 (displayed offset)", e.current)
 	}
 	// Absolute target must not accumulate on repeat calls.
-	w.scrollVerticalToSmooth("14", 0)
+	w.ScrollVerticalToSmooth("14", 0)
 	if e.target != 0 {
 		t.Errorf("target after repeat call = %v, want 0", e.target)
 	}
@@ -357,7 +357,7 @@ func TestScrollVerticalToSmoothEasesToAbsoluteTarget(t *testing.T) {
 func TestScrollVerticalToSmoothClampsAtBounds(t *testing.T) {
 	_, w := makeScrollLayout("15", 100, 100, 100, 300) // maxOffset -200
 
-	w.scrollVerticalToSmooth("15", -9999)
+	w.ScrollVerticalToSmooth("15", -9999)
 	e := w.scrollSmooth.findEntry("15", scrollAxisY)
 	if e == nil || e.target != -200 {
 		t.Fatalf("target = %v, want -200 (clamped)", e.target)
@@ -372,7 +372,7 @@ func TestScrollVerticalToSmoothNoOpAtTarget(t *testing.T) {
 	_, w := makeScrollLayout("16", 100, 100, 100, 300)
 
 	// Already at offset 0: nothing to ease, no entry armed.
-	w.scrollVerticalToSmooth("16", 0)
+	w.ScrollVerticalToSmooth("16", 0)
 	if w.scrollSmooth != nil {
 		if e := w.scrollSmooth.findEntry("16", scrollAxisY); e != nil && e.active {
 			t.Error("expected no active entry when already at target")
@@ -383,7 +383,7 @@ func TestScrollVerticalToSmoothNoOpAtTarget(t *testing.T) {
 func TestScrollVerticalToSmoothUnknownID(t *testing.T) {
 	_, w := makeScrollLayout("17", 100, 100, 100, 300)
 
-	w.scrollVerticalToSmooth("nope", -50) // must not panic or arm
+	w.ScrollVerticalToSmooth("nope", -50) // must not panic or arm
 	if w.scrollSmooth != nil && w.scrollSmooth.findEntry("nope", scrollAxisY) != nil {
 		t.Error("unknown scroll id must not create an entry")
 	}
@@ -409,7 +409,7 @@ func TestScrollHorizontalToSmoothEases(t *testing.T) {
 		Children: []Layout{layout},
 	}
 
-	w.scrollHorizontalToSmooth("18", -50)
+	w.ScrollHorizontalToSmooth("18", -50)
 	driveScrollSmooth(w, 200)
 	if v, _ := w.scrollX().Get("18"); v != -50 {
 		t.Errorf("horizontal settled = %v, want -50", v)
@@ -420,7 +420,7 @@ func TestScrollVerticalToSmoothCanceledByInstantScroll(t *testing.T) {
 	_, w := makeScrollLayout("19", 100, 100, 100, 300)
 	w.scrollY().Set("19", -100)
 
-	w.scrollVerticalToSmooth("19", 0)
+	w.ScrollVerticalToSmooth("19", 0)
 	if e := w.scrollSmooth.findEntry("19", scrollAxisY); e == nil || !e.active {
 		t.Fatal("expected active entry before instant scroll")
 	}
@@ -456,7 +456,7 @@ func TestScrollHorizontalToSmoothCanceledByInstantScroll(t *testing.T) {
 	}
 	w.scrollX().Set("20", -100)
 
-	w.scrollHorizontalToSmooth("20", 0)
+	w.ScrollHorizontalToSmooth("20", 0)
 	if e := w.scrollSmooth.findEntry("20", scrollAxisX); e == nil || !e.active {
 		t.Fatal("expected active entry before instant scroll")
 	}
@@ -474,7 +474,7 @@ func TestScrollHorizontalToSmoothCanceledByInstantScroll(t *testing.T) {
 func TestScrollVerticalToSmoothRejectsNaN(t *testing.T) {
 	_, w := makeScrollLayout("21", 100, 100, 100, 300)
 
-	w.scrollVerticalToSmooth("21", float32(math.NaN()))
+	w.ScrollVerticalToSmooth("21", float32(math.NaN()))
 	if w.scrollSmooth != nil {
 		if e := w.scrollSmooth.findEntry("21", scrollAxisY); e != nil && e.active {
 			t.Error("NaN offset must not arm an entry")

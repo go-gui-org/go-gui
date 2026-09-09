@@ -177,6 +177,51 @@ func colName(i int) string {
 	}
 }
 
+// A literal ScopeID part containing the separator re-scopes the leaf,
+// so it is flagged. Only ":" counts: the other separators are legal
+// part spelling.
+func TestIDsFlagsScopeIDLiteralColon(t *testing.T) {
+	t.Parallel()
+	const src = `package p
+
+func f(cfg struct{ ID string }) {
+	_ = ScopeID(cfg.ID, "row:x")
+	_ = ScopeIDN(cfg.ID, "opt:y", 2)
+}
+
+func ScopeID(string, ...string) string { return "" }
+
+func ScopeIDN(string, string, int) string { return "" }
+`
+	got := scanSrc(t, src)
+	if len(got) != 2 {
+		t.Errorf("got %d findings, want 2:\n%s", len(got), strings.Join(got, "\n"))
+	}
+}
+
+// A composed owner is nesting, not a violation; a clean part, a
+// numeric segment and a variable part all stay quiet. The variable
+// case is invisible statically by design.
+func TestIDsIgnoresScopeIDCleanParts(t *testing.T) {
+	t.Parallel()
+	const src = `package p
+
+func f(cfg struct{ ID string }, base, key string, i int) {
+	_ = ScopeID(cfg.ID, "handle")
+	_ = ScopeID(base, "resize")
+	_ = ScopeIDN(cfg.ID, "opt", i)
+	_ = ScopeID(cfg.ID, key)
+}
+
+func ScopeID(string, ...string) string { return "" }
+
+func ScopeIDN(string, string, int) string { return "" }
+`
+	if got := scanSrc(t, src); len(got) != 0 {
+		t.Errorf("want no findings, got:\n%s", strings.Join(got, "\n"))
+	}
+}
+
 func TestIsIDName(t *testing.T) {
 	t.Parallel()
 	cases := map[string]bool{

@@ -43,6 +43,13 @@ and this project adheres to
   getters were missing while their vertical twins were exported, so an
   application could set a horizontal offset but never read one back.
 
+- **Horizontal percentage scrolling and eased scrolling are public** —
+  `ScrollHorizontalToPct` joins its already-public vertical twin
+  `ScrollVerticalToPct`, and `ScrollHorizontalToSmooth` /
+  `ScrollVerticalToSmooth` expose the same exponential ease the mouse wheel uses
+  for programmatic jumps. `ScrollHorizontalToPct` also reports an unscoped-leaf
+  miss through the `DebugUnknownLookup` gate, matching the vertical form.
+
 ### Changed
 
 - **Addressing APIs name the parameter `effectiveID` (#550)** — every API that

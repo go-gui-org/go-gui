@@ -31,6 +31,13 @@ package main
 //     than a leftover.
 //   - "ergonomics-audit:not-an-id" — the string is not a widget ID at all. An
 //     export filename or a spreadsheet column name only looks like one.
+//
+// A third rule covers the composition helper itself: a ScopeID /
+// ScopeIDN call whose *part* argument is a string literal containing
+// ":" is flagged. The owner (first argument) may itself be composed,
+// which is how nesting works, so it is exempt. Non-literal parts are
+// invisible statically and stay quiet. A literal part is always
+// rewritable, so these findings carry no marker — fix the literal.
 
 import (
 	"fmt"
@@ -55,6 +62,11 @@ const idNotAnIDMarker = "ergonomics-audit:not-an-id"
 // with. A concatenation mentioning none of them is not composing an ID
 // path (a label, a message, a URL), so it is left alone.
 const idSeparators = ":._-/"
+
+// scopeIDSep is the only separator that is illegal inside a ScopeID
+// part. The other idSeparators are legal part spelling ("opt_2",
+// "row-3"); only ":" re-scopes, promoting the leaf to absolute.
+const scopeIDSep = ":"
 
 // idFinding is one hand-rolled composition in an ID position.
 type idFinding struct {
@@ -218,6 +230,33 @@ func hasSeparator(expr ast.Expr) bool {
 	return strings.ContainsAny(s, idSeparators)
 }
 
+// isScopeIDCall reports whether fun is a call to the ScopeID /
+// ScopeIDN composition helper, qualified (gui.ScopeID) or bare
+// (test stubs, dot imports).
+func isScopeIDCall(fun ast.Expr) bool {
+	if sel, ok := fun.(*ast.SelectorExpr); ok {
+		return sel.Sel.Name == "ScopeID" || sel.Sel.Name == "ScopeIDN"
+	}
+	if id, ok := fun.(*ast.Ident); ok {
+		return id.Name == "ScopeID" || id.Name == "ScopeIDN"
+	}
+	return false
+}
+
+// hasScopeIDSep reports whether expr is a string literal containing
+// the ID separator, which a ScopeID part must not hold.
+func hasScopeIDSep(expr ast.Expr) bool {
+	lit, ok := expr.(*ast.BasicLit)
+	if !ok || lit.Kind != token.STRING {
+		return false
+	}
+	s, err := strconv.Unquote(lit.Value)
+	if err != nil {
+		return false
+	}
+	return strings.Contains(s, scopeIDSep)
+}
+
 // markedLines returns the set of source lines carrying marker in a
 // comment, so a deliberate exception can be annotated where it lives.
 func markedLines(fset *token.FileSet, f *ast.File, markers ...string) map[int]bool {
@@ -315,6 +354,21 @@ func inspectIDs(
 				}
 				return true
 			})
+		case *ast.CallExpr:
+			// ScopeID(cfg.ID, "row:x") — a literal part containing the
+			// separator. The owner (first argument) may itself be
+			// composed, which is how nesting works, so only the parts
+			// are checked. Non-literal parts are invisible statically
+			// and stay quiet. Both gui.ScopeID and a bare ScopeID
+			// (test stubs, dot imports) count.
+			if !isScopeIDCall(node.Fun) {
+				return true
+			}
+			for _, arg := range node.Args[1:] {
+				if hasScopeIDSep(arg) {
+					report("ScopeID part containing "+strconv.Quote(scopeIDSep), arg)
+				}
+			}
 		}
 		return true
 	})
