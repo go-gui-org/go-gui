@@ -43,6 +43,18 @@ and this project adheres to
   getters were missing while their vertical twins were exported, so an
   application could set a horizontal offset but never read one back.
 
+### Changed
+
+- **Addressing APIs name the parameter `effectiveID` (#550)** — every API that
+  takes a stamped layout identity (`SetFocus`, `IsFocus`, `FindByID`, the
+  `Scroll*` family, the `Test*` helpers, `VirtualListFocusedIndex`,
+  `SetVirtualListFocusedIndex`, `DatePickerReset`, `InvalidateListHeights`) now
+  names its first parameter `effectiveID` instead of `id`, so autocomplete and
+  the godoc signature line show the rule the doc comment already stated: a leaf
+  under an ID-bearing ancestor is addressed by its full path (`"detail:nav"`),
+  not by the leaf its `Cfg` was written with. Go callers pass positionally, so
+  nothing recompiles differently and no migration is needed.
+
 ### Fixed
 
 - **Scroll percentage APIs no longer crash before the first frame (#546)** —

@@ -141,7 +141,7 @@ const virtualListWidthRatchetRuns = 4
 // a width change invalidates the wrap, re-wraps and re-measures every
 // frame too. Nothing about it looks like a failure from inside; the
 // list just never settles.
-func virtualListNoteWidth(w *Window, m *listHeightModel, id string, iw float32) {
+func virtualListNoteWidth(w *Window, m *listHeightModel, effectiveID string, iw float32) {
 	// Only growth with the window standing still counts: that is what
 	// separates the ratchet from a resize the user asked for.
 	if iw > m.measuredW+listHeightEps && m.lastWinW == w.windowWidth {
@@ -151,12 +151,12 @@ func virtualListNoteWidth(w *Window, m *listHeightModel, id string, iw float32) 
 	}
 	m.measuredW, m.lastWinW = iw, w.windowWidth
 	if m.widthRun >= virtualListWidthRatchetRuns && DebugEnabled() {
-		w.debugWarn(debugCheckListWidthRatchet, id,
+		w.debugWarn(debugCheckListWidthRatchet, effectiveID,
 			"list %q has widened on %d consecutive frames with the "+
 				"window unchanged (now %.0f px): a row is demanding the "+
 				"width ItemView handed it — MinWidth taken from that "+
 				"argument ratchets, and each width change re-wraps every "+
-				"row", id, m.widthRun, iw)
+				"row", effectiveID, m.widthRun, iw)
 	}
 }
 
@@ -262,24 +262,24 @@ func virtualListMeasure(m *listHeightModel) func(EventCtx) {
 // the focused row — an unbuilt row has no shape to hold focus, so the
 // focus lives on the list and is expressed as an index.
 //
-// id is the widget's effective ID: a leaf under an ID-bearing
+// effectiveID is the widget's effective ID: a leaf under an ID-bearing
 // ancestor is addressed by its full path ("detail:nav"), not by the
 // leaf its Cfg was written with. Read it back with [Window.ResolveID].
-func (w *Window) VirtualListFocusedIndex(id string) int {
-	return StateReadOr(w, nsVirtualListFocus, id, 0)
+func (w *Window) VirtualListFocusedIndex(effectiveID string) int {
+	return StateReadOr(w, nsVirtualListFocus, effectiveID, 0)
 }
 
 // SetVirtualListFocusedIndex moves a virtual list's keyboard focus to
 // index and scrolls it into view. Main goroutine only.
 //
-// id is the widget's effective ID: a leaf under an ID-bearing
+// effectiveID is the widget's effective ID: a leaf under an ID-bearing
 // ancestor is addressed by its full path ("detail:nav"), not by the
 // leaf its Cfg was written with. Read it back with [Window.ResolveID].
 // exportaudit:keep — the write half of the focused-index pair
-func (w *Window) SetVirtualListFocusedIndex(id string, index int) {
+func (w *Window) SetVirtualListFocusedIndex(effectiveID string, index int) {
 	StateMap[string, int](w, nsVirtualListFocus, capModerate).
-		Set(id, max(index, 0))
-	w.ScrollIndexIntoView(id, index)
+		Set(effectiveID, max(index, 0))
+	w.ScrollIndexIntoView(effectiveID, index)
 }
 
 // virtualListKeyDown moves the focused index and keeps it in view.
