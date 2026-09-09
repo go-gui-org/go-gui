@@ -64,6 +64,15 @@ and this project adheres to
 
 ### Fixed
 
+- **Showcase "Open Command Palette" button opens the palette** — the demo
+  toggled the palette by its bare leaf (`"cmd-palette"`) while the palette reads
+  its visibility state by effective ID (`"detail:cmd-palette"` under the detail
+  panel), so the toggle wrote a key no frame ever read and the button silently
+  did nothing. The demo now defers its build to generation time, resolves the ID
+  with `w.EffID` in the panel's scope, and closes the button handler over that
+  key — the documented pattern for a factory that addresses a widget it does not
+  itself own.
+
 - **Scroll percentage APIs no longer crash before the first frame (#546)** —
   `ScrollVerticalPct` and `ScrollVerticalToPct` walked the layout tree without
   checking that a frame had been arranged, so calling either on a window whose
