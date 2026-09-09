@@ -200,12 +200,27 @@ func demoMenus(w *gui.Window) gui.View {
 }
 
 func demoCommandPalette(w *gui.Window) gui.View {
+	// Deferred: the button closes over the palette's effective ID,
+	// which is only known inside GenerateLayout under the detail
+	// panel's scope. Resolving in the factory body (or via
+	// ctx.EffID from the sibling button) keys the wrong state slot
+	// and the toggle silently misses.
+	return commandPaletteDemoView{}
+}
+
+// commandPaletteDemoView defers the demo build to generation time so
+// w.EffID joins "cmd-palette" against the enclosing panel scope.
+// The OnClick handler closes over that resolved key, which stays
+// valid while the ancestor IDs above it do.
+type commandPaletteDemoView struct{}
+
+func (v commandPaletteDemoView) GenerateLayout(w *gui.Window) gui.Layout {
 	t := gui.CurrentTheme()
 	app := appState(w)
 
-	const paletteID = "cmd-palette"
+	id := w.EffID("cmd-palette")
 
-	return gui.Column(gui.ContainerCfg{
+	return gui.GenerateViewLayout(gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
 		Spacing: gui.SomeF(12),
 		Padding: gui.NoPadding,
@@ -217,7 +232,7 @@ func demoCommandPalette(w *gui.Window) gui.View {
 					gui.Text(gui.TextCfg{Text: "Open Command Palette", TextStyle: t.N3}),
 				},
 				OnClick: func(ctx gui.EventCtx) {
-					gui.CommandPaletteToggle(paletteID, ctx.Window)
+					gui.CommandPaletteToggle(id, ctx.Window)
 				},
 			}),
 			gui.Text(gui.TextCfg{
@@ -225,7 +240,7 @@ func demoCommandPalette(w *gui.Window) gui.View {
 				TextStyle: t.N3,
 			}),
 			gui.CommandPalette(gui.CommandPaletteCfg{
-				ID:          paletteID,
+				ID:          id,
 				Placeholder: "Type a command...",
 				Items: []gui.CommandPaletteItem{
 					{ID: "new-file", Label: "New File", Icon: gui.IconPlus, Group: "File"},
@@ -239,5 +254,5 @@ func demoCommandPalette(w *gui.Window) gui.View {
 				},
 			}),
 		},
-	})
+	}), w)
 }
