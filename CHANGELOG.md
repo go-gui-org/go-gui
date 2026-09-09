@@ -64,7 +64,7 @@ and this project adheres to
 
 ### Fixed
 
-- **Showcase "Open Command Palette" button opens the palette** — the demo
+- **Showcase "Open Command Palette" button opens the palette (#554)** — the demo
   toggled the palette by its bare leaf (`"cmd-palette"`) while the palette reads
   its visibility state by effective ID (`"detail:cmd-palette"` under the detail
   panel), so the toggle wrote a key no frame ever read and the button silently
