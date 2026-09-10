@@ -60,6 +60,21 @@ func (dc *DrawContext) takeBatch(color Color, gradient bool,
 	return &dc.batches[dc.currentBatchIdx]
 }
 
+// breakBatchRun closes the current batch to the run-length merge, so
+// the next primitive opens a fresh one whatever its color.
+//
+// It exists for the lowered radial gradient, which records no batch of
+// its own but does take a position in the emit order. Without it the
+// merge key — color plus transform — cannot see that something was
+// drawn in between, and geometry recorded after the fill lands in a
+// batch emitted before it.
+func (dc *DrawContext) breakBatchRun() {
+	dc.lastColor = Color{}
+	// A gradient batch never merges, so this alone stops the next
+	// primitive reaching the batch that is open now.
+	dc.batchIsGradient = true
+}
+
 // takeGradient appends a gradient entry and gives it the stop buffer
 // the previous redraw's entry at the same index left behind, on the
 // same index-alignment argument as takeBatch: one canvas records its
@@ -113,6 +128,10 @@ func (dc *DrawContext) resetFor(w, h, scale float32, tm TextMeasurer,
 	dc.resetXform()
 
 	dc.arcBuf = keepScratch(dc.arcBuf)
+	dc.xfPtBuf = keepScratch(dc.xfPtBuf)
+	dc.roundRectBuf = keepScratch(dc.roundRectBuf)
+	dc.joinNormalBuf = keepScratch(dc.joinNormalBuf)
+	dc.joinOffsetBuf = keepScratch(dc.joinOffsetBuf)
 	dc.bezierBuf = keepScratch(dc.bezierBuf)
 	dc.gradTriBuf = keepScratch(dc.gradTriBuf)
 	dc.gradSplitBuf = keepScratch(dc.gradSplitBuf)

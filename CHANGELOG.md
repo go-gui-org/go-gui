@@ -34,6 +34,28 @@ and this project adheres to
 
 ### Fixed
 
+- **Canvas draw hardening: z-order, dash loops, non-finite input** — five
+  defects found reviewing `DrawContext`. A flat fill recorded after a radial
+  gradient that was lowered to a shader quad merged back into the batch opened
+  before it, so it painted _under_ the glow it was drawn over; a lowered fill
+  now closes the batch it interrupts. `DashedLine` and `DashedPolyline` walked
+  their pattern with no bound, so a non-finite endpoint hung the frame and a
+  very long segment against a short pattern took the frame with it; both now
+  screen their input and cap the walk. `FilledRect`, `Rect`, `Line`, `Polyline`,
+  `FilledPolygon`, `PolylineJoined`, `FilledRoundedRect`, `RoundedRect`,
+  `Arc`, `DashedLine`, `DashedPolyline` and `FillTrianglesColors` now reject
+  non-finite coordinates and stroke widths at record time — a bad vertex
+  reaching a batch cost
+  every other primitive that had merged into it, because the whole render
+  command is dropped downstream — `FillTrianglesGradient` takes the same
+  non-finite screen `FillTrianglesColors` has, both take the same input
+  bound, and the shape-specific gradient fills screen their geometry before
+  recording. The recorder path (SVG/PDF export)
+  baked the canvas transform into a point list only up to a size threshold,
+  silently exporting a larger polyline at its unmapped local coordinates; every
+  length is now mapped, and the scratch buffer behind it is released on reset
+  with the rest.
+
 - **Disabled and Opacity now reach every render path** — fading or disabling a
   widget previously dimmed only its flat fills, borders, blur, and plain text.
   Shadows, custom-shader tint, gradient fills and borders, image fills, the

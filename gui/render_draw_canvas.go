@@ -231,22 +231,6 @@ func renderDrawCanvas(shape *Shape, clip drawClip, w *Window) {
 	}
 }
 
-// emitDrawCanvasImages emits RenderImage cmds for cached entries.
-// Skips any entry with non-finite coords/size or empty src; clamps
-// opacity into [0, 1]. Defense in depth: callers via DrawContext.Image
-// already reject bad inputs, but the cache field is public.
-//
-// For http/https srcs the entry is resolved to a local cache path
-// via ResolveImageSrc; an in-flight download returns "" and the
-// emit is skipped this frame. The window redraws when the
-// download completes.
-//
-// clip is the clip rect in effect for the canvas — the content box
-// when the shape clips, otherwise the parent's. An entry drawn via
-// ImageClipped narrows it to that entry's own rect (intersected,
-// since RenderClip *replaces* the scissor rather than nesting) and
-// restores clip afterwards, so a clipped entry cannot leak its
-// scissor onto the entries that follow.
 // emitDrawCanvasGeometry emits the triangle batches and the lowered
 // radial fills in the order the OnDraw callback produced them, walking
 // the two lists together by each gradient's batch counter.
@@ -306,6 +290,22 @@ func emitDrawCanvasGradient(e *DrawCanvasGradientEntry,
 	}, w)
 }
 
+// emitDrawCanvasImages emits RenderImage cmds for cached entries.
+// Skips any entry with non-finite coords/size or empty src; clamps
+// opacity into [0, 1]. Defense in depth: callers via DrawContext.Image
+// already reject bad inputs, but the cache field is public.
+//
+// For http/https srcs the entry is resolved to a local cache path
+// via ResolveImageSrc; an in-flight download returns "" and the
+// emit is skipped this frame. The window redraws when the
+// download completes.
+//
+// clip is the clip rect in effect for the canvas — the content box
+// when the shape clips, otherwise the parent's. An entry drawn via
+// ImageClipped narrows it to that entry's own rect (intersected,
+// since RenderClip *replaces* the scissor rather than nesting) and
+// restores clip afterwards, so a clipped entry cannot leak its
+// scissor onto the entries that follow.
 func emitDrawCanvasImages(
 	images []DrawCanvasImageEntry, ox, oy float32, clip drawClip,
 	shape *Shape, w *Window,

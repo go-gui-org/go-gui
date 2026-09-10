@@ -8,11 +8,21 @@ import (
 
 // canvas_draw_gradient.go — the DrawContext gradient fills.
 //
+// maxFillTrisFloats bounds the caller-supplied mesh both this file's
+// FillTrianglesGradient and FillTrianglesColors will walk. Every fill
+// past it is a no-op: the subdivision pass caps its own output, but
+// the input is scanned before that cap applies.
+//
 // Each method tessellates through the same helpers its flat twin uses,
 // so a gradient fill and a flat fill of the same shape produce the same
 // vertices; only the coloring differs. The geometry lands in a scratch
 // buffer first, because the vertex colors cannot be assigned until the
 // subdivision pass has decided how many vertices there are.
+
+// maxFillTrisFloats is the longest caller-supplied triangle list a
+// fill will walk — 1<<20 floats, about 175 000 triangles, far past any
+// mesh a canvas draws by hand.
+const maxFillTrisFloats = 1 << 20
 
 // FillTrianglesGradient fills caller-supplied geometry with a gradient.
 // tris is a flat x,y triangle list — 6 floats per triangle, the same
@@ -30,9 +40,10 @@ func (dc *DrawContext) FillTrianglesGradient(tris []float32,
 		return
 	}
 	// Bound hostile geometry; gradmesh caps output but tRange still
-	// scans the input.
-	const maxGradientTrisFloats = 1 << 20
-	if len(tris) > maxGradientTrisFloats {
+	// scans the input. Screened on the same terms as
+	// FillTrianglesColors: a non-finite vertex reaching the batch
+	// costs the whole command at validSvgCmd.
+	if len(tris) > maxFillTrisFloats || !f32AllFinite(tris) {
 		return
 	}
 	if dc.recorder != nil {
@@ -175,7 +186,7 @@ func (dc *DrawContext) gradScratch() *[]float32 {
 // whose endpoints coincide runs top-to-bottom across the rect.
 func (dc *DrawContext) FilledRectGradient(x, y, w, h float32,
 	g *CanvasGradient) {
-	if w <= 0 || h <= 0 {
+	if w <= 0 || h <= 0 || hasNaNInf(x, y, w, h) {
 		return
 	}
 	if mid, ok := dc.gradientRecorderFallback(g); ok {
@@ -203,6 +214,9 @@ func (dc *DrawContext) FilledRectGradient(x, y, w, h float32,
 //	})
 func (dc *DrawContext) FilledCircleGradient(cx, cy, radius float32,
 	g *CanvasGradient) {
+	if hasNaNInf(cx, cy, radius) {
+		return
+	}
 	if dc.emitRadialGradient(cx, cy, radius, g) {
 		return
 	}
@@ -319,6 +333,11 @@ func (dc *DrawContext) emitRadialGradient(cx, cy, r float32,
 	// the bounding square's top-left corner rather than its far one.
 	e.X, e.Y, e.W, e.H = dc.xfRect(cx-r, cy-r, 2*r, 2*r)
 	e.afterBatch = len(dc.batches)
+	// The fill sits between batch afterBatch-1 and batch afterBatch in
+	// the emit walk, so the batch open right now must be closed to it:
+	// a later flat fill of the same color and transform would otherwise
+	// merge back into it and paint UNDER a glow it was drawn over.
+	dc.breakBatchRun()
 	return true
 }
 
@@ -481,6 +500,9 @@ func (dc *DrawContext) concentricRings(stops []GradientStop,
 // gradient.
 func (dc *DrawContext) FilledArcGradient(cx, cy, rx, ry, start,
 	sweep float32, g *CanvasGradient) {
+	if hasNaNInf(cx, cy, rx, ry, start, sweep) {
+		return
+	}
 	if mid, ok := dc.gradientRecorderFallback(g); ok {
 		dc.rec().FilledArc(cx, cy, rx, ry, start, sweep, mid)
 		return
@@ -498,7 +520,7 @@ func (dc *DrawContext) FilledArcGradient(cx, cy, rx, ry, start,
 // points is a flat x,y list.
 func (dc *DrawContext) FilledPolygonGradient(points []float32,
 	g *CanvasGradient) {
-	if len(points) < 6 {
+	if len(points) < 6 || !f32AllFinite(points) {
 		return
 	}
 	if mid, ok := dc.gradientRecorderFallback(g); ok {
@@ -514,7 +536,7 @@ func (dc *DrawContext) FilledPolygonGradient(points []float32,
 // Radius is clamped to half the smaller dimension.
 func (dc *DrawContext) FilledRoundedRectGradient(x, y, w, h,
 	radius float32, g *CanvasGradient) {
-	if w <= 0 || h <= 0 {
+	if w <= 0 || h <= 0 || hasNaNInf(x, y, w, h, radius) {
 		return
 	}
 	if mid, ok := dc.gradientRecorderFallback(g); ok {
