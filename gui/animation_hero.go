@@ -71,13 +71,20 @@ func applyHeroTransition(layout *Layout, w *Window) {
 	if !ok || ht.stopped {
 		return
 	}
-	applyHeroRecursive(layout, ht.progress, ht.outgoing, ht.incoming, 0, 0)
+	applyHeroRecursiveDepth(layout, ht.progress, ht.outgoing, ht.incoming, 0, 0, 0)
 }
 
 func propagateOpacity(layout *Layout, opacity float32) {
+	propagateOpacityDepth(layout, opacity, 0)
+}
+
+func propagateOpacityDepth(layout *Layout, opacity float32, depth int) {
+	if overMaxDepth(depth) {
+		return
+	}
 	layout.Shape.Opacity = opacity
 	for i := range layout.Children {
-		propagateOpacity(&layout.Children[i], opacity)
+		propagateOpacityDepth(&layout.Children[i], opacity, depth+1)
 	}
 }
 
@@ -89,6 +96,13 @@ func propagateOpacity(layout *Layout, opacity float32) {
 // with its own snapshot replaces the carried shift instead of adding to
 // it, because the snapshot is an absolute position.
 func applyHeroRecursive(layout *Layout, progress float32, outgoing, incoming map[string]posSnapshot, dx, dy float32) {
+	applyHeroRecursiveDepth(layout, progress, outgoing, incoming, dx, dy, 0)
+}
+
+func applyHeroRecursiveDepth(layout *Layout, progress float32, outgoing, incoming map[string]posSnapshot, dx, dy float32, depth int) {
+	if overMaxDepth(depth) {
+		return
+	}
 	shifted := false
 	if layout.Shape.Hero && layout.Shape.ID != "" {
 		// Hero matching is identity-keyed: the same leaf under two
@@ -110,7 +124,7 @@ func applyHeroRecursive(layout *Layout, progress float32, outgoing, incoming map
 				shifted = true
 			}
 		} else {
-			propagateOpacity(layout, fadeProgress)
+			propagateOpacityDepth(layout, fadeProgress, depth)
 		}
 	}
 	if !shifted {
@@ -118,6 +132,6 @@ func applyHeroRecursive(layout *Layout, progress float32, outgoing, incoming map
 		layout.Shape.Y += dy
 	}
 	for i := range layout.Children {
-		applyHeroRecursive(&layout.Children[i], progress, outgoing, incoming, dx, dy)
+		applyHeroRecursiveDepth(&layout.Children[i], progress, outgoing, incoming, dx, dy, depth+1)
 	}
 }

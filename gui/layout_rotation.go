@@ -4,8 +4,15 @@ package gui
 // QuarterTurns 1 or 3 (90° or 270°). Processes bottom-up so
 // nested rotations compose correctly.
 func layoutRotationSwap(layout *Layout) {
+	layoutRotationSwapDepth(layout, 0)
+}
+
+func layoutRotationSwapDepth(layout *Layout, depth int) {
+	if overMaxDepth(depth) {
+		return
+	}
 	for i := range layout.Children {
-		layoutRotationSwap(&layout.Children[i])
+		layoutRotationSwapDepth(&layout.Children[i], depth+1)
 	}
 	turns := layout.Shape.QuarterTurns
 	if turns != 1 && turns != 3 {
@@ -56,7 +63,7 @@ func recomputeFitWidth(layout *Layout) float32 {
 	case axisLeftToRight:
 		sp := layout.spacing()
 		for i := range layout.Children {
-			if layout.Children[i].Shape.OverDraw {
+			if skipLayoutChild(layout.Children[i].Shape) {
 				continue
 			}
 			w += layout.Children[i].Shape.Width
@@ -64,10 +71,16 @@ func recomputeFitWidth(layout *Layout) float32 {
 		w += padding + sp
 	case axisTopToBottom:
 		for i := range layout.Children {
+			if skipLayoutChild(layout.Children[i].Shape) {
+				continue
+			}
 			w = f32Max(w, layout.Children[i].Shape.Width+padding)
 		}
 	default:
 		for i := range layout.Children {
+			if skipLayoutChild(layout.Children[i].Shape) {
+				continue
+			}
 			w = f32Max(w, layout.Children[i].Shape.Width+padding)
 		}
 	}
@@ -89,7 +102,7 @@ func recomputeFitHeight(layout *Layout) float32 {
 	case axisTopToBottom:
 		sp := layout.spacing()
 		for i := range layout.Children {
-			if layout.Children[i].Shape.OverDraw {
+			if skipLayoutChild(layout.Children[i].Shape) {
 				continue
 			}
 			h += layout.Children[i].Shape.Height
@@ -97,10 +110,16 @@ func recomputeFitHeight(layout *Layout) float32 {
 		h += padding + sp
 	case axisLeftToRight:
 		for i := range layout.Children {
+			if skipLayoutChild(layout.Children[i].Shape) {
+				continue
+			}
 			h = f32Max(h, layout.Children[i].Shape.Height+padding)
 		}
 	default:
 		for i := range layout.Children {
+			if skipLayoutChild(layout.Children[i].Shape) {
+				continue
+			}
 			h = f32Max(h, layout.Children[i].Shape.Height+padding)
 		}
 	}

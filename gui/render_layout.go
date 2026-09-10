@@ -9,6 +9,13 @@ package gui
 // Window across frames, so leaking it would corrupt every later
 // frame, not just the aborted one.
 func renderLayout(layout *Layout, bgColor Color, clip drawClip, w *Window) {
+	renderLayoutDepth(layout, bgColor, clip, w, 0)
+}
+
+func renderLayoutDepth(layout *Layout, bgColor Color, clip drawClip, w *Window, depth int) {
+	if overMaxDepth(depth) {
+		return
+	}
 	// Emit filter bracket when ColorFilter is set (containers only).
 	fx := layout.Shape.fx
 	hasColorFilter := fx != nil && fx.ColorFilter != nil && !w.inFilter
@@ -126,7 +133,7 @@ func renderLayout(layout *Layout, bgColor Color, clip drawClip, w *Window) {
 		color = layout.Shape.Color
 	}
 	for i := range layout.Children {
-		renderLayout(&layout.Children[i], color, shapeClip, w)
+		renderLayoutDepth(&layout.Children[i], color, shapeClip, w, depth+1)
 	}
 }
 

@@ -90,69 +90,52 @@ func TestContentHeightTTBSkipsHiddenFloatingAndOverDraw(t *testing.T) {
 }
 
 func TestLayoutWidthsLTR(t *testing.T) {
+	// Every shape states shapeRectangle. The zero value of shapeType is
+	// shapeNone, which the sizing, positioning and content-size passes all
+	// treat as out of flow — so a fixture that omits it measures nothing and
+	// silently drops the spacing fence post too. No real container carries
+	// shapeNone: buildContainerShape promotes it to shapeRectangle.
 	root := &Layout{
 		Shape: &Shape{
-			Axis:    axisLeftToRight,
-			Padding: NewPadding(0, 10, 0, 10),
-			Spacing: 5,
+			Axis:      axisLeftToRight,
+			Padding:   NewPadding(0, 10, 0, 10),
+			Spacing:   5,
+			shapeType: shapeRectangle,
 		},
 		Children: []Layout{
-			{Shape: &Shape{Width: 50, MinWidth: 40}},
-			{Shape: &Shape{Width: 30, MinWidth: 20}},
+			{Shape: &Shape{Width: 50, MinWidth: 40, shapeType: shapeRectangle}},
+			{Shape: &Shape{Width: 30, MinWidth: 20, shapeType: shapeRectangle}},
 		},
 	}
 
 	layoutWidths(root)
 
-	// Width: 50 + 30 + 5*1 + 20 = 105... let me recalculate
-	// spacing() = (2-1)*5 = 5
-	// Width: 50 + 30 + 20 + 5 = 105
-	// Actually: children widths + padding + spacing = 50+30 + (10+10) + 5 = 105
-	// V test expects 100. Let me re-check the V test carefully.
-	// V test: spacing(5), padding L=10 R=10
-	// layout_widths: layout.shape.width += child.shape.width (for each child: 50+30=80)
-	// then += padding + spacing: 80 + 20 + 5 = 105?
-	// Wait, spacing() is fence-post: (count-1) * spacing = 1 * 5 = 5
-	// So 80 + 20 + 5 = 105
-	// But V test expects 100!
-	// Re-reading V code: spacing is 5, 2 children, fence-post = (2-1)*5 = 5
-	// V test comment says Expected Width = 100. Let me re-examine:
-	// "Expected Width: Child1(50) + Child2(30) + Spacing(5) * 2 + Padding(10+10) = 95"
-	// Wait the comment says "Spacing(5) * 2" but then says "= 95"
-	// Actually 50+30+10+10 = 100 and the comment says "= 95" but assert is 100.
-	// The comment is wrong. Assert says 100. Let me check: spacing() = (2-1)*5 = 5
-	// Width = 50+30 + 20 + 5 = 105. But assert says 100!
-	// Hmm, I think the spacing() function: V code says spacing 5, two *visible* children
-	// So spacing = (2-1)*5 = 5. Let me re-check. The V comment says:
-	// "Expected Width: Child1(50) + Child2(30) + Spacing(5) * 2 + Padding(10+10) = 95"
-	// But that's 50+30+10+10 = 100. And the assert is 100.0.
-	// So the comment is misleading; actual spacing in the V test's layout_widths:
-	// layout_widths adds padding + spacing (from spacing() function).
-	// But the V test has spacing:5, 2 non-trivial children → spacing()=(2-1)*5=5
-	// Total=50+30+20+5=105. But assert says 100?!
-	// Wait, the V Shape has no shape_type set, so the children's shape_type is .none
-	// which means spacing() skips them! spacing counts children where
-	// shape_type != .none AND !float AND !over_draw.
-	// Both children have shape_type .none (default), so spacing() = 0.
-	// Width = 50+30+20+0 = 100. That's the answer!
-	if !f32AreClose(root.Shape.Width, 100.0) {
-		t.Errorf("width: got %f, want 100", root.Shape.Width)
+	// Width: children 50 + 30, plus padding 10 + 10, plus one 5px fence-post
+	// gap between the two children.
+	// MinWidth: padding 10 + 10, plus the same 5px gap, plus the children's
+	// stated minimums 40 + 20.
+	if !f32AreClose(root.Shape.Width, 105.0) {
+		t.Errorf("width: got %f, want 105", root.Shape.Width)
 	}
-	if !f32AreClose(root.Shape.MinWidth, 80.0) {
-		t.Errorf("min_width: got %f, want 80", root.Shape.MinWidth)
+	if !f32AreClose(root.Shape.MinWidth, 85.0) {
+		t.Errorf("min_width: got %f, want 85", root.Shape.MinWidth)
 	}
 }
 
 func TestLayoutWidthsTTB(t *testing.T) {
+	// shapeType stated for the same reason as TestLayoutWidthsLTR: the
+	// zero value is shapeNone, which the cross-axis fit treats as out of
+	// flow and does not measure.
 	root := &Layout{
 		Shape: &Shape{
-			Axis:    axisTopToBottom,
-			Padding: NewPadding(0, 5, 0, 5),
+			Axis:      axisTopToBottom,
+			Padding:   NewPadding(0, 5, 0, 5),
+			shapeType: shapeRectangle,
 		},
 		Children: []Layout{
-			{Shape: &Shape{Width: 100, MinWidth: 80}},
-			{Shape: &Shape{Width: 120, MinWidth: 100}},
-			{Shape: &Shape{Width: 90, MinWidth: 70}},
+			{Shape: &Shape{Width: 100, MinWidth: 80, shapeType: shapeRectangle}},
+			{Shape: &Shape{Width: 120, MinWidth: 100, shapeType: shapeRectangle}},
+			{Shape: &Shape{Width: 90, MinWidth: 70, shapeType: shapeRectangle}},
 		},
 	}
 

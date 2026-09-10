@@ -153,8 +153,15 @@ func applyScrollAnchor(a scrollAnchor, sc *Layout, w *Window) {
 // descendant shifts because positions are absolute after the
 // position pass.
 func scrollAnchorShiftY(layout *Layout, dy float32) {
+	scrollAnchorShiftYDepth(layout, dy, 0)
+}
+
+func scrollAnchorShiftYDepth(layout *Layout, dy float32, depth int) {
+	if overMaxDepth(depth) {
+		return
+	}
 	layout.Shape.Y += dy
 	for i := range layout.Children {
-		scrollAnchorShiftY(&layout.Children[i], dy)
+		scrollAnchorShiftYDepth(&layout.Children[i], dy, depth+1)
 	}
 }

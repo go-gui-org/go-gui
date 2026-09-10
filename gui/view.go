@@ -55,6 +55,17 @@ func GenerateViewLayout(view View, w *Window) Layout {
 // GenerateLayout via appendChildViews; what this function owns is
 // shape normalization and the identity stamp.
 func generateViewLayout(view View, w *Window) Layout {
+	// Depth cap shared with the layout, event and render walks
+	// (maxEventDepth): a view tree nested past the budget yields a
+	// placeholder rather than recursing until the stack gives out. The
+	// placeholder is shapeNone, so the sizing passes skip it and the
+	// container measures as if the subtree were absent — the same
+	// degrade-the-frame semantics the capped walks take. genDepth is
+	// the tree depth at entry (window_update brackets only the root
+	// view function), so the boundary matches the walks exactly.
+	if w != nil && w.viewState.genDepth > maxEventDepth {
+		return layoutPlaceholder()
+	}
 	scope := ""
 	// The depth is what lets EffID tell "no scope, top of the tree"
 	// from "no scope, not generating at all". Every generation path

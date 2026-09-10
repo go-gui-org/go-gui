@@ -130,7 +130,7 @@ func applyLayoutTransition(layout *Layout, w *Window) {
 	if lt == nil || lt.stopped {
 		return
 	}
-	applyTransitionRecursive(layout, lt, 0, 0, 0)
+	applyTransitionRecursiveDepth(layout, lt, 0, 0, 0, 0)
 }
 
 // applyTransitionRecursive lerps each covered channel toward the shape's
@@ -147,6 +147,13 @@ func applyLayoutTransition(layout *Layout, w *Window) {
 // absolute position, so it already accounts for wherever its ancestors
 // were.
 func applyTransitionRecursive(layout *Layout, lt *layoutTransition, snap AnimFlags, dx, dy float32) {
+	applyTransitionRecursiveDepth(layout, lt, snap, dx, dy, 0)
+}
+
+func applyTransitionRecursiveDepth(layout *Layout, lt *layoutTransition, snap AnimFlags, dx, dy float32, depth int) {
+	if overMaxDepth(depth) {
+		return
+	}
 	// OR-inherit: a snapped parent snaps its whole subtree. With
 	// opt-out semantics there is deliberately no way for a child to
 	// escape an ancestor's mask — that escape hatch is where the
@@ -184,6 +191,6 @@ func applyTransitionRecursive(layout *Layout, lt *layoutTransition, snap AnimFla
 	}
 
 	for i := range layout.Children {
-		applyTransitionRecursive(&layout.Children[i], lt, snap, dx, dy)
+		applyTransitionRecursiveDepth(&layout.Children[i], lt, snap, dx, dy, depth+1)
 	}
 }

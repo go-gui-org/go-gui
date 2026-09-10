@@ -166,7 +166,18 @@ func floatAttachLayout(
 
 // layoutRemoveFloatingLayouts extracts floating elements from the
 // main layout tree, replacing them with placeholders.
+//
+// A float past the depth cap stays in the tree: the walk stops
+// descending rather than panicking, the same degradation the other
+// capped walks take (see maxEventDepth).
 func layoutRemoveFloatingLayouts(layout *Layout, w *Window, layouts *[]*Layout) {
+	layoutRemoveFloatingLayoutsDepth(layout, w, layouts, 0)
+}
+
+func layoutRemoveFloatingLayoutsDepth(layout *Layout, w *Window, layouts *[]*Layout, depth int) {
+	if overMaxDepth(depth) {
+		return
+	}
 	for i := range layout.Children {
 		if layout.Children[i].Shape.Float {
 			var heapLayout *Layout
@@ -180,7 +191,7 @@ func layoutRemoveFloatingLayouts(layout *Layout, w *Window, layouts *[]*Layout) 
 				heapLayout.Children[j].Parent = heapLayout
 			}
 			*layouts = append(*layouts, heapLayout)
-			layoutRemoveFloatingLayouts(heapLayout, w, layouts)
+			layoutRemoveFloatingLayoutsDepth(heapLayout, w, layouts, depth+1)
 			if w != nil {
 				layout.Children[i] = Layout{
 					Shape: w.scratch.allocPlaceholderShape(),
@@ -189,7 +200,7 @@ func layoutRemoveFloatingLayouts(layout *Layout, w *Window, layouts *[]*Layout) 
 				layout.Children[i] = layoutPlaceholder()
 			}
 		} else {
-			layoutRemoveFloatingLayouts(&layout.Children[i], w, layouts)
+			layoutRemoveFloatingLayoutsDepth(&layout.Children[i], w, layouts, depth+1)
 		}
 	}
 }

@@ -319,3 +319,48 @@ func TestOverflowFitWidthConstrained(t *testing.T) {
 		t.Error("trigger child should remain visible")
 	}
 }
+
+// TestHideOverflowChildDropsFocus guards tab order across an overflow
+// collapse. hideOverflowChild used to leave Focusable and ID untouched, and
+// collectFocusCandidates gates only on canTakeFocus — it reads neither
+// shapeType nor the clip. A child hidden by overflow therefore stayed
+// reachable by Tab while invisible, and so did any focusable widget nested
+// inside it.
+func TestHideOverflowChildDropsFocus(t *testing.T) {
+	// An overflowed item is often a container with the real widget inside,
+	// so the nested case is the one that matters.
+	child := Layout{
+		Shape: &Shape{
+			shapeType: shapeRectangle,
+			ID:        "toolbar_item",
+			Focusable: true,
+			Width:     50,
+		},
+		Children: []Layout{{
+			Shape: &Shape{
+				shapeType: shapeRectangle,
+				ID:        "toolbar_item_button",
+				Focusable: true,
+				Width:     50,
+			},
+		}},
+	}
+
+	var before []focusCandidate
+	collectFocusCandidates(&child, &before, map[string]struct{}{})
+	if len(before) != 2 {
+		t.Fatalf("before hiding: got %d tab stops, want 2", len(before))
+	}
+
+	hideOverflowChild(&child)
+
+	var after []focusCandidate
+	collectFocusCandidates(&child, &after, map[string]struct{}{})
+	if len(after) != 0 {
+		ids := make([]string, len(after))
+		for i, c := range after {
+			ids[i] = c.id
+		}
+		t.Errorf("hidden subtree still in tab order: %v", ids)
+	}
+}

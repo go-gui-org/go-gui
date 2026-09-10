@@ -2,8 +2,15 @@ package gui
 
 // layoutOverflow hides children that don't fit in an overflow container.
 func layoutOverflow(layout *Layout, w *Window) {
+	layoutOverflowDepth(layout, w, 0)
+}
+
+func layoutOverflowDepth(layout *Layout, w *Window, depth int) {
+	if overMaxDepth(depth) {
+		return
+	}
 	for i := range layout.Children {
-		layoutOverflow(&layout.Children[i], w)
+		layoutOverflowDepth(&layout.Children[i], w, depth+1)
 	}
 
 	if !layout.Shape.Overflow {
@@ -106,8 +113,35 @@ func layoutOverflow(layout *Layout, w *Window) {
 	}
 }
 
+// hideOverflowChild takes a child out of the row: it stops drawing
+// (shapeNone), stops taking width, and clips so its own descendants —
+// which still render and still carry their sizes — collapse with it.
+//
+// Focusability is cleared across the whole subtree, not just the child.
+// Tab order comes from collectFocusCandidates, which walks every node and
+// gates only on canTakeFocus; it reads neither shapeType nor the clip, so
+// a hidden child and everything under it would otherwise stay reachable by
+// Tab while invisible. The walk covers descendants because an overflowed
+// item is often a container whose focusable widget sits inside it.
+//
+// Clearing Focusable in place is safe for the same reason the shapeType
+// write above is: these shapes are frame-scoped, rebuilt from the view
+// tree on the next generation pass.
 func hideOverflowChild(child *Layout) {
 	child.Shape.shapeType = shapeNone
 	child.Shape.Width = 0
 	child.Shape.Clip = true
+	clearSubtreeFocusable(child, 0)
+}
+
+// clearSubtreeFocusable drops Focusable from layout and every descendant.
+// Depth-capped like the other tree walks (see maxEventDepth).
+func clearSubtreeFocusable(layout *Layout, depth int) {
+	if layout == nil || layout.Shape == nil || overMaxDepth(depth) {
+		return
+	}
+	layout.Shape.Focusable = false
+	for i := range layout.Children {
+		clearSubtreeFocusable(&layout.Children[i], depth+1)
+	}
 }

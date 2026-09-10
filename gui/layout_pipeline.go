@@ -47,8 +47,15 @@ func layoutPipeline(layout *Layout, w *Window) {
 // AmendLayout callbacks. Not for size changes — post-position
 // only.
 func layoutAmend(layout *Layout, w *Window) {
+	layoutAmendDepth(layout, w, 0)
+}
+
+func layoutAmendDepth(layout *Layout, w *Window, depth int) {
+	if overMaxDepth(depth) {
+		return
+	}
 	for i := range layout.Children {
-		layoutAmend(&layout.Children[i], w)
+		layoutAmendDepth(&layout.Children[i], w, depth+1)
 	}
 	if layout.Shape.hasEvents() &&
 		layout.Shape.events.AmendLayout != nil {
@@ -62,6 +69,13 @@ func layoutAmend(layout *Layout, w *Window) {
 // SAFETY: mutates w.viewState.mousePosX/Y to compensate for child
 // rotation. Called from layoutArrange, which runs under w.mu.
 func layoutHover(layout *Layout, w *Window) bool {
+	return layoutHoverDepth(layout, w, 0)
+}
+
+func layoutHoverDepth(layout *Layout, w *Window, depth int) bool {
+	if overMaxDepth(depth) {
+		return false
+	}
 	if w.mouseIsLocked() {
 		return false
 	}
@@ -72,7 +86,7 @@ func layoutHover(layout *Layout, w *Window) bool {
 			rotateCoordsInverse(layout.Shape, savedX, savedY)
 	}
 	for i := range slices.Backward(layout.Children) {
-		if layoutHover(&layout.Children[i], w) {
+		if layoutHoverDepth(&layout.Children[i], w, depth+1) {
 			w.viewState.mousePosX, w.viewState.mousePosY = savedX, savedY
 			return true
 		}
@@ -107,6 +121,13 @@ func layoutHover(layout *Layout, w *Window) bool {
 // shape whose hover state transitioned inside→outside this frame. shape.ID
 // must be non-empty; shapes with an empty ID are silently skipped.
 func layoutMouseLeave(layout *Layout, w *Window) {
+	layoutMouseLeaveDepth(layout, w, 0)
+}
+
+func layoutMouseLeaveDepth(layout *Layout, w *Window, depth int) {
+	if overMaxDepth(depth) {
+		return
+	}
 	if w.mouseIsLocked() {
 		return
 	}
@@ -116,7 +137,7 @@ func layoutMouseLeave(layout *Layout, w *Window) {
 			rotateCoordsInverse(layout.Shape, savedX, savedY)
 	}
 	for i := range layout.Children {
-		layoutMouseLeave(&layout.Children[i], w)
+		layoutMouseLeaveDepth(&layout.Children[i], w, depth+1)
 	}
 	w.viewState.mousePosX, w.viewState.mousePosY = savedX, savedY
 
@@ -167,8 +188,15 @@ func layoutWrapText(layout *Layout, w *Window) {
 }
 
 func layoutWrapTextWalk(layout *Layout, w *Window) {
+	layoutWrapTextWalkDepth(layout, w, 0)
+}
+
+func layoutWrapTextWalkDepth(layout *Layout, w *Window, depth int) {
+	if overMaxDepth(depth) {
+		return
+	}
 	for i := range layout.Children {
-		layoutWrapTextWalk(&layout.Children[i], w)
+		layoutWrapTextWalkDepth(&layout.Children[i], w, depth+1)
 	}
 	shape := layout.Shape
 	tc := shape.TC
