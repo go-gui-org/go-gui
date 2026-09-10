@@ -8,6 +8,8 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [v0.73.0] - 2026-09-10
+
 ### Added
 
 - **`Stream` bridges a background producer to the window (#559)** — `gui.Stream`
