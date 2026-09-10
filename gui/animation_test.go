@@ -71,7 +71,7 @@ func TestUpdateTransitionNilEasingDefaultsToEaseOutCubic(t *testing.T) {
 func TestUpdateTransitionWithEasing(t *testing.T) {
 	tb := &transitionBase{
 		duration: 10 * time.Second,
-		easing:   easeInQuad,
+		easing:   EaseInQuad,
 		start:    time.Now().Add(-50 * time.Millisecond),
 	}
 	deferred := make([]queuedCommand, 0, 4)

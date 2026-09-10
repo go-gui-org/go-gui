@@ -76,7 +76,7 @@ func (sv *sidebarView) GenerateLayout(w *Window) Layout {
 	}
 	if cfg.TweenDuration == 0 && cfg.TweenEasing == nil {
 		cfg.TweenDuration = 300 * time.Millisecond
-		cfg.TweenEasing = easeInOutCubic
+		cfg.TweenEasing = EaseInOutCubic
 	}
 
 	if cfg.Invisible {

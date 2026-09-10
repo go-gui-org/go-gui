@@ -99,7 +99,7 @@ func skeletonAmendLayout(
 			Duration: 1500 * time.Millisecond,
 			Keyframes: []Keyframe{
 				{At: 0, Value: 0},
-				{At: 1, Value: 1, Easing: easeInOutCSS},
+				{At: 1, Value: 1, Easing: EaseInOutCSS},
 			},
 			OnValue: func(v float32, w *Window) {
 				pm := StateMap[string, float32](

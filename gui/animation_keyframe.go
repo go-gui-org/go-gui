@@ -13,10 +13,14 @@ type Keyframe struct {
 // with per-segment easing.
 // exportaudit:keep — reachable from an exported signature
 type KeyframeAnimation struct {
-	start     time.Time
-	OnValue   func(float32, *Window)
-	OnDone    func(*Window)
-	AnimID    string
+	start   time.Time
+	OnValue func(float32, *Window)
+	OnDone  func(*Window)
+	AnimID  string
+	// Keyframes must be sorted ascending by At: interpolation
+	// binary-searches the slice, and the completion path reports
+	// the last element as the final value. Out-of-order At gives
+	// silently wrong output.
 	Keyframes []Keyframe
 	Duration  time.Duration
 	Repeat    bool
@@ -43,6 +47,7 @@ func (k *KeyframeAnimation) Update(_ *Window, _ float32, ac *AnimationCommands) 
 }
 
 // NewKeyframeAnimation creates a KeyframeAnimation with defaults.
+// Keyframes must be sorted ascending by At (see the Keyframes field).
 func NewKeyframeAnimation(id string, keyframes []Keyframe, onValue func(float32, *Window)) *KeyframeAnimation {
 	return &KeyframeAnimation{
 		AnimID:    id,

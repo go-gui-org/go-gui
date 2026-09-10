@@ -78,15 +78,15 @@ func (w *Window) AnimateLayout(cfg LayoutTransitionCfg) {
 			easing:   eas,
 			OnDone:   cfg.OnDone,
 		},
-		snapshots: captureLayoutSnapshots(w.layout),
+		snapshots: captureLayoutSnapshots(&w.layout),
 	}
 	w.AnimationAdd(lt)
 }
 
 // captureLayoutSnapshots recursively captures all element positions.
-func captureLayoutSnapshots(layout Layout) map[string]posSnapshot {
+func captureLayoutSnapshots(layout *Layout) map[string]posSnapshot {
 	snapshots := make(map[string]posSnapshot)
-	captureSnapshots(&layout, snapshots, false)
+	captureSnapshots(layout, snapshots, false)
 	return snapshots
 }
 
@@ -107,35 +107,42 @@ func captureSnapshots(layout *Layout, snapshots map[string]posSnapshot, heroOnly
 	}
 }
 
-// getLayoutTransition returns the active layout transition, if any.
-// Acquires w.animMu to safely read w.animations (the animation
-// goroutine may concurrently delete stopped animations).
-func (w *Window) getLayoutTransition() *layoutTransition {
+// getLayoutTransition returns the active layout transition's snapshots
+// and the progress it had reached, if a transition is running.
+//
+// The values are copied out inside the critical section rather than
+// returning the *layoutTransition for the caller to dereference:
+// progress and stopped are written by the animation goroutine on every
+// tick (updateTransition), so reading them after the lock is dropped is
+// a data race. The snapshots map is written once, before AnimationAdd
+// publishes the transition, so handing out the reference is safe — the
+// mutex supplies the happens-before edge and nothing writes it again.
+func (w *Window) getLayoutTransition() (map[string]posSnapshot, float32, bool) {
 	w.animMu.Lock()
+	defer w.animMu.Unlock()
 	a, ok := w.animations[layoutTransitionID]
-	w.animMu.Unlock()
 	if !ok {
-		return nil
+		return nil, 0, false
 	}
-	lt, ok := a.(*layoutTransition)
-	if !ok {
-		return nil
+	lt, isTransition := a.(*layoutTransition)
+	if !isTransition || lt.stopped {
+		return nil, 0, false
 	}
-	return lt
+	return lt.snapshots, lt.progress, true
 }
 
 // applyLayoutTransition interpolates positions during amend phase.
 func applyLayoutTransition(layout *Layout, w *Window) {
-	lt := w.getLayoutTransition()
-	if lt == nil || lt.stopped {
+	snapshots, progress, ok := w.getLayoutTransition()
+	if !ok {
 		return
 	}
-	applyTransitionRecursiveDepth(layout, lt, 0, 0, 0, 0)
+	applyTransitionRecursiveDepth(layout, snapshots, progress, 0, 0, 0, 0)
 }
 
-// applyTransitionRecursive lerps each covered channel toward the shape's
-// current (post-layout) value. snap is the mask inherited from the
-// ancestors; the walk already carries state, so inheritance is a
+// applyTransitionRecursiveDepth lerps each covered channel toward the
+// shape's current (post-layout) value. snap is the mask inherited from
+// the ancestors; the walk already carries state, so inheritance is a
 // parameter rather than a separate cascade pass.
 //
 // dx/dy carry the nearest interpolated ancestor's position shift. Layout
@@ -146,11 +153,12 @@ func applyLayoutTransition(layout *Layout, w *Window) {
 // replaces the shift rather than adding to it: the snapshot recorded an
 // absolute position, so it already accounts for wherever its ancestors
 // were.
-func applyTransitionRecursive(layout *Layout, lt *layoutTransition, snap AnimFlags, dx, dy float32) {
-	applyTransitionRecursiveDepth(layout, lt, snap, dx, dy, 0)
-}
-
-func applyTransitionRecursiveDepth(layout *Layout, lt *layoutTransition, snap AnimFlags, dx, dy float32, depth int) {
+//
+// Snapshots and progress arrive as values, not the *layoutTransition:
+// the walk runs on the main thread while the animation goroutine
+// advances that transition, so the frame works from one stable progress
+// rather than re-reading a field that moves underneath it.
+func applyTransitionRecursiveDepth(layout *Layout, snapshots map[string]posSnapshot, progress float32, snap AnimFlags, dx, dy float32, depth int) {
 	if overMaxDepth(depth) {
 		return
 	}
@@ -168,8 +176,8 @@ func applyTransitionRecursiveDepth(layout *Layout, lt *layoutTransition, snap An
 
 	shifted := false
 	if layout.Shape.ID != "" && snap != AnimSnapAll {
-		if old, ok := lt.snapshots[layout.Shape.idKey()]; ok {
-			t := lt.progress
+		if old, ok := snapshots[layout.Shape.idKey()]; ok {
+			t := progress
 			if snap&AnimSnapPos == 0 {
 				finalX, finalY := layout.Shape.X, layout.Shape.Y
 				layout.Shape.X = lerp(old.x, finalX, t)
@@ -191,6 +199,7 @@ func applyTransitionRecursiveDepth(layout *Layout, lt *layoutTransition, snap An
 	}
 
 	for i := range layout.Children {
-		applyTransitionRecursiveDepth(&layout.Children[i], lt, snap, dx, dy, depth+1)
+		applyTransitionRecursiveDepth(&layout.Children[i], snapshots, progress,
+			snap, dx, dy, depth+1)
 	}
 }

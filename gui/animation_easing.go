@@ -14,7 +14,8 @@ func lerp(a, b, t float32) float32 {
 func EaseLinear(t float32) float32 { return t }
 
 // EaseInQuad starts slow and accelerates (quadratic).
-func easeInQuad(t float32) float32 { return t * t }
+// exportaudit:keep — documented easing palette for consumer EasingFn fields
+func EaseInQuad(t float32) float32 { return t * t }
 
 // EaseOutQuad starts fast and decelerates (quadratic).
 func EaseOutQuad(t float32) float32 { return 1 - (1-t)*(1-t) }
@@ -29,7 +30,8 @@ func EaseInOutQuad(t float32) float32 {
 }
 
 // EaseInCubic starts slow and accelerates (cubic).
-func easeInCubic(t float32) float32 { return t * t * t }
+// exportaudit:keep — documented easing palette for consumer EasingFn fields
+func EaseInCubic(t float32) float32 { return t * t * t }
 
 // EaseOutCubic starts fast and decelerates (cubic).
 func EaseOutCubic(t float32) float32 {
@@ -38,7 +40,8 @@ func EaseOutCubic(t float32) float32 {
 }
 
 // EaseInOutCubic accelerates then decelerates (cubic).
-func easeInOutCubic(t float32) float32 {
+// exportaudit:keep — documented easing palette for consumer EasingFn fields
+func EaseInOutCubic(t float32) float32 {
 	if t < 0.5 {
 		return 4 * t * t * t
 	}
@@ -47,14 +50,16 @@ func easeInOutCubic(t float32) float32 {
 }
 
 // EaseInBack pulls back slightly before accelerating forward.
-func easeInBack(t float32) float32 {
+// exportaudit:keep — documented easing palette for consumer EasingFn fields
+func EaseInBack(t float32) float32 {
 	const c1 = float32(1.70158)
 	c3 := c1 + 1
 	return c3*t*t*t - c1*t*t
 }
 
 // EaseOutBack overshoots the target then settles back.
-func easeOutBack(t float32) float32 {
+// exportaudit:keep — documented easing palette for consumer EasingFn fields
+func EaseOutBack(t float32) float32 {
 	const c1 = float32(1.70158)
 	c3 := c1 + 1
 	u := t - 1
@@ -135,20 +140,32 @@ var (
 )
 
 // EaseCSS returns CSS "ease" curve. Uses precomputed LUT.
-func easeCSS(t float32) float32 { return easeLUT.lookup(t) }
+// exportaudit:keep — documented easing palette for consumer EasingFn fields
+func EaseCSS(t float32) float32 { return easeLUT.lookup(t) }
 
 // EaseInCSS returns CSS "ease-in" curve. Uses precomputed LUT.
-func easeInCSS(t float32) float32 { return easeInLUT.lookup(t) }
+// exportaudit:keep — documented easing palette for consumer EasingFn fields
+func EaseInCSS(t float32) float32 { return easeInLUT.lookup(t) }
 
 // EaseOutCSS returns CSS "ease-out" curve. Uses precomputed LUT.
-func easeOutCSS(t float32) float32 { return easeOutLUT.lookup(t) }
+// exportaudit:keep — documented easing palette for consumer EasingFn fields
+func EaseOutCSS(t float32) float32 { return easeOutLUT.lookup(t) }
 
 // EaseInOutCSS returns CSS "ease-in-out" curve. Uses precomputed LUT.
-func easeInOutCSS(t float32) float32 { return easeInOutLUT.lookup(t) }
+// exportaudit:keep — documented easing palette for consumer EasingFn fields
+func EaseInOutCSS(t float32) float32 { return easeInOutLUT.lookup(t) }
 
 // CubicBezier creates a custom easing function from bezier
 // control points. Works like CSS cubic-bezier().
-func cubicBezier(x1, y1, x2, y2 float32) EasingFn {
+//
+// Non-finite control points fall back to EaseLinear: they would
+// otherwise poison the Newton-Raphson iteration and hand NaN to
+// layout geometry.
+// exportaudit:keep — documented easing palette for consumer EasingFn fields
+func CubicBezier(x1, y1, x2, y2 float32) EasingFn {
+	if !f32AllFinite4(x1, y1, x2, y2) {
+		return EaseLinear
+	}
 	return func(t float32) float32 {
 		return bezierCalc(t, x1, y1, x2, y2)
 	}

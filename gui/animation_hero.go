@@ -15,8 +15,16 @@ const heroTransitionID = "__hero_transition__"
 // HeroTransition can be active at a time (fixed internal ID).
 // exportaudit:keep — reachable from an exported signature
 type HeroTransition struct {
+	// outgoing holds the hero geometry of the frame the transition was
+	// registered on — the "before" side of the morph. AnimationAdd
+	// fills it; a transition never registered through AnimationAdd has
+	// no before side and every hero simply fades in.
+	//
+	// There is deliberately no incoming map. The apply walk runs over
+	// the incoming tree, so every hero it reaches is on the incoming
+	// side by construction, and the morph target is the shape's live
+	// post-layout geometry rather than a recorded value.
 	outgoing map[string]posSnapshot
-	incoming map[string]posSnapshot
 	transitionBase
 }
 
@@ -50,32 +58,42 @@ func NewHeroTransition(cfg HeroTransitionCfg) *HeroTransition {
 	}
 }
 
-// captureHeroSnapshots finds all hero-marked elements.
-func captureHeroSnapshots(layout Layout) map[string]posSnapshot {
+// captureHeroSnapshots finds all hero-marked elements. Takes a pointer:
+// Layout is a large struct and this runs on a frame's root.
+func captureHeroSnapshots(layout *Layout) map[string]posSnapshot {
 	snapshots := make(map[string]posSnapshot)
-	captureSnapshots(&layout, snapshots, true)
+	captureSnapshots(layout, snapshots, true)
 	return snapshots
 }
 
 // applyHeroTransition modifies layout during render for hero effect.
-// Called from layoutPipeline under w.mu. Acquires w.animMu to safely
-// read w.animations (the animation goroutine may concurrently delete).
+// Called from layoutPipeline under w.mu.
 func applyHeroTransition(layout *Layout, w *Window) {
-	w.animMu.Lock()
-	a, ok := w.animations[heroTransitionID]
-	w.animMu.Unlock()
+	progress, outgoing, ok := w.getHeroTransition()
 	if !ok {
 		return
 	}
-	ht, ok := a.(*HeroTransition)
-	if !ok || ht.stopped {
-		return
-	}
-	applyHeroRecursiveDepth(layout, ht.progress, ht.outgoing, ht.incoming, 0, 0, 0)
+	applyHeroRecursiveDepth(layout, progress, outgoing, 0, 0, 0)
 }
 
-func propagateOpacity(layout *Layout, opacity float32) {
-	propagateOpacityDepth(layout, opacity, 0)
+// getHeroTransition returns the running hero transition's progress and
+// its outgoing snapshots. Everything is copied out under w.animMu for
+// the reason getLayoutTransition spells out: progress and stopped move
+// every tick under the animation goroutine, so the frame takes one
+// stable value instead of dereferencing the animation after unlocking.
+// The map is write-once before the transition is published.
+func (w *Window) getHeroTransition() (float32, map[string]posSnapshot, bool) {
+	w.animMu.Lock()
+	defer w.animMu.Unlock()
+	a, ok := w.animations[heroTransitionID]
+	if !ok {
+		return 0, nil, false
+	}
+	ht, isHero := a.(*HeroTransition)
+	if !isHero || ht.stopped {
+		return 0, nil, false
+	}
+	return ht.progress, ht.outgoing, true
 }
 
 func propagateOpacityDepth(layout *Layout, opacity float32, depth int) {
@@ -88,18 +106,19 @@ func propagateOpacityDepth(layout *Layout, opacity float32, depth int) {
 	}
 }
 
-// applyHeroRecursive morphs each matched hero toward its incoming
-// geometry. dx/dy carry the nearest morphed ancestor's position shift,
-// the same rule applyTransitionRecursive follows: layout coordinates are
+// applyHeroRecursiveDepth morphs each hero that has an outgoing snapshot
+// toward its live post-layout geometry. A hero with no snapshot is new
+// on this side of the transition and fades in over the second half.
+// Fading is one-directional: a hero that LEFT the tree is not in the
+// walk at all, so it cannot fade out.
+//
+// dx/dy carry the nearest morphed ancestor's position shift,
+// the same rule the layout transition follows: layout coordinates are
 // absolute, so a morphing card's label — no ID, so no snapshot — would
 // otherwise stay at its final position while the card travelled. A hero
 // with its own snapshot replaces the carried shift instead of adding to
 // it, because the snapshot is an absolute position.
-func applyHeroRecursive(layout *Layout, progress float32, outgoing, incoming map[string]posSnapshot, dx, dy float32) {
-	applyHeroRecursiveDepth(layout, progress, outgoing, incoming, dx, dy, 0)
-}
-
-func applyHeroRecursiveDepth(layout *Layout, progress float32, outgoing, incoming map[string]posSnapshot, dx, dy float32, depth int) {
+func applyHeroRecursiveDepth(layout *Layout, progress float32, outgoing map[string]posSnapshot, dx, dy float32, depth int) {
 	if overMaxDepth(depth) {
 		return
 	}
@@ -114,15 +133,13 @@ func applyHeroRecursiveDepth(layout *Layout, progress float32, outgoing, incomin
 		fadeProgress := f32Max(0, (progress-0.5)*2)
 
 		if out, hasOut := outgoing[id]; hasOut {
-			if _, hasIn := incoming[id]; hasIn {
-				finalX, finalY := layout.Shape.X, layout.Shape.Y
-				layout.Shape.X = lerp(out.x, finalX, morphProgress)
-				layout.Shape.Y = lerp(out.y, finalY, morphProgress)
-				layout.Shape.Width = lerp(out.width, layout.Shape.Width, morphProgress)
-				layout.Shape.Height = lerp(out.height, layout.Shape.Height, morphProgress)
-				dx, dy = layout.Shape.X-finalX, layout.Shape.Y-finalY
-				shifted = true
-			}
+			finalX, finalY := layout.Shape.X, layout.Shape.Y
+			layout.Shape.X = lerp(out.x, finalX, morphProgress)
+			layout.Shape.Y = lerp(out.y, finalY, morphProgress)
+			layout.Shape.Width = lerp(out.width, layout.Shape.Width, morphProgress)
+			layout.Shape.Height = lerp(out.height, layout.Shape.Height, morphProgress)
+			dx, dy = layout.Shape.X-finalX, layout.Shape.Y-finalY
+			shifted = true
 		} else {
 			propagateOpacityDepth(layout, fadeProgress, depth)
 		}
@@ -132,6 +149,6 @@ func applyHeroRecursiveDepth(layout *Layout, progress float32, outgoing, incomin
 		layout.Shape.Y += dy
 	}
 	for i := range layout.Children {
-		applyHeroRecursiveDepth(&layout.Children[i], progress, outgoing, incoming, dx, dy, depth+1)
+		applyHeroRecursiveDepth(&layout.Children[i], progress, outgoing, dx, dy, depth+1)
 	}
 }

@@ -18,7 +18,77 @@ and this project adheres to
   demo. New code should draw grids on a `DrawCanvas`. Removal takes the
   `RenderTermGrid` command, its per-backend draws, and the print branch with it.
 
+### Fixed
+
+- **AnimationAdd now rejects an empty animation ID** — animations are keyed by
+  ID with replace semantics, so every unnamed `Animate` silently collided on
+  `""` and replaced the previous one. An empty ID now panics at registration,
+  matching `State[T]`'s treatment of programmer error. Correct callers are
+  unaffected; a caller relying on the collision was already corrupting its own
+  animation map.
+
+- **View-bound animations no longer die when a time-travel scrub ends** (#5) —
+  the liveness heartbeat was stamped and compared with the scrubbable clock, so
+  scrubbing 10 minutes back stamped every visible widget at T-10min and the
+  first tick after resume read 10 minutes of staleness against the 2 s
+  threshold, cancelling each animation while its widget was still on screen. The
+  heartbeat now uses the wall clock, which is never shown to a user and has no
+  reason to be scrubbable. The `Animation.Update` doc is also corrected: `dt` is
+  the nominal 16 ms step, not a measured elapsed time.
+
+- **A diverging spring animation now snaps to its target instead of running
+  forever with NaN** — `SpringAnimation` integrates with explicit Euler at a
+  fixed 16 ms timestep, so a stiffness above roughly 15600 (at `Mass: 1`)
+  amplified each step until velocity reached `+Inf` and position became `NaN`.
+  `NaN` fails every comparison, so the at-rest check never fired: the animation
+  stayed alive, called `OnValue` with `NaN` on every tick, pushed that value
+  into layout geometry, and forced a full layout refresh every 16 ms for the
+  life of the window. A diverged spring is now treated as arrived — it snaps to
+  the target, calls `OnValue` with the target and then `OnDone`, and retires.
+  Callers see a hard snap where they previously saw a frozen, CPU-burning
+  window.
+
+- **Hero transitions actually morph** — `NewHeroTransition` recorded no "before"
+  geometry, so the documented sequence (`AnimationAdd`, then `UpdateView`)
+  produced only a fade: every hero-marked element held its final position for
+  the whole transition and no element ever travelled between the two views.
+  `AnimationAdd` now captures the hero geometry of the current frame, which is
+  the last moment it exists, and a hero present on both sides morphs between the
+  two. A hero only on the new side still fades in; one that left the tree cannot
+  fade out, because it is no longer there to draw. The redundant incoming-side
+  snapshot map is gone — the apply walk runs over the incoming tree, so it never
+  told the morph anything the walk did not already know.
+
+- **A repeating animation no longer storms after a stall** — `Animate` with
+  `Repeat`, and the caret blink, advanced their start time by exactly one delay
+  per tick. After a stall — a minimized window, a debugger break, one very long
+  frame — start sat many delays in the past, so the missed intervals drained at
+  one callback per ~16 ms tick: a 5-second stall on a 16 ms repeat fired over
+  300 catch-up callbacks, and the caret strobed its way back to the present.
+  Once start falls more than one further delay behind, the missed intervals are
+  now dropped and the animation resyncs to the present. A tick that arrives on
+  time still steps by exactly one delay, so a long interval keeps its drift-free
+  cadence.
+
+- **Layout and hero transitions no longer race the animation goroutine** — the
+  amend pass read a running transition's `progress` and `stopped` on the main
+  thread after releasing `w.animMu`, while the animation goroutine wrote both
+  under that mutex on every tick. Each frame could interpolate against a
+  half-written progress, and `-race` reported it wherever a transition ran
+  during a real frame. Both accessors now copy the values out inside the
+  critical section, so a frame interpolates from one stable progress.
+
 ### Added
+
+- **Easing palette exported** — `EaseInQuad`, `EaseInCubic`, `EaseInOutCubic`,
+  `EaseInBack`, `EaseOutBack`, `EaseCSS`, `EaseInCSS`, `EaseOutCSS`,
+  `EaseInOutCSS`, and `CubicBezier` are now public. The exported `Easing` config
+  fields (`HeroTransitionCfg`, `LayoutTransitionCfg`, tween/keyframe easings)
+  previously accepted functions consumers could not spell for half the palette;
+  the full family is now reachable. Removed in the same pass: the unexported
+  `applyHeroRecursive`, `applyTransitionRecursive`, and `propagateOpacity`
+  wrappers, which production never called — tests now drive the `Depth` variants
+  directly.
 
 - **TermGrid renders on the GL and Web backends, and in print** — the terminal
   character grid previously painted only through the Metal and soft backends; on
@@ -42,19 +112,17 @@ and this project adheres to
   their pattern with no bound, so a non-finite endpoint hung the frame and a
   very long segment against a short pattern took the frame with it; both now
   screen their input and cap the walk. `FilledRect`, `Rect`, `Line`, `Polyline`,
-  `FilledPolygon`, `PolylineJoined`, `FilledRoundedRect`, `RoundedRect`,
-  `Arc`, `DashedLine`, `DashedPolyline` and `FillTrianglesColors` now reject
-  non-finite coordinates and stroke widths at record time — a bad vertex
-  reaching a batch cost
-  every other primitive that had merged into it, because the whole render
+  `FilledPolygon`, `PolylineJoined`, `FilledRoundedRect`, `RoundedRect`, `Arc`,
+  `DashedLine`, `DashedPolyline` and `FillTrianglesColors` now reject non-finite
+  coordinates and stroke widths at record time — a bad vertex reaching a batch
+  cost every other primitive that had merged into it, because the whole render
   command is dropped downstream — `FillTrianglesGradient` takes the same
-  non-finite screen `FillTrianglesColors` has, both take the same input
-  bound, and the shape-specific gradient fills screen their geometry before
-  recording. The recorder path (SVG/PDF export)
-  baked the canvas transform into a point list only up to a size threshold,
-  silently exporting a larger polyline at its unmapped local coordinates; every
-  length is now mapped, and the scratch buffer behind it is released on reset
-  with the rest.
+  non-finite screen `FillTrianglesColors` has, both take the same input bound,
+  and the shape-specific gradient fills screen their geometry before recording.
+  The recorder path (SVG/PDF export) baked the canvas transform into a point
+  list only up to a size threshold, silently exporting a larger polyline at its
+  unmapped local coordinates; every length is now mapped, and the scratch buffer
+  behind it is released on reset with the rest.
 
 - **Disabled and Opacity now reach every render path** — fading or disabling a
   widget previously dimmed only its flat fills, borders, blur, and plain text.

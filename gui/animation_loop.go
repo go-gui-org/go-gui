@@ -8,9 +8,35 @@ const animationCycle = 16 * time.Millisecond
 // An animation not touched for this duration is cancelled automatically.
 const animViewBoundStale = 2 * int64(time.Second)
 
+// viewBoundNow is the clock for view-bound heartbeats. It is deliberately
+// time.Now() and not w.Now(): w.Now() follows the time-travel scrub pin,
+// which jumps backwards on restore and forwards again on resume. A
+// heartbeat stamped while the clock was pinned to a past instant, then
+// compared against live time after the resume, looks arbitrarily stale —
+// so every visible widget's animation would be cancelled on the first tick
+// after a scrub ends. The heartbeat measures liveness and is never shown to
+// a user, so it has no reason to be scrubbable.
+func viewBoundNow() int64 { return time.Now().UnixNano() }
+
 // AnimationAdd registers a new animation. If an animation with the
 // same ID exists, it is replaced.
+//
+// The ID must be non-empty: animations are keyed by ID, so every
+// unnamed animation would collide on "" and replace the previous one.
+// Empty IDs panic, matching State[T]'s treatment of programmer error.
+//
+// A HeroTransition is snapshotted here, the way AnimateLayout captures
+// before its caller changes the view: the "before" geometry only exists
+// until the next arrange, and the documented call sequence is
+// AnimationAdd followed by UpdateView. Re-adding a transition mid-flight
+// replaces it outright (the ID is fixed), so the new morph starts from
+// wherever the tree is at that moment.
 func (w *Window) AnimationAdd(a Animation) {
+	// Capture before taking animMu: the walk is O(tree) and would
+	// otherwise stall the animation goroutine for its duration.
+	if ht, ok := a.(*HeroTransition); ok && ht.outgoing == nil {
+		ht.outgoing = captureHeroSnapshots(&w.layout)
+	}
 	w.animMu.Lock()
 	defer w.animMu.Unlock()
 	w.animationAddLocked(a)
@@ -19,6 +45,9 @@ func (w *Window) AnimationAdd(a Animation) {
 // animationAddLocked is the lock-free core of AnimationAdd. Callers
 // must already hold w.animMu (e.g. syncBlinkCursor).
 func (w *Window) animationAddLocked(a Animation) {
+	if a.ID() == "" {
+		panic("gui: AnimationAdd requires a non-empty ID")
+	}
 	a.SetStart(time.Now())
 	if w.animations == nil {
 		w.animations = make(map[string]Animation)
@@ -62,7 +91,7 @@ func (w *Window) animationAddViewBound(a Animation) {
 	if w.animViewBound == nil {
 		w.animViewBound = make(map[string]int64)
 	}
-	w.animViewBound[a.ID()] = w.Now().UnixNano()
+	w.animViewBound[a.ID()] = viewBoundNow()
 }
 
 // touchViewBoundAnimation updates the heartbeat for a view-bound animation
@@ -75,7 +104,7 @@ func (w *Window) touchViewBoundAnimation(id string) bool {
 		return false
 	}
 	if _, ok := w.animViewBound[id]; ok {
-		w.animViewBound[id] = w.Now().UnixNano()
+		w.animViewBound[id] = viewBoundNow()
 	}
 	return true
 }
@@ -150,7 +179,7 @@ func (w *Window) animationLoop() {
 			}
 		}
 		// Auto-cancel view-bound animations whose widget left the view tree.
-		now := w.Now().UnixNano()
+		now := viewBoundNow()
 		for id, seen := range w.animViewBound {
 			if now-seen > animViewBoundStale {
 				stoppedIDs = append(stoppedIDs, id)
@@ -216,24 +245,44 @@ func updateAnimate(a *Animate, ac *AnimationCommands) bool {
 		a.stopped = true
 		return false
 	}
-	if time.Since(a.start) > a.Delay {
-		ac.appendAnimate(a.Callback, a)
-		if a.Repeat {
-			// Zero delay with repeat fires every tick (~16ms).
-			a.start = a.start.Add(a.Delay)
-		} else {
-			a.stopped = true
-		}
+	now := time.Now()
+	if now.Sub(a.start) <= a.Delay {
+		return false
+	}
+	ac.appendAnimate(a.Callback, a)
+	if !a.Repeat {
+		a.stopped = true
 		return true
 	}
-	return false
+	// Zero delay with repeat fires every tick (~16ms). Advancing by
+	// exactly one Delay keeps a longer cadence drift-free while ticks
+	// arrive on time.
+	a.start = a.start.Add(a.Delay)
+	a.start = resyncAfterStall(a.start, now, a.Delay)
+	return true
+}
+
+// resyncAfterStall drops the backlog a stalled animation accumulated.
+// A minimized window, a debugger break or one very long frame leaves
+// start many delays in the past; stepping one Delay per tick would then
+// drain that backlog at one callback every ~16ms — a burst of catch-up
+// fires long after the interval each belonged to. Once start is more
+// than one further delay behind, give up the missed intervals and
+// resync to now. Returns start unchanged on a tick that arrived on
+// time, so the drift-free cadence survives.
+func resyncAfterStall(start, now time.Time, delay time.Duration) time.Time {
+	if now.Sub(start) > delay {
+		return now
+	}
+	return start
 }
 
 func updateBlinkCursor(b *BlinkCursorAnimation, w *Window, ac *AnimationCommands) bool {
 	if b.stopped {
 		return false
 	}
-	if time.Since(b.start) > blinkCursorAnimationDelay {
+	now := time.Now()
+	if now.Sub(b.start) > blinkCursorAnimationDelay {
 		// Store(!Load()) is safe because all writers hold animMu:
 		// this (via animation goroutine) and resetBlinkCursorVisible
 		// (via main thread). If animMu is ever removed from either
@@ -245,6 +294,9 @@ func updateBlinkCursor(b *BlinkCursorAnimation, w *Window, ac *AnimationCommands
 		// Animate still promotes the tick to a layout refresh.
 		ac.appendOnDone(commandToggleCaretBlink)
 		b.start = b.start.Add(blinkCursorAnimationDelay)
+		// Without this the caret strobes after any stall, catching up
+		// one toggle per tick until it reaches the present.
+		b.start = resyncAfterStall(b.start, now, blinkCursorAnimationDelay)
 		return true
 	}
 	return false

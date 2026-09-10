@@ -247,14 +247,14 @@ func TestApplyTransitionStopsAtDepthCap(t *testing.T) {
 	}
 
 	shallow, shallowLT := transitionChain(100)
-	applyTransitionRecursive(shallow, shallowLT, 0, 0, 0)
+	applyTransitionRecursiveDepth(shallow, shallowLT.snapshots, shallowLT.progress, 0, 0, 0, 0)
 	if !f32AreClose(leafOf(shallow).Shape.X, 50) {
 		t.Errorf("leaf X at depth 100: got %f, want 50",
 			leafOf(shallow).Shape.X)
 	}
 
 	deep, deepLT := transitionChain(maxEventDepth + 50)
-	applyTransitionRecursive(deep, deepLT, 0, 0, 0)
+	applyTransitionRecursiveDepth(deep, deepLT.snapshots, deepLT.progress, 0, 0, 0, 0)
 	if !f32AreClose(leafOf(deep).Shape.X, 100) {
 		t.Errorf("leaf X past maxEventDepth: got %f, want 100 (walk must "+
 			"stop descending)", leafOf(deep).Shape.X)
@@ -274,14 +274,14 @@ func TestApplyHeroStopsAtDepthCap(t *testing.T) {
 	empty := map[string]posSnapshot{}
 
 	shallow := heroChain(100)
-	applyHeroRecursive(shallow, 0.75, empty, empty, 0, 0)
+	applyHeroRecursiveDepth(shallow, 0.75, empty, 0, 0, 0)
 	if !f32AreClose(leafOf(shallow).Shape.Opacity, 0.5) {
 		t.Errorf("leaf opacity at depth 100: got %f, want 0.5",
 			leafOf(shallow).Shape.Opacity)
 	}
 
 	deep := heroChain(maxEventDepth + 50)
-	applyHeroRecursive(deep, 0.75, empty, empty, 0, 0)
+	applyHeroRecursiveDepth(deep, 0.75, empty, 0, 0, 0)
 	if !f32AreClose(leafOf(deep).Shape.Opacity, 1) {
 		t.Errorf("leaf opacity past maxEventDepth: got %f, want 1 (walk "+
 			"must stop descending)", leafOf(deep).Shape.Opacity)
