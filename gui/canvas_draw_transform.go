@@ -78,14 +78,19 @@ func (x canvasXform) uniform() bool { return x.sx == x.sy }
 // Composition: p -> (p+d)*S + T = p*S + (T + d*S).
 //
 // Non-finite arguments are ignored rather than poisoning every
-// subsequent vertex.
+// subsequent vertex, and so is a finite shift whose SUM with the
+// current translation overflows — the same overflow ScaleBy screens,
+// reached through repeated Translate instead of repeated ScaleBy.
 func (dc *DrawContext) Translate(dx, dy float32) {
 	if !f32IsFinite(dx) || !f32IsFinite(dy) {
 		return
 	}
 	dc.ensureXform()
-	dc.xf.tx += dx * dc.xf.sx
-	dc.xf.ty += dy * dc.xf.sy
+	ntx, nty := dc.xf.tx+dx*dc.xf.sx, dc.xf.ty+dy*dc.xf.sy
+	if !f32IsFinite(ntx) || !f32IsFinite(nty) {
+		return
+	}
+	dc.xf.tx, dc.xf.ty = ntx, nty
 }
 
 // ScaleBy multiplies the current scale by (sx, sy). It is named
@@ -96,23 +101,35 @@ func (dc *DrawContext) Translate(dx, dy float32) {
 // untouched and scaling happens about the current origin.
 //
 // A zero scale is allowed and collapses geometry. Non-finite
-// arguments are ignored.
+// arguments are ignored, and so is a finite pair whose PRODUCT with
+// the current scale overflows: two ScaleBy(1e38, 1e38) calls would
+// otherwise leave sx at +Inf, which scaleTextStyle bakes into a text
+// entry's Size. The render commands themselves are screened
+// downstream, but the text emit path measures through the glyph
+// shaper before that screen runs, so an infinite font size must not
+// reach the transform at all.
 func (dc *DrawContext) ScaleBy(sx, sy float32) {
 	if !f32IsFinite(sx) || !f32IsFinite(sy) {
 		return
 	}
 	dc.ensureXform()
-	dc.xf.sx *= sx
-	dc.xf.sy *= sy
+	nsx, nsy := dc.xf.sx*sx, dc.xf.sy*sy
+	if !f32IsFinite(nsx) || !f32IsFinite(nsy) {
+		return
+	}
+	dc.xf.sx, dc.xf.sy = nsx, nsy
 }
 
 // Save pushes the current transform so a later Restore can return to
-// it. Pushes past maxXformDepth are dropped, which unbalances the
-// stack rather than growing it without limit; the reset at the top of
-// every redraw is what actually contains the damage.
+// it. Pushes past maxXformDepth are not stored, but they are COUNTED:
+// dropping a push silently would make the matching Restore pop an
+// ancestor instead, so every Restore after the cap was hit would
+// rewind one level too far and the rest of the nest would draw at the
+// wrong offset.
 func (dc *DrawContext) Save() {
 	dc.ensureXform()
 	if len(dc.xfStack) >= maxXformDepth {
+		dc.xfDropped++
 		return
 	}
 	dc.xfStack = append(dc.xfStack, dc.xf)
@@ -121,7 +138,16 @@ func (dc *DrawContext) Save() {
 // Restore pops the transform Save pushed. Restoring with an empty
 // stack is a no-op: OnDraw runs inside the frame, so a panic here
 // would take the whole window down over a caller's bookkeeping slip.
+//
+// A Restore matching a push the cap dropped is also a no-op, which is
+// what keeps the stack balanced: the dropped pushes are unwound in
+// reverse order, so the first Restore to touch real state is the one
+// matching the last push that was actually stored.
 func (dc *DrawContext) Restore() {
+	if dc.xfDropped > 0 {
+		dc.xfDropped--
+		return
+	}
 	n := len(dc.xfStack)
 	if n == 0 {
 		return
@@ -148,6 +174,7 @@ func (dc *DrawContext) resetXform() {
 	dc.xf = canvasXform{}
 	dc.xfActive = false
 	dc.xfStack = dc.xfStack[:0]
+	dc.xfDropped = 0
 }
 
 // activeXform is the transform a batch should carry, and whether it
@@ -179,8 +206,15 @@ func (dc *DrawContext) xfRect(x, y, w, h float32) (float32, float32, float32, fl
 }
 
 // xfPoints maps a caller's point slice into the context's scratch
-// buffer. The caller's slice is never written to: a recorder may hold
-// it, and callers pass their own backing arrays.
+// buffer. The caller's slice is never written to, because callers pass
+// their own backing arrays and a primitive must not mutate them.
+//
+// The returned buffer is single and shared, so it is only valid until
+// the next primitive runs. That is the retention rule DrawRecorder
+// states: a recorder that keeps the points it is handed must copy
+// them. Giving each call its own buffer instead would mean an arena
+// whose growth reallocates and invalidates the slices already handed
+// out — the same hazard, harder to see.
 //
 // Every length is mapped. An earlier cap here returned the caller's
 // points unmapped past a size threshold, which handed a recorder raw

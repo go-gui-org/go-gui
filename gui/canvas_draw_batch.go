@@ -116,6 +116,15 @@ func (dc *DrawContext) resetFor(w, h, scale float32, tm TextMeasurer,
 	dc.batches = prev.spare[:0]
 	dc.gradientPool = prev.Gradients
 	dc.gradients = prev.gradSpare[:0]
+	// Cleared, not just truncated. Both entry types hold pointer-shaped
+	// fields — a Text string, an Image Src and its ImageFetcher, which
+	// can be a closure over an arbitrary graph — and the entries past
+	// this redraw's length stay in the backing array for as long as the
+	// canvas lives. A canvas that drew ten thousand labels once would
+	// otherwise pin all ten thousand strings forever. The capacity is
+	// kept either way, which is the whole point of reusing the array.
+	clear(prev.Texts)
+	clear(prev.Images)
 	dc.texts = prev.Texts[:0]
 	dc.images = prev.Images[:0]
 

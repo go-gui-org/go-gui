@@ -62,6 +62,17 @@ func renderDrawCanvas(shape *Shape, clip drawClip, w *Window) {
 			cached.tessWidth == cw && cached.tessHeight == ch &&
 			cached.Scale == scale {
 			needsDraw = false
+			// A hit emits commands aliasing this entry's buffers, so
+			// the entry is live in this pass exactly as a redraw's is.
+			// Stamping the pass here is what stops a SECOND shape with
+			// the same key — duplicate effective IDs, differing only in
+			// Version or size, so this one hits and that one redraws —
+			// from recycling the buffers the command just emitted
+			// points at.
+			if cached.pass != w.renderPass {
+				cached.pass = w.renderPass
+				sm.Set(key, cached)
+			}
 		}
 	}
 

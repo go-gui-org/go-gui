@@ -8,6 +8,53 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Fixed
+
+- **Canvas `Save` past its depth cap no longer unbalances `Restore`** — a
+  `DrawContext.Save` beyond `maxXformDepth` (256) was dropped silently, so the
+  matching `Restore` popped an ancestor instead and every nesting level after
+  the cap drew at the wrong offset for the rest of the redraw. Dropped pushes
+  are now counted and their `Restore`s are no-ops, which keeps the stack
+  balanced however deep the nest goes. Nests shallower than 256 are unaffected.
+
+- **Canvas transforms reject an overflow to infinity** — `ScaleBy` and
+  `Translate` screened their arguments but not the result, so two
+  `ScaleBy(1e38, 1e38)` calls left the matrix at `+Inf`. `DrawContext.Text` also
+  drops an entry whose baked position or font size overflows, which a single
+  finite `ScaleBy` can cause, as well as one handed non-finite coordinates or
+  px-valued style fields with no transform in force. The cell and emoji-box
+  widths are screened too, since the shaper reads them. This one matters beyond
+  the usual non-finite screening because the canvas text emit path measures a
+  style through the glyph shaper before render-command validation runs, so an
+  infinite font size reached the shaper's cache and rasterizer.
+
+- **A cached canvas no longer has its emitted geometry overwritten inside one
+  render pass** — the cache entry stamped the render pass that last _redrew_ it
+  but not one that merely _hit_ it, so two shapes sharing an effective ID and
+  differing only in `Version` or size — the first hitting the cache, the second
+  redrawing — let the redraw recycle the triangle buffers the first shape's
+  already-emitted command still pointed at. A hit now claims the pass as a
+  redraw does. Only reachable with duplicate effective IDs, which
+  `TestDuplicateIDs` and `gui.Debug` already report.
+
+- **A canvas no longer pins the text and images of its largest past redraw** —
+  the recycled `Texts` and `Images` arrays were truncated with `[:0]`, leaving
+  every entry past the new length live in the backing array for the life of the
+  canvas, including each `Text` string and each image `Src` and `ImageFetcher`
+  (which can close over an arbitrary graph). The entries are cleared on reuse;
+  the capacity is still kept.
+
+### Changed
+
+- **`DrawRecorder` now documents that a points slice is valid for the duration
+  of the call only** — under an active canvas transform the `[]float32` a
+  recorder receives is a mapped copy in one shared scratch buffer, so two
+  retained polylines both ended up holding the second one's coordinates. With no
+  transform in force the caller's own slice is passed straight through and
+  retention appeared to work, which is how an exporter ends up correct until its
+  first `Translate`. No signature changed: an implementation that queues
+  commands to serialize after the redraw must copy the points it is handed.
+
 ## [v0.76.1] - 2026-09-13
 
 ### Fixed

@@ -148,6 +148,20 @@ type DrawCanvasImageEntry struct {
 // DrawRecorder receives high-level draw commands before
 // tessellation. Attach via DrawContext.SetRecorder to capture
 // structured primitives (e.g. for SVG export).
+//
+// Every []float32 a method receives is valid for the duration of that
+// call ONLY. An implementation that keeps the points past the call —
+// an exporter queueing commands to serialize after the redraw — must
+// copy them first.
+//
+// The reason is the canvas transform. With one in force the points are
+// a mapped copy living in one scratch buffer on the DrawContext, which
+// the next primitive overwrites, so two retained polylines both end up
+// holding the second one's coordinates. With no transform in force the
+// caller's own slice is passed straight through and would be safe to
+// retain — the contract is the stricter of the two so a recorder that
+// satisfies it is correct either way, rather than correct until the
+// first Translate.
 // exportaudit:keep — reachable from an exported signature
 type DrawRecorder interface {
 	Line(x0, y0, x1, y1 float32, color Color, width float32)

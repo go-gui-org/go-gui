@@ -48,15 +48,18 @@ type DrawContext struct {
 
 	// xf is the active translate+scale, xfStack the Save/Restore
 	// stack, and xfActive the gate that keeps a zero-value
-	// DrawContext behaving as an untransformed one. xfPtBuf holds a
-	// transformed copy of a caller's point slice on the recorder
-	// path, and xfRec is the lazily built recorder decorator. See
-	// canvas_draw_transform.go.
-	xf       canvasXform
-	xfStack  []canvasXform
-	xfPtBuf  []float32
-	xfRec    *xformRecorder
-	xfActive bool
+	// DrawContext behaving as an untransformed one. xfDropped counts
+	// the Saves past maxXformDepth that were not stored, so their
+	// Restores can be no-ops instead of popping an ancestor.
+	// xfPtBuf holds a transformed copy of a caller's point slice on
+	// the recorder path, and xfRec is the lazily built recorder
+	// decorator. See canvas_draw_transform.go.
+	xf        canvasXform
+	xfStack   []canvasXform
+	xfPtBuf   []float32
+	xfRec     *xformRecorder
+	xfDropped int
+	xfActive  bool
 
 	lastColor Color
 	// batchIsGradient closes the current batch to the run-length merge.
@@ -577,9 +580,26 @@ func (dc *DrawContext) Text(x, y float32, text string, style TextStyle) {
 	// Text bakes: RenderText has no xform fields to ride on, and Text
 	// is a leaf — no primitive delegates to it, so this cannot
 	// double-apply.
+	//
+	// The recorded values are screened, which the other primitives
+	// leave to the render-command validation downstream. Text cannot:
+	// the emit path measures the style through the glyph shaper to get
+	// its ascent and width BEFORE validTextCmd runs, and that check
+	// never looks at Size, so an infinite font size would reach the
+	// shaper's cache and rasterizer. A large-but-finite scale is enough
+	// to get there — 12 * 1e38 overflows without the transform itself
+	// ever being non-finite — and so is a non-finite argument passed
+	// with no transform in force. Every px-valued field
+	// scaleTextStyle touches is checked, including the cell and
+	// emoji-box widths the shaper reads through glyphconv.
 	if _, ok := dc.activeXform(); ok {
 		x, y = dc.xf.apply(x, y)
 		style = dc.xf.scaleTextStyle(style)
+	}
+	if !f32AllFinite9(x, y, style.Size, style.LineSpacing,
+		style.StrokeWidth, style.LetterSpacing,
+		style.CellWidth, style.CellHeight, style.EmojiBoxWidth) {
+		return
 	}
 	dc.texts = append(dc.texts, DrawCanvasTextEntry{
 		X: x, Y: y, Text: text, Style: style,
