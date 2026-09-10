@@ -61,6 +61,7 @@ func view(w *gui.Window) gui.View {
 		VAlign: gui.VAlignMiddle,
 		Color:  gui.RGB(16, 16, 20),
 		Content: []gui.View{
+			//nolint:staticcheck // this example demonstrates TermGrid itself
 			gui.TermGrid(gui.TermGridCfg{
 				Cols:      cols,
 				Rows:      rows,

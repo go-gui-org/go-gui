@@ -9,6 +9,11 @@ import (
 	"github.com/go-gui-org/go-gui/gui"
 )
 
+// maxSvgTriangleFloats caps a RenderSvg triangle list in floats,
+// mirroring the gui package's emit-side cap. It bounds the
+// per-frame vertex allocation an oversized command would force.
+const maxSvgTriangleFloats = 1_200_000
+
 // drawSvg rasterizes a tessellated SVG path: a flat triangle list in
 // Triangles, optionally one color per vertex in VertexColors.
 //
@@ -28,7 +33,8 @@ func (r *renderer) drawSvg(cmd *gui.RenderCmd) {
 		// backend consumes it yet; the render path still emits it.
 		return
 	}
-	if len(cmd.Triangles) == 0 || len(cmd.Triangles)%6 != 0 {
+	if len(cmd.Triangles) == 0 || len(cmd.Triangles)%6 != 0 ||
+		len(cmd.Triangles) > maxSvgTriangleFloats {
 		return
 	}
 	numVerts := len(cmd.Triangles) / 2

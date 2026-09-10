@@ -8,8 +8,62 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Deprecated
+
+- **TermGrid widget deprecated, removal in a future minor** — `TermGrid`,
+  `TermGridCfg`, `TermGridData`, `TermCell`, `TermCursor`, `TermSelRange`,
+  `TermAttr`, `TermUnderline`, and `TermReverse` are all marked deprecated. The
+  only terminal in the org, go-term, renders its grid through `DrawCanvas` and
+  never used this widget; the sole remaining consumer is the `examples/termgrid`
+  demo. New code should draw grids on a `DrawCanvas`. Removal takes the
+  `RenderTermGrid` command, its per-backend draws, and the print branch with it.
+
 ### Added
 
+- **TermGrid renders on the GL and Web backends, and in print** — the terminal
+  character grid previously painted only through the Metal and soft backends; on
+  Linux/Windows (GL), in the browser (Web), and in PDF export the widget was
+  silently blank. All three now run the same single-pass draw (background runs,
+  column-pinned glyph runs, cursor, selection, underlines on screen; backgrounds
+  plus text runs in print). Print additionally honors rotation brackets, which
+  it previously dropped: rotated content now prints rotated instead of
+  unrotated. Glow/blur filter effects, custom shaders, and live cursor/selection
+  decorations remain print-skipped by design (no PDF equivalent) and are now
+  grouped and documented as such in the print dispatcher rather than falling
+  through silently.
+
+### Fixed
+
+- **Disabled and Opacity now reach every render path** — fading or disabling a
+  widget previously dimmed only its flat fills, borders, blur, and plain text.
+  Shadows, custom-shader tint, gradient fills and borders, image fills, the
+  terminal grid, canvas batches/texts/gradients/image fills, text gradients, and
+  untinted SVG art all painted at full strength inside a disabled or faded
+  parent. Every one of those now scales alpha by the widget's opacity and halves
+  it when disabled, through one shared helper, so a disabled panel dims as a
+  whole. Copies are made only while dimming actually applies — the enabled path
+  keeps its pointers (canvas batches reuse the frame arena, the term-grid
+  zero-copy test still passes) and the render benchmark still reports 0
+  allocs/op. Three factories (`TermGrid`, RTF, `DrawCanvas`) never set `Opacity`
+  and ran at zero, which the old per-path code silently treated as opaque; they
+  now default to 1.0, making zero mean transparent everywhere. Deliberately out
+  of scope: rich-text layouts and raster image pixels carry no per-command color
+  to scale, and SVG text inside a `disabledRole` theme style is already quieted
+  by the theme, so those are left untouched rather than dimmed twice.
+
+- **Filter layer counts are capped at emission and in every GPU backend** —
+  `Layers` is the `feMergeNode` count of an untrusted SVG filter, and it
+  previously reached the GPU composite loops unbounded (the emit path clamped
+  only the soft backend). A hostile document could demand hundreds of thousands
+  of fullscreen blend passes per frame. The SVG emitter now clamps to 32 and the
+  GL, Metal, iOS, and Android backends clamp again at `beginFilter`, mirroring
+  the soft backend's existing cap. Past a handful of layers a glow is already
+  saturated, so legitimate documents are unaffected. Render-command validation
+  now additionally covers the previously unvalidated kinds (`RenderLine`,
+  `RenderRTF`, `RenderTextPath`, `RenderTermGrid`, `RenderFilterBegin`) and the
+  command goldens record rotation, stencil depth, filter layers/matrix, image
+  clip radius, term-grid geometry, and layout glyph/item counts instead of
+  presence alone.
 - **Scroll overflow is queryable, on both axes (#546)** — `ScrollOverflowX` and
   `ScrollOverflowY` report how much content a scrollable currently hides, as a
   positive number of pixels, and 0 when the content fits. Nothing exported

@@ -22,9 +22,15 @@ type Cache[K comparable, V any] struct {
 
 // New returns a cache that holds at most maxSize entries.
 // destroy is called on evicted or cleared values; nil skips cleanup.
+// A non-positive maxSize is clamped to 1 so eviction stays live:
+// without this, Set with maxSize<=0 never evicts and grows
+// without bound.
 func New[K comparable, V any](
 	maxSize int, destroy func(V),
 ) Cache[K, V] {
+	if maxSize <= 0 {
+		maxSize = 1
+	}
 	return Cache[K, V]{
 		data:    make(map[K]mapEntry[V], maxSize),
 		maxSize: maxSize,
@@ -68,6 +74,12 @@ func (c *Cache[K, V]) EvictOldest() bool {
 // Set inserts or updates key. If the cache is full the
 // least-recently-used entry is evicted first.
 func (c *Cache[K, V]) Set(key K, val V) {
+	if c.maxSize <= 0 {
+		c.maxSize = 1
+	}
+	if c.data == nil {
+		c.data = make(map[K]mapEntry[V], c.maxSize)
+	}
 	if me, ok := c.data[key]; ok {
 		if c.destroy != nil {
 			c.destroy(me.val)

@@ -19,6 +19,9 @@ type windowRender struct {
 	inFilter bool
 	// Render guard — warnings emitted once per kind (bitmask over RenderKind).
 	renderGuardWarned uint32
+	// OnDraw panic warning, emitted once. A panicking canvas would
+	// otherwise log on every frame.
+	drawPanicWarned bool
 }
 
 // windowAnimation holds animation lifecycle state.

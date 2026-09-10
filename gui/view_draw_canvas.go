@@ -96,9 +96,12 @@ func (dv *drawCanvasView) GenerateLayout(w *Window) Layout {
 
 	layout := Layout{
 		Shape: w.allocShape(Shape{
-			shapeType:    shapeDrawCanvas,
-			ID:           c.ID,
-			Version:      c.Version,
+			shapeType: shapeDrawCanvas,
+			ID:        c.ID,
+			Version:   c.Version,
+			// No Opacity knob on the cfg yet; default opaque
+			// so the emit paths can treat 0 as transparent.
+			Opacity:      1.0,
 			A11YRole:     a11yRole,
 			a11Y:         c.a11yInfo(""),
 			Width:        c.Width,

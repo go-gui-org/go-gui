@@ -97,8 +97,11 @@ func (b *Backend) renderersDraw(w *gui.Window) {
 			b.endRotation()
 		case gui.RenderCustomShader:
 			b.drawCustomShader(r)
+		case gui.RenderTermGrid:
+			b.drawTermGrid(r)
 
-		case gui.RenderFilterComposite,
+		case gui.RenderNone,
+			gui.RenderFilterComposite,
 			gui.RenderLayoutPlaced:
 			// Unsupported in Canvas2D backend.
 		}
@@ -527,11 +530,17 @@ func (b *Backend) memImageCanvas(
 	return canvas
 }
 
+// maxSvgTriangleFloats caps a RenderSvg triangle list in floats,
+// mirroring the gui package's emit-side cap. It bounds the
+// per-frame vertex allocation an oversized command would force.
+const maxSvgTriangleFloats = 1_200_000
+
 func (b *Backend) drawSvg(r *gui.RenderCmd) {
 	if r.IsClipMask {
 		return
 	}
-	if len(r.Triangles) == 0 || len(r.Triangles)%6 != 0 {
+	if len(r.Triangles) == 0 || len(r.Triangles)%6 != 0 ||
+		len(r.Triangles) > maxSvgTriangleFloats {
 		return
 	}
 	numVerts := len(r.Triangles) / 2

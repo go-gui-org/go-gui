@@ -140,6 +140,13 @@ func renderText(shape *Shape, clip drawClip, w *Window) {
 		preLayout, hasPreLayout = inputGlyphLayoutResolved(text, shape, renderStyle, w, true)
 	}
 
+	// A gradient fill carries no color of its own, so it needs the
+	// same treatment c got above — except under the disabled role,
+	// whose theme style already expresses the state.
+	gradDim := shape.Disabled && !tc.TextStyle.disabledRole
+	textGradient := dimmedTextGradient(renderStyle.Gradient,
+		shape.Opacity, gradDim)
+
 	if renderWithLayout && hasPreLayout {
 		cmd := RenderCmd{
 			Kind:         RenderLayout,
@@ -148,7 +155,7 @@ func renderText(shape *Shape, clip drawClip, w *Window) {
 			Text:         text,
 			LayoutPtr:    w.scratch.renderGlyphLayouts.alloc(preLayout),
 			TextStylePtr: w.scratch.renderTextStyles.alloc(renderStyle),
-			TextGradient: renderStyle.Gradient,
+			TextGradient: textGradient,
 		}
 		if renderStyle.hasTextTransform() {
 			transform := renderStyle.effectiveTextTransform()
@@ -174,7 +181,7 @@ func renderText(shape *Shape, clip drawClip, w *Window) {
 			FontAscent:   fontAscent,
 			TextWidth:    textWidth,
 			TextStylePtr: w.scratch.renderTextStyles.alloc(renderStyle),
-			TextGradient: renderStyle.Gradient,
+			TextGradient: textGradient,
 		}
 		if tc.TextMode == TextModeWrap ||
 			tc.TextMode == TextModeWrapKeepSpaces {

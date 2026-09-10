@@ -22,6 +22,6 @@ func renderTermGrid(shape *Shape, clip drawClip, w *Window) {
 		Y:        shape.Y,
 		W:        shape.Width,
 		H:        shape.Height,
-		TermGrid: tg,
+		TermGrid: dimmedTermGrid(tg, shape.Opacity, shape.Disabled),
 	}, w)
 }

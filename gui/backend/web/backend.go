@@ -46,6 +46,11 @@ type Backend struct {
 
 	textPathPlacements []glyph.GlyphPlacement
 
+	// Terminal grid run assembly, reused across rows and frames.
+	termRunText []rune
+	termRunCols []int
+	termPlace   []glyph.GlyphPlacement
+
 	canvasLeft float64 // cached getBoundingClientRect().left
 	canvasTop  float64 // cached getBoundingClientRect().top
 

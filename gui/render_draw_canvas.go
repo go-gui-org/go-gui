@@ -1,8 +1,33 @@
 package gui
 
-import "math"
+import (
+	"log"
+	"math"
+)
+
+// callOnDrawSafe invokes the app's OnDraw callback, isolating a
+// widget panic so one canvas cannot abort the frame's render walk.
+// Returns false when the callback panicked; the caller then falls
+// back to an empty canvas. Warns once per window.
+func callOnDrawSafe(dc *DrawContext, shape *Shape, w *Window) (ok bool) {
+	defer func() {
+		if r := recover(); r != nil {
+			ok = false
+			if !w.drawPanicWarned {
+				w.drawPanicWarned = true
+				log.Printf("gui: DrawCanvas OnDraw panicked "+
+					"(id %q) — canvas skipped: %v",
+					shape.idKey(), r)
+			}
+		}
+	}()
+	shape.events.OnDraw(dc)
+	return true
+}
 
 // renderDrawCanvas renders cached draw-canvas triangle batches.
+//
+//nolint:gocyclo // cache states x deferred text/image/gradient emit
 func renderDrawCanvas(shape *Shape, clip drawClip, w *Window) {
 	if !rectsOverlap(shapeBounds(shape), clip) {
 		return
@@ -53,19 +78,24 @@ func renderDrawCanvas(shape *Shape, clip drawClip, w *Window) {
 			reuse = drawCanvasCache{}
 		}
 		dc.resetFor(cw, ch, scale, w.textMeasurer, reuse)
-		shape.events.OnDraw(dc)
+		// A panic mid-tessellation leaves partial buffers that are
+		// unusable, so the entry keeps its empty content: the canvas
+		// draws nothing and the frame continues. Only a Version bump
+		// (or alwaysRedraw) retries.
 		cached = drawCanvasCache{
 			Version:    shape.Version,
 			pass:       w.renderPass,
 			tessWidth:  cw,
 			tessHeight: ch,
 			Scale:      scale,
-			Batches:    dc.batches,
-			spare:      dc.batchPool,
-			Gradients:  dc.gradients,
-			gradSpare:  dc.gradientPool,
-			Texts:      dc.texts,
-			Images:     dc.images,
+		}
+		if callOnDrawSafe(dc, shape, w) {
+			cached.Batches = dc.batches
+			cached.spare = dc.batchPool
+			cached.Gradients = dc.gradients
+			cached.gradSpare = dc.gradientPool
+			cached.Texts = dc.texts
+			cached.Images = dc.images
 		}
 		if key != "" {
 			sm.Set(key, cached)
@@ -108,7 +138,7 @@ func renderDrawCanvas(shape *Shape, clip drawClip, w *Window) {
 	// markers / HUD chips / labels *over* tile images in the same
 	// DrawCanvas. Reverse ordering would be correct only if triangles/
 	// text were meant as backgrounds — which no in-tree consumer wants.
-	emitDrawCanvasImages(cached.Images, ox, oy, effClip, w)
+	emitDrawCanvasImages(cached.Images, ox, oy, effClip, shape, w)
 
 	// A gradient batch differs only by its VertexColors; every backend
 	// that consumes RenderSvg already reads that channel for SVG
@@ -120,7 +150,7 @@ func renderDrawCanvas(shape *Shape, clip drawClip, w *Window) {
 	// paints before it. This is the only ordering the canvas keeps:
 	// images are always the back layer and text always the front,
 	// whatever order the OnDraw callback used.
-	emitDrawCanvasGeometry(&cached, ox, oy, w)
+	emitDrawCanvasGeometry(&cached, ox, oy, shape, w)
 
 	// Emit deferred text commands.
 	for i := range cached.Texts {
@@ -131,6 +161,19 @@ func renderDrawCanvas(shape *Shape, clip drawClip, w *Window) {
 			fontAscent = w.textMeasurer.FontAscent(t.Style)
 			textWidth = w.textMeasurer.TextWidth(t.Text, t.Style)
 		}
+
+		// Widget-level fade and disabled dim, mirroring
+		// renderText: the cached style must not be dimmed in
+		// place — the cache entry is recycled by the next
+		// redraw — so dim a local copy. Metrics above stay
+		// on the undimmed style; color carries no width.
+		style := t.Style
+		style.Color = dimColor(style.Color,
+			shape.Opacity, shape.Disabled)
+		style.BgColor = dimColor(style.BgColor,
+			shape.Opacity, shape.Disabled)
+		style.StrokeColor = dimColor(style.StrokeColor,
+			shape.Opacity, shape.Disabled)
 
 		tx := ox + t.X
 		ty := oy + t.Y
@@ -159,14 +202,15 @@ func renderDrawCanvas(shape *Shape, clip drawClip, w *Window) {
 			Kind:         RenderText,
 			X:            tx,
 			Y:            ty,
-			Color:        t.Style.Color,
+			Color:        style.Color,
 			Text:         t.Text,
-			FontName:     t.Style.Family,
-			FontSize:     t.Style.Size,
+			FontName:     style.Family,
+			FontSize:     style.Size,
 			FontAscent:   fontAscent,
 			TextWidth:    textWidth,
-			TextStylePtr: w.scratch.renderTextStyles.alloc(t.Style),
-			TextGradient: t.Style.Gradient,
+			TextStylePtr: w.scratch.renderTextStyles.alloc(style),
+			TextGradient: dimmedTextGradient(style.Gradient,
+				shape.Opacity, shape.Disabled),
 		}
 		if hasAffine {
 			cmd.LayoutTransform = w.scratch.renderAffineTransforms.alloc(
@@ -207,12 +251,13 @@ func renderDrawCanvas(shape *Shape, clip drawClip, w *Window) {
 // radial fills in the order the OnDraw callback produced them, walking
 // the two lists together by each gradient's batch counter.
 func emitDrawCanvasGeometry(cached *drawCanvasCache,
-	ox, oy float32, w *Window) {
+	ox, oy float32, shape *Shape, w *Window) {
 	gi := 0
 	for bi := range cached.Batches {
 		for gi < len(cached.Gradients) &&
 			cached.Gradients[gi].afterBatch <= bi {
-			emitDrawCanvasGradient(&cached.Gradients[gi], ox, oy, w)
+			emitDrawCanvasGradient(&cached.Gradients[gi], ox, oy,
+				shape, w)
 			gi++
 		}
 		batch := &cached.Batches[bi]
@@ -222,22 +267,25 @@ func emitDrawCanvasGeometry(cached *drawCanvasCache,
 		// coordinates the caller drew in. Scale stays 1 — it is the
 		// SVG path's own factor, and the two compose correctly.
 		emitRenderer(RenderCmd{
-			Kind:         RenderSvg,
-			Triangles:    batch.Triangles,
-			VertexColors: batch.VertexColors,
-			Color:        batch.Color,
-			X:            ox,
-			Y:            oy,
-			Scale:        1.0,
-			HasXform:     batch.hasXform,
-			ScaleX:       batch.xf.sx,
-			ScaleY:       batch.xf.sy,
-			TransX:       batch.xf.tx,
-			TransY:       batch.xf.ty,
+			Kind:      RenderSvg,
+			Triangles: batch.Triangles,
+			VertexColors: dimmedVColors(batch.VertexColors,
+				shape.Opacity, shape.Disabled, w),
+			Color: dimColor(batch.Color,
+				shape.Opacity, shape.Disabled),
+			X:        ox,
+			Y:        oy,
+			Scale:    1.0,
+			HasXform: batch.hasXform,
+			ScaleX:   batch.xf.sx,
+			ScaleY:   batch.xf.sy,
+			TransX:   batch.xf.tx,
+			TransY:   batch.xf.ty,
 		}, w)
 	}
 	for ; gi < len(cached.Gradients); gi++ {
-		emitDrawCanvasGradient(&cached.Gradients[gi], ox, oy, w)
+		emitDrawCanvasGradient(&cached.Gradients[gi], ox, oy,
+			shape, w)
 	}
 }
 
@@ -246,10 +294,10 @@ func emitDrawCanvasGeometry(cached *drawCanvasCache,
 // half its width: that rounds the quad down to exactly the circle the
 // shader's radial ramp already reaches the end of.
 func emitDrawCanvasGradient(e *DrawCanvasGradientEntry,
-	ox, oy float32, w *Window) {
+	ox, oy float32, shape *Shape, w *Window) {
 	emitRenderer(RenderCmd{
 		Kind:     RenderGradient,
-		Gradient: &e.Def,
+		Gradient: dimmedGradient(&e.Def, shape.Opacity, shape.Disabled),
 		X:        ox + e.X,
 		Y:        oy + e.Y,
 		W:        e.W,
@@ -259,7 +307,8 @@ func emitDrawCanvasGradient(e *DrawCanvasGradientEntry,
 }
 
 func emitDrawCanvasImages(
-	images []DrawCanvasImageEntry, ox, oy float32, clip drawClip, w *Window,
+	images []DrawCanvasImageEntry, ox, oy float32, clip drawClip,
+	shape *Shape, w *Window,
 ) {
 	// narrowed tracks whether the scissor currently in the command stream is
 	// one entry's own clip rather than the canvas clip, so the restore is
@@ -279,14 +328,15 @@ func emitDrawCanvasImages(
 		}
 		bg := ColorTransparent
 		if im.BgColor.IsSet() {
-			bg = im.BgColor
 			op := im.bgOpacity.Get(1.0)
 			if !isFiniteF(op) {
 				op = 1.0
 			}
-			if op = clampUnit(op); op < 1.0 {
-				bg = bg.WithOpacity(op)
-			}
+			// The entry's own opacity folds into the
+			// widget's before the single multiply, so a
+			// faded canvas over a faded entry dims once.
+			bg = dimColor(im.BgColor,
+				clampUnit(op)*shape.Opacity, shape.Disabled)
 		}
 		if im.Clipped {
 			sub, ok := intersectClips(clip, drawClip{

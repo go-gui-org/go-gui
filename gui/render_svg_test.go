@@ -86,7 +86,7 @@ func TestEmitSvgPathRendererTint(t *testing.T) {
 		Color:     RGBA(0, 0, 0, 255),
 	}
 	tint := RGBA(255, 0, 0, 200)
-	emitSvgPathRenderer(path, tint, 0, 0, 1.0, 0, 0, false, nil, w)
+	emitSvgPathRenderer(path, tint, 0, 0, 1.0, 0, 0, false, nil, &Shape{Opacity: 1}, w)
 
 	if len(w.renderers) != 1 {
 		t.Fatalf("expected 1 renderer, got %d",
@@ -114,7 +114,7 @@ func TestEmitSvgPathRendererVertexColors(t *testing.T) {
 		},
 	}
 	// No tint (A=0) → vertex colors used.
-	emitSvgPathRenderer(path, Color{}, 0, 0, 1.0, 0, 0, false, nil, w)
+	emitSvgPathRenderer(path, Color{}, 0, 0, 1.0, 0, 0, false, nil, &Shape{Opacity: 1}, w)
 
 	if len(w.renderers[0].VertexColors) != 6 {
 		t.Fatalf("expected 6 vertex colors, got %d",
@@ -140,7 +140,7 @@ func TestEmitSvgPathRendererAnimatedVertexAlphaNoCopy(t *testing.T) {
 	animState := map[uint32]svgAnimState{
 		1: {Opacity: 0.5, FillOpacity: 1, StrokeOpacity: 1, Inited: true},
 	}
-	emitSvgPathRenderer(path, Color{}, 0, 0, 1.0, 0, 0, false, animState, w)
+	emitSvgPathRenderer(path, Color{}, 0, 0, 1.0, 0, 0, false, animState, &Shape{Opacity: 1}, w)
 
 	r := w.renderers[0]
 	if !r.HasVertexAlpha {
@@ -166,7 +166,7 @@ func TestEmitCachedSvgTextDraw(t *testing.T) {
 		X: 5,
 		Y: 10,
 	}
-	emitCachedSvgTextDraw(&draw, 100, 200, w)
+	emitCachedSvgTextDraw(&draw, 100, 200, &Shape{Opacity: 1}, w)
 
 	if len(w.renderers) != 1 {
 		t.Fatalf("expected 1 renderer, got %d",
@@ -207,7 +207,7 @@ func TestEmitCachedSvgTextDrawWithStyle(t *testing.T) {
 		X: 10,
 		Y: 20,
 	}
-	emitCachedSvgTextDraw(&draw, 0, 0, w)
+	emitCachedSvgTextDraw(&draw, 0, 0, &Shape{Opacity: 1}, w)
 
 	r := w.renderers[0]
 	if r.TextStylePtr == nil {
@@ -241,7 +241,7 @@ func TestEmitCachedSvgTextPathDraw(t *testing.T) {
 			totalLen: 10,
 		},
 	}
-	emitCachedSvgTextPathDraw(&draw, 7, 9, w)
+	emitCachedSvgTextPathDraw(&draw, 7, 9, &Shape{Opacity: 1}, w)
 	if len(w.renderers) != 1 {
 		t.Fatalf("expected 1 renderer, got %d",
 			len(w.renderers))
@@ -786,7 +786,7 @@ func TestEmitSvgPathRenderer_OpacityNaNClampedToZero(t *testing.T) {
 			Inited:        true,
 		},
 	}
-	emitSvgPathRenderer(path, Color{}, 0, 0, 1.0, 0, 0, false, animState, w)
+	emitSvgPathRenderer(path, Color{}, 0, 0, 1.0, 0, 0, false, animState, &Shape{Opacity: 1}, w)
 	if len(w.renderers) != 1 {
 		t.Fatalf("expected 1 renderer, got %d", len(w.renderers))
 	}
@@ -817,7 +817,7 @@ func TestSvgRender_FillOpacityAnimDoesNotDimStroke(t *testing.T) {
 			Inited:        true,
 		},
 	}
-	emitSvgPathRenderer(strokePath, Color{}, 0, 0, 1.0, 0, 0, false, animState, w)
+	emitSvgPathRenderer(strokePath, Color{}, 0, 0, 1.0, 0, 0, false, animState, &Shape{Opacity: 1}, w)
 	if w.renderers[0].Color.A != 255 {
 		t.Fatalf("stroke should keep alpha 255 when only fill-opacity "+
 			"is animated, got %d", w.renderers[0].Color.A)
@@ -835,7 +835,7 @@ func TestSvgRender_FillOpacityAnimDoesNotDimStroke(t *testing.T) {
 			Inited:        true,
 		},
 	}
-	emitSvgPathRenderer(fillPath, Color{}, 0, 0, 1.0, 0, 0, false, animState, w)
+	emitSvgPathRenderer(fillPath, Color{}, 0, 0, 1.0, 0, 0, false, animState, &Shape{Opacity: 1}, w)
 	if w.renderers[0].Color.A != 255 {
 		t.Fatalf("fill should keep alpha 255 when only stroke-opacity "+
 			"is animated, got %d", w.renderers[0].Color.A)
@@ -1146,7 +1146,7 @@ func TestEmitSvgPathRenderer_NonUniformStretchNeutralisesScale(t *testing.T) {
 		Color:     RGBA(255, 255, 255, 255),
 	}
 	// nsScaleX=2, nsScaleY=3, uniform scale=4 → nonUniform.
-	emitSvgPathRenderer(path, Color{}, 0, 0, 4, 2, 3, true, nil, w)
+	emitSvgPathRenderer(path, Color{}, 0, 0, 4, 2, 3, true, nil, &Shape{Opacity: 1}, w)
 
 	if len(w.renderers) != 1 {
 		t.Fatalf("expected 1 renderer, got %d", len(w.renderers))
@@ -1179,7 +1179,7 @@ func TestEmitSvgPathRenderer_NonUniformCompoundsWithBaseXform(t *testing.T) {
 	}
 	// nsScaleX=2, nsScaleY=3, uniform scale=4 → nonUniform.
 	// Expected: ScaleX = 2 * 0.5 = 1, ScaleY = 3 * 2 = 6.
-	emitSvgPathRenderer(path, Color{}, 0, 0, 4, 2, 3, true, nil, w)
+	emitSvgPathRenderer(path, Color{}, 0, 0, 4, 2, 3, true, nil, &Shape{Opacity: 1}, w)
 
 	if len(w.renderers) != 1 {
 		t.Fatalf("expected 1 renderer, got %d", len(w.renderers))
@@ -1207,7 +1207,7 @@ func TestEmitSvgPathRenderer_NonUniformNoOpWhenUniform(t *testing.T) {
 		Triangles: []float32{0, 0, 10, 0, 5, 10, 5, 10, 10, 0, 10, 10},
 		Color:     RGBA(255, 255, 255, 255),
 	}
-	emitSvgPathRenderer(path, Color{}, 0, 0, 3, 0, 0, false, nil, w)
+	emitSvgPathRenderer(path, Color{}, 0, 0, 3, 0, 0, false, nil, &Shape{Opacity: 1}, w)
 
 	if len(w.renderers) != 1 {
 		t.Fatalf("expected 1 renderer, got %d", len(w.renderers))
@@ -1229,7 +1229,7 @@ func TestEmitSvgPathRenderer_NonUniformSkipsWhenScaleEquals(t *testing.T) {
 		Triangles: []float32{0, 0, 10, 0, 5, 10, 5, 10, 10, 0, 10, 10},
 		Color:     RGBA(255, 255, 255, 255),
 	}
-	emitSvgPathRenderer(path, Color{}, 0, 0, 3, 3, 3, false, nil, w)
+	emitSvgPathRenderer(path, Color{}, 0, 0, 3, 3, 3, false, nil, &Shape{Opacity: 1}, w)
 
 	if len(w.renderers) != 1 {
 		t.Fatalf("expected 1 renderer, got %d", len(w.renderers))

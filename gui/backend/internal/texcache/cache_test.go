@@ -130,3 +130,17 @@ func TestEvictOldest(t *testing.T) {
 		t.Fatalf("destroyed = %v", destroyed)
 	}
 }
+
+func TestNonPositiveMaxSizeClamped(t *testing.T) {
+	for _, n := range []int{0, -3} {
+		c := New[string, int](n, nil)
+		c.Set("a", 1)
+		c.Set("b", 2) // must evict a, not grow
+		if _, ok := c.Get("a"); ok {
+			t.Fatalf("New(%d): a should be evicted", n)
+		}
+		if c.Len() != 1 {
+			t.Fatalf("New(%d): len = %d, want 1", n, c.Len())
+		}
+	}
+}

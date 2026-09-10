@@ -19,6 +19,20 @@ import (
 
 // renderersDraw iterates render commands and draws them.
 func (b *Backend) renderersDraw(w *gui.Window) {
+	// A truncated command list must not leak backend state into the
+	// next frame: a bound filter FBO, a rotated MVP, or an enabled
+	// stencil test all persist on the GL context. A balanced stream
+	// ends in exactly the restored state, so this is a no-op for it.
+	savedMVP := b.mvp
+	savedStackLen := len(b.mvpStack)
+	defer func() {
+		b.mvp = savedMVP
+		b.mvpStack = b.mvpStack[:savedStackLen]
+		b.usePipeline(&b.pipelines.solid)
+		b.unbindFBO()
+		gogl.Viewport(0, 0, b.physW, b.physH)
+		gogl.Disable(gogl.STENCIL_TEST)
+	}()
 	cmds := w.Renderers()
 	for i := range cmds {
 		r := &cmds[i]
@@ -55,6 +69,8 @@ func (b *Backend) renderersDraw(w *gui.Window) {
 			b.drawTextPath(r)
 		case gui.RenderRTF:
 			b.drawRtf(r)
+		case gui.RenderTermGrid:
+			b.drawTermGrid(r)
 		case gui.RenderCustomShader:
 			b.drawCustomShader(r)
 		case gui.RenderFilterBegin:
@@ -334,11 +350,17 @@ func (b *Backend) resolveImageTexture(res string) (glTexture, bool) {
 	return tex, true
 }
 
+// maxSvgTriangleFloats caps a RenderSvg triangle list in floats,
+// mirroring the gui package's emit-side cap. It bounds the
+// per-frame vertex allocation an oversized command would force.
+const maxSvgTriangleFloats = 1_200_000
+
 func (b *Backend) drawSvg(r *gui.RenderCmd) {
 	if r.IsClipMask {
 		return // clip masks not yet supported in render pipeline
 	}
-	if len(r.Triangles) == 0 || len(r.Triangles)%6 != 0 {
+	if len(r.Triangles) == 0 || len(r.Triangles)%6 != 0 ||
+		len(r.Triangles) > maxSvgTriangleFloats {
 		return
 	}
 	s := b.dpiScale
@@ -524,12 +546,22 @@ func (b *Backend) drawCustomShader(r *gui.RenderCmd) {
 
 // --- Filter (glow) ---
 
+// maxFilterLayers caps the composite repeat count. Layers is the
+// count of feMergeNode elements in an SVG filter, so an untrusted
+// document can name an arbitrary number of them; past a handful the
+// glow is already saturated and each extra pass is a full-layer
+// blend. Mirrors the soft backend's maxFilterLayers.
+const maxFilterLayers = 32
+
 func (b *Backend) beginFilter(r *gui.RenderCmd) {
 	if !b.ensureFilterFBO(b.physW, b.physH) {
 		return
 	}
 	b.filterBlur = r.BlurRadius * b.dpiScale
-	b.filterLayer = r.Layers
+	// Clamped: Layers is the feMergeNode count of an untrusted SVG
+	// filter, and endFilter composites once per layer. Mirrors the
+	// soft backend's maxFilterLayers.
+	b.filterLayer = min(max(r.Layers, 1), maxFilterLayers)
 	b.filterColorMatrix = r.ColorMatrix
 
 	b.bindFBO(b.filterTexA)

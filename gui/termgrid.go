@@ -14,6 +14,11 @@ import "math"
 // handing the buffer over. The grid is laid out like any other widget
 // (Fixed default sizing of Cols*CellW x Rows*CellH); the backend draws
 // glyphs pinned to exact cell positions so the grid never drifts.
+//
+// Deprecated: the whole TermGrid widget is deprecated and will be
+// removed in a future minor. The only terminal in the org, go-term,
+// renders its grid through DrawCanvas instead, and no other consumer
+// uses this widget. New code should draw grids on a DrawCanvas.
 
 // TermAttr is a per-cell attribute bitset. Combine with bitwise OR.
 type TermAttr uint8
@@ -79,6 +84,10 @@ type TermGridData struct {
 }
 
 // TermGridCfg configures a TermGrid widget.
+//
+// Deprecated: TermGrid is deprecated and will be removed in a
+// future minor. Render grids through DrawCanvas instead, as
+// go-term does.
 type TermGridCfg struct {
 	OnKeyDown     func(EventCtx)
 	OnClick       func(EventCtx)
@@ -109,6 +118,10 @@ type termGridView struct {
 // CellW, and CellH define the geometry; Cells is the row-major cell
 // buffer (len >= Cols*Rows). Default sizing is Fixed at
 // Cols*CellW x Rows*CellH.
+//
+// Deprecated: TermGrid is deprecated and will be removed in a
+// future minor. Render grids through DrawCanvas instead, as
+// go-term does.
 func TermGrid(cfg TermGridCfg) View {
 	cfg.Sizing = cfg.Sizing.Or(FixedFixed)
 	if cfg.TextStyle == (TextStyle{}) {
@@ -163,6 +176,9 @@ func (tv *termGridView) GenerateLayout(w *Window) Layout {
 		Shape: w.allocShape(Shape{
 			shapeType: shapeTermGrid,
 			ID:        c.ID,
+			// No Opacity knob on the cfg yet; default opaque so
+			// the emit paths can treat 0 as transparent.
+			Opacity:   1.0,
 			A11YRole:  a11yRole,
 			a11Y:      c.a11yInfo(""),
 			Width:     width,
