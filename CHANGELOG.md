@@ -8,6 +8,17 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- **`Stream` bridges a background producer to the window (#559)** — `gui.Stream`
+  takes a channel and an apply function: each received value is applied on the
+  frame thread and followed by a full layout refresh, so a window fed from
+  stdin, a socket, or a ticker repaints as values arrive. Previously that shape
+  stalled — nothing scheduled a frame, so the window sat stale until the next
+  mouse move and then showed everything at once. Delivery is per item in channel
+  order with no coalescing; the goroutine exits when the channel closes or the
+  window closes. See the streaming section in `docs/dx-cheat-sheet.md`.
+
 ### Deprecated
 
 - **TermGrid widget deprecated, removal in a future minor** — `TermGrid`,
