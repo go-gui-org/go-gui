@@ -89,41 +89,59 @@ func main() {
 
 // startSampler launches the background sampling loop. Sampling spawns a
 // subprocess (ps/tasklist), so it must run off the frame thread. Each pass
-// takes a snapshot, then publishes it under the window lock and requests a
-// layout refresh; UpdateWindow wakes the backend's idle loop, which
-// otherwise blocks until input arrives and would leave the readings stale.
+// takes a snapshot, then publishes it with QueueCommand: window state is
+// main-thread only, and Lock from another goroutine contends with the frame
+// pass and trips the frame-lock panic. The queued publish runs on the frame
+// thread and wakes the backend's idle loop, which otherwise blocks until
+// input arrives and would leave the readings stale. The sampler waits for
+// the publish before sleeping, so the sleep interval picks up toolbar
+// changes and samples cannot pile up faster than frames drain them.
 func startSampler(w *gui.Window) {
+	interval := state(w).Interval
+	if interval <= 0 {
+		interval = time.Second
+	}
 	go func() {
 		for {
 			snap, err := Collect()
 
-			w.Lock()
-			app := state(w)
-			app.Snapshot = snap
-			app.Err = err
-			if snap != nil {
-				app.LastRefresh = snap.Time
-				app.Store.Update(snap, app.Selected)
-				// Auto-select the top row on the first successful sample.
-				if app.Selected == nil {
-					less := colDefs[app.Sort.Column].less
-					rows := visibleRows(app.Store.Processes(), "", less, app.Sort.Desc, false)
-					if len(rows) > 0 {
-						app.Selected = rows[0]
+			published := make(chan time.Duration, 1)
+			w.QueueCommand(func(w *gui.Window) {
+				app := state(w)
+				app.Snapshot = snap
+				app.Err = err
+				if snap != nil {
+					app.LastRefresh = snap.Time
+					app.Store.Update(snap, app.Selected)
+					// Auto-select the top row on the first successful sample.
+					if app.Selected == nil {
+						less := colDefs[app.Sort.Column].less
+						rows := visibleRows(app.Store.Processes(), "", less, app.Sort.Desc, false)
+						if len(rows) > 0 {
+							app.Selected = rows[0]
+						}
 					}
 				}
-			}
-			interval := app.Interval
-			// UpdateWindow (not UpdateView) re-runs the view against fresh state
-			// WITHOUT clearing the state registry, so the filter input keeps
-			// focus and the process list keeps its scroll position.
-			w.UpdateWindow()
-			w.Unlock()
+				// UpdateWindow (not UpdateView) re-runs the view against fresh state
+				// WITHOUT clearing the state registry, so the filter input keeps
+				// focus and the process list keeps its scroll position.
+				w.UpdateWindow()
+				published <- app.Interval
+			})
 
+			select {
+			case interval = <-published:
+			case <-w.Ctx().Done():
+				return
+			}
 			if interval <= 0 {
 				interval = time.Second
 			}
-			time.Sleep(interval)
+			select {
+			case <-w.Ctx().Done():
+				return
+			case <-time.After(interval):
+			}
 		}
 	}()
 }

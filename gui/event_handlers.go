@@ -9,22 +9,32 @@ import "slices"
 // and (e, w) helpers below them hold no ctx, so they set e.IsHandled
 // directly — including the spacebar/enter-to-click pre-marks, which
 // claim the key for click activation before the callback runs.
+//
+// "Nothing is marked handled for you" describes propagation, not the
+// state of the flag on arrival. Three dispatch-internal claims land
+// before a callback runs, so a callback must not read
+// ctx.Event.IsHandled as "an earlier handler took this":
+//
+//  1. Taking focus on mouse-down (mouseDownHandlerDepth) marks the
+//     press handled on the way past, then still calls the shape's own
+//     OnMouseDown and OnClick. A focusable widget therefore sees the
+//     flag already set in its own click handler.
+//  2. The spacebar-to-click path claims the space before calling
+//     OnClick (charHandlerDepth).
+//  3. The enter-to-click path claims the key the same way
+//     (keydownHandlerDepth).
+//
+// What the convention guarantees is the other direction: dispatch never
+// infers consumption from the fact that a callback ran, so an ancestor
+// keeps receiving the event until some callback calls Consume.
 
-// maxEventChildren caps traversal depth to prevent DoS from
-// maliciously deep or wide layout trees.
-const maxEventChildren = 10000
-
-// maxEventDepth caps recursion depth for the tree walks below. The
-// breadth guard above cannot see a chain of single-child layouts,
-// which would otherwise recurse until the stack gives out. Real trees
-// nest dozens deep at most; past this the walk stops descending, so
-// the frame drops input rather than the process.
+// maxEventDepth caps recursion depth for the tree walks below. A chain
+// of single-child layouts would otherwise recurse until the stack gives
+// out, and the tree is not always the app's own: markdown and SVG build
+// subtrees out of documents the app did not write. Real trees nest dozens
+// deep at most; past this the walk stops descending, so the frame drops
+// input rather than the process.
 const maxEventDepth = 256
-
-// overMaxChildren reports whether layout has excessive children.
-func overMaxChildren(layout *Layout) bool {
-	return len(layout.Children) > maxEventChildren
-}
 
 // overMaxDepth reports whether a tree walk has descended past the
 // depth budget.
@@ -32,17 +42,36 @@ func overMaxDepth(depth int) bool {
 	return depth > maxEventDepth
 }
 
+// modKeyboard selects the keyboard bits of Event.Modifiers, dropping the
+// held-mouse-button bits.
+//
+// Scroll dispatch matches modifiers exactly — ModNone scrolls
+// vertically, ModShift horizontally — and two backends OR the buttons
+// currently held into the same field (ModLMB/ModRMB/ModMMB, set in
+// backend/internal/winkey and backend/web). Matched unmasked, a wheel
+// turn while any button is down equals neither case, so scrolling during
+// a drag worked on macOS and silently did nothing on Windows and the
+// web. Mask first, then match.
+const modKeyboard = ModShift | ModCtrl | ModAlt | ModSuper
+
+// A nil root is tolerated at every entry point below and nowhere else.
+// Production callers always pass an address — &w.layout, or a z-layer
+// child of it — so the check is for callers outside the frame loop;
+// keyupHandler has accepted nil since it was written and the rest now
+// agree with it. The recursive halves never re-check, because they only
+// ever receive &layout.Children[i].
+
 // charHandler handles character input events (typing).
 // Traverses forward (depth-first) and delivers to focused element.
 func charHandler(layout *Layout, e *Event, w *Window) {
+	if layout == nil {
+		return
+	}
 	charHandlerDepth(layout, e, w, 0)
 }
 
 func charHandlerDepth(layout *Layout, e *Event, w *Window, depth int) {
 	if overMaxDepth(depth) {
-		return
-	}
-	if overMaxChildren(layout) {
 		return
 	}
 	for i := range layout.Children {
@@ -95,16 +124,14 @@ func imeCompositionHandler(_ *Layout, e *Event, w *Window) {
 // Traverses forward and delivers to focused element. Falls back to
 // keyboard scroll if the focused scroll container has no handler.
 func keydownHandler(layout *Layout, e *Event, w *Window) {
+	if layout == nil {
+		return
+	}
 	keydownHandlerDepth(layout, e, w, 0)
 }
 
 func keydownHandlerDepth(layout *Layout, e *Event, w *Window, depth int) {
 	if overMaxDepth(depth) {
-		return
-	}
-
-	// Guard against excessive children count to prevent DoS.
-	if overMaxChildren(layout) {
 		return
 	}
 
@@ -154,21 +181,14 @@ func keydownHandlerDepth(layout *Layout, e *Event, w *Window, depth int) {
 // keyupHandler handles key up events.
 // Traverses forward and delivers to focused element.
 func keyupHandler(layout *Layout, e *Event, w *Window) {
+	if layout == nil {
+		return
+	}
 	keyupHandlerDepth(layout, e, w, 0)
 }
 
 func keyupHandlerDepth(layout *Layout, e *Event, w *Window, depth int) {
-	// Guard against nil layout to prevent panic
-	if layout == nil {
-		return
-	}
-
 	if overMaxDepth(depth) {
-		return
-	}
-
-	// Guard against excessive children count to prevent DoS
-	if overMaxChildren(layout) {
 		return
 	}
 
@@ -205,7 +225,7 @@ func keyDownScrollHandler(layout *Layout, e *Event, w *Window) {
 	deltaLine := th.ScrollDeltaLine
 	deltaPage := th.ScrollDeltaPage
 
-	switch e.Modifiers {
+	switch e.Modifiers & modKeyboard {
 	case ModNone:
 		switch e.KeyCode {
 		case KeyUp:
@@ -237,6 +257,9 @@ func keyDownScrollHandler(layout *Layout, e *Event, w *Window) {
 func mouseDownHandler(
 	layout *Layout, inHandler bool, e *Event, w *Window,
 ) {
+	if layout == nil {
+		return
+	}
 	mouseDownHandlerDepth(layout, inHandler, e, w, 0)
 }
 
@@ -299,6 +322,9 @@ func mouseDownHandlerDepth(
 // mouseMoveHandler handles mouse movement events.
 // Traverses reverse (topmost first).
 func mouseMoveHandler(layout *Layout, e *Event, w *Window) {
+	if layout == nil {
+		return
+	}
 	mouseMoveHandlerDepth(layout, e, w, 0)
 }
 
@@ -340,6 +366,9 @@ func mouseMoveHandlerDepth(layout *Layout, e *Event, w *Window, depth int) {
 // mouseUpHandler handles mouse button release events.
 // Traverses reverse (topmost first).
 func mouseUpHandler(layout *Layout, e *Event, w *Window) {
+	if layout == nil {
+		return
+	}
 	mouseUpHandlerDepth(layout, e, w, 0)
 }
 
@@ -396,6 +425,9 @@ func focusedScrollTarget(layout *Layout, w *Window) *Layout {
 // If no focused handler exists, traverses reverse (topmost first)
 // and falls back to the scroll container under cursor.
 func mouseScrollHandler(layout *Layout, e *Event, w *Window) {
+	if layout == nil {
+		return
+	}
 	if ly := focusedScrollTarget(layout, w); ly != nil {
 		// Cascade-on-unhandled is the designed contract, so there
 		// is no pre-mark here: an unhandled scroll falls through to
@@ -430,16 +462,22 @@ func mouseScrollFallbackHandlerDepth(layout *Layout, e *Event, w *Window, depth 
 	if layout.Shape == nil || layout.Shape.Disabled {
 		return
 	}
-	// Deliver to OnMouseScroll handler under cursor.
-	if layout.Shape.hasEvents() &&
-		layout.Shape.events.OnMouseScroll != nil {
-		if layout.Shape.PointInShape(e.MouseX, e.MouseY) {
-			// No pre-mark, so an unhandled scroll falls through to
-			// the scroll container below.
-			layout.Shape.events.OnMouseScroll(EventCtx{layout, e, w})
-			if e.IsHandled {
-				return
-			}
+	// Deliver to OnMouseScroll handler under cursor, through
+	// executeMouseCallback like every other pointer dispatch. It used to
+	// call the callback directly, which made the coordinate space depend
+	// on which path reached the handler: the focused-target branch in
+	// mouseScrollHandler goes through callRelative and handed the
+	// callback shape-relative coordinates, while this branch handed it
+	// screen-space ones. One callback, two meanings for MouseX, selected
+	// by whether the shape happened to hold focus — so a canvas zooming
+	// at the cursor zoomed at the wrong point as soon as it was clicked.
+	//
+	// Still no pre-mark: an unhandled scroll falls through to the scroll
+	// container below.
+	if layout.Shape.hasEvents() {
+		if executeMouseCallback(layout, e, w,
+			layout.Shape.events.OnMouseScroll, evNotify) {
+			return
 		}
 	}
 	// Handle scroll on scroll container under cursor. Discrete mouse
@@ -448,7 +486,7 @@ func mouseScrollFallbackHandlerDepth(layout *Layout, e *Event, w *Window, depth 
 	// momentum and scroll instantly.
 	if layout.Shape.Scrollable {
 		if layout.Shape.PointInShape(e.MouseX, e.MouseY) {
-			switch e.Modifiers {
+			switch e.Modifiers & modKeyboard {
 			case ModShift:
 				if e.ScrollPrecise {
 					e.IsHandled = scrollHorizontal(layout, e.ScrollX, w)
@@ -468,6 +506,9 @@ func mouseScrollFallbackHandlerDepth(layout *Layout, e *Event, w *Window, depth 
 
 // fileDropHandler handles file-drop events. Does not change focus.
 func fileDropHandler(layout *Layout, e *Event, w *Window) {
+	if layout == nil {
+		return
+	}
 	fileDropHandlerDepth(layout, e, w, 0)
 }
 

@@ -937,31 +937,79 @@ func TestKeydownHandler_ClickOnEnter(t *testing.T) {
 	})
 }
 
-func TestCharHandler_ExcessiveChildren(t *testing.T) {
-	t.Parallel()
-	root := &Layout{
-		Children: make([]Layout, maxEventChildren+1),
+// wideTree builds a container with n children whose last child is a
+// focusable leaf carrying the given handlers.
+func wideTree(n int, ev *eventHandlers) *Layout {
+	root := &Layout{Shape: &Shape{}, Children: make([]Layout, n)}
+	for i := range root.Children {
+		root.Children[i].Shape = &Shape{}
+		root.Children[i].Parent = root
 	}
+	leaf := &root.Children[n-1]
+	leaf.Shape = &Shape{ID: "leaf", Focusable: true, events: ev}
+	return root
+}
+
+// A container wider than the generation cap must still deliver keyboard
+// input. Dispatch used to re-check the cap and return before reaching
+// any child or the node's own callback, so a wide container lost typing
+// and key handling while keeping its mouse handling, silently.
+func TestCharHandlerWideTreeStillTypes(t *testing.T) {
+	t.Parallel()
+	got := ""
+	root := wideTree(maxChildViews+1, &eventHandlers{
+		OnChar: func(ctx EventCtx) {
+			got += string(rune(ctx.Event.CharCode))
+			ctx.Consume()
+		},
+	})
 	w := &Window{}
+	w.viewState.focusID = "leaf"
 	e := &Event{CharCode: 'a'}
-	// Must not panic or hang.
 	charHandler(root, e, w)
-	if e.IsHandled {
-		t.Error("excessive children should return early, unhandled")
+	if got != "a" {
+		t.Errorf("OnChar got %q, want %q", got, "a")
+	}
+	if !e.IsHandled {
+		t.Error("consumed char should be marked handled")
 	}
 }
 
-func TestKeydownHandler_ExcessiveChildren(t *testing.T) {
+func TestKeydownHandlerWideTreeStillKeys(t *testing.T) {
 	t.Parallel()
-	root := &Layout{
-		Children: make([]Layout, maxEventChildren+1),
-	}
+	var gotKey KeyCode
+	root := wideTree(maxChildViews+1, &eventHandlers{
+		OnKeyDown: func(ctx EventCtx) {
+			gotKey = ctx.Event.KeyCode
+			ctx.Consume()
+		},
+	})
 	w := &Window{}
+	w.viewState.focusID = "leaf"
 	e := &Event{KeyCode: KeyEnter}
-	// Must not panic or hang.
 	keydownHandler(root, e, w)
-	if e.IsHandled {
-		t.Error("excessive children should return early, unhandled")
+	if gotKey != KeyEnter {
+		t.Errorf("OnKeyDown got key %d, want %d", gotKey, KeyEnter)
+	}
+	if !e.IsHandled {
+		t.Error("consumed key should be marked handled")
+	}
+}
+
+func TestKeyupHandlerWideTreeStillKeys(t *testing.T) {
+	t.Parallel()
+	fired := false
+	root := wideTree(maxChildViews+1, &eventHandlers{
+		OnKeyUp: func(ctx EventCtx) {
+			fired = true
+			ctx.Consume()
+		},
+	})
+	w := &Window{}
+	w.viewState.focusID = "leaf"
+	keyupHandler(root, &Event{KeyCode: KeyEnter}, w)
+	if !fired {
+		t.Error("OnKeyUp did not fire in a wide container")
 	}
 }
 

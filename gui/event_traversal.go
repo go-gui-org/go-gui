@@ -51,13 +51,21 @@ func executeFocusCallback(
 // class names the event for the debug check and no longer selects a
 // dispatch rule. The pre-mark that used to land here — and the
 // save/restore ordering it forced — is gone with spec §4.3b.
+//
+// Only the two coordinates are saved, not the whole Event. This used to
+// copy *e out and back, which is 352 bytes each way to change eight,
+// and — the reason it matters — the restore reverted every field a
+// callback had written, with IsHandled reinstated by hand afterwards as
+// the single exception. A callback that wrote anything else to the event
+// had its write silently undone. Saving the two fields dispatch itself
+// changes leaves the callback's own writes alone.
 func callRelative(
 	layout *Layout, e *Event, w *Window,
 	callback shapeCallback, class evClass,
 ) bool {
-	saved := *e
-	e.MouseX = saved.MouseX - layout.Shape.X
-	e.MouseY = saved.MouseY - layout.Shape.Y
+	savedX, savedY := e.MouseX, e.MouseY
+	e.MouseX = savedX - layout.Shape.X
+	e.MouseY = savedY - layout.Shape.Y
 	// Sound fires before the callback and independently of whether the
 	// callback consumes: the cue confirms the widget was activated, it
 	// is not a propagation decision (issue #446).
@@ -66,10 +74,7 @@ func callRelative(
 	}
 	callback(EventCtx{layout, e, w})
 	handled := e.IsHandled
-	*e = saved
-	if handled {
-		e.IsHandled = true
-	}
+	e.MouseX, e.MouseY = savedX, savedY
 	// The debug check runs on the restored event: its ancestor test
 	// needs the coordinates in the enclosing shape's space, not the
 	// shape-relative ones the callback saw.

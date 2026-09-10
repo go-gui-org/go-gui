@@ -332,6 +332,56 @@ pure — build `View` structs, do not fetch or parse. It runs during
 for those. Hook writers own their IDs: compose with `ScopeID(el.DocID, …)`. See
 `docs/specs/markdown-render-callback.md`.
 
+## Streaming background data into a window
+
+A background producer — stdin, a socket, a ticker — must schedule a frame per
+value. A channel the view drains on its own never paints: the backend idles
+until the next input event, so the window sits stale until a mouse move and then
+shows everything at once (issue #559). `Stream` wraps the `QueueCommand` +
+`UpdateWindow` path for this shape:
+
+```go
+type streamLines struct {
+	Lines []string
+}
+
+func streamLinesView(w *gui.Window) gui.View {
+	state := gui.State[streamLines](w)
+	text := ""
+	if len(state.Lines) > 0 {
+		text = state.Lines[len(state.Lines)-1]
+	}
+	return gui.Column(gui.ContainerCfg{
+		Sizing:  gui.FillFill,
+		Content: []gui.View{gui.Label(text, gui.TextStyle{})},
+	})
+}
+
+func ExampleStream() {
+	w := gui.NewWindow(gui.WindowCfg{State: &streamLines{}})
+	defer w.WindowCleanup()
+	w.UpdateView(streamLinesView)
+
+	lines := make(chan string, 4)
+	done := gui.Stream(w, lines, func(w *gui.Window, line string) {
+		st := gui.State[streamLines](w)
+		st.Lines = append(st.Lines, line)
+	})
+	lines <- "hello"
+	lines <- "world"
+	close(lines)
+	<-done
+	w.FrameFn()
+
+	fmt.Println(gui.State[streamLines](w).Lines)
+	// Output: [hello world]
+}
+```
+
+Delivery is per item in channel order with no coalescing, so bound the cadence
+at the producer. The goroutine exits when the channel closes or the window
+closes, and the returned channel reports it.
+
 ## Find it early
 
 `gui.Debug(true)`, or `GOGUI_DEBUG=1`, checks the layout every frame. It reports

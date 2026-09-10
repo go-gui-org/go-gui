@@ -39,7 +39,13 @@ func findLayoutByFocusIDDepth(layout *Layout, effectiveID string, depth int) (*L
 	if overMaxDepth(depth) {
 		return nil, false
 	}
-	if effectiveID != "" && layout.Shape.Focusable && layout.Shape.idKey() == effectiveID {
+	// Shape is checked for nil the way every other tree walk in the
+	// package checks it. A generated tree always carries one, so the
+	// walk this guards is a hand-built Layout — which the package
+	// treats as a real case (DebugStampDrift reports one) and which
+	// reaches here on every scroll event through focusedScrollTarget.
+	if s := layout.Shape; effectiveID != "" && s != nil &&
+		s.Focusable && s.idKey() == effectiveID {
 		return layout, true
 	}
 	for i := range layout.Children {
@@ -61,7 +67,8 @@ func findLayoutByScrollIDDepth(layout *Layout, effectiveID string, depth int) (*
 	if overMaxDepth(depth) {
 		return nil, false
 	}
-	if effectiveID != "" && layout.Shape.Scrollable && layout.Shape.idKey() == effectiveID {
+	if s := layout.Shape; effectiveID != "" && s != nil &&
+		s.Scrollable && s.idKey() == effectiveID {
 		return layout, true
 	}
 	for i := range layout.Children {
@@ -112,10 +119,11 @@ func (layout *Layout) findByIDDepth(effectiveID string, depth int) (*Layout, boo
 	if effectiveID == "" {
 		return nil, false
 	}
-	if layout.Shape == nil {
-		return nil, false
-	}
-	if layout.Shape.idKey() == effectiveID {
+	// A nil Shape carries no ID but still has children: a hand-built
+	// Layout reaches here the same way it reaches the focus and scroll
+	// ID walks, so match the self only when there is a shape and always
+	// search below.
+	if s := layout.Shape; s != nil && s.idKey() == effectiveID {
 		return layout, true
 	}
 	for i := range layout.Children {
@@ -140,7 +148,7 @@ func collectFocusCandidatesDepth(layout *Layout, candidates *[]focusCandidate, s
 		return
 	}
 	s := layout.Shape
-	if s.canTakeFocus() && !s.FocusSkip {
+	if s != nil && s.canTakeFocus() && !s.FocusSkip {
 		// Candidates carry the effective ID: it is what the focus store
 		// holds, so it is what focusFindNext/Previous compare against.
 		//

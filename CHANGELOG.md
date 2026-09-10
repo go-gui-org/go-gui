@@ -8,6 +8,17 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- **`Stream` bridges a background producer to the window (#559)** — `gui.Stream`
+  takes a channel and an apply function: each received value is applied on the
+  frame thread and followed by a full layout refresh, so a window fed from
+  stdin, a socket, or a ticker repaints as values arrive. Previously that shape
+  stalled — nothing scheduled a frame, so the window sat stale until the next
+  mouse move and then showed everything at once. Delivery is per item in channel
+  order with no coalescing; the goroutine exits when the channel closes or the
+  window closes. See the streaming section in `docs/dx-cheat-sheet.md`.
+
 ### Deprecated
 
 - **TermGrid widget deprecated, removal in a future minor** — `TermGrid`,
@@ -19,6 +30,50 @@ and this project adheres to
   `RenderTermGrid` command, its per-backend draws, and the print branch with it.
 
 ### Fixed
+
+- **`OnMouseScroll` now receives shape-relative coordinates on both dispatch
+  paths** — scroll dispatch offers the event to the focused element first and
+  falls back to the shape under the cursor. The focused path handed the callback
+  shape-relative coordinates and the fallback path handed it window-absolute
+  ones, so which space `ctx.Event.MouseX` was in came down to whether the shape
+  happened to hold focus. A `DrawCanvas` or `TermGrid` zooming at the cursor
+  zoomed at the wrong point as soon as it was clicked. Both paths now go through
+  the same relative-coordinate helper every other pointer callback uses.
+
+- **Scrolling works again while a mouse button is held, on Windows and the web**
+  — wheel and arrow-key scroll dispatch matched `Event.Modifiers` exactly
+  against `ModNone` and `ModShift`, and the Windows and web backends OR the
+  buttons currently held into that same field. A wheel turn during a drag
+  therefore matched neither case and was silently dropped on those two platforms
+  while working on macOS. Dispatch now masks the held-button bits off before
+  matching.
+
+- **A container wider than 10,000 children no longer loses keyboard input** —
+  the 10,000-child cap is applied when the layout is generated, and event
+  dispatch re-checked it and returned early. The second check could only ever
+  fire on a hand-built `Layout`, and when it did it dropped that subtree's
+  typing, key and focus handling while leaving its mouse handling working.
+  Generation is now the only place the cap is applied.
+
+- **Touch double-tap now registers in datagrid** — the touch-to-mouse synthesis
+  path built its synthetic event without the frame stamp `EventFn` puts on every
+  backend event. Consumers that time multi-click gestures by differencing
+  `Event.FrameCount` — `datagrid`'s double-click-to-edit and
+  double-click-to-autofit — stored frame 0 as the last click and read it back as
+  "no prior click", so a second tap was never recognized as a double tap.
+
+- **A callback can no longer have its writes to the event silently reverted** —
+  pointer dispatch saved the whole `Event` before calling a callback and
+  restored it afterwards, reinstating `IsHandled` by hand as the single
+  exception. Any other field a callback wrote was discarded. Dispatch now saves
+  only the two coordinates it actually changes, which also takes a 352-byte copy
+  each way out of the per-callback path.
+
+- **Scroll and scrollbar ID lookups tolerate a shape-less layout node** — the
+  two walks that resolve a focus or scroll ID dereferenced `Layout.Shape`
+  without the nil check every other tree walk in the package performs. Generated
+  trees always carry a shape, so this reached only hand-built `Layout` values —
+  on the path that runs for every scroll event.
 
 - **AnimationAdd now rejects an empty animation ID** — animations are keyed by
   ID with replace semantics, so every unnamed `Animate` silently collided on

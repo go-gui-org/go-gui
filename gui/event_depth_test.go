@@ -4,10 +4,11 @@ import (
 	"testing"
 )
 
-// The breadth guard (maxEventChildren) cannot see a chain of
-// single-child layouts. These tests pin the depth budget
-// (maxEventDepth): walks stop descending past it instead of recursing
-// until the stack gives out, and ordinary-depth trees are unaffected.
+// Generation caps how wide one container gets (maxChildViews) and
+// nothing caps how deep a chain of single-child layouts runs. These
+// tests pin the depth budget (maxEventDepth): walks stop descending past
+// it instead of recursing until the stack gives out, and ordinary-depth
+// trees are unaffected.
 
 // deepChain builds a single-child chain n levels deep with a
 // focusable leaf. Hand-built, so idKey falls back to the leaf ID.
