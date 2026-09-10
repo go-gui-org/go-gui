@@ -581,6 +581,13 @@ func synthMouse(
 		MouseX:      x,
 		MouseY:      y,
 		MouseButton: btn,
+		// Stamped the way EventFn stamps a backend event. Consumers
+		// time multi-click gestures by differencing this — datagrid's
+		// double-click-to-edit and double-click-to-autofit both do —
+		// and a synthetic event left at frame 0 stored 0 as the last
+		// click frame, which their "> 0" sentinel then read as "no
+		// prior click". Double-tap was inert on touch.
+		FrameCount: w.frameCount,
 	}
 	switch typ {
 	case EventMouseDown:

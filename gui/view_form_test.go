@@ -944,13 +944,13 @@ func TestFormFieldStateUnaffectedByScoping(t *testing.T) {
 }
 
 // TestFormChildrenShareEventCap pins that the form's child append path
-// applies the same maxEventChildren cap every container gets. Before
-// this refactor the form appended children without the cap; the
-// dispatch gate (hasTooManyChildren) refuses >maxEventChildren anyway,
-// so the cap here only bounds generation work.
+// applies the same maxChildViews cap every container gets. Before this
+// refactor the form appended children without the cap. Generation is
+// now the only place the cap is applied, so this is the gate: nothing
+// downstream re-checks it.
 func TestFormChildrenShareEventCap(t *testing.T) {
 	w := newTestWindow()
-	n := maxEventChildren + 100
+	n := maxChildViews + 100
 	children := make([]View, n)
 	for i := range children {
 		children[i] = &stubView{id: "child"}
@@ -959,9 +959,9 @@ func TestFormChildrenShareEventCap(t *testing.T) {
 		ID:      "cap-form",
 		Content: children,
 	}), w)
-	if len(layout.Children) != maxEventChildren {
+	if len(layout.Children) != maxChildViews {
 		t.Errorf("form children = %d, want %d",
-			len(layout.Children), maxEventChildren)
+			len(layout.Children), maxChildViews)
 	}
 }
 

@@ -105,6 +105,15 @@ func generateViewLayout(view View, w *Window) Layout {
 	return layout
 }
 
+// maxChildViews caps how many direct children one container generates.
+// Truncation happens here, at generation, which is the single enforcement
+// point: the tree the rest of the frame sees is already within the cap,
+// so layout, render and event dispatch need no separate check. Event
+// dispatch used to re-check it and return early, which could only ever
+// fire on a hand-built Layout and silently dropped that subtree's
+// keyboard input when it did.
+const maxChildViews = 10000
+
 // appendChildViews generates children under parent's ID scope and
 // appends them to parent.Children, after whatever the parent already
 // put there.
@@ -121,8 +130,8 @@ func appendChildViews(w *Window, parent *Layout, children []View) {
 	if len(children) == 0 {
 		return
 	}
-	if len(children) > maxEventChildren {
-		children = children[:maxEventChildren]
+	if len(children) > maxChildViews {
+		children = children[:maxChildViews]
 	}
 	// Pre-size so append never reallocates; the reservation comes from the
 	// frame-scoped arena (reset in resetViewPools) to avoid a per-node heap

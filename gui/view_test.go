@@ -1165,10 +1165,10 @@ func TestCursorHelpers(t *testing.T) {
 }
 
 func TestGenerateViewLayout_ExcessiveChildren(t *testing.T) {
-	// maxEventChildren caps direct children at 10000. The framework no
+	// maxChildViews caps direct children at 10000. The framework no
 	// longer walks a raw Content() — the cap lives in appendChildViews,
 	// so it is exercised through a container.
-	n := maxEventChildren + 100
+	n := maxChildViews + 100
 	children := make([]View, n)
 	for i := range children {
 		children[i] = &stubView{id: "child"}
@@ -1176,9 +1176,9 @@ func TestGenerateViewLayout_ExcessiveChildren(t *testing.T) {
 	v := Column(ContainerCfg{ID: "parent", Content: children})
 	layout := generateViewLayout(v, &Window{})
 
-	if len(layout.Children) != maxEventChildren {
+	if len(layout.Children) != maxChildViews {
 		t.Errorf("children: got %d, want capped to %d",
-			len(layout.Children), maxEventChildren)
+			len(layout.Children), maxChildViews)
 	}
 }
 
