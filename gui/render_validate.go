@@ -300,6 +300,16 @@ func f32AllFinite6(a, b, c, d, e, f float32) bool {
 		f32IsFinite(e) && f32IsFinite(f)
 }
 
+func f32AllFinite7(a, b, c, d, e, f, g float32) bool {
+	return f32AllFinite4(a, b, c, d) &&
+		f32IsFinite(e) && f32IsFinite(f) && f32IsFinite(g)
+}
+
+func f32AllFinite9(a, b, c, d, e, f, g, h, i float32) bool {
+	return f32AllFinite4(a, b, c, d) &&
+		f32AllFinite5(e, f, g, h, i)
+}
+
 // guardRendererOrSkip returns true if valid. Logs a warning (once
 // per kind) for invalid renderers.
 func guardRendererOrSkip(r RenderCmd, w *Window) bool {

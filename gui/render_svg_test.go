@@ -381,19 +381,19 @@ func TestRenderImageDispatch(t *testing.T) {
 	}
 }
 
-// --- isFiniteF ---
+// --- f32IsFinite ---
 
 func TestFiniteF32_NaNInfFinite(t *testing.T) {
-	if !isFiniteF(0) || !isFiniteF(1.5) || !isFiniteF(-1e20) {
+	if !f32IsFinite(0) || !f32IsFinite(1.5) || !f32IsFinite(-1e20) {
 		t.Fatal("finite values should report true")
 	}
-	if isFiniteF(float32(math.NaN())) {
+	if f32IsFinite(float32(math.NaN())) {
 		t.Fatal("NaN must report false")
 	}
-	if isFiniteF(float32(math.Inf(1))) {
+	if f32IsFinite(float32(math.Inf(1))) {
 		t.Fatal("+Inf must report false")
 	}
-	if isFiniteF(float32(math.Inf(-1))) {
+	if f32IsFinite(float32(math.Inf(-1))) {
 		t.Fatal("-Inf must report false")
 	}
 }

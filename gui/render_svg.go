@@ -47,7 +47,7 @@ func renderSvg(shape *Shape, clip drawClip, w *Window) {
 		// back to the uniform tessellation scale so detail
 		// level matches and the render stays stable.
 		if cached.Width > 0 && cached.Height > 0 &&
-			isFiniteF(cached.Width) && isFiniteF(cached.Height) {
+			f32IsFinite(cached.Width) && f32IsFinite(cached.Height) {
 			scaleX = shape.Width / cached.Width
 			scaleY = shape.Height / cached.Height
 		} else {
@@ -215,7 +215,7 @@ func PreserveAlignFractions(a SvgAlign) (float32, float32) {
 // rejected so they cannot propagate into backend xform commands.
 func validNonUniform(sx, sy, uniform float32) bool {
 	return sx > 0 && sy > 0 &&
-		isFiniteF(sx) && isFiniteF(sy) &&
+		f32IsFinite(sx) && f32IsFinite(sy) &&
 		(sx != uniform || sy != uniform)
 }
 

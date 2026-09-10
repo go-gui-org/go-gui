@@ -507,3 +507,47 @@ func TestF32AllFinite(t *testing.T) {
 		t.Error("empty slice should pass")
 	}
 }
+
+// TestF32AllFiniteN checks the fixed-arity helpers. Each helper
+// accepts finite input and rejects NaN, +Inf, and -Inf.
+func TestF32AllFiniteN(t *testing.T) {
+	if !f32AllFinite2(1, 2) ||
+		!f32AllFinite3(1, 2, 3) ||
+		!f32AllFinite4(1, 2, 3, 4) ||
+		!f32AllFinite5(1, 2, 3, 4, 5) ||
+		!f32AllFinite6(1, 2, 3, 4, 5, 6) ||
+		!f32AllFinite7(1, 2, 3, 4, 5, 6, 7) ||
+		!f32AllFinite9(1, 2, 3, 4, 5, 6, 7, 8, 9) {
+		t.Error("finite values should pass")
+	}
+	nan := float32(math.NaN())
+	if f32AllFinite2(nan, 2) ||
+		f32AllFinite3(1, nan, 3) ||
+		f32AllFinite4(1, 2, 3, nan) ||
+		f32AllFinite5(1, 2, nan, 4, 5) ||
+		f32AllFinite6(1, 2, 3, 4, 5, nan) ||
+		f32AllFinite7(1, 2, 3, 4, 5, 6, nan) ||
+		f32AllFinite9(1, 2, 3, 4, 5, 6, 7, 8, nan) {
+		t.Error("NaN should fail")
+	}
+	pinf := float32(math.Inf(1))
+	if f32AllFinite2(pinf, 2) ||
+		f32AllFinite3(1, pinf, 3) ||
+		f32AllFinite4(1, 2, 3, pinf) ||
+		f32AllFinite5(1, 2, pinf, 4, 5) ||
+		f32AllFinite6(1, 2, 3, 4, 5, pinf) ||
+		f32AllFinite7(1, 2, 3, 4, 5, 6, pinf) ||
+		f32AllFinite9(1, 2, 3, 4, 5, 6, 7, 8, pinf) {
+		t.Error("+Inf should fail")
+	}
+	ninf := float32(math.Inf(-1))
+	if f32AllFinite2(ninf, 2) ||
+		f32AllFinite3(1, ninf, 3) ||
+		f32AllFinite4(1, 2, 3, ninf) ||
+		f32AllFinite5(1, 2, ninf, 4, 5) ||
+		f32AllFinite6(1, 2, 3, 4, 5, ninf) ||
+		f32AllFinite7(1, 2, 3, 4, 5, 6, ninf) ||
+		f32AllFinite9(1, 2, 3, 4, 5, 6, 7, 8, ninf) {
+		t.Error("-Inf should fail")
+	}
+}

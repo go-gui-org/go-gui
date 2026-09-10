@@ -433,7 +433,7 @@ func TestCachedSvgTextDrawsAnchorEnd(t *testing.T) {
 
 // loadSvgWithOpts must compute a non-trivial scale when the
 // parsed SVG has finite dimensions that differ from the shape.
-// Guards against inadvertently inverting the isFiniteF guard
+// Guards against inadvertently inverting the f32IsFinite guard
 // so scale collapses to 1 for every normal SVG.
 func TestLoadSvgScaleComputedFromFiniteDimensions(t *testing.T) {
 	w := &Window{}

@@ -317,8 +317,8 @@ func emitDrawCanvasImages(
 	narrowed := false
 	for i := range images {
 		im := &images[i]
-		if !isFiniteF(im.X) || !isFiniteF(im.Y) ||
-			!isFiniteF(im.W) || !isFiniteF(im.H) ||
+		if !f32IsFinite(im.X) || !f32IsFinite(im.Y) ||
+			!f32IsFinite(im.W) || !f32IsFinite(im.H) ||
 			im.W <= 0 || im.H <= 0 || im.Src == "" {
 			continue
 		}
@@ -329,7 +329,7 @@ func emitDrawCanvasImages(
 		bg := ColorTransparent
 		if im.BgColor.IsSet() {
 			op := im.bgOpacity.Get(1.0)
-			if !isFiniteF(op) {
+			if !f32IsFinite(op) {
 				op = 1.0
 			}
 			// The entry's own opacity folds into the
@@ -370,8 +370,8 @@ func emitDrawCanvasImages(
 // intersectClips returns the overlap of two clip rects. Reports false when
 // they do not overlap, or when either is degenerate.
 func intersectClips(a, b drawClip) (drawClip, bool) {
-	if !isFiniteF(b.X) || !isFiniteF(b.Y) ||
-		!isFiniteF(b.Width) || !isFiniteF(b.Height) ||
+	if !f32IsFinite(b.X) || !f32IsFinite(b.Y) ||
+		!f32IsFinite(b.Width) || !f32IsFinite(b.Height) ||
 		b.Width <= 0 || b.Height <= 0 {
 		return drawClip{}, false
 	}

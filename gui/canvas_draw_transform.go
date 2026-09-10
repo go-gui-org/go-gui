@@ -80,7 +80,7 @@ func (x canvasXform) uniform() bool { return x.sx == x.sy }
 // Non-finite arguments are ignored rather than poisoning every
 // subsequent vertex.
 func (dc *DrawContext) Translate(dx, dy float32) {
-	if !isFiniteF(dx) || !isFiniteF(dy) {
+	if !f32IsFinite(dx) || !f32IsFinite(dy) {
 		return
 	}
 	dc.ensureXform()
@@ -98,7 +98,7 @@ func (dc *DrawContext) Translate(dx, dy float32) {
 // A zero scale is allowed and collapses geometry. Non-finite
 // arguments are ignored.
 func (dc *DrawContext) ScaleBy(sx, sy float32) {
-	if !isFiniteF(sx) || !isFiniteF(sy) {
+	if !f32IsFinite(sx) || !f32IsFinite(sy) {
 		return
 	}
 	dc.ensureXform()
