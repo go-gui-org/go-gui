@@ -776,3 +776,60 @@ func TestTextWidthFallbackPasswordMask(t *testing.T) {
 }
 
 var sinkWidth float32
+
+// TestRenderLayoutPanicUnwindRestoresState drives a panic through a
+// node holding every bracket (filter, clip, stencil, rotate): the
+// panic must propagate, but window state must be restored and the
+// emitted list must stay balanced.
+func TestRenderLayoutPanicUnwindRestoresState(t *testing.T) {
+	w := makeWindow()
+	cf := &ColorFilter{}
+	parent := &Layout{Shape: &Shape{
+		shapeType: shapeRectangle,
+		Color:     RGB(100, 100, 100),
+		X:         10, Y: 10, Width: 50, Height: 50,
+		Clip:         true,
+		clipContents: true,
+		QuarterTurns: 1,
+		fx:           &shapeEffects{ColorFilter: cf},
+	}}
+	// Nil child shape panics on entry (framework-bug simulation).
+	parent.Children = []Layout{{Shape: nil}}
+	clip := makeClip(0, 0, 200, 200)
+
+	func() {
+		defer func() {
+			if recover() == nil {
+				t.Error("expected panic from nil child shape")
+			}
+		}()
+		renderLayout(parent, ColorTransparent, clip, w)
+	}()
+
+	if w.inFilter {
+		t.Error("inFilter leaked by panic unwind")
+	}
+	if w.stencilDepth != 0 {
+		t.Errorf("stencilDepth = %d, want 0", w.stencilDepth)
+	}
+	if w.clipRadius != 0 {
+		t.Errorf("clipRadius = %v, want 0", w.clipRadius)
+	}
+	counts := map[renderKind]int{}
+	for _, r := range w.renderers {
+		counts[r.Kind]++
+	}
+	for _, tc := range []struct {
+		begin, end renderKind
+		name       string
+	}{
+		{RenderFilterBegin, RenderFilterEnd, "filter"},
+		{RenderStencilBegin, RenderStencilEnd, "stencil"},
+		{RenderRotateBegin, RenderRotateEnd, "rotate"},
+	} {
+		if counts[tc.begin] != 1 || counts[tc.end] != 1 {
+			t.Errorf("%s bracket unbalanced: begin=%d end=%d",
+				tc.name, counts[tc.begin], counts[tc.end])
+		}
+	}
+}

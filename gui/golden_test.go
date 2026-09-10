@@ -202,6 +202,22 @@ func colorStr(c Color) string {
 	return fmt.Sprintf("#%02x%02x%02x%02x", c.R, c.G, c.B, c.A)
 }
 
+// matrixStr renders a 4x4 color matrix as a diffable token. A filter
+// bracket with the wrong matrix paints the wrong glow, and presence
+// alone cannot see it.
+func matrixStr(m *[16]float32) string {
+	var b strings.Builder
+	b.WriteString("[")
+	for i, v := range m {
+		if i > 0 {
+			b.WriteString(",")
+		}
+		b.WriteString(f2(v))
+	}
+	b.WriteString("]")
+	return b.String()
+}
+
 // serializeCmd renders one command as a single line. Only fields
 // meaningful for the kind are emitted, so a golden stays readable and
 // a diff points at what actually changed.
@@ -244,6 +260,9 @@ func serializeCmd(c RenderCmd) string {
 		}
 	case RenderImage:
 		fmt.Fprintf(&b, " res=%q", c.Resource)
+		if c.ClipRadius != 0 {
+			b.WriteString(" cradius=" + f2(c.ClipRadius))
+		}
 	case RenderSvg:
 		fmt.Fprintf(&b, " tris=%d", len(c.Triangles))
 		// A vertex-colored batch is a gradient fill. Record the count
@@ -275,6 +294,25 @@ func serializeCmd(c RenderCmd) string {
 		if c.Spread != 0 {
 			b.WriteString(" spread=" + f2(c.Spread))
 		}
+	case RenderRotateBegin:
+		fmt.Fprintf(&b, " rot=%s@%s,%s",
+			f2(c.RotAngle), f2(c.RotCX), f2(c.RotCY))
+	case RenderStencilBegin, RenderStencilEnd:
+		fmt.Fprintf(&b, " sdepth=%d", c.StencilDepth)
+	case RenderFilterBegin, RenderFilterComposite:
+		fmt.Fprintf(&b, " layers=%d", c.Layers)
+		if c.ColorMatrix != nil {
+			b.WriteString(" cmatrix=" + matrixStr(c.ColorMatrix))
+		}
+	case RenderTermGrid:
+		if c.TermGrid != nil {
+			tg := c.TermGrid
+			fmt.Fprintf(&b, " grid=%dx%d cell=%s,%s cells=%d",
+				tg.Cols, tg.Rows,
+				f2(tg.CellW), f2(tg.CellH), len(tg.Cells))
+		} else {
+			b.WriteString(" grid=nil")
+		}
 	}
 
 	// Pointers are fingerprinted by presence. Dereferencing them
@@ -287,7 +325,8 @@ func serializeCmd(c RenderCmd) string {
 		b.WriteString(" +shader")
 	}
 	if c.LayoutPtr != nil {
-		b.WriteString(" +glyphlayout")
+		fmt.Fprintf(&b, " +glyphlayout glyphs=%d items=%d",
+			len(c.LayoutPtr.Glyphs), len(c.LayoutPtr.Items))
 	}
 	if c.LayoutTransform != nil && c.Kind != RenderText {
 		t := c.LayoutTransform

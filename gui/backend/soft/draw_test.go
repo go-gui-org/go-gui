@@ -279,3 +279,30 @@ func TestBufferBoundsMatchScale(t *testing.T) {
 		t.Fatalf("clip = %v, want full bounds", b.clip)
 	}
 }
+
+func TestNewTextureRejectsUnboundedSize(t *testing.T) {
+	gb := newGlyphBackend(1)
+	if id := gb.NewTexture(0, 16); id != 0 {
+		t.Errorf("zero width = %d, want 0 (rejected)", id)
+	}
+	if id := gb.NewTexture(16, -1); id != 0 {
+		t.Errorf("negative height = %d, want 0 (rejected)", id)
+	}
+	if id := gb.NewTexture(8192, 8192); id != 0 {
+		t.Errorf("huge texture = %d, want 0 (rejected)", id)
+	}
+	if id := gb.NewTexture(64, 64); id == 0 {
+		t.Error("valid texture rejected")
+	}
+}
+
+func TestDrawSvgDropsOversizedTriangles(t *testing.T) {
+	r := newRenderer(8, 8, 1)
+	// Past the shared 1_200_000-float cap: must draw nothing and
+	// must not grow svgBatch to the attacker length.
+	r.drawAll([]gui.RenderCmd{{Kind: gui.RenderSvg,
+		Triangles: make([]float32, 1_200_006)}})
+	if cap(r.svgBatch) > 1_200_000 {
+		t.Fatalf("svgBatch cap = %d, want bounded", cap(r.svgBatch))
+	}
+}

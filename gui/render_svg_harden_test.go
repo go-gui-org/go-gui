@@ -22,7 +22,7 @@ func TestEmitSvgPathRenderer_BaseTRSRoutesRotPivotToTranslate(t *testing.T) {
 		BaseRotAngle: 45,
 		HasBaseXform: true,
 	}
-	emitSvgPathRenderer(path, Color{}, 0, 0, 1, 0, 0, false, nil, w)
+	emitSvgPathRenderer(path, Color{}, 0, 0, 1, 0, 0, false, nil, &Shape{Opacity: 1}, w)
 	if len(w.renderers) != 1 {
 		t.Fatalf("expected 1 renderer, got %d", len(w.renderers))
 	}
@@ -69,7 +69,7 @@ func TestEmitSvgPathRenderer_AnimStateRotCenterOverridesBase(t *testing.T) {
 			RotCX:    7, RotCY: 8,
 		},
 	}
-	emitSvgPathRenderer(path, Color{}, 0, 0, 1, 0, 0, false, animState, w)
+	emitSvgPathRenderer(path, Color{}, 0, 0, 1, 0, 0, false, animState, &Shape{Opacity: 1}, w)
 	rc := w.renderers[0]
 	if rc.RotCX != 7 || rc.RotCY != 8 {
 		t.Fatalf("anim rotCenter lost: got (%v,%v) want (7,8)",
@@ -192,7 +192,7 @@ func TestEmitSvgPathRenderer_NonUniformCompoundsWithAnimXform(t *testing.T) {
 	// nsScaleX=2, nsScaleY=3, uniform=4 → nonUniform.
 	// Anim only: 2*0.25=0.5, 3*4=12. Base xform skipped (animApplied).
 
-	emitSvgPathRenderer(path, Color{}, 0, 0, 4, 2, 3, true, animState, w)
+	emitSvgPathRenderer(path, Color{}, 0, 0, 4, 2, 3, true, animState, &Shape{Opacity: 1}, w)
 
 	if len(w.renderers) != 1 {
 		t.Fatalf("expected 1 renderer, got %d", len(w.renderers))

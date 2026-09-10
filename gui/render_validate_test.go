@@ -176,6 +176,132 @@ func TestRendererValidSvgVertexColors(t *testing.T) {
 	}
 }
 
+func TestRendererValidSvgOversizedTriangles(t *testing.T) {
+	r := RenderCmd{
+		Kind:      RenderSvg,
+		Scale:     1,
+		Triangles: make([]float32, maxSvgTriangleFloats+6),
+	}
+	if rendererValidForDraw(r) {
+		t.Error("oversized triangles should fail")
+	}
+	// Boundary still passes.
+	r.Triangles = make([]float32, maxSvgTriangleFloats)
+	if !rendererValidForDraw(r) {
+		t.Error("boundary-size triangles should pass")
+	}
+}
+
+func TestRendererValidTextOversized(t *testing.T) {
+	r := RenderCmd{Kind: RenderText, X: 0, Y: 0,
+		Text: string(make([]byte, maxRenderTextLen+1))}
+	if rendererValidForDraw(r) {
+		t.Error("oversized text should fail")
+	}
+}
+
+func TestRendererValidFilterCompositeLayersCapped(t *testing.T) {
+	r := RenderCmd{
+		Kind: RenderFilterComposite, W: 10, H: 10,
+		Layers: maxFilterCompositeLayers + 1,
+	}
+	if rendererValidForDraw(r) {
+		t.Error("excess layers should fail")
+	}
+}
+
+func TestRendererValidShadowSpreadCapped(t *testing.T) {
+	r := RenderCmd{Kind: RenderShadow, W: 10, H: 10,
+		BlurRadius: 4, Radius: 3, Spread: maxShadowSpread + 1}
+	if rendererValidForDraw(r) {
+		t.Error("excess spread should fail")
+	}
+}
+
+func TestRendererValidLine(t *testing.T) {
+	r := RenderCmd{Kind: RenderLine, X: 0, Y: 0, OffsetX: 10, OffsetY: 10}
+	if !rendererValidForDraw(r) {
+		t.Error("valid line should pass")
+	}
+	r.OffsetX = float32(math.NaN())
+	if rendererValidForDraw(r) {
+		t.Error("NaN endpoint should fail")
+	}
+}
+
+func TestRendererValidRTF(t *testing.T) {
+	ly := &glyph.Layout{}
+	r := RenderCmd{Kind: RenderRTF, X: 0, Y: 0, LayoutPtr: ly}
+	if !rendererValidForDraw(r) {
+		t.Error("valid RTF should pass")
+	}
+	r.LayoutPtr = nil
+	if rendererValidForDraw(r) {
+		t.Error("nil layout should fail")
+	}
+}
+
+func TestRendererValidTextPath(t *testing.T) {
+	r := RenderCmd{Kind: RenderTextPath, X: 0, Y: 0, Text: "hi"}
+	if !rendererValidForDraw(r) {
+		t.Error("valid textPath should pass")
+	}
+	r.Text = ""
+	if rendererValidForDraw(r) {
+		t.Error("empty text should fail")
+	}
+}
+
+func TestRendererValidTermGrid(t *testing.T) {
+	cells := make([]TermCell, 6)
+	tg := &TermGridData{Cells: cells, Cols: 3, Rows: 2,
+		CellW: 8, CellH: 16}
+	r := RenderCmd{Kind: RenderTermGrid, X: 0, Y: 0, TermGrid: tg}
+	if !rendererValidForDraw(r) {
+		t.Error("valid termgrid should pass")
+	}
+	r.TermGrid = nil
+	if rendererValidForDraw(r) {
+		t.Error("nil termgrid should fail")
+	}
+	r.TermGrid = &TermGridData{Cells: cells, Cols: 3, Rows: 3,
+		CellW: 8, CellH: 16}
+	if rendererValidForDraw(r) {
+		t.Error("short cell buffer should fail")
+	}
+}
+
+func TestRendererValidFilterBegin(t *testing.T) {
+	m := &[16]float32{}
+	r := RenderCmd{Kind: RenderFilterBegin, BlurRadius: 4,
+		Layers: 2, ColorMatrix: m}
+	if !rendererValidForDraw(r) {
+		t.Error("valid filter begin should pass")
+	}
+	r.ColorMatrix = nil // SVG path carries no matrix
+	if !rendererValidForDraw(r) {
+		t.Error("nil matrix should pass (SVG filter path)")
+	}
+	r.Layers = 0
+	if rendererValidForDraw(r) {
+		t.Error("zero layers should fail")
+	}
+	r.Layers = 2
+	r.BlurRadius = float32(math.NaN())
+	if rendererValidForDraw(r) {
+		t.Error("NaN blur should fail")
+	}
+}
+
+func TestRendererValidNoPayloadKinds(t *testing.T) {
+	for _, k := range []renderKind{RenderNone, RenderFilterEnd,
+		RenderRotateEnd, RenderLayoutPlaced} {
+		if !rendererValidForDraw(RenderCmd{Kind: k}) {
+			t.Errorf("kind %d should pass", k)
+		}
+	}
+}
+
 func TestRendererValidFilterComposite(t *testing.T) {
 	r := RenderCmd{Kind: RenderFilterComposite, W: 10, H: 10, Layers: 2}
 	if !rendererValidForDraw(r) {

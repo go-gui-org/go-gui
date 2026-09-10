@@ -2,6 +2,12 @@ package gui
 
 // renderLayout walks the layout tree and emits RenderCmd entries
 // into window.renderers. Clip rectangles bracket clipped children.
+//
+// Every bracket opened here is closed by a deferred call, so a panic
+// in a child unwinds through balanced Begin/End pairs and restores
+// inFilter, stencilDepth and clipRadius. That state lives on the
+// Window across frames, so leaking it would corrupt every later
+// frame, not just the aborted one.
 func renderLayout(layout *Layout, bgColor Color, clip drawClip, w *Window) {
 	// Emit filter bracket when ColorFilter is set (containers only).
 	fx := layout.Shape.fx
@@ -14,6 +20,10 @@ func renderLayout(layout *Layout, bgColor Color, clip drawClip, w *Window) {
 			Layers:      1,
 			ColorMatrix: &fx.ColorFilter.matrix,
 		}, w)
+		defer func() {
+			emitRenderer(RenderCmd{Kind: RenderFilterEnd}, w)
+			w.inFilter = false
+		}()
 	}
 
 	renderShape(layout.Shape, bgColor, clip, w)
@@ -30,14 +40,20 @@ func renderLayout(layout *Layout, bgColor Color, clip drawClip, w *Window) {
 			shapeClip.Width = clip.Width
 		}
 		emitClipCmd(shapeClip, w)
+		defer func() {
+			emitClipCmd(clip, w)
+		}()
 	} else if layout.Shape.Clip {
 		shapeClip = clipContentBox(layout.Shape)
 		emitClipCmd(shapeClip, w)
+		defer func() {
+			emitClipCmd(clip, w)
+		}()
 	}
 
 	// Emit stencil clip bracket before children.
-	didIncrement := false
 	if layout.Shape.clipContents {
+		didIncrement := false
 		if w.stencilDepth < 255 {
 			w.stencilDepth++
 			didIncrement = true
@@ -53,15 +69,42 @@ func renderLayout(layout *Layout, bgColor Color, clip drawClip, w *Window) {
 		}, w)
 		// Also apply scissor clip as optimization (avoids
 		// rasterizing fragments outside bounding rect).
+		scissored := false
 		if !layout.Shape.Clip && !layout.Shape.OverDraw {
 			shapeClip = layout.Shape.shapeClip
 			emitClipCmd(shapeClip, w)
+			scissored = true
 		}
+		defer func() {
+			// Restore scissor if we pushed one.
+			if scissored {
+				emitClipCmd(clip, w)
+			}
+			emitRenderer(RenderCmd{
+				Kind:         RenderStencilEnd,
+				X:            layout.Shape.X,
+				Y:            layout.Shape.Y,
+				W:            layout.Shape.Width,
+				H:            layout.Shape.Height,
+				Radius:       layout.Shape.Radius,
+				StencilDepth: w.stencilDepth,
+			}, w)
+			if didIncrement {
+				w.stencilDepth--
+			}
+		}()
 	}
 
-	// Propagate rounded clip radius to child images.
+	// Propagate rounded clip radius to child images. Deferred only
+	// when changed: most shapes are not clipping containers, and an
+	// untouched value needs no restore.
 	savedClipRadius := w.clipRadius
 	w.clipRadius = resolveClipRadius(savedClipRadius, layout.Shape)
+	if w.clipRadius != savedClipRadius {
+		defer func() {
+			w.clipRadius = savedClipRadius
+		}()
+	}
 
 	// Emit rotation bracket before children.
 	if turns := layout.Shape.QuarterTurns; turns > 0 {
@@ -73,6 +116,9 @@ func renderLayout(layout *Layout, bgColor Color, clip drawClip, w *Window) {
 			RotCX:    cx,
 			RotCY:    cy,
 		}, w)
+		defer func() {
+			emitRenderer(RenderCmd{Kind: RenderRotateEnd}, w)
+		}()
 	}
 
 	color := bgColor
@@ -81,40 +127,6 @@ func renderLayout(layout *Layout, bgColor Color, clip drawClip, w *Window) {
 	}
 	for i := range layout.Children {
 		renderLayout(&layout.Children[i], color, shapeClip, w)
-	}
-
-	if layout.Shape.QuarterTurns > 0 {
-		emitRenderer(RenderCmd{Kind: RenderRotateEnd}, w)
-	}
-
-	w.clipRadius = savedClipRadius
-
-	if layout.Shape.clipContents {
-		// Restore scissor if we pushed one.
-		if !layout.Shape.Clip && !layout.Shape.OverDraw {
-			emitClipCmd(clip, w)
-		}
-		emitRenderer(RenderCmd{
-			Kind:         RenderStencilEnd,
-			X:            layout.Shape.X,
-			Y:            layout.Shape.Y,
-			W:            layout.Shape.Width,
-			H:            layout.Shape.Height,
-			Radius:       layout.Shape.Radius,
-			StencilDepth: w.stencilDepth,
-		}, w)
-		if didIncrement {
-			w.stencilDepth--
-		}
-	}
-
-	if layout.Shape.Clip || layout.Shape.OverDraw {
-		emitClipCmd(clip, w)
-	}
-
-	if hasColorFilter {
-		emitRenderer(RenderCmd{Kind: RenderFilterEnd}, w)
-		w.inFilter = false
 	}
 }
 
@@ -132,9 +144,13 @@ func renderShape(shape *Shape, parentColor Color, clip drawClip, w *Window) {
 		origBorder := shape.ColorBorder
 		shape.Color = shape.Color.WithOpacity(shape.Opacity)
 		shape.ColorBorder = shape.ColorBorder.WithOpacity(shape.Opacity)
+		// Deferred: a panic below must not leave the shape dimmed
+		// for the next frame. Shapes persist in the layout tree.
+		defer func() {
+			shape.Color = origColor
+			shape.ColorBorder = origBorder
+		}()
 		renderShapeInner(shape, parentColor, clip, w)
-		shape.Color = origColor
-		shape.ColorBorder = origBorder
 	} else {
 		renderShapeInner(shape, parentColor, clip, w)
 	}
@@ -202,9 +218,10 @@ func renderContainer(shape *Shape, _ Color, clip drawClip, w *Window) {
 			Radius:     shape.Radius,
 			BlurRadius: fx.Shadow.BlurRadius,
 			Spread:     fx.Shadow.Spread,
-			Color:      fx.Shadow.Color,
-			OffsetX:    fx.Shadow.OffsetX,
-			OffsetY:    fx.Shadow.OffsetY,
+			Color: dimColor(fx.Shadow.Color,
+				shape.Opacity, shape.Disabled),
+			OffsetX: fx.Shadow.OffsetX,
+			OffsetY: fx.Shadow.OffsetY,
 		}, w)
 	}
 
@@ -217,7 +234,12 @@ func renderContainer(shape *Shape, _ Color, clip drawClip, w *Window) {
 			W:      shape.Width,
 			H:      shape.Height,
 			Radius: shape.Radius,
-			Color:  shape.Color,
+			// Opacity 1: renderShape already scaled shape.Color
+			// by shape.Opacity, so only the disabled dim is left.
+			// The gradient and shadow siblings pass shape.Opacity
+			// because their colors are separate fields.
+			Color: dimColor(shape.Color,
+				1.0, shape.Disabled),
 			Shader: fx.Shader,
 		}, w)
 	} else
@@ -225,13 +247,14 @@ func renderContainer(shape *Shape, _ Color, clip drawClip, w *Window) {
 	// Gradient fill
 	if hasFX && fx.Gradient != nil {
 		emitRenderer(RenderCmd{
-			Kind:     RenderGradient,
-			X:        shape.X,
-			Y:        shape.Y,
-			W:        shape.Width,
-			H:        shape.Height,
-			Radius:   shape.Radius,
-			Gradient: fx.Gradient,
+			Kind:   RenderGradient,
+			X:      shape.X,
+			Y:      shape.Y,
+			W:      shape.Width,
+			H:      shape.Height,
+			Radius: shape.Radius,
+			Gradient: dimmedGradient(fx.Gradient,
+				shape.Opacity, shape.Disabled),
 		}, w)
 	} else if hasFX && fx.BlurRadius > 0 && shape.Color.A > 0 &&
 		fx.ColorFilter == nil {
@@ -262,7 +285,8 @@ func renderContainer(shape *Shape, _ Color, clip drawClip, w *Window) {
 				H:         shape.Height,
 				Radius:    shape.Radius,
 				Thickness: shape.SizeBorder,
-				Gradient:  fx.BorderGradient,
+				Gradient: dimmedGradient(fx.BorderGradient,
+					shape.Opacity, shape.Disabled),
 			}, w)
 		} else {
 			renderRectangle(shape, clip, w)
@@ -351,7 +375,8 @@ func renderCircle(shape *Shape, clip drawClip, w *Window) {
 				H:         dr.Height,
 				Radius:    radius,
 				Thickness: shape.SizeBorder,
-				Gradient:  fx.BorderGradient,
+				Gradient: dimmedGradient(fx.BorderGradient,
+					shape.Opacity, shape.Disabled),
 			}, w)
 		} else if shape.SizeBorder > 0 {
 			cb := shape.ColorBorder

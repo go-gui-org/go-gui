@@ -201,6 +201,7 @@ func TestRenderDrawCanvasEmitsImage(t *testing.T) {
 		shapeType: shapeDrawCanvas,
 		X:         10, Y: 20,
 		Width: 100, Height: 100,
+		Opacity: 1.0,
 		Color:   ColorTransparent,
 		Padding: NewPadding(5, 5, 5, 5),
 		events: &eventHandlers{
@@ -260,7 +261,8 @@ func TestRenderDrawCanvasImageOpacityClamped(t *testing.T) {
 			shape := &Shape{
 				shapeType: shapeDrawCanvas,
 				Width:     50, Height: 50,
-				Color: ColorTransparent,
+				Opacity: 1.0,
+				Color:   ColorTransparent,
 				events: &eventHandlers{
 					OnDraw: func(dc *DrawContext) {
 						dc.Image(0, 0, 10, 10, "x.png", op, Blue)
@@ -985,6 +987,37 @@ func TestRenderDrawCanvasXformSurvivesPooling(t *testing.T) {
 				t.Fatalf("pass %d: xform lost (has=%v sx=%v sy=%v)",
 					pass, r.HasXform, r.ScaleX, r.ScaleY)
 			}
+		}
+	}
+}
+
+// TestRenderDrawCanvasOnDrawPanicIsolated proves one panicking widget
+// cannot abort the frame: the panic is contained, the partial batch
+// is discarded, and the warn-once flag is set.
+func TestRenderDrawCanvasOnDrawPanicIsolated(t *testing.T) {
+	w := makeWindowWithScratch()
+	shape := &Shape{
+		shapeType: shapeDrawCanvas,
+		Width:     100, Height: 100,
+		Color: RGB(100, 100, 100),
+		events: &eventHandlers{
+			OnDraw: func(dc *DrawContext) {
+				dc.FilledRect(0, 0, 50, 50, RGB(255, 0, 0))
+				panic("widget bug")
+			},
+		},
+	}
+
+	// Must not propagate.
+	renderDrawCanvas(shape, makeClip(0, 0, 200, 200), w)
+
+	if !w.drawPanicWarned {
+		t.Error("drawPanicWarned not set after OnDraw panic")
+	}
+	// Partial batch discarded: no content commands emitted.
+	for _, r := range w.renderers {
+		if r.Kind == RenderSvg {
+			t.Error("panicked canvas emitted a partial batch")
 		}
 	}
 }

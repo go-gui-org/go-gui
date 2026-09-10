@@ -1,5 +1,9 @@
 package gui
 
+import (
+	"github.com/go-gui-org/go-glyph"
+)
+
 // rectsOverlap checks if two rectangles overlap (strict <).
 func rectsOverlap(r1, r2 drawClip) bool {
 	return r1.X < (r2.X+r2.Width) && r2.X < (r1.X+r1.Width) &&
@@ -10,6 +14,126 @@ func rectsOverlap(r1, r2 drawClip) bool {
 func dimAlpha(c Color) Color {
 	c.A /= 2
 	return c
+}
+
+// dimColor applies widget-level opacity, then the disabled dim, in
+// that order: WithOpacity scales the caller's alpha, dimAlpha
+// halves whatever remains. It mirrors what renderText does inline
+// so every path that cannot rely on renderShape's Color mutation —
+// shadows, gradients, images, grids, canvas content — dims
+// identically. An opacity at or above 1 applies nothing; NaN
+// compares false both ways and also applies nothing, matching
+// renderShape, which takes the unmodified branch for NaN.
+func dimColor(c Color, opacity float32, disabled bool) Color {
+	if opacity < 1.0 {
+		c = c.WithOpacity(opacity)
+	}
+	if disabled {
+		c = dimAlpha(c)
+	}
+	return c
+}
+
+// dimmedGradient returns def unchanged when neither opacity nor
+// disabled dimming applies; otherwise a copy with every stop run
+// through dimColor. A RenderGradient command carries no color of
+// its own, so a disabled or faded gradient container would
+// otherwise paint at full strength while its rect sibling dims.
+// The copy is heap-allocated, so callers must only reach it when
+// dimming actually applies — the fast path above is that gate.
+func dimmedGradient(
+	def *GradientDef, opacity float32, disabled bool,
+) *GradientDef {
+	if def == nil || (!disabled && !(opacity < 1.0)) {
+		return def
+	}
+	out := *def
+	stops := make([]GradientStop, len(def.Stops))
+	for i, s := range def.Stops {
+		s.Color = dimColor(s.Color, opacity, disabled)
+		stops[i] = s
+	}
+	out.Stops = stops
+	return &out
+}
+
+// dimmedTextGradient returns cfg unchanged when neither opacity
+// nor disabled dimming applies; otherwise a copy with every stop
+// alpha scaled by opacity and halved when disabled. Text gradients
+// live in the glyph module's color type, so this mirrors
+// dimmedGradient across the module boundary — the conversion is a
+// field-wise alpha copy, no cross-module change.
+func dimmedTextGradient(
+	cfg *glyph.GradientConfig, opacity float32, disabled bool,
+) *glyph.GradientConfig {
+	if cfg == nil || (!disabled && !(opacity < 1.0)) {
+		return cfg
+	}
+	out := *cfg
+	stops := make([]glyph.GradientStop, len(cfg.Stops))
+	for i, s := range cfg.Stops {
+		a := s.Color.A
+		if opacity < 1.0 {
+			a = uint8(float32(a) * f32Clamp(opacity, 0, 1))
+		}
+		if disabled {
+			a /= 2
+		}
+		s.Color.A = a
+		stops[i] = s
+	}
+	out.Stops = stops
+	return &out
+}
+
+// dimmedTermGrid returns tg unchanged when neither opacity nor
+// disabled dimming applies; otherwise a copy with every cell
+// foreground/background, the cursor, the selection, and the grid
+// font colors run through dimColor. The grid buffer is shared
+// across frames, so dimming in place would persist into the next
+// frame and stack — the copy is the same reason renderShape
+// restores shape.Color via defer.
+func dimmedTermGrid(
+	tg *TermGridData, opacity float32, disabled bool,
+) *TermGridData {
+	if tg == nil || (!disabled && !(opacity < 1.0)) {
+		return tg
+	}
+	out := *tg
+	cells := make([]TermCell, len(tg.Cells))
+	for i, c := range tg.Cells {
+		c.FG = dimColor(c.FG, opacity, disabled)
+		c.BG = dimColor(c.BG, opacity, disabled)
+		cells[i] = c
+	}
+	out.Cells = cells
+	out.Cursor.Color = dimColor(tg.Cursor.Color, opacity, disabled)
+	out.Selection.Color = dimColor(
+		tg.Selection.Color, opacity, disabled)
+	out.Style.Color = dimColor(tg.Style.Color, opacity, disabled)
+	out.Style.BgColor = dimColor(
+		tg.Style.BgColor, opacity, disabled)
+	out.Style.StrokeColor = dimColor(
+		tg.Style.StrokeColor, opacity, disabled)
+	return &out
+}
+
+// dimmedVColors returns vcols unchanged when neither opacity nor
+// disabled dimming applies; otherwise an arena copy with every
+// color run through dimColor. Canvas batches belong to the cache
+// entry and are recycled by the next redraw, so — like the grid
+// buffer above — they must never be dimmed in place.
+func dimmedVColors(
+	vcols []Color, opacity float32, disabled bool, w *Window,
+) []Color {
+	if len(vcols) == 0 || (!disabled && !(opacity < 1.0)) {
+		return vcols
+	}
+	out := w.scratch.takeVColors(len(vcols))
+	for i, c := range vcols {
+		out[i] = dimColor(c, opacity, disabled)
+	}
+	return out
 }
 
 // resolveClipRadius computes the effective rounded clip radius for

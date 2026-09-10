@@ -50,7 +50,8 @@ func TestRenderTermGridEmitsOneCommand(t *testing.T) {
 		shapeType: shapeTermGrid,
 		X:         10, Y: 20,
 		Width: 32, Height: 32,
-		tg: tg,
+		Opacity: 1.0,
+		tg:      tg,
 	}
 	renderTermGrid(shape, makeClip(0, 0, 200, 200), w)
 

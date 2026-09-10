@@ -102,10 +102,20 @@ func DecodeNRGBA(
 	if err != nil {
 		return nil, fmt.Errorf("decode image: %w", err)
 	}
+	if maxPixels <= 0 {
+		maxPixels = DefaultMaxImagePixels
+	}
+	bounds := src.Bounds()
+	w, h := int64(bounds.Dx()), int64(bounds.Dy())
+	if w <= 0 || h <= 0 {
+		return nil, fmt.Errorf("invalid image dimensions: %s", path)
+	}
+	if w*h > maxPixels {
+		return nil, fmt.Errorf("image dimensions too large: %s", path)
+	}
 	if existing, ok := src.(*image.NRGBA); ok {
 		return existing, nil
 	}
-	bounds := src.Bounds()
 	nrgba := image.NewNRGBA(bounds)
 	draw.Draw(nrgba, bounds, src, bounds.Min, draw.Src)
 	return nrgba, nil

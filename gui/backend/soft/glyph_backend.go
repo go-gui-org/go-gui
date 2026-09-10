@@ -34,6 +34,11 @@ type glyphBackend struct {
 	scale    float32
 }
 
+// maxSoftTexturePixels caps one atlas page. The dimensions arrive
+// from glyph-controlled rasterization, so an unchecked width*height*4
+// make is an OOM sink; 4096x4096 holds a full page with headroom.
+const maxSoftTexturePixels = int64(4096 * 4096)
+
 func newGlyphBackend(scale float32) *glyphBackend {
 	return &glyphBackend{
 		textures: make(map[glyph.TextureID]*softTexture),
@@ -42,6 +47,12 @@ func newGlyphBackend(scale float32) *glyphBackend {
 }
 
 func (gb *glyphBackend) NewTexture(width, height int) glyph.TextureID {
+	if width <= 0 || height <= 0 {
+		return 0
+	}
+	if int64(width)*int64(height) > maxSoftTexturePixels {
+		return 0
+	}
 	gb.nextID++
 	gb.textures[gb.nextID] = &softTexture{
 		pix: make([]byte, width*height*4),

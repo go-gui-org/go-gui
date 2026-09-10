@@ -288,6 +288,7 @@ func TestRenderTermGridPixels(t *testing.T) {
 	cells[3].BG = gui.RGB(255, 0, 0)
 
 	win := newWin(t, 100, 100, func(w *gui.Window) gui.View {
+		//nolint:staticcheck // exercises TermGrid rendering itself
 		return gui.TermGrid(gui.TermGridCfg{
 			ID:    "term",
 			Cells: cells,
@@ -333,6 +334,7 @@ func TestRenderTermGridSelectionCursorAndUnderline(t *testing.T) {
 	cells[3].Attrs = gui.TermUnderline
 
 	win := newWin(t, 100, 100, func(w *gui.Window) gui.View {
+		//nolint:staticcheck // exercises TermGrid rendering itself
 		return gui.TermGrid(gui.TermGridCfg{
 			ID:    "term",
 			Cells: cells,

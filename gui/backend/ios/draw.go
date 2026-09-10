@@ -327,11 +327,17 @@ func (b *Backend) drawImageTex(
 	C.metalDrawQuad((*C.float)(unsafe.Pointer(&verts[0])))
 }
 
+// maxSvgTriangleFloats caps a RenderSvg triangle list in floats,
+// mirroring the gui package's emit-side cap. It bounds the
+// per-frame vertex allocation an oversized command would force.
+const maxSvgTriangleFloats = 1_200_000
+
 func (b *Backend) drawSvg(r *gui.RenderCmd) {
 	if r.IsClipMask {
 		return
 	}
-	if len(r.Triangles) == 0 || len(r.Triangles)%6 != 0 {
+	if len(r.Triangles) == 0 || len(r.Triangles)%6 != 0 ||
+		len(r.Triangles) > maxSvgTriangleFloats {
 		return
 	}
 	s := b.DPIScale
@@ -645,9 +651,16 @@ func (b *Backend) endRotation() {
 
 // --- Filter (glow) ---
 
+// maxFilterLayers caps the composite repeat count. Layers is the
+// count of feMergeNode elements in an SVG filter, so an untrusted
+// document can name an arbitrary number of them; past a handful the
+// glow is already saturated and each extra pass is a full-layer
+// blend. Mirrors the soft backend's maxFilterLayers.
+const maxFilterLayers = 32
+
 func (b *Backend) beginFilter(r *gui.RenderCmd) {
 	b.FilterBlur = r.BlurRadius * b.DPIScale
-	b.FilterLayer = r.Layers
+	b.FilterLayer = min(max(r.Layers, 1), maxFilterLayers)
 	b.FilterColorMatrix = r.ColorMatrix
 
 	b.SetPipeline(pipeSolid)

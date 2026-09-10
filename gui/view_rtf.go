@@ -167,6 +167,9 @@ func (v *rtfView) GenerateLayout(w *Window) Layout {
 	shape := w.allocShape(Shape{
 		shapeType: shapeRTF,
 		ID:        v.ID,
+		// No Opacity knob on the cfg yet; default opaque so
+		// the emit paths can treat 0 as transparent.
+		Opacity:   1.0,
 		Focusable: v.Focusable,
 		A11YRole:  AccessRoleStaticText,
 		a11Y:      v.a11yInfo(""),

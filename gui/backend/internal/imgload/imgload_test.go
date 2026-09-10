@@ -161,3 +161,30 @@ func TestDecodeNRGBADefaultLimits(t *testing.T) {
 		}
 	})
 }
+
+func TestDecodeNRGBAEnforcesPostDecodePixels(t *testing.T) {
+	t.Parallel()
+	tmp := t.TempDir()
+	path := filepath.Join(tmp, "tiny.png")
+	srcImg := image.NewRGBA(image.Rect(0, 0, 2, 2))
+	fw, err := os.Create(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := png.Encode(fw, srcImg); err != nil {
+		fw.Close()
+		t.Fatal(err)
+	}
+	fw.Close()
+
+	fr, err := os.Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer fr.Close()
+	// 2x2 = 4 pixels exceeds a 3-pixel budget both in the
+	// DecodeConfig pre-check and the post-decode recheck.
+	if _, err := DecodeNRGBA(path, fr, 0, 3); err == nil {
+		t.Error("expected error for image exceeding maxPixels")
+	}
+}

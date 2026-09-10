@@ -9,10 +9,19 @@ func renderImage(shape *Shape, clip drawClip, w *Window) {
 
 	// Hide Color from renderContainer so it doesn't draw a
 	// redundant bg rect; the backend handles the fill itself.
-	bgColor := shape.Color
+	// Opacity already rides on shape.Color via renderShape's
+	// mutation; only the disabled dim is left to apply here.
+	// The dim goes to a local: restoring it onto shape.Color would
+	// halve again on the next frame, because renderShape only
+	// restores the shape when Opacity < 1.
+	origColor := shape.Color
+	bgColor := origColor
+	if shape.Disabled {
+		bgColor = dimAlpha(bgColor)
+	}
 	shape.Color = ColorTransparent
 	renderContainer(shape, ColorTransparent, clip, w)
-	shape.Color = bgColor
+	shape.Color = origColor
 
 	emitRenderer(RenderCmd{
 		Kind:       RenderImage,

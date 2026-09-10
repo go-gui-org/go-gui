@@ -1,5 +1,30 @@
 package gui
 
+// Security caps for render commands. Invalid oversized commands
+// are dropped by emitRendererIfValid before they reach backends,
+// which would otherwise allocate from attacker-controlled lengths
+// (DrawCanvas batches, crafted RenderCmd).
+const (
+	// maxSvgTriangleFloats caps RenderSvg.Triangles length in
+	// floats. 200k triangles (~4.8MB) sits above the SVG
+	// maxPathSegments=100k budget with headroom for tessellation
+	// fan-out, while bounding the per-frame vertex allocation in
+	// every backend's drawSvg path.
+	maxSvgTriangleFloats = 1_200_000
+	// maxRenderTextLen caps RenderText.Text in bytes. SVG text runs
+	// cap at 64KB; the non-SVG path had no cap, letting one string
+	// drive unbounded shaping work.
+	maxRenderTextLen = 1 << 20
+	// maxFilterCompositeLayers mirrors soft maxFilterLayers: past a
+	// handful the glow is saturated and each extra pass is a
+	// full-layer blend.
+	maxFilterCompositeLayers = 32
+	// maxShadowSpread bounds RenderShadow.Spread, which was
+	// finite-checked but unbounded and drives blur working-rect
+	// growth in every backend.
+	maxShadowSpread = float32(1000000)
+)
+
 // rendererValidForDraw checks whether a RenderCmd has valid
 // parameters for drawing. Returns false for NaN/Inf coordinates,
 // negative sizes, nil pointers, etc.
@@ -17,14 +42,24 @@ func rendererValidForDraw(r RenderCmd) bool {
 		return validCircleCmd(r)
 	case RenderText:
 		return validTextCmd(r)
+	case RenderLine:
+		return validLineCmd(r)
 	case RenderLayout:
 		return validLayoutCmd(r)
+	case RenderRTF:
+		return validRTFCmd(r)
+	case RenderTextPath:
+		return validTextPathCmd(r)
+	case RenderTermGrid:
+		return validTermGridCmd(r)
 	case RenderLayoutTransformed:
 		return validLayoutTransformedCmd(r)
 	case RenderImage:
 		return validImageCmd(r)
 	case RenderSvg:
 		return validSvgCmd(r)
+	case RenderFilterBegin:
+		return validFilterBeginCmd(r)
 	case RenderFilterComposite:
 		return validFilterCompositeCmd(r)
 	case RenderStencilBegin, RenderStencilEnd:
@@ -39,6 +74,12 @@ func rendererValidForDraw(r RenderCmd) bool {
 		return validCustomShaderCmd(r)
 	case RenderRotateBegin:
 		return validRotateBeginCmd(r)
+	// Bracket ends and markers carry no validatable payload beyond
+	// the kind itself. Listed explicitly so a new kind is a
+	// compile-visible decision rather than a silent default-true.
+	case RenderNone, RenderFilterEnd, RenderRotateEnd,
+		RenderLayoutPlaced:
+		return true
 	default:
 		return true
 	}
@@ -70,6 +111,9 @@ func validCircleCmd(r RenderCmd) bool {
 
 func validTextCmd(r RenderCmd) bool {
 	if !f32AllFinite2(r.X, r.Y) || len(r.Text) == 0 {
+		return false
+	}
+	if len(r.Text) > maxRenderTextLen {
 		return false
 	}
 	if r.LayoutTransform != nil {
@@ -106,6 +150,41 @@ func validImageCmd(r RenderCmd) bool {
 		r.W > 0 && r.H > 0 && f32IsFinite(r.ClipRadius)
 }
 
+func validLineCmd(r RenderCmd) bool {
+	return f32AllFinite4(r.X, r.Y, r.OffsetX, r.OffsetY)
+}
+
+func validRTFCmd(r RenderCmd) bool {
+	return f32AllFinite2(r.X, r.Y) && r.LayoutPtr != nil
+}
+
+func validTextPathCmd(r RenderCmd) bool {
+	if !f32AllFinite2(r.X, r.Y) || len(r.Text) == 0 {
+		return false
+	}
+	if len(r.Text) > maxRenderTextLen {
+		return false
+	}
+	if r.textPath != nil && !f32AllFinite(r.textPath.Polyline) {
+		return false
+	}
+	return true
+}
+
+func validTermGridCmd(r RenderCmd) bool {
+	tg := r.TermGrid
+	if tg == nil {
+		return false
+	}
+	// Mirrors the soft backend's validTermGrid, including the
+	// division form of the cell-count check so a hostile
+	// Cols*Rows cannot overflow the check itself.
+	return tg.Cols > 0 && tg.Rows > 0 &&
+		f32IsFinite(tg.CellW) && tg.CellW > 0 &&
+		f32IsFinite(tg.CellH) && tg.CellH > 0 &&
+		tg.Rows <= len(tg.Cells)/tg.Cols
+}
+
 func validSvgCmd(r RenderCmd) bool {
 	if !f32AllFinite3(r.X, r.Y, r.Scale) || r.Scale <= 0 {
 		return false
@@ -125,6 +204,9 @@ func validSvgCmd(r RenderCmd) bool {
 	if len(r.Triangles) == 0 || len(r.Triangles)%6 != 0 {
 		return false
 	}
+	if len(r.Triangles) > maxSvgTriangleFloats {
+		return false
+	}
 	if !f32AllFinite(r.Triangles) {
 		return false
 	}
@@ -137,7 +219,22 @@ func validSvgCmd(r RenderCmd) bool {
 
 func validFilterCompositeCmd(r RenderCmd) bool {
 	return f32AllFinite4(r.X, r.Y, r.W, r.H) &&
-		r.W > 0 && r.H > 0 && r.Layers > 0
+		r.W > 0 && r.H > 0 && r.Layers > 0 &&
+		r.Layers <= maxFilterCompositeLayers
+}
+
+func validFilterBeginCmd(r RenderCmd) bool {
+	if !f32IsFinite(r.BlurRadius) || r.Layers < 1 {
+		return false
+	}
+	// Layers has no upper bound here: the SVG emitter clamps to
+	// maxFilterCompositeLayers and every backend clamps again, so
+	// a hand-built command degrades to capped glow passes. Dropping
+	// the Begin instead would unbalance the Begin/End bracket.
+	if r.ColorMatrix != nil && !f32AllFinite(r.ColorMatrix[:]) {
+		return false
+	}
+	return true
 }
 
 func validStencilCmd(r RenderCmd) bool {
@@ -154,7 +251,7 @@ func validShadowCmd(r RenderCmd) bool {
 	return f32AllFinite6(r.X, r.Y, r.W, r.H, r.BlurRadius, r.Radius) &&
 		r.W >= 0 && r.H >= 0 &&
 		f32AllFinite2(r.OffsetX, r.OffsetY) &&
-		f32IsFinite(r.Spread) && r.Spread >= 0
+		f32IsFinite(r.Spread) && r.Spread >= 0 && r.Spread <= maxShadowSpread
 }
 
 func validBlurCmd(r RenderCmd) bool {

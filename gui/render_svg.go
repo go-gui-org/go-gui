@@ -3,6 +3,8 @@ package gui
 import (
 	"log"
 	"time"
+
+	"github.com/go-gui-org/go-glyph"
 )
 
 // renderSvg renders an SVG shape by loading cached tessellation
@@ -129,7 +131,7 @@ func renderSvg(shape *Shape, clip drawClip, w *Window) {
 	nonUniform := validNonUniform(scaleX, scaleY, cached.Scale)
 	emitSvgGroup(cached.renderPaths, animByPID, cached.textDraws,
 		cached.textPathDraws, color, sx, sy,
-		cached.Scale, scaleX, scaleY, nonUniform, animState, w)
+		cached.Scale, scaleX, scaleY, nonUniform, animState, shape, w)
 
 	// Emit filtered groups.
 	for i, fg := range cached.FilteredGroups {
@@ -152,11 +154,15 @@ func renderSvg(shape *Shape, clip drawClip, w *Window) {
 			H:          fh,
 			Scale:      cached.Scale,
 			BlurRadius: blur,
-			Layers:     fg.Filter.BlurLayers,
+			// Clamped: past a handful of layers the glow is
+			// saturated and each extra pass is a full-layer
+			// blend in every backend. An untrusted document
+			// names an arbitrary feMergeNode count.
+			Layers: min(fg.Filter.BlurLayers, maxFilterCompositeLayers),
 		}, w)
 		emitSvgGroup(fg.renderPaths, animByPID, fg.textDraws,
 			fg.textPathDraws, color, sx, sy,
-			cached.Scale, scaleX, scaleY, nonUniform, animState, w)
+			cached.Scale, scaleX, scaleY, nonUniform, animState, shape, w)
 		emitRenderer(RenderCmd{
 			Kind: RenderFilterEnd,
 		}, w)
@@ -165,7 +171,7 @@ func renderSvg(shape *Shape, clip drawClip, w *Window) {
 		if fg.Filter.KeepSource {
 			emitSvgGroup(fg.renderPaths, animByPID, fg.textDraws,
 				fg.textPathDraws, color, sx, sy,
-				cached.Scale, scaleX, scaleY, nonUniform, animState, w)
+				cached.Scale, scaleX, scaleY, nonUniform, animState, shape, w)
 		}
 	}
 
@@ -224,7 +230,7 @@ func emitSvgGroup(
 	textPathDraws []cachedSvgTextPathDraw,
 	color Color, sx, sy, scale, scaleX, scaleY float32,
 	nonUniform bool,
-	animState map[uint32]svgAnimState, w *Window,
+	animState map[uint32]svgAnimState, shape *Shape, w *Window,
 ) {
 	for i := range paths {
 		p := paths[i]
@@ -233,13 +239,13 @@ func emitSvgGroup(
 				p.Triangles = tris
 			}
 		}
-		emitSvgPathRenderer(p, color, sx, sy, scale, scaleX, scaleY, nonUniform, animState, w)
+		emitSvgPathRenderer(p, color, sx, sy, scale, scaleX, scaleY, nonUniform, animState, shape, w)
 	}
 	for i := range textDraws {
-		emitCachedSvgTextDraw(&textDraws[i], sx, sy, w)
+		emitCachedSvgTextDraw(&textDraws[i], sx, sy, shape, w)
 	}
 	for i := range textPathDraws {
-		emitCachedSvgTextPathDraw(&textPathDraws[i], sx, sy, w)
+		emitCachedSvgTextPathDraw(&textPathDraws[i], sx, sy, shape, w)
 	}
 }
 
@@ -252,7 +258,7 @@ func emitSvgGroup(
 func emitSvgPathRenderer(path cachedSvgPath, tint Color,
 	x, y, scale, nsScaleX, nsScaleY float32,
 	nonUniform bool,
-	animState map[uint32]svgAnimState, w *Window) {
+	animState map[uint32]svgAnimState, shape *Shape, w *Window) {
 	hasVCols := len(path.VertexColors) > 0
 	c := path.Color
 	if tint.A > 0 && !hasVCols {
@@ -278,6 +284,18 @@ func emitSvgPathRenderer(path cachedSvgPath, tint Color,
 			}
 			c = tint
 		}
+	}
+
+	// A transparent tint means the shape named no color, so the
+	// paths above kept their own — and with them, full alpha. A
+	// faded or disabled widget would then paint at full strength
+	// while its tinted sibling dims. Scale alpha only, preserving
+	// RGB: the tint branch above already carried opacity and dim
+	// for the tinted case, and the SMIL section below composes
+	// multiplicatively on top.
+	if tint.A == 0 {
+		c = dimColor(c, shape.Opacity, shape.Disabled)
+		vcols = dimmedVColors(vcols, shape.Opacity, shape.Disabled, w)
 	}
 
 	var rotAngle, rotCX, rotCY float32
@@ -395,32 +413,60 @@ func emitSvgPathRenderer(path cachedSvgPath, tint Color,
 }
 
 // emitCachedSvgTextDraw emits a cached SVG text draw as a
-// RenderText command. Takes pointer into CachedSvg.TextDraws
-// slice so TextStylePtr remains stable.
+// RenderText command. draw points into the parse cache, so its
+// style must never be dimmed in place: the dimmed path copies the
+// style into the frame's scratch pool, which keeps TextStylePtr
+// stable until the frame ends. The undimmed path stays zero-alloc —
+// TextStylePtr into the cache and the shared gradient.
 func emitCachedSvgTextDraw(draw *cachedSvgTextDraw,
-	shapeX, shapeY float32, w *Window) {
+	shapeX, shapeY float32, shape *Shape, w *Window) {
+	style, gradient := dimmedSvgTextStyle(
+		&draw.TextStyle, draw.Gradient, shape, w)
 	emitRenderer(RenderCmd{
 		Kind:         RenderText,
 		Text:         draw.Text,
 		X:            shapeX + draw.X,
 		Y:            shapeY + draw.Y,
-		Color:        draw.TextStyle.Color,
-		FontName:     draw.TextStyle.Family,
-		FontSize:     draw.TextStyle.Size,
+		Color:        style.Color,
+		FontName:     style.Family,
+		FontSize:     style.Size,
 		TextWidth:    draw.TextWidth,
-		TextStylePtr: &draw.TextStyle,
-		TextGradient: draw.Gradient,
+		TextStylePtr: style,
+		TextGradient: gradient,
 	}, w)
 }
 
 func emitCachedSvgTextPathDraw(draw *cachedSvgTextPathDraw,
-	shapeX, shapeY float32, w *Window) {
+	shapeX, shapeY float32, shape *Shape, w *Window) {
+	style, _ := dimmedSvgTextStyle(&draw.TextStyle, nil, shape, w)
 	emitRenderer(RenderCmd{
 		Kind:         RenderTextPath,
 		Text:         draw.Text,
 		X:            shapeX,
 		Y:            shapeY,
-		TextStylePtr: &draw.TextStyle,
+		TextStylePtr: style,
 		textPath:     &draw.Path,
 	}, w)
+}
+
+// dimmedSvgTextStyle returns the style pointer and gradient to emit
+// for a cached SVG text draw. With no fade and no disabled dim it
+// hands back the cache's own pointers, which is the zero-alloc case
+// every opaque frame takes. Otherwise it copies the style into the
+// frame scratch pool — cached is the parse cache, shared across
+// frames, so dimming it in place would stack frame after frame.
+func dimmedSvgTextStyle(
+	cached *TextStyle, gradient *glyph.GradientConfig,
+	shape *Shape, w *Window,
+) (*TextStyle, *glyph.GradientConfig) {
+	if !shape.Disabled && !(shape.Opacity < 1.0) {
+		return cached, gradient
+	}
+	style := *cached
+	style.Color = dimColor(style.Color, shape.Opacity, shape.Disabled)
+	style.BgColor = dimColor(style.BgColor, shape.Opacity, shape.Disabled)
+	style.StrokeColor = dimColor(style.StrokeColor,
+		shape.Opacity, shape.Disabled)
+	return w.scratch.renderTextStyles.alloc(style),
+		dimmedTextGradient(gradient, shape.Opacity, shape.Disabled)
 }

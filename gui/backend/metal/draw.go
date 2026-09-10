@@ -23,6 +23,18 @@ import (
 
 // renderersDraw iterates render commands and draws them.
 func (b *windowState) renderersDraw(w *gui.Window) {
+	// A truncated command list must not leak a rotated MVP into the
+	// next frame. Filter/stencil targets are per-frame encoder state
+	// owned by metalBeginFrame/metalEndFrame; only the Go-side MVP
+	// stack persists. A balanced stream ends restored, so no-op.
+	savedMVP := b.mvp
+	savedStackLen := len(b.mvpStack)
+	defer func() {
+		b.mvp = savedMVP
+		b.mvpStack = b.mvpStack[:savedStackLen]
+		C.metalSetPipeline(b.ctx, C.int(pipeSolid))
+		C.metalSetMVP(b.ctx, (*C.float)(&b.mvp[0]))
+	}()
 	cmds := w.Renderers()
 	for i := range cmds {
 		r := &cmds[i]
@@ -346,11 +358,17 @@ func (b *windowState) resolveImageTexture(
 	return tex, true
 }
 
+// maxSvgTriangleFloats caps a RenderSvg triangle list in floats,
+// mirroring the gui package's emit-side cap. It bounds the
+// per-frame vertex allocation an oversized command would force.
+const maxSvgTriangleFloats = 1_200_000
+
 func (b *windowState) drawSvg(r *gui.RenderCmd) {
 	if r.IsClipMask {
 		return // clip masks not yet supported in render pipeline
 	}
-	if len(r.Triangles) == 0 || len(r.Triangles)%6 != 0 {
+	if len(r.Triangles) == 0 || len(r.Triangles)%6 != 0 ||
+		len(r.Triangles) > maxSvgTriangleFloats {
 		return
 	}
 	s := b.dpiScale
@@ -675,9 +693,16 @@ func (b *windowState) endRotation() {
 
 // --- Filter (glow) ---
 
+// maxFilterLayers caps the composite repeat count. Layers is the
+// count of feMergeNode elements in an SVG filter, so an untrusted
+// document can name an arbitrary number of them; past a handful the
+// glow is already saturated and each extra pass is a full-layer
+// blend. Mirrors the soft backend's maxFilterLayers.
+const maxFilterLayers = 32
+
 func (b *windowState) beginFilter(r *gui.RenderCmd) {
 	b.filterBlur = r.BlurRadius * b.dpiScale
-	b.filterLayer = r.Layers
+	b.filterLayer = min(max(r.Layers, 1), maxFilterLayers)
 	b.filterColorMatrix = r.ColorMatrix
 
 	// Set pipelines and MVP before switching to filter target.

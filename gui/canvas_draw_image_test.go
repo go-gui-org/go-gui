@@ -24,7 +24,7 @@ func TestEmitDrawCanvasImagesLocalPath(t *testing.T) {
 		X: 0, Y: 0, W: 10, H: 10,
 		Src: path,
 	}}
-	emitDrawCanvasImages(entries, 0, 0, testFullClip, w)
+	emitDrawCanvasImages(entries, 0, 0, testFullClip, &Shape{Opacity: 1}, w)
 
 	found := false
 	for _, r := range w.renderers {
@@ -63,7 +63,7 @@ func TestEmitDrawCanvasImagesHTTPInFlight(t *testing.T) {
 		X: 0, Y: 0, W: 10, H: 10,
 		Src: url,
 	}}
-	emitDrawCanvasImages(entries, 0, 0, testFullClip, w)
+	emitDrawCanvasImages(entries, 0, 0, testFullClip, &Shape{Opacity: 1}, w)
 
 	for _, r := range w.renderers {
 		if r.Kind == RenderImage {
@@ -95,7 +95,7 @@ func TestEmitDrawCanvasImagesHTTPCached(t *testing.T) {
 		X: 0, Y: 0, W: 10, H: 10,
 		Src: url,
 	}}
-	emitDrawCanvasImages(entries, 0, 0, testFullClip, w)
+	emitDrawCanvasImages(entries, 0, 0, testFullClip, &Shape{Opacity: 1}, w)
 
 	found := false
 	for _, r := range w.renderers {
@@ -117,7 +117,7 @@ func TestEmitDrawCanvasImagesDataURL(t *testing.T) {
 		X: 0, Y: 0, W: 10, H: 10,
 		Src: src,
 	}}
-	emitDrawCanvasImages(entries, 0, 0, testFullClip, w)
+	emitDrawCanvasImages(entries, 0, 0, testFullClip, &Shape{Opacity: 1}, w)
 
 	found := false
 	for _, r := range w.renderers {
@@ -152,7 +152,7 @@ func TestEmitDrawCanvasImagesClipped(t *testing.T) {
 		},
 		{X: 0, Y: 0, W: 100, H: 100, Src: path},
 	}
-	emitDrawCanvasImages(entries, 5, 5, testFullClip, w)
+	emitDrawCanvasImages(entries, 5, 5, testFullClip, &Shape{Opacity: 1}, w)
 
 	var kinds []renderKind
 	var clips []RenderCmd
@@ -257,7 +257,7 @@ func TestEmitDrawCanvasImagesConsecutiveClipped(t *testing.T) {
 			ClipX: 20, ClipY: 20, ClipW: 30, ClipH: 30, Clipped: true,
 		},
 	}
-	emitDrawCanvasImages(entries, 0, 0, testFullClip, w)
+	emitDrawCanvasImages(entries, 0, 0, testFullClip, &Shape{Opacity: 1}, w)
 
 	var kinds []renderKind
 	for _, r := range w.renderers {
@@ -290,7 +290,7 @@ func TestEmitDrawCanvasImagesAllClippedRestoreAtEnd(t *testing.T) {
 			ClipX: 0, ClipY: 0, ClipW: 40, ClipH: 40, Clipped: true,
 		},
 	}
-	emitDrawCanvasImages(entries, 0, 0, testFullClip, w)
+	emitDrawCanvasImages(entries, 0, 0, testFullClip, &Shape{Opacity: 1}, w)
 
 	nClips := 0
 	for _, r := range w.renderers {
@@ -319,7 +319,7 @@ func TestEmitDrawCanvasImagesClippedAway(t *testing.T) {
 		ClipX: 500, ClipY: 500, ClipW: 10, ClipH: 10, Clipped: true,
 	}}
 	emitDrawCanvasImages(entries, 0, 0,
-		drawClip{X: 0, Y: 0, Width: 100, Height: 100}, w)
+		drawClip{X: 0, Y: 0, Width: 100, Height: 100}, &Shape{Opacity: 1}, w)
 
 	for _, r := range w.renderers {
 		if r.Kind == RenderImage {

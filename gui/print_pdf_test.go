@@ -747,3 +747,52 @@ func TestRenderToPDF_SvgTrianglesXform(t *testing.T) {
 	}
 	assertPDFExists(t, j.OutputPath)
 }
+
+func TestRenderToPDF_RotateBracket(t *testing.T) {
+	j := testPrintJob(t)
+	cmds := []RenderCmd{{
+		Kind: RenderRotateBegin, RotAngle: 90, RotCX: 60, RotCY: 35,
+	}, {
+		Kind: RenderRect, X: 10, Y: 10, W: 100, H: 50,
+		Color: RGBA(255, 0, 0, 255),
+	}, {
+		Kind: RenderRotateEnd,
+	}}
+	if err := renderToPDF(cmds, j, 800, 600); err != nil {
+		t.Fatal(err)
+	}
+	assertPDFExists(t, j.OutputPath)
+}
+
+func TestRenderToPDF_TermGrid(t *testing.T) {
+	j := testPrintJob(t)
+	cells := []TermCell{
+		{Ch: 'h', FG: RGBA(0, 0, 0, 255), Width: 1},
+		{Ch: 'i', FG: RGBA(0, 0, 0, 255), Width: 1},
+		{Ch: '!', FG: RGBA(200, 0, 0, 255),
+			BG: RGBA(255, 255, 200, 255), Width: 1},
+		{Ch: ' ', FG: RGBA(0, 0, 0, 255), Width: 1},
+	}
+	cmds := []RenderCmd{{
+		Kind: RenderTermGrid, X: 10, Y: 10, W: 32, H: 16,
+		TermGrid: &TermGridData{
+			Cells: cells, Cols: 4, Rows: 1, CellW: 8, CellH: 16,
+			Style: TextStyle{Family: "monospace", Size: 12},
+		},
+	}}
+	if err := renderToPDF(cmds, j, 800, 600); err != nil {
+		t.Fatal(err)
+	}
+	assertPDFExists(t, j.OutputPath)
+}
+
+func TestRenderToPDF_TermGridNil(t *testing.T) {
+	j := testPrintJob(t)
+	cmds := []RenderCmd{{
+		Kind: RenderTermGrid, X: 10, Y: 10, W: 32, H: 16,
+	}}
+	if err := renderToPDF(cmds, j, 800, 600); err != nil {
+		t.Fatal(err)
+	}
+	assertPDFExists(t, j.OutputPath)
+}
