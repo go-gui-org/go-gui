@@ -14,6 +14,16 @@ func TestAnimationAdd(t *testing.T) {
 	}
 }
 
+func TestAnimationAddEmptyIDPanics(t *testing.T) {
+	defer func() {
+		if recover() == nil {
+			t.Error("AnimationAdd with empty ID should panic")
+		}
+	}()
+	w := &Window{}
+	w.AnimationAdd(&Animate{Callback: func(*Animate, *Window) {}})
+}
+
 func TestAnimationRemove(t *testing.T) {
 	w := &Window{}
 	tw := NewTweenAnimation("t1", 0, 1, func(float32, *Window) {})
@@ -232,5 +242,137 @@ func TestAnimateRepeatNoDrift(t *testing.T) {
 	// start should advance by Delay, not reset to Now().
 	if a.start.After(time.Now().Add(-10 * time.Millisecond)) {
 		t.Error("start should not reset to Now(); should advance by Delay")
+	}
+}
+
+// TestUpdateAnimateRepeatDropsBacklogAfterStall pins the stall behaviour:
+// a repeating animation whose start sits far in the past fires once and
+// resyncs, rather than draining the missed intervals one per tick. Before
+// the resync it queued one callback on every one of these back-to-back
+// updates and start stayed seconds behind.
+func TestUpdateAnimateRepeatDropsBacklogAfterStall(t *testing.T) {
+	a := &Animate{
+		AnimID:   "a",
+		Delay:    16 * time.Millisecond,
+		Repeat:   true,
+		Callback: func(*Animate, *Window) {},
+	}
+	// Five seconds of missed ticks — a minimized window or a debugger
+	// break. At one 16ms step per tick that is a backlog of ~312.
+	a.SetStart(time.Now().Add(-5 * time.Second))
+
+	deferred := make([]queuedCommand, 0, 16)
+	ac := newAnimationCommands(&deferred)
+	for range 10 {
+		updateAnimate(a, &ac)
+	}
+
+	if len(deferred) != 1 {
+		t.Errorf("queued %d callbacks, want 1", len(deferred))
+	}
+	if behind := time.Since(a.start); behind > a.Delay {
+		t.Errorf("start still %v behind, want under %v", behind, a.Delay)
+	}
+	if a.stopped {
+		t.Error("repeating animation should not stop")
+	}
+}
+
+// TestUpdateAnimateRepeatKeepsCadence guards the other side: a tick that
+// arrives on time must still step by exactly one Delay, so a long
+// interval does not drift toward the tick period.
+func TestUpdateAnimateRepeatKeepsCadence(t *testing.T) {
+	a := &Animate{
+		AnimID:   "a",
+		Delay:    100 * time.Millisecond,
+		Repeat:   true,
+		Callback: func(*Animate, *Window) {},
+	}
+	start := time.Now().Add(-110 * time.Millisecond)
+	a.SetStart(start)
+
+	deferred := make([]queuedCommand, 0, 4)
+	ac := newAnimationCommands(&deferred)
+	if !updateAnimate(a, &ac) {
+		t.Fatal("expected the animation to fire")
+	}
+	if want := start.Add(a.Delay); !a.start.Equal(want) {
+		t.Errorf("start = %v, want %v (one exact Delay step)", a.start, want)
+	}
+}
+
+// TestUpdateBlinkCursorDropsBacklogAfterStall pins the same rule for the
+// caret: one toggle after a stall, not a strobe back to the present.
+func TestUpdateBlinkCursorDropsBacklogAfterStall(t *testing.T) {
+	w := &Window{}
+	b := newBlinkCursorAnimation()
+	b.SetStart(time.Now().Add(-5 * time.Second))
+
+	deferred := make([]queuedCommand, 0, 16)
+	ac := newAnimationCommands(&deferred)
+	for range 10 {
+		updateBlinkCursor(b, w, &ac)
+	}
+
+	if len(deferred) != 1 {
+		t.Errorf("queued %d caret toggles, want 1", len(deferred))
+	}
+	if !w.viewState.inputCursorOn.Load() {
+		t.Error("caret should have toggled exactly once, to visible")
+	}
+}
+
+// TestViewBoundHeartbeatIgnoresScrubClock pins the virtual clock 10
+// minutes in the past (a time-travel scrub), stamps a view-bound
+// heartbeat, resumes, and asserts the heartbeat is wall-clock fresh.
+// Before the fix the stamp used w.Now(), so resume() compared live time
+// against a T-10min stamp and cancelled every visible widget's anim.
+func TestViewBoundHeartbeatIgnoresScrubClock(t *testing.T) {
+	w := &Window{}
+	past := time.Now().Add(-10 * time.Minute)
+	w.setVirtualNow(&past)
+
+	tw := NewTweenAnimation("vb-scrub", 0, 1, func(float32, *Window) {})
+	w.animationAddViewBound(tw)
+	if !w.touchViewBoundAnimation("vb-scrub") {
+		w.setVirtualNow(nil)
+		t.Fatal("touch should succeed while scrub-pinned")
+	}
+
+	seen := w.animViewBound["vb-scrub"]
+	if seen-past.UnixNano() < int64(9*time.Minute) {
+		w.setVirtualNow(nil)
+		t.Errorf("heartbeat followed the scrub clock (seen-past = %v)",
+			time.Duration(seen-past.UnixNano()))
+	}
+
+	w.setVirtualNow(nil) // resume(): virtual pin cleared, live time back
+	seen = w.animViewBound["vb-scrub"]
+	if age := viewBoundNow() - seen; age > animViewBoundStale {
+		t.Errorf("heartbeat looks stale after resume (age = %v)", time.Duration(age))
+	}
+}
+
+// TestViewBoundStaleStillEvictsWhilePinned covers the inverse: a
+// departed animation (heartbeat 3s old) must still read stale while a
+// scrub pin holds w.Now() in the past. A pinned comparison would go
+// negative and leak the animation for the scrub's duration.
+func TestViewBoundStaleStillEvictsWhilePinned(t *testing.T) {
+	w := &Window{}
+	tw := NewTweenAnimation("vb-pinned", 0, 1, func(float32, *Window) {})
+	w.animationAddViewBound(tw)
+	w.animMu.Lock()
+	w.animViewBound["vb-pinned"] = time.Now().Add(-3 * time.Second).UnixNano()
+	w.animMu.Unlock()
+
+	past := time.Now().Add(-10 * time.Minute)
+	w.setVirtualNow(&past)
+	defer w.setVirtualNow(nil)
+
+	w.animMu.Lock()
+	seen := w.animViewBound["vb-pinned"]
+	w.animMu.Unlock()
+	if viewBoundNow()-seen <= animViewBoundStale {
+		t.Error("stale heartbeat should still read stale while scrub-pinned")
 	}
 }

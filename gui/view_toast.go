@@ -372,7 +372,7 @@ func toastStartExit(w *Window, id uint64) {
 	w.AnimationAdd(&TweenAnimation{
 		AnimID:   animID,
 		Duration: toastExitDuration,
-		Easing:   easeInCubic,
+		Easing:   EaseInCubic,
 		From:     1,
 		To:       0,
 		OnValue: func(val float32, w *Window) {

@@ -100,8 +100,15 @@ func refitFitAncestors(layout *Layout, path []*Layout) {
 
 // layoutWrapContainers restructures wrap containers into column-of-rows.
 func layoutWrapContainers(layout *Layout, w *Window) {
+	layoutWrapContainersDepth(layout, w, 0)
+}
+
+func layoutWrapContainersDepth(layout *Layout, w *Window, depth int) {
+	if overMaxDepth(depth) {
+		return
+	}
 	for i := range layout.Children {
-		layoutWrapContainers(&layout.Children[i], w)
+		layoutWrapContainersDepth(&layout.Children[i], w, depth+1)
 	}
 
 	if !layout.Shape.Wrap || layout.Shape.Axis != axisLeftToRight || len(layout.Children) == 0 {
@@ -166,7 +173,18 @@ func layoutWrapContainers(layout *Layout, w *Window) {
 
 	layout.Shape.Axis = axisTopToBottom
 
-	newChildren := make([]Layout, 0, len(rows))
+	// Row list comes from the frame-scoped arena, like the row shapes below
+	// and the child lists appendChildViews builds. Safe here even though
+	// resetViewPools runs before view generation and this pass runs after:
+	// the arena is grow-only within a frame, so a reservation taken now
+	// cannot disturb one taken earlier. The row slices below alias the old
+	// layout.Children, which stays alive through their slice headers.
+	var newChildren []Layout
+	if w != nil {
+		newChildren = w.scratch.takeLayoutChildren(len(rows))
+	} else {
+		newChildren = make([]Layout, 0, len(rows))
+	}
 	for i := range rows {
 		row := rows[i]
 		rowChildren := layout.Children[row.start:row.end:row.end]

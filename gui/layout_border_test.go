@@ -4,13 +4,13 @@ import "testing"
 
 func TestLayoutWidthsWithBorder(t *testing.T) {
 	root := &Layout{
-		Shape: &Shape{
+		Shape: &Shape{shapeType: shapeRectangle,
 			Axis:       axisLeftToRight,
 			SizeBorder: 5,
 			Padding:    NewPadding(0, 10, 0, 10),
 		},
 		Children: []Layout{
-			{Shape: &Shape{Width: 50, MinWidth: 50}},
+			{Shape: &Shape{shapeType: shapeRectangle, Width: 50, MinWidth: 50}},
 		},
 	}
 
@@ -27,13 +27,13 @@ func TestLayoutWidthsWithBorder(t *testing.T) {
 
 func TestLayoutHeightsWithBorder(t *testing.T) {
 	root := &Layout{
-		Shape: &Shape{
+		Shape: &Shape{shapeType: shapeRectangle,
 			Axis:       axisTopToBottom,
 			SizeBorder: 5,
 			Padding:    NewPadding(10, 0, 10, 0),
 		},
 		Children: []Layout{
-			{Shape: &Shape{Height: 50, MinHeight: 50}},
+			{Shape: &Shape{shapeType: shapeRectangle, Height: 50, MinHeight: 50}},
 		},
 	}
 

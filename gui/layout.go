@@ -31,21 +31,59 @@ type Layout struct {
 	Children []Layout
 }
 
+// Depth policy for the layout and render walks, stated once here and
+// referred to from each guarded walk.
+//
+// The event and focus walks have capped their recursion since
+// maxEventDepth was added (event_handlers.go): the breadth guard cannot
+// see a chain of single-child layouts, which recurses until the stack
+// gives out. The layout and render passes walk the same tree and were
+// left uncapped, so a tree deep enough to matter was refused input while
+// still being measured, positioned and drawn.
+//
+// Each walk below therefore takes the same budget. Past it the walk stops
+// descending rather than panicking: a node beyond the cap is left at its
+// zero state — unsized, unpositioned, unpainted — which degrades the
+// frame instead of the process. The cap is deliberately maxEventDepth
+// rather than a second constant, so the depth at which input stops and
+// the depth at which layout stops cannot drift apart.
+//
+// This is consistency with an existing decision, not a fix for a live
+// crash: the layout tree comes from application code, and real trees nest
+// dozens deep at most.
+
 // layoutParents sets the parent pointer of all nodes.
+//
+// A node past the depth cap keeps a nil Parent, the same state a detached
+// subtree already has.
 func layoutParents(layout *Layout, parent *Layout) {
+	layoutParentsDepth(layout, parent, 0)
+}
+
+func layoutParentsDepth(layout *Layout, parent *Layout, depth int) {
+	if overMaxDepth(depth) {
+		return
+	}
 	layout.Parent = parent
 	for i := range layout.Children {
-		layoutParents(&layout.Children[i], layout)
+		layoutParentsDepth(&layout.Children[i], layout, depth+1)
 	}
 }
 
 // layoutDisables walks the Layout and disables children that
 // have a disabled ancestor.
 func layoutDisables(layout *Layout, disabled bool) {
+	layoutDisablesDepth(layout, disabled, 0)
+}
+
+func layoutDisablesDepth(layout *Layout, disabled bool, depth int) {
+	if overMaxDepth(depth) {
+		return
+	}
 	isDisabled := disabled || layout.Shape.Disabled
 	layout.Shape.Disabled = isDisabled
 	for i := range layout.Children {
-		layoutDisables(&layout.Children[i], isDisabled)
+		layoutDisablesDepth(&layout.Children[i], isDisabled, depth+1)
 	}
 }
 

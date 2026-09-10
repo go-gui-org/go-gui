@@ -178,18 +178,17 @@ func (dc *DrawContext) xfRect(x, y, w, h float32) (float32, float32, float32, fl
 	return min(x0, x1), min(y0, y1), xfAbs(x1 - x0), xfAbs(y1 - y0)
 }
 
-// maxXfPoints caps the scratch buffer retained by xfPoints. A single
-// unbounded Polyline would otherwise pin tens of megabytes across frames.
-const maxXfPoints = 1 << 20 // ~4 MiB of floats
-
 // xfPoints maps a caller's point slice into the context's scratch
 // buffer. The caller's slice is never written to: a recorder may hold
 // it, and callers pass their own backing arrays.
+//
+// Every length is mapped. An earlier cap here returned the caller's
+// points unmapped past a size threshold, which handed a recorder raw
+// local coordinates and silently misplaced a large polyline in an
+// export. A run-away buffer is released instead by resetFor, which
+// runs keepScratch over xfPtBuf with every other canvas scratch.
 func (dc *DrawContext) xfPoints(points []float32) []float32 {
 	if _, ok := dc.activeXform(); !ok {
-		return points
-	}
-	if len(points) > maxXfPoints {
 		return points
 	}
 	dc.xfPtBuf = append(dc.xfPtBuf[:0], points...)

@@ -84,11 +84,26 @@ func maxAnimationRefreshKind(current, incoming AnimationRefreshKind) AnimationRe
 }
 
 // Animation is the interface for all animation types. Update is
-// called each tick with the elapsed seconds since the previous tick
-// and an AnimationCommands batch into which the animation may enqueue
-// deferred callbacks (OnDone / OnValue) — those run after Update
-// returns so callback bodies cannot reenter the animation loop mutex.
+// called each tick with the nominal timestep in seconds (the fixed
+// 16 ms animation cycle), not a measured elapsed time — a late tick
+// still reports the nominal step. Duration-based animations re-derive
+// progress from the wall clock (see durationProgress); only the
+// spring integrator steps by dt, which is what its stability bound
+// is derived for. An AnimationCommands batch is supplied into which
+// the animation may enqueue deferred callbacks (OnDone / OnValue) —
+// those run after Update returns so callback bodies cannot reenter
+// the animation loop mutex.
 // Return false once the animation has stopped so the loop retires it.
+//
+// Update runs with the animation mutex held: it must not call
+// HasAnimation, AnimationAdd, AnimationRemove, animationAddViewBound
+// or touchViewBoundAnimation — each takes the same mutex and
+// self-deadlocks. One-shot and repeating work belongs in the deferred
+// callbacks, which run off the loop.
+//
+// Two live animations must not write the same state. The loop walks
+// the animation map, whose iteration order varies frame to frame, so
+// overlapping writers apply in a nondeterministic order.
 // exportaudit:keep — reachable from an exported signature
 type Animation interface {
 	ID() string

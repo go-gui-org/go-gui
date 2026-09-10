@@ -201,7 +201,7 @@ func textAnimDefaultEasing(k TextAnimKind) EasingFn {
 		return EaseLinear
 	case TextAnimPop:
 		// Overshoots slightly past full size, then settles.
-		return easeOutBack
+		return EaseOutBack
 	default:
 		return EaseOutCubic
 	}

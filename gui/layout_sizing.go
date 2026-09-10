@@ -134,12 +134,30 @@ func layoutFillCrossAxis(layout *Layout, axis distributeAxis, fb *fillBuffers) {
 			totalChild = *sum
 		} else {
 			for j := range layout.Parent.Children {
+				// In-flow children only. The target below subtracts
+				// layout.Parent.spacing(), which counts this same set, so
+				// summing everything would let a Float or hidden sibling
+				// take budget that no fence post accounts for and leave
+				// this Fill child short.
+				//
+				// The total deliberately does not depend on which child is
+				// asking: it is cached on the parent and read by every
+				// sibling that fills on this axis.
+				if skipLayoutChild(layout.Parent.Children[j].Shape) {
+					continue
+				}
 				totalChild += getSize(layout.Parent.Children[j].Shape, axis)
 			}
 			*sum = totalChild
 			parentShape.siblingSumGen = fb.fillGen
 		}
-		sibling := totalChild - getSize(layout.Shape, axis)
+		// Remove self only when self is part of that sum. A Float or
+		// hidden container that still fills on the cross axis was never
+		// added, so subtracting it would hand out its size twice.
+		sibling := totalChild
+		if !skipLayoutChild(layout.Shape) {
+			sibling -= getSize(layout.Shape, axis)
+		}
 		target := getSize(layout.Parent.Shape, axis) - sibling -
 			layout.Parent.spacing() - getPadding(layout.Parent.Shape, axis)
 		setSize(layout.Shape, axis, f32Max(0, target))
@@ -165,6 +183,13 @@ func collectDistributionCandidates(layout *Layout, axis distributeAxis, mode dis
 		fb.fixedIndices = fb.fixedIndices[:0]
 	}
 	for i := range layout.Children {
+		// Out-of-flow children take no slot in the row, so they take no
+		// share of its budget either. The remaining budget above already
+		// drops them (matching layout.spacing()), so dealing them in here
+		// would let a Float Fill shrink its in-flow siblings.
+		if skipLayoutChild(layout.Children[i].Shape) {
+			continue
+		}
 		if getSizing(layout.Children[i].Shape, axis) == sizingFill {
 			fb.candidates = append(fb.candidates, i)
 		} else if mode == distributeShrink {
@@ -348,6 +373,13 @@ func distributeSpace(layout *Layout, remainingIn float32, mode distributeMode, a
 
 // layoutWidths arranges children horizontally (bottom-up).
 func layoutWidths(layout *Layout) {
+	layoutWidthsDepth(layout, 0)
+}
+
+func layoutWidthsDepth(layout *Layout, depth int) {
+	if overMaxDepth(depth) {
+		return
+	}
 	padding := layout.Shape.paddingWidth()
 	if layout.Shape.Axis == axisLeftToRight {
 		sp := layout.spacing()
@@ -359,7 +391,7 @@ func layoutWidths(layout *Layout) {
 		// children. Childless boxes still resolve to 0, unchanged.
 		if layout.Shape.Sizing.Width == sizingFixed && layout.Shape.Width > 0 {
 			for i := range layout.Children {
-				layoutWidths(&layout.Children[i])
+				layoutWidthsDepth(&layout.Children[i], depth+1)
 			}
 		} else {
 			// A wrapping or overflowing row can be narrower than the
@@ -375,8 +407,12 @@ func layoutWidths(layout *Layout) {
 				minWidths += sp
 			}
 			for i := range layout.Children {
-				layoutWidths(&layout.Children[i])
-				if layout.Children[i].Shape.OverDraw {
+				layoutWidthsDepth(&layout.Children[i], depth+1)
+				// Out-of-flow children (Float, shapeNone, OverDraw) are
+				// dropped here for the same reason layout.spacing() drops
+				// them from the fence-post count: a child that does not
+				// take a slot in the row must not widen it either.
+				if skipLayoutChild(layout.Children[i].Shape) {
 					continue
 				}
 				layout.Shape.Width += layout.Children[i].Shape.Width
@@ -406,8 +442,29 @@ func layoutWidths(layout *Layout) {
 		// (see the AxisLeftToRight note above / issue #94). Captured
 		// before the loop mutates Width, so it stays stable per child.
 		fitWidth := layout.Shape.Sizing.Width != sizingFixed || layout.Shape.Width == 0
+		// Padding is seeded rather than reaching the container only as
+		// part of some child's contribution below, so that skipping an
+		// out-of-flow child cannot also discard the container's own
+		// padding. An empty group box has exactly one child — a shapeNone
+		// placeholder (layoutPlaceholder) — and used to get its padding
+		// width from measuring it.
+		//
+		// Gated on having children at all, in flow or not: a container
+		// with none collapses to 0 rather than to its padding, which is
+		// what a closed Sidebar (zero children, 1px border each side)
+		// relies on to stay shut.
+		if fitWidth && len(layout.Children) > 0 {
+			layout.Shape.Width = f32Max(layout.Shape.Width, padding)
+		}
 		for i := range layout.Children {
-			layoutWidths(&layout.Children[i])
+			// Recurse first: an out-of-flow child still needs its own
+			// subtree measured. Only its contribution to this container's
+			// fit is dropped, matching computeContentWidth, which applies
+			// skipLayoutChild on the cross axis too.
+			layoutWidthsDepth(&layout.Children[i], depth+1)
+			if skipLayoutChild(layout.Children[i].Shape) {
+				continue
+			}
 			if fitWidth {
 				layout.Shape.Width = f32Max(layout.Shape.Width, layout.Children[i].Shape.Width+padding)
 				if !layout.Shape.Clip {
@@ -446,6 +503,13 @@ func layoutWidths(layout *Layout) {
 
 // layoutHeights arranges children vertically (bottom-up).
 func layoutHeights(layout *Layout) {
+	layoutHeightsDepth(layout, 0)
+}
+
+func layoutHeightsDepth(layout *Layout, depth int) {
+	if overMaxDepth(depth) {
+		return
+	}
 	padding := layout.Shape.paddingHeight()
 	if layout.Shape.Axis == axisTopToBottom {
 		sp := layout.spacing()
@@ -454,19 +518,30 @@ func layoutHeights(layout *Layout) {
 		// otherwise collapse every descendant's clip/hit-test region.
 		if layout.Shape.Sizing.Height == sizingFixed && layout.Shape.Height > 0 {
 			for i := range layout.Children {
-				layoutHeights(&layout.Children[i])
+				layoutHeightsDepth(&layout.Children[i], depth+1)
 			}
 		} else {
 			minHeights := padding + sp
 			for i := range layout.Children {
-				layoutHeights(&layout.Children[i])
-				if layout.Children[i].Shape.OverDraw {
+				layoutHeightsDepth(&layout.Children[i], depth+1)
+				// Float, shapeNone and OverDraw children sit outside the
+				// flow, so they must not contribute to the stacked height
+				// or its floor — the same set layout.spacing() drops from
+				// the fence-post count, and computeContentHeight from the
+				// content sum.
+				if skipLayoutChild(layout.Children[i].Shape) {
 					continue
 				}
 				layout.Shape.Height += layout.Children[i].Shape.Height
 				minHeights += layout.Children[i].Shape.MinHeight
 			}
-			layout.Shape.MinHeight = f32Max(minHeights, layout.Shape.MinHeight+padding+sp)
+			// A stated MinHeight is border-box, matching the row branch in
+			// layoutWidths (issue #385): it already counts padding and
+			// spacing, so adding them here charged the caller twice and made
+			// a Row and a Column state the same minimum and arrange at
+			// different sizes. The computed floor keeps its padding + sp
+			// because it sums bare child minimums.
+			layout.Shape.MinHeight = f32Max(minHeights, layout.Shape.MinHeight)
 			layout.Shape.Height += padding + sp
 			if layout.Shape.MaxHeight > 0 {
 				layout.Shape.Height = f32Min(layout.Shape.MaxHeight, layout.Shape.Height)
@@ -483,8 +558,19 @@ func layoutHeights(layout *Layout) {
 		// Fixed cross-axis with a 0 height degrades to content sizing
 		// (see issue #94). Captured before the loop mutates Height.
 		fitHeight := layout.Shape.Sizing.Height != sizingFixed || layout.Shape.Height == 0
+		// See layoutWidths: seeded so skipping an out-of-flow child cannot
+		// discard the container's padding, and gated on having children so
+		// a childless container still collapses to 0.
+		if fitHeight && len(layout.Children) > 0 {
+			layout.Shape.Height = f32Max(layout.Shape.Height, padding)
+		}
 		for i := range layout.Children {
-			layoutHeights(&layout.Children[i])
+			// See layoutWidths: recurse for every child, fit against the
+			// in-flow ones only.
+			layoutHeightsDepth(&layout.Children[i], depth+1)
+			if skipLayoutChild(layout.Children[i].Shape) {
+				continue
+			}
 			if fitHeight {
 				layout.Shape.Height = f32Max(layout.Shape.Height, layout.Children[i].Shape.Height+padding)
 				layout.Shape.MinHeight = f32Max(layout.Shape.MinHeight, layout.Children[i].Shape.MinHeight+padding)
@@ -520,12 +606,22 @@ func layoutFillWidths(layout *Layout, p *scratchPools) {
 }
 
 func layoutFillWidthsImpl(layout *Layout, fb *fillBuffers) {
+	layoutFillWidthsImplDepth(layout, fb, 0)
+}
+
+func layoutFillWidthsImplDepth(layout *Layout, fb *fillBuffers, depth int) {
+	if overMaxDepth(depth) {
+		return
+	}
 	remainingWidth := layout.Shape.Width - layout.Shape.paddingWidth()
 
 	switch layout.Shape.Axis {
 	case axisLeftToRight:
 		for i := range layout.Children {
-			if layout.Children[i].Shape.OverDraw {
+			// Must drop the same children layout.spacing() drops on the
+			// next line, or an out-of-flow child eats budget that no
+			// fence post accounts for and Fill siblings shrink.
+			if skipLayoutChild(layout.Children[i].Shape) {
 				continue
 			}
 			remainingWidth -= layout.Children[i].Shape.Width
@@ -543,7 +639,7 @@ func layoutFillWidthsImpl(layout *Layout, fb *fillBuffers) {
 	}
 
 	for i := range layout.Children {
-		layoutFillWidthsImpl(&layout.Children[i], fb)
+		layoutFillWidthsImplDepth(&layout.Children[i], fb, depth+1)
 	}
 
 	// Cache content width after all children have final widths.
@@ -574,12 +670,21 @@ func layoutFillWithPool(layout *Layout, p *scratchPools, impl func(*Layout, *fil
 }
 
 func layoutFillHeightsImpl(layout *Layout, fb *fillBuffers) {
+	layoutFillHeightsImplDepth(layout, fb, 0)
+}
+
+func layoutFillHeightsImplDepth(layout *Layout, fb *fillBuffers, depth int) {
+	if overMaxDepth(depth) {
+		return
+	}
 	remainingHeight := layout.Shape.Height - layout.Shape.paddingHeight()
 
 	switch layout.Shape.Axis {
 	case axisTopToBottom:
 		for i := range layout.Children {
-			if layout.Children[i].Shape.OverDraw {
+			// See layoutFillWidthsImpl: this must match the child set
+			// layout.spacing() uses on the next line.
+			if skipLayoutChild(layout.Children[i].Shape) {
 				continue
 			}
 			remainingHeight -= layout.Children[i].Shape.Height
@@ -598,7 +703,7 @@ func layoutFillHeightsImpl(layout *Layout, fb *fillBuffers) {
 	}
 
 	for i := range layout.Children {
-		layoutFillHeightsImpl(&layout.Children[i], fb)
+		layoutFillHeightsImplDepth(&layout.Children[i], fb, depth+1)
 	}
 
 	// Cache content height after all children have final heights.

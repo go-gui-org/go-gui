@@ -30,9 +30,9 @@ func TestLayoutHeightsEmptyContainer(t *testing.T) {
 
 func TestLayoutWidthsSingleChild(t *testing.T) {
 	root := &Layout{
-		Shape: &Shape{Axis: axisLeftToRight},
+		Shape: &Shape{shapeType: shapeRectangle, Axis: axisLeftToRight},
 		Children: []Layout{
-			{Shape: &Shape{Width: 40}},
+			{Shape: &Shape{shapeType: shapeRectangle, Width: 40}},
 		},
 	}
 	layoutWidths(root)
@@ -43,9 +43,9 @@ func TestLayoutWidthsSingleChild(t *testing.T) {
 
 func TestLayoutHeightsSingleChild(t *testing.T) {
 	root := &Layout{
-		Shape: &Shape{Axis: axisTopToBottom},
+		Shape: &Shape{shapeType: shapeRectangle, Axis: axisTopToBottom},
 		Children: []Layout{
-			{Shape: &Shape{Height: 25}},
+			{Shape: &Shape{shapeType: shapeRectangle, Height: 25}},
 		},
 	}
 	layoutHeights(root)
@@ -56,13 +56,13 @@ func TestLayoutHeightsSingleChild(t *testing.T) {
 
 func TestLayoutWidthsMaxWidthClamp(t *testing.T) {
 	root := &Layout{
-		Shape: &Shape{
+		Shape: &Shape{shapeType: shapeRectangle,
 			Axis:     axisLeftToRight,
 			MaxWidth: 60,
 		},
 		Children: []Layout{
-			{Shape: &Shape{Width: 50}},
-			{Shape: &Shape{Width: 50}},
+			{Shape: &Shape{shapeType: shapeRectangle, Width: 50}},
+			{Shape: &Shape{shapeType: shapeRectangle, Width: 50}},
 		},
 	}
 	layoutWidths(root)
@@ -73,13 +73,13 @@ func TestLayoutWidthsMaxWidthClamp(t *testing.T) {
 
 func TestLayoutHeightsMaxHeightClamp(t *testing.T) {
 	root := &Layout{
-		Shape: &Shape{
+		Shape: &Shape{shapeType: shapeRectangle,
 			Axis:      axisTopToBottom,
 			MaxHeight: 40,
 		},
 		Children: []Layout{
-			{Shape: &Shape{Height: 30}},
-			{Shape: &Shape{Height: 30}},
+			{Shape: &Shape{shapeType: shapeRectangle, Height: 30}},
+			{Shape: &Shape{shapeType: shapeRectangle, Height: 30}},
 		},
 	}
 	layoutHeights(root)
@@ -357,10 +357,10 @@ func TestLayoutWidthsFixedSizingSkipsAccumulation(t *testing.T) {
 func TestLayoutWidthsFixedZeroDegradesToContent(t *testing.T) {
 	// Main axis (row width).
 	row := &Layout{
-		Shape: &Shape{Axis: axisLeftToRight, Sizing: FixedFixed},
+		Shape: &Shape{shapeType: shapeRectangle, Axis: axisLeftToRight, Sizing: FixedFixed},
 		Children: []Layout{
-			{Shape: &Shape{Width: 50}},
-			{Shape: &Shape{Width: 50}},
+			{Shape: &Shape{shapeType: shapeRectangle, Width: 50}},
+			{Shape: &Shape{shapeType: shapeRectangle, Width: 50}},
 		},
 	}
 	layoutWidths(row)
@@ -370,9 +370,9 @@ func TestLayoutWidthsFixedZeroDegradesToContent(t *testing.T) {
 
 	// Cross axis (column width).
 	col := &Layout{
-		Shape: &Shape{Axis: axisTopToBottom, Sizing: FixedFixed},
+		Shape: &Shape{shapeType: shapeRectangle, Axis: axisTopToBottom, Sizing: FixedFixed},
 		Children: []Layout{
-			{Shape: &Shape{Width: 70}},
+			{Shape: &Shape{shapeType: shapeRectangle, Width: 70}},
 		},
 	}
 	layoutWidths(col)
@@ -381,7 +381,7 @@ func TestLayoutWidthsFixedZeroDegradesToContent(t *testing.T) {
 	}
 
 	// Childless Fixed-zero box stays 0 (leaf images/svg unaffected).
-	leaf := &Layout{Shape: &Shape{Axis: axisLeftToRight, Sizing: FixedFixed}}
+	leaf := &Layout{Shape: &Shape{shapeType: shapeRectangle, Axis: axisLeftToRight, Sizing: FixedFixed}}
 	layoutWidths(leaf)
 	if !f32AreClose(leaf.Shape.Width, 0) {
 		t.Errorf("leaf width: got %f, want 0", leaf.Shape.Width)
@@ -392,10 +392,10 @@ func TestLayoutWidthsFixedZeroDegradesToContent(t *testing.T) {
 func TestLayoutHeightsFixedZeroDegradesToContent(t *testing.T) {
 	// Main axis (column height).
 	col := &Layout{
-		Shape: &Shape{Axis: axisTopToBottom, Sizing: FixedFixed},
+		Shape: &Shape{shapeType: shapeRectangle, Axis: axisTopToBottom, Sizing: FixedFixed},
 		Children: []Layout{
-			{Shape: &Shape{Height: 30}},
-			{Shape: &Shape{Height: 30}},
+			{Shape: &Shape{shapeType: shapeRectangle, Height: 30}},
+			{Shape: &Shape{shapeType: shapeRectangle, Height: 30}},
 		},
 	}
 	layoutHeights(col)
@@ -405,9 +405,9 @@ func TestLayoutHeightsFixedZeroDegradesToContent(t *testing.T) {
 
 	// Cross axis (row height).
 	row := &Layout{
-		Shape: &Shape{Axis: axisLeftToRight, Sizing: FixedFixed},
+		Shape: &Shape{shapeType: shapeRectangle, Axis: axisLeftToRight, Sizing: FixedFixed},
 		Children: []Layout{
-			{Shape: &Shape{Height: 45}},
+			{Shape: &Shape{shapeType: shapeRectangle, Height: 45}},
 		},
 	}
 	layoutHeights(row)
@@ -416,7 +416,7 @@ func TestLayoutHeightsFixedZeroDegradesToContent(t *testing.T) {
 	}
 
 	// Childless Fixed-zero box stays 0.
-	leaf := &Layout{Shape: &Shape{Axis: axisTopToBottom, Sizing: FixedFixed}}
+	leaf := &Layout{Shape: &Shape{shapeType: shapeRectangle, Axis: axisTopToBottom, Sizing: FixedFixed}}
 	layoutHeights(leaf)
 	if !f32AreClose(leaf.Shape.Height, 0) {
 		t.Errorf("leaf height: got %f, want 0", leaf.Shape.Height)
@@ -425,18 +425,18 @@ func TestLayoutHeightsFixedZeroDegradesToContent(t *testing.T) {
 
 func TestLayoutFillWidths_NilPool(t *testing.T) {
 	root := &Layout{
-		Shape: &Shape{
+		Shape: &Shape{shapeType: shapeRectangle,
 			Sizing: FixedFixed,
 			Width:  200,
 			Height: 100,
 			Axis:   axisLeftToRight,
 		},
 		Children: []Layout{
-			{Shape: &Shape{
+			{Shape: &Shape{shapeType: shapeRectangle,
 				Sizing: FillFixed,
 				Width:  50,
 			}},
-			{Shape: &Shape{
+			{Shape: &Shape{shapeType: shapeRectangle,
 				Sizing: FillFixed,
 				Width:  50,
 			}},
@@ -460,18 +460,18 @@ func TestLayoutFillWidths_NilPool(t *testing.T) {
 
 func TestLayoutFillHeights_NilPool(t *testing.T) {
 	root := &Layout{
-		Shape: &Shape{
+		Shape: &Shape{shapeType: shapeRectangle,
 			Sizing: FixedFixed,
 			Width:  200,
 			Height: 200,
 			Axis:   axisTopToBottom,
 		},
 		Children: []Layout{
-			{Shape: &Shape{
+			{Shape: &Shape{shapeType: shapeRectangle,
 				Sizing: FixedFill,
 				Height: 50,
 			}},
-			{Shape: &Shape{
+			{Shape: &Shape{shapeType: shapeRectangle,
 				Sizing: FixedFill,
 				Height: 50,
 			}},
@@ -660,5 +660,387 @@ func TestLayoutFillCrossAxis_SiblingSumCache(t *testing.T) {
 	c2w := parent.Children[2].Shape.Width
 	if !f32AreClose(c2w, 50) {
 		t.Errorf("child 2 width = %f, want 50", c2w)
+	}
+}
+
+// TestRowAndColumnMinHeightAgree is the height mirror of
+// TestRowAndColumnMinWidthAgree (issue #385). layoutHeights used to read a
+// stated MinHeight as content-box — it added padding and the inter-child gap
+// sum on top — while layoutWidths had already been corrected to border-box.
+// A Row and a Column with identical padding, spacing and stated minimum must
+// arrange at the same size on both axes.
+func TestRowAndColumnMinHeightAgree(t *testing.T) {
+	// minHeightBox builds a PadAll(5)/Spacing 10 box with two 20px-tall
+	// children; childMin is the MinHeight each child carries, 0 for none.
+	minHeightBox := func(axis Axis, stated, childMin float32) *Layout {
+		return &Layout{
+			Shape: &Shape{
+				Axis:      axis,
+				MinHeight: stated,
+				Padding:   PadAll(5),
+				Spacing:   10,
+				shapeType: shapeRectangle,
+			},
+			Children: []Layout{
+				{Shape: &Shape{Width: 40, Height: 20, MinHeight: childMin, shapeType: shapeRectangle}},
+				{Shape: &Shape{Width: 40, Height: 20, MinHeight: childMin, shapeType: shapeRectangle}},
+			},
+		}
+	}
+
+	col := minHeightBox(axisTopToBottom, 160, 0)
+	row := minHeightBox(axisLeftToRight, 160, 0)
+	layoutHeights(col)
+	layoutHeights(row)
+
+	if !f32AreClose(col.Shape.MinHeight, 160) {
+		t.Errorf("col MinHeight: got %f, want 160 (border-box, padding and "+
+			"spacing not added on top)", col.Shape.MinHeight)
+	}
+	if !f32AreClose(col.Shape.Height, 160) {
+		t.Errorf("col height: got %f, want 160", col.Shape.Height)
+	}
+	if !f32AreClose(row.Shape.MinHeight, 160) {
+		t.Errorf("row MinHeight: got %f, want 160", row.Shape.MinHeight)
+	}
+	if !f32AreClose(row.Shape.Height, 160) {
+		t.Errorf("row height: got %f, want 160", row.Shape.Height)
+	}
+
+	// The child-min floor still wins over a smaller stated MinHeight: the
+	// column sums bare child minimums and adds its own padding and spacing
+	// (5+5 padding + 10 spacing + 2*50), so the floor is 120, not the
+	// stated 40.
+	tall := minHeightBox(axisTopToBottom, 40, 50)
+	layoutHeights(tall)
+	if !f32AreClose(tall.Shape.MinHeight, 120) {
+		t.Errorf("col MinHeight with child minimums: got %f, want 120",
+			tall.Shape.MinHeight)
+	}
+}
+
+// TestOutOfFlowChildDoesNotSizeParent guards the child set the sizing passes
+// measure. layoutWidths, layoutHeights and the two fill passes used to skip
+// only OverDraw children, while layout.spacing() and computeContentWidth skip
+// everything skipLayoutChild names — Float and shapeNone included. A Float
+// child therefore added its width to the parent's content sum while taking no
+// fence post, so an out-of-flow child silently widened its container.
+func TestOutOfFlowChildDoesNotSizeParent(t *testing.T) {
+	// flowBox builds a Fit row of two 40px children, optionally with a
+	// wide out-of-flow child appended.
+	flowBox := func(extra *Shape) *Layout {
+		l := &Layout{
+			Shape: &Shape{
+				Axis:      axisLeftToRight,
+				Spacing:   10,
+				shapeType: shapeRectangle,
+			},
+			Children: []Layout{
+				{Shape: &Shape{Width: 40, Height: 20, shapeType: shapeRectangle}},
+				{Shape: &Shape{Width: 40, Height: 20, shapeType: shapeRectangle}},
+			},
+		}
+		if extra != nil {
+			l.Children = append(l.Children, Layout{Shape: extra})
+		}
+		return l
+	}
+
+	base := flowBox(nil)
+	layoutWidths(base)
+	// Two 40px children plus one 10px gap.
+	if !f32AreClose(base.Shape.Width, 90) {
+		t.Fatalf("baseline row width: got %f, want 90", base.Shape.Width)
+	}
+
+	cases := []struct {
+		name  string
+		extra *Shape
+	}{
+		{"float", &Shape{Float: true, Width: 200, Height: 20, shapeType: shapeRectangle}},
+		{"shapeNone", &Shape{Width: 200, Height: 20, shapeType: shapeNone}},
+		{"overDraw", &Shape{OverDraw: true, Width: 200, Height: 20, shapeType: shapeRectangle}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := flowBox(tc.extra)
+			layoutWidths(got)
+			if !f32AreClose(got.Shape.Width, base.Shape.Width) {
+				t.Errorf("row width with an out-of-flow child: got %f, want %f",
+					got.Shape.Width, base.Shape.Width)
+			}
+		})
+	}
+}
+
+// TestOutOfFlowChildDoesNotFitParentCrossAxis is the cross-axis half of
+// TestOutOfFlowChildDoesNotSizeParent. The cross-axis fit loops in
+// layoutWidths and layoutHeights measured every child, while
+// computeContentWidth applies skipLayoutChild on both axes — so a wide Float
+// inside a Column still stretched the Column to its width.
+func TestOutOfFlowChildDoesNotFitParentCrossAxis(t *testing.T) {
+	// colBox is a Fit-width Column of two 40px-wide children, optionally
+	// with a much wider out-of-flow child appended.
+	colBox := func(extra *Shape) *Layout {
+		l := &Layout{
+			Shape: &Shape{
+				Axis:      axisTopToBottom,
+				shapeType: shapeRectangle,
+			},
+			Children: []Layout{
+				{Shape: &Shape{Width: 40, Height: 20, shapeType: shapeRectangle}},
+				{Shape: &Shape{Width: 40, Height: 20, shapeType: shapeRectangle}},
+			},
+		}
+		if extra != nil {
+			l.Children = append(l.Children, Layout{Shape: extra})
+		}
+		return l
+	}
+
+	base := colBox(nil)
+	layoutWidths(base)
+	if !f32AreClose(base.Shape.Width, 40) {
+		t.Fatalf("baseline column width: got %f, want 40", base.Shape.Width)
+	}
+
+	cases := []struct {
+		name  string
+		extra *Shape
+	}{
+		{"float", &Shape{Float: true, Width: 300, Height: 20, shapeType: shapeRectangle}},
+		{"shapeNone", &Shape{Width: 300, Height: 20, shapeType: shapeNone}},
+		{"overDraw", &Shape{OverDraw: true, Width: 300, Height: 20, shapeType: shapeRectangle}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := colBox(tc.extra)
+			layoutWidths(got)
+			if !f32AreClose(got.Shape.Width, base.Shape.Width) {
+				t.Errorf("column width with an out-of-flow child: got %f, want %f",
+					got.Shape.Width, base.Shape.Width)
+			}
+		})
+	}
+
+	// The out-of-flow child is still measured; only its contribution to
+	// the parent's fit is dropped. A Float whose own width comes from its
+	// children must still resolve.
+	nested := colBox(&Shape{Float: true, Axis: axisLeftToRight, shapeType: shapeRectangle})
+	nested.Children[2].Children = []Layout{
+		{Shape: &Shape{Width: 70, Height: 10, shapeType: shapeRectangle}},
+	}
+	layoutWidths(nested)
+	if !f32AreClose(nested.Children[2].Shape.Width, 70) {
+		t.Errorf("float subtree not measured: got %f, want 70",
+			nested.Children[2].Shape.Width)
+	}
+}
+
+// TestCrossAxisFillIgnoresOutOfFlowSibling guards the sibling sum in
+// layoutFillCrossAxis. It summed every child but subtracted
+// layout.Parent.spacing(), which counts in-flow children only, so a Float
+// sibling stole width from a Scrollable cross-axis Fill child.
+func TestCrossAxisFillIgnoresOutOfFlowSibling(t *testing.T) {
+	// Same shape as TestLayoutFillCrossAxis_SiblingSumCache: an LTR parent
+	// whose TTB scrollable child fills across the parent's main axis, which
+	// is what reaches the sibling-sum branch.
+	rowWith := func(extra ...*Shape) *Layout {
+		l := &Layout{
+			Shape: &Shape{
+				Sizing:    FixedFixed,
+				Width:     300,
+				Height:    100,
+				Axis:      axisLeftToRight,
+				shapeType: shapeRectangle,
+			},
+			Children: []Layout{
+				{Shape: &Shape{
+					shapeType:  shapeRectangle,
+					Sizing:     FillFill,
+					Axis:       axisTopToBottom,
+					Scrollable: true,
+					ID:         "fill",
+					Width:      0, Height: 20,
+				}},
+				{Shape: &Shape{
+					shapeType: shapeRectangle,
+					Sizing:    FixedFixed,
+					Axis:      axisTopToBottom,
+					Width:     50, Height: 20,
+				}},
+			},
+		}
+		for _, e := range extra {
+			l.Children = append(l.Children, Layout{Shape: e})
+		}
+		layoutParents(l, nil)
+		return l
+	}
+
+	fillWidth := func(l *Layout) float32 {
+		var p scratchPools
+		p.beginFillPass()
+		layoutFillWidths(l, &p)
+		return l.Children[0].Shape.Width
+	}
+
+	// 300 parent less the 50px fixed sibling.
+	base := fillWidth(rowWith())
+	if !f32AreClose(base, 250) {
+		t.Fatalf("baseline fill width: got %f, want 250", base)
+	}
+
+	withFloat := fillWidth(rowWith(&Shape{
+		shapeType: shapeRectangle,
+		Sizing:    FixedFixed,
+		Axis:      axisTopToBottom,
+		Float:     true,
+		Width:     80, Height: 20,
+	}))
+	if !f32AreClose(withFloat, base) {
+		t.Errorf("fill width with a Float sibling: got %f, want %f",
+			withFloat, base)
+	}
+}
+
+// TestCrossAxisFitSeedsPadding pins the two ends of the cross-axis padding
+// rule, which the out-of-flow skip made load-bearing. Padding used to reach
+// a Fit container only as part of a child's contribution, so once the fit
+// stopped measuring out-of-flow children an empty group box — whose only
+// child is a shapeNone placeholder — collapsed to zero instead of to its
+// padding. Seeding it is gated on having children, because a container with
+// none must still collapse: a closed Sidebar has zero children and a 1px
+// border per side, and has to stay shut.
+func TestCrossAxisFitSeedsPadding(t *testing.T) {
+	withPlaceholder := &Layout{
+		Shape: &Shape{
+			Axis:      axisTopToBottom,
+			Padding:   PadAll(15),
+			shapeType: shapeRectangle,
+		},
+		Children: []Layout{layoutPlaceholder()},
+	}
+	layoutWidths(withPlaceholder)
+	if !f32AreClose(withPlaceholder.Shape.Width, 30) {
+		t.Errorf("placeholder-only container width: got %f, want 30 (its "+
+			"own padding)", withPlaceholder.Shape.Width)
+	}
+
+	childless := &Layout{
+		Shape: &Shape{
+			Axis:      axisTopToBottom,
+			Padding:   PadAll(15),
+			shapeType: shapeRectangle,
+		},
+	}
+	layoutWidths(childless)
+	if !f32AreClose(childless.Shape.Width, 0) {
+		t.Errorf("childless container width: got %f, want 0 (must collapse, "+
+			"not fall back to padding)", childless.Shape.Width)
+	}
+}
+
+// TestCrossAxisFitSeedsPaddingHeight is the height mirror of
+// TestCrossAxisFitSeedsPadding. The LTR cross-axis fit seeds Height to the
+// container's own padding for the same reason the TTB one seeds Width:
+// once out-of-flow children stop contributing, a placeholder-only box must
+// still resolve to its padding while a childless one collapses to 0.
+func TestCrossAxisFitSeedsPaddingHeight(t *testing.T) {
+	withPlaceholder := &Layout{
+		Shape: &Shape{
+			Axis:      axisLeftToRight,
+			Padding:   PadAll(15),
+			shapeType: shapeRectangle,
+		},
+		Children: []Layout{layoutPlaceholder()},
+	}
+	layoutHeights(withPlaceholder)
+	if !f32AreClose(withPlaceholder.Shape.Height, 30) {
+		t.Errorf("placeholder-only container height: got %f, want 30 (its "+
+			"own padding)", withPlaceholder.Shape.Height)
+	}
+
+	childless := &Layout{
+		Shape: &Shape{
+			Axis:      axisLeftToRight,
+			Padding:   PadAll(15),
+			shapeType: shapeRectangle,
+		},
+	}
+	layoutHeights(childless)
+	if !f32AreClose(childless.Shape.Height, 0) {
+		t.Errorf("childless container height: got %f, want 0 (must collapse, "+
+			"not fall back to padding)", childless.Shape.Height)
+	}
+}
+
+// TestFillDistributionIgnoresOutOfFlowFill guards the candidate set in
+// collectDistributionCandidates. The remaining budget drops out-of-flow
+// children (matching layout.spacing()), so dealing a Float Fill into the
+// distribution would let it take budget no fence post accounts for and
+// leave the in-flow Fill short: a 250px remainder split two ways instead
+// of going whole to the one child that takes a slot in the row.
+func TestFillDistributionIgnoresOutOfFlowFill(t *testing.T) {
+	rowWith := func(extra ...*Shape) *Layout {
+		l := &Layout{
+			Shape: &Shape{
+				Sizing:    FixedFixed,
+				Width:     300,
+				Height:    100,
+				Axis:      axisLeftToRight,
+				shapeType: shapeRectangle,
+			},
+			Children: []Layout{
+				{Shape: &Shape{
+					shapeType: shapeRectangle,
+					Sizing:    FillFixed,
+					Width:     0,
+				}},
+				{Shape: &Shape{
+					shapeType: shapeRectangle,
+					Sizing:    FixedFixed,
+					Width:     50,
+				}},
+			},
+		}
+		for _, e := range extra {
+			l.Children = append(l.Children, Layout{Shape: e})
+		}
+		layoutParents(l, nil)
+		return l
+	}
+
+	fillWidths := func(l *Layout) (inFlow, floatFill float32) {
+		var p scratchPools
+		p.beginFillPass()
+		layoutFillWidths(l, &p)
+		return l.Children[0].Shape.Width, l.Children[2].Shape.Width
+	}
+
+	// Baseline without the Float: 300 parent less the 50px fixed sibling.
+	base := rowWith()
+	var p scratchPools
+	p.beginFillPass()
+	layoutFillWidths(base, &p)
+	if !f32AreClose(base.Children[0].Shape.Width, 250) {
+		t.Fatalf("baseline fill width: got %f, want 250",
+			base.Children[0].Shape.Width)
+	}
+
+	withFloat := rowWith(&Shape{
+		shapeType: shapeRectangle,
+		Sizing:    FillFixed,
+		Float:     true,
+		Width:     0,
+	})
+	got, floatW := fillWidths(withFloat)
+	if !f32AreClose(got, 250) {
+		t.Errorf("in-flow fill with a Float Fill sibling: got %f, want 250",
+			got)
+	}
+	if !f32AreClose(floatW, 0) {
+		t.Errorf("Float Fill takes no share of the row budget: got %f, want 0",
+			floatW)
 	}
 }

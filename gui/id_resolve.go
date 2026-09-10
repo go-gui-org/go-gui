@@ -227,7 +227,7 @@ func resolveFocusOwners(layout *Layout, w *Window) {
 	// Read once per tree, not once per shape: the walk visits every
 	// shape in the frame and the gate cannot move while it does.
 	frames = resolveFocusOwnersWalk(
-		w, layout, "", frames, w.debugStampsChecked())
+		w, layout, "", frames, w.debugStampsChecked(), 0)
 	if w != nil {
 		// Drop a backing array one pathologically deep frame grew, so a
 		// transient tree cannot pin memory for the window's lifetime.
@@ -248,13 +248,16 @@ const maxIDScopeStackKeep = 256
 // sibling.
 func resolveFocusOwnersWalk(
 	w *Window, layout *Layout, scope string, frames []idFrame,
-	checkStamps bool,
+	checkStamps bool, depth int,
 ) []idFrame {
+	if overMaxDepth(depth) {
+		return frames
+	}
 	s := layout.Shape
 	if s == nil {
 		for i := range layout.Children {
 			frames = resolveFocusOwnersWalk(
-				w, &layout.Children[i], scope, frames, checkStamps)
+				w, &layout.Children[i], scope, frames, checkStamps, depth+1)
 		}
 		return frames
 	}
@@ -293,7 +296,7 @@ func resolveFocusOwnersWalk(
 	}
 	for i := range layout.Children {
 		frames = resolveFocusOwnersWalk(
-			w, &layout.Children[i], childScope, frames, checkStamps)
+			w, &layout.Children[i], childScope, frames, checkStamps, depth+1)
 	}
 	if pushed {
 		frames = frames[:len(frames)-1]

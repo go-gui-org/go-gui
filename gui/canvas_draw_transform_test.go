@@ -483,7 +483,7 @@ func TestXformIdentityIsNoOpForRecorder(t *testing.T) {
 }
 
 // Hostile point slices must not pin an unbounded scratch buffer.
-func TestXformPointsCap(t *testing.T) {
+func TestXformPointsLargeInput(t *testing.T) {
 	var dc DrawContext
 	dc.Translate(10, 10)
 	dc.ScaleBy(2, 2)
@@ -491,14 +491,23 @@ func TestXformPointsCap(t *testing.T) {
 	for i := range huge {
 		huge[i] = float32(i)
 	}
-	// Must not panic or allocate a retained 4 MiB+ buffer; returns
-	// the caller's slice unchanged when over cap.
+	// Every length is baked. An earlier cap returned the caller's slice
+	// unmapped, which misplaced a large polyline in a recorder export.
 	got := dc.xfPoints(huge)
-	if &got[0] != &huge[0] {
-		t.Error("xfPoints did not return the original slice for a huge input")
+	if &got[0] == &huge[0] {
+		t.Fatal("xfPoints returned the caller's slice instead of a mapped copy")
 	}
-	if got[0] != 0 || got[1] != 1 {
-		t.Error("huge slice was mutated or baked despite cap")
+	if got[0] != 10 || got[1] != 12 {
+		t.Errorf("point 0 = (%v, %v), want (10, 12)", got[0], got[1])
+	}
+	if huge[0] != 0 || huge[1] != 1 {
+		t.Error("the caller's slice was mutated")
+	}
+	// The buffer it took is released by the next redraw, which is what
+	// keeps a one-off giant polyline from pinning megabytes.
+	dc.resetFor(10, 10, 1, nil, drawCanvasCache{})
+	if cap(dc.xfPtBuf) > canvasScratchRetainMax {
+		t.Errorf("xfPtBuf retained %d floats", cap(dc.xfPtBuf))
 	}
 }
 

@@ -13,7 +13,7 @@ func TestCaptureLayoutSnapshots(t *testing.T) {
 			{Shape: &Shape{X: 20, Y: 20, Width: 30, Height: 30}}, // no ID
 		},
 	}
-	snaps := captureLayoutSnapshots(layout)
+	snaps := captureLayoutSnapshots(&layout)
 	if len(snaps) != 2 {
 		t.Errorf("got %d snapshots, want 2 (root + a)", len(snaps))
 	}
@@ -52,7 +52,7 @@ func TestApplyTransitionRecursive(t *testing.T) {
 			"box": {x: 0, y: 0, width: 100, height: 100},
 		},
 	}
-	applyTransitionRecursive(&layout, lt, 0, 0, 0)
+	applyTransitionRecursiveDepth(&layout, lt.snapshots, lt.progress, 0, 0, 0, 0)
 	// At progress=0.5: Lerp(0, 100, 0.5) = 50
 	if layout.Shape.X != 50 {
 		t.Errorf("X = %f, want 50", layout.Shape.X)
@@ -105,7 +105,7 @@ func TestApplyTransitionSnapChannels(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			layout, lt := snapTestTree(0, tc.snap)
-			applyTransitionRecursive(layout, lt, 0, 0, 0)
+			applyTransitionRecursiveDepth(layout, lt.snapshots, lt.progress, 0, 0, 0, 0)
 			checkShape(t, "child", layout.Children[0].Shape, tc.x, tc.y, tc.w, tc.h)
 			// The mask is per-shape: an unflagged sibling is untouched.
 			checkShape(t, "sibling", layout.Children[1].Shape, 50, 50, 150, 150)
@@ -117,7 +117,7 @@ func TestApplyTransitionSnapInherits(t *testing.T) {
 	// A snapped parent snaps its whole subtree even though no child
 	// sets the flag.
 	layout, lt := snapTestTree(AnimSnapAll, 0)
-	applyTransitionRecursive(layout, lt, 0, 0, 0)
+	applyTransitionRecursiveDepth(layout, lt.snapshots, lt.progress, 0, 0, 0, 0)
 	checkShape(t, "root", layout.Shape, 100, 100, 200, 200)
 	checkShape(t, "child", layout.Children[0].Shape, 100, 100, 200, 200)
 	checkShape(t, "sibling", layout.Children[1].Shape, 100, 100, 200, 200)
@@ -126,7 +126,7 @@ func TestApplyTransitionSnapInherits(t *testing.T) {
 func TestApplyTransitionSnapDoesNotInheritUpward(t *testing.T) {
 	// A snapped child leaves its parent and its siblings animating.
 	layout, lt := snapTestTree(0, AnimSnapAll)
-	applyTransitionRecursive(layout, lt, 0, 0, 0)
+	applyTransitionRecursiveDepth(layout, lt.snapshots, lt.progress, 0, 0, 0, 0)
 	checkShape(t, "root", layout.Shape, 50, 50, 150, 150)
 	checkShape(t, "child", layout.Children[0].Shape, 100, 100, 200, 200)
 	checkShape(t, "sibling", layout.Children[1].Shape, 50, 50, 150, 150)
@@ -136,7 +136,7 @@ func TestApplyTransitionSnapPartialInheritCombines(t *testing.T) {
 	// Inheritance is a union: parent snaps position, child snaps size,
 	// so the child ends up fully still while the parent still resizes.
 	layout, lt := snapTestTree(AnimSnapPos, AnimSnapSize)
-	applyTransitionRecursive(layout, lt, 0, 0, 0)
+	applyTransitionRecursiveDepth(layout, lt.snapshots, lt.progress, 0, 0, 0, 0)
 	checkShape(t, "root", layout.Shape, 100, 100, 150, 150)
 	checkShape(t, "child", layout.Children[0].Shape, 100, 100, 200, 200)
 	checkShape(t, "sibling", layout.Children[1].Shape, 100, 100, 150, 150)
@@ -168,7 +168,7 @@ func TestApplyTransitionShiftsIDLessChildren(t *testing.T) {
 	// Layout coords are absolute, so without the carried shift the
 	// label would sit at its final position while the panel slid.
 	layout, lt := shiftTestTree(0)
-	applyTransitionRecursive(layout, lt, 0, 0, 0)
+	applyTransitionRecursiveDepth(layout, lt.snapshots, lt.progress, 0, 0, 0, 0)
 	checkShape(t, "panel", layout.Shape, 50, 50, 150, 150)
 	// Panel moved -50; the label and its own child follow by -50 and
 	// keep their offsets inside the panel (10 and 20).
@@ -179,7 +179,7 @@ func TestApplyTransitionShiftsIDLessChildren(t *testing.T) {
 func TestApplyTransitionSnapPosDoesNotShiftChildren(t *testing.T) {
 	// The panel holds its final position, so nothing under it moves.
 	layout, lt := shiftTestTree(AnimSnapPos)
-	applyTransitionRecursive(layout, lt, 0, 0, 0)
+	applyTransitionRecursiveDepth(layout, lt.snapshots, lt.progress, 0, 0, 0, 0)
 	checkShape(t, "panel", layout.Shape, 100, 100, 150, 150)
 	checkShape(t, "label", layout.Children[0].Shape, 110, 110, 50, 20)
 }
@@ -191,7 +191,7 @@ func TestApplyTransitionOwnSnapshotReplacesShift(t *testing.T) {
 	layout, lt := shiftTestTree(0)
 	layout.Children[0].Shape.ID = "label"
 	lt.snapshots["label"] = posSnapshot{x: 10, y: 10, width: 50, height: 20}
-	applyTransitionRecursive(layout, lt, 0, 0, 0)
+	applyTransitionRecursiveDepth(layout, lt.snapshots, lt.progress, 0, 0, 0, 0)
 	// lerp(10, 110, 0.5) = 60 — the same place the carried shift would
 	// have put it, but derived from the label's own snapshot.
 	checkShape(t, "label", layout.Children[0].Shape, 60, 60, 50, 20)
@@ -205,7 +205,7 @@ func TestApplyTransitionNewShapeRidesAncestorShift(t *testing.T) {
 	// its final coordinates.
 	layout, lt := shiftTestTree(0)
 	layout.Children[0].Shape.ID = "new-label"
-	applyTransitionRecursive(layout, lt, 0, 0, 0)
+	applyTransitionRecursiveDepth(layout, lt.snapshots, lt.progress, 0, 0, 0, 0)
 	checkShape(t, "panel", layout.Shape, 50, 50, 150, 150)
 	checkShape(t, "new label", layout.Children[0].Shape, 60, 60, 50, 20)
 }
@@ -262,4 +262,59 @@ func TestLayoutTransitionOnDone(t *testing.T) {
 	if !done {
 		t.Error("OnDone not called")
 	}
+}
+
+// TestTransitionAmendConcurrentWithLoop is a race regression test: the
+// amend pass reads a running transition's progress on the main thread
+// while the animation goroutine advances it. Both must happen under
+// w.animMu, so this fails under -race if either accessor drops the lock
+// before reading progress or stopped. It asserts nothing about the
+// interpolated values — the point is that -race stays silent.
+func TestTransitionAmendConcurrentWithLoop(t *testing.T) {
+	const ticks = 500
+
+	w := &Window{}
+	lt := &layoutTransition{
+		transitionBase: transitionBase{
+			duration: time.Second,
+			easing:   EaseLinear,
+		},
+		snapshots: map[string]posSnapshot{
+			"box": {x: 0, y: 0, width: 100, height: 100},
+		},
+	}
+	ht := NewHeroTransition(HeroTransitionCfg{Duration: time.Second})
+	ht.outgoing = map[string]posSnapshot{"box": {x: 0, y: 0, width: 100, height: 100}}
+	w.AnimationAdd(lt)
+	w.AnimationAdd(ht)
+
+	done := make(chan struct{})
+	go func() {
+		// Stands in for animationLoop's update pass: same call, same
+		// mutex, without needing the window's lifecycle channels.
+		defer close(done)
+		deferred := make([]queuedCommand, 0, 4)
+		for range ticks {
+			deferred = deferred[:0]
+			ac := newAnimationCommands(&deferred)
+			w.animMu.Lock()
+			updateTransition(&lt.transitionBase, &ac)
+			updateTransition(&ht.transitionBase, &ac)
+			w.animMu.Unlock()
+		}
+	}()
+
+	for range ticks {
+		// Rebuild each pass: the amend walk mutates the layout in
+		// place, and production hands it a freshly arranged tree.
+		layout := Layout{
+			Shape: &Shape{ID: "box", Hero: true, X: 100, Y: 100, Width: 200, Height: 200},
+			Children: []Layout{
+				{Shape: &Shape{X: 110, Y: 110, Width: 50, Height: 50}},
+			},
+		}
+		applyLayoutTransition(&layout, w)
+		applyHeroTransition(&layout, w)
+	}
+	<-done
 }

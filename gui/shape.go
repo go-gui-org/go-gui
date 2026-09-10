@@ -175,9 +175,15 @@ type Shape struct {
 	// tooltips, and drag indicators.
 	OverDraw bool
 
-	// Hero marks this element for hero transition animations.
-	// When a Hero element appears in two consecutive frames with
-	// the same ID, the renderer animates between positions.
+	// Hero marks this element for hero transition animations. A hero
+	// present both when NewHeroTransition is registered and after the
+	// view change morphs between the two geometries; one that is only
+	// on the new side fades in. A hero that LEFT the tree cannot fade
+	// out — it is no longer there to draw.
+	//
+	// Matching is by effective ID, so a hero needs a non-empty ID and
+	// the same ID-bearing ancestors on both sides. Hero without an ID
+	// is inert.
 	Hero bool
 
 	// Wrap enables row-wrapping in horizontal-axis containers.

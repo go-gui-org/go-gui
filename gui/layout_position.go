@@ -2,6 +2,13 @@ package gui
 
 // layoutPositions sets positions and handles alignment.
 func layoutPositions(layout *Layout, offsetX, offsetY float32, w *Window) {
+	layoutPositionsDepth(layout, offsetX, offsetY, w, 0)
+}
+
+func layoutPositionsDepth(layout *Layout, offsetX, offsetY float32, w *Window, depth int) {
+	if overMaxDepth(depth) {
+		return
+	}
 	layout.Shape.X += offsetX
 	layout.Shape.Y += offsetY
 
@@ -29,9 +36,9 @@ func layoutPositions(layout *Layout, offsetX, offsetY float32, w *Window) {
 		}
 
 		if isRTL && axis == axisLeftToRight {
-			layoutPositions(child, x-child.Shape.Width+xAlign, y+yAlign, w)
+			layoutPositionsDepth(child, x-child.Shape.Width+xAlign, y+yAlign, w, depth+1)
 		} else {
-			layoutPositions(child, x+xAlign, y+yAlign, w)
+			layoutPositionsDepth(child, x+xAlign, y+yAlign, w, depth+1)
 		}
 
 		if child.Shape.shapeType != shapeNone && !child.Shape.OverDraw {
@@ -196,6 +203,13 @@ func childCrossAxisHAlign(
 // so the two passes agree only while this walk applies the same insets
 // the renderer does.
 func layoutSetShapeClips(layout *Layout, clip drawClip) {
+	layoutSetShapeClipsDepth(layout, clip, 0)
+}
+
+func layoutSetShapeClipsDepth(layout *Layout, clip drawClip, depth int) {
+	if overMaxDepth(depth) {
+		return
+	}
 	shapeClip := shapeBounds(layout.Shape)
 	if r, ok := rectIntersection(shapeClip, clip); ok {
 		layout.Shape.shapeClip = r
@@ -235,12 +249,19 @@ func layoutSetShapeClips(layout *Layout, clip drawClip) {
 		if layout.Children[i].Shape.OverDraw {
 			cc = overClip
 		}
-		layoutSetShapeClips(&layout.Children[i], cc)
+		layoutSetShapeClipsDepth(&layout.Children[i], cc, depth+1)
 	}
 }
 
 // layoutAdjustScrollOffsets ensures scroll offsets are in range.
 func layoutAdjustScrollOffsets(layout *Layout, w *Window) {
+	layoutAdjustScrollOffsetsDepth(layout, w, 0)
+}
+
+func layoutAdjustScrollOffsetsDepth(layout *Layout, w *Window, depth int) {
+	if overMaxDepth(depth) {
+		return
+	}
 	id := layout.Shape.idKey()
 	if layout.Shape.Scrollable && id != "" {
 		sx := w.scrollX()
@@ -259,6 +280,6 @@ func layoutAdjustScrollOffsets(layout *Layout, w *Window) {
 		}
 	}
 	for i := range layout.Children {
-		layoutAdjustScrollOffsets(&layout.Children[i], w)
+		layoutAdjustScrollOffsetsDepth(&layout.Children[i], w, depth+1)
 	}
 }

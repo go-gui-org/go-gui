@@ -54,3 +54,41 @@ func TestUpdateSpringNilOnValueStops(t *testing.T) {
 		t.Fatal("expected spring to stop when OnValue is nil")
 	}
 }
+
+// TestUpdateSpringDivergenceStops guards the fixed-timestep divergence
+// path: a stiffness the 16ms step cannot integrate drives velocity to
+// +Inf and position to NaN. NaN fails every threshold comparison, so
+// without an explicit finite check the animation never retires — it
+// pushes NaN through OnValue and forces a layout refresh every tick,
+// forever.
+func TestUpdateSpringDivergenceStops(t *testing.T) {
+	var last float32
+	sp := NewSpringAnimation("s", func(v float32, _ *Window) { last = v })
+	sp.Config = SpringCfg{Stiffness: 20000, Damping: 10, Mass: 1, Threshold: 0.01}
+	sp.SpringTo(0, 1)
+
+	deferred := make([]queuedCommand, 0, 4)
+	ac := newAnimationCommands(&deferred)
+	// Divergence is reached in ~72 ticks; 500 leaves ample margin
+	// without letting a non-retiring spring run the test forever.
+	for range 500 {
+		if !updateSpring(sp, 0.016, &ac) {
+			break
+		}
+	}
+	if !sp.stopped {
+		t.Fatalf("diverged spring never stopped: pos=%v vel=%v",
+			sp.state.position, sp.state.velocity)
+	}
+	if !f32IsFinite(sp.state.position) || !f32IsFinite(sp.state.velocity) {
+		t.Fatalf("state left non-finite: pos=%v vel=%v",
+			sp.state.position, sp.state.velocity)
+	}
+	if sp.state.position != sp.state.target {
+		t.Errorf("position = %v, want target %v",
+			sp.state.position, sp.state.target)
+	}
+	if !f32IsFinite(last) {
+		t.Errorf("OnValue received non-finite value %v", last)
+	}
+}

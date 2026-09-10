@@ -21,14 +21,21 @@ package gui
 // subdivision. The caller's colors are the shading, interpolated across
 // each triangle by the backend.
 //
-// A malformed triangle list, or a color count that does not match the
-// vertex count, is a no-op — matching how FillTrianglesGradient treats a
+// A malformed triangle list, a non-finite vertex, a list past
+// maxFillTrisFloats, or a color count that does not match the vertex
+// count, is a no-op — matching how FillTrianglesGradient treats a
 // degenerate input rather than painting something the caller did not
 // ask for.
 func (dc *DrawContext) FillTrianglesColors(tris []float32,
 	colors []Color) {
 	if len(tris) == 0 || len(tris)%6 != 0 ||
 		len(colors)*2 != len(tris) {
+		return
+	}
+	// Bounded and screened on the same terms as FillTrianglesGradient:
+	// the mesh is walked twice here, and a non-finite vertex reaching
+	// the batch costs the whole command at validSvgCmd.
+	if len(tris) > maxFillTrisFloats || !f32AllFinite(tris) {
 		return
 	}
 	if dc.recorder != nil {

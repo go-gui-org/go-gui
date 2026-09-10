@@ -25,6 +25,9 @@ type DrawContext struct {
 	images          []DrawCanvasImageEntry
 	arcBuf          []float32
 	bezierBuf       []float32
+	roundRectBuf    []float32
+	joinNormalBuf   []strokeVec
+	joinOffsetBuf   []strokeOffset
 	gradTriBuf      []float32
 	gradSplitBuf    []float32
 	gradRadialBuf   []float32
@@ -56,10 +59,12 @@ type DrawContext struct {
 	xfActive bool
 
 	lastColor Color
-	// batchIsGradient marks the current batch as vertex-colored, which
-	// blocks the run-length merge below: a flat fill must never append
-	// its triangles to a batch carrying per-vertex colors, or the
-	// batch's two lengths stop agreeing.
+	// batchIsGradient closes the current batch to the run-length merge.
+	// It is set for a vertex-colored batch — a flat fill must never
+	// append its triangles to a batch carrying per-vertex colors, or the
+	// batch's two lengths stop agreeing — and by breakBatchRun for a
+	// lowered gradient, which records no batch but does take a position
+	// in the emit order.
 	batchIsGradient bool
 }
 
@@ -87,7 +92,7 @@ func (dc *DrawContext) getBatch(color Color) *DrawCanvasTriBatch {
 
 // FilledRect draws a filled rectangle as two triangles.
 func (dc *DrawContext) FilledRect(x, y, w, h float32, color Color) {
-	if w <= 0 || h <= 0 {
+	if w <= 0 || h <= 0 || hasNaNInf(x, y, w, h) {
 		return
 	}
 	if dc.recorder != nil {
@@ -122,7 +127,7 @@ func (dc *DrawContext) Line(x0, y0, x1, y1 float32, color Color, width float32) 
 // Polyline draws a stroked open polyline using simple
 // per-segment rectangle expansion (no joins/caps).
 func (dc *DrawContext) Polyline(points []float32, color Color, width float32) {
-	if len(points) < 4 || width <= 0 {
+	if len(points) < 4 || width <= 0 || !f32IsFinite(width) {
 		return
 	}
 	if dc.recorder != nil {
@@ -134,6 +139,15 @@ func (dc *DrawContext) Polyline(points []float32, color Color, width float32) {
 	for i := 0; i+3 < len(points); i += 2 {
 		x0, y0 := points[i], points[i+1]
 		x1, y1 := points[i+2], points[i+3]
+		// Screened per segment rather than over the whole list: one bad
+		// point costs its two segments, and the rest of the polyline
+		// still draws. A non-finite vertex reaching the batch would cost
+		// far more than this primitive — validSvgCmd drops the whole
+		// command, and the run-length merge means the batch holds
+		// everything else drawn in the same color.
+		if hasNaNInf(x0, y0, x1, y1) {
+			continue
+		}
 		dx := x1 - x0
 		dy := y1 - y0
 		ln := float32(math.Sqrt(float64(dx*dx + dy*dy)))
@@ -159,7 +173,7 @@ func (dc *DrawContext) Polyline(points []float32, color Color, width float32) {
 // with overlap at corners. Overlap may cause alpha artifacts
 // with transparent colors.
 func (dc *DrawContext) Rect(x, y, w, h float32, color Color, width float32) {
-	if w <= 0 || h <= 0 || width <= 0 {
+	if w <= 0 || h <= 0 || width <= 0 || hasNaNInf(x, y, w, h, width) {
 		return
 	}
 	if dc.recorder != nil {
@@ -196,6 +210,12 @@ func (dc *DrawContext) FilledPolygon(points []float32, color Color) {
 	if len(points) < 6 {
 		return
 	}
+	// A fan shares its first vertex with every triangle, so one bad
+	// point can poison the whole polygon. Screen the list and drop the
+	// primitive rather than emitting a partial shape.
+	if !f32AllFinite(points) {
+		return
+	}
 	if dc.recorder != nil {
 		dc.rec().FilledPolygon(points, color)
 		return
@@ -224,7 +244,7 @@ func (dc *DrawContext) Circle(cx, cy, radius float32, color Color, width float32
 
 // Arc draws a stroked elliptical arc.
 func (dc *DrawContext) Arc(cx, cy, rx, ry, start, sweep float32, color Color, width float32) {
-	if width <= 0 {
+	if width <= 0 || !f32IsFinite(width) {
 		return
 	}
 	if dc.recorder != nil {
@@ -307,7 +327,7 @@ func (dc *DrawContext) arcPoints(cx, cy, rx, ry, start, sweep float32) []float32
 // FilledRoundedRect draws a filled rectangle with rounded corners.
 // Radius is clamped to half the smaller dimension.
 func (dc *DrawContext) FilledRoundedRect(x, y, w, h, radius float32, color Color) {
-	if w <= 0 || h <= 0 {
+	if w <= 0 || h <= 0 || hasNaNInf(x, y, w, h, radius) {
 		return
 	}
 	if dc.recorder != nil {
@@ -325,7 +345,7 @@ func (dc *DrawContext) FilledRoundedRect(x, y, w, h, radius float32, color Color
 
 // RoundedRect draws a stroked rectangle with rounded corners.
 func (dc *DrawContext) RoundedRect(x, y, w, h, radius float32, color Color, width float32) {
-	if w <= 0 || h <= 0 || width <= 0 {
+	if w <= 0 || h <= 0 || width <= 0 || hasNaNInf(x, y, w, h, radius, width) {
 		return
 	}
 	if dc.recorder != nil {
@@ -340,8 +360,12 @@ func (dc *DrawContext) RoundedRect(x, y, w, h, radius float32, color Color, widt
 	r := radius
 	// Build polyline: top → TR arc → right → BR arc → bottom →
 	// BL arc → left → TL arc → close.
+	//
+	// Into a pooled buffer, not a fresh slice: this runs once per
+	// rounded rect per frame on an animated canvas, and the length is
+	// the same every time.
 	const segs = 8
-	pts := make([]float32, 0, (4*segs+4+1)*2)
+	pts := dc.roundRectBuf[:0]
 	// Top-left corner arc.
 	pts = appendArcPoints(pts, x+r, y+r, r, math.Pi, segs)
 	// Top-right corner arc.
@@ -352,103 +376,17 @@ func (dc *DrawContext) RoundedRect(x, y, w, h, radius float32, color Color, widt
 	pts = appendArcPoints(pts, x+r, y+h-r, r, math.Pi/2, segs)
 	// Close the shape.
 	pts = append(pts, pts[0], pts[1])
+	dc.roundRectBuf = pts
 	dc.Polyline(pts, color, width)
 }
 
-// DashedLine draws a dashed line segment. dashLen and gapLen
-// control the pattern. Zero or negative values fall back to
-// solid.
-func (dc *DrawContext) DashedLine(
-	x0, y0, x1, y1 float32,
-	color Color, width, dashLen, gapLen float32,
-) {
-	if dashLen <= 0 || gapLen <= 0 {
-		dc.Line(x0, y0, x1, y1, color, width)
-		return
-	}
-	if dc.recorder != nil {
-		dc.rec().DashedLine(x0, y0, x1, y1, color, width, dashLen, gapLen)
-		return
-	}
-	dx := x1 - x0
-	dy := y1 - y0
-	totalLen := float32(math.Sqrt(float64(dx*dx + dy*dy)))
-	if totalLen < 1e-6 {
-		return
-	}
-	ux := dx / totalLen
-	uy := dy / totalLen
-	patternLen := dashLen + gapLen
-	drawn := float32(0)
-	for drawn < totalLen {
-		end := drawn + dashLen
-		if end > totalLen {
-			end = totalLen
-		}
-		dc.Line(
-			x0+ux*drawn, y0+uy*drawn,
-			x0+ux*end, y0+uy*end,
-			color, width,
-		)
-		drawn += patternLen
-	}
-}
+// strokeVec is a segment normal and strokeOffset the left/right pair
+// of stroke boundary points at one vertex. Named types at package
+// scope rather than inside PolylineJoined so its two working lists can
+// live on the DrawContext and be reused across redraws.
+type strokeVec struct{ x, y float32 }
 
-// DashedPolyline draws a polyline with a dash pattern applied
-// continuously across all segments.
-func (dc *DrawContext) DashedPolyline(
-	points []float32,
-	color Color, width, dashLen, gapLen float32,
-) {
-	if len(points) < 4 {
-		return
-	}
-	if dashLen <= 0 || gapLen <= 0 {
-		dc.Polyline(points, color, width)
-		return
-	}
-	if dc.recorder != nil {
-		dc.rec().DashedPolyline(points, color, width, dashLen, gapLen)
-		return
-	}
-	patternLen := dashLen + gapLen
-	offset := float32(0) // position within pattern
-	for i := 0; i+3 < len(points); i += 2 {
-		x0, y0 := points[i], points[i+1]
-		x1, y1 := points[i+2], points[i+3]
-		dx := x1 - x0
-		dy := y1 - y0
-		segLen := float32(math.Sqrt(float64(dx*dx + dy*dy)))
-		if segLen < 1e-6 {
-			continue
-		}
-		ux := dx / segLen
-		uy := dy / segLen
-		pos := float32(0)
-		for pos < segLen {
-			inPattern := float32(math.Mod(float64(offset+pos),
-				float64(patternLen)))
-			if inPattern < dashLen {
-				// In dash portion.
-				remain := dashLen - inPattern
-				end := pos + remain
-				if end > segLen {
-					end = segLen
-				}
-				dc.Line(
-					x0+ux*pos, y0+uy*pos,
-					x0+ux*end, y0+uy*end,
-					color, width,
-				)
-				pos += remain
-			} else {
-				// In gap portion.
-				pos += patternLen - inPattern
-			}
-		}
-		offset += segLen
-	}
-}
+type strokeOffset struct{ lx, ly, rx, ry float32 }
 
 // PolylineJoined draws a stroked polyline with miter joins
 // at vertices. Falls back to bevel when the miter exceeds
@@ -457,7 +395,12 @@ func (dc *DrawContext) PolylineJoined(
 	points []float32, color Color, width float32,
 ) {
 	n := len(points) / 2
-	if n < 2 || width <= 0 {
+	if n < 2 || width <= 0 || !f32IsFinite(width) {
+		return
+	}
+	// Miter joins carry a bad point into its neighbours' offsets, so
+	// the screen is over the whole list rather than per segment.
+	if !f32AllFinite(points) {
 		return
 	}
 	if dc.recorder != nil {
@@ -468,26 +411,32 @@ func (dc *DrawContext) PolylineJoined(
 	const miterLimit = 4.0
 	b := dc.getBatch(color)
 
-	// Compute perpendicular normals per segment.
-	type vec struct{ x, y float32 }
-	normals := make([]vec, 0, n-1)
+	// Compute perpendicular normals per segment, into pooled buffers:
+	// a joined polyline is the shape a chart or a map redraws every
+	// frame, and both lists are re-derived at the same length each time.
+	normals := dc.joinNormalBuf[:0]
 	for i := 0; i < n-1; i++ {
 		dx := points[(i+1)*2] - points[i*2]
 		dy := points[(i+1)*2+1] - points[i*2+1]
 		ln := float32(math.Sqrt(float64(dx*dx + dy*dy)))
 		if ln < 1e-6 {
-			normals = append(normals, vec{0, 0})
+			normals = append(normals, strokeVec{0, 0})
 			continue
 		}
-		normals = append(normals, vec{-dy / ln, dx / ln})
+		normals = append(normals, strokeVec{-dy / ln, dx / ln})
 	}
+	dc.joinNormalBuf = normals
 
 	// Compute offset points (left/right) at each vertex.
-	type offsetPt struct{ lx, ly, rx, ry float32 }
-	offsets := make([]offsetPt, n)
+	offsets := dc.joinOffsetBuf[:0]
+	if cap(offsets) < n {
+		offsets = make([]strokeOffset, n)
+	}
+	offsets = offsets[:n]
+	dc.joinOffsetBuf = offsets
 
 	// First vertex: use first segment normal.
-	offsets[0] = offsetPt{
+	offsets[0] = strokeOffset{
 		lx: points[0] + normals[0].x*hw,
 		ly: points[1] + normals[0].y*hw,
 		rx: points[0] - normals[0].x*hw,
@@ -496,7 +445,7 @@ func (dc *DrawContext) PolylineJoined(
 	// Last vertex: use last segment normal.
 	last := n - 1
 	li := len(normals) - 1
-	offsets[last] = offsetPt{
+	offsets[last] = strokeOffset{
 		lx: points[last*2] + normals[li].x*hw,
 		ly: points[last*2+1] + normals[li].y*hw,
 		rx: points[last*2] - normals[li].x*hw,
@@ -507,13 +456,13 @@ func (dc *DrawContext) PolylineJoined(
 	for i := 1; i < last; i++ {
 		n0 := normals[i-1]
 		n1 := normals[i]
-		if (n0 == vec{0, 0}) || (n1 == vec{0, 0}) {
+		if (n0 == strokeVec{0, 0}) || (n1 == strokeVec{0, 0}) {
 			// Degenerate segment, use whichever is valid.
 			nv := n0
-			if nv == (vec{0, 0}) {
+			if nv == (strokeVec{0, 0}) {
 				nv = n1
 			}
-			offsets[i] = offsetPt{
+			offsets[i] = strokeOffset{
 				lx: points[i*2] + nv.x*hw,
 				ly: points[i*2+1] + nv.y*hw,
 				rx: points[i*2] - nv.x*hw,
@@ -527,7 +476,7 @@ func (dc *DrawContext) PolylineJoined(
 		ml := float32(math.Sqrt(float64(mx*mx + my*my)))
 		if ml < 1e-6 {
 			// Nearly opposite normals — bevel.
-			offsets[i] = offsetPt{
+			offsets[i] = strokeOffset{
 				lx: points[i*2] + n1.x*hw,
 				ly: points[i*2+1] + n1.y*hw,
 				rx: points[i*2] - n1.x*hw,
@@ -549,7 +498,7 @@ func (dc *DrawContext) PolylineJoined(
 			mx = n1.x
 			my = n1.y
 		}
-		offsets[i] = offsetPt{
+		offsets[i] = strokeOffset{
 			lx: points[i*2] + mx*miterLen,
 			ly: points[i*2+1] + my*miterLen,
 			rx: points[i*2] - mx*miterLen,

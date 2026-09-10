@@ -96,6 +96,7 @@ func TestRotationSwapRecursive(t *testing.T) {
 func TestReaccumulateAncestorsFitWidth(t *testing.T) {
 	child := &Shape{
 		Width: 60, Height: 30,
+		shapeType: shapeRectangle,
 	}
 	parent := &Shape{
 		Width: 100, Height: 50,
@@ -139,7 +140,7 @@ func TestReaccumulateAncestorsStopsAtFixed(t *testing.T) {
 }
 
 func TestReaccumulateAncestorsStopsWhenNoChange(t *testing.T) {
-	child := &Shape{Width: 60, Height: 30}
+	child := &Shape{Width: 60, Height: 30, shapeType: shapeRectangle}
 	parent := &Shape{
 		Width: 60, Height: 50,
 		Axis:   axisLeftToRight,
@@ -185,8 +186,8 @@ func TestRecomputeFitWidthLTR(t *testing.T) {
 }
 
 func TestRecomputeFitWidthTTB(t *testing.T) {
-	c1 := &Shape{Width: 30, Height: 10}
-	c2 := &Shape{Width: 50, Height: 10}
+	c1 := &Shape{Width: 30, Height: 10, shapeType: shapeRectangle}
+	c2 := &Shape{Width: 50, Height: 10, shapeType: shapeRectangle}
 	parent := &Shape{
 		Axis:   axisTopToBottom,
 		Sizing: FitFit,
@@ -207,7 +208,7 @@ func TestRecomputeFitWidthTTB(t *testing.T) {
 }
 
 func TestRecomputeFitWidthClampsMinMax(t *testing.T) {
-	child := &Shape{Width: 10, Height: 10}
+	child := &Shape{Width: 10, Height: 10, shapeType: shapeRectangle}
 	parent := &Shape{
 		Axis:     axisLeftToRight,
 		Sizing:   FitFit,
@@ -233,8 +234,8 @@ func TestRecomputeFitWidthClampsMinMax(t *testing.T) {
 }
 
 func TestRecomputeFitHeightLTR(t *testing.T) {
-	c1 := &Shape{Width: 30, Height: 10}
-	c2 := &Shape{Width: 50, Height: 25}
+	c1 := &Shape{Width: 30, Height: 10, shapeType: shapeRectangle}
+	c2 := &Shape{Width: 50, Height: 25, shapeType: shapeRectangle}
 	parent := &Shape{
 		Axis:   axisLeftToRight,
 		Sizing: FitFit,
@@ -279,7 +280,7 @@ func TestRecomputeFitHeightTTB(t *testing.T) {
 }
 
 func TestRecomputeFitHeightClampsMinMax(t *testing.T) {
-	child := &Shape{Width: 10, Height: 5}
+	child := &Shape{Width: 10, Height: 5, shapeType: shapeRectangle}
 	parent := &Shape{
 		Axis:      axisTopToBottom,
 		Sizing:    FitFit,
@@ -323,5 +324,52 @@ func TestRecomputeFitWidthSkipsOverDraw(t *testing.T) {
 	// Only c1 contributes (c2 is OverDraw).
 	if got != 30 {
 		t.Errorf("recomputeFitWidth = %f, want 30 (skip OverDraw)", got)
+	}
+}
+
+// TestRecomputeFitSkipsOutOfFlow guards the child set the rotation
+// re-accumulation measures. recomputeFitWidth and recomputeFitHeight mirror
+// layoutWidths and layoutHeights for a single Fit node, so they must drop
+// the same children skipLayoutChild names — Float and shapeNone included,
+// not just OverDraw. A Float child otherwise widens the re-fit parent after
+// a rotation swap.
+func TestRecomputeFitSkipsOutOfFlow(t *testing.T) {
+	// fitBox builds a Fit row (LTR) or column (TTB) of one 40px in-flow
+	// child plus one wide out-of-flow child.
+	fitBox := func(axis Axis, extra *Shape) *Layout {
+		return &Layout{
+			Shape: &Shape{
+				Axis:      axis,
+				Sizing:    FitFit,
+				Spacing:   10,
+				shapeType: shapeRectangle,
+			},
+			Children: []Layout{
+				{Shape: &Shape{Width: 40, Height: 20, shapeType: shapeRectangle}},
+				{Shape: extra},
+			},
+		}
+	}
+
+	cases := []struct {
+		name  string
+		extra *Shape
+	}{
+		{"float", &Shape{Float: true, Width: 200, Height: 100, shapeType: shapeRectangle}},
+		{"shapeNone", &Shape{Width: 200, Height: 100, shapeType: shapeNone}},
+		{"overDraw", &Shape{OverDraw: true, Width: 200, Height: 100, shapeType: shapeRectangle}},
+	}
+	for _, tc := range cases {
+		t.Run("width/"+tc.name, func(t *testing.T) {
+			// One 40px child, no fence post for a single in-flow child.
+			if got := recomputeFitWidth(fitBox(axisLeftToRight, tc.extra)); !f32AreClose(got, 40) {
+				t.Errorf("recomputeFitWidth = %f, want 40", got)
+			}
+		})
+		t.Run("height/"+tc.name, func(t *testing.T) {
+			if got := recomputeFitHeight(fitBox(axisTopToBottom, tc.extra)); !f32AreClose(got, 20) {
+				t.Errorf("recomputeFitHeight = %f, want 20", got)
+			}
+		})
 	}
 }

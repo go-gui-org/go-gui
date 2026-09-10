@@ -115,16 +115,19 @@ func (b DrawCanvasTriBatch) Transform() (sx, sy, tx, ty float32, ok bool) {
 // Src matches the forms accepted by ImageCfg.Src: local path,
 // http/https URL, or data URL.
 //
-// BgOpacity modulates BgColor's alpha; it has no effect when
-// BgColor is unset.
+// The background opacity recorded with the entry modulates BgColor's
+// alpha; it has no effect when BgColor is unset. It is set through
+// DrawContext.Image's bgOpacity parameter and is not an exported field.
 //
-// Fetcher, when non-nil, overrides WindowCfg.ImageFetcher for this
-// entry's http/https download. Typical use is map-tile rendering
+// The entry's fetcher, when non-nil, overrides WindowCfg.ImageFetcher
+// for this entry's http/https download. It is set through
+// DrawContext.ImageWithFetcher, likewise not an exported field. Typical use is map-tile rendering
 // where each tile source wants its own User-Agent. Known limit:
 // downloads are URL-keyed and deduped process-wide, so the first
 // entry observed for a given URL binds the fetcher for that URL's
 // in-flight download. Consumers wiring two fetchers to overlapping
 // URL namespaces must route via URL prefix themselves.
+//
 // ClipX/ClipY/ClipW/ClipH restrict drawing to a sub-rectangle of the
 // canvas, in the same content-relative coordinates as X/Y/W/H. They
 // are honored only when Clipped is set (a zero rect would otherwise

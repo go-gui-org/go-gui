@@ -6,7 +6,8 @@ import "time"
 // exportaudit:keep — caller-facing config (issue #372)
 type SpringCfg struct {
 	// Stiffness controls spring force. Values >= ~15600 (with
-	// Mass=1) will diverge at the 16ms fixed timestep.
+	// Mass=1) diverge at the 16ms fixed timestep; a diverged spring
+	// snaps to its target and retires rather than emitting NaN.
 	// exportaudit:keep — caller-facing config (issue #372)
 	Stiffness float32
 	// exportaudit:keep — caller-facing config (issue #372)
@@ -118,7 +119,17 @@ func updateSpring(sp *SpringAnimation, dt float32, ac *AnimationCommands) bool {
 	sp.state.position += sp.state.velocity * dt
 	displacement = sp.state.position - sp.state.target
 
-	if f32Abs(sp.state.velocity) < cfg.Threshold && f32Abs(displacement) < cfg.Threshold {
+	// Explicit Euler at the fixed timestep amplifies a spring too stiff
+	// for the step (see SpringCfg.Stiffness): velocity reaches +Inf and
+	// position becomes NaN. NaN fails every comparison, so the rest
+	// check below would never fire — the spring would live forever,
+	// hand NaN to OnValue and force a layout refresh each tick. Treat
+	// divergence as arrival: snap to the target and retire, so the
+	// caller's OnDone still runs and no non-finite value escapes.
+	diverged := !f32AllFinite2(sp.state.position, sp.state.velocity)
+
+	if diverged ||
+		(f32Abs(sp.state.velocity) < cfg.Threshold && f32Abs(displacement) < cfg.Threshold) {
 		sp.state.position = sp.state.target
 		sp.state.velocity = 0
 		sp.state.atRest = true
