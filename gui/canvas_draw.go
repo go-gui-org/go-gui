@@ -92,7 +92,7 @@ func (dc *DrawContext) getBatch(color Color) *DrawCanvasTriBatch {
 
 // FilledRect draws a filled rectangle as two triangles.
 func (dc *DrawContext) FilledRect(x, y, w, h float32, color Color) {
-	if w <= 0 || h <= 0 || hasNaNInf(x, y, w, h) {
+	if w <= 0 || h <= 0 || !f32AllFinite4(x, y, w, h) {
 		return
 	}
 	if dc.recorder != nil {
@@ -145,7 +145,7 @@ func (dc *DrawContext) Polyline(points []float32, color Color, width float32) {
 		// far more than this primitive — validSvgCmd drops the whole
 		// command, and the run-length merge means the batch holds
 		// everything else drawn in the same color.
-		if hasNaNInf(x0, y0, x1, y1) {
+		if !f32AllFinite4(x0, y0, x1, y1) {
 			continue
 		}
 		dx := x1 - x0
@@ -173,7 +173,7 @@ func (dc *DrawContext) Polyline(points []float32, color Color, width float32) {
 // with overlap at corners. Overlap may cause alpha artifacts
 // with transparent colors.
 func (dc *DrawContext) Rect(x, y, w, h float32, color Color, width float32) {
-	if w <= 0 || h <= 0 || width <= 0 || hasNaNInf(x, y, w, h, width) {
+	if w <= 0 || h <= 0 || width <= 0 || !f32AllFinite5(x, y, w, h, width) {
 		return
 	}
 	if dc.recorder != nil {
@@ -283,9 +283,9 @@ func (dc *DrawContext) arcPoints(cx, cy, rx, ry, start, sweep float32) []float32
 	// NaN fails every ordered comparison, so r <= 0 below would let it through and
 	// math.Ceil(NaN) -> int is undefined in Go. Screen first, and no-op the way the
 	// r <= 0 case does — every caller already guards on len(pts).
-	if !isFiniteF(cx) || !isFiniteF(cy) ||
-		!isFiniteF(rx) || !isFiniteF(ry) ||
-		!isFiniteF(start) || !isFiniteF(sweep) {
+	if !f32IsFinite(cx) || !f32IsFinite(cy) ||
+		!f32IsFinite(rx) || !f32IsFinite(ry) ||
+		!f32IsFinite(start) || !f32IsFinite(sweep) {
 		return nil
 	}
 	r := rx
@@ -327,7 +327,7 @@ func (dc *DrawContext) arcPoints(cx, cy, rx, ry, start, sweep float32) []float32
 // FilledRoundedRect draws a filled rectangle with rounded corners.
 // Radius is clamped to half the smaller dimension.
 func (dc *DrawContext) FilledRoundedRect(x, y, w, h, radius float32, color Color) {
-	if w <= 0 || h <= 0 || hasNaNInf(x, y, w, h, radius) {
+	if w <= 0 || h <= 0 || !f32AllFinite5(x, y, w, h, radius) {
 		return
 	}
 	if dc.recorder != nil {
@@ -345,7 +345,7 @@ func (dc *DrawContext) FilledRoundedRect(x, y, w, h, radius float32, color Color
 
 // RoundedRect draws a stroked rectangle with rounded corners.
 func (dc *DrawContext) RoundedRect(x, y, w, h, radius float32, color Color, width float32) {
-	if w <= 0 || h <= 0 || width <= 0 || hasNaNInf(x, y, w, h, radius, width) {
+	if w <= 0 || h <= 0 || width <= 0 || !f32AllFinite6(x, y, w, h, radius, width) {
 		return
 	}
 	if dc.recorder != nil {
@@ -517,16 +517,6 @@ func (dc *DrawContext) PolylineJoined(
 	}
 }
 
-// hasNaNInf returns true if any value is NaN or ±Inf.
-func hasNaNInf(vals ...float32) bool {
-	for _, v := range vals {
-		if v != v || v-v != 0 {
-			return true
-		}
-	}
-	return false
-}
-
 func (dc *DrawContext) resetBezierBuf(x0, y0 float32) []float32 {
 	if cap(dc.bezierBuf) < 64 {
 		dc.bezierBuf = make([]float32, 0, 64)
@@ -539,7 +529,7 @@ func (dc *DrawContext) resetBezierBuf(x0, y0 float32) []float32 {
 func (dc *DrawContext) QuadBezier(
 	x0, y0, cx, cy, x1, y1 float32, color Color, width float32,
 ) {
-	if width <= 0 || hasNaNInf(x0, y0, cx, cy, x1, y1, width) {
+	if width <= 0 || !f32AllFinite7(x0, y0, cx, cy, x1, y1, width) {
 		return
 	}
 	if dc.recorder != nil {
@@ -561,7 +551,7 @@ func (dc *DrawContext) CubicBezier(
 	color Color, width float32,
 ) {
 	if width <= 0 ||
-		hasNaNInf(x0, y0, c1x, c1y, c2x, c2y, x1, y1, width) {
+		!f32AllFinite9(x0, y0, c1x, c1y, c2x, c2y, x1, y1, width) {
 		return
 	}
 	if dc.recorder != nil {
@@ -640,8 +630,8 @@ func (dc *DrawContext) ImageWithFetcher(
 	if w <= 0 || h <= 0 || src == "" {
 		return
 	}
-	if !isFiniteF(x) || !isFiniteF(y) ||
-		!isFiniteF(w) || !isFiniteF(h) {
+	if !f32IsFinite(x) || !f32IsFinite(y) ||
+		!f32IsFinite(w) || !f32IsFinite(h) {
 		return
 	}
 	if dc.recorder != nil {
@@ -680,8 +670,8 @@ func (dc *DrawContext) ImageClipped(
 	clipX, clipY, clipW, clipH float32,
 ) {
 	if clipW <= 0 || clipH <= 0 ||
-		!isFiniteF(clipX) || !isFiniteF(clipY) ||
-		!isFiniteF(clipW) || !isFiniteF(clipH) {
+		!f32IsFinite(clipX) || !f32IsFinite(clipY) ||
+		!f32IsFinite(clipW) || !f32IsFinite(clipH) {
 		return
 	}
 	before := len(dc.images)
@@ -694,12 +684,6 @@ func (dc *DrawContext) ImageClipped(
 	// in the same local space and bakes here.
 	e.ClipX, e.ClipY, e.ClipW, e.ClipH = dc.xfRect(clipX, clipY, clipW, clipH)
 	e.Clipped = true
-}
-
-// isFiniteF reports whether v is a finite float32 (not NaN or Inf).
-func isFiniteF(v float32) bool {
-	f := float64(v)
-	return !math.IsNaN(f) && !math.IsInf(f, 0)
 }
 
 // Texts returns accumulated text entries. Useful for testing

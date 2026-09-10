@@ -121,11 +121,11 @@ func collectAnimContribs(
 		// render state. DurSec must be strictly positive for normal
 		// animations; <set> is zero-duration and bypasses this check.
 		if len(a.TargetPathIDs) == 0 ||
-			!isFiniteF(a.DurSec) ||
+			!f32IsFinite(a.DurSec) ||
 			(!a.IsSet && a.DurSec <= 0) ||
-			!isFiniteF(a.BeginSec) ||
-			!isFiniteF(a.Cycle) ||
-			!isFiniteF(elapsedSec) {
+			!f32IsFinite(a.BeginSec) ||
+			!f32IsFinite(a.Cycle) ||
+			!f32IsFinite(elapsedSec) {
 			continue
 		}
 		if elapsedSec < a.BeginSec && !a.FillBackwards {
@@ -282,7 +282,7 @@ func motionSample(a *SvgAnimation, frac float32) (float32, float32, float32) {
 		return 0, 0, 0
 	}
 	total := lens[n-1]
-	if !isFiniteF(total) || total < 0 {
+	if !f32IsFinite(total) || total < 0 {
 		return 0, 0, 0
 	}
 	target := clampUnit(frac) * total

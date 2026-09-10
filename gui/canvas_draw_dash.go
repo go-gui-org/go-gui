@@ -19,14 +19,14 @@ func (dc *DrawContext) DashedLine(
 		dc.Line(x0, y0, x1, y1, color, width)
 		return
 	}
-	if width <= 0 || !f32IsFinite(width) || hasNaNInf(dashLen, gapLen) {
+	if width <= 0 || !f32IsFinite(width) || !f32AllFinite2(dashLen, gapLen) {
 		return
 	}
 	if dc.recorder != nil {
 		dc.rec().DashedLine(x0, y0, x1, y1, color, width, dashLen, gapLen)
 		return
 	}
-	if hasNaNInf(x0, y0, x1, y1) {
+	if !f32AllFinite4(x0, y0, x1, y1) {
 		return
 	}
 	dx := x1 - x0
@@ -85,7 +85,7 @@ func (dc *DrawContext) DashedPolyline(
 		dc.Polyline(points, color, width)
 		return
 	}
-	if width <= 0 || !f32IsFinite(width) || hasNaNInf(dashLen, gapLen) {
+	if width <= 0 || !f32IsFinite(width) || !f32AllFinite2(dashLen, gapLen) {
 		return
 	}
 	if dc.recorder != nil {
@@ -97,7 +97,7 @@ func (dc *DrawContext) DashedPolyline(
 	for i := 0; i+3 < len(points); i += 2 {
 		x0, y0 := points[i], points[i+1]
 		x1, y1 := points[i+2], points[i+3]
-		if hasNaNInf(x0, y0, x1, y1) {
+		if !f32AllFinite4(x0, y0, x1, y1) {
 			continue
 		}
 		dx := x1 - x0

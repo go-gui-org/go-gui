@@ -186,7 +186,7 @@ func (dc *DrawContext) gradScratch() *[]float32 {
 // whose endpoints coincide runs top-to-bottom across the rect.
 func (dc *DrawContext) FilledRectGradient(x, y, w, h float32,
 	g *CanvasGradient) {
-	if w <= 0 || h <= 0 || hasNaNInf(x, y, w, h) {
+	if w <= 0 || h <= 0 || !f32AllFinite4(x, y, w, h) {
 		return
 	}
 	if mid, ok := dc.gradientRecorderFallback(g); ok {
@@ -214,7 +214,7 @@ func (dc *DrawContext) FilledRectGradient(x, y, w, h float32,
 //	})
 func (dc *DrawContext) FilledCircleGradient(cx, cy, radius float32,
 	g *CanvasGradient) {
-	if hasNaNInf(cx, cy, radius) {
+	if !f32AllFinite3(cx, cy, radius) {
 		return
 	}
 	if dc.emitRadialGradient(cx, cy, radius, g) {
@@ -500,7 +500,7 @@ func (dc *DrawContext) concentricRings(stops []GradientStop,
 // gradient.
 func (dc *DrawContext) FilledArcGradient(cx, cy, rx, ry, start,
 	sweep float32, g *CanvasGradient) {
-	if hasNaNInf(cx, cy, rx, ry, start, sweep) {
+	if !f32AllFinite6(cx, cy, rx, ry, start, sweep) {
 		return
 	}
 	if mid, ok := dc.gradientRecorderFallback(g); ok {
@@ -536,7 +536,7 @@ func (dc *DrawContext) FilledPolygonGradient(points []float32,
 // Radius is clamped to half the smaller dimension.
 func (dc *DrawContext) FilledRoundedRectGradient(x, y, w, h,
 	radius float32, g *CanvasGradient) {
-	if w <= 0 || h <= 0 || hasNaNInf(x, y, w, h, radius) {
+	if w <= 0 || h <= 0 || !f32AllFinite5(x, y, w, h, radius) {
 		return
 	}
 	if mid, ok := dc.gradientRecorderFallback(g); ok {

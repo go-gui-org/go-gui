@@ -22,12 +22,12 @@ func (tp *TessellatedPath) ContainsPoint(px, py float32) bool {
 	// silently misbehave (NaN compares false in both directions, so
 	// the fast-reject would let NaN points through into the bary
 	// loop where they yield non-deterministic results).
-	if !isFiniteF(px) || !isFiniteF(py) {
+	if !f32IsFinite(px) || !f32IsFinite(py) {
 		return false
 	}
 	if tp.HasBaseXform {
 		px, py = inverseBaseXform(tp, px, py)
-		if !isFiniteF(px) || !isFiniteF(py) {
+		if !f32IsFinite(px) || !f32IsFinite(py) {
 			return false
 		}
 	}
@@ -91,16 +91,16 @@ func inverseBaseXform(tp *TessellatedPath, px, py float32) (float32, float32) {
 	sy := tp.BaseScaleY
 	// Coerce non-finite or zero scale to 1 — division would emit
 	// Inf/NaN that propagates through the bary test.
-	if sx == 0 || !isFiniteF(sx) {
+	if sx == 0 || !f32IsFinite(sx) {
 		sx = 1
 	}
-	if sy == 0 || !isFiniteF(sy) {
+	if sy == 0 || !f32IsFinite(sy) {
 		sy = 1
 	}
-	if !isFiniteF(tx) {
+	if !f32IsFinite(tx) {
 		tx = 0
 	}
-	if !isFiniteF(ty) {
+	if !f32IsFinite(ty) {
 		ty = 0
 	}
 	// Undo translate.
@@ -109,7 +109,7 @@ func inverseBaseXform(tp *TessellatedPath, px, py float32) (float32, float32) {
 	// Undo rotation about (BaseRotCX, BaseRotCY). Skip when angle
 	// is non-finite — sin/cos of NaN propagate as NaN and corrupt
 	// the result.
-	if tp.BaseRotAngle != 0 && isFiniteF(tp.BaseRotAngle) {
+	if tp.BaseRotAngle != 0 && f32IsFinite(tp.BaseRotAngle) {
 		rad := float64(tp.BaseRotAngle) * math.Pi / 180
 		cos := float32(math.Cos(rad))
 		sin := float32(math.Sin(rad))
