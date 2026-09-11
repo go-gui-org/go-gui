@@ -62,6 +62,51 @@ func TestRenderLayoutColorFilterNilFX(t *testing.T) {
 	}
 }
 
+// A transparent container with only a shader must still emit.
+// The early-out in renderShapeInner skips paintless shapes,
+// so the shader counts as paint (issue #574).
+func TestRenderLayoutShaderOnlyEmits(t *testing.T) {
+	w := makeWindow()
+	shape := &Shape{
+		shapeType: shapeRectangle,
+		Color:     ColorTransparent,
+		Width:     50, Height: 50,
+		fx: &shapeEffects{Shader: &Shader{
+			Metal: "metal-body",
+			GLSL:  "glsl-body",
+		}},
+	}
+	layout := &Layout{Shape: shape}
+	clip := makeClip(0, 0, 100, 100)
+
+	renderLayout(layout, ColorTransparent, clip, w)
+
+	for _, r := range w.renderers {
+		if r.Kind == RenderCustomShader {
+			return
+		}
+	}
+	t.Error("missing RenderCustomShader for shader-only container")
+}
+
+// A transparent container with no paint must emit nothing.
+func TestRenderLayoutEmptyTransparentEmitsNothing(t *testing.T) {
+	w := makeWindow()
+	shape := &Shape{
+		shapeType: shapeRectangle,
+		Color:     ColorTransparent,
+		Width:     50, Height: 50,
+	}
+	layout := &Layout{Shape: shape}
+	clip := makeClip(0, 0, 100, 100)
+
+	renderLayout(layout, ColorTransparent, clip, w)
+
+	if len(w.renderers) != 0 {
+		t.Errorf("got %d commands, want 0", len(w.renderers))
+	}
+}
+
 func TestRenderLayoutOverDrawVertical(t *testing.T) {
 	w := makeWindow()
 	parentClip := makeClip(0, 0, 200, 300)
