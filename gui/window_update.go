@@ -164,14 +164,14 @@ func (w *Window) InvalidateRender() {
 // Deprecated: use [Window.InvalidateLayout]. The old name promised synchronous
 // work this never did — it only sets a flag for the next frame.
 //
-//exportaudit:keep
+// exportaudit:keep — deprecated forwarder; siblings migrate on their own schedule
 func (w *Window) UpdateWindow() { w.InvalidateLayout() }
 
 // RequestRedraw marks the window for a render-only refresh.
 //
 // Deprecated: use [Window.InvalidateRender], which names what went stale.
 //
-//exportaudit:keep
+// exportaudit:keep — deprecated forwarder; siblings migrate on their own schedule
 func (w *Window) RequestRedraw() { w.InvalidateRender() }
 
 // SetView sets the view generator and triggers a full refresh.
@@ -191,7 +191,7 @@ func (w *Window) SetView(gen func(*Window) View) {
 // Deprecated: use [Window.SetView], which pairs with [Window.SetTheme] and
 // reads correctly at the dominant OnInit call site.
 //
-//exportaudit:keep
+// exportaudit:keep — deprecated forwarder; siblings migrate on their own schedule
 func (w *Window) UpdateView(gen func(*Window) View) { w.SetView(gen) }
 
 // FrameFn is called by the backend each frame. It flushes
