@@ -10,6 +10,13 @@ and this project adheres to
 
 ### Fixed
 
+- **Native menu key equivalents for punctuation shortcuts (#576)** — the
+  macOS menu encoder only passed A-Z/0-9 through to AppKit, so an item with
+  a punctuation chord (e.g. Cmd+/) showed no key hint. The 12 printable
+  punctuation keys now map to their key equivalents; anything else still
+  encodes to nothing. Only the displayed hint changes — the chord itself
+  always fired through the command registry.
+
 - **Shader-only container with a transparent color now draws (#574)** — the
   render early-out treated gradient, border gradient and shadow as paint but not
   the custom shader, so a container whose only paint was `Shader` emitted no
