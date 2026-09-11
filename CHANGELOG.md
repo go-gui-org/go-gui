@@ -45,6 +45,15 @@ and this project adheres to
   They will be removed in a future minor. See
   `docs/specs/window-invalidate-naming.md`.
 
+### Removed
+
+- **BREAKING: `TermGrid` widget removed (#570)** — `TermGrid`, `TermGridCfg`,
+  `TermGridData`, `TermCell`, `TermCursor`, `TermSelRange`, `TermAttr`,
+  `TermUnderline`, and `TermReverse` are gone, deprecated since v0.73.0. The
+  `RenderTermGrid` command, its per-backend draws, the print branch, and the
+  `examples/termgrid` demo go with it. Migration: draw grids on a `DrawCanvas`,
+  as go-term already does.
+
 ### Fixed
 
 - **Date Picker Roller holds focus and answers the keyboard under a scoped

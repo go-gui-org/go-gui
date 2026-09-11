@@ -171,15 +171,13 @@ func renderShapeInner(shape *Shape, parentColor Color, clip drawClip, w *Window)
 	isImage := shape.shapeType == shapeImage
 	isSvg := shape.shapeType == shapeSVG
 	isCanvas := shape.shapeType == shapeDrawCanvas
-	isTermGrid := shape.shapeType == shapeTermGrid
 	hasFX := shape.fx != nil && (shape.fx.Gradient != nil ||
 		shape.fx.BorderGradient != nil || shape.fx.Shadow != nil)
 
 	isRTF := shape.shapeType == shapeRTF
 
 	if shape.Color == ColorTransparent && !hasFX && !hasBorder &&
-		!hasText && !isImage && !isSvg && !isCanvas && !isRTF &&
-		!isTermGrid {
+		!hasText && !isImage && !isSvg && !isCanvas && !isRTF {
 		return
 	}
 
@@ -198,8 +196,6 @@ func renderShapeInner(shape *Shape, parentColor Color, clip drawClip, w *Window)
 		renderSvg(shape, clip, w)
 	case shapeDrawCanvas:
 		renderDrawCanvas(shape, clip, w)
-	case shapeTermGrid:
-		renderTermGrid(shape, clip, w)
 	case shapeNone:
 		// no-op
 	}

@@ -252,25 +252,6 @@ func TestRendererValidTextPath(t *testing.T) {
 	}
 }
 
-func TestRendererValidTermGrid(t *testing.T) {
-	cells := make([]TermCell, 6)
-	tg := &TermGridData{Cells: cells, Cols: 3, Rows: 2,
-		CellW: 8, CellH: 16}
-	r := RenderCmd{Kind: RenderTermGrid, X: 0, Y: 0, TermGrid: tg}
-	if !rendererValidForDraw(r) {
-		t.Error("valid termgrid should pass")
-	}
-	r.TermGrid = nil
-	if rendererValidForDraw(r) {
-		t.Error("nil termgrid should fail")
-	}
-	r.TermGrid = &TermGridData{Cells: cells, Cols: 3, Rows: 3,
-		CellW: 8, CellH: 16}
-	if rendererValidForDraw(r) {
-		t.Error("short cell buffer should fail")
-	}
-}
-
 func TestRendererValidFilterBegin(t *testing.T) {
 	m := &[16]float32{}
 	r := RenderCmd{Kind: RenderFilterBegin, BlurRadius: 4,

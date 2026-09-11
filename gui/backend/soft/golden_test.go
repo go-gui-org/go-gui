@@ -203,7 +203,7 @@ func assertTextFree(t *testing.T, w *gui.Window) {
 		switch w.Renderers()[i].Kind {
 		case gui.RenderText, gui.RenderLayout, gui.RenderRTF,
 			gui.RenderLayoutTransformed, gui.RenderTextPath,
-			gui.RenderTermGrid, gui.RenderCustomShader:
+			gui.RenderCustomShader:
 			t.Fatalf("case emits %v; pixel goldens are text-free "+
 				"by design", w.Renderers()[i].Kind)
 		}

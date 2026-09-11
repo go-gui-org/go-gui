@@ -55,8 +55,6 @@ type renderer struct {
 	maskPix2   []uint8
 	blurTmp    []uint8
 	svgBatch   []float32
-	termRunes  []rune
-	termCols   []int
 }
 
 // drawAll replays every command in cmds. With warm set it draws only the
@@ -68,8 +66,7 @@ func (r *renderer) drawAll(cmds []gui.RenderCmd) {
 		if r.warm {
 			switch cmd.Kind {
 			case gui.RenderText, gui.RenderLayout, gui.RenderRTF,
-				gui.RenderLayoutTransformed, gui.RenderTextPath,
-				gui.RenderTermGrid:
+				gui.RenderLayoutTransformed, gui.RenderTextPath:
 			default:
 				continue
 			}
@@ -118,8 +115,6 @@ func (r *renderer) drawAll(cmds []gui.RenderCmd) {
 			r.beginRotation(cmd)
 		case gui.RenderRotateEnd:
 			r.endRotation()
-		case gui.RenderTermGrid:
-			r.drawTermGrid(cmd)
 
 		// Unsupported by design, or never emitted by the render path.
 		// Listed explicitly rather than caught by a default so a new

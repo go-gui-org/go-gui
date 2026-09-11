@@ -395,27 +395,6 @@ func TestPopLayerPastDepthCapRestoresNearestLayer(t *testing.T) {
 	}
 }
 
-func TestValidTermGridRejectsOverflowingCellCount(t *testing.T) {
-	// Cols*Rows overflows int64 to zero; the division-form check must
-	// still reject a grid whose cell buffer is far too small, instead
-	// of accepting it and looping over an empty buffer.
-	tg := &gui.TermGridData{
-		Cols: 1 << 40, Rows: 1 << 40,
-		CellW: 10, CellH: 10,
-		Cells: make([]gui.TermCell, 16),
-	}
-	if validTermGrid(tg) {
-		t.Fatal("overflowing grid accepted")
-	}
-	full := &gui.TermGridData{
-		Cols: 4, Rows: 4, CellW: 10, CellH: 10,
-		Cells: make([]gui.TermCell, 16),
-	}
-	if !validTermGrid(full) {
-		t.Fatal("valid 4x4 grid rejected")
-	}
-}
-
 func TestUnbalancedBracketStillLands(t *testing.T) {
 	r := newRenderer(40, 40, 1)
 	r.drawAll([]gui.RenderCmd{

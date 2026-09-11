@@ -231,8 +231,6 @@ func inspectorTypeName(shape *Shape) string {
 		return "svg"
 	case shapeDrawCanvas:
 		return "draw_canvas"
-	case shapeTermGrid:
-		return "termgrid"
 	case shapeNone, shapeRectangle:
 		switch shape.Axis {
 		case axisTopToBottom:

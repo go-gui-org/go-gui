@@ -56,16 +56,6 @@ func TestShapeIsIMEEditTarget(t *testing.T) {
 			},
 			false,
 		},
-		{
-			"focusable term grid consumes typed text",
-			&Shape{shapeType: shapeTermGrid, Focusable: true},
-			true,
-		},
-		{
-			"read-only term grid",
-			&Shape{shapeType: shapeTermGrid},
-			false,
-		},
 		{"button", &Shape{Focusable: true, ID: "b"}, false},
 	}
 	for _, c := range cases {
@@ -267,11 +257,6 @@ func TestShapeDrawsCaret(t *testing.T) {
 				TC:        &shapeTextConfig{},
 			},
 			true,
-		},
-		{
-			"term grid owns its own cursor",
-			&Shape{shapeType: shapeTermGrid, Focusable: true},
-			false,
 		},
 		{"button", &Shape{Focusable: true, ID: "b"}, false},
 		{
