@@ -116,7 +116,7 @@ func appender(w *gui.Window) {
 				// 100%" drifts a little further off with every append.
 				w.ScrollToEnd(listID)
 			}
-			w.UpdateWindow()
+			w.InvalidateLayout()
 		})
 	}
 }

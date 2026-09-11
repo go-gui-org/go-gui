@@ -70,13 +70,13 @@ func mainView(w *gui.Window) gui.View {
 					app := gui.State[App](ctx.Window)
 					app.keyDownCount++
 					app.lastKeyDown = ctx.Event.KeyCode
-					ctx.Window.UpdateWindow()
+					ctx.Window.InvalidateLayout()
 				},
 				OnKeyUp: func(ctx gui.EventCtx) {
 					app := gui.State[App](ctx.Window)
 					app.keyUpCount++
 					app.lastKeyUp = ctx.Event.KeyCode
-					ctx.Window.UpdateWindow()
+					ctx.Window.InvalidateLayout()
 				},
 			}),
 		},

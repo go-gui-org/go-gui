@@ -135,30 +135,44 @@ func (w *Window) markRenderOnlyRefresh() {
 	}
 }
 
-// UpdateWindow marks the window as needing a full layout update.
+// InvalidateLayout marks the window's layout as stale, so the next frame
+// rebuilds it. It does no work itself — [Window.Update] is what rebuilds.
 //
 // Safe to call from any goroutine: it wakes the backend's idle loop, so a
 // refresh requested off the frame thread is painted promptly rather than
 // whenever the next input event happens to arrive. Callers mutating window
 // state alongside it still need the window lock; this only schedules the
 // frame.
-func (w *Window) UpdateWindow() {
+func (w *Window) InvalidateLayout() {
 	w.markLayoutRefresh()
 	w.wakeMain()
 }
 
-// requestRenderOnly marks the window for render-only refresh.
-func (w *Window) requestRenderOnly() {
-	w.markRenderOnlyRefresh()
-}
-
-// RequestRedraw is an alias for RequestRenderOnly. Safe to call
-// from OnHover/OnMouseLeave callbacks, and from any goroutine — like
-// UpdateWindow it wakes the backend's idle loop.
-func (w *Window) RequestRedraw() {
+// InvalidateRender marks the window's renderers as stale without invalidating
+// the layout tree: the next frame rebuilds the render commands from the
+// arranged tree it already has. A pending [Window.InvalidateLayout] wins.
+//
+// Safe to call from OnHover/OnMouseLeave callbacks, and from any goroutine —
+// like InvalidateLayout it wakes the backend's idle loop.
+func (w *Window) InvalidateRender() {
 	w.markRenderOnlyRefresh()
 	w.wakeMain()
 }
+
+// UpdateWindow marks the window as needing a full layout update.
+//
+// Deprecated: use [Window.InvalidateLayout]. The old name promised synchronous
+// work this never did — it only sets a flag for the next frame.
+//
+//exportaudit:keep
+func (w *Window) UpdateWindow() { w.InvalidateLayout() }
+
+// RequestRedraw marks the window for a render-only refresh.
+//
+// Deprecated: use [Window.InvalidateRender], which names what went stale.
+//
+//exportaudit:keep
+func (w *Window) RequestRedraw() { w.InvalidateRender() }
 
 // UpdateView sets the view generator and triggers a full refresh.
 func (w *Window) UpdateView(gen func(*Window) View) {

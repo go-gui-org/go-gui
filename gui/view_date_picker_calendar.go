@@ -337,7 +337,7 @@ func datePickerYearMonthPicker(
 			s.ViewMonth = int(t.Month())
 			s.ViewYear = t.Year()
 			sm.Set(cfgID, s)
-			ctx.Window.UpdateWindow()
+			ctx.Window.InvalidateLayout()
 		},
 	})
 }
@@ -353,14 +353,14 @@ func datePickerRollerKeyDown(
 		s.ViewMonth = month
 		s.ViewYear = year
 		sm.Set(cfgID, s)
-		w.UpdateWindow()
+		w.InvalidateLayout()
 		e.IsHandled = true
 	}
 	switch {
 	case e.Modifiers == ModNone && e.KeyCode == KeyEscape:
 		s.ShowYearMonthPicker = false
 		sm.Set(cfgID, s)
-		w.UpdateWindow()
+		w.InvalidateLayout()
 		e.IsHandled = true
 	case e.Modifiers == ModNone && e.KeyCode == KeyUp:
 		m, y := s.ViewMonth-1, s.ViewYear
@@ -397,7 +397,7 @@ func datePickerNavMonth(id string, delta int, w *Window) {
 		s.ViewYear--
 	}
 	sm.Set(id, s)
-	w.UpdateWindow()
+	w.InvalidateLayout()
 }
 
 // datePickerIsSelected checks if a date is in the selection.

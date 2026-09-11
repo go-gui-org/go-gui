@@ -321,7 +321,7 @@ func downloadImage(
 		resolved := StateMap[string, string](
 			w, nsImageResolved, capImageCache)
 		resolved.Set(url, path)
-		w.UpdateWindow()
+		w.InvalidateLayout()
 	})
 }
 

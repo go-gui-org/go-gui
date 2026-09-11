@@ -120,7 +120,7 @@ func (w *Window) scrollIndexRequest(
 		applyVirtualScroll(r, sc, w, false)
 	}
 	w.queueVirtualScroll(r)
-	w.UpdateWindow()
+	w.InvalidateLayout()
 }
 
 // queueVirtualScroll records the request, replacing any pending one

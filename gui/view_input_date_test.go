@@ -8,7 +8,7 @@ import (
 func inputDateOpen(id string, w *Window) {
 	sm := StateMap[string, bool](w, nsInputDate, capModerate)
 	sm.Set(id, true)
-	w.UpdateWindow()
+	w.InvalidateLayout()
 }
 
 func TestInputDateLayout(t *testing.T) {

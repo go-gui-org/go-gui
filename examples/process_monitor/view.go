@@ -132,7 +132,7 @@ func lessRSS(a, b *Process) bool {
 }
 
 // rootView is registered once in OnInit; the sampler goroutine re-runs it each
-// refresh via Window.UpdateWindow.
+// refresh via Window.InvalidateLayout.
 func rootView(w *gui.Window) gui.View {
 	app := state(w)
 	theme := gui.CurrentTheme()

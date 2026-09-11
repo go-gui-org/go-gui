@@ -7,7 +7,7 @@ package gui
 
 // pinTheme pins a mutated copy of w's active theme on w. Window-scoped,
 // so no restore is needed. Deliberately does not go through
-// (*Window).SetTheme: that also calls applyTheme and UpdateWindow, which
+// (*Window).SetTheme: that also calls applyTheme and InvalidateLayout, which
 // a bare test Window does not need.
 //
 // The copy keeps its Theme.id, so needsInstall treats it as already

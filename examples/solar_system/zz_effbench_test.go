@@ -183,7 +183,7 @@ func benchWholeFrameRenderOnly(b *testing.B, sel int) {
 	for b.Loop() {
 		tick(a)
 		// What the animation loop queues for this refresh kind.
-		w.RequestRedraw()
+		w.InvalidateRender()
 		w.FrameFn()
 	}
 }
@@ -216,7 +216,7 @@ func TestRenderOnlyTickRedrawsCanvas(t *testing.T) {
 	// only render-only frames.
 	for range 30 {
 		tick(a)
-		w.RequestRedraw()
+		w.InvalidateRender()
 		w.FrameFn()
 	}
 	if got := canvasTriangleSum(w); got == first {

@@ -78,7 +78,7 @@ func dataGridSourcePrevPage(gridID string, kind GridPaginationKind, pageLimit in
 	state.RequestKey = ""
 	state.LoadError = ""
 	dgSrc.Set(gridID, state)
-	w.UpdateWindow()
+	w.InvalidateLayout()
 }
 
 func dataGridSourceNextPage(gridID string, kind GridPaginationKind, pageLimit int, w *gg.Window) {
@@ -104,7 +104,7 @@ func dataGridSourceNextPage(gridID string, kind GridPaginationKind, pageLimit in
 	state.RequestKey = ""
 	state.LoadError = ""
 	dgSrc.Set(gridID, state)
-	w.UpdateWindow()
+	w.InvalidateLayout()
 }
 
 func dataGridSourceJumpToRow(gridID string, targetIdx, pageLimit int, w *gg.Window) {
@@ -127,7 +127,7 @@ func dataGridSourceJumpToRow(gridID string, targetIdx, pageLimit int, w *gg.Wind
 		state.LoadError = ""
 	}
 	dgSrc.Set(gridID, state)
-	w.UpdateWindow()
+	w.InvalidateLayout()
 }
 
 func dataGridSourceRowPositionText(cfg *DataGridCfg, state dataGridSourceState, kind GridPaginationKind) string {
@@ -199,7 +199,7 @@ func dataGridSourceRetry(gridID string, w *gg.Window) {
 	state.RequestKey = ""
 	state.LoadError = ""
 	dgSrc.Set(gridID, state)
-	w.UpdateWindow()
+	w.InvalidateLayout()
 }
 
 func dataGridSourcePagerRow(cfg *DataGridCfg, focusID string, state dataGridSourceState, caps GridDataCapabilities, jumpText string) gg.View {

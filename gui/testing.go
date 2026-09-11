@@ -140,7 +140,7 @@ func (w *Window) TestRender(view func(*Window) View) *Layout {
 }
 
 // settle rebuilds the frame if the event just dispatched dirtied the
-// window. EventFn always ends with UpdateWindow, and the backend would
+// window. EventFn always ends with InvalidateLayout, and the backend would
 // pick that up on the next FrameFn; with no backend running, nothing
 // would. Without this the caller observes pre-event geometry, and —
 // more subtly — scroll offsets stay unclamped, because the clamp lives

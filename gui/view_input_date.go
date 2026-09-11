@@ -302,7 +302,7 @@ func inputDateTextField(
 				if cfg.OnSelect != nil {
 					cfg.OnSelect(nil, EventCtx{nil, &Event{}, ctx.Window})
 				}
-				ctx.Window.UpdateWindow()
+				ctx.Window.InvalidateLayout()
 				return
 			}
 			t, err := localeParseDate(text,
@@ -313,7 +313,7 @@ func inputDateTextField(
 			if cfg.OnSelect != nil {
 				cfg.OnSelect([]time.Time{t}, EventCtx{nil, &Event{}, ctx.Window})
 			}
-			ctx.Window.UpdateWindow()
+			ctx.Window.InvalidateLayout()
 		},
 		OnKeyDown: func(ctx EventCtx) {
 			if isOpen && ctx.Event.KeyCode == KeyEscape {
@@ -336,13 +336,13 @@ func inputDateToggle(id string, w *Window) {
 	// Default false: absent entry means picker is closed.
 	cur := sm.GetOr(id, false)
 	sm.Set(id, !cur)
-	w.UpdateWindow()
+	w.InvalidateLayout()
 }
 
 func inputDateClose(id string, w *Window) {
 	sm := StateMap[string, bool](w, nsInputDate, capModerate)
 	sm.Set(id, false)
-	w.UpdateWindow()
+	w.InvalidateLayout()
 }
 
 func applyInputDateDefaults(cfg *InputDateCfg) {

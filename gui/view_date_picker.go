@@ -261,7 +261,7 @@ func datePickerGetState(w *Window, cfg *DatePickerCfg) datePickerState {
 func (w *Window) DatePickerReset(effectiveID string) {
 	sm := StateMap[string, datePickerState](w, nsDatePicker, capModerate)
 	sm.Delete(effectiveID)
-	w.UpdateWindow()
+	w.InvalidateLayout()
 }
 
 // datePickerControls builds the header row: month/year + prev/next.
@@ -286,7 +286,7 @@ func datePickerControls(
 		if focusID != "" {
 			ctx.Window.SetFocus(focusID)
 		}
-		ctx.Window.UpdateWindow()
+		ctx.Window.InvalidateLayout()
 		ctx.Consume()
 	}
 
@@ -361,7 +361,7 @@ func datePickerOnKeyDown(cfg *DatePickerCfg, e *Event, w *Window) {
 
 	update := func() {
 		sm.Set(cfg.ID, s)
-		w.UpdateWindow()
+		w.InvalidateLayout()
 		e.IsHandled = true
 	}
 

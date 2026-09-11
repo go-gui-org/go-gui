@@ -284,7 +284,7 @@ func commandPaletteShow(id string, w *Window) {
 	sh.Set(id, 0)
 	w.scrollY().Set(ScopeID(id, "scroll"), 0)
 	w.SetFocus(ScopeID(id, "input"))
-	w.UpdateWindow()
+	w.InvalidateLayout()
 }
 
 // CommandPaletteDismiss hides the palette.
@@ -295,7 +295,7 @@ func commandPaletteDismiss(id string, w *Window) {
 	sq.Set(id, "")
 	sh := StateMap[string, int](w, nsCmdPaletteHighlight, capModerate)
 	sh.Set(id, 0)
-	w.UpdateWindow()
+	w.InvalidateLayout()
 }
 
 // CommandPaletteToggle toggles palette visibility.
@@ -347,7 +347,7 @@ func makePaletteOnTextChanged(paletteID string) func(string, EventCtx) {
 		sq.Set(paletteID, newText)
 		sh := StateMap[string, int](ctx.Window, nsCmdPaletteHighlight, capModerate)
 		sh.Set(paletteID, 0)
-		ctx.Window.UpdateWindow()
+		ctx.Window.InvalidateLayout()
 	}
 }
 
@@ -418,7 +418,7 @@ func paletteOnKeyDown(paletteID string, onAction func(string, EventCtx), onDismi
 	next, changed := listCoreApplyNav(action, cur, itemCount)
 	if changed {
 		sh.Set(paletteID, next)
-		w.UpdateWindow()
+		w.InvalidateLayout()
 		e.IsHandled = true
 	}
 }

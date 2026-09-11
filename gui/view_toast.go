@@ -394,7 +394,7 @@ func toastRemove(w *Window, id uint64) {
 	for i := range w.toasts {
 		if w.toasts[i].id == id {
 			w.toasts = append(w.toasts[:i], w.toasts[i+1:]...)
-			w.UpdateWindow()
+			w.InvalidateLayout()
 			return
 		}
 	}
@@ -483,7 +483,7 @@ func (w *Window) Toast(cfg ToastCfg) uint64 {
 	playSoundCue(toastAppearCue(w, cfg), w)
 	toastStartEnter(w, id)
 	toastEnforceMaxVisible(w)
-	w.UpdateWindow()
+	w.InvalidateLayout()
 	return id
 }
 

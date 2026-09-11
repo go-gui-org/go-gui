@@ -264,7 +264,7 @@ func selectBody(a *App, w *gui.Window, i int) {
 	// nothing re-runs mainView on its own, so the info panel and the
 	// nav dots would keep showing the previous body without this.
 	if w != nil {
-		w.UpdateWindow()
+		w.InvalidateLayout()
 	}
 	// A manual zoom belongs to the view the user was in; carrying it
 	// into the next selection is what makes zoom "fight" the camera.

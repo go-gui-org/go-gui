@@ -471,7 +471,7 @@ func dragReorderOnMouseMove(
 	dragReorderSet(w, dragKey, state)
 	if activated || indexChanged || didScroll ||
 		(state.active && mouseChanged) {
-		w.UpdateWindow()
+		w.InvalidateLayout()
 	}
 }
 
@@ -494,7 +494,7 @@ func dragReorderOnMouseUp(
 			dragReorderClear(w, dragKey)
 			w.MouseUnlock()
 			w.AnimationRemove(dragReorderScrollAnimID)
-			w.UpdateWindow()
+			w.InvalidateLayout()
 			return
 		}
 	}
@@ -515,7 +515,7 @@ func dragReorderOnMouseUp(
 			onReorder(movedID, beforeID, EventCtx{nil, nil, w})
 		}
 	}
-	w.UpdateWindow()
+	w.InvalidateLayout()
 }
 
 // dragReorderCancel cancels an active drag without firing
@@ -531,9 +531,9 @@ func dragReorderCancel(dragKey string, w *Window) {
 	dragReorderSet(w, dragKey, state)
 	w.MouseUnlock()
 	w.AnimationRemove(dragReorderScrollAnimID)
-	// UpdateWindow before Clear: the rebuild sees cancelled=true,
+	// InvalidateLayout before Clear: the rebuild sees cancelled=true,
 	// hides ghost/gap, then Clear removes state for next frame.
-	w.UpdateWindow()
+	w.InvalidateLayout()
 	dragReorderClear(w, dragKey)
 }
 

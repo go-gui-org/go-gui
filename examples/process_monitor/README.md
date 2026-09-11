@@ -78,14 +78,14 @@ snap, err := Collect()
 w.Lock()
 app.Snapshot = snap
 app.Store.Update(snap, app.Selected)
-w.UpdateWindow() // re-run the view against fresh state, preserving focus/scroll
+w.InvalidateLayout() // re-run the view against fresh state, preserving focus/scroll
 w.Unlock()
 ```
 
-`UpdateWindow` (not `UpdateView`) re-runs the registered view without clearing
-the state registry. The filter input keeps focus, and the list keeps its scroll
-position across refreshes. The backend's idle poll repaints within ~100 ms, so
-these intervals need no explicit wake.
+`InvalidateLayout` (not `UpdateView`) re-runs the registered view without
+clearing the state registry. The filter input keeps focus, and the list keeps
+its scroll position across refreshes. The backend's idle poll repaints within
+~100 ms, so these intervals need no explicit wake.
 
 ### Stable processes + rolling history
 

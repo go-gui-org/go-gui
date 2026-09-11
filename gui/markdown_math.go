@@ -98,7 +98,7 @@ func queueDiagramError(
 				Error:     errMsg,
 				RequestID: requestID,
 			})
-		w.UpdateWindow()
+		w.InvalidateLayout()
 	})
 }
 

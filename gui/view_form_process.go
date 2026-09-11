@@ -215,7 +215,7 @@ func formProcessRequests(
 
 	if !state.submitReq {
 		if stateChanged {
-			w.UpdateWindow()
+			w.InvalidateLayout()
 		}
 		return
 	}
@@ -265,7 +265,7 @@ func formProcessRequests(
 		}, EventCtx{nil, nil, w})
 	}
 	if stateChanged {
-		w.UpdateWindow()
+		w.InvalidateLayout()
 	}
 }
 
@@ -465,7 +465,7 @@ func formApplyAsyncResult(
 	field.pending = false
 	field.activeAbort = nil
 	field.asyncErrors = slices.Clone(issues)
-	w.UpdateWindow()
+	w.InvalidateLayout()
 }
 
 // FormRequestSubmit triggers a submit request for the form.
@@ -475,7 +475,7 @@ func FormRequestSubmit(w *Window, formID string) {
 	}
 	state := formRuntime(w, formID)
 	state.submitReq = true
-	w.UpdateWindow()
+	w.InvalidateLayout()
 }
 
 // FormRequestReset triggers a reset request for the form.
@@ -485,7 +485,7 @@ func FormRequestReset(w *Window, formID string) {
 	}
 	state := formRuntime(w, formID)
 	state.resetReq = true
-	w.UpdateWindow()
+	w.InvalidateLayout()
 }
 
 // FormRequestSubmitForLayout finds the ancestor form and

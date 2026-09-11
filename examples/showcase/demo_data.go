@@ -523,7 +523,7 @@ func showcaseTreeOnLazyLoad(_ string, nodeID string, w *gui.Window) {
 				return // navigated away; discard stale result
 			}
 			app.TreeLazyNodes[nodeID] = children
-			w.UpdateWindow()
+			w.InvalidateLayout()
 		})
 	}()
 }

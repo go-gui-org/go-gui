@@ -221,8 +221,8 @@ RootView (FillFill column)
 | `Icon(SymCopy, ...)`                 | Feather has no `IconCopy` — use a text "Copy"/"Copied" badge (add a glyph to `gui/fonts.go` only if a real icon is wanted)                                                      |
 | `Icon(SymShuffle, ...)`              | `Text(TextCfg{Text: gui.IconSync, TextStyle: iconStyle})`                                                                                                                       |
 | `PressAction()`                      | `OnClick` (containers default to `ClickButton: MouseLeft`)                                                                                                                      |
-| `IsHovered()` + `ModAttrs(...)`      | `OnHover` / leave handling on `ContainerCfg`. Call `w.RequestRedraw()` if needed                                                                                                |
-| `RequestNextFrame()`                 | `w.QueueCommand(...)` (wakes main) or `w.UpdateWindow()` / `w.RequestRedraw()`                                                                                                  |
+| `IsHovered()` + `ModAttrs(...)`      | `OnHover` / leave handling on `ContainerCfg`. Call `w.InvalidateRender()` if needed                                                                                             |
+| `RequestNextFrame()`                 | `w.QueueCommand(...)` (wakes main) or `w.InvalidateLayout()` / `w.InvalidateRender()`                                                                                           |
 
 **Callback signatures diverge — do not assume the generic
 `func(*Layout, *Event, *Window)`:**

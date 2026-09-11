@@ -247,9 +247,9 @@ func TestAnimateRefreshKindOverride(t *testing.T) {
 	}
 }
 
-func TestRequestRedrawSetsRenderOnly(t *testing.T) {
+func TestInvalidateRenderSetsRenderOnly(t *testing.T) {
 	w := &Window{}
-	w.RequestRedraw()
+	w.InvalidateRender()
 	if w.refreshLayout {
 		t.Error("refreshLayout should be false")
 	}

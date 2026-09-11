@@ -118,7 +118,7 @@ func dataGridSourceApplySuccess(gridID string, requestID uint64, result GridData
 	}
 	state.ActiveAbort = nil
 	dgSrc.Set(gridID, state)
-	w.UpdateWindow()
+	w.InvalidateLayout()
 }
 
 func dataGridSourceRowsWithStableIDs(rows []GridRow, kind GridPaginationKind, state dataGridSourceState) []GridRow {
@@ -175,5 +175,5 @@ func dataGridSourceApplyError(gridID string, requestID uint64, errMsg string, w 
 	state.LoadError = errMsg
 	state.ActiveAbort = nil
 	dgSrc.Set(gridID, state)
-	w.UpdateWindow()
+	w.InvalidateLayout()
 }

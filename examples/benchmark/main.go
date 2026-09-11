@@ -151,8 +151,8 @@ func benchView(w *gui.Window) gui.View {
 		// refresh is pending, so an uncapped pump must request a
 		// rebuild every frame. A full layout refresh is required —
 		// a render-only refresh never runs the view again, and
-		// RequestRedraw from here would stall after one frame.
-		w.UpdateWindow()
+		// InvalidateRender from here would stall after one frame.
+		w.InvalidateLayout()
 	}
 
 	selectedCount := strconv.Itoa(app.WidgetCount)

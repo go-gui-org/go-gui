@@ -21,7 +21,7 @@ const scrollAnchorMaxAge = 2
 // scroll offset is corrected so the view anchorID keeps the
 // viewport-relative position it has now. Call it just before
 // mutating state that inserts or removes content above the reader's
-// position (typically right before UpdateWindow). The correction
+// position (typically right before InvalidateLayout). The correction
 // happens inside the layout pipeline, before the frame renders, so
 // no intermediate position is ever shown.
 //

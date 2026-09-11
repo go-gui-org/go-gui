@@ -67,7 +67,7 @@ func TestMouseCancelUnlockedIsNoOp(t *testing.T) {
 
 // A second cancel must not re-run the hook: capture loss can be
 // reported more than once, and dock/reorder unwinds are not idempotent
-// with respect to their own UpdateWindow ordering.
+// with respect to their own InvalidateLayout ordering.
 func TestMouseCancelTwiceRunsHookOnce(t *testing.T) {
 	t.Parallel()
 	w := &Window{}

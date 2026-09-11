@@ -8,6 +8,26 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Changed
+
+- **`UpdateWindow` and `RequestRedraw` renamed to `InvalidateLayout` and
+  `InvalidateRender` (#563)** — the old names promised synchronous work neither
+  did. Both only set a staleness flag and wake the backend's idle loop;
+  `(*Window).Update` is what rebuilds. `UpdateWindow` also read backwards
+  against Win32, where `UpdateWindow()` forces an immediate paint and
+  `InvalidateRect` is the flag-setter. The new pair matches
+  `InvalidateListHeights`, which already meant "mark stale, rebuild later", and
+  names what went stale: `InvalidateLayout` rebuilds the layout tree,
+  `InvalidateRender` rebuilds only the render commands from the tree already
+  arranged.
+
+### Deprecated
+
+- **`UpdateWindow` and `RequestRedraw` (#563)** — both remain as forwarders to
+  `InvalidateLayout` and `InvalidateRender`, so existing code keeps compiling.
+  They will be removed in a future minor. See
+  `docs/specs/window-invalidate-naming.md`.
+
 ## [v0.73.0] - 2026-09-10
 
 ### Added

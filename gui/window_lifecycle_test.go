@@ -387,13 +387,26 @@ func TestRefreshRequestsWakeMain(t *testing.T) {
 		wantRenderOnly bool
 	}{
 		{
-			name:       "UpdateWindow",
-			call:       func(w *Window) { w.UpdateWindow() },
+			name:       "InvalidateLayout",
+			call:       func(w *Window) { w.InvalidateLayout() },
 			wantLayout: true,
 		},
 		{
-			name:           "RequestRedraw",
-			call:           func(w *Window) { w.RequestRedraw() },
+			name:           "InvalidateRender",
+			call:           func(w *Window) { w.InvalidateRender() },
+			wantRenderOnly: true,
+		},
+		// The deprecated spellings ride the same table so the compat
+		// shims cannot rot into no-ops while the new names stay green
+		// (issue #563).
+		{
+			name:       "UpdateWindow (deprecated)",
+			call:       func(w *Window) { w.UpdateWindow() }, //nolint:staticcheck // pins the forwarder
+			wantLayout: true,
+		},
+		{
+			name:           "RequestRedraw (deprecated)",
+			call:           func(w *Window) { w.RequestRedraw() }, //nolint:staticcheck // pins the forwarder
 			wantRenderOnly: true,
 		},
 		{

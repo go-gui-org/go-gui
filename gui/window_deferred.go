@@ -33,7 +33,7 @@ func (w *Window) deferCallback(fn func(*Window)) {
 
 // flushDeferredCallbacks runs everything deferCallback collected during
 // the frame pass and reports whether any ran. Called with no lock held,
-// so a callback is free to call SetFocus, UpdateWindow or any other
+// so a callback is free to call SetFocus, InvalidateLayout or any other
 // window API.
 //
 // The bool is the "the frame is stale" signal: a deferred callback runs

@@ -128,7 +128,7 @@ func (p *platformState) setCursor(mc gui.MouseCursor) {
 // connection so the event-pump goroutine unblocks from WaitForEvent.
 //
 // Deliberately unchecked. Every redraw request calls this (see
-// (*gui.Window).UpdateWindow), and the overwhelming majority already run
+// (*gui.Window).InvalidateLayout), and the overwhelming majority already run
 // on the frame thread where the loop is not parked and the wake is
 // redundant — so it must not cost a server round trip. It does not:
 // xgb's NewRequest hands the buffer to the sendRequests goroutine and

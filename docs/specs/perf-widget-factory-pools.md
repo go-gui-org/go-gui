@@ -18,7 +18,7 @@ arena/pool-backed and ~0-alloc once warm (see `gui/scratch_pools.go`). A survey
 of six candidate areas found the **only genuinely un-pooled per-frame heap
 traffic** lives in the widget-**factory** layer: `w.viewGenerator(w)` re-runs
 the user's whole builder every full-refresh frame (any input event triggers this
-via `UpdateWindow`), and the factories allocate objects the downstream pools
+via `InvalidateLayout`), and the factories allocate objects the downstream pools
 never see.
 
 Root cause: factories (`container`, `Row`, `Column`, `Button`, …) run **without

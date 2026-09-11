@@ -248,7 +248,7 @@ func leftPane(w *gui.Window, app *ExplorerApp) gui.View {
 							a.Examples = metas
 							a.StatusMsg = fmt.Sprintf("refreshed %d examples", len(metas))
 						}
-						ctx.Window.UpdateWindow()
+						ctx.Window.InvalidateLayout()
 					}),
 					gui.ThemePicker(gui.ThemePickerCfg{
 						ID:        "explorer-theme",
@@ -274,7 +274,7 @@ func tagChips(tags []string, app *ExplorerApp) gui.View {
 	allSelected := app.SelectedTag == ""
 	chips = append(chips, chipView("All", allSelected, func(ctx gui.EventCtx) {
 		gui.State[ExplorerApp](ctx.Window).SelectedTag = ""
-		ctx.Window.UpdateWindow()
+		ctx.Window.InvalidateLayout()
 	}))
 	for _, tag := range tags {
 		selected := app.SelectedTag == tag
@@ -285,7 +285,7 @@ func tagChips(tags []string, app *ExplorerApp) gui.View {
 			} else {
 				a.SelectedTag = tag
 			}
-			ctx.Window.UpdateWindow()
+			ctx.Window.InvalidateLayout()
 		}))
 	}
 	return gui.Wrap(gui.ContainerCfg{
@@ -335,7 +335,7 @@ func exampleRows(examples []ExampleMeta, app *ExplorerApp) []gui.View {
 				a.StatusMsg = ""
 				ctx.Window.ScrollVerticalTo("explorer-detail", 0)
 				ctx.Consume()
-				ctx.Window.UpdateWindow()
+				ctx.Window.InvalidateLayout()
 			},
 			Content: []gui.View{
 				gui.Column(gui.ContainerCfg{
@@ -421,7 +421,7 @@ func rightPane(w *gui.Window, app *ExplorerApp) gui.View {
 					a.StatusMsg = "Started " + m.Name
 				}
 				ctx.Consume()
-				ctx.Window.UpdateWindow()
+				ctx.Window.InvalidateLayout()
 			},
 		}),
 	}

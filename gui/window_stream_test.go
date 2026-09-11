@@ -58,7 +58,7 @@ func TestStreamAppliesItemsInOrder(t *testing.T) {
 	}
 	// The #559 regression: values applied but no frame scheduled,
 	// so the window would sit stale until the next input event.
-	// Stream's UpdateWindow must have armed a full layout refresh.
+	// Stream's InvalidateLayout must have armed a full layout refresh.
 	if !w.refreshLayout {
 		t.Error("refreshLayout: got false, want true")
 	}

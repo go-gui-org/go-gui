@@ -571,7 +571,7 @@ func demoMultiWindow(w *gui.Window) gui.View {
 						OnInit: func(child *gui.Window) {
 							sa := appState(parent)
 							sa.MultiWindowChildID = child.PlatformID()
-							parent.UpdateWindow()
+							parent.InvalidateLayout()
 							child.UpdateView(multiWindowChildView(parent))
 						},
 					})
@@ -612,7 +612,7 @@ func multiWindowChildView(parent *gui.Window) func(*gui.Window) gui.View {
 						parent.QueueCommand(func(p *gui.Window) {
 							appState(p).DialogResult =
 								"Hello from child window"
-							p.UpdateWindow()
+							p.InvalidateLayout()
 						})
 					},
 				}),
@@ -637,7 +637,7 @@ func multiWindowChildView(parent *gui.Window) func(*gui.Window) gui.View {
 						ctx.Window.Close()
 						parent.QueueCommand(func(p *gui.Window) {
 							appState(p).MultiWindowChildID = 0
-							p.UpdateWindow()
+							p.InvalidateLayout()
 						})
 					},
 				}),

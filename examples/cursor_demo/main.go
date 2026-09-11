@@ -86,7 +86,7 @@ func mainView(w *gui.Window) gui.View {
 				app := gui.State[App](ctx.Window)
 				if app.Hovered != cell.label {
 					app.Hovered = cell.label
-					ctx.Window.UpdateWindow()
+					ctx.Window.InvalidateLayout()
 				}
 			},
 			Content: []gui.View{
@@ -122,7 +122,7 @@ func mainView(w *gui.Window) gui.View {
 			app := gui.State[App](ctx.Window)
 			if app.Hovered != "" {
 				app.Hovered = ""
-				ctx.Window.UpdateWindow()
+				ctx.Window.InvalidateLayout()
 			}
 		},
 		Content: []gui.View{
