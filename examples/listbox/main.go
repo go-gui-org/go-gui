@@ -43,7 +43,7 @@ func main() {
 		Width:  240,
 		Height: 420,
 		OnInit: func(w *gui.Window) {
-			w.UpdateView(mainView)
+			w.SetView(mainView)
 		},
 	})
 

@@ -14,7 +14,7 @@ func TestRendersToPNG(t *testing.T) {
 		State:  &App{Clicks: 3},
 		Width:  320,
 		Height: 200,
-		OnInit: func(win *gui.Window) { win.UpdateView(mainView) },
+		OnInit: func(win *gui.Window) { win.SetView(mainView) },
 	})
 	t.Cleanup(func() { soft.Release(w) })
 

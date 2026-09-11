@@ -67,7 +67,7 @@ func main() {
 		Height: 480,
 		Title:  "CSS var() + calc() (v0.14.0)",
 		State:  &appState{ThemeIdx: 0, StrokeBase: 2},
-		OnInit: func(w *gui.Window) { w.UpdateView(view) },
+		OnInit: func(w *gui.Window) { w.SetView(view) },
 	})
 
 	if *screenshot != "" {
@@ -94,7 +94,7 @@ func view(w *gui.Window) gui.View {
 
 			OnClick: func(ctx gui.EventCtx) {
 				app.ThemeIdx = idx
-				w.UpdateView(view)
+				w.SetView(view)
 			},
 		}))
 	}
@@ -112,7 +112,7 @@ func view(w *gui.Window) gui.View {
 
 			OnClick: func(ctx gui.EventCtx) {
 				app.StrokeBase = base
-				w.UpdateView(view)
+				w.SetView(view)
 			},
 		}))
 	}

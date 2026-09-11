@@ -63,10 +63,10 @@ func main() {
 		Height: 4 * cellSize,
 		OnInit: func(w *gui.Window) {
 			if useIsolation {
-				w.UpdateView(isolatedView)
+				w.SetView(isolatedView)
 				return
 			}
-			w.UpdateView(mainView)
+			w.SetView(mainView)
 		},
 	})
 

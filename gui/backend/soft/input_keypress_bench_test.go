@@ -43,7 +43,7 @@ func keypressWindow(
 	tb.Cleanup(func() { tm.textSys.Free() })
 	w.SetTextMeasurer(tm)
 	reseed := func() {
-		w.UpdateView(func(w *gui.Window) gui.View {
+		w.SetView(func(w *gui.Window) gui.View {
 			return gui.Input(gui.InputCfg{
 				ID:     "f",
 				Text:   seed,

@@ -110,7 +110,7 @@ func main() {
 		Width:  720,
 		Height: 540,
 		Title:  "CSS Selectors (v0.14.0)",
-		OnInit: func(w *gui.Window) { w.UpdateView(view) },
+		OnInit: func(w *gui.Window) { w.SetView(view) },
 	})
 
 	if *screenshot != "" {

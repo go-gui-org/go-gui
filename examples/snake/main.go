@@ -45,7 +45,7 @@ func main() {
 		Height:    640,
 		FixedSize: true,
 		OnInit: func(w *gui.Window) {
-			w.UpdateView(mainView)
+			w.SetView(mainView)
 			// Advance the game on a repeating animation timer.
 			startGameLoop(w)
 		},

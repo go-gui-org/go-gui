@@ -35,7 +35,7 @@ func main() {
 		Height:  260,
 		OnInit: func(w *gui.Window) {
 			w.SetWindowVibrancy(gui.State[App](w).Material)
-			w.UpdateView(mainView)
+			w.SetView(mainView)
 		},
 	})
 

@@ -21,8 +21,17 @@ and this project adheres to
   `InvalidateRender` rebuilds only the render commands from the tree already
   arranged.
 
+- **`UpdateView` renamed to `SetView` (#564)** — it is a setter for one field
+  (`w.viewGenerator`), so Go's setter convention fits, and it pairs with
+  `SetTheme`. At the dominant call site it reads correctly now: `OnInit`
+  performs the first assignment, not an update (`w.SetView(mainView)`). The new
+  name still reads fine on the rarer swap-the-view path.
+
 ### Deprecated
 
+- **`UpdateView` (#564)** — remains as a forwarder to `SetView`, so existing
+  code (including the six siblings' `main.go` files) keeps compiling. It will be
+  removed in a future minor.
 - **`UpdateWindow` and `RequestRedraw` (#563)** — both remain as forwarders to
   `InvalidateLayout` and `InvalidateRender`, so existing code keeps compiling.
   They will be removed in a future minor. See

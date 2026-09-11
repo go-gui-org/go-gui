@@ -69,7 +69,7 @@ func main() {
 		Height:          220,
 		DebugTimeTravel: true,
 		OnInit: func(w *gui.Window) {
-			w.UpdateView(mainView)
+			w.SetView(mainView)
 		},
 	})
 

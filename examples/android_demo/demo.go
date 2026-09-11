@@ -22,7 +22,7 @@ func Init() {
 	w := gui.NewWindow(gui.WindowCfg{
 		State: &App{},
 		OnInit: func(w *gui.Window) {
-			w.UpdateView(view)
+			w.SetView(view)
 		},
 	})
 	android.SetWindow(w)

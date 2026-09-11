@@ -169,7 +169,7 @@ type MarkdownCfg struct {
 	// It runs once per block per frame over the cached styled blocks,
 	// so it must be cheap and pure: build View structs, do not fetch
 	// or parse. It runs during GenerateLayout, under the frame lock,
-	// so SetFocus, ClearFocus, UpdateView, ClearDrawCanvasCache and
+	// so SetFocus, ClearFocus, SetView, ClearDrawCanvasCache and
 	// Window.Lock all panic from it; QueueCommand is the remedy and
 	// is permitted. Hook writers own their IDs — compose them with
 	// ScopeID(el.DocID, …) or ScopeIDN — and their a11y roles.

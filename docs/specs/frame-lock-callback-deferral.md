@@ -25,7 +25,7 @@ region reach app code:
 `w.mu` is a plain `sync.Mutex`. It is not reentrant, and the main goroutine _is_
 the platform event loop (`runtime.LockOSThread` in
 `gui/backend/metal/mainthread.go`). So an app callback reached from that region
-that calls `SetFocus`, `ClearFocus`, `UpdateView`, `ClearDrawCanvasCache` or
+that calls `SetFocus`, `ClearFocus`, `SetView`, `ClearDrawCanvasCache` or
 `Window.Lock` blocks the main thread on a lock it already owns. The window
 freezes permanently, with no panic and no CPU burn.
 

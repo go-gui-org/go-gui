@@ -295,7 +295,7 @@ tags.
   var screenshot = flag.String("screenshot", "", "write screenshot and exit")
   flag.Parse()
   if *screenshot != "" {
-      w := gui.SimpleWindow(title, width, height, state, func(w *gui.Window){ w.UpdateView(mainView) })
+      w := gui.SimpleWindow(title, width, height, state, func(w *gui.Window){ w.SetView(mainView) })
       if err := soft.RenderToPNG(w, 2, *screenshot); err != nil { log.Fatal(err) }
       os.Exit(0)
   }

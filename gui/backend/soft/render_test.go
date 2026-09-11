@@ -25,7 +25,7 @@ func newWin(t *testing.T, w, h int, view func(*gui.Window) gui.View) *gui.Window
 		Width:   w,
 		Height:  h,
 		BgColor: gui.RGB(0, 0, 0),
-		OnInit:  func(win *gui.Window) { win.UpdateView(view) },
+		OnInit:  func(win *gui.Window) { win.SetView(view) },
 	})
 	t.Cleanup(func() { Release(win) })
 	return win
@@ -166,7 +166,7 @@ func TestRenderScaleChangeRebuilds(t *testing.T) {
 		BgColor: gui.RGB(0, 0, 0),
 		OnInit: func(w *gui.Window) {
 			onInit++
-			w.UpdateView(redView)
+			w.SetView(redView)
 		},
 	})
 	t.Cleanup(func() { Release(win) })

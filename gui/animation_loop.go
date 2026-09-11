@@ -28,7 +28,7 @@ func viewBoundNow() int64 { return time.Now().UnixNano() }
 // A HeroTransition is snapshotted here, the way AnimateLayout captures
 // before its caller changes the view: the "before" geometry only exists
 // until the next arrange, and the documented call sequence is
-// AnimationAdd followed by UpdateView. Re-adding a transition mid-flight
+// AnimationAdd followed by SetView. Re-adding a transition mid-flight
 // replaces it outright (the ID is fixed), so the new morph starts from
 // wherever the tree is at that moment.
 func (w *Window) AnimationAdd(a Animation) {

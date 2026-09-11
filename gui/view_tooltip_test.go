@@ -361,7 +361,7 @@ func tooltipsInPanels(panels ...tooltipPanel) *Window {
 	w := NewTestWindow(WindowCfg{})
 	w.viewState.mousePosX = 60
 	w.viewState.mousePosY = 60
-	w.UpdateView(func(vw *Window) View {
+	w.SetView(func(vw *Window) View {
 		views := make([]View, 0, len(panels))
 		for _, p := range panels {
 			views = append(views, Column(ContainerCfg{

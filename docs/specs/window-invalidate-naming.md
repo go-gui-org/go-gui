@@ -73,4 +73,5 @@ the view registry and assigns `w.viewGenerator` — so it never lied the way
 `UpdateWindow` did. It is simply a setter, and at the dominant call site
 (`OnInit`) it performs the first assignment rather than an update. It carries
 129 in-repo call sites plus every sibling's `main.go`, and no correctness hazard
-behind it, so it does not ride along with this change.
+behind it, so it does not ride along with this change. (Resolved by #564, which
+renamed it to `SetView` and kept `UpdateView` as a deprecated forwarder.)

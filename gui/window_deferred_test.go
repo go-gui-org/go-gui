@@ -152,7 +152,7 @@ func TestFlushDeferredCallbacksReports(t *testing.T) {
 func TestFrameFnRerunsPassAfterDeferredCallbacks(t *testing.T) {
 	w := NewTestWindow(WindowCfg{})
 	label := "before"
-	w.UpdateView(func(*Window) View {
+	w.SetView(func(*Window) View {
 		return Text(TextCfg{ID: "label", Text: label})
 	})
 	w.deferCallback(func(*Window) { label = "after" })
@@ -176,7 +176,7 @@ func TestFrameFnRerunsPassAfterDeferredCallbacks(t *testing.T) {
 func TestFrameFnSinglePassWithoutDeferredCallbacks(t *testing.T) {
 	w := NewTestWindow(WindowCfg{})
 	gens := 0
-	w.UpdateView(func(*Window) View {
+	w.SetView(func(*Window) View {
 		gens++
 		return Text(TextCfg{ID: "t"})
 	})
@@ -194,7 +194,7 @@ func TestFrameFnSinglePassWithoutDeferredCallbacks(t *testing.T) {
 func TestFrameFnStopsAfterTwoPasses(t *testing.T) {
 	w := NewTestWindow(WindowCfg{})
 	gens := 0
-	w.UpdateView(func(w *Window) View {
+	w.SetView(func(w *Window) View {
 		gens++
 		w.InvalidateLayout() // dirty the window from inside the pass
 		return Text(TextCfg{ID: "t"})

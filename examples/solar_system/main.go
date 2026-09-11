@@ -206,7 +206,7 @@ func main() {
 		Height: windowH,
 		OnInit: func(w *gui.Window) {
 			startAmbience()
-			w.UpdateView(mainView)
+			w.SetView(mainView)
 			w.AnimationAdd(&gui.Animate{
 				AnimID: tickAnim,
 				Delay:  tickDelay,

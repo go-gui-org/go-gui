@@ -1774,7 +1774,7 @@ func TestSetFocusReassertSameIDPreservesSelection(t *testing.T) {
 // The #156 pattern: a View function that re-asserts focus on every
 // frame (documented as legitimate in window_focus.go). TestRender(nil)
 // re-runs the installed generator without clearing the registry
-// (UpdateView would), so the second frame observes the state the first
+// (SetView would), so the second frame observes the state the first
 // frame's re-assert must not have wiped.
 func TestSetFocusReassertFromViewPreservesSelection(t *testing.T) {
 	w := NewTestWindow(WindowCfg{})

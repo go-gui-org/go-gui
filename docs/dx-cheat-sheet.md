@@ -108,9 +108,9 @@ fields: `FloatAnchor`, `FloatTieOff`, `FloatOffsetX`, `FloatOffsetY`.
 ### Do not call window APIs from a hook
 
 The hook runs inside the frame pass, which holds the window mutex. `SetFocus`,
-`ClearFocus`, `UpdateView`, `ClearDrawCanvasCache` and `Window.Lock` all take
-that mutex. It is not reentrant, so a call from a hook froze the app outright
-(issue #394). It now panics, naming the API. Queue the work instead:
+`ClearFocus`, `SetView`, `ClearDrawCanvasCache` and `Window.Lock` all take that
+mutex. It is not reentrant, so a call from a hook froze the app outright (issue
+#394). It now panics, naming the API. Queue the work instead:
 
 ```go
 AmendLayout: func(ctx gui.EventCtx) {
@@ -360,7 +360,7 @@ func streamLinesView(w *gui.Window) gui.View {
 func ExampleStream() {
 	w := gui.NewWindow(gui.WindowCfg{State: &streamLines{}})
 	defer w.WindowCleanup()
-	w.UpdateView(streamLinesView)
+	w.SetView(streamLinesView)
 
 	lines := make(chan string, 4)
 	done := gui.Stream(w, lines, func(w *gui.Window, line string) {

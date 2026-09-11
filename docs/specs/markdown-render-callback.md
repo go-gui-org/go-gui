@@ -159,7 +159,7 @@ set `A11YRole`/`A11YLabel` where appropriate. There is no `AccessRoleNote`; a
 callout takes `AccessRoleGroup` with a label naming its kind.
 
 The hook runs during `GenerateLayout`, under the frame lock. `SetFocus`,
-`ClearFocus`, `UpdateView`, `ClearDrawCanvasCache` and `Window.Lock` all take
+`ClearFocus`, `SetView`, `ClearDrawCanvasCache` and `Window.Lock` all take
 `w.mu` and panic naming themselves. `QueueCommand` **is** permitted and is the
 documented remedy — it takes `w.commandsMu` (`gui/window_update.go:53`), never
 `w.mu`. See `docs/specs/frame-lock-callback-deferral.md`.

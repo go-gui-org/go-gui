@@ -72,7 +72,7 @@ func ListSystemFonts(w *Window) []string {
 //
 //   - [Window.State] / [State] — typed per-window user data
 //   - [Window.Now] — virtual-clock-aware time (supports time-travel debug)
-//   - [Window.UpdateView] — request a full rebuild next frame
+//   - [Window.SetView] — request a full rebuild next frame
 //   - [Window.SetTitle] — update the OS window title
 //   - [Window.Close] — request window close (safe from any goroutine)
 //   - [Window.Backend] — access text measurement, clipboard, native dialogs

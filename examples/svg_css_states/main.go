@@ -49,7 +49,7 @@ func main() {
 		Height: 360,
 		Title:  ":hover / :focus",
 		State:  &state{},
-		OnInit: func(w *gui.Window) { w.UpdateView(view) },
+		OnInit: func(w *gui.Window) { w.SetView(view) },
 	})
 
 	if *screenshot != "" {

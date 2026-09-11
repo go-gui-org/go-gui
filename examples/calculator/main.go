@@ -98,7 +98,7 @@ func main() {
 		FixedSize: true,
 		BgColor:   colorBackdrop,
 		OnInit: func(w *gui.Window) {
-			w.UpdateView(mainView)
+			w.SetView(mainView)
 			w.SetFocus(displayFocus)
 		},
 		OnEvent: handleKeyEvent,

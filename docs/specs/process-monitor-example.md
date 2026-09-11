@@ -168,12 +168,12 @@ func startSampler(w *gui.Window) {
 ```
 
 Critical detail: use `w.InvalidateLayout()` (alias `markLayoutRefresh`), **NOT**
-`w.UpdateView(fn)`. `UpdateView` clears the view-state registry every call,
-which drops input focus and scroll position on every sample.
-`InvalidateRender()` is render-only (no view re-run) so new rows do not appear —
-also wrong. `InvalidateLayout` re-runs the registered view generator against
-fresh state while preserving the registry. Register the generator once in
-`OnInit` via `w.UpdateView(rootView)`.
+`w.SetView(fn)`. `SetView` clears the view-state registry every call, which
+drops input focus and scroll position on every sample. `InvalidateRender()` is
+render-only (no view re-run) so new rows do not appear — also wrong.
+`InvalidateLayout` re-runs the registered view generator against fresh state
+while preserving the registry. Register the generator once in `OnInit` via
+`w.SetView(rootView)`.
 
 Reads of shared state during sampling and all mutations happen under `w.Lock()`
 / `w.Unlock()`. The view function itself runs under `w.mu` already (per

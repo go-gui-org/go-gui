@@ -174,9 +174,9 @@ func (w *Window) UpdateWindow() { w.InvalidateLayout() }
 //exportaudit:keep
 func (w *Window) RequestRedraw() { w.InvalidateRender() }
 
-// UpdateView sets the view generator and triggers a full refresh.
-func (w *Window) UpdateView(gen func(*Window) View) {
-	w.lockForAPI("UpdateView")
+// SetView sets the view generator and triggers a full refresh.
+func (w *Window) SetView(gen func(*Window) View) {
+	w.lockForAPI("SetView")
 	defer w.mu.Unlock()
 	w.viewState.registry.Clear()
 	w.viewGenerator = gen
@@ -185,6 +185,14 @@ func (w *Window) UpdateView(gen func(*Window) View) {
 	// event queue and takes no window lock, so it cannot re-enter.
 	w.wakeMain()
 }
+
+// UpdateView sets the view generator and triggers a full refresh.
+//
+// Deprecated: use [Window.SetView], which pairs with [Window.SetTheme] and
+// reads correctly at the dominant OnInit call site.
+//
+//exportaudit:keep
+func (w *Window) UpdateView(gen func(*Window) View) { w.SetView(gen) }
 
 // FrameFn is called by the backend each frame. It flushes
 // queued commands and rebuilds layout/renderers as needed.

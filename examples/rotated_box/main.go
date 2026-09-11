@@ -25,7 +25,7 @@ func main() {
 		Height: 500,
 		State:  &app{},
 		OnInit: func(w *gui.Window) {
-			w.UpdateView(mainView)
+			w.SetView(mainView)
 		},
 	})
 
@@ -90,7 +90,7 @@ func mainView(w *gui.Window) gui.View {
 							OnClick: func(ctx gui.EventCtx) {
 								s := gui.State[app](ctx.Window)
 								s.clicks++
-								ctx.Window.UpdateView(mainView)
+								ctx.Window.SetView(mainView)
 							},
 							Content: []gui.View{
 								gui.Text(gui.TextCfg{

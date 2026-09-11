@@ -104,7 +104,7 @@ func main() {
 		Height:  768,
 		Timings: true,
 		OnInit: func(w *gui.Window) {
-			w.UpdateView(benchView)
+			w.SetView(benchView)
 		},
 	})
 

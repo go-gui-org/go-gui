@@ -49,7 +49,7 @@ func main() {
 		Width:  720,
 		Height: 540,
 		Title:  "Gradient spreadMethod",
-		OnInit: func(w *gui.Window) { w.UpdateView(view) },
+		OnInit: func(w *gui.Window) { w.SetView(view) },
 	})
 
 	if *screenshot != "" {

@@ -174,7 +174,7 @@ func TestHeroTransitionOnDone(t *testing.T) {
 }
 
 // TestAnimationAddCapturesHeroSnapshots is the wiring regression: the
-// documented sequence is AnimationAdd then UpdateView, so AnimationAdd
+// documented sequence is AnimationAdd then SetView, so AnimationAdd
 // is the last moment the outgoing geometry exists. Before this was
 // wired, outgoing stayed nil and no hero ever morphed — every one of
 // them only faded in.

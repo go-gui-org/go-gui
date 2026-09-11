@@ -81,7 +81,7 @@ func main() {
 		Height: 400,
 		Title:  "SVG Examples",
 		OnInit: func(w *gui.Window) {
-			w.UpdateView(mainView)
+			w.SetView(mainView)
 		},
 		OnEvent: func(e *gui.Event, w *gui.Window) {
 			if e.Type == gui.EventKeyDown &&

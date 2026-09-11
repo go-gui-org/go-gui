@@ -711,7 +711,7 @@ func TestDataGridRowsDataEmptyFirstRow(t *testing.T) {
 // data-source state, and a missed resolve in any of them is the defect.
 func TestDataGridStateKeysResolveUnderScope(t *testing.T) {
 	w := gg.NewTestWindow(gg.WindowCfg{})
-	w.UpdateView(func(_ *gg.Window) gg.View {
+	w.SetView(func(_ *gg.Window) gg.View {
 		return gg.Column(gg.ContainerCfg{
 			ID:      "detail",
 			Sizing:  gg.FillFill,
@@ -728,7 +728,7 @@ func TestDataGridStateKeysResolveUnderScope(t *testing.T) {
 // SetFocus and FindByID must be given.
 func TestDataGridRootResolvesToEffectiveID(t *testing.T) {
 	w := gg.NewTestWindow(gg.WindowCfg{})
-	w.UpdateView(func(_ *gg.Window) gg.View {
+	w.SetView(func(_ *gg.Window) gg.View {
 		return gg.Column(gg.ContainerCfg{
 			ID:      "detail",
 			Sizing:  gg.FillFill,
@@ -752,7 +752,7 @@ func TestDataGridRootResolvesToEffectiveID(t *testing.T) {
 // identities, which is the case the unresolved key silently merged.
 func TestDataGridTwoScopesAreDistinct(t *testing.T) {
 	w := gg.NewTestWindow(gg.WindowCfg{})
-	w.UpdateView(func(_ *gg.Window) gg.View {
+	w.SetView(func(_ *gg.Window) gg.View {
 		return gg.Column(gg.ContainerCfg{
 			Sizing: gg.FillFill,
 			Content: []gg.View{
@@ -791,7 +791,7 @@ func scopedTestGrid(w *gg.Window) gg.View {
 // joining the enclosing scope onto a name that already carries it.
 func TestDataGridChildIDsAreNotJoinedTwice(t *testing.T) {
 	w := gg.NewTestWindow(gg.WindowCfg{})
-	w.UpdateView(func(_ *gg.Window) gg.View {
+	w.SetView(func(_ *gg.Window) gg.View {
 		return gg.Column(gg.ContainerCfg{
 			ID:      "detail",
 			Sizing:  gg.FillFill,

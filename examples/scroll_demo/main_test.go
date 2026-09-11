@@ -15,7 +15,7 @@ func newTestWindow(t *testing.T) *gui.Window {
 		Width:  400,
 		Height: 600,
 		OnInit: func(w *gui.Window) {
-			w.UpdateView(mainView)
+			w.SetView(mainView)
 			w.SetFocus("scroll-panel")
 		},
 	})

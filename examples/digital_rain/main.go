@@ -70,7 +70,7 @@ func main() {
 		Width:  800,
 		Height: 600,
 		OnInit: func(w *gui.Window) {
-			w.UpdateView(mainView)
+			w.SetView(mainView)
 			startTick(w)
 		},
 		OnEvent: handleEvent,

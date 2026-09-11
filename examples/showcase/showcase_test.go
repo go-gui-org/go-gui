@@ -141,7 +141,7 @@ func TestShowcaseWidgetSoundWiring(t *testing.T) {
 	app.SelectedGroup = groupFeedback
 	app.SelectedComponent = "audio"
 	w := gui.NewTestWindow(gui.WindowCfg{State: app})
-	w.UpdateView(mainView)
+	w.SetView(mainView)
 
 	installWidgetSounds(w, soundPlayerSynth)
 	spy := &soundWiringSpy{}
@@ -583,7 +583,7 @@ func TestDetailPanel_BumpsAbortCounterWhenNavigatingAwayFromTree(t *testing.T) {
 // entry: a widget behind an unselected catalog item is not in the tree.
 func TestDemoPagesHaveNoIDDefects(t *testing.T) {
 	w := gui.NewTestWindow(gui.WindowCfg{State: newShowcaseApp()})
-	w.UpdateView(mainView)
+	w.SetView(mainView)
 	app := appState(w)
 
 	for _, entry := range demoEntries {

@@ -34,7 +34,7 @@ frame the compositor ever shows — there is no opaque flash first.
 gui.NewWindow(gui.WindowCfg{
     OnInit: func(w *gui.Window) {
         w.SetWindowOpacity(0.85)
-        w.UpdateView(rootView)
+        w.SetView(rootView)
     },
 })
 ```

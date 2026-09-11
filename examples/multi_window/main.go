@@ -38,7 +38,7 @@ func main() {
 		Width:  400,
 		Height: 300,
 		OnInit: func(w *gui.Window) {
-			w.UpdateView(mainView)
+			w.SetView(mainView)
 		},
 	})
 
@@ -48,7 +48,7 @@ func main() {
 		Width:  300,
 		Height: 200,
 		OnInit: func(w *gui.Window) {
-			w.UpdateView(inspectorView)
+			w.SetView(inspectorView)
 		},
 	})
 
@@ -119,7 +119,7 @@ func mainView(w *gui.Window) gui.View {
 							Width:  250,
 							Height: 150,
 							OnInit: func(w *gui.Window) {
-								w.UpdateView(inspectorView)
+								w.SetView(inspectorView)
 							},
 						})
 					}

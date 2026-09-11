@@ -50,7 +50,7 @@ func main() {
 
 	w := gui.SimpleWindow("Optical Centring", 900, 760,
 		&App{Typed: "128"}, func(w *gui.Window) {
-			w.UpdateView(mainView)
+			w.SetView(mainView)
 		})
 
 	if *screenshot != "" {

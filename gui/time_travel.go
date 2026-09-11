@@ -426,7 +426,7 @@ func (w *Window) openDebugWindow() {
 		Width:  300,
 		Height: 150,
 		OnInit: func(dw *Window) {
-			dw.UpdateView(debugWindowView)
+			dw.SetView(debugWindowView)
 		},
 		// Closing the debug window must unfreeze the app,
 		// otherwise the user is stranded with input blocked

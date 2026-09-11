@@ -172,7 +172,7 @@ func TestSimpleWindowForwards(t *testing.T) {
 	var installed func(*Window) View
 	w := SimpleWindow("T", 400, 300, &appState{n: 7}, func(w *Window) {
 		installed = func(w *Window) View { return Label("root", TextStyle{}) }
-		w.UpdateView(installed)
+		w.SetView(installed)
 	})
 
 	if w.Config.Title != "T" || w.Config.Width != 400 || w.Config.Height != 300 {

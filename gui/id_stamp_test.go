@@ -154,7 +154,7 @@ func (v splicedParentView) GenerateLayout(w *Window) Layout {
 // through that parent rather than the grandparent scope.
 func TestStampDriftNamesScopeThroughUnstampedParent(t *testing.T) {
 	w := NewTestWindow(WindowCfg{})
-	w.UpdateView(func(_ *Window) View {
+	w.SetView(func(_ *Window) View {
 		return Column(ContainerCfg{
 			Sizing: FillFill,
 			Content: []View{
@@ -191,7 +191,7 @@ func TestStampDriftNamesScopeThroughUnstampedParent(t *testing.T) {
 // it on its bare leaf, and nothing else about the frame looks wrong.
 func TestStampDriftReportsAnUnstampedShape(t *testing.T) {
 	w := NewTestWindow(WindowCfg{})
-	w.UpdateView(func(_ *Window) View {
+	w.SetView(func(_ *Window) View {
 		return Column(ContainerCfg{
 			Sizing: FillFill,
 			Content: []View{
@@ -226,7 +226,7 @@ func TestStampDriftReportsAnUnstampedShape(t *testing.T) {
 // advisory: every identity here sits under an ID-bearing ancestor.
 func TestNestedLayoutHasNoIdentityFindings(t *testing.T) {
 	w := NewTestWindow(WindowCfg{})
-	w.UpdateView(func(_ *Window) View {
+	w.SetView(func(_ *Window) View {
 		return Column(ContainerCfg{
 			Sizing: FillFill,
 			ID:     "screen",
@@ -278,7 +278,7 @@ func (v staleStampView) GenerateLayout(w *Window) Layout {
 // downstream finds them and nothing else about the frame looks wrong.
 func TestStampDriftReportsAStaleStamp(t *testing.T) {
 	w := NewTestWindow(WindowCfg{})
-	w.UpdateView(func(_ *Window) View {
+	w.SetView(func(_ *Window) View {
 		return Column(ContainerCfg{
 			Sizing: FillFill,
 			Content: []View{
@@ -316,7 +316,7 @@ func TestStampDriftReportsAStaleStamp(t *testing.T) {
 // silent until the gate asks for it.
 func TestStampDriftIsSilentWhenTheCategoryIsOff(t *testing.T) {
 	w := NewTestWindow(WindowCfg{})
-	w.UpdateView(func(_ *Window) View {
+	w.SetView(func(_ *Window) View {
 		return Column(ContainerCfg{
 			Sizing: FillFill,
 			Content: []View{
@@ -364,7 +364,7 @@ func (v unstampedParentView) GenerateLayout(w *Window) Layout {
 // as drifted, and the real fault — the parent — is buried under it.
 func TestUnstampedParentDoesNotMisplaceItsChildren(t *testing.T) {
 	w := NewTestWindow(WindowCfg{})
-	w.UpdateView(func(_ *Window) View {
+	w.SetView(func(_ *Window) View {
 		return Column(ContainerCfg{
 			Sizing: FillFill,
 			Content: []View{

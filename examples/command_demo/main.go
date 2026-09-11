@@ -36,7 +36,7 @@ func main() {
 		Height: 500,
 		OnInit: func(w *gui.Window) {
 			registerCommands(w)
-			w.UpdateView(mainView)
+			w.SetView(mainView)
 		},
 	})
 

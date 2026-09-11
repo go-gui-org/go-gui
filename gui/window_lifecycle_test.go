@@ -35,18 +35,18 @@ func TestNewWindowSetsFields(t *testing.T) {
 	}
 }
 
-func TestUpdateViewSetsGenerator(t *testing.T) {
+func TestSetViewSetsGenerator(t *testing.T) {
 	w := NewWindow(WindowCfg{Width: 100, Height: 100})
 	called := false
-	w.UpdateView(func(_ *Window) View {
+	w.SetView(func(_ *Window) View {
 		called = true
 		return Text(TextCfg{Text: "hi"})
 	})
 	if w.viewGenerator == nil {
-		t.Fatal("viewGenerator nil after UpdateView")
+		t.Fatal("viewGenerator nil after SetView")
 	}
 	if !w.refreshLayout {
-		t.Error("want refreshLayout=true after UpdateView")
+		t.Error("want refreshLayout=true after SetView")
 	}
 	// Call generator to verify it works.
 	w.viewGenerator(w)
@@ -410,9 +410,16 @@ func TestRefreshRequestsWakeMain(t *testing.T) {
 			wantRenderOnly: true,
 		},
 		{
-			name: "UpdateView",
+			name: "SetView",
 			call: func(w *Window) {
-				w.UpdateView(func(*Window) View { return nil })
+				w.SetView(func(*Window) View { return nil })
+			},
+			wantLayout: true,
+		},
+		{
+			name: "UpdateView (deprecated)",
+			call: func(w *Window) {
+				w.UpdateView(func(*Window) View { return nil }) //nolint:staticcheck // pins the forwarder
 			},
 			wantLayout: true,
 		},
@@ -565,14 +572,14 @@ func TestWindowCtxNilFallback(t *testing.T) {
 	}
 }
 
-func TestUpdateViewPreservesIDFocus(t *testing.T) {
+func TestSetViewPreservesIDFocus(t *testing.T) {
 	w := NewWindow(WindowCfg{State: new(int), Width: 100, Height: 100})
 	w.viewState.focusID = "f42"
-	w.UpdateView(func(_ *Window) View {
+	w.SetView(func(_ *Window) View {
 		return Text(TextCfg{Text: "hi"})
 	})
 	if w.FocusID() != "f42" {
-		t.Errorf("FocusID = %q, want f42 after UpdateView",
+		t.Errorf("FocusID = %q, want f42 after SetView",
 			w.FocusID())
 	}
 }

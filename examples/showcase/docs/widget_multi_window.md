@@ -12,7 +12,7 @@ main := gui.NewWindow(gui.WindowCfg{
     State: &MainState{},
     Title: "Main",
     OnInit: func(w *gui.Window) {
-        w.UpdateView(mainView)
+        w.SetView(mainView)
     },
 })
 backend.RunApp(app, main)
@@ -27,7 +27,7 @@ w.App().OpenWindow(gui.WindowCfg{
     Width:  300,
     Height: 200,
     OnInit: func(child *gui.Window) {
-        child.UpdateView(childView)
+        child.SetView(childView)
     },
 })
 ```

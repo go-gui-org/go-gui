@@ -73,7 +73,7 @@ func main() {
 		Height: 700,
 		OnInit: func(w *gui.Window) {
 			// Register the view once; the sampler re-runs it via InvalidateLayout.
-			w.UpdateView(rootView)
+			w.SetView(rootView)
 			startSampler(w)
 		},
 	})
@@ -122,7 +122,7 @@ func startSampler(w *gui.Window) {
 						}
 					}
 				}
-				// InvalidateLayout (not UpdateView) re-runs the view against fresh state
+				// InvalidateLayout (not SetView) re-runs the view against fresh state
 				// WITHOUT clearing the state registry, so the filter input keeps
 				// focus and the process list keeps its scroll position.
 				w.InvalidateLayout()
