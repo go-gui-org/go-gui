@@ -17,6 +17,107 @@ func TestDatePickerRollerLayout(t *testing.T) {
 	}
 }
 
+// TestDatePickerRollerScopedFocusAndKeys is the regression test for
+// issue #565: under an ID-bearing parent the roller resolved no
+// effective ID, so click-to-focus parked focus in the void and key
+// dispatch never reached it.
+func TestDatePickerRollerScopedFocusAndKeys(t *testing.T) {
+	w := &Window{}
+	// EventFn drops key events on an unfocused window (eventAllowed).
+	w.focused = true
+	sel := time.Date(2025, 6, 15, 0, 0, 0, 0, time.Local)
+	changes := 0
+	v := Column(ContainerCfg{
+		ID: "panel",
+		Content: []View{
+			DatePickerRoller(DatePickerRollerCfg{
+				ID:           "roller",
+				Focusable:    true,
+				SelectedDate: sel,
+				OnChange: func(_ time.Time, _ EventCtx) {
+					changes++
+				},
+			}),
+		},
+	})
+	w.layout = generateViewLayout(v, w)
+	roller := &w.layout.Children[0]
+	if roller.Shape.events.OnClick == nil {
+		t.Fatal("OnClick handler missing")
+	}
+	roller.Shape.events.OnClick(EventCtx{roller, &Event{}, w})
+	if w.FocusID() != "panel:roller" {
+		t.Fatalf("focus = %q, want panel:roller", w.FocusID())
+	}
+	e := &Event{Type: EventKeyDown, KeyCode: KeyDown, Modifiers: ModNone}
+	w.EventFn(e)
+	if changes != 1 {
+		t.Errorf("OnChange fired %d times, want 1", changes)
+	}
+	if !e.IsHandled {
+		t.Error("KeyDown should be marked handled")
+	}
+}
+
+// TestDatePickerRollerMouseScroll covers the wheel path: the scroll
+// handler must hit-test the drum under the cursor. Dispatch hands it
+// shape-relative coordinates while the drums carry absolute ones, so
+// without the translate-back the wheel silently does nothing.
+func TestDatePickerRollerMouseScroll(t *testing.T) {
+	w := &Window{}
+	// A sized window: the pipeline seeds hit-test clips from it.
+	w.windowWidth = 800
+	w.windowHeight = 600
+	sel := time.Date(2025, 6, 15, 0, 0, 0, 0, time.Local)
+	var got time.Time
+	fired := 0
+	v := Column(ContainerCfg{
+		ID: "panel",
+		Content: []View{
+			// Push the roller away from the origin: near (0,0)
+			// shape-relative and absolute coordinates coincide,
+			// which would let a missing translate-back pass.
+			Column(ContainerCfg{Height: 300}),
+			DatePickerRoller(DatePickerRollerCfg{
+				ID:           "roller",
+				Focusable:    true,
+				SelectedDate: sel,
+				OnChange: func(d time.Time, _ EventCtx) {
+					fired++
+					got = d
+				},
+			}),
+		},
+	})
+	w.layout = generateViewLayout(v, w)
+	// layoutArrange runs AmendLayout, which installs OnMouseScroll;
+	// clips are seeded from the window rect as layoutPipeline does.
+	_ = layoutArrange(&w.layout, w)
+	layoutSetShapeClips(&w.layout, w.windowRect())
+	roller := &w.layout.Children[1]
+	if roller.Shape.events.OnMouseScroll == nil {
+		t.Fatal("OnMouseScroll missing: AmendLayout did not install it")
+	}
+	// Middle drum in day-month-year order is the month drum.
+	if len(roller.Children) < 3 {
+		t.Fatalf("drums = %d, want 3", len(roller.Children))
+	}
+	drum := &roller.Children[1]
+	mx := drum.Shape.X + drum.Shape.Width/2
+	my := drum.Shape.Y + drum.Shape.Height/2
+	e := &Event{Type: EventMouseScroll, MouseX: mx, MouseY: my, ScrollY: -1}
+	w.EventFn(e)
+	if fired != 1 {
+		t.Fatalf("OnChange fired %d times, want 1", fired)
+	}
+	if got.Month() != 7 {
+		t.Errorf("month = %v, want July", got.Month())
+	}
+	if !e.IsHandled {
+		t.Error("scroll should be marked handled")
+	}
+}
+
 func TestRollerDefaults(t *testing.T) {
 	cfg := DatePickerRollerCfg{}
 	applyRollerDefaults(&cfg)
@@ -403,4 +504,14 @@ func TestWrapRange(t *testing.T) {
 	if v := wrapRange(6, 1, 12); v != 6 {
 		t.Errorf("wrapRange(6,1,12) = %d, want 6", v)
 	}
+}
+
+// The factory keys focus and state on cfg.ID, so an empty one is a
+// programmer error caught at build time by the `gui:"required"` tag and
+// at runtime here. The literal omits the ID on purpose, so it carries
+// the directive that suppresses the analyzer for that one literal.
+func TestDatePickerRollerRequiresID(t *testing.T) {
+	assertPanicsRequiringID(t, "DatePickerRoller", func() {
+		_ = DatePickerRoller(DatePickerRollerCfg{}) // requiredid:ignore
+	})
 }

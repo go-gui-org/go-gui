@@ -27,6 +27,14 @@ and this project adheres to
   performs the first assignment, not an update (`w.SetView(mainView)`). The new
   name still reads fine on the rarer swap-the-view path.
 
+- **BREAKING: `DatePickerRoller` requires a non-empty `Cfg.ID` (#565)** — focus
+  is keyed on that ID, so an empty one produced a widget that could not take
+  focus and answered no key. The factory now panics through `RequireID`, and
+  `DatePickerRollerCfg.ID` carries `gui:"required"` so the `requiredid` analyzer
+  reports the omission under `go vet` before the panic can happen. This matches
+  `DatePicker`, `Combobox` and `ListBox`. Migration: give every
+  `DatePickerRollerCfg` literal an `ID`.
+
 ### Deprecated
 
 - **`UpdateView` (#564)** — remains as a forwarder to `SetView`, so existing
@@ -36,6 +44,19 @@ and this project adheres to
   `InvalidateLayout` and `InvalidateRender`, so existing code keeps compiling.
   They will be removed in a future minor. See
   `docs/specs/window-invalidate-naming.md`.
+
+### Fixed
+
+- **Date Picker Roller holds focus and answers the keyboard under a scoped
+  parent (#565)** — `GenerateLayout` never resolved its effective ID, so
+  click-to-focus parked focus in the void: no focus border, and the arrow-key
+  and Shift/Alt year/month bindings never fired. It now resolves `cfg.ID` with
+  `w.EffID`, matching `DatePicker` and `Combobox`.
+
+- **Mouse wheel scrolls the Date Picker Roller drums (#565)** — the wheel
+  handler hit-tested the drums with the shape-relative coordinates dispatch
+  hands it against the drums' absolute positions, so no drum ever matched and
+  the wheel silently did nothing. It now translates back before hit-testing.
 
 ## [v0.73.0] - 2026-09-10
 

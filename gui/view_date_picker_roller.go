@@ -26,7 +26,7 @@ type DatePickerRollerCfg struct {
 	TextStyle    TextStyle
 	SelectedDate time.Time
 	OnChange     func(time.Time, EventCtx)
-	ID           string
+	ID           string `gui:"required"`
 	A11YCfg
 	// MinYear clamps the year drum's lower bound. Zero takes 1900.
 	// exportaudit:keep — caller-facing config (issue #372)
@@ -76,12 +76,16 @@ type datePickerRollerView struct {
 
 // DatePickerRoller creates a roller-style date picker view.
 func DatePickerRoller(cfg DatePickerRollerCfg) View {
+	RequireID("DatePickerRoller", cfg.ID)
 	applyRollerDefaults(&cfg)
 	return &datePickerRollerView{cfg: cfg}
 }
 
 func (rv *datePickerRollerView) GenerateLayout(w *Window) Layout {
 	cfg := &rv.cfg
+
+	// One resolved identity for every key below; see (*Window).EffID.
+	cfg.ID = w.EffID(cfg.ID)
 	sel := cfg.SelectedDate
 
 	specs := rollerDrumSpecs(cfg, sel)
@@ -141,10 +145,16 @@ func (rv *datePickerRollerView) GenerateLayout(w *Window) Layout {
 				if ctx.Event.ScrollY > 0 {
 					delta = -1
 				}
+				// Dispatch hands the callback shape-relative
+				// coordinates (callRelative), but the drums carry
+				// arranged absolute positions, so translate back
+				// before hit-testing — without this no drum ever
+				// matches and the wheel silently does nothing.
+				mx := ctx.Event.MouseX + ctx.Layout.Shape.X
+				my := ctx.Event.MouseY + ctx.Layout.Shape.Y
 				for i, child := range ctx.Layout.Children {
 					if i < len(drumNames) &&
-						child.Shape.PointInShape(
-							ctx.Event.MouseX, ctx.Event.MouseY) {
+						child.Shape.PointInShape(mx, my) {
 						rollerDrumAdjust(drumNames[i],
 							delta, selectedDate,
 							minYear, maxYear, onChange, ctx.Window, wrapYear)
