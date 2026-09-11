@@ -148,6 +148,34 @@ func encodeShortcut(s gui.Shortcut) (C.char, C.int) {
 		ch = byte('A' + (k - gui.KeyA))
 	case k >= gui.Key0 && k <= gui.Key9:
 		ch = byte('0' + (k - gui.Key0))
+	// Punctuation keys pass straight through: each is a valid AppKit key
+	// equivalent, and the ObjC side's lowercase fold is a no-op for them.
+	// Spelled out per key rather than by ASCII range — the KeyCode values
+	// only coincide with ASCII by convention (see event.go).
+	case k == gui.KeySpace:
+		ch = ' '
+	case k == gui.KeyApostrophe:
+		ch = '\''
+	case k == gui.KeyComma:
+		ch = ','
+	case k == gui.KeyMinus:
+		ch = '-'
+	case k == gui.KeyPeriod:
+		ch = '.'
+	case k == gui.KeySlash:
+		ch = '/'
+	case k == gui.KeySemicolon:
+		ch = ';'
+	case k == gui.KeyEqual:
+		ch = '='
+	case k == gui.KeyLeftBracket:
+		ch = '['
+	case k == gui.KeyBackslash:
+		ch = '\\'
+	case k == gui.KeyRightBracket:
+		ch = ']'
+	case k == gui.KeyGraveAccent:
+		ch = '`'
 	default:
 		return 0, 0
 	}
