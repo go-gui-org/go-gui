@@ -8,6 +8,14 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Fixed
+
+- **Shader-only container with a transparent color now draws (#574)** — the
+  render early-out treated gradient, border gradient and shadow as paint but not
+  the custom shader, so a container whose only paint was `Shader` emitted no
+  command and the shader never ran. The shader now counts as paint, and a
+  `RenderCustomShader` command is emitted.
+
 ## [v0.74.0] - 2026-09-11
 
 ### Changed
