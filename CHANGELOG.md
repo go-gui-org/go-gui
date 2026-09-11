@@ -8,6 +8,8 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [v0.74.0] - 2026-09-11
+
 ### Changed
 
 - **`UpdateWindow` and `RequestRedraw` renamed to `InvalidateLayout` and
@@ -35,6 +37,13 @@ and this project adheres to
   `DatePicker`, `Combobox` and `ListBox`. Migration: give every
   `DatePickerRollerCfg` literal an `ID`.
 
+- **BREAKING: `TermGrid` widget removed (#570)** — `TermGrid`, `TermGridCfg`,
+  `TermGridData`, `TermCell`, `TermCursor`, `TermSelRange`, `TermAttr`,
+  `TermUnderline`, and `TermReverse` are gone, deprecated since v0.73.0. The
+  `RenderTermGrid` command, its per-backend draws, the print branch, and the
+  `examples/termgrid` demo go with it. Migration: draw grids on a `DrawCanvas`,
+  as go-term already does.
+
 ### Deprecated
 
 - **`UpdateView` (#564)** — remains as a forwarder to `SetView`, so existing
@@ -44,15 +53,6 @@ and this project adheres to
   `InvalidateLayout` and `InvalidateRender`, so existing code keeps compiling.
   They will be removed in a future minor. See
   `docs/specs/window-invalidate-naming.md`.
-
-### Removed
-
-- **BREAKING: `TermGrid` widget removed (#570)** — `TermGrid`, `TermGridCfg`,
-  `TermGridData`, `TermCell`, `TermCursor`, `TermSelRange`, `TermAttr`,
-  `TermUnderline`, and `TermReverse` are gone, deprecated since v0.73.0. The
-  `RenderTermGrid` command, its per-backend draws, the print branch, and the
-  `examples/termgrid` demo go with it. Migration: draw grids on a `DrawCanvas`,
-  as go-term already does.
 
 ### Fixed
 
