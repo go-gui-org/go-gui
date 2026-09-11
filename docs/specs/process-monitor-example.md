@@ -156,7 +156,7 @@ func startSampler(w *gui.Window) {
             app.LastRefresh = time.Now()
             app.Store.Update(snap, app.Selected)
             if snap != nil && app.Selected == nil { /* auto-select top row */ }
-            w.UpdateWindow()  // full layout refresh; re-runs the view fn next
+            w.InvalidateLayout()  // full layout refresh; re-runs the view fn next
                               // frame WITHOUT clearing the state registry, so
                               // the filter input keeps focus/caret.
             w.Unlock()
@@ -167,13 +167,13 @@ func startSampler(w *gui.Window) {
 }
 ```
 
-Critical detail: use `w.UpdateWindow()` (alias `markLayoutRefresh`), **NOT**
+Critical detail: use `w.InvalidateLayout()` (alias `markLayoutRefresh`), **NOT**
 `w.UpdateView(fn)`. `UpdateView` clears the view-state registry every call,
-which drops input focus and scroll position on every sample. `RequestRedraw()`
-is render-only (no view re-run) so new rows do not appear — also wrong.
-`UpdateWindow` re-runs the registered view generator against fresh state while
-preserving the registry. Register the generator once in `OnInit` via
-`w.UpdateView(rootView)`.
+which drops input focus and scroll position on every sample.
+`InvalidateRender()` is render-only (no view re-run) so new rows do not appear —
+also wrong. `InvalidateLayout` re-runs the registered view generator against
+fresh state while preserving the registry. Register the generator once in
+`OnInit` via `w.UpdateView(rootView)`.
 
 Reads of shared state during sampling and all mutations happen under `w.Lock()`
 / `w.Unlock()`. The view function itself runs under `w.mu` already (per

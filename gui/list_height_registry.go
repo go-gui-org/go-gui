@@ -227,5 +227,5 @@ func (w *Window) InvalidateListHeights(effectiveID string) {
 	if off, restored := listHeightRestoreAnchor(m, anchor); restored {
 		sy.Set(effectiveID, off)
 	}
-	w.UpdateWindow()
+	w.InvalidateLayout()
 }

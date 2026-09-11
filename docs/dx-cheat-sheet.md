@@ -338,7 +338,7 @@ A background producer — stdin, a socket, a ticker — must schedule a frame pe
 value. A channel the view drains on its own never paints: the backend idles
 until the next input event, so the window sits stale until a mouse move and then
 shows everything at once (issue #559). `Stream` wraps the `QueueCommand` +
-`UpdateWindow` path for this shape:
+`InvalidateLayout` path for this shape:
 
 ```go
 type streamLines struct {

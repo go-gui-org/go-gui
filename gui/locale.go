@@ -279,7 +279,7 @@ func CurrentLocale() Locale {
 // SetLocale sets the global locale and refreshes the window.
 func (w *Window) SetLocale(l Locale) {
 	setLocale(l)
-	w.UpdateWindow()
+	w.InvalidateLayout()
 }
 
 // SetLocaleID sets the global locale by registry ID and

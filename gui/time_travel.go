@@ -468,7 +468,7 @@ func (w *Window) resume() {
 	}
 	w.frozen.Store(false)
 	w.virtualNow.Store(nil)
-	w.UpdateWindow()
+	w.InvalidateLayout()
 }
 
 // IsFrozen reports whether the window is currently in a
@@ -519,5 +519,5 @@ func (w *Window) restoreLocked(idx int) {
 	w.mu.Unlock()
 	when := entry.when
 	w.setVirtualNow(&when)
-	w.UpdateWindow()
+	w.InvalidateLayout()
 }

@@ -43,7 +43,7 @@ func (w *Window) MouseCancel() {
 	if cancel != nil {
 		cancel(w)
 	}
-	w.UpdateWindow()
+	w.InvalidateLayout()
 }
 ```
 

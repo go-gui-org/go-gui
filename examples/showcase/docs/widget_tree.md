@@ -30,7 +30,7 @@ gui.Tree(gui.TreeCfg{
 gui.Tree(gui.TreeCfg{
     ID: "lazy-tree",
     OnLazyLoad: func(treeID, nodeID string, w *gui.Window) {
-        // Fetch children async, update state, call w.UpdateWindow()
+        // Fetch children async, update state, call w.InvalidateLayout()
     },
     Nodes: []gui.TreeNodeCfg{
         {ID: "remote", Text: "remote", Lazy: true},

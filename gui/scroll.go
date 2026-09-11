@@ -321,7 +321,7 @@ func (w *Window) scrollToView(effectiveID string) {
 			sy.Set(scrollID,
 				f32Clamp(newScroll, maxScrollNeg, 0))
 			scrollSmoothCancel(w, scrollID, scrollAxisY)
-			w.UpdateWindow()
+			w.InvalidateLayout()
 			return
 		}
 	}

@@ -342,7 +342,7 @@ func comboboxOpen(id string, focusID string, w *Window) {
 	if focusID != "" {
 		w.SetFocus(focusID)
 	}
-	w.UpdateWindow()
+	w.InvalidateLayout()
 }
 
 func comboboxClose(id string, w *Window) {
@@ -352,7 +352,7 @@ func comboboxClose(id string, w *Window) {
 	sq.Set(id, "")
 	sh := StateMap[string, int](w, nsComboboxHighlight, capModerate)
 	sh.Set(id, 0)
-	w.UpdateWindow()
+	w.InvalidateLayout()
 }
 
 func makeComboboxOnChar(cfgID string) func(EventCtx) {
@@ -380,7 +380,7 @@ func makeComboboxOnChar(cfgID string) func(EventCtx) {
 		sq.Set(cfgID, query)
 		sh := StateMap[string, int](ctx.Window, nsComboboxHighlight, capModerate)
 		sh.Set(cfgID, 0)
-		ctx.Window.UpdateWindow()
+		ctx.Window.InvalidateLayout()
 		ctx.Consume()
 	}
 }
@@ -424,7 +424,7 @@ func comboboxOnKeyDown(cfgID string, onSelect func(string, EventCtx), focusID st
 			sq.Set(cfgID, query[:len(query)-sz])
 			sh := StateMap[string, int](w, nsComboboxHighlight, capModerate)
 			sh.Set(cfgID, 0)
-			w.UpdateWindow()
+			w.InvalidateLayout()
 		}
 		e.IsHandled = true
 		return
@@ -450,7 +450,7 @@ func comboboxOnKeyDown(cfgID string, onSelect func(string, EventCtx), focusID st
 		if scrollID != "" && rowH > 0 {
 			scrollEnsureVisible(scrollID, next, rowH, listH, w)
 		}
-		w.UpdateWindow()
+		w.InvalidateLayout()
 		e.IsHandled = true
 	}
 }

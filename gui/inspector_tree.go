@@ -37,7 +37,7 @@ func inspectorSelect(path string, w *Window) {
 		sm.Delete("selected")
 		sm.Delete("scroll_to")
 		treeFocusedSet(w, inspectorTreeID, "")
-		w.UpdateWindow()
+		w.InvalidateLayout()
 		return
 	}
 
@@ -62,7 +62,7 @@ func inspectorSelect(path string, w *Window) {
 	}
 	StateMap[string, map[string]bool](w, nsTreeExpanded, capModerate).
 		Set(inspectorTreeID, expanded)
-	w.UpdateWindow()
+	w.InvalidateLayout()
 }
 
 func inspectorPickPath(layout *Layout, x, y float32) string {

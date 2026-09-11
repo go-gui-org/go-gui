@@ -44,7 +44,7 @@ func inspectorToggle(w *Window) {
 		return
 	}
 	w.inspectorEnabled = !w.inspectorEnabled
-	w.UpdateWindow()
+	w.InvalidateLayout()
 }
 
 func inspectorIsLeft(w *Window) bool {
@@ -67,7 +67,7 @@ func inspectorToggleSide(w *Window) {
 	} else {
 		sm.Set("side", "left")
 	}
-	w.UpdateWindow()
+	w.InvalidateLayout()
 }
 
 func inspectorPanelWidth(w *Window) float32 {
@@ -92,7 +92,7 @@ func inspectorResize(delta float32, w *Window) {
 	)
 	StateMap[string, float32](w, nsInspectorWidth, capInspector).
 		Set("width", width)
-	w.UpdateWindow()
+	w.InvalidateLayout()
 }
 
 func inspectorFloatingPanel(w *Window) View {

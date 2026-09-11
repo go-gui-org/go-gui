@@ -87,7 +87,7 @@ func view(w *gui.Window) gui.View {
 			Sizing:  gui.FillFit,
 			OnClick: func(ctx gui.EventCtx) {
 				toggle(gui.State[state](ctx.Window))
-				ctx.Window.RequestRedraw()
+				ctx.Window.InvalidateRender()
 			},
 		})
 	}

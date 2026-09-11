@@ -489,7 +489,7 @@ func listBoxOnKeyDown(
 				listBoxDataIndex(itemDataIndices, next),
 				rowH, listH, w)
 		}
-		w.UpdateWindow()
+		w.InvalidateLayout()
 		return
 	}
 	// Already at the first or last row. Movement itself is silent by

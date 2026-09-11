@@ -91,7 +91,7 @@ func dataGridSourceForceRefetch(gridID string, w *gg.Window) {
 	state.CapsCached = false
 	state.ActiveAbort = nil
 	dgSrc.Set(gridID, state)
-	w.UpdateWindow()
+	w.InvalidateLayout()
 }
 
 func dataGridResolveSourceCfg(cfg DataGridCfg, w *gg.Window) (DataGridCfg, dataGridSourceState, bool, GridDataCapabilities) {

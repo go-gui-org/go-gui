@@ -196,7 +196,7 @@ func TestFrameFnStopsAfterTwoPasses(t *testing.T) {
 	gens := 0
 	w.UpdateView(func(w *Window) View {
 		gens++
-		w.UpdateWindow() // dirty the window from inside the pass
+		w.InvalidateLayout() // dirty the window from inside the pass
 		return Text(TextCfg{ID: "t"})
 	})
 	w.markLayoutRefresh()

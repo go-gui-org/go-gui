@@ -11,7 +11,7 @@ package gui
 // window. Without a scheduled frame the backend idles (issue #559):
 // the producer's output piles up invisibly until a mouse move wakes
 // the loop, and then all of it appears at once. Stream schedules one
-// frame per value through the same QueueCommand + UpdateWindow path
+// frame per value through the same QueueCommand + InvalidateLayout path
 // the sampler examples already use by hand.
 //
 // Call it once per producer, typically from OnInit after
@@ -57,7 +57,7 @@ func Stream[T any](
 				value := v
 				w.QueueCommand(func(w *Window) {
 					apply(w, value)
-					w.UpdateWindow()
+					w.InvalidateLayout()
 				})
 			}
 		}

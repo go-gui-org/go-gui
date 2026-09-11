@@ -96,7 +96,7 @@ func mainView(w *gui.Window) gui.View {
 									s.Log += fmt.Sprintf(
 										"Click #%d\n",
 										gui.State[MainState](ctx.Window).Clicks)
-									o.UpdateWindow()
+									o.InvalidateLayout()
 								})
 						})
 					}

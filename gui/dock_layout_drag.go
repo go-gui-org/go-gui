@@ -150,7 +150,7 @@ func dockDragOnMouseMove(
 	state.hoverZone = zone
 	state.hoverGroupID = groupID
 	dockDragSet(w, dockID, state)
-	w.UpdateWindow()
+	w.InvalidateLayout()
 }
 
 // dockDragOnMouseUp handles the drop or cancel.
@@ -172,14 +172,14 @@ func dockDragOnMouseUp(
 	}
 
 	dockDragClear(w, dockID)
-	w.UpdateWindow()
+	w.InvalidateLayout()
 }
 
 // dockDragCancel cancels the drag in progress.
 func dockDragCancel(dockID string, w *Window) {
 	w.MouseUnlock()
 	dockDragClear(w, dockID)
-	w.UpdateWindow()
+	w.InvalidateLayout()
 }
 
 // dockDragDetectZone determines which drop zone the cursor is

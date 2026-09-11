@@ -107,7 +107,7 @@ func (w *Window) SetTheme(t Theme) {
 	// the common caller is an event handler on the frame thread, and
 	// code running after it in that frame should already see t.
 	applyTheme(t)
-	w.UpdateWindow()
+	w.InvalidateLayout()
 }
 
 // needsInstall reports whether t must be (re-)installed: its id is

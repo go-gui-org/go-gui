@@ -38,14 +38,14 @@ w.App().OpenWindow(gui.WindowCfg{
 // Send a message from child to parent.
 parent.QueueCommand(func(p *gui.Window) {
     gui.State[ParentState](p).Message = "hello"
-    p.UpdateWindow()
+    p.InvalidateLayout()
 })
 
 // Broadcast to all windows.
 w.App().Broadcast(func(other *gui.Window) {
     other.QueueCommand(func(o *gui.Window) {
         // update other window state
-        o.UpdateWindow()
+        o.InvalidateLayout()
     })
 })
 ```

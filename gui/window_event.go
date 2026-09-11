@@ -69,7 +69,7 @@ func (w *Window) EventFn(e *Event) {
 		w.OnEvent(e, w)
 	}
 	w.captureSnapshot(e)
-	w.UpdateWindow()
+	w.InvalidateLayout()
 }
 
 func (w *Window) inspectorKeyHook(e *Event) bool {

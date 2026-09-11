@@ -201,7 +201,7 @@ func finishDiagramFetch(
 				dPI:       dpi,
 				RequestID: requestID,
 			})
-		w.UpdateWindow()
+		w.InvalidateLayout()
 	})
 }
 
