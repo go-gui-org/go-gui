@@ -306,7 +306,7 @@ func FuzzLayoutSizingWithMix(f *testing.F) {
 func shapeTypeFromUint(v uint32) shapeType {
 	types := []shapeType{
 		shapeRectangle, shapeCircle, shapeText, shapeImage,
-		shapeSVG, shapeRTF, shapeTermGrid, shapeNone,
+		shapeSVG, shapeRTF, shapeNone,
 	}
 	return types[v%uint32(len(types))]
 }

@@ -126,8 +126,6 @@ func renderToPDF(renderers []RenderCmd, job PrintJob,
 			pdfRenderLayout(&ctx, cmd)
 		case RenderTextPath:
 			pdfRenderTextPath(&ctx, cmd)
-		case RenderTermGrid:
-			pdfRenderTermGrid(&ctx, cmd)
 		case RenderStencilBegin:
 			pdfRenderStencilBegin(&ctx, cmd, &stencilClipDepth)
 		case RenderStencilEnd:
@@ -469,103 +467,6 @@ func pdfRenderLayout(ctx *pdfCtx, cmd RenderCmd) {
 		}
 		if itemAlpha {
 			resetAlpha(ctx.pdf)
-		}
-	}
-}
-
-// pdfTermCellFB returns the effective foreground/background for a
-// cell, applying the reverse attribute. Mirrors the GPU backends'
-// per-cell resolution so print matches the screen.
-func pdfTermCellFB(c *TermCell) (fg, bg Color) {
-	fg, bg = c.FG, c.BG
-	if c.Attrs&TermReverse != 0 {
-		fg, bg = bg, fg
-	}
-	return fg, bg
-}
-
-// pdfRenderTermGrid prints a terminal grid as background rects plus
-// one text run per foreground-color run. Each run is width-pinned
-// via TextWidth, so the PDF matches source columns regardless of
-// built-in font metrics. Selection, cursor and underlines are
-// decorations of a live view and are not printed.
-func pdfRenderTermGrid(ctx *pdfCtx, cmd RenderCmd) {
-	tg := cmd.TermGrid
-	if tg == nil || tg.Cols <= 0 || tg.Rows <= 0 ||
-		tg.CellW <= 0 || tg.CellH <= 0 ||
-		// Division form: a hostile Cols*Rows must not overflow the
-		// check itself. Cols > 0 is established above.
-		tg.Rows > len(tg.Cells)/tg.Cols {
-		return
-	}
-	sz := tg.Style.Size
-	if sz <= 0 {
-		sz = tg.CellH * 0.75
-	}
-	// One run buffer for the whole grid: a print walks every cell,
-	// so a per-run append would allocate once per color change.
-	var run []rune
-	for row := range tg.Rows {
-		y := cmd.Y + float32(row)*tg.CellH
-		col := 0
-		for col < tg.Cols {
-			c := &tg.Cells[row*tg.Cols+col]
-			if c.Width == 0 { // continuation of a wide cell
-				col++
-				continue
-			}
-			fg, bg := pdfTermCellFB(c)
-			start := col
-			run = run[:0]
-			for col < tg.Cols {
-				cell := &tg.Cells[row*tg.Cols+col]
-				if cell.Width == 0 {
-					col++
-					continue
-				}
-				fg2, bg2 := pdfTermCellFB(cell)
-				// A background change always ends the run; a
-				// foreground change only ends it on a cell that
-				// paints a glyph, so blanks join either side.
-				if bg2 != bg {
-					break
-				}
-				blank := cell.Ch == 0 || cell.Ch == ' '
-				if !blank && fg2 != fg {
-					break
-				}
-				if blank {
-					run = append(run, ' ')
-				} else {
-					run = append(run, cell.Ch)
-				}
-				col++
-			}
-			w := float32(col-start) * tg.CellW
-			if bg.A > 0 && w > 0 {
-				pdfRenderRect(ctx, RenderCmd{
-					Kind:  RenderRect,
-					X:     cmd.X + float32(start)*tg.CellW,
-					Y:     y,
-					W:     w,
-					H:     tg.CellH,
-					Color: bg,
-					Fill:  true,
-				})
-			}
-			if len(run) > 0 && fg.A > 0 {
-				pdfRenderText(ctx, RenderCmd{
-					Kind:       RenderText,
-					Text:       string(run),
-					X:          cmd.X + float32(start)*tg.CellW,
-					Y:          y,
-					Color:      fg,
-					FontName:   tg.Style.Family,
-					FontSize:   sz,
-					FontAscent: tg.CellH * 0.8,
-					TextWidth:  w,
-				})
-			}
 		}
 	}
 }

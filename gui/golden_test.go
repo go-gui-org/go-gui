@@ -84,7 +84,6 @@ var renderKindNames = map[renderKind]string{
 	RenderRotateEnd:         "RotateEnd",
 	RenderStencilBegin:      "StencilBegin",
 	RenderStencilEnd:        "StencilEnd",
-	RenderTermGrid:          "TermGrid",
 }
 
 func renderKindName(k renderKind) string {
@@ -303,15 +302,6 @@ func serializeCmd(c RenderCmd) string {
 		fmt.Fprintf(&b, " layers=%d", c.Layers)
 		if c.ColorMatrix != nil {
 			b.WriteString(" cmatrix=" + matrixStr(c.ColorMatrix))
-		}
-	case RenderTermGrid:
-		if c.TermGrid != nil {
-			tg := c.TermGrid
-			fmt.Fprintf(&b, " grid=%dx%d cell=%s,%s cells=%d",
-				tg.Cols, tg.Rows,
-				f2(tg.CellW), f2(tg.CellH), len(tg.Cells))
-		} else {
-			b.WriteString(" grid=nil")
 		}
 	}
 

@@ -57,40 +57,6 @@ func TestDimmedGradientDimsStopsWithoutMutatingSource(t *testing.T) {
 	}
 }
 
-func TestDimmedTermGridFastPathKeepsPointer(t *testing.T) {
-	tg := &TermGridData{Cells: make([]TermCell, 1)}
-	if got := dimmedTermGrid(tg, 1.0, false); got != tg {
-		t.Fatal("enabled grid must keep its pointer (no copy)")
-	}
-}
-
-func TestDimmedTermGridDimsCellsWithoutMutatingSource(t *testing.T) {
-	tg := &TermGridData{
-		Cells: []TermCell{{
-			Ch: 'a', FG: RGBA(255, 255, 255, 200),
-			BG: RGBA(0, 0, 0, 200), Width: 1,
-		}},
-		Cursor:    TermCursor{Color: RGBA(255, 255, 0, 200)},
-		Selection: TermSelRange{Color: RGBA(0, 0, 255, 200)},
-		Cols:      1, Rows: 1, CellW: 8, CellH: 16,
-	}
-	got := dimmedTermGrid(tg, 1.0, true)
-	if got == tg {
-		t.Fatal("dimmed grid must be a copy")
-	}
-	cell := got.Cells[0]
-	if cell.FG.A != 100 || cell.BG.A != 100 {
-		t.Fatalf("cells must halve: FG %d BG %d",
-			cell.FG.A, cell.BG.A)
-	}
-	if got.Cursor.Color.A != 100 || got.Selection.Color.A != 100 {
-		t.Fatal("cursor and selection must dim with the grid")
-	}
-	if tg.Cells[0].FG.A != 200 || tg.Cursor.Color.A != 200 {
-		t.Fatal("source grid buffer must not mutate")
-	}
-}
-
 func TestDimmedVColorsFastPathKeepsSlice(t *testing.T) {
 	w := &Window{}
 	vcols := []Color{RGBA(1, 2, 3, 200)}
@@ -251,39 +217,6 @@ func TestRenderShapeDisabledDimsGradientFill(t *testing.T) {
 	}
 	if shape.fx.Gradient.Stops[0].Color.A != 200 {
 		t.Fatal("source gradient def must not mutate")
-	}
-}
-
-func TestRenderShapeDisabledDimsTermGrid(t *testing.T) {
-	w := &Window{}
-	tg := &TermGridData{
-		Cells: []TermCell{{
-			Ch: 'a', FG: RGBA(255, 255, 255, 200),
-			BG: RGBA(0, 0, 0, 200), Width: 1,
-		}},
-		Cols: 1, Rows: 1, CellW: 8, CellH: 16,
-	}
-	shape := &Shape{
-		shapeType: shapeTermGrid,
-		X:         0, Y: 0, Width: 8, Height: 16,
-		Opacity: 1.0, Disabled: true, tg: tg,
-	}
-	renderShape(shape, ColorTransparent, makeClip(0, 0, 500, 500), w)
-	found := false
-	for _, r := range w.renderers {
-		if r.Kind == RenderTermGrid {
-			found = true
-			if r.TermGrid.Cells[0].FG.A != 100 {
-				t.Fatalf("disabled grid must halve: got %d",
-					r.TermGrid.Cells[0].FG.A)
-			}
-		}
-	}
-	if !found {
-		t.Fatal("no RenderTermGrid emitted")
-	}
-	if tg.Cells[0].FG.A != 200 {
-		t.Fatal("source grid buffer must not mutate")
 	}
 }
 

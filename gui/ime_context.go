@@ -33,15 +33,9 @@ package gui
 // read-only input is excluded too: it stays focusable for its caret
 // and selection but can never commit a composition, which is the same
 // rule render_text.go applies to preedit rendering.
-//
-// A focusable terminal grid is an edit target as well — it consumes
-// typed text directly and has no Text shape of its own.
 func shapeIsIMEEditTarget(s *Shape) bool {
 	if s == nil {
 		return false
-	}
-	if s.shapeType == shapeTermGrid {
-		return s.Focusable
 	}
 	return s.TC != nil && s.focusOwner != "" && !s.TC.textReadOnly
 }
@@ -55,9 +49,6 @@ func shapeIsIMEEditTarget(s *Shape) bool {
 //     so its caret blinks; only the IME gate excludes it.
 //   - a selection-only focusable Text draws a caret at its cursor,
 //     so it blinks like an input.
-//   - a terminal grid is NOT a caret target: its cursor is the
-//     consumer's own TermCursor.Visible flag, which the blink
-//     animation does not drive.
 func shapeDrawsCaret(s *Shape) bool {
 	return s != nil && s.TC != nil && s.rendersFocusState()
 }

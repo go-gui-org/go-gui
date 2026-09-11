@@ -69,8 +69,6 @@ func (b *Backend) renderersDraw(w *gui.Window) {
 			b.drawTextPath(r)
 		case gui.RenderRTF:
 			b.drawRtf(r)
-		case gui.RenderTermGrid:
-			b.drawTermGrid(r)
 		case gui.RenderCustomShader:
 			b.drawCustomShader(r)
 		case gui.RenderFilterBegin:

@@ -452,9 +452,6 @@ type windowState struct {
 
 	svgVerts           []gpu.Vertex
 	textPathPlacements []glyph.GlyphPlacement
-	termRunText        []rune                 // TermGrid: scratch run text
-	termRunCols        []int                  // TermGrid: scratch run columns
-	termPlace          []glyph.GlyphPlacement // TermGrid: scratch placements
 
 	// textErrLogged warns once for a persistent DrawText failure
 	// instead of spamming stderr every frame.

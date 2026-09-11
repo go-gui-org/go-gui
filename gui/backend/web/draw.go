@@ -97,8 +97,6 @@ func (b *Backend) renderersDraw(w *gui.Window) {
 			b.endRotation()
 		case gui.RenderCustomShader:
 			b.drawCustomShader(r)
-		case gui.RenderTermGrid:
-			b.drawTermGrid(r)
 
 		case gui.RenderNone,
 			gui.RenderFilterComposite,

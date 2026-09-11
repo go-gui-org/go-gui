@@ -86,43 +86,11 @@ func dimmedTextGradient(
 	return &out
 }
 
-// dimmedTermGrid returns tg unchanged when neither opacity nor
-// disabled dimming applies; otherwise a copy with every cell
-// foreground/background, the cursor, the selection, and the grid
-// font colors run through dimColor. The grid buffer is shared
-// across frames, so dimming in place would persist into the next
-// frame and stack — the copy is the same reason renderShape
-// restores shape.Color via defer.
-func dimmedTermGrid(
-	tg *TermGridData, opacity float32, disabled bool,
-) *TermGridData {
-	if tg == nil || (!disabled && !(opacity < 1.0)) {
-		return tg
-	}
-	out := *tg
-	cells := make([]TermCell, len(tg.Cells))
-	for i, c := range tg.Cells {
-		c.FG = dimColor(c.FG, opacity, disabled)
-		c.BG = dimColor(c.BG, opacity, disabled)
-		cells[i] = c
-	}
-	out.Cells = cells
-	out.Cursor.Color = dimColor(tg.Cursor.Color, opacity, disabled)
-	out.Selection.Color = dimColor(
-		tg.Selection.Color, opacity, disabled)
-	out.Style.Color = dimColor(tg.Style.Color, opacity, disabled)
-	out.Style.BgColor = dimColor(
-		tg.Style.BgColor, opacity, disabled)
-	out.Style.StrokeColor = dimColor(
-		tg.Style.StrokeColor, opacity, disabled)
-	return &out
-}
-
 // dimmedVColors returns vcols unchanged when neither opacity nor
 // disabled dimming applies; otherwise an arena copy with every
 // color run through dimColor. Canvas batches belong to the cache
-// entry and are recycled by the next redraw, so — like the grid
-// buffer above — they must never be dimmed in place.
+// entry and are recycled by the next redraw, so they must never
+// be dimmed in place.
 func dimmedVColors(
 	vcols []Color, opacity float32, disabled bool, w *Window,
 ) []Color {

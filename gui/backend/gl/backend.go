@@ -54,11 +54,6 @@ type Backend struct {
 	normBuf            []gui.GradientStop
 	sampledBuf         []gui.GradientStop
 
-	// Terminal grid run assembly, reused across rows and frames.
-	termRunText []rune
-	termRunCols []int
-	termPlace   []glyph.GlyphPlacement
-
 	allowedImageRoots []string
 	svgCap            int
 	filterLayer       int

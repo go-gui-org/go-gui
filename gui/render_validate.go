@@ -50,8 +50,6 @@ func rendererValidForDraw(r RenderCmd) bool {
 		return validRTFCmd(r)
 	case RenderTextPath:
 		return validTextPathCmd(r)
-	case RenderTermGrid:
-		return validTermGridCmd(r)
 	case RenderLayoutTransformed:
 		return validLayoutTransformedCmd(r)
 	case RenderImage:
@@ -169,20 +167,6 @@ func validTextPathCmd(r RenderCmd) bool {
 		return false
 	}
 	return true
-}
-
-func validTermGridCmd(r RenderCmd) bool {
-	tg := r.TermGrid
-	if tg == nil {
-		return false
-	}
-	// Mirrors the soft backend's validTermGrid, including the
-	// division form of the cell-count check so a hostile
-	// Cols*Rows cannot overflow the check itself.
-	return tg.Cols > 0 && tg.Rows > 0 &&
-		f32IsFinite(tg.CellW) && tg.CellW > 0 &&
-		f32IsFinite(tg.CellH) && tg.CellH > 0 &&
-		tg.Rows <= len(tg.Cells)/tg.Cols
 }
 
 func validSvgCmd(r RenderCmd) bool {
