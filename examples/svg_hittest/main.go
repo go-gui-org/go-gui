@@ -42,7 +42,7 @@ func main() {
 		Width:  720,
 		Height: 480,
 		Title:  "Svg Hit Test",
-		OnInit: func(w *gui.Window) { w.UpdateView(view) },
+		OnInit: func(w *gui.Window) { w.SetView(view) },
 	})
 
 	if *screenshot != "" {

@@ -33,7 +33,7 @@ func main() {
 		Width:  600,
 		Height: 400,
 		OnInit: func(w *gui.Window) {
-			w.UpdateView(mainView)
+			w.SetView(mainView)
 			w.AnimationAdd(&gui.Animate{
 				// Keep the frame loop hot so the shader parameter updates continuously.
 				AnimID:   shaderTickAnimationID,

@@ -72,7 +72,7 @@ func main() {
 		Height: windowHeight,
 		OnInit: func(w *gui.Window) {
 			// Render once and put the caret in the input field.
-			w.UpdateView(mainView)
+			w.SetView(mainView)
 			w.SetFocus(todoInputFocusID)
 		},
 	})

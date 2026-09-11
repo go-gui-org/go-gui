@@ -204,7 +204,7 @@ does **not** move children — use the float system
 that have children.
 
 **`AmendLayout` runs under the frame lock (`w.mu`), so no callback reached from
-it can call a window-mutating API.** `SetFocus`, `ClearFocus`, `UpdateView`,
+it can call a window-mutating API.** `SetFocus`, `ClearFocus`, `SetView`,
 `ClearDrawCanvasCache` and `Window.Lock` all take `w.mu`, which is not
 reentrant; they panic naming themselves. The remedy is
 `ctx.Window.QueueCommand`. Library code reaching app code from the pass raises

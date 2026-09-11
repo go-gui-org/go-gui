@@ -36,7 +36,7 @@ func main() {
 		Width:  640,
 		Height: 360,
 		Title:  "SVG A11y Metadata",
-		OnInit: func(w *gui.Window) { w.UpdateView(view) },
+		OnInit: func(w *gui.Window) { w.SetView(view) },
 	})
 
 	if *screenshot != "" {

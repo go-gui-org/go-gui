@@ -13,7 +13,7 @@ Nothing to add to a view. The key hook lives on the window (`inspectorKeyHook`,
 ```go
 func main() {
     w := gui.SimpleWindow("My App", 800, 600, &App{}, func(w *gui.Window) {
-        w.UpdateView(mainView)
+        w.SetView(mainView)
     })
     backend.Run(w) // press F12 in the running window
 }

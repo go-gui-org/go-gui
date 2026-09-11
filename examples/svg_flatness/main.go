@@ -42,7 +42,7 @@ func main() {
 		Width:  900,
 		Height: 320,
 		Title:  "FlatnessTolerance",
-		OnInit: func(w *gui.Window) { w.UpdateView(view) },
+		OnInit: func(w *gui.Window) { w.SetView(view) },
 	})
 
 	if *screenshot != "" {

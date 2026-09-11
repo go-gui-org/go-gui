@@ -56,7 +56,7 @@ func main() {
 		Width:  720,
 		Height: 520,
 		Title:  "Use + Symbol",
-		OnInit: func(w *gui.Window) { w.UpdateView(view) },
+		OnInit: func(w *gui.Window) { w.SetView(view) },
 	})
 
 	if *screenshot != "" {

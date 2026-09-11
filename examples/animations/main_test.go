@@ -36,7 +36,7 @@ func TestMainViewNoDuplicateIDs(t *testing.T) {
 		Width:  800,
 		Height: 600,
 	})
-	w.UpdateView(mainView)
+	w.SetView(mainView)
 	if dups := w.TestDuplicateIDs(); len(dups) > 0 {
 		t.Errorf("duplicate IDs: %v", dups)
 	}

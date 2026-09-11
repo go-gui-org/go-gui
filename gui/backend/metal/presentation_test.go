@@ -38,7 +38,7 @@ func runLiveResizePresentationTests() {
 		Width:  200,
 		Height: 200,
 	})
-	w.UpdateView(func(_ *gui.Window) gui.View {
+	w.SetView(func(_ *gui.Window) gui.View {
 		return gui.Rectangle(gui.RectangleCfg{
 			Width:  100,
 			Height: 50,

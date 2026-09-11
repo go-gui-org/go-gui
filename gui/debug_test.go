@@ -498,7 +498,7 @@ func TestDebugAuditMouseLeaveDisabledIsQuiet(t *testing.T) {
 // identity, so a window built only from them is silent.
 func TestTestDuplicateIDsCompositeWidgetsAreQuiet(t *testing.T) {
 	w := NewTestWindow(WindowCfg{})
-	w.UpdateView(func(w *Window) View {
+	w.SetView(func(w *Window) View {
 		return Column(ContainerCfg{
 			Sizing: FillFill,
 			Content: []View{
@@ -522,7 +522,7 @@ func TestTestDuplicateIDsCompositeWidgetsAreQuiet(t *testing.T) {
 // a different identity from the button's "dup".
 func TestTestDuplicateIDsScopesNestedLeaf(t *testing.T) {
 	w := NewTestWindow(WindowCfg{})
-	w.UpdateView(func(_ *Window) View {
+	w.SetView(func(_ *Window) View {
 		return Column(ContainerCfg{
 			Sizing: FillFill,
 			Content: []View{
@@ -546,7 +546,7 @@ func TestTestDuplicateIDsScopesNestedLeaf(t *testing.T) {
 // collide. Scoping joins explicit ancestor IDs and nothing else.
 func TestTestDuplicateIDsReportsSameScopeCollision(t *testing.T) {
 	w := NewTestWindow(WindowCfg{})
-	w.UpdateView(func(_ *Window) View {
+	w.SetView(func(_ *Window) View {
 		return Column(ContainerCfg{
 			Sizing: FillFill,
 			Content: []View{
@@ -568,7 +568,7 @@ func TestTestDuplicateIDsReportsSameScopeCollision(t *testing.T) {
 // rather than silently sharing a slot.
 func TestTestDuplicateIDsReportsJoinedVsAbsolute(t *testing.T) {
 	w := NewTestWindow(WindowCfg{})
-	w.UpdateView(func(_ *Window) View {
+	w.SetView(func(_ *Window) View {
 		return Column(ContainerCfg{
 			Sizing: FillFill,
 			Content: []View{
@@ -597,7 +597,7 @@ func TestTestDuplicateIDsReportsJoinedVsAbsolute(t *testing.T) {
 // the process reports.
 func TestTestDuplicateIDsRestoresDebugState(t *testing.T) {
 	w := NewTestWindow(WindowCfg{})
-	w.UpdateView(func(_ *Window) View {
+	w.SetView(func(_ *Window) View {
 		return Column(ContainerCfg{
 			Sizing:  FillFill,
 			Content: []View{Button(ButtonCfg{ID: "ok"})},
@@ -759,7 +759,7 @@ func TestWrapOverflowGatedByCategory(t *testing.T) {
 // property, not a defect, so the default sweep stays quiet on it.
 func TestTestFindingsReachesOptInCategory(t *testing.T) {
 	w := NewTestWindow(WindowCfg{})
-	w.UpdateView(func(_ *Window) View {
+	w.SetView(func(_ *Window) View {
 		return Column(ContainerCfg{
 			Sizing:  FillFill,
 			Content: []View{Button(ButtonCfg{ID: "bare", Label: "Save"})},
@@ -780,7 +780,7 @@ func TestTestFindingsReachesOptInCategory(t *testing.T) {
 func TestTestFindingsRestoresMask(t *testing.T) {
 	captureDebugMask(t, DebugMissingIDs)
 	w := NewTestWindow(WindowCfg{})
-	w.UpdateView(func(_ *Window) View {
+	w.SetView(func(_ *Window) View {
 		return Column(ContainerCfg{Sizing: FillFill})
 	})
 
@@ -813,7 +813,7 @@ func TestEffIDDuringGenerationIsQuiet(t *testing.T) {
 	w := NewTestWindow(WindowCfg{})
 
 	var scoped, unscoped string
-	w.UpdateView(func(_ *Window) View {
+	w.SetView(func(_ *Window) View {
 		return Column(ContainerCfg{
 			ID:     "panel",
 			Sizing: FillFill,
@@ -824,7 +824,7 @@ func TestEffIDDuringGenerationIsQuiet(t *testing.T) {
 		})
 	})
 	w.TestRender(nil)
-	w.UpdateView(func(vw *Window) View {
+	w.SetView(func(vw *Window) View {
 		unscoped = vw.EffID("save")
 		return Column(ContainerCfg{Sizing: FillFill})
 	})
@@ -886,7 +886,7 @@ func TestEffIDEagerFactoryUnderPanelReports(t *testing.T) {
 	w := NewTestWindow(WindowCfg{})
 
 	var resolved string
-	w.UpdateView(func(_ *Window) View {
+	w.SetView(func(_ *Window) View {
 		return &eagerFactoryParent{resolved: &resolved}
 	})
 	w.TestRender(nil)
@@ -908,7 +908,7 @@ func TestEffIDAnswersAreFrameScoped(t *testing.T) {
 	w := NewTestWindow(WindowCfg{})
 
 	var resolved string
-	w.UpdateView(func(_ *Window) View {
+	w.SetView(func(_ *Window) View {
 		return &eagerFactoryParent{resolved: &resolved}
 	})
 	w.TestRender(nil)

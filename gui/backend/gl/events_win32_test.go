@@ -16,7 +16,7 @@ import (
 func newCharTestBackend(t *testing.T) *Backend {
 	t.Helper()
 	w := gui.NewWindow(gui.WindowCfg{State: new(int), Width: 100, Height: 100})
-	w.UpdateView(func(_ *gui.Window) gui.View {
+	w.SetView(func(_ *gui.Window) gui.View {
 		return gui.Column(gui.ContainerCfg{})
 	})
 	w.FrameFn()

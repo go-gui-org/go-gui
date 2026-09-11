@@ -39,7 +39,7 @@ func main() {
 		Height: 600,
 		Title:  "Markdown View",
 		OnInit: func(w *gui.Window) {
-			w.UpdateView(mainView)
+			w.SetView(mainView)
 		},
 	})
 

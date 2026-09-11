@@ -8,7 +8,7 @@
 // Typical use is a screenshot or a pixel-level regression test:
 //
 //	w := gui.SimpleWindow("Demo", 400, 300, &App{}, func(w *gui.Window) {
-//		w.UpdateView(mainView)
+//		w.SetView(mainView)
 //	})
 //	err := soft.RenderToPNG(w, 2, "demo.png")
 //

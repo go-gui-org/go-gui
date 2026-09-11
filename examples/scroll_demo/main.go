@@ -32,7 +32,7 @@ func main() {
 		Width:  400,
 		Height: 600,
 		OnInit: func(w *gui.Window) {
-			w.UpdateView(mainView)
+			w.SetView(mainView)
 			// Give the scroll panel focus so its scrollbar is visible on startup.
 			w.SetFocus("scroll-panel")
 		},

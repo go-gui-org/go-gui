@@ -25,7 +25,7 @@
 //			Title:  "hello",
 //			Width:  400,
 //			Height: 300,
-//			OnInit: func(w *gui.Window) { w.UpdateView(view) },
+//			OnInit: func(w *gui.Window) { w.SetView(view) },
 //		})
 //		backend.Run(w)
 //	}

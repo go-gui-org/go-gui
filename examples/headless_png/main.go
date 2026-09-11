@@ -33,7 +33,7 @@ func main() {
 	// software renderer runs OnInit itself, as a backend does.
 	w := gui.SimpleWindow("Headless", 320, 200, &App{Clicks: 3},
 		func(w *gui.Window) {
-			w.UpdateView(mainView)
+			w.SetView(mainView)
 		})
 
 	// Scale 2 captures at Retina density; 1 is one device pixel per

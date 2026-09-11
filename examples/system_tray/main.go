@@ -37,7 +37,7 @@ func main() {
 		Width:  500,
 		Height: 300,
 		OnInit: func(w *gui.Window) {
-			w.UpdateView(mainView)
+			w.SetView(mainView)
 
 			_, err := app.SetSystemTray(gui.SystemTrayCfg{
 				Tooltip: "Go-GUI Tray Demo",

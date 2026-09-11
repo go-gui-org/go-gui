@@ -81,7 +81,7 @@ func main() {
 		Width:  520,
 		Height: 620,
 		OnInit: func(w *gui.Window) {
-			w.UpdateView(mainView)
+			w.SetView(mainView)
 			go appender(w)
 		},
 	})

@@ -143,7 +143,7 @@ func TestFindMenuByID(t *testing.T) {
 // "<panel>:bar", which is what every assertion below is about.
 func menubarInPanels(panelIDs ...string) *Window {
 	w := NewTestWindow(WindowCfg{})
-	w.UpdateView(func(vw *Window) View {
+	w.SetView(func(vw *Window) View {
 		panels := make([]View, 0, len(panelIDs))
 		for _, id := range panelIDs {
 			panels = append(panels, Column(ContainerCfg{

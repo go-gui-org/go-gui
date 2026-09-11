@@ -147,7 +147,7 @@ func renderPixelGolden(
 	w := gui.NewWindow(gui.WindowCfg{
 		Width:  pixelGoldenW,
 		Height: pixelGoldenH,
-		OnInit: func(w *gui.Window) { w.UpdateView(c.build) },
+		OnInit: func(w *gui.Window) { w.SetView(c.build) },
 	})
 	w.SetTheme(theme)
 	tm, err := prepare(w, 1)

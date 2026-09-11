@@ -61,7 +61,7 @@ func main() {
 			Width:  1100,
 			Height: 700,
 			OnInit: func(w *gui.Window) {
-				w.UpdateView(explorerView)
+				w.SetView(explorerView)
 			},
 		})
 		if err := soft.RenderToPNG(w, 2, *screenshotFlag); err != nil {
@@ -135,7 +135,7 @@ func main() {
 		Width:  1100,
 		Height: 700,
 		OnInit: func(w *gui.Window) {
-			w.UpdateView(explorerView)
+			w.SetView(explorerView)
 		},
 	})
 	// Ensure child processes are killed when window closes.

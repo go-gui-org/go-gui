@@ -82,10 +82,10 @@ w.InvalidateLayout() // re-run the view against fresh state, preserving focus/sc
 w.Unlock()
 ```
 
-`InvalidateLayout` (not `UpdateView`) re-runs the registered view without
-clearing the state registry. The filter input keeps focus, and the list keeps
-its scroll position across refreshes. The backend's idle poll repaints within
-~100 ms, so these intervals need no explicit wake.
+`InvalidateLayout` (not `SetView`) re-runs the registered view without clearing
+the state registry. The filter input keeps focus, and the list keeps its scroll
+position across refreshes. The backend's idle poll repaints within ~100 ms, so
+these intervals need no explicit wake.
 
 ### Stable processes + rolling history
 

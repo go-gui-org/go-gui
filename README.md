@@ -50,7 +50,7 @@ type App struct{ Clicks int }
 
 func main() {
     w := gui.SimpleWindow("Counter", 300, 150, &App{}, func(w *gui.Window) {
-        w.UpdateView(mainView)
+        w.SetView(mainView)
     })
 
     backend.Run(w)
@@ -163,7 +163,7 @@ w := gui.NewWindow(gui.WindowCfg{
     Height:    150,
     MinWidth:  200, // the OS stops the resize drag here
     MinHeight: 120,
-    OnInit:    func(w *gui.Window) { w.UpdateView(mainView) },
+    OnInit:    func(w *gui.Window) { w.SetView(mainView) },
 })
 
 gui.Button(gui.ButtonCfg{

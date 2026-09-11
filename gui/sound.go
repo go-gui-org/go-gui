@@ -67,7 +67,7 @@ type SoundPlayer interface {
 	//
 	// Some cues are emitted from a path that already holds the frame
 	// lock — a form submit runs from AmendLayout — so an implementation
-	// must not call a window-mutating API (SetFocus, UpdateView,
+	// must not call a window-mutating API (SetFocus, SetView,
 	// Window.Lock): those take w.mu, which is not reentrant, and panic
 	// naming themselves.
 	PlaySound(cue SoundCue, gain float32)

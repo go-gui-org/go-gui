@@ -58,7 +58,7 @@ func main() {
 					CanExecute: func(_ *gui.Window) bool { return false },
 				},
 			)
-			w.UpdateView(mainView)
+			w.SetView(mainView)
 		},
 	})
 

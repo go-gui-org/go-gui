@@ -200,7 +200,7 @@ func newMdSelectHarnessNested(t *testing.T) *mdSelectHarness {
 // every frame, so changing the source and calling TestRender(nil) is
 // how a live document is swapped between frames — TestRender(nil)
 // re-runs the installed generator without clearing the registry (a
-// fresh generator would go through UpdateView, which clears per-widget
+// fresh generator would go through SetView, which clears per-widget
 // state by design and would mask the signature reset under test).
 func (h *mdSelectHarness) render() {
 	h.w.TestRender(func(win *Window) View {

@@ -54,7 +54,7 @@ func main() {
 			// slider starts from what it reports rather than from a
 			// number repeated here.
 			gui.State[App](w).Opacity = w.WindowOpacity()
-			w.UpdateView(mainView)
+			w.SetView(mainView)
 		},
 	})
 

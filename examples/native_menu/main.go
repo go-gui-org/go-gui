@@ -33,7 +33,7 @@ func main() {
 		Height: 400,
 		OnInit: func(w *gui.Window) {
 			registerCommands(w)
-			w.UpdateView(mainView)
+			w.SetView(mainView)
 
 			app.SetNativeMenubar(gui.NativeMenubarCfg{
 				AppName:         "Native Menu Demo",

@@ -38,7 +38,7 @@ func TestSmokeRenderPipeline(t *testing.T) {
 		Width:  200,
 		Height: 200,
 	})
-	w.UpdateView(func(_ *gui.Window) gui.View {
+	w.SetView(func(_ *gui.Window) gui.View {
 		return gui.Column(gui.ContainerCfg{
 			Content: []gui.View{
 				gui.Rectangle(gui.RectangleCfg{
@@ -82,7 +82,7 @@ func TestBackendRenderSmoke(t *testing.T) {
 		Width:  200,
 		Height: 200,
 	})
-	w.UpdateView(func(_ *gui.Window) gui.View {
+	w.SetView(func(_ *gui.Window) gui.View {
 		return gui.Column(gui.ContainerCfg{
 			Content: []gui.View{
 				gui.Rectangle(gui.RectangleCfg{

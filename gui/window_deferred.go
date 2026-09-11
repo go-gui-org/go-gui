@@ -6,7 +6,7 @@ package gui
 // and both reach code that fires app callbacks: an AmendLayout hook
 // detecting blur, a render pass reporting a caret rect. w.mu is a
 // plain sync.Mutex, so a callback that calls back into SetFocus,
-// UpdateView or any other w.mu-taking API deadlocks the main thread —
+// SetView or any other w.mu-taking API deadlocks the main thread —
 // a frozen window with no panic and no CPU burn (issue #394).
 //
 // The invariant this file restores: no app callback runs while the

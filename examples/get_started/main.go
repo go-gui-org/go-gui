@@ -22,7 +22,7 @@ func main() {
 	flag.Parse()
 
 	w := gui.SimpleWindow("Get Started", 300, 300, &App{}, func(w *gui.Window) {
-		w.UpdateView(mainView)
+		w.SetView(mainView)
 	})
 
 	if *screenshot != "" {

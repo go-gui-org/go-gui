@@ -38,7 +38,7 @@ func main() {
 		Width:  900,
 		Height: 540,
 		Title:  "preserveAspectRatio",
-		OnInit: func(w *gui.Window) { w.UpdateView(view) },
+		OnInit: func(w *gui.Window) { w.SetView(view) },
 	})
 
 	if *screenshot != "" {

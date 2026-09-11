@@ -132,7 +132,7 @@ func NewTestWindow(cfg WindowCfg) *Window {
 // must not be read after it. Call TestRender(nil) again instead.
 func (w *Window) TestRender(view func(*Window) View) *Layout {
 	if view != nil {
-		w.UpdateView(view)
+		w.SetView(view)
 	}
 	w.markLayoutRefresh()
 	w.Update()

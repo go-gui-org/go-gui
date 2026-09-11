@@ -15,7 +15,7 @@ package gui
 // the sampler examples already use by hand.
 //
 // Call it once per producer, typically from OnInit after
-// UpdateView has registered the view. Safe to call from any
+// SetView has registered the view. Safe to call from any
 // window lock itself — the mutation runs inside a queued command on
 // the frame thread. apply therefore reads window state the way a
 // view function does, and must not block: a slow apply stalls every

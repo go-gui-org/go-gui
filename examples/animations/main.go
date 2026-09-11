@@ -60,7 +60,7 @@ func main() {
 		Height: 600,
 		OnInit: func(w *gui.Window) {
 			// Register the root view once; animation callbacks mutate state.
-			w.UpdateView(mainView)
+			w.SetView(mainView)
 		},
 	})
 
@@ -404,14 +404,14 @@ func heroAnim(w *gui.Window) {
 	w.AnimationAdd(gui.NewHeroTransition(gui.HeroTransitionCfg{
 		Duration: 600 * time.Millisecond,
 	}))
-	w.UpdateView(detailView)
+	w.SetView(detailView)
 }
 
 func heroBack(w *gui.Window) {
 	w.AnimationAdd(gui.NewHeroTransition(gui.HeroTransitionCfg{
 		Duration: 600 * time.Millisecond,
 	}))
-	w.UpdateView(mainView)
+	w.SetView(mainView)
 }
 
 // Keyframe: multi-waypoint shake effect.

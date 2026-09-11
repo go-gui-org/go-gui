@@ -572,7 +572,7 @@ func demoMultiWindow(w *gui.Window) gui.View {
 							sa := appState(parent)
 							sa.MultiWindowChildID = child.PlatformID()
 							parent.InvalidateLayout()
-							child.UpdateView(multiWindowChildView(parent))
+							child.SetView(multiWindowChildView(parent))
 						},
 					})
 				},

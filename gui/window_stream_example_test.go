@@ -33,7 +33,7 @@ func streamLinesView(w *gui.Window) gui.View {
 func ExampleStream() {
 	w := gui.NewWindow(gui.WindowCfg{State: &streamLines{}})
 	defer w.WindowCleanup()
-	w.UpdateView(streamLinesView)
+	w.SetView(streamLinesView)
 
 	lines := make(chan string, 4)
 	done := gui.Stream(w, lines, func(w *gui.Window, line string) {

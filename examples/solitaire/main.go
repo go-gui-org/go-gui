@@ -73,7 +73,7 @@ func main() {
 		Height:    740,
 		FixedSize: true,
 		OnInit: func(w *gui.Window) {
-			w.UpdateView(mainView)
+			w.SetView(mainView)
 			w.AnimationAdd(&gui.Animate{
 				AnimID: blinkAnim,
 				Delay:  500 * time.Millisecond,

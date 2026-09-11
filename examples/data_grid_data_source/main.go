@@ -44,7 +44,7 @@ func main() {
 			app.AllRows = makeRows(50000)
 			app.Columns = makeColumns()
 			rebuildSource(app)
-			w.UpdateView(mainView)
+			w.SetView(mainView)
 		},
 	})
 

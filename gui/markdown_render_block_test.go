@@ -402,7 +402,7 @@ func TestMarkdownRenderBlockTailListUnhooked(t *testing.T) {
 // ScopeIDN they are unique per block, and the sweep stays quiet.
 func TestMarkdownRenderBlockIDsScoped(t *testing.T) {
 	w := NewTestWindow(WindowCfg{})
-	w.UpdateView(func(win *Window) View {
+	w.SetView(func(win *Window) View {
 		return Column(ContainerCfg{
 			Sizing: FillFill,
 			Content: []View{
@@ -434,7 +434,7 @@ func TestMarkdownRenderBlockIDsScoped(t *testing.T) {
 // state slot.
 func TestMarkdownRenderBlockIDCollisionReported(t *testing.T) {
 	w := NewTestWindow(WindowCfg{})
-	w.UpdateView(func(win *Window) View {
+	w.SetView(func(win *Window) View {
 		return Column(ContainerCfg{
 			Sizing: FillFill,
 			Content: []View{

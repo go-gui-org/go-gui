@@ -40,7 +40,7 @@ func main() {
 		Title:  "termgrid",
 		Width:  cols*cellW + 40,
 		Height: rows*cellH + 40,
-		OnInit: func(w *gui.Window) { w.UpdateView(view) },
+		OnInit: func(w *gui.Window) { w.SetView(view) },
 	})
 
 	if *screenshot != "" {
