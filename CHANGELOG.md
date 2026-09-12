@@ -10,6 +10,12 @@ and this project adheres to
 
 ### Added
 
+- **`examples/family_tree`: a scrollable diagram with clickable names (#582)** —
+  A family tree wider than the window, built from `gui.Canvas` with names placed
+  at `X`/`Y`, a `DrawCanvas` underlay for right-angle connector lines, and a
+  scrollable `Column`. The names are buttons, so click, hover, focus and
+  accessibility need no hit-testing code. The canvas needs no explicit size, and
+  a sideways trackpad swipe scrolls it (#584, #585).
 - **The full named color palette is public** — `Magenta`, `Indigo`, `Pink`,
   `Violet`, `DarkBlue`, `DarkGreen`, `DarkRed`, `LightGray`, `LightGreen`,
   `LightRed`, and `RoyalBlue` join the exported palette alongside `Red`,
@@ -27,6 +33,23 @@ and this project adheres to
 
 ### Fixed
 
+- **A sideways trackpad swipe scrolls a container horizontally (#585)** — A
+  precise scroll with no modifier used to move only the vertical axis and drop
+  `ScrollX`, so a wide container ignored a sideways swipe on macOS and moved
+  only with Shift or the scrollbar. Each axis the swipe names now scrolls, as
+  far as the container's `ScrollMode` allows. A discrete mouse wheel keeps Shift
+  for horizontal. `(*Window).TestScroll` with a non-zero `dx` now drives
+  horizontal scroll through real dispatch.
+- **A Canvas in a scroll container scrolls sideways with no workarounds (#584)**
+  — Two layout gaps stopped it. A Fit `Canvas` resolved to 0×0 because it never
+  measured its children; it now encloses them, counting each child's `X`/`Y`
+  plus its size, and a Scrollable Canvas's scroll range counts the same. A Fixed
+  or Fill Canvas keeps the size it was given. Separately, a Scrollable Fill
+  container took its content's minimum width (and a Row its minimum height), so
+  it grew as big as its content and had nothing to scroll; only a column's
+  height was reset before. Every axis the container can scroll now drops that
+  minimum, so `Clip: true` and a hand-sized `FixedFixed` Canvas are no longer
+  needed. An axis excluded by `ScrollMode` keeps its content floor.
 - **Command registry is race-safe and stops swallowing keys** — `Register`,
   `Unregister`, lookup, palette, and dispatch share a mutex and run user
   callbacks off-lock from a snapshot, so registration during dispatch cannot

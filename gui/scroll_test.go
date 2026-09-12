@@ -500,3 +500,95 @@ func TestScrollHorizontalByAndToWithClampAndOnScroll(t *testing.T) {
 		t.Errorf("expected OnScroll fired 2, got %d", fired)
 	}
 }
+
+// preciseScrollWindow renders a 200x100 scroll column holding 800x400 of
+// content, so both axes have room, and returns the window. mode selects the
+// container's ScrollMode.
+func preciseScrollWindow(t *testing.T, mode scrollMode) *Window {
+	t.Helper()
+	w := NewTestWindow(WindowCfg{Width: 400, Height: 300})
+	w.TestRender(func(_ *Window) View {
+		return Column(ContainerCfg{
+			ID:         "s",
+			Scrollable: true,
+			ScrollMode: mode,
+			Sizing:     FixedFixed,
+			Width:      200,
+			Height:     100,
+			Padding:    PaddingNone,
+			SizeBorder: NoBorder,
+			Content: []View{
+				Column(ContainerCfg{
+					Sizing:     FixedFixed,
+					Width:      800,
+					Height:     400,
+					SizeBorder: NoBorder,
+				}),
+			},
+		})
+	})
+	return w
+}
+
+// A sideways trackpad swipe arrives as a precise event with ScrollX and no
+// modifier. It must move the horizontal axis; it used to be dropped because
+// only Shift read ScrollX (issue #585).
+func TestScrollPreciseNoModifierScrollsHorizontal(t *testing.T) {
+	w := preciseScrollWindow(t, scrollBoth)
+	if err := w.TestScroll("s", -50, 0); err != nil {
+		t.Fatalf("TestScroll: %v", err)
+	}
+	x, y, err := w.TestScrollOffset("s")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if x >= 0 || y != 0 {
+		t.Errorf("offset = (%v, %v), want x < 0 and y == 0", x, y)
+	}
+}
+
+// A diagonal trackpad swipe moves each axis the container allows.
+func TestScrollPreciseNoModifierScrollsBothAxes(t *testing.T) {
+	w := preciseScrollWindow(t, scrollBoth)
+	if err := w.TestScroll("s", -30, -40); err != nil {
+		t.Fatalf("TestScroll: %v", err)
+	}
+	x, y, err := w.TestScrollOffset("s")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if x >= 0 || y >= 0 {
+		t.Errorf("offset = (%v, %v), want both < 0", x, y)
+	}
+}
+
+// A vertical-only container ignores the sideways part of a swipe.
+func TestScrollPreciseVerticalOnlyIgnoresX(t *testing.T) {
+	w := preciseScrollWindow(t, ScrollVerticalOnly)
+	if err := w.TestScroll("s", -50, 0); err == nil {
+		t.Error("TestScroll: want an error, a vertical-only container cannot take X")
+	}
+	if x, _, _ := w.TestScrollOffset("s"); x != 0 {
+		t.Errorf("x offset = %v, want 0", x)
+	}
+}
+
+// A discrete mouse wheel with no modifier keeps its vertical-only meaning;
+// Shift stays the way to scroll sideways with a wheel.
+func TestScrollDiscreteNoModifierStaysVertical(t *testing.T) {
+	w := preciseScrollWindow(t, scrollBoth)
+	ly, ok := w.layout.FindByID("s")
+	if !ok {
+		t.Fatal("scroll container not found")
+	}
+	e := Event{
+		Type:   EventMouseScroll,
+		MouseX: ly.Shape.X + 10, MouseY: ly.Shape.Y + 10,
+		ScrollX: -3,
+	}
+	w.EventFn(&e)
+	w.settle()
+	if x, _, _ := w.TestScrollOffset("s"); x != 0 {
+		t.Errorf("x offset = %v, want 0 for a discrete wheel without Shift", x)
+	}
+}

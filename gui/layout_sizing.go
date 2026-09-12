@@ -104,6 +104,72 @@ func scrollExcludesAxis(mode scrollMode, axis distributeAxis) bool {
 	return mode == ScrollHorizontalOnly
 }
 
+// scrollFillResetMin drops the minimum of a Scrollable Fill container on
+// axis to spacingSmall, so the fill pass can size it to its parent. A scroll
+// container is a viewport: content bigger than the viewport is what the
+// scroll range is for, so the content's minimum must not become its own.
+// Without this a Scrollable FillFill column grew as wide as its content and
+// had nothing to scroll sideways (issue #584). An axis the ScrollMode
+// excludes keeps its floor, because that axis cannot reveal hidden content.
+//
+// The Column main-axis height reset in layoutHeights is older than this and
+// stays ungated by ScrollMode.
+func scrollFillResetMin(shape *Shape, axis distributeAxis) {
+	if !shape.Scrollable || getSizing(shape, axis) != sizingFill ||
+		scrollExcludesAxis(shape.ScrollMode, axis) {
+		return
+	}
+	if axis == distributeHorizontal {
+		shape.MinWidth = spacingSmall
+	} else {
+		shape.MinHeight = spacingSmall
+	}
+}
+
+// fitAxisNoneWidth grows an axis-less container (Canvas) to enclose its
+// in-flow children, each at its own X: the furthest right edge plus padding
+// (issue #584). The same rule sets MinWidth from the children's minimums.
+// Children are not re-sized. A child left of the origin adds nothing, and a
+// container with no in-flow child keeps its size, like the other branches.
+func fitAxisNoneWidth(layout *Layout, padding float32) {
+	var extent, minExtent float32
+	found := false
+	for i := range layout.Children {
+		c := layout.Children[i].Shape
+		if skipLayoutChild(c) {
+			continue
+		}
+		found = true
+		extent = f32Max(extent, c.X+childExtentW(c))
+		minExtent = f32Max(minExtent, c.X+c.MinWidth)
+	}
+	if !found {
+		return
+	}
+	layout.Shape.Width = f32Max(layout.Shape.Width, extent+padding)
+	layout.Shape.MinWidth = f32Max(layout.Shape.MinWidth, minExtent+padding)
+}
+
+// fitAxisNoneHeight is fitAxisNoneWidth for the vertical axis, with Y.
+func fitAxisNoneHeight(layout *Layout, padding float32) {
+	var extent, minExtent float32
+	found := false
+	for i := range layout.Children {
+		c := layout.Children[i].Shape
+		if skipLayoutChild(c) {
+			continue
+		}
+		found = true
+		extent = f32Max(extent, c.Y+c.Height)
+		minExtent = f32Max(minExtent, c.Y+c.MinHeight)
+	}
+	if !found {
+		return
+	}
+	layout.Shape.Height = f32Max(layout.Shape.Height, extent+padding)
+	layout.Shape.MinHeight = f32Max(layout.Shape.MinHeight, minExtent+padding)
+}
+
 func clampMinMax(shape *Shape, axis distributeAxis) {
 	size := getSize(shape, axis)
 	minSize := getMinSize(shape, axis)
@@ -436,6 +502,7 @@ func layoutWidthsDepth(layout *Layout, depth int) {
 			if layout.Shape.MinWidth > 0 {
 				layout.Shape.Width = f32Max(layout.Shape.MinWidth, layout.Shape.Width)
 			}
+			scrollFillResetMin(layout.Shape, distributeHorizontal)
 		}
 	} else if layout.Shape.Axis == axisTopToBottom {
 		// Fixed cross-axis with a 0 size degrades to content sizing
@@ -478,10 +545,15 @@ func layoutWidthsDepth(layout *Layout, depth int) {
 		if layout.Shape.MaxWidth > 0 {
 			layout.Shape.Width = f32Min(layout.Shape.Width, layout.Shape.MaxWidth)
 		}
+		scrollFillResetMin(layout.Shape, distributeHorizontal)
 	} else {
-		// axisNone: no children to distribute along the axis, so there
-		// is nothing to fit against. Honor explicit min/max pins only —
-		// the Fill root pin from updateLayoutLocked (Min = Max = window
+		// axisNone: children are not arranged; each sits at its own X. A
+		// Fit width still encloses them (fitAxisNoneWidth, issue #584).
+		// X is parent-relative here, because layoutPositions adds the
+		// offsets later.
+		//
+		// Fixed and Fill widths only honor explicit min/max pins. The
+		// Fill root pin from updateLayoutLocked (Min = Max = window
 		// size) is the case that matters (issue #262): a FillFill root
 		// like a Splitter (Canvas) used to resolve to 0x0 because the
 		// pin was set and never read. Fixed sizing pins via
@@ -492,6 +564,9 @@ func layoutWidthsDepth(layout *Layout, depth int) {
 		// would be overwritten after this pass (plan item: "making the
 		// fill passes distribute children of axisNone roots" is out of
 		// scope and must not drift in as a size writer).
+		if layout.Shape.Sizing.Width == sizingFit {
+			fitAxisNoneWidth(layout, padding)
+		}
 		if layout.Shape.MinWidth > 0 {
 			layout.Shape.Width = f32Max(layout.Shape.Width, layout.Shape.MinWidth)
 		}
@@ -582,12 +657,17 @@ func layoutHeightsDepth(layout *Layout, depth int) {
 		if layout.Shape.MaxHeight > 0 {
 			layout.Shape.Height = f32Min(layout.Shape.Height, layout.Shape.MaxHeight)
 		}
+		scrollFillResetMin(layout.Shape, distributeVertical)
 	} else {
-		// axisNone: mirror layoutWidths — nothing to distribute, so
-		// honor explicit min/max pins only (the Fill root pin from
-		// updateLayoutLocked, issue #262). Same fill-impl size-neutral
-		// invariant as layoutWidths: the height fill impl must not gain
-		// an axisNone size writer.
+		// axisNone: mirror layoutWidths. A Fit height encloses the
+		// children at their own Y (fitAxisNoneHeight, issue #584); Fixed
+		// and Fill heights honor explicit min/max pins only (the Fill root
+		// pin from updateLayoutLocked, issue #262). Same fill-impl
+		// size-neutral invariant as layoutWidths: the height fill impl
+		// must not gain an axisNone size writer.
+		if layout.Shape.Sizing.Height == sizingFit {
+			fitAxisNoneHeight(layout, padding)
+		}
 		if layout.Shape.MinHeight > 0 {
 			layout.Shape.Height = f32Max(layout.Shape.Height, layout.Shape.MinHeight)
 		}
