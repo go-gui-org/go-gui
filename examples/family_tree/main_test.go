@@ -108,12 +108,13 @@ func TestFarNodeReachableByScroll(t *testing.T) {
 			app.nodes[far].name)
 	}
 
-	// ScrollHorizontalTo clamps to the scroll range, so asking for the full
-	// tree width lands at the right edge only if the range covers the tree.
-	// TestScroll is not used: it sends no modifier, and a precise scroll
-	// without Shift moves the vertical axis only.
-	w.ScrollHorizontalTo("tree", -app.width)
-	w.TestRender(mainView)
+	// A sideways trackpad swipe: a precise scroll with only a horizontal
+	// delta and no modifier. The offset clamps to the scroll range, so a
+	// swipe of the full tree width lands at the right edge only if the range
+	// covers the tree.
+	if err := w.TestScroll("tree", -app.width, 0); err != nil {
+		t.Fatalf("TestScroll: %v", err)
+	}
 	if x, _, err := w.TestScrollOffset("tree"); err != nil || x == 0 {
 		t.Fatalf("scroll offset x=%v err=%v, want a horizontal offset", x, err)
 	}

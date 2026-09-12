@@ -29,16 +29,10 @@ A diagram larger than the window, built from three parts:
 The names are buttons, so click, hover, focus and accessibility work without
 hit-testing code.
 
-Give the canvas an explicit `Width` and `Height` that cover the whole diagram. A
-container that does not arrange its children measures its scroll range from
-child sizes only. It ignores child `X`/`Y`, so without an explicit size the
-names past the window edge cannot be scrolled into view.
+The canvas needs no explicit size. A canvas with Fit sizing grows to enclose its
+children at their `X`/`Y`, so the scroll range covers the whole diagram.
 
-Set `Clip: true` on the scroll column. Without it the canvas's fixed width
-becomes the column's minimum width, the column grows as wide as the tree, and
-there is no horizontal scroll range.
-
-To scroll sideways, use Shift with the mouse wheel or trackpad, or drag the
-scrollbar. A plain sideways trackpad swipe does not scroll yet.
+To scroll sideways, swipe sideways on a trackpad, use Shift with the mouse
+wheel, or drag the scrollbar.
 
 See `main.go` for the implementation.

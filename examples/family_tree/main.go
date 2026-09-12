@@ -331,16 +331,10 @@ func mainView(w *gui.Window) gui.View {
 				Scrollable: true,
 				Sizing:     gui.FillFill,
 				Padding:    gui.PaddingNone,
-				// Clip stops the canvas's fixed width from becoming this
-				// column's minimum width. Without it the column grows as
-				// wide as the whole tree, and there is nothing left to
-				// scroll horizontally.
-				Clip: true,
 				Content: []gui.View{
+					// A Fit canvas grows to enclose its children at their
+					// X/Y, so the scroll range covers the whole tree.
 					gui.Canvas(gui.ContainerCfg{
-						Width:      app.width,
-						Height:     app.height,
-						Sizing:     gui.FixedFixed,
 						Padding:    gui.PaddingNone,
 						SizeBorder: gui.NoBorder,
 						Content:    content,
