@@ -32,8 +32,29 @@ type A11yNode struct {
 }
 
 type liveNode struct {
-	label string
+	key   liveKey
 	value string
+}
+
+// liveKey identifies a live region across syncs. A non-empty id pins
+// a designed, ID-bearing region on its own, across any tree or label
+// movement; label and idx keep ID-less regions distinct per position.
+// A region that moves reads as new and stays silent for a frame —
+// never a spurious announcement — while its next value change
+// announces normally.
+type liveKey struct {
+	id    string
+	label string
+	idx   int
+}
+
+// liveKeyFor builds the identity for one live region: the effective
+// ID where the shape has one, else its label and node index.
+func liveKeyFor(id, label string, idx int) liveKey {
+	if id != "" {
+		return liveKey{id: id}
+	}
+	return liveKey{label: label, idx: idx}
 }
 
 // a11ySyncInterval is the minimum time between accessibility
@@ -44,7 +65,7 @@ const a11ySyncInterval = 100 * time.Millisecond
 // a11y holds per-window accessibility backend state.
 type a11y struct {
 	lastSync       time.Time // throttle sync calls
-	prevLiveValues map[string]string
+	prevLiveValues map[liveKey]string
 	nodes          []A11yNode // reused across frames
 	liveNodes      []liveNode // reused across frames
 	// dirty is set by updateLocked (any layout rebuild) and
@@ -71,7 +92,14 @@ func (w *Window) initA11y() {
 
 	if w.nativePlatform != nil {
 		w.nativePlatform.A11yInit(func(action, index int) {
-			a11yActionCallback(w, action, index)
+			// Platform action callbacks arrive on foreign threads —
+			// VoiceOver re-entry, Android JNI, D-Bus workers — never
+			// the main thread the layout belongs to. Queue onto it;
+			// the command runs at the next frame start, against the
+			// arranged tree rather than one mutating underfoot.
+			w.QueueCommand(func(*Window) {
+				a11yActionCallback(w, action, index)
+			})
 		})
 	}
 }
@@ -112,15 +140,13 @@ func (w *Window) syncA11y() {
 		&w.a11y.liveNodes,
 	)
 
-	if len(w.a11y.nodes) == 0 {
-		return
-	}
-
+	// An emptied tree still pushes (possibly zero nodes) so the native
+	// side clears its stale content instead of keeping it.
 	w.nativePlatform.A11ySync(w.a11y.nodes, len(w.a11y.nodes), focusedIdx)
 
 	// Live region change detection.
 	for _, ln := range w.a11y.liveNodes {
-		if prev, ok := w.a11y.prevLiveValues[ln.label]; ok {
+		if prev, ok := w.a11y.prevLiveValues[ln.key]; ok {
 			if prev != ln.value {
 				w.nativePlatform.A11yAnnounce(ln.value)
 			}
@@ -128,11 +154,11 @@ func (w *Window) syncA11y() {
 	}
 	// Update previous values.
 	if w.a11y.prevLiveValues == nil {
-		w.a11y.prevLiveValues = make(map[string]string)
+		w.a11y.prevLiveValues = make(map[liveKey]string)
 	}
 	clear(w.a11y.prevLiveValues)
 	for _, ln := range w.a11y.liveNodes {
-		w.a11y.prevLiveValues[ln.label] = ln.value
+		w.a11y.prevLiveValues[ln.key] = ln.value
 	}
 }
 
@@ -146,7 +172,25 @@ func a11yCollect(
 	focusID string,
 	live *[]liveNode,
 ) int {
+	return a11yCollectDepth(layout, parentIdx, nodes, focusID, live, 0)
+}
+
+func a11yCollectDepth(
+	layout *Layout,
+	parentIdx int,
+	nodes *[]A11yNode,
+	focusID string,
+	live *[]liveNode,
+	depth int,
+) int {
 	focusedIdx := -1
+	// Past the budget the walk stops descending, like every other
+	// tree walk: the tree is not always the app's own — Markdown and
+	// SVG build subtrees out of documents the app did not write —
+	// so the frame drops deep input rather than the process.
+	if overMaxDepth(depth) {
+		return focusedIdx
+	}
 	if layout.Shape == nil {
 		return focusedIdx
 	}
@@ -155,7 +199,7 @@ func a11yCollect(
 	// Skip shapes without a11y role but recurse children.
 	if s.A11YRole == AccessRoleNone {
 		for i := range layout.Children {
-			if fi := a11yCollect(&layout.Children[i], parentIdx, nodes, focusID, live); fi >= 0 {
+			if fi := a11yCollectDepth(&layout.Children[i], parentIdx, nodes, focusID, live, depth+1); fi >= 0 {
 				focusedIdx = fi
 			}
 		}
@@ -204,19 +248,24 @@ func a11yCollect(
 		ParentIdx:   parentIdx,
 	})
 
-	if focusID != "" && s.Focusable && s.ID == focusID {
+	if focusID != "" && s.Focusable && s.idKey() == focusID {
 		focusedIdx = nodeIdx
 	}
 
-	// Track live regions.
+	// Track live regions, keyed by identity rather than label:
+	// labels collide across regions and vanish on unlabeled values,
+	// and either case announced for the wrong region.
 	if state.Has(AccessStateLive) {
-		*live = append(*live, liveNode{label: label, value: value})
+		*live = append(*live, liveNode{
+			key:   liveKeyFor(s.idKey(), label, nodeIdx),
+			value: value,
+		})
 	}
 
 	// Process children.
 	childrenStart := len(*nodes)
 	for i := range layout.Children {
-		if fi := a11yCollect(&layout.Children[i], nodeIdx, nodes, focusID, live); fi >= 0 {
+		if fi := a11yCollectDepth(&layout.Children[i], nodeIdx, nodes, focusID, live, depth+1); fi >= 0 {
 			focusedIdx = fi
 		}
 	}
@@ -248,6 +297,13 @@ func shapeA11yLabel(s *Shape) string {
 
 // a11yActionCallback routes native accessibility actions to
 // the layout node at the given index in the a11y node array.
+//
+// Main-thread only: it walks the live layout and runs app callbacks
+// with no lock held. Platform entry points never call this directly —
+// initA11y queues them through QueueCommand. Tests call it directly.
+// Disabled refuses every action (see the single check below);
+// layoutDisables stamps Disabled onto every descendant, so it also
+// covers a disabled ancestor.
 func a11yActionCallback(w *Window, action, index int) {
 	if index < 0 || index >= len(w.a11y.nodes) {
 		return
@@ -257,9 +313,15 @@ func a11yActionCallback(w *Window, action, index int) {
 		return
 	}
 	ev := l.Shape.events
+	// A disabled widget refuses every action; layoutDisables stamps
+	// Disabled onto every descendant, so this also covers a
+	// disabled ancestor. One check, not one per arm.
+	if l.Shape.Disabled {
+		return
+	}
 	switch action {
 	case A11yActionPress:
-		if ev.OnClick != nil && !l.Shape.Disabled {
+		if ev.OnClick != nil {
 			e := &Event{Type: EventMouseDown}
 			playShapeSound(l, w)
 			ev.OnClick(EventCtx{l, e, w})
@@ -291,10 +353,13 @@ func a11yActionCallback(w *Window, action, index int) {
 // a11yCollect and returns the layout at the given node index.
 func a11yFindLayout(layout *Layout, target int) *Layout {
 	counter := 0
-	return a11yFindLayoutWalk(layout, target, &counter)
+	return a11yFindLayoutWalk(layout, target, &counter, 0)
 }
 
-func a11yFindLayoutWalk(layout *Layout, target int, counter *int) *Layout {
+func a11yFindLayoutWalk(layout *Layout, target int, counter *int, depth int) *Layout {
+	if overMaxDepth(depth) {
+		return nil
+	}
 	if layout.Shape == nil {
 		return nil
 	}
@@ -302,7 +367,7 @@ func a11yFindLayoutWalk(layout *Layout, target int, counter *int) *Layout {
 	// (same logic as a11yCollect).
 	if layout.Shape.A11YRole == AccessRoleNone {
 		for i := range layout.Children {
-			if found := a11yFindLayoutWalk(&layout.Children[i], target, counter); found != nil {
+			if found := a11yFindLayoutWalk(&layout.Children[i], target, counter, depth+1); found != nil {
 				return found
 			}
 		}
@@ -313,7 +378,7 @@ func a11yFindLayoutWalk(layout *Layout, target int, counter *int) *Layout {
 	}
 	*counter++
 	for i := range layout.Children {
-		if found := a11yFindLayoutWalk(&layout.Children[i], target, counter); found != nil {
+		if found := a11yFindLayoutWalk(&layout.Children[i], target, counter, depth+1); found != nil {
 			return found
 		}
 	}

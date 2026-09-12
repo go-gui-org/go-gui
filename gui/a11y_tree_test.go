@@ -28,6 +28,64 @@ func TestA11yCollectNilShape(t *testing.T) {
 	}
 }
 
+// buildDeepA11yChain returns a single-child chain of n role-bearing
+// layouts. Document-built subtrees (Markdown, SVG) can nest
+// arbitrarily deep, which is what the depth guard exists for.
+func buildDeepA11yChain(n int) *Layout {
+	root := &Layout{Shape: &Shape{A11YRole: AccessRoleGroup}}
+	cur := root
+	for i := 1; i < n; i++ {
+		cur.Children = []Layout{{Shape: &Shape{A11YRole: AccessRoleGroup}}}
+		cur = &cur.Children[0]
+	}
+	return root
+}
+
+func TestA11yCollectStopsAtMaxDepth(t *testing.T) {
+	root := buildDeepA11yChain(maxEventDepth + 50)
+	var nodes []A11yNode
+	var live []liveNode
+	if idx := a11yCollect(root, -1, &nodes, "", &live); idx != -1 {
+		t.Errorf("focusedIdx: got %d, want -1", idx)
+	}
+	if len(nodes) > maxEventDepth+1 {
+		t.Errorf("nodes: got %d, want at most %d — the walk descended past the depth budget",
+			len(nodes), maxEventDepth+1)
+	}
+}
+
+func TestA11yFindLayoutStopsAtMaxDepth(t *testing.T) {
+	root := buildDeepA11yChain(maxEventDepth + 50)
+	if l := a11yFindLayout(root, 0); l != root {
+		t.Error("node 0 should resolve to the root")
+	}
+	if l := a11yFindLayout(root, maxEventDepth+49); l != nil {
+		t.Error("a node past the depth budget should not resolve")
+	}
+}
+
+func TestA11yCollectScopedFocus(t *testing.T) {
+	// The focus store holds effective IDs, so a scoped widget is
+	// addressed by its full path, not the leaf its Cfg was written
+	// with. Assistive tech must hear that focus.
+	layout := Layout{
+		Shape: &Shape{A11YRole: AccessRoleGroup},
+		Children: []Layout{{Shape: &Shape{
+			ID: "field", effID: "settings:field",
+			Focusable: true, A11YRole: AccessRoleTextField,
+		}}},
+	}
+	var nodes []A11yNode
+	var live []liveNode
+	idx := a11yCollect(&layout, -1, &nodes, "settings:field", &live)
+	if idx < 0 {
+		t.Fatal("scoped focused widget was not reported as focused")
+	}
+	if nodes[idx].Role != AccessRoleTextField {
+		t.Errorf("focused node role: got %d, want TextField", nodes[idx].Role)
+	}
+}
+
 func TestA11yCollectSkipNoneRole(t *testing.T) {
 	layout := Layout{
 		Shape: &Shape{A11YRole: AccessRoleNone},
@@ -193,8 +251,8 @@ func TestA11yCollectLiveRegion(t *testing.T) {
 	if len(live) != 1 {
 		t.Fatalf("expected 1 live node, got %d", len(live))
 	}
-	if live[0].label != "status" {
-		t.Errorf("label: got %q", live[0].label)
+	if live[0].key.label != "status" {
+		t.Errorf("label: got %q", live[0].key.label)
 	}
 }
 
@@ -418,6 +476,87 @@ func TestA11yActionCallbackDecrement(t *testing.T) {
 	}
 }
 
+// A disabled widget answers no action: Press already refused, but
+// Increment, Decrement, Confirm and Cancel fired into disabled
+// controls. layoutDisables stamps Disabled onto every descendant, so
+// one check also covers a disabled ancestor.
+func TestA11yActionCallbackDisabledSkipsAllActions(t *testing.T) {
+	fired := 0
+	layout := Layout{
+		Shape: &Shape{
+			A11YRole: AccessRoleSlider,
+			Disabled: true,
+			events: &eventHandlers{
+				OnClick:   func(EventCtx) { fired++ },
+				OnKeyDown: func(EventCtx) { fired++ },
+			},
+		},
+	}
+	w := newTestWindow()
+	w.layout = layout
+	w.a11y.nodes = w.a11y.nodes[:0]
+	var live []liveNode
+	a11yCollect(&w.layout, -1, &w.a11y.nodes, "", &live)
+
+	for _, action := range []int{
+		A11yActionPress, A11yActionIncrement, A11yActionDecrement,
+		A11yActionConfirm, A11yActionCancel,
+	} {
+		a11yActionCallback(w, action, 0)
+	}
+	if fired != 0 {
+		t.Errorf("disabled widget fired %d action(s), want 0", fired)
+	}
+}
+
+// mockA11yActionPlatform captures the action callback initA11y hands
+// to the native side, so tests can invoke it the way a platform
+// thread would.
+type mockA11yActionPlatform struct {
+	noopNativePlatform
+	actionCb func(action, index int)
+}
+
+func (m *mockA11yActionPlatform) A11yInit(cb func(action, index int)) {
+	m.actionCb = cb
+}
+
+// Platform action callbacks arrive on foreign threads (VoiceOver,
+// Android JNI, D-Bus workers), never the main thread the layout
+// belongs to. They must queue onto it, not walk the live tree from
+// wherever the platform called.
+func TestA11yActionRoutesThroughQueueCommand(t *testing.T) {
+	clicked := false
+	layout := Layout{
+		Shape: &Shape{
+			A11YRole: AccessRoleButton,
+			events: &eventHandlers{
+				OnClick: func(EventCtx) { clicked = true },
+			},
+		},
+	}
+	w := newTestWindow()
+	w.layout = layout
+	w.a11y.nodes = w.a11y.nodes[:0]
+	var live []liveNode
+	a11yCollect(&w.layout, -1, &w.a11y.nodes, "", &live)
+
+	p := &mockA11yActionPlatform{}
+	w.nativePlatform = p
+	w.initA11y()
+	if p.actionCb == nil {
+		t.Fatal("initA11y did not register an action callback")
+	}
+	p.actionCb(A11yActionPress, 0)
+	if clicked {
+		t.Error("platform action dispatched synchronously from a foreign thread")
+	}
+	w.flushCommands()
+	if !clicked {
+		t.Error("queued platform action never dispatched")
+	}
+}
+
 func TestA11yActionCallbackOutOfBounds(_ *testing.T) {
 	w := newTestWindow()
 	w.a11y.nodes = nil
@@ -537,6 +676,7 @@ type mockA11yPlatform struct {
 	noopNativePlatform
 	synced   []A11yNode
 	syncCnt  int
+	calls    int
 	focusIdx int
 	announce []string
 }
@@ -547,6 +687,7 @@ func (m *mockA11yPlatform) A11ySync(
 	// Copy nodes to avoid aliasing reused slice.
 	m.synced = append(m.synced[:0], nodes[:count]...)
 	m.syncCnt = count
+	m.calls++
 	m.focusIdx = focusedIdx
 }
 
@@ -599,9 +740,55 @@ func TestSyncA11yEmptyNodes(t *testing.T) {
 	w.layout = Layout{
 		Shape: &Shape{A11YRole: AccessRoleNone},
 	}
+	w.a11y.lastSync = time.Time{}
 	w.syncA11y()
-	if mp := w.nativePlatform.(*mockA11yPlatform); mp.syncCnt != 0 {
-		t.Error("A11ySync should not be called when nodes are empty")
+	// An emptied tree still pushes, so the native side clears its
+	// stale content instead of keeping it.
+	mp := w.nativePlatform.(*mockA11yPlatform)
+	if mp.calls != 1 {
+		t.Fatalf("empty tree: %d sync calls, want 1", mp.calls)
+	}
+	if mp.syncCnt != 0 {
+		t.Errorf("empty tree node count: got %d, want 0", mp.syncCnt)
+	}
+	if mp.focusIdx != -1 {
+		t.Errorf("empty tree focus: got %d, want -1", mp.focusIdx)
+	}
+}
+
+// Content that empties and returns must not announce on return: the
+// empty push resets the live baselines, so restored values read as
+// new rather than changed.
+func TestSyncA11yEmptyClearsLiveBaseline(t *testing.T) {
+	w := newA11yWindow()
+	w.initA11y()
+	liveShape := func() *Shape {
+		return &Shape{
+			A11YRole:  AccessRoleStaticText,
+			A11YState: AccessStateLive,
+			a11Y:      &accessInfo{Label: "status", ValueNum: 1},
+		}
+	}
+	w.layout = Layout{Shape: liveShape()}
+	w.a11y.lastSync = time.Time{}
+	w.syncA11y() // baseline, no announces
+
+	w.layout = Layout{Shape: &Shape{A11YRole: AccessRoleNone}}
+	w.a11y.lastSync = time.Time{}
+	w.a11y.dirty = true
+	w.syncA11y()
+	mp := w.nativePlatform.(*mockA11yPlatform)
+	if mp.calls != 2 || mp.syncCnt != 0 {
+		t.Fatalf("empty push: calls=%d count=%d, want 2/0",
+			mp.calls, mp.syncCnt)
+	}
+
+	w.layout = Layout{Shape: liveShape()}
+	w.a11y.lastSync = time.Time{}
+	w.a11y.dirty = true
+	w.syncA11y()
+	if len(mp.announce) != 0 {
+		t.Errorf("restored content announced: %v", mp.announce)
 	}
 }
 
@@ -833,6 +1020,96 @@ func TestSyncA11yLiveRegionNoChange(t *testing.T) {
 	mp := w.nativePlatform.(*mockA11yPlatform)
 	if len(mp.announce) != 0 {
 		t.Errorf("expected 0 announces, got %d", len(mp.announce))
+	}
+}
+
+// Two unlabeled live regions share the "" key under label keying, so
+// a change to one announces for the other too. Identity keying keeps
+// them apart.
+func TestSyncA11yLiveRegionUnlabeledPair(t *testing.T) {
+	w := newA11yWindow()
+	w.initA11y()
+	mkLive := func(v float32) Layout {
+		return Layout{Shape: &Shape{
+			A11YRole:  AccessRoleStaticText,
+			A11YState: AccessStateLive,
+			a11Y:      &accessInfo{ValueNum: v},
+		}}
+	}
+	w.layout = Layout{
+		Shape:    &Shape{A11YRole: AccessRoleGroup},
+		Children: []Layout{mkLive(1), mkLive(2)},
+	}
+	w.a11y.lastSync = time.Time{}
+	w.syncA11y() // baseline, no announces
+
+	w.layout.Children[1].Shape.a11Y.ValueNum = 3
+	w.a11y.lastSync = time.Time{}
+	w.a11y.dirty = true
+	w.syncA11y()
+
+	mp := w.nativePlatform.(*mockA11yPlatform)
+	if len(mp.announce) != 1 || mp.announce[0] != "3" {
+		t.Errorf("announces: got %v, want [3] — no spurious announce for the untouched region",
+			mp.announce)
+	}
+}
+
+// Two regions sharing one label collapse onto one prev entry under
+// label keying, so an unchanged resync announces spuriously for the
+// region whose value differs from its sibling's.
+func TestSyncA11yLiveRegionSharedLabelNoChange(t *testing.T) {
+	w := newA11yWindow()
+	w.initA11y()
+	mkLive := func(v float32) Layout {
+		return Layout{Shape: &Shape{
+			A11YRole:  AccessRoleStaticText,
+			A11YState: AccessStateLive,
+			a11Y:      &accessInfo{Label: "s", ValueNum: v},
+		}}
+	}
+	w.layout = Layout{
+		Shape:    &Shape{A11YRole: AccessRoleGroup},
+		Children: []Layout{mkLive(1), mkLive(2)},
+	}
+	w.a11y.lastSync = time.Time{}
+	w.syncA11y() // baseline, no announces
+
+	// Nothing changed — resync must stay silent.
+	w.a11y.lastSync = time.Time{}
+	w.a11y.dirty = true
+	w.syncA11y()
+
+	mp := w.nativePlatform.(*mockA11yPlatform)
+	if len(mp.announce) != 0 {
+		t.Errorf("expected 0 announces, got %v", mp.announce)
+	}
+}
+
+// An ID-bearing region is pinned by its identity: a simultaneous
+// label and value change still announces the new value, where label
+// keying read it as a brand-new region and stayed silent.
+func TestSyncA11yLiveRegionIDSurvivesLabelChange(t *testing.T) {
+	w := newA11yWindow()
+	w.initA11y()
+	w.layout = Layout{Shape: &Shape{
+		ID:        "dl",
+		A11YRole:  AccessRoleStaticText,
+		A11YState: AccessStateLive,
+		a11Y:      &accessInfo{Label: "old", ValueNum: 1},
+	}}
+	w.a11y.lastSync = time.Time{}
+	w.syncA11y() // baseline, no announces
+
+	w.layout.Shape.a11Y.Label = "new"
+	w.layout.Shape.a11Y.ValueNum = 2
+	w.a11y.lastSync = time.Time{}
+	w.a11y.dirty = true
+	w.syncA11y()
+
+	mp := w.nativePlatform.(*mockA11yPlatform)
+	if len(mp.announce) != 1 || mp.announce[0] != "2" {
+		t.Errorf("announces: got %v, want [2]", mp.announce)
 	}
 }
 

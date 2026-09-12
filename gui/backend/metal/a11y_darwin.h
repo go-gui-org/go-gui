@@ -1,6 +1,8 @@
 #ifndef A11Y_DARWIN_H
 #define A11Y_DARWIN_H
 
+#include <stdint.h>
+
 #include "metal_window.h"
 
 // Role constants matching gui.AccessRole iota order (0-34).
@@ -65,21 +67,23 @@ typedef struct {
     int         childrenCount;
 } A11yCNode;
 
-// Initialize the accessibility element tree.
+// Initialize the accessibility element tree for one window. Each
+// window owns its tree; a second window never disturbs the first's.
 void a11yInit(GoGuiNSWindow w);
 
-// Sync the accessibility tree with the current frame's nodes.
-void a11ySync(const A11yCNode *nodes, int count, int focusedIdx,
-              float windowH);
+// Sync one window's accessibility tree with the current frame's nodes.
+void a11ySync(GoGuiNSWindow w, const A11yCNode *nodes, int count,
+              int focusedIdx, float windowH);
 
-// Destroy the accessibility tree and release all elements.
-void a11yDestroy(void);
+// Destroy one window's accessibility tree and release its elements.
+void a11yDestroy(GoGuiNSWindow w);
 
 // Post an announcement via VoiceOver.
 void a11yAnnounce(const char *text);
 
 // Implemented in Go — called from ObjC when VoiceOver triggers
-// an action on an element.
-extern void goA11yAction(int action, int index);
+// an action on an element. token is the owning window, routing the
+// action to that window's callback.
+extern void goA11yAction(int action, int index, uintptr_t token);
 
 #endif

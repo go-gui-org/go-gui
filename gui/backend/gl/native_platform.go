@@ -4,6 +4,7 @@ package gl
 
 import (
 	"github.com/go-gui-org/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui/backend/atspi"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/nativehost"
 )
 
@@ -11,7 +12,14 @@ import (
 //
 // b is the owning backend: IME calls have to reach per-window platform
 // state. Everything else here is process-wide and ignores it.
-type nativePlatform struct{ b *Backend }
+//
+// a11y is the window's own AT-SPI2 bridge (Linux only; nil elsewhere).
+// Owned per window — never shared — so a second window's actions and
+// tree cannot reach the first window's callbacks.
+type nativePlatform struct {
+	b    *Backend
+	a11y *atspi.Bridge
+}
 
 // --- URI ---
 

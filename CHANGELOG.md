@@ -26,6 +26,38 @@ and this project adheres to
   the leaf while the focus store holds the stamped identity. The two
   agree for every generated layout; hand-built layouts no longer
   disagree.
+- **Deep accessibility trees stop at the depth budget** — the a11y
+  collect and lookup walks were the only tree walks without the shared
+  256-deep guard, so a deeply nested document-built subtree (Markdown,
+  SVG) could exhaust the stack. Nodes past the budget are now dropped
+  from the pushed snapshot instead.
+- **Scoped focus is announced to assistive tech** — the a11y focused
+  index compared the leaf ID against the effective focus ID, so a widget
+  under an ID-bearing ancestor was never reported as focused. The match
+  is now on the effective ID.
+- **Assistive-tech actions queue onto the main thread** — platform
+  action callbacks (VoiceOver, Android JNI, D-Bus workers) arrived on
+  foreign threads and walked the live layout directly. They now run
+  through `QueueCommand` at the next frame start. Disabled widgets also
+  refuse all five actions now, not just Press.
+- **Live regions are keyed by identity, not label** — two regions
+  sharing a label (or none) collapsed onto one entry, announcing for
+  the wrong region or staying silent on change. ID-bearing regions pin
+  by effective ID across any tree or label movement; ID-less regions
+  key by label and node index, going silent for a frame on moves rather
+  than announcing spuriously.
+- **An emptied accessibility tree is pushed, not skipped** — content
+  that emptied never synced, so assistive tech kept the stale tree and
+  the live baselines went stale with it. Zero-node syncs now clear the
+  native tree on every backend, and returning content reads as new
+  rather than changed.
+- **Each window owns its accessibility bridge (macOS, Linux)** — the
+  macOS VoiceOver tree and the Linux AT-SPI2 bridge were process-global,
+  so a second window hijacked the first window's tree and actions.
+  macOS now keeps one tree per window with the owning window routed
+  back alongside each action; Linux gives each window its own bridge.
+  The web backend was already per-window, and Android runs exactly one
+  window by construction.
 
 ## [v0.75.0] - 2026-09-12
 
