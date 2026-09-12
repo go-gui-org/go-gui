@@ -8,6 +8,8 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [v0.75.0] - 2026-09-12
+
 ### Added
 
 - **`InputDateCfg.DateFormat` sets the date format per field (#578)** — the date
