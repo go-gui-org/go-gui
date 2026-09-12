@@ -67,6 +67,16 @@ func (w *Window) queueCommandsBatch(cmds []queuedCommand) {
 	w.commandsMu.Unlock()
 }
 
+// pendingCommandCount reports the number of queued commands.
+// It is a test seam: async tests wait for a queued completion
+// through it instead of reaching into the queue fields, so the
+// lock discipline stays with the queue implementation.
+func (w *Window) pendingCommandCount() int {
+	w.commandsMu.Lock()
+	defer w.commandsMu.Unlock()
+	return len(w.commands)
+}
+
 // reclaimCommandScratch reclaims the scratch buffer when the main
 // command slice is nil. Caller must hold commandsMu.
 func (w *Window) reclaimCommandScratch() {

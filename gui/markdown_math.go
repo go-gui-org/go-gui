@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/go-gui-org/go-gui/gui/markdown"
@@ -107,6 +108,12 @@ func queueDiagramError(
 func defaultMathFetcher(
 	ctx context.Context, latex string, dpi int, fgColor Color,
 ) ([]byte, error) {
+	// Defense-in-depth: the async caller sanitizes and caps
+	// this, but clamp here so a direct call cannot pass an
+	// unbounded payload into the URL builder below.
+	if len(latex) > markdown.MaxLatexSourceLen {
+		return nil, errors.New("latex source too large")
+	}
 	// Clamp DPI to a reasonable range. Values outside this
 	// can produce enormous or invisible images on the renderer.
 	if dpi < 24 {
@@ -125,19 +132,24 @@ func defaultMathFetcher(
 	}
 	prefix := fmt.Sprintf(`\dpi{%d}%s`, dpi, colorCmd)
 
-	encoded := strings.ReplaceAll(
-		prefix+latex, " ", "{}")
-	encoded = strings.ReplaceAll(encoded, "#", "%23")
-	encoded = strings.ReplaceAll(encoded, "&", "%26")
+	// Encode the user formula for the URL query. Escape only
+	// the formula: the prefix holds literal codecogs commands
+	// that must stay raw. QueryEscape turns spaces into "+",
+	// which codecogs does not read as a space, so restore the
+	// "{}" space form after encoding. Full encoding also keeps
+	// reserved characters ("%", "+", "?", "=" and more) in the
+	// formula from changing the request itself.
+	escaped := url.QueryEscape(latex)
+	escaped = strings.ReplaceAll(escaped, "+", "{}")
 	reqURL := "https://latex.codecogs.com/png.image?" +
-		encoded
+		prefix + escaped
 
 	req, err := http.NewRequestWithContext(
 		ctx, http.MethodGet, reqURL, nil)
 	if err != nil {
 		return nil, err
 	}
-	resp, err := diagramHTTPClient.Do(req)
+	resp, err := getDiagramHTTPClient().Do(req)
 	if err != nil {
 		return nil, err
 	}
