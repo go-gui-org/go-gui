@@ -237,6 +237,32 @@ within and keeps the single-row sum. That combination behaves as a `Row`, not a
 wrap. When the wrap must always fill its parent, use Fill width, which is what
 every example in this repo does.
 
+## Centering wrapped text
+
+Two different controls, and they are not interchangeable:
+
+- `ContainerCfg.HAlign` places the **box** across a column's cross axis.
+- `TextStyle.Align` places the **lines** inside that box.
+
+`TextModeWrap` defaults `Sizing` to `FillFit`, because wrapping needs a width to
+wrap to. After the wrap pass the box shrinks back to its longest line when its
+column aligns it, so `HAlign: HAlignCenter` centers a short wrapped label with
+no extra config (issue #577). Text long enough to fill every line has no slack
+to give back, so the box stays full width and only `TextStyle.Align` moves
+anything:
+
+```go
+gui.Text(gui.TextCfg{
+    Text:      "a long paragraph that fills every line it is given",
+    Mode:      gui.TextModeWrap,
+    TextStyle: gui.TextStyle{Align: gui.TextAlignCenter},
+})
+```
+
+Naming `Sizing` yourself opts out of the shrink: an explicit `Sizing: FillFit`
+is an instruction, so the box keeps the full width. Same for `TextStyle.Align`,
+where the lines are already placed against the wrap width.
+
 ## Canvas gradients
 
 A `DrawContext` fill takes a `*gui.CanvasGradient` in place of a flat `Color`:

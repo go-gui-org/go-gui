@@ -460,9 +460,11 @@ func (m *stubTextMeasurer) LayoutText(text string, _ TextStyle, wrapWidth float3
 	if wrapWidth <= 0 || len(text) == 0 {
 		return glyph.Layout{Height: m.fontHeight}, nil
 	}
-	// Simulate word wrapping using charWidth.
+	// Simulate word wrapping using charWidth. maxW tracks the widest
+	// line, which is what glyph reports as Layout.Width — the shrink in
+	// layoutPlainText reads it, so the stub has to supply it.
 	lines := 1
-	var lineW float32
+	var lineW, maxW float32
 	start := 0
 	for i := 0; i <= len(text); i++ {
 		if i < len(text) && text[i] != ' ' && text[i] != '\n' {
@@ -471,12 +473,14 @@ func (m *stubTextMeasurer) LayoutText(text string, _ TextStyle, wrapWidth float3
 		wordW := float32(i-start) * m.charWidth
 		if lineW > 0 && lineW+wordW > wrapWidth {
 			lines++
+			maxW = max(maxW, lineW)
 			lineW = wordW
 		} else {
 			lineW += wordW
 		}
 		if i < len(text) && text[i] == '\n' {
 			lines++
+			maxW = max(maxW, lineW)
 			lineW = 0
 		} else if i < len(text) {
 			if lineW > 0 {
@@ -485,7 +489,11 @@ func (m *stubTextMeasurer) LayoutText(text string, _ TextStyle, wrapWidth float3
 		}
 		start = i + 1
 	}
-	return glyph.Layout{Height: float32(lines) * m.fontHeight}, nil
+	maxW = max(maxW, lineW)
+	return glyph.Layout{
+		Width:  maxW,
+		Height: float32(lines) * m.fontHeight,
+	}, nil
 }
 
 func TestLayoutWrapPlainText(t *testing.T) {
@@ -838,5 +846,293 @@ func TestLayoutWrapRTF_RtfFlatText_NotOverwrittenOnCacheHit(t *testing.T) {
 	if shape.TC.rTFFlatText != "already-set" {
 		t.Errorf("RTFFlatText overwritten on cache hit, got %q",
 			shape.TC.rTFFlatText)
+	}
+}
+
+// wrapHAlignLayout builds a fixed-size column with the given HAlign and
+// one wrapped Text child, runs the whole pipeline, and hands back the
+// text shape. The views are built through the factories on purpose:
+// only Text knows whether the caller chose the Fill sizing or the wrap
+// mode defaulted it, and the shrink in layoutPlainText reads that. #577
+func wrapHAlignLayout(
+	t *testing.T, hAlign HorizontalAlign, cfg TextCfg,
+) (*Shape, *Shape) {
+	t.Helper()
+	w := &Window{}
+	w.textMeasurer = &stubTextMeasurer{charWidth: 10, fontHeight: 20}
+	w.windowWidth = 400
+	w.windowHeight = 300
+
+	// No padding and no border: the assertions below compare against
+	// the column's own width, so the content box has to be the column.
+	col := generateViewLayout(Column(ContainerCfg{
+		Sizing:     FixedFixed,
+		Width:      400,
+		Height:     300,
+		HAlign:     hAlign,
+		Padding:    PaddingNone,
+		SizeBorder: NoBorder,
+		Content:    []View{Text(cfg)},
+	}), w)
+	col.Shape.MinWidth, col.Shape.MaxWidth = 400, 400
+	col.Shape.MinHeight, col.Shape.MaxHeight = 300, 300
+	layoutParents(&col, nil)
+	layoutPipeline(&col, w)
+
+	if len(col.Children) != 1 {
+		t.Fatalf("column children = %d, want 1", len(col.Children))
+	}
+	return col.Shape, col.Children[0].Shape
+}
+
+// A short wrapped text in a centered column ends up centered: the box
+// shrinks to its longest line, so HAlign has room to move it. #577
+func TestWrapTextCentersInCenteredColumn(t *testing.T) {
+	col, text := wrapHAlignLayout(t, HAlignCenter, TextCfg{
+		Text:      "wrap me",
+		TextStyle: TextStyle{Size: 16},
+		Mode:      TextModeWrap,
+	})
+
+	if text.Width >= col.Width {
+		t.Errorf("text width = %.1f, want < column width %.1f "+
+			"(box did not shrink to its longest line)",
+			text.Width, col.Width)
+	}
+	wantX := (col.Width - text.Width) / 2
+	if abs32(text.X-wantX) > 1 {
+		t.Errorf("text X = %.1f, want ~%.1f", text.X, wantX)
+	}
+}
+
+// HAlignRight pushes the shrunken box to the right edge. #577
+func TestWrapTextRightAlignsInRightAlignedColumn(t *testing.T) {
+	col, text := wrapHAlignLayout(t, HAlignRight, TextCfg{
+		Text:      "wrap me",
+		TextStyle: TextStyle{Size: 16},
+		Mode:      TextModeWrap,
+	})
+
+	wantX := col.Width - text.Width
+	if abs32(text.X-wantX) > 1 {
+		t.Errorf("text X = %.1f, want ~%.1f", text.X, wantX)
+	}
+}
+
+// The common case is untouched: a left-aligned column leaves the
+// wrapped box spanning the full content width, so a background or a
+// border behind it keeps the extent it has always had. #577
+func TestWrapTextKeepsFullWidthWhenLeftAligned(t *testing.T) {
+	col, text := wrapHAlignLayout(t, HAlignLeft, TextCfg{
+		Text:      "wrap me",
+		TextStyle: TextStyle{Size: 16},
+		Mode:      TextModeWrap,
+	})
+
+	if abs32(text.Width-col.Width) > 1 {
+		t.Errorf("text width = %.1f, want ~%.1f (full width)",
+			text.Width, col.Width)
+	}
+	if abs32(text.X) > 1 {
+		t.Errorf("text X = %.1f, want ~0", text.X)
+	}
+}
+
+// An explicit Sizing from the caller is an instruction, not a default:
+// a caller who asked for FillFit keeps the full-width box. #577
+func TestWrapTextExplicitFillKeepsFullWidth(t *testing.T) {
+	col, text := wrapHAlignLayout(t, HAlignCenter, TextCfg{
+		Text:      "wrap me",
+		TextStyle: TextStyle{Size: 16},
+		Mode:      TextModeWrap,
+		Sizing:    FillFit,
+	})
+
+	if abs32(text.Width-col.Width) > 1 {
+		t.Errorf("text width = %.1f, want ~%.1f (explicit FillFit)",
+			text.Width, col.Width)
+	}
+}
+
+// TextStyle.Align already centers the lines inside the full-width box.
+// Shrinking there would move the box away from the offsets glyph
+// computed against the wrap width, so that case opts out. #577
+func TestWrapTextWithTextAlignKeepsFullWidth(t *testing.T) {
+	col, text := wrapHAlignLayout(t, HAlignCenter, TextCfg{
+		Text:      "wrap me",
+		TextStyle: TextStyle{Size: 16, Align: TextAlignCenter},
+		Mode:      TextModeWrap,
+	})
+
+	if abs32(text.Width-col.Width) > 1 {
+		t.Errorf("text width = %.1f, want ~%.1f (TextStyle.Align set)",
+			text.Width, col.Width)
+	}
+}
+
+// Text long enough to fill every line has no slack to give back, so the
+// box stays full width and nothing moves. #577
+func TestWrapTextLongTextStaysFullWidth(t *testing.T) {
+	long := "wrapping text that is long enough to fill every single " +
+		"line of the box it is given and then some more words"
+	col, text := wrapHAlignLayout(t, HAlignCenter, TextCfg{
+		Text:      long,
+		TextStyle: TextStyle{Size: 16},
+		Mode:      TextModeWrap,
+	})
+
+	if text.Width > col.Width+1 {
+		t.Errorf("text width = %.1f, want <= %.1f",
+			text.Width, col.Width)
+	}
+	if text.Height <= 20 {
+		t.Errorf("text height = %.1f, want > 20 (wrapped)",
+			text.Height)
+	}
+}
+
+// HAlign on a row is the main axis: it places the children as a group,
+// so narrowing one of them would open a gap rather than move the text.
+// A row parent therefore leaves the wrapped box alone. #577
+func TestWrapTextInRowKeepsFullWidth(t *testing.T) {
+	w := &Window{}
+	w.textMeasurer = &stubTextMeasurer{charWidth: 10, fontHeight: 20}
+	w.windowWidth = 400
+	w.windowHeight = 300
+
+	row := generateViewLayout(Row(ContainerCfg{
+		Sizing:     FixedFixed,
+		Width:      400,
+		Height:     300,
+		HAlign:     HAlignCenter,
+		Padding:    PaddingNone,
+		SizeBorder: NoBorder,
+		Content: []View{Text(TextCfg{
+			Text:      "wrap me",
+			TextStyle: TextStyle{Size: 16},
+			Mode:      TextModeWrap,
+		})},
+	}), w)
+	row.Shape.MinWidth, row.Shape.MaxWidth = 400, 400
+	row.Shape.MinHeight, row.Shape.MaxHeight = 300, 300
+	layoutParents(&row, nil)
+	layoutPipeline(&row, w)
+
+	text := row.Children[0].Shape
+	if abs32(text.Width-row.Shape.Width) > 1 {
+		t.Errorf("text width = %.1f, want ~%.1f (row parent)",
+			text.Width, row.Shape.Width)
+	}
+}
+
+// A float is placed by its anchor, not by the alignment of the
+// container it was declared in, so it keeps its box. #577
+func TestShrinkWrapToInkSkipsFloat(t *testing.T) {
+	tc := &shapeTextConfig{
+		Text:              "wrap me",
+		TextMode:          TextModeWrap,
+		wrapSizingDefault: true,
+	}
+	shape := &Shape{Width: 400, Sizing: FillFit, TC: tc, Float: true}
+	l := glyph.Layout{Width: 70, Height: 20}
+
+	if shrinkWrapToInk(shape, tc, TextStyle{}, l, HAlignCenter) {
+		t.Fatal("shrinkWrapToInk shrank a float box")
+	}
+	if shape.Width != 400 {
+		t.Errorf("width = %.1f, want 400", shape.Width)
+	}
+
+	// Same shape, not floating: the shrink applies.
+	shape.Float = false
+	if !shrinkWrapToInk(shape, tc, TextStyle{}, l, HAlignCenter) {
+		t.Fatal("shrinkWrapToInk skipped a non-float box")
+	}
+	if shape.Width != 70 {
+		t.Errorf("width = %.1f, want 70", shape.Width)
+	}
+}
+
+// Input's text shape is a scroll viewport the caret moves within, not
+// a measurement of the text, so it never shrinks even when every other
+// gate would allow it. #577
+func TestShrinkWrapToInkSkipsOverflowScrollX(t *testing.T) {
+	tc := &shapeTextConfig{
+		Text:              "wrap me",
+		TextMode:          TextModeWrap,
+		wrapSizingDefault: true,
+		overflowScrollX:   true,
+	}
+	shape := &Shape{Width: 400, Sizing: FillFit, TC: tc}
+	l := glyph.Layout{Width: 70, Height: 20}
+
+	if shrinkWrapToInk(shape, tc, TextStyle{}, l, HAlignCenter) {
+		t.Fatal("shrinkWrapToInk shrank an overflowScrollX box")
+	}
+	if shape.Width != 400 {
+		t.Errorf("width = %.1f, want 400", shape.Width)
+	}
+}
+
+// TextModeWrapKeepSpaces takes the same shrink path as TextModeWrap:
+// a short kept-spaces text in a centered column ends up centered. #577
+func TestWrapTextWrapKeepSpacesCentersInCenteredColumn(t *testing.T) {
+	col, text := wrapHAlignLayout(t, HAlignCenter, TextCfg{
+		Text:      "wrap me",
+		TextStyle: TextStyle{Size: 16},
+		Mode:      TextModeWrapKeepSpaces,
+	})
+
+	if text.Width >= col.Width {
+		t.Errorf("text width = %.1f, want < column width %.1f "+
+			"(box did not shrink to its longest line)",
+			text.Width, col.Width)
+	}
+	wantX := (col.Width - text.Width) / 2
+	if abs32(text.X-wantX) > 1 {
+		t.Errorf("text X = %.1f, want ~%.1f", text.X, wantX)
+	}
+}
+
+// A shrink under a scrolling parent refreshes that parent's contentW
+// cache, which the fill pass took before the glyph layout existed.
+// Without the refresh the scroll clamp and scrollbar thumb read the
+// stale full width. #577
+func TestWrapTextShrinkRefreshesScrollableContentW(t *testing.T) {
+	w := &Window{}
+	w.textMeasurer = &stubTextMeasurer{charWidth: 10, fontHeight: 20}
+	w.windowWidth = 400
+	w.windowHeight = 300
+
+	col := generateViewLayout(Column(ContainerCfg{
+		ID:         "wrap-scroll",
+		Sizing:     FixedFixed,
+		Width:      400,
+		Height:     300,
+		HAlign:     HAlignCenter,
+		Padding:    PaddingNone,
+		SizeBorder: NoBorder,
+		Scrollable: true,
+		Content: []View{Text(TextCfg{
+			Text:      "wrap me",
+			TextStyle: TextStyle{Size: 16},
+			Mode:      TextModeWrap,
+		})},
+	}), w)
+	col.Shape.MinWidth, col.Shape.MaxWidth = 400, 400
+	col.Shape.MinHeight, col.Shape.MaxHeight = 300, 300
+	layoutParents(&col, nil)
+	layoutPipeline(&col, w)
+
+	// The scrollbars append after the content, so the text is first.
+	text := col.Children[0].Shape
+	if text.Width >= col.Shape.Width {
+		t.Fatalf("text width = %.1f, want < column width %.1f "+
+			"(box did not shrink to its longest line)",
+			text.Width, col.Shape.Width)
+	}
+	if abs32(col.Shape.contentW-text.Width) > 1 {
+		t.Errorf("contentW = %.1f, want ~%.1f (stale cache)",
+			col.Shape.contentW, text.Width)
 	}
 }

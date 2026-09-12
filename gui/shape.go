@@ -427,6 +427,10 @@ type shapeTextConfig struct {
 	// container can reach it. Only Input's text shape sets it, which
 	// keeps the content-width change off every other wrapped text.
 	overflowScrollX bool
+	// wrapSizingDefault marks a wrap box whose Fill width came from the
+	// Text factory rather than the caller, so layoutPlainText may shrink
+	// it back to its longest line under an aligning parent (#577).
+	wrapSizingDefault bool
 }
 
 // hasRtfLayout returns true if the shape has an RTF layout.
@@ -441,6 +445,10 @@ type textMode uint8
 const (
 	TextModeSingleLine textMode = iota
 	TextModeMultiline
+	// TextModeWrap wraps at word boundaries. It defaults Sizing to
+	// FillFit, because wrapping needs a width to wrap to; the box then
+	// shrinks back to its longest line when its container aligns it.
+	// The lines inside the box are placed by TextStyle.Align.
 	TextModeWrap
 	TextModeWrapKeepSpaces
 )

@@ -10,6 +10,16 @@ and this project adheres to
 
 ### Fixed
 
+- **Wrapped text now follows its container's `HAlign` (#577)** — a `Text` with
+  `TextModeWrap` defaults to `FillFit`, because wrapping needs a width to wrap
+  to. Filling the axis left the container's alignment nothing to move, so a
+  centered column appeared to ignore its wrapped child. After the wrap pass the
+  box now shrinks back to its longest line when its column aligns it, and the
+  existing alignment code places it. Naming `Sizing` or `TextStyle.Align`
+  yourself opts out, and a left-aligned parent is unchanged. Text long enough to
+  fill every line has no slack to return: use `TextStyle.Align` to place the
+  lines inside the box. See `docs/specs/wrap-text-halign.md`.
+
 - **Native menu key equivalents for punctuation shortcuts (#576)** — the macOS
   menu encoder only passed A-Z/0-9 through to AppKit, so an item with a
   punctuation chord (e.g. Cmd+/) showed no key hint. The 12 printable

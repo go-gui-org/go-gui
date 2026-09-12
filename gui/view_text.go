@@ -22,6 +22,10 @@ type TextCfg struct {
 
 	// Mode controls text wrapping and overflow behavior. See
 	// TextMode constants.
+	//
+	// A wrap mode also defaults Sizing to FillFit, because wrapping
+	// needs a width to wrap to. Sizing places the box; the alignment
+	// of the lines inside it is TextStyle.Align.
 	Mode textMode
 
 	Invisible  bool
@@ -33,6 +37,12 @@ type TextCfg struct {
 	// PlaceholderActive enables placeholder styling (dimmed).
 	// Set by input widgets; not typically set directly.
 	placeholderActive bool
+
+	// wrapSizingDefault records that Text, not the caller, chose the
+	// Fill width for a wrap mode. Only such a box shrinks back to its
+	// longest line under an aligning parent (#577): an explicit
+	// Sizing from the caller is an instruction, not a default.
+	wrapSizingDefault bool
 
 	// Hero marks this text element for hero transition
 	// animations between views.
@@ -116,6 +126,7 @@ func (tv *textView) GenerateLayout(w *Window) Layout {
 		TextTabSize:       c.TabSize,
 		textReadOnly:      c.readOnly,
 		overflowScrollX:   c.scrollOverflowX,
+		wrapSizingDefault: c.wrapSizingDefault,
 	}
 
 	layout := Layout{
@@ -203,7 +214,12 @@ func Text(cfg TextCfg) View {
 	if !sizing.IsSet() {
 		if cfg.Mode == TextModeWrap ||
 			cfg.Mode == TextModeWrapKeepSpaces {
+			// Wrapping needs a width to wrap to, so the box fills the
+			// axis. layoutPlainText pulls it back to the longest line
+			// afterwards when an aligning parent has somewhere to put
+			// it — see wrapSizingDefault (#577).
 			sizing = FillFit
+			cfg.wrapSizingDefault = true
 		} else {
 			sizing = FitFit
 		}
