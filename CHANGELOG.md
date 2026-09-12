@@ -41,6 +41,16 @@ and this project adheres to
   far as the container's `ScrollMode` allows. A discrete mouse wheel keeps Shift
   for horizontal. `(*Window).TestScroll` with a non-zero `dx` now drives
   horizontal scroll through real dispatch.
+- **A Canvas in a scroll container scrolls sideways with no workarounds (#584)**
+  — Two layout gaps stopped it. A Fit `Canvas` resolved to 0×0 because it never
+  measured its children; it now encloses them, counting each child's `X`/`Y`
+  plus its size, and a Scrollable Canvas's scroll range counts the same. A Fixed
+  or Fill Canvas keeps the size it was given. Separately, a Scrollable Fill
+  container took its content's minimum width (and a Row its minimum height), so
+  it grew as big as its content and had nothing to scroll; only a column's
+  height was reset before. Every axis the container can scroll now drops that
+  minimum, so `Clip: true` and a hand-sized `FixedFixed` Canvas are no longer
+  needed. An axis excluded by `ScrollMode` keeps its content floor.
 - **Command registry is race-safe and stops swallowing keys** — `Register`,
   `Unregister`, lookup, palette, and dispatch share a mutex and run user
   callbacks off-lock from a snapshot, so registration during dispatch cannot

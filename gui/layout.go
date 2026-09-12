@@ -160,12 +160,21 @@ func computeContentWidth(layout *Layout) float32 {
 			width += childExtentW(c.Shape)
 		}
 	} else {
+		// A column takes its widest child. An axisNone container (Canvas)
+		// places each child at its own X, so the extent is X + width
+		// (issue #584). The fill pass caches this before layoutPositions,
+		// while X is still parent-relative.
+		placed := layout.Shape.Axis == axisNone
 		for i := range layout.Children {
 			c := &layout.Children[i]
 			if skipLayoutChild(c.Shape) {
 				continue
 			}
-			width = f32Max(width, childExtentW(c.Shape))
+			ext := childExtentW(c.Shape)
+			if placed {
+				ext += c.Shape.X
+			}
+			width = f32Max(width, ext)
 		}
 	}
 	return width
@@ -195,12 +204,18 @@ func computeContentHeight(layout *Layout) float32 {
 			height += c.Shape.Height
 		}
 	} else {
+		// See computeContentWidth: an axisNone child counts Y + height.
+		placed := layout.Shape.Axis == axisNone
 		for i := range layout.Children {
 			c := &layout.Children[i]
 			if skipLayoutChild(c.Shape) {
 				continue
 			}
-			height = f32Max(height, c.Shape.Height)
+			ext := c.Shape.Height
+			if placed {
+				ext += c.Shape.Y
+			}
+			height = f32Max(height, ext)
 		}
 	}
 	return height

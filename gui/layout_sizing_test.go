@@ -88,8 +88,8 @@ func TestLayoutHeightsMaxHeightClamp(t *testing.T) {
 	}
 }
 
-// axisNone has no children to fit against, so the pass only honors
-// explicit min/max pins — the Fill root pin from updateLayoutLocked
+// A childless axisNone shape has nothing to enclose, so the pass only
+// honors explicit min/max pins — the Fill root pin from updateLayoutLocked
 // (issue #262). Without a pin the size must stay untouched.
 func TestLayoutWidthsAxisNoneHonorsMinMax(t *testing.T) {
 	root := &Layout{Shape: &Shape{Axis: axisNone}}
@@ -1042,5 +1042,186 @@ func TestFillDistributionIgnoresOutOfFlowFill(t *testing.T) {
 	if !f32AreClose(floatW, 0) {
 		t.Errorf("Float Fill takes no share of the row budget: got %f, want 0",
 			floatW)
+	}
+}
+
+// A Fit Canvas does not arrange its children, but it must still enclose
+// them: its size is the furthest child edge, X+Width and Y+Height, plus
+// its own padding. It used to resolve to 0x0, so a scroll parent saw no
+// content and a tree wider than the window could not scroll (issue #584).
+func TestLayoutAxisNoneFitEnclosesChildren(t *testing.T) {
+	root := &Layout{
+		Shape: &Shape{Axis: axisNone, Sizing: FitFit, Padding: PadAll(10)},
+		Children: []Layout{
+			{Shape: &Shape{shapeType: shapeRectangle, X: 1500, Y: 20, Width: 120, Height: 40, MinWidth: 120, MinHeight: 40}},
+			{Shape: &Shape{shapeType: shapeRectangle, X: 30, Y: 900, Width: 50, Height: 40, MinWidth: 50, MinHeight: 40}},
+			// Entirely left of and above the origin: adds nothing.
+			{Shape: &Shape{shapeType: shapeRectangle, X: -400, Y: -400, Width: 100, Height: 100}},
+		},
+	}
+	layoutWidths(root)
+	layoutHeights(root)
+	nearF(t, "width", root.Shape.Width, 1640, 0.01)
+	nearF(t, "height", root.Shape.Height, 960, 0.01)
+	nearF(t, "min width", root.Shape.MinWidth, 1640, 0.01)
+	nearF(t, "min height", root.Shape.MinHeight, 960, 0.01)
+	if root.Children[0].Shape.Width != 120 || root.Children[1].Shape.Height != 40 {
+		t.Error("axisNone fit pass must not re-size children")
+	}
+}
+
+// A Fixed or Fill Canvas keeps the size it was given; only Fit reads the
+// children (games in examples/ size their canvas explicitly).
+func TestLayoutAxisNoneFixedIgnoresChildren(t *testing.T) {
+	root := &Layout{
+		Shape: &Shape{
+			Axis: axisNone, Sizing: FixedFixed,
+			Width: 300, MinWidth: 300, MaxWidth: 300,
+			Height: 200, MinHeight: 200, MaxHeight: 200,
+		},
+		Children: []Layout{{Shape: &Shape{shapeType: shapeRectangle, X: 1500, Y: 900, Width: 120, Height: 40}}},
+	}
+	layoutWidths(root)
+	layoutHeights(root)
+	nearF(t, "width", root.Shape.Width, 300, 0.01)
+	nearF(t, "height", root.Shape.Height, 200, 0.01)
+}
+
+// A Scrollable Canvas's scroll range comes from contentWidth/Height, which
+// must count child X/Y too (issue #584).
+func TestComputeContentSizeAxisNoneCountsChildOffset(t *testing.T) {
+	root := &Layout{
+		Shape: &Shape{Axis: axisNone},
+		Children: []Layout{
+			{Shape: &Shape{shapeType: shapeRectangle, X: 1500, Y: 20, Width: 120, Height: 40}},
+			{Shape: &Shape{shapeType: shapeRectangle, X: 30, Y: 900, Width: 50, Height: 40}},
+		},
+	}
+	nearF(t, "content width", computeContentWidth(root), 1620, 0.01)
+	nearF(t, "content height", computeContentHeight(root), 940, 0.01)
+}
+
+// scrollFillWindow renders inner inside a FillFill column in a 900x600
+// window, the shape examples/family_tree uses.
+func scrollFillWindow(t *testing.T, inner View) *Window {
+	t.Helper()
+	w := NewTestWindow(WindowCfg{Width: 900, Height: 600})
+	w.TestRender(func(_ *Window) View {
+		return Column(ContainerCfg{
+			Sizing:  FillFill,
+			Padding: PaddingNone,
+			Content: []View{inner},
+		})
+	})
+	return w
+}
+
+func bigFixedBox(width, height float32) View {
+	return Column(ContainerCfg{
+		Sizing: FixedFixed, Width: width, Height: height,
+		Padding: PaddingNone, SizeBorder: NoBorder,
+	})
+}
+
+// A Scrollable Fill container is a viewport: on every axis it scrolls, its
+// content's minimum must not become its own, or it grows as big as the
+// content and has nothing to scroll. Only the column height had this reset;
+// column width and both Row axes did not (issue #584).
+func TestScrollFillViewportIgnoresContentMin(t *testing.T) {
+	tests := []struct {
+		name   string
+		view   View
+		dx, dy float32
+	}{
+		{
+			name: "column width",
+			view: Column(ContainerCfg{
+				ID: "s", Scrollable: true, Sizing: FillFill, Padding: PaddingNone,
+				Content: []View{bigFixedBox(1840, 50)},
+			}),
+			dx: -100,
+		},
+		{
+			name: "row width",
+			view: Row(ContainerCfg{
+				ID: "s", Scrollable: true, Sizing: FillFill, Padding: PaddingNone,
+				Content: []View{bigFixedBox(1840, 50)},
+			}),
+			dx: -100,
+		},
+		{
+			name: "row height",
+			view: Row(ContainerCfg{
+				ID: "s", Scrollable: true, Sizing: FillFill, Padding: PaddingNone,
+				Content: []View{bigFixedBox(50, 2000)},
+			}),
+			dy: -100,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			w := scrollFillWindow(t, tc.view)
+			ly, ok := w.layout.FindByID("s")
+			if !ok {
+				t.Fatal("scroll container not found")
+			}
+			if ly.Shape.Width > 900.01 || ly.Shape.Height > 600.01 {
+				t.Fatalf("viewport %vx%v, want inside the 900x600 window",
+					ly.Shape.Width, ly.Shape.Height)
+			}
+			if err := w.TestScroll("s", tc.dx, tc.dy); err != nil {
+				t.Fatalf("TestScroll: %v", err)
+			}
+		})
+	}
+}
+
+// A vertical-only scroll column cannot reveal hidden width, so it keeps its
+// content's width floor.
+func TestScrollFillVerticalOnlyKeepsWidthFloor(t *testing.T) {
+	w := scrollFillWindow(t, Column(ContainerCfg{
+		ID: "s", Scrollable: true, ScrollMode: ScrollVerticalOnly,
+		Sizing: FillFill, Padding: PaddingNone,
+		Content: []View{bigFixedBox(1840, 50)},
+	}))
+	ly, ok := w.layout.FindByID("s")
+	if !ok {
+		t.Fatal("scroll container not found")
+	}
+	if ly.Shape.MinWidth < 1840 {
+		t.Errorf("min width %v, want >= 1840 (content floor kept)", ly.Shape.MinWidth)
+	}
+}
+
+// The family_tree shape with no workarounds: a Fit Canvas holding a name
+// past the window edge, inside a Scrollable FillFill column without Clip.
+// The name must be reachable by a sideways scroll (issue #584).
+func TestFitCanvasInScrollColumnScrollsSideways(t *testing.T) {
+	w := scrollFillWindow(t, Column(ContainerCfg{
+		ID: "tree", Scrollable: true, Sizing: FillFill, Padding: PaddingNone,
+		Content: []View{
+			Canvas(ContainerCfg{
+				Padding: PaddingNone, SizeBorder: NoBorder,
+				Content: []View{
+					Column(ContainerCfg{
+						X: 1500, Y: 500, Width: 120, Height: 40,
+						Sizing: FixedFixed, Padding: PaddingNone, SizeBorder: NoBorder,
+					}),
+				},
+			}),
+		},
+	}))
+	ly, ok := w.layout.FindByID("tree")
+	if !ok {
+		t.Fatal("scroll column not found")
+	}
+	if ly.Shape.Width > 900.01 {
+		t.Fatalf("viewport width %v, want inside the 900px window", ly.Shape.Width)
+	}
+	if err := w.TestScroll("tree", -300, 0); err != nil {
+		t.Fatalf("TestScroll: %v", err)
+	}
+	if x, _, _ := w.TestScrollOffset("tree"); x >= 0 {
+		t.Errorf("x offset = %v, want < 0", x)
 	}
 }
