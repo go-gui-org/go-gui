@@ -7,6 +7,10 @@ import "time"
 // FocusID returns the current focus ID. The value is an effective ID,
 // so it is already in the form [Window.SetFocus] and [Layout.FindByID]
 // take.
+//
+// Main-thread only: no lock is taken, so a call from any other
+// goroutine races with [Window.SetFocus]. Route worker-goroutine
+// reads through [Window.QueueCommand].
 func (w *Window) FocusID() string {
 	return w.viewState.focusID
 }
@@ -16,7 +20,8 @@ func (w *Window) FocusID() string {
 // that already holds focus leaves selections alone. Acquires w.mu
 // (focusID); the caret-blink animation is managed from the render
 // pass, not here (see syncBlinkCursor). Use ClearFocus to remove
-// focus.
+// focus. From any goroutine other than the main thread, use
+// [Window.QueueCommand] instead of calling this directly.
 //
 // effectiveID is the widget's effective ID: a leaf under an ID-bearing
 // ancestor is addressed by its full path ("detail:nav"), not by the
@@ -115,6 +120,10 @@ func resetBlinkCursorVisible(w *Window) {
 // effectiveID is the widget's effective ID: a leaf under an ID-bearing
 // ancestor is addressed by its full path ("detail:nav"), not by the
 // leaf its Cfg was written with. Read it back with [Window.ResolveID].
+//
+// Main-thread only, like [Window.FocusID]: no lock is taken, so a
+// call from any other goroutine races with [Window.SetFocus]. Route
+// worker-goroutine reads through [Window.QueueCommand].
 func (w *Window) IsFocus(effectiveID string) bool {
 	return w.viewState.focusID != "" && w.viewState.focusID == effectiveID
 }

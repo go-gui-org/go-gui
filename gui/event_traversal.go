@@ -11,16 +11,19 @@ func isFocusedTarget(layout *Layout, w *Window) bool {
 	if layout.Shape == nil {
 		return false
 	}
-	if layout.Shape.ID == reservedDialogID {
+	if layout.Shape.idKey() == reservedDialogID {
 		return true
 	}
 	if !layout.Shape.canTakeFocus() {
 		return false
 	}
 	// The focus store holds effective IDs, so compare on idKey, not on
-	// the leaf the widget was written with. reservedDialogID above stays
-	// a leaf comparison: a dialog is its own float root, where leaf and
-	// effID are equal.
+	// the leaf the widget was written with. The reserved-dialog arm
+	// above matches on idKey for the same reason: a dialog is its own
+	// float root, where leaf and effID are equal, while a scoped
+	// widget whose leaf merely spells the reserved ID addresses
+	// "scope:___dialog_reserved_do_not_use___" and must not inherit
+	// the dialog's dispatch.
 	return w.IsFocus(layout.Shape.idKey())
 }
 

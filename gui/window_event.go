@@ -133,14 +133,21 @@ func (w *Window) handleKeyDownEvent(layout *Layout, e *Event) {
 	if !e.IsHandled {
 		keydownHandler(layout, e, w)
 	}
-	if !e.IsHandled && e.KeyCode == KeyTab &&
-		e.Modifiers == ModShift {
-		if shape, ok := layout.previousFocusable(w); ok {
-			w.SetFocus(shape.idKey())
-		}
-	} else if !e.IsHandled && e.KeyCode == KeyTab {
-		if shape, ok := layout.nextFocusable(w); ok {
-			w.SetFocus(shape.idKey())
+	if !e.IsHandled && e.KeyCode == KeyTab {
+		// Match on the keyboard bits only, like scroll dispatch:
+		// two backends OR held mouse buttons into Modifiers, and a
+		// Ctrl/Alt/Super chord is the focused widget's (or the
+		// OS's), not a traversal. Shift+Ctrl+Tab therefore goes
+		// nowhere rather than falling through to the next stop.
+		switch e.Modifiers & modKeyboard {
+		case ModShift:
+			if shape, ok := layout.previousFocusable(w); ok {
+				w.SetFocus(shape.idKey())
+			}
+		case ModNone:
+			if shape, ok := layout.nextFocusable(w); ok {
+				w.SetFocus(shape.idKey())
+			}
 		}
 	}
 	// Non-global commands fire as fallback.

@@ -8,6 +8,25 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Fixed
+
+- **Modified Tab chords no longer move focus** — `Ctrl+Tab`, `Alt+Tab`,
+  `Super+Tab`, and `Shift` combined with any of those fell through to
+  focus traversal (`Ctrl+Tab` advanced to the next stop, `Shift+Ctrl+Tab`
+  went forward instead of back), stealing chords the focused widget or
+  the OS owns. Traversal now matches on the keyboard modifier bits only:
+  plain `Tab` advances, plain `Shift+Tab` goes back, and any other
+  combination is left for the focused widget.
+- **A scoped widget can no longer inherit the dialog's focused dispatch**
+  — the reserved dialog ID matched on the leaf, so any widget whose leaf
+  spelled it became a keyboard-focus target. The match is now on the
+  effective ID, which only the dialog itself (its own float root)
+  satisfies.
+- **Focus eligibility keys on the effective ID** — `canTakeFocus` tested
+  the leaf while the focus store holds the stamped identity. The two
+  agree for every generated layout; hand-built layouts no longer
+  disagree.
+
 ## [v0.75.0] - 2026-09-12
 
 ### Added

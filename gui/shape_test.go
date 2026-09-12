@@ -82,3 +82,19 @@ func TestShapeHasEvents(t *testing.T) {
 		t.Error("should be true with events")
 	}
 }
+
+func TestCanTakeFocusEffIDOnly(t *testing.T) {
+	// The focus store holds effective IDs, so the gate must too:
+	// a focusable shape stamped with an effID is addressable even
+	// when its leaf is empty (hand-built layouts in tests).
+	s := &Shape{Focusable: true, effID: "scope:field"}
+	if !s.canTakeFocus() {
+		t.Error("focusable shape with effID should take focus")
+	}
+	if s := (&Shape{Focusable: true}); s.canTakeFocus() {
+		t.Error("focusable shape with no ID at all should not take focus")
+	}
+	if s := (&Shape{Focusable: true, effID: "scope:field", Disabled: true}); s.canTakeFocus() {
+		t.Error("disabled shape should not take focus")
+	}
+}
