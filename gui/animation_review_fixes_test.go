@@ -68,7 +68,12 @@ func TestKeyframeNaNEasingDropsFrame(t *testing.T) {
 		func(float32, *Window) {},
 	)
 	kf.Duration = time.Hour // mid-flight, not done
-	kf.SetStart(time.Now())
+	// Start in the past: at progress exactly 0 interpolation
+	// returns the first waypoint without invoking the easing
+	// hook, and a coarse clock can report a just-set start as
+	// elapsed 0. A 1ms head start keeps the NaN sample on-path
+	// on every platform.
+	kf.SetStart(time.Now().Add(-time.Millisecond))
 
 	deferred := make([]queuedCommand, 0, 4)
 	ac := newAnimationCommands(&deferred)
