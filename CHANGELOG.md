@@ -34,6 +34,13 @@ and this project adheres to
 
 ### Fixed
 
+- **A sideways trackpad swipe scrolls a container horizontally (#585)** — A
+  precise scroll with no modifier used to move only the vertical axis and drop
+  `ScrollX`, so a wide container ignored a sideways swipe on macOS and moved
+  only with Shift or the scrollbar. Each axis the swipe names now scrolls, as
+  far as the container's `ScrollMode` allows. A discrete mouse wheel keeps Shift
+  for horizontal. `(*Window).TestScroll` with a non-zero `dx` now drives
+  horizontal scroll through real dispatch.
 - **Command registry is race-safe and stops swallowing keys** — `Register`,
   `Unregister`, lookup, palette, and dispatch share a mutex and run user
   callbacks off-lock from a snapshot, so registration during dispatch cannot

@@ -495,7 +495,20 @@ func mouseScrollFallbackHandlerDepth(layout *Layout, e *Event, w *Window, depth 
 				}
 			case ModNone:
 				if e.ScrollPrecise {
-					e.IsHandled = scrollVertical(layout, e.ScrollY, w)
+					// A trackpad reports a sideways or diagonal swipe as
+					// ScrollX with no modifier (issue #585), so move every
+					// axis the delta names. Each helper refuses an axis its
+					// ScrollMode excludes and returns false at a boundary,
+					// so a vertical-only list ignores the X part. Both run
+					// even when the first moves: neither short-circuits.
+					var movedX, movedY bool
+					if e.ScrollX != 0 {
+						movedX = scrollHorizontal(layout, e.ScrollX, w)
+					}
+					if e.ScrollY != 0 {
+						movedY = scrollVertical(layout, e.ScrollY, w)
+					}
+					e.IsHandled = movedX || movedY
 				} else {
 					e.IsHandled = scrollSmoothBy(w, layout, scrollAxisY, e.ScrollY)
 				}
