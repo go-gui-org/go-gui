@@ -119,9 +119,15 @@ func ColorToHSLA(c Color) HSLA {
 // shows: hsla(210, 70%, 55%, 0.85).
 func (v HSLA) String() string {
 	n := v.Normalized()
+	// Rounding can carry H to 360 (e.g. 359.6°); wrap it back to 0
+	// so the readout never shows an out-of-range hue.
+	hue := int64(n.H + 0.5)
+	if hue >= 360 {
+		hue -= 360
+	}
 	b := make([]byte, 0, 32)
 	b = append(b, "hsla("...)
-	b = strconv.AppendInt(b, int64(n.H+0.5), 10)
+	b = strconv.AppendInt(b, hue, 10)
 	b = append(b, ", "...)
 	b = strconv.AppendInt(b, int64(n.S*100+0.5), 10)
 	b = append(b, "%, "...)

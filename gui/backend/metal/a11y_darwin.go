@@ -17,18 +17,38 @@ import (
 	"github.com/go-gui-org/go-gui/gui"
 )
 
-// a11yActionCallback stores the Go callback invoked from ObjC
-// when VoiceOver triggers an action.
-var a11yActionCallback func(action, index int)
+// a11yCallbacks routes VoiceOver actions to the owning window: one
+// live tree per window, so one callback per window. Guarded by a11yMu
+// alongside the marshaling buffers below.
+var a11yCallbacks = make(map[uintptr]func(action, index int))
 
-func setA11yCallback(cb func(action, index int)) {
-	a11yActionCallback = cb
+func a11yToken(w C.GoGuiNSWindow) uintptr {
+	return uintptr(unsafe.Pointer(w))
+}
+
+func setA11yCallback(token uintptr, cb func(action, index int)) {
+	a11yMu.Lock()
+	defer a11yMu.Unlock()
+	if cb == nil {
+		delete(a11yCallbacks, token)
+		return
+	}
+	a11yCallbacks[token] = cb
+}
+
+func clearA11yCallback(token uintptr) {
+	a11yMu.Lock()
+	defer a11yMu.Unlock()
+	delete(a11yCallbacks, token)
 }
 
 //export goA11yAction
-func goA11yAction(action, index C.int) {
-	if a11yActionCallback != nil {
-		a11yActionCallback(int(action), int(index))
+func goA11yAction(action, index C.int, token C.uintptr_t) {
+	a11yMu.Lock()
+	cb := a11yCallbacks[uintptr(token)]
+	a11yMu.Unlock()
+	if cb != nil {
+		cb(int(action), int(index))
 	}
 }
 
@@ -43,8 +63,20 @@ var (
 // unbounded C allocations from buggy or malicious callers.
 const maxA11yNodes = 50000
 
-func a11ySyncBridge(nodes []gui.A11yNode, count, focusedIdx int, windowH float32) {
+func a11ySyncBridge(w C.GoGuiNSWindow, nodes []gui.A11yNode, count, focusedIdx int, windowH float32) {
+	// Clamp first: a count past the slice end reads out of bounds,
+	// and a clamped-to-zero count must take the clearing path
+	// below rather than indexing an empty buffer.
+	if count > len(nodes) {
+		count = len(nodes)
+	}
 	if count <= 0 {
+		// Push the emptied tree so the previous content clears on
+		// the ObjC side rather than lingering. Nil nodes are safe:
+		// the callee clears without dereferencing.
+		a11yMu.Lock()
+		defer a11yMu.Unlock()
+		C.a11ySync(w, nil, C.int(0), C.int(focusedIdx), C.float(windowH))
 		return
 	}
 	if count > maxA11yNodes {
@@ -81,6 +113,7 @@ func a11ySyncBridge(nodes []gui.A11yNode, count, focusedIdx int, windowH float32
 	}
 
 	C.a11ySync(
+		w,
 		&cNodeBuf[0],
 		C.int(count),
 		C.int(focusedIdx),
@@ -104,10 +137,6 @@ func cStringOrNil(s string, collector *[]*C.char) *C.char {
 	cs := C.CString(s)
 	*collector = append(*collector, cs)
 	return cs
-}
-
-func a11yDestroyBridge() {
-	C.a11yDestroy()
 }
 
 func a11yAnnounceBridge(text string) {

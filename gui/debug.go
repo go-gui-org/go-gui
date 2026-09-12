@@ -260,10 +260,16 @@ func envTruthy(name string) bool {
 //   - a scrollable shape with no ID (scroll offset shared with every
 //     other ID-less scrollable in the window)
 //   - a shape with an OnMouseLeave and no ID (the callback never fires)
+//   - a text animation with no ID (nothing to key its progress on)
 //   - a scrollable listbox that resolved to height 0 (virtualization
-//     off, every row builds each frame)
+//     off, every row builds each frame), a variable-height list past
+//     the per-item storage cap (uniform row height fallback), or a
+//     virtual list that widens frame after frame (measurement ratchet)
 //   - a fill gradient with more stops than the GPU shader uniform limit
 //     (silently resampled down to the limit on GPU backends)
+//   - input text truncated to the rune budget, or text the shaper
+//     refused so the frame fell back to approximate metrics
+//     (degraded caret, selection and delete precision)
 //   - a container that sets both Wrap and Overflow (wrap wins, overflow
 //     is ignored)
 //   - a state key that is a bare leaf while an ancestor join rewrote
@@ -272,6 +278,8 @@ func envTruthy(name string) bool {
 //   - a frame that finished with a focus ID no focusable shape claims
 //   - a shape whose stamp disagrees with the scope it was arranged
 //     under, or an ID-bearing shape with no stamp at all
+//   - an ID lookup that found nothing while the frame stamped the same
+//     leaf under a scope (a leaf spelled where an effective ID fits)
 //   - a window-level feature the platform could not deliver
 //
 // It also reports, from dispatch rather than from the frame audit, a
@@ -283,8 +291,8 @@ func envTruthy(name string) bool {
 // [DebugCategories] enables these classes independently; Debug is the
 // same API with both extremes (all on, all off).
 //
-// Findings go to stderr, once per finding per window. Turning a
-// category off and on again clears that memory, so a re-enabled gate
+// Findings go to stderr, once per finding per window. Turning the
+// gate off and on again clears that memory, so a re-enabled gate
 // reports the state of the frame in front of it.
 //
 // The gate is also set at startup by GOGUI_DEBUG=1.
@@ -306,9 +314,11 @@ func Debug(on bool) {
 // the unconsumed-event noise.
 //
 // A zero mask is everything off; [DebugAll] is every category [Debug]
-// turns on, which excludes [DebugUnscopedIDs]. Turning a category on
-// after it was off clears that category's warn-once memory, so a
-// re-enabled category reports the frame in front of it.
+// turns on, which excludes [DebugUnscopedIDs]. Turning the gate on
+// after it was off moves a generation that discards warn-once memory,
+// so a re-enabled gate reports the frame in front of it. Enabling one
+// more category while others stay on needs no clearing: a finding is
+// never remembered while its category is off.
 // exportaudit:keep — dev-diagnostic API for app authors
 func DebugCategories(mask DebugCategory) {
 	for {
@@ -340,6 +350,12 @@ type debugWarnKey struct {
 	subject string
 	check   debugCheck
 }
+
+// maxDebugWarned bounds one window's warn-once memory. Distinct
+// subjects are bounded by the tree in practice, but a gate left on in
+// a long-running app must not grow without limit; past the cap a new
+// finding is suppressed, which is the quieter failure.
+const maxDebugWarned = 4096
 
 // debugState is a window's warn-once memory. Zero value is ready.
 type debugState struct {
@@ -420,7 +436,7 @@ func (w *Window) debugCheckFocusTarget(ids *debugIDs) {
 	if _, claimed := ids.claimed[id]; claimed {
 		hint = "a shape of that name is in this frame but is not focusable"
 	} else if near := focusableByLeaf(ids, lastIDSegment(id)); len(near) > 0 {
-		hint = "the frame stamped " + strings.Join(near, ", ") +
+		hint = "the frame stamped " + quoteJoin(near) +
 			" for that leaf"
 	}
 	w.debugWarn(debugCheckUnknownFocus, id,
@@ -565,12 +581,15 @@ func (w *Window) debugCheckShape(s *Shape, path []int, ids *debugIDs) {
 	// keyed by ID. Render the path only when there is something to
 	// report.
 	focusBad := s.Focusable && !s.FocusSkip && !s.Disabled
+	// A disabled subtree never receives events or scrolls, so a
+	// disabled shape is quiet on every ID-less check, not just focus.
+	scrollBad := s.Scrollable && !s.Disabled
 	// OnMouseLeave is tracked through a map keyed by ID
 	// (layoutMouseLeave, layout_pipeline.go), and that guard has no
 	// Focusable precondition — so this fires on shapes the focus check
 	// deliberately passes over, including FocusDisabled controls.
 	leaveBad := !s.Disabled && s.events != nil && s.events.OnMouseLeave != nil
-	if !focusBad && !s.Scrollable && !leaveBad {
+	if !focusBad && !scrollBad && !leaveBad {
 		return
 	}
 	p := debugPath(path)
@@ -579,7 +598,7 @@ func (w *Window) debugCheckShape(s *Shape, path []int, ids *debugIDs) {
 			"focusable shape at %s has no ID; focus traversal is keyed by "+
 				"ID, so it renders and clicks but never joins the tab order", p)
 	}
-	if s.Scrollable {
+	if scrollBad {
 		w.debugWarn(debugCheckScrollNoID, p,
 			"scrollable shape at %s has no ID; scroll offsets are keyed by "+
 				"ID, so it shares one offset with every other ID-less "+
@@ -683,6 +702,9 @@ func (w *Window) debugWarn(check debugCheck, subject, format string, args ...any
 	if _, seen := w.debug.warned[key]; seen {
 		return
 	}
+	if len(w.debug.warned) >= maxDebugWarned {
+		return
+	}
 	if w.debug.warned == nil {
 		w.debug.warned = make(map[debugWarnKey]struct{})
 	}
@@ -706,14 +728,15 @@ func (w *Window) DebugGradientResampled(x, y float32, kept, total int) {
 	// NaN never equals itself, so a NaN map key could never match and
 	// the warn-once memory would grow a key every frame. Fold NaN in
 	// the discriminator only; the message keeps the true position.
-	if x != x {
-		x = 0
+	foldX, foldY := x, y
+	if foldX != foldX {
+		foldX = 0
 	}
-	if y != y {
-		y = 0
+	if foldY != foldY {
+		foldY = 0
 	}
 	w.debugWarn(debugCheckGradientResampled,
-		fmt.Sprintf("gradient %g,%g", x, y),
+		fmt.Sprintf("gradient %g,%g", foldX, foldY),
 		"gradient at (%g, %g) has %d stops; resampled to %d "+
 			"(GPU shader uniform limit)", x, y, total, kept)
 }

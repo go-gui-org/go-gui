@@ -270,8 +270,8 @@ func TestOpenDebugWindowQueuesCfg(t *testing.T) {
 	app := NewApp()
 	s := &testState{counter: 1}
 	w := &Window{state: s}
-	w.app = app
-	w.platformID = 1
+	w.app.Store(app)
+	w.platformID.Store(1)
 	w.Config.Title = "MyApp"
 	w.enableHistory(0)
 	w.history.push(s.Snapshot(), time.Now(), "init")

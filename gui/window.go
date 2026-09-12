@@ -91,8 +91,10 @@ type Window struct {
 	// in-flight async goroutines (HTTP fetches, notifications, etc.).
 	ctx context.Context
 
-	// Multi-window: parent App and platform window ID.
-	app *App
+	// Multi-window: parent App and platform window ID. Atomic:
+	// App.Register/Unregister publish from the main thread while
+	// App() and PlatformID() may read from any goroutine.
+	app atomic.Pointer[App]
 
 	// View generator — produces the root View each frame.
 	viewGenerator func(*Window) View
@@ -126,8 +128,11 @@ type Window struct {
 	commands []queuedCommand
 
 	// Command registry — registered commands for shortcut
-	// dispatch, menu/button integration.
+	// dispatch, menu/button integration. Guarded by cmdMu;
+	// dispatch snapshots under RLock so user callbacks
+	// (CanExecute/Execute) run without the lock held.
 	cmdRegistry []Command
+	cmdMu       sync.RWMutex
 
 	// Scratch queue used to avoid reallocating command storage each frame.
 	commandScratch []queuedCommand
@@ -230,7 +235,9 @@ type Window struct {
 	mu         sync.Mutex // guards layout/renderer state
 	commandsMu sync.Mutex // guards command queue
 
-	platformID uint32
+	// platformID is the platform-native window ID (0 when
+	// unregistered). Atomic for the same reason as app above.
+	platformID atomic.Uint32
 	closeReq   atomic.Bool
 
 	// BackingScale is the device pixel ratio set by the backend each frame
@@ -533,10 +540,22 @@ func (w *Window) MouseCursorState() MouseCursor {
 }
 
 // App returns the parent App, or nil for single-window mode.
-func (w *Window) App() *App { return w.app }
+// Safe to call from any goroutine.
+func (w *Window) App() *App {
+	if w == nil {
+		return nil
+	}
+	return w.app.Load()
+}
 
 // PlatformID returns the platform-native window ID (0 if not yet registered).
-func (w *Window) PlatformID() uint32 { return w.platformID }
+// Safe to call from any goroutine.
+func (w *Window) PlatformID() uint32 {
+	if w == nil {
+		return 0
+	}
+	return w.platformID.Load()
+}
 
 // Close requests the window be closed on the next frame.
 // Safe to call from any goroutine.

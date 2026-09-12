@@ -40,8 +40,17 @@ func newAnimationCommands(deferred *[]queuedCommand) AnimationCommands {
 
 // AppendOnDone queues fn to run after the current frame's Update
 // pass. Nil fn is a no-op so callers can pass a pointer to an
-// optional callback field unconditionally.
-func (ac *AnimationCommands) appendOnDone(fn func(*Window)) {
+// optional callback field unconditionally. Nil-safe on a nil
+// receiver or uninitialized value, so an Animation used without
+// the loop wrapper cannot panic.
+//
+// Exported so third-party Animation implementations can enqueue
+// OnDone callbacks from another package without reaching for
+// the private queuedCommand type.
+//
+// exportaudit:keep — called by third-party Animation impls
+// outside gui/; the in-repo scan sees only internal callers.
+func (ac *AnimationCommands) AppendOnDone(fn func(*Window)) {
 	if fn == nil || ac == nil || ac.inner == nil {
 		return
 	}
@@ -50,15 +59,33 @@ func (ac *AnimationCommands) appendOnDone(fn func(*Window)) {
 	})
 }
 
+// appendOnDone keeps the previous unexported spelling working;
+// it delegates to AppendOnDone.
+func (ac *AnimationCommands) appendOnDone(fn func(*Window)) {
+	ac.AppendOnDone(fn)
+}
+
 // AppendOnValue queues fn with the supplied value. Typical use: a
 // per-frame interpolation callback from a tween / spring animation.
-func (ac *AnimationCommands) appendOnValue(fn func(float32, *Window), v float32) {
+// Nil-safe and a nil fn is a no-op, like AppendOnDone.
+//
+// Exported for third-party Animation implementations.
+//
+// exportaudit:keep — called by third-party Animation impls
+// outside gui/; the in-repo scan sees only internal callers.
+func (ac *AnimationCommands) AppendOnValue(fn func(float32, *Window), v float32) {
 	if fn == nil || ac == nil || ac.inner == nil {
 		return
 	}
 	*ac.inner = append(*ac.inner, queuedCommand{
 		kind: queuedCommandValueFn, valueFn: fn, value: v,
 	})
+}
+
+// appendOnValue keeps the previous unexported spelling working;
+// it delegates to AppendOnValue.
+func (ac *AnimationCommands) appendOnValue(fn func(float32, *Window), v float32) {
+	ac.AppendOnValue(fn, v)
 }
 
 // appendAnimate is Animate's self-dispatch helper — enqueues the

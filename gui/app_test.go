@@ -115,14 +115,15 @@ func TestAppOpenWindowWakes(t *testing.T) {
 	}
 
 	// Buffer full: the request is dropped, so no wake.
-	for range 16 {
+	for range pendingCap {
 		app.OpenWindow(WindowCfg{Title: "ok"})
 	}
 	app.OpenWindow(WindowCfg{Title: "dropped"})
-	// 15 of the 16 fit (one slot is still taken); the dropped 17th
-	// must not wake.
-	if wakes != 16 {
-		t.Fatalf("wakes = %d, want 16 (no wake on dropped request)", wakes)
+	// pendingCap-1 of the pendingCap fit (one slot is still
+	// taken); the dropped request must not wake.
+	if wakes != pendingCap {
+		t.Fatalf("wakes = %d, want %d (no wake on dropped request)",
+			wakes, pendingCap)
 	}
 }
 
@@ -213,11 +214,11 @@ func TestAppRegisterDuplicate(t *testing.T) {
 
 func TestAppOpenWindowBufferFull(t *testing.T) {
 	app := NewApp()
-	// Fill the buffer (cap 16).
-	for range 16 {
+	// Fill the buffer (cap pendingCap).
+	for range pendingCap {
 		app.OpenWindow(WindowCfg{Title: "ok"})
 	}
-	// 17th should be dropped without panic.
+	// Next one should be dropped without panic.
 	app.OpenWindow(WindowCfg{Title: "dropped"})
 
 	count := 0
@@ -230,8 +231,8 @@ func TestAppOpenWindowBufferFull(t *testing.T) {
 		}
 	}
 done:
-	if count != 16 {
-		t.Fatalf("drained %d pending, want 16", count)
+	if count != pendingCap {
+		t.Fatalf("drained %d pending, want %d", count, pendingCap)
 	}
 }
 
@@ -254,4 +255,98 @@ func TestAppBroadcastDuringUnregister(t *testing.T) {
 	if *State[int](w2) != 0 {
 		t.Fatal("broadcast should not reach unregistered w2")
 	}
+}
+
+func TestAppMainFailover(t *testing.T) {
+	app := NewApp()
+	w1 := NewWindow(WindowCfg{})
+	w2 := NewWindow(WindowCfg{})
+	app.Register(1, w1)
+	app.Register(2, w2)
+
+	// Closing the main window reports exit (ExitOnMainClose)
+	// but hands mainID to the oldest survivor.
+	if !app.Unregister(1) {
+		t.Fatal("closing main should signal exit")
+	}
+	if got := app.mainWindow(); got != w2 {
+		t.Fatalf("mainWindow = %v, want w2", got)
+	}
+	if w1.App() != nil {
+		t.Fatal("unregistered w1 should detach")
+	}
+	if w1.PlatformID() != 0 {
+		t.Fatalf("w1.PlatformID() = %d, want 0", w1.PlatformID())
+	}
+
+	// Last window out clears the main ID.
+	app.Unregister(2)
+	if got := app.mainWindow(); got != nil {
+		t.Fatalf("mainWindow = %v, want nil", got)
+	}
+}
+
+func TestAppMainFailoverTrayMode(t *testing.T) {
+	app := NewApp()
+	app.ExitMode = ExitOnTrayRemoved
+	w1 := NewWindow(WindowCfg{})
+	w2 := NewWindow(WindowCfg{})
+	app.Register(1, w1)
+	app.Register(2, w2)
+	app.trays[7] = &SystemTrayHandle{id: 7}
+
+	// Tray keeps the app alive past a main-window close, and
+	// the survivor answers as main.
+	if app.Unregister(1) {
+		t.Fatal("tray mode must not exit while windows remain")
+	}
+	if got := app.mainWindow(); got != w2 {
+		t.Fatalf("mainWindow = %v, want w2", got)
+	}
+}
+
+func TestAppRegisterNil(t *testing.T) {
+	app := NewApp()
+	// Must not panic.
+	app.Register(1, nil)
+	var nilApp *App
+	nilApp.Register(1, NewWindow(WindowCfg{}))
+	if app.Window(1) != nil {
+		t.Fatal("nil window must not register")
+	}
+	nilApp.Broadcast(func(*Window) { t.Error("nil app broadcast ran") })
+	nilApp.OpenWindow(WindowCfg{})
+	nilApp.SetWakeMainFn(func() {})
+	if nilApp.Window(1) != nil || nilApp.Windows() != nil {
+		t.Fatal("nil app must answer nil")
+	}
+	if nilApp.PendingOpen() != nil {
+		t.Fatal("nil app must answer nil channel")
+	}
+
+	// Zero-value App (no NewApp) must accept a registration.
+	var zero App
+	w := NewWindow(WindowCfg{})
+	zero.Register(1, w)
+	if got := zero.Window(1); got != w {
+		t.Fatal("zero-value App should register after lazy init")
+	}
+	if w.App() != &zero || w.PlatformID() != 1 {
+		t.Fatal("zero-value App should link the window")
+	}
+}
+
+func TestAppWakeMainFnConcurrent(t *testing.T) {
+	// OpenWindow and SetWakeMainFn run on different goroutines
+	// in production; -race must stay silent.
+	app := NewApp()
+	var wg sync.WaitGroup
+	for i := range 8 {
+		wg.Go(func() {
+			app.SetWakeMainFn(func() {})
+			app.OpenWindow(WindowCfg{Title: "race"})
+			_ = i
+		})
+	}
+	wg.Wait()
 }

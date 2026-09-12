@@ -15,6 +15,9 @@ package gui
 // discriminator, so each distinct cause is reported once.
 // exportaudit:keep — dev-diagnostic API called from gui/backend
 func (w *Window) DebugWindowTransparency(reason string) {
+	if w == nil {
+		return
+	}
 	w.debugWarn(debugCheckWindowTransparency, reason,
 		"window: Transparent requested but %s", reason)
 }
@@ -26,6 +29,9 @@ func (w *Window) DebugWindowTransparency(reason string) {
 // cause is reported once.
 // exportaudit:keep — dev-diagnostic API called from gui/backend
 func (w *Window) DebugWindowOpacity(reason string) {
+	if w == nil {
+		return
+	}
 	w.debugWarn(debugCheckWindowOpacity, reason,
 		"window: opacity requested but %s", reason)
 }

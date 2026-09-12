@@ -211,15 +211,22 @@ func (w *Window) TestUnconsumedEvents() []string {
 		return nil
 	}
 	var found []string
-	prevOn := DebugEnabled()
+	// Restore the exact mask, not just on/off: a caller may have a
+	// narrower gate installed that this sweep must not widen for good.
+	// Mirrors TestFindings; see gui/debug.go.
+	prevMask := DebugCategory(debugMask.Load())
 	// A fresh warn-once map: a sweep should report the window in front
 	// of it, not skip what an earlier sweep or a stray frame reported.
 	prevWarned := w.debug.warned
 	w.debug.warned = nil
 	w.debug.collect = &found
-	Debug(true)
+	DebugCategories(DebugAll)
+	// The generation only moves on an off -> on transition, so widening
+	// an already-on gate would keep stale warn-once memory. The nil map
+	// above covers that; this keeps the two in step.
+	w.debug.gen = debugGen.Load()
 	defer func() {
-		Debug(prevOn)
+		DebugCategories(prevMask)
 		w.debug.collect = nil
 		w.debug.warned = prevWarned
 	}()

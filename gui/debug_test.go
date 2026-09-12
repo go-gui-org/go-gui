@@ -2,6 +2,7 @@ package gui
 
 import (
 	"math"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -265,13 +266,18 @@ func TestCheckCategoryMapping(t *testing.T) {
 		{debugCheckMouseLeaveNoID, DebugMissingIDs},
 		{debugCheckUnconsumed, DebugUnconsumed},
 		{debugCheckListBoxNoHeight, DebugListBoxNoHeight},
+		{debugCheckListHeightsCapped, DebugListBoxNoHeight},
+		{debugCheckListWidthRatchet, DebugListBoxNoHeight},
+		{debugCheckTextAnimNoID, DebugMissingIDs},
 		{debugCheckUnscopedID, DebugUnscopedIDs},
 		{debugCheckGradientResampled, DebugGradientResampled},
 		{debugCheckWrapOverflow, DebugWrapOverflow},
 		{debugCheckDeferredLoop, DebugCallbacks},
+		{debugCheckLinkNotOpened, DebugCallbacks},
 		{debugCheckWindowTransparency, DebugWindowDegraded},
 		{debugCheckWindowOpacity, DebugWindowDegraded},
 		{debugCheckUnresolvedKey, DebugUnresolvedKeys},
+		{debugCheckEffIDPhase, DebugUnresolvedKeys},
 		{debugCheckStampDrift, DebugStampDrift},
 		{debugCheckUnknownFocus, DebugUnknownFocus},
 		{debugCheckGlyphLayoutFallback, DebugGlyphLayoutFallback},
@@ -916,5 +922,202 @@ func TestEffIDAnswersAreFrameScoped(t *testing.T) {
 	if len(w.debug.effIDAnswers) != 0 {
 		t.Fatalf("the record must be cleared after the audit, got %v",
 			w.debug.effIDAnswers)
+	}
+}
+
+// An unmapped check is a programmer error and must fail loudly rather
+// than drop the finding.
+func TestCheckCategoryPanicsOnUnknown(t *testing.T) {
+	defer func() {
+		if recover() == nil {
+			t.Errorf("want a panic for an unmapped check")
+		}
+	}()
+	_ = checkCategory(debugCheck(255))
+}
+
+// The sweep installs its mask only for its own duration. A narrower
+// gate a caller had installed must survive it unwidened.
+func TestTestUnconsumedEventsRestoresMask(t *testing.T) {
+	captureDebugMask(t, DebugDuplicates)
+	w := NewTestWindow(WindowCfg{})
+	w.SetView(func(_ *Window) View {
+		return Column(ContainerCfg{Sizing: FillFill})
+	})
+
+	w.TestUnconsumedEvents()
+
+	if got := DebugCategory(debugMask.Load()); got != DebugDuplicates {
+		t.Fatalf("want the caller's mask restored, got %v", got)
+	}
+
+	// An off gate must come back off, not all-on.
+	DebugCategories(0)
+	w.TestUnconsumedEvents()
+
+	if got := DebugCategory(debugMask.Load()); got != 0 {
+		t.Fatalf("want the off gate restored, got %v", got)
+	}
+}
+
+// A disabled subtree never scrolls, so a disabled ID-less scrollable
+// is quiet like its focusable and leave-tracking siblings. The enabled
+// control pins the test: it must still report.
+func TestDebugAuditDisabledScrollableIsQuiet(t *testing.T) {
+	buf := captureDebug(t)
+	w := &Window{}
+
+	disabled := debugTree(&Shape{Scrollable: true, Disabled: true})
+	w.debugAudit(&disabled)
+	if got := buf.String(); got != "" {
+		t.Fatalf("disabled scrollable must stay silent, got %q", got)
+	}
+
+	buf.Reset()
+	enabled := debugTree(&Shape{Scrollable: true})
+	w.debugAudit(&enabled)
+	if got := buf.String(); !strings.Contains(got, "scrollable shape") {
+		t.Fatalf("enabled scrollable must still report, got %q", got)
+	}
+}
+
+// A leaf stamped under many scopes names only the first few in the
+// focus hint, like the lookup finding does.
+func TestDebugUnknownFocusHintCapsCandidates(t *testing.T) {
+	buf := captureDebugMask(t, DebugUnknownFocus)
+	w := &Window{}
+	w.viewState.focusID = "nav"
+	ids := &debugIDs{
+		claimed:   map[string]string{},
+		focusable: map[string]struct{}{},
+	}
+	for i := range 7 {
+		ids.focusable["p"+strconv.Itoa(i)+":nav"] = struct{}{}
+	}
+
+	w.debugCheckFocusTarget(ids)
+
+	got := buf.String()
+	if !strings.Contains(got, "(and 2 more)") {
+		t.Fatalf("want the hint capped with a remainder count, got %q", got)
+	}
+	if strings.Contains(got, "p5:nav") {
+		t.Fatalf("want candidates past the cap left out, got %q", got)
+	}
+}
+
+// The NaN fold is discriminator-only: the message names the position
+// the backend passed, so a NaN rect is recognizable in the output.
+func TestDebugGradientResampledNaNKeepsPosition(t *testing.T) {
+	buf := captureDebugMask(t, DebugGradientResampled)
+	w := &Window{}
+	nan := float32(math.NaN())
+	inf := float32(math.Inf(1))
+
+	w.DebugGradientResampled(nan, nan, 5, 7)
+
+	if got := buf.String(); !strings.Contains(got, "gradient at (NaN, NaN)") {
+		t.Fatalf("want the message to keep the true position, got %q", got)
+	}
+
+	// +Inf formats stably, so it dedupes like any other position.
+	w.DebugGradientResampled(inf, 1, 5, 7)
+	w.DebugGradientResampled(inf, 1, 5, 7)
+	if n := strings.Count(buf.String(), "resampled"); n != 2 {
+		t.Fatalf("Inf coords must dedupe to one finding, got %d", n)
+	}
+}
+
+// The package-level lookup memory is bounded: past the cap a new pair
+// is suppressed rather than grown without limit.
+func TestLookupWarnSeenBoundsMemory(t *testing.T) {
+	lookupWarnMu.Lock()
+	savedWarned := lookupWarned
+	savedGen := lookupWarnGen
+	full := make(map[debugLookupKey]struct{}, maxLookupWarned)
+	for i := range maxLookupWarned {
+		full[debugLookupKey{api: "TestAPI", id: "id-" + strconv.Itoa(i)}] =
+			struct{}{}
+	}
+	lookupWarned = full
+	lookupWarnGen = debugGen.Load()
+	lookupWarnMu.Unlock()
+	t.Cleanup(func() {
+		lookupWarnMu.Lock()
+		lookupWarned = savedWarned
+		lookupWarnGen = savedGen
+		lookupWarnMu.Unlock()
+	})
+
+	if !lookupWarnSeen("TestAPI", "one-more", true) {
+		t.Fatalf("a pair past the cap must report as seen")
+	}
+	lookupWarnMu.Lock()
+	n := len(lookupWarned)
+	lookupWarnMu.Unlock()
+	if n != maxLookupWarned {
+		t.Fatalf("memory must stay bounded at %d, got %d", maxLookupWarned, n)
+	}
+}
+
+// The window-level diagnostics tolerate a nil window like the other
+// debug entry points, since backends call them where the platform
+// answer is known and must never crash the app to report it.
+func TestDebugWindowNilGuardsQuiet(t *testing.T) {
+	var w *Window
+	w.DebugWindowTransparency("no ARGB visual")
+	w.DebugWindowOpacity("platform refused")
+}
+
+// Several bad resolves in one frame report in sorted leaf order, so
+// the finding is stable across runs.
+func TestEffIDAnswersReportInSortedOrder(t *testing.T) {
+	buf := captureDebugMask(t, DebugUnresolvedKeys)
+	w := &Window{}
+	w.debug.effIDAnswers = map[string]string{
+		"zebra": "zebra",
+		"mango": "mango",
+		"apple": "apple",
+	}
+	ids := &debugIDs{scoped: map[string]string{
+		"zebra": "panel:zebra",
+		"mango": "panel:mango",
+		"apple": "panel:apple",
+	}}
+
+	w.debugCheckEffIDAnswers(ids)
+
+	got := buf.String()
+	appleIdx := strings.Index(got, `EffID("apple")`)
+	mangoIdx := strings.Index(got, `EffID("mango")`)
+	zebraIdx := strings.Index(got, `EffID("zebra")`)
+	if appleIdx < 0 || mangoIdx < 0 || zebraIdx < 0 {
+		t.Fatalf("want a finding per leaf, got %q", got)
+	}
+	if appleIdx >= mangoIdx || mangoIdx >= zebraIdx {
+		t.Fatalf("want findings in sorted leaf order, got %q", got)
+	}
+}
+
+// One window's warn-once memory is bounded: past the cap a new
+// finding is suppressed rather than grown without limit.
+func TestDebugWarnBoundsMemory(t *testing.T) {
+	buf := captureDebugMask(t, DebugDuplicates)
+	w := &Window{}
+	warned := make(map[debugWarnKey]struct{}, maxDebugWarned)
+	for i := range maxDebugWarned {
+		warned[debugWarnKey{check: debugCheckDupID,
+			subject: "id-" + strconv.Itoa(i)}] = struct{}{}
+	}
+	w.debug.warned = warned
+	w.debug.gen = debugGen.Load()
+
+	w.debugWarn(debugCheckDupID, "one-more", "duplicate ID %q", "one-more")
+
+	if got := buf.String(); got != "" {
+		t.Fatalf("a finding past the cap must be suppressed, got %q", got)
+	}
+	if n := len(w.debug.warned); n != maxDebugWarned {
+		t.Fatalf("memory must stay bounded at %d, got %d", maxDebugWarned, n)
 	}
 }

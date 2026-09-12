@@ -38,7 +38,13 @@ func updateTransition(tb *transitionBase, ac *AnimationCommands) bool {
 	if easing == nil {
 		easing = EaseOutCubic
 	}
-	tb.progress = easing(progress)
+	if eased := easing(progress); f32IsFinite(eased) {
+		tb.progress = eased
+	} else {
+		// A custom easing hook returned NaN/Inf: fall back to linear
+		// progress rather than baking it into layout geometry.
+		tb.progress = progress
+	}
 	return true
 }
 
@@ -82,6 +88,13 @@ func maxAnimationRefreshKind(current, incoming AnimationRefreshKind) AnimationRe
 	}
 	return current
 }
+
+// Only Animate carries a configurable Refresh: its callback runs once per
+// interval and declares whether it repaints or rebuilds. The value
+// animations (tween, spring, keyframe) and the transitions fix
+// AnimationRefreshLayout because their per-tick OnValue is arbitrary
+// caller code — it may change tree contents, not just paint — so the
+// safe kind is a full rebuild every tick that emits.
 
 // Animation is the interface for all animation types. Update is
 // called each tick with the nominal timestep in seconds (the fixed

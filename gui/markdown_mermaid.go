@@ -12,6 +12,7 @@ import (
 	"image/png"
 	"io"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/go-gui-org/go-gui/gui/markdown"
@@ -25,7 +26,34 @@ const (
 
 // diagramHTTPClient is shared by defaultMathFetcher and
 // defaultMermaidFetcher to avoid per-request allocation.
-var diagramHTTPClient = &http.Client{Timeout: diagramFetchTimeout}
+// Access it through the helpers below. Tests swap in a stub
+// transport, and fetches run on background goroutines, so
+// direct reads and writes race.
+var (
+	diagramHTTPClient   = &http.Client{Timeout: diagramFetchTimeout}
+	diagramHTTPClientMu sync.RWMutex
+)
+
+// getDiagramHTTPClient returns the shared diagram client.
+func getDiagramHTTPClient() *http.Client {
+	diagramHTTPClientMu.RLock()
+	defer diagramHTTPClientMu.RUnlock()
+	return diagramHTTPClient
+}
+
+// setDiagramHTTPClient swaps the shared diagram client.
+// Production code never calls it. Tests call it to install
+// a stub transport, and they must restore the previous
+// client when the test ends. A nil client keeps the current
+// one, so a bad swap cannot break later fetches.
+func setDiagramHTTPClient(c *http.Client) {
+	if c == nil {
+		return
+	}
+	diagramHTTPClientMu.Lock()
+	defer diagramHTTPClientMu.Unlock()
+	diagramHTTPClient = c
+}
 
 // DiagramState represents the loading state of a diagram.
 type diagramState uint8
@@ -260,7 +288,7 @@ func defaultMermaidFetcher(ctx context.Context, source string) ([]byte, error) {
 		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	resp, err := diagramHTTPClient.Do(req)
+	resp, err := getDiagramHTTPClient().Do(req)
 	if err != nil {
 		return nil, err
 	}

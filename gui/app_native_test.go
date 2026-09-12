@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"errors"
 	"strings"
 	"testing"
 )
@@ -16,6 +17,7 @@ type mockAppPlatform struct {
 	trayCBs    map[int]func(string)
 	nextTrayID int
 	failCreate bool
+	zeroID     bool
 }
 
 func (m *mockAppPlatform) SetNativeMenubar(cfg NativeMenubarCfg, cb func(string)) {
@@ -30,7 +32,10 @@ func (m *mockAppPlatform) ClearNativeMenubar() {
 
 func (m *mockAppPlatform) CreateSystemTray(cfg SystemTrayCfg, cb func(string)) (int, error) {
 	if m.failCreate {
-		return 0, &testError{msg: "platform error"}
+		return 0, errors.New("platform error")
+	}
+	if m.zeroID {
+		return 0, nil
 	}
 	if m.trayCfgs == nil {
 		m.trayCfgs = make(map[int]SystemTrayCfg)
@@ -53,10 +58,6 @@ func (m *mockAppPlatform) RemoveSystemTray(id int) {
 	delete(m.trayCfgs, id)
 	delete(m.trayCBs, id)
 }
-
-type testError struct{ msg string }
-
-func (e *testError) Error() string { return e.msg }
 
 // --- App.SetNativeMenubar ---
 
@@ -407,5 +408,109 @@ func TestAppExitOnTrayRemoved_NoTraysAllowsExit(t *testing.T) {
 	// No trays registered — removing last window should exit.
 	if !app.Unregister(1) {
 		t.Error("should exit: no windows and no trays")
+	}
+}
+
+func TestAppSetSystemTrayInvalidID(t *testing.T) {
+	app := NewApp()
+	mp := &mockAppPlatform{zeroID: true}
+	w := NewWindow(WindowCfg{State: new(struct{})})
+	w.SetNativePlatform(mp)
+	app.Register(1, w)
+
+	if _, err := app.SetSystemTray(SystemTrayCfg{Tooltip: "Test"}); err == nil {
+		t.Error("expected error for non-positive tray id")
+	} else if !strings.Contains(err.Error(), "invalid tray id") {
+		t.Errorf("error = %q, want 'invalid tray id'", err.Error())
+	}
+}
+
+func TestAppMenubarActionFollowsMainFailover(t *testing.T) {
+	app := NewApp()
+	mp1 := &mockAppPlatform{}
+	mp2 := &mockAppPlatform{}
+	w1 := NewWindow(WindowCfg{State: new(struct{})})
+	w2 := NewWindow(WindowCfg{State: new(struct{})})
+	w1.SetNativePlatform(mp1)
+	w2.SetNativePlatform(mp2)
+	app.Register(1, w1)
+	app.Register(2, w2)
+
+	app.SetNativeMenubar(NativeMenubarCfg{
+		AppName:  "Test",
+		OnAction: func(string) {},
+	})
+	if mp1.menubarCB == nil {
+		t.Fatal("menubar callback should install on main")
+	}
+
+	// Main closes; the survivor takes over. The installed
+	// callback must queue onto the live window, not the dead one.
+	app.Unregister(1)
+	mp1.menubarCB("quit")
+
+	queued := func(w *Window) int {
+		w.commandsMu.Lock()
+		defer w.commandsMu.Unlock()
+		return len(w.commands)
+	}
+	if got := queued(w1); got != 0 {
+		t.Fatalf("dead window queued %d, want 0", got)
+	}
+	if got := queued(w2); got != 1 {
+		t.Fatalf("live window queued %d, want 1", got)
+	}
+}
+
+func TestAppNoopTrayIDsUnique(t *testing.T) {
+	app := NewApp()
+	w := NewWindow(WindowCfg{State: new(struct{})})
+	w.SetNativePlatform(&noopNativePlatform{})
+	app.Register(1, w)
+
+	h1, err := app.SetSystemTray(SystemTrayCfg{Tooltip: "First"})
+	if err != nil {
+		t.Fatalf("first tray: %v", err)
+	}
+	h2, err := app.SetSystemTray(SystemTrayCfg{Tooltip: "Second"})
+	if err != nil {
+		t.Fatalf("second tray: %v", err)
+	}
+	if h1 == h2 {
+		t.Error("noop handles should be distinct")
+	}
+}
+
+func TestAppActionFallbackWithoutMain(t *testing.T) {
+	app := NewApp()
+	mp := &mockAppPlatform{}
+	w := NewWindow(WindowCfg{State: new(struct{})})
+	w.SetNativePlatform(mp)
+	app.Register(1, w)
+
+	menuFired := 0
+	app.SetNativeMenubar(NativeMenubarCfg{
+		AppName:  "Test",
+		OnAction: func(string) { menuFired++ },
+	})
+	trayFired := 0
+	h, err := app.SetSystemTray(SystemTrayCfg{
+		Tooltip:  "Test",
+		OnAction: func(string) { trayFired++ },
+	})
+	if err != nil {
+		t.Fatalf("tray: %v", err)
+	}
+
+	// All windows gone: captured callbacks must still reach
+	// the fallback directly instead of queueing nowhere.
+	app.Unregister(1)
+	mp.menubarCB("quit")
+	mp.trayCBs[h.id]("show")
+	if menuFired != 1 {
+		t.Fatalf("menu fallback fired %d, want 1", menuFired)
+	}
+	if trayFired != 1 {
+		t.Fatalf("tray fallback fired %d, want 1", trayFired)
 	}
 }

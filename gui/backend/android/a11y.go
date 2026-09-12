@@ -10,6 +10,11 @@ import (
 
 // a11y state shared between Go (writer) and Kotlin (reader via
 // gomobile-exported functions).
+//
+// Process-global by design, not by accident: Android runs exactly one
+// window (androidWindow in backend.go), so no second tree can ever
+// collide here. Any future multi-window support must shard this state
+// per window first, as the Metal and Linux bridges already do.
 var (
 	a11yMu       sync.RWMutex
 	a11yNodes    []gui.A11yNode
@@ -29,6 +34,12 @@ func initA11y(cb func(action, index int)) {
 // syncA11y copies the node slice under write lock.
 func syncA11y(nodes []gui.A11yNode, count, focusedIdx int) {
 	a11yMu.Lock()
+	if count < 0 {
+		count = 0
+	}
+	if count > len(nodes) {
+		count = len(nodes)
+	}
 	// Grow or reuse backing slice.
 	if cap(a11yNodes) < count {
 		a11yNodes = make([]gui.A11yNode, count)

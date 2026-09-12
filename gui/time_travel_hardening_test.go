@@ -178,8 +178,8 @@ func TestJumpSyncsSliderValue(t *testing.T) {
 func TestOpenDebugWindowCloseResumes(t *testing.T) {
 	app := NewApp()
 	w := &Window{state: &testState{}}
-	w.app = app
-	w.platformID = 1
+	w.app.Store(app)
+	w.platformID.Store(1)
 	w.enableHistory(0)
 	w.Freeze()
 	if !w.isFrozen() {
@@ -207,8 +207,8 @@ func TestOpenDebugWindowCloseResumes(t *testing.T) {
 func TestOpenDebugWindowDimensions(t *testing.T) {
 	app := NewApp()
 	w := &Window{state: &testState{}}
-	w.app = app
-	w.platformID = 1
+	w.app.Store(app)
+	w.platformID.Store(1)
 	w.enableHistory(0)
 	w.openDebugWindow()
 
@@ -274,8 +274,8 @@ func TestBoundedMapCloneEmpty(t *testing.T) {
 func TestOpenDebugWindowTruncatesLongTitle(t *testing.T) {
 	app := NewApp()
 	w := &Window{state: &testState{}}
-	w.app = app
-	w.platformID = 1
+	w.app.Store(app)
+	w.platformID.Store(1)
 	w.Config.Title = strings.Repeat("x", 4096)
 	w.enableHistory(0)
 	w.openDebugWindow()

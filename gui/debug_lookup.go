@@ -133,6 +133,13 @@ func lookupWarnSeen(api, effectiveID string, mark bool) bool {
 	if lookupWarned == nil {
 		lookupWarned = make(map[debugLookupKey]struct{})
 	}
+	if len(lookupWarned) >= maxLookupWarned {
+		// Bound the memory a gate left on in a long-running app can
+		// hold: dynamic IDs would otherwise grow it without limit.
+		// The finding is suppressed rather than re-reported every
+		// frame, which is the quieter failure for a diagnostic.
+		return true
+	}
 	lookupWarned[key] = struct{}{}
 	return false
 }
@@ -143,6 +150,12 @@ func lookupWarnSeen(api, effectiveID string, mark bool) bool {
 // buries the message it is trying to deliver. The first few are enough
 // to show the shape of the scope that was missed.
 const lookupCandidateLimit = 5
+
+// maxLookupWarned bounds the warn-once memory. Dynamic IDs in a
+// long-running app would otherwise grow it without limit; the bound is
+// what keeps a gate left on from leaking. Mirrors maxEffIDAnswers in
+// debug_state_keys.go.
+const maxLookupWarned = 4096
 
 // quoteJoin renders the candidate identities as a quoted, comma
 // separated list, capped at lookupCandidateLimit with a count of what

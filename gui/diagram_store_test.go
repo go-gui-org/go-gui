@@ -3,7 +3,9 @@
 package gui
 
 import (
+	"bytes"
 	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -19,13 +21,8 @@ func TestStoreDiagramPNGWritesFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(got) != len(data) {
-		t.Errorf("file size %d, want %d", len(got), len(data))
-	}
-	for i := range data {
-		if got[i] != data[i] {
-			t.Fatalf("byte %d: got %d, want %d", i, got[i], data[i])
-		}
+	if !bytes.Equal(got, data) {
+		t.Errorf("file holds %v, want %v", got, data)
 	}
 }
 
@@ -44,7 +41,9 @@ func TestRemoveDiagramPNGDeletesFile(t *testing.T) {
 	}
 }
 
-func TestRemoveDiagramPNGNonexistent(_ *testing.T) {
-	// Should not panic on missing file.
-	removeDiagramPNG("/tmp/nonexistent_diagram_test_12345.png")
+func TestRemoveDiagramPNGNonexistent(t *testing.T) {
+	// Should not panic on missing file. Build the path from
+	// the temp dir so the test stays portable.
+	missing := filepath.Join(t.TempDir(), "missing.png")
+	removeDiagramPNG(missing)
 }

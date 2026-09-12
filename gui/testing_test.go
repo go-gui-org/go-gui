@@ -307,6 +307,54 @@ func TestTestTabTraversesInOrder(t *testing.T) {
 	}
 }
 
+// A Tab chord with any keyboard modifier beyond Shift must not
+// traverse: Ctrl+Tab, Alt+Tab and friends belong to the focused
+// widget (or the OS), not to focus order. Shift+Ctrl+Tab in
+// particular must not fall through to the next-stop branch.
+func TestTestTabIgnoresModifiedTab(t *testing.T) {
+	w := newCounterWindow(t)
+	if got, _ := w.testTab(tabForward); got != "inc" {
+		t.Fatalf("first Tab focused %q, want %q", got, "inc")
+	}
+	for _, mods := range []Modifier{
+		ModCtrl, ModAlt, ModSuper, ModShift | ModCtrl, ModCtrl | ModAlt,
+	} {
+		e := Event{Type: EventKeyDown, KeyCode: KeyTab, Modifiers: mods}
+		w.EventFn(&e)
+		w.settle()
+		if got := w.FocusID(); got != "inc" {
+			t.Errorf("Tab with modifiers %v moved focus to %q, want %q",
+				mods, got, "inc")
+		}
+	}
+	// Plain Tab still advances: the guard must ignore chords, not Tab.
+	if got, _ := w.testTab(tabForward); got != "dec" {
+		t.Fatalf("Tab after modified chords focused %q, want %q", got, "dec")
+	}
+}
+
+// Held mouse buttons ride in Event.Modifiers on two backends, so the
+// Tab guard masks them out like scroll dispatch does: Tab while
+// dragging still traverses.
+func TestTestTabWhileDraggingTraverses(t *testing.T) {
+	w := newCounterWindow(t)
+	if got, _ := w.testTab(tabForward); got != "inc" {
+		t.Fatalf("first Tab focused %q, want %q", got, "inc")
+	}
+	e := Event{Type: EventKeyDown, KeyCode: KeyTab, Modifiers: ModLMB}
+	w.EventFn(&e)
+	w.settle()
+	if got := w.FocusID(); got != "dec" {
+		t.Errorf("Tab with LMB held focused %q, want %q", got, "dec")
+	}
+	e = Event{Type: EventKeyDown, KeyCode: KeyTab, Modifiers: ModLMB | ModShift}
+	w.EventFn(&e)
+	w.settle()
+	if got := w.FocusID(); got != "inc" {
+		t.Errorf("Shift-Tab with LMB held focused %q, want %q", got, "inc")
+	}
+}
+
 // A widget with Focusable but no ID never joins tab order. This is the
 // silent no-op phase 1 made impossible for the nine input factories;
 // containers can still express it, and TestTab must show it.

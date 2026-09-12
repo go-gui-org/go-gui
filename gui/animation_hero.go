@@ -42,7 +42,7 @@ func (h *HeroTransition) Update(_ *Window, _ float32, ac *AnimationCommands) boo
 // NewHeroTransition creates a HeroTransition with defaults.
 func NewHeroTransition(cfg HeroTransitionCfg) *HeroTransition {
 	dur := cfg.Duration
-	if dur == 0 {
+	if dur <= 0 {
 		dur = 300 * time.Millisecond
 	}
 	eas := cfg.Easing
@@ -62,7 +62,7 @@ func NewHeroTransition(cfg HeroTransitionCfg) *HeroTransition {
 // Layout is a large struct and this runs on a frame's root.
 func captureHeroSnapshots(layout *Layout) map[string]posSnapshot {
 	snapshots := make(map[string]posSnapshot)
-	captureSnapshots(layout, snapshots, true)
+	captureSnapshots(layout, snapshots, true, 0)
 	return snapshots
 }
 

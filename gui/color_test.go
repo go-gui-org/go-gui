@@ -1,6 +1,9 @@
 package gui
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestColorIsSet(t *testing.T) {
 	t.Parallel()
@@ -179,9 +182,55 @@ func TestColorString(t *testing.T) {
 func TestColorToCSSString(t *testing.T) {
 	t.Parallel()
 	c := RGBA(10, 20, 30, 128)
-	want := "rgba(10,20,30,128)"
+	want := "rgba(10,20,30,0.50)"
 	if got := c.toCSSString(); got != want {
 		t.Errorf("ToCSSString() = %q, want %q", got, want)
+	}
+	if got := RGB(10, 20, 30).toCSSString(); got != "rgba(10,20,30,1.00)" {
+		t.Errorf("opaque ToCSSString() = %q", got)
+	}
+	if got := ColorTransparent.toCSSString(); got != "rgba(0,0,0,0.00)" {
+		t.Errorf("transparent ToCSSString() = %q", got)
+	}
+}
+
+func TestColorLookup(t *testing.T) {
+	t.Parallel()
+	if c, ok := ColorLookup("red"); !ok || !c.eq(Red) {
+		t.Errorf("ColorLookup(red) = %v,%v, want Red", c, ok)
+	}
+	if c, ok := ColorLookup("Magenta"); !ok || !c.eq(Magenta) {
+		t.Errorf("ColorLookup(Magenta) = %v,%v, want Magenta", c, ok)
+	}
+	if c, ok := ColorLookup("  cornflower_blue  "); !ok || !c.eq(CornflowerBlue) {
+		t.Errorf("ColorLookup(padded) = %v,%v", c, ok)
+	}
+	if c, ok := ColorLookup("#FF0000"); !ok || c.R != 255 || c.G != 0 || c.B != 0 {
+		t.Errorf("ColorLookup(#FF0000) = %v,%v", c, ok)
+	}
+	for _, s := range []string{"chartreuse", "#ZZZZZZ", "", "#", "   "} {
+		if c, ok := ColorLookup(s); ok {
+			t.Errorf("ColorLookup(%q) = %v, want ok=false", s, c)
+		}
+	}
+	if _, ok := ColorLookup(strings.Repeat("r", 64)); ok {
+		t.Error("ColorLookup(oversize) should return ok=false")
+	}
+}
+
+func TestColorFromStringNormalized(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		in   string
+		want Color
+	}{
+		{"RED", Red},
+		{" Magenta ", Magenta},
+		{"CORNFLOWER_BLUE", CornflowerBlue},
+	} {
+		if got := ColorFromString(tc.in); !got.eq(tc.want) {
+			t.Errorf("ColorFromString(%q) = %v, want %v", tc.in, got, tc.want)
+		}
 	}
 }
 
@@ -218,6 +267,25 @@ func TestOverSemiTransparent(t *testing.T) {
 	}
 }
 
+func TestOverRoundsToNearest(t *testing.T) {
+	t.Parallel()
+	// Half-opaque red over opaque blue: R≈128, G=0, B≈127, A=255.
+	// Tolerance ±1 keeps float32 error out of the assertion while
+	// catching a truncation regression (which reads 1 low).
+	r := RGBA(255, 0, 0, 128).Over(RGBA(0, 0, 255, 255))
+	for _, ch := range []struct {
+		name string
+		got  uint8
+		want uint8
+	}{
+		{"R", r.R, 128}, {"G", r.G, 0}, {"B", r.B, 127}, {"A", r.A, 255},
+	} {
+		if d := int(ch.got) - int(ch.want); d < -1 || d > 1 {
+			t.Errorf("Over %s = %d, want ~%d", ch.name, ch.got, ch.want)
+		}
+	}
+}
+
 func TestAddClampsTo255(t *testing.T) {
 	t.Parallel()
 	r := RGB(200, 200, 200).Add(RGB(200, 200, 200))
@@ -236,5 +304,49 @@ func TestWithOpacityClampsRange(t *testing.T) {
 	under := c.WithOpacity(-1.0)
 	if under.A != 0 {
 		t.Errorf("WithOpacity(-1.0) should clamp: got alpha %d", under.A)
+	}
+}
+
+func TestArithUnsetPropagation(t *testing.T) {
+	t.Parallel()
+	var unset Color
+	if got := unset.Add(unset); got.IsSet() {
+		t.Errorf("Add(unset, unset) = %v, want unset", got)
+	}
+	if got := unset.Sub(unset); got.IsSet() {
+		t.Errorf("Sub(unset, unset) = %v, want unset", got)
+	}
+	if got := unset.Over(unset); got.IsSet() {
+		t.Errorf("Over(unset, unset) = %v, want unset", got)
+	}
+	// One set input keeps the result set.
+	if got := Red.Add(unset); !got.IsSet() {
+		t.Errorf("Add(set, unset) = %v, want set", got)
+	}
+	if got := unset.Sub(Red); !got.IsSet() {
+		t.Errorf("Sub(unset, set) = %v, want set", got)
+	}
+	if got := unset.Over(Red); !got.IsSet() {
+		t.Errorf("Over(unset, set) = %v, want set", got)
+	}
+}
+
+func TestPredefinedColorsSet(t *testing.T) {
+	t.Parallel()
+	for name, c := range map[string]Color{
+		"Black": Black, "Gray": Gray, "White": White,
+		"Red": Red, "Green": Green, "Blue": Blue,
+		"Yellow": Yellow, "Magenta": Magenta, "Orange": Orange,
+		"Purple": Purple, "Indigo": Indigo, "Pink": Pink,
+		"Violet": Violet, "DarkBlue": DarkBlue, "DarkGray": DarkGray,
+		"DarkGreen": DarkGreen, "DarkRed": DarkRed,
+		"LightBlue": LightBlue, "LightGray": LightGray,
+		"LightGreen": LightGreen, "LightRed": LightRed,
+		"CornflowerBlue": CornflowerBlue, "RoyalBlue": RoyalBlue,
+		"ColorTransparent": ColorTransparent,
+	} {
+		if !c.IsSet() {
+			t.Errorf("%s should be set", name)
+		}
 	}
 }

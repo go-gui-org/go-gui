@@ -1,5 +1,7 @@
 package gui
 
+import "strconv"
+
 // The internal check identifiers and their mapping to the public
 // categories that gate them. Split from debug.go, which holds the
 // gate itself, the per-window warn-once state and the frame audit.
@@ -113,6 +115,8 @@ func checkCategory(check debugCheck) DebugCategory {
 		return DebugUnknownFocus
 	case debugCheckGlyphLayoutFallback, debugCheckTextTruncated:
 		return DebugGlyphLayoutFallback
+	default:
+		panic("gui: checkCategory has no category for debugCheck " +
+			strconv.Itoa(int(check)))
 	}
-	return 0
 }

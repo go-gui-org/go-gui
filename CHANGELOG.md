@@ -8,6 +8,127 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- **The full named color palette is public** — `Magenta`, `Indigo`, `Pink`,
+  `Violet`, `DarkBlue`, `DarkGreen`, `DarkRed`, `LightGray`, `LightGreen`,
+  `LightRed`, and `RoyalBlue` join the exported palette alongside `Red`,
+  `CornflowerBlue`, and the rest, so app code no longer re-spells them with
+  `RGBA` literals. The previous lowercase spellings remain as internal aliases.
+- **`ColorLookup` parses a color name or hex string with `ok=false` on miss** —
+  `ColorFromString` silently returns opaque black for unknown input, which hides
+  config typos. `ColorLookup` trims space, folds case (so `" Red "` matches),
+  accepts `#RRGGBB[AA]`, and reports failure, including the previously missing
+  `"magenta"` name. `ColorFromString` keeps its signature and fallback.
+- **`AnimationCommands.AppendOnDone` and `AppendOnValue` are public** — the type
+  was exported for third-party `Animation` implementations, but only the
+  unexported spellings existed, so outside packages could not enqueue callbacks.
+  The exported methods are nil-safe; the old spellings remain as delegates.
+
+### Fixed
+
+- **Command registry is race-safe and stops swallowing keys** — `Register`,
+  `Unregister`, lookup, palette, and dispatch share a mutex and run user
+  callbacks off-lock from a snapshot, so registration during dispatch cannot
+  deadlock or race. A command with nil `Execute` no longer marks the event
+  handled, nil events never match, `RegisterCommands` is atomic (all or none),
+  empty IDs are rejected, `Unregister` clears the tail slot so closures release,
+  `flushCommands` skips nil callbacks, and the native menubar honors
+  `CanExecute` and nil `Execute`. `Execute` may receive a nil `*Event` and must
+  nil-check it.
+- **App registry is race-safe and survives a main-window close** — `OpenWindow`
+  and `SetWakeMainFn` no longer race on the wake callback, and `Window.App` and
+  `Window.PlatformID` are atomic, so readers on any goroutine stay consistent.
+  `Unregister` hands the main ID to the oldest survivor instead of stranding
+  menubar and tray calls on a dead ID, and menubar and tray actions resolve the
+  live main window when they fire. Buffer-full `OpenWindow` drops log at most
+  once per second with a running total, and tray creation rejects non-positive
+  platform IDs.
+- **Repeating keyframes resync after a stall instead of draining the backlog** —
+  a minimized window or debugger break left a repeating `KeyframeAnimation` many
+  durations behind, and each tick advanced only one duration, firing the final
+  value once per tick until caught up. The repeat path now shares
+  `resyncAfterStall` with `Animate` and the caret blink. A repeating keyframe
+  with a non-positive duration also retires as a one-shot instead of returning
+  true every tick forever.
+- **Snapshot capture stops at the shared depth budget** — layout and hero
+  snapshot capture recursed without the 256-deep guard the apply walks use, so a
+  deeply nested document-built subtree could exhaust the stack. Capture now
+  takes the same budget and tolerates nil shapes.
+- **Tween, keyframe, spring, and transition outputs stay finite** — a custom
+  easing hook returning NaN/Inf, non-finite tween endpoints or keyframe values,
+  a non-finite spring target, and non-finite spring config now fall back or drop
+  the frame instead of handing NaN to layout geometry. A zero-value
+  `TweenAnimation` also eases with `EaseOutCubic`, matching `NewTweenAnimation`
+  and the transitions.
+- **View-bound heartbeats use the monotonic clock** — stamps are `time.Time`
+  rather than `UnixNano`, so a wall-clock step no longer mass-cancels visible
+  widgets' animations. Negative layout and hero durations take their defaults,
+  the stopped scroll smoother releases its entries once the final value is
+  applied, and the typewriter default duration counts runes only when
+  registering its driver.
+- **Modified Tab chords no longer move focus** — `Ctrl+Tab`, `Alt+Tab`,
+  `Super+Tab`, and `Shift` combined with any of those fell through to focus
+  traversal (`Ctrl+Tab` advanced to the next stop, `Shift+Ctrl+Tab` went forward
+  instead of back), stealing chords the focused widget or the OS owns. Traversal
+  now matches on the keyboard modifier bits only: plain `Tab` advances, plain
+  `Shift+Tab` goes back, and any other combination is left for the focused
+  widget.
+- **A scoped widget can no longer inherit the dialog's focused dispatch** — the
+  reserved dialog ID matched on the leaf, so any widget whose leaf spelled it
+  became a keyboard-focus target. The match is now on the effective ID, which
+  only the dialog itself (its own float root) satisfies.
+- **Focus eligibility keys on the effective ID** — `canTakeFocus` tested the
+  leaf while the focus store holds the stamped identity. The two agree for every
+  generated layout; hand-built layouts no longer disagree.
+- **Deep accessibility trees stop at the depth budget** — the a11y collect and
+  lookup walks were the only tree walks without the shared 256-deep guard, so a
+  deeply nested document-built subtree (Markdown, SVG) could exhaust the stack.
+  Nodes past the budget are now dropped from the pushed snapshot instead.
+- **Scoped focus is announced to assistive tech** — the a11y focused index
+  compared the leaf ID against the effective focus ID, so a widget under an
+  ID-bearing ancestor was never reported as focused. The match is now on the
+  effective ID.
+- **Assistive-tech actions queue onto the main thread** — platform action
+  callbacks (VoiceOver, Android JNI, D-Bus workers) arrived on foreign threads
+  and walked the live layout directly. They now run through `QueueCommand` at
+  the next frame start. Disabled widgets also refuse all five actions now, not
+  just Press.
+- **Live regions are keyed by identity, not label** — two regions sharing a
+  label (or none) collapsed onto one entry, announcing for the wrong region or
+  staying silent on change. ID-bearing regions pin by effective ID across any
+  tree or label movement; ID-less regions key by label and node index, going
+  silent for a frame on moves rather than announcing spuriously.
+- **An emptied accessibility tree is pushed, not skipped** — content that
+  emptied never synced, so assistive tech kept the stale tree and the live
+  baselines went stale with it. Zero-node syncs now clear the native tree on
+  every backend, and returning content reads as new rather than changed.
+- **Each window owns its accessibility bridge (macOS, Linux)** — the macOS
+  VoiceOver tree and the Linux AT-SPI2 bridge were process-global, so a second
+  window hijacked the first window's tree and actions. macOS now keeps one tree
+  per window with the owning window routed back alongside each action; Linux
+  gives each window its own bridge. The web backend was already per-window, and
+  Android runs exactly one window by construction.
+- **Combining two unset colors stays unset** — `Add`, `Sub`, and `Over` returned
+  an explicitly-set color even when both inputs were the zero value, conjuring a
+  color where none was specified. The result is now set if either input is set.
+  `Over` also rounds to the nearest channel value instead of truncating,
+  matching the HSL/HSV conversions.
+- **The saturation/lightness plane renders its cache key's hue** — `planeSrc`
+  keyed on the quantized hue but painted the raw one, so two sub-quantum hues
+  shared a key and the second showed the first's pixels. The buffer now paints
+  the quantized hue, as the wheel already did.
+- **HSV construction clamps and rejects non-finite input** — out-of-range
+  saturation/value and NaN/Inf hues fell through float math (including an
+  implementation-defined float-to-int step) into channel bytes. Inputs now map
+  to zero/clamp at the entry point, mirroring `HSLA.Normalized`.
+- **The HSLA readout never prints a 360° hue** — rounding carried 359.6° to
+  `hsla(360, ...)`. It now wraps to `hsla(0, ...)`.
+- **Color filter singletons hand out copies** — `ColorFilterIdentity`,
+  `Grayscale`, `Sepia`, and `Invert` returned the shared package singleton, and
+  `colorFilterCompose` aliased its input on a nil side, so one in-package write
+  would leak across users. Each call now returns a fresh copy.
+
 ## [v0.75.0] - 2026-09-12
 
 ### Added

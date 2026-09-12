@@ -5,7 +5,9 @@ import "time"
 // TweenAnimation interpolates a value from A to B over a fixed
 // duration with easing.
 type TweenAnimation struct {
-	start    time.Time
+	start time.Time
+	// Easing shapes progress before interpolation. Nil takes
+	// EaseOutCubic, matching NewTweenAnimation and the transitions.
 	Easing   EasingFn
 	OnValue  func(float32, *Window)
 	OnDone   func(*Window)
@@ -57,16 +59,30 @@ func updateTween(tw *TweenAnimation, ac *AnimationCommands) bool {
 	}
 	progress, done := durationProgress(tw.start, tw.Duration)
 	if done {
-		ac.appendOnValue(tw.OnValue, tw.To)
+		// A non-finite To would poison layout geometry: skip the
+		// value but still run OnDone so the caller can clean up.
+		if f32IsFinite(tw.To) {
+			ac.appendOnValue(tw.OnValue, tw.To)
+		}
 		ac.appendOnDone(tw.OnDone)
 		tw.stopped = true
 		return true
 	}
+	// Non-finite endpoints can never produce a paintable value.
+	if !f32IsFinite(tw.From) || !f32IsFinite(tw.To) {
+		return false
+	}
 	easing := tw.Easing
 	if easing == nil {
-		easing = EaseLinear
+		easing = EaseOutCubic
 	}
 	eased := easing(progress)
-	ac.appendOnValue(tw.OnValue, lerp(tw.From, tw.To, eased))
+	v := lerp(tw.From, tw.To, eased)
+	// A custom easing hook may return NaN/Inf: drop the frame rather
+	// than hand it to layout. Nothing changed, so no refresh.
+	if !f32IsFinite(v) {
+		return false
+	}
+	ac.appendOnValue(tw.OnValue, v)
 	return true
 }

@@ -153,7 +153,10 @@ func (w *Window) debugCheckEffIDAnswers(ids *debugIDs) {
 	// Cleared whether or not anything is reported, so the next frame
 	// starts from what that frame actually resolved.
 	defer clear(w.debug.effIDAnswers)
-	for leaf, answered := range w.debug.effIDAnswers {
+	// Sorted leaves, so a window with several findings reports them
+	// the same way on every run.
+	for _, leaf := range slices.Sorted(maps.Keys(w.debug.effIDAnswers)) {
+		answered := w.debug.effIDAnswers[leaf]
 		if answered != leaf {
 			// The resolve picked up a scope. Whether it picked up the
 			// right one is the duplicate-ID check's business.

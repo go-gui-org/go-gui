@@ -74,18 +74,19 @@ func (n *nativePlatform) BookmarkStopAccess(_ []byte)                  {}
 // --- Accessibility ---
 
 func (n *nativePlatform) A11yInit(cb func(action, index int)) {
-	setA11yCallback(cb)
+	setA11yCallback(a11yToken(n.window), cb)
 	C.a11yInit(n.window)
 }
 
 func (n *nativePlatform) A11ySync(nodes []gui.A11yNode, count, focusedIdx int) {
 	var logW, logH C.int
 	C.metalWindowGetSize(n.window, &logW, &logH)
-	a11ySyncBridge(nodes, count, focusedIdx, float32(logH))
+	a11ySyncBridge(n.window, nodes, count, focusedIdx, float32(logH))
 }
 
 func (n *nativePlatform) A11yDestroy() {
-	C.a11yDestroy()
+	clearA11yCallback(a11yToken(n.window))
+	C.a11yDestroy(n.window)
 }
 
 func (n *nativePlatform) A11yAnnounce(text string) {

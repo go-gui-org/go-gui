@@ -219,7 +219,9 @@ func planeSrc(v HSLA, size int) string {
 	if src, ok := memImageSrc(key); ok {
 		return src
 	}
-	return UseImage(string(key), size, size, planePixels(v.H, size))
+	// Render with the quantized hue, not the raw one: two hues in
+	// one quantum share this key, so they must share its pixels.
+	return UseImage(string(key), size, size, planePixels(float32(qh), size))
 }
 
 func planePixels(hue float32, size int) []byte {

@@ -304,16 +304,18 @@ func applyTextAnim(tv *textView, w *Window, sh *Shape) TextAnimFrame {
 	key := w.EffID(tv.cfg.ID)
 	animID := ScopeID("textanim", key)
 
-	dur := cfg.Duration
-	if dur <= 0 {
-		// RuneCountInString, not len([]rune(...)): the latter allocates
-		// a rune slice, and this runs on every frame of the animation.
-		dur = textAnimDefaultDuration(
-			cfg.Kind, utf8.RuneCountInString(tv.cfg.Text))
-	}
-
 	st := StateReadOr(w, nsTextAnim, key, textAnimState{})
 	if !w.touchViewBoundAnimation(animID) && !st.done {
+		// Resolve the duration only when registering the driver: the
+		// typewriter default counts runes (O(n)), and this frame runs
+		// on every tick of the animation.
+		dur := cfg.Duration
+		if dur <= 0 {
+			// RuneCountInString, not len([]rune(...)): the latter
+			// allocates a rune slice.
+			dur = textAnimDefaultDuration(
+				cfg.Kind, utf8.RuneCountInString(tv.cfg.Text))
+		}
 		w.animationAddViewBound(newTextAnimDriver(
 			animID, key, dur, cfg.Delay, cfg.Repeat,
 		))

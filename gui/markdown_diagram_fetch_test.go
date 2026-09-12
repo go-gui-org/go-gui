@@ -4,10 +4,9 @@ package gui
 // markdown_mermaid.go / markdown_math.go: the stale-result guard
 // (diagramCacheShouldApplyResult), the decode-and-store completion
 // path (finishDiagramFetch) driven through the injected fetcher seam,
-// and the two default HTTP fetchers (assessed as testable via a
-// swapped transport — they hit a fixed hostname but the shared
-// diagramHTTPClient can point at a stub transport, so no network is
-// touched).
+// and the two default HTTP fetchers (they hit a fixed hostname
+// but setDiagramHTTPClient can point the shared client at a stub
+// transport, so no network is touched).
 
 import (
 	"bytes"
@@ -42,15 +41,13 @@ func testPNGBytes(t *testing.T, w, h int) []byte {
 // waitForDiagramCommand polls until at least one command is queued
 // (finishDiagramFetch/queueDiagramError run on the fetcher goroutine,
 // so the queue fills asynchronously after the fetcher returns) and
-// then drains the queue with a frame.
+// then drains the queue with a frame. It reads the queue through
+// pendingCommandCount so the lock discipline stays with the queue.
 func waitForDiagramCommand(t *testing.T, w *Window) {
 	t.Helper()
 	deadline := time.Now().Add(5 * time.Second)
 	for {
-		w.commandsMu.Lock()
-		pending := len(w.commands)
-		w.commandsMu.Unlock()
-		if pending > 0 {
+		if w.pendingCommandCount() > 0 {
 			w.FrameFn()
 			return
 		}
@@ -62,8 +59,12 @@ func waitForDiagramCommand(t *testing.T, w *Window) {
 }
 
 // newDiagramWindow returns a window with an empty diagram cache.
+// It runs the production lazy init first so a break there fails
+// here too, then installs a small isolated cache to keep tests
+// fast and independent.
 func newDiagramWindow() *Window {
 	w := NewTestWindow(WindowCfg{Width: 100, Height: 100})
+	ensureDiagramCache(w)
 	w.viewState.diagramCache = newBoundedDiagramCache(10)
 	return w
 }
@@ -162,21 +163,28 @@ func TestFetchMermaidAsyncStoresReadyEntry(t *testing.T) {
 	if entry.pNGPath == "" {
 		t.Fatal("ready entry has no stored PNG path")
 	}
+	storedPath := entry.pNGPath
 	if runtime.GOOS == "js" {
 		// The WASM build stores diagrams as data URLs, not temp
 		// files (diagram_store_js.go) — there is no filesystem to
 		// stat. Pin the wasm contract instead: the entry's "path" is
 		// a base64 data URL of the fetched PNG.
-		if !strings.HasPrefix(entry.pNGPath,
+		if !strings.HasPrefix(storedPath,
 			"data:image/png;base64,") {
 			t.Errorf("entry pNGPath = %q, want a PNG data URL on "+
-				"wasm", entry.pNGPath)
+				"wasm", storedPath)
 		}
 	} else {
-		if _, err := os.Stat(entry.pNGPath); err != nil {
-			t.Errorf("stored PNG missing: %v", err)
+		// Delete the temp file when the test ends. Register
+		// before the reads below so a failure cannot leak it.
+		t.Cleanup(func() { removeDiagramPNG(storedPath) })
+		stored, err := os.ReadFile(storedPath)
+		if err != nil {
+			t.Fatalf("stored PNG missing: %v", err)
 		}
-		t.Cleanup(func() { removeDiagramPNG(entry.pNGPath) })
+		if !bytes.Equal(stored, body) {
+			t.Error("stored PNG differs from the fetched body")
+		}
 	}
 }
 
@@ -390,18 +398,32 @@ func (s stubTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 }
 
 // withStubHTTPClient swaps the shared diagramHTTPClient for one backed
-// by stub and restores it when the test ends. Safe because no other
-// test in the package uses t.Parallel while touching diagrams.
+// by stub and restores it when the test ends. The swap goes through
+// the mutex-guarded setter so it stays race-clean against fetches on
+// background goroutines. Tests in this package must not run in
+// parallel while touching diagrams, or one test would observe
+// another test's stub.
 func withStubHTTPClient(t *testing.T, status int, body []byte) *[]string {
 	t.Helper()
 	var urls []string
-	prev := diagramHTTPClient
-	diagramHTTPClient = &http.Client{
+	prev := getDiagramHTTPClient()
+	setDiagramHTTPClient(&http.Client{
 		Timeout:   diagramFetchTimeout,
 		Transport: stubTransport{status: status, body: body, urls: &urls},
-	}
-	t.Cleanup(func() { diagramHTTPClient = prev })
+	})
+	t.Cleanup(func() { setDiagramHTTPClient(prev) })
 	return &urls
+}
+
+// TestSetDiagramHTTPClientNilKeepsCurrent asserts a nil swap
+// leaves the shared client in place instead of breaking later
+// fetches with a nil-pointer call.
+func TestSetDiagramHTTPClientNilKeepsCurrent(t *testing.T) {
+	before := getDiagramHTTPClient()
+	setDiagramHTTPClient(nil)
+	if getDiagramHTTPClient() != before {
+		t.Error("nil swap replaced the shared client")
+	}
 }
 
 func TestDefaultMermaidFetcherHTTP(t *testing.T) {
@@ -465,8 +487,57 @@ func TestDefaultMathFetcherHTTP(t *testing.T) {
 		t.Errorf("request URL lacks \\color{white} for a bright "+
 			"foreground: %q", u)
 	}
-	if !strings.Contains(u, "x%5E2") && !strings.Contains(u, "x^2") {
-		t.Errorf("request URL lacks the latex payload: %q", u)
+	if !strings.Contains(u, "x%5E2") {
+		t.Errorf("request URL lacks the encoded latex "+
+			"payload (want x%%5E2): %q", u)
+	}
+}
+
+// TestDefaultMathFetcherURLEncodesReservedChars feeds a formula
+// with URL-reserved characters and asserts each one arrives
+// encoded, so the formula cannot change the request itself.
+func TestDefaultMathFetcherURLEncodesReservedChars(t *testing.T) {
+	body := testPNGBytes(t, 25, 25)
+	urls := withStubHTTPClient(t, 200, body)
+
+	_, err := defaultMathFetcher(
+		context.Background(), "a+b%c&d#e?f=g h", 150,
+		RGB(0, 0, 0))
+	if err != nil {
+		t.Fatalf("defaultMathFetcher: %v", err)
+	}
+	if len(*urls) != 1 {
+		t.Fatalf("requests = %d, want 1", len(*urls))
+	}
+	u := (*urls)[0]
+	for _, want := range []string{
+		"a%2Bb", "%25", "%26", "%23", "%3F", "%3D", "g{}h",
+	} {
+		if !strings.Contains(u, want) {
+			t.Errorf("request URL = %q, want it to hold %q",
+				u, want)
+		}
+	}
+	_, formula, found := strings.Cut(u, "?")
+	if !found {
+		t.Fatalf("request URL = %q, want a ? separator", u)
+	}
+	if strings.Contains(formula, "&") {
+		t.Errorf("request URL holds a raw &: %q", u)
+	}
+}
+
+// TestDefaultMathFetcher_SourceTooLarge asserts the size guard
+// fires before any URL is built.
+func TestDefaultMathFetcher_SourceTooLarge(t *testing.T) {
+	longSource := strings.Repeat("x", markdown.MaxLatexSourceLen+1)
+	_, err := defaultMathFetcher(
+		context.Background(), longSource, 150, RGB(0, 0, 0))
+	if err == nil {
+		t.Fatal("expected error for oversized source")
+	}
+	if !strings.Contains(err.Error(), "too large") {
+		t.Errorf("error should mention size: %v", err)
 	}
 }
 

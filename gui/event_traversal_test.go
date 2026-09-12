@@ -18,6 +18,18 @@ func TestIsFocusedTargetReservedDialog(t *testing.T) {
 	}
 }
 
+func TestIsFocusedTargetScopedReservedDialogID(t *testing.T) {
+	w := &Window{}
+	// A scoped widget whose leaf spells the reserved dialog ID
+	// addresses "scope:___dialog_reserved_do_not_use___", not the
+	// dialog. Matching on the leaf would hand it the dialog's
+	// focused dispatch.
+	l := &Layout{Shape: &Shape{ID: reservedDialogID, effID: "scope:" + reservedDialogID}}
+	if isFocusedTarget(l, w) {
+		t.Error("scoped reservedDialogID leaf should not be a focus target")
+	}
+}
+
 func TestIsFocusedTargetZeroIDFocus(t *testing.T) {
 	w := &Window{}
 	l := &Layout{Shape: &Shape{Focusable: true, ID: "f0"}}

@@ -61,8 +61,30 @@ enum {
     STATE_DISABLED  = 512,
 };
 
-// Forward declaration — used by isAccessibilityFocused.
-static int _curFocusedIdx = -1;
+// ─── Per-window state ────────────────────────────────────────
+// One live VoiceOver tree per window: a second window's init/sync
+// never disturbs the first's. Contexts are keyed by the opaque
+// window handle and dropped by a11yDestroy. Declared before the
+// element implementation, which reads the focused index off it.
+
+@class GUIAccessibilityElement;
+
+@interface A11yContext : NSObject
+
+@property (nonatomic, weak) NSWindow *nsWindow;
+@property (nonatomic, weak) NSView   *nsView;
+@property (nonatomic, strong) NSMutableArray<
+    GUIAccessibilityElement *> *pool;
+@property (nonatomic, strong) GUIAccessibilityElement *root;
+@property (nonatomic) int activeCount;
+@property (nonatomic) int curFocusedIdx;
+@property (nonatomic) int prevFocusedIdx;
+
+@end
+
+@implementation A11yContext
+
+@end
 
 // ─── GUIAccessibilityElement ─────────────────────────────────
 
@@ -75,6 +97,11 @@ static int _curFocusedIdx = -1;
 @property (nonatomic, copy) NSString *nodeValue;
 @property (nonatomic, copy) NSString *nodeDescription;
 @property (nonatomic) NSRect      nodeFrame;
+
+// Owning window's context (weak: the context map owns it) and the
+// opaque window token handed back to Go with actions.
+@property (nonatomic, weak) A11yContext *ctx;
+@property (nonatomic) uintptr_t  ownerToken;
 
 @property (nonatomic, strong) NSMutableArray<
     GUIAccessibilityElement *> *nodeChildren;
@@ -146,116 +173,141 @@ static int _curFocusedIdx = -1;
 }
 
 - (BOOL)isAccessibilityFocused {
-    return _nodeIndex == _curFocusedIdx;
+    return _ctx && _nodeIndex == _ctx.curFocusedIdx;
 }
 
 // ─── Actions ─────────────────────────────────────────────────
 
 - (BOOL)accessibilityPerformPress {
-    goA11yAction(A11Y_ACTION_PRESS, _nodeIndex);
+    goA11yAction(A11Y_ACTION_PRESS, _nodeIndex, _ownerToken);
     return YES;
 }
 
 - (BOOL)accessibilityPerformIncrement {
-    goA11yAction(A11Y_ACTION_INCREMENT, _nodeIndex);
+    goA11yAction(A11Y_ACTION_INCREMENT, _nodeIndex, _ownerToken);
     return YES;
 }
 
 - (BOOL)accessibilityPerformDecrement {
-    goA11yAction(A11Y_ACTION_DECREMENT, _nodeIndex);
+    goA11yAction(A11Y_ACTION_DECREMENT, _nodeIndex, _ownerToken);
     return YES;
 }
 
 - (BOOL)accessibilityPerformConfirm {
-    goA11yAction(A11Y_ACTION_CONFIRM, _nodeIndex);
+    goA11yAction(A11Y_ACTION_CONFIRM, _nodeIndex, _ownerToken);
     return YES;
 }
 
 - (BOOL)accessibilityPerformCancel {
-    goA11yAction(A11Y_ACTION_CANCEL, _nodeIndex);
+    goA11yAction(A11Y_ACTION_CANCEL, _nodeIndex, _ownerToken);
     return YES;
 }
 
 @end
 
-// ─── Pool + State ────────────────────────────────────────────
+// ─── Context registry ────────────────────────────────────────
 
-static NSMutableArray<GUIAccessibilityElement *> *_elementPool;
-static int _activeCount;
-static NSWindow *_nsWindow;
-static NSView   *_nsView;
-static int       _prevFocusedIdx = -1;
+static NSMutableDictionary<NSValue *, A11yContext *> *_contexts;
 
-// Root element acts as the accessibility container attached to
-// the content view.
-static GUIAccessibilityElement *_rootElement;
+static A11yContext *ctxForHandle(GoGuiNSWindow w) {
+    if (!w || !_contexts) {
+        return nil;
+    }
+    return _contexts[[NSValue valueWithPointer:w]];
+}
 
-static GUIAccessibilityElement *poolGet(int idx) {
-    while (idx >= (int)_elementPool.count) {
+static GUIAccessibilityElement *poolGet(A11yContext *ctx, int idx) {
+    while (idx >= (int)ctx.pool.count) {
         GUIAccessibilityElement *el =
             [[GUIAccessibilityElement alloc] init];
         el.nodeChildren =
             [[NSMutableArray alloc] initWithCapacity:8];
-        [_elementPool addObject:el];
+        [ctx.pool addObject:el];
     }
-    return _elementPool[idx];
+    return ctx.pool[idx];
 }
 
 // ─── Coordinate Conversion ───────────────────────────────────
 // Framework uses top-left origin; macOS uses bottom-left screen
 // coords.
 
-static NSRect convertFrame(float x, float y, float w, float h,
-                           float windowH) {
+static NSRect convertFrame(A11yContext *ctx, float x, float y,
+                           float w, float h, float windowH) {
     float flippedY = windowH - y - h;
     NSRect localRect = NSMakeRect(x, flippedY, w, h);
-    NSRect windowRect = [_nsView convertRect:localRect toView:nil];
-    return [_nsWindow convertRectToScreen:windowRect];
+    NSRect windowRect = [ctx.nsView convertRect:localRect toView:nil];
+    return [ctx.nsWindow convertRectToScreen:windowRect];
 }
 
 // ─── Public API ──────────────────────────────────────────────
 
 void a11yInit(GoGuiNSWindow w) {
     initRoleMap();
+    if (!_contexts) {
+        _contexts = [[NSMutableDictionary alloc] init];
+    }
 
     // Extract NSWindow/NSView from native window handle.
-    _nsWindow = (__bridge NSWindow *)metalWindowGetNSWindow(w);
-    if (!_nsWindow) return;
-    _nsView = [_nsWindow contentView];
-    if (!_nsView) {
+    NSWindow *nsWindow = (__bridge NSWindow *)metalWindowGetNSWindow(w);
+    if (!nsWindow) return;
+    NSView *nsView = [nsWindow contentView];
+    if (!nsView) {
         return;
     }
 
-    _elementPool =
-        [[NSMutableArray alloc] initWithCapacity:256];
-    _activeCount = 0;
-    _prevFocusedIdx = -1;
+    NSValue *key = [NSValue valueWithPointer:w];
+    A11yContext *ctx = ctxForHandle(w);
+    if (!ctx) {
+        ctx = [[A11yContext alloc] init];
+        ctx.curFocusedIdx = -1;
+        _contexts[key] = ctx;
+    }
+    ctx.nsWindow = nsWindow;
+    ctx.nsView = nsView;
+
+    ctx.pool = [[NSMutableArray alloc] initWithCapacity:256];
+    ctx.activeCount = 0;
+    ctx.prevFocusedIdx = -1;
 
     // Create root container element.
-    _rootElement = [[GUIAccessibilityElement alloc] init];
-    _rootElement.nodeLabel = @"Application";
-    _rootElement.nodeRole = A11Y_ROLE_GROUP;
-    _rootElement.nodeParent = _nsView;
-    _rootElement.nodeChildren =
+    ctx.root = [[GUIAccessibilityElement alloc] init];
+    ctx.root.nodeLabel = @"Application";
+    ctx.root.nodeRole = A11Y_ROLE_GROUP;
+    ctx.root.nodeParent = nsView;
+    ctx.root.ctx = ctx;
+    ctx.root.ownerToken = (uintptr_t)w;
+    ctx.root.nodeChildren =
         [[NSMutableArray alloc] initWithCapacity:64];
 
     // Attach root element to the content view's accessibility
     // children.
-    _nsView.accessibilityChildren = @[_rootElement];
+    nsView.accessibilityChildren = @[ctx.root];
 }
 
-void a11ySync(const A11yCNode *nodes, int count,
+void a11ySync(GoGuiNSWindow w, const A11yCNode *nodes, int count,
               int focusedIdx, float windowH) {
-    if (!_rootElement || !nodes || count <= 0) {
+    A11yContext *ctx = ctxForHandle(w);
+    if (!ctx || !nodes || count <= 0) {
+        // An emptied tree clears rather than lingers: drop all
+        // children so VoiceOver sees nothing, not the previous
+        // content. Re-sync repopulates from an empty pool state.
+        if (ctx) {
+            [ctx.root.nodeChildren removeAllObjects];
+            ctx.activeCount = 0;
+            ctx.curFocusedIdx = -1;
+            ctx.prevFocusedIdx = -1;
+        }
         return;
     }
 
     // Update or grow pool elements.
     for (int i = 0; i < count; i++) {
-        GUIAccessibilityElement *el = poolGet(i);
+        GUIAccessibilityElement *el = poolGet(ctx, i);
         const A11yCNode *n = &nodes[i];
 
         el.nodeIndex = i;
+        el.ctx = ctx;
+        el.ownerToken = (uintptr_t)w;
         el.nodeRole  = n->role;
         el.nodeState = n->state;
         el.nodeLabel = n->label
@@ -265,62 +317,65 @@ void a11ySync(const A11yCNode *nodes, int count,
         el.nodeDescription = n->description
             ? [NSString stringWithUTF8String:n->description]
             : @"";
-        el.nodeFrame = convertFrame(
+        el.nodeFrame = convertFrame(ctx,
             n->x, n->y, n->w, n->h, windowH);
         [el.nodeChildren removeAllObjects];
 
         // Parent: root if parentIdx < 0, else pool element.
-        if (n->parentIdx < 0) {
-            el.nodeParent = _rootElement;
+        // Out-of-range input attaches to the root rather than
+        // growing the pool without bound.
+        if (n->parentIdx < 0 || n->parentIdx >= count) {
+            el.nodeParent = ctx.root;
         } else {
-            el.nodeParent = poolGet(n->parentIdx);
+            el.nodeParent = poolGet(ctx, n->parentIdx);
         }
     }
-    _activeCount = count;
+    ctx.activeCount = count;
 
     // Wire children arrays.
-    [_rootElement.nodeChildren removeAllObjects];
+    [ctx.root.nodeChildren removeAllObjects];
     for (int i = 0; i < count; i++) {
         const A11yCNode *n = &nodes[i];
-        GUIAccessibilityElement *el = _elementPool[i];
+        GUIAccessibilityElement *el = ctx.pool[i];
 
         if (n->parentIdx < 0) {
-            [_rootElement.nodeChildren addObject:el];
+            [ctx.root.nodeChildren addObject:el];
         } else if (n->parentIdx < count) {
-            [_elementPool[n->parentIdx].nodeChildren
+            [ctx.pool[n->parentIdx].nodeChildren
                 addObject:el];
         }
     }
 
     // Update root frame to cover the whole window.
-    _rootElement.nodeFrame = convertFrame(
-        0, 0, (float)_nsView.bounds.size.width,
-        (float)_nsView.bounds.size.height, windowH);
+    ctx.root.nodeFrame = convertFrame(ctx,
+        0, 0, (float)ctx.nsView.bounds.size.width,
+        (float)ctx.nsView.bounds.size.height, windowH);
 
     // Update current focused index for isAccessibilityFocused.
-    _curFocusedIdx = focusedIdx;
+    ctx.curFocusedIdx = focusedIdx;
 
     // Focus notification.
-    if (focusedIdx != _prevFocusedIdx && focusedIdx >= 0 &&
+    if (focusedIdx != ctx.prevFocusedIdx && focusedIdx >= 0 &&
         focusedIdx < count) {
-        _prevFocusedIdx = focusedIdx;
+        ctx.prevFocusedIdx = focusedIdx;
         NSAccessibilityPostNotification(
-            _elementPool[focusedIdx],
+            ctx.pool[focusedIdx],
             NSAccessibilityFocusedUIElementChangedNotification);
     }
 }
 
-void a11yDestroy(void) {
-    if (_nsView) {
-        _nsView.accessibilityChildren = nil;
+void a11yDestroy(GoGuiNSWindow w) {
+    if (!_contexts) {
+        return;
     }
-    _rootElement = nil;
-    [_elementPool removeAllObjects];
-    _elementPool = nil;
-    _activeCount = 0;
-    _prevFocusedIdx = -1;
-    _nsWindow = nil;
-    _nsView = nil;
+    NSValue *key = [NSValue valueWithPointer:w];
+    A11yContext *ctx = _contexts[key];
+    if (ctx) {
+        if (ctx.nsView) {
+            ctx.nsView.accessibilityChildren = nil;
+        }
+        [_contexts removeObjectForKey:key];
+    }
 }
 
 void a11yAnnounce(const char *text) {

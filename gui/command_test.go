@@ -547,3 +547,214 @@ func TestShortcutMatchesZeroValue(t *testing.T) {
 		t.Error("zero-value shortcut should not match")
 	}
 }
+
+func TestShortcutMatchesNilEvent(t *testing.T) {
+	s := Shortcut{Key: KeyS, Modifiers: ModCtrl}
+	if s.matches(nil) {
+		t.Error("nil event must never match")
+	}
+}
+
+func TestCommandDispatchNilEvent(t *testing.T) {
+	w := NewWindow(WindowCfg{State: new(int)})
+	w.RegisterCommand(Command{
+		ID:       "n",
+		Shortcut: Shortcut{Key: KeyN, Modifiers: ModCtrl},
+		Execute:  func(_ *Event, _ *Window) {},
+	})
+	if w.commandDispatch(nil, false) {
+		t.Error("nil event must not dispatch")
+	}
+}
+
+func TestCommandDispatchNilExecuteDoesNotConsume(t *testing.T) {
+	w := NewWindow(WindowCfg{State: new(int)})
+	w.RegisterCommand(Command{
+		ID:       "noexec",
+		Shortcut: Shortcut{Key: KeyE, Modifiers: ModCtrl},
+	})
+	e := &Event{KeyCode: KeyE, Modifiers: ModCtrl}
+	if w.commandDispatch(e, false) {
+		t.Error("nil Execute must not report dispatched")
+	}
+	if e.IsHandled {
+		t.Error("nil Execute must not consume the event")
+	}
+}
+
+func TestRegisterCommandEmptyIDReturnsError(t *testing.T) {
+	w := NewWindow(WindowCfg{State: new(int)})
+	if err := w.RegisterCommand(Command{Label: "No ID"}); err == nil {
+		t.Error("expected error on empty command ID")
+	}
+	if _, ok := w.CommandByID(""); ok {
+		t.Error("empty ID must not be registered")
+	}
+}
+
+func TestRegisterCommandsAtomicOnDuplicateID(t *testing.T) {
+	w := NewWindow(WindowCfg{State: new(int)})
+	err := w.RegisterCommands(
+		Command{ID: "atomic.a", Label: "A"},
+		Command{ID: "atomic.a", Label: "Dupe"},
+	)
+	if err == nil {
+		t.Fatal("expected error on duplicate ID in batch")
+	}
+	if _, ok := w.CommandByID("atomic.a"); ok {
+		t.Error("failed batch must leave registry unchanged")
+	}
+}
+
+func TestRegisterCommandsAtomicOnDuplicateShortcut(t *testing.T) {
+	w := NewWindow(WindowCfg{State: new(int)})
+	shortcut := Shortcut{Key: KeyQ, Modifiers: ModCtrl}
+	err := w.RegisterCommands(
+		Command{ID: "atomic.q1", Shortcut: shortcut},
+		Command{ID: "atomic.q2", Shortcut: shortcut},
+	)
+	if err == nil {
+		t.Fatal("expected error on duplicate shortcut in batch")
+	}
+	if _, ok := w.CommandByID("atomic.q1"); ok {
+		t.Error("failed batch must leave registry unchanged")
+	}
+	if _, ok := w.CommandByID("atomic.q2"); ok {
+		t.Error("failed batch must leave registry unchanged")
+	}
+}
+
+func TestCommandByIDReturnsCopy(t *testing.T) {
+	w := NewWindow(WindowCfg{State: new(int)})
+	w.RegisterCommand(Command{ID: "copy", Label: "Orig"})
+	got, ok := w.CommandByID("copy")
+	if !ok {
+		t.Fatal("command not found")
+	}
+	got.Label = "Mutated"
+	again, ok := w.CommandByID("copy")
+	if !ok {
+		t.Fatal("command not found")
+	}
+	if again.Label != "Orig" {
+		t.Errorf("mutating copy leaked into registry, got %q", again.Label)
+	}
+}
+
+func TestUnregisterCommandReleasesSlot(t *testing.T) {
+	w := NewWindow(WindowCfg{State: new(int)})
+	w.RegisterCommand(Command{
+		ID:      "slot",
+		Execute: func(_ *Event, _ *Window) {},
+	})
+	w.UnregisterCommand("slot")
+	w.RegisterCommand(Command{
+		ID:    "slot",
+		Label: "Reused",
+	})
+	got, ok := w.CommandByID("slot")
+	if !ok || got.Label != "Reused" {
+		t.Error("slot should be reusable after unregister")
+	}
+}
+
+func TestFlushCommandsSkipsNilFns(t *testing.T) {
+	w := NewWindow(WindowCfg{State: new(int)})
+	w.queueCommand(queuedCommand{kind: queuedCommandWindowFn})
+	w.queueCommand(queuedCommand{kind: queuedCommandValueFn, value: 1})
+	w.queueCommand(queuedCommand{kind: queuedCommandAnimateFn})
+	// Must not panic.
+	w.flushCommands()
+}
+
+func TestCommandRegistryConcurrentDispatch(t *testing.T) {
+	w := NewWindow(WindowCfg{State: new(int)})
+	w.RegisterCommand(Command{
+		ID:       "race.base",
+		Shortcut: Shortcut{Key: KeyR, Modifiers: ModCtrl},
+		Execute:  func(_ *Event, _ *Window) {},
+	})
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		for i := range 50 {
+			id := ScopeIDN("race", "id", i)
+			_ = w.RegisterCommand(Command{ID: id})
+			_, _ = w.CommandByID(id)
+			w.UnregisterCommand(id)
+		}
+	}()
+	for range 50 {
+		e := &Event{KeyCode: KeyR, Modifiers: ModCtrl}
+		w.commandDispatch(e, false)
+		_ = w.CommandPaletteItems()
+	}
+	<-done
+}
+
+func TestRegisterCommandsAtomicAgainstExisting(t *testing.T) {
+	w := NewWindow(WindowCfg{State: new(int)})
+	w.RegisterCommand(Command{ID: "atomic.keep", Label: "Keep"})
+	err := w.RegisterCommands(
+		Command{ID: "atomic.fresh", Label: "Fresh"},
+		Command{ID: "atomic.keep", Label: "Collision"},
+	)
+	if err == nil {
+		t.Fatal("expected error on collision with registered ID")
+	}
+	if _, ok := w.CommandByID("atomic.fresh"); ok {
+		t.Error("failed batch must not add the non-colliding entry")
+	}
+	kept, ok := w.CommandByID("atomic.keep")
+	if !ok || kept.Label != "Keep" {
+		t.Error("existing entry must survive a failed batch")
+	}
+}
+
+func TestRegisterCommandsAtomicEmptyID(t *testing.T) {
+	w := NewWindow(WindowCfg{State: new(int)})
+	err := w.RegisterCommands(
+		Command{ID: "atomic.ok", Label: "OK"},
+		Command{ID: "", Label: "No ID"},
+	)
+	if err == nil {
+		t.Fatal("expected error on empty ID in batch")
+	}
+	if _, ok := w.CommandByID("atomic.ok"); ok {
+		t.Error("failed batch must leave registry unchanged")
+	}
+}
+
+func TestCommandPaletteItemsRespectsCanExecute(t *testing.T) {
+	w := NewWindow(WindowCfg{State: new(int)})
+	w.RegisterCommands(
+		Command{
+			ID:         "pal.off",
+			Label:      "Off",
+			CanExecute: func(_ *Window) bool { return false },
+		},
+		Command{
+			ID:         "pal.on",
+			Label:      "On",
+			CanExecute: func(_ *Window) bool { return true },
+		},
+		Command{ID: "pal.plain", Label: "Plain"},
+	)
+	items := w.CommandPaletteItems()
+	byID := make(map[string]CommandPaletteItem, len(items))
+	for _, item := range items {
+		byID[item.ID] = item
+	}
+	if len(items) != 3 {
+		t.Fatalf("got %d items, want 3", len(items))
+	}
+	if !byID["pal.off"].Disabled {
+		t.Error("CanExecute=false entry should be disabled")
+	}
+	if byID["pal.on"].Disabled {
+		t.Error("CanExecute=true entry should not be disabled")
+	}
+	if byID["pal.plain"].Disabled {
+		t.Error("nil CanExecute entry should not be disabled")
+	}
+}

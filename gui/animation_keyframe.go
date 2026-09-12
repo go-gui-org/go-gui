@@ -68,18 +68,39 @@ func updateKeyframe(kf *KeyframeAnimation, ac *AnimationCommands) bool {
 	progress, done := durationProgress(kf.start, kf.Duration)
 	if done {
 		if len(kf.Keyframes) > 0 {
-			ac.appendOnValue(kf.OnValue, kf.Keyframes[len(kf.Keyframes)-1].Value)
+			if v := kf.Keyframes[len(kf.Keyframes)-1].Value; f32IsFinite(v) {
+				ac.appendOnValue(kf.OnValue, v)
+			}
 		}
 		if kf.Repeat {
+			// A non-positive Duration is always done (see
+			// durationProgress): looping on it would return true
+			// every tick forever. Retire as a one-shot instead.
+			if kf.Duration <= 0 {
+				ac.appendOnDone(kf.OnDone)
+				kf.stopped = true
+				return true
+			}
+			now := time.Now()
 			kf.start = kf.start.Add(kf.Duration)
+			// Drop the backlog a stall accumulated, the same rule
+			// Animate and the caret blink follow: without it a
+			// minimized window drains one missed interval per tick.
+			kf.start = resyncAfterStall(kf.start, now, kf.Duration)
 			return true
 		}
 		ac.appendOnDone(kf.OnDone)
 		kf.stopped = true
 		return true
 	}
-	ac.appendOnValue(kf.OnValue, interpolateKeyframes(kf.Keyframes, progress))
-	return true
+	if v := interpolateKeyframes(kf.Keyframes, progress); f32IsFinite(v) {
+		ac.appendOnValue(kf.OnValue, v)
+		return true
+	}
+	// A non-finite sample comes from a Custom easing hook or a
+	// non-finite waypoint: drop the frame rather than poison layout
+	// geometry. No refresh needed — nothing changed.
+	return false
 }
 
 func interpolateKeyframes(keyframes []Keyframe, progress float32) float32 {
@@ -109,6 +130,9 @@ func interpolateKeyframes(keyframes []Keyframe, progress float32) float32 {
 		return curr.Value
 	}
 	local := (progress - prev.At) / segLen
+	// Clamped so an out-of-order At cannot drive a custom easing
+	// hook far outside [0,1]: sorted input never touches the clamp.
+	local = f32Clamp(local, 0, 1)
 	easing := curr.Easing
 	if easing == nil {
 		easing = EaseLinear

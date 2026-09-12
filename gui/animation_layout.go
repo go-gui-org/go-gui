@@ -65,7 +65,7 @@ func (l *layoutTransition) Update(_ *Window, _ float32, ac *AnimationCommands) b
 // making layout changes to capture current positions.
 func (w *Window) AnimateLayout(cfg LayoutTransitionCfg) {
 	dur := cfg.Duration
-	if dur == 0 {
+	if dur <= 0 {
 		dur = 200 * time.Millisecond
 	}
 	eas := cfg.Easing
@@ -86,15 +86,22 @@ func (w *Window) AnimateLayout(cfg LayoutTransitionCfg) {
 // captureLayoutSnapshots recursively captures all element positions.
 func captureLayoutSnapshots(layout *Layout) map[string]posSnapshot {
 	snapshots := make(map[string]posSnapshot)
-	captureSnapshots(layout, snapshots, false)
+	captureSnapshots(layout, snapshots, false, 0)
 	return snapshots
 }
 
-func captureSnapshots(layout *Layout, snapshots map[string]posSnapshot, heroOnly bool) {
+func captureSnapshots(layout *Layout, snapshots map[string]posSnapshot, heroOnly bool, depth int) {
+	// Depth-guarded like the apply walks: the tree is not always the
+	// app's own (markdown and SVG build subtrees out of documents the
+	// app did not write), so an unbounded capture recurses until the
+	// stack gives out on a deeply nested document.
+	if layout == nil || overMaxDepth(depth) {
+		return
+	}
 	// Snapshots key on the effective ID, so a widget keeps its identity
 	// across a transition only while its ID-bearing ancestors do — the
 	// same rule the stores use.
-	if layout.Shape.ID != "" && (!heroOnly || layout.Shape.Hero) {
+	if layout.Shape != nil && layout.Shape.ID != "" && (!heroOnly || layout.Shape.Hero) {
 		snapshots[layout.Shape.idKey()] = posSnapshot{
 			x:      layout.Shape.X,
 			y:      layout.Shape.Y,
@@ -103,7 +110,7 @@ func captureSnapshots(layout *Layout, snapshots map[string]posSnapshot, heroOnly
 		}
 	}
 	for i := range layout.Children {
-		captureSnapshots(&layout.Children[i], snapshots, heroOnly)
+		captureSnapshots(&layout.Children[i], snapshots, heroOnly, depth+1)
 	}
 }
 

@@ -185,6 +185,25 @@ func TestColorFilterNilMatrix(t *testing.T) {
 	}
 }
 
+// Singleton constructors must hand out copies: mutating a result
+// must not leak into the next call or into compose inputs.
+func TestColorFilterSingletonsAreCopies(t *testing.T) {
+	a := ColorFilterGrayscale()
+	a.matrix[0] = -999
+	if b := ColorFilterGrayscale(); b.matrix[0] == -999 {
+		t.Error("Grayscale() aliases the singleton")
+	}
+	gs := ColorFilterGrayscale()
+	composed := colorFilterCompose(gs, nil)
+	composed.matrix[0] = -999
+	if fresh := ColorFilterGrayscale(); fresh.matrix[0] == -999 {
+		t.Error("compose(nil-side) aliases its input")
+	}
+	if colorFilterCompose(nil, nil) != nil {
+		t.Error("compose(nil, nil) should be nil")
+	}
+}
+
 func TestRenderFilterBracketWithColorFilter(t *testing.T) {
 	w := newTestWindow()
 	cf := ColorFilterGrayscale()
