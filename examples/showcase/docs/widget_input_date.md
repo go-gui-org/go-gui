@@ -1,6 +1,6 @@
 Text input with calendar popup for date entry. Combines a text field with an
-inline date picker dropdown. Displays the selected date formatted via the
-current locale.
+inline date picker dropdown. The date shows in the current locale's format
+unless `DateFormat` sets one for the field.
 
 ## Usage
 
@@ -15,6 +15,28 @@ gui.InputDate(gui.InputDateCfg{
     },
 })
 ```
+
+## Date Format
+
+`DateFormat` sets the format for one field. It controls the text the field
+shows, the input mask, the placeholder hint, and the parse of what the user
+types. Use the tokens `YYYY`, `MM`, `M`, `DD`, `D` and the separator you want.
+
+```go
+gui.InputDate(gui.InputDateCfg{
+    ID:         "id-de",
+    Date:       app.Date,
+    DateFormat: "DD.MM.YYYY", // 24.12.2026
+})
+```
+
+Leave `DateFormat` empty to use the locale. To change every date field at once,
+set the locale instead: `ctx.Window.SetLocaleID("de-DE")`.
+
+Month-name tokens (`MMM`, `MMMM`), a 2-digit year (`YY`) and time tokens (`HH`,
+`mm`, `ss`) are not permitted. The field accepts digits and separators only and
+the parse reads `YYYY`, `MM`, `M`, `DD`, `D`, so anything else could be shown
+but never typed back.
 
 ## With Filtering
 
@@ -39,6 +61,7 @@ gui.InputDate(gui.InputDateCfg{
 | -------------------- | -------------------- | --------------------------------- |
 | Date                 | time.Time            | Current date value                |
 | Placeholder          | string               | Hint text shown when empty        |
+| DateFormat           | string               | Date format for this field        |
 | SelectMultiple       | bool                 | Allow multiple date selection     |
 | MondayFirstDayOfWeek | bool                 | Start week on Monday              |
 | ShowAdjacentMonths   | bool                 | Show prev/next month days         |

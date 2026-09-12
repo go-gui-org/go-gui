@@ -8,6 +8,23 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- **`InputDateCfg.DateFormat` sets the date format per field (#578)** — the date
+  input read its format from one process-global value, the active locale's short
+  date, so a caller who wanted `24.12.2026` had to change the locale for every
+  date widget in the app. `DateFormat` now spells it on the field, in the same
+  token language the locale bundles use: `YYYY`, `MM`, `M`, `DD`, `D` and
+  literal separators — `"DD.MM.YYYY"`, `"DD/MM/YYYY"`, `"YYYY-MM-DD"`. The
+  format drives all four places the field uses one: the text it shows, the input
+  mask, the placeholder hint, and the parse of what the user types. Unset keeps
+  the locale's short date, so existing fields are unchanged. A month-name token
+  (`MMM`, `MMMM`), a 2-digit year (`YY`) and time tokens (`HH`, `mm`, `ss`)
+  panic at construction, because the field masks digits and the parse only reads
+  `YYYY`, `MM`, `M`, `DD`, `D`: anything else could be shown but never typed
+  back. To change every field at once, set the locale instead:
+  `SetLocaleID("de-DE")` already carries `D.M.YYYY`.
+
 ### Fixed
 
 - **Wrapped text now follows its container's `HAlign` (#577)** — a `Text` with

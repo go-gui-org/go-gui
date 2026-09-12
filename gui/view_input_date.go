@@ -2,6 +2,8 @@ package gui
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -18,6 +20,16 @@ type InputDateCfg struct {
 	OnSelect         func([]time.Time, EventCtx)
 	ID               string `gui:"required,focus"`
 	Placeholder      string
+	// DateFormat spells the date the field shows, masks and parses,
+	// in the locale token language: YYYY, MM, M, DD, D and literal
+	// separators — "DD.MM.YYYY", "YYYY-MM-DD". Unset takes the
+	// active locale's short date, which is what every field did
+	// before issue #578. Month-name tokens (MMM, MMMM), a 2-digit
+	// year (YY) and time tokens (HH, mm, ss) are rejected: the
+	// field is a masked numeric entry, so a text month could be
+	// displayed but never typed back, and the parse only reads
+	// YYYY, MM, M, DD, D.
+	DateFormat string
 
 	A11YCfg
 	Dates           []time.Time
@@ -83,6 +95,7 @@ type inputDateView struct {
 func InputDate(cfg InputDateCfg) View {
 	applyInputDateDefaults(&cfg)
 	requireFocusID("InputDate", cfg.FocusDisabled, cfg.ID)
+	requireDateFormat("InputDate", cfg.DateFormat)
 	cfg.A11YLabel = a11yLabel(cfg.A11YLabel, cfg.Label)
 	return labelledField(
 		cfg.Label, cfg.TextStyle, HAlignLeft, cfg.Sizing,
@@ -99,6 +112,9 @@ func (idv *inputDateView) GenerateLayout(w *Window) Layout {
 	// View tree, so the scope stack is still empty there. See issue
 	// #518.
 	cfgID := w.EffID(cfg.ID)
+	// One resolve per frame: display, mask, parse and placeholder all
+	// read this, and re-deriving it at each site is how they drift.
+	format := inputDateFormat(cfg)
 	// A read-only date field never opens the calendar popup, closing
 	// the picker's OnSelect mutation path structurally regardless of any
 	// stored open state.
@@ -112,8 +128,7 @@ func (idv *inputDateView) GenerateLayout(w *Window) Layout {
 
 	dateText := ""
 	if len(dates) == 1 {
-		dateText = LocaleFormatDate(dates[0],
-			localeDatePadFormat(ActiveLocale.Date.ShortDate))
+		dateText = LocaleFormatDate(dates[0], format)
 	} else if len(dates) > 1 {
 		dateText = fmt.Sprintf("%d dates selected", len(dates))
 	}
@@ -143,7 +158,7 @@ func (idv *inputDateView) GenerateLayout(w *Window) Layout {
 			Spacing:    Some(SpacingSmall),
 			VAlign:     VAlignMiddle,
 			Content: []View{
-				inputDateTextField(cfg, cfgID, isOpen, editText),
+				inputDateTextField(cfg, cfgID, format, isOpen, editText),
 				Button(ButtonCfg{
 					// Namespaced by the field's ID: a form can hold
 					// several date inputs.
@@ -257,7 +272,7 @@ func (idv *inputDateView) GenerateLayout(w *Window) Layout {
 // inputDateTextField returns an Input for single/no dates (editable)
 // or a Text for multi-select display ("N dates selected").
 func inputDateTextField(
-	cfg *InputDateCfg, cfgID string, isOpen bool,
+	cfg *InputDateCfg, cfgID, format string, isOpen bool,
 	dateText string,
 ) View {
 	if len(cfg.Dates) > 1 {
@@ -274,8 +289,8 @@ func inputDateTextField(
 		FocusDisabled: cfg.FocusDisabled,
 		ReadOnly:      cfg.ReadOnly,
 		Text:          dateText,
-		Placeholder:   inputDatePlaceholder(cfg),
-		Mask:          localeDateMaskPattern(ActiveLocale.Date.ShortDate),
+		Placeholder:   inputDatePlaceholder(cfg, format),
+		Mask:          localeDateMaskPattern(format),
 		// The mask admits digits and separators only, so the reserved
 		// descent is provably empty and the date can be centred on its
 		// ink rather than on its line box (issue #346).
@@ -305,8 +320,7 @@ func inputDateTextField(
 				ctx.Window.InvalidateLayout()
 				return
 			}
-			t, err := localeParseDate(text,
-				localeDatePadFormat(ActiveLocale.Date.ShortDate))
+			t, err := localeParseDate(text, format)
 			if err != nil {
 				return
 			}
@@ -324,11 +338,11 @@ func inputDateTextField(
 	})
 }
 
-func inputDatePlaceholder(cfg *InputDateCfg) string {
+func inputDatePlaceholder(cfg *InputDateCfg, format string) string {
 	if cfg.Placeholder != "" {
 		return cfg.Placeholder
 	}
-	return localeDatePadFormat(ActiveLocale.Date.ShortDate)
+	return format
 }
 
 func inputDateToggle(id string, w *Window) {
@@ -343,6 +357,52 @@ func inputDateClose(id string, w *Window) {
 	sm := StateMap[string, bool](w, nsInputDate, capModerate)
 	sm.Set(id, false)
 	w.InvalidateLayout()
+}
+
+// inputDateFormat resolves the one format the field shows, masks and
+// parses with. Every read goes through here so display, mask, parse
+// and placeholder cannot drift apart; the padded form is what all four
+// want, because a masked field always has both digits (issue #578).
+func inputDateFormat(cfg *InputDateCfg) string {
+	if cfg.DateFormat != "" {
+		return localeDatePadFormat(cfg.DateFormat)
+	}
+	return localeDatePadFormat(ActiveLocale.Date.ShortDate)
+}
+
+// requireDateFormat panics on a DateFormat the masked numeric field
+// cannot honour. A month name renders but cannot be typed back, a
+// 2-digit year and a time token display one thing and parse another
+// (localeParseDate only reads YYYY, MM, M, DD, D), and a format with
+// no date token at all masks to a row of literals, so each produces a
+// field that looks right and refuses every keystroke. Fail at
+// construction instead, the way RequireID does (issue #578).
+func requireDateFormat(widget, format string) {
+	if format == "" {
+		return
+	}
+	if strings.Contains(format, "MMM") {
+		panic("gui: " + widget + " DateFormat " + strconv.Quote(format) +
+			" uses a month-name token; the field masks digits only")
+	}
+	if strings.Contains(format, "YY") &&
+		!strings.Contains(format, "YYYY") {
+		panic("gui: " + widget + " DateFormat " + strconv.Quote(format) +
+			" uses a 2-digit year; spell YYYY")
+	}
+	if strings.Contains(format, "HH") ||
+		strings.Contains(format, "mm") ||
+		strings.Contains(format, "ss") {
+		panic("gui: " + widget + " DateFormat " + strconv.Quote(format) +
+			" uses a time token; the field is date-only")
+	}
+	padded := localeDatePadFormat(format)
+	if !strings.Contains(padded, "YYYY") &&
+		!strings.Contains(padded, "MM") &&
+		!strings.Contains(padded, "DD") {
+		panic("gui: " + widget + " DateFormat " + strconv.Quote(format) +
+			" has no YYYY, MM or DD token")
+	}
 }
 
 func applyInputDateDefaults(cfg *InputDateCfg) {

@@ -815,6 +815,20 @@ func goldenCases() []goldenCase {
 			},
 		},
 		{
+			// Same date as `input_date` above, drawn through a
+			// caller-supplied DateFormat. The pairing is the point:
+			// this case shows the dotted day-first spelling while
+			// `input_date` must stay on the locale's (issue #578).
+			name: "input_date_format",
+			build: func(_ *Window) View {
+				return InputDate(InputDateCfg{
+					ID:         "id",
+					DateFormat: "DD.MM.YYYY",
+					Date:       time.Date(2026, 8, 15, 0, 0, 0, 0, time.UTC),
+				})
+			},
+		},
+		{
 			name: "progress_bar",
 			build: func(_ *Window) View {
 				return ProgressBar(ProgressBarCfg{
