@@ -10,6 +10,13 @@ and this project adheres to
 
 ### Added
 
+- **`examples/family_tree`: a scrollable diagram with clickable names (#582)** —
+  A family tree wider than the window, built from `gui.Canvas` with names placed
+  at `X`/`Y`, a `DrawCanvas` underlay for right-angle connector lines, and a
+  scrollable `Column`. The names are buttons, so click, hover, focus and
+  accessibility need no hit-testing code. The README shows the two workarounds
+  horizontal scrolling needs today (#584) and notes that a sideways trackpad
+  swipe does not scroll yet (#585).
 - **The full named color palette is public** — `Magenta`, `Indigo`, `Pink`,
   `Violet`, `DarkBlue`, `DarkGreen`, `DarkRed`, `LightGray`, `LightGreen`,
   `LightRed`, and `RoyalBlue` join the exported palette alongside `Red`,
