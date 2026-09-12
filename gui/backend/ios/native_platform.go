@@ -7,12 +7,17 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
+	"sync/atomic"
 
 	"github.com/go-gui-org/go-gui/gui"
 	"github.com/go-gui-org/go-gui/gui/backend/filedialog"
 	"github.com/go-gui-org/go-gui/gui/backend/printdialog"
 	"github.com/go-gui-org/go-gui/gui/backend/spellcheck"
 )
+
+// iosTrayIDs hands out unique positive tray IDs. iOS has no tray;
+// the no-op still reports success, so handles must stay distinct.
+var iosTrayIDs atomic.Int64
 
 // nativePlatform implements gui.NativePlatform for iOS.
 type nativePlatform struct{}
@@ -99,9 +104,10 @@ func (n *nativePlatform) SpellLearn(word string) { spellcheck.Learn(word) }
 func (n *nativePlatform) SetNativeMenubar(_ gui.NativeMenubarCfg, _ func(string)) {}
 func (n *nativePlatform) ClearNativeMenubar()                                     {}
 
-// System tray — no-op on iOS.
+// System tray — no-op on iOS. Reports success with a unique
+// handle so App bookkeeping stays consistent.
 func (n *nativePlatform) CreateSystemTray(_ gui.SystemTrayCfg, _ func(string)) (int, error) {
-	return 0, nil
+	return int(iosTrayIDs.Add(1)), nil
 }
 func (n *nativePlatform) UpdateSystemTray(_ int, _ gui.SystemTrayCfg) {}
 func (n *nativePlatform) RemoveSystemTray(_ int)                      {}

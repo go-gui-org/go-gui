@@ -1,5 +1,12 @@
 package gui
 
+import "sync/atomic"
+
+// noopTrayIDs hands out unique positive tray IDs process-wide.
+// NoopNativePlatform is a zero-value struct, so per-instance
+// counters are impossible; the global keeps handles distinct.
+var noopTrayIDs atomic.Int64
+
 // NoopNativePlatform is a zero-value NativePlatform where every
 // method is a no-op. Embed it in test mocks and override only
 // the methods under test.
@@ -54,7 +61,7 @@ func (noopNativePlatform) SpellLearn(_ string)                                 {
 func (noopNativePlatform) SetNativeMenubar(_ NativeMenubarCfg, _ func(string)) {}
 func (noopNativePlatform) ClearNativeMenubar()                                 {}
 func (noopNativePlatform) CreateSystemTray(_ SystemTrayCfg, _ func(string)) (int, error) {
-	return 0, nil
+	return int(noopTrayIDs.Add(1)), nil
 }
 func (noopNativePlatform) UpdateSystemTray(_ int, _ SystemTrayCfg) {}
 func (noopNativePlatform) RemoveSystemTray(_ int)                  {}

@@ -10,6 +10,14 @@ and this project adheres to
 
 ### Fixed
 
+- **App registry is race-safe and survives a main-window close** — `OpenWindow`
+  and `SetWakeMainFn` no longer race on the wake callback, and `Window.App` and
+  `Window.PlatformID` are atomic, so readers on any goroutine stay consistent.
+  `Unregister` hands the main ID to the oldest survivor instead of stranding
+  menubar and tray calls on a dead ID, and menubar and tray actions resolve the
+  live main window when they fire. Buffer-full `OpenWindow` drops log at most
+  once per second with a running total, and tray creation rejects non-positive
+  platform IDs.
 - **Repeating keyframes resync after a stall instead of draining the backlog** —
   a minimized window or debugger break left a repeating `KeyframeAnimation` many
   durations behind, and each tick advanced only one duration, firing the final
