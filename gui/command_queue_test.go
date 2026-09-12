@@ -79,3 +79,35 @@ func TestCommandMarkRenderOnlyRefreshSetsFlag(t *testing.T) {
 		t.Error("refreshRenderOnly should be true")
 	}
 }
+
+func TestAnimationCommands_ExportedAppend(t *testing.T) {
+	var cmds []queuedCommand
+	ac := newAnimationCommands(&cmds)
+	ac.AppendOnDone(func(_ *Window) {})
+	ac.AppendOnValue(func(float32, *Window) {}, 7)
+	if len(cmds) != 2 {
+		t.Fatalf("len = %d, want 2", len(cmds))
+	}
+	if cmds[0].kind != queuedCommandWindowFn {
+		t.Errorf("kind = %d, want windowFn", cmds[0].kind)
+	}
+	if cmds[1].kind != queuedCommandValueFn || cmds[1].value != 7 {
+		t.Errorf("value cmd mismatch: %+v", cmds[1])
+	}
+}
+
+func TestAnimationCommands_ExportedNilSafe(t *testing.T) {
+	var nilAC *AnimationCommands
+	nilAC.AppendOnDone(func(*Window) {})
+	nilAC.AppendOnValue(func(float32, *Window) {}, 1)
+	emptyAC := AnimationCommands{}
+	emptyAC.AppendOnDone(func(*Window) {})
+	emptyAC.AppendOnValue(func(float32, *Window) {}, 1)
+	var cmds []queuedCommand
+	exportedAC := newAnimationCommands(&cmds)
+	exportedAC.AppendOnDone(nil)
+	exportedAC.AppendOnValue(nil, 1)
+	if len(cmds) != 0 {
+		t.Errorf("len = %d, want 0 for nil fns", len(cmds))
+	}
+}

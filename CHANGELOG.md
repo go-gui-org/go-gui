@@ -20,9 +20,22 @@ and this project adheres to
   config typos. `ColorLookup` trims space, folds case (so `" Red "` matches),
   accepts `#RRGGBB[AA]`, and reports failure, including the previously missing
   `"magenta"` name. `ColorFromString` keeps its signature and fallback.
+- **`AnimationCommands.AppendOnDone` and `AppendOnValue` are public** — the type
+  was exported for third-party `Animation` implementations, but only the
+  unexported spellings existed, so outside packages could not enqueue callbacks.
+  The exported methods are nil-safe; the old spellings remain as delegates.
 
 ### Fixed
 
+- **Command registry is race-safe and stops swallowing keys** — `Register`,
+  `Unregister`, lookup, palette, and dispatch share a mutex and run user
+  callbacks off-lock from a snapshot, so registration during dispatch cannot
+  deadlock or race. A command with nil `Execute` no longer marks the event
+  handled, nil events never match, `RegisterCommands` is atomic (all or none),
+  empty IDs are rejected, `Unregister` clears the tail slot so closures release,
+  `flushCommands` skips nil callbacks, and the native menubar honors
+  `CanExecute` and nil `Execute`. `Execute` may receive a nil `*Event` and must
+  nil-check it.
 - **App registry is race-safe and survives a main-window close** — `OpenWindow`
   and `SetWakeMainFn` no longer race on the wake callback, and `Window.App` and
   `Window.PlatformID` are atomic, so readers on any goroutine stay consistent.

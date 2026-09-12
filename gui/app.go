@@ -300,6 +300,12 @@ func (a *App) SetNativeMenubar(cfg NativeMenubarCfg) {
 		}
 		cur.QueueCommand(func(w *Window) {
 			if cmd, ok := w.CommandByID(id); ok {
+				if cmd.Execute == nil {
+					return
+				}
+				if !cmd.canExecute(w) {
+					return
+				}
 				cmd.Execute(nil, w)
 			} else if cfg.OnAction != nil {
 				cfg.OnAction(id)

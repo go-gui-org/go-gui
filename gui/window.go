@@ -128,8 +128,11 @@ type Window struct {
 	commands []queuedCommand
 
 	// Command registry — registered commands for shortcut
-	// dispatch, menu/button integration.
+	// dispatch, menu/button integration. Guarded by cmdMu;
+	// dispatch snapshots under RLock so user callbacks
+	// (CanExecute/Execute) run without the lock held.
 	cmdRegistry []Command
+	cmdMu       sync.RWMutex
 
 	// Scratch queue used to avoid reallocating command storage each frame.
 	commandScratch []queuedCommand

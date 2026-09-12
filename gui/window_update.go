@@ -97,11 +97,17 @@ func (w *Window) flushCommands() {
 		cmd := toRun[i]
 		switch cmd.kind {
 		case queuedCommandWindowFn:
-			cmd.windowFn(w)
+			if cmd.windowFn != nil {
+				cmd.windowFn(w)
+			}
 		case queuedCommandValueFn:
-			cmd.valueFn(cmd.value, w)
+			if cmd.valueFn != nil {
+				cmd.valueFn(cmd.value, w)
+			}
 		case queuedCommandAnimateFn:
-			cmd.animateFn(cmd.animate, w)
+			if cmd.animateFn != nil {
+				cmd.animateFn(cmd.animate, w)
+			}
 		}
 	}
 
