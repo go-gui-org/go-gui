@@ -1,6 +1,9 @@
 package gui
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 // Color represents a 32-bit color value in sRGB format.
 // The set field distinguishes "not set" (zero value) from intentionally
@@ -12,6 +15,8 @@ type Color struct {
 }
 
 // Predefined colors.
+// exportaudit:keep — public palette for app and consumer code;
+// newly exported names gain outside references as siblings adopt them.
 var (
 	Black            = Color{0, 0, 0, 255, true}
 	Gray             = Color{128, 128, 128, 255, true}
@@ -20,23 +25,31 @@ var (
 	Green            = Color{0, 255, 0, 255, true}
 	Blue             = Color{0, 0, 255, 255, true}
 	Yellow           = Color{255, 255, 0, 255, true}
-	magenta          = Color{255, 0, 255, 255, true}
+	Magenta          = Color{255, 0, 255, 255, true}
 	Orange           = Color{255, 165, 0, 255, true}
 	Purple           = Color{128, 0, 128, 255, true}
-	indigo           = Color{75, 0, 130, 255, true}
-	pink             = Color{255, 192, 203, 255, true}
-	violet           = Color{238, 130, 238, 255, true}
-	darkBlue         = Color{0, 0, 139, 255, true}
+	Indigo           = Color{75, 0, 130, 255, true}
+	Pink             = Color{255, 192, 203, 255, true}
+	Violet           = Color{238, 130, 238, 255, true}
+	DarkBlue         = Color{0, 0, 139, 255, true}
 	DarkGray         = Color{169, 169, 169, 255, true}
-	darkGreen        = Color{0, 100, 0, 255, true}
-	darkRed          = Color{139, 0, 0, 255, true}
+	DarkGreen        = Color{0, 100, 0, 255, true}
+	DarkRed          = Color{139, 0, 0, 255, true}
 	LightBlue        = Color{173, 216, 230, 255, true}
-	lightGray        = Color{211, 211, 211, 255, true}
-	lightGreen       = Color{144, 238, 144, 255, true}
-	lightRed         = Color{255, 204, 203, 255, true}
+	LightGray        = Color{211, 211, 211, 255, true}
+	LightGreen       = Color{144, 238, 144, 255, true}
+	LightRed         = Color{255, 204, 203, 255, true}
 	CornflowerBlue   = Color{100, 149, 237, 255, true}
-	royalBlue        = Color{65, 105, 225, 255, true}
+	RoyalBlue        = Color{65, 105, 225, 255, true}
 	ColorTransparent = Color{0, 0, 0, 0, true}
+)
+
+// Lowercase aliases for the pre-export spellings still used inside
+// this module (error placeholders, benchmarks). New code uses the
+// exported names above.
+var (
+	magenta   = Magenta
+	lightGray = LightGray
 )
 
 // Hex creates a Color from a hexadecimal integer (0xRRGGBB).
@@ -78,17 +91,20 @@ func (c Color) WithOpacity(opacity float32) Color {
 }
 
 // Add returns c + b, clamping each channel to 255.
+// The result is set if either input is set: combining two unset
+// colors must stay unset rather than conjure an explicit color.
 func (c Color) Add(b Color) Color {
 	return Color{
 		R:   clampAdd(c.R, b.R),
 		G:   clampAdd(c.G, b.G),
 		B:   clampAdd(c.B, b.B),
 		A:   clampAdd(c.A, b.A),
-		set: true,
+		set: c.set || b.set,
 	}
 }
 
 // Sub returns c - b, clamping each channel to 0.
+// Set-propagation mirrors Add: unset in, unset out.
 func (c Color) Sub(b Color) Color {
 	ca := clampSub(c.A, b.A)
 	return Color{
@@ -96,7 +112,7 @@ func (c Color) Sub(b Color) Color {
 		G:   clampSub(c.G, b.G),
 		B:   clampSub(c.B, b.B),
 		A:   ca,
-		set: true,
+		set: c.set || b.set,
 	}
 }
 
@@ -106,17 +122,20 @@ func (c Color) Over(b Color) Color {
 	ba := float32(b.A) / 255
 	ra := ca + ba*(1-ca)
 	if ra == 0 {
-		return ColorTransparent
+		if c.set || b.set {
+			return ColorTransparent
+		}
+		return Color{}
 	}
 	rr := (float32(c.R)*ca + float32(b.R)*ba*(1-ca)) / ra
 	gr := (float32(c.G)*ca + float32(b.G)*ba*(1-ca)) / ra
 	br := (float32(c.B)*ca + float32(b.B)*ba*(1-ca)) / ra
 	return Color{
-		R:   uint8(rr),
-		G:   uint8(gr),
-		B:   uint8(br),
-		A:   uint8(ra * 255),
-		set: true,
+		R:   uint8(rr + 0.5),
+		G:   uint8(gr + 0.5),
+		B:   uint8(br + 0.5),
+		A:   uint8(ra*255 + 0.5),
+		set: c.set || b.set,
 	}
 }
 
@@ -145,9 +164,11 @@ func (c Color) aBGR8() int {
 	return int(uint32(c.A)<<24 | uint32(c.B)<<16 | uint32(c.G)<<8 | uint32(c.R))
 }
 
-// ToCSSString returns CSS-compatible "rgba(r,g,b,a)".
+// ToCSSString returns CSS-compatible "rgba(r,g,b,a)" with alpha in
+// 0–1, e.g. "rgba(10,20,30,0.50)".
 func (c Color) toCSSString() string {
-	return fmt.Sprintf("rgba(%d,%d,%d,%d)", c.R, c.G, c.B, c.A)
+	return fmt.Sprintf("rgba(%d,%d,%d,%.2f)",
+		c.R, c.G, c.B, float64(c.A)/255)
 }
 
 var stringColors = map[string]Color{
@@ -155,37 +176,55 @@ var stringColors = map[string]Color{
 	"red":             Red,
 	"green":           Green,
 	"yellow":          Yellow,
+	"magenta":         Magenta,
 	"orange":          Orange,
 	"purple":          Purple,
 	"black":           Black,
 	"gray":            Gray,
-	"indigo":          indigo,
-	"pink":            pink,
-	"violet":          violet,
+	"indigo":          Indigo,
+	"pink":            Pink,
+	"violet":          Violet,
 	"white":           White,
 	"cornflower_blue": CornflowerBlue,
-	"royal_blue":      royalBlue,
-	"dark_blue":       darkBlue,
+	"royal_blue":      RoyalBlue,
+	"dark_blue":       DarkBlue,
 	"dark_gray":       DarkGray,
-	"dark_green":      darkGreen,
-	"dark_red":        darkRed,
+	"dark_green":      DarkGreen,
+	"dark_red":        DarkRed,
 	"light_blue":      LightBlue,
-	"light_gray":      lightGray,
-	"light_green":     lightGreen,
-	"light_red":       lightRed,
+	"light_gray":      LightGray,
+	"light_green":     LightGreen,
+	"light_red":       LightRed,
+}
+
+// ColorLookup returns the Color for a name ("red", "cornflower_blue")
+// or "#RRGGBB[AA]" hex string, reporting ok=false for unknown input.
+// Lookup trims surrounding space and folds case, so " Red " and
+// "RED" both match. A hex field uses this while the user is still
+// typing: ok=false leaves the current color untouched.
+//
+// exportaudit:keep — app-facing config/user-input lookup.
+func ColorLookup(s string) (Color, bool) {
+	t := strings.TrimSpace(s)
+	// No valid input is longer than "cornflower_blue" (14): reject
+	// longer strings before ToLower allocates for them.
+	if len(t) > 32 {
+		return Color{}, false
+	}
+	if len(t) > 0 && t[0] == '#' {
+		return colorFromHexString(t)
+	}
+	if c, ok := stringColors[strings.ToLower(t)]; ok {
+		return c, true
+	}
+	return Color{}, false
 }
 
 // ColorFromString returns a Color for the given name or "#RRGGBB" hex
-// string. Returns Black if not found.
+// string. Unknown input returns opaque black; use ColorLookup when
+// the caller must tell a typo apart from black.
 func ColorFromString(s string) Color {
-	if len(s) > 0 && s[0] == '#' {
-		c, ok := colorFromHexString(s)
-		if ok {
-			return c
-		}
-		return Color{A: 255, set: true}
-	}
-	if c, ok := stringColors[s]; ok {
+	if c, ok := ColorLookup(s); ok {
 		return c
 	}
 	return Color{A: 255, set: true}

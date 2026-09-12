@@ -38,15 +38,28 @@ var (
 	}}
 )
 
-// ColorFilterIdentity returns a no-op color filter.
+// ColorFilterIdentity returns a no-op color filter. The result is a
+// fresh copy: callers never alias the package singleton, so no future
+// in-package mutation can leak across users.
 // exportaudit:keep — collides with the colorFilterIdentity singleton var
-func ColorFilterIdentity() *ColorFilter { return &colorFilterIdentity }
+func ColorFilterIdentity() *ColorFilter {
+	f := colorFilterIdentity
+	return &f
+}
 
 // ColorFilterGrayscale converts to luminance-weighted grayscale.
-func ColorFilterGrayscale() *ColorFilter { return &colorFilterGrayscale }
+// Returns a copy, as ColorFilterIdentity does.
+func ColorFilterGrayscale() *ColorFilter {
+	f := colorFilterGrayscale
+	return &f
+}
 
 // ColorFilterSepia applies a warm sepia tone.
-func ColorFilterSepia() *ColorFilter { return &colorFilterSepia }
+// Returns a copy, as ColorFilterIdentity does.
+func ColorFilterSepia() *ColorFilter {
+	f := colorFilterSepia
+	return &f
+}
 
 // ColorFilterSaturate adjusts saturation. 0=grayscale, 1=identity,
 // >1=oversaturated.
@@ -104,17 +117,27 @@ func ColorFilterHueRotate(degrees float32) *ColorFilter {
 
 // ColorFilterInvert negates RGB, keeps alpha. Uses the alpha
 // column to inject bias (output.rgb = alpha - input.rgb).
+// Returns a copy, as ColorFilterIdentity does.
 // exportaudit:keep — collides with the colorFilterInvert singleton var
-func ColorFilterInvert() *ColorFilter { return &colorFilterInvert }
+func ColorFilterInvert() *ColorFilter {
+	f := colorFilterInvert
+	return &f
+}
 
 // ColorFilterCompose multiplies two color filters (a applied
-// first, then b). Returns a new filter representing b*a.
+// first, then b). Returns a new filter representing b*a; a nil side
+// yields a copy of the other side, never an alias of it.
 func colorFilterCompose(a, b *ColorFilter) *ColorFilter {
+	if a == nil && b == nil {
+		return nil
+	}
 	if a == nil {
-		return b
+		out := *b
+		return &out
 	}
 	if b == nil {
-		return a
+		out := *a
+		return &out
 	}
 	var out ColorFilter
 	for col := range 4 {

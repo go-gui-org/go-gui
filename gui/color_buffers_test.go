@@ -245,6 +245,33 @@ func TestBufferSrcCacheHitDoesNotAllocate(t *testing.T) {
 	}
 }
 
+// Sub-quantum hues share one key, so they must also share one pixel
+// buffer: rendering the raw hue would serve the first hue's pixels
+// to the second hue under the same key.
+func TestPlaneSrcRendersQuantizedHue(t *testing.T) {
+	resetMemImages(t)
+	const size = 16
+	a := HSLA{H: 200.1, S: 0.5, L: 0.5, A: 1}
+	b := HSLA{H: 200.4, S: 0.5, L: 0.5, A: 1}
+	srcA := planeSrc(a, size)
+	if srcB := planeSrc(b, size); srcB != srcA {
+		t.Fatalf("sub-quantum hues keyed differently: %q vs %q", srcA, srcB)
+	}
+	_, _, got, ok := LookupImage(srcA)
+	if !ok {
+		t.Fatal("plane buffer not registered")
+	}
+	want := planePixels(200, size)
+	if len(got) != len(want) {
+		t.Fatalf("buffer len = %d, want %d", len(got), len(want))
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("pixel byte %d = %d, want %d (quantized hue 200)", i, got[i], want[i])
+		}
+	}
+}
+
 func TestColorChannelAccessors(t *testing.T) {
 	v := HSLA{H: 180, S: 0.25, L: 0.75, A: 0.5}
 	cases := []struct {

@@ -197,6 +197,44 @@ func TestHexPairInvalid(t *testing.T) {
 	}
 }
 
+func TestColorFromHSVNonFiniteAndClamped(t *testing.T) {
+	nan := float32(math.NaN())
+	inf := float32(math.Inf(1))
+	for _, tc := range []struct {
+		name    string
+		h, s, v float32
+	}{
+		{"nan_hue", nan, 1, 1},
+		{"nan_sat", 120, nan, 1},
+		{"nan_val", 120, 1, nan},
+		{"inf_hue", inf, 1, 1},
+		{"inf_sat", 120, inf, 1},
+		{"neg_sat", 120, -2, 1},
+		{"over_sat", 120, 5, 1},
+		{"neg_val", 120, 1, -3},
+		{"over_val", 120, 1, 4},
+	} {
+		c := ColorFromHSV(tc.h, tc.s, tc.v)
+		if !c.IsSet() {
+			t.Errorf("%s: result should be set", tc.name)
+		}
+	}
+	// All-NaN maps to zeroed inputs: hue 0, s/v clamped to 0 → black.
+	if got := ColorFromHSV(nan, nan, nan); got != RGBA(0, 0, 0, 255) {
+		t.Errorf("all-NaN: got %v, want black", got)
+	}
+	// Clamping pins to the same result as the boundary value.
+	if got := ColorFromHSV(0, 5, 1); got != ColorFromHSV(0, 1, 1) {
+		t.Errorf("s>1 not clamped: got %v", got)
+	}
+	if got := ColorFromHSV(0, 1, 9); got != ColorFromHSV(0, 1, 1) {
+		t.Errorf("v>1 not clamped: got %v", got)
+	}
+	if got := ColorFromHSV(0, -1, -1); got != RGBA(0, 0, 0, 255) {
+		t.Errorf("negative s/v: got %v, want black", got)
+	}
+}
+
 func closeEnough(a, b float32) bool {
 	return float32(math.Abs(float64(a-b))) < 0.02
 }

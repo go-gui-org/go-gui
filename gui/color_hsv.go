@@ -1,7 +1,5 @@
 package gui
 
-import "fmt"
-
 // ToHSV converts an RGB Color to HSV components.
 // Returns h (0–360), s (0–1), v (0–1).
 func (c Color) ToHSV() (h, s, v float32) {
@@ -43,8 +41,22 @@ func ColorFromHSV(h, s, v float32) Color {
 }
 
 // ColorFromHSVA creates a Color from HSVA values.
-// h: 0–360, s: 0–1, v: 0–1, a: 0–255.
+// h: 0–360 (wrapping), s: 0–1, v: 0–1, a: 0–255.
+// Out-of-range s/v are clamped and non-finite inputs map to zero,
+// mirroring HSLA.Normalized: f32Mod lets NaN through and the
+// float→uint8 conversion below is implementation-defined for it.
 func colorFromHSVA(h, s, v float32, a uint8) Color {
+	if !f32IsFinite(h) {
+		h = 0
+	}
+	if !f32IsFinite(s) {
+		s = 0
+	}
+	if !f32IsFinite(v) {
+		v = 0
+	}
+	s = f32Clamp(s, 0, 1)
+	v = f32Clamp(v, 0, 1)
 	h = f32Mod(h, 360)
 	if h < 0 {
 		h += 360
@@ -85,11 +97,24 @@ func hueColor(h float32) Color {
 }
 
 // ToHexString returns "#RRGGBB" or "#RRGGBBAA" when alpha != 255.
+// Built with a hex table into a stack-sized buffer instead of fmt:
+// this runs on the readout path.
 func (c Color) toHexString() string {
+	const digits = "0123456789ABCDEF"
+	var buf [9]byte
+	buf[0] = '#'
+	buf[1] = digits[c.R>>4]
+	buf[2] = digits[c.R&0xF]
+	buf[3] = digits[c.G>>4]
+	buf[4] = digits[c.G&0xF]
+	buf[5] = digits[c.B>>4]
+	buf[6] = digits[c.B&0xF]
 	if c.A == 255 {
-		return fmt.Sprintf("#%02X%02X%02X", c.R, c.G, c.B)
+		return string(buf[:7])
 	}
-	return fmt.Sprintf("#%02X%02X%02X%02X", c.R, c.G, c.B, c.A)
+	buf[7] = digits[c.A>>4]
+	buf[8] = digits[c.A&0xF]
+	return string(buf[:9])
 }
 
 // ColorFromHexString parses "#RRGGBB" or "#RRGGBBAA".

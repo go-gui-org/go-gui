@@ -8,6 +8,19 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- **The full named color palette is public** — `Magenta`, `Indigo`, `Pink`,
+  `Violet`, `DarkBlue`, `DarkGreen`, `DarkRed`, `LightGray`, `LightGreen`,
+  `LightRed`, and `RoyalBlue` join the exported palette alongside `Red`,
+  `CornflowerBlue`, and the rest, so app code no longer re-spells them with
+  `RGBA` literals. The previous lowercase spellings remain as internal aliases.
+- **`ColorLookup` parses a color name or hex string with `ok=false` on miss** —
+  `ColorFromString` silently returns opaque black for unknown input, which hides
+  config typos. `ColorLookup` trims space, folds case (so `" Red "` matches),
+  accepts `#RRGGBB[AA]`, and reports failure, including the previously missing
+  `"magenta"` name. `ColorFromString` keeps its signature and fallback.
+
 ### Fixed
 
 - **App registry is race-safe and survives a main-window close** — `OpenWindow`
@@ -83,6 +96,25 @@ and this project adheres to
   per window with the owning window routed back alongside each action; Linux
   gives each window its own bridge. The web backend was already per-window, and
   Android runs exactly one window by construction.
+- **Combining two unset colors stays unset** — `Add`, `Sub`, and `Over` returned
+  an explicitly-set color even when both inputs were the zero value, conjuring a
+  color where none was specified. The result is now set if either input is set.
+  `Over` also rounds to the nearest channel value instead of truncating,
+  matching the HSL/HSV conversions.
+- **The saturation/lightness plane renders its cache key's hue** — `planeSrc`
+  keyed on the quantized hue but painted the raw one, so two sub-quantum hues
+  shared a key and the second showed the first's pixels. The buffer now paints
+  the quantized hue, as the wheel already did.
+- **HSV construction clamps and rejects non-finite input** — out-of-range
+  saturation/value and NaN/Inf hues fell through float math (including an
+  implementation-defined float-to-int step) into channel bytes. Inputs now map
+  to zero/clamp at the entry point, mirroring `HSLA.Normalized`.
+- **The HSLA readout never prints a 360° hue** — rounding carried 359.6° to
+  `hsla(360, ...)`. It now wraps to `hsla(0, ...)`.
+- **Color filter singletons hand out copies** — `ColorFilterIdentity`,
+  `Grayscale`, `Sepia`, and `Invert` returned the shared package singleton, and
+  `colorFilterCompose` aliased its input on a nil side, so one in-package write
+  would leak across users. Each call now returns a fresh copy.
 
 ## [v0.75.0] - 2026-09-12
 

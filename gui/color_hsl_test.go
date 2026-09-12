@@ -120,6 +120,11 @@ func TestHSLAString(t *testing.T) {
 	if got != want {
 		t.Errorf("String() = %q, want %q", got, want)
 	}
+	// Rounding 359.6° must wrap to 0, not print a 360° hue.
+	wrapped := (HSLA{359.6, 1, 0.5, 1}).String()
+	if wrapped != "hsla(0, 100%, 50%, 1.00)" {
+		t.Errorf("wrapped String() = %q", wrapped)
+	}
 }
 
 func TestColorHexExports(t *testing.T) {
