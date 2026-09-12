@@ -6,7 +6,7 @@ const animationCycle = 16 * time.Millisecond
 
 // animViewBoundStale is the heartbeat threshold for view-bound animations.
 // An animation not touched for this duration is cancelled automatically.
-const animViewBoundStale = 2 * int64(time.Second)
+const animViewBoundStale = 2 * time.Second
 
 // viewBoundNow is the clock for view-bound heartbeats. It is deliberately
 // time.Now() and not w.Now(): w.Now() follows the time-travel scrub pin,
@@ -16,7 +16,11 @@ const animViewBoundStale = 2 * int64(time.Second)
 // so every visible widget's animation would be cancelled on the first tick
 // after a scrub ends. The heartbeat measures liveness and is never shown to
 // a user, so it has no reason to be scrubbable.
-func viewBoundNow() int64 { return time.Now().UnixNano() }
+//
+// The stamp is a time.Time rather than a UnixNano so the comparison uses
+// the monotonic reading: a wall-clock step (NTP, sleep/wake) must not
+// mass-cancel every visible widget's animation.
+func viewBoundNow() time.Time { return time.Now() }
 
 // AnimationAdd registers a new animation. If an animation with the
 // same ID exists, it is replaced.
@@ -89,7 +93,7 @@ func (w *Window) animationAddViewBound(a Animation) {
 	defer w.animMu.Unlock()
 	w.animationAddLocked(a)
 	if w.animViewBound == nil {
-		w.animViewBound = make(map[string]int64)
+		w.animViewBound = make(map[string]time.Time)
 	}
 	w.animViewBound[a.ID()] = viewBoundNow()
 }
@@ -134,6 +138,13 @@ func (w *Window) HasAnimation(id string) bool {
 // tick and dispatching deferred callbacks via the command queue.
 // The ticker starts paused and resumes when animationAdd signals
 // via animationResumeCh. It pauses again when all animations stop.
+//
+// Update calls run with animMu held so a tick's retire decisions and
+// heartbeat evictions apply atomically: nothing is added or removed
+// mid-walk. The cost is contention — HasAnimation/AnimationAdd from a
+// view function wait out the tick's Updates (each a time.Now plus
+// arithmetic). Keep Update bodies O(1); per-frame work belongs in the
+// deferred callbacks, which run off the loop on the main thread.
 func (w *Window) animationLoop() {
 	if w.animationDone != nil {
 		defer close(w.animationDone)
@@ -181,7 +192,7 @@ func (w *Window) animationLoop() {
 		// Auto-cancel view-bound animations whose widget left the view tree.
 		now := viewBoundNow()
 		for id, seen := range w.animViewBound {
-			if now-seen > animViewBoundStale {
+			if now.Sub(seen) > animViewBoundStale {
 				stoppedIDs = append(stoppedIDs, id)
 			}
 		}

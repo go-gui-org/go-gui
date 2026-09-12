@@ -104,11 +104,29 @@ func updateSpring(sp *SpringAnimation, dt float32, ac *AnimationCommands) bool {
 		return false
 	}
 	cfg := sp.Config
-	if cfg.Mass <= 0 {
+	if !f32IsFinite(cfg.Mass) || cfg.Mass <= 0 {
 		cfg.Mass = SpringDefault.Mass
 	}
-	if cfg.Threshold <= 0 {
+	if !f32IsFinite(cfg.Threshold) || cfg.Threshold <= 0 {
 		cfg.Threshold = SpringDefault.Threshold
+	}
+	// A negative or non-finite stiffness repels from the target and a
+	// negative or non-finite damping injects energy: either diverges
+	// into the snap path below. Fall back to the default instead of
+	// surprising the caller with an instant arrival.
+	if !f32IsFinite(cfg.Stiffness) || cfg.Stiffness < 0 {
+		cfg.Stiffness = SpringDefault.Stiffness
+	}
+	if !f32IsFinite(cfg.Damping) || cfg.Damping < 0 {
+		cfg.Damping = SpringDefault.Damping
+	}
+	// A non-finite target (via SpringTo/retarget) has nowhere to snap
+	// to: retire without emitting so NaN never reaches OnValue.
+	if !f32IsFinite(sp.state.target) {
+		sp.state.atRest = true
+		ac.appendOnDone(sp.OnDone)
+		sp.stopped = true
+		return true
 	}
 	displacement := sp.state.position - sp.state.target
 	springForce := -cfg.Stiffness * displacement

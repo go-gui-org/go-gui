@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sync"
 	"sync/atomic"
+	"time"
 )
 
 // windowRender holds render-walk state reset each frame.
@@ -29,9 +30,11 @@ type windowAnimation struct {
 	animMu sync.Mutex // guards animations, animViewBound
 	// Active animations keyed by ID.
 	animations map[string]Animation
-	// View-bound animation heartbeats: animID → last-seen UnixNano.
-	// Nil until first view-bound animation is registered.
-	animViewBound map[string]int64
+	// View-bound animation heartbeats: animID → last-seen time.
+	// time.Time (not UnixNano) so the monotonic reading survives wall
+	// clock steps; see viewBoundNow. Nil until first view-bound
+	// animation is registered.
+	animViewBound map[string]time.Time
 	// Animation loop lifecycle.
 	animationStop      chan struct{}
 	animationDone      chan struct{}

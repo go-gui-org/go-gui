@@ -78,8 +78,12 @@ func (s *scrollSmoothAnimation) SetStart(t time.Time) { s.start = t }
 // w.animMu is held (see animationLoop).
 func (s *scrollSmoothAnimation) Update(_ *Window, _ float32, ac *AnimationCommands) bool {
 	anyActive := false
+	anyDirty := false
 	for i := range s.entries {
 		e := &s.entries[i]
+		if e.dirty {
+			anyDirty = true
+		}
 		if !e.active {
 			continue
 		}
@@ -105,6 +109,16 @@ func (s *scrollSmoothAnimation) Update(_ *Window, _ float32, ac *AnimationComman
 		anyActive = true
 	}
 	if !anyActive {
+		// All entries are inactive: drop them rather than retaining one
+		// per scrollable ever touched for the window's lifetime. The
+		// next ease rebuilds its entry from the displayed offset (see
+		// scrollSmoothArm), so nothing is lost. Entries with a dirty
+		// value the main thread has not applied yet are kept: the
+		// apply pass is keyed on dirty, and a slow flush must still
+		// apply the final value instead of ending fractionally short.
+		if !anyDirty {
+			s.entries = s.entries[:0]
+		}
 		s.stopped = true
 		return false
 	}
@@ -300,19 +314,28 @@ func commandApplyScrollSmooth(w *Window) {
 	}
 	w.animMu.Lock()
 	ss.pending = ss.pending[:0]
+	// Reap fully-quiesced entries below: the animation tick cannot
+	// clear a final value the main thread has not applied yet (see
+	// Update), so the apply pass releases them once applied.
+	quiesced := true
 	for i := range ss.entries {
 		e := &ss.entries[i]
 		// Keyed on dirty, not active: a settled entry retires on
 		// the tick after its final value is computed, and a slow
 		// flush must still apply that value instead of ending the
 		// ease fractionally short of its target.
-		if !e.dirty {
-			continue
+		if e.dirty {
+			e.dirty = false
+			ss.pending = append(ss.pending, scrollApply{
+				id: e.id, axis: e.axis, val: e.current,
+			})
 		}
-		e.dirty = false
-		ss.pending = append(ss.pending, scrollApply{
-			id: e.id, axis: e.axis, val: e.current,
-		})
+		if e.active {
+			quiesced = false
+		}
+	}
+	if quiesced {
+		ss.entries = ss.entries[:0]
 	}
 	w.animMu.Unlock()
 

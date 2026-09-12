@@ -163,7 +163,7 @@ func TestTouchViewBoundAnimation_ExistsUpdatesHeartbeat(t *testing.T) {
 	if !w.touchViewBoundAnimation("vb2") {
 		t.Error("should return true for existing view-bound animation")
 	}
-	if w.animViewBound["vb2"] <= old {
+	if !w.animViewBound["vb2"].After(old) {
 		t.Error("heartbeat should advance after touch")
 	}
 }
@@ -210,7 +210,7 @@ func TestViewBoundStaleEviction(t *testing.T) {
 	}
 	w.mu.Lock()
 	w.animationAddViewBound(anim)
-	w.animViewBound["stale1"] = 0 // Unix epoch — always stale
+	w.animViewBound["stale1"] = time.Now().Add(-time.Hour) // always stale
 	w.mu.Unlock()
 
 	deadline := time.Now().Add(200 * time.Millisecond)
@@ -340,16 +340,16 @@ func TestViewBoundHeartbeatIgnoresScrubClock(t *testing.T) {
 	}
 
 	seen := w.animViewBound["vb-scrub"]
-	if seen-past.UnixNano() < int64(9*time.Minute) {
+	if seen.Sub(past) < 9*time.Minute {
 		w.setVirtualNow(nil)
 		t.Errorf("heartbeat followed the scrub clock (seen-past = %v)",
-			time.Duration(seen-past.UnixNano()))
+			seen.Sub(past))
 	}
 
 	w.setVirtualNow(nil) // resume(): virtual pin cleared, live time back
 	seen = w.animViewBound["vb-scrub"]
-	if age := viewBoundNow() - seen; age > animViewBoundStale {
-		t.Errorf("heartbeat looks stale after resume (age = %v)", time.Duration(age))
+	if age := viewBoundNow().Sub(seen); age > animViewBoundStale {
+		t.Errorf("heartbeat looks stale after resume (age = %v)", age)
 	}
 }
 
@@ -362,7 +362,7 @@ func TestViewBoundStaleStillEvictsWhilePinned(t *testing.T) {
 	tw := NewTweenAnimation("vb-pinned", 0, 1, func(float32, *Window) {})
 	w.animationAddViewBound(tw)
 	w.animMu.Lock()
-	w.animViewBound["vb-pinned"] = time.Now().Add(-3 * time.Second).UnixNano()
+	w.animViewBound["vb-pinned"] = time.Now().Add(-3 * time.Second)
 	w.animMu.Unlock()
 
 	past := time.Now().Add(-10 * time.Minute)
@@ -372,7 +372,7 @@ func TestViewBoundStaleStillEvictsWhilePinned(t *testing.T) {
 	w.animMu.Lock()
 	seen := w.animViewBound["vb-pinned"]
 	w.animMu.Unlock()
-	if viewBoundNow()-seen <= animViewBoundStale {
+	if viewBoundNow().Sub(seen) <= animViewBoundStale {
 		t.Error("stale heartbeat should still read stale while scrub-pinned")
 	}
 }
