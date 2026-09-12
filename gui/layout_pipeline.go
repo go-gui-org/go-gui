@@ -218,7 +218,24 @@ func layoutWrapTextWalkDepth(layout *Layout, w *Window, depth int) {
 		if !plainTextNeedsGlyphLayout(shape, tc, style) {
 			return
 		}
-		layoutPlainText(shape, tc, style, w)
+		if layoutPlainText(
+			shape, tc, style, wrapParentHAlign(layout), w,
+		) {
+			// The box gave width back, so the parent's contentW cache
+			// — taken in the fill pass, before the glyph layout existed
+			// — is now too wide. Every reader of that cache is a scroll
+			// one (the clamp in layoutAdjustScrollOffsets, the
+			// scrollbar thumb), so only a viewport needs the refresh;
+			// recomputing for every wrapped child of a plain column
+			// would be quadratic in the child count for a number
+			// nothing reads. Only the immediate parent changes: every
+			// ancestor above it reads the parent's Width, which the
+			// shrink leaves alone.
+			if p := layout.Parent; p != nil && p.Shape != nil &&
+				(p.Shape.Scrollable || p.Shape.Clip) {
+				p.Shape.contentW = computeContentWidth(p)
+			}
+		}
 		if shape.inkOverflowW > 0 {
 			propagateInkOverflow(layout)
 		}
@@ -363,16 +380,36 @@ func layoutWrapRTF(shape *Shape, tc *shapeTextConfig, w *Window) {
 	})
 }
 
+// wrapParentHAlign reports the physical alignment the parent would give
+// this child across a column's cross axis, or HAlignLeft when there is
+// none to inherit.
+//
+// Only a column (axisTopToBottom) answers. In a row HAlign is the main
+// axis: it places the children as a group, so narrowing one of them
+// there would open a gap rather than move the text.
+func wrapParentHAlign(layout *Layout) HorizontalAlign {
+	parent := layout.Parent
+	if parent == nil || parent.Shape == nil ||
+		parent.Shape.Axis != axisTopToBottom {
+		return HAlignLeft
+	}
+	isRTL := effectiveTextDir(parent.Shape) == TextDirRTL
+	return resolveHAlign(parent.Shape.HAlign, isRTL)
+}
+
 // layoutPlainText computes final text dimensions after sizing.
 // Mirrors the initial estimate in view_text.go:GenerateLayout.
+// It reports whether shrinkWrapToInk narrowed the box, which the
+// caller needs so the parent's content-width cache can follow.
 func layoutPlainText(
 	shape *Shape,
 	tc *shapeTextConfig,
 	style TextStyle,
+	parentHAlign HorizontalAlign,
 	w *Window,
-) {
+) bool {
 	if len(tc.Text) == 0 {
-		return
+		return false
 	}
 	if w.textMeasurer == nil {
 		// Headless: approximate rather than leave the single-line
@@ -383,20 +420,21 @@ func layoutPlainText(
 		if h := plainTextHeightNoMeasurer(shape, tc, style, w); h > shape.Height {
 			shape.Height = h
 		}
-		return
+		return false
 	}
 	if tc.TextStyle == nil {
-		return
+		return false
 	}
 	l, ok := plainTextLayoutResolved(tc.Text, shape, style, w)
 	if !ok {
-		return
+		return false
 	}
 	shape.Height = plainTextBoxHeight(l, style, w)
 	if tc.TextMode == TextModeMultiline &&
 		shape.Sizing.Width != sizingFixed && l.Width > 0 {
 		shape.Width = l.Width
 	}
+	shrank := shrinkWrapToInk(shape, tc, style, l, parentHAlign)
 	// A wrapped run with no break opportunity is wider than the width it
 	// was wrapped to. Record the excess rather than growing the shape:
 	// the shape's width IS the wrap width, so growing it would re-wrap
@@ -413,4 +451,69 @@ func layoutPlainText(
 		// overflowScrollX, so no other shape pays for the caret.
 		shape.inkOverflowW = l.Width + inputCaretW
 	}
+	return shrank
+}
+
+// shrinkWrapToInk pulls a wrapped text box back to its longest line so
+// its container's HAlign has somewhere to move it (#577).
+//
+// A wrap box fills the axis because wrapping needs a width to wrap to.
+// That leaves childCrossAxisHAlign with remaining == 0, so a centered
+// column looks like it ignores its wrapped child. Shrinking the box to
+// the ink it actually holds gives the existing alignment code its slack
+// back, and the lines inside the box do not move: they are laid out
+// from the box's left edge, and no line is wider than the longest one.
+//
+// Re-wrapping cannot follow from this. The layout l is already shaped at
+// the old width, and next frame layoutFillWidths resets the box to the
+// parent's content width before this pass runs again, so the width fed
+// to the shaper is the same every frame.
+func shrinkWrapToInk(
+	shape *Shape,
+	tc *shapeTextConfig,
+	style TextStyle,
+	l glyph.Layout,
+	parentHAlign HorizontalAlign,
+) bool {
+	switch {
+	case parentHAlign == HAlignLeft:
+		// Nothing to move it to. Leaving the box full width keeps a
+		// background, border or hit box at the extent it has always
+		// had, which is every wrapped text that did not ask for this.
+		return false
+	case tc.TextMode != TextModeWrap &&
+		tc.TextMode != TextModeWrapKeepSpaces:
+		return false
+	case !tc.wrapSizingDefault:
+		// The caller named the Sizing. That is an instruction.
+		return false
+	case tc.overflowScrollX:
+		// Input's text shape: its width is the viewport the caret
+		// scrolls within, not a measurement of the text.
+		return false
+	case shape.Float:
+		// A float is placed by its anchor, not by the alignment of the
+		// container it was declared in, and layoutRemoveFloatingLayouts
+		// leaves Parent pointing at that container. Its HAlign says
+		// nothing about where this box goes.
+		return false
+	case shape.Sizing.Width == sizingFixed:
+		return false
+	case style.Align != TextAlignLeft:
+		// glyph centred the lines against the wrap width already.
+		// Moving the box now would double the offset.
+		return false
+	case !f32IsFinite(l.Width) || l.Width <= 0 ||
+		l.Width >= shape.Width-f32Tolerance:
+		return false
+	}
+	shape.Width = l.Width
+	// Keep the shaped layout current for the new width. The cache key is
+	// the width handed to the shaper, and re-wrapping at the longest line
+	// yields the same breaks — every line already fits it, and a word
+	// that did not fit the wider box does not fit this one — so the
+	// render pass can reuse what this pass shaped instead of shaping the
+	// same text a second time.
+	tc.textLayoutWidth = shape.Width
+	return true
 }

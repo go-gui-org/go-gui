@@ -132,7 +132,12 @@ type ContainerCfg struct {
 	ColorBorder Color
 
 	// Sizing
-	Sizing   Sizing
+	Sizing Sizing
+
+	// HAlign places the child boxes, not the text inside them. A child
+	// that fills the axis has nowhere to move, so alignment does
+	// nothing to it. To align the lines within a text box, set
+	// TextStyle.Align.
 	HAlign   HorizontalAlign // ergonomics-audit:opt-plain — zero (HAlignStart) is the natural default; no distinct unset behavior
 	VAlign   verticalAlign   // ergonomics-audit:opt-plain — zero (VAlignTop) is the natural default; no distinct unset behavior
 	TextDir  textDirection
