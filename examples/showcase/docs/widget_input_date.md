@@ -33,8 +33,10 @@ gui.InputDate(gui.InputDateCfg{
 Leave `DateFormat` empty to use the locale. To change every date field at once,
 set the locale instead: `ctx.Window.SetLocaleID("de-DE")`.
 
-Month-name tokens (`MMM`, `MMMM`) are not permitted. The field accepts digits
-and separators only, so a month name could be shown but never typed back.
+Month-name tokens (`MMM`, `MMMM`), a 2-digit year (`YY`) and time tokens (`HH`,
+`mm`, `ss`) are not permitted. The field accepts digits and separators only and
+the parse reads `YYYY`, `MM`, `M`, `DD`, `D`, so anything else could be shown
+but never typed back.
 
 ## With Filtering
 

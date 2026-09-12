@@ -19,9 +19,11 @@ and this project adheres to
   format drives all four places the field uses one: the text it shows, the input
   mask, the placeholder hint, and the parse of what the user types. Unset keeps
   the locale's short date, so existing fields are unchanged. A month-name token
-  (`MMM`, `MMMM`) panics at construction, because the field masks digits and a
-  text month could be shown but never typed back. To change every field at once,
-  set the locale instead: `SetLocaleID("de-DE")` already carries `D.M.YYYY`.
+  (`MMM`, `MMMM`), a 2-digit year (`YY`) and time tokens (`HH`, `mm`, `ss`)
+  panic at construction, because the field masks digits and the parse only reads
+  `YYYY`, `MM`, `M`, `DD`, `D`: anything else could be shown but never typed
+  back. To change every field at once, set the locale instead:
+  `SetLocaleID("de-DE")` already carries `D.M.YYYY`.
 
 ### Fixed
 

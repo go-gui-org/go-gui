@@ -405,3 +405,28 @@ func TestInputDateFormatRejectsNoTokens(t *testing.T) {
 	}()
 	InputDate(InputDateCfg{ID: "id-fmt-empty", DateFormat: "---"})
 }
+
+// A 2-digit year shows literally and never parses: the mask keeps the
+// YY as literals while localeParseDate only reads YYYY, so typing the
+// year back fails. Reject at construction (issue #578).
+func TestInputDateFormatRejectsTwoDigitYear(t *testing.T) {
+	defer func() {
+		if recover() == nil {
+			t.Error("InputDate accepted a 2-digit-year DateFormat")
+		}
+	}()
+	InputDate(InputDateCfg{ID: "id-fmt-yy", DateFormat: "DD.MM.YY"})
+}
+
+// A time token displays one thing and parses another: the display
+// path substitutes HH/mm/ss but localeParseDate leaves them as
+// literals, so a committed time can never round-trip. The field is
+// date-only, so reject at construction (issue #578).
+func TestInputDateFormatRejectsTimeToken(t *testing.T) {
+	defer func() {
+		if recover() == nil {
+			t.Error("InputDate accepted a time-token DateFormat")
+		}
+	}()
+	InputDate(InputDateCfg{ID: "id-fmt-time", DateFormat: "DD.MM.YYYY HH:mm"})
+}

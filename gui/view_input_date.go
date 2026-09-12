@@ -24,9 +24,11 @@ type InputDateCfg struct {
 	// in the locale token language: YYYY, MM, M, DD, D and literal
 	// separators — "DD.MM.YYYY", "YYYY-MM-DD". Unset takes the
 	// active locale's short date, which is what every field did
-	// before issue #578. Month-name tokens (MMM, MMMM) are
-	// rejected: the field is a masked numeric entry, so a text
-	// month could be displayed but never typed back.
+	// before issue #578. Month-name tokens (MMM, MMMM), a 2-digit
+	// year (YY) and time tokens (HH, mm, ss) are rejected: the
+	// field is a masked numeric entry, so a text month could be
+	// displayed but never typed back, and the parse only reads
+	// YYYY, MM, M, DD, D.
 	DateFormat string
 
 	A11YCfg
@@ -369,9 +371,11 @@ func inputDateFormat(cfg *InputDateCfg) string {
 }
 
 // requireDateFormat panics on a DateFormat the masked numeric field
-// cannot honour. A month name renders but cannot be typed back, and a
-// format with no date token at all masks to a row of literals, so both
-// produce a field that looks right and refuses every keystroke. Fail at
+// cannot honour. A month name renders but cannot be typed back, a
+// 2-digit year and a time token display one thing and parse another
+// (localeParseDate only reads YYYY, MM, M, DD, D), and a format with
+// no date token at all masks to a row of literals, so each produces a
+// field that looks right and refuses every keystroke. Fail at
 // construction instead, the way RequireID does (issue #578).
 func requireDateFormat(widget, format string) {
 	if format == "" {
@@ -380,6 +384,17 @@ func requireDateFormat(widget, format string) {
 	if strings.Contains(format, "MMM") {
 		panic("gui: " + widget + " DateFormat " + strconv.Quote(format) +
 			" uses a month-name token; the field masks digits only")
+	}
+	if strings.Contains(format, "YY") &&
+		!strings.Contains(format, "YYYY") {
+		panic("gui: " + widget + " DateFormat " + strconv.Quote(format) +
+			" uses a 2-digit year; spell YYYY")
+	}
+	if strings.Contains(format, "HH") ||
+		strings.Contains(format, "mm") ||
+		strings.Contains(format, "ss") {
+		panic("gui: " + widget + " DateFormat " + strconv.Quote(format) +
+			" uses a time token; the field is date-only")
 	}
 	padded := localeDatePadFormat(format)
 	if !strings.Contains(padded, "YYYY") &&

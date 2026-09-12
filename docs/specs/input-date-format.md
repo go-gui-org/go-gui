@@ -45,8 +45,11 @@ each site is how the four drift apart, so none of them reads the locale directly
 any more.
 
 `requireDateFormat` panics from the `InputDate` factory on a format the field
-cannot honour: a month-name token (`MMM`, `MMMM`), or a format with no `YYYY`,
-`MM` or `DD`. This matches the `RequireID` precedent in `gui/state_registry.go`.
+cannot honour: a month-name token (`MMM`, `MMMM`), a 2-digit year (`YY` without
+`YYYY`), a time token (`HH`, `mm`, `ss` — the display path substitutes them but
+`localeParseDate` leaves them as literals, so a commit can never round-trip), or
+a format with no `YYYY`, `MM` or `DD`. This matches the `RequireID` precedent in
+`gui/state_registry.go`.
 
 The `opticalDigitCenter: true` assumption stays true because of that check.
 `docs/specs/text-optical-centring.md` records that the date field centres on its
