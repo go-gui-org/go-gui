@@ -287,3 +287,121 @@ func TestInputDateFocusDisabled(t *testing.T) {
 		t.Error("FocusDisabled: true should produce a non-focusable outer Column")
 	}
 }
+
+// --- DateFormat (issue #578) ---
+
+// An unset DateFormat keeps the pre-#578 behaviour: the field reads the
+// active locale's short date, padded.
+func TestInputDateFormatUnsetUsesLocale(t *testing.T) {
+	cfg := InputDateCfg{ID: "id-fmt-unset"}
+	want := localeDatePadFormat(ActiveLocale.Date.ShortDate)
+	if got := inputDateFormat(&cfg); got != want {
+		t.Errorf("inputDateFormat = %q, want %q", got, want)
+	}
+}
+
+// A set DateFormat wins over the locale and is padded the same way, so
+// "D.M.YYYY" and "DD.MM.YYYY" both reach the widget as the padded form.
+func TestInputDateFormatSetWinsOverLocale(t *testing.T) {
+	cfg := InputDateCfg{ID: "id-fmt-set", DateFormat: "D.M.YYYY"}
+	if got := inputDateFormat(&cfg); got != "DD.MM.YYYY" {
+		t.Errorf("inputDateFormat = %q, want %q", got, "DD.MM.YYYY")
+	}
+}
+
+func TestInputDateFormatDisplayText(t *testing.T) {
+	w := &Window{}
+	v := InputDate(InputDateCfg{
+		ID:         "id-fmt-text",
+		DateFormat: "DD.MM.YYYY",
+		Date:       time.Date(2026, 12, 24, 0, 0, 0, 0, time.Local),
+	})
+	layout := generateViewLayout(v, w)
+	if !layoutContainsText(&layout, "24.12.2026") {
+		t.Error("layout does not contain 24.12.2026")
+	}
+}
+
+// With no date and no explicit Placeholder the field shows the format
+// itself, so the hint follows DateFormat rather than the locale.
+func TestInputDateFormatPlaceholder(t *testing.T) {
+	w := &Window{}
+	v := InputDate(InputDateCfg{
+		ID:         "id-fmt-ph",
+		DateFormat: "YYYY-MM-DD",
+	})
+	layout := generateViewLayout(v, w)
+	if !layoutContainsText(&layout, "YYYY-MM-DD") {
+		t.Error("layout does not contain the YYYY-MM-DD placeholder")
+	}
+}
+
+// The mask admits the separators the format spells, so a dotted format
+// gates on dots rather than on the locale's slashes.
+func TestInputDateFormatMask(t *testing.T) {
+	cfg := InputDateCfg{ID: "id-fmt-mask", DateFormat: "DD.MM.YYYY"}
+	got := localeDateMaskPattern(inputDateFormat(&cfg))
+	if got != "99.99.9999" {
+		t.Errorf("mask = %q, want %q", got, "99.99.9999")
+	}
+}
+
+// Committing typed text parses against DateFormat, not the locale: with
+// the locale's MM/DD/YYYY the same digits would read as a different day.
+func TestInputDateFormatParsesCommit(t *testing.T) {
+	w := newTestWindow()
+	var got []time.Time
+	v := InputDate(InputDateCfg{
+		ID:         "id-fmt-commit",
+		DateFormat: "DD.MM.YYYY",
+		Date:       time.Date(2026, 1, 2, 0, 0, 0, 0, time.Local),
+		OnSelect: func(dates []time.Time, _ EventCtx) {
+			got = dates
+		},
+	})
+	// Seed the edit text the way typing would, with the sync marker
+	// already matching the rendered date so generation does not
+	// overwrite it (see the sync guard in GenerateLayout).
+	sm := StateMap[string, string](w, nsInputDateText, capModerate)
+	sm.Set("id-fmt-commit", "24.12.2026")
+	sm.Set(ScopeID("id-fmt-commit", "sync"), "02.01.2026")
+
+	layout := generateViewLayout(v, w)
+	inner, ok := layout.findByID("id-fmt-commit:input")
+	if !ok {
+		t.Fatal("inner Input not found")
+	}
+	setInputState(w, "id-fmt-commit:input", inputState{CursorPos: 10})
+	w.SetFocus("id-fmt-commit:input")
+	e := &Event{Type: EventKeyDown, KeyCode: KeyEnter}
+	inner.Shape.events.OnKeyDown(EventCtx{inner, e, w})
+
+	if len(got) != 1 {
+		t.Fatalf("OnSelect got %d dates, want 1", len(got))
+	}
+	if got[0].Year() != 2026 || got[0].Month() != time.December ||
+		got[0].Day() != 24 {
+		t.Errorf("parsed %v, want 2026-12-24", got[0])
+	}
+}
+
+// A month-name token cannot be masked or typed back, so the factory
+// rejects it rather than shipping a field that refuses every keystroke.
+func TestInputDateFormatRejectsMonthName(t *testing.T) {
+	defer func() {
+		if recover() == nil {
+			t.Error("InputDate accepted a month-name DateFormat")
+		}
+	}()
+	InputDate(InputDateCfg{ID: "id-fmt-bad", DateFormat: "DD MMM YYYY"})
+}
+
+// A format with no date token at all is equally unusable.
+func TestInputDateFormatRejectsNoTokens(t *testing.T) {
+	defer func() {
+		if recover() == nil {
+			t.Error("InputDate accepted a token-free DateFormat")
+		}
+	}()
+	InputDate(InputDateCfg{ID: "id-fmt-empty", DateFormat: "---"})
+}

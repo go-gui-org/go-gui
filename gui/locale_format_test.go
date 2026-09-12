@@ -134,3 +134,45 @@ func TestLocaleT(t *testing.T) {
 		t.Fatalf("got %q, want missing", got)
 	}
 }
+
+// localeParseDate is the only parse in the date path and had no test
+// before issue #578 gave callers control of the format.
+func TestLocaleParseDate(t *testing.T) {
+	tests := []struct {
+		format  string
+		text    string
+		wantErr bool
+		year    int
+		month   time.Month
+		day     int
+	}{
+		{"MM/DD/YYYY", "12/24/2026", false, 2026, time.December, 24},
+		{"DD.MM.YYYY", "24.12.2026", false, 2026, time.December, 24},
+		{"DD/MM/YYYY", "24/12/2026", false, 2026, time.December, 24},
+		{"YYYY-MM-DD", "2026-12-24", false, 2026, time.December, 24},
+		{"M/D/YYYY", "1/5/2026", false, 2026, time.January, 5},
+		// The separators must match the format.
+		{"DD.MM.YYYY", "24/12/2026", true, 0, 0, 0},
+		// A day the month does not have.
+		{"DD.MM.YYYY", "31.02.2026", true, 0, 0, 0},
+	}
+	for _, tt := range tests {
+		got, err := localeParseDate(tt.text, tt.format)
+		if tt.wantErr {
+			if err == nil {
+				t.Errorf("%s / %s: want error, got %v",
+					tt.format, tt.text, got)
+			}
+			continue
+		}
+		if err != nil {
+			t.Errorf("%s / %s: %v", tt.format, tt.text, err)
+			continue
+		}
+		if got.Year() != tt.year || got.Month() != tt.month ||
+			got.Day() != tt.day {
+			t.Errorf("%s / %s = %v, want %d-%02d-%02d",
+				tt.format, tt.text, got, tt.year, tt.month, tt.day)
+		}
+	}
+}

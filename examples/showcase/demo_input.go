@@ -397,6 +397,22 @@ func demoInputDate(w *gui.Window) gui.View {
 				Text:      "Selected: " + gui.LocaleFormatDate(app.InputDate, gui.CurrentLocale().Date.ShortDate),
 				TextStyle: gui.CurrentTheme().N3,
 			}),
+			// The same date through a field-level DateFormat. The
+			// format drives the text, the mask, the placeholder and
+			// the parse, so this field types day-first (issue #578).
+			gui.InputDate(gui.InputDateCfg{
+				ID:         "input-date-fmt",
+				Label:      "DateFormat: \"DD.MM.YYYY\"",
+				Date:       app.InputDate,
+				DateFormat: "DD.MM.YYYY",
+				Sizing:     gui.FillFit,
+				OnSelect: func(dates []time.Time, ctx gui.EventCtx) {
+					if len(dates) == 0 {
+						return
+					}
+					appState(ctx.Window).InputDate = dates[0]
+				},
+			}),
 		},
 	})
 }
