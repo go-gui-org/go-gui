@@ -2,10 +2,16 @@ package gui
 
 // SwitchCfg configures a pill-shaped toggle switch.
 type SwitchCfg struct {
+	// TextStyle is retained for compatibility and has no effect;
+	// TextStyleLabel styles the trailing label.
 	TextStyle TextStyle
-	OnClick   func(EventCtx)
-	ID        string `gui:"required,focus"`
-	Label     string
+	// TextStyleLabel styles the trailing label. Zero takes the
+	// theme default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	TextStyleLabel TextStyle
+	OnClick        func(EventCtx)
+	ID             string `gui:"required,focus"`
+	Label          string
 
 	A11YCfg
 	Padding    Padding
@@ -42,7 +48,7 @@ type SwitchCfg struct {
 
 // LabeledSwitch is the thin form of Switch for the common case: a
 // label next to a pill switch in its initial selected state. Callers
-// needing TextStyle, Colors, Width, or the rest of SwitchCfg use
+// needing TextStyleLabel, Colors, Width, or the rest of SwitchCfg use
 // Switch directly.
 // exportaudit:keep — convenience form; no example uses it yet
 func LabeledSwitch(id, label string, selected bool, onClick func(EventCtx)) View {
@@ -108,7 +114,7 @@ func Switch(cfg SwitchCfg) View {
 	}))
 	if len(cfg.Label) > 0 {
 		content = append(content,
-			trailingLabel(cfg.Label, cfg.TextStyle))
+			trailingLabel(cfg.Label, cfg.TextStyleLabel))
 	}
 
 	a11yState := AccessStateNone
@@ -201,5 +207,12 @@ func applySwitchDefaults(cfg *SwitchCfg) {
 	}
 	if cfg.TextStyle == (TextStyle{}) {
 		cfg.TextStyle = d.textStyleNormal
+	} else {
+		cfg.TextStyle = mergeTextStyle(cfg.TextStyle, d.textStyleNormal)
+	}
+	if cfg.TextStyleLabel == (TextStyle{}) {
+		cfg.TextStyleLabel = d.textStyleLabel
+	} else {
+		cfg.TextStyleLabel = mergeTextStyle(cfg.TextStyleLabel, d.textStyleLabel)
 	}
 }

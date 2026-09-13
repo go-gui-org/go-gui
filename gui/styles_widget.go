@@ -42,6 +42,7 @@ type SeparatorStyle struct {
 // exportaudit:keep — reachable from an exported signature
 type RadioStyle struct {
 	textStyleNormal  TextStyle
+	textStyleLabel   TextStyle
 	Padding          Padding
 	Size             float32
 	SizeBorder       float32
@@ -59,6 +60,7 @@ type RadioStyle struct {
 // exportaudit:keep — reachable from an exported signature
 type SwitchStyle struct {
 	textStyleNormal  TextStyle
+	textStyleLabel   TextStyle
 	Shadow           *BoxShadow
 	Padding          Padding
 	sizeWidth        float32

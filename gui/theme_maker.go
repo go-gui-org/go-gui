@@ -264,6 +264,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			Padding:          PadAll(4),
 			SizeBorder:       cfg.SizeBorder,
 			textStyleNormal:  ts,
+			textStyleLabel:   ts,
 		},
 		switchStyle: SwitchStyle{
 			sizeWidth:        cfg.SizeSwitchWidth,
@@ -280,6 +281,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			SizeBorder:       cfg.SizeBorder,
 			Radius:           radiusLarge * 2,
 			textStyleNormal:  ts,
+			textStyleLabel:   ts,
 		},
 		toggleStyle: ToggleStyle{
 			Color:            cfg.ColorPanel,

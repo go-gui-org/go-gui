@@ -280,3 +280,72 @@ func TestUntitledRadioGroupLeavesBorderUnset(t *testing.T) {
 		t.Errorf("border = %v, want unset", layout.Shape.ColorBorder)
 	}
 }
+
+// The group forwards its label style to every option's trailing label.
+func TestRadioButtonGroupForwardsTextStyleLabel(t *testing.T) {
+	custom := TextStyle{Color: RGBA(200, 40, 40, 255)}
+	layout := generateViewLayout(RadioButtonGroupColumn(RadioButtonGroupCfg{
+		ID:             "rbg_label_style",
+		Options:        []RadioOption{{Label: "A", Value: "a"}},
+		TextStyleLabel: custom,
+		OnSelect:       func(_ string, _ EventCtx) {},
+	}), newTestWindow())
+	if len(layout.Children) < 1 || len(layout.Children[0].Children) < 2 {
+		t.Fatal("expected option with trailing label child")
+	}
+	tc := layout.Children[0].Children[1].Children[0].Shape.TC
+	if tc == nil || tc.TextStyle == nil {
+		t.Fatal("option label has no text style")
+	}
+	if tc.TextStyle.Color != custom.Color {
+		t.Errorf("label color = %+v, want %+v",
+			tc.TextStyle.Color, custom.Color)
+	}
+}
+
+// A group that still sets the legacy TextStyle keeps its look: the
+// style reaches the option labels when TextStyleLabel is unset.
+func TestRadioButtonGroupLegacyTextStyleReachesLabel(t *testing.T) {
+	custom := TextStyle{Color: RGBA(200, 40, 40, 255)}
+	layout := generateViewLayout(RadioButtonGroupColumn(RadioButtonGroupCfg{
+		ID:        "rbg_legacy_style",
+		Options:   []RadioOption{{Label: "A", Value: "a"}},
+		TextStyle: custom,
+		OnSelect:  func(_ string, _ EventCtx) {},
+	}), newTestWindow())
+	if len(layout.Children) < 1 || len(layout.Children[0].Children) < 2 {
+		t.Fatal("expected option with trailing label child")
+	}
+	tc := layout.Children[0].Children[1].Children[0].Shape.TC
+	if tc == nil || tc.TextStyle == nil {
+		t.Fatal("option label has no text style")
+	}
+	if tc.TextStyle.Color != custom.Color {
+		t.Errorf("label color = %+v, want %+v",
+			tc.TextStyle.Color, custom.Color)
+	}
+}
+
+// An explicit TextStyleLabel wins over the legacy TextStyle.
+func TestRadioButtonGroupLabelWinsOverLegacy(t *testing.T) {
+	label := TextStyle{Color: RGBA(40, 200, 40, 255)}
+	legacy := TextStyle{Color: RGBA(200, 40, 40, 255)}
+	layout := generateViewLayout(RadioButtonGroupColumn(RadioButtonGroupCfg{
+		ID:             "rbg_label_precedence",
+		Options:        []RadioOption{{Label: "A", Value: "a"}},
+		TextStyle:      legacy,
+		TextStyleLabel: label,
+		OnSelect:       func(_ string, _ EventCtx) {},
+	}), newTestWindow())
+	if len(layout.Children) < 1 || len(layout.Children[0].Children) < 2 {
+		t.Fatal("expected option with trailing label child")
+	}
+	tc := layout.Children[0].Children[1].Children[0].Shape.TC
+	if tc == nil || tc.TextStyle == nil {
+		t.Fatal("option label has no text style")
+	}
+	if tc.TextStyle.Color != label.Color {
+		t.Errorf("label color = %+v, want %+v",
+			tc.TextStyle.Color, label.Color)
+	}
+}

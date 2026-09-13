@@ -2,10 +2,16 @@ package gui
 
 // RadioCfg configures a radio button.
 type RadioCfg struct {
+	// TextStyle is retained for compatibility and has no effect;
+	// TextStyleLabel styles the trailing label.
 	TextStyle TextStyle
-	OnClick   func(EventCtx)
-	ID        string `gui:"required,focus"`
-	Label     string
+	// TextStyleLabel styles the trailing label. Zero takes the
+	// theme default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	TextStyleLabel TextStyle
+	OnClick        func(EventCtx)
+	ID             string `gui:"required,focus"`
+	Label          string
 
 	A11YCfg
 	Padding    Padding
@@ -72,7 +78,7 @@ func Radio(cfg RadioCfg) View {
 
 	if len(cfg.Label) > 0 {
 		content = append(content,
-			trailingLabel(cfg.Label, cfg.TextStyle))
+			trailingLabel(cfg.Label, cfg.TextStyleLabel))
 	}
 
 	a11yState := AccessStateNone
@@ -158,5 +164,10 @@ func applyRadioDefaults(cfg *RadioCfg) {
 		cfg.TextStyle = d.textStyleNormal
 	} else {
 		cfg.TextStyle = mergeTextStyle(cfg.TextStyle, d.textStyleNormal)
+	}
+	if cfg.TextStyleLabel == (TextStyle{}) {
+		cfg.TextStyleLabel = d.textStyleLabel
+	} else {
+		cfg.TextStyleLabel = mergeTextStyle(cfg.TextStyleLabel, d.textStyleLabel)
 	}
 }

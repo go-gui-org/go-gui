@@ -54,6 +54,11 @@ and this project adheres to
   `MouseUp` but kept the mouse-down intercept internal, so external drag code
   could not intercept the press that starts a drag. When both spellings are set,
   `MouseDown` runs and the internal one is ignored.
+- **`SwitchCfg.TextStyleLabel` and `RadioCfg.TextStyleLabel` style the trailing
+  label (#335)** — `Switch` and `Radio` used the control text style for the
+  label beside the control. `Toggle` had a dedicated label style. All three now
+  take `TextStyleLabel`, and zero takes the theme default. A caller that styled
+  the label through `TextStyle` moves that style to `TextStyleLabel`.
 
 ### Fixed
 

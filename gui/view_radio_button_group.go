@@ -13,7 +13,13 @@ func NewRadioOption(label, value string) RadioOption {
 
 // RadioButtonGroupCfg configures a radio button group.
 type RadioButtonGroupCfg struct {
+	// TextStyle is retained for compatibility and has no effect;
+	// TextStyleLabel styles the option labels.
 	TextStyle TextStyle
+	// TextStyleLabel styles the option labels. Zero takes the
+	// theme default. An explicit TextStyleLabel wins over TextStyle.
+	// exportaudit:keep — caller-facing config (issue #372)
+	TextStyleLabel TextStyle
 
 	OnSelect func(string, EventCtx)
 	Value    string
@@ -98,15 +104,23 @@ func radioGroup(cfg RadioButtonGroupCfg, axis func(ContainerCfg) View) View {
 func buildRadioOptions(cfg RadioButtonGroupCfg) []View {
 	content := make([]View, 0, len(cfg.Options))
 	onSelect := cfg.OnSelect
+	// The group renamed its label style alongside Radio: an explicit
+	// TextStyleLabel wins, a legacy TextStyle still reaches the label
+	// so existing groups keep their look.
+	labelStyle := cfg.TextStyleLabel
+	if labelStyle == (TextStyle{}) {
+		labelStyle = cfg.TextStyle
+	}
 	for i, opt := range cfg.Options {
 		optValue := opt.Value
 		content = append(content, Radio(RadioCfg{
-			ID:            ScopeIDN(cfg.ID, "opt", i),
-			Label:         opt.Label,
-			FocusDisabled: cfg.FocusDisabled,
-			Selected:      cfg.Value == opt.Value,
-			Disabled:      cfg.Disabled,
-			TextStyle:     cfg.TextStyle,
+			ID:             ScopeIDN(cfg.ID, "opt", i),
+			Label:          opt.Label,
+			FocusDisabled:  cfg.FocusDisabled,
+			Selected:       cfg.Value == opt.Value,
+			Disabled:       cfg.Disabled,
+			TextStyle:      cfg.TextStyle,
+			TextStyleLabel: labelStyle,
 			// Forwarded, not resolved here: Radio owns the
 			// precedence, so the group only has to hand its own
 			// choice down to every option (issue #467).

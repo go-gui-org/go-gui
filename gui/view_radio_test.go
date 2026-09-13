@@ -41,6 +41,57 @@ func TestRadioOnClickCallback(t *testing.T) {
 	}
 }
 
+func TestRadioLabelUsesTextStyleLabel(t *testing.T) {
+	custom := TextStyle{
+		Color: RGBA(200, 40, 40, 255),
+		Size:  31,
+	}
+	w := &Window{}
+	layout := generateViewLayout(
+		Radio(RadioCfg{
+			ID:             "r_label_style",
+			Label:          "Option A",
+			TextStyleLabel: custom,
+			OnClick:        noop,
+		}), w)
+	if len(layout.Children) < 2 {
+		t.Fatal("expected trailing label child")
+	}
+	tc := layout.Children[1].Children[0].Shape.TC
+	if tc == nil || tc.TextStyle == nil {
+		t.Fatal("trailing label has no text style")
+	}
+	if tc.TextStyle.Color != custom.Color {
+		t.Errorf("label color = %+v, want %+v",
+			tc.TextStyle.Color, custom.Color)
+	}
+	if tc.TextStyle.Size != custom.Size {
+		t.Errorf("label size = %f, want %f",
+			tc.TextStyle.Size, custom.Size)
+	}
+}
+
+func TestRadioLabelDefaultsToTheme(t *testing.T) {
+	w := &Window{}
+	layout := generateViewLayout(
+		Radio(RadioCfg{
+			ID:      "r_label_default",
+			Label:   "Option A",
+			OnClick: noop,
+		}), w)
+	if len(layout.Children) < 2 {
+		t.Fatal("expected trailing label child")
+	}
+	tc := layout.Children[1].Children[0].Shape.TC
+	if tc == nil || tc.TextStyle == nil {
+		t.Fatal("trailing label has no text style")
+	}
+	if *tc.TextStyle != defaultRadioStyle.textStyleLabel {
+		t.Errorf("label style = %+v, want theme %+v",
+			*tc.TextStyle, defaultRadioStyle.textStyleLabel)
+	}
+}
+
 func TestRadioFocusablePassthrough(t *testing.T) {
 	w := &Window{}
 	layout := generateViewLayout(
