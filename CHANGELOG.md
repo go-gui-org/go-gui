@@ -46,6 +46,15 @@ and this project adheres to
 
 ### Fixed
 
+- **A container with `Gradient`, `Shader` or a blur draws its border (#589)** —
+  The border is now drawn after the fill, whatever the fill is. Before, these
+  containers reserved space for the border but drew no line: `ColorBorder`,
+  `SizeBorder` and `BorderGradient` were ignored. A container with both `Color`
+  and `BorderGradient` also lost its solid fill; it now draws both. A
+  `BorderGradient` still wins over `ColorBorder`. Existing screens can change: a
+  blurred dialog or a gradient button that sets `ColorBorder` now shows that
+  border. The `examples/custom_buttons` XP button drops the extra container it
+  used to draw its blue frame.
 - **Hover no longer sticks when the pointer leaves the window or a touch lifts
   (#587)** — Metal, X11 and Win32 now report the pointer leaving the window, so
   `OnMouseLeave` fires and `OnHover` stops. Before, the last hovered widget

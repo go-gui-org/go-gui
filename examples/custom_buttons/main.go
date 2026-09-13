@@ -410,37 +410,30 @@ func (b xpButton) GenerateLayout(w *gui.Window) gui.Layout {
 		faceGrad = grad
 	}
 
-	// The blue frame is its own container with 1px padding, not a border on
-	// the gradient body: a container with a Gradient paints no border (#589).
+	// The blue frame is the body's 1px border, drawn over the gradient.
 	cfg := buttonShell(gui.ContainerCfg{
-		ID:         b.id,
-		MinWidth:   75,
-		Radius:     gui.SomeF(3),
-		Color:      border,
-		Padding:    gui.PadAll(1),
-		SizeBorder: gui.NoBorder,
-		Content: []gui.View{gui.Column(gui.ContainerCfg{
-			Sizing:     gui.FillFill,
-			Radius:     gui.SomeF(2),
-			Color:      faceColor,
-			Gradient:   grad,
-			Padding:    gui.PaddingNone,
-			SizeBorder: gui.NoBorder,
-			Content: []gui.View{rim(rimOuter, gui.NewPadding(0, 3, 3, 0),
-				rim(rimInner, gui.NewPadding(3, 0, 0, 3),
-					gui.Row(gui.ContainerCfg{
-						Sizing:     gui.FillFill,
-						Color:      faceFill,
-						Gradient:   faceGrad,
-						Radius:     gui.SomeF(2),
-						Padding:    gui.NewPadding(top, right, bottom, left),
-						SizeBorder: gui.NoBorder,
-						HAlign:     gui.HAlignCenter,
-						Content: []gui.View{
-							gui.Text(gui.TextCfg{Text: b.label, TextStyle: textStyle(text, 11)}),
-						},
-					})))},
-		})},
+		ID:          b.id,
+		MinWidth:    75,
+		Radius:      gui.SomeF(3),
+		Color:       faceColor,
+		Gradient:    grad,
+		ColorBorder: border,
+		SizeBorder:  gui.SomeF(1),
+		Padding:     gui.PaddingNone,
+		Content: []gui.View{rim(rimOuter, gui.NewPadding(0, 3, 3, 0),
+			rim(rimInner, gui.NewPadding(3, 0, 0, 3),
+				gui.Row(gui.ContainerCfg{
+					Sizing:     gui.FillFill,
+					Color:      faceFill,
+					Gradient:   faceGrad,
+					Radius:     gui.SomeF(2),
+					Padding:    gui.NewPadding(top, right, bottom, left),
+					SizeBorder: gui.NoBorder,
+					HAlign:     gui.HAlignCenter,
+					Content: []gui.View{
+						gui.Text(gui.TextCfg{Text: b.label, TextStyle: textStyle(text, 11)}),
+					},
+				})))},
 	}, b.label, b.disabled, b.onClick)
 	return gui.Column(cfg).GenerateLayout(w)
 }

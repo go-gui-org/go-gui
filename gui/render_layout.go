@@ -229,8 +229,11 @@ func renderContainer(shape *Shape, _ Color, clip drawClip, w *Window) {
 		}, w)
 	}
 
-	// Custom shader
-	if hasFX && fx.Shader != nil {
+	// Fill. Exactly one of these paints the body. The border is not
+	// part of any branch: it is drawn after the switch, so every fill
+	// gets one (issue #589).
+	switch {
+	case hasFX && fx.Shader != nil:
 		emitRenderer(RenderCmd{
 			Kind:   RenderCustomShader,
 			X:      shape.X,
@@ -246,10 +249,7 @@ func renderContainer(shape *Shape, _ Color, clip drawClip, w *Window) {
 				1.0, shape.Disabled),
 			Shader: fx.Shader,
 		}, w)
-	} else
-
-	// Gradient fill
-	if hasFX && fx.Gradient != nil {
+	case hasFX && fx.Gradient != nil:
 		emitRenderer(RenderCmd{
 			Kind:   RenderGradient,
 			X:      shape.X,
@@ -260,8 +260,8 @@ func renderContainer(shape *Shape, _ Color, clip drawClip, w *Window) {
 			Gradient: dimmedGradient(fx.Gradient,
 				shape.Opacity, shape.Disabled),
 		}, w)
-	} else if hasFX && fx.BlurRadius > 0 && shape.Color.A > 0 &&
-		fx.ColorFilter == nil {
+	case hasFX && fx.BlurRadius > 0 && shape.Color.A > 0 &&
+		fx.ColorFilter == nil:
 		// SDF blur (skipped when ColorFilter is set; FBO blur
 		// handles it via the filter bracket pipeline).
 		c := shape.Color
@@ -278,68 +278,82 @@ func renderContainer(shape *Shape, _ Color, clip drawClip, w *Window) {
 			BlurRadius: fx.BlurRadius,
 			Color:      c,
 		}, w)
-	} else {
-		// Border gradient or plain rectangle
-		if hasFX && fx.BorderGradient != nil {
-			emitRenderer(RenderCmd{
-				Kind:      RenderGradientBorder,
-				X:         shape.X,
-				Y:         shape.Y,
-				W:         shape.Width,
-				H:         shape.Height,
-				Radius:    shape.Radius,
-				Thickness: shape.SizeBorder,
-				Gradient: dimmedGradient(fx.BorderGradient,
-					shape.Opacity, shape.Disabled),
-			}, w)
-		} else {
-			renderRectangle(shape, clip, w)
-		}
+	default:
+		// A BorderGradient used to take this branch in place of the
+		// solid fill, so a container with both lost its Color.
+		renderRectangleFill(shape, clip, w)
+	}
+
+	// Border, on top of the fill.
+	if dr := shapeBounds(shape); rectsOverlap(dr, clip) {
+		renderShapeBorder(shape, dr, shape.Radius, w)
 	}
 }
 
-// renderRectangle draws a shape as a filled rectangle with optional
-// stroke border.
-func renderRectangle(shape *Shape, clip drawClip, w *Window) {
+// renderRectangleFill draws a shape's solid body, if it has a visible
+// Color and overlaps the clip.
+func renderRectangleFill(shape *Shape, clip drawClip, w *Window) {
 	dr := shapeBounds(shape)
 	c := shape.Color
 	if shape.Disabled {
 		c = dimAlpha(c)
 	}
+	if c.A > 0 && rectsOverlap(dr, clip) {
+		emitRenderer(RenderCmd{
+			Kind:   RenderRect,
+			X:      dr.X,
+			Y:      dr.Y,
+			W:      dr.Width,
+			H:      dr.Height,
+			Color:  c,
+			Fill:   true,
+			Radius: shape.Radius,
+		}, w)
+	}
+}
 
-	if rectsOverlap(dr, clip) {
-		// Fill
-		if c.A > 0 {
-			emitRenderer(RenderCmd{
-				Kind:   RenderRect,
-				X:      dr.X,
-				Y:      dr.Y,
-				W:      dr.Width,
-				H:      dr.Height,
-				Color:  c,
-				Fill:   true,
-				Radius: shape.Radius,
-			}, w)
-		}
-		// Border
-		if shape.SizeBorder > 0 {
-			cb := shape.ColorBorder
-			if shape.Disabled {
-				cb = dimAlpha(cb)
-			}
-			if cb.A > 0 {
-				emitRenderer(RenderCmd{
-					Kind:      RenderStrokeRect,
-					X:         dr.X,
-					Y:         dr.Y,
-					W:         dr.Width,
-					H:         dr.Height,
-					Color:     cb,
-					Radius:    shape.Radius,
-					Thickness: shape.SizeBorder,
-				}, w)
-			}
-		}
+// renderShapeBorder draws a shape's border over its bounds dr. One
+// border at most: a BorderGradient wins over ColorBorder. Nothing is
+// drawn when SizeBorder is 0 or when the solid border color is
+// invisible. The caller has already culled dr against the clip. radius
+// is a parameter because a circle strokes at half its short side, not
+// at shape.Radius.
+func renderShapeBorder(shape *Shape, dr drawClip, radius float32, w *Window) {
+	// Written as !(> 0), not <= 0, so a NaN width is skipped here, as
+	// it was before, instead of reaching emitRenderer and tripping the
+	// render guard.
+	if !(shape.SizeBorder > 0) {
+		return
+	}
+	if fx := shape.fx; fx != nil && fx.BorderGradient != nil {
+		emitRenderer(RenderCmd{
+			Kind:      RenderGradientBorder,
+			X:         dr.X,
+			Y:         dr.Y,
+			W:         dr.Width,
+			H:         dr.Height,
+			Radius:    radius,
+			Thickness: shape.SizeBorder,
+			Gradient: dimmedGradient(fx.BorderGradient,
+				shape.Opacity, shape.Disabled),
+		}, w)
+		return
+	}
+	cb := shape.ColorBorder
+	if shape.Disabled {
+		cb = dimAlpha(cb)
+	}
+	if cb.A > 0 {
+		emitRenderer(RenderCmd{
+			Kind:      RenderStrokeRect,
+			X:         dr.X,
+			Y:         dr.Y,
+			W:         dr.Width,
+			H:         dr.Height,
+			Color:     cb,
+			Radius:    radius,
+			Thickness: shape.SizeBorder,
+		}, w)
 	}
 }
 
@@ -369,37 +383,7 @@ func renderCircle(shape *Shape, clip drawClip, w *Window) {
 		}
 
 		// Border
-		fx := shape.fx
-		if fx != nil && fx.BorderGradient != nil && shape.SizeBorder > 0 {
-			emitRenderer(RenderCmd{
-				Kind:      RenderGradientBorder,
-				X:         dr.X,
-				Y:         dr.Y,
-				W:         dr.Width,
-				H:         dr.Height,
-				Radius:    radius,
-				Thickness: shape.SizeBorder,
-				Gradient: dimmedGradient(fx.BorderGradient,
-					shape.Opacity, shape.Disabled),
-			}, w)
-		} else if shape.SizeBorder > 0 {
-			cb := shape.ColorBorder
-			if shape.Disabled {
-				cb = dimAlpha(cb)
-			}
-			if cb.A > 0 {
-				emitRenderer(RenderCmd{
-					Kind:      RenderStrokeRect,
-					X:         dr.X,
-					Y:         dr.Y,
-					W:         dr.Width,
-					H:         dr.Height,
-					Color:     cb,
-					Radius:    radius,
-					Thickness: shape.SizeBorder,
-				}, w)
-			}
-		}
+		renderShapeBorder(shape, dr, radius, w)
 	}
 }
 

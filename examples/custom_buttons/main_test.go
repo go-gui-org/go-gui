@@ -78,10 +78,10 @@ func TestWin98PressShiftsLabel(t *testing.T) {
 }
 
 // Hover lights the XP gold rim; moving away clears it. The rim sits inside
-// the blue frame and the gradient body: frame → body → rim.
+// the button's blue border: button → rim.
 func TestXPHoverLightsRim(t *testing.T) {
 	_, w := newTestApp(t)
-	rimColor := func() gui.Color { return mustFind(t, w, "page:xp:ok").Children[0].Children[0].Shape.Color }
+	rimColor := func() gui.Color { return mustFind(t, w, "page:xp:ok").Children[0].Shape.Color }
 	if rimColor() != gui.ColorTransparent {
 		t.Fatalf("idle rim %+v, want transparent", rimColor())
 	}
@@ -104,7 +104,7 @@ func TestXPDisabledStaysDark(t *testing.T) {
 	x, y := center(t, w, "page:xp:disabled")
 	w.EventFn(&gui.Event{Type: gui.EventMouseMove, MouseX: x, MouseY: y})
 	settle(w)
-	if c := mustFind(t, w, "page:xp:disabled").Children[0].Children[0].Shape.Color; c != gui.ColorTransparent {
+	if c := mustFind(t, w, "page:xp:disabled").Children[0].Shape.Color; c != gui.ColorTransparent {
 		t.Fatalf("disabled rim %+v, want transparent", c)
 	}
 }

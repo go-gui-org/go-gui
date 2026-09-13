@@ -1088,6 +1088,15 @@ func goldenCases() []goldenCase {
 			build: buildCanvasGradientRings,
 		},
 		{
+			// A gradient-filled container with a solid border, and one
+			// with a gradient border over a solid fill (issue #589).
+			// The border is drawn after the fill, whatever the fill is:
+			// the recording pins a Gradient followed by a StrokeRect,
+			// and a Rect followed by a GradientBorder.
+			name:  "container_fill_border",
+			build: buildContainerFillBorder,
+		},
+		{
 			// Caller-supplied per-vertex color (issue #400). The
 			// counterpart to canvas_gradient: nothing here is
 			// evaluated, so what the golden pins is that the caller's
@@ -1466,6 +1475,35 @@ func buildMarkdownCallout(w *Window) View {
 					Text(TextCfg{Text: el.PlainText}),
 				},
 			}), true
+		},
+	})
+}
+
+// buildContainerFillBorder is the golden for issue #589: a border drawn
+// on top of a gradient fill, and a gradient border on top of a solid
+// fill.
+func buildContainerFillBorder(_ *Window) View {
+	ramp := &GradientDef{Stops: []GradientStop{
+		{Color: Hex(0xfefefe), Pos: 0},
+		{Color: Hex(0xd6d0c5), Pos: 1},
+	}}
+	return Row(ContainerCfg{
+		SizeBorder: NoBorder,
+		Padding:    PaddingNone,
+		Spacing:    SomeF(8),
+		Content: []View{
+			Column(ContainerCfg{
+				Width: 120, Height: 40, Sizing: FixedFixed,
+				Gradient:    ramp,
+				ColorBorder: Hex(0x003c74),
+				SizeBorder:  SomeF(1),
+			}),
+			Column(ContainerCfg{
+				Width: 120, Height: 40, Sizing: FixedFixed,
+				Color:          Hex(0x3a6ea5),
+				BorderGradient: ramp,
+				SizeBorder:     SomeF(2),
+			}),
 		},
 	})
 }

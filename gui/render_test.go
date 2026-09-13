@@ -158,7 +158,7 @@ func TestDimAlpha(t *testing.T) {
 	}
 }
 
-// --- renderRectangle ---
+// --- renderContainer, plain rectangle ---
 
 func TestRenderRectangleInsideClip(t *testing.T) {
 	w := makeWindow()
@@ -173,7 +173,7 @@ func TestRenderRectangleInsideClip(t *testing.T) {
 		SizeBorder: 0,
 	}
 	clip := makeClip(0, 0, 200, 200)
-	renderRectangle(s, clip, w)
+	renderContainer(s, ColorTransparent, clip, w)
 
 	if len(w.renderers) != 1 {
 		t.Fatalf("renderers: got %d, want 1", len(w.renderers))
@@ -210,7 +210,7 @@ func TestRenderRectangleOutsideClipSkipsDraw(t *testing.T) {
 		Color:     RGB(10, 10, 10),
 	}
 	clip := makeClip(0, 0, 50, 50)
-	renderRectangle(s, clip, w)
+	renderContainer(s, ColorTransparent, clip, w)
 
 	if len(w.renderers) != 0 {
 		t.Errorf("renderers: got %d, want 0", len(w.renderers))
@@ -1098,5 +1098,209 @@ func TestLayoutSetShapeClipsOverDrawKeepsUninsetRect(t *testing.T) {
 	if gotBar != wantBar {
 		t.Errorf("OverDraw child: got %+v, want the uninset rect %+v",
 			gotBar, wantBar)
+	}
+}
+
+// --- renderContainer border after fill (#589) ---
+
+// testRamp is a two-stop red-to-blue gradient for the border tests.
+func testRamp() *GradientDef {
+	return &GradientDef{Stops: []GradientStop{
+		{Color: RGB(255, 0, 0), Pos: 0},
+		{Color: RGB(0, 0, 255), Pos: 1},
+	}}
+}
+
+// countKinds tallies the emitted commands by kind.
+func countKinds(cmds []RenderCmd) map[renderKind]int {
+	out := map[renderKind]int{}
+	for _, r := range cmds {
+		out[r.Kind]++
+	}
+	return out
+}
+
+// TestRenderContainerBorderAfterEveryFill pins issue #589: a
+// container's border is drawn after its fill, whatever the fill is.
+// Before the fix, the shader, gradient and blur fills returned from an
+// if/else chain and never reached the border, and a BorderGradient
+// replaced the solid fill instead of drawing on top of it.
+func TestRenderContainerBorderAfterEveryFill(t *testing.T) {
+	grad := testRamp()
+	fills := []struct {
+		name string
+		fx   shapeEffects
+		kind renderKind
+	}{
+		{"shader", shapeEffects{Shader: &Shader{}}, RenderCustomShader},
+		{"gradient", shapeEffects{Gradient: grad}, RenderGradient},
+		{"blur", shapeEffects{BlurRadius: 4}, RenderBlur},
+		{"solid", shapeEffects{}, RenderRect},
+	}
+	for _, f := range fills {
+		t.Run(f.name+"/stroke", func(t *testing.T) {
+			w := makeWindow()
+			s := &Shape{
+				shapeType: shapeRectangle,
+				X:         10, Y: 10, Width: 50, Height: 30,
+				Color:       RGB(200, 200, 200),
+				ColorBorder: RGB(0, 60, 116),
+				SizeBorder:  1,
+			}
+			fx := f.fx
+			s.fx = &fx
+			renderContainer(s, ColorTransparent, makeClip(0, 0, 500, 500), w)
+			got := countKinds(w.renderers)
+			if got[f.kind] != 1 || got[RenderStrokeRect] != 1 {
+				t.Fatalf("want one %v and one StrokeRect, got %v", f.kind, got)
+			}
+			// The border paints over the fill, so it comes last.
+			if last := w.renderers[len(w.renderers)-1]; last.Kind != RenderStrokeRect {
+				t.Fatalf("last cmd = %v, want StrokeRect", last.Kind)
+			}
+		})
+		t.Run(f.name+"/border_gradient", func(t *testing.T) {
+			w := makeWindow()
+			fx := f.fx
+			fx.BorderGradient = grad
+			s := &Shape{
+				shapeType: shapeRectangle,
+				X:         10, Y: 10, Width: 50, Height: 30,
+				Color:       RGB(200, 200, 200),
+				ColorBorder: RGB(0, 60, 116),
+				SizeBorder:  2,
+				fx:          &fx,
+			}
+			renderContainer(s, ColorTransparent, makeClip(0, 0, 500, 500), w)
+			got := countKinds(w.renderers)
+			// BorderGradient wins over ColorBorder: no second border.
+			if got[f.kind] != 1 || got[RenderGradientBorder] != 1 ||
+				got[RenderStrokeRect] != 0 {
+				t.Fatalf("want one %v and one GradientBorder, got %v", f.kind, got)
+			}
+			if last := w.renderers[len(w.renderers)-1]; last.Kind != RenderGradientBorder {
+				t.Fatalf("last cmd = %v, want GradientBorder", last.Kind)
+			}
+		})
+	}
+}
+
+// TestRenderContainerNaNBorderSkipped: a NaN SizeBorder draws no border
+// and never reaches the render guard. The border check must reject NaN
+// itself, as the pre-#589 code did.
+func TestRenderContainerNaNBorderSkipped(t *testing.T) {
+	for _, fx := range []*shapeEffects{nil, {Gradient: testRamp()}} {
+		w := makeWindow()
+		s := &Shape{
+			shapeType: shapeRectangle,
+			X:         10, Y: 10, Width: 50, Height: 30,
+			Color:       RGB(200, 200, 200),
+			ColorBorder: RGB(0, 60, 116),
+			SizeBorder:  float32(math.NaN()),
+			fx:          fx,
+		}
+		renderContainer(s, ColorTransparent, makeClip(0, 0, 500, 500), w)
+		if got := countKinds(w.renderers)[RenderStrokeRect]; got != 0 {
+			t.Fatalf("NaN border emitted %d StrokeRect", got)
+		}
+		if w.renderGuardWarned != 0 {
+			t.Fatalf("NaN border tripped the render guard: %b", w.renderGuardWarned)
+		}
+	}
+}
+
+// TestRenderContainerBorderEdgeCases covers the renderShapeBorder
+// branches that TestRenderContainerBorderAfterEveryFill does not: a
+// disabled border, a zero width, an invisible color, and a shape
+// outside the clip. Each case has a gradient fill, the path that drew
+// no border before #589.
+func TestRenderContainerBorderEdgeCases(t *testing.T) {
+	grad := testRamp()
+	border := RGB(0, 60, 116)
+	cases := []struct {
+		name    string
+		edit    func(s *Shape)
+		clip    drawClip
+		stroke  int
+		gborder int
+	}{
+		{
+			name:   "disabled_dims_stroke",
+			edit:   func(s *Shape) { s.Disabled = true },
+			clip:   makeClip(0, 0, 500, 500),
+			stroke: 1,
+		},
+		{
+			name: "zero_width_border_gradient",
+			edit: func(s *Shape) {
+				s.SizeBorder = 0
+				s.fx.BorderGradient = grad
+			},
+			clip: makeClip(0, 0, 500, 500),
+		},
+		{
+			name: "transparent_color_border",
+			edit: func(s *Shape) { s.ColorBorder = ColorTransparent },
+			clip: makeClip(0, 0, 500, 500),
+		},
+		{
+			name: "outside_clip",
+			edit: func(*Shape) {},
+			clip: makeClip(200, 200, 50, 50),
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			w := makeWindow()
+			s := &Shape{
+				shapeType: shapeRectangle,
+				X:         10, Y: 10, Width: 50, Height: 30,
+				ColorBorder: border,
+				SizeBorder:  1,
+				fx:          &shapeEffects{Gradient: grad},
+			}
+			c.edit(s)
+			renderContainer(s, ColorTransparent, c.clip, w)
+			got := countKinds(w.renderers)
+			if got[RenderStrokeRect] != c.stroke || got[RenderGradientBorder] != c.gborder {
+				t.Fatalf("got %v, want %d StrokeRect and %d GradientBorder",
+					got, c.stroke, c.gborder)
+			}
+			if w.renderGuardWarned != 0 {
+				t.Fatalf("render guard tripped: %b", w.renderGuardWarned)
+			}
+			if !s.Disabled {
+				return
+			}
+			for _, r := range w.renderers {
+				if r.Kind == RenderStrokeRect && r.Color != dimAlpha(border) {
+					t.Fatalf("disabled stroke color %+v, want %+v", r.Color, dimAlpha(border))
+				}
+			}
+		})
+	}
+}
+
+// TestRenderCircleBorderGradient: a circle strokes its BorderGradient at
+// half its short side and draws no solid stroke alongside it. The circle
+// shares renderShapeBorder with the container since #589.
+func TestRenderCircleBorderGradient(t *testing.T) {
+	w := makeWindow()
+	s := &Shape{
+		shapeType: shapeCircle,
+		X:         0, Y: 0, Width: 40, Height: 30,
+		Color:       RGB(200, 200, 200),
+		ColorBorder: RGB(0, 60, 116),
+		SizeBorder:  2,
+		fx:          &shapeEffects{BorderGradient: testRamp()},
+	}
+	renderCircle(s, makeClip(0, 0, 500, 500), w)
+	got := countKinds(w.renderers)
+	if got[RenderCircle] != 1 || got[RenderGradientBorder] != 1 || got[RenderStrokeRect] != 0 {
+		t.Fatalf("got %v, want one Circle and one GradientBorder", got)
+	}
+	last := w.renderers[len(w.renderers)-1]
+	if last.Kind != RenderGradientBorder || last.Radius != 15 || last.Thickness != 2 {
+		t.Fatalf("border cmd = %+v, want GradientBorder radius 15 thickness 2", last)
 	}
 }

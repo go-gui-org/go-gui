@@ -1,0 +1,4 @@
+Gradient xy=14.00,14.00 wh=120.00,40.00 radius=6.00 +gradient(linear dir=0 stops=2 [0.00 #fefefeff | 1.00 #d6d0c5ff])
+StrokeRect xy=14.00,14.00 wh=120.00,40.00 color=#003c74ff radius=6.00 thickness=1.00
+Rect xy=142.00,14.00 wh=120.00,40.00 color=#3a6ea5ff radius=6.00 fill
+GradientBorder xy=142.00,14.00 wh=120.00,40.00 radius=6.00 thickness=2.00 +gradient(linear dir=0 stops=2 [0.00 #fefefeff | 1.00 #d6d0c5ff])
