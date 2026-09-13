@@ -1,5 +1,7 @@
 package gui
 
+import "slices"
+
 var dragGhostShadowColor = RGBA(0, 0, 0, 60)
 
 // --- index calculation ---
@@ -41,29 +43,68 @@ func dragReorderCalcIndexFromMids(
 }
 
 // dragReorderItemMidsFromLayouts resolves draggable layout IDs
-// and stores axis midpoints for fast per-move hit testing.
+// and stores axis midpoints for fast per-move hit testing. One walk
+// of the tree serves every ID: per-item FindByID was O(n·tree) at
+// drag start, which is the large-list wall. First match wins per ID,
+// mirroring findByIDDepth; an empty ID never matches, as in FindByID.
 func dragReorderItemMidsFromLayouts(
 	axis dragReorderAxis,
 	itemLayoutIDs []string,
 	w *Window,
 ) ([]float32, bool) {
-	if len(itemLayoutIDs) == 0 {
+	if len(itemLayoutIDs) == 0 || slices.Contains(itemLayoutIDs, "") {
 		return nil, false
 	}
+	want := make(map[string]struct{}, len(itemLayoutIDs))
+	for _, id := range itemLayoutIDs {
+		want[id] = struct{}{}
+	}
+	found := make(map[string]float32, len(itemLayoutIDs))
+	dragReorderCollectMids(&w.layout, want, found, axis, 0)
 	mids := make([]float32, 0, len(itemLayoutIDs))
 	for _, id := range itemLayoutIDs {
-		ly, ok := w.layout.FindByID(id)
+		m, ok := found[id]
 		if !ok {
 			return nil, false
 		}
-		switch axis {
-		case dragReorderVertical:
-			mids = append(mids, ly.Shape.Y+(ly.Shape.Height/2))
-		case dragReorderHorizontal:
-			mids = append(mids, ly.Shape.X+(ly.Shape.Width/2))
-		}
+		mids = append(mids, m)
 	}
 	return mids, true
+}
+
+// dragReorderCollectMids records the axis midpoint of every shape
+// whose effective ID is wanted. Stops descending once all are found.
+func dragReorderCollectMids(
+	layout *Layout,
+	want map[string]struct{},
+	found map[string]float32,
+	axis dragReorderAxis,
+	depth int,
+) {
+	if layout == nil || overMaxDepth(depth) || len(found) == len(want) {
+		return
+	}
+	if s := layout.Shape; s != nil {
+		if id := s.idKey(); id != "" {
+			if _, ok := want[id]; ok {
+				if _, done := found[id]; !done {
+					switch axis {
+					case dragReorderVertical:
+						found[id] = s.Y + (s.Height / 2)
+					case dragReorderHorizontal:
+						found[id] = s.X + (s.Width / 2)
+					}
+				}
+			}
+		}
+	}
+	for i := range layout.Children {
+		if len(found) == len(want) {
+			return
+		}
+		dragReorderCollectMids(
+			&layout.Children[i], want, found, axis, depth+1)
+	}
 }
 
 // --- view helpers ---

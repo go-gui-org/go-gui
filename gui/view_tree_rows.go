@@ -279,7 +279,7 @@ func treeDragRowView(
 				OnReorder:     onReorder,
 				ItemLayoutIDs: itemLayoutIDs,
 				MidsOffset:    midsOffset,
-				scrollID:      scrollID,
+				ScrollID:      scrollID,
 				Layout:        ctx.Layout,
 				Event:         ctx.Event,
 			}, ctx.Window)

@@ -18,9 +18,9 @@ import "time"
 //   - Mouse position and item geometry (x, y, width, height)
 //   - Parent position (for float offset math later)
 //   - Source index within the sibling list
-//   - Item midpoints: resolves each sibling's layout ID from the
-//     current layout tree and records axis midpoints for fast
-//     binary search during tracking
+//   - Item midpoints: a single walk of the layout tree collects
+//     each sibling's axis midpoint for fast binary search during
+//     tracking
 //   - Scroll position at start (for compensating auto-scroll drift)
 //   - ID signature: FNV-1a hash of the sibling IDs, used to detect
 //     if the backing list mutates mid-drag
@@ -212,7 +212,7 @@ type dragReorderStartCfg struct {
 	ItemLayoutIDs []string
 	Index         int
 	MidsOffset    int
-	scrollID      string
+	ScrollID      string
 	Axis          dragReorderAxis
 	// DropCue sounds when the drag ends on a real move. A cancel and
 	// a drop that lands where the item already was stay silent: the
@@ -224,6 +224,15 @@ type dragReorderStartCfg struct {
 // handler. Captures initial mouse/item positions and locks
 // the mouse.
 func dragReorderStart(cfg dragReorderStartCfg, w *Window) {
+	// No partial start: without a layout, a shape or an event there
+	// is no geometry to seed, and locking the mouse without state
+	// strands the drag. Matches the Event/Layout guard in
+	// view_color_drag.
+	layout := cfg.Layout
+	e := cfg.Event
+	if layout == nil || layout.Shape == nil || e == nil {
+		return
+	}
 	dragKey := cfg.DragKey
 	index := cfg.Index
 	itemID := cfg.ItemID
@@ -232,17 +241,15 @@ func dragReorderStart(cfg dragReorderStartCfg, w *Window) {
 	onReorder := cfg.OnReorder
 	itemLayoutIDs := cfg.ItemLayoutIDs
 	midsOffset := cfg.MidsOffset
-	scrollID := cfg.scrollID
-	layout := cfg.Layout
-	e := cfg.Event
+	scrollID := cfg.ScrollID
 	var parentX, parentY float32
-	if layout.Parent != nil {
+	if layout.Parent != nil && layout.Parent.Shape != nil {
 		parentX = layout.Parent.Shape.X
 		parentY = layout.Parent.Shape.Y
 	}
 
 	var containerStart, containerEnd float32
-	if scrollID != "" && layout.Parent != nil {
+	if scrollID != "" && layout.Parent != nil && layout.Parent.Shape != nil {
 		switch axis {
 		case dragReorderVertical:
 			containerStart = layout.Parent.Shape.Y
@@ -277,6 +284,11 @@ func dragReorderStart(cfg dragReorderStartCfg, w *Window) {
 	layoutIDs := make([]string, len(itemLayoutIDs))
 	copy(layoutIDs, itemLayoutIDs)
 
+	// Copy: the lock closure below outlives this call and reads
+	// itemIDs on drop, so it must not alias the caller's slice.
+	ids := make([]string, len(itemIDs))
+	copy(ids, itemIDs)
+
 	state := dragReorderState{
 		started:        true,
 		sourceIndex:    index,
@@ -308,7 +320,7 @@ func dragReorderStart(cfg dragReorderStartCfg, w *Window) {
 	}
 	dragReorderSet(w, dragKey, state)
 	w.MouseLock(dragReorderMakeLock(
-		dragKey, axis, itemIDs, onReorder))
+		dragKey, axis, ids, onReorder))
 }
 
 // dragReorderMakeLock builds a MouseLockCfg that implements
@@ -321,6 +333,9 @@ func dragReorderMakeLock(
 ) MouseLockCfg {
 	return MouseLockCfg{
 		MouseMove: func(ctx EventCtx) {
+			if ctx.Event == nil {
+				return
+			}
 			dragReorderOnMouseMove(
 				dragKey, axis, ctx.Event.MouseX, ctx.Event.MouseY, ctx.Window)
 		},
@@ -394,13 +409,19 @@ func dragReorderOnMouseMove(
 	scrolledSinceStart := false
 
 	if state.scrollID != "" {
-		// Default 0: unscrolled position when no offset recorded yet.
+		// Read-only: the hot path must not lazily allocate the
+		// scroll map on the first move of a drag that never
+		// scrolls. Default 0 matches the cold path in Start.
 		var scrollVal float32
 		switch axis {
 		case dragReorderVertical:
-			scrollVal = w.scrollY().GetOr(state.scrollID, 0)
+			if smy := w.scrollYRead(); smy != nil {
+				scrollVal = smy.GetOr(state.scrollID, 0)
+			}
 		case dragReorderHorizontal:
-			scrollVal = w.scrollX().GetOr(state.scrollID, 0)
+			if smx := w.scrollXRead(); smx != nil {
+				scrollVal = smx.GetOr(state.scrollID, 0)
+			}
 		}
 		var startScroll float32
 		switch axis {
@@ -417,7 +438,12 @@ func dragReorderOnMouseMove(
 	if !scrolledSinceStart && state.layoutsValid {
 		if idx, ok := dragReorderCalcIndexFromMids(
 			mouseMain, state.itemMids); ok {
-			newIndex = idx + state.midsOffset
+			// Clamp: the offset counts rows above the
+			// viewport, so construction keeps this in range
+			// — the clamp is the backstop, matching the
+			// uniform fallback below.
+			newIndex = max(0, min(state.itemCount,
+				idx+state.midsOffset))
 		}
 	}
 
@@ -442,6 +468,10 @@ func dragReorderOnMouseMove(
 
 	if didScroll && !state.scrollTimerActive {
 		state.scrollTimerActive = true
+		// Self-removal is safe: Update only queues this callback
+		// (animation_loop.go), so it runs on the main thread after
+		// the loop dropped animMu — AnimationRemove below is a
+		// plain mutex-guarded map delete either way.
 		w.AnimationAdd(&Animate{
 			AnimID: dragReorderScrollAnimID,
 			Repeat: true,
@@ -469,10 +499,23 @@ func dragReorderOnMouseMove(
 	}
 
 	dragReorderSet(w, dragKey, state)
+	// Per-move rebuild is load-bearing, not lazy: the ghost tracks
+	// the cursor, so any mouse delta needs a new frame. AnimateLayout
+	// above stays gated on an actual index change.
 	if activated || indexChanged || didScroll ||
 		(state.active && mouseChanged) {
 		w.InvalidateLayout()
 	}
+}
+
+// dragReorderTeardown releases the lock and the auto-scroll timer
+// and clears drag state. Both MouseUp exits share it so neither
+// strands a lock, a timer or a ghost. InvalidateLayout stays at the
+// call sites: on the commit path it must run after onReorder.
+func dragReorderTeardown(dragKey string, w *Window) {
+	dragReorderClear(w, dragKey)
+	w.MouseUnlock()
+	w.AnimationRemove(dragReorderScrollAnimID)
 }
 
 // dragReorderOnMouseUp finalizes the drag: fires onReorder
@@ -491,16 +534,12 @@ func dragReorderOnMouseUp(
 
 	if meta, ok := dragReorderIDsMetaGet(w, dragKey); ok {
 		if dragReorderIDsChanged(state, meta) {
-			dragReorderClear(w, dragKey)
-			w.MouseUnlock()
-			w.AnimationRemove(dragReorderScrollAnimID)
+			dragReorderTeardown(dragKey, w)
 			w.InvalidateLayout()
 			return
 		}
 	}
-	dragReorderClear(w, dragKey)
-	w.MouseUnlock()
-	w.AnimationRemove(dragReorderScrollAnimID)
+	dragReorderTeardown(dragKey, w)
 
 	if wasActive && !state.cancelled &&
 		gap != src && gap != src+1 {

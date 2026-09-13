@@ -135,6 +135,11 @@ func TestDragReorderItemMidsFromLayoutsMissing(t *testing.T) {
 	if ok {
 		t.Error("expected false for missing layout ID")
 	}
+	_, ok = dragReorderItemMidsFromLayouts(
+		dragReorderVertical, []string{"a", ""}, w)
+	if ok {
+		t.Error("expected false for empty layout ID")
+	}
 }
 
 func TestDragReorderEscapeCancelsStartedDrag(t *testing.T) {
@@ -492,6 +497,155 @@ func TestDragReorderGapViewSizing(t *testing.T) {
 	if hLy.Shape.Sizing != FixedFit {
 		t.Errorf("horizontal gap sizing = %v, want FixedFit",
 			hLy.Shape.Sizing)
+	}
+}
+
+func TestDragReorderStartNilGuards(t *testing.T) {
+	newWindow := func() *Window {
+		w := &Window{}
+		w.layout = Layout{Shape: &Shape{ID: "root"}}
+		return w
+	}
+	shape := &Layout{Shape: &Shape{ID: "a"}}
+	noop := func(string, string, EventCtx) {}
+
+	// Nil layout: no state, no lock.
+	w := newWindow()
+	dragReorderStart(dragReorderStartCfg{
+		DragKey: "drag_nil_layout", Index: 0, ItemID: "a",
+		Axis: dragReorderVertical, ItemIDs: []string{"a"},
+		OnReorder: noop, Event: &Event{},
+	}, w)
+	if w.mouseIsLocked() {
+		t.Error("nil layout must not lock the mouse")
+	}
+	if state := dragReorderGet(w, "drag_nil_layout"); state.started {
+		t.Error("nil layout must not start a drag")
+	}
+
+	// Nil event: same expectation.
+	w = newWindow()
+	dragReorderStart(dragReorderStartCfg{
+		DragKey: "drag_nil_event", Index: 0, ItemID: "a",
+		Axis: dragReorderVertical, ItemIDs: []string{"a"},
+		OnReorder: noop, Layout: shape,
+	}, w)
+	if w.mouseIsLocked() {
+		t.Error("nil event must not lock the mouse")
+	}
+	if state := dragReorderGet(w, "drag_nil_event"); state.started {
+		t.Error("nil event must not start a drag")
+	}
+
+	// Nil shape: same expectation.
+	w = newWindow()
+	dragReorderStart(dragReorderStartCfg{
+		DragKey: "drag_nil_shape", Index: 0, ItemID: "a",
+		Axis: dragReorderVertical, ItemIDs: []string{"a"},
+		OnReorder: noop, Layout: &Layout{}, Event: &Event{},
+	}, w)
+	if w.mouseIsLocked() {
+		t.Error("nil shape must not lock the mouse")
+	}
+	if state := dragReorderGet(w, "drag_nil_shape"); state.started {
+		t.Error("nil shape must not start a drag")
+	}
+
+	// Nil event on a locked move: no panic, no state change.
+	w = newWindow()
+	lock := dragReorderMakeLock(
+		"drag_nil_move", dragReorderVertical,
+		[]string{"a"}, noop)
+	lock.MouseMove(EventCtx{&w.layout, nil, w})
+}
+
+func TestDragReorderDropUsesSnapshotIDs(t *testing.T) {
+	w := &Window{}
+	w.layout = Layout{Shape: &Shape{ID: "root"}}
+	dragKey := "drag_snapshot"
+	itemIDs := []string{"a", "b", "c"}
+	var moved, before string
+	dragReorderStart(dragReorderStartCfg{
+		DragKey: dragKey, Index: 0, ItemID: "a",
+		Axis: dragReorderVertical, ItemIDs: itemIDs,
+		OnReorder: func(m, b string, _ EventCtx) {
+			moved, before = m, b
+		},
+		ItemLayoutIDs: []string{"a", "b", "c"},
+		Layout:        &Layout{Shape: &Shape{ID: "a"}},
+		Event:         &Event{},
+	}, w)
+
+	// Caller mutates its slice after start; the drop must use the
+	// snapshot taken in Start, not the aliased backing array.
+	itemIDs[2] = "zzz"
+	state := dragReorderGet(w, dragKey)
+	state.active = true
+	state.currentIndex = 2
+	dragReorderSet(w, dragKey, state)
+
+	w.viewState.mouseLock.MouseUp(EventCtx{nil, &Event{}, w})
+	if moved != "a" || before != "c" {
+		t.Errorf("got (%q,%q) want (a,c)", moved, before)
+	}
+}
+
+func TestDragReorderMidsOffsetClamped(t *testing.T) {
+	w := &Window{}
+	w.layout = Layout{Shape: &Shape{ID: "root"}}
+	dragKey := "drag_clamp"
+	dragReorderSet(w, dragKey, dragReorderState{
+		active:       true,
+		sourceIndex:  0,
+		itemCount:    3,
+		itemMids:     []float32{10, 20, 30},
+		midsOffset:   5,
+		layoutsValid: true,
+	})
+	dragReorderOnMouseMove(dragKey, dragReorderVertical, 0, 25, w)
+	if got := dragReorderGet(w, dragKey).currentIndex; got != 3 {
+		t.Errorf("offset index: got %d want 3", got)
+	}
+}
+
+func TestDragReorderMoveDoesNotAllocScrollMaps(t *testing.T) {
+	w := &Window{}
+	w.layout = Layout{Shape: &Shape{ID: "root"}}
+	dragKey := "drag_noalloc"
+	dragReorderSet(w, dragKey, dragReorderState{
+		active:       true,
+		itemY:        0,
+		itemHeight:   20,
+		sourceIndex:  0,
+		itemCount:    5,
+		scrollID:     "s",
+		startScrollY: 0,
+	})
+	// Outside the scroll zone, so no scroll write happens.
+	dragReorderOnMouseMove(dragKey, dragReorderVertical, 0, 50, w)
+	if w.scrollXRead() != nil || w.scrollYRead() != nil {
+		t.Error("hot-path scroll read must not allocate scroll maps")
+	}
+}
+
+func TestDragReorderStartParentNilShape(t *testing.T) {
+	w := &Window{}
+	w.layout = Layout{Shape: &Shape{ID: "root"}}
+	noop := func(string, string, EventCtx) {}
+	// A parent without a shape carries no geometry; Start must
+	// not dereference it when resolving the scroll container.
+	layout := &Layout{
+		Shape:  &Shape{ID: "a", Width: 10, Height: 10},
+		Parent: &Layout{},
+	}
+	dragReorderStart(dragReorderStartCfg{
+		DragKey: "drag_parent_nil_shape", Index: 0, ItemID: "a",
+		Axis: dragReorderVertical, ItemIDs: []string{"a"},
+		OnReorder: noop, Layout: layout, Event: &Event{},
+		ScrollID: "s",
+	}, w)
+	if state := dragReorderGet(w, "drag_parent_nil_shape"); !state.started {
+		t.Error("parent with nil shape must still start a drag")
 	}
 }
 
