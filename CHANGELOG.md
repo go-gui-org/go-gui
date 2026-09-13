@@ -8,6 +8,8 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [v0.76.0] - 2026-09-13
+
 ### Added
 
 - **`Window.SetFileAccessAppID`, `Window.RestoreFileAccess`,
