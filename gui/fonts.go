@@ -4,25 +4,15 @@ import (
 	"bytes"
 	_ "embed"
 	"log"
-	"path/filepath"
 	"slices"
+	"sync"
 )
 
-// FontVariants holds paths of font files used by the GUI.
-type fontVariants struct {
-	normal string
-	Bold   string
-	Italic string
-	mono   string
-}
-
-// Font name constants.
-const (
-	baseFontName = defaultFontFamily
-	IconFontName = "feathericon"
-)
+// IconFontName is the family name of the bundled Feather icon font.
+const IconFontName = "feathericon"
 
 // IconFontData is the embedded Feather icon TTF font data.
+// Do not mutate — backends read it at init, often off the main goroutine.
 //
 //go:embed assets/feathericon.ttf
 var IconFontData []byte
@@ -35,11 +25,23 @@ var IconFontData []byte
 // Use this for fonts not exposed through fontconfig / system font
 // catalogs — for example, fonts bundled inside .app resource
 // directories on macOS.
+// appFontMu guards appFontPaths and appFontData. Registration happens
+// before backend startup, but nothing enforces that, so guard against
+// a concurrent Register with an in-flight LoadAppFonts.
+var appFontMu sync.Mutex
+
 var appFontPaths []string
 
-// RegisterAppFont appends path to AppFontPaths if not already
-// present. Safe to call multiple times with the same path.
+// RegisterAppFont appends path to the app font path list if not
+// already present. Empty paths are ignored. Safe to call multiple
+// times with the same path. Call before backend startup; concurrent
+// use is safe but races LoadAppFonts ordering only by mutex.
 func RegisterAppFont(path string) {
+	if path == "" {
+		return
+	}
+	appFontMu.Lock()
+	defer appFontMu.Unlock()
 	if slices.Contains(appFontPaths, path) {
 		return
 	}
@@ -68,13 +70,18 @@ var appFontData [][]byte
 //
 // data is retained by reference, not copied — the caller must not
 // mutate it afterwards. go:embed data satisfies this by construction.
-func registerAppFontBytes(data []byte) {
+// exportaudit:keep — app-facing registration API; consumed by apps,
+// not in-repo callers
+func RegisterAppFontBytes(data []byte) {
 	if len(data) == 0 {
 		return
 	}
+	appFontMu.Lock()
+	defer appFontMu.Unlock()
 	// slices.Contains needs a comparable element; []byte is not.
+	// Length check first skips the byte scan on size mismatch.
 	if slices.ContainsFunc(appFontData, func(d []byte) bool {
-		return bytes.Equal(d, data)
+		return len(d) == len(data) && bytes.Equal(d, data)
 	}) {
 		return
 	}
@@ -91,31 +98,37 @@ type FontRegistrar interface {
 }
 
 // LoadAppFonts registers every font in AppFontPaths and AppFontData
-// with ts, naming the calling backend ("gl", "metal", "ios", "android")
-// in log lines.
+// with ts, naming the calling backend (e.g. "gl", "metal", "ios",
+// "android") in log lines.
 // Call once per text system during backend init, after the bundled icon
 // font is loaded.
 //
-// A font that fails to load is logged and skipped: one unreadable font
-// must not stop the remaining ones — or the window itself — from coming
-// up. A nil ts is a no-op.
-func LoadAppFonts(ts FontRegistrar, backend string) {
+// A font that fails to load is logged with its full path and skipped:
+// one unreadable font must not stop the remaining ones — or the window
+// itself — from coming up. A nil ts is a no-op. The registration lists
+// are copied under lock so a concurrent Register cannot race the scan;
+// fonts registered during the call apply to the next LoadAppFonts.
+func LoadAppFonts(ts FontRegistrar, backendName string) {
 	if ts == nil {
 		return
 	}
-	for _, p := range appFontPaths {
+	appFontMu.Lock()
+	paths := slices.Clone(appFontPaths)
+	data := slices.Clone(appFontData)
+	appFontMu.Unlock()
+	for _, p := range paths {
 		if err := ts.AddFontFile(p); err != nil {
 			log.Printf("%s: load app font %q: %v",
-				backend, filepath.Base(p), err)
+				backendName, p, err)
 		}
 	}
 	// AddFontBytes owns the temp file it writes and removes it in Free,
 	// so there is nothing to track here. Byte slices have no name to
 	// report, so identify a failure by index and size.
-	for i, d := range appFontData {
+	for i, d := range data {
 		if err := ts.AddFontBytes(d); err != nil {
 			log.Printf("%s: load app font bytes #%d (%d bytes): %v",
-				backend, i, len(d), err)
+				backendName, i, len(d), err)
 		}
 	}
 }
@@ -380,7 +393,24 @@ const (
 	IconYakiDango              = "\uf20a"
 )
 
+// Correctly-spelled aliases for historically misspelled icon names.
+// The old spellings above stay as the canonical values; these alias
+// them so new code reads correctly without breaking existing callers.
+// exportaudit:keep — icon font is public API; aliases deliberately exported
+const (
+	IconEllipsisH = IconElipsisH
+	IconEllipsisV = IconElipsisV
+	IconFrowning  = IconFrowing
+	IconOctopus   = IconOctpus
+	IconMessenger = IconMessanger
+	// IconMap is the short name for IconMapIcon, matching the
+	// "icon_map" lookup key below.
+	IconMap = IconMapIcon
+)
+
 // IconLookup maps V-style snake_case icon names to Unicode values.
+// Frozen after init — do not write to it. Concurrent reads are safe;
+// a concurrent write races every reader.
 var IconLookup = map[string]string{
 	"icon_arrow_down":              IconArrowDown,
 	"icon_arrow_left":              IconArrowLeft,
@@ -417,7 +447,9 @@ var IconLookup = map[string]string{
 	"icon_drop_right":              IconDropRight,
 	"icon_drop_up":                 IconDropUp,
 	"icon_elipsis_h":               IconElipsisH,
+	"icon_ellipsis_h":              IconEllipsisH,
 	"icon_elipsis_v":               IconElipsisV,
+	"icon_ellipsis_v":              IconEllipsisV,
 	"icon_eye":                     IconEye,
 	"icon_feed":                    IconFeed,
 	"icon_flag":                    IconFlag,
@@ -486,6 +518,7 @@ var IconLookup = map[string]string{
 	"icon_search_plus":             IconSearchPlus,
 	"icon_user_minus":              IconUserMinus,
 	"icon_map":                     IconMapIcon,
+	"icon_map_icon":                IconMapIcon,
 	"icon_export":                  IconExport,
 	"icon_import":                  IconImport,
 	"icon_bookmark":                IconBookmark,
@@ -558,6 +591,7 @@ var IconLookup = map[string]string{
 	"icon_cry":                     IconCry,
 	"icon_disappointed":            IconDisappointed,
 	"icon_frowing":                 IconFrowing,
+	"icon_frowning":                IconFrowning,
 	"icon_open_mouth":              IconOpenMouth,
 	"icon_rage":                    IconRage,
 	"icon_smile":                   IconSmile,
@@ -597,6 +631,7 @@ var IconLookup = map[string]string{
 	"icon_wordpress_alt":           IconWordpressAlt,
 	"icon_youtube":                 IconYoutube,
 	"icon_messanger":               IconMessanger,
+	"icon_messenger":               IconMessenger,
 	"icon_activity":                IconActivity,
 	"icon_bolt":                    IconBolt,
 	"icon_picture_square":          IconPictureSquare,
@@ -623,6 +658,7 @@ var IconLookup = map[string]string{
 	"icon_rice_cracker":            IconRiceCracker,
 	"icon_apron":                   IconApron,
 	"icon_octpus":                  IconOctpus,
+	"icon_octopus":                 IconOctopus,
 	"icon_squid":                   IconSquid,
 	"icon_bus":                     IconBus,
 	"icon_car":                     IconCar,

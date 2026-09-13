@@ -67,6 +67,16 @@ and this project adheres to
   label beside the control. `Toggle` had a dedicated label style. All three now
   take `TextStyleLabel`, and zero takes the theme default. A caller that styled
   the label through `TextStyle` moves that style to `TextStyleLabel`.
+- **`RegisterAppFontBytes` is public** — the docs already told app code to
+  register embedded fonts through it, but only the unexported spelling existed,
+  so outside packages could not populate the in-memory font list at all. The
+  exported function dedupes by content and retains bytes by reference, matching
+  the documented contract. `RegisterAppFont` ignores empty paths, and font
+  registration is now mutex-guarded with copy-on-read at load time.
+- **Correctly-spelled icon aliases are public** — `IconEllipsisH`,
+  `IconEllipsisV`, `IconFrowning`, `IconOctopus`, `IconMessenger`, and `IconMap`
+  alias the historically misspelled constants, and `IconLookup` answers both
+  spellings. The old names and keys stay.
 
 ### Fixed
 

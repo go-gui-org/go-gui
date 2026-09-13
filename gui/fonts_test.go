@@ -8,9 +8,65 @@ import (
 	"testing"
 )
 
-func TestIconLookupContainsAllConstants(t *testing.T) {
-	if len(IconLookup) != 255 {
-		t.Errorf("IconLookup: got %d entries, want 255", len(IconLookup))
+func TestIconLookupFloor(t *testing.T) {
+	// Floor, not an exact count: adding an icon must not break this
+	// test, but deleting one should trip it.
+	if len(IconLookup) < 255 {
+		t.Errorf("IconLookup: got %d entries, want at least 255",
+			len(IconLookup))
+	}
+}
+
+func TestIconLookupValuesWellFormed(t *testing.T) {
+	for k, v := range IconLookup {
+		if v == "" {
+			t.Errorf("IconLookup[%q] is empty", k)
+			continue
+		}
+		if n := len([]rune(v)); n != 1 {
+			t.Errorf("IconLookup[%q] = %q, want a single rune",
+				k, v)
+		}
+	}
+}
+
+func TestIconLookupNoUnexpectedDuplicates(t *testing.T) {
+	// Alias keys deliberately share a value with their canonical
+	// spelling; any other duplicate is a copy-paste collision.
+	allowed := map[string]bool{
+		"icon_ellipsis_h": true,
+		"icon_ellipsis_v": true,
+		"icon_frowning":   true,
+		"icon_octopus":    true,
+		"icon_messenger":  true,
+		"icon_map_icon":   true,
+	}
+	seen := map[string]string{}
+	for k, v := range IconLookup {
+		if prev, dup := seen[v]; dup && !allowed[k] && !allowed[prev] {
+			t.Errorf("IconLookup[%q] and [%q] share value %q",
+				prev, k, v)
+		}
+		seen[v] = k
+	}
+}
+
+func TestIconAliasesMatchCanonical(t *testing.T) {
+	tests := []struct {
+		alias, canonical string
+	}{
+		{IconEllipsisH, IconElipsisH},
+		{IconEllipsisV, IconElipsisV},
+		{IconFrowning, IconFrowing},
+		{IconOctopus, IconOctpus},
+		{IconMessenger, IconMessanger},
+		{IconMap, IconMapIcon},
+	}
+	for _, tt := range tests {
+		if tt.alias != tt.canonical {
+			t.Errorf("alias %q != canonical %q",
+				tt.alias, tt.canonical)
+		}
 	}
 }
 
@@ -24,6 +80,13 @@ func TestIconLookupKnownKeys(t *testing.T) {
 		{"icon_home", IconHome},
 		{"icon_star", IconStar},
 		{"icon_yaki_dango", IconYakiDango},
+		{"icon_ellipsis_h", IconEllipsisH},
+		{"icon_ellipsis_v", IconEllipsisV},
+		{"icon_frowning", IconFrowning},
+		{"icon_octopus", IconOctopus},
+		{"icon_messenger", IconMessenger},
+		{"icon_map", IconMap},
+		{"icon_map_icon", IconMapIcon},
 	}
 	for _, tt := range tests {
 		if got, ok := IconLookup[tt.key]; !ok {
@@ -40,13 +103,6 @@ func TestIconLookupMissingKey(t *testing.T) {
 	}
 }
 
-func TestFontVariantsStruct(t *testing.T) {
-	fv := fontVariants{normal: "a.ttf", Bold: "b.ttf", Italic: "i.ttf", mono: "m.ttf"}
-	if fv.normal != "a.ttf" || fv.mono != "m.ttf" {
-		t.Error("FontVariants fields not set correctly")
-	}
-}
-
 func TestIconFontName(t *testing.T) {
 	if IconFontName != "feathericon" {
 		t.Errorf("IconFontName = %q, want %q", IconFontName, "feathericon")
@@ -56,13 +112,22 @@ func TestIconFontName(t *testing.T) {
 func TestRegisterAppFont(t *testing.T) {
 	// Registration lists are process globals; restore them so other
 	// tests (and the backends) see the original state.
+	appFontMu.Lock()
 	saved := appFontPaths
-	t.Cleanup(func() { appFontPaths = saved })
 	appFontPaths = nil
+	appFontMu.Unlock()
+	t.Cleanup(func() {
+		appFontMu.Lock()
+		appFontPaths = saved
+		appFontMu.Unlock()
+	})
 
+	RegisterAppFont("")
 	RegisterAppFont("/tmp/a.ttf")
 	RegisterAppFont("/tmp/a.ttf")
 	RegisterAppFont("/tmp/b.ttf")
+	appFontMu.Lock()
+	defer appFontMu.Unlock()
 	if len(appFontPaths) != 2 {
 		t.Fatalf("AppFontPaths = %v, want 2 entries", appFontPaths)
 	}
@@ -72,20 +137,31 @@ func TestRegisterAppFont(t *testing.T) {
 }
 
 func TestRegisterAppFontBytes(t *testing.T) {
+	appFontMu.Lock()
 	saved := appFontData
-	t.Cleanup(func() { appFontData = saved })
 	appFontData = nil
+	appFontMu.Unlock()
+	t.Cleanup(func() {
+		appFontMu.Lock()
+		appFontData = saved
+		appFontMu.Unlock()
+	})
 
-	registerAppFontBytes(nil)
-	registerAppFontBytes([]byte{})
+	RegisterAppFontBytes(nil)
+	RegisterAppFontBytes([]byte{})
+	appFontMu.Lock()
 	if len(appFontData) != 0 {
+		appFontMu.Unlock()
 		t.Fatalf("empty data registered: %v", appFontData)
 	}
+	appFontMu.Unlock()
 
-	registerAppFontBytes([]byte("font-a"))
+	RegisterAppFontBytes([]byte("font-a"))
 	// Distinct slice, equal contents — must dedupe by value.
-	registerAppFontBytes([]byte("font-a"))
-	registerAppFontBytes([]byte("font-b"))
+	RegisterAppFontBytes([]byte("font-a"))
+	RegisterAppFontBytes([]byte("font-b"))
+	appFontMu.Lock()
+	defer appFontMu.Unlock()
 	if len(appFontData) != 2 {
 		t.Fatalf("AppFontData has %d entries, want 2", len(appFontData))
 	}
@@ -124,9 +200,15 @@ func (f *fakeRegistrar) AddFontBytes(data []byte) error {
 // and restores them when the test ends.
 func setAppFonts(t *testing.T, paths []string, data [][]byte) {
 	t.Helper()
+	appFontMu.Lock()
 	savedPaths, savedData := appFontPaths, appFontData
-	t.Cleanup(func() { appFontPaths, appFontData = savedPaths, savedData })
 	appFontPaths, appFontData = paths, data
+	appFontMu.Unlock()
+	t.Cleanup(func() {
+		appFontMu.Lock()
+		appFontPaths, appFontData = savedPaths, savedData
+		appFontMu.Unlock()
+	})
 }
 
 func TestLoadAppFontsRegistersBothLists(t *testing.T) {
