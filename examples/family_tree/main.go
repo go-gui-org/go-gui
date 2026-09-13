@@ -62,11 +62,9 @@ type App struct {
 	// canvas coordinates. OnDraw only replays them.
 	segments [][]float32
 
-	// width and height are the bounds of the whole tree. The canvas must
-	// be given this size explicitly: a container that does not arrange
-	// its children measures its scroll range from child sizes only and
-	// ignores child X/Y. Without it, names past the window edge could not
-	// be scrolled into view.
+	// width and height are the bounds of the whole tree. They size the
+	// DrawCanvas that paints the lines. The Canvas itself needs no size: a
+	// Fit Canvas grows to enclose its children at their X/Y.
 	width, height float32
 
 	// selected is the index into nodes of the last clicked name, or -1.

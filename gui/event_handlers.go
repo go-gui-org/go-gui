@@ -501,11 +501,13 @@ func mouseScrollFallbackHandlerDepth(layout *Layout, e *Event, w *Window, depth 
 					// ScrollMode excludes and returns false at a boundary,
 					// so a vertical-only list ignores the X part. Both run
 					// even when the first moves: neither short-circuits.
+					// A non-finite delta is dropped: f32Clamp passes NaN
+					// through, and a NaN offset would stick in the scroll map.
 					var movedX, movedY bool
-					if e.ScrollX != 0 {
+					if e.ScrollX != 0 && f32IsFinite(e.ScrollX) {
 						movedX = scrollHorizontal(layout, e.ScrollX, w)
 					}
-					if e.ScrollY != 0 {
+					if e.ScrollY != 0 && f32IsFinite(e.ScrollY) {
 						movedY = scrollVertical(layout, e.ScrollY, w)
 					}
 					e.IsHandled = movedX || movedY

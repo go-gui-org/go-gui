@@ -127,10 +127,11 @@ func scrollFillResetMin(shape *Shape, axis distributeAxis) {
 }
 
 // fitAxisNoneWidth grows an axis-less container (Canvas) to enclose its
-// in-flow children, each at its own X: the furthest right edge plus padding
-// (issue #584). The same rule sets MinWidth from the children's minimums.
-// Children are not re-sized. A child left of the origin adds nothing, and a
-// container with no in-flow child keeps its size, like the other branches.
+// in-flow children: the furthest right edge (X+width) plus padding (issue
+// #584), same rule for MinWidth. Children are not re-sized; a child left of
+// the origin, or with no in-flow child at all, adds nothing. A non-finite
+// child X is skipped — f32Max returns its second argument for NaN and would
+// poison the size otherwise.
 func fitAxisNoneWidth(layout *Layout, padding float32) {
 	var extent, minExtent float32
 	found := false
@@ -140,14 +141,17 @@ func fitAxisNoneWidth(layout *Layout, padding float32) {
 			continue
 		}
 		found = true
-		extent = f32Max(extent, c.X+childExtentW(c))
-		minExtent = f32Max(minExtent, c.X+c.MinWidth)
+		if e := c.X + childExtentW(c); f32IsFinite(e) {
+			extent = f32Max(extent, e)
+		}
+		if m := c.X + c.MinWidth; f32IsFinite(m) {
+			minExtent = f32Max(minExtent, m)
+		}
 	}
-	if !found {
-		return
+	if found {
+		layout.Shape.Width = f32Max(layout.Shape.Width, extent+padding)
+		layout.Shape.MinWidth = f32Max(layout.Shape.MinWidth, minExtent+padding)
 	}
-	layout.Shape.Width = f32Max(layout.Shape.Width, extent+padding)
-	layout.Shape.MinWidth = f32Max(layout.Shape.MinWidth, minExtent+padding)
 }
 
 // fitAxisNoneHeight is fitAxisNoneWidth for the vertical axis, with Y.
@@ -160,14 +164,17 @@ func fitAxisNoneHeight(layout *Layout, padding float32) {
 			continue
 		}
 		found = true
-		extent = f32Max(extent, c.Y+c.Height)
-		minExtent = f32Max(minExtent, c.Y+c.MinHeight)
+		if e := c.Y + c.Height; f32IsFinite(e) {
+			extent = f32Max(extent, e)
+		}
+		if m := c.Y + c.MinHeight; f32IsFinite(m) {
+			minExtent = f32Max(minExtent, m)
+		}
 	}
-	if !found {
-		return
+	if found {
+		layout.Shape.Height = f32Max(layout.Shape.Height, extent+padding)
+		layout.Shape.MinHeight = f32Max(layout.Shape.MinHeight, minExtent+padding)
 	}
-	layout.Shape.Height = f32Max(layout.Shape.Height, extent+padding)
-	layout.Shape.MinHeight = f32Max(layout.Shape.MinHeight, minExtent+padding)
 }
 
 func clampMinMax(shape *Shape, axis distributeAxis) {

@@ -1225,3 +1225,44 @@ func TestFitCanvasInScrollColumnScrollsSideways(t *testing.T) {
 		t.Errorf("x offset = %v, want < 0", x)
 	}
 }
+
+// A Canvas child with a NaN or Inf position is bad app data. It must add
+// nothing to the Fit size or the scroll range, not poison them: f32Max
+// returns its second argument when that is NaN.
+func TestLayoutAxisNoneNonFiniteChildIgnored(t *testing.T) {
+	var zero float32
+	nan := zero / zero
+	inf := 1 / zero
+	root := &Layout{
+		Shape: &Shape{Axis: axisNone, Sizing: FitFit},
+		Children: []Layout{
+			{Shape: &Shape{shapeType: shapeRectangle, X: 100, Y: 50, Width: 120, Height: 40, MinWidth: 120, MinHeight: 40}},
+			{Shape: &Shape{shapeType: shapeRectangle, X: nan, Y: inf, Width: 10, Height: 10, MinWidth: 10, MinHeight: 10}},
+		},
+	}
+	layoutWidths(root)
+	layoutHeights(root)
+	nearF(t, "width", root.Shape.Width, 220, 0.01)
+	nearF(t, "height", root.Shape.Height, 90, 0.01)
+	nearF(t, "min width", root.Shape.MinWidth, 220, 0.01)
+	nearF(t, "min height", root.Shape.MinHeight, 90, 0.01)
+	nearF(t, "content width", computeContentWidth(root), 220, 0.01)
+	nearF(t, "content height", computeContentHeight(root), 90, 0.01)
+}
+
+// A horizontal-only scroll row cannot reveal hidden height, so it keeps its
+// content's height floor. Mirror of TestScrollFillVerticalOnlyKeepsWidthFloor.
+func TestScrollFillHorizontalOnlyKeepsHeightFloor(t *testing.T) {
+	w := scrollFillWindow(t, Row(ContainerCfg{
+		ID: "s", Scrollable: true, ScrollMode: ScrollHorizontalOnly,
+		Sizing: FillFill, Padding: PaddingNone,
+		Content: []View{bigFixedBox(50, 2000)},
+	}))
+	ly, ok := w.layout.FindByID("s")
+	if !ok {
+		t.Fatal("scroll container not found")
+	}
+	if ly.Shape.MinHeight < 2000 {
+		t.Errorf("min height %v, want >= 2000 (content floor kept)", ly.Shape.MinHeight)
+	}
+}

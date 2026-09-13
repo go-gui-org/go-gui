@@ -173,6 +173,10 @@ func computeContentWidth(layout *Layout) float32 {
 			ext := childExtentW(c.Shape)
 			if placed {
 				ext += c.Shape.X
+				// A NaN or Inf X would poison the scroll range; skip it.
+				if !f32IsFinite(ext) {
+					continue
+				}
 			}
 			width = f32Max(width, ext)
 		}
@@ -214,6 +218,9 @@ func computeContentHeight(layout *Layout) float32 {
 			ext := c.Shape.Height
 			if placed {
 				ext += c.Shape.Y
+				if !f32IsFinite(ext) {
+					continue
+				}
 			}
 			height = f32Max(height, ext)
 		}

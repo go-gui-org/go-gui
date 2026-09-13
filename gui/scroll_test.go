@@ -592,3 +592,52 @@ func TestScrollDiscreteNoModifierStaysVertical(t *testing.T) {
 		t.Errorf("x offset = %v, want 0 for a discrete wheel without Shift", x)
 	}
 }
+
+// A precise event with a NaN or Inf delta must not store a bad offset:
+// f32Clamp passes NaN through, and the offset would stick. The finite axis
+// of the same event still scrolls.
+func TestScrollPreciseNonFiniteDeltaIgnored(t *testing.T) {
+	nan := float32(math.NaN())
+	inf := float32(math.Inf(-1))
+	tests := []struct {
+		name   string
+		dx, dy float32
+		// badX is true when X carries the non-finite delta.
+		badX bool
+	}{
+		{name: "NaN x", dx: nan, dy: -40, badX: true},
+		{name: "Inf y", dx: -40, dy: inf},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			w := preciseScrollWindow(t, scrollBoth)
+			ly, ok := w.layout.FindByID("s")
+			if !ok {
+				t.Fatal("scroll container not found")
+			}
+			e := Event{
+				Type:   EventMouseScroll,
+				MouseX: ly.Shape.X + 10, MouseY: ly.Shape.Y + 10,
+				ScrollX:       tc.dx,
+				ScrollY:       tc.dy,
+				ScrollPrecise: true,
+			}
+			w.EventFn(&e)
+			w.settle()
+			x, y, err := w.TestScrollOffset("s")
+			if err != nil {
+				t.Fatal(err)
+			}
+			bad, good := y, x
+			if tc.badX {
+				bad, good = x, y
+			}
+			if bad != 0 {
+				t.Errorf("offset on the non-finite axis = %v, want 0", bad)
+			}
+			if good >= 0 {
+				t.Errorf("offset on the finite axis = %v, want < 0", good)
+			}
+		})
+	}
+}
