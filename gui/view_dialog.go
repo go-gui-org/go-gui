@@ -347,7 +347,7 @@ func dialogFocusID(cfg DialogCfg) string {
 func (w *Window) Dialog(cfg DialogCfg) {
 	applyDialogDefaults(&cfg)
 	cfg.visible = true
-	cfg.oldFocusID = w.viewState.focusID
+	cfg.oldFocusID = w.FocusID()
 	w.dialogCfg = cfg
 	// The open cue, not cfg.Sound: Sound names the buttons' activation
 	// sound. w.Theme() rather than guiTheme — Dialog runs outside
@@ -406,7 +406,7 @@ func (w *Window) retainDialogFocus(dialog *Layout) {
 	}
 	// empty focus means nothing is focused: FindLayoutByFocusID would match
 	// the dialog root (it is not focusable), so treat it as escaped.
-	if id := w.viewState.focusID; id != "" {
+	if id := w.FocusID(); id != "" {
 		if _, ok := findLayoutByFocusID(dialog, id); ok {
 			return
 		}

@@ -106,7 +106,7 @@ func TestUnknownFocusReportsTheScopedSpelling(t *testing.T) {
 	buf := captureDebugMask(t, DebugAll)
 	w := &Window{}
 	w.layout = scopedIDTree()
-	w.viewState.focusID = "nav"
+	w.viewState.focusID.Store("nav")
 
 	w.debugAudit(&w.layout)
 
@@ -122,7 +122,7 @@ func TestUnknownFocusCorrectSpellingIsQuiet(t *testing.T) {
 	buf := captureDebugMask(t, DebugAll)
 	w := &Window{}
 	w.layout = scopedIDTree()
-	w.viewState.focusID = "detail:nav"
+	w.viewState.focusID.Store("detail:nav")
 
 	w.debugAudit(&w.layout)
 
@@ -137,7 +137,7 @@ func TestUnknownFocusNamesANonFocusableShape(t *testing.T) {
 	buf := captureDebugMask(t, DebugAll)
 	w := &Window{}
 	w.layout = scopedIDTree()
-	w.viewState.focusID = "detail"
+	w.viewState.focusID.Store("detail")
 
 	w.debugAudit(&w.layout)
 

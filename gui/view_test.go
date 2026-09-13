@@ -51,7 +51,7 @@ func TestExecuteFocusCallbackNoFocus(t *testing.T) {
 	called := false
 	cb := func(ctx EventCtx) { called = true }
 
-	if executeFocusCallback(layout, e, w, cb, evNotify) {
+	if executeFocusCallback(layout, e, w, cb, evNotify, nil) {
 		t.Error("should not execute when not focusable")
 	}
 	if called {
@@ -67,7 +67,7 @@ func TestExecuteFocusCallbackNotFocused(t *testing.T) {
 	called := false
 	cb := func(ctx EventCtx) { called = true }
 
-	if executeFocusCallback(layout, e, w, cb, evNotify) {
+	if executeFocusCallback(layout, e, w, cb, evNotify, nil) {
 		t.Error("should not execute when not focused")
 	}
 	if called {
@@ -84,7 +84,7 @@ func TestExecuteFocusCallbackFocused(t *testing.T) {
 	cb := func(ctx EventCtx) {
 		ctx.Consume()
 	}
-	if !executeFocusCallback(layout, e, w, cb, evNotify) {
+	if !executeFocusCallback(layout, e, w, cb, evNotify, nil) {
 		t.Error("should execute when focused")
 	}
 	if !e.IsHandled {
@@ -98,7 +98,7 @@ func TestExecuteFocusCallbackNilCallback(t *testing.T) {
 	w := &Window{}
 	w.SetFocus("f1")
 
-	if executeFocusCallback(layout, e, w, nil, evNotify) {
+	if executeFocusCallback(layout, e, w, nil, evNotify, nil) {
 		t.Error("nil callback should return false")
 	}
 }

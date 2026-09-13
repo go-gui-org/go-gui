@@ -27,18 +27,65 @@ func isFocusedTarget(layout *Layout, w *Window) bool {
 	return w.IsFocus(layout.Shape.idKey())
 }
 
+// Focus-delivery slots for markServed. Keyboard dispatch matches
+// every shape sharing the focused effective ID, so one event reaches
+// several delivery points; the slot keeps the char, key and
+// click-on-key deliveries of that one dispatch from suppressing each
+// other while still suppressing a twin's repeat of the same slot.
+const (
+	focusSlotChar uint8 = 1 << iota
+	focusSlotCharClick
+	focusSlotKey
+	focusSlotKeyClick
+)
+
+// markServed records that the dispatch's focus target ran this
+// delivery slot, and reports whether it had already done so earlier
+// in the same dispatch. Duplicate effective IDs — the debug gate's
+// duplicate-ID finding — match every twin, so without this one
+// keypress would run each twin's handler (and one space/enter press
+// would activate each twin's OnClick). The first twin in dispatch
+// order wins, matching the tab order's first-candidate rule.
+//
+// The state lives in the traversal call, not on the window: each
+// entry point starts fresh, so sequential events — however they are
+// dispatched — can never suppress each other. A nil state disables
+// dedup, for direct unit calls testing a single delivery.
+func markServed(served *uint8, slot uint8) bool {
+	if served == nil {
+		return false
+	}
+	if *served&slot != 0 {
+		return true
+	}
+	*served |= slot
+	return false
+}
+
 // executeFocusCallback delivers a keyboard event to the focused
 // target. class names the event for the debug check; it no longer
-// selects a dispatch rule, because there is only one.
+// selects a dispatch rule, because there is only one. served carries
+// the dispatch's delivery marks (see markServed); nil disables dedup.
 func executeFocusCallback(
 	layout *Layout, e *Event, w *Window,
-	callback shapeCallback, class evClass,
+	callback shapeCallback, class evClass, served *uint8,
 ) bool {
 	if !isFocusedTarget(layout, w) {
 		return false
 	}
 	if callback == nil {
 		return false
+	}
+	// One delivery per identity per dispatch: a twin sharing the
+	// focused ID must not run the same slot again. Key down and key up
+	// share the key slot — they are always separate dispatches, each
+	// with fresh marks.
+	slot := focusSlotKey
+	if class == evChar {
+		slot = focusSlotChar
+	}
+	if markServed(served, slot) {
+		return e.IsHandled
 	}
 	callback(EventCtx{layout, e, w})
 	if class.named() {

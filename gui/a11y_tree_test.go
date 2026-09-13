@@ -852,7 +852,7 @@ func TestSyncA11yBuildsAndSyncsTree(t *testing.T) {
 func TestSyncA11yTrackedFocus(t *testing.T) {
 	w := newA11yWindow()
 	w.initA11y()
-	w.viewState.focusID = "f2"
+	w.viewState.focusID.Store("f2")
 	w.layout = Layout{
 		Shape: &Shape{A11YRole: AccessRoleGroup},
 		Children: []Layout{

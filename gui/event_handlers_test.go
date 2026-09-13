@@ -500,6 +500,36 @@ func TestMouseScrollHandlerFocusedOnMouseScroll(t *testing.T) {
 	}
 }
 
+func TestMouseScrollHandlerSkipsDisabledFocus(t *testing.T) {
+	t.Parallel()
+	// findLayoutByFocusID matches canTakeFocus, the same predicate
+	// dispatch uses: parking focus on a disabled widget (a SetFocus
+	// the next frame's fixup has not repaired yet) must not deliver
+	// the focused scroll to it.
+	called := false
+	root := &Layout{
+		Shape: &Shape{},
+		Children: []Layout{
+			{Shape: &Shape{
+				Focusable: true, Disabled: true, ID: "f5d",
+				events: &eventHandlers{
+					OnMouseScroll: func(ctx EventCtx) {
+						called = true
+						ctx.Consume()
+					},
+				},
+			}},
+		},
+	}
+	w := &Window{windowWidth: 800, windowHeight: 600}
+	w.SetFocus("f5d")
+	e := &Event{MouseX: 50, MouseY: 50, ScrollY: -10}
+	mouseScrollHandler(root, e, w)
+	if called {
+		t.Error("disabled focused OnMouseScroll should not be called")
+	}
+}
+
 func TestMouseScrollUnhandledCascadesToScrollContainer(t *testing.T) {
 	// Focused handler does NOT set IsHandled — scroll should
 	// cascade to the scroll container fallback.
@@ -1087,7 +1117,7 @@ func TestCharHandlerWideTreeStillTypes(t *testing.T) {
 		},
 	})
 	w := &Window{}
-	w.viewState.focusID = "leaf"
+	w.viewState.focusID.Store("leaf")
 	e := &Event{CharCode: 'a'}
 	charHandler(root, e, w)
 	if got != "a" {
@@ -1108,7 +1138,7 @@ func TestKeydownHandlerWideTreeStillKeys(t *testing.T) {
 		},
 	})
 	w := &Window{}
-	w.viewState.focusID = "leaf"
+	w.viewState.focusID.Store("leaf")
 	e := &Event{KeyCode: KeyEnter}
 	keydownHandler(root, e, w)
 	if gotKey != KeyEnter {
@@ -1129,7 +1159,7 @@ func TestKeyupHandlerWideTreeStillKeys(t *testing.T) {
 		},
 	})
 	w := &Window{}
-	w.viewState.focusID = "leaf"
+	w.viewState.focusID.Store("leaf")
 	keyupHandler(root, &Event{KeyCode: KeyEnter}, w)
 	if !fired {
 		t.Error("OnKeyUp did not fire in a wide container")

@@ -110,7 +110,13 @@ type ViewState struct {
 	markdownTheme     uint64
 	rtfLayoutTheme    uint64
 	diagramRequestSeq uint64
-	focusID           string
+	// focusID is the focused widget's effective ID, held as a string
+	// in an atomic.Value. Atomic, like inputCursorOn below: SetFocus
+	// writes under w.mu while FocusID and IsFocus read lock-free from
+	// dispatch and AmendLayout, so a plain string would race a
+	// worker-goroutine reader against the main thread. The zero value
+	// (no Store yet) reads as unfocused.
+	focusID atomic.Value
 
 	// imeEditFocusID is the focus ID syncIMEEditContext last activated
 	// the input method for. Moving between two text fields must cycle
@@ -202,7 +208,7 @@ func (w *Window) clearViewState() {
 func (w *Window) clearViewStateLocked() {
 	w.viewState.registry.Clear()
 	w.clearHotMaps()
-	w.viewState.focusID = ""
+	w.viewState.focusID.Store("")
 }
 
 // ClearDrawCanvasCache drops all cached tessellation data,

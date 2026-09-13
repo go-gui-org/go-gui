@@ -40,7 +40,7 @@ func TestIsFocusedTargetZeroIDFocus(t *testing.T) {
 
 func TestIsFocusedTargetMatches(t *testing.T) {
 	w := &Window{}
-	w.viewState.focusID = "f42"
+	w.viewState.focusID.Store("f42")
 	l := &Layout{Shape: &Shape{Focusable: true, ID: "f42"}}
 	if !isFocusedTarget(l, w) {
 		t.Error("matching IDFocus should return true")
@@ -49,11 +49,118 @@ func TestIsFocusedTargetMatches(t *testing.T) {
 
 func TestExecuteFocusCallbackNil(t *testing.T) {
 	w := &Window{}
-	w.viewState.focusID = "f1"
+	w.viewState.focusID.Store("f1")
 	l := &Layout{Shape: &Shape{ID: reservedDialogID}}
 	e := &Event{}
-	if executeFocusCallback(l, e, w, nil, evNotify) {
+	if executeFocusCallback(l, e, w, nil, evNotify, nil) {
 		t.Error("nil callback should return false")
+	}
+}
+
+// duplicateFocusRoot builds a root with two focusable twins sharing
+// one effective ID, each counting its own deliveries.
+func duplicateFocusRoot(first, second *int, handlers func(*int) *eventHandlers) *Layout {
+	return &Layout{Shape: &Shape{}, Children: []Layout{
+		{Shape: &Shape{Focusable: true, ID: "dup", events: handlers(first)}},
+		{Shape: &Shape{Focusable: true, ID: "dup", events: handlers(second)}},
+	}}
+}
+
+// Twins sharing an effective ID are a bug the debug gate reports, but
+// the runtime must still deliver once: the first twin in dispatch
+// order wins instead of every twin firing. Each twin declines, so a
+// second delivery cannot hide behind consumption.
+func TestDuplicateFocusIDDedupsKeyDown(t *testing.T) {
+	t.Parallel()
+	var first, second int
+	root := duplicateFocusRoot(&first, &second, func(calls *int) *eventHandlers {
+		return &eventHandlers{OnKeyDown: func(EventCtx) { *calls++ }}
+	})
+	w := &Window{}
+	w.SetFocus("dup")
+	keydownHandler(root, &Event{Type: EventKeyDown, KeyCode: KeyA}, w)
+	if first+second != 1 {
+		t.Errorf("key down ran %d times across twins, want 1", first+second)
+	}
+}
+
+func TestDuplicateFocusIDDedupsChar(t *testing.T) {
+	t.Parallel()
+	var first, second int
+	root := duplicateFocusRoot(&first, &second, func(calls *int) *eventHandlers {
+		return &eventHandlers{OnChar: func(EventCtx) { *calls++ }}
+	})
+	w := &Window{}
+	w.SetFocus("dup")
+	charHandler(root, &Event{Type: EventChar, CharCode: 'x'}, w)
+	if first+second != 1 {
+		t.Errorf("char ran %d times across twins, want 1", first+second)
+	}
+}
+
+func TestDuplicateFocusIDDedupsEnterClick(t *testing.T) {
+	t.Parallel()
+	var first, second int
+	root := duplicateFocusRoot(&first, &second, func(calls *int) *eventHandlers {
+		return &eventHandlers{
+			clickOnEnter: true,
+			OnClick:      func(EventCtx) { *calls++ },
+		}
+	})
+	w := &Window{}
+	w.SetFocus("dup")
+	keydownHandler(root,
+		&Event{Type: EventKeyDown, KeyCode: KeyEnter, Modifiers: ModNone}, w)
+	if first+second != 1 {
+		t.Errorf("enter-click ran %d times across twins, want 1", first+second)
+	}
+}
+
+func TestDuplicateFocusIDDedupsKeyUp(t *testing.T) {
+	t.Parallel()
+	var first, second int
+	root := duplicateFocusRoot(&first, &second, func(calls *int) *eventHandlers {
+		return &eventHandlers{OnKeyUp: func(EventCtx) { *calls++ }}
+	})
+	w := &Window{}
+	w.SetFocus("dup")
+	keyupHandler(root, &Event{Type: EventKeyUp, KeyCode: KeyA}, w)
+	if first+second != 1 {
+		t.Errorf("key up ran %d times across twins, want 1", first+second)
+	}
+}
+
+func TestDuplicateFocusIDDedupsSpaceClick(t *testing.T) {
+	t.Parallel()
+	var first, second int
+	root := duplicateFocusRoot(&first, &second, func(calls *int) *eventHandlers {
+		return &eventHandlers{
+			clickOnSpace: true,
+			OnClick:      func(EventCtx) { *calls++ },
+		}
+	})
+	w := &Window{}
+	w.SetFocus("dup")
+	charHandler(root, &Event{Type: EventChar, CharCode: ' '}, w)
+	if first+second != 1 {
+		t.Errorf("space-click ran %d times across twins, want 1", first+second)
+	}
+}
+
+// The dedup scope is one dispatch: a second event must deliver again.
+func TestDuplicateFocusIDResetsPerEvent(t *testing.T) {
+	t.Parallel()
+	var first, second int
+	root := duplicateFocusRoot(&first, &second, func(calls *int) *eventHandlers {
+		return &eventHandlers{OnKeyDown: func(EventCtx) { *calls++ }}
+	})
+	w := &Window{focused: true}
+	w.layout = *root
+	w.SetFocus("dup")
+	w.EventFn(&Event{Type: EventKeyDown, KeyCode: KeyA})
+	w.EventFn(&Event{Type: EventKeyDown, KeyCode: KeyA})
+	if first+second != 2 {
+		t.Errorf("two events ran %d times across twins, want 2", first+second)
 	}
 }
 

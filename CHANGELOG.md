@@ -70,6 +70,18 @@ and this project adheres to
 
 ### Fixed
 
+- **A duplicate widget ID no longer fires keyboard handlers twice** — Two
+  widgets sharing an effective ID (a bug the debug gate reports) collapsed to
+  one tab stop, but both ran the focused widget's `OnKeyDown`, `OnChar` and
+  `OnKeyUp`, and both activated on Space/Enter — one press could apply a
+  mutation twice. The first twin in dispatch order now wins the keypress,
+  matching the tab order's first-candidate rule. Scroll dispatch is unchanged:
+  the focused pass still runs first and the fallback still skips it by pointer.
+- **A parked focus no longer scrolls a disabled widget** — Focusing a widget
+  that is disabled (a `SetFocus` the next frame's fixup has not repaired yet)
+  still matched the focused scroll target, so a wheel tick reached a disabled
+  widget's `OnMouseScroll`. The focused-ID walk now uses the same take-focus
+  predicate dispatch uses, so the scroll falls through to the container below.
 - **A rich-text style change no longer shows a stale layout** — The cross-frame
   layout cache keyed on run text and the base style only, so changing a run's
   size or family, or the hanging indent, reused the old layout. The key now

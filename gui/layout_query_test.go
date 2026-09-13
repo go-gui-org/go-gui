@@ -60,14 +60,14 @@ func TestNextFocusable(t *testing.T) {
 		},
 	}
 	w := &Window{}
-	w.viewState.focusID = "f10"
+	w.viewState.focusID.Store("f10")
 
 	s, ok := root.nextFocusable(w)
 	if !ok || s.ID != "f20" {
 		t.Errorf("next from 10: got %v, want 20", s)
 	}
 
-	w.viewState.focusID = "f30"
+	w.viewState.focusID.Store("f30")
 	s, ok = root.nextFocusable(w)
 	if !ok || s.ID != "f10" {
 		t.Errorf("wrap from 30: got %v, want 10", s)
@@ -84,14 +84,14 @@ func TestPreviousFocusable(t *testing.T) {
 		},
 	}
 	w := &Window{}
-	w.viewState.focusID = "f20"
+	w.viewState.focusID.Store("f20")
 
 	s, ok := root.previousFocusable(w)
 	if !ok || s.ID != "f10" {
 		t.Errorf("prev from 20: got %v, want 10", s)
 	}
 
-	w.viewState.focusID = "f10"
+	w.viewState.focusID.Store("f10")
 	s, ok = root.previousFocusable(w)
 	if !ok || s.ID != "f30" {
 		t.Errorf("wrap from 10: got %v, want 30", s)
@@ -109,7 +109,7 @@ func TestFocusableSkipsDisabledAndFocusSkip(t *testing.T) {
 		},
 	}
 	w := &Window{}
-	w.viewState.focusID = "f10"
+	w.viewState.focusID.Store("f10")
 
 	s, ok := root.nextFocusable(w)
 	if !ok || s.ID != "f40" {

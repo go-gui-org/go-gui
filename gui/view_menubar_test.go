@@ -32,7 +32,7 @@ func TestMenubarLayout(t *testing.T) {
 
 func TestMenubarKeydownEscape(t *testing.T) {
 	w := &Window{}
-	w.viewState.focusID = "mb"
+	w.viewState.focusID.Store("mb")
 	sm := StateMap[string, string](w, nsMenu, capModerate)
 	sm.Set("mb", "file")
 
@@ -49,7 +49,7 @@ func TestMenubarKeydownEscape(t *testing.T) {
 	if e.IsHandled != true {
 		t.Error("escape should be handled")
 	}
-	if w.viewState.focusID != "" {
+	if w.FocusID() != "" {
 		t.Error("focus should be cleared")
 	}
 	sel, _ := sm.Get("mb")
@@ -60,7 +60,7 @@ func TestMenubarKeydownEscape(t *testing.T) {
 
 func TestMenubarKeydownNavigation(t *testing.T) {
 	w := &Window{}
-	w.viewState.focusID = "mb"
+	w.viewState.focusID.Store("mb")
 	sm := StateMap[string, string](w, nsMenu, capModerate)
 	sm.Set("mb", "file")
 

@@ -64,7 +64,7 @@ func shapeDrawsCaret(s *Shape) bool {
 // shape), so once one signal is found the walk keeps going for the
 // other.
 func findEditTargets(layout *Layout, w *Window) (caret, ime bool) {
-	if layout.Shape == nil || w.viewState.focusID == "" {
+	if layout.Shape == nil || w.FocusID() == "" {
 		return false, false
 	}
 	if w.IsFocus(layout.Shape.focusKey()) {
@@ -108,10 +108,11 @@ func findEditTargets(layout *Layout, w *Window) (caret, ime bool) {
 // removed.
 func (w *Window) syncIMEEditContext() {
 	_, ime := findEditTargets(&w.layout, w)
-	editing := w.viewState.focusID != "" && ime
+	focusID := w.FocusID()
+	editing := focusID != "" && ime
 	id := ""
 	if editing {
-		id = w.viewState.focusID
+		id = focusID
 	}
 	if editing == w.viewState.imeEditContext &&
 		id == w.viewState.imeEditFocusID {

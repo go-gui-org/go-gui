@@ -8,11 +8,14 @@ import "time"
 // so it is already in the form [Window.SetFocus] and [Layout.FindByID]
 // take.
 //
-// Main-thread only: no lock is taken, so a call from any other
-// goroutine races with [Window.SetFocus]. Route worker-goroutine
-// reads through [Window.QueueCommand].
+// A lock-free atomic read, so a call from any other goroutine is safe
+// (writes still route through [Window.QueueCommand], since [Window.SetFocus]
+// takes the frame lock).
 func (w *Window) FocusID() string {
-	return w.viewState.focusID
+	if v := w.viewState.focusID.Load(); v != nil {
+		return v.(string)
+	}
+	return ""
 }
 
 // SetFocus sets the focused widget by its string ID. A real focus
@@ -43,7 +46,7 @@ func (w *Window) ClearFocus() {
 }
 
 func (w *Window) setFocusLocked(effectiveID string) {
-	prev := w.viewState.focusID
+	prev := w.FocusID()
 	// Only a real focus *change* drops selections and clears the IME.
 	// Re-asserting focus on the widget that already holds it must leave
 	// an in-flight IME composition alone — see #156 — and, since #277,
@@ -59,7 +62,7 @@ func (w *Window) setFocusLocked(effectiveID string) {
 		// here or syncA11y would skip the push (issue #407).
 		w.a11y.dirty = true
 	}
-	w.viewState.focusID = effectiveID
+	w.viewState.focusID.Store(effectiveID)
 	if effectiveID != "" {
 		w.viewState.inputCursorOn.Store(true)
 	}
@@ -87,7 +90,7 @@ func (w *Window) setFocusLocked(effectiveID string) {
 // traversal, and costs one findByID walk only while something holds
 // focus. Must run under w.mu; use SetFocus outside the frame pass.
 func (w *Window) fixupFocusLocked() {
-	id := w.viewState.focusID
+	id := w.FocusID()
 	if id == "" {
 		return
 	}
@@ -97,7 +100,18 @@ func (w *Window) fixupFocusLocked() {
 	// The invalid ID is not among the tab candidates, so this lands on
 	// the first tab stop in DFS order; with no candidates at all the
 	// window ends unfocused rather than parked on a dead ID.
-	if next, ok := w.layout.nextFocusable(w); ok {
+	//
+	// The candidates for the repair are collected here instead of
+	// calling nextFocusable, which would repeat the same walk to
+	// collect the same set. focusFindNext with an ID outside the
+	// set returns the first candidate, which is exactly
+	// nextFocusable's answer for a dead ID.
+	candidates := w.scratch.focusCandidates.take(0)
+	defer func() { w.scratch.focusCandidates.put(candidates) }()
+	seen := w.scratch.focusSeen.take(0)
+	defer func() { w.scratch.focusSeen.put(seen) }()
+	collectFocusCandidates(&w.layout, &candidates, seen)
+	if next, ok := focusFindNext(candidates, id); ok {
 		w.setFocusLocked(next.idKey())
 		return
 	}
@@ -121,11 +135,10 @@ func resetBlinkCursorVisible(w *Window) {
 // ancestor is addressed by its full path ("detail:nav"), not by the
 // leaf its Cfg was written with. Read it back with [Window.ResolveID].
 //
-// Main-thread only, like [Window.FocusID]: no lock is taken, so a
-// call from any other goroutine races with [Window.SetFocus]. Route
-// worker-goroutine reads through [Window.QueueCommand].
+// A lock-free atomic read like [Window.FocusID]: safe from any goroutine.
 func (w *Window) IsFocus(effectiveID string) bool {
-	return w.viewState.focusID != "" && w.viewState.focusID == effectiveID
+	id := w.FocusID()
+	return id != "" && id == effectiveID
 }
 
 // hasFocus returns true if the window has focus.

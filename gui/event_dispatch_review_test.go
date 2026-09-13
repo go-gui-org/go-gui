@@ -29,7 +29,7 @@ func runScrollProbe(focused bool) (gotX, gotY float32) {
 	}
 	root.Children[0].Parent = root
 	if focused {
-		w.viewState.focusID = "sc"
+		w.viewState.focusID.Store("sc")
 	}
 	mouseScrollHandler(root,
 		&Event{Type: EventMouseScroll, MouseX: 150, MouseY: 80, ScrollY: 3}, w)

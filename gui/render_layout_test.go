@@ -362,7 +362,7 @@ func TestRenderLayoutStencilDepthClampsAt255(t *testing.T) {
 
 func TestRenderTextEmptyFocusedEmitsCursor(t *testing.T) {
 	w := makeWindowWithScratch()
-	w.viewState.focusID = "f100"
+	w.viewState.focusID.Store("f100")
 	w.viewState.inputCursorOn.Store(true)
 	style := DefaultTextStyle
 	shape := &Shape{
@@ -460,7 +460,7 @@ func TestRenderTextZeroAlphaSkips(t *testing.T) {
 
 func TestRenderTextPlaceholderCursor(t *testing.T) {
 	w := makeWindowWithScratch()
-	w.viewState.focusID = "f200"
+	w.viewState.focusID.Store("f200")
 	w.viewState.inputCursorOn.Store(true)
 	style := TextStyle{Color: RGB(128, 128, 128), Size: 16}
 	shape := &Shape{
@@ -502,7 +502,7 @@ func TestRenderTextPlaceholderCursor(t *testing.T) {
 
 func TestRenderInputCursorNotFocusedSkips(t *testing.T) {
 	w := makeWindow()
-	w.viewState.focusID = "f999"
+	w.viewState.focusID.Store("f999")
 	style := DefaultTextStyle
 	shape := &Shape{
 		Focusable: true, ID: "f100",
@@ -518,7 +518,7 @@ func TestRenderInputCursorNotFocusedSkips(t *testing.T) {
 
 func TestRenderInputCursorBlinkOffEmitsTransparent(t *testing.T) {
 	w := makeWindow()
-	w.viewState.focusID = "f100"
+	w.viewState.focusID.Store("f100")
 	w.viewState.inputCursorOn.Store(false)
 	style := DefaultTextStyle
 	shape := &Shape{
@@ -547,7 +547,7 @@ func TestRenderInputCursorBlinkOffEmitsTransparent(t *testing.T) {
 func TestRenderInputCursorWindowUnfocusedEmitsTransparent(t *testing.T) {
 	w := makeWindow()
 	w.focused = false
-	w.viewState.focusID = "f100"
+	w.viewState.focusID.Store("f100")
 	w.viewState.inputCursorOn.Store(true)
 	style := DefaultTextStyle
 	shape := &Shape{
@@ -583,7 +583,7 @@ func TestCommandToggleCaretBlinkWindowUnfocused(t *testing.T) {
 
 func TestRenderInputCursorFallbackPosition(t *testing.T) {
 	w := makeWindow()
-	w.viewState.focusID = "f100"
+	w.viewState.focusID.Store("f100")
 	w.viewState.inputCursorOn.Store(true)
 	style := TextStyle{Color: RGB(0, 0, 0), Size: 14}
 	shape := &Shape{

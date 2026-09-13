@@ -162,6 +162,21 @@ func TestApplyFocusRingShadowDoesNotMutateTheme(t *testing.T) {
 // Under a theme with a ring, only the focused shape gets one, and a
 // disabled shape gets none even while it holds the focus key —
 // matching the existing colour behaviour of the same hook.
+// A nil Layout must be a no-op, not a panic: the sibling
+// focusRingBorderAmend already guards it, and AmendLayout callers
+// outside the frame pass (tests, future hooks) can hand one over.
+func TestFocusRingAmendNilLayoutIsInert(t *testing.T) {
+	t.Parallel()
+	hook := focusRingAmend(RGB(1, 2, 3), RGB(4, 5, 6))
+	if hook == nil {
+		t.Skip("no hook without a themed ring or set colors")
+	}
+	w := makeWindowWithScratch()
+	w.SetFocus("focused")
+	hook(EventCtx{Window: w}) // must not panic
+	hook(EventCtx{})          // must not panic
+}
+
 func TestFocusRingAmendAppliesShadowOnlyWhenFocused(t *testing.T) {
 	saved := guiTheme
 	t.Cleanup(func() { guiTheme = saved })

@@ -1,6 +1,8 @@
 package gui
 
 import (
+	"strconv"
+	"sync"
 	"testing"
 )
 
@@ -154,4 +156,24 @@ func TestRemovedFocusMovesToFirstTabStop(t *testing.T) {
 	if got := w.FocusID(); got != "fix-a" {
 		t.Fatalf("FocusID() = %q, want %q", got, "fix-a")
 	}
+}
+
+// FocusID and IsFocus read lock-free while SetFocus writes under
+// w.mu, so the store itself must be race-free: concurrent readers
+// must neither trip `go test -race` nor observe a torn value.
+func TestFocusIDConcurrentReadsAndWrites(t *testing.T) {
+	t.Parallel()
+	w := newTestWindow()
+	var wg sync.WaitGroup
+	for g := range 4 {
+		wg.Go(func() {
+			id := "concurrent-" + strconv.Itoa(g)
+			for range 100 {
+				w.SetFocus(id)
+				_ = w.FocusID()
+				_ = w.IsFocus(id)
+			}
+		})
+	}
+	wg.Wait()
 }

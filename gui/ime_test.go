@@ -235,7 +235,7 @@ func renderIMEPreedit(t *testing.T, text string, cursor int,
 
 	const id = "ime-field"
 	w := makeWindowWithScratch()
-	w.viewState.focusID = id
+	w.viewState.focusID.Store(id)
 	StateMap[string, inputState](w, nsInput, capMany).Set(
 		id, inputState{CursorPos: cursor})
 	w.imeUpdate(&Event{Type: EventIMEComposition, IMEText: "かん"})

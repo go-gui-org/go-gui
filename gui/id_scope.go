@@ -24,12 +24,18 @@ const IDSep = ":"
 //	base := ScopeID(cfg.ID, "header", col.ID) // "grid:header:name"
 //	ScopeID(base, "resize")                   // "grid:header:name:resize"
 //
-// Parts must not contain IDSep. Nothing enforces that, because the only
-// way a stray separator does harm is by colliding with another ID, and
-// a collision is already reported by gui.Debug and asserted by
-// (*Window).TestDuplicateIDs. A leaf value derived from data — a row
-// key, a heading slug — is a part, not a scope, and keeps whatever
-// spelling its own producer uses.
+// Parts must not contain IDSep. Nothing enforces that at runtime:
+// ScopeID runs in the per-widget view phase, so a per-part scan would
+// tax every frame, and there is no reporting channel — no *Window —
+// to say where the stray separator came from. Collisions are already
+// reported by gui.Debug and asserted by (*Window).TestDuplicateIDs.
+// The one harm a collision check cannot catch is a consumer that
+// parses an ID back apart: dataGridHeaderColIDFromLayoutID recovers a
+// column by trimming the grid prefix, so a separator inside a data key
+// mis-attributes the column without any duplicate. Keep data-derived
+// keys separator-free, or key them positionally with ScopeIDN. A leaf
+// value derived from data — a row key, a heading slug — is a part,
+// not a scope, and keeps whatever spelling its own producer uses.
 //
 // Empty segments are dropped, so no leading or doubled separator
 // appears. An empty owner is therefore not an error: an ID-less

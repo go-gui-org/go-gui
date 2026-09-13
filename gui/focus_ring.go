@@ -128,8 +128,11 @@ func focusRingAmend(colorFill, colorBorder Color) func(EventCtx) {
 		return nil
 	}
 	return func(ctx EventCtx) {
+		if ctx.Layout == nil || ctx.Window == nil {
+			return
+		}
 		shape := ctx.Layout.Shape
-		if shape == nil || shape.Disabled || ctx.Window == nil {
+		if shape == nil || shape.Disabled {
 			return
 		}
 		if !ctx.Window.IsFocus(shape.idKey()) {

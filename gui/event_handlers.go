@@ -67,10 +67,11 @@ func charHandler(layout *Layout, e *Event, w *Window) {
 	if layout == nil {
 		return
 	}
-	charHandlerDepth(layout, e, w, 0)
+	var served uint8
+	charHandlerDepth(layout, e, w, 0, &served)
 }
 
-func charHandlerDepth(layout *Layout, e *Event, w *Window, depth int) {
+func charHandlerDepth(layout *Layout, e *Event, w *Window, depth int, served *uint8) {
 	if overMaxDepth(depth) {
 		return
 	}
@@ -78,7 +79,7 @@ func charHandlerDepth(layout *Layout, e *Event, w *Window, depth int) {
 		if !isChildEnabled(&layout.Children[i]) {
 			continue
 		}
-		charHandlerDepth(&layout.Children[i], e, w, depth+1)
+		charHandlerDepth(&layout.Children[i], e, w, depth+1, served)
 		if e.IsHandled {
 			return
 		}
@@ -93,7 +94,7 @@ func charHandlerDepth(layout *Layout, e *Event, w *Window, depth int) {
 		events = layout.Shape.events
 	}
 	// Delivers to the focused target, which consumes explicitly.
-	if executeFocusCallback(layout, e, w, onChar, evChar) {
+	if executeFocusCallback(layout, e, w, onChar, evChar, served) {
 		return
 	}
 	// Spacebar-to-click: when ClickOnSpace is set, fire OnClick
@@ -105,7 +106,8 @@ func charHandlerDepth(layout *Layout, e *Event, w *Window, depth int) {
 		events.clickOnSpace &&
 		e.CharCode == charSpace &&
 		events.OnClick != nil {
-		if isFocusedTarget(layout, w) {
+		// One activation per identity per dispatch: see markServed.
+		if isFocusedTarget(layout, w) && !markServed(served, focusSlotCharClick) {
 			e.IsHandled = true
 			playShapeSound(layout, w)
 			events.OnClick(EventCtx{layout, e, w})
@@ -127,10 +129,11 @@ func keydownHandler(layout *Layout, e *Event, w *Window) {
 	if layout == nil {
 		return
 	}
-	keydownHandlerDepth(layout, e, w, 0)
+	var served uint8
+	keydownHandlerDepth(layout, e, w, 0, &served)
 }
 
-func keydownHandlerDepth(layout *Layout, e *Event, w *Window, depth int) {
+func keydownHandlerDepth(layout *Layout, e *Event, w *Window, depth int, served *uint8) {
 	if overMaxDepth(depth) {
 		return
 	}
@@ -139,7 +142,7 @@ func keydownHandlerDepth(layout *Layout, e *Event, w *Window, depth int) {
 		if !isChildEnabled(&layout.Children[i]) {
 			continue
 		}
-		keydownHandlerDepth(&layout.Children[i], e, w, depth+1)
+		keydownHandlerDepth(&layout.Children[i], e, w, depth+1, served)
 		if e.IsHandled {
 			return
 		}
@@ -156,7 +159,7 @@ func keydownHandlerDepth(layout *Layout, e *Event, w *Window, depth int) {
 	// Nothing is pre-marked: OnKeyDown receives every key, so an
 	// implicit claim here would silently kill tab traversal and
 	// accelerators in any widget that has a key handler.
-	executeFocusCallback(layout, e, w, onKeyDown, evNotify)
+	executeFocusCallback(layout, e, w, onKeyDown, evNotify, served)
 	if e.IsHandled {
 		return
 	}
@@ -168,6 +171,11 @@ func keydownHandlerDepth(layout *Layout, e *Event, w *Window, depth int) {
 		events.clickOnEnter &&
 		e.KeyCode == KeyEnter &&
 		events.OnClick != nil {
+		// One activation per identity per dispatch: see markServed.
+		// The isFocusedTarget gate above already passed.
+		if markServed(served, focusSlotKeyClick) {
+			return
+		}
 		e.IsHandled = true
 		playShapeSound(layout, w)
 		events.OnClick(EventCtx{layout, e, w})
@@ -184,10 +192,11 @@ func keyupHandler(layout *Layout, e *Event, w *Window) {
 	if layout == nil {
 		return
 	}
-	keyupHandlerDepth(layout, e, w, 0)
+	var served uint8
+	keyupHandlerDepth(layout, e, w, 0, &served)
 }
 
-func keyupHandlerDepth(layout *Layout, e *Event, w *Window, depth int) {
+func keyupHandlerDepth(layout *Layout, e *Event, w *Window, depth int, served *uint8) {
 	if overMaxDepth(depth) {
 		return
 	}
@@ -196,7 +205,7 @@ func keyupHandlerDepth(layout *Layout, e *Event, w *Window, depth int) {
 		if !isChildEnabled(&layout.Children[i]) {
 			continue
 		}
-		keyupHandlerDepth(&layout.Children[i], e, w, depth+1)
+		keyupHandlerDepth(&layout.Children[i], e, w, depth+1, served)
 		if e.IsHandled {
 			return
 		}
@@ -209,7 +218,7 @@ func keyupHandlerDepth(layout *Layout, e *Event, w *Window, depth int) {
 		onKeyUp = layout.Shape.events.OnKeyUp
 	}
 	// OnKeyUp, like OnKeyDown, is never pre-marked.
-	executeFocusCallback(layout, e, w, onKeyUp, evNotify)
+	executeFocusCallback(layout, e, w, onKeyUp, evNotify, served)
 }
 
 // keydownScrollHandler handles keyboard-based scrolling.

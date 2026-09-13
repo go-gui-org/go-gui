@@ -44,8 +44,13 @@ func findLayoutByFocusIDDepth(layout *Layout, effectiveID string, depth int) (*L
 	// walk this guards is a hand-built Layout — which the package
 	// treats as a real case (DebugStampDrift reports one) and which
 	// reaches here on every scroll event through focusedScrollTarget.
+	//
+	// The match is canTakeFocus, the same predicate dispatch and tab
+	// order use: a disabled shape must not receive the focused
+	// scroll, and a parked focus ID must not count as "inside" for
+	// retainDialogFocus.
 	if s := layout.Shape; effectiveID != "" && s != nil &&
-		s.Focusable && s.idKey() == effectiveID {
+		s.canTakeFocus() && s.idKey() == effectiveID {
 		return layout, true
 	}
 	for i := range layout.Children {
@@ -208,9 +213,11 @@ func (layout *Layout) findFocusable(w *Window, find focusFinder) (*Shape, bool) 
 	if w != nil {
 		candidates = w.scratch.focusCandidates.take(0)
 		defer func() { w.scratch.focusCandidates.put(candidates) }()
-		seen = w.scratch.focusSeen.take(len(candidates))
+		// No size hint: the count is unknown until the walk below
+		// fills it. take sizes to at least 8 when empty.
+		seen = w.scratch.focusSeen.take(0)
 		defer func() { w.scratch.focusSeen.put(seen) }()
-		focusID = w.viewState.focusID
+		focusID = w.FocusID()
 	} else {
 		seen = make(map[string]struct{})
 	}

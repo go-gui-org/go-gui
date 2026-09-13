@@ -986,7 +986,7 @@ func TestDebugAuditDisabledScrollableIsQuiet(t *testing.T) {
 func TestDebugUnknownFocusHintCapsCandidates(t *testing.T) {
 	buf := captureDebugMask(t, DebugUnknownFocus)
 	w := &Window{}
-	w.viewState.focusID = "nav"
+	w.viewState.focusID.Store("nav")
 	ids := &debugIDs{
 		claimed:   map[string]string{},
 		focusable: map[string]struct{}{},

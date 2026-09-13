@@ -100,7 +100,7 @@ func TestRadioClickHoverChangesBorder(t *testing.T) {
 
 func TestRadioFocusBorder(t *testing.T) {
 	w := newTestWindow()
-	w.viewState.focusID = "f5"
+	w.viewState.focusID.Store("f5")
 	v := Radio(RadioCfg{OnClick: noop, ID: "f5"})
 	layout := generateViewLayout(v, w)
 	layout.Shape.events.AmendLayout(EventCtx{&layout, nil, w})
@@ -237,7 +237,7 @@ func TestToggleClickHoverChangesColor(t *testing.T) {
 
 func TestToggleFocusBorder(t *testing.T) {
 	w := newTestWindow()
-	w.viewState.focusID = "f5"
+	w.viewState.focusID.Store("f5")
 	v := Toggle(ToggleCfg{OnClick: noop, ID: "f5"})
 	layout := generateViewLayout(v, w)
 	layout.Shape.events.AmendLayout(EventCtx{&layout, nil, w})

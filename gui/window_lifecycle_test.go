@@ -574,7 +574,7 @@ func TestWindowCtxNilFallback(t *testing.T) {
 
 func TestSetViewPreservesIDFocus(t *testing.T) {
 	w := NewWindow(WindowCfg{State: new(int), Width: 100, Height: 100})
-	w.viewState.focusID = "f42"
+	w.viewState.focusID.Store("f42")
 	w.SetView(func(_ *Window) View {
 		return Text(TextCfg{Text: "hi"})
 	})
@@ -586,7 +586,7 @@ func TestSetViewPreservesIDFocus(t *testing.T) {
 
 func TestClearViewStateResetsIDFocus(t *testing.T) {
 	w := NewWindow(WindowCfg{State: new(int), Width: 100, Height: 100})
-	w.viewState.focusID = "f42"
+	w.viewState.focusID.Store("f42")
 	w.clearViewState()
 	if w.FocusID() != "" {
 		t.Errorf("FocusID = %q, want empty after ClearViewState",
@@ -596,14 +596,14 @@ func TestClearViewStateResetsIDFocus(t *testing.T) {
 
 func TestIsFocusMatchesAndZero(t *testing.T) {
 	w := &Window{}
-	w.viewState.focusID = "f10"
+	w.viewState.focusID.Store("f10")
 	if !w.IsFocus("f10") {
 		t.Error("IsFocus(f10) should be true")
 	}
 	if w.IsFocus("f99") {
 		t.Error("IsFocus(f99) should be false")
 	}
-	w.viewState.focusID = ""
+	w.viewState.focusID.Store("")
 	if w.IsFocus("") {
 		t.Error("IsFocus(empty) should always be false")
 	}

@@ -10,6 +10,15 @@
 // which focus traversal skips, leaving the widget silently unreachable
 // by keyboard; and literals that set Scrollable: true without an ID,
 // which share one scroll offset with every other ID-less scrollable.
+//
+// Coverage is a floor, not a proof. Only a literal handed directly to
+// its factory is inspected (see isFactoryArg): a Cfg held in a
+// variable, nested as a field value, or built through a helper stays
+// silent, as does a Focusable/ID set to anything but a bool/string
+// literal. Staying quiet there is deliberate — the analyzer cannot
+// evaluate the value, and guessing would trade false negatives for
+// false positives in a CI gate. The runtime gui.Debug gate covers
+// what static inspection cannot see.
 package requiredid
 
 import (
@@ -167,6 +176,10 @@ func parentCalls(f *ast.File) map[*ast.CompositeLit]*ast.CallExpr {
 }
 
 func isFactoryArg(lit *ast.CompositeLit, typeName string, parents map[*ast.CompositeLit]*ast.CallExpr) bool {
+	// Direct arguments only: a literal nested as a field value or
+	// held in a variable is not inspected. That is the documented
+	// floor — widening the gate here would flag fixture and
+	// debug-gate-test literals that never reach a factory.
 	call, ok := parents[lit]
 	if !ok {
 		return false

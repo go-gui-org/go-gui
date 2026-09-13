@@ -425,7 +425,7 @@ func (w *Window) debugCheckFocusTarget(ids *debugIDs) {
 	if DebugCategory(debugMask.Load())&DebugUnknownFocus == 0 {
 		return
 	}
-	id := w.viewState.focusID
+	id := w.FocusID()
 	if id == "" {
 		return
 	}
@@ -558,7 +558,8 @@ func (w *Window) debugCheckShape(s *Shape, path []int, ids *debugIDs) {
 			w.debugWarn(debugCheckDupID, key,
 				"duplicate ID %q at %s, first claimed at %s; ID is the "+
 					"identity key for focus, scroll, and per-widget state, so "+
-					"the two collapse to one tab stop and one state slot",
+					"the two collapse to one tab stop and one state slot, and "+
+					"one keypress reaches only the first twin in dispatch order",
 				key, debugPath(path), first)
 		} else {
 			ids.claimed[key] = debugPath(path)
