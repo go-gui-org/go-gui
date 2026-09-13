@@ -167,24 +167,13 @@ func (p *Parser) removeHashFromOrder(hash uint64) {
 }
 
 func parserSourceHash(src string, inline bool) uint64 {
-	const (
-		fnvOffset = uint64(0xcbf29ce484222325)
-		fnvPrime  = uint64(0x100000001b3)
-	)
-	h := fnvOffset
+	h := gui.Fnv64Offset
 	prefix := "file:"
 	if inline {
 		prefix = "inline:"
 	}
-	for i := range len(prefix) {
-		h ^= uint64(prefix[i])
-		h *= fnvPrime
-	}
-	for i := range len(src) {
-		h ^= uint64(src[i])
-		h *= fnvPrime
-	}
-	return h
+	h = gui.Fnv64Str(h, prefix)
+	return gui.Fnv64Str(h, src)
 }
 
 func parserFileHash(path string, data []byte) uint64 {
@@ -197,12 +186,7 @@ func parserFileHash(path string, data []byte) uint64 {
 }
 
 func mixHash(h uint64, extra string) uint64 {
-	const fnvPrime = uint64(0x100000001b3)
-	for i := range len(extra) {
-		h ^= uint64(extra[i])
-		h *= fnvPrime
-	}
-	return h
+	return gui.Fnv64Str(h, extra)
 }
 
 // maxGroupParentDepth caps GroupParent ancestor walks. Author-id

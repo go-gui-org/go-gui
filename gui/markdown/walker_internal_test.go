@@ -690,6 +690,26 @@ func TestMathHashEmpty(t *testing.T) {
 	}
 }
 
+func TestMathHashSpecVectors(t *testing.T) {
+	t.Parallel()
+	// Spec vectors pin the basis and prime shared with
+	// gui.Fnv64Str: this package repeats those constants
+	// (gui imports markdown, so it cannot share them).
+	// A typo must fail here, not surface as cache churn.
+	for _, v := range []struct {
+		in   string
+		want uint64
+	}{
+		{"a", 0xaf63dc4c8601ec8c},
+		{"foobar", 0x85944171f73967e8},
+	} {
+		if got := MathHash(v.in); got != v.want {
+			t.Errorf("MathHash(%q) = %x, want %x",
+				v.in, got, v.want)
+		}
+	}
+}
+
 // --- parseImageSrc ---
 
 func TestParseImageSrcNoDims(t *testing.T) {

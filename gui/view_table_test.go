@@ -444,6 +444,50 @@ func TestTableColumnWidthCaching(t *testing.T) {
 	}
 }
 
+func TestTableColumnWidthHashCoversInputs(t *testing.T) {
+	// Every width input moves the key: style, padding,
+	// minimum width, and cell text. Separators keep
+	// ("ab", "c") apart from ("a", "bc").
+	base := &TableCfg{
+		Data: []TableRowCfg{
+			TR([]TableCellCfg{tD("ab"), tD("c")}),
+		},
+	}
+	k := tableColumnWidthHash(base)
+	if tableColumnWidthHash(nil) != Fnv64Offset {
+		t.Error("nil cfg should hash to the offset basis")
+	}
+	resized := &TableCfg{
+		Data:      base.Data,
+		TextStyle: TextStyle{Size: 20},
+	}
+	if tableColumnWidthHash(resized) == k {
+		t.Error("text style change should move the key")
+	}
+	padded := &TableCfg{
+		Data:        base.Data,
+		CellPadding: PadAll(8),
+	}
+	if tableColumnWidthHash(padded) == k {
+		t.Error("padding change should move the key")
+	}
+	widened := &TableCfg{
+		Data:           base.Data,
+		ColumnWidthMin: 99,
+	}
+	if tableColumnWidthHash(widened) == k {
+		t.Error("minimum width change should move the key")
+	}
+	joined := &TableCfg{
+		Data: []TableRowCfg{
+			TR([]TableCellCfg{tD("a"), tD("bc")}),
+		},
+	}
+	if tableColumnWidthHash(joined) == k {
+		t.Error("re-split cells should not key alike")
+	}
+}
+
 func TestClearTableCache(_ *testing.T) {
 	w := &Window{}
 	w.textMeasurer = &tableTestMeasurer{}

@@ -4,6 +4,7 @@ import (
 	"math"
 	"strings"
 	"testing"
+	"unicode/utf8"
 
 	"github.com/go-gui-org/go-gui/gui/svg/css"
 )
@@ -41,6 +42,17 @@ func TestClampElementIDTruncates(t *testing.T) {
 	got := clampElementID(huge)
 	if len(got) != maxElementIDLen {
 		t.Errorf("expected len %d, got %d", maxElementIDLen, len(got))
+	}
+	// A cut through a multi-byte rune must not hand back a
+	// broken encoding: 100 U+20AC (3 bytes each) cut at 256
+	// lands mid-rune.
+	wide := strings.Repeat("\u20AC", 100)
+	got = clampElementID(wide)
+	if !utf8.ValidString(got) {
+		t.Errorf("clamped id is not valid UTF-8: %q", got)
+	}
+	if len(got) > maxElementIDLen {
+		t.Errorf("expected len <= %d, got %d", maxElementIDLen, len(got))
 	}
 }
 

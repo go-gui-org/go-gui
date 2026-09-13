@@ -142,29 +142,26 @@ func parserSourceHashWithOpts(
 }
 
 func mixOptsHash(h uint64, opts gui.SvgParseOpts) uint64 {
-	const fnvPrime = uint64(0x100000001b3)
-	var b byte
 	if opts.PrefersReducedMotion {
-		b = 1
+		h = gui.Fnv64Byte(h, 1)
+	} else {
+		h = gui.Fnv64Byte(h, 0)
 	}
-	h ^= uint64(b)
-	h *= fnvPrime
-	// FlatnessTolerance: hash bit pattern so cache invalidates on change.
+	// FlatnessTolerance: hash the bit pattern so the cache
+	// invalidates on change. NaN has many bit patterns, so map
+	// every NaN to 0 and keep one key per logical value.
 	bits := math.Float32bits(opts.FlatnessTolerance)
-	h ^= uint64(bits)
-	h *= fnvPrime
-	hovered := clampElementID(opts.HoveredElementID)
-	for i := range len(hovered) {
-		h ^= uint64(hovered[i])
-		h *= fnvPrime
+	if math.IsNaN(float64(opts.FlatnessTolerance)) {
+		bits = 0
 	}
-	h ^= uint64('|')
-	h *= fnvPrime
-	focused := clampElementID(opts.FocusedElementID)
-	for i := range len(focused) {
-		h ^= uint64(focused[i])
-		h *= fnvPrime
-	}
+	h = gui.Fnv64Byte(h, byte(bits))
+	h = gui.Fnv64Byte(h, byte(bits>>8))
+	h = gui.Fnv64Byte(h, byte(bits>>16))
+	h = gui.Fnv64Byte(h, byte(bits>>24))
+	h = gui.Fnv64Byte(h, '|')
+	h = gui.Fnv64Str(h, clampElementID(opts.HoveredElementID))
+	h = gui.Fnv64Byte(h, '|')
+	h = gui.Fnv64Str(h, clampElementID(opts.FocusedElementID))
 	return h
 }
 

@@ -352,9 +352,7 @@ func makePaletteOnTextChanged(paletteID string) func(string, EventCtx) {
 }
 
 func commandPaletteItemsHash(items []CommandPaletteItem) uint64 {
-	const offset uint64 = 14695981039346656037
-	const prime uint64 = 1099511628211
-	h := offset
+	h := Fnv64Offset
 	for i := range items {
 		it := &items[i]
 		h = hashString64(h, it.ID)
@@ -363,21 +361,18 @@ func commandPaletteItemsHash(items []CommandPaletteItem) uint64 {
 		h = hashString64(h, it.Icon)
 		h = hashString64(h, it.Group)
 		if it.Disabled {
-			h ^= 1
+			h = Fnv64Byte(h, 1)
+		} else {
+			h = Fnv64Byte(h, 0)
 		}
-		h *= prime
+		h = Fnv64Byte(h, fnvUnitSep)
 	}
 	return h
 }
 
 func hashString64(h uint64, s string) uint64 {
-	const prime uint64 = 1099511628211
-	for i := range len(s) {
-		h ^= uint64(s[i])
-		h *= prime
-	}
-	h ^= 0xff
-	h *= prime
+	h = Fnv64Str(h, s)
+	h = Fnv64Byte(h, fnvUnitSep)
 	return h
 }
 

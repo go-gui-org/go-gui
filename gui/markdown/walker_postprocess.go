@@ -350,12 +350,20 @@ func parseFloat32(s string) float32 {
 	return v
 }
 
+// FNV-1a 64-bit constants. They repeat gui.Fnv64Offset and
+// gui.Fnv64Prime, which this package cannot import without a
+// cycle (gui imports markdown). Keep the values in step.
+const (
+	mathHashOffset = uint64(14695981039346656037)
+	mathHashPrime  = uint64(1099511628211)
+)
+
 // MathHash computes a FNV-1a hash of a string.
 func MathHash(s string) uint64 {
-	h := uint64(14695981039346656037) // FNV offset basis
+	h := mathHashOffset // FNV offset basis
 	for i := range len(s) {
 		h ^= uint64(s[i])
-		h *= 1099511628211 // FNV prime
+		h *= mathHashPrime // FNV prime
 	}
 	return h
 }

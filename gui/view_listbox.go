@@ -529,22 +529,17 @@ func applyListBoxDefaults(cfg *ListBoxCfg) {
 // from: ID and IsSubheading. Name and Value never reach the cache, so
 // hashing them would burn O(data) time every frame for nothing.
 func listBoxDataHash(items []ListBoxOption) uint64 {
-	const offset uint64 = 14695981039346656037
-	const prime uint64 = 1099511628211
-	h := offset
+	h := Fnv64Offset
 	for i := range items {
 		it := items[i]
-		for j := range len(it.ID) {
-			h ^= uint64(it.ID[j])
-			h *= prime
-		}
-		h ^= 0xff
-		h *= prime
-
+		h = Fnv64Str(h, it.ID)
+		h = Fnv64Byte(h, fnvUnitSep)
 		if it.isSubheading {
-			h ^= 1
+			h = Fnv64Byte(h, 1)
+		} else {
+			h = Fnv64Byte(h, 0)
 		}
-		h *= prime
+		h = Fnv64Byte(h, fnvUnitSep)
 	}
 	return h
 }

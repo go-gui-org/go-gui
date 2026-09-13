@@ -6,6 +6,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/go-gui-org/go-gui/gui/svg/css"
 )
@@ -36,12 +37,23 @@ func sanitizeFlatness(t float32) float32 {
 	return t
 }
 
-// clampElementID truncates s to maxElementIDLen UTF-8 bytes. Cheap
-// byte slice; the cascade compares IDs by exact match so trimming a
-// hostile string still produces correct (no-match) behavior.
+// clampElementID truncates s to maxElementIDLen bytes, then
+// drops a trailing partial rune so the cut never hands a broken
+// encoding to the cascade or the hash mixer. Only the tail can
+// break: the cut point is the one new edge. The cascade compares
+// IDs by exact match so trimming a hostile string still produces
+// correct (no-match) behavior.
 func clampElementID(s string) string {
-	if len(s) > maxElementIDLen {
-		return s[:maxElementIDLen]
+	if len(s) <= maxElementIDLen {
+		return s
+	}
+	s = s[:maxElementIDLen]
+	for len(s) > 0 {
+		r, size := utf8.DecodeLastRuneInString(s)
+		if r != utf8.RuneError || size > 1 {
+			break
+		}
+		s = s[:len(s)-1]
 	}
 	return s
 }

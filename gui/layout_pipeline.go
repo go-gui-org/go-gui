@@ -1,7 +1,6 @@
 package gui
 
 import (
-	"math"
 	"slices"
 
 	"github.com/go-gui-org/go-glyph"
@@ -297,17 +296,28 @@ func layoutWrapRTF(shape *Shape, tc *shapeTextConfig, w *Window) {
 		return
 	}
 
-	// Cross-frame cache: content hash XOR'd with width and
-	// base style bits so different styles don't collide. Math
-	// cache state mixed in so layout invalidates when an inline
-	// math fetch transitions Loading→Ready (different glyph
-	// runs: raw LaTeX text vs InlineObject placeholder).
+	// Cross-frame cache: the key chains content, base style,
+	// math cache state, wrap width, hanging indent, and line
+	// spacing through FNV-1a so every layout input moves the
+	// digest. Math cache state is mixed in so layout invalidates
+	// when an inline math fetch transitions Loading→Ready
+	// (different glyph runs: raw LaTeX text vs InlineObject
+	// placeholder). Chaining beats XOR here: XOR cancels when
+	// two inputs change in opposite ways, while each chained
+	// mix keeps what came before.
 	contentKey := rtfRunsKey(tc.rTFRuns)
 	styleKey := rtfStyleKey(tc.rTFBaseStyle)
 	mathKey := rtfMathStateKey(tc.rTFRuns, w.viewState.diagramCache)
-	cacheKey := contentKey ^ styleKey ^ mathKey ^
-		uint64(math.Float32bits(shape.Width)) ^
-		(uint64(math.Float32bits(tc.rTFLineSpacing)) << 1)
+	cacheKey := Fnv64Offset
+	cacheKey = fnvU64(cacheKey, contentKey)
+	cacheKey = fnvU64(cacheKey, styleKey)
+	cacheKey = fnvU64(cacheKey, mathKey)
+	cacheKey = fnvU64(cacheKey,
+		uint64(normFloat32Bits(shape.Width)))
+	cacheKey = fnvU64(cacheKey,
+		uint64(normFloat32Bits(tc.hangingIndent)))
+	cacheKey = fnvU64(cacheKey,
+		uint64(normFloat32Bits(tc.rTFLineSpacing)))
 	vs := &w.viewState
 
 	// Invalidate on theme change.

@@ -70,6 +70,13 @@ and this project adheres to
 
 ### Fixed
 
+- **A rich-text style change no longer shows a stale layout** — The cross-frame
+  layout cache keyed on run text and the base style only, so changing a run's
+  size or family, or the hanging indent, reused the old layout. The key now
+  chains run styles, the full base style, and the hanging indent, and mixes its
+  inputs in sequence instead of XOR. Table column-width caching gets the same
+  treatment: its key covers padding, minimum width, text styles, and
+  separator-delimited cell values instead of bare concatenated text.
 - **A focused scroll handler no longer runs twice per wheel tick** — When the
   focused widget sat under the cursor and declined the scroll, the focused pass
   ran its `OnMouseScroll` and the fallback ran the same callback again before

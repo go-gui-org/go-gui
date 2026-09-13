@@ -117,22 +117,14 @@ func markdownContainerAmendLayout(ctx EventCtx) {
 // glyph shaping the blocks undergo anyway is far more expensive. Field
 // separators match the sibling FNV helpers in view_rtf.go.
 func mdBlocksSignature(blocks []mdBlockInfo) uint64 {
-	h := fnvOffset64
+	h := Fnv64Offset
 	for _, b := range blocks {
-		h ^= uint64(b.StartRune)
-		h *= fnvPrime64
-		h ^= fnvFieldSep
-		h *= fnvPrime64
-		h ^= uint64(b.RuneLen)
-		h *= fnvPrime64
-		h ^= fnvFieldSep
-		h *= fnvPrime64
-		for i := range len(b.FlatText) {
-			h ^= uint64(b.FlatText[i])
-			h *= fnvPrime64
-		}
-		h ^= fnvFieldSep
-		h *= fnvPrime64
+		h = fnvU64(h, uint64(b.StartRune))
+		h = Fnv64Byte(h, fnvUnitSep)
+		h = fnvU64(h, uint64(b.RuneLen))
+		h = Fnv64Byte(h, fnvUnitSep)
+		h = Fnv64Str(h, b.FlatText)
+		h = Fnv64Byte(h, fnvUnitSep)
 	}
 	return h
 }

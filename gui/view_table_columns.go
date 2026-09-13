@@ -1,7 +1,6 @@
 package gui
 
 import (
-	"hash/fnv"
 	"log"
 	"sync"
 )
@@ -103,28 +102,54 @@ func tableRichTextWidth(rt *RichText, tm TextMeasurer) float32 {
 	return w
 }
 
-// tableColumnWidthHash computes FNV-1a hash over sampled cell
-// values. Samples first, middle, and last rows.
+// tableColumnWidthHash computes an FNV-1a hash over the inputs
+// column widths derive from: row count, cell padding, minimum
+// width, the table and header text styles, and sampled cell
+// values. It samples first, middle, and last rows so wide tables
+// stay cheap; unit separators keep adjacent cells apart so one
+// row of ("ab", "c") never keys like ("a", "bc").
 func tableColumnWidthHash(cfg *TableCfg) uint64 {
-	h := fnv.New64a()
+	h := Fnv64Offset
+	if cfg == nil {
+		return h
+	}
+	h = fnvU64(h, uint64(len(cfg.Data)))
+	h = fnvU64(h, uint64(normFloat32Bits(
+		cfg.CellPadding.Or(PaddingNone).Width())))
+	h = fnvU64(h, uint64(normFloat32Bits(cfg.ColumnWidthMin)))
+	h = fnvTextStyle(h, cfg.TextStyle)
+	h = fnvTextStyle(h, cfg.TextStyleHead)
 	n := len(cfg.Data)
-	_, _ = h.Write([]byte{byte(n), byte(n >> 8), byte(n >> 16), byte(n >> 24)})
-	indices := make([]int, 0, 3)
-	if n > 0 {
-		indices = append(indices, 0)
-	}
-	if n > 2 {
-		indices = append(indices, n/2)
-	}
-	if n > 1 {
-		indices = append(indices, n-1)
-	}
+	indices := [3]int{0, n / 2, n - 1}
+	last := -1
 	for _, i := range indices {
+		if i < 0 || i >= n || i == last {
+			continue
+		}
+		last = i
+		h = Fnv64Byte(h, fnvRecordSep)
 		for _, cell := range cfg.Data[i].Cells {
-			_, _ = h.Write([]byte(cell.Value))
+			h = Fnv64Byte(h, fnvUnitSep)
+			h = Fnv64Str(h, cell.Value)
+			if cell.HeadCell {
+				h = Fnv64Byte(h, 1)
+			} else {
+				h = Fnv64Byte(h, 0)
+			}
+			if cell.TextStyle != nil {
+				h = fnvTextStyle(h, *cell.TextStyle)
+			}
+			h = Fnv64Byte(h, fnvUnitSep)
+			if cell.RichText != nil {
+				for _, run := range cell.RichText.Runs {
+					h = Fnv64Str(h, run.Text)
+					h = Fnv64Byte(h, fnvUnitSep)
+					h = fnvTextStyle(h, run.Style)
+				}
+			}
 		}
 	}
-	return h.Sum64()
+	return h
 }
 
 var tableWarnNoID = sync.OnceFunc(func() {

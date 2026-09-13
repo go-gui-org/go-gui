@@ -508,17 +508,10 @@ func applyComboboxDefaults(cfg *ComboboxCfg) {
 }
 
 func comboboxOptionsHash(options []string) uint64 {
-	const offset uint64 = 14695981039346656037
-	const prime uint64 = 1099511628211
-	h := offset
+	h := Fnv64Offset
 	for i := range options {
-		s := options[i]
-		for j := range len(s) {
-			h ^= uint64(s[j])
-			h *= prime
-		}
-		h ^= 0xff
-		h *= prime
+		h = Fnv64Str(h, options[i])
+		h = Fnv64Byte(h, fnvUnitSep)
 	}
 	return h
 }

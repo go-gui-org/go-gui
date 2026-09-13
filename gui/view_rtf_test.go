@@ -469,13 +469,38 @@ func TestRtfRunsKeyStable(t *testing.T) {
 	}
 }
 
+func TestRtfRunsKeyRunStyleChange(t *testing.T) {
+	// A run style change with identical text must move the key:
+	// the cross-frame layout cache guards shaped output, and the
+	// same text in another size shapes differently.
+	base := RichText{Runs: []RichTextRun{
+		{Text: "hello", Style: TextStyle{Size: 14}},
+	}}
+	k1 := rtfRunsKey(&base)
+	resized := RichText{Runs: []RichTextRun{
+		{Text: "hello", Style: TextStyle{Size: 16}},
+	}}
+	if rtfRunsKey(&resized) == k1 {
+		t.Error("changed run size should produce different key")
+	}
+	refonted := RichText{Runs: []RichTextRun{
+		{Text: "hello", Style: TextStyle{Size: 14, Family: "Arial"}},
+	}}
+	if rtfRunsKey(&refonted) == k1 {
+		t.Error("changed run family should produce different key")
+	}
+	if rtfRunsKey(nil) != Fnv64Offset {
+		t.Error("nil runs should hash to the offset basis")
+	}
+}
+
 // --- rtfMathStateKey tests ---
 
 func TestRtfMathStateKey_NilInputs_ReturnFnvOffset(t *testing.T) {
 	// Nil rt or nil cache returns the FNV-1a offset basis,
 	// matching the no-math-runs case so toggling cache nilness
 	// doesn't shift the layout cache key for non-math content.
-	want := fnvOffset64
+	want := Fnv64Offset
 	if got := rtfMathStateKey(nil, nil); got != want {
 		t.Fatalf("nil rt+cache: got %d, want %d", got, want)
 	}

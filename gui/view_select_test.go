@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"math"
 	"strings"
 	"testing"
 )
@@ -344,14 +345,66 @@ func TestSelectDefaultMinMaxWidth(t *testing.T) {
 	}
 }
 
-func TestFnvSum32Consistency(t *testing.T) {
-	a := fnvSum32("test")
-	b := fnvSum32("test")
-	if a != b {
-		t.Error("FnvSum32 not consistent")
+func TestFnv64StrVectors(t *testing.T) {
+	// Empty input hashes to the offset basis itself.
+	if got := Fnv64Str(Fnv64Offset, ""); got != Fnv64Offset {
+		t.Errorf("empty hash = %x, want offset %x",
+			got, uint64(Fnv64Offset))
 	}
-	if fnvSum32("a") == fnvSum32("b") {
-		t.Error("expected different hashes")
+	// Spec vectors pin the basis and prime: a typo in either
+	// constant must fail here, not surface as cache churn.
+	for _, v := range []struct {
+		in   string
+		want uint64
+	}{
+		{"a", 0xaf63dc4c8601ec8c},
+		{"foobar", 0x85944171f73967e8},
+	} {
+		if got := Fnv64Str(Fnv64Offset, v.in); got != v.want {
+			t.Errorf("Fnv64Str(%q) = %x, want %x",
+				v.in, got, v.want)
+		}
+	}
+	// Byte-at-a-time mixing agrees with the string form.
+	h := Fnv64Offset
+	for i := range len("foobar") {
+		h = Fnv64Byte(h, "foobar"[i])
+	}
+	if h != Fnv64Str(Fnv64Offset, "foobar") {
+		t.Errorf("Fnv64Byte chain = %x, want %x",
+			h, Fnv64Str(Fnv64Offset, "foobar"))
+	}
+}
+
+func TestNormFloat32BitsNaNMapsToZero(t *testing.T) {
+	// Every NaN bit pattern keys as 0 so the same logical
+	// value never churns the cache it guards.
+	if got := normFloat32Bits(float32(math.NaN())); got != 0 {
+		t.Errorf("NaN bits = %x, want 0", got)
+	}
+	if normFloat32Bits(0) != 0 {
+		t.Errorf("zero bits = %x, want 0",
+			normFloat32Bits(0))
+	}
+	if normFloat32Bits(1.5) == normFloat32Bits(2.5) {
+		t.Error("distinct floats must hash apart")
+	}
+}
+
+func TestFnvTextStyleLayoutSubset(t *testing.T) {
+	// Layout inputs move the key; paint-only fields ride
+	// along untouched because they cannot move glyphs.
+	base := TextStyle{Size: 14}
+	k := fnvTextStyle(Fnv64Offset, base)
+	resized := base
+	resized.Size = 16
+	if fnvTextStyle(Fnv64Offset, resized) == k {
+		t.Error("size change should move the key")
+	}
+	recolored := base
+	recolored.Color = RGB(255, 0, 0)
+	if fnvTextStyle(Fnv64Offset, recolored) != k {
+		t.Error("color change should not move the key")
 	}
 }
 

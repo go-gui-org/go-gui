@@ -1,6 +1,7 @@
 package svg
 
 import (
+	"math"
 	"strings"
 	"testing"
 
@@ -38,6 +39,21 @@ func TestMixOptsHashEmptyIsStable(t *testing.T) {
 	b := mixOptsHash(base, gui.SvgParseOpts{})
 	if a != b {
 		t.Errorf("empty opts must hash deterministically: %x vs %x", a, b)
+	}
+}
+
+func TestMixOptsHashNaNMapsToZero(t *testing.T) {
+	// NaN has many bit patterns; every form keys as 0 so the
+	// same logical tolerance never churns the parse cache.
+	base := uint64(42)
+	nanVal := float32(math.NaN())
+	nanHash := mixOptsHash(base,
+		gui.SvgParseOpts{FlatnessTolerance: nanVal})
+	zeroHash := mixOptsHash(base,
+		gui.SvgParseOpts{FlatnessTolerance: 0})
+	if nanHash != zeroHash {
+		t.Errorf("NaN tolerance = %x, want zero key %x",
+			nanHash, zeroHash)
 	}
 }
 

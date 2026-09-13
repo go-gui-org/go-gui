@@ -16,6 +16,9 @@ import (
 )
 
 // diagramCacheHash computes a cache key for a math expression.
+// The uint64 digest is reinterpreted as int64 for the diagram
+// cache map key; no bits change, only the sign reads differently
+// in logs.
 func diagramCacheHash(mathID string) int64 {
 	return int64(markdown.MathHash(mathID))
 }
