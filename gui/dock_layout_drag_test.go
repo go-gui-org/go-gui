@@ -527,3 +527,41 @@ func TestDockDragAmendOverlayScopedGroup(t *testing.T) {
 			wantX, wantY, wantW, wantH)
 	}
 }
+
+// TestDockDragStartNilLayoutOrEvent: a drag without a source rect or an
+// event has no coordinates, so it must not start. The click selection
+// still runs; only the drag is skipped.
+func TestDockDragStartNilLayoutOrEvent(t *testing.T) {
+	root := DockPanelGroup("g1", []string{"p1"}, "p1")
+	mkWindow := func() *Window {
+		w := &Window{}
+		w.layout = Layout{Shape: &Shape{ID: "dock"}}
+		return w
+	}
+
+	w := mkWindow()
+	dockDragStart("dock", "p1", "g1", root, nil, SoundNone, nil, &Event{}, w)
+	state := dockDragGet(w, "dock")
+	if state.panelID != "" || w.mouseIsLocked() {
+		t.Error("nil layout started a drag")
+	}
+
+	w2 := mkWindow()
+	dockDragStart("dock", "p1", "g1", root, nil, SoundNone,
+		&Layout{Shape: &Shape{ID: "tab"}}, nil, w2)
+	state2 := dockDragGet(w2, "dock")
+	if state2.panelID != "" || w2.mouseIsLocked() {
+		t.Error("nil event started a drag")
+	}
+
+	w3 := mkWindow()
+	dockDragStart("dock", "p1", "g1", root, nil, SoundNone,
+		&Layout{}, &Event{}, w3)
+	if state := dockDragGet(w3, "dock"); state.panelID != "" || w3.mouseIsLocked() {
+		t.Error("nil shape started a drag")
+	}
+
+	// A nil window has nowhere to store the drag, so it must not panic.
+	dockDragStart("dock", "p1", "g1", root, nil, SoundNone,
+		&Layout{Shape: &Shape{ID: "tab"}}, &Event{}, nil)
+}

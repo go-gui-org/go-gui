@@ -242,7 +242,8 @@ func dockGroupView(
 ) View {
 	dragging := drag.active && drag.sourceGroup == group.ID
 
-	tabButtons := make([]View, 0, len(group.PanelIDs))
+	// Tabs plus one separator between each pair.
+	tabButtons := make([]View, 0, 2*len(group.PanelIDs))
 	var activeContent []View
 
 	colorSep := cfg.ColorTabSeparator
@@ -414,6 +415,11 @@ func dockTabButton(
 			if onPanelSelect != nil {
 				onPanelSelect(groupID, panelID, ctx)
 			}
+			// The tab acted (drag start and select), so the click
+			// stays here. Focus pre-mark usually stops the bubble
+			// for mouse clicks, but keyboard activation has no
+			// focus mark to rely on.
+			ctx.Consume()
 		},
 		Content: btnContent,
 	})

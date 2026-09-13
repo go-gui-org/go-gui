@@ -2,6 +2,7 @@ package gui
 
 import (
 	"slices"
+	"strings"
 	"testing"
 )
 
@@ -600,4 +601,49 @@ func findShapeByID(layout *Layout, id string) *Layout {
 		}
 	}
 	return nil
+}
+
+// TestDockTabClickStaysOnTab: the tab selects its panel, so the click
+// is handled there. An ancestor click handler must not also fire.
+func TestDockTabClickStaysOnTab(t *testing.T) {
+	w := NewTestWindow(WindowCfg{})
+	ancestorClicks := 0
+	selected := ""
+	w.TestRender(func(win *Window) View {
+		return Column(ContainerCfg{
+			ID:      "wrap",
+			Sizing:  FillFill,
+			OnClick: func(ctx EventCtx) { ancestorClicks++ },
+			Content: []View{DockLayout(DockLayoutCfg{
+				ID:     "dock",
+				Root:   DockPanelGroup("g1", []string{"p1"}, "p1"),
+				Panels: []DockPanelDef{{ID: "p1", Label: "Panel 1"}},
+				OnPanelSelect: func(_, panel string, _ EventCtx) {
+					selected = panel
+				},
+			})},
+		})
+	})
+	if err := w.TestClick(dockTabIDForTest(t, w)); err != nil {
+		t.Fatalf("TestClick(tab) = %v", err)
+	}
+	if selected != "p1" {
+		t.Errorf("selected = %q, want p1 (tab did not fire)", selected)
+	}
+	if ancestorClicks != 0 {
+		t.Errorf("ancestor clicks = %d, want 0 (tab click bubbled)", ancestorClicks)
+	}
+}
+
+// dockTabIDForTest reads the tab button ID back from the frame
+// instead of spelling the scope by hand.
+func dockTabIDForTest(t *testing.T, w *Window) string {
+	t.Helper()
+	for _, id := range w.EffectiveIDs() {
+		if strings.HasSuffix(id, ":tab:g1:p1") {
+			return id
+		}
+	}
+	t.Fatal("tab g1:p1 not found in rendered dock")
+	return ""
 }

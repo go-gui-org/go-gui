@@ -184,6 +184,17 @@ and this project adheres to
   `Grayscale`, `Sepia`, and `Invert` returned the shared package singleton, and
   `colorFilterCompose` aliased its input on a nil side, so one in-package write
   would leak across users. Each call now returns a fresh copy.
+- **Dock tree operations accept a nil root and `DockTreeAddTab` ignores
+  repeats** — every tree walk dereferenced the root first, so a nil tree
+  panicked instead of answering empty. Nil now returns nil (or false for
+  lookups), and adding a panel that is already a tab returns the tree unchanged
+  instead of stamping two tab buttons with one ID.
+- **`DockNodeSanitize` repairs more malformed input** — beyond ratio clamping it
+  now coerces unknown node kinds to panel groups, collapses over-deep branches
+  to empty groups instead of leaving splits with nil children, drops duplicate
+  panel IDs, points a dangling `SelectedID` at the first panel, and mints
+  separator-free node IDs so a `:` in app data cannot push a group outside the
+  dock scope.
 
 ## [v0.75.0] - 2026-09-12
 

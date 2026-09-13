@@ -681,15 +681,27 @@ func TestDockNodeSanitizeDeepTree(t *testing.T) {
 			DockSplitHorizontal, 0.5, node, leaf)
 	}
 	dockNodeSanitize(node)
-	// Walk down First pointers. Sanitizer nils children at
-	// depth == dockNodeMaxDepth, so splits exist at depths
-	// 0..maxDepth (maxDepth+1 nodes).
-	cur := node
+	// Over-deep branches collapse to empty panel groups, so no
+	// split is left with a nil child and depth stays in budget.
 	depth := 0
-	for cur != nil && cur.Kind == dockNodeSplit {
-		depth++
-		cur = cur.First
+	var walk func(nd *DockNode, d int)
+	walk = func(nd *DockNode, d int) {
+		if nd == nil {
+			return
+		}
+		if d > depth {
+			depth = d
+		}
+		if nd.Kind != dockNodeSplit {
+			return
+		}
+		if nd.First == nil || nd.Second == nil {
+			t.Errorf("split %q at depth %d has a nil child", nd.ID, d)
+		}
+		walk(nd.First, d+1)
+		walk(nd.Second, d+1)
 	}
+	walk(node, 0)
 	if depth > dockNodeMaxDepth+1 {
 		t.Errorf("tree depth = %d, want <= %d",
 			depth, dockNodeMaxDepth+1)
@@ -702,4 +714,140 @@ func TestDockNodeSanitizePanelGroupUntouched(t *testing.T) {
 	if !slices.Equal(node.PanelIDs, []string{"a", "b"}) {
 		t.Errorf("panelIDs modified: %v", node.PanelIDs)
 	}
+}
+
+// --- Nil roots ---
+
+func TestDockTreeNilRoots(t *testing.T) {
+	if got := DockTreeRemovePanel(nil, "p"); got != nil {
+		t.Errorf("RemovePanel(nil) = %v, want nil", got)
+	}
+	if got := DockTreeAddTab(nil, "g", "p"); got != nil {
+		t.Errorf("AddTab(nil) = %v, want nil", got)
+	}
+	if got := dockTreeMovePanel(nil, "p", "g", dockDropCenter); got != nil {
+		t.Errorf("MovePanel(nil) = %v, want nil", got)
+	}
+	if got := DockTreeSelectPanel(nil, "g", "p"); got != nil {
+		t.Errorf("SelectPanel(nil) = %v, want nil", got)
+	}
+	if got, ok := DockTreeFindGroupByPanel(nil, "p"); ok || got != nil {
+		t.Errorf("FindGroupByPanel(nil) = %v,%v, want nil,false", got, ok)
+	}
+	if got, ok := dockTreeFindGroupByID(nil, "g"); ok || got != nil {
+		t.Errorf("FindGroupByID(nil) = %v,%v, want nil,false", got, ok)
+	}
+	if got := dockTreeCollectPanelNodes(nil); len(got) != 0 {
+		t.Errorf("CollectPanelNodes(nil) = %v, want empty", got)
+	}
+	if got := dockTreeUpdateRatioRec(nil, "s", 0.5); got != nil {
+		t.Errorf("UpdateRatio(nil) = %v, want nil", got)
+	}
+	if got := dockTreeSplitAtRec(nil, "g", "p", dockDropLeft); got != nil {
+		t.Errorf("SplitAt(nil) = %v, want nil", got)
+	}
+	if got := dockTreeAddTabRec(nil, "g", "p"); got != nil {
+		t.Errorf("AddTabRec(nil) = %v, want nil", got)
+	}
+}
+
+func TestDockTreeWrapRootNil(t *testing.T) {
+	got := dockTreeWrapRoot(nil, "p", dockDropWindowLeft)
+	if got == nil || got.Kind != dockNodePanelGroup {
+		t.Fatalf("WrapRoot(nil) = %v, want single panel group", got)
+	}
+	if !slices.Equal(got.PanelIDs, []string{"p"}) {
+		t.Errorf("WrapRoot(nil) panels = %v, want [p]", got.PanelIDs)
+	}
+}
+
+// --- AddTab duplicate ---
+
+func TestDockTreeAddTabDuplicate(t *testing.T) {
+	root := DockPanelGroup("g1", []string{"p1", "p2"}, "p1")
+	got := DockTreeAddTab(root, "g1", "p1")
+	if got != root {
+		t.Error("AddTab(existing panel) rebuilt the tree, want same root")
+	}
+	if !slices.Equal(got.PanelIDs, []string{"p1", "p2"}) {
+		t.Errorf("panels = %v, want [p1 p2]", got.PanelIDs)
+	}
+	if got.SelectedID != "p1" {
+		t.Errorf("selected = %q, want p1", got.SelectedID)
+	}
+}
+
+// --- Sanitize repairs ---
+
+func TestDockNodeSanitizeUnknownKind(t *testing.T) {
+	node := &DockNode{Kind: dockNodeKind(99), ID: "x",
+		First: DockPanelGroup("a", []string{"p"}, "p")}
+	dockNodeSanitize(node)
+	if node.Kind != dockNodePanelGroup {
+		t.Errorf("kind = %d, want panel group", node.Kind)
+	}
+	if node.First != nil || node.Second != nil {
+		t.Error("coerced panel group kept split children")
+	}
+}
+
+func TestDockNodeSanitizeClearsOppositeFields(t *testing.T) {
+	split := DockSplit("s", DockSplitHorizontal, 0.5,
+		DockPanelGroup("a", []string{"p"}, "p"),
+		DockPanelGroup("b", []string{"q"}, "q"))
+	split.PanelIDs = []string{"stale"}
+	split.SelectedID = "stale"
+	dockNodeSanitize(split)
+	if split.PanelIDs != nil || split.SelectedID != "" {
+		t.Errorf("split kept panel fields: %v %q", split.PanelIDs, split.SelectedID)
+	}
+	group := DockPanelGroup("g", []string{"p"}, "p")
+	group.First = DockPanelGroup("orphan", []string{"x"}, "x")
+	group.Second = DockPanelGroup("orphan2", []string{"y"}, "y")
+	dockNodeSanitize(group)
+	if group.First != nil || group.Second != nil {
+		t.Error("panel group kept split children")
+	}
+}
+
+func TestDockNodeSanitizeNilNoPanic(t *testing.T) {
+	dockNodeSanitize(nil)
+}
+
+func TestDockNodeSanitizeDedupsPanels(t *testing.T) {
+	node := DockPanelGroup("g", []string{"a", "b", "a", "c", "b"}, "b")
+	dockNodeSanitize(node)
+	if !slices.Equal(node.PanelIDs, []string{"a", "b", "c"}) {
+		t.Errorf("panels = %v, want [a b c]", node.PanelIDs)
+	}
+	if node.SelectedID != "b" {
+		t.Errorf("selected = %q, want b", node.SelectedID)
+	}
+}
+
+func TestDockNodeSanitizeRepairsSelectedID(t *testing.T) {
+	node := DockPanelGroup("g", []string{"a", "b"}, "gone")
+	dockNodeSanitize(node)
+	if node.SelectedID != "a" {
+		t.Errorf("selected = %q, want a", node.SelectedID)
+	}
+	empty := DockPanelGroup("e", nil, "gone")
+	dockNodeSanitize(empty)
+	if empty.SelectedID != "" {
+		t.Errorf("selected = %q, want empty", empty.SelectedID)
+	}
+}
+
+// --- Minted IDs keep the separator out ---
+
+func TestDockMintedNodeIDsReplaceIDSep(t *testing.T) {
+	root := DockSplit("s1", DockSplitHorizontal, 0.5,
+		DockPanelGroup("g1", []string{"a:b"}, "a:b"),
+		DockPanelGroup("g2", []string{"c"}, "c"))
+	got := dockTreeMovePanel(root, "a:b", "g2", dockDropBottom)
+	dockWalkNodes(got, func(nd *DockNode) {
+		if strings.Contains(nd.ID, IDSep) {
+			t.Errorf("node ID %q contains %q", nd.ID, IDSep)
+		}
+	})
 }

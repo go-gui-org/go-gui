@@ -9,15 +9,15 @@ gui.DockLayout(gui.DockLayoutCfg{
     ID:     "dock",
     Root:   app.Root,
     Panels: panels,
-    OnLayoutChange: func(root *gui.DockNode, w *gui.Window) {
-        gui.State[App](w).Root = root
+    OnLayoutChange: func(root *gui.DockNode, ctx gui.EventCtx) {
+        gui.State[App](ctx.Window).Root = root
     },
-    OnPanelSelect: func(groupID, panelID string, w *gui.Window) {
-        a := gui.State[App](w)
+    OnPanelSelect: func(groupID, panelID string, ctx gui.EventCtx) {
+        a := gui.State[App](ctx.Window)
         a.Root = gui.DockTreeSelectPanel(a.Root, groupID, panelID)
     },
-    OnPanelClose: func(panelID string, w *gui.Window) {
-        a := gui.State[App](w)
+    OnPanelClose: func(panelID string, ctx gui.EventCtx) {
+        a := gui.State[App](ctx.Window)
         a.Root = gui.DockTreeRemovePanel(a.Root, panelID)
     },
 })
@@ -65,17 +65,12 @@ root := gui.DockSplit("root", gui.DockSplitHorizontal, 0.2,
 
 ## Tree Operations
 
-| Function                  | Description                         |
-| ------------------------- | ----------------------------------- |
-| DockTreeRemovePanel       | Remove panel. Collapse empty splits |
-| DockTreeAddTab            | Add panel as tab in existing group  |
-| DockTreeSplitAt           | Split a group, insert panel at edge |
-| DockTreeMovePanel         | Remove + insert (drag-and-drop)     |
-| DockTreeSelectPanel       | Set active tab in a group           |
-| DockTreeWrapRoot          | Dock panel at window edge           |
-| DockTreeCollectPanelNodes | Collect all panel group nodes       |
-| DockTreeFindGroupByPanel  | Find group containing a panel       |
-| DockTreeFindGroupByID     | Find group by its ID                |
+| Function                 | Description                         |
+| ------------------------ | ----------------------------------- |
+| DockTreeRemovePanel      | Remove panel. Collapse empty splits |
+| DockTreeAddTab           | Add panel as tab in existing group  |
+| DockTreeSelectPanel      | Set active tab in a group           |
+| DockTreeFindGroupByPanel | Find group containing a panel       |
 
 ## Serialization
 
@@ -113,8 +108,8 @@ Example output:
 
 ## Events
 
-| Callback       | Signature                     | Fired when              |
-| -------------- | ----------------------------- | ----------------------- |
-| OnLayoutChange | func(*DockNode, *Window)      | Drag-drop rearrangement |
-| OnPanelSelect  | func(string, string, *Window) | Tab selected            |
-| OnPanelClose   | func(string, *Window)         | Panel closed            |
+| Callback       | Signature                      | Fired when              |
+| -------------- | ------------------------------ | ----------------------- |
+| OnLayoutChange | func(*DockNode, EventCtx)      | Drag-drop rearrangement |
+| OnPanelSelect  | func(string, string, EventCtx) | Tab selected            |
+| OnPanelClose   | func(string, EventCtx)         | Panel closed            |

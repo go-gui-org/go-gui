@@ -72,7 +72,8 @@ func dockDragClear(w *Window, dockID string) {
 }
 
 // dockDragStart initiates a dock panel drag from a tab header
-// click.
+// click. root is captured at press time: the drop applies the move
+// to this tree, so an app change to the tree mid-drag is lost.
 func dockDragStart(
 	dockID, panelID, sourceGroup string,
 	root *DockNode,
@@ -80,6 +81,11 @@ func dockDragStart(
 	dropCue SoundCue,
 	layout *Layout, e *Event, w *Window,
 ) {
+	// A click always carries a layout and an event. Without them
+	// there are no coordinates, so the drag cannot start.
+	if layout == nil || layout.Shape == nil || e == nil || w == nil {
+		return
+	}
 	// Ghost base offset: tab position relative to dock container.
 	ghostBaseX := layout.Shape.X
 	ghostBaseY := layout.Shape.Y

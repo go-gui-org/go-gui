@@ -129,16 +129,38 @@ const dockNodeIDSep = "-"
 
 // dockNodeID composes a minted node ID from parts. Separate from
 // ScopeID on purpose — see dockNodeIDSep.
+//
+// Parts come from app data (group and panel IDs). A part holding
+// IDSep would ride into ScopeID as an absolute leaf and drop the
+// dock scope, so each separator becomes a dash. The map is one-way
+// and deterministic, so one input always mints one ID.
 func dockNodeID(parts ...string) string {
-	return strings.Join(parts, dockNodeIDSep)
+	clean := make([]string, len(parts))
+	for i, part := range parts {
+		clean[i] = strings.ReplaceAll(part, IDSep, dockNodeIDSep)
+	}
+	return strings.Join(clean, dockNodeIDSep)
 }
+
+// dockEmptyGroupID marks a panel group with no panels. Internal
+// only: never use it as an app group ID. Empty groups collapse into
+// their sibling on the next tree edit.
+const dockEmptyGroupID = "__dock_empty__"
 
 // dockNodeMaxDepth caps recursion when sanitizing deserialized trees.
 const dockNodeMaxDepth = 32
 
-// DockNodeSanitize clamps ratio to [0,1], replaces NaN/Inf with
-// 0.5, and truncates trees deeper than dockNodeMaxDepth. Call
-// after json.Unmarshal to harden against malformed input.
+// DockNodeSanitize repairs a deserialized tree in place: it clamps
+// ratio to [0,1] with 0.5 for NaN/Inf, coerces unknown kinds to
+// panel groups, collapses branches past dockNodeMaxDepth to empty
+// groups, drops duplicate panel IDs, and points a dangling
+// SelectedID at the first panel. Call after json.Unmarshal to
+// harden against malformed input.
+//
+// Panel IDs keep their spelling: they are data parts under the
+// ScopeID contract, and the app maps them back to panel defs. IDs
+// minted after this point replace IDSep (see dockNodeID), but IDs
+// already in the tree stay untouched so group lookups still match.
 func dockNodeSanitize(node *DockNode) {
 	dockNodeSanitizeRec(node, 0)
 }
@@ -147,22 +169,54 @@ func dockNodeSanitizeRec(node *DockNode, depth int) {
 	if node == nil {
 		return
 	}
+	if node.Kind != dockNodeSplit && node.Kind != dockNodePanelGroup {
+		node.Kind = dockNodePanelGroup
+	}
 	if node.Kind == dockNodeSplit {
 		if !f32IsFinite(node.Ratio) {
 			node.Ratio = 0.5
 		}
 		node.Ratio = max(0, min(1, node.Ratio))
+		// A split ignores panel fields; drop them so malformed
+		// input does not round-trip hidden data.
+		node.PanelIDs = nil
+		node.SelectedID = ""
 		if depth >= dockNodeMaxDepth {
-			node.First = nil
-			node.Second = nil
+			*node = *DockPanelGroup(dockEmptyGroupID, nil, "")
 			return
 		}
 		dockNodeSanitizeRec(node.First, depth+1)
 		dockNodeSanitizeRec(node.Second, depth+1)
+		return
+	}
+	// A panel group ignores split children; drop them so a coerced
+	// kind does not retain an orphan subtree.
+	node.First = nil
+	node.Second = nil
+	node.PanelIDs = dockDedupPanelIDs(node.PanelIDs)
+	if len(node.PanelIDs) == 0 {
+		node.SelectedID = ""
+	} else if !slices.Contains(node.PanelIDs, node.SelectedID) {
+		node.SelectedID = node.PanelIDs[0]
 	}
 }
 
-// DockTreeCollectPanelNodes returns all panel group nodes in the
+// dockDedupPanelIDs drops repeat panel IDs, keeping the first
+// occurrence. A repeat would stamp two tab buttons with one ID.
+func dockDedupPanelIDs(ids []string) []string {
+	seen := make(map[string]struct{}, len(ids))
+	kept := ids[:0]
+	for _, id := range ids {
+		if _, dup := seen[id]; dup {
+			continue
+		}
+		seen[id] = struct{}{}
+		kept = append(kept, id)
+	}
+	return kept
+}
+
+// dockTreeCollectPanelNodes returns all panel group nodes in the
 // tree. Used for zone detection during drag.
 func dockTreeCollectPanelNodes(node *DockNode) []*DockNode {
 	var result []*DockNode
@@ -171,6 +225,9 @@ func dockTreeCollectPanelNodes(node *DockNode) []*DockNode {
 }
 
 func dockTreeCollectPanelNodesRec(node *DockNode, result *[]*DockNode) {
+	if node == nil {
+		return
+	}
 	if node.Kind == dockNodeSplit {
 		if node.First != nil {
 			dockTreeCollectPanelNodesRec(node.First, result)
@@ -186,6 +243,9 @@ func dockTreeCollectPanelNodesRec(node *DockNode, result *[]*DockNode) {
 // DockTreeFindGroupByPanel returns the panel group node containing
 // the given panelID, or nil if not found.
 func DockTreeFindGroupByPanel(node *DockNode, panelID string) (*DockNode, bool) {
+	if node == nil {
+		return nil, false
+	}
 	if node.Kind == dockNodeSplit {
 		if node.First != nil {
 			if g, ok := DockTreeFindGroupByPanel(node.First, panelID); ok {
@@ -206,6 +266,9 @@ func DockTreeFindGroupByPanel(node *DockNode, panelID string) (*DockNode, bool) 
 // DockTreeFindGroupByID returns the panel group node with the
 // given group id, or nil if not found.
 func dockTreeFindGroupByID(node *DockNode, groupID string) (*DockNode, bool) {
+	if node == nil {
+		return nil, false
+	}
 	if node.Kind == dockNodeSplit {
 		if node.First != nil {
 			if g, ok := dockTreeFindGroupByID(node.First, groupID); ok {
@@ -231,6 +294,9 @@ func DockTreeRemovePanel(root *DockNode, panelID string) *DockNode {
 }
 
 func dockTreeRemovePanelRec(nd *DockNode, panelID string) *DockNode {
+	if nd == nil {
+		return nil
+	}
 	if nd.Kind == dockNodeSplit {
 		if nd.First == nil || nd.Second == nil {
 			return nd
@@ -259,7 +325,7 @@ func dockTreeRemovePanelRec(nd *DockNode, panelID string) *DockNode {
 		}
 	}
 	if len(newIDs) == 0 {
-		return DockPanelGroup("__dock_empty__", nil, "")
+		return DockPanelGroup(dockEmptyGroupID, nil, "")
 	}
 	newSelected := nd.SelectedID
 	if newSelected == panelID {
@@ -269,16 +335,20 @@ func dockTreeRemovePanelRec(nd *DockNode, panelID string) *DockNode {
 }
 
 func dockTreeIsEmpty(node *DockNode) bool {
-	return node.Kind == dockNodePanelGroup && len(node.PanelIDs) == 0
+	return node != nil && node.Kind == dockNodePanelGroup && len(node.PanelIDs) == 0
 }
 
 // DockTreeAddTab adds a panel to an existing group (by groupID).
+// A panel that is already a tab stays put: the same root returns.
 // Returns the new root.
 func DockTreeAddTab(root *DockNode, groupID, panelID string) *DockNode {
 	return dockTreeAddTabRec(root, groupID, panelID)
 }
 
 func dockTreeAddTabRec(nd *DockNode, groupID, panelID string) *DockNode {
+	if nd == nil {
+		return nil
+	}
 	if nd.Kind == dockNodeSplit {
 		if nd.First == nil || nd.Second == nil {
 			return nd
@@ -291,6 +361,11 @@ func dockTreeAddTabRec(nd *DockNode, groupID, panelID string) *DockNode {
 		return nd
 	}
 	if nd.ID != groupID {
+		return nd
+	}
+	// Already a tab: a second copy would stamp two tab buttons
+	// with one ID.
+	if slices.Contains(nd.PanelIDs, panelID) {
 		return nd
 	}
 	newIDs := make([]string, len(nd.PanelIDs), len(nd.PanelIDs)+1)
@@ -307,6 +382,9 @@ func dockTreeSplitAt(root *DockNode, groupID, panelID string, zone DockDropZone)
 }
 
 func dockTreeSplitAtRec(nd *DockNode, groupID, panelID string, zone DockDropZone) *DockNode {
+	if nd == nil {
+		return nil
+	}
 	if nd.Kind == dockNodeSplit {
 		if nd.First == nil || nd.Second == nil {
 			return nd
@@ -334,8 +412,12 @@ func dockTreeSplitAtRec(nd *DockNode, groupID, panelID string, zone DockDropZone
 
 // DockTreeWrapRoot wraps the current root in a new split for
 // window-edge docking. The new panel goes at the indicated edge.
+// A nil root wraps nothing, so the new panel group returns alone.
 func dockTreeWrapRoot(root *DockNode, panelID string, zone DockDropZone) *DockNode {
 	newGroup := DockPanelGroup(dockNodeID("dock_edge", panelID), []string{panelID}, panelID)
+	if root == nil {
+		return newGroup
+	}
 	dir := dockZoneToSplitDir(zone)
 	splitID := dockNodeID("dock_root_split", panelID)
 	firstIsNew := zone == dockDropWindowLeft || zone == dockDropWindowTop
@@ -368,6 +450,9 @@ func dockTreeMovePanel(root *DockNode, panelID, targetGroupID string, zone DockD
 // DockTreeSelectPanel sets the selected panel in the group with
 // the given groupID. Returns the new root.
 func DockTreeSelectPanel(nd *DockNode, groupID, panelID string) *DockNode {
+	if nd == nil {
+		return nil
+	}
 	if nd.Kind == dockNodeSplit {
 		if nd.First == nil || nd.Second == nil {
 			return nd
@@ -400,6 +485,9 @@ func dockTreeUpdateRatio(root *DockNode, splitID string, ratio float32) *DockNod
 }
 
 func dockTreeUpdateRatioRec(nd *DockNode, splitID string, ratio float32) *DockNode {
+	if nd == nil {
+		return nil
+	}
 	if nd.Kind == dockNodeSplit {
 		if nd.ID == splitID {
 			return DockSplit(nd.ID, nd.Dir, ratio, nd.First, nd.Second)
