@@ -42,6 +42,11 @@ const (
 
 	wmCaptureChanged = 0x0215
 
+	// WM_MOUSELEAVE arrives once per TrackMouseEvent(TME_LEAVE) request,
+	// when the pointer leaves the client area.
+	wmMouseLeave = 0x02A3
+	tmeLeave     = 0x00000002
+
 	wmApp = 0x8000
 
 	htClient      = 1
@@ -112,6 +117,11 @@ func (b *Backend) handleMessage(msg, wparam, lparam uintptr) (uintptr, bool) {
 	w := b.plat.w
 	switch msg {
 	case wmMouseMove:
+		// Windows sends no leave notice unless asked, and the request
+		// is one-shot: re-arm on the first move after each leave.
+		if !b.plat.trackingLeave {
+			b.plat.trackingLeave = trackMouseLeave(b.plat.hwnd)
+		}
 		x, y := b.logicalXY(loWordS(lparam), hiWordS(lparam))
 		dx, dy := b.mouseDelta(x, y)
 		b.emit(gui.Event{
@@ -136,6 +146,13 @@ func (b *Backend) handleMessage(msg, wparam, lparam uintptr) (uintptr, bool) {
 		return b.mouseButton(gui.EventMouseDown, gui.MouseMiddle, lparam, true)
 	case wmMButtonUp:
 		return b.mouseButton(gui.EventMouseUp, gui.MouseMiddle, lparam, false)
+
+	case wmMouseLeave:
+		// The pointer left the client area, so nothing in it may stay
+		// hovered (issue #587).
+		b.plat.trackingLeave = false
+		b.emit(gui.Event{Type: gui.EventMouseLeave})
+		return 0, true
 
 	case wmCaptureChanged:
 		// Win32 can revoke mouse capture without ever sending the

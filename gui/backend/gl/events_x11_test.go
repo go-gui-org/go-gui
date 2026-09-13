@@ -33,3 +33,27 @@ func TestFocusRealChange(t *testing.T) {
 		}
 	}
 }
+
+// Issue #587: only a LeaveNotify that takes the pointer out of the window
+// clears hover.
+func TestPointerRealExit(t *testing.T) {
+	cases := []struct {
+		name         string
+		mode, detail byte
+		want         bool
+	}{
+		{"normal ancestor", xproto.NotifyModeNormal, xproto.NotifyDetailAncestor, true},
+		{"normal nonlinear", xproto.NotifyModeNormal, xproto.NotifyDetailNonlinear, true},
+		// Into a child window of ours: the pointer is still inside.
+		{"normal inferior", xproto.NotifyModeNormal, xproto.NotifyDetailInferior, false},
+		// A grab changing hands: the pointer did not move.
+		{"grab", xproto.NotifyModeGrab, xproto.NotifyDetailAncestor, false},
+		{"ungrab", xproto.NotifyModeUngrab, xproto.NotifyDetailAncestor, false},
+	}
+	for _, c := range cases {
+		if got := pointerRealExit(c.mode, c.detail); got != c.want {
+			t.Errorf("%s: pointerRealExit(%d,%d)=%v, want %v",
+				c.name, c.mode, c.detail, got, c.want)
+		}
+	}
+}

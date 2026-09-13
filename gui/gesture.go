@@ -111,6 +111,12 @@ func (w *Window) handleTouch(layout *Layout, e *Event) {
 	case EventTouchesCancelled:
 		handleTouchCancelled(gs, layout, e, w)
 	}
+	// The last finger lifted: there is no pointer any more, so nothing
+	// may stay hovered (sticky hover on touch screens).
+	if (e.Type == EventTouchesEnded || e.Type == EventTouchesCancelled) &&
+		gs.numTouches == 0 {
+		w.pointerLifted()
+	}
 }
 
 func handleTouchBegan(
@@ -592,11 +598,15 @@ func synthMouse(
 	switch typ {
 	case EventMouseDown:
 		w.viewState.mouseButtonHeld = btn
+		w.pointerAt(x, y)
+		w.recordPressTarget(&w.scratch.gestureEvent)
 		mouseDownHandler(layout, false, &w.scratch.gestureEvent, w)
 	case EventMouseMove:
+		w.pointerAt(x, y)
 		mouseMoveHandler(layout, &w.scratch.gestureEvent, w)
 	case EventMouseUp:
 		w.viewState.mouseButtonHeld = MouseInvalid
+		w.viewState.pressTargetID = ""
 		mouseUpHandler(layout, &w.scratch.gestureEvent, w)
 	}
 }

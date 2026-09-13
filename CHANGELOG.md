@@ -10,6 +10,19 @@ and this project adheres to
 
 ### Added
 
+- **`Window.IsHovered` and `Window.IsPressed` read hover and press state while a
+  view is built (#587)** — A view can now pick a look from whether it is hovered
+  or pressed, not only recolor itself afterwards in `OnHover`. Pass the
+  effective ID (`w.EffID(cfg.ID)` inside `GenerateLayout`). The answer comes
+  from the last arranged frame; when it changes, the frame loop rebuilds once
+  more in the same frame, so there is no visible lag. A shape drawn on top
+  blocks hover, disabled shapes never hover, and a press stays recorded until
+  release. Change only what is inside the widget's bounds, or the look can
+  flicker. `OnHover` is unchanged. See
+  `docs/specs/build-time-interaction-state.md`.
+- **`examples/custom_buttons`: flat, Windows 98 and Windows XP buttons (#587)**
+  — A port of go-shirei's custom-buttons demo, built on `IsHovered` and
+  `IsPressed`: a 98 press moves the label 1px, an XP hover lights a gold rim.
 - **`examples/family_tree`: a scrollable diagram with clickable names (#582)** —
   A family tree wider than the window, built from `gui.Canvas` with names placed
   at `X`/`Y`, a `DrawCanvas` underlay for right-angle connector lines, and a
@@ -33,6 +46,11 @@ and this project adheres to
 
 ### Fixed
 
+- **Hover no longer sticks when the pointer leaves the window or a touch lifts
+  (#587)** — Metal, X11 and Win32 now report the pointer leaving the window, so
+  `OnMouseLeave` fires and `OnHover` stops. Before, the last hovered widget
+  stayed lit until the pointer came back. A lifted touch no longer leaves a
+  widget reading as hovered.
 - **A sideways trackpad swipe scrolls a container horizontally (#585)** — A
   precise scroll with no modifier used to move only the vertical axis and drop
   `ScrollX`, so a wide container ignored a sideways swipe on macOS and moved

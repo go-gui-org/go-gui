@@ -52,6 +52,8 @@ func (w *Window) EventFn(e *Event) {
 		w.handleMouseMoveEvent(layout, e)
 	case EventMouseUp:
 		w.handleMouseUpEvent(layout, e)
+	case EventMouseLeave:
+		w.pointerLeftWindow()
 	case EventMouseScroll:
 		w.handleMouseScrollEvent(layout, e)
 	case EventResized:
@@ -162,6 +164,7 @@ func (w *Window) handleKeyUpEvent(layout *Layout, e *Event) {
 
 func (w *Window) handleMouseDownEvent(layout *Layout, e *Event) {
 	w.viewState.mouseButtonHeld = e.MouseButton
+	w.recordPressTarget(e)
 	w.setMouseCursor(CursorArrow)
 	if inspectorSupported && w.inspectorEnabled {
 		panelW := inspectorPanelWidth(w)
@@ -202,11 +205,13 @@ func (w *Window) handleMouseMoveEvent(layout *Layout, e *Event) {
 	w.viewState.menuKeyNav = false
 	w.viewState.mousePosX = e.MouseX
 	w.viewState.mousePosY = e.MouseY
+	w.pointerAt(e.MouseX, e.MouseY)
 	mouseMoveHandler(layout, e, w)
 }
 
 func (w *Window) handleMouseUpEvent(layout *Layout, e *Event) {
 	w.viewState.mouseButtonHeld = MouseInvalid
+	w.viewState.pressTargetID = ""
 	mouseUpHandler(layout, e, w)
 }
 
@@ -229,7 +234,10 @@ func (w *Window) eventAllowed(e *Event) bool {
 	if w.focused {
 		return true
 	}
+	// A window exit must clear hover in a background window too, or
+	// it comes back to the foreground still lit.
 	return e.Type == EventFocused ||
+		e.Type == EventMouseLeave ||
 		e.Type == EventMouseScroll ||
 		e.Type == EventTouchesBegan ||
 		e.Type == EventTouchesMoved ||

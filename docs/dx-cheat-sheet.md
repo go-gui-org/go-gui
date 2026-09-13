@@ -99,6 +99,35 @@ Use plain `Color`, never `Opt[Color]`. Build values with `RGBA`, `RGB`, or
 `ColorSet` groups the per-state colors, and an assigned flat `Color` field wins
 over it.
 
+## Which hover API
+
+Three APIs see the pointer. Pick by what the code needs.
+
+| The code needs to…                                 | Use                  |
+| -------------------------------------------------- | -------------------- |
+| pick a look (padding, colors, children) from hover | `w.IsHovered(effID)` |
+| pick a look from a held press                      | `w.IsPressed(effID)` |
+| read the pointer position, set a cursor, hit-test  | `OnHover`            |
+| react once when the pointer leaves a shape         | `OnMouseLeave`       |
+
+`IsHovered` and `IsPressed` are read inside `GenerateLayout`, with the effective
+ID:
+
+```go
+eid := w.EffID(b.id)
+armed := w.IsPressed(eid) && w.IsHovered(eid)
+```
+
+They answer differently from `OnHover` on purpose. `OnHover` is dispatch: it
+reaches the deepest shape with an `OnHover`, even under a float that has no
+handler. `IsHovered` is visible state: anything drawn on top blocks it, and an
+ID-bearing ancestor of the hovered shape is hovered too.
+
+Change only what is inside the widget's bounds. A look that moves or resizes the
+hovered shape can pull it out from under a still pointer, and it then flickers
+every frame. `examples/custom_buttons` shows the pattern;
+`docs/specs/build-time-interaction-state.md` has the rules.
+
 ## `AmendLayout` and floats
 
 `AmendLayout` runs after sizing with absolute coordinates. Moving a parent there

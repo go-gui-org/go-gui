@@ -140,6 +140,25 @@ type ViewState struct {
 	// platform: true while the focused widget is an editable text
 	// context. Kept so syncIMEEditContext pushes transitions only.
 	imeEditContext bool
+
+	// hoverTargetID is the effective ID of the enabled, ID-bearing shape
+	// under the pointer in the last arranged frame; "" when nothing is.
+	// Recorded by layoutArrange (recordHoverTarget), read by IsHovered
+	// during the next generation. pressTargetID is the same for the
+	// shape a left press landed on, held until release. Both reference
+	// strings the stamping pass already built, so recording allocates
+	// nothing. See docs/specs/build-time-interaction-state.md (#587).
+	hoverTargetID string
+	pressTargetID string
+	// pointerInWindow is false until the first mouse move or touch and
+	// again after the pointer leaves the window or a touch lifts, so the
+	// (0,0) start position and a lift point do not read as hover.
+	pointerInWindow bool
+	// pointerX/Y is where the hover target is recorded from: the last
+	// mouse move or held touch. Kept apart from mousePosX/Y, which
+	// touches do not move, so a held finger hovers without changing
+	// OnHover dispatch.
+	pointerX, pointerY float32
 }
 
 // State returns a typed pointer to the user-supplied state.

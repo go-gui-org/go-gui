@@ -253,6 +253,18 @@ static uint32_t _nextWindowID = 1;
 
         self.wantsLayer = YES;
         self.layer = metalLayer;
+
+        // AppKit posts no exit event without a tracking area. InVisibleRect
+        // keeps the area matched to the view through resizes, so no
+        // updateTrackingAreas override is needed; ActiveAlways reports the
+        // exit in a background window too, which the gui layer accepts.
+        NSTrackingArea *area = [[NSTrackingArea alloc]
+            initWithRect:NSZeroRect
+                 options:NSTrackingMouseEnteredAndExited |
+                         NSTrackingActiveAlways | NSTrackingInVisibleRect
+                   owner:self
+                userInfo:nil];
+        [self addTrackingArea:area];
     }
     return self;
 }
@@ -1020,6 +1032,12 @@ static void storeEvent(NSEvent *event, uint32_t wid) {
             _evMouseDX = (float)[event deltaX];
             _evMouseDY = (float)[event deltaY];
             _evModifiers = (unsigned int)[event modifierFlags];
+            break;
+
+        case NSEventTypeMouseExited:
+            // Posted by the content view's tracking area when the
+            // pointer leaves it, so nothing stays hovered (issue #587).
+            _evType = METAL_EVENT_MOUSE_LEAVE;
             break;
 
         case NSEventTypeScrollWheel:

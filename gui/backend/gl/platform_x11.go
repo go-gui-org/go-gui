@@ -20,7 +20,8 @@ import (
 const x11EventMask = xproto.EventMaskKeyPress | xproto.EventMaskKeyRelease |
 	xproto.EventMaskButtonPress | xproto.EventMaskButtonRelease |
 	xproto.EventMaskPointerMotion | xproto.EventMaskExposure |
-	xproto.EventMaskStructureNotify | xproto.EventMaskFocusChange
+	xproto.EventMaskStructureNotify | xproto.EventMaskFocusChange |
+	xproto.EventMaskLeaveWindow
 
 // X11 cursor-font glyph indices (from cursorfont.h). Each shape is two
 // consecutive glyphs: the image and its mask.

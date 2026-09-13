@@ -195,6 +195,8 @@ func (w *Window) SetView(gen func(*Window) View) {
 	w.lockForAPI("SetView")
 	defer w.mu.Unlock()
 	w.viewState.registry.Clear()
+	// A new view has no shape the held press could still belong to.
+	w.viewState.pressTargetID = ""
 	w.viewGenerator = gen
 	w.markLayoutRefresh()
 	// Under w.mu, which is deliberate: a wake only posts to the platform's

@@ -141,6 +141,14 @@ func (b *Backend) handleXEvent(ev xgb.Event) {
 			Modifiers: x11key.MapModifiers(e.State),
 		})
 
+	case xproto.LeaveNotifyEvent:
+		// The pointer left the window, so nothing in it may stay hovered
+		// (issue #587).
+		if !pointerRealExit(e.Mode, e.Detail) {
+			return
+		}
+		b.emit(gui.Event{Type: gui.EventMouseLeave})
+
 	case xproto.ConfigureNotifyEvent:
 		scaleChanged := b.maybeRescaleDPI()
 		if !b.plat.haveRandr {
@@ -393,4 +401,12 @@ func (n *nativePlatform) IMESetRect(x, y, w, h int32) {
 		int32(float32(w)*s),
 		int32(float32(h)*s),
 	)
+}
+
+// pointerRealExit reports whether a LeaveNotify took the pointer out of
+// the window. A grab or ungrab crossing reports the pointer staying put
+// while a grab changes hands, and an inferior crossing moves it into a
+// child window of ours; neither is an exit (issue #587).
+func pointerRealExit(mode, detail byte) bool {
+	return mode == xproto.NotifyModeNormal && detail != xproto.NotifyDetailInferior
 }

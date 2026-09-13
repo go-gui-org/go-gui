@@ -75,6 +75,9 @@ func layoutArrange(layout *Layout, w *Window) []Layout {
 	for i := range layouts {
 		layoutMouseLeave(&layouts[i], w)
 	}
+	// Build-time hover state: record what the pointer is over so the
+	// next generation can read it through IsHovered.
+	w.recordHoverTarget(layouts)
 
 	return layouts
 }

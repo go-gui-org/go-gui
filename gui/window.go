@@ -396,6 +396,7 @@ func (w *Window) MouseCancel() {
 	// button must be cleared here or the next hover pass would keep
 	// reporting a button nobody is holding.
 	w.viewState.mouseButtonHeld = MouseInvalid
+	w.viewState.pressTargetID = ""
 	if !w.mouseIsLocked() {
 		return
 	}

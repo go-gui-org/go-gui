@@ -52,6 +52,7 @@ var (
 	pScreenToClient   = user32.NewProc("ScreenToClient")
 	pSetCapture       = user32.NewProc("SetCapture")
 	pReleaseCapture   = user32.NewProc("ReleaseCapture")
+	pTrackMouseEvent  = user32.NewProc("TrackMouseEvent")
 	pValidateRect     = user32.NewProc("ValidateRect")
 	pGetDpiForWindow  = user32.NewProc("GetDpiForWindow")
 	pGetDpiForSystem  = user32.NewProc("GetDpiForSystem")
@@ -132,6 +133,23 @@ type wndClassExW struct {
 }
 
 type pointW struct{ x, y int32 }
+
+// trackMouseEventW mirrors TRACKMOUSEEVENT.
+type trackMouseEventW struct {
+	cbSize      uint32
+	dwFlags     uint32
+	hwndTrack   uintptr
+	dwHoverTime uint32
+}
+
+// trackMouseLeave asks Windows for one WM_MOUSELEAVE when the pointer
+// leaves hwnd's client area. Reports whether the request was accepted.
+func trackMouseLeave(hwnd uintptr) bool {
+	tme := trackMouseEventW{dwFlags: tmeLeave, hwndTrack: hwnd}
+	tme.cbSize = uint32(unsafe.Sizeof(tme))
+	r, _, _ := pTrackMouseEvent.Call(uintptr(unsafe.Pointer(&tme)))
+	return r != 0
+}
 
 type rectW struct{ left, top, right, bottom int32 }
 
@@ -218,6 +236,9 @@ type platformState struct {
 	// WM_CAPTURECHANGED can tell our own ReleaseCapture from a
 	// revocation. See the wmCaptureChanged case in events_win32.go.
 	capturing bool
+	// trackingLeave is true while a TrackMouseEvent(TME_LEAVE) request
+	// is pending. WM_MOUSELEAVE consumes it.
+	trackingLeave bool
 
 	// IME state. The two buffers are reused across composition messages
 	// so a keystroke costs no allocation; imeRect caches the last caret

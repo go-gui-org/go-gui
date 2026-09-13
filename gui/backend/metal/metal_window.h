@@ -100,6 +100,7 @@ enum {
     METAL_EVENT_FLAGS_CHANGED,
     METAL_EVENT_CHAR,       // IME committed text
     METAL_EVENT_IME_COMP,   // IME composition in progress
+    METAL_EVENT_MOUSE_LEAVE, // pointer left the content view
 };
 
 // Current event type (set after metalPollEvent returns 1).

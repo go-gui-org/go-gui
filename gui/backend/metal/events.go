@@ -52,6 +52,9 @@ func mapMetalEvent() (gui.Event, bool) {
 			Modifiers: mapMetalModifiers(uint32(C.metalEventModifiers())),
 		}, true
 
+	case C.METAL_EVENT_MOUSE_LEAVE:
+		return gui.Event{Type: gui.EventMouseLeave}, true
+
 	case C.METAL_EVENT_SCROLL_WHEEL:
 		precise := C.metalEventScrollPrecise() != 0
 		return gui.Event{
