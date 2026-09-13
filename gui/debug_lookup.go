@@ -95,7 +95,7 @@ func debugLookupMiss(layout *Layout, api, effectiveID string) {
 func lookupNearMisses(root *Layout, effectiveID string) []string {
 	leaf := lastIDSegment(effectiveID)
 	var ids []string
-	collectEffectiveIDs(root, &ids)
+	collectEffectiveIDs(root, &ids, 0)
 	out := ids[:0]
 	for _, got := range ids {
 		if got != effectiveID && lastIDSegment(got) == leaf {

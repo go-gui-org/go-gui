@@ -158,6 +158,22 @@ func TestScopeIDEmptyOwnerManyParts(t *testing.T) {
 	}
 }
 
+// An empty owner with a part sizes the buffer exactly: the part adds
+// no separator for an owner that is not there. Over-sizing still costs
+// one allocation, so the value is pinned alongside the count — the
+// alloc test alone cannot see the slack byte.
+func TestScopeIDNEmptyOwnerExactSize(t *testing.T) {
+	if got := ScopeIDN("", "day", 3); got != "day:3" {
+		t.Fatalf(`ScopeIDN("", day, 3) = %q, want "day:3"`, got)
+	}
+	allocs := testing.AllocsPerRun(100, func() {
+		sinkID = ScopeIDN("", "day", 3)
+	})
+	if allocs != 1 {
+		t.Errorf("got %v allocs, want 1", allocs)
+	}
+}
+
 // A composed ID must remain splittable, because the datagrid recovers a
 // column ID by trimming a known prefix off a header shape's ID.
 func TestScopeIDPrefixIsRecoverable(t *testing.T) {

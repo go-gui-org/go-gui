@@ -21,6 +21,13 @@ func TestGraphemeStops(t *testing.T) {
 			[]int{0, 7}},
 		// Combining mark stays with its base.
 		{"combining", "a\u0301b", []int{0, 2, 3}},
+		// CR LF is one cluster (UAX #29 GB3) — the multiline case.
+		{"crlf", "a\r\nb", []int{0, 1, 3, 4}},
+		// Regional indicators pair into one flag cluster.
+		{"flag", "\U0001F1FA\U0001F1F8", []int{0, 2}},
+		// An invalid byte counts as one rune, matching []rune
+		// conversion at the delete call site.
+		{"invalid byte", "a\xffb", []int{0, 1, 2, 3}},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -75,5 +82,20 @@ func TestClosestGraphemeStop(t *testing.T) {
 	tie := []int{0, 2, 6}
 	if got := closestGraphemeStop(tie, 4); got != 2 {
 		t.Errorf("closestGraphemeStop(tie, 4) = %d, want 2", got)
+	}
+}
+
+func TestEmptyGraphemeStops(t *testing.T) {
+	// No boundary held: every lookup leaves pos unchanged
+	// instead of panicking on stops[len(stops)-1].
+	var stops []int
+	if got := prevGraphemeStop(stops, 5); got != 5 {
+		t.Errorf("prevGraphemeStop(nil, 5) = %d, want 5", got)
+	}
+	if got := nextGraphemeStop(stops, 5); got != 5 {
+		t.Errorf("nextGraphemeStop(nil, 5) = %d, want 5", got)
+	}
+	if got := closestGraphemeStop(stops, 5); got != 5 {
+		t.Errorf("closestGraphemeStop(nil, 5) = %d, want 5", got)
 	}
 }

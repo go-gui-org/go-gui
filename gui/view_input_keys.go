@@ -187,7 +187,7 @@ func inputKeyVertical(
 		} else {
 			newPos = moveCursorDown(text, pos)
 		}
-		// Line-column math is byte-based; snap the result to the
+		// The column is counted in runes; snap the result to the
 		// nearest cluster boundary so vertical motion cannot park
 		// the caret inside a multi-rune grapheme.
 		newPos = closestGraphemeStop(graphemeStops(text), newPos)

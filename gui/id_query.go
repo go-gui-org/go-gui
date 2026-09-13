@@ -34,7 +34,7 @@ func (w *Window) EffectiveIDs() []string {
 		return nil
 	}
 	var ids []string
-	collectEffectiveIDs(&w.layout, &ids)
+	collectEffectiveIDs(&w.layout, &ids, 0)
 	return ids
 }
 
@@ -54,6 +54,8 @@ func (w *Window) EffectiveIDs() []string {
 //
 // More than one answer means the leaf is used under more than one
 // scope, which is legal, and the caller must pick the scope it meant.
+// An exact match sorts before a trailing-segment match, so a caller
+// that takes the first answer gets the unambiguous one.
 // No answer means no widget of that name is in the current frame:
 // either the spelling is wrong or the widget is not rendered.
 // exportaudit:keep — dev-diagnostic API for app authors (issue #521)
@@ -61,13 +63,16 @@ func (w *Window) ResolveID(leaf string) []string {
 	if w == nil || leaf == "" {
 		return nil
 	}
-	var out []string
+	var exact, rest []string
 	for _, id := range w.EffectiveIDs() {
-		if id == leaf || lastIDSegment(id) == leaf {
-			out = append(out, id)
+		switch {
+		case id == leaf:
+			exact = append(exact, id)
+		case lastIDSegment(id) == leaf:
+			rest = append(rest, id)
 		}
 	}
-	return out
+	return append(exact, rest...)
 }
 
 // lastIDSegment returns the part of an effective ID after the final
@@ -83,8 +88,12 @@ func lastIDSegment(id string) string {
 // in one tree. An ID-less shape has no identity and is skipped, but
 // its children are still walked: an ID-less container adds no scope
 // and does not hide what is under it.
-func collectEffectiveIDs(layout *Layout, out *[]string) {
-	if layout == nil {
+//
+// The walk stops past the same depth budget event dispatch drops input
+// at, so a pathological tree truncates this diagnostic list instead of
+// overflowing the stack.
+func collectEffectiveIDs(layout *Layout, out *[]string, depth int) {
+	if layout == nil || overMaxDepth(depth) {
 		return
 	}
 	if layout.Shape != nil {
@@ -93,6 +102,6 @@ func collectEffectiveIDs(layout *Layout, out *[]string) {
 		}
 	}
 	for i := range layout.Children {
-		collectEffectiveIDs(&layout.Children[i], out)
+		collectEffectiveIDs(&layout.Children[i], out, depth+1)
 	}
 }

@@ -71,7 +71,7 @@ func inspectorPropsNodes(p inspectorNodeProps) []TreeNodeCfg {
 	if p.ID != "" {
 		nodes = append(nodes,
 			inspectorPropNode(inspectorPropIDID,
-				"id: "+p.ID, ps, pis))
+				"id: "+p.ID, ps, pis)) // ergonomics-audit:not-an-id
 	}
 	nodes = append(nodes,
 		inspectorPropNode(inspectorPropPosID,

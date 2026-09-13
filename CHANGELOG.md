@@ -275,6 +275,15 @@ and this project adheres to
   panel IDs, points a dangling `SelectedID` at the first panel, and mints
   separator-free node IDs so a `:` in app data cannot push a group outside the
   dock scope.
+- **ID lookups and the ID audit close five gaps** — `Window.ResolveID` sorts an
+  exact match before trailing-segment matches, so taking the first answer gives
+  the unambiguous widget instead of tree order. `Window.EffectiveIDs` (and the
+  near-miss lookup built on it) stops at the shared 256-deep budget instead of
+  recursing without bound. `ScopeIDN` with an empty owner no longer over-sizes
+  its buffer by one byte. The `ids` audit mode flags a composition with the ID
+  on the right (`"panel:" + cfg.ID`), fails closed on a file that does not parse
+  instead of passing green over unscanned code, and no longer panics on a
+  zero-argument `ScopeID` call.
 
 ## [v0.75.0] - 2026-09-12
 

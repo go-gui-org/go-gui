@@ -241,3 +241,42 @@ func TestIsIDName(t *testing.T) {
 		}
 	}
 }
+
+// A prefix on the left is still a composition: "panel:" + cfg.ID builds
+// an ID path off cfg.ID just as much as cfg.ID + "_popup". The consumer
+// rule used to read only the leftmost operand, so this stayed quiet.
+func TestIDsFlagsPrefixCompositions(t *testing.T) {
+	t.Parallel()
+	const src = `package p
+
+func f(cfg struct{ ID string }) {
+	isFocus("panel:" + cfg.ID)
+}
+
+func isFocus(string) {}
+`
+	got := scanSrc(t, src)
+	if len(got) != 1 {
+		t.Fatalf("got %d findings, want 1:\n%s", len(got), strings.Join(got, "\n"))
+	}
+}
+
+// A ScopeID call with no arguments carries no part to check. Slicing
+// off the owner unconditionally panicked the audit on it.
+func TestIDsZeroArgScopeIDIsQuiet(t *testing.T) {
+	t.Parallel()
+	const src = `package p
+
+func f() {
+	_ = ScopeID()
+	_ = ScopeIDN()
+}
+
+func ScopeID(string, ...string) string { return "" }
+
+func ScopeIDN(string, string, int) string { return "" }
+`
+	if got := scanSrc(t, src); len(got) != 0 {
+		t.Errorf("want no findings, got:\n%s", strings.Join(got, "\n"))
+	}
+}

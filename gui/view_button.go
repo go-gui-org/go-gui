@@ -386,7 +386,7 @@ func CommandButton(cmdID string, cfg ButtonCfg) View {
 		cmd, ok := w.CommandByID(cmdID)
 		if !ok {
 			return Text(TextCfg{
-				Text:      "unknown command: " + cmdID,
+				Text:      "unknown command: " + cmdID, // ergonomics-audit:not-an-id
 				TextStyle: TextStyle{Color: Red},
 			})
 		}

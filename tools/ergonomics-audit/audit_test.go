@@ -4,6 +4,8 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -306,6 +308,28 @@ func TestRenderFuncTypeKeepsResults(t *testing.T) {
 	want := "func([]GridRow, *gg.Event, *gg.Window) (string, bool)"
 	if got != want {
 		t.Fatalf("renderFuncType = %q, want %q", got, want)
+	}
+}
+
+// TestWalkGoFailsOnParseError pins fail-closed scanning. A file that
+// does not parse is broken on every GOOS, so skipping it would let the
+// gate pass green over unscanned code.
+func TestWalkGoFailsOnParseError(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "broken.go"),
+		[]byte("package p\nfunc {"), 0o644); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+	called := false
+	err := walkGo(dir, func(string, *token.FileSet, *ast.File) {
+		called = true
+	})
+	if err == nil {
+		t.Fatal("walkGo = nil, want the parse error")
+	}
+	if called {
+		t.Error("visit ran on an unparseable file")
 	}
 }
 

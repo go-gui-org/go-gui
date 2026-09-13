@@ -96,12 +96,13 @@ func ScopeIDN(owner, part string, n int) string {
 
 	size, count := scopeIDSize(owner, nil)
 	if part != "" {
-		size += len(part) + len(IDSep)
+		size += len(part)
 		count++
 	}
 	size += len(d)
-	if count > 0 {
-		size += len(IDSep)
+	count++
+	if count > 1 {
+		size += (count - 1) * len(IDSep)
 	}
 
 	var b strings.Builder

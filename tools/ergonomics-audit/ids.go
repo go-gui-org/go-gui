@@ -170,16 +170,17 @@ func idTargetName(fset *token.FileSet, expr ast.Expr) string {
 	return ""
 }
 
-// leftmostOperand returns the first operand of a + chain, which is the
-// value everything else is appended to.
-func leftmostOperand(expr ast.Expr) ast.Expr {
-	for {
-		bin, ok := expr.(*ast.BinaryExpr)
-		if !ok || bin.Op != token.ADD {
-			return expr
+// idOperandName returns the ID-ish name of any operand of a + chain,
+// or "" if none denotes a widget ID. The ID may sit on either side:
+// cfg.ID + "_popup" and "panel:" + cfg.ID both compose off it.
+func idOperandName(fset *token.FileSet, expr ast.Expr) string {
+	if bin, ok := expr.(*ast.BinaryExpr); ok && bin.Op == token.ADD {
+		if name := idOperandName(fset, bin.X); name != "" {
+			return name
 		}
-		expr = bin.X
+		return idOperandName(fset, bin.Y)
 	}
+	return idTargetName(fset, expr)
 }
 
 // isHandRolled reports whether expr builds a string by concatenating a
@@ -329,11 +330,12 @@ func inspectIDs(
 			}
 		case *ast.BinaryExpr:
 			// Anywhere at all, including call arguments: composing off
-			// something already named like an ID.
+			// something already named like an ID, on either side of
+			// the chain.
 			if !isHandRolled(node) {
 				return true
 			}
-			if base := idTargetName(fset, leftmostOperand(node)); base != "" {
+			if base := idOperandName(fset, node); base != "" {
 				report("value composed off "+base, node)
 			}
 		case *ast.FuncDecl:
@@ -360,8 +362,9 @@ func inspectIDs(
 			// composed, which is how nesting works, so only the parts
 			// are checked. Non-literal parts are invisible statically
 			// and stay quiet. Both gui.ScopeID and a bare ScopeID
-			// (test stubs, dot imports) count.
-			if !isScopeIDCall(node.Fun) {
+			// (test stubs, dot imports) count. A call with no
+			// arguments carries no part to check.
+			if !isScopeIDCall(node.Fun) || len(node.Args) == 0 {
 				return true
 			}
 			for _, arg := range node.Args[1:] {

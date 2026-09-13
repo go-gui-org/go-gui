@@ -131,6 +131,50 @@ func TestUnknownFocusCorrectSpellingIsQuiet(t *testing.T) {
 	}
 }
 
+// An exact match sorts before a trailing-segment match, so a caller
+// that takes the first answer gets the unambiguous one even when the
+// scoped widget comes first in tree order.
+func TestResolveIDExactMatchSortsFirst(t *testing.T) {
+	exact := &Shape{ID: "nav"}
+	exact.effID = "nav"
+	scoped := &Shape{ID: "nav"}
+	scoped.effID = "detail:nav"
+	w := &Window{}
+	w.layout = debugTree(scoped, exact)
+
+	got := w.ResolveID("nav")
+	want := []string{"nav", "detail:nav"}
+	if len(got) != len(want) {
+		t.Fatalf(`ResolveID("nav") = %v, want %v`, got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf(`ResolveID("nav") = %v, want %v`, got, want)
+		}
+	}
+}
+
+// Past the depth budget the diagnostic list truncates instead of
+// recursing without bound — the same budget event dispatch drops input
+// at, so no frame the pipeline tolerates can outgrow it.
+func TestEffectiveIDsTruncatesPastDepthBudget(t *testing.T) {
+	const depth = maxEventDepth + 50
+	root := Layout{Shape: &Shape{}}
+	cur := &root
+	for range depth {
+		cur.Children = append(cur.Children, Layout{Shape: &Shape{ID: "n"}})
+		cur = &cur.Children[0]
+	}
+	w := &Window{}
+	w.layout = root
+
+	got := w.EffectiveIDs()
+	if len(got) != maxEventDepth {
+		t.Fatalf("EffectiveIDs() over a %d-deep tree = %d IDs, want %d",
+			depth, len(got), maxEventDepth)
+	}
+}
+
 // A shape of that name exists but cannot take focus. That is a
 // different mistake from a misspelling, so it gets its own wording.
 func TestUnknownFocusNamesANonFocusableShape(t *testing.T) {

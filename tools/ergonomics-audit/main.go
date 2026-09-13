@@ -161,8 +161,9 @@ func compileFilter(flagName, expr string) (*regexp.Regexp, error) {
 }
 
 // walkGo parses every non-vendored Go file under root and calls visit
-// with the parsed file. Parse errors are skipped: a repo may legitimately
-// hold files for another GOOS that do not typecheck here.
+// with the parsed file. A file that does not parse fails the audit: a
+// syntax error is broken on every GOOS, so skipping it would let the
+// gate pass green over unscanned code.
 func walkGo(root string, visit func(path string, fset *token.FileSet, f *ast.File)) error {
 	return filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -181,7 +182,7 @@ func walkGo(root string, visit func(path string, fset *token.FileSet, f *ast.Fil
 		fset := token.NewFileSet()
 		f, perr := parser.ParseFile(fset, path, nil, parser.ParseComments)
 		if perr != nil {
-			return nil
+			return fmt.Errorf("parse %s: %w", path, perr)
 		}
 		visit(path, fset, f)
 		return nil
