@@ -32,3 +32,8 @@ compatibility.
 Pan gestures automatically scroll containers with `Scrollable: true`. Available
 on `ContainerCfg` and `DrawCanvasCfg`. Use Chrome DevTools touch emulation or a
 touchscreen to test.
+
+Gestures come only from touch input: the web, iOS, and Android backends. The
+desktop backends (macOS, Linux, Windows) send no gesture events. There, a
+trackpad press is a mouse click and a two-finger drag is a scroll. The demo pans
+its square from `OnMouseScroll` so it still responds on the desktop.

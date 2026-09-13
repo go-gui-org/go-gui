@@ -1,6 +1,9 @@
 package gui
 
-import "testing"
+import (
+	"math"
+	"testing"
+)
 
 // gestureLayout builds a layout tree suitable for gesture dispatch
 // testing: a root shape covering 0,0-400,400 with one child.
@@ -534,5 +537,635 @@ func TestPinchToSingleTouchTransition(t *testing.T) {
 	if lastType != GesturePan || lastPhase != gesturePhaseBegan {
 		t.Errorf("expected Pan/Began after lift, got %d/%d",
 			lastType, lastPhase)
+	}
+}
+
+// --- Pinch from co-located fingers ---
+
+func TestGesturePinchFromCoLocatedFingers(t *testing.T) {
+	t.Parallel()
+	var gotScale float32 = 1
+	root := gestureLayout(&eventHandlers{
+		OnGesture: func(ctx EventCtx) {
+			if ctx.Event.GestureType == GesturePinch {
+				gotScale = ctx.Event.PinchScale
+			}
+		},
+	})
+	w := &Window{}
+	w.animations = make(map[string]Animation)
+	gs := &w.viewState.gesture
+	gs.nowFn = fixedClock(0)
+
+	// Two fingers land on the same point: span baseline is 0.
+	w.handleTouch(root, touchEvent(EventTouchesBegan, 1, 100, 200))
+	w.handleTouch(root, twoTouchEvent(EventTouchesBegan,
+		1, 100, 200, 2, 100, 200))
+
+	// Spread apart.
+	w.handleTouch(root, twoTouchEvent(EventTouchesMoved,
+		1, 80, 200, 2, 120, 200))
+	w.handleTouch(root, twoTouchEvent(EventTouchesMoved,
+		1, 60, 200, 2, 140, 200))
+
+	if math.IsInf(float64(gotScale), 0) ||
+		math.IsNaN(float64(gotScale)) {
+		t.Fatalf("pinch scale is non-finite: %f", gotScale)
+	}
+	if gotScale <= 1.0 {
+		t.Errorf("expected scale > 1.0 after spread, got %f",
+			gotScale)
+	}
+}
+
+// --- Held pan does not swipe ---
+
+func TestGestureHeldPanDoesNotSwipe(t *testing.T) {
+	t.Parallel()
+	var got GestureType
+	var gotPhase gesturePhase
+	root := gestureLayout(&eventHandlers{
+		OnGesture: func(ctx EventCtx) {
+			got = ctx.Event.GestureType
+			gotPhase = ctx.Event.GesturePhase
+		},
+	})
+	w := &Window{}
+	w.animations = make(map[string]Animation)
+	gs := &w.viewState.gesture
+	gs.nowFn = fixedClock(0)
+
+	w.handleTouch(root, touchEvent(EventTouchesBegan, 1, 100, 100))
+	// Fast moves build a high EMA velocity ...
+	gs.nowFn = fixedClock(16_000_000)
+	w.handleTouch(root, touchEvent(EventTouchesMoved, 1, 150, 100))
+	gs.nowFn = fixedClock(32_000_000)
+	w.handleTouch(root, touchEvent(EventTouchesMoved, 1, 200, 100))
+	// ... then the finger rests before lifting: the velocity is
+	// stale, so the lift must end the pan, not fling a swipe.
+	gs.nowFn = fixedClock(500_000_000)
+	w.handleTouch(root, touchEvent(EventTouchesEnded, 1, 200, 100))
+
+	if got != GesturePan || gotPhase != gesturePhaseEnded {
+		t.Errorf("expected Pan/Ended after hold, got %d/%d",
+			got, gotPhase)
+	}
+}
+
+// --- Simultaneous pinch and rotate ---
+
+func TestGestureSimultaneousPinchRotateEnd(t *testing.T) {
+	t.Parallel()
+	type observed struct {
+		typ   GestureType
+		phase gesturePhase
+	}
+	var events []observed
+	var rotateBegans int
+	root := gestureLayout(&eventHandlers{
+		OnGesture: func(ctx EventCtx) {
+			events = append(events, observed{
+				ctx.Event.GestureType,
+				ctx.Event.GesturePhase,
+			})
+			if ctx.Event.GestureType == GestureRotate &&
+				ctx.Event.GesturePhase == gesturePhaseBegan {
+				rotateBegans++
+			}
+		},
+	})
+	w := &Window{}
+	w.animations = make(map[string]Animation)
+	gs := &w.viewState.gesture
+	gs.nowFn = fixedClock(0)
+
+	w.handleTouch(root, touchEvent(EventTouchesBegan, 1, 150, 200))
+	w.handleTouch(root, twoTouchEvent(EventTouchesBegan,
+		1, 150, 200, 2, 250, 200))
+
+	// Spread and twist in one move.
+	w.handleTouch(root, twoTouchEvent(EventTouchesMoved,
+		1, 130, 170, 2, 270, 230))
+
+	if rotateBegans != 1 {
+		t.Errorf("one move emitted %d Rotate/Began, want 1",
+			rotateBegans)
+	}
+
+	// Lift all fingers: both gestures must end.
+	events = nil
+	w.handleTouch(root, twoTouchEvent(EventTouchesEnded,
+		1, 130, 170, 2, 270, 230))
+
+	var pinchEnded, rotateEnded bool
+	for _, ev := range events {
+		if ev.typ == GesturePinch &&
+			ev.phase == gesturePhaseEnded {
+			pinchEnded = true
+		}
+		if ev.typ == GestureRotate &&
+			ev.phase == gesturePhaseEnded {
+			rotateEnded = true
+		}
+	}
+	if !pinchEnded {
+		t.Error("expected Pinch/Ended after lift")
+	}
+	if !rotateEnded {
+		t.Error("expected Rotate/Ended after lift")
+	}
+}
+
+// --- Mouse up at the release point ---
+
+func TestGestureMouseUpAtReleasePoint(t *testing.T) {
+	t.Parallel()
+	var ux, uy float32
+	var ups int
+	root := gestureLayout(&eventHandlers{
+		OnMouseUp: func(ctx EventCtx) {
+			ups++
+			ux, uy = ctx.Event.MouseX, ctx.Event.MouseY
+		},
+	})
+	w := &Window{}
+	w.animations = make(map[string]Animation)
+	gs := &w.viewState.gesture
+	gs.nowFn = fixedClock(0)
+
+	w.handleTouch(root, touchEvent(EventTouchesBegan, 1, 100, 100))
+	gs.nowFn = fixedClock(16_000_000)
+	w.handleTouch(root, touchEvent(EventTouchesMoved, 1, 130, 100))
+	gs.nowFn = fixedClock(32_000_000)
+	w.handleTouch(root, touchEvent(EventTouchesEnded, 1, 130, 100))
+
+	if ups != 1 {
+		t.Fatalf("expected 1 mouse up, got %d", ups)
+	}
+	if ux != 130 || uy != 100 {
+		t.Errorf("mouse up at (%f,%f), want release (130,100)",
+			ux, uy)
+	}
+}
+
+// --- Pan over a full container reaches ancestors ---
+
+func TestPanFallbackReachesAncestorAtScrollLimit(t *testing.T) {
+	t.Parallel()
+	root := &Layout{
+		Shape: &Shape{
+			Width: 400, Height: 400,
+			shapeClip: drawClip{X: 0, Y: 0, Width: 400, Height: 400},
+		},
+		Children: []Layout{{
+			Shape: &Shape{
+				Scrollable: true,
+				ID:         "fits",
+				Width:      400, Height: 200,
+				Axis: axisTopToBottom,
+				shapeClip: drawClip{
+					X: 0, Y: 0, Width: 400, Height: 200,
+				},
+			},
+			// Content fits: no scroll room, so the
+			// fallback must decline and let the pan
+			// travel on to the root below.
+			Children: []Layout{{
+				Shape: &Shape{
+					shapeType: shapeRectangle,
+					Width:     400, Height: 100,
+				},
+			}},
+		}},
+	}
+	var rootPhases []gesturePhase
+	root.Shape.events = &eventHandlers{
+		OnGesture: func(ctx EventCtx) {
+			if ctx.Event.GestureType == GesturePan {
+				rootPhases = append(rootPhases,
+					ctx.Event.GesturePhase)
+			}
+		},
+	}
+	w := &Window{}
+	w.animations = make(map[string]Animation)
+	gs := &w.viewState.gesture
+	gs.nowFn = fixedClock(0)
+	pinScrollMultiplier(w, 1)
+
+	w.handleTouch(root, touchEvent(EventTouchesBegan, 1, 100, 100))
+	gs.nowFn = fixedClock(16_000_000)
+	w.handleTouch(root, touchEvent(EventTouchesMoved, 1, 100, 80))
+	gs.nowFn = fixedClock(32_000_000)
+	w.handleTouch(root, touchEvent(EventTouchesMoved, 1, 100, 60))
+
+	var changed bool
+	for _, ph := range rootPhases {
+		if ph == GesturePhaseChanged {
+			changed = true
+		}
+	}
+	if !changed {
+		t.Error("pan Changed never reached the ancestor " +
+			"past a container with no scroll room")
+	}
+}
+
+// --- Malformed touch input ---
+
+func TestHandleTouchMalformedInput(t *testing.T) {
+	t.Parallel()
+	root := gestureLayout(nil)
+	w := &Window{}
+
+	// Must not panic.
+	w.handleTouch(root, nil)
+	w.handleTouch(nil, touchEvent(EventTouchesBegan, 1, 0, 0))
+	gestureHandler(nil, &Event{}, &Window{})
+	bad := touchEvent(EventTouchesBegan, 1, 0, 0)
+	bad.NumTouches = -1
+	w.handleTouch(root, bad)
+	if w.viewState.gesture.numTouches != 0 {
+		t.Errorf("negative count tracked %d touches, want 0",
+			w.viewState.gesture.numTouches)
+	}
+}
+
+// --- Touch tracking order and overflow ---
+
+func TestRemoveTrackedTouchPreservesOrder(t *testing.T) {
+	t.Parallel()
+	gs := &gestureState{}
+	addTrackedTouch(gs, TouchPoint{Identifier: 1, PosX: 10})
+	addTrackedTouch(gs, TouchPoint{Identifier: 2, PosX: 20})
+	addTrackedTouch(gs, TouchPoint{Identifier: 3, PosX: 30})
+
+	removeTrackedTouch(gs, 1)
+
+	if gs.numTouches != 2 {
+		t.Fatalf("numTouches = %d, want 2", gs.numTouches)
+	}
+	if gs.touches[0].id != 2 || gs.touches[1].id != 3 {
+		t.Errorf("order = [%d %d], want [2 3]",
+			gs.touches[0].id, gs.touches[1].id)
+	}
+}
+
+func TestTrackedTouchOverflowBalances(t *testing.T) {
+	t.Parallel()
+	gs := &gestureState{}
+	for id := uint64(1); id <= 8; id++ {
+		addTrackedTouch(gs, TouchPoint{Identifier: id})
+	}
+	// Ninth distinct touch while full: dropped, counted.
+	addTrackedTouch(gs, TouchPoint{Identifier: 9})
+	if gs.numTouches != 8 || gs.overflowTouches != 1 {
+		t.Fatalf("tracked = %d/%d, want 8/1",
+			gs.numTouches, gs.overflowTouches)
+	}
+	// Its release balances the count instead of wedging.
+	removeTrackedTouch(gs, 9)
+	if gs.overflowTouches != 0 {
+		t.Errorf("overflow = %d, want 0", gs.overflowTouches)
+	}
+}
+
+// --- Remaining finger reseeds after lift ---
+
+func TestRemainingFingerReseedsAfterLift(t *testing.T) {
+	t.Parallel()
+	var gotX, gotY float32
+	var got GestureType
+	var clicked bool
+	root := gestureLayout(&eventHandlers{
+		OnGesture: func(ctx EventCtx) {
+			got = ctx.Event.GestureType
+			gotX, gotY = ctx.Event.CentroidX, ctx.Event.CentroidY
+		},
+		OnClick: func(ctx EventCtx) {
+			clicked = true
+		},
+	})
+	w := &Window{}
+	w.animations = make(map[string]Animation)
+	gs := &w.viewState.gesture
+	gs.nowFn = fixedClock(0)
+
+	// Finger A down, finger B down without moving, A lifts:
+	// B becomes a fresh press at its own position.
+	w.handleTouch(root, touchEvent(EventTouchesBegan, 1, 100, 100))
+	w.handleTouch(root, twoTouchEvent(EventTouchesBegan,
+		1, 100, 100, 2, 200, 200))
+	liftA := &Event{
+		Type:       EventTouchesEnded,
+		NumTouches: 1,
+		Touches: [8]TouchPoint{{
+			Identifier: 1, PosX: 100, PosY: 100,
+			ToolType: TouchToolFinger, Changed: true,
+		}},
+	}
+	gs.nowFn = fixedClock(50_000_000)
+	w.handleTouch(root, liftA)
+
+	gs.nowFn = fixedClock(100_000_000)
+	w.handleTouch(root, touchEvent(EventTouchesEnded, 2, 200, 200))
+
+	if got != GestureTap {
+		t.Errorf("expected GestureTap, got %d", got)
+	}
+	if gotX != 200 || gotY != 200 {
+		t.Errorf("tap at (%f,%f), want B's (200,200)",
+			gotX, gotY)
+	}
+	if !clicked {
+		t.Error("expected OnClick from the remaining finger")
+	}
+}
+
+// --- Pan ends when the original finger lifts ---
+
+func TestPanEndsWhenOriginalFingerLifts(t *testing.T) {
+	t.Parallel()
+	type observed struct {
+		typ   GestureType
+		phase gesturePhase
+	}
+	var events []observed
+	root := gestureLayout(&eventHandlers{
+		OnGesture: func(ctx EventCtx) {
+			events = append(events, observed{
+				ctx.Event.GestureType,
+				ctx.Event.GesturePhase,
+			})
+		},
+	})
+	w := &Window{}
+	w.animations = make(map[string]Animation)
+	gs := &w.viewState.gesture
+	gs.nowFn = fixedClock(0)
+
+	// Finger A pans, B taps without moving, A lifts: the pan
+	// must end and B must reseed as a fresh press.
+	w.handleTouch(root, touchEvent(EventTouchesBegan, 1, 100, 100))
+	gs.nowFn = fixedClock(16_000_000)
+	w.handleTouch(root, touchEvent(EventTouchesMoved, 1, 130, 100))
+	w.handleTouch(root, twoTouchEvent(EventTouchesBegan,
+		1, 130, 100, 2, 200, 200))
+	liftA := &Event{
+		Type:       EventTouchesEnded,
+		NumTouches: 1,
+		Touches: [8]TouchPoint{{
+			Identifier: 1, PosX: 130, PosY: 100,
+			ToolType: TouchToolFinger, Changed: true,
+		}},
+	}
+	gs.nowFn = fixedClock(32_000_000)
+	w.handleTouch(root, liftA)
+
+	var panEnded, panBeganAfter bool
+	for _, ev := range events {
+		if ev.typ == GesturePan &&
+			ev.phase == gesturePhaseEnded {
+			panEnded = true
+		}
+		if panEnded && ev.typ == GesturePan &&
+			ev.phase == gesturePhaseBegan {
+			panBeganAfter = true
+		}
+	}
+	if !panEnded {
+		t.Error("expected Pan/Ended when the panning finger lifts")
+	}
+	if panBeganAfter {
+		t.Error("reseeded finger must not resume the old pan")
+	}
+
+	// B lifts promptly: a tap at B's position.
+	events = nil
+	gs.nowFn = fixedClock(60_000_000)
+	w.handleTouch(root, touchEvent(EventTouchesEnded, 2, 200, 200))
+	if len(events) != 1 || events[0].typ != GestureTap {
+		t.Errorf("expected one tap, got %v", events)
+	}
+}
+
+// --- Gesture dispatch depth cap ---
+
+// gestureDeepChain builds a single-child chain n levels deep
+// with a sized OnGesture leaf, so dispatch can reach it.
+func gestureDeepChain(n int, eh *eventHandlers) *Layout {
+	root := &Layout{Shape: &Shape{
+		Width: 400, Height: 400,
+		shapeClip: drawClip{X: 0, Y: 0, Width: 400, Height: 400},
+	}}
+	cur := root
+	for range n {
+		cur.Children = []Layout{{Shape: &Shape{
+			Width: 400, Height: 400,
+			shapeClip: drawClip{
+				X: 0, Y: 0, Width: 400, Height: 400,
+			},
+		}}}
+		cur = &cur.Children[0]
+	}
+	cur.Shape.events = eh
+	return root
+}
+
+func TestGestureHandlerDeepChainTerminates(t *testing.T) {
+	t.Parallel()
+	root := gestureDeepChain(maxEventDepth+50, &eventHandlers{
+		OnGesture: func(ctx EventCtx) {
+			ctx.Consume()
+		},
+	})
+	e := &Event{CentroidX: 100, CentroidY: 100}
+	gestureHandler(root, e, newTestWindow())
+	// Past the budget the leaf is never reached: the event
+	// travels on unhandled instead of recursing without bound.
+	if e.IsHandled {
+		t.Error("gestureHandler reached past maxEventDepth")
+	}
+}
+
+func TestGestureHandlerReachesOrdinaryDepth(t *testing.T) {
+	t.Parallel()
+	root := gestureDeepChain(100, &eventHandlers{
+		OnGesture: func(ctx EventCtx) {
+			ctx.Consume()
+		},
+	})
+	e := &Event{CentroidX: 100, CentroidY: 100}
+	gestureHandler(root, e, newTestWindow())
+	if !e.IsHandled {
+		t.Error("gestureHandler missed a leaf at depth 100")
+	}
+}
+
+// --- Non-finite touch input ---
+
+func TestNonFiniteTouchDropped(t *testing.T) {
+	t.Parallel()
+	var gestures int
+	var downs int
+	root := gestureLayout(&eventHandlers{
+		OnGesture: func(ctx EventCtx) {
+			gestures++
+		},
+		OnMouseDown: func(ctx EventCtx) {
+			downs++
+		},
+	})
+	w := &Window{}
+	w.animations = make(map[string]Animation)
+	gs := &w.viewState.gesture
+	gs.nowFn = fixedClock(0)
+	nan := float32(math.NaN())
+
+	w.handleTouch(root, touchEvent(EventTouchesBegan, 1, nan, nan))
+	if gs.numTouches != 0 {
+		t.Fatalf("numTouches = %d, want 0 for NaN coords",
+			gs.numTouches)
+	}
+	if gestures != 0 || downs != 0 {
+		t.Fatalf("gestures=%d downs=%d, want 0/0 for NaN began",
+			gestures, downs)
+	}
+
+	// A NaN move over a tracked touch leaves it in place.
+	w.handleTouch(root, touchEvent(EventTouchesBegan, 7, 100, 100))
+	w.handleTouch(root, touchEvent(EventTouchesMoved, 7, nan, 100))
+	if gs.touches[0].x != 100 || gs.touches[0].y != 100 {
+		t.Errorf("tracked moved to (%f,%f), want (100,100)",
+			gs.touches[0].x, gs.touches[0].y)
+	}
+
+	// The tracked finger still taps: no wedge, no NaN stored.
+	gs.nowFn = fixedClock(50_000_000)
+	w.handleTouch(root, touchEvent(EventTouchesEnded, 7, 100, 100))
+	if gestures != 1 {
+		t.Errorf("gestures = %d, want 1 tap after NaN move",
+			gestures)
+	}
+}
+
+// --- Huge pinch span stays finite ---
+
+func TestHugePinchSpanEmitsFiniteScale(t *testing.T) {
+	t.Parallel()
+	var scales []float32
+	root := gestureLayout(&eventHandlers{
+		OnGesture: func(ctx EventCtx) {
+			if ctx.Event.GestureType == GesturePinch {
+				scales = append(scales, ctx.Event.PinchScale)
+			}
+		},
+	})
+	w := &Window{}
+	w.animations = make(map[string]Animation)
+	gs := &w.viewState.gesture
+	gs.nowFn = fixedClock(0)
+	big := float32(1e20)
+
+	w.handleTouch(root, touchEvent(EventTouchesBegan, 1, -big, 0))
+	w.handleTouch(root, twoTouchEvent(EventTouchesBegan,
+		1, -big, 0, 2, big, 0))
+	// The span overflows float32: whatever emits must be finite.
+	w.handleTouch(root, twoTouchEvent(EventTouchesMoved,
+		1, -big, 0, 2, big+float32(1e19), 0))
+	for _, s := range scales {
+		if math.IsInf(float64(s), 0) ||
+			math.IsNaN(float64(s)) {
+			t.Fatalf("pinch scale non-finite: %f", s)
+		}
+	}
+
+	// Back to finite coords: the baseline reseeds and the
+	// pinch recovers instead of sticking at the overflow.
+	scales = nil
+	w.handleTouch(root, twoTouchEvent(EventTouchesMoved,
+		1, -100, 0, 2, 100, 0))
+	w.handleTouch(root, twoTouchEvent(EventTouchesMoved,
+		1, -150, 0, 2, 150, 0))
+	if len(scales) == 0 {
+		t.Fatal("pinch never recovered after overflow span")
+	}
+	last := scales[len(scales)-1]
+	if math.IsInf(float64(last), 0) ||
+		math.IsNaN(float64(last)) || last <= 1.0 {
+		t.Errorf("recovered scale = %f, want finite > 1.0", last)
+	}
+}
+
+// --- Dialog routing ---
+
+func TestDialogRoute(t *testing.T) {
+	t.Parallel()
+	if dialogRoute(nil) != nil {
+		t.Error("dialogRoute(nil) != nil")
+	}
+	w := &Window{}
+	w.layout = Layout{Children: []Layout{{}, {}}}
+	if got := dialogRoute(w); got != &w.layout {
+		t.Error("hidden dialog routes past the root layout")
+	}
+	w.dialogCfg.visible = true
+	if got := dialogRoute(w); got != &w.layout.Children[1] {
+		t.Error("visible dialog does not route to the last child")
+	}
+}
+
+// --- Tap timing boundaries ---
+
+func TestDoubleTapGapExpiryIsSingleTap(t *testing.T) {
+	t.Parallel()
+	var seq []GestureType
+	root := gestureLayout(&eventHandlers{
+		OnGesture: func(ctx EventCtx) {
+			seq = append(seq, ctx.Event.GestureType)
+		},
+	})
+	w := &Window{}
+	w.animations = make(map[string]Animation)
+	gs := &w.viewState.gesture
+
+	gs.nowFn = fixedClock(0)
+	w.handleTouch(root, touchEvent(EventTouchesBegan, 1, 100, 100))
+	gs.nowFn = fixedClock(50_000_000)
+	w.handleTouch(root, touchEvent(EventTouchesEnded, 1, 100, 100))
+
+	// Past the 300ms double-tap gap: a second tap, not a double.
+	gs.nowFn = fixedClock(500_000_000)
+	w.handleTouch(root, touchEvent(EventTouchesBegan, 2, 102, 102))
+	gs.nowFn = fixedClock(550_000_000)
+	w.handleTouch(root, touchEvent(EventTouchesEnded, 2, 102, 102))
+
+	if len(seq) != 2 || seq[0] != GestureTap ||
+		seq[1] != GestureTap {
+		t.Errorf("sequence = %v, want [Tap Tap]", seq)
+	}
+}
+
+func TestTapAtTimeoutBoundaryEmitsNothing(t *testing.T) {
+	t.Parallel()
+	var gestures int
+	root := gestureLayout(&eventHandlers{
+		OnGesture: func(ctx EventCtx) {
+			gestures++
+		},
+	})
+	w := &Window{}
+	w.animations = make(map[string]Animation)
+	gs := &w.viewState.gesture
+
+	gs.nowFn = fixedClock(0)
+	w.handleTouch(root, touchEvent(EventTouchesBegan, 1, 100, 100))
+	// Exactly the 300ms tap timeout: held too long for a tap.
+	gs.nowFn = fixedClock(300_000_000)
+	w.handleTouch(root, touchEvent(EventTouchesEnded, 1, 100, 100))
+
+	if gestures != 0 {
+		t.Errorf("gestures = %d, want 0 at the tap timeout",
+			gestures)
 	}
 }

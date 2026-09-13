@@ -28,10 +28,7 @@ func (w *Window) EventFn(e *Event) {
 
 	// Top-level layout children represent z-axis layers.
 	// Dialogs are modal: route events to last child (dialog layer).
-	layout := &w.layout
-	if w.dialogCfg.visible && len(w.layout.Children) > 0 {
-		layout = &w.layout.Children[len(w.layout.Children)-1]
-	}
+	layout := dialogRoute(w)
 
 	switch e.Type {
 	case EventChar:

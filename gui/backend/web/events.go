@@ -427,28 +427,34 @@ func mapTouchEvent(
 	typ gui.EventType,
 	evt *gui.Event,
 ) {
+	// Extracted into fixed arrays, not slices: this runs per touch
+	// event, so it must not allocate on the heap. The arrays live
+	// on the stack and touchEventFromLists copies them out.
+	var allPts, changedPts [8]gui.TouchPoint
 	all := e.Get("touches")
 	changed := e.Get("changedTouches")
-	// Cap at fixed-size Touches array (8 simultaneous touches).
-	n := min(all.Length(), len(evt.Touches))
-
-	*evt = gui.Event{Type: typ, NumTouches: n}
-	for i := range n {
+	an := min(all.Length(), len(allPts))
+	for i := range an {
 		t := all.Index(i)
-		evt.Touches[i] = gui.TouchPoint{
+		allPts[i] = gui.TouchPoint{
 			Identifier: uint64(t.Get("identifier").Int()),
 			PosX:       float32(t.Get("clientX").Float() - left),
 			PosY:       float32(t.Get("clientY").Float() - top),
 			ToolType:   gui.TouchToolFinger,
 		}
 	}
-	for i := range changed.Length() {
-		cid := uint64(changed.Index(i).Get("identifier").Int())
-		for j := range n {
-			if evt.Touches[j].Identifier == cid {
-				evt.Touches[j].Changed = true
-				break
-			}
+	cn := min(changed.Length(), len(changedPts))
+	for i := range cn {
+		t := changed.Index(i)
+		changedPts[i] = gui.TouchPoint{
+			Identifier: uint64(t.Get("identifier").Int()),
+			PosX:       float32(t.Get("clientX").Float() - left),
+			PosY:       float32(t.Get("clientY").Float() - top),
+			ToolType:   gui.TouchToolFinger,
 		}
 	}
+	// Which list the event carries is decided in one place,
+	// touchEventFromLists: Ended and Cancelled carry the lifted
+	// fingers (changed), the rest carry the fingers still down.
+	*evt = touchEventFromLists(typ, allPts[:an], changedPts[:cn])
 }

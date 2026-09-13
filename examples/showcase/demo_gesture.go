@@ -22,9 +22,13 @@ func demoGesture(w *gui.Window) gui.View {
 		SizeBorder: gui.NoBorder,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
-				Text: "Tap, pan, pinch, rotate, swipe, or long-press. " +
+				// Gestures come only from touch input (web, iOS, Android).
+				// The desktop backends send mouse and scroll events, so say
+				// what works there instead of implying pinch/rotate do.
+				Text: "Touch: tap, pan, pinch, rotate, swipe, or long-press. " +
 					"Double-tap clears markers. " +
-					"Use touch or Chrome DevTools touch emulation.",
+					"Use a touchscreen or Chrome DevTools touch emulation. " +
+					"Mouse or trackpad: click adds a marker, scroll pans.",
 				TextStyle: t.N3,
 				Mode:      gui.TextModeWrap,
 			}),
@@ -52,6 +56,13 @@ func demoGesture(w *gui.Window) gui.View {
 					a := appState(ctx.Window)
 					gestureOnGesture(a, ctx.Event)
 				},
+				// Desktop stand-in for a pan: a two-finger trackpad drag
+				// arrives as scroll, not as a gesture. Consume it so the
+				// showcase page does not scroll while the pad pans.
+				OnMouseScroll: func(ctx gui.EventCtx) {
+					gestureOnScroll(appState(ctx.Window), ctx.Event)
+					ctx.Consume()
+				},
 			}),
 			gui.Text(gui.TextCfg{
 				Text:      app.GesturePadLabel,
@@ -59,6 +70,17 @@ func demoGesture(w *gui.Window) gui.View {
 			}),
 		},
 	})
+}
+
+// gestureOnScroll pans the square by the scroll delta. With macOS
+// natural scrolling the square follows the fingers.
+func gestureOnScroll(app *ShowcaseApp, e *gui.Event) {
+	app.GesturePadOffsetX += e.ScrollX
+	app.GesturePadOffsetY += e.ScrollY
+	app.GesturePadLabel = fmt.Sprintf(
+		"Scroll  offset (%.0f, %.0f)",
+		app.GesturePadOffsetX, app.GesturePadOffsetY)
+	app.GesturePadVersion++
 }
 
 func gestureOnGesture(app *ShowcaseApp, e *gui.Event) {

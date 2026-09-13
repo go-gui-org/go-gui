@@ -80,6 +80,23 @@ and this project adheres to
 
 ### Fixed
 
+- **Web touch end and cancel carry the lifted fingers** — The browser drops
+  lifted fingers from `e.touches`, so building touch-end events from it sent an
+  empty event that removed nothing. The recognizer stayed wedged with the finger
+  still tracked: the second tap of a double-tap arrived as a second finger of a
+  phantom multi-touch, and pinch and rotate never got their Ended. End and
+  cancel events now carry `e.changedTouches`, matching the iOS and Android
+  backends.
+- **Touch gestures end cleanly and land where the fingers lift** — A pinch that
+  starts with both fingers on one point no longer reports an infinite scale. A
+  fast pan that rests before the lift no longer flings a swipe. A simultaneous
+  pinch and twist now ends both gestures instead of dropping the rotate. The
+  mouse release that touch synthesizes now fires at the release point instead of
+  the press point. A pan over a container with no scroll room now reaches the
+  widgets below it instead of stopping. A finger that stays down after its
+  partner lifts now starts a new press at its own position, so the tap that
+  follows lands correctly and clicks. Malformed touch input no longer panics,
+  and gesture dispatch now obeys the same depth cap as the mouse handlers.
 - **A duplicate widget ID no longer fires keyboard handlers twice** — Two
   widgets sharing an effective ID (a bug the debug gate reports) collapsed to
   one tab stop, but both ran the focused widget's `OnKeyDown`, `OnChar` and

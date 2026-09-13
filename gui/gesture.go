@@ -2,15 +2,20 @@ package gui
 
 import (
 	"math"
-	"slices"
 	"time"
 )
 
-// Gesture recognition thresholds.
+// Gesture recognition thresholds. Timing values are time.Duration;
+// compare them against monotonic nanos via int64().
 const (
-	gestureTapTimeout      int64   = 300_000_000 // 300ms nanos
-	gestureDoubleTapGap    int64   = 300_000_000
-	gestureLongPressDur            = 500 * time.Millisecond
+	gestureTapTimeout   = 300 * time.Millisecond
+	gestureDoubleTapGap = 300 * time.Millisecond
+	gestureLongPressDur = 500 * time.Millisecond
+	// gestureSwipeStale bounds how long after the last pan move a
+	// lift still counts as a swipe. Past it the finger was held
+	// still, so the EMA velocity is stale and the lift ends the
+	// pan instead of flinging.
+	gestureSwipeStale              = 100 * time.Millisecond
 	gesturePanDist         float32 = 10
 	gesturePinchDist       float32 = 5
 	gestureRotateAngle     float32 = 0.087 // ~5 degrees
@@ -29,6 +34,10 @@ type gestureState struct {
 	nowFn      func() int64
 	touches    [8]trackedTouch
 	numTouches int
+	// overflowTouches counts distinct touches dropped while the
+	// tracked set was full, so their later release still balances
+	// the count instead of wedging numTouches above zero.
+	overflowTouches int
 
 	// Timing (monotonic nanos).
 	beganTime   int64
@@ -64,7 +73,11 @@ type gestureState struct {
 
 	mouseEmitted bool
 	recognized   bool
-	rotateBegan  bool
+	// pinchBegan mirrors rotateBegan: pinch and rotate are
+	// independent sub-states of one multi-touch, tracked
+	// separately so both get their Began and Ended.
+	pinchBegan  bool
+	rotateBegan bool
 }
 
 type trackedTouch struct {
@@ -96,7 +109,12 @@ func (gs *gestureState) reset() {
 // machine, synthesizes mouse events for backward compatibility,
 // and dispatches recognized gestures.
 func (w *Window) handleTouch(layout *Layout, e *Event) {
-	if e.NumTouches > len(e.Touches) {
+	if e == nil || layout == nil {
+		return
+	}
+	if e.NumTouches < 0 {
+		e.NumTouches = 0
+	} else if e.NumTouches > len(e.Touches) {
 		e.NumTouches = len(e.Touches)
 	}
 	gs := &w.viewState.gesture
@@ -114,7 +132,7 @@ func (w *Window) handleTouch(layout *Layout, e *Event) {
 	// The last finger lifted: there is no pointer any more, so nothing
 	// may stay hovered (sticky hover on touch screens).
 	if (e.Type == EventTouchesEnded || e.Type == EventTouchesCancelled) &&
-		gs.numTouches == 0 {
+		gs.numTouches == 0 && gs.overflowTouches == 0 {
 		w.pointerLifted()
 	}
 }
@@ -165,6 +183,13 @@ func handleTouchBegan(
 			// Initialize pinch/rotate from first two touches.
 			gs.initialSpan = touchSpan(gs)
 			gs.prevSpan = gs.initialSpan
+			// Fuzzed coords near max float32 overflow the
+			// span to Inf; reseed to 0 so the move path
+			// re-baselines instead of emitting from Inf.
+			if !f32IsFinite(gs.initialSpan) {
+				gs.initialSpan = 0
+				gs.prevSpan = 0
+			}
 			gs.scale = 1
 			gs.initialAngle = touchAngle(gs)
 			gs.prevAngle = gs.initialAngle
@@ -221,6 +246,13 @@ func handleTouchMoved(
 				(1-gestureVelocitySmooth)*gs.velocityX
 			gs.velocityY = gestureVelocitySmooth*gdy/dt +
 				(1-gestureVelocitySmooth)*gs.velocityY
+			// A huge-but-finite jump (fuzzed coords) overflows
+			// the EMA to Inf; reset instead of emitting NaN/Inf
+			// velocity on the pan event.
+			if !f32IsFinite(gs.velocityX) || !f32IsFinite(gs.velocityY) {
+				gs.velocityX = 0
+				gs.velocityY = 0
+			}
 			gs.prevTime = now
 			gs.prevX = t.x
 			gs.prevY = t.y
@@ -238,21 +270,43 @@ func handleTouchMoved(
 		span := touchSpan(gs)
 		angle := touchAngle(gs)
 
-		spanDelta := span - gs.initialSpan
-		if spanDelta > gesturePinchDist || spanDelta < -gesturePinchDist {
-			if gs.prevSpan > 0 {
-				gs.scale *= span / gs.prevSpan
-			}
+		// Fingers that land co-located leave no span to
+		// measure against; reseed the baseline instead of
+		// dividing by zero below. The span must be finite:
+		// reseeding from an overflowed span would poison the
+		// baseline to Inf and collapse the next scale to 0.
+		if gs.initialSpan <= 0 && span > 0 && f32IsFinite(span) {
+			gs.initialSpan = span
 			gs.prevSpan = span
-			phase := GesturePhaseChanged
-			if gs.gestureType != GesturePinch {
-				gs.gestureType = GesturePinch
-				phase = gesturePhaseBegan
-				gs.scale = span / gs.initialSpan
+		}
+		// A span overflowed to Inf (fuzzed coords near max
+		// float32) cannot measure a pinch; skip pinch but
+		// still try rotate below, so scale never emits Inf.
+		if f32IsFinite(span) {
+			spanDelta := span - gs.initialSpan
+			if spanDelta > gesturePinchDist || spanDelta < -gesturePinchDist {
+				if gs.prevSpan > 0 {
+					gs.scale *= span / gs.prevSpan
+				}
+				gs.prevSpan = span
+				phase := GesturePhaseChanged
+				if !gs.pinchBegan {
+					gs.pinchBegan = true
+					gs.gestureType = GesturePinch
+					phase = gesturePhaseBegan
+					if gs.initialSpan > 0 {
+						gs.scale = span / gs.initialSpan
+					} else {
+						gs.scale = 1
+					}
+				}
+				// Either update above can overflow to Inf on
+				// fuzzed coords; emit 1 instead of non-finite.
+				if !f32IsFinite(gs.scale) {
+					gs.scale = 1
+				}
+				emitPinch(gs, phase, cx, cy, layout, w)
 			}
-			w.scratch.gestureEvent = gestureEvent(gs, GesturePinch, phase, cx, cy)
-			w.scratch.gestureEvent.PinchScale = gs.scale
-			gestureHandler(layout, &w.scratch.gestureEvent, w)
 		}
 
 		angleDelta := normalizeAngle(angle - gs.initialAngle)
@@ -261,22 +315,17 @@ func handleTouchMoved(
 			delta := normalizeAngle(angle - gs.prevAngle)
 			gs.rotation += delta
 			gs.prevAngle = angle
-			phase := GesturePhaseChanged
-			if gs.gestureType != GestureRotate &&
-				gs.gestureType != GesturePinch {
-				gs.gestureType = GestureRotate
+			if !gs.rotateBegan {
 				gs.rotateBegan = true
-				phase = gesturePhaseBegan
-			} else if !gs.rotateBegan {
-				gs.rotateBegan = true
-				w.scratch.gestureEvent = gestureEvent(
-					gs, GestureRotate, gesturePhaseBegan, cx, cy)
-				w.scratch.gestureEvent.GestureRotation = gs.rotation
-				gestureHandler(layout, &w.scratch.gestureEvent, w)
+				if gs.gestureType != GesturePinch {
+					gs.gestureType = GestureRotate
+				}
+				emitRotate(gs, gesturePhaseBegan, cx, cy,
+					layout, w)
+			} else {
+				emitRotate(gs, GesturePhaseChanged, cx, cy,
+					layout, w)
 			}
-			w.scratch.gestureEvent = gestureEvent(gs, GestureRotate, phase, cx, cy)
-			w.scratch.gestureEvent.GestureRotation = gs.rotation
-			gestureHandler(layout, &w.scratch.gestureEvent, w)
 		}
 	}
 }
@@ -284,9 +333,21 @@ func handleTouchMoved(
 func handleTouchEnded(
 	gs *gestureState, layout *Layout, e *Event, w *Window,
 ) {
+	// Fold the event's own positions in first, so the release
+	// point below is where the fingers lifted, not where the
+	// last move left them.
+	for i := range e.NumTouches {
+		if !e.Touches[i].Changed {
+			continue
+		}
+		updateTrackedTouch(gs, e.Touches[i])
+	}
 	// Compute centroid before removing touches so end events
 	// have accurate coordinates.
-	cx, cy := touchCentroid(gs)
+	cx, cy := gs.startX, gs.startY
+	if gs.numTouches > 0 {
+		cx, cy = touchCentroid(gs)
+	}
 
 	// Remove ended touches.
 	for i := range e.NumTouches {
@@ -296,90 +357,115 @@ func handleTouchEnded(
 		removeTrackedTouch(gs, e.Touches[i].Identifier)
 	}
 
-	if gs.numTouches == 0 {
-		// All fingers up.
-		cancelLongPress(w)
-
-		if gs.recognized && gs.gestureType == GesturePan {
-			vel := float32(math.Sqrt(float64(
-				gs.velocityX*gs.velocityX +
-					gs.velocityY*gs.velocityY)))
-			if vel > gestureSwipeVelocity {
-				emitGestureSwipe(gs, layout, w)
-			} else {
-				emitGesture(gs, GesturePan, gesturePhaseEnded,
-					gs.prevX, gs.prevY, layout, w)
-			}
-		} else if gs.recognized &&
-			gs.gestureType == GesturePinch {
-			w.scratch.gestureEvent = gestureEvent(gs, GesturePinch,
-				gesturePhaseEnded, cx, cy)
-			w.scratch.gestureEvent.PinchScale = gs.scale
-			gestureHandler(layout, &w.scratch.gestureEvent, w)
-		} else if gs.recognized &&
-			gs.gestureType == GestureRotate {
-			w.scratch.gestureEvent = gestureEvent(gs, GestureRotate,
-				gesturePhaseEnded, cx, cy)
-			w.scratch.gestureEvent.GestureRotation = gs.rotation
-			gestureHandler(layout, &w.scratch.gestureEvent, w)
-		} else if gs.recognized &&
-			gs.gestureType == GestureLongPress {
-			emitGesture(gs, GestureLongPress, gesturePhaseEnded,
-				gs.startX, gs.startY, layout, w)
-		} else if !gs.recognized {
-			// Possible tap.
-			now := gs.now()
-			dur := now - gs.beganTime
-			if dur < gestureTapTimeout {
-				dx := gs.startX - gs.lastTapX
-				dy := gs.startY - gs.lastTapY
-				gap := now - gs.lastTapTime
-				if gs.lastTapTime > 0 &&
-					gap < gestureDoubleTapGap &&
-					dx*dx+dy*dy <
-						gestureDoubleTapRadius*gestureDoubleTapRadius {
-					emitGesture(gs, GestureDoubleTap,
-						gesturePhaseEnded,
-						gs.startX, gs.startY, layout, w)
-					gs.lastTapTime = 0
-				} else {
-					emitGesture(gs, GestureTap,
-						gesturePhaseEnded,
-						gs.startX, gs.startY, layout, w)
-					gs.lastTapTime = now
-					gs.lastTapX = gs.startX
-					gs.lastTapY = gs.startY
-				}
-			}
-		}
-
-		// Synthesize mouse up for compat.
-		if gs.mouseEmitted {
-			synthMouse(EventMouseUp, gs.startX, gs.startY,
-				MouseLeft, layout, w)
-		}
-		gs.reset()
+	if gs.numTouches == 0 && gs.overflowTouches == 0 {
+		endAllTouches(gs, layout, w, cx, cy)
 		return
 	}
 
+	transitionAfterLift(gs, layout, w)
+}
+
+// endAllTouches closes every in-flight gesture once the last
+// finger lifts: pan (or a swipe when the velocity is fresh),
+// each multi-touch sub-state, a long press, or a tap.
+func endAllTouches(
+	gs *gestureState, layout *Layout, w *Window,
+	cx, cy float32,
+) {
+	cancelLongPress(w)
+
+	if gs.recognized && gs.gestureType == GesturePan {
+		now := gs.now()
+		vel := float32(math.Sqrt(float64(
+			gs.velocityX*gs.velocityX +
+				gs.velocityY*gs.velocityY)))
+		if vel > gestureSwipeVelocity &&
+			now-gs.prevTime < int64(gestureSwipeStale) {
+			emitGestureSwipe(gs, layout, w)
+		} else {
+			emitGesture(gs, GesturePan, gesturePhaseEnded,
+				gs.prevX, gs.prevY, layout, w)
+		}
+	}
+	if gs.pinchBegan || gs.gestureType == GesturePinch {
+		emitPinch(gs, gesturePhaseEnded, cx, cy,
+			layout, w)
+	}
+	if gs.rotateBegan || gs.gestureType == GestureRotate {
+		emitRotate(gs, gesturePhaseEnded, cx, cy,
+			layout, w)
+	}
+	if gs.recognized &&
+		gs.gestureType == GestureLongPress {
+		emitGesture(gs, GestureLongPress, gesturePhaseEnded,
+			gs.startX, gs.startY, layout, w)
+	} else if !gs.recognized {
+		endMaybeTap(gs, layout, w)
+	}
+
+	// Synthesize mouse up for compat, at the release
+	// point — after a drag the press point is stale.
+	if gs.mouseEmitted {
+		synthMouse(EventMouseUp, cx, cy,
+			MouseLeft, layout, w)
+	}
+	gs.reset()
+}
+
+// endMaybeTap emits a tap (or the second half of a double tap)
+// for a press that never became another gesture.
+func endMaybeTap(gs *gestureState, layout *Layout, w *Window) {
+	now := gs.now()
+	dur := now - gs.beganTime
+	if dur >= int64(gestureTapTimeout) {
+		return
+	}
+	dx := gs.startX - gs.lastTapX
+	dy := gs.startY - gs.lastTapY
+	gap := now - gs.lastTapTime
+	if gs.lastTapTime > 0 &&
+		gap < int64(gestureDoubleTapGap) &&
+		dx*dx+dy*dy <
+			gestureDoubleTapRadius*gestureDoubleTapRadius {
+		emitGesture(gs, GestureDoubleTap,
+			gesturePhaseEnded,
+			gs.startX, gs.startY, layout, w)
+		gs.lastTapTime = 0
+		return
+	}
+	emitGesture(gs, GestureTap,
+		gesturePhaseEnded,
+		gs.startX, gs.startY, layout, w)
+	gs.lastTapTime = now
+	gs.lastTapX = gs.startX
+	gs.lastTapY = gs.startY
+}
+
+// transitionAfterLift runs when fingers remain down after a
+// release: a pinch or rotate hands over to pan, and a leftover
+// finger that never was the single touch reseeds as a fresh
+// press at its own position.
+func transitionAfterLift(
+	gs *gestureState, layout *Layout, w *Window,
+) {
 	// 2→1 finger transition: end pinch/rotate, start pan.
-	if gs.gestureType == GesturePinch ||
+	if gs.pinchBegan || gs.rotateBegan ||
+		gs.gestureType == GesturePinch ||
 		gs.gestureType == GestureRotate {
 		tcx, tcy := touchCentroid(gs)
-		if gs.gestureType == GesturePinch {
-			w.scratch.gestureEvent = gestureEvent(gs, GesturePinch,
-				gesturePhaseEnded, tcx, tcy)
-			w.scratch.gestureEvent.PinchScale = gs.scale
-			gestureHandler(layout, &w.scratch.gestureEvent, w)
-		} else {
-			w.scratch.gestureEvent = gestureEvent(gs, GestureRotate,
-				gesturePhaseEnded, tcx, tcy)
-			w.scratch.gestureEvent.GestureRotation = gs.rotation
-			gestureHandler(layout, &w.scratch.gestureEvent, w)
+		if gs.pinchBegan || gs.gestureType == GesturePinch {
+			emitPinch(gs, gesturePhaseEnded, tcx, tcy,
+				layout, w)
+		}
+		if gs.rotateBegan || gs.gestureType == GestureRotate {
+			emitRotate(gs, gesturePhaseEnded, tcx, tcy,
+				layout, w)
 		}
 		// Transition to single-touch pan.
 		t := gs.touches[0]
 		gs.gestureType = GesturePan
+		gs.pinchBegan = false
+		gs.rotateBegan = false
 		gs.prevX = t.x
 		gs.prevY = t.y
 		gs.startX = t.x
@@ -389,20 +475,80 @@ func handleTouchEnded(
 		gs.singleTouchID = t.id
 		emitGesture(gs, GesturePan, gesturePhaseBegan,
 			t.x, t.y, layout, w)
+		return
 	}
+
+	reseedRemainingFinger(gs, layout, w)
+}
+
+// reseedRemainingFinger treats the leftover finger as a fresh
+// press when the original single touch lifted out from under
+// it, ending any in-flight single-touch gesture first.
+func reseedRemainingFinger(
+	gs *gestureState, layout *Layout, w *Window,
+) {
+	if gs.numTouches != 1 ||
+		gs.touches[0].id == gs.singleTouchID {
+		return
+	}
+	t := gs.touches[0]
+	if gs.recognized && gs.gestureType == GesturePan {
+		emitGesture(gs, GesturePan, gesturePhaseEnded,
+			gs.prevX, gs.prevY, layout, w)
+	} else if gs.recognized &&
+		gs.gestureType == GestureLongPress {
+		emitGesture(gs, GestureLongPress,
+			gesturePhaseEnded,
+			gs.startX, gs.startY, layout, w)
+	}
+	gs.beganTime = gs.now()
+	gs.prevTime = gs.beganTime
+	gs.startX = t.x
+	gs.startY = t.y
+	gs.prevX = t.x
+	gs.prevY = t.y
+	gs.singleTouchID = t.id
+	gs.velocityX = 0
+	gs.velocityY = 0
+	gs.recognized = false
+	gs.gestureType = gestureNone
+	// The earlier press already released its mouse half;
+	// this finger is physically down, so press anew for
+	// click compat and re-arm the long-press timer.
+	armLongPress(gs, layout, w)
+	synthMouse(EventMouseDown, t.x, t.y, MouseLeft,
+		layout, w)
+	gs.mouseEmitted = true
 }
 
 func handleTouchCancelled(
 	gs *gestureState, layout *Layout, e *Event, w *Window,
 ) {
 	cancelLongPress(w)
-	if gs.recognized && gs.gestureType != gestureNone {
-		cx, cy := touchCentroid(gs)
-		emitGesture(gs, gs.gestureType, gesturePhaseCancelled,
-			cx, cy, layout, w)
+	cx, cy := gs.startX, gs.startY
+	if gs.numTouches > 0 {
+		cx, cy = touchCentroid(gs)
+	}
+	if gs.recognized {
+		cancelled := false
+		if gs.pinchBegan || gs.gestureType == GesturePinch {
+			emitPinch(gs, gesturePhaseCancelled, cx, cy,
+				layout, w)
+			cancelled = true
+		}
+		if gs.rotateBegan || gs.gestureType == GestureRotate {
+			emitRotate(gs, gesturePhaseCancelled, cx, cy,
+				layout, w)
+			cancelled = true
+		}
+		if !cancelled && gs.gestureType != gestureNone {
+			emitGesture(gs, gs.gestureType,
+				gesturePhaseCancelled,
+				cx, cy, layout, w)
+		}
 	}
 	if gs.mouseEmitted {
-		synthMouse(EventMouseUp, gs.startX, gs.startY,
+		synthMouse(EventMouseUp, cx, cy,
 			MouseLeft, layout, w)
 	}
 	gs.reset()
@@ -437,12 +583,8 @@ func gestureLongPressFired(_ *Animate, w *Window) {
 	}
 	gst.recognized = true
 	gst.gestureType = GestureLongPress
-	ly := &w.layout
-	if w.dialogCfg.visible && len(w.layout.Children) > 0 {
-		ly = &w.layout.Children[len(w.layout.Children)-1]
-	}
 	emitGesture(gst, GestureLongPress, gesturePhaseBegan,
-		gst.longPressSX, gst.longPressSY, ly, w)
+		gst.longPressSX, gst.longPressSY, dialogRoute(w), w)
 }
 
 func cancelLongPress(w *Window) {
@@ -450,240 +592,11 @@ func cancelLongPress(w *Window) {
 }
 
 // --- Gesture event construction and dispatch ---
-
-func gestureEvent(
-	gs *gestureState, gt GestureType, phase gesturePhase,
-	cx, cy float32,
-) Event {
-	return Event{
-		Type:           eventGesture,
-		GestureType:    gt,
-		GesturePhase:   phase,
-		CentroidX:      cx,
-		CentroidY:      cy,
-		gestureTouches: gs.numTouches,
-		VelocityX:      gs.velocityX,
-		VelocityY:      gs.velocityY,
-	}
-}
-
-func emitGesture(
-	gs *gestureState, gt GestureType, phase gesturePhase,
-	cx, cy float32, layout *Layout, w *Window,
-) {
-	w.scratch.gestureEvent = gestureEvent(gs, gt, phase, cx, cy)
-	gestureHandler(layout, &w.scratch.gestureEvent, w)
-}
-
-func emitGestureWithDelta(
-	gs *gestureState, gt GestureType, phase gesturePhase,
-	cx, cy, dx, dy float32, layout *Layout, w *Window,
-) {
-	w.scratch.gestureEvent = gestureEvent(gs, gt, phase, cx, cy)
-	w.scratch.gestureEvent.GestureDX = dx
-	w.scratch.gestureEvent.GestureDY = dy
-	gestureHandler(layout, &w.scratch.gestureEvent, w)
-}
-
-func emitGestureSwipe(
-	gs *gestureState, layout *Layout, w *Window,
-) {
-	w.scratch.gestureEvent = gestureEvent(gs, GestureSwipe,
-		gesturePhaseEnded, gs.prevX, gs.prevY)
-	w.scratch.gestureEvent.VelocityX = gs.velocityX
-	w.scratch.gestureEvent.VelocityY = gs.velocityY
-	gestureHandler(layout, &w.scratch.gestureEvent, w)
-}
-
-// gestureHandler dispatches a gesture event to the layout tree.
-// Reverse traversal (topmost first), same pattern as mouse
-// handlers. Falls back to scroll for unhandled pan gestures.
 //
-// Centroid coordinates are carried in CentroidX/CentroidY.
-// For rotated containers, they are temporarily mapped through
-// the inverse rotation via MouseX/MouseY fields.
-func gestureHandler(layout *Layout, e *Event, w *Window) {
-	ox, oy := rotateCentroidInverse(layout.Shape, e)
-	for i := range slices.Backward(layout.Children) {
-		if !isChildEnabled(&layout.Children[i]) {
-			continue
-		}
-		gestureHandler(&layout.Children[i], e, w)
-		if e.IsHandled {
-			e.CentroidX, e.CentroidY = ox, oy
-			return
-		}
-	}
-	e.CentroidX, e.CentroidY = ox, oy
-	if layout.Shape == nil {
-		return
-	}
-	if !layout.Shape.PointInShape(e.CentroidX, e.CentroidY) {
-		return
-	}
-	if layout.Shape.hasEvents() &&
-		layout.Shape.events.OnGesture != nil {
-		layout.Shape.events.OnGesture(EventCtx{layout, e, w})
-		debugUnconsumed(evGesture, layout, e, w)
-		if e.IsHandled {
-			return
-		}
-	}
-	// Pan fallback: auto-scroll containers.
-	if e.GestureType == GesturePan &&
-		e.GesturePhase == GesturePhaseChanged &&
-		layout.Shape.Scrollable {
-		scrollVertical(layout, e.GestureDY, w)
-		scrollHorizontal(layout, e.GestureDX, w)
-		e.IsHandled = true
-	}
-}
+// Construction, dispatch, dialog routing and mouse synthesis live
+// in gesture_dispatch.go, split out to hold the large-files gate
+// (see scripts/large-files.sh).
 
-// rotateCentroidInverse applies the inverse rotation for
-// containers that use QuarterTurns, operating on centroid
-// coordinates.
-func rotateCentroidInverse(
-	s *Shape, e *Event,
-) (origX, origY float32) {
-	origX, origY = e.CentroidX, e.CentroidY
-	if s == nil || s.QuarterTurns == 0 {
-		return
-	}
-	cx := s.X + s.Width/2
-	cy := s.Y + s.Height/2
-	dx, dy := e.CentroidX-cx, e.CentroidY-cy
-	switch s.QuarterTurns {
-	case 1:
-		e.CentroidX = cx + dy
-		e.CentroidY = cy - dx
-	case 2:
-		e.CentroidX = cx - dx
-		e.CentroidY = cy - dy
-	case 3:
-		e.CentroidX = cx - dy
-		e.CentroidY = cy + dx
-	}
-	return
-}
-
-// synthMouse creates a synthetic mouse event and dispatches it
-// through the normal mouse handler pipeline.
-//
-// This is the second entry into mouseDownHandler/mouseUpHandler
-// besides EventFn's handleMouseDown/UpEvent (which own the held-button
-// state machine for backend events). Touch-synthesized presses and
-// releases update that state here, so mixed mouse+touch input cannot
-// leave hover synthesis reporting a button nobody is holding — e.g. a
-// touch release after a backend mouse press must clear the hold, and a
-// touch press must record one. The dev-mode unconsumed sweep
-// (debug_event.go) also reaches the traversal handlers directly, but
-// only for inspection, so it must not run through this path.
-func synthMouse(
-	typ EventType, x, y float32, btn MouseButton,
-	layout *Layout, w *Window,
-) {
-	w.scratch.gestureEvent = Event{
-		Type:        typ,
-		MouseX:      x,
-		MouseY:      y,
-		MouseButton: btn,
-		// Stamped the way EventFn stamps a backend event. Consumers
-		// time multi-click gestures by differencing this — datagrid's
-		// double-click-to-edit and double-click-to-autofit both do —
-		// and a synthetic event left at frame 0 stored 0 as the last
-		// click frame, which their "> 0" sentinel then read as "no
-		// prior click". Double-tap was inert on touch.
-		FrameCount: w.frameCount,
-	}
-	switch typ {
-	case EventMouseDown:
-		w.viewState.mouseButtonHeld = btn
-		w.pointerAt(x, y)
-		w.recordPressTarget(&w.scratch.gestureEvent)
-		mouseDownHandler(layout, false, &w.scratch.gestureEvent, w)
-	case EventMouseMove:
-		w.pointerAt(x, y)
-		mouseMoveHandler(layout, &w.scratch.gestureEvent, w)
-	case EventMouseUp:
-		w.viewState.mouseButtonHeld = MouseInvalid
-		w.viewState.pressTargetID = ""
-		mouseUpHandler(layout, &w.scratch.gestureEvent, w)
-	}
-}
-
-// --- Touch tracking helpers ---
-
-func addTrackedTouch(gs *gestureState, tp TouchPoint) {
-	// Update existing touch if already tracked.
-	for i := range gs.numTouches {
-		if gs.touches[i].id == tp.Identifier {
-			gs.touches[i].x = tp.PosX
-			gs.touches[i].y = tp.PosY
-			return
-		}
-	}
-	if gs.numTouches >= len(gs.touches) {
-		return
-	}
-	gs.touches[gs.numTouches] = trackedTouch{
-		id: tp.Identifier, x: tp.PosX, y: tp.PosY,
-	}
-	gs.numTouches++
-}
-
-func updateTrackedTouch(gs *gestureState, tp TouchPoint) {
-	for i := range gs.numTouches {
-		if gs.touches[i].id == tp.Identifier {
-			gs.touches[i].x = tp.PosX
-			gs.touches[i].y = tp.PosY
-			return
-		}
-	}
-}
-
-func removeTrackedTouch(gs *gestureState, id uint64) {
-	for i := range gs.numTouches {
-		if gs.touches[i].id == id {
-			gs.numTouches--
-			gs.touches[i] = gs.touches[gs.numTouches]
-			gs.touches[gs.numTouches] = trackedTouch{}
-			return
-		}
-	}
-}
-
-func touchCentroid(gs *gestureState) (float32, float32) {
-	if gs.numTouches == 0 {
-		return 0, 0
-	}
-	var sx, sy float32
-	for i := range gs.numTouches {
-		sx += gs.touches[i].x
-		sy += gs.touches[i].y
-	}
-	n := float32(gs.numTouches)
-	return sx / n, sy / n
-}
-
-func touchSpan(gs *gestureState) float32 {
-	if gs.numTouches < 2 {
-		return 0
-	}
-	dx := gs.touches[1].x - gs.touches[0].x
-	dy := gs.touches[1].y - gs.touches[0].y
-	return float32(math.Sqrt(float64(dx*dx + dy*dy)))
-}
-
-func touchAngle(gs *gestureState) float32 {
-	if gs.numTouches < 2 {
-		return 0
-	}
-	dx := gs.touches[1].x - gs.touches[0].x
-	dy := gs.touches[1].y - gs.touches[0].y
-	return float32(math.Atan2(float64(dy), float64(dx)))
-}
-
-// normalizeAngle wraps an angle to [-pi, pi].
-func normalizeAngle(a float32) float32 {
-	return float32(math.Remainder(float64(a), 2*math.Pi))
-}
+// Touch tracking (the tracked-touch set, span, angle) lives in
+// gesture_touch.go, split out to hold the large-files gate
+// (see scripts/large-files.sh).
