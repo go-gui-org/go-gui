@@ -2,6 +2,18 @@ package gui
 
 import "testing"
 
+// eventRelativeTo returns a copy of the event with mouse
+// coordinates relative to the given shape's position. Test
+// helper only: production dispatch translates the two
+// coordinates in place (callRelative) instead of copying
+// the whole Event.
+func eventRelativeTo(shape *Shape, e *Event) Event {
+	ev := *e
+	ev.MouseX = e.MouseX - shape.X
+	ev.MouseY = e.MouseY - shape.Y
+	return ev
+}
+
 func TestModifierHas(t *testing.T) {
 	// none
 	if !ModNone.Has(ModNone) {
@@ -92,7 +104,6 @@ func TestEventRelativeCoordinates(t *testing.T) {
 	}
 	e := &Event{MouseX: 150, MouseY: 75}
 	rel := eventRelativeTo(shape, e)
-
 	if !f32AreClose(rel.MouseX, 50) {
 		t.Errorf("mouseX: got %f, want 50", rel.MouseX)
 	}

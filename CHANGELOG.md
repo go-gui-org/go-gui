@@ -43,8 +43,29 @@ and this project adheres to
   was exported for third-party `Animation` implementations, but only the
   unexported spellings existed, so outside packages could not enqueue callbacks.
   The exported methods are nil-safe; the old spellings remain as delegates.
+- **`GesturePhase` and `TouchToolType` are public** — `Event.GesturePhase` and
+  `TouchPoint.ToolType` used unexported types with partly exported constants, so
+  app code could read `GesturePhaseChanged` and `TouchToolFinger` but could not
+  name the type or compare the other phases. All constants are now exported
+  (`GesturePhaseBegan`, `GesturePhaseEnded`, `GesturePhaseCancelled`,
+  `TouchToolUnknown`, `TouchToolStylus`, `TouchToolMouse`, `TouchToolEraser`,
+  `TouchToolPalm`); the lowercase spellings remain as aliases.
+- **`MouseLockCfg.MouseDown` is public** — the lock exposed `MouseMove` and
+  `MouseUp` but kept the mouse-down intercept internal, so external drag code
+  could not intercept the press that starts a drag. When both spellings are set,
+  `MouseDown` runs and the internal one is ignored.
 
 ### Fixed
+
+- **A focused scroll handler no longer runs twice per wheel tick** — When the
+  focused widget sat under the cursor and declined the scroll, the focused pass
+  ran its `OnMouseScroll` and the fallback ran the same callback again before
+  reaching the container below. The fallback now skips the focused node it
+  already ran; the cascade to the container below is unchanged.
+- **A non-finite scroll delta no longer poisons the scroll offset** — A NaN
+  delta passed through `f32Clamp` and stuck in the scroll map, freezing the
+  container. `scrollVertical` and `scrollHorizontal` now drop a non-finite delta
+  and a non-finite result, matching the smooth-scroll path.
 
 - **A menu shortcut no longer also runs the matching command (macOS)** — When a
   native menubar item had a `Shortcut` and a command had the same chord, one key

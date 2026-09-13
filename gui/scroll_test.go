@@ -56,6 +56,101 @@ func TestScrollVerticalClampsWithinBounds(t *testing.T) {
 	}
 }
 
+func TestScrollVerticalRejectsNonFinite(t *testing.T) {
+	layout, w := makeScrollLayout("nan-v", 100, 100, 100, 300)
+	deltas := []float32{
+		float32(math.NaN()),
+		float32(math.Inf(1)),
+		float32(math.Inf(-1)),
+	}
+	for _, delta := range deltas {
+		if scrollVertical(layout, delta, w) {
+			t.Errorf("delta %v: expected false", delta)
+		}
+	}
+	sy := w.scrollY()
+	if v, ok := sy.Get("nan-v"); ok {
+		t.Errorf("non-finite delta stored offset %v", v)
+	}
+	if v := sy.GetOr("nan-v", 0); v != 0 || !f32IsFinite(v) {
+		t.Errorf("expected clean offset 0, got %v", v)
+	}
+}
+
+func TestScrollHorizontalRejectsNonFinite(t *testing.T) {
+	w := &Window{}
+	pinScrollMultiplier(w, 1)
+	child := Layout{
+		Shape: &Shape{shapeType: shapeRectangle, Width: 400, Height: 50},
+	}
+	layout := Layout{
+		Shape: &Shape{
+			shapeType:  shapeRectangle,
+			Scrollable: true,
+			ID:         "nan-h",
+			Width:      100,
+			Height:     50,
+			Axis:       axisLeftToRight,
+		},
+		Children: []Layout{child},
+	}
+	deltas := []float32{
+		float32(math.NaN()),
+		float32(math.Inf(1)),
+		float32(math.Inf(-1)),
+	}
+	for _, delta := range deltas {
+		if scrollHorizontal(&layout, delta, w) {
+			t.Errorf("delta %v: expected false", delta)
+		}
+	}
+	sx := w.scrollX()
+	if v, ok := sx.Get("nan-h"); ok {
+		t.Errorf("non-finite delta stored offset %v", v)
+	}
+	if v := sx.GetOr("nan-h", 0); v != 0 || !f32IsFinite(v) {
+		t.Errorf("expected clean offset 0, got %v", v)
+	}
+}
+
+func TestScrollRecoversFromPoisonedOffset(t *testing.T) {
+	// A store poisoned before the non-finite guard (a NaN
+	// offset already in the map) must not stick: the next
+	// valid delta resets to 0 and scrolls from there.
+	layoutV, wV := makeScrollLayout("poison-v", 100, 100, 100, 300)
+	wV.scrollY().Set("poison-v", float32(math.NaN()))
+	if !scrollVertical(layoutV, -50, wV) {
+		t.Fatal("expected recovery scroll to move")
+	}
+	if v := wV.scrollY().GetOr("poison-v", 0); v != -50 {
+		t.Errorf("vertical: expected -50 after recovery, got %v", v)
+	}
+
+	wH := &Window{}
+	pinScrollMultiplier(wH, 1)
+	child := Layout{
+		Shape: &Shape{shapeType: shapeRectangle, Width: 400, Height: 50},
+	}
+	layoutH := Layout{
+		Shape: &Shape{
+			shapeType:  shapeRectangle,
+			Scrollable: true,
+			ID:         "poison-h",
+			Width:      100,
+			Height:     50,
+			Axis:       axisLeftToRight,
+		},
+		Children: []Layout{child},
+	}
+	wH.scrollX().Set("poison-h", float32(math.Inf(1)))
+	if !scrollHorizontal(&layoutH, -50, wH) {
+		t.Fatal("expected recovery scroll to move")
+	}
+	if v := wH.scrollX().GetOr("poison-h", 0); v != -50 {
+		t.Errorf("horizontal: expected -50 after recovery, got %v", v)
+	}
+}
+
 func TestScrollHorizontalClampsWithinBounds(t *testing.T) {
 	w := &Window{}
 	pinScrollMultiplier(w, 1)

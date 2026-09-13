@@ -257,13 +257,28 @@ func scrollHorizontal(layout *Layout, delta float32, w *Window) bool {
 		layout.Shape.ScrollMode == ScrollVerticalOnly {
 		return false
 	}
+	if !f32IsFinite(delta) {
+		return false
+	}
 	maxOffset := scrollMaxOffsetX(layout)
+	if !f32IsFinite(maxOffset) {
+		return false
+	}
 	sx := w.scrollX()
 	// Default 0: unscrolled position when no offset recorded yet.
+	// A non-finite stored offset (poisoned before the guard
+	// below) resets to 0 so the next valid delta recovers
+	// instead of sticking forever.
 	old := sx.GetOr(id, 0)
+	if !f32IsFinite(old) {
+		old = 0
+	}
 	// Post-generation read: this window's theme, not the frame cache.
 	clamped := f32Clamp(
 		old+delta*w.themeRef().ScrollMultiplier, maxOffset, 0)
+	if !f32IsFinite(clamped) {
+		return false
+	}
 	if old == clamped {
 		return false
 	}
@@ -283,13 +298,28 @@ func scrollVertical(layout *Layout, delta float32, w *Window) bool {
 		layout.Shape.ScrollMode == ScrollHorizontalOnly {
 		return false
 	}
+	if !f32IsFinite(delta) {
+		return false
+	}
 	maxOffset := scrollMaxOffsetY(layout)
+	if !f32IsFinite(maxOffset) {
+		return false
+	}
 	sy := w.scrollY()
 	// Default 0: unscrolled position when no offset recorded yet.
+	// A non-finite stored offset (poisoned before the guard
+	// below) resets to 0 so the next valid delta recovers
+	// instead of sticking forever.
 	old := sy.GetOr(id, 0)
+	if !f32IsFinite(old) {
+		old = 0
+	}
 	// Post-generation read: this window's theme, not the frame cache.
 	clamped := f32Clamp(
 		old+delta*w.themeRef().ScrollMultiplier, maxOffset, 0)
+	if !f32IsFinite(clamped) {
+		return false
+	}
 	if old == clamped {
 		return false
 	}

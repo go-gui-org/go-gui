@@ -269,27 +269,44 @@ const (
 )
 
 // GesturePhase tracks the lifecycle of a continuous gesture.
-type gesturePhase uint8
+// Exported so app code can name the type of Event.GesturePhase.
+// The lowercase spelling stays as an alias for internal code.
+// exportaudit:keep — public enum for app and consumer code.
+type GesturePhase uint8
+
+// gesturePhase is an alias for GesturePhase for internal code.
+type gesturePhase = GesturePhase
 
 // GesturePhase values.
+// exportaudit:keep — one member of a public enum; the set ships whole.
 const (
-	gesturePhaseBegan     gesturePhase = iota // first recognition
+	GesturePhaseBegan     GesturePhase = iota // first recognition
 	GesturePhaseChanged                       // ongoing update
-	gesturePhaseEnded                         // final event
-	gesturePhaseCancelled                     // cancelled
+	GesturePhaseEnded                         // final event
+	GesturePhaseCancelled                     // cancelled
+)
+
+// Lowercase aliases for internal code.
+const (
+	gesturePhaseBegan     = GesturePhaseBegan
+	gesturePhaseEnded     = GesturePhaseEnded
+	gesturePhaseCancelled = GesturePhaseCancelled
 )
 
 // TouchToolType identifies the input device type for touch events.
-type touchToolType uint8
+// Exported so app code can name the type of TouchPoint.ToolType.
+// exportaudit:keep — public enum for app and consumer code.
+type TouchToolType uint8
 
 // TouchToolType values.
+// exportaudit:keep — one member of a public enum; the set ships whole.
 const (
-	touchToolUnknown touchToolType = iota
+	TouchToolUnknown TouchToolType = iota
 	TouchToolFinger
-	touchToolStylus
-	touchToolMouse
-	touchToolEraser
-	touchToolPalm
+	TouchToolStylus
+	TouchToolMouse
+	TouchToolEraser
+	TouchToolPalm
 )
 
 // TouchPoint holds data for a single touch event point.
@@ -297,7 +314,7 @@ type TouchPoint struct {
 	Identifier uint64
 	PosX       float32
 	PosY       float32
-	ToolType   touchToolType
+	ToolType   TouchToolType
 	Changed    bool
 }
 
@@ -354,20 +371,11 @@ type Event struct {
 	MouseButton     MouseButton
 	Type            EventType
 	GestureType     GestureType
-	GesturePhase    gesturePhase
+	GesturePhase    GesturePhase
 	KeyRepeat       bool
 	IsHandled       bool
 	// ScrollPrecise is true for high-res / trackpad scroll deltas
 	// (already carrying OS momentum). False for discrete mouse-wheel
 	// notches, which the gui side eases via scrollSmoothAnimation.
 	ScrollPrecise bool
-}
-
-// eventRelativeTo returns a copy of the event with mouse
-// coordinates relative to the given shape's position.
-func eventRelativeTo(shape *Shape, e *Event) Event {
-	ev := *e
-	ev.MouseX = e.MouseX - shape.X
-	ev.MouseY = e.MouseY - shape.Y
-	return ev
 }

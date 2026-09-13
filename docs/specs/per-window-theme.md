@@ -136,7 +136,7 @@ Migrated in #301:
 
 | File                                    | Function                                       |
 | --------------------------------------- | ---------------------------------------------- |
-| `gui/event_handlers.go`                 | `keyDownScrollHandler`                         |
+| `gui/event_handlers.go`                 | `keydownScrollHandler`                         |
 | `gui/scroll.go`                         | `scrollHorizontal`, `scrollVertical`           |
 | `gui/scroll_smooth.go`                  | `scrollSmoothBy`                               |
 | `gui/native_print.go`                   | `ExportPrintJob`                               |

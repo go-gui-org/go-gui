@@ -296,6 +296,12 @@ type MouseLockCfg struct {
 	// normal propagation, so handled-marking is moot here. Note the
 	// coordinates stay window-absolute, unlike the shape-relative
 	// coords everywhere else.
+	//
+	// When both MouseDown and mouseDown are set, MouseDown runs
+	// and mouseDown is ignored. mouseDown stays for internal
+	// code written before the field was exported.
+	// exportaudit:keep — caller-facing config for external drag code.
+	MouseDown func(EventCtx)
 	mouseDown func(EventCtx)
 	MouseMove func(EventCtx)
 	MouseUp   func(EventCtx)
@@ -367,8 +373,18 @@ func (w *Window) inputCursorOn() bool {
 // MouseIsLocked returns true if the mouse is locked (drag).
 func (w *Window) mouseIsLocked() bool {
 	ml := &w.viewState.mouseLock
-	return ml.mouseDown != nil ||
+	return ml.MouseDown != nil || ml.mouseDown != nil ||
 		ml.MouseMove != nil || ml.MouseUp != nil
+}
+
+// lockedMouseDown returns the active mouse-down lock callback:
+// the exported MouseDown when set, else the internal mouseDown.
+// Nil when the lock carries no mouse-down callback.
+func (cfg MouseLockCfg) lockedMouseDown() func(EventCtx) {
+	if cfg.MouseDown != nil {
+		return cfg.MouseDown
+	}
+	return cfg.mouseDown
 }
 
 // MouseLock locks the mouse so all mouse events go to the
