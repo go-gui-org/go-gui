@@ -46,6 +46,12 @@ and this project adheres to
 
 ### Fixed
 
+- **A menu shortcut no longer also runs the matching command (macOS)** — When a
+  native menubar item had a `Shortcut` and a command had the same chord, one key
+  press ran the action twice: once from the menu and once from the command
+  registry. A toggle opened and closed at once, and the menu title only
+  flickered. The Metal backend saves each key-down before AppKit sees it. It now
+  drops the key-down when a menu item used it as its key equivalent.
 - **A container with `Gradient`, `Shader` or a blur draws its border (#589)** —
   The border is now drawn after the fill, whatever the fill is. Before, these
   containers reserved space for the border but drew no line: `ColorBorder`,

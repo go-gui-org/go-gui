@@ -40,3 +40,51 @@ func TestEncodeShortcut(t *testing.T) {
 		})
 	}
 }
+
+// TakeKeyEquivalent must hand out a key-equivalent record exactly once, keep
+// key code 0 (kVK_ANSI_A) distinct from "none", and let a mouse-picked item
+// clear a stale record.
+func TestTakeKeyEquivalent(t *testing.T) {
+	// Not parallel: the record is package state.
+	TakeKeyEquivalent() // start clean
+
+	if _, ok := TakeKeyEquivalent(); ok {
+		t.Fatal("empty record: got ok=true, want false")
+	}
+
+	noteKeyEquivalent(0x2C) // kVK_ANSI_Slash
+	code, ok := TakeKeyEquivalent()
+	if !ok || code != 0x2C {
+		t.Fatalf("after key equivalent: got (%#x, %v), want (0x2c, true)", code, ok)
+	}
+	if _, ok := TakeKeyEquivalent(); ok {
+		t.Fatal("second take: got ok=true, want false (record must clear)")
+	}
+
+	noteKeyEquivalent(0) // kVK_ANSI_A
+	if code, ok := TakeKeyEquivalent(); !ok || code != 0 {
+		t.Fatalf("key code 0: got (%#x, %v), want (0, true)", code, ok)
+	}
+
+	noteKeyEquivalent(0x2C)
+	noteKeyEquivalent(-1) // then a mouse pick
+	if _, ok := TakeKeyEquivalent(); ok {
+		t.Fatal("mouse pick after key: got ok=true, want record cleared")
+	}
+
+	noteKeyEquivalent(0xFFFF) // max uint16 stays valid
+	if code, ok := TakeKeyEquivalent(); !ok || code != 0xFFFF {
+		t.Fatalf("key code max: got (%#x, %v), want (0xffff, true)", code, ok)
+	}
+
+	noteKeyEquivalent(0x10000) // out of uint16 range must clear, not truncate
+	if _, ok := TakeKeyEquivalent(); ok {
+		t.Fatal("out-of-range key: got ok=true, want false (record cleared)")
+	}
+
+	noteKeyEquivalent(0x2C)
+	noteKeyEquivalent(-100) // any negative clears, not only -1
+	if _, ok := TakeKeyEquivalent(); ok {
+		t.Fatal("negative key: got ok=true, want record cleared")
+	}
+}

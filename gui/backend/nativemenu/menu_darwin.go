@@ -13,6 +13,7 @@ import "C"
 
 import (
 	"sync"
+	"sync/atomic"
 	"unsafe"
 
 	"github.com/go-gui-org/go-gui/gui"
@@ -25,9 +26,49 @@ var (
 	trayActionCbs   = map[int]func(string){}
 )
 
+// keyEquivalent holds the virtual key code of the key-down that last fired a
+// menubar item through its key equivalent, plus one. Zero means none: the
+// offset keeps key code 0 (kVK_ANSI_A) distinct from "no key".
+//
+// Written by goNativeMenuAction during [NSApp sendEvent:] and read by the
+// metal backend's event mapper right after that sendEvent: returns. Both run
+// on the main thread; the atomic only keeps the race detector quiet and costs
+// nothing.
+var keyEquivalent atomic.Int32
+
+// TakeKeyEquivalent reports whether a menubar item fired from a key
+// equivalent since the last call, and the virtual key code of that key-down.
+// It clears the record, so each key-down is claimed at most once.
+//
+// The metal backend stores every key-down for Go before AppKit sees it, so a
+// key the menu consumed would otherwise also reach the window's command
+// registry. A backend calls this for each event it maps and drops a key-down
+// whose code matches.
+func TakeKeyEquivalent() (keyCode uint16, ok bool) {
+	v := keyEquivalent.Swap(0)
+	if v == 0 {
+		return 0, false
+	}
+	return uint16(v - 1), true
+}
+
+// noteKeyEquivalent records the key-down behind a menubar action. keyCode is
+// -1 (or any negative) when the action did not come from a key equivalent;
+// that clears any stale record rather than leaving it to eat a later key.
+func noteKeyEquivalent(keyCode int) {
+	if keyCode < 0 || keyCode > 0xFFFF {
+		keyEquivalent.Store(0)
+		return
+	}
+	keyEquivalent.Store(int32(keyCode) + 1)
+}
+
 //export goNativeMenuAction
-func goNativeMenuAction(cID *C.char) {
+func goNativeMenuAction(cID *C.char, keyCode C.int) {
 	id := C.GoString(cID)
+	// Recorded before the callback runs, so the record exists even when the
+	// callback is nil — the menu still consumed the key.
+	noteKeyEquivalent(int(keyCode))
 	mu.Lock()
 	cb := menubarActionCb
 	mu.Unlock()

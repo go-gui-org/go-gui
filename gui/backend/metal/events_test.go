@@ -456,3 +456,82 @@ func TestCursorBoundsCheck(t *testing.T) {
 		})
 	}
 }
+
+// ─── menu key equivalents ─────────────────────────────────────
+
+// A key-down that fired a native menu item through its key equivalent must
+// not also reach Go. The poll loop stores the key-down before sendEvent:, so
+// without the filter a shortcut shared by a menu item and a Global command
+// ran the command twice: a toggle opened and closed in one keystroke.
+func TestMapMetalEvent_MenuKeyEquivalent_DropsKeyDown(t *testing.T) {
+	const (
+		kvkSlash = uint16(0x2C)
+		modCmd   = uint32(1 << 20)
+	)
+	orig := takeMenuKeyEquivalent
+	defer func() { takeMenuKeyEquivalent = orig }()
+	takeMenuKeyEquivalent = func() (uint16, bool) { return kvkSlash, true }
+
+	testInjectKeyDown(kvkSlash, modCmd)
+	evt, cont := mapMetalEvent()
+	if !cont {
+		t.Fatal("consumed key equivalent should continue the loop")
+	}
+	if evt.Type == gui.EventKeyDown {
+		t.Fatalf("consumed key equivalent: got EventKeyDown %v, want dropped",
+			evt.KeyCode)
+	}
+}
+
+// Only the key-down the menu consumed is dropped. A record for another key
+// (left by a path that never mapped its own key-down) must not eat this one.
+func TestMapMetalEvent_MenuKeyEquivalent_OtherKeyDelivered(t *testing.T) {
+	orig := takeMenuKeyEquivalent
+	defer func() { takeMenuKeyEquivalent = orig }()
+	takeMenuKeyEquivalent = func() (uint16, bool) { return 0x2C, true }
+
+	testInjectKeyDown(0x00, 0) // kVK_ANSI_A
+	evt, _ := mapMetalEvent()
+	if evt.Type != gui.EventKeyDown || evt.KeyCode != gui.KeyA {
+		t.Fatalf("unrelated key: got %v/%v, want EventKeyDown/KeyA",
+			evt.Type, evt.KeyCode)
+	}
+}
+
+// A record whose key-down never reached its own map (dropped by the IME
+// filter) must not linger to eat a later keystroke. mapMetalEvent claims
+// the record on every event, including NONE, so the stale claim dies here
+// and the next key-down is delivered.
+func TestMapMetalEvent_MenuKeyEquivalent_StaleClearedOnNone(t *testing.T) {
+	orig := takeMenuKeyEquivalent
+	defer func() { takeMenuKeyEquivalent = orig }()
+	calls := 0
+	takeMenuKeyEquivalent = func() (uint16, bool) {
+		calls++
+		if calls == 1 {
+			return 0x2C, true // stale record for a key-down mapped elsewhere
+		}
+		return 0, false
+	}
+
+	testResetIMEQueue() // sets _evType to NONE without touching NSApp
+	defer testResetIMEQueue()
+	evt, cont := mapMetalEvent()
+	if !cont {
+		t.Fatal("NONE should continue the loop")
+	}
+	if evt.Type == gui.EventKeyDown {
+		t.Fatalf("NONE: got EventKeyDown, want no event")
+	}
+	if calls != 1 {
+		t.Fatalf("NONE: Take called %d times, want 1 (record must be claimed)",
+			calls)
+	}
+
+	testInjectKeyDown(0x00, 0) // kVK_ANSI_A
+	evt, _ = mapMetalEvent()
+	if evt.Type != gui.EventKeyDown || evt.KeyCode != gui.KeyA {
+		t.Fatalf("key after stale NONE: got %v/%v, want EventKeyDown/KeyA",
+			evt.Type, evt.KeyCode)
+	}
+}

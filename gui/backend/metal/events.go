@@ -10,13 +10,24 @@ import (
 	"unicode/utf8"
 
 	"github.com/go-gui-org/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui/backend/nativemenu"
 )
+
+// takeMenuKeyEquivalent claims the key-down a native menu item consumed
+// through its key equivalent. A variable so tests can stage a record without
+// a live menubar.
+var takeMenuKeyEquivalent = nativemenu.TakeKeyEquivalent
 
 // mapMetalEvent converts the current metal event (set by
 // metalPollEvent) to a gui.Event. Returns the event and true
 // to continue, or false to quit.
 func mapMetalEvent() (gui.Event, bool) {
 	et := C.metalEventType()
+	// Claimed for every event, not only key-downs: a record belongs to the
+	// sendEvent: of the poll that produced this event, so taking it here
+	// keeps a record whose key-down was dropped elsewhere (the IME filter)
+	// from lingering to eat a later keystroke.
+	menuKey, menuFired := takeMenuKeyEquivalent()
 	switch et {
 	case C.METAL_EVENT_NONE:
 		return gui.Event{}, true
@@ -83,6 +94,16 @@ func mapMetalEvent() (gui.Event, bool) {
 		// exited before the second poll (harmless).
 		if kc == gui.KeyQ && mods&gui.ModSuper != 0 {
 			return gui.Event{}, false
+		}
+		// A native menu item consumed this key-down as its key
+		// equivalent and already ran its action. metalPollEvent
+		// stored the key-down before sendEvent:, so it would
+		// otherwise also reach the command registry, and a
+		// shortcut shared by the menu item and a command would run
+		// twice. The key code must match: the record is only for
+		// this key.
+		if menuFired && uint16(C.metalEventKeyCode()) == menuKey {
+			return gui.Event{}, true
 		}
 		return gui.Event{
 			Type:      gui.EventKeyDown,

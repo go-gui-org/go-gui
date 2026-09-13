@@ -5,8 +5,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-// Forward declaration of Go callback.
-extern void goNativeMenuAction(const char *itemID);
+// Forward declaration of Go callback. keyCode is the macOS virtual key code
+// of the key-down that fired the item through its key equivalent, or -1 when
+// the item was picked with the mouse or keyboard menu navigation.
+extern void goNativeMenuAction(const char *itemID, int keyCode);
 extern void goNativeTrayAction(int trayID, const char *itemID);
 
 // ---------------------------------------------------------------------------
@@ -22,7 +24,15 @@ extern void goNativeTrayAction(int trayID, const char *itemID);
     NSMenuItem *item = (NSMenuItem *)sender;
     NSString *itemID = item.representedObject;
     if (itemID != nil) {
-        goNativeMenuAction(itemID.UTF8String);
+        // A key equivalent fires inside [NSApp sendEvent:] for its key-down,
+        // so the current event is that key-down. The metal backend already
+        // stored the same key-down for Go before it called sendEvent:, and
+        // uses this code to drop it — otherwise a shortcut shared by the menu
+        // item and a command fires twice (a toggle opens and closes at once).
+        NSEvent *ev = [NSApp currentEvent];
+        int keyCode = (ev != nil && ev.type == NSEventTypeKeyDown)
+            ? (int)ev.keyCode : -1;
+        goNativeMenuAction(itemID.UTF8String, keyCode);
     }
 }
 @end
