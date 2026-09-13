@@ -393,7 +393,7 @@ func (w *Window) WindowCleanup() {
 			w.cancelCtx()
 		}
 		w.stopAnimationLoop()
-		w.releaseAllFileAccess()
+		w.ReleaseAllFileAccess()
 		if w.nativePlatform != nil {
 			w.nativePlatform.A11yDestroy()
 		}

@@ -10,6 +10,14 @@ and this project adheres to
 
 ### Added
 
+- **`Window.SetFileAccessAppID`, `Window.RestoreFileAccess`,
+  `Window.ReleaseFileAccess`, and `Window.ReleaseAllFileAccess` are public
+  (#372)** — A caller that holds an `AccessiblePath` grant can now release it
+  early instead of waiting for `WindowCleanup`. Set the app ID once, then call
+  restore in `OnInit`; restore clears active grants first, so a second call
+  cannot record the same bookmark twice. Release stops access only; the
+  persisted copy stays. All four must run on the main thread — from any other
+  goroutine, use `Window.QueueCommand`.
 - **`Window.IsHovered` and `Window.IsPressed` read hover and press state while a
   view is built (#587)** — A view can now pick a look from whether it is hovered
   or pressed, not only recolor itself afterwards in `OnHover`. Pass the

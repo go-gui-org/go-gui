@@ -461,6 +461,36 @@ func TestNativeSaveDiscardDialogMarksVisible(t *testing.T) {
 	}
 }
 
+func TestNativeResultFromPlatformSkipsEmptyPathGrant(t *testing.T) {
+	w := &Window{}
+	pr := PlatformDialogResult{
+		Status: DialogOK,
+		Paths: []PlatformPath{
+			{Path: "", BookmarkData: []byte{1, 2, 3}},
+			{Path: "/kept", BookmarkData: []byte{4}},
+			{Path: "/plain"},
+		},
+	}
+	got := nativeResultFromPlatform(pr, w)
+	if len(got.Paths) != 3 {
+		t.Fatalf("paths: got %d, want 3", len(got.Paths))
+	}
+	if got.Paths[0].Grant.ID != 0 {
+		t.Errorf("empty path grant: got %d, want 0",
+			got.Paths[0].Grant.ID)
+	}
+	if got.Paths[1].Grant.ID == 0 {
+		t.Error("expected grant for non-empty path with bookmark")
+	}
+	if got.Paths[2].Grant.ID != 0 {
+		t.Errorf("plain path grant: got %d, want 0",
+			got.Paths[2].Grant.ID)
+	}
+	if n := w.fileAccessGrantCount(); n != 1 {
+		t.Errorf("grant count: got %d, want 1", n)
+	}
+}
+
 func TestNativeOpenDialogCancelled(t *testing.T) {
 	w := &Window{}
 	w.nativePlatform = mockDialogPlatform{

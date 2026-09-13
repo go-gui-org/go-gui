@@ -298,7 +298,7 @@ func nativeResultFromPlatform(pr PlatformDialogResult, w *Window) NativeDialogRe
 	paths := make([]AccessiblePath, len(pr.Paths))
 	for i, pp := range pr.Paths {
 		var grant Grant
-		if len(pp.BookmarkData) > 0 {
+		if pp.Path != "" && len(pp.BookmarkData) > 0 {
 			grant = w.storeBookmark(pp.Path, pp.BookmarkData)
 		}
 		paths[i] = AccessiblePath{Path: pp.Path, Grant: grant}

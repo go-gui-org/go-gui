@@ -35,17 +35,34 @@ type fileAccessState struct {
 	mu     sync.Mutex
 }
 
-// SetFileAccessAppID sets the app identifier used for
-// bookmark persistence. Call before RestoreFileAccess.
-func (w *Window) setFileAccessAppID(appID string) {
+// SetFileAccessAppID sets the app ID used for bookmark
+// persistence. Call it before RestoreFileAccess, typically
+// in OnInit. Must be called from the main thread; it is not
+// safe for concurrent use. From any other goroutine, use
+// Window.QueueCommand instead.
+// exportaudit:keep — caller-facing file access API (issue #372)
+func (w *Window) SetFileAccessAppID(appID string) {
 	w.fileAccess.mu.Lock()
 	w.fileAccess.appID = appID
 	w.fileAccess.mu.Unlock()
 }
 
-// RestoreFileAccess loads and activates persisted
-// security-scoped bookmarks. Call in OnInit.
-func (w *Window) restoreFileAccess() {
+// RestoreFileAccess clears active grants and then loads the
+// persisted bookmarks for the app ID set with
+// SetFileAccessAppID. Call it in OnInit. Entries with an
+// empty path are skipped. Loaded entries are recorded
+// without a new persist call. Release stops access only;
+// the persisted copy stays, so persist is write-only. Must
+// be called from the main thread; it is not safe for
+// concurrent use. From any other goroutine, use
+// Window.QueueCommand instead.
+// exportaudit:keep — caller-facing file access API (issue #372)
+func (w *Window) RestoreFileAccess() {
+	// Clear first so a second OnInit call cannot record
+	// the same bookmark twice. ReleaseAll stops access
+	// outside its lock.
+	w.ReleaseAllFileAccess()
+
 	w.fileAccess.mu.Lock()
 	appID := w.fileAccess.appID
 	w.fileAccess.mu.Unlock()
@@ -56,13 +73,20 @@ func (w *Window) restoreFileAccess() {
 	entries := w.nativePlatform.BookmarkLoadAll(appID)
 	for _, entry := range entries {
 		if entry.Path != "" {
-			w.storeBookmark(entry.Path, entry.Data)
+			w.storeBookmarkInternal(entry.Path, entry.Data, false)
 		}
 	}
 }
 
-// ReleaseFileAccess releases a single bookmark grant.
-func (w *Window) releaseFileAccess(g Grant) {
+// ReleaseFileAccess releases a single bookmark grant. A zero
+// Grant and an unknown ID are no-ops. Release stops access
+// only; the persisted copy stays, so persist is write-only.
+// A grant left held is released by WindowCleanup, so a missed
+// call leaks only until close. Must be called from the main
+// thread; it is not safe for concurrent use. From any other
+// goroutine, use Window.QueueCommand instead.
+// exportaudit:keep — caller-facing file access API (issue #372)
+func (w *Window) ReleaseFileAccess(g Grant) {
 	if g.ID == 0 {
 		return
 	}
@@ -73,17 +97,22 @@ func (w *Window) releaseFileAccess(g Grant) {
 		return
 	}
 	delete(w.fileAccess.grants, g.ID)
-	data := bm.data
+	stopped := bm.data
 	w.fileAccess.mu.Unlock()
 
-	if len(data) > 0 && w.nativePlatform != nil {
-		w.nativePlatform.BookmarkStopAccess(data)
+	if len(stopped) > 0 && w.nativePlatform != nil {
+		w.nativePlatform.BookmarkStopAccess(stopped)
 	}
 }
 
-// ReleaseAllFileAccess releases every active grant.
-// Called automatically during window cleanup.
-func (w *Window) releaseAllFileAccess() {
+// ReleaseAllFileAccess releases every active grant. It is
+// called automatically during window cleanup. Release stops
+// access only; persisted copies stay, so persist is
+// write-only. Must be called from the main thread; it is not
+// safe for concurrent use. From any other goroutine, use
+// Window.QueueCommand instead.
+// exportaudit:keep — caller-facing file access API (issue #372)
+func (w *Window) ReleaseAllFileAccess() {
 	w.fileAccess.mu.Lock()
 	grants := make([]bookmarkGrant, 0, len(w.fileAccess.grants))
 	for _, bm := range w.fileAccess.grants {
@@ -102,8 +131,27 @@ func (w *Window) releaseAllFileAccess() {
 }
 
 // storeBookmark records a bookmark grant internally and
-// persists via NativePlatform if app_id is set.
+// persists via NativePlatform when an app ID is set.
 func (w *Window) storeBookmark(path string, data []byte) Grant {
+	return w.storeBookmarkInternal(path, data, true)
+}
+
+// storeBookmarkInternal records a grant. When persist is true
+// it also writes the bookmark through NativePlatform. An
+// empty path returns a zero Grant and records nothing.
+func (w *Window) storeBookmarkInternal(path string, data []byte,
+	persist bool) Grant {
+	if path == "" {
+		return Grant{}
+	}
+	// Copy the blob so later changes by the caller cannot
+	// alter the stored grant. Bookmarks are rare, so the
+	// single copy costs nothing on the hot path.
+	var kept []byte
+	if len(data) > 0 {
+		kept = append([]byte(nil), data...)
+	}
+
 	w.fileAccess.mu.Lock()
 	appID := w.fileAccess.appID
 	if w.fileAccess.grants == nil {
@@ -113,12 +161,27 @@ func (w *Window) storeBookmark(path string, data []byte) Grant {
 	if id == 0 {
 		id = 1
 	}
+	// Guard the uint64 wrap path: 0 stays reserved for the
+	// zero Grant, and a wrapped ID must not reuse a live one.
+	for {
+		if _, taken := w.fileAccess.grants[id]; !taken {
+			break
+		}
+		id++
+		if id == 0 {
+			id = 1
+		}
+	}
 	w.fileAccess.nextID = id + 1
-	w.fileAccess.grants[id] = bookmarkGrant{path: path, data: data}
+	if w.fileAccess.nextID == 0 {
+		w.fileAccess.nextID = 1
+	}
+	w.fileAccess.grants[id] = bookmarkGrant{path: path, data: kept}
 	w.fileAccess.mu.Unlock()
 
-	if len(data) > 0 && appID != "" && w.nativePlatform != nil {
-		w.nativePlatform.BookmarkPersist(appID, path, data)
+	if persist && len(kept) > 0 && appID != "" &&
+		w.nativePlatform != nil {
+		w.nativePlatform.BookmarkPersist(appID, path, kept)
 	}
 	return Grant{ID: id}
 }
