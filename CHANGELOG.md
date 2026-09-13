@@ -8,6 +8,16 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Fixed
+
+- **Escape dismisses a dialog whose focused content holds its own key handler**
+  — The per-dispatch dedup suppressed every focused target after the first, so a
+  focused child with an `OnKeyDown` that declined Escape vetoed the dialog
+  root's Escape handling: the dialog stayed open and `OnCancelNo` never fired.
+  The dialog root now skips the dedup marks. A child that consumes Escape still
+  overrides, since post-order dispatch reaches the child first and its consume
+  short-circuits the dialog.
+
 ## [v0.76.0] - 2026-09-13
 
 ### Added

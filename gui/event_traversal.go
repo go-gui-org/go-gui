@@ -80,11 +80,19 @@ func executeFocusCallback(
 	// focused ID must not run the same slot again. Key down and key up
 	// share the key slot — they are always separate dispatches, each
 	// with fresh marks.
+	//
+	// The dialog root skips the marks. It is a second identity by
+	// construction (see the reserved-dialog arm of isFocusedTarget):
+	// a focused child with its own key handler must neither suppress
+	// the dialog's Escape handling nor be suppressed by it. Ordering
+	// keeps this safe: post-order dispatch reaches the dialog root
+	// last, and a child that consumed already returned early through
+	// IsHandled, so only a declining child ever reaches this point.
 	slot := focusSlotKey
 	if class == evChar {
 		slot = focusSlotChar
 	}
-	if markServed(served, slot) {
+	if layout.Shape.idKey() != reservedDialogID && markServed(served, slot) {
 		return e.IsHandled
 	}
 	callback(EventCtx{layout, e, w})

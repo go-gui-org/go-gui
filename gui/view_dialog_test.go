@@ -164,6 +164,92 @@ func TestDialogKeyDownEscape(t *testing.T) {
 	}
 }
 
+// TestDialogEscapeWithFocusedChildKeyHandler drives Escape through full
+// dispatch with a focused dialog child that holds its own OnKeyDown. A
+// child that declines the key must not veto the dialog root's Escape
+// handling: the dialog still dismisses and OnCancelNo still fires.
+// Regression test: the per-dispatch dedup (markServed) once suppressed
+// the dialog root whenever any focused child ran first, so Escape died
+// while Enter (handled by the child itself) kept working.
+func TestDialogEscapeWithFocusedChildKeyHandler(t *testing.T) {
+	w := NewTestWindow(WindowCfg{})
+	w.TestRender(func(*Window) View {
+		return Column(ContainerCfg{ID: "root"})
+	})
+	cancelled := false
+	w.Dialog(DialogCfg{
+		DialogType: DialogCustom,
+		FocusID:    "keys",
+		OnCancelNo: func(_ *Window) { cancelled = true },
+		CustomContent: []View{
+			Column(ContainerCfg{
+				ID:        "keys",
+				Focusable: true,
+				OnKeyDown: func(ctx EventCtx) {
+					// Declines everything: no Consume.
+				},
+			}),
+		},
+	})
+	w.TestRender(nil)
+	if !w.DialogIsVisible() {
+		t.Fatal("dialog did not open")
+	}
+	down := Event{Type: EventKeyDown, KeyCode: KeyEscape}
+	w.EventFn(&down)
+	w.TestRender(nil)
+	if w.DialogIsVisible() {
+		t.Error("dialog still visible after Escape")
+	}
+	if !cancelled {
+		t.Error("OnCancelNo did not fire")
+	}
+	if !down.IsHandled {
+		t.Error("expected Escape consumed by the dialog root")
+	}
+}
+
+// TestDialogEscapeChildConsumeOverrides verifies the other half of the
+// contract: a focused child that consumes Escape overrides the dialog
+// root, so the dialog stays open. Post-order dispatch reaches the child
+// first, and its Consume short-circuits before the dialog root runs.
+func TestDialogEscapeChildConsumeOverrides(t *testing.T) {
+	w := NewTestWindow(WindowCfg{})
+	w.TestRender(func(*Window) View {
+		return Column(ContainerCfg{ID: "root"})
+	})
+	cancelled := false
+	w.Dialog(DialogCfg{
+		DialogType: DialogCustom,
+		FocusID:    "keys",
+		OnCancelNo: func(_ *Window) { cancelled = true },
+		CustomContent: []View{
+			Column(ContainerCfg{
+				ID:        "keys",
+				Focusable: true,
+				OnKeyDown: func(ctx EventCtx) {
+					if ctx.Event.KeyCode == KeyEscape {
+						ctx.Consume()
+					}
+				},
+			}),
+		},
+	})
+	w.TestRender(nil)
+	if !w.DialogIsVisible() {
+		t.Fatal("dialog did not open")
+	}
+	down := Event{Type: EventKeyDown, KeyCode: KeyEscape}
+	w.EventFn(&down)
+	w.TestRender(nil)
+	if !w.DialogIsVisible() {
+		t.Error("consuming child must override: dialog dismissed")
+	}
+	if cancelled {
+		t.Error("OnCancelNo fired despite the override")
+	}
+}
+
 func TestDialogKeyDownCtrlCCopiesBody(t *testing.T) {
 	w := newTestWindow()
 	var clipped string
