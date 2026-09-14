@@ -316,8 +316,11 @@ func (b *Backend) drawImageTex(
 	b.SetPipeline(pipeImageClip)
 	C.metalBindTexture(C.int(tex.id))
 
+	// Opacity rides the vertex color: fs_image_clip multiplies
+	// texel alpha by it.
 	z := gpu.PackParams(r.ClipRadius*s, 0)
-	cr, cg, cb, ca := gpu.NormColor(255, 255, 255, 255)
+	tint := gui.White.WithOpacity(r.Opacity)
+	cr, cg, cb, ca := gpu.NormColor(tint.R, tint.G, tint.B, tint.A)
 	verts := [4]vertex{
 		{X: x, Y: y, Z: z, U: -1, V: -1, R: cr, G: cg, B: cb, A: ca},
 		{X: x + w, Y: y, Z: z, U: 1, V: -1, R: cr, G: cg, B: cb, A: ca},

@@ -591,6 +591,7 @@ func renderRtf(shape *Shape, clip drawClip, w *Window) {
 			W:        float32(item.Width),
 			H:        h,
 			Resource: entry.pNGPath,
+			Opacity:  imageAlpha(shape.Opacity, shape.Disabled),
 		}, w)
 	}
 }

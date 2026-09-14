@@ -84,6 +84,11 @@ type RenderCmd struct {
 	OffsetX    float32 // Shadow; Line X1
 	OffsetY    float32 // Shadow; Line Y1
 	ClipRadius float32 // Image
+	Opacity    float32 // Image: texel alpha multiplier 0..1.
+	// Folded at emit from shape opacity and the disabled dim
+	// (see imageAlpha), so backends apply it to the sampled
+	// pixels; the bg fill in Color carries its own dimming.
+	// Emitters always set it; 1 is opaque.
 	FontSize   float32 // Text font size (points)
 	FontAscent float32 // Text font ascent (pixels)
 	TextWidth  float32 // Text source width (pixels)

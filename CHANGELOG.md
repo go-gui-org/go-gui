@@ -10,6 +10,30 @@ and this project adheres to
 
 ### Fixed
 
+- **Faded and disabled images now fade the pixels, not just the backdrop** —
+  `ImageCfg.Opacity` and the disabled dim reached only the `BgColor` fill while
+  every backend painted the texels fully opaque, because the image shaders
+  ignored the vertex color and `RenderCmd` carried no image alpha. Commands now
+  carry `Opacity` (folded from shape opacity and the disabled dim at emit), the
+  GL/Metal/GLES shaders multiply texel alpha by it, and the soft, web and PDF
+  backends apply it the same way. A remote image that resolves to SVG keeps its
+  ID, click handler, assistive label and sound instead of dropping them at the
+  `svgView` handoff.
+- **Remote image downloads land atomically with a strict type allowlist** —
+  concurrent windows fetching one URL truncated each other's cache file, a
+  crashed partial stayed servable under its final name, cache files were
+  world-readable, and any `image/*` body (webp, gif) was stored under `.png`
+  only to fail decode every frame after. Bodies now stream to a `0600` temp file
+  that is renamed into place (a rename loser serves the winner), only
+  PNG/JPEG/SVG content types are admitted, and an in-flight URL skips the
+  per-frame filesystem probe.
+- **Image validation, logging and placeholder text hardened** — `Image` warned
+  on every frame for a missing file and embedded the full source in the
+  `[missing: …]` layout; warnings are now once per window and the source is
+  capped at 80 chars. `validateImagePath` rejects NUL and empty/dot paths like
+  the backend gate, remote `.SVG` suffixes match case-insensitively, and the
+  downloading placeholder allocates through the shape pool.
+
 - **Canvas `Save` past its depth cap no longer unbalances `Restore`** — a
   `DrawContext.Save` beyond `maxXformDepth` (256) was dropped silently, so the
   matching `Restore` popped an ancestor instead and every nesting level after

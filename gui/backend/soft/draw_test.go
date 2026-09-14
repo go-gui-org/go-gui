@@ -238,7 +238,7 @@ func TestDrawImageMemSource(t *testing.T) {
 
 	r.drawAll([]gui.RenderCmd{{
 		Kind: gui.RenderImage, X: 10, Y: 10, W: 20, H: 20,
-		Resource: src,
+		Resource: src, Opacity: 1,
 	}})
 
 	if _, _, blue, _ := at(r.buf.img, 20, 20); blue != 255 {
@@ -246,6 +246,97 @@ func TestDrawImageMemSource(t *testing.T) {
 	}
 	if _, _, blue, _ := at(r.buf.img, 9, 20); blue != 0 {
 		t.Errorf("outside the image blue = %d, want 0", blue)
+	}
+}
+
+// RenderCmd.Opacity scales texel alpha: half opacity on an opaque
+// source yields half alpha at exact texel centres, and zero
+// opacity draws nothing.
+func TestDrawImageOpacity(t *testing.T) {
+	mkib := func(t *testing.T, key string) string {
+		t.Helper()
+		pix := make([]byte, 4*4*4)
+		for k := range 4 * 4 {
+			pix[k*4], pix[k*4+1] = 0, 0
+			pix[k*4+2], pix[k*4+3] = 255, 255
+		}
+		src := gui.UseImage(key, 4, 4, pix)
+		if src == "" {
+			t.Fatal("UseImage refused the buffer")
+		}
+		t.Cleanup(func() { gui.DropImage(key) })
+		return src
+	}
+	t.Run("half", func(t *testing.T) {
+		r := newRenderer(40, 40, 1)
+		src := mkib(t, "soft-test-opacity-half")
+		// 1:1 scale: device pixel (12,12) hits texel (2,2) exactly.
+		// The buffer starts opaque black, so half-alpha blue
+		// composites to (0,0,128,255).
+		r.drawAll([]gui.RenderCmd{{
+			Kind: gui.RenderImage, X: 10, Y: 10, W: 4, H: 4,
+			Resource: src, Opacity: 0.5,
+		}})
+		_, _, blue, alpha := at(r.buf.img, 12, 12)
+		if blue != 128 {
+			t.Errorf("blue = %d, want 128", blue)
+		}
+		if alpha != 255 {
+			t.Errorf("alpha = %d, want 255", alpha)
+		}
+	})
+	t.Run("zero draws nothing", func(t *testing.T) {
+		r := newRenderer(40, 40, 1)
+		src := mkib(t, "soft-test-opacity-zero")
+		r.drawAll([]gui.RenderCmd{{
+			Kind: gui.RenderImage, X: 10, Y: 10, W: 4, H: 4,
+			Resource: src, Opacity: 0,
+		}})
+		if _, _, blue, _ := at(r.buf.img, 12, 12); blue != 0 {
+			t.Errorf("blue = %d, want 0", blue)
+		}
+	})
+}
+
+// An empty source rect must sample transparent instead of
+// panicking on a negative clamp bound.
+func TestImageSrcEmptySource(t *testing.T) {
+	img := &image.NRGBA{Rect: image.Rect(0, 0, 0, 0)}
+	s := newImageSrc(img, 0, 0, 10, 10, 1)
+	c := s.At(0, 0).(interface {
+		RGBA() (r, g, b, a uint32)
+	})
+	_, _, _, a := c.RGBA()
+	if a != 0 {
+		t.Fatalf("empty source alpha = %d, want 0", a>>8)
+	}
+}
+
+// A nil source samples transparent rather than panicking in
+// Bounds: resolveImage never returns one, but the sampler must
+// not depend on that.
+func TestImageSrcNilSource(t *testing.T) {
+	s := newImageSrc(nil, 0, 0, 10, 10, 1)
+	c := s.At(0, 0).(interface {
+		RGBA() (r, g, b, a uint32)
+	})
+	_, _, _, a := c.RGBA()
+	if a != 0 {
+		t.Fatalf("nil source alpha = %d, want 0", a>>8)
+	}
+}
+
+// lerpU8 corners interpolate exactly; the midpoint averages.
+func TestLerpU8(t *testing.T) {
+	if got := lerpU8(10, 20, 30, 40, 0, 0); got != 10 {
+		t.Fatalf("corner (0,0) = %d, want 10", got)
+	}
+	if got := lerpU8(10, 20, 30, 40, 1, 1); got != 40 {
+		t.Fatalf("corner (1,1) = %d, want 40", got)
+	}
+	// top=50, bot=125, 50+75*0.5=87.5 rounds to 88.
+	if got := lerpU8(0, 100, 50, 200, 0.5, 0.5); got != 88 {
+		t.Fatalf("midpoint = %d, want 88", got)
 	}
 }
 

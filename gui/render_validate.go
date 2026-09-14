@@ -145,7 +145,8 @@ func validLayoutTransformedCmd(r RenderCmd) bool {
 
 func validImageCmd(r RenderCmd) bool {
 	return f32AllFinite4(r.X, r.Y, r.W, r.H) &&
-		r.W > 0 && r.H > 0 && f32IsFinite(r.ClipRadius)
+		r.W > 0 && r.H > 0 && f32IsFinite(r.ClipRadius) &&
+		f32IsFinite(r.Opacity) && r.Opacity >= 0 && r.Opacity <= 1
 }
 
 func validLineCmd(r RenderCmd) bool {

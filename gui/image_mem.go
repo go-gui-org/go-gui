@@ -216,13 +216,13 @@ func isMemImage(src string) bool {
 }
 
 // removeLocked deletes one entry and its bytes. Caller holds mu.
-func (r *memImageRegistry) removeLocked(src string) {
-	mi, ok := r.data[src]
+func (r *memImageRegistry) removeLocked(key string) {
+	mi, ok := r.data[key]
 	if !ok {
 		return
 	}
 	r.order.Remove(mi.elem)
-	delete(r.data, src)
+	delete(r.data, key)
 	r.bytes -= len(mi.pix)
 }
 

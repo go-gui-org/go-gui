@@ -222,6 +222,7 @@ const (
 	nsDgSource            = "gui.dg.source"
 	nsActiveDownloads     = "gui.active_downloads"
 	nsImageResolved       = "gui.image.resolved"
+	nsImageWarned         = "gui.image.warned"
 	nsSvgCache            = "gui.svg_cache"
 	nsSvgDimCache         = "gui.svg_dim_cache"
 	nsSvgAnimSeen         = "gui.svg_anim_seen"

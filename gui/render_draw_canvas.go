@@ -371,6 +371,9 @@ func emitDrawCanvasImages(
 			H:        im.H,
 			Color:    bg,
 			Resource: resource,
+			// bgOpacity tints the fill behind the image only;
+			// the texels take the widget's opacity.
+			Opacity: imageAlpha(shape.Opacity, shape.Disabled),
 		}, w)
 	}
 	if narrowed {

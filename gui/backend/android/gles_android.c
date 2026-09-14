@@ -353,7 +353,7 @@ static const char* fs_image_clip_src =
     "    float alpha = 1.0 - smoothstep(-0.59, 0.59, d);\n"
     "    vec2 tex_uv = uv * 0.5 + 0.5;\n"
     "    vec4 tex_color = texture(tex, tex_uv);\n"
-    "    frag_color = vec4(tex_color.rgb, tex_color.a * alpha);\n"
+    "    frag_color = vec4(tex_color.rgb, tex_color.a * alpha * color.a);\n"
     "}\n";
 
 // --- Filter blur H ---

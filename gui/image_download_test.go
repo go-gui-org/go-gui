@@ -20,16 +20,27 @@ func TestContentTypeToExt(t *testing.T) {
 	tests := []struct {
 		ct  string
 		ext string
+		ok  bool
 	}{
-		{"image/png", ".png"},
-		{"image/jpeg", ".jpg"},
-		{"image/svg+xml", ".svg"},
-		{"image/unknown", ".png"},
+		{"image/png", ".png", true},
+		{"image/jpeg", ".jpg", true},
+		{"image/svg+xml", ".svg", true},
+		// Case and parameters are folded away.
+		{"Image/PNG", ".png", true},
+		{"image/png; charset=binary", ".png", true},
+		// Types no decoder accepts are rejected before a byte
+		// hits disk instead of cached under a wrong extension.
+		{"image/unknown", "", false},
+		{"image/webp", "", false},
+		{"image/gif", "", false},
+		{"text/html", "", false},
+		{"", "", false},
 	}
 	for _, tt := range tests {
-		if got := contentTypeToExt(tt.ct); got != tt.ext {
-			t.Errorf("contentTypeToExt(%q) = %q, want %q",
-				tt.ct, got, tt.ext)
+		got, ok := imageExtForContentType(tt.ct)
+		if got != tt.ext || ok != tt.ok {
+			t.Errorf("imageExtForContentType(%q) = (%q, %v), "+
+				"want (%q, %v)", tt.ct, got, ok, tt.ext, tt.ok)
 		}
 	}
 }
@@ -62,7 +73,7 @@ func removeCachedFor(url string) {
 		os.TempDir(), "gui_cache", "images",
 		strconv.FormatUint(hash, 16))
 	for _, ext := range []string{
-		".png", ".jpg", ".jpeg", ".svg",
+		".png", ".jpg", ".svg",
 	} {
 		_ = os.Remove(base + ext)
 	}
@@ -622,6 +633,145 @@ func drainQueuedCommands(w *Window) {
 	for _, c := range cmds {
 		if c.windowFn != nil {
 			c.windowFn(w)
+		}
+	}
+}
+
+// A body whose type no decoder accepts (e.g. webp served where
+// only png/jpeg/svg decode) must be rejected before caching,
+// not stored under a wrong extension to fail decode every frame.
+func TestDownloadImageRejectsUnsupportedContentType(t *testing.T) {
+	resetDownloadSem()
+	srv := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, _ *http.Request) {
+			w.Header().Set("Content-Type", "image/webp")
+			_, _ = w.Write([]byte("RIFF....WEBP"))
+		}))
+	t.Cleanup(srv.Close)
+
+	dir := t.TempDir()
+	base := filepath.Join(dir, "img")
+	w := &Window{}
+	w.ctx = t.Context()
+
+	downloadImage(t.Context(), srv.URL, base, 0, w, nil)
+	drainQueuedCommands(w)
+
+	for _, ext := range []string{".png", ".jpg", ".svg"} {
+		if _, err := os.Stat(base + ext); err == nil {
+			t.Fatalf("unsupported body was cached at %s", base+ext)
+		}
+	}
+	dl := StateMapRead[string, int64](w, nsActiveDownloads)
+	if dl != nil && dl.Contains(srv.URL) {
+		t.Fatal("active download entry not cleared after reject")
+	}
+}
+
+// A completed download lands atomically: no temp fragments remain
+// beside the cache file, and the file is owner-only (0600).
+func TestDownloadImageAtomicWrite(t *testing.T) {
+	resetDownloadSem()
+	srv := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, _ *http.Request) {
+			w.Header().Set("Content-Type", "image/png")
+			_, _ = w.Write([]byte("pngdata"))
+		}))
+	t.Cleanup(srv.Close)
+
+	dir := t.TempDir()
+	base := filepath.Join(dir, "img")
+	w := &Window{}
+	w.ctx = t.Context()
+
+	downloadImage(t.Context(), srv.URL, base, 0, w, nil)
+	drainQueuedCommands(w)
+
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 1 || entries[0].Name() != "img.png" {
+		names := make([]string, len(entries))
+		for i, e := range entries {
+			names[i] = e.Name()
+		}
+		t.Fatalf("dir = %v, want [img.png]", names)
+	}
+	info, err := os.Stat(base + ".png")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if info.Mode().Perm() != 0o600 {
+		t.Fatalf("cache mode = %o, want 600", info.Mode().Perm())
+	}
+}
+
+// While a download is in flight the resolver short-circuits before
+// the filesystem probe: a cache file landing mid-flight must not be
+// picked up until the completing download publishes it through the
+// resolved-path cache.
+func TestResolveImageSrcInFlightSkipsProbe(t *testing.T) {
+	resetDownloadSem()
+	url := "http://example.invalid/" + t.Name() + ".png"
+	t.Cleanup(func() { removeCachedFor(url) })
+
+	blocked := make(chan struct{})
+	t.Cleanup(func() { close(blocked) })
+	w := &Window{
+		Config: WindowCfg{
+			ImageFetcher: func(
+				ctx context.Context, _ string,
+			) (*http.Response, error) {
+				select {
+				case <-blocked:
+				case <-ctx.Done():
+				}
+				return nil, context.Canceled
+			},
+		},
+	}
+
+	if got := resolveImageSrc(w, url); got != "" {
+		t.Fatalf("first resolve = %q, want \"\"", got)
+	}
+	// Simulate the file appearing (e.g. another window's download
+	// finishing) while this window still tracks the URL as active.
+	hash := hashString(url)
+	cacheDir := filepath.Join(os.TempDir(), "gui_cache", "images")
+	if err := os.MkdirAll(cacheDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	landed := filepath.Join(cacheDir,
+		strconv.FormatUint(hash, 16)) + ".png"
+	if err := os.WriteFile(landed, []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if got := resolveImageSrc(w, url); got != "" {
+		t.Fatalf("in-flight resolve = %q, want \"\"", got)
+	}
+}
+
+// urlDigest must always yield "url="+8 hex chars. FormatUint
+// drops leading zeros, so a hash below 16^7 sliced raw would
+// panic; the %016x padding keeps the slice safe by
+// construction, and this pins the shape over many inputs.
+func TestUrlDigestAlwaysEightHex(t *testing.T) {
+	urls := []string{
+		"", "https://example.invalid/x.png?token=secret",
+		"http://example.invalid/" + strings.Repeat("a", 300),
+	}
+	for i := range 1000 {
+		urls = append(urls,
+			"http://example.invalid/i/"+strconv.Itoa(i)+".png")
+	}
+	for _, u := range urls {
+		got := urlDigest(u)
+		if len(got) != 12 || !strings.HasPrefix(got, "url=") {
+			t.Fatalf("urlDigest(%q) = %q, want url=+8 hex", u, got)
+		}
+		if _, err := strconv.ParseUint(got[4:], 16, 64); err != nil {
+			t.Fatalf("urlDigest(%q) suffix not hex: %v", u, err)
 		}
 	}
 }

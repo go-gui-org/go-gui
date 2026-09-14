@@ -399,7 +399,7 @@ fragment float4 fs_image_clip(
 
     float2 tex_uv   = in.uv * 0.5 + 0.5;
     float4 tex_color = tex.sample(smp, tex_uv);
-    return float4(tex_color.rgb, tex_color.a * alpha);
+    return float4(tex_color.rgb, tex_color.a * alpha * in.color.a);
 }
 
 fragment float4 fs_filter_blur_h(

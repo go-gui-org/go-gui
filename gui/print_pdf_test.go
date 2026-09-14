@@ -116,7 +116,7 @@ func TestRenderToPDF_ImageMissing(t *testing.T) {
 	j := testPrintJob(t)
 	cmds := []RenderCmd{{
 		Kind: RenderImage, X: 0, Y: 0, W: 100, H: 100,
-		Resource: "/nonexistent/image.png",
+		Resource: "/nonexistent/image.png", Opacity: 1,
 	}}
 	if err := renderToPDF(cmds, j, 800, 600); err != nil {
 		t.Fatal(err)
@@ -132,8 +132,8 @@ func TestRenderToPDF_MemImage(t *testing.T) {
 	resetMemImages(t)
 	src := UseImage("pdf/checker", 8, 8, pixels(8, 8, 0x7f))
 	cmds := []RenderCmd{
-		{Kind: RenderImage, X: 0, Y: 0, W: 100, H: 100, Resource: src},
-		{Kind: RenderImage, X: 150, Y: 0, W: 50, H: 50, Resource: src},
+		{Kind: RenderImage, X: 0, Y: 0, W: 100, H: 100, Resource: src, Opacity: 1},
+		{Kind: RenderImage, X: 150, Y: 0, W: 50, H: 50, Resource: src, Opacity: 1},
 	}
 	if err := renderToPDF(cmds, j, 800, 600); err != nil {
 		t.Fatal(err)
@@ -146,7 +146,7 @@ func TestRenderToPDF_MemImageMissing(t *testing.T) {
 	j := testPrintJob(t)
 	cmds := []RenderCmd{{
 		Kind: RenderImage, X: 0, Y: 0, W: 100, H: 100,
-		Resource: "mem:pdf/nope",
+		Resource: "mem:pdf/nope", Opacity: 1,
 	}}
 	if err := renderToPDF(cmds, j, 800, 600); err != nil {
 		t.Fatal(err)

@@ -32,5 +32,14 @@ func renderImage(shape *Shape, clip drawClip, w *Window) {
 		Color:      bgColor,
 		Resource:   shape.Resource,
 		ClipRadius: w.clipRadius,
+		Opacity:    imageAlpha(shape.Opacity, shape.Disabled),
 	}, w)
+}
+
+// imageAlpha folds widget opacity and the disabled dim into one
+// 0..1 multiplier for image texels. Built on dimColor so images
+// dim identically to text, gradients and fills; a NaN opacity
+// applies nothing, matching renderShape.
+func imageAlpha(opacity float32, disabled bool) float32 {
+	return float32(dimColor(White, opacity, disabled).A) / 255
 }

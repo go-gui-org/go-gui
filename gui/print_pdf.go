@@ -246,10 +246,28 @@ func pdfRenderImage(ctx *pdfCtx, cmd RenderCmd) {
 	if path == "" {
 		return
 	}
+	// Texel opacity matches the screen backends; the bg fill
+	// (if any) is drawn by its own command with its own alpha.
+	// The clamp is belt-and-braces for direct feeds: validated
+	// commands already arrive in range.
+	alphaSet := false
+	if cmd.Opacity < 1 {
+		ctx.pdf.SetAlpha(float64(f32Clamp(cmd.Opacity, 0, 1)), "Normal")
+		alphaSet = true
+	}
 	if isMemImage(path) {
 		pdfRenderMemImage(ctx, cmd)
-		return
+	} else {
+		pdfRenderFileImage(ctx, cmd, path)
 	}
+	if alphaSet {
+		resetAlpha(ctx.pdf)
+	}
+}
+
+func pdfRenderFileImage(ctx *pdfCtx, cmd RenderCmd, path string) {
+	// Separate from pdfRenderImage so the alpha wrapper above
+	// stays the single place SetAlpha is paired with its reset.
 	if _, err := os.Stat(path); err != nil {
 		return
 	}

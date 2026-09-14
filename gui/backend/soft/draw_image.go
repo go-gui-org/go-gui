@@ -23,13 +23,41 @@ type imageSrc struct {
 	dstX, dstY     float32
 	scaleX, scaleY float32 // source pixels per device pixel
 	srcW, srcH     int
-	stride         int
+	minX, minY     int     // source Rect.Min: texel offsets are relative to it
+	alpha          float32 // texel alpha multiplier 0..1 from RenderCmd.Opacity
 	nr             color.NRGBA
 }
 
-func newImageSrc(src *image.NRGBA, x, y, w, h float32) *imageSrc {
+func newImageSrc(
+	src *image.NRGBA, x, y, w, h, alpha float32,
+) *imageSrc {
+	// A nil source samples transparent rather than panicking in
+	// Bounds: resolveImage never returns one, but the sampler is
+	// one assignment away from it.
+	if src == nil {
+		src = &image.NRGBA{}
+	}
 	b := src.Bounds()
 	sw, sh := b.Dx(), b.Dy()
+	// Commands arriving via emitRenderer are validated to 0..1,
+	// but drawAll is callable directly: NaN means opaque like
+	// renderShape, anything else clamps.
+	if alpha != alpha {
+		alpha = 1
+	} else if alpha < 0 {
+		alpha = 0
+	} else if alpha > 1 {
+		alpha = 1
+	}
+	// A degenerate dest rect would divide by zero below; the
+	// caller skips empty draws, so clamp defensively instead
+	// of producing Inf scales that poison the sampler.
+	if w <= 0 {
+		w = 1
+	}
+	if h <= 0 {
+		h = 1
+	}
 	return &imageSrc{
 		src:    src,
 		dstX:   x,
@@ -38,7 +66,9 @@ func newImageSrc(src *image.NRGBA, x, y, w, h float32) *imageSrc {
 		scaleY: float32(sh) / h,
 		srcW:   sw,
 		srcH:   sh,
-		stride: src.Stride,
+		minX:   b.Min.X,
+		minY:   b.Min.Y,
+		alpha:  alpha,
 	}
 }
 
@@ -63,25 +93,37 @@ func (s *imageSrc) At(x, y int) color.Color {
 	c01 := s.texel(x0, y0+1)
 	c11 := s.texel(x0+1, y0+1)
 
-	lerp := func(a, b uint8, t float32) float32 {
-		return float32(a) + (float32(b)-float32(a))*t
+	s.nr = color.NRGBA{
+		R: lerpU8(c00[0], c10[0], c01[0], c11[0], tx, ty),
+		G: lerpU8(c00[1], c10[1], c01[1], c11[1], tx, ty),
+		B: lerpU8(c00[2], c10[2], c01[2], c11[2], tx, ty),
+		A: uint8(float32(lerpU8(
+			c00[3], c10[3], c01[3], c11[3], tx, ty,
+		))*s.alpha + 0.5),
 	}
-	mix := func(i int) uint8 {
-		top := lerp(c00[i], c10[i], tx)
-		bot := lerp(c01[i], c11[i], tx)
-		return uint8(top + (bot-top)*ty + 0.5)
-	}
-	s.nr = color.NRGBA{R: mix(0), G: mix(1), B: mix(2), A: mix(3)}
 	return &s.nr
 }
 
-// texel reads one source pixel with edge clamping. x and y are offsets
-// into the source, so the index is plain row arithmetic — PixOffset
-// subtracts Rect.Min, which x and y already are.
+// lerpU8 bilinearly interpolates one channel over the four
+// surrounding texels. A free function so the per-pixel path
+// holds no closures.
+func lerpU8(c00, c10, c01, c11 uint8, tx, ty float32) uint8 {
+	top := float32(c00) + (float32(c10)-float32(c00))*tx
+	bot := float32(c01) + (float32(c11)-float32(c01))*tx
+	return uint8(top + (bot-top)*ty + 0.5)
+}
+
+// texel reads one source pixel with edge clamping. x and y are
+// offsets into the source rect, rebased through Rect.Min via
+// PixOffset — the canonical index for images whose storage
+// starts at a non-zero origin.
 func (s *imageSrc) texel(x, y int) [4]uint8 {
+	if s.srcW <= 0 || s.srcH <= 0 {
+		return [4]uint8{}
+	}
 	x = min(max(x, 0), s.srcW-1)
 	y = min(max(y, 0), s.srcH-1)
-	i := y*s.stride + x*4
+	i := s.src.PixOffset(s.minX+x, s.minY+y)
 	p := s.src.Pix
 	return [4]uint8{p[i], p[i+1], p[i+2], p[i+3]}
 }
@@ -103,12 +145,17 @@ func (r *renderer) drawImage(cmd *gui.RenderCmd) {
 			})
 	}
 
+	// A fully transparent image still draws its (equally faded)
+	// bg above, but skips decode and sampling entirely.
+	if cmd.Opacity <= 0 {
+		return
+	}
 	src, ok := r.resolveImage(cmd.Resource)
 	if !ok {
 		return
 	}
 	rad := cmd.ClipRadius * s
-	r.buf.fillPath(region, newImageSrc(src, x, y, w, h),
+	r.buf.fillPath(region, newImageSrc(src, x, y, w, h, cmd.Opacity),
 		func(z *vector.Rasterizer, ox, oy float32) {
 			pathRoundRect(z, ox, oy, x, y, w, h, rad, false)
 		})

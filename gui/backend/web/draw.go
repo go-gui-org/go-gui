@@ -418,9 +418,23 @@ func (b *Backend) drawImage(r *gui.RenderCmd) {
 			float64(r.ClipRadius))
 		b.ctx2d.Call("clip")
 	}
+	// Opacity rides globalAlpha so faded/disabled images blend
+	// like every other backend's texel tint.
+	alphaSet := false
+	if r.Opacity < 1 {
+		op := r.Opacity
+		if op < 0 {
+			op = 0 // validated upstream; direct feeds clamp here
+		}
+		b.ctx2d.Set("globalAlpha", float64(op))
+		alphaSet = true
+	}
 	b.ctx2d.Call("drawImage", img,
 		float64(r.X), float64(r.Y),
 		float64(r.W), float64(r.H))
+	if alphaSet {
+		b.ctx2d.Set("globalAlpha", 1)
+	}
 	if r.ClipRadius > 0 {
 		b.ctx2d.Call("restore")
 	}

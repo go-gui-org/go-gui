@@ -262,6 +262,9 @@ func serializeCmd(c RenderCmd) string {
 		if c.ClipRadius != 0 {
 			b.WriteString(" cradius=" + f2(c.ClipRadius))
 		}
+		if c.Opacity != 1 {
+			b.WriteString(" opa=" + f2(c.Opacity))
+		}
 	case RenderSvg:
 		fmt.Fprintf(&b, " tris=%d", len(c.Triangles))
 		// A vertex-colored batch is a gradient fill. Record the count

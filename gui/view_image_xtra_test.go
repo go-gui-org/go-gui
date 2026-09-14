@@ -34,6 +34,10 @@ func TestValidateImagePathRejectsTraversal(t *testing.T) {
 		"../secret/photo.png",
 		"../../etc/photo.png",
 		"..",
+		// Matches the backend gate in ResolveValidatedPath.
+		"photo\x00.png",
+		".",
+		"",
 	} {
 		if err := validateImagePath(p); err == nil {
 			t.Errorf("expected error for path traversal: %s", p)

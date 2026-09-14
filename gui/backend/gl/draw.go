@@ -299,7 +299,11 @@ func (b *Backend) drawImage(r *gui.RenderCmd) {
 	if b.pipelines.imageClip.uTex >= 0 {
 		gogl.Uniform1i(b.pipelines.imageClip.uTex, 0)
 	}
-	b.drawQuadUV(x, y, w, h, gui.White, r.ClipRadius*s)
+	// Opacity rides the vertex color: the imageClip shader
+	// multiplies texel alpha by it, so faded and disabled
+	// images blend instead of painting opaque.
+	b.drawQuadUV(x, y, w, h,
+		gui.White.WithOpacity(r.Opacity), r.ClipRadius*s)
 	gogl.BindTexture(gogl.TEXTURE_2D, 0)
 }
 

@@ -283,3 +283,49 @@ func TestEmitDrawCanvasGeometryDisabledDimsBatches(t *testing.T) {
 		t.Fatal("cache entry must not mutate")
 	}
 }
+
+// Image texel opacity must fold shape opacity and the disabled
+// dim into RenderCmd.Opacity, mirroring the bg fill dimming: a
+// faded or disabled image used to paint fully opaque.
+func TestRenderImageOpacityFoldsToTexels(t *testing.T) {
+	cases := []struct {
+		name     string
+		opacity  float32
+		disabled bool
+		want     float32
+	}{
+		{"opaque", 1.0, false, 1},
+		{"faded", 0.5, false, float32(127) / 255},
+		{"disabled", 1.0, true, float32(127) / 255},
+		{"faded disabled", 0.5, true, float32(63) / 255},
+		{"transparent", 0, false, 0},
+		// NaN applies nothing, matching dimColor/renderShape:
+		// the texels stay opaque.
+		{"nan", float32(math.NaN()), false, 1},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			w := &Window{}
+			shape := &Shape{
+				shapeType: shapeImage,
+				X:         10, Y: 20, Width: 100, Height: 80,
+				Color:    White,
+				Opacity:  tc.opacity,
+				Disabled: tc.disabled,
+				Resource: "test.png",
+			}
+			renderShape(shape, ColorTransparent,
+				makeClip(0, 0, 500, 500), w)
+			for _, r := range w.renderers {
+				if r.Kind == RenderImage {
+					if r.Opacity != tc.want {
+						t.Fatalf("Opacity = %v, want %v",
+							r.Opacity, tc.want)
+					}
+					return
+				}
+			}
+			t.Fatal("no RenderImage emitted")
+		})
+	}
+}

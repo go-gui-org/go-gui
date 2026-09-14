@@ -2,6 +2,7 @@ package gui
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -59,8 +60,10 @@ var imageCacheDir = filepath.Join(
 	os.TempDir(), "gui_cache", "images")
 
 // imageCacheExts lists the extensions findCachedImage probes.
-// Package-level to avoid a per-call slice alloc on miss.
-var imageCacheExts = []string{".png", ".jpg", ".jpeg", ".svg"}
+// Package-level to avoid a per-call slice alloc on miss. It
+// matches exactly what imageExtForContentType can produce, so no
+// probe is dead.
+var imageCacheExts = []string{".png", ".jpg", ".svg"}
 
 // imageCacheDirOnce gates MkdirAll on imageCacheDir so the syscall
 // runs once per process instead of once per frame per tile.
@@ -72,6 +75,23 @@ var (
 func ensureImageCacheDir() error {
 	imageCacheDirOnce.Do(func() {
 		imageCacheDirErr = os.MkdirAll(imageCacheDir, 0o750)
+		if imageCacheDirErr != nil {
+			return
+		}
+		// Sweep temp files orphaned by crashed downloads. A
+		// partial never carries a probe extension so none is
+		// servable, but without this each crash leaks one file.
+		entries, err := os.ReadDir(imageCacheDir)
+		if err != nil {
+			return
+		}
+		for _, e := range entries {
+			if !e.IsDir() &&
+				strings.HasPrefix(e.Name(), ".dl-") {
+				_ = os.Remove(
+					filepath.Join(imageCacheDir, e.Name()))
+			}
+		}
 	})
 	return imageCacheDirErr
 }
@@ -90,9 +110,11 @@ func isDataURL(src string) bool {
 // urlDigest returns a short hash prefix for a URL, suitable for log
 // correlation without leaking the full URL (which may contain query-
 // string tokens, signed parameters, or private resource paths).
+// The hex is zero-padded: FormatUint drops leading zeros, and an
+// unpadded short hash would panic the slice below.
 func urlDigest(url string) string {
 	h := hashString(url)
-	return "url=" + strconv.FormatUint(h, 16)[:8]
+	return "url=" + fmt.Sprintf("%016x", h)[:8]
 }
 
 // getDownloadSem returns the lazily-initialized download semaphore.
@@ -191,6 +213,15 @@ func resolveImageSrcWithFetcher(
 		return p
 	}
 
+	// In-flight downloads skip the filesystem probe: the file is
+	// not there yet, so findCachedImage would burn up to 3 Stats
+	// per frame per tile until the download lands.
+	downloads := StateMap[string, int64](
+		w, nsActiveDownloads, capScroll)
+	if downloads.Contains(src) {
+		return ""
+	}
+
 	if err := ensureImageCacheDir(); err != nil {
 		log.Printf("image: mkdir failed: %v", err)
 		return ""
@@ -202,14 +233,10 @@ func resolveImageSrcWithFetcher(
 		resolved.Set(src, p)
 		return p
 	}
-	downloads := StateMap[string, int64](
-		w, nsActiveDownloads, capScroll)
-	if !downloads.Contains(src) {
-		downloads.Set(src, time.Now().Unix())
-		go downloadImage(
-			w.Ctx(), src, basePath,
-			w.Config.MaxImageBytes, w, fetcher)
-	}
+	downloads.Set(src, time.Now().Unix())
+	go downloadImage(
+		w.Ctx(), src, basePath,
+		w.Config.MaxImageBytes, w, fetcher)
 	return ""
 }
 
@@ -270,48 +297,65 @@ func downloadImage(
 	}
 
 	ct := resp.Header.Get("Content-Type")
-	if !strings.HasPrefix(ct, "image/") {
-		log.Printf("invalid content type for image: %s",
-			urlDigest(url))
+	ext, ok := imageExtForContentType(ct)
+	if !ok {
+		log.Printf("unsupported image content type %q: %s",
+			ct, urlDigest(url))
 		removeDownload(url, w)
 		return
 	}
-
-	ext := contentTypeToExt(ct)
 	path := basePath + ext
 
-	// #nosec G304 — path hashed from URL, cache dir hardcoded
-	f, err := os.Create(path)
+	// Write to a temp file and rename into place. Two windows
+	// fetching the same URL share one cache path; a direct
+	// os.Create would let the writers truncate each other. The
+	// temp name matches no probe extension, so a crashed partial
+	// is never served as a hit. CreateTemp is 0600.
+	tmp, err := os.CreateTemp(filepath.Dir(path), ".dl-*")
 	if err != nil {
 		log.Printf("image download create: %v", err)
 		removeDownload(url, w)
 		return
 	}
-	written, err := io.Copy(f, io.LimitReader(resp.Body, maxSize+1))
-	closeErr := f.Close()
+	tmpName := tmp.Name()
+	written, err := io.Copy(tmp, io.LimitReader(resp.Body, maxSize+1))
+	closeErr := tmp.Close()
 	if err != nil {
-		_ = os.Remove(path)
 		if closeErr != nil {
 			log.Printf("image download write: %v; close: %v",
 				err, closeErr)
 		} else {
 			log.Printf("image download write: %v", err)
 		}
+		_ = os.Remove(tmpName)
 		removeDownload(url, w)
 		return
 	}
 	if closeErr != nil {
-		_ = os.Remove(path)
+		_ = os.Remove(tmpName)
 		log.Printf("image download close: %v", closeErr)
 		removeDownload(url, w)
 		return
 	}
 	if written > maxSize {
-		_ = os.Remove(path)
+		_ = os.Remove(tmpName)
 		log.Printf("image download body exceeds limit: %s",
 			urlDigest(url))
 		removeDownload(url, w)
 		return
+	}
+	if err := os.Rename(tmpName, path); err != nil {
+		// Windows cannot rename over an existing file: a
+		// concurrent download for the same URL already won.
+		// Serve the winner rather than failing.
+		_ = os.Remove(tmpName)
+		if winner := findCachedImage(basePath); winner != "" {
+			path = winner
+		} else {
+			log.Printf("image download rename: %v", err)
+			removeDownload(url, w)
+			return
+		}
 	}
 
 	w.QueueCommand(func(w *Window) {
@@ -333,16 +377,24 @@ func removeDownload(url string, w *Window) {
 	})
 }
 
-func contentTypeToExt(ct string) string {
-	switch {
-	case strings.HasPrefix(ct, "image/svg+xml"):
-		return ".svg"
-	case strings.HasPrefix(ct, "image/png"):
-		return ".png"
-	case strings.HasPrefix(ct, "image/jpeg"):
-		return ".jpg"
+// imageExtForContentType maps a response Content-Type to its
+// cache extension. Only types the decoders accept (PNG, JPEG for
+// DecodeNRGBA; SVG for the svgView path) are admitted — anything
+// else is rejected before a byte hits disk rather than cached
+// under a wrong extension and failing decode every frame after.
+// Matching is case-insensitive and ignores parameters such as
+// "; charset=binary".
+func imageExtForContentType(ct string) (string, bool) {
+	base, _, _ := strings.Cut(ct, ";")
+	switch strings.ToLower(strings.TrimSpace(base)) {
+	case "image/svg+xml":
+		return ".svg", true
+	case "image/png":
+		return ".png", true
+	case "image/jpeg":
+		return ".jpg", true
 	default:
-		return ".png"
+		return "", false
 	}
 }
 

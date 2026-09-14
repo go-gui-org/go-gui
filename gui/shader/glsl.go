@@ -516,7 +516,7 @@ const (
         // Remap -1..1 to 0..1 for texture sampling
         vec2 tex_uv = uv * 0.5 + 0.5;
         vec4 tex_color = texture(tex, tex_uv);
-        frag_color = vec4(tex_color.rgb, tex_color.a * alpha);
+        frag_color = vec4(tex_color.rgb, tex_color.a * alpha * color.a);
     }
 `
 

@@ -532,3 +532,25 @@ func TestF32AllFiniteN(t *testing.T) {
 		t.Error("-Inf should fail")
 	}
 }
+
+func TestRendererValidImageOpacity(t *testing.T) {
+	valid := []float32{0, 0.5, 1}
+	for _, op := range valid {
+		r := RenderCmd{Kind: RenderImage, W: 10, H: 10, Opacity: op}
+		if !rendererValidForDraw(r) {
+			t.Errorf("opacity %v should pass", op)
+		}
+	}
+	invalid := []float32{-0.5, 1.5, float32(2.0)}
+	for _, op := range invalid {
+		r := RenderCmd{Kind: RenderImage, W: 10, H: 10, Opacity: op}
+		if rendererValidForDraw(r) {
+			t.Errorf("opacity %v should fail", op)
+		}
+	}
+	r := RenderCmd{Kind: RenderImage, W: 10, H: 10,
+		Opacity: float32(math.NaN())}
+	if rendererValidForDraw(r) {
+		t.Error("NaN opacity should fail")
+	}
+}

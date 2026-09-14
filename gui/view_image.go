@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"unicode/utf8"
 )
 
 // ImageCfg configures an image view.
@@ -62,13 +63,23 @@ func (iv *imageView) GenerateLayout(w *Window) Layout {
 	if isHTTPURL(c.Src) {
 		imagePath = resolveImageSrc(w, c.Src)
 		if imagePath == "" {
-			return downloadingPlaceholder(c)
+			return downloadingPlaceholder(c, w)
 		}
-		if strings.HasSuffix(imagePath, ".svg") {
+		if strings.HasSuffix(strings.ToLower(imagePath), ".svg") {
+			// Forward the identity, interaction and assistive
+			// fields SvgCfg can carry. SvgCfg has no OnHover,
+			// Opacity, BgColor or min/max sizing, so a remote
+			// SVG still loses those; widening SvgCfg is a
+			// separate API change.
 			sv := &svgView{cfg: SvgCfg{
-				FileName: imagePath,
-				Width:    c.Width,
-				Height:   c.Height,
+				OnClick:       c.OnClick,
+				ID:            c.ID,
+				FileName:      imagePath,
+				A11YCfg:       c.A11YCfg,
+				Width:         c.Width,
+				Height:        c.Height,
+				Sound:         c.Sound,
+				SoundDisabled: c.SoundDisabled,
 			}}
 			return sv.GenerateLayout(w)
 		}
@@ -79,11 +90,11 @@ func (iv *imageView) GenerateLayout(w *Window) Layout {
 	// buffer in the in-memory registry, so there is no path to stat.
 	if !isDataURL(c.Src) && !isMemImage(c.Src) {
 		if err := validateImagePath(imagePath); err != nil {
-			log.Printf("image: %v", err)
+			warnImageOnce(w, c.Src, err)
 			return errorTextLayout(c.Src, w)
 		}
 		if _, err := os.Stat(imagePath); err != nil {
-			log.Printf("image: %v", err)
+			warnImageOnce(w, c.Src, err)
 			return errorTextLayout(c.Src, w)
 		}
 	}
@@ -135,7 +146,7 @@ func (iv *imageView) GenerateLayout(w *Window) Layout {
 
 // downloadingPlaceholder returns a neutral rectangle shown while a
 // remote image download is in flight.
-func downloadingPlaceholder(c *ImageCfg) Layout {
+func downloadingPlaceholder(c *ImageCfg, w *Window) Layout {
 	width := c.Width
 	if width <= 0 {
 		width = 100
@@ -145,26 +156,56 @@ func downloadingPlaceholder(c *ImageCfg) Layout {
 		height = 100
 	}
 	layout := Layout{
-		Shape: &Shape{
+		Shape: w.allocShape(Shape{
 			shapeType: shapeRectangle,
 			ID:        c.ID,
 			Width:     width,
 			Height:    height,
 			Color:     guiTheme.ColorBackground,
 			Opacity:   c.Opacity.Get(1.0),
-		},
+		}),
 	}
 	applyFixedSizingConstraints(layout.Shape)
 	return layout
 }
 
+// warnImageOnce logs an unusable image source once per window so a
+// missing file does not spam the log on every frame. The full
+// error is kept (it names the reason); only the framed UI text is
+// truncated.
+func warnImageOnce(w *Window, src string, err error) {
+	warned := StateMap[string, bool](w, nsImageWarned, capImageCache)
+	if warned.Contains(src) {
+		return
+	}
+	warned.Set(src, true)
+	log.Printf("image: %v", err)
+}
+
 // errorTextLayout returns a magenta "[missing: src]" text layout.
+// The source is truncated so a long path cannot bloat layout and
+// measurement every frame.
 func errorTextLayout(src string, w *Window) Layout {
 	ts := guiTheme.TextStyleDef
 	ts.Color = magenta
 	tv := Text(TextCfg{
-		Text:      fmt.Sprintf("[missing: %s]", src),
+		Text:      fmt.Sprintf("[missing: %s]", truncateSrc(src)),
 		TextStyle: ts,
 	})
 	return tv.GenerateLayout(w)
+}
+
+// truncateSrc caps a source string for logs and placeholder text.
+// The cut lands on a rune boundary so a multibyte character
+// cannot split into invalid UTF-8 in the framed UI text.
+func truncateSrc(src string) string {
+	const maxSrcLen = 80
+	if len(src) <= maxSrcLen {
+		return src
+	}
+	end := maxSrcLen
+	for end > 0 && !utf8.ValidString(src[:end]) {
+		end--
+	}
+	return src[:end] + "…"
 }

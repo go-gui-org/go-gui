@@ -3,7 +3,9 @@ package gui
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
+	"unicode/utf8"
 )
 
 func TestImageFactory(t *testing.T) {
@@ -170,7 +172,8 @@ func TestImageA11Y(t *testing.T) {
 func TestDownloadingPlaceholder(t *testing.T) {
 	// Neutral rectangle shown while a remote image download is in
 	// flight: default 100x100, theme background, carries the ID.
-	layout := downloadingPlaceholder(&ImageCfg{ID: "img-remote"})
+	w := &Window{}
+	layout := downloadingPlaceholder(&ImageCfg{ID: "img-remote"}, w)
 	if layout.Shape.shapeType != shapeRectangle {
 		t.Fatalf("placeholder shapeType = %d, want rectangle",
 			layout.Shape.shapeType)
@@ -185,7 +188,7 @@ func TestDownloadingPlaceholder(t *testing.T) {
 
 	// Explicit dimensions and opacity are honored.
 	cfg := ImageCfg{ID: "img2", Width: 200, Height: 50, Opacity: SomeF(0.5)}
-	layout2 := downloadingPlaceholder(&cfg)
+	layout2 := downloadingPlaceholder(&cfg, w)
 	if layout2.Shape.Width != 200 || layout2.Shape.Height != 50 {
 		t.Fatalf("placeholder size = %fx%f, want 200x50",
 			layout2.Shape.Width, layout2.Shape.Height)
@@ -193,5 +196,94 @@ func TestDownloadingPlaceholder(t *testing.T) {
 	if layout2.Shape.Opacity != 0.5 {
 		t.Fatalf("placeholder opacity = %v, want 0.5",
 			layout2.Shape.Opacity)
+	}
+}
+
+// A remote image that resolves to an SVG must keep the ImageCfg
+// identity, click handler and assistive label instead of dropping
+// them at the svgView handoff.
+func TestImageRemoteSVGForwardsIdentity(t *testing.T) {
+	for _, cacheName := range []string{"abc.svg", "abc.SVG"} {
+		url := "https://example.test/" + t.Name() + "/" + cacheName
+		// The resolved cache path must exist: svgView stats it.
+		path := filepath.Join(t.TempDir(), cacheName)
+		if err := os.WriteFile(path, []byte("<svg></svg>"),
+			0o644); err != nil {
+			t.Fatal(err)
+		}
+		w := &Window{}
+		w.SetSvgParser(&mockSvgParser{width: 64, height: 64})
+		resolved := StateMap[string, string](
+			w, nsImageResolved, capImageCache)
+		resolved.Set(url, path)
+
+		clicked := false
+		v := Image(ImageCfg{
+			ID:     "img-svg",
+			Src:    url,
+			Width:  100,
+			Height: 100,
+			OnClick: func(ctx EventCtx) {
+				clicked = true
+			},
+			A11YCfg: A11YCfg{A11YLabel: "remote svg"},
+		})
+		layout := v.GenerateLayout(w)
+		if layout.Shape.shapeType != shapeSVG {
+			t.Fatalf("%s: shapeType = %d, want shapeSVG",
+				cacheName, layout.Shape.shapeType)
+		}
+		if layout.Shape.ID != "img-svg" {
+			t.Errorf("%s: ID = %q, want img-svg",
+				cacheName, layout.Shape.ID)
+		}
+		if layout.Shape.a11Y == nil ||
+			layout.Shape.a11Y.Label != "remote svg" {
+			t.Errorf("%s: A11Y label lost at SVG handoff", cacheName)
+		}
+		if layout.Shape.events == nil {
+			t.Fatalf("%s: OnClick lost at SVG handoff", cacheName)
+		}
+		layout.Shape.events.OnClick(EventCtx{&layout, &Event{
+			MouseButton: MouseLeft,
+		}, w})
+		if !clicked {
+			t.Errorf("%s: click handler not called", cacheName)
+		}
+	}
+}
+
+// A missing file warns once per window, not once per frame.
+func TestImageMissingWarnsOnce(t *testing.T) {
+	w := &Window{}
+	src := "/nonexistent/warn-once-photo.png"
+	v := Image(ImageCfg{ID: "img1", Src: src})
+	v.GenerateLayout(w)
+	v.GenerateLayout(w)
+	warned := StateMapRead[string, bool](w, nsImageWarned)
+	if warned == nil || !warned.Contains(src) {
+		t.Fatal("expected the missing source in the warned set")
+	}
+}
+
+func TestTruncateSrc(t *testing.T) {
+	short := "/a/b.png"
+	if got := truncateSrc(short); got != short {
+		t.Fatalf("short src rewritten: %q", got)
+	}
+	long := "/images/" + strings.Repeat("a", 200) + ".png"
+	got := truncateSrc(long)
+	if len(got) > 80+len("…") {
+		t.Fatalf("long src not capped: len %d", len(got))
+	}
+	// A multibyte character straddling the cut must not split
+	// into invalid UTF-8 in the framed UI text.
+	multi := "/images/" + strings.Repeat("é", 100) + ".png"
+	gotMulti := truncateSrc(multi)
+	if !utf8.ValidString(gotMulti) {
+		t.Fatalf("multibyte src cut mid-rune: %q", gotMulti)
+	}
+	if len(gotMulti) > 80+len("…")+len("é") {
+		t.Fatalf("multibyte src not capped: len %d", len(gotMulti))
 	}
 }
