@@ -74,8 +74,8 @@ func (n *nativePlatform) A11ySync(nodes []gui.A11yNode, count, focusedIdx int) {
 }
 func (n *nativePlatform) A11yDestroy()             { destroyA11y() }
 func (n *nativePlatform) A11yAnnounce(text string) { setA11yAnnounce(text) }
-func (n *nativePlatform) IMEStart()                { setPendingIMEAction(1) }
-func (n *nativePlatform) IMEStop()                 { setPendingIMEAction(2) }
+func (n *nativePlatform) IMEStart()                { setPendingIMEAction(pendingIMEShow) }
+func (n *nativePlatform) IMEStop()                 { setPendingIMEAction(pendingIMEHide) }
 func (n *nativePlatform) IMESetRect(x, y, w, h int32) {
 	setPendingIMERect(x, y, w, h)
 }

@@ -3,7 +3,10 @@
 package gl
 
 import (
+	"math"
+	"strings"
 	"testing"
+	"unicode/utf8"
 
 	"github.com/go-gui-org/go-gui/gui"
 	"github.com/go-gui-org/go-gui/gui/backend/ibus"
@@ -39,18 +42,19 @@ func TestIMEEventsCommit(t *testing.T) {
 		{Kind: ibus.KindCommit, Text: "日本"},
 	}, nil)
 
-	if len(got) != 2 {
-		t.Fatalf("got %d events, want one per rune", len(got))
+	// One event carries the whole string — the contract Event
+	// documents and every other backend emits — so the commit is
+	// one insert and one undo step.
+	if len(got) != 1 {
+		t.Fatalf("got %d events, want 1", len(got))
 	}
-	for i, want := range []rune{'日', '本'} {
-		e := got[i]
-		if e.Type != gui.EventChar || e.CharCode != uint32(want) ||
-			e.IMEText != string(want) {
-			t.Errorf("rune %d mapped to %+v", i, e)
-		}
-		if e.Modifiers != 0 {
-			t.Errorf("rune %d carried modifiers %v", i, e.Modifiers)
-		}
+	e := got[0]
+	if e.Type != gui.EventChar || e.CharCode != uint32('日') ||
+		e.IMEText != "日本" {
+		t.Errorf("commit mapped to %+v", e)
+	}
+	if e.Modifiers != 0 {
+		t.Errorf("commit carried modifiers %v", e.Modifiers)
 	}
 }
 
@@ -58,8 +62,37 @@ func TestIMEEventsCommitDropsReplacementChar(t *testing.T) {
 	got := imeEvents([]ibus.Event{
 		{Kind: ibus.KindCommit, Text: "a�b"},
 	}, nil)
-	if len(got) != 2 || got[0].CharCode != 'a' || got[1].CharCode != 'b' {
+	if len(got) != 1 || got[0].CharCode != 'a' ||
+		got[0].IMEText != "ab" {
 		t.Fatalf("got %+v", got)
+	}
+}
+
+// An empty commit, or one with nothing left after stripping decoding
+// failures, emits nothing: the Win32 backend drops it the same way.
+func TestIMEEventsCommitEmptyEmitsNothing(t *testing.T) {
+	for _, text := range []string{"", "�"} {
+		got := imeEvents([]ibus.Event{
+			{Kind: ibus.KindCommit, Text: text},
+		}, nil)
+		if len(got) != 0 {
+			t.Errorf("commit %q emitted %+v, want nothing", text, got)
+		}
+	}
+}
+
+// A hostile engine must not grow the queue without bound through one
+// commit: the text is capped like the Win32 composition read.
+func TestIMEEventsCommitTruncated(t *testing.T) {
+	big := strings.Repeat("あ", maxIMECommitRunes+10)
+	got := imeEvents([]ibus.Event{
+		{Kind: ibus.KindCommit, Text: big},
+	}, nil)
+	if len(got) != 1 {
+		t.Fatalf("got %d events, want 1", len(got))
+	}
+	if n := utf8.RuneCountInString(got[0].IMEText); n != maxIMECommitRunes {
+		t.Fatalf("commit runes = %d, want %d", n, maxIMECommitRunes)
 	}
 }
 
@@ -106,6 +139,47 @@ func TestIMEEventsAppends(t *testing.T) {
 func TestIMEEventsEmptyInput(t *testing.T) {
 	if got := imeEvents(nil, nil); len(got) != 0 {
 		t.Fatalf("got %+v", got)
+	}
+}
+
+func TestIMEScaledBounds(t *testing.T) {
+	cases := []struct {
+		name string
+		v    int32
+		s    float32
+		want int32
+	}{
+		{"zero", 0, 2, 0},
+		{"ordinary", 120, 2, 240},
+		{"rounds half up", 3, 0.5, 2},
+		{"negative", -40, 2, -80},
+		{"past bound", 1 << 29, 8, imePixelMax},
+		{"past negative bound", -(1 << 29), 8, -imePixelMax},
+		{"nan scale", 100, float32(math.NaN()), 0},
+		{"inf scale on zero", 0, float32(math.Inf(1)), 0},
+		{"inf scale clamps", 100, float32(math.Inf(1)), imePixelMax},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := imeScaled(tc.v, tc.s); got != tc.want {
+				t.Errorf("imeScaled(%d, %v) = %d, want %d",
+					tc.v, tc.s, got, tc.want)
+			}
+		})
+	}
+}
+
+// The root-origin sum must not leave int32 range on a wide virtual
+// desktop: the conversion past the check is implementation-defined.
+func TestIMEAddOriginSaturates(t *testing.T) {
+	if got := imeAddOrigin(imePixelMax, 100); got != imePixelMax {
+		t.Errorf("imeAddOrigin = %d, want %d", got, imePixelMax)
+	}
+	if got := imeAddOrigin(-imePixelMax, -100); got != -imePixelMax {
+		t.Errorf("imeAddOrigin = %d, want %d", got, -imePixelMax)
+	}
+	if got := imeAddOrigin(100, 20); got != 120 {
+		t.Errorf("imeAddOrigin = %d, want 120", got)
 	}
 }
 

@@ -317,9 +317,16 @@ func PendingURI() string {
 
 // --- IME bridge ---
 
+// Pending IME actions for the Kotlin bridge to pick up.
+const (
+	pendingIMENone int32 = iota
+	pendingIMEShow
+	pendingIMEHide
+)
+
 var (
 	pendingIMEMu     sync.Mutex
-	pendingIMEAction int32 // 0=none, 1=show, 2=hide
+	pendingIMEAction int32 // pendingIMENone, pendingIMEShow, pendingIMEHide
 	pendingIMERectX  int32
 	pendingIMERectY  int32
 	pendingIMERectW  int32
@@ -343,12 +350,13 @@ func setPendingIMERect(x, y, w, h int32) {
 	pendingIMEMu.Unlock()
 }
 
-// PendingIMEAction returns and clears the pending IME action.
-// 0=none, 1=show keyboard, 2=hide keyboard.
+// PendingIMEAction returns and clears the pending IME action:
+// pendingIMENone, pendingIMEShow (show keyboard) or pendingIMEHide
+// (hide keyboard).
 func PendingIMEAction() int32 {
 	pendingIMEMu.Lock()
 	a := pendingIMEAction
-	pendingIMEAction = 0
+	pendingIMEAction = pendingIMENone
 	pendingIMEMu.Unlock()
 	return a
 }

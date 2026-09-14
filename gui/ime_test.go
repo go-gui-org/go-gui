@@ -1,6 +1,10 @@
 package gui
 
-import "testing"
+import (
+	"math"
+	"strings"
+	"testing"
+)
 
 func TestIMEUpdateSetsComposing(t *testing.T) {
 	w := newTestWindow()
@@ -222,6 +226,57 @@ func TestIMESetRectNoopWithoutPlatform(_ *testing.T) {
 	w := newTestWindow()
 	// Should not panic with nil nativePlatform.
 	w.IMESetRect(10, 20, 30, 40)
+}
+
+// A hostile or confused input method must not grow per-window state
+// without bound: the preedit is re-sliced every frame in the render
+// path, so it is capped centrally rather than in each backend.
+func TestIMEUpdateTruncatesLongPreedit(t *testing.T) {
+	w := newTestWindow()
+	big := strings.Repeat("あ", maxIMEPreeditRunes+100)
+	w.imeUpdate(&Event{
+		Type:      EventIMEComposition,
+		IMEText:   big,
+		IMEStart:  int32(maxIMEPreeditRunes + 50),
+		IMELength: 100,
+	})
+	if got := utf8RuneCount(w.IMECompText()); got != maxIMEPreeditRunes {
+		t.Fatalf("stored preedit runes = %d, want %d",
+			got, maxIMEPreeditRunes)
+	}
+	if got := w.IMECompCursor(); got != maxIMEPreeditRunes {
+		t.Errorf("cursor = %d, want %d", got, maxIMEPreeditRunes)
+	}
+	if got := w.IMECompSelLen(); got != 0 {
+		t.Errorf("sel len = %d, want 0", got)
+	}
+}
+
+func TestIMECoordBounds(t *testing.T) {
+	nan := float32(math.NaN())
+	inf := float32(math.Inf(1))
+	cases := []struct {
+		name string
+		in   float32
+		want int32
+	}{
+		{"zero", 0, 0},
+		{"rounds to nearest", 120.7, 121},
+		{"negative", -40.2, -40},
+		{"past bound", 1e12, maxIMECoord},
+		{"past negative bound", -1e12, -maxIMECoord},
+		{"positive infinity", inf, maxIMECoord},
+		{"negative infinity", -inf, -maxIMECoord},
+		{"nan", nan, 0},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := imeCoord(tc.in); got != tc.want {
+				t.Errorf("imeCoord(%v) = %d, want %d",
+					tc.in, got, tc.want)
+			}
+		})
+	}
 }
 
 // renderIMEPreedit composes "かん" into a focused text field and

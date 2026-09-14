@@ -10,6 +10,26 @@ and this project adheres to
 
 ### Fixed
 
+- **IME preedit and commit input bounded against hostile input methods** — the
+  preedit stored per window is capped at 4096 runes in `imeUpdate`, so an
+  unbounded composition from any backend cannot grow memory or the per-frame
+  render cost; X11 commit strings are stripped of replacement characters and
+  capped the same way. X11 commits now arrive as a single `EventChar` carrying
+  the whole string, matching the documented contract and every other backend, so
+  a multi-rune CJK commit is one insert and one undo step instead of one event
+  per rune.
+- **IME candidate window follows the caret and rect reports stay finite** — the
+  reported rect is anchored to the composition caret instead of the preedit
+  start, `IMESetRect` rounds to nearest and clamps centrally (NaN lands on zero,
+  infinities on the bound) instead of truncating, and the X11 backend caches the
+  scaled rect like Win32 so the per-frame re-report costs a comparison instead
+  of a D-Bus call. The web backend reports the selected clause from the hidden
+  input's selection during `compositionupdate` instead of always sending a zero
+  range.
+- **Per-frame focus gates share one tree walk** — the render pass resolved the
+  IME edit context and the caret-blink gate in two full walks; both now resolve
+  off one depth-capped walk, so a focused frame pays half the traversal.
+
 - **Faded and disabled images now fade the pixels, not just the backdrop** —
   `ImageCfg.Opacity` and the disabled dim reached only the `BgColor` fill while
   every backend painted the texels fully opaque, because the image shaders

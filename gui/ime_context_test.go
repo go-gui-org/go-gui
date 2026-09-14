@@ -465,3 +465,55 @@ func TestBlinkCursorWindowFocusThroughRealFrame(t *testing.T) {
 		t.Fatal("blink animation not restored when the window refocused")
 	}
 }
+
+// The combined per-frame sync resolves both gates off one walk: one
+// call starts the platform input method and registers the blink.
+func TestIMECaretStateSyncsBoth(t *testing.T) {
+	w := newTestWindow()
+	spy := &imeSpyPlatform{}
+	w.SetNativePlatform(spy)
+	w.layout = imeEditTargetLayout("in")
+
+	w.SetFocus("in")
+	w.syncIMECaretState()
+	if spy.starts != 1 {
+		t.Fatalf("IMEStart calls = %d, want 1", spy.starts)
+	}
+	if !w.HasAnimation(blinkCursorAnimationID) {
+		t.Fatal("blink animation missing after combined sync")
+	}
+
+	w.ClearFocus()
+	w.syncIMECaretState()
+	if spy.stops != 1 {
+		t.Fatalf("IMEStop calls after blur = %d, want 1", spy.stops)
+	}
+	if w.HasAnimation(blinkCursorAnimationID) {
+		t.Fatal("blink animation still active after blur")
+	}
+}
+
+// A chain deeper than the depth budget must terminate rather than
+// recurse until the stack gives out. The tree is not always the app's
+// own — markdown and SVG build subtrees out of documents the app did
+// not write — so the walk stops descending and reports nothing found.
+func TestFindEditTargetsDepthCap(t *testing.T) {
+	w := newTestWindow()
+	w.SetFocus("deep")
+
+	leaf := Layout{Shape: &Shape{
+		shapeType:  shapeText,
+		focusOwner: "deep",
+		TC:         &shapeTextConfig{Text: "hi"},
+	}}
+	for range maxEventDepth + 10 {
+		leaf = Layout{
+			Shape:    &Shape{},
+			Children: []Layout{leaf},
+		}
+	}
+	if caret, ime := findEditTargets(&leaf, w, 0); caret || ime {
+		t.Fatalf("findEditTargets = (%v, %v), want (false, false)",
+			caret, ime)
+	}
+}

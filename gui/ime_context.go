@@ -57,14 +57,18 @@ func shapeDrawsCaret(s *Shape) bool {
 // widget draws a framework caret (the blink gate) and whether it is
 // an editable IME context — in one walk. The walk short-circuits as
 // soon as both are found and is skipped entirely when nothing is
-// focused, so each of its two callers (syncIMEEditContext and
-// syncBlinkCursor) pays one shallow probe per frame with a focused
-// widget, and nothing when nothing is focused. A focused widget can
-// match through two shapes (Input's container and its inner text
-// shape), so once one signal is found the walk keeps going for the
-// other.
-func findEditTargets(layout *Layout, w *Window) (caret, ime bool) {
-	if layout.Shape == nil || w.FocusID() == "" {
+// focused, so a frame with a focused widget pays one shallow probe
+// and nothing when nothing is focused. A focused widget can match
+// through two shapes (Input's container and its inner text shape),
+// so once one signal is found the walk keeps going for the other.
+// Depth is capped like every other tree walk: the tree is not always
+// the app's own, and past maxEventDepth the frame drops input rather
+// than the process.
+func findEditTargets(layout *Layout, w *Window, depth int) (caret, ime bool) {
+	if layout == nil || layout.Shape == nil || w.FocusID() == "" {
+		return false, false
+	}
+	if overMaxDepth(depth) {
 		return false, false
 	}
 	if w.IsFocus(layout.Shape.focusKey()) {
@@ -79,7 +83,7 @@ func findEditTargets(layout *Layout, w *Window) (caret, ime bool) {
 		}
 	}
 	for i := range layout.Children {
-		c, e := findEditTargets(&layout.Children[i], w)
+		c, e := findEditTargets(&layout.Children[i], w, depth+1)
 		caret = caret || c
 		ime = ime || e
 		if caret && ime {
@@ -107,7 +111,14 @@ func findEditTargets(layout *Layout, w *Window) (caret, ime bool) {
 // FocusOut, the IMM context detach, the web hidden input being
 // removed.
 func (w *Window) syncIMEEditContext() {
-	_, ime := findEditTargets(&w.layout, w)
+	_, ime := findEditTargets(&w.layout, w, 0)
+	w.applyIMEEditContext(ime)
+}
+
+// applyIMEEditContext pushes an edit-context transition to the
+// platform. Split from the walk so the combined per-frame sync can
+// share one walk between both gates.
+func (w *Window) applyIMEEditContext(ime bool) {
 	focusID := w.FocusID()
 	editing := focusID != "" && ime
 	id := ""
@@ -151,7 +162,13 @@ func (w *Window) syncIMEEditContext() {
 // same inputCursorOn state, so its registration is never removed
 // here: it blinks without any focused input.
 func (w *Window) syncBlinkCursor() {
-	caret, _ := findEditTargets(&w.layout, w)
+	caret, _ := findEditTargets(&w.layout, w, 0)
+	w.applyBlinkCursor(caret)
+}
+
+// applyBlinkCursor registers or retires the caret-blink animation
+// for a caret gate already resolved by a tree walk.
+func (w *Window) applyBlinkCursor(caret bool) {
 	// An unfocused window gets no key events, so a blinking caret is a
 	// pure idle wakeup — a 16 ms ticker plus a wakeMain twice a second
 	// for a caret the user cannot type into. Dropping the animation
@@ -169,4 +186,13 @@ func (w *Window) syncBlinkCursor() {
 		delete(w.animations, blinkCursorAnimationID)
 		delete(w.animViewBound, blinkCursorAnimationID)
 	}
+}
+
+// syncIMECaretState runs both per-frame focus gates — the platform
+// input method and the caret-blink animation — off one tree walk.
+// The frame calls this instead of the two syncs above.
+func (w *Window) syncIMECaretState() {
+	caret, ime := findEditTargets(&w.layout, w, 0)
+	w.applyIMEEditContext(ime)
+	w.applyBlinkCursor(caret)
 }

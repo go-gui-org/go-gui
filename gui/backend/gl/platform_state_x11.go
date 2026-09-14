@@ -80,9 +80,14 @@ type platformState struct {
 	// Input method. ime is nil when none is reachable, in which case
 	// key presses keep going straight through the keysym path. imeBuf
 	// is reused by drainIME to keep the handoff allocation-free.
-	ime     *ibus.Client
-	imeBuf  []ibus.Event
-	imeEvts []gui.Event
+	// imeRect caches the last caret rect reported to IBus in root
+	// pixels, so the per-frame re-report from the render path costs
+	// a comparison instead of a D-Bus call.
+	ime         *ibus.Client
+	imeBuf      []ibus.Event
+	imeEvts     []gui.Event
+	imeRect     [4]int32
+	imeHaveRect bool
 
 	// Dead-key / Multi_key composition for the raw keysym path (see
 	// compose_x11.go). Only consulted after the input method declines

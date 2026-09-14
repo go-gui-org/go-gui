@@ -454,8 +454,8 @@ func (w *Window) buildRenderers(bgColor Color, clip drawClip) {
 	// switched here rather than at focus time (gui/ime_context.go).
 	// The caret-blink animation is gated on the same tree — an ID
 	// alone cannot say whether a widget draws a caret (issue #403).
-	w.syncIMEEditContext()
-	w.syncBlinkCursor()
+	// One walk serves both gates.
+	w.syncIMECaretState()
 	renderLayout(&w.layout, bgColor, clip, w)
 	if inspectorSupported && w.inspectorEnabled {
 		inspectorInjectWireframe(w)

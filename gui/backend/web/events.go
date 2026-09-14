@@ -191,9 +191,14 @@ func (b *Backend) registerEvents(w *gui.Window) {
 	reg(js.Global(), "compositionupdate",
 		func(_ js.Value, args []js.Value) any {
 			e := args[0]
+			data := e.Get("data").String()
+			start, length := imeClauseFromTarget(
+				e.Get("target"), data)
 			*evt = gui.Event{
-				Type:    gui.EventIMEComposition,
-				IMEText: e.Get("data").String(),
+				Type:      gui.EventIMEComposition,
+				IMEText:   data,
+				IMEStart:  start,
+				IMELength: length,
 			}
 			w.EventFn(evt)
 			return nil
@@ -280,6 +285,50 @@ func (b *Backend) registerEvents(w *gui.Window) {
 	reg(canvas, "touchmove", touchHandler(gui.EventTouchesMoved))
 	reg(canvas, "touchend", touchHandler(gui.EventTouchesEnded))
 	reg(canvas, "touchcancel", touchHandler(gui.EventTouchesCancelled))
+}
+
+// imeClauseFromTarget reads the selected clause of a live composition
+// from the hidden input's selection. During compositionupdate the
+// input holds the preedit and its selection marks the clause the IME
+// selected for conversion; a collapsed selection is the cursor.
+// Anything unexpected — no target, no numeric selection — yields the
+// zero clause rather than a guess.
+//
+// Selection offsets arrive in UTF-16 units and leave in characters:
+// imeUpdate clamps, but a surrogate pair before the clause would
+// still shift the range by one, the bug PR #210 fixed on macOS.
+func imeClauseFromTarget(target js.Value, data string) (int32, int32) {
+	if !target.Truthy() {
+		return 0, 0
+	}
+	ss := target.Get("selectionStart")
+	se := target.Get("selectionEnd")
+	if ss.Type() != js.TypeNumber || se.Type() != js.TypeNumber {
+		return 0, 0
+	}
+	start := utf16RuneIndex(data, ss.Int())
+	end := max(utf16RuneIndex(data, se.Int()), start)
+	return start, end - start
+}
+
+// utf16RuneIndex converts a UTF-16 code-unit offset into s to a rune
+// offset, clamping to the string. A rune counts once its first unit
+// is reached, so an offset inside a surrogate pair lands after the
+// astral character, matching the Win32 imeRuneIndex rule.
+func utf16RuneIndex(s string, n int) int32 {
+	var count, units int32
+	for _, r := range s {
+		if units >= int32(n) {
+			break
+		}
+		if r > 0xFFFF {
+			units += 2
+		} else {
+			units++
+		}
+		count++
+	}
+	return count
 }
 
 func mapMouseButton(b int) gui.MouseButton {

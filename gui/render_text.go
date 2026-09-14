@@ -461,7 +461,15 @@ func renderIMEPreeditUnderline(
 	}
 
 	// Report cursor rect to platform for candidate window.
-	if len(rects) > 0 {
+	// Anchored to the caret rather than the preedit start, so a
+	// mid-preedit cursor on a wrapped line puts the candidate on
+	// the line being edited.
+	caretByte := runeToByteIndex(compositeText,
+		min(insertPos+compCursor, insertPos+compRuneLen))
+	if cp, ok := gl.GetCursorPos(caretByte); ok {
+		w.IMESetRect(baseX+cp.X, baseY+cp.Y,
+			inputCaretW, cp.Height)
+	} else if len(rects) > 0 {
 		r := rects[0]
 		w.IMESetRect(baseX+r.X, baseY+r.Y, r.Width, r.Height)
 	}

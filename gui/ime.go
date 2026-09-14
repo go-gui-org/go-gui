@@ -8,6 +8,22 @@ type ime struct {
 	composing  bool
 }
 
+// maxIMEPreeditRunes bounds the preedit stored per window. The
+// text arrives from an out-of-process input method with no length
+// promised, and it is re-sliced every frame in the render path, so
+// an unbounded composition is a memory and per-frame CPU blowup.
+// 4096 runes matches the Win32 backend's maxIMECompChars cap on the
+// UTF-16 read; a preedit is a phrase, far past any real one.
+const maxIMEPreeditRunes = 4096
+
+// maxIMECoord bounds a coordinate handed to the platform for
+// candidate placement. float32-to-int32 conversion of an
+// out-of-range value is implementation-defined, and a NaN from a
+// degenerate style must not propagate into IMM or a D-Bus call.
+// Backends with tighter ranges (Win32's int16 caret space) clamp
+// further on their side.
+const maxIMECoord = 1 << 30
+
 // imeUpdate sets composition state from an IME composition event.
 //
 // The offsets are clamped here rather than in each backend: they cross
@@ -20,10 +36,15 @@ func (w *Window) imeUpdate(e *Event) {
 		w.imeClear()
 		return
 	}
-	n := utf8RuneCount(e.IMEText)
+	text := e.IMEText
+	n := utf8RuneCount(text)
+	if n > maxIMEPreeditRunes {
+		text = text[:runeToByteIndex(text, maxIMEPreeditRunes)]
+		n = maxIMEPreeditRunes
+	}
 	cursor := min(max(int(e.IMEStart), 0), n)
 	w.ime.composing = true
-	w.ime.compText = e.IMEText
+	w.ime.compText = text
 	w.ime.compCursor = cursor
 	w.ime.compSelLen = min(max(int(e.IMELength), 0), n-cursor)
 }
@@ -61,12 +82,38 @@ func (w *Window) IMECompSelLen() int {
 	return w.ime.compSelLen
 }
 
+// imeCoord converts a logical coordinate to the int32 the platform
+// takes, rounding to nearest instead of truncating. Non-finite
+// values clamp: NaN lands on zero, infinities on the bound.
+func imeCoord(v float32) int32 {
+	if f32IsFinite(v) {
+		if v > maxIMECoord {
+			return maxIMECoord
+		}
+		if v < -maxIMECoord {
+			return -maxIMECoord
+		}
+		if v >= 0 {
+			return int32(v + 0.5)
+		}
+		return -int32(0.5 - v)
+	}
+	if v > 0 {
+		return maxIMECoord
+	}
+	if v < 0 {
+		return -maxIMECoord
+	}
+	return 0 // NaN
+}
+
 // IMESetRect reports the cursor rect to the platform so the
 // candidate window positions correctly. No-ops if no backend.
 func (w *Window) IMESetRect(x, y, width, height float32) {
 	if np := w.nativePlatform; np != nil {
 		np.IMESetRect(
-			int32(x), int32(y), int32(width), int32(height),
+			imeCoord(x), imeCoord(y),
+			imeCoord(width), imeCoord(height),
 		)
 	}
 }

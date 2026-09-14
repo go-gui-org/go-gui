@@ -3,6 +3,9 @@
 package gl
 
 import (
+	"strings"
+	"unicode/utf8"
+
 	"github.com/jezek/xgb"
 	"github.com/jezek/xgb/xproto"
 
@@ -309,6 +312,62 @@ func (b *Backend) drainIME() {
 	}
 }
 
+// maxIMECommitRunes bounds a commit string from the input method,
+// which arrives over D-Bus with no length promised. Mirrors
+// maxIMECompChars in ime_win32.go and maxIMEPreeditRunes in
+// gui/ime.go; a commit is a phrase, far past any real one.
+const maxIMECommitRunes = 4096
+
+// imeCommitText strips decoding failures and caps the length of a
+// commit string, returning empty when nothing committable remains.
+func imeCommitText(s string) string {
+	if strings.ContainsRune(s, 0xFFFD) {
+		s = strings.Map(func(r rune) rune {
+			if r == 0xFFFD {
+				return -1
+			}
+			return r
+		}, s)
+	}
+	if s == "" {
+		return ""
+	}
+	if utf8.RuneCountInString(s) > maxIMECommitRunes {
+		i := 0
+		for n := 0; n < maxIMECommitRunes; n++ {
+			_, size := utf8.DecodeRuneInString(s[i:])
+			i += size
+		}
+		s = s[:i]
+	}
+	return s
+}
+
+// imePixelMax bounds a scaled caret coordinate. The int32 inputs are
+// already sanitized centrally (gui.imeCoord), but the DPI product and
+// the root-origin sum can still leave int32 range, where the
+// conversion is implementation-defined.
+const imePixelMax = 1 << 30
+
+// imeScaled scales a logical coordinate to root pixels, rounding to
+// nearest and clamping to int32 range.
+func imeScaled(v int32, s float32) int32 {
+	f := float64(v) * float64(s)
+	if f != f {
+		return 0 // NaN scale (0*Inf): no defined int conversion
+	}
+	switch {
+	case f > imePixelMax:
+		return imePixelMax
+	case f < -imePixelMax:
+		return -imePixelMax
+	case f >= 0:
+		return int32(f + 0.5)
+	default:
+		return -int32(0.5 - f)
+	}
+}
+
 // imeEvents converts input-method results to gui events, appending to
 // dst. Kept separate from dispatch so the mapping is testable without
 // an X connection or a running input method.
@@ -325,18 +384,21 @@ func imeEvents(in []ibus.Event, dst []gui.Event) []gui.Event {
 			})
 
 		case ibus.KindCommit:
-			// Committed text is plain input: no modifiers apply, and a
-			// decoding failure upstream must not reach the widget.
-			for _, r := range ev.Text {
-				if r == 0xFFFD {
-					continue
-				}
-				dst = append(dst, gui.Event{
-					Type:     gui.EventChar,
-					CharCode: uint32(r),
-					IMEText:  string(r),
-				})
+			// Committed text is plain input: no modifiers apply, and
+			// a decoding failure upstream must not reach the widget.
+			// One event carries the whole string — the contract
+			// Event documents and every other backend emits — so a
+			// multi-rune CJK commit is one insert and one undo step.
+			text := imeCommitText(ev.Text)
+			if text == "" {
+				continue
 			}
+			first, _ := utf8.DecodeRuneInString(text)
+			dst = append(dst, gui.Event{
+				Type:     gui.EventChar,
+				CharCode: uint32(first),
+				IMEText:  text,
+			})
 
 		case ibus.KindForwardKey:
 			state := uint16(ev.State & 0xffff)
@@ -380,7 +442,10 @@ func (n *nativePlatform) IMEStart() { n.b.plat.ime.FocusIn() }
 // emitted here: the gui layer already clears its own state on a focus
 // change (Window.setFocusID), and re-entering EventFn from inside an
 // event handler would clobber the event being dispatched.
-func (n *nativePlatform) IMEStop() { n.b.plat.ime.FocusOut() }
+func (n *nativePlatform) IMEStop() {
+	n.b.plat.ime.FocusOut()
+	n.b.plat.imeHaveRect = false
+}
 
 // IMESetRect reports the caret rect so the candidate window can anchor
 // to it. The gui layer works in logical points relative to the window;
@@ -391,16 +456,37 @@ func (n *nativePlatform) IMESetRect(x, y, w, h int32) {
 		return
 	}
 	s := b.dpiScale
-	if s <= 0 {
+	if !(s > 0) {
 		s = 1
 	}
 	rx, ry := b.rootOrigin()
-	b.plat.ime.SetCursorLocation(
-		int32(rx)+int32(float32(x)*s),
-		int32(ry)+int32(float32(y)*s),
-		int32(float32(w)*s),
-		int32(float32(h)*s),
-	)
+	rc := [4]int32{
+		imeAddOrigin(imeScaled(x, s), rx),
+		imeAddOrigin(imeScaled(y, s), ry),
+		imeScaled(w, s),
+		imeScaled(h, s),
+	}
+	// Cached like the Win32 rect: the render path re-reports every
+	// frame while composing, and this is a D-Bus call.
+	if b.plat.imeHaveRect && b.plat.imeRect == rc {
+		return
+	}
+	b.plat.imeRect, b.plat.imeHaveRect = rc, true
+	b.plat.ime.SetCursorLocation(rc[0], rc[1], rc[2], rc[3])
+}
+
+// imeAddOrigin adds a root origin to a scaled coordinate without
+// leaving int32 range.
+func imeAddOrigin(v int32, origin int16) int32 {
+	sum := int64(v) + int64(origin)
+	switch {
+	case sum > imePixelMax:
+		return imePixelMax
+	case sum < -imePixelMax:
+		return -imePixelMax
+	default:
+		return int32(sum)
+	}
 }
 
 // pointerRealExit reports whether a LeaveNotify took the pointer out of
