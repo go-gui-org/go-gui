@@ -22,7 +22,7 @@ LINT_BIN = $(LINT_DIR)/golangci-lint
 LINT_ARGS ?=
 
 .PHONY: build-linux build-windows build-macos build-wasm build-ios build-android build-examples \
-	package-linux package-windows package-macos release clean test test-race vet lint lint-bin lint-cross cross-compile coverage-gate prepush check bench bench-gate deps-doc deps-doc-check security gosec govulncheck large-files deadcode generate-check tidy-check workflow-audit cov-report license-check ergonomics-audit ergonomics-audit-fix ergonomics-audit-fix-dry fmt-md fmt-md-check
+	package-linux package-windows package-macos release clean test test-race vet lint lint-bin lint-cross lint-windows lint-js cross-compile coverage-gate test-race-cover prepush check bench bench-gate deps-doc deps-doc-check security gosec govulncheck large-files deadcode generate-check tidy-check workflow-audit cov-report license-check ergonomics-audit ergonomics-audit-fix ergonomics-audit-fix-dry fmt-md fmt-md-check
 
 # Desktop builds are cgo-free since the purego GL bindings (#155): the
 # backend/gl uses X11/xgb + purego EGL on Linux and Win32 syscalls on
@@ -261,8 +261,13 @@ lint-bin: $(LINT_BIN)
 
 # Run golangci-lint at the pinned version. LINT_ARGS passes extra flags
 # through (CI's ios job needs --build-tags ios).
+#
+# --allow-parallel-runners makes a second golangci-lint wait for the
+# cache lock instead of failing. prepush runs lint, lint-windows and
+# lint-js at the same time; without the flag two of the three fail
+# on the lock, and only one GOOS gets linted.
 lint: $(LINT_BIN)
-	$(LINT_BIN) run $(LINT_ARGS) ./...
+	$(LINT_BIN) run --allow-parallel-runners $(LINT_ARGS) ./...
 
 # Lint the GOOS-conditional files the default (GOOS=linux or darwin)
 # build cannot see: every //go:build windows/js file was unlinted before
@@ -271,10 +276,18 @@ lint: $(LINT_BIN)
 # strict superset of CI's: it also covers the cgo metal files, which CI
 # cannot compile from a Linux runner. Mirror of the CI vet job's lint
 # steps (issue #292).
-lint-cross: $(LINT_BIN)
-	GOOS=windows $(LINT_BIN) run ./...
-	GOOS=js GOARCH=wasm $(LINT_BIN) run ./...
-	GOOS=darwin $(LINT_BIN) run ./...
+lint-cross: lint-windows lint-js $(LINT_BIN)
+	GOOS=darwin $(LINT_BIN) run --allow-parallel-runners ./...
+
+# One GOOS each, so prepush can run them at the same time as `lint`.
+# After an edit to gui/, each pass re-analyses almost the whole module
+# (~50s), so running the three together saves ~50s over running them
+# one after another.
+lint-windows: $(LINT_BIN)
+	GOOS=windows $(LINT_BIN) run --allow-parallel-runners ./...
+
+lint-js: $(LINT_BIN)
+	GOOS=js GOARCH=wasm $(LINT_BIN) run --allow-parallel-runners ./...
 
 # Cross-compile the whole module with no C toolchain on the host, for
 # every desktop target CI guards (issue #292). A new cgo import anywhere
@@ -296,6 +309,33 @@ cross-compile:
 coverage-gate:
 	go test -count=1 -coverprofile=/tmp/go-gui-coverage-gate.out ./gui/...
 	scripts/coverage-gate.sh /tmp/go-gui-coverage-gate.out
+
+# test-race and coverage-gate in one test run, for prepush. Running them
+# separately compiles and runs the gui/ tests two times (~36s + ~13s);
+# one -race -coverprofile run takes ~35s.
+#
+# Two packages cannot give coverage under -race, so they run a second,
+# un-raced pass. Without it their statements count as uncovered and the
+# total drops below what CI's coverage job measures:
+#   - gui/backend/gl: -race needs cgo, and cgo crashes gl (see test-race).
+#   - gui/audio: its TestMain exits before any test under -race (upstream
+#     oto init race, gui/audio/audio_test.go).
+# -race forces -covermode=atomic, so the un-raced pass uses atomic too;
+# the profiles must share one mode to be merged. The merged profile keeps
+# only gui/ lines, to match the ./gui/... scope of coverage-gate.
+COV_DIR = /tmp/go-gui-prepush-cov
+test-race-cover:
+	@rm -rf $(COV_DIR) && mkdir -p $(COV_DIR)
+	go test -race -count=1 -timeout=10m -coverprofile=$(COV_DIR)/race.out \
+	  $$(go list ./... | grep -v -e '/gui/backend/gl$$' -e '/gui/audio$$')
+	CGO_ENABLED=0 go test -count=1 -timeout=5m -covermode=atomic \
+	  -coverprofile=$(COV_DIR)/gl.out ./gui/backend/gl/
+	go test -count=1 -timeout=5m -covermode=atomic \
+	  -coverprofile=$(COV_DIR)/audio.out ./gui/audio/
+	@{ echo 'mode: atomic'; \
+	  grep -h '^github.com/go-gui-org/go-gui/gui/' $(COV_DIR)/race.out \
+	    $(COV_DIR)/gl.out $(COV_DIR)/audio.out; } > $(COV_DIR)/merged.out
+	scripts/coverage-gate.sh $(COV_DIR)/merged.out
 
 # Keep-a-Changelog shape: breaking API changes must be under ### Changed with BREAKING label.
 changelog-check:
@@ -323,7 +363,15 @@ check-all: test lint check
 # tests, iOS/Android vet+lint (Xcode/NDK), Windows smoke test, release
 # packaging. `make check` is the fast gate when only gate checks are
 # wanted.
-prepush: test-race lint check lint-cross cross-compile coverage-gate export-audit
+#
+# `check` runs first and alone: it is fast (~6s), and generate-check and
+# tidy-check rewrite files that the other steps read. The rest run at the
+# same time through scripts/run-parallel.sh, which prints the output of
+# each step as one block when all are done. The darwin lint pass of
+# lint-cross is left out: on macOS it is the same analysis as `lint`.
+prepush: check
+	@MAKE="$(MAKE)" scripts/run-parallel.sh \
+	  test-race-cover lint lint-windows lint-js cross-compile export-audit
 
 # Format every tracked Markdown file with Prettier.
 #
