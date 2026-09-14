@@ -102,6 +102,22 @@ func (m *BoundedMap[K, V]) Delete(key K) {
 		m.head = 0
 		return
 	}
+	// Drop the key's ordering slot now. compactOrder only rewrites when its
+	// thresholds fire, so on a small map the slot would stay. A later
+	// Set(key) sees the key as absent and appends a second slot: Keys and
+	// Range then yield it twice, and eviction treats it as the oldest entry.
+	// Every live key holds exactly one slot in order[head:], so the first
+	// match is the only one. The shift is in place and allocates nothing.
+	live := m.order[m.head:]
+	for i, k := range live {
+		if k == key {
+			copy(live[i:], live[i+1:])
+			var zero K
+			live[len(live)-1] = zero
+			m.order = m.order[:len(m.order)-1]
+			break
+		}
+	}
 	m.compactOrder()
 }
 

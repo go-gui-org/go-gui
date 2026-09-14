@@ -484,3 +484,56 @@ func TestBoundedMapRestoreAnyUnbounded(t *testing.T) {
 		t.Errorf("Range after restore saw %d entries, want 2", seen)
 	}
 }
+
+// A deleted key that is set again must hold exactly one ordering slot. Before
+// the fix, Delete left the old slot in place on small maps (compactOrder's
+// thresholds did not fire), so Set appended a second slot: Keys yielded the
+// key twice and eviction treated the re-inserted key as the oldest entry.
+func TestBoundedMapDeleteThenSetKeepsOneOrderSlot(t *testing.T) {
+	m := NewBoundedMap[string, int](4)
+	// "k" stays live: deleting the last key resets order and hides the bug.
+	m.Set("k", 0)
+	m.Set("a", 1)
+	m.Delete("a")
+	m.Set("a", 2)
+	if keys := m.Keys(); len(keys) != 2 || keys[0] != "k" || keys[1] != "a" {
+		t.Fatalf("keys: got %v, want [k a]", keys)
+	}
+	var ranged []string
+	m.Range(func(k string, _ int) bool {
+		ranged = append(ranged, k)
+		return true
+	})
+	if len(ranged) != 2 {
+		t.Fatalf("Range: got %v, want [k a]", ranged)
+	}
+	if c := m.cloneAny().(*BoundedMap[string, int]); len(c.Keys()) != 2 {
+		t.Fatalf("clone keys: got %v, want [k a]", c.Keys())
+	}
+}
+
+func TestBoundedMapDeleteThenSetEvictsInFIFOOrder(t *testing.T) {
+	m := NewBoundedMap[string, int](3)
+	m.Set("a", 1)
+	m.Set("b", 2)
+	m.Delete("a")
+	m.Set("c", 3)
+	m.Set("a", 4) // "a" is now the newest entry; "b" is the oldest.
+	m.Set("d", 5) // at capacity: must evict "b", not "a".
+	if m.Contains("b") {
+		t.Fatalf("b survived eviction; keys %v", m.Keys())
+	}
+	if !m.Contains("a") {
+		t.Fatalf("re-inserted a was evicted as oldest; keys %v", m.Keys())
+	}
+	want := []string{"c", "a", "d"}
+	keys := m.Keys()
+	if len(keys) != len(want) {
+		t.Fatalf("keys: got %v, want %v", keys, want)
+	}
+	for i := range want {
+		if keys[i] != want[i] {
+			t.Fatalf("keys: got %v, want %v", keys, want)
+		}
+	}
+}

@@ -20,6 +20,12 @@ and this project adheres to
 
 ### Fixed
 
+- **`BoundedMap` keeps one ordering slot per key after `Delete`** — `Delete`
+  left the key's slot in the order list on small maps, because compaction runs
+  only past a size threshold. Setting the same key again appended a second slot:
+  `Keys` and `Range` returned the key twice, clones copied the duplicate, and
+  eviction removed the re-inserted key as the oldest entry, before keys that
+  were older. `Delete` now removes the slot in place, with no allocation.
 - **NumericInput inner identities join their scope** — the field and step-button
   IDs were composed from the unresolved leaf, stamping window-global identities
   that collided across scopes. They are now composed from the resolved ID (the
