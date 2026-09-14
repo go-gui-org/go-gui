@@ -334,7 +334,7 @@ func imeCommitText(s string) string {
 	}
 	if utf8.RuneCountInString(s) > maxIMECommitRunes {
 		i := 0
-		for n := 0; n < maxIMECommitRunes; n++ {
+		for range maxIMECommitRunes {
 			_, size := utf8.DecodeRuneInString(s[i:])
 			i += size
 		}
