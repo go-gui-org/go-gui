@@ -103,8 +103,15 @@ jobs:
           path: coverage.out
           retention-days: 30
 
-  vet:
-    name: Vet
+  # The old single Vet job ran vet, four cross-compiles and four lint
+  # passes one after another: ~9.5 minutes, the longest job in the run.
+  # Each part is now its own job, so they run at the same time on
+  # separate runners. Separate runners, not background processes in one
+  # job: a hosted runner has 4 vCPUs, and both builds and lint use all
+  # of them. The `vet` job at the end keeps the name "Vet", which is a
+  # required status check on main.
+  vet-core:
+    name: Vet (go vet)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -123,55 +130,11 @@ jobs:
       - name: Vet
         run: go vet ./...
 
-      # Guards the CGo-free desktop build. The whole module must keep
-      # cross-compiling with no C toolchain on the host; a new cgo import
-      # anywhere reds this step. gui/audio's default Linux output is the
-      # pure-Go PulseAudio sink; oto (ALSA) is opt-in via -tags otoaudio,
-      # so ./... stays cgo-free here.
-      - name: CGo-free cross-compile
-        run: |
-          for target in linux/amd64 linux/arm64 windows/amd64 windows/arm64; do
-            echo "==> $target"
-            CGO_ENABLED=0 GOOS=${target%/*} GOARCH=${target#*/} \
-              go build ./...
-          done
-
-      # The opt-in oto/ALSA sink is excluded from every build above, so
-      # compile it explicitly or it bit-rots unnoticed.
+      # The opt-in oto/ALSA sink is excluded from the cgo-free
+      # cross-compile builds, so compile it explicitly or it bit-rots
+      # unnoticed.
       - name: Build oto/ALSA audio sink (-tags otoaudio)
         run: go build -tags otoaudio ./gui/audio/...
-
-      - name: Lint
-        run: make lint
-
-      # The step above analyses the GOOS=linux build only, so every
-      # //go:build windows file (27 of them: gl/, sni/, filedialog/,
-      # hicon/) was never linted by CI and had accumulated a baseline
-      # nothing would flag. Linting is a type-check, not an execution,
-      # so the windows build analyses fine from this runner.
-      - name: Lint (GOOS=windows)
-        env:
-          GOOS: windows
-        run: make lint
-
-      # Same blind spot as windows above, for the browser build: every
-      # //go:build js file (the gui/backend/web backend) was unlinted
-      # and had accumulated a two-issue baseline. GOARCH must be wasm —
-      # js/amd64 is not a valid target pair.
-      - name: Lint (GOOS=js)
-        env:
-          GOOS: js
-          GOARCH: wasm
-        run: make lint
-
-      # The darwin build analyses from this runner with cgo disabled
-      # (automatic for cross-compilation), which covers the cgo-free
-      # darwin files. The cgo core of the metal backend still needs a
-      # macOS runner; tracked separately.
-      - name: Lint (GOOS=darwin)
-        env:
-          GOOS: darwin
-        run: make lint
 
       - name: Required-ID check
         run: go run ./tools/requiredid/cmd/requiredid ./...
@@ -183,9 +146,103 @@ jobs:
       - name: Ergo-audit IDs
         run: go run ./tools/ergonomics-audit/ -mode ids .
 
+  # Guards the CGo-free desktop build. The whole module must keep
+  # cross-compiling with no C toolchain on the host; a new cgo import
+  # anywhere reds this job. gui/audio's default Linux output is the
+  # pure-Go PulseAudio sink; oto (ALSA) is opt-in via -tags otoaudio,
+  # so ./... stays cgo-free here. One job per target: each build uses
+  # every core of the runner, so they gain nothing from sharing one.
+  cross-compile:
+    name: Cross-compile (${{ matrix.target }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [linux/amd64, linux/arm64, windows/amd64, windows/arm64]
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version: stable
+          cache: true
+
+      - name: CGo-free build
+        env:
+          TARGET: ${{ matrix.target }}
+        run: |
+          CGO_ENABLED=0 GOOS=${TARGET%/*} GOARCH=${TARGET#*/} \
+            go build ./...
+
+  # Linting is a type-check, not an execution, so every GOOS analyses
+  # fine from a Linux runner. One job per GOOS:
+  #   - linux: the runner's own build.
+  #   - windows: every //go:build windows file (27 of them: gl/, sni/,
+  #     filedialog/, hicon/) was never linted by CI and had accumulated
+  #     a baseline nothing would flag.
+  #   - js: same blind spot, for the browser build (gui/backend/web),
+  #     which had a two-issue baseline. GOARCH must be wasm — js/amd64
+  #     is not a valid target pair.
+  #   - darwin: analyses with cgo disabled (automatic for
+  #     cross-compilation), which covers the cgo-free darwin files. The
+  #     cgo core of the metal backend still needs a macOS runner;
+  #     tracked separately.
+  lint:
+    name: Lint (${{ matrix.goos }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+          - goos: windows
+            goarch: amd64
+          - goos: js
+            goarch: wasm
+          - goos: darwin
+            goarch: amd64
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version: stable
+          cache: true
+
+      # The Makefile clears GOOS/GOARCH while it builds the linter
+      # itself, so these pick only the build being analysed.
+      - name: Lint
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: make lint
+
+  # Aggregate result under the old job name. "Vet" is a required status
+  # check on main; without this job, a lint or cross-compile failure in
+  # the split jobs above would not block a merge. `if: always()` makes it
+  # run, and fail, when a job it needs fails. A skipped job does not
+  # report as a passed required check.
+  vet:
+    name: Vet
+    needs: [vet-core, cross-compile, lint]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every vet, cross-compile and lint job to pass
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "results: $RESULTS"
+          for r in $RESULTS; do
+            [ "$r" = success ] || { echo "::error::a Vet job did not succeed ($r)"; exit 1; }
+          done
+
+  # No `needs:`. Check is a fast gate (~90s), so it starts with every
+  # other job and fails first, instead of waiting ~9 minutes for Test
+  # and Vet. The cost: it also runs when those jobs fail.
   check:
     name: Check (gate)
-    needs: [test, vet]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
