@@ -41,6 +41,10 @@ jobs:
           cp /tmp/website/.gitattributes deploy/ 2>/dev/null || true
           cp /tmp/website/CLAUDE.md deploy/ 2>/dev/null || true
           cp /tmp/website/status.html deploy/ 2>/dev/null || true
+          # force_orphan below replaces the whole site, so every root file the site
+          # serves must be listed here. robots.txt and sitemap.xml were missing and
+          # got deleted on each deploy.
+          cp /tmp/website/robots.txt /tmp/website/sitemap.xml deploy/ 2>/dev/null || true
           cp -a examples/showcase/*.js examples/showcase/*.wasm examples/showcase/*.html deploy/showcase/ 2>/dev/null || true
           ls -la deploy/ deploy/showcase/
 
