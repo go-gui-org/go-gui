@@ -8,6 +8,8 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [v0.76.1] - 2026-09-13
+
 ### Fixed
 
 - **Escape dismisses a dialog whose focused content holds its own key handler**
