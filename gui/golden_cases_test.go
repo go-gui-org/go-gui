@@ -582,8 +582,10 @@ func goldenCases() []goldenCase {
 			},
 		},
 		{
-			name:    "numericinput_focused",
-			focusID: "num",
+			name: "numericinput_focused",
+			// The inner field is the tab stop; the wrapper is
+			// structural, so focus lives on "num:field".
+			focusID: ScopeID("num", "field"),
 			build: func(_ *Window) View {
 				return NumericInput(NumericInputCfg{
 					ID:      "num",

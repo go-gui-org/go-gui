@@ -23,6 +23,10 @@ func inputTextChange(hcfg inputHandlerCfg, layout *Layout, text, ins string, id 
 			text = res.Text
 			StateMap[string, inputState](w, nsInput, capMany).Set(id, inputState{
 				CursorPos: res.CursorPos, Undo: undo, lastEditOp: op,
+				// Unset, not zero: 0 is a valid preferred column
+				// for vertical motion, -1 recomputes it from the
+				// caret (see inputInsert).
+				cursorOffset: -1,
 			})
 			return text, true
 		}
@@ -268,6 +272,9 @@ func inputKeyCopy(
 	if !e.Modifiers.HasAny(ModCtrl, ModSuper) {
 		return false
 	}
+	// Consumed even with nothing to copy: while the field holds
+	// focus it owns the clipboard keys, so a no-op copy must not
+	// fall through to a global handler behind its back.
 	if copied, ok := inputCopy(text, id, isPassword, w); ok {
 		w.SetClipboard(copied)
 	}
@@ -280,6 +287,8 @@ func inputKeyCut(
 	if !e.Modifiers.HasAny(ModCtrl, ModSuper) {
 		return text, false, false
 	}
+	// Consumed even with nothing to cut, like copy above: the
+	// focused field owns the key.
 	newText, copied, ok := inputCut(text, id, isPassword, w)
 	if ok {
 		w.SetClipboard(copied)
@@ -294,6 +303,8 @@ func inputKeyUndoRedo(
 	if !e.Modifiers.HasAny(ModCtrl, ModSuper) {
 		return text, false, false
 	}
+	// Consumed even on an empty stack, like copy and cut: the
+	// focused field owns the key.
 	if e.Modifiers.Has(ModShift) {
 		if nt := inputRedo(text, id, w); nt != text {
 			return nt, true, true

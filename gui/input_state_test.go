@@ -17,8 +17,65 @@ func newTestWindow() *Window {
 	return &Window{focused: true}
 }
 
+func TestMaskedEditsResetPreferredColumn(t *testing.T) {
+	// Masked insert, paste and delete must leave cursorOffset at
+	// -1 (recompute from the caret) like the plain-text paths do.
+	// A stale 0 pins the next Up/Down to the left edge.
+	compiled, err := compileInputMask("99", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	hcfg := inputHandlerCfg{CompiledMask: &compiled}
+	w := newTestWindow()
+	setInputState(w, "m-ins", inputState{CursorPos: 0})
+	inputTextChange(hcfg, nil, "", "1", "m-ins", w)
+	if got := getInputState(w, "m-ins").cursorOffset; got != -1 {
+		t.Errorf("masked insert cursorOffset = %v, want -1", got)
+	}
+	setInputState(w, "m-paste", inputState{CursorPos: 0})
+	if _, changed := inputKeyPaste("", "12", "m-paste", &compiled,
+		inputHandlerCfg{}, w); !changed {
+		t.Fatal("masked paste did not change text")
+	}
+	if got := getInputState(w, "m-paste").cursorOffset; got != -1 {
+		t.Errorf("masked paste cursorOffset = %v, want -1", got)
+	}
+	setInputState(w, "m-del", inputState{CursorPos: 1})
+	if _, changed := inputHandleDelete("1", "m-del", false,
+		&compiled, nil, w); !changed {
+		t.Fatal("masked delete did not change text")
+	}
+	if got := getInputState(w, "m-del").cursorOffset; got != -1 {
+		t.Errorf("masked delete cursorOffset = %v, want -1", got)
+	}
+}
+
 func setInputState(w *Window, focusID string, is inputState) {
 	StateMap[string, inputState](w, nsInput, capMany).Set(focusID, is)
+}
+
+func TestInputClipboardKeysConsumedWhenNoop(t *testing.T) {
+	// While the field holds focus it owns the clipboard keys: a
+	// copy, cut, undo or redo with nothing to do still consumes
+	// the key so it never falls through to a global handler.
+	w := newTestWindow()
+	ctrl := &Event{Modifiers: ModCtrl}
+	if !inputKeyCopy("hi", "c-noop", false, ctrl, w) {
+		t.Error("a no-op copy must still be consumed")
+	}
+	if _, _, handled := inputKeyCut("hi", "x-noop", false,
+		ctrl, w); !handled {
+		t.Error("a no-op cut must still be consumed")
+	}
+	if _, _, handled := inputKeyUndoRedo("hi", "u-noop",
+		ctrl, w); !handled {
+		t.Error("an undo on an empty stack must still be consumed")
+	}
+	redo := &Event{Modifiers: ModCtrl | ModShift}
+	if _, _, handled := inputKeyUndoRedo("hi", "u-noop",
+		redo, w); !handled {
+		t.Error("a redo on an empty stack must still be consumed")
+	}
 }
 
 func getInputState(w *Window, focusID string) inputState {

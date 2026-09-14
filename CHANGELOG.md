@@ -8,7 +8,31 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- **Custom input mask tokens and the remaining mask presets are public** —
+  `InputCfg.MaskTokens` carries caller-defined `MaskTokenDef` tables into the
+  compiled mask the keystroke path reads, `MaskTokenDef.Matcher` is exported so
+  a table can actually be built outside the package, and `MaskCreditCard16`,
+  `MaskCreditCardAmex` and `MaskCVC` join the preset list. A custom token
+  without a `Matcher` fails `compileInputMask` instead of installing a slot no
+  keystroke can ever fill.
+
 ### Fixed
+
+- **NumericInput inner identities join their scope** — the field and step-button
+  IDs were composed from the unresolved leaf, stamping window-global identities
+  that collided across scopes. They are now composed from the resolved ID (the
+  datagrid pattern), the wrapper leaves the tab order to the field with the
+  focus ring following it, and a click on the frame focuses the field. A step
+  lost to float precision no longer sounds the refusal cue, and the step buttons
+  take the `Click` color slot and consume their click.
+- **Masked edits keep vertical navigation and local state stays private** —
+  masked insert, paste and delete left `cursorOffset` at 0, pinning the next
+  Up/Down to the left edge instead of recomputing the column from the caret;
+  `formatRaw` scanned forward per literal instead of one suffix pass; and
+  `numericLocaleNormalize` aliased the caller's `GroupSizes` and the package
+  default instead of cloning.
 
 - **IME preedit and commit input bounded against hostile input methods** — the
   preedit stored per window is capped at 4096 runes in `imeUpdate`, so an
@@ -98,6 +122,10 @@ and this project adheres to
   retention appeared to work, which is how an exporter ends up correct until its
   first `Translate`. No signature changed: an implementation that queues
   commands to serialize after the redraw must copy the points it is handed.
+
+- **BREAKING: NumericInput with Min > Max now panics** — the bounds previously
+  swapped silently and the field clamped the wrong way. Pass them in order; a
+  NaN bound still counts as unset on its side.
 
 ## [v0.76.1] - 2026-09-13
 

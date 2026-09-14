@@ -91,8 +91,11 @@ type numericModeCfg struct {
 var defaultGroupSizes = []int{3}
 
 func numericLocaleNormalize(cfg NumericLocaleCfg) NumericLocaleCfg {
-	// Fast path: reuse slice when all sizes are already positive.
-	sizes := cfg.GroupSizes
+	// Clone: the result must not share a backing array with the
+	// caller's slice or the package default. Both are mutated
+	// nowhere here, but the caller keeps its own handle and would
+	// observe — or inflict — edits through the alias.
+	sizes := slices.Clone(cfg.GroupSizes)
 	allPositive := len(sizes) > 0
 	for _, s := range sizes {
 		if s <= 0 {
@@ -110,7 +113,7 @@ func numericLocaleNormalize(cfg NumericLocaleCfg) NumericLocaleCfg {
 		sizes = filtered
 	}
 	if len(sizes) == 0 {
-		sizes = defaultGroupSizes
+		sizes = slices.Clone(defaultGroupSizes)
 	}
 	groupSep := cfg.GroupSep
 	if groupSep == 0 {
@@ -357,12 +360,15 @@ func numericParse(raw string, loc NumericLocaleCfg) (float64, bool) {
 	return number, true
 }
 
-// numericClamp clamps value between optional min and max. Unset
-// Opt means unbounded, and so does a NaN bound: NaN fails every
-// comparison, so letting it through silently disables that side.
-func numericClamp(value float64, minVal, maxVal Opt[float64]) float64 {
-	lo := math.Inf(-1)
-	hi := math.Inf(1)
+// numericBounds resolves the clamp interval for optional min and
+// max. Unset Opt means unbounded, and so does a NaN bound: NaN fails
+// every comparison, so letting it through silently disables that
+// side. An inverted interval swaps, defensively — inverted bounds
+// are rejected at construction (requireNumericBounds), so reaching
+// here means a bound changed shape after the check.
+func numericBounds(minVal, maxVal Opt[float64]) (lo, hi float64) {
+	lo = math.Inf(-1)
+	hi = math.Inf(1)
 	if v, ok := minVal.Value(); ok && !math.IsNaN(v) {
 		lo = v
 	}
@@ -372,6 +378,14 @@ func numericClamp(value float64, minVal, maxVal Opt[float64]) float64 {
 	if lo > hi {
 		lo, hi = hi, lo
 	}
+	return lo, hi
+}
+
+// numericClamp clamps value between optional min and max. Unset
+// Opt means unbounded, and so does a NaN bound: NaN fails every
+// comparison, so letting it through silently disables that side.
+func numericClamp(value float64, minVal, maxVal Opt[float64]) float64 {
+	lo, hi := numericBounds(minVal, maxVal)
 	if value < lo {
 		return lo
 	}
@@ -623,8 +637,15 @@ func numericInputStepResultClamped(text string, value, minVal, maxVal Opt[float6
 	delta := numericModeStepDelta(stepDisplay, mc)
 	seed := numericStepSeedMode(text, value, minVal, decimals, loc, mc)
 	clamped := numericClamp(seed+(delta*direction), minVal, maxVal)
+	// Refused means the value already sat at the bound the step
+	// pushes against. Comparing against the seed alone misfires
+	// when the step is lost to float precision (1e16 + 1 == 1e16):
+	// nothing moved, but the value is interior, not stuck.
+	lo, hi := numericBounds(minVal, maxVal)
+	atBound := direction > 0 && seed >= hi ||
+		direction < 0 && seed <= lo
 	return Some(clamped), numericModeFormatValue(clamped, decimals, loc, mc),
-		clamped == seed
+		clamped == seed && atBound
 }
 
 func numericInputPreCommitTransformMode(current, proposed string, decimals int, locale NumericLocaleCfg, mc numericModeCfg) (string, bool) {

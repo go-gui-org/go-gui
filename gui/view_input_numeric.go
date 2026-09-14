@@ -1,5 +1,10 @@
 package gui
 
+import (
+	"math"
+	"strconv"
+)
+
 // NumericInputCfg configures a locale-aware numeric input with
 // optional step controls.
 type NumericInputCfg struct {
@@ -78,10 +83,49 @@ type NumericInputCfg struct {
 	Invisible bool
 }
 
+type numericInputView struct {
+	cfg NumericInputCfg
+}
+
 // NumericInput creates a locale-aware numeric input.
 func NumericInput(cfg NumericInputCfg) View {
 	applyNumericInputDefaults(&cfg)
 	requireFocusID("NumericInput", cfg.FocusDisabled, cfg.ID)
+	requireNumericBounds("NumericInput", cfg.Min, cfg.Max)
+	return &numericInputView{cfg: cfg}
+}
+
+// requireNumericBounds panics when Min and Max are both set and
+// inverted. numericClamp would silently swap them, hiding a config
+// error behind a field that clamps the wrong way; fail at
+// construction instead, the way RequireID does. A NaN bound counts
+// as unset on either side.
+func requireNumericBounds(
+	widget string, minVal, maxVal Opt[float64],
+) {
+	lo, loOK := minVal.Value()
+	hi, hiOK := maxVal.Value()
+	if !loOK || !hiOK || math.IsNaN(lo) || math.IsNaN(hi) {
+		return
+	}
+	if lo > hi {
+		panic("gui: " + widget + " Min " +
+			strconv.FormatFloat(lo, 'f', -1, 64) + " > Max " +
+			strconv.FormatFloat(hi, 'f', -1, 64))
+	}
+}
+
+func (v *numericInputView) GenerateLayout(w *Window) Layout {
+	cfg := v.cfg
+
+	// Resolve once, here: every inner ID below is composed from
+	// cfgID, and only generation time knows the scope the control
+	// sits in. Composing from the leaf would stamp an absolute
+	// identity ("age:field") that collides across scopes; the
+	// datagrid spells child IDs from its resolved ID for the same
+	// reason (#519). Handlers close over the resolved key, which
+	// stays valid while the ancestors above it do (see EffID).
+	cfgID := w.EffID(cfg.ID)
 
 	// A numeric input is an Input with steppers, so it takes its border
 	// and radius from the theme's input style rather than a private copy
@@ -92,24 +136,30 @@ func NumericInput(cfg NumericInputCfg) View {
 	locale := numericLocaleNormalize(cfg.Locale)
 	stepCfg := numericStepCfgNormalize(cfg.StepCfg)
 
-	field := numericInputField(cfg, locale, stepCfg, stepCfg.ShowButtons)
+	field := numericInputField(cfg, cfgID, locale, stepCfg, stepCfg.ShowButtons)
 	if !stepCfg.ShowButtons {
-		return field
+		return generateViewLayout(field, w)
 	}
 
 	colorHover := cfg.ColorHover
 	colorBorderFocus := cfg.ColorBorderFocus
-	focusID := cfg.ID
+	// The wrapper is structural, not a tab stop: the inner field
+	// owns typing and arrow stepping, so a click parks the caret
+	// there instead of on the frame.
+	fieldID := ""
+	if cfgID != "" {
+		fieldID = ScopeID(cfgID, "field")
+	}
 
 	content := []View{
 		field,
-		numericInputStepButtons(cfg, locale, stepCfg),
+		numericInputStepButtons(cfg, cfgID, locale, stepCfg),
 	}
 
 	cfg.A11YLabel = a11yLabel(cfg.A11YLabel, cfg.Label)
 	control := Row(ContainerCfg{
 		ID:        cfg.ID,
-		Focusable: !cfg.FocusDisabled,
+		Focusable: false,
 		A11YRole:  AccessRoleTextField,
 		A11YState: a11yReadOnlyState(cfg.ReadOnly),
 		A11YCfg: A11YCfg{
@@ -134,25 +184,52 @@ func NumericInput(cfg NumericInputCfg) View {
 		VAlign:      VAlignMiddle,
 		Spacing:     SomeF(0),
 		OnClick: func(ctx EventCtx) {
-			if focusID != "" {
-				ctx.Window.SetFocus(focusID)
+			if !cfg.FocusDisabled && fieldID != "" {
+				ctx.Window.SetFocus(fieldID)
 			}
 		},
 		OnHover: func(ctx EventCtx) {
-			if ctx.Window.IsFocus(focusID) {
+			if ctx.Window.IsFocus(fieldID) {
 				ctx.Window.setMouseCursor(CursorIBeam)
 			} else {
 				ctx.Layout.Shape.Color = colorHover
 			}
 		},
-		AmendLayout: focusRingAmend(Color{}, colorBorderFocus),
+		AmendLayout: numericControlAmend(colorBorderFocus, fieldID),
 		Content:     content,
 	})
-	return labelledField(cfg.Label, cfg.TextStyle, HAlignLeft, cfg.Sizing, control)
+	return generateViewLayout(
+		labelledField(cfg.Label, cfg.TextStyle, HAlignLeft, cfg.Sizing, control),
+		w)
+}
+
+// numericControlAmend lights the outer frame while the inner field
+// holds focus. The wrapper is not itself focusable, so the border
+// follows the field's focus rather than its own. Only the border:
+// the focused inner field already hangs the theme's ring glow on
+// itself, and a second glow on the frame would double it.
+func numericControlAmend(
+	colorBorderFocus Color, fieldID string,
+) func(EventCtx) {
+	return func(ctx EventCtx) {
+		if ctx.Layout == nil || ctx.Window == nil {
+			return
+		}
+		shape := ctx.Layout.Shape
+		if shape == nil || shape.Disabled {
+			return
+		}
+		if fieldID == "" || !ctx.Window.IsFocus(fieldID) {
+			return
+		}
+		if colorBorderFocus.IsSet() {
+			shape.ColorBorder = colorBorderFocus
+		}
+	}
 }
 
 func numericInputField(
-	cfg NumericInputCfg, locale NumericLocaleCfg,
+	cfg NumericInputCfg, ownerID string, locale NumericLocaleCfg,
 	stepCfg NumericStepCfg, fillParent bool,
 ) View {
 	sizing := cfg.Sizing
@@ -168,8 +245,12 @@ func numericInputField(
 		maxHeight = cfg.MaxHeight
 	}
 	inputID := cfg.ID
-	if fillParent && len(cfg.ID) > 0 {
-		inputID = ScopeID(cfg.ID, "field")
+	if fillParent && len(ownerID) > 0 {
+		// Composed from the resolved owner, not the leaf: a leaf
+		// composite is absolute and would collide across scopes.
+		// Empty stays empty — an ID-less control is inert, and a
+		// global "field" would collide louder, not safer.
+		inputID = ScopeID(ownerID, "field")
 	}
 	color := cfg.Color
 	colorHover := cfg.ColorHover
@@ -250,7 +331,10 @@ func numericInputField(
 	})
 }
 
-func numericInputStepButtons(cfg NumericInputCfg, locale NumericLocaleCfg, stepCfg NumericStepCfg) View {
+func numericInputStepButtons(
+	cfg NumericInputCfg, ownerID string,
+	locale NumericLocaleCfg, stepCfg NumericStepCfg,
+) View {
 	// The step triangle sits below the field text by a fixed 4pt, not by
 	// a rung: the field text is caller-supplied and lands anywhere, so
 	// there is no rung to step from. At the default 16 the drop spans
@@ -278,12 +362,12 @@ func numericInputStepButtons(cfg NumericInputCfg, locale NumericLocaleCfg, stepC
 	baseColor := cfg.Color
 
 	stepUpID := ""
-	if len(cfg.ID) > 0 {
-		stepUpID = ScopeID(cfg.ID, "step_up")
+	if len(ownerID) > 0 {
+		stepUpID = ScopeID(ownerID, "step_up")
 	}
 	stepDownID := ""
-	if len(cfg.ID) > 0 {
-		stepDownID = ScopeID(cfg.ID, "step_down")
+	if len(ownerID) > 0 {
+		stepDownID = ScopeID(ownerID, "step_down")
 	}
 
 	// Read-only fields disable the steppers so they cannot mutate the
@@ -299,18 +383,24 @@ func numericInputStepButtons(cfg NumericInputCfg, locale NumericLocaleCfg, stepC
 		Padding:   NewPadding(0, PadSmall, 0, 0),
 		Content: []View{
 			Button(ButtonCfg{
-				ID:         stepUpID,
-				Disabled:   stepDisabled,
-				Sizing:     FillFill,
-				Padding:    NoPadding,
-				Color:      baseColor,
-				Colors:     ColorSet{Hover: cfg.Colors.Hover, Click: cfg.Colors.BorderFocus, Focus: cfg.Colors.Hover, Border: ColorTransparent},
-				SizeBorder: SomeF(0),
-				Radius:     SomeF(0),
+				ID:       stepUpID,
+				Disabled: stepDisabled,
+				Sizing:   FillFill,
+				Padding:  NoPadding,
+				Color:    baseColor,
+				// An ID-less control is FocusDisabled by
+				// construction (requireFocusID), so the buttons
+				// inherit it rather than panicking on their
+				// empty IDs.
+				FocusDisabled: cfg.FocusDisabled,
+				Colors:        ColorSet{Hover: cfg.Colors.Hover, Click: cfg.Colors.Click, Focus: cfg.Colors.Hover, Border: ColorTransparent},
+				SizeBorder:    SomeF(0),
+				Radius:        SomeF(0),
 				OnClick: func(ctx EventCtx) {
 					numericInputApplyStep(
 						ctx.Layout, cfg, locale, stepCfg,
 						1.0, ctx.Event, ctx.Window)
+					ctx.Consume()
 				},
 				Content: []View{
 					Text(TextCfg{
@@ -320,18 +410,20 @@ func numericInputStepButtons(cfg NumericInputCfg, locale NumericLocaleCfg, stepC
 				},
 			}),
 			Button(ButtonCfg{
-				ID:         stepDownID,
-				Disabled:   stepDisabled,
-				Sizing:     FillFill,
-				Padding:    NoPadding,
-				Color:      baseColor,
-				Colors:     ColorSet{Hover: cfg.Colors.Hover, Click: cfg.Colors.BorderFocus, Focus: cfg.Colors.Hover, Border: ColorTransparent},
-				SizeBorder: SomeF(0),
-				Radius:     SomeF(0),
+				ID:            stepDownID,
+				Disabled:      stepDisabled,
+				Sizing:        FillFill,
+				Padding:       NoPadding,
+				Color:         baseColor,
+				FocusDisabled: cfg.FocusDisabled,
+				Colors:        ColorSet{Hover: cfg.Colors.Hover, Click: cfg.Colors.Click, Focus: cfg.Colors.Hover, Border: ColorTransparent},
+				SizeBorder:    SomeF(0),
+				Radius:        SomeF(0),
 				OnClick: func(ctx EventCtx) {
 					numericInputApplyStep(
 						ctx.Layout, cfg, locale, stepCfg,
 						-1.0, ctx.Event, ctx.Window)
+					ctx.Consume()
 				},
 				Content: []View{
 					Text(TextCfg{

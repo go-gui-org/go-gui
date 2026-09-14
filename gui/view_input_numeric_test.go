@@ -499,3 +499,122 @@ func TestNumericInputArrowShiftStepsTenfold(t *testing.T) {
 		t.Error("a Shift step that moved must be consumed")
 	}
 }
+
+func TestNumericInputScopedInnerIDs(t *testing.T) {
+	// Two controls share one leaf under different scopes: every
+	// inner ID must join its own scope, or the pair collides on
+	// one window-global "ni:field".
+	w := NewTestWindow(WindowCfg{Width: 800, Height: 600})
+	w.TestRender(func(_ *Window) View {
+		panel := func(id string) View {
+			return Column(ContainerCfg{
+				ID: id,
+				Content: []View{NumericInput(NumericInputCfg{
+					ID:      "ni",
+					Text:    "5",
+					StepCfg: NumericStepCfg{ShowButtons: true, Step: 1},
+				})},
+			})
+		}
+		return Column(ContainerCfg{Content: []View{
+			panel("a"),
+			panel("b"),
+		}})
+	})
+
+	if dups := w.TestDuplicateIDs(); len(dups) > 0 {
+		t.Fatalf("duplicate IDs: %v", dups)
+	}
+}
+
+func TestNumericInputOuterClickFocusesField(t *testing.T) {
+	// The wrapper is structural, not a tab stop: a click on it
+	// parks the caret in the field.
+	w := newTestWindow()
+	layout := generateViewLayout(NumericInput(NumericInputCfg{
+		ID:      "ni-click",
+		Text:    "5",
+		StepCfg: NumericStepCfg{ShowButtons: true, Step: 1},
+	}), w)
+	outer := &layout
+	if outer.Shape.events == nil || outer.Shape.events.OnClick == nil {
+		t.Fatal("outer wrapper carries no OnClick")
+	}
+	outer.Shape.events.OnClick(EventCtx{outer, &Event{}, w})
+	if got := w.FocusID(); got != ScopeID("ni-click", "field") {
+		t.Fatalf("focus = %q, want the inner field", got)
+	}
+	if outer.Shape.Focusable {
+		t.Error("outer wrapper must not be a tab stop")
+	}
+}
+
+func TestNumericInputStepClickConsumes(t *testing.T) {
+	// A step mutates the value, so its click is consumed at the
+	// button instead of bubbling to an enclosing handler.
+	w := newTestWindow()
+	committed := ""
+	layout := generateViewLayout(NumericInput(NumericInputCfg{
+		ID:      "ni-consume",
+		Text:    "5",
+		StepCfg: NumericStepCfg{ShowButtons: true, Step: 1},
+		OnValueCommit: func(_ Opt[float64], text string, _ EventCtx) {
+			committed = text
+		},
+	}), w)
+	up := findShapeByID(&layout, ScopeID("ni-consume", "step_up"))
+	if up == nil {
+		t.Fatal("step-up button not found")
+	}
+	e := &Event{}
+	up.Shape.events.OnClick(EventCtx{up, e, w})
+	if committed != "6" {
+		t.Errorf("step committed %q, want \"6\"", committed)
+	}
+	if !e.IsHandled {
+		t.Error("a step click that acted must be consumed")
+	}
+}
+
+func TestRequireNumericBoundsPanics(t *testing.T) {
+	mustPanic := func() (panicked bool) {
+		defer func() { panicked = recover() != nil }()
+		NumericInput(NumericInputCfg{
+			ID:  "ni-bounds",
+			Min: Some(10.0),
+			Max: Some(5.0),
+		})
+		return false
+	}
+	if !mustPanic() {
+		t.Fatal("Min > Max did not panic at construction")
+	}
+	// Unset and NaN bounds stay unset-like: no panic.
+	NumericInput(NumericInputCfg{ID: "ni-bounds-ok"})
+	NumericInput(NumericInputCfg{
+		ID:  "ni-bounds-nan",
+		Min: Some(math.NaN()),
+		Max: Some(5.0),
+	})
+}
+
+func TestNumericInputFocusDisabledIDLessRenders(t *testing.T) {
+	// An ID-less control is FocusDisabled by construction, so the
+	// inner field and step buttons inherit the opt-out instead of
+	// panicking on their empty IDs.
+	defer func() {
+		if r := recover(); r != nil {
+			t.Fatalf("ID-less FocusDisabled NumericInput panicked: %v",
+				r)
+		}
+	}()
+	w := newTestWindow()
+	layout := generateViewLayout(NumericInput(NumericInputCfg{
+		FocusDisabled: true,
+		Text:          "5",
+		StepCfg:       NumericStepCfg{ShowButtons: true, Step: 1},
+	}), w)
+	if layout.Shape.Focusable {
+		t.Error("outer wrapper must not be a tab stop")
+	}
+}

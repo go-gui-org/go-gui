@@ -32,6 +32,24 @@ func assertF64Near(t *testing.T, got, want float64) {
 	}
 }
 
+func TestNumericLocaleNormalizeClonesSlices(t *testing.T) {
+	// The result must not alias the caller's slice or the package
+	// default: an edit through one handle must stay invisible
+	// through the other.
+	src := []int{3, 2}
+	got := numericLocaleNormalize(NumericLocaleCfg{GroupSizes: src})
+	got.GroupSizes[0] = 99
+	if src[0] != 3 {
+		t.Fatalf("caller slice changed to %v through the result", src)
+	}
+	def := numericLocaleNormalize(NumericLocaleCfg{})
+	def.GroupSizes[0] = 99
+	again := numericLocaleNormalize(NumericLocaleCfg{})
+	if len(again.GroupSizes) != 1 || again.GroupSizes[0] != 3 {
+		t.Fatalf("default group sizes = %v, want [3]", again.GroupSizes)
+	}
+}
+
 func TestNumericParse(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
@@ -457,5 +475,49 @@ func TestNumericCommitNaNValueStaysUnset(t *testing.T) {
 	}
 	if s != "" {
 		t.Errorf("NaN value fallback formatted %q, want \"\"", s)
+	}
+}
+
+func TestNumericStepPrecisionLossNotRefused(t *testing.T) {
+	// 1e16 + 1 rounds back to 1e16: nothing moved, but the value
+	// is interior, not stuck at a bound, so no refusal cue.
+	mc := numericModeCfg{displayMultiplier: 1.0}
+	_, _, refused := numericInputStepResultClamped("10000000000000000",
+		Opt[float64]{}, Opt[float64]{}, Opt[float64]{}, 0,
+		NumericStepCfg{Step: 1}, NumericLocaleCfg{}, 1, ModNone, mc)
+	if refused {
+		t.Fatal("a precision-lost step must not report refused")
+	}
+	// A value already sitting at Max still refuses.
+	_, _, refused = numericInputStepResultClamped("5",
+		Opt[float64]{}, Some(5.0), Some(5.0), 0,
+		NumericStepCfg{Step: 1}, NumericLocaleCfg{}, 1, ModNone, mc)
+	if !refused {
+		t.Fatal("a step against Max must report refused")
+	}
+	// Same, pushing down against Min.
+	_, _, refused = numericInputStepResultClamped("5",
+		Opt[float64]{}, Some(5.0), Some(5.0), 0,
+		NumericStepCfg{Step: 1}, NumericLocaleCfg{}, -1, ModNone, mc)
+	if !refused {
+		t.Fatal("a step against Min must report refused")
+	}
+}
+
+func TestNumericBoundsInvertedSwapsDefensively(t *testing.T) {
+	// Inverted bounds never reach here through NumericInput —
+	// requireNumericBounds panics at construction — but the
+	// clamp keeps its old swap so a direct caller still gets a
+	// sane interval instead of a field clamped the wrong way.
+	lo, hi := numericBounds(Some(10.0), Some(5.0))
+	if lo != 5 || hi != 10 {
+		t.Fatalf("inverted bounds resolved to [%v %v], want [5 10]",
+			lo, hi)
+	}
+	if got := numericClamp(7, Some(10.0), Some(5.0)); got != 7 {
+		t.Fatalf("clamp(7) in a swapped [5 10] = %v, want 7", got)
+	}
+	if got := numericClamp(3, Some(10.0), Some(5.0)); got != 5 {
+		t.Fatalf("clamp(3) in a swapped [5 10] = %v, want 5", got)
 	}
 }

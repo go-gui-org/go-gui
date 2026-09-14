@@ -225,6 +225,9 @@ func inputKeyPaste(
 			).Set(id, inputState{
 				CursorPos: res.CursorPos,
 				Undo:      undo,
+				// -1 recomputes the preferred column from the
+				// caret; 0 would pin it to the left edge.
+				cursorOffset: -1,
 			})
 			return res.Text, true
 		}
@@ -300,6 +303,9 @@ func inputHandleDelete(
 			w, nsInput, capMany,
 		).Set(id, inputState{
 			CursorPos: res.CursorPos, Undo: undo, lastEditOp: inputOpDelete,
+			// -1 recomputes the preferred column from the
+			// caret; 0 would pin it to the left edge.
+			cursorOffset: -1,
 		})
 		return res.Text, true
 	}

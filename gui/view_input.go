@@ -69,7 +69,8 @@ type InputCfg struct {
 
 	// MaskTokens defines custom mask token types for the Mask
 	// field. See MaskTokenDef for the format.
-	maskTokens []MaskTokenDef
+	// exportaudit:keep — caller-facing mask API
+	MaskTokens []MaskTokenDef
 
 	// Appearance
 	Padding    Padding
@@ -219,7 +220,7 @@ func Input(cfg InputCfg) View {
 		Mode:                cfg.Mode,
 		Mask:                cfg.Mask,
 		MaskPreset:          cfg.MaskPreset,
-		maskTokens:          cfg.maskTokens,
+		maskTokens:          cfg.MaskTokens,
 		OnTextChanged:       cfg.OnTextChanged,
 		OnTextCommit:        cfg.OnTextCommit,
 		OnEnter:             cfg.OnEnter,
@@ -728,17 +729,11 @@ func inputAmendLayout(
 		}
 
 		// Propagate selection to inner text shape.
-		if len(ctx.Layout.Children) > 0 {
-			inner := &ctx.Layout.Children[0]
-			if len(inner.Children) > 0 {
-				txt := &inner.Children[0]
-				if txt.Shape.TC != nil {
-					is := StateReadOr(ctx.Window, nsInput,
-						key, inputState{})
-					txt.Shape.TC.textSelBeg = is.selectBeg
-					txt.Shape.TC.textSelEnd = is.selectEnd
-				}
-			}
+		if txt := inputTextShapeFromLayout(ctx.Layout); txt != nil {
+			is := StateReadOr(ctx.Window, nsInput,
+				key, inputState{})
+			txt.TC.textSelBeg = is.selectBeg
+			txt.TC.textSelEnd = is.selectEnd
 		}
 
 		// Spell check: trigger when enabled, clear when
@@ -751,5 +746,3 @@ func inputAmendLayout(
 		}
 	}
 }
-
-// inputTextChange handles text modification logic for input widgets

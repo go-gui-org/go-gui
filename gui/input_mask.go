@@ -12,19 +12,24 @@ import (
 type InputMaskPreset uint8
 
 // InputMaskPreset constants.
+// exportaudit:keep — caller-facing mask presets
 const (
 	maskNone InputMaskPreset = iota
 	MaskPhoneUS
-	maskCreditCard16
-	maskCreditCardAmex
+	MaskCreditCard16
+	MaskCreditCardAmex
 	MaskExpiryMMYY
-	maskCVC
+	MaskCVC
 )
 
 // MaskTokenDef defines one token symbol in a mask pattern.
 // exportaudit:keep — reachable from an exported signature
 type MaskTokenDef struct {
-	matcher   func(rune) bool
+	// Matcher reports whether r may occupy this slot. It must be
+	// non-nil: compileInputMask rejects a token without one, because
+	// a nil matcher compiles into a slot no keystroke can ever fill.
+	// exportaudit:keep — caller-facing mask API
+	Matcher   func(rune) bool
 	Transform func(rune) rune
 	Symbol    rune
 }
@@ -55,8 +60,14 @@ type compiledMaskEntry struct {
 // CompiledInputMask stores parsed mask entries and lookup indexes.
 // exportaudit:keep — reachable from an exported signature
 type CompiledInputMask struct {
-	pattern          string
-	entries          []compiledMaskEntry
+	pattern string
+	entries []compiledMaskEntry
+	// lastSlot is the entry index of the final slot, or -1 when
+	// the pattern holds no slots. formatRaw emits a literal only
+	// when a slot follows it (i < lastSlot); precomputed here
+	// because entries are read-only after compile and the per-call
+	// suffix scan would allocate on every keystroke.
+	lastSlot         int
 	slotEntryIndexes []int
 }
 
@@ -68,9 +79,9 @@ func isMaskAlnum(r rune) bool  { return unicode.IsLetter(r) || unicode.IsNumber(
 // InputMaskDefaultTokens returns built-in mask tokens.
 func inputMaskDefaultTokens() []MaskTokenDef {
 	return []MaskTokenDef{
-		{Symbol: '9', matcher: isASCIIDigit},
-		{Symbol: 'a', matcher: isMaskLetter},
-		{Symbol: '*', matcher: isMaskAlnum},
+		{Symbol: '9', Matcher: isASCIIDigit},
+		{Symbol: 'a', Matcher: isMaskLetter},
+		{Symbol: '*', Matcher: isMaskAlnum},
 	}
 }
 
@@ -128,13 +139,13 @@ func inputMaskFromPreset(preset InputMaskPreset) string {
 	switch preset {
 	case MaskPhoneUS:
 		return "(999) 999-9999"
-	case maskCreditCard16:
+	case MaskCreditCard16:
 		return "9999 9999 9999 9999"
-	case maskCreditCardAmex:
+	case MaskCreditCardAmex:
 		return "9999 999999 99999"
 	case MaskExpiryMMYY:
 		return "99/99"
-	case maskCVC:
+	case MaskCVC:
 		return "999"
 	default:
 		return ""
@@ -153,6 +164,10 @@ func compileInputMask(mask string, custom []MaskTokenDef) (CompiledInputMask, er
 		tokenMap[def.Symbol] = def
 	}
 	for _, def := range custom {
+		if def.Matcher == nil {
+			return CompiledInputMask{}, errors.New(
+				"mask token missing matcher")
+		}
 		tokenMap[def.Symbol] = def
 	}
 
@@ -180,7 +195,7 @@ func compileInputMask(mask string, custom []MaskTokenDef) (CompiledInputMask, er
 			entries = append(entries, compiledMaskEntry{
 				kind:      maskSlot,
 				symbol:    def.Symbol,
-				matcher:   def.matcher,
+				matcher:   def.Matcher,
 				transform: transform,
 			})
 		} else {
@@ -203,10 +218,15 @@ func compileInputMask(mask string, custom []MaskTokenDef) (CompiledInputMask, er
 			slotIndexes = append(slotIndexes, i)
 		}
 	}
+	lastSlot := -1
+	if len(slotIndexes) > 0 {
+		lastSlot = slotIndexes[len(slotIndexes)-1]
+	}
 
 	return CompiledInputMask{
 		pattern:          mask,
 		entries:          entries,
+		lastSlot:         lastSlot,
 		slotEntryIndexes: slotIndexes,
 	}, nil
 }
@@ -217,15 +237,6 @@ func (m *CompiledInputMask) slotCount() int {
 
 func (m *CompiledInputMask) slotEntry(slotIndex int) compiledMaskEntry {
 	return m.entries[m.slotEntryIndexes[slotIndex]]
-}
-
-func (m *CompiledInputMask) hasSlotAfter(entryIndex int) bool {
-	for i := entryIndex + 1; i < len(m.entries); i++ {
-		if m.entries[i].kind == maskSlot {
-			return true
-		}
-	}
-	return false
 }
 
 func (m *CompiledInputMask) rawFromFormattedRunes(formatted []rune) []rune {
@@ -247,6 +258,10 @@ func (m *CompiledInputMask) formatRaw(raw []rune) string {
 	if len(raw) == 0 || len(m.entries) == 0 {
 		return ""
 	}
+	// A literal shows only when a slot follows it, so trailing
+	// literals stay hidden until a slot past them fills. lastSlot
+	// is fixed at compile time; a per-call suffix scan here would
+	// allocate on every keystroke.
 	out := make([]rune, 0, len(m.entries))
 	rawIndex := 0
 	for i, entry := range m.entries {
@@ -259,7 +274,7 @@ func (m *CompiledInputMask) formatRaw(raw []rune) string {
 			if entry.matcher != nil && entry.matcher(ch) {
 				out = append(out, entry.transform(ch))
 			}
-		} else if rawIndex < len(raw) && m.hasSlotAfter(i) {
+		} else if rawIndex < len(raw) && i < m.lastSlot {
 			out = append(out, entry.literal)
 		}
 	}

@@ -10,16 +10,16 @@ func TestInputMaskPresets(t *testing.T) {
 	if inputMaskFromPreset(MaskPhoneUS) != "(999) 999-9999" {
 		t.Fatal("phone_us preset mismatch")
 	}
-	if inputMaskFromPreset(maskCreditCard16) != "9999 9999 9999 9999" {
+	if inputMaskFromPreset(MaskCreditCard16) != "9999 9999 9999 9999" {
 		t.Fatal("credit_card_16 preset mismatch")
 	}
-	if inputMaskFromPreset(maskCreditCardAmex) != "9999 999999 99999" {
+	if inputMaskFromPreset(MaskCreditCardAmex) != "9999 999999 99999" {
 		t.Fatal("credit_card_amex preset mismatch")
 	}
 	if inputMaskFromPreset(MaskExpiryMMYY) != "99/99" {
 		t.Fatal("expiry_mm_yy preset mismatch")
 	}
-	if inputMaskFromPreset(maskCVC) != "999" {
+	if inputMaskFromPreset(MaskCVC) != "999" {
 		t.Fatal("cvc preset mismatch")
 	}
 }
@@ -109,7 +109,7 @@ func TestInputMaskCustomTokenTransform(t *testing.T) {
 		return r
 	}
 	custom := []MaskTokenDef{
-		{Symbol: 'A', matcher: isUpperLetter, Transform: toUpper},
+		{Symbol: 'A', Matcher: isUpperLetter, Transform: toUpper},
 	}
 	compiled, err := compileInputMask("AA-99", custom)
 	if err != nil {
@@ -121,6 +121,51 @@ func TestInputMaskCustomTokenTransform(t *testing.T) {
 	}
 	if res.Text != "AB-12" {
 		t.Fatalf("got %q, want %q", res.Text, "AB-12")
+	}
+}
+
+func TestCompileInputMaskNilMatcherRejected(t *testing.T) {
+	// A token without a Matcher compiles into a slot no keystroke
+	// can ever fill, so the compile fails instead of installing a
+	// dead slot.
+	if _, err := compileInputMask("A9",
+		[]MaskTokenDef{{Symbol: 'A'}}); err == nil {
+		t.Fatal("expected error for a token without Matcher")
+	}
+}
+
+func TestInputMaskTokensReachField(t *testing.T) {
+	// InputCfg.MaskTokens must travel from the factory into the
+	// compiled mask the keystroke path reads: only 'x' fits the
+	// custom token, so 'y' is refused.
+	w := newTestWindow()
+	last := ""
+	v := Input(InputCfg{
+		ID:   "mask-tokens-e2e",
+		Mask: "AA",
+		MaskTokens: []MaskTokenDef{{
+			Symbol:  'A',
+			Matcher: func(r rune) bool { return r == 'x' },
+		}},
+		OnTextChanged: func(s string, _ EventCtx) { last = s },
+	})
+	layout := generateViewLayout(v, w)
+	w.SetFocus("mask-tokens-e2e")
+	setInputState(w, "mask-tokens-e2e", inputState{CursorPos: 0})
+	fire := func(ch uint32) {
+		if ev := layout.Shape.events; ev != nil && ev.OnChar != nil {
+			ev.OnChar(EventCtx{&layout, &Event{
+				Type: EventChar, CharCode: ch,
+			}, w})
+		}
+	}
+	fire('x')
+	if last != "x" {
+		t.Fatalf("typed x, text = %q, want %q", last, "x")
+	}
+	fire('y')
+	if last != "x" {
+		t.Fatalf("typed y after x, text = %q, want still %q", last, "x")
 	}
 }
 

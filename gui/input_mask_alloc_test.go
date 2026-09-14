@@ -20,11 +20,11 @@ func TestCompiledMaskAllocBudget(t *testing.T) {
 func TestCompiledMaskCustomTokensCompileFresh(t *testing.T) {
 	digits := []MaskTokenDef{{
 		Symbol:  '#',
-		matcher: isASCIIDigit,
+		Matcher: isASCIIDigit,
 	}}
 	letters := []MaskTokenDef{{
 		Symbol:  '#',
-		matcher: isMaskLetter,
+		Matcher: isMaskLetter,
 	}}
 	// Same pattern, different token tables: the cache must not
 	// serve one for the other.
@@ -54,7 +54,7 @@ func TestCompiledMaskCacheSharesInstances(t *testing.T) {
 func TestCompiledMaskCustomTokensSkipCache(t *testing.T) {
 	custom := []MaskTokenDef{{
 		Symbol:  '#',
-		matcher: isASCIIDigit,
+		Matcher: isASCIIDigit,
 	}}
 	hcfg := inputHandlerCfg{Mask: "##", maskTokens: custom}
 	a := hcfg.compiledMask()
