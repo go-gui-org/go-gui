@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -702,7 +703,11 @@ func TestDownloadImageAtomicWrite(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if info.Mode().Perm() != 0o600 {
+	// Windows has no owner-only bit: CreateTemp's 0600 lands
+	// as 0666 there, so the mode assertion is Unix-only. The
+	// single-entry assertion above is the atomicity coverage
+	// on every platform.
+	if runtime.GOOS != "windows" && info.Mode().Perm() != 0o600 {
 		t.Fatalf("cache mode = %o, want 600", info.Mode().Perm())
 	}
 }
