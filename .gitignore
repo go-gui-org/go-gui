@@ -73,6 +73,11 @@ go.work.sum
 vendor/
 .claude/
 
+# Agent/editor tool config (local only)
+.antigravitycli/
+.windsurf/
+.windsurfrules
+
 # IDE
 .idea/
 .vscode/
