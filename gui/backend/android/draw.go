@@ -598,7 +598,8 @@ func (b *Backend) beginStencilClip(r *gui.RenderCmd) {
 		gui.White, r.Radius*s, 0)
 	C.glesBeginStencilClip(
 		(*C.float)(unsafe.Pointer(&verts[0])),
-		C.int(r.StencilDepth))
+		C.int(r.StencilDepth),
+		(*C.float)(&b.MVP[0]))
 	b.InvalidatePipelineState()
 	b.SetPipeline(pipeSolid)
 }
@@ -609,7 +610,8 @@ func (b *Backend) endStencilClip(r *gui.RenderCmd) {
 		gui.White, r.Radius*s, 0)
 	C.glesEndStencilClip(
 		(*C.float)(unsafe.Pointer(&verts[0])),
-		C.int(r.StencilDepth))
+		C.int(r.StencilDepth),
+		(*C.float)(&b.MVP[0]))
 	b.InvalidatePipelineState()
 	b.SetPipeline(pipeSolid)
 }

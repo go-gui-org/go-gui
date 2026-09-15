@@ -31,6 +31,13 @@ and this project adheres to
   is bound and writes both uniforms through its cached locations. Deleting the
   bound custom pipeline also unbinds it, so a rebuilt program that reuses the
   slot does not get stale writes.
+- **Rounded clips show their content on Android** — `glesBeginStencilClip` and
+  `glesEndStencilClip` bound the stencil program and drew the clip mask without
+  writing its `mvp` uniform. Uniforms belong to one program, so the matrix set
+  on the solid pipeline just before did not reach it. The stencil program kept a
+  zero matrix, the mask covered no pixels, and every child of a rounded clip was
+  clipped away. Both functions now take the frame MVP and write it after they
+  bind the stencil program, as the desktop GL backend already does.
 - **GPU clip rects round outward (#601)** — the GL and Metal backends converted
   a clip box to device pixels by truncating `x`, `y`, `w` and `h` on their own,
   putting the far edge at `floor(x) + floor(w)`. At a fractional DPI scale, or a

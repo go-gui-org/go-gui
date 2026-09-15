@@ -74,5 +74,20 @@ int main(void) {
     expect(harnessUniformWrites == 0,
            "glesSetMVP after deleting the bound pipeline writes nothing");
 
+    // The stencil functions bind PIPE_STENCIL themselves. Uniforms are per
+    // program, so the mvp the Go caller set on PIPE_SOLID does not reach it; each
+    // must upload mvp to the stencil program. Before the fix nothing was written,
+    // the stencil program kept a zero matrix and the clip mask was never drawn.
+    float verts[36] = {0};
+    expect(glesInit() == 0, "glesInit");
+    reset();
+    glesBeginStencilClip(verts, 1, m);
+    expect(harnessUniformWrites == 1 && harnessLastUniformLoc == HARNESS_LOC_MVP,
+           "glesBeginStencilClip writes mvp");
+    reset();
+    glesEndStencilClip(verts, 1, m);
+    expect(harnessUniformWrites == 1 && harnessLastUniformLoc == HARNESS_LOC_MVP,
+           "glesEndStencilClip writes mvp");
+
     return fails != 0;
 }

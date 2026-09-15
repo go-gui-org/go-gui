@@ -1245,7 +1245,17 @@ void glesEndFilter(float blurRadius, int layers,
 
 // ─── Stencil Clip ─────────────────────────────────────────────
 
-void glesBeginStencilClip(const float* verts, int depth) {
+// uploadStencilMVP writes m to PIPE_STENCIL's mvp. It must run after glUseProgram:
+// uniforms are per program, so the mvp the caller set while PIPE_SOLID was bound does
+// not reach the stencil program. Without it the stencil program keeps a zero matrix,
+// gl_Position.w is 0, the mask draws nothing and every clipped child disappears.
+static void uploadStencilMVP(const float* m) {
+    if (!m) return; // A NULL matrix would crash inside the driver.
+    GLint loc = _mvpLocs[PIPE_STENCIL];
+    if (loc >= 0) glUniformMatrix4fv(loc, 1, GL_FALSE, m);
+}
+
+void glesBeginStencilClip(const float* verts, int depth, const float* mvp) {
     glEnable(GL_STENCIL_TEST);
 
     // Increment stencil where SDF passes, no color writes.
@@ -1255,6 +1265,7 @@ void glesBeginStencilClip(const float* verts, int depth) {
 
     glUseProgram(_programs[PIPE_STENCIL]);
     _curPipeline = PIPE_STENCIL;
+    uploadStencilMVP(mvp);
 
     glBindVertexArray(_quadVAO);
     glBindBuffer(GL_ARRAY_BUFFER, _quadVBO);
@@ -1270,7 +1281,7 @@ void glesBeginStencilClip(const float* verts, int depth) {
     glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
 }
 
-void glesEndStencilClip(const float* verts, int depth) {
+void glesEndStencilClip(const float* verts, int depth, const float* mvp) {
     // Decrement stencil where SDF passes, no color writes.
     glStencilFunc(GL_ALWAYS, 0, 0xFF);
     glStencilOp(GL_KEEP, GL_KEEP, GL_DECR);
@@ -1278,6 +1289,7 @@ void glesEndStencilClip(const float* verts, int depth) {
 
     glUseProgram(_programs[PIPE_STENCIL]);
     _curPipeline = PIPE_STENCIL;
+    uploadStencilMVP(mvp);
 
     glBindVertexArray(_quadVAO);
     glBindBuffer(GL_ARRAY_BUFFER, _quadVBO);

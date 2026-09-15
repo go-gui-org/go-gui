@@ -65,7 +65,7 @@ void glesEndFilter(float blurRadius, int layers,
                    const float* colorMatrix);
 
 // Stencil clip
-void glesBeginStencilClip(const float* verts, int depth);
-void glesEndStencilClip(const float* verts, int depth);
+void glesBeginStencilClip(const float* verts, int depth, const float* mvp);
+void glesEndStencilClip(const float* verts, int depth, const float* mvp);
 
 #endif
