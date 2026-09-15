@@ -37,6 +37,9 @@ const (
 	inspectorPropOpacityID  = "__prop_opacity"
 	inspectorPropEventsID   = "__prop_events"
 	inspectorPropChildrenID = "__prop_children"
+	// Leaf of the placeholder child that marks a collapsed node as
+	// expandable. It is not a layout path, so selection ignores it.
+	inspectorDummyLeaf = "__dummy__"
 )
 
 func inspectorToggle(w *Window) {
@@ -106,7 +109,12 @@ func inspectorFloatingPanel(w *Window) View {
 	left := inspectorIsLeft(w)
 	scrollbarPad := guiTheme.ScrollbarStyle.Size +
 		guiTheme.ScrollbarStyle.GapEdge*2
-	scrollbarCfg := &ScrollbarCfg{
+	// One value per axis: sharing a single *ScrollbarCfg would let
+	// interaction state on one axis leak into the other.
+	scrollbarCfgX := &ScrollbarCfg{
+		ColorThumb: guiTheme.ScrollbarStyle.colorThumb,
+	}
+	scrollbarCfgY := &ScrollbarCfg{
 		ColorThumb: guiTheme.ScrollbarStyle.colorThumb,
 	}
 
@@ -124,8 +132,8 @@ func inspectorFloatingPanel(w *Window) View {
 		Clip:          true,
 		ID:            inspectorScrollPanel,
 		Scrollable:    true,
-		ScrollbarCfgX: scrollbarCfg,
-		ScrollbarCfgY: scrollbarCfg,
+		ScrollbarCfgX: scrollbarCfgX,
+		ScrollbarCfgY: scrollbarCfgY,
 		Padding:       NewPadding(0, scrollbarPad, 0, 0),
 		Spacing:       SomeF(0),
 		// The inspector panel overlays the app being inspected; clicks

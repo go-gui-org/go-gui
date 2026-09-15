@@ -3,6 +3,7 @@ package gui
 import (
 	"fmt"
 	"strconv"
+	"strings"
 )
 
 func inspectorNodeTextStyle() TextStyle {
@@ -12,6 +13,13 @@ func inspectorNodeTextStyle() TextStyle {
 func inspectorNodeIconStyle() TextStyle {
 	return guiTheme.treeStyle.textStyleIcon
 }
+
+// inspectorPreviewReplacer folds a text preview onto one row, so a
+// newline or tab in widget text cannot break the tree row layout.
+// Shared and safe for concurrent Replace calls.
+var inspectorPreviewReplacer = strings.NewReplacer(
+	"\r\n", "\u23ce", "\n", "\u23ce", "\r", "\u23ce", "\t", " ",
+)
 
 type inspectorStackFrame struct {
 	nodes []TreeNodeCfg
@@ -99,7 +107,9 @@ func inspectorPropsNodes(p inspectorNodeProps) []TreeNodeCfg {
 			inspectorPropNode(inspectorPropSpacingID,
 				"spacing: "+strconv.Itoa(int(p.Spacing)), ps, pis))
 	}
-	if p.Color.IsSet() && p.Color.A > 0 {
+	// A set color always shows, even a fully transparent one:
+	// ColorTransparent is an explicit choice, not an unset field.
+	if p.Color.IsSet() {
 		nodes = append(nodes, TreeNodeCfg{
 			ID:        inspectorPropColorID,
 			Text:      "color: " + inspectorColorString(p.Color),
@@ -167,7 +177,8 @@ func inspectorSnapshotProps(layout *Layout) inspectorNodeProps {
 	shape := layout.Shape
 	textPreview := ""
 	if shape.TC != nil && shape.TC.Text != "" {
-		textPreview = truncatePreview(shape.TC.Text, 30)
+		textPreview = inspectorPreviewReplacer.Replace(
+			truncatePreview(shape.TC.Text, 30))
 	}
 
 	props := inspectorNodeProps{

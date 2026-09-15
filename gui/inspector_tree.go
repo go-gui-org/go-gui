@@ -21,7 +21,13 @@ func inspectorTreeView(w *Window) View {
 }
 
 func inspectorSelect(path string, w *Window) {
-	if w == nil {
+	if w == nil || path == "" {
+		return
+	}
+	// The collapsed-node placeholder is not a layout path: selecting
+	// it would store a selection inspectorFindByPath can never
+	// resolve, leaving a wireframe that tracks nothing.
+	if strings.HasSuffix(path, IDSep+inspectorDummyLeaf) {
 		return
 	}
 	if strings.HasPrefix(path, inspectorPropPrefix) {
@@ -109,12 +115,15 @@ func inspectorBuildTreeNodes(
 	if w != nil {
 		expanded = treeExpandedState(w, inspectorTreeID)
 	}
+	// props only gains entries for visited nodes: the expanded path
+	// and the selected node's ancestors. Collapsed subtrees are
+	// never walked, so a missing key means "not visited", not
+	// "no props".
 	return inspectorLayoutToTree(
-		w, expanded, &layout.Children[0], "0", selected, props)
+		expanded, &layout.Children[0], "0", selected, props)
 }
 
 func inspectorLayoutToTree(
-	w *Window,
 	expanded map[string]bool,
 	layout *Layout,
 	path string,
@@ -143,14 +152,14 @@ func inspectorLayoutToTree(
 			childNodes = append(
 				childNodes,
 				inspectorLayoutToTree(
-					w, expanded, &layout.Children[i], childPath, selected, props,
+					expanded, &layout.Children[i], childPath, selected, props,
 				)...,
 			)
 		}
 	} else if len(layout.Children) > 0 {
 		// Add a dummy child to show the arrow icon for collapsed nodes.
 		childNodes = append(childNodes, TreeNodeCfg{
-			ID: ScopeID(path, "__dummy__"),
+			ID: ScopeID(path, inspectorDummyLeaf),
 		})
 	}
 

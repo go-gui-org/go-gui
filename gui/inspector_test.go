@@ -1,6 +1,9 @@
 package gui
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func requireInspector(t *testing.T) {
 	t.Helper()
@@ -411,5 +414,65 @@ func TestInspectorTreeIDIsTheRenderedIdentity(t *testing.T) {
 		t.Fatalf("no layout with the inspector tree's key %q; the "+
 			"constant the selection helpers write is not the identity "+
 			"the tree stores under", inspectorTreeID)
+	}
+}
+
+func TestInspectorEventsStringCoversAllHandlers(t *testing.T) {
+	requireInspector(t)
+	events := &eventHandlers{
+		OnKeyUp:      func(ctx EventCtx) {},
+		OnMouseLeave: func(ctx EventCtx) {},
+		OnGesture:    func(ctx EventCtx) {},
+		OnFileDrop:   func(ctx EventCtx) {},
+		OnDraw:       func(*DrawContext) {},
+	}
+	got := inspectorEventsString(events)
+	for _, want := range []string{
+		"keyup", "mouse_leave", "gesture", "filedrop", "draw",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("inspectorEventsString() = %q, missing %q", got, want)
+		}
+	}
+}
+
+func TestInspectorSelectIgnoresDummyAndEmpty(t *testing.T) {
+	requireInspector(t)
+	w := newTestWindow()
+
+	inspectorSelect(ScopeID("0", inspectorDummyLeaf), w)
+	if got := inspectorSelectedPath(w); got != "" {
+		t.Fatalf("selected path = %q, want %q", got, "")
+	}
+	inspectorSelect("", w)
+	if got := inspectorSelectedPath(w); got != "" {
+		t.Fatalf("selected path = %q, want %q", got, "")
+	}
+	if got := StateReadOr(w, nsTreeFocus, inspectorTreeID, ""); got != "" {
+		t.Fatalf("tree focus = %q, want %q", got, "")
+	}
+}
+
+func TestInspectorSnapshotSanitizesPreview(t *testing.T) {
+	requireInspector(t)
+	layout := Layout{Shape: &Shape{
+		TC: &shapeTextConfig{Text: "a\nb\tc"},
+	}}
+	if got := inspectorSnapshotProps(&layout).TextPreview; got != "a⏎b c" {
+		t.Fatalf("TextPreview = %q, want %q", got, "a⏎b c")
+	}
+}
+
+func TestInspectorPropsShowTransparentColor(t *testing.T) {
+	requireInspector(t)
+	nodes := inspectorPropsNodes(inspectorNodeProps{Color: ColorTransparent})
+	found := false
+	for _, n := range nodes {
+		if n.ID == inspectorPropColorID {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("explicit transparent color should still get a prop row")
 	}
 }
