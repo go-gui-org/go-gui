@@ -188,8 +188,17 @@ func numericRoundToDecimals(value float64, decimals int) float64 {
 	return rounded
 }
 
+// numericGroupSize returns the digit count of integer group idx, counted from the
+// decimal point. Groups past the end of groupSizes repeat the last size (Indian
+// [3, 2] means 3, then 2 forever). The formatter and the parser both read sizes
+// here, so they agree on the rule and formatted output always re-parses. An empty
+// list or a non-positive size falls back to 3.
 func numericGroupSize(groupSizes []int, idx int) int {
-	if idx >= 0 && idx < len(groupSizes) && groupSizes[idx] > 0 {
+	if len(groupSizes) == 0 {
+		return 3
+	}
+	idx = max(0, min(idx, len(groupSizes)-1))
+	if groupSizes[idx] > 0 {
 		return groupSizes[idx]
 	}
 	return 3

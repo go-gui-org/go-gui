@@ -36,6 +36,12 @@ and this project adheres to
   visible. When some did not, the `OverflowPanel` menu also listed items that
   were still in the row. The stored value is now the child index where hiding
   starts, which is the index `OverflowPanel` reads.
+- **NumericInput re-parses its own output for multi-size `GroupSizes`** — with
+  `GroupSizes: []int{3, 2}` the formatter repeats the last size for every
+  further group and shows `1,23,45,67,890`, but the parser used size 3 past the
+  end of the list and rejected that string. Commit, edit and arrow-key steps on
+  a displayed value then failed with no error. Both paths now repeat the last
+  configured size.
 - **Rotated children no longer leave stale content sizes on their parents
   (#622)** — a child with `QuarterTurns` 1 or 3 swaps its width and height after
   the fill passes have cached each container's content width and height. Those

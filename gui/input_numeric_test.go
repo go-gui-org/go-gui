@@ -70,6 +70,12 @@ func TestNumericParse(t *testing.T) {
 			NumericLocaleCfg{DecimalSep: '.', GroupSep: '.'}, true, 1.234},
 		{"indian_numbering", "12,34,567",
 			NumericLocaleCfg{GroupSizes: []int{3, 2}}, true, 1234567},
+		// Groups past the configured list repeat the last size, the same rule the
+		// formatter follows; a fallback to 3 here rejected "1,23,45,67,890".
+		{"indian_numbering_repeats_last_size", "1,23,45,67,890",
+			NumericLocaleCfg{GroupSizes: []int{3, 2}}, true, 1234567890},
+		{"indian_numbering_rejects_default_size", "1,234,567,890",
+			NumericLocaleCfg{GroupSizes: []int{3, 2}}, false, 0},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -116,6 +122,34 @@ func TestNumericFormat(t *testing.T) {
 					tt.val, tt.decimals, got, tt.want)
 			}
 		})
+	}
+}
+
+// TestNumericFormatParseRoundTrip pins that every string the formatter emits is
+// accepted by the parser for the same locale. The two paths each look up group
+// sizes, and a disagreement past the end of GroupSizes made a displayed value
+// fail to re-parse on commit or step.
+func TestNumericFormatParseRoundTrip(t *testing.T) {
+	t.Parallel()
+	locales := []NumericLocaleCfg{
+		{},
+		{GroupSizes: []int{3, 2}},
+		{GroupSizes: []int{2, 3, 4}},
+		{DecimalSep: ',', GroupSep: '.', GroupSizes: []int{3, 2}},
+	}
+	values := []float64{0, 12, 1234, 1234567, 1234567890, -9876543210.25}
+	for _, src := range locales {
+		loc := numericLocaleNormalize(src)
+		for _, val := range values {
+			str := numericFormat(val, 2, loc)
+			got, ok := numericParse(str, loc)
+			if !ok {
+				t.Errorf("numericParse(%q) rejected formatter output, sizes %v",
+					str, loc.GroupSizes)
+				continue
+			}
+			assertF64Near(t, got, val)
+		}
 	}
 }
 
