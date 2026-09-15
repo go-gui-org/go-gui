@@ -194,7 +194,6 @@ func layoutWrapContainersDepth(layout *Layout, w *Window, depth int) {
 			Sizing:    FixedFit,
 			Width:     available,
 			Spacing:   spacing,
-			Color:     Color{},
 			HAlign:    layout.Shape.HAlign,
 			VAlign:    layout.Shape.VAlign,
 			TextDir:   layout.Shape.TextDir,

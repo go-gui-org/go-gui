@@ -71,14 +71,17 @@ func layoutAmendDepth(layout *Layout, w *Window, depth int) {
 // SAFETY: mutates w.viewState.mousePosX/Y to compensate for child
 // rotation. Called from layoutArrange, which runs under w.mu.
 func layoutHover(layout *Layout, w *Window) bool {
+	// Asked once for the walk, not once per node: the lock cannot change
+	// while the tree is being walked, since both run on the main
+	// goroutine under w.mu.
+	if w.mouseIsLocked() {
+		return false
+	}
 	return layoutHoverDepth(layout, w, 0)
 }
 
 func layoutHoverDepth(layout *Layout, w *Window, depth int) bool {
 	if overMaxDepth(depth) {
-		return false
-	}
-	if w.mouseIsLocked() {
 		return false
 	}
 	// Apply inverse rotation for children of rotated containers.
@@ -123,14 +126,18 @@ func layoutHoverDepth(layout *Layout, w *Window, depth int) bool {
 // shape whose hover state transitioned inside→outside this frame. shape.ID
 // must be non-empty; shapes with an empty ID are silently skipped.
 func layoutMouseLeave(layout *Layout, w *Window) {
+	// See layoutHover: the lock is asked once for the whole walk.
+	if w.mouseIsLocked() {
+		return
+	}
 	layoutMouseLeaveDepth(layout, w, 0)
 }
 
 func layoutMouseLeaveDepth(layout *Layout, w *Window, depth int) {
-	if overMaxDepth(depth) {
-		return
-	}
-	if w.mouseIsLocked() {
+	// The nil check comes before the first Shape read below, not after
+	// it: a hand-built Layout reaches this walk the way it reaches the
+	// find walks in layout_query.go.
+	if overMaxDepth(depth) || layout == nil || layout.Shape == nil {
 		return
 	}
 	savedX, savedY := w.viewState.mousePosX, w.viewState.mousePosY
@@ -144,15 +151,22 @@ func layoutMouseLeaveDepth(layout *Layout, w *Window, depth int) {
 	w.viewState.mousePosX, w.viewState.mousePosY = savedX, savedY
 
 	shape := layout.Shape
-	if shape == nil || shape.Disabled || shape.events == nil ||
+	if shape.Disabled || shape.events == nil ||
 		shape.events.OnMouseLeave == nil || shape.ID == "" {
 		return
 	}
 	sm := w.hoverInside()
 	key := shape.idKey()
 	inside := shape.PointInShape(w.viewState.mousePosX, w.viewState.mousePosY)
-	// Default false: absent entry means cursor was not previously in shape.
-	wasInside := sm.GetOr(key, false)
+	// The entry records the frame the pointer was last inside this shape,
+	// and only this frame or the one before counts as still hovered. A
+	// shape the walk stopped reaching — disabled, or not generated at all
+	// — leaves its entry behind, and reading that as "was inside" fired a
+	// leave for a hover that had ended frames earlier, as soon as the
+	// shape came back with the pointer somewhere else. An absent entry
+	// means the pointer was never in the shape.
+	prev, ok := sm.Get(key)
+	wasInside := ok && w.frameCount-prev <= 1
 	if wasInside && !inside {
 		w.scratch.hoverEvent = Event{
 			MouseX:      w.viewState.mousePosX,
@@ -163,17 +177,20 @@ func layoutMouseLeaveDepth(layout *Layout, w *Window, depth int) {
 		shape.events.OnMouseLeave(EventCtx{layout, &w.scratch.hoverEvent, w})
 	}
 	if inside {
-		sm.Set(key, true)
-	} else {
+		sm.Set(key, w.frameCount)
+	} else if ok {
 		sm.Delete(key)
 	}
 }
 
 // layoutInDialogLayout walks the parent chain checking if any
-// ancestor has ID == reservedDialogID.
+// ancestor resolves to reservedDialogID. It reads idKey, the identity
+// every other keying site reads: the dialog is injected as its own
+// scope root, so the two spell the same string today, and reading the
+// effective ID keeps that true if the overlay ever gains a scope.
 func layoutInDialogLayout(layout *Layout) bool {
 	for p := layout; p != nil; p = p.Parent {
-		if p.Shape.ID == reservedDialogID {
+		if p.Shape != nil && p.Shape.idKey() == reservedDialogID {
 			return true
 		}
 	}
@@ -284,8 +301,16 @@ func propagateInkOverflow(node *Layout) {
 }
 
 // rtfLayoutEntry caches a shaped RTF layout.
+//
+// The layout is held by pointer and shared with every shape that hits
+// the entry. Holding it by value moved a copy to the heap on each hit —
+// one per RTF shape per frame, which a markdown page pays for every
+// block it draws. Sharing is safe because a layout is never mutated
+// once shaped: rtfSuppressInlineObjectGlyphs runs before the entry is
+// stored, and the readers (render_text.go, view_rtf_select.go,
+// markdown_select.go) only read or take their own copy.
 type rtfLayoutEntry struct {
-	Layout glyph.Layout
+	Layout *glyph.Layout
 }
 
 func layoutWrapRTF(shape *Shape, tc *shapeTextConfig, w *Window) {
@@ -332,8 +357,9 @@ func layoutWrapRTF(shape *Shape, tc *shapeTextConfig, w *Window) {
 
 	// Check cross-frame cache.
 	if vs.rtfLayoutCache != nil {
-		if entry, ok := vs.rtfLayoutCache.Get(cacheKey); ok {
-			tc.rTFLayout = &entry.Layout
+		if entry, ok := vs.rtfLayoutCache.Get(cacheKey); ok &&
+			entry.Layout != nil {
+			tc.rTFLayout = entry.Layout
 			shape.Height = entry.Layout.Height
 			tc.wrapCacheWidth = shape.Width
 			tc.wrapCacheHeight = entry.Layout.Height
@@ -388,8 +414,10 @@ func layoutWrapRTF(shape *Shape, tc *shapeTextConfig, w *Window) {
 		vs.rtfLayoutCache = NewBoundedMap[uint64, rtfLayoutEntry](200)
 		vs.rtfLayoutTheme = themeID
 	}
+	// Shares the pointer tc.rTFLayout already holds: the shape and the
+	// cache name one layout, so the entry costs no second copy.
 	vs.rtfLayoutCache.Set(cacheKey, rtfLayoutEntry{
-		Layout: l,
+		Layout: tc.rTFLayout,
 	})
 }
 

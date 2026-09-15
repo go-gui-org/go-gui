@@ -67,7 +67,7 @@ func lazyBoundedMap[K comparable, V any](pp **BoundedMap[K, V], cap int) *Bounde
 	return *pp
 }
 
-func (w *Window) hoverInside() *BoundedMap[string, bool] {
+func (w *Window) hoverInside() *BoundedMap[string, uint64] {
 	return lazyBoundedMap(&w.hoverInsideMap, capModerate)
 }
 

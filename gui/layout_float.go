@@ -90,6 +90,13 @@ func floatAttachLayout(
 		// No parent — use window rect as anchor reference
 		// so dialogs and other top-level floats position
 		// correctly (e.g. FloatMiddleCenter centers in window).
+		//
+		// Auto-flip and RTL mirroring are deliberately left out of this
+		// branch. Both describe where a float sits relative to the
+		// container it was declared in — flipping to the other side of
+		// an anchor, mirroring a left anchor to a right one — and a
+		// top-level float (dialog, toast, inspector) has no such
+		// container. It is placed against the window rect as asked.
 		s := layout.Shape
 		ax, ay := attachOffset(s.FloatAnchor,
 			winRect.Width, winRect.Height)

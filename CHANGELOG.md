@@ -36,6 +36,20 @@ and this project adheres to
 
 ### Fixed
 
+- **`OnMouseLeave` no longer fires for a hover that ended frames ago** — the
+  per-shape hover record was a flag, and a shape that stopped being walked
+  (disabled, or not generated that frame) left its flag set. When the shape came
+  back with the pointer elsewhere, it fired a leave for a hover that was long
+  over. The record is now the frame the pointer was last inside, and only the
+  current frame or the one before counts as still hovered.
+- **An Overflow row counts the gap after a zero-width item** — the decision to
+  reserve spacing read the width accumulated so far, so an in-flow child of zero
+  width dropped one gap that positioning still applied, and the row kept a
+  trailing item that did not fit.
+- **A cached rich-text layout is shared, not copied** — every hit on the
+  cross-frame RTF layout cache moved a copy of the shaped layout to the heap,
+  once per rich-text shape per frame, which a Markdown page paid for every block
+  it drew. The cache now hands out the layout it already holds.
 - **An RTL scrollable row can reach the content it hides** — an RTL row runs
   leftward from its right edge, so what does not fit sits off the left, but the
   scroll offset moved the children further left still and no input could bring

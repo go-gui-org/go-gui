@@ -144,7 +144,11 @@ type Window struct {
 	// on per-shape calls in the layout pipeline. Nil until first use;
 	// lazily allocated by accessor methods. See §5 in
 	// docs/specs/perf-optimizations.md.
-	hoverInsideMap *BoundedMap[string, bool]
+	// hoverInsideMap holds, per shape, the frame its bounds last
+	// contained the pointer. A frame stamp rather than a flag so an
+	// entry left by a shape that stopped being walked goes stale on its
+	// own — see layoutMouseLeaveDepth.
+	hoverInsideMap *BoundedMap[string, uint64]
 	scrollXMap     *BoundedMap[string, float32]
 	scrollYMap     *BoundedMap[string, float32]
 	overflowMap    *BoundedMap[string, int]
