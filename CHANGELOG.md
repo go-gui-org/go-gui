@@ -49,6 +49,15 @@ and this project adheres to
   selected by mouse or keyboard, and opens the menu, by mouse or keyboard, at
   the position the shell reports. If the shell refuses version 4,
   `SetSystemTray` returns an error and no icon is left behind.
+- **Windows tray updates and removes the icon it added (#619)** — the tray added
+  each icon by a new random GUID but changed and deleted it by its numeric ID.
+  The shell matches an icon added with a GUID by that GUID, so
+  `UpdateSystemTray` and `RemoveSystemTray` could miss the icon. Also, each
+  launch could leave one more stale entry in the notification area settings. The
+  tray now names the icon by window and numeric ID in every call.
+  `UpdateSystemTray` frees the old icon handle only after the shell accepts the
+  new one. An update with no icon no longer frees the icon still on screen,
+  which `RemoveSystemTray` then freed a second time.
 - **macOS frame pump survives a nested runloop inside a nested runloop** — the
   pump that repaints windows during a modal dialog, live resize or open menu
   shared one snapshot buffer across calls. When app code run by a pumped frame

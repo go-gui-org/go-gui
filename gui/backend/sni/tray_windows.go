@@ -7,7 +7,6 @@
 package sni
 
 import (
-	"crypto/rand"
 	"errors"
 	"fmt"
 	"runtime"
@@ -49,7 +48,6 @@ const (
 	nifMessage    = 0x00000001
 	nifIcon       = 0x00000002
 	nifTip        = 0x00000004
-	nifGuid       = 0x00000020
 	nisHidden     = 0x00000001
 	notifyIconV4  = 4
 )
@@ -199,6 +197,22 @@ func (t *Tray) ensureWindow() error {
 // trayInitWindow is the init ensureWindow runs. Tests replace it to
 // force a failure without a real Win32 call.
 var trayInitWindow = (*Tray).initWindow
+
+// shellNotifyIcon sends one Shell_NotifyIconW message and reports
+// whether the shell accepted it. Tests replace it to see every call
+// without a notification area.
+var shellNotifyIcon = func(message uint32, nid *notifyIconDataW) bool {
+	r, _, _ := procShellNotifyIconW.Call(uintptr(message),
+		uintptr(unsafe.Pointer(nid)))
+	return r != 0
+}
+
+// iconFromPNG and destroyIcon make and free icon handles. Tests replace
+// them with fake handles to check which handle is freed, and when.
+var (
+	iconFromPNG = hicon.FromPNG
+	destroyIcon = hicon.Destroy
+)
 
 // trayClassSeq numbers the window classes, so each Tray registers its
 // own. A class names one window procedure, and that procedure is bound
@@ -440,7 +454,7 @@ func (t *Tray) Create(
 	var hIcon uintptr
 	if len(cfg.IconPNG) > 0 {
 		var iconErr error
-		hIcon, iconErr = hicon.FromPNG(cfg.IconPNG, maxTrayIconDim)
+		hIcon, iconErr = iconFromPNG(cfg.IconPNG, maxTrayIconDim)
 		if iconErr != nil {
 			return 0, fmt.Errorf("sni: icon: %w", iconErr)
 		}
@@ -449,22 +463,22 @@ func (t *Tray) Create(
 	// Build popup menu.
 	hMenu := buildPopupMenu(cfg.Menu, id)
 
-	// Create unique GUID for this icon (prevents shell from
-	// reusing old icons across app restarts).
-	var guid [16]byte
-	_, _ = rand.Read(guid[:])
-
 	// Build tooltip as UTF-16.
 	tip, _ := syscall.UTF16FromString(cfg.Tooltip)
 
+	// The icon is named by hWnd + uID in every call, never by GUID. The
+	// shell matches an icon added with NIF_GUID by its GUID only, so
+	// NIM_MODIFY and NIM_DELETE by uID would miss it (#619). A GUID
+	// would also tie the icon to the path of the executable: NIM_ADD
+	// fails after the executable moves, and a second instance of the
+	// same executable cannot add its icon.
 	nid := notifyIconDataW{
 		cbSize:           uint32(unsafe.Sizeof(notifyIconDataW{})),
 		hWnd:             t.hwnd,
 		uID:              uint32(id),
-		uFlags:           nifMessage | nifGuid | nifTip,
+		uFlags:           nifMessage | nifTip,
 		uCallbackMessage: wmAppTray,
 		hIcon:            hIcon,
-		guidItem:         guid,
 	}
 	copy(nid.szTip[:], tip)
 
@@ -475,36 +489,30 @@ func (t *Tray) Create(
 	// freeHandles releases the icon and menu when Create fails.
 	freeHandles := func() {
 		if hIcon != 0 {
-			hicon.Destroy(hIcon)
+			destroyIcon(hIcon)
 		}
 		if hMenu != 0 {
 			procDestroyMenu.Call(hMenu)
 		}
 	}
 
-	r, _, _ := procShellNotifyIconW.Call(nimAdd,
-		uintptr(unsafe.Pointer(&nid)))
-	if r == 0 {
+	if !shellNotifyIcon(nimAdd, &nid) {
 		freeHandles()
 		return 0, errors.New("sni: Shell_NotifyIcon(NIM_ADD) failed")
 	}
 
 	// Set NOTIFYICON_VERSION_4. It applies to an icon that exists, so it
 	// must come after NIM_ADD; sent before, it had no icon to act on and
-	// its failure went unseen (#617). It names the icon the same way
-	// NIM_ADD did, by GUID. wndProc decodes only the version 4 layout,
-	// so if the shell refuses, the icon's clicks would be decoded wrong:
-	// remove the icon and fail instead.
+	// its failure went unseen (#617). wndProc decodes only the version 4
+	// layout, so if the shell refuses, the icon's clicks would be decoded
+	// wrong: remove the icon and fail instead.
 	nidVersion := nid
-	nidVersion.uFlags = nifGuid
+	nidVersion.uFlags = 0
 	nidVersion.uVersion = notifyIconV4
-	r, _, _ = procShellNotifyIconW.Call(nimSetVersion,
-		uintptr(unsafe.Pointer(&nidVersion)))
-	if r == 0 {
+	if !shellNotifyIcon(nimSetVersion, &nidVersion) {
 		nidDelete := nid
-		nidDelete.uFlags = nifGuid
-		procShellNotifyIconW.Call(nimDelete,
-			uintptr(unsafe.Pointer(&nidDelete)))
+		nidDelete.uFlags = 0
+		shellNotifyIcon(nimDelete, &nidDelete)
 		freeHandles()
 		return 0, errors.New("sni: Shell_NotifyIcon(NIM_SETVERSION) failed")
 	}
@@ -541,15 +549,11 @@ func (t *Tray) Update(id int, cfg gui.SystemTrayCfg) {
 
 	var hIcon uintptr
 	if len(cfg.IconPNG) > 0 {
-		if newIcon, err := hicon.FromPNG(cfg.IconPNG, maxTrayIconDim); err == nil {
+		if newIcon, err := iconFromPNG(cfg.IconPNG, maxTrayIconDim); err == nil {
 			hIcon = newIcon
 		}
 	}
 
-	oldIcon := e.hIcon
-	if hIcon != 0 {
-		e.hIcon = hIcon
-	}
 	e.iconPNG = cfg.IconPNG
 
 	e.menuNodes = buildMenuNodes(cfg.Menu)
@@ -573,12 +577,29 @@ func (t *Tray) Update(id int, cfg gui.SystemTrayCfg) {
 
 	t.mu.Unlock()
 
-	procShellNotifyIconW.Call(nimModify,
-		uintptr(unsafe.Pointer(&nid)))
+	// mu is not held across the shell call: the tray thread takes mu to
+	// handle clicks, and it must not wait on a call that waits on the
+	// shell.
+	accepted := shellNotifyIcon(nimModify, &nid)
 
-	// Clean up old GDI resources.
-	if oldIcon != 0 {
-		hicon.Destroy(oldIcon)
+	// The shell keeps drawing the icon it last accepted, so the entry
+	// swaps to the new handle, and frees the old one, only once the
+	// shell has accepted it. If the shell refused, or Remove took the
+	// entry during the call (Remove frees the icon the entry held), the
+	// new handle is the one nothing uses. With no new icon, NIF_ICON was
+	// not sent and the shell keeps the entry's icon, so nothing is freed.
+	var freeIcon uintptr
+	if hIcon != 0 {
+		t.mu.Lock()
+		if accepted && t.entries[id] == e {
+			freeIcon, e.hIcon = e.hIcon, hIcon
+		} else {
+			freeIcon = hIcon
+		}
+		t.mu.Unlock()
+	}
+	if freeIcon != 0 {
+		destroyIcon(freeIcon)
 	}
 	if oldMenu != 0 {
 		procDestroyMenu.Call(oldMenu)
@@ -596,17 +617,18 @@ func (t *Tray) Remove(id int) {
 	delete(t.entries, id)
 	t.mu.Unlock()
 
-	// Remove from shell.
+	// Remove from shell. The result is not checked: the entry is already
+	// gone and nothing later would free its handles, so they are freed
+	// either way. An icon the shell kept goes when the tray window does.
 	nid := notifyIconDataW{
 		cbSize: uint32(unsafe.Sizeof(notifyIconDataW{})),
 		hWnd:   t.hwnd,
 		uID:    uint32(id),
 	}
-	procShellNotifyIconW.Call(nimDelete,
-		uintptr(unsafe.Pointer(&nid)))
+	shellNotifyIcon(nimDelete, &nid)
 
 	if e.hIcon != 0 {
-		hicon.Destroy(e.hIcon)
+		destroyIcon(e.hIcon)
 	}
 	if e.hMenu != 0 {
 		procDestroyMenu.Call(e.hMenu)

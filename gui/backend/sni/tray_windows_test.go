@@ -4,6 +4,7 @@ package sni
 
 import (
 	"errors"
+	"slices"
 	"testing"
 	"time"
 
@@ -42,6 +43,156 @@ func TestEnsureWindowKeepsInitError(t *testing.T) {
 	}
 	if id != 0 {
 		t.Errorf("Create id: got %d, want 0", id)
+	}
+}
+
+// notifyCall is one Shell_NotifyIconW call seen by the fake shell: the
+// message and how it names the icon.
+type notifyCall struct {
+	message uint32
+	uID     uint32
+	byGUID  bool
+	guid    [16]byte
+}
+
+// fakeShell records what the tray sends to the shell and which icon
+// handles it frees. The handles are fake numbers, not GDI objects.
+type fakeShell struct {
+	calls     []notifyCall
+	refuse    map[uint32]bool // messages the shell refuses
+	destroyed []uintptr
+	nextIcon  uintptr
+}
+
+// newFakeTray gives a Tray whose window init, Shell_NotifyIconW calls
+// and icon handles all go to a fake shell. Not parallel: it swaps
+// package-level seams.
+func newFakeTray(t *testing.T) (*Tray, *fakeShell) {
+	t.Helper()
+	origInit, origNotify := trayInitWindow, shellNotifyIcon
+	origFromPNG, origDestroy := iconFromPNG, destroyIcon
+	t.Cleanup(func() {
+		trayInitWindow, shellNotifyIcon = origInit, origNotify
+		iconFromPNG, destroyIcon = origFromPNG, origDestroy
+	})
+
+	fs := &fakeShell{refuse: map[uint32]bool{}, nextIcon: 0x100}
+	trayInitWindow = func(tr *Tray) error {
+		tr.hwnd = 0xABC
+		return nil
+	}
+	shellNotifyIcon = func(message uint32, nid *notifyIconDataW) bool {
+		fs.calls = append(fs.calls, notifyCall{
+			message: message,
+			uID:     nid.uID,
+			byGUID:  nid.uFlags&0x20 != 0, // NIF_GUID
+			guid:    nid.guidItem,
+		})
+		return !fs.refuse[message]
+	}
+	iconFromPNG = func([]byte, int) (uintptr, error) {
+		fs.nextIcon++
+		return fs.nextIcon, nil
+	}
+	destroyIcon = func(h uintptr) { fs.destroyed = append(fs.destroyed, h) }
+	return &Tray{}, fs
+}
+
+// iconPNG is any non-empty icon data; the fake iconFromPNG ignores it.
+var iconPNG = []byte{1}
+
+// Every call must name the icon the same way. NIM_ADD used to name it
+// by a random GUID while NIM_MODIFY and NIM_DELETE named it by uID; the
+// shell matches a GUID icon by its GUID, so Update and Remove could
+// miss it (#619). The tray now names every icon by hWnd + uID only.
+func TestTrayNamesIconByUIDInEveryCall(t *testing.T) {
+	tr, fs := newFakeTray(t)
+
+	id, err := tr.Create(gui.SystemTrayCfg{Tooltip: "a", IconPNG: iconPNG}, nil)
+	if err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+	tr.Update(id, gui.SystemTrayCfg{Tooltip: "b", IconPNG: iconPNG})
+	tr.Remove(id)
+
+	wantMessages := []uint32{nimAdd, nimSetVersion, nimModify, nimDelete}
+	if len(fs.calls) != len(wantMessages) {
+		t.Fatalf("calls: got %+v, want messages %v", fs.calls, wantMessages)
+	}
+	for i, c := range fs.calls {
+		if c.message != wantMessages[i] {
+			t.Errorf("call %d: message %d, want %d", i, c.message, wantMessages[i])
+		}
+		if c.uID != uint32(id) {
+			t.Errorf("call %d: uID %d, want %d", i, c.uID, id)
+		}
+		if c.byGUID || c.guid != [16]byte{} {
+			t.Errorf("call %d: names the icon by GUID %x", i, c.guid)
+		}
+	}
+}
+
+// entryIcon reads the icon handle the tray holds for id.
+func entryIcon(tr *Tray, id int) uintptr {
+	tr.mu.Lock()
+	defer tr.mu.Unlock()
+	return tr.entries[id].hIcon
+}
+
+// The shell keeps drawing the icon it last accepted. If it refuses
+// NIM_MODIFY, that is still the old icon, so the old handle must stay
+// alive and the new one is freed. Once it accepts, the old one is freed.
+func TestTrayUpdateSwapsIconOnlyWhenShellAccepts(t *testing.T) {
+	tr, fs := newFakeTray(t)
+	id, err := tr.Create(gui.SystemTrayCfg{IconPNG: iconPNG}, nil)
+	if err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+	first := entryIcon(tr, id)
+
+	fs.refuse[nimModify] = true
+	tr.Update(id, gui.SystemTrayCfg{IconPNG: iconPNG})
+	refused := fs.nextIcon
+	if got := entryIcon(tr, id); got != first {
+		t.Errorf("refused: entry icon %#x, want old %#x", got, first)
+	}
+	if !slices.Equal(fs.destroyed, []uintptr{refused}) {
+		t.Errorf("refused: destroyed %#x, want only the new %#x", fs.destroyed, refused)
+	}
+
+	fs.refuse[nimModify] = false
+	tr.Update(id, gui.SystemTrayCfg{IconPNG: iconPNG})
+	accepted := fs.nextIcon
+	if got := entryIcon(tr, id); got != accepted {
+		t.Errorf("accepted: entry icon %#x, want new %#x", got, accepted)
+	}
+	if !slices.Equal(fs.destroyed, []uintptr{refused, first}) {
+		t.Errorf("accepted: destroyed %#x, want %#x", fs.destroyed, []uintptr{refused, first})
+	}
+}
+
+// An update with no icon leaves the shell's icon as it is, so the tray
+// must keep that handle. It used to free it anyway while the entry still
+// held it, and Remove then freed the same handle a second time.
+func TestTrayUpdateWithoutIconKeepsIcon(t *testing.T) {
+	tr, fs := newFakeTray(t)
+	id, err := tr.Create(gui.SystemTrayCfg{IconPNG: iconPNG}, nil)
+	if err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+	icon := entryIcon(tr, id)
+
+	tr.Update(id, gui.SystemTrayCfg{Tooltip: "no icon"})
+	if got := entryIcon(tr, id); got != icon {
+		t.Errorf("entry icon %#x, want %#x", got, icon)
+	}
+	if len(fs.destroyed) != 0 {
+		t.Errorf("destroyed %#x, want none", fs.destroyed)
+	}
+
+	tr.Remove(id)
+	if !slices.Equal(fs.destroyed, []uintptr{icon}) {
+		t.Errorf("after Remove: destroyed %#x, want %#x once", fs.destroyed, icon)
 	}
 }
 
