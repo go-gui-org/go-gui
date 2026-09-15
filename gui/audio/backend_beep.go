@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -21,8 +22,13 @@ var _ Backend = (*beepBackend)(nil)
 
 // musicState manages the single music track.
 type musicState struct {
+	// mu guards ctrl.Streamer and ctrl.Paused.  The audio thread holds it
+	// for each buffer through the lockedStreamer that setup wraps around
+	// ctrl, so a fade's onComplete, which runs inside Stream, already
+	// holds it and must not lock again.  Lock order: initMu, then mu.
+	mu     sync.Mutex
 	ctrl   *beep.Ctrl
-	volume float64
+	volume atomicFloat64
 	// rewind is the innermost wrapper of the streamer currently in
 	// ctrl, kept so RewindMusic can reach the decoder underneath: by the
 	// time the chain is built, ctrl holds a volumeStreamer, which is not
@@ -37,10 +43,12 @@ type musicState struct {
 // ---------------------------------------------------------------------------
 
 type beepBackend struct {
-	sampleRate   beep.SampleRate
+	// sampleRate is written by setup under initMu and read without it by
+	// LoadSoundBytes and SampleRate, so it is atomic.  Read it through rate.
+	sampleRate   atomic.Int64
 	bufferSize   int
 	channels     *channelMixer
-	masterVolume float64
+	masterVolume atomicFloat64
 	music        musicState
 	initialized  bool
 }
@@ -57,18 +65,28 @@ func (b *beepBackend) Init(opts Cfg) error {
 	if err := outputInit(sr, bufSize); err != nil {
 		return fmt.Errorf("audio: init output: %w", err)
 	}
-	b.sampleRate = sr
-	b.bufferSize = bufSize
-	b.masterVolume = 1
-	b.music.volume = 1
-	b.music.ctrl = &beep.Ctrl{}
-	b.channels = newChannelMixer(nch, &b.masterVolume)
-
-	outputPlay(b.channels)
-	outputPlay(&neverDrain{streamer: b.music.ctrl})
+	sfx, music := b.setup(sr, bufSize, nch)
+	outputPlay(sfx)
+	outputPlay(music)
 
 	b.initialized = true
 	return nil
+}
+
+// setup builds the mixer state and returns the two streamers the output
+// plays: the sound-effect mixer and the music track.  It is split from
+// Init so tests can drive the audio-thread side without an output device.
+func (b *beepBackend) setup(sr beep.SampleRate, bufSize, nch int) (sfx, music beep.Streamer) {
+	b.sampleRate.Store(int64(sr))
+	b.bufferSize = bufSize
+	b.masterVolume.Store(1)
+	b.music.volume.Store(1)
+	b.music.ctrl = &beep.Ctrl{}
+	b.channels = newChannelMixer(nch, &b.masterVolume)
+	return b.channels, &lockedStreamer{
+		mu:       &b.music.mu,
+		streamer: &neverDrain{streamer: b.music.ctrl},
+	}
 }
 
 func (b *beepBackend) Quit() {
@@ -79,29 +97,34 @@ func (b *beepBackend) Quit() {
 	// it reads; otherwise halt/Streamer writes race the mixer callback.
 	outputClose()
 	b.channels.halt(-1)
+	b.music.mu.Lock()
 	b.music.ctrl.Streamer = nil
+	b.music.mu.Unlock()
 	b.music.rewind.Store(nil)
 	b.initialized = false
 }
 
 // --- master volume ---
 
+// Volumes are atomics, not guarded by initMu: the audio thread reads
+// them every buffer and must never wait on the app.
+
 func (b *beepBackend) SetMasterVolume(v float64) {
-	b.masterVolume = clamp01(v)
+	b.masterVolume.Store(clamp01(v))
 }
 
 func (b *beepBackend) MasterVolume() float64 {
-	return b.masterVolume
+	return b.masterVolume.Load()
 }
 
 // --- music volume ---
 
 func (b *beepBackend) SetMusicVolume(v float64) {
-	b.music.volume = clamp01(v)
+	b.music.volume.Store(clamp01(v))
 }
 
 func (b *beepBackend) MusicVolume() float64 {
-	return b.music.volume
+	return b.music.volume.Load()
 }
 
 // --- load / decode ---
@@ -153,18 +176,20 @@ func (b *beepBackend) LoadSoundBytes(data []byte) (*Sound, error) {
 	}
 	defer func() { _ = stream.Close() }()
 	// Convert to the output rate once, here, so playback stays a plain
-	// buffer read.  b.sampleRate is 0 when Init has not run yet; buffer
+	// buffer read.  The rate is 0 when Init has not run yet; buffer
 	// at the source rate then and let the play path convert instead.
 	outFormat := format
-	if b.sampleRate > 0 && format.SampleRate != b.sampleRate {
-		outFormat.SampleRate = b.sampleRate
+	if rate := b.rate(); rate > 0 && format.SampleRate != rate {
+		outFormat.SampleRate = rate
 		// Rounding an interpolated signal back down to 8-bit throws
 		// away most of what the resampler just computed.
 		outFormat.Precision = max(format.Precision, 2)
 	}
 	buf := beep.NewBuffer(outFormat)
 	buf.Append(resampleTo(format.SampleRate, outFormat.SampleRate, stream))
-	return &Sound{buffer: buf, format: outFormat, volume: 1}, nil
+	snd := &Sound{buffer: buf, format: outFormat}
+	snd.volume.Store(1)
+	return snd, nil
 }
 
 // --- music playback ---
@@ -173,7 +198,13 @@ func (b *beepBackend) MusicFree(m *Music) {
 	if m == nil || m.beepStream == nil {
 		return
 	}
-	b.music.ctrl.Streamer = nil
+	// Close under mu: the audio thread may be reading this decoder.
+	b.music.mu.Lock()
+	defer b.music.mu.Unlock()
+	// ctrl is nil when the track is freed before Init ever ran.
+	if b.music.ctrl != nil {
+		b.music.ctrl.Streamer = nil
+	}
 	b.music.rewind.Store(nil)
 	_ = m.beepStream.Close()
 	m.beepStream = nil
@@ -183,6 +214,10 @@ func (b *beepBackend) MusicPlay(m *Music, loops int) error {
 	if m == nil || m.beepStream == nil {
 		return errors.New("audio: music not loaded")
 	}
+	// The seek is under mu too: when m is the track already playing, the
+	// audio thread is reading the same decoder.
+	b.music.mu.Lock()
+	defer b.music.mu.Unlock()
 	if err := m.beepStream.Seek(0); err != nil {
 		return fmt.Errorf("audio: seek music: %w", err)
 	}
@@ -195,6 +230,8 @@ func (b *beepBackend) MusicFadeIn(m *Music, loops, ms int) error {
 	if m == nil || m.beepStream == nil {
 		return errors.New("audio: music not loaded")
 	}
+	b.music.mu.Lock() // see MusicPlay
+	defer b.music.mu.Unlock()
 	if err := m.beepStream.Seek(0); err != nil {
 		return fmt.Errorf("audio: seek music: %w", err)
 	}
@@ -232,11 +269,11 @@ func (b *beepBackend) musicChain(m *Music, loops int) beep.Streamer {
 	// Music streams live rather than buffering, and both MusicPlay and
 	// Loop2 need the decoder's seeker, so the rate conversion happens
 	// here at play time rather than at load.
-	s = resampleTo(m.format.SampleRate, b.sampleRate, s)
+	s = resampleTo(m.format.SampleRate, b.rate(), s)
 	return &volumeStreamer{
 		streamer: s,
 		getVolume: func() float64 {
-			return b.music.volume * b.masterVolume
+			return b.music.volume.Load() * b.masterVolume.Load()
 		},
 	}
 }
@@ -245,29 +282,35 @@ func (b *beepBackend) musicChainFade(m *Music, loops, ms int) beep.Streamer {
 	inner := b.musicChain(m, loops)
 	return &fadeStreamer{
 		streamer:   inner,
-		sampleRate: b.sampleRate,
+		sampleRate: b.rate(),
 		startVol:   0,
 		targetVol:  1,
-		endSamples: b.sampleRate.N(time.Duration(ms) * time.Millisecond),
+		endSamples: b.rate().N(time.Duration(ms) * time.Millisecond),
 	}
 }
 
 func (b *beepBackend) HaltMusic() {
+	b.music.mu.Lock()
 	b.music.ctrl.Streamer = nil
+	b.music.mu.Unlock()
 	b.music.rewind.Store(nil)
 }
 
 func (b *beepBackend) FadeOutMusic(ms int) {
+	b.music.mu.Lock()
+	defer b.music.mu.Unlock()
 	if b.music.ctrl.Streamer == nil {
 		return
 	}
 	inner := b.music.ctrl.Streamer
 	b.music.ctrl.Streamer = &fadeStreamer{
 		streamer:   inner,
-		sampleRate: b.sampleRate,
+		sampleRate: b.rate(),
 		startVol:   1,
 		targetVol:  0,
-		endSamples: b.sampleRate.N(time.Duration(ms) * time.Millisecond),
+		endSamples: b.rate().N(time.Duration(ms) * time.Millisecond),
+		// Runs on the audio thread inside Stream, which already holds
+		// b.music.mu (lockedStreamer), so it writes without locking.
 		onComplete: func() {
 			b.music.ctrl.Streamer = nil
 			b.music.rewind.Store(nil)
@@ -276,18 +319,26 @@ func (b *beepBackend) FadeOutMusic(ms int) {
 }
 
 func (b *beepBackend) PauseMusic() {
+	b.music.mu.Lock()
 	b.music.ctrl.Paused = true
+	b.music.mu.Unlock()
 }
 
 func (b *beepBackend) ResumeMusic() {
+	b.music.mu.Lock()
 	b.music.ctrl.Paused = false
+	b.music.mu.Unlock()
 }
 
 func (b *beepBackend) IsMusicPlaying() bool {
+	b.music.mu.Lock()
+	defer b.music.mu.Unlock()
 	return b.music.ctrl.Streamer != nil && !b.music.ctrl.Paused
 }
 
 func (b *beepBackend) IsMusicPaused() bool {
+	b.music.mu.Lock()
+	defer b.music.mu.Unlock()
 	return b.music.ctrl.Streamer != nil && b.music.ctrl.Paused
 }
 
@@ -321,11 +372,11 @@ func (b *beepBackend) SoundPlay(s *Sound, channel, loops int) (int, error) {
 	// No-op when LoadSoundBytes already converted the buffer; only a
 	// Sound loaded before Init still carries a foreign rate.  Wrapping
 	// here, outside Loop2, keeps the seeker the loop needs.
-	streamer := resampleTo(s.format.SampleRate, b.sampleRate,
+	streamer := resampleTo(s.format.SampleRate, b.rate(),
 		soundStreamer(s, loops))
 	b.channels.set(channel, &volumeStreamer{
 		streamer:  streamer,
-		getVolume: func() float64 { return s.volume },
+		getVolume: func() float64 { return s.volume.Load() },
 	})
 	return channel, nil
 }
@@ -342,18 +393,18 @@ func (b *beepBackend) SoundFadeIn(s *Sound, channel, loops, ms int) (int, error)
 	}
 	// See SoundPlay.  The fade must stay outside the resampler: its
 	// endSamples is counted in output-rate samples.
-	streamer := resampleTo(s.format.SampleRate, b.sampleRate,
+	streamer := resampleTo(s.format.SampleRate, b.rate(),
 		soundStreamer(s, loops))
 	volStreamer := &volumeStreamer{
 		streamer:  streamer,
-		getVolume: func() float64 { return s.volume },
+		getVolume: func() float64 { return s.volume.Load() },
 	}
 	fade := &fadeStreamer{
 		streamer:   volStreamer,
-		sampleRate: b.sampleRate,
+		sampleRate: b.rate(),
 		startVol:   0,
 		targetVol:  1,
-		endSamples: b.sampleRate.N(time.Duration(ms) * time.Millisecond),
+		endSamples: b.rate().N(time.Duration(ms) * time.Millisecond),
 	}
 	b.channels.set(channel, fade)
 	return channel, nil
@@ -383,14 +434,14 @@ func (b *beepBackend) SoundSetVolume(s *Sound, v float64) {
 	if s == nil {
 		return
 	}
-	s.volume = clamp01(v)
+	s.volume.Store(clamp01(v))
 }
 
 func (b *beepBackend) SoundVolume(s *Sound) float64 {
 	if s == nil {
 		return 0
 	}
-	return s.volume
+	return s.volume.Load()
 }
 
 // --- channel controls ---
@@ -412,10 +463,10 @@ func (b *beepBackend) FadeOutChannel(channel, ms int) {
 	}
 	b.channels.chans[ch].Streamer = &fadeStreamer{
 		streamer:   inner,
-		sampleRate: b.sampleRate,
+		sampleRate: b.rate(),
 		startVol:   1,
 		targetVol:  0,
-		endSamples: b.sampleRate.N(time.Duration(ms) * time.Millisecond),
+		endSamples: b.rate().N(time.Duration(ms) * time.Millisecond),
 	}
 	b.channels.mu.Unlock()
 }
@@ -454,5 +505,10 @@ func (b *beepBackend) PlaySource(channel int, s Source) error {
 
 // SampleRate returns the configured output sample rate in Hz.
 func (b *beepBackend) SampleRate() int {
-	return int(b.sampleRate)
+	return int(b.rate())
+}
+
+// rate returns the output sample rate, or 0 before Init.
+func (b *beepBackend) rate() beep.SampleRate {
+	return beep.SampleRate(b.sampleRate.Load())
 }

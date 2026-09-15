@@ -3,11 +3,53 @@
 package audio
 
 import (
+	"math"
 	"sync"
 	"sync/atomic"
 
 	"github.com/gopxl/beep/v2"
 )
+
+// ---------------------------------------------------------------------------
+// atomicFloat64
+// ---------------------------------------------------------------------------
+
+// atomicFloat64 is a float64 that the app goroutine writes and the audio
+// thread reads once per buffer.  It holds the IEEE-754 bits in an
+// atomic.Uint64, so neither side takes a lock and the audio thread never
+// blocks on the app.
+type atomicFloat64 struct {
+	bits atomic.Uint64
+}
+
+func (a *atomicFloat64) Load() float64   { return math.Float64frombits(a.bits.Load()) }
+func (a *atomicFloat64) Store(v float64) { a.bits.Store(math.Float64bits(v)) }
+
+// ---------------------------------------------------------------------------
+// lockedStreamer
+// ---------------------------------------------------------------------------
+
+// lockedStreamer runs Stream and Err under mu.  The audio thread reads a
+// beep.Ctrl's Streamer and Paused fields inside Stream while the app
+// goroutine writes them; with both sides holding mu they take turns.
+// The lock is held for one buffer only, so an app-side write waits at
+// most one buffer period.
+type lockedStreamer struct {
+	mu       *sync.Mutex
+	streamer beep.Streamer
+}
+
+func (l *lockedStreamer) Stream(samples [][2]float64) (int, bool) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	return l.streamer.Stream(samples)
+}
+
+func (l *lockedStreamer) Err() error {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	return l.streamer.Err()
+}
 
 // ---------------------------------------------------------------------------
 // volumeStreamer
@@ -99,11 +141,11 @@ func (f *fadeStreamer) Err() error { return f.streamer.Err() }
 type channelMixer struct {
 	chans        []*beep.Ctrl
 	playing      []bool
-	masterVolume *float64
+	masterVolume *atomicFloat64
 	mu           sync.Mutex
 }
 
-func newChannelMixer(n int, master *float64) *channelMixer {
+func newChannelMixer(n int, master *atomicFloat64) *channelMixer {
 	chans := make([]*beep.Ctrl, n)
 	for i := range chans {
 		chans[i] = &beep.Ctrl{}
@@ -143,10 +185,12 @@ func (cm *channelMixer) Stream(samples [][2]float64) (n int, ok bool) {
 				samples[i][0] = 0
 				samples[i][1] = 0
 			}
-		} else if *cm.masterVolume < 1 {
+		} else if mv := cm.masterVolume.Load(); mv < 1 {
+			// Loaded once per chunk: the app goroutine may store a new
+			// value at any time, and one chunk should use one volume.
 			for i := range toStream {
-				samples[i][0] *= *cm.masterVolume
-				samples[i][1] *= *cm.masterVolume
+				samples[i][0] *= mv
+				samples[i][1] *= mv
 			}
 		}
 		samples = samples[toStream:]

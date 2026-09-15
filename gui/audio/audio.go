@@ -4,8 +4,10 @@ package audio
 
 import (
 	"cmp"
+	"errors"
 	"fmt"
 	"math"
+	"sync"
 )
 
 // Cfg configures the audio subsystem.  Zero value selects sensible
@@ -29,7 +31,11 @@ type Cfg struct {
 var (
 	backend     Backend = &beepBackend{}
 	initialized bool
+	initMu      sync.Mutex
 )
+
+// errNotInitialized is returned by calls that need [Init] to have run.
+var errNotInitialized = errors.New("audio: not initialized")
 
 // Init initializes the audio subsystem.  It is opt-in and
 // independent of the GUI backend.
@@ -37,6 +43,10 @@ var (
 // Pass zero or one [Cfg]; additional values are ignored.
 // Call from any goroutine.  Idempotent — repeated calls return nil.
 func Init(opts ...Cfg) error {
+	// initMu makes the check, backend.Init and the flag write one step.
+	// Without it two first calls both see false and open the sink twice.
+	initMu.Lock()
+	defer initMu.Unlock()
 	if initialized {
 		return nil
 	}
@@ -69,6 +79,8 @@ func Init(opts ...Cfg) error {
 // Quit shuts down the audio subsystem.  All playing sounds and music
 // are halted.  Safe to call even if [Init] was never called.
 func quit() {
+	initMu.Lock()
+	defer initMu.Unlock()
 	if !initialized {
 		return
 	}

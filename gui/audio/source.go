@@ -13,6 +13,12 @@ import "errors"
 // source and halts its channel (a note-off voice that has finished its
 // release envelope returns (0, false)).
 //
+// Fill must not call any other function in this package except
+// [SampleRate].  The audio thread runs Fill while it holds the mixer
+// lock, and most other calls take the init lock and then the mixer lock,
+// so a call from Fill can deadlock against a Play on another goroutine,
+// or hang quit, which waits for the audio thread to stop.
+//
 // The signature matches beep.Streamer exactly, so the beep backend is a
 // zero-cost adapter; the interface keeps beep out of the public API and
 // leaves other backends room to diverge.
@@ -31,8 +37,12 @@ type Source interface {
 // error when audio is not [Init]ialized, the source is nil, or no
 // channel is available.
 func PlaySource(channel int, s Source) error {
+	// Hold initMu through the backend call so a concurrent quit cannot tear
+	// the mixer down between the check and the channel write.
+	initMu.Lock()
+	defer initMu.Unlock()
 	if !initialized {
-		return errors.New("audio: not initialized")
+		return errNotInitialized
 	}
 	if s == nil {
 		return errors.New("audio: nil source")

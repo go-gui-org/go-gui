@@ -23,6 +23,30 @@ and this project adheres to
 
 ### Fixed
 
+- **`audio.Init` is safe to call from many goroutines at once** — `Init`, `quit`
+  and `PlaySource` read and wrote the `initialized` flag with no lock. Two first
+  calls to `Init` could both see it unset and open the output sink twice, and a
+  shutdown racing `Init` could leave the flag out of step with the backend. A
+  package mutex now covers the check, the backend call and the flag write, so
+  the documented "call from any goroutine, idempotent" promise holds.
+- **Volume and music calls no longer race the audio thread, and do nothing
+  before `audio.Init`** — the audio thread read the master and music volumes and
+  the music track state every buffer while the app wrote them with no
+  synchronization. Volumes are now atomics, and the music track has a lock that
+  both sides take. Before `Init`, `HaltMusic`, `FadeOutMusic` and the other
+  music controls dereferenced a nil track and panicked; they now do nothing, and
+  `Music.Play` and `Music.FadeIn` return an "audio: not initialized" error.
+  `Music.Free` still closes the decoder before `Init`. Under `-race`, the
+  package now runs its `TestRace*` tests instead of skipping everything.
+- **Sound calls no longer race `audio.Init` or the audio thread, and do nothing
+  before `Init`** — `Sound.Play`, `Sound.FadeIn` and the channel helpers read
+  the mixer while `Init` built it, and a sound's volume was written by the app
+  while the audio thread read it. Before `Init` they dereferenced a nil mixer
+  and panicked. `Sound.Play`, `Sound.PlayOnce` and `Sound.FadeIn` now return an
+  "audio: not initialized" error before `Init`, and `HaltChannel`, `IsPlaying`
+  and the other channel helpers do nothing. A sound's volume and the output
+  sample rate are atomics, so `LoadSoundBytes` and `SampleRate` still take no
+  lock and a long decode does not block other audio calls.
 - **Custom shaders render on Android** — `glesSetCustomPipeline` marked the
   bound program as "no pipeline", so `glesSetMVP` and `glesSetTM` returned early
   and never wrote the custom program's `mvp` and `tm` uniforms. `mvp` stayed

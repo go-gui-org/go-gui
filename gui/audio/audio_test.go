@@ -3,6 +3,7 @@
 package audio
 
 import (
+	"flag"
 	"fmt"
 	"math"
 	"os"
@@ -14,16 +15,20 @@ import (
 	"github.com/gopxl/beep/v2"
 )
 
-// TestMain skips the whole package under the race detector. Many tests
-// call Init(), which on macOS reaches ebitengine/oto's CoreAudio context
+// TestMain narrows the package under the race detector. Many tests call
+// Init(), which on macOS reaches ebitengine/oto's CoreAudio context
 // creation — an upstream data race in newContext (driver_darwin.go) that
-// trips -race regardless of anything in this package. The audio path can
-// only be exercised with a live speaker, so there is nothing here worth
-// race-checking once that init is excluded.
+// trips -race regardless of anything in this package. So under -race only
+// the TestRace* tests run: they swap in a backend with no output device
+// and drive the audio-thread side themselves, which is the part worth
+// race-checking. An explicit -run still wins.
 func TestMain(m *testing.M) {
 	if raceEnabled {
-		fmt.Println("gui/audio: skipping under -race (upstream oto init race)")
-		os.Exit(0)
+		flag.Parse()
+		if run := flag.Lookup("test.run"); run != nil && run.Value.String() == "" {
+			fmt.Println("gui/audio: -race runs only TestRace* (upstream oto init race)")
+			_ = run.Value.Set("^TestRace")
+		}
 	}
 	os.Exit(m.Run())
 }
