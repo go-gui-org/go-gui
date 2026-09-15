@@ -23,6 +23,13 @@ and this project adheres to
 
 ### Fixed
 
+- **Gradient fills split at every stop when stops are out of order** — the
+  gradient tessellator searched its stop breakpoints as a sorted list, but only
+  sorted it for `SpreadReflect`. With pad or repeat spread and stops not in
+  ascending offset order (an SVG `<linearGradient>` in document order, or a
+  `CanvasGradient` built that way), triangles that crossed a stop were not
+  split, and the fill smeared one color segment across them. The breakpoints are
+  now sorted for every spread.
 - **Overflow containers count placeholder children when hiding items** — an
   empty, floating or `OverDraw` child before the trigger made the overflow pass
   store too small an item index. When every item fit, the trigger stayed

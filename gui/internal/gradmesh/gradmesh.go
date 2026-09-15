@@ -38,7 +38,7 @@ const (
 // form both callers convert their own gradient type into.
 //
 // StopOffsets holds only the stops' positions along the ramp, in the
-// caller's order. The tessellation reads nothing else from a stop, which
+// caller's order; they need not be ascending. The tessellation reads nothing else from a stop, which
 // is why no stop or color type crosses this boundary.
 type Params struct {
 	StopOffsets []float32
@@ -261,6 +261,9 @@ func stopIsolines(offsets []float32, spread Spread,
 		if tMin < 1 && tMax > 1 {
 			out = append(out, 1)
 		}
+		// The split pass binary-searches this list, so it must be
+		// ascending even when the caller's offsets are not.
+		slices.Sort(out)
 		return out
 	}
 	// Reflect and Repeat tile the ramp, so every period the geometry
@@ -311,9 +314,10 @@ func stopIsolines(offsets []float32, spread Spread,
 			}
 		}
 	}
-	if spread == SpreadReflect {
-		slices.Sort(out)
-	}
+	// Sort for every tiling spread, not only Reflect: the split pass
+	// binary-searches this list, and Repeat is ascending only when the
+	// caller's offsets are.
+	slices.Sort(out)
 	return out
 }
 
@@ -401,8 +405,8 @@ func splitTriAtStops(ax, ay, bx, by, cx, cy float32,
 	// shaving one thin band off the end, over and over — compounds into
 	// several times the triangles a balanced one produces.
 	//
-	// stopIsolines returns its list sorted (Pad and Repeat naturally,
-	// Reflect via an explicit sort), so the common "nothing crosses"
+	// stopIsolines always returns its list sorted, whatever order the
+	// caller's offsets come in, so the common "nothing crosses"
 	// node — the majority for a sparse ramp — is two comparisons via a
 	// binary search rather than a scan of the whole list. The scan below
 	// then only walks the isolines that actually straddle the triangle.

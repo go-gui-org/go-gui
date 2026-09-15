@@ -69,3 +69,40 @@ func TestSplitTriAtStopsReflectParity(t *testing.T) {
 		}
 	}
 }
+
+// Callers pass stop offsets in document order, which need not be
+// ascending. splitTriAtStops binary-searches the isoline list, so every
+// spread must return it sorted, or a straddling triangle is left unsplit.
+func TestStopIsolinesUnsortedOffsetsSorted(t *testing.T) {
+	offsets := []float32{0.8, 0.2, 0.5}
+	for _, s := range []Spread{SpreadPad, SpreadRepeat, SpreadReflect} {
+		got := stopIsolines(offsets, s, -1.5, 2.5, nil)
+		for i := 1; i < len(got); i++ {
+			if got[i] < got[i-1] {
+				t.Fatalf("spread %v: isolines not sorted: %v", s, got)
+			}
+		}
+	}
+}
+
+// With unsorted offsets the binary search used to land past the
+// isolines that do cross, so the triangle came back whole and Gouraud
+// smeared a ramp segment across it.
+func TestSplitTriAtStopsUnsortedOffsetsSplits(t *testing.T) {
+	p := &Params{X1: 0, Y1: 0, X2: 100, Y2: 0,
+		StopOffsets: []float32{0.9, 0.1}}
+	tris := []float32{0, 0, 100, 0, 0, 100}
+	var split, radial, iso []float32
+	out := Subdivide(tris, p, &split, &radial, &iso)
+	for i := 0; i+5 < len(out); i += 6 {
+		ta := RawT(out[i], out[i+1], p)
+		tb := RawT(out[i+2], out[i+3], p)
+		tc := RawT(out[i+4], out[i+5], p)
+		lo, hi := min(ta, tb, tc), max(ta, tb, tc)
+		for _, stop := range []float32{0.1, 0.9} {
+			if lo < stop-1e-3 && hi > stop+1e-3 {
+				t.Fatalf("triangle t=[%v,%v] straddles stop %v", lo, hi, stop)
+			}
+		}
+	}
+}
