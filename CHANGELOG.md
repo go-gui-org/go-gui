@@ -23,6 +23,11 @@ and this project adheres to
 
 ### Fixed
 
+- **Windows tray reports a failed window init on every call** — the tray's
+  hidden message window is built once. If that build failed, only the first
+  `Create` saw the error; every later `Create` returned success and registered
+  an icon against no window, so its clicks and menu never arrived. The error is
+  now kept on the tray, and every `Create` returns it.
 - **macOS frame pump survives a nested runloop inside a nested runloop** — the
   pump that repaints windows during a modal dialog, live resize or open menu
   shared one snapshot buffer across calls. When app code run by a pumped frame

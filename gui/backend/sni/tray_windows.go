@@ -143,6 +143,10 @@ type Tray struct {
 	hwnd    uintptr
 	done    chan struct{}
 	once    sync.Once
+	// initErr keeps the result of the one window init. once never runs
+	// the init again, so later ensureWindow calls must read the error
+	// from here, or they report success with hwnd still 0.
+	initErr error
 }
 
 type entry struct {
@@ -167,14 +171,19 @@ type menuNode struct {
 }
 
 // ensureWindow creates the message-only window and starts the
-// message pump. Safe to call multiple times.
+// message pump. Safe to call multiple times. A failed init is not
+// retried: every call returns that same error. A retry would call
+// RegisterClassExW again, which fails once the class exists.
 func (t *Tray) ensureWindow() error {
-	var err error
 	t.once.Do(func() {
-		err = t.initWindow()
+		t.initErr = trayInitWindow(t)
 	})
-	return err
+	return t.initErr
 }
+
+// trayInitWindow is the init ensureWindow runs. Tests replace it to
+// force a failure without a real Win32 call.
+var trayInitWindow = (*Tray).initWindow
 
 func (t *Tray) initWindow() error {
 	className := "go-gui-tray-window"
