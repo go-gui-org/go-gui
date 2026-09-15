@@ -14,7 +14,11 @@ type InputMaskPreset uint8
 // InputMaskPreset constants.
 // exportaudit:keep — caller-facing mask presets
 const (
-	maskNone InputMaskPreset = iota
+	// MaskNone selects no mask: the field edits plain text. It is
+	// the zero value, so an unset MaskPreset already means this;
+	// the name exists so call sites can say it explicitly.
+	// exportaudit:keep — caller-facing mask presets
+	MaskNone InputMaskPreset = iota
 	MaskPhoneUS
 	MaskCreditCard16
 	MaskCreditCardAmex
@@ -236,6 +240,12 @@ func (m *CompiledInputMask) slotCount() int {
 }
 
 func (m *CompiledInputMask) slotEntry(slotIndex int) compiledMaskEntry {
+	// Defensive: every caller pre-checks slotCount, but an index
+	// from a stale cursor must degrade to a skipped literal, not
+	// a panic. The zero entry's nil matcher reads as "no slot".
+	if slotIndex < 0 || slotIndex >= len(m.slotEntryIndexes) {
+		return compiledMaskEntry{}
+	}
 	return m.entries[m.slotEntryIndexes[slotIndex]]
 }
 

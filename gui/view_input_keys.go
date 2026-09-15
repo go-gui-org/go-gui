@@ -19,11 +19,11 @@ func inputKeyLeft(
 			newPos = moveCursorWordLeft(text, pos)
 		}
 		updateCursorAndSelection(imap, id, is,
-			newPos, isShift)
+			newPos, isShift, utf8RuneCount(text))
 	} else if !isShift && is.selectBeg != is.selectEnd {
 		beg, _ := u32Sort(is.selectBeg, is.selectEnd)
 		updateCursorAndSelection(imap, id, is,
-			int(beg), false)
+			int(beg), false, utf8RuneCount(text))
 	} else {
 		var newPos int
 		if glOK {
@@ -36,7 +36,7 @@ func inputKeyLeft(
 			newPos = prevGraphemeStop(graphemeStops(text), pos)
 		}
 		updateCursorAndSelection(imap, id, is,
-			newPos, isShift)
+			newPos, isShift, utf8RuneCount(text))
 	}
 }
 
@@ -55,11 +55,11 @@ func inputKeyRight(
 			newPos = moveCursorWordRight(text, pos)
 		}
 		updateCursorAndSelection(imap, id, is,
-			newPos, isShift)
+			newPos, isShift, utf8RuneCount(text))
 	} else if !isShift && is.selectBeg != is.selectEnd {
 		_, end := u32Sort(is.selectBeg, is.selectEnd)
 		updateCursorAndSelection(imap, id, is,
-			int(end), false)
+			int(end), false, utf8RuneCount(text))
 	} else {
 		var newPos int
 		if glOK {
@@ -72,7 +72,7 @@ func inputKeyRight(
 			newPos = nextGraphemeStop(graphemeStops(text), pos)
 		}
 		updateCursorAndSelection(imap, id, is,
-			newPos, isShift)
+			newPos, isShift, utf8RuneCount(text))
 	}
 }
 
@@ -109,7 +109,7 @@ func inputKeyHome(
 		}
 	}
 	updateCursorAndSelection(imap, id, is,
-		newPos, isShift)
+		newPos, isShift, utf8RuneCount(text))
 }
 
 func inputKeyEnd(
@@ -149,7 +149,7 @@ func inputKeyEnd(
 	}
 	is.cursorTrailing = trailing
 	updateCursorAndSelection(imap, id, is,
-		newPos, isShift)
+		newPos, isShift, utf8RuneCount(text))
 }
 
 // inputKeyVertical handles KeyUp (up=true) and KeyDown (up=false)
@@ -193,7 +193,7 @@ func inputKeyVertical(
 		newPos = closestGraphemeStop(graphemeStops(text), newPos)
 	}
 	updateCursorAndSelection(imap, id, is,
-		newPos, isShift)
+		newPos, isShift, utf8RuneCount(text))
 	return true
 }
 

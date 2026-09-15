@@ -10,6 +10,9 @@ and this project adheres to
 
 ### Added
 
+- **`MaskNone` names the no-mask preset** — `InputMaskPreset`'s zero value meant
+  "no mask" but had no exported name, unlike every other preset. `MaskNone`
+  spells it explicitly; existing code is unaffected.
 - **`Checkbox` alias is back** — `Checkbox` calls `Toggle` with the same config,
   so code that uses the checkbox name builds again. The alias stays; later
   export cuts must keep it.
@@ -23,6 +26,22 @@ and this project adheres to
 
 ### Fixed
 
+- **Multiline Enter goes through the text filter** — pressing Enter in a
+  multiline `Input` inserted the newline directly, bypassing the field's `Mask`
+  and `PreTextChange` validator, so a validator never saw that rune and a masked
+  field accepted a character no slot matches. The newline now passes through the
+  same choke point as every other insertion: a veto leaves the text unchanged
+  and a mask refuses it.
+- **An uncompilable input mask panics instead of running unmasked** — a `Mask`
+  whose custom token lacks a `Matcher` logged and fell back to a nil mask, so
+  the field silently edited plain text. It now panics at construction like the
+  inverted-bounds and bad-date-format checks, failing the typo loudly instead of
+  dropping validation.
+- **`NumericInput` treats ±Inf values as unset** — a `Value` or `Min` of ±Inf
+  seeded stepping and committed text that formatted as `+Inf` (`-+Inf` with a
+  sign), which no locale parses back. Non-finite seeds now fall through to the
+  typed text, `Min`, and zero the way NaN already did, and a commit against one
+  yields an empty value.
 - **Gradient fills split at every stop when stops are out of order** — the
   gradient tessellator searched its stop breakpoints as a sorted list, but only
   sorted it for `SpreadReflect`. With pad or repeat spread and stops not in

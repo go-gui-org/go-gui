@@ -555,3 +555,52 @@ func TestNumericBoundsInvertedSwapsDefensively(t *testing.T) {
 		t.Fatalf("clamp(3) in a swapped [5 10] = %v, want 5", got)
 	}
 }
+
+func TestNumericInfValueIsNotASeed(t *testing.T) {
+	// A ±Inf Value is caller garbage, not data: seeding from it
+	// formats "+Inf", which no locale parses back. The seed falls
+	// through to the text, the Min, and finally zero.
+	loc := numericLocaleNormalize(NumericLocaleCfg{})
+	mc := numericModeCfg{displayMultiplier: 1.0}
+	if got := numericStepSeedMode("", Some(math.Inf(1)),
+		Opt[float64]{}, 0, loc, mc); got != 0 {
+		t.Fatalf("seed from +Inf = %v, want 0", got)
+	}
+	if got := numericStepSeedMode("12", Some(math.Inf(-1)),
+		Opt[float64]{}, 0, loc, mc); got != 12 {
+		t.Fatalf("seed from -Inf over %q = %v, want 12", "12", got)
+	}
+}
+
+func TestNumericInfValueCommitFallsBackToEmpty(t *testing.T) {
+	// Unparsable text with a ±Inf Value commits nothing rather
+	// than formatting "+Inf".
+	loc := numericLocaleNormalize(NumericLocaleCfg{})
+	mc := numericModeCfg{displayMultiplier: 1.0}
+	v, s := numericInputCommitResultMode("abc", Some(math.Inf(1)),
+		Opt[float64]{}, Opt[float64]{}, 0, loc, mc)
+	if _, ok := v.Value(); ok {
+		t.Fatalf("commit with +Inf Value = %v, want empty", v)
+	}
+	if s != "" {
+		t.Fatalf("commit text = %q, want empty", s)
+	}
+}
+
+func TestNumericBoundsInfCountsAsUnset(t *testing.T) {
+	// A ±Inf bound past the wrong end (Min=+Inf, Max=-Inf) would
+	// clamp every value into a number no locale formats. Both
+	// count as unset, like NaN; ±Inf on the open end already
+	// equals the default and stays put.
+	lo, hi := numericBounds(Some(math.Inf(1)), Opt[float64]{})
+	if !math.IsInf(lo, -1) || !math.IsInf(hi, 1) {
+		t.Fatalf("Min=+Inf bounds = [%v %v], want [-Inf +Inf]", lo, hi)
+	}
+	lo, hi = numericBounds(Opt[float64]{}, Some(math.Inf(-1)))
+	if !math.IsInf(lo, -1) || !math.IsInf(hi, 1) {
+		t.Fatalf("Max=-Inf bounds = [%v %v], want [-Inf +Inf]", lo, hi)
+	}
+	if got := numericClamp(7, Some(math.Inf(1)), Opt[float64]{}); got != 7 {
+		t.Fatalf("clamp(7) with Min=+Inf = %v, want 7", got)
+	}
+}

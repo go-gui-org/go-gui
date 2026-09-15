@@ -252,7 +252,11 @@ func inputKeyEnter(
 	id string, e *Event, w *Window,
 ) (string, bool) {
 	if hcfg.Mode == InputMultiline {
-		return inputInsert(text, "\n", id, w), true
+		// A newline is text like any other: it passes the mask and
+		// the PreTextChange filter through the shared choke point
+		// instead of inserting directly, so a validator sees every
+		// rune the field accepts.
+		return inputTextChange(hcfg, layout, text, "\n", id, w)
 	}
 	inputCommitEnter(hcfg, layout, text, e, w)
 	return text, false

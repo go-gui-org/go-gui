@@ -370,18 +370,20 @@ func numericParse(raw string, loc NumericLocaleCfg) (float64, bool) {
 }
 
 // numericBounds resolves the clamp interval for optional min and
-// max. Unset Opt means unbounded, and so does a NaN bound: NaN fails
-// every comparison, so letting it through silently disables that
-// side. An inverted interval swaps, defensively — inverted bounds
+// max. Unset Opt means unbounded, and so does a non-finite bound:
+// NaN fails every comparison, so letting it through silently disables
+// that side, and a ±Inf bound past the wrong end (Min=+Inf,
+// Max=-Inf) would clamp every value into a number no locale formats.
+// An inverted interval swaps, defensively — inverted bounds
 // are rejected at construction (requireNumericBounds), so reaching
 // here means a bound changed shape after the check.
 func numericBounds(minVal, maxVal Opt[float64]) (lo, hi float64) {
 	lo = math.Inf(-1)
 	hi = math.Inf(1)
-	if v, ok := minVal.Value(); ok && !math.IsNaN(v) {
+	if v, ok := minVal.Value(); ok && numericValueUsable(v) {
 		lo = v
 	}
-	if v, ok := maxVal.Value(); ok && !math.IsNaN(v) {
+	if v, ok := maxVal.Value(); ok && numericValueUsable(v) {
 		hi = v
 	}
 	if lo > hi {
@@ -391,8 +393,8 @@ func numericBounds(minVal, maxVal Opt[float64]) (lo, hi float64) {
 }
 
 // numericClamp clamps value between optional min and max. Unset
-// Opt means unbounded, and so does a NaN bound: NaN fails every
-// comparison, so letting it through silently disables that side.
+// Opt means unbounded, and so does a non-finite bound (see
+// numericBounds).
 func numericClamp(value float64, minVal, maxVal Opt[float64]) float64 {
 	lo, hi := numericBounds(minVal, maxVal)
 	if value < lo {
@@ -593,16 +595,25 @@ func numericStepDelta(cfg NumericStepCfg, modifiers Modifier) float64 {
 func numericStepSeedMode(text string, value, minVal Opt[float64], decimals int, loc NumericLocaleCfg, mc numericModeCfg) float64 {
 	// A NaN Value or Min is caller garbage, not a seed: NaN
 	// poisons the addition below and the field commits "NaN".
-	if v, ok := value.Value(); ok && !math.IsNaN(v) {
+	// ±Inf is garbage too: it formats as "+Inf" ("-+Inf" with a
+	// sign), which no locale parses back.
+	if v, ok := value.Value(); ok && numericValueUsable(v) {
 		return v
 	}
 	if parsed, ok := numericModeParseValue(text, decimals, loc, mc); ok {
 		return parsed
 	}
-	if v, ok := minVal.Value(); ok && !math.IsNaN(v) {
+	if v, ok := minVal.Value(); ok && numericValueUsable(v) {
 		return v
 	}
 	return 0.0
+}
+
+// numericValueUsable reports whether v is a real seed or commit
+// value. NaN poisons the stepping addition and ±Inf has no locale
+// rendering (see numericFormatValue), so both count as unset.
+func numericValueUsable(v float64) bool {
+	return !math.IsNaN(v) && !math.IsInf(v, 0)
 }
 
 func numericInputCommitResultMode(text string, value, minVal, maxVal Opt[float64], decimals int, locale NumericLocaleCfg, mc numericModeCfg) (Opt[float64], string) {
@@ -615,7 +626,7 @@ func numericInputCommitResultMode(text string, value, minVal, maxVal Opt[float64
 		clamped := numericClamp(parsed, minVal, maxVal)
 		return Some(clamped), numericModeFormatValue(clamped, decimals, loc, mc)
 	}
-	if v, ok := value.Value(); ok && !math.IsNaN(v) {
+	if v, ok := value.Value(); ok && numericValueUsable(v) {
 		clamped := numericClamp(v, minVal, maxVal)
 		return Some(clamped), numericModeFormatValue(clamped, decimals, loc, mc)
 	}

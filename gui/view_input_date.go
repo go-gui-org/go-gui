@@ -315,7 +315,7 @@ func inputDateTextField(
 			}
 			if text == "" {
 				if cfg.OnSelect != nil {
-					cfg.OnSelect(nil, EventCtx{nil, &Event{}, ctx.Window})
+					cfg.OnSelect(nil, EventCtx{nil, nil, ctx.Window})
 				}
 				ctx.Window.InvalidateLayout()
 				return
@@ -325,7 +325,7 @@ func inputDateTextField(
 				return
 			}
 			if cfg.OnSelect != nil {
-				cfg.OnSelect([]time.Time{t}, EventCtx{nil, &Event{}, ctx.Window})
+				cfg.OnSelect([]time.Time{t}, EventCtx{nil, nil, ctx.Window})
 			}
 			ctx.Window.InvalidateLayout()
 		},

@@ -401,7 +401,7 @@ func textKeyVertical(
 		// the caret inside a multi-rune grapheme (inputKeyVertical).
 		newPos = closestGraphemeStop(graphemeStops(text), newPos)
 	}
-	updateCursorAndSelection(imap, id, is, newPos, isShift)
+	updateCursorAndSelection(imap, id, is, newPos, isShift, utf8RuneCount(text))
 	return true
 }
 

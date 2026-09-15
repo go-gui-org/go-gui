@@ -69,10 +69,25 @@ func TestUpdateCursorAndSelectionClampsNegative(t *testing.T) {
 	w := newTestWindow()
 	imap := StateMap[string, inputState](w, nsInput, capMany)
 	updateCursorAndSelection(imap, "neg", inputState{CursorPos: -3},
-		-5, true)
+		-5, true, 10)
 	got := imap.GetOr("neg", inputState{CursorPos: -99})
 	if got.CursorPos != 0 {
 		t.Errorf("CursorPos = %d, want 0", got.CursorPos)
+	}
+	if got.selectBeg != 0 || got.selectEnd != 0 {
+		t.Errorf("selection = (%d, %d), want (0, 0)",
+			got.selectBeg, got.selectEnd)
+	}
+}
+
+func TestUpdateCursorAndSelectionClampsPastEnd(t *testing.T) {
+	w := newTestWindow()
+	imap := StateMap[string, inputState](w, nsInput, capMany)
+	updateCursorAndSelection(imap, "past", inputState{CursorPos: 999},
+		999, false, 3)
+	got := imap.GetOr("past", inputState{CursorPos: -99})
+	if got.CursorPos != 3 {
+		t.Errorf("CursorPos = %d, want 3", got.CursorPos)
 	}
 	if got.selectBeg != 0 || got.selectEnd != 0 {
 		t.Errorf("selection = (%d, %d), want (0, 0)",

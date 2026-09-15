@@ -1,7 +1,7 @@
 package gui
 
 import (
-	"log"
+	"strconv"
 	"time"
 )
 
@@ -480,7 +480,7 @@ func (h *inputHandlerCfg) normalizeOnCommit(
 // handler config specifies a mask pattern.
 func (h *inputHandlerCfg) compiledMask() *CompiledInputMask {
 	pattern := h.Mask
-	if pattern == "" && h.MaskPreset != maskNone {
+	if pattern == "" && h.MaskPreset != MaskNone {
 		pattern = inputMaskFromPreset(h.MaskPreset)
 	}
 	if pattern == "" {
@@ -496,8 +496,12 @@ func (h *inputHandlerCfg) compiledMask() *CompiledInputMask {
 	}
 	c, err := compileInputMask(pattern, h.maskTokens)
 	if err != nil {
-		log.Printf("input: mask compile failed: %v", err)
-		return nil
+		// Fail at construction like the sibling config checks
+		// (requireNumericBounds, requireDateFormat): a mask that
+		// cannot compile is a programmer error, and falling back
+		// to an unmasked field would silently drop validation.
+		panic("gui: Input mask " + strconv.Quote(pattern) +
+			": " + err.Error())
 	}
 	if len(h.maskTokens) == 0 {
 		storeCompiledMaskCache(pattern, &c)

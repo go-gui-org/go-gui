@@ -207,11 +207,24 @@ func TestDeleteEmptyText(t *testing.T) {
 	id := "f10051"
 	setInputState(w, id, inputState{CursorPos: 0})
 	got, ok := inputDelete("", id, false, w)
-	if !ok {
-		t.Fatal("expected ok")
+	if ok {
+		t.Fatal("expected changed=false on empty text")
 	}
 	if got != "" {
 		t.Fatalf("got %q, want empty", got)
+	}
+}
+
+func TestForwardDeleteAtEndUnchanged(t *testing.T) {
+	w := newTestWindow()
+	id := "f10052"
+	setInputState(w, id, inputState{CursorPos: 2})
+	got, ok := inputDelete("ab", id, true, w)
+	if ok {
+		t.Fatal("expected changed=false at end of text")
+	}
+	if got != "ab" {
+		t.Fatalf("got %q, want %q", got, "ab")
 	}
 }
 
@@ -391,7 +404,8 @@ func TestUndoBreaksRunOnCaretMotion(t *testing.T) {
 	setInputState(w, id, inputState{CursorPos: 0})
 	text := typeTypedRun(t, "hello", id, w)
 	imap := StateMap[string, inputState](w, nsInput, capMany)
-	updateCursorAndSelection(imap, id, inputStateOrDefault(id, w), 1, false)
+	updateCursorAndSelection(imap, id, inputStateOrDefault(id, w), 1, false,
+		utf8RuneCount(text))
 	text = inputInsert(text, "x", id, w)
 	undo1 := inputUndo(text, id, w)
 	if undo1 != "hello" {

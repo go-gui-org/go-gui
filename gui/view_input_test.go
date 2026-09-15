@@ -2336,3 +2336,49 @@ func TestInputBlurCommitMaySetFocus(t *testing.T) {
 		t.Fatal("blur commit calling SetFocus deadlocked (issue #394)")
 	}
 }
+
+// A multiline Enter is text like any other: the PreTextChange
+// filter sees the newline and may veto it.
+func TestMultilineEnterPassesPreTextChange(t *testing.T) {
+	w := newTestWindow()
+	id := "enter-pre"
+	setInputState(w, id, inputState{CursorPos: 2})
+	var saw string
+	hcfg := inputHandlerCfg{
+		Mode: InputMultiline,
+		preTextChange: func(_, proposed string) (string, bool) {
+			saw = proposed
+			return "", false
+		},
+	}
+	got, changed := inputKeyEnter(hcfg, nil, "ab", id, &Event{}, w)
+	if changed {
+		t.Fatal("expected a vetoed newline to report unchanged")
+	}
+	if got != "ab" {
+		t.Fatalf("got %q, want %q", got, "ab")
+	}
+	if saw != "ab\n" {
+		t.Fatalf("pre saw %q, want %q", saw, "ab\n")
+	}
+}
+
+// A multiline Enter is text like any other: the mask admits only
+// what its slots match, and a newline matches none of them.
+func TestMultilineEnterPassesMask(t *testing.T) {
+	w := newTestWindow()
+	id := "enter-mask"
+	compiled, err := compileInputMask("99", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	setInputState(w, id, inputState{CursorPos: 2})
+	hcfg := inputHandlerCfg{Mode: InputMultiline, CompiledMask: &compiled}
+	got, changed := inputKeyEnter(hcfg, nil, "12", id, &Event{}, w)
+	if changed {
+		t.Fatal("expected the mask to refuse a newline")
+	}
+	if got != "12" {
+		t.Fatalf("got %q, want %q", got, "12")
+	}
+}

@@ -71,11 +71,7 @@ const (
 )
 
 func inputStateOrDefault(focusID string, w *Window) inputState {
-	m := StateMap[string, inputState](w, nsInput, capMany)
-	if v, ok := m.Get(focusID); ok {
-		return v
-	}
-	return inputState{}
+	return StateReadOr(w, nsInput, focusID, inputState{})
 }
 
 func inputMementoFromState(text string, is inputState) inputMemento {
@@ -159,7 +155,7 @@ func inputInsert(text string, insertText string, focusID string, w *Window) stri
 	is := inputStateOrDefault(focusID, w)
 	cursorPos := min(is.CursorPos, len(runes))
 	if cursorPos < 0 {
-		runes = append([]rune(text), insertRunes...)
+		runes = append(runes, insertRunes...)
 		cursorPos = len(runes)
 	} else if is.selectBeg != is.selectEnd {
 		beg, end := u32Sort(is.selectBeg, is.selectEnd)
@@ -254,7 +250,10 @@ func inputSetTextAndCursorAtEnd(oldText, newText string, focusID string, w *Wind
 // (unselected) delete removes one whole grapheme cluster — the same
 // granularity the glyph-backed path gives — so the nil-measurer
 // fallback never splits an emoji or combining sequence.
-// forwardDelete=true for Delete key, false for Backspace.
+// forwardDelete=true for Delete key, false for Backspace. Returns the
+// new text and whether it changed: an edge delete (Backspace at 0,
+// Delete at end) changes nothing and reports false. Consuming that
+// keystroke is the caller's decision, not this bool's.
 func inputDelete(text string, focusID string, forwardDelete bool, w *Window) (string, bool) {
 	runes := []rune(text)
 	is := inputStateOrDefault(focusID, w)
@@ -275,10 +274,10 @@ func inputDelete(text string, focusID string, forwardDelete bool, w *Window) (st
 		cursorPos = min(int(beg), len(runes))
 	} else {
 		if cursorPos == 0 && !forwardDelete {
-			return text, true
+			return text, false
 		}
 		if cursorPos == len(runes) && forwardDelete {
-			return text, true
+			return text, false
 		}
 		// No glyph layout behind this path (nil textMeasurer), so
 		// cluster boundaries are recomputed with UAX #29 — the same
@@ -403,18 +402,20 @@ func inputSelectAll(text string, focusID string, w *Window) {
 }
 
 // updateCursorAndSelection moves cursor to newPos, extending
-// or resetting selection based on shift modifier. Negative positions
-// (corrupt state, never produced by the cursor functions) clamp to
-// zero rather than wrapping through the uint32 selection casts below.
+// or resetting selection based on shift modifier. Positions outside
+// [0, runeLen] (corrupt state, never produced by the cursor
+// functions) clamp into range rather than wrapping through the
+// uint32 selection casts below.
 func updateCursorAndSelection(
 	imap *BoundedMap[string, inputState],
 	focusID string,
 	is inputState,
 	newPos int,
 	isShift bool,
+	runeLen int,
 ) {
-	newPos = max(newPos, 0)
-	anchor := max(is.CursorPos, 0)
+	newPos = max(0, min(newPos, runeLen))
+	anchor := max(0, min(is.CursorPos, runeLen))
 	if isShift {
 		if is.selectBeg == is.selectEnd {
 			// Start new selection from current cursor.

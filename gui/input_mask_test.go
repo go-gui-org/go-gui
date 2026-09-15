@@ -6,7 +6,7 @@ import (
 )
 
 func TestInputMaskPresets(t *testing.T) {
-	assertEqual(t, len(inputMaskFromPreset(maskNone)), 0)
+	assertEqual(t, len(inputMaskFromPreset(MaskNone)), 0)
 	if inputMaskFromPreset(MaskPhoneUS) != "(999) 999-9999" {
 		t.Fatal("phone_us preset mismatch")
 	}
@@ -256,5 +256,35 @@ func TestCompiledMaskCacheCapped(t *testing.T) {
 	storeCompiledMaskCache(last, &fresh)
 	if cachedCompiledMask(last) != orig {
 		t.Error("re-store replaced the cached instance; must keep the first")
+	}
+}
+
+func TestCompiledMaskPanicsOnNilMatcher(t *testing.T) {
+	// An uncompilable mask is a programmer error, like inverted
+	// numeric bounds: fail at construction instead of silently
+	// running the field unmasked.
+	defer func() {
+		if recover() == nil {
+			t.Error("expected panic for a token without a matcher")
+		}
+	}()
+	hcfg := inputHandlerCfg{
+		Mask:       "99",
+		maskTokens: []MaskTokenDef{{Symbol: '9'}},
+	}
+	_ = hcfg.compiledMask()
+}
+
+func TestSlotEntryOutOfRangeIsSkipped(t *testing.T) {
+	// An index from a stale cursor degrades to the zero entry,
+	// whose nil matcher reads as "no slot", instead of panicking.
+	compiled, err := compileInputMask("99", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, idx := range []int{-1, 2, 100} {
+		if got := compiled.slotEntry(idx); got.matcher != nil {
+			t.Errorf("slotEntry(%d) has a matcher, want the zero entry", idx)
+		}
 	}
 }
