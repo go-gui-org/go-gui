@@ -58,6 +58,12 @@ func LabeledToggle(id, label string, selected bool, onClick func(EventCtx)) View
 	})
 }
 
+// Checkbox is an alias for Toggle. Keep it: callers use the
+// checkbox name, and Toggle stays for the generic name. Do not
+// remove in export-reduction passes.
+// exportaudit:keep — intentional alias for Toggle
+func Checkbox(cfg ToggleCfg) View { return Toggle(cfg) }
+
 // Toggle creates a toggle/checkbox view.
 func Toggle(cfg ToggleCfg) View {
 	applyToggleDefaults(&cfg)

@@ -14,7 +14,7 @@ func TestToggleIDPassthrough(t *testing.T) {
 func TestCheckboxAliasRole(t *testing.T) {
 	w := &Window{}
 	layout := generateViewLayout(
-		Toggle(ToggleCfg{ID: "cb1", OnClick: noop}), w)
+		Checkbox(ToggleCfg{ID: "cb1", OnClick: noop}), w)
 	if layout.Shape.A11YRole != AccessRoleCheckbox {
 		t.Errorf("a11y role: got %d", layout.Shape.A11YRole)
 	}

@@ -10,6 +10,9 @@ and this project adheres to
 
 ### Added
 
+- **`Checkbox` alias is back** — `Checkbox` calls `Toggle` with the same config,
+  so code that uses the checkbox name builds again. The alias stays; later
+  export cuts must keep it.
 - **Custom input mask tokens and the remaining mask presets are public** —
   `InputCfg.MaskTokens` carries caller-defined `MaskTokenDef` tables into the
   compiled mask the keystroke path reads, `MaskTokenDef.Matcher` is exported so

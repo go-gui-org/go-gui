@@ -167,7 +167,7 @@ func TestToggleGeneratesLayout(t *testing.T) {
 
 func TestCheckboxIsToggleAlias(t *testing.T) {
 	w := newTestWindow()
-	v := Toggle(ToggleCfg{ID: "widget_test_test_checkbox_is_toggle_alias", OnClick: noop})
+	v := Checkbox(ToggleCfg{ID: "widget_test_test_checkbox_is_toggle_alias", OnClick: noop})
 	layout := generateViewLayout(v, w)
 	if layout.Shape.A11YRole != AccessRoleCheckbox {
 		t.Fatalf("got role %d, want Checkbox", layout.Shape.A11YRole)
