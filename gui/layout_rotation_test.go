@@ -449,3 +449,23 @@ func TestRotationSwapRefreshesFitAncestorContentCache(t *testing.T) {
 		t.Errorf("root contentWidth = %f, want 20", got)
 	}
 }
+
+// An axisNone container with no in-flow child keeps its size on re-fit,
+// the same as the sizing pass (fitAxisNoneWidth / fitAxisNoneHeight change
+// nothing when there is nothing to enclose). The re-fit used to answer 0.
+func TestRecomputeFitAxisNoneNoInFlowChildKeepsSize(t *testing.T) {
+	layout := &Layout{
+		Shape: &Shape{Axis: axisNone, Sizing: FitFit, Width: 40, Height: 30},
+		Children: []Layout{
+			{Shape: &Shape{shapeType: shapeRectangle, Width: 10, Height: 10, Float: true}},
+		},
+	}
+	nearF(t, "re-fit width", recomputeFitWidth(layout), 40, 0.01)
+	nearF(t, "re-fit height", recomputeFitHeight(layout), 30, 0.01)
+	// Truly childless encloses nothing either, so it keeps its size too.
+	empty := &Layout{
+		Shape: &Shape{Axis: axisNone, Sizing: FitFit, Width: 40, Height: 30},
+	}
+	nearF(t, "re-fit width empty", recomputeFitWidth(empty), 40, 0.01)
+	nearF(t, "re-fit height empty", recomputeFitHeight(empty), 30, 0.01)
+}

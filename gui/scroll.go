@@ -247,6 +247,25 @@ func scrollMaxOffsetY(layout *Layout) float32 {
 			contentHeight(layout))
 }
 
+// scrollMirrorsX reports whether a scrollable's horizontal offset runs
+// against the arrangement of its children.
+//
+// An RTL row starts at the right edge and lays its children leftward, so
+// what does not fit sits off the left. The stored offset stays in
+// [maxOffset, 0] and keeps its meaning — a distance from the start edge —
+// but every physical input names the opposite direction to the one it
+// names in an LTR row: a wheel delta, a thumb drag and a gutter click all
+// arrive mirrored, and layoutChildStartPos subtracts the offset instead of
+// adding it.
+//
+// Only a row mirrors. An RTL column arranges top to bottom and overflows
+// to the right like any other column, so its horizontal offset is
+// unchanged.
+func scrollMirrorsX(shape *Shape) bool {
+	return shape != nil && shape.Axis == axisLeftToRight &&
+		effectiveTextDir(shape) == TextDirRTL
+}
+
 // scrollHorizontal adjusts the horizontal scroll offset of a
 // scrollable layout. Returns true if offset was adjusted. Instant:
 // used by the precise/trackpad and keyboard paths. The discrete
@@ -259,6 +278,11 @@ func scrollHorizontal(layout *Layout, delta float32, w *Window) bool {
 	}
 	if !f32IsFinite(delta) {
 		return false
+	}
+	// delta is a physical content displacement, and an RTL row's offset
+	// runs the other way (scrollMirrorsX).
+	if scrollMirrorsX(layout.Shape) {
+		delta = -delta
 	}
 	maxOffset := scrollMaxOffsetX(layout)
 	if !f32IsFinite(maxOffset) {

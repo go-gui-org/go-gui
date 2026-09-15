@@ -101,7 +101,7 @@ func TestClearViewStateClearsHotMaps(t *testing.T) {
 	sy.Set("1", float32(-50))
 	sx := w.scrollX()
 	sx.Set("2", float32(-30))
-	w.hoverInside().Set("h", true)
+	w.hoverInside().Set("h", 1)
 	w.overflow().Set("o", 5)
 
 	// Verify values are present.

@@ -77,6 +77,13 @@ func layoutOverflowDepth(layout *Layout, w *Window, depth int) {
 
 	var used float32
 	firstHideIdx := triggerIdx // child index where hiding starts
+	// A gap follows every in-flow child that came before, which is not
+	// the same question as whether they took any width: a zero-width
+	// in-flow child still holds a slot, and layoutPositions still
+	// advances past it by width + spacing. Testing `used > 0` lost that
+	// gap and let an item stay in a row it overflows. Same flag, same
+	// reason, as the wrap pass (layout_wrap.go).
+	rowHasFlowChild := false
 
 	for i := range triggerIdx {
 		child := &layout.Children[i]
@@ -84,7 +91,7 @@ func layoutOverflowDepth(layout *Layout, w *Window, depth int) {
 			continue
 		}
 		var gap float32
-		if used > 0 {
+		if rowHasFlowChild {
 			gap = spacing
 		}
 		needed := used + gap + child.Shape.Width
@@ -97,6 +104,7 @@ func layoutOverflowDepth(layout *Layout, w *Window, depth int) {
 			break
 		}
 		used = needed
+		rowHasFlowChild = true
 	}
 
 	// The stored count is an index into the container's children, not a

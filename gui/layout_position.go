@@ -41,7 +41,10 @@ func layoutPositionsDepth(layout *Layout, offsetX, offsetY float32, w *Window, d
 			layoutPositionsDepth(child, x+xAlign, y+yAlign, w, depth+1)
 		}
 
-		if child.Shape.shapeType != shapeNone && !child.Shape.OverDraw {
+		// Advance past in-flow children only, the set sizing counted
+		// (skipLayoutChild). A Float left in the tree must not push its
+		// siblings along.
+		if !skipLayoutChild(child.Shape) {
 			switch axis {
 			case axisLeftToRight:
 				if isRTL {
@@ -62,8 +65,7 @@ func layoutChildStartPos(
 	layout *Layout, isRTL bool, axis Axis, w *Window,
 ) (x, y float32) {
 	if isRTL && axis == axisLeftToRight {
-		x = layout.Shape.X + layout.Shape.Width -
-			layout.Shape.Padding.Left - layout.Shape.SizeBorder
+		x = layout.Shape.X + layout.Shape.Width - layout.Shape.PaddingLeft()
 	} else if isRTL {
 		x = layout.Shape.X + layout.Shape.Padding.Right +
 			layout.Shape.SizeBorder
@@ -77,7 +79,15 @@ func layoutChildStartPos(
 		sy := w.scrollY()
 		id := layout.Shape.idKey()
 		if v, ok := sx.Get(id); ok {
-			x += v
+			// An RTL row starts at the right edge and runs leftward, so the
+			// offset — a distance from that start edge — moves the children
+			// back to the right (scrollMirrorsX). Adding it here pushed the
+			// overflow further off the left, where nothing could reach it.
+			if isRTL && axis == axisLeftToRight {
+				x -= v
+			} else {
+				x += v
+			}
 		}
 		if v, ok := sy.Get(id); ok {
 			y += v

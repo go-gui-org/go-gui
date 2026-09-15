@@ -159,6 +159,11 @@ func scrollSmoothBy(w *Window, layout *Layout, axis scrollAxis, delta float32) b
 	}
 	// Post-generation read: this window's theme, not the frame cache.
 	increment := delta * w.themeRef().ScrollMultiplier
+	// Discrete-wheel path: mirror for an RTL row exactly as the instant
+	// path does in scrollHorizontal (scrollMirrorsX).
+	if axis == scrollAxisX && scrollMirrorsX(layout.Shape) {
+		increment = -increment
+	}
 	return scrollSmoothArm(w, layout.Shape.idKey(), axis, displayed, maxOffset, increment, true)
 }
 

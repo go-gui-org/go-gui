@@ -36,6 +36,49 @@ and this project adheres to
 
 ### Fixed
 
+- **`OnMouseLeave` no longer fires for a hover that ended frames ago** — the
+  per-shape hover record was a flag, and a shape that stopped being walked
+  (disabled, or not generated that frame) left its flag set. When the shape came
+  back with the pointer elsewhere, it fired a leave for a hover that was long
+  over. The record is now the frame the pointer was last inside, and only the
+  current frame or the one before counts as still hovered.
+- **An Overflow row counts the gap after a zero-width item** — the decision to
+  reserve spacing read the width accumulated so far, so an in-flow child of zero
+  width dropped one gap that positioning still applied, and the row kept a
+  trailing item that did not fit.
+- **A cached rich-text layout is shared, not copied** — every hit on the
+  cross-frame RTF layout cache moved a copy of the shaped layout to the heap,
+  once per rich-text shape per frame, which a Markdown page paid for every block
+  it drew. The cache now hands out the layout it already holds.
+- **An RTL scrollable row can reach the content it hides** — an RTL row runs
+  leftward from its right edge, so what does not fit sits off the left, but the
+  scroll offset moved the children further left still and no input could bring
+  it back. The offset keeps its meaning and its range — a distance from the
+  start edge, in `[maxOffset, 0]` — while the wheel, trackpad, keyboard, pan,
+  thumb drag and gutter click now read mirrored for such a row, and the
+  scrollbar thumb rests at the right end when unscrolled. RTL columns are
+  unchanged.
+- **A centered or end-aligned Wrap container places its rows correctly** — the
+  rows a wrap builds were never given a cached content width, so alignment read
+  0 and moved each row by its whole slack: a centered row started halfway across
+  and its last item ran past the edge. Rows now align against the width of the
+  items they hold.
+- **A rotated widget no longer collapses an empty Canvas** — when a rotation
+  changed a child's size, the re-fit of its Fit ancestors set an axis-less
+  container (Canvas) with no in-flow child to size 0. The sizing pass keeps the
+  current size in that case, and the re-fit now does the same.
+- **MaxWidth and MaxHeight win over a larger minimum at every sizing step** —
+  when a minimum was larger than the maximum, most sizing steps capped the size
+  at the maximum, but the fill pass that shrinks a Fill child raised it to the
+  minimum. The clamp used for Fill children could do either, depending on the
+  starting size. Every step now caps at the maximum, and a container's computed
+  minimum can no longer exceed its maximum on the cross axis.
+- **A Fit scroll container no longer takes its children's minimum size** —
+  sizing read `Clip` before the layout pass set it on scroll containers, so a
+  Fit `Scrollable` container took its content's minimum and could not shrink and
+  scroll. Sizing now treats a scroll container as clipped on each axis it
+  scrolls. An axis that `ScrollMode` excludes keeps the content minimum, as
+  before.
 - **Fill children shrink beside a wider fixed sibling** — when a row was too
   narrow, the shrink pass searched for its largest child among Fixed and Fit
   siblings too. If that child was not Fill, nothing shrank and the row

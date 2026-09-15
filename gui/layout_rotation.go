@@ -96,15 +96,14 @@ func recomputeFitWidth(layout *Layout) float32 {
 		// is still parent-relative: this pass runs before layoutPositions.
 		if extent, _, found := axisNoneExtentW(layout); found {
 			w = extent + padding
+		} else {
+			// Nothing in flow to enclose: keep the current width, as
+			// fitAxisNoneWidth does, rather than collapsing to 0.
+			w = layout.Shape.Width
 		}
 	}
-	if layout.Shape.MinWidth > 0 {
-		w = f32Max(w, layout.Shape.MinWidth)
-	}
-	if layout.Shape.MaxWidth > 0 {
-		w = f32Min(w, layout.Shape.MaxWidth)
-	}
-	return w
+	// Max wins over a larger Min, the rule every sizing site shares.
+	return clampSize(w, layout.Shape.MinWidth, layout.Shape.MaxWidth)
 }
 
 // recomputeFitHeight mirrors layoutHeights accumulation for a
@@ -134,13 +133,10 @@ func recomputeFitHeight(layout *Layout) float32 {
 		// fitAxisNoneHeight does.
 		if extent, _, found := axisNoneExtentH(layout); found {
 			h = extent + padding
+		} else {
+			// See recomputeFitWidth: keep the current height.
+			h = layout.Shape.Height
 		}
 	}
-	if layout.Shape.MinHeight > 0 {
-		h = f32Max(h, layout.Shape.MinHeight)
-	}
-	if layout.Shape.MaxHeight > 0 {
-		h = f32Min(h, layout.Shape.MaxHeight)
-	}
-	return h
+	return clampSize(h, layout.Shape.MinHeight, layout.Shape.MaxHeight)
 }

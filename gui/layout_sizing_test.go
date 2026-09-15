@@ -1266,3 +1266,116 @@ func TestScrollFillHorizontalOnlyKeepsHeightFloor(t *testing.T) {
 		t.Errorf("min height %v, want >= 2000 (content floor kept)", ly.Shape.MinHeight)
 	}
 }
+
+// computeContentHeight takes the same nil guard as computeContentWidth, so
+// the two axes answer a missing layout or shape the same way.
+func TestComputeContentSizeNilLayoutOrShape(t *testing.T) {
+	nearF(t, "nil layout width", computeContentWidth(nil), 0, 0.01)
+	nearF(t, "nil layout height", computeContentHeight(nil), 0, 0.01)
+	noShape := &Layout{}
+	nearF(t, "nil shape width", computeContentWidth(noShape), 0, 0.01)
+	nearF(t, "nil shape height", computeContentHeight(noShape), 0, 0.01)
+	// The cached wrappers answer the same way instead of dereferencing
+	// a missing shape.
+	nearF(t, "wrapper nil layout width", contentWidth(nil), 0, 0.01)
+	nearF(t, "wrapper nil layout height", contentHeight(nil), 0, 0.01)
+	nearF(t, "wrapper nil shape width", contentWidth(noShape), 0, 0.01)
+	nearF(t, "wrapper nil shape height", contentHeight(noShape), 0, 0.01)
+}
+
+// When MinWidth > MaxWidth, Max wins at every sizing site (#2 of the layout
+// review). clampMinMax compared the pre-clamp size against Max, so a size
+// below Max kept the Min it had just been raised to.
+func TestClampMinMaxMaxWinsOverMin(t *testing.T) {
+	for _, width := range []float32{30, 70, 120} {
+		s := &Shape{Width: width, MinWidth: 100, MaxWidth: 50}
+		clampMinMax(s, distributeHorizontal)
+		nearF(t, "clamped width", s.Width, 50, 0.01)
+	}
+}
+
+// The distribute loop checked Min first, so a shrinking Fill child with
+// Min > Max was raised to Min, past its Max.
+func TestLayoutFillWidthsMaxWinsOverMin(t *testing.T) {
+	root := &Layout{
+		Shape: &Shape{shapeType: shapeRectangle, Axis: axisLeftToRight, Sizing: FixedFixed, Width: 40, Height: 20},
+		Children: []Layout{
+			{Shape: &Shape{shapeType: shapeRectangle, Sizing: FillFixed, MinWidth: 100, MaxWidth: 50}},
+		},
+	}
+	layoutWidths(root)
+	layoutFillWidths(root, &scratchPools{})
+	nearF(t, "fill child width", root.Children[0].Shape.Width, 50, 0.01)
+}
+
+// The cross-axis fit branches let Max win on the size but left the
+// computed Min above Max, which the fill pass then honored. The main-axis
+// branches already cap Min to Max; the cross axis now matches.
+func TestLayoutSizesCrossAxisCapsMinToMax(t *testing.T) {
+	col := &Layout{
+		Shape: &Shape{shapeType: shapeRectangle, Axis: axisTopToBottom, MaxWidth: 50},
+		Children: []Layout{
+			{Shape: &Shape{shapeType: shapeRectangle, Width: 100, MinWidth: 100}},
+		},
+	}
+	layoutWidths(col)
+	nearF(t, "column width", col.Shape.Width, 50, 0.01)
+	nearF(t, "column min width", col.Shape.MinWidth, 50, 0.01)
+
+	row := &Layout{
+		Shape: &Shape{shapeType: shapeRectangle, Axis: axisLeftToRight, MaxHeight: 50},
+		Children: []Layout{
+			{Shape: &Shape{shapeType: shapeRectangle, Height: 100, MinHeight: 100}},
+		},
+	}
+	layoutHeights(row)
+	nearF(t, "row height", row.Shape.Height, 50, 0.01)
+	nearF(t, "row min height", row.Shape.MinHeight, 50, 0.01)
+}
+
+// A Scrollable container clips (layoutPositions forces Clip on it), so
+// sizing treats it as clipping too: its children's minimums do not become
+// its own, and a Fit scrollable can shrink and scroll instead (#4 of the
+// layout review). Clip used to be set only after sizing had read it.
+func TestScrollableFitIgnoresChildMinSize(t *testing.T) {
+	child := func() Layout {
+		return Layout{Shape: &Shape{shapeType: shapeRectangle,
+			Width: 200, MinWidth: 200, Height: 200, MinHeight: 200}}
+	}
+	for _, axis := range []Axis{axisLeftToRight, axisTopToBottom} {
+		root := &Layout{
+			Shape:    &Shape{shapeType: shapeRectangle, Axis: axis, Scrollable: true},
+			Children: []Layout{child()},
+		}
+		layoutWidths(root)
+		layoutHeights(root)
+		nearF(t, "scrollable min width", root.Shape.MinWidth, 0, 0.01)
+		nearF(t, "scrollable min height", root.Shape.MinHeight, 0, 0.01)
+	}
+}
+
+// An axis the ScrollMode excludes cannot reveal hidden content, so it
+// keeps its floor while the scrolling axis drops it.
+func TestScrollableScrollModeExclusionKeepsFloor(t *testing.T) {
+	mkRoot := func(mode scrollMode) *Layout {
+		return &Layout{
+			Shape: &Shape{shapeType: shapeRectangle, Axis: axisLeftToRight,
+				Scrollable: true, ScrollMode: mode},
+			Children: []Layout{
+				{Shape: &Shape{shapeType: shapeRectangle,
+					Width: 200, MinWidth: 200, Height: 200, MinHeight: 200}},
+			},
+		}
+	}
+	vertOnly := mkRoot(ScrollVerticalOnly)
+	layoutWidths(vertOnly)
+	layoutHeights(vertOnly)
+	nearF(t, "vertical-only min width", vertOnly.Shape.MinWidth, 200, 0.01)
+	nearF(t, "vertical-only min height", vertOnly.Shape.MinHeight, 0, 0.01)
+
+	horizOnly := mkRoot(ScrollHorizontalOnly)
+	layoutWidths(horizOnly)
+	layoutHeights(horizOnly)
+	nearF(t, "horizontal-only min width", horizOnly.Shape.MinWidth, 0, 0.01)
+	nearF(t, "horizontal-only min height", horizOnly.Shape.MinHeight, 200, 0.01)
+}

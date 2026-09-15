@@ -186,3 +186,21 @@ func TestLayoutPositionsEndAlignLTR(t *testing.T) {
 		t.Errorf("X: got %f, want 160", root.Children[0].Shape.X)
 	}
 }
+
+// A Float child left in the tree (the extraction walk stops at the depth
+// cap, and view_splitter calls layoutPositions directly) must not advance
+// the cursor: sizing already skips it (skipLayoutChild), so advancing here
+// would place its in-flow sibling past a width the parent never counted.
+func TestLayoutPositionsFloatDoesNotAdvanceCursor(t *testing.T) {
+	root := &Layout{
+		Shape: &Shape{shapeType: shapeRectangle, Axis: axisLeftToRight, Width: 200, Height: 20},
+		Children: []Layout{
+			{Shape: &Shape{shapeType: shapeRectangle, Width: 50, Height: 20, Float: true}},
+			{Shape: &Shape{shapeType: shapeRectangle, Width: 30, Height: 20}},
+		},
+	}
+	layoutPositions(root, 0, 0, &Window{})
+	if got := root.Children[1].Shape.X; !f32AreClose(got, 0) {
+		t.Errorf("in-flow sibling X after a Float: got %f, want 0", got)
+	}
+}
