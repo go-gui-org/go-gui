@@ -2,14 +2,12 @@ package gui
 
 import "math"
 
-// fillBuffers bundles the candidate and fixed-index scratch slices
+// fillBuffers bundles the candidate scratch slice and fill generation
 // for the layout fill pipeline. Passing a single *fillBuffers through
-// recursive calls avoids two slice-header escapes per frame (one escape
-// for the struct pointer vs two for separate *[]int pointers).
+// recursive calls avoids a slice-header escape per frame.
 type fillBuffers struct {
-	candidates   []int
-	fixedIndices []int
-	fillGen      uint32 // generation counter for fill-pass cache invalidation
+	candidates []int
+	fillGen    uint32 // generation counter for fill-pass cache invalidation
 }
 
 // sentinelNextExtrema is a large finite float32 used as "no next extremum
@@ -133,8 +131,25 @@ func scrollFillResetMin(shape *Shape, axis distributeAxis) {
 // child X is skipped — f32Max returns its second argument for NaN and would
 // poison the size otherwise.
 func fitAxisNoneWidth(layout *Layout, padding float32) {
-	var extent, minExtent float32
-	found := false
+	if extent, minExtent, found := axisNoneExtentW(layout); found {
+		layout.Shape.Width = f32Max(layout.Shape.Width, extent+padding)
+		layout.Shape.MinWidth = f32Max(layout.Shape.MinWidth, minExtent+padding)
+	}
+}
+
+// fitAxisNoneHeight is fitAxisNoneWidth for the vertical axis, with Y.
+func fitAxisNoneHeight(layout *Layout, padding float32) {
+	if extent, minExtent, found := axisNoneExtentH(layout); found {
+		layout.Shape.Height = f32Max(layout.Shape.Height, extent+padding)
+		layout.Shape.MinHeight = f32Max(layout.Shape.MinHeight, minExtent+padding)
+	}
+}
+
+// axisNoneExtentW returns the furthest in-flow child right edge (X plus
+// extent) and the same for MinWidth, skipping non-finite sums. found is
+// false when no child is in flow. Shared by the sizing fit and the rotation
+// re-fit so the two cannot drift apart.
+func axisNoneExtentW(layout *Layout) (extent, minExtent float32, found bool) {
 	for i := range layout.Children {
 		c := layout.Children[i].Shape
 		if skipLayoutChild(c) {
@@ -148,16 +163,11 @@ func fitAxisNoneWidth(layout *Layout, padding float32) {
 			minExtent = f32Max(minExtent, m)
 		}
 	}
-	if found {
-		layout.Shape.Width = f32Max(layout.Shape.Width, extent+padding)
-		layout.Shape.MinWidth = f32Max(layout.Shape.MinWidth, minExtent+padding)
-	}
+	return extent, minExtent, found
 }
 
-// fitAxisNoneHeight is fitAxisNoneWidth for the vertical axis, with Y.
-func fitAxisNoneHeight(layout *Layout, padding float32) {
-	var extent, minExtent float32
-	found := false
+// axisNoneExtentH is axisNoneExtentW for the vertical axis, with Y.
+func axisNoneExtentH(layout *Layout) (extent, minExtent float32, found bool) {
 	for i := range layout.Children {
 		c := layout.Children[i].Shape
 		if skipLayoutChild(c) {
@@ -171,10 +181,7 @@ func fitAxisNoneHeight(layout *Layout, padding float32) {
 			minExtent = f32Max(minExtent, m)
 		}
 	}
-	if found {
-		layout.Shape.Height = f32Max(layout.Shape.Height, extent+padding)
-		layout.Shape.MinHeight = f32Max(layout.Shape.MinHeight, minExtent+padding)
-	}
+	return extent, minExtent, found
 }
 
 func clampMinMax(shape *Shape, axis distributeAxis) {
@@ -250,11 +257,8 @@ type distributionExtrema struct {
 	nextExtrema float32
 }
 
-func collectDistributionCandidates(layout *Layout, axis distributeAxis, mode distributeMode, fb *fillBuffers) {
+func collectDistributionCandidates(layout *Layout, axis distributeAxis, fb *fillBuffers) {
 	fb.candidates = fb.candidates[:0]
-	if mode == distributeShrink {
-		fb.fixedIndices = fb.fixedIndices[:0]
-	}
 	for i := range layout.Children {
 		// Out-of-flow children take no slot in the row, so they take no
 		// share of its budget either. The remaining budget above already
@@ -265,8 +269,6 @@ func collectDistributionCandidates(layout *Layout, axis distributeAxis, mode dis
 		}
 		if getSizing(layout.Children[i].Shape, axis) == sizingFill {
 			fb.candidates = append(fb.candidates, i)
-		} else if mode == distributeShrink {
-			fb.fixedIndices = append(fb.fixedIndices, i)
 		}
 	}
 }
@@ -281,7 +283,10 @@ func shouldContinueDistribution(remaining float32, mode distributeMode, fillCoun
 	return remaining < -f32Tolerance
 }
 
-func findDistributionExtrema(layout *Layout, axis distributeAxis, mode distributeMode, fillIndices, fixedIndices []int) (distributionExtrema, bool) {
+// findDistributionExtrema searches the Fill children only. Fixed and Fit
+// siblings cannot change size, so a larger one used to become the extremum
+// while no Fill child matched it: nothing shrank and the row overflowed.
+func findDistributionExtrema(layout *Layout, axis distributeAxis, mode distributeMode, fillIndices []int) (distributionExtrema, bool) {
 	if len(fillIndices) == 0 {
 		return distributionExtrema{}, false
 	}
@@ -309,24 +314,13 @@ func findDistributionExtrema(layout *Layout, axis distributeAxis, mode distribut
 			}
 		}
 	}
-	if mode == distributeShrink {
-		for _, idx := range fixedIndices {
-			childSize := getSize(layout.Children[idx].Shape, axis)
-			if childSize > extrema {
-				nextExtrema = extrema
-				extrema = childSize
-			} else if childSize < extrema {
-				nextExtrema = f32Max(nextExtrema, childSize)
-			}
-		}
-	}
 	if !f32IsFinite(extrema) || !f32IsFinite(nextExtrema) {
 		return distributionExtrema{}, false
 	}
 	return distributionExtrema{extremum: extrema, nextExtrema: nextExtrema}, true
 }
 
-func computeDistributionDelta(layout *Layout, remaining float32, mode distributeMode, axis distributeAxis, extrema distributionExtrema, fillCount, fixedCount int) (float32, bool) {
+func computeDistributionDelta(layout *Layout, remaining float32, mode distributeMode, axis distributeAxis, extrema distributionExtrema, fillCount int) (float32, bool) {
 	var sizeDelta float32
 	if mode == distributeGrow {
 		if extrema.nextExtrema == sentinelNextExtrema {
@@ -348,13 +342,11 @@ func computeDistributionDelta(layout *Layout, remaining float32, mode distribute
 	if !f32IsFinite(sizeDelta) {
 		return 0, false
 	}
+	// Only Fill children take a share: a Fixed sibling cannot absorb one.
 	if mode == distributeGrow {
 		sizeDelta = f32Min(sizeDelta, remaining/float32(fillCount))
 	} else {
-		totalCount := fillCount + fixedCount
-		if totalCount > 0 {
-			sizeDelta = f32Max(sizeDelta, remaining/float32(totalCount))
-		}
+		sizeDelta = f32Max(sizeDelta, remaining/float32(fillCount))
 	}
 	if !f32IsFinite(sizeDelta) {
 		return 0, false
@@ -421,18 +413,18 @@ func distributeSpace(layout *Layout, remainingIn float32, mode distributeMode, a
 	remaining := remainingIn
 	prevRemaining := float32(0)
 
-	collectDistributionCandidates(layout, axis, mode, fb)
+	collectDistributionCandidates(layout, axis, fb)
 
 	for shouldContinueDistribution(remaining, mode, len(fb.candidates)) {
 		if f32AreClose(remaining, prevRemaining) {
 			break
 		}
 		prevRemaining = remaining
-		extrema, ok := findDistributionExtrema(layout, axis, mode, fb.candidates, fb.fixedIndices)
+		extrema, ok := findDistributionExtrema(layout, axis, mode, fb.candidates)
 		if !ok {
 			break
 		}
-		sizeDelta, ok := computeDistributionDelta(layout, remaining, mode, axis, extrema, len(fb.candidates), len(fb.fixedIndices))
+		sizeDelta, ok := computeDistributionDelta(layout, remaining, mode, axis, extrema, len(fb.candidates))
 		if !ok {
 			break
 		}
@@ -615,7 +607,11 @@ func layoutHeightsDepth(layout *Layout, depth int) {
 					continue
 				}
 				layout.Shape.Height += layout.Children[i].Shape.Height
-				minHeights += layout.Children[i].Shape.MinHeight
+				// A Clip container may be cut below its content, the
+				// same rule layoutWidths applies on both axes.
+				if !layout.Shape.Clip {
+					minHeights += layout.Children[i].Shape.MinHeight
+				}
 			}
 			// A stated MinHeight is border-box, matching the row branch in
 			// layoutWidths (issue #385): it already counts padding and
@@ -655,7 +651,9 @@ func layoutHeightsDepth(layout *Layout, depth int) {
 			}
 			if fitHeight {
 				layout.Shape.Height = f32Max(layout.Shape.Height, layout.Children[i].Shape.Height+padding)
-				layout.Shape.MinHeight = f32Max(layout.Shape.MinHeight, layout.Children[i].Shape.MinHeight+padding)
+				if !layout.Shape.Clip {
+					layout.Shape.MinHeight = f32Max(layout.Shape.MinHeight, layout.Children[i].Shape.MinHeight+padding)
+				}
 			}
 		}
 		if layout.Shape.MinHeight > 0 {
@@ -750,10 +748,8 @@ func layoutFillWithPool(layout *Layout, p *scratchPools, impl func(*Layout, *fil
 	fb := &p.fillBufs
 	fb.fillGen = p.fillGen
 	fb.candidates = p.fillCandidates.take(0)
-	fb.fixedIndices = p.fixedIndices.take(0)
 	impl(layout, fb)
 	p.fillCandidates.put(fb.candidates)
-	p.fixedIndices.put(fb.fixedIndices)
 }
 
 func layoutFillHeightsImpl(layout *Layout, fb *fillBuffers) {

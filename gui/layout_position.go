@@ -22,7 +22,7 @@ func layoutPositionsDepth(layout *Layout, offsetX, offsetY float32, w *Window, d
 	isRTL := effectiveTextDir(layout.Shape) == TextDirRTL
 
 	x, y := layoutChildStartPos(layout, isRTL, axis, w)
-	layoutW, layoutH := layoutRotatedDims(layout, &x, &y)
+	layoutW, layoutH := layoutRotatedDims(layout, isRTL && axis == axisLeftToRight, &x, &y)
 	hAlign := resolveHAlign(layout.Shape.HAlign, isRTL)
 	x, y = applyContainerAlignment(layout, hAlign, axis, isRTL, x, y, layoutW, layoutH)
 
@@ -88,14 +88,21 @@ func layoutChildStartPos(
 
 // layoutRotatedDims handles quarter-turn dimension swapping and
 // adjusts x,y to center children in the internal coordinate space.
-func layoutRotatedDims(layout *Layout, x, y *float32) (w, h float32) {
+// rtlRow is set when x starts at the right edge (an RTL row), where the
+// unrotated frame's right edge is left of the display box's right edge,
+// so the correction is subtracted instead of added.
+func layoutRotatedDims(layout *Layout, rtlRow bool, x, y *float32) (w, h float32) {
 	w = layout.Shape.Width
 	h = layout.Shape.Height
 	turns := layout.Shape.QuarterTurns
 	if turns == 1 || turns == 3 {
 		contentW := h // swapped back
 		contentH := w
-		*x += (w - contentW) / 2
+		if rtlRow {
+			*x -= (w - contentW) / 2
+		} else {
+			*x += (w - contentW) / 2
+		}
 		*y += (h - contentH) / 2
 		w = contentW
 		h = contentH
@@ -238,9 +245,22 @@ func layoutSetShapeClipsDepth(layout *Layout, clip drawClip, depth int) {
 		dh := layout.Shape.Height
 		cx := layout.Shape.X + dw/2
 		cy := layout.Shape.Y + dh/2
-		childClip = drawClip{
+		rotated := drawClip{
 			X: cx - dh/2, Y: cy - dw/2,
 			Width: dh, Height: dw,
+		}
+		// The unrotated frame still sits inside every ancestor clip,
+		// and inside the content box when this container clips. Without
+		// the intersection, children scrolled out of a viewport stay
+		// hit-testable there.
+		bound := clip
+		if layout.Shape.Clip {
+			bound = childClip
+		}
+		if r, ok := rectIntersection(rotated, bound); ok {
+			childClip = r
+		} else {
+			childClip = drawClip{}
 		}
 		overClip = childClip
 	}

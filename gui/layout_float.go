@@ -130,7 +130,13 @@ func floatAttachLayout(
 		ft := flipVerticalAttach(tieOff)
 		_, fay := attachOffset(fa, parent.Width, parent.Height)
 		_, fty := attachOffset(ft, fw, fh)
-		newY := parent.Y + fay - fty + offsetY
+		// The offset is a gap from the anchor side. On the opposite
+		// side it must point the other way, or a gap becomes an overlap.
+		flipOffsetY := offsetY
+		if fa != anchor || ft != tieOff {
+			flipOffsetY = -offsetY
+		}
+		newY := parent.Y + fay - fty + flipOffsetY
 		if overflowAxis(newY, fh, 0, winH) < curOverY {
 			y = newY
 			anchor = fa
@@ -145,7 +151,12 @@ func floatAttachLayout(
 		ft := mirrorFloatAttach(tieOff)
 		fax, _ := attachOffset(fa, parent.Width, parent.Height)
 		ftx, _ := attachOffset(ft, fw, fh)
-		newX := parent.X + fax - ftx + offsetX
+		// See the vertical flip: the gap changes sign with the side.
+		flipOffsetX := offsetX
+		if fa != anchor || ft != tieOff {
+			flipOffsetX = -offsetX
+		}
+		newX := parent.X + fax - ftx + flipOffsetX
 		if overflowAxis(newX, fw, 0, winW) < curOverX {
 			x = newX
 		}

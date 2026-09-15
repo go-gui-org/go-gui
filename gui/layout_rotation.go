@@ -91,11 +91,11 @@ func recomputeFitWidth(layout *Layout) float32 {
 			w = f32Max(w, layout.Children[i].Shape.Width+padding)
 		}
 	default:
-		for i := range layout.Children {
-			if skipLayoutChild(layout.Children[i].Shape) {
-				continue
-			}
-			w = f32Max(w, layout.Children[i].Shape.Width+padding)
+		// axisNone places each child at its own X, so the fit encloses
+		// X + extent, the same rule as fitAxisNoneWidth (issue #584). X
+		// is still parent-relative: this pass runs before layoutPositions.
+		if extent, _, found := axisNoneExtentW(layout); found {
+			w = extent + padding
 		}
 	}
 	if layout.Shape.MinWidth > 0 {
@@ -130,11 +130,10 @@ func recomputeFitHeight(layout *Layout) float32 {
 			h = f32Max(h, layout.Children[i].Shape.Height+padding)
 		}
 	default:
-		for i := range layout.Children {
-			if skipLayoutChild(layout.Children[i].Shape) {
-				continue
-			}
-			h = f32Max(h, layout.Children[i].Shape.Height+padding)
+		// See recomputeFitWidth: enclose Y + height, as
+		// fitAxisNoneHeight does.
+		if extent, _, found := axisNoneExtentH(layout); found {
+			h = extent + padding
 		}
 	}
 	if layout.Shape.MinHeight > 0 {

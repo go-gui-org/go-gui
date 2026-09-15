@@ -154,12 +154,10 @@ type scratchPools struct {
 	svgAnimContribs  scratchSlice[animContrib]
 
 	// Layout sizing: reusable slices for distributeSpace's fill
-	// candidate and fixed-index collections. Allocated once per
-	// fill-widths/fill-heights pass and reused across all
-	// recursive nodes in the tree walk.
+	// candidate collection. Allocated once per fill-widths/fill-heights
+	// pass and reused across all recursive nodes in the tree walk.
 	fillCandidates scratchSlice[int]
-	fixedIndices   scratchSlice[int]
-	fillBufs       fillBuffers // bundles candidate+fixedIndex slices for fill pipeline
+	fillBufs       fillBuffers // bundles the candidate slice for fill pipeline
 
 	// View-phase pool: reuse Shape allocations across frames.
 	// Reset before generateViewLayout; valid through buildRenderers.
@@ -224,7 +222,6 @@ func newScratchPools() scratchPools {
 		svgAnimTriangles:       scratchSlice[TessellatedPath]{retainMax: 1024, shrinkTo: 64},
 		svgAnimContribs:        scratchSlice[animContrib]{retainMax: 1024, shrinkTo: 64},
 		fillCandidates:         scratchSlice[int]{retainMax: 256, shrinkTo: 32},
-		fixedIndices:           scratchSlice[int]{retainMax: 256, shrinkTo: 32},
 		viewShapes:             scratchObjPool[Shape]{retainMax: 16384, shrinkTo: 1024},
 		buttonColors:           scratchObjPool[shapeButtonColors]{retainMax: 512, shrinkTo: 32},
 		viewEvents:             scratchObjPool[eventHandlers]{retainMax: 4096, shrinkTo: 256},

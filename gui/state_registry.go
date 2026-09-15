@@ -153,6 +153,15 @@ func requireScrollID(widget string, scrollable bool, id string) {
 	}
 }
 
+// requireOverflowID panics if an Overflow container has an empty ID.
+// layoutOverflow stores the visible-item count keyed by the ID, so
+// containers without one would share a single slot.
+func requireOverflowID(widget string, overflow bool, id string) {
+	if overflow && id == "" {
+		panic("gui: " + widget + " with Overflow:true requires a non-empty Cfg.ID")
+	}
+}
+
 // Clear drops all registry references.
 func (r *stateRegistry) Clear() {
 	clear(r.maps)

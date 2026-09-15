@@ -1,6 +1,9 @@
 package gui
 
-import "slices"
+import (
+	"cmp"
+	"slices"
+)
 
 // layoutArrange is the top-level layout orchestrator. It sets
 // parents, extracts floats, injects toast/dialog overlays, runs
@@ -25,12 +28,13 @@ func layoutArrange(layout *Layout, w *Window) []Layout {
 	defer func() {
 		w.scratch.putFloatingLayouts(floatingLayouts)
 	}()
+	// Extraction is pre-order, so a float that hosts a nested float comes
+	// before it. The pipelines below run in this order, and the layers are
+	// sorted by Z only after that: floatAttachLayout reads the host's
+	// final position, so a nested float with a lower Z than its host must
+	// not run first.
 	layoutRemoveFloatingLayouts(layout, w, &floatingLayouts)
-
-	slices.SortStableFunc(floatingLayouts,
-		func(a, b *Layout) int {
-			return a.Shape.FloatZIndex - b.Shape.FloatZIndex
-		})
+	extracted := len(floatingLayouts)
 
 	// Inject inspector overlay as a floating layer.
 	if inspectorSupported && w.inspectorEnabled {
@@ -63,11 +67,23 @@ func layoutArrange(layout *Layout, w *Window) []Layout {
 		layouts = append(layouts, *fl)
 	}
 
-	// Hover processing: topmost first.
+	// Layer order: extracted floats by Z (stable, so equal Z keeps
+	// extraction order), then the injected overlays in the order they were
+	// added, dialog last. cmp.Compare, not subtraction, which overflows
+	// for extreme Z values.
+	slices.SortStableFunc(layouts[1:1+extracted],
+		func(a, b Layout) int {
+			return cmp.Compare(a.Shape.FloatZIndex, b.Shape.FloatZIndex)
+		})
+
+	// Hover processing: topmost first. Only a handled OnHover stops the
+	// walk, so OnHover still fires under a floating layer that handles
+	// none. This differs from interactionTargetAt, where any shape under
+	// the pointer blocks lower layers, and the split is deliberate:
+	// OnHover is dispatch, IsHovered is visible state (#587,
+	// TestInteractionStateFloatBlocksButOnHoverFires).
 	for i := range slices.Backward(layouts) {
-		handled := layoutHover(&layouts[i], w)
-		if handled && i > 0 {
-			// Cursor inside a floating layer blocks lower layers.
+		if layoutHover(&layouts[i], w) {
 			break
 		}
 	}

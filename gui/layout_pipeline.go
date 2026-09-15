@@ -33,7 +33,10 @@ func layoutPipeline(layout *Layout, w *Window) {
 	layoutPositions(layout, fx, fy, w)
 	layoutApplyScrollAnchors(layout, w)
 	layoutApplyVirtualScrolls(layout, w)
-	layoutDisables(layout, false)
+	// A float's Parent still points at the container it was lifted
+	// from, so a float inside a disabled container starts disabled.
+	// For the main tree Parent is nil and this is false.
+	layoutDisables(layout, ancestorDisabled(layout))
 
 	// Post-position passes.
 	layoutAmend(layout, w)

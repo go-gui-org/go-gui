@@ -46,8 +46,8 @@ func layoutOverflowDepth(layout *Layout, w *Window, depth int) {
 	// A Fit-width overflow container resolves against its nearest
 	// definite-width ancestor (issue #379): its fit width is the full
 	// content sum, so nothing below it ever overflows.
-	if changed, path, depth := constrainFitContainerWidth(layout); changed {
-		refitFitAncestors(layout, path[:depth])
+	if changed, path, pathLen := constrainFitContainerWidth(layout); changed {
+		refitFitAncestors(layout, path[:pathLen])
 		layout.Shape.contentW = computeContentWidth(layout)
 	}
 
@@ -65,6 +65,16 @@ func layoutOverflowDepth(layout *Layout, w *Window, depth int) {
 	}
 	triggerW := layout.Children[triggerIdx].Shape.Width
 
+	// The last in-flow item needs no room for the trigger: if it fits,
+	// every item fits and the trigger is hidden.
+	lastItemIdx := -1
+	for i := triggerIdx - 1; i >= 0; i-- {
+		if !skipLayoutChild(layout.Children[i].Shape) {
+			lastItemIdx = i
+			break
+		}
+	}
+
 	var used float32
 	firstHideIdx := triggerIdx // child index where hiding starts
 
@@ -78,7 +88,11 @@ func layoutOverflowDepth(layout *Layout, w *Window, depth int) {
 			gap = spacing
 		}
 		needed := used + gap + child.Shape.Width
-		if needed+spacing+triggerW > available {
+		reserve := spacing + triggerW
+		if i == lastItemIdx {
+			reserve = 0
+		}
+		if needed+reserve > available {
 			firstHideIdx = i
 			break
 		}
@@ -103,6 +117,10 @@ func layoutOverflowDepth(layout *Layout, w *Window, depth int) {
 			hideOverflowChild(&layout.Children[i])
 		}
 	}
+	// Hidden children take no width now. The fill pass cached contentW
+	// before they were hidden, and applyContainerAlignment reads it, so
+	// a centered or end-aligned row would be placed against the old sum.
+	layout.Shape.contentW = computeContentWidth(layout)
 
 	om := w.overflow()
 	id := layout.Shape.idKey()
