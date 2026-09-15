@@ -37,7 +37,6 @@ var (
 	procAppendMenuW         = user32.NewProc("AppendMenuW")
 	procTrackPopupMenu      = user32.NewProc("TrackPopupMenu")
 	procDestroyMenu         = user32.NewProc("DestroyMenu")
-	procGetCursorPos        = user32.NewProc("GetCursorPos")
 	procSetForegroundWindow = user32.NewProc("SetForegroundWindow")
 )
 
@@ -57,11 +56,20 @@ const (
 
 // Window message constants.
 const (
-	wmAppTray   = 0x8000 + 100
-	wmRButtonUp = 0x0205
-	wmCommand   = 0x0111
-	wmDestroy   = 0x0002
-	wmClose     = 0x0010
+	wmAppTray = 0x8000 + 100
+	wmCommand = 0x0111
+	wmDestroy = 0x0002
+	wmClose   = 0x0010
+)
+
+// Tray callback events sent with NOTIFYICON_VERSION_4. Version 4 also
+// sends raw mouse messages (WM_MOUSEMOVE, WM_LBUTTONUP, ...); the tray
+// ignores them, because these three already cover click, keyboard and
+// menu input.
+const (
+	ninSelect     = 0x0400 // NIN_SELECT: the icon was selected
+	ninKeySelect  = 0x0401 // NIN_KEYSELECT: selected with the keyboard
+	wmContextMenu = 0x007B // menu asked for, by mouse or keyboard
 )
 
 // Window class / style constants.
@@ -150,6 +158,10 @@ type Tray struct {
 	// the init again, so later ensureWindow calls must read the error
 	// from here, or they report success with hwnd still 0.
 	initErr error
+	// trackMenu, when set, replaces the TrackPopupMenu call so a test
+	// can see the menu request without a modal menu loop blocking the
+	// tray thread. Read and written under mu.
+	trackMenu func(hMenu uintptr, x, y int32)
 }
 
 type entry struct {
@@ -287,14 +299,16 @@ func (t *Tray) createWindow() (uintptr, error) {
 func (t *Tray) wndProc(hwnd uintptr, msg uint32, wParam, lParam uintptr) uintptr {
 	switch msg {
 	case wmAppTray:
-		// lParam holds the event type from Shell_NotifyIcon.
-		switch lParam {
-		case wmRButtonUp:
-			t.showContextMenu(wParam) // wParam = icon ID
-		default:
-			// Left-click — fire action callback with empty
-			// ID (default action).
-			t.fireAction(wParam, "")
+		// Create sets NOTIFYICON_VERSION_4, so the message uses that
+		// layout. The old layout (icon ID in wParam, message in lParam)
+		// never arrives (#617).
+		event, iconID, x, y := decodeTrayCallback(wParam, lParam)
+		switch event {
+		case ninSelect, ninKeySelect:
+			// Default action: empty action ID.
+			t.fireAction(uintptr(iconID), "")
+		case wmContextMenu:
+			t.showContextMenu(uintptr(iconID), x, y)
 		}
 		return 0
 
@@ -311,6 +325,23 @@ func (t *Tray) wndProc(hwnd uintptr, msg uint32, wParam, lParam uintptr) uintptr
 
 	r, _, _ := procDefWindowProcW.Call(hwnd, uintptr(msg), wParam, lParam)
 	return r
+}
+
+// decodeTrayCallback splits a NOTIFYICON_VERSION_4 tray callback.
+// lParam holds the event in its low word and the icon ID (uID) in its
+// high word. wParam holds the anchor position: X in the low word, Y in
+// the high word. The anchor is the click point, or the icon for
+// keyboard input. X and Y are signed, as GET_X_LPARAM and GET_Y_LPARAM
+// read them, because a monitor left of or above the primary one has
+// negative coordinates. Only the low 32 bits carry data.
+func decodeTrayCallback(
+	wParam, lParam uintptr,
+) (event, iconID uint16, x, y int32) {
+	event = uint16(lParam)
+	iconID = uint16(lParam >> 16)
+	x = int32(int16(uint16(wParam)))
+	y = int32(int16(uint16(wParam >> 16)))
+	return event, iconID, x, y
 }
 
 func (t *Tray) fireAction(iconID uintptr, actionID string) {
@@ -352,7 +383,10 @@ func (t *Tray) fireMenuAction(menuID uint32) {
 	}
 }
 
-func (t *Tray) showContextMenu(iconID uintptr) {
+// showContextMenu opens the entry's menu at (x, y), the anchor the shell
+// sent. The mouse cursor is not used: when the menu was opened from the
+// keyboard, the cursor can be anywhere on screen.
+func (t *Tray) showContextMenu(iconID uintptr, x, y int32) {
 	t.mu.Lock()
 	var e *entry
 	for _, ent := range t.entries {
@@ -366,11 +400,13 @@ func (t *Tray) showContextMenu(iconID uintptr) {
 		return
 	}
 	hMenu := e.hMenu
+	trackMenu := t.trackMenu
 	t.mu.Unlock()
 
-	// Get cursor position.
-	var pt point
-	procGetCursorPos.Call(uintptr(unsafe.Pointer(&pt)))
+	if trackMenu != nil {
+		trackMenu(hMenu, x, y)
+		return
+	}
 
 	// Must set foreground window before TrackPopupMenu so
 	// the menu dismisses properly when clicking elsewhere.
@@ -379,7 +415,7 @@ func (t *Tray) showContextMenu(iconID uintptr) {
 	procTrackPopupMenu.Call(
 		hMenu,
 		uintptr(tpmRightButton|tpmBottomAlign),
-		uintptr(pt.x), uintptr(pt.y),
+		uintptr(x), uintptr(y),
 		0, t.hwnd, 0)
 }
 
@@ -436,24 +472,41 @@ func (t *Tray) Create(
 		nid.uFlags |= nifIcon
 	}
 
-	// Set version to NOTIFYICON_VERSION_4 (Vista+) for GUID
-	// support and better behavior.
-	nidVersion := nid
-	nidVersion.uFlags = 0
-	nidVersion.uVersion = notifyIconV4
-	procShellNotifyIconW.Call(nimSetVersion,
-		uintptr(unsafe.Pointer(&nidVersion)))
-
-	r, _, _ := procShellNotifyIconW.Call(nimAdd,
-		uintptr(unsafe.Pointer(&nid)))
-	if r == 0 {
+	// freeHandles releases the icon and menu when Create fails.
+	freeHandles := func() {
 		if hIcon != 0 {
 			hicon.Destroy(hIcon)
 		}
 		if hMenu != 0 {
 			procDestroyMenu.Call(hMenu)
 		}
+	}
+
+	r, _, _ := procShellNotifyIconW.Call(nimAdd,
+		uintptr(unsafe.Pointer(&nid)))
+	if r == 0 {
+		freeHandles()
 		return 0, errors.New("sni: Shell_NotifyIcon(NIM_ADD) failed")
+	}
+
+	// Set NOTIFYICON_VERSION_4. It applies to an icon that exists, so it
+	// must come after NIM_ADD; sent before, it had no icon to act on and
+	// its failure went unseen (#617). It names the icon the same way
+	// NIM_ADD did, by GUID. wndProc decodes only the version 4 layout,
+	// so if the shell refuses, the icon's clicks would be decoded wrong:
+	// remove the icon and fail instead.
+	nidVersion := nid
+	nidVersion.uFlags = nifGuid
+	nidVersion.uVersion = notifyIconV4
+	r, _, _ = procShellNotifyIconW.Call(nimSetVersion,
+		uintptr(unsafe.Pointer(&nidVersion)))
+	if r == 0 {
+		nidDelete := nid
+		nidDelete.uFlags = nifGuid
+		procShellNotifyIconW.Call(nimDelete,
+			uintptr(unsafe.Pointer(&nidDelete)))
+		freeHandles()
+		return 0, errors.New("sni: Shell_NotifyIcon(NIM_SETVERSION) failed")
 	}
 
 	t.mu.Lock()

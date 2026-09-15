@@ -38,6 +38,17 @@ and this project adheres to
   tray now makes its window and reads its messages on one thread that it owns,
   so it works from any goroutine. Each tray also registers its own window class,
   so a second tray no longer fails to register or sends its clicks to the first.
+- **Windows tray reads its click events correctly and works from the keyboard
+  (#617)** — the tray asked for `NOTIFYICON_VERSION_4` but decoded its callback
+  in the older layout, where `wParam` is the icon ID. In version 4 `wParam` is a
+  screen position and the icon ID sits in `lParam`, so clicks could miss their
+  icon, a right click could fire the default action, and mouse moves could fire
+  it too. The version request was also sent before the icon existed, and its
+  result was not checked. The tray now sets the version after adding the icon,
+  decodes the version 4 layout, fires the default action when the icon is
+  selected by mouse or keyboard, and opens the menu, by mouse or keyboard, at
+  the position the shell reports. If the shell refuses version 4,
+  `SetSystemTray` returns an error and no icon is left behind.
 - **macOS frame pump survives a nested runloop inside a nested runloop** — the
   pump that repaints windows during a modal dialog, live resize or open menu
   shared one snapshot buffer across calls. When app code run by a pumped frame
