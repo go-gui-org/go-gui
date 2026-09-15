@@ -97,11 +97,9 @@ func (b *Backend) renderersDraw(w *gui.Window) {
 // --- Individual draw commands ---
 
 func (b *Backend) drawClip(r *gui.RenderCmd) {
-	s := b.dpiScale
-	x := int32(r.X * s)
-	y := int32(r.Y * s)
-	w := int32(r.W * s)
-	h := int32(r.H * s)
+	// Rounds outward: floor the near edge, ceil the far one, so a
+	// fractional DPI scale never shaves the right or bottom pixel.
+	x, y, w, h := gpu.ClipRect(r.X, r.Y, r.W, r.H, b.dpiScale)
 	// GL scissor Y is bottom-up.
 	gogl.Enable(gogl.SCISSOR_TEST)
 	gogl.Scissor(x, b.physH-y-h, w, h)

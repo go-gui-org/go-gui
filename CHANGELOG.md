@@ -23,6 +23,14 @@ and this project adheres to
 
 ### Fixed
 
+- **GPU clip rects round outward (#601)** — the GL and Metal backends converted
+  a clip box to device pixels by truncating `x`, `y`, `w` and `h` on their own,
+  putting the far edge at `floor(x) + floor(w)`. At a fractional DPI scale, or a
+  fractional layout coordinate, that is up to a full device pixel short, so
+  scrolled and clipped content lost a line of pixels along its right and bottom
+  edges. Both backends now floor the near edge and ceil the far edge through a
+  shared helper, the rule the software backend already used, so the device rect
+  always contains the box. An empty clip stays empty.
 - **`BoundedMap` keeps one ordering slot per key after `Delete`** — `Delete`
   left the key's slot in the order list on small maps, because compaction runs
   only past a size threshold. Setting the same key again appended a second slot:
