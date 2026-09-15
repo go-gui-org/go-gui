@@ -23,6 +23,15 @@ and this project adheres to
 
 ### Fixed
 
+- **macOS frame pump survives a nested runloop inside a nested runloop** — the
+  pump that repaints windows during a modal dialog, live resize or open menu
+  shared one snapshot buffer across calls. When app code run by a pumped frame
+  entered a deeper runloop, the timer called the pump again, which truncated and
+  cleared that buffer while the outer call still walked it. The outer call then
+  read a nil window and panicked, or pumped the wrong windows. Each call now
+  holds the buffer for itself; only real re-entry allocates, so the 60 Hz tick
+  stays allocation-free.
+
 - **Linux screen readers get the correct widget states** — the AT-SPI2 bridge
   sent thirteen of its fourteen state flags at the wrong bit positions. Orca
   read every node as editable, multi-line and pressed, a focused widget as

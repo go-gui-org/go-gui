@@ -86,6 +86,8 @@ func lookupWindow(id uint32) *windowState {
 
 // pumpScratch is the reusable snapshot buffer for goMetalPumpFrames, so a
 // 60 Hz pump allocates nothing. Main-thread only, like the pump itself.
+// pumpWindows holds it out of the global while in use, so a re-entrant pump
+// cannot clobber it.
 var pumpScratch []*windowState
 
 // framePumpCount counts goMetalPumpFrames invocations that actually ran
@@ -96,29 +98,54 @@ var framePumpCount atomic.Uint64
 //export goMetalPumpFrames
 func goMetalPumpFrames() {
 	framePumpCount.Add(1)
+	pumpWindows(pumpWindow)
+}
+
+// pumpWindow renders one frame for ws if its window accepts one. A package
+// func, not a closure, so passing it to pumpWindows allocates nothing.
+func pumpWindow(ws *windowState) {
+	w := ws.attachedWindow
+	if w == nil || ws.ctx == nil {
+		return
+	}
+	// PumpFrame, not FrameFn: it declines the frame instead of
+	// deadlocking when the stack that entered the nested runloop
+	// already holds the window lock.
+	if w.PumpFrame() {
+		ws.renderFrame(w)
+	}
+}
+
+// pumpWindows calls pump for a snapshot of every registered window. The
+// pump is a parameter so tests can re-enter it without Cocoa.
+func pumpWindows(pump func(*windowState)) {
+	// Take the shared buffer out of the global for this call. pump runs app
+	// code, which can enter a deeper nested runloop whose frame timer calls
+	// back in here on the same thread. That inner call must not truncate and
+	// clear the slice this call is still walking, so it finds pumpScratch nil
+	// and allocates its own buffer. Only real re-entry allocates; a plain
+	// 60 Hz tick reuses the one buffer.
+	buf := pumpScratch[:0]
+	pumpScratch = nil
 
 	// Snapshot under the lock: PumpFrame runs app code, which may open or
 	// close windows and so mutate the registry.
 	windowRegistryMu.Lock()
-	pumpScratch = pumpScratch[:0]
 	for _, ws := range windowRegistry {
-		pumpScratch = append(pumpScratch, ws)
+		buf = append(buf, ws)
 	}
 	windowRegistryMu.Unlock()
 
-	for _, ws := range pumpScratch {
-		w := ws.attachedWindow
-		if w == nil || ws.ctx == nil {
-			continue
-		}
-		// PumpFrame, not FrameFn: it declines the frame instead of
-		// deadlocking when the stack that entered the nested runloop
-		// already holds the window lock.
-		if w.PumpFrame() {
-			ws.renderFrame(w)
-		}
+	for _, ws := range buf {
+		pump(ws)
 	}
-	clear(pumpScratch) // drop references to destroyed windows
+	clear(buf) // drop references to destroyed windows
+
+	// Give the buffer back. A re-entrant call may already have returned its
+	// own; keep the larger so steady state stays allocation-free.
+	if cap(buf) >= cap(pumpScratch) {
+		pumpScratch = buf[:0]
+	}
 }
 
 // ─── Test helpers ──────────────────────────────────────────────
