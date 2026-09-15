@@ -42,6 +42,17 @@ and this project adheres to
   end of the list and rejected that string. Commit, edit and arrow-key steps on
   a displayed value then failed with no error. Both paths now repeat the last
   configured size.
+- **IME input is sanitized the same way on every backend** — the X11 preedit,
+  the web composition/commit and the Android commit reached the widgets without
+  the length cap and replacement-character strip the Win32 and X11 commit paths
+  apply, so a hostile input source could push an unbounded string or visible
+  decoding failures into the render path. All three now share the same
+  strip-and-cap. The X11 preedit still emits when empty (that event ends the
+  composition), and a missing web `data` value yields an empty string instead of
+  the literal `"null"`. The Win32 caret pixel now rounds to nearest like
+  `gui.imeCoord` and the X11 scaler instead of truncating, so one caret lands in
+  one place on every backend. The X11 `IMEStart`/`IMEStop` calls are explicit
+  no-ops with no input method present, matching `IMESetRect` and `drainIME`.
 - **Rotated children no longer leave stale content sizes on their parents
   (#622)** — a child with `QuarterTurns` 1 or 3 swaps its width and height after
   the fill passes have cached each container's content width and height. Those

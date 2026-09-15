@@ -55,23 +55,31 @@ func shapeDrawsCaret(s *Shape) bool {
 
 // findEditTargets reports both focus signals — whether the focused
 // widget draws a framework caret (the blink gate) and whether it is
-// an editable IME context — in one walk. The walk short-circuits as
-// soon as both are found and is skipped entirely when nothing is
-// focused, so a frame with a focused widget pays one shallow probe
-// and nothing when nothing is focused. A focused widget can match
-// through two shapes (Input's container and its inner text shape),
-// so once one signal is found the walk keeps going for the other.
-// Depth is capped like every other tree walk: the tree is not always
-// the app's own, and past maxEventDepth the frame drops input rather
-// than the process.
+// an editable IME context — in one walk. See findEditTargetsIn.
 func findEditTargets(layout *Layout, w *Window, depth int) (caret, ime bool) {
-	if layout == nil || layout.Shape == nil || w.FocusID() == "" {
+	// Loaded once: focus cannot change mid-walk on the frame
+	// goroutine, and IsFocus would reload the same atomic at
+	// every node otherwise.
+	return findEditTargetsIn(layout, w.FocusID(), depth)
+}
+
+// findEditTargetsIn resolves both focus signals against an already
+// loaded focus ID. The walk short-circuits as soon as both are found
+// and is skipped entirely when nothing is focused, so a frame with a
+// focused widget pays one shallow probe and nothing when nothing is
+// focused. A focused widget can match through two shapes (Input's
+// container and its inner text shape), so once one signal is found
+// the walk keeps going for the other. Depth is capped like every
+// other tree walk: the tree is not always the app's own, and past
+// maxEventDepth the frame drops input rather than the process.
+func findEditTargetsIn(layout *Layout, focusID string, depth int) (caret, ime bool) {
+	if layout == nil || layout.Shape == nil || focusID == "" {
 		return false, false
 	}
 	if overMaxDepth(depth) {
 		return false, false
 	}
-	if w.IsFocus(layout.Shape.focusKey()) {
+	if focusID == layout.Shape.focusKey() {
 		if shapeDrawsCaret(layout.Shape) {
 			caret = true
 		}
@@ -83,7 +91,7 @@ func findEditTargets(layout *Layout, w *Window, depth int) (caret, ime bool) {
 		}
 	}
 	for i := range layout.Children {
-		c, e := findEditTargets(&layout.Children[i], w, depth+1)
+		c, e := findEditTargetsIn(&layout.Children[i], focusID, depth+1)
 		caret = caret || c
 		ime = ime || e
 		if caret && ime {

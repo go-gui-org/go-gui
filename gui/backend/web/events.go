@@ -3,6 +3,7 @@
 package web
 
 import (
+	"strings"
 	"syscall/js"
 	"unicode/utf8"
 
@@ -191,7 +192,7 @@ func (b *Backend) registerEvents(w *gui.Window) {
 	reg(js.Global(), "compositionupdate",
 		func(_ js.Value, args []js.Value) any {
 			e := args[0]
-			data := e.Get("data").String()
+			data := imeSanitizeText(jsString(e.Get("data")))
 			start, length := imeClauseFromTarget(
 				e.Get("target"), data)
 			*evt = gui.Event{
@@ -207,7 +208,7 @@ func (b *Backend) registerEvents(w *gui.Window) {
 	reg(js.Global(), "compositionend",
 		func(_ js.Value, args []js.Value) any {
 			e := args[0]
-			text := e.Get("data").String()
+			text := imeSanitizeText(jsString(e.Get("data")))
 			if len(text) == 0 {
 				// Cancelled composition (Escape). Report the end
 				// so the preedit clears; without it the overlay
@@ -285,6 +286,50 @@ func (b *Backend) registerEvents(w *gui.Window) {
 	reg(canvas, "touchmove", touchHandler(gui.EventTouchesMoved))
 	reg(canvas, "touchend", touchHandler(gui.EventTouchesEnded))
 	reg(canvas, "touchcancel", touchHandler(gui.EventTouchesCancelled))
+}
+
+// jsString reads a JS string property without coercion: a missing
+// value (null or undefined) yields "" rather than the literals
+// "null" or "undefined" that Value.String would produce, which would
+// otherwise arrive as a bogus one-word composition.
+func jsString(v js.Value) string {
+	if v.Type() != js.TypeString {
+		return ""
+	}
+	return v.String()
+}
+
+// maxIMETextRunes bounds a composition or commit string from the
+// browser, which arrives with no length promised. Mirrors
+// maxIMEPreeditRunes in gui/ime.go; a phrase is far past any real
+// input.
+const maxIMETextRunes = 4096
+
+// imeSanitizeText strips decoding failures and caps the length of a
+// composition or commit string, returning empty when nothing usable
+// remains. An empty composition still emits (it ends the preedit);
+// an empty commit emits nothing.
+func imeSanitizeText(s string) string {
+	if strings.ContainsRune(s, 0xFFFD) {
+		s = strings.Map(func(r rune) rune {
+			if r == 0xFFFD {
+				return -1
+			}
+			return r
+		}, s)
+	}
+	if s == "" {
+		return ""
+	}
+	if utf8.RuneCountInString(s) > maxIMETextRunes {
+		i := 0
+		for range maxIMETextRunes {
+			_, size := utf8.DecodeRuneInString(s[i:])
+			i += size
+		}
+		s = s[:i]
+	}
+	return s
 }
 
 // imeClauseFromTarget reads the selected clause of a live composition

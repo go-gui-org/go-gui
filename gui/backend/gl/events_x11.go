@@ -318,9 +318,11 @@ func (b *Backend) drainIME() {
 // gui/ime.go; a commit is a phrase, far past any real one.
 const maxIMECommitRunes = 4096
 
-// imeCommitText strips decoding failures and caps the length of a
-// commit string, returning empty when nothing committable remains.
-func imeCommitText(s string) string {
+// imeSanitizeText strips decoding failures and caps the length of a
+// string from the input method, returning empty when nothing usable
+// remains. Both directions share it: a commit and a preedit each
+// arrive over D-Bus with no length promised.
+func imeSanitizeText(s string) string {
 	if strings.ContainsRune(s, 0xFFFD) {
 		s = strings.Map(func(r rune) rune {
 			if r == 0xFFFD {
@@ -376,9 +378,12 @@ func imeEvents(in []ibus.Event, dst []gui.Event) []gui.Event {
 		ev := &in[i]
 		switch ev.Kind {
 		case ibus.KindPreedit:
+			// Sanitized like a commit, but an empty preedit
+			// still emits: it is how a composition ends, and
+			// without the event the widget keeps stale text.
 			dst = append(dst, gui.Event{
 				Type:      gui.EventIMEComposition,
-				IMEText:   ev.Text,
+				IMEText:   imeSanitizeText(ev.Text),
 				IMEStart:  ev.Cursor,
 				IMELength: ev.SelLen,
 			})
@@ -389,7 +394,7 @@ func imeEvents(in []ibus.Event, dst []gui.Event) []gui.Event {
 			// One event carries the whole string — the contract
 			// Event documents and every other backend emits — so a
 			// multi-rune CJK commit is one insert and one undo step.
-			text := imeCommitText(ev.Text)
+			text := imeSanitizeText(ev.Text)
 			if text == "" {
 				continue
 			}
@@ -436,15 +441,23 @@ func (b *Backend) rootOrigin() (int16, int16) {
 	return b.plat.lastRootX, b.plat.lastRootY
 }
 
-func (n *nativePlatform) IMEStart() { n.b.plat.ime.FocusIn() }
+func (n *nativePlatform) IMEStart() {
+	if n.b.plat.ime == nil {
+		return
+	}
+	n.b.plat.ime.FocusIn()
+}
 
 // IMEStop drops the input method's focus. No composition event is
 // emitted here: the gui layer already clears its own state on a focus
 // change (Window.setFocusID), and re-entering EventFn from inside an
 // event handler would clobber the event being dispatched.
 func (n *nativePlatform) IMEStop() {
-	n.b.plat.ime.FocusOut()
 	n.b.plat.imeHaveRect = false
+	if n.b.plat.ime == nil {
+		return
+	}
+	n.b.plat.ime.FocusOut()
 }
 
 // IMESetRect reports the caret rect so the candidate window can anchor

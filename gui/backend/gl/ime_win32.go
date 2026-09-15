@@ -347,16 +347,20 @@ func imeRuneIndex(u []uint16, n int) int32 {
 // Window.IMESetRect's float conversion cannot propagate into IMM.
 const imeCaretBound = 32767
 
-// imePixel converts a scaled logical coordinate to a bounded pixel.
-// NaN fails both comparisons and lands on zero.
+// imePixel converts a scaled logical coordinate to a bounded pixel,
+// rounding to nearest like gui.imeCoord and the X11 imeScaled so one
+// caret lands in one place on every backend. NaN fails every
+// comparison and lands on zero.
 func imePixel(v float32) int32 {
 	switch {
 	case v > imeCaretBound:
 		return imeCaretBound
 	case v < -imeCaretBound:
 		return -imeCaretBound
-	case v >= -imeCaretBound && v <= imeCaretBound:
-		return int32(v)
+	case v >= 0:
+		return int32(v + 0.5)
+	case v < 0:
+		return -int32(0.5 - v)
 	default:
 		return 0 // NaN
 	}

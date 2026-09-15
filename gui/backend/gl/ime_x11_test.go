@@ -183,6 +183,42 @@ func TestIMEAddOriginSaturates(t *testing.T) {
 	}
 }
 
+// With no input method present IMEStart/IMEStop must be safe no-ops:
+// focusing a text field with no ibus daemon must not panic.
+func TestIMENilClientStartStopNoPanic(t *testing.T) {
+	b := &Backend{}
+	n := &nativePlatform{b: b}
+	n.IMEStart()
+	n.IMEStop()
+	if b.plat.imeHaveRect {
+		t.Error("IMEStop with no input method left a rect cached")
+	}
+}
+
+// A hostile engine must not grow the preedit without bound or smuggle
+// decoding failures into the render path: the preedit is sanitized
+// like a commit. An empty preedit still emits — it ends the
+// composition — so only the text is cleaned, not the event dropped.
+func TestIMEEventsPreeditSanitized(t *testing.T) {
+	got := imeEvents([]ibus.Event{
+		{Kind: ibus.KindPreedit, Text: "a�b", Cursor: 1, SelLen: 1},
+	}, nil)
+	if len(got) != 1 || got[0].IMEText != "ab" {
+		t.Fatalf("preedit with replacement char mapped to %+v", got)
+	}
+
+	big := strings.Repeat("あ", maxIMECommitRunes+10)
+	got = imeEvents([]ibus.Event{
+		{Kind: ibus.KindPreedit, Text: big},
+	}, nil)
+	if len(got) != 1 {
+		t.Fatalf("got %d events, want 1", len(got))
+	}
+	if n := utf8.RuneCountInString(got[0].IMEText); n != maxIMECommitRunes {
+		t.Fatalf("preedit runes = %d, want %d", n, maxIMECommitRunes)
+	}
+}
+
 // With no input method present the backend must behave exactly as
 // before: no client, no queue, and the key path untouched.
 func TestNoIMEClientIsInert(t *testing.T) {

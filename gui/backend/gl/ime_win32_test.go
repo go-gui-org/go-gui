@@ -275,8 +275,10 @@ func TestIMEPixelBounds(t *testing.T) {
 		want int32
 	}{
 		{"zero", 0, 0},
-		{"ordinary", 120.7, 120},
+		{"ordinary", 120.7, 121},
+		{"half up", 2.5, 3},
 		{"negative", -40.2, -40},
+		{"negative half down", -40.7, -41},
 		{"at bound", imeCaretBound, imeCaretBound},
 		{"past bound", 1e9, imeCaretBound},
 		{"past negative bound", -1e9, -imeCaretBound},
