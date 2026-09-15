@@ -23,6 +23,14 @@ and this project adheres to
 
 ### Fixed
 
+- **Custom shaders render on Android** — `glesSetCustomPipeline` marked the
+  bound program as "no pipeline", so `glesSetMVP` and `glesSetTM` returned early
+  and never wrote the custom program's `mvp` and `tm` uniforms. `mvp` stayed
+  zero, every vertex collapsed to the origin, and a custom shader drew nothing;
+  its `Params` were lost too. The GLES backend now records which custom program
+  is bound and writes both uniforms through its cached locations. Deleting the
+  bound custom pipeline also unbinds it, so a rebuilt program that reuses the
+  slot does not get stale writes.
 - **GPU clip rects round outward (#601)** — the GL and Metal backends converted
   a clip box to device pixels by truncating `x`, `y`, `w` and `h` on their own,
   putting the far edge at `floor(x) + floor(w)`. At a fractional DPI scale, or a

@@ -34,7 +34,11 @@ static GLuint _glyphVAO, _glyphVBO;
 // Viewport.
 static int _viewW, _viewH;
 
-// Current pipeline state.
+// Current pipeline state. A value >= 0 is a built-in pipeline (PIPE_*). -1 means
+// nothing is bound. A value <= -2 is custom pipeline (-2 - _curPipeline); see
+// customPipelineIndex. Encoding custom pipelines in the same variable means every
+// existing "_curPipeline = -1" reset also leaves custom mode, and every ">= 0"
+// guard keeps rejecting custom programs for the built-in location tables.
 static int _curPipeline = -1;
 
 // Textures.
@@ -775,28 +779,51 @@ void glesSetPipeline(int id) {
     _curPipeline = id;
 }
 
-void glesSetMVP(const float* m) {
-    if (_curPipeline < 0 || _curPipeline >= PIPE_COUNT) return;
-    GLint loc = _mvpLocs[_curPipeline];
+// Custom pipeline tables are defined with the custom pipeline code below; the
+// uniform setters need them here.
+#define MAX_CUSTOM_PIPELINES 32
+static GLint _customMVPLocs[MAX_CUSTOM_PIPELINES];
+static GLint _customTMLocs[MAX_CUSTOM_PIPELINES];
+
+// customPipelineIndex returns the bound custom pipeline index, or -1 when a
+// built-in pipeline or nothing is bound.
+static int customPipelineIndex(void) {
+    int idx = -2 - _curPipeline;
+    if (idx < 0 || idx >= MAX_CUSTOM_PIPELINES) return -1;
+    return idx;
+}
+
+// setMat4Uniform writes m to the bound program's uniform. builtinLocs is indexed by
+// PIPE_*, customLocs by custom pipeline index. A NULL customLocs means custom
+// programs do not declare this uniform, so the write is skipped for them.
+static void setMat4Uniform(const GLint* builtinLocs, const GLint* customLocs,
+                           const float* m) {
+    if (!m) return; // A NULL matrix would crash inside the driver.
+    GLint loc = -1;
+    int custom = customPipelineIndex();
+    if (custom >= 0) {
+        // Without this branch a custom shader kept a zero mvp and drew nothing.
+        if (customLocs) loc = customLocs[custom];
+    } else if (_curPipeline >= 0 && _curPipeline < PIPE_COUNT) {
+        loc = builtinLocs[_curPipeline];
+    }
     if (loc >= 0) {
         glUniformMatrix4fv(loc, 1, GL_FALSE, m);
     }
+}
+
+void glesSetMVP(const float* m) {
+    setMat4Uniform(_mvpLocs, _customMVPLocs, m);
 }
 
 void glesSetTM(const float* m) {
-    if (_curPipeline < 0 || _curPipeline >= PIPE_COUNT) return;
-    GLint loc = _tmLocs[_curPipeline];
-    if (loc >= 0) {
-        glUniformMatrix4fv(loc, 1, GL_FALSE, m);
-    }
+    // tm carries a custom shader's Params (p0..p3 in vs_custom_src).
+    setMat4Uniform(_tmLocs, _customTMLocs, m);
 }
 
 void glesSetTM2(const float* m) {
-    if (_curPipeline < 0 || _curPipeline >= PIPE_COUNT) return;
-    GLint loc = _tm2Locs[_curPipeline];
-    if (loc >= 0) {
-        glUniformMatrix4fv(loc, 1, GL_FALSE, m);
-    }
+    // Custom programs declare no tm2 uniform.
+    setMat4Uniform(_tm2Locs, NULL, m);
 }
 
 void glesSetScissor(int x, int y, int w, int h, int viewH) {
@@ -915,10 +942,9 @@ void glesBindTexture(int id) {
 
 // ─── Custom Shader Pipelines ─────────────────────────────────
 
-#define MAX_CUSTOM_PIPELINES 32
+// MAX_CUSTOM_PIPELINES, _customMVPLocs and _customTMLocs are declared above
+// glesSetMVP.
 static GLuint _customPrograms[MAX_CUSTOM_PIPELINES];
-static GLint  _customMVPLocs[MAX_CUSTOM_PIPELINES];
-static GLint  _customTMLocs[MAX_CUSTOM_PIPELINES];
 static int _freeCustomIDs[MAX_CUSTOM_PIPELINES];
 static int _freeCustomCount = 0;
 static int _nextCustomID = 0;
@@ -951,6 +977,9 @@ void glesDeleteCustomPipeline(int idx) {
     if (!_customPrograms[idx]) return;
     glDeleteProgram(_customPrograms[idx]);
     _customPrograms[idx] = 0;
+    // Do not keep a deleted program marked as bound. A later rebuild can reuse
+    // this idx, and uniform setters would then write into the wrong program.
+    if (customPipelineIndex() == idx) _curPipeline = -1;
     if (_freeCustomCount < MAX_CUSTOM_PIPELINES) {
         _freeCustomIDs[_freeCustomCount++] = idx;
     }
@@ -961,7 +990,9 @@ void glesSetCustomPipeline(int idx) {
         !_customPrograms[idx])
         return;
     glUseProgram(_customPrograms[idx]);
-    _curPipeline = -1; // Mark as custom.
+    // Mark as custom. With -1 here, glesSetMVP/glesSetTM returned early and the
+    // matrices that draw.go sets next were lost.
+    _curPipeline = -2 - idx;
 }
 
 // ─── Filter System ────────────────────────────────────────────
