@@ -1,14 +1,18 @@
 //go:build windows
 
 // Package sni provides system tray support. On Windows this uses
-// Shell_NotifyIconW with a message-only window for callbacks.
+// Shell_NotifyIconW with a message-only window for callbacks. The
+// window and its message loop live on one thread owned by the tray, so
+// a tray can be made from any goroutine.
 package sni
 
 import (
 	"crypto/rand"
 	"errors"
 	"fmt"
+	"runtime"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"unsafe"
 
@@ -141,7 +145,6 @@ type Tray struct {
 	entries map[int]*entry
 	nextID  int
 	hwnd    uintptr
-	done    chan struct{}
 	once    sync.Once
 	// initErr keeps the result of the one window init. once never runs
 	// the init again, so later ensureWindow calls must read the error
@@ -170,8 +173,8 @@ type menuNode struct {
 	childCount int
 }
 
-// ensureWindow creates the message-only window and starts the
-// message pump. Safe to call multiple times. A failed init is not
+// ensureWindow starts the tray thread, which creates the message-only
+// window and runs its message loop. Safe to call multiple times. A failed init is not
 // retried: every call returns that same error. A retry would call
 // RegisterClassExW again, which fails once the class exists.
 func (t *Tray) ensureWindow() error {
@@ -185,8 +188,65 @@ func (t *Tray) ensureWindow() error {
 // force a failure without a real Win32 call.
 var trayInitWindow = (*Tray).initWindow
 
+// trayClassSeq numbers the window classes, so each Tray registers its
+// own. A class names one window procedure, and that procedure is bound
+// to one Tray. If two trays shared a class, the second tray's clicks
+// would go to the first tray, and RegisterClassExW would also fail with
+// ERROR_CLASS_ALREADY_EXISTS for the second tray.
+var trayClassSeq atomic.Uint64
+
+// initWindow starts the tray thread and waits until the window exists
+// or the thread reports why it could not make one.
+//
+// Win32 gives a window's messages only to the thread that created the
+// window. So the window and the loop that reads its messages must run
+// on one thread. The caller's thread cannot be that thread: nothing
+// says the caller pumps messages, and a goroutine that is not locked
+// can move to another thread (#616).
 func (t *Tray) initWindow() error {
-	className := "go-gui-tray-window"
+	ready := make(chan error, 1)
+	go t.messageLoop(ready)
+	return <-ready
+}
+
+// messageLoop owns the tray window. It creates the window, sends the
+// result to ready, then reads the window's messages until WM_QUIT.
+// t.hwnd is written before the send, so the caller reads it after the
+// receive without a race.
+func (t *Tray) messageLoop(ready chan<- error) {
+	// Not unlocked on purpose. When this goroutine returns while it is
+	// still locked, Go ends the OS thread, and the window goes with it.
+	runtime.LockOSThread()
+
+	hwnd, err := t.createWindow()
+	if err != nil {
+		ready <- err
+		return
+	}
+	t.hwnd = hwnd
+	ready <- nil
+
+	var m msg
+	for {
+		r, _, _ := procGetMessageW.Call(
+			uintptr(unsafe.Pointer(&m)),
+			0, 0, 0)
+		if r == 0 {
+			return // WM_QUIT
+		}
+		if r == ^uintptr(0) { //nolint:staticcheck
+			return // error
+		}
+		procTranslateMessage.Call(uintptr(unsafe.Pointer(&m)))
+		procDispatchMessageW.Call(uintptr(unsafe.Pointer(&m)))
+	}
+}
+
+// createWindow registers this tray's window class and creates the
+// message-only window. It must run on the thread that reads the
+// window's messages.
+func (t *Tray) createWindow() (uintptr, error) {
+	className := fmt.Sprintf("go-gui-tray-window-%d", trayClassSeq.Add(1))
 	classNameW, _ := syscall.UTF16PtrFromString(className)
 
 	// Register window class. Use a callback via syscall for the
@@ -204,7 +264,7 @@ func (t *Tray) initWindow() error {
 	atom, _, _ := procRegisterClassExW.Call(
 		uintptr(unsafe.Pointer(&wc)))
 	if atom == 0 {
-		return errors.New("sni: RegisterClassExW failed")
+		return 0, errors.New("sni: RegisterClassExW failed")
 	}
 
 	hwnd, _, _ := procCreateWindowExW.Call(
@@ -219,33 +279,9 @@ func (t *Tray) initWindow() error {
 		0,           // lpParam
 	)
 	if hwnd == 0 {
-		return errors.New("sni: CreateWindowExW failed")
+		return 0, errors.New("sni: CreateWindowExW failed")
 	}
-	t.hwnd = hwnd
-	t.done = make(chan struct{})
-
-	// Start message pump.
-	go t.messageLoop()
-
-	return nil
-}
-
-func (t *Tray) messageLoop() {
-	var m msg
-	for {
-		r, _, _ := procGetMessageW.Call(
-			uintptr(unsafe.Pointer(&m)),
-			0, 0, 0)
-		if r == 0 {
-			break // WM_QUIT
-		}
-		if r == ^uintptr(0) { //nolint:staticcheck
-			break // error
-		}
-		procTranslateMessage.Call(uintptr(unsafe.Pointer(&m)))
-		procDispatchMessageW.Call(uintptr(unsafe.Pointer(&m)))
-	}
-	close(t.done)
+	return hwnd, nil
 }
 
 func (t *Tray) wndProc(hwnd uintptr, msg uint32, wParam, lParam uintptr) uintptr {

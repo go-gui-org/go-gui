@@ -28,6 +28,16 @@ and this project adheres to
   `Create` saw the error; every later `Create` returned success and registered
   an icon against no window, so its clicks and menu never arrived. The error is
   now kept on the tray, and every `Create` returns it.
+- **Windows tray clicks arrive when the tray is made off the main thread
+  (#616)** — Win32 gives a window's messages only to the thread that made the
+  window. The tray made its window on the caller's thread but read messages on a
+  different thread, so its own loop never got a message and held one OS thread
+  for the life of the process. Clicks worked only because the gl backend's pump
+  ran on the same thread as `OnInit`. If `SetSystemTray` was called from another
+  goroutine, clicks and menu picks never arrived and no error was reported. The
+  tray now makes its window and reads its messages on one thread that it owns,
+  so it works from any goroutine. Each tray also registers its own window class,
+  so a second tray no longer fails to register or sends its clicks to the first.
 - **macOS frame pump survives a nested runloop inside a nested runloop** — the
   pump that repaints windows during a modal dialog, live resize or open menu
   shared one snapshot buffer across calls. When app code run by a pumped frame
