@@ -4,22 +4,29 @@ package atspi
 
 import "github.com/go-gui-org/go-gui/gui"
 
-// AT-SPI2 state bit indices (within a [2]uint32 bitfield).
+// AT-SPI2 state bit indices (within a [2]uint32 bitfield). Each value is the
+// position of that member in AtspiStateType (at-spi2-core
+// atspi/atspi-constants.h). Clients such as Orca read the State property by
+// these positions, so a value must never be renumbered or guessed.
+// states_linux_test.go pins them against the header's numbers.
 const (
-	stateEnabled      = 7
-	stateFocusable    = 8
-	stateFocused      = 6
-	stateSensitive    = 17
-	stateShowing      = 14
-	stateVisible      = 20
-	stateChecked      = 5
-	stateExpanded     = 9
-	stateSelected     = 22
-	stateReadOnly     = 39
-	stateRequired     = 40
-	stateModal        = 32
-	stateBusy         = 4
-	stateInvalidEntry = 36
+	stateBusy         = 3  // ATSPI_STATE_BUSY
+	stateChecked      = 4  // ATSPI_STATE_CHECKED
+	stateEnabled      = 8  // ATSPI_STATE_ENABLED
+	stateExpanded     = 10 // ATSPI_STATE_EXPANDED
+	stateFocusable    = 11 // ATSPI_STATE_FOCUSABLE
+	stateFocused      = 12 // ATSPI_STATE_FOCUSED
+	stateModal        = 16 // ATSPI_STATE_MODAL
+	stateSelected     = 23 // ATSPI_STATE_SELECTED
+	stateSensitive    = 24 // ATSPI_STATE_SENSITIVE
+	stateShowing      = 25 // ATSPI_STATE_SHOWING
+	stateVisible      = 30 // ATSPI_STATE_VISIBLE
+	stateRequired     = 33 // ATSPI_STATE_REQUIRED
+	stateInvalidEntry = 36 // ATSPI_STATE_INVALID_ENTRY
+	// READ_ONLY was added to the enum after IS_DEFAULT (39), VISITED (40),
+	// CHECKABLE (41) and HAS_POPUP (42). Older headers do not have it; a client
+	// built against one ignores the bit, which is the same as leaving it unset.
+	stateReadOnly = 43 // ATSPI_STATE_READ_ONLY
 )
 
 // atspiState converts AccessState + focused flag into AT-SPI2

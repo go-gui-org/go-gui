@@ -23,6 +23,14 @@ and this project adheres to
 
 ### Fixed
 
+- **Linux screen readers get the correct widget states** — the AT-SPI2 bridge
+  sent thirteen of its fourteen state flags at the wrong bit positions. Orca
+  read every node as editable, multi-line and pressed, a focused widget as
+  defunct, a busy one as checked, and a read-only field as a default button.
+  Each position now matches `AtspiStateType` in at-spi2-core, and read-only uses
+  `READ_ONLY` (43). A test checks each position against the numbers in the
+  header.
+
 - **`audio.Init` is safe to call from many goroutines at once** — `Init`, `quit`
   and `PlaySource` read and wrote the `initialized` flag with no lock. Two first
   calls to `Init` could both see it unset and open the output sink twice, and a
