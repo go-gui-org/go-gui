@@ -80,6 +80,12 @@ const (
 	// app-supplied input text exceeds the rune budget and is
 	// truncated to it, so the frame never shapes unbounded content.
 	debugCheckTextTruncated
+	// debugCheckLayoutInvariant fires from layoutPipeline when the
+	// arranged tree breaks one of the sizing rules in
+	// docs/specs/layout-sizing-rules.md — a child outside a
+	// non-clipping parent's content box, a minimum above its maximum,
+	// or a non-finite or negative size.
+	debugCheckLayoutInvariant
 )
 
 // checkCategory maps an internal check to the public category that
@@ -115,6 +121,8 @@ func checkCategory(check debugCheck) DebugCategory {
 		return DebugUnknownFocus
 	case debugCheckGlyphLayoutFallback, debugCheckTextTruncated:
 		return DebugGlyphLayoutFallback
+	case debugCheckLayoutInvariant:
+		return DebugLayoutInvariants
 	default:
 		panic("gui: checkCategory has no category for debugCheck " +
 			strconv.Itoa(int(check)))

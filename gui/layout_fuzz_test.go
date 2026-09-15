@@ -52,6 +52,18 @@ func walkLayoutAssertNonNegative(t *testing.T, layout *Layout) {
 	}
 }
 
+// walkLayoutAssertInvariants runs the shared sizing invariants over an
+// arranged tree. Every layout fuzz target reaches it through
+// walkLayoutAssertNonNegative, so the fuzzers and the
+// DebugLayoutInvariants category check the same rules from one source
+// (docs/specs/layout-sizing-rules.md) and cannot drift apart.
+func walkLayoutAssertInvariants(t *testing.T, layout *Layout) {
+	t.Helper()
+	checkLayoutInvariants(layout, func(subject, format string, args ...any) {
+		t.Errorf(format, args...)
+	})
+}
+
 func FuzzLayoutPipelineDimensions(f *testing.F) {
 	f.Add(uint8(3), uint8(5), float32(800), float32(600))
 	f.Add(uint8(1), uint8(50), float32(100), float32(100))
@@ -80,5 +92,6 @@ func FuzzLayoutPipelineDimensions(f *testing.F) {
 		layout := buildFuzzLayoutTree(d, n, width, height)
 		layoutPipeline(&layout, w)
 		walkLayoutAssertNonNegative(t, &layout)
+		walkLayoutAssertInvariants(t, &layout)
 	})
 }

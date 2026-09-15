@@ -259,3 +259,25 @@ func TestMdCopyButtonAnimationReadIsLocked(t *testing.T) {
 	}
 	<-done
 }
+
+// A list marker box is sized from prefixCharWidth, a nominal character
+// width, while the marker text inside it is sized by the injected
+// measurer. When the measurer's glyphs are wider than nominal the two
+// disagree, and a Fixed box would leave the marker hanging over the text
+// beside it. Fails before the Fit/MinWidth fix: the bullet column was a
+// hard 8px holding a 40px marker, which DebugLayoutInvariants reports as
+// a child escaping its parent.
+func TestMdRenderListItemMarkerFitsWideGlyphs(t *testing.T) {
+	w := NewTestWindow(WindowCfg{State: new(int)})
+	w.textMeasurer = &stubTextMeasurer{charWidth: 10, fontHeight: 20}
+
+	layout := generateViewLayout(mdRenderListItem(
+		markdownBlock{ListPrefix: "• "},
+		MarkdownCfg{Style: DefaultMarkdownStyle()},
+		TextModeSingleLine, nil), w)
+	layoutPipeline(&layout, w)
+
+	if found := collectInvariants(&layout); len(found) != 0 {
+		t.Errorf("list item broke a layout invariant: %v", found)
+	}
+}

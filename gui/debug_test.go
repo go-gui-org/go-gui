@@ -282,6 +282,7 @@ func TestCheckCategoryMapping(t *testing.T) {
 		{debugCheckUnknownFocus, DebugUnknownFocus},
 		{debugCheckGlyphLayoutFallback, DebugGlyphLayoutFallback},
 		{debugCheckTextTruncated, DebugGlyphLayoutFallback},
+		{debugCheckLayoutInvariant, DebugLayoutInvariants},
 	}
 	for _, tc := range tests {
 		if got := checkCategory(tc.check); got != tc.want {
@@ -296,6 +297,9 @@ func TestCheckCategoryMapping(t *testing.T) {
 	}
 	if DebugAll&DebugUnscopedIDs != 0 {
 		t.Fatal("DebugUnscopedIDs must stay opt-in, outside DebugAll")
+	}
+	if DebugAll&DebugLayoutInvariants != 0 {
+		t.Fatal("DebugLayoutInvariants must stay opt-in, outside DebugAll")
 	}
 }
 

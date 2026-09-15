@@ -112,6 +112,7 @@ func FuzzLayoutSizing(f *testing.F) {
 		// Verify all dimensions are non-negative and finite.
 		walkLayoutAssertNonNegative(t, &layout)
 		walkLayoutAssertFinite(t, &layout)
+		walkLayoutAssertInvariants(t, &layout)
 	})
 }
 
@@ -225,6 +226,7 @@ func FuzzLayoutSizingMinMax(f *testing.F) {
 		layoutPipeline(&layout, w)
 		walkLayoutAssertNonNegative(t, &layout)
 		walkLayoutAssertFinite(t, &layout)
+		walkLayoutAssertInvariants(t, &layout)
 	})
 }
 
@@ -299,6 +301,7 @@ func FuzzLayoutSizingWithMix(f *testing.F) {
 		layoutPipeline(&layout, w)
 		walkLayoutAssertNonNegative(t, &layout)
 		walkLayoutAssertFinite(t, &layout)
+		walkLayoutAssertInvariants(t, &layout)
 	})
 }
 

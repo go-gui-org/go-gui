@@ -220,9 +220,33 @@ const (
 	// exportaudit:keep — dev-diagnostic API for app authors
 	DebugGlyphLayoutFallback
 
+	// DebugLayoutInvariants reports a frame whose arranged tree breaks a
+	// sizing rule: a child outside its parent's bounds where the parent
+	// neither clips nor scrolls, a minimum left above its maximum, or a
+	// non-finite or negative size. The rules are
+	// docs/specs/layout-sizing-rules.md; the checks are
+	// gui/layout_invariants.go.
+	//
+	// Wrong geometry is silent — the frame renders, nothing errors, and
+	// the defect surfaces as something looking a few pixels off much
+	// later. This category is the machine reading the arithmetic that
+	// review has to read by eye.
+	//
+	// Not in [DebugAll], for the reason [DebugUnscopedIDs] is not:
+	// escaping a parent is sometimes the design. A Slider sizes its
+	// wrapper to the larger of track and thumb and then places the thumb
+	// from AmendLayout, so the thumb overhangs the track on purpose. Ask
+	// for this category by name:
+	//
+	//	w.TestFindings(gui.DebugAll | gui.DebugLayoutInvariants)
+	//
+	// exportaudit:keep — dev-diagnostic API for app authors
+	DebugLayoutInvariants
+
 	// DebugAll is every category [Debug] turns on. [DebugUnscopedIDs]
-	// is deliberately absent: it reports a design property rather than
-	// a defect, and fires on widgets that are correct as written.
+	// and [DebugLayoutInvariants] are deliberately absent: each reports
+	// a property with correct-by-design exceptions, and fires on widgets
+	// that are right as written, so each is asked for by name.
 	// exportaudit:keep — dev-diagnostic API for app authors
 	DebugAll = DebugDuplicates | DebugMissingIDs | DebugUnconsumed |
 		DebugListBoxNoHeight | DebugGradientResampled | DebugWrapOverflow |
@@ -314,7 +338,8 @@ func Debug(on bool) {
 // the unconsumed-event noise.
 //
 // A zero mask is everything off; [DebugAll] is every category [Debug]
-// turns on, which excludes [DebugUnscopedIDs]. Turning the gate on
+// turns on, which excludes [DebugUnscopedIDs] and
+// [DebugLayoutInvariants]. Turning the gate on
 // after it was off moves a generation that discards warn-once memory,
 // so a re-enabled gate reports the frame in front of it. Enabling one
 // more category while others stay on needs no clearing: a finding is

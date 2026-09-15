@@ -43,6 +43,15 @@ func layoutPipeline(layout *Layout, w *Window) {
 	applyLayoutTransition(layout, w)
 	applyHeroTransition(layout, w)
 	layoutSetShapeClips(layout, w.windowRect())
+
+	// The invariant check runs here, not from debugAudit, because this is
+	// the last point at which a child still sits under the parent it was
+	// written against: composeLayout lifts the floats into their own
+	// layers, and a containment check after that reports every float as
+	// escaping. Same reason debugCheckStamp hooks resolveFocusOwners.
+	if w.debugLayoutInvariantsChecked() {
+		w.debugCheckLayoutInvariants(layout)
+	}
 }
 
 // layoutAmend walks the layout tree children-first, firing

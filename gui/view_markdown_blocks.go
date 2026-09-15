@@ -430,11 +430,14 @@ func mdRenderListItem(
 			indentW += 4
 		}
 	} else {
-		prefixW = float32(len(block.ListPrefix)) *
+		// Runes, not bytes: prefixCharWidth is a width per character,
+		// and "• " is 4 bytes for 2 characters. The byte count used to
+		// be corrected by halving it for that one prefix, which landed
+		// on the right number for the bullet and the wrong one for
+		// every other multi-byte marker.
+		prefixW = float32(utf8RuneCount(block.ListPrefix)) *
 			cfg.Style.prefixCharWidth
-		if block.ListPrefix == "• " {
-			prefixW /= 2
-		} else if block.ListIndent > 0 {
+		if block.ListPrefix != "• " && block.ListIndent > 0 {
 			indentW += 4
 		}
 		prefixView = Text(TextCfg{
@@ -454,11 +457,17 @@ func mdRenderListItem(
 		Padding:    NewPadding(0, 0, 0, indentW),
 		SizeBorder: NoBorder,
 		Content: []View{
+			// The marker column is a floor, not a cap. prefixW is
+			// computed from a nominal character width, so a measurer
+			// whose glyphs are wider makes the marker outgrow a Fixed
+			// box and spill over the text beside it. Fit sizes the
+			// column to the marker it actually holds, and MinWidth
+			// keeps markers of different lengths aligned down the list.
 			Column(ContainerCfg{
-				Sizing:     FixedFit,
+				Sizing:     FitFit,
 				Padding:    NoPadding,
 				SizeBorder: NoBorder,
-				Width:      prefixW,
+				MinWidth:   prefixW,
 				VAlign:     VAlignMiddle,
 				Content:    []View{prefixView},
 			}),

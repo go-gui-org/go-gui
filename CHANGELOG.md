@@ -10,6 +10,18 @@ and this project adheres to
 
 ### Added
 
+- **`DebugLayoutInvariants` reports a frame that breaks a sizing rule (#634)** —
+  wrong geometry was silent: the frame rendered, nothing errored, and the defect
+  surfaced much later as something looking a few pixels off. The new category
+  walks the arranged tree and reports a child positioned outside a non-clipping
+  parent's bounds, a minimum left above its maximum, and any non-finite or
+  negative size. It is opt-in, outside `DebugAll` for the reason
+  `DebugUnscopedIDs` is: escaping a parent is sometimes the design, as a slider
+  thumb overhangs its track. Ask for it by name through
+  `(*Window).TestFindings(gui.DebugAll | gui.DebugLayoutInvariants)` or
+  `gui.DebugCategories`. The rules it checks are written down for the first time
+  in `docs/specs/layout-sizing-rules.md`, and the same checks back the layout
+  fuzz targets so the document and the code cannot drift.
 - **`MaskNone` names the no-mask preset** — `InputMaskPreset`'s zero value meant
   "no mask" but had no exported name, unlike every other preset. `MaskNone`
   spells it explicitly; existing code is unaffected.
@@ -35,6 +47,16 @@ and this project adheres to
   ID. Migration: give each overflow panel or container a unique `ID`.
 
 ### Fixed
+
+- **A list marker no longer spills over the text beside it (#634)** — a bullet
+  or number column was `Fixed` at a width computed from `prefixCharWidth`, a
+  nominal per-character guess, while the marker text inside it was sized by the
+  real text measurer. Any font whose glyphs were wider than the guess left the
+  marker hanging outside its own column and over the item's text. The column is
+  now `Fit` with that width as a `MinWidth`, so it grows to hold the marker and
+  still keeps markers aligned down the list. The width is also counted in runes
+  rather than bytes, which drops a hand-tuned correction that happened to be
+  right for `"• "` and wrong for every other multi-byte marker.
 
 - **`OnMouseLeave` no longer fires for a hover that ended frames ago** — the
   per-shape hover record was a flag, and a shape that stopped being walked
