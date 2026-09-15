@@ -87,6 +87,22 @@ func layoutDisablesDepth(layout *Layout, disabled bool, depth int) {
 	}
 }
 
+// ancestorDisabled reports whether any ancestor of layout is disabled.
+// It reads the flags set in the Cfg, and also the flags layoutDisables
+// already stamped on the main tree, so it works for a float at any
+// nesting depth. Depth-capped like the other tree walks (see
+// maxEventDepth).
+func ancestorDisabled(layout *Layout) bool {
+	depth := 0
+	for p := layout.Parent; p != nil && !overMaxDepth(depth); p = p.Parent {
+		if p.Shape != nil && p.Shape.Disabled {
+			return true
+		}
+		depth++
+	}
+	return false
+}
+
 // layoutPlaceholder returns an empty placeholder Layout.
 func layoutPlaceholder() Layout {
 	return Layout{

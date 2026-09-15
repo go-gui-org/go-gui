@@ -2,21 +2,24 @@ package gui
 
 // FindShape walks the layout depth-first until predicate is satisfied.
 func (layout *Layout) findShape(predicate func(Layout) bool) (*Shape, bool) {
-	for i := range layout.Children {
-		if s, ok := layout.Children[i].findShape(predicate); ok {
-			return s, true
-		}
-	}
-	if predicate(*layout) {
-		return layout.Shape, true
+	if l, ok := layout.findLayoutDepth(predicate, 0); ok {
+		return l.Shape, true
 	}
 	return nil, false
 }
 
 // FindLayout walks the layout depth-first until predicate is satisfied.
+// Like the other tree walks, it stops descending past maxEventDepth.
 func (layout *Layout) FindLayout(predicate func(Layout) bool) (*Layout, bool) {
+	return layout.findLayoutDepth(predicate, 0)
+}
+
+func (layout *Layout) findLayoutDepth(predicate func(Layout) bool, depth int) (*Layout, bool) {
+	if overMaxDepth(depth) {
+		return nil, false
+	}
 	for i := range layout.Children {
-		if l, ok := layout.Children[i].FindLayout(predicate); ok {
+		if l, ok := layout.Children[i].findLayoutDepth(predicate, depth+1); ok {
 			return l, true
 		}
 	}

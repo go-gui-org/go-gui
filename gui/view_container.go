@@ -434,6 +434,7 @@ func deriveContainerA11YRole(c *ContainerCfg) AccessRole {
 // Uses pooled allocs for effects and events via w.
 func buildContainerShape(cfg *ContainerCfg, w *Window) Shape {
 	requireScrollID("container", cfg.Scrollable, cfg.ID)
+	requireOverflowID("container", cfg.Overflow, cfg.ID)
 	spacing, sizeBorder, radius, padding := applyContainerDefaults(cfg)
 	shapeType := cfg.shapeType
 	if shapeType == shapeNone {

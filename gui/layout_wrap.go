@@ -118,9 +118,9 @@ func layoutWrapContainersDepth(layout *Layout, w *Window, depth int) {
 	// A Fit-width wrap resolves against its nearest definite-width ancestor
 	// (issue #379). Without the constraint its width is its own single-row
 	// sum, so `available` below always fits every child and no row breaks.
-	changed, path, depth := constrainFitContainerWidth(layout)
+	changed, path, pathLen := constrainFitContainerWidth(layout)
 	if changed {
-		refitFitAncestors(layout, path[:depth])
+		refitFitAncestors(layout, path[:pathLen])
 	}
 
 	available := layout.Shape.Width - layout.Shape.paddingWidth()
@@ -218,12 +218,12 @@ func layoutWrapContainersDepth(layout *Layout, w *Window, depth int) {
 			layout.Children[i].Children[j].Parent = &layout.Children[i]
 		}
 	}
-	if changed {
-		// The wrap is now a column of rows; the fill pass cached its
-		// content width as the single-row sum, so re-cache it at the
-		// wrapped extent. Runs after the children swap — reading the
-		// flat pre-wrap children here is what the single-row sum would
-		// have been (max child, not the row extent).
-		layout.Shape.contentW = computeContentWidth(layout)
-	}
+	// The wrap is now a column of rows; the fill pass cached its content
+	// width as the single-row sum, so re-cache it at the wrapped extent.
+	// Every wrap that broke rows needs this, not only a Fit-width one the
+	// constraint changed: a Fixed or Fill wrap kept the one-row sum, and
+	// the height fill pass does not refresh contentW. Runs after the
+	// children swap — reading the flat pre-wrap children here is what the
+	// single-row sum would have been (max child, not the row extent).
+	layout.Shape.contentW = computeContentWidth(layout)
 }
