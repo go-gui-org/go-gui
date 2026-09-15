@@ -228,9 +228,13 @@ type platformState struct {
 	maxTrack  pointL
 	cursors   [11]uintptr
 	curCursor uintptr
-	w         *gui.Window
-	evt       gui.Event // reused per message to avoid per-event allocation
-	highSurr  uint16    // pending UTF-16 high surrogate for WM_CHAR
+	// cursorInClient is set by WM_SETCURSOR and cleared on leave.
+	// Frame updates must not replace the OS cursor over resize borders,
+	// the title bar, or another window.
+	cursorInClient bool
+	w              *gui.Window
+	evt            gui.Event // reused per message to avoid per-event allocation
+	highSurr       uint16    // pending UTF-16 high surrogate for WM_CHAR
 
 	// capturing tracks whether this window holds mouse capture, so
 	// WM_CAPTURECHANGED can tell our own ReleaseCapture from a
@@ -293,7 +297,9 @@ func (p *platformState) setCursor(mc gui.MouseCursor) {
 		return
 	}
 	p.curCursor = c
-	pSetCursor.Call(c)
+	if p.cursorInClient || p.capturing {
+		pSetCursor.Call(c)
+	}
 }
 
 func (p *platformState) destroy() {
