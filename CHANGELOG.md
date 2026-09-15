@@ -47,6 +47,12 @@ and this project adheres to
   and the other channel helpers do nothing. A sound's volume and the output
   sample rate are atomics, so `LoadSoundBytes` and `SampleRate` still take no
   lock and a long decode does not block other audio calls.
+- **Android accessibility getters reject negative indices** — the
+  gomobile-exported `A11yNode*` getters checked only the upper bound, so a
+  negative index from Kotlin (such as the `-1` root sentinel `A11yNodeParent`
+  returns) panicked on the slice index and killed the app process. Every getter
+  now checks both bounds through one helper and returns its fallback (`0`, `""`,
+  or `-1` for `A11yNodeParent`).
 - **Custom shaders render on Android** — `glesSetCustomPipeline` marked the
   bound program as "no pipeline", so `glesSetMVP` and `glesSetTM` returned early
   and never wrote the custom program's `mvp` and `tm` uniforms. `mvp` stayed

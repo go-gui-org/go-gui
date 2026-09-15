@@ -71,6 +71,14 @@ func setA11yAnnounce(text string) {
 	a11yMu.Unlock()
 }
 
+// a11yIndexValid reports whether index names a synced node. Caller holds
+// a11yMu. Kotlin passes raw int32 values, including the -1 root sentinel
+// A11yNodeParent returns, so both bounds are checked: a panic from an
+// out-of-range index inside a gomobile call kills the app process.
+func a11yIndexValid(index int32) bool {
+	return index >= 0 && int(index) < a11yCount
+}
+
 // --- Gomobile-exported query functions ---
 // Kotlin's AccessibilityNodeProvider calls these to build
 // AccessibilityNodeInfo objects on demand.
@@ -87,7 +95,7 @@ func A11yNodeCount() int32 {
 func A11yNodeRole(index int32) int32 {
 	a11yMu.RLock()
 	defer a11yMu.RUnlock()
-	if int(index) >= a11yCount {
+	if !a11yIndexValid(index) {
 		return 0
 	}
 	return int32(a11yNodes[index].Role)
@@ -97,7 +105,7 @@ func A11yNodeRole(index int32) int32 {
 func A11yNodeLabel(index int32) string {
 	a11yMu.RLock()
 	defer a11yMu.RUnlock()
-	if int(index) >= a11yCount {
+	if !a11yIndexValid(index) {
 		return ""
 	}
 	return a11yNodes[index].Label
@@ -107,7 +115,7 @@ func A11yNodeLabel(index int32) string {
 func A11yNodeValue(index int32) string {
 	a11yMu.RLock()
 	defer a11yMu.RUnlock()
-	if int(index) >= a11yCount {
+	if !a11yIndexValid(index) {
 		return ""
 	}
 	return a11yNodes[index].Value
@@ -117,7 +125,7 @@ func A11yNodeValue(index int32) string {
 func A11yNodeDescription(index int32) string {
 	a11yMu.RLock()
 	defer a11yMu.RUnlock()
-	if int(index) >= a11yCount {
+	if !a11yIndexValid(index) {
 		return ""
 	}
 	return a11yNodes[index].Description
@@ -127,7 +135,7 @@ func A11yNodeDescription(index int32) string {
 func A11yNodeBoundsX(index int32) float32 {
 	a11yMu.RLock()
 	defer a11yMu.RUnlock()
-	if int(index) >= a11yCount {
+	if !a11yIndexValid(index) {
 		return 0
 	}
 	return a11yNodes[index].X
@@ -137,7 +145,7 @@ func A11yNodeBoundsX(index int32) float32 {
 func A11yNodeBoundsY(index int32) float32 {
 	a11yMu.RLock()
 	defer a11yMu.RUnlock()
-	if int(index) >= a11yCount {
+	if !a11yIndexValid(index) {
 		return 0
 	}
 	return a11yNodes[index].Y
@@ -147,7 +155,7 @@ func A11yNodeBoundsY(index int32) float32 {
 func A11yNodeBoundsW(index int32) float32 {
 	a11yMu.RLock()
 	defer a11yMu.RUnlock()
-	if int(index) >= a11yCount {
+	if !a11yIndexValid(index) {
 		return 0
 	}
 	return a11yNodes[index].W
@@ -157,7 +165,7 @@ func A11yNodeBoundsW(index int32) float32 {
 func A11yNodeBoundsH(index int32) float32 {
 	a11yMu.RLock()
 	defer a11yMu.RUnlock()
-	if int(index) >= a11yCount {
+	if !a11yIndexValid(index) {
 		return 0
 	}
 	return a11yNodes[index].H
@@ -167,7 +175,7 @@ func A11yNodeBoundsH(index int32) float32 {
 func A11yNodeState(index int32) int64 {
 	a11yMu.RLock()
 	defer a11yMu.RUnlock()
-	if int(index) >= a11yCount {
+	if !a11yIndexValid(index) {
 		return 0
 	}
 	return int64(a11yNodes[index].State)
@@ -177,7 +185,7 @@ func A11yNodeState(index int32) int64 {
 func A11yNodeValueNum(index int32) float32 {
 	a11yMu.RLock()
 	defer a11yMu.RUnlock()
-	if int(index) >= a11yCount {
+	if !a11yIndexValid(index) {
 		return 0
 	}
 	return a11yNodes[index].ValueNum
@@ -187,7 +195,7 @@ func A11yNodeValueNum(index int32) float32 {
 func A11yNodeValueMin(index int32) float32 {
 	a11yMu.RLock()
 	defer a11yMu.RUnlock()
-	if int(index) >= a11yCount {
+	if !a11yIndexValid(index) {
 		return 0
 	}
 	return a11yNodes[index].ValueMin
@@ -197,7 +205,7 @@ func A11yNodeValueMin(index int32) float32 {
 func A11yNodeValueMax(index int32) float32 {
 	a11yMu.RLock()
 	defer a11yMu.RUnlock()
-	if int(index) >= a11yCount {
+	if !a11yIndexValid(index) {
 		return 0
 	}
 	return a11yNodes[index].ValueMax
@@ -207,7 +215,7 @@ func A11yNodeValueMax(index int32) float32 {
 func A11yNodeParent(index int32) int32 {
 	a11yMu.RLock()
 	defer a11yMu.RUnlock()
-	if int(index) >= a11yCount {
+	if !a11yIndexValid(index) {
 		return -1
 	}
 	return int32(a11yNodes[index].ParentIdx)
@@ -217,7 +225,7 @@ func A11yNodeParent(index int32) int32 {
 func A11yNodeChildStart(index int32) int32 {
 	a11yMu.RLock()
 	defer a11yMu.RUnlock()
-	if int(index) >= a11yCount {
+	if !a11yIndexValid(index) {
 		return 0
 	}
 	return int32(a11yNodes[index].ChildrenStart)
@@ -227,7 +235,7 @@ func A11yNodeChildStart(index int32) int32 {
 func A11yNodeChildCount(index int32) int32 {
 	a11yMu.RLock()
 	defer a11yMu.RUnlock()
-	if int(index) >= a11yCount {
+	if !a11yIndexValid(index) {
 		return 0
 	}
 	return int32(a11yNodes[index].ChildrenCount)
