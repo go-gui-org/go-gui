@@ -67,6 +67,11 @@ and this project adheres to
 - **`FindLayout` stops at the depth cap** — like every other layout walk, it no
   longer recurses without limit on a very deep tree.
 
+- **Windows resize cursors stay visible between frames** — the frame loop
+  overwrote the system resize cursor with the application's cursor, making
+  window edges difficult to find. Cursor updates now apply only over app content
+  or during a captured widget drag, leaving Windows in control over the native
+  window frame.
 - **Multiline Enter goes through the text filter** — pressing Enter in a
   multiline `Input` inserted the newline directly, bypassing the field's `Mask`
   and `PreTextChange` validator, so a validator never saw that rune and a masked

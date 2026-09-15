@@ -151,6 +151,7 @@ func (b *Backend) handleMessage(msg, wparam, lparam uintptr) (uintptr, bool) {
 		// The pointer left the client area, so nothing in it may stay
 		// hovered (issue #587).
 		b.plat.trackingLeave = false
+		b.plat.cursorInClient = false
 		b.emit(gui.Event{Type: gui.EventMouseLeave})
 		return 0, true
 
@@ -259,7 +260,8 @@ func (b *Backend) handleMessage(msg, wparam, lparam uintptr) (uintptr, bool) {
 		return 0, true
 
 	case wmSetCursor:
-		if loWordS(lparam) == htClient {
+		b.plat.cursorInClient = loWordS(lparam) == htClient
+		if b.plat.cursorInClient {
 			if b.plat.curCursor != 0 {
 				pSetCursor.Call(b.plat.curCursor)
 			}
