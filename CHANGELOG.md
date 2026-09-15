@@ -23,6 +23,12 @@ and this project adheres to
 
 ### Fixed
 
+- **Overflow containers count placeholder children when hiding items** — an
+  empty, floating or `OverDraw` child before the trigger made the overflow pass
+  store too small an item index. When every item fit, the trigger stayed
+  visible. When some did not, the `OverflowPanel` menu also listed items that
+  were still in the row. The stored value is now the child index where hiding
+  starts, which is the index `OverflowPanel` reads.
 - **Rotated children no longer leave stale content sizes on their parents
   (#622)** — a child with `QuarterTurns` 1 or 3 swaps its width and height after
   the fill passes have cached each container's content width and height. Those

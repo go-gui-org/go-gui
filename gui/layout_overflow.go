@@ -66,7 +66,6 @@ func layoutOverflowDepth(layout *Layout, w *Window, depth int) {
 	triggerW := layout.Children[triggerIdx].Shape.Width
 
 	var used float32
-	visibleCount := 0
 	firstHideIdx := triggerIdx // child index where hiding starts
 
 	for i := range triggerIdx {
@@ -84,12 +83,18 @@ func layoutOverflowDepth(layout *Layout, w *Window, depth int) {
 			break
 		}
 		used = needed
-		visibleCount++
 	}
 
-	if visibleCount >= triggerIdx {
+	// The stored count is an index into the container's children, not a
+	// count of laid-out children: OverflowPanel slices cfg.Items with it.
+	// Skipped placeholders (empty, Float, OverDraw) before the trigger take
+	// an index too, so counting only laid-out children came up short. Then
+	// the all-fit case was never seen (trigger stayed visible) and the menu
+	// listed items still in the row. firstHideIdx is already an index, and
+	// everything before it stays in the row.
+	visibleCount := firstHideIdx
+	if firstHideIdx == triggerIdx {
 		hideOverflowChild(&layout.Children[triggerIdx])
-		visibleCount = triggerIdx
 	} else {
 		for i := firstHideIdx; i < triggerIdx; i++ {
 			if skipLayoutChild(layout.Children[i].Shape) {

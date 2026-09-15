@@ -364,3 +364,82 @@ func TestHideOverflowChildDropsFocus(t *testing.T) {
 		t.Errorf("hidden subtree still in tab order: %v", ids)
 	}
 }
+
+// TestLayoutOverflowAllFitWithPlaceholder: a skipped placeholder (an empty
+// item) before the trigger must not stop the all-fit case from being seen.
+// OverflowPanel reads the stored count as an index into its items, so it
+// must be the trigger's child index, not the count of laid-out children.
+func TestLayoutOverflowAllFitWithPlaceholder(t *testing.T) {
+	w := NewWindow(WindowCfg{})
+	defer w.Close()
+
+	layout := &Layout{
+		Shape: &Shape{
+			ID:       "overflow-allfit-placeholder",
+			Overflow: true,
+			Axis:     axisLeftToRight,
+			Width:    200,
+		},
+		Children: []Layout{
+			{Shape: &Shape{shapeType: shapeRectangle, Width: 40}},
+			{Shape: &Shape{shapeType: shapeNone}}, // placeholder
+			{Shape: &Shape{shapeType: shapeRectangle, Width: 40}},
+			{Shape: &Shape{shapeType: shapeRectangle, Width: 20}}, // trigger
+		},
+	}
+	layoutOverflow(layout, w)
+
+	if layout.Children[0].Shape.shapeType == shapeNone ||
+		layout.Children[2].Shape.shapeType == shapeNone {
+		t.Error("items should stay visible when all fit")
+	}
+	if layout.Children[3].Shape.shapeType != shapeNone {
+		t.Error("trigger should be hidden when all children fit")
+	}
+	got, ok := w.overflow().Get(layout.Shape.idKey())
+	if !ok || got != 3 {
+		t.Errorf("stored visible index = %d (ok=%v), want 3", got, ok)
+	}
+}
+
+// TestLayoutOverflowPartialWithPlaceholder: with a placeholder before the
+// first hidden child, the stored index must point at that hidden child so
+// the overflow menu lists only the items that were hidden.
+func TestLayoutOverflowPartialWithPlaceholder(t *testing.T) {
+	w := NewWindow(WindowCfg{})
+	defer w.Close()
+
+	// child0(40) + trigger(20) = 60 <= 100 -> visible
+	// child0(40) + child2(40) + trigger(20) = 100 <= 100 -> visible
+	// + child3(40) = 140 > 100 -> child3 hidden, at child index 3
+	layout := &Layout{
+		Shape: &Shape{
+			ID:       "overflow-partial-placeholder",
+			Overflow: true,
+			Axis:     axisLeftToRight,
+			Width:    100,
+		},
+		Children: []Layout{
+			{Shape: &Shape{shapeType: shapeRectangle, Width: 40}},
+			{Shape: &Shape{shapeType: shapeNone}}, // placeholder
+			{Shape: &Shape{shapeType: shapeRectangle, Width: 40}},
+			{Shape: &Shape{shapeType: shapeRectangle, Width: 40}},
+			{Shape: &Shape{shapeType: shapeRectangle, Width: 20}}, // trigger
+		},
+	}
+	layoutOverflow(layout, w)
+
+	if layout.Children[2].Shape.shapeType == shapeNone {
+		t.Error("child 2 should be visible")
+	}
+	if layout.Children[3].Shape.shapeType != shapeNone {
+		t.Error("child 3 should be hidden")
+	}
+	if layout.Children[4].Shape.shapeType == shapeNone {
+		t.Error("trigger should stay visible")
+	}
+	got, ok := w.overflow().Get(layout.Shape.idKey())
+	if !ok || got != 3 {
+		t.Errorf("stored visible index = %d (ok=%v), want 3", got, ok)
+	}
+}
