@@ -373,3 +373,79 @@ func TestRecomputeFitSkipsOutOfFlow(t *testing.T) {
 		})
 	}
 }
+
+// rotationCacheTree runs the width and height passes and then the rotation
+// swap, in pipeline order, so contentW/contentH hold what the fill passes
+// cached from the un-swapped tree before layoutRotationSwap runs.
+func rotationCacheTree(root *Layout) {
+	var pools scratchPools
+	pools.beginFillPass()
+	layoutParents(root, nil)
+	layoutWidths(root)
+	layoutFillWidths(root, &pools)
+	layoutHeights(root)
+	layoutFillHeights(root, &pools)
+	layoutRotationSwap(root)
+}
+
+// A rotated child under a Fixed scrolling parent changes that parent's
+// content extent without changing its size. reaccumulateAncestors stops at
+// the Fixed node, so without a cache refresh the scroll clamp and the
+// scrollbar thumb read the pre-swap content sum.
+func TestRotationSwapRefreshesFixedParentContentCache(t *testing.T) {
+	root := &Layout{
+		Shape: &Shape{
+			Axis: axisTopToBottom, Sizing: FixedFixed, Scrollable: true,
+			Width: 200, Height: 50, shapeType: shapeRectangle,
+		},
+		Children: []Layout{{Shape: &Shape{
+			Sizing: FixedFixed, Width: 80, Height: 20,
+			QuarterTurns: 1, shapeType: shapeRectangle,
+		}}},
+	}
+	rotationCacheTree(root)
+
+	if got := contentHeight(root); !f32AreClose(got, 80) {
+		t.Errorf("contentHeight = %f, want 80 (stale pre-swap cache)", got)
+	}
+	if got := contentWidth(root); !f32AreClose(got, 20) {
+		t.Errorf("contentWidth = %f, want 20 (stale pre-swap cache)", got)
+	}
+}
+
+// Every ancestor reaccumulateAncestors visits gets its cache refreshed: the
+// Fit row it re-fits, and the Fixed row it stops at. A stale Fit-row cache
+// offsets HAlignCenter children by half the pre-swap difference.
+func TestRotationSwapRefreshesFitAncestorContentCache(t *testing.T) {
+	root := &Layout{
+		Shape: &Shape{
+			Axis: axisLeftToRight, Sizing: FixedFixed,
+			Width: 300, Height: 100, shapeType: shapeRectangle,
+		},
+		Children: []Layout{{
+			Shape: &Shape{
+				Axis: axisLeftToRight, Sizing: FitFit, HAlign: HAlignCenter,
+				shapeType: shapeRectangle,
+			},
+			Children: []Layout{{Shape: &Shape{
+				Sizing: FixedFixed, Width: 80, Height: 20,
+				QuarterTurns: 1, shapeType: shapeRectangle,
+			}}},
+		}},
+	}
+	rotationCacheTree(root)
+
+	fit := &root.Children[0]
+	if !f32AreClose(fit.Shape.Width, 20) {
+		t.Fatalf("fit row Width = %f, want 20 (re-fit)", fit.Shape.Width)
+	}
+	if got := contentWidth(fit); !f32AreClose(got, 20) {
+		t.Errorf("fit row contentWidth = %f, want 20", got)
+	}
+	if got := contentHeight(fit); !f32AreClose(got, 80) {
+		t.Errorf("fit row contentHeight = %f, want 80", got)
+	}
+	if got := contentWidth(root); !f32AreClose(got, 20) {
+		t.Errorf("root contentWidth = %f, want 20", got)
+	}
+}

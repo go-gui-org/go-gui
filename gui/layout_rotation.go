@@ -30,8 +30,22 @@ func layoutRotationSwapDepth(layout *Layout, depth int) {
 // reaccumulateAncestors re-computes Fit dimensions for
 // ancestors after a rotation swap. Stops when a Fixed/Fill
 // ancestor is reached or no change occurs.
+//
+// Every node it visits has a direct child whose size just changed, so
+// each one also gets its contentW/contentH caches refreshed. The fill
+// passes cached those from the un-swapped tree, and the position pass
+// reads them after this one (applyContainerAlignment, the scroll clamp,
+// scrollbar thumbs). The refresh runs before the stop check on purpose:
+// a Fixed or Fill parent keeps its size but not its content extent, and
+// a scrolling parent is exactly that case. The rotated node's own caches
+// need no refresh: its children did not change, and layoutRotatedDims
+// measures them in the un-rotated frame.
 func reaccumulateAncestors(layout *Layout) {
 	for layout != nil {
+		// Children are final here; refresh before Width/Height move so
+		// the recompute below and the caches read the same child sizes.
+		layout.Shape.contentW = computeContentWidth(layout)
+		layout.Shape.contentH = computeContentHeight(layout)
 		changed := false
 		if layout.Shape.Sizing.Width == sizingFit {
 			old := layout.Shape.Width

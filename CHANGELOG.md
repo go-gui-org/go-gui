@@ -23,6 +23,14 @@ and this project adheres to
 
 ### Fixed
 
+- **Rotated children no longer leave stale content sizes on their parents
+  (#622)** — a child with `QuarterTurns` 1 or 3 swaps its width and height after
+  the fill passes have cached each container's content width and height. Those
+  caches were not updated, so a scrolling parent clamped its scroll range and
+  sized its scrollbar thumb from the pre-swap extent, and a Fit container with
+  centered or end alignment offset its children by the old difference. Every
+  ancestor the swap re-fits, and the Fixed or Fill parent where the re-fit
+  stops, now refreshes both caches.
 - **Windows tray reports a failed window init on every call** — the tray's
   hidden message window is built once. If that build failed, only the first
   `Create` saw the error; every later `Create` returned success and registered
