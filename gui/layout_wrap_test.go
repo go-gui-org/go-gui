@@ -1050,3 +1050,44 @@ func TestWrapFitWidthRefitsContentCache(t *testing.T) {
 			col.Shape.contentW, rootWidth)
 	}
 }
+
+// Rows are built after the width fill pass, and the height fill pass stamps
+// fillGen on them without caching contentW. contentWidth(row) then answered
+// 0, so a centered or end-aligned wrap offset every row by the whole slack.
+func TestWrapRowsAlignAgainstTheirContent(t *testing.T) {
+	cases := []struct {
+		name   string
+		hAlign HorizontalAlign
+		dir    textDirection
+		want   [2]float32 // X of row 0's two children
+	}{
+		// Row 0 is 30 + 5 + 30 = 65 wide in an 80 row: 15 of slack.
+		{"center", HAlignCenter, TextDirLTR, [2]float32{7.5, 42.5}},
+		{"end", HAlignEnd, TextDirLTR, [2]float32{15, 50}},
+		{"rtl start", HAlignStart, TextDirRTL, [2]float32{50, 15}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			w := NewWindow(WindowCfg{})
+			defer w.Close()
+			root := &Layout{Shape: &Shape{shapeType: shapeRectangle,
+				Axis: axisLeftToRight, Wrap: true, Sizing: FixedFit, Width: 80,
+				Spacing: 5, HAlign: tc.hAlign, TextDir: tc.dir}}
+			for range 3 {
+				root.Children = append(root.Children, Layout{Shape: &Shape{
+					shapeType: shapeRectangle, Sizing: FixedFixed, Width: 30, Height: 10}})
+			}
+			layoutParents(root, nil)
+			layoutPipeline(root, w)
+			if len(root.Children) != 2 {
+				t.Fatalf("rows: got %d, want 2", len(root.Children))
+			}
+			row := root.Children[0]
+			for i, want := range tc.want {
+				if got := row.Children[i].Shape.X; !f32AreClose(got, want) {
+					t.Errorf("row 0 child %d X: got %v, want %v", i, got, want)
+				}
+			}
+		})
+	}
+}

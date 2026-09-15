@@ -183,6 +183,12 @@ func scrollbarAmendLayout(
 			offset = f32Clamp(
 				(scrollOffset/(cWidth-layout.Shape.Width))*availWidth,
 				0, availWidth)
+			// The gutter is drawn left to right whichever way the row runs,
+			// but an RTL row's start is its right edge (scrollMirrorsX), so
+			// the unscrolled thumb belongs at the right end.
+			if scrollMirrorsX(parent.Shape) {
+				offset = availWidth - offset
+			}
 		}
 		layout.Children[thumbIndex].Shape.X = layout.Shape.X + offset
 		layout.Children[thumbIndex].Shape.Y = layout.Shape.Y
@@ -325,6 +331,11 @@ func offsetMouseChangeX(sx *BoundedMap[string, float32], layout *Layout, mouseDX
 	if shapeWidth <= 0 {
 		return oldOffset
 	}
+	// An RTL row's thumb travels toward the overflow as it moves left
+	// (scrollMirrorsX), so the drag delta arrives mirrored.
+	if scrollMirrorsX(layout.Shape) {
+		mouseDX = -mouseDX
+	}
 	newOffset := mouseDX * (totalWidth / shapeWidth)
 	offset := oldOffset - newOffset
 	return f32Min(0, f32Max(offset, shapeWidth-totalWidth))
@@ -361,6 +372,10 @@ func offsetFromMouseX(layout *Layout, mouseX float32, scrollID string, w *Window
 	}
 	if percent >= scrollSnapMax {
 		percent = 1
+	}
+	// The left end of an RTL bar is the end of its range (scrollMirrorsX).
+	if scrollMirrorsX(sb.Shape) {
+		percent = 1 - percent
 	}
 	sx := w.scrollX()
 	sx.Set(scrollID, -percent*(totalWidth-sb.Shape.Width))

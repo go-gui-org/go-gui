@@ -79,7 +79,15 @@ func layoutChildStartPos(
 		sy := w.scrollY()
 		id := layout.Shape.idKey()
 		if v, ok := sx.Get(id); ok {
-			x += v
+			// An RTL row starts at the right edge and runs leftward, so the
+			// offset — a distance from that start edge — moves the children
+			// back to the right (scrollMirrorsX). Adding it here pushed the
+			// overflow further off the left, where nothing could reach it.
+			if isRTL && axis == axisLeftToRight {
+				x -= v
+			} else {
+				x += v
+			}
 		}
 		if v, ok := sy.Get(id); ok {
 			y += v

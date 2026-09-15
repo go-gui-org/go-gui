@@ -209,6 +209,13 @@ func layoutWrapContainersDepth(layout *Layout, w *Window, depth int) {
 			Shape:    sp,
 			Children: rowChildren,
 		})
+		// A row is built after the width fill pass, so nothing has cached
+		// its content width. The height fill pass stamps fillGen on it all
+		// the same, and from then on contentWidth answers the zero contentW
+		// instead of summing the children. applyContainerAlignment reads it,
+		// so a centered or end-aligned row moved by its whole width. The
+		// row's children have their final widths here.
+		sp.contentW = computeContentWidth(&newChildren[len(newChildren)-1])
 	}
 
 	layout.Children = newChildren

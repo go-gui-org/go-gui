@@ -36,6 +36,19 @@ and this project adheres to
 
 ### Fixed
 
+- **An RTL scrollable row can reach the content it hides** — an RTL row runs
+  leftward from its right edge, so what does not fit sits off the left, but the
+  scroll offset moved the children further left still and no input could bring
+  it back. The offset keeps its meaning and its range — a distance from the
+  start edge, in `[maxOffset, 0]` — while the wheel, trackpad, keyboard, pan,
+  thumb drag and gutter click now read mirrored for such a row, and the
+  scrollbar thumb rests at the right end when unscrolled. RTL columns are
+  unchanged.
+- **A centered or end-aligned Wrap container places its rows correctly** — the
+  rows a wrap builds were never given a cached content width, so alignment read
+  0 and moved each row by its whole slack: a centered row started halfway across
+  and its last item ran past the edge. Rows now align against the width of the
+  items they hold.
 - **A rotated widget no longer collapses an empty Canvas** — when a rotation
   changed a child's size, the re-fit of its Fit ancestors set an axis-less
   container (Canvas) with no in-flow child to size 0. The sizing pass keeps the
