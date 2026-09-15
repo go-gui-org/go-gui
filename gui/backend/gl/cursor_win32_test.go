@@ -39,8 +39,7 @@ func TestFrameCursorPreservesNativeResizeCursor(t *testing.T) {
 	b.plat.setCursor(gui.CursorPointingHand)
 	assertCursor(hand)
 	// Windows owns the cursor over its native resize borders.
-	const nativeResizeLeft = 10 // HTLEFT
-	if _, handled := b.handleMessage(wmSetCursor, 0, nativeResizeLeft); handled {
+	if _, handled := b.handleMessage(wmSetCursor, 0, htLeft); handled {
 		t.Fatal("resize cursor should be delegated to Windows")
 	}
 	pSetCursor.Call(resize) // model DefWindowProc's native resize cursor

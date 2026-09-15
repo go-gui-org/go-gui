@@ -67,7 +67,7 @@ and this project adheres to
 - **`FindLayout` stops at the depth cap** — like every other layout walk, it no
   longer recurses without limit on a very deep tree.
 
-- **Windows resize cursors stay visible between frames** — the frame loop
+- **Windows resize cursors stay visible between frames (#631)** — the frame loop
   overwrote the system resize cursor with the application's cursor, making
   window edges difficult to find. Cursor updates now apply only over app content
   or during a captured widget drag, leaving Windows in control over the native

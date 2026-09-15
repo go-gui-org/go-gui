@@ -50,6 +50,7 @@ const (
 	wmApp = 0x8000
 
 	htClient      = 1
+	htLeft        = 10
 	sizeMinimized = 1
 	wheelDelta    = 120
 	keyRepeatBit  = 0x40000000 // lParam bit 30: previous key state
