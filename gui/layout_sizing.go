@@ -185,15 +185,8 @@ func axisNoneExtentH(layout *Layout) (extent, minExtent float32, found bool) {
 }
 
 func clampMinMax(shape *Shape, axis distributeAxis) {
-	size := getSize(shape, axis)
-	minSize := getMinSize(shape, axis)
-	maxSize := getMaxSize(shape, axis)
-	if minSize > 0 && size < minSize {
-		setSize(shape, axis, minSize)
-	}
-	if maxSize > 0 && size > maxSize {
-		setSize(shape, axis, maxSize)
-	}
+	setSize(shape, axis, clampSize(getSize(shape, axis),
+		getMinSize(shape, axis), getMaxSize(shape, axis)))
 }
 
 // layoutFillCrossAxis handles cross-axis fill sizing: adjusts scroll
@@ -207,6 +200,13 @@ func layoutFillCrossAxis(layout *Layout, axis distributeAxis, fb *fillBuffers) {
 		// iteration when multiple siblings trigger cross-axis fill.
 		// fillGen 0 is the zero value (no cache); compare against
 		// fb.fillGen which is ≥1 after beginFillPass.
+		//
+		// One siblingSumGen stamps both siblingSumW and siblingSumH, and
+		// both fill passes share one fillGen (see Shape.siblingSumGen).
+		// That is safe only because a parent writes one of the two per
+		// frame: this branch runs when the parent's axis is
+		// mainAxisOf(axis), and a parent has a single axis. A parent that
+		// filled on both axes would read the other axis's stale sum.
 		parentShape := layout.Parent.Shape
 		sum := siblingSumPtr(parentShape, axis)
 		var totalChild float32
@@ -377,8 +377,8 @@ func applyDistributionDelta(layout *Layout, axis distributeAxis, extremum, sizeD
 			setSize(child.Shape, axis, newSize)
 
 			constrained := false
-			minSize := getMinSize(child.Shape, axis)
 			maxSize := getMaxSize(child.Shape, axis)
+			minSize := effectiveMinSize(getMinSize(child.Shape, axis), maxSize)
 			currentSize := getSize(child.Shape, axis)
 			if currentSize <= minSize {
 				setSize(child.Shape, axis, minSize)
@@ -483,7 +483,7 @@ func layoutWidthsDepth(layout *Layout, depth int) {
 				layout.Shape.Width += layout.Children[i].Shape.Width
 				if wrapOrOverflow {
 					minWidths = f32Max(minWidths, layout.Children[i].Shape.Width+padding)
-				} else if !layout.Shape.Clip {
+				} else if !sizingClips(layout.Shape, distributeHorizontal) {
 					minWidths += layout.Children[i].Shape.MinWidth
 				}
 			}
@@ -494,13 +494,8 @@ func layoutWidthsDepth(layout *Layout, depth int) {
 			// different widths (issue #385).
 			layout.Shape.MinWidth = f32Max(minWidths, layout.Shape.MinWidth)
 			layout.Shape.Width += padding + sp
-			if layout.Shape.MaxWidth > 0 {
-				layout.Shape.Width = f32Min(layout.Shape.MaxWidth, layout.Shape.Width)
-				layout.Shape.MinWidth = f32Min(layout.Shape.MaxWidth, layout.Shape.MinWidth)
-			}
-			if layout.Shape.MinWidth > 0 {
-				layout.Shape.Width = f32Max(layout.Shape.MinWidth, layout.Shape.Width)
-			}
+			layout.Shape.MinWidth = effectiveMinSize(layout.Shape.MinWidth, layout.Shape.MaxWidth)
+			layout.Shape.Width = clampSize(layout.Shape.Width, layout.Shape.MinWidth, layout.Shape.MaxWidth)
 			scrollFillResetMin(layout.Shape, distributeHorizontal)
 		}
 	} else if layout.Shape.Axis == axisTopToBottom {
@@ -533,17 +528,13 @@ func layoutWidthsDepth(layout *Layout, depth int) {
 			}
 			if fitWidth {
 				layout.Shape.Width = f32Max(layout.Shape.Width, layout.Children[i].Shape.Width+padding)
-				if !layout.Shape.Clip {
+				if !sizingClips(layout.Shape, distributeHorizontal) {
 					layout.Shape.MinWidth = f32Max(layout.Shape.MinWidth, layout.Children[i].Shape.MinWidth+padding)
 				}
 			}
 		}
-		if layout.Shape.MinWidth > 0 {
-			layout.Shape.Width = f32Max(layout.Shape.Width, layout.Shape.MinWidth)
-		}
-		if layout.Shape.MaxWidth > 0 {
-			layout.Shape.Width = f32Min(layout.Shape.Width, layout.Shape.MaxWidth)
-		}
+		layout.Shape.MinWidth = effectiveMinSize(layout.Shape.MinWidth, layout.Shape.MaxWidth)
+		layout.Shape.Width = clampSize(layout.Shape.Width, layout.Shape.MinWidth, layout.Shape.MaxWidth)
 		scrollFillResetMin(layout.Shape, distributeHorizontal)
 	} else {
 		// axisNone: children are not arranged; each sits at its own X. A
@@ -566,12 +557,8 @@ func layoutWidthsDepth(layout *Layout, depth int) {
 		if layout.Shape.Sizing.Width == sizingFit {
 			fitAxisNoneWidth(layout, padding)
 		}
-		if layout.Shape.MinWidth > 0 {
-			layout.Shape.Width = f32Max(layout.Shape.Width, layout.Shape.MinWidth)
-		}
-		if layout.Shape.MaxWidth > 0 {
-			layout.Shape.Width = f32Min(layout.Shape.Width, layout.Shape.MaxWidth)
-		}
+		layout.Shape.MinWidth = effectiveMinSize(layout.Shape.MinWidth, layout.Shape.MaxWidth)
+		layout.Shape.Width = clampSize(layout.Shape.Width, layout.Shape.MinWidth, layout.Shape.MaxWidth)
 	}
 }
 
@@ -609,7 +596,7 @@ func layoutHeightsDepth(layout *Layout, depth int) {
 				layout.Shape.Height += layout.Children[i].Shape.Height
 				// A Clip container may be cut below its content, the
 				// same rule layoutWidths applies on both axes.
-				if !layout.Shape.Clip {
+				if !sizingClips(layout.Shape, distributeVertical) {
 					minHeights += layout.Children[i].Shape.MinHeight
 				}
 			}
@@ -621,13 +608,8 @@ func layoutHeightsDepth(layout *Layout, depth int) {
 			// because it sums bare child minimums.
 			layout.Shape.MinHeight = f32Max(minHeights, layout.Shape.MinHeight)
 			layout.Shape.Height += padding + sp
-			if layout.Shape.MaxHeight > 0 {
-				layout.Shape.Height = f32Min(layout.Shape.MaxHeight, layout.Shape.Height)
-				layout.Shape.MinHeight = f32Min(layout.Shape.MaxHeight, layout.Shape.MinHeight)
-			}
-			if layout.Shape.MinHeight > 0 {
-				layout.Shape.Height = f32Max(layout.Shape.MinHeight, layout.Shape.Height)
-			}
+			layout.Shape.MinHeight = effectiveMinSize(layout.Shape.MinHeight, layout.Shape.MaxHeight)
+			layout.Shape.Height = clampSize(layout.Shape.Height, layout.Shape.MinHeight, layout.Shape.MaxHeight)
 			if layout.Shape.Sizing.Height == sizingFill && layout.Shape.Scrollable {
 				layout.Shape.MinHeight = spacingSmall
 			}
@@ -651,17 +633,13 @@ func layoutHeightsDepth(layout *Layout, depth int) {
 			}
 			if fitHeight {
 				layout.Shape.Height = f32Max(layout.Shape.Height, layout.Children[i].Shape.Height+padding)
-				if !layout.Shape.Clip {
+				if !sizingClips(layout.Shape, distributeVertical) {
 					layout.Shape.MinHeight = f32Max(layout.Shape.MinHeight, layout.Children[i].Shape.MinHeight+padding)
 				}
 			}
 		}
-		if layout.Shape.MinHeight > 0 {
-			layout.Shape.Height = f32Max(layout.Shape.Height, layout.Shape.MinHeight)
-		}
-		if layout.Shape.MaxHeight > 0 {
-			layout.Shape.Height = f32Min(layout.Shape.Height, layout.Shape.MaxHeight)
-		}
+		layout.Shape.MinHeight = effectiveMinSize(layout.Shape.MinHeight, layout.Shape.MaxHeight)
+		layout.Shape.Height = clampSize(layout.Shape.Height, layout.Shape.MinHeight, layout.Shape.MaxHeight)
 		scrollFillResetMin(layout.Shape, distributeVertical)
 	} else {
 		// axisNone: mirror layoutWidths. A Fit height encloses the
@@ -673,12 +651,8 @@ func layoutHeightsDepth(layout *Layout, depth int) {
 		if layout.Shape.Sizing.Height == sizingFit {
 			fitAxisNoneHeight(layout, padding)
 		}
-		if layout.Shape.MinHeight > 0 {
-			layout.Shape.Height = f32Max(layout.Shape.Height, layout.Shape.MinHeight)
-		}
-		if layout.Shape.MaxHeight > 0 {
-			layout.Shape.Height = f32Min(layout.Shape.Height, layout.Shape.MaxHeight)
-		}
+		layout.Shape.MinHeight = effectiveMinSize(layout.Shape.MinHeight, layout.Shape.MaxHeight)
+		layout.Shape.Height = clampSize(layout.Shape.Height, layout.Shape.MinHeight, layout.Shape.MaxHeight)
 	}
 }
 

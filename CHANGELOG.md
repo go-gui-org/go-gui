@@ -36,6 +36,22 @@ and this project adheres to
 
 ### Fixed
 
+- **A rotated widget no longer collapses an empty Canvas** — when a rotation
+  changed a child's size, the re-fit of its Fit ancestors set an axis-less
+  container (Canvas) with no in-flow child to size 0. The sizing pass keeps the
+  current size in that case, and the re-fit now does the same.
+- **MaxWidth and MaxHeight win over a larger minimum at every sizing step** —
+  when a minimum was larger than the maximum, most sizing steps capped the size
+  at the maximum, but the fill pass that shrinks a Fill child raised it to the
+  minimum. The clamp used for Fill children could do either, depending on the
+  starting size. Every step now caps at the maximum, and a container's computed
+  minimum can no longer exceed its maximum on the cross axis.
+- **A Fit scroll container no longer takes its children's minimum size** —
+  sizing read `Clip` before the layout pass set it on scroll containers, so a
+  Fit `Scrollable` container took its content's minimum and could not shrink and
+  scroll. Sizing now treats a scroll container as clipped on each axis it
+  scrolls. An axis that `ScrollMode` excludes keeps the content minimum, as
+  before.
 - **Fill children shrink beside a wider fixed sibling** — when a row was too
   narrow, the shrink pass searched for its largest child among Fixed and Fit
   siblings too. If that child was not Fill, nothing shrank and the row

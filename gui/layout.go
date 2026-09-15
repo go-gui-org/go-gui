@@ -135,6 +135,9 @@ func (layout *Layout) spacing() float32 {
 // contentWidth returns total content width. Uses the fill-pass cache
 // when available to avoid redundant child-tree summation.
 func contentWidth(layout *Layout) float32 {
+	if layout == nil || layout.Shape == nil {
+		return 0
+	}
 	if layout.Shape.fillGen != 0 {
 		return layout.Shape.contentW
 	}
@@ -203,6 +206,9 @@ func computeContentWidth(layout *Layout) float32 {
 // contentHeight returns total content height. Uses the fill-pass cache
 // when available to avoid redundant child-tree summation.
 func contentHeight(layout *Layout) float32 {
+	if layout == nil || layout.Shape == nil {
+		return 0
+	}
 	if layout.Shape.fillGen != 0 {
 		return layout.Shape.contentH
 	}
@@ -214,6 +220,9 @@ func contentHeight(layout *Layout) float32 {
 // fallback when no cached value exists.
 func computeContentHeight(layout *Layout) float32 {
 	var height float32
+	if layout == nil || layout.Shape == nil {
+		return 0
+	}
 	if layout.Shape.Axis == axisTopToBottom {
 		height += layout.spacing()
 		for i := range layout.Children {
