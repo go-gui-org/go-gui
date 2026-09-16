@@ -176,11 +176,15 @@ func demoDataGrid(w *gui.Window) gui.View {
 				Rows:              rows,
 				Query:             app.DataGridQuery,
 				Selection:         app.DataGridSelection,
+				HiddenColumnIDs:   app.DataGridHidden,
 				Scrollbar:         gui.ScrollbarHidden,
 				MaxHeight:         260,
 				ShowQuickFilter:   true,
 				ShowFilterRow:     true,
 				ShowColumnChooser: true,
+				OnHiddenColumnsChange: func(hidden map[string]bool, ctx gui.EventCtx) {
+					appState(ctx.Window).DataGridHidden = hidden
+				},
 				OnQueryChange: func(query datagrid.GridQueryState, ctx gui.EventCtx) {
 					appState(ctx.Window).DataGridQuery = query
 				},

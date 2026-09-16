@@ -53,6 +53,7 @@ type ShowcaseApp struct {
 
 	DataGridQuery     datagrid.GridQueryState
 	DataSourceQuery   datagrid.GridQueryState
+	DataGridHidden    map[string]bool
 	NavQuery          string
 	SelectedGroup     string
 	SelectedComponent string
