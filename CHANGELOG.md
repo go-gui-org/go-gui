@@ -48,6 +48,12 @@ and this project adheres to
 
 ### Fixed
 
+- **A `Select` label keeps its descenders** — the closed-field label sits in a
+  clipping wrapper (so a long value cannot push the disclosure arrow out) and
+  takes the cap-band optical correction, which moves the text box down past the
+  wrapper's bottom. The wrapper's clip then cut the tail of labels like "Cogs".
+  The wrapper now grows by the applied shift, so the label stays inside the clip
+  while the field's own height is unchanged.
 - **A list marker no longer spills over the text beside it (#634)** — a bullet
   or number column was `Fixed` at a width computed from `prefixCharWidth`, a
   nominal per-character guess, while the marker text inside it was sized by the

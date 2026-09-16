@@ -128,13 +128,8 @@ func (sv *selectView) GenerateLayout(w *Window) Layout {
 	// A wrapping multi-select is excluded from the optical correction:
 	// its label is a block whose lines after the first are placed by the
 	// text layout, so there is no single centred line to correct. Same
-	// exclusion Input makes for multiline. Resolved here because the
-	// single-line label carries the amend on its own wrapper below.
-	var opticalAmend func(EventCtx)
-	if wrapMode == TextModeSingleLine {
-		opticalAmend = opticalCenterLabelText
-	}
-
+	// exclusion Input makes for multiline. The single-line label carries
+	// the amend on its own wrapper below.
 	label := Text(TextCfg{
 		Text:      txt,
 		TextStyle: txtStyle,
@@ -157,7 +152,7 @@ func (sv *selectView) GenerateLayout(w *Window) Layout {
 			// own inset and grow the field.
 			SizeBorder:  NoBorder,
 			Clip:        true,
-			AmendLayout: opticalAmend,
+			AmendLayout: selectLabelAmend,
 			Content:     []View{label},
 		}))
 	} else {
@@ -275,6 +270,33 @@ func (sv *selectView) GenerateLayout(w *Window) Layout {
 		cfg:     ccfg,
 		content: content,
 	}, w)
+}
+
+// selectLabelAmend centres the closed-field label on the face's cap
+// band, then grows the clipping wrapper by the applied shift. The
+// shift moves the text box down past the wrapper's bottom, and the
+// wrapper must clip (so a value wider than MaxWidth cannot push the
+// arrow out), which cut the descender of labels like "Cogs". Growing
+// the wrapper keeps the text inside the clip rect cut after this pass,
+// while the field's own height is unchanged: the growth lands in the
+// field's padding.
+func selectLabelAmend(ctx EventCtx) {
+	layout := ctx.Layout
+	if layout == nil || layout.Shape == nil || len(layout.Children) == 0 {
+		return
+	}
+	// The wrapper holds exactly one child, the label, so no per-frame
+	// allocation to track the shift.
+	txt := layout.Children[0].Shape
+	if txt == nil {
+		opticalCenterLabelText(ctx)
+		return
+	}
+	before := txt.Y
+	opticalCenterLabelText(ctx)
+	if shift := txt.Y - before; shift > 0 {
+		layout.Shape.Height += shift
+	}
 }
 
 // selectOptionView builds a single option row.

@@ -539,3 +539,43 @@ func TestSelectLongValueKeepsArrowInside(t *testing.T) {
 		}
 	}
 }
+
+// A descender-bearing label must stay inside the clipping wrapper. The
+// cap-band shift moves the label box down past the wrapper's bottom,
+// and the wrapper must clip horizontally — which cut the tail of labels
+// like "Cogs" in the svg-spinners demo.
+func TestSelectDescenderStaysInsideClipWrapper(t *testing.T) {
+	w := NewTestWindow(WindowCfg{})
+	w.TestRender(func(*Window) View {
+		return Select(SelectCfg{
+			ID:       "s",
+			Selected: []string{"Cogs"},
+			Options:  []string{"Cogs", "Rings & Circles"},
+		})
+	})
+	field, ok := w.layout.FindByID("s")
+	if !ok {
+		t.Fatal("no select in the rendered window")
+	}
+	if len(field.Children) < 1 || field.Children[0].Shape == nil ||
+		!field.Children[0].Shape.Clip {
+		t.Fatal("closed select has no clipping label wrapper")
+	}
+	wrapper := field.Children[0].Shape
+	label := firstTextShape(&field.Children[0])
+	if label == nil {
+		t.Fatal("the select has no label")
+	}
+	if bottom, want := label.Y+label.Height, wrapper.Y+wrapper.Height; bottom > want+f32Tolerance {
+		t.Errorf("label bottom %v exceeds wrapper bottom %v", bottom, want)
+	}
+}
+
+// The amend's defensive guards must no-op instead of panicking on a
+// layout that has no wrapper, no shape, or no label yet.
+func TestSelectLabelAmendEmptyCtxNoPanic(t *testing.T) {
+	selectLabelAmend(EventCtx{})
+	selectLabelAmend(EventCtx{Layout: &Layout{}})
+	selectLabelAmend(EventCtx{Layout: &Layout{Shape: &Shape{}}})
+	selectLabelAmend(EventCtx{Layout: &Layout{Shape: &Shape{}, Children: []Layout{{}}}})
+}
