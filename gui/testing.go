@@ -119,8 +119,9 @@ func NewTestWindow(cfg WindowCfg) *Window {
 }
 
 // TestRender installs view as the window's view generator and runs one
-// full frame: view function, layout arrange, renderer build. It returns
-// the composed root layout.
+// full frame: view function, layout arrange, renderer build. Like
+// FrameFn, it runs a second layout pass when the first asked for one.
+// It returns the composed root layout.
 //
 // Passing nil re-runs the frame with whatever generator is already
 // installed — the usual way to observe the tree after a Test* action
@@ -136,6 +137,13 @@ func (w *Window) TestRender(view func(*Window) View) *Layout {
 	}
 	w.markLayoutRefresh()
 	w.Update()
+	// FrameFn runs one more pass when the arrange pass asked for it (a
+	// new hover target, a scrollbar hook part that changed size), so a
+	// frame on screen shows the settled tree. Do the same, or a one-shot
+	// capture shows the first pass.
+	if w.refreshLayout {
+		w.Update()
+	}
 	return &w.layout
 }
 

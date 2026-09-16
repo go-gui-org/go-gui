@@ -215,6 +215,7 @@ const (
 	nsDatePicker          = "gui.date_picker"
 	nsColorPicker         = "gui.color_picker"
 	nsSliderPress         = "gui.slider.press"
+	nsScrollbarLook       = "gui.scrollbar.look"
 	nsSplitterDrag        = "gui.splitter.drag"
 	nsInputDate           = "gui.input_date"
 	nsInputDateText       = "gui.input_date.text"

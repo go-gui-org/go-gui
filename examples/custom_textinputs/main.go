@@ -18,7 +18,8 @@
 //   - The look needs the focus of the Input, not of the wrapper.
 //     InteractionState.FocusWithin is true when the wrapper or the Input
 //     inside it has focus, so the builder reads that.
-//   - Turning the Input's chrome off takes seven fields; see plainInput.
+//   - Turning the Input's chrome off takes four fields: a transparent
+//     gui.Flat color set, no border, no radius, no padding; see plainInput.
 //   - A press on the wrapper's padding does not reach the Input. The wrapper
 //     has an OnMouseDown that moves focus to it; see focusField.
 package main
@@ -200,17 +201,16 @@ func valuesPanel(app *App) gui.View {
 // padding turned off, so the wrapper around it draws the whole look.
 func plainInput(app *App, key string, multiline bool) gui.View {
 	cfg := gui.InputCfg{
-		ID:               fieldID,
-		Text:             app.text[key],
-		OnTextChanged:    app.changed[key],
-		Sizing:           gui.FillFit,
-		Color:            gui.ColorTransparent,
-		ColorHover:       gui.ColorTransparent,
-		ColorBorder:      gui.ColorTransparent,
-		ColorBorderFocus: gui.ColorTransparent,
-		SizeBorder:       gui.SomeF(0),
-		Radius:           gui.SomeF(0),
-		Padding:          gui.PaddingNone,
+		ID:            fieldID,
+		Text:          app.text[key],
+		OnTextChanged: app.changed[key],
+		Sizing:        gui.FillFit,
+		// One transparent ColorSet turns off the fill, hover and both
+		// border colors.
+		Colors:     gui.Flat(gui.ColorTransparent),
+		SizeBorder: gui.SomeF(0),
+		Radius:     gui.SomeF(0),
+		Padding:    gui.PaddingNone,
 	}
 	if multiline {
 		cfg.Mode = gui.InputMultiline

@@ -36,6 +36,38 @@ type ScrollbarCfg struct {
 	ColorBackground Color
 	Overflow        ScrollbarOverflow
 	Orientation     ScrollbarOrientation
+
+	// Thumb draws the thumb in place of the stock one. The scrollbar
+	// still sizes and moves the thumb, starts the drag and hides it when
+	// nothing overflows; the view fills the thumb, so give its root a
+	// Fill sizing. The ColorThumb and RadiusThumb fields are not used.
+	//
+	// Track draws the gutter under the thumb, filling the bar. A press
+	// on it still jumps the scroll position there.
+	//
+	// Both run during layout generation, under the frame lock. The size
+	// in ScrollbarState is from the last layout pass; when it changes the
+	// scrollbar asks for one more pass, so a frame shows the view built
+	// for its size. A scrollbar with either hook gets the ID leaf
+	// "scrollbar-x" or "scrollbar-y" when ID is empty, so hover and press
+	// can be read (#664, docs/specs/scrollbar-look-hook.md).
+	Thumb func(ScrollbarState) View
+	Track func(ScrollbarState) View
+}
+
+// ScrollbarState is what a scrollbar Thumb or Track hook gets.
+type ScrollbarState struct {
+	// Hovered is true when the pointer is over the scrollbar, track or
+	// thumb.
+	Hovered bool
+	// Pressed is true while a press that started on the scrollbar is
+	// held, which is while its drag runs.
+	Pressed bool
+	// Vertical is true for the vertical scrollbar.
+	Vertical bool
+	// Width and Height are the size of the part from the last layout
+	// pass. Both are 0 before the first pass.
+	Width, Height float32
 }
 
 // Scrollbar layout constants.
@@ -76,6 +108,9 @@ func applyScrollbarDefaults(cfg *ScrollbarCfg) {
 // Scrollbar creates a scrollbar overlay view.
 func scrollbar(cfg ScrollbarCfg) View {
 	applyScrollbarDefaults(&cfg)
+	if cfg.Thumb != nil || cfg.Track != nil {
+		return scrollbarLookView{cfg: cfg}
+	}
 
 	thumbView := scrollbarThumb(cfg)
 
@@ -88,7 +123,7 @@ func scrollbar(cfg ScrollbarCfg) View {
 			Padding:              NoPadding,
 			scrollbarOrientation: scrollbarHorizontal,
 			AmendLayout:          makeScrollbarAmendLayout(cfg),
-			OnHover:              makeScrollbarOnHover(cfg),
+			OnHover:              makeScrollbarOnHover(cfg, thumbIndex),
 			OnClick:              makeScrollbarGutterClick(cfg),
 			Content:              []View{thumbView},
 		})
@@ -101,7 +136,7 @@ func scrollbar(cfg ScrollbarCfg) View {
 		Padding:              NoPadding,
 		scrollbarOrientation: scrollbarVertical,
 		AmendLayout:          makeScrollbarAmendLayout(cfg),
-		OnHover:              makeScrollbarOnHover(cfg),
+		OnHover:              makeScrollbarOnHover(cfg, thumbIndex),
 		OnClick:              makeScrollbarGutterClick(cfg),
 		Content:              []View{thumbView},
 	})
@@ -118,27 +153,34 @@ func scrollbarThumb(cfg ScrollbarCfg) View {
 
 func makeScrollbarAmendLayout(cfg ScrollbarCfg) func(EventCtx) {
 	return func(ctx EventCtx) {
-		scrollbarAmendLayout(cfg, ctx, ctx.Layout, ctx.Window)
+		scrollbarAmendLayout(cfg, ctx, ctx.Layout, ctx.Window, thumbIndex)
 	}
 }
 
-func makeScrollbarOnHover(cfg ScrollbarCfg) func(EventCtx) {
+// makeScrollbarOnHover shows the stock thumb in its color under the
+// pointer. thumbAt is the thumb's child index. A Thumb hook draws its own
+// hover look from ScrollbarState, so its color is left alone.
+func makeScrollbarOnHover(cfg ScrollbarCfg, thumbAt int) func(EventCtx) {
 	return func(ctx EventCtx) {
-		if len(ctx.Layout.Children) == 0 {
+		if len(ctx.Layout.Children) <= thumbAt {
 			return
 		}
-		if ctx.Layout.Children[thumbIndex].Shape.Color != ColorTransparent ||
+		if cfg.Thumb != nil {
+			ctx.Window.setMouseCursor(CursorArrow)
+			return
+		}
+		if ctx.Layout.Children[thumbAt].Shape.Color != ColorTransparent ||
 			cfg.Overflow == scrollbarOnHover {
-			ctx.Layout.Children[thumbIndex].Shape.Color = cfg.ColorThumb
+			ctx.Layout.Children[thumbAt].Shape.Color = cfg.ColorThumb
 			ctx.Window.setMouseCursor(CursorArrow)
 		}
 	}
 }
 
 func scrollbarAmendLayout(
-	cfg ScrollbarCfg, ctx EventCtx, layout *Layout, w *Window,
+	cfg ScrollbarCfg, ctx EventCtx, layout *Layout, w *Window, thumbAt int,
 ) {
-	if layout.Parent == nil || len(layout.Children) == 0 {
+	if layout.Parent == nil || len(layout.Children) <= thumbAt {
 		return
 	}
 	// ScrollID names the scrollable this bar drives, and it arrives as
@@ -190,14 +232,14 @@ func scrollbarAmendLayout(
 				offset = availWidth - offset
 			}
 		}
-		layout.Children[thumbIndex].Shape.X = layout.Shape.X + offset
-		layout.Children[thumbIndex].Shape.Y = layout.Shape.Y
-		layout.Children[thumbIndex].Shape.Width = thumbWidth - gapEnd - gapEnd
-		layout.Children[thumbIndex].Shape.Height = cfg.Size
+		layout.Children[thumbAt].Shape.X = layout.Shape.X + offset
+		layout.Children[thumbAt].Shape.Y = layout.Shape.Y
+		layout.Children[thumbAt].Shape.Width = thumbWidth - gapEnd - gapEnd
+		layout.Children[thumbAt].Shape.Height = cfg.Size
 
 		if (cfg.Overflow != ScrollbarVisible && availWidth < 0.1) ||
 			cfg.Overflow == scrollbarOnHover {
-			layout.Children[thumbIndex].Shape.Color = ColorTransparent
+			layout.Children[thumbAt].Shape.Color = ColorTransparent
 		}
 	} else {
 		layout.Shape.X = parent.Shape.X + parent.Shape.Width - cfg.Size
@@ -223,20 +265,20 @@ func scrollbarAmendLayout(
 		layout.Shape.Y += gapEnd
 		layout.Shape.Height -= gapEnd + gapEnd
 
-		layout.Children[thumbIndex].Shape.X = layout.Shape.X
+		layout.Children[thumbAt].Shape.X = layout.Shape.X
 		offset := float32(0)
 		if availHeight > 0 {
 			offset = f32Clamp(
 				(scrollOffset/(cHeight-layout.Shape.Height))*availHeight,
 				0, availHeight)
 		}
-		layout.Children[thumbIndex].Shape.Y = layout.Shape.Y + offset
-		layout.Children[thumbIndex].Shape.Height = thumbHeight - gapEnd - gapEnd
-		layout.Children[thumbIndex].Shape.Width = cfg.Size
+		layout.Children[thumbAt].Shape.Y = layout.Shape.Y + offset
+		layout.Children[thumbAt].Shape.Height = thumbHeight - gapEnd - gapEnd
+		layout.Children[thumbAt].Shape.Width = cfg.Size
 
 		if (cfg.Overflow != ScrollbarVisible && availHeight < 0.1) ||
 			cfg.Overflow == scrollbarOnHover {
-			layout.Children[thumbIndex].Shape.Color = ColorTransparent
+			layout.Children[thumbAt].Shape.Color = ColorTransparent
 		}
 	}
 }
