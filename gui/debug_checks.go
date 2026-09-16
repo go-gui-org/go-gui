@@ -83,7 +83,7 @@ const (
 	// debugCheckLayoutInvariant fires from layoutPipeline when the
 	// arranged tree breaks one of the sizing rules in
 	// docs/specs/layout-sizing-rules.md — a child outside a
-	// non-clipping parent's content box, a minimum above its maximum,
+	// non-clipping parent's bounds, a minimum above its maximum,
 	// or a non-finite or negative size.
 	debugCheckLayoutInvariant
 )

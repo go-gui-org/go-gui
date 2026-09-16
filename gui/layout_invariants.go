@@ -99,8 +99,11 @@ func checkLayoutInvariantsDepth(
 // f32Max returns its second argument for NaN — and a negative one renders
 // as an inverted rect.
 func checkShapeFinite(s *Shape, emit layoutInvariantEmit) {
-	subject := shapeInvariantSubject(s)
+	// The subject is built only on a violation: an anonymous shape's
+	// name is a string concat, and the clean path must not allocate per
+	// shape per frame.
 	if !f32AllFinite4(s.X, s.Y, s.Width, s.Height) {
+		subject := shapeInvariantSubject(s)
 		emit(subject,
 			"layout invariant: shape %q resolved to a non-finite rect "+
 				"(x=%v y=%v w=%v h=%v); a NaN or Inf here silently wins "+
@@ -109,6 +112,7 @@ func checkShapeFinite(s *Shape, emit layoutInvariantEmit) {
 		return
 	}
 	if s.Width < 0 || s.Height < 0 {
+		subject := shapeInvariantSubject(s)
 		emit(subject,
 			"layout invariant: shape %q resolved to a negative size "+
 				"(w=%v h=%v).", subject, s.Width, s.Height)
@@ -119,10 +123,10 @@ func checkShapeFinite(s *Shape, emit layoutInvariantEmit) {
 // axes. Max wins a conflict at every sizing site (see effectiveMinSize),
 // so a shape still carrying min > max never went through clampSize.
 func checkShapeBounds(s *Shape, emit layoutInvariantEmit) {
-	subject := shapeInvariantSubject(s)
 	// A zero or negative bound means unset, so only a pair of set bounds
-	// can conflict.
+	// can conflict. Subject built lazily, as in checkShapeFinite.
 	if s.MaxWidth > 0 && s.MinWidth > s.MaxWidth {
+		subject := shapeInvariantSubject(s)
 		emit(subject,
 			"layout invariant: shape %q has MinWidth %v above MaxWidth "+
 				"%v after sizing; every site resolves this with "+
@@ -130,6 +134,7 @@ func checkShapeBounds(s *Shape, emit layoutInvariantEmit) {
 			subject, s.MinWidth, s.MaxWidth)
 	}
 	if s.MaxHeight > 0 && s.MinHeight > s.MaxHeight {
+		subject := shapeInvariantSubject(s)
 		emit(subject,
 			"layout invariant: shape %q has MinHeight %v above MaxHeight "+
 				"%v after sizing; every site resolves this with "+
@@ -179,12 +184,12 @@ func checkChildContainment(
 		!f32AllFinite4(parent.Y, parent.Height, cs.Y, cs.Height) {
 		return
 	}
-	subject := shapeInvariantSubject(cs)
 	if !sizingClips(parent, distributeHorizontal) {
 		left := parent.X
 		right := parent.X + parent.Width
 		if cs.X < left-f32Tolerance ||
 			cs.X+cs.Width > right+f32Tolerance {
+			subject := shapeInvariantSubject(cs)
 			emit(subject,
 				"layout invariant: child %q spans x %v..%v, outside its "+
 					"parent %q bounds %v..%v, and the parent neither "+
@@ -198,6 +203,7 @@ func checkChildContainment(
 		bottom := parent.Y + parent.Height
 		if cs.Y < top-f32Tolerance ||
 			cs.Y+cs.Height > bottom+f32Tolerance {
+			subject := shapeInvariantSubject(cs)
 			emit(subject,
 				"layout invariant: child %q spans y %v..%v, outside its "+
 					"parent %q bounds %v..%v, and the parent neither "+

@@ -34,7 +34,7 @@ func TestLayoutInvariantsCleanTreeSilent(t *testing.T) {
 	}
 }
 
-// Invariant 1: a child outside a non-clipping parent's content box is
+// Invariant 1: a child outside a non-clipping parent's bounds is
 // reported. Hand-positioned after the pipeline so the defect is the one
 // under test rather than whatever the sizing pass would have produced.
 func TestLayoutInvariantsChildEscapesParent(t *testing.T) {
@@ -250,5 +250,95 @@ func TestLayoutInvariantsReportsThroughDebugWarn(t *testing.T) {
 	})
 	if !strings.Contains(out.String(), "layout invariant") {
 		t.Errorf("stderr did not name the rule: %q", out.String())
+	}
+}
+
+// Invariant 1 on the vertical axis: the y check is its own branch, so a
+// horizontal-only test would pass with it deleted.
+func TestLayoutInvariantsChildEscapesParentVertically(t *testing.T) {
+	root := &Layout{
+		Shape: &Shape{shapeType: shapeRectangle, ID: "parent",
+			Width: 100, Height: 20},
+		Children: []Layout{
+			{Shape: &Shape{shapeType: shapeRectangle, ID: "child",
+				Y: 15, Width: 40, Height: 10}}, // spans 15..25, parent ends at 20
+		},
+	}
+	found := collectInvariants(root)
+	if len(found) != 1 || found[0] != "child" {
+		t.Errorf("vertical escape: got %v, want [child]", found)
+	}
+}
+
+// An overshoot inside f32Tolerance is float noise from the position pass,
+// not a defect, and stays silent.
+func TestLayoutInvariantsContainmentTolerance(t *testing.T) {
+	root := &Layout{
+		Shape: &Shape{shapeType: shapeRectangle, ID: "parent",
+			Width: 100, Height: 20},
+		Children: []Layout{
+			{Shape: &Shape{shapeType: shapeRectangle, ID: "child",
+				X: 60, Width: 40 + f32Tolerance/2, Height: 10}},
+		},
+	}
+	if got := collectInvariants(root); len(got) != 0 {
+		t.Errorf("sub-tolerance overshoot reported %v, want silence", got)
+	}
+}
+
+// Invariant 2 on the vertical axis, a separate branch from the width one.
+func TestLayoutInvariantsMinHeightAboveMax(t *testing.T) {
+	root := &Layout{
+		Shape: &Shape{shapeType: shapeRectangle, ID: "box",
+			Width: 50, Height: 10, MinHeight: 80, MaxHeight: 40},
+	}
+	if got := collectInvariants(root); len(got) != 1 {
+		t.Errorf("MinHeight above MaxHeight: got %v, want one finding", got)
+	}
+}
+
+// A non-finite child is one defect and reports once, from the finite
+// check, not a second time from containment.
+func TestLayoutInvariantsNonFiniteChildReportsOnce(t *testing.T) {
+	root := &Layout{
+		Shape: &Shape{shapeType: shapeRectangle, ID: "parent",
+			Width: 100, Height: 20},
+		Children: []Layout{
+			{Shape: &Shape{shapeType: shapeRectangle, ID: "child",
+				Width: float32(math.Inf(1)), Height: 10}},
+		},
+	}
+	if got := collectInvariants(root); len(got) != 1 {
+		t.Errorf("Inf child: got %v, want exactly one finding", got)
+	}
+}
+
+// An ID-less shape is named by its type, so its findings do not collapse
+// into one "" warn-once slot shared with every other anonymous shape.
+func TestLayoutInvariantsAnonymousSubject(t *testing.T) {
+	root := &Layout{
+		Shape: &Shape{shapeType: shapeRectangle, Width: -1, Height: 10},
+	}
+	found := collectInvariants(root)
+	if len(found) != 1 || !strings.HasPrefix(found[0], "shapeType ") {
+		t.Errorf("anonymous subject: got %v, want one shapeType finding", found)
+	}
+}
+
+// The clean path allocates nothing: the check runs every frame while the
+// category is on, and the subject string is built only on a violation.
+func TestLayoutInvariantsCleanWalkAllocFree(t *testing.T) {
+	root := &Layout{
+		Shape: &Shape{shapeType: shapeRectangle, Width: 100, Height: 20},
+		Children: []Layout{
+			{Shape: &Shape{shapeType: shapeRectangle, Width: 40, Height: 10}},
+		},
+	}
+	emit := func(string, string, ...any) {}
+	allocs := testing.AllocsPerRun(100, func() {
+		checkLayoutInvariantsOpts(root, layoutInvariantOpts{}, emit)
+	})
+	if allocs != 0 {
+		t.Errorf("clean walk allocated %v times per run, want 0", allocs)
 	}
 }
