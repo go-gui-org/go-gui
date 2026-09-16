@@ -6,14 +6,12 @@
 
 ![Preview](screenshot.png)
 
-<!-- explorer: tags=widgets,styling category=widgets run=go -->
-
 ---
 
 ## Run
 
 ```sh
-go run ./examples/custom_toggles/
+go run ./examples/custom_controls/ -tab toggles
 ```
 
 ## What it demonstrates

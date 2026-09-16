@@ -1,4 +1,4 @@
-package main
+package scrollbars
 
 import (
 	"testing"
@@ -12,7 +12,7 @@ func newTestWindow(t *testing.T) *gui.Window {
 	t.Helper()
 	gui.SetTheme(gui.ThemeLight)
 	w := gui.NewTestWindow(gui.WindowCfg{Width: 960, Height: 640})
-	w.TestRender(mainView)
+	w.TestRender(View)
 	return w
 }
 

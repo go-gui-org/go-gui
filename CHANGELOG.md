@@ -68,6 +68,12 @@ and this project adheres to
 
 ### Changed
 
+- **Custom control examples merged into `examples/custom_controls`** — the
+  `custom_buttons`, `custom_checkboxes`, `custom_radios`, `custom_toggles`,
+  `custom_sliders`, `custom_textinputs` and `custom_scrollbars` examples are now
+  one program with a tab per control. Each look lives in its own package and
+  subfolder with its README. Run `go run ./examples/custom_controls/`, or pass
+  `-tab <name>` to open one tab. `custom_shader` stays separate.
 - **`Window.TestRender` runs a second layout pass when the first asks for one
   (#664)** — as `FrameFn` does on screen. A test or a `soft.RenderToPNG` capture
   now sees the settled frame, for example a look that reads hover state, without

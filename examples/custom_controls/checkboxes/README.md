@@ -6,14 +6,12 @@
 
 ![Preview](screenshot.png)
 
-<!-- explorer: tags=widgets,styling category=widgets run=go -->
-
 ---
 
 ## Run
 
 ```sh
-go run ./examples/custom_checkboxes/
+go run ./examples/custom_controls/ -tab checkboxes
 ```
 
 ## What it demonstrates

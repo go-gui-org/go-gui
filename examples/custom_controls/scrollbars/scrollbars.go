@@ -1,4 +1,4 @@
-// This example demonstrates custom scrollbar looks drawn with
+// Package scrollbars demonstrates custom scrollbar looks drawn with
 // ScrollbarCfg.Thumb and ScrollbarCfg.Track (advanced: views sized after
 // layout).
 //
@@ -15,42 +15,13 @@
 // runs the drag, jumps on a gutter press and hides the thumb when nothing
 // overflows. The hooks only draw. They get the hover and press state and the
 // size of their part, and return a view that fills it.
-package main
+package scrollbars
 
 import (
-	"flag"
 	"fmt"
-	"log"
-	"os"
 
 	"github.com/go-gui-org/go-gui/gui"
-	"github.com/go-gui-org/go-gui/gui/backend"
-	"github.com/go-gui-org/go-gui/gui/backend/soft"
 )
-
-func main() {
-	screenshot := flag.String("screenshot", "", "write screenshot and exit")
-	flag.Parse()
-
-	gui.SetTheme(gui.ThemeLight)
-
-	w := gui.NewWindow(gui.WindowCfg{
-		Title:  "Custom Scrollbars",
-		Width:  960,
-		Height: 640,
-		OnInit: func(w *gui.Window) {
-			w.SetView(mainView)
-		},
-	})
-
-	if *screenshot != "" {
-		if err := soft.RenderToPNG(w, 2, *screenshot); err != nil {
-			log.Fatalf("screenshot: %v", err)
-		}
-		os.Exit(0)
-	}
-	backend.Run(w)
-}
 
 // rowCount is how many rows each panel holds: enough to scroll.
 const rowCount = 40
@@ -65,7 +36,8 @@ var (
 	white   = gui.Hex(0xffffff)
 )
 
-func mainView(w *gui.Window) gui.View {
+// View builds the page.
+func View(w *gui.Window) gui.View {
 	title := gui.CurrentTheme().TextStyleDef
 	title.Size = 18
 	return gui.Column(gui.ContainerCfg{

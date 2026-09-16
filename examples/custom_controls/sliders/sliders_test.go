@@ -1,4 +1,4 @@
-package main
+package sliders
 
 import (
 	"math"
@@ -12,11 +12,11 @@ import (
 func newTestApp(t *testing.T) (*App, *gui.Window) {
 	t.Helper()
 	gui.SetTheme(gui.ThemeLight)
-	app := newApp()
+	app := New()
 	// Taller than the real window: with no text measurer the test layout
 	// runs longer, and the pointer must stay inside the window to hover.
 	w := gui.NewTestWindow(gui.WindowCfg{State: app, Width: 720, Height: 1000})
-	w.TestRender(mainView)
+	w.TestRender(func(w *gui.Window) gui.View { return View(w, app) })
 	return app, w
 }
 

@@ -1,4 +1,4 @@
-// This example demonstrates custom switch looks built from hover and press
+// Package toggles demonstrates custom switch looks built from hover and press
 // state read while the view is built (advanced: build-time interaction state).
 //
 // It ports go-shirei's custom-toggles demo. Four looks:
@@ -12,42 +12,11 @@
 // press state; the app gives it the on/off value. Behavior is the same as a
 // button: a click, Space or Enter flips the value. The switch's outer size
 // never changes, only what is inside it moves.
-package main
+package toggles
 
 import (
-	"flag"
-	"log"
-	"os"
-
 	"github.com/go-gui-org/go-gui/gui"
-	"github.com/go-gui-org/go-gui/gui/backend"
-	"github.com/go-gui-org/go-gui/gui/backend/soft"
 )
-
-func main() {
-	screenshot := flag.String("screenshot", "", "write screenshot and exit")
-	flag.Parse()
-
-	gui.SetTheme(gui.ThemeLight)
-
-	w := gui.NewWindow(gui.WindowCfg{
-		State:  newApp(),
-		Title:  "Custom Toggles",
-		Width:  640,
-		Height: 700,
-		OnInit: func(w *gui.Window) {
-			w.SetView(mainView)
-		},
-	})
-
-	if *screenshot != "" {
-		if err := soft.RenderToPNG(w, 2, *screenshot); err != nil {
-			log.Fatalf("screenshot: %v", err)
-		}
-		os.Exit(0)
-	}
-	backend.Run(w)
-}
 
 // switchNames lists every switch in the example. The name is the key of its
 // value in App.on and the text written to the log.
@@ -69,7 +38,8 @@ type App struct {
 	flip map[string]func(gui.EventCtx)
 }
 
-func newApp() *App {
+// New returns the page state with its starting values.
+func New() *App {
 	app := &App{
 		log: "Flip a switch.",
 		on: map[string]bool{
@@ -96,8 +66,9 @@ func newApp() *App {
 	return app
 }
 
-func mainView(w *gui.Window) gui.View {
-	app := gui.State[App](w)
+// View builds the page. The caller owns app, so the page can sit in a
+// window whose state is a different type.
+func View(w *gui.Window, app *App) gui.View {
 	title := gui.CurrentTheme().TextStyleDef
 	title.Size = 18
 

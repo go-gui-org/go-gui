@@ -25,7 +25,7 @@ func (w *Window) IsPressed(effectiveID string) bool
 
 Both take the effective ID, like `IsFocus`. Inside `GenerateLayout` pass
 `w.EffID(cfg.ID)`. Both are main-thread only and allocate nothing.
-`examples/custom_buttons` is the reference consumer.
+`examples/custom_controls/buttons` is the reference consumer.
 
 ## Semantics
 

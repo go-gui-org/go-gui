@@ -6,12 +6,12 @@ Status: **implemented** on branch `feat/focus-within`, not yet released.
 
 ## Motivation
 
-A custom slider built from the public API (`examples/custom_sliders`, #663)
-wrote again what `gui.Slider` already does: the mouse lock drag with window
-coordinates, the arrow keys, Home and End, and the value math. It had no mouse
-wheel and no screen reader value. Its parts were floats, so every part needed an
-ID to keep hover on the slider, and the width had to be fixed to place them
-while the view was built.
+A custom slider built from the public API (`examples/custom_controls/sliders`,
+#663) wrote again what `gui.Slider` already does: the mouse lock drag with
+window coordinates, the arrow keys, Home and End, and the value math. It had no
+mouse wheel and no screen reader value. Its parts were floats, so every part
+needed an ID to keep hover on the slider, and the width had to be fixed to place
+them while the view was built.
 
 `Look` keeps all behavior in `gui.Slider` and gives the app only the drawing.
 

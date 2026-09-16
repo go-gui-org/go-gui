@@ -1,4 +1,4 @@
-// This example demonstrates custom button looks built from hover and press
+// Package buttons demonstrates custom button looks built from hover and press
 // state read while the view is built (advanced: build-time interaction state).
 //
 // It ports go-shirei's custom-buttons demo (issue #587). Three looks:
@@ -15,42 +15,11 @@
 // matching view. The rule
 // that keeps this stable: change only what is inside the button's bounds.
 // Every look here keeps its outer size fixed.
-package main
+package buttons
 
 import (
-	"flag"
-	"log"
-	"os"
-
 	"github.com/go-gui-org/go-gui/gui"
-	"github.com/go-gui-org/go-gui/gui/backend"
-	"github.com/go-gui-org/go-gui/gui/backend/soft"
 )
-
-func main() {
-	screenshot := flag.String("screenshot", "", "write screenshot and exit")
-	flag.Parse()
-
-	gui.SetTheme(gui.ThemeLight)
-
-	w := gui.NewWindow(gui.WindowCfg{
-		State:  newApp(),
-		Title:  "Custom Buttons",
-		Width:  720,
-		Height: 620,
-		OnInit: func(w *gui.Window) {
-			w.SetView(mainView)
-		},
-	})
-
-	if *screenshot != "" {
-		if err := soft.RenderToPNG(w, 2, *screenshot); err != nil {
-			log.Fatalf("screenshot: %v", err)
-		}
-		os.Exit(0)
-	}
-	backend.Run(w)
-}
 
 // App holds the click log and the three "disable the target" switches.
 type App struct {
@@ -65,7 +34,8 @@ type App struct {
 	toggle  map[string]func(gui.EventCtx)
 }
 
-func newApp() *App {
+// New returns the page state with its starting values.
+func New() *App {
 	app := &App{log: "Click a button."}
 	app.onClick = map[string]func(gui.EventCtx){}
 	for _, name := range []string{
@@ -86,8 +56,9 @@ func newApp() *App {
 	return app
 }
 
-func mainView(w *gui.Window) gui.View {
-	app := gui.State[App](w)
+// View builds the page. The caller owns app, so the page can sit in a
+// window whose state is a different type.
+func View(w *gui.Window, app *App) gui.View {
 	title := gui.CurrentTheme().TextStyleDef
 	title.Size = 18
 

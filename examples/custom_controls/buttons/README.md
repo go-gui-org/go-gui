@@ -7,14 +7,12 @@
 
 ![Preview](screenshot.png)
 
-<!-- explorer: tags=widgets,styling category=widgets run=go -->
-
 ---
 
 ## Run
 
 ```sh
-go run ./examples/custom_buttons/
+go run ./examples/custom_controls/ -tab buttons
 ```
 
 ## What it demonstrates

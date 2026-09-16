@@ -1,4 +1,4 @@
-// This example demonstrates custom checkbox looks built from hover and press
+// Package checkboxes demonstrates custom checkbox looks built from hover and press
 // state read while the view is built (advanced: build-time interaction state).
 //
 // It ports go-shirei's custom-checkboxes demo. Two looks:
@@ -12,42 +12,11 @@
 // label, so a click on the label also toggles it. The app owns the checked
 // value; the look reads it together with the hover and press state. The
 // outer size never changes.
-package main
+package checkboxes
 
 import (
-	"flag"
-	"log"
-	"os"
-
 	"github.com/go-gui-org/go-gui/gui"
-	"github.com/go-gui-org/go-gui/gui/backend"
-	"github.com/go-gui-org/go-gui/gui/backend/soft"
 )
-
-func main() {
-	screenshot := flag.String("screenshot", "", "write screenshot and exit")
-	flag.Parse()
-
-	gui.SetTheme(gui.ThemeLight)
-
-	w := gui.NewWindow(gui.WindowCfg{
-		State:  newApp(),
-		Title:  "Custom Checkboxes",
-		Width:  680,
-		Height: 600,
-		OnInit: func(w *gui.Window) {
-			w.SetView(mainView)
-		},
-	})
-
-	if *screenshot != "" {
-		if err := soft.RenderToPNG(w, 2, *screenshot); err != nil {
-			log.Fatalf("screenshot: %v", err)
-		}
-		os.Exit(0)
-	}
-	backend.Run(w)
-}
 
 // checkNames lists every value in App.on. A name is the label shown and the
 // text written to the log.
@@ -71,7 +40,8 @@ type App struct {
 	flip map[string]func(gui.EventCtx)
 }
 
-func newApp() *App {
+// New returns the page state with its starting values.
+func New() *App {
 	app := &App{
 		log: "Toggle a checkbox.",
 		on: map[string]bool{
@@ -99,8 +69,9 @@ func newApp() *App {
 	return app
 }
 
-func mainView(w *gui.Window) gui.View {
-	app := gui.State[App](w)
+// View builds the page. The caller owns app, so the page can sit in a
+// window whose state is a different type.
+func View(w *gui.Window, app *App) gui.View {
 	title := gui.CurrentTheme().TextStyleDef
 	title.Size = 18
 

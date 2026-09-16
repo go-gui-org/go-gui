@@ -134,7 +134,7 @@ ID-bearing ancestor of the hovered shape is hovered too.
 
 Change only what is inside the widget's bounds. A look that moves or resizes the
 hovered shape can pull it out from under a still pointer, and it then flickers
-every frame. `examples/custom_buttons` shows the pattern;
+every frame. `examples/custom_controls/buttons` shows the pattern;
 `docs/specs/build-time-interaction-state.md` has the rules.
 
 ## `AmendLayout` and floats

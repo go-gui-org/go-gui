@@ -1,4 +1,4 @@
-// This example demonstrates custom slider looks drawn with SliderCfg.Look
+// Package sliders demonstrates custom slider looks drawn with SliderCfg.Look
 // (advanced: build-time interaction state, parts placed after layout).
 //
 // It ports go-shirei's custom-sliders demo. Three looks:
@@ -14,43 +14,13 @@
 // three views: Track, Fill and Handle. The slider places Fill and Handle on
 // the track after layout, so drag, keys, the wheel and the screen reader value
 // all come from gui.Slider.
-package main
+package sliders
 
 import (
-	"flag"
 	"fmt"
-	"log"
-	"os"
 
 	"github.com/go-gui-org/go-gui/gui"
-	"github.com/go-gui-org/go-gui/gui/backend"
-	"github.com/go-gui-org/go-gui/gui/backend/soft"
 )
-
-func main() {
-	screenshot := flag.String("screenshot", "", "write screenshot and exit")
-	flag.Parse()
-
-	gui.SetTheme(gui.ThemeLight)
-
-	w := gui.NewWindow(gui.WindowCfg{
-		State:  newApp(),
-		Title:  "Custom Sliders",
-		Width:  720,
-		Height: 700,
-		OnInit: func(w *gui.Window) {
-			w.SetView(mainView)
-		},
-	})
-
-	if *screenshot != "" {
-		if err := soft.RenderToPNG(w, 2, *screenshot); err != nil {
-			log.Fatalf("screenshot: %v", err)
-		}
-		os.Exit(0)
-	}
-	backend.Run(w)
-}
 
 // track names one custom slider. The id is its ID leaf; the name is the key
 // of its value and its screen reader label.
@@ -93,7 +63,8 @@ type App struct {
 	change map[string]func(float32, gui.EventCtx)
 }
 
-func newApp() *App {
+// New returns the page state with its starting values.
+func New() *App {
 	app := &App{
 		value: map[string]float32{
 			"Default":      45,
@@ -132,8 +103,9 @@ func slider(app *App, t track, width, height float32, look func(gui.SliderLookSt
 	})
 }
 
-func mainView(w *gui.Window) gui.View {
-	app := gui.State[App](w)
+// View builds the page. The caller owns app, so the page can sit in a
+// window whose state is a different type.
+func View(w *gui.Window, app *App) gui.View {
 	title := gui.CurrentTheme().TextStyleDef
 	title.Size = 18
 

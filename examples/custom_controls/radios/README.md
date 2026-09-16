@@ -6,14 +6,12 @@
 
 ![Preview](screenshot.png)
 
-<!-- explorer: tags=widgets,styling,input category=widgets run=go -->
-
 ---
 
 ## Run
 
 ```sh
-go run ./examples/custom_radios/
+go run ./examples/custom_controls/ -tab radios
 ```
 
 ## What it demonstrates

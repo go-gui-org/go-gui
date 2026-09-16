@@ -1,4 +1,4 @@
-// This example demonstrates custom text field looks wrapped around gui.Input
+// Package textinputs demonstrates custom text field looks wrapped around gui.Input
 // (advanced: build-time interaction state of a child widget).
 //
 // It ports go-shirei's custom-textinputs demo. Two looks, each single-line and
@@ -22,43 +22,13 @@
 //     gui.Flat color set, no border, no radius, no padding; see plainInput.
 //   - A press on the wrapper's padding does not reach the Input. The wrapper
 //     has an OnMouseDown that moves focus to it; see focusField.
-package main
+package textinputs
 
 import (
-	"flag"
 	"fmt"
-	"log"
-	"os"
 
 	"github.com/go-gui-org/go-gui/gui"
-	"github.com/go-gui-org/go-gui/gui/backend"
-	"github.com/go-gui-org/go-gui/gui/backend/soft"
 )
-
-func main() {
-	screenshot := flag.String("screenshot", "", "write screenshot and exit")
-	flag.Parse()
-
-	gui.SetTheme(gui.ThemeLight)
-
-	w := gui.NewWindow(gui.WindowCfg{
-		State:  newApp(),
-		Title:  "Custom Text Inputs",
-		Width:  720,
-		Height: 900,
-		OnInit: func(w *gui.Window) {
-			w.SetView(mainView)
-		},
-	})
-
-	if *screenshot != "" {
-		if err := soft.RenderToPNG(w, 2, *screenshot); err != nil {
-			log.Fatalf("screenshot: %v", err)
-		}
-		os.Exit(0)
-	}
-	backend.Run(w)
-}
 
 // fieldID is the ID leaf of the Input inside every custom field. It joins the
 // wrapper's scope, so each field's Input has its own effective ID.
@@ -76,7 +46,8 @@ type App struct {
 	changed map[string]func(string, gui.EventCtx)
 }
 
-func newApp() *App {
+// New returns the page state with its starting values.
+func New() *App {
 	app := &App{
 		text: map[string]string{
 			"name":     "Taro Yamada",
@@ -97,8 +68,9 @@ func newApp() *App {
 	return app
 }
 
-func mainView(w *gui.Window) gui.View {
-	app := gui.State[App](w)
+// View builds the page. The caller owns app, so the page can sit in a
+// window whose state is a different type.
+func View(w *gui.Window, app *App) gui.View {
 	title := gui.CurrentTheme().TextStyleDef
 	title.Size = 18
 

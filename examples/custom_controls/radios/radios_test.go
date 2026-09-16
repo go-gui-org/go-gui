@@ -1,4 +1,4 @@
-package main
+package radios
 
 import (
 	"testing"
@@ -11,9 +11,9 @@ import (
 func newTestApp(t *testing.T) (*App, *gui.Window) {
 	t.Helper()
 	gui.SetTheme(gui.ThemeLight)
-	app := newApp()
+	app := New()
 	w := gui.NewTestWindow(gui.WindowCfg{State: app, Width: 640, Height: 760})
-	w.TestRender(mainView)
+	w.TestRender(func(w *gui.Window) gui.View { return View(w, app) })
 	return app, w
 }
 

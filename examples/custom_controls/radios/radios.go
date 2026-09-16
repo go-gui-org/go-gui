@@ -1,4 +1,4 @@
-// This example demonstrates custom radio button looks built from hover and
+// Package radios demonstrates custom radio button looks built from hover and
 // press state read while the view is built (advanced: build-time interaction
 // state).
 //
@@ -16,42 +16,11 @@
 //
 // A key goes only to the focused shape; it does not travel on to the group.
 // So every option carries the group's arrow key handler.
-package main
+package radios
 
 import (
-	"flag"
-	"log"
-	"os"
-
 	"github.com/go-gui-org/go-gui/gui"
-	"github.com/go-gui-org/go-gui/gui/backend"
-	"github.com/go-gui-org/go-gui/gui/backend/soft"
 )
-
-func main() {
-	screenshot := flag.String("screenshot", "", "write screenshot and exit")
-	flag.Parse()
-
-	gui.SetTheme(gui.ThemeLight)
-
-	w := gui.NewWindow(gui.WindowCfg{
-		State:  newApp(),
-		Title:  "Custom Radios",
-		Width:  640,
-		Height: 760,
-		OnInit: func(w *gui.Window) {
-			w.SetView(mainView)
-		},
-	})
-
-	if *screenshot != "" {
-		if err := soft.RenderToPNG(w, 2, *screenshot); err != nil {
-			log.Fatalf("screenshot: %v", err)
-		}
-		os.Exit(0)
-	}
-	backend.Run(w)
-}
 
 // option is one choice in a group. id is its leaf ID inside the group.
 type option struct {
@@ -116,7 +85,8 @@ type App struct {
 	onMood func(string, gui.EventCtx)
 }
 
-func newApp() *App {
+// New returns the page state with its starting values.
+func New() *App {
 	app := &App{
 		mood: "ok", size: "m", theme: "light", drive: "c",
 		log:  "Pick an option.",
@@ -196,8 +166,9 @@ func (app *App) arrowKeys(g group) func(gui.EventCtx) {
 	}
 }
 
-func mainView(w *gui.Window) gui.View {
-	app := gui.State[App](w)
+// View builds the page. The caller owns app, so the page can sit in a
+// window whose state is a different type.
+func View(w *gui.Window, app *App) gui.View {
 	title := gui.CurrentTheme().TextStyleDef
 	title.Size = 18
 

@@ -6,14 +6,12 @@
 
 ![Preview](screenshot.png)
 
-<!-- explorer: tags=widgets,styling,layout category=widgets run=go -->
-
 ---
 
 ## Run
 
 ```sh
-go run ./examples/custom_scrollbars/
+go run ./examples/custom_controls/ -tab scrollbars
 ```
 
 ## What it demonstrates

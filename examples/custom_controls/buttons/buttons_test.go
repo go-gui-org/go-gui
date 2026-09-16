@@ -1,4 +1,4 @@
-package main
+package buttons
 
 import (
 	"strings"
@@ -12,9 +12,9 @@ import (
 func newTestApp(t *testing.T) (*App, *gui.Window) {
 	t.Helper()
 	gui.SetTheme(gui.ThemeLight)
-	app := newApp()
+	app := New()
 	w := gui.NewTestWindow(gui.WindowCfg{State: app, Width: 720, Height: 620})
-	w.TestRender(mainView)
+	w.TestRender(func(w *gui.Window) gui.View { return View(w, app) })
 	return app, w
 }
 
