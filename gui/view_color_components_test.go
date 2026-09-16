@@ -207,7 +207,8 @@ func TestColorSwatchKeyboardActivation(t *testing.T) {
 		t.Fatal("swatch must join the tab order when Focusable")
 	}
 	keydownHandler(&l, &Event{KeyCode: KeyEnter}, w)
-	charHandler(&l, &Event{CharCode: charSpace}, w)
+	keydownHandler(&l, &Event{KeyCode: KeySpace}, w)
+	keyupHandler(&l, &Event{KeyCode: KeySpace}, w)
 	if calls != 2 {
 		t.Fatalf("activations = %d, want 2 (enter + space)", calls)
 	}

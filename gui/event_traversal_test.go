@@ -141,7 +141,8 @@ func TestDuplicateFocusIDDedupsSpaceClick(t *testing.T) {
 	})
 	w := &Window{}
 	w.SetFocus("dup")
-	charHandler(root, &Event{Type: EventChar, CharCode: ' '}, w)
+	keydownHandler(root, &Event{Type: EventKeyDown, KeyCode: KeySpace}, w)
+	keyupHandler(root, &Event{Type: EventKeyUp, KeyCode: KeySpace}, w)
 	if first+second != 1 {
 		t.Errorf("space-click ran %d times across twins, want 1", first+second)
 	}

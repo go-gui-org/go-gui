@@ -91,8 +91,8 @@ func TestSoundButtonAllActivationPaths(t *testing.T) {
 			}
 		},
 		"space": func(t *testing.T, w *Window) {
-			if err := w.TestType("btn", " "); err != nil {
-				t.Fatalf("TestType: %v", err)
+			if err := w.TestKey("btn", KeySpace, ModNone); err != nil {
+				t.Fatalf("TestKey: %v", err)
 			}
 		},
 		"enter": func(t *testing.T, w *Window) {

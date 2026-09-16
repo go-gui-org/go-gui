@@ -135,7 +135,8 @@ func TestExpandPanelHeaderKeyboardToggle(t *testing.T) {
 		},
 	}), w)
 
-	charHandler(&layout, &Event{CharCode: charSpace}, w)
+	keydownHandler(&layout, &Event{KeyCode: KeySpace}, w)
+	keyupHandler(&layout, &Event{KeyCode: KeySpace}, w)
 	keydownHandler(&layout, &Event{KeyCode: KeyEnter}, w)
 	if toggles != 2 {
 		t.Fatalf("toggles = %d, want 2 (space + enter)", toggles)

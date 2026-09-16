@@ -946,7 +946,7 @@ func TestDrawCanvasOnFileDropWired(t *testing.T) {
 
 func TestCharHandler_ClickOnSpace(t *testing.T) {
 	t.Parallel()
-	t.Run("fires", func(t *testing.T) {
+	t.Run("claims_without_click", func(t *testing.T) {
 		t.Parallel()
 		clicked := false
 		root := focusedChild("f1", &eventHandlers{
@@ -959,8 +959,10 @@ func TestCharHandler_ClickOnSpace(t *testing.T) {
 		w.SetFocus("f1")
 		e := &Event{CharCode: charSpace}
 		charHandler(root, e, w)
-		if !clicked {
-			t.Error("ClickOnSpace should fire OnClick via charHandler")
+		// The click fires on the Space key up (#658); the character
+		// is only claimed so it does not type.
+		if clicked {
+			t.Error("space char must not fire OnClick")
 		}
 		if !e.IsHandled {
 			t.Error("event should be handled")

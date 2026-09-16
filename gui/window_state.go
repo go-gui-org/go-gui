@@ -156,6 +156,12 @@ type ViewState struct {
 	// nothing. See docs/specs/build-time-interaction-state.md (#587).
 	hoverTargetID string
 	pressTargetID string
+	// keyPressTargetID is the effective ID of the focused ClickOnSpace
+	// shape a Space key down pressed, held until the key up clicks it
+	// or a focus change, window blur or Escape cancels it. Kept apart
+	// from pressTargetID so a mouse release does not end a held key,
+	// and a key release does not end a held mouse press (#658).
+	keyPressTargetID string
 	// pointerInWindow is false until the first mouse move or touch and
 	// again after the pointer leaves the window or a touch lifts, so the
 	// (0,0) start position and a lift point do not read as hover.

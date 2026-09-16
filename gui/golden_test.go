@@ -373,6 +373,7 @@ func renderGolden(t *testing.T, theme Theme, c goldenCase) string {
 	if c.focusID != "" {
 		w.SetFocus(c.focusID)
 	}
+	w.viewState.keyPressTargetID = c.keyPressID
 	w.refreshLayout = true
 	w.FrameFn()
 
@@ -454,6 +455,10 @@ type goldenCase struct {
 	// recording that actually holds focus — a case without this pins
 	// the resting appearance and would not notice a ring regressing.
 	focusID string
+	// keyPressID, when set, is held pressed by a Space key down before
+	// the frame is rendered (#658). Set after focusID, because a focus
+	// change cancels a key press.
+	keyPressID string
 }
 
 // goldenThemes are recorded for every case. Two themes is the point:

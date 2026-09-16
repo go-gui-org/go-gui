@@ -124,9 +124,17 @@ func (w *Window) handleFocusedEvent() {
 func (w *Window) handleUnfocusedEvent() {
 	w.focused = false
 	w.imeClear()
+	// The key up of a held Space goes to the window that now has focus,
+	// so the press would never end: cancel it without a click.
+	w.clearKeyPress()
 }
 
 func (w *Window) handleKeyDownEvent(layout *Layout, e *Event) {
+	// Escape cancels a held Space press without a click, and still
+	// goes on to whatever else handles it (closing a dialog, say).
+	if e.KeyCode == KeyEscape {
+		w.clearKeyPress()
+	}
 	// Global commands fire before focus dispatch.
 	w.commandDispatch(e, true)
 	if !e.IsHandled {
@@ -157,6 +165,11 @@ func (w *Window) handleKeyDownEvent(layout *Layout, e *Event) {
 
 func (w *Window) handleKeyUpEvent(layout *Layout, e *Event) {
 	keyupHandler(layout, e, w)
+	// A Space release ends the press whether or not it clicked: the
+	// widget may have turned disabled, or an OnKeyUp consumed the key.
+	if e.KeyCode == KeySpace {
+		w.clearKeyPress()
+	}
 }
 
 func (w *Window) handleMouseDownEvent(layout *Layout, e *Event) {

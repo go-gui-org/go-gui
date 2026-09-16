@@ -95,6 +95,10 @@ const (
 	// Interactive reads state for, so the state never turns true
 	// (issue #650).
 	debugCheckInteractiveIDMismatch
+	// debugCheckInteractiveKeyboard fires from Interactive when the root
+	// has OnClick but lacks Focusable, ClickOnSpace or ClickOnEnter, so
+	// the custom button does nothing from the keyboard (issue #658).
+	debugCheckInteractiveKeyboard
 )
 
 // checkCategory maps an internal check to the public category that
@@ -106,7 +110,7 @@ func checkCategory(check debugCheck) DebugCategory {
 		return DebugDuplicates
 	case debugCheckFocusNoID, debugCheckScrollNoID,
 		debugCheckMouseLeaveNoID, debugCheckTextAnimNoID,
-		debugCheckInteractiveIDMismatch:
+		debugCheckInteractiveIDMismatch, debugCheckInteractiveKeyboard:
 		return DebugMissingIDs
 	case debugCheckUnconsumed:
 		return DebugUnconsumed

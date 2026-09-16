@@ -61,6 +61,10 @@ func (w *Window) setFocusLocked(effectiveID string) {
 		// rebuild accompanies a focus change, so mark the tree dirty
 		// here or syncA11y would skip the push (issue #407).
 		w.a11y.dirty = true
+		// A held Space press belongs to the widget that had focus. Its
+		// key up now goes to another widget, so cancel the press
+		// without a click (#658).
+		w.clearKeyPress()
 	}
 	w.viewState.focusID.Store(effectiveID)
 	if effectiveID != "" {

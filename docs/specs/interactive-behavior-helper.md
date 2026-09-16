@@ -49,6 +49,36 @@ caller names only the leaf.
 - **Allocation.** One closure and one boxed struct per use: the same as the
   named view type it replaces.
 
+## Keyboard activation (#658)
+
+A custom button matches `Button` from the keyboard when its root sets
+`Focusable`, `OnClick`, `ClickOnSpace` and `ClickOnEnter`.
+
+- **Report.** A root with `OnClick` that lacks `Focusable`, `ClickOnSpace` or
+  `ClickOnEnter` works with the mouse and does nothing from the keyboard.
+  `gui.Debug` reports it under `DebugMissingIDs` and names the missing fields.
+- **Space presses, release clicks.** On the focused widget, Space key down
+  records `viewState.keyPressTargetID` and the key up fires `OnClick`. This is
+  the push-button convention of HTML, GTK and Win32. The space character between
+  the two is claimed so it does not type, but it does not click. A key repeat
+  changes nothing. A Ctrl, Alt or Super chord does not press.
+- **Cancel.** A focus change, a window blur (`EventUnfocused`), Escape, or
+  `SetView` clears the press without a click. Re-asserting focus on the same
+  widget is not a focus change.
+- **Enter** clicks on key down, as before, and leaves no press.
+- **State.** `IsPressed` is true while the key press is held.
+  `InteractionState.Armed` is true for a key press without hover: a key has no
+  pointer to drag off the widget. `Button` paints its click color while the key
+  press is held.
+- **Separate record.** The key press is not stored in `pressTargetID`, so a
+  mouse release does not end a held Space and a Space release does not end a
+  held mouse press.
+- **X11 auto-repeat.** Without detectable auto-repeat, X11 sends a release per
+  repeat, so a held Space clicks once per repeat there. The char path did the
+  same before.
+- **macOS.** The release convention was not checked against `NSButton`. The same
+  rule applies on all platforms.
+
 ## Rejected Approaches
 
 - **Export `viewFunc` as `gui.Deferred(func(*Window) View) View`.** Removes the
@@ -66,5 +96,16 @@ caller names only the leaf.
   and the hover record already excludes disabled shapes.
 - **Stamp `id` onto the returned root.** Removes the mismatch failure, but
   writes into the caller's view silently. A debug report was chosen instead.
+- **A keyboard preset field on `ContainerCfg`** (#658). One field that turns on
+  `Focusable`, `ClickOnSpace` and `ClickOnEnter` is a second spelling of three
+  fields that exist, and it can be forgotten the same way. A preset that sets
+  `Focusable` also works against the `FocusDisabled` opt-out convention. The
+  debug report covers the failure with no new API.
+- **Turn the keyboard fields on inside `Interactive`** (#658). Writes into the
+  caller's view, like stamping the ID.
+- **Store the key press in `pressTargetID`** (#658). A mouse release would end a
+  held Space, and a Space release would end a held mouse press.
+- **Enter on release, or a held Enter state** (#658). Enter clicks on key down
+  on the reference platforms.
 - **An `InteractiveCfg` struct.** Room for later inputs, but no input is known
   now. A later helper can take a Cfg without breaking this signature.

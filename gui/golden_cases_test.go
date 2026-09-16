@@ -782,6 +782,20 @@ func goldenCases() []goldenCase {
 			},
 		},
 		{
+			// Focused and held by Space: the click color replaces the
+			// focus color, as a held mouse button does (#658).
+			name:       "button_space_pressed",
+			focusID:    "btn",
+			keyPressID: "btn",
+			build: func(_ *Window) View {
+				return Button(ButtonCfg{
+					ID:      "btn",
+					Content: []View{Text(TextCfg{Text: "Save"})},
+					OnClick: func(EventCtx) {},
+				})
+			},
+		},
+		{
 			// A descending label takes the same offset as a cap-only
 			// one: a button is a control whose text is a label, and a
 			// row of them must agree. This records level with `button`

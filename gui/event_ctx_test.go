@@ -208,8 +208,10 @@ func TestClickOnSpaceActivatesOnceAndConsumes(t *testing.T) {
 	})
 	w := &Window{}
 	w.SetFocus("f1")
-	e := &Event{CharCode: charSpace}
-	charHandler(root, e, w)
+	// Space presses on key down and clicks on key up (#658).
+	keydownHandler(root, &Event{Type: EventKeyDown, KeyCode: KeySpace}, w)
+	e := &Event{Type: EventKeyUp, KeyCode: KeySpace}
+	keyupHandler(root, e, w)
 	if n != 1 {
 		t.Errorf("OnClick fired %d times, want 1", n)
 	}

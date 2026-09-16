@@ -8,6 +8,29 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- **`gui.Debug` reports an `Interactive` button that the keyboard cannot use
+  (#658)** — a custom button built with `gui.Interactive` needs `Focusable`,
+  `ClickOnSpace` and `ClickOnEnter` on its root next to `OnClick`. Without one
+  of them the button worked with the mouse and did nothing from the keyboard,
+  and nothing said so. `gui.Debug` now reports the root under `DebugMissingIDs`
+  and names the missing fields.
+
+### Changed
+
+- **Space clicks on release, and a held Space shows as pressed (#658)** — a
+  focused widget with `ClickOnSpace` (`Button`, `Toggle`, `Switch`, `Radio`,
+  `ExpandPanel`, `ColorSwatch`, and custom containers) used to fire `OnClick`
+  from the space character, on press, with no pressed state. Space key down now
+  presses the widget and key up clicks it, as a mouse press and release do and
+  as HTML, GTK and Win32 buttons do. While the key is held, `Window.IsPressed`
+  and `InteractionState.Pressed` are true, `InteractionState.Armed` is true, and
+  `Button` shows its click color. A focus change, a window blur or Escape
+  cancels the press without a click. Enter still clicks on key down. A test that
+  clicked with `w.TestType(id, " ")` or a bare space `EventChar` must now send
+  the key: `w.TestKey(id, gui.KeySpace, gui.ModNone)`.
+
 ## [v0.77.0] - 2026-09-16
 
 ### Added

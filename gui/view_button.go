@@ -166,6 +166,11 @@ func buttonAmendLayout(ctx EventCtx) {
 		applyFocusRingShadow(ctx.Layout.Shape, ctx.Window,
 			ctx.Layout.Shape.bc.focusRing)
 	}
+	// A held Space shows the same pressed color a held mouse button
+	// shows in buttonOnHover (#658).
+	if ctx.Window.isKeyPressed(ctx.Layout.Shape.idKey()) {
+		ctx.Layout.Shape.Color = ctx.Layout.Shape.bc.colorClick
+	}
 	if ctx.Layout.Shape.bc.OnAmend != nil {
 		ctx.Layout.Shape.bc.OnAmend(EventCtx{ctx.Layout, nil, ctx.Window})
 	}

@@ -34,9 +34,12 @@ type ContainerCfg struct {
 	// per-frame closure allocation from leftClickOnly.
 	clickButton MouseButton
 
-	// ClickOnSpace fires OnClick on spacebar via the char dispatch
-	// path. Avoids the per-frame closure allocation from
-	// spacebarToClick.
+	// ClickOnSpace makes Space press the focused widget on key down and
+	// fire OnClick on key up, like a mouse press and release. The press
+	// shows in [Window.IsPressed] while the key is held; a focus change,
+	// window blur or Escape cancels it without a click. The space
+	// character is claimed so it does not type. Avoids the per-frame
+	// closure allocation from spacebarToClick.
 	// exportaudit:keep — caller-facing config (issue #372)
 	ClickOnSpace bool
 

@@ -55,14 +55,35 @@ func (w *Window) IsHovered(effectiveID string) bool {
 // a look for "pressed and still over it" uses IsPressed(id) &&
 // IsHovered(id).
 //
-// effectiveID follows the same rules as [Window.IsHovered]. Keyboard
-// activation (ClickOnSpace, ClickOnEnter) does not set it: no key-held
-// state exists.
+// It is also true while a Space key down holds the widget pressed:
+// ClickOnSpace presses on key down and clicks on key up, and a focus
+// change, window blur or Escape cancels the press. Enter
+// (ClickOnEnter) clicks on key down and leaves no press.
+//
+// effectiveID follows the same rules as [Window.IsHovered].
 //
 // Main-thread only, like [Window.IsFocus]: no lock is taken.
 // exportaudit:keep — public seam for views with their own GenerateLayout
 func (w *Window) IsPressed(effectiveID string) bool {
-	return targetWithin(w.viewState.pressTargetID, effectiveID)
+	return targetWithin(w.viewState.pressTargetID, effectiveID) ||
+		w.isKeyPressed(effectiveID)
+}
+
+// isKeyPressed reports whether a held Space key presses the widget with
+// this effective ID, or one of its ID-bearing descendants.
+func (w *Window) isKeyPressed(effectiveID string) bool {
+	return targetWithin(w.viewState.keyPressTargetID, effectiveID)
+}
+
+// clearKeyPress ends a held Space press. When one was held, the layout
+// is rebuilt so a pressed look goes away in the same frame. Safe under
+// w.mu: InvalidateLayout only sets a flag and posts a wake.
+func (w *Window) clearKeyPress() {
+	if w.viewState.keyPressTargetID == "" {
+		return
+	}
+	w.viewState.keyPressTargetID = ""
+	w.InvalidateLayout()
 }
 
 // targetWithin reports whether target is id or lies under it: equal,

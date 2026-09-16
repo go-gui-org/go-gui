@@ -1,5 +1,7 @@
 package gui
 
+import "strings"
+
 // interactive.go — Interactive, the first behavior helper (issue #650,
 // docs/specs/interactive-behavior-helper.md).
 //
@@ -16,11 +18,13 @@ type InteractionState struct {
 	// ID-bearing descendants. See [Window.IsHovered].
 	Hovered bool
 	// Pressed is true while a left press that started on the widget is
-	// held, also when the pointer moved off it. See [Window.IsPressed].
+	// held, also when the pointer moved off it, and while a Space key
+	// down on the focused widget is held. See [Window.IsPressed].
 	Pressed bool
-	// Armed is Pressed and Hovered: the press is held and the pointer
-	// is still over the widget. A push button shows its pressed look
-	// only while it is armed, so a drag off the button releases it.
+	// Armed is true when a release now would click: a pointer press is
+	// held and the pointer is still over the widget, or Space is held.
+	// A push button shows its pressed look only while it is armed, so a
+	// drag off the button releases it.
 	Armed bool
 	// Focused is true when the widget itself has keyboard focus. A
 	// focused descendant does not count. See [Window.IsFocus].
@@ -45,6 +49,11 @@ type InteractionState struct {
 // different root ID, or an empty id, the state never turns true;
 // gui.Debug reports that under [DebugMissingIDs].
 //
+// For a custom button to work from the keyboard like [Button], the root
+// also needs Focusable, OnClick, ClickOnSpace and ClickOnEnter. A root
+// with OnClick that lacks one of the others is reported under
+// [DebugMissingIDs] too.
+//
 // Disabled shapes are never hovered or pressed, so the state is false
 // for a disabled widget and build needs no separate check.
 //
@@ -67,11 +76,14 @@ func (v interactiveView) GenerateLayout(w *Window) Layout {
 	}
 	eid := w.EffID(v.id)
 	hovered := w.IsHovered(eid)
-	pressed := w.IsPressed(eid)
+	pointerPressed := targetWithin(w.viewState.pressTargetID, eid)
+	keyPressed := w.isKeyPressed(eid)
 	child := v.build(InteractionState{
 		Hovered: hovered,
-		Pressed: pressed,
-		Armed:   hovered && pressed,
+		Pressed: pointerPressed || keyPressed,
+		// A held Space has no pointer to drag off the widget, so it is
+		// armed without hover.
+		Armed:   keyPressed || (pointerPressed && hovered),
 		Focused: w.IsFocus(eid),
 	})
 	if child == nil {
@@ -86,6 +98,39 @@ func (v interactiveView) GenerateLayout(w *Window) Layout {
 			"Interactive(%q) got a view whose root ID is %q, so its "+
 				"hover, press and focus state is never true. Set the root "+
 				"ID to %q.", v.id, layout.Shape.ID, v.id)
+	} else if missing := interactiveKeyboardGaps(layout.Shape); missing != "" {
+		w.debugWarn(debugCheckInteractiveKeyboard, v.id,
+			"Interactive(%q) root has OnClick but not %s, so it works "+
+				"with the mouse and does nothing from the keyboard. Set "+
+				"Focusable, ClickOnSpace and ClickOnEnter to match Button.",
+			v.id, missing)
 	}
 	return layout
+}
+
+// interactiveKeyboardGaps names the fields a clickable root lacks for
+// the keyboard contract of Button (#658), or returns "" when the root
+// has no OnClick or has all of them, or when DebugMissingIDs is off.
+// The string is built only on the failure path, so a correct root
+// allocates nothing.
+func interactiveKeyboardGaps(s *Shape) string {
+	if DebugCategory(debugMask.Load())&DebugMissingIDs == 0 ||
+		!s.hasEvents() || s.events.OnClick == nil {
+		return ""
+	}
+	ev := s.events
+	if s.Focusable && ev.clickOnSpace && ev.clickOnEnter {
+		return ""
+	}
+	var parts []string
+	if !s.Focusable {
+		parts = append(parts, "Focusable")
+	}
+	if !ev.clickOnSpace {
+		parts = append(parts, "ClickOnSpace")
+	}
+	if !ev.clickOnEnter {
+		parts = append(parts, "ClickOnEnter")
+	}
+	return strings.Join(parts, ", ")
 }

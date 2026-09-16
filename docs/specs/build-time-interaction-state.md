@@ -99,8 +99,10 @@ Covered shape: `OnHover` fires, `IsHovered` is false. Pinned by
 
 ## Known limitations
 
-- **Keyboard press.** `ClickOnSpace` and `ClickOnEnter` fire `OnClick` with no
-  held state, so `IsPressed` is false for keyboard activation.
+- **Keyboard press.** Since #658, `ClickOnSpace` presses on Space key down and
+  clicks on key up, and `IsPressed` is true while the key is held.
+  `ClickOnEnter` clicks on key down and leaves no held state. See
+  `docs/specs/interactive-behavior-helper.md`.
 - **Background windows** get no mouse moves (`eventAllowed`), so they record no
   new hover, same as `OnHover`. A window exit still clears it.
 - **Absolute-ID children** (an ID containing `:`) do not make their parent

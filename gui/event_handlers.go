@@ -97,20 +97,17 @@ func charHandlerDepth(layout *Layout, e *Event, w *Window, depth int, served *ui
 	if executeFocusCallback(layout, e, w, onChar, evChar, served) {
 		return
 	}
-	// Spacebar-to-click: when ClickOnSpace is set, fire OnClick
-	// on spacebar instead of requiring a separate OnChar wrapper.
-	// The space is claimed for click activation before the call, so
-	// it never also types; an OnClick that declines cannot release
-	// it back to the character path.
+	// Spacebar-to-click: the click itself fires on the Space key up
+	// (keyupHandlerDepth), after the key down pressed the widget. The
+	// space character a backend sends between the two is still claimed
+	// here, so it never also types or scrolls (#658).
 	if events != nil &&
 		events.clickOnSpace &&
 		e.CharCode == charSpace &&
 		events.OnClick != nil {
-		// One activation per identity per dispatch: see markServed.
+		// One claim per identity per dispatch: see markServed.
 		if isFocusedTarget(layout, w) && !markServed(served, focusSlotCharClick) {
 			e.IsHandled = true
-			playShapeSound(layout, w)
-			events.OnClick(EventCtx{layout, e, w})
 		}
 	}
 }
@@ -167,6 +164,27 @@ func keydownHandlerDepth(layout *Layout, e *Event, w *Window, depth int, served 
 	// Enter key instead of requiring a separate OnKeyDown wrapper.
 	// Claimed here, the way the spacebar path above claims its key:
 	// the surrounding OnKeyDown dispatch never pre-marks.
+	// Space-to-press: when ClickOnSpace is set, a Space key down
+	// presses the widget and the key up clicks it, like a pointer
+	// press and release. The press shows in IsPressed while the key is
+	// held. Repeats are claimed but change nothing. Shift is allowed,
+	// as the space character path always allowed it; a Ctrl, Alt or
+	// Super chord belongs to a shortcut (#658).
+	if events != nil &&
+		events.clickOnSpace &&
+		e.KeyCode == KeySpace &&
+		e.Modifiers&(ModCtrl|ModAlt|ModSuper) == 0 &&
+		events.OnClick != nil {
+		if markServed(served, focusSlotKeyClick) {
+			return
+		}
+		e.IsHandled = true
+		if !e.KeyRepeat || w.viewState.keyPressTargetID == "" {
+			w.viewState.keyPressTargetID = layout.Shape.idKey()
+			w.InvalidateLayout()
+		}
+		return
+	}
 	if events != nil &&
 		events.clickOnEnter &&
 		e.KeyCode == KeyEnter &&
@@ -214,11 +232,35 @@ func keyupHandlerDepth(layout *Layout, e *Event, w *Window, depth int, served *u
 		return
 	}
 	var onKeyUp shapeCallback
+	var events *eventHandlers
 	if layout.Shape.hasEvents() {
 		onKeyUp = layout.Shape.events.OnKeyUp
+		events = layout.Shape.events
 	}
 	// OnKeyUp, like OnKeyDown, is never pre-marked.
 	executeFocusCallback(layout, e, w, onKeyUp, evNotify, served)
+	if e.IsHandled {
+		return
+	}
+	// Space-to-click: the release of a Space key down that pressed this
+	// widget clicks it. A release with no matching press (the key went
+	// down before focus arrived, or a focus change cancelled the press)
+	// does nothing. handleKeyUpEvent clears the press either way.
+	if events != nil &&
+		events.clickOnSpace &&
+		e.KeyCode == KeySpace &&
+		events.OnClick != nil &&
+		w.viewState.keyPressTargetID != "" &&
+		w.viewState.keyPressTargetID == layout.Shape.idKey() {
+		// One activation per identity per dispatch: see markServed.
+		if markServed(served, focusSlotKeyClick) {
+			return
+		}
+		w.clearKeyPress()
+		e.IsHandled = true
+		playShapeSound(layout, w)
+		events.OnClick(EventCtx{layout, e, w})
+	}
 }
 
 // keydownScrollHandler handles keyboard-based scrolling.
