@@ -145,7 +145,7 @@ func arrangeInput(
 		cfg.Sizing = FixedFixed
 		cfg.Width = float32(w.windowWidth)
 		cfg.Height = float32(w.windowHeight)
-		cfg.noMinWidthFloor = true
+		cfg.NoMinWidthFloor = true
 	}
 	// Fixed, not FillFill: only updateLayout seeds a FillFill root from
 	// the window rect, and these tests arrange the tree directly.

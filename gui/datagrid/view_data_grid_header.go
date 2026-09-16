@@ -363,13 +363,19 @@ func dataGridFilterCell(cfg *DataGridCfg, col GridColumnCfg, width float32) gg.V
 				Placeholder: placeholder,
 				Disabled:    !col.Filterable || onQueryChange == nil,
 				Sizing:      gg.FillFill,
-				Padding:     gg.NoPadding,
-				SizeBorder:  gg.SomeF(0),
-				Radius:      gg.SomeF(0),
-				Color:       cfg.ColorFilter,
-				ColorHover:  cfg.ColorFilter,
-				ColorBorder: cfg.ColorBorder,
-				TextStyle:   cfg.TextStyleFilter,
+				// The cell is fixed at the column width, which is
+				// often narrower than the theme field floor. The
+				// floor is for standalone form fields; here it
+				// would push the fill-sized input over the next
+				// column (issue #640).
+				NoMinWidthFloor: true,
+				Padding:         gg.NoPadding,
+				SizeBorder:      gg.SomeF(0),
+				Radius:          gg.SomeF(0),
+				Color:           cfg.ColorFilter,
+				ColorHover:      cfg.ColorFilter,
+				ColorBorder:     cfg.ColorBorder,
+				TextStyle:       cfg.TextStyleFilter,
 				OnTextChanged: func(text string, ctx gg.EventCtx) {
 					if onQueryChange == nil {
 						return

@@ -332,6 +332,32 @@ func TestFilterRowReturnsView(t *testing.T) {
 
 // --- dataGridFilterCell ---
 
+// A filter input in a column narrower than the theme field floor must
+// not overflow its cell (issue #640): the floor is for standalone
+// form fields, and a second one on the fill-sized input inside a
+// fixed-width cell pushes it over the next column.
+func TestFilterCellNarrowColumnStaysInsideCell(t *testing.T) {
+	cfg := DataGridCfg{
+		ID:            "g1",
+		ShowFilterRow: true,
+		Columns: []GridColumnCfg{
+			{ID: "team", Title: "Team", Filterable: true, Width: gg.SomeF(100)},
+			{ID: "status", Title: "Status", Filterable: true, Width: gg.SomeF(100)},
+		},
+		Rows: []GridRow{
+			{ID: "r1", Cells: map[string]string{"team": "a", "status": "b"}},
+		},
+		OnQueryChange: func(GridQueryState, gg.EventCtx) {},
+	}
+	w := gg.NewTestWindow(gg.WindowCfg{})
+	defer w.Close()
+	w.TestRender(func(*gg.Window) gg.View { return New(w, cfg) })
+
+	if found := w.TestFindings(gg.DebugLayoutInvariants); len(found) != 0 {
+		t.Fatalf("narrow filter cells must not escape, got %q", found)
+	}
+}
+
 func TestFilterCellReturnsView(t *testing.T) {
 	cfg := &DataGridCfg{
 		ID:              "g1",

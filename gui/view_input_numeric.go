@@ -283,7 +283,7 @@ func numericInputField(
 		Height:          height,
 		MinWidth:        minWidth,
 		MaxWidth:        maxWidth,
-		noMinWidthFloor: true,
+		NoMinWidthFloor: true,
 		MinHeight:       minHeight,
 		MaxHeight:       maxHeight,
 		Padding:         cfg.Padding,

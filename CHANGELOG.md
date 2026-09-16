@@ -393,6 +393,13 @@ and this project adheres to
   canvas, including each `Text` string and each image `Src` and `ImageFetcher`
   (which can close over an arbitrary graph). The entries are cleared on reuse;
   the capacity is still kept.
+- **A data grid filter input stays inside a narrow column (#640)** — the filter
+  `Input` took the theme field min-width floor (160), so any column narrower
+  than that drew its input over the next column. The cell already sizes the
+  input, so the input now opts out through the new exported
+  `InputCfg.NoMinWidthFloor`, previously an in-package-only flag shared with
+  `NumericInput` and `InputDate`. Leave it false on a standalone form field,
+  where the floor keeps an empty field the width of a filled one.
 
 ### Changed
 

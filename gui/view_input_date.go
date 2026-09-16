@@ -298,7 +298,7 @@ func inputDateTextField(
 		TextStyle:          cfg.TextStyle,
 		PlaceholderStyle:   cfg.PlaceholderStyle,
 		Sizing:             FillFit,
-		noMinWidthFloor:    true,
+		NoMinWidthFloor:    true,
 		SizeBorder:         NoBorder,
 		Padding:            NoPadding,
 		Color:              ColorTransparent,

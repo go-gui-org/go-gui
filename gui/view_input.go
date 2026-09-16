@@ -151,13 +151,15 @@ type InputCfg struct {
 	// opticalCenterFieldText.
 	opticalDigitCenter bool
 
-	// noMinWidthFloor opts a composed inner Input out of the theme
+	// NoMinWidthFloor opts a composed inner Input out of the theme
 	// field min-width floor. Set only by widgets that wrap an Input
-	// as a text layer inside their own control -- NumericInput and
-	// InputDate -- where the outer container already carries the
-	// floor and a second one on the fill-sized inner shape would push
-	// the whole control wider than the theme asked for.
-	noMinWidthFloor bool
+	// as a text layer inside their own sized control -- NumericInput,
+	// InputDate, and the data grid filter cell -- where the outer
+	// container already carries the sizing and a second floor on the
+	// fill-sized inner shape would push the whole control wider than
+	// its cell. Leave it false on a standalone form field, where the
+	// floor keeps an empty field the width of a filled one.
+	NoMinWidthFloor bool
 
 	// onMouseScroll attaches a wheel handler to the field's own shape.
 	// Set only by widgets that wrap an Input and give the wheel a
@@ -387,7 +389,7 @@ func applyInputDefaults(cfg *InputCfg) {
 	if !cfg.Radius.IsSet() {
 		cfg.Radius = Some(d.Radius)
 	}
-	if !cfg.noMinWidthFloor {
+	if !cfg.NoMinWidthFloor {
 		cfg.MinWidth = fieldMinWidth(cfg.MinWidth, cfg.Width)
 	}
 	if !cfg.SizeBorder.IsSet() {
