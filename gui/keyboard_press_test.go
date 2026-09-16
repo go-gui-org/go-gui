@@ -239,6 +239,18 @@ func TestInteractiveReportsMissingKeyboardFields(t *testing.T) {
 		{"no focusable", func(c *ContainerCfg) { c.Focusable = false }, "Focusable"},
 		{"no space", func(c *ContainerCfg) { c.ClickOnSpace = false }, "ClickOnSpace"},
 		{"no enter", func(c *ContainerCfg) { c.ClickOnEnter = false }, "ClickOnEnter"},
+		// A root with its own OnKeyDown, such as a slider, handles the
+		// keyboard itself: it is not a button missing Space and Enter.
+		{"own key handler", func(c *ContainerCfg) {
+			c.ClickOnSpace, c.ClickOnEnter = false, false
+			c.A11YRole = AccessRoleSlider
+			c.OnKeyDown = func(EventCtx) {}
+		}, ""},
+		// Its own key handler does not excuse a root that cannot take focus.
+		{"own key handler, no focusable", func(c *ContainerCfg) {
+			c.Focusable = false
+			c.OnKeyDown = func(EventCtx) {}
+		}, "Focusable"},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {

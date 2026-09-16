@@ -110,7 +110,9 @@ func (v interactiveView) GenerateLayout(w *Window) Layout {
 
 // interactiveKeyboardGaps names the fields a clickable root lacks for
 // the keyboard contract of Button (#658), or returns "" when the root
-// has no OnClick or has all of them, or when DebugMissingIDs is off.
+// has no OnClick or has all of them, or when DebugMissingIDs is off. A
+// focusable root with its own OnKeyDown passes without ClickOnSpace and
+// ClickOnEnter.
 // The string is built only on the failure path, so a correct root
 // allocates nothing.
 func interactiveKeyboardGaps(s *Shape) string {
@@ -122,9 +124,19 @@ func interactiveKeyboardGaps(s *Shape) string {
 	if s.Focusable && ev.clickOnSpace && ev.clickOnEnter {
 		return ""
 	}
+	// A root with its own OnKeyDown (a slider, a stepper) takes the keys
+	// itself, so Space and Enter clicks are not what it lacks. It still
+	// needs focus to receive those keys.
+	ownKeys := ev.OnKeyDown != nil
+	if s.Focusable && ownKeys {
+		return ""
+	}
 	var parts []string
 	if !s.Focusable {
 		parts = append(parts, "Focusable")
+	}
+	if ownKeys {
+		return strings.Join(parts, ", ")
 	}
 	if !ev.clickOnSpace {
 		parts = append(parts, "ClickOnSpace")

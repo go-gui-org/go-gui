@@ -44,6 +44,15 @@ and this project adheres to
   clicked with `w.TestType(id, " ")` or a bare space `EventChar` must now send
   the key: `w.TestKey(id, gui.KeySpace, gui.ModNone)`.
 
+### Fixed
+
+- **`gui.Debug` no longer calls a slider a button (#664)** — the `Interactive`
+  keyboard check reported every root with `OnClick` that lacked `ClickOnSpace`
+  and `ClickOnEnter`. A custom slider or stepper handles its own keys, so the
+  report was wrong and pushed apps to use `OnMouseDown` instead. A focusable
+  root with its own `OnKeyDown` now passes. A root that cannot take focus is
+  still reported.
+
 ## [v0.77.0] - 2026-09-16
 
 ### Added
