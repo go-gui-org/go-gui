@@ -12,7 +12,7 @@ Go toolchain pin: `go 1.26.0`.
 | ------ | ------- | ------- |
 | `github.com/alecthomas/chroma/v2` | v2.27.0 | Syntax highlighting in the markdown widget. |
 | `github.com/ebitengine/purego` | v0.10.2 | cgo-free dynamic loading of libEGL and the OpenGL entry points (`gui/backend/internal/glbind`) for the native Linux and Windows backends. |
-| `github.com/go-gui-org/go-glyph` | v1.25.1 | Text shaping + glyph rasterization. Required by every backend. |
+| `github.com/go-gui-org/go-glyph` | v1.25.2 | Text shaping + glyph rasterization. Required by every backend. |
 | `github.com/go-pdf/fpdf` | v0.9.0 | PDF generation for the print-dialog backend. |
 | `github.com/godbus/dbus/v5` | v5.2.2 | Linux native platform: notifications, portals. |
 | `github.com/gopxl/beep/v2` | v2.1.1 | Audio decode + mixing (sound effects, music, mixer, fade) for `gui/audio`. |
@@ -22,9 +22,9 @@ Go toolchain pin: `go 1.26.0`.
 | `github.com/tdewolff/parse/v2` | v2.8.16 | CSS tokenizer for the SVG `<style>` / `style=""` cascade pipeline. |
 | `github.com/yuin/goldmark` | v1.8.5 | Markdown parser (markdown widget + showcase docs). |
 | `github.com/yuin/goldmark-emoji` | v1.0.6 | Goldmark extension: `:emoji:` shortcodes. |
-| `golang.org/x/image` | v0.45.0 | Antialiased vector rasterization for the headless software renderer (`gui/backend/soft`). Also pulled in by go-glyph. |
-| `golang.org/x/mod` | v0.40.0 | Module version parsing; imported by `requiredid` analyzer. |
-| `golang.org/x/sys` | v0.47.0 | Win32 + WGL syscalls for the native Windows backend (`gui/backend/gl`, `winkey`). |
+| `golang.org/x/image` | v0.46.0 | Antialiased vector rasterization for the headless software renderer (`gui/backend/soft`). Also pulled in by go-glyph. |
+| `golang.org/x/mod` | v0.41.0 | Module version parsing; imported by `requiredid` analyzer. |
+| `golang.org/x/sys` | v0.48.0 | Win32 + WGL syscalls for the native Windows backend (`gui/backend/gl`, `winkey`). |
 | `golang.org/x/tools` | v0.49.0 | `go/analysis` framework for the `requiredid` analyzer (`tools/`). |
 
 ## Indirect Dependencies
@@ -35,7 +35,7 @@ Pulled in transitively; listed for completeness.
 | ------ | ------- | ------------ |
 | `github.com/dlclark/regexp2/v2` | v2.2.2 | chroma |
 | `github.com/ebitengine/oto/v3` | v3.3.2 | gopxl/beep (audio output). Used on Windows/macOS, and on Linux only under `-tags otoaudio` (ALSA, cgo). |
-| `github.com/go-text/typesetting` | v0.3.4 | go-glyph (pure-Go text shaping) |
+| `github.com/go-text/typesetting` | v0.3.5 | go-glyph (pure-Go text shaping) |
 | `github.com/hajimehoshi/go-mp3` | v0.3.4 | gopxl/beep (MP3 decode) |
 | `github.com/icza/bitio` | v1.1.0 | mewkiz/flac (FLAC decode) |
 | `github.com/jfreymuth/oggvorbis` | v1.0.5 | gopxl/beep (Vorbis decode) |
@@ -44,8 +44,8 @@ Pulled in transitively; listed for completeness.
 | `github.com/mewkiz/pkg` | v0.0.0-20230226050401-4010bf0fec14 | mewkiz/flac (FLAC decode) |
 | `github.com/pkg/errors` | v0.9.1 | gopxl/beep (audio) |
 | `golang.org/x/mobile` | v0.0.0-20260602190626-68735029466e | gobind tool (Android AAR builds) |
-| `golang.org/x/sync` | v0.22.0 | x/tools |
-| `golang.org/x/text` | v0.41.0 | misc. text processing (transitive) |
+| `golang.org/x/sync` | v0.23.0 | x/tools |
+| `golang.org/x/text` | v0.42.0 | misc. text processing (transitive) |
 
 ## Updating
 

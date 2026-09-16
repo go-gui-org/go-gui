@@ -63,6 +63,8 @@ and this project adheres to
 
 ### Changed
 
+- **go-glyph bumped to v1.25.2.** Brings typesetting v0.3.5 and x/text v0.42
+  with no replace directive, so go-gui and glyph resolve the same text stack.
 - **BREAKING: `OverflowPanel` and Overflow containers require an `ID`** — the
   overflow pass stores the visible-item count keyed by the container's ID. Two
   panels without one shared a single slot, overwrote each other's count every
