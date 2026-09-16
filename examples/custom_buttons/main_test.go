@@ -131,3 +131,12 @@ func TestNoDuplicateIDs(t *testing.T) {
 		t.Fatalf("duplicate IDs: %v", d)
 	}
 }
+
+// Every look built with gui.Interactive gives its root the ID it reads state
+// for, and no ID is missing or duplicated.
+func TestInteractiveLooksClean(t *testing.T) {
+	_, w := newTestApp(t)
+	if found := w.TestFindings(gui.DebugMissingIDs | gui.DebugDuplicates); len(found) != 0 {
+		t.Fatalf("findings: %v", found)
+	}
+}

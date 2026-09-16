@@ -43,6 +43,7 @@ const pointerOffWindow float32 = -1 << 20
 // receives no mouse moves, so it records no new hover.
 //
 // Main-thread only, like [Window.IsFocus]: no lock is taken.
+// exportaudit:keep — public seam for views with their own GenerateLayout
 func (w *Window) IsHovered(effectiveID string) bool {
 	return targetWithin(w.viewState.hoverTargetID, effectiveID)
 }
@@ -59,6 +60,7 @@ func (w *Window) IsHovered(effectiveID string) bool {
 // state exists.
 //
 // Main-thread only, like [Window.IsFocus]: no lock is taken.
+// exportaudit:keep — public seam for views with their own GenerateLayout
 func (w *Window) IsPressed(effectiveID string) bool {
 	return targetWithin(w.viewState.pressTargetID, effectiveID)
 }

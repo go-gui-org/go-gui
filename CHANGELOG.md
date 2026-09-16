@@ -10,6 +10,16 @@ and this project adheres to
 
 ### Added
 
+- **`gui.Interactive` gives a view builder its hover, press and focus state
+  (#650)** — a custom look that read `IsHovered` / `IsPressed` had to be a named
+  view type with its own `GenerateLayout`, call `w.EffID` itself, and spell
+  "pressed and still hovered" again in every look.
+  `gui.Interactive(id, func(gui.InteractionState) gui.View)` does the deferral
+  and the ID resolution, and passes `Hovered`, `Pressed`, `Armed` and `Focused`.
+  The caller names only the leaf ID. When the built root does not carry that ID,
+  `gui.Debug` reports it under `DebugMissingIDs` instead of the state staying
+  false silently. `examples/custom_buttons` now uses it.
+
 - **`DebugLayoutInvariants` reports a frame that breaks a sizing rule (#634)** —
   wrong geometry was silent: the frame rendered, nothing errored, and the defect
   surfaced much later as something looking a few pixels off. The new category

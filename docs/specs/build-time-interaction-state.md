@@ -122,7 +122,8 @@ follow-up investigation (#588).
   covering and dialog rules re-derived at every call.
 - **A wrapper view** `Interactive(id, func(InteractionState) View)`, now. A
   state struct designed before behavior helpers exist would be redesigned with
-  them. It stays a candidate for that work.
+  them. It stays a candidate for that work. Landed as that behavior-helper
+  design in #650, `docs/specs/interactive-behavior-helper.md`.
 - **`mouseButtonHeld` as "pressed".** A press started elsewhere and dragged over
   a widget would read as pressed.
 - **Hover written onto `Shape` during generation.** No geometry exists then.

@@ -269,6 +269,7 @@ func TestCheckCategoryMapping(t *testing.T) {
 		{debugCheckListHeightsCapped, DebugListBoxNoHeight},
 		{debugCheckListWidthRatchet, DebugListBoxNoHeight},
 		{debugCheckTextAnimNoID, DebugMissingIDs},
+		{debugCheckInteractiveIDMismatch, DebugMissingIDs},
 		{debugCheckUnscopedID, DebugUnscopedIDs},
 		{debugCheckGradientResampled, DebugGradientResampled},
 		{debugCheckWrapOverflow, DebugWrapOverflow},

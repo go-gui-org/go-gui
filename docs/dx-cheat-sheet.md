@@ -103,23 +103,32 @@ over it.
 
 Three APIs see the pointer. Pick by what the code needs.
 
-| The code needs to…                                 | Use                  |
-| -------------------------------------------------- | -------------------- |
-| pick a look (padding, colors, children) from hover | `w.IsHovered(effID)` |
-| pick a look from a held press                      | `w.IsPressed(effID)` |
-| read the pointer position, set a cursor, hit-test  | `OnHover`            |
-| react once when the pointer leaves a shape         | `OnMouseLeave`       |
+| The code needs to…                                 | Use                                         |
+| -------------------------------------------------- | ------------------------------------------- |
+| pick a look (padding, colors, children) from hover | `gui.Interactive`                           |
+| pick a look from a held press                      | `gui.Interactive`                           |
+| read hover or press inside an own `GenerateLayout` | `w.IsHovered(effID)` / `w.IsPressed(effID)` |
+| read the pointer position, set a cursor, hit-test  | `OnHover`                                   |
+| react once when the pointer leaves a shape         | `OnMouseLeave`                              |
 
-`IsHovered` and `IsPressed` are read inside `GenerateLayout`, with the effective
-ID:
+`gui.Interactive` reads the state for the leaf ID in its scope and gives it to a
+builder. The root of the built view must carry the same ID:
 
 ```go
-eid := w.EffID(b.id)
-armed := w.IsPressed(eid) && w.IsHovered(eid)
+gui.Interactive("ok", func(s gui.InteractionState) gui.View {
+    face := normal
+    if s.Armed { // pressed and still over the button
+        face = pressed
+    }
+    return gui.Row(gui.ContainerCfg{ID: "ok", Color: face})
+})
 ```
 
-They answer differently from `OnHover` on purpose. `OnHover` is dispatch: it
-reaches the deepest shape with an `OnHover`, even under a float that has no
+A view that already has its own `GenerateLayout` can call `IsHovered` and
+`IsPressed` directly, with `w.EffID(cfg.ID)`.
+
+The state answers differently from `OnHover` on purpose. `OnHover` is dispatch:
+it reaches the deepest shape with an `OnHover`, even under a float that has no
 handler. `IsHovered` is visible state: anything drawn on top blocks it, and an
 ID-bearing ancestor of the hovered shape is hovered too.
 

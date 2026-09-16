@@ -60,7 +60,8 @@ const (
 	DebugDuplicates DebugCategory = 1 << iota
 	// DebugMissingIDs reports a focusable, scrollable, or
 	// OnMouseLeave-bearing shape with no ID, whose behaviour silently
-	// does not work.
+	// does not work; and an Interactive whose built root does not carry
+	// the ID it reads state for.
 	// exportaudit:keep — dev-diagnostic API for app authors
 	DebugMissingIDs
 	// DebugUnconsumed reports a callback that acted on an event without

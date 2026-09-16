@@ -5,13 +5,14 @@
 //
 //   - Flat buttons. The filled ones need no new API: gui.Button already takes
 //     per-state colors. The outline button changes its text color on hover,
-//     which a color set cannot express, so it reads w.IsHovered instead.
+//     which a color set cannot express, so it reads the hover state instead.
 //   - Windows 98 buttons. A press swaps the bevel and moves the label down and
 //     right by 1px. That changes padding, not just color.
 //   - Windows XP buttons. Hover adds a gold rim; a press flips the gradient.
 //
-// Each custom button is a gui.View whose GenerateLayout asks the window
-// whether it is hovered or pressed, then builds the matching look. The rule
+// Each custom button is a gui.Interactive. It gives the look function the
+// hover and press state of the button, and the look function builds the
+// matching view. The rule
 // that keeps this stable: change only what is inside the button's bounds.
 // Every look here keeps its outer size fixed.
 package main
@@ -111,8 +112,7 @@ func mainView(w *gui.Window) gui.View {
 				flatButton("primary", "Primary", flatPrimary, false, app.onClick["flat Primary"]),
 				flatButton("success", "Success", flatSuccess, false, app.onClick["flat Success"]),
 				flatButton("danger", "Danger", flatDanger, false, app.onClick["flat Danger"]),
-				outlineButton{id: "outline", label: "Outline", accent: flatPrimary,
-					onClick: app.onClick["flat Outline"]},
+				outlineButton("outline", "Outline", flatPrimary, app.onClick["flat Outline"]),
 				flatButton("disabled", "Disabled", flatPrimary, true, nil),
 			),
 			toggleRow("flat-toggle", "Disable the next flat button", app.flatDisabled,
@@ -122,27 +122,27 @@ func mainView(w *gui.Window) gui.View {
 
 			sectionTitle("Windows 98 (raised bevel)"),
 			row("win98", gui.Hex(0xbfbfbf),
-				win98Button{id: "ok", label: "OK", onClick: app.onClick["98 OK"]},
-				win98Button{id: "cancel", label: "Cancel", onClick: app.onClick["98 Cancel"]},
-				win98Button{id: "apply", label: "Apply", onClick: app.onClick["98 Apply"]},
-				win98Button{id: "disabled", label: "Disabled", disabled: true},
+				win98Button("ok", "OK", false, app.onClick["98 OK"]),
+				win98Button("cancel", "Cancel", false, app.onClick["98 Cancel"]),
+				win98Button("apply", "Apply", false, app.onClick["98 Apply"]),
+				win98Button("disabled", "Disabled", true, nil),
 			),
 			toggleRow("win98-toggle", "Disable the next 98 button", app.win98Disabled,
 				app.toggle["98"],
-				win98Button{id: "target", label: "Toggle target", disabled: app.win98Disabled,
-					onClick: app.onClick["98 target"]}),
+				win98Button("target", "Toggle target", app.win98Disabled,
+					app.onClick["98 target"])),
 
 			sectionTitle("Windows XP Luna (XP.css)"),
 			row("xp", gui.Hex(0xece9d8),
-				xpButton{id: "ok", label: "OK", onClick: app.onClick["XP OK"]},
-				xpButton{id: "cancel", label: "Cancel", onClick: app.onClick["XP Cancel"]},
-				xpButton{id: "apply", label: "Apply", onClick: app.onClick["XP Apply"]},
-				xpButton{id: "disabled", label: "Disabled", disabled: true},
+				xpButton("ok", "OK", false, app.onClick["XP OK"]),
+				xpButton("cancel", "Cancel", false, app.onClick["XP Cancel"]),
+				xpButton("apply", "Apply", false, app.onClick["XP Apply"]),
+				xpButton("disabled", "Disabled", true, nil),
 			),
 			toggleRow("xp-toggle", "Disable the next XP button", app.xpDisabled,
 				app.toggle["xp"],
-				xpButton{id: "target", label: "Toggle target", disabled: app.xpDisabled,
-					onClick: app.onClick["XP target"]}),
+				xpButton("target", "Toggle target", app.xpDisabled,
+					app.onClick["XP target"])),
 
 			gui.Text(gui.TextCfg{ID: "log", Text: app.log}),
 		},
@@ -237,36 +237,34 @@ func flatButton(id, label string, accent gui.Color, disabled bool, onClick func(
 
 // outlineButton fills on hover and turns its text white. A text color is
 // not part of a color set, so the look is picked while the view is built.
-type outlineButton struct {
-	id, label string
-	accent    gui.Color
-	onClick   func(gui.EventCtx)
+func outlineButton(id, label string, accent gui.Color, onClick func(gui.EventCtx)) gui.View {
+	// gui.Interactive reads the state by the effective ID ("flat:outline"
+	// here, inside the "flat" row), so the look only names the leaf.
+	return gui.Interactive(id, func(s gui.InteractionState) gui.View {
+		return outlineLook(id, label, accent, s, onClick)
+	})
 }
 
-func (outlineButton) Content() []gui.View { return nil }
-
-func (b outlineButton) GenerateLayout(w *gui.Window) gui.Layout {
-	// The effective ID, not the leaf: this button sits inside the "flat" row.
-	eid := w.EffID(b.id)
-	bg, text := gui.White, b.accent
+func outlineLook(id, label string, accent gui.Color, s gui.InteractionState, onClick func(gui.EventCtx)) gui.View {
+	bg, text := gui.White, accent
 	switch {
-	case w.IsPressed(eid) && w.IsHovered(eid):
-		bg, text = darken(b.accent, 0.85), gui.White
-	case w.IsHovered(eid):
-		bg, text = b.accent, gui.White
+	case s.Armed:
+		bg, text = darken(accent, 0.85), gui.White
+	case s.Hovered:
+		bg, text = accent, gui.White
 	}
 	cfg := buttonShell(gui.ContainerCfg{
-		ID:          b.id,
+		ID:          id,
 		Color:       bg,
-		ColorBorder: b.accent,
+		ColorBorder: accent,
 		SizeBorder:  gui.SomeF(1.5),
 		Radius:      gui.SomeF(4),
 		Padding:     gui.NewPadding(7, 15, 7, 15),
 		Content: []gui.View{
-			gui.Text(gui.TextCfg{Text: b.label, TextStyle: textStyle(text, 13)}),
+			gui.Text(gui.TextCfg{Text: label, TextStyle: textStyle(text, 13)}),
 		},
-	}, b.label, false, b.onClick)
-	return gui.Row(cfg).GenerateLayout(w)
+	}, label, false, onClick)
+	return gui.Row(cfg)
 }
 
 // --- Windows 98 ------------------------------------------------------------
@@ -286,36 +284,32 @@ var (
 // containers: a dark one padded on the bottom and right, a light one padded
 // on the top and left. A press swaps the two and moves the label padding by
 // 1px, so the label shifts down and right while the outer size stays fixed.
-type win98Button struct {
-	id, label string
-	disabled  bool
-	onClick   func(gui.EventCtx)
+func win98Button(id, label string, disabled bool, onClick func(gui.EventCtx)) gui.View {
+	return gui.Interactive(id, func(s gui.InteractionState) gui.View {
+		return win98Look(id, label, disabled, s, onClick)
+	})
 }
 
-func (win98Button) Content() []gui.View { return nil }
-
-func (b win98Button) GenerateLayout(w *gui.Window) gui.Layout {
-	eid := w.EffID(b.id)
-	// "Armed": pressed and the pointer still over the button. Dragging off
-	// a held button pops it back up, as on Windows.
-	armed := !b.disabled && w.IsPressed(eid) && w.IsHovered(eid)
-	hovered := !b.disabled && w.IsHovered(eid)
-
+func win98Look(id, label string, disabled bool, s gui.InteractionState, onClick func(gui.EventCtx)) gui.View {
 	face, light, shadow, text := win98Face, win98Light, win98Shadow, win98Text
 	top, right, bottom, left := float32(5), float32(14), float32(5), float32(14)
+	// The disabled case comes first. A disabled shape is never hovered,
+	// but a press held from before the toggle stays recorded.
 	switch {
-	case b.disabled:
+	case disabled:
 		text = win98Muted
-	case armed:
+	// "Armed": pressed and the pointer still over the button. Dragging off
+	// a held button pops it back up, as on Windows.
+	case s.Armed:
 		light, shadow = shadow, light
 		face = win98FacePress
 		top, right, bottom, left = 6, 13, 4, 15
-	case hovered:
+	case s.Hovered:
 		face = win98FaceHover
 	}
 
 	cfg := buttonShell(gui.ContainerCfg{
-		ID:         b.id,
+		ID:         id,
 		Color:      win98Frame,
 		Radius:     gui.SomeF(0),
 		Padding:    gui.PadAll(1),
@@ -329,12 +323,12 @@ func (b win98Button) GenerateLayout(w *gui.Window) gui.Layout {
 						Padding:    gui.NewPadding(top, right, bottom, left),
 						SizeBorder: gui.NoBorder,
 						Content: []gui.View{
-							gui.Text(gui.TextCfg{Text: b.label, TextStyle: textStyle(text, 12)}),
+							gui.Text(gui.TextCfg{Text: label, TextStyle: textStyle(text, 12)}),
 						},
 					}))),
 		},
-	}, b.label, b.disabled, b.onClick)
-	return gui.Column(cfg).GenerateLayout(w)
+	}, label, disabled, onClick)
+	return gui.Column(cfg)
 }
 
 func bevel(c gui.Color, pad gui.Padding, content gui.View) gui.View {
@@ -376,18 +370,16 @@ var (
 // a gold rim while hovered or pressed, and an inverted gradient while
 // pressed. The rim is always there and only its color changes, so hover
 // never changes the button's size.
-type xpButton struct {
-	id, label string
-	disabled  bool
-	onClick   func(gui.EventCtx)
+func xpButton(id, label string, disabled bool, onClick func(gui.EventCtx)) gui.View {
+	return gui.Interactive(id, func(s gui.InteractionState) gui.View {
+		return xpLook(id, label, disabled, s, onClick)
+	})
 }
 
-func (xpButton) Content() []gui.View { return nil }
-
-func (b xpButton) GenerateLayout(w *gui.Window) gui.Layout {
-	eid := w.EffID(b.id)
-	armed := !b.disabled && w.IsPressed(eid) && w.IsHovered(eid)
-	lit := !b.disabled && (w.IsHovered(eid) || w.IsPressed(eid))
+func xpLook(id, label string, disabled bool, s gui.InteractionState, onClick func(gui.EventCtx)) gui.View {
+	// A press held from before a disable toggle stays recorded, so the
+	// rim still checks disabled.
+	lit := !disabled && (s.Hovered || s.Pressed)
 
 	border, text := xpBorder, xpText
 	grad := xpIdle
@@ -395,9 +387,9 @@ func (b xpButton) GenerateLayout(w *gui.Window) gui.Layout {
 	rimOuter, rimInner := gui.ColorTransparent, gui.ColorTransparent
 	top, right, bottom, left := float32(4), float32(12), float32(4), float32(12)
 	switch {
-	case b.disabled:
+	case disabled:
 		border, text, grad, faceColor = xpBorderMuted, xpMuted, nil, xpFaceMuted
-	case armed:
+	case s.Armed:
 		grad = xpPressed
 		top, right, bottom, left = 5, 11, 3, 13
 	}
@@ -412,7 +404,7 @@ func (b xpButton) GenerateLayout(w *gui.Window) gui.Layout {
 
 	// The blue frame is the body's 1px border, drawn over the gradient.
 	cfg := buttonShell(gui.ContainerCfg{
-		ID:          b.id,
+		ID:          id,
 		MinWidth:    75,
 		Radius:      gui.SomeF(3),
 		Color:       faceColor,
@@ -431,11 +423,11 @@ func (b xpButton) GenerateLayout(w *gui.Window) gui.Layout {
 					SizeBorder: gui.NoBorder,
 					HAlign:     gui.HAlignCenter,
 					Content: []gui.View{
-						gui.Text(gui.TextCfg{Text: b.label, TextStyle: textStyle(text, 11)}),
+						gui.Text(gui.TextCfg{Text: label, TextStyle: textStyle(text, 11)}),
 					},
 				})))},
-	}, b.label, b.disabled, b.onClick)
-	return gui.Column(cfg).GenerateLayout(w)
+	}, label, disabled, onClick)
+	return gui.Column(cfg)
 }
 
 func rim(c gui.Color, pad gui.Padding, content gui.View) gui.View {

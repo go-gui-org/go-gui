@@ -90,6 +90,11 @@ const (
 	// axis also states Min or Max, which applyFixedSizingConstraints
 	// overwrites with the size (issue #635).
 	debugCheckFixedSizing
+	// debugCheckInteractiveIDMismatch fires from Interactive when the
+	// view its builder returns has a root ID that is not the ID
+	// Interactive reads state for, so the state never turns true
+	// (issue #650).
+	debugCheckInteractiveIDMismatch
 )
 
 // checkCategory maps an internal check to the public category that
@@ -100,7 +105,8 @@ func checkCategory(check debugCheck) DebugCategory {
 	case debugCheckDupID:
 		return DebugDuplicates
 	case debugCheckFocusNoID, debugCheckScrollNoID,
-		debugCheckMouseLeaveNoID, debugCheckTextAnimNoID:
+		debugCheckMouseLeaveNoID, debugCheckTextAnimNoID,
+		debugCheckInteractiveIDMismatch:
 		return DebugMissingIDs
 	case debugCheckUnconsumed:
 		return DebugUnconsumed
