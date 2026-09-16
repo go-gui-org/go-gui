@@ -180,7 +180,7 @@ func TestSliderNonZeroMin(t *testing.T) {
 			MouseY: layout.Shape.Y + layout.Shape.Height/2,
 		}
 		sliderMouseMove(&layout, e, w,
-			"rs-nz", onChange, 10, 10, 110, false, false)
+			"rs-nz", onChange, 10, 10, 110, false, false, sliderLookSlots{})
 		// 50% of [10,110] → 60
 		if got < 59 || got > 61 {
 			t.Errorf("mouse value = %f, want ~60", got)
@@ -225,7 +225,7 @@ func TestSliderVerticalMouseDedup(t *testing.T) {
 		MouseY: layout.Shape.Y + layout.Shape.Height/2,
 	}
 	sliderMouseMove(&layout, e, w,
-		"rs-vd", onChange, 50, 0, 100, true, true)
+		"rs-vd", onChange, 50, 0, 100, true, true, sliderLookSlots{})
 	if callCount != 0 {
 		t.Errorf("onChange called %d times, want 0 (value unchanged)",
 			callCount)

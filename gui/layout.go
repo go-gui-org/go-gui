@@ -116,7 +116,7 @@ func skipLayoutChild(s *Shape) bool {
 	if s == nil {
 		return true
 	}
-	return s.Float || s.shapeType == shapeNone || s.OverDraw
+	return s.Float || s.shapeType == shapeNone || s.OverDraw || s.outOfFlow
 }
 
 // spacing does the fence-post calculation for spacings.

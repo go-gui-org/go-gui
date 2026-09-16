@@ -80,19 +80,7 @@ func (v interactiveView) GenerateLayout(w *Window) Layout {
 	if v.build == nil {
 		return Layout{}
 	}
-	eid := w.EffID(v.id)
-	hovered := w.IsHovered(eid)
-	pointerPressed := targetWithin(w.viewState.pressTargetID, eid)
-	keyPressed := w.isKeyPressed(eid)
-	child := v.build(InteractionState{
-		Hovered: hovered,
-		Pressed: pointerPressed || keyPressed,
-		// A held Space has no pointer to drag off the widget, so it is
-		// armed without hover.
-		Armed:       keyPressed || (pointerPressed && hovered),
-		Focused:     w.IsFocus(eid),
-		FocusWithin: targetWithin(w.FocusID(), eid),
-	})
+	child := v.build(w.interactionState(w.EffID(v.id)))
 	if child == nil {
 		return Layout{}
 	}
@@ -113,6 +101,23 @@ func (v interactiveView) GenerateLayout(w *Window) Layout {
 			v.id, missing)
 	}
 	return layout
+}
+
+// interactionState reads the state of the widget with this effective ID
+// from the last arranged frame. Interactive and a slider Look share it.
+func (w *Window) interactionState(eid string) InteractionState {
+	hovered := w.IsHovered(eid)
+	pointerPressed := targetWithin(w.viewState.pressTargetID, eid)
+	keyPressed := w.isKeyPressed(eid)
+	return InteractionState{
+		Hovered: hovered,
+		Pressed: pointerPressed || keyPressed,
+		// A held Space has no pointer to drag off the widget, so it is
+		// armed without hover.
+		Armed:       keyPressed || (pointerPressed && hovered),
+		Focused:     w.IsFocus(eid),
+		FocusWithin: targetWithin(w.FocusID(), eid),
+	}
 }
 
 // interactiveKeyboardGaps names the fields a clickable root lacks for

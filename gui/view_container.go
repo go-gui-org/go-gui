@@ -202,6 +202,7 @@ type ContainerCfg struct {
 	// built on a container, such as a custom slider with
 	// AccessRoleSlider. The zero value (Min equal to Max) reports no
 	// value. The stock Slider sets its own (#664).
+	// exportaudit:keep — caller-facing config for container-built range controls (#664)
 	A11YValue AccessValue
 
 	// Internal — set by factory functions.

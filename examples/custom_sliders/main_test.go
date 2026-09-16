@@ -51,9 +51,10 @@ func near(a, b float32) bool {
 	return math.Abs(float64(a-b)) < 0.001
 }
 
-// xAt is the window X at which the handle's center sits for value v.
-func xAt(s *gui.Shape, tr track, v float32) float32 {
-	return s.X + tr.inset + v*(tr.width-2*tr.inset)
+// xAt is the window X at which the handle's center sits for value v. inset is
+// half the handle width: the center stays that far inside each end.
+func xAt(s *gui.Shape, inset, v float32) float32 {
+	return s.X + inset + v/valueMax*(s.Width-2*inset)
 }
 
 // A press sets the value under the pointer. The drag keeps setting it while
@@ -64,20 +65,23 @@ func TestPressAndDrag(t *testing.T) {
 	s := mustFind(t, w, "page:material:"+tr.id)
 	y := s.Y + s.Height/2
 
-	send(w, gui.EventMouseDown, xAt(s, tr, 0.25), y)
-	if v := app.value[tr.name]; !near(v, 0.25) {
-		t.Fatalf("after press value %v, want 0.25", v)
+	send(w, gui.EventMouseDown, xAt(s, materialBladeW/2, 25), y)
+	if v := app.value[tr.name]; !near(v, 25) {
+		t.Fatalf("after press value %v, want 25", v)
 	}
+	// The press focuses the slider, and the focused blade is 6 wide, so the
+	// drag maps over a span 1 px shorter at each end.
+	const dragInset = 3
 
 	// Far below and to the right of the slider: the lock still delivers
 	// the move, and the value stops at 1.
 	send(w, gui.EventMouseMove, s.X+s.Width+200, y+300)
-	if v := app.value[tr.name]; v != 1 {
-		t.Fatalf("drag past the end: value %v, want 1", v)
+	if v := app.value[tr.name]; v != valueMax {
+		t.Fatalf("drag past the end: value %v, want %v", v, valueMax)
 	}
-	send(w, gui.EventMouseMove, xAt(s, tr, 0.6), y)
-	if v := app.value[tr.name]; !near(v, 0.6) {
-		t.Fatalf("drag back: value %v, want 0.6", v)
+	send(w, gui.EventMouseMove, xAt(s, dragInset, 60), y)
+	if v := app.value[tr.name]; !near(v, 60) {
+		t.Fatalf("drag back: value %v, want 60", v)
 	}
 	send(w, gui.EventMouseMove, s.X-50, y)
 	if v := app.value[tr.name]; v != 0 {
@@ -86,13 +90,14 @@ func TestPressAndDrag(t *testing.T) {
 
 	// After the release, a move no longer changes the value.
 	send(w, gui.EventMouseUp, s.X-50, y)
-	send(w, gui.EventMouseMove, xAt(s, tr, 0.5), y)
+	send(w, gui.EventMouseMove, xAt(s, dragInset, 50), y)
 	if v := app.value[tr.name]; v != 0 {
 		t.Fatalf("move after release: value %v, want 0", v)
 	}
 }
 
-// Arrow keys step the value; Home and End jump to the ends.
+// Arrow keys step the value; Home and End jump to the ends. As on gui.Slider,
+// Right and Down increase it.
 func TestKeys(t *testing.T) {
 	app, w := newTestApp(t)
 	const id = "page:xp"
@@ -102,12 +107,12 @@ func TestKeys(t *testing.T) {
 		want float32
 	}{
 		{gui.KeyRight, start + keyStep},
-		{gui.KeyUp, start + 2*keyStep},
+		{gui.KeyDown, start + 2*keyStep},
 		{gui.KeyLeft, start + keyStep},
-		{gui.KeyEnd, 1},
-		{gui.KeyRight, 1},
+		{gui.KeyEnd, valueMax},
+		{gui.KeyRight, valueMax},
 		{gui.KeyHome, 0},
-		{gui.KeyDown, 0},
+		{gui.KeyUp, 0},
 	}
 	for _, st := range steps {
 		if err := w.TestKey(id, st.key, gui.ModNone); err != nil {
@@ -124,7 +129,7 @@ func TestPartsFollowValue(t *testing.T) {
 	app, w := newTestApp(t)
 	tr := tracks[0] // Display
 	const id = "page:apple:display"
-	for _, v := range []float32{0, 0.5, 1} {
+	for _, v := range []float32{0, 50, valueMax} {
 		app.value[tr.name] = v
 		s := mustFind(t, w, id)
 		knob := mustFind(t, w, id+":knob")
@@ -132,10 +137,12 @@ func TestPartsFollowValue(t *testing.T) {
 		if s.Width != appleW || s.Height != appleH {
 			t.Fatalf("value %v: slider %vx%v, want %vx%v", v, s.Width, s.Height, appleW, appleH)
 		}
-		if got, want := knob.X-s.X, handleX(tr, v); !near(got, want) {
-			t.Fatalf("value %v: knob at %v, want %v", v, got, want)
+		travel := v / valueMax * (appleW - appleH)
+		if got := knob.X - s.X; !near(got, travel) {
+			t.Fatalf("value %v: knob at %v, want %v", v, got, travel)
 		}
-		if got, want := fill.Width, handleX(tr, v)+appleH; !near(got, want) {
+		// The fill ends at the knob's center.
+		if got, want := fill.Width, travel+appleH/2; !near(got, want) {
 			t.Fatalf("value %v: fill width %v, want %v", v, got, want)
 		}
 	}
@@ -155,7 +162,7 @@ func TestPressAndHoverLooks(t *testing.T) {
 		t.Fatal("pointer over the floating handle: slider not hovered")
 	}
 
-	send(w, gui.EventMouseDown, xAt(s, tr, app.value[tr.name]), y)
+	send(w, gui.EventMouseDown, xAt(s, xpHandleW/2, app.value[tr.name]), y)
 	send(w, gui.EventMouseMove, s.X+s.Width+100, y)
 	if !w.IsPressed("page:xp") {
 		t.Fatal("drag outside the slider: slider not pressed")
@@ -163,6 +170,18 @@ func TestPressAndHoverLooks(t *testing.T) {
 	send(w, gui.EventMouseUp, s.X+s.Width+100, y)
 	if w.IsPressed("page:xp") {
 		t.Fatal("after release: slider still pressed")
+	}
+}
+
+// The wheel moves the value one unit per line, clamped to the range.
+func TestWheel(t *testing.T) {
+	app, w := newTestApp(t)
+	start := app.value["XP"]
+	if err := w.TestScroll("page:xp", 0, 3); err != nil {
+		t.Fatal(err)
+	}
+	if v := app.value["XP"]; v == start {
+		t.Fatalf("wheel did not move the value from %v", start)
 	}
 }
 

@@ -1,5 +1,5 @@
-// This example demonstrates custom slider looks built by hand from the public
-// API (advanced: build-time interaction state, mouse lock drag).
+// This example demonstrates custom slider looks drawn with SliderCfg.Look
+// (advanced: build-time interaction state, parts placed after layout).
 //
 // It ports go-shirei's custom-sliders demo. Three looks:
 //
@@ -8,26 +8,12 @@
 //   - Windows XP. A thin sunken trough and a green-capped knob.
 //
 // go-shirei splits a slider into ProcessSlider, which handles the input and
-// returns the handle position, and paint code, which the app writes. go-gui
-// has no ProcessSlider, so sliderShell below does its job. The parts of a look
-// are floats placed at offsets computed from the value; the width is fixed, so
-// the offsets are known while the view is built and no AmendLayout is needed.
-//
-// What a behavior helper would remove (input for the design issue):
-//
-//   - valueAt and handleX: the pointer-to-value and value-to-offset math.
-//   - The drag: OnMouseDown sets the value, saves the track's window X and
-//     starts a MouseLock whose MouseMove converts window coordinates back.
-//     OnMouseDown, not OnClick: gui.Debug expects an Interactive root with
-//     OnClick to be a button, activated by Space and Enter.
-//   - The keys: arrows, Home and End, clamped, in OnKeyDown.
-//   - An ID on every float part. A float is hit-tested in its own layer, so
-//     an ID-less part hides hover and press from the slider (#661).
-//
-// Left out:
-//
-//   - The mouse wheel. ContainerCfg.OnMouseScroll now allows it; the port to
-//     SliderCfg.Look (#664) brings it with the stock slider's wheel handling.
+// returns the handle position, and paint code, which the app writes. In go-gui
+// the input is the stock gui.Slider, and the paint code is its Look. Look gets
+// the hover, press and focus state and the value as a fraction, and returns
+// three views: Track, Fill and Handle. The slider places Fill and Handle on
+// the track after layout, so drag, keys, the wheel and the screen reader value
+// all come from gui.Slider.
 package main
 
 import (
@@ -66,17 +52,14 @@ func main() {
 	backend.Run(w)
 }
 
-// track is the fixed geometry of one slider. inset is half the handle width:
-// the handle's center runs from inset to width-inset, so the handle never
-// leaves the track.
+// track names one custom slider. The id is its ID leaf; the name is the key
+// of its value and its screen reader label.
 type track struct {
-	id    string
-	name  string
-	width float32
-	inset float32
+	id   string
+	name string
 }
 
-// Slider sizes. Each look is fixed width, like go-shirei's ProcessSlider.
+// Slider sizes. go-shirei's sliders are fixed width, so these are too.
 const (
 	appleW, appleH       = 280, 24
 	materialW, materialH = 320, 32
@@ -85,107 +68,68 @@ const (
 	xpHandleW            = 12
 )
 
-// tracks lists every custom slider. The id is its ID leaf; the name is the key
-// of its value and its screen reader label.
 var tracks = []track{
-	{id: "display", name: "Display", width: appleW, inset: appleH / 2},
-	{id: "sound", name: "Sound", width: appleW, inset: appleH / 2},
-	{id: "call", name: "Call volume", width: materialW, inset: materialBladeW / 2},
-	{id: "media", name: "Media volume", width: materialW, inset: materialBladeW / 2},
-	{id: "xp", name: "XP", width: xpW, inset: xpHandleW / 2},
+	{id: "display", name: "Display"},
+	{id: "sound", name: "Sound"},
+	{id: "call", name: "Call volume"},
+	{id: "media", name: "Media volume"},
+	{id: "xp", name: "XP"},
 }
 
-// keyStep is how far one arrow key moves a value.
-const keyStep = 0.05
+// Every slider runs from 0 to 100 and steps by 5. The wheel moves a
+// gui.Slider by one unit per line, so a range of 0 to 1 would jump to an end
+// on the first turn.
+const (
+	valueMax = 100
+	keyStep  = 5
+)
 
-// App holds the value of each slider, 0 to 1.
+// App holds the value of each slider, 0 to 100.
 type App struct {
 	value map[string]float32
 
-	// Handlers are built once per slider, so a frame does not allocate
-	// new closures.
-	press map[string]func(gui.EventCtx)
-	keys  map[string]func(gui.EventCtx)
+	// Change handlers are built once per slider, so a frame does not
+	// allocate new closures.
+	change map[string]func(float32, gui.EventCtx)
 }
 
 func newApp() *App {
 	app := &App{
 		value: map[string]float32{
-			"Default":      0.45,
-			"Display":      0.72,
-			"Sound":        0.35,
-			"Call volume":  0.65,
-			"Media volume": 0.28,
-			"XP":           0.4,
+			"Default":      45,
+			"Display":      72,
+			"Sound":        35,
+			"Call volume":  65,
+			"Media volume": 28,
+			"XP":           40,
 		},
-		press: map[string]func(gui.EventCtx){},
-		keys:  map[string]func(gui.EventCtx){},
+		change: map[string]func(float32, gui.EventCtx){},
 	}
-	for _, t := range tracks {
-		app.press[t.name] = app.pressHandler(t)
-		app.keys[t.name] = app.keyHandler(t.name)
+	for name := range app.value {
+		app.change[name] = func(v float32, ctx gui.EventCtx) {
+			app.value[name] = v
+			ctx.Consume()
+		}
 	}
 	return app
 }
 
-// valueAt converts a pointer X, relative to the track's left edge, to a value.
-func valueAt(t track, x float32) float32 {
-	return clamp01((x - t.inset) / (t.width - 2*t.inset))
-}
-
-// handleX is the left edge of a handle 2*inset wide at value v, relative to
-// the track's left edge. It is go-shirei's SliderState.HandleX.
-func handleX(t track, v float32) float32 {
-	return v * (t.width - 2*t.inset)
-}
-
-// pressHandler sets the value under the pointer and starts a drag.
-func (app *App) pressHandler(t track) func(gui.EventCtx) {
-	return func(ctx gui.EventCtx) {
-		// OnMouseDown coordinates are relative to the shape, but a mouse lock
-		// reports window coordinates. Save the track's window X for the
-		// lock to subtract.
-		left := ctx.Layout.Shape.X
-		app.value[t.name] = valueAt(t, ctx.Event.MouseX)
-		ctx.Window.MouseLock(gui.MouseLockCfg{
-			MouseMove: func(c gui.EventCtx) {
-				app.value[t.name] = valueAt(t, c.Event.MouseX-left)
-			},
-			MouseUp: func(c gui.EventCtx) {
-				c.Window.MouseUnlock()
-			},
-		})
-		ctx.Consume()
-	}
-}
-
-// keyHandler moves the value by keyStep with the arrow keys, and to an end
-// with Home and End. Up and Right increase the value.
-func (app *App) keyHandler(name string) func(gui.EventCtx) {
-	return func(ctx gui.EventCtx) {
-		if ctx.Event.Modifiers != gui.ModNone {
-			return
-		}
-		v := app.value[name]
-		switch ctx.Event.KeyCode {
-		case gui.KeyLeft, gui.KeyDown:
-			v -= keyStep
-		case gui.KeyRight, gui.KeyUp:
-			v += keyStep
-		case gui.KeyHome:
-			v = 0
-		case gui.KeyEnd:
-			v = 1
-		default:
-			return
-		}
-		app.value[name] = clamp01(v)
-		ctx.Consume()
-	}
-}
-
-func clamp01(v float32) float32 {
-	return min(max(v, 0), 1)
+// slider is the part every slider on the page shares. The look sets the size
+// and the parts.
+func slider(app *App, t track, width, height float32, look func(gui.SliderLookState) gui.SliderParts) gui.View {
+	return gui.Slider(gui.SliderCfg{
+		ID:       t.id,
+		A11YCfg:  gui.A11YCfg{A11YLabel: t.name},
+		Value:    app.value[t.name],
+		Min:      0,
+		Max:      valueMax,
+		Step:     keyStep,
+		Width:    width,
+		Height:   height,
+		Sizing:   gui.FixedFixed,
+		OnChange: app.change[t.name],
+		Look:     look,
+	})
 }
 
 func mainView(w *gui.Window) gui.View {
@@ -205,16 +149,13 @@ func mainView(w *gui.Window) gui.View {
 
 			section("Default", "gui.Slider, for comparison"),
 			valueRow(app, "Default", gui.Slider(gui.SliderCfg{
-				ID:    "default",
-				Value: app.value["Default"],
-				Min:   0,
-				Max:   1,
-				Step:  keyStep,
-				Width: 240,
-				OnChange: func(v float32, ctx gui.EventCtx) {
-					app.value["Default"] = v
-					ctx.Consume()
-				},
+				ID:       "default",
+				Value:    app.value["Default"],
+				Min:      0,
+				Max:      valueMax,
+				Step:     keyStep,
+				Width:    240,
+				OnChange: app.change["Default"],
 			})),
 
 			section("Apple-style", "Filled capsule and round knob"),
@@ -255,48 +196,8 @@ func valueRowStyled(app *App, name string, slider gui.View, style gui.TextStyle)
 		VAlign:     gui.VAlignMiddle,
 		Content: []gui.View{
 			slider,
-			gui.Text(gui.TextCfg{Text: fmt.Sprintf("%.2f", app.value[name]), TextStyle: style}),
+			gui.Text(gui.TextCfg{Text: fmt.Sprintf("%.0f", app.value[name]), TextStyle: style}),
 		},
-	})
-}
-
-// sliderShell is the part every custom slider shares: a fixed size, focus,
-// press-to-drag, the keys, and the slider role and value. The look goes in
-// cfg.Content.
-func sliderShell(app *App, cfg gui.ContainerCfg, t track, height float32) gui.ContainerCfg {
-	cfg.Width = t.width
-	cfg.Height = height
-	cfg.Sizing = gui.FixedFixed
-	cfg.Padding = gui.PaddingNone
-	cfg.SizeBorder = gui.NoBorder
-	cfg.Focusable = true
-	cfg.OnMouseDown = app.press[t.name]
-	cfg.OnKeyDown = app.keys[t.name]
-	cfg.A11YRole = gui.AccessRoleSlider
-	cfg.A11YCfg = gui.A11YCfg{A11YLabel: t.name}
-	cfg.A11YValue = gui.AccessValue{Now: app.value[t.name], Min: 0, Max: 1}
-	return cfg
-}
-
-// part is one floating piece of a look, placed relative to the slider's
-// top-left corner. The ID keeps hover and press on the slider while the
-// pointer is over the part (#661).
-func part(id string, x, y, w, h, radius float32, c gui.Color, content ...gui.View) gui.View {
-	return gui.Column(gui.ContainerCfg{
-		ID:           id,
-		Float:        true,
-		FloatOffsetX: x,
-		FloatOffsetY: y,
-		Width:        w,
-		Height:       h,
-		Sizing:       gui.FixedFixed,
-		Radius:       gui.SomeF(radius),
-		Color:        c,
-		SizeBorder:   gui.NoBorder,
-		Padding:      gui.PaddingNone,
-		// No theme gap between the in-flow pieces of a part.
-		Spacing: gui.SomeF(0),
-		Content: content,
 	})
 }
 
@@ -347,14 +248,13 @@ func appleCard(app *App) gui.View {
 	})
 }
 
-// appleSlider is a gray capsule as tall as its knob. A white fill runs to the
-// knob's right edge, so the knob hides the fill's end.
+// appleSlider is a gray capsule as tall as its knob. The white fill ends at
+// the knob's center, under the knob, and carries the icon at its left end.
 func appleSlider(app *App, t track, icon string) gui.View {
-	id := t.id
-	return gui.Interactive(id, func(s gui.InteractionState) gui.View {
-		const knob = appleH
-		v := app.value[t.name]
-		hx := handleX(t, v)
+	iconStyle := gui.CurrentTheme().Icon4
+	iconStyle.Color = appleIcon
+	iconStyle.Size = 14
+	return slider(app, t, appleW, appleH, func(s gui.SliderLookState) gui.SliderParts {
 		knobColor := white
 		if s.Pressed {
 			knobColor = applePress
@@ -363,44 +263,43 @@ func appleSlider(app *App, t track, icon string) gui.View {
 		if s.Focused {
 			shadow = focusRing
 		}
-		iconStyle := gui.CurrentTheme().Icon4
-		iconStyle.Color = appleIcon
-		iconStyle.Size = 14
-
-		cfg := sliderShell(app, gui.ContainerCfg{
-			ID:     id,
-			Color:  appleTrack,
-			Radius: gui.SomeF(appleH / 2),
-		}, t, appleH)
-		cfg.Content = []gui.View{
-			part("fill", 0, 0, hx+knob, appleH, appleH/2, white),
-			gui.Circle(gui.ContainerCfg{
-				ID:           "knob",
-				Float:        true,
-				FloatOffsetX: hx,
-				Width:        knob,
-				Height:       knob,
-				Sizing:       gui.FixedFixed,
-				Color:        knobColor,
-				Shadow:       shadow,
+		return gui.SliderParts{
+			Track: bar(gui.FillFixed, 0, appleH, appleH/2, appleTrack),
+			// The fill's length is set after layout, and its children keep
+			// the place they were laid out in, so the icon stays at the left.
+			Fill: gui.Row(gui.ContainerCfg{
+				ID:         "fill",
+				Height:     appleH,
+				Sizing:     gui.FixedFixed,
+				Radius:     gui.SomeF(appleH / 2),
+				Color:      white,
+				SizeBorder: gui.NoBorder,
+				Padding:    gui.PaddingNone,
+				Content: []gui.View{gui.Row(gui.ContainerCfg{
+					Width:      appleH,
+					Height:     appleH,
+					Sizing:     gui.FixedFixed,
+					Padding:    gui.PaddingNone,
+					SizeBorder: gui.NoBorder,
+					HAlign:     gui.HAlignCenter,
+					VAlign:     gui.VAlignMiddle,
+					Content:    []gui.View{gui.Text(gui.TextCfg{Text: icon, TextStyle: iconStyle})},
+				})},
+			}),
+			Handle: gui.Circle(gui.ContainerCfg{
+				ID:     "knob",
+				Width:  appleH,
+				Height: appleH,
+				Sizing: gui.FixedFixed,
+				Color:  knobColor,
+				Shadow: shadow,
 				// A hairline keeps the white knob apart from the white fill
 				// where a renderer draws no shadow.
 				ColorBorder: appleKnobEdge,
 				SizeBorder:  gui.SomeF(1),
 				Padding:     gui.PaddingNone,
 			}),
-			// The icon floats over the left end, on top of the fill.
-			part("icon", 0, 0, appleH, appleH, 0, gui.ColorTransparent,
-				gui.Row(gui.ContainerCfg{
-					Sizing:     gui.FillFill,
-					Padding:    gui.PaddingNone,
-					SizeBorder: gui.NoBorder,
-					HAlign:     gui.HAlignCenter,
-					VAlign:     gui.VAlignMiddle,
-					Content:    []gui.View{gui.Text(gui.TextCfg{Text: icon, TextStyle: iconStyle})},
-				})),
 		}
-		return gui.Row(cfg)
 	})
 }
 
@@ -455,17 +354,12 @@ func materialCard(app *App) gui.View {
 }
 
 // materialSlider draws the empty track, the fill up to the blade's center and
-// the blade. go-shirei rounds only the outer corners of each track half. A
-// go-gui radius applies to all four corners, so a square patch covers the
-// fill's rounded end at the blade.
+// the blade. go-shirei rounds only the outer end of the fill. The fill here is
+// laid out as wide as the track, holding a full-width capsule; the slider then
+// shortens it to the value, and Clip cuts the capsule square at the blade.
 func materialSlider(app *App, t track) gui.View {
-	id := t.id
-	return gui.Interactive(id, func(s gui.InteractionState) gui.View {
+	return slider(app, t, materialW, materialH, func(s gui.SliderLookState) gui.SliderParts {
 		const trackH, bladeH = 16, 28
-		const capR = trackH / 2
-		trackY := float32(materialH-trackH) / 2
-		fillW := handleX(t, app.value[t.name]) + t.inset
-
 		blade, bladeW := materialBlade, float32(materialBladeW)
 		if s.Pressed || s.Focused {
 			// A wider blade shows focus and the drag, as Material does.
@@ -474,15 +368,32 @@ func materialSlider(app *App, t track) gui.View {
 		if s.Hovered && !s.Pressed {
 			blade = lighten(materialBlade, 0.15)
 		}
-
-		cfg := sliderShell(app, gui.ContainerCfg{ID: id}, t, materialH)
-		cfg.Content = []gui.View{
-			part("empty", 0, trackY, t.width, trackH, capR, materialEmpty),
-			part("fill", 0, trackY, max(fillW, trackH), trackH, capR, materialFill),
-			part("seam", max(fillW-capR, 0), trackY, min(fillW, capR), trackH, 0, materialFill),
-			part("blade", fillW-bladeW/2, (materialH-bladeH)/2, bladeW, bladeH, 2, blade),
+		return gui.SliderParts{
+			Track: bar(gui.FillFixed, 0, trackH, trackH/2, materialEmpty),
+			Fill: gui.Row(gui.ContainerCfg{
+				Width:      materialW,
+				Height:     trackH,
+				Sizing:     gui.FixedFixed,
+				Clip:       true,
+				SizeBorder: gui.NoBorder,
+				Padding:    gui.PaddingNone,
+				Content:    []gui.View{bar(gui.FillFixed, 0, trackH, trackH/2, materialFill)},
+			}),
+			Handle: bar(gui.FixedFixed, bladeW, bladeH, 2, blade),
 		}
-		return gui.Row(cfg)
+	})
+}
+
+// bar is a plain colored container.
+func bar(sizing gui.Sizing, w, h, radius float32, c gui.Color) gui.View {
+	return gui.Row(gui.ContainerCfg{
+		Width:      w,
+		Height:     h,
+		Sizing:     sizing,
+		Radius:     gui.SomeF(radius),
+		Color:      c,
+		SizeBorder: gui.NoBorder,
+		Padding:    gui.PaddingNone,
 	})
 }
 
@@ -499,51 +410,59 @@ var (
 )
 
 // xpSlider is a thin sunken trough under a raised handle. The caps of the
-// handle turn orange under the pointer, as Luna controls do.
+// handle turn orange under the pointer, as Luna controls do. It has no fill.
 func xpSlider(app *App, t track) gui.View {
-	id := t.id
-	return gui.Interactive(id, func(s gui.InteractionState) gui.View {
-		const troughH, handleH, capH = 6, xpH, 3
-		hx := handleX(t, app.value[t.name])
+	return slider(app, t, xpW, xpH, func(s gui.SliderLookState) gui.SliderParts {
+		const troughH, capH = 6, 3
 		caps := xpGreen
 		if s.Hovered || s.Pressed || s.Focused {
 			caps = xpHot
 		}
-
-		cfg := sliderShell(app, gui.ContainerCfg{ID: id}, t, xpH)
-		cfg.Content = []gui.View{
+		return gui.SliderParts{
 			// Dark top edge, light floor: the trough reads as sunken.
-			part("trough", 0, (xpH-troughH)/2, t.width, troughH, troughH/2, xpTrough,
-				strip(2, xpTroughDark),
-				gui.Rectangle(gui.RectangleCfg{Sizing: gui.FillFill, Color: xpTrough}),
-				strip(2, white),
-			),
-			part("handle", hx, 0, xpHandleW, handleH, 3, xpOutline,
-				gui.Column(gui.ContainerCfg{
-					Sizing:     gui.FillFill,
-					Padding:    gui.PadAll(1),
-					SizeBorder: gui.NoBorder,
-					Spacing:    gui.SomeF(0),
-					Content: []gui.View{
-						strip(capH, caps),
-						// Face: light ridge left, dark ridge right.
-						gui.Row(gui.ContainerCfg{
-							Sizing:     gui.FillFill,
-							Padding:    gui.PaddingNone,
-							SizeBorder: gui.NoBorder,
-							Spacing:    gui.SomeF(0),
-							Color:      xpFace,
-							Content: []gui.View{
-								gui.Rectangle(gui.RectangleCfg{Width: 2, Sizing: gui.FixedFill, Color: white}),
-								gui.Rectangle(gui.RectangleCfg{Sizing: gui.FillFill, Color: xpFace}),
-								gui.Rectangle(gui.RectangleCfg{Width: 2, Sizing: gui.FixedFill, Color: xpRidgeLo}),
-							},
-						}),
-						strip(capH, caps),
-					},
-				})),
+			Track: gui.Column(gui.ContainerCfg{
+				Height:     troughH,
+				Sizing:     gui.FillFixed,
+				Radius:     gui.SomeF(troughH / 2),
+				Color:      xpTrough,
+				SizeBorder: gui.NoBorder,
+				Padding:    gui.PaddingNone,
+				Spacing:    gui.SomeF(0),
+				Content: []gui.View{
+					strip(2, xpTroughDark),
+					gui.Rectangle(gui.RectangleCfg{Sizing: gui.FillFill, Color: xpTrough}),
+					strip(2, white),
+				},
+			}),
+			Handle: gui.Column(gui.ContainerCfg{
+				ID:         "handle",
+				Width:      xpHandleW,
+				Height:     xpH,
+				Sizing:     gui.FixedFixed,
+				Radius:     gui.SomeF(3),
+				Color:      xpOutline,
+				SizeBorder: gui.NoBorder,
+				Padding:    gui.PadAll(1),
+				Spacing:    gui.SomeF(0),
+				Content: []gui.View{
+					strip(capH, caps),
+					// Face: light ridge left, dark ridge right.
+					gui.Row(gui.ContainerCfg{
+						Sizing:     gui.FillFill,
+						Padding:    gui.PaddingNone,
+						SizeBorder: gui.NoBorder,
+						Spacing:    gui.SomeF(0),
+						Color:      xpFace,
+						Content: []gui.View{
+							gui.Rectangle(gui.RectangleCfg{Width: 2, Sizing: gui.FixedFill, Color: white}),
+							gui.Rectangle(gui.RectangleCfg{Sizing: gui.FillFill, Color: xpFace}),
+							gui.Rectangle(gui.RectangleCfg{Width: 2, Sizing: gui.FixedFill, Color: xpRidgeLo}),
+						},
+					}),
+					strip(capH, caps),
+				},
+			}),
 		}
-		return gui.Row(cfg)
 	})
 }
 

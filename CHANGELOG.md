@@ -49,6 +49,14 @@ and this project adheres to
   `Pressed` use. `Focused` is unchanged and still means the widget itself. A
   wrapper around an `Input` no longer builds the Input's effective ID by hand to
   draw its focus look; the `custom_textinputs` example now reads `FocusWithin`.
+- **`SliderCfg.Look` (#664)** — a slider can now be drawn from parts the app
+  builds. `Look` gets the hover, press and focus state and the value as a
+  fraction, and returns `SliderParts{Track, Fill, Handle}`. The track stays in
+  the layout; the slider moves the handle to the value and sets the fill's
+  length after layout, so a slider with `Fill` sizing works. Drag, keys, wheel,
+  rounding, vertical mode and the screen reader value stay the stock slider's,
+  so a custom look no longer writes them again. The `custom_sliders` example now
+  uses it, and gains the mouse wheel. See `docs/specs/slider-look-hook.md`.
 
 ### Changed
 

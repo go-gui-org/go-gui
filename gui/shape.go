@@ -192,6 +192,12 @@ type Shape struct {
 	// tooltips, and drag indicators.
 	OverDraw bool
 
+	// outOfFlow takes the shape out of its parent's layout flow, like
+	// Float and OverDraw, but keeps it in the parent's layer and clip.
+	// The owner places it in AmendLayout. Set by a slider Look for its
+	// Fill and Handle parts (#664).
+	outOfFlow bool
+
 	// Hero marks this element for hero transition animations. A hero
 	// present both when NewHeroTransition is registered and after the
 	// view change morphs between the two geometries; one that is only
@@ -401,6 +407,7 @@ func (s AccessState) Has(flag AccessState) bool {
 // stepper, a meter) as a screen reader reads it. Now lies between Min
 // and Max. A value with Min equal to Max is unset: that range holds no
 // value to report, so the zero AccessValue means "no value".
+// exportaudit:keep — type of ContainerCfg.A11YValue (#664)
 type AccessValue struct {
 	Now float32
 	Min float32
