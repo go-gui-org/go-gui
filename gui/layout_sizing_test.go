@@ -1267,6 +1267,24 @@ func TestScrollFillHorizontalOnlyKeepsHeightFloor(t *testing.T) {
 	}
 }
 
+// A horizontal-only scroll column cannot reveal hidden height either, so the
+// Column main-axis floor stays too (issue #637). This is the one axis the
+// ungated reset in layoutHeights used to drop.
+func TestScrollFillColumnHorizontalOnlyKeepsHeightFloor(t *testing.T) {
+	w := scrollFillWindow(t, Column(ContainerCfg{
+		ID: "s", Scrollable: true, ScrollMode: ScrollHorizontalOnly,
+		Sizing: FillFill, Padding: PaddingNone,
+		Content: []View{bigFixedBox(50, 2000)},
+	}))
+	ly, ok := w.layout.FindByID("s")
+	if !ok {
+		t.Fatal("scroll container not found")
+	}
+	if ly.Shape.MinHeight < 2000 {
+		t.Errorf("min height %v, want >= 2000 (content floor kept)", ly.Shape.MinHeight)
+	}
+}
+
 // computeContentHeight takes the same nil guard as computeContentWidth, so
 // the two axes answer a missing layout or shape the same way.
 func TestComputeContentSizeNilLayoutOrShape(t *testing.T) {

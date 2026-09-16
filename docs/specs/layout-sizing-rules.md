@@ -134,9 +134,10 @@ column as wide as its content with nothing to scroll (#584). An axis the
 `ScrollMode` excludes keeps its floor, because it cannot reveal hidden content.
 
 **A Scrollable Fill container never resolves below `spacingSmall` (5px)**
-(`gui/layout_sizing.go:115-126`). A collapsed scroll area stays big enough to
-hit-test and grab. The Column main-axis reset at `:613-615` applies the same
-floor but is not gated by `ScrollMode` — tracked as #637.
+(`gui/layout_sizing.go:112-122`). A collapsed scroll area stays big enough to
+hit-test and grab. Every axis routes through `scrollFillResetMin`, so an axis
+the `ScrollMode` excludes keeps its floor — including the Column main axis
+(#637).
 
 **Scrollbars overlay content and reserve no gutter.** They are `OverDraw`
 (`gui/view_scrollbar.go:87`), so `skipLayoutChild` excludes them from every

@@ -417,6 +417,12 @@ and this project adheres to
   moved the content off the start edge. This hid the first items. The alignment
   now treats negative leftover space as zero. This matches the cross-axis
   helpers. The content starts at the edge and clips only at the far side.
+- **A horizontal-only scroll column keeps its height floor (#637)** — the Column
+  main-axis reset dropped a Scrollable Fill container's minimum to 5px without
+  checking `ScrollMode`, so a horizontal-only column could be squeezed below its
+  content with no way to scroll to the rest. It now routes through
+  `scrollFillResetMin` like every other axis, and the excluded axis keeps its
+  floor.
 
 ### Changed
 

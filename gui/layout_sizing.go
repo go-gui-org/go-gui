@@ -109,9 +109,6 @@ func scrollExcludesAxis(mode scrollMode, axis distributeAxis) bool {
 // Without this a Scrollable FillFill column grew as wide as its content and
 // had nothing to scroll sideways (issue #584). An axis the ScrollMode
 // excludes keeps its floor, because that axis cannot reveal hidden content.
-//
-// The Column main-axis height reset in layoutHeights is older than this and
-// stays ungated by ScrollMode.
 func scrollFillResetMin(shape *Shape, axis distributeAxis) {
 	if !shape.Scrollable || getSizing(shape, axis) != sizingFill ||
 		scrollExcludesAxis(shape.ScrollMode, axis) {
@@ -610,9 +607,7 @@ func layoutHeightsDepth(layout *Layout, depth int) {
 			layout.Shape.Height += padding + sp
 			layout.Shape.MinHeight = effectiveMinSize(layout.Shape.MinHeight, layout.Shape.MaxHeight)
 			layout.Shape.Height = clampSize(layout.Shape.Height, layout.Shape.MinHeight, layout.Shape.MaxHeight)
-			if layout.Shape.Sizing.Height == sizingFill && layout.Shape.Scrollable {
-				layout.Shape.MinHeight = spacingSmall
-			}
+			scrollFillResetMin(layout.Shape, distributeVertical)
 		}
 	} else if layout.Shape.Axis == axisLeftToRight {
 		// Fixed cross-axis with a 0 height degrades to content sizing
