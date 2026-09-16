@@ -404,6 +404,9 @@ func applyDistributionDelta(layout *Layout, axis distributeAxis, extremum, sizeD
 }
 
 func distributeSpace(layout *Layout, remainingIn float32, mode distributeMode, axis distributeAxis, fb *fillBuffers) float32 {
+	// A residual left here — over-constrained minimums, maximum caps, or
+	// a stalled step — is judged downstream by the Fill-sum invariant
+	// (checkFillSum, issue #638), so this stays quiet.
 	if !f32IsFinite(remainingIn) {
 		return 0
 	}

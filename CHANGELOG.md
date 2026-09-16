@@ -35,6 +35,15 @@ and this project adheres to
   `MaskCreditCardAmex` and `MaskCVC` join the preset list. A custom token
   without a `Matcher` fails `compileInputMask` instead of installing a slot no
   keystroke can ever fill.
+- **`DebugLayoutInvariants` checks Fill distribution (#638)** — a Fill row that
+  could not fit its minimums, or that left space undistributed, gave up
+  silently: the frame rendered and nothing said so. The category now reports a
+  main-axis container whose in-flow children plus spacing do not sum to its
+  content box while a Fill child is there to take the slack. A row with no Fill,
+  a clipping or scrolling parent, a Wrap or Overflow row, and a gap left while
+  every Fill child sits at its maximum stay quiet: each is alignment slack or a
+  supported outcome, not undistributed space. The rule is written down as
+  invariant 4 in `docs/specs/layout-sizing-rules.md`.
 - **`DebugSizing` warns when Fixed sizing discards Min/Max (#635)** — a Fixed
   axis pins `Min = Max = size`, so a stated `MinWidth`/`MaxWidth` (or height
   equivalent) never took effect and nothing said so. The new category, on by

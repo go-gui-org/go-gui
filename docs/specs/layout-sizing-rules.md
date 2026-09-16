@@ -15,7 +15,7 @@ and the two are written to say the same thing.
 ## The invariants
 
 These hold on every frame, for every shape, after `layoutPipeline` returns. The
-`DebugLayoutInvariants` category checks 1 to 3 at dev time and the layout fuzz
+`DebugLayoutInvariants` category checks 1 to 4 at dev time and the layout fuzz
 targets check them in CI. The category is opt-in, outside `DebugAll`, and is
 asked for by name:
 
@@ -60,10 +60,20 @@ found := w.TestFindings(gui.DebugAll | gui.DebugLayoutInvariants)
 3. **Every emitted dimension and position is finite and non-negative.** A NaN
    wins every later `f32Max` — it returns its second argument for NaN
    (`gui/math.go:63-74`) — and poisons the scroll range.
-4. **Fill children sum to the parent's content box minus spacing.** Not yet
-   checked: whether an over-constrained row is a defect to report or a supported
-   outcome is open in #638, and the invariant cannot be written until that is
-   answered.
+4. **Fill children sum to the parent's content box minus spacing**
+   (`checkFillSum`, #638). Main axis only, and only when at least one in-flow
+   child is Fill: cross-axis Fill is stretch, where every child takes the full
+   content box, and a row with no Fill leaves its slack to alignment.
+   Comparisons use `f32Tolerance` scaled by the child count, since the sum
+   accumulates one rounding per child. Over-constraint is a defect when the
+   parent neither clips nor scrolls and is not a Wrap or Overflow row, and is
+   reported; it is a supported outcome when the parent clips or scrolls
+   (overflow is what the clip and the scroll range are for) or when a Wrap row
+   breaks rows or an Overflow row hides trailing children instead of shrinking.
+   A gap left while every Fill child sits at its maximum is also supported: the
+   caps are explicit and the remainder is alignment slack. A gap with room still
+   to distribute, and an overflow outside the exemptions above, mean
+   `distributeSpace` gave up with space still unallocated.
 
 Comparisons use `f32Tolerance` (`gui/math.go:5`), the repo's existing epsilon.
 The pass carries fractional sizes through four phases, so an exact compare would

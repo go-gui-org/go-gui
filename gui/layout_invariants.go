@@ -87,6 +87,7 @@ func checkLayoutInvariantsDepth(
 	s := layout.Shape
 	checkShapeFinite(s, emit)
 	checkShapeBounds(s, emit)
+	checkFillSum(layout, emit)
 	for i := range layout.Children {
 		child := &layout.Children[i]
 		checkChildContainment(s, child, opts, emit)
@@ -141,6 +142,122 @@ func checkShapeBounds(s *Shape, emit layoutInvariantEmit) {
 				"effectiveMinSize, so this shape bypassed clampSize.",
 			subject, s.MinHeight, s.MaxHeight)
 	}
+}
+
+// checkFillSum is invariant 4: on the main axis the in-flow children
+// plus spacing fill the parent's content box, when at least one Fill
+// child is there to take the slack.
+//
+// A Fill row that cannot fit its minimums (over-constrained) or that
+// leaves space undistributed (non-convergence, issue #638) breaks this
+// rule. Without it both are silent: the frame renders and nothing
+// errors.
+//
+// These supported outcomes stay quiet: no Fill child on the axis, where
+// slack is alignment rather than a defect; a parent that clips or
+// scrolls on the axis, where overflow is what the clip and the scroll
+// range are for and a viewport gap is fine; a Wrap or Overflow row,
+// which skips shrinking by design and breaks rows or hides trailing
+// children instead; and every Fill child at its maximum while space
+// remains, where the caps are explicit and the gap is alignment slack.
+// An axisNone parent places children freely and never distributes, so
+// only rows and columns are checked.
+func checkFillSum(layout *Layout, emit layoutInvariantEmit) {
+	s := layout.Shape
+	var axis distributeAxis
+	switch s.Axis {
+	case axisLeftToRight:
+		axis = distributeHorizontal
+	case axisTopToBottom:
+		axis = distributeVertical
+	default:
+		return
+	}
+	if sizingClips(s, axis) {
+		return
+	}
+	if axis == distributeHorizontal && (s.Wrap || s.Overflow) {
+		return
+	}
+	var total float32
+	var count int
+	var fillCount int
+	var fillAtMax int
+	for i := range layout.Children {
+		cs := layout.Children[i].Shape
+		if skipLayoutChild(cs) {
+			continue
+		}
+		var size float32
+		var max float32
+		var isFill bool
+		if axis == distributeHorizontal {
+			size = cs.Width
+			max = cs.MaxWidth
+			isFill = cs.Sizing.Width == sizingFill
+		} else {
+			size = cs.Height
+			max = cs.MaxHeight
+			isFill = cs.Sizing.Height == sizingFill
+		}
+		if !f32IsFinite(size) {
+			// The finite check reports it; no second finding here.
+			return
+		}
+		total += size
+		count++
+		if isFill {
+			fillCount++
+			if max > 0 && size+f32Tolerance >= max {
+				fillAtMax++
+			}
+		}
+	}
+	if fillCount == 0 {
+		return
+	}
+	var parentSize float32
+	var padding float32
+	if axis == distributeHorizontal {
+		parentSize = s.Width
+		padding = s.paddingWidth()
+	} else {
+		parentSize = s.Height
+		padding = s.paddingHeight()
+	}
+	if !f32IsFinite(parentSize) || !f32IsFinite(padding) ||
+		!f32IsFinite(total) {
+		return
+	}
+	total += layout.spacing()
+	content := parentSize - padding
+	if !f32IsFinite(content) {
+		return
+	}
+	diff := total - content
+	tol := f32Tolerance * float32(count+1)
+	if diff <= tol && diff >= -tol {
+		return
+	}
+	// Built only on a violation, like the other checks: the clean path
+	// must not allocate per shape per frame.
+	subject := shapeInvariantSubject(s)
+	if diff < 0 {
+		if fillAtMax == fillCount {
+			return
+		}
+		emit(subject,
+			"layout invariant: Fill children of %q sum to %v with spacing, "+
+				"below the content box %v; %v was left undistributed "+
+				"(issue #638).",
+			subject, total, content, -diff)
+		return
+	}
+	emit(subject,
+		"layout invariant: Fill children of %q sum to %v with spacing, "+
+			"above the content box %v; the container is over-constrained "+
+			"(issue #638).",
+		subject, total, content)
 }
 
 // checkChildContainment is invariant 1: a child's extent stays inside its

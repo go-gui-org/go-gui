@@ -325,6 +325,172 @@ func TestLayoutInvariantsAnonymousSubject(t *testing.T) {
 	}
 }
 
+// Invariant 4: Fill children that leave the parent's content box
+// unfilled are reported (issue #638). Containment stays silent here —
+// both children sit inside the parent — so without the Fill-sum check
+// this non-convergence gap has no signal at all.
+func TestLayoutInvariantsFillSumUnderFillReports(t *testing.T) {
+	root := &Layout{
+		Shape: &Shape{shapeType: shapeRectangle, Axis: axisLeftToRight,
+			ID: "row", Sizing: FixedFixed, Width: 100, Height: 20},
+		Children: []Layout{
+			{Shape: &Shape{shapeType: shapeRectangle, Sizing: FillFill,
+				Width: 20, Height: 10}},
+			{Shape: &Shape{shapeType: shapeRectangle, Sizing: FillFill,
+				Width: 20, Height: 10}},
+		},
+	}
+	found := collectInvariants(root)
+	if len(found) != 1 || found[0] != "row" {
+		t.Errorf("under-filled Fill row: got %v, want [row]", found)
+	}
+}
+
+// Invariant 4 on the vertical axis: the height branch is its own code,
+// so a horizontal-only test would pass with it deleted.
+func TestLayoutInvariantsFillSumUnderFillVertical(t *testing.T) {
+	root := &Layout{
+		Shape: &Shape{shapeType: shapeRectangle, Axis: axisTopToBottom,
+			ID: "col", Sizing: FixedFixed, Width: 20, Height: 100},
+		Children: []Layout{
+			{Shape: &Shape{shapeType: shapeRectangle, Sizing: FillFill,
+				Width: 10, Height: 20}},
+			{Shape: &Shape{shapeType: shapeRectangle, Sizing: FillFill,
+				Width: 10, Height: 20}},
+		},
+	}
+	found := collectInvariants(root)
+	if len(found) != 1 || found[0] != "col" {
+		t.Errorf("under-filled Fill column: got %v, want [col]", found)
+	}
+}
+
+// Invariant 4: an over-constrained row is reported. Both children sit
+// at X 0 in this hand-built tree, so containment stays silent and the
+// finding below is the Fill-sum check alone.
+func TestLayoutInvariantsFillSumOverflowReports(t *testing.T) {
+	root := &Layout{
+		Shape: &Shape{shapeType: shapeRectangle, Axis: axisLeftToRight,
+			ID: "row", Sizing: FixedFixed, Width: 100, Height: 20},
+		Children: []Layout{
+			{Shape: &Shape{shapeType: shapeRectangle, Sizing: FillFill,
+				Width: 60, Height: 10, MinWidth: 60}},
+			{Shape: &Shape{shapeType: shapeRectangle, Sizing: FillFill,
+				Width: 60, Height: 10, MinWidth: 60}},
+		},
+	}
+	found := collectInvariants(root)
+	if len(found) != 1 || found[0] != "row" {
+		t.Errorf("over-constrained Fill row: got %v, want [row]", found)
+	}
+}
+
+// A Fill row that exactly fills its parent is the healthy case and
+// stays quiet.
+func TestLayoutInvariantsFillSumExactQuiet(t *testing.T) {
+	root := &Layout{
+		Shape: &Shape{shapeType: shapeRectangle, Axis: axisLeftToRight,
+			ID: "row", Sizing: FixedFixed, Width: 100, Height: 20},
+		Children: []Layout{
+			{Shape: &Shape{shapeType: shapeRectangle, Sizing: FillFill,
+				Width: 50, Height: 10}},
+			{Shape: &Shape{shapeType: shapeRectangle, Sizing: FillFill,
+				Width: 50, Height: 10}},
+		},
+	}
+	if got := collectInvariants(root); len(got) != 0 {
+		t.Errorf("exact Fill sum reported %v, want silence", got)
+	}
+}
+
+// Without a Fill child the slack is alignment, not a defect: a Fixed
+// row narrower than its parent stays quiet.
+func TestLayoutInvariantsFillSumNoFillQuiet(t *testing.T) {
+	root := &Layout{
+		Shape: &Shape{shapeType: shapeRectangle, Axis: axisLeftToRight,
+			ID: "row", Sizing: FixedFixed, Width: 100, Height: 20},
+		Children: []Layout{
+			{Shape: &Shape{shapeType: shapeRectangle, Sizing: FixedFixed,
+				Width: 20, Height: 10}},
+			{Shape: &Shape{shapeType: shapeRectangle, Sizing: FixedFixed,
+				Width: 20, Height: 10}},
+		},
+	}
+	if got := collectInvariants(root); len(got) != 0 {
+		t.Errorf("gap without Fill reported %v, want silence", got)
+	}
+}
+
+// Maximum caps are explicit: every Fill child at its maximum leaves a
+// gap that is alignment slack, not undistributed space.
+func TestLayoutInvariantsFillSumMaxCappedQuiet(t *testing.T) {
+	root := &Layout{
+		Shape: &Shape{shapeType: shapeRectangle, Axis: axisLeftToRight,
+			ID: "row", Sizing: FixedFixed, Width: 500, Height: 20},
+		Children: []Layout{
+			{Shape: &Shape{shapeType: shapeRectangle, Sizing: FillFill,
+				Width: 100, Height: 10, MaxWidth: 100}},
+			{Shape: &Shape{shapeType: shapeRectangle, Sizing: FillFill,
+				Width: 100, Height: 10, MaxWidth: 100}},
+		},
+	}
+	if got := collectInvariants(root); len(got) != 0 {
+		t.Errorf("max-capped gap reported %v, want silence", got)
+	}
+}
+
+// A clipping parent is allowed to be sized below its content and a
+// viewport gap is fine, so both directions stay quiet under a clip.
+func TestLayoutInvariantsFillSumClipExempt(t *testing.T) {
+	under := &Layout{
+		Shape: &Shape{shapeType: shapeRectangle, Axis: axisLeftToRight,
+			ID: "row", Sizing: FixedFixed, Width: 100, Height: 20,
+			Clip: true},
+		Children: []Layout{
+			{Shape: &Shape{shapeType: shapeRectangle, Sizing: FillFill,
+				Width: 20, Height: 10}},
+			{Shape: &Shape{shapeType: shapeRectangle, Sizing: FillFill,
+				Width: 20, Height: 10}},
+		},
+	}
+	if got := collectInvariants(under); len(got) != 0 {
+		t.Errorf("clipped under-fill reported %v, want silence", got)
+	}
+	over := &Layout{
+		Shape: &Shape{shapeType: shapeRectangle, Axis: axisLeftToRight,
+			ID: "row", Sizing: FixedFixed, Width: 100, Height: 20,
+			Clip: true},
+		Children: []Layout{
+			{Shape: &Shape{shapeType: shapeRectangle, Sizing: FillFill,
+				Width: 60, Height: 10, MinWidth: 60}},
+			{Shape: &Shape{shapeType: shapeRectangle, Sizing: FillFill,
+				Width: 60, Height: 10, MinWidth: 60}},
+		},
+	}
+	if got := collectInvariants(over); len(got) != 0 {
+		t.Errorf("clipped overflow reported %v, want silence", got)
+	}
+}
+
+// A Wrap row skips shrinking by design and breaks rows instead, so it
+// is exempt from the sum rule.
+func TestLayoutInvariantsFillSumWrapExempt(t *testing.T) {
+	root := &Layout{
+		Shape: &Shape{shapeType: shapeRectangle, Axis: axisLeftToRight,
+			ID: "row", Sizing: FixedFixed, Width: 100, Height: 20,
+			Wrap: true},
+		Children: []Layout{
+			{Shape: &Shape{shapeType: shapeRectangle, Sizing: FillFill,
+				Width: 60, Height: 10, MinWidth: 60}},
+			{Shape: &Shape{shapeType: shapeRectangle, Sizing: FillFill,
+				Width: 60, Height: 10, MinWidth: 60}},
+		},
+	}
+	if got := collectInvariants(root); len(got) != 0 {
+		t.Errorf("wrap row reported %v, want silence", got)
+	}
+}
+
 // The clean path allocates nothing: the check runs every frame while the
 // category is on, and the subject string is built only on a violation.
 func TestLayoutInvariantsCleanWalkAllocFree(t *testing.T) {
