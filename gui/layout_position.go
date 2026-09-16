@@ -157,6 +157,9 @@ func applyContainerAlignment(
 			if hAlign == HAlignCenter {
 				remaining /= 2
 			}
+			// Overflow leaves no space to align in: pin at the
+			// start edge, as the cross-axis helpers do.
+			remaining = f32Max(0, remaining)
 		}
 		if isRTL {
 			x -= remaining
@@ -170,7 +173,7 @@ func applyContainerAlignment(
 			if layout.Shape.VAlign == VAlignMiddle {
 				remaining /= 2
 			}
-			y += remaining
+			y += f32Max(0, remaining)
 		}
 	}
 	return x, y

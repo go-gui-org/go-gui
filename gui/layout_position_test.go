@@ -204,3 +204,117 @@ func TestLayoutPositionsFloatDoesNotAdvanceCursor(t *testing.T) {
 		t.Errorf("in-flow sibling X after a Float: got %f, want 0", got)
 	}
 }
+
+// An overflowing centered row stays pinned at the start edge instead of
+// shifting further off-screen (issue #636): remaining space is negative,
+// so alignment must treat it as zero, as the cross-axis helpers do.
+func TestLayoutPositionsCenterAlignOverflowPinned(t *testing.T) {
+	root := &Layout{
+		Shape: &Shape{
+			X: 0, Y: 0, Width: 200, Height: 50,
+			Axis:   axisLeftToRight,
+			HAlign: HAlignCenter,
+		},
+		Children: []Layout{
+			{Shape: &Shape{shapeType: shapeRectangle, Width: 120, Height: 50}},
+			{Shape: &Shape{shapeType: shapeRectangle, Width: 120, Height: 50}},
+		},
+	}
+	w := &Window{}
+	layoutParents(root, nil)
+	layoutPositions(root, 0, 0, w)
+
+	if got := root.Children[0].Shape.X; !f32AreClose(got, 0) {
+		t.Errorf("c0 X: got %f, want 0", got)
+	}
+	if got := root.Children[1].Shape.X; !f32AreClose(got, 120) {
+		t.Errorf("c1 X: got %f, want 120", got)
+	}
+}
+
+func TestLayoutPositionsEndAlignOverflowPinned(t *testing.T) {
+	root := &Layout{
+		Shape: &Shape{
+			X: 0, Y: 0, Width: 200, Height: 50,
+			Axis:   axisLeftToRight,
+			HAlign: HAlignRight,
+		},
+		Children: []Layout{
+			{Shape: &Shape{shapeType: shapeRectangle, Width: 120, Height: 50}},
+			{Shape: &Shape{shapeType: shapeRectangle, Width: 120, Height: 50}},
+		},
+	}
+	w := &Window{}
+	layoutParents(root, nil)
+	layoutPositions(root, 0, 0, w)
+
+	if got := root.Children[0].Shape.X; !f32AreClose(got, 0) {
+		t.Errorf("c0 X: got %f, want 0", got)
+	}
+}
+
+func TestLayoutPositionsMiddleAlignOverflowPinned(t *testing.T) {
+	root := &Layout{
+		Shape: &Shape{
+			X: 0, Y: 0, Width: 100, Height: 100,
+			Axis:   axisTopToBottom,
+			VAlign: VAlignMiddle,
+		},
+		Children: []Layout{
+			{Shape: &Shape{shapeType: shapeRectangle, Width: 100, Height: 60}},
+			{Shape: &Shape{shapeType: shapeRectangle, Width: 100, Height: 60}},
+		},
+	}
+	w := &Window{}
+	layoutParents(root, nil)
+	layoutPositions(root, 0, 0, w)
+
+	if got := root.Children[0].Shape.Y; !f32AreClose(got, 0) {
+		t.Errorf("c0 Y: got %f, want 0", got)
+	}
+}
+
+func TestLayoutPositionsBottomAlignOverflowPinned(t *testing.T) {
+	root := &Layout{
+		Shape: &Shape{
+			X: 0, Y: 0, Width: 100, Height: 100,
+			Axis:   axisTopToBottom,
+			VAlign: VAlignBottom,
+		},
+		Children: []Layout{
+			{Shape: &Shape{shapeType: shapeRectangle, Width: 100, Height: 60}},
+			{Shape: &Shape{shapeType: shapeRectangle, Width: 100, Height: 60}},
+		},
+	}
+	w := &Window{}
+	layoutParents(root, nil)
+	layoutPositions(root, 0, 0, w)
+
+	if got := root.Children[0].Shape.Y; !f32AreClose(got, 0) {
+		t.Errorf("c0 Y: got %f, want 0", got)
+	}
+}
+
+func TestLayoutPositionsRTLCenterAlignOverflowPinned(t *testing.T) {
+	root := &Layout{
+		Shape: &Shape{
+			X: 0, Y: 0, Width: 200, Height: 50,
+			Axis:    axisLeftToRight,
+			HAlign:  HAlignCenter,
+			TextDir: TextDirRTL,
+		},
+		Children: []Layout{
+			{Shape: &Shape{shapeType: shapeRectangle, Width: 120, Height: 50}},
+			{Shape: &Shape{shapeType: shapeRectangle, Width: 120, Height: 50}},
+		},
+	}
+	w := &Window{}
+	layoutParents(root, nil)
+	layoutPositions(root, 0, 0, w)
+
+	// An RTL row starts at the right edge, so the first child stays
+	// pinned there: 200 - 120 = 80.
+	if got := root.Children[0].Shape.X; !f32AreClose(got, 80) {
+		t.Errorf("c0 X: got %f, want 80", got)
+	}
+}

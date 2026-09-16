@@ -412,6 +412,11 @@ and this project adheres to
   `InputCfg.NoMinWidthFloor`, previously an in-package-only flag shared with
   `NumericInput` and `InputDate`. Leave it false on a standalone form field,
   where the floor keeps an empty field the width of a filled one.
+- **Container alignment stays pinned when content overflows (#636)** — a
+  centered or end-aligned row or column with content larger than the container
+  moved the content off the start edge. This hid the first items. The alignment
+  now treats negative leftover space as zero. This matches the cross-axis
+  helpers. The content starts at the edge and clips only at the far side.
 
 ### Changed
 
