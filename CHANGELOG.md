@@ -8,6 +8,8 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [v0.77.0] - 2026-09-16
+
 ### Added
 
 - **`gui.Interactive` gives a view builder its hover, press and focus state
@@ -78,6 +80,19 @@ and this project adheres to
   The inner container now clips unconditionally. Migration: delete the `Clip`
   line from any `SidebarCfg`; content that must escape the panel belongs in a
   float or overlay, not in the sidebar tree.
+
+- **`DrawRecorder` now documents that a points slice is valid for the duration
+  of the call only** — under an active canvas transform the `[]float32` a
+  recorder receives is a mapped copy in one shared scratch buffer, so two
+  retained polylines both ended up holding the second one's coordinates. With no
+  transform in force the caller's own slice is passed straight through and
+  retention appeared to work, which is how an exporter ends up correct until its
+  first `Translate`. No signature changed: an implementation that queues
+  commands to serialize after the redraw must copy the points it is handed.
+
+- **BREAKING: NumericInput with Min > Max now panics** — the bounds previously
+  swapped silently and the field clamped the wrong way. Pass them in order; a
+  NaN bound still counts as unset on its side.
 
 ### Fixed
 
@@ -450,21 +465,6 @@ and this project adheres to
   content with no way to scroll to the rest. It now routes through
   `scrollFillResetMin` like every other axis, and the excluded axis keeps its
   floor.
-
-### Changed
-
-- **`DrawRecorder` now documents that a points slice is valid for the duration
-  of the call only** — under an active canvas transform the `[]float32` a
-  recorder receives is a mapped copy in one shared scratch buffer, so two
-  retained polylines both ended up holding the second one's coordinates. With no
-  transform in force the caller's own slice is passed straight through and
-  retention appeared to work, which is how an exporter ends up correct until its
-  first `Translate`. No signature changed: an implementation that queues
-  commands to serialize after the redraw must copy the points it is handed.
-
-- **BREAKING: NumericInput with Min > Max now panics** — the bounds previously
-  swapped silently and the field clamped the wrong way. Pass them in order; a
-  NaN bound still counts as unset on its side.
 
 ## [v0.76.1] - 2026-09-13
 
