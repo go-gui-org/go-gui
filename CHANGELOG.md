@@ -23,6 +23,12 @@ and this project adheres to
   these controls need no API beyond `gui.Interactive` and `ContainerCfg`:
   switch, checkbox and radio roles with their checked or selected state,
   arrow-key navigation in a radio group, and one Tab stop per group.
+- **Custom slider and text input examples** — `custom_sliders` ports go-shirei's
+  Apple, Material and Windows XP sliders with a mouse lock drag, arrow keys and
+  floating parts placed from the value. `custom_textinputs` wraps a `gui.Input`
+  with its chrome turned off in Material and Windows XP fields that restyle when
+  the inner Input has focus. Both use only the public API, and each lists what
+  it had to write by hand, the input for a later helper design.
 
 ### Changed
 
