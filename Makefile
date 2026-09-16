@@ -183,7 +183,7 @@ release: package-linux package-windows package-macos build-wasm
 
 # Run all benchmarks with allocation reporting (matching CI baseline job).
 bench:
-	go test -bench=. -benchmem -count=5 -run='^$' -timeout=30m ./gui/...
+	go test -bench=. -benchmem -count=5 -run='^$$' -timeout=30m ./gui/...
 
 # Run targeted hot-path benchmarks for regression checking (matching CI gate job).
 bench-gate:
@@ -359,7 +359,7 @@ check-all: test lint check
 # GOOS lint, cgo-free cross-compiles, coverage gate, export audit. The
 # .githooks/pre-push hook runs make check-all; run prepush once per
 # branch to cover the rest. Omissions vs CI, by design: OS-matrix runs,
-# coverage diff and benchmark gates (need a main baseline), WASM node
+# coverage diff (needs a main baseline) and benchmark gate, WASM node
 # tests, iOS/Android vet+lint (Xcode/NDK), Windows smoke test, release
 # packaging. `make check` is the fast gate when only gate checks are
 # wanted.

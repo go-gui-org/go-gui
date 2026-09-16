@@ -64,9 +64,11 @@ OS runner or a baseline from `main` that only CI can supply:
 
 - OS-matrix test runs on Windows and macOS runners. Windows also runs the
   showcase smoke test with Mesa's software GL
-- Coverage diff on PRs and the benchmark regression gate — both compare against
-  a baseline cached from `main` (`scripts/cov-diff.sh` can run them locally if
-  you supply two profiles)
+- Coverage diff on PRs — compares against a baseline cached from `main`
+  (`scripts/cov-diff.sh` can run it locally if you supply two profiles)
+- Benchmark regression gate — runs `make bench-gate` on the PR base and on the
+  PR head in the same job, then compares them with `benchstat`. To do the same
+  locally, run `make bench-gate` on both commits on one machine
 - WASM build/vet/test (`GOOS=js` needs a node `wasm_exec` wrapper).
   `make build-wasm` covers the build half
 - iOS and Android vet+lint — need an Xcode iphoneos sysroot / Android NDK.

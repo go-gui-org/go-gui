@@ -504,6 +504,8 @@ jobs:
           CC: ${{ env.NDK_CC }}
         run: make lint
 
+  # History only: uploads the full benchmark run for each main commit. The PR
+  # gate does not read it; it benchmarks the base commit itself (see below).
   benchmark:
     name: Benchmarks
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -519,14 +521,12 @@ jobs:
       - name: Install system dependencies
         run: ./scripts/install-ubuntu-deps.sh
 
+      # pipefail: without it the step takes tee's exit status, so a failed
+      # `make bench` went green and uploaded its error text as results.
       - name: Run benchmarks
-        run: make bench | tee benchmark-results.txt
-
-      - name: Cache benchmark baseline
-        uses: actions/cache/save@v5
-        with:
-          path: benchmark-results.txt
-          key: benchmark-baseline-${{ github.sha }}
+        run: |
+          set -o pipefail
+          make bench | tee benchmark-results.txt
 
       - name: Upload benchmark results
         uses: actions/upload-artifact@v7
@@ -535,12 +535,24 @@ jobs:
           path: benchmark-results.txt
           retention-days: 90
 
+  # Benchmarks the PR base and the PR head in the same job, on the same runner.
+  # A baseline cached from main is not used: it can come from a different
+  # commit than the PR base (restore-keys picks the newest), it ran on a
+  # different machine (timing noise), and it does not exist until main has
+  # run once.
   benchmark-gate:
     name: Benchmark regression gate
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+
+      # The base goes in a sub-directory. It has its own go.mod, so `./gui/...`
+      # in the head checkout does not reach into it.
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: base
 
       - uses: actions/setup-go@v6
         with:
@@ -551,41 +563,63 @@ jobs:
       # with nil injected backends, and the module is cgo-free on Linux
       # (gl backend dlopens libEGL at runtime). The apt step copied from
       # the build jobs only slowed the gate down.
-      - name: Restore baseline
-        id: cache
-        uses: actions/cache/restore@v5
-        with:
-          path: baseline-results.txt
-          key: benchmark-baseline-${{ github.event.pull_request.base.sha }}
-          restore-keys: |
-            benchmark-baseline-
+      #
+      # The base runs its own bench-gate target, so a PR that edits the
+      # benchmark list compares only the names both sides have. A base older
+      # than the target cannot be compared; skip it instead of failing.
+      - name: Run base benchmarks
+        id: base
+        run: |
+          set -o pipefail
+          if make -C base -n bench-gate > /dev/null 2>&1; then
+            make -C base bench-gate | tee base-benchmarks.txt
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::Base commit has no bench-gate target. Skipping comparison."
+          fi
 
-      - name: Run targeted benchmarks
-        run: make bench-gate | tee pr-benchmarks.txt
+      - name: Run PR benchmarks
+        run: |
+          set -o pipefail
+          make bench-gate | tee pr-benchmarks.txt
 
       - name: Install benchstat
+        if: steps.base.outputs.ok == 'true'
         run: go install golang.org/x/perf/cmd/benchstat@latest
 
       - name: Compare benchmarks
-        if: steps.cache.outputs.cache-hit == 'true'
+        if: steps.base.outputs.ok == 'true'
+        env:
+          # Two runs of one commit on one machine still gave significant sec/op
+          # deltas up to +4.7% (p=0.008 is the smallest p-value n=5 can give,
+          # and ~115 benchmarks are tested). Below this, a timing delta is
+          # noise. Allocs and bytes are exact counts, so any increase warns.
+          TIME_THRESHOLD_PCT: 10
         run: |
-          benchstat -format csv baseline-results.txt pr-benchmarks.txt > benchstat.csv
-          echo "## Benchmark comparison" >> $GITHUB_STEP_SUMMARY
-          benchstat baseline-results.txt pr-benchmarks.txt >> $GITHUB_STEP_SUMMARY
+          benchstat -format csv base-benchmarks.txt pr-benchmarks.txt > benchstat.csv
+          echo "## Benchmark comparison" >> "$GITHUB_STEP_SUMMARY"
+          benchstat base-benchmarks.txt pr-benchmarks.txt >> "$GITHUB_STEP_SUMMARY"
 
-          # Parse CSV for statistically significant regressions.
-          # Columns: name, old, old±, new, new±, delta, p-value, n
-          # delta starts with '+' for regressions.
-          awk -F',' 'NR>1 {
-            gsub(/"/, "", $6);
-            if ($6 ~ /^\+/) {
-              printf "::warning::%s regressed %s (p=%s)\n", $1, $6, $7
-            }
-          }' benchstat.csv
-
-      - name: No baseline available
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: echo "::warning::No benchmark baseline cached from main. Skipping comparison."
+          # benchstat CSV holds one table per unit (sec/op, B/op, allocs/op).
+          # Each table starts with a header row `,<unit>,CI,<unit>,CI,vs base,P`;
+          # data rows are name, old, old CI, new, new CI, delta, p-value.
+          # Delta is `~` when not significant and starts with '+' for a
+          # significant regression. Skip geomean rows: they carry a delta
+          # (often +0.00%) but no p-value, so they are not a regression.
+          #
+          # sec/op warns only at TIME_THRESHOLD_PCT or more. The percent is
+          # parsed by hand: `+Inf%` (a count that was 0) is not a number to
+          # every awk, so it is mapped to a value above any threshold.
+          awk -F',' -v limit="$TIME_THRESHOLD_PCT" '
+            $1 == "" && $6 == "vs base" { unit = $2; next }
+            $1 == "" || $1 == "geomean" { next }
+            {
+              gsub(/"/, "", $6);
+              if ($6 !~ /^\+/) { next }
+              pct = ($6 ~ /Inf/) ? 1e9 : substr($6, 2) + 0;
+              if (unit == "sec/op" && pct < limit + 0) { next }
+              printf "::warning::%s %s regressed %s (%s)\n", $1, unit, $6, $7
+            }' benchstat.csv
 
   security:
     name: Security scan
