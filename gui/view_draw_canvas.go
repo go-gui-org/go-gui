@@ -120,6 +120,7 @@ func (dv *drawCanvasView) GenerateLayout(w *Window) Layout {
 			events:       events,
 		}),
 	}
+	warnFixedSizingConflict(w, layout.Shape)
 	applyFixedSizingConstraints(layout.Shape)
 	return layout
 }

@@ -57,6 +57,11 @@ func (s Sizing) Or(def Sizing) Sizing {
 }
 
 // applyFixedSizingConstraints sets min = max = size when sizing is Fixed.
+//
+// A Fixed axis discards the caller's stated Min and Max on that axis:
+// the pin overwrites them, so they never take effect. Warn first with
+// warnFixedSizingConflict, which reports a conflicting stated bound
+// through the DebugSizing category (issue #635).
 func applyFixedSizingConstraints(shape *Shape) {
 	if shape.Sizing.Width == sizingFixed && shape.Width > 0 {
 		shape.MinWidth = shape.Width
@@ -66,4 +71,47 @@ func applyFixedSizingConstraints(shape *Shape) {
 		shape.MinHeight = shape.Height
 		shape.MaxHeight = shape.Height
 	}
+}
+
+// warnFixedSizingConflict reports a Fixed axis that also states Min or
+// Max, which applyFixedSizingConstraints overwrites with the size.
+//
+// Call before applyFixedSizingConstraints, while the stated bounds are
+// still visible: after the pin Min == Max == size on every Fixed axis,
+// so the two states are indistinguishable. Only a conflicting bound
+// reports — one equal to the size is redundant but harmless, and a
+// zero or negative bound means unset. A Fixed axis with no positive
+// size degrades to content sizing (issue #94) and keeps its bounds,
+// so it stays quiet too.
+//
+// Generation-time check, like the text-truncation warn in view_text.go:
+// the pipeline never sees the stated bounds. The mask guard keeps the
+// off-state cost at one atomic load, matching layoutOverflow.
+func warnFixedSizingConflict(w *Window, s *Shape) {
+	if w == nil || s == nil {
+		return
+	}
+	if DebugCategory(debugMask.Load())&DebugSizing == 0 {
+		return
+	}
+	widthConflict := s.Sizing.Width == sizingFixed && s.Width > 0 &&
+		((s.MinWidth > 0 && s.MinWidth != s.Width) ||
+			(s.MaxWidth > 0 && s.MaxWidth != s.Width))
+	heightConflict := s.Sizing.Height == sizingFixed && s.Height > 0 &&
+		((s.MinHeight > 0 && s.MinHeight != s.Height) ||
+			(s.MaxHeight > 0 && s.MaxHeight != s.Height))
+	if !widthConflict && !heightConflict {
+		return
+	}
+	axis := "width"
+	if widthConflict && heightConflict {
+		axis = "width and height"
+	} else if heightConflict {
+		axis = "height"
+	}
+	key := s.idKey()
+	w.debugWarn(debugCheckFixedSizing, key,
+		"shape %q is Fixed on the %s but also states Min/Max; "+
+			"Fixed pins Min = Max = size, so the stated bounds "+
+			"are ignored (issue #635)", key, axis)
 }

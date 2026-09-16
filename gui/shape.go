@@ -78,13 +78,31 @@ type Shape struct {
 	Padding   Padding  // inner spacing
 
 	// Numeric fields
-	X         float32 // final calculated X position (absolute)
-	Y         float32 // final calculated Y position (absolute)
-	Width     float32
-	MinWidth  float32
-	MaxWidth  float32
-	Height    float32
+	X float32 // final calculated X position (absolute)
+	Y float32 // final calculated Y position (absolute)
+	// Width is the stated size on the horizontal axis. On a Fixed
+	// axis with a positive Width, MinWidth and MaxWidth are
+	// overwritten with Width and never take effect (issue #635).
+	Width float32
+	// MinWidth floors the arranged width, except on a Fixed axis
+	// with a positive Width, where it is overwritten with Width.
+	// Zero or negative means unset.
+	MinWidth float32
+	// MaxWidth caps the arranged width, except on a Fixed axis
+	// with a positive Width, where it is overwritten with Width.
+	// Zero or negative means unset.
+	MaxWidth float32
+	// Height is the stated size on the vertical axis. On a Fixed
+	// axis with a positive Height, MinHeight and MaxHeight are
+	// overwritten with Height and never take effect (issue #635).
+	Height float32
+	// MinHeight floors the arranged height, except on a Fixed axis
+	// with a positive Height, where it is overwritten with Height.
+	// Zero or negative means unset.
 	MinHeight float32
+	// MaxHeight caps the arranged height, except on a Fixed axis
+	// with a positive Height, where it is overwritten with Height.
+	// Zero or negative means unset.
 	MaxHeight float32
 	Radius    float32 // corner radius
 	Spacing   float32 // spacing between children

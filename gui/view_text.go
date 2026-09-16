@@ -184,6 +184,9 @@ func (tv *textView) GenerateLayout(w *Window) Layout {
 		)
 		layout.Shape.Height = layout.Shape.MinHeight
 	}
+	// No warnFixedSizingConflict here: the caller's MinWidth was
+	// already merged as a floor above, so the pin below is a no-op
+	// and nothing is discarded.
 	applyFixedSizingConstraints(layout.Shape)
 
 	// After sizing: the frame's scale and rotation turn about the

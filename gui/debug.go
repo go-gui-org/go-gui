@@ -220,6 +220,14 @@ const (
 	// exportaudit:keep — dev-diagnostic API for app authors
 	DebugGlyphLayoutFallback
 
+	// DebugSizing reports sizing config the layout pass silently
+	// ignores: a Fixed axis that also states Min or Max. Fixed pins
+	// Min = Max = size (applyFixedSizingConstraints), so the stated
+	// bounds never take effect. A redundant bound equal to the size
+	// stays quiet; only a conflicting one reports.
+	// exportaudit:keep — dev-diagnostic API for app authors
+	DebugSizing
+
 	// DebugLayoutInvariants reports a frame whose arranged tree breaks a
 	// sizing rule: a child outside its parent's bounds where the parent
 	// neither clips nor scrolls, a minimum left above its maximum, or a
@@ -252,7 +260,7 @@ const (
 		DebugListBoxNoHeight | DebugGradientResampled | DebugWrapOverflow |
 		DebugCallbacks | DebugWindowDegraded | DebugUnresolvedKeys |
 		DebugUnknownFocus | DebugStampDrift | DebugUnknownLookup |
-		DebugGlyphLayoutFallback
+		DebugGlyphLayoutFallback | DebugSizing
 )
 
 func init() {
@@ -296,6 +304,8 @@ func envTruthy(name string) bool {
 //     (degraded caret, selection and delete precision)
 //   - a container that sets both Wrap and Overflow (wrap wins, overflow
 //     is ignored)
+//   - a Fixed axis that also states Min or Max (Fixed pins Min = Max =
+//     size, so the stated bounds are ignored)
 //   - a state key that is a bare leaf while an ancestor join rewrote
 //     the shape of that name (the widget never resolved its cfg.ID, or
 //     resolved at the wrong time)

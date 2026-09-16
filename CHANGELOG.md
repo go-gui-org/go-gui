@@ -35,6 +35,12 @@ and this project adheres to
   `MaskCreditCardAmex` and `MaskCVC` join the preset list. A custom token
   without a `Matcher` fails `compileInputMask` instead of installing a slot no
   keystroke can ever fill.
+- **`DebugSizing` warns when Fixed sizing discards Min/Max (#635)** — a Fixed
+  axis pins `Min = Max = size`, so a stated `MinWidth`/`MaxWidth` (or height
+  equivalent) never took effect and nothing said so. The new category, on by
+  default in `DebugAll`, reports a conflicting stated bound at generation time;
+  a bound equal to the size and a Fixed axis with no positive size stay quiet.
+  The `Shape` and `ContainerCfg` bound fields now document the rule.
 
 ### Changed
 

@@ -95,9 +95,13 @@ _negative_ Fixed size means is unspecified — it currently takes the same branc
 (`gui/layout_sizing.go:457`).
 
 **A Fixed axis discards the caller's stated Min and Max.**
-`applyFixedSizingConstraints` pins `Min = Max = Width` (`gui/sizing.go:60-69`),
-which is why Fixed loses to nothing downstream. Tracked as #635: the fields
-silently do nothing on a Fixed axis and the API docs do not say so.
+`applyFixedSizingConstraints` pins `Min = Max = Width` (`gui/sizing.go`), which
+is why Fixed loses to nothing downstream. A conflicting stated bound reports
+through the `DebugSizing` category (`warnFixedSizingConflict`); a bound equal to
+the size is redundant but harmless and stays quiet, as does a Fixed axis with no
+positive size, which degrades to content sizing. `Text` is exempt: it merges the
+caller's `MinWidth` as a floor before the pin, so the pin is a no-op there.
+`Image` and `Svg` carry no Fixed sizing and never pin.
 
 **A container with no children collapses to 0 rather than to its padding.**
 Padding is conditional on child count (`gui/layout_sizing.go:517-519`), which is

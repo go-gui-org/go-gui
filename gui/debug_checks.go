@@ -86,6 +86,10 @@ const (
 	// non-clipping parent's bounds, a minimum above its maximum,
 	// or a non-finite or negative size.
 	debugCheckLayoutInvariant
+	// debugCheckFixedSizing fires from view generation when a Fixed
+	// axis also states Min or Max, which applyFixedSizingConstraints
+	// overwrites with the size (issue #635).
+	debugCheckFixedSizing
 )
 
 // checkCategory maps an internal check to the public category that
@@ -123,6 +127,8 @@ func checkCategory(check debugCheck) DebugCategory {
 		return DebugGlyphLayoutFallback
 	case debugCheckLayoutInvariant:
 		return DebugLayoutInvariants
+	case debugCheckFixedSizing:
+		return DebugSizing
 	default:
 		panic("gui: checkCategory has no category for debugCheck " +
 			strconv.Itoa(int(check)))

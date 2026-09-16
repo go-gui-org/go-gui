@@ -100,10 +100,23 @@ type ContainerCfg struct {
 	Opacity    Opt[float32]
 	Width      float32
 	Height     float32
-	MinWidth   float32
-	MaxWidth   float32
-	MinHeight  float32
-	MaxHeight  float32
+	// MinWidth floors the arranged width, except on a Fixed-width
+	// axis with a positive Width, where it is overwritten with
+	// Width and never takes effect (issue #635). Zero means unset.
+	MinWidth float32
+	// MaxWidth caps the arranged width, except on a Fixed-width
+	// axis with a positive Width, where it is overwritten with
+	// Width and never takes effect (issue #635). Zero means unset.
+	MaxWidth float32
+	// MinHeight floors the arranged height, except on a
+	// Fixed-height axis with a positive Height, where it is
+	// overwritten with Height and never takes effect (issue #635).
+	// Zero means unset.
+	MinHeight float32
+	// MaxHeight caps the arranged height, except on a Fixed-height
+	// axis with a positive Height, where it is overwritten with
+	// Height and never takes effect (issue #635). Zero means unset.
+	MaxHeight float32
 
 	BlurRadius float32
 
@@ -493,6 +506,7 @@ func buildContainerShape(cfg *ContainerCfg, w *Window) Shape {
 	if ev, ok := makeContainerEvents(cfg); ok {
 		shape.events = w.allocEventHandlers(ev)
 	}
+	warnFixedSizingConflict(w, &shape)
 	applyFixedSizingConstraints(&shape)
 	return shape
 }
