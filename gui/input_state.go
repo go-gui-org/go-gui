@@ -112,87 +112,25 @@ func inputStateFromMemento(m inputMemento, undo, redo *BoundedStack[inputMemento
 	}
 }
 
+// inputStoreState writes is as the input state for focusID.
+func inputStoreState(focusID string, w *Window, is inputState) {
+	StateMap[string, inputState](w, nsInput, capMany).Set(focusID, is)
+}
+
 // inputProposedText returns the text that would result from
 // inserting insertText at the cursor without modifying state.
 func inputProposedText(text, insertText string, focusID string, w *Window) string {
-	if len(insertText) == 0 {
-		return text
-	}
-	insertRunes := []rune(truncateToMaxRunes(insertText))
-	runes := []rune(text)
-	is := inputStateOrDefault(focusID, w)
-	cursorPos := min(is.CursorPos, len(runes))
-	if cursorPos < 0 {
-		return text + string(insertRunes)
-	}
-	if is.selectBeg != is.selectEnd {
-		beg, end := u32Sort(is.selectBeg, is.selectEnd)
-		if int(beg) >= len(runes) || int(end) > len(runes) {
-			return text
-		}
-		result := make([]rune, 0, int(beg)+len(insertRunes)+(len(runes)-int(end)))
-		result = append(result, runes[:beg]...)
-		result = append(result, insertRunes...)
-		result = append(result, runes[end:]...)
-		return string(result)
-	}
-	result := make([]rune, 0, len(runes)+len(insertRunes))
-	result = append(result, runes[:cursorPos]...)
-	result = append(result, insertRunes...)
-	result = append(result, runes[cursorPos:]...)
-	return string(result)
+	return editProposedText(text, insertText, inputStateOrDefault(focusID, w))
 }
 
 // inputInsert inserts text at cursor or replaces selection.
-// Returns resulting text.
+// Returns resulting text. See editInsert.
 func inputInsert(text string, insertText string, focusID string, w *Window) string {
-	if len(insertText) == 0 {
-		return text
+	next, is, ok := editInsert(text, insertText, inputStateOrDefault(focusID, w))
+	if ok {
+		inputStoreState(focusID, w, is)
 	}
-	insertRunes := []rune(truncateToMaxRunes(insertText))
-
-	runes := []rune(text)
-	is := inputStateOrDefault(focusID, w)
-	cursorPos := min(is.CursorPos, len(runes))
-	if cursorPos < 0 {
-		runes = append(runes, insertRunes...)
-		cursorPos = len(runes)
-	} else if is.selectBeg != is.selectEnd {
-		beg, end := u32Sort(is.selectBeg, is.selectEnd)
-		if int(beg) >= len(runes) || int(end) > len(runes) {
-			return text
-		}
-		result := make([]rune, 0, int(beg)+len(insertRunes)+(len(runes)-int(end)))
-		result = append(result, runes[:beg]...)
-		result = append(result, insertRunes...)
-		result = append(result, runes[end:]...)
-		runes = result
-		cursorPos = min(int(beg)+len(insertRunes), len(runes))
-	} else {
-		result := make([]rune, 0, cursorPos+len(insertRunes)+(len(runes)-cursorPos))
-		result = append(result, runes[:cursorPos]...)
-		result = append(result, insertRunes...)
-		result = append(result, runes[cursorPos:]...)
-		runes = result
-		cursorPos = min(cursorPos+len(insertRunes), len(runes))
-	}
-
-	nextText := string(runes)
-	op := inputOpInsert
-	if isMultiRuneInsert(insertText) {
-		// Multi-rune inserts (paste, IME commits) are one undo step
-		// even after a typing run, so they break the run.
-		op = inputOpNone
-	}
-	undo := inputPushUndo(is, text, op)
-	imap := StateMap[string, inputState](w, nsInput, capMany)
-	imap.Set(focusID, inputState{
-		CursorPos:    cursorPos,
-		cursorOffset: -1,
-		Undo:         undo,
-		lastEditOp:   op,
-	})
-	return nextText
+	return next
 }
 
 // isMultiRuneInsert reports whether s holds more than one rune,
@@ -232,173 +170,61 @@ func capCallbackText(s string) string {
 }
 
 // inputSetTextAndCursorAtEnd pushes undo and places cursor at end
-// of newText. Used when PreTextChange returns adjusted text where
-// positional cursor mapping is unreliable.
+// of newText. See editSetTextCursorAtEnd.
 func inputSetTextAndCursorAtEnd(oldText, newText string, focusID string, w *Window) {
 	is := inputStateOrDefault(focusID, w)
-	// A programmatic text set is never part of a typing run.
-	undo := inputPushUndo(is, oldText, inputOpNone)
-	imap := StateMap[string, inputState](w, nsInput, capMany)
-	imap.Set(focusID, inputState{
-		CursorPos:    utf8RuneCount(newText),
-		cursorOffset: -1,
-		Undo:         undo,
-	})
+	inputStoreState(focusID, w, editSetTextCursorAtEnd(oldText, newText, is))
 }
 
-// inputDelete removes text at cursor or selected range. A plain
-// (unselected) delete removes one whole grapheme cluster — the same
-// granularity the glyph-backed path gives — so the nil-measurer
-// fallback never splits an emoji or combining sequence.
-// forwardDelete=true for Delete key, false for Backspace. Returns the
-// new text and whether it changed: an edge delete (Backspace at 0,
-// Delete at end) changes nothing and reports false. Consuming that
-// keystroke is the caller's decision, not this bool's.
+// inputDelete removes text at cursor or selected range. Returns the new
+// text and whether it changed. See editDelete.
 func inputDelete(text string, focusID string, forwardDelete bool, w *Window) (string, bool) {
-	runes := []rune(text)
-	is := inputStateOrDefault(focusID, w)
-	cursorPos := min(is.CursorPos, len(runes))
-	if cursorPos < 0 {
-		cursorPos = len(runes)
+	next, is, ok := editDelete(text, inputStateOrDefault(focusID, w), forwardDelete)
+	if ok {
+		inputStoreState(focusID, w, is)
 	}
-
-	if is.selectBeg != is.selectEnd {
-		beg, end := u32Sort(is.selectBeg, is.selectEnd)
-		if int(beg) >= len(runes) || int(end) > len(runes) {
-			return text, false
-		}
-		result := make([]rune, 0, int(beg)+(len(runes)-int(end)))
-		result = append(result, runes[:beg]...)
-		result = append(result, runes[end:]...)
-		runes = result
-		cursorPos = min(int(beg), len(runes))
-	} else {
-		if cursorPos == 0 && !forwardDelete {
-			return text, false
-		}
-		if cursorPos == len(runes) && forwardDelete {
-			return text, false
-		}
-		// No glyph layout behind this path (nil textMeasurer), so
-		// cluster boundaries are recomputed with UAX #29 — the same
-		// segmentation shaping produces — keeping Backspace/Delete
-		// whole-cluster in the fallback as well.
-		stops := graphemeStops(text)
-		delPos, delEnd := cursorPos, cursorPos
-		if !forwardDelete {
-			delPos = prevGraphemeStop(stops, cursorPos)
-		} else {
-			delEnd = nextGraphemeStop(stops, cursorPos)
-		}
-		if delPos < 0 || delPos >= len(runes) || delEnd > len(runes) {
-			return text, false
-		}
-		result := make([]rune, 0, len(runes)-(delEnd-delPos))
-		result = append(result, runes[:delPos]...)
-		result = append(result, runes[delEnd:]...)
-		runes = result
-		if !forwardDelete {
-			cursorPos = delPos
-		}
-	}
-
-	nextText := string(runes)
-	undo := inputPushUndo(is, text, inputOpDelete)
-	imap := StateMap[string, inputState](w, nsInput, capMany)
-	imap.Set(focusID, inputState{
-		CursorPos:    cursorPos,
-		cursorOffset: -1,
-		Undo:         undo,
-		lastEditOp:   inputOpDelete,
-	})
-	return nextText, true
+	return next, ok
 }
 
 // inputCopy returns the selected text. Returns ("", false) if
 // no selection or password mode.
 func inputCopy(text string, focusID string, isPassword bool, w *Window) (string, bool) {
-	if isPassword {
-		return "", false
-	}
-	is := StateReadOr(w, nsInput, focusID, inputState{})
-	if is.selectBeg == is.selectEnd {
-		return "", false
-	}
-	beg, end := u32Sort(is.selectBeg, is.selectEnd)
-	runeCount := utf8RuneCount(text)
-	if int(beg) > runeCount || int(end) > runeCount || beg >= end {
-		return "", false
-	}
-	begByte := runeToByteIndex(text, int(beg))
-	endByte := runeToByteIndex(text, int(end))
-	return text[begByte:endByte], true
+	return editSelectedText(text, inputStateOrDefault(focusID, w), isPassword)
 }
 
 // inputCut copies selected text then deletes it.
 func inputCut(text string, focusID string, isPassword bool, w *Window) (string, string, bool) {
-	if isPassword {
-		return text, "", false
+	newText, copied, is, ok := editCut(text, inputStateOrDefault(focusID, w), isPassword)
+	if ok {
+		inputStoreState(focusID, w, is)
 	}
-	copied, ok := inputCopy(text, focusID, false, w)
-	if !ok {
-		return text, "", false
-	}
-	newText, _ := inputDelete(text, focusID, false, w)
-	return newText, copied, true
+	return newText, copied, ok
 }
 
 // inputUndo reverts to previous state. Returns restored text.
 func inputUndo(text string, focusID string, w *Window) string {
-	imap := StateMap[string, inputState](w, nsInput, capMany)
 	// Default InputState{}: zero value means no undo state exists.
-	is := imap.GetOr(focusID, inputState{})
-	if is.Undo == nil || is.Undo.isEmpty() {
-		return text
+	next, is, ok := editUndo(text, inputStateOrDefault(focusID, w))
+	if ok {
+		inputStoreState(focusID, w, is)
 	}
-	memento, ok := is.Undo.Pop()
-	if !ok {
-		return text
-	}
-	redo := is.Redo
-	if redo == nil {
-		redo = newBoundedStack[inputMemento](undoMaxSize)
-	}
-	redo.Push(inputMementoFromState(text, is))
-	imap.Set(focusID, inputStateFromMemento(memento, is.Undo, redo))
-	return memento.Text
+	return next
 }
 
 // inputRedo reapplies a previously undone operation.
 func inputRedo(text string, focusID string, w *Window) string {
-	imap := StateMap[string, inputState](w, nsInput, capMany)
 	// Default InputState{}: zero value means no redo state exists.
-	is := imap.GetOr(focusID, inputState{})
-	if is.Redo == nil || is.Redo.isEmpty() {
-		return text
+	next, is, ok := editRedo(text, inputStateOrDefault(focusID, w))
+	if ok {
+		inputStoreState(focusID, w, is)
 	}
-	memento, ok := is.Redo.Pop()
-	if !ok {
-		return text
-	}
-	undo := is.Undo
-	if undo == nil {
-		undo = newBoundedStack[inputMemento](undoMaxSize)
-	}
-	undo.Push(inputMementoFromState(text, is))
-	imap.Set(focusID, inputStateFromMemento(memento, undo, is.Redo))
-	return memento.Text
+	return next
 }
 
 // inputSelectAll selects all text.
 func inputSelectAll(text string, focusID string, w *Window) {
-	runeCount := utf8RuneCount(text)
-	imap := StateMap[string, inputState](w, nsInput, capMany)
 	// Default InputState{}: zero value seeds initial select-all state.
-	is := imap.GetOr(focusID, inputState{})
-	is.selectBeg = 0
-	is.selectEnd = uint32(runeCount)
-	is.CursorPos = runeCount
-	imap.Set(focusID, is)
+	inputStoreState(focusID, w, editSelectAll(text, inputStateOrDefault(focusID, w)))
 }
 
 // updateCursorAndSelection moves cursor to newPos, extending

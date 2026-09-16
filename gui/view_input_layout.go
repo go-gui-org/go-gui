@@ -136,14 +136,7 @@ func inputDeleteGrapheme(
 		return text, false
 	}
 	newPos := byteToRuneIndex(res.NewText, res.CursorPos)
-	undo := inputPushUndo(is, text, inputOpDelete)
-	imap := StateMap[string, inputState](w, nsInput, capMany)
-	imap.Set(focusID, inputState{
-		CursorPos:    newPos,
-		cursorOffset: -1,
-		Undo:         undo,
-		lastEditOp:   inputOpDelete,
-	})
+	inputStoreState(focusID, w, editCommit(is, text, newPos, inputOpDelete))
 	return res.NewText, true
 }
 

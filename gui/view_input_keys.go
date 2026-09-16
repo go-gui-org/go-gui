@@ -219,16 +219,7 @@ func inputKeyPaste(
 			cis.selectEnd, clip, mask)
 		if res.Changed {
 			// A paste is never part of a typing run.
-			undo := inputPushUndo(cis, text, inputOpNone)
-			StateMap[string, inputState](
-				w, nsInput, capMany,
-			).Set(id, inputState{
-				CursorPos: res.CursorPos,
-				Undo:      undo,
-				// -1 recomputes the preferred column from the
-				// caret; 0 would pin it to the left edge.
-				cursorOffset: -1,
-			})
+			inputStoreState(id, w, editCommit(cis, text, res.CursorPos, inputOpNone))
 			return res.Text, true
 		}
 		// The mask has no room for the pasted text (issue #468).
@@ -298,15 +289,7 @@ func inputHandleDelete(
 		if !res.Changed {
 			return text, false
 		}
-		undo := inputPushUndo(is, text, inputOpDelete)
-		StateMap[string, inputState](
-			w, nsInput, capMany,
-		).Set(id, inputState{
-			CursorPos: res.CursorPos, Undo: undo, lastEditOp: inputOpDelete,
-			// -1 recomputes the preferred column from the
-			// caret; 0 would pin it to the left edge.
-			cursorOffset: -1,
-		})
+		inputStoreState(id, w, editCommit(is, text, res.CursorPos, inputOpDelete))
 		return res.Text, true
 	}
 	return inputDeleteGrapheme(text, id, forward, layout, w)

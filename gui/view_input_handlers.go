@@ -19,16 +19,8 @@ func inputTextChange(hcfg inputHandlerCfg, layout *Layout, text, ins string, id 
 			if isMultiRuneInsert(ins) {
 				op = inputOpNone
 			}
-			undo := inputPushUndo(is, text, op)
-			text = res.Text
-			StateMap[string, inputState](w, nsInput, capMany).Set(id, inputState{
-				CursorPos: res.CursorPos, Undo: undo, lastEditOp: op,
-				// Unset, not zero: 0 is a valid preferred column
-				// for vertical motion, -1 recomputes it from the
-				// caret (see inputInsert).
-				cursorOffset: -1,
-			})
-			return text, true
+			inputStoreState(id, w, editCommit(is, text, res.CursorPos, op))
+			return res.Text, true
 		}
 	} else if hcfg.preTextChange != nil {
 		proposed := inputProposedText(text, ins, id, w)
