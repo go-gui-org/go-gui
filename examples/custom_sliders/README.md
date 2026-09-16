@@ -49,10 +49,9 @@ ID-less part would hide hover and press from the slider (#661).
 
 ## Limits
 
-Two things a custom slider cannot do with the public API today:
+One thing this example does not do yet:
 
-- **Mouse wheel.** `ContainerCfg` has no `OnMouseScroll`.
-- **Value for a screen reader.** The role is set, but the value, minimum and
-  maximum are in an unexported field.
+- **Mouse wheel.** `ContainerCfg.OnMouseScroll` now allows it. The port to
+  `SliderCfg.Look` (#664) brings it with the stock slider's wheel handling.
 
 See `main.go` for the implementation.

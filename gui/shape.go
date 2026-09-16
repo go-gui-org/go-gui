@@ -397,6 +397,21 @@ func (s AccessState) Has(flag AccessState) bool {
 	return s&flag == flag
 }
 
+// AccessValue is the current value of a range control (a slider, a
+// stepper, a meter) as a screen reader reads it. Now lies between Min
+// and Max. A value with Min equal to Max is unset: that range holds no
+// value to report, so the zero AccessValue means "no value".
+type AccessValue struct {
+	Now float32
+	Min float32
+	Max float32
+}
+
+// IsSet reports whether v holds a value, that is Min differs from Max.
+func (v AccessValue) IsSet() bool {
+	return v.Min != v.Max
+}
+
 // drawClip represents a clipping rectangle.
 type drawClip struct {
 	X      float32

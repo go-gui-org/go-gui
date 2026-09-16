@@ -1207,3 +1207,47 @@ func TestWindowCleanupClearsRegistryAndContext(t *testing.T) {
 		t.Error("context not cancelled after cleanup")
 	}
 }
+
+// A custom control built on ContainerCfg reports its value to a screen
+// reader through A11YValue, as the stock Slider does (#664).
+func TestContainerA11YValueReachesNode(t *testing.T) {
+	t.Parallel()
+	w := &Window{}
+	cases := []struct {
+		name      string
+		label     string
+		value     AccessValue
+		wantNum   float32
+		wantMax   float32
+		wantValue string
+	}{
+		{"labelled", "Volume", AccessValue{Now: 3, Min: 0, Max: 10}, 3, 10, "3"},
+		{"no label", "", AccessValue{Now: 0.25, Min: 0, Max: 1}, 0.25, 1, "0.25"},
+		{"min equals max is unset", "Volume", AccessValue{Now: 5, Min: 2, Max: 2}, 0, 0, ""},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			l := Row(ContainerCfg{
+				ID:        "knob",
+				A11YRole:  AccessRoleSlider,
+				A11YCfg:   A11YCfg{A11YLabel: tc.label},
+				A11YValue: tc.value,
+			}).GenerateLayout(w)
+			var nodes []A11yNode
+			var live []liveNode
+			a11yCollect(&l, -1, &nodes, "", &live)
+			if len(nodes) != 1 {
+				t.Fatalf("nodes = %d, want 1", len(nodes))
+			}
+			n := nodes[0]
+			if n.ValueNum != tc.wantNum || n.ValueMax != tc.wantMax || n.Value != tc.wantValue {
+				t.Errorf("value = (%g, max %g, %q), want (%g, max %g, %q)",
+					n.ValueNum, n.ValueMax, n.Value, tc.wantNum, tc.wantMax, tc.wantValue)
+			}
+			if n.Label != tc.label {
+				t.Errorf("label = %q, want %q", n.Label, tc.label)
+			}
+		})
+	}
+}

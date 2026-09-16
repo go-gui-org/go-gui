@@ -198,6 +198,12 @@ type ContainerCfg struct {
 	// Accessibility
 	A11YRole AccessRole
 
+	// A11YValue is the value a screen reader reads for a range control
+	// built on a container, such as a custom slider with
+	// AccessRoleSlider. The zero value (Min equal to Max) reports no
+	// value. The stock Slider sets its own (#664).
+	A11YValue AccessValue
+
 	// Internal — set by factory functions.
 	axis                 Axis
 	shapeType            shapeType // zero = shapeRectangle
@@ -442,7 +448,20 @@ func makeContainerA11Y(c *ContainerCfg) *accessInfo {
 	if c.a11Y != nil {
 		return c.a11Y
 	}
-	return c.a11yInfo("")
+	info := c.a11yInfo("")
+	if !c.A11YValue.IsSet() {
+		return info
+	}
+	// a11yInfo returns nil when there is no label or description, and a
+	// fresh pointer otherwise, so filling in the value never touches a
+	// shared accessInfo.
+	if info == nil {
+		info = &accessInfo{}
+	}
+	info.ValueNum = c.A11YValue.Now
+	info.ValueMin = c.A11YValue.Min
+	info.ValueMax = c.A11YValue.Max
+	return info
 }
 
 func deriveContainerA11YRole(c *ContainerCfg) AccessRole {

@@ -36,6 +36,13 @@ and this project adheres to
   `ctx.Event.ScrollX` and `ScrollY`, the same as `DrawCanvasCfg.OnMouseScroll`.
   A handler that does not call `ctx.Consume()` lets the wheel also scroll the
   scroll container below.
+- **`ContainerCfg.A11YValue` (#664)** — a custom range control built on a
+  container, such as a slider with `AccessRoleSlider`, can now tell a screen
+  reader its value. Set `A11YValue: gui.AccessValue{Now: v, Min: 0, Max: 1}`.
+  Before, only the stock `Slider` and `ProgressBar` could report a value,
+  because the field that carries it was unexported. An `AccessValue` with `Min`
+  equal to `Max`, including the zero value, reports no value. The
+  `custom_sliders` example now sets it.
 
 ### Changed
 

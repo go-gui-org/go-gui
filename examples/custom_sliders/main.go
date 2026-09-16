@@ -24,12 +24,10 @@
 //   - An ID on every float part. A float is hit-tested in its own layer, so
 //     an ID-less part hides hover and press from the slider (#661).
 //
-// Not possible with the public API, so left out:
+// Left out:
 //
-//   - The mouse wheel. ContainerCfg has no OnMouseScroll; OnScroll is for
-//     scroll containers only.
-//   - The value for a screen reader. The slider role is set, but the value,
-//     minimum and maximum live in an unexported field of ContainerCfg.
+//   - The mouse wheel. ContainerCfg.OnMouseScroll now allows it; the port to
+//     SliderCfg.Look (#664) brings it with the stock slider's wheel handling.
 package main
 
 import (
@@ -263,7 +261,8 @@ func valueRowStyled(app *App, name string, slider gui.View, style gui.TextStyle)
 }
 
 // sliderShell is the part every custom slider shares: a fixed size, focus,
-// press-to-drag, the keys and the slider role. The look goes in cfg.Content.
+// press-to-drag, the keys, and the slider role and value. The look goes in
+// cfg.Content.
 func sliderShell(app *App, cfg gui.ContainerCfg, t track, height float32) gui.ContainerCfg {
 	cfg.Width = t.width
 	cfg.Height = height
@@ -275,6 +274,7 @@ func sliderShell(app *App, cfg gui.ContainerCfg, t track, height float32) gui.Co
 	cfg.OnKeyDown = app.keys[t.name]
 	cfg.A11YRole = gui.AccessRoleSlider
 	cfg.A11YCfg = gui.A11YCfg{A11YLabel: t.name}
+	cfg.A11YValue = gui.AccessValue{Now: app.value[t.name], Min: 0, Max: 1}
 	return cfg
 }
 
