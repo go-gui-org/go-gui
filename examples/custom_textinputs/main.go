@@ -15,10 +15,9 @@
 //
 // What this costs (input for the design issue):
 //
-//   - The look needs the focus of the Input, not of the wrapper. The
-//     InteractionState from gui.Interactive has Focused only for the
-//     wrapper itself, so the builder asks the window for the Input's
-//     effective ID: w.IsFocus(gui.ScopeID(w.EffID(id), fieldID)).
+//   - The look needs the focus of the Input, not of the wrapper.
+//     InteractionState.FocusWithin is true when the wrapper or the Input
+//     inside it has focus, so the builder reads that.
 //   - Turning the Input's chrome off takes seven fields; see plainInput.
 //   - A press on the wrapper's padding does not reach the Input. The wrapper
 //     has an OnMouseDown that moves focus to it; see focusField.
@@ -125,9 +124,9 @@ func mainView(w *gui.Window) gui.View {
 			note("Flat fill, thin border, thick accent underline on focus."),
 			group("material", gui.ContainerCfg{},
 				fieldLabel("Single-line"),
-				materialField(w, app, "email", false, materialBlue),
+				materialField(app, "email", false, materialBlue),
 				fieldLabel("Multiline"),
-				materialField(w, app, "matnotes", true, materialTeal),
+				materialField(app, "matnotes", true, materialTeal),
 			),
 
 			sectionTitle("Windows XP Luna"),
@@ -139,9 +138,9 @@ func mainView(w *gui.Window) gui.View {
 				Padding:     gui.PadAll(14),
 			},
 				fieldLabel("Single-line"),
-				xpField(w, app, "user", false),
+				xpField(app, "user", false),
 				fieldLabel("Multiline"),
-				xpField(w, app, "xpnotes", true),
+				xpField(app, "xpnotes", true),
 			),
 
 			valuesPanel(app),
@@ -221,13 +220,6 @@ func plainInput(app *App, key string, multiline bool) gui.View {
 	return gui.Input(cfg)
 }
 
-// inputFocused reports whether the Input inside the field id has focus. It
-// must run during layout generation, inside the Interactive builder, where
-// w.EffID joins the scope the field sits in.
-func inputFocused(w *gui.Window, id string) bool {
-	return w.IsFocus(gui.ScopeID(w.EffID(id), fieldID))
-}
-
 // focusField moves focus to the Input when a press lands on the wrapper's
 // padding or border. A press on the Input itself has already focused it.
 // One handler serves every field: the wrapper is ctx.Layout, so its
@@ -260,12 +252,11 @@ var (
 // focus the border and underline take the accent color and the underline
 // grows to 2 px. The underline strip is always 2 px tall, so the field does
 // not change height; the line inside it grows.
-func materialField(w *gui.Window, app *App, id string, multiline bool, accent gui.Color) gui.View {
+func materialField(app *App, id string, multiline bool, accent gui.Color) gui.View {
 	return gui.Interactive(id, func(s gui.InteractionState) gui.View {
-		focused := inputFocused(w, id)
 		border, line, lineH := materialBorder, materialUnderline, float32(1)
 		switch {
-		case focused:
+		case s.FocusWithin:
 			border, line, lineH = accent, accent, 2
 		case s.Hovered:
 			border = materialHover
@@ -312,10 +303,10 @@ var (
 // xpField is a Luna edit control: a square blue border, a white face and a
 // 1 px shade under the top border, so the face reads as sunken. The border
 // darkens on focus.
-func xpField(w *gui.Window, app *App, id string, multiline bool) gui.View {
-	return gui.Interactive(id, func(gui.InteractionState) gui.View {
+func xpField(app *App, id string, multiline bool) gui.View {
+	return gui.Interactive(id, func(s gui.InteractionState) gui.View {
 		border := xpBorder
-		if inputFocused(w, id) {
+		if s.FocusWithin {
 			border = xpFocus
 		}
 		return gui.Column(gui.ContainerCfg{

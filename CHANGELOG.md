@@ -43,6 +43,12 @@ and this project adheres to
   because the field that carries it was unexported. An `AccessValue` with `Min`
   equal to `Max`, including the zero value, reports no value. The
   `custom_sliders` example now sets it.
+- **`InteractionState.FocusWithin` (#664)** — a `gui.Interactive` look can now
+  see that a widget inside it has keyboard focus. It is true when the widget or
+  one of its ID-bearing descendants is focused, the same rule `Hovered` and
+  `Pressed` use. `Focused` is unchanged and still means the widget itself. A
+  wrapper around an `Input` no longer builds the Input's effective ID by hand to
+  draw its focus look; the `custom_textinputs` example now reads `FocusWithin`.
 
 ### Changed
 

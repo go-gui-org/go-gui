@@ -29,17 +29,18 @@ border, radius and padding turned off (`plainInput`).
   the top border. The border darkens on focus.
 
 The look depends on the focus of the Input, not of the wrapper. The
-`InteractionState` from `gui.Interactive` reports focus for the wrapper only, so
-the builder asks the window for the Input's effective ID:
+`InteractionState` from `gui.Interactive` has `FocusWithin`, which is true when
+the wrapper or the Input inside it has focus, so the builder reads that:
 
 ```go
-func inputFocused(w *gui.Window, id string) bool {
-    return w.IsFocus(gui.ScopeID(w.EffID(id), fieldID))
-}
+gui.Interactive(id, func(s gui.InteractionState) gui.View {
+    border := xpBorder
+    if s.FocusWithin {
+        border = xpFocus
+    }
+    ...
+})
 ```
-
-It runs inside the `gui.Interactive` builder, where `w.EffID` joins the right
-scope.
 
 A press on the wrapper's padding would not reach the Input. The wrapper's
 `OnMouseDown` (`focusField`) moves focus to the Input.

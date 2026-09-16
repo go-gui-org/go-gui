@@ -26,6 +26,9 @@ type InteractionState struct {
     Pressed bool // Window.IsPressed(effID)
     Armed   bool // Pressed && Hovered
     Focused bool // Window.IsFocus(effID); the widget itself only
+    // targetWithin(FocusID(), effID); the widget or an ID-bearing
+    // descendant, such as an Input inside a wrapper (#664)
+    FocusWithin bool
 }
 
 func Interactive(id string, build func(InteractionState) View) View

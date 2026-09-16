@@ -36,7 +36,7 @@ func TestInteractiveStatePerPhase(t *testing.T) {
 		{name: "armed", hover: "ok", press: "ok",
 			want: InteractionState{Hovered: true, Pressed: true, Armed: true}},
 		{name: "focused", focus: "ok",
-			want: InteractionState{Focused: true}},
+			want: InteractionState{Focused: true, FocusWithin: true}},
 		{name: "other widget", hover: "okay", press: "cancel", focus: "cancel"},
 	}
 	for _, tc := range tests {
@@ -157,5 +157,34 @@ func TestInteractiveFocusedDescendantDoesNotCount(t *testing.T) {
 	generateViewLayout(interactiveProbe("ok", "ok", &got), w)
 	if got.Focused {
 		t.Fatal("a focused descendant must not set Focused")
+	}
+}
+
+// FocusWithin counts the widget and its ID-bearing descendants, the same
+// test Hovered and Pressed use: a wrapper sees that its inner Input has
+// focus (#664). A sibling whose ID only starts with the same letters
+// does not count.
+func TestInteractiveFocusWithin(t *testing.T) {
+	tests := []struct {
+		name, focus string
+		want        bool
+	}{
+		{name: "self", focus: "ok", want: true},
+		{name: "descendant", focus: "ok:field", want: true},
+		{name: "deep descendant", focus: "ok:row:field", want: true},
+		{name: "prefix sibling", focus: "okay"},
+		{name: "other widget", focus: "cancel"},
+		{name: "no focus", focus: ""},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			w := newTestWindow()
+			w.setFocusLocked(tc.focus)
+			var got InteractionState
+			generateViewLayout(interactiveProbe("ok", "ok", &got), w)
+			if got.FocusWithin != tc.want {
+				t.Fatalf("FocusWithin = %v, want %v", got.FocusWithin, tc.want)
+			}
+		})
 	}
 }

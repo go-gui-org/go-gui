@@ -217,7 +217,7 @@ func TestInteractiveArmedByKeyPress(t *testing.T) {
 	w.viewState.keyPressTargetID = "ok"
 	var got InteractionState
 	generateViewLayout(interactiveProbe("ok", "ok", &got), w)
-	want := InteractionState{Pressed: true, Armed: true, Focused: true}
+	want := InteractionState{Pressed: true, Armed: true, Focused: true, FocusWithin: true}
 	if got != want {
 		t.Fatalf("state = %+v, want %+v", got, want)
 	}
