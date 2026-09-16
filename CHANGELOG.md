@@ -60,6 +60,12 @@ and this project adheres to
   the other panel's count. `OverflowPanelCfg.ID` is now `gui:"required"`, and
   `OverflowPanel` and a `ContainerCfg` with `Overflow: true` panic on an empty
   ID. Migration: give each overflow panel or container a unique `ID`.
+- **BREAKING: `SidebarCfg.Clip` is gone; sidebars always clip (#641)** — the
+  sidebar animates its width from 0, so unclipped content stuck out for the
+  whole slide, and the showcase sidebar drew 27.6px past its own edge at rest.
+  The inner container now clips unconditionally. Migration: delete the `Clip`
+  line from any `SidebarCfg`; content that must escape the panel belongs in a
+  float or overlay, not in the sidebar tree.
 
 ### Fixed
 

@@ -324,6 +324,51 @@ func TestSidebarStateKeyIsScoped(t *testing.T) {
 	}
 }
 
+// A sidebar always clips its content (issue #641): it animates its
+// width from 0, so unclipped content sticks out for the whole slide,
+// not only at rest. The inner container clips regardless of config.
+func TestSidebarAlwaysClips(t *testing.T) {
+	w := &Window{}
+	v := w.Sidebar(SidebarCfg{
+		ID:    "sb",
+		Open:  true,
+		Width: 200,
+		Content: []View{
+			Text(TextCfg{Text: "nav"}),
+		},
+	})
+	layout := generateViewLayout(v, w)
+	if !layout.Shape.Clip {
+		t.Error("open sidebar should clip its content")
+	}
+}
+
+// Content wider than the sidebar must not escape it (issue #641):
+// the clip exempts the sidebar from the containment invariant, so
+// the audit that found the defect stays silent on the widget.
+func TestSidebarWideContentStaysInside(t *testing.T) {
+	w := NewTestWindow(WindowCfg{})
+	defer w.Close()
+	w.TestRender(func(w *Window) View {
+		return w.Sidebar(SidebarCfg{
+			ID:    "sb",
+			Open:  true,
+			Width: 100,
+			Content: []View{
+				Column(ContainerCfg{
+					Sizing: FixedFixed,
+					Width:  150,
+					Height: 20,
+				}),
+			},
+		})
+	})
+
+	if found := w.TestFindings(DebugLayoutInvariants); len(found) != 0 {
+		t.Fatalf("wide sidebar content must not escape, got %q", found)
+	}
+}
+
 // The audit that found this defect must now be silent on the widget.
 func TestSidebarNoUnresolvedKeyFinding(t *testing.T) {
 	buf := captureDebugMask(t, DebugAll|DebugUnresolvedKeys)

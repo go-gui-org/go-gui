@@ -34,7 +34,6 @@ type SidebarCfg struct {
 	Color     Color
 	Sizing    Sizing
 	Open      bool
-	Clip      bool
 	Disabled  bool
 	Invisible bool
 }
@@ -106,14 +105,17 @@ func (sv *sidebarView) GenerateLayout(w *Window) Layout {
 	}
 
 	return generateViewLayout(Column(ContainerCfg{
-		ID:       cfg.ID,
-		Sizing:   cfg.Sizing,
-		Width:    animW,
-		Padding:  pad,
-		Color:    cfg.Color,
-		Shadow:   cfg.Shadow,
-		Radius:   Some(cfg.Radius),
-		Clip:     cfg.Clip,
+		ID:      cfg.ID,
+		Sizing:  cfg.Sizing,
+		Width:   animW,
+		Padding: pad,
+		Color:   cfg.Color,
+		Shadow:  cfg.Shadow,
+		Radius:  Some(cfg.Radius),
+		// A sidebar animates its width from 0, so its content must
+		// always clip: unclipped content sticks out for the whole
+		// slide, not only at rest (issue #641).
+		Clip:     true,
 		Disabled: cfg.Disabled,
 		A11YRole: AccessRoleGroup,
 		A11YCfg: A11YCfg{
