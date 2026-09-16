@@ -29,6 +29,13 @@ and this project adheres to
   with its chrome turned off in Material and Windows XP fields that restyle when
   the inner Input has focus. Both use only the public API, and each lists what
   it had to write by hand, the input for a later helper design.
+- **`ContainerCfg.OnMouseScroll` (#664)** — a plain container now takes the
+  mouse wheel. `OnScroll` fires only on a scrollable container, so a custom
+  slider, stepper or picker had no way to react to the wheel. The new field is
+  called with shape-relative coordinates and the wheel amount in
+  `ctx.Event.ScrollX` and `ScrollY`, the same as `DrawCanvasCfg.OnMouseScroll`.
+  A handler that does not call `ctx.Consume()` lets the wheel also scroll the
+  scroll container below.
 
 ### Changed
 

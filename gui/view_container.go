@@ -62,6 +62,13 @@ type ContainerCfg struct {
 	// exportaudit:keep — caller-facing config (issue #372)
 	OnScroll func(EventCtx)
 
+	// OnMouseScroll fires when the mouse wheel turns over the container.
+	// Unlike OnScroll it needs no Scrollable: a custom slider, stepper or
+	// picker can take the wheel. Coordinates are shape-relative; read
+	// ctx.Event.ScrollX and ScrollY. Call ctx.Consume() to keep the wheel
+	// from also scrolling the scroll container below (#664).
+	OnMouseScroll func(EventCtx)
+
 	// AmendLayout runs after sizing to reposition overlays
 	// (color picker circles, splitter handles) or manage hover
 	// indicators. Coordinates are absolute.
@@ -404,28 +411,30 @@ func makeContainerEvents(c *ContainerCfg) (eventHandlers, bool) {
 		c.OnMouseDown == nil &&
 		c.OnHover == nil && c.OnGesture == nil &&
 		c.OnFileDrop == nil && c.OnIMECommit == nil &&
-		c.OnScroll == nil && c.AmendLayout == nil &&
+		c.OnScroll == nil && c.OnMouseScroll == nil &&
+		c.AmendLayout == nil &&
 		c.Sound == SoundNone {
 		return eventHandlers{}, false
 	}
 	return eventHandlers{
-		OnClick:      c.OnClick,
-		OnChar:       c.OnChar,
-		OnKeyDown:    c.OnKeyDown,
-		OnKeyUp:      c.OnKeyUp,
-		OnMouseMove:  c.OnMouseMove,
-		OnMouseDown:  c.OnMouseDown,
-		OnMouseUp:    c.OnMouseUp,
-		OnHover:      c.OnHover,
-		OnGesture:    c.OnGesture,
-		OnFileDrop:   c.OnFileDrop,
-		onIMECommit:  c.OnIMECommit,
-		onScroll:     c.OnScroll,
-		AmendLayout:  c.AmendLayout,
-		clickButton:  c.clickButton,
-		clickOnSpace: c.ClickOnSpace,
-		clickOnEnter: c.ClickOnEnter,
-		soundCue:     c.Sound,
+		OnClick:       c.OnClick,
+		OnChar:        c.OnChar,
+		OnKeyDown:     c.OnKeyDown,
+		OnKeyUp:       c.OnKeyUp,
+		OnMouseMove:   c.OnMouseMove,
+		OnMouseDown:   c.OnMouseDown,
+		OnMouseUp:     c.OnMouseUp,
+		OnHover:       c.OnHover,
+		OnGesture:     c.OnGesture,
+		OnFileDrop:    c.OnFileDrop,
+		onIMECommit:   c.OnIMECommit,
+		onScroll:      c.OnScroll,
+		OnMouseScroll: c.OnMouseScroll,
+		AmendLayout:   c.AmendLayout,
+		clickButton:   c.clickButton,
+		clickOnSpace:  c.ClickOnSpace,
+		clickOnEnter:  c.ClickOnEnter,
+		soundCue:      c.Sound,
 	}, true
 }
 

@@ -1249,3 +1249,54 @@ func TestMouseDownHandler_ClickButtonFilter(t *testing.T) {
 		}
 	})
 }
+
+// A plain (not scrollable) container gets the mouse wheel through
+// ContainerCfg.OnMouseScroll, with shape-relative coordinates, as a
+// DrawCanvas does (#664).
+func TestContainerOnMouseScrollReceivesWheel(t *testing.T) {
+	t.Parallel()
+	var gotX, gotY, gotScroll float32
+	called := false
+	w := &Window{windowWidth: 800, windowHeight: 600}
+	v := Row(ContainerCfg{
+		ID: "knob",
+		OnMouseScroll: func(ctx EventCtx) {
+			called = true
+			gotX, gotY = ctx.Event.MouseX, ctx.Event.MouseY
+			gotScroll = ctx.Event.ScrollY
+			ctx.Consume()
+		},
+	})
+	child := v.GenerateLayout(w)
+	s := child.Shape
+	s.X, s.Y, s.Width, s.Height = 10, 20, 100, 40
+	s.shapeClip = drawClip{X: 10, Y: 20, Width: 100, Height: 40}
+	root := &Layout{
+		Shape:    &Shape{Width: 800, Height: 600},
+		Children: []Layout{child},
+	}
+	e := &Event{MouseX: 50, MouseY: 30, ScrollY: -3}
+	mouseScrollFallbackHandler(root, e, w)
+	if !called {
+		t.Fatal("OnMouseScroll not called")
+	}
+	if !e.IsHandled {
+		t.Error("event should be handled")
+	}
+	if gotX != 40 || gotY != 10 {
+		t.Errorf("coords = (%g, %g), want shape-relative (40, 10)", gotX, gotY)
+	}
+	if gotScroll != -3 {
+		t.Errorf("ScrollY = %g, want -3", gotScroll)
+	}
+}
+
+func TestMakeContainerEventsOnMouseScrollAlone(t *testing.T) {
+	t.Parallel()
+	eh, ok := makeContainerEvents(&ContainerCfg{
+		OnMouseScroll: func(EventCtx) {},
+	})
+	if !ok || eh.OnMouseScroll == nil {
+		t.Fatal("OnMouseScroll not wired")
+	}
+}
