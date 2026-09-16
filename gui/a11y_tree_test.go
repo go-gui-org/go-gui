@@ -1212,7 +1212,6 @@ func TestWindowCleanupClearsRegistryAndContext(t *testing.T) {
 // reader through A11YValue, as the stock Slider does (#664).
 func TestContainerA11YValueReachesNode(t *testing.T) {
 	t.Parallel()
-	w := &Window{}
 	cases := []struct {
 		name      string
 		label     string
@@ -1228,6 +1227,9 @@ func TestContainerA11YValueReachesNode(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
+			// One Window per subtest: GenerateLayout allocates from the
+			// window's scratch pools, which parallel subtests must not share.
+			w := &Window{}
 			l := Row(ContainerCfg{
 				ID:        "knob",
 				A11YRole:  AccessRoleSlider,
