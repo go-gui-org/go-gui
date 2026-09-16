@@ -303,6 +303,24 @@ func TestDemoWelcomePanelHasNoBorder(t *testing.T) {
 	}
 }
 
+// The data-source grid keeps a Fill width: its columns plus gutter
+// and borders sum past narrow panels, and a Fit grid sticks out of
+// the column around it (issue #642). Pinned here because the failure
+// needs a narrow panel, which no layout in this package builds; the
+// narrow-panel geometry itself is covered in gui/datagrid.
+func TestDemoDataSourceGridFillsWidth(t *testing.T) {
+	w := gui.NewWindow(gui.WindowCfg{State: newShowcaseApp()})
+	layout := gui.GenerateViewLayout(demoDataSource(w), w)
+	grid, ok := layout.FindByID("catalog-data-source")
+	if !ok {
+		t.Fatal("catalog-data-source not found")
+	}
+	if grid.Shape.Sizing.Width != gui.FillFit.Width {
+		t.Fatalf("data-source grid width sizing = %v, want Fill",
+			grid.Shape.Sizing.Width)
+	}
+}
+
 func TestShowcaseDataGridApplyQuery(t *testing.T) {
 	rows := showcaseDataGridRows()
 	query := datagrid.GridQueryState{

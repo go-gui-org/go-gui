@@ -811,3 +811,57 @@ func TestDataGridChildIDsAreNotJoinedTwice(t *testing.T) {
 		t.Fatal("the enclosing scope was joined onto an absolute ID")
 	}
 }
+
+// --- Fit grid in a narrow Fill column (issue #642) ---
+
+// Columns plus scrollbar gutter and borders sum past a narrow panel,
+// and a Fit grid sticks out of the column around it. A Fill-width
+// grid stays inside: the scroll body absorbs the excess instead.
+func TestFillWidthGridStaysInsideNarrowPanel(t *testing.T) {
+	w := gg.NewTestWindow(gg.WindowCfg{})
+	defer w.Close()
+	cfg := DataGridCfg{
+		ID:     "grid",
+		Sizing: gg.FillFit,
+		Columns: []GridColumnCfg{
+			{ID: "name", Title: "Name", Width: gg.SomeF(180)},
+			{ID: "team", Title: "Team", Width: gg.SomeF(140)},
+			{ID: "status", Title: "Status", Width: gg.SomeF(120)},
+		},
+		Rows: []GridRow{
+			{ID: "r1", Cells: map[string]string{
+				"name": "Ada", "team": "Core", "status": "Open",
+			}},
+		},
+		ShowQuickFilter: true,
+		ShowCRUDToolbar: true,
+	}
+	// Narrower than the columns plus gutter, so a Fit grid must
+	// overflow it. Unpadded, so only the grid under test can fail.
+	w.TestRender(func(*gg.Window) gg.View {
+		return gg.Column(gg.ContainerCfg{
+			ID:         "panel",
+			Sizing:     gg.FixedFit,
+			Width:      420,
+			Padding:    gg.NoPadding,
+			SizeBorder: gg.NoBorder,
+			Content: []gg.View{
+				gg.Column(gg.ContainerCfg{
+					Sizing:     gg.FillFit,
+					Padding:    gg.NoPadding,
+					SizeBorder: gg.NoBorder,
+					Spacing:    gg.SomeF(10),
+					Content: []gg.View{
+						gg.Text(gg.TextCfg{Text: "loading=false"}),
+						New(w, cfg),
+						gg.Text(gg.TextCfg{Text: "- foo"}),
+					},
+				}),
+			},
+		})
+	})
+
+	if found := w.TestFindings(gg.DebugLayoutInvariants); len(found) != 0 {
+		t.Fatalf("fill-width grid must stay inside a narrow panel, got %q", found)
+	}
+}

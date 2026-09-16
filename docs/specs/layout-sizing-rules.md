@@ -121,6 +121,11 @@ what a closed sidebar relies on to stay shut.
 (`gui/shape.go:669-676`). A structural wrapper must set `SizeBorder: NoBorder`
 or it silently gains height.
 
+**A Fit child wider than its Fill parent escapes the parent.** A Fill parent
+cannot grow to enclose Fit content. This is a defect when the parent neither
+clips nor scrolls. A Fill width on the child lets the scroll body or the clip
+absorb the excess (issue #642).
+
 ### Fill distribution
 
 **Fill siblings equalize.** The algorithm is water-filling on the extremum

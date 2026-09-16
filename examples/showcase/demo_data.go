@@ -221,8 +221,13 @@ func demoDataSource(w *gui.Window) gui.View {
 				Text: fmt.Sprintf("loading=%t  req=%d  rows=%d/%s", stats.Loading, stats.RequestCount, stats.ReceivedCount, countText),
 			}),
 			datagrid.New(w, datagrid.DataGridCfg{
-				ID:              "catalog-data-source",
-				Sizing:          gui.FitFit,
+				ID: "catalog-data-source",
+				// Fill width: the columns plus gutter and borders
+				// sum past narrow panels, and a Fit grid would
+				// stick out of the column around it (issue
+				// #642). Filled, the scroll body absorbs the
+				// excess instead.
+				Sizing:          gui.FillFit,
 				Columns:         showcaseDataSourceColumns(),
 				DataSource:      app.DataSource,
 				PaginationKind:  datagrid.GridPaginationCursor,
