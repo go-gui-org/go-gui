@@ -16,6 +16,13 @@ and this project adheres to
   of them the button worked with the mouse and did nothing from the keyboard,
   and nothing said so. `gui.Debug` now reports the root under `DebugMissingIDs`
   and names the missing fields.
+- **Custom toggle, checkbox and radio examples (#661)** — three new examples,
+  `custom_toggles`, `custom_checkboxes` and `custom_radios`, port go-shirei's
+  custom-control demos. Each look is a `gui.Interactive` that reads hover and
+  press state, while the app owns the checked or selected value. They show that
+  these controls need no API beyond `gui.Interactive` and `ContainerCfg`:
+  switch, checkbox and radio roles with their checked or selected state,
+  arrow-key navigation in a radio group, and one Tab stop per group.
 
 ### Changed
 
