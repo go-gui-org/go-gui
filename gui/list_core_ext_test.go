@@ -192,3 +192,29 @@ func TestListCoreItemViewTextOnSelectFill(t *testing.T) {
 			selected, DefaultTextStyle.Color)
 	}
 }
+
+// A disabled row is inert under hover as well as click: no cursor
+// change and no hover callback.
+func TestListCoreDisabledRowHoverSilent(t *testing.T) {
+	hovered := false
+	cfg := listCoreCfg{
+		TextStyle:   DefaultTextStyle,
+		ColorHover:  Blue,
+		PaddingItem: PaddingSmall,
+		OnItemHover: func(int, EventCtx) { hovered = true },
+	}
+	item := listCoreItem{ID: "a", Label: "Alpha", Disabled: true}
+	w := &Window{}
+	layout := generateViewLayout(listCoreItemView(item, 0, false, false, cfg), w)
+	if layout.Shape.events == nil || layout.Shape.events.OnHover == nil {
+		t.Fatal("row has no hover handler")
+	}
+	before := w.viewState.mouseCursor
+	layout.Shape.events.OnHover(EventCtx{&layout, &Event{}, w})
+	if hovered {
+		t.Error("disabled row fired OnItemHover")
+	}
+	if w.viewState.mouseCursor != before {
+		t.Error("disabled row changed the mouse cursor")
+	}
+}

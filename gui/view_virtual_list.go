@@ -66,7 +66,7 @@ type VirtualListCfg struct {
 	ItemKey func(i int) string
 
 	// OnKeyDown fires on the list container. It runs after the built-in
-	// arrow/Home/End handling, which consumes the keys it acts on.
+	// arrows/pages/Home/End handling, which consumes the keys it acts on.
 	OnKeyDown func(EventCtx)
 
 	ID string `gui:"required"`

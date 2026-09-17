@@ -105,6 +105,18 @@ func buttonFeatureRows(w *gui.Window) []gui.View {
 			OnClick: func(ctx gui.EventCtx) {
 				incrementButtonClicks(ctx.Window)
 				appState(ctx.Window).ButtonCopyUntil = time.Now().Add(2 * time.Second)
+				// The expiry is time-based, so nothing re-renders on its
+				// own when it passes. Wake the frame loop after the
+				// delay; re-adding the same ID restarts the timer when
+				// the button is clicked again.
+				ctx.Window.AnimationAdd(&gui.Animate{
+					AnimID: "showcase-button-copy-reset",
+					Delay:  2 * time.Second,
+					Callback: func(_ *gui.Animate, win *gui.Window) {
+						appState(win).ButtonCopyUntil = time.Time{}
+					},
+				})
+				ctx.Consume()
 			},
 		})),
 	}

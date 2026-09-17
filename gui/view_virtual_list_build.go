@@ -45,7 +45,12 @@ func virtualListRange(
 	}
 
 	// Default 0: absent entry means the list has not been scrolled.
+	// A non-finite stored offset reads as unscrolled rather than
+	// poisoning the IndexAt arithmetic below.
 	scrollY := w.scrollY().GetOr(cfg.ID, 0)
+	if !f32IsFinite(scrollY) {
+		scrollY = 0
+	}
 	over := cfg.OverscanPx
 	// NaN escapes the <= 0 default check and would poison the range
 	// arithmetic below; treat any non-finite overscan as unset.
@@ -277,8 +282,15 @@ func (w *Window) VirtualListFocusedIndex(effectiveID string) int {
 // leaf its Cfg was written with. Read it back with [Window.ResolveID].
 // exportaudit:keep — the write half of the focused-index pair
 func (w *Window) SetVirtualListFocusedIndex(effectiveID string, index int) {
+	index = max(index, 0)
+	// Clamp to the registered corpus: without the height model the
+	// list has not generated yet and there is nothing to clamp
+	// against, so only the low side applies.
+	if m, ok := listHeightLookup(w, effectiveID); ok {
+		index = min(index, max(m.Count()-1, 0))
+	}
 	StateMap[string, int](w, nsVirtualListFocus, capModerate).
-		Set(effectiveID, max(index, 0))
+		Set(effectiveID, index)
 	w.ScrollIndexIntoView(effectiveID, index)
 }
 

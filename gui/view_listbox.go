@@ -10,6 +10,12 @@ type listBoxCache struct {
 	itemIDs         []string
 	itemDataIndices []int
 	dataHash        uint64
+	// dragIdxByRow memoizes the reorder map, which only depends on
+	// the data dataHash already tracks. dragHash is the dataHash it
+	// was built against; a mismatch rebuilds once per data change
+	// instead of once per frame.
+	dragIdxByRow []int
+	dragHash     uint64
 	// resolvedH is the list's height as resolved by the layout
 	// engine, captured after arrange (AmendLayout) each frame. The
 	// view phase runs before sizing, so virtualization under Fill
@@ -125,81 +131,11 @@ func ListBox(cfg ListBoxCfg) View {
 				Value: cfg.Items[i]}
 		}
 	}
-	if listBoxCanVirtualize(&cfg) ||
-		(cfg.Reorderable && cfg.OnReorder != nil) ||
-		!cfg.FocusDisabled {
-		return &listBoxView{cfg: cfg}
-	}
-
-	dn := &defaultListBoxStyle
-	sizeBorder := cfg.SizeBorder.Get(dn.SizeBorder)
-	radius := cfg.Radius.Get(dn.Radius)
-
-	selectedSet := listCoreSelectedSet(cfg.SelectedIDs)
-	// Built before the rows: each row's click handler moves the
-	// keyboard focus index, which is an index into this slice.
-	itemIDs := make([]string, 0, len(cfg.Data))
-	for i := range cfg.Data {
-		if !cfg.Data[i].isSubheading {
-			itemIDs = append(itemIDs, cfg.Data[i].ID)
-		}
-	}
-	list := make([]View, 0, len(cfg.Data))
-	for i := range cfg.Data {
-		list = append(list,
-			listBoxItemView(cfg.Data[i], cfg, selectedSet, "", itemIDs))
-	}
-
-	listBoxID := cfg.ID
-	isMultiple := cfg.Multiple
-	onSelect := cfg.OnSelect
-	selectedIDs := cfg.SelectedIDs
-	// Resolved once, at generation time: the keyboard path calls
-	// onSelect with a nil Layout, so it carries its cues by value
-	// rather than reading them off a shape (issue #468).
-	keyCues := resolveSoundCues(
-		guiTheme.Sounds.Selection, cfg.Sound, cfg.SoundDisabled)
-
-	return Column(ContainerCfg{
-		ID:       cfg.ID,
-		A11YRole: AccessRoleList,
-		A11YCfg: A11YCfg{
-			A11YLabel:       a11yLabel(cfg.A11YLabel, cfg.ID),
-			A11YDescription: cfg.A11YDescription,
-		},
-		Focusable:   !cfg.FocusDisabled,
-		Scrollable:  true,
-		AmendLayout: focusRingAmend(Color{}, cfg.ColorBorderFocus),
-		OnKeyDown: func(ctx EventCtx) {
-			listBoxOnKeyDown(listBoxID, itemIDs,
-				isMultiple, onSelect, selectedIDs,
-				"", 0, 0, nil, keyCues, ctx.Event, ctx.Window)
-		},
-		Width:       cfg.MaxWidth,
-		Height:      cfg.Height,
-		MinWidth:    cfg.MinWidth,
-		MaxWidth:    cfg.MaxWidth,
-		MinHeight:   cfg.MinHeight,
-		MaxHeight:   cfg.MaxHeight,
-		Color:       cfg.Color,
-		ColorBorder: cfg.ColorBorder,
-		SizeBorder:  Some(sizeBorder),
-		Radius:      Some(radius),
-		Padding:     cfg.Padding,
-		Sizing:      cfg.Sizing,
-		Spacing:     SomeF(0),
-		Disabled:    cfg.Disabled,
-		Invisible:   cfg.Invisible,
-		Content:     list,
-	})
-}
-
-// listBoxCanVirtualize reports whether the list takes the
-// virtualizing path. Every list qualifies since #504 removed the
-// Scrollable opt-in: with no configured height, virtualization starts
-// on the second frame once Arrange has resolved one.
-func listBoxCanVirtualize(cfg *ListBoxCfg) bool {
-	return cfg != nil
+	// Every list takes the virtualizing path since #504 removed
+	// the Scrollable opt-in: with no configured height,
+	// virtualization starts on the second frame once Arrange has
+	// resolved one.
+	return &listBoxView{cfg: cfg}
 }
 
 func (lv *listBoxView) GenerateLayout(w *Window) Layout {
@@ -248,9 +184,9 @@ func (lv *listBoxView) GenerateLayout(w *Window) Layout {
 	onReorder := cfg.OnReorder
 	scrollID := cfg.ID
 
-	dragIdxByRow := listBoxDragIndexByRow(cfg, canReorder)
+	dragIdxByRow := listBoxDragIndexByRowCached(cache, cfg, canReorder)
 	itemLayoutIDs, midsOffset := listBoxItemLayoutIDs(
-		cfg, canReorder, first, last)
+		cfg, canReorder, first, last, itemDataIndices)
 
 	if canReorder && (drag.started || drag.active) {
 		dragReorderIDsMetaSet(w, cfg.ID, itemIDs)
@@ -373,27 +309,35 @@ func listBoxVisibleRange(
 		listH = cache.resolvedH
 	}
 	rowH = listCoreRowHeightEstimate(cfg.TextStyle, listBoxItemPad, w)
-	if virtualize && listH > 0 && len(cfg.Data) > 0 {
-		// Default 0: absent entry means not scrolled.
-		scrollY := w.scrollY().GetOr(cfg.ID, 0)
-		first, last = listCoreVisibleRange(
-			len(cfg.Data), rowH, listH, scrollY)
+	if virtualize && len(cfg.Data) > 0 {
 		// Register the same rowH the spacers use, so ScrollToIndex
 		// agrees with the arithmetic already on screen. Index space:
 		// cfg.Data, subheadings included.
 		listHeightRegisterUniform(w, cfg.ID, len(cfg.Data), rowH, 0, 0)
+		if listH <= 0 {
+			// No height yet: Fill sizing before the first
+			// arrange. Build a bounded probe like VirtualList
+			// instead of every row once.
+			if cache.hSeen && DebugEnabled() {
+				// Arrange has run and still gave the list no
+				// height, so every frame rebuilds a probe
+				// window instead of the real viewport.
+				w.debugWarn(debugCheckListBoxNoHeight, cfg.ID,
+					"scrollable listbox %q resolved to height 0, so it "+
+						"builds a %d-row probe every frame instead of "+
+						"virtualizing; set Height/MaxHeight or give it "+
+						"sizing that allocates height",
+					cfg.ID, virtualListProbeRows)
+			}
+			last = min(len(cfg.Data)-1, virtualListProbeRows-1)
+		} else {
+			// Default 0: absent entry means not scrolled.
+			scrollY := w.scrollY().GetOr(cfg.ID, 0)
+			first, last = listCoreVisibleRange(
+				len(cfg.Data), rowH, listH, scrollY)
+		}
 	} else {
 		virtualize = false
-		if cache.hSeen && len(cfg.Data) > 0 && DebugEnabled() {
-			// The layout has run at least once and still gave the
-			// list no height, so every row builds each frame.
-			w.debugWarn(debugCheckListBoxNoHeight, cfg.ID,
-				"scrollable listbox %q resolved to height 0, so "+
-					"virtualization is off and all %d rows build "+
-					"every frame; set Height/MaxHeight or give it "+
-					"sizing that allocates height",
-				cfg.ID, len(cfg.Data))
-		}
 	}
 	return first, last, virtualize, listH, rowH
 }
@@ -438,6 +382,26 @@ func listBoxDragIndexByRow(
 	return dragIdxByRow
 }
 
+// listBoxDragIndexByRowCached memoizes the drag map on the frame
+// cache: it only depends on the data the cache hash already tracks,
+// so rebuilding it every frame is pure churn on long reorderable
+// lists. A data change moves dataHash and rebuilds once.
+func listBoxDragIndexByRowCached(
+	cache *listBoxCache, cfg *ListBoxCfg, canReorder bool,
+) []int {
+	if !canReorder {
+		cache.dragIdxByRow = nil
+		return nil
+	}
+	if cache.dragIdxByRow != nil && cache.dragHash == cache.dataHash {
+		return cache.dragIdxByRow
+	}
+	built := listBoxDragIndexByRow(cfg, true)
+	cache.dragIdxByRow = built
+	cache.dragHash = cache.dataHash
+	return built
+}
+
 func listBoxOnKeyDown(
 	listBoxID string,
 	itemIDs []string,
@@ -458,7 +422,8 @@ func listBoxOnKeyDown(
 	if e.KeyCode == KeySpace {
 		action = listCoreSelectItem
 	}
-	if action == listCoreNone {
+	if action == listCoreNone &&
+		e.KeyCode != KeyPageUp && e.KeyCode != KeyPageDown {
 		return
 	}
 	e.IsHandled = true
@@ -466,6 +431,31 @@ func listBoxOnKeyDown(
 	lbf := StateMap[string, int](w, nsListBoxFocus, capModerate)
 	// Default 0: bounds-checked before use; zero index handled.
 	curIdx := lbf.GetOr(listBoxID, 0)
+
+	if e.KeyCode == KeyPageUp || e.KeyCode == KeyPageDown {
+		// Paging stays ListBox-local: the shared navigator moves
+		// one row, and a viewport of rows is only known here,
+		// where rowH and listH are in scope.
+		page := 10
+		if rowH > 0 && listH > 0 {
+			page = max(1, int(listH/rowH))
+		}
+		next := curIdx - page
+		if e.KeyCode == KeyPageDown {
+			next = curIdx + page
+		}
+		next = clampInt(next, 0, len(itemIDs)-1)
+		if next != curIdx {
+			lbf.Set(listBoxID, next)
+			if scrollID != "" && rowH > 0 {
+				scrollEnsureVisible(scrollID,
+					listBoxDataIndex(itemDataIndices, next),
+					rowH, listH, w)
+			}
+			w.InvalidateLayout()
+		}
+		return
+	}
 
 	if action == listCoreSelectItem {
 		if curIdx >= 0 && curIdx < len(itemIDs) {

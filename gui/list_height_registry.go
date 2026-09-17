@@ -184,6 +184,12 @@ func listHeightEnsureVariable(
 		m.width = width
 		m.themeID = guiTheme.id
 		m.Resize(n)
+		// A count change landing on the same frame follows index
+		// order this once instead of key order: Resize preserves
+		// the measured heights by position, and the rows on screen
+		// are re-measured this frame anyway. Re-seating by key as
+		// well would drop the measurements still inside the
+		// write-back deadband, which the keyed store never saw.
 		if m.heightFn != nil {
 			// The cheap path is exact at the new width, so recompute.
 			m.reseed()

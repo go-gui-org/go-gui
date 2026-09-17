@@ -110,8 +110,14 @@ func listCoreApplyNav(action listCoreAction, cur, itemCount int) (int, bool) {
 // listCoreVisibleRange computes the visible index range from
 // scroll offset. Pure arithmetic.
 func listCoreVisibleRange(itemCount int, rowHeight, listHeight, scrollY float32) (int, int) {
-	if itemCount == 0 || rowHeight <= 0 || listHeight <= 0 {
+	// NaN fails the `<= 0` checks and poisons the float-to-int
+	// conversions below, whose result is implementation-defined.
+	if itemCount == 0 || rowHeight <= 0 || listHeight <= 0 ||
+		!f32IsFinite(rowHeight) || !f32IsFinite(listHeight) {
 		return 0, -1
+	}
+	if !f32IsFinite(scrollY) {
+		scrollY = 0
 	}
 	maxIdx := itemCount - 1
 	absScroll := scrollY
@@ -134,8 +140,12 @@ func listCoreVisibleRange(itemCount int, rowHeight, listHeight, scrollY float32)
 // rows, not 150+ px grid cards). Returns (0, -1) for degenerate inputs.
 func ListVisibleRange(itemCount int, rowHeight, listHeight,
 	scrollY float32, overscan int) (int, int) {
-	if itemCount == 0 || rowHeight <= 0 || listHeight <= 0 {
+	if itemCount == 0 || rowHeight <= 0 || listHeight <= 0 ||
+		!f32IsFinite(rowHeight) || !f32IsFinite(listHeight) {
 		return 0, -1
+	}
+	if !f32IsFinite(scrollY) {
+		scrollY = 0
 	}
 	maxIdx := itemCount - 1
 	absScroll := scrollY
@@ -225,7 +235,12 @@ func listCoreFilter(items []listCoreItem, query string) []int {
 		}
 	}
 	slices.SortFunc(scored, func(a, b listCoreScored) int {
-		return cmp.Compare(a.score, b.score)
+		// Index tie-break: SortFunc is unstable, so equal
+		// scores need a total order to come back in row order.
+		if c := cmp.Compare(a.score, b.score); c != 0 {
+			return c
+		}
+		return cmp.Compare(a.index, b.index)
 	})
 	result := make([]int, len(scored))
 	for i, sc := range scored {
@@ -263,7 +278,11 @@ func listCorePrepareInto(
 			}
 		}
 		slices.SortFunc(scored, func(a, b listCoreScored) int {
-			return cmp.Compare(a.score, b.score)
+			// Index tie-break, as in listCoreFilter above.
+			if c := cmp.Compare(a.score, b.score); c != 0 {
+				return c
+			}
+			return cmp.Compare(a.index, b.index)
 		})
 		for i := range scored {
 			idx := scored[i].index
@@ -423,11 +442,14 @@ func listCoreItemView(item listCoreItem, index int, isHighlighted, isSelected bo
 			}
 		},
 		OnHover: func(ctx EventCtx) {
-			if !isDisabled {
-				ctx.Window.setMouseCursor(CursorPointingHand)
-				if ctx.Layout.Shape.Color == ColorTransparent {
-					ctx.Layout.Shape.Color = colorHover
-				}
+			// A disabled row is inert: no cursor, no hover paint
+			// and no hover callback, matching the OnClick gate.
+			if isDisabled {
+				return
+			}
+			ctx.Window.setMouseCursor(CursorPointingHand)
+			if ctx.Layout.Shape.Color == ColorTransparent {
+				ctx.Layout.Shape.Color = colorHover
 			}
 			if hasHover {
 				onItemHover(index, EventCtx{nil, ctx.Event, ctx.Window})

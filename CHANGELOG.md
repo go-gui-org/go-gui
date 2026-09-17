@@ -116,6 +116,30 @@ and this project adheres to
   root with its own `OnKeyDown` now passes. A root that cannot take focus is
   still reported.
 
+- **A `ListBox` with no resolved height builds a probe, not every row** — under
+  `Fill` sizing the first frame built all rows once, hanging large lists, while
+  `VirtualList` built a bounded 64-row probe. `ListBox` now probes the same way
+  and virtualizes from the second frame once arrange records a height. A list
+  that stays at height 0 still warns under `Debug` once.
+- **`ListBox` answers `PageUp` and `PageDown`** — the keys fell through to the
+  shared navigator, which has no page action, so they did nothing. They now move
+  by a viewport of rows, or ten rows when no height resolved yet, and keep the
+  new focus row in view.
+- **Disabled list rows stay silent on hover** — a disabled row blocked clicks
+  but still fired its hover callback, and a reorderable `ListBox` with no
+  `OnSelect` still painted the hover cursor. Both now stay inert, matching the
+  click gate.
+- **`ListBox` rows render single-line** — a row used multiline text while the
+  spacers and the scroll model assume one uniform row height, so a wrapped label
+  drifted every position below it. Rows now match combobox, select and menu,
+  which were single-line already.
+- **`SetVirtualListFocusedIndex` clamps to the corpus** — an index past the end
+  sat out of bounds, and the next arrow key jumped from a row that was never on
+  screen. It now pins to the last row, like the low side already pinned to 0.
+- **Filtered lists keep row order on tied scores** — equal fuzzy scores came
+  back in whatever order the unstable sort left behind, so a filter could
+  shuffle matching rows between frames. Ties now break by row index.
+
 ## [v0.77.0] - 2026-09-16
 
 ### Added

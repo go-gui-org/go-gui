@@ -1,6 +1,9 @@
 package gui
 
-import "math/bits"
+import (
+	"math"
+	"math/bits"
+)
 
 // list_height_model.go — the per-list height model behind
 // variable-height virtualization and index-addressed scrolling.
@@ -180,6 +183,14 @@ func (m *listHeightModel) IndexAt(y float32) int {
 	y -= m.staticTop
 	if y <= 0 {
 		return 0
+	}
+	// A non-finite offset would poison the float-to-int conversion
+	// in the uniform path, whose result is implementation-defined.
+	if math.IsNaN(float64(y)) {
+		return 0
+	}
+	if math.IsInf(float64(y), 1) {
+		return m.n - 1
 	}
 	if m.uniform {
 		// Same boundary tolerance as the variable path below: i*rowH
@@ -396,10 +407,14 @@ func (m *listHeightModel) RebuildFromKeys(n int) {
 
 // RecordKeyed writes a measured height through both the indexed tree
 // and the keyed store, so the measurement survives the next rebuild.
+// The keyed write follows the same deadband gate as the frame
+// write-back: a settled list keeps the two stores in agreement.
 // Returns the change the tree took, for the re-anchor delta.
 func (m *listHeightModel) RecordKeyed(i int, key string, h float32) float32 {
 	delta := m.SetHeight(i, h)
-	m.recordKey(key, h)
+	if delta != 0 {
+		m.recordKey(key, h)
+	}
 	return delta
 }
 

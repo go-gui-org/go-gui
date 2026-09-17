@@ -190,6 +190,31 @@ func TestListBoxSubheadingCount(t *testing.T) {
 	}
 }
 
+// A reorderable list with no OnSelect answers nothing, so its rows
+// must not paint a hover cursor — matching the plain row's gate.
+func TestListBoxReorderHoverNeedsOnSelect(t *testing.T) {
+	w := &Window{}
+	layout := generateViewLayout(ListBox(ListBoxCfg{
+		ID:          "lb-reorder-hover",
+		Data:        listBoxTestData(3),
+		Reorderable: true,
+		OnReorder:   func(string, string, EventCtx) {},
+	}), w)
+	rows := listBoxRows(&layout)
+	if len(rows) == 0 {
+		t.Fatal("expected rows")
+	}
+	row := &rows[0]
+	if row.Shape.events == nil || row.Shape.events.OnHover == nil {
+		t.Fatal("row has no hover handler")
+	}
+	before := w.viewState.mouseCursor
+	row.Shape.events.OnHover(EventCtx{row, &Event{}, w})
+	if w.viewState.mouseCursor != before {
+		t.Error("row without OnSelect changed the mouse cursor")
+	}
+}
+
 // listBoxTestData builds n rows of stable data.
 func listBoxTestData(n int) []ListBoxOption {
 	data := make([]ListBoxOption, n)
@@ -215,11 +240,17 @@ func TestListBoxFillVirtualizesNextFrame(t *testing.T) {
 		t.Fatal("Scrollable list with no Height must use the virtualizing path")
 	}
 
-	// Frame 1: no arranged height yet, so every row builds.
+	// Frame 1: no arranged height yet, so a bounded probe builds
+	// instead of every row: the probe rows plus a trailing spacer
+	// holding the rest.
 	first := generateViewLayout(v, w)
-	if len(first.Children) < 9_000 {
-		t.Fatalf("frame 1 children = %d, want all rows (unresolved height)",
-			len(first.Children))
+	rows := listBoxRows(&first)
+	if len(rows) != virtualListProbeRows+1 {
+		t.Fatalf("frame 1 rows = %d, want %d-row probe plus spacer",
+			len(rows), virtualListProbeRows)
+	}
+	if !rows[len(rows)-1].Shape.Color.eq(ColorTransparent) {
+		t.Error("trailing probe spacer missing")
 	}
 
 	// Arrange resolves the height; the amend hook captures it.
@@ -302,10 +333,10 @@ func TestListBoxVisibleRangeHeightPriority(t *testing.T) {
 		{"height_wins", 300, 200, 100, 300, true},
 		{"max_height_wins", 0, 200, 100, 200, true},
 		{"resolved_wins", 0, 0, 100, 100, true},
-		{"none_zero", 0, 0, 0, 0, false},
-		// A negative resolved height is used verbatim as the final
-		// fallback; downstream treats any <=0 as "no height".
-		{"negative_resolved", 0, 0, -5, -5, false},
+		// No height anywhere: a bounded probe builds instead of
+		// every row.
+		{"none_probe", 0, 0, 0, 0, true},
+		{"negative_resolved_probe", 0, 0, -5, -5, true},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -325,11 +356,13 @@ func TestListBoxVisibleRangeHeightPriority(t *testing.T) {
 				t.Errorf("virtualize = %v, want %v", virtualize,
 					tc.wantVirtualize)
 			}
-			// Non-virtualizing lists keep the full range: the caller
-			// builds every row.
-			if !tc.wantVirtualize && (first != 0 || last != len(data)-1) {
-				t.Errorf("range [%d,%d], want full [0,%d]", first, last,
-					len(data)-1)
+			// A heightless list builds a bounded probe, not the
+			// full range: the caller holds the rest in a
+			// trailing spacer.
+			if tc.wantListH <= 0 &&
+				(first != 0 || last != virtualListProbeRows-1) {
+				t.Errorf("range [%d,%d], want probe [0,%d]", first, last,
+					virtualListProbeRows-1)
 			}
 		})
 	}
@@ -389,7 +422,8 @@ func TestListBoxNoHeightWarning(t *testing.T) {
 	defer Debug(prevOn)
 
 	// Persistent zero height: the layout arranged but gave the list
-	// nothing, so virtualization is off. Warn once, only after hSeen.
+	// nothing, so every frame rebuilds the probe. Warn once, only
+	// after hSeen.
 	w := newTestWindow()
 	var found []string
 	w.debug.collect = &found
@@ -493,7 +527,7 @@ func TestListBoxDragIndexByRowAllSubheadings(t *testing.T) {
 }
 
 func TestListBoxItemLayoutIDsDisabled(t *testing.T) {
-	lids, moff := listBoxItemLayoutIDs(&ListBoxCfg{}, false, 0, 0)
+	lids, moff := listBoxItemLayoutIDs(&ListBoxCfg{}, false, 0, 0, nil)
 	if lids != nil || moff != 0 {
 		t.Fatalf("canReorder=false: got (%v, %d), want (nil, 0)", lids, moff)
 	}
@@ -512,7 +546,7 @@ func TestListBoxItemLayoutIDsVirtualized(t *testing.T) {
 			{ID: "d", Name: "D"},
 		},
 	}
-	lids, moff := listBoxItemLayoutIDs(cfg, true, 1, 3)
+	lids, moff := listBoxItemLayoutIDs(cfg, true, 1, 3, []int{0, 1, 3, 4})
 	// Row 0 ("a") is a draggable row above the window → midsOffset 1.
 	// Inside the window: b (1), h skipped, c (2) → two layout IDs.
 	if moff != 1 {
@@ -532,6 +566,35 @@ func TestListBoxItemLayoutIDsVirtualized(t *testing.T) {
 func TestListBoxItemID(t *testing.T) {
 	if got := listBoxItemID("lb", "opt"); got != "lb:item:opt" {
 		t.Fatalf("listBoxItemID() = %q, want lb:item:opt", got)
+	}
+}
+
+// The drag map is memoized on the frame cache: repeated frames with
+// unchanged data share one backing array, and a data change rebuilds
+// it once.
+func TestListBoxDragIndexMemoized(t *testing.T) {
+	w := newTestWindow()
+	cfg := ListBoxCfg{ID: "lb-memo", Data: listBoxTestData(5)}
+	cache := listBoxEnsureCache(&cfg, w)
+
+	first := listBoxDragIndexByRowCached(cache, &cfg, true)
+	second := listBoxDragIndexByRowCached(cache, &cfg, true)
+	if len(first) != 5 || len(second) != 5 {
+		t.Fatalf("lengths = %d, %d, want 5, 5", len(first), len(second))
+	}
+	if &first[0] != &second[0] {
+		t.Error("unchanged data rebuilt the drag map")
+	}
+
+	cfg.Data[0].ID = "renamed"
+	listBoxEnsureCache(&cfg, w)
+	third := listBoxDragIndexByRowCached(cache, &cfg, true)
+	if len(third) != 5 {
+		t.Fatalf("rebuilt length = %d, want 5", len(third))
+	}
+
+	if got := listBoxDragIndexByRowCached(cache, &cfg, false); got != nil {
+		t.Errorf("non-reorderable call = %v, want nil", got)
 	}
 }
 
@@ -871,28 +934,117 @@ func TestListBoxAlwaysScrollable(t *testing.T) {
 	}
 }
 
-func TestListBoxZeroHeightSkipsVirtualization(t *testing.T) {
-	// The edge #504 calls out: with no resolved height there is nothing
-	// to window against, so virtualization stays off and every row
-	// builds. It must degrade quietly, not panic or drop rows.
+// PageUp/PageDown move by a viewport of rows, falling back to ten
+// when no height resolved yet.
+func TestListBoxPageKeys(t *testing.T) {
+	newIDs := func(n int) []string {
+		ids := make([]string, n)
+		for i := range ids {
+			ids[i] = "id-" + strconv.Itoa(i)
+		}
+		return ids
+	}
+	page := func(w *Window, ids []string, key KeyCode, rowH, listH float32) *Event {
+		e := &Event{KeyCode: key}
+		listBoxOnKeyDown("lb-page", ids, false,
+			func([]string, EventCtx) {}, nil, "lb-page",
+			rowH, listH, nil, soundCues{}, e, w)
+		return e
+	}
+
+	w := newTestWindow()
+	ids := newIDs(100)
+	e := page(w, ids, KeyPageDown, 20, 100)
+	if !e.IsHandled {
+		t.Error("PageDown must be handled")
+	}
+	if got := StateReadOr(w, nsListBoxFocus, "lb-page", -1); got != 5 {
+		t.Fatalf("PageDown focus = %d, want 5", got)
+	}
+	// Row 5 spans [100,120) in a 100 px viewport, so scrolling it
+	// into view parks its bottom at the viewport bottom.
+	if got := w.scrollY().GetOr("lb-page", 0); got != -20 {
+		t.Fatalf("PageDown scroll = %v, want -20", got)
+	}
+
+	e = page(w, ids, KeyPageUp, 20, 100)
+	if !e.IsHandled {
+		t.Error("PageUp must be handled")
+	}
+	if got := StateReadOr(w, nsListBoxFocus, "lb-page", -1); got != 0 {
+		t.Fatalf("PageUp focus = %d, want 0", got)
+	}
+
+	// Without a resolved height the page is ten rows.
+	w2 := newTestWindow()
+	e = page(w2, ids, KeyPageDown, 20, 0)
+	if !e.IsHandled {
+		t.Error("heightless PageDown must be handled")
+	}
+	if got := StateReadOr(w2, nsListBoxFocus, "lb-page", -1); got != 10 {
+		t.Fatalf("heightless PageDown focus = %d, want 10", got)
+	}
+}
+
+// A row's label is single-line: uniform-height virtualization
+// assumes one row height, so a wrapped label would drift every
+// position below it.
+func TestListBoxRowTextSingleLine(t *testing.T) {
+	w := &Window{}
+	layout := generateViewLayout(ListBox(ListBoxCfg{
+		ID: "lb-single",
+		Data: []ListBoxOption{
+			{ID: "a", Name: "a name long enough to wrap in any narrow list"},
+		},
+	}), w)
+	rows := listBoxRows(&layout)
+	if len(rows) != 1 {
+		t.Fatalf("rows = %d, want 1", len(rows))
+	}
+	found := false
+	var walk func(l *Layout)
+	walk = func(l *Layout) {
+		if l.Shape != nil && l.Shape.TC != nil && l.Shape.TC.Text != "" {
+			found = true
+			if l.Shape.TC.TextMode != TextModeSingleLine {
+				t.Errorf("row text mode = %v, want single-line", l.Shape.TC.TextMode)
+			}
+		}
+		for i := range l.Children {
+			walk(&l.Children[i])
+		}
+	}
+	walk(&rows[0])
+	if !found {
+		t.Fatal("no row text found")
+	}
+}
+
+func TestListBoxNoHeightBuildsProbe(t *testing.T) {
+	// The edge #504 calls out: with no resolved height there is
+	// nothing to window against, so a bounded probe builds instead
+	// of every row. It must degrade quietly, not panic or drop rows.
 	w := &Window{}
 	cfg := &ListBoxCfg{
-		ID: "lb-zero",
-		Data: []ListBoxOption{
-			{ID: "a", Name: "Alpha"},
-			{ID: "b", Name: "Beta"},
-		},
+		ID:   "lb-zero",
+		Data: listBoxTestData(500),
 	}
 	cache := &listBoxCache{}
 	first, last, virtualize, listH, _ := listBoxVisibleRange(cfg, cache, w)
-	if virtualize {
-		t.Error("virtualization must stay off with no resolved height")
+	if !virtualize {
+		t.Error("heightless list must take the probe path")
 	}
 	if listH != 0 {
 		t.Errorf("listH = %v, want 0", listH)
 	}
-	if first != 0 || last != len(cfg.Data)-1 {
-		t.Errorf("range = (%d,%d), want all rows (0,%d)",
-			first, last, len(cfg.Data)-1)
+	if first != 0 || last != virtualListProbeRows-1 {
+		t.Errorf("range = (%d,%d), want probe (0,%d)",
+			first, last, virtualListProbeRows-1)
+	}
+	// A short list builds every row: the probe covers it whole.
+	short := &ListBoxCfg{ID: "lb-zero-short", Data: listBoxTestData(2)}
+	first, last, _, _, _ = listBoxVisibleRange(short, &listBoxCache{}, w)
+	if first != 0 || last != 1 {
+		t.Errorf("short range = (%d,%d), want (0,1)", first, last)
 	}
 }

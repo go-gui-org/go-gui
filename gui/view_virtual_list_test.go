@@ -101,6 +101,34 @@ func TestVirtualListNaNOverscanFallsBackToDefault(t *testing.T) {
 	}
 }
 
+func TestVirtualListNaNScrollReadsAsUnscrolled(t *testing.T) {
+	// A non-finite stored offset must not poison the range
+	// arithmetic: the list reads as unscrolled instead.
+	w := newTestWindow()
+	cfg := virtualListCfg("vl-nanscroll", 1000, 200)
+	// Uniform short rows, so the unscrolled viewport holds many
+	// rows and a poisoned range cannot match it by accident.
+	cfg.ItemHeight = func(i int, _ float32) float32 { return 20 }
+	generateViewLayout(VirtualList(cfg), w)
+
+	m, _ := listHeightLookup(w, "vl-nanscroll")
+	w.scrollY().Set("vl-nanscroll", float32(math.NaN()))
+	first, last, _, _, probe := virtualListRange(&cfg, m, w)
+	if probe {
+		t.Fatal("configured Height must not take the probe path")
+	}
+	plain := virtualListCfg("vl-nanscroll-plain", 1000, 200)
+	plain.ItemHeight = cfg.ItemHeight
+	w2 := newTestWindow()
+	generateViewLayout(VirtualList(plain), w2)
+	m2, _ := listHeightLookup(w2, "vl-nanscroll-plain")
+	wantFirst, wantLast, _, _, _ := virtualListRange(&plain, m2, w2)
+	if first != wantFirst || last != wantLast {
+		t.Fatalf("NaN scroll range [%d, %d], want unscrolled [%d, %d]",
+			first, last, wantFirst, wantLast)
+	}
+}
+
 func TestVirtualListScrolledRangeSkipsToTheRightRow(t *testing.T) {
 	w := newTestWindow()
 	cfg := virtualListCfg("vl-scroll", 1000, 200)
@@ -324,6 +352,24 @@ func TestVirtualListFocusedIndexNavigates(t *testing.T) {
 	if -off > m.Prefix(60) || -off+m.viewportH < m.Prefix(60) {
 		t.Fatalf("row 60 not in view: offset %v, row top %v, viewport %v",
 			off, m.Prefix(60), m.viewportH)
+	}
+}
+
+func TestVirtualListFocusedIndexClampsToCorpus(t *testing.T) {
+	// An index past the end clamps to the last row instead of
+	// sitting out of bounds, where the next arrow key would jump
+	// from a row that is not on screen.
+	cfg := virtualListCfg("vl-focus-clamp", 100, 200)
+	w := virtualListWindow(t, cfg)
+	virtualListFrame(w)
+
+	w.SetVirtualListFocusedIndex("vl-focus-clamp", 10_000)
+	if got := w.VirtualListFocusedIndex("vl-focus-clamp"); got != 99 {
+		t.Fatalf("focused index = %d, want 99", got)
+	}
+	w.SetVirtualListFocusedIndex("vl-focus-clamp", -5)
+	if got := w.VirtualListFocusedIndex("vl-focus-clamp"); got != 0 {
+		t.Fatalf("focused index = %d, want 0", got)
 	}
 }
 

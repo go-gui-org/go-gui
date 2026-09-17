@@ -1,6 +1,9 @@
 package gui
 
-import "testing"
+import (
+	"math"
+	"testing"
+)
 
 // --- listCoreFuzzyScore ---
 
@@ -249,7 +252,94 @@ func TestListVisibleRangeCustomOverscan(t *testing.T) {
 	}
 }
 
+func TestVisibleRangeNonFinite(t *testing.T) {
+	// NaN fails every `<= 0` degenerate check and poisons the
+	// float-to-int conversions below, whose result is
+	// implementation-defined. Non-finite geometry must take the
+	// empty range; a non-finite scroll offset reads as unscrolled.
+	nan := float32(math.NaN())
+	inf := float32(math.Inf(1))
+	for _, tc := range []struct {
+		name      string
+		rowH, lH  float32
+		scrollY   float32
+		wantFirst int
+		wantLast  int
+	}{
+		{"nan row height", nan, 100, 0, 0, -1},
+		{"inf row height", inf, 100, 0, 0, -1},
+		{"nan list height", 20, nan, 0, 0, -1},
+		{"nan scroll", 20, 100, nan, 0, 8},
+		{"inf scroll", 20, 100, inf, 0, 8},
+	} {
+		for _, fn := range []struct {
+			name string
+			call func() (int, int)
+		}{
+			{"visible", func() (int, int) {
+				return listCoreVisibleRange(100, tc.rowH, tc.lH, tc.scrollY)
+			}},
+			{"exported", func() (int, int) {
+				return ListVisibleRange(100, tc.rowH, tc.lH, tc.scrollY, 2)
+			}},
+		} {
+			first, last := fn.call()
+			if first != tc.wantFirst || last != tc.wantLast {
+				t.Errorf("%s/%s: got %d,%d, want %d,%d",
+					tc.name, fn.name, first, last, tc.wantFirst, tc.wantLast)
+			}
+		}
+	}
+}
+
 // --- listCoreFilter (additional) ---
+
+func TestFilterTiesKeepIndexOrder(t *testing.T) {
+	// Even rows match "ab" with score 0, odd rows with a worse
+	// score. The sort is unstable, so without an index tie-break
+	// partitioning around the odd rows can leave the tied even
+	// rows in whatever order the swaps produced.
+	const n = 300
+	mixed := make([]listCoreItem, n)
+	for i := range mixed {
+		if i%2 == 0 {
+			mixed[i] = listCoreItem{ID: "id", Label: "ab"}
+		} else {
+			mixed[i] = listCoreItem{ID: "id", Label: "a----b"}
+		}
+	}
+	filtered := listCoreFilter(mixed, "ab")
+	if len(filtered) != n {
+		t.Fatalf("mixed filter: got %d indices, want %d", len(filtered), n)
+	}
+	for pos := range n / 2 {
+		if filtered[pos] != 2*pos {
+			t.Fatalf("mixed filter: position %d holds item %d, want %d",
+				pos, filtered[pos], 2*pos)
+		}
+	}
+	prepared := listCorePrepare(mixed, "ab", 0)
+	if len(prepared.Items) != n {
+		t.Fatalf("mixed prepare: got %d items, want %d", len(prepared.Items), n)
+	}
+	for pos := range n / 2 {
+		if prepared.Items[pos].Label != "ab" {
+			t.Fatalf("mixed prepare: position %d holds %q, want tied row",
+				pos, prepared.Items[pos].Label)
+		}
+	}
+	// All-tied input must also come back in index order.
+	tied := make([]listCoreItem, n)
+	for i := range tied {
+		tied[i] = listCoreItem{ID: "id", Label: "ab"}
+	}
+	allTied := listCoreFilter(tied, "ab")
+	for pos, idx := range allTied {
+		if idx != pos {
+			t.Fatalf("tied filter: position %d holds item %d", pos, idx)
+		}
+	}
+}
 
 func TestFilterNoMatches(t *testing.T) {
 	items := []listCoreItem{

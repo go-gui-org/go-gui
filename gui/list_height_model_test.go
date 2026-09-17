@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"math"
 	"math/rand"
 	"testing"
 )
@@ -72,6 +73,22 @@ func TestListHeightModelIndexAtMonotonic(t *testing.T) {
 	}
 	if got := m.IndexAt(m.Total() + 5000); got != n-1 {
 		t.Fatalf("IndexAt(past end) = %d, want %d", got, n-1)
+	}
+	// Non-finite offsets: NaN reads as the top, +Inf as past the
+	// end. Without the guards the uniform path converts to int
+	// with an implementation-defined result.
+	if got := m.IndexAt(float32(math.NaN())); got != 0 {
+		t.Fatalf("IndexAt(NaN) = %d, want 0", got)
+	}
+	if got := m.IndexAt(float32(math.Inf(1))); got != n-1 {
+		t.Fatalf("IndexAt(+Inf) = %d, want %d", got, n-1)
+	}
+	u := newUniformHeightModel(n, 20, 0, 0)
+	if got := u.IndexAt(float32(math.NaN())); got != 0 {
+		t.Fatalf("uniform IndexAt(NaN) = %d, want 0", got)
+	}
+	if got := u.IndexAt(float32(math.Inf(1))); got != n-1 {
+		t.Fatalf("uniform IndexAt(+Inf) = %d, want %d", got, n-1)
 	}
 	// Monotonic across a fine sweep.
 	prev := 0

@@ -1,21 +1,20 @@
 package gui
 
+import "slices"
+
 // listBoxItemLayoutIDs builds layout IDs and midsOffset for
-// drag-reorder tracking.
+// drag-reorder tracking. itemDataIndices is the cache's ascending
+// data indices of the draggable rows, so the count of rows above
+// the window is a binary search, not a scan of every row before it.
 func listBoxItemLayoutIDs(
 	cfg *ListBoxCfg, canReorder bool, first, last int,
+	itemDataIndices []int,
 ) ([]string, int) {
 	if !canReorder {
 		return nil, 0
 	}
 	itemLayoutIDs := make([]string, 0, last-first+1)
-	midsOffset := 0
-	for idx := range first {
-		if idx < len(cfg.Data) &&
-			!cfg.Data[idx].isSubheading {
-			midsOffset++
-		}
-	}
+	midsOffset, _ := slices.BinarySearch(itemDataIndices, first)
 	for idx := first; idx <= last; idx++ {
 		if idx >= 0 && idx < len(cfg.Data) &&
 			!cfg.Data[idx].isSubheading {
@@ -295,6 +294,13 @@ func listBoxReorderItemView(
 			}
 		},
 		OnHover: func(ctx EventCtx) {
+			// Matches the plain row: a list with no OnSelect
+			// answers nothing, so the row stays silent.
+			// Subheadings never reach this view — without a drag
+			// index they build as plain rows.
+			if !hasOnSelect {
+				return
+			}
 			ctx.Window.setMouseCursor(CursorPointingHand)
 			if ctx.Layout.Shape.Color == ColorTransparent {
 				ctx.Layout.Shape.Color = colorHover
@@ -336,8 +342,12 @@ func listBoxItemContent(dat ListBoxOption, cfg ListBoxCfg) View {
 		})
 	}
 	return Text(TextCfg{
-		Text:      dat.Name,
-		Mode:      TextModeMultiline,
+		Text: dat.Name,
+		// Single line, like every other uniform-height row
+		// (combobox, select, menu): a wrapped row would arrange
+		// taller than the rowH the spacers and the scroll model
+		// assume, drifting every position below it.
+		Mode:      TextModeSingleLine,
 		TextStyle: cfg.TextStyle,
 	})
 }
