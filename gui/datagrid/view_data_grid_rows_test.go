@@ -39,6 +39,40 @@ func TestResolveCellFormatBGColor(t *testing.T) {
 	}
 }
 
+func TestDataGridCellClipsOverflowingContent(t *testing.T) {
+	w := gg.NewWindow(gg.WindowCfg{})
+	defer w.Close()
+
+	cfg := &DataGridCfg{
+		ID:          "grid",
+		Columns:     []GridColumnCfg{{ID: "name", Width: gg.SomeF(80), Editable: true}},
+		Rows:        []GridRow{{ID: "r1", Cells: map[string]string{"name": "a value wider than the cell"}}},
+		TextStyle:   gg.DefaultTextStyle,
+		PaddingCell: gg.NoPadding,
+		SizeBorder:  gg.NoBorder,
+		OnCellEdit:  func(GridCellEdit, gg.EventCtx) {},
+	}
+
+	for _, editingRowID := range []string{"", "r1"} {
+		dctx := dataGridCtx{
+			cfg:          cfg,
+			columns:      cfg.Columns,
+			columnWidths: map[string]float32{"name": 80},
+			RowHeight:    24,
+			editingRowID: editingRowID,
+			w:            w,
+		}
+		layout := gg.GenerateViewLayout(dataGridRowView(dctx, cfg.Rows[0], 0, false), w)
+		cell, ok := layout.FindByID(gg.ScopeID(cfg.ID, "cell", "r1", "name"))
+		if !ok {
+			t.Fatalf("editing row %q: cell layout not found", editingRowID)
+		}
+		if !cell.Shape.Clip {
+			t.Errorf("editing row %q: cell must clip overflowing content", editingRowID)
+		}
+	}
+}
+
 // --- dataGridToggleSelectedRowIDs ---
 
 func TestToggleSelectedRowIDsAdd(t *testing.T) {

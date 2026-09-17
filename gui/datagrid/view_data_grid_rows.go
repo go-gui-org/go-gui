@@ -146,6 +146,7 @@ func dataGridRowView(dctx dataGridCtx, rowData GridRow, rowIdx int, showDeleteAc
 			A11YRole:    gg.AccessRoleGridCell,
 			Width:       dataGridColumnWidthFor(col, columnWidths),
 			Sizing:      gg.FixedFill,
+			Clip:        true,
 			Padding:     cellPadding,
 			Color:       cellColor,
 			ColorBorder: cfg.ColorBorder,
