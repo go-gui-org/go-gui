@@ -122,6 +122,13 @@ and this project adheres to
 
 ### Fixed
 
+- **DataGrid cell content no longer paints over the next column (#679)** — a
+  committed value wider than its column kept drawing past the cell edge after
+  the editor closed, so a long value covered its neighbour. A display cell now
+  clips its contents to the cell box. The cell being edited does not clip: the
+  editor fills the cell exactly and the theme draws focus as a glow outside the
+  control, so a clip there would cut the focus ring off the cell in use. Select
+  dropdowns and date pickers are floating layers and still open past the cell.
 - **Markdown abbreviations and footnote refs no longer rewrite code** — an
   abbreviation inside an inline code span or fenced code block gained a tooltip,
   and a footnote pattern in inline code expanded to a superscript ref. Code runs

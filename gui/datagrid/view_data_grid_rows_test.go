@@ -53,23 +53,50 @@ func TestDataGridCellClipsOverflowingContent(t *testing.T) {
 		OnCellEdit:  func(GridCellEdit, gg.EventCtx) {},
 	}
 
-	for _, editingRowID := range []string{"", "r1"} {
-		dctx := dataGridCtx{
-			cfg:          cfg,
-			columns:      cfg.Columns,
-			columnWidths: map[string]float32{"name": 80},
-			RowHeight:    24,
-			editingRowID: editingRowID,
-			w:            w,
-		}
-		layout := gg.GenerateViewLayout(dataGridRowView(dctx, cfg.Rows[0], 0, false), w)
-		cell, ok := layout.FindByID(gg.ScopeID(cfg.ID, "cell", "r1", "name"))
-		if !ok {
-			t.Fatalf("editing row %q: cell layout not found", editingRowID)
-		}
-		if !cell.Shape.Clip {
-			t.Errorf("editing row %q: cell must clip overflowing content", editingRowID)
-		}
+	tests := []struct {
+		name         string
+		editingRowID string
+		wantClip     bool
+	}{
+		{
+			name:         "display cell",
+			editingRowID: "",
+			wantClip:     true,
+		},
+		{
+			name:         "editing cell",
+			editingRowID: "r1",
+			wantClip:     false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			dctx := dataGridCtx{
+				cfg:          cfg,
+				columns:      cfg.Columns,
+				columnWidths: map[string]float32{"name": 80},
+				RowHeight:    24,
+				editingRowID: tc.editingRowID,
+				w:            w,
+			}
+
+			layout := gg.GenerateViewLayout(
+				dataGridRowView(dctx, cfg.Rows[0], 0, false),
+				w,
+			)
+
+			cell, ok := layout.FindByID(
+				gg.ScopeID(cfg.ID, "cell", "r1", "name"),
+			)
+			if !ok {
+				t.Fatal("cell layout not found")
+			}
+
+			if got := cell.Shape.Clip; got != tc.wantClip {
+				t.Errorf("Clip = %t, want %t", got, tc.wantClip)
+			}
+		})
 	}
 }
 

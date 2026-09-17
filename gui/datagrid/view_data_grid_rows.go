@@ -142,11 +142,18 @@ func dataGridRowView(dctx dataGridCtx, rowData GridRow, rowIdx int, showDeleteAc
 		}
 
 		cells = append(cells, gg.Row(gg.ContainerCfg{
-			ID:          gg.ScopeID(cfg.ID, "cell", rowID, col.ID),
-			A11YRole:    gg.AccessRoleGridCell,
-			Width:       dataGridColumnWidthFor(col, columnWidths),
-			Sizing:      gg.FixedFill,
-			Clip:        true,
+			ID:       gg.ScopeID(cfg.ID, "cell", rowID, col.ID),
+			A11YRole: gg.AccessRoleGridCell,
+			Width:    dataGridColumnWidthFor(col, columnWidths),
+			Sizing:   gg.FixedFill,
+			// A committed value wider than its column would paint over
+			// the next cell, so a display cell clips its contents. An
+			// editing cell must not: the editor fills the cell exactly
+			// (NoPadding above) and the theme draws focus as a glow
+			// *outside* the control (applyFocusRingShadow), so a clip
+			// here cuts the focus ring off the cell being edited. The
+			// editor constrains its own text already.
+			Clip:        !isEditingCell,
 			Padding:     cellPadding,
 			Color:       cellColor,
 			ColorBorder: cfg.ColorBorder,

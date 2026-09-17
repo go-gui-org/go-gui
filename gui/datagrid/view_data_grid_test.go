@@ -962,6 +962,72 @@ func TestDataGridLongCellTextRenderIsClippedAfterEditingEnds(t *testing.T) {
 	}
 }
 
+func TestDataGridEditingCellFocusRingIsNotClipped(t *testing.T) {
+	w := gg.NewTestWindow(gg.WindowCfg{Width: 360, Height: 180})
+	defer w.Close()
+	w.SetTextMeasurer(dataGridRenderTextMeasurer{})
+	w.SetTheme(gg.ThemeDark)
+
+	view := func(win *gg.Window) gg.View {
+		return New(win, DataGridCfg{
+			ID: "grid",
+			Columns: []GridColumnCfg{
+				{ID: "first", Title: "First", Width: gg.SomeF(90), Editable: true},
+				{ID: "second", Title: "Second", Width: gg.SomeF(90)},
+			},
+			Rows: []GridRow{{ID: "r1", Cells: map[string]string{
+				"first": "short", "second": "NEXT",
+			}}},
+			OnCellEdit: func(GridCellEdit, gg.EventCtx) {},
+		})
+	}
+
+	w.TestRender(view)
+	dataGridSetEditingRow("grid", "r1", w)
+	editorID := dataGridCellEditorFocusID(&DataGridCfg{ID: "grid"}, 2, 0, 0)
+	w.SetFocus(editorID)
+	root := w.TestRender(nil)
+	editor, ok := root.FindByID(editorID)
+	if !ok {
+		t.Fatalf("editing frame: editor %q not found", editorID)
+	}
+
+	var activeClip gg.RenderCmd
+	for _, cmd := range w.Renderers() {
+		if cmd.Kind == gg.RenderClip {
+			activeClip = cmd
+			continue
+		}
+		if cmd.Kind == gg.RenderShadow && dataGridRenderCmdMatchesShape(cmd, editor.Shape) {
+			assertDataGridRenderRectInsideClip(t, cmd, activeClip)
+			return
+		}
+	}
+	t.Fatalf("focused editor %q emitted no RenderShadow command", editorID)
+}
+
+func dataGridRenderCmdMatchesShape(cmd gg.RenderCmd, shape *gg.Shape) bool {
+	const epsilon = float32(0.01)
+	return cmd.X >= shape.X-epsilon && cmd.X <= shape.X+epsilon &&
+		cmd.Y >= shape.Y-epsilon && cmd.Y <= shape.Y+epsilon &&
+		cmd.W >= shape.Width-epsilon && cmd.W <= shape.Width+epsilon &&
+		cmd.H >= shape.Height-epsilon && cmd.H <= shape.Height+epsilon
+}
+
+func assertDataGridRenderRectInsideClip(t *testing.T, cmd, clip gg.RenderCmd) {
+	t.Helper()
+	if clip.Kind != gg.RenderClip || clip.W <= 0 || clip.H <= 0 {
+		t.Fatalf("render command has no active non-empty clip: %+v", clip)
+	}
+	const epsilon = float32(0.01)
+	if cmd.X < clip.X-epsilon || cmd.X+cmd.W > clip.X+clip.W+epsilon ||
+		cmd.Y < clip.Y-epsilon || cmd.Y+cmd.H > clip.Y+clip.H+epsilon {
+		t.Fatalf("render command (%v,%v %vx%v) is cut by clip (%v,%v %vx%v)",
+			cmd.X, cmd.Y, cmd.W, cmd.H,
+			clip.X, clip.Y, clip.W, clip.H)
+	}
+}
+
 func assertDataGridRenderClipInsideCell(t *testing.T, clip gg.RenderCmd, cell *gg.Shape) {
 	t.Helper()
 	if clip.Kind != gg.RenderClip || clip.W <= 0 || clip.H <= 0 {
