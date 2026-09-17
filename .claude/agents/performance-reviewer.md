@@ -31,14 +31,17 @@ Review changed Go files for performance issues. Focus on heap allocations.
 ## Output Format
 
 List findings as:
+
 ```
 file.go:line — [severity] description
   suggestion: ...
 ```
 
-Severity: `alloc` (heap allocation), `perf` (general performance), `nit` (minor).
+Severity: `alloc` (heap allocation), `perf` (general performance), `nit`
+(minor).
 
 ## Rules
+
 - Run `go build -gcflags='-m' ./path/...` to check escape analysis
 - Focus on code in the `gui/` package (the hot path)
 - Ignore test files unless the user asks otherwise

@@ -9,12 +9,14 @@ disable-model-invocation: true
 Create a new example app under `examples/<name>/main.go`.
 
 ## Arguments
+
 - `name` (required): directory name for the example (lowercase, underscores)
 - `description` (optional): one-line description for the package comment
 
 ## Template
 
 Every example follows this structure:
+
 1. Package comment that describes the example
 2. `App` state struct
 3. `main()` that sets the theme, creates `gui.NewWindow`, and calls
@@ -68,6 +70,7 @@ func mainView(w *gui.Window) gui.View {
 ```
 
 ## Rules
+
 - Place in `examples/<name>/main.go`
 - Use `gui.ThemeDark` unless the user specifies otherwise
 - Use `gui.FixedFixed` sizing for the root container

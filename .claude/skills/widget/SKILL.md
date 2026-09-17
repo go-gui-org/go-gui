@@ -1,6 +1,7 @@
 ---
 name: widget
-description: Create a new go-gui widget with proper Cfg struct and factory function
+description:
+  Create a new go-gui widget with proper Cfg struct and factory function
 disable-model-invocation: true
 ---
 
@@ -9,11 +10,13 @@ disable-model-invocation: true
 Create a new widget in the `gui/` package. Follow established conventions.
 
 ## Arguments
+
 - `name` (required): widget name (for example, "Slider" or "ColorPicker")
 
 ## Widget Structure
 
 Every widget consists of:
+
 1. A `*Cfg` struct (zero-initializable, exported fields)
 2. A factory function that returns `View`
 3. Event callbacks that use the `func(EventCtx)` signature
@@ -52,15 +55,16 @@ func <Name>(cfg <Name>Cfg) View {
 ```
 
 ## Rules
+
 - File name: `view_<lowercase_name>.go` in `gui/`
 - Cfg struct must be zero-initializable (sensible defaults)
-- Event callbacks use `func(EventCtx)`. A callback that acts on an event
-  calls `ctx.Consume()`. A callback that does not act lets the event travel
-  on. Nothing is consumed by default.
-- Focus needs both `Focusable` (or default-on with no `FocusDisabled`)
-  **and** a non-empty `ID`. The `requiredid` analyzer flags
-  `Focusable: true` without an `ID`
+- Event callbacks use `func(EventCtx)`. A callback that acts on an event calls
+  `ctx.Consume()`. A callback that does not act lets the event travel on.
+  Nothing is consumed by default.
+- Focus needs both `Focusable` (or default-on with no `FocusDisabled`) **and** a
+  non-empty `ID`. The `requiredid` analyzer flags `Focusable: true` without an
+  `ID`
 - No variable shadowing (use `=` not `:=` for outer-scope vars)
-- Read existing widgets (for example, `view_button.go` and `view_slider.go`)
-  for patterns
+- Read existing widgets (for example, `view_button.go` and `view_slider.go`) for
+  patterns
 - Must pass `golangci-lint run ./gui/...`
