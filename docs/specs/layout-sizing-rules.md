@@ -58,8 +58,8 @@ found := w.TestFindings(gui.DebugAll | gui.DebugLayoutInvariants)
    conflict with `effectiveMinSize` then `clampSize`, so a shape still carrying
    `min > max` never went through them.
 3. **Every emitted dimension and position is finite and non-negative.** A NaN
-   wins every later `f32Max` — it returns its second argument for NaN
-   (`gui/math.go:63-74`) — and poisons the scroll range.
+   spreads through each later `f32Max` that takes it as the second argument
+   (`gui/math.go:63-74`) and poisons the scroll range.
 4. **Fill children sum to the parent's content box minus spacing**
    (`checkFillSum`, #638). Main axis only, and only when at least one in-flow
    child is Fill: cross-axis Fill is stretch, where every child takes the full

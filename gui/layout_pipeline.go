@@ -90,7 +90,10 @@ func layoutHover(layout *Layout, w *Window) bool {
 }
 
 func layoutHoverDepth(layout *Layout, w *Window, depth int) bool {
-	if overMaxDepth(depth) {
+	// Nil-tolerant like layoutMouseLeaveDepth below: a hand-built Layout
+	// reaches this walk the same way it reaches the find walks in
+	// layout_query.go.
+	if layout == nil || layout.Shape == nil || overMaxDepth(depth) {
 		return false
 	}
 	// Apply inverse rotation for children of rotated containers.

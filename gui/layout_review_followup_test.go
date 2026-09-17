@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"math"
 	"testing"
 
 	"github.com/go-gui-org/go-glyph"
@@ -128,5 +129,84 @@ func TestRTFLayoutCacheHitSharesOneLayout(t *testing.T) {
 	}
 	if s2.Height != 24 {
 		t.Errorf("height from cache: got %v, want 24", s2.Height)
+	}
+}
+
+// FindLayout answers the outermost match. It walks pre-order, self before
+// children, the same order findByID uses. A post-order walk answered the
+// innermost match, so one predicate that matched an ancestor and a
+// descendant named a different widget than FindByID did.
+func TestFindLayoutReturnsOutermostMatch(t *testing.T) {
+	leaf := Layout{Shape: &Shape{shapeType: shapeRectangle, ID: "dup"}}
+	mid := Layout{Shape: &Shape{shapeType: shapeRectangle, ID: "dup"},
+		Children: []Layout{leaf}}
+	root := Layout{Shape: &Shape{shapeType: shapeRectangle},
+		Children: []Layout{mid}}
+	got, ok := root.FindLayout(func(l Layout) bool { return l.Shape.ID == "dup" })
+	if !ok {
+		t.Fatal("FindLayout found no match")
+	}
+	if got != &root.Children[0] {
+		t.Error("FindLayout answered the inner match, want the outer one")
+	}
+}
+
+// A nil Shape never matches, because every predicate reads the Shape,
+// but the walk still descends past it. A hand-built mid-tree node with
+// no Shape then cannot hide a valid match below it, and a nil receiver
+// matches nothing. Each case panicked before the guard.
+func TestFindLayoutSkipsNilShape(t *testing.T) {
+	matchDeep := func(l Layout) bool { return l.Shape.ID == "deep" }
+	deep := Layout{Shape: &Shape{shapeType: shapeRectangle, ID: "deep"}}
+	mid := Layout{Children: []Layout{deep}}
+	root := Layout{Shape: &Shape{shapeType: shapeRectangle},
+		Children: []Layout{mid}}
+	got, ok := root.FindLayout(matchDeep)
+	if !ok {
+		t.Fatal("FindLayout found no match past a nil Shape")
+	}
+	if got != &root.Children[0].Children[0] {
+		t.Error("FindLayout stopped at a nil Shape instead of descending")
+	}
+	var nilRoot *Layout
+	if _, ok := nilRoot.FindLayout(matchDeep); ok {
+		t.Error("FindLayout on a nil root matched")
+	}
+}
+
+// A hand-built child with no Shape must not panic the hover walk. The
+// mouse-leave walk already tolerated one. Hover read Shape with no
+// guard, so the same tree panicked here.
+func TestLayoutHoverSkipsNilShape(t *testing.T) {
+	w := &Window{}
+	root := Layout{
+		Shape:    &Shape{shapeType: shapeRectangle, Width: 100, Height: 100},
+		Children: []Layout{{}},
+	}
+	if layoutHover(&root, w) {
+		t.Error("layoutHover with no handlers reported a handled hover")
+	}
+	if layoutHover(nil, w) {
+		t.Error("layoutHover on a nil root reported a handled hover")
+	}
+}
+
+// A NaN size sailed through clampSize, because each NaN comparison is
+// false, and then poisoned each later f32Max that took it as the second
+// argument, plus the scroll range from it. The clamp now contains NaN
+// to the effective Min, or to 0 when no Min applies.
+func TestClampSizeContainsNaN(t *testing.T) {
+	nan := float32(math.NaN())
+	if got := clampSize(nan, 0, 0); got != 0 {
+		t.Errorf("clampSize(NaN, 0, 0) = %v, want 0", got)
+	}
+	if got := clampSize(nan, 5, 10); got != 5 {
+		t.Errorf("clampSize(NaN, 5, 10) = %v, want 5", got)
+	}
+	if got := clampSize(float32(math.Inf(1)), 0, 10); got != 10 {
+		t.Errorf("clampSize(+Inf, 0, 10) = %v, want 10", got)
+	}
+	if got := clampSize(7, 0, 10); got != 7 {
+		t.Errorf("clampSize(7, 0, 10) = %v, want 7", got)
 	}
 }

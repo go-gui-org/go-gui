@@ -1,5 +1,7 @@
 package gui
 
+import "math"
+
 // effectiveMinSize is the Min a size may be raised to once Max is taken
 // into account. When both are set and Min > Max, Max wins: every sizing
 // site resolves the conflict the same way, and a computed Min (the sum of
@@ -14,8 +16,19 @@ func effectiveMinSize(minSize, maxSize float32) float32 {
 
 // clampSize raises size to Min and caps it at Max, with Max winning a
 // conflict (see effectiveMinSize). Zero or negative bounds mean unset.
+// A NaN size is contained to the effective Min, or to 0 when no Min
+// applies: each NaN comparison is false, so without this NaN sailed
+// through and poisoned each later f32Max that took it as the second
+// argument, plus the scroll range from it.
 func clampSize(size, minSize, maxSize float32) float32 {
-	if m := effectiveMinSize(minSize, maxSize); m > 0 && size < m {
+	m := effectiveMinSize(minSize, maxSize)
+	if math.IsNaN(float64(size)) {
+		if m > 0 {
+			return m
+		}
+		return 0
+	}
+	if m > 0 && size < m {
 		size = m
 	}
 	if maxSize > 0 && size > maxSize {

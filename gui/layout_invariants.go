@@ -97,7 +97,8 @@ func checkLayoutInvariantsDepth(
 
 // checkShapeFinite is invariant 3: every emitted dimension and position is
 // finite and non-negative. A non-finite size poisons every later pass —
-// f32Max returns its second argument for NaN — and a negative one renders
+// f32Max keeps a NaN that it takes as the second argument, so NaN spreads
+// through each max it reaches on that side — and a negative one renders
 // as an inverted rect.
 func checkShapeFinite(s *Shape, emit layoutInvariantEmit) {
 	// The subject is built only on a violation: an anonymous shape's
@@ -107,8 +108,9 @@ func checkShapeFinite(s *Shape, emit layoutInvariantEmit) {
 		subject := shapeInvariantSubject(s)
 		emit(subject,
 			"layout invariant: shape %q resolved to a non-finite rect "+
-				"(x=%v y=%v w=%v h=%v); a NaN or Inf here silently wins "+
-				"every later f32Max and poisons the scroll range.",
+				"(x=%v y=%v w=%v h=%v); a non-finite value here spreads "+
+				"through each later f32Max that takes it as the second "+
+				"argument and poisons the scroll range.",
 			subject, s.X, s.Y, s.Width, s.Height)
 		return
 	}

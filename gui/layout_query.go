@@ -1,6 +1,7 @@
 package gui
 
-// FindShape walks the layout depth-first until predicate is satisfied.
+// FindShape walks the layout pre-order, outermost match first, until
+// predicate is satisfied.
 func (layout *Layout) findShape(predicate func(Layout) bool) (*Shape, bool) {
 	if l, ok := layout.findLayoutDepth(predicate, 0); ok {
 		return l.Shape, true
@@ -8,23 +9,30 @@ func (layout *Layout) findShape(predicate func(Layout) bool) (*Shape, bool) {
 	return nil, false
 }
 
-// FindLayout walks the layout depth-first until predicate is satisfied.
+// FindLayout walks the layout pre-order, self before children, until
+// predicate is satisfied. When an ancestor and a descendant both match,
+// the ancestor wins, the same order findByID uses.
 // Like the other tree walks, it stops descending past maxEventDepth.
+//
+// A node with a nil Shape never matches, because each predicate reads
+// the Shape, but the walk still descends into its children. A hand-built
+// mid-tree node with no Shape then cannot hide a valid match below it.
+// A nil receiver matches nothing.
 func (layout *Layout) FindLayout(predicate func(Layout) bool) (*Layout, bool) {
 	return layout.findLayoutDepth(predicate, 0)
 }
 
 func (layout *Layout) findLayoutDepth(predicate func(Layout) bool, depth int) (*Layout, bool) {
-	if overMaxDepth(depth) {
+	if layout == nil || overMaxDepth(depth) {
 		return nil, false
+	}
+	if layout.Shape != nil && predicate(*layout) {
+		return layout, true
 	}
 	for i := range layout.Children {
 		if l, ok := layout.Children[i].findLayoutDepth(predicate, depth+1); ok {
 			return l, true
 		}
-	}
-	if predicate(*layout) {
-		return layout, true
 	}
 	return nil, false
 }
