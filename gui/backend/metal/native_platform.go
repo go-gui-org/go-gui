@@ -9,6 +9,7 @@ package metal
 */
 import "C"
 import (
+	"unicode/utf8"
 	"unsafe"
 
 	"github.com/go-gui-org/go-gui/gui"
@@ -90,9 +91,28 @@ func (n *nativePlatform) A11yDestroy() {
 }
 
 func (n *nativePlatform) A11yAnnounce(text string) {
-	cstr := C.CString(text)
+	// Cap announcement text: every byte crosses into ObjC via
+	// C.CString, so unbounded input is an unbounded C allocation.
+	cstr := C.CString(truncateA11yText(text, maxA11yAnnounceLen))
 	defer C.free(unsafe.Pointer(cstr))
 	C.a11yAnnounce(cstr)
+}
+
+// maxA11yAnnounceLen caps spoken announcement text at 8 KB, well
+// beyond any realistic announcement.
+const maxA11yAnnounceLen = 8192
+
+// truncateA11yText caps s at max bytes on a rune boundary, so the
+// C string stays valid UTF-8.
+func truncateA11yText(s string, max int) string {
+	if len(s) <= max {
+		return s
+	}
+	end := max
+	for end > 0 && !utf8.RuneStart(s[end]) {
+		end--
+	}
+	return s[:end]
 }
 
 // --- IME ---

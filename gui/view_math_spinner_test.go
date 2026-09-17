@@ -3,6 +3,7 @@ package gui
 import (
 	"math"
 	"testing"
+	"time"
 )
 
 func TestMathSpinnerDefaultLayout(t *testing.T) {
@@ -256,5 +257,233 @@ func TestMathSpinnerAnimationIsViewBound(t *testing.T) {
 	}
 	if _, ok := w.animViewBound["math_spinner:sp1"]; !ok {
 		t.Error("math_spinner animation not registered as view-bound")
+	}
+}
+
+func TestMathSpinnerSanitizeSpeed(t *testing.T) {
+	nan := float32(math.NaN())
+	inf := float32(math.Inf(1))
+	tests := []struct {
+		name  string
+		input float32
+		want  float32
+	}{
+		{"normal", 2, 2},
+		{"zero", 0, 1},
+		{"negative", -3, 1},
+		{"nan", nan, 1},
+		{"pos inf", inf, 1},
+		{"neg inf", float32(math.Inf(-1)), 1},
+	}
+	for _, tt := range tests {
+		if got := mathSpinnerSanitizeSpeed(tt.input); got != tt.want {
+			t.Errorf("%s: sanitize(%v) = %v, want %v",
+				tt.name, tt.input, got, tt.want)
+		}
+	}
+}
+
+func TestMathSpinnerDuration(t *testing.T) {
+	if got := mathSpinnerDuration(1); got != 5*time.Second {
+		t.Errorf("speed 1 = %v, want 5s", got)
+	}
+	if got := mathSpinnerDuration(2); got != 2500*time.Millisecond {
+		t.Errorf("speed 2 = %v, want 2.5s", got)
+	}
+	// Extreme speeds clamp instead of producing a zero or
+	// overflowing Duration.
+	if got := mathSpinnerDuration(1e30); got <= 0 {
+		t.Errorf("huge speed = %v, want positive clamp", got)
+	}
+	if got := mathSpinnerDuration(1e-30); got <= 0 {
+		t.Errorf("tiny speed = %v, want positive clamp", got)
+	}
+	if got := mathSpinnerDuration(mathSpinnerSanitizeSpeed(
+		float32(math.NaN()))); got != 5*time.Second {
+		t.Errorf("NaN speed = %v, want 5s", got)
+	}
+}
+
+func TestMathSpinnerBadSpeedStillAnimates(t *testing.T) {
+	for _, speed := range []float32{0, -2,
+		float32(math.NaN()), float32(math.Inf(1))} {
+		w := &Window{}
+		v := MathSpinner(MathSpinnerCfg{ID: "bad", Speed: speed}, w)
+		layout := generateViewLayout(v, w)
+		if layout.Shape.Width != 48 {
+			t.Errorf("speed %v: width = %f, want 48",
+				speed, layout.Shape.Width)
+		}
+		if _, ok := w.animViewBound["math_spinner:bad"]; !ok {
+			t.Errorf("speed %v: animation not registered", speed)
+		}
+	}
+}
+
+func TestMathSpinnerAsymmetricSize(t *testing.T) {
+	w := &Window{}
+	v := MathSpinner(MathSpinnerCfg{ID: "asym", Width: 200}, w)
+	layout := generateViewLayout(v, w)
+	if layout.Shape.Width != 200 {
+		t.Errorf("width = %f, want 200", layout.Shape.Width)
+	}
+	if layout.Shape.Height != 48 {
+		t.Errorf("height = %f, want 48 fallback", layout.Shape.Height)
+	}
+}
+
+func TestMathSpinnerFourierSilentX(t *testing.T) {
+	// x1 = 0 used to zero the y axis too through the shared norm.
+	found := false
+	for i := range 101 {
+		progress := float32(i) / 100
+		x, y := mathSpinnerFourier(progress, 0, 15)
+		if x != 0 {
+			t.Fatalf("x1=0: x = %f, want 0", x)
+		}
+		if !isFinite(y) {
+			t.Fatalf("x1=0: y = %f, want finite", y)
+		}
+		if math.Abs(float64(y)) > 0.01 {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("x1=0: y stayed ~0 all sweep, the live axis is lost")
+	}
+}
+
+func TestMathSpinnerFourierAxesBounded(t *testing.T) {
+	// Per-axis norms bound each axis to [-1,1] by construction.
+	for i := range 101 {
+		progress := float32(i) / 100
+		x, y := mathSpinnerFourier(progress, 17, 15)
+		if math.Abs(float64(x)) > 1.001 ||
+			math.Abs(float64(y)) > 1.001 {
+			t.Fatalf("progress=%f: (%f, %f) escapes [-1,1]",
+				progress, x, y)
+		}
+	}
+}
+
+func TestMathSpinnerButterflyFractionalPower(t *testing.T) {
+	// A fractional power must stay on the positive branch: Pow ran
+	// on |sin|, and only exact odd integers restore the sign.
+	x, y := mathSpinnerButterfly(0.75, 12, 2, 5.5)
+	if !isFinite(x) || !isFinite(y) {
+		t.Fatalf("butterfly(power=5.5) = (%f, %f), want finite", x, y)
+	}
+	oddX, oddY := mathSpinnerButterfly(0.75, 12, 2, 5)
+	if x == oddX && y == oddY {
+		t.Error("fractional power renders identically to odd power")
+	}
+}
+
+func TestMathSpinnerGhostCacheDeterministic(t *testing.T) {
+	first := mathSpinnerCachedGhost(familyRose, 9, 5, 0)
+	second := mathSpinnerCachedGhost(familyRose, 9, 5, 0)
+	if first != second {
+		t.Error("same params returned different cache entries")
+	}
+	other := mathSpinnerCachedGhost(familyRose, 9, 2, 0)
+	if other == first {
+		t.Error("different params returned the same cache entry")
+	}
+	// Cached points match a direct evaluation.
+	px, py := mathSpinnerRose(0.5, 9, 5)
+	if first[200] != px || first[201] != py {
+		t.Errorf("cached mid %f,%f != direct %f,%f",
+			first[200], first[201], px, py)
+	}
+}
+
+func TestMathSpinnerFadeTable(t *testing.T) {
+	if got := mathSpinnerFade(0); got != 0 {
+		t.Errorf("fade(0) = %f, want 0", got)
+	}
+	if got := mathSpinnerFade(1); got != 1 {
+		t.Errorf("fade(1) = %f, want 1", got)
+	}
+	if got := mathSpinnerFade(float32(math.NaN())); got != 0 {
+		t.Errorf("fade(NaN) = %f, want 0", got)
+	}
+	for i := range 101 {
+		r := float32(i) / 100
+		want := float32(math.Pow(float64(r), 0.56))
+		if got := mathSpinnerFade(r); math.Abs(float64(got-want)) > 0.005 {
+			t.Fatalf("fade(%f) = %f, want ~%f", r, got, want)
+		}
+	}
+}
+
+func TestMathSpinnerDrawSingleParticle(t *testing.T) {
+	// Direct callers may pass 1 particle; the trail spacing must
+	// not divide by zero.
+	dc := &DrawContext{Width: 100, Height: 100}
+	mathSpinnerDraw(dc, familyRose, 0.5, 0,
+		1, 0.35, 2.5, 9, 5, 0, RGB(100, 100, 255))
+}
+
+func TestMathSpinnerHostileSizes(t *testing.T) {
+	// NaN and +Inf pass a plain `<= 0` guard, so before
+	// mathSpinnerPositive they reached the layout tree and the
+	// stroke radius intact.
+	nan := float32(math.NaN())
+	inf := float32(math.Inf(1))
+	for _, bad := range []float32{nan, inf, 0, -5} {
+		w := &Window{}
+		v := MathSpinner(MathSpinnerCfg{
+			ID:          "hostile",
+			Size:        bad,
+			Width:       bad,
+			Height:      bad,
+			StrokeWidth: bad,
+			TrailLength: bad,
+		}, w)
+		layout := generateViewLayout(v, w)
+		if layout.Shape.Width != 48 || layout.Shape.Height != 48 {
+			t.Errorf("%v: size = %f x %f, want 48 x 48",
+				bad, layout.Shape.Width, layout.Shape.Height)
+		}
+	}
+}
+
+func TestMathSpinnerPositive(t *testing.T) {
+	tests := []struct {
+		name   string
+		v, def float32
+		want   float32
+	}{
+		{"finite positive", 3, 7, 3},
+		{"zero", 0, 7, 7},
+		{"negative", -1, 7, 7},
+		{"nan", float32(math.NaN()), 7, 7},
+		{"pos inf", float32(math.Inf(1)), 7, 7},
+		{"neg inf", float32(math.Inf(-1)), 7, 7},
+	}
+	for _, tt := range tests {
+		if got := mathSpinnerPositive(tt.v, tt.def); got != tt.want {
+			t.Errorf("%s: mathSpinnerPositive(%v, %v) = %v, want %v",
+				tt.name, tt.v, tt.def, got, tt.want)
+		}
+	}
+}
+
+func TestMathSpinnerGhostCacheEviction(t *testing.T) {
+	// Filling past the bound must keep serving correct points,
+	// not panic or hand back another entry's curve.
+	for i := range mathSpinnerGhostCacheSize + 4 {
+		pts := mathSpinnerCachedGhost(
+			familyRose, float32(20+i), 5, 0)
+		px, py := mathSpinnerRose(0.5, float32(20+i), 5)
+		if pts[200] != px || pts[201] != py {
+			t.Fatalf("entry %d: cached %f,%f != direct %f,%f",
+				i, pts[200], pts[201], px, py)
+		}
+	}
+	if len(mathSpinnerGhostCache.pts) > mathSpinnerGhostCacheSize {
+		t.Errorf("cache holds %d entries, want <= %d",
+			len(mathSpinnerGhostCache.pts),
+			mathSpinnerGhostCacheSize)
 	}
 }

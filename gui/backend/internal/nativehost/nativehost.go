@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"runtime"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/go-gui-org/go-gui/gui"
 	"github.com/go-gui-org/go-gui/gui/backend/filedialog"
@@ -83,6 +84,20 @@ func OpenURI(uri string) error {
 	return nil
 }
 
+// truncateBytes caps s at max bytes on a rune boundary, so the
+// result stays valid UTF-8. A naive s[:max] can split a multi-byte
+// rune and hand broken UTF-8 to exec or the spell engine.
+func truncateBytes(s string, max int) string {
+	if len(s) <= max {
+		return s
+	}
+	end := max
+	for end > 0 && !utf8.RuneStart(s[end]) {
+		end--
+	}
+	return s[:end]
+}
+
 // SendNotification dispatches a desktop notification using the best
 // available OS mechanism. Returns NotificationOK on success or a
 // result with Status=NotificationError on failure.
@@ -94,12 +109,8 @@ func OpenURI(uri string) error {
 // #nosec G204 — length-capped, -- separator on Linux, single-quote
 // escaping on Windows
 func SendNotification(title, body string) gui.NativeNotificationResult {
-	if len(title) > maxNotifyTitleLen {
-		title = title[:maxNotifyTitleLen]
-	}
-	if len(body) > maxNotifyBodyLen {
-		body = body[:maxNotifyBodyLen]
-	}
+	title = truncateBytes(title, maxNotifyTitleLen)
+	body = truncateBytes(body, maxNotifyBodyLen)
 	var cmd *exec.Cmd
 	var fireAndForget bool
 
@@ -209,26 +220,24 @@ func ShowPrintDialog(cfg gui.NativePrintParams) gui.PrintRunResult {
 // maxSpellTextLen to prevent Hunspell allocation blowup on
 // pathological input.
 func SpellCheck(text string) []gui.SpellRange {
-	if len(text) > maxSpellTextLen {
-		text = text[:maxSpellTextLen]
-	}
-	return spellcheck.Check(text)
+	return spellcheck.Check(truncateBytes(text, maxSpellTextLen))
 }
 
 // SpellSuggest forwards to spellcheck.Suggest. Caps text at
 // maxSpellTextLen and clamps startByte/lenBytes to valid ranges
 // to prevent out-of-bounds access in the native spell engine.
 func SpellSuggest(text string, startByte, lenBytes int) []string {
-	if len(text) > maxSpellTextLen {
-		text = text[:maxSpellTextLen]
-	}
+	text = truncateBytes(text, maxSpellTextLen)
 	if startByte < 0 {
 		startByte = 0
 	}
 	if startByte >= len(text) {
 		return nil
 	}
-	if lenBytes <= 0 || startByte+lenBytes > len(text) {
+	// Written as a subtraction, not startByte+lenBytes: the sum
+	// overflows for a hostile lenBytes near math.MaxInt and the
+	// bound check would silently pass.
+	if lenBytes <= 0 || lenBytes > len(text)-startByte {
 		lenBytes = len(text) - startByte
 	}
 	return spellcheck.Suggest(text, startByte, lenBytes)
@@ -238,10 +247,7 @@ func SpellSuggest(text string, startByte, lenBytes int) []string {
 // maxSpellWordLen — words longer than this are not realistic
 // dictionary entries.
 func SpellLearn(word string) {
-	if len(word) > maxSpellWordLen {
-		word = word[:maxSpellWordLen]
-	}
-	spellcheck.Learn(word)
+	spellcheck.Learn(truncateBytes(word, maxSpellWordLen))
 }
 
 // Beep plays the system alert sound. Thin forwarder to the sysbeep

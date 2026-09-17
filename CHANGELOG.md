@@ -129,6 +129,50 @@ and this project adheres to
   editor fills the cell exactly and the theme draws focus as a glow outside the
   control, so a clip there would cut the focus ring off the cell in use. Select
   dropdowns and date pickers are floating layers and still open past the cell.
+- **No-op native backends stop reporting success for work they did not do** —
+  the headless noop platform returned zero values that read as `DialogOK`,
+  `NotificationOK` and `PrintRunOK`, and the web, Android, iOS and non-Linux
+  stubs handed out tray ID 0 for every icon, so two trays shared one handle. The
+  noop now reports cancel or error, and every stub hands out unique tray IDs.
+- **Web, Android and iOS validate `OpenURI` and spell input like the desktop
+  backends** — the web scheme prefix check is now a length-capped allowlist
+  parse matching `nativehost.ValidateOpenURI`, the mobile backends cap URI
+  length, and both cap spell-check text and clamp offsets instead of passing
+  unbounded input to the spell engine. Notification text and macOS accessibility
+  announcements are truncated on a rune boundary on every platform, so capping
+  can no longer split a multi-byte rune.
+- **Web file pickers and printing fail cleanly instead of wedging or blanking**
+  — a picker thrown without a user gesture now returns a dialog error instead of
+  panicking the wasm instance, callback and element cleanup is deferred, a
+  tainted canvas reports a print error instead of throwing, and printing waits
+  for the snapshot image to decode instead of printing a blank page.
+- **LaTeX math sanitizing uses an allowlist, not a substring blocklist** — the
+  blocklist matched inside longer command names, so `\theta` rendered as `ta`,
+  `\iff` as `f`, and `\longrightarrow` and `\coprod` lost their prefixes.
+  Commands are now tokenized and only known-safe math commands pass; any other
+  command is dropped while its arguments stay, so unknown macros fail closed
+  instead of executing on the renderer. The fetcher also rejects empty source up
+  front rather than requesting a blank formula. `\begin` and `\end` carry a
+  second allowlist for the environment name, so a file-writing environment such
+  as `filecontents` cannot ride in on an allowed command.
+- **MathSpinner survives hostile parameters and renders Fourier correctly** — a
+  NaN or infinite `Speed` reached the animation duration conversion, where a
+  float-to-int conversion is implementation-defined; it now falls back to the
+  default speed with the period clamped to 50ms–1h. `Size`, `Width`, `Height`,
+  `StrokeWidth` and `TrailLength` take the same treatment, because a plain
+  `<= 0` test passes NaN and `+Inf` straight into the layout tree. The Fourier
+  curve normalized y by the x amplitudes, so silencing x erased y; each axis now
+  normalizes by its own amplitudes. Negative display norms no longer mirror
+  their curves, fractional butterfly powers stay on the positive branch, and
+  setting only one of `Width`/`Height` keeps the default for the other instead
+  of collapsing it to zero.
+- **Float helpers define their edge cases** — `f32Mod` used an int truncation
+  that was undefined for large quotients and a zero divisor; it now matches
+  `math.Mod`, returning NaN where `math.Mod` does. `f32Min` and `f32Max`
+  propagate NaN from either side instead of resolving to one operand depending
+  on argument order, so a NaN size poisons loudly for the invariant checker
+  instead of passing silently. The passthrough contracts (NaN in clamp, the
+  absolute pixel epsilon in `f32AreClose`) are documented on the functions.
 - **Markdown abbreviations and footnote refs no longer rewrite code** — an
   abbreviation inside an inline code span or fenced code block gained a tooltip,
   and a footnote pattern in inline code expanded to a superscript ref. Code runs

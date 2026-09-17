@@ -40,8 +40,10 @@ type NativeMenubarCfg struct {
 }
 
 // NativeMenuItemsFromMenuItems converts in-app MenuItemCfg
-// to NativeMenuItemCfg. Fields not present in the native type
-// (CustomView, Action, styling) are dropped.
+// to NativeMenuItemCfg. It maps ID, Text, CommandID, Separator,
+// Disabled and the submenu tree. Fields with no in-app source —
+// Shortcut, Checked — and in-app-only concerns (CustomView, Action,
+// styling) are left zero or dropped.
 func nativeMenuItemsFromMenuItems(
 	items []MenuItemCfg,
 ) []NativeMenuItemCfg {

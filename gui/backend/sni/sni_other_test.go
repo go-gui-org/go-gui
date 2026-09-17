@@ -12,8 +12,10 @@ func TestTrayCreateNoPanic(t *testing.T) {
 	t.Parallel()
 	var tr Tray
 	id, err := tr.Create(gui.SystemTrayCfg{}, nil)
-	if id != 0 {
-		t.Errorf("id: got %d, want 0", id)
+	// The stub reports success, so the handle must be positive —
+	// a zero ID collides across trays in App bookkeeping.
+	if id <= 0 {
+		t.Errorf("id: got %d, want positive", id)
 	}
 	if err != nil {
 		t.Errorf("err: got %v, want nil", err)
@@ -31,8 +33,8 @@ func TestTrayCreateWithConfig(t *testing.T) {
 		},
 	}
 	id, err := tr.Create(cfg, func(s string) {})
-	if id != 0 {
-		t.Errorf("id: got %d, want 0", id)
+	if id <= 0 {
+		t.Errorf("id: got %d, want positive", id)
 	}
 	if err != nil {
 		t.Errorf("err: got %v, want nil", err)
@@ -42,11 +44,16 @@ func TestTrayCreateWithConfig(t *testing.T) {
 func TestTrayCreateMultiple(t *testing.T) {
 	t.Parallel()
 	var tr Tray
+	seen := map[int]bool{}
 	for i := range 3 {
 		id, err := tr.Create(gui.SystemTrayCfg{}, nil)
-		if id != 0 {
-			t.Errorf("iter %d: id: got %d, want 0", i, id)
+		if id <= 0 {
+			t.Errorf("iter %d: id: got %d, want positive", i, id)
 		}
+		if seen[id] {
+			t.Errorf("iter %d: duplicate id %d", i, id)
+		}
+		seen[id] = true
 		if err != nil {
 			t.Errorf("iter %d: err: got %v, want nil", i, err)
 		}

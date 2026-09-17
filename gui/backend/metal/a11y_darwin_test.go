@@ -3,7 +3,9 @@
 package metal
 
 import (
+	"strings"
 	"testing"
+	"unicode/utf8"
 
 	"github.com/go-gui-org/go-gui/gui"
 )
@@ -122,5 +124,24 @@ func TestA11yCallbacksRoutePerWindow(t *testing.T) {
 	}
 	if len(got2) != 1 || got2[0] != [2]int{4, 5} {
 		t.Errorf("window 2 actions: got %v, want [[4 5]]", got2)
+	}
+}
+
+func TestTruncateA11yTextRuneBoundary(t *testing.T) {
+	if got := truncateA11yText("short", maxA11yAnnounceLen); got != "short" {
+		t.Errorf("short string changed: %q", got)
+	}
+	long := strings.Repeat("é", maxA11yAnnounceLen)
+	got := truncateA11yText(long, maxA11yAnnounceLen)
+	if len(got) > maxA11yAnnounceLen {
+		t.Errorf("capped length %d, want <= %d", len(got), maxA11yAnnounceLen)
+	}
+	if !utf8.ValidString(got) {
+		t.Error("truncated text is not valid UTF-8")
+	}
+	// An odd cap lands mid-rune and must back off one byte: "é" is
+	// 2 bytes, so a cap of 7 keeps 3 runes, not 3 runes and a half.
+	if odd := truncateA11yText(long, 7); odd != strings.Repeat("é", 3) {
+		t.Errorf("odd cap split a rune: %q", odd)
 	}
 }

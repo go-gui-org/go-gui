@@ -21,8 +21,10 @@ func TestClearMenubarNoPanic(t *testing.T) {
 func TestCreateSystemTrayNoPanic(t *testing.T) {
 	t.Parallel()
 	id, err := CreateSystemTray(gui.SystemTrayCfg{}, nil)
-	if id != 0 {
-		t.Errorf("id: got %d, want 0", id)
+	// The stub reports success, so the handle must be positive —
+	// a zero ID collides across trays in App bookkeeping.
+	if id <= 0 {
+		t.Errorf("id: got %d, want positive", id)
 	}
 	if err != nil {
 		t.Errorf("err: got %v, want nil", err)
@@ -63,8 +65,8 @@ func TestCreateSystemTrayWithConfig(t *testing.T) {
 			{ID: "quit", Text: "Quit"},
 		},
 	}, func(s string) {})
-	if id != 0 {
-		t.Errorf("id: got %d, want 0", id)
+	if id <= 0 {
+		t.Errorf("id: got %d, want positive", id)
 	}
 	if err != nil {
 		t.Errorf("err: got %v, want nil", err)
@@ -92,7 +94,7 @@ func TestSystemTrayLifecycle(t *testing.T) {
 	id, err := CreateSystemTray(gui.SystemTrayCfg{
 		Tooltip: "Lifecycle Test",
 	}, nil)
-	if id != 0 || err != nil {
+	if id <= 0 || err != nil {
 		t.Fatalf("create: id=%d err=%v", id, err)
 	}
 	UpdateSystemTray(id, gui.SystemTrayCfg{Tooltip: "Updated"})
