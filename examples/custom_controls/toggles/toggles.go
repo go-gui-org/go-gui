@@ -15,6 +15,7 @@
 package toggles
 
 import (
+	"github.com/go-gui-org/go-gui/examples/custom_controls/internal/look"
 	"github.com/go-gui-org/go-gui/gui"
 )
 
@@ -34,7 +35,8 @@ type App struct {
 	log string
 
 	// Flip handlers are built once, so a frame does not allocate a new
-	// closure per switch.
+	// handler per switch. The look builder passed to gui.Interactive is
+	// still a new closure each frame.
 	flip map[string]func(gui.EventCtx)
 }
 
@@ -68,19 +70,16 @@ func New() *App {
 
 // View builds the page. The caller owns app, so the page can sit in a
 // window whose state is a different type.
-func View(w *gui.Window, app *App) gui.View {
-	title := gui.CurrentTheme().TextStyleDef
-	title.Size = 18
-
+func View(app *App) gui.View {
 	return gui.Column(gui.ContainerCfg{
 		ID:         "page",
 		Scrollable: true,
 		Sizing:     gui.FillFill,
 		Color:      pageBG,
-		Padding:    gui.PadAll(28),
-		Spacing:    gui.SomeF(16),
+		Padding:    look.PagePadding,
+		Spacing:    look.PageSpacing,
 		Content: []gui.View{
-			gui.Text(gui.TextCfg{Text: "Custom toggles from IsHovered / IsPressed", TextStyle: title}),
+			gui.Text(gui.TextCfg{Text: "Custom toggles with gui.Interactive", TextStyle: look.Light.Title}),
 
 			sectionTitle("Default gui.Switch, for comparison"),
 			group("default", gui.ContainerCfg{},
@@ -126,13 +125,13 @@ func View(w *gui.Window, app *App) gui.View {
 				labelToggle("b", "Label B", app.on["Label B"], app.flip["Label B"]),
 			),
 
-			gui.Text(gui.TextCfg{ID: "log", Text: app.log}),
+			gui.Text(gui.TextCfg{ID: "log", Text: app.log, TextStyle: look.Light.Body}),
 		},
 	})
 }
 
 func sectionTitle(s string) gui.View {
-	return gui.Text(gui.TextCfg{Text: s, TextStyle: gui.CurrentTheme().TextStyleLabel})
+	return gui.Text(gui.TextCfg{Text: s, TextStyle: look.Light.Label})
 }
 
 // group is one ID-bearing row. The ID scopes the switches inside it, so "a"
@@ -157,19 +156,11 @@ func labelRow(label string, control gui.View) gui.View {
 		SizeBorder: gui.NoBorder,
 		VAlign:     gui.VAlignMiddle,
 		Content: []gui.View{
-			gui.Text(gui.TextCfg{Text: label, TextStyle: textStyle(textDark, 14)}),
+			gui.Text(gui.TextCfg{Text: label, TextStyle: look.Light.Text(textDark, 14)}),
 			gui.Row(gui.ContainerCfg{Sizing: gui.FillFit, Padding: gui.PaddingNone, SizeBorder: gui.NoBorder}),
 			control,
 		},
 	})
-}
-
-// textStyle returns the theme's body style with a color and size.
-func textStyle(c gui.Color, size float32) gui.TextStyle {
-	ts := gui.CurrentTheme().TextStyleDef
-	ts.Color = c
-	ts.Size = size
-	return ts
 }
 
 // switchShell is the part every custom switch shares: the ID that makes it a
@@ -197,9 +188,9 @@ func hoverShade(track gui.Color, on bool, s gui.InteractionState) gui.Color {
 	case !s.Hovered && !s.Pressed:
 		return track
 	case on:
-		return lighten(track, 0.12)
+		return look.Lighten(track, 0.12)
 	default:
-		return darken(track, 0.94)
+		return look.Darken(track, 0.94)
 	}
 }
 
@@ -319,10 +310,8 @@ func checkToggle(id, label string, on bool, onClick func(gui.EventCtx)) gui.View
 		var mark []gui.View
 		if on {
 			track, knobColor = checkPurple, white
-			ts := gui.CurrentTheme().Icon4
-			ts.Color = checkTick
-			ts.Size = knob * 0.7
-			mark = []gui.View{gui.Text(gui.TextCfg{Text: gui.IconCheck, TextStyle: ts})}
+			mark = []gui.View{gui.Text(gui.TextCfg{Text: gui.IconCheck,
+				TextStyle: look.Light.IconStyle(checkTick, knob*0.7)})}
 		}
 		return knobTrack(switchShell(gui.ContainerCfg{
 			ID:      id,
@@ -357,7 +346,7 @@ func labelToggle(id, label string, on bool, onClick func(gui.EventCtx)) gui.View
 			track, text, word = labelGreen, white, "ON"
 			textAlign, knobX = gui.HAlignLeft, trackW-knob-1
 		}
-		ts := gui.CurrentTheme().B6
+		ts := look.Light.Bold6
 		ts.Color = text
 		ts.Size = 11
 
@@ -406,15 +395,4 @@ func labelToggle(id, label string, on bool, onClick func(gui.EventCtx)) gui.View
 		}
 		return gui.Column(cfg)
 	})
-}
-
-// darken scales the RGB channels by f.
-func darken(c gui.Color, f float32) gui.Color {
-	return gui.RGBA(uint8(float32(c.R)*f), uint8(float32(c.G)*f), uint8(float32(c.B)*f), c.A)
-}
-
-// lighten moves each RGB channel toward white by f.
-func lighten(c gui.Color, f float32) gui.Color {
-	up := func(v uint8) uint8 { return v + uint8(float32(255-v)*f) }
-	return gui.RGBA(up(c.R), up(c.G), up(c.B), c.A)
 }

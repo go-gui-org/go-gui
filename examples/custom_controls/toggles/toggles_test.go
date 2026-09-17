@@ -13,7 +13,7 @@ func newTestApp(t *testing.T) (*App, *gui.Window) {
 	gui.SetTheme(gui.ThemeLight)
 	app := New()
 	w := gui.NewTestWindow(gui.WindowCfg{State: app, Width: 640, Height: 700})
-	w.TestRender(func(w *gui.Window) gui.View { return View(w, app) })
+	w.TestRender(func(*gui.Window) gui.View { return View(app) })
 	return app, w
 }
 

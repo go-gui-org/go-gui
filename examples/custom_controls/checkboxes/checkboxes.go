@@ -15,6 +15,7 @@
 package checkboxes
 
 import (
+	"github.com/go-gui-org/go-gui/examples/custom_controls/internal/look"
 	"github.com/go-gui-org/go-gui/gui"
 )
 
@@ -36,7 +37,8 @@ type App struct {
 	log string
 
 	// Flip handlers are built once, so a frame does not allocate a new
-	// closure per checkbox.
+	// handler per checkbox. The look builder passed to gui.Interactive is
+	// still a new closure each frame.
 	flip map[string]func(gui.EventCtx)
 }
 
@@ -71,19 +73,16 @@ func New() *App {
 
 // View builds the page. The caller owns app, so the page can sit in a
 // window whose state is a different type.
-func View(w *gui.Window, app *App) gui.View {
-	title := gui.CurrentTheme().TextStyleDef
-	title.Size = 18
-
+func View(app *App) gui.View {
 	return gui.Column(gui.ContainerCfg{
 		ID:         "page",
 		Scrollable: true,
 		Sizing:     gui.FillFill,
 		Color:      pageBG,
-		Padding:    gui.PadAll(28),
-		Spacing:    gui.SomeF(16),
+		Padding:    look.PagePadding,
+		Spacing:    look.PageSpacing,
 		Content: []gui.View{
-			gui.Text(gui.TextCfg{Text: "Custom checkboxes from IsHovered / IsPressed", TextStyle: title}),
+			gui.Text(gui.TextCfg{Text: "Custom checkboxes with gui.Interactive", TextStyle: look.Light.Title}),
 
 			sectionTitle("Default gui.Toggle, for comparison"),
 			group("default", gui.ColorTransparent, 8,
@@ -114,13 +113,13 @@ func View(w *gui.Window, app *App) gui.View {
 			toggleRow("xp-toggle", "Disable the next XP box", "Disable XP", app,
 				xpCheck("target", "XP target", app, app.on["Disable XP"])),
 
-			gui.Text(gui.TextCfg{ID: "log", Text: app.log}),
+			gui.Text(gui.TextCfg{ID: "log", Text: app.log, TextStyle: look.Light.Body}),
 		},
 	})
 }
 
 func sectionTitle(s string) gui.View {
-	return gui.Text(gui.TextCfg{Text: s, TextStyle: gui.CurrentTheme().TextStyleLabel})
+	return gui.Text(gui.TextCfg{Text: s, TextStyle: look.Light.Label})
 }
 
 // group is one ID-bearing column. The ID scopes the checkboxes inside it, so
@@ -161,20 +160,9 @@ func toggleRow(id, label, key string, app *App, target gui.View) gui.View {
 	})
 }
 
-// textStyle returns the theme's body style with a color and size.
-func textStyle(c gui.Color, size float32) gui.TextStyle {
-	ts := gui.CurrentTheme().TextStyleDef
-	ts.Color = c
-	ts.Size = size
-	return ts
-}
-
 // checkMark is the icon font's check glyph in a color and size.
 func checkMark(c gui.Color, size float32) gui.View {
-	ts := gui.CurrentTheme().Icon4
-	ts.Color = c
-	ts.Size = size
-	return gui.Text(gui.TextCfg{Text: gui.IconCheck, TextStyle: ts})
+	return gui.Text(gui.TextCfg{Text: gui.IconCheck, TextStyle: look.Light.IconStyle(c, size)})
 }
 
 // checkShell is the part every custom checkbox shares: the ID that makes it a
@@ -236,15 +224,15 @@ func materialCheck(id, key string, app *App, accent gui.Color, disabled bool) gu
 			bg = accent
 			switch {
 			case s.Armed:
-				bg = darken(accent, 0.88)
+				bg = look.Darken(accent, 0.88)
 			case s.Hovered:
-				bg = lighten(accent, 0.12)
+				bg = look.Lighten(accent, 0.12)
 			}
 			border = bg
 		case s.Armed:
-			border, bg = accent, mix(white, accent, 0.18)
+			border, bg = accent, look.Mix(white, accent, 0.18)
 		case s.Hovered:
-			border, bg = accent, mix(white, accent, 0.08)
+			border, bg = accent, look.Mix(white, accent, 0.08)
 		}
 
 		var mark []gui.View
@@ -268,7 +256,7 @@ func materialCheck(id, key string, app *App, accent gui.Color, disabled bool) gu
 					VAlign:      gui.VAlignMiddle,
 					Content:     mark,
 				}),
-				gui.Text(gui.TextCfg{Text: label, TextStyle: textStyle(text, 14)}),
+				gui.Text(gui.TextCfg{Text: label, TextStyle: look.Light.Text(text, 14)}),
 			},
 		}, label, checked, disabled, onClick))
 	})
@@ -343,8 +331,8 @@ func xpCheck(id, key string, app *App, disabled bool) gui.View {
 				Padding:    gui.PaddingNone,
 				SizeBorder: gui.NoBorder,
 				Content: []gui.View{
-					bevel(rimLo, gui.NewPadding(0, 1, 1, 0),
-						bevel(rimHi, gui.NewPadding(1, 0, 0, 1),
+					look.Bevel(rimLo, gui.NewPadding(0, 1, 1, 0),
+						look.Bevel(rimHi, gui.NewPadding(1, 0, 0, 1),
 							gui.Row(gui.ContainerCfg{
 								Width:      11,
 								Height:     11,
@@ -365,35 +353,8 @@ func xpCheck(id, key string, app *App, disabled bool) gui.View {
 			Spacing: gui.SomeF(6),
 			Content: []gui.View{
 				box,
-				gui.Text(gui.TextCfg{Text: label, TextStyle: textStyle(text, 12)}),
+				gui.Text(gui.TextCfg{Text: label, TextStyle: look.Light.Text(text, 12)}),
 			},
 		}, label, checked, disabled, onClick))
 	})
-}
-
-// bevel pads content with one color on the sides pad names.
-func bevel(c gui.Color, pad gui.Padding, content gui.View) gui.View {
-	return gui.Column(gui.ContainerCfg{
-		Color:      c,
-		Radius:     gui.SomeF(0),
-		Padding:    pad,
-		SizeBorder: gui.NoBorder,
-		Content:    []gui.View{content},
-	})
-}
-
-// darken scales the RGB channels by f.
-func darken(c gui.Color, f float32) gui.Color {
-	return gui.RGBA(uint8(float32(c.R)*f), uint8(float32(c.G)*f), uint8(float32(c.B)*f), c.A)
-}
-
-// lighten moves each RGB channel toward white by f.
-func lighten(c gui.Color, f float32) gui.Color {
-	return mix(c, white, f)
-}
-
-// mix moves each RGB channel of a toward b by f.
-func mix(a, b gui.Color, f float32) gui.Color {
-	ch := func(x, y uint8) uint8 { return uint8(float32(x) + (float32(y)-float32(x))*f) }
-	return gui.RGBA(ch(a.R, b.R), ch(a.G, b.G), ch(a.B, b.B), a.A)
 }

@@ -17,8 +17,9 @@
 package sliders
 
 import (
-	"fmt"
+	"strconv"
 
+	"github.com/go-gui-org/go-gui/examples/custom_controls/internal/look"
 	"github.com/go-gui-org/go-gui/gui"
 )
 
@@ -38,13 +39,15 @@ const (
 	xpHandleW            = 12
 )
 
-var tracks = []track{
-	{id: "display", name: "Display"},
-	{id: "sound", name: "Sound"},
-	{id: "call", name: "Call volume"},
-	{id: "media", name: "Media volume"},
-	{id: "xp", name: "XP"},
-}
+// The custom sliders, one named value each, so a card names the slider it
+// shows and not a position in a list.
+var (
+	displayTrack = track{id: "display", name: "Display"}
+	soundTrack   = track{id: "sound", name: "Sound"}
+	callTrack    = track{id: "call", name: "Call volume"}
+	mediaTrack   = track{id: "media", name: "Media volume"}
+	xpTrack      = track{id: "xp", name: "XP"}
+)
 
 // Every slider runs from 0 to 100 and steps by 5. The wheel moves a
 // gui.Slider by one unit per line, so a range of 0 to 1 would jump to an end
@@ -59,7 +62,8 @@ type App struct {
 	value map[string]float32
 
 	// Change handlers are built once per slider, so a frame does not
-	// allocate new closures.
+	// allocate new handlers. The Look function of a custom slider is still
+	// a new closure each frame.
 	change map[string]func(float32, gui.EventCtx)
 }
 
@@ -105,19 +109,16 @@ func slider(app *App, t track, width, height float32, look func(gui.SliderLookSt
 
 // View builds the page. The caller owns app, so the page can sit in a
 // window whose state is a different type.
-func View(w *gui.Window, app *App) gui.View {
-	title := gui.CurrentTheme().TextStyleDef
-	title.Size = 18
-
+func View(app *App) gui.View {
 	return gui.Column(gui.ContainerCfg{
 		ID:         "page",
 		Scrollable: true,
 		Sizing:     gui.FillFill,
 		Color:      pageBG,
-		Padding:    gui.PadAll(28),
-		Spacing:    gui.SomeF(20),
+		Padding:    look.PagePadding,
+		Spacing:    look.PageSpacing,
 		Content: []gui.View{
-			gui.Text(gui.TextCfg{Text: "Custom sliders from the public API", TextStyle: title}),
+			gui.Text(gui.TextCfg{Text: "Custom sliders from the public API", TextStyle: look.Light.Title}),
 
 			section("Default", "gui.Slider, for comparison"),
 			valueRow(app, "Default", gui.Slider(gui.SliderCfg{
@@ -137,7 +138,7 @@ func View(w *gui.Window, app *App) gui.View {
 			materialCard(app),
 
 			section("Windows XP", "Thin trough and chunky handle"),
-			valueRow(app, "XP", xpSlider(app, tracks[4])),
+			valueRow(app, "XP", xpSlider(app, xpTrack)),
 		},
 	})
 }
@@ -148,15 +149,15 @@ func section(title, sub string) gui.View {
 		SizeBorder: gui.NoBorder,
 		Spacing:    gui.SomeF(4),
 		Content: []gui.View{
-			gui.Text(gui.TextCfg{Text: title, TextStyle: gui.CurrentTheme().B3}),
-			gui.Text(gui.TextCfg{Text: sub, TextStyle: gui.CurrentTheme().TextStyleSecondary}),
+			gui.Text(gui.TextCfg{Text: title, TextStyle: look.Light.Heading}),
+			gui.Text(gui.TextCfg{Text: sub, TextStyle: look.Light.Secondary}),
 		},
 	})
 }
 
 // valueRow puts a value label to the right of a slider.
 func valueRow(app *App, name string, slider gui.View) gui.View {
-	return valueRowStyled(app, name, slider, gui.CurrentTheme().TextStyleSecondary)
+	return valueRowStyled(app, name, slider, look.Light.Secondary)
 }
 
 // valueRowStyled is valueRow with the label style given, for a dark card.
@@ -168,7 +169,9 @@ func valueRowStyled(app *App, name string, slider gui.View, style gui.TextStyle)
 		VAlign:     gui.VAlignMiddle,
 		Content: []gui.View{
 			slider,
-			gui.Text(gui.TextCfg{Text: fmt.Sprintf("%.0f", app.value[name]), TextStyle: style}),
+			// Values are whole steps of 5, so rounding to an int prints what
+			// %.0f printed, without fmt's boxing of the argument.
+			gui.Text(gui.TextCfg{Text: strconv.Itoa(int(app.value[name] + 0.5)), TextStyle: style}),
 		},
 	})
 }
@@ -200,7 +203,7 @@ var (
 )
 
 func appleCard(app *App) gui.View {
-	label := gui.CurrentTheme().B5
+	label := look.Light.Bold5
 	label.Color = appleText
 	row := func(name, icon string, t track) []gui.View {
 		return []gui.View{
@@ -215,17 +218,15 @@ func appleCard(app *App) gui.View {
 		Padding:    gui.PadAll(14),
 		SizeBorder: gui.NoBorder,
 		Spacing:    gui.SomeF(10),
-		Content: append(row("Display", gui.IconSunnyO, tracks[0]),
-			row("Sound", gui.IconSpeaker, tracks[1])...),
+		Content: append(row("Display", gui.IconSunnyO, displayTrack),
+			row("Sound", gui.IconSpeaker, soundTrack)...),
 	})
 }
 
 // appleSlider is a gray capsule as tall as its knob. The white fill ends at
 // the knob's center, under the knob, and carries the icon at its left end.
 func appleSlider(app *App, t track, icon string) gui.View {
-	iconStyle := gui.CurrentTheme().Icon4
-	iconStyle.Color = appleIcon
-	iconStyle.Size = 14
+	iconStyle := look.Light.IconStyle(appleIcon, 14)
 	return slider(app, t, appleW, appleH, func(s gui.SliderLookState) gui.SliderParts {
 		knobColor := white
 		if s.Pressed {
@@ -286,11 +287,9 @@ var (
 )
 
 func materialCard(app *App) gui.View {
-	label := gui.CurrentTheme().B5
+	label := look.Light.Bold5
 	label.Color = materialText
-	iconStyle := gui.CurrentTheme().Icon4
-	iconStyle.Color = materialText
-	iconStyle.Size = 16
+	iconStyle := look.Light.IconStyle(materialText, 16)
 	row := func(name, icon string, t track) gui.View {
 		return gui.Column(gui.ContainerCfg{
 			Padding:    gui.PaddingNone,
@@ -319,8 +318,8 @@ func materialCard(app *App) gui.View {
 		SizeBorder: gui.NoBorder,
 		Spacing:    gui.SomeF(16),
 		Content: []gui.View{
-			row("Call volume", gui.IconPhone, tracks[2]),
-			row("Media volume", gui.IconSpeaker, tracks[3]),
+			row("Call volume", gui.IconPhone, callTrack),
+			row("Media volume", gui.IconSpeaker, mediaTrack),
 		},
 	})
 }
@@ -338,7 +337,7 @@ func materialSlider(app *App, t track) gui.View {
 			bladeW = 6
 		}
 		if s.Hovered && !s.Pressed {
-			blade = lighten(materialBlade, 0.15)
+			blade = look.Lighten(materialBlade, 0.15)
 		}
 		return gui.SliderParts{
 			Track: bar(gui.FillFixed, 0, trackH, trackH/2, materialEmpty),
@@ -436,10 +435,4 @@ func xpSlider(app *App, t track) gui.View {
 			}),
 		}
 	})
-}
-
-// lighten moves each RGB channel toward white by f.
-func lighten(c gui.Color, f float32) gui.Color {
-	up := func(v uint8) uint8 { return v + uint8(float32(255-v)*f) }
-	return gui.RGBA(up(c.R), up(c.G), up(c.B), c.A)
 }

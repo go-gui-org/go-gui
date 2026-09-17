@@ -20,6 +20,7 @@ package scrollbars
 import (
 	"fmt"
 
+	"github.com/go-gui-org/go-gui/examples/custom_controls/internal/look"
 	"github.com/go-gui-org/go-gui/gui"
 )
 
@@ -36,25 +37,39 @@ var (
 	white   = gui.Hex(0xffffff)
 )
 
+// The row labels and the bar configs do not change, so they are built once.
+// A frame then does not format 160 labels or make new configs and closures.
+var (
+	rowLabels [rowCount]string
+
+	classicCfg  = classicBar()
+	win98Cfg    = win98Bar()
+	coolBlueCfg = coolBlueBar()
+)
+
+func init() {
+	for i := range rowLabels {
+		rowLabels[i] = fmt.Sprintf("Row %02d — scroll me", i+1)
+	}
+}
+
 // View builds the page.
-func View(w *gui.Window) gui.View {
-	title := gui.CurrentTheme().TextStyleDef
-	title.Size = 18
+func View() gui.View {
 	return gui.Column(gui.ContainerCfg{
 		ID:      "page",
 		Sizing:  gui.FillFill,
 		Color:   pageBG,
-		Padding: gui.PadAll(24),
-		Spacing: gui.SomeF(16),
+		Padding: look.PagePadding,
+		Spacing: look.PageSpacing,
 		Content: []gui.View{
-			gui.Text(gui.TextCfg{Text: "Custom scrollbars with ScrollbarCfg.Thumb and Track", TextStyle: title}),
+			gui.Text(gui.TextCfg{Text: "Custom scrollbars with ScrollbarCfg.Thumb and Track", TextStyle: look.Light.Title}),
 			panelRow(
 				panel("stock", "Default", "gui's own scrollbar, for comparison", nil),
-				panel("classic", "Classic", "White track, blue pill with a grip", classicBar()),
+				panel("classic", "Classic", "White track, blue pill with a grip", classicCfg),
 			),
 			panelRow(
-				panel("win98", "Windows 98", "Silver track, raised 3D thumb", win98Bar()),
-				panel("blue", "Cool blue", "Pale trough, powder-blue thumb with white ticks", coolBlueBar()),
+				panel("win98", "Windows 98", "Silver track, raised 3D thumb", win98Cfg),
+				panel("blue", "Cool blue", "Pale trough, powder-blue thumb with white ticks", coolBlueCfg),
 			),
 		},
 	})
@@ -88,8 +103,8 @@ func panel(id, title, sub string, bar *gui.ScrollbarCfg) gui.View {
 				SizeBorder: gui.NoBorder,
 				Spacing:    gui.SomeF(2),
 				Content: []gui.View{
-					gui.Text(gui.TextCfg{Text: title, TextStyle: gui.CurrentTheme().B4}),
-					gui.Text(gui.TextCfg{Text: sub, TextStyle: gui.CurrentTheme().TextStyleSecondary}),
+					gui.Text(gui.TextCfg{Text: title, TextStyle: look.Light.Bold4}),
+					gui.Text(gui.TextCfg{Text: sub, TextStyle: look.Light.Secondary}),
 				},
 			}),
 			gui.Column(gui.ContainerCfg{
@@ -109,20 +124,20 @@ func panel(id, title, sub string, bar *gui.ScrollbarCfg) gui.View {
 	})
 }
 
+// rowStyle is the row text: dark, a step under body size.
+var rowStyle = look.Light.Text(rowText, 13)
+
 // rowShades are the three alternating row backgrounds.
 var rowShades = []gui.Color{gui.Hex(0xe9edf5), gui.Hex(0xedf0f6), gui.Hex(0xf1f3f8)}
 
 func row(i int) gui.View {
-	style := gui.CurrentTheme().TextStyleDef
-	style.Color = rowText
-	style.Size = 13
 	return gui.Row(gui.ContainerCfg{
 		Sizing:     gui.FillFit,
 		Color:      rowShades[i%len(rowShades)],
 		Radius:     gui.SomeF(3),
 		SizeBorder: gui.NoBorder,
 		Padding:    gui.NewPadding(6, 8, 6, 8),
-		Content:    []gui.View{gui.Text(gui.TextCfg{Text: fmt.Sprintf("Row %02d — scroll me", i+1), TextStyle: style})},
+		Content:    []gui.View{gui.Text(gui.TextCfg{Text: rowLabels[i], TextStyle: rowStyle})},
 	})
 }
 

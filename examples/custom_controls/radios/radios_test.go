@@ -13,7 +13,7 @@ func newTestApp(t *testing.T) (*App, *gui.Window) {
 	gui.SetTheme(gui.ThemeLight)
 	app := New()
 	w := gui.NewTestWindow(gui.WindowCfg{State: app, Width: 640, Height: 760})
-	w.TestRender(func(w *gui.Window) gui.View { return View(w, app) })
+	w.TestRender(func(*gui.Window) gui.View { return View(app) })
 	return app, w
 }
 
@@ -149,5 +149,24 @@ func TestInteractiveLooksClean(t *testing.T) {
 	}
 	if found := w.TestFindings(gui.DebugMissingIDs | gui.DebugDuplicates); len(found) != 0 {
 		t.Fatalf("findings: %v", found)
+	}
+}
+
+// A group with no selection steps from the focused option. The second XP
+// group shares its value with the first, so while "c" is picked above,
+// nothing in it matches: Down from CD-ROM must wrap to Floppy, not stay put.
+func TestArrowKeysStepFromFocusWithoutSelection(t *testing.T) {
+	app, w := newTestApp(t)
+	if app.drive != "c" {
+		t.Fatalf("start drive=%q, want c", app.drive)
+	}
+	if err := w.TestKey("page:xp-lock:drive2:e", gui.KeyDown, gui.ModNone); err != nil {
+		t.Fatal(err)
+	}
+	if app.drive != "a" {
+		t.Fatalf("after Down from e drive=%q, want a", app.drive)
+	}
+	if !w.IsFocus("page:xp-lock:drive2:a") {
+		t.Fatal("focus did not follow the selection to Floppy")
 	}
 }

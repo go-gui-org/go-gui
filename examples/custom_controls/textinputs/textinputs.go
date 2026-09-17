@@ -27,6 +27,7 @@ package textinputs
 import (
 	"fmt"
 
+	"github.com/go-gui-org/go-gui/examples/custom_controls/internal/look"
 	"github.com/go-gui-org/go-gui/gui"
 )
 
@@ -42,7 +43,8 @@ type App struct {
 	text map[string]string
 
 	// Change handlers are built once per field, so a frame does not
-	// allocate new closures.
+	// allocate new handlers. The look builder passed to gui.Interactive is
+	// still a new closure each frame.
 	changed map[string]func(string, gui.EventCtx)
 }
 
@@ -70,19 +72,16 @@ func New() *App {
 
 // View builds the page. The caller owns app, so the page can sit in a
 // window whose state is a different type.
-func View(w *gui.Window, app *App) gui.View {
-	title := gui.CurrentTheme().TextStyleDef
-	title.Size = 18
-
+func View(app *App) gui.View {
 	return gui.Column(gui.ContainerCfg{
 		ID:         "page",
 		Scrollable: true,
 		Sizing:     gui.FillFill,
 		Color:      pageBG,
-		Padding:    gui.PadAll(28),
-		Spacing:    gui.SomeF(14),
+		Padding:    look.PagePadding,
+		Spacing:    look.PageSpacing,
 		Content: []gui.View{
-			gui.Text(gui.TextCfg{Text: "Custom text inputs around gui.Input", TextStyle: title}),
+			gui.Text(gui.TextCfg{Text: "Custom text inputs around gui.Input", TextStyle: look.Light.Title}),
 
 			sectionTitle("Default gui.Input, for comparison"),
 			fieldLabel("Single-line"),
@@ -122,15 +121,15 @@ func View(w *gui.Window, app *App) gui.View {
 }
 
 func sectionTitle(s string) gui.View {
-	return gui.Text(gui.TextCfg{Text: s, TextStyle: gui.CurrentTheme().B3})
+	return gui.Text(gui.TextCfg{Text: s, TextStyle: look.Light.Heading})
 }
 
 func fieldLabel(s string) gui.View {
-	return gui.Text(gui.TextCfg{Text: s, TextStyle: gui.CurrentTheme().TextStyleLabel})
+	return gui.Text(gui.TextCfg{Text: s, TextStyle: look.Light.Label})
 }
 
 func note(s string) gui.View {
-	return gui.Text(gui.TextCfg{Text: s, TextStyle: gui.CurrentTheme().TextStyleSecondary})
+	return gui.Text(gui.TextCfg{Text: s, TextStyle: look.Light.Secondary})
 }
 
 // group is one ID-bearing column. The ID scopes the fields inside it.
@@ -160,10 +159,10 @@ func valuesPanel(app *App) gui.View {
 		Padding:     gui.NewPadding(10, 14, 10, 14),
 		Spacing:     gui.SomeF(4),
 		Content: []gui.View{
-			gui.Text(gui.TextCfg{Text: "Live values", TextStyle: gui.CurrentTheme().TextStyleLabel}),
-			gui.Text(gui.TextCfg{ID: "default-values",
+			gui.Text(gui.TextCfg{Text: "Live values", TextStyle: look.Light.Label}),
+			gui.Text(gui.TextCfg{ID: "default-values", TextStyle: look.Light.Body,
 				Text: fmt.Sprintf("default=%q", app.text["name"])}),
-			gui.Text(gui.TextCfg{ID: "custom-values",
+			gui.Text(gui.TextCfg{ID: "custom-values", TextStyle: look.Light.Body,
 				Text: fmt.Sprintf("material=%q  xp=%q", app.text["email"], app.text["user"])}),
 		},
 	})
@@ -177,10 +176,12 @@ func plainInput(app *App, key string, multiline bool) gui.View {
 		Text:          app.text[key],
 		OnTextChanged: app.changed[key],
 		Sizing:        gui.FillFit,
+		// The field face is always white, so the text is always dark.
+		TextStyle: look.Light.Body,
 		// One transparent ColorSet turns off the fill, hover and both
 		// border colors.
 		Colors:     gui.Flat(gui.ColorTransparent),
-		SizeBorder: gui.SomeF(0),
+		SizeBorder: gui.NoBorder,
 		Radius:     gui.SomeF(0),
 		Padding:    gui.PaddingNone,
 	}

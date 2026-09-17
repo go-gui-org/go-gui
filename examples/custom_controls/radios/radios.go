@@ -19,6 +19,7 @@
 package radios
 
 import (
+	"github.com/go-gui-org/go-gui/examples/custom_controls/internal/look"
 	"github.com/go-gui-org/go-gui/gui"
 )
 
@@ -76,8 +77,9 @@ type App struct {
 	materialLocked, xpLocked bool
 	log                      string
 
-	// Handlers are built once, so a frame does not allocate a new closure
-	// per option. pick is keyed by group ID and option ID.
+	// Handlers are built once, so a frame does not allocate a new handler
+	// per option. pick is keyed by group ID and option ID. The look
+	// builder passed to gui.Interactive is still a new closure each frame.
 	pick map[string]func(gui.EventCtx)
 	keys map[string]func(gui.EventCtx)
 	lock map[string]func(gui.EventCtx)
@@ -144,11 +146,21 @@ func (app *App) arrowKeys(g group) func(gui.EventCtx) {
 			return
 		}
 		n := len(g.options)
-		cur := 0
+		// Step from the selected option. A group can have none: the second
+		// XP group shares its value with the first. Then step from the
+		// focused option, which is the shape that got the key, so Down does
+		// not start from index 0 and land back on the option that has focus.
+		cur, focused := -1, 0
 		for i, opt := range g.options {
 			if opt.value == *g.value(app) {
 				cur = i
 			}
+			if ctx.Layout != nil && ctx.Layout.Shape != nil && ctx.Layout.Shape.ID == opt.id {
+				focused = i
+			}
+		}
+		if cur < 0 {
+			cur = focused
 		}
 		for i := 1; i < n; i++ {
 			next := g.options[((cur+step*i)%n+n)%n]
@@ -168,19 +180,16 @@ func (app *App) arrowKeys(g group) func(gui.EventCtx) {
 
 // View builds the page. The caller owns app, so the page can sit in a
 // window whose state is a different type.
-func View(w *gui.Window, app *App) gui.View {
-	title := gui.CurrentTheme().TextStyleDef
-	title.Size = 18
-
+func View(app *App) gui.View {
 	return gui.Column(gui.ContainerCfg{
 		ID:         "page",
 		Scrollable: true,
 		Sizing:     gui.FillFill,
 		Color:      pageBG,
-		Padding:    gui.PadAll(28),
-		Spacing:    gui.SomeF(16),
+		Padding:    look.PagePadding,
+		Spacing:    look.PageSpacing,
 		Content: []gui.View{
-			gui.Text(gui.TextCfg{Text: "Custom radios from IsHovered / IsPressed", TextStyle: title}),
+			gui.Text(gui.TextCfg{Text: "Custom radios with gui.Interactive", TextStyle: look.Light.Title}),
 
 			sectionTitle("Default gui.RadioButtonGroupColumn, for comparison"),
 			gui.RadioButtonGroupColumn(gui.RadioButtonGroupCfg{
@@ -207,13 +216,13 @@ func View(w *gui.Window, app *App) gui.View {
 			lockRow("xp-lock", "Disable the next XP radios", app.xpLocked, app.lock["xp"],
 				radioGroup(app, xpDriveLocked, gui.ColorTransparent, 6, xpLook)),
 
-			gui.Text(gui.TextCfg{ID: "log", Text: app.log}),
+			gui.Text(gui.TextCfg{ID: "log", Text: app.log, TextStyle: look.Light.Body}),
 		},
 	})
 }
 
 func sectionTitle(s string) gui.View {
-	return gui.Text(gui.TextCfg{Text: s, TextStyle: gui.CurrentTheme().TextStyleLabel})
+	return gui.Text(gui.TextCfg{Text: s, TextStyle: look.Light.Label})
 }
 
 // optionState is what the group knows about one option when it builds it.
@@ -225,13 +234,13 @@ type optionState struct {
 	onClick, onKeyDown func(gui.EventCtx)
 }
 
-// look builds one option's view from its state and its interaction state.
-type look func(o optionState, s gui.InteractionState) gui.View
+// lookFunc builds one option's view from its state and its interaction state.
+type lookFunc func(o optionState, s gui.InteractionState) gui.View
 
 // radioGroup is one ID-bearing column of options. The ID scopes the options,
 // so "disabled" in the size group is "page:size:disabled" and in the drive
 // group "page:drive:disabled".
-func radioGroup(app *App, g group, bg gui.Color, spacing float32, lk look) gui.View {
+func radioGroup(app *App, g group, bg gui.Color, spacing float32, lk lookFunc) gui.View {
 	value := *g.value(app)
 	// The Tab stop is the selected option. A group with no selection (the
 	// second XP group shares its value with the first) uses its first
@@ -251,17 +260,12 @@ func radioGroup(app *App, g group, bg gui.Color, spacing float32, lk look) gui.V
 		}
 	}
 	content := make([]gui.View, 0, len(g.options))
-	for _, opt := range g.options {
-		o := optionState{
-			option:    opt,
-			tabStop:   opt.id == tabStop,
-			selected:  opt.value == value,
-			disabled:  app.optionDisabled(g, opt),
-			onClick:   app.pick[g.id+"/"+opt.id],
-			onKeyDown: app.keys[g.id],
-		}
+	for i, opt := range g.options {
+		// The builder captures a few words (app, the group, the index, the
+		// look and the Tab stop) and makes the option's state when it runs,
+		// so the closure does not hold a copy of the whole optionState.
 		content = append(content, gui.Interactive(opt.id, func(s gui.InteractionState) gui.View {
-			return lk(o, s)
+			return lk(app.optionState(g, i, tabStop), s)
 		}))
 	}
 	pad, border := gui.PaddingNone, gui.NoBorder
@@ -282,6 +286,20 @@ func radioGroup(app *App, g group, bg gui.Color, spacing float32, lk look) gui.V
 	})
 }
 
+// optionState makes the state of option i of g. tabStop is the ID of the
+// group's one option in the Tab order.
+func (app *App) optionState(g group, i int, tabStop string) optionState {
+	opt := g.options[i]
+	return optionState{
+		option:    opt,
+		tabStop:   opt.id == tabStop,
+		selected:  opt.value == *g.value(app),
+		disabled:  app.optionDisabled(g, opt),
+		onClick:   app.pick[g.id+"/"+opt.id],
+		onKeyDown: app.keys[g.id],
+	}
+}
+
 // lockRow pairs a default gui.Toggle that locks a group with that group.
 func lockRow(id, label string, locked bool, onClick func(gui.EventCtx), target gui.View) gui.View {
 	return gui.Row(gui.ContainerCfg{
@@ -295,14 +313,6 @@ func lockRow(id, label string, locked bool, onClick func(gui.EventCtx), target g
 			target,
 		},
 	})
-}
-
-// textStyle returns the theme's body style with a color and size.
-func textStyle(c gui.Color, size float32) gui.TextStyle {
-	ts := gui.CurrentTheme().TextStyleDef
-	ts.Color = c
-	ts.Size = size
-	return ts
 }
 
 // radioShell is the part every custom radio shares: the ID that makes it a
@@ -347,7 +357,7 @@ var (
 )
 
 // materialLook is a Material radio in one accent color.
-func materialLook(accent gui.Color) look {
+func materialLook(accent gui.Color) lookFunc {
 	return func(o optionState, s gui.InteractionState) gui.View {
 		const size, ring = 20, 2
 		const dot = 9
@@ -359,14 +369,14 @@ func materialLook(accent gui.Color) look {
 			border = accent
 			switch {
 			case s.Armed:
-				border = darken(accent, 0.88)
+				border = look.Darken(accent, 0.88)
 			case s.Hovered:
-				border = mix(accent, white, 0.12)
+				border = look.Mix(accent, white, 0.12)
 			}
 		case s.Armed:
-			border, bg = accent, mix(white, accent, 0.16)
+			border, bg = accent, look.Mix(white, accent, 0.16)
 		case s.Hovered:
-			border, bg = accent, mix(white, accent, 0.06)
+			border, bg = accent, look.Mix(white, accent, 0.06)
 		}
 		var center []gui.View
 		if o.selected {
@@ -388,7 +398,7 @@ func materialLook(accent gui.Color) look {
 					VAlign:      gui.VAlignMiddle,
 					Content:     center,
 				}),
-				gui.Text(gui.TextCfg{Text: o.label, TextStyle: textStyle(text, 14)}),
+				gui.Text(gui.TextCfg{Text: o.label, TextStyle: look.Light.Text(text, 14)}),
 			},
 		}, o))
 	}
@@ -492,7 +502,7 @@ func xpLook(o optionState, s gui.InteractionState) gui.View {
 		Spacing: gui.SomeF(6),
 		Content: []gui.View{
 			well,
-			gui.Text(gui.TextCfg{Text: o.label, TextStyle: textStyle(text, 12)}),
+			gui.Text(gui.TextCfg{Text: o.label, TextStyle: look.Light.Text(text, 12)}),
 		},
 	}, o))
 }
@@ -506,15 +516,4 @@ func ring(c gui.Color, pad gui.Padding, radius float32, content gui.View) gui.Vi
 		SizeBorder: gui.NoBorder,
 		Content:    []gui.View{content},
 	})
-}
-
-// darken scales the RGB channels by f.
-func darken(c gui.Color, f float32) gui.Color {
-	return gui.RGBA(uint8(float32(c.R)*f), uint8(float32(c.G)*f), uint8(float32(c.B)*f), c.A)
-}
-
-// mix moves each RGB channel of a toward b by f.
-func mix(a, b gui.Color, f float32) gui.Color {
-	ch := func(x, y uint8) uint8 { return uint8(float32(x) + (float32(y)-float32(x))*f) }
-	return gui.RGBA(ch(a.R, b.R), ch(a.G, b.G), ch(a.B, b.B), a.A)
 }

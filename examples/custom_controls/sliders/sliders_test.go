@@ -16,7 +16,7 @@ func newTestApp(t *testing.T) (*App, *gui.Window) {
 	// Taller than the real window: with no text measurer the test layout
 	// runs longer, and the pointer must stay inside the window to hover.
 	w := gui.NewTestWindow(gui.WindowCfg{State: app, Width: 720, Height: 1000})
-	w.TestRender(func(w *gui.Window) gui.View { return View(w, app) })
+	w.TestRender(func(*gui.Window) gui.View { return View(app) })
 	return app, w
 }
 
@@ -61,7 +61,7 @@ func xAt(s *gui.Shape, inset, v float32) float32 {
 // the pointer is outside the slider, and clamps it at both ends.
 func TestPressAndDrag(t *testing.T) {
 	app, w := newTestApp(t)
-	tr := tracks[2] // Call volume
+	tr := callTrack
 	s := mustFind(t, w, "page:material:"+tr.id)
 	y := s.Y + s.Height/2
 
@@ -127,7 +127,7 @@ func TestKeys(t *testing.T) {
 // The knob and the fill follow the value, and the slider keeps its size.
 func TestPartsFollowValue(t *testing.T) {
 	app, w := newTestApp(t)
-	tr := tracks[0] // Display
+	tr := displayTrack
 	const id = "page:apple:display"
 	for _, v := range []float32{0, 50, valueMax} {
 		app.value[tr.name] = v
@@ -152,7 +152,7 @@ func TestPartsFollowValue(t *testing.T) {
 // handle also when the pointer is over a floating part (#661).
 func TestPressAndHoverLooks(t *testing.T) {
 	app, w := newTestApp(t)
-	tr := tracks[4] // XP
+	tr := xpTrack
 	s := mustFind(t, w, "page:xp")
 	h := mustFind(t, w, "page:xp:handle")
 	y := s.Y + s.Height/2

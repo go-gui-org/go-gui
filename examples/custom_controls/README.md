@@ -39,9 +39,15 @@ subfolder, with a README that tells how its looks are built:
 | Scrollbars  | [`scrollbars/`](scrollbars/) | Classic, Windows 98, cool blue           |
 
 A page does not read the window state. Each package exports `New`, which makes
-the page state, and `View(w, app)`, which builds the page from it. So all pages
+the page state, and `View(app)`, which builds the page from it. So all pages
 share one window whose state holds the selected tab and one state per page. A
 page keeps its state while another tab is shown.
+
+The pages share `internal/look`: the text styles, the page padding and spacing,
+the color math (`Darken`, `Lighten`, `Mix`) and `Bevel`. Each page paints its
+own light background, so its text styles come from `gui.ThemeLight` and not from
+the app theme. Dark text stays on a light page under a dark app theme. The stock
+widgets shown for comparison still follow the app theme.
 
 Only the selected tab gets content, so a frame builds one page, not seven.
 

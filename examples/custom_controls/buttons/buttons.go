@@ -18,6 +18,7 @@
 package buttons
 
 import (
+	"github.com/go-gui-org/go-gui/examples/custom_controls/internal/look"
 	"github.com/go-gui-org/go-gui/gui"
 )
 
@@ -29,7 +30,8 @@ type App struct {
 	xpDisabled    bool
 
 	// Click handlers are built once, so a frame does not allocate a new
-	// closure per button.
+	// handler per button. The look builder passed to gui.Interactive is
+	// still a new closure each frame.
 	onClick map[string]func(gui.EventCtx)
 	toggle  map[string]func(gui.EventCtx)
 }
@@ -58,18 +60,16 @@ func New() *App {
 
 // View builds the page. The caller owns app, so the page can sit in a
 // window whose state is a different type.
-func View(w *gui.Window, app *App) gui.View {
-	title := gui.CurrentTheme().TextStyleDef
-	title.Size = 18
-
+func View(app *App) gui.View {
 	return gui.Column(gui.ContainerCfg{
 		ID:         "page",
 		Scrollable: true,
 		Sizing:     gui.FillFill,
-		Padding:    gui.PadAll(24),
-		Spacing:    gui.SomeF(14),
+		Color:      pageBG,
+		Padding:    look.PagePadding,
+		Spacing:    look.PageSpacing,
 		Content: []gui.View{
-			gui.Text(gui.TextCfg{Text: "Custom buttons from IsHovered / IsPressed", TextStyle: title}),
+			gui.Text(gui.TextCfg{Text: "Custom buttons with gui.Interactive", TextStyle: look.Light.Title}),
 
 			sectionTitle("Default gui.Button, for comparison"),
 			row("default", gui.ColorTransparent,
@@ -115,13 +115,13 @@ func View(w *gui.Window, app *App) gui.View {
 				xpButton("target", "Toggle target", app.xpDisabled,
 					app.onClick["XP target"])),
 
-			gui.Text(gui.TextCfg{ID: "log", Text: app.log}),
+			gui.Text(gui.TextCfg{ID: "log", Text: app.log, TextStyle: look.Light.Body}),
 		},
 	})
 }
 
 func sectionTitle(s string) gui.View {
-	return gui.Text(gui.TextCfg{Text: s, TextStyle: gui.CurrentTheme().TextStyleLabel})
+	return gui.Text(gui.TextCfg{Text: s, TextStyle: look.Light.Label})
 }
 
 // row is one ID-bearing group. The ID scopes the buttons inside it, so "ok"
@@ -150,14 +150,6 @@ func toggleRow(id, label string, selected bool, onClick func(gui.EventCtx), targ
 	})
 }
 
-// textStyle returns the theme's body style with a color and size.
-func textStyle(c gui.Color, size float32) gui.TextStyle {
-	ts := gui.CurrentTheme().TextStyleDef
-	ts.Color = c
-	ts.Size = size
-	return ts
-}
-
 // buttonShell is the part every custom button shares: the ID that makes it
 // a hover and press target, click and keyboard activation, and the
 // accessibility role. The look goes in content.
@@ -174,19 +166,26 @@ func buttonShell(cfg gui.ContainerCfg, label string, disabled bool, onClick func
 
 // --- Flat ------------------------------------------------------------------
 
+// pageBG is the page background. The page sets it, so its text colors,
+// taken from the light theme, always sit on a light surface.
+var pageBG = gui.Hex(0xf4f4f6)
+
 var (
 	flatPrimary = gui.Hex(0x0d6efd)
 	flatSuccess = gui.Hex(0x198754)
 	flatDanger  = gui.Hex(0xdc3545)
-	flatMuted   = gui.Hex(0xc7c7c7)
+	// A disabled flat button is a pale face with gray text, about 4:1.
+	// White on the old #c7c7c7 face was 1.7:1 and hard to read.
+	flatMuted     = gui.Hex(0xe2e2e2)
+	flatMutedText = gui.Hex(0x6f6f6f)
 )
 
 // flatButton needs no build-time state: only the fill changes, and
 // gui.Button already takes a color per state.
 func flatButton(id, label string, accent gui.Color, disabled bool, onClick func(gui.EventCtx)) gui.View {
-	face := accent
+	face, text := accent, gui.White
 	if disabled {
-		face = flatMuted
+		face, text = flatMuted, flatMutedText
 	}
 	return gui.Button(gui.ButtonCfg{
 		ID:         id,
@@ -197,11 +196,11 @@ func flatButton(id, label string, accent gui.Color, disabled bool, onClick func(
 		Padding:    gui.NewPadding(8, 16, 8, 16),
 		Colors: gui.ColorSet{
 			Base:  face,
-			Hover: darken(accent, 0.9),
-			Click: darken(accent, 0.8),
+			Hover: look.Darken(accent, 0.9),
+			Click: look.Darken(accent, 0.8),
 		},
 		Content: []gui.View{
-			gui.Text(gui.TextCfg{Text: label, TextStyle: textStyle(gui.White, 13)}),
+			gui.Text(gui.TextCfg{Text: label, TextStyle: look.Light.Text(text, 13)}),
 		},
 	})
 }
@@ -220,7 +219,7 @@ func outlineLook(id, label string, accent gui.Color, s gui.InteractionState, onC
 	bg, text := gui.White, accent
 	switch {
 	case s.Armed:
-		bg, text = darken(accent, 0.85), gui.White
+		bg, text = look.Darken(accent, 0.85), gui.White
 	case s.Hovered:
 		bg, text = accent, gui.White
 	}
@@ -232,7 +231,7 @@ func outlineLook(id, label string, accent gui.Color, s gui.InteractionState, onC
 		Radius:      gui.SomeF(4),
 		Padding:     gui.NewPadding(7, 15, 7, 15),
 		Content: []gui.View{
-			gui.Text(gui.TextCfg{Text: label, TextStyle: textStyle(text, 13)}),
+			gui.Text(gui.TextCfg{Text: label, TextStyle: look.Light.Text(text, 13)}),
 		},
 	}, label, false, onClick)
 	return gui.Row(cfg)
@@ -286,30 +285,20 @@ func win98Look(id, label string, disabled bool, s gui.InteractionState, onClick 
 		Padding:    gui.PadAll(1),
 		SizeBorder: gui.NoBorder,
 		Content: []gui.View{
-			bevel(shadow, gui.NewPadding(0, 1, 1, 0),
-				bevel(light, gui.NewPadding(1, 0, 0, 1),
+			look.Bevel(shadow, gui.NewPadding(0, 1, 1, 0),
+				look.Bevel(light, gui.NewPadding(1, 0, 0, 1),
 					gui.Row(gui.ContainerCfg{
 						Color:      face,
 						Radius:     gui.SomeF(0),
 						Padding:    gui.NewPadding(top, right, bottom, left),
 						SizeBorder: gui.NoBorder,
 						Content: []gui.View{
-							gui.Text(gui.TextCfg{Text: label, TextStyle: textStyle(text, 12)}),
+							gui.Text(gui.TextCfg{Text: label, TextStyle: look.Light.Text(text, 12)}),
 						},
 					}))),
 		},
 	}, label, disabled, onClick)
 	return gui.Column(cfg)
-}
-
-func bevel(c gui.Color, pad gui.Padding, content gui.View) gui.View {
-	return gui.Column(gui.ContainerCfg{
-		Color:      c,
-		Radius:     gui.SomeF(0),
-		Padding:    pad,
-		SizeBorder: gui.NoBorder,
-		Content:    []gui.View{content},
-	})
 }
 
 // --- Windows XP ------------------------------------------------------------
@@ -394,7 +383,7 @@ func xpLook(id, label string, disabled bool, s gui.InteractionState, onClick fun
 					SizeBorder: gui.NoBorder,
 					HAlign:     gui.HAlignCenter,
 					Content: []gui.View{
-						gui.Text(gui.TextCfg{Text: label, TextStyle: textStyle(text, 11)}),
+						gui.Text(gui.TextCfg{Text: label, TextStyle: look.Light.Text(text, 11)}),
 					},
 				})))},
 	}, label, disabled, onClick)
@@ -410,9 +399,4 @@ func rim(c gui.Color, pad gui.Padding, content gui.View) gui.View {
 		SizeBorder: gui.NoBorder,
 		Content:    []gui.View{content},
 	})
-}
-
-// darken scales the RGB channels by f.
-func darken(c gui.Color, f float32) gui.Color {
-	return gui.RGBA(uint8(float32(c.R)*f), uint8(float32(c.G)*f), uint8(float32(c.B)*f), c.A)
 }

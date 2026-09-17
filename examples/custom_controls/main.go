@@ -114,22 +114,22 @@ func newApp() *App {
 }
 
 // page builds the view of one tab.
-func (app *App) page(w *gui.Window, id string) gui.View {
+func (app *App) page(id string) gui.View {
 	switch id {
 	case "buttons":
-		return buttons.View(w, app.buttons)
+		return buttons.View(app.buttons)
 	case "checkboxes":
-		return checkboxes.View(w, app.checkboxes)
+		return checkboxes.View(app.checkboxes)
 	case "radios":
-		return radios.View(w, app.radios)
+		return radios.View(app.radios)
 	case "toggles":
-		return toggles.View(w, app.toggles)
+		return toggles.View(app.toggles)
 	case "sliders":
-		return sliders.View(w, app.sliders)
+		return sliders.View(app.sliders)
 	case "textinputs":
-		return textinputs.View(w, app.textinputs)
+		return textinputs.View(app.textinputs)
 	case "scrollbars":
-		return scrollbars.View(w)
+		return scrollbars.View()
 	}
 	return nil
 }
@@ -143,18 +143,20 @@ func mainView(w *gui.Window) gui.View {
 	for i, id := range tabIDs {
 		items[i] = gui.TabItemCfg{ID: id, Label: tabLabels[id]}
 		if id == app.tab {
-			items[i].Content = []gui.View{app.page(w, id)}
+			items[i].Content = []gui.View{app.page(id)}
 		}
 	}
 
+	// Read the theme once: a Theme is about 12 KB, and each call copies it.
+	th := gui.CurrentTheme()
 	return gui.Column(gui.ContainerCfg{
 		Sizing: gui.FillFill,
 		// The padding keeps the tab control off the window edges.
-		Padding:    gui.PadAll(16),
+		Padding:    th.PaddingLarge,
 		SizeBorder: gui.NoBorder,
-		Spacing:    gui.SomeF(12),
+		Spacing:    gui.SomeF(th.SpacingMedium),
 		Content: []gui.View{
-			intro(),
+			intro(&th),
 			gui.TabControl(gui.TabControlCfg{
 				ID:       "tabs",
 				Selected: app.tab,
@@ -181,10 +183,11 @@ var introGradient = &gui.GradientDef{Direction: gui.GradientToBottom, Stops: []g
 	{Color: gui.Hex(0xf2f7fd), Pos: 1},
 }}
 
-func intro() gui.View {
+// intro takes the theme by pointer, so the call does not copy it again.
+func intro(th *gui.Theme) gui.View {
 	return gui.Column(gui.ContainerCfg{
 		Sizing:      gui.FillFit,
-		Padding:     gui.PadAll(14),
+		Padding:     th.PaddingMedium,
 		Radius:      gui.SomeF(10),
 		Gradient:    introGradient,
 		SizeBorder:  gui.SomeF(1),
@@ -193,7 +196,7 @@ func intro() gui.View {
 			gui.Text(gui.TextCfg{
 				Text:      introText,
 				Mode:      gui.TextModeWrap,
-				TextStyle: gui.CurrentTheme().TextStyleDef,
+				TextStyle: th.TextStyleDef,
 			}),
 		},
 	})
