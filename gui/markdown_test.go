@@ -28,8 +28,8 @@ func TestSanitizeLatex(t *testing.T) {
 	}{
 		{"E = mc^2", "E = mc^2"},
 		{"\\input{secrets}", "{secrets}"},
-		{"\\def\\x{y}", "\\x{y}"},
-		{"\\write18{cmd}", "{cmd}"},
+		{"\\def\\x{y}", "{y}"},
+		{"\\write18{cmd}", "18{cmd}"},
 		{"\\sum_{n=1}^{\\infty}\r\n\\frac{1}{n^2}",
 			"\\sum_{n=1}^{\\infty} \\frac{1}{n^2}"},
 	}

@@ -16,6 +16,88 @@ var mathSpinnerGhostPool = sync.Pool{
 	New: func() any { return &mathSpinnerGhostBuf{} },
 }
 
+// mathSpinnerGhostCacheSize bounds the unrotated ghost-path cache:
+// one entry per distinct (family, params) combo, FIFO-evicted. The
+// stored arrays are never mutated after publish, so concurrent
+// readers holding a pointer stay safe across eviction.
+const mathSpinnerGhostCacheSize = 8
+
+type mathSpinnerGhostKey struct {
+	family  mathSpinnerFamily
+	a, b, d uint32
+}
+
+var mathSpinnerGhostCache = struct {
+	mu    sync.Mutex
+	order []mathSpinnerGhostKey
+	pts   map[mathSpinnerGhostKey]*[(ghostSteps + 1) * 2]float32
+}{pts: make(map[mathSpinnerGhostKey]*[(ghostSteps + 1) * 2]float32)}
+
+// mathSpinnerCachedGhost returns the unrotated unit-curve points for
+// a (family, params) combo, shared across frames. The ghost path is
+// static per parameters — only the rotation changes per frame — so
+// recomputing its trigonometry every frame was pure waste.
+func mathSpinnerCachedGhost(
+	family mathSpinnerFamily, paramA, paramB, paramD float32,
+) *[(ghostSteps + 1) * 2]float32 {
+	key := mathSpinnerGhostKey{
+		family: family,
+		a:      math.Float32bits(paramA),
+		b:      math.Float32bits(paramB),
+		d:      math.Float32bits(paramD),
+	}
+	mathSpinnerGhostCache.mu.Lock()
+	defer mathSpinnerGhostCache.mu.Unlock()
+	if cached, ok := mathSpinnerGhostCache.pts[key]; ok {
+		return cached
+	}
+	fresh := &[(ghostSteps + 1) * 2]float32{}
+	for i := range ghostSteps + 1 {
+		param := float32(i) / float32(ghostSteps)
+		px, py := mathSpinnerCurvePoint(
+			family, param, paramA, paramB, paramD)
+		fresh[i*2] = px
+		fresh[i*2+1] = py
+	}
+	if len(mathSpinnerGhostCache.order) >= mathSpinnerGhostCacheSize {
+		oldest := mathSpinnerGhostCache.order[0]
+		delete(mathSpinnerGhostCache.pts, oldest)
+		mathSpinnerGhostCache.order = mathSpinnerGhostCache.order[1:]
+	}
+	mathSpinnerGhostCache.order = append(
+		mathSpinnerGhostCache.order, key)
+	mathSpinnerGhostCache.pts[key] = fresh
+	return fresh
+}
+
+// mathSpinnerFadeSteps sizes the comet-fade lookup table.
+const mathSpinnerFadeSteps = 511
+
+// mathSpinnerFadeTable holds t^0.56 for t in [0,1]. The 0.56
+// exponent shapes the comet tail (linear fades read as stubby);
+// the table keeps one math.Pow per particle off the frame path at
+// a quantization error under half an alpha step.
+var mathSpinnerFadeTable = func() [mathSpinnerFadeSteps + 1]float32 {
+	var table [mathSpinnerFadeSteps + 1]float32
+	for i := range table {
+		table[i] = float32(
+			math.Pow(float64(i)/mathSpinnerFadeSteps, 0.56))
+	}
+	return table
+}()
+
+// mathSpinnerFade maps a 0..1 ramp through the fade table,
+// clamping out-of-range input (including NaN) to the ends.
+func mathSpinnerFade(r float32) float32 {
+	if !(r > 0) {
+		return 0
+	}
+	if r >= 1 {
+		return 1
+	}
+	return mathSpinnerFadeTable[int(r*mathSpinnerFadeSteps+0.5)]
+}
+
 // CurveType selects the mathematical curve rendered by a MathSpinner.
 type CurveType uint8
 
@@ -128,22 +210,16 @@ func MathSpinner(cfg MathSpinnerCfg, w *Window) View {
 	if !cfg.Color.IsSet() {
 		cfg.Color = guiTheme.ColorActive
 	}
-	if cfg.StrokeWidth <= 0 {
-		cfg.StrokeWidth = 2.5
-	}
-	if cfg.Speed <= 0 {
-		cfg.Speed = 1
-	}
-	if cfg.Size <= 0 {
-		cfg.Size = 48
-	}
-	if cfg.TrailLength <= 0 {
-		cfg.TrailLength = 0.35
-	}
+	cfg.StrokeWidth = mathSpinnerPositive(cfg.StrokeWidth, 2.5)
+	cfg.Speed = mathSpinnerSanitizeSpeed(cfg.Speed)
+	cfg.Size = mathSpinnerPositive(cfg.Size, 48)
+	cfg.TrailLength = mathSpinnerPositive(cfg.TrailLength, 0.35)
 	if cfg.Particles <= 0 {
 		cfg.Particles = 60
 	}
 	if cfg.Particles < 2 {
+		// One particle would divide by zero in the trail
+		// spacing (i / (particles-1)); two is the minimum.
 		cfg.Particles = 2
 	}
 	if cfg.Particles > 500 {
@@ -165,12 +241,12 @@ func MathSpinner(cfg MathSpinnerCfg, w *Window) View {
 	paramB := cfg.ParamB.Get(defs.b)
 	paramD := cfg.ParamD.Get(defs.d)
 
-	width := cfg.Width
-	height := cfg.Height
-	if width <= 0 && height <= 0 {
-		width = cfg.Size
-		height = cfg.Size
-	}
+	// Fall back per dimension so setting only one side keeps the
+	// default square instead of collapsing the other to zero.
+	// mathSpinnerPositive also rejects NaN and +Inf, which a
+	// plain <= 0 test lets through into the layout tree.
+	width := mathSpinnerPositive(cfg.Width, cfg.Size)
+	height := mathSpinnerPositive(cfg.Height, cfg.Size)
 
 	// Note: Speed, Rotate, and curve params are sampled once on
 	// first render via touchViewBoundAnimation. Changing them
@@ -178,7 +254,7 @@ func MathSpinner(cfg MathSpinnerCfg, w *Window) View {
 	// widget ID to apply new parameters.
 	id := cfg.ID
 	animID := ScopeID("math_spinner", id)
-	dur := time.Duration(float64(5*time.Second) / float64(cfg.Speed))
+	dur := mathSpinnerDuration(cfg.Speed)
 
 	if !w.touchViewBoundAnimation(animID) {
 		w.animationAddViewBound(&KeyframeAnimation{
@@ -279,27 +355,39 @@ func mathSpinnerDraw(
 	sinR := float32(rotSin)
 	cosR := float32(rotCos)
 
-	// Draw faint ghost path of the full curve.
+	// Draw faint ghost path of the full curve. Unit points come
+	// from the per-params cache; only the rotation is per-frame.
+	ghost := mathSpinnerCachedGhost(family, paramA, paramB, paramD)
 	ghostBuf := mathSpinnerGhostPool.Get().(*mathSpinnerGhostBuf)
 	ghostPts := ghostBuf.pts[:]
 	for i := range ghostSteps + 1 {
-		param := float32(i) / float32(ghostSteps)
-		px, py := mathSpinnerCurvePoint(family, param, paramA, paramB, paramD)
+		px := ghost[i*2]
+		py := ghost[i*2+1]
 		ghostPts[i*2] = cx + (px*cosR-py*sinR)*scale
 		ghostPts[i*2+1] = cy + (px*sinR+py*cosR)*scale
 	}
 	// Audit §1.2: the ghost trail is a ramp, exempt from the dimming
 	// roles — it is a fade, not a de-emphasis.
 	ghostColor := RGBA(color.R, color.G, color.B, 30) // ergonomics-audit:visual
+	ghostWidth := strokeWidth * 0.8
 	// Safety: PolylineJoined copies the path data internally and
 	// does not retain the ghostPts slice. The buffer is safe to
 	// return to the pool immediately after this call.
-	dc.PolylineJoined(ghostPts, ghostColor, strokeWidth*0.8)
+	dc.PolylineJoined(ghostPts, ghostColor, ghostWidth)
 	mathSpinnerGhostPool.Put(ghostBuf)
 
-	// Draw particle trail.
+	// Draw particle trail. Fade, alpha and radius depend only on
+	// the particle index, not the frame; the fade comes from the
+	// lookup table. The denom guard covers direct callers passing
+	// fewer than 2 particles (the widget path clamps to >= 2).
+	baseRadius := strokeWidth * 0.4
+	spanRadius := strokeWidth * 1.2
+	denom := float32(particles - 1)
+	if denom < 1 {
+		denom = 1
+	}
 	for i := range particles {
-		tailOffset := float32(i) / float32(particles-1)
+		tailOffset := float32(i) / denom
 		param := mathSpinnerNormalize(progress - tailOffset*trailSpan)
 		px, py := mathSpinnerCurvePoint(family, param, paramA, paramB, paramD)
 
@@ -308,9 +396,9 @@ func mathSpinnerDraw(
 		ry := px*sinR + py*cosR
 		px = rx
 		py = ry
-		fade := float32(math.Pow(float64(1-tailOffset), 0.56))
+		fade := mathSpinnerFade(1 - tailOffset)
 		alpha := uint8(10 + fade*245)
-		radius := strokeWidth*0.4 + fade*strokeWidth*1.2
+		radius := baseRadius + fade*spanRadius
 		c := RGBA(color.R, color.G, color.B, alpha)
 		dc.FilledCircle(cx+px*scale, cy+py*scale, radius, c)
 	}
@@ -320,12 +408,49 @@ func mathSpinnerNormalize(t float32) float32 {
 	return t - float32(math.Floor(float64(t)))
 }
 
+// mathSpinnerPositive returns v when it is finite and positive,
+// and def otherwise. Every numeric MathSpinnerCfg field goes
+// through it: the !(v > 0) form catches NaN, which a plain v <= 0
+// test misses, and the finite test rejects +Inf. Without both, a
+// hostile parameter reaches the layout tree or the duration
+// conversion, where float-to-int is implementation-defined.
+func mathSpinnerPositive(v, def float32) float32 {
+	if !(v > 0) || !f32IsFinite(v) {
+		return def
+	}
+	return v
+}
+
+// mathSpinnerSanitizeSpeed maps a non-positive or non-finite Speed
+// to the default 1.
+func mathSpinnerSanitizeSpeed(s float32) float32 {
+	return mathSpinnerPositive(s, 1)
+}
+
+// mathSpinnerDuration converts a sanitized speed to the orbit
+// period. The seconds are clamped before the Duration conversion so
+// extreme speeds cannot produce a zero or overflowing duration: a
+// huge speed bottoms out at 50ms, a tiny one at one hour.
+func mathSpinnerDuration(speed float32) time.Duration {
+	secs := 5.0 / float64(speed)
+	if secs < 0.05 {
+		secs = 0.05
+	}
+	if secs > 3600 {
+		secs = 3600
+	}
+	return time.Duration(secs * float64(time.Second))
+}
+
 // mathSpinnerClampPoint replaces NaN/Inf with 0 and clamps to [-2,2].
+// It is the last defense for caller-supplied curve parameters: any
+// parameter that still yields a non-finite or wild point collapses
+// that point to the center instead of poisoning the draw.
 func mathSpinnerClampPoint(x, y float32) (float32, float32) {
-	if x != x || x > 2 || x < -2 { // NaN or out of range
+	if !f32IsFinite(x) || x > 2 || x < -2 {
 		x = 0
 	}
-	if y != y || y > 2 || y < -2 {
+	if !f32IsFinite(y) || y > 2 || y < -2 {
 		y = 0
 	}
 	return x, y
@@ -363,7 +488,9 @@ func mathSpinnerCurvePoint(
 	return mathSpinnerClampPoint(px, py)
 }
 
-// epitrochoid: x = R·cos(t) - d·cos(k·t)
+// epitrochoid: x = R·cos(t) - d·cos(k·t). The norm is a display
+// scale only, so its absolute value is used: a negative R+d would
+// otherwise mirror the true curve.
 func mathSpinnerEpitrochoid(
 	progress, bigR, k, d float32,
 ) (float32, float32) {
@@ -372,12 +499,14 @@ func mathSpinnerEpitrochoid(
 	if norm == 0 {
 		return 0, 0
 	}
+	norm = f32Abs(norm)
 	x := bigR*float32(math.Cos(t)) - d*float32(math.Cos(float64(k)*t))
 	y := bigR*float32(math.Sin(t)) - d*float32(math.Sin(float64(k)*t))
 	return x / norm, y / norm
 }
 
-// roseOrbit: r = orbit - amp·cos(petals·t)
+// roseOrbit: r = orbit - amp·cos(petals·t). Absolute norm, same
+// reason as the epitrochoid above.
 func mathSpinnerRoseOrbit(
 	progress, orbit, petals, amp float32,
 ) (float32, float32) {
@@ -387,6 +516,7 @@ func mathSpinnerRoseOrbit(
 	if norm == 0 {
 		return 0, 0
 	}
+	norm = f32Abs(norm)
 	return float32(math.Cos(t)) * r / norm,
 		float32(math.Sin(t)) * r / norm
 }
@@ -419,7 +549,8 @@ func mathSpinnerLemniscate(progress float32) (float32, float32) {
 	return float32(cosT / denom), float32(sinT * cosT / denom)
 }
 
-// hypotrochoid: x = (R-r)cos(t) + d·cos((R-r)t/r)
+// hypotrochoid: x = (R-r)cos(t) + d·cos((R-r)t/r). Absolute
+// norm, same reason as the epitrochoid above.
 func mathSpinnerHypotrochoid(
 	progress, bigR, r, d float32,
 ) (float32, float32) {
@@ -433,19 +564,27 @@ func mathSpinnerHypotrochoid(
 	if norm == 0 {
 		return 0, 0
 	}
+	norm = f32Abs(norm)
 	x := diff*float32(math.Cos(t)) + d*float32(math.Cos(ratio*t))
 	y := diff*float32(math.Sin(t)) - d*float32(math.Sin(ratio*t))
 	return x / norm, y / norm
 }
 
-// butterfly: s = exp(cos t) - cosW·cos(4t) - sin(t/12)^pow
+// butterfly: s = exp(cos t) - cosW·cos(4t) - sin(t/12)^pow.
+// The power term uses |sin| as its base so fractional powers stay
+// finite; the sign is restored only for exact odd integers, where a
+// negative base is defined. The odd test stays in float64 so huge
+// powers never reach a float-to-int conversion. The /4.5 display
+// scale bounds the peak (|s| peaks near e+cosW+1 ≈ 5.7) with margin
+// before clampPoint contains the rest at ±2.
 func mathSpinnerButterfly(
 	progress, turns, cosWeight, power float32,
 ) (float32, float32) {
 	t := float64(progress) * math.Pi * float64(turns)
 	sinVal := math.Sin(t / 12)
 	powTerm := math.Pow(math.Abs(sinVal), float64(power))
-	if sinVal < 0 && int(power)%2 == 1 {
+	mod := math.Mod(float64(power), 2)
+	if sinVal < 0 && (mod == 1 || mod == -1) {
 		powTerm = -powTerm
 	}
 	s := float32(math.Exp(math.Cos(t))) -
@@ -474,7 +613,10 @@ func mathSpinnerCardioid(
 	return cosT * r / (2 * a), sinT * r / (2 * a)
 }
 
-// heartWave: y = |x|^(2/3) + amp·√(root-x²)·sin(b·π·x)
+// heartWave: y = |x|^(2/3) + amp·√(root-x²)·sin(b·π·x). The return
+// recenters the composition for display: 1.75 lifts the heart hump
+// onto the vertical center and xLimit·1.2 scales the wave to the
+// spinner radius. Both are display constants, not curve math.
 func mathSpinnerHeartWave(
 	progress, b, root, amp float32,
 ) (float32, float32) {
@@ -491,7 +633,8 @@ func mathSpinnerHeartWave(
 	return x / xLimit, -(y - 1.75) / (xLimit * 1.2)
 }
 
-// spiral: r = base + (1-cos t)·amp; θ = turns·t
+// spiral: r = base + (1-cos t)·amp; θ = turns·t. Absolute norm,
+// same reason as the epitrochoid above.
 func mathSpinnerSpiral(
 	progress, turns, baseR, rAmp float32,
 ) (float32, float32) {
@@ -502,12 +645,15 @@ func mathSpinnerSpiral(
 	if norm == 0 {
 		return 0, 0
 	}
+	norm = f32Abs(norm)
 	return float32(math.Cos(angle)) * radius / norm,
 		float32(math.Sin(angle)) * radius / norm
 }
 
 // fourier: sum of harmonic terms on x and y axes.
-// a = x1 amplitude, b = y1 amplitude.
+// a = x1 amplitude, b = y1 amplitude. Each axis normalizes by its
+// own amplitude sum, so one silent axis (x1 = 0) no longer zeroes
+// the other, and changing the y amplitude rescales y alone.
 func mathSpinnerFourier(progress, x1, y1 float32) (float32, float32) {
 	t := float64(progress) * 2 * math.Pi
 	x3 := x1 * 0.44
@@ -520,9 +666,14 @@ func mathSpinnerFourier(progress, x1, y1 float32) (float32, float32) {
 	y := y1*float32(math.Sin(t)) +
 		y2*float32(math.Sin(2*t+0.25)) -
 		y4*float32(math.Cos(4*t-0.5))
-	norm := x1 + x3 + x5
-	if norm == 0 {
-		return 0, 0
+	normX := f32Abs(x1) + f32Abs(x3) + f32Abs(x5)
+	normY := f32Abs(y1) + f32Abs(y2) + f32Abs(y4)
+	var nx, ny float32
+	if normX != 0 {
+		nx = x / normX
 	}
-	return x / norm, y / norm
+	if normY != 0 {
+		ny = y / normY
+	}
+	return nx, ny
 }

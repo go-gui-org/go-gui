@@ -1,6 +1,9 @@
 package gui
 
-import "testing"
+import (
+	"math"
+	"testing"
+)
 
 func TestIntClamp(t *testing.T) {
 	t.Parallel()
@@ -78,5 +81,86 @@ func TestF32AreClose(t *testing.T) {
 					tt.a, tt.b, got, tt.want)
 			}
 		})
+	}
+}
+
+func TestF32Mod(t *testing.T) {
+	t.Parallel()
+	nan := float32(math.NaN())
+	tests := []struct {
+		name    string
+		x, y    float32
+		want    float32
+		wantNaN bool
+	}{
+		{"positive", 10, 360, 10, false},
+		{"wrap", 370, 360, 10, false},
+		{"negative keeps dividend sign", -10, 360, -10, false},
+		{"negative wrap", -370, 360, -10, false},
+		{"sector", 4.5, 6, 4.5, false},
+		{"sector wrap", 7.5, 6, 1.5, false},
+		{"large quotient finite", float32(1e20), 360, float32(math.Mod(float64(float32(1e20)), 360)), false},
+		{"zero divisor", 10, 0, 0, true},
+		{"zero dividend", 0, 360, 0, false},
+		{"nan dividend", nan, 360, 0, true},
+		{"nan divisor", 10, nan, 0, true},
+		{"inf dividend", float32(math.Inf(1)), 360, 0, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got := f32Mod(tt.x, tt.y)
+			if tt.wantNaN {
+				if !math.IsNaN(float64(got)) {
+					t.Errorf("f32Mod(%v, %v) = %v, want NaN",
+						tt.x, tt.y, got)
+				}
+				return
+			}
+			if math.IsNaN(float64(got)) || got != tt.want {
+				t.Errorf("f32Mod(%v, %v) = %v, want %v",
+					tt.x, tt.y, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestF32MinMaxNaNPropagates(t *testing.T) {
+	t.Parallel()
+	nan := float32(math.NaN())
+	if got := f32Min(nan, 1); !math.IsNaN(float64(got)) {
+		t.Errorf("f32Min(NaN, 1) = %v, want NaN", got)
+	}
+	if got := f32Min(1, nan); !math.IsNaN(float64(got)) {
+		t.Errorf("f32Min(1, NaN) = %v, want NaN", got)
+	}
+	if got := f32Max(nan, 1); !math.IsNaN(float64(got)) {
+		t.Errorf("f32Max(NaN, 1) = %v, want NaN", got)
+	}
+	if got := f32Max(1, nan); !math.IsNaN(float64(got)) {
+		t.Errorf("f32Max(1, NaN) = %v, want NaN", got)
+	}
+	if got := f32Min(2, 5); got != 2 {
+		t.Errorf("f32Min(2, 5) = %v, want 2", got)
+	}
+	if got := f32Max(2, 5); got != 5 {
+		t.Errorf("f32Max(2, 5) = %v, want 5", got)
+	}
+	if got := f32Min(float32(math.Inf(1)), 1); got != 1 {
+		t.Errorf("f32Min(+Inf, 1) = %v, want 1", got)
+	}
+	if got := f32Max(float32(math.Inf(-1)), 1); got != 1 {
+		t.Errorf("f32Max(-Inf, 1) = %v, want 1", got)
+	}
+}
+
+func TestF32ClampNaNPassthrough(t *testing.T) {
+	t.Parallel()
+	nan := float32(math.NaN())
+	if got := f32Clamp(nan, 0, 1); !math.IsNaN(float64(got)) {
+		t.Errorf("f32Clamp(NaN, 0, 1) = %v, want NaN passthrough", got)
+	}
+	if got := f64Clamp(math.NaN(), 0, 1); !math.IsNaN(got) {
+		t.Errorf("f64Clamp(NaN, 0, 1) = %v, want NaN passthrough", got)
 	}
 }

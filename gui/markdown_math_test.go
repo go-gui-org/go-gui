@@ -18,16 +18,43 @@ func TestSanitizeLatexBlockedCommands(t *testing.T) {
 		clean string
 	}{
 		{`\input{file}`, `{file}`},
-		{`\write18{cmd}`, `{cmd}`},
+		{`\write18{cmd}`, `18{cmd}`},
 		{`\include{f}`, `{f}`},
-		{`\def\x{y}`, `\x{y}`},
+		{`\def\x{y}`, `{y}`},
 		{`\immediate\write{x}`, `{x}`},
+		{`\csname input\endcsname`, ` input`},
+		{`\mycommand{x}`, `{x}`},
+		{`\usepackage{amsmath}x`, `{amsmath}x`},
 	}
 	for _, tt := range tests {
 		got := sanitizeLatex(tt.input)
 		if got != tt.clean {
 			t.Errorf("sanitizeLatex(%q) = %q, want %q",
 				tt.input, got, tt.clean)
+		}
+	}
+}
+
+func TestSanitizeLatexAllowlistKeepsMath(t *testing.T) {
+	// Former substring blocklist corrupted these: \theta
+	// contains \the, \iff contains \if, \longrightarrow contains
+	// \long, \coprod contains \copy. Token parsing keeps them.
+	inputs := []string{
+		`\theta \Theta \vartheta`,
+		`x \iff y`,
+		`a \longrightarrow b \longleftarrow c`,
+		`\coprod_{i} X_i`,
+		`\frac{1}{2} + \sqrt{x} \in [0, \pi]`,
+		`\sum_{i=1}^{n} i = \frac{n(n+1)}{2}`,
+		`\% \{ \} \\ \, \; \: \!`,
+		`\'{e} \"{o} \~{n}`,
+		`a \choose b`,
+		`\begin{matrix} a \\ b \end{matrix}`,
+	}
+	for _, in := range inputs {
+		if got := sanitizeLatex(in); got != in {
+			t.Errorf("sanitizeLatex(%q) = %q, want passthrough",
+				in, got)
 		}
 	}
 }
@@ -74,7 +101,8 @@ func TestSanitizeLatexTrimsWhitespace(t *testing.T) {
 }
 
 func TestSanitizeLatexNestedBlockedCommands(t *testing.T) {
-	// Nested: after removing outer \input, \write is exposed.
+	// Single-pass tokenizing drops each disallowed word where it
+	// stands; no re-scan pass is needed to expose nesting.
 	input := `\input\write{x}`
 	got := sanitizeLatex(input)
 	if got != "{x}" {
@@ -86,5 +114,45 @@ func TestSanitizeLatexEmpty(t *testing.T) {
 	got := sanitizeLatex("")
 	if got != "" {
 		t.Errorf("got %q, want empty", got)
+	}
+}
+
+func TestSanitizeLatexEnvironmentAllowlist(t *testing.T) {
+	// \begin is a legitimate math command, so the environment
+	// name needs its own allowlist: filecontents writes files on
+	// the renderer, verbatim escapes math mode.
+	tests := []struct {
+		input string
+		clean string
+	}{
+		{`\begin{pmatrix} a \end{pmatrix}`,
+			`\begin{pmatrix} a \end{pmatrix}`},
+		{`\begin{align*} x \end{align*}`,
+			`\begin{align*} x \end{align*}`},
+		{`\begin{filecontents}{/tmp/x} y \end{filecontents}`,
+			`{/tmp/x} y `},
+		{`\begin{verbatim} z \end{verbatim}`, ` z `},
+		// No braced argument: the bare command word survives and
+		// the renderer rejects it.
+		{`\begin x`, `\begin x`},
+		// Unterminated argument is left to the renderer too.
+		{`\begin{matrix`, `\begin{matrix`},
+	}
+	for _, tt := range tests {
+		if got := sanitizeLatex(tt.input); got != tt.clean {
+			t.Errorf("sanitizeLatex(%q) = %q, want %q",
+				tt.input, got, tt.clean)
+		}
+	}
+}
+
+func TestSanitizeLatexTrailingBackslash(t *testing.T) {
+	// A lone trailing backslash has no control word to parse and
+	// must not index past the end.
+	if got := sanitizeLatex(`x \`); got != `x \` {
+		t.Errorf("sanitizeLatex(%q) = %q, want passthrough", `x \`, got)
+	}
+	if got := sanitizeLatex(`\`); got != `\` {
+		t.Errorf("sanitizeLatex(%q) = %q, want passthrough", `\`, got)
 	}
 }

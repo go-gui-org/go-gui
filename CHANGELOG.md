@@ -122,6 +122,33 @@ and this project adheres to
 
 ### Fixed
 
+- **LaTeX math sanitizing uses an allowlist, not a substring blocklist** — the
+  blocklist matched inside longer command names, so `\theta` rendered as `ta`,
+  `\iff` as `f`, and `\longrightarrow` and `\coprod` lost their prefixes.
+  Commands are now tokenized and only known-safe math commands pass; any other
+  command is dropped while its arguments stay, so unknown macros fail closed
+  instead of executing on the renderer. The fetcher also rejects empty source up
+  front rather than requesting a blank formula. `\begin` and `\end` carry a
+  second allowlist for the environment name, so a file-writing environment such
+  as `filecontents` cannot ride in on an allowed command.
+- **MathSpinner survives hostile parameters and renders Fourier correctly** — a
+  NaN or infinite `Speed` reached the animation duration conversion, where a
+  float-to-int conversion is implementation-defined; it now falls back to the
+  default speed with the period clamped to 50ms–1h. `Size`, `Width`, `Height`,
+  `StrokeWidth` and `TrailLength` take the same treatment, because a plain
+  `<= 0` test passes NaN and `+Inf` straight into the layout tree. The Fourier
+  curve normalized y by the x amplitudes, so silencing x erased y; each axis now
+  normalizes by its own amplitudes. Negative display norms no longer mirror
+  their curves, fractional butterfly powers stay on the positive branch, and
+  setting only one of `Width`/`Height` keeps the default for the other instead
+  of collapsing it to zero.
+- **Float helpers define their edge cases** — `f32Mod` used an int truncation
+  that was undefined for large quotients and a zero divisor; it now matches
+  `math.Mod`, returning NaN where `math.Mod` does. `f32Min` and `f32Max`
+  propagate NaN from either side instead of resolving to one operand depending
+  on argument order, so a NaN size poisons loudly for the invariant checker
+  instead of passing silently. The passthrough contracts (NaN in clamp, the
+  absolute pixel epsilon in `f32AreClose`) are documented on the functions.
 - **Markdown abbreviations and footnote refs no longer rewrite code** — an
   abbreviation inside an inline code span or fenced code block gained a tooltip,
   and a footnote pattern in inline code expanded to a superscript ref. Code runs
