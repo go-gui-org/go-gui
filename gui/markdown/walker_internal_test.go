@@ -786,6 +786,9 @@ func TestParseFloat32(t *testing.T) {
 	if parseFloat32("") != 0 {
 		t.Error("empty should return 0")
 	}
+	if got := parseFloat32("99999999999999999999"); got != 100000 {
+		t.Errorf("huge dims should clamp to 100000, got %v", got)
+	}
 }
 
 // --- canMergeRuns ---

@@ -15,8 +15,18 @@ func IsSafeURL(url string) bool {
 	if len(trimmed) == 0 {
 		return false
 	}
+	// Reject control characters outright. An embedded tab or
+	// newline inside a scheme name (e.g. "java\tscript:")
+	// fails scheme validation below and would otherwise fall
+	// through to the plain-relative-path allow rule, while a
+	// downstream opener may strip the character and run the
+	// scheme. Check after percent-decoding so %0a-style
+	// evasions are caught too.
 	lower := strings.ToLower(strings.TrimSpace(
 		decodePercentPrefix(trimmed)))
+	if strings.ContainsFunc(lower, isControlChar) {
+		return false
+	}
 	if strings.HasPrefix(lower, "http://") ||
 		strings.HasPrefix(lower, "https://") ||
 		strings.HasPrefix(lower, "mailto:") {
@@ -79,6 +89,13 @@ func hexVal(c byte) int {
 	return -1
 }
 
+// isControlChar reports ASCII control characters and DEL,
+// which are never legitimate in a URL and are a known
+// scheme-obfuscation vector.
+func isControlChar(r rune) bool {
+	return r < 0x20 || r == 0x7f
+}
+
 func hasURIScheme(s string) bool {
 	colon := strings.IndexByte(s, ':')
 	if colon <= 0 {
@@ -105,7 +122,10 @@ func hasURIScheme(s string) bool {
 }
 
 // isSafeImagePath validates image paths, blocking traversal
-// and absolute paths.
+// and absolute paths. Remote http(s) URLs pass the same
+// extension allowlist as local paths (checked against the
+// path without query or fragment), so a remote non-image
+// resource is not fetched as image data.
 func isSafeImagePath(path string) bool {
 	lower := strings.ReplaceAll(
 		strings.ToLower(path), "%2e", ".")
@@ -113,12 +133,11 @@ func isSafeImagePath(path string) bool {
 		return false
 	}
 	p := strings.TrimSpace(lower)
-	if strings.HasPrefix(p, "http://") ||
-		strings.HasPrefix(p, "https://") {
-		return true
-	}
 	if !IsSafeURL(path) {
 		return false
+	}
+	if i := strings.IndexAny(p, "?#"); i >= 0 {
+		p = p[:i]
 	}
 	for _, ext := range validImageExts {
 		if strings.HasSuffix(p, ext) {
@@ -130,6 +149,8 @@ func isSafeImagePath(path string) bool {
 
 // HeadingSlug converts heading text to a URL-safe slug.
 // Lowercase alphanumeric + dashes, no trailing dashes.
+// ASCII-only by design: non-ASCII runes are dropped, so
+// non-Latin headings may slug to "".
 func headingSlug(text string) string {
 	var buf []byte
 	prevDash := false

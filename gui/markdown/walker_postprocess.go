@@ -10,7 +10,8 @@ import (
 )
 
 // applyFootnoteRefs replaces [^id] patterns in run text
-// with superscript tooltip runs.
+// with superscript tooltip runs. Code runs are left alone:
+// a footnote pattern inside code is literal text, not a ref.
 func applyFootnoteRefs(
 	runs []Run, defs map[string]string,
 ) []Run {
@@ -21,7 +22,8 @@ func applyFootnoteRefs(
 	result := make([]Run, 0, len(runs))
 	changed := false
 	for _, run := range runs {
-		if run.Link != "" || run.Tooltip != "" ||
+		if run.Format == FormatCode ||
+			run.Link != "" || run.Tooltip != "" ||
 			run.MathID != "" {
 			result = append(result, run)
 			continue
@@ -114,10 +116,14 @@ func footnoteMatchFunc(
 				continue
 			}
 			return start, end + 1, Run{
-				Text:        id,
-				Format:      base.Format,
-				Superscript: true,
-				Tooltip:     content,
+				Text:          id,
+				Format:        base.Format,
+				Strikethrough: base.Strikethrough,
+				Highlight:     base.Highlight,
+				Underline:     base.Underline,
+				Superscript:   true,
+				Subscript:     base.Subscript,
+				Tooltip:       content,
 			}, true
 		}
 		return 0, 0, Run{}, false
@@ -147,6 +153,7 @@ func abbrMatchFunc(matcher *abbrMatcher) runMatchFunc {
 					Format:        base.Format,
 					Strikethrough: base.Strikethrough,
 					Highlight:     base.Highlight,
+					Underline:     base.Underline,
 					Superscript:   base.Superscript,
 					Subscript:     base.Subscript,
 					Tooltip:       matcher.defs[abbr],
@@ -159,7 +166,8 @@ func abbrMatchFunc(matcher *abbrMatcher) runMatchFunc {
 }
 
 // replaceAbbreviations scans runs for abbreviation occurrences
-// and splits/marks them with tooltips.
+// and splits/marks them with tooltips. Code runs are left
+// alone: identifiers in code are not prose abbreviations.
 func replaceAbbreviations(
 	runs []Run, matcher *abbrMatcher,
 ) []Run {
@@ -169,7 +177,8 @@ func replaceAbbreviations(
 	match := abbrMatchFunc(matcher)
 	result := make([]Run, 0, len(runs))
 	for _, run := range runs {
-		if run.Link != "" || run.Tooltip != "" ||
+		if run.Format == FormatCode ||
+			run.Link != "" || run.Tooltip != "" ||
 			run.MathID != "" {
 			result = append(result, run)
 			continue
@@ -208,6 +217,8 @@ func buildAbbrMatcher(defs map[string]string) *abbrMatcher {
 }
 
 func isWordBoundary(text string, pos int) bool {
+	// ASCII-only by design, matching headingSlug: bytes
+	// outside [a-zA-Z0-9_] count as boundaries.
 	if pos < 0 || pos >= len(text) {
 		return true
 	}
@@ -339,10 +350,16 @@ func parseDims(s string) (float32, float32, bool) {
 }
 
 func parseFloat32(s string) float32 {
+	// Pixels on screen: anything larger clamps rather than
+	// overflowing to +Inf on adversarial digit runs.
+	const maxImageDim = 100000
 	var v float32
 	for _, c := range s {
 		if c >= '0' && c <= '9' {
 			v = v*10 + float32(c-'0')
+			if v > maxImageDim {
+				return maxImageDim
+			}
 		} else {
 			return 0
 		}

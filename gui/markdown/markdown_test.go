@@ -818,6 +818,110 @@ func TestMarkdownAbbrWordBoundary(t *testing.T) {
 	}
 }
 
+func TestMarkdownAbbrSkipsCode(t *testing.T) {
+	t.Parallel()
+	blocks := parse(
+		"`HTML` and\n\n```\nHTML code\n```\n\n*[HTML]: HyperText")
+	codeRuns := 0
+	for _, b := range blocks {
+		for _, r := range b.Runs {
+			if r.Format != FormatCode {
+				continue
+			}
+			codeRuns++
+			if r.Tooltip != "" {
+				t.Errorf("code run %q should not have tooltip", r.Text)
+			}
+		}
+	}
+	// Guard against a vacuous pass: both code spans must be seen.
+	if codeRuns < 2 {
+		t.Errorf("expected inline and fenced code runs, got %d", codeRuns)
+	}
+}
+
+func TestMarkdownAbbrPreservesUnderline(t *testing.T) {
+	t.Parallel()
+	blocks := parse("++HTML++\n\n*[HTML]: HyperText")
+	found := false
+	for _, b := range blocks {
+		for _, r := range b.Runs {
+			if r.Text == "HTML" &&
+				r.Tooltip == "HyperText" {
+				found = true
+				if !r.Underline {
+					t.Error("abbreviation run lost Underline")
+				}
+			}
+		}
+	}
+	if !found {
+		t.Error("expected abbreviation tooltip")
+	}
+}
+
+func TestMarkdownFootnotePreservesFormat(t *testing.T) {
+	t.Parallel()
+	blocks := parse("[^a]: note\n\n**~~[^a]~~**\n")
+	found := false
+	for _, b := range blocks {
+		for _, r := range b.Runs {
+			if r.Tooltip == "note" {
+				found = true
+				if r.Format != FormatBold {
+					t.Error("footnote ref lost bold format")
+				}
+				if !r.Strikethrough {
+					t.Error("footnote ref lost strikethrough")
+				}
+				if !r.Superscript {
+					t.Error("footnote ref lost superscript")
+				}
+			}
+		}
+	}
+	if !found {
+		t.Error("expected footnote tooltip")
+	}
+}
+
+func TestMarkdownFootnoteSkipsCode(t *testing.T) {
+	t.Parallel()
+	blocks := parse("[^a]: note\n\n`[^a]`\n")
+	literal := false
+	for _, b := range blocks {
+		for _, r := range b.Runs {
+			if r.Tooltip == "note" {
+				t.Error("footnote ref in code should not expand")
+			}
+			if r.Format == FormatCode && r.Text == "[^a]" {
+				literal = true
+			}
+		}
+	}
+	// Guard against a vacuous pass: the code text stays literal.
+	if !literal {
+		t.Error("expected literal [^a] code run")
+	}
+}
+
+func TestMarkdownTableDefaultAlignLeft(t *testing.T) {
+	t.Parallel()
+	blocks := parse("| a | b |\n|---|---|\n| 1 | 2 |\n")
+	for _, b := range blocks {
+		if !b.IsTable {
+			continue
+		}
+		for i, a := range b.TableData.Alignments {
+			if a != AlignLeft {
+				t.Errorf("column %d: got %v, want AlignLeft", i, a)
+			}
+		}
+		return
+	}
+	t.Error("expected a table block")
+}
+
 // --- Emoji ---
 
 func TestMarkdownEmoji(t *testing.T) {
@@ -1175,12 +1279,29 @@ func TestIsSafeURLEdgeCases(t *testing.T) {
 	if IsSafeURL("java%73cript:alert(1)") {
 		t.Error("percent-encoded javascript: should be blocked")
 	}
+	controlSchemes := []string{
+		"java\tscript:alert(1)",
+		"java\nscript:alert(1)",
+		"java\rscript:alert(1)",
+		"java%0ascript:alert(1)",
+		"java%09script:alert(1)",
+		"java\x7fscript:alert(1)",
+		"https://example.com/\x00x",
+	}
+	for _, u := range controlSchemes {
+		if IsSafeURL(u) {
+			t.Errorf("control-char scheme should be blocked: %q", u)
+		}
+	}
 }
 
 func TestIsSafeImagePath(t *testing.T) {
 	t.Parallel()
 	safe := []string{
 		"https://example.com/image.png",
+		"https://example.com/image.png?v=1#frag",
+		"HTTPS://EXAMPLE.COM/IMAGE.PNG?X=1",
+		"image.png#frag",
 		"image.jpg",
 		"path/to/image.gif",
 	}
@@ -1193,6 +1314,11 @@ func TestIsSafeImagePath(t *testing.T) {
 	blocked := []string{
 		"../../../etc/passwd.png",
 		"image%2e%2e/etc/passwd.png",
+		"https://example.com/malware.exe",
+		"https://example.com/photo",
+		"https://example.com/run.exe?f=a.png",
+		"https://example.com/run.exe#a.png",
+		"javascript:alert(1)",
 	}
 	for _, p := range blocked {
 		if isSafeImagePath(p) {

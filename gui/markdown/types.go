@@ -33,15 +33,16 @@ const (
 	maxHighlightNumberBytes     = 128
 )
 
-// Align represents column alignment in tables.
+// Align represents column alignment in tables. The zero
+// value is AlignLeft: like GFM, a column without an
+// explicit alignment marker aligns left.
 type Align uint8
 
 // Align constants.
 const (
-	alignStart Align = iota
+	AlignLeft Align = iota
 	AlignEnd
 	AlignCenter
-	AlignLeft
 	AlignRight
 )
 

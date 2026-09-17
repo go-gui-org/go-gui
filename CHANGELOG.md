@@ -122,6 +122,23 @@ and this project adheres to
 
 ### Fixed
 
+- **Markdown abbreviations and footnote refs no longer rewrite code** — an
+  abbreviation inside an inline code span or fenced code block gained a tooltip,
+  and a footnote pattern in inline code expanded to a superscript ref. Code runs
+  are now left alone, and replacements keep the surrounding formatting (bold,
+  strikethrough, highlight, underline, subscript) instead of dropping it.
+- **Markdown links block control-character scheme evasions** — a URL such as
+  `java\tscript:alert(1)` failed scheme validation and fell through to the
+  plain-relative-path rule, so it read as safe. ASCII control characters now
+  reject a URL outright, including percent-encoded ones.
+- **Markdown images apply the extension allowlist to remote URLs** — any
+  `http(s)` URL was accepted as an image source while local paths needed a known
+  image extension. Remote paths now pass the same check, matched against the
+  path without query or fragment.
+- **Markdown tables align unmarked columns left** — a column without an explicit
+  marker produced a distinct start alignment that rendered differently from an
+  explicit left alignment under RTL. Unmarked columns now align left, matching
+  GFM and the explicit marker.
 - **The mouse wheel moves a `Slider` by `Step` (#668)** — the wheel added
   `ScrollY` to the value and ignored `Step`. One wheel notch is about 3 lines
   and a trackpad sends points, so a 0 to 1 slider reached an end on the first

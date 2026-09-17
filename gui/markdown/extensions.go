@@ -111,7 +111,6 @@ func (p *mathInlineParser) Parse(
 		latex := string(line[2:end])
 		node := &nodeMathDisplay{Latex: latex}
 		block.Advance(end + 2)
-		_ = seg // suppress unused
 		return node
 	}
 
