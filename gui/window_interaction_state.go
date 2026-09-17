@@ -162,7 +162,10 @@ func (w *Window) pointerLeftWindow() {
 //
 // Layers are tried topmost first, and the first layer holding any
 // shape under the point decides, even when that shape carries no ID:
-// what is drawn on top blocks what is below. While a dialog is visible
+// what is drawn on top blocks what is below. When the path inside that
+// layer holds no usable ID, a float layer's target is the nearest
+// enabled ID-bearing ancestor of the tree it was lifted from, the same
+// widget a click there reaches (#661). While a dialog is visible
 // only the dialog layer (always the last) is tried, the same rule
 // event dispatch applies.
 func interactionTargetAt(layers []Layout, x, y float32, w *Window) string {
@@ -174,6 +177,9 @@ func interactionTargetAt(layers []Layout, x, y float32, w *Window) string {
 	}
 	for i := range slices.Backward(layers) {
 		if id, hit := interactionTargetDepth(&layers[i], x, y, 0); hit {
+			if id == "" {
+				id = liftedFromTarget(&layers[i])
+			}
 			return id
 		}
 	}
@@ -217,6 +223,24 @@ func interactionTargetDepth(layout *Layout, x, y float32, depth int) (string, bo
 		return "", false
 	}
 	return enabledIDKey(shape), true
+}
+
+// liftedFromTarget climbs Parent from a layer root to the nearest
+// enabled ID-bearing shape. A float's Parent still points at the
+// container it was lifted from; the main tree and injected overlays
+// have a nil Parent, so they yield "". The climb skips a disabled
+// ancestor the same way interactionTargetDepth does inside a layer.
+func liftedFromTarget(layer *Layout) string {
+	// The depth cap also ends the climb on a malformed Parent cycle.
+	for p, depth := layer.Parent, 0; p != nil && !overMaxDepth(depth); p, depth = p.Parent, depth+1 {
+		if p.Shape == nil {
+			continue
+		}
+		if id := enabledIDKey(p.Shape); id != "" {
+			return id
+		}
+	}
+	return ""
 }
 
 // enabledIDKey returns the shape's effective ID when it can be a hover

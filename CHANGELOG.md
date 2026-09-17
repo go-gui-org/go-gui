@@ -92,6 +92,14 @@ and this project adheres to
 
 ### Fixed
 
+- **An ID-less float no longer hides hover from its widget (#661)** — a float
+  with no `ID` inside an ID-bearing widget, such as a switch knob that floats
+  over its track, gave no hover or press target. `IsHovered`, `IsPressed` and
+  `InteractionState` read false for the widget while a click at the same point
+  still reached its `OnClick`. The target under such a float is now the nearest
+  enabled ID-bearing ancestor of the tree the float was lifted from, so hover
+  and click agree. The float no longer needs an `ID` as a workaround.
+
 - **`gui.Debug` no longer calls a slider a button (#664)** — the `Interactive`
   keyboard check reported every root with `OnClick` that lacked `ClickOnSpace`
   and `ClickOnEnter`. A custom slider or stepper handles its own keys, so the

@@ -14,6 +14,7 @@ import "testing"
 // is built.
 type interactionOpts struct {
 	coverFloat bool
+	innerFloat bool
 	disableA   bool
 	onHoverA   func(EventCtx)
 	onLeaveA   func(EventCtx)
@@ -39,17 +40,26 @@ func interactionView(o interactionOpts) func(*Window) View {
 				onLeave: o.onLeaveA,
 			}
 		}
+		panelContent := []View{
+			a,
+			Column(ContainerCfg{
+				ID: "b", Sizing: FixedFixed, Width: 80, Height: 60,
+				SizeBorder: NoBorder,
+			}),
+		}
+		if o.innerFloat {
+			// No ID, lifted from inside panel: a switch knob that floats
+			// over its track (#661). It covers all of panel.
+			panelContent = append(panelContent, Column(ContainerCfg{
+				Float: true, FloatAnchor: FloatTopLeft, FloatTieOff: FloatTopLeft,
+				Sizing: FixedFixed, Width: 300, Height: 200, SizeBorder: NoBorder,
+			}))
+		}
 		content := []View{
 			Row(ContainerCfg{
 				ID: "panel", Sizing: FixedFixed, Width: 300, Height: 200,
 				Padding: PadAll(20), SizeBorder: NoBorder, Spacing: SomeF(10),
-				Content: []View{
-					a,
-					Column(ContainerCfg{
-						ID: "b", Sizing: FixedFixed, Width: 80, Height: 60,
-						SizeBorder: NoBorder,
-					}),
-				},
+				Content: panelContent,
 			}),
 		}
 		if o.coverFloat {
@@ -191,6 +201,24 @@ func TestInteractionStateFloatBlocksButOnHoverFires(t *testing.T) {
 	}
 	if w.IsHovered("panel:a") || w.IsHovered("panel") {
 		t.Fatal("shape under a covering float reads as hovered")
+	}
+}
+
+// #661: an ID-less float lifted from inside an ID-bearing widget hovers
+// and presses that widget, the shape a click reaches. It still blocks
+// the widget's own children below it.
+func TestInteractionStateIDLessFloatTargetsLiftedFromAncestor(t *testing.T) {
+	w := newInteractionWindow(t, interactionOpts{innerFloat: true})
+	x, y := hoverOver(t, w, "panel:a")
+	if !w.IsHovered("panel") {
+		t.Fatal(`IsHovered("panel") = false under an ID-less float lifted from panel`)
+	}
+	if w.IsHovered("panel:a") {
+		t.Fatal(`IsHovered("panel:a") = true, want false (covered by the float)`)
+	}
+	pressAt(w, MouseLeft, x, y)
+	if !w.IsPressed("panel") {
+		t.Fatal(`IsPressed("panel") = false under an ID-less float lifted from panel`)
 	}
 }
 
@@ -447,5 +475,29 @@ func TestTargetWithin(t *testing.T) {
 		if got := targetWithin(c.target, c.id); got != c.want {
 			t.Errorf("targetWithin(%q, %q) = %v, want %v", c.target, c.id, got, c.want)
 		}
+	}
+}
+
+// liftedFromTarget climbs past ID-less and disabled ancestors, yields ""
+// for a root with no Parent, and stops on a Parent cycle.
+func TestLiftedFromTarget(t *testing.T) {
+	root := &Layout{Shape: &Shape{ID: "root"}}
+	disabled := &Layout{Shape: &Shape{ID: "off", Disabled: true}, Parent: root}
+	plain := &Layout{Shape: &Shape{}, Parent: disabled}
+	noShape := &Layout{Parent: plain}
+
+	if got := liftedFromTarget(&Layout{Shape: &Shape{}}); got != "" {
+		t.Fatalf("nil Parent: got %q, want \"\"", got)
+	}
+	if got := liftedFromTarget(&Layout{Shape: &Shape{}, Parent: noShape}); got != "root" {
+		t.Fatalf("climb: got %q, want \"root\"", got)
+	}
+
+	// A cycle of ID-less shapes must end at the depth cap.
+	a := &Layout{Shape: &Shape{}}
+	b := &Layout{Shape: &Shape{}, Parent: a}
+	a.Parent = b
+	if got := liftedFromTarget(&Layout{Shape: &Shape{}, Parent: a}); got != "" {
+		t.Fatalf("cycle: got %q, want \"\"", got)
 	}
 }
