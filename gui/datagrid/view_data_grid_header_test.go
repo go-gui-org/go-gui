@@ -775,9 +775,11 @@ func TestHeaderCellWithControls(t *testing.T) {
 // --- dataGridPagerArrows ---
 
 func TestPagerArrowsLTR(t *testing.T) {
-	saved := gg.ActiveLocale.TextDir
-	gg.ActiveLocale.TextDir = gg.TextDirLTR
-	defer func() { gg.ActiveLocale.TextDir = saved }()
+	saved := gg.CurrentLocale()
+	locLTR := saved
+	locLTR.TextDir = gg.TextDirLTR
+	gg.SetLocale(locLTR)
+	defer gg.SetLocale(saved)
 	prev, next := dataGridPagerArrows()
 	if prev != "\u25C0" || next != "\u25B6" {
 		t.Errorf("LTR: prev=%q next=%q", prev, next)
@@ -785,9 +787,11 @@ func TestPagerArrowsLTR(t *testing.T) {
 }
 
 func TestPagerArrowsRTL(t *testing.T) {
-	saved := gg.ActiveLocale.TextDir
-	gg.ActiveLocale.TextDir = gg.TextDirRTL
-	defer func() { gg.ActiveLocale.TextDir = saved }()
+	saved := gg.CurrentLocale()
+	locRTL := saved
+	locRTL.TextDir = gg.TextDirRTL
+	gg.SetLocale(locRTL)
+	defer gg.SetLocale(saved)
 	prev, next := dataGridPagerArrows()
 	if prev != "\u25B6" || next != "\u25C0" {
 		t.Errorf("RTL: prev=%q next=%q", prev, next)

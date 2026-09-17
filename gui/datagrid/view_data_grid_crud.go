@@ -162,21 +162,23 @@ func dataGridCrudToolbarRow(cfg *DataGridCfg, state dataGridCrudState, caps Grid
 	draftCount := len(state.DraftRowIDs)
 	deleteCount := len(state.DeletedRowIDs)
 
+	// One copy per toolbar: CurrentLocale deep-copies the locale.
+	loc := gg.CurrentLocale()
 	var status string
 	if state.Saving {
-		status = gg.ActiveLocale.StrSaving
+		status = loc.StrSaving
 	} else if state.SaveError != "" {
-		status = gg.ActiveLocale.StrSaveFailed
+		status = loc.StrSaveFailed
 	} else if hasUnsaved {
 		status = fmt.Sprintf("%s %d %s %d %s %d",
-			gg.ActiveLocale.StrDraft, draftCount,
-			gg.ActiveLocale.StrDirty, dirtyCount,
-			gg.ActiveLocale.StrDelete, deleteCount)
+			loc.StrDraft, draftCount,
+			loc.StrDirty, dirtyCount,
+			loc.StrDelete, deleteCount)
 		if state.SourceChanged {
-			status += " | " + gg.ActiveLocale.StrSourceChanged
+			status += " | " + loc.StrSourceChanged
 		}
 	} else {
-		status = gg.ActiveLocale.StrClean
+		status = loc.StrClean
 	}
 
 	return gg.Row(gg.ContainerCfg{
@@ -189,17 +191,17 @@ func dataGridCrudToolbarRow(cfg *DataGridCfg, state dataGridCrudState, caps Grid
 		Spacing:     gg.SomeF(6),
 		VAlign:      gg.VAlignMiddle,
 		Content: []gg.View{
-			dataGridIndicatorButton(gg.ScopeID(gridID, "crud_add"), gg.ActiveLocale.StrAdd, cfg.TextStyleFilter, cfg.ColorHeaderHover,
+			dataGridIndicatorButton(gg.ScopeID(gridID, "crud_add"), loc.StrAdd, cfg.TextStyleFilter, cfg.ColorHeaderHover,
 				!canCreate || state.Saving, 0, cfg.sounds.click, func(ctx gg.EventCtx) {
 					dataGridCrudAddRow(gridID, columns, onSelectionChange, focusID,
 						scrollID, pageSize, pageIndex, onPageChange, ctx.Event, ctx.Window)
 				}),
-			dataGridIndicatorButton(gg.ScopeID(gridID, "crud_delete"), gg.ActiveLocale.StrDelete, cfg.TextStyleFilter, cfg.ColorHeaderHover,
+			dataGridIndicatorButton(gg.ScopeID(gridID, "crud_delete"), loc.StrDelete, cfg.TextStyleFilter, cfg.ColorHeaderHover,
 				!canDelete || selectedCount == 0 || state.Saving, 0, cfg.sounds.click, func(ctx gg.EventCtx) {
 					dataGridCrudDeleteSelected(gridID, selection, onSelectionChange,
 						focusID, ctx.Event, ctx.Window)
 				}),
-			dataGridIndicatorButton(gg.ScopeID(gridID, "crud_save"), gg.ActiveLocale.StrSave, cfg.TextStyleFilter, cfg.ColorHeaderHover,
+			dataGridIndicatorButton(gg.ScopeID(gridID, "crud_save"), loc.StrSave, cfg.TextStyleFilter, cfg.ColorHeaderHover,
 				!hasUnsaved || state.Saving, 0, cfg.sounds.click, func(ctx gg.EventCtx) {
 					dataGridCrudSave(dataGridCrudSaveContext{
 						gridID:            gridID,
@@ -215,7 +217,7 @@ func dataGridCrudToolbarRow(cfg *DataGridCfg, state dataGridCrudState, caps Grid
 						errCue:            errCue,
 					}, ctx.Event, ctx.Window)
 				}),
-			dataGridIndicatorButton(gg.ScopeID(gridID, "crud_cancel"), gg.ActiveLocale.StrCancel, cfg.TextStyleFilter, cfg.ColorHeaderHover,
+			dataGridIndicatorButton(gg.ScopeID(gridID, "crud_cancel"), loc.StrCancel, cfg.TextStyleFilter, cfg.ColorHeaderHover,
 				(!hasUnsaved && state.SaveError == "") || state.Saving, 0, cfg.sounds.click, func(ctx gg.EventCtx) {
 					dataGridCrudCancel(gridID, focusID, ctx.Event, ctx.Window)
 				}),
@@ -224,7 +226,7 @@ func dataGridCrudToolbarRow(cfg *DataGridCfg, state dataGridCrudState, caps Grid
 				Padding: gg.NoPadding,
 			}),
 			gg.Text(gg.TextCfg{
-				Text:      fmt.Sprintf("%s %d", gg.ActiveLocale.StrSelected, selectedCount),
+				Text:      fmt.Sprintf("%s %d", loc.StrSelected, selectedCount),
 				Mode:      gg.TextModeSingleLine,
 				TextStyle: dataGridIndicatorTextStyle(cfg.TextStyleFilter),
 			}),

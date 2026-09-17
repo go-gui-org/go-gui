@@ -248,9 +248,9 @@ func colorRGBARow(
 	cfg *ColorFieldsCfg, id string, v HSLA, pad Padding, fieldWidth float32,
 ) View {
 	c := v.Color()
-	l := ActiveLocale
+	l := activeLocaleShared()
 	vals := [4]uint8{c.R, c.G, c.B, c.A}
-	labels := [4]string{l.strRed, l.strGreen, l.strBlue, l.strAlpha}
+	labels := [4]string{l.StrRed, l.StrGreen, l.StrBlue, l.StrAlpha}
 
 	specs := make([]colorFieldSpec, 0, 4)
 	for i := range 4 {
@@ -292,16 +292,16 @@ func colorRGBARow(
 func colorHSLRow(
 	cfg *ColorFieldsCfg, id string, v HSLA, pad Padding, fieldWidth float32,
 ) View {
-	l := ActiveLocale
+	l := activeLocaleShared()
 	type field struct {
 		label string
 		val   int
 		maxV  int
 	}
 	fs := [3]field{
-		{l.strHue, int(v.H + 0.5), 360},
-		{l.strSat, int(v.S*100 + 0.5), 100},
-		{l.strLightness, int(v.L*100 + 0.5), 100},
+		{l.StrHue, int(v.H + 0.5), 360},
+		{l.StrSat, int(v.S*100 + 0.5), 100},
+		{l.StrLightness, int(v.L*100 + 0.5), 100},
 	}
 
 	specs := make([]colorFieldSpec, 0, 3)
@@ -460,11 +460,11 @@ func colorFieldColumnWidth(
 		return fw
 	}
 	labelStyle := fieldLabelStyle(style)
-	l := ActiveLocale
+	l := activeLocaleShared()
 	labelW := float32(0)
 	for _, label := range [7]string{
-		l.strRed, l.strGreen, l.strBlue, l.strAlpha,
-		l.strHue, l.strSat, l.strLightness,
+		l.StrRed, l.StrGreen, l.StrBlue, l.StrAlpha,
+		l.StrHue, l.StrSat, l.StrLightness,
 	} {
 		labelW = f32Max(labelW, w.textMeasurer.TextWidth(label, labelStyle))
 	}

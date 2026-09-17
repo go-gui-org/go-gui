@@ -163,7 +163,7 @@ type ContainerCfg struct {
 	// TextStyle.Align.
 	HAlign   HorizontalAlign // ergonomics-audit:opt-plain — zero (HAlignStart) is the natural default; no distinct unset behavior
 	VAlign   verticalAlign   // ergonomics-audit:opt-plain — zero (VAlignTop) is the natural default; no distinct unset behavior
-	TextDir  textDirection
+	TextDir  TextDirection
 	Wrap     bool
 	Overflow bool
 

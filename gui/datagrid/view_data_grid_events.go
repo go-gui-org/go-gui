@@ -77,7 +77,7 @@ func dataGridQuickFilterRow(cfg *DataGridCfg, w *gg.Window) gg.View {
 				Mode:      gg.TextModeSingleLine,
 				TextStyle: dataGridIndicatorTextStyle(cfg.TextStyleFilter),
 			}),
-			dataGridIndicatorButton(gg.ScopeID(gridID, "filter_clear"), gg.ActiveLocale.StrClear, cfg.TextStyleFilter, cfg.ColorHeaderHover,
+			dataGridIndicatorButton(gg.ScopeID(gridID, "filter_clear"), gg.CurrentLocale().StrClear, cfg.TextStyleFilter, cfg.ColorHeaderHover,
 				clearDisabled, 0, cfg.sounds.click, func(ctx gg.EventCtx) {
 					if queryCallback == nil {
 						return
@@ -158,7 +158,7 @@ func dataGridQuickFilterMatchesText(cfg *DataGridCfg) string {
 	if dataGridHasSource(cfg) {
 		return gg.LocaleMatchesFmt(len(cfg.Rows), "?")
 	}
-	return fmt.Sprintf("%s %d", gg.ActiveLocale.StrMatches, len(cfg.Rows))
+	return fmt.Sprintf("%s %d", gg.CurrentLocale().StrMatches, len(cfg.Rows))
 }
 
 // --- Column chooser ---
@@ -166,9 +166,9 @@ func dataGridQuickFilterMatchesText(cfg *DataGridCfg) string {
 func dataGridColumnChooserRow(cfg *DataGridCfg, isOpen bool, focusID string) gg.View {
 	onHiddenColumnsChange := cfg.OnHiddenColumnsChange
 	hasVisibilityCallback := onHiddenColumnsChange != nil
-	chooserLabel := gg.ActiveLocale.StrColumns + " ▶" // ▶
+	chooserLabel := gg.CurrentLocale().StrColumns + " ▶" // ▶
 	if isOpen {
-		chooserLabel = gg.ActiveLocale.StrColumns + " ▼" // ▼
+		chooserLabel = gg.CurrentLocale().StrColumns + " ▼" // ▼
 	}
 	rowH := cfg.RowHeight
 	if rowH <= 0 {

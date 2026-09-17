@@ -65,6 +65,14 @@ and this project adheres to
   radii could change, so a raised or gripped thumb could not be built. The new
   `custom_scrollbars` example shows three looks. See
   `docs/specs/scrollbar-look-hook.md`.
+- **Public locale API, as `widget_locale.md` always showed** — the format types
+  (`NumberFormat`, `DateFormat`, `CurrencyFormat`, `TextDirection`,
+  `NumericAffixPosition` with `AffixPrefix`/`AffixSuffix`), the ten preset
+  locales (`LocaleEnUS`, `LocaleDeDE` and friends), every UI string (`StrOK`,
+  `StrYes`, `StrSearch`, `StrPage` and the rest), package-level `SetLocale`,
+  `LocaleAutoDetect`, `LocaleRegisteredNames` and `LocaleT` are now exported.
+  Dialog buttons read the locale, so a German app shows German buttons. The
+  doc's snippets now compile as written.
 
 ### Changed
 
@@ -89,6 +97,28 @@ and this project adheres to
   cancels the press without a click. Enter still clicks on key down. A test that
   clicked with `w.TestType(id, " ")` or a bare space `EventChar` must now send
   the key: `w.TestKey(id, gui.KeySpace, gui.ModNone)`.
+- **Locale bundles fail fast instead of falling back silently** — unknown JSON
+  fields, `first_day_of_week` outside 0-6, `decimals` outside 0-20,
+  multi-character separators, non-positive group sizes, a `text_dir` other than
+  `ltr`/`rtl`, a currency `position` other than `prefix`/`suffix` and
+  wrong-length weekday/month lists now return an error naming the key. An
+  explicit empty string still falls back to en-US, and bundles over 1 MiB are
+  refused.
+- **`LocaleLoadDir` loads atomically and reports full paths** — every file must
+  parse before anything registers, so one bad bundle no longer leaves a
+  half-loaded registry. Errors carry the file path, and a missing directory
+  errors instead of succeeding silently.
+- **Row, page and match counts use locale digit grouping** — `LocaleRowsFmt`,
+  `LocalePageFmt` and `LocaleMatchesFmt` group digits (`1.234.567` under de-DE,
+  `1,23,45,678` with `[3,2]` sizes). Counts under 1000 render exactly as before.
+- **Locales without `text_dir` are LTR, not `Auto`** — most built-in presets
+  reported `Auto`; they now report `TextDirLTR` as the doc table says. A global
+  `Auto` still resolves to LTR wherever direction is read.
+- **The active locale is locked and copied** — `SetLocale` and `CurrentLocale`
+  take a read/write mutex, and the registry, `CurrentLocale` and `LocaleGet`
+  hand out deep copies, so mutating a returned `Locale` no longer corrupts the
+  stored one. Date parsing also reads `HH`/`mm`/`ss` and two-digit years, and
+  rejects month-name formats with an explicit error instead of a wrong date.
 
 ### Fixed
 

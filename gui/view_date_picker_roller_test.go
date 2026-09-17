@@ -187,17 +187,17 @@ func TestRollerYearFormat(t *testing.T) {
 
 func TestRollerMonthFormatShort(t *testing.T) {
 	fn := rollerMonthFormat(false)
-	if fn(1) != ActiveLocale.MonthsShort[0] {
+	if fn(1) != CurrentLocale().MonthsShort[0] {
 		t.Errorf("short month 1 = %q", fn(1))
 	}
-	if fn(12) != ActiveLocale.MonthsShort[11] {
+	if fn(12) != CurrentLocale().MonthsShort[11] {
 		t.Errorf("short month 12 = %q", fn(12))
 	}
 }
 
 func TestRollerMonthFormatLong(t *testing.T) {
 	fn := rollerMonthFormat(true)
-	if fn(1) != ActiveLocale.MonthsFull[0] {
+	if fn(1) != CurrentLocale().MonthsFull[0] {
 		t.Errorf("long month 1 = %q", fn(1))
 	}
 }

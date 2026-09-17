@@ -432,11 +432,11 @@ func dataGridScrollBodyRows(
 	}
 	if hasSource && cfg.Loading && len(presentation.Rows) == 0 {
 		rows = append(rows,
-			dataGridSourceStatusRow(cfg, gg.ActiveLocale.StrLoading))
+			dataGridSourceStatusRow(cfg, gg.CurrentLocale().StrLoading))
 	}
 	if hasSource && cfg.LoadError != "" && len(presentation.Rows) == 0 {
 		rows = append(rows, dataGridSourceStatusRow(cfg,
-			gg.ActiveLocale.StrLoadError+": "+cfg.LoadError))
+			gg.CurrentLocale().StrLoadError+": "+cfg.LoadError))
 	}
 
 	lastRowIdx := len(presentation.Rows) - 1

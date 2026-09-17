@@ -588,13 +588,13 @@ func applyNumericInputDefaults(cfg *NumericInputCfg) {
 	if cfg.currencyCfg == (numericCurrencyModeCfg{}) {
 		cfg.currencyCfg = numericCurrencyModeCfg{
 			Symbol:   "$",
-			Position: affixPrefix,
+			Position: AffixPrefix,
 		}
 	}
 	if cfg.percentCfg == (numericPercentModeCfg{}) {
 		cfg.percentCfg = numericPercentModeCfg{
 			Symbol:   "%",
-			Position: affixSuffix,
+			Position: AffixSuffix,
 		}
 	}
 }

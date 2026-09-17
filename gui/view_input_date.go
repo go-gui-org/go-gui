@@ -367,7 +367,7 @@ func inputDateFormat(cfg *InputDateCfg) string {
 	if cfg.DateFormat != "" {
 		return localeDatePadFormat(cfg.DateFormat)
 	}
-	return localeDatePadFormat(ActiveLocale.Date.ShortDate)
+	return localeDatePadFormat(activeLocaleShared().Date.ShortDate)
 }
 
 // requireDateFormat panics on a DateFormat the masked numeric field

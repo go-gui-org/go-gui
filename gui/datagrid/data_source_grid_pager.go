@@ -17,7 +17,7 @@ func dataGridSourceRowsText(kind GridPaginationKind, state dataGridSourceState) 
 	if state.RowCount != nil {
 		totalText = strconv.Itoa(*state.RowCount)
 	}
-	return gg.ActiveLocale.StrRows + " " + strconv.Itoa(state.ReceivedCount) + "/" + totalText
+	return gg.CurrentLocale().StrRows + " " + strconv.Itoa(state.ReceivedCount) + "/" + totalText
 }
 
 func dataGridSourceFormatRows(start, count int, total *int) string {
@@ -26,13 +26,13 @@ func dataGridSourceFormatRows(start, count int, total *int) string {
 		totalText = strconv.Itoa(*total)
 	}
 	if count <= 0 {
-		return gg.ActiveLocale.StrRows + " 0/" + totalText
+		return gg.CurrentLocale().StrRows + " 0/" + totalText
 	}
 	end := start + count
 	if total != nil && end > *total {
 		end = *total
 	}
-	return gg.ActiveLocale.StrRows + " " + strconv.Itoa(start+1) + "-" + strconv.Itoa(end) + "/" + totalText
+	return gg.CurrentLocale().StrRows + " " + strconv.Itoa(start+1) + "-" + strconv.Itoa(end) + "/" + totalText
 }
 
 func dataGridSourceCanPrev(kind GridPaginationKind, state dataGridSourceState, pageLimit int) bool {
@@ -221,9 +221,9 @@ func dataGridSourcePagerRow(cfg *DataGridCfg, focusID string, state dataGridSour
 	}
 	var status string
 	if state.Loading {
-		status = gg.ActiveLocale.StrLoading
+		status = gg.CurrentLocale().StrLoading
 	} else if state.LoadError != "" {
-		status = gg.ActiveLocale.StrError
+		status = gg.CurrentLocale().StrError
 	} else {
 		status = modeText
 	}
@@ -302,7 +302,7 @@ func dataGridSourcePagerRow(cfg *DataGridCfg, focusID string, state dataGridSour
 	// Jump input for offset mode.
 	if kind == GridPaginationOffset {
 		content = append(content, gg.Text(gg.TextCfg{
-			Text:      gg.ActiveLocale.StrJump,
+			Text:      gg.CurrentLocale().StrJump,
 			Mode:      gg.TextModeSingleLine,
 			TextStyle: dataGridIndicatorTextStyle(cfg.TextStyleFilter),
 		}))

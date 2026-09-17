@@ -119,7 +119,7 @@ func TestOverflowLastItemFitsWithoutTrigger(t *testing.T) {
 // its unrotated frame. The centering correction was added for both
 // directions, which pushed RTL children outside the container.
 func TestRotatedRTLRowStartsAtInternalRightEdge(t *testing.T) {
-	build := func(dir textDirection) *Layout {
+	build := func(dir TextDirection) *Layout {
 		root := &Layout{
 			Shape: &Shape{shapeType: shapeRectangle, Axis: axisLeftToRight,
 				TextDir: dir, QuarterTurns: 1, Width: 100, Height: 40, HAlign: HAlignStart},

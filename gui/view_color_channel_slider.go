@@ -205,13 +205,13 @@ func trackFraction(nx, width, inset float32) float32 {
 func (ch ColorChannel) name() string {
 	switch ch {
 	case ChannelHue:
-		return ActiveLocale.strHue
+		return activeLocaleShared().StrHue
 	case ChannelSaturation:
-		return ActiveLocale.strSat
+		return activeLocaleShared().StrSat
 	case ChannelLightness:
-		return ActiveLocale.strLightness
+		return activeLocaleShared().StrLightness
 	default:
-		return ActiveLocale.strAlpha
+		return activeLocaleShared().StrAlpha
 	}
 }
 

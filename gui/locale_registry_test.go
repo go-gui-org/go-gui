@@ -8,7 +8,7 @@ import (
 )
 
 func TestLocaleRegistryInit(t *testing.T) {
-	names := localeRegisteredNames()
+	names := LocaleRegisteredNames()
 	want := []string{
 		"ar-SA", "de-DE", "en-US", "es-ES", "fr-FR",
 		"he-IL", "ja-JP", "ko-KR", "pt-BR", "zh-CN",
@@ -41,23 +41,23 @@ func TestLocaleGetUnknown(t *testing.T) {
 func TestLocaleRegisterOverwrite(t *testing.T) {
 	custom := localeDefaults()
 	custom.ID = "test-overwrite"
-	custom.strOK = "first"
+	custom.StrOK = "first"
 	LocaleRegister(custom)
 
-	custom.strOK = "second"
+	custom.StrOK = "second"
 	LocaleRegister(custom)
 
 	l, ok := LocaleGet("test-overwrite")
 	if !ok {
 		t.Fatal("not found")
 	}
-	if l.strOK != "second" {
-		t.Fatalf("StrOK = %q, want second", l.strOK)
+	if l.StrOK != "second" {
+		t.Fatalf("StrOK = %q, want second", l.StrOK)
 	}
 }
 
 func TestLocaleRegisteredNamesSorted(t *testing.T) {
-	names := localeRegisteredNames()
+	names := LocaleRegisteredNames()
 	for i := 1; i < len(names); i++ {
 		if names[i] < names[i-1] {
 			t.Fatalf("not sorted: %v", names)
@@ -68,19 +68,19 @@ func TestLocaleRegisteredNamesSorted(t *testing.T) {
 func TestLocalePresetFields(t *testing.T) {
 	tests := []struct {
 		id      string
-		dir     textDirection
+		dir     TextDirection
 		decSep  rune
 		curCode string
 	}{
 		{"en-US", TextDirLTR, '.', "USD"},
-		{"de-DE", textDirAuto, ',', "EUR"},
+		{"de-DE", TextDirLTR, ',', "EUR"},
 		{"ar-SA", TextDirRTL, '.', "SAR"},
-		{"fr-FR", textDirAuto, ',', "EUR"},
-		{"es-ES", textDirAuto, ',', "EUR"},
-		{"pt-BR", textDirAuto, ',', "BRL"},
-		{"ja-JP", textDirAuto, '.', "JPY"},
-		{"zh-CN", textDirAuto, '.', "CNY"},
-		{"ko-KR", textDirAuto, '.', "KRW"},
+		{"fr-FR", TextDirLTR, ',', "EUR"},
+		{"es-ES", TextDirLTR, ',', "EUR"},
+		{"pt-BR", TextDirLTR, ',', "BRL"},
+		{"ja-JP", TextDirLTR, '.', "JPY"},
+		{"zh-CN", TextDirLTR, '.', "CNY"},
+		{"ko-KR", TextDirLTR, '.', "KRW"},
 		{"he-IL", TextDirRTL, '.', "ILS"},
 	}
 	for _, tt := range tests {
@@ -101,7 +101,7 @@ func TestLocalePresetFields(t *testing.T) {
 			t.Errorf("%s: Currency.Code = %s, want %s",
 				tt.id, l.Currency.Code, tt.curCode)
 		}
-		if l.strOK == "" {
+		if l.StrOK == "" {
 			t.Errorf("%s: StrOK empty", tt.id)
 		}
 		if l.StrCancel == "" {
@@ -154,8 +154,6 @@ func TestLocaleLoadDirRegistersAll(t *testing.T) {
 
 func TestLocaleLoadDirBadJSON(t *testing.T) {
 	dir := t.TempDir()
-	// Glob order is sorted, so name the good file first: it must be
-	// registered before the bad file aborts the directory load.
 	writeLocaleJSON(t, dir, "a-good.json",
 		`{"id": "test-good", "strings": {"ok": "G"}}`)
 	writeLocaleJSON(t, dir, "z-bad.json", `{"id": "test-bad",`)
@@ -164,13 +162,21 @@ func TestLocaleLoadDirBadJSON(t *testing.T) {
 	if err == nil {
 		t.Fatal("LocaleLoadDir with a bad bundle must return an error")
 	}
-	// The good file must still have been registered.
-	if _, ok := LocaleGet("test-good"); !ok {
-		t.Error("a-good.json should be registered before the failure")
+	// Loading is two-phase: the good file must NOT be registered
+	// when a sibling fails.
+	if _, ok := LocaleGet("test-good"); ok {
+		t.Error("a-good.json must not be registered after the failure")
 	}
 	// The bad file's locale must not be registered.
 	if _, ok := LocaleGet("test-bad"); ok {
 		t.Error("z-bad.json must not be registered")
+	}
+}
+
+func TestLocaleLoadDirMissingDir(t *testing.T) {
+	missing := filepath.Join(t.TempDir(), "no-such-dir")
+	if err := LocaleLoadDir(missing); err == nil {
+		t.Fatal("LocaleLoadDir(missing) must return an error")
 	}
 }
 
@@ -204,7 +210,31 @@ func TestLocaleLoadDirLoadsFields(t *testing.T) {
 		t.Fatalf("currency = %s/%s, want TST/T",
 			l.Currency.Code, l.Currency.Symbol)
 	}
-	if l.strOK != "Ja" || l.StrCancel != "Nein" {
-		t.Fatalf("strings = %q/%q, want Ja/Nein", l.strOK, l.StrCancel)
+	if l.StrOK != "Ja" || l.StrCancel != "Nein" {
+		t.Fatalf("strings = %q/%q, want Ja/Nein", l.StrOK, l.StrCancel)
+	}
+}
+
+// TestLocaleLoadDirGlobMetaInPath checks a directory whose name holds
+// glob metacharacters still loads: the path is data, not a pattern.
+func TestLocaleLoadDirGlobMetaInPath(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "loc[1]")
+	if err := os.Mkdir(dir, 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	writeLocaleJSON(t, dir, "m.json", `{"id": "test-glob-meta"}`)
+	if err := LocaleLoadDir(dir); err != nil {
+		t.Fatalf("LocaleLoadDir() error = %v", err)
+	}
+	if _, ok := LocaleGet("test-glob-meta"); !ok {
+		t.Fatal("test-glob-meta not registered")
+	}
+}
+
+func TestLocaleLoadDirNotADirectory(t *testing.T) {
+	dir := t.TempDir()
+	writeLocaleJSON(t, dir, "file.json", `{"id": "test-not-dir"}`)
+	if err := LocaleLoadDir(filepath.Join(dir, "file.json")); err == nil {
+		t.Fatal("LocaleLoadDir(file) must return an error")
 	}
 }

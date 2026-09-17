@@ -575,3 +575,34 @@ func TestDialogFocusTargetIsAddressable(t *testing.T) {
 		})
 	}
 }
+
+// Dialog buttons read their labels from the active locale, so a
+// German app shows German buttons instead of hard-coded English.
+func TestDialogButtonsUseLocaleStrings(t *testing.T) {
+	saved := CurrentLocale()
+	t.Cleanup(func() { SetLocale(saved) })
+	SetLocale(LocaleDeDE)
+	de := CurrentLocale()
+
+	w := &Window{}
+	for _, tt := range []struct {
+		kind dialogType
+		want []string
+	}{
+		{DialogMessage, []string{de.StrOK}},
+		{DialogConfirm, []string{de.StrYes, de.StrNo}},
+		{DialogPrompt, []string{de.StrOK, de.StrCancel}},
+	} {
+		layout := generateViewLayout(dialogViewGenerator(DialogCfg{
+			Title: "T", Body: "B", DialogType: tt.kind,
+		}), w)
+		for _, want := range tt.want {
+			if !mdHasText(layout, want) {
+				t.Errorf("dialog type %d: missing button label %q", tt.kind, want)
+			}
+		}
+	}
+	if de.StrOK == "OK" && de.StrYes == "Yes" {
+		t.Fatal("de-DE preset must translate OK/Yes for this test to mean anything")
+	}
+}

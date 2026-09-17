@@ -2,26 +2,25 @@ package gui
 
 import (
 	"fmt"
+	"maps"
+	"slices"
 	"strings"
+	"sync"
 )
 
 // NumberFormat defines locale-specific number formatting.
-type numberFormat struct {
-	// exportaudit:keep — json-tagged or same-named member
+// exportaudit:keep — documented public API (widget_locale.md).
+type NumberFormat struct {
 	GroupSizes []int // default [3]
-	// exportaudit:keep — shares a name with a json-tagged bundle field
-	DecimalSep rune // default '.'
-	GroupSep   rune // default ','
-	// exportaudit:keep — shares a name with a json-tagged bundle field
-	MinusSign rune // default '-'
-	// exportaudit:keep — shares a name with a json-tagged bundle field
-	PlusSign rune // default '+'
-	// exportaudit:keep — shares a name with a json-tagged bundle field
+	DecimalSep rune  // default '.'
+	GroupSep   rune  // default ','
+	MinusSign  rune  // default '-'
+	PlusSign   rune  // default '+'
 }
 
 // numberFormatDefaults returns en-US number format defaults.
-func numberFormatDefaults() numberFormat {
-	return numberFormat{
+func numberFormatDefaults() NumberFormat {
+	return NumberFormat{
 		DecimalSep: '.',
 		GroupSep:   ',',
 		GroupSizes: []int{3},
@@ -31,19 +30,24 @@ func numberFormatDefaults() numberFormat {
 }
 
 // DateFormat defines locale-specific date formatting.
-type dateFormat struct {
+// exportaudit:keep — documented public API (widget_locale.md).
+type DateFormat struct {
 	ShortDate string // "M/D/YYYY"
 	LongDate  string // "MMMM D, YYYY"
-	MonthYear string // "MMMM YYYY"
-	// exportaudit:keep — shares a name with a json-tagged bundle field
-	FirstDayOfWeek uint8 // 0=Sunday, 1=Monday
-	// exportaudit:keep — shares a name with a json-tagged bundle field
+	// MonthYear is the month-year pattern.
+	// exportaudit:keep — documented public API (widget_locale.md).
+	MonthYear string
+	// FirstDayOfWeek is 0=Sunday, 1=Monday. Valid range is 0-6;
+	// bundles outside it are rejected by LocaleParse.
+	// exportaudit:keep — documented public API (widget_locale.md).
+	FirstDayOfWeek uint8
+	// exportaudit:keep — documented public API (widget_locale.md).
 	Use24H bool
 }
 
 // dateFormatDefaults returns en-US date format defaults.
-func dateFormatDefaults() dateFormat {
-	return dateFormat{
+func dateFormatDefaults() DateFormat {
+	return DateFormat{
 		ShortDate: "M/D/YYYY",
 		LongDate:  "MMMM D, YYYY",
 		MonthYear: "MMMM YYYY",
@@ -51,22 +55,24 @@ func dateFormatDefaults() dateFormat {
 }
 
 // CurrencyFormat defines locale-specific currency formatting.
-type currencyFormat struct {
+// exportaudit:keep — documented public API (widget_locale.md).
+type CurrencyFormat struct {
 	Symbol string // "$"
-	// exportaudit:keep — shares a name with a json-tagged bundle field
-	Code string // "USD"
-	// exportaudit:keep — shares a name with a json-tagged bundle field
-	Position numericAffixPosition // AffixPrefix
+	Code   string // "USD"
+	// Position is AffixPrefix or AffixSuffix.
+	Position NumericAffixPosition
 	Spacing  bool
-	Decimals int // 2
+	// Decimals is the number of fraction digits. Valid range is
+	// 0-20; bundles outside it are rejected by LocaleParse.
+	Decimals int
 }
 
 // currencyFormatDefaults returns en-US currency defaults.
-func currencyFormatDefaults() currencyFormat {
-	return currencyFormat{
+func currencyFormatDefaults() CurrencyFormat {
+	return CurrencyFormat{
 		Symbol:   "$",
 		Code:     "USD",
-		Position: affixPrefix,
+		Position: AffixPrefix,
 		Decimals: 2,
 	}
 }
@@ -75,93 +81,69 @@ func currencyFormatDefaults() currencyFormat {
 // UI strings, and translations.
 type Locale struct {
 
-	// App-level translation keys
-	// exportaudit:keep — shares a name with a json-tagged bundle field
+	// App-level translation keys, looked up with LocaleT.
+	// exportaudit:keep — documented public API (widget_locale.md).
 	Translations map[string]string
 
-	// Month names (0=Jan..11=Dec)
-	// exportaudit:keep — shares a name with a json-tagged bundle field
-	MonthsShort [12]string
-	// exportaudit:keep — shares a name with a json-tagged bundle field
-	MonthsFull [12]string
+	// Month names (0=Jan..11=Dec).
+	// exportaudit:keep — documented public API (widget_locale.md).
+	MonthsShort, MonthsFull [12]string
 
-	// Weekday names (0=Sun..6=Sat)
-	// exportaudit:keep — shares a name with a json-tagged bundle field
-	WeekdaysShort [7]string
-	// exportaudit:keep — shares a name with a json-tagged bundle field
-	WeekdaysMed [7]string
-	// exportaudit:keep — shares a name with a json-tagged bundle field
-	WeekdaysFull [7]string
+	// Weekday names (0=Sun..6=Sat).
+	// exportaudit:keep — documented public API (widget_locale.md).
+	WeekdaysShort, WeekdaysMed, WeekdaysFull [7]string
 
 	ID string // "en-US"
 
-	// Dialog
-	strOK     string
-	strYes    string
-	strNo     string
-	StrCancel string
+	// Dialog button labels. Read by the dialog views; apps read
+	// them through CurrentLocale for custom dialogs.
+	// exportaudit:keep — documented public API (widget_locale.md).
+	StrOK, StrYes, StrNo, StrCancel string
 
-	// CRUD / common actions
-	StrSave   string
-	StrDelete string
-	StrAdd    string
-	StrClear  string
-	strSearch string
-	StrFilter string
-	StrJump   string
-	StrReset  string
-	StrSubmit string
+	// CRUD / common actions.
+	// exportaudit:keep — documented public API (widget_locale.md).
+	StrSave, StrDelete, StrAdd, StrClear, StrSearch string
+	// exportaudit:keep — documented public API (widget_locale.md).
+	StrFilter, StrJump, StrReset, StrSubmit string
 
-	// Status
-	StrLoading        string
-	strLoadingDiagram string
-	StrSaving         string
-	StrSaveFailed     string
-	StrSourceChanged  string
-	StrLoadError      string
-	StrError          string
-	StrClean          string
+	// Status strings.
+	// exportaudit:keep — documented public API (widget_locale.md).
+	StrLoading, StrLoadingDiagram, StrSaving, StrSaveFailed string
+	// exportaudit:keep — documented public API (widget_locale.md).
+	StrSourceChanged, StrLoadError, StrError, StrClean string
 
-	// Link context menu
-	strOpenLink   string
-	strGoToTarget string
-	strCopyLink   string
-	strCopied     string
+	// Link context menu strings.
+	// exportaudit:keep — documented public API (widget_locale.md).
+	StrOpenLink, StrGoToTarget, StrCopyLink, StrCopied string
 
-	// Scrollbar
-	strHorizontalScrollbar string
-	strVerticalScrollbar   string
+	// Scrollbar accessibility labels.
+	// exportaudit:keep — documented public API (widget_locale.md).
+	StrHorizontalScrollbar, StrVerticalScrollbar string
 
-	// Color picker
-	strRed   string
-	strGreen string
-	strBlue  string
-	strAlpha string
-	strHue   string
-	strSat   string
-	strValue string
-	// strLightness is HSL's L. Distinct from strValue, which is
-	// HSV's V — the two are different quantities, not translations
-	// of one another.
-	strLightness string
+	// Color picker channel labels. StrLightness is HSL's L,
+	// distinct from StrValue (HSV's V): different quantities,
+	// not translations of one another.
+	// exportaudit:keep — documented public API (widget_locale.md).
+	StrRed, StrGreen, StrBlue, StrAlpha string
+	// exportaudit:keep — documented public API (widget_locale.md).
+	StrHue, StrSat, StrValue, StrLightness string
 
-	// Data grid
-	StrColumns  string
-	StrSelected string
-	StrDraft    string
-	StrDirty    string
-	StrMatches  string
-	strPage     string
-	StrRows     string
+	// Data grid strings.
+	// exportaudit:keep — documented public API (widget_locale.md).
+	StrColumns, StrSelected, StrDraft, StrDirty string
+	// exportaudit:keep — documented public API (widget_locale.md).
+	StrMatches, StrPage, StrRows string
 
-	Date dateFormat
-	// // exportaudit:keep — shares a name with a json-tagged bundle field
-	Currency currencyFormat
+	// exportaudit:keep — documented public API (widget_locale.md).
+	Date DateFormat
+	// exportaudit:keep — documented public API (widget_locale.md).
+	Currency CurrencyFormat
 
-	// exportaudit:keep — json-tagged or same-named member
-	Number  numberFormat
-	TextDir textDirection // TextDirLTR
-
+	// exportaudit:keep — documented public API (widget_locale.md).
+	Number NumberFormat
+	// TextDir is TextDirLTR or TextDirRTL. Bundles without
+	// text_dir load as LTR; Auto never escapes a bundle.
+	TextDir TextDirection
 }
 
 // localeDefaults returns the en-US locale with all defaults.
@@ -174,23 +156,23 @@ func localeDefaults() Locale {
 		Date:     dateFormatDefaults(),
 		Currency: currencyFormatDefaults(),
 
-		strOK:     "OK",
-		strYes:    "Yes",
-		strNo:     "No",
+		StrOK:     "OK",
+		StrYes:    "Yes",
+		StrNo:     "No",
 		StrCancel: "Cancel",
 
 		StrSave:   "Save",
 		StrDelete: "Delete",
 		StrAdd:    "Add",
 		StrClear:  "Clear",
-		strSearch: "Search",
+		StrSearch: "Search",
 		StrFilter: "Filter",
 		StrJump:   "Jump",
 		StrReset:  "Reset",
 		StrSubmit: "Submit",
 
 		StrLoading:        "Loading...",
-		strLoadingDiagram: "Loading diagram...",
+		StrLoadingDiagram: "Loading diagram...",
 		StrSaving:         "Saving...",
 		StrSaveFailed:     "Save failed",
 		StrSourceChanged:  "Source changed",
@@ -198,30 +180,30 @@ func localeDefaults() Locale {
 		StrError:          "Error",
 		StrClean:          "Clean",
 
-		strOpenLink:   "Open Link",
-		strGoToTarget: "Go to Target",
-		strCopyLink:   "Copy Link",
-		strCopied:     "Copied \u2713",
+		StrOpenLink:   "Open Link",
+		StrGoToTarget: "Go to Target",
+		StrCopyLink:   "Copy Link",
+		StrCopied:     "Copied ✓",
 
-		strHorizontalScrollbar: "Horizontal scrollbar",
-		strVerticalScrollbar:   "Vertical scrollbar",
+		StrHorizontalScrollbar: "Horizontal scrollbar",
+		StrVerticalScrollbar:   "Vertical scrollbar",
 
-		strRed:   "Red",
-		strGreen: "Green",
-		strBlue:  "Blue",
-		strAlpha: "Alpha",
-		strHue:   "Hue",
-		strSat:   "Sat",
-		strValue: "Value",
+		StrRed:   "Red",
+		StrGreen: "Green",
+		StrBlue:  "Blue",
+		StrAlpha: "Alpha",
+		StrHue:   "Hue",
+		StrSat:   "Sat",
+		StrValue: "Value",
 
-		strLightness: "Lightness",
+		StrLightness: "Lightness",
 
 		StrColumns:  "Columns",
 		StrSelected: "Selected",
 		StrDraft:    "Draft",
 		StrDirty:    "Dirty",
 		StrMatches:  "Matches",
-		strPage:     "Page",
+		StrPage:     "Page",
 		StrRows:     "Rows",
 
 		WeekdaysShort: [7]string{"S", "M", "T", "W", "T", "F", "S"},
@@ -243,42 +225,95 @@ func localeDefaults() Locale {
 }
 
 // ToNumericLocale converts locale number settings to
-// NumericLocaleCfg for numeric input formatting.
+// NumericLocaleCfg for numeric input formatting. The GroupSizes
+// slice is cloned, so the caller cannot mutate the locale.
 func (l Locale) toNumericLocale() NumericLocaleCfg {
 	return NumericLocaleCfg{
 		DecimalSep: l.Number.DecimalSep,
 		GroupSep:   l.Number.GroupSep,
-		GroupSizes: l.Number.GroupSizes,
+		GroupSizes: slices.Clone(l.Number.GroupSizes),
 		MinusSign:  l.Number.MinusSign,
 		PlusSign:   l.Number.PlusSign,
 	}
 }
 
-// ActiveLocale is the global locale setting.
+// clone returns a deep copy: the Translations map and the
+// GroupSizes slice are duplicated so a copy retrieved from the
+// registry or the active locale cannot mutate the stored one.
+func (l Locale) clone() Locale {
+	out := l
+	out.Translations = maps.Clone(l.Translations)
+	out.Number.GroupSizes = slices.Clone(l.Number.GroupSizes)
+	return out
+}
+
+// activeLocaleMu guards ActiveLocale. In-repo code reads through
+// CurrentLocale or activeTextDir and writes through SetLocale.
+var activeLocaleMu sync.RWMutex
+
+// ActiveLocale is the global locale setting. Prefer
+// CurrentLocale and SetLocale, which lock; direct access skips
+// the mutex.
+// exportaudit:keep — compat: direct global read; new code uses CurrentLocale.
 var ActiveLocale = localeDefaults()
 
 // effectiveTextDir resolves the text direction for a shape,
 // falling back to the global locale when set to Auto.
-func effectiveTextDir(shape *Shape) textDirection {
+func effectiveTextDir(shape *Shape) TextDirection {
 	if shape.TextDir != textDirAuto {
 		return shape.TextDir
 	}
-	return ActiveLocale.TextDir
+	return activeTextDir()
 }
 
-// SetLocale sets the active global locale.
-func setLocale(l Locale) {
-	ActiveLocale = l
+// activeTextDir returns the global locale's text direction under
+// a read lock. A global TextDir of Auto (only possible from a
+// hand-built Locale, never from a bundle) resolves to LTR here,
+// so no caller handles a third case.
+func activeTextDir() TextDirection {
+	activeLocaleMu.RLock()
+	dir := ActiveLocale.TextDir
+	activeLocaleMu.RUnlock()
+	if dir != TextDirRTL {
+		return TextDirLTR
+	}
+	return dir
 }
 
-// CurrentLocale returns the active global locale.
+// SetLocale sets the active global locale. Safe to call from any
+// goroutine; windows pick it up on their next frame.
+func SetLocale(l Locale) {
+	activeLocaleMu.Lock()
+	ActiveLocale = l.clone()
+	activeLocaleMu.Unlock()
+}
+
+// activeLocaleShared returns the active locale under a read lock
+// without the deep copy CurrentLocale makes. The Translations
+// map and GroupSizes slice are shared with the stored locale, so
+// callers must only read them. SetLocale always stores a fresh
+// clone and never mutates the old one, so a shared read stays
+// valid after a later SetLocale. Views call this per frame (and
+// per row or cell), where a deep copy would allocate each time.
+func activeLocaleShared() Locale {
+	activeLocaleMu.RLock()
+	out := ActiveLocale
+	activeLocaleMu.RUnlock()
+	return out
+}
+
+// CurrentLocale returns a copy of the active global locale.
+// Mutating the result does not affect the stored locale.
 func CurrentLocale() Locale {
-	return ActiveLocale
+	activeLocaleMu.RLock()
+	out := ActiveLocale.clone()
+	activeLocaleMu.RUnlock()
+	return out
 }
 
 // SetLocale sets the global locale and refreshes the window.
 func (w *Window) SetLocale(l Locale) {
-	setLocale(l)
+	SetLocale(l)
 	w.InvalidateLayout()
 }
 
@@ -298,19 +333,20 @@ func (w *Window) SetLocaleID(id string) error {
 // locale to the best matching registered locale. Call before
 // NewWindow. Falls back to language-prefix match if exact ID
 // is not registered.
-func localeAutoDetect() {
+// exportaudit:keep — documented public API (showcase docs)
+func LocaleAutoDetect() {
 	id := localeDetect()
 	if l, ok := LocaleGet(id); ok {
-		setLocale(l)
+		SetLocale(l)
 		return
 	}
 	// Try language-only prefix: "de-AT" → match "de-DE".
 	if i := strings.IndexByte(id, '-'); i > 0 {
 		prefix := id[:i]
-		for _, name := range localeRegisteredNames() {
+		for _, name := range LocaleRegisteredNames() {
 			if strings.HasPrefix(name, prefix+"-") {
 				if l, ok := LocaleGet(name); ok {
-					setLocale(l)
+					SetLocale(l)
 					return
 				}
 			}
@@ -321,6 +357,11 @@ func localeAutoDetect() {
 // normalizeLocaleEnv normalizes a POSIX locale value like
 // "en_US.UTF-8" to BCP 47 "en-US".
 func normalizeLocaleEnv(v string) string {
+	v = strings.TrimSpace(v)
+	// Strip variant suffix ("de_DE@euro" → "de_DE").
+	if i := strings.IndexByte(v, '@'); i >= 0 {
+		v = v[:i]
+	}
 	// Strip encoding suffix (.UTF-8, .utf8, etc.).
 	if i := strings.IndexByte(v, '.'); i > 0 {
 		v = v[:i]

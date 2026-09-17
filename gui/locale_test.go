@@ -25,8 +25,8 @@ func TestLocaleDefaults(t *testing.T) {
 	if l.Currency.Decimals != 2 {
 		t.Fatalf("Decimals = %d, want 2", l.Currency.Decimals)
 	}
-	if l.strOK != "OK" {
-		t.Fatalf("StrOK = %q, want OK", l.strOK)
+	if l.StrOK != "OK" {
+		t.Fatalf("StrOK = %q, want OK", l.StrOK)
 	}
 	if l.WeekdaysFull[0] != "Sunday" {
 		t.Fatalf("WeekdaysFull[0] = %q, want Sunday", l.WeekdaysFull[0])
@@ -37,7 +37,7 @@ func TestLocaleDefaults(t *testing.T) {
 }
 
 func TestLocaleToNumericLocale(t *testing.T) {
-	l := localeDeDE
+	l := LocaleDeDE
 	nc := l.toNumericLocale()
 	if nc.DecimalSep != ',' {
 		t.Fatalf("DecimalSep = %c, want ','", nc.DecimalSep)
@@ -48,10 +48,10 @@ func TestLocaleToNumericLocale(t *testing.T) {
 }
 
 func TestEffectiveTextDir(t *testing.T) {
-	old := ActiveLocale
-	defer func() { ActiveLocale = old }()
+	old := CurrentLocale()
+	defer func() { SetLocale(old) }()
 
-	ActiveLocale = localeArSA
+	SetLocale(LocaleArSA)
 	s := &Shape{TextDir: textDirAuto}
 	if effectiveTextDir(s) != TextDirRTL {
 		t.Fatal("auto should fall back to RTL locale")
@@ -63,10 +63,10 @@ func TestEffectiveTextDir(t *testing.T) {
 }
 
 func TestSetLocaleAndGet(t *testing.T) {
-	old := ActiveLocale
-	defer func() { ActiveLocale = old }()
+	old := CurrentLocale()
+	defer func() { SetLocale(old) }()
 
-	setLocale(localeDeDE)
+	SetLocale(LocaleDeDE)
 	cur := CurrentLocale()
 	if cur.ID != "de-DE" {
 		t.Fatalf("CurrentLocale().ID = %q, want de-DE", cur.ID)
@@ -74,37 +74,37 @@ func TestSetLocaleAndGet(t *testing.T) {
 }
 
 func TestLocalePresets(t *testing.T) {
-	if localeEnUS.ID != "en-US" {
-		t.Fatalf("LocaleEnUS.ID = %q", localeEnUS.ID)
+	if LocaleEnUS.ID != "en-US" {
+		t.Fatalf("LocaleEnUS.ID = %q", LocaleEnUS.ID)
 	}
-	if localeDeDE.ID != "de-DE" {
-		t.Fatalf("LocaleDeDE.ID = %q", localeDeDE.ID)
+	if LocaleDeDE.ID != "de-DE" {
+		t.Fatalf("LocaleDeDE.ID = %q", LocaleDeDE.ID)
 	}
-	if localeArSA.ID != "ar-SA" {
-		t.Fatalf("LocaleArSA.ID = %q", localeArSA.ID)
+	if LocaleArSA.ID != "ar-SA" {
+		t.Fatalf("LocaleArSA.ID = %q", LocaleArSA.ID)
 	}
-	if localeArSA.TextDir != TextDirRTL {
+	if LocaleArSA.TextDir != TextDirRTL {
 		t.Fatal("ar-SA should be RTL")
 	}
-	if localeDeDE.Currency.Symbol != "\u20AC" {
-		t.Fatalf("de-DE symbol = %q, want \u20AC", localeDeDE.Currency.Symbol)
+	if LocaleDeDE.Currency.Symbol != "\u20AC" {
+		t.Fatalf("de-DE symbol = %q, want \u20AC", LocaleDeDE.Currency.Symbol)
 	}
-	if localeDeDE.Date.FirstDayOfWeek != 1 {
+	if LocaleDeDE.Date.FirstDayOfWeek != 1 {
 		t.Fatalf("de-DE FirstDayOfWeek = %d, want 1",
-			localeDeDE.Date.FirstDayOfWeek)
+			LocaleDeDE.Date.FirstDayOfWeek)
 	}
 }
 
 // --- public locale-switching API ---
 
 func TestWindowSetLocale(t *testing.T) {
-	old := ActiveLocale
-	defer func() { ActiveLocale = old }()
+	old := CurrentLocale()
+	defer func() { SetLocale(old) }()
 
 	w := &Window{}
-	w.SetLocale(localeDeDE)
-	if ActiveLocale.ID != "de-DE" {
-		t.Fatalf("ActiveLocale.ID = %q, want de-DE", ActiveLocale.ID)
+	w.SetLocale(LocaleDeDE)
+	if CurrentLocale().ID != "de-DE" {
+		t.Fatalf("CurrentLocale().ID = %q, want de-DE", CurrentLocale().ID)
 	}
 	// The locale swap must have requested a window refresh.
 	if !w.refreshLayout {
@@ -113,16 +113,16 @@ func TestWindowSetLocale(t *testing.T) {
 }
 
 func TestWindowSetLocaleIDKnown(t *testing.T) {
-	old := ActiveLocale
-	defer func() { ActiveLocale = old }()
+	old := CurrentLocale()
+	defer func() { SetLocale(old) }()
 
 	// Use the built-in registry entry; do not mutate the registry.
 	w := &Window{}
 	if err := w.SetLocaleID("de-DE"); err != nil {
 		t.Fatalf("SetLocaleID(de-DE) error = %v", err)
 	}
-	if ActiveLocale.ID != "de-DE" {
-		t.Fatalf("ActiveLocale.ID = %q, want de-DE", ActiveLocale.ID)
+	if CurrentLocale().ID != "de-DE" {
+		t.Fatalf("CurrentLocale().ID = %q, want de-DE", CurrentLocale().ID)
 	}
 	if !w.refreshLayout {
 		t.Fatal("SetLocaleID should mark the window for a layout refresh")
@@ -130,19 +130,93 @@ func TestWindowSetLocaleIDKnown(t *testing.T) {
 }
 
 func TestWindowSetLocaleIDUnknown(t *testing.T) {
-	old := ActiveLocale
-	defer func() { ActiveLocale = old }()
+	old := CurrentLocale()
+	defer func() { SetLocale(old) }()
 
 	w := &Window{}
 	err := w.SetLocaleID("xx-XX")
 	if err == nil {
 		t.Fatal("SetLocaleID(unknown) must return an error")
 	}
-	if ActiveLocale.ID != old.ID {
-		t.Fatalf("ActiveLocale changed to %q on a failed lookup",
-			ActiveLocale.ID)
+	if CurrentLocale().ID != old.ID {
+		t.Fatalf("CurrentLocale() changed to %q on a failed lookup",
+			CurrentLocale().ID)
 	}
 	if w.refreshLayout {
 		t.Fatal("failed lookup must not request a window refresh")
+	}
+}
+
+func TestLocaleCloneIsolation(t *testing.T) {
+	old := CurrentLocale()
+	defer func() { SetLocale(old) }()
+
+	// Mutating a LocaleGet result must not corrupt the registry.
+	first, ok := LocaleGet("de-DE")
+	if !ok {
+		t.Fatal("de-DE not registered")
+	}
+	first.StrOK = "MUTATED"
+	first.Translations = map[string]string{"k": "v"}
+	first.Number.GroupSizes[0] = 99
+	second, ok := LocaleGet("de-DE")
+	if !ok {
+		t.Fatal("de-DE not registered")
+	}
+	if second.StrOK == "MUTATED" {
+		t.Error("LocaleGet shares string state with the registry")
+	}
+	if _, found := second.Translations["k"]; found {
+		t.Error("LocaleGet shares the translations map with the registry")
+	}
+	if second.Number.GroupSizes[0] == 99 {
+		t.Error("LocaleGet shares GroupSizes with the registry")
+	}
+
+	// Mutating CurrentLocale's result must not corrupt the global.
+	cur := CurrentLocale()
+	cur.StrCancel = "MUTATED"
+	if CurrentLocale().StrCancel == "MUTATED" {
+		t.Error("CurrentLocale shares state with the global")
+	}
+
+	// SetLocale clones on the way in.
+	src := LocaleEnUS
+	SetLocale(src)
+	src.StrOK = "MUTATED"
+	if CurrentLocale().StrOK == "MUTATED" {
+		t.Error("SetLocale aliases the caller's struct")
+	}
+}
+
+func TestLocaleConcurrentAccess(t *testing.T) {
+	old := CurrentLocale()
+	defer func() { SetLocale(old) }()
+
+	done := make(chan bool)
+	for range 4 {
+		go func() {
+			for range 25 {
+				SetLocale(LocaleDeDE)
+				_ = CurrentLocale()
+				_ = LocaleT("missing")
+				_ = LocaleRegisteredNames()
+			}
+			done <- true
+		}()
+	}
+	for range 4 {
+		<-done
+	}
+}
+
+// A hand-built global locale may carry TextDir Auto; readers resolve
+// it to LTR so no caller handles a third case.
+func TestActiveTextDirAutoResolvesLTR(t *testing.T) {
+	saved := CurrentLocale()
+	t.Cleanup(func() { SetLocale(saved) })
+	SetLocale(Locale{TextDir: textDirAuto})
+	if got := effectiveTextDir(&Shape{}); got != TextDirLTR {
+		t.Fatalf("effectiveTextDir = %d, want LTR", got)
 	}
 }

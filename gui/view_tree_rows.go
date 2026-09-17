@@ -52,7 +52,7 @@ func treeCollectFlatRows(
 				ID:            nodeID + treeLoadingSuffix,
 				ParentID:      nodeID,
 				Depth:         depth + 1,
-				Text:          ActiveLocale.StrLoading,
+				Text:          activeLocaleShared().StrLoading,
 				TextStyle:     defaultTreeStyle.TextStyle,
 				textStyleIcon: defaultTreeStyle.textStyleIcon,
 				IsLoading:     true,
@@ -133,7 +133,7 @@ func treeArrowIcon(row treeFlatRow) string {
 	if row.IsExpanded {
 		return IconDropDown
 	}
-	if ActiveLocale.TextDir == TextDirRTL {
+	if activeLocaleShared().TextDir == TextDirRTL {
 		return IconDropLeft
 	}
 	return IconDropRight

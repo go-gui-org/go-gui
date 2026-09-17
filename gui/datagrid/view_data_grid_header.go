@@ -206,7 +206,7 @@ func dataGridReorderControls(cfg *DataGridCfg, col GridColumnCfg) gg.View {
 	colID := col.ID
 	leftArrow := "\u25C0"  // ◀
 	rightArrow := "\u25B6" // ▶
-	if gg.ActiveLocale.TextDir == gg.TextDirRTL {
+	if gg.CurrentLocale().TextDir == gg.TextDirRTL {
 		leftArrow, rightArrow = rightArrow, leftArrow
 	}
 
@@ -248,7 +248,7 @@ func dataGridOrderButton(id, label string, baseStyle gg.TextStyle, hoverColor gg
 // dataGridIndicatorButton builds one header/toolbar control.
 //
 // id is a parameter rather than derived from label because label is a
-// locale string (gg.ActiveLocale.StrAdd and friends). An ID that
+// locale string (gg.CurrentLocale().StrAdd and friends). An ID that
 // tracked the label would change identity on a locale switch, moving
 // the button's focus and per-widget state with it.
 // cue is a parameter rather than read from a Cfg here: this helper is
@@ -344,7 +344,7 @@ func dataGridFilterCell(cfg *DataGridCfg, col GridColumnCfg, width float32) gg.V
 	colID := col.ID
 	var placeholder string
 	if col.Filterable {
-		placeholder = gg.ActiveLocale.StrFilter
+		placeholder = gg.CurrentLocale().StrFilter
 	}
 
 	return gg.Row(gg.ContainerCfg{

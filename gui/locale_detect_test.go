@@ -14,6 +14,9 @@ func TestNormalizeLocaleEnv(t *testing.T) {
 		{"", "en-US"},
 		{"ja_JP.eucJP", "ja-JP"},
 		{"pt-BR", "pt-BR"},
+		{"de_DE@euro", "de-DE"},
+		{"en_US.UTF-8@euro", "en-US"},
+		{"  fr_FR  ", "fr-FR"},
 	}
 	for _, tt := range tests {
 		got := normalizeLocaleEnv(tt.in)
@@ -25,21 +28,21 @@ func TestNormalizeLocaleEnv(t *testing.T) {
 }
 
 func TestLocaleAutoDetect(t *testing.T) {
-	saved := ActiveLocale
-	defer func() { ActiveLocale = saved }()
+	saved := CurrentLocale()
+	defer func() { SetLocale(saved) }()
 
 	// Exact match: de-DE is registered.
-	ActiveLocale = localeDefaults()
+	SetLocale(localeDefaults())
 	if l, ok := LocaleGet("de-DE"); ok {
-		setLocale(l)
-		if ActiveLocale.ID != "de-DE" {
-			t.Errorf("SetLocale de-DE: got %s", ActiveLocale.ID)
+		SetLocale(l)
+		if CurrentLocale().ID != "de-DE" {
+			t.Errorf("SetLocale de-DE: got %s", CurrentLocale().ID)
 		}
 	} else {
 		t.Fatal("de-DE not registered")
 	}
 
 	// Reset and verify LocaleAutoDetect doesn't panic.
-	ActiveLocale = localeDefaults()
-	localeAutoDetect()
+	SetLocale(localeDefaults())
+	LocaleAutoDetect()
 }

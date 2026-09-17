@@ -159,6 +159,7 @@ func dialogViewGenerator(cfg DialogCfg) View {
 // messageView returns an OK button row.
 func messageView(cfg DialogCfg) View {
 	onOkYes := cfg.OnOkYes
+	okLabel := activeLocaleShared().StrOK
 	return Row(ContainerCfg{
 		Sizing:     FillFit,
 		HAlign:     cfg.AlignButtons,
@@ -169,7 +170,7 @@ func messageView(cfg DialogCfg) View {
 				Sound:         cfg.Sound,
 				SoundDisabled: cfg.SoundDisabled,
 				ID:            cfg.FocusID,
-				Content:       []View{Text(TextCfg{Text: "OK"})},
+				Content:       []View{Text(TextCfg{Text: okLabel})},
 				OnClick: func(ctx EventCtx) {
 					ctx.Window.DialogDismiss()
 					if onOkYes != nil {
@@ -185,6 +186,7 @@ func messageView(cfg DialogCfg) View {
 func confirmView(cfg DialogCfg) View {
 	onOkYes := cfg.OnOkYes
 	onCancelNo := cfg.OnCancelNo
+	loc := activeLocaleShared()
 	return Row(ContainerCfg{
 		Sizing:     FillFit,
 		HAlign:     cfg.AlignButtons,
@@ -196,7 +198,7 @@ func confirmView(cfg DialogCfg) View {
 				Sound:         cfg.Sound,
 				SoundDisabled: cfg.SoundDisabled,
 				ID:            ScopeIDN(cfg.FocusID, "", 1),
-				Content:       []View{Text(TextCfg{Text: "Yes"})},
+				Content:       []View{Text(TextCfg{Text: loc.StrYes})},
 				OnClick: func(ctx EventCtx) {
 					ctx.Window.DialogDismiss()
 					if onOkYes != nil {
@@ -208,7 +210,7 @@ func confirmView(cfg DialogCfg) View {
 				Sound:         cfg.Sound,
 				SoundDisabled: cfg.SoundDisabled,
 				ID:            cfg.FocusID,
-				Content:       []View{Text(TextCfg{Text: "No"})},
+				Content:       []View{Text(TextCfg{Text: loc.StrNo})},
 				OnClick: func(ctx EventCtx) {
 					ctx.Window.DialogDismiss()
 					if onCancelNo != nil {
@@ -224,6 +226,7 @@ func confirmView(cfg DialogCfg) View {
 func promptView(cfg DialogCfg) []View {
 	onReply := cfg.OnReply
 	onCancelNo := cfg.OnCancelNo
+	loc := activeLocaleShared()
 
 	var views []View
 
@@ -248,7 +251,7 @@ func promptView(cfg DialogCfg) []View {
 				SoundDisabled: cfg.SoundDisabled,
 				ID:            ScopeIDN(cfg.FocusID, "", 1),
 				Disabled:      len(cfg.Reply) == 0,
-				Content:       []View{Text(TextCfg{Text: "OK"})},
+				Content:       []View{Text(TextCfg{Text: loc.StrOK})},
 				OnClick: func(ctx EventCtx) {
 					reply := ctx.Window.dialogCfg.Reply
 					ctx.Window.DialogDismiss()
@@ -261,7 +264,7 @@ func promptView(cfg DialogCfg) []View {
 				Sound:         cfg.Sound,
 				SoundDisabled: cfg.SoundDisabled,
 				ID:            ScopeIDN(cfg.FocusID, "", 2),
-				Content:       []View{Text(TextCfg{Text: "Cancel"})},
+				Content:       []View{Text(TextCfg{Text: loc.StrCancel})},
 				OnClick: func(ctx EventCtx) {
 					ctx.Window.DialogDismiss()
 					if onCancelNo != nil {

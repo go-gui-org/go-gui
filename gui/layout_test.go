@@ -448,9 +448,9 @@ func TestLayoutPositionsRTLStartAlign(t *testing.T) {
 }
 
 func TestLayoutPositionsRTLOverrideLTR(t *testing.T) {
-	oldLocale := ActiveLocale
-	ActiveLocale = Locale{TextDir: TextDirRTL}
-	defer func() { ActiveLocale = oldLocale }()
+	oldLocale := CurrentLocale()
+	SetLocale(Locale{TextDir: TextDirRTL})
+	defer func() { SetLocale(oldLocale) }()
 
 	root := &Layout{
 		Shape: &Shape{

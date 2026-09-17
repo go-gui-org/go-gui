@@ -77,7 +77,7 @@ func dataGridPagerContent(pctx dataGridPagerContext) []gg.View {
 
 func dataGridPagerRowsText(pageStart, pageEnd, totalRows int) string {
 	if totalRows == 0 || pageEnd <= pageStart {
-		return gg.ActiveLocale.StrRows + " 0/0"
+		return gg.CurrentLocale().StrRows + " 0/0"
 	}
 	return gg.LocaleRowsFmt(pageStart+1, pageEnd, totalRows)
 }
@@ -85,7 +85,7 @@ func dataGridPagerRowsText(pageStart, pageEnd, totalRows int) string {
 func dataGridPagerArrows() (string, string) {
 	prev := "◀" // ◀
 	next := "▶" // ▶
-	if gg.ActiveLocale.TextDir == gg.TextDirRTL {
+	if gg.CurrentLocale().TextDir == gg.TextDirRTL {
 		prev, next = next, prev
 	}
 	return prev, next
@@ -144,7 +144,7 @@ func dataGridPagerRowsStatus(cfg *DataGridCfg, rowsText string) gg.View {
 
 func dataGridPagerJumpLabel(cfg *DataGridCfg) gg.View {
 	return gg.Text(gg.TextCfg{
-		Text:      gg.ActiveLocale.StrJump,
+		Text:      gg.CurrentLocale().StrJump,
 		Mode:      gg.TextModeSingleLine,
 		TextStyle: dataGridIndicatorTextStyle(cfg.TextStyleFilter),
 	})

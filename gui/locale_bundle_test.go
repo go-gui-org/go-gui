@@ -66,14 +66,14 @@ func TestLocaleParseFull(t *testing.T) {
 	if l.Date.FirstDayOfWeek != 1 {
 		t.Fatalf("FirstDayOfWeek = %d", l.Date.FirstDayOfWeek)
 	}
-	if l.Currency.Position != affixSuffix {
+	if l.Currency.Position != AffixSuffix {
 		t.Fatalf("Position = %d", l.Currency.Position)
 	}
-	if l.strOK != "D'accord" {
-		t.Fatalf("StrOK = %q", l.strOK)
+	if l.StrOK != "D'accord" {
+		t.Fatalf("StrOK = %q", l.StrOK)
 	}
-	if l.strYes != "Oui" {
-		t.Fatalf("StrYes = %q", l.strYes)
+	if l.StrYes != "Oui" {
+		t.Fatalf("StrYes = %q", l.StrYes)
 	}
 	if l.WeekdaysShort[0] != "D" {
 		t.Fatalf("WeekdaysShort[0] = %q", l.WeekdaysShort[0])
@@ -143,14 +143,26 @@ func TestFirstRune(t *testing.T) {
 		input    string
 		fallback rune
 		want     rune
+		wantErr  bool
 	}{
-		{".", 'x', '.'},
-		{"", 'x', 'x'},
-		{"€", 'x', '€'},
-		{"\U0001F600", 'x', '\U0001F600'}, // 4-byte emoji
+		{".", 'x', '.', false},
+		{"", 'x', 'x', false},
+		{"€", 'x', '€', false},
+		{"\U0001F600", 'x', '\U0001F600', false}, // 4-byte emoji
+		{"ab", 'x', 'x', true},
 	}
 	for _, tt := range tests {
-		got := firstRune(tt.input, tt.fallback)
+		got, err := firstRune(tt.input, tt.fallback, "test")
+		if tt.wantErr {
+			if err == nil {
+				t.Errorf("firstRune(%q) want error, got %c", tt.input, got)
+			}
+			continue
+		}
+		if err != nil {
+			t.Errorf("firstRune(%q) error = %v", tt.input, err)
+			continue
+		}
 		if got != tt.want {
 			t.Errorf("firstRune(%q, %c) = %c, want %c",
 				tt.input, tt.fallback, got, tt.want)
@@ -159,14 +171,59 @@ func TestFirstRune(t *testing.T) {
 }
 
 func TestLocaleParseWeekdaysWrongLength(t *testing.T) {
-	l, err := LocaleParse(`{"weekdays_short":["a","b"]}`)
+	_, err := LocaleParse(`{"weekdays_short":["a","b"]}`)
+	if err == nil {
+		t.Fatal("wrong-length weekdays must error, not silently use English")
+	}
+}
+
+func TestLocaleParseRejectsUnknownFields(t *testing.T) {
+	for _, content := range []string{
+		`{"bogus": 1}`,
+		`{"number": {"decimal_separator": ","}}`,
+		`{"date": {"short": "DD/MM/YYYY"}}`,
+	} {
+		if _, err := LocaleParse(content); err == nil {
+			t.Errorf("LocaleParse(%s) must reject unknown fields", content)
+		}
+	}
+}
+
+func TestLocaleParseRejectsBadValues(t *testing.T) {
+	for _, content := range []string{
+		`{"date": {"first_day_of_week": 7}}`,
+		`{"date": {"first_day_of_week": -1}}`,
+		`{"currency": {"decimals": -1}}`,
+		`{"currency": {"decimals": 21}}`,
+		`{"number": {"decimal_sep": "ab"}}`,
+		`{"number": {"group_sizes": [3, 0]}}`,
+		`{"months_full": ["only-one"]}`,
+		`{"text_dir": "sideways"}`,
+		`{"currency": {"position": "middle"}}`,
+	} {
+		if _, err := LocaleParse(content); err == nil {
+			t.Errorf("LocaleParse(%s) must return an error", content)
+		}
+	}
+}
+
+func TestLocaleParseEmptyStringFallsBack(t *testing.T) {
+	l, err := LocaleParse(`{"strings": {"ok": ""}}`)
 	if err != nil {
 		t.Fatalf("LocaleParse: %v", err)
 	}
-	// Falls back to en-US defaults.
-	if l.WeekdaysShort[0] != "S" {
-		t.Fatalf("WeekdaysShort[0] = %q, want S",
-			l.WeekdaysShort[0])
+	if l.StrOK != "OK" {
+		t.Fatalf("StrOK = %q, want en-US fallback for empty override", l.StrOK)
+	}
+}
+
+func TestLocaleParseTextDirFallback(t *testing.T) {
+	l, err := LocaleParse(`{}`)
+	if err != nil {
+		t.Fatalf("LocaleParse: %v", err)
+	}
+	if l.TextDir != TextDirLTR {
+		t.Fatalf("TextDir = %d, want LTR fallback", l.TextDir)
 	}
 }
 
@@ -224,8 +281,8 @@ func TestLocaleLoadFile(t *testing.T) {
 		t.Fatalf("currency = %s/%s, want EUR/€",
 			l.Currency.Code, l.Currency.Symbol)
 	}
-	if l.strOK != "D'accord" || l.StrCancel != "Annuler" {
-		t.Fatalf("strings = %q/%q", l.strOK, l.StrCancel)
+	if l.StrOK != "D'accord" || l.StrCancel != "Annuler" {
+		t.Fatalf("strings = %q/%q", l.StrOK, l.StrCancel)
 	}
 }
 
@@ -243,5 +300,21 @@ func TestLocaleLoadInvalidJSON(t *testing.T) {
 	}
 	if _, err := LocaleLoad(path); err == nil {
 		t.Fatal("LocaleLoad(invalid JSON) must return an error")
+	}
+}
+
+// TestLocaleLoadRejectsOversizeFile checks the size cap holds for a
+// file, not only for LocaleParse: the read must stop at the cap.
+func TestLocaleLoadRejectsOversizeFile(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "big.json")
+	data := make([]byte, maxLocaleBundleBytes+1)
+	for i := range data {
+		data[i] = ' '
+	}
+	if err := os.WriteFile(path, data, 0o644); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+	if _, err := LocaleLoad(path); err == nil {
+		t.Fatal("LocaleLoad(oversize) must return an error")
 	}
 }

@@ -460,10 +460,10 @@ func datePickerWeekdayIndex(i int, mondayFirst bool) int {
 func datePickerWeekdayLabel(dow int, wdLen DatePickerWeekdayLen) string {
 	switch wdLen {
 	case WeekdayThreeLetter:
-		return ActiveLocale.WeekdaysMed[dow]
+		return activeLocaleShared().WeekdaysMed[dow]
 	case WeekdayFull:
-		return ActiveLocale.WeekdaysFull[dow]
+		return activeLocaleShared().WeekdaysFull[dow]
 	default:
-		return ActiveLocale.WeekdaysShort[dow]
+		return activeLocaleShared().WeekdaysShort[dow]
 	}
 }

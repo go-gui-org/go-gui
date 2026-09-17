@@ -227,7 +227,7 @@ func TestDataGridSourceRowsTextOffset(t *testing.T) {
 		RowCount:      &rc,
 	}
 	got := dataGridSourceRowsText(GridPaginationOffset, state)
-	want := gg.ActiveLocale.StrRows + " 21-70/200"
+	want := gg.CurrentLocale().StrRows + " 21-70/200"
 	if got != want {
 		t.Fatalf("got %q, want %q", got, want)
 	}
@@ -241,7 +241,7 @@ func TestDataGridSourceRowsTextCursorWithIndex(t *testing.T) {
 		RowCount:      &rc,
 	}
 	got := dataGridSourceRowsText(GridPaginationCursor, state)
-	want := gg.ActiveLocale.StrRows + " 11-30/100"
+	want := gg.CurrentLocale().StrRows + " 11-30/100"
 	if got != want {
 		t.Fatalf("got %q, want %q", got, want)
 	}
@@ -254,7 +254,7 @@ func TestDataGridSourceRowsTextCursorNoIndex(t *testing.T) {
 		ReceivedCount: 15,
 	}
 	got := dataGridSourceRowsText(GridPaginationCursor, state)
-	want := gg.ActiveLocale.StrRows + " 15/?"
+	want := gg.CurrentLocale().StrRows + " 15/?"
 	if got != want {
 		t.Fatalf("got %q, want %q", got, want)
 	}
@@ -264,25 +264,25 @@ func TestDataGridSourceFormatRows(t *testing.T) {
 	rc := 500
 	// Normal range.
 	got := dataGridSourceFormatRows(10, 25, &rc)
-	want := gg.ActiveLocale.StrRows + " 11-35/500"
+	want := gg.CurrentLocale().StrRows + " 11-35/500"
 	if got != want {
 		t.Fatalf("got %q, want %q", got, want)
 	}
 	// End exceeds total → clamped.
 	got = dataGridSourceFormatRows(490, 20, &rc)
-	want = gg.ActiveLocale.StrRows + " 491-500/500"
+	want = gg.CurrentLocale().StrRows + " 491-500/500"
 	if got != want {
 		t.Fatalf("got %q, want %q", got, want)
 	}
 	// Zero count.
 	got = dataGridSourceFormatRows(0, 0, &rc)
-	want = gg.ActiveLocale.StrRows + " 0/500"
+	want = gg.CurrentLocale().StrRows + " 0/500"
 	if got != want {
 		t.Fatalf("got %q, want %q", got, want)
 	}
 	// Nil total.
 	got = dataGridSourceFormatRows(5, 10, nil)
-	want = gg.ActiveLocale.StrRows + " 6-15/?"
+	want = gg.CurrentLocale().StrRows + " 6-15/?"
 	if got != want {
 		t.Fatalf("got %q, want %q", got, want)
 	}

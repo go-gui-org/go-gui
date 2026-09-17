@@ -18,6 +18,10 @@ static const char* detectLocale() {
 	CFIndex len = CFStringGetMaximumSizeForEncoding(
 		CFStringGetLength(ident), kCFStringEncodingUTF8) + 1;
 	char *buf = (char *)malloc(len);
+	if (!buf) {
+		CFRelease(locale);
+		return NULL;
+	}
 	if (!CFStringGetCString(ident, buf, len, kCFStringEncodingUTF8)) {
 		free(buf);
 		CFRelease(locale);
@@ -35,7 +39,8 @@ import (
 	"unsafe"
 )
 
-// LocaleDetect returns the BCP 47 locale ID from the OS.
+// localeDetect returns the BCP 47 locale ID from the OS,
+// falling back to environment variables.
 func localeDetect() string {
 	cStr := C.detectLocale()
 	if cStr == nil {

@@ -1058,7 +1058,7 @@ func TestWrapRowsAlignAgainstTheirContent(t *testing.T) {
 	cases := []struct {
 		name   string
 		hAlign HorizontalAlign
-		dir    textDirection
+		dir    TextDirection
 		want   [2]float32 // X of row 0's two children
 	}{
 		// Row 0 is 30 + 5 + 30 = 65 wide in an 80 row: 15 of slack.

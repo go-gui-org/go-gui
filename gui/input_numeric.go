@@ -18,12 +18,14 @@ const (
 )
 
 // NumericAffixPosition determines prefix/suffix placement.
-type numericAffixPosition uint8
+// exportaudit:keep — documented public API (widget_locale.md).
+type NumericAffixPosition uint8
 
 // NumericAffixPosition values.
+// exportaudit:keep — documented public API (widget_locale.md).
 const (
-	affixPrefix numericAffixPosition = iota
-	affixSuffix
+	AffixPrefix NumericAffixPosition = iota
+	AffixSuffix
 )
 
 // NumericLocaleCfg defines symbols for parse/format.
@@ -67,14 +69,14 @@ type NumericStepCfg struct {
 // NumericCurrencyModeCfg defines currency symbol placement.
 type numericCurrencyModeCfg struct {
 	Symbol        string
-	Position      numericAffixPosition
+	Position      NumericAffixPosition
 	symbolSpacing bool
 }
 
 // NumericPercentModeCfg defines percent symbol placement.
 type numericPercentModeCfg struct {
 	Symbol        string
-	Position      numericAffixPosition
+	Position      NumericAffixPosition
 	symbolSpacing bool
 }
 
@@ -84,7 +86,7 @@ type numericModeCfg struct {
 	affix             string
 	displayMultiplier float64
 	mode              numericInputMode
-	affixPosition     numericAffixPosition
+	affixPosition     NumericAffixPosition
 	affixSpacing      bool
 }
 
@@ -440,11 +442,11 @@ func numericStripAffix(raw string, loc NumericLocaleCfg, mc numericModeCfg) (str
 	}
 	if len(mc.affix) > 0 {
 		switch mc.affixPosition {
-		case affixPrefix:
+		case AffixPrefix:
 			if strings.HasPrefix(text, mc.affix) {
 				text = strings.TrimLeft(text[len(mc.affix):], " \t")
 			}
-		case affixSuffix:
+		case AffixSuffix:
 			right := strings.TrimRight(text, " \t")
 			if strings.HasSuffix(right, mc.affix) {
 				right = strings.TrimRight(right[:len(right)-len(mc.affix)], " \t")
@@ -479,9 +481,9 @@ func numericApplyAffix(formatted string, loc NumericLocaleCfg, mc numericModeCfg
 		space = " "
 	}
 	switch mc.affixPosition {
-	case affixPrefix:
+	case AffixPrefix:
 		return sign + mc.affix + space + number
-	case affixSuffix:
+	case AffixSuffix:
 		return sign + number + space + mc.affix
 	}
 	return formatted
@@ -523,7 +525,7 @@ func numericModeIsTransientInput(raw string, decimals int, loc NumericLocaleCfg,
 	}
 	if len(mc.affix) > 0 {
 		switch mc.affixPosition {
-		case affixPrefix:
+		case AffixPrefix:
 			if text == mc.affix {
 				return true
 			}
@@ -533,7 +535,7 @@ func numericModeIsTransientInput(raw string, decimals int, loc NumericLocaleCfg,
 					return true
 				}
 			}
-		case affixSuffix:
+		case AffixSuffix:
 			if text == mc.affix {
 				return true
 			}

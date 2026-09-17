@@ -136,7 +136,7 @@ type Shape struct {
 	VAlign               verticalAlign
 	ScrollMode           scrollMode
 	scrollbarOrientation ScrollbarOrientation
-	TextDir              textDirection
+	TextDir              TextDirection
 
 	// FloatAnchor is the attachment point on the floating element.
 	// Combined with FloatTieOff to position the element relative
@@ -292,11 +292,12 @@ const (
 )
 
 // TextDirection controls text/layout direction.
-type textDirection uint8
+// exportaudit:keep — documented public API (widget_locale.md).
+type TextDirection uint8
 
 // TextDirection constants.
 const (
-	textDirAuto textDirection = iota // inherit from parent/global
+	textDirAuto TextDirection = iota // inherit from parent/global
 	TextDirLTR
 	TextDirRTL
 )

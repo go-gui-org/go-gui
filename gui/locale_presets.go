@@ -6,31 +6,35 @@ import "embed"
 var localeFS embed.FS
 
 // LocaleEnUS is the default en-US locale (all defaults).
-var localeEnUS = localeDefaults()
+// exportaudit:keep — documented public API (widget_locale.md).
+var LocaleEnUS = localeDefaults()
 
 // Locale presets loaded from embedded JSON at init time.
+// Each is registered in the locale registry; look them up with
+// LocaleGet or switch with Window.SetLocaleID.
+// exportaudit:keep — documented public API (widget_locale.md).
 var (
-	localeDeDE Locale
-	localeArSA Locale
-	localeFrFR Locale
-	localeEsES Locale
-	localePtBR Locale
-	localeJaJP Locale
-	localeZhCN Locale
-	localeKoKR Locale
-	localeHeIL Locale
+	LocaleDeDE Locale
+	LocaleArSA Locale
+	LocaleFrFR Locale
+	LocaleEsES Locale
+	LocalePtBR Locale
+	LocaleJaJP Locale
+	LocaleZhCN Locale
+	LocaleKoKR Locale
+	LocaleHeIL Locale
 )
 
 func init() {
-	localeDeDE = mustLoadLocale("locales/de-DE.json")
-	localeArSA = mustLoadLocale("locales/ar-SA.json")
-	localeFrFR = mustLoadLocale("locales/fr-FR.json")
-	localeEsES = mustLoadLocale("locales/es-ES.json")
-	localePtBR = mustLoadLocale("locales/pt-BR.json")
-	localeJaJP = mustLoadLocale("locales/ja-JP.json")
-	localeZhCN = mustLoadLocale("locales/zh-CN.json")
-	localeKoKR = mustLoadLocale("locales/ko-KR.json")
-	localeHeIL = mustLoadLocale("locales/he-IL.json")
+	LocaleDeDE = mustLoadLocale("locales/de-DE.json")
+	LocaleArSA = mustLoadLocale("locales/ar-SA.json")
+	LocaleFrFR = mustLoadLocale("locales/fr-FR.json")
+	LocaleEsES = mustLoadLocale("locales/es-ES.json")
+	LocalePtBR = mustLoadLocale("locales/pt-BR.json")
+	LocaleJaJP = mustLoadLocale("locales/ja-JP.json")
+	LocaleZhCN = mustLoadLocale("locales/zh-CN.json")
+	LocaleKoKR = mustLoadLocale("locales/ko-KR.json")
+	LocaleHeIL = mustLoadLocale("locales/he-IL.json")
 }
 
 func mustLoadLocale(path string) Locale {

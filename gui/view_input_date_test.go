@@ -199,7 +199,7 @@ func TestInputDateSingleDateText(t *testing.T) {
 	// The date is shown via an embedded Input widget.
 	// Find the text by searching the layout tree.
 	expected := LocaleFormatDate(d1,
-		localeDatePadFormat(ActiveLocale.Date.ShortDate))
+		localeDatePadFormat(CurrentLocale().Date.ShortDate))
 	if !layoutContainsText(&layout, expected) {
 		t.Errorf("layout does not contain %q", expected)
 	}
@@ -294,7 +294,7 @@ func TestInputDateFocusDisabled(t *testing.T) {
 // active locale's short date, padded.
 func TestInputDateFormatUnsetUsesLocale(t *testing.T) {
 	cfg := InputDateCfg{ID: "id-fmt-unset"}
-	want := localeDatePadFormat(ActiveLocale.Date.ShortDate)
+	want := localeDatePadFormat(CurrentLocale().Date.ShortDate)
 	if got := inputDateFormat(&cfg); got != want {
 		t.Errorf("inputDateFormat = %q, want %q", got, want)
 	}

@@ -271,7 +271,7 @@ func datePickerControls(
 	cfgID := cfg.ID
 	monthLabel := LocaleFormatDate(
 		datePickerViewTime(state),
-		ActiveLocale.Date.MonthYear,
+		activeLocaleShared().Date.MonthYear,
 	)
 
 	focusID := cfg.ID
