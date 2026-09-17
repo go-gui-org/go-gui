@@ -122,6 +122,23 @@ and this project adheres to
 
 ### Fixed
 
+- **No-op native backends stop reporting success for work they did not do** —
+  the headless noop platform returned zero values that read as `DialogOK`,
+  `NotificationOK` and `PrintRunOK`, and the web, Android, iOS and non-Linux
+  stubs handed out tray ID 0 for every icon, so two trays shared one handle. The
+  noop now reports cancel or error, and every stub hands out unique tray IDs.
+- **Web, Android and iOS validate `OpenURI` and spell input like the desktop
+  backends** — the web scheme prefix check is now a length-capped allowlist
+  parse matching `nativehost.ValidateOpenURI`, the mobile backends cap URI
+  length, and both cap spell-check text and clamp offsets instead of passing
+  unbounded input to the spell engine. Notification text and macOS accessibility
+  announcements are truncated on a rune boundary on every platform, so capping
+  can no longer split a multi-byte rune.
+- **Web file pickers and printing fail cleanly instead of wedging or blanking**
+  — a picker thrown without a user gesture now returns a dialog error instead of
+  panicking the wasm instance, callback and element cleanup is deferred, a
+  tainted canvas reports a print error instead of throwing, and printing waits
+  for the snapshot image to decode instead of printing a blank page.
 - **LaTeX math sanitizing uses an allowlist, not a substring blocklist** — the
   blocklist matched inside longer command names, so `\theta` rendered as `ta`,
   `\iff` as `f`, and `\longrightarrow` and `\coprod` lost their prefixes.

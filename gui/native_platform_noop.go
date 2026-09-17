@@ -16,28 +16,36 @@ var noopTrayIDs atomic.Int64
 type noopNativePlatform struct{}
 
 func (noopNativePlatform) ShowOpenDialog(_, _ string, _ []string, _ bool) PlatformDialogResult {
-	return PlatformDialogResult{}
+	// Cancelled, not OK: the zero PlatformDialogResult is DialogOK,
+	// so a bare zero value would report a success with no paths.
+	return PlatformDialogResult{Status: DialogCancel}
 }
 func (noopNativePlatform) ShowSaveDialog(_, _, _, _ string, _ []string, _ bool) PlatformDialogResult {
-	return PlatformDialogResult{}
+	return PlatformDialogResult{Status: DialogCancel}
 }
 func (noopNativePlatform) ShowFolderDialog(_, _ string) PlatformDialogResult {
-	return PlatformDialogResult{}
+	return PlatformDialogResult{Status: DialogCancel}
 }
 func (noopNativePlatform) ShowMessageDialog(_, _ string, _ NativeAlertLevel) NativeAlertResult {
-	return NativeAlertResult{}
+	return NativeAlertResult{Status: DialogCancel}
 }
 func (noopNativePlatform) ShowConfirmDialog(_, _ string, _ NativeAlertLevel) NativeAlertResult {
-	return NativeAlertResult{}
+	return NativeAlertResult{Status: DialogCancel}
 }
 func (noopNativePlatform) ShowSaveDiscardDialog(_, _ string, _ NativeAlertLevel) NativeAlertResult {
-	return NativeAlertResult{}
+	return NativeAlertResult{Status: DialogCancel}
 }
 func (noopNativePlatform) SendNotification(_, _ string) NativeNotificationResult {
-	return NativeNotificationResult{}
+	// Error, not the zero NotificationOK: nothing was delivered.
+	return NativeNotificationResult{
+		Status:       NotificationError,
+		ErrorCode:    "unsupported",
+		ErrorMessage: "no native platform",
+	}
 }
 func (noopNativePlatform) ShowPrintDialog(_ NativePrintParams) PrintRunResult {
-	return PrintRunResult{}
+	// Cancelled, not the zero PrintRunOK: nothing was printed.
+	return PrintRunResult{Status: PrintRunCancel}
 }
 func (noopNativePlatform) BookmarkLoadAll(_ string) []BookmarkEntry            { return nil }
 func (noopNativePlatform) BookmarkPersist(_, _ string, _ []byte)               {}

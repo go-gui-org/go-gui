@@ -1,8 +1,10 @@
 package gui
 
 import (
+	"strings"
 	"testing"
 	"time"
+	"unicode/utf8"
 )
 
 // mockNotificationPlatform stubs NativePlatform with a configurable
@@ -108,5 +110,45 @@ func TestNativeNotificationNilOnDone(_ *testing.T) {
 func TestNativeNotificationStatusValues(t *testing.T) {
 	if NotificationOK != 0 || NotificationDenied != 1 || NotificationError != 2 {
 		t.Error("unexpected status enum values")
+	}
+}
+
+// notificationRecorder captures the title/body the impl hands the
+// backend, so the length caps below can assert on them.
+type notificationRecorder struct {
+	noopNativePlatform
+	title  string
+	body   string
+	result NativeNotificationResult
+}
+
+func (m *notificationRecorder) SendNotification(title, body string) NativeNotificationResult {
+	m.title = title
+	m.body = body
+	return m.result
+}
+
+func TestNativeNotificationTruncatesToBackendCaps(t *testing.T) {
+	w := &Window{}
+	rec := &notificationRecorder{
+		result: NativeNotificationResult{Status: NotificationOK},
+	}
+	w.nativePlatform = rec
+	cfg := NativeNotificationCfg{
+		Title:  strings.Repeat("é", 200), // 400 bytes > 256
+		Body:   strings.Repeat("中", 500), // 1500 bytes > 1024
+		OnDone: func(NativeNotificationResult, *Window) {},
+	}
+	nativeNotificationImpl(w, cfg)
+	time.Sleep(5 * time.Millisecond)
+	w.flushCommands()
+	if len(rec.title) > maxNotificationTitleLen {
+		t.Errorf("title %d bytes, want <= %d", len(rec.title), maxNotificationTitleLen)
+	}
+	if len(rec.body) > maxNotificationBodyLen {
+		t.Errorf("body %d bytes, want <= %d", len(rec.body), maxNotificationBodyLen)
+	}
+	if !utf8.ValidString(rec.title) || !utf8.ValidString(rec.body) {
+		t.Error("truncated strings must stay valid UTF-8")
 	}
 }

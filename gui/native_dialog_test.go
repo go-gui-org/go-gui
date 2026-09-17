@@ -256,11 +256,33 @@ func TestNativeSaveDiscardDialogDiscardStatus(t *testing.T) {
 	}
 }
 
-func TestNoopShowSaveDiscardDialogReturnsZero(t *testing.T) {
+func TestNoopNativeMethodsReportNonSuccess(t *testing.T) {
 	var p noopNativePlatform
-	r := p.ShowSaveDiscardDialog("", "", AlertInfo)
-	if r.Status != DialogOK {
-		t.Errorf("expected DialogOK (zero), got %d", r.Status)
+	// A bare zero result reads as OK for every status enum, so the
+	// noop must name a non-success status explicitly.
+	if r := p.ShowOpenDialog("", "", nil, false); r.Status != DialogCancel {
+		t.Errorf("ShowOpenDialog status = %d, want DialogCancel", r.Status)
+	}
+	if r := p.ShowSaveDialog("", "", "", "", nil, false); r.Status != DialogCancel {
+		t.Errorf("ShowSaveDialog status = %d, want DialogCancel", r.Status)
+	}
+	if r := p.ShowFolderDialog("", ""); r.Status != DialogCancel {
+		t.Errorf("ShowFolderDialog status = %d, want DialogCancel", r.Status)
+	}
+	if r := p.ShowMessageDialog("", "", AlertInfo); r.Status != DialogCancel {
+		t.Errorf("ShowMessageDialog status = %d, want DialogCancel", r.Status)
+	}
+	if r := p.ShowConfirmDialog("", "", AlertInfo); r.Status != DialogCancel {
+		t.Errorf("ShowConfirmDialog status = %d, want DialogCancel", r.Status)
+	}
+	if r := p.ShowSaveDiscardDialog("", "", AlertInfo); r.Status != DialogCancel {
+		t.Errorf("ShowSaveDiscardDialog status = %d, want DialogCancel", r.Status)
+	}
+	if r := p.SendNotification("", ""); r.Status != NotificationError {
+		t.Errorf("SendNotification status = %d, want NotificationError", r.Status)
+	}
+	if r := p.ShowPrintDialog(NativePrintParams{}); r.Status != PrintRunCancel {
+		t.Errorf("ShowPrintDialog status = %d, want PrintRunCancel", r.Status)
 	}
 }
 

@@ -28,28 +28,38 @@ func TestDotExtensions(t *testing.T) {
 	}
 }
 
-// --- hasPrefixFold ---
+// --- validateOpenURI ---
 
-func TestHasPrefixFold(t *testing.T) {
-	tests := []struct {
-		s, prefix string
-		want      bool
-	}{
-		{"http://example.com", "http://", true},
-		{"HTTP://EXAMPLE.COM", "http://", true},
-		{"https://x", "http://", false},
-		{"mailto:a@b", "mailto:", true},
-		{"ftp://x", "http://", false},
-		{"h", "http://", false},
-		{"", "http://", false},
-		{"http://x", "HTTP://", true},
+func TestValidateOpenURI(t *testing.T) {
+	valid := []string{
+		"http://example.com",
+		"https://example.com/path?q=1",
+		"HTTPS://example.com",
+		"mailto:user@example.com",
+		"MAILTO:user@example.com",
 	}
-	for _, tt := range tests {
-		got := hasPrefixFold(tt.s, tt.prefix)
-		if got != tt.want {
-			t.Errorf("hasPrefixFold(%q, %q) = %v, want %v",
-				tt.s, tt.prefix, got, tt.want)
+	for _, raw := range valid {
+		if err := validateOpenURI(raw); err != nil {
+			t.Errorf("validateOpenURI(%q) = %v, want nil", raw, err)
 		}
+	}
+	invalid := []string{
+		"",
+		"ftp://example.com",
+		"javascript:alert(1)",
+		"file:///etc/passwd",
+		"data:text/html,x",
+		"http://example.com\nrm -rf /",
+		"http://example.com\x00",
+	}
+	for _, raw := range invalid {
+		if err := validateOpenURI(raw); err == nil {
+			t.Errorf("validateOpenURI(%q) = nil, want error", raw)
+		}
+	}
+	long := "https://example.com/" + string(make([]byte, maxOpenURILen))
+	if err := validateOpenURI(long); err == nil {
+		t.Error("validateOpenURI(long) = nil, want length error")
 	}
 }
 

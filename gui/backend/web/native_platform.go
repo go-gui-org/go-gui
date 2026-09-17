@@ -4,8 +4,11 @@ package web
 
 import (
 	"fmt"
+	"net/url"
 	"strings"
+	"sync/atomic"
 	"syscall/js"
+	"time"
 
 	"github.com/go-gui-org/go-gui/gui"
 )
@@ -20,11 +23,34 @@ type nativePlatform struct {
 
 // --- URI ---
 
+// maxOpenURILen caps the raw URI length, mirroring nativehost's
+// limit for the desktop backends.
+const maxOpenURILen = 8192
+
+// validateOpenURI checks that raw is a valid absolute URI whose
+// scheme is in the allowlist (http, https, mailto). It mirrors
+// nativehost.ValidateOpenURI, which this package cannot import:
+// nativehost pulls in os/exec, which does not build for js/wasm.
+func validateOpenURI(raw string) error {
+	if len(raw) > maxOpenURILen {
+		return fmt.Errorf("web: URI too long: %d bytes (max %d)",
+			len(raw), maxOpenURILen)
+	}
+	u, err := url.Parse(raw)
+	if err != nil {
+		return fmt.Errorf("web: invalid URI: %w", err)
+	}
+	switch strings.ToLower(u.Scheme) {
+	case "http", "https", "mailto":
+		return nil
+	default:
+		return fmt.Errorf("web: blocked URI scheme in %q", raw)
+	}
+}
+
 func (n *nativePlatform) OpenURI(uri string) error {
-	if !hasPrefixFold(uri, "http://") &&
-		!hasPrefixFold(uri, "https://") &&
-		!hasPrefixFold(uri, "mailto:") {
-		return fmt.Errorf("web: blocked URI scheme in %q", uri)
+	if err := validateOpenURI(uri); err != nil {
+		return err
 	}
 	w := js.Global().Call("open", uri, "_blank")
 	if w.IsNull() || w.IsUndefined() {
@@ -53,12 +79,18 @@ func (n *nativePlatform) ShowOpenDialog(
 
 	ch := make(chan gui.PlatformDialogResult, 1)
 
+	// Both sends are non-blocking: "change" and "cancel" can each
+	// fire, and a blocking send on the filled buffer would wedge
+	// the JS event loop forever.
 	changeCb := js.FuncOf(func(_ js.Value, _ []js.Value) any {
 		files := input.Get("files")
 		count := files.Length()
 		if count == 0 {
-			ch <- gui.PlatformDialogResult{
+			select {
+			case ch <- gui.PlatformDialogResult{
 				Status: gui.DialogCancel,
+			}:
+			default:
 			}
 			return nil
 		}
@@ -68,9 +100,12 @@ func (n *nativePlatform) ShowOpenDialog(
 				Path: files.Index(i).Get("name").String(),
 			}
 		}
-		ch <- gui.PlatformDialogResult{
+		select {
+		case ch <- gui.PlatformDialogResult{
 			Status: gui.DialogOK,
 			Paths:  paths,
+		}:
+		default:
 		}
 		return nil
 	})
@@ -87,13 +122,19 @@ func (n *nativePlatform) ShowOpenDialog(
 
 	input.Call("addEventListener", "change", changeCb)
 	input.Call("addEventListener", "cancel", cancelCb)
+	// One defer, in this order: the receive below blocks until the
+	// user picks or dismisses, and a JS exception in between must
+	// not leak the element or the funcs. The element is detached
+	// first — calling a released js.Func panics the wasm instance,
+	// so no listener may outlive its func.
+	defer func() {
+		input.Call("remove")
+		changeCb.Release()
+		cancelCb.Release()
+	}()
 	input.Call("click")
 
-	result := <-ch
-	changeCb.Release()
-	cancelCb.Release()
-	input.Call("remove")
-	return result
+	return <-ch
 }
 
 func (n *nativePlatform) ShowSaveDialog(
@@ -124,7 +165,19 @@ func (n *nativePlatform) ShowSaveDialog(
 func (n *nativePlatform) saveFilePicker(
 	title, defaultName, defaultExt string,
 	extensions []string,
-) gui.PlatformDialogResult {
+) (result gui.PlatformDialogResult) {
+	// showSaveFilePicker throws synchronously when called without a
+	// user gesture. Convert the JS exception into a result instead
+	// of panicking the wasm instance.
+	defer func() {
+		if r := recover(); r != nil {
+			result = gui.PlatformDialogResult{
+				Status:       gui.DialogError,
+				ErrorCode:    "unsupported",
+				ErrorMessage: fmt.Sprintf("save picker unavailable: %v", r),
+			}
+		}
+	}()
 	opts := jsObject()
 	if defaultName != "" {
 		suggested := defaultName
@@ -167,13 +220,24 @@ func (n *nativePlatform) saveFilePicker(
 	})
 
 	promise.Call("then", thenCb).Call("catch", catchCb)
-	result := <-ch
-	thenCb.Release()
-	catchCb.Release()
-	return result
+	defer thenCb.Release()
+	defer catchCb.Release()
+	return <-ch
 }
 
-func (n *nativePlatform) ShowFolderDialog(_, _ string) gui.PlatformDialogResult {
+func (n *nativePlatform) ShowFolderDialog(_, _ string) (result gui.PlatformDialogResult) {
+	// showDirectoryPicker throws synchronously without a user
+	// gesture; convert the JS exception into a result instead of
+	// panicking the wasm instance.
+	defer func() {
+		if r := recover(); r != nil {
+			result = gui.PlatformDialogResult{
+				Status:       gui.DialogError,
+				ErrorCode:    "unsupported",
+				ErrorMessage: fmt.Sprintf("folder picker unavailable: %v", r),
+			}
+		}
+	}()
 	picker := js.Global().Get("showDirectoryPicker")
 	if picker.IsUndefined() {
 		return gui.PlatformDialogResult{
@@ -200,9 +264,9 @@ func (n *nativePlatform) ShowFolderDialog(_, _ string) gui.PlatformDialogResult 
 	})
 
 	promise.Call("then", thenCb).Call("catch", catchCb)
-	result := <-ch
-	thenCb.Release()
-	catchCb.Release()
+	defer thenCb.Release()
+	defer catchCb.Release()
+	result = <-ch
 	return result
 }
 
@@ -301,6 +365,17 @@ func (n *nativePlatform) SendNotification(
 func (n *nativePlatform) ShowPrintDialog(
 	_ gui.NativePrintParams,
 ) gui.PrintRunResult {
+	// toDataURL throws when the canvas is tainted (cross-origin
+	// content without CORS). Snapshot first so a tainted canvas
+	// reports an error instead of panicking the wasm instance.
+	dataURL, err := canvasDataURL(n.canvas)
+	if err != nil {
+		return gui.PrintRunResult{
+			Status:       gui.PrintRunError,
+			ErrorCode:    "render_error",
+			ErrorMessage: err.Error(),
+		}
+	}
 	// Render canvas to an offscreen iframe so the host page
 	// chrome is excluded from the print output.
 	iframe := n.doc.Call("createElement", "iframe")
@@ -310,21 +385,59 @@ func (n *nativePlatform) ShowPrintDialog(
 	st.Set("height", "0")
 	st.Set("border", "0")
 	n.doc.Get("body").Call("appendChild", iframe)
+	defer iframe.Call("remove")
 
 	iframeDoc := iframe.Get("contentWindow").Get("document")
 	body := iframeDoc.Get("body")
 	body.Get("style").Set("margin", "0")
 
+	// Wait for the image to decode before printing: printing
+	// immediately after setting src prints a blank page while the
+	// decode is still in flight.
+	loaded := make(chan struct{}, 1)
+	onLoad := js.FuncOf(func(_ js.Value, _ []js.Value) any {
+		select {
+		case loaded <- struct{}{}:
+		default:
+		}
+		return nil
+	})
+
 	img := iframeDoc.Call("createElement", "img")
-	img.Set("src", n.canvas.Call("toDataURL", "image/png").String())
+	// Detach the handlers before releasing the func: on the timeout
+	// path the decode is still in flight, and a late event calling a
+	// released js.Func panics the wasm instance.
+	defer func() {
+		img.Set("onload", js.Null())
+		img.Set("onerror", js.Null())
+		onLoad.Release()
+	}()
+	img.Set("onload", onLoad)
+	img.Set("onerror", onLoad)
+	img.Set("src", dataURL)
 	imgSt := img.Get("style")
 	imgSt.Set("width", "100%")
 	imgSt.Set("maxWidth", "100%")
 	body.Call("appendChild", img)
 
+	select {
+	case <-loaded:
+	case <-time.After(5 * time.Second):
+	}
+
 	iframe.Get("contentWindow").Call("print")
-	iframe.Call("remove")
 	return gui.PrintRunResult{Status: gui.PrintRunOK}
+}
+
+// canvasDataURL snapshots a canvas to a PNG data URL, converting a
+// JS SecurityError on a tainted canvas into a Go error.
+func canvasDataURL(canvas js.Value) (url string, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			url, err = "", fmt.Errorf("canvas snapshot failed: %v", r)
+		}
+	}()
+	return canvas.Call("toDataURL", "image/png").String(), nil
 }
 
 // --- Bookmarks (no-op on web) ---
@@ -415,22 +528,21 @@ func (n *nativePlatform) SpellLearn(_ string)                      {}
 func (n *nativePlatform) SetNativeMenubar(_ gui.NativeMenubarCfg, _ func(string)) {}
 func (n *nativePlatform) ClearNativeMenubar()                                     {}
 
+// webTrayIDs hands out unique positive tray IDs. The web stub
+// reports success, so handles must stay distinct for App bookkeeping.
+var webTrayIDs atomic.Int64
+
 // --- System tray (no-op on web) ---
 
 func (n *nativePlatform) CreateSystemTray(
 	_ gui.SystemTrayCfg, _ func(string),
 ) (int, error) {
-	return 0, nil
+	return int(webTrayIDs.Add(1)), nil
 }
 func (n *nativePlatform) UpdateSystemTray(_ int, _ gui.SystemTrayCfg) {}
 func (n *nativePlatform) RemoveSystemTray(_ int)                      {}
 
 // --- helpers ---
-
-func hasPrefixFold(s, prefix string) bool {
-	return len(s) >= len(prefix) &&
-		strings.EqualFold(s[:len(prefix)], prefix)
-}
 
 // dotExtensions formats ["png","jpg"] as ".png,.jpg".
 func dotExtensions(exts []string) string {

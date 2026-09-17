@@ -4,14 +4,23 @@
 // This file is a no-op stub for platforms without native tray support.
 package sni
 
-import "github.com/go-gui-org/go-gui/gui"
+import (
+	"sync/atomic"
+
+	"github.com/go-gui-org/go-gui/gui"
+)
 
 // Tray is a no-op on non-Linux platforms.
 type Tray struct{}
 
-// Create is a no-op on non-Linux platforms.
+// stubTrayIDs hands out unique positive tray IDs. The stub reports
+// success, so handles must stay distinct for App bookkeeping.
+var stubTrayIDs atomic.Int64
+
+// Create is a no-op on non-Linux platforms. It reports success with
+// a unique handle so App bookkeeping stays consistent.
 func (t *Tray) Create(_ gui.SystemTrayCfg, _ func(string)) (int, error) {
-	return 0, nil
+	return int(stubTrayIDs.Add(1)), nil
 }
 
 // Update is a no-op on non-Linux platforms.

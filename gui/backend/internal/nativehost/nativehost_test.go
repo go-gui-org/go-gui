@@ -1,8 +1,10 @@
 package nativehost
 
 import (
+	"math"
 	"strings"
 	"testing"
+	"unicode/utf8"
 
 	"github.com/go-gui-org/go-gui/gui"
 )
@@ -105,6 +107,37 @@ func TestValidateOpenURI_TooLong(t *testing.T) {
 	err := ValidateOpenURI(tooLong)
 	if err == nil {
 		t.Error("URI exceeding maxURILen should be rejected")
+	}
+}
+
+func TestTruncateBytesRuneBoundary(t *testing.T) {
+	// "é" is 2 bytes; capping a run of them at an odd byte
+	// count must back off to the rune boundary, not split one.
+	s := strings.Repeat("é", 10) // 20 bytes
+	got := truncateBytes(s, 7)
+	if got != strings.Repeat("é", 3) {
+		t.Errorf("truncateBytes split a rune: %q", got)
+	}
+	if got2 := truncateBytes("ascii", 10); got2 != "ascii" {
+		t.Errorf("short string changed: %q", got2)
+	}
+	// Multibyte truncation stays valid UTF-8 at every cap.
+	mixed := "aé中🎉" + strings.Repeat("x", maxSpellTextLen)
+	capped := truncateBytes(mixed, maxSpellTextLen)
+	if !utf8.ValidString(capped) {
+		t.Error("truncated text is not valid UTF-8")
+	}
+}
+
+func TestSpellSuggestHugeLenDoesNotOverflow(t *testing.T) {
+	// lenBytes near math.MaxInt overflows startByte+lenBytes, so the
+	// clamp is written as a subtraction. A miss here reaches the
+	// native engine with an out-of-range length.
+	if got := SpellSuggest("hello", 1, math.MaxInt); got != nil {
+		_ = got // suggestions are engine-dependent; no panic is the assertion
+	}
+	if got := SpellSuggest("hello", 0, math.MinInt); got != nil {
+		_ = got
 	}
 }
 

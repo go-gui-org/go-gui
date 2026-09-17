@@ -1,5 +1,29 @@
 package gui
 
+import "unicode/utf8"
+
+// maxNotificationTitleLen and maxNotificationBodyLen cap the title
+// and body before they reach a backend, mirroring nativehost's caps
+// for the desktop targets. Web and mobile have no caps of their own,
+// so the gui layer enforces them for every platform.
+const (
+	maxNotificationTitleLen = 256
+	maxNotificationBodyLen  = 1024
+)
+
+// truncateNotificationBytes caps s at max bytes on a rune boundary,
+// so the result stays valid UTF-8.
+func truncateNotificationBytes(s string, max int) string {
+	if len(s) <= max {
+		return s
+	}
+	end := max
+	for end > 0 && !utf8.RuneStart(s[end]) {
+		end--
+	}
+	return s[:end]
+}
+
 // NativeNotificationStatus reports notification outcome.
 type NativeNotificationStatus uint8
 
@@ -40,7 +64,8 @@ func (w *Window) NativeNotification(cfg NativeNotificationCfg) {
 }
 
 func nativeNotificationImpl(w *Window, cfg NativeNotificationCfg) {
-	if w.nativePlatform == nil {
+	np := w.nativePlatform
+	if np == nil {
 		dispatchNotificationDone(w, cfg.OnDone, NativeNotificationResult{
 			Status:       NotificationError,
 			ErrorCode:    "unsupported",
@@ -48,12 +73,14 @@ func nativeNotificationImpl(w *Window, cfg NativeNotificationCfg) {
 		})
 		return
 	}
+	title := truncateNotificationBytes(cfg.Title, maxNotificationTitleLen)
+	body := truncateNotificationBytes(cfg.Body, maxNotificationBodyLen)
 	// Notification may block; run in goroutine. QueueCommand is
 	// thread-safe (uses commandsMu), so the ctx check + queue
 	// pattern is safe even without atomicity.
 	ctx := w.Ctx()
 	go func() {
-		result := w.nativePlatform.SendNotification(cfg.Title, cfg.Body)
+		result := np.SendNotification(title, body)
 		if ctx.Err() != nil {
 			return
 		}
