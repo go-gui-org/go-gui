@@ -447,7 +447,7 @@ func TestCollectAnimContribs_RejectsNonFiniteElapsed(t *testing.T) {
 		Values:        []float32{0, 1},
 		DurSec:        1,
 	}
-	out := collectAnimContribs([]SvgAnimation{a}, float32(math.NaN()), nil)
+	out := collectAnimContribs([]SvgAnimation{a}, math.NaN(), nil)
 	if len(out) != 0 {
 		t.Fatal("NaN elapsed must produce no contributions")
 	}

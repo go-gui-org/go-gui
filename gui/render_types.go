@@ -37,6 +37,11 @@ const (
 	RenderStencilEnd
 )
 
+// renderGuardWarned is a 32-bit per-kind mask: the kind count
+// must fit in it. Appending a kind past 31 fails the build here
+// instead of silently sharing no warn-once slot.
+const _ uint = 32 - uint(RenderStencilEnd) - 1
+
 // RenderCmd is a flat discriminated struct holding all draw
 // command variants. Kind selects which fields are meaningful.
 // Stored in a pre-allocated slice reused via renderers[:0] each

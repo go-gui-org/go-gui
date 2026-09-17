@@ -20,8 +20,16 @@ import (
 // cannot ask for a multi-gigabyte allocation.
 const maxDimension = 16384
 
+// maxRenderPixels caps the total device pixels of a render, so the
+// 16384x16384 corner the per-side cap still allows (1 GiB of RGBA)
+// cannot be asked for. Both inputs are the app's own window size
+// and scale, not untrusted data, so the cap sits well above any
+// real display render rather than at imgload's decoded-file
+// budget: a 5K window at scale 2 is 59M pixels and must render.
+const maxRenderPixels = int64(1) << 27
+
 // RenderToImage settles one frame of w and software-renders it at the
-// given device pixel ratio. scale <= 0 means 1.
+// given device pixel ratio. A non-positive or non-finite scale means 1.
 //
 // The returned image is premultiplied RGBA at
 // (window width x scale, window height x scale) pixels.
@@ -38,7 +46,11 @@ func RenderToImage(w *gui.Window, scale float32) (*image.RGBA, error) {
 	if w == nil {
 		return nil, errors.New("soft: nil window")
 	}
-	if scale <= 0 {
+	// NaN and +Inf both pass a <= 0 check (NaN compares false,
+	// +Inf is positive) and would poison the pixel math below
+	// into an implementation-defined int conversion.
+	if math.IsNaN(float64(scale)) || math.IsInf(float64(scale), 0) ||
+		scale <= 0 {
 		scale = 1
 	}
 	tm, err := prepare(w, scale)
@@ -68,6 +80,11 @@ func renderFrame(
 		return nil, fmt.Errorf(
 			"soft: render %dx%d exceeds the %d px limit",
 			pw, ph, maxDimension)
+	}
+	if int64(pw)*int64(ph) > maxRenderPixels {
+		return nil, fmt.Errorf(
+			"soft: render %dx%d exceeds the %d pixel limit",
+			pw, ph, maxRenderPixels)
 	}
 
 	w.BackingScale = scale

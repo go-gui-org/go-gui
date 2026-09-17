@@ -11,8 +11,10 @@ package soft
 import (
 	"fmt"
 	"image"
+	"math"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/go-gui-org/go-gui/gui"
@@ -220,6 +222,43 @@ func TestRenderToImageNilWindow(t *testing.T) {
 	}
 }
 
+func TestRenderToImageNonFiniteScaleMeansOne(t *testing.T) {
+	win := newWin(t, 100, 100, redView)
+	for _, scale := range []float32{
+		float32(math.NaN()),
+		float32(math.Inf(1)),
+		float32(math.Inf(-1)),
+	} {
+		img, err := RenderToImage(win, scale)
+		if err != nil {
+			t.Fatalf("scale %v: want scale-1 render, got %v", scale, err)
+		}
+		if got := img.Bounds(); got != image.Rect(0, 0, 100, 100) {
+			t.Fatalf("scale %v: bounds = %v, want 100x100", scale, got)
+		}
+	}
+}
+
+func TestRenderToImagePixelCap(t *testing.T) {
+	// Both sides are inside maxDimension, so only the area cap can
+	// reject this. A 5K window at scale 2 (59M pixels) must still
+	// render, so the case has to be far larger than that.
+	win := gui.NewWindow(gui.WindowCfg{
+		Width:   16000,
+		Height:  9000,
+		BgColor: gui.RGB(0, 0, 0),
+		OnInit:  func(w *gui.Window) { w.SetView(redView) },
+	})
+	t.Cleanup(func() { Release(win) })
+	_, err := RenderToImage(win, 1)
+	if err == nil {
+		t.Fatal("144M-pixel render: want pixel-limit error")
+	}
+	if !strings.Contains(err.Error(), "pixel limit") {
+		t.Fatalf("error = %q, want the pixel limit", err)
+	}
+}
+
 func TestRenderToImageZeroSizeWindow(t *testing.T) {
 	win := gui.NewWindow(gui.WindowCfg{})
 	t.Cleanup(func() { Release(win) })
@@ -400,5 +439,15 @@ func TestListBoxVirtualizedFillsViewport(t *testing.T) {
 		t.Error("bottom of a mid-scrolled virtualized list is blank: " +
 			"the row-height estimate over-counts, so too few rows " +
 			"are built to cover the viewport")
+	}
+}
+
+func TestMaxRenderPixelsCoversRetinaDisplays(t *testing.T) {
+	// The area cap exists for the 16384x16384 corner, not to refuse
+	// real screens. A 5K window at scale 2 must stay inside it.
+	const retina5KAtScale2 = int64(10240) * 5760
+	if retina5KAtScale2 > maxRenderPixels {
+		t.Fatalf("cap %d rejects a %d-pixel 5K render",
+			maxRenderPixels, retina5KAtScale2)
 	}
 }

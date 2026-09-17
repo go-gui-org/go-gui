@@ -295,14 +295,19 @@ func f32AllFinite9(a, b, c, d, e, f, g, h, i float32) bool {
 		f32AllFinite5(e, f, g, h, i)
 }
 
-// guardRendererOrSkip returns true if valid. Logs a warning (once
-// per kind) for invalid renderers.
+// guardRendererOrSkip records an invalid renderer in the
+// window's once-per-kind bitmask and reports it invalid. The
+// render path stays silent by design: a per-frame log for a
+// deterministic failure would drown real diagnostics.
 func guardRendererOrSkip(r RenderCmd, w *Window) bool {
 	if rendererValidForDraw(r) {
 		return true
 	}
-	bit := uint32(1) << r.Kind
-	if w.renderGuardWarned&bit == 0 {
+	// The mask covers kinds below 32 (see the assertion in
+	// render_types.go). A kind past it still drops; it only
+	// shares no warn-once slot.
+	if r.Kind < 32 {
+		bit := uint32(1) << r.Kind
 		w.renderGuardWarned |= bit
 	}
 	return false
@@ -318,8 +323,8 @@ func emitRendererIfValid(r RenderCmd, w *Window) bool {
 	return true
 }
 
-// emitRenderer appends r to the window's renderers, logging a
-// warning if the renderer is invalid.
+// emitRenderer appends r to the window's renderers, recording
+// invalid renderers in the once-per-kind guard bitmask.
 func emitRenderer(r RenderCmd, w *Window) {
 	if emitRendererIfValid(r, w) {
 		return

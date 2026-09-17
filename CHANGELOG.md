@@ -135,6 +135,32 @@ and this project adheres to
 
 ### Fixed
 
+- **Render robustness: warn-once SVG errors, hardened gradient borders, float64
+  animation time** — a broken SVG source logged on every frame; it now logs once
+  per source while the magenta placeholder still emits each frame, in a bounded
+  window store keyed by source hash, so a page that mints a new broken source
+  every frame cannot grow it without limit. `GradientBorderRects` no longer
+  panics on a nil command or gradient, and clamps and sorts stops before
+  sampling like every gradient fill path, so unsorted or out-of-range stops stop
+  tinting borders wrong. Neither path allocates: an already-sorted list is
+  sampled in place and a misordered one is normalized on the stack, because
+  every backend calls this once per gradient-border command per frame. An
+  oversized stop list is truncated instead of scanned four times per frame. SVG
+  filter layers floor at 1, so a hostile `BlurLayers` cannot drop
+  `RenderFilterBegin` against a kept `RenderFilterEnd` and unbalance the
+  bracket. Animation phase math runs in float64 so a long-lived page keeps
+  sub-frame precision, and a fill-backwards SMIL animation with a cycle poses at
+  its first keyframe before begin instead of freezing at an earlier cycle's end.
+  A denormal `Cycle` or `DurSec` from an untrusted document no longer overflows
+  the phase math: the activation and the iteration index stay in float64, so
+  neither an infinite interpolation factor nor an implementation-defined
+  float-to-int conversion reaches the lerps. `lerpU8` rounds like
+  `f32ToU8Saturated` instead of truncating, closing a 1-LSB drift between color
+  tweens and gradient sampling. Headless `RenderToImage` treats a NaN or
+  infinite scale as 1 and refuses a render whose device pixels exceed 128M — the
+  16384x16384 corner the per-side cap still allows, well above any real display
+  render. The render-guard bitmask is documented as silent (it never logged) and
+  compile-asserted to fit 32 kinds.
 - **DataGrid cell content no longer paints over the next column (#679)** — a
   committed value wider than its column kept drawing past the cell edge after
   the editor closed, so a long value covered its neighbour. A display cell now

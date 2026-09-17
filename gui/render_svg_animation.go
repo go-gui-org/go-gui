@@ -43,7 +43,7 @@ type svgAnimState struct {
 // animation continue to contribute its last keyframe value until
 // its cycle restarts or a later-activated animation overrides.
 func computeSvgAnimations(
-	anims []SvgAnimation, elapsedSec float32,
+	anims []SvgAnimation, elapsedSec float64,
 	states map[uint32]svgAnimState,
 ) map[uint32]svgAnimState {
 	return computeSvgAnimationsReuse(anims, elapsedSec, states, nil, nil)
@@ -55,7 +55,7 @@ func computeSvgAnimations(
 // base transform so additive/replace animations compose over it.
 // Pass nil when no base seeding is needed (tests, no-base assets).
 func computeSvgAnimationsReuse(
-	anims []SvgAnimation, elapsedSec float32,
+	anims []SvgAnimation, elapsedSec float64,
 	states map[uint32]svgAnimState,
 	contribScratch []animContrib,
 	baseByPath map[uint32]svgBaseXform,
@@ -107,7 +107,7 @@ type animContrib struct {
 // reuse may be a scratch slice whose backing array will be
 // reused in place; pass nil to allocate a fresh slice.
 func collectAnimContribs(
-	anims []SvgAnimation, elapsedSec float32,
+	anims []SvgAnimation, elapsedSec float64,
 	reuse []animContrib,
 ) []animContrib {
 	out := reuse[:0]
@@ -125,10 +125,11 @@ func collectAnimContribs(
 			(!a.IsSet && a.DurSec <= 0) ||
 			!f32IsFinite(a.BeginSec) ||
 			!f32IsFinite(a.Cycle) ||
-			!f32IsFinite(elapsedSec) {
+			math.IsNaN(elapsedSec) || math.IsInf(elapsedSec, 0) {
 			continue
 		}
-		if elapsedSec < a.BeginSec && !a.FillBackwards {
+		beginSec := float64(a.BeginSec)
+		if elapsedSec < beginSec && !a.FillBackwards {
 			continue
 		}
 		var (
@@ -137,7 +138,7 @@ func collectAnimContribs(
 		)
 		switch {
 		case a.IsSet:
-			if elapsedSec < a.BeginSec {
+			if elapsedSec < beginSec {
 				continue
 			}
 			frac = 1
@@ -164,34 +165,51 @@ func collectAnimContribs(
 }
 
 // smilPhase computes SMIL-style phase: cycle-based re-fire,
-// freeze on overrun, single play when Cycle==0.
-func smilPhase(a *SvgAnimation, elapsedSec float32) (bool, float32, float32) {
-	activation := a.BeginSec
+// freeze on overrun, single play when Cycle==0. Phase math runs
+// in float64 so a long-lived page keeps sub-frame precision;
+// only the returned frac and activation are float32. Before
+// BeginSec (fill-backwards) the pose is the first keyframe,
+// frac=0, whatever the cycle: flooring a negative offset would
+// otherwise land in an earlier cycle and freeze at its end.
+func smilPhase(a *SvgAnimation, elapsedSec float64) (bool, float32, float32) {
+	if elapsedSec < float64(a.BeginSec) {
+		return true, 0, a.BeginSec
+	}
+	// The activation stays in float64 to the end. A denormal Cycle
+	// from an untrusted document makes n*Cycle overflow float32 to
+	// +Inf, and a phase of elapsed-Inf then divides into an
+	// infinite frac that poisons every lerp downstream. In float64
+	// the product tracks elapsedSec and the phase stays inside one
+	// cycle.
+	activation := float64(a.BeginSec)
 	if a.Cycle > 0 && a.Restart != SvgAnimRestartNever {
-		n := math.Floor(float64(elapsedSec-a.BeginSec) / float64(a.Cycle))
+		cycle := float64(a.Cycle)
+		n := math.Floor((elapsedSec - float64(a.BeginSec)) / cycle)
 		if a.Restart == SvgAnimRestartWhenNotActive && n > 0 {
-			prev := a.BeginSec + float32(n-1)*a.Cycle
-			if elapsedSec-prev < a.DurSec {
+			prev := float64(a.BeginSec) + (n-1)*cycle
+			if elapsedSec-prev < float64(a.DurSec) {
 				n--
 			}
 		}
-		activation = a.BeginSec + float32(n)*a.Cycle
+		activation = float64(a.BeginSec) + n*cycle
 	}
 	phase := elapsedSec - activation
 	switch {
-	case phase < a.DurSec:
-		return true, phase / a.DurSec, activation
+	case phase < float64(a.DurSec):
+		return true, float32(phase / float64(a.DurSec)), float32(activation)
 	case a.Freeze:
-		return true, 1, activation
+		return true, 1, float32(activation)
 	}
-	return false, 0, activation
+	return false, 0, float32(activation)
 }
 
 // cssIterPhase computes CSS-style phase: a fixed iteration count,
 // each iteration of length DurSec. Alternate flips the phase on
 // odd iterations. FillBackwards contributes frac=0 before BeginSec.
-func cssIterPhase(a *SvgAnimation, elapsedSec float32) (bool, float32, float32) {
-	if elapsedSec < a.BeginSec {
+// Phase math runs in float64 so a long-lived page keeps sub-frame
+// precision; only the returned frac is float32.
+func cssIterPhase(a *SvgAnimation, elapsedSec float64) (bool, float32, float32) {
+	if elapsedSec < float64(a.BeginSec) {
 		// FillBackwards already gated upstream.
 		frac := float32(0)
 		if a.Alternate && a.Iterations != SvgAnimIterInfinite &&
@@ -200,21 +218,31 @@ func cssIterPhase(a *SvgAnimation, elapsedSec float32) (bool, float32, float32) 
 		}
 		return true, frac, a.BeginSec
 	}
-	phase := elapsedSec - a.BeginSec
-	iter := int(math.Floor(float64(phase) / float64(a.DurSec)))
-	iterPhase := phase - float32(iter)*a.DurSec
-	if a.Iterations != SvgAnimIterInfinite && iter >= int(a.Iterations) {
+	phase := elapsedSec - float64(a.BeginSec)
+	dur := float64(a.DurSec)
+	// The iteration index stays in float64 and is never converted
+	// to int. A denormal DurSec from an untrusted document puts it
+	// past int range, where the conversion is implementation
+	// defined, and past 2^53 the subtraction phase-iter*dur loses
+	// the fractional part entirely. math.Mod keeps the phase inside
+	// one iteration at any magnitude, and Mod-by-2 reads the parity
+	// Alternate needs without leaving float64.
+	iterF := math.Floor(phase / dur)
+	iterPhase := math.Mod(phase, dur)
+	odd := math.Mod(iterF, 2) == 1
+	if a.Iterations != SvgAnimIterInfinite && iterF >= float64(a.Iterations) {
 		if !a.Freeze {
 			return false, 0, a.BeginSec
 		}
-		iter = int(a.Iterations) - 1
-		iterPhase = a.DurSec
+		// Freeze holds the last iteration's end pose.
+		odd = (int(a.Iterations)-1)%2 == 1
+		iterPhase = dur
 	}
-	frac := iterPhase / a.DurSec
+	frac := float32(iterPhase / dur)
 	if frac > 1 {
 		frac = 1
 	}
-	if a.Alternate && iter%2 == 1 {
+	if a.Alternate && odd {
 		frac = 1 - frac
 	}
 	return true, frac, a.BeginSec

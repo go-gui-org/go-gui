@@ -7,6 +7,25 @@ import (
 	"github.com/go-gui-org/go-glyph"
 )
 
+// warnSvgOnce logs an unusable SVG source once per window so a
+// broken path does not spam the log on every frame. The
+// placeholder still emits every frame; only the log is gated.
+//
+// Keyed by hash, not by the source itself: shape.Resource may be
+// a whole inline document, and the store would otherwise retain
+// every failing one. The store is the bounded window state map,
+// like warnImageOnce, so a page that mints a new broken source
+// per frame cannot grow it without limit.
+func warnSvgOnce(w *Window, src string, err error) {
+	warned := StateMap[uint64, bool](w, nsSvgErrWarned, capImageCache)
+	key := hashString(src)
+	if warned.Contains(key) {
+		return
+	}
+	warned.Set(key, true)
+	log.Printf("renderSvg: %v", err)
+}
+
 // renderSvg renders an SVG shape by loading cached tessellation
 // and emitting RenderSvg commands.
 func renderSvg(shape *Shape, clip drawClip, w *Window) {
@@ -24,7 +43,7 @@ func renderSvg(shape *Shape, clip drawClip, w *Window) {
 			shape.Width, shape.Height)
 	}
 	if err != nil {
-		log.Printf("renderSvg: %v", err)
+		warnSvgOnce(w, shape.Resource, err)
 		emitErrorPlaceholder(shape.X, shape.Y,
 			shape.Width, shape.Height, w)
 		return
@@ -93,8 +112,8 @@ func renderSvg(shape *Shape, clip drawClip, w *Window) {
 				w, nsSvgAnimSeen, capImageCache)
 			animSeen.Set(cached.animHash, nowNs)
 		}
-		elapsed := float32(nowNs-cached.animStartNs) /
-			float32(time.Second)
+		elapsed := float64(nowNs-cached.animStartNs) /
+			float64(time.Second)
 		contribScratch := w.scratch.svgAnimContribs.take(
 			len(cached.Animations))
 		animState = computeSvgAnimationsReuse(
@@ -157,8 +176,12 @@ func renderSvg(shape *Shape, clip drawClip, w *Window) {
 			// Clamped: past a handful of layers the glow is
 			// saturated and each extra pass is a full-layer
 			// blend in every backend. An untrusted document
-			// names an arbitrary feMergeNode count.
-			Layers: min(fg.Filter.BlurLayers, maxFilterCompositeLayers),
+			// names an arbitrary feMergeNode count. Floored at
+			// 1: a dropped Begin against a kept End would
+			// unbalance the bracket (validFilterBeginCmd
+			// rejects Layers < 1, RenderFilterEnd is always
+			// valid).
+			Layers: max(1, min(fg.Filter.BlurLayers, maxFilterCompositeLayers)),
 		}, w)
 		emitSvgGroup(fg.renderPaths, animByPID, fg.textDraws,
 			fg.textPathDraws, color, sx, sy,

@@ -18,7 +18,9 @@ type windowRender struct {
 	stencilDepth uint8
 	// Nesting guard for filter brackets.
 	inFilter bool
-	// Render guard — warnings emitted once per kind (bitmask over RenderKind).
+	// Render guard — invalid kinds recorded once per kind
+	// (bitmask over RenderKind). Diagnostic only; nothing is
+	// logged on the render path.
 	renderGuardWarned uint32
 	// OnDraw panic warning, emitted once. A panicking canvas would
 	// otherwise log on every frame.

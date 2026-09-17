@@ -238,6 +238,9 @@ func emitClipCmd(clip drawClip, w *Window) {
 
 // quantizedScissorClip truncates clip coordinates to integer
 // multiples of scale, matching sokol's scissor rect behavior.
+// Truncation is toward zero (a C int cast), not floor: a negative
+// origin of -1.7 quantizes to -1, exactly as the GPU path computes
+// it, so the soft path and the GPU path clip the same pixels.
 func quantizedScissorClip(clip drawClip, scale float32) drawClip {
 	if scale <= 0 {
 		return clip

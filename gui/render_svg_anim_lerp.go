@@ -50,7 +50,12 @@ func lerpU8(a, b uint8, t float32) uint8 {
 	if v > 255 {
 		v = 255
 	}
-	return uint8(v)
+	// Round, matching f32ToU8Saturated: truncating here drifted
+	// color tweens 1 LSB from gradient sampling of the same ramp.
+	// v is already clamped to [0,255], so adding a half and
+	// truncating rounds half away from zero like math.Round does,
+	// without the float64 hop on every channel of every tween.
+	return uint8(v + 0.5)
 }
 
 // lerpKeyframes interpolates keyframe scalars at frac ∈ [0,1].

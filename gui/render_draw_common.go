@@ -167,19 +167,101 @@ type GradientBorderRect struct {
 	Color      Color
 }
 
+// gradientBorderMaxStops bounds the stop list the sampler scans.
+// Four samples over an arbitrary stop count is a per-frame scan an
+// untrusted document should not get to name, so a longer list is
+// truncated to this many stops.
+//
+// gradientBorderInlineStops sizes the on-stack normalize buffer.
+// Every backend calls GradientBorderRects once per
+// gradient-border command per frame, and the function takes no
+// scratch buffer it could reuse, so normalizing must not reach the
+// heap. A border gradient past this many stops cannot resolve into
+// four sampled edge colors anyway; it is truncated with the rest.
+const (
+	gradientBorderMaxStops    = 8192
+	gradientBorderInlineStops = 16
+)
+
+// gradientStopsNormalized reports whether stops already have the
+// shape NormalizeGradientStops would produce — ascending
+// positions, all inside [0,1] — so the sampler can read the
+// caller's slice with no copy. A NaN position fails both
+// comparisons and takes the normalizing path, where clampUnit
+// folds it to 0.
+func gradientStopsNormalized(stops []GradientStop) bool {
+	if len(stops) > gradientBorderMaxStops {
+		return false
+	}
+	prev := float32(0)
+	for _, s := range stops {
+		if !(s.Pos >= prev) || s.Pos > 1 {
+			return false
+		}
+		prev = s.Pos
+	}
+	return true
+}
+
+// normalizeStopsInline clamps positions to [0,1] and sorts into
+// buf, returning the sorted prefix. Stops past len(buf) are
+// dropped: this is the misordered-input path, and the alternative
+// is a heap allocation on every frame of every gradient border.
+//
+// The sort is a hand-written insertion sort, not slices.SortFunc:
+// buf must not be passed to another function by pointer, or escape
+// analysis moves it to the heap and the allocation is back.
+// Insertion sort is also the faster choice at this length.
+func normalizeStopsInline(
+	stops []GradientStop, buf *[gradientBorderInlineStops]GradientStop,
+) []GradientStop {
+	n := 0
+	for _, s := range stops {
+		if n == len(buf) {
+			break
+		}
+		buf[n] = GradientStop{Color: s.Color, Pos: clampUnit(s.Pos)}
+		n++
+	}
+	for i := 1; i < n; i++ {
+		cur := buf[i]
+		j := i - 1
+		for j >= 0 && buf[j].Pos > cur.Pos {
+			buf[j+1] = buf[j]
+			j--
+		}
+		buf[j+1] = cur
+	}
+	return buf[:n]
+}
+
 // GradientBorderRects computes the 4 edge rects with sampled colors.
-// The caller applies DPI scaling to the returned rects.
+// The caller applies DPI scaling to the returned rects. A nil command
+// or gradient yields zeros. Stops are clamped to [0,1] and sorted
+// before sampling, like every gradient fill path: a caller-built
+// GradientDef carries no ordering guarantee.
 func GradientBorderRects(r *RenderCmd) [4]GradientBorderRect {
-	th := r.Thickness
-	if len(r.Gradient.Stops) == 0 {
+	if r == nil || r.Gradient == nil {
 		return [4]GradientBorderRect{}
+	}
+	th := r.Thickness
+	stops := r.Gradient.Stops
+	if len(stops) == 0 {
+		return [4]GradientBorderRect{}
+	}
+	var inline [gradientBorderInlineStops]GradientStop
+	if !gradientStopsNormalized(stops) {
+		stops = normalizeStopsInline(stops, &inline)
+		if len(stops) == 0 {
+			return [4]GradientBorderRect{}
+		}
 	}
 	positions := [4]float32{0.0, 0.25, 0.5, 0.75}
 	colors := [4]Color{
-		SampleGradientStopColor(r.Gradient.Stops, positions[0]),
-		SampleGradientStopColor(r.Gradient.Stops, positions[1]),
-		SampleGradientStopColor(r.Gradient.Stops, positions[2]),
-		SampleGradientStopColor(r.Gradient.Stops, positions[3]),
+		SampleGradientStopColor(stops, positions[0]),
+		SampleGradientStopColor(stops, positions[1]),
+		SampleGradientStopColor(stops, positions[2]),
+		SampleGradientStopColor(stops, positions[3]),
 	}
 	return [4]GradientBorderRect{
 		{r.X, r.Y, r.W, th, colors[0]},
