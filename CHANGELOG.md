@@ -73,6 +73,19 @@ and this project adheres to
   `LocaleAutoDetect`, `LocaleRegisteredNames` and `LocaleT` are now exported.
   Dialog buttons read the locale, so a German app shows German buttons. The
   doc's snippets now compile as written.
+- **Settable print job options** — every `PrintJob` field the backends honor is
+  now settable: `Paper` (`PaperLetter`, `PaperLegal`, `PaperA4`, `PaperA3`),
+  `Orientation` (`PrintPortrait`, `PrintLandscape`), `Margins`, `Source`
+  (`PrintSourceCurrentView`, `PrintSourcePDFPath`), `ScaleMode`
+  (`PrintScaleFitToPage`, `PrintScaleActualSize`), `Duplex` (`PrintDuplexOff`,
+  `PrintDuplexLongEdge`, `PrintDuplexShortEdge`), `ColorMode`
+  (`PrintColorModeColor`, `PrintColorModeGrayscale`) and the
+  `SourceWidth`/`SourceHeight` viewport overrides, plus an exported
+  `PrintExportStatus` (`PrintExportOK`, `PrintExportError`) with
+  `PrintExportResult.IsOk`. Before, these fields and values were unexported, so
+  callers got `NewPrintJob` defaults with no way to change them. The write-only
+  raster knobs (`rasterDPI`, `jPEGQuality`), which no renderer read, are removed
+  instead of frozen.
 
 ### Changed
 
@@ -129,6 +142,35 @@ and this project adheres to
   editor fills the cell exactly and the theme draws focus as a glow outside the
   control, so a clip there would cut the focus ring off the cell in use. Select
   dropdowns and date pickers are floating layers and still open past the cell.
+- **Printing keeps its temp PDF alive for async backends and validates its
+  inputs** — `RunPrintJob` on the current view deleted its temp PDF on return,
+  while Linux `xdg-open` and Windows `ShellExecute` open the file after the call
+  returns, so the viewer could find nothing. On success the temp path is now
+  returned in `PrintRunResult.PDFPath` for the caller to remove; on cancel or
+  error it is removed and the path is empty. `pdf_path` jobs now fail fast with
+  `io_error` for unreadable files instead of a vague backend error, and paths
+  that are empty, contain NUL or start with `-` are rejected before they reach
+  `lpr` or the C string boundary. `Copies` is capped at 9999, unknown paper and
+  orientation values are rejected instead of silently printing A4, and the
+  Windows backend reports the `ShellExecute` code and no longer drops NUL paths
+  silently. A `pdf_path` that is a directory, FIFO or device node is rejected
+  rather than handed to the spooler, unknown `ScaleMode`, `Duplex`, `ColorMode`
+  and `Source` values are rejected instead of being silently dropped by the
+  backend, `PageRanges` is capped at 1024 ranges and page 1000000, and the
+  returned `PDFPath` is filled in even for a backend that reports success
+  without echoing the path.
+- **PDF export writes atomically, guards bad geometry and caps images** — a
+  failed `ExportPrintJob` could leave a truncated PDF at the output path; the
+  file is now staged in the same directory and renamed on success. Zero or
+  negative source dimensions are rejected instead of producing an infinite
+  scale, NaN margins and NaN or Inf `SourceWidth`/`SourceHeight` are rejected
+  instead of reaching the PDF as NaN coordinates, corrupt glyph-layout indices
+  skip the run instead of panicking, file images over 64 MiB or outside the
+  filesystem are skipped instead of OOMing the exporter, and the export
+  snapshots layouts, text styles and canvas transforms alongside the triangle
+  data so a concurrent frame cannot rewrite them mid-export. `Copies` and
+  `PageRanges` are documented as native-dialog options: export always writes one
+  page.
 - **No-op native backends stop reporting success for work they did not do** —
   the headless noop platform returned zero values that read as `DialogOK`,
   `NotificationOK` and `PrintRunOK`, and the web, Android, iOS and non-Linux

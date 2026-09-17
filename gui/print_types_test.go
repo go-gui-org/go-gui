@@ -1,6 +1,9 @@
 package gui
 
-import "testing"
+import (
+	"math"
+	"testing"
+)
 
 func TestPrintPageSize(t *testing.T) {
 	t.Parallel()
@@ -11,11 +14,11 @@ func TestPrintPageSize(t *testing.T) {
 		wantW       float32
 		wantH       float32
 	}{
-		{"A4_portrait", paperA4, printPortrait, 595, 842},
-		{"A4_landscape", paperA4, printLandscape, 842, 595},
-		{"letter", paperLetter, printPortrait, 612, 792},
-		{"legal", paperLegal, printPortrait, 612, 1008},
-		{"A3", paperA3, printPortrait, 842, 1191},
+		{"A4_portrait", PaperA4, PrintPortrait, 595, 842},
+		{"A4_landscape", PaperA4, PrintLandscape, 842, 595},
+		{"letter", PaperLetter, PrintPortrait, 612, 792},
+		{"legal", PaperLegal, PrintPortrait, 612, 1008},
+		{"A3", PaperA3, PrintPortrait, 842, 1191},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -101,28 +104,88 @@ func TestValidatePrintJob(t *testing.T) {
 			t.Error("expected error for reversed page range")
 		}
 	})
-	t.Run("bad_DPI", func(t *testing.T) {
-		t.Parallel()
-		job := NewPrintJob()
-		job.rasterDPI = 50
-		if err := validatePrintJob(job); err == nil {
-			t.Error("expected error for low DPI")
-		}
-	})
-	t.Run("bad_quality", func(t *testing.T) {
-		t.Parallel()
-		job := NewPrintJob()
-		job.jPEGQuality = 5
-		if err := validatePrintJob(job); err == nil {
-			t.Error("expected error for low quality")
-		}
-	})
 	t.Run("pdf_path_required", func(t *testing.T) {
 		t.Parallel()
 		job := NewPrintJob()
-		job.Source = printJobSource{Kind: printSourcePDFPath}
+		job.Source = PrintJobSource{Kind: PrintSourcePDFPath}
 		if err := validatePrintJob(job); err == nil {
 			t.Error("expected error for empty pdf_path")
+		}
+	})
+	t.Run("too_many_copies", func(t *testing.T) {
+		t.Parallel()
+		job := NewPrintJob()
+		job.Copies = maxPrintCopies + 1
+		if err := validatePrintJob(job); err == nil {
+			t.Error("expected error for excessive copies")
+		}
+	})
+	t.Run("max_copies_ok", func(t *testing.T) {
+		t.Parallel()
+		job := NewPrintJob()
+		job.Copies = maxPrintCopies
+		if err := validatePrintJob(job); err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+	})
+	t.Run("unknown_paper", func(t *testing.T) {
+		t.Parallel()
+		job := NewPrintJob()
+		job.Paper = PaperSize(99)
+		if err := validatePrintJob(job); err == nil {
+			t.Error("expected error for unknown paper")
+		}
+	})
+	t.Run("unknown_enums", func(t *testing.T) {
+		t.Parallel()
+		// Each of these reaches a backend as a plain int, where an
+		// unknown value would be ignored instead of reported.
+		for name, mutate := range map[string]func(*PrintJob){
+			"scale":  func(j *PrintJob) { j.ScaleMode = PrintScaleMode(99) },
+			"duplex": func(j *PrintJob) { j.Duplex = PrintDuplexMode(99) },
+			"color":  func(j *PrintJob) { j.ColorMode = PrintColorMode(99) },
+			"source": func(j *PrintJob) { j.Source.Kind = PrintSource(99) },
+		} {
+			job := NewPrintJob()
+			mutate(&job)
+			if err := validatePrintJob(job); err == nil {
+				t.Errorf("%s: expected error for unknown value", name)
+			}
+		}
+	})
+	t.Run("nan_margins", func(t *testing.T) {
+		t.Parallel()
+		job := NewPrintJob()
+		job.Margins.Left = float32(math.NaN())
+		if err := validatePrintJob(job); err == nil {
+			t.Error("expected error for NaN margin")
+		}
+	})
+	t.Run("too_many_page_ranges", func(t *testing.T) {
+		t.Parallel()
+		job := NewPrintJob()
+		job.PageRanges = make([]PrintPageRange, maxPrintPageRanges+1)
+		for i := range job.PageRanges {
+			job.PageRanges[i] = PrintPageRange{From: i + 1, To: i + 1}
+		}
+		if err := validatePrintJob(job); err == nil {
+			t.Error("expected error for excessive page ranges")
+		}
+	})
+	t.Run("page_number_too_large", func(t *testing.T) {
+		t.Parallel()
+		job := NewPrintJob()
+		job.PageRanges = []PrintPageRange{{From: 1, To: maxPrintPage + 1}}
+		if err := validatePrintJob(job); err == nil {
+			t.Error("expected error for excessive page number")
+		}
+	})
+	t.Run("unknown_orientation", func(t *testing.T) {
+		t.Parallel()
+		job := NewPrintJob()
+		job.Orientation = PrintOrientation(99)
+		if err := validatePrintJob(job); err == nil {
+			t.Error("expected error for unknown orientation")
 		}
 	})
 }
@@ -277,6 +340,34 @@ func TestValidateHeaderFooter(t *testing.T) {
 	})
 }
 
+func TestValidatePrintPath(t *testing.T) {
+	t.Parallel()
+	t.Run("ok", func(t *testing.T) {
+		t.Parallel()
+		if err := validatePrintPath("/tmp/out.pdf"); err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+	})
+	t.Run("empty", func(t *testing.T) {
+		t.Parallel()
+		if err := validatePrintPath("   "); err == nil {
+			t.Error("expected error for empty path")
+		}
+	})
+	t.Run("nul", func(t *testing.T) {
+		t.Parallel()
+		if err := validatePrintPath("a\x00b.pdf"); err == nil {
+			t.Error("expected error for NUL path")
+		}
+	})
+	t.Run("leading_dash", func(t *testing.T) {
+		t.Parallel()
+		if err := validatePrintPath("-rf.pdf"); err == nil {
+			t.Error("expected error for leading-dash path")
+		}
+	})
+}
+
 func TestPrintPageRangesToString(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
@@ -304,11 +395,11 @@ func TestPrintPageRangesToString(t *testing.T) {
 func TestPrintExportResultIsOk(t *testing.T) {
 	t.Parallel()
 	ok := printExportOKResult("/tmp/out.pdf")
-	if !ok.isOk() {
+	if !ok.IsOk() {
 		t.Error("expected IsOk true")
 	}
 	fail := printExportErrorResult("/tmp/out.pdf", "err", "msg")
-	if fail.isOk() {
+	if fail.IsOk() {
 		t.Error("expected IsOk false")
 	}
 }
@@ -316,16 +407,23 @@ func TestPrintExportResultIsOk(t *testing.T) {
 func TestNewPrintJob(t *testing.T) {
 	t.Parallel()
 	job := NewPrintJob()
-	if job.paper != paperA4 {
-		t.Errorf("Paper: got %d, want %d", job.paper, paperA4)
+	if job.Paper != PaperA4 {
+		t.Errorf("Paper: got %d, want %d", job.Paper, PaperA4)
+	}
+	if job.Orientation != PrintPortrait {
+		t.Errorf("Orientation: got %d, want %d", job.Orientation, PrintPortrait)
+	}
+	if job.Margins != defaultPrintMargins() {
+		t.Errorf("Margins: got %+v", job.Margins)
 	}
 	if job.Copies != 1 {
 		t.Errorf("Copies: got %d, want 1", job.Copies)
 	}
-	if job.rasterDPI != 300 {
-		t.Errorf("RasterDPI: got %d, want 300", job.rasterDPI)
+	if job.Source.Kind != PrintSourceCurrentView {
+		t.Errorf("Source: got %d, want current view", job.Source.Kind)
 	}
-	if job.jPEGQuality != 85 {
-		t.Errorf("JPEGQuality: got %d, want 85", job.jPEGQuality)
+	if job.SourceWidth != 0 || job.SourceHeight != 0 {
+		t.Errorf("Source dims: got %gx%g, want window size (0)",
+			job.SourceWidth, job.SourceHeight)
 	}
 }

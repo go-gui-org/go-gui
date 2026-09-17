@@ -3,17 +3,21 @@ package gui
 import (
 	"os"
 	"strings"
+
+	"github.com/go-gui-org/go-glyph"
 )
 
 // ExportPrintJob exports renderer output to PDF using PrintJob settings.
-// Returns a PrintExportResult with status and path.
+// Returns a PrintExportResult with status and path. The export is always
+// a single page; Copies and PageRanges are native-print options and are
+// ignored here.
 func (w *Window) ExportPrintJob(job PrintJob) PrintExportResult {
 	if err := validateExportPrintJob(job); err != nil {
 		return printExportErrorResult(job.OutputPath, printErrorInvalidCfg, err.Error())
 	}
 
-	sourceW := job.sourceWidth
-	sourceH := job.sourceHeight
+	sourceW := job.SourceWidth
+	sourceH := job.SourceHeight
 
 	renderersCopy, err := func() ([]RenderCmd, error) {
 		w.Lock()
@@ -51,10 +55,11 @@ func (w *Window) ExportPrintJob(job PrintJob) PrintExportResult {
 		// recycled by the next redraw of that canvas (see
 		// DrawContext.resetFor), and renderToPDF runs after this
 		// closure has released the lock — a shallow copy would let the
-		// frame loop rewrite the vertices mid-export.
+		// frame loop rewrite the vertices mid-export. Layouts, text
+		// styles and canvas transforms are snapshotted for the same
+		// reason: the export must not observe a concurrent frame.
 		for i := range out {
-			out[i].Triangles = append([]float32(nil), out[i].Triangles...)
-			out[i].VertexColors = append([]Color(nil), out[i].VertexColors...)
+			snapshotRenderCmd(&out[i])
 		}
 		return out, nil
 	}()
@@ -72,7 +77,44 @@ func (w *Window) ExportPrintJob(job PrintJob) PrintExportResult {
 	return printExportOKResult(job.OutputPath)
 }
 
+// snapshotRenderCmd deep-copies the frame-owned data a render
+// command points at, so the export can read it after the window
+// lock is released. See the caller for why a shallow copy is not
+// enough.
+func snapshotRenderCmd(c *RenderCmd) {
+	c.Triangles = append([]float32(nil), c.Triangles...)
+	c.VertexColors = append([]Color(nil), c.VertexColors...)
+	if c.LayoutPtr != nil {
+		lp := *c.LayoutPtr
+		// renderToPDF reads Text and Items only.
+		lp.Items = append([]glyph.Item(nil), lp.Items...)
+		c.LayoutPtr = &lp
+	}
+	if c.TextStylePtr != nil {
+		ts := *c.TextStylePtr
+		c.TextStylePtr = &ts
+	}
+	if c.LayoutTransform != nil {
+		xf := *c.LayoutTransform
+		c.LayoutTransform = &xf
+	}
+	if c.textPath != nil {
+		tp := *c.textPath
+		tp.Polyline = append([]float32(nil), tp.Polyline...)
+		tp.Table = append([]float32(nil), tp.Table...)
+		c.textPath = &tp
+	}
+}
+
 // RunPrintJob runs the native print flow for the provided PrintJob.
+//
+// When the job prints the current view, the window is exported to a
+// temp PDF first. On success the temp path is returned in
+// PrintRunResult.PDFPath and the caller owns it: remove the file when
+// done. The file must outlive the call because some backends hand it
+// to an external viewer (Linux xdg-open, Windows ShellExecute) that
+// opens it after ShowPrintDialog returns. On cancel or error the temp
+// file is removed and PDFPath is empty.
 func (w *Window) RunPrintJob(job PrintJob) PrintRunResult {
 	if err := validatePrintJob(job); err != nil {
 		return printRunErrorResult(printErrorInvalidCfg, err.Error())
@@ -84,17 +126,16 @@ func (w *Window) RunPrintJob(job PrintJob) PrintRunResult {
 	pdfPath, err := printJobResolvePDFPath(w, job)
 	if err != nil {
 		code := printErrorInternal
-		if job.Source.Kind == printSourcePDFPath {
+		if job.Source.Kind == PrintSourcePDFPath {
 			code = printErrorIO
 		}
 		return printRunErrorResult(code, err.Error())
 	}
-	// Clean up temp PDF after dialog returns.
-	if job.Source.Kind == printSourceCurrentView {
-		defer func() { _ = os.Remove(pdfPath) }()
-	}
+	// The temp PDF belongs to the caller on success (see above);
+	// on cancel or error nothing consumed it, so remove it here.
+	isTemp := job.Source.Kind == PrintSourceCurrentView
 
-	pw, ph := printPageSize(job.paper, job.Orientation)
+	pw, ph := printPageSize(job.Paper, job.Orientation)
 	ranges := normalizePrintPageRanges(job.PageRanges)
 
 	result := w.nativePlatform.ShowPrintDialog(NativePrintParams{
@@ -103,17 +144,28 @@ func (w *Window) RunPrintJob(job PrintJob) PrintRunResult {
 		PDFPath:      pdfPath,
 		PaperWidth:   pw,
 		PaperHeight:  ph,
-		MarginTop:    job.margins.Top,
-		MarginRight:  job.margins.Right,
-		MarginBottom: job.margins.Bottom,
-		MarginLeft:   job.margins.Left,
+		MarginTop:    job.Margins.Top,
+		MarginRight:  job.Margins.Right,
+		MarginBottom: job.Margins.Bottom,
+		MarginLeft:   job.Margins.Left,
 		Orientation:  printOrientationToInt(job.Orientation),
 		Copies:       job.Copies,
 		PageRanges:   printPageRangesToString(ranges),
-		DuplexMode:   int(job.duplex),
+		DuplexMode:   int(job.Duplex),
 		ColorMode:    int(job.ColorMode),
 		ScaleMode:    int(job.ScaleMode),
 	})
+	if isTemp && result.Status != PrintRunOK {
+		_ = os.Remove(pdfPath)
+		result.PDFPath = ""
+		return result
+	}
+	// A backend that reports success without echoing the path would
+	// leave the caller owning a temp file it cannot name. Fill it in
+	// so the ownership contract above holds for every backend.
+	if isTemp && result.PDFPath == "" {
+		result.PDFPath = pdfPath
+	}
 	return result
 }
 
@@ -122,7 +174,7 @@ func (w *Window) RunPrintJob(job PrintJob) PrintRunResult {
 // For pdf_path source, validates the provided path.
 func printJobResolvePDFPath(w *Window, job PrintJob) (string, error) {
 	switch job.Source.Kind {
-	case printSourceCurrentView:
+	case PrintSourceCurrentView:
 		tmp, err := os.CreateTemp("", "go-gui-print-*.pdf")
 		if err != nil {
 			return "", &printError{"failed to create temp file: " + err.Error()}
@@ -131,15 +183,24 @@ func printJobResolvePDFPath(w *Window, job PrintJob) (string, error) {
 		exportJob := job
 		exportJob.OutputPath = tmp.Name()
 		result := w.ExportPrintJob(exportJob)
-		if !result.isOk() {
+		if !result.IsOk() {
 			_ = os.Remove(tmp.Name())
 			return "", &printError{result.ErrorMessage}
 		}
 		return tmp.Name(), nil
-	case printSourcePDFPath:
+	case PrintSourcePDFPath:
 		path := strings.TrimSpace(job.Source.PDFPath)
-		if path == "" {
-			return "", &printError{"pdf_path is required"}
+		if err := validatePrintPath(path); err != nil {
+			return "", &printError{err.Error()}
+		}
+		info, err := os.Stat(path)
+		if err != nil {
+			return "", &printError{"pdf_path is not readable: " + err.Error()}
+		}
+		// A directory, FIFO or device node stats fine and then
+		// blocks or misbehaves in the backend that opens it.
+		if !info.Mode().IsRegular() {
+			return "", &printError{"pdf_path is not a regular file"}
 		}
 		return path, nil
 	default:

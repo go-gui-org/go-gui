@@ -7,6 +7,7 @@ import (
 	"image"
 	"image/png"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -15,6 +16,11 @@ import (
 
 // ptToMM converts PostScript points to millimeters.
 const ptToMM = 25.4 / 72.0
+
+// maxPDFImageBytes caps a file image embedded in a PDF export.
+// fpdf holds the whole file in memory, so an unbounded embed lets
+// one oversized image OOM the exporter. Larger images are skipped.
+const maxPDFImageBytes = 64 << 20
 
 // pdfCtx holds coordinate-transform state shared by PDF render
 // helpers.
@@ -39,8 +45,18 @@ func (c *pdfCtx) ph(h float32) float64 { return float64(h * c.scale) }
 func renderToPDF(renderers []RenderCmd, job PrintJob,
 	sourceW, sourceH float32) error {
 
-	pageW, pageH := printPageSize(job.paper, job.Orientation)
-	m := job.margins
+	if !f32IsFinite(sourceW) || !f32IsFinite(sourceH) {
+		return errors.New("source dimensions must be finite")
+	}
+	if sourceW <= 0 || sourceH <= 0 {
+		return errors.New("source dimensions must be positive")
+	}
+	if strings.TrimSpace(job.OutputPath) == "" {
+		return errors.New("output_path is required")
+	}
+
+	pageW, pageH := printPageSize(job.Paper, job.Orientation)
+	m := job.Margins
 
 	printableW := (pageW - m.Left - m.Right) * ptToMM
 	printableH := (pageH - m.Top - m.Bottom) * ptToMM
@@ -52,7 +68,7 @@ func renderToPDF(renderers []RenderCmd, job PrintJob,
 	// Scale factor: fit source viewport into printable area.
 	var scale float32
 	switch job.ScaleMode {
-	case printScaleActualSize:
+	case PrintScaleActualSize:
 		// 1pt source = 1pt print (assume 72 DPI screen)
 		scale = ptToMM
 	default: // FitToPage
@@ -62,7 +78,7 @@ func renderToPDF(renderers []RenderCmd, job PrintJob,
 	}
 
 	orientation := "P"
-	if job.Orientation == printLandscape {
+	if job.Orientation == PrintLandscape {
 		orientation = "L"
 	}
 
@@ -170,7 +186,32 @@ func renderToPDF(renderers []RenderCmd, job PrintJob,
 	if pdf.Err() {
 		return fmt.Errorf("pdf generation: %w", pdf.Error())
 	}
-	return pdf.OutputFileAndClose(job.OutputPath)
+	return writePDFAtomically(pdf, job.OutputPath)
+}
+
+// writePDFAtomically stages the document beside its destination and
+// renames it into place, so a failed export leaves no truncated PDF
+// at path.
+func writePDFAtomically(pdf *fpdf.Fpdf, path string) error {
+	tmp, err := os.CreateTemp(filepath.Dir(path), ".go-gui-print-*.pdf")
+	if err != nil {
+		return fmt.Errorf("pdf temp file: %w", err)
+	}
+	tmpName := tmp.Name()
+	if err := pdf.Output(tmp); err != nil {
+		_ = tmp.Close()
+		_ = os.Remove(tmpName)
+		return fmt.Errorf("pdf write: %w", err)
+	}
+	if err := tmp.Close(); err != nil {
+		_ = os.Remove(tmpName)
+		return fmt.Errorf("pdf write: %w", err)
+	}
+	if err := os.Rename(tmpName, path); err != nil {
+		_ = os.Remove(tmpName)
+		return fmt.Errorf("pdf rename: %w", err)
+	}
+	return nil
 }
 
 func pdfRenderRect(ctx *pdfCtx, cmd RenderCmd) {
@@ -268,7 +309,11 @@ func pdfRenderImage(ctx *pdfCtx, cmd RenderCmd) {
 func pdfRenderFileImage(ctx *pdfCtx, cmd RenderCmd, path string) {
 	// Separate from pdfRenderImage so the alpha wrapper above
 	// stays the single place SetAlpha is paired with its reset.
-	if _, err := os.Stat(path); err != nil {
+	info, err := os.Stat(path)
+	// Only a regular file within the size cap: a directory, FIFO or
+	// device node stats fine and then blocks or errors inside fpdf.
+	if err != nil || !info.Mode().IsRegular() ||
+		info.Size() > maxPDFImageBytes {
 		return
 	}
 	opts := fpdf.ImageOptions{ReadDpi: true}
@@ -282,7 +327,7 @@ func pdfRenderFileImage(ctx *pdfCtx, cmd RenderCmd, path string) {
 // same key reuse the embedded image rather than re-encoding.
 func pdfRenderMemImage(ctx *pdfCtx, cmd RenderCmd) {
 	w, h, pix, ok := LookupImage(cmd.Resource)
-	if !ok {
+	if !ok || w <= 0 || h <= 0 || len(pix) == 0 {
 		return
 	}
 	if info := ctx.pdf.GetImageInfo(cmd.Resource); info == nil {
@@ -430,9 +475,15 @@ func pdfRenderLayout(ctx *pdfCtx, cmd RenderCmd) {
 			continue
 		}
 		// Text lives in Layout.Text; Item references
-		// a substring via StartIndex/Length.
+		// a substring via StartIndex/Length. Bounds are checked:
+		// a corrupt or recycled layout must skip the item, not
+		// panic the export.
+		if item.StartIndex < 0 || item.Length < 0 ||
+			item.StartIndex > len(layoutText) {
+			continue
+		}
 		end := item.StartIndex + item.Length
-		if end > len(layoutText) {
+		if end > len(layoutText) || end < item.StartIndex {
 			continue
 		}
 		text := ctx.tr(stripUnprintable(
@@ -563,7 +614,7 @@ func renderHeaderFooter(pdf *fpdf.Fpdf, tr func(string) string,
 	if isHeader {
 		yPt = m.Top * 0.5 // center in top margin
 	} else {
-		_, pageH := printPageSize(job.paper, job.Orientation)
+		_, pageH := printPageSize(job.Paper, job.Orientation)
 		yPt = pageH - m.Bottom*0.5
 	}
 	y := float64(yPt * ptToMM)

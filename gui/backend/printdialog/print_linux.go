@@ -4,9 +4,12 @@
 package printdialog
 
 import (
+	"context"
 	"fmt"
 	"os/exec"
+	"strings"
 	"sync"
+	"time"
 
 	"github.com/go-gui-org/go-gui/gui"
 )
@@ -30,14 +33,25 @@ var detectPrint = sync.OnceFunc(func() {
 })
 
 // ShowPrintDialog prints a PDF via lpr or opens it with xdg-open.
+// Copies <= 0 is treated as a single copy; callers going through
+// Window.RunPrintJob always pass Copies >= 1 (validated there).
 func ShowPrintDialog(cfg gui.NativePrintParams) gui.PrintRunResult {
 	detectPrint()
 
-	if cfg.PDFPath == "" {
+	if strings.TrimSpace(cfg.PDFPath) == "" {
 		return gui.PrintRunResult{
 			Status:       gui.PrintRunError,
 			ErrorCode:    "invalid_cfg",
 			ErrorMessage: "no PDF path provided",
+		}
+	}
+	// The path is passed positionally to lpr/xdg-open; a leading
+	// dash would parse as a flag.
+	if strings.HasPrefix(cfg.PDFPath, "-") {
+		return gui.PrintRunResult{
+			Status:       gui.PrintRunError,
+			ErrorCode:    "invalid_cfg",
+			ErrorMessage: "PDF path must not start with '-'",
 		}
 	}
 
@@ -65,19 +79,24 @@ func printViaLpr(cfg gui.NativePrintParams) gui.PrintRunResult {
 	}
 	// Duplex options (CUPS).
 	switch cfg.DuplexMode {
-	case 2: // LongEdge
+	case int(gui.PrintDuplexLongEdge):
 		args = append(args, "-o", "sides=two-sided-long-edge")
-	case 3: // ShortEdge
+	case int(gui.PrintDuplexShortEdge):
 		args = append(args, "-o", "sides=two-sided-short-edge")
 	}
 	// Color mode.
-	if cfg.ColorMode == 2 { // Grayscale
+	if cfg.ColorMode == int(gui.PrintColorModeGrayscale) {
 		args = append(args, "-o", "ColorModel=Gray")
 	}
 	args = append(args, cfg.PDFPath)
 
+	// Spooling blocks; cap it so a wedged CUPS cannot hang the
+	// caller past the blocking-dialog contract.
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
 	// #nosec G204 — binary hardcoded, no shell, argv passed directly to execve
-	cmd := exec.Command("lpr", args...)
+	cmd := exec.CommandContext(ctx, "lpr", args...)
 	if err := cmd.Run(); err != nil {
 		return gui.PrintRunResult{
 			Status:       gui.PrintRunError,

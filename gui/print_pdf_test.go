@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"math"
 	"os"
 	"path/filepath"
 	"testing"
@@ -13,6 +14,59 @@ func testPrintJob(t *testing.T) PrintJob {
 	j := NewPrintJob()
 	j.OutputPath = filepath.Join(t.TempDir(), "test.pdf")
 	return j
+}
+
+func TestRenderToPDF_ZeroSourceDims(t *testing.T) {
+	j := testPrintJob(t)
+	if err := renderToPDF(nil, j, 0, 600); err == nil {
+		t.Error("expected error for zero source width")
+	}
+	if err := renderToPDF(nil, j, 800, -1); err == nil {
+		t.Error("expected error for negative source height")
+	}
+}
+
+func TestRenderToPDF_NonFiniteSourceDims(t *testing.T) {
+	j := testPrintJob(t)
+	nan := float32(math.NaN())
+	inf := float32(math.Inf(1))
+	if err := renderToPDF(nil, j, nan, 600); err == nil {
+		t.Error("expected error for NaN source width")
+	}
+	if err := renderToPDF(nil, j, 800, inf); err == nil {
+		t.Error("expected error for Inf source height")
+	}
+}
+
+func TestRenderToPDF_BadOutputDir(t *testing.T) {
+	j := testPrintJob(t)
+	j.OutputPath = filepath.Join(t.TempDir(), "absent-dir", "x.pdf")
+	if err := renderToPDF(nil, j, 800, 600); err == nil {
+		t.Error("expected error for unwritable output dir")
+	}
+}
+
+func TestRenderToPDF_LayoutBadIndices(t *testing.T) {
+	j := testPrintJob(t)
+	layout := &glyph.Layout{
+		Text: "Hello",
+		Items: []glyph.Item{
+			{StartIndex: -1, Length: 3, X: 0, Y: 20, Width: 30, Ascent: 12},
+			{StartIndex: 0, Length: -5, X: 0, Y: 40, Width: 30, Ascent: 12},
+			{StartIndex: 99, Length: 2, X: 0, Y: 60, Width: 30, Ascent: 12},
+			{StartIndex: 3, Length: 99, X: 0, Y: 80, Width: 30, Ascent: 12},
+		},
+		Width:  200,
+		Height: 100,
+	}
+	cmds := []RenderCmd{{
+		Kind: RenderLayout, X: 10, Y: 10, LayoutPtr: layout,
+	}}
+	// Corrupt indices must skip the item, not panic the export.
+	if err := renderToPDF(cmds, j, 800, 600); err != nil {
+		t.Fatal(err)
+	}
+	assertPDFExists(t, j.OutputPath)
 }
 
 func TestRenderToPDF_Empty(t *testing.T) {
@@ -186,7 +240,7 @@ func TestRenderToPDF_SkippedKinds(t *testing.T) {
 
 func TestRenderToPDF_Landscape(t *testing.T) {
 	j := testPrintJob(t)
-	j.Orientation = printLandscape
+	j.Orientation = PrintLandscape
 	cmds := []RenderCmd{{
 		Kind: RenderRect, X: 10, Y: 10, W: 200, H: 100,
 		Color: RGBA(0, 0, 255, 255),
@@ -199,7 +253,7 @@ func TestRenderToPDF_Landscape(t *testing.T) {
 
 func TestRenderToPDF_ActualSize(t *testing.T) {
 	j := testPrintJob(t)
-	j.ScaleMode = printScaleActualSize
+	j.ScaleMode = PrintScaleActualSize
 	cmds := []RenderCmd{{
 		Kind: RenderRect, X: 0, Y: 0, W: 100, H: 100,
 		Color: RGBA(128, 128, 128, 255),
@@ -468,7 +522,7 @@ func TestRenderToPDF_Layout(t *testing.T) {
 
 func TestPrintJobResolvePDFPath_UnknownSource(t *testing.T) {
 	job := NewPrintJob()
-	job.Source.Kind = printJobSourceKind(99)
+	job.Source.Kind = PrintSource(99)
 	_, err := printJobResolvePDFPath(nil, job)
 	if err == nil {
 		t.Fatal("expected error for unknown source kind")
