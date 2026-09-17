@@ -174,8 +174,8 @@ func TestSliderLookKeysWheelFocus(t *testing.T) {
 	if err := w.TestScroll("vol", 0, -3); err != nil {
 		t.Fatal(err)
 	}
-	if value != 97 {
-		t.Fatalf("wheel: value %v, want 97", value)
+	if value != 99 {
+		t.Fatalf("wheel: value %v, want 99 (one Step)", value)
 	}
 }
 

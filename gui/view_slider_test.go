@@ -100,9 +100,9 @@ func TestSliderMouseScroll(t *testing.T) {
 	onChange := func(v float32, ctx EventCtx) { got = v }
 	e := &Event{ScrollY: 5}
 	sliderOnMouseScroll(e, &Window{}, onChange,
-		50, 0, 100, false)
-	if got != 55 {
-		t.Errorf("scroll: got %f, want 55", got)
+		50, 0, 100, 2, false)
+	if got != 52 {
+		t.Errorf("scroll: got %f, want 52", got)
 	}
 	if !e.IsHandled {
 		t.Error("scroll should mark handled")
@@ -127,9 +127,9 @@ func TestSliderRoundValue(t *testing.T) {
 	t.Parallel()
 	var got float32
 	onChange := func(v float32, ctx EventCtx) { got = v }
-	e := &Event{ScrollY: 0.7}
+	e := &Event{ScrollY: 0.1}
 	sliderOnMouseScroll(e, &Window{}, onChange,
-		50, 0, 100, true)
+		50, 0, 100, 0.7, true)
 	if got != float32(math.Round(50.7)) {
 		t.Errorf("rounded: got %f, want %f",
 			got, float32(math.Round(50.7)))
@@ -253,7 +253,7 @@ func TestSliderAmendLayoutSlideHorizontal(t *testing.T) {
 	layout := sliderTestLayout()
 	onChange := func(float32, EventCtx) {}
 	sliderAmendLayoutSlide(&layout, nil,
-		onChange, 50, 0, 100, 20, 2, false,
+		onChange, 50, 0, 100, 1, 20, 2, false,
 		RGB(255, 0, 0), RGB(0, 0, 255), false, "rs", false)
 
 	leftBar := &layout.Children[0].Children[0]
@@ -273,7 +273,7 @@ func TestSliderAmendLayoutSlideHorizontal(t *testing.T) {
 func TestSliderAmendLayoutSlideVertical(t *testing.T) {
 	layout := sliderTestLayout()
 	sliderAmendLayoutSlide(&layout, nil, nil,
-		25, 0, 100, 20, 2, true,
+		25, 0, 100, 1, 20, 2, true,
 		RGB(255, 0, 0), RGB(0, 0, 255), false, "rs", false)
 
 	leftBar := &layout.Children[0].Children[0]
@@ -290,7 +290,7 @@ func TestSliderAmendLayoutSlideClamps(t *testing.T) {
 	layout := sliderTestLayout()
 	// Value above max must not overflow the track.
 	sliderAmendLayoutSlide(&layout, nil, nil,
-		250, 0, 100, 20, 2, false,
+		250, 0, 100, 1, 20, 2, false,
 		RGB(255, 0, 0), RGB(0, 0, 255), false, "rs", false)
 	leftBar := &layout.Children[0].Children[0]
 	if leftBar.Shape.Width != 200 {
@@ -300,7 +300,7 @@ func TestSliderAmendLayoutSlideClamps(t *testing.T) {
 	// Value below min clamps to zero.
 	layout2 := sliderTestLayout()
 	sliderAmendLayoutSlide(&layout2, nil, nil,
-		-50, 0, 100, 20, 2, false,
+		-50, 0, 100, 1, 20, 2, false,
 		RGB(255, 0, 0), RGB(0, 0, 255), false, "rs", false)
 	leftBar2 := &layout2.Children[0].Children[0]
 	if leftBar2.Shape.Width != 0 {
@@ -312,7 +312,7 @@ func TestSliderAmendLayoutSlideFocused(t *testing.T) {
 	w := &Window{}
 	layout := sliderTestLayout()
 	sliderAmendLayoutSlide(&layout, w, nil,
-		50, 0, 100, 20, 2, false,
+		50, 0, 100, 1, 20, 2, false,
 		RGB(255, 0, 0), RGB(0, 0, 255), false, "rs", false)
 
 	// Not focused yet: thumb keeps its original color.
@@ -323,7 +323,7 @@ func TestSliderAmendLayoutSlideFocused(t *testing.T) {
 
 	w.SetFocus("rs")
 	sliderAmendLayoutSlide(&layout, w, nil,
-		50, 0, 100, 20, 2, false,
+		50, 0, 100, 1, 20, 2, false,
 		RGB(255, 0, 0), RGB(0, 0, 255), false, "rs", false)
 	if thumb.Shape.Color != RGB(255, 0, 0) {
 		t.Error("thumb should be focus-colored while focused")
@@ -338,7 +338,7 @@ func TestSliderAmendLayoutSlidePressed(t *testing.T) {
 	ps.Set(layout.Shape.idKey(), true)
 
 	sliderAmendLayoutSlide(&layout, w, nil,
-		50, 0, 100, 20, 2, false,
+		50, 0, 100, 1, 20, 2, false,
 		RGB(255, 0, 0), RGB(0, 0, 255), false, "rs", false)
 	thumb := &layout.Children[0].Children[1]
 	if thumb.Shape.Color != RGB(0, 0, 255) {
@@ -351,7 +351,7 @@ func TestSliderAmendLayoutSlideDisabled(t *testing.T) {
 	w.SetFocus("rs")
 	layout := sliderTestLayout()
 	sliderAmendLayoutSlide(&layout, w, nil,
-		50, 0, 100, 20, 2, false,
+		50, 0, 100, 1, 20, 2, false,
 		RGB(255, 0, 0), RGB(0, 0, 255), true, "rs", false)
 
 	thumb := &layout.Children[0].Children[1]
@@ -363,13 +363,13 @@ func TestSliderAmendLayoutSlideDisabled(t *testing.T) {
 func TestSliderAmendLayoutSlideDegenerate(t *testing.T) {
 	// Empty and short layouts are no-ops, not panics.
 	sliderAmendLayoutSlide(&Layout{Shape: &Shape{}}, nil, nil,
-		50, 0, 100, 20, 2, false,
+		50, 0, 100, 1, 20, 2, false,
 		RGB(255, 0, 0), RGB(0, 0, 255), false, "", false)
 	sliderAmendLayoutSlide(&Layout{
 		Shape:    &Shape{},
 		Children: []Layout{{Shape: &Shape{}}},
 	}, nil, nil,
-		50, 0, 100, 20, 2, false,
+		50, 0, 100, 1, 20, 2, false,
 		RGB(255, 0, 0), RGB(0, 0, 255), false, "", false)
 }
 
@@ -418,5 +418,77 @@ func TestSliderAmendLayoutThumbNoParent(t *testing.T) {
 	sliderAmendLayoutThumb(&thumb, nil, 50, 0, 100, 12, false)
 	if thumb.Shape.X != 0 || thumb.Shape.Y != 0 {
 		t.Error("thumb without parent must be left untouched")
+	}
+}
+
+// The wheel moves a slider by one Step per event, in the sign of ScrollY,
+// on the stock slider and on a Look slider. ScrollY is lines for a wheel
+// and points for a trackpad (see Event), so its size must not matter: a
+// 0..1 slider with Step 0.1 must not reach an end on one wheel notch
+// (#668).
+func TestSliderWheelMovesByStep(t *testing.T) {
+	tests := []struct {
+		name    string
+		look    bool
+		precise bool
+		scrollY float32
+		round   bool
+		start   float32
+		step    float32
+		want    float32
+	}{
+		{name: "wheel up", scrollY: 3, start: 0.5, step: 0.1, want: 0.6},
+		{name: "wheel down", scrollY: -3, start: 0.5, step: 0.1, want: 0.4},
+		{name: "trackpad points", precise: true, scrollY: 40, start: 0.5,
+			step: 0.1, want: 0.6},
+		{name: "clamps at max", scrollY: 3, start: 0.95, step: 0.1, want: 1},
+		{name: "zero delta", scrollY: 0, start: 0.5, step: 0.1, want: 0.5},
+		{name: "look slider", look: true, scrollY: -3, start: 0.5, step: 0.1,
+			want: 0.4},
+		{name: "default step", scrollY: 3, start: 0, step: 0, want: 1},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			value := tt.start
+			cfg := SliderCfg{
+				ID:    "vol",
+				Value: value,
+				Min:   0,
+				Max:   1,
+				Step:  tt.step,
+				Width: 200,
+				OnChange: func(v float32, ctx EventCtx) {
+					value = v
+					ctx.Consume()
+				},
+			}
+			if tt.look {
+				cfg.Look = func(SliderLookState) SliderParts {
+					return SliderParts{Track: Row(ContainerCfg{ID: "track",
+						Height: 6, Sizing: FillFixed, SizeBorder: NoBorder})}
+				}
+			}
+			w := NewTestWindow(WindowCfg{})
+			w.TestRender(func(*Window) View {
+				c := cfg
+				c.Value = value
+				return Column(ContainerCfg{SizeBorder: NoBorder,
+					Padding: PadAll(10), Content: []View{Slider(c)}})
+			})
+			ly, err := w.testTarget("vol")
+			if err != nil {
+				t.Fatal(err)
+			}
+			x, y, err := testHitPoint(ly, "vol")
+			if err != nil {
+				t.Fatal(err)
+			}
+			e := Event{Type: EventMouseScroll, ScrollPrecise: tt.precise,
+				MouseX: x, MouseY: y, ScrollY: tt.scrollY}
+			w.EventFn(&e)
+			if d := value - tt.want; d > 1e-5 || d < -1e-5 {
+				t.Errorf("value %v, want %v", value, tt.want)
+			}
+		})
 	}
 }

@@ -65,9 +65,9 @@ func TestPressAndDrag(t *testing.T) {
 	s := mustFind(t, w, "page:material:"+tr.id)
 	y := s.Y + s.Height/2
 
-	send(w, gui.EventMouseDown, xAt(s, materialBladeW/2, 25), y)
-	if v := app.value[tr.name]; !near(v, 25) {
-		t.Fatalf("after press value %v, want 25", v)
+	send(w, gui.EventMouseDown, xAt(s, materialBladeW/2, 0.25), y)
+	if v := app.value[tr.name]; !near(v, 0.25) {
+		t.Fatalf("after press value %v, want 0.25", v)
 	}
 	// The press focuses the slider, and the focused blade is 6 wide, so the
 	// drag maps over a span 1 px shorter at each end.
@@ -79,9 +79,9 @@ func TestPressAndDrag(t *testing.T) {
 	if v := app.value[tr.name]; v != valueMax {
 		t.Fatalf("drag past the end: value %v, want %v", v, valueMax)
 	}
-	send(w, gui.EventMouseMove, xAt(s, dragInset, 60), y)
-	if v := app.value[tr.name]; !near(v, 60) {
-		t.Fatalf("drag back: value %v, want 60", v)
+	send(w, gui.EventMouseMove, xAt(s, dragInset, 0.6), y)
+	if v := app.value[tr.name]; !near(v, 0.6) {
+		t.Fatalf("drag back: value %v, want 0.6", v)
 	}
 	send(w, gui.EventMouseMove, s.X-50, y)
 	if v := app.value[tr.name]; v != 0 {
@@ -90,7 +90,7 @@ func TestPressAndDrag(t *testing.T) {
 
 	// After the release, a move no longer changes the value.
 	send(w, gui.EventMouseUp, s.X-50, y)
-	send(w, gui.EventMouseMove, xAt(s, dragInset, 50), y)
+	send(w, gui.EventMouseMove, xAt(s, dragInset, 0.5), y)
 	if v := app.value[tr.name]; v != 0 {
 		t.Fatalf("move after release: value %v, want 0", v)
 	}
@@ -129,7 +129,7 @@ func TestPartsFollowValue(t *testing.T) {
 	app, w := newTestApp(t)
 	tr := displayTrack
 	const id = "page:apple:display"
-	for _, v := range []float32{0, 50, valueMax} {
+	for _, v := range []float32{0, 0.5, valueMax} {
 		app.value[tr.name] = v
 		s := mustFind(t, w, id)
 		knob := mustFind(t, w, id+":knob")
@@ -173,15 +173,16 @@ func TestPressAndHoverLooks(t *testing.T) {
 	}
 }
 
-// The wheel moves the value one unit per line, clamped to the range.
+// The wheel moves the value by one step per event, whatever the size of the
+// delta (#668).
 func TestWheel(t *testing.T) {
 	app, w := newTestApp(t)
 	start := app.value["XP"]
 	if err := w.TestScroll("page:xp", 0, 3); err != nil {
 		t.Fatal(err)
 	}
-	if v := app.value["XP"]; v == start {
-		t.Fatalf("wheel did not move the value from %v", start)
+	if v, want := app.value["XP"], min(start+keyStep, valueMax); !near(v, want) {
+		t.Fatalf("wheel moved the value from %v to %v, want %v", start, v, want)
 	}
 }
 

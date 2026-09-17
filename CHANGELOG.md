@@ -92,6 +92,15 @@ and this project adheres to
 
 ### Fixed
 
+- **The mouse wheel moves a `Slider` by `Step` (#668)** — the wheel added
+  `ScrollY` to the value and ignored `Step`. One wheel notch is about 3 lines
+  and a trackpad sends points, so a 0 to 1 slider reached an end on the first
+  notch, and a slider with a large `Step` needed many notches for one step. The
+  wheel now moves the value by one `Step` per event in the direction of the
+  scroll, the same distance as an arrow key, and `RoundValue` still applies.
+  `NumericInput` already worked this way. A `SliderCfg.Look` slider follows the
+  same rule.
+
 - **An ID-less float no longer hides hover from its widget (#661)** — a float
   with no `ID` inside an ID-bearing widget, such as a switch knob that floats
   over its track, gave no hover or press target. `IsHovered`, `IsPressed` and

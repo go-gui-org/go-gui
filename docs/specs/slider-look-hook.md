@@ -80,8 +80,3 @@ a round fill.
 - **A part for the area around the track** (go-shirei's icon, open question 1 of
   #664): the app wraps the slider or puts the content in a part; the Apple look
   puts its icon in the fill.
-
-## Known limits
-
-- The wheel moves the value by one unit per line, as on the stock slider, not by
-  `Step`. A range of 0 to 1 reaches an end on the first turn.

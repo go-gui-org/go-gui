@@ -49,15 +49,14 @@ var (
 	xpTrack      = track{id: "xp", name: "XP"}
 )
 
-// Every slider runs from 0 to 100 and steps by 5. The wheel moves a
-// gui.Slider by one unit per line, so a range of 0 to 1 would jump to an end
-// on the first turn.
+// Every slider runs from 0 to 1 and steps by 0.05, as go-shirei's demo does.
+// The wheel and the arrow keys both move a gui.Slider by one step (#668).
 const (
-	valueMax = 100
-	keyStep  = 5
+	valueMax = 1
+	keyStep  = 0.05
 )
 
-// App holds the value of each slider, 0 to 100.
+// App holds the value of each slider, 0 to 1.
 type App struct {
 	value map[string]float32
 
@@ -71,12 +70,12 @@ type App struct {
 func New() *App {
 	app := &App{
 		value: map[string]float32{
-			"Default":      45,
-			"Display":      72,
-			"Sound":        35,
-			"Call volume":  65,
-			"Media volume": 28,
-			"XP":           40,
+			"Default":      0.45,
+			"Display":      0.72,
+			"Sound":        0.35,
+			"Call volume":  0.65,
+			"Media volume": 0.28,
+			"XP":           0.40,
 		},
 		change: map[string]func(float32, gui.EventCtx){},
 	}
@@ -169,9 +168,9 @@ func valueRowStyled(app *App, name string, slider gui.View, style gui.TextStyle)
 		VAlign:     gui.VAlignMiddle,
 		Content: []gui.View{
 			slider,
-			// Values are whole steps of 5, so rounding to an int prints what
-			// %.0f printed, without fmt's boxing of the argument.
-			gui.Text(gui.TextCfg{Text: strconv.Itoa(int(app.value[name] + 0.5)), TextStyle: style}),
+			// The label shows the value as a whole percent. Rounding to an int
+			// prints what %.0f printed, without fmt's boxing of the argument.
+			gui.Text(gui.TextCfg{Text: strconv.Itoa(int(app.value[name]*100 + 0.5)), TextStyle: style}),
 		},
 	})
 }

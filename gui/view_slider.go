@@ -225,7 +225,7 @@ func Slider(cfg SliderCfg) View {
 		AmendLayout: amendAll(
 			func(ctx EventCtx) {
 				sliderAmendLayoutSlide(ctx.Layout, ctx.Window,
-					onChange, value, minVal, maxVal, size, szBorder,
+					onChange, value, minVal, maxVal, step, size, szBorder,
 					vertical, colorFocus, cfg.ColorLeft, disabled,
 					ctx.Layout.Shape.idKey(), roundValue)
 			},
@@ -421,7 +421,7 @@ func (v sliderLookView) GenerateLayout(w *Window) Layout {
 		},
 		OnMouseScroll: func(ctx EventCtx) {
 			sliderOnMouseScroll(ctx.Event, ctx.Window, onChange,
-				value, minVal, maxVal, roundValue)
+				value, minVal, maxVal, step, roundValue)
 		},
 		Content: content,
 	})
@@ -516,7 +516,7 @@ func layoutShiftDepth(layout *Layout, dx, dy float32, depth int) {
 func sliderAmendLayoutSlide(
 	layout *Layout, w *Window,
 	onChange func(float32, EventCtx),
-	value, minVal, maxVal, size, sizeBorder float32,
+	value, minVal, maxVal, step, size, sizeBorder float32,
 	vertical bool, colorFocus, colorLeft Color,
 	disabled bool, focusID string, roundValue bool,
 ) {
@@ -525,7 +525,7 @@ func sliderAmendLayoutSlide(
 	}
 	layout.Shape.events.OnMouseScroll = func(ctx EventCtx) {
 		sliderOnMouseScroll(ctx.Event, ctx.Window, onChange,
-			value, minVal, maxVal, roundValue)
+			value, minVal, maxVal, step, roundValue)
 	}
 
 	if len(layout.Children) == 0 {
@@ -719,13 +719,25 @@ func applySliderDefaults(cfg *SliderCfg) {
 func sliderOnMouseScroll(
 	e *Event, w *Window,
 	onChange func(float32, EventCtx),
-	curValue, minVal, maxVal float32, roundValue bool,
+	curValue, minVal, maxVal, step float32, roundValue bool,
 ) {
 	e.IsHandled = true
 	if onChange == nil || e.Modifiers != ModNone {
 		return
 	}
-	v := f32Clamp(curValue+e.ScrollY, minVal, maxVal)
+	// ScrollY is lines for a wheel and points for a trackpad (see
+	// Event), so its size means nothing here. Only the sign is used:
+	// one Step per event, the same distance as an arrow key. NumericInput
+	// does the same.
+	var v float32
+	switch {
+	case e.ScrollY > 0:
+		v = f32Clamp(curValue+step, minVal, maxVal)
+	case e.ScrollY < 0:
+		v = f32Clamp(curValue-step, minVal, maxVal)
+	default:
+		return
+	}
 	if roundValue {
 		v = float32(math.Round(float64(v)))
 	}

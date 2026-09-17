@@ -22,7 +22,7 @@ go-gui the input is `gui.Slider` and the paint code is its `Look`:
 
 ```go
 gui.Slider(gui.SliderCfg{
-    ID: "xp", Value: v, Min: 0, Max: 100, Width: 260, Height: 24,
+    ID: "xp", Value: v, Min: 0, Max: 1, Width: 260, Height: 24,
     OnChange: onChange,
     Look: func(s gui.SliderLookState) gui.SliderParts {
         return gui.SliderParts{Track: trough, Handle: handle(s.Hovered)}
@@ -43,7 +43,7 @@ wheel, focus and the screen reader value all come from `gui.Slider`.
 - **Windows XP** is a thin sunken trough under a handle whose caps turn orange
   under the pointer. It has no fill.
 
-Every slider runs from 0 to 100. The wheel moves a slider by one unit per line,
-so a range of 0 to 1 would reach an end on the first turn.
+Every slider runs from 0 to 1 and steps by 0.05. The wheel moves a slider by one
+step per event, the same as an arrow key.
 
 See `main.go` for the implementation.
