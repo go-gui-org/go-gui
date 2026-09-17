@@ -3,7 +3,7 @@ package main
 // Mode opt answers: which *Cfg fields are plain — not Opt[T] — but sit
 // in a family whose zero value is a real user choice?
 //
-// The rule (CLAUDE.md, "Opt[T] vs plain fields"): use Opt[T] when the
+// The rule (gui/CLAUDE.md, "`Opt[T]`, colors, and literals"): use Opt[T] when the
 // zero value is a legitimate user choice that must be distinguishable
 // from "unset". A plain field silently collapses "unset" onto zero —
 // SizeBorder is the worked example: a border width of 0 is something a

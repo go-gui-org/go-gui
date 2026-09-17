@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "case \"$CLAUDE_FILE_PATH\" in */go.sum) echo 'BLOCKED: go.sum should not be edited directly. Use go mod tidy.' >&2; exit 1 ;; esac"
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/go-edit-check.sh\" pre"
           }
         ]
       }
@@ -17,16 +17,24 @@
         "hooks": [
           {
             "type": "command",
-            "command": "filepath=\"$CLAUDE_FILE_PATH\"; case \"$filepath\" in *.go) golangci-lint run --fix \"$(dirname \"$filepath\")/...\" 2>/dev/null; true ;; esac"
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/go-edit-check.sh\" post",
+            "timeout": 180
           }
         ]
-      },
+      }
+    ],
+    "Stop": [
       {
-        "matcher": "Edit|Write",
         "hooks": [
           {
             "type": "command",
-            "command": "filepath=\"$CLAUDE_FILE_PATH\"; case \"$filepath\" in *.go) go test \"$(dirname \"$filepath\")/...\" -count=1 -short 2>&1 | tail -5; true ;; esac"
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/stop-gate.sh\"",
+            "timeout": 300
+          },
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/review-gate.sh\"",
+            "timeout": 600
           }
         ]
       }

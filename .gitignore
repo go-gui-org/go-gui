@@ -71,7 +71,15 @@ go.work.sum
 
 # Dependency directory
 vendor/
-.claude/
+
+# Claude Code: shared config is tracked; per-user state (plans, worktrees, logs,
+# settings.local.json) stays local. `.claude/*`, not `.claude/`: git cannot
+# re-include a file under an ignored directory.
+.claude/*
+!.claude/settings.json
+!.claude/agents/
+!.claude/hooks/
+!.claude/skills/
 
 # Agent/editor tool config (local only)
 .antigravitycli/

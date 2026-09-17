@@ -36,7 +36,7 @@ package main
 // both the factory and its handlers) are not scanned, because the same
 // file's generation-time reads must stay bare. themePickerSyncHighlight,
 // selectScrollTo and toastEnforceMaxVisible are migrated but ungated;
-// the rule in CLAUDE.md covers them.
+// the rule in gui/CLAUDE.md covers them.
 //
 // A deliberate exception carries a same-line marker and prints as
 // deferred rather than gating:
