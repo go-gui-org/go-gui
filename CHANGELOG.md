@@ -139,6 +139,18 @@ and this project adheres to
 
 ### Fixed
 
+- **Fill children get all of a row's or column's space** — the loop that shares
+  space among Fill children stopped early in three cases. The row or column then
+  overflowed, or left space unused, and nothing reported it. First, in a very
+  small container, one step moved less than the float tolerance, so the loop
+  took the step for a stall and stopped with most of the space still unshared.
+  Second, after one child grew to meet a sibling, float rounding left the two
+  sizes a few millionths apart. The loop then saw two sizes, took a step too
+  small to change either, and stopped. Sizes within a small relative band now
+  count as one size. Third, when the widest Fill child was already at its
+  `MinWidth` or `MinHeight`, it could not shrink. The loop stopped before the
+  narrower siblings shrank, so the row still overflowed. The loop now stops only
+  when a step moves no space and removes no child.
 - **RTF selection, links and tooltips agree with the shaped text when inline
   math is present** — the flat text used for rune/byte mapping concatenated only
   the source run texts, while shaping emits the LaTeX fallback or the object

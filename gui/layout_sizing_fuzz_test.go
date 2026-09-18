@@ -185,6 +185,15 @@ func FuzzLayoutSizingMinMax(f *testing.F) {
 		if maxH > 4096 {
 			maxH = 4096
 		}
+		// Capping max after the swap can reintroduce min above max
+		// (min 5040, max capped to 4096), which no factory emits and
+		// the min<=max invariant then reports. Clamp min down last.
+		if minW > maxW {
+			minW = maxW
+		}
+		if minH > maxH {
+			minH = maxH
+		}
 
 		w := &Window{
 			scratch:      newScratchPools(),
@@ -250,6 +259,16 @@ func FuzzLayoutSizingWithMix(f *testing.F) {
 		}
 		if height > 4096 {
 			height = 4096
+		}
+		// Children are fixed 100x50 and axisNone stacks them at the
+		// origin, so a parent below that guarantees a containment
+		// violation by construction rather than by a layout defect.
+		// Floor the parent at the child size; larger sizes still vary.
+		if width < 100 {
+			width = 100
+		}
+		if height < 50 {
+			height = 50
 		}
 
 		w := &Window{

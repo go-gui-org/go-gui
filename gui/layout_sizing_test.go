@@ -1,6 +1,9 @@
 package gui
 
-import "testing"
+import (
+	"math"
+	"testing"
+)
 
 func TestLayoutWidthsEmptyContainer(t *testing.T) {
 	root := &Layout{
@@ -231,6 +234,149 @@ func TestLayoutFillHeightsAllGrow(t *testing.T) {
 	if !f32AreClose(root.Children[1].Shape.Height, 30) {
 		t.Errorf("c1 height: got %f, want 30",
 			root.Children[1].Shape.Height)
+	}
+}
+
+// TestDistributeSpaceTinySizesFillGap guards the 9/18 fuzz failure
+// (FuzzLayoutPipelineDimensions/93849550906ea89e): a row 0.3359 wide
+// with two Fill children 0.0234 and 0.0156 apart. One equalization
+// step moves 0.0078, below f32Tolerance, so the old absolute stall
+// check broke with 0.289 undistributed. Sub-tolerance progress is
+// still progress while budget remains.
+func TestDistributeSpaceTinySizesFillGap(t *testing.T) {
+	root := &Layout{
+		Shape: &Shape{
+			Axis:      axisLeftToRight,
+			shapeType: shapeRectangle,
+			Sizing:    FixedFixed,
+			Width:     0.335938,
+			Height:    1,
+		},
+		Children: []Layout{
+			{Shape: &Shape{
+				shapeType: shapeRectangle, Sizing: FillFill,
+				Width: 0.0234375, Height: 1,
+			}},
+			{Shape: &Shape{
+				shapeType: shapeRectangle, Sizing: FillFill,
+				Width: 0.015625, Height: 1,
+			}},
+		},
+	}
+	layoutWidths(root)
+	layoutFillWidths(root, &scratchPools{})
+	want := float32(0.335938 / 2)
+	for i := range root.Children {
+		got := root.Children[i].Shape.Width
+		if !f32AreClose(got, want) {
+			t.Errorf("c%d width: got %f, want %f", i, got, want)
+		}
+	}
+}
+
+// TestDistributeSpaceFloatDustFillsGap guards a second stall shape at
+// large sizes: children 29.72 and 13.21 equalize to 29.72, but one
+// float32 addition leaves 1-ulp dust (~2e-06), which the level scan
+// read as a distinct extremum. The filler then took a micro-step
+// that moved nothing and stalled with 501.9 undistributed.
+func TestDistributeSpaceFloatDustFillsGap(t *testing.T) {
+	root := &Layout{
+		Shape: &Shape{
+			Axis:      axisLeftToRight,
+			shapeType: shapeRectangle,
+			Sizing:    FixedFixed,
+			Width:     620.8,
+			Height:    10,
+		},
+		Children: []Layout{
+			{Shape: &Shape{
+				shapeType: shapeRectangle, Sizing: FillFill,
+				Width: 29.72, Height: 5,
+			}},
+			{Shape: &Shape{
+				shapeType: shapeRectangle, Sizing: FillFill,
+				Width: 13.21, Height: 5,
+			}},
+			{Shape: &Shape{
+				shapeType: shapeRectangle, Sizing: FillFill,
+				Width: 29.72, Height: 5,
+			}},
+			{Shape: &Shape{
+				shapeType: shapeRectangle, Sizing: FillFill,
+				Width: 13.21, Height: 5,
+			}},
+		},
+	}
+	layoutWidths(root)
+	layoutFillWidths(root, &scratchPools{})
+	want := float32(620.8 / 4)
+	for i := range root.Children {
+		got := root.Children[i].Shape.Width
+		if !f32AreClose(got, want) {
+			t.Errorf("c%d width: got %f, want %f", i, got, want)
+		}
+	}
+}
+
+// TestDistributeSpaceShrinkPastPinnedExtremum guards a stall in the
+// shrink loop: the widest Fill child already sits at its MinWidth, so
+// its step moves nothing and it leaves the candidate set with the
+// remainder unchanged. The zero-progress break read that as a stall
+// and ended before the narrower sibling shrank, overflowing the row.
+func TestDistributeSpaceShrinkPastPinnedExtremum(t *testing.T) {
+	root := &Layout{
+		Shape: &Shape{
+			Axis:      axisLeftToRight,
+			shapeType: shapeRectangle,
+			Sizing:    FixedFixed,
+			Width:     130,
+			Height:    10,
+		},
+		Children: []Layout{
+			{Shape: &Shape{
+				shapeType: shapeRectangle, Sizing: FillFill,
+				Width: 100, MinWidth: 100, Height: 5,
+			}},
+			{Shape: &Shape{
+				shapeType: shapeRectangle, Sizing: FillFill,
+				Width: 50, Height: 5,
+			}},
+		},
+	}
+	layoutWidths(root)
+	layoutFillWidths(root, &scratchPools{})
+	if got := root.Children[0].Shape.Width; !f32AreClose(got, 100) {
+		t.Errorf("pinned width: got %f, want 100", got)
+	}
+	if got := root.Children[1].Shape.Width; !f32AreClose(got, 30) {
+		t.Errorf("sibling width: got %f, want 30", got)
+	}
+}
+
+func TestDistributionSameLevel(t *testing.T) {
+	inf := float32(math.Inf(1))
+	nan := float32(math.NaN())
+	cases := []struct {
+		name string
+		a, b float32
+		want bool
+	}{
+		{"equal", 29.72, 29.72, true},
+		{"ulp dust", 29.72, 29.72 + 2e-06, true},
+		{"real gap", 29.72, 29.8, false},
+		{"sub-pixel floor merges", 0.01, 0.01 + 5e-05, true},
+		{"sub-pixel levels stay distinct", 0.0234375, 0.015625, false},
+		{"relative band at scale", 8192, 8192.5, true},
+		{"negative sizes", -10, -10.0005, true},
+		{"inf never groups", inf, inf, false},
+		{"nan never groups", nan, nan, false},
+		{"finite vs inf", 10, inf, false},
+	}
+	for _, tc := range cases {
+		if got := distributionSameLevel(tc.a, tc.b); got != tc.want {
+			t.Errorf("%s: distributionSameLevel(%v, %v) = %v, want %v",
+				tc.name, tc.a, tc.b, got, tc.want)
+		}
 	}
 }
 
