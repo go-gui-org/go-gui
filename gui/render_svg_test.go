@@ -12,7 +12,8 @@ func computeSvgAnimations(
 	anims []SvgAnimation, elapsedSec float64,
 	states map[uint32]svgAnimState,
 ) map[uint32]svgAnimState {
-	return computeSvgAnimationsReuse(anims, elapsedSec, states, nil, nil)
+	states, _ = computeSvgAnimationsReuse(anims, elapsedSec, states, nil, nil)
+	return states
 }
 
 func TestRenderSvgNoParser(t *testing.T) {
@@ -1058,7 +1059,7 @@ func TestComputeSvgAnimationsReuse_SeedsBaseFromGroup(t *testing.T) {
 		1: {TransX: 12, TransY: 12, ScaleX: 2, ScaleY: 2,
 			RotAngle: 45},
 	}
-	st := computeSvgAnimationsReuse(anims, 0.5, nil, nil, base)
+	st, _ := computeSvgAnimationsReuse(anims, 0.5, nil, nil, base)
 	got := st[1]
 	if !got.HasXform {
 		t.Fatal("HasXform must be true after seeding")
@@ -1081,7 +1082,7 @@ func TestComputeSvgAnimationsReuse_NoBaseLeavesIdentity(t *testing.T) {
 		AttrName: SvgAttrR,
 		Values:   []float32{0, 5}, DurSec: 1, Cycle: 1,
 	}}
-	st := computeSvgAnimationsReuse(anims, 0.5, nil, nil, nil)
+	st, _ := computeSvgAnimationsReuse(anims, 0.5, nil, nil, nil)
 	got := st[1]
 	if got.HasXform {
 		t.Fatal("HasXform should be false when no base + no xform anim")

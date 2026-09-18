@@ -39,12 +39,17 @@ type svgAnimState struct {
 // baseByPath seeds per-PathID state with the author's decomposed
 // base transform so additive/replace animations compose over it.
 // Pass nil when no base seeding is needed (tests, no-base assets).
+//
+// It returns the grown scratch beside the states. The caller must
+// put the returned slice back, not the slice it passed in. The two
+// differ when the scratch was too small and collectAnimContribs
+// allocated a larger backing array.
 func computeSvgAnimationsReuse(
 	anims []SvgAnimation, elapsedSec float64,
 	states map[uint32]svgAnimState,
 	contribScratch []animContrib,
 	baseByPath map[uint32]svgBaseXform,
-) map[uint32]svgAnimState {
+) (map[uint32]svgAnimState, []animContrib) {
 	if states == nil {
 		states = make(map[uint32]svgAnimState, len(anims))
 	} else {
@@ -52,13 +57,13 @@ func computeSvgAnimationsReuse(
 	}
 	contribs := collectAnimContribs(anims, elapsedSec, contribScratch)
 	if len(contribs) == 0 {
-		return states
+		return states, contribs
 	}
 	slices.SortStableFunc(contribs, cmpAnimContrib)
 	for i := range contribs {
 		applyAnimContrib(&contribs[i], states, baseByPath)
 	}
-	return states
+	return states, contribs
 }
 
 // cmpAnimContrib orders contributions by ascending activation

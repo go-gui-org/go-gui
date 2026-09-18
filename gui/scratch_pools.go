@@ -1,10 +1,29 @@
 package gui
 
-import "github.com/go-gui-org/go-glyph"
+import (
+	"unsafe"
+
+	"github.com/go-gui-org/go-glyph"
+)
 
 // scratch_pools.go — reusable per-frame buffers. Zero-value valid.
+//
+// Every pool in this file is frame-scoped and single-goroutine.
+// Only the frame pass that owns the Window touches these pools.
+// No other goroutine must read or write them. The animation ticker
+// keeps its own state under w.animMu and never reaches in here.
 
 // scratchSlice is a reusable slice pool with retain/shrink thresholds.
+// Only one checkout must be live at a time. A second take before the
+// first put truncates the same backing array and corrupts the first
+// slice. Every current caller pairs one take with one put and never
+// nests two takes of one pool.
+//
+// requiredCap must derive from a resident length, for example the
+// length of a slice already in memory. The pool never amplifies an
+// allocation past that size, so a corrupt length cannot reach the
+// allocator through this path. It can only repeat memory that the
+// caller already holds.
 type scratchSlice[T any] struct {
 	buf       []T
 	retainMax int
@@ -39,21 +58,40 @@ func (s *scratchSlice[T]) put(b []T) {
 // genuinely needing more than this on *every* frame reallocates on
 // every frame; the cap is set well past where any measured content
 // lands.
+//
+// The canonical limit is canvasScratchRetainBytes below. This constant
+// stays as the float32-element form of it, because most canvas buffers
+// hold float32 and existing tests pin that boundary.
 const canvasScratchRetainMax = 1 << 18 // 262 144 floats, ~1 MB
 
-// keepScratch returns b emptied for reuse, or nil when it has grown
-// past the retain cap and should be released instead.
+// canvasScratchRetainBytes is the canonical canvas retention limit.
+// keepScratch measures every buffer type against it, so a buffer of
+// wide structs cannot pin far more memory than a float buffer with
+// the same element count.
+const canvasScratchRetainBytes = 1 << 20 // 1 MB
+
+// keepScratch returns b emptied for reuse, or nil when its backing
+// array holds past the retain cap and should be released instead.
+// The cap is measured in bytes, not elements.
 func keepScratch[T any](b []T) []T {
-	if cap(b) > canvasScratchRetainMax {
+	var zero T
+	if uint64(cap(b))*uint64(unsafe.Sizeof(zero)) > canvasScratchRetainBytes {
 		return nil
 	}
 	return b[:0]
 }
 
 // scratchMap is a reusable map pool with a retain threshold.
+// Only one checkout must be live at a time, as with scratchSlice.
 type scratchMap[K comparable, V any] struct {
 	m         map[K]V
 	retainMax int
+	// sizedFor is the largest size the retained map was made for or
+	// filled to. A Go map never shrinks, so this tracks the capacity
+	// it holds. The last fill count does not: a hint that overstates
+	// the fill (len(anims) for states keyed by PathID) would then
+	// look too large on every frame and reallocate every frame.
+	sizedFor int
 }
 
 func (s *scratchMap[K, V]) take(requiredCap int) map[K]V {
@@ -61,27 +99,70 @@ func (s *scratchMap[K, V]) take(requiredCap int) map[K]V {
 	if m == nil {
 		requiredCap = max(requiredCap, 8)
 		m = make(map[K]V, requiredCap)
+		s.sizedFor = requiredCap
+	} else if scratchMapShouldRegrow(s.sizedFor, requiredCap) {
+		// The retained map is far smaller than the hint. A fresh
+		// map avoids repeated incremental growth as the caller
+		// fills it.
+		m = make(map[K]V, requiredCap)
+		s.sizedFor = requiredCap
 	}
 	clear(m)
 	return m
 }
 
+// scratchMapShouldRegrow reports whether a retained map sized for
+// prevLen entries is far smaller than requiredCap. Pure function, so
+// tests can pin the boundary without observing map internals.
+func scratchMapShouldRegrow(prevLen, requiredCap int) bool {
+	if requiredCap <= 8 {
+		return false
+	}
+	return int64(requiredCap) > int64(prevLen)*4
+}
+
 func (s *scratchMap[K, V]) put(m map[K]V) {
 	if len(m) > s.retainMax {
 		s.m = nil
+		s.sizedFor = 0
 		return
 	}
 	s.m = m
+	s.sizedFor = max(s.sizedFor, len(m))
 }
 
 // scratchObjPool is a reusable pool of individually heap-allocated
 // objects. Pointers handed out remain valid until reset. On reuse,
 // existing allocations are overwritten; new ones are appended.
+// Only the owning frame pass must touch a pool, as with scratchSlice.
 type scratchObjPool[T any] struct {
 	items     []*T
 	used      int
 	retainMax int
 	shrinkTo  int
+}
+
+// Default bounds for a zero-value scratchObjPool. An explicit zero
+// retainMax means "use these defaults", not "retain everything".
+// Every pool must stay bounded, including one built without
+// newScratchPools.
+const (
+	defaultScratchObjRetainMax = 4096
+	defaultScratchObjShrinkTo  = 256
+)
+
+// effectiveLimits returns the shrink bounds in force. Explicit
+// positive values win. Zero or negative values fall back to the
+// defaults above.
+func (p *scratchObjPool[T]) effectiveLimits() (retainMax, shrinkTo int) {
+	retainMax, shrinkTo = p.retainMax, p.shrinkTo
+	if retainMax <= 0 {
+		retainMax = defaultScratchObjRetainMax
+	}
+	if shrinkTo <= 0 {
+		shrinkTo = defaultScratchObjShrinkTo
+	}
+	return retainMax, shrinkTo
 }
 
 func (p *scratchObjPool[T]) alloc(src T) *T {
@@ -98,14 +179,13 @@ func (p *scratchObjPool[T]) alloc(src T) *T {
 }
 
 func (p *scratchObjPool[T]) reset() {
-	if p.retainMax > 0 {
-		if len(p.items) > p.retainMax {
-			// Exceeded absolute cap — shrink hard.
-			p.items = make([]*T, 0, p.shrinkTo)
-		} else if len(p.items) > p.shrinkTo && p.used < len(p.items)/4 {
-			// Usage far below capacity (< 25%); release memory.
-			p.items = make([]*T, 0, p.shrinkTo)
-		}
+	retainMax, shrinkTo := p.effectiveLimits()
+	if len(p.items) > retainMax {
+		// Exceeded absolute cap — shrink hard.
+		p.items = make([]*T, 0, shrinkTo)
+	} else if len(p.items) > shrinkTo && p.used < len(p.items)/4 {
+		// Usage far below capacity (< 25%); release memory.
+		p.items = make([]*T, 0, shrinkTo)
 	}
 	p.used = 0
 }
@@ -148,7 +228,12 @@ type scratchPools struct {
 	placeholderShapePool []*Shape
 	focusCandidates      scratchSlice[focusCandidate]
 	wrapRows             scratchSlice[wrapRowRange]
-	layerLayouts         scratchSlice[Layout]
+	// layerLayouts hands out one slice per frame in layoutArrange.
+	// That slice stays live as w.layout.Children until the next
+	// frame puts it back (see window_update.go). Take must run at
+	// most once per frame. A second take would truncate the same
+	// backing array and corrupt the live tree.
+	layerLayouts scratchSlice[Layout]
 
 	svgAnimTriangles scratchSlice[TessellatedPath]
 	svgAnimContribs  scratchSlice[animContrib]
@@ -156,6 +241,9 @@ type scratchPools struct {
 	// Layout sizing: reusable slices for distributeSpace's fill
 	// candidate collection. Allocated once per fill-widths/fill-heights
 	// pass and reused across all recursive nodes in the tree walk.
+	// Sharing is safe because distributeSpace consumes the candidates
+	// before it returns. No caller holds them across a nested call,
+	// so each node starts from an empty slice.
 	fillCandidates scratchSlice[int]
 	fillBufs       fillBuffers // bundles the candidate slice for fill pipeline
 
@@ -242,10 +330,10 @@ func (p *scratchPools) beginFillPass() {
 	}
 }
 
-// resetViewPools resets the view-phase object pools. Called
-// before generateViewLayout. The layoutChildrenArena is shrunk when
-// it has grown past its retain cap so a one-off deep frame does not
-// hold the capacity indefinitely.
+// resetViewPools resets the view-phase object pools and truncates
+// the view-phase arenas. Called before generateViewLayout. Each arena
+// shrinks only when it has grown past its retain cap, so a one-off
+// deep frame does not hold the capacity indefinitely.
 func (p *scratchPools) resetViewPools() {
 	p.viewShapes.reset()
 	p.buttonColors.reset()
@@ -279,22 +367,7 @@ const (
 // what makes nested lists safe. Callers must not retain the slice
 // past the frame — appendChildViews copies out of it.
 func (p *scratchPools) takeViews(n int) []View {
-	if n <= 0 {
-		return nil
-	}
-	if n > maxViewReservation {
-		return make([]View, 0, n)
-	}
-	start := len(p.viewArena)
-	need := start + n
-	if cap(p.viewArena) < need {
-		grown := make([]View, need, growCap(cap(p.viewArena), need))
-		copy(grown, p.viewArena)
-		p.viewArena = grown
-	} else {
-		p.viewArena = p.viewArena[:need]
-	}
-	return p.viewArena[start:start:need]
+	return takeArena(&p.viewArena, n, maxViewReservation, false)
 }
 
 const (
@@ -315,29 +388,14 @@ const (
 // backing array alive. Non-positive n returns nil; pathological sizes
 // bypass the arena entirely.
 func (p *scratchPools) takeLayoutChildren(n int) []Layout {
-	if n <= 0 {
-		return nil
-	}
-	if n > maxLayoutChildrenReservation {
-		return make([]Layout, 0, n)
-	}
-	start := len(p.layoutChildrenArena)
-	need := start + n
-	if cap(p.layoutChildrenArena) < need {
-		grown := make([]Layout, need, growCap(cap(p.layoutChildrenArena), need))
-		copy(grown, p.layoutChildrenArena)
-		p.layoutChildrenArena = grown
-	} else {
-		p.layoutChildrenArena = p.layoutChildrenArena[:need]
-	}
-	return p.layoutChildrenArena[start:start:need]
+	return takeArena(&p.layoutChildrenArena, n, maxLayoutChildrenReservation, false)
 }
 
-// resetRenderPools resets the render-phase object pools. Called at the
-// start of each frame before building the render command list.
-// svgVColArena is shrunk when it has grown past svgVColRetainMax so a
-// one-off spike frame does not hold hundreds of KB of vertex-color
-// capacity indefinitely.
+// resetRenderPools resets the render-phase object pools and truncates
+// the render-phase arena. Called at the start of each frame before
+// building the render command list. svgVColArena shrinks only when it
+// has grown past svgVColRetainMax, so a one-off spike frame does not
+// hold hundreds of KB of vertex-color capacity indefinitely.
 func (p *scratchPools) resetRenderPools() {
 	p.renderTextStyles.reset()
 	p.renderGlyphLayouts.reset()
@@ -363,29 +421,68 @@ const (
 const maxVColReservation = 1 << 20
 
 // takeVColors reserves a subslice of n Colors from the frame-
-// scoped vertex-color arena. The returned slice has its cap
-// pinned so subsequent appends by the caller cannot bleed into
-// the next reservation. Realloc of the underlying arena is safe:
-// prior reservations remain valid because their slice headers
-// keep the old backing array alive. Non-positive n returns nil;
-// pathological sizes bypass the arena entirely.
+// scoped vertex-color arena. Unlike takeLayoutChildren and takeViews,
+// the returned slice has length n, not zero. Both callers overwrite
+// every slot by index, so no stale color from a previous frame can
+// leak through. A caller that only writes some slots must not use
+// this function. The cap is pinned so appends cannot bleed into the
+// next reservation. Realloc of the underlying arena is safe: prior
+// reservations remain valid because their slice headers keep the old
+// backing array alive. Non-positive n returns nil; pathological sizes
+// bypass the arena entirely.
 func (p *scratchPools) takeVColors(n int) []Color {
+	return takeArena(&p.svgVColArena, n, maxVColReservation, true)
+}
+
+// arenaNeed adds a reservation to an arena length. It reports false
+// when start+n overflows, so the caller can fall back to a standalone
+// slice instead of growing the arena to a wrapped length. Pure
+// function, so tests can pin the overflow boundary without any
+// allocation.
+func arenaNeed(start, n int) (int, bool) {
+	need := start + n
+	if need < start {
+		return 0, false
+	}
+	return need, true
+}
+
+// takeArena reserves n elements from a frame-scoped arena. It holds
+// the single copy of the growth logic that takeViews,
+// takeLayoutChildren and takeVColors share.
+//
+// fullLen selects the returned length. False hands back len 0 and cap
+// n for callers that append. True hands back len n and cap n for
+// callers that overwrite every slot by index.
+//
+// A reservation past maxReservation bypasses the arena with a
+// standalone slice, so one pathological request cannot pin arena
+// memory across frames. The standalone size stays proportional to n,
+// which always derives from a resident length. The pool never
+// amplifies an allocation past memory the caller already holds.
+func takeArena[T any](arena *[]T, n, maxReservation int, fullLen bool) []T {
 	if n <= 0 {
 		return nil
 	}
-	if n > maxVColReservation {
-		return make([]Color, n)
+	start := len(*arena)
+	need, ok := arenaNeed(start, n)
+	if n > maxReservation || !ok {
+		if fullLen {
+			return make([]T, n)
+		}
+		return make([]T, 0, n)
 	}
-	start := len(p.svgVColArena)
-	need := start + n
-	if cap(p.svgVColArena) < need {
-		grown := make([]Color, need, growCap(cap(p.svgVColArena), need))
-		copy(grown, p.svgVColArena)
-		p.svgVColArena = grown
+	if cap(*arena) < need {
+		grown := make([]T, need, growCap(cap(*arena), need))
+		copy(grown, *arena)
+		*arena = grown
 	} else {
-		p.svgVColArena = p.svgVColArena[:need]
+		*arena = (*arena)[:need]
 	}
-	return p.svgVColArena[start:need:need]
+	if fullLen {
+		return (*arena)[start:need:need]
+	}
+	return (*arena)[start:start:need]
 }
 
 // growCap returns a new capacity at least need, roughly doubling
@@ -405,6 +502,9 @@ func (p *scratchPools) takeFloatingLayouts(requiredCap int) []*Layout {
 	if cap(s) < requiredCap {
 		s = make([]*Layout, 0, requiredCap)
 	}
+	// Taking the slice also rewinds both object pools. Their cursors
+	// are scoped to the same extraction pass as the slice, so one
+	// take opens the whole floating group and one put closes it.
 	p.floatingPoolUsed = 0
 	p.placeholderPoolUsed = 0
 	return s
@@ -415,6 +515,9 @@ func (p *scratchPools) putFloatingLayouts(s []*Layout) {
 		s = make([]*Layout, 0, scratchFloatingLayoutsShrinkTo)
 	}
 	p.floatingLayouts = s[:0]
+	// The slice cap bounds retained backing memory, but the object
+	// pools below hold pointers, so their length counts retained
+	// allocations. Each uses its own bound for that reason.
 	if len(p.floatingLayoutPool) > scratchFloatingPoolRetainMax {
 		p.floatingLayoutPool = make([]*Layout, 0, scratchFloatingPoolShrinkTo)
 	}

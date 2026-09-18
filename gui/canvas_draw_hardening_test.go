@@ -220,6 +220,31 @@ func TestResetForReleasesPointBuffer(t *testing.T) {
 	}
 }
 
+// resetFor covers the gradient ramp buffer like every other canvas
+// scratch buffer: a run-away one is released, a normal one is
+// truncated for reuse. Before the fix the ramp buffer was missing
+// from the reset list and kept its spike capacity forever.
+func TestResetForReleasesRampBuffer(t *testing.T) {
+	dc := NewDrawContext(100, 100, nil)
+	// Past 1 MB in bytes: 2^15 segments at 60 bytes each.
+	dc.gradRampBuf = make([]gradRampSegment, 0, 1<<15)
+	dc.resetFor(100, 100, 1, nil, drawCanvasCache{})
+	if cap(dc.gradRampBuf) != 0 {
+		t.Fatalf("gradRampBuf kept %d segments past the retain cap",
+			cap(dc.gradRampBuf))
+	}
+
+	dc.gradRampBuf = make([]gradRampSegment, 10, 64)
+	dc.resetFor(100, 100, 1, nil, drawCanvasCache{})
+	if len(dc.gradRampBuf) != 0 {
+		t.Fatalf("gradRampBuf len = %d, want 0", len(dc.gradRampBuf))
+	}
+	if cap(dc.gradRampBuf) != 64 {
+		t.Fatalf("gradRampBuf cap = %d, want 64 retained",
+			cap(dc.gradRampBuf))
+	}
+}
+
 // FillTrianglesColors takes the same input bound its gradient twin
 // takes: a hostile mesh must not be walked.
 func TestFillTrianglesColorsBoundsInput(t *testing.T) {

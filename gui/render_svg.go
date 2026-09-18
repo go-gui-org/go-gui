@@ -116,7 +116,7 @@ func renderSvg(shape *Shape, clip drawClip, w *Window) {
 			float64(time.Second)
 		contribScratch := w.scratch.svgAnimContribs.take(
 			len(cached.Animations))
-		animState = computeSvgAnimationsReuse(
+		animState, contribScratch = computeSvgAnimationsReuse(
 			cached.Animations, elapsed, animState, contribScratch,
 			cached.baseByPath)
 		w.scratch.svgAnimContribs.put(contribScratch)

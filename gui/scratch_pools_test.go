@@ -464,3 +464,253 @@ func TestBeginFillPass_SkipsZero(t *testing.T) {
 		t.Fatalf("overflow must skip 0: got %d, want 1", p.fillGen)
 	}
 }
+
+// --- takeArena ---
+
+func TestTakeArena_EmptyLenContract(t *testing.T) {
+	var arena []int
+	a := takeArena(&arena, 4, 1<<20, false)
+	if len(a) != 0 || cap(a) != 4 {
+		t.Fatalf("want len=0 cap=4, got len=%d cap=%d", len(a), cap(a))
+	}
+	marker := 7
+	for range cap(a) {
+		a = append(a, marker)
+	}
+	b := takeArena(&arena, 3, 1<<20, false)
+	for range cap(b) {
+		b = append(b, 9)
+	}
+	for i := range a {
+		if a[i] != marker {
+			t.Fatalf("a[%d] clobbered by b", i)
+		}
+	}
+}
+
+func TestTakeArena_FullLenContract(t *testing.T) {
+	var arena []int
+	a := takeArena(&arena, 4, 1<<20, true)
+	if len(a) != 4 || cap(a) != 4 {
+		t.Fatalf("want len=cap=4, got len=%d cap=%d", len(a), cap(a))
+	}
+}
+
+func TestTakeArena_NonPositiveReturnsNil(t *testing.T) {
+	var arena []int
+	if takeArena(&arena, 0, 1<<20, false) != nil {
+		t.Fatal("n=0 must return nil")
+	}
+	if takeArena(&arena, -3, 1<<20, true) != nil {
+		t.Fatal("negative n must return nil")
+	}
+}
+
+func TestTakeArena_OversizeBypassesArena(t *testing.T) {
+	var arena []int
+	a := takeArena(&arena, (1<<20)+10, 1<<20, false)
+	if cap(a) != (1<<20)+10 {
+		t.Fatalf("expected cap=%d, got %d", (1<<20)+10, cap(a))
+	}
+	if len(arena) != 0 {
+		t.Fatal("arena must stay empty for oversize requests")
+	}
+}
+
+func TestTakeArena_GrowthPreservesPriorSlices(t *testing.T) {
+	var arena []int
+	first := takeArena(&arena, 4, 1<<20, true)
+	for i := range first {
+		first[i] = i + 1
+	}
+	_ = takeArena(&arena, 1024, 1<<20, true)
+	for i := range first {
+		if first[i] != i+1 {
+			t.Fatalf("first[%d]=%d clobbered by arena growth", i, first[i])
+		}
+	}
+}
+
+func TestArenaNeed_OverflowFallsBack(t *testing.T) {
+	huge := int(^uint(0) >> 1) // math.MaxInt
+	if _, ok := arenaNeed(huge, 1<<20); ok {
+		t.Fatal("start+n past MaxInt must report overflow")
+	}
+	need, ok := arenaNeed(10, 5)
+	if !ok || need != 15 {
+		t.Fatalf("want (15, true), got (%d, %v)", need, ok)
+	}
+}
+
+// --- takeViews (mirrors the takeLayoutChildren coverage) ---
+
+func TestTakeViews_BasicReservation(t *testing.T) {
+	var p scratchPools
+	a := p.takeViews(4)
+	if len(a) != 0 || cap(a) != 4 {
+		t.Fatalf("want len=0 cap=4, got len=%d cap=%d", len(a), cap(a))
+	}
+}
+
+func TestTakeViews_OversizeBypassesArena(t *testing.T) {
+	var p scratchPools
+	a := p.takeViews(maxViewReservation + 10)
+	if cap(a) != maxViewReservation+10 {
+		t.Fatalf("expected cap=%d, got %d",
+			maxViewReservation+10, cap(a))
+	}
+	if len(p.viewArena) != 0 {
+		t.Fatal("arena must stay empty for oversize requests")
+	}
+}
+
+// --- scratchMapShouldRegrow ---
+
+func TestScratchMapShouldRegrow(t *testing.T) {
+	cases := []struct {
+		prevLen, hint int
+		want          bool
+	}{
+		{0, 0, false},
+		{0, 8, false},
+		{0, 9, true},
+		{10, 40, false},
+		{10, 41, true},
+		{100, 1000, true},
+		{1000, 100, false},
+	}
+	for _, tc := range cases {
+		got := scratchMapShouldRegrow(tc.prevLen, tc.hint)
+		if got != tc.want {
+			t.Errorf("regrow(%d, %d)=%v, want %v",
+				tc.prevLen, tc.hint, got, tc.want)
+		}
+	}
+}
+
+func TestScratchMapTakeRegrowsForLargeHint(t *testing.T) {
+	s := scratchMap[uint32, struct{}]{retainMax: 4096}
+	m := s.take(8)
+	m[1] = struct{}{}
+	s.put(m)
+	grown := s.take(1000)
+	if len(grown) != 0 {
+		t.Fatal("reused map must be cleared")
+	}
+	grown[2] = struct{}{}
+	s.put(grown)
+	if len(s.m) != 1 {
+		t.Fatal("grown map must round-trip through put")
+	}
+}
+
+// --- zero-value scratchObjPool ---
+
+func TestScratchObjPoolZeroValueShrinks(t *testing.T) {
+	var pool scratchObjPool[TextStyle]
+	for i := range defaultScratchObjRetainMax + 100 {
+		pool.alloc(TextStyle{Size: float32(i)})
+	}
+	pool.reset()
+	if len(pool.items) != 0 {
+		t.Fatalf("want shrunk pool, got len=%d", len(pool.items))
+	}
+	if cap(pool.items) != defaultScratchObjShrinkTo {
+		t.Fatalf("want cap %d, got %d",
+			defaultScratchObjShrinkTo, cap(pool.items))
+	}
+}
+
+func TestScratchObjPoolEffectiveLimits(t *testing.T) {
+	var zero scratchObjPool[TextStyle]
+	retainMax, shrinkTo := zero.effectiveLimits()
+	if retainMax != defaultScratchObjRetainMax ||
+		shrinkTo != defaultScratchObjShrinkTo {
+		t.Fatalf("zero pool must use defaults, got (%d, %d)",
+			retainMax, shrinkTo)
+	}
+	custom := scratchObjPool[TextStyle]{retainMax: 64, shrinkTo: 8}
+	retainMax, shrinkTo = custom.effectiveLimits()
+	if retainMax != 64 || shrinkTo != 8 {
+		t.Fatalf("explicit limits must win, got (%d, %d)",
+			retainMax, shrinkTo)
+	}
+}
+
+// --- keepScratch byte cap ---
+
+func TestKeepScratchByteCap(t *testing.T) {
+	// Same element count, different widths: bytes decide.
+	narrow := make([]byte, 0, canvasScratchRetainMax)
+	if keepScratch(narrow) == nil {
+		t.Fatal("256 KB byte buffer must be retained")
+	}
+	wide := make([]int64, 0, canvasScratchRetainMax)
+	if keepScratch(wide) != nil {
+		t.Fatal("2 MB int64 buffer must be released")
+	}
+}
+
+func TestKeepScratchFloatBoundaryUnchanged(t *testing.T) {
+	// float32 keeps the old element-count boundary exactly: 1 MB.
+	kept := make([]float32, 0, canvasScratchRetainMax)
+	if keepScratch(kept) == nil {
+		t.Fatal("exactly 1 MB must be retained")
+	}
+	dropped := make([]float32, 0, canvasScratchRetainMax+1)
+	if keepScratch(dropped) != nil {
+		t.Fatal("past 1 MB must be released")
+	}
+}
+
+// --- computeSvgAnimationsReuse scratch growth ---
+
+func TestComputeReuseReturnsGrownScratch(t *testing.T) {
+	const n = 64
+	anims := make([]SvgAnimation, 0, n)
+	for i := range n {
+		anims = append(anims, SvgAnimation{
+			Kind:          SvgAnimOpacity,
+			GroupID:       "g",
+			TargetPathIDs: []uint32{uint32(i + 1)},
+			Values:        []float32{0, 1},
+			DurSec:        1,
+		})
+	}
+	var p scratchPools
+	p.svgAnimContribs = scratchSlice[animContrib]{retainMax: 1024, shrinkTo: 64}
+	scratch := p.svgAnimContribs.take(0)
+	states, grown := computeSvgAnimationsReuse(anims, 0.5, nil, scratch, nil)
+	if len(states) != n {
+		t.Fatalf("want %d states, got %d", n, len(states))
+	}
+	if cap(grown) < n {
+		t.Fatalf("returned scratch must hold %d contribs, cap=%d",
+			n, cap(grown))
+	}
+	// The pool must retain the growth, not the small original.
+	p.svgAnimContribs.put(grown)
+	if cap(p.svgAnimContribs.buf) < n {
+		t.Fatalf("pool must keep grown backing, cap=%d",
+			cap(p.svgAnimContribs.buf))
+	}
+}
+
+// A hint that overstates the fill must not reallocate every frame.
+// SVG callers hint with len(anims) while states key by PathID, so
+// twenty animations on two paths fill only two entries. Before the
+// fix, regrow compared the hint to the last fill count and made a
+// fresh map on every take.
+func TestScratchMapTakeOverstatedHintReuses(t *testing.T) {
+	s := scratchMap[uint32, struct{}]{retainMax: 4096}
+	frame := func() {
+		m := s.take(20)
+		m[1] = struct{}{}
+		m[2] = struct{}{}
+		s.put(m)
+	}
+	frame() // warm: first take allocates
+	if a := testing.AllocsPerRun(50, frame); a != 0 {
+		t.Fatalf("steady-state take allocs = %v, want 0", a)
+	}
+}
