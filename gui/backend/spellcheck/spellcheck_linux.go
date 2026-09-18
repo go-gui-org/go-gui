@@ -64,11 +64,7 @@ func loadPersonalDict() {
 	defer func() { _ = f.Close() }()
 
 	capped := io.LimitReader(f, maxPersonalWords*(maxPersonalLine+1))
-	words := parsePersonalWords(readPersonalLines(capped))
-	for i, word := range words {
-		if i >= maxPersonalWords {
-			break
-		}
+	for _, word := range parsePersonalWords(readPersonalLines(capped)) {
 		cWord := C.CString(word)
 		C.Hunspell_add(handle, cWord)
 		C.free(unsafe.Pointer(cWord))

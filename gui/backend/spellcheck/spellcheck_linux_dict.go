@@ -51,7 +51,7 @@ func detectLang() string {
 func findDict(lang string) (aff, dic string, ok bool) {
 	var dirs []string
 	if p := os.Getenv("DICPATH"); p != "" {
-		for _, dir := range strings.Split(p, ":") {
+		for dir := range strings.SplitSeq(p, ":") {
 			// Skip empty entries: Join("", lang) probes the
 			// working directory, which is never a dict dir.
 			if dir == "" {
@@ -120,10 +120,16 @@ func readPersonalLines(r io.Reader) []string {
 // parsePersonalWords drops blanks and overlong lines, then strips a
 // leading hunspell count header: a number with words after it. A
 // file holding only a number learned that number as a word, so the
-// header needs a follower to count as one.
+// header needs a follower to count as one. The result is capped at
+// maxPersonalWords, so callers can range over it directly.
+// Lengths are bytes, the same unit readPersonalLines caps with, so a
+// word Learn accepts always survives a load.
 func parsePersonalWords(lines []string) []string {
 	var words []string
 	for _, line := range lines {
+		if len(words) >= maxPersonalWords {
+			break
+		}
 		trimmed := strings.TrimSpace(line)
 		if trimmed == "" || len(trimmed) > maxPersonalLine {
 			continue

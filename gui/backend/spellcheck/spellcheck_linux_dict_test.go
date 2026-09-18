@@ -113,6 +113,28 @@ func TestParsePersonalWords(t *testing.T) {
 	}
 }
 
+func TestParsePersonalWordsCapsCount(t *testing.T) {
+	var lines []string
+	for range maxPersonalWords + 10 {
+		lines = append(lines, "word\n")
+	}
+	if got := parsePersonalWords(lines); len(got) != maxPersonalWords {
+		t.Errorf("parsePersonalWords capped at %d, want %d", len(got), maxPersonalWords)
+	}
+}
+
+func TestReadPersonalLines(t *testing.T) {
+	// A final line without a trailing newline is still a word;
+	// readPersonalLines returns raw lines, trimming is parse's job.
+	got := readPersonalLines(strings.NewReader("hello\nworld"))
+	if len(got) != 2 || got[0] != "hello\n" || got[1] != "world" {
+		t.Errorf("readPersonalLines = %q, want [hello world]", got)
+	}
+	if got := readPersonalLines(strings.NewReader("")); len(got) != 1 || got[0] != "" {
+		t.Errorf("readPersonalLines empty = %q, want one empty line", got)
+	}
+}
+
 func TestValidLearnWord(t *testing.T) {
 	tests := []struct {
 		name string
