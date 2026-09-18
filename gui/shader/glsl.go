@@ -102,8 +102,9 @@ const (
         uv = texcoord0;
         color = color0;
         params = position.z;
-        offset = (tm * vec4(0,0,0,1)).xy; // Extract translation
-        spread = (tm * vec4(0,0,0,1)).z;  // tm[14]: shadow growth
+        vec4 tm_origin = tm * vec4(0,0,0,1);
+        offset = tm_origin.xy; // Extract translation
+        spread = tm_origin.z;  // tm[14]: shadow growth
     }
 `
 
@@ -185,7 +186,10 @@ const (
         vec2 q = abs(pos) - half_size + vec2(radius + 1.5 * blur);
         float d = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - radius;
 
-        float alpha = 1.0 - smoothstep(-blur, blur, d);
+        // Guarded: smoothstep with identical edges is undefined,
+        // and a sub-quarter-pixel blur packs to exactly 0.
+        float b_half = max(1.0, blur);
+        float alpha = 1.0 - smoothstep(-b_half, b_half, d);
 
         frag_color = vec4(color.rgb, color.a * alpha);
 
@@ -429,7 +433,6 @@ const (
     #version 330
     uniform sampler2D tex_smp;
     in vec2 uv;
-    in vec4 color;
     in float std_dev;
 
     out vec4 frag_color;
@@ -453,7 +456,6 @@ const (
     #version 330
     uniform sampler2D tex_smp;
     in vec2 uv;
-    in vec4 color;
     in float std_dev;
 
     out vec4 frag_color;
@@ -477,8 +479,6 @@ const (
     uniform sampler2D tex_smp;
     uniform mat4 tm;
     in vec2 uv;
-    in vec4 color;
-    in float std_dev;
 
     out vec4 frag_color;
 
@@ -558,7 +558,6 @@ const (
     uniform sampler2D tex_smp;
     in vec2 uv;
     in vec4 color;
-    in float std_dev;
 
     out vec4 frag_color;
 

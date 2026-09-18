@@ -125,7 +125,13 @@ func initBackend(layerPtr unsafe.Pointer,
 		textures: newMetalTexCacheLRU(128),
 		customCache: texcache.New[uint64, C.int](
 			maxCustomPipelines,
-			func(idx C.int) { C.metalDeleteCustomPipeline(idx) },
+			func(idx C.int) {
+				// A cached compile failure holds a negative
+				// idx with no pipeline behind it.
+				if idx >= 0 {
+					C.metalDeleteCustomPipeline(idx)
+				}
+			},
 		),
 		maxImageBytes:  cfg.MaxImageBytes,
 		maxImagePixels: cfg.MaxImagePixels,

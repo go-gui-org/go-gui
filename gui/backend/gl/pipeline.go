@@ -39,7 +39,6 @@ type pipelineSet struct {
 	filterColor pipeline
 	filterTex   pipeline
 	stencil     pipeline
-	custom      pipeline // VsCustomGLSL vertex shader, reused per hash
 }
 
 func (b *Backend) initPipelines() error {
@@ -60,7 +59,6 @@ func (b *Backend) initPipelines() error {
 		{&b.pipelines.filterColor, shader.VsFilterBlurGLSL, shader.FsFilterColorGLSL, "filterColor"},
 		{&b.pipelines.filterTex, shader.VsFilterBlurGLSL, shader.FsFilterTextureGLSL, "filterTex"},
 		{&b.pipelines.stencil, shader.VsGLSL, shader.FsStencilGLSL, "stencil"},
-		{&b.pipelines.custom, shader.VsCustomGLSL, shader.FsGLSL, "custom"},
 	}
 	for _, e := range entries {
 		p, err := buildPipeline(e.vs, e.fs)
@@ -95,7 +93,6 @@ func (b *Backend) destroyPipelines() {
 	destroy(&b.pipelines.filterColor)
 	destroy(&b.pipelines.filterTex)
 	destroy(&b.pipelines.stencil)
-	destroy(&b.pipelines.custom)
 	b.pipelines.customCache.DestroyAll()
 }
 
@@ -150,7 +147,7 @@ func compileShader(src string, shaderType uint32) (uint32, error) {
 		infoLog := make([]byte, logLen)
 		gogl.GetShaderInfoLog(shader, logLen, nil, &infoLog[0])
 		gogl.DeleteShader(shader)
-		return 0, fmt.Errorf("compile: %s", strings.TrimSpace(string(infoLog)))
+		return 0, fmt.Errorf("compile: %s", trimInfoLog(infoLog))
 	}
 	return shader, nil
 }
@@ -173,23 +170,32 @@ func linkProgram(vs, fs uint32) (uint32, error) {
 		infoLog := make([]byte, logLen)
 		gogl.GetProgramInfoLog(prog, logLen, nil, &infoLog[0])
 		gogl.DeleteProgram(prog)
-		return 0, fmt.Errorf("link: %s", strings.TrimSpace(string(infoLog)))
+		return 0, fmt.Errorf("link: %s", trimInfoLog(infoLog))
 	}
 	return prog, nil
 }
 
 const maxCustomPipelines = 32
 
+// errCustomShaderCompile marks a cached compile failure. A broken
+// body would otherwise recompile on every frame; the zero pipeline
+// (program == 0) holds the slot until LRU eviction.
+var errCustomShaderCompile = errors.New("custom shader compile failed (cached)")
+
 // getOrBuildCustomPipeline returns a cached custom shader pipeline
 // or compiles a new one. The cache evicts the LRU entry when full.
 func (b *Backend) getOrBuildCustomPipeline(s *gui.Shader) (pipeline, error) {
 	h := gui.ShaderHash(s)
 	if p, ok := b.pipelines.customCache.Get(h); ok {
+		if p.program == 0 {
+			return pipeline{}, errCustomShaderCompile
+		}
 		return p, nil
 	}
 	fsSrc := gui.BuildGLSLFragment(s.GLSL)
 	p, err := buildPipeline(shader.VsCustomGLSL, fsSrc)
 	if err != nil {
+		b.pipelines.customCache.Set(h, pipeline{})
 		return pipeline{}, err
 	}
 	b.pipelines.customCache.Set(h, p)
@@ -204,6 +210,13 @@ func (b *Backend) usePipeline(p *pipeline) {
 
 func glStr(s string) *uint8 {
 	return (*uint8)(unsafe.Pointer(unsafe.StringData(s)))
+}
+
+// trimInfoLog renders a GL info log printable. logLen counts the
+// terminating NUL, so the raw bytes carry trailing NULs that
+// TrimSpace leaves behind.
+func trimInfoLog(infoLog []byte) string {
+	return strings.TrimSpace(strings.TrimRight(string(infoLog), "\x00"))
 }
 
 func uniformLoc(prog uint32, names ...string) int32 {

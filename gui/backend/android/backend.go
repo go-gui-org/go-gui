@@ -193,7 +193,13 @@ func initBackend(w, h int32, scale float32) {
 		textures: newGLESTexCacheLRU(128),
 		customCache: texcache.New[uint64, C.int](
 			maxCustomPipelines,
-			func(idx C.int) { C.glesDeleteCustomPipeline(idx) },
+			func(idx C.int) {
+				// A cached compile failure holds a negative
+				// idx with no pipeline behind it.
+				if idx >= 0 {
+					C.glesDeleteCustomPipeline(idx)
+				}
+			},
 		),
 		maxImageBytes:  cfg.MaxImageBytes,
 		maxImagePixels: cfg.MaxImagePixels,

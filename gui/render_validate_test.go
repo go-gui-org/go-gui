@@ -420,6 +420,19 @@ func TestRendererValidCustomShader(t *testing.T) {
 	if rendererValidForDraw(r) {
 		t.Error("zero width should fail (W > 0 required)")
 	}
+	r.W = 10
+	r.Shader = &Shader{}
+	if rendererValidForDraw(r) {
+		t.Error("empty shader bodies should fail")
+	}
+	r.Shader = &Shader{Metal: "...", Params: []float32{float32(math.NaN())}}
+	if rendererValidForDraw(r) {
+		t.Error("NaN shader param should fail")
+	}
+	r.Shader = &Shader{GLSL: "...", Params: []float32{float32(math.Inf(1))}}
+	if rendererValidForDraw(r) {
+		t.Error("Inf shader param should fail")
+	}
 }
 
 func TestRendererValidRotateBegin(t *testing.T) {

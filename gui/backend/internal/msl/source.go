@@ -116,8 +116,9 @@ vertex ShadowOut vs_shadow(
     out.uv       = in.texcoord;
     out.color    = in.color;
     out.params   = in.position.z;
-    out.offset   = (tm * float4(0, 0, 0, 1)).xy;
-    out.spread   = (tm * float4(0, 0, 0, 1)).z;
+    float4 tm_origin = tm * float4(0, 0, 0, 1);
+    out.offset   = tm_origin.xy;
+    out.spread   = tm_origin.z;
     return out;
 }
 
@@ -254,7 +255,10 @@ fragment float4 fs_blur(BlurOut in [[stage_in]]) {
     float d = length(max(q, float2(0.0)))
             + min(max(q.x, q.y), 0.0) - radius;
 
-    float alpha = 1.0 - smoothstep(-blur, blur, d);
+    // Guarded: smoothstep with identical edges is undefined,
+    // and a sub-quarter-pixel blur packs to exactly 0.
+    float b_half = max(1.0, blur);
+    float alpha = 1.0 - smoothstep(-b_half, b_half, d);
     return float4(in.color.rgb, in.color.a * alpha);
 }
 

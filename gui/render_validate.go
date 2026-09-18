@@ -264,8 +264,15 @@ func validBlurCmd(r RenderCmd) bool {
 }
 
 func validCustomShaderCmd(r RenderCmd) bool {
+	if r.Shader == nil {
+		return false
+	}
+	body := r.Shader
+	if body.Metal == "" && body.GLSL == "" {
+		return false
+	}
 	return f32AllFinite4(r.X, r.Y, r.W, r.H) &&
-		r.W > 0 && r.H > 0 && r.Shader != nil
+		r.W > 0 && r.H > 0 && f32AllFinite(body.Params)
 }
 
 func validRotateBeginCmd(r RenderCmd) bool {

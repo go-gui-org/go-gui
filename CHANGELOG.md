@@ -379,6 +379,28 @@ and this project adheres to
 - **Filtered lists keep row order on tied scores** — equal fuzzy scores came
   back in whatever order the unstable sort left behind, so a filter could
   shuffle matching rows between frames. Ties now break by row index.
+- **Custom-shader hardening: guarded blur, cached failures, one wrapper copy** —
+  a review of the shader code:
+  - The blur shader called `smoothstep(-blur, blur, d)`, which is undefined when
+    both edges are equal, and a sub-quarter-pixel blur packs to exactly 0. It
+    now guards with `max(1.0, blur)` like the shadow shader, in the GLSL, MSL
+    and Android copies.
+  - A body that failed to compile recompiled on every frame. Failures are now
+    cached (a zero pipeline on GL, a negative index on Metal/iOS/Android, the
+    existing nil slot on web), so a broken body compiles once. The GL backend
+    also drops its unused prebuilt custom pipeline.
+  - The wrapper around a custom body lived in five copies. Desktop and ES GLSL
+    now share one core behind `BuildGLSLFragment`/`BuildGLSLESFragment`, and
+    Metal/iOS share `msl.BuildCustom`; new agreement tests pin all three to the
+    same SDF clipping and varyings.
+  - Render validation now rejects a shader with neither body and non-finite
+    params. `Params` past the first 16 are documented as ignored,
+    `ShaderHash(nil)` returns 0 instead of panicking, and its platform-dependent
+    key is documented.
+  - The web backend kept an exact-fit offscreen canvas, reallocating once per
+    widget per frame when two custom shaders differed in size. It now retains
+    the backing store (`gpu.RetainBackingSize`, shrink past 8x waste) and blits
+    the drawn sub-rectangle.
 
 ## [v0.77.0] - 2026-09-16
 

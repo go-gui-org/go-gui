@@ -76,8 +76,29 @@ framework applies SDF clipping automatically.
 
 ## Notes
 
-- Must provide both Metal and GLSL bodies for cross-platform
+- Must provide both Metal and GLSL bodies for cross-platform. A shader with
+  neither body is dropped by render validation; each backend compiles only its
+  own body and ignores the other.
+- Bodies are trusted app source spliced into the shader as-is: no `#version` or
+  `main`, and never built from untrusted input.
+- Params past the first 16 are ignored; NaN or Inf params drop the draw.
 - Pipeline is compiled once per unique source and cached (`ShaderHash` computes
-  the cache key)
+  the cache key). A body that fails to compile compiles once, not once per
+  frame, and then follows the fallback contract below.
 - Shader fill takes priority over Gradient and solid Color
 - Add a repeating animation to keep the frame loop hot
+
+## Failure contract
+
+What a missing GPU feature or a broken body draws, per backend:
+
+| Backend            | No WebGL2 / GL context | Body fails to compile |
+| ------------------ | ---------------------- | --------------------- |
+| Web                | Solid fill             | Solid fill            |
+| Desktop GL, Metal, | Nothing                | Nothing               |
+| iOS, Android       |                        |                       |
+| Soft (headless)    | Nothing                | Nothing               |
+
+The web solid fill is the widget color, or the theme's active color when the
+widget sets none. The soft backend has no GPU and always skips custom shaders,
+so screenshots render them as empty.

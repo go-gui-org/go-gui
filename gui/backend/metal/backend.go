@@ -572,7 +572,11 @@ func createWindowState(w *gui.Window) (*windowState, error) {
 		customCache: texcache.New[uint64, C.int](
 			maxCustomPipelines,
 			func(idx C.int) {
-				C.metalDeleteCustomPipeline(ctx, idx)
+				// A cached compile failure holds a negative
+				// idx with no pipeline behind it.
+				if idx >= 0 {
+					C.metalDeleteCustomPipeline(ctx, idx)
+				}
 			},
 		),
 		imagePathCache: texcache.New[string, string](1024, nil),

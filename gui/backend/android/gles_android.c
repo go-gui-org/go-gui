@@ -128,8 +128,9 @@ static const char* vs_shadow_src =
     "    uv = texcoord0;\n"
     "    color = color0;\n"
     "    params = position.z;\n"
-    "    offset = (tm * vec4(0,0,0,1)).xy;\n"
-    "    spread = (tm * vec4(0,0,0,1)).z;\n"
+    "    vec4 tm_origin = tm * vec4(0,0,0,1);\n"
+    "    offset = tm_origin.xy;\n"
+    "    spread = tm_origin.z;\n"
     "}\n";
 
 static const char* fs_shadow_src =
@@ -203,7 +204,10 @@ static const char* fs_blur_src =
     "    vec2 pos = uv * half_size;\n"
     "    vec2 q = abs(pos) - half_size + vec2(radius + 1.5 * blur);\n"
     "    float d = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - radius;\n"
-    "    float alpha = 1.0 - smoothstep(-blur, blur, d);\n"
+    // Guarded: smoothstep with identical edges is undefined,
+    // and a sub-quarter-pixel blur packs to exactly 0.
+    "    float b_half = max(1.0, blur);\n"
+    "    float alpha = 1.0 - smoothstep(-b_half, b_half, d);\n"
     "    frag_color = vec4(color.rgb, color.a * alpha);\n"
     "    if (frag_color.a < 0.0) {\n"
     "        frag_color += texture(tex, uv);\n"
@@ -386,7 +390,6 @@ static const char* fs_filter_blur_h_src =
     "precision highp int;\n"
     "uniform sampler2D tex_smp;\n"
     "in vec2 uv;\n"
-    "in vec4 color;\n"
     "in float std_dev;\n"
     "out vec4 frag_color;\n"
     "void main() {\n"
@@ -410,7 +413,6 @@ static const char* fs_filter_blur_v_src =
     "precision highp int;\n"
     "uniform sampler2D tex_smp;\n"
     "in vec2 uv;\n"
-    "in vec4 color;\n"
     "in float std_dev;\n"
     "out vec4 frag_color;\n"
     "void main() {\n"
@@ -435,7 +437,6 @@ static const char* fs_filter_tex_src =
     "uniform sampler2D tex_smp;\n"
     "in vec2 uv;\n"
     "in vec4 color;\n"
-    "in float std_dev;\n"
     "out vec4 frag_color;\n"
     "void main() {\n"
     "    frag_color = texture(tex_smp, uv) * color;\n"
@@ -449,8 +450,6 @@ static const char* fs_filter_color_src =
     "uniform sampler2D tex_smp;\n"
     "uniform mat4 tm;\n"
     "in vec2 uv;\n"
-    "in vec4 color;\n"
-    "in float std_dev;\n"
     "out vec4 frag_color;\n"
     "void main() {\n"
     "    vec4 src = texture(tex_smp, uv);\n"

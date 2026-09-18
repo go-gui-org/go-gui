@@ -515,18 +515,23 @@ func (b *Backend) drawCustomShader(r *gui.RenderCmd) {
 
 	h := gui.ShaderHash(r.Shader)
 	idx, ok := b.customCache.Get(h)
+	if ok && idx < 0 {
+		return // cached compile failure: do not recompile every frame
+	}
 	if !ok {
 		if b.customCache.Len() >= maxCustomPipelines {
 			b.customCache.EvictOldest()
 		}
-		glslES := buildCustomGLES3Fragment(r.Shader.GLSL)
+		glslES := gui.BuildGLSLESFragment(r.Shader.GLSL)
 		cstr := C.CString(glslES)
 		idx = C.int(C.glesBuildCustomPipeline(cstr))
 		C.free(unsafe.Pointer(cstr))
+		// Cache failures too (negative idx), so a broken body
+		// compiles once, not once per frame.
+		b.customCache.Set(h, idx)
 		if idx < 0 {
 			return
 		}
-		b.customCache.Set(h, idx)
 	}
 
 	s := b.DPIScale
@@ -543,50 +548,6 @@ func (b *Backend) drawCustomShader(r *gui.RenderCmd) {
 		r.Color, r.Radius*s, 0)
 	C.glesDrawQuad((*C.float)(unsafe.Pointer(&verts[0])))
 	b.InvalidatePipelineState()
-}
-
-func buildCustomGLES3Fragment(body string) string {
-	return `#version 300 es
-precision highp float;
-precision highp int;
-
-uniform sampler2D tex;
-in vec2 uv;
-in vec4 color;
-in float params;
-in vec4 p0;
-in vec4 p1;
-in vec4 p2;
-in vec4 p3;
-
-out vec4 _frag_out;
-
-void main() {
-    float radius = floor(params / 4096.0) / 4.0;
-
-    vec2 uv_to_px = 1.0 / (vec2(fwidth(uv.x), fwidth(uv.y)) + 1e-6);
-    vec2 half_size = uv_to_px;
-    vec2 pos = uv * half_size;
-
-    vec2 q = abs(pos) - half_size + vec2(radius);
-    float d = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - radius;
-
-    float grad_len = length(vec2(dFdx(d), dFdy(d)));
-    d = d / max(grad_len, 0.001);
-    float sdf_alpha = 1.0 - smoothstep(-0.59, 0.59, d);
-
-    // --- user body ---
-    ` + body + `
-    // --- end user body ---
-
-    frag_color = vec4(frag_color.rgb, frag_color.a * sdf_alpha);
-
-    if (frag_color.a < 0.0) {
-        frag_color += texture(tex, uv);
-    }
-    _frag_out = frag_color;
-}
-`
 }
 
 // --- Stencil clip ---

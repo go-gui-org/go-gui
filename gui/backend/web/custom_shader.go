@@ -9,6 +9,7 @@ import (
 	"syscall/js"
 
 	"github.com/go-gui-org/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/gpu"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/texcache"
 )
 
@@ -152,8 +153,13 @@ func (r *customShaderRenderer) draw(
 	gl.Call("bufferSubData", gl.Get("ARRAY_BUFFER"), 0, r.vertexBuf)
 	gl.Call("drawElements", gl.Get("TRIANGLES"), 6, gl.Get("UNSIGNED_SHORT"), 0)
 
+	// The canvas may be larger than this draw (see
+	// ensureCanvasSize), so blit only the rendered sub-rectangle.
+	// GL draws bottom-left; the canvas bitmap reads top-left.
 	ctx2d.Call("drawImage",
 		r.canvas,
+		float64(0), float64(r.canvasH-physH),
+		float64(physW), float64(physH),
 		float64(cmd.X), float64(cmd.Y),
 		float64(cmd.W), float64(cmd.H),
 	)
@@ -170,7 +176,7 @@ func (r *customShaderRenderer) getProgram(
 
 	p, err := r.buildProgram(
 		webGL2VertexSource(),
-		webGL2FragmentSource(s.GLSL),
+		gui.BuildGLSLESFragment(s.GLSL),
 	)
 	if err != nil {
 		log.Printf("web: custom shader compile: %v", err)
@@ -292,7 +298,13 @@ func (r *customShaderRenderer) initResources() bool {
 	return true
 }
 
+// ensureCanvasSize keeps a backing store covering w x h without
+// reallocating on every size change. Resizing a canvas drops its
+// GL backing store, so an exact-fit policy reallocates once per
+// widget per frame when two custom shaders differ in size;
+// RetainBackingSize grows and only shrinks past 8x waste.
 func (r *customShaderRenderer) ensureCanvasSize(w, h int) {
+	w, h = gpu.RetainBackingSize(w, h, r.canvasW, r.canvasH)
 	if r.canvasW == w && r.canvasH == h {
 		return
 	}
@@ -411,46 +423,6 @@ void main() {
     p1 = tm[1];
     p2 = tm[2];
     p3 = tm[3];
-}
-`
-}
-
-func webGL2FragmentSource(body string) string {
-	return `#version 300 es
-precision highp float;
-precision highp int;
-
-uniform sampler2D tex;
-in vec2 uv;
-in vec4 color;
-in float params;
-in vec4 p0;
-in vec4 p1;
-in vec4 p2;
-in vec4 p3;
-
-out vec4 outColor;
-
-void main() {
-    float radius = floor(params / 4096.0) / 4.0;
-
-    vec2 uv_to_px = 1.0 / (vec2(fwidth(uv.x), fwidth(uv.y)) + 1e-6);
-    vec2 half_size = uv_to_px;
-    vec2 pos = uv * half_size;
-
-    vec2 q = abs(pos) - half_size + vec2(radius);
-    float d = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - radius;
-
-    float grad_len = length(vec2(dFdx(d), dFdy(d)));
-    d = d / max(grad_len, 0.001);
-    float sdf_alpha = 1.0 - smoothstep(-0.59, 0.59, d);
-
-    ` + body + `
-
-    outColor = vec4(frag_color.rgb, frag_color.a * sdf_alpha);
-    if (outColor.a < 0.0) {
-        outColor += texture(tex, uv);
-    }
 }
 `
 }

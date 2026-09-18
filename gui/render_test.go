@@ -1052,7 +1052,7 @@ func TestRenderContainerBorderAfterEveryFill(t *testing.T) {
 		fx   shapeEffects
 		kind renderKind
 	}{
-		{"shader", shapeEffects{Shader: &Shader{}}, RenderCustomShader},
+		{"shader", shapeEffects{Shader: &Shader{Metal: "m", GLSL: "g"}}, RenderCustomShader},
 		{"gradient", shapeEffects{Gradient: grad}, RenderGradient},
 		{"blur", shapeEffects{BlurRadius: 4}, RenderBlur},
 		{"solid", shapeEffects{}, RenderRect},
