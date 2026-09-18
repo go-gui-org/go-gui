@@ -219,10 +219,18 @@ func (w *Window) clearViewState() {
 }
 
 // clearViewStateLocked resets view state. Caller must hold w.mu.
+//
+// Registry maps, hot-map caches, focus and the hover/press targets
+// reset. Content caches (markdown, diagram, RTF layout) are kept:
+// keyed by content hash and Theme.id, they stay valid across view
+// changes.
 func (w *Window) clearViewStateLocked() {
 	w.viewState.registry.Clear()
 	w.clearHotMaps()
 	w.viewState.focusID.Store("")
+	w.viewState.hoverTargetID = ""
+	w.viewState.pressTargetID = ""
+	w.viewState.keyPressTargetID = ""
 }
 
 // ClearDrawCanvasCache drops all cached tessellation data,

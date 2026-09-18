@@ -1,7 +1,9 @@
 package gui
 
 // BoundedStack is a stack with maximum size. When full, oldest
-// entries are dropped (FIFO eviction).
+// entries are dropped (FIFO eviction). A maxSize below 1 keeps
+// nothing: Push drops the element. Not thread-safe; main-goroutine
+// only, like StateMap.
 // exportaudit:keep — reachable from an exported signature
 type BoundedStack[T any] struct {
 	buf     []T

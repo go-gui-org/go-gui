@@ -1,6 +1,9 @@
 package gui
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestStateMapRoundTrip(t *testing.T) {
 	w := &Window{}
@@ -190,5 +193,124 @@ func TestScrollReadReturnsNilWhenCold(t *testing.T) {
 	sxRead := w.scrollXRead()
 	if sxRead != sxWarm {
 		t.Error("scrollXRead should return warm instance after lazy init")
+	}
+}
+
+func TestStateMapTypeMismatchPanicsWithNamespace(t *testing.T) {
+	w := &Window{}
+	StateMap[string, int](w, "test.mismatch", 10).Set("k", 1)
+
+	defer func() {
+		r := recover()
+		if r == nil {
+			t.Fatal("expected panic reusing a namespace with other types")
+		}
+		msg, isString := r.(string)
+		if !isString {
+			t.Fatalf("panic is %T, want string", r)
+		}
+		if !strings.Contains(msg, "test.mismatch") {
+			t.Errorf("panic %q names no namespace", msg)
+		}
+		if !strings.Contains(msg, "BoundedMap[string,int]") ||
+			!strings.Contains(msg, "BoundedMap[string,string]") {
+			t.Errorf("panic %q names no types", msg)
+		}
+	}()
+	StateMap[string, string](w, "test.mismatch", 10)
+}
+
+func TestStateMapReadTypeMismatchPanicsWithNamespace(t *testing.T) {
+	w := &Window{}
+	StateMap[string, int](w, "test.mismatch.read", 10).Set("k", 1)
+
+	defer func() {
+		r := recover()
+		if r == nil {
+			t.Fatal("expected panic reading a namespace with other types")
+		}
+		msg, isString := r.(string)
+		if !isString {
+			t.Fatalf("panic is %T, want string", r)
+		}
+		if !strings.Contains(msg, "test.mismatch.read") {
+			t.Errorf("panic %q names no namespace", msg)
+		}
+	}()
+	StateMapRead[string, string](w, "test.mismatch.read")
+}
+
+func TestClearViewStateResetsInteractionTargets(t *testing.T) {
+	w := &Window{}
+	w.viewState.hoverTargetID = "panel:button"
+	w.viewState.pressTargetID = "panel:button"
+	w.viewState.keyPressTargetID = "panel:field"
+
+	w.clearViewState()
+
+	if w.viewState.hoverTargetID != "" {
+		t.Errorf("hoverTargetID: got %q, want empty", w.viewState.hoverTargetID)
+	}
+	if w.viewState.pressTargetID != "" {
+		t.Errorf("pressTargetID: got %q, want empty", w.viewState.pressTargetID)
+	}
+	if w.viewState.keyPressTargetID != "" {
+		t.Errorf("keyPressTargetID: got %q, want empty",
+			w.viewState.keyPressTargetID)
+	}
+}
+
+func TestBoundedMapClearZeroesOrderSlots(t *testing.T) {
+	m := NewBoundedMap[string, int](4)
+	m.Set("a", 1)
+	m.Set("b", 2)
+	m.Clear()
+
+	// Clear keeps the backing array; its slots must not pin old keys.
+	for i, k := range m.order[:cap(m.order)] {
+		if k != "" {
+			t.Errorf("order[%d] = %q after Clear, want zero", i, k)
+		}
+	}
+}
+
+func TestBoundedMapRestoreAnyTypeMismatchPanics(t *testing.T) {
+	m := NewBoundedMap[string, int](4)
+	m.Set("keep", 1)
+
+	defer func() {
+		r := recover()
+		if r == nil {
+			t.Fatal("expected panic restoring from another map type")
+		}
+		msg, isString := r.(string)
+		if !isString {
+			t.Fatalf("panic is %T, want string", r)
+		}
+		if !strings.Contains(msg, "BoundedMap[string,int]") ||
+			!strings.Contains(msg, "BoundedMap[string,string]") {
+			t.Errorf("panic %q names no types", msg)
+		}
+		// The assertion runs before Clear, so m keeps its entries.
+		if v, ok := m.Get("keep"); !ok || v != 1 {
+			t.Errorf("keep: got %d, %v; want 1, true", v, ok)
+		}
+	}()
+	m.restoreAny(NewBoundedMap[string, string](4))
+}
+
+func TestBoundedMapDeleteAllThenClearZeroesOrderSlots(t *testing.T) {
+	m := NewBoundedMap[string, int](4)
+	m.Set("a", 1)
+	m.Set("b", 2)
+	m.Delete("a")
+	m.Delete("b") // last live key: order resets to [:0]
+	m.Clear()
+
+	// Slots past len must be zero on every path, not just Set→Clear.
+	for i, k := range m.order[:cap(m.order)] {
+		if k != "" {
+			t.Errorf("order[%d] = %q after delete-all+Clear, want zero", i, k)
+		}
 	}
 }

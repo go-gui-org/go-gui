@@ -38,12 +38,10 @@ func TestStateMapCreateAndAccess(t *testing.T) {
 		}
 	}
 
-	if sm.Len() != capModerate { // highest-n by insert order
-		// Actually, BoundedMap evicts oldest when over capacity.
-		// After 1000 inserts with cap=50, len should be 50.
-		if sm.Len() > capModerate {
-			t.Errorf("bounded map grew beyond capacity: %d", sm.Len())
-		}
+	// 26 distinct keys ("key-a".."key-z"), so no eviction fires
+	// against capModerate.
+	if sm.Len() != 26 {
+		t.Errorf("len: got %d, want 26 distinct keys", sm.Len())
 	}
 
 	// Delete all remaining.
@@ -211,7 +209,6 @@ func TestBoundedMapConcurrentReads(t *testing.T) {
 	if errCount.Load() > 0 {
 		t.Errorf("concurrent reads returned wrong value %d times", errCount.Load())
 	}
-	wg.Wait()
 }
 
 // TestStateReadOr verifies the convenience accessor.

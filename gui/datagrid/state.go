@@ -1,6 +1,12 @@
 package datagrid
 
 // StateMap namespace constants for data grid internal state.
+//
+// This block owns the "gui.dg.*" namespace strings: gui kept a
+// mirror that drifted stale (it missed nsDgQuickDraft), so the
+// mirror was deleted and this is the single source. A pin test in
+// this package fails on a rename, so stored state is never renamed
+// by accident.
 const (
 	nsDgColWidths    = "gui.dg.col_widths"
 	nsDgPresentation = "gui.dg.presentation"
@@ -15,6 +21,8 @@ const (
 	nsDgQuickDraft   = "gui.dg.quick_draft"
 	nsDgSource       = "gui.dg.source"
 
+	// capModerate mirrors gui's capacity tier of the same name.
+	// Local sizing for grid maps; safe to tune here.
 	capModerate = 50
 )
 

@@ -698,3 +698,42 @@ func TestSourceApplyPendingJumpSelection(t *testing.T) {
 	// Should not panic.
 	dataGridSourceApplyPendingJumpSelection(cfg, state, w)
 }
+
+// TestNamespaceValuesPinned guards the "gui.dg.*" strings owned by
+// state.go. StateMap storage is addressed by these literals, so a
+// rename orphans stored state; the test forces a conscious update.
+func TestNamespaceValuesPinned(t *testing.T) {
+	pinned := map[string]string{
+		"nsDgColWidths":    nsDgColWidths,
+		"nsDgPresentation": nsDgPresentation,
+		"nsDgResize":       nsDgResize,
+		"nsDgHeaderHover":  nsDgHeaderHover,
+		"nsDgRange":        nsDgRange,
+		"nsDgChooserOpen":  nsDgChooserOpen,
+		"nsDgEdit":         nsDgEdit,
+		"nsDgCrud":         nsDgCrud,
+		"nsDgJump":         nsDgJump,
+		"nsDgPendingJump":  nsDgPendingJump,
+		"nsDgQuickDraft":   nsDgQuickDraft,
+		"nsDgSource":       nsDgSource,
+	}
+	want := map[string]string{
+		"nsDgColWidths":    "gui.dg.col_widths",
+		"nsDgPresentation": "gui.dg.presentation",
+		"nsDgResize":       "gui.dg.resize",
+		"nsDgHeaderHover":  "gui.dg.header_hover",
+		"nsDgRange":        "gui.dg.range",
+		"nsDgChooserOpen":  "gui.dg.chooser_open",
+		"nsDgEdit":         "gui.dg.edit",
+		"nsDgCrud":         "gui.dg.crud",
+		"nsDgJump":         "gui.dg.jump",
+		"nsDgPendingJump":  "gui.dg.pending_jump",
+		"nsDgQuickDraft":   "gui.dg.quick_draft",
+		"nsDgSource":       "gui.dg.source",
+	}
+	for name, got := range pinned {
+		if got != want[name] {
+			t.Errorf("%s: got %q, want %q", name, got, want[name])
+		}
+	}
+}

@@ -1,5 +1,7 @@
 package gui
 
+import "fmt"
+
 // StateRegistry stores per-widget BoundedMap instances keyed by
 // namespace string.
 //
@@ -16,10 +18,21 @@ type stateRegistry struct {
 
 // StateMap returns (or lazily creates) a *BoundedMap[K, V] for the
 // given namespace.
+//
+// One namespace holds one value type: reusing ns with other K or V
+// panics naming the namespace and both types, like State[T] does.
+// Keep ns a package-level constant; a caller-built string (for
+// example from user input) that collides on one ns with two types
+// panics.
+//
+// maxSize bounds the map; maxSize <= 0 leaves it unbounded (see
+// NewBoundedMap). Pass a positive capacity tier (capFew and
+// friends); an unbounded registry map grows without limit.
+//
 // SAFETY: main-goroutine only (see StateRegistry doc).
 func StateMap[K comparable, V any](w *Window, ns string, maxSize int) *BoundedMap[K, V] {
-	if ptr, ok := w.viewState.registry.maps[ns]; ok {
-		return ptr.(*BoundedMap[K, V])
+	if ptr, found := w.viewState.registry.maps[ns]; found {
+		return registryMapAs[K, V](ptr, "StateMap", ns)
 	}
 	m := NewBoundedMap[K, V](maxSize)
 	if w.viewState.registry.maps == nil {
@@ -29,11 +42,26 @@ func StateMap[K comparable, V any](w *Window, ns string, maxSize int) *BoundedMa
 	return m
 }
 
+// registryMapAs asserts a registry entry to *BoundedMap[K, V]. A
+// mismatch panics naming the caller, the namespace and both types,
+// so a namespace reused with other K or V is easy to find.
+func registryMapAs[K comparable, V any](ptr any, fn, ns string) *BoundedMap[K, V] {
+	typed, typeOK := ptr.(*BoundedMap[K, V])
+	if !typeOK {
+		var want *BoundedMap[K, V]
+		panic(fmt.Sprintf("gui: %s namespace %q holds %T, not %T",
+			fn, ns, ptr, want))
+	}
+	return typed
+}
+
 // StateMapRead returns a *BoundedMap[K, V] for read-only access.
-// Returns nil if namespace not initialized.
+// Returns nil if namespace not initialized. Panics on a type
+// mismatch like StateMap does.
+// SAFETY: main-goroutine only (see StateRegistry doc).
 func StateMapRead[K comparable, V any](w *Window, ns string) *BoundedMap[K, V] {
-	if ptr, ok := w.viewState.registry.maps[ns]; ok {
-		return ptr.(*BoundedMap[K, V])
+	if ptr, found := w.viewState.registry.maps[ns]; found {
+		return registryMapAs[K, V](ptr, "StateMapRead", ns)
 	}
 	return nil
 }
@@ -60,6 +88,7 @@ func StateReadOr[K comparable, V any](w *Window, ns string, key K, defaultVal V)
 // lazyBoundedMap returns *pp, creating it via NewBoundedMap[K, V](cap)
 // if nil. Eliminates the repeated lazy-init boilerplate across
 // hot-namespace accessors.
+// SAFETY: main-goroutine only (see StateRegistry doc).
 func lazyBoundedMap[K comparable, V any](pp **BoundedMap[K, V], cap int) *BoundedMap[K, V] {
 	if *pp == nil {
 		*pp = NewBoundedMap[K, V](cap)
@@ -74,6 +103,7 @@ func (w *Window) hoverInside() *BoundedMap[string, uint64] {
 // ScrollX returns the horizontal scroll state map keyed by the
 // scrollable's ID. Used by external packages that need to read scroll
 // position for virtualization.
+// SAFETY: main-goroutine only (see StateRegistry doc).
 func (w *Window) ScrollX() *BoundedMap[string, float32] {
 	return lazyBoundedMap(&w.scrollXMap, capScroll)
 }
@@ -81,6 +111,7 @@ func (w *Window) ScrollX() *BoundedMap[string, float32] {
 // ScrollY returns the vertical scroll state map keyed by the
 // scrollable's ID. Used by external packages that need to read scroll
 // position for virtualization.
+// SAFETY: main-goroutine only (see StateRegistry doc).
 func (w *Window) ScrollY() *BoundedMap[string, float32] {
 	return lazyBoundedMap(&w.scrollYMap, capScroll)
 }
@@ -219,17 +250,6 @@ const (
 	nsSplitterDrag        = "gui.splitter.drag"
 	nsInputDate           = "gui.input_date"
 	nsInputDateText       = "gui.input_date.text"
-	nsDgColWidths         = "gui.dg.col_widths"
-	nsDgPresentation      = "gui.dg.presentation"
-	nsDgResize            = "gui.dg.resize"
-	nsDgHeaderHover       = "gui.dg.header_hover"
-	nsDgRange             = "gui.dg.range"
-	nsDgChooserOpen       = "gui.dg.chooser_open"
-	nsDgEdit              = "gui.dg.edit"
-	nsDgCrud              = "gui.dg.crud"
-	nsDgJump              = "gui.dg.jump"
-	nsDgPendingJump       = "gui.dg.pending_jump"
-	nsDgSource            = "gui.dg.source"
 	nsActiveDownloads     = "gui.active_downloads"
 	nsImageResolved       = "gui.image.resolved"
 	nsImageWarned         = "gui.image.warned"

@@ -1,5 +1,7 @@
 package gui
 
+import "fmt"
+
 const boundedOrderCompactMin = 64
 
 // BoundedMap is a map with maximum size. When full, oldest entries
@@ -12,6 +14,10 @@ type BoundedMap[K comparable, V any] struct {
 }
 
 // NewBoundedMap creates a BoundedMap with the given max size.
+// maxSize <= 0 leaves the map unbounded: Set stores without
+// eviction. Pass a positive bound for state maps; unbounded maps
+// grow without limit. (BoundedStack differs: Push on a zero-size
+// stack drops the element.)
 func NewBoundedMap[K comparable, V any](maxSize int) *BoundedMap[K, V] {
 	orderCap := max(maxSize, 0)
 	// data is deliberately not pre-sized to maxSize: occupancy is
@@ -43,10 +49,18 @@ func (m *BoundedMap[K, V]) cloneAny() any {
 
 // restoreAny overwrites the receiver with entries from src, which
 // must be the *BoundedMap[K, V] previously returned by cloneAny.
-// Existing entries are cleared first.
+// Existing entries are cleared first. A value of another type
+// panics naming both types; time-travel restore relies on the
+// panic and skips the namespace (see safeRestoreAny).
 func (m *BoundedMap[K, V]) restoreAny(src any) {
+	typed, typeOK := src.(*BoundedMap[K, V])
+	if !typeOK {
+		var want *BoundedMap[K, V]
+		panic(fmt.Sprintf(
+			"gui: BoundedMap.restoreAny holds %T, not %T", src, want))
+	}
 	m.Clear()
-	src.(*BoundedMap[K, V]).Range(func(k K, v V) bool {
+	typed.Range(func(k K, v V) bool {
 		m.Set(k, v)
 		return true
 	})
@@ -98,6 +112,10 @@ func (m *BoundedMap[K, V]) Delete(key K) {
 	}
 	delete(m.data, key)
 	if len(m.data) == 0 {
+		// Zero the slots before the reslice: slots past len must stay
+		// zero so dead keys are releasable and Clear's clear(m.order)
+		// covers every live slot.
+		clear(m.order)
 		m.order = m.order[:0]
 		m.head = 0
 		return
@@ -135,6 +153,10 @@ func (m *BoundedMap[K, V]) Len() int {
 // Clear removes all entries.
 func (m *BoundedMap[K, V]) Clear() {
 	clear(m.data)
+	// Zero the ordering slots so cleared keys (strings, pointers)
+	// are releasable; [:0] alone keeps them alive through the
+	// backing array.
+	clear(m.order)
 	m.order = m.order[:0]
 	m.head = 0
 }
@@ -154,7 +176,9 @@ func (m *BoundedMap[K, V]) Keys() []K {
 }
 
 // RangeKeys iterates active keys in insertion order.
-// If fn returns false, iteration stops.
+// If fn returns false, iteration stops. fn must not call Set,
+// Delete, Clear or evictToBudget on m: those rewrite the ordering
+// being walked.
 func (m *BoundedMap[K, V]) rangeKeys(fn func(K) bool) {
 	if len(m.data) == 0 || m.head >= len(m.order) {
 		return
@@ -170,7 +194,9 @@ func (m *BoundedMap[K, V]) rangeKeys(fn func(K) bool) {
 }
 
 // Range iterates keys in insertion order and calls fn for each
-// active entry. If fn returns false, iteration stops.
+// active entry. If fn returns false, iteration stops. fn must not
+// call Set, Delete, Clear or evictToBudget on m: those rewrite the
+// ordering being walked.
 func (m *BoundedMap[K, V]) Range(fn func(K, V) bool) {
 	if len(m.data) == 0 || m.head >= len(m.order) {
 		return

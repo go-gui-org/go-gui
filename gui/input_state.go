@@ -102,6 +102,9 @@ func inputPushUndo(is inputState, text string, op uint8) *BoundedStack[inputMeme
 }
 
 func inputStateFromMemento(m inputMemento, undo, redo *BoundedStack[inputMemento]) inputState {
+	// Only the text-visible fields restore. lastEditOp resets to
+	// inputOpNone so the next edit starts a fresh undo step, and
+	// LastClickTime and cursorTrailing drop as transient.
 	return inputState{
 		CursorPos:    m.CursorPos,
 		selectBeg:    m.selectBeg,
