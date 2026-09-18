@@ -300,13 +300,16 @@ func layoutAdjustScrollOffsetsDepth(layout *Layout, w *Window, depth int) {
 		sx := w.scrollX()
 		sy := w.scrollY()
 		maxOffsetX := f32Min(0, layout.Shape.Width-layout.Shape.paddingWidth()-contentWidth(layout))
-		if offsetX, ok := sx.Get(id); ok {
+		// A non-finite offset resets to the start. f32Clamp passes NaN
+		// through, and layoutChildStartPos adds the offset to every child
+		// position, so one bad write would otherwise stick for good.
+		if offsetX, ok := sx.Get(id); ok && f32IsFinite(offsetX) {
 			sx.Set(id, f32Clamp(offsetX, maxOffsetX, 0))
 		} else {
 			sx.Set(id, f32Clamp(0, maxOffsetX, 0))
 		}
 		maxOffsetY := f32Min(0, layout.Shape.Height-layout.Shape.paddingHeight()-contentHeight(layout))
-		if offsetY, ok := sy.Get(id); ok {
+		if offsetY, ok := sy.Get(id); ok && f32IsFinite(offsetY) {
 			sy.Set(id, f32Clamp(offsetY, maxOffsetY, 0))
 		} else {
 			sy.Set(id, f32Clamp(0, maxOffsetY, 0))

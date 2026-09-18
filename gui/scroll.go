@@ -353,7 +353,7 @@ func scrollVertical(layout *Layout, delta float32, w *Window) bool {
 	return true
 }
 
-// ScrollToView scrolls the parent scroll container to make
+// scrollToView scrolls the parent scroll container to make
 // the view with the given id visible.
 func (w *Window) scrollToView(effectiveID string) {
 	target, ok := w.layout.FindByID(effectiveID)
@@ -375,15 +375,21 @@ func (w *Window) scrollToView(effectiveID string) {
 			sy.Set(scrollID,
 				f32Clamp(newScroll, maxScrollNeg, 0))
 			scrollSmoothCancel(w, scrollID, scrollAxisY)
+			fireOnScroll(p, w)
 			w.InvalidateLayout()
 			return
 		}
 	}
 }
 
-// ScrollHorizontalBy scrolls the given scrollable by delta. effectiveID is
+// scrollHorizontalBy scrolls the given scrollable by delta. effectiveID is
 // the scrollable's scroll key (see the Scrollable doc on each Cfg).
 func (w *Window) scrollHorizontalBy(effectiveID string, delta float32) {
+	// f32Clamp passes NaN through, and the pipeline adds the stored
+	// offset to every child position, so a non-finite write is dropped.
+	if !f32IsFinite(delta) {
+		return
+	}
 	scrollSmoothCancel(w, effectiveID, scrollAxisX)
 	sx := w.scrollX()
 	// Default 0: unscrolled position when no offset recorded yet.
@@ -406,6 +412,10 @@ func (w *Window) scrollHorizontalBy(effectiveID string, delta float32) {
 // ancestor is addressed by its full path ("detail:nav"), not by the
 // leaf its Cfg was written with. Read it back with [Window.ResolveID].
 func (w *Window) ScrollHorizontalTo(effectiveID string, offset float32) {
+	// See scrollHorizontalBy: a non-finite offset is dropped.
+	if !f32IsFinite(offset) {
+		return
+	}
 	scrollSmoothCancel(w, effectiveID, scrollAxisX)
 	sx := w.scrollX()
 	if ly, ok := findScrollLayout(w, effectiveID); ok {
@@ -414,6 +424,8 @@ func (w *Window) ScrollHorizontalTo(effectiveID string, offset float32) {
 		fireOnScroll(ly, w)
 		return
 	}
+	// See ScrollVerticalTo: record it, and report a near miss.
+	debugLookupMiss(&w.layout, "ScrollHorizontalTo", effectiveID)
 	sx.Set(effectiveID, offset)
 }
 
@@ -453,17 +465,23 @@ func (w *Window) ScrollHorizontalToPct(effectiveID string, pct float32) {
 		return
 	}
 	maxOffset := scrollMaxOffsetX(ly)
-	if maxOffset == 0 {
+	// f32Clamp passes a NaN pct through, so check it here.
+	if maxOffset == 0 || !f32IsFinite(pct) {
 		return
 	}
 	sx := w.scrollX()
 	sx.Set(effectiveID, maxOffset*f32Clamp(pct, 0, 1))
 	scrollSmoothCancel(w, effectiveID, scrollAxisX)
+	fireOnScroll(ly, w)
 }
 
-// ScrollVerticalBy scrolls the given scrollable by delta. effectiveID is
+// scrollVerticalBy scrolls the given scrollable by delta. effectiveID is
 // the scrollable's scroll key (see the Scrollable doc on each Cfg).
 func (w *Window) scrollVerticalBy(effectiveID string, delta float32) {
+	// See scrollHorizontalBy.
+	if !f32IsFinite(delta) {
+		return
+	}
 	scrollSmoothCancel(w, effectiveID, scrollAxisY)
 	sy := w.scrollY()
 	// Default 0: unscrolled position when no offset recorded yet.
@@ -486,6 +504,10 @@ func (w *Window) scrollVerticalBy(effectiveID string, delta float32) {
 // ancestor is addressed by its full path ("detail:nav"), not by the
 // leaf its Cfg was written with. Read it back with [Window.ResolveID].
 func (w *Window) ScrollVerticalTo(effectiveID string, offset float32) {
+	// See scrollHorizontalBy: a non-finite offset is dropped.
+	if !f32IsFinite(offset) {
+		return
+	}
 	scrollSmoothCancel(w, effectiveID, scrollAxisY)
 	sy := w.scrollY()
 	if ly, ok := findScrollLayout(w, effectiveID); ok {
@@ -535,12 +557,14 @@ func (w *Window) ScrollVerticalToPct(effectiveID string, pct float32) {
 		return
 	}
 	maxOffset := scrollMaxOffsetY(ly)
-	if maxOffset == 0 {
+	// f32Clamp passes a NaN pct through, so check it here.
+	if maxOffset == 0 || !f32IsFinite(pct) {
 		return
 	}
 	sy := w.scrollY()
 	sy.Set(effectiveID, maxOffset*f32Clamp(pct, 0, 1))
 	scrollSmoothCancel(w, effectiveID, scrollAxisY)
+	fireOnScroll(ly, w)
 }
 
 // ScrollVerticalOffset returns the current vertical scroll offset of
@@ -551,8 +575,8 @@ func (w *Window) ScrollVerticalToPct(effectiveID string, pct float32) {
 // ancestor is addressed by its full path ("detail:nav"), not by the
 // leaf its Cfg was written with. Read it back with [Window.ResolveID].
 func (w *Window) ScrollVerticalOffset(effectiveID string) float32 {
-	// Default 0: unscrolled position when no offset recorded yet.
-	return w.scrollY().GetOr(effectiveID, 0)
+	// See ScrollHorizontalOffset: a query must not create the map.
+	return scrollReadOffset(w.scrollYRead(), effectiveID)
 }
 
 // ScrollVerticalPct returns the current vertical scroll
@@ -567,15 +591,14 @@ func (w *Window) ScrollVerticalPct(effectiveID string) float32 {
 	// walk dereferences the root Shape.
 	ly, ok := findScrollLayout(w, effectiveID)
 	if !ok {
+		debugLookupMiss(&w.layout, "ScrollVerticalPct", effectiveID)
 		return 0
 	}
 	maxOffset := scrollMaxOffsetY(ly)
 	if maxOffset == 0 {
 		return 0
 	}
-	sy := w.scrollY()
-	// Default 0: unscrolled position when no offset recorded yet.
-	current := sy.GetOr(effectiveID, 0)
+	current := scrollReadOffset(w.scrollYRead(), effectiveID)
 	return f32Clamp(current/maxOffset, 0, 1)
 }
 
@@ -592,12 +615,16 @@ func (w *Window) ScrollVerticalPct(effectiveID string) float32 {
 func (w *Window) ScrollHorizontalOffset(effectiveID string) float32 {
 	// Read-only accessor: a query must not allocate the state map as a
 	// side effect of being asked about a container that never scrolled.
-	sx := w.scrollXRead()
-	if sx == nil {
+	return scrollReadOffset(w.scrollXRead(), effectiveID)
+}
+
+// scrollReadOffset reads an offset from a scroll map that may not exist
+// yet. A nil map, like an absent entry, reads as 0 (unscrolled).
+func scrollReadOffset(m *BoundedMap[string, float32], effectiveID string) float32 {
+	if m == nil {
 		return 0
 	}
-	// Default 0: unscrolled position when no offset recorded yet.
-	return sx.GetOr(effectiveID, 0)
+	return m.GetOr(effectiveID, 0)
 }
 
 // ScrollHorizontalPct returns the current horizontal scroll
@@ -623,9 +650,7 @@ func (w *Window) ScrollHorizontalPct(effectiveID string) float32 {
 	if maxOffset == 0 {
 		return 0
 	}
-	sx := w.scrollX()
-	// Default 0: unscrolled position when no offset recorded yet.
-	current := sx.GetOr(effectiveID, 0)
+	current := scrollReadOffset(w.scrollXRead(), effectiveID)
 	return f32Clamp(current/maxOffset, 0, 1)
 }
 

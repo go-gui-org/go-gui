@@ -206,9 +206,11 @@ func scrollbarAmendLayout(
 		if cWidth == 0 {
 			return
 		}
-		tWidth := layout.Shape.Width * (layout.Shape.Width / cWidth)
-		thumbWidth := f32Clamp(tWidth, cfg.MinThumbSize, layout.Shape.Width)
-		availWidth := layout.Shape.Width - thumbWidth
+		// The track is the viewport width here, before GapEnd insets it.
+		// Keep it: the offset below maps the content travel onto the
+		// thumb travel, and both are measured against the viewport.
+		viewW := layout.Shape.Width
+		thumbWidth, availWidth := scrollbarThumbGeom(viewW, cWidth, cfg.MinThumbSize)
 
 		sx := w.scrollX()
 		scrollOffset := float32(0)
@@ -223,7 +225,7 @@ func scrollbarAmendLayout(
 		offset := float32(0)
 		if availWidth > 0 {
 			offset = f32Clamp(
-				(scrollOffset/(cWidth-layout.Shape.Width))*availWidth,
+				(scrollOffset/(cWidth-viewW))*availWidth,
 				0, availWidth)
 			// The gutter is drawn left to right whichever way the row runs,
 			// but an RTL row's start is its right edge (scrollMirrorsX), so
@@ -251,9 +253,10 @@ func scrollbarAmendLayout(
 		if cHeight == 0 {
 			return
 		}
-		tHeight := layout.Shape.Height * (layout.Shape.Height / cHeight)
-		thumbHeight := f32Clamp(tHeight, cfg.MinThumbSize, layout.Shape.Height)
-		availHeight := layout.Shape.Height - thumbHeight
+		// See the horizontal branch: keep the viewport height, which
+		// GapEnd shrinks below.
+		viewH := layout.Shape.Height
+		thumbHeight, availHeight := scrollbarThumbGeom(viewH, cHeight, cfg.MinThumbSize)
 
 		sy := w.scrollY()
 		scrollOffset := float32(0)
@@ -269,7 +272,7 @@ func scrollbarAmendLayout(
 		offset := float32(0)
 		if availHeight > 0 {
 			offset = f32Clamp(
-				(scrollOffset/(cHeight-layout.Shape.Height))*availHeight,
+				(scrollOffset/(cHeight-viewH))*availHeight,
 				0, availHeight)
 		}
 		layout.Children[thumbAt].Shape.Y = layout.Shape.Y + offset
@@ -283,16 +286,27 @@ func scrollbarAmendLayout(
 	}
 }
 
+// scrollbarThumbGeom returns the thumb length for a track of length
+// track that shows a window onto content of length content, and how far
+// the thumb can travel along the track. The thumb is the viewport's share
+// of the track, but never shorter than minThumb. The drag handlers use the
+// travel too, so a thumb and the pointer that drags it move together.
+func scrollbarThumbGeom(track, content, minThumb float32) (thumb, travel float32) {
+	thumb = f32Clamp(track*(track/content), minThumb, track)
+	return thumb, track - thumb
+}
+
 // makeScrollbarOnMouseDown creates the thumb OnClick handler
 // that initiates a drag via MouseLock.
 func makeScrollbarOnMouseDown(cfg ScrollbarCfg) func(EventCtx) {
 	orientation := cfg.Orientation
+	minThumb := cfg.MinThumbSize
 	leafScrollID := cfg.scrollID
 	return func(ctx EventCtx) {
 		scrollID := ctx.EffID(leafScrollID)
 		ctx.Window.MouseLock(MouseLockCfg{
 			MouseMove: func(ctx EventCtx) {
-				scrollbarMouseMove(orientation, scrollID, ctx.Layout, ctx.Event, ctx.Window)
+				scrollbarMouseMove(orientation, scrollID, ctx.Layout, ctx.Event, ctx.Window, minThumb)
 			},
 			MouseUp: func(ctx EventCtx) {
 				ctx.Window.MouseUnlock()
@@ -307,6 +321,7 @@ func makeScrollbarOnMouseDown(cfg ScrollbarCfg) func(EventCtx) {
 // for continued dragging.
 func makeScrollbarGutterClick(cfg ScrollbarCfg) func(EventCtx) {
 	orientation := cfg.Orientation
+	minThumb := cfg.MinThumbSize
 	leafScrollID := cfg.scrollID
 	return func(ctx EventCtx) {
 		scrollID := ctx.EffID(leafScrollID)
@@ -325,7 +340,7 @@ func makeScrollbarGutterClick(cfg ScrollbarCfg) func(EventCtx) {
 		}
 		ctx.Window.MouseLock(MouseLockCfg{
 			MouseMove: func(ctx EventCtx) {
-				scrollbarMouseMove(orientation, scrollID, ctx.Layout, ctx.Event, ctx.Window)
+				scrollbarMouseMove(orientation, scrollID, ctx.Layout, ctx.Event, ctx.Window, minThumb)
 			},
 			MouseUp: func(ctx EventCtx) {
 				ctx.Window.MouseUnlock()
@@ -336,7 +351,7 @@ func makeScrollbarGutterClick(cfg ScrollbarCfg) func(EventCtx) {
 }
 
 // scrollbarMouseMove handles mouse movement during thumb drag.
-func scrollbarMouseMove(orientation ScrollbarOrientation, scrollID string, layout *Layout, e *Event, w *Window) {
+func scrollbarMouseMove(orientation ScrollbarOrientation, scrollID string, layout *Layout, e *Event, w *Window, minThumb float32) {
 	ly, ok := findLayoutByScrollID(layout, scrollID)
 	if !ok {
 		return
@@ -345,7 +360,7 @@ func scrollbarMouseMove(orientation ScrollbarOrientation, scrollID string, layou
 		if e.MouseX >= ly.Shape.X-scrollExtend &&
 			e.MouseX <= ly.Shape.X+ly.Shape.Width+scrollExtend {
 			sx := w.scrollX()
-			offset := offsetMouseChangeX(sx, ly, e.MouseDX, scrollID)
+			offset := offsetMouseChangeX(sx, ly, e.MouseDX, scrollID, minThumb)
 			sx.Set(scrollID, offset)
 			scrollSmoothCancel(w, scrollID, scrollAxisX)
 			fireOnScroll(ly, w)
@@ -354,7 +369,7 @@ func scrollbarMouseMove(orientation ScrollbarOrientation, scrollID string, layou
 		if e.MouseY >= ly.Shape.Y-scrollExtend &&
 			e.MouseY <= ly.Shape.Y+ly.Shape.Height+scrollExtend {
 			sy := w.scrollY()
-			offset := offsetMouseChangeY(sy, ly, e.MouseDY, scrollID)
+			offset := offsetMouseChangeY(sy, ly, e.MouseDY, scrollID, minThumb)
 			sy.Set(scrollID, offset)
 			scrollSmoothCancel(w, scrollID, scrollAxisY)
 			fireOnScroll(ly, w)
@@ -364,7 +379,7 @@ func scrollbarMouseMove(orientation ScrollbarOrientation, scrollID string, layou
 
 // offsetMouseChangeX calculates new horizontal offset based on
 // mouse movement delta.
-func offsetMouseChangeX(sx *BoundedMap[string, float32], layout *Layout, mouseDX float32, scrollID string) float32 {
+func offsetMouseChangeX(sx *BoundedMap[string, float32], layout *Layout, mouseDX float32, scrollID string, minThumb float32) float32 {
 	totalWidth := contentWidth(layout)
 	shapeWidth := layout.Shape.Width - layout.Shape.paddingWidth()
 	// Default 0: unscrolled position when no offset recorded yet.
@@ -373,19 +388,28 @@ func offsetMouseChangeX(sx *BoundedMap[string, float32], layout *Layout, mouseDX
 	if shapeWidth <= 0 {
 		return oldOffset
 	}
+	// A thumb that fills its track has nowhere to go.
+	_, travel := scrollbarThumbGeom(shapeWidth, totalWidth, minThumb)
+	if travel <= 0 {
+		return oldOffset
+	}
 	// An RTL row's thumb travels toward the overflow as it moves left
 	// (scrollMirrorsX), so the drag delta arrives mirrored.
 	if scrollMirrorsX(layout.Shape) {
 		mouseDX = -mouseDX
 	}
-	newOffset := mouseDX * (totalWidth / shapeWidth)
+	// One pixel of thumb travel moves the content by the content travel
+	// over the thumb travel. total/view gives the same figure only while
+	// the thumb has its natural size; once minThumb clamps it, the thumb
+	// travels less and the thumb drifts away from the pointer.
+	newOffset := mouseDX * ((totalWidth - shapeWidth) / travel)
 	offset := oldOffset - newOffset
 	return f32Min(0, f32Max(offset, shapeWidth-totalWidth))
 }
 
 // offsetMouseChangeY calculates new vertical offset based on
 // mouse movement delta.
-func offsetMouseChangeY(sy *BoundedMap[string, float32], layout *Layout, mouseDY float32, scrollID string) float32 {
+func offsetMouseChangeY(sy *BoundedMap[string, float32], layout *Layout, mouseDY float32, scrollID string, minThumb float32) float32 {
 	totalHeight := contentHeight(layout)
 	shapeHeight := layout.Shape.Height - layout.Shape.paddingHeight()
 	// Default 0: unscrolled position when no offset recorded yet.
@@ -394,7 +418,12 @@ func offsetMouseChangeY(sy *BoundedMap[string, float32], layout *Layout, mouseDY
 	if shapeHeight <= 0 {
 		return oldOffset
 	}
-	newOffset := mouseDY * (totalHeight / shapeHeight)
+	// See offsetMouseChangeX for the travel ratio.
+	_, travel := scrollbarThumbGeom(shapeHeight, totalHeight, minThumb)
+	if travel <= 0 {
+		return oldOffset
+	}
+	newOffset := mouseDY * ((totalHeight - shapeHeight) / travel)
 	offset := oldOffset - newOffset
 	return f32Min(0, f32Max(offset, shapeHeight-totalHeight))
 }
@@ -406,8 +435,19 @@ func offsetFromMouseX(layout *Layout, mouseX float32, scrollID string, w *Window
 	if !ok {
 		return
 	}
-	totalWidth := contentWidth(sb)
-	percent := (mouseX - sb.Shape.X) / sb.Shape.Width
+	// Measure against the viewport, not the outer box: padding narrows
+	// the gutter the bar is drawn in, and scrollMaxOffsetX is the range
+	// the pipeline clamps to. Mapping onto the outer width stopped a
+	// press at the far end short by the padding, and wrote a positive
+	// offset over content that fits.
+	viewW := sb.Shape.Width - sb.Shape.paddingWidth()
+	if viewW <= 0 || !f32IsFinite(viewW) {
+		return
+	}
+	percent := (mouseX - (sb.Shape.X + sb.Shape.PaddingLeft())) / viewW
+	if !f32IsFinite(percent) {
+		return
+	}
 	percent = f32Clamp(percent, 0, 1)
 	if percent <= scrollSnapMin {
 		percent = 0
@@ -420,7 +460,7 @@ func offsetFromMouseX(layout *Layout, mouseX float32, scrollID string, w *Window
 		percent = 1 - percent
 	}
 	sx := w.scrollX()
-	sx.Set(scrollID, -percent*(totalWidth-sb.Shape.Width))
+	sx.Set(scrollID, percent*scrollMaxOffsetX(sb))
 	scrollSmoothCancel(w, scrollID, scrollAxisX)
 	fireOnScroll(sb, w)
 }
@@ -432,8 +472,15 @@ func offsetFromMouseY(layout *Layout, mouseY float32, scrollID string, w *Window
 	if !ok {
 		return
 	}
-	totalHeight := contentHeight(sb)
-	percent := (mouseY - sb.Shape.Y) / sb.Shape.Height
+	// See offsetFromMouseX: measure against the viewport.
+	viewH := sb.Shape.Height - sb.Shape.paddingHeight()
+	if viewH <= 0 || !f32IsFinite(viewH) {
+		return
+	}
+	percent := (mouseY - (sb.Shape.Y + sb.Shape.PaddingTop())) / viewH
+	if !f32IsFinite(percent) {
+		return
+	}
 	percent = f32Clamp(percent, 0, 1)
 	if percent <= scrollSnapMin {
 		percent = 0
@@ -442,7 +489,7 @@ func offsetFromMouseY(layout *Layout, mouseY float32, scrollID string, w *Window
 		percent = 1
 	}
 	sy := w.scrollY()
-	sy.Set(scrollID, -percent*(totalHeight-sb.Shape.Height))
+	sy.Set(scrollID, percent*scrollMaxOffsetY(sb))
 	scrollSmoothCancel(w, scrollID, scrollAxisY)
 	fireOnScroll(sb, w)
 }

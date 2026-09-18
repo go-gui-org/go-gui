@@ -72,10 +72,10 @@ func TestRTLRowScrollHorizontalMirrorsDelta(t *testing.T) {
 func TestRTLRowThumbDragMirrorsDelta(t *testing.T) {
 	w, root := rtlScrollRow(t)
 	sx := w.scrollX()
-	if got := offsetMouseChangeX(sx, root, -10, "sc"); got >= 0 {
+	if got := offsetMouseChangeX(sx, root, -10, "sc", 0); got >= 0 {
 		t.Errorf("leftward thumb drag: got %v, want < 0", got)
 	}
-	if got := offsetMouseChangeX(sx, root, 10, "sc"); !f32AreClose(got, 0) {
+	if got := offsetMouseChangeX(sx, root, 10, "sc", 0); !f32AreClose(got, 0) {
 		t.Errorf("rightward thumb drag at start edge: got %v, want 0", got)
 	}
 }

@@ -21,7 +21,7 @@ func TestOffsetMouseChangeX(t *testing.T) {
 		Children: []Layout{child},
 	}
 
-	offset := offsetMouseChangeX(w.scrollX(), layout, 10, "1")
+	offset := offsetMouseChangeX(w.scrollX(), layout, 10, "1", 0)
 	// ratio = 400/100 = 4, newOffset = 10*4 = 40, offset = 0 - 40 = -40
 	// clamped: min(0, max(-40, 100-400)) = min(0, max(-40, -300)) = min(0, -40) = -40
 	if offset != -40 {
@@ -44,7 +44,7 @@ func TestOffsetMouseChangeY(t *testing.T) {
 		Children: []Layout{child},
 	}
 
-	offset := offsetMouseChangeY(w.scrollY(), layout, 5, "2")
+	offset := offsetMouseChangeY(w.scrollY(), layout, 5, "2", 0)
 	// ratio = 500/100 = 5, newOffset = 5*5 = 25, offset = 0 - 25 = -25
 	// clamped: min(0, max(-25, 100-500)) = -25
 	if offset != -25 {
@@ -71,11 +71,11 @@ func TestOffsetMouseChangeZeroViewport(t *testing.T) {
 	w.scrollX().Set("z", -7)
 	w.scrollY().Set("z", -9)
 
-	gotX := offsetMouseChangeX(w.scrollX(), layout, 10, "z")
+	gotX := offsetMouseChangeX(w.scrollX(), layout, 10, "z", 0)
 	if math.IsNaN(float64(gotX)) || gotX != -7 {
 		t.Errorf("x offset = %v, want -7", gotX)
 	}
-	gotY := offsetMouseChangeY(w.scrollY(), layout, 10, "z")
+	gotY := offsetMouseChangeY(w.scrollY(), layout, 10, "z", 0)
 	if math.IsNaN(float64(gotY)) || gotY != -9 {
 		t.Errorf("y offset = %v, want -9", gotY)
 	}
@@ -195,7 +195,7 @@ func TestScrollbarMouseMoveVertical(t *testing.T) {
 	}
 
 	e := &Event{MouseY: 50, MouseDY: 5}
-	scrollbarMouseMove(scrollbarVertical, "6", &root, e, w)
+	scrollbarMouseMove(scrollbarVertical, "6", &root, e, w, 0)
 	sy := w.scrollY()
 	v, _ := sy.Get("6")
 	// ratio=400/100=4, newOffset=5*4=20, offset=0-20=-20
@@ -225,7 +225,7 @@ func TestScrollbarMouseMoveHorizontal(t *testing.T) {
 	}
 
 	e := &Event{MouseX: 50, MouseDX: 10}
-	scrollbarMouseMove(scrollbarHorizontal, "7", &root, e, w)
+	scrollbarMouseMove(scrollbarHorizontal, "7", &root, e, w, 0)
 	sx := w.scrollX()
 	v, _ := sx.Get("7")
 	// ratio=300/100=3, newOffset=10*3=30, offset=0-30=-30

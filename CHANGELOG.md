@@ -139,6 +139,29 @@ and this project adheres to
 
 ### Fixed
 
+- **Scrollbar and scroll API hardening** — these fixes come from a review of the
+  scroll code:
+  - A press on the scrollbar gutter now reaches the end of the range when the
+    scrollable has padding. Before, it stopped short by the padding. Over
+    content that fits, it no longer writes an offset that pushes the content
+    down.
+  - With the default `GapEnd`, the thumb now reaches the end of its track at the
+    end of the range. Before, with a small overflow, it stopped well short (at
+    4px of overflow, it stopped halfway).
+  - A thumb drag now keeps the thumb under the pointer when `MinThumbSize`
+    enlarges the thumb. Before, on long content, the thumb moved away from the
+    pointer.
+  - `ScrollVerticalTo`, `ScrollHorizontalTo` and the `*ToPct` setters now ignore
+    NaN and Inf. Before, one such value made every child position NaN until the
+    app wrote a new offset. The layout pass now resets a non-finite stored
+    offset to 0.
+  - `ScrollVerticalToPct`, `ScrollHorizontalToPct` and markdown anchor links now
+    fire `OnScroll`, as `ScrollVerticalTo` does.
+  - `ScrollAnchorReveal` now eases to the top when nothing was inserted above
+    the anchor, as its doc says.
+  - `ScrollVerticalOffset` and the `*Pct` getters no longer create the scroll
+    maps. `ScrollVerticalPct` and `ScrollHorizontalTo` now report a near miss
+    under `DebugUnknownLookup`, as their twins do.
 - **Fill children get all of a row's or column's space** — the loop that shares
   space among Fill children stopped early in three cases. The row or column then
   overflowed, or left space unused, and nothing reported it. First, in a very

@@ -120,18 +120,32 @@ func applyScrollAnchor(a scrollAnchor, sc *Layout, w *Window) {
 	}
 	viewTop := sc.Shape.Y + sc.Shape.PaddingTop()
 	delta := target.Shape.Y - (viewTop + a.relY)
-	if delta == 0 {
-		return // anchor did not move; nothing to correct
-	}
 	maxOffset := scrollMaxOffsetY(sc)
 	if maxOffset >= 0 {
 		return // content fits the viewport; nothing to anchor
 	}
+	if delta != 0 && !applyScrollAnchorShift(a, sc, w, delta, maxOffset) {
+		return // correction would leave the scroll range; jump
+	}
+	// The reveal runs whether or not the anchor moved: ScrollAnchorReveal
+	// promises the ease to the top, and a reader part way down the list
+	// with nothing inserted above still expects it.
+	if a.reveal {
+		scrollSmoothTo(w, sc, scrollAxisY, 0)
+	}
+}
+
+// applyScrollAnchorShift stores the offset that undoes delta and moves
+// the positioned subtree to match. It reports false, and changes
+// nothing, when that offset falls outside [maxOffset, 0].
+func applyScrollAnchorShift(
+	a scrollAnchor, sc *Layout, w *Window, delta, maxOffset float32,
+) bool {
 	sy := w.scrollY()
 	old := sy.GetOr(a.scrollID, 0)
 	newOffset := old - delta
 	if !f32IsFinite(newOffset) || newOffset > 0 || newOffset < maxOffset {
-		return // correction would leave the scroll range; jump
+		return false
 	}
 
 	// Store the corrected offset for later passes and move the
@@ -144,9 +158,7 @@ func applyScrollAnchor(a scrollAnchor, sc *Layout, w *Window) {
 	// Keep any in-flight ease continuous from the corrected offset.
 	scrollSmoothShiftY(w, a.scrollID, -delta)
 	fireOnScroll(sc, w)
-	if a.reveal {
-		scrollSmoothTo(w, sc, scrollAxisY, 0)
-	}
+	return true
 }
 
 // scrollAnchorShiftY moves a positioned subtree vertically. Every
