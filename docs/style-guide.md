@@ -135,7 +135,7 @@ surface carries both.
 
 A vertically-centered control centers the text's _line box_, which reserves
 descent space that the ink does not always use. So short descender-free text —
-digits above all — reads high. The correction is `opticalCenterText` (the
+digits above all — reads high. The correction is `OpticalCenterText` (the
 `AmendLayout` form) or `colorFieldPadding` (the padding form). Never use a local
 number.
 

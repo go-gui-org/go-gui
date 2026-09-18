@@ -60,7 +60,7 @@ different guarantees:
 | `opticalDigitOffset(style)` | the face's figures | editable text that is digits and separators                |
 | `opticalCenterFieldText`    | the face's figures | the same, as an `AmendLayout` hook                         |
 | `opticalCenterLabelText`    | the face's caps    | a widget-owned label the control swaps as it changes state |
-| `opticalCenterText`         | the run            | text the widget owns and the user cannot type into         |
+| `OpticalCenterText`         | the run            | text the widget owns and the user cannot type into         |
 
 `opticalCenterChildren` takes an `opticalBand` — run, cap or digit — rather than
 a boolean, because the choice was never binary: those are three different
@@ -233,7 +233,7 @@ screen.
 
 Two forms, because widgets reach the correction at two different times:
 
-- **`opticalCenterText(style, text)`** — an `AmendLayout` hook, a sibling of
+- **`OpticalCenterText(style, text)`** — an `AmendLayout` hook, a sibling of
   `centerGlyphOnInk`. Moves the arranged text child. Does not feed back into
   sizing, so a control's height stays what the theme set. This is the only form
   available to eager factories such as `Badge`, which build with no `*Window`
@@ -318,7 +318,7 @@ label at 48pt went from 6.5 device pixels high to dead centre.
 details matter for one reason: the path returns early for a disabled or
 click-less button, so routing the correction through it leaves a disabled label
 sitting a pixel above the enabled one beside it. `button` and `button_disabled`
-are recorded as a pair to keep that honest. The `AmendLayout: opticalCenterText`
+are recorded as a pair to keep that honest. The `AmendLayout: OpticalCenterText`
 still on the inner `ContainerCfg` is there only to guarantee the shape gets an
 events record, which a bubble-text `Button` otherwise has no reason to allocate.
 

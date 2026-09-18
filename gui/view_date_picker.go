@@ -306,47 +306,72 @@ func datePickerControls(
 		ctx.Consume()
 	}
 
-	return Row(ContainerCfg{
-		VAlign:     VAlignMiddle,
-		Padding:    NoPadding,
-		SizeBorder: NoBorder,
-		Sizing:     FillFit,
-		Content: []View{
+	header := []View{
+		Button(ButtonCfg{
+			// Namespaced by the picker's ID so two date pickers in
+			// one window keep separate focus and state identities.
+			ID:      ScopeID(cfgID, "month"),
+			Color:   ColorTransparent,
+			Colors:  ColorSet{Border: ColorTransparent}.resolved(ColorTransparent, themeButtonSet()),
+			OnClick: onToggle,
+			Content: []View{Text(TextCfg{
+				Text: monthLabel, TextStyle: cfg.TextStyle,
+			})},
+		}),
+		Rectangle(RectangleCfg{Sizing: FillFit}),
+	}
+	if state.ShowYearMonthPicker {
+		// The prev/next arrows would be dead — navigation applies
+		// to the grid, which is not showing — so a confirm button
+		// takes their place instead. Escape is no longer the only
+		// way out, and the month label is undiscoverable as a
+		// toggle on its own.
+		header = append(header, Button(ButtonCfg{
+			// Namespaced by the picker's ID, next to the
+			// roller it dismisses.
+			ID:     ScopeID(cfgID, "done"),
+			Color:  ColorTransparent,
+			Colors: ColorSet{Border: ColorTransparent}.resolved(ColorTransparent, themeButtonSet()),
+			OnClick: func(ctx EventCtx) {
+				datePickerRollerDismiss(cfgID, ctx.Window)
+				ctx.Consume()
+			},
+			Content: []View{Text(TextCfg{
+				Text:      IconCheckCircleO,
+				TextStyle: CurrentTheme().Icon2,
+			})},
+		}))
+	} else {
+		header = append(header,
 			Button(ButtonCfg{
-				// Namespaced by the picker's ID so two date pickers in
-				// one window keep separate focus and state identities.
-				ID:      ScopeID(cfgID, "month"),
+				ID:      ScopeID(cfgID, "prev"),
 				Color:   ColorTransparent,
 				Colors:  ColorSet{Border: ColorTransparent}.resolved(ColorTransparent, themeButtonSet()),
-				OnClick: onToggle,
-				Content: []View{Text(TextCfg{
-					Text: monthLabel, TextStyle: cfg.TextStyle,
-				})},
-			}),
-			Rectangle(RectangleCfg{Sizing: FillFit}),
-			Button(ButtonCfg{
-				ID:       ScopeID(cfgID, "prev"),
-				Disabled: state.ShowYearMonthPicker,
-				Color:    ColorTransparent,
-				Colors:   ColorSet{Border: ColorTransparent}.resolved(ColorTransparent, themeButtonSet()),
-				OnClick:  onPrev,
+				OnClick: onPrev,
 				Content: []View{Text(TextCfg{
 					Text:      IconArrowLeft,
 					TextStyle: CurrentTheme().Icon3,
 				})},
 			}),
 			Button(ButtonCfg{
-				ID:       ScopeID(cfgID, "next"),
-				Disabled: state.ShowYearMonthPicker,
-				Color:    ColorTransparent,
-				Colors:   ColorSet{Border: ColorTransparent}.resolved(ColorTransparent, themeButtonSet()),
-				OnClick:  onNext,
+				ID:      ScopeID(cfgID, "next"),
+				Color:   ColorTransparent,
+				Colors:  ColorSet{Border: ColorTransparent}.resolved(ColorTransparent, themeButtonSet()),
+				OnClick: onNext,
 				Content: []View{Text(TextCfg{
 					Text:      IconArrowRight,
 					TextStyle: CurrentTheme().Icon3,
 				})},
 			}),
-		},
+		)
+	}
+
+	return Row(ContainerCfg{
+		VAlign:     VAlignMiddle,
+		Padding:    NoPadding,
+		SizeBorder: NoBorder,
+		Sizing:     FillFit,
+		Content:    header,
 	})
 }
 

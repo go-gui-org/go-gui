@@ -483,6 +483,74 @@ func TestDatePickerYearMonthPickerView(t *testing.T) {
 	}
 }
 
+// While the roller is open the header swaps the dead prev/next
+// arrows for a confirm button; closed, the arrows are back and the
+// confirm is gone.
+func TestDatePickerControlsSwapArrowsForDone(t *testing.T) {
+	cfg := DatePickerCfg{ID: "dp-hdr"}
+	applyDatePickerDefaults(&cfg)
+	w := &Window{}
+
+	open := generateViewLayout(datePickerControls(&cfg,
+		datePickerState{ViewMonth: 6, ViewYear: 2025, ShowYearMonthPicker: true}, w), w)
+	if findShapeByID(&open, "dp-hdr:done") == nil {
+		t.Fatal("open header should carry the done button")
+	}
+	if findShapeByID(&open, "dp-hdr:prev") != nil ||
+		findShapeByID(&open, "dp-hdr:next") != nil {
+		t.Fatal("open header should not carry the prev/next arrows")
+	}
+	if !layoutContainsText(&open, IconCheckCircleO) {
+		t.Fatal("done button should carry the circle-check glyph")
+	}
+
+	closed := generateViewLayout(datePickerControls(&cfg,
+		datePickerState{ViewMonth: 6, ViewYear: 2025}, w), w)
+	if findShapeByID(&closed, "dp-hdr:prev") == nil ||
+		findShapeByID(&closed, "dp-hdr:next") == nil {
+		t.Fatal("closed header should carry the prev/next arrows")
+	}
+	if findShapeByID(&closed, "dp-hdr:done") != nil {
+		t.Fatal("closed header should not carry the done button")
+	}
+}
+
+// The confirm button beside the drums closes the roller without
+// moving the view, so a mouse user never needs Escape.
+func TestDatePickerRollerDoneDismiss(t *testing.T) {
+	w := newTestWindow()
+	sm := StateMap[string, datePickerState](w, nsDatePicker, capModerate)
+	sm.Set("dp-done", datePickerState{
+		ViewMonth: 6, ViewYear: 2025, ShowYearMonthPicker: true,
+	})
+
+	datePickerRollerDismiss("dp-done", w)
+	got, _ := sm.Get("dp-done")
+	if got.ShowYearMonthPicker {
+		t.Fatal("Done should close the year/month picker")
+	}
+	if got.ViewMonth != 6 || got.ViewYear != 2025 {
+		t.Fatalf("Done must not move the view: %d/%d",
+			got.ViewMonth, got.ViewYear)
+	}
+	if w.FocusID() != "dp-done" {
+		t.Fatalf("Done should return focus to the picker, got %q",
+			w.FocusID())
+	}
+}
+
+func TestDatePickerRollerDismissUnknownIDNoop(t *testing.T) {
+	w := newTestWindow()
+	// Must not panic, and must not disturb other instances.
+	sm := StateMap[string, datePickerState](w, nsDatePicker, capModerate)
+	sm.Set("dp-other", datePickerState{ViewMonth: 6, ViewYear: 2025})
+	datePickerRollerDismiss("never-existed", w)
+	got, _ := sm.Get("dp-other")
+	if got.ViewMonth != 6 || got.ViewYear != 2025 {
+		t.Fatal("dismiss of an unknown ID disturbed another picker")
+	}
+}
+
 func TestDatePickerRollerKeyDownEscape(t *testing.T) {
 	w := &Window{}
 	sm := StateMap[string, datePickerState](w, nsDatePicker, capModerate)

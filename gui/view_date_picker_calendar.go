@@ -342,6 +342,22 @@ func datePickerYearMonthPicker(
 	})
 }
 
+// datePickerRollerDismiss closes the month/year roller, returning
+// focus to the picker so keyboard navigation continues there.
+func datePickerRollerDismiss(cfgID string, w *Window) {
+	sm := StateMap[string, datePickerState](w, nsDatePicker, capModerate)
+	s, ok := sm.Get(cfgID)
+	if !ok {
+		return
+	}
+	s.ShowYearMonthPicker = false
+	sm.Set(cfgID, s)
+	if cfgID != "" {
+		w.SetFocus(cfgID)
+	}
+	w.InvalidateLayout()
+}
+
 // datePickerRollerKeyDown handles keyboard for the embedded
 // month/year roller. Up/Down = month, Shift+Up/Down = year.
 func datePickerRollerKeyDown(

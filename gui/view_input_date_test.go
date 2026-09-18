@@ -430,3 +430,43 @@ func TestInputDateFormatRejectsTimeToken(t *testing.T) {
 	}()
 	InputDate(InputDateCfg{ID: "id-fmt-time", DateFormat: "DD.MM.YYYY HH:mm"})
 }
+
+// The calendar glyph keeps its arranged position: it sits nested in
+// a wrapper row, out of the button amend's direct text children, so
+// the amend leaves it alone. A color emoji's ink metrics do not say
+// where backends draw it, so any optical correction mis-centres it
+// next to the digit-centred date text (issue #346). bandTestWindow
+// separates the bands by construction (cap offset 2), so a corrected
+// icon would move and this fails.
+func TestInputDateCalendarIconUncorrected(t *testing.T) {
+	w := &Window{}
+	v := InputDate(InputDateCfg{
+		ID:   "id-icon-plain",
+		Date: time.Date(2025, 3, 15, 0, 0, 0, 0, time.Local),
+	})
+	layout := generateViewLayout(v, w)
+	btn := findShapeByID(&layout, ScopeID("id-icon-plain", "calendar"))
+	if btn == nil {
+		t.Fatal("calendar button not found")
+	}
+	buttonAmendLayout(EventCtx{btn, nil, bandTestWindow()})
+	icon := findTextByContent(btn, "\U0001F4C5")
+	if icon == nil {
+		t.Fatal("calendar icon not found")
+	}
+	if icon.Y != 0 {
+		t.Errorf("calendar icon moved by %v, want 0 (uncorrected)", icon.Y)
+	}
+}
+
+func findTextByContent(l *Layout, text string) *Shape {
+	if l.Shape != nil && l.Shape.TC != nil && l.Shape.TC.Text == text {
+		return l.Shape
+	}
+	for i := range l.Children {
+		if found := findTextByContent(&l.Children[i], text); found != nil {
+			return found
+		}
+	}
+	return nil
+}

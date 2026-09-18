@@ -352,7 +352,7 @@ func Button(cfg ButtonCfg) View {
 		// would then sit a pixel above the enabled one beside it. This
 		// also guarantees the shape gets an events record, which a
 		// bubble-text Button otherwise has no reason to allocate.
-		AmendLayout: opticalCenterText,
+		AmendLayout: OpticalCenterText,
 		Content:     content,
 	}).(*containerView)
 

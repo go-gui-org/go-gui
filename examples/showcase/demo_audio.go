@@ -653,8 +653,14 @@ func synthPadView(t gui.Theme, i int, p synthPadDef) gui.View {
 		Color:       t.ColorPanel,
 		ColorBorder: t.ColorBorder,
 		Radius:      gui.SomeF(10),
-		HAlign:      gui.HAlignCenter,
-		VAlign:      gui.VAlignMiddle,
+		// Fixed-size pad: theme container padding would fill the
+		// box and push both lines to its bottom edge.
+		Padding: gui.NoPadding,
+		HAlign:  gui.HAlignCenter,
+		VAlign:  gui.VAlignMiddle,
+		// Static pad labels: centre each on its own ink, as
+		// Button and Badge do, instead of on the line box.
+		AmendLayout: gui.OpticalCenterText,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      p.name,

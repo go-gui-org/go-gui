@@ -37,8 +37,14 @@ func demoBoxSized(label string, color gui.Color, w, h float32) gui.View {
 		Sizing: gui.FixedFixed,
 		Color:  color,
 		Radius: gui.SomeF(4),
-		HAlign: gui.HAlignCenter,
-		VAlign: gui.VAlignMiddle,
+		// Fixed-size box: theme container padding would fill
+		// the whole box and pin the label to its bottom edge.
+		Padding: gui.NoPadding,
+		HAlign:  gui.HAlignCenter,
+		VAlign:  gui.VAlignMiddle,
+		// Static demo labels: centre each on its own ink, as
+		// Button and Badge do, instead of on the line box.
+		AmendLayout: gui.OpticalCenterText,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{Text: label, TextStyle: t.N2}),
 		},

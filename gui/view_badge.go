@@ -98,7 +98,7 @@ func Badge(cfg BadgeCfg) View {
 		// uncorrected badge read high in its pill (issue #346). The
 		// label is measured, so "128" centres exactly and a tag with a
 		// descender keeps metric centring instead of sinking.
-		AmendLayout: opticalCenterText,
+		AmendLayout: OpticalCenterText,
 		Content: []View{
 			Text(TextCfg{
 				Text:      label,

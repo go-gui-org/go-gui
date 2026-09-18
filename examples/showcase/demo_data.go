@@ -222,12 +222,10 @@ func demoDataSource(w *gui.Window) gui.View {
 			}),
 			datagrid.New(w, datagrid.DataGridCfg{
 				ID: "catalog-data-source",
-				// Fill width: the columns plus gutter and borders
-				// sum past narrow panels, and a Fit grid would
-				// stick out of the column around it (issue
-				// #642). Filled, the scroll body absorbs the
-				// excess instead.
-				Sizing:          gui.FillFit,
+				// Fit width: the grid hugs its columns plus
+				// gutter and borders instead of stretching
+				// to the panel.
+				Sizing:          gui.FitFit,
 				Columns:         showcaseDataSourceColumns(),
 				DataSource:      app.DataSource,
 				PaginationKind:  datagrid.GridPaginationCursor,

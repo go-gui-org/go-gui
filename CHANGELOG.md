@@ -93,6 +93,18 @@ and this project adheres to
 - **`gui.FloatMiddleLeft`** — the middle-left float anchor was the only one of
   the nine stuck unexported, so an app could not anchor a float to its parent's
   middle-left edge. It is now exported like its siblings; the set ships whole.
+- **DatePicker month/year roller gains a confirm button** — the roller could
+  only be dismissed with Escape (or the undiscoverable month-label toggle),
+  while the header kept two prev/next arrows that did nothing. A check button
+  now takes the arrows' place while the roller is open and closes it without
+  moving the view. Focus returns to the picker, so keyboard navigation continues
+  where it left off.
+- **`gui.OpticalCenterText`** — the `AmendLayout` hook `Button` and `Badge`
+  centre their labels with is now exported, so an app-owned static label in a
+  centred container can sit on its optical centre too. It moves each direct text
+  child down by its own measured ink offset, never by padding, so the control
+  height is unchanged. Only for text the app owns and the user cannot type into;
+  the showcase layout demos use it for their fixed-size box labels.
 
 ### Changed
 
@@ -139,9 +151,28 @@ and this project adheres to
   hand out deep copies, so mutating a returned `Locale` no longer corrupts the
   stored one. Date parsing also reads `HH`/`mm`/`ss` and two-digit years, and
   rejects month-name formats with an explicit error instead of a wrong date.
+- **Showcase Data Source grid fits its contents** — the DataGrid on the Data
+  Source demo page now uses `FitFit` sizing, so the grid hugs its columns plus
+  gutter and borders instead of stretching to the panel width.
+- **Showcase demo boxes center their labels** — the fixed-size boxes in the
+  layout demos (scrollable containers, row, column, wrap panel) now opt out of
+  theme container padding, which filled the whole box and pinned each label to
+  its bottom edge, and centre each label on its own ink with the newly exported
+  `gui.OpticalCenterText` hook.
+- **Showcase synth pads center their lines** — the Live Synthesis pads had the
+  same padding-filled fixed box, pushing note name and frequency to the bottom
+  edge. They now opt out of the padding and centre each line on its own ink.
 
 ### Fixed
 
+- **InputDate calendar icon sits on the field middle line (#346)** — the icon
+  took the face cap band while the date text beside it takes the figure band, so
+  the two optical corrections disagreed and the icon rode off centre. A color
+  emoji's ink metrics do not say where backends draw it, so no measured
+  correction can centre it either. The icon now sits in a wrapper row inside its
+  button, out of the button amend's direct text children, so it keeps its
+  arranged position instead. It also inherits the field text style rather than
+  always drawing the default.
 - **Widget sound hardening** — from a review of the `sound*` code:
   - `SetSoundPlayer`, `SetSoundVolume`, `SoundPlayer`, `SoundVolume` and the
     dispatch read are now guarded by their own lock, the same split `themeMu`

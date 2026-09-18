@@ -303,20 +303,19 @@ func TestDemoWelcomePanelHasNoBorder(t *testing.T) {
 	}
 }
 
-// The data-source grid keeps a Fill width: its columns plus gutter
-// and borders sum past narrow panels, and a Fit grid sticks out of
-// the column around it (issue #642). Pinned here because the failure
-// needs a narrow panel, which no layout in this package builds; the
-// narrow-panel geometry itself is covered in gui/datagrid.
-func TestDemoDataSourceGridFillsWidth(t *testing.T) {
+// The data-source grid fits its contents: columns plus gutter and
+// borders size the grid instead of stretching to the panel (issue
+// #642 keeps the Fill alternative pinned in gui/datagrid for narrow
+// panels; this demo opts into Fit at its catalog width).
+func TestDemoDataSourceGridFitsContent(t *testing.T) {
 	w := gui.NewWindow(gui.WindowCfg{State: newShowcaseApp()})
 	layout := gui.GenerateViewLayout(demoDataSource(w), w)
 	grid, ok := layout.FindByID("catalog-data-source")
 	if !ok {
 		t.Fatal("catalog-data-source not found")
 	}
-	if grid.Shape.Sizing.Width != gui.FillFit.Width {
-		t.Fatalf("data-source grid width sizing = %v, want Fill",
+	if grid.Shape.Sizing.Width != gui.FitFit.Width {
+		t.Fatalf("data-source grid width sizing = %v, want Fit",
 			grid.Shape.Sizing.Width)
 	}
 }
@@ -725,4 +724,29 @@ func TestDemoTextAnimLayout(t *testing.T) {
 			t.Fatal("text-anim-replay not found")
 		}
 	})
+}
+
+// The fixed-size demo boxes center their label: theme container
+// padding used to fill the whole box, pinning the text to the
+// padding edge so it touched the box bottom.
+func TestDemoBoxSizedCentersLabel(t *testing.T) {
+	w := gui.NewTestWindow(gui.WindowCfg{Width: 400, Height: 200})
+	defer w.Close()
+	root := w.TestRender(func(*gui.Window) gui.View {
+		return gui.Column(gui.ContainerCfg{
+			Sizing:  gui.FillFill,
+			Content: []gui.View{demoBoxSized("H1", gui.Gray, 80, 30)},
+		})
+	})
+	box := &root.Children[0].Children[0]
+	text := &box.Children[0]
+	// Metric centre plus the optical correction: the label sits below
+	// metric centre by the cap-band offset (headless fallback:
+	// 0.0886 * size for "H1", which has no descenders).
+	metric := (box.Shape.Height - text.Shape.Height) / 2
+	off := gui.CurrentTheme().N2.Size * 0.0886
+	if got := text.Shape.Y - box.Shape.Y; got-metric-off > 0.01 || metric+off-got > 0.01 {
+		t.Fatalf("label offset = %v, want %v (box h=%v text h=%v)",
+			got, metric+off, box.Shape.Height, text.Shape.Height)
+	}
 }

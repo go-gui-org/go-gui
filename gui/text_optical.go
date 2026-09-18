@@ -38,7 +38,7 @@ import (
 //     text whose alphabet the widget constrains — a hex or channel
 //     field. There is no way to hand it the live text.
 //
-//     opticalCenterText measures the run it is about to move, and is
+//     OpticalCenterText measures the run it is about to move, and is
 //     only for text the widget owns and the user cannot type into: a
 //     badge, a readout, a button or tab label.
 //
@@ -256,11 +256,12 @@ func glyphStyle(ts TextStyle) TextStyle {
 	return ts
 }
 
-// opticalCenterText is an AmendLayout hook that moves a container's
-// direct text children down onto their optical centre. Use it on a
-// container that centres text the widget itself owns — a badge's count,
+// OpticalCenterText is an AmendLayout hook that moves a container's
+// direct text children down onto their optical centre. Set it on a
+// container that centres text the app itself owns — a badge's count,
 // a progress bar's percentage, a button or tab label. Never on text the
-// user types.
+// user types: the offset is measured from the run, so typing a
+// descender would step the baseline.
 //
 // It runs in AmendLayout, after sizing, for the same two reasons
 // centerGlyphOnInk does: it needs a measurer, so it cannot happen in a
@@ -278,7 +279,7 @@ func glyphStyle(ts TextStyle) TextStyle {
 // descender stays where metric centring put it rather than being pushed
 // below the middle. See the file comment for why measuring the run is
 // safe here and not on an editable field.
-func opticalCenterText(ctx EventCtx) {
+func OpticalCenterText(ctx EventCtx) {
 	opticalCenterChildren(ctx, opticalBandRun)
 }
 
@@ -287,7 +288,7 @@ func opticalCenterText(ctx EventCtx) {
 // *swaps* its label as its state changes — a Select showing a
 // placeholder until an option is chosen, then showing the option.
 //
-// Two reasons it is not opticalCenterText, and both were measured on the
+// Two reasons it is not OpticalCenterText, and both were measured on the
 // real render rather than argued (issue #346):
 //
 //   - The measured form is a no-op on the labels this control actually
@@ -308,7 +309,7 @@ func opticalCenterLabelText(ctx EventCtx) {
 }
 
 // opticalCenterFieldText is the content-free sibling of
-// opticalCenterText, for an *editable* field whose alphabet is digits
+// OpticalCenterText, for an *editable* field whose alphabet is digits
 // and separators: a date field, a numeric input. It centres on the
 // face's figure band and never reads what the shape currently says, so
 // the baseline cannot move as the user types — the jitter that ruled out

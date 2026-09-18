@@ -594,7 +594,7 @@ default with no `SetTheme` call. That is kept and pinned by a test.
   label's contrast depending on where the fill happens to be. Outside the bar
   the readout is legible at every percentage and the bar becomes a pure
   indicator. `TextShow` keeps its name and meaning. Only the placement changes,
-  and `progressBarCenterLabel` plus the `opticalCenterText` amend
+  and `progressBarCenterLabel` plus the `OpticalCenterText` amend
   (`view_progress_bar.go:88`) are deleted with it. The fill is **already**
   radius-clipped — the fill `Row` sets `Radius: SomeF(radius)`
   (`view_progress_bar.go:76`) — so only the label is at issue.
@@ -858,7 +858,7 @@ done until the docs say the same thing:
   `CHANGELOG.md` under Unreleased → Removed.
 - **Progress readout placement and boolean sizes (§ 8, phase 7)** — the readout
   trails the bar at `SpacingSmall` in `TextStyleSecondary`, outside the fill.
-  `progressBarCenterLabel` and the readout's `opticalCenterText` amend are
+  `progressBarCenterLabel` and the readout's `OpticalCenterText` amend are
   deleted. The widget restructured: the outer row owns identity, sizing and
   a11y. The track (caller's `Width`, track color, radius) is its first child
   with the fill as the track's only child. The amend math moved with the

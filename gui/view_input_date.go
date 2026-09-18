@@ -166,8 +166,20 @@ func (idv *inputDateView) GenerateLayout(w *Window) Layout {
 					Disabled:   cfg.Disabled || cfg.ReadOnly,
 					Padding:    NoPadding,
 					SizeBorder: NoBorder,
-					Content: []View{Text(TextCfg{
-						Text: "\U0001F4C5",
+					Content: []View{Row(ContainerCfg{
+						// Scaffolding, not a box: it keeps the
+						// calendar glyph out of the button
+						// amend's direct text children, so the
+						// glyph keeps its arranged position. A
+						// color emoji's ink metrics do not say
+						// where backends draw it, so any optical
+						// correction mis-centres it (issue #346).
+						Padding:    NoPadding,
+						SizeBorder: NoBorder,
+						Content: []View{Text(TextCfg{
+							Text:      "\U0001F4C5",
+							TextStyle: cfg.TextStyle,
+						})},
 					})},
 					OnClick: func(ctx EventCtx) {
 						inputDateToggle(cfgID, ctx.Window)
