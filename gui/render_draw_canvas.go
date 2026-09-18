@@ -42,7 +42,7 @@ func renderDrawCanvas(shape *Shape, clip drawClip, w *Window) {
 	ch := shape.Height - shape.paddingHeight()
 
 	scale := w.BackingScale
-	if scale <= 0 || math.IsNaN(float64(scale)) || math.IsInf(float64(scale), 0) {
+	if !(scale > 0) || !f32IsFinite(scale) {
 		scale = 1
 	}
 

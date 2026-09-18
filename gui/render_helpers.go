@@ -236,27 +236,6 @@ func emitClipCmd(clip drawClip, w *Window) {
 	}, w)
 }
 
-// quantizedScissorClip truncates clip coordinates to integer
-// multiples of scale, matching sokol's scissor rect behavior.
-// Truncation is toward zero (a C int cast), not floor: a negative
-// origin of -1.7 quantizes to -1, exactly as the GPU path computes
-// it, so the soft path and the GPU path clip the same pixels.
-func quantizedScissorClip(clip drawClip, scale float32) drawClip {
-	if scale <= 0 {
-		return clip
-	}
-	sx := int(clip.X * scale)
-	sy := int(clip.Y * scale)
-	sw := int(clip.Width * scale)
-	sh := int(clip.Height * scale)
-	return drawClip{
-		X:      float32(sx) / scale,
-		Y:      float32(sy) / scale,
-		Width:  float32(sw) / scale,
-		Height: float32(sh) / scale,
-	}
-}
-
 // svgCmdVertex maps one vertex of a RenderSvg command to page space,
 // in the same order the GPU and soft backends use: the command's own
 // affine (an animateTransform, or a canvas Translate/ScaleBy) first,

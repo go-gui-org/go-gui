@@ -149,32 +149,6 @@ func TestResolveClipRadiusZeroRadius(t *testing.T) {
 	}
 }
 
-func TestQuantizedScissorClipScale1(t *testing.T) {
-	clip := drawClip{X: 1.7, Y: 2.3, Width: 10.9, Height: 5.1}
-	got := quantizedScissorClip(clip, 1)
-	if got.X != 1 || got.Y != 2 || got.Width != 10 || got.Height != 5 {
-		t.Errorf("scale=1 should truncate to int: got %+v", got)
-	}
-}
-
-func TestQuantizedScissorClipScale2(t *testing.T) {
-	clip := drawClip{X: 1.3, Y: 2.7, Width: 10, Height: 5}
-	got := quantizedScissorClip(clip, 2)
-	// 1.3*2=2.6→2, 2/2=1.0
-	// 2.7*2=5.4→5, 5/2=2.5
-	if got.X != 1.0 || got.Y != 2.5 {
-		t.Errorf("scale=2 X,Y: got %f,%f want 1.0,2.5", got.X, got.Y)
-	}
-}
-
-func TestQuantizedScissorClipZeroScale(t *testing.T) {
-	clip := drawClip{X: 1.5, Y: 2.5, Width: 10, Height: 5}
-	got := quantizedScissorClip(clip, 0)
-	if got != clip {
-		t.Error("zero scale should return clip unchanged")
-	}
-}
-
 func TestRoundedImageClipParamsNoOverlap(t *testing.T) {
 	clip := drawClip{X: 100, Y: 100, Width: 10, Height: 10}
 	_, ok := roundedImageClipParams(0, 0, 10, 10, clip)

@@ -137,35 +137,3 @@ type textPathData struct {
 	Anchor   SvgTextAnchor     // text-anchor alignment
 	method   svgTextPathMethod // glyph placement method
 }
-
-// filterBracketRange describes a matched DrawFilterBegin..DrawFilterEnd
-// range within the renderers slice.
-type filterBracketRange struct {
-	StartIdx int
-	EndIdx   int
-	NextIdx  int
-	FoundEnd bool
-}
-
-// findFilterBracketRange scans renderers from startIdx looking for
-// a DrawFilterBegin..DrawFilterEnd pair.
-// Precondition: filter brackets do not nest. w.inFilter prevents
-// nested RenderFilterBegin emissions during layout rendering.
-func findFilterBracketRange(renderers []RenderCmd, startIdx int) filterBracketRange {
-	for i := startIdx; i < len(renderers); i++ {
-		if renderers[i].Kind == RenderFilterEnd {
-			return filterBracketRange{
-				StartIdx: startIdx,
-				EndIdx:   i,
-				NextIdx:  i + 1,
-				FoundEnd: true,
-			}
-		}
-	}
-	return filterBracketRange{
-		StartIdx: startIdx,
-		EndIdx:   len(renderers),
-		NextIdx:  len(renderers),
-		FoundEnd: false,
-	}
-}

@@ -109,42 +109,6 @@ func TestRoundedImageClipParamsShrinksWhenTopLeftAnchoredInnerClip(t *testing.T)
 	}
 }
 
-// --- quantizedScissorClip ---
-
-func TestQuantizedScissorClipMatchesSokolIntTruncation(t *testing.T) {
-	clip := makeClip(10.9, 20.9, 30.9, 40.9)
-	q := quantizedScissorClip(clip, 1.0)
-	if !f32AreClose(q.X, 10) {
-		t.Errorf("X: got %f", q.X)
-	}
-	if !f32AreClose(q.Y, 20) {
-		t.Errorf("Y: got %f", q.Y)
-	}
-	if !f32AreClose(q.Width, 30) {
-		t.Errorf("W: got %f", q.Width)
-	}
-	if !f32AreClose(q.Height, 40) {
-		t.Errorf("H: got %f", q.Height)
-	}
-}
-
-func TestQuantizedScissorClipRespectsScale(t *testing.T) {
-	clip := makeClip(1.26, 2.26, 3.26, 4.26)
-	q := quantizedScissorClip(clip, 2.0)
-	if !f32AreClose(q.X, 1.0) {
-		t.Errorf("X: got %f", q.X)
-	}
-	if !f32AreClose(q.Y, 2.0) {
-		t.Errorf("Y: got %f", q.Y)
-	}
-	if !f32AreClose(q.Width, 3.0) {
-		t.Errorf("W: got %f", q.Width)
-	}
-	if !f32AreClose(q.Height, 4.0) {
-		t.Errorf("H: got %f", q.Height)
-	}
-}
-
 // --- dimAlpha ---
 
 func TestDimAlpha(t *testing.T) {
@@ -892,50 +856,6 @@ func TestClipContentsCoexistsWithClip(t *testing.T) {
 	}
 	if !hasStencilEnd {
 		t.Error("expected RenderStencilEnd")
-	}
-}
-
-// --- findFilterBracketRange ---
-
-func TestFindFilterBracketRangeMatchedBeginEnd(t *testing.T) {
-	renderers := []RenderCmd{
-		{Kind: RenderNone},
-		{Kind: RenderSvg, Triangles: []float32{0, 0, 10, 0, 0, 10}, Color: White, Scale: 1},
-		{Kind: RenderFilterEnd},
-		{Kind: RenderNone},
-	}
-	bracket := findFilterBracketRange(renderers, 0)
-	if !bracket.FoundEnd {
-		t.Error("expected found end")
-	}
-	if bracket.StartIdx != 0 {
-		t.Errorf("start: got %d", bracket.StartIdx)
-	}
-	if bracket.EndIdx != 2 {
-		t.Errorf("end: got %d", bracket.EndIdx)
-	}
-	if bracket.NextIdx != 3 {
-		t.Errorf("next: got %d", bracket.NextIdx)
-	}
-}
-
-func TestFindFilterBracketRangeUnmatchedBeginEnd(t *testing.T) {
-	renderers := []RenderCmd{
-		{Kind: RenderNone},
-		{Kind: RenderNone},
-	}
-	bracket := findFilterBracketRange(renderers, 0)
-	if bracket.FoundEnd {
-		t.Error("expected not found")
-	}
-	if bracket.StartIdx != 0 {
-		t.Errorf("start: got %d", bracket.StartIdx)
-	}
-	if bracket.EndIdx != 2 {
-		t.Errorf("end: got %d", bracket.EndIdx)
-	}
-	if bracket.NextIdx != 2 {
-		t.Errorf("next: got %d", bracket.NextIdx)
 	}
 }
 

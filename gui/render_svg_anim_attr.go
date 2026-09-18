@@ -159,7 +159,10 @@ func applyAnimContribToPath(c *animContrib, a *SvgAnimation, pid uint32,
 func applyDashArrayContrib(ov *SvgAnimAttrOverride,
 	a *SvgAnimation, frac float32) {
 	k := int(a.DashKeyframeLen)
-	if k <= 0 {
+	// The upper bound is re-checked here, not only in evalAnimContrib:
+	// the slots below are a fixed-size array, so a stride past the cap
+	// is an out-of-range write one call frame away from its guard.
+	if k <= 0 || k > SvgAnimDashArrayCap || len(a.Values) < 2*k {
 		return
 	}
 	n := len(a.Values) / k

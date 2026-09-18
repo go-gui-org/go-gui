@@ -20,8 +20,12 @@ func renderImage(shape *Shape, clip drawClip, w *Window) {
 		bgColor = dimAlpha(bgColor)
 	}
 	shape.Color = ColorTransparent
+	// Deferred for the reason renderShape defers its own restore: a
+	// panic below must not leave the shape transparent for the next
+	// frame. Shapes persist in the layout tree. The emit below reads
+	// bgColor, not shape.Color, so restoring at return is equivalent.
+	defer func() { shape.Color = origColor }()
 	renderContainer(shape, ColorTransparent, clip, w)
-	shape.Color = origColor
 
 	emitRenderer(RenderCmd{
 		Kind:       RenderImage,

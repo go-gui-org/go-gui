@@ -5,6 +5,16 @@ import (
 	"testing"
 )
 
+// computeSvgAnimations is the plain form of computeSvgAnimationsReuse:
+// no contribution scratch, no base transforms. It lives here because
+// the render path always has both, so production has no caller.
+func computeSvgAnimations(
+	anims []SvgAnimation, elapsedSec float64,
+	states map[uint32]svgAnimState,
+) map[uint32]svgAnimState {
+	return computeSvgAnimationsReuse(anims, elapsedSec, states, nil, nil)
+}
+
 func TestRenderSvgNoParser(t *testing.T) {
 	w := &Window{}
 	shape := &Shape{

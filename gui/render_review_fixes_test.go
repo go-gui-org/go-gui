@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math"
 	"os"
 	"strings"
 	"testing"
@@ -173,16 +174,6 @@ func TestLerpU8RoundsHalf(t *testing.T) {
 	// gave 127 and drifted tweens from gradient sampling.
 	if got := lerpU8(0, 255, 0.5); got != 128 {
 		t.Fatalf("lerpU8(0,255,0.5) = %d, want 128", got)
-	}
-}
-
-func TestQuantizedScissorClipNegativeTruncates(t *testing.T) {
-	// Toward zero like a C int cast (sokol parity), not floor:
-	// -1.7 quantizes to -1 on both paths.
-	clip := drawClip{X: -1.7, Y: -2.3, Width: 10, Height: 5}
-	got := quantizedScissorClip(clip, 1)
-	if got.X != -1 || got.Y != -2 {
-		t.Fatalf("negative origin got %v,%v want -1,-2", got.X, got.Y)
 	}
 }
 
@@ -363,5 +354,194 @@ func TestSvgFilterBeginBalancedWithZeroBlurLayers(t *testing.T) {
 	}
 	if layers != 1 {
 		t.Fatalf("Layers = %d, want the floor of 1", layers)
+	}
+}
+
+func TestSanitizeFilterBlurFoldsNonFinite(t *testing.T) {
+	stdDev := float32(1e38)
+	big := stdDev * float32(34) // +Inf
+	cases := []struct {
+		name string
+		in   float32
+		want float32
+	}{
+		{"overflow", big, maxFilterBlur},
+		{"nan", float32(math.NaN()), 0},
+		{"negative", -4, 0},
+		{"zero", 0, 0},
+		{"kept", 12, 12},
+		{"capped", maxFilterBlur * 3, maxFilterBlur},
+	}
+	for _, c := range cases {
+		if got := sanitizeFilterBlur(c.in); got != c.want {
+			t.Errorf("%s: sanitizeFilterBlur(%v) = %v, want %v",
+				c.name, c.in, got, c.want)
+		}
+	}
+}
+
+func TestSvgFilterBlurOverflowStaysBalanced(t *testing.T) {
+	// stdDeviation is only checked for NaN/Inf and > 0 at parse time,
+	// so a six-digit stdDev times an ordinary tessellation scale
+	// overflowed to +Inf. validFilterBeginCmd then dropped the Begin
+	// while the unconditional RenderFilterEnd stayed, and the GPU
+	// backends composite a stale filter layer on an unmatched End.
+	w := &Window{}
+	const src = "<svg id=\"blur-overflow\"/>"
+	cached := &CachedSvg{
+		Scale:  34,
+		Width:  10,
+		Height: 10,
+		FilteredGroups: []cachedFilteredGroup{{
+			Filter: SvgFilter{StdDev: 1e38, BlurLayers: 2},
+			bBox:   [4]float32{0, 0, 10, 10},
+		}},
+	}
+	sm := StateMap[svgCacheKey, *CachedSvg](w, nsSvgCache, capImageCache)
+	sm.Set(buildSvgCacheLookupKey(hashString(src), 340, 340,
+		w.svgParseOpts()), cached)
+
+	shape := &Shape{
+		shapeType: shapeSVG,
+		Width:     340,
+		Height:    340,
+		Resource:  src,
+	}
+	renderSvg(shape, drawClip{X: 0, Y: 0, Width: 400, Height: 400}, w)
+
+	var begins, ends int
+	var blur float32
+	for _, r := range w.renderers {
+		switch r.Kind {
+		case RenderFilterBegin:
+			begins++
+			blur = r.BlurRadius
+		case RenderFilterEnd:
+			ends++
+		}
+	}
+	if begins != 1 || ends != 1 {
+		t.Fatalf("filter bracket = %d Begin / %d End, want 1 / 1",
+			begins, ends)
+	}
+	if !f32IsFinite(blur) || blur > maxFilterBlur {
+		t.Fatalf("BlurRadius = %v, want finite and <= %v",
+			blur, maxFilterBlur)
+	}
+}
+
+func TestColorFilterBracketSkippedWhenBeginDropped(t *testing.T) {
+	// A non-finite color matrix drops the RenderFilterBegin. The End
+	// is always valid, so emitting it regardless left the bracket
+	// unbalanced for the whole frame.
+	w := &Window{}
+	cf := &ColorFilter{}
+	cf.matrix[0] = float32(math.NaN())
+	layout := Layout{Shape: &Shape{
+		shapeType: shapeRectangle,
+		Width:     10,
+		Height:    10,
+		fx:        &shapeEffects{ColorFilter: cf},
+	}}
+	renderLayout(&layout, ColorTransparent,
+		drawClip{X: 0, Y: 0, Width: 100, Height: 100}, w)
+
+	for _, r := range w.renderers {
+		if r.Kind == RenderFilterBegin || r.Kind == RenderFilterEnd {
+			t.Fatalf("emitted %v for a dropped filter begin", r.Kind)
+		}
+	}
+	if w.inFilter {
+		t.Fatal("inFilter left set by a bracket that never opened")
+	}
+}
+
+func TestColorFilterDescendantOpensWhenOuterDropped(t *testing.T) {
+	// A dropped outer Begin must not suppress a descendant's own
+	// filter: inFilter is set only when the Begin lands, so the
+	// child's bracket still opens and the frame holds one balanced
+	// pair.
+	w := &Window{}
+	outer := &ColorFilter{}
+	outer.matrix[0] = float32(math.NaN())
+	layout := Layout{Shape: &Shape{
+		shapeType: shapeRectangle,
+		Width:     10,
+		Height:    10,
+		fx:        &shapeEffects{ColorFilter: outer},
+	}, Children: []Layout{{Shape: &Shape{
+		shapeType: shapeRectangle,
+		Width:     10,
+		Height:    10,
+		fx:        &shapeEffects{ColorFilter: &ColorFilter{}},
+	}}}}
+	renderLayout(&layout, ColorTransparent,
+		drawClip{X: 0, Y: 0, Width: 100, Height: 100}, w)
+
+	var begins, ends int
+	for _, r := range w.renderers {
+		switch r.Kind {
+		case RenderFilterBegin:
+			begins++
+		case RenderFilterEnd:
+			ends++
+		}
+	}
+	if begins != 1 || ends != 1 {
+		t.Fatalf("filter bracket = %d Begin / %d End, want 1 / 1",
+			begins, ends)
+	}
+	if w.inFilter {
+		t.Fatal("inFilter left set after the descendant bracket closed")
+	}
+}
+
+func TestStencilBracketSkippedAtDepthCap(t *testing.T) {
+	// StencilDepth is a uint8 and the GPU stencil buffer saturates at
+	// 255, so a bracket emitted at the parent's depth would decrement
+	// the coverage the parent still needs on its End.
+	w := &Window{}
+	w.stencilDepth = 255
+	layout := Layout{Shape: &Shape{
+		shapeType:    shapeRectangle,
+		Width:        10,
+		Height:       10,
+		clipContents: true,
+		shapeClip:    drawClip{X: 0, Y: 0, Width: 10, Height: 10},
+	}}
+	renderLayout(&layout, ColorTransparent,
+		drawClip{X: 0, Y: 0, Width: 100, Height: 100}, w)
+
+	for _, r := range w.renderers {
+		if r.Kind == RenderStencilBegin || r.Kind == RenderStencilEnd {
+			t.Fatalf("emitted %v at the depth cap", r.Kind)
+		}
+	}
+	if w.stencilDepth != 255 {
+		t.Fatalf("stencilDepth = %d, want 255 unchanged", w.stencilDepth)
+	}
+}
+
+func TestApplyDashArrayContribRejectsOversizeStride(t *testing.T) {
+	// The stride bound lives in evalAnimContrib, one call frame away.
+	// The slots here are a fixed-size array, so the check is repeated
+	// at the write site.
+	var ov SvgAnimAttrOverride
+	a := &SvgAnimation{
+		Kind:            SvgAnimDashArray,
+		DashKeyframeLen: SvgAnimDashArrayCap + 1,
+		Values:          make([]float32, 4*(SvgAnimDashArrayCap+1)),
+	}
+	applyDashArrayContrib(&ov, a, 0.5)
+	if ov.Mask&SvgAnimMaskStrokeDashArray != 0 {
+		t.Fatal("oversize stride was applied")
+	}
+	// A stride within the cap but with too few values must also be a
+	// no-op rather than an out-of-range read.
+	a.DashKeyframeLen = 4
+	a.Values = make([]float32, 4)
+	applyDashArrayContrib(&ov, a, 0.5)
+	if ov.Mask&SvgAnimMaskStrokeDashArray != 0 {
+		t.Fatal("single-keyframe stream was applied")
 	}
 }

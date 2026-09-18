@@ -158,13 +158,20 @@ func renderSvg(shape *Shape, clip drawClip, w *Window) {
 		// uses independent scaleX/scaleY.
 		fw := fg.bBox[2] * cached.Scale
 		fh := fg.bBox[3] * cached.Scale
-		blur := fg.Filter.StdDev * cached.Scale
+		blur := sanitizeFilterBlur(fg.Filter.StdDev * cached.Scale)
 		if nonUniform {
 			fw = fg.bBox[2] * scaleX
 			fh = fg.bBox[3] * scaleY
-			blur = fg.Filter.StdDev * max(scaleX, scaleY)
+			blur = sanitizeFilterBlur(
+				fg.Filter.StdDev * max(scaleX, scaleY))
 		}
-		emitRenderer(RenderCmd{
+		// The End is emitted only when the Begin landed. Both the
+		// Layers floor and the blur sanitizing above keep this
+		// command valid, but the bracket must not depend on that:
+		// RenderFilterEnd is always valid, so a Begin dropped by any
+		// later validator rule would leave the GPU backends
+		// compositing a stale filter layer over the frame.
+		begun := emitRendererIfValid(RenderCmd{
 			Kind:       RenderFilterBegin,
 			groupIdx:   i,
 			X:          sx,
@@ -177,18 +184,17 @@ func renderSvg(shape *Shape, clip drawClip, w *Window) {
 			// saturated and each extra pass is a full-layer
 			// blend in every backend. An untrusted document
 			// names an arbitrary feMergeNode count. Floored at
-			// 1: a dropped Begin against a kept End would
-			// unbalance the bracket (validFilterBeginCmd
-			// rejects Layers < 1, RenderFilterEnd is always
-			// valid).
+			// 1: validFilterBeginCmd rejects Layers < 1.
 			Layers: max(1, min(fg.Filter.BlurLayers, maxFilterCompositeLayers)),
 		}, w)
 		emitSvgGroup(fg.renderPaths, animByPID, fg.textDraws,
 			fg.textPathDraws, color, sx, sy,
 			cached.Scale, scaleX, scaleY, nonUniform, animState, shape, w)
-		emitRenderer(RenderCmd{
-			Kind: RenderFilterEnd,
-		}, w)
+		if begun {
+			emitRenderer(RenderCmd{
+				Kind: RenderFilterEnd,
+			}, w)
+		}
 
 		// KeepSource: re-draw sharp original on top of blur.
 		if fg.Filter.KeepSource {

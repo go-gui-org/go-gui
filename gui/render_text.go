@@ -29,10 +29,15 @@ func renderText(shape *Shape, clip drawClip, w *Window) {
 	if tc == nil {
 		return
 	}
+	// Resolved once: every text shape in the frame asks, and each ask
+	// is an atomic load, an interface assertion and a string compare.
+	// renderInputCursor and renderInputSelection re-derive it for
+	// themselves because tests call them directly.
+	focused := textShapeFocused(shape, w)
 	if len(tc.Text) == 0 &&
-		(!textShapeFocused(shape, w) || !w.IMEComposing()) {
+		(!focused || !w.IMEComposing()) {
 		// Empty text — still render cursor if focused.
-		if textShapeFocused(shape, w) {
+		if focused {
 			baseX := shape.X + shape.PaddingLeft()
 			baseY := shape.Y + shape.PaddingTop()
 			renderInputCursor(shape, "", baseX, baseY,
@@ -79,7 +84,7 @@ func renderText(shape *Shape, clip drawClip, w *Window) {
 	// cursor) but can never commit a composition, so its preedit
 	// must not render — makeInputOnChar would swallow the commit.
 	imeComposing := !tc.textReadOnly &&
-		textShapeFocused(shape, w) && w.IMEComposing()
+		focused && w.IMEComposing()
 	compText := ""
 	compRuneLen := 0
 	compInsertPos := 0
@@ -132,7 +137,7 @@ func renderText(shape *Shape, clip drawClip, w *Window) {
 	var preLayout glyph.Layout
 	hasPreLayout := false
 	needLayout := tc.textSelBeg != tc.textSelEnd ||
-		(textShapeFocused(shape, w) && w.inputCursorOn()) ||
+		(focused && w.inputCursorOn()) ||
 		imeComposing ||
 		spellCheckHasRanges(shape.focusKey(), w)
 	renderWithLayout := plainTextNeedsGlyphLayout(shape, tc, renderStyle)

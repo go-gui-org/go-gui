@@ -135,6 +135,22 @@ and this project adheres to
 
 ### Fixed
 
+- **Filter and stencil brackets stay balanced, whatever the emitted command** —
+  an SVG `stdDeviation` is only checked for NaN/Inf and `> 0` at parse time, so
+  a six-digit value times an ordinary tessellation scale overflowed to `+Inf`.
+  The validator then dropped `RenderFilterBegin` while the unconditional
+  `RenderFilterEnd` stayed, and the GPU backends composite on an end whether or
+  not they saw a begin — a stale glow layer painted over the frame. Filter blur
+  is now folded into the range every backend supports (non-finite and negative
+  to 0, capped at the soft backend's own 512-pixel limit), and both filter
+  brackets — the SVG one and a container's `ColorFilter` — emit their end only
+  when the begin was appended. A container whose `ColorFilter` matrix is
+  non-finite now draws unfiltered instead of corrupting the frame, and no longer
+  suppresses a descendant's own filter. A stencil clip bracket past the 255-deep
+  saturation point is skipped whole rather than emitted at its parent's depth,
+  where its end decremented the coverage the parent still needed and every later
+  sibling clipped against a value one too low; the scissor rect still bounds the
+  subtree.
 - **Render robustness: warn-once SVG errors, hardened gradient borders, float64
   animation time** — a broken SVG source logged on every frame; it now logs once
   per source while the magenta placeholder still emits each frame, in a bounded

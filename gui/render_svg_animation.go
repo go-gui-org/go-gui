@@ -34,21 +34,6 @@ type svgAnimState struct {
 	HasStrokeColor bool
 }
 
-// computeSvgAnimations builds a map of per-group animation state
-// from parsed SMIL animations and elapsed time. Implements SMIL
-// "sandwich" semantics: each animation's last activation time is
-// computed (BeginSec + n*Cycle for the largest n with that <=
-// elapsed); contributions are sorted by activation ascending and
-// applied last-write-wins per attribute. fill="freeze" lets a past
-// animation continue to contribute its last keyframe value until
-// its cycle restarts or a later-activated animation overrides.
-func computeSvgAnimations(
-	anims []SvgAnimation, elapsedSec float64,
-	states map[uint32]svgAnimState,
-) map[uint32]svgAnimState {
-	return computeSvgAnimationsReuse(anims, elapsedSec, states, nil, nil)
-}
-
 // computeSvgAnimationsReuse is the render-path variant that
 // accepts a scratch []animContrib to avoid per-frame allocation.
 // baseByPath seeds per-PathID state with the author's decomposed

@@ -23,7 +23,26 @@ const (
 	// finite-checked but unbounded and drives blur working-rect
 	// growth in every backend.
 	maxShadowSpread = float32(1000000)
+	// maxFilterBlur bounds RenderFilterBegin.BlurRadius, in logical
+	// pixels. An SVG filter's stdDeviation is only checked for
+	// NaN/Inf and > 0 at parse time, so a six-digit stdDev times an
+	// ordinary tessellation scale overflows to +Inf — which the
+	// validator would then drop, unbalancing the bracket. Mirrors the
+	// soft backend's maxBlur, the reference blur path; nothing
+	// legible needs more spread.
+	maxFilterBlur = float32(512)
 )
+
+// sanitizeFilterBlur folds a filter blur radius into the range every
+// backend can use: NaN, negative and -Inf to 0, +Inf and large finite
+// capped. The negated > rejects NaN along with zero and negatives,
+// matching the soft backend's clampBlur.
+func sanitizeFilterBlur(v float32) float32 {
+	if !(v > 0) {
+		return 0
+	}
+	return min(v, maxFilterBlur)
+}
 
 // rendererValidForDraw checks whether a RenderCmd has valid
 // parameters for drawing. Returns false for NaN/Inf coordinates,
@@ -303,20 +322,31 @@ func guardRendererOrSkip(r RenderCmd, w *Window) bool {
 	if rendererValidForDraw(r) {
 		return true
 	}
-	// The mask covers kinds below 32 (see the assertion in
-	// render_types.go). A kind past it still drops; it only
-	// shares no warn-once slot.
-	if r.Kind < 32 {
-		bit := uint32(1) << r.Kind
-		w.renderGuardWarned |= bit
-	}
+	recordRenderGuard(r.Kind, w)
 	return false
 }
 
-// emitRendererIfValid appends r to the window's renderers if valid.
+// recordRenderGuard sets the once-per-kind warn bit for a dropped
+// command. The mask covers kinds below 32 (see the assertion in
+// render_types.go). A kind past it still drops; it only shares no
+// warn-once slot.
+func recordRenderGuard(kind renderKind, w *Window) {
+	if kind < 32 {
+		w.renderGuardWarned |= uint32(1) << kind
+	}
+}
+
+// emitRendererIfValid appends r to the window's renderers if valid,
+// recording a dropped command in the once-per-kind guard bitmask.
 // Returns true if appended.
+//
+// A caller that opens a bracket — filter, stencil — tests the result
+// and emits its matching end only on true. A kept end against a
+// dropped begin unbalances the stream, and the GPU backends composite
+// or decrement on an end whether or not they saw a begin.
 func emitRendererIfValid(r RenderCmd, w *Window) bool {
 	if !rendererValidForDraw(r) {
+		recordRenderGuard(r.Kind, w)
 		return false
 	}
 	w.renderers = append(w.renderers, r)
@@ -326,8 +356,5 @@ func emitRendererIfValid(r RenderCmd, w *Window) bool {
 // emitRenderer appends r to the window's renderers, recording
 // invalid renderers in the once-per-kind guard bitmask.
 func emitRenderer(r RenderCmd, w *Window) {
-	if emitRendererIfValid(r, w) {
-		return
-	}
-	guardRendererOrSkip(r, w)
+	_ = emitRendererIfValid(r, w)
 }

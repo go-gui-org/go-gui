@@ -20,17 +20,25 @@ func renderLayoutDepth(layout *Layout, bgColor Color, clip drawClip, w *Window, 
 	fx := layout.Shape.fx
 	hasColorFilter := fx != nil && fx.ColorFilter != nil && !w.inFilter
 	if hasColorFilter {
-		w.inFilter = true
-		emitRenderer(RenderCmd{
+		// The bracket opens only if the Begin landed: a non-finite
+		// color matrix drops it (validFilterBeginCmd), and the End is
+		// always valid, so emitting one regardless would leave the GPU
+		// backends compositing a stale filter layer over the frame.
+		// inFilter is set inside the same test, so a dropped Begin does
+		// not suppress a descendant's own filter either.
+		opened := emitRendererIfValid(RenderCmd{
 			Kind:        RenderFilterBegin,
-			BlurRadius:  fx.BlurRadius,
+			BlurRadius:  sanitizeFilterBlur(fx.BlurRadius),
 			Layers:      1,
 			ColorMatrix: &fx.ColorFilter.matrix,
 		}, w)
-		defer func() {
-			emitRenderer(RenderCmd{Kind: RenderFilterEnd}, w)
-			w.inFilter = false
-		}()
+		if opened {
+			w.inFilter = true
+			defer func() {
+				emitRenderer(RenderCmd{Kind: RenderFilterEnd}, w)
+				w.inFilter = false
+			}()
+		}
 	}
 
 	renderShape(layout.Shape, bgColor, clip, w)
@@ -60,20 +68,28 @@ func renderLayoutDepth(layout *Layout, bgColor Color, clip drawClip, w *Window, 
 
 	// Emit stencil clip bracket before children.
 	if layout.Shape.clipContents {
-		didIncrement := false
-		if w.stencilDepth < 255 {
+		// StencilDepth is a uint8 and the GPU stencil buffer saturates
+		// at 255, so a bracket that cannot claim a depth of its own is
+		// skipped whole rather than emitted at the parent's depth: its
+		// End would decrement the coverage the parent still needs, and
+		// every later sibling of that parent would clip against a value
+		// one too low. The scissor below still bounds the subtree, so
+		// the loss at 255 nested clipping containers is the rounded
+		// corner, not the clip. maxEventDepth (256) allows one level
+		// past the cap, which is how this became reachable at all.
+		stencilled := w.stencilDepth < 255
+		if stencilled {
 			w.stencilDepth++
-			didIncrement = true
+			emitRenderer(RenderCmd{
+				Kind:         RenderStencilBegin,
+				X:            layout.Shape.X,
+				Y:            layout.Shape.Y,
+				W:            layout.Shape.Width,
+				H:            layout.Shape.Height,
+				Radius:       layout.Shape.Radius,
+				StencilDepth: w.stencilDepth,
+			}, w)
 		}
-		emitRenderer(RenderCmd{
-			Kind:         RenderStencilBegin,
-			X:            layout.Shape.X,
-			Y:            layout.Shape.Y,
-			W:            layout.Shape.Width,
-			H:            layout.Shape.Height,
-			Radius:       layout.Shape.Radius,
-			StencilDepth: w.stencilDepth,
-		}, w)
 		// Also apply scissor clip as optimization (avoids
 		// rasterizing fragments outside bounding rect).
 		scissored := false
@@ -87,16 +103,16 @@ func renderLayoutDepth(layout *Layout, bgColor Color, clip drawClip, w *Window, 
 			if scissored {
 				emitClipCmd(clip, w)
 			}
-			emitRenderer(RenderCmd{
-				Kind:         RenderStencilEnd,
-				X:            layout.Shape.X,
-				Y:            layout.Shape.Y,
-				W:            layout.Shape.Width,
-				H:            layout.Shape.Height,
-				Radius:       layout.Shape.Radius,
-				StencilDepth: w.stencilDepth,
-			}, w)
-			if didIncrement {
+			if stencilled {
+				emitRenderer(RenderCmd{
+					Kind:         RenderStencilEnd,
+					X:            layout.Shape.X,
+					Y:            layout.Shape.Y,
+					W:            layout.Shape.Width,
+					H:            layout.Shape.Height,
+					Radius:       layout.Shape.Radius,
+					StencilDepth: w.stencilDepth,
+				}, w)
 				w.stencilDepth--
 			}
 		}()
