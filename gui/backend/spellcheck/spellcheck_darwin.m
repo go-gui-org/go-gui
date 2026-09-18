@@ -24,6 +24,7 @@ SpellCheckResult spellcheckCheck(const char *text, int textLen) {
         int count = 0;
         SpellRange *ranges = (SpellRange *)malloc(
             capacity * sizeof(SpellRange));
+        if (ranges == NULL) return result;
 
         NSInteger offset = 0;
         NSInteger lastUTF16 = 0;
@@ -59,8 +60,18 @@ SpellCheckResult spellcheckCheck(const char *text, int textLen) {
 
             if (count >= capacity) {
                 capacity *= 2;
-                ranges = (SpellRange *)realloc(ranges,
+                // Via a temporary: a failed realloc returns NULL
+                // and the original block stays valid, so assigning
+                // back directly would leak it and NULL-deref below.
+                SpellRange *grown = (SpellRange *)realloc(ranges,
                     capacity * sizeof(SpellRange));
+                if (grown == NULL) {
+                    free(ranges);
+                    result.ranges = NULL;
+                    result.count = 0;
+                    return result;
+                }
+                ranges = grown;
             }
             ranges[count].startByte = startByte;
             ranges[count].lenBytes = lenBytes;
@@ -115,19 +126,35 @@ SuggestResult spellcheckSuggest(const char *text, int textLen,
         int count = (int)guesses.count;
         result.suggestions = (char **)malloc(
             count * sizeof(char *));
+        if (result.suggestions == NULL) return result;
         result.count = count;
         for (int i = 0; i < count; i++) {
             const char *s = [guesses[i] UTF8String];
-            result.suggestions[i] = strdup(s);
+            char *dup = strdup(s);
+            if (dup == NULL) {
+                for (int j = 0; j < i; j++) {
+                    free(result.suggestions[j]);
+                }
+                free(result.suggestions);
+                result.suggestions = NULL;
+                result.count = 0;
+                return result;
+            }
+            result.suggestions[i] = dup;
         }
         return result;
     }
 }
 
-void spellcheckLearn(const char *word) {
+void spellcheckLearn(const char *word, int wordLen) {
     @autoreleasepool {
-        if (word == NULL) return;
-        NSString *str = [NSString stringWithUTF8String:word];
+        if (word == NULL || wordLen <= 0) return;
+        // Length-explicit, like Check/Suggest: a word with an
+        // embedded NUL must not silently truncate at the NUL.
+        NSString *str = [[NSString alloc]
+            initWithBytes:word
+            length:wordLen
+            encoding:NSUTF8StringEncoding];
         if (str == nil) return;
         [[NSSpellChecker sharedSpellChecker] learnWord:str];
     }

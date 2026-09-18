@@ -12,10 +12,8 @@ package spellcheck
 import "C"
 
 import (
-	"bufio"
+	"io"
 	"os"
-	"path/filepath"
-	"strconv"
 	"strings"
 	"sync"
 	"unicode"
@@ -26,6 +24,11 @@ import (
 )
 
 var handle *C.Hunhandle
+
+// mu serializes all Hunspell handle use. libhunspell documents no
+// thread-safety guarantee, and Check/Suggest/Learn can arrive from
+// the frame thread and event callbacks concurrently.
+var mu sync.Mutex
 
 var ensureInit = sync.OnceFunc(func() {
 	lang := detectLang()
@@ -50,62 +53,9 @@ var ensureInit = sync.OnceFunc(func() {
 	}
 })
 
-// detectLang returns the locale string from environment variables,
-// stripped of encoding and modifier suffixes.
-func detectLang() string {
-	for _, env := range []string{"LC_ALL", "LANG", "LANGUAGE"} {
-		if v := os.Getenv(env); v != "" && v != "C" && v != "POSIX" {
-			// Strip .UTF-8 or other encoding suffix.
-			if i := strings.IndexByte(v, '.'); i > 0 {
-				v = v[:i]
-			}
-			// Strip @modifier.
-			if i := strings.IndexByte(v, '@'); i > 0 {
-				v = v[:i]
-			}
-			return v
-		}
-	}
-	return "en_US"
-}
-
-// findDict searches standard paths for hunspell dictionary files.
-func findDict(lang string) (aff, dic string, ok bool) {
-	var dirs []string
-	if p := os.Getenv("DICPATH"); p != "" {
-		dirs = append(dirs, strings.Split(p, ":")...)
-	}
-	dirs = append(dirs,
-		"/usr/share/hunspell",
-		"/usr/share/myspell/dicts",
-	)
-	for _, dir := range dirs {
-		a := filepath.Join(dir, lang+".aff")
-		d := filepath.Join(dir, lang+".dic")
-		if fileExists(a) && fileExists(d) {
-			return a, d, true
-		}
-	}
-	return "", "", false
-}
-
-func fileExists(path string) bool {
-	_, err := os.Stat(path)
-	return err == nil
-}
-
-// personalDicPath returns the path to the personal dictionary file.
-func personalDicPath() string {
-	cfg := os.Getenv("XDG_CONFIG_HOME")
-	if cfg == "" {
-		home, _ := os.UserHomeDir()
-		cfg = filepath.Join(home, ".config")
-	}
-	return filepath.Join(cfg, "go-gui", "personal.dic")
-}
-
 // loadPersonalDict reads the personal dictionary and adds each
-// word to the hunspell session.
+// word to the hunspell session. Runs inside ensureInit, before the
+// handle is visible to other goroutines, so it needs no lock.
 func loadPersonalDict() {
 	f, err := os.Open(personalDicPath())
 	if err != nil {
@@ -113,19 +63,11 @@ func loadPersonalDict() {
 	}
 	defer func() { _ = f.Close() }()
 
-	scanner := bufio.NewScanner(f)
-	first := true
-	for scanner.Scan() {
-		word := strings.TrimSpace(scanner.Text())
-		if word == "" {
-			continue
-		}
-		// Skip first line if it's a count (hunspell format).
-		if first {
-			first = false
-			if _, err := strconv.Atoi(word); err == nil {
-				continue
-			}
+	capped := io.LimitReader(f, maxPersonalWords*(maxPersonalLine+1))
+	words := parsePersonalWords(readPersonalLines(capped))
+	for i, word := range words {
+		if i >= maxPersonalWords {
+			break
 		}
 		cWord := C.CString(word)
 		C.Hunspell_add(handle, cWord)
@@ -139,6 +81,8 @@ func Check(text string) []gui.SpellRange {
 	if handle == nil || len(text) == 0 {
 		return nil
 	}
+	mu.Lock()
+	defer mu.Unlock()
 	return checkWords(text)
 }
 
@@ -189,18 +133,22 @@ func checkWords(text string) []gui.SpellRange {
 }
 
 // Suggest returns spelling suggestions for a misspelled range.
+// Out-of-range spans clamp to the text remainder; see clampRange.
 func Suggest(text string, startByte, lenBytes int) []string {
 	ensureInit()
-	if handle == nil || len(text) == 0 {
+	if handle == nil {
 		return nil
 	}
-	if startByte < 0 || startByte+lenBytes > len(text) {
+	startByte, lenBytes, ok := clampRange(text, startByte, lenBytes)
+	if !ok {
 		return nil
 	}
 	word := text[startByte : startByte+lenBytes]
 	cWord := C.CString(word)
 	defer C.free(unsafe.Pointer(cWord))
 
+	mu.Lock()
+	defer mu.Unlock()
 	var cList **C.char
 	n := C.Hunspell_suggest(handle, &cList, cWord)
 	if n == 0 {
@@ -217,28 +165,24 @@ func Suggest(text string, startByte, lenBytes int) []string {
 }
 
 // Learn adds a word to the hunspell session and persists it to
-// the personal dictionary file.
+// the personal dictionary file. Words failing validLearnWord are
+// rejected: one Learn stores exactly one dictionary line, and the
+// loader drops longer lines, so accepting them would leave the
+// session and the file disagreeing after a restart.
 func Learn(word string) {
 	ensureInit()
-	if handle == nil || word == "" {
+	if handle == nil || !validLearnWord(word) {
+		return
+	}
+	if strings.IndexFunc(word, unicode.IsControl) >= 0 {
 		return
 	}
 	cWord := C.CString(word)
 	defer C.free(unsafe.Pointer(cWord))
+	// Unlock before the file write below: the session add is the
+	// only part that needs the handle lock.
+	mu.Lock()
 	C.Hunspell_add(handle, cWord)
+	mu.Unlock()
 	persistWord(word)
-}
-
-// persistWord appends a word to the personal dictionary file.
-func persistWord(word string) {
-	path := personalDicPath()
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		return
-	}
-	f, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
-	if err != nil {
-		return
-	}
-	defer func() { _ = f.Close() }()
-	_, _ = f.WriteString(word + "\n")
 }

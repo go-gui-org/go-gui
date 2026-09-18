@@ -1,4 +1,4 @@
-//go:build darwin && !ios
+//go:build darwin && !ios && cgo
 
 // Package spellcheck provides native spell checking via NSSpellChecker.
 package spellcheck
@@ -12,6 +12,7 @@ package spellcheck
 import "C"
 
 import (
+	"math"
 	"unsafe"
 
 	"github.com/go-gui-org/go-gui/gui"
@@ -19,7 +20,7 @@ import (
 
 // Check returns byte ranges of misspelled words in text.
 func Check(text string) []gui.SpellRange {
-	if len(text) == 0 {
+	if len(text) == 0 || len(text) > math.MaxInt32 {
 		return nil
 	}
 	cText := C.CString(text)
@@ -43,8 +44,10 @@ func Check(text string) []gui.SpellRange {
 }
 
 // Suggest returns spelling suggestions for a misspelled range.
+// Out-of-range spans clamp to the text remainder; see clampRange.
 func Suggest(text string, startByte, lenBytes int) []string {
-	if len(text) == 0 {
+	startByte, lenBytes, ok := clampRange(text, startByte, lenBytes)
+	if !ok {
 		return nil
 	}
 	cText := C.CString(text)
@@ -65,9 +68,13 @@ func Suggest(text string, startByte, lenBytes int) []string {
 	return suggestions
 }
 
-// Learn adds a word to the user's dictionary.
+// Learn adds a word to the user's dictionary. Empty words are
+// ignored: AppKit would otherwise learn the empty string.
 func Learn(word string) {
+	if word == "" {
+		return
+	}
 	cWord := C.CString(word)
 	defer C.free(unsafe.Pointer(cWord))
-	C.spellcheckLearn(cWord)
+	C.spellcheckLearn(cWord, C.int(len(word)))
 }

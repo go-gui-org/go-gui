@@ -165,6 +165,32 @@ and this project adheres to
 
 ### Fixed
 
+- **Spellcheck hardening** — from a review of the `spellcheck*` code:
+  - All Hunspell handle use on Linux is now serialized by a mutex. Before,
+    concurrent `Check`/`Suggest`/`Learn` calls raced inside libhunspell, which
+    documents no thread-safety guarantee.
+  - `Suggest` clamps out-of-range offsets to the text remainder on both
+    platforms, the same as the `nativehost` forwarder, using a subtraction
+    instead of `startByte+lenBytes`, which overflows for a hostile length.
+    Before, the Linux form panicked on a negative length and passed the check on
+    overflow.
+  - The macOS backend no longer loses the result buffer when `realloc` fails,
+    checks every allocation including `strdup`, and learns words by explicit
+    byte length so an embedded NUL cannot truncate the word. `Learn("")` is
+    ignored instead of learning the empty string.
+  - `Learn` rejects words with control characters on both platforms. Before, a
+    word containing a newline was added to the live session and then persisted
+    as several lines, injecting extra dictionary entries on the next load.
+  - The Linux personal dictionary load is bounded in total bytes, skips overlong
+    lines instead of aborting the scan, caps loaded words, and only treats a
+    leading number as a count header when words follow it. Before, a file
+    holding only a learned numeric word forgot that word on restart.
+    `C.UTF-8`-style locales and `LANGUAGE` priority lists now resolve instead of
+    disabling the engine, and empty `DICPATH` entries no longer probe the
+    working directory.
+  - The pure dictionary helpers moved to `spellcheck_linux_dict.go` without the
+    Hunspell dependency, so their tests run on every Linux build; the Hunspell
+    engine itself stays behind `-tags hunspell`, which no CI job builds.
 - **InputDate calendar icon sits on the field middle line (#346)** — the icon
   took the face cap band while the date text beside it takes the figure band, so
   the two optical corrections disagreed and the icon rode off centre. A color

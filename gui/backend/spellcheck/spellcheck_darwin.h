@@ -26,7 +26,7 @@ typedef struct {
 SpellCheckResult spellcheckCheck(const char *text, int textLen);
 SuggestResult spellcheckSuggest(const char *text, int textLen,
     int startByte, int lenBytes);
-void spellcheckLearn(const char *word);
+void spellcheckLearn(const char *word, int wordLen);
 void spellcheckFreeResult(SpellCheckResult r);
 void spellcheckFreeSuggestResult(SuggestResult r);
 
