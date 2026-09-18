@@ -120,6 +120,28 @@ func TestLayoutSetShapeClipsFullyOutside(t *testing.T) {
 	}
 }
 
+func TestLayoutSetShapeClipsNilMidNode(t *testing.T) {
+	// A hand-built mid-tree node with no Shape clips nothing but
+	// must not hide the valid subtree below it.
+	root := &Layout{
+		Shape: &Shape{X: 0, Y: 0, Width: 100, Height: 100},
+		Children: []Layout{
+			{
+				Children: []Layout{
+					{Shape: &Shape{X: 10, Y: 10, Width: 20, Height: 20}},
+				},
+			},
+		},
+	}
+	clip := drawClip{X: 0, Y: 0, Width: 500, Height: 500}
+	layoutSetShapeClips(root, clip)
+
+	leaf := root.Children[0].Children[0].Shape.shapeClip
+	if !f32AreClose(leaf.X, 10) || !f32AreClose(leaf.Width, 20) {
+		t.Errorf("leaf clip: X=%f W=%f", leaf.X, leaf.Width)
+	}
+}
+
 func TestLayoutSetShapeClipsNestedClipping(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{X: 0, Y: 0, Width: 100, Height: 100, Clip: true},

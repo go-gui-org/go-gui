@@ -36,7 +36,7 @@ func TestFloatAutoFlipHorizontal(t *testing.T) {
 			Float: true, floatAutoFlip: true,
 			Width: 100, Height: 50,
 			FloatAnchor: FloatMiddleRight,
-			FloatTieOff: floatMiddleLeft,
+			FloatTieOff: FloatMiddleLeft,
 		}}},
 	}
 	parent.Children[0].Parent = &parent

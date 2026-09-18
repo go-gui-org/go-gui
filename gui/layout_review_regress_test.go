@@ -260,7 +260,7 @@ func TestFloatAutoFlipNegatesOffset(t *testing.T) {
 		Shape: &Shape{X: 750, Y: 200, Width: 40, Height: 30},
 		Children: []Layout{{Shape: &Shape{
 			Float: true, floatAutoFlip: true, Width: 100, Height: 50,
-			FloatAnchor: FloatMiddleRight, FloatTieOff: floatMiddleLeft,
+			FloatAnchor: FloatMiddleRight, FloatTieOff: FloatMiddleLeft,
 			FloatOffsetX: 4,
 		}}},
 	}

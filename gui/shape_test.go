@@ -7,19 +7,8 @@ func TestNewShapeDefaults(t *testing.T) {
 	if s == nil {
 		t.Fatal("nil shape")
 	}
-	if s.uID == 0 {
-		t.Error("UID should be nonzero")
-	}
 	if !f32AreClose(s.Opacity, 1.0) {
 		t.Errorf("opacity: got %f, want 1.0", s.Opacity)
-	}
-}
-
-func TestNewShapeUIDsUnique(t *testing.T) {
-	a := newShape()
-	b := newShape()
-	if a.uID == b.uID {
-		t.Error("UIDs should be unique")
 	}
 }
 
@@ -96,5 +85,18 @@ func TestCanTakeFocusEffIDOnly(t *testing.T) {
 	}
 	if s := (&Shape{Focusable: true, effID: "scope:field", Disabled: true}); s.canTakeFocus() {
 		t.Error("disabled shape should not take focus")
+	}
+}
+
+func TestAccessStateHasNone(t *testing.T) {
+	var empty AccessState
+	if !empty.Has(AccessStateNone) {
+		t.Error("empty state should have None")
+	}
+	if AccessStateSelected.Has(AccessStateNone) {
+		t.Error("selected state should not have None")
+	}
+	if !AccessStateSelected.Has(AccessStateSelected) {
+		t.Error("selected state should have Selected")
 	}
 }

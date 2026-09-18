@@ -2,6 +2,7 @@ package soft
 
 import (
 	"image"
+	"math"
 	"testing"
 
 	"github.com/go-gui-org/go-gui/gui"
@@ -395,5 +396,76 @@ func TestDrawSvgDropsOversizedTriangles(t *testing.T) {
 		Triangles: make([]float32, 1_200_006)}})
 	if cap(r.svgBatch) > 1_200_000 {
 		t.Fatalf("svgBatch cap = %d, want bounded", cap(r.svgBatch))
+	}
+}
+
+// Non-finite, huge or negative geometry must draw nothing: deviceRect
+// converts NaN, Inf and out-of-int-range values in an arch-specific
+// way, and a negative box canonicalizes to a non-empty region, so the
+// guards reject before region(). Each case paints the centre on a clean buffer when the
+// guard fails.
+func TestDrawShapesRejectNonFinite(t *testing.T) {
+	nan := float32(math.NaN())
+	inf := float32(math.Inf(1))
+	green := gui.RGB(0, 255, 0)
+	cases := map[string]gui.RenderCmd{
+		"rect NaN x":      rectCmd(nan, 10, 20, 20, green),
+		"rect Inf w":      rectCmd(10, 10, inf, 20, green),
+		"rect NaN h":      rectCmd(10, 10, 20, nan, green),
+		"stroke Inf w":    {Kind: gui.RenderStrokeRect, X: 10, Y: 10, W: inf, H: 20, Thickness: 2, Color: green},
+		"stroke NaN y":    {Kind: gui.RenderStrokeRect, X: 10, Y: nan, W: 20, H: 20, Thickness: 2, Color: green},
+		"circle Inf r":    {Kind: gui.RenderCircle, X: 20, Y: 20, Radius: inf, Color: green, Fill: true},
+		"circle NaN r":    {Kind: gui.RenderCircle, X: 20, Y: 20, Radius: nan, Color: green, Fill: true},
+		"circle Inf x":    {Kind: gui.RenderCircle, X: inf, Y: 20, Radius: 10, Color: green, Fill: true},
+		"line Inf x1":     {Kind: gui.RenderLine, X: inf, Y: 20, OffsetX: 35, OffsetY: 20, Thickness: 2, Color: green},
+		"line NaN x2":     {Kind: gui.RenderLine, X: 5, Y: 20, OffsetX: nan, OffsetY: 20, Thickness: 2, Color: green},
+		"line Inf thick":  {Kind: gui.RenderLine, X: 5, Y: 20, OffsetX: 35, OffsetY: 20, Thickness: inf, Color: green},
+		"line huge thick": {Kind: gui.RenderLine, X: 5, Y: 20, OffsetX: 35, OffsetY: 20, Thickness: 1e30, Color: green},
+		"line NaN thick":  {Kind: gui.RenderLine, X: 5, Y: 20, OffsetX: 35, OffsetY: 20, Thickness: nan, Color: green},
+		"line zero len":   {Kind: gui.RenderLine, X: 20, Y: 20, OffsetX: 20, OffsetY: 20, Thickness: 2, Color: green},
+		"rect neg w":      rectCmd(30, 10, -20, 20, green),
+		"stroke neg h":    {Kind: gui.RenderStrokeRect, X: 10, Y: 30, W: 20, H: -20, Thickness: 2, Color: green},
+		"rect huge w":     rectCmd(10, 10, 1e30, 20, green),
+		"rect huge x":     rectCmd(-1e30, 10, 20, 20, green),
+		"circle huge r":   {Kind: gui.RenderCircle, X: 20, Y: 20, Radius: 1e30, Color: green, Fill: true},
+		"line huge x1":    {Kind: gui.RenderLine, X: -1e30, Y: 20, OffsetX: 35, OffsetY: 20, Thickness: 2, Color: green},
+	}
+	for name, cmd := range cases {
+		t.Run(name, func(t *testing.T) {
+			r := newRenderer(40, 40, 1)
+			r.drawAll([]gui.RenderCmd{cmd})
+			// A non-finite thickness falls back to a 1px stroke and
+			// paints; every other case must leave the buffer black.
+			if name == "line NaN thick" || name == "line Inf thick" ||
+				name == "line huge thick" {
+				if _, g, _, _ := at(r.buf.img, 20, 20); g == 0 {
+					t.Fatalf("non-finite thickness should fall back to 1px")
+				}
+				return
+			}
+			for y := range 40 {
+				for x := range 40 {
+					if cr, cg, cb, _ := at(r.buf.img, x, y); cr|cg|cb != 0 {
+						t.Fatalf("pixel (%d,%d) painted by %s", x, y, name)
+					}
+				}
+			}
+		})
+	}
+}
+
+// A NaN stroke thickness must take the fill branch, not feed NaN into
+// the inset math: the rect paints solid, centre included.
+func TestDrawStrokeRectNaNThicknessFills(t *testing.T) {
+	r := newRenderer(40, 40, 1)
+	r.drawAll([]gui.RenderCmd{{
+		Kind: gui.RenderStrokeRect, X: 10, Y: 10, W: 20, H: 20,
+		Thickness: float32(math.NaN()), Color: gui.RGB(0, 255, 0),
+	}})
+	if _, g, _, _ := at(r.buf.img, 20, 20); g == 0 {
+		t.Fatalf("NaN thickness should fill the rect centre")
+	}
+	if _, g, _, _ := at(r.buf.img, 5, 5); g != 0 {
+		t.Fatalf("fill leaked outside the rect")
 	}
 }

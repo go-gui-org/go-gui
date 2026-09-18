@@ -90,6 +90,9 @@ and this project adheres to
   callers got `NewPrintJob` defaults with no way to change them. The write-only
   raster knobs (`rasterDPI`, `jPEGQuality`), which no renderer read, are removed
   instead of frozen.
+- **`gui.FloatMiddleLeft`** — the middle-left float anchor was the only one of
+  the nine stuck unexported, so an app could not anchor a float to its parent's
+  middle-left edge. It is now exported like its siblings; the set ships whole.
 
 ### Changed
 
@@ -401,6 +404,30 @@ and this project adheres to
     widget per frame when two custom shaders differed in size. It now retains
     the backing store (`gpu.RetainBackingSize`, shrink past 8x waste) and blits
     the drawn sub-rectangle.
+- **Shape review hardening** — a review of the shape code:
+  - `AccessState.Has(AccessStateNone)` was always true, because any value masked
+    with zero reads zero. It now reports whether no state is set.
+  - `newShape` drew a `math/rand` ID for every shape on every frame, under the
+    frame lock, for a field nothing read. The field and the draw are removed.
+  - `layoutSetShapeClips` panicked on a hand-built mid-tree node with no
+    `Shape`, while the other tree walks descend past such nodes. It now clips
+    nothing there and keeps descending, so a valid subtree below stays
+    reachable.
+  - The soft backend's rect, circle and line guards passed NaN into the region
+    math, whose float-to-int conversion is implementation-defined, and built a
+    region before rejecting a degenerate box. The guards are now NaN-safe and
+    reject before the region.
+  - SVG shapes with negative sizes painted with reversed winding instead of
+    following SVG 2. A negative rect `width`/`height` or circle `r` now stops
+    the element from rendering. A negative `rx`/`ry` now reads as auto: a rect
+    keeps its shape and takes its corner radius from the other value, and an
+    ellipse takes the other radius, so it draws a circle. A missing or
+    unparseable ellipse radius is auto too, so `<ellipse rx="20">` draws a
+    circle where SVG 1.1 drew nothing. When both ellipse radii are auto, the
+    ellipse does not render. A zero size is kept, because the tessellator drops
+    it when static and keeps it as an animated placeholder when an `<animate>`
+    child drives the size. An unparseable fill now falls back to inherit instead
+    of transparent, and the path tokenizer caps its upfront capacity.
 
 ## [v0.77.0] - 2026-09-16
 

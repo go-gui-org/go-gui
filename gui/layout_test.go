@@ -4,10 +4,10 @@ import "testing"
 
 func TestLayoutParents(t *testing.T) {
 	p := &Layout{
-		Shape: &Shape{uID: 1},
+		Shape: &Shape{},
 		Children: []Layout{
-			{Shape: &Shape{uID: 2}},
-			{Shape: &Shape{uID: 3}},
+			{Shape: &Shape{}},
+			{Shape: &Shape{}},
 		},
 	}
 

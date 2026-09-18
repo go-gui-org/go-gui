@@ -1,6 +1,10 @@
 package svg
 
-import "github.com/go-gui-org/go-gui/gui"
+import (
+	"strings"
+
+	"github.com/go-gui-org/go-gui/gui"
+)
 
 // parsePathWithStyle parses a <path> element with inherited style.
 func parsePathWithStyle(elem string, inherited computedStyle) (vectorPath, bool) {
@@ -71,7 +75,10 @@ func parsePathElement(elem string) (vectorPath, bool) {
 	}
 	fill, _ := findAttrOrStyle(elem, "fill")
 	s := parseElementStyle(elem)
-	fillColor, _ := parseSvgColor(fill)
+	// An unparseable fill means "ignore the declaration", not
+	// "paint nothing": fall back to the inherit sentinel so the
+	// cascade resolves it, instead of the transparent zero value.
+	fillColor := svgFillColor(fill)
 
 	path := vectorPath{
 		FillColor:        fillColor,
@@ -171,12 +178,25 @@ func parseRectElement(elem string) (vectorPath, bool) {
 	}
 	rw := parseF32(w)
 	rh := parseF32(h)
+	// A negative size is an error that disables rendering. Zero is
+	// degenerate but preserved: the tessellator drops it when static
+	// and keeps it as an animated placeholder when an <animate>
+	// child drives the size (phase 8).
+	if rw < 0 || rh < 0 {
+		return vectorPath{}, false
+	}
 
 	rx := attrFloat(elem, "rx", 0)
 	ry := attrFloat(elem, "ry", 0)
+	// SVG 2: a negative rx/ry is an invalid value, ignored as auto; it
+	// does not disable rendering. Zero is how auto reads here:
+	// segmentsForRect copies the other radius into a zero one, and
+	// both zero draws square corners.
+	rx = max(rx, 0)
+	ry = max(ry, 0)
 	fill, _ := findAttrOrStyle(elem, "fill")
 	s := parseElementStyle(elem)
-	fillColor, _ := parseSvgColor(fill)
+	fillColor := svgFillColor(fill)
 
 	segments := segmentsForRect(x, y, rw, rh, rx, ry)
 
@@ -219,9 +239,14 @@ func parseCircleElement(elem string) (vectorPath, bool) {
 		return vectorPath{}, false
 	}
 	r := attrFloat(elem, "r", 0)
+	// A negative radius is an error that disables rendering. Zero is
+	// degenerate but preserved for the animated placeholder path.
+	if r < 0 {
+		return vectorPath{}, false
+	}
 	fill, _ := findAttrOrStyle(elem, "fill")
 	s := parseElementStyle(elem)
-	vp := ellipseToPath(cx, cy, r, r, elem, fill, s)
+	vp := ellipseToPath(cx, cy, r, r, fill, s)
 	vp.Primitive = gui.SvgPrimitive{
 		Kind: gui.SvgPrimCircle,
 		CX:   cx,
@@ -234,18 +259,26 @@ func parseCircleElement(elem string) (vectorPath, bool) {
 
 // parseEllipseElement converts <ellipse> to path.
 func parseEllipseElement(elem string) (vectorPath, bool) {
-	_, rxok := findAttr(elem, "rx")
-	_, ryok := findAttr(elem, "ry")
-	if !rxok || !ryok {
-		return vectorPath{}, false
-	}
 	cx := attrFloat(elem, "cx", 0)
 	cy := attrFloat(elem, "cy", 0)
-	rx := attrFloat(elem, "rx", 0)
-	ry := attrFloat(elem, "ry", 0)
+	// SVG 2 §10.4: a missing, unparseable or negative radius is auto.
+	// Auto takes the other radius; both auto disables rendering. An
+	// explicit zero is degenerate but preserved for the animated
+	// placeholder path.
+	rx, rxok := attrRadius(elem, "rx")
+	ry, ryok := attrRadius(elem, "ry")
+	if !rxok && !ryok {
+		return vectorPath{}, false
+	}
+	if !rxok {
+		rx = ry
+	}
+	if !ryok {
+		ry = rx
+	}
 	fill, _ := findAttrOrStyle(elem, "fill")
 	s := parseElementStyle(elem)
-	vp := ellipseToPath(cx, cy, rx, ry, elem, fill, s)
+	vp := ellipseToPath(cx, cy, rx, ry, fill, s)
 	vp.Primitive = gui.SvgPrimitive{
 		Kind: gui.SvgPrimEllipse,
 		CX:   cx,
@@ -257,8 +290,8 @@ func parseEllipseElement(elem string) (vectorPath, bool) {
 	return vp, true
 }
 
-func ellipseToPath(cx, cy, rx, ry float32, _, fill string, s elementStyle) vectorPath {
-	fillColor, _ := parseSvgColor(fill)
+func ellipseToPath(cx, cy, rx, ry float32, fill string, s elementStyle) vectorPath {
+	fillColor := svgFillColor(fill)
 	vp := vectorPath{
 		Segments:         segmentsForEllipse(cx, cy, rx, ry),
 		FillColor:        fillColor,
@@ -301,7 +334,7 @@ func parsePolygonElement(elem string, closed bool) (vectorPath, bool) {
 	if closed {
 		segments = append(segments, pathSegment{cmdClose, nil})
 	}
-	fillColor, _ := parseSvgColor(fill)
+	fillColor := svgFillColor(fill)
 
 	vp := vectorPath{
 		Segments:         segments,
@@ -366,4 +399,34 @@ func attrFloat(elem, name string, fallback float32) float32 {
 		return fallback
 	}
 	return parseF32(v)
+}
+
+// attrRadius reads an ellipse radius. ok is false when the attribute is
+// missing, unparseable, non-finite or negative: SVG 2 ignores such a
+// value as a parse error, which leaves the radius auto. It uses
+// parseFloatStrict, not parseF32, because parseF32 turns a parse
+// failure into 0, and 0 is a real radius that disables rendering. A
+// "px" suffix is a user-unit length, so it is trimmed; other units
+// are not supported and read as auto.
+func attrRadius(elem, name string) (float32, bool) {
+	v, found := findAttr(elem, name)
+	if !found {
+		return 0, false
+	}
+	r, ok := parseFloatStrict(strings.TrimSuffix(strings.TrimSpace(v), "px"))
+	if !ok || r < 0 {
+		return 0, false
+	}
+	return r, true
+}
+
+// svgFillColor resolves a fill attribute to a color. An unparseable
+// value falls back to the inherit sentinel so the cascade resolves it,
+// instead of the transparent zero value which would paint nothing.
+func svgFillColor(fill string) gui.SvgColor {
+	c, ok := parseSvgColor(fill)
+	if !ok {
+		return colorInherit
+	}
+	return c
 }

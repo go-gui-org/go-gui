@@ -7,10 +7,10 @@ func mirrorFloatAttach(a floatAttach) floatAttach {
 		return FloatTopRight
 	case FloatTopRight:
 		return FloatTopLeft
-	case floatMiddleLeft:
+	case FloatMiddleLeft:
 		return FloatMiddleRight
 	case FloatMiddleRight:
-		return floatMiddleLeft
+		return FloatMiddleLeft
 	case FloatBottomLeft:
 		return FloatBottomRight
 	case FloatBottomRight:
@@ -49,7 +49,7 @@ func attachOffset(a floatAttach, w, h float32) (float32, float32) {
 		return w / 2, 0
 	case FloatTopRight:
 		return w, 0
-	case floatMiddleLeft:
+	case FloatMiddleLeft:
 		return 0, h / 2
 	case FloatMiddleCenter:
 		return w / 2, h / 2

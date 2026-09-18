@@ -1,7 +1,6 @@
 package gui
 
 import (
-	"math/rand/v2"
 	"strings"
 
 	"github.com/go-gui-org/go-glyph"
@@ -67,8 +66,6 @@ type Shape struct {
 	// Resource is an image file path, SVG source string, or data URI.
 	// Interpreted by the rendering backend.
 	Resource string
-
-	uID uint64 // internal use only
 
 	Version     uint64 // for cache invalidation (DrawCanvas, etc.)
 	FloatZIndex int    // stack order for floating elements; higher = on top
@@ -271,7 +268,6 @@ type Shape struct {
 // NewShape returns a Shape with default field values.
 func newShape() *Shape {
 	return &Shape{
-		uID:     rand.Uint64(),
 		Opacity: 1.0,
 	}
 }
@@ -296,6 +292,9 @@ const (
 type TextDirection uint8
 
 // TextDirection constants.
+//
+// The zero value is the unset default: an unset TextDir inherits the
+// direction from its parent or the global locale.
 const (
 	textDirAuto TextDirection = iota // inherit from parent/global
 	TextDirLTR
@@ -306,6 +305,9 @@ const (
 type scrollMode uint8
 
 // ScrollMode constants.
+//
+// The zero value scrolls both axes, so a container that never names a
+// mode scrolls in both directions when it becomes Scrollable.
 const (
 	scrollBoth scrollMode = iota
 	ScrollVerticalOnly
@@ -317,6 +319,10 @@ const (
 type ScrollbarOrientation uint8
 
 // ScrollbarOrientation constants.
+//
+// The zero value means no scrollbar. Values stay internal: the
+// orientation is set by the container that builds its own scrollbars,
+// never by the caller.
 const (
 	scrollbarNone ScrollbarOrientation = iota
 	scrollbarVertical
@@ -331,7 +337,8 @@ const (
 	FloatTopLeft floatAttach = iota
 	FloatTopCenter
 	FloatTopRight
-	floatMiddleLeft
+	// exportaudit:keep — one member of a public set; the set ships whole
+	FloatMiddleLeft
 	FloatMiddleCenter
 	FloatMiddleRight
 	FloatBottomLeft
@@ -400,7 +407,11 @@ const (
 )
 
 // Has checks if the state bitmask contains the given flag.
+// Has(AccessStateNone) reports whether no state is set.
 func (s AccessState) Has(flag AccessState) bool {
+	if flag == AccessStateNone {
+		return s == AccessStateNone
+	}
 	return s&flag == flag
 }
 

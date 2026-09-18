@@ -227,7 +227,17 @@ func layoutSetShapeClips(layout *Layout, clip drawClip) {
 }
 
 func layoutSetShapeClipsDepth(layout *Layout, clip drawClip, depth int) {
-	if overMaxDepth(depth) {
+	if layout == nil || overMaxDepth(depth) {
+		return
+	}
+	if layout.Shape == nil {
+		// A hand-built mid-tree node carries no Shape and clips
+		// nothing, but the walk still descends into its children so
+		// a valid subtree below stays reachable, matching
+		// findLayoutDepth.
+		for i := range layout.Children {
+			layoutSetShapeClipsDepth(&layout.Children[i], clip, depth+1)
+		}
 		return
 	}
 	shapeClip := shapeBounds(layout.Shape)
@@ -279,7 +289,8 @@ func layoutSetShapeClipsDepth(layout *Layout, clip drawClip, depth int) {
 	}
 	for i := range layout.Children {
 		cc := childClip
-		if layout.Children[i].Shape.OverDraw {
+		childShape := layout.Children[i].Shape
+		if childShape != nil && childShape.OverDraw {
 			cc = overClip
 		}
 		layoutSetShapeClipsDepth(&layout.Children[i], cc, depth+1)

@@ -479,7 +479,11 @@ func arcSegmentToCubic(cx, cy, rx, ry, phi, theta, dtheta float32) pathSegment {
 //
 //nolint:gocyclo // character-level tokenizer
 func tokenizePath(d string) []string {
-	tokens := make([]string, 0, len(d)/4+1)
+	// Cap the upfront capacity: a hostile points/path attribute can be
+	// megabytes long, and len(d)/4 would pre-size millions of slots
+	// the maxPathSegments break below never fills.
+	capHint := min(len(d)/4+1, maxPathSegments)
+	tokens := make([]string, 0, capHint)
 	tokenStart := -1
 	hasDot := false
 	lastByte := byte(0)
