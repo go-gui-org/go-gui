@@ -16,7 +16,6 @@ package gui
 import (
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/go-gui-org/go-glyph"
 )
@@ -405,14 +404,14 @@ func TestRtfSelectDoubleClickSelectsWord(t *testing.T) {
 
 // TestRtfSelectDoubleClickStaleThresholdIsolated splits the double
 // click across more than doubleClickThresholdMs so the second click is
-// a fresh cursor placement. Simulated by backdating LastClickTime — the
-// handler reads wall-clock time, so a real sleep would be flaky.
+// a fresh cursor placement. Simulated by backdating LastClickTime —
+// a real sleep would be flaky.
 func TestRtfSelectDoubleClickStaleThresholdIsolated(t *testing.T) {
 	h := newRtfSelectHarness(t, rtfHelloWorld())
 	StateMap[string, inputState](h.w, nsInput, capMany).Set("rtf",
 		inputState{
 			CursorPos: 2, selectBeg: 2, selectEnd: 2,
-			LastClickTime: time.Now().UnixMilli() -
+			LastClickTime: doubleClickNowMs() -
 				doubleClickThresholdMs - 1,
 		})
 
@@ -1186,4 +1185,184 @@ func TestRtfOnClickAnchorLinkScrollsToView(t *testing.T) {
 	if sy == 0 {
 		t.Error("anchor link did not scroll the container")
 	}
+}
+
+// --- Drag frame re-resolution ---
+
+// TestRtfSelectDragUsesRebuiltFrame pins the mid-drag re-resolution:
+// the MouseLock callbacks run on later frames, so a view rebuilt
+// under the drag (a re-wrap, or a math fetch flipping Loading→Ready
+// and with it the flat text) must steer the drag, not the press-time
+// snapshot. Here the block grows between press and move; a drag that
+// still read the press-time layout would clamp at the old end.
+func TestRtfSelectDragUsesRebuiltFrame(t *testing.T) {
+	h := newRtfSelectHarness(t, rtfHelloWorld())
+	ly := h.shape(t)
+	h.press(ly.Shape.X+5, ly.Shape.Y+10)
+	if !h.w.mouseIsLocked() {
+		t.Fatal("press did not lock the mouse")
+	}
+
+	// Rebuild with a longer block, as a re-wrap or a math
+	// Loading→Ready transition would.
+	h.rt = RichText{Runs: []RichTextRun{
+		{Text: "hello world and then some more",
+			Style: TextStyle{Size: 14}},
+	}}
+	h.render()
+
+	// x=255 local is rune 25 in the rebuilt layout, past rune 11 —
+	// the whole of the press-time text.
+	h.move(ly.Shape.X+255, ly.Shape.Y+10)
+	if got := h.selState().selectEnd; got != 25 {
+		t.Fatalf("drag end = %d, want 25 from the rebuilt frame", got)
+	}
+	h.release(ly.Shape.X+255, ly.Shape.Y+10)
+}
+
+// TestRtfSelectDragMissingShapeKeepsScroll pins the fallback half of
+// the re-resolution: when the shape is briefly out of the tree the
+// drag keeps its press-time viewport. A zero viewport would read as
+// "pointer outside" for every Y, arm the edge-scroll, and clamp the
+// container back to the top under the user's drag.
+func TestRtfSelectDragMissingShapeKeepsScroll(t *testing.T) {
+	w := NewTestWindow(WindowCfg{Width: 800, Height: 800})
+	w.textMeasurer = rtfSelTestMeasurer{}
+	showRTF := true
+	render := func() {
+		w.TestRender(func(win *Window) View {
+			content := []View{
+				Rectangle(RectangleCfg{Sizing: FixedFill,
+					Width: 50, Height: 100}),
+			}
+			if showRTF {
+				content = append(content, RTF(RTFCfg{
+					ID: "rtf", Focusable: true,
+					RichText: RichText{Runs: []RichTextRun{
+						{Text: "hello world",
+							Style: TextStyle{Size: 14}},
+					}}}))
+			}
+			content = append(content, Rectangle(RectangleCfg{
+				Sizing: FixedFill, Width: 50, Height: 850}))
+			return Column(ContainerCfg{
+				ID: "view", Scrollable: true, Sizing: FillFill,
+				Content: content,
+			})
+		})
+	}
+	render()
+	if err := w.TestScroll("view", 0, -0.5); err != nil {
+		t.Fatalf("TestScroll: %v", err)
+	}
+	_, preDragY, _ := w.TestScrollOffset("view")
+	if preDragY >= 0 {
+		t.Fatalf("scroll offset = %g, want negative", preDragY)
+	}
+	ly, ok := w.layout.FindByID("view:rtf")
+	if !ok {
+		t.Fatal("no RTF shape under the scroll container")
+	}
+	x0, y0 := ly.Shape.X+25, ly.Shape.Y+10
+	w.EventFn(&Event{Type: EventMouseDown, MouseButton: MouseLeft,
+		MouseX: x0, MouseY: y0})
+	w.settle()
+	if !w.mouseIsLocked() {
+		t.Fatal("press did not lock the mouse")
+	}
+
+	// Drop the RTF from the tree, then drag well inside the viewport.
+	showRTF = false
+	render()
+	w.EventFn(&Event{Type: EventMouseMove, MouseButton: MouseInvalid,
+		MouseX: x0, MouseY: 400})
+	w.settle()
+
+	if w.HasAnimation(animIDTextDragScroll) {
+		t.Error("a drag inside the viewport armed the edge scroll")
+	}
+	_, y, _ := w.TestScrollOffset("view")
+	if y != preDragY {
+		t.Errorf("scroll = %g, want it left at %g", y, preDragY)
+	}
+	w.EventFn(&Event{Type: EventMouseUp, MouseButton: MouseLeft,
+		MouseX: x0, MouseY: 400})
+	w.settle()
+}
+
+// TestRtfSelectDragScrollThenRelayout pins the scroll anchor against
+// double counting. A child of a scroll container has the offset baked
+// into Shape.Y by arrange (layoutChildStartPos), so once the drag
+// re-resolves the shape from a re-laid-out tree, its position already
+// carries every scroll since the press. Measuring that position
+// against the press-time offset as well shifts the mapped rune by the
+// distance scrolled — here 40px, two whole lines.
+func TestRtfSelectDragScrollThenRelayout(t *testing.T) {
+	w := NewTestWindow(WindowCfg{Width: 800, Height: 800})
+	w.textMeasurer = rtfSelTestMeasurer{}
+	w.TestRender(func(win *Window) View {
+		return Column(ContainerCfg{
+			ID: "view", Scrollable: true, Sizing: FillFill,
+			Content: []View{
+				Rectangle(RectangleCfg{Sizing: FixedFill,
+					Width: 50, Height: 100}),
+				RTF(RTFCfg{ID: "rtf", Focusable: true,
+					RichText: RichText{Runs: []RichTextRun{
+						// Six 8-char lines: line k starts at byte k*9,
+						// so a one-line drift is visible in the rune.
+						{Text: "abcdefgh\nabcdefgh\nabcdefgh\n" +
+							"abcdefgh\nabcdefgh\nabcdefgh",
+							Style: TextStyle{Size: 14}},
+					}}}),
+				Rectangle(RectangleCfg{Sizing: FixedFill,
+					Width: 50, Height: 1500}),
+			},
+		})
+	})
+	ly, ok := w.layout.FindByID("view:rtf")
+	if !ok {
+		t.Fatal("no RTF shape under the scroll container")
+	}
+
+	// Press line 0, rune 2.
+	w.EventFn(&Event{Type: EventMouseDown, MouseButton: MouseLeft,
+		MouseX: ly.Shape.X + 25, MouseY: ly.Shape.Y + 10})
+	w.settle()
+	if !w.mouseIsLocked() {
+		t.Fatal("press did not lock the mouse")
+	}
+	if is := StateReadOr(w, nsInput, "view:rtf",
+		inputState{}); is.selectBeg != 2 {
+		t.Fatalf("press selected rune %d, want 2", is.selectBeg)
+	}
+
+	// Scroll mid-drag and re-arrange, so the block moves up the
+	// window and its Shape.Y absorbs the new offset.
+	if err := w.TestScroll("view", 0, -2.0); err != nil {
+		t.Fatalf("TestScroll: %v", err)
+	}
+	w.settle()
+	_, scrolled, _ := w.TestScrollOffset("view")
+	if scrolled >= 0 {
+		t.Fatalf("scroll offset = %g, want negative", scrolled)
+	}
+	moved, ok := w.layout.FindByID("view:rtf")
+	if !ok {
+		t.Fatal("RTF shape gone after the scroll")
+	}
+
+	// Line 2, rune 2 — 50px below the block's current top.
+	w.EventFn(&Event{Type: EventMouseMove, MouseButton: MouseInvalid,
+		MouseX: moved.Shape.X + 25, MouseY: moved.Shape.Y + 50})
+	w.settle()
+	is := StateReadOr(w, nsInput, "view:rtf", inputState{})
+	if is.selectBeg != 2 || is.selectEnd != 20 {
+		t.Errorf("selection = [%d,%d), want [2,20) — line 2 rune 2; "+
+			"a larger end means the %gpx scroll was counted twice",
+			is.selectBeg, is.selectEnd, -scrolled)
+	}
+
+	w.EventFn(&Event{Type: EventMouseUp, MouseButton: MouseLeft,
+		MouseX: moved.Shape.X + 25, MouseY: moved.Shape.Y + 50})
+	w.settle()
 }

@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"math"
 	"testing"
 
 	"github.com/go-gui-org/go-glyph"
@@ -1134,5 +1135,40 @@ func TestWrapTextShrinkRefreshesScrollableContentW(t *testing.T) {
 	if abs32(col.Shape.contentW-text.Width) > 1 {
 		t.Errorf("contentW = %.1f, want ~%.1f (stale cache)",
 			col.Shape.contentW, text.Width)
+	}
+}
+
+// TestLayoutWrapRTFSkipsNonFiniteWidth pins the wrap-walk guard: a
+// NaN width must never reach the shared RTF layout cache.
+// normFloat32Bits folds NaN to zero bits, which is exactly the key
+// the non-wrap path in view_rtf.go uses, so shaping a NaN-width
+// wrap would let the two paths serve each other's layouts.
+func TestLayoutWrapRTFSkipsNonFiniteWidth(t *testing.T) {
+	w := &Window{}
+	w.textMeasurer = &rtfStubTextMeasurer{
+		layout: glyph.Layout{Width: 120, Height: 20},
+	}
+	rt := RichText{Runs: []RichTextRun{{Text: "hello"}}}
+	shape := &Shape{
+		shapeType: shapeRTF,
+		Width:     float32(math.NaN()),
+		TC: &shapeTextConfig{
+			TextMode: TextModeWrap,
+			rTFRuns:  &rt,
+		},
+	}
+	layout := Layout{Shape: shape}
+	layoutWrapText(&layout, w)
+
+	if shape.TC.wrapCacheValid {
+		t.Error("a NaN width must not mark the wrap cache valid")
+	}
+	if w.viewState.rtfLayoutCache != nil {
+		if _, ok := w.viewState.rtfLayoutCache.Get(
+			rtfLayoutCacheKey(
+				rtfRunsKey(&rt), rtfStyleKey(shape.TC.rTFBaseStyle),
+				rtfMathStateKey(&rt, nil), 0, 0, 0)); ok {
+			t.Error("a NaN width poisoned the zero-width cache key")
+		}
 	}
 }

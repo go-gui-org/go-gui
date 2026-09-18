@@ -2,7 +2,6 @@ package gui
 
 import (
 	"strconv"
-	"time"
 )
 
 const animIDDragScroll = "input-drag-scroll"
@@ -597,9 +596,9 @@ func inputOnClick(leafID, leafScrollID string, canFocus bool) func(EventCtx) {
 		is := imap.GetOr(focusID, inputState{})
 
 		// Double-click selects word.
-		now := time.Now().UnixMilli()
+		now := doubleClickNowMs()
 		doubleClick := is.LastClickTime > 0 &&
-			now-is.LastClickTime <= 400
+			now-is.LastClickTime <= doubleClickThresholdMs
 		is.LastClickTime = now
 
 		if doubleClick {

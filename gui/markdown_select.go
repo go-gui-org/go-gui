@@ -8,7 +8,6 @@ package gui
 import (
 	"sort"
 	"strings"
-	"time"
 
 	"github.com/go-gui-org/go-glyph"
 )
@@ -189,7 +188,7 @@ func markdownBlockOnClick(ctx EventCtx) {
 	// Default mdSelState{}: zero value means no prior selection.
 	st := imap.GetOr(mdID, mdSelState{})
 
-	now := time.Now().UnixMilli()
+	now := doubleClickNowMs()
 	doubleClick := st.LastClickTime > 0 &&
 		now-st.LastClickTime <= doubleClickThresholdMs
 	st.LastClickTime = now

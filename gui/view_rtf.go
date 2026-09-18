@@ -5,6 +5,7 @@ package gui
 // Supports text wrapping, clickable links, and custom runs.
 
 import (
+	"strconv"
 	"strings"
 	"time"
 
@@ -44,31 +45,54 @@ type RTFCfg struct {
 	Disabled           bool
 }
 
-// rtfFlatTextFromRuns concatenates all run texts into a single string.
-// Used as the flat text for rune↔byte conversion during selection.
-func rtfFlatTextFromRuns(rt *RichText) string {
-	if rt == nil {
-		return ""
+// rtfFlatTextFromRuns concatenates the shaped run texts into a
+// single string, in the same domain the glyph layout shapes:
+// ready math contributes the object placeholder, anything else its
+// fallback or plain text. Selection, cursor and highlight mapping
+// all read glyph byte offsets, so this must match Layout.Text
+// exactly — including across a math Loading→Ready transition,
+// which is why the diagram cache rides along. Also returns the rune
+// count in one pass so callers do not rescan the built string.
+func rtfFlatTextFromRuns(
+	rt *RichText, cache *BoundedDiagramCache,
+) (string, int) {
+	if rt == nil || len(rt.Runs) == 0 {
+		return "", 0
 	}
 	if len(rt.Runs) == 1 {
-		return rt.Runs[0].Text
+		text := rtfShapedRunText(&rt.Runs[0], cache)
+		return text, utf8RuneCount(text)
+	}
+	// Two passes over the runs, not one pass into a []string: this
+	// runs per frame in the view phase, and sizing the builder from
+	// a scratch slice would add a heap allocation per call. The
+	// second pass costs a field read per run, or one cache lookup
+	// per math run.
+	totalBytes := 0
+	for i := range rt.Runs {
+		totalBytes += len(rtfShapedRunText(&rt.Runs[i], cache))
 	}
 	var b strings.Builder
-	for _, r := range rt.Runs {
-		b.WriteString(r.Text)
+	b.Grow(totalBytes)
+	totalRunes := 0
+	for i := range rt.Runs {
+		seg := rtfShapedRunText(&rt.Runs[i], cache)
+		b.WriteString(seg)
+		totalRunes += utf8RuneCount(seg)
 	}
-	return b.String()
+	return b.String(), totalRunes
 }
 
-// rtfRuneCountFromRuns counts runes across all runs without allocating a
+// rtfRuneCountFromRuns counts runes across all runs in the shaped
+// domain (see rtfFlatTextFromRuns), without allocating a
 // concatenated string.
-func rtfRuneCountFromRuns(rt *RichText) int {
+func rtfRuneCountFromRuns(rt *RichText, cache *BoundedDiagramCache) int {
 	if rt == nil {
 		return 0
 	}
 	n := 0
-	for _, r := range rt.Runs {
-		n += utf8RuneCount(r.Text)
+	for i := range rt.Runs {
+		n += utf8RuneCount(rtfShapedRunText(&rt.Runs[i], cache))
 	}
 	return n
 }
@@ -90,6 +114,55 @@ func rtfSuppressInlineObjectGlyphs(layout *glyph.Layout) {
 		}
 		layout.Items[i].GlyphCount = 0
 	}
+}
+
+// rtfNonWrapLayout shapes a single-line RTF block, or returns the
+// cross-frame cached layout for one. A non-wrap layout is
+// width-independent (Block.Width -1), so a shaped layout stays valid
+// until content, style, math state or theme moves — this is the same
+// per-frame shaping the wrap path already avoids in layoutWrapRTF.
+// The key carries zero width bits, which collide with nothing: the
+// wrap walk drops any shape whose width is not finite and positive
+// before layoutWrapRTF builds a key.
+//
+// Returns nil when the window carries no measurer that can shape
+// rich text, or when shaping failed.
+func rtfNonWrapLayout(
+	v *rtfView, w *Window,
+	vgRT glyph.RichText, baseStyle glyph.TextStyle,
+	lineSpacing float32,
+) *glyph.Layout {
+	key := rtfLayoutCacheKey(
+		rtfRunsKey(&v.RichText),
+		rtfStyleKey(baseStyle),
+		rtfMathStateKey(&v.RichText, w.viewState.diagramCache),
+		0, -v.HangingIndent, lineSpacing)
+	if cached, ok := rtfLayoutCacheFetch(w, key); ok {
+		return cached
+	}
+	// A nil textMeasurer asserts false, so this covers the
+	// no-measurer case too — as layoutWrapRTF does.
+	tm, ok := w.textMeasurer.(interface {
+		LayoutRichText(glyph.RichText, glyph.TextConfig) (glyph.Layout, error)
+	})
+	if !ok {
+		return nil
+	}
+	l, err := tm.LayoutRichText(vgRT, glyph.TextConfig{
+		Style: baseStyle,
+		Block: glyph.BlockStyle{
+			Wrap:        glyph.WrapWord,
+			Width:       -1.0,
+			Indent:      -v.HangingIndent,
+			LineSpacing: lineSpacing,
+		},
+	})
+	if err != nil {
+		return nil
+	}
+	rtfSuppressInlineObjectGlyphs(&l)
+	rtfLayoutCacheStore(w, key, &l)
+	return &l
 }
 
 func (v *rtfView) GenerateLayout(w *Window) Layout {
@@ -115,30 +188,16 @@ func (v *rtfView) GenerateLayout(w *Window) Layout {
 	isWrap := v.Mode == TextModeWrap ||
 		v.Mode == TextModeWrapKeepSpaces
 
-	var layout glyph.Layout
+	var rtfLayout *glyph.Layout
 	if !isWrap {
-		cfg := glyph.TextConfig{
-			Style: baseStyle,
-			Block: glyph.BlockStyle{
-				Wrap:        glyph.WrapWord,
-				Width:       -1.0,
-				Indent:      -v.HangingIndent,
-				LineSpacing: lineSpacing,
-			},
-		}
-		if w.textMeasurer != nil {
-			if tm, ok := w.textMeasurer.(interface {
-				LayoutRichText(glyph.RichText, glyph.TextConfig) (glyph.Layout, error)
-			}); ok {
-				if l, err := tm.LayoutRichText(vgRT, cfg); err == nil {
-					layout = l
-					rtfSuppressInlineObjectGlyphs(&layout)
-				}
-			}
-		}
+		rtfLayout = rtfNonWrapLayout(
+			v, w, vgRT, baseStyle, lineSpacing)
 	}
 
-	flatText := rtfFlatTextFromRuns(&v.RichText)
+	// Flat text in the shaped domain (see rtfFlatTextFromRuns), with
+	// the rune count from the same pass.
+	flatText, flatRunes := rtfFlatTextFromRuns(
+		&v.RichText, w.viewState.diagramCache)
 
 	var events *eventHandlers
 	switch {
@@ -163,6 +222,17 @@ func (v *rtfView) GenerateLayout(w *Window) Layout {
 		})
 	}
 
+	// A shaped layout — cached or fresh — carries the shape's
+	// intrinsic size. Wrapped modes take theirs from layoutWrapRTF
+	// instead, and an unshaped block has none yet: both stand a zero
+	// layout in so the rTFLayout readers never see nil.
+	var shapeW, shapeH float32
+	if rtfLayout != nil {
+		shapeW, shapeH = rtfLayout.Width, rtfLayout.Height
+	} else {
+		rtfLayout = &glyph.Layout{}
+	}
+
 	shape := w.allocShape(Shape{
 		shapeType: shapeRTF,
 		ID:        v.ID,
@@ -172,8 +242,8 @@ func (v *rtfView) GenerateLayout(w *Window) Layout {
 		Focusable: v.Focusable,
 		A11YRole:  AccessRoleStaticText,
 		a11Y:      v.a11yInfo(""),
-		Width:     layout.Width,
-		Height:    layout.Height,
+		Width:     shapeW,
+		Height:    shapeH,
 		Clip:      v.Clip,
 		FocusSkip: v.FocusSkip,
 		Disabled:  v.Disabled,
@@ -185,12 +255,12 @@ func (v *rtfView) GenerateLayout(w *Window) Layout {
 			hangingIndent:      v.HangingIndent,
 			rTFBaseStyle:       baseStyle,
 			rTFLineSpacing:     lineSpacing,
-			rTFLayout:          &layout,
+			rTFLayout:          rtfLayout,
 			rTFRuns:            &v.RichText,
 			rTFFlatText:        flatText,
 			markdownID:         v.markdownID,
 			markdownBlockStart: v.markdownBlockStart,
-			markdownRuneLen:    uint32(utf8RuneCount(flatText)),
+			markdownRuneLen:    uint32(flatRunes),
 			rtfGlyphRT:         &vgRT,
 			rtfMathHashes:      mathHashes,
 		},
@@ -246,18 +316,22 @@ func rtfHitTest(run glyph.Item, mx, my float32) bool {
 }
 
 func rtfFindRunAtIndex(
-	l *Layout, startIndex int,
+	l *Layout, startIndex int, cache *BoundedDiagramCache,
 ) RichTextRun {
 	if l == nil || l.Shape == nil || l.Shape.TC == nil ||
 		l.Shape.TC.rTFRuns == nil {
 		return RichTextRun{}
 	}
 	idx := 0
-	for _, r := range l.Shape.TC.rTFRuns.Runs {
-		runLen := len(r.Text)
+	for i := range l.Shape.TC.rTFRuns.Runs {
+		// Shaped lengths: glyph StartIndex counts the object
+		// placeholder or LaTeX fallback for math runs, not the
+		// (usually empty) source text.
+		runLen := len(rtfShapedRunText(
+			&l.Shape.TC.rTFRuns.Runs[i], cache))
 		if startIndex >= idx &&
 			startIndex < idx+runLen {
-			return r
+			return l.Shape.TC.rTFRuns.Runs[i]
 		}
 		idx += runLen
 	}
@@ -272,12 +346,13 @@ func rtfMouseMove(ctx EventCtx) {
 	}
 	ts := &ctx.Window.viewState.tooltip
 	layout := ctx.Layout.Shape.TC.rTFLayout
+	cache := ctx.Window.viewState.diagramCache
 	for _, run := range layout.Items {
 		if run.IsObject {
 			continue
 		}
 		if rtfHitTest(run, ctx.Event.MouseX, ctx.Event.MouseY) {
-			found := rtfFindRunAtIndex(ctx.Layout, run.StartIndex)
+			found := rtfFindRunAtIndex(ctx.Layout, run.StartIndex, cache)
 			if found.Tooltip != "" {
 				tipID := found.Tooltip
 				if ts.hoverID == tipID {
@@ -302,7 +377,7 @@ func rtfMouseMove(ctx EventCtx) {
 				ctx.Consume()
 				return
 			}
-			if found.Link != "" {
+			if found.Link != "" && markdown.IsSafeURL(found.Link) {
 				ctx.Window.SetMouseCursorPointingHand()
 				ctx.Consume()
 				return
@@ -310,6 +385,18 @@ func rtfMouseMove(ctx EventCtx) {
 		}
 	}
 	ts.clearText()
+}
+
+// rtfTooltipPopupID derives the tooltip popup's widget ID from the
+// tooltip text. The text is arbitrary document content and may hold
+// a colon, which ScopeID forbids in a part (see id_scope.go) —
+// hashing keeps the ID scope-safe while staying stable across
+// frames for the same tooltip, so the popup keeps its identity
+// while hovered.
+func rtfTooltipPopupID(tipID string) string {
+	return ScopeID("rtf_tip",
+		strconv.FormatUint(Fnv64Str(Fnv64Offset, tipID), 16),
+		"popup")
 }
 
 // rtfTooltipAnimation returns an Animate that activates
@@ -322,7 +409,7 @@ func rtfTooltipAnimation(tipID string) *Animate {
 			ts := &w.viewState.tooltip
 			if ts.hoverID == tipID && ts.text != "" {
 				ts.id = tipID
-				ts.popupID = ScopeID(tipID, "rtf_popup")
+				ts.popupID = rtfTooltipPopupID(tipID)
 			}
 		},
 	}
@@ -420,6 +507,10 @@ func rtfMathStateKey(
 	return h
 }
 
+// rtfTooltipMaxWidth caps the floating tooltip popup so a long
+// abbreviation expansion wraps instead of spanning the window.
+const rtfTooltipMaxWidth = 300
+
 // rtfTooltipView builds a floating tooltip popup positioned
 // relative to the owning RTF shape via the float system.
 func rtfTooltipView(ts *tooltipState) View {
@@ -436,7 +527,7 @@ func rtfTooltipView(ts *tooltipState) View {
 		SizeBorder:    Some(d.SizeBorder),
 		Radius:        Some(d.Radius),
 		Padding:       d.Padding,
-		MaxWidth:      300,
+		MaxWidth:      rtfTooltipMaxWidth,
 		Content: []View{
 			Text(TextCfg{
 				Text:      ts.text,
@@ -469,7 +560,9 @@ func rtfClickLink(ctx EventCtx) bool {
 		if !rtfHitTest(run, ctx.Event.MouseX, ctx.Event.MouseY) {
 			continue
 		}
-		found := rtfFindRunAtIndex(ctx.Layout, run.StartIndex)
+		found := rtfFindRunAtIndex(
+			ctx.Layout, run.StartIndex,
+			ctx.Window.viewState.diagramCache)
 		if found.Link == "" || !markdown.IsSafeURL(found.Link) {
 			return false
 		}
@@ -555,12 +648,10 @@ const rtfLinkMaxReportLen = 120
 
 // rtfLinkShort caps a link for a diagnostic. The shortened text is
 // both the message and the warn-once key, so one bad link reports once
-// per window and the retained key stays bounded.
+// per window and the retained key stays bounded. Rune-safe: links may
+// hold multibyte text, which a byte slice would split mid-rune.
 func rtfLinkShort(link string) string {
-	if len(link) > rtfLinkMaxReportLen {
-		return link[:rtfLinkMaxReportLen] + "..."
-	}
-	return link
+	return truncatePreview(link, rtfLinkMaxReportLen)
 }
 
 // rtfLinkOpenableSchemes mirrors the scheme allowlist in

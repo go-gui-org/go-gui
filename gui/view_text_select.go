@@ -11,6 +11,41 @@ const (
 	doubleClickThresholdMs = 400
 )
 
+// clickEpoch anchors double-click timing to the monotonic clock.
+// UnixMilli wall time jumps on an NTP step and would forge or miss
+// a double-click; time.Since never goes backwards.
+var clickEpoch = time.Now()
+
+// doubleClickNowMs returns milliseconds since clickEpoch on the
+// monotonic clock. Stored in LastClickTime, compared against
+// doubleClickThresholdMs.
+func doubleClickNowMs() int64 {
+	return int64(time.Since(clickEpoch) / time.Millisecond)
+}
+
+// textDragEdgeScrollFactor scales the edge-scroll step to the
+// pointer's distance outside the viewport, and
+// textDragScrollInterval paces the repeat while the pointer stays
+// outside. Shared by the plain-text and RTF drag paths.
+const (
+	textDragEdgeScrollFactor = 0.3
+	textDragScrollInterval   = 32 * time.Millisecond
+)
+
+// dragViewport reports the scrollable container's content band and
+// the most negative scroll offset it allows: the inputs an
+// edge-scrolling drag needs from its scroll parent. Shared by the
+// press-time snapshot and the per-step re-resolution so both spell
+// the viewport the same way.
+func dragViewport(p *Layout) (vTop, vBot, maxNeg float32) {
+	sp := p.Shape
+	vTop = sp.Y + sp.Padding.Top
+	viewH := sp.Height - sp.paddingHeight()
+	vBot = vTop + viewH
+	maxNeg = f32Min(0, viewH-contentHeight(p))
+	return vTop, vBot, maxNeg
+}
+
 // textDragReach is a horizontal distance no laid-out line can span,
 // used to push a drag hit test past one end of a line.
 const textDragReach = 1e6
@@ -89,7 +124,7 @@ func textOnClick(ctx EventCtx) {
 	is := imap.GetOr(focusID, inputState{})
 
 	// Double-click detection.
-	now := time.Now().UnixMilli()
+	now := doubleClickNowMs()
 	doubleClick := is.LastClickTime > 0 &&
 		now-is.LastClickTime <= doubleClickThresholdMs
 	is.LastClickTime = now
@@ -218,9 +253,9 @@ func textOnClick(ctx EventCtx) {
 	dragScrollCB := func(_ *Animate, w *Window) {
 		var delta float32
 		if lastMouseY < viewTop {
-			delta = (viewTop - lastMouseY) * 0.3
+			delta = (viewTop - lastMouseY) * textDragEdgeScrollFactor
 		} else if lastMouseY > viewBot {
-			delta = -((lastMouseY - viewBot) * 0.3)
+			delta = -((lastMouseY - viewBot) * textDragEdgeScrollFactor)
 		} else {
 			w.AnimationRemove(animIDTextDragScroll)
 			return
@@ -253,7 +288,7 @@ func textOnClick(ctx EventCtx) {
 					animIDTextDragScroll) {
 					ctx.Window.AnimationAdd(&Animate{
 						AnimID:   animIDTextDragScroll,
-						Delay:    32 * time.Millisecond,
+						Delay:    textDragScrollInterval,
 						Repeat:   true,
 						Refresh:  AnimationRefreshLayout,
 						Callback: dragScrollCB,

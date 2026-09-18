@@ -240,7 +240,11 @@ func layoutWrapTextWalkDepth(layout *Layout, w *Window, depth int) {
 			tc.TextMode != TextModeWrapKeepSpaces {
 			return
 		}
-		if shape.Width <= 0 {
+		// Non-finite width is rejected with the non-positive case:
+		// normFloat32Bits folds NaN to 0, which is the very key the
+		// non-wrap path in view_rtf.go uses, so a NaN width would
+		// collide across the two paths in the shared layout cache.
+		if !f32IsFinite(shape.Width) || shape.Width <= 0 {
 			return
 		}
 		layoutWrapRTF(shape, tc, w)
@@ -325,6 +329,67 @@ type rtfLayoutEntry struct {
 	Layout *glyph.Layout
 }
 
+// rtfLayoutCacheKey chains content, base style, math cache state,
+// wrap width, hanging indent and line spacing through FNV-1a so
+// every layout input moves the digest. Math cache state is mixed in
+// so layout invalidates when an inline math fetch transitions
+// Loading→Ready (different glyph runs: raw LaTeX text vs
+// InlineObject placeholder). Chaining beats XOR here: XOR cancels
+// when two inputs change in opposite ways, while each chained mix
+// keeps what came before. Both the wrap path below and the non-wrap
+// path in view_rtf.go key through here; the non-wrap key carries
+// zero width bits, which collide with nothing because the wrap walk
+// (layoutWrapTextWalkDepth) drops any shape whose width is not
+// finite and positive before layoutWrapRTF ever builds a key.
+func rtfLayoutCacheKey(
+	contentKey, styleKey, mathKey uint64,
+	widthBits uint32, indent, spacing float32,
+) uint64 {
+	key := Fnv64Offset
+	key = fnvU64(key, contentKey)
+	key = fnvU64(key, styleKey)
+	key = fnvU64(key, mathKey)
+	key = fnvU64(key, uint64(widthBits))
+	key = fnvU64(key, uint64(normFloat32Bits(indent)))
+	key = fnvU64(key, uint64(normFloat32Bits(spacing)))
+	return key
+}
+
+// rtfLayoutCacheFetch returns the cached shaped layout for key,
+// clearing the cache first when the theme moved on: a layout
+// shaped under another theme has the wrong metrics.
+func rtfLayoutCacheFetch(w *Window, key uint64) (*glyph.Layout, bool) {
+	vs := &w.viewState
+	if vs.rtfLayoutCache != nil && vs.rtfLayoutTheme != guiTheme.id {
+		vs.rtfLayoutCache.Clear()
+		vs.rtfLayoutTheme = guiTheme.id
+	}
+	if vs.rtfLayoutCache == nil {
+		return nil, false
+	}
+	if entry, ok := vs.rtfLayoutCache.Get(key); ok &&
+		entry.Layout != nil {
+		return entry.Layout, true
+	}
+	return nil, false
+}
+
+// rtfLayoutCacheStore shares layout under key with later frames.
+// The entry names the same layout the shape holds, so the store
+// costs no second copy. Layouts are never mutated once shaped —
+// rtfSuppressInlineObjectGlyphs runs before the store — so sharing
+// is safe for every reader.
+func rtfLayoutCacheStore(
+	w *Window, key uint64, layout *glyph.Layout,
+) {
+	vs := &w.viewState
+	if vs.rtfLayoutCache == nil {
+		vs.rtfLayoutCache = NewBoundedMap[uint64, rtfLayoutEntry](200)
+		vs.rtfLayoutTheme = guiTheme.id
+	}
+	vs.rtfLayoutCache.Set(key, rtfLayoutEntry{Layout: layout})
+}
+
 func layoutWrapRTF(shape *Shape, tc *shapeTextConfig, w *Window) {
 	if tc.rTFRuns == nil {
 		return
@@ -336,51 +401,28 @@ func layoutWrapRTF(shape *Shape, tc *shapeTextConfig, w *Window) {
 		return
 	}
 
-	// Cross-frame cache: the key chains content, base style,
-	// math cache state, wrap width, hanging indent, and line
-	// spacing through FNV-1a so every layout input moves the
-	// digest. Math cache state is mixed in so layout invalidates
-	// when an inline math fetch transitions Loading→Ready
-	// (different glyph runs: raw LaTeX text vs InlineObject
-	// placeholder). Chaining beats XOR here: XOR cancels when
-	// two inputs change in opposite ways, while each chained
-	// mix keeps what came before.
-	contentKey := rtfRunsKey(tc.rTFRuns)
-	styleKey := rtfStyleKey(tc.rTFBaseStyle)
-	mathKey := rtfMathStateKey(tc.rTFRuns, w.viewState.diagramCache)
-	cacheKey := Fnv64Offset
-	cacheKey = fnvU64(cacheKey, contentKey)
-	cacheKey = fnvU64(cacheKey, styleKey)
-	cacheKey = fnvU64(cacheKey, mathKey)
-	cacheKey = fnvU64(cacheKey,
-		uint64(normFloat32Bits(shape.Width)))
-	cacheKey = fnvU64(cacheKey,
-		uint64(normFloat32Bits(tc.hangingIndent)))
-	cacheKey = fnvU64(cacheKey,
-		uint64(normFloat32Bits(tc.rTFLineSpacing)))
-	vs := &w.viewState
-
-	// Invalidate on theme change.
-	themeID := guiTheme.id
-	if vs.rtfLayoutCache != nil && vs.rtfLayoutTheme != themeID {
-		vs.rtfLayoutCache.Clear()
-		vs.rtfLayoutTheme = themeID
-	}
+	// Cross-frame cache shared with the non-wrap path (see
+	// rtfLayoutCacheKey): content, base style, math cache state,
+	// wrap width, hanging indent and line spacing all move the key.
+	cacheKey := rtfLayoutCacheKey(
+		rtfRunsKey(tc.rTFRuns),
+		rtfStyleKey(tc.rTFBaseStyle),
+		rtfMathStateKey(tc.rTFRuns, w.viewState.diagramCache),
+		uint32(normFloat32Bits(shape.Width)),
+		-tc.hangingIndent, tc.rTFLineSpacing)
 
 	// Check cross-frame cache.
-	if vs.rtfLayoutCache != nil {
-		if entry, ok := vs.rtfLayoutCache.Get(cacheKey); ok &&
-			entry.Layout != nil {
-			tc.rTFLayout = entry.Layout
-			shape.Height = entry.Layout.Height
-			tc.wrapCacheWidth = shape.Width
-			tc.wrapCacheHeight = entry.Layout.Height
-			tc.wrapCacheValid = true
-			if tc.rTFFlatText == "" {
-				tc.rTFFlatText = rtfFlatTextFromRuns(tc.rTFRuns)
-			}
-			return
+	if cached, ok := rtfLayoutCacheFetch(w, cacheKey); ok {
+		tc.rTFLayout = cached
+		shape.Height = cached.Height
+		tc.wrapCacheWidth = shape.Width
+		tc.wrapCacheHeight = cached.Height
+		tc.wrapCacheValid = true
+		if tc.rTFFlatText == "" {
+			tc.rTFFlatText, _ = rtfFlatTextFromRuns(
+				tc.rTFRuns, w.viewState.diagramCache)
 		}
+		return
 	}
 
 	tm, ok := w.textMeasurer.(interface {
@@ -418,19 +460,13 @@ func layoutWrapRTF(shape *Shape, tc *shapeTextConfig, w *Window) {
 	tc.wrapCacheHeight = l.Height
 	tc.wrapCacheValid = true
 	if tc.rTFFlatText == "" {
-		tc.rTFFlatText = rtfFlatTextFromRuns(tc.rTFRuns)
+		tc.rTFFlatText, _ = rtfFlatTextFromRuns(
+			tc.rTFRuns, w.viewState.diagramCache)
 	}
 
-	// Store in cross-frame cache.
-	if vs.rtfLayoutCache == nil {
-		vs.rtfLayoutCache = NewBoundedMap[uint64, rtfLayoutEntry](200)
-		vs.rtfLayoutTheme = themeID
-	}
 	// Shares the pointer tc.rTFLayout already holds: the shape and the
 	// cache name one layout, so the entry costs no second copy.
-	vs.rtfLayoutCache.Set(cacheKey, rtfLayoutEntry{
-		Layout: tc.rTFLayout,
-	})
+	rtfLayoutCacheStore(w, cacheKey, tc.rTFLayout)
 }
 
 // wrapParentHAlign reports the physical alignment the parent would give

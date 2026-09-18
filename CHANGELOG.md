@@ -10,6 +10,10 @@ and this project adheres to
 
 ### Added
 
+- **`gui.RichFootnote`** — the footnote-marker constructor matches its siblings
+  (`RichRun`, `RichLink`, `RichBr`, `RichAbbr`) and is now exported: it was the
+  only one stuck unexported, so an app could not build a footnote marker outside
+  `gui`.
 - **`gui.Debug` reports an `Interactive` button that the keyboard cannot use
   (#658)** — a custom button built with `gui.Interactive` needs `Focusable`,
   `ClickOnSpace` and `ClickOnEnter` on its root next to `OnClick`. Without one
@@ -135,6 +139,25 @@ and this project adheres to
 
 ### Fixed
 
+- **RTF selection, links and tooltips agree with the shaped text when inline
+  math is present** — the flat text used for rune/byte mapping concatenated only
+  the source run texts, while shaping emits the LaTeX fallback or the object
+  placeholder for math runs. Every click, drag, key nav, highlight and
+  link/tooltip lookup past the first math run was therefore offset, and markdown
+  block offsets drifted the same way. Flat text, rune counts and run lookup now
+  share one shaped-domain helper with the shaper, so a Loading→Ready transition
+  moves all of them together. A ready cache entry no longer produces an unusable
+  inline object either: an unset run size, non-finite dimensions, or a scale
+  that overflows the object to +Inf or collapses it to zero all fall the run
+  back to its LaTeX source. Single-line RTF also joins the cross-frame layout
+  cache the wrap path already had, so a static block shapes once instead of
+  every frame. Related hardening in the same pass: the drag re-resolves its
+  shape each step (a mid-drag re-layout no longer steers it with stale
+  geometry), the tooltip popup ID is a hash instead of raw tooltip text (which
+  may hold a colon that `ScopeID` forbids in a part), unsafe links no longer
+  offer the pointing-hand cursor the click path refuses, over-long links
+  truncate by rune in diagnostics, and double-click timing runs on the monotonic
+  clock so an NTP step cannot forge or miss one.
 - **Filter and stencil brackets stay balanced, whatever the emitted command** —
   an SVG `stdDeviation` is only checked for NaN/Inf and `> 0` at parse time, so
   a six-digit value times an ordinary tessellation scale overflowed to `+Inf`.

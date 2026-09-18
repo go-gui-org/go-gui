@@ -310,6 +310,55 @@ func TestRtfMouseMoveLinkSetsPointingHand(t *testing.T) {
 	}
 }
 
+// TestRtfMouseMoveUnsafeLinkNoPointingHand pins the hover/click
+// agreement: a link the click path rejects (outside the opener
+// allowlist) must not offer the pointing hand either.
+func TestRtfMouseMoveUnsafeLinkNoPointingHand(t *testing.T) {
+	w := &Window{}
+	rt := RichText{
+		Runs: []RichTextRun{
+			{
+				Text:  "evil",
+				Link:  "javascript:alert(1)",
+				Style: TextStyle{Underline: true},
+			},
+		},
+	}
+	glyphLayout := glyph.Layout{
+		Width:  100,
+		Height: 20,
+		Items: []glyph.Item{
+			{
+				X: 10, Y: 12, Width: 30,
+				Ascent: 12, Descent: 4,
+				StartIndex:   0,
+				HasUnderline: true,
+			},
+		},
+	}
+	l := &Layout{
+		Shape: &Shape{
+			shapeType: shapeRTF,
+			Width:     100,
+			Height:    20,
+			TC: &shapeTextConfig{
+				rTFLayout: &glyphLayout,
+				rTFRuns:   &rt,
+			},
+		},
+	}
+	e := &Event{MouseX: 20, MouseY: 5}
+
+	rtfMouseMove(EventCtx{l, e, w})
+
+	if got := w.MouseCursorState(); got == CursorPointingHand {
+		t.Fatalf("cursor = %v, want non-link cursor", got)
+	}
+	if e.IsHandled {
+		t.Fatal("expected unsafe-link hover not to consume event")
+	}
+}
+
 func TestRtfGenerateLayoutSuppressesInlineObjectGlyphs(t *testing.T) {
 	w := &Window{windowBackend: windowBackend{
 		textMeasurer: &rtfStubTextMeasurer{
@@ -852,6 +901,88 @@ func TestRtfGenerateLayoutHandlesError(t *testing.T) {
 	}
 }
 
+// rtfCountingMeasurer counts LayoutRichText calls so cache tests
+// can tell a reshape from a cache hit.
+type rtfCountingMeasurer struct {
+	rtfStubTextMeasurer
+	calls int
+}
+
+func (m *rtfCountingMeasurer) LayoutRichText(
+	rt glyph.RichText, cfg glyph.TextConfig,
+) (glyph.Layout, error) {
+	m.calls++
+	return m.rtfStubTextMeasurer.LayoutRichText(rt, cfg)
+}
+
+// TestRtfGenerateLayoutNonWrapCachesAcrossFrames pins the
+// cross-frame cache for single-line RTF: two identical frames shape
+// once, and the second shape still carries the cached dimensions.
+func TestRtfGenerateLayoutNonWrapCachesAcrossFrames(t *testing.T) {
+	m := &rtfCountingMeasurer{rtfStubTextMeasurer: rtfStubTextMeasurer{
+		layout: glyph.Layout{Width: 120, Height: 20},
+	}}
+	w := &Window{windowBackend: windowBackend{textMeasurer: m}}
+	mkView := func() View {
+		return RTF(RTFCfg{
+			RichText: RichText{Runs: []RichTextRun{
+				{Text: "hello", Style: TextStyle{Size: 12}},
+			}},
+		})
+	}
+	first := generateViewLayout(mkView(), w)
+	second := generateViewLayout(mkView(), w)
+	if m.calls != 1 {
+		t.Fatalf("shaping calls = %d, want 1 across frames", m.calls)
+	}
+	if second.Shape.Width != 120 || second.Shape.Height != 20 {
+		t.Fatalf("cached size = %gx%g, want 120x20",
+			second.Shape.Width, second.Shape.Height)
+	}
+	if first.Shape.TC.rTFFlatText != "hello" ||
+		second.Shape.TC.rTFFlatText != "hello" {
+		t.Error("flat text lost across the cache hit")
+	}
+}
+
+// TestRtfGenerateLayoutNonWrapMathReadyReshapes pins cache
+// invalidation for single-line RTF: a math Loading→Ready transition
+// flips the key, so the second frame reshapes and its flat text
+// carries the object placeholder.
+func TestRtfGenerateLayoutNonWrapMathReadyReshapes(t *testing.T) {
+	m := &rtfCountingMeasurer{rtfStubTextMeasurer: rtfStubTextMeasurer{
+		layout: glyph.Layout{Width: 120, Height: 20},
+	}}
+	w := &Window{windowBackend: windowBackend{textMeasurer: m}}
+	w.viewState.diagramCache = newBoundedDiagramCache(4)
+	mkView := func() View {
+		return RTF(RTFCfg{
+			RichText: RichText{Runs: []RichTextRun{
+				{MathID: "m", MathLatex: "a+b",
+					Style: TextStyle{Size: 12}},
+			}},
+		})
+	}
+	first := generateViewLayout(mkView(), w)
+	if got := first.Shape.TC.rTFFlatText; got != "a+b" {
+		t.Fatalf("loading flat text = %q, want the fallback", got)
+	}
+	w.viewState.diagramCache.Set(diagramCacheHash("m"),
+		DiagramCacheEntry{
+			State:  diagramReady,
+			Width:  80,
+			Height: 24,
+			dPI:    200,
+		})
+	second := generateViewLayout(mkView(), w)
+	if m.calls != 2 {
+		t.Fatalf("shaping calls = %d, want a reshape", m.calls)
+	}
+	if got := second.Shape.TC.rTFFlatText; got != "\uFFFC" {
+		t.Fatalf("ready flat text = %q, want the placeholder", got)
+	}
+}
+
 func TestRtfOnClickIgnoresUnsafeLink(t *testing.T) {
 	w := newTestWindow()
 	rt := RichText{
@@ -911,24 +1042,24 @@ func TestRtfRunsKeyIncludesLinkAndTooltip(t *testing.T) {
 // --- rtfFlatTextFromRuns ---
 
 func TestRtfFlatTextFromRuns_Nil(t *testing.T) {
-	got := rtfFlatTextFromRuns(nil)
-	if got != "" {
-		t.Errorf("got %q, want empty", got)
+	got, n := rtfFlatTextFromRuns(nil, nil)
+	if got != "" || n != 0 {
+		t.Errorf("got %q,%d, want empty,0", got, n)
 	}
 }
 
 func TestRtfFlatTextFromRuns_EmptyRuns(t *testing.T) {
-	got := rtfFlatTextFromRuns(&RichText{})
-	if got != "" {
-		t.Errorf("got %q, want empty", got)
+	got, n := rtfFlatTextFromRuns(&RichText{}, nil)
+	if got != "" || n != 0 {
+		t.Errorf("got %q,%d, want empty,0", got, n)
 	}
 }
 
 func TestRtfFlatTextFromRuns_SingleRun(t *testing.T) {
 	rt := &RichText{Runs: []RichTextRun{{Text: "hello"}}}
-	got := rtfFlatTextFromRuns(rt)
-	if got != "hello" {
-		t.Errorf("got %q, want %q", got, "hello")
+	got, n := rtfFlatTextFromRuns(rt, nil)
+	if got != "hello" || n != 5 {
+		t.Errorf("got %q,%d, want %q,5", got, n, "hello")
 	}
 }
 
@@ -938,10 +1069,10 @@ func TestRtfFlatTextFromRuns_MultipleRuns_Concatenated(t *testing.T) {
 		{Text: "bar"},
 		{Text: "baz"},
 	}}
-	got := rtfFlatTextFromRuns(rt)
+	got, n := rtfFlatTextFromRuns(rt, nil)
 	want := "foobarbaz"
-	if got != want {
-		t.Errorf("got %q, want %q", got, want)
+	if got != want || n != 9 {
+		t.Errorf("got %q,%d, want %q,9", got, n, want)
 	}
 }
 
@@ -950,9 +1081,64 @@ func TestRtfFlatTextFromRuns_MultibyteUTF8(t *testing.T) {
 		{Text: "héllo"},
 		{Text: " wörld"},
 	}}
-	got := rtfFlatTextFromRuns(rt)
+	got, n := rtfFlatTextFromRuns(rt, nil)
 	want := "héllo wörld"
-	if got != want {
-		t.Errorf("got %q, want %q", got, want)
+	if got != want || n != 11 {
+		t.Errorf("got %q,%d, want %q,11", got, n, want)
+	}
+}
+
+// TestRtfFlatTextFromRuns_MathReadyPlaceholder pins the shaped
+// domain: a ready math run contributes the single-rune object
+// placeholder, so selection offsets past it match the glyph layout.
+func TestRtfFlatTextFromRuns_MathReadyPlaceholder(t *testing.T) {
+	cache := newBoundedDiagramCache(4)
+	cache.Set(diagramCacheHash("m"), DiagramCacheEntry{
+		State: diagramReady, Width: 80, Height: 24, dPI: 200,
+	})
+	rt := &RichText{Runs: []RichTextRun{
+		{Text: "a"},
+		{MathID: "m", MathLatex: "a+b",
+			Style: TextStyle{Size: 12}},
+		{Text: "b"},
+	}}
+	got, n := rtfFlatTextFromRuns(rt, cache)
+	want := "a\uFFFCb"
+	if got != want || n != 3 {
+		t.Errorf("got %q,%d, want %q,3", got, n, want)
+	}
+}
+
+// TestRtfFlatTextFromRuns_MathFallbackLatex pins the other shaped
+// length: without a ready entry the math run contributes its LaTeX
+// source, matching what toGlyphRichTextWithMath shapes.
+func TestRtfFlatTextFromRuns_MathFallbackLatex(t *testing.T) {
+	rt := &RichText{Runs: []RichTextRun{
+		{Text: "a"},
+		{MathID: "m", MathLatex: "a+b",
+			Style: TextStyle{Size: 12}},
+		{Text: "b"},
+	}}
+	got, n := rtfFlatTextFromRuns(rt, nil)
+	want := "aa+bb"
+	if got != want || n != 5 {
+		t.Errorf("got %q,%d, want %q,5", got, n, want)
+	}
+}
+
+// TestRtfFlatTextFromRuns_ZeroSizeMathFallsBack pins the degenerate
+// guard: a ready entry with an unset run size shapes no object, so
+// the flat text carries the LaTeX fallback in agreement.
+func TestRtfFlatTextFromRuns_ZeroSizeMathFallsBack(t *testing.T) {
+	cache := newBoundedDiagramCache(4)
+	cache.Set(diagramCacheHash("m"), DiagramCacheEntry{
+		State: diagramReady, Width: 80, Height: 24, dPI: 200,
+	})
+	rt := &RichText{Runs: []RichTextRun{
+		{MathID: "m", MathLatex: "a+b", Style: TextStyle{}},
+	}}
+	got, _ := rtfFlatTextFromRuns(rt, cache)
+	if got != "a+b" {
+		t.Errorf("got %q, want the LaTeX fallback", got)
 	}
 }

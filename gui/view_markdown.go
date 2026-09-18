@@ -546,7 +546,8 @@ func markdownBuildContent(
 			return sharedCtx
 		}
 		ctx := &mdBlockCtx{ID: cfg.ID, Start: runeOffset, Sel: true}
-		runeOffset += uint32(rtfRuneCountFromRuns(&block.Content))
+		runeOffset += uint32(rtfRuneCountFromRuns(
+			&block.Content, w.viewState.diagramCache))
 		return ctx
 	}
 

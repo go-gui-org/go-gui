@@ -13,7 +13,6 @@ import (
 	"os"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/go-gui-org/go-glyph"
 )
@@ -828,8 +827,8 @@ func TestMarkdownDoubleClickSelectsWord(t *testing.T) {
 // TestMarkdownClickIsolatedByDoubleClickThreshold splits the double
 // click across more than doubleClickThresholdMs so the second click
 // must be treated as a fresh cursor placement. Simulated by stubbing
-// LastClickTime in the past — the handler reads wall-clock time, so a
-// real sleep would be both slow and flaky.
+// LastClickTime in the past — a real sleep would be both slow and
+// flaky.
 func TestMarkdownClickIsolatedByDoubleClickThreshold(t *testing.T) {
 	h := newMdSelectHarness(t)
 	p := h.blockByText(t, "First paragraph text")
@@ -837,7 +836,7 @@ func TestMarkdownClickIsolatedByDoubleClickThreshold(t *testing.T) {
 	imap := StateMap[string, mdSelState](h.w, nsMdSel, capMany)
 	imap.Set("md", mdSelState{
 		SelBeg: p.StartRune + 2, SelEnd: p.StartRune + 2,
-		LastClickTime: time.Now().UnixMilli() -
+		LastClickTime: doubleClickNowMs() -
 			doubleClickThresholdMs - 1,
 	})
 

@@ -379,11 +379,19 @@ func demoRtf(_ *gui.Window) gui.View {
 				RichText: gui.RichText{
 					Runs: []gui.RichTextRun{
 						gui.RichRun("Visit the ", t.N3),
-						gui.RichLink("Go-Gui repository", "https://github.com/go-gui-org/go-gui", gui.TextStyle{
-							Color:     gui.ColorFromString("#3b82f6"),
-							Size:      t.N3.Size,
-							Underline: true,
-						}),
+						// A RichTextRun literal, not gui.RichLink:
+						// RichLink owns the link color (the theme's
+						// select color), so a run that carries its
+						// own color builds the struct directly.
+						{
+							Text: "Go-Gui repository",
+							Link: "https://github.com/go-gui-org/go-gui",
+							Style: gui.TextStyle{
+								Color:     gui.ColorFromString("#3b82f6"),
+								Size:      t.N3.Size,
+								Underline: true,
+							},
+						},
 						gui.RichRun(" for more info. ", t.N3),
 						gui.RichAbbr("RTF", "Rich Text Format", t.B3),
 						gui.RichRun(" stands for Rich Text Format.", t.N3),

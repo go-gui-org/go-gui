@@ -8,7 +8,9 @@ package gui
 
 import (
 	"slices"
+	"strings"
 	"testing"
+	"unicode/utf8"
 
 	"github.com/go-gui-org/go-glyph"
 )
@@ -16,7 +18,7 @@ import (
 // --- rtfRuneCountFromRuns ---
 
 func TestRtfRuneCountFromRuns_Nil(t *testing.T) {
-	if got := rtfRuneCountFromRuns(nil); got != 0 {
+	if got := rtfRuneCountFromRuns(nil, nil); got != 0 {
 		t.Errorf("nil RichText counted %d runes, want 0", got)
 	}
 }
@@ -26,7 +28,7 @@ func TestRtfRuneCountFromRuns_MultiRunUTF8(t *testing.T) {
 		{Text: "héllo"},  // 5 runes, 6 bytes
 		{Text: " wörld"}, // 6 runes, 7 bytes
 	}}
-	if got := rtfRuneCountFromRuns(rt); got != 11 {
+	if got := rtfRuneCountFromRuns(rt, nil); got != 11 {
 		t.Errorf("rune count = %d, want 11 across runs", got)
 	}
 }
@@ -34,15 +36,15 @@ func TestRtfRuneCountFromRuns_MultiRunUTF8(t *testing.T) {
 // --- rtfFindRunAtIndex ---
 
 func TestRtfFindRunAtIndex_Guards(t *testing.T) {
-	if got := rtfFindRunAtIndex(nil, 0); got != (RichTextRun{}) {
+	if got := rtfFindRunAtIndex(nil, 0, nil); got != (RichTextRun{}) {
 		t.Error("nil layout must return an empty run")
 	}
 	l := &Layout{Shape: &Shape{}}
-	if got := rtfFindRunAtIndex(l, 0); got != (RichTextRun{}) {
+	if got := rtfFindRunAtIndex(l, 0, nil); got != (RichTextRun{}) {
 		t.Error("layout without TC must return an empty run")
 	}
 	l = &Layout{Shape: &Shape{TC: &shapeTextConfig{}}}
-	if got := rtfFindRunAtIndex(l, 0); got != (RichTextRun{}) {
+	if got := rtfFindRunAtIndex(l, 0, nil); got != (RichTextRun{}) {
 		t.Error("layout with nil runs must return an empty run")
 	}
 }
@@ -54,15 +56,15 @@ func TestRtfFindRunAtIndex_Hit(t *testing.T) {
 		{Text: "three"},
 	}}
 	l := &Layout{Shape: &Shape{TC: &shapeTextConfig{rTFRuns: rt}}}
-	if got := rtfFindRunAtIndex(l, 0); got.Text != "one" {
+	if got := rtfFindRunAtIndex(l, 0, nil); got.Text != "one" {
 		t.Errorf("index 0 = %q, want first run", got.Text)
 	}
 	// 't' of "two": run 1 spans bytes [3,6).
-	if got := rtfFindRunAtIndex(l, 4); got.Text != "two" {
+	if got := rtfFindRunAtIndex(l, 4, nil); got.Text != "two" {
 		t.Errorf("index 4 = %q, want second run", got.Text)
 	}
 	// 'r' of "three": run 2 spans bytes [6,11).
-	if got := rtfFindRunAtIndex(l, 9); got.Text != "three" {
+	if got := rtfFindRunAtIndex(l, 9, nil); got.Text != "three" {
 		t.Errorf("index 9 = %q, want third run", got.Text)
 	}
 }
@@ -70,8 +72,49 @@ func TestRtfFindRunAtIndex_Hit(t *testing.T) {
 func TestRtfFindRunAtIndex_PastEnd(t *testing.T) {
 	rt := &RichText{Runs: []RichTextRun{{Text: "one"}}}
 	l := &Layout{Shape: &Shape{TC: &shapeTextConfig{rTFRuns: rt}}}
-	if got := rtfFindRunAtIndex(l, 99); got != (RichTextRun{}) {
+	if got := rtfFindRunAtIndex(l, 99, nil); got != (RichTextRun{}) {
 		t.Errorf("index past the last run = %q, want empty run", got.Text)
+	}
+}
+
+// TestRtfFindRunAtIndex_MathReadyCountsPlaceholder pins the shaped
+// domain: a ready math run occupies the 3-byte object placeholder,
+// so a run after it starts 3 bytes later than its source text
+// suggests. A lookup in the source domain would return the wrong
+// run and misattribute its link or tooltip.
+func TestRtfFindRunAtIndex_MathReadyCountsPlaceholder(t *testing.T) {
+	cache := newBoundedDiagramCache(4)
+	cache.Set(diagramCacheHash("m"), DiagramCacheEntry{
+		State: diagramReady, Width: 80, Height: 24, dPI: 200,
+	})
+	rt := &RichText{Runs: []RichTextRun{
+		{MathID: "m", MathLatex: "a+b",
+			Style: TextStyle{Size: 12}},
+		{Text: "after", Link: "https://example.com"},
+	}}
+	l := &Layout{Shape: &Shape{TC: &shapeTextConfig{rTFRuns: rt}}}
+	// Placeholder "\uFFFC" is 3 bytes: "after" spans [3,8).
+	if got := rtfFindRunAtIndex(l, 4, cache); got.Link == "" {
+		t.Errorf("index 4 = %q, want the link run after math", got.Text)
+	}
+	if got := rtfFindRunAtIndex(l, 0, cache); got.MathID != "m" {
+		t.Errorf("index 0 = %q, want the math run", got.Text)
+	}
+}
+
+// TestRtfFindRunAtIndex_MathFallbackCountsLatex pins the other
+// shaped length: without a ready entry the math run contributes
+// its LaTeX source, and later runs shift by that length.
+func TestRtfFindRunAtIndex_MathFallbackCountsLatex(t *testing.T) {
+	rt := &RichText{Runs: []RichTextRun{
+		{MathID: "m", MathLatex: "a+b",
+			Style: TextStyle{Size: 12}},
+		{Text: "after"},
+	}}
+	l := &Layout{Shape: &Shape{TC: &shapeTextConfig{rTFRuns: rt}}}
+	// Fallback "a+b" is 3 bytes: "after" spans [3,8).
+	if got := rtfFindRunAtIndex(l, 4, nil); got.Text != "after" {
+		t.Errorf("index 4 = %q, want the run after math", got.Text)
 	}
 }
 
@@ -145,9 +188,8 @@ func TestRtfTooltipAnimation_Activation(t *testing.T) {
 	if ts.id != "tip" {
 		t.Errorf("id = %q, want activated tooltip", ts.id)
 	}
-	if ts.popupID != ScopeID("tip", "rtf_popup") {
-		t.Errorf("popupID = %q, want %q",
-			ts.popupID, ScopeID("tip", "rtf_popup"))
+	if want := rtfTooltipPopupID("tip"); ts.popupID != want {
+		t.Errorf("popupID = %q, want %q", ts.popupID, want)
 	}
 }
 
@@ -168,6 +210,27 @@ func TestRtfTooltipAnimation_EmptyTextNoActivation(t *testing.T) {
 	a.Callback(a, w)
 	if w.viewState.tooltip.id != "" {
 		t.Error("empty tooltip text still activated the popup")
+	}
+}
+
+// TestRtfTooltipPopupID_ScopeSafe pins the ID derivation: tooltip
+// text is document content and may hold a colon, which ScopeID
+// forbids in a part, so the popup ID carries a hash instead of the
+// text. It must also be stable — the same tooltip re-armed across
+// frames addresses the same popup.
+func TestRtfTooltipPopupID_ScopeSafe(t *testing.T) {
+	id := rtfTooltipPopupID("a:b tooltip")
+	if strings.Contains(id, "a:b tooltip") {
+		t.Errorf("popupID = %q, want no raw tooltip text", id)
+	}
+	if strings.Count(id, ":") != 2 {
+		t.Errorf("popupID = %q, want exactly owner:hash:popup", id)
+	}
+	if again := rtfTooltipPopupID("a:b tooltip"); again != id {
+		t.Errorf("popupID unstable: %q then %q", id, again)
+	}
+	if other := rtfTooltipPopupID("another tip"); other == id {
+		t.Error("distinct tooltips share a popup ID")
 	}
 }
 
@@ -425,5 +488,33 @@ func TestRtfGenerateLayout_MenuOnlyOnOwningBlock(t *testing.T) {
 			layout.Children[i].Shape.ID == rtfLinkMenuFocusID {
 			t.Error("link menu attached to a non-owning block")
 		}
+	}
+}
+
+// --- rtfLinkShort ---
+
+// TestRtfLinkShort_RuneSafe pins the rune-safe truncation: a link is
+// document content and may be multibyte, which a byte slice would
+// split mid-rune and turn into replacement characters in the
+// diagnostic (and in the warn-once key derived from it).
+func TestRtfLinkShort_RuneSafe(t *testing.T) {
+	short := "https://example.com/ok"
+	if got := rtfLinkShort(short); got != short {
+		t.Errorf("short link = %q, want it unchanged", got)
+	}
+	// Every rune is 3 bytes, so a byte cut at rtfLinkMaxReportLen
+	// lands mid-rune.
+	long := "https://example.com/" +
+		strings.Repeat("→", rtfLinkMaxReportLen)
+	got := rtfLinkShort(long)
+	if !utf8.ValidString(got) {
+		t.Errorf("truncated link is not valid UTF-8: %q", got)
+	}
+	if !strings.HasSuffix(got, "...") {
+		t.Errorf("truncated link = %q, want a ... suffix", got)
+	}
+	if n := utf8.RuneCountInString(
+		strings.TrimSuffix(got, "...")); n != rtfLinkMaxReportLen {
+		t.Errorf("kept %d runes, want %d", n, rtfLinkMaxReportLen)
 	}
 }

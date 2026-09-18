@@ -1,7 +1,7 @@
 package gui
 
 import (
-	"time"
+	"github.com/go-gui-org/go-glyph"
 )
 
 // --- RTF standalone text selection ---
@@ -27,6 +27,73 @@ func rtfMarkdownAmendLayout(ctx EventCtx) {
 
 // rtfSelectOnClick handles clicks for an RTF widget with selection enabled.
 // Link navigation (rtfOnClick) runs first; selection state is always updated.
+// rtfDragFrame is the layout input for one step of an RTF selection
+// drag: where the block sits, what it shaped to, and the scroll
+// viewport around it. A drag holds one press-time frame as its
+// fallback and resolves a fresh one per step.
+//
+// scrollAnchor is the scroll offset shY is already expressed in, and
+// it travels with shY rather than being fixed at the press. A child
+// of a scroll container has the offset baked into Shape.Y by arrange
+// (layoutChildStartPos, gui/layout_position.go), so a re-read shY
+// already carries every scroll up to the last arrange; measuring it
+// against the press-time offset as well would count the scroll since
+// the press twice and drag the selection away by that distance.
+type rtfDragFrame struct {
+	gl           *glyph.Layout
+	flat         string
+	shX          float32
+	shY          float32
+	top          float32
+	bot          float32
+	vTop         float32
+	vBot         float32
+	maxNeg       float32
+	scrollAnchor float32
+}
+
+// resolve returns the frame for the tree as it stands: the live shape
+// when it is still there, else the receiver — the press-time frame.
+// Geometry that moves under the drag (shape position, viewport, text
+// band) is re-read whenever the shape resolves, and otherwise keeps
+// its press-time value; a zero viewport would read as "pointer
+// outside" for every Y and drive the edge-scroll to clamp the
+// container back to the top.
+func (snap rtfDragFrame) resolve(
+	w *Window, root *Layout, focusID, scrollID string,
+) rtfDragFrame {
+	f := snap
+	node := root
+	// findByID, not FindByID: a miss here is legitimate (the shape is
+	// briefly out of the tree mid-drag), and the public form would
+	// report it as a misspelling through the DebugUnknownLookup gate.
+	if found, ok := root.findByID(focusID); ok &&
+		found.Shape != nil && found.Shape.TC != nil &&
+		found.Shape.TC.rTFLayout != nil {
+		node = found
+		f.gl = found.Shape.TC.rTFLayout
+		f.flat = found.Shape.TC.rTFFlatText
+		f.shX, f.shY = found.Shape.X, found.Shape.Y
+		f.top, f.bot = glyphTextBand(f.gl)
+		if scrollID != "" {
+			// The tree this shY came from was arranged at the offset
+			// standing now. A caller that then moves the scroll
+			// before mapping a pointer — dragScrollCB — resolves the
+			// frame first, so the difference it introduces is exactly
+			// what computeRunePos corrects for.
+			// Default 0: unscrolled before any scroll event.
+			f.scrollAnchor = w.scrollY().GetOr(scrollID, 0)
+		}
+	}
+	for p := node.Parent; p != nil; p = p.Parent {
+		if p.Shape != nil && p.Shape.Scrollable {
+			f.vTop, f.vBot, f.maxNeg = dragViewport(p)
+			break
+		}
+	}
+	return f
+}
+
 func rtfSelectOnClick(ctx EventCtx) {
 	// A link click still collapses the selection under the pointer, the
 	// way a browser drops the old highlight — but it must not arm the
@@ -58,7 +125,7 @@ func rtfSelectOnClick(ctx EventCtx) {
 	// Default InputState{}: zero value seeds initial selection/cursor state.
 	is := imap.GetOr(focusID, inputState{})
 
-	now := time.Now().UnixMilli()
+	now := doubleClickNowMs()
 	doubleClick := is.LastClickTime > 0 &&
 		now-is.LastClickTime <= doubleClickThresholdMs
 	is.LastClickTime = now
@@ -91,57 +158,59 @@ func rtfSelectOnClick(ctx EventCtx) {
 
 	anchorPos := is.selectBeg
 	anchorEnd := is.selectEnd
-	dragShapeX := shape.X
-	dragShapeY := shape.Y
+
+	// Press-time drag frame. The MouseLock callbacks below run on
+	// later frames, when the shape tree may have been rebuilt around
+	// them (a resize re-wraps, a math fetch flips Loading→Ready and
+	// with it the flat text). Each callback re-resolves the shape by
+	// effective ID first and falls back to this copy only when the
+	// shape is briefly gone. The glyph value copy is safe across
+	// frames: shaped layouts are never mutated once stored (see
+	// rtfLayoutEntry).
+	snapGL := *gl
+	snap := rtfDragFrame{
+		gl: &snapGL, flat: flatText,
+		shX: shape.X, shY: shape.Y,
+	}
+	snap.top, snap.bot = glyphTextBand(gl)
 
 	var lastMouseX, lastMouseY float32
 	scrollID := ""
-	dragScrollY0 := float32(0)
-	viewTop := float32(0)
-	viewBot := float32(0)
-	maxScrollNeg := float32(0)
 	for p := ctx.Layout.Parent; p != nil; p = p.Parent {
 		if p.Shape != nil && p.Shape.Scrollable {
 			scrollID = p.Shape.idKey()
-			sy := ctx.Window.scrollY()
 			// Default 0: unscrolled container before first scroll event.
-			dragScrollY0 = sy.GetOr(scrollID, 0)
-			sp := p.Shape
-			viewTop = sp.Y + sp.Padding.Top
-			viewH := sp.Height - sp.paddingHeight()
-			viewBot = viewTop + viewH
-			maxScrollNeg = f32Min(0, viewH-contentHeight(p))
+			snap.scrollAnchor = ctx.Window.scrollY().GetOr(scrollID, 0)
+			snap.vTop, snap.vBot, snap.maxNeg = dragViewport(p)
 			break
 		}
 	}
 
-	// The drag extends to a line's edge once it leaves the text band;
-	// see textDragEdgeX.
-	dragTop, dragBot := glyphTextBand(gl)
-
-	computeRunePos := func(mx, my float32, w *Window) int {
+	computeRunePos := func(
+		mx, my float32, w *Window, f rtfDragFrame,
+	) int {
 		scrollDelta := float32(0)
 		if scrollID != "" {
 			sy := w.scrollY()
 			// Default 0: unscrolled position when no offset recorded yet.
 			sNow := sy.GetOr(scrollID, 0)
-			scrollDelta = sNow - dragScrollY0
+			scrollDelta = sNow - f.scrollAnchor
 		}
-		ry := my - (dragShapeY + scrollDelta)
-		rx := textDragEdgeX(mx-dragShapeX, ry, dragTop, dragBot)
-		bi := gl.GetClosestOffset(rx, ry)
-		return byteToRuneIndex(flatText, bi)
+		ry := my - (f.shY + scrollDelta)
+		rx := textDragEdgeX(mx-f.shX, ry, f.top, f.bot)
+		bi := f.gl.GetClosestOffset(rx, ry)
+		return byteToRuneIndex(f.flat, bi)
 	}
 
-	updateDrag := func(rp int, w *Window) {
+	updateDrag := func(rp int, w *Window, f rtfDragFrame) {
 		dim := StateMap[string, inputState](w, nsInput, capMany)
 		// Default InputState{}: zero value seeds initial drag-edit state.
 		dis := dim.GetOr(focusID, inputState{})
 		if doubleClick {
-			bi := runeToByteIndex(flatText, rp)
-			bBeg, bEnd := gl.GetWordAtIndex(bi)
-			wb := byteToRuneIndex(flatText, bBeg)
-			we := byteToRuneIndex(flatText, bEnd)
+			bi := runeToByteIndex(f.flat, rp)
+			bBeg, bEnd := f.gl.GetWordAtIndex(bi)
+			wb := byteToRuneIndex(f.flat, bBeg)
+			we := byteToRuneIndex(f.flat, bEnd)
 			if rp < int(anchorPos) {
 				dis.selectBeg = anchorEnd
 				dis.selectEnd = uint32(wb)
@@ -161,11 +230,12 @@ func rtfSelectOnClick(ctx EventCtx) {
 	}
 
 	dragScrollCB := func(_ *Animate, w *Window) {
+		f := snap.resolve(w, &w.layout, focusID, scrollID)
 		var delta float32
-		if lastMouseY < viewTop {
-			delta = (viewTop - lastMouseY) * 0.3
-		} else if lastMouseY > viewBot {
-			delta = -((lastMouseY - viewBot) * 0.3)
+		if lastMouseY < f.vTop {
+			delta = (f.vTop - lastMouseY) * textDragEdgeScrollFactor
+		} else if lastMouseY > f.vBot {
+			delta = -((lastMouseY - f.vBot) * textDragEdgeScrollFactor)
 		} else {
 			w.AnimationRemove(animIDTextDragScroll)
 			return
@@ -173,27 +243,31 @@ func rtfSelectOnClick(ctx EventCtx) {
 		sy := w.scrollY()
 		// Default 0: unscrolled position when no offset recorded yet.
 		cur := sy.GetOr(scrollID, 0)
-		newScroll := f32Clamp(cur+delta, maxScrollNeg, 0)
+		newScroll := f32Clamp(cur+delta, f.maxNeg, 0)
 		if newScroll == cur {
 			return
 		}
 		sy.Set(scrollID, newScroll)
-		rp := computeRunePos(lastMouseX, lastMouseY, w)
-		updateDrag(rp, w)
+		rp := computeRunePos(lastMouseX, lastMouseY, w, f)
+		updateDrag(rp, w, f)
 	}
 
 	ctx.Window.MouseLock(MouseLockCfg{
 		MouseMove: func(ctx EventCtx) {
 			lastMouseX = ctx.Event.MouseX
 			lastMouseY = ctx.Event.MouseY
-			rp := computeRunePos(ctx.Event.MouseX, ctx.Event.MouseY, ctx.Window)
-			updateDrag(rp, ctx.Window)
+			f := snap.resolve(
+				ctx.Window, ctx.Layout, focusID, scrollID)
+			rp := computeRunePos(
+				ctx.Event.MouseX, ctx.Event.MouseY, ctx.Window, f)
+			updateDrag(rp, ctx.Window, f)
 			if scrollID != "" {
-				outside := ctx.Event.MouseY < viewTop || ctx.Event.MouseY > viewBot
+				outside := ctx.Event.MouseY < f.vTop ||
+					ctx.Event.MouseY > f.vBot
 				if outside && !ctx.Window.HasAnimation(animIDTextDragScroll) {
 					ctx.Window.AnimationAdd(&Animate{
 						AnimID:   animIDTextDragScroll,
-						Delay:    32 * time.Millisecond,
+						Delay:    textDragScrollInterval,
 						Repeat:   true,
 						Refresh:  AnimationRefreshLayout,
 						Callback: dragScrollCB,
