@@ -1272,3 +1272,27 @@ func TestDecodeBytesID3(t *testing.T) {
 		t.Errorf("decodeBytes(ID3) = unrecognized, want mp3 branch: %v", err)
 	}
 }
+
+// The out-of-range error names the valid range half-open as [0, N).
+// It once printed N-1 as the open bound, which excluded the last valid
+// channel from the stated range.
+func TestPlaySourceOutOfRangeMessage(t *testing.T) {
+	if err := Init(); err != nil {
+		t.Skipf("audio init unavailable: %v", err)
+	}
+	defer quit()
+
+	bb, ok := backend.(*beepBackend)
+	if !ok {
+		t.Fatalf("backend is %T, want *beepBackend", backend)
+	}
+	n := bb.channels.numChannels()
+	err := PlaySource(n, &testSource{})
+	if err == nil {
+		t.Fatalf("PlaySource(%d) = nil error, want out-of-range", n)
+	}
+	want := fmt.Sprintf("[0, %d)", n)
+	if !strings.Contains(err.Error(), want) {
+		t.Errorf("PlaySource(%d) error = %q, want it to contain %q", n, err, want)
+	}
+}

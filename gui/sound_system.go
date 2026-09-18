@@ -49,6 +49,9 @@ func NewSystemSoundPlayer(w *Window) SoundPlayer {
 }
 
 func (p systemSoundPlayer) PlaySound(cue SoundCue, _ float32) {
+	if cue == SoundNone {
+		return
+	}
 	sp := p.platform()
 	if sp == nil {
 		return

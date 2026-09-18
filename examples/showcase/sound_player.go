@@ -3,6 +3,8 @@
 package main
 
 import (
+	"math"
+
 	"github.com/go-gui-org/go-gui/gui"
 	"github.com/go-gui-org/go-gui/gui/audio"
 )
@@ -57,6 +59,15 @@ var _ gui.SoundPlayer = cueSoundPlayer{}
 // goroutine, so it starts a voice and returns; the mixer does the work
 // on the audio thread.
 func (p cueSoundPlayer) PlaySound(cue gui.SoundCue, gain float32) {
+	// A zero-value player carries no window: stay silent instead of
+	// panicking in ensureAudioInit's state lookup.
+	if p.w == nil {
+		return
+	}
+	gain, ok := cueGain(gain)
+	if !ok {
+		return
+	}
 	var freq float64
 	env := cueEnv
 	switch cue {
@@ -97,26 +108,20 @@ func (p cueSoundPlayer) PlaySound(cue gui.SoundCue, gain float32) {
 // desktop target this file compiles for.
 func (p cueSoundPlayer) SoundAvailable() bool { return true }
 
+// cueGain clamps a gain to (0, 1] and reports false for one that must
+// not start a voice. The framework gates mute, NaN and Inf ahead of the
+// player, but a direct caller may not. Checking here means a bad gain
+// never starts a voice, rather than relying on newVoice to silence it
+// after the mixer channel is already spent.
+func cueGain(gain float32) (float32, bool) {
+	if math.IsNaN(float64(gain)) || math.IsInf(float64(gain), 0) ||
+		gain <= 0 {
+		return 0, false
+	}
+	return min(gain, 1), true
+}
+
 // doc:snippet-end player
-
-// soundPlayerKind picks which of the three players the showcase
-// installs. All three render the same cues; they differ in what a cue
-// sounds like and in what they cost to ship.
-type soundPlayerKind uint8
-
-const (
-	// soundPlayerSynth is the synthesized player above: every cue is a
-	// blip, no assets, gain honoured.
-	soundPlayerSynth soundPlayerKind = iota
-	// soundPlayerBeep is the zero-dependency path from the guide: the
-	// system alert on SoundError and silence otherwise, with no audio
-	// library. What an app wants when it only needs to signal a
-	// rejection.
-	soundPlayerBeep
-	// soundPlayerSystem is the platform's own event sounds: a cue for
-	// every role, no assets, no audio library, gain ignored.
-	soundPlayerSystem
-)
 
 // installWidgetSounds turns widget sound on for the window: a theme
 // that names a cue per role, and a player that renders them. Both are

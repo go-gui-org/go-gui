@@ -112,6 +112,15 @@ var _ gui.SoundPlayer = cueSoundPlayer{}
 // goroutine, so it starts a voice and returns; the mixer does the work
 // on the audio thread.
 func (p cueSoundPlayer) PlaySound(cue gui.SoundCue, gain float32) {
+	// A zero-value player carries no window: stay silent instead of
+	// panicking in ensureAudioInit's state lookup.
+	if p.w == nil {
+		return
+	}
+	gain, ok := cueGain(gain)
+	if !ok {
+		return
+	}
 	var freq float64
 	env := cueEnv
 	switch cue {
@@ -151,6 +160,19 @@ func (p cueSoundPlayer) PlaySound(cue gui.SoundCue, gain float32) {
 // SoundAvailable implements gui.SoundPlayer. gui/audio builds on every
 // desktop target this file compiles for.
 func (p cueSoundPlayer) SoundAvailable() bool { return true }
+
+// cueGain clamps a gain to (0, 1] and reports false for one that must
+// not start a voice. The framework gates mute, NaN and Inf ahead of the
+// player, but a direct caller may not. Checking here means a bad gain
+// never starts a voice, rather than relying on newVoice to silence it
+// after the mixer channel is already spent.
+func cueGain(gain float32) (float32, bool) {
+	if math.IsNaN(float64(gain)) || math.IsInf(float64(gain), 0) ||
+		gain <= 0 {
+		return 0, false
+	}
+	return min(gain, 1), true
+}
 ```
 
 Two names the block leans on. `ensureAudioInit(p.w)` is showcase plumbing that

@@ -497,7 +497,7 @@ func (b *beepBackend) PlaySource(channel int, s Source) error {
 	}
 	if channel >= b.channels.numChannels() {
 		return fmt.Errorf("audio: channel %d out of range [0, %d)",
-			channel, b.channels.numChannels()-1)
+			channel, b.channels.numChannels())
 	}
 	b.channels.set(channel, &sourceStreamer{src: s})
 	return nil

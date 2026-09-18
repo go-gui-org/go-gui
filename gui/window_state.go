@@ -63,6 +63,12 @@ type windowBackend struct {
 	// zero-value window is full volume, not muted.
 	soundVolume    float32
 	soundVolumeSet bool
+	// soundMu guards soundPlayer, soundVolume and soundVolumeSet.
+	// SetSoundPlayer and SetSoundVolume write from any goroutine
+	// while playSoundCue reads on event dispatch — hence their own
+	// lock rather than piggybacking on mu, which the frame pass
+	// holds, the same split themeMu gives the window theme.
+	soundMu        sync.RWMutex
 	clipboardSetFn func(string)
 	clipboardGetFn func() string
 	// primarySetFn/primaryGetFn drive the X11 PRIMARY selection — the

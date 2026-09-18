@@ -20,6 +20,11 @@ type Sound struct {
 // LoadSound loads a sound effect from a file path.
 // Supports WAV, OGG, FLAC, MP3 and other formats depending on file
 // extension.
+//
+// Kept package-private on purpose: the app-facing entry is
+// LoadSoundBytes, which suits embedded assets, while path loading is
+// the backend and test seam. See LoadMusic for the path-based music
+// API.
 func loadSound(path string) (*Sound, error) {
 	return backend.LoadSound(path)
 }
@@ -73,6 +78,11 @@ func (s *Sound) FadeIn(channel, loops, ms int) (int, error) {
 }
 
 // SetVolume sets this sound's volume.  v is clamped to [0, 1].
+//
+// Kept package-private on purpose: apps scale through the voice level
+// they hand to PlaySource or through SetMasterVolume, and read back
+// through Volume. Tests are the only writers, to set and restore a
+// level around an assertion.
 func (s *Sound) setVolume(v float64) {
 	backend.SoundSetVolume(s, v)
 }

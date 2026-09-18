@@ -184,14 +184,19 @@ func resolveSoundCues(themeAct, cfgAct SoundCue, disabled bool) soundCues {
 }
 
 // SetSoundPlayer installs the window's sound player. Nil disables
-// widget sound without changing any theme or Cfg.
+// widget sound without changing any theme or Cfg. Safe from any
+// goroutine: dispatch reads the player under the sound-state lock.
 func (w *Window) SetSoundPlayer(p SoundPlayer) {
+	w.soundMu.Lock()
+	defer w.soundMu.Unlock()
 	w.soundPlayer = p
 }
 
 // SoundPlayer returns the window's sound player, or nil if none has
 // been set (the default, and every headless test).
 func (w *Window) SoundPlayer() SoundPlayer {
+	w.soundMu.RLock()
+	defer w.soundMu.RUnlock()
 	return w.soundPlayer
 }
 
@@ -220,12 +225,16 @@ func (w *Window) SetSoundVolume(v float32) {
 	case v > 1:
 		v = 1
 	}
+	w.soundMu.Lock()
 	w.soundVolume = v
 	w.soundVolumeSet = true
+	w.soundMu.Unlock()
 }
 
 // SoundVolume returns the window's sound gain, 0..1. Defaults to 1.
 func (w *Window) SoundVolume() float32 {
+	w.soundMu.RLock()
+	defer w.soundMu.RUnlock()
 	if !w.soundVolumeSet {
 		return 1
 	}
@@ -255,14 +264,16 @@ func playShapeSound(l *Layout, w *Window) {
 //
 // Every guard playShapeSound relies on past the shape lives here, so a
 // new call site inherits the nil-player, zero-Theme.Sounds and muted
-// cases for free. It takes no lock: SoundVolume does not go through
-// lockForAPI, so a cue may be emitted inline even under the frame lock,
-// and no site needs deferCallback.
+// cases for free. It takes the sound-state lock only, never the frame
+// lock (neither SoundPlayer nor SoundVolume goes through lockForAPI), so
+// a cue may be emitted inline even under the frame lock, and no site
+// needs deferCallback. The player call itself runs without the lock
+// held, so a player that calls back into SoundVolume cannot deadlock.
 func playSoundCue(cue SoundCue, w *Window) {
 	if cue == SoundNone || w == nil {
 		return
 	}
-	p := w.soundPlayer
+	p := w.SoundPlayer()
 	if p == nil {
 		return
 	}
@@ -276,8 +287,8 @@ func playSoundCue(cue SoundCue, w *Window) {
 // PlaySoundCue emits an already-resolved cue from a path that has no
 // Shape to read one off. Same guarantees as every other seam: a
 // SoundNone cue, no installed player or a muted window are silent, and
-// it takes no lock, so it is safe from a callback running under the
-// frame lock.
+// it takes the sound-state lock only, never the frame lock, so it is
+// safe from a callback running under the frame lock.
 //
 // Exported for widget packages outside gui/ — gui/datagrid is the one
 // in-repo case, whose CRUD failure has no button to hang a cue off.

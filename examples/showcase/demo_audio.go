@@ -374,37 +374,6 @@ func widgetSoundNonClickRow() gui.View {
 	})
 }
 
-// soundPlayerLabels are the Select's options, and soundPlayerValue /
-// soundPlayerKindFor map them onto the player kind so the app state
-// stays typed rather than holding a string.
-var soundPlayerLabels = []string{
-	"Synthesized (gui/audio)",
-	"System event sounds",
-	"System alert on errors only",
-}
-
-func soundPlayerValue(kind soundPlayerKind) string {
-	switch kind {
-	case soundPlayerBeep:
-		return soundPlayerLabels[2]
-	case soundPlayerSystem:
-		return soundPlayerLabels[1]
-	default:
-		return soundPlayerLabels[0]
-	}
-}
-
-func soundPlayerKindFor(label string) soundPlayerKind {
-	switch label {
-	case soundPlayerLabels[2]:
-		return soundPlayerBeep
-	case soundPlayerLabels[1]:
-		return soundPlayerSystem
-	default:
-		return soundPlayerSynth
-	}
-}
-
 // ---------------------------------------------------------------------------
 // Live synthesis: a pad grid of streaming audio sources
 //
@@ -498,6 +467,16 @@ func newSynthVoice(freq float64) *synthVoice {
 	return newVoice(freq, 0.2, padEnv)
 }
 
+// sanitizeTiming repairs one envelope stage. A zero, negative or
+// non-finite timing would divide by zero in envelope and push Inf/NaN
+// into the mixer, so it reads as an instant stage instead.
+func sanitizeTiming(s float64) float64 {
+	if math.IsNaN(s) || math.IsInf(s, 0) || s <= 0 {
+		return 1e-6
+	}
+	return s
+}
+
 // newVoice builds a voice at the given peak level and envelope.
 func newVoice(freq, level float64, env voiceEnv) *synthVoice {
 	if math.IsNaN(freq) || math.IsInf(freq, 0) || freq <= 0 {
@@ -510,6 +489,19 @@ func newVoice(freq, level float64, env voiceEnv) *synthVoice {
 		level = 0
 	} else if level > 1 {
 		level = 1
+	}
+	// Validated once here so envelope stays free of per-sample
+	// checks on the audio thread.
+	env.attackS = sanitizeTiming(env.attackS)
+	env.decayS = sanitizeTiming(env.decayS)
+	env.releaseS = sanitizeTiming(env.releaseS)
+	// sustain scales every sample after decay, so a NaN or
+	// out-of-range value would reach the mixer the same way a bad
+	// timing would.
+	if math.IsNaN(env.sustain) || env.sustain < 0 {
+		env.sustain = 0
+	} else if env.sustain > 1 {
+		env.sustain = 1
 	}
 	v := &synthVoice{
 		env:        env,
@@ -530,12 +522,16 @@ func (v *synthVoice) release() { v.releasing.Store(true) }
 // writes stereo samples into the caller-owned buffer.
 func (v *synthVoice) Fill(samples [][2]float64) (int, bool) {
 	dt := 1 / v.sampleRate
+	// Read once per buffer rather than once per sample: a release that
+	// lands mid-buffer then takes effect at the next buffer, at most
+	// one buffer late.
+	releasing := v.releasing.Load()
 	n := 0
 	for i := range samples {
 		if v.done {
 			break
 		}
-		amp := v.envelope(dt)
+		amp := v.envelope(dt, releasing)
 		v.phase += 2 * math.Pi * v.freq * dt
 		// Three harmonics sum to 1.75 peak; scale so the envelope
 		// level is the peak amplitude.
@@ -551,30 +547,13 @@ func (v *synthVoice) Fill(samples [][2]float64) (int, bool) {
 }
 
 // envelope advances the ADSR state by dt and returns the current
-// amplitude. Called once per sample from Fill.
-func (v *synthVoice) envelope(dt float64) float64 {
+// amplitude. Called once per sample from Fill. Timings arrive already
+// validated by newVoice, and the release flag arrives as a per-buffer
+// snapshot from Fill, so this stays a straight-line computation with
+// no atomic load and no validation per sample.
+func (v *synthVoice) envelope(dt float64, releasing bool) float64 {
 	e := &v.env
-	// Defensive: a zero or negative timing would divide by zero and
-	// propagate Inf/NaN into the mixer. Treat it as an instant stage.
-	if e.attackS <= 0 {
-		e.attackS = 1e-6
-	}
-	if e.decayS <= 0 {
-		e.decayS = 1e-6
-	}
-	if e.releaseS <= 0 {
-		e.releaseS = 1e-6
-	}
-	if math.IsNaN(e.attackS) || math.IsInf(e.attackS, 0) {
-		e.attackS = 1e-6
-	}
-	if math.IsNaN(e.decayS) || math.IsInf(e.decayS, 0) {
-		e.decayS = 1e-6
-	}
-	if math.IsNaN(e.releaseS) || math.IsInf(e.releaseS, 0) {
-		e.releaseS = 1e-6
-	}
-	if v.releasing.Load() {
+	if releasing {
 		if v.elapsed >= e.releaseS {
 			v.done = true
 			return 0

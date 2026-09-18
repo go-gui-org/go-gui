@@ -257,6 +257,35 @@ func TestSoundVolumeClampAndMute(t *testing.T) {
 	}
 }
 
+// SetSoundPlayer and SetSoundVolume write from any goroutine while
+// dispatch reads them, so hammer both against real clicks. Run with
+// -race: before the sound-state lock this reported a data race.
+func TestSoundConcurrentVolumeAndPlayerNoRace(t *testing.T) {
+	restoreTheme(t)
+	spy := &soundSpy{}
+	w := NewTestWindow(WindowCfg{})
+	w.SetTheme(soundingTheme(t))
+	w.SetSoundPlayer(spy)
+	w.TestRender(buttonView(ButtonCfg{}))
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		for range 50 {
+			w.SetSoundVolume(0.5)
+			_ = w.SoundVolume()
+			w.SetSoundPlayer(spy)
+			_ = w.SoundPlayer()
+		}
+	}()
+	for range 50 {
+		if err := w.TestClick("btn"); err != nil {
+			t.Fatalf("TestClick: %v", err)
+		}
+	}
+	<-done
+}
+
 func TestSoundPlayerAccessorRoundTrip(t *testing.T) {
 	w := NewTestWindow(WindowCfg{})
 	if w.SoundPlayer() != nil {
@@ -401,5 +430,17 @@ func TestSoundDisabledWidgetSilent(t *testing.T) {
 	a11yActionCallback(w, A11yActionPress, idx)
 	if len(spy.cues) != 0 {
 		t.Errorf("disabled widget emitted %v, want nothing", spy.cues)
+	}
+}
+
+// A direct caller of the system player can pass SoundNone; it must not
+// reach the platform, which has no sound for it.
+func TestSystemSoundPlayerDropsSoundNone(t *testing.T) {
+	spy := &systemSoundSpy{available: true}
+	w := NewWindow(WindowCfg{State: new(struct{})})
+	w.SetNativePlatform(spy)
+	NewSystemSoundPlayer(w).PlaySound(SoundNone, 1)
+	if len(spy.cues) != 0 {
+		t.Errorf("forwarded %v, want nothing", spy.cues)
 	}
 }

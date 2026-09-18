@@ -142,6 +142,19 @@ and this project adheres to
 
 ### Fixed
 
+- **Widget sound hardening** — from a review of the `sound*` code:
+  - `SetSoundPlayer`, `SetSoundVolume`, `SoundPlayer`, `SoundVolume` and the
+    dispatch read are now guarded by their own lock, the same split `themeMu`
+    gives the window theme. Before, a volume or player change from any goroutine
+    raced the event-dispatch read.
+  - The showcase synth player no longer panics on a nil window and ignores mute,
+    negative, NaN and Inf gain without spending a mixer channel. The system
+    player ignores `SoundNone` instead of forwarding it to the platform.
+  - The synth voice validates its envelope once at construction and snapshots
+    the release flag per audio buffer, instead of validating and atomically
+    loading per sample.
+  - The out-of-range channel error printed `[0, N-1)` for a valid range of
+    `0..N-1`; it now prints `[0, N)`.
 - **Scrollbar and scroll API hardening** — these fixes come from a review of the
   scroll code:
   - A press on the scrollbar gutter now reaches the end of the range when the
