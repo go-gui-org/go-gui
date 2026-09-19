@@ -327,6 +327,14 @@ func mouseDownHandlerDepth(
 			return
 		}
 	}
+	// A clipping shape bounds every descendant's visible hit region. If
+	// the press misses that clip, the whole subtree can be rejected before
+	// walking it. Non-clipping shapes cannot use this shortcut because a
+	// child may extend beyond its parent's bounds.
+	if layout.Shape != nil && layout.Shape.Clip &&
+		!layout.Shape.PointInShape(e.MouseX, e.MouseY) {
+		return
+	}
 	// Traverse children in reverse (topmost/last child first).
 	ox, oy := rotateMouseInverse(layout.Shape, e)
 	for i := range slices.Backward(layout.Children) {

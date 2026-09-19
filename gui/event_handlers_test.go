@@ -305,6 +305,49 @@ func TestMouseDownHandler(t *testing.T) {
 			t.Errorf("hit: got %q, want second", hitID)
 		}
 	})
+	t.Run("clipped_parent_prunes_outside_child", func(t *testing.T) {
+		t.Parallel()
+		clicked := false
+		root := &Layout{
+			Shape: &Shape{},
+			Children: []Layout{{
+				Shape: &Shape{
+					Clip:      true,
+					shapeClip: drawClip{Width: 100, Height: 100},
+				},
+				Children: []Layout{{Shape: &Shape{
+					shapeClip: drawClip{X: 150, Width: 100, Height: 100},
+					events: &eventHandlers{OnClick: func(EventCtx) {
+						clicked = true
+					}},
+				}}},
+			}},
+		}
+		mouseDownHandler(root, false, &Event{MouseX: 175, MouseY: 50}, &Window{})
+		if clicked {
+			t.Error("child outside a clipping parent received the press")
+		}
+	})
+	t.Run("non_clipping_parent_allows_outside_child", func(t *testing.T) {
+		t.Parallel()
+		clicked := false
+		root := &Layout{
+			Shape: &Shape{},
+			Children: []Layout{{
+				Shape: &Shape{shapeClip: drawClip{Width: 100, Height: 100}},
+				Children: []Layout{{Shape: &Shape{
+					shapeClip: drawClip{X: 150, Width: 100, Height: 100},
+					events: &eventHandlers{OnClick: func(EventCtx) {
+						clicked = true
+					}},
+				}}},
+			}},
+		}
+		mouseDownHandler(root, false, &Event{MouseX: 175, MouseY: 50}, &Window{})
+		if !clicked {
+			t.Error("child extending outside a non-clipping parent missed the press")
+		}
+	})
 }
 
 func TestMouseLockHandlers(t *testing.T) {

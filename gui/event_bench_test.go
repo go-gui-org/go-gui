@@ -131,3 +131,104 @@ func BenchmarkExecuteMouseCallback(b *testing.B) {
 		executeMouseCallback(layout, e, w, cb, evNotify)
 	}
 }
+
+func BenchmarkMouseDownClippedSubtrees(b *testing.B) {
+	const (
+		subtreeCount  = 64
+		leavesPerTree = 128
+	)
+
+	buildLayout := func() Layout {
+		clip := drawClip{X: 10, Y: 10, Width: 100, Height: 100}
+		root := Layout{
+			Shape: &Shape{shapeClip: drawClip{Width: 1000, Height: 1000}},
+		}
+		root.Children = make([]Layout, subtreeCount)
+		for i := range root.Children {
+			subtree := &root.Children[i]
+			subtree.Shape = &Shape{Clip: true, shapeClip: clip}
+			subtree.Children = make([]Layout, leavesPerTree)
+			for j := range subtree.Children {
+				subtree.Children[j].Shape = &Shape{shapeClip: clip}
+			}
+		}
+		return root
+	}
+
+	for _, tc := range []struct {
+		name string
+		x, y float32
+	}{
+		{name: "outside_clips", x: 500, y: 500},
+		{name: "inside_clips", x: 25, y: 25},
+	} {
+		b.Run(tc.name, func(b *testing.B) {
+			layout := buildLayout()
+			w := newEventTestWindow()
+			e := &Event{MouseX: tc.x, MouseY: tc.y, MouseButton: MouseLeft}
+
+			b.ReportAllocs()
+			b.ResetTimer()
+			for b.Loop() {
+				e.IsHandled = false
+				mouseDownHandler(&layout, false, e, w)
+			}
+		})
+	}
+}
+
+func BenchmarkMouseDownDisjointClippedPanels(b *testing.B) {
+	const (
+		panelCols    = 8
+		panelRows    = 8
+		panelSize    = float32(100)
+		cellCols     = 16
+		cellRows     = 8
+		cellWidth    = panelSize / cellCols
+		cellHeight   = panelSize / cellRows
+		windowWidth  = panelCols * panelSize
+		windowHeight = panelRows * panelSize
+	)
+
+	root := Layout{
+		Shape: &Shape{shapeClip: drawClip{Width: windowWidth, Height: windowHeight}},
+	}
+	root.Children = make([]Layout, 0, panelCols*panelRows)
+	for panelY := range panelRows {
+		for panelX := range panelCols {
+			x := float32(panelX) * panelSize
+			y := float32(panelY) * panelSize
+			panel := Layout{
+				Shape: &Shape{
+					Clip: true,
+					shapeClip: drawClip{
+						X: x, Y: y, Width: panelSize, Height: panelSize,
+					},
+				},
+				Children: make([]Layout, 0, cellCols*cellRows),
+			}
+			for cellY := range cellRows {
+				for cellX := range cellCols {
+					panel.Children = append(panel.Children, Layout{Shape: &Shape{
+						shapeClip: drawClip{
+							X:      x + float32(cellX)*cellWidth,
+							Y:      y + float32(cellY)*cellHeight,
+							Width:  cellWidth,
+							Height: cellHeight,
+						},
+					}})
+				}
+			}
+			root.Children = append(root.Children, panel)
+		}
+	}
+
+	w := newEventTestWindow()
+	e := &Event{MouseX: 25, MouseY: 25, MouseButton: MouseLeft}
+	b.ReportAllocs()
+	b.ResetTimer()
+	for b.Loop() {
+		e.IsHandled = false
+		mouseDownHandler(&root, false, e, w)
+	}
+}
