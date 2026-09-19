@@ -259,6 +259,7 @@ approval.
 
 ## Superscript and Subscript
 
+<!-- prettier-ignore -->
 Water is H~2~O and Einstein's famous equation is E = mc^2^. The notation x^n^
 means x raised to the nth power. CO~2~ emissions are measured in parts per
 million.
