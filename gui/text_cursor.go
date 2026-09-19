@@ -59,6 +59,11 @@ func cursorStartOfParagraph(text string, pos int) int {
 // cursorEndOfParagraph finds the end of the current paragraph
 // by searching forward for newline.
 func cursorEndOfParagraph(text string, pos int) int {
+	// Clamp to the text start, then search: a negative position sits
+	// in the first paragraph, so the answer is that paragraph's end.
+	if pos < 0 {
+		pos = 0
+	}
 	byteIdx := runeToByteIndex(text, pos)
 	for i := byteIdx; i < len(text); i++ {
 		if text[i] == '\n' {
@@ -74,8 +79,12 @@ func utf8RuneCount(s string) int {
 }
 
 // truncatePreview truncates s to maxRunes runes, appending
-// "..." if truncated. Safe for multi-byte UTF-8.
+// "..." if truncated. Safe for multi-byte UTF-8. A negative budget
+// is treated as zero, so empty input still returns empty.
 func truncatePreview(s string, maxRunes int) string {
+	if maxRunes < 0 {
+		maxRunes = 0
+	}
 	if utf8.RuneCountInString(s) <= maxRunes {
 		return s
 	}

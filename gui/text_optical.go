@@ -132,6 +132,10 @@ const (
 // asked for it — the two forms can name the same run ("0" as a digit
 // probe and as a badge's whole label) while falling back differently, so
 // the flag is what keeps them out of each other's entry.
+//
+// Only vertical metrics key the memo: LetterSpacing, Features and the
+// paint-only fields change advances or pixels, not the ink Y and height
+// the offset is solved from, so they are left out on purpose.
 type opticalKey struct {
 	family      string
 	probe       string
@@ -192,7 +196,10 @@ func (w *Window) opticalTextOffset(style TextStyle, text string) float32 {
 func (w *Window) opticalOffset(
 	style TextStyle, probe string, contentFree bool, ratio float32,
 ) float32 {
-	if w == nil || style.Size <= 0 {
+	// A non-finite size must not reach the memo: NaN never equals
+	// itself, so it would miss every lookup and pay a shaping pass
+	// per frame, while +Inf would cache an infinite offset.
+	if w == nil || style.Size <= 0 || !f32IsFinite(style.Size) {
 		return 0
 	}
 	key := opticalKey{

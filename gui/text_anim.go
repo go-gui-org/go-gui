@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"math"
 	"time"
 	"unicode/utf8"
 
@@ -166,7 +167,8 @@ const (
 
 // colorToGlyph converts a gui Color to the glyph package's Color. The
 // two structs hold the same four bytes; gui's carries a set flag that
-// has no meaning downstream.
+// has no meaning downstream. Single conversion site — toGlyphStyle
+// shares it so the two cannot drift apart.
 func colorToGlyph(c Color) glyph.Color {
 	return glyph.Color{R: c.R, G: c.G, B: c.B, A: c.A}
 }
@@ -369,6 +371,17 @@ func newTextAnimDriver(
 	dur, delay time.Duration,
 	repeat bool,
 ) *KeyframeAnimation {
+	// A negative delay would make total shorter than dur and put a
+	// negative At into the keyframes, breaking the ascending-At
+	// contract interpolateKeyframes depends on. Clamp it away.
+	if delay < 0 {
+		delay = 0
+	}
+	// A huge delay would overflow dur+delay into a negative total.
+	// Cap it so the sum saturates at the largest Duration instead.
+	if delay > math.MaxInt64-dur {
+		delay = math.MaxInt64 - dur
+	}
 	total := dur + delay
 	frames := []Keyframe{{At: 0, Value: 0}}
 	if delay > 0 {
@@ -458,7 +471,9 @@ func textAnimTransform(
 //
 // Runes, not bytes: a byte cut lands mid-character and paints a
 // replacement glyph. The count rounds down, so a reveal only ever
-// shows a character that is fully due.
+// shows a character that is fully due. Linear in the string length
+// per frame — fine for labels, not for multi-kilobyte bodies, which
+// want no typewriter or a capped one.
 func textAnimReveal(s string, frac float32) string {
 	if frac >= 1 {
 		return s

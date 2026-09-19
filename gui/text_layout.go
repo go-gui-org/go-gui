@@ -29,6 +29,9 @@ func fallbackLineHeight(style TextStyle) float32 {
 // estimate of an estimate — right for "does this overflow", wrong for
 // any pixel assertion, which is already the documented contract of a
 // window built by NewTestWindow.
+//
+// Empty text reserves one line: the shape still holds a caret, and the
+// single-line estimate in view_text.go sizes it the same way.
 func plainTextHeightNoMeasurer(
 	shape *Shape,
 	tc *shapeTextConfig,

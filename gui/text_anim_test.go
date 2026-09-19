@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"math"
 	"testing"
 	"time"
 )
@@ -514,6 +515,44 @@ func TestTextAnimDriverDelay(t *testing.T) {
 	if len(noDelay.Keyframes) != 2 {
 		t.Errorf("keyframes with no delay = %d, want 2",
 			len(noDelay.Keyframes))
+	}
+}
+
+// A negative delay must not shorten the run or break the
+// ascending-At contract: it is clamped to zero.
+func TestTextAnimDriverNegativeDelay(t *testing.T) {
+	a := newTextAnimDriver("id", "key",
+		300*time.Millisecond, -100*time.Millisecond, false)
+
+	if want := 300 * time.Millisecond; a.Duration != want {
+		t.Errorf("Duration = %v, want %v", a.Duration, want)
+	}
+	if len(a.Keyframes) != 2 {
+		t.Fatalf("keyframes = %d, want 2 (no delay segment)",
+			len(a.Keyframes))
+	}
+	for i, kf := range a.Keyframes {
+		if !f32IsFinite(kf.At) || kf.At < 0 || kf.At > 1 {
+			t.Errorf("keyframe %d At = %v, want finite in [0,1]", i, kf.At)
+		}
+		if i > 0 && kf.At < a.Keyframes[i-1].At {
+			t.Errorf("keyframe %d At = %v below previous %v",
+				i, kf.At, a.Keyframes[i-1].At)
+		}
+	}
+}
+
+// A huge delay must saturate the total, not overflow it negative.
+func TestTextAnimDriverHugeDelay(t *testing.T) {
+	a := newTextAnimDriver("id", "key",
+		300*time.Millisecond, time.Duration(math.MaxInt64), false)
+	if a.Duration <= 0 {
+		t.Fatalf("Duration = %v, want positive", a.Duration)
+	}
+	for i, kf := range a.Keyframes {
+		if !f32IsFinite(kf.At) || kf.At < 0 || kf.At > 1 {
+			t.Errorf("keyframe %d At = %v, want finite in [0,1]", i, kf.At)
+		}
 	}
 }
 

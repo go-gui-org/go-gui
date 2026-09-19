@@ -235,3 +235,23 @@ func TestPlainTextHeightNoMeasurer(t *testing.T) {
 		t.Errorf("line spacing height = %v, want %v", got, want)
 	}
 }
+
+// Empty text reserves one line for the caret, matching the
+// single-line estimate view_text.go assigns new text.
+func TestPlainTextHeightNoMeasurerEmpty(t *testing.T) {
+	style := TextStyle{Size: 10}
+	tc := &shapeTextConfig{Text: "", TextMode: TextModeSingleLine}
+	s := &Shape{Width: 500, TC: tc}
+	if got, want := plainTextHeightNoMeasurer(s, tc, style, nil),
+		fallbackLineHeight(style); got != want {
+		t.Errorf("empty height = %v, want one line %v", got, want)
+	}
+}
+
+// Pins the 1.4em value itself; TestFontHeightFallbackWithSize checks
+// that fontHeight and fallbackLineHeight share it.
+func TestFontHeightFallbackMatchesLineHeight(t *testing.T) {
+	if got := fontHeight(TextStyle{Size: 16}, &Window{}); got != 16*1.4 {
+		t.Errorf("fontHeight fallback = %v, want %v", got, 16*1.4)
+	}
+}

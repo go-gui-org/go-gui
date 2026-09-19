@@ -507,12 +507,16 @@ func textStyleOrDefault(shape *Shape) TextStyle {
 }
 
 // fontHeight returns the font height, or a fallback.
+//
+// Without a measurer the fallback is fallbackLineHeight — the same
+// 1.4em approximation view_text.go sizes new text with — so layout
+// and optical centring agree on the box in headless tests.
 func fontHeight(style TextStyle, w *Window) float32 {
 	if w.textMeasurer != nil {
 		return w.textMeasurer.FontHeight(style)
 	}
 	if style.Size > 0 {
-		return style.Size * 1.2
+		return fallbackLineHeight(style)
 	}
 	return 16
 }

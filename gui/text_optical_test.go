@@ -1,6 +1,9 @@
 package gui
 
-import "testing"
+import (
+	"math"
+	"testing"
+)
 
 // iconProbeRune stands in for an icon face's glyph: a private-use
 // codepoint, which is where icon fonts put their symbols.
@@ -125,5 +128,26 @@ func TestButtonDigitLabelTakesFigureBand(t *testing.T) {
 	buttonAmendLayout(EventCtx{&capFrame, nil, w})
 	if got := capFrame.Children[0].Shape.Y; got != 2 {
 		t.Errorf("label moved by %v, want the cap offset 2", got)
+	}
+}
+
+// A non-finite size corrects nothing and memoizes nothing: NaN would
+// miss the memo on every frame, +Inf would cache an infinite offset.
+func TestOpticalOffsetNonFiniteSize(t *testing.T) {
+	w := bandTestWindow()
+	for _, size := range []float32{
+		float32(math.NaN()), float32(math.Inf(1)), float32(math.Inf(-1)),
+	} {
+		style := TextStyle{Size: size}
+		if got := w.opticalCapOffset(style); got != 0 {
+			t.Errorf("size %v offset = %v, want 0", size, got)
+		}
+		if got := w.opticalTextOffset(style, "Save"); got != 0 {
+			t.Errorf("size %v run offset = %v, want 0", size, got)
+		}
+	}
+	if m := StateMapRead[opticalKey, float32](w, nsOpticalOffset); m != nil &&
+		m.Len() != 0 {
+		t.Errorf("memo holds %d entries, want 0", m.Len())
 	}
 }

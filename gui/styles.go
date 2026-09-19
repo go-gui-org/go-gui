@@ -279,8 +279,8 @@ func mergeTextStyle(s, fallback TextStyle) TextStyle {
 func (ts TextStyle) toGlyphStyle() glyph.TextStyle {
 	return glyph.TextStyle{
 		FontName:      ts.Family,
-		Color:         glyph.Color{R: ts.Color.R, G: ts.Color.G, B: ts.Color.B, A: ts.Color.A},
-		BgColor:       glyph.Color{R: ts.BgColor.R, G: ts.BgColor.G, B: ts.BgColor.B, A: ts.BgColor.A},
+		Color:         colorToGlyph(ts.Color),
+		BgColor:       colorToGlyph(ts.BgColor),
 		Size:          ts.Size,
 		LetterSpacing: ts.LetterSpacing,
 		EmojiBoxWidth: ts.EmojiBoxWidth,
@@ -294,7 +294,7 @@ func (ts TextStyle) toGlyphStyle() glyph.TextStyle {
 		Strikethrough:      ts.Strikethrough,
 		Typeface:           ts.Typeface,
 		StrokeWidth:        ts.StrokeWidth,
-		StrokeColor:        glyph.Color{R: ts.StrokeColor.R, G: ts.StrokeColor.G, B: ts.StrokeColor.B, A: ts.StrokeColor.A},
+		StrokeColor:        colorToGlyph(ts.StrokeColor),
 	}
 }
 

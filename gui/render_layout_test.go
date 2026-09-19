@@ -782,7 +782,9 @@ func TestFontHeightFallbackWithSize(t *testing.T) {
 	w := makeWindow()
 	style := TextStyle{Size: 14}
 	got := fontHeight(style, w)
-	want := float32(14) * 1.2
+	// Shares fallbackLineHeight with view_text.go sizing, so the
+	// headless box agrees between layout and optical centring.
+	want := fallbackLineHeight(style)
 	if !f32AreClose(got, want) {
 		t.Errorf("fontHeight = %f, want %f", got, want)
 	}

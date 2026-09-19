@@ -61,6 +61,13 @@ func (w *Window) textInkBounds(text string, style TextStyle) (
 // leaf, so moving it moves nothing else. Without a measurer (tests) or
 // without the ink capability the glyph stays where advance-box centring
 // put it.
+//
+// The returned closure captures its text and style: one small
+// allocation per widget per generation, the same shape every
+// AmendLayout builder in the toolkit takes. The capture stays, since
+// the text and style live at the call site — reading them back off
+// the arranged shape would centre a typewriter reveal on its prefix
+// rather than on the run the caller named.
 func centerGlyphOnInk(txt string, style TextStyle) func(EventCtx) {
 	return func(ctx EventCtx) {
 		if ctx.Layout == nil || ctx.Window == nil {

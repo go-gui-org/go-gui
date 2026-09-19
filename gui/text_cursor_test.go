@@ -53,6 +53,24 @@ func TestCursorEndOfParagraphLastLine(t *testing.T) {
 	assertEqual(t, cursorEndOfParagraph(text, 5), 7)
 }
 
+func TestCursorEndOfParagraphNegativePos(t *testing.T) {
+	// Clamped to 0, which is in the first paragraph: its end is 3.
+	assertEqual(t, cursorEndOfParagraph("abc\ndef", -1), 3)
+}
+
+func TestCursorStartOfParagraphNegativePos(t *testing.T) {
+	assertEqual(t, cursorStartOfParagraph("abc\ndef", -1), 0)
+}
+
+func TestTruncatePreviewNegativeBudget(t *testing.T) {
+	if got := truncatePreview("", -1); got != "" {
+		t.Errorf("empty truncate at -1 = %q, want %q", got, "")
+	}
+	if got := truncatePreview("hello", -1); got != "..." {
+		t.Errorf("truncate at -1 = %q, want %q", got, "...")
+	}
+}
+
 // --- helpers ---
 
 func TestRuneToByteIndex(t *testing.T) {

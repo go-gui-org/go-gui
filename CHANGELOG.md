@@ -178,6 +178,18 @@ and this project adheres to
 
 ### Fixed
 
+- **Text review fixes** — from a review of the `text*` code:
+  - A negative animation delay no longer shortens the run or breaks keyframe
+    order; it is clamped to zero.
+  - Headless `fontHeight` now uses the shared 1.4em fallback, so layout, caret,
+    and optical centring agree on one box. Golden caret recordings updated.
+  - A non-finite font size corrects nothing in optical centring instead of
+    missing the memo (NaN) or caching infinity.
+  - `cursorEndOfParagraph` clamps a negative position like its start twin, and
+    `truncatePreview` treats a negative budget as zero so empty input stays
+    empty.
+  - `toGlyphStyle` shares the single color conversion; empty-text height,
+    ink-hook allocation, memo key choice, and typewriter cost are documented.
 - **SVG hardening** — from a review of the `svg*` code:
   - File-backed SVGs no longer serve stale art after an edit. The render cache
     keyed the file path alone; it now mixes in file size and mtime, and the
