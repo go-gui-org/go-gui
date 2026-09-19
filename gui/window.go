@@ -220,6 +220,13 @@ type Window struct {
 	// are still aliased by a command emitted in this same list.
 	renderPass uint64
 
+	// View-pass counter — incremented per full layout generation
+	// (updateLocked). A text animation stamps it on its state so the
+	// entries of texts that left the tree can be told apart and pruned.
+	// frameCount does not serve: FrameFn advances it on frames that
+	// generate no view.
+	viewPass uint64
+
 	// Cleanup guard.
 	cleanupOnce sync.Once
 
@@ -430,6 +437,14 @@ func (w *Window) MouseCancel() {
 
 // SetTextMeasurer sets the text measurement backend.
 func (w *Window) SetTextMeasurer(tm TextMeasurer) {
+	if tm != w.textMeasurer {
+		// The optical-offset memo holds measurements from the old
+		// measurer — or fallback guesses taken while there was none —
+		// and nothing else would ever replace them.
+		if m := StateMapRead[opticalKey, float32](w, nsOpticalOffset); m != nil {
+			m.Clear()
+		}
+	}
 	w.textMeasurer = tm
 }
 

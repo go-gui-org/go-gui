@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"errors"
 	"math"
 	"strings"
 	"testing"
@@ -253,5 +254,110 @@ func TestPlainTextHeightNoMeasurerEmpty(t *testing.T) {
 func TestFontHeightFallbackMatchesLineHeight(t *testing.T) {
 	if got := fontHeight(TextStyle{Size: 16}, &Window{}); got != 16*1.4 {
 		t.Errorf("fontHeight fallback = %v, want %v", got, 16*1.4)
+	}
+}
+
+// With LineSpacing, glyph adds the spacing after every line but the
+// last, so the last line is shorter than the average line. Averaging
+// left the box short: 43 here while the last line paints to 48, and
+// its descenders hung out of the box.
+func TestPlainTextBoxHeightLineSpacing(t *testing.T) {
+	w := &Window{}
+	w.textMeasurer = &stubTextMeasurer{fontHeight: 18}
+	l := glyph.Layout{
+		// Two 20px lines with 10px between them.
+		Height: 50,
+		Lines: []glyph.Line{
+			{Rect: glyph.Rect{Y: 0, Height: 20}},
+			{Rect: glyph.Rect{Y: 30, Height: 20}},
+		},
+	}
+	// The last line's top (30) plus the face height (18).
+	if got := plainTextBoxHeight(l, TextStyle{Size: 16}, w); got != 48 {
+		t.Errorf("height = %v, want 48", got)
+	}
+}
+
+// A non-finite face height must not poison the box: the shape would
+// move to NaN and never paint again.
+func TestPlainTextBoxHeightNonFiniteFontHeight(t *testing.T) {
+	w := &Window{}
+	w.textMeasurer = &stubTextMeasurer{
+		fontHeight: float32(math.NaN()),
+	}
+	l := glyph.Layout{
+		Height: 23,
+		Lines:  []glyph.Line{{Rect: glyph.Rect{Height: 23}}},
+	}
+	if got := plainTextBoxHeight(l, TextStyle{Size: 16}, w); got != 23 {
+		t.Errorf("height = %v, want 23", got)
+	}
+}
+
+// A faded text reaches the render pass with its colours scaled, and
+// nothing else changed. That must not miss the layout cache and shape
+// the text a second time every frame; the cached layout is recoloured.
+func TestPlainTextLayoutCacheIgnoresPaint(t *testing.T) {
+	m := &glyphStubMeasurer{
+		stubTextMeasurer: stubTextMeasurer{charWidth: 10, fontHeight: 20},
+	}
+	w := renderAnimFrame(t, 100, 200, m, func(*Window) View {
+		return Column(ContainerCfg{
+			Sizing: FillFill,
+			Content: []View{Text(TextCfg{
+				ID:        "faded",
+				Text:      "aaa bbb ccc",
+				Mode:      TextModeWrap,
+				Opacity:   SomeF(0.5),
+				TextStyle: TextStyle{Color: White, Size: 14},
+			})},
+		})
+	})
+	if m.layouts != 1 {
+		t.Errorf("LayoutText calls = %d, want 1", m.layouts)
+	}
+	cmd := findTextCmd(t, w.renderers)
+	if cmd.LayoutPtr == nil || len(cmd.LayoutPtr.Items) == 0 {
+		t.Fatal("no layout draw")
+	}
+	if a := cmd.LayoutPtr.Items[0].Color.A; a != 127 {
+		t.Errorf("painted alpha = %d, want the faded 127", a)
+	}
+	sh := mustShape(t, w, "faded")
+	if a := sh.TC.textLayout.Items[0].Color.A; a != 255 {
+		t.Errorf("cached alpha = %d, want the shaped 255", a)
+	}
+}
+
+// failingMeasurer refuses every layout, as the shaper does for a text
+// past its byte budget.
+type failingMeasurer struct{ stubTextMeasurer }
+
+func (failingMeasurer) LayoutText(string, TextStyle, float32) (glyph.Layout, error) {
+	return glyph.Layout{}, errTestLayoutRefused
+}
+
+var errTestLayoutRefused = errors.New("refused")
+
+// A refused layout is refused again every frame. With the debug check
+// off, reporting it must not allocate.
+func TestPlainTextLayoutFailureNoAllocWhenDebugOff(t *testing.T) {
+	prev := debugMask.Load()
+	debugMask.Store(0)
+	defer debugMask.Store(prev)
+
+	w := &Window{}
+	w.textMeasurer = &failingMeasurer{}
+	style := TextStyle{Size: 16}
+	sh := &Shape{
+		ID: "t", Width: 100,
+		TC: &shapeTextConfig{Text: "hello", TextStyle: &style,
+			TextMode: TextModeWrap},
+	}
+	allocs := testing.AllocsPerRun(50, func() {
+		_, _ = plainTextLayoutResolved("hello", sh, style, w)
+	})
+	if allocs != 0 {
+		t.Errorf("allocs = %v, want 0", allocs)
 	}
 }

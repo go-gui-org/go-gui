@@ -11,7 +11,7 @@ import (
 // registering a live animation — a test asserts on a frame, not on a
 // goroutine.
 func seedTextAnim(w *Window, key string, progress float32) {
-	StateMap[string, textAnimState](w, nsTextAnim, capMany).
+	textAnimStates(w).
 		Set(key, textAnimState{progress: progress, done: true})
 }
 
@@ -203,21 +203,28 @@ func TestTextAnimReveal(t *testing.T) {
 		// painted string carries a replacement glyph.
 		{"multibyte", "héllo", 0.4, "hé"},
 		{"emoji", "a👍b", 0.7, "a👍"},
+		// A character built from several runes appears whole or not at
+		// all: a rune cut painted the base emoji and then the tinted
+		// one, a lone flag letter, or a letter before its accent.
+		{"skin tone", "ok 👍🏽", 0.8, "ok "},
+		{"flag", "🇺🇸!", 0.5, "🇺🇸"},
+		{"zwj family", "👨‍👩‍👧x", 0.5, "👨‍👩‍👧"},
+		{"combining", "e\u0301a", 0.5, "e\u0301"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			if got := textAnimReveal(c.in, c.frac); got != c.want {
-				t.Errorf("textAnimReveal(%q, %v) = %q, want %q",
+			got := c.in[:textAnimRevealEnd(c.in, 0, c.frac)]
+			if got != c.want {
+				t.Errorf("reveal(%q, %v) = %q, want %q",
 					c.in, c.frac, got, c.want)
 			}
 		})
 	}
 }
 
-// TestTextAnimTypewriterKeepsFullWidth is the reason the reveal is
-// applied after the measure string is chosen: a typewriter that
-// measured what it paints would grow its box rune by rune and reflow
-// everything beside it.
+// TestTextAnimTypewriterKeepsFullWidth: a typewriter that measured what
+// it paints would grow its box character by character and reflow
+// everything beside it. The text stays whole; only the paint is cut.
 func TestTextAnimTypewriterKeepsFullWidth(t *testing.T) {
 	w := newTestWindow()
 
@@ -235,8 +242,13 @@ func TestTextAnimTypewriterKeepsFullWidth(t *testing.T) {
 	if sh.Width != full {
 		t.Errorf("Width = %v, want the full string's %v", sh.Width, full)
 	}
-	if sh.TC.Text == "hello world" || sh.TC.Text == "" {
-		t.Errorf("painted text = %q, want a partial reveal", sh.TC.Text)
+	if sh.TC.Text != "hello world" {
+		t.Errorf("Text = %q, want the full string for layout", sh.TC.Text)
+	}
+	a := sh.TC.anim
+	if a == nil || !a.revealOn || a.revealEnd <= 0 ||
+		a.revealEnd >= len("hello world") {
+		t.Errorf("anim = %+v, want a partial reveal", a)
 	}
 }
 
@@ -290,8 +302,8 @@ func TestTextAnimFastPathPreserved(t *testing.T) {
 		Anim: TextAnimCfg{Kind: TextAnimFadeIn},
 	}).GenerateLayout(w).Shape
 
-	if sh.TC.TextStyle.AffineTransform != nil {
-		t.Error("a fade installed a transform; it must stay on the " +
+	if sh.TC.anim.needsGlyphLayout() {
+		t.Error("a fade asked for a glyph layout; it must stay on the " +
 			"fast path")
 	}
 }
@@ -306,12 +318,15 @@ func TestTextAnimInstallsTransformForMotion(t *testing.T) {
 		Anim: TextAnimCfg{Kind: TextAnimSlideUp},
 	}).GenerateLayout(w).Shape
 
-	tr := sh.TC.TextStyle.AffineTransform
-	if tr == nil {
-		t.Fatal("a slide installed no transform")
+	tr, ok := sh.TC.anim.transform(sh)
+	if !ok {
+		t.Fatal("a slide recorded no motion")
 	}
 	if tr.Y0 <= 0 {
 		t.Errorf("Y0 = %v, want a downward start offset", tr.Y0)
+	}
+	if sh.TC.TextStyle.AffineTransform != nil {
+		t.Error("the motion was written into the style")
 	}
 }
 
@@ -337,7 +352,7 @@ func TestTextAnimRejectsNonFiniteTransform(t *testing.T) {
 		},
 	}).GenerateLayout(w).Shape
 
-	if sh.TC.TextStyle.AffineTransform != nil {
+	if _, ok := sh.TC.anim.transform(sh); ok {
 		t.Error("a non-finite offset installed a transform")
 	}
 }
@@ -376,7 +391,7 @@ func TestTextAnimShimmerBuildsGradient(t *testing.T) {
 		Anim: TextAnimCfg{Kind: TextAnimShimmer, Repeat: true},
 	}).GenerateLayout(w).Shape
 
-	g := sh.TC.TextStyle.Gradient
+	g := sh.TC.anim.gradient(sh.TC.TextStyle.Color, w)
 	if g == nil {
 		t.Fatal("shimmer installed no gradient")
 	}
@@ -406,7 +421,8 @@ func TestTextAnimShimmerBandMoves(t *testing.T) {
 			Text: "loading",
 			Anim: TextAnimCfg{Kind: TextAnimShimmer, Repeat: true},
 		}).GenerateLayout(w).Shape
-		return sh.TC.TextStyle.Gradient.Stops[2].Position
+		return sh.TC.anim.gradient(sh.TC.TextStyle.Color, w).
+			Stops[2].Position
 	}
 
 	if early, late := bandAt(0.2), bandAt(0.8); early >= late {
@@ -429,7 +445,7 @@ func TestTextAnimShimmerNaNProgressNoGradient(t *testing.T) {
 		Anim: TextAnimCfg{Kind: TextAnimShimmer, Repeat: true},
 	}).GenerateLayout(w).Shape
 
-	if sh.TC.TextStyle.Gradient != nil {
+	if sh.TC.anim.gradient(sh.TC.TextStyle.Color, w) != nil {
 		t.Error("non-finite progress installed a gradient")
 	}
 	if sh.Opacity != 1 {
@@ -492,7 +508,7 @@ func TestTextAnimDefaultDuration(t *testing.T) {
 // A delay must not shorten the animation: the driver runs for
 // delay+duration and holds its first value until the delay is spent.
 func TestTextAnimDriverDelay(t *testing.T) {
-	a := newTextAnimDriver("id", "key",
+	a := newTextAnimDriver("id", "key", 0,
 		300*time.Millisecond, 100*time.Millisecond, false)
 
 	if want := 400 * time.Millisecond; a.Duration != want {
@@ -510,7 +526,7 @@ func TestTextAnimDriverDelay(t *testing.T) {
 		t.Errorf("delay ends at %v, want 0.25 of the run", got)
 	}
 
-	noDelay := newTextAnimDriver("id", "key",
+	noDelay := newTextAnimDriver("id", "key", 0,
 		300*time.Millisecond, 0, false)
 	if len(noDelay.Keyframes) != 2 {
 		t.Errorf("keyframes with no delay = %d, want 2",
@@ -521,7 +537,7 @@ func TestTextAnimDriverDelay(t *testing.T) {
 // A negative delay must not shorten the run or break the
 // ascending-At contract: it is clamped to zero.
 func TestTextAnimDriverNegativeDelay(t *testing.T) {
-	a := newTextAnimDriver("id", "key",
+	a := newTextAnimDriver("id", "key", 0,
 		300*time.Millisecond, -100*time.Millisecond, false)
 
 	if want := 300 * time.Millisecond; a.Duration != want {
@@ -544,7 +560,7 @@ func TestTextAnimDriverNegativeDelay(t *testing.T) {
 
 // A huge delay must saturate the total, not overflow it negative.
 func TestTextAnimDriverHugeDelay(t *testing.T) {
-	a := newTextAnimDriver("id", "key",
+	a := newTextAnimDriver("id", "key", 0,
 		300*time.Millisecond, time.Duration(math.MaxInt64), false)
 	if a.Duration <= 0 {
 		t.Fatalf("Duration = %v, want positive", a.Duration)

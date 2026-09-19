@@ -41,7 +41,14 @@ func (w *Window) textInkBounds(text string, style TextStyle) (
 	if !ok {
 		return InkBounds{}, false
 	}
-	return tm.TextInkBounds(text, style)
+	ink, ok := tm.TextInkBounds(text, style)
+	// A non-finite box from the backend moves whatever is placed on it
+	// to NaN, and a shape at NaN never paints again. Report it as
+	// unmeasurable, which every caller already handles.
+	if !ok || !f32AllFinite4(ink.X, ink.Y, ink.Width, ink.Height) {
+		return InkBounds{}, false
+	}
+	return ink, true
 }
 
 // centerGlyphOnInk returns an AmendLayout hook that re-centres a

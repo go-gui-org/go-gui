@@ -40,15 +40,30 @@ pop, shake, typewriter, shimmer.
 
 None need new render plumbing:
 
-| Frame field                    | Mechanism                              |
-| ------------------------------ | -------------------------------------- |
-| `Opacity`                      | `Shape.Opacity`                        |
-| `OffsetX/Y`, `Scale`, `Rotate` | `TextStyle.AffineTransform`            |
-| `Reveal`                       | slices `cfg.Text` before it is painted |
-| shimmer                        | `TextStyle.Gradient`                   |
+| Frame field                    | Mechanism                                           |
+| ------------------------------ | --------------------------------------------------- |
+| `Opacity`                      | `Shape.Opacity`                                     |
+| `OffsetX/Y`, `Scale`, `Rotate` | a render-time affine, composed with the style's own |
+| `Reveal`                       | unrevealed glyphs marked unknown at render time     |
+| shimmer                        | a render-time gradient, from the final text colour  |
 
-Offset, scale and rotation collapse into the one 2x3 affine, so no new `Shape`
-field was needed.
+Everything except opacity reaches `renderText` through one pointer,
+`shapeTextConfig.anim` (`textAnimRender`), which is nil for a text with nothing
+to apply. The layout passes never see the animation: `tc.Text` stays the full
+string and the style keeps its own transform and gradient.
+
+Three reasons put this at render time and not in the view pass:
+
+- The transform turns about the box's center, and the box is only known after
+  arrange. A wrapped or Fill-sized text measures one line of its full width
+  before sizing, so a pivot taken then was far from the text.
+- A filled button restamps its label colour after arrange
+  (`stampButtonLabelColor`). A shimmer gradient baked in the view pass kept the
+  old colour.
+- A typewriter that shortened `tc.Text` was sized, wrapped and aligned by its
+  prefix. go-glyph skips a glyph marked `PangoGlyphUnknownFlag` but still
+  advances past it, so masking the unrevealed glyphs of the full layout paints
+  the prefix exactly where it sits once all of it is shown.
 
 ## Properties worth keeping
 
@@ -58,9 +73,16 @@ string. A fade or a pulse must not pay for that.
 `TestTextAnimFadeStaysOnPlainTextCommand` asserts it against the emitted
 command, not against the style.
 
-**A typewriter reserves the full string's width.** The reveal changes what is
-painted; measurement still uses the whole string. A typewriter that measured
-what it paints would grow its box rune by rune and reflow everything beside it.
+**A typewriter keeps the full text's box.** The reveal changes only what is
+painted; measurement, wrapping and alignment use the whole string. A typewriter
+that laid out what it paints would grow its box a line at a time, type outward
+from the middle when centred, and reflow everything beside it. The reveal counts
+grapheme clusters, not runes, so a character built from several runes (a
+skin-tone emoji, a flag, a letter and its accent) appears whole.
+
+**Appended text continues the reveal.** When a typewriter's text changes and the
+new text starts with what was already shown — a streamed reply — the run
+restarts from that point, not from zero. Other text changes start over.
 
 **A loop's cycle joins up.** The default easing for a loop kind is linear, and
 each loop sampler starts and ends at the same value. An eased loop stalls at
@@ -68,9 +90,24 @@ both ends, and because the end wraps to the start the seam shows as a stutter
 once per cycle.
 
 **A finished entrance does not register again.** The animation loop deletes an
-animation as soon as it stops, so a one-shot needs a `done` flag in its state;
-without it the next frame finds no animation and starts the entrance over, for
-ever.
+animation as soon as it stops, but its last `OnValue` and its `OnDone` land only
+at the next command flush. So the state records `started`, and a started
+one-shot whose driver is gone is read as finished; reading it as "register one"
+replayed the entrance. `done` then lets a finished entrance skip the driver
+lookup, the lock and the animation ID on every later frame.
+
+**The state map drops only texts that left the tree.** A capped first-in,
+first-out map evicted the `done` flags of texts still on screen once more than
+its capacity were animated, and each evicted entrance replayed. The map is
+unbounded, each entry records the view pass that last generated it
+(`Window.viewPass`), and when a new ID arrives at `textAnimPruneAt` entries,
+those not generated in this pass or the last are dropped.
+
+**Changing the Cfg restarts the animation.** The state keeps the part of the Cfg
+that picks the driver (`textAnimSig`: kind, Custom set or not, duration, delay,
+repeat). When it changes, the old driver is removed and a new run starts, with a
+new generation number; a deferred callback from the old driver carries the old
+number and is dropped.
 
 ## Identity
 
@@ -84,11 +121,11 @@ independent animations.
 
 ## Known limits
 
-- An entrance plays once per ID for the life of the window's state entry. A
-  remount does not replay it. `Retrigger` can follow if a caller asks for it.
-  Until then the way to replay one is to give the text a new identity —
-  `ScopeIDN(owner, part, n)` with a counter — which is what the showcase's Text
-  Animation page does.
+- An entrance plays once per ID while the text stays in the tree. A remount does
+  not replay it, unless the entry was pruned while the text was gone.
+  `Retrigger` can follow if a caller asks for it. Until then the way to replay
+  one is to give the text a new identity — `ScopeIDN(owner, part, n)` with a
+  counter — which is what the showcase's Text Animation page does.
 - Text selection and caret rects read shape geometry and ignore the animation
   transform, so a transformed `Focusable` text has a desynced selection
   highlight. `Input` never sets `Anim`, so no input widget is affected.

@@ -89,7 +89,11 @@ func plainTextNeedsGlyphLayout(
 		style.BgColor.A > 0 ||
 		style.Features != nil ||
 		style.Gradient != nil ||
-		style.hasTextTransform()
+		style.hasTextTransform() ||
+		// A text animation that moves, reveals or shimmers paints
+		// through a glyph layout: RenderText has no transform, no
+		// per-glyph mask and no gradient. See textAnimRender.
+		tc.anim.needsGlyphLayout()
 }
 
 func plainTextLayoutWidthArg(
@@ -125,25 +129,44 @@ func plainTextLayoutResolved(
 	if tc.textLayoutValid &&
 		f32AreClose(tc.textLayoutWidth, widthArg) &&
 		tc.textLayoutText == text &&
-		tc.textLayoutStyle == style &&
+		textLayoutStyleEqual(tc.textLayoutStyle, style) &&
 		tc.textLayoutMode == tc.TextMode &&
 		tc.textLayout != nil {
-		return *tc.textLayout, true
+		l := *tc.textLayout
+		// A hit on geometry with different paint colours is the render
+		// pass of a faded, pulsing or disabled text: renderText adjusts
+		// Color, BgColor and StrokeColor after the layout pass shaped
+		// with the plain ones. The glyphs are the same, so recolour a
+		// copy of the items instead of shaping the text again.
+		if !textPaintEqual(tc.textLayoutStyle, style) {
+			l.Items = recolorLayoutItems(l.Items, style, w)
+		}
+		return l, true
 	}
-	layout, err := w.textMeasurer.LayoutText(text, style, widthArg)
+	shaped, err := w.textMeasurer.LayoutText(text, style, widthArg)
 	if err != nil {
 		// The shaper refused the text — past its byte budget, for
 		// example — so the frame falls back to approximate metrics.
 		// Report once per identity: without this the caret,
 		// selection and grapheme delete silently lose precision,
 		// and nothing else in the frame says why.
-		w.debugWarn(debugCheckGlyphLayoutFallback, shape.idKey(),
-			"glyph layout failed for %q (%d bytes): %v; "+
-				"using approximate metrics with degraded caret, "+
-				"selection and delete precision",
-			shape.idKey(), len(text), err)
+		//
+		// Gated here as well as inside debugWarn: a refused text is
+		// refused again every frame, and the variadic args would
+		// allocate each time even with the check turned off.
+		if DebugCategory(debugMask.Load())&DebugGlyphLayoutFallback != 0 {
+			w.debugWarn(debugCheckGlyphLayoutFallback, shape.idKey(),
+				"glyph layout failed for %q (%d bytes): %v; "+
+					"using approximate metrics with degraded caret, "+
+					"selection and delete precision",
+				shape.idKey(), len(text), err)
+		}
 		return glyph.Layout{}, false
 	}
+	// Copied into its own variable here, on the success path only:
+	// taking the address of the call's result moved it to the heap on
+	// every call, a refused text included.
+	layout := shaped
 	tc.textLayout = &layout
 	tc.textLayoutWidth = widthArg
 	tc.textLayoutText = text
@@ -179,11 +202,76 @@ func plainTextBoxHeight(
 		return l.Height
 	}
 	fh := fontHeight(style, w)
-	// Guard a face (or a LineSpacing) whose line box is tighter than
-	// ascent+descent: growing the shape here would be a regression.
-	lineH := l.Height / float32(lines)
-	if fh >= lineH {
+	// A non-finite face height (a corrupt measurer) must not poison
+	// the box: the shape would move to NaN and never paint again.
+	if !f32IsFinite(fh) {
 		return l.Height
 	}
-	return float32(lines-1)*lineH + fh
+	// The trailing leading is the last line's own box minus the face
+	// height. Read it from the last line, not from an average: glyph
+	// adds LineSpacing after every line but the last, and a fallback
+	// face can make one line taller than the rest, so Height/lines is
+	// not the last line's height. An average made the box short by
+	// (n-1)*LineSpacing/n, and the last line's descenders hung out of
+	// it. A layout without line rects (a host-built one) falls back
+	// to the average, which is exact when the lines are even.
+	lastH := l.Lines[lines-1].Rect.Height
+	if lastH <= 0 || !f32IsFinite(lastH) {
+		lastH = l.Height / float32(lines)
+	}
+	// Guard a face whose line box is tighter than ascent+descent:
+	// growing the shape here would be a regression.
+	if fh >= lastH {
+		return l.Height
+	}
+	return l.Height - (lastH - fh)
+}
+
+// textLayoutStyleEqual reports whether two styles shape to the same
+// glyph layout. It is == with the paint colours left out: they change
+// the colour stamped on each item but no glyph position. Whether a
+// background or a stroke is present does change the layout (the item
+// carries HasBgColor and HasStroke), so presence still counts.
+func textLayoutStyleEqual(a, b TextStyle) bool {
+	if (a.BgColor.A > 0) != (b.BgColor.A > 0) ||
+		(a.StrokeColor.A > 0) != (b.StrokeColor.A > 0) {
+		return false
+	}
+	a.Color, b.Color = Color{}, Color{}
+	a.BgColor, b.BgColor = Color{}, Color{}
+	a.StrokeColor, b.StrokeColor = Color{}, Color{}
+	return a == b
+}
+
+// textPaintEqual reports whether two styles paint in the same colours.
+func textPaintEqual(a, b TextStyle) bool {
+	return a.Color == b.Color && a.BgColor == b.BgColor &&
+		a.StrokeColor == b.StrokeColor
+}
+
+// recolorLayoutItems returns a copy of items painted in style's
+// colours. The copy comes from the render-phase arena, so the cached
+// layout keeps the colours it was shaped with and the next layout pass
+// still hits. A plain text is shaped from one style, so every item takes
+// the same colours; an emoji item keeps its own (UseOriginalColor).
+func recolorLayoutItems(
+	items []glyph.Item, style TextStyle, w *Window,
+) []glyph.Item {
+	out := w.scratch.takeTextItems(len(items))
+	copy(out, items)
+	fg := colorToGlyph(style.Color)
+	bg := colorToGlyph(style.BgColor)
+	stroke := colorToGlyph(style.StrokeColor)
+	for i := range out {
+		if !out[i].UseOriginalColor {
+			out[i].Color = fg
+		}
+		if out[i].HasBgColor {
+			out[i].BgColor = bg
+		}
+		if out[i].HasStroke {
+			out[i].StrokeColor = stroke
+		}
+	}
+	return out
 }

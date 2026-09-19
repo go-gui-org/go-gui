@@ -52,7 +52,7 @@ gui.Text(gui.TextCfg{
 | TextAnimSlideLeft  | Enters from the right         | Once  |
 | TextAnimSlideRight | Enters from the left          | Once  |
 | TextAnimPop        | Overshoots past its size      | Once  |
-| TextAnimTypewriter | Reveals rune by rune          | Once  |
+| TextAnimTypewriter | Reveals char by char          | Once  |
 | TextAnimPulse      | Opacity breathes              | Loop  |
 | TextAnimShake      | Horizontal wobble             | Loop  |
 | TextAnimShimmer    | A highlight sweeps the string | Loop  |
@@ -68,7 +68,7 @@ view tree; set `Repeat: true` to keep the driver alive.
 | Custom   | func(float32) TextAnimFrame | Overrides Kind; takes eased progress |
 | Duration | time.Duration               | Defaults per kind                    |
 | Delay    | time.Duration               | Wait before the first frame          |
-| Easing   | EasingFn                    | Defaults per kind                    |
+| Easing   | EasingFn                    | Shapes progress; defaults per kind   |
 | Repeat   | bool                        | Restart on completion                |
 
 ## TextAnimFrame
@@ -78,7 +78,7 @@ The value a `Custom` function returns, and what the canned kinds produce.
 | Field    | Type         | Description                          |
 | -------- | ------------ | ------------------------------------ |
 | Opacity  | Opt[float32] | Multiplies `TextCfg.Opacity`         |
-| Reveal   | Opt[float32] | Fraction of runes painted            |
+| Reveal   | Opt[float32] | Fraction of characters painted       |
 | OffsetX  | float32      | Pixels, horizontal                   |
 | OffsetY  | float32      | Pixels, vertical                     |
 | Scale    | float32      | Zero means 1; turns about the center |
@@ -93,17 +93,24 @@ The value a `Custom` function returns, and what the canned kinds produce.
 | TextAnimPulse      | 1200ms                       | Linear       |
 | TextAnimShake      | 500ms                        | Linear       |
 | TextAnimShimmer    | 1500ms                       | Linear       |
-| TextAnimTypewriter | 40ms per rune, 300ms minimum | Linear       |
+| TextAnimTypewriter | 40ms per char, 300ms minimum | Linear       |
 
 A loop's easing stays linear on purpose. Each loop sampler starts and ends at
 the same value, so an eased loop would stall at both ends and the seam would
 show as a stutter once per cycle.
 
-## Two behaviors worth knowing
+## Behaviors worth knowing
 
-**A typewriter reserves the full string's width.** The reveal changes what is
-painted; measurement still uses the whole string, so nothing beside it reflows
-as the text types itself out.
+**A typewriter keeps the full text's box.** The reveal changes what is painted;
+size, wrapping and alignment still come from the whole string, so nothing beside
+it reflows as the text types itself out. Text that grows by appending keeps
+typing from where it had got to.
+
+**Changing the animation restarts it.** A new `Kind`, `Duration`, `Delay`,
+`Repeat` or `Custom` on the same ID starts the new animation from the beginning.
+
+**Motion composes with the style's own rotation.** The animation moves the text
+in its own frame, then `RotationRadians` or `AffineTransform` applies.
 
 **An effect with no motion installs no transform.** A fade or a pulse stays on
 the fast text render path. Only offset, scale and rotation push the text onto

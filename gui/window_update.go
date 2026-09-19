@@ -350,6 +350,7 @@ func (w *Window) updateLocked() {
 	}
 
 	w.scratch.resetViewPools()
+	w.viewPass++
 
 	// Release w.mu during View generation so the animation goroutine
 	// (which holds w.animMu, not w.mu) can tick. View functions

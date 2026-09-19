@@ -28,7 +28,7 @@ The row also shows the `Custom` escape hatch, which takes progress and returns a
 frame.
 
 The gap in that row is the typewriter. It paints only the part of the string
-that is due, but its box keeps the full string's width, so the labels beside it
-do not move as it types.
+that is due, but its box keeps the full string's size and wrapping, so the
+labels beside it do not move as it types.
 
 See `main.go` for the implementation.

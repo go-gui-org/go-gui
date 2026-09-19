@@ -1,7 +1,5 @@
 package gui
 
-import "github.com/go-gui-org/go-glyph"
-
 // TextCfg configures a text view. Use for labels, headings, or
 // multiline text blocks. Set Focusable to enable text selection
 // and clipboard copy.
@@ -77,11 +75,11 @@ type textView struct {
 	cfg TextCfg
 	tc  shapeTextConfig
 
-	// affine and shimmer are scratch for TextCfg.Anim. They live on
-	// the view so the style can point at them for the frame: the view
-	// outlives generation and render, which a local would not.
-	affine  glyph.AffineTransform
-	shimmer textAnimShimmer
+	// anim is the render-time frame of TextCfg.Anim. It lives on the
+	// view so the shape can point at it for the frame: the view
+	// outlives generation and render, which a local would not. Keep
+	// it small: every Text carries it.
+	anim textAnimRender
 }
 
 // textEventHandlers is a shared handler set for focused text
@@ -148,10 +146,9 @@ func (tv *textView) GenerateLayout(w *Window) Layout {
 		}),
 	}
 
-	// The animation runs before measuring: a typewriter reveal must
-	// reach tc.Text in time to shorten what is painted. Measuring below
-	// still uses the full string, so a reveal reserves its final width
-	// and nothing around it reflows as the text types itself out.
+	// The animation changes only what is painted. tc.Text stays the
+	// full string, so measuring below, and the layout passes after it,
+	// size and wrap the whole text while a typewriter reveals it.
 	animFrame := applyTextAnim(tv, w, layout.Shape)
 
 	// Measure what is painted, not what is stored: a password renders
@@ -189,9 +186,9 @@ func (tv *textView) GenerateLayout(w *Window) Layout {
 	// and nothing is discarded.
 	applyFixedSizingConstraints(layout.Shape)
 
-	// After sizing: the frame's scale and rotation turn about the
-	// measured box's center.
-	applyTextAnimTransform(tv, layout.Shape, animFrame)
+	// The motion is recorded here and turned into a transform at
+	// render time, about the arranged box's center.
+	applyTextAnimTransform(tv, animFrame)
 
 	if c.Focusable {
 		layout.Shape.events = textEventHandlers

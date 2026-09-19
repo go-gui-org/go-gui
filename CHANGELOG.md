@@ -178,6 +178,39 @@ and this project adheres to
 
 ### Fixed
 
+- **Text animation, layout and optical centring fixes** — from a second review
+  of the `text*` code:
+  - With more than 100 animated text IDs, finished entrances no longer play
+    again in a loop. Their state lived in a 100-entry first-in, first-out map;
+    it is now unbounded and drops only texts that left the view tree.
+  - A typewriter no longer changes its layout while it types. The text is laid
+    out in full and only the unrevealed glyphs are hidden, so a wrapped
+    typewriter keeps its height and a centred one types in place. It reveals
+    whole characters (grapheme clusters), so emoji with skin tones, flags and
+    accented letters no longer flash in parts. Text that grows by appending
+    keeps typing from where it had got to.
+  - Changing `TextCfg.Anim` on the same ID now starts the new animation. A
+    finished entrance blocked every later one, and a running loop kept running.
+  - An entrance no longer replays once when a frame is built between the end of
+    the animation and the delivery of its last callback.
+  - `TextAnimPop` and other scale or rotate effects turn about the text's final
+    box. Wrapped and Fill-sized text slid sideways because the center came from
+    the size measured before layout.
+  - Animation motion now composes with `RotationRadians` and `AffineTransform`
+    instead of replacing them, so a rotated label no longer flickers upright.
+  - A one-shot `TextAnimShimmer` returns the text to its own colour when it
+    ends, follows `TextAnimCfg.Easing`, and takes the label colour of a filled
+    button.
+  - A wrapped text with `LineSpacing` is no longer too short for its last line.
+    The box height comes from the last line, not from the average line.
+  - `OpticalCenterText` no longer moves a typewriter's baseline as it types. Its
+    memo now keys on `Features`, `EmojiBoxWidth` and `CellHeight`, holds 1024
+    entries instead of 100, clears when the text measurer changes, and never
+    stores a NaN offset from a bad ink box.
+  - Faded, pulsing and disabled text on the glyph-layout path is shaped once per
+    frame, not twice: the render pass recolours the cached layout. A finished
+    entrance, an animated text with no ID and a text the shaper refuses no
+    longer allocate every frame.
 - **Text review fixes** — from a review of the `text*` code:
   - A negative animation delay no longer shortens the run or breaks keyframe
     order; it is clamped to zero.

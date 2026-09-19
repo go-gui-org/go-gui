@@ -3,6 +3,8 @@ package gui
 import (
 	"math"
 	"testing"
+
+	"github.com/go-gui-org/go-glyph"
 )
 
 // iconProbeRune stands in for an icon face's glyph: a private-use
@@ -149,5 +151,115 @@ func TestOpticalOffsetNonFiniteSize(t *testing.T) {
 	if m := StateMapRead[opticalKey, float32](w, nsOpticalOffset); m != nil &&
 		m.Len() != 0 {
 		t.Errorf("memo holds %d entries, want 0", m.Len())
+	}
+}
+
+// featureInkMeasurer reports a shorter cap band when the style carries
+// any OpenType feature, the way small caps shrink an 'H'.
+type featureInkMeasurer struct {
+	stubTextMeasurer
+	calls int
+}
+
+func (m *featureInkMeasurer) TextInkBounds(_ string, style TextStyle) (
+	InkBounds, bool,
+) {
+	m.calls++
+	if style.Features != nil {
+		return InkBounds{Y: 6, Height: 8, Width: 10}, true
+	}
+	return InkBounds{Y: 2, Height: 12, Width: 10}, true
+}
+
+// Features change the ink the offset is solved from, so they must key
+// the memo. Two styles that differed only in Features shared one
+// entry, and whichever was measured first set the offset for both.
+func TestOpticalMemoKeysOnFeatures(t *testing.T) {
+	w := newTestWindow()
+	w.SetTextMeasurer(&featureInkMeasurer{
+		stubTextMeasurer: stubTextMeasurer{fontHeight: 20},
+	})
+	plain := TextStyle{Size: 16}
+	smcp := plain
+	smcp.Features = &glyph.FontFeatures{
+		OpenTypeFeatures: []glyph.FontFeature{{Tag: "smcp", Value: 1}},
+	}
+	// Plain: centre 8 against a box centre of 10 → 2. Small caps:
+	// centre 10 → 0.
+	if got := w.opticalCapOffset(plain); got != 2 {
+		t.Errorf("plain offset = %v, want 2", got)
+	}
+	if got := w.opticalCapOffset(smcp); got != 0 {
+		t.Errorf("small-caps offset = %v, want 0", got)
+	}
+}
+
+// A new measurer invalidates the memo: offsets cached while there was
+// none were fallback guesses, and nothing else would replace them.
+func TestOpticalMemoClearedOnNewMeasurer(t *testing.T) {
+	w := newTestWindow()
+	style := TextStyle{Size: 16}
+	fallback := w.opticalCapOffset(style)
+
+	w.SetTextMeasurer(&featureInkMeasurer{
+		stubTextMeasurer: stubTextMeasurer{fontHeight: 20},
+	})
+	if got := w.opticalCapOffset(style); got == fallback || got != 2 {
+		t.Errorf("offset = %v after a new measurer, want the measured 2 "+
+			"(fallback was %v)", got, fallback)
+	}
+}
+
+// nanInkMeasurer reports an ink box with a NaN edge, as a corrupt face
+// can.
+type nanInkMeasurer struct{ stubTextMeasurer }
+
+func (nanInkMeasurer) TextInkBounds(string, TextStyle) (InkBounds, bool) {
+	return InkBounds{Y: float32(math.NaN()), Height: 12, Width: 10}, true
+}
+
+// A NaN ink box must not reach the memo or the shape: a text moved to
+// NaN never paints again.
+func TestOpticalOffsetRejectsNaNInk(t *testing.T) {
+	w := newTestWindow()
+	w.SetTextMeasurer(&nanInkMeasurer{
+		stubTextMeasurer: stubTextMeasurer{fontHeight: 20},
+	})
+	style := TextStyle{Size: 16}
+	if got := w.opticalCapOffset(style); !f32IsFinite(got) {
+		t.Errorf("cap offset = %v, want finite", got)
+	}
+	if got := w.opticalTextOffset(style, "Save"); !f32IsFinite(got) {
+		t.Errorf("run offset = %v, want finite", got)
+	}
+	if _, ok := w.textInkBounds("Save", style); ok {
+		t.Error("textInkBounds accepted a NaN box")
+	}
+}
+
+// A frame with more corrected labels than the old 100-entry memo held
+// must still hit the memo on the next frame. First-in-first-out at 100
+// missed every lookup and measured every label every frame.
+func TestOpticalMemoHoldsManyLabels(t *testing.T) {
+	w := newTestWindow()
+	m := &featureInkMeasurer{
+		stubTextMeasurer: stubTextMeasurer{fontHeight: 20},
+	}
+	w.SetTextMeasurer(m)
+	style := TextStyle{Size: 16}
+	labels := make([]string, 300)
+	for i := range labels {
+		labels[i] = ScopeIDN("", "n", i)
+	}
+	for _, l := range labels {
+		w.opticalTextOffset(style, l)
+	}
+	before := m.calls
+	for _, l := range labels {
+		w.opticalTextOffset(style, l)
+	}
+	if m.calls != before {
+		t.Errorf("second frame measured %d labels again, want 0",
+			m.calls-before)
 	}
 }

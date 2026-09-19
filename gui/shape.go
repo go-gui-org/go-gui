@@ -441,6 +441,11 @@ type drawClip struct {
 
 // ShapeTextConfig holds text/RTF-specific fields for a Shape.
 type shapeTextConfig struct {
+	// anim is the paint-only frame of a TextCfg.Anim: reveal, shimmer
+	// and motion. Nil for a text with nothing to apply. See
+	// textAnimRender.
+	anim *textAnimRender
+
 	textLayoutStyle    TextStyle
 	TextStyle          *TextStyle
 	textLayout         *glyph.Layout

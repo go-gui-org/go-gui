@@ -205,6 +205,16 @@ type scratchPools struct {
 	// still reference it.
 	svgVColArena []Color
 
+	// textItemArena and textGlyphArena are render-phase arenas for text
+	// layouts that renderText hands the backend in an altered form: a
+	// cached layout recoloured for a faded or disabled frame
+	// (recolorLayoutItems) and a typewriter's partly revealed glyph run
+	// (revealLayoutGlyphs). The cached layout itself must stay as it
+	// was shaped, so the altered slices are copies. Reset with
+	// svgVColArena, and safe to realloc for the same reason.
+	textItemArena  []glyph.Item
+	textGlyphArena []glyph.Glyph
+
 	// layoutChildrenArena is a grow-only, frame-scoped arena for the
 	// []Layout child slices built by generateViewLayout. Each node
 	// reserves a pinned subslice via takeLayoutChildren; the arena is
@@ -259,6 +269,7 @@ type scratchPools struct {
 	renderTextStyles       scratchObjPool[TextStyle]
 	renderGlyphLayouts     scratchObjPool[glyph.Layout]
 	renderAffineTransforms scratchObjPool[glyph.AffineTransform]
+	renderTextShimmers     scratchObjPool[textAnimShimmer]
 
 	// Reusable events for layoutHover and gesture callbacks
 	// (avoids per-shape/per-gesture heap allocation of Event).
@@ -317,6 +328,7 @@ func newScratchPools() scratchPools {
 		renderTextStyles:       scratchObjPool[TextStyle]{retainMax: 4096, shrinkTo: 256},
 		renderGlyphLayouts:     scratchObjPool[glyph.Layout]{retainMax: 1024, shrinkTo: 64},
 		renderAffineTransforms: scratchObjPool[glyph.AffineTransform]{retainMax: 256, shrinkTo: 16},
+		renderTextShimmers:     scratchObjPool[textAnimShimmer]{retainMax: 256, shrinkTo: 16},
 	}
 }
 
@@ -400,11 +412,46 @@ func (p *scratchPools) resetRenderPools() {
 	p.renderTextStyles.reset()
 	p.renderGlyphLayouts.reset()
 	p.renderAffineTransforms.reset()
+	p.renderTextShimmers.reset()
 	if cap(p.svgVColArena) > svgVColRetainMax {
 		p.svgVColArena = make([]Color, 0, svgVColShrinkTo)
 	} else {
 		p.svgVColArena = p.svgVColArena[:0]
 	}
+	// Same one-off-spike rule as svgVColArena. Items are large, so the
+	// cap is in elements of a size that suits labels, not documents.
+	if cap(p.textItemArena) > textItemRetainMax {
+		p.textItemArena = nil
+	} else {
+		p.textItemArena = p.textItemArena[:0]
+	}
+	if cap(p.textGlyphArena) > textGlyphRetainMax {
+		p.textGlyphArena = nil
+	} else {
+		p.textGlyphArena = p.textGlyphArena[:0]
+	}
+}
+
+const (
+	textItemRetainMax  = 256
+	textGlyphRetainMax = 1 << 13
+	// maxTextArenaReservation matches glyph's own scratch bound: a
+	// layout from the public API holds at most that many glyphs, so a
+	// larger request is a host-built layout and gets its own slice.
+	maxTextArenaReservation = 1 << 14
+)
+
+// takeTextItems reserves n glyph.Items from the render-phase arena,
+// full length. The caller copies a layout's items in and overwrites
+// every slot.
+func (p *scratchPools) takeTextItems(n int) []glyph.Item {
+	return takeArena(&p.textItemArena, n, maxTextArenaReservation, true)
+}
+
+// takeTextGlyphs reserves n glyph.Glyphs from the render-phase arena,
+// full length, under the same contract as takeTextItems.
+func (p *scratchPools) takeTextGlyphs(n int) []glyph.Glyph {
+	return takeArena(&p.textGlyphArena, n, maxTextArenaReservation, true)
 }
 
 const (

@@ -1,11 +1,10 @@
 package gui
 
 import (
-	"math"
 	"time"
-	"unicode/utf8"
 
 	"github.com/go-gui-org/go-glyph"
+	"github.com/rivo/uniseg"
 )
 
 // TextAnimKind names a canned text animation. The zero value animates
@@ -49,8 +48,12 @@ const (
 	// TextAnimShake wobbles left and right about the resting position.
 	// Loop.
 	TextAnimShake
-	// TextAnimTypewriter reveals the text one rune at a time. The box
-	// keeps the full string's width, so nothing around it reflows.
+	// TextAnimTypewriter reveals the text one character (grapheme
+	// cluster) at a time. The text is laid out in full and the
+	// unrevealed glyphs are not painted, so the box, its wrapping and
+	// its alignment stay fixed and nothing around it reflows. Text that
+	// grows by appending — a streamed reply — keeps typing from where
+	// it had got to.
 	TextAnimTypewriter
 	// TextAnimShimmer sweeps a highlight across the glyphs, like the
 	// skeleton placeholder. Loop.
@@ -69,9 +72,10 @@ type TextAnimFrame struct {
 	// transparent frame is a legitimate choice, not "unset".
 	Opacity Opt[float32]
 
-	// Reveal is the fraction of runes painted, 0 to 1. Opt because
-	// revealing nothing is a legitimate frame. The unrevealed part is
-	// not painted, but its width is still reserved.
+	// Reveal is the fraction of characters (grapheme clusters)
+	// painted, 0 to 1. Opt because revealing nothing is a legitimate
+	// frame. The unrevealed part is not painted, but its space is still
+	// reserved.
 	Reveal Opt[float32]
 
 	OffsetX float32
@@ -93,7 +97,13 @@ type TextAnimFrame struct {
 // no-op, reported by gui.Debug.
 //
 // An entrance plays once for a given ID. A loop kind runs until the
-// text leaves the view tree, then retires on its own.
+// text leaves the view tree, then retires on its own. Changing Kind,
+// Custom (set or not), Duration, Delay or Repeat on the same ID starts
+// the new animation from the beginning.
+//
+// Motion composes with the style's own RotationRadians or
+// AffineTransform: the animation moves the text in its own frame, and
+// the style's transform then applies to the result.
 type TextAnimCfg struct {
 	// Custom overrides Kind. It receives eased progress in [0,1] and
 	// returns the frame to paint. It runs on the main thread during
@@ -111,9 +121,10 @@ type TextAnimCfg struct {
 	// every pass, not only on the first.
 	Delay time.Duration
 
-	// Easing shapes progress before it reaches the sampler. Zero takes
-	// the kind's default: an entrance eases out, a loop stays linear so
-	// its cycle joins up smoothly.
+	// Easing shapes progress before it reaches the sampler, or the
+	// shimmer's band position. Zero takes the kind's default: an
+	// entrance eases out, a loop stays linear so its cycle joins up
+	// smoothly.
 	Easing EasingFn
 
 	Repeat bool
@@ -125,17 +136,6 @@ func (a *TextAnimCfg) isSet() bool {
 		(a.Kind > TextAnimNone && a.Kind < textAnimKindCount)
 }
 
-// textAnimState is what one animated text keeps between frames.
-//
-// done marks a finished one-shot. Without it the view-bound animation,
-// which the loop deletes as soon as it stops, would be missing on the
-// next frame and get registered again — an entrance that replays for
-// ever.
-type textAnimState struct {
-	progress float32
-	done     bool
-}
-
 // Default cycle lengths per kind. An entrance is quick; a loop is slow
 // enough to read as ambient rather than as a demand for attention.
 const (
@@ -143,8 +143,9 @@ const (
 	textAnimDurationPulse    = 1200 * time.Millisecond
 	textAnimDurationShake    = 500 * time.Millisecond
 	textAnimDurationShimmer  = 1500 * time.Millisecond
-	// textAnimTypeRate is the per-rune cost of a typewriter reveal,
-	// with a floor so a two-word string is still legible as typing.
+	// textAnimTypeRate is the per-character cost of a typewriter
+	// reveal, with a floor so a two-word string is still legible as
+	// typing.
 	textAnimTypeRate = 40 * time.Millisecond
 	textAnimTypeMin  = 300 * time.Millisecond
 )
@@ -173,9 +174,10 @@ func colorToGlyph(c Color) glyph.Color {
 	return glyph.Color{R: c.R, G: c.G, B: c.B, A: c.A}
 }
 
-// textAnimDefaultDuration returns the cycle length for a kind. runes is
-// the rune count of the text, which only the typewriter cares about.
-func textAnimDefaultDuration(k TextAnimKind, runes int) time.Duration {
+// textAnimDefaultDuration returns the cycle length for a kind. chars is
+// the number of characters still to type, which only the typewriter
+// cares about.
+func textAnimDefaultDuration(k TextAnimKind, chars int) time.Duration {
 	switch k {
 	case TextAnimPulse:
 		return textAnimDurationPulse
@@ -185,7 +187,7 @@ func textAnimDefaultDuration(k TextAnimKind, runes int) time.Duration {
 		return textAnimDurationShimmer
 	case TextAnimTypewriter:
 		return max(
-			time.Duration(runes)*textAnimTypeRate, textAnimTypeMin)
+			time.Duration(chars)*textAnimTypeRate, textAnimTypeMin)
 	default:
 		return textAnimDurationEntrance
 	}
@@ -276,14 +278,14 @@ func sampleTextAnim(k TextAnimKind, p, em float32) TextAnimFrame {
 }
 
 // applyTextAnim registers the animation for an animated text, folds the
-// current frame's opacity and reveal into the shape, and returns the
-// frame so the caller can install its transform once the box has been
-// measured.
+// current frame's opacity into the shape, and hands the reveal, the
+// shimmer and the motion to the renderer through tv.anim.
 //
-// It runs from textView.GenerateLayout before measuring, so a
-// typewriter reveal reaches tc.Text in time to shorten what is painted.
-// Measurement deliberately keeps using the full string, so a reveal
-// never reflows the text around it.
+// None of them changes the text or the style the layout passes see:
+// tc.Text stays the full string and the style keeps its own transform
+// and gradient. Sizing, wrapping and alignment therefore work from the
+// full text every frame, and renderText applies the frame to what it
+// paints (see textAnimRender).
 //
 // A text with no ID is left alone: the animation is keyed by identity,
 // and there is nothing to key on. gui.Debug reports that case.
@@ -293,35 +295,25 @@ func applyTextAnim(tv *textView, w *Window, sh *Shape) TextAnimFrame {
 		return TextAnimFrame{}
 	}
 	if tv.cfg.ID == "" {
-		// Subject is the text itself: it is the only thing that tells
-		// two ID-less animated labels apart in a warn-once report.
-		w.debugWarn(debugCheckTextAnimNoID, tv.cfg.Text,
-			"animated text %q has no ID; the animation and its progress "+
-				"are keyed by ID, so nothing animates", tv.cfg.Text)
+		// Gated at the call site: an animated text with no ID is
+		// generated every frame, and the variadic args allocate
+		// whether or not the check is on.
+		if DebugCategory(debugMask.Load())&DebugMissingIDs != 0 {
+			// Subject is the text itself: it is the only thing that
+			// tells two ID-less animated labels apart in a warn-once
+			// report.
+			w.debugWarn(debugCheckTextAnimNoID, tv.cfg.Text,
+				"animated text %q has no ID; the animation and its "+
+					"progress are keyed by ID, so nothing animates",
+				tv.cfg.Text)
+		}
 		return TextAnimFrame{}
 	}
 
 	// Key by the effective ID, so the same animated text dropped into
 	// two panels keeps two independent animations.
 	key := w.EffID(tv.cfg.ID)
-	animID := ScopeID("textanim", key)
-
-	st := StateReadOr(w, nsTextAnim, key, textAnimState{})
-	if !w.touchViewBoundAnimation(animID) && !st.done {
-		// Resolve the duration only when registering the driver: the
-		// typewriter default counts runes (O(n)), and this frame runs
-		// on every tick of the animation.
-		dur := cfg.Duration
-		if dur <= 0 {
-			// RuneCountInString, not len([]rune(...)): the latter
-			// allocates a rune slice.
-			dur = textAnimDefaultDuration(
-				cfg.Kind, utf8.RuneCountInString(tv.cfg.Text))
-		}
-		w.animationAddViewBound(newTextAnimDriver(
-			animID, key, dur, cfg.Delay, cfg.Repeat,
-		))
-	}
+	st := syncTextAnimDriver(tv, w, key)
 
 	easing := cfg.Easing
 	if easing == nil {
@@ -335,6 +327,9 @@ func applyTextAnim(tv *textView, w *Window, sh *Shape) TextAnimFrame {
 	} else {
 		frame = sampleTextAnim(cfg.Kind, p, tv.cfg.TextStyle.Size)
 	}
+
+	anim := &tv.anim
+	anim.reset()
 	// Finite checks, not just clamps: f32Clamp passes a NaN straight
 	// through, and a NaN alpha or reveal fraction comes from a Custom
 	// hook doing arithmetic on a zero. Either one paints garbage, so a
@@ -342,87 +337,132 @@ func applyTextAnim(tv *textView, w *Window, sh *Shape) TextAnimFrame {
 	if op, ok := frame.Opacity.Value(); ok && f32IsFinite(op) {
 		sh.Opacity *= f32Clamp(op, 0, 1)
 	}
-	if rev, ok := frame.Reveal.Value(); ok && f32IsFinite(rev) {
-		tv.tc.Text = textAnimReveal(tv.cfg.Text, rev)
+	if rev, ok := frame.Reveal.Value(); ok && f32IsFinite(rev) &&
+		!tv.cfg.IsPassword {
+		// A password paints bullets, whose bytes do not line up with
+		// the text's, so it is never revealed in part.
+		from := 0
+		if cfg.Custom == nil {
+			from = st.from
+		}
+		end := textAnimRevealEnd(tv.cfg.Text, from, rev)
+		if end < len(tv.cfg.Text) {
+			anim.revealEnd = end
+			anim.revealOn = true
+		}
 	}
 
-	// f32Clamp passes a NaN through, so a non-finite progress
-	// would bake NaN stop positions into the gradient. Progress
-	// only comes from the keyframe driver, but the check is cheap
-	// and a NaN gradient paints garbage.
+	// The shimmer is built at render time, from the colour the text
+	// ends up with: a filled button restamps its label's colour after
+	// this pass (stampButtonLabelColor). A one-shot shimmer that has
+	// finished paints no gradient, so the text returns to its own
+	// colour. f32IsFinite: a NaN band position bakes NaN stops.
 	if cfg.Custom == nil && cfg.Kind == TextAnimShimmer &&
-		f32IsFinite(st.progress) {
-		tv.cfg.TextStyle.Gradient = textAnimShimmerGradient(
-			&tv.shimmer, tv.cfg.TextStyle.Color, st.progress,
-		)
+		f32IsFinite(p) && (cfg.Repeat || st.progress < 1) {
+		anim.shimmerP = p
+		anim.shimmerOn = true
+	}
+	if anim.revealOn || anim.shimmerOn {
+		tv.tc.anim = anim
 	}
 	return frame
 }
 
-// newTextAnimDriver builds the keyframe animation that advances one
-// animated text.
+// textAnimRender is what renderText needs to paint one frame of a text
+// animation. It lives on the textView, which outlives the frame's
+// render, and the shape reaches it through shapeTextConfig.anim. A nil
+// pointer is a text with nothing to apply.
 //
-// The driver always produces linear progress; the caller eases it. A
-// delay is expressed as a flat leading segment rather than as new
-// machinery: the animation runs for delay+duration and holds 0 until
-// the delay is spent.
-func newTextAnimDriver(
-	animID, key string,
-	dur, delay time.Duration,
-	repeat bool,
-) *KeyframeAnimation {
-	// A negative delay would make total shorter than dur and put a
-	// negative At into the keyframes, breaking the ascending-At
-	// contract interpolateKeyframes depends on. Clamp it away.
-	if delay < 0 {
-		delay = 0
-	}
-	// A huge delay would overflow dur+delay into a negative total.
-	// Cap it so the sum saturates at the largest Duration instead.
-	if delay > math.MaxInt64-dur {
-		delay = math.MaxInt64 - dur
-	}
-	total := dur + delay
-	frames := []Keyframe{{At: 0, Value: 0}}
-	if delay > 0 {
-		frames = append(frames, Keyframe{
-			At:    float32(delay) / float32(total),
-			Value: 0,
-		})
-	}
-	frames = append(frames, Keyframe{At: 1, Value: 1, Easing: EaseLinear})
-
-	return &KeyframeAnimation{
-		AnimID:    animID,
-		Duration:  total,
-		Repeat:    repeat,
-		Keyframes: frames,
-		OnValue: func(v float32, w *Window) {
-			pm := StateMap[string, textAnimState](
-				w, nsTextAnim, capMany)
-			prev := pm.GetOr(key, textAnimState{})
-			prev.progress = v
-			pm.Set(key, prev)
-		},
-		OnDone: func(w *Window) {
-			pm := StateMap[string, textAnimState](
-				w, nsTextAnim, capMany)
-			prev := pm.GetOr(key, textAnimState{})
-			prev.done = true
-			pm.Set(key, prev)
-		},
-	}
+// Every field describes paint only. The layout passes size and wrap
+// the full, untransformed text, so the box never follows the
+// animation: that was the typewriter reflow and the drifting pivot.
+type textAnimRender struct {
+	// shimmerP is the eased progress of the shimmer's band.
+	shimmerP float32
+	// revealEnd is the byte length of the painted prefix.
+	revealEnd int
+	// scale, rot, dx and dy are the frame's motion. renderText turns
+	// them into a transform about the arranged box's center.
+	scale     float32
+	rot       float32
+	dx        float32
+	dy        float32
+	shimmerOn bool
+	revealOn  bool
+	xformOn   bool
 }
 
-// applyTextAnimTransform installs the frame's transform on the style.
-// It runs after the shape is measured, because the transform turns
-// about the box's center.
+// reset clears the frame.
+func (a *textAnimRender) reset() { *a = textAnimRender{} }
+
+// needsGlyphLayout reports whether the frame paints through a glyph
+// layout. Nil-safe, so a caller asks without checking for an animation.
+func (a *textAnimRender) needsGlyphLayout() bool {
+	return a != nil && (a.shimmerOn || a.revealOn || a.xformOn)
+}
+
+// transform returns the frame's motion as a transform about the center
+// of the shape's content box, or false when the frame does not move.
+// It runs at render time, after arrange, so the center is where the
+// box landed: a wrapped or Fill-sized text is not the size it measured
+// before sizing.
+func (a *textAnimRender) transform(sh *Shape) (glyph.AffineTransform, bool) {
+	if a == nil || !a.xformOn {
+		return glyph.AffineTransform{}, false
+	}
+	cx := (sh.Width - sh.paddingWidth()) / 2
+	cy := (sh.Height - sh.paddingHeight()) / 2
+	if !f32IsFinite(cx) || !f32IsFinite(cy) {
+		return glyph.AffineTransform{}, false
+	}
+	return textAnimTransform(a.scale, a.rot, a.dx, a.dy, cx, cy), true
+}
+
+// gradient returns the shimmer for base, or nil when the frame does
+// not shimmer. Its stops live in a render-phase pool rather than on
+// the view: storage on every textView pushed each Text, animated or
+// not, into a larger allocation size class.
+func (a *textAnimRender) gradient(
+	base Color, w *Window,
+) *glyph.GradientConfig {
+	if a == nil || !a.shimmerOn {
+		return nil
+	}
+	dst := w.scratch.renderTextShimmers.alloc(textAnimShimmer{})
+	return textAnimShimmerGradient(dst, base, a.shimmerP)
+}
+
+// revealLayoutGlyphs returns l with every glyph whose cluster starts at
+// or past end marked as unknown. glyph's renderer skips an unknown
+// glyph but still advances past it, so the unrevealed text keeps its
+// place and nothing moves: not the wrap, not the alignment, not the
+// revealed part. The glyphs are copied into the render arena; the
+// cached layout is left as shaped.
 //
-// The transform is only installed when it is not the identity. Any
-// transform pushes the text off the fast RenderText path and onto the
-// glyph-layout path (see plainTextNeedsGlyphLayout), which re-shapes
-// the string, so a fade or a pulse must not pay for one.
-func applyTextAnimTransform(tv *textView, sh *Shape, f TextAnimFrame) {
+// The mark is by cluster start, and a cluster never starts inside the
+// revealed prefix unless all of it is revealed, so no glyph is painted
+// in part.
+func revealLayoutGlyphs(l glyph.Layout, end int, w *Window) glyph.Layout {
+	gs := w.scratch.takeTextGlyphs(len(l.Glyphs))
+	copy(gs, l.Glyphs)
+	for i := range gs {
+		idx := gs[i].Index &^ glyph.PangoGlyphUnknownFlag
+		if int(idx) >= end {
+			gs[i].Index |= glyph.PangoGlyphUnknownFlag
+		}
+	}
+	l.Glyphs = gs
+	return l
+}
+
+// applyTextAnimTransform records the frame's motion for renderText.
+// The transform itself is built at render time, about the arranged
+// box's center (textAnimRender.transform).
+//
+// Nothing is recorded for the identity. Motion pushes the text off the
+// fast RenderText path and onto the glyph-layout path (see
+// plainTextNeedsGlyphLayout), so a fade or a pulse must not pay for it.
+func applyTextAnimTransform(tv *textView, f TextAnimFrame) {
 	scale := f.Scale
 	if scale == 0 {
 		scale = 1
@@ -436,12 +476,10 @@ func applyTextAnimTransform(tv *textView, sh *Shape, f TextAnimFrame) {
 	if !f32AllFinite4(scale, f.Rotation, f.OffsetX, f.OffsetY) {
 		return
 	}
-
-	tv.affine = textAnimTransform(
-		scale, f.Rotation, f.OffsetX, f.OffsetY,
-		sh.Width/2, sh.Height/2,
-	)
-	tv.cfg.TextStyle.AffineTransform = &tv.affine
+	a := &tv.anim
+	a.scale, a.rot, a.dx, a.dy = scale, f.Rotation, f.OffsetX, f.OffsetY
+	a.xformOn = true
+	tv.tc.anim = a
 }
 
 // textAnimTransform builds scale-and-rotate about (cx, cy) followed by
@@ -467,29 +505,50 @@ func textAnimTransform(
 	}
 }
 
-// textAnimReveal returns the leading fraction of s, by runes.
+// textAnimRevealEnd returns the byte length of the revealed part of s:
+// the first from graphemes, plus frac of the rest.
 //
-// Runes, not bytes: a byte cut lands mid-character and paints a
-// replacement glyph. The count rounds down, so a reveal only ever
-// shows a character that is fully due. Linear in the string length
-// per frame — fine for labels, not for multi-kilobyte bodies, which
-// want no typewriter or a capped one.
-func textAnimReveal(s string, frac float32) string {
+// Graphemes, not runes: a rune cut splits a character built from
+// several runes — a skin-tone or flag emoji, a ZWJ family, a base
+// letter and its combining accent — and paints a wrong partial glyph
+// for a frame. The count rounds down, so a character only appears once
+// it is fully due. Linear in the text length per frame — fine for
+// labels, not for multi-kilobyte bodies, which want no typewriter or a
+// capped one.
+func textAnimRevealEnd(s string, from int, frac float32) int {
+	if frac >= 1 || s == "" {
+		return len(s)
+	}
+	total := uniseg.GraphemeClusterCount(s)
+	return graphemePrefixBytes(s, textAnimRevealCount(total, from, frac))
+}
+
+// textAnimRevealCount returns how many of total graphemes are shown
+// when from were shown already and frac of the rest is due.
+func textAnimRevealCount(total, from int, frac float32) int {
+	from = min(max(from, 0), total)
 	if frac >= 1 {
-		return s
+		return total
 	}
-	if frac <= 0 || s == "" {
-		return ""
+	if frac <= 0 {
+		return from
 	}
-	total := utf8.RuneCountInString(s)
-	want := int(float32(total) * frac)
-	if want <= 0 {
-		return ""
+	return min(from+int(float32(total-from)*frac), total)
+}
+
+// graphemePrefixBytes returns the byte length of the first n grapheme
+// clusters of s, or len(s) when s holds fewer. Allocation-free.
+func graphemePrefixBytes(s string, n int) int {
+	end := 0
+	state := -1
+	rest := s
+	for i := 0; i < n && rest != ""; i++ {
+		var cluster string
+		cluster, rest, _, state = uniseg.FirstGraphemeClusterInString(
+			rest, state)
+		end += len(cluster)
 	}
-	if want >= total {
-		return s
-	}
-	return s[:runeToByteIndex(s, want)]
+	return end
 }
 
 // textAnimShimmerGradient sweeps a highlight band across the text.
@@ -534,9 +593,9 @@ func textAnimShimmerGradient(
 	return &dst.cfg
 }
 
-// textAnimShimmer is the shimmer's per-view scratch: a fixed stop array
-// and the config that points at it, so neither is heap-allocated
-// separately from the view.
+// textAnimShimmer is one shimmer gradient: a fixed stop array and the
+// config that points at it, handed out whole by a render-phase pool
+// (scratchPools.renderTextShimmers), so neither is allocated per frame.
 type textAnimShimmer struct {
 	cfg   glyph.GradientConfig
 	stops [5]glyph.GradientStop

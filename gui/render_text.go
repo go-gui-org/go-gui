@@ -149,38 +149,46 @@ func renderText(shape *Shape, clip drawClip, w *Window) {
 	// same treatment c got above — except under the disabled role,
 	// whose theme style already expresses the state.
 	gradDim := shape.Disabled && !tc.TextStyle.disabledRole
-	textGradient := dimmedTextGradient(renderStyle.Gradient,
-		shape.Opacity, gradDim)
+	gradient := renderStyle.Gradient
+	// A shimmer is built here, from the colour the text ended up
+	// with, not in the view pass: a filled button restamps its label's
+	// colour after arrange, and a gradient built earlier kept the old
+	// one. Undimmed base: dimmedTextGradient applies the opacity and
+	// the disabled state to the stops, as for any gradient.
+	if g := tc.anim.gradient(tc.TextStyle.Color, w); g != nil {
+		gradient = g
+	}
+	textGradient := dimmedTextGradient(gradient, shape.Opacity, gradDim)
 
+	// A typewriter paints only its revealed prefix. The layout is of
+	// the full text, so the painted part sits exactly where it will
+	// once all of it is shown.
+	reveal := tc.anim != nil && tc.anim.revealOn && !tc.textIsPassword &&
+		!imeComposing
 	if renderWithLayout && hasPreLayout {
-		cmd := RenderCmd{
-			Kind:         RenderLayout,
-			X:            baseX,
-			Y:            baseY,
-			Text:         text,
-			LayoutPtr:    w.scratch.renderGlyphLayouts.alloc(preLayout),
-			TextStylePtr: w.scratch.renderTextStyles.alloc(renderStyle),
-			TextGradient: textGradient,
-		}
-		if renderStyle.hasTextTransform() {
-			transform := renderStyle.effectiveTextTransform()
-			cmd.Kind = RenderLayoutTransformed
-			cmd.LayoutTransform = w.scratch.renderAffineTransforms.alloc(transform)
-		}
-		emitRenderer(cmd, w)
+		emitTextLayoutCmd(shape, text, baseX, baseY, preLayout,
+			renderStyle, textGradient, reveal, w)
 	} else {
+		// No glyph layout (no measurer, or the shaper refused the
+		// text): the reveal falls back to painting the prefix. Only
+		// the painted string is cut; the caret and selection below
+		// still index the full text.
+		paintText := text
+		if reveal && tc.anim.revealEnd <= len(text) {
+			paintText = text[:tc.anim.revealEnd]
+		}
 		fontAscent := tc.TextStyle.Size * 0.8 // fallback
 		var textWidth float32
 		if w.textMeasurer != nil {
 			fontAscent = w.textMeasurer.FontAscent(*tc.TextStyle)
-			textWidth = w.textMeasurer.TextWidth(text, *tc.TextStyle)
+			textWidth = w.textMeasurer.TextWidth(paintText, *tc.TextStyle)
 		}
 		cmd := RenderCmd{
 			Kind:         RenderText,
 			X:            baseX,
 			Y:            baseY,
 			Color:        c,
-			Text:         text,
+			Text:         paintText,
 			FontName:     tc.TextStyle.Family,
 			FontSize:     tc.TextStyle.Size,
 			FontAscent:   fontAscent,
@@ -221,6 +229,46 @@ func renderText(shape *Shape, clip drawClip, w *Window) {
 		renderSpellCheckUnderlines(shape, text,
 			baseX, baseY, preLayout, w)
 	}
+}
+
+// emitTextLayoutCmd emits the glyph-layout draw of a text shape: the
+// path for wrapped, aligned, decorated, transformed or animated text.
+// reveal paints only a typewriter's revealed prefix.
+func emitTextLayoutCmd(
+	shape *Shape, text string, baseX, baseY float32,
+	layout glyph.Layout, style TextStyle,
+	gradient *glyph.GradientConfig, reveal bool, w *Window,
+) {
+	var anim *textAnimRender
+	if shape.TC != nil {
+		anim = shape.TC.anim
+	}
+	if reveal && anim != nil {
+		layout = revealLayoutGlyphs(layout, anim.revealEnd, w)
+	}
+	cmd := RenderCmd{
+		Kind:         RenderLayout,
+		X:            baseX,
+		Y:            baseY,
+		Text:         text,
+		LayoutPtr:    w.scratch.renderGlyphLayouts.alloc(layout),
+		TextStylePtr: w.scratch.renderTextStyles.alloc(style),
+		TextGradient: gradient,
+	}
+	animT, animMoves := anim.transform(shape)
+	if style.hasTextTransform() || animMoves {
+		// The animation moves the text in its own frame, then the
+		// style's rotation or transform applies to the result.
+		// Replacing the style's transform dropped a caller's rotation
+		// on every frame the animation moved.
+		transform := style.effectiveTextTransform()
+		if animMoves {
+			transform = transform.Multiply(animT)
+		}
+		cmd.Kind = RenderLayoutTransformed
+		cmd.LayoutTransform = w.scratch.renderAffineTransforms.alloc(transform)
+	}
+	emitRenderer(cmd, w)
 }
 
 // renderInputCursor emits a thin rect for the text cursor when
