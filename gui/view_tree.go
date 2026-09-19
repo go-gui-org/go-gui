@@ -271,7 +271,7 @@ func (tv *treeView) GenerateLayout(w *Window) Layout {
 				}
 				if ctx.Event.Modifiers.Has(ModAlt) {
 					treeDropCue := resolveSoundCue(
-						guiTheme.Sounds.Selection,
+						ctx.Window.Theme().Sounds.Selection,
 						cfg.Sound, cfg.SoundDisabled)
 					fid := StateReadOr(
 						ctx.Window, nsTreeFocus, cfg.ID, "")
@@ -293,7 +293,7 @@ func (tv *treeView) GenerateLayout(w *Window) Layout {
 			treeOnKeyDown(cfg.ID, visibleIDs, rowByID,
 				cfg.OnSelect, cfg.OnLazyLoad,
 				scrollID, rowHeight, listHeight,
-				resolveSoundCues(guiTheme.Sounds.Selection,
+				resolveSoundCues(ctx.Window.Theme().Sounds.Selection,
 					cfg.Sound, cfg.SoundDisabled),
 				ctx.Event, ctx.Window)
 		},

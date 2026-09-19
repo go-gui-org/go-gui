@@ -28,8 +28,12 @@ var (
 	defaultThemeMu sync.RWMutex
 
 	// installedThemeID is the id of the theme currently written into
-	// guiTheme and the style mirrors. Frame-thread only.
-	installedThemeID uint64
+	// guiTheme and the style mirrors. Written by applyTheme, which
+	// SetTheme also calls eagerly outside the frame pass, so the
+	// fast-path word itself is atomic; the mirrors stay
+	// frame-thread (or init/test) state guarded by guiThemeMu on
+	// the write side.
+	installedThemeID atomic.Uint64
 
 	// themeIDCounter hands out Theme.id values. Starts at 1 so a
 	// zero-valued Theme never collides with a real one.
@@ -39,6 +43,28 @@ var (
 // nextThemeID returns a fresh theme identity.
 func nextThemeID() uint64 {
 	return themeIDCounter.Add(1)
+}
+
+// cloneBoxShadow returns a copy of s, or nil when s is nil. ThemeMaker
+// isolates every built theme this way: the package-level shadow and
+// focus-ring values are shared presets, and a caller that mutates
+// its cfg after the build — or one theme's style through a shared
+// pointer — must not move every other theme.
+func cloneBoxShadow(s *BoxShadow) *BoxShadow {
+	if s == nil {
+		return nil
+	}
+	dup := *s
+	return &dup
+}
+
+// isolateThemeShadows rebinds cfg's elevation pointers to isolated
+// copies. The styles ThemeMaker builds below and the stored theme.Cfg
+// then share one copy per theme that nothing else can write through.
+func isolateThemeShadows(cfg *ThemeCfg) {
+	cfg.ShadowPopover = cloneBoxShadow(cfg.ShadowPopover)
+	cfg.ShadowDialog = cloneBoxShadow(cfg.ShadowDialog)
+	cfg.FocusRing = cloneBoxShadow(cfg.FocusRing)
 }
 
 // Theme describes a complete GUI theme. Only styles for existing
@@ -214,6 +240,12 @@ type Theme struct {
 	// reuses its parent's id. Zero means "built outside ThemeMaker" and
 	// forces a re-install rather than a wrong fast-path hit.
 	id uint64
+
+	// restoreCfg remembers the padded configuration across a
+	// WithPadding(false) strip, so a later WithPadding(true)
+	// restores the original instead of rebuilding from the zeroed
+	// Cfg. Nil on themes that were never stripped.
+	restoreCfg *ThemeCfg
 
 	ColorBackground Color
 	ColorPanel      Color
@@ -489,26 +521,42 @@ type ThemeCfg struct {
 // WithPadding returns a new Theme with padding, radius, and border
 // turned on (true) or off (false). When off, all padding, radius, and
 // border sizing are set to zero/none. When on, the theme is rebuilt
-// from its stored configuration.
+// from its stored configuration — or from the pre-strip
+// configuration when called on a stripped theme, so
+// WithPadding(false).WithPadding(true) round-trips.
 func (t Theme) WithPadding(padding bool) Theme {
-	cfg := t.Cfg
-	if !padding {
-		cfg.Padding = PaddingNone
-		cfg.PaddingSmall = PaddingNone
-		cfg.PaddingMedium = PaddingNone
-		cfg.PaddingLarge = PaddingNone
-		cfg.PaddingField = PaddingNone
-		cfg.SizeBorder = 0
-		cfg.Radius = radiusNone
-		cfg.RadiusSmall = radiusNone
-		cfg.RadiusMedium = radiusNone
-		cfg.RadiusLarge = radiusNone
+	if padding {
+		source := t.Cfg
+		if t.restoreCfg != nil {
+			source = *t.restoreCfg
+		}
+		return ThemeMaker(source)
 	}
-	return ThemeMaker(cfg)
+	cfg := t.Cfg
+	cfg.Padding = PaddingNone
+	cfg.PaddingSmall = PaddingNone
+	cfg.PaddingMedium = PaddingNone
+	cfg.PaddingLarge = PaddingNone
+	cfg.PaddingField = PaddingNone
+	cfg.SizeBorder = 0
+	cfg.Radius = radiusNone
+	cfg.RadiusSmall = radiusNone
+	cfg.RadiusMedium = radiusNone
+	cfg.RadiusLarge = radiusNone
+	out := ThemeMaker(cfg)
+	if t.restoreCfg != nil {
+		out.restoreCfg = t.restoreCfg
+	} else {
+		orig := t.Cfg
+		out.restoreCfg = &orig
+	}
+	return out
 }
 
 // WithBorders returns a new Theme with borders turned on (true) or
-// off (false).
+// off (false). A stripped theme keeps its restore point, updated
+// with the new border choice, so a later WithPadding(true) restores
+// with the tune kept.
 func (t Theme) WithBorders(borders bool) Theme {
 	cfg := t.Cfg
 	if borders {
@@ -516,7 +564,13 @@ func (t Theme) WithBorders(borders bool) Theme {
 	} else {
 		cfg.SizeBorder = 0
 	}
-	return ThemeMaker(cfg)
+	out := ThemeMaker(cfg)
+	if t.restoreCfg != nil {
+		dup := *t.restoreCfg
+		dup.SizeBorder = cfg.SizeBorder
+		out.restoreCfg = &dup
+	}
+	return out
 }
 
 // CurrentTheme returns the active theme.
@@ -566,10 +620,10 @@ func currentDefaultThemeRef() *Theme {
 // applyTheme installs t as the active theme: guiTheme plus every
 // default*Style mirror that widget factories read.
 //
-// Frame-thread only. Callers are (*Window).installTheme at frame start,
-// Themed's push/pop around a scoped subtree, and package init.
+// Called at frame start ((*Window).installTheme), around a scoped
+// subtree (Themed's push/pop), at package init, and eagerly from
+// SetTheme so callers outside a frame pass see the change at once.
 func applyTheme(t Theme) {
-	installedThemeID = t.id
 	guiThemeMu.Lock()
 	defer guiThemeMu.Unlock()
 	guiTheme = t
@@ -604,4 +658,11 @@ func applyTheme(t Theme) {
 	defaultSkeletonStyle = t.skeletonStyle
 	defaultSeparatorStyle = t.separatorStyle
 	defaultInspectorStyle = t.inspectorStyle
+	// Publish the id last, under the same lock as the mirrors: the
+	// Store synchronizes with the Load in needsInstall, so a frame
+	// that sees the new id also sees the new mirrors. Storing
+	// before the lock let two concurrent applyTheme calls publish
+	// id and mirrors in opposite orders, mixing one theme's id
+	// with the other's mirrors for a frame.
+	installedThemeID.Store(t.id)
 }

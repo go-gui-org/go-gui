@@ -128,7 +128,10 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 	}
 
 	borderFocus := cfg.ColorBorderFocus
-	if borderFocus.eq(Color{}) {
+	// Unset means "not specified" (Color carries its own set flag),
+	// so an explicit fully-transparent focus border stays honorable
+	// instead of falling back to the select color.
+	if !borderFocus.IsSet() {
 		borderFocus = colorSelect
 	}
 
@@ -171,6 +174,11 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 	if !fieldPad.IsSet() {
 		fieldPad = paddingField
 	}
+
+	// Elevation and focus pointers are per-theme values; isolate the
+	// local cfg so the styles and the stored theme.Cfg share copies
+	// nothing else can write through.
+	isolateThemeShadows(&cfg)
 
 	// Named text roles. Every de-emphasized style below draws from
 	// these rather than restating an alpha (issue #335).

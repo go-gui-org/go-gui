@@ -204,3 +204,62 @@ func TestThemeScannedPaths(t *testing.T) {
 		}
 	}
 }
+
+// An EventCtx parameter carries the window, so a frame-cache read in
+// one gates exactly like a *Window parameter would.
+func TestThemeFlagsEventCtxParam(t *testing.T) {
+	t.Parallel()
+	const src = `package p
+
+type Window struct{}
+type EventCtx struct{ Window *Window }
+type Theme struct{ ColorBackground int }
+
+var guiTheme Theme
+
+func handler(ctx EventCtx) {
+	_ = guiTheme.ColorBackground
+}
+`
+	got := scanThemeSrc(t, src)
+	want := []string{"handler:guiTheme"}
+	if strings.Join(got, "|") != strings.Join(want, "|") {
+		t.Errorf("findings = %v, want %v", got, want)
+	}
+}
+
+// Mixed-phase view files scan handler-only: a bare read in the
+// factory body stays clean, while the same read inside a nested
+// EventCtx closure gates.
+func TestThemeHandlersScanViewClosures(t *testing.T) {
+	t.Parallel()
+	const src = `package p
+
+type Window struct{}
+type EventCtx struct{ Window *Window }
+type Theme struct{ ColorBackground int }
+
+var guiTheme Theme
+
+func GenerateLayout(w *Window) int {
+	_ = guiTheme.ColorBackground
+	cb := func(ctx EventCtx) {
+		_ = guiTheme.ColorBackground
+	}
+	_ = cb
+	return 0
+}
+`
+	fset := token.NewFileSet()
+	f, err := parser.ParseFile(fset, "x.go", src, parser.ParseComments)
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	var got []string
+	inspectThemeHandlers(fset, f, func(fn string, line int, read string) {
+		got = append(got, fn+":"+read)
+	})
+	if strings.Join(got, "|") != "GenerateLayout:guiTheme" {
+		t.Errorf("findings = %v, want [GenerateLayout:guiTheme]", got)
+	}
+}

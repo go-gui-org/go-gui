@@ -100,21 +100,21 @@ func baseMacOSCfg() ThemeCfg {
 func macOSCfg() ThemeCfg {
 	cfg := baseMacOSCfg()
 	cfg.Name = "macos"
-	cfg.ColorBackground = ColorFromString("#ECECEC")
-	cfg.ColorPanel = ColorFromString("#F5F5F5")
-	cfg.ColorInterior = ColorFromString("#FFFFFF")
-	cfg.ColorHover = ColorFromString("#F0F0F0")
-	cfg.ColorFocus = ColorFromString("#FFFFFF")
-	cfg.ColorActive = ColorFromString("#E1E1E1")
-	cfg.ColorBorder = ColorFromString("#C6C6C8")
-	cfg.ColorSelect = ColorFromString("#007AFF")
-	cfg.ColorBorderFocus = ColorFromString("#007AFF")
-	cfg.ColorSuccess = ColorFromString("#28A745")
-	cfg.ColorWarning = ColorFromString("#FF9500")
-	cfg.ColorError = ColorFromString("#FF3B30")
+	cfg.ColorBackground = mustThemeColor("#ECECEC")
+	cfg.ColorPanel = mustThemeColor("#F5F5F5")
+	cfg.ColorInterior = mustThemeColor("#FFFFFF")
+	cfg.ColorHover = mustThemeColor("#F0F0F0")
+	cfg.ColorFocus = mustThemeColor("#FFFFFF")
+	cfg.ColorActive = mustThemeColor("#E1E1E1")
+	cfg.ColorBorder = mustThemeColor("#C6C6C8")
+	cfg.ColorSelect = mustThemeColor("#007AFF")
+	cfg.ColorBorderFocus = mustThemeColor("#007AFF")
+	cfg.ColorSuccess = mustThemeColor("#28A745")
+	cfg.ColorWarning = mustThemeColor("#FF9500")
+	cfg.ColorError = mustThemeColor("#FF3B30")
 	cfg.TextStyleDef = TextStyle{
 		Family: defaultFontFamily,
-		Color:  ColorFromString("#1D1D1F"),
+		Color:  mustThemeColor("#1D1D1F"),
 		Size:   13,
 	}
 	return cfg
@@ -124,23 +124,23 @@ func macOSCfg() ThemeCfg {
 func macOSDarkCfg() ThemeCfg {
 	cfg := baseMacOSCfg()
 	cfg.Name = "macos-dark"
-	cfg.ColorBackground = ColorFromString("#1E1E1E")
-	cfg.ColorPanel = ColorFromString("#2A2A2A")
-	cfg.ColorInterior = ColorFromString("#3A3A3C")
-	cfg.ColorHover = ColorFromString("#464648")
-	cfg.ColorFocus = ColorFromString("#3A3A3C")
-	cfg.ColorActive = ColorFromString("#545456")
-	cfg.ColorBorder = ColorFromString("#48484A")
-	cfg.ColorSelect = ColorFromString("#0A84FF")
-	cfg.ColorBorderFocus = ColorFromString("#0A84FF")
-	cfg.ColorSuccess = ColorFromString("#32D74B")
-	cfg.ColorWarning = ColorFromString("#FF9F0A")
-	cfg.ColorError = ColorFromString("#FF453A")
+	cfg.ColorBackground = mustThemeColor("#1E1E1E")
+	cfg.ColorPanel = mustThemeColor("#2A2A2A")
+	cfg.ColorInterior = mustThemeColor("#3A3A3C")
+	cfg.ColorHover = mustThemeColor("#464648")
+	cfg.ColorFocus = mustThemeColor("#3A3A3C")
+	cfg.ColorActive = mustThemeColor("#545456")
+	cfg.ColorBorder = mustThemeColor("#48484A")
+	cfg.ColorSelect = mustThemeColor("#0A84FF")
+	cfg.ColorBorderFocus = mustThemeColor("#0A84FF")
+	cfg.ColorSuccess = mustThemeColor("#32D74B")
+	cfg.ColorWarning = mustThemeColor("#FF9F0A")
+	cfg.ColorError = mustThemeColor("#FF453A")
 	cfg.TitlebarDark = true
 	cfg.FocusRing = macOSFocusRingDark
 	cfg.TextStyleDef = TextStyle{
 		Family: defaultFontFamily,
-		Color:  ColorFromString("#FFFFFF"),
+		Color:  mustThemeColor("#FFFFFF"),
 		Size:   13,
 	}
 	return cfg

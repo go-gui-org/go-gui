@@ -200,7 +200,7 @@ func TestFocusRingAmendAppliesShadowOnlyWhenFocused(t *testing.T) {
 		return s
 	}
 
-	if s := run("focused", false); s.fx == nil || s.fx.Shadow != ring {
+	if s := run("focused", false); s.fx == nil || s.fx.Shadow == nil || *s.fx.Shadow != *ring {
 		t.Error("focused shape did not receive the ring")
 	}
 	if s := run("other", false); s.fx != nil {

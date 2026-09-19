@@ -36,7 +36,9 @@ func unregisterWindow(w *Window) {
 	liveWindowsMu.Lock()
 	for i := range liveWindows {
 		if liveWindows[i] == w {
-			liveWindows = append(liveWindows[:i], liveWindows[i+1:]...)
+			copy(liveWindows[i:], liveWindows[i+1:])
+			liveWindows[len(liveWindows)-1] = nil
+			liveWindows = liveWindows[:len(liveWindows)-1]
 			break
 		}
 	}
@@ -114,7 +116,7 @@ func (w *Window) SetTheme(t Theme) {
 // unset (built outside ThemeMaker, so it can never match the fast
 // path) or it is not the theme currently installed.
 func needsInstall(t Theme) bool {
-	return t.id == 0 || t.id != installedThemeID
+	return t.id == 0 || t.id != installedThemeID.Load()
 }
 
 // installTheme makes this window's theme the active one for the frame.

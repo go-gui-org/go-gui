@@ -282,6 +282,58 @@ func TestThemedZeroIDThemeInstalls(t *testing.T) {
 	}
 }
 
+// unregisterWindow drops the window without leaving holes: the survivor
+// stays registered exactly once and no nil entries remain, and the
+// vacated backing slot is cleared so the closed window is not
+// retained past len. These tests touch the global set directly, so
+// no parallelism here.
+func TestUnregisterWindowDropsWithoutHoles(t *testing.T) {
+	liveWindowsMu.Lock()
+	saved := liveWindows
+	liveWindows = nil
+	liveWindowsMu.Unlock()
+	t.Cleanup(func() {
+		liveWindowsMu.Lock()
+		liveWindows = saved
+		liveWindowsMu.Unlock()
+	})
+	w1 := &Window{}
+	w2 := &Window{}
+	registerWindow(w1)
+	registerWindow(w2)
+	t.Cleanup(func() {
+		unregisterWindow(w1)
+		unregisterWindow(w2)
+	})
+	unregisterWindow(w1)
+	liveWindowsMu.Lock()
+	defer liveWindowsMu.Unlock()
+	count := 0
+	for _, w := range liveWindows {
+		if w == nil {
+			t.Error("liveWindows holds a nil entry after unregister")
+		}
+		if w == w1 {
+			t.Error("liveWindows still holds the unregistered window")
+		}
+		if w == w2 {
+			count++
+		}
+	}
+	if count != 1 {
+		t.Errorf("liveWindows holds the survivor %d times, want 1", count)
+	}
+	// The old append(s[:i], s[i+1:]...) form kept a duplicate pointer
+	// past len, so a within-len scan passed either way. The tail
+	// must read nil.
+	full := liveWindows[:cap(liveWindows)]
+	for i := len(liveWindows); i < len(full); i++ {
+		if full[i] != nil {
+			t.Errorf("liveWindows backing slot %d retains %p past len", i, full[i])
+		}
+	}
+}
+
 // findByLeafIDTest locates a layout node by its leaf ID, ignoring the
 // effective-ID scope the resolve pass stamps. Deliberate: these tests
 // build one shape per known leaf and assert its rendered style, and

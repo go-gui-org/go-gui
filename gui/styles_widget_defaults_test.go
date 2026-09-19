@@ -29,7 +29,7 @@ var (
 func init() {
 	pkgInitButtonStyle = defaultButtonStyle
 	pkgInitDataGridStyle = DefaultDataGridStyle
-	pkgInitInstalledThemeID = installedThemeID
+	pkgInitInstalledThemeID = installedThemeID.Load()
 }
 
 // TestDefaultStylesMirrorThemeDark pins every mirror to its ThemeDark

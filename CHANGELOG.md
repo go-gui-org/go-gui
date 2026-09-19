@@ -178,6 +178,37 @@ and this project adheres to
 
 ### Fixed
 
+- **Theme correctness fixes** — from a review of the `theme*` code:
+  - **`Theme.WithColors` is now public and covers the full recolor story.**
+    Overrides are plain `Color` values where unset means "keep" (an explicit
+    fully-transparent override stays honorable). New slots join the original
+    ten: the accent ramp, the semantic colors and their subtle washes, and the
+    separator. Derived slots follow their parent while the two agree and stay
+    put once forked, so overriding select alone moves the accent (the state
+    every preset ships in) while stating both sets them apart; the same rule
+    carries border-focus with select, the separator with border, text-on-select
+    with text-on-accent, and every subtle wash with its color. Semantic
+    overrides fan out to the toast, badge and danger-button styles, and touched
+    fields sync into `Cfg` so a later rebuild (`WithPadding`, `WithBorders`,
+    `AdjustFontSize`) keeps the overrides. Like every `with*Style` helper, the
+    result carries a fresh id so the install fast path reinstalls instead of
+    keeping stale mirrors.
+  - `WithPadding(false).WithPadding(true)` round-trips: the stripped theme
+    remembers the pre-strip configuration instead of rebuilding from its own
+    zeroed `Cfg`.
+  - An explicit fully-transparent focus border stays honorable instead of
+    falling back to the select color.
+  - `ThemeMaker` isolates elevation pointers per theme, so mutating a caller cfg
+    or the package-level presets after the build no longer moves built themes.
+  - `unregisterWindow` clears the vacated slot so a closed window is not
+    retained by the live-window set.
+  - The install fast-path word is atomic, so eager `SetTheme` calls outside the
+    frame pass no longer race the frame thread on it.
+  - Preset palette literals fail at init on a typo (`mustThemeColor` panics)
+    instead of rendering as opaque black.
+  - The theme audit now flags frame-cache reads in `EventCtx` handlers and scans
+    `view_*.go` handler closures; the two `view_tree.go` sound reads now use
+    `ctx.Window.Theme()`.
 - **A dialog now opens at the `Width` and `Height` it is given (#708)** — a
   `DialogCfg` with `Width: 400` and `MinWidth: 400` opened 300 wide, because the
   theme's `MaxWidth` of 300 won over the caller's values. `Width` and `Height`

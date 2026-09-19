@@ -122,8 +122,8 @@ func TestPresetThemesIconFamily(t *testing.T) {
 // those derivations rather than re-asserting every consumer.
 
 // borderFocus falls back to ColorSelect only when ColorBorderFocus is
-// the exact zero Color — Color.Eq compares the IsSet flag too, so a
-// deliberately transparent-but-set color does NOT trigger the fallback.
+// unset — IsSet distinguishes "not specified" from a deliberately
+// transparent-but-set color, which does NOT trigger the fallback.
 func TestThemeMakerBorderFocusFallsBackToSelect(t *testing.T) {
 	cfg := baseCfg()
 	cfg.ColorSelect = RGBA(10, 20, 30, 255)
@@ -157,6 +157,40 @@ func TestThemeMakerBorderFocusExplicitWins(t *testing.T) {
 	if !theme.sliderStyle.ColorBorderFocus.eq(cfg.ColorBorderFocus) {
 		t.Errorf("SliderStyle.ColorBorderFocus = %v, want %v",
 			theme.sliderStyle.ColorBorderFocus, cfg.ColorBorderFocus)
+	}
+}
+
+// An explicit fully-transparent focus border is a stated choice, not
+// "unset": it must survive instead of falling back to the select
+// color. eq ignores the set flag, so the sentinel has to be IsSet.
+func TestThemeMakerBorderFocusTransparentWins(t *testing.T) {
+	cfg := baseCfg()
+	cfg.ColorSelect = RGBA(10, 20, 30, 255)
+	cfg.ColorBorderFocus = ColorTransparent
+
+	theme := ThemeMaker(cfg)
+	if theme.ButtonStyle.ColorBorderFocus != ColorTransparent {
+		t.Errorf("ButtonStyle.ColorBorderFocus = %v, want transparent %v",
+			theme.ButtonStyle.ColorBorderFocus, ColorTransparent)
+	}
+}
+
+// ThemeMaker isolates elevation pointers: the built theme shares
+// nothing with the caller's cfg or the package-level presets, so a
+// later mutation on either side stays local.
+func TestThemeMakerShadowsIsolated(t *testing.T) {
+	cfg := baseDarkCfg()
+	theme := ThemeMaker(cfg)
+	if theme.Cfg.ShadowPopover == cfg.ShadowPopover {
+		t.Error("theme Cfg shares the ShadowPopover pointer with the caller cfg")
+	}
+	other := ThemeMaker(cfg)
+	if theme.selectStyle.Shadow == other.selectStyle.Shadow {
+		t.Error("two themes share one ShadowPopover pointer")
+	}
+	theme.selectStyle.Shadow.BlurRadius = 999
+	if other.selectStyle.Shadow.BlurRadius == 999 {
+		t.Error("mutating one theme's shadow moved another theme")
 	}
 }
 

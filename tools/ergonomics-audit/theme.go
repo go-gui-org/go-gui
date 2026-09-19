@@ -29,14 +29,14 @@ package main
 //
 // Within those, a finding is a read of guiTheme, CurrentTheme(), or a
 // default*Style var from a function that has a *Window (or *gui.Window)
-// receiver or parameter — that is, one that could name its window and
-// did not.
+// receiver or parameter, or that takes the event context (which carries
+// the window) — that is, one that could name its window and did not.
 //
-// Known gap: handlers that live in a mixed-phase file (view_*.go holds
-// both the factory and its handlers) are not scanned, because the same
-// file's generation-time reads must stay bare. themePickerSyncHighlight,
-// selectScrollTo and toastEnforceMaxVisible are migrated but ungated;
-// the rule in gui/CLAUDE.md covers them.
+// Handlers that live in a mixed-phase file (view_*.go holds both the
+// factory and its handlers) are scanned handler-only: a bare read in
+// the factory body is generation-time code and stays correct, while a
+// bare read inside a nested func literal taking EventCtx runs after
+// generation and gates like any other post-generation read.
 //
 // A deliberate exception carries a same-line marker and prints as
 // deferred rather than gating:
@@ -152,22 +152,47 @@ func scanTheme(repo string) ([]themeFinding, error) {
 			return
 		}
 		rel := relPath(repo, path)
-		if !themeScanned(rel) {
-			return
-		}
 		marked := markedLines(fset, f, themeGlobalMarker)
-		inspectTheme(fset, f, func(fn string, line int, read string) {
+		report := func(fn string, line int, read string) {
 			out = append(out, themeFinding{
 				path: rel, line: line, fn: fn, read: read,
 				deferred: marked[line],
 			})
-		})
+		}
+		if themeScanned(rel) {
+			inspectTheme(fset, f, report)
+			return
+		}
+		// Mixed-phase view files hold both the factory (whose bare
+		// reads are correct) and its handler closures (which run
+		// after generation with the event context in hand). Scan
+		// only the handler closures there, so Themed scoping keeps
+		// working and selectScrollTo-style sites stay gated.
+		if themeHandlerScanned(rel) {
+			inspectThemeHandlers(fset, f, report)
+		}
 	})
 	return out, err
 }
 
+// themeHandlerScanned reports whether rel is a mixed-phase widget file
+// whose handler closures are audited. The factory body itself is
+// generation-time code and stays out; inspectThemeHandlers only looks
+// inside nested func literals that take the event context.
+func themeHandlerScanned(rel string) bool {
+	rel = filepath.ToSlash(rel)
+	if filepath.Dir(rel) != "gui" {
+		return false
+	}
+	base := filepath.Base(rel)
+	return strings.HasPrefix(base, "view_")
+}
+
 // hasWindowParam reports whether fn could name a window: a receiver or
-// parameter typed *Window or *gui.Window.
+// parameter typed *Window or *gui.Window, or a parameter carrying the
+// event context (which holds the window). Handler closures take
+// EventCtx rather than *Window, so without the second shape they
+// would slip through.
 func hasWindowParam(fn *ast.FuncDecl) bool {
 	if fn.Recv != nil {
 		for _, fld := range fn.Recv.List {
@@ -178,10 +203,28 @@ func hasWindowParam(fn *ast.FuncDecl) bool {
 	}
 	if fn.Type != nil && fn.Type.Params != nil {
 		for _, fld := range fn.Type.Params.List {
-			if isWindowPtr(fld.Type) {
+			if isWindowPtr(fld.Type) || isEventCtx(fld.Type) {
 				return true
 			}
 		}
+	}
+	return false
+}
+
+// isEventCtx reports whether a type expression names the event
+// context (EventCtx in package gui, gui.EventCtx elsewhere), behind
+// an optional pointer. Handlers take it by value; the audit accepts
+// the pointer shape too rather than missing a future caller.
+func isEventCtx(typ ast.Expr) bool {
+	if star, ok := typ.(*ast.StarExpr); ok {
+		typ = star.X
+	}
+	switch t := typ.(type) {
+	case *ast.Ident:
+		return t.Name == "EventCtx"
+	case *ast.SelectorExpr:
+		pkg, ok := t.X.(*ast.Ident)
+		return ok && pkg.Name == "gui" && t.Sel.Name == "EventCtx"
 	}
 	return false
 }
@@ -259,4 +302,57 @@ func inspectTheme(
 			return true
 		})
 	}
+}
+
+// inspectThemeHandlers walks one mixed-phase file and calls report for
+// each frame-cache read inside a nested handler closure — a func
+// literal taking the event context. The enclosing factory body is
+// generation-time code whose bare reads are correct, so only the
+// closure bodies are inspected. Split out like inspectTheme for
+// in-memory tests.
+func inspectThemeHandlers(
+	fset *token.FileSet, f *ast.File, report func(fn string, line int, read string),
+) {
+	for _, decl := range f.Decls {
+		fn, ok := decl.(*ast.FuncDecl)
+		if !ok || fn.Body == nil {
+			continue
+		}
+		name := fn.Name.Name
+		seen := map[int]bool{}
+		ast.Inspect(fn.Body, func(n ast.Node) bool {
+			lit, ok := n.(*ast.FuncLit)
+			if !ok || lit.Body == nil || !hasEventCtxParam(lit.Type) {
+				return true
+			}
+			ast.Inspect(lit.Body, func(inner ast.Node) bool {
+				read := themeRead(inner)
+				if read == "" {
+					return true
+				}
+				line := fset.Position(inner.Pos()).Line
+				if seen[line] {
+					return true
+				}
+				seen[line] = true
+				report(name, line, read)
+				return true
+			})
+			return true
+		})
+	}
+}
+
+// hasEventCtxParam reports whether a func type takes the event context,
+// which carries the window into a handler closure.
+func hasEventCtxParam(ft *ast.FuncType) bool {
+	if ft == nil || ft.Params == nil {
+		return false
+	}
+	for _, fld := range ft.Params.List {
+		if isEventCtx(fld.Type) {
+			return true
+		}
+	}
+	return false
 }

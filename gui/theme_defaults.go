@@ -113,6 +113,17 @@ var (
 	}
 )
 
+// mustThemeColor parses a preset palette literal, panicking on unknown
+// input. Platform themes spell their palettes as hex literals; a typo
+// must fail at init rather than render as opaque black, which is what
+// ColorFromString returns for unknown input.
+func mustThemeColor(s string) Color {
+	if c, ok := ColorLookup(s); ok {
+		return c
+	}
+	panic("gui: invalid theme color " + s)
+}
+
 // baseCfg returns the shared sizing/spacing/widget-size fields
 // common to all preset themes.
 func baseCfg() ThemeCfg {

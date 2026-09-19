@@ -20,18 +20,18 @@ func TestThemePresetElevationValues(t *testing.T) {
 		{"light", ThemeLight, lightShadowPopover, lightShadowDialog, lightFocusRing},
 	} {
 		for name, got := range popoverShadows(tc.theme) {
-			if got != tc.wantPopover {
+			if got == nil || *got != *tc.wantPopover {
 				t.Errorf("%s: %s = %v, want the popover tier %v",
 					tc.name, name, got, tc.wantPopover)
 			}
 		}
 		for name, got := range modalShadows(tc.theme) {
-			if got != tc.wantDialog {
+			if got == nil || *got != *tc.wantDialog {
 				t.Errorf("%s: %s = %v, want the dialog tier %v",
 					tc.name, name, got, tc.wantDialog)
 			}
 		}
-		if tc.theme.focusRing != tc.wantRing {
+		if tc.theme.focusRing == nil || *tc.theme.focusRing != *tc.wantRing {
 			t.Errorf("%s: focus ring = %v, want %v (visual-refresh § 5.4)",
 				tc.name, tc.theme.focusRing, tc.wantRing)
 		}
@@ -116,10 +116,11 @@ func modalShadows(th Theme) map[string]*BoxShadow {
 	}
 }
 
-// ThemeMaker fans one popover token out to every popover style and one
-// dialog token to the modal styles. Asserting the fan-out rather than
-// each widget separately is what stops a newly added popover from
-// quietly missing its elevation.
+// ThemeMaker fans one popover tier out to every popover style and one
+// dialog tier to the modal styles. The fanned values equal the cfg
+// tiers and share one pointer within the theme — but never the
+// caller's token itself, so mutating the cfg after the build cannot
+// move the built theme.
 func TestThemeMakerFansOutElevation(t *testing.T) {
 	t.Parallel()
 	popover := &BoxShadow{Color: RGBA(0, 0, 0, 80), BlurRadius: 10}
@@ -134,21 +135,32 @@ func TestThemeMakerFansOutElevation(t *testing.T) {
 	th := ThemeMaker(cfg)
 
 	for name, got := range popoverShadows(th) {
-		if got != popover {
-			t.Errorf("%s: got %p, want the popover token %p",
+		if got == nil || *got != *popover {
+			t.Errorf("%s: got %v, want the popover tier %v",
 				name, got, popover)
+		}
+		if got == popover {
+			t.Errorf("%s: shares the caller token; want an isolated copy",
+				name)
 		}
 	}
 
 	for name, got := range modalShadows(th) {
-		if got != dialog {
-			t.Errorf("%s: got %p, want the dialog token %p",
+		if got == nil || *got != *dialog {
+			t.Errorf("%s: got %v, want the dialog tier %v",
 				name, got, dialog)
+		}
+		if got == dialog {
+			t.Errorf("%s: shares the caller token; want an isolated copy",
+				name)
 		}
 	}
 
-	if th.focusRing != ring {
-		t.Errorf("focus ring: got %p, want %p", th.focusRing, ring)
+	if th.focusRing == nil || *th.focusRing != *ring {
+		t.Errorf("focus ring: got %v, want %v", th.focusRing, ring)
+	}
+	if th.focusRing == ring {
+		t.Error("focus ring shares the caller token; want an isolated copy")
 	}
 }
 

@@ -84,21 +84,21 @@ func basegnomeCfg() ThemeCfg {
 func gnomeCfg() ThemeCfg {
 	cfg := basegnomeCfg()
 	cfg.Name = "gnome"
-	cfg.ColorBackground = ColorFromString("#F6F5F4")
-	cfg.ColorPanel = ColorFromString("#FAFAFA")
-	cfg.ColorInterior = ColorFromString("#FFFFFF")
-	cfg.ColorHover = ColorFromString("#F1EFEE")
-	cfg.ColorFocus = ColorFromString("#FFFFFF")
-	cfg.ColorActive = ColorFromString("#E2E0DE")
-	cfg.ColorBorder = ColorFromString("#C0BFBC")
-	cfg.ColorSelect = ColorFromString("#3584E4")
-	cfg.ColorBorderFocus = ColorFromString("#3584E4")
-	cfg.ColorSuccess = ColorFromString("#2EC27E")
-	cfg.ColorWarning = ColorFromString("#F5C211")
-	cfg.ColorError = ColorFromString("#E01B24")
+	cfg.ColorBackground = mustThemeColor("#F6F5F4")
+	cfg.ColorPanel = mustThemeColor("#FAFAFA")
+	cfg.ColorInterior = mustThemeColor("#FFFFFF")
+	cfg.ColorHover = mustThemeColor("#F1EFEE")
+	cfg.ColorFocus = mustThemeColor("#FFFFFF")
+	cfg.ColorActive = mustThemeColor("#E2E0DE")
+	cfg.ColorBorder = mustThemeColor("#C0BFBC")
+	cfg.ColorSelect = mustThemeColor("#3584E4")
+	cfg.ColorBorderFocus = mustThemeColor("#3584E4")
+	cfg.ColorSuccess = mustThemeColor("#2EC27E")
+	cfg.ColorWarning = mustThemeColor("#F5C211")
+	cfg.ColorError = mustThemeColor("#E01B24")
 	cfg.TextStyleDef = TextStyle{
 		Family: defaultFontFamily,
-		Color:  ColorFromString("#1E1E1E"),
+		Color:  mustThemeColor("#1E1E1E"),
 		Size:   15,
 	}
 	return cfg
@@ -108,22 +108,22 @@ func gnomeCfg() ThemeCfg {
 func gnomeDarkCfg() ThemeCfg {
 	cfg := basegnomeCfg()
 	cfg.Name = "gnome-dark"
-	cfg.ColorBackground = ColorFromString("#242424")
-	cfg.ColorPanel = ColorFromString("#2E2E2E")
-	cfg.ColorInterior = ColorFromString("#1E1E1E")
-	cfg.ColorHover = ColorFromString("#333333")
-	cfg.ColorFocus = ColorFromString("#1E1E1E")
-	cfg.ColorActive = ColorFromString("#3D3D3D")
-	cfg.ColorBorder = ColorFromString("#505050")
-	cfg.ColorSelect = ColorFromString("#3584E4")
-	cfg.ColorBorderFocus = ColorFromString("#3584E4")
-	cfg.ColorSuccess = ColorFromString("#26A269")
-	cfg.ColorWarning = ColorFromString("#C88800")
-	cfg.ColorError = ColorFromString("#C01C28")
+	cfg.ColorBackground = mustThemeColor("#242424")
+	cfg.ColorPanel = mustThemeColor("#2E2E2E")
+	cfg.ColorInterior = mustThemeColor("#1E1E1E")
+	cfg.ColorHover = mustThemeColor("#333333")
+	cfg.ColorFocus = mustThemeColor("#1E1E1E")
+	cfg.ColorActive = mustThemeColor("#3D3D3D")
+	cfg.ColorBorder = mustThemeColor("#505050")
+	cfg.ColorSelect = mustThemeColor("#3584E4")
+	cfg.ColorBorderFocus = mustThemeColor("#3584E4")
+	cfg.ColorSuccess = mustThemeColor("#26A269")
+	cfg.ColorWarning = mustThemeColor("#C88800")
+	cfg.ColorError = mustThemeColor("#C01C28")
 	cfg.TitlebarDark = true
 	cfg.TextStyleDef = TextStyle{
 		Family: defaultFontFamily,
-		Color:  ColorFromString("#FFFFFF"),
+		Color:  mustThemeColor("#FFFFFF"),
 		Size:   15,
 	}
 	return cfg

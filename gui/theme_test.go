@@ -115,8 +115,8 @@ func TestWithColors(t *testing.T) {
 		},
 	}
 	newHover := RGB(200, 200, 200)
-	updated := theme.withColors(ColorOverrides{
-		ColorHover: &newHover,
+	updated := theme.WithColors(ColorOverrides{
+		ColorHover: newHover,
 	})
 	if updated.ColorHover != newHover {
 		t.Error("theme hover not updated")
@@ -208,8 +208,8 @@ func TestWithColorsBadge(t *testing.T) {
 	t.Parallel()
 	theme := ThemeMaker(baseDarkCfg())
 	sel := RGB(100, 200, 50)
-	updated := theme.withColors(ColorOverrides{
-		ColorSelect: &sel,
+	updated := theme.WithColors(ColorOverrides{
+		ColorSelect: sel,
 	})
 	if updated.badgeStyle.colorInfo != sel {
 		t.Error("badge info not propagated from select")
@@ -257,8 +257,8 @@ func TestWithColorsSlider(t *testing.T) {
 	t.Parallel()
 	theme := ThemeMaker(baseDarkCfg())
 	hover := RGB(99, 99, 99)
-	updated := theme.withColors(ColorOverrides{
-		ColorHover: &hover,
+	updated := theme.WithColors(ColorOverrides{
+		ColorHover: hover,
 	})
 	if updated.sliderStyle.ColorHover != hover {
 		t.Error("slider hover not propagated")
@@ -321,5 +321,36 @@ func TestThemeWithPadding(t *testing.T) {
 		restored.Cfg.SizeBorder != cfg.SizeBorder ||
 		restored.Cfg.Radius != cfg.Radius {
 		t.Error("WithPadding(true) must restore the stored config")
+	}
+}
+
+// A strip followed by a restore round-trips: the stripped theme
+// remembers the pre-strip configuration instead of rebuilding from
+// its own zeroed Cfg.
+func TestThemeWithPaddingRoundTrip(t *testing.T) {
+	t.Parallel()
+	cfg := baseDarkCfg()
+	cfg.Padding = PadAll(4)
+	cfg.SizeBorder = 2
+	cfg.Radius = 5
+	theme := ThemeMaker(cfg)
+
+	flat := theme.WithPadding(false)
+	restored := flat.WithPadding(true)
+	if restored.Cfg.Padding != cfg.Padding ||
+		restored.Cfg.PaddingSmall != cfg.PaddingSmall ||
+		restored.Cfg.PaddingMedium != cfg.PaddingMedium ||
+		restored.Cfg.PaddingLarge != cfg.PaddingLarge {
+		t.Error("WithPadding(false).WithPadding(true) must restore paddings")
+	}
+	if restored.Cfg.SizeBorder != cfg.SizeBorder {
+		t.Errorf("SizeBorder = %v, want %v",
+			restored.Cfg.SizeBorder, cfg.SizeBorder)
+	}
+	if restored.Cfg.Radius != cfg.Radius ||
+		restored.Cfg.RadiusSmall != cfg.RadiusSmall ||
+		restored.Cfg.RadiusMedium != cfg.RadiusMedium ||
+		restored.Cfg.RadiusLarge != cfg.RadiusLarge {
+		t.Error("WithPadding(false).WithPadding(true) must restore radii")
 	}
 }

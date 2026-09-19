@@ -97,3 +97,17 @@ func TestPresetThemesRegistered(t *testing.T) {
 		}
 	}
 }
+
+// Preset palette literals fail at init on a typo instead of rendering
+// as opaque black: mustThemeColor panics on unknown input.
+func TestMustThemeColorRejectsBadLiteral(t *testing.T) {
+	if got := mustThemeColor("#FFFFFF"); !got.IsSet() {
+		t.Error("mustThemeColor(#FFFFFF) should parse")
+	}
+	defer func() {
+		if recover() == nil {
+			t.Error("mustThemeColor(bad literal) should panic")
+		}
+	}()
+	mustThemeColor("#ZZZZZZ")
+}
