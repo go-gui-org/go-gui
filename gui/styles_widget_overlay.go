@@ -61,14 +61,20 @@ type DialogStyle struct {
 }
 
 // ToastAnchor specifies toast notification position.
-type toastAnchor uint8
+// exportaudit:keep — caller-facing config (#698).
+type ToastAnchor uint8
 
-// ToastAnchor constants.
+// ToastAnchor constants. One keep marker per member: the audit reads
+// the marker off each declared name.
 const (
-	toastTopLeft toastAnchor = iota
-	toastTopRight
-	toastBottomLeft
-	toastBottomRight
+	// exportaudit:keep — caller-facing config (#698).
+	ToastTopLeft ToastAnchor = iota
+	// exportaudit:keep — caller-facing config (#698).
+	ToastTopRight
+	// exportaudit:keep — caller-facing config (#698).
+	ToastBottomLeft
+	// exportaudit:keep — caller-facing config (#698).
+	ToastBottomRight
 )
 
 // ToastStyle defines toast notification visual properties.
@@ -91,7 +97,7 @@ type ToastStyle struct {
 	ColorSuccess Color
 	ColorWarning Color
 	ColorError   Color
-	Anchor       toastAnchor
+	Anchor       ToastAnchor
 }
 
 // TooltipStyle defines tooltip visual properties.

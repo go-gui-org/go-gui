@@ -96,22 +96,22 @@ func toastContainerView(w *Window) View {
 	var offsetX, offsetY float32
 
 	switch style.Anchor {
-	case toastTopLeft:
+	case ToastTopLeft:
 		anchor = FloatTopLeft
 		tieOff = FloatTopLeft
 		offsetX = style.margin
 		offsetY = style.margin
-	case toastTopRight:
+	case ToastTopRight:
 		anchor = FloatTopRight
 		tieOff = FloatTopRight
 		offsetX = -style.margin
 		offsetY = style.margin
-	case toastBottomLeft:
+	case ToastBottomLeft:
 		anchor = FloatBottomLeft
 		tieOff = FloatBottomLeft
 		offsetX = style.margin
 		offsetY = -style.margin
-	case toastBottomRight:
+	case ToastBottomRight:
 		anchor = FloatBottomRight
 		tieOff = FloatBottomRight
 		offsetX = -style.margin
@@ -121,8 +121,8 @@ func toastContainerView(w *Window) View {
 	// Build toast items. Bottom anchors: newest last.
 	// Top anchors: newest first (reversed).
 	items := make([]View, 0, len(w.toasts))
-	isTop := style.Anchor == toastTopLeft ||
-		style.Anchor == toastTopRight
+	isTop := style.Anchor == ToastTopLeft ||
+		style.Anchor == ToastTopRight
 
 	if isTop {
 		for i := range slices.Backward(w.toasts) {

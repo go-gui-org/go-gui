@@ -174,3 +174,88 @@ func TestEffectiveTransformExplicitAffine(t *testing.T) {
 		t.Error("explicit affine should take precedence over rotation")
 	}
 }
+
+// mergeTextStyle fills every unset field, not just color and size: the
+// radio/switch/toggle label merges depend on inheriting the whole
+// theme style.
+func TestMergeTextStyleFullCoverage(t *testing.T) {
+	affine := glyph.AffineRotation(0.5)
+	feats := &glyph.FontFeatures{}
+	grad := &glyph.GradientConfig{}
+	fallback := TextStyle{
+		Family:          "serif",
+		Typeface:        glyph.TypefaceBold,
+		Size:            16,
+		LineSpacing:     2,
+		LetterSpacing:   1,
+		RotationRadians: 0.5,
+		StrokeWidth:     2,
+		EmojiBoxWidth:   9,
+		CellWidth:       8,
+		CellHeight:      18,
+		Color:           Red,
+		BgColor:         Blue,
+		StrokeColor:     Green,
+		Align:           TextAlignCenter,
+		AffineTransform: &affine,
+		Gradient:        grad,
+		Features:        feats,
+		Underline:       true,
+		Strikethrough:   true,
+	}
+	got := mergeTextStyle(TextStyle{}, fallback)
+	if got != fallback {
+		t.Errorf("empty merge:\n got  = %+v\n want = %+v", got, fallback)
+	}
+}
+
+// A set field always wins over the fallback. Flags merge by OR, so an
+// unset false still inherits a fallback true.
+func TestMergeTextStyleSetFieldsWin(t *testing.T) {
+	fallback := TextStyle{
+		Family:    "serif",
+		Size:      16,
+		Color:     Red,
+		Underline: true,
+	}
+	mine := TextStyle{Family: "mono", Size: 20, Color: Blue}
+	got := mergeTextStyle(mine, fallback)
+	if got.Family != "mono" || got.Size != 20 || got.Color != Blue {
+		t.Errorf("set fields lost: %+v", got)
+	}
+	// Flags merge by OR: an unset false inherits fallback true.
+	if !got.Underline {
+		t.Errorf("false flag should inherit fallback true: %+v", got)
+	}
+}
+
+// A disabled-role fallback color must carry its flag along, or the
+// merged style double-dims under layoutDisables (issue #335).
+func TestMergeTextStylePropagatesRoleFlags(t *testing.T) {
+	fallback := TextStyle{Color: Red}
+	fallback.disabledRole = true
+	fallback.glyphRole = true
+	fallback.defaultedColor = true
+	got := mergeTextStyle(TextStyle{}, fallback)
+	if !got.disabledRole || !got.glyphRole || !got.defaultedColor {
+		t.Errorf("role flags lost: %+v", got)
+	}
+}
+
+// Role flags describe the field they came with: a caller's own color
+// must not pick up the fallback's disabled or defaulted role, or the
+// renderer skips the disabled dim (and a button recolors the caller's
+// explicit choice). A caller's own family must not pick up glyphRole.
+func TestMergeTextStyleRoleFlagsFollowTheirField(t *testing.T) {
+	fallback := TextStyle{Family: "icons", Color: Red}
+	fallback.disabledRole = true
+	fallback.glyphRole = true
+	fallback.defaultedColor = true
+	got := mergeTextStyle(TextStyle{Family: "sans", Color: Blue}, fallback)
+	if got.disabledRole || got.defaultedColor {
+		t.Errorf("own color took fallback color roles: %+v", got)
+	}
+	if got.glyphRole {
+		t.Errorf("own family took fallback glyphRole: %+v", got)
+	}
+}

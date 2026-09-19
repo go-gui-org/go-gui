@@ -213,13 +213,13 @@ func TestToastOnActionCallback(t *testing.T) {
 
 func TestToastAnchorPositioning(t *testing.T) {
 	cases := []struct {
-		anchor toastAnchor
+		anchor ToastAnchor
 		name   string
 	}{
-		{toastTopLeft, "TopLeft"},
-		{toastTopRight, "TopRight"},
-		{toastBottomLeft, "BottomLeft"},
-		{toastBottomRight, "BottomRight"},
+		{ToastTopLeft, "TopLeft"},
+		{ToastTopRight, "TopRight"},
+		{ToastBottomLeft, "BottomLeft"},
+		{ToastBottomRight, "BottomRight"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

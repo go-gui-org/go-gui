@@ -62,7 +62,14 @@ type textSizeLadder struct {
 // ratios: a ladder rounded from ratios lands on fractional pixels at
 // some bases and hints badly (visual-refresh §2.1).
 func textSizes(body float32) textSizeLadder {
-	return textSizeLadder{body - 4, body - 3, body - 2, body, body + 3, body + 8}
+	return textSizeLadder{
+		tiny:   body - 4,
+		xSmall: body - 3,
+		small:  body - 2,
+		medium: body,
+		large:  body + 3,
+		xLarge: body + 8,
+	}
 }
 
 // setTextLadder seeds a ThemeCfg's SizeText* rungs from a native body
@@ -190,14 +197,81 @@ type TextStyle struct {
 	defaultedColor bool
 }
 
-// mergeTextStyle fills zero fields in s from fallback.
+// mergeTextStyle fills unset fields in s from fallback. Zero means
+// unset throughout: an empty Family, a zero size or spacing, an unset
+// Color, a nil pointer, TypefaceRegular, TextAlignLeft, or a false flag
+// each take the fallback value. That mirrors the ThemeCfg convention
+// ("zero takes the built-in defaults"): a cfg names what it overrides
+// and inherits the rest, so a caller cannot spell "regular" distinctly
+// from "inherit" — which is exactly what the radio/switch/toggle label
+// merges need.
+//
+// The role flags ride along with the field they describe. A fallback
+// color that already expresses the disabled state must keep its
+// disabledRole, or the merged style double-dims under layoutDisables
+// (issue #335); a caller's own color must not take it, or it never dims.
 func mergeTextStyle(s, fallback TextStyle) TextStyle {
-	if !s.Color.IsSet() {
-		s.Color = fallback.Color
+	// Each role flag travels with the field it describes: glyphRole
+	// with Family, disabledRole and defaultedColor with Color. A caller's
+	// own value must not inherit a role that described the fallback's.
+	if s.Family == "" {
+		s.Family = fallback.Family
+		s.glyphRole = s.glyphRole || fallback.glyphRole
+	}
+	if s.Typeface == glyph.TypefaceRegular {
+		s.Typeface = fallback.Typeface
 	}
 	if s.Size == 0 {
 		s.Size = fallback.Size
 	}
+	if s.LineSpacing == 0 {
+		s.LineSpacing = fallback.LineSpacing
+	}
+	if s.LetterSpacing == 0 {
+		s.LetterSpacing = fallback.LetterSpacing
+	}
+	if s.RotationRadians == 0 {
+		s.RotationRadians = fallback.RotationRadians
+	}
+	if s.StrokeWidth == 0 {
+		s.StrokeWidth = fallback.StrokeWidth
+	}
+	if s.EmojiBoxWidth == 0 {
+		s.EmojiBoxWidth = fallback.EmojiBoxWidth
+	}
+	if s.CellWidth == 0 {
+		s.CellWidth = fallback.CellWidth
+	}
+	if s.CellHeight == 0 {
+		s.CellHeight = fallback.CellHeight
+	}
+	if !s.Color.IsSet() {
+		s.Color = fallback.Color
+		s.disabledRole = s.disabledRole || fallback.disabledRole
+		s.defaultedColor = s.defaultedColor || fallback.defaultedColor
+	}
+	if !s.BgColor.IsSet() {
+		s.BgColor = fallback.BgColor
+	}
+	if !s.StrokeColor.IsSet() {
+		s.StrokeColor = fallback.StrokeColor
+	}
+	if s.Align == TextAlignLeft {
+		s.Align = fallback.Align
+	}
+	if s.AffineTransform == nil {
+		s.AffineTransform = fallback.AffineTransform
+	}
+	if s.Gradient == nil {
+		s.Gradient = fallback.Gradient
+	}
+	if s.Features == nil {
+		s.Features = fallback.Features
+	}
+	s.Underline = s.Underline || fallback.Underline
+	s.Strikethrough = s.Strikethrough || fallback.Strikethrough
+	s.NoBuiltinBoxGlyphs = s.NoBuiltinBoxGlyphs ||
+		fallback.NoBuiltinBoxGlyphs
 	return s
 }
 
@@ -251,6 +325,14 @@ func affineTransformIsIdentity(t glyph.AffineTransform) bool {
 }
 
 // ButtonStyle defines button visual properties.
+//
+// Widget style structs split two ways. Exported fields are the knobs
+// an app may turn: a whole style rides on its Theme field, and single
+// fields mutate in place. Unexported fields are theme internals the
+// ThemeMaker owns — per-state derivations, metrics, reserved slots.
+// That is why one struct mixes ColorHover with colorClick: the first
+// is caller vocabulary, the second a derivation. Do not export an
+// internal without moving its derivation into ThemeCfg.
 type buttonStyle struct {
 	Shadow           *BoxShadow
 	Gradient         *GradientDef

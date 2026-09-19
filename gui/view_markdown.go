@@ -13,17 +13,20 @@ import (
 )
 
 // MarkdownStyle controls rendered markdown appearance.
+//
+// The header (H1..H6) and emphasis (Bold, Italic, BoldItalic) faces
+// form closed grids: every cell is exported because a half-exported
+// grid is a broken vocabulary, the same rule the Theme N/B/I/BI/M
+// ladders follow. The remaining fields stay structural — block and
+// table geometry the renderer sizes, not caller vocabulary.
 type MarkdownStyle struct {
-	Text           TextStyle
-	h1             TextStyle
-	H2             TextStyle
-	h3             TextStyle
-	h4             TextStyle
-	h5             TextStyle
-	h6             TextStyle
-	Bold           TextStyle
-	Italic         TextStyle
-	boldItalic     TextStyle
+	Text TextStyle
+	// exportaudit:keep — closed grid, exported for completeness (see above).
+	H1, H2, H3, H4, H5, H6 TextStyle
+	Bold                   TextStyle
+	Italic                 TextStyle
+	// exportaudit:keep — closed grid, exported for completeness (see above).
+	BoldItalic     TextStyle
 	Code           TextStyle
 	codeBlockText  TextStyle
 	tableHeadStyle TextStyle
@@ -77,15 +80,15 @@ func DefaultMarkdownStyle() MarkdownStyle {
 
 	return MarkdownStyle{
 		Text:          text,
-		h1:            guiTheme.B1,
+		H1:            guiTheme.B1,
 		H2:            guiTheme.B2,
-		h3:            guiTheme.B3,
-		h4:            guiTheme.B4,
-		h5:            guiTheme.B5,
-		h6:            guiTheme.B6,
+		H3:            guiTheme.B3,
+		H4:            guiTheme.B4,
+		H5:            guiTheme.B5,
+		H6:            guiTheme.B6,
 		Bold:          bold,
 		Italic:        italic,
-		boldItalic:    bi,
+		BoldItalic:    bi,
 		Code:          guiTheme.M5,
 		codeBlockText: guiTheme.M5,
 		// Non-text fills, exempt from the dimming roles (audit §1.2).

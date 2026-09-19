@@ -116,14 +116,14 @@ func TestDefaultStylesFilledAtInit(t *testing.T) {
 // its ordering is load-bearing for anything persisting the value.
 func TestToastAnchorConstants(t *testing.T) {
 	anchors := []struct {
-		got  toastAnchor
-		want toastAnchor
+		got  ToastAnchor
+		want ToastAnchor
 		name string
 	}{
-		{toastTopLeft, 0, "ToastTopLeft"},
-		{toastTopRight, 1, "ToastTopRight"},
-		{toastBottomLeft, 2, "ToastBottomLeft"},
-		{toastBottomRight, 3, "ToastBottomRight"},
+		{ToastTopLeft, 0, "ToastTopLeft"},
+		{ToastTopRight, 1, "ToastTopRight"},
+		{ToastBottomLeft, 2, "ToastBottomLeft"},
+		{ToastBottomRight, 3, "ToastBottomRight"},
 	}
 	for _, a := range anchors {
 		if a.got != a.want {

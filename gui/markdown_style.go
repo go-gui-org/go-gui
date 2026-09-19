@@ -12,16 +12,29 @@ import (
 	"github.com/go-gui-org/go-gui/gui/markdown"
 )
 
-var mdSuperscriptFeatures = &glyph.FontFeatures{
-	OpenTypeFeatures: []glyph.FontFeature{
-		{Tag: "sups", Value: 1},
-	},
-}
-
-var mdSubscriptFeatures = &glyph.FontFeatures{
-	OpenTypeFeatures: []glyph.FontFeature{
-		{Tag: "subs", Value: 1},
-	},
+// mdWithScriptFeature returns a fresh FontFeatures holding base's
+// features plus tag. It always allocates: shared state aliased into
+// every sup/sub run means a caller mutating one run corrupts all of
+// them, so each run gets its own copy.
+func mdWithScriptFeature(
+	base *glyph.FontFeatures, tag string,
+) *glyph.FontFeatures {
+	out := &glyph.FontFeatures{}
+	if base != nil {
+		out.OpenTypeFeatures = append(out.OpenTypeFeatures,
+			base.OpenTypeFeatures...)
+		out.VariationAxes = append(out.VariationAxes,
+			base.VariationAxes...)
+	}
+	for i := range out.OpenTypeFeatures {
+		if out.OpenTypeFeatures[i].Tag == tag {
+			out.OpenTypeFeatures[i].Value = 1
+			return out
+		}
+	}
+	out.OpenTypeFeatures = append(out.OpenTypeFeatures,
+		glyph.FontFeature{Tag: tag, Value: 1})
+	return out
 }
 
 // markdownToBlocks parses source and returns styled blocks.
@@ -42,8 +55,8 @@ func markdownToRichText(
 	for _, block := range blocks {
 		totalRuns += len(block.Content.Runs)
 	}
-	if n := len(blocks) - 1; n > 0 {
-		totalRuns += n
+	if len(blocks) > 0 {
+		totalRuns += len(blocks) - 1
 	}
 	allRuns := make([]RichTextRun, 0, totalRuns)
 	for i, block := range blocks {
@@ -136,17 +149,17 @@ func mdHeaderStyle(
 ) TextStyle {
 	switch level {
 	case 1:
-		return style.h1
+		return style.H1
 	case 2:
 		return style.H2
 	case 3:
-		return style.h3
+		return style.H3
 	case 4:
-		return style.h4
+		return style.H4
 	case 5:
-		return style.h5
+		return style.H5
 	default:
-		return style.h6
+		return style.H6
 	}
 }
 
@@ -169,7 +182,7 @@ func styleMdRun(
 	// Code token coloring.
 	if run.Format == markdown.FormatCode &&
 		run.CodeToken != markdown.TokenPlain {
-		s = mdCodeTokenStyle(run.CodeToken, style)
+		s = mdCodeTokenStyle(run.CodeToken, base, style)
 	}
 
 	if run.Strikethrough {
@@ -178,13 +191,14 @@ func styleMdRun(
 	if run.Highlight {
 		s.BgColor = style.highlightBG
 	}
+	// Script runs keep the base size and only gain their feature tag:
+	// the shaper derives 0.58x size and baseline shift from the run
+	// size, so scaling here would double-shrink and under-shift.
 	if run.Superscript {
-		s.Size *= 1.2
-		s.Features = mdSuperscriptFeatures
+		s.Features = mdWithScriptFeature(s.Features, "sups")
 	}
 	if run.Subscript {
-		s.Size *= 1.2
-		s.Features = mdSubscriptFeatures
+		s.Features = mdWithScriptFeature(s.Features, "subs")
 	}
 	if run.Underline {
 		s.Underline = true
@@ -219,30 +233,56 @@ func styleMdRun(
 func mdFormatToStyle(
 	f markdown.Format, base TextStyle, style MarkdownStyle,
 ) TextStyle {
+	// Bold and italic runs keep the style face and take the base
+	// geometry: inside a heading a bold run stays heading-sized and
+	// heading-colored. The base color wins only outside body text,
+	// so a custom Bold color still applies to body runs.
 	switch f {
 	case markdown.FormatBold:
 		s := style.Bold
-		s.Size = base.Size
-		s.BgColor = base.BgColor
+		mdInheritBaseGeometry(&s, base, style)
 		return s
 	case markdown.FormatItalic:
 		s := style.Italic
-		s.Size = base.Size
-		s.BgColor = base.BgColor
+		mdInheritBaseGeometry(&s, base, style)
 		return s
 	case markdown.FormatBoldItalic:
-		s := style.boldItalic
-		s.Size = base.Size
-		s.BgColor = base.BgColor
+		s := style.BoldItalic
+		mdInheritBaseGeometry(&s, base, style)
 		return s
 	case markdown.FormatCode:
 		s := style.Code
 		s.Typeface = glyph.TypefaceBold
+		mdInheritBaseGeometry(&s, base, style)
 		return s
 	default:
 		return base
 	}
 }
+
+// mdInheritBaseGeometry folds a base style's geometry into a formatted
+// run: size always (guarded against zero), background when set, color
+// only outside body text. The guards keep a custom style face intact
+// for body runs while headings keep their own size and color.
+func mdInheritBaseGeometry(
+	s *TextStyle, base TextStyle, style MarkdownStyle,
+) {
+	if base.Size != 0 && base.Size != style.Text.Size {
+		s.Size = base.Size
+	}
+	if base.BgColor.IsSet() {
+		s.BgColor = base.BgColor
+	}
+	if base.Color.IsSet() && base.Color != style.Text.Color {
+		s.Color = base.Color
+	}
+}
+
+// maxHighlightBytes bounds the text handed to CodeHighlighter: a
+// hostile fenced block otherwise spends unbounded time and memory in
+// the highlighter. Over the cap the caller keeps the parser's own
+// runs, which are already tokenized.
+const maxHighlightBytes = 1 << 16
 
 // highlightCodeBlock re-tokenizes a fenced code block's text using
 // style.CodeHighlighter. Returns nil on failure so the caller keeps
@@ -257,6 +297,9 @@ func highlightCodeBlock(
 	total := 0
 	for _, r := range existing {
 		total += len(r.Text)
+	}
+	if total > maxHighlightBytes {
+		return nil
 	}
 	var src strings.Builder
 	src.Grow(total)
@@ -301,7 +344,7 @@ func colorForKind(k highlight.Kind, style *MarkdownStyle) Color {
 }
 
 func mdCodeTokenStyle(
-	kind markdown.CodeTokenKind, style MarkdownStyle,
+	kind markdown.CodeTokenKind, base TextStyle, style MarkdownStyle,
 ) TextStyle {
 	s := style.Code
 	switch kind {
@@ -315,6 +358,11 @@ func mdCodeTokenStyle(
 		s.Color = style.codeCommentColor
 	case markdown.TokenOperator:
 		s.Color = style.codeOperatorColor
+	}
+	// Token colors are semantic and stay; the size follows the base
+	// outside body text, the same rule mdInheritBaseGeometry applies.
+	if base.Size != 0 && base.Size != style.Text.Size {
+		s.Size = base.Size
 	}
 	return s
 }
@@ -332,6 +380,8 @@ func styleMdTable(
 	for _, row := range table.Rows {
 		sr := make([]RichText, table.ColCount)
 		for j, cell := range row {
+			// GFM drops cells past the delimiter column count;
+			// short rows keep zero (empty) cells from the make.
 			if j < table.ColCount {
 				sr[j] = styleMdRuns(cell, style.tableCellStyle, style)
 			}

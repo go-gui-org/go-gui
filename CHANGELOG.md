@@ -105,6 +105,14 @@ and this project adheres to
   child down by its own measured ink offset, never by padding, so the control
   height is unchanged. Only for text the app owns and the user cannot type into;
   the showcase layout demos use it for their fixed-size box labels.
+- **`ToastAnchor` and the markdown header/emphasis grids are exported (#698)** —
+  `ToastStyle.Anchor` was an exported field of an unexported type, so an app
+  could only set it with a magic number. The type and its four constants are now
+  `ToastAnchor`, `ToastTopLeft`, `ToastTopRight`, `ToastBottomLeft`,
+  `ToastBottomRight`. `MarkdownStyle` had the same half-export in miniature:
+  `H2` was public while `h1`, `h3`–`h6` and `boldItalic` were not. The full
+  header grid (`H1`–`H6`) and `BoldItalic` are now exported, matching the closed
+  Theme face grids; block and table geometry stays structural and unexported.
 
 ### Changed
 
@@ -498,6 +506,24 @@ and this project adheres to
     it when static and keeps it as an animated placeholder when an `<animate>`
     child drives the size. An unparseable fill now falls back to inherit instead
     of transparent, and the path tokenizer caps its upfront capacity.
+- **Styles review fixes (#698)** — from a review of the `styles*` and markdown
+  style code:
+  - Superscript and subscript runs grew by 1.2x before the shaper synthesized
+    them, so they rendered oversized and over-raised. Markdown no longer scales
+    these runs at all: it tags the run and the shaper derives 0.58x size and
+    baseline shift from the base size. The runs also shared one global
+    `FontFeatures`, so mutating a run corrupted every sup/sub run; each run now
+    gets a fresh copy that merges with the base features.
+  - `mergeTextStyle` merged only color and size while promising all zero fields,
+    so the radio/switch/toggle label merges dropped family, spacing, background
+    and pointer fields. Every unset field now inherits, and the
+    disabled/icon/defaulted role flags ride along, closing a double-dim hole
+    through the merge path (issue #335).
+  - A bold, italic or code run inside a heading lost the heading size and color.
+    Formatted runs now keep the base geometry outside body text, while a custom
+    Bold color still applies to body runs and token colors stay semantic.
+  - Fenced code blocks over 64 KiB now keep the parser's own token runs instead
+    of handing unbounded text to the syntax highlighter.
 
 ## [v0.77.0] - 2026-09-16
 

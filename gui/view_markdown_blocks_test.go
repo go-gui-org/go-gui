@@ -188,14 +188,14 @@ func TestMdHeaderStyle(t *testing.T) {
 		level int
 		want  TextStyle
 	}{
-		{1, style.h1},
+		{1, style.H1},
 		{2, style.H2},
-		{3, style.h3},
-		{4, style.h4},
-		{5, style.h5},
-		{6, style.h6},
-		{0, style.h6}, // not a heading
-		{7, style.h6}, // out of range
+		{3, style.H3},
+		{4, style.H4},
+		{5, style.H5},
+		{6, style.H6},
+		{0, style.H6}, // not a heading
+		{7, style.H6}, // out of range
 	}
 	for _, tt := range tests {
 		if got := mdHeaderStyle(tt.level, style); got != tt.want {

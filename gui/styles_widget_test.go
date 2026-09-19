@@ -69,7 +69,7 @@ func TestDefaultToastStyle(t *testing.T) {
 	if s.Width != 260 {
 		t.Errorf("width = %f, want 260", s.Width)
 	}
-	if s.Anchor != toastBottomRight {
+	if s.Anchor != ToastBottomRight {
 		t.Errorf("anchor = %d, want bottom-right", s.Anchor)
 	}
 }
