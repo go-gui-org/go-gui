@@ -433,6 +433,9 @@ func (w *Window) renderOnlyLocked() {
 
 // composeLayout wraps layer layouts into a single root.
 func composeLayout(layers []Layout, w *Window) Layout {
+	// The root clip is required, not cosmetic. Pointer dispatch skips any
+	// subtree whose shapeClip does not contain the pointer, so a root with an
+	// empty clip would receive no mouse events at all.
 	windowClip := w.windowRect()
 	return Layout{
 		Shape: w.allocShape(Shape{

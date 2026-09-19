@@ -5,7 +5,7 @@ import "testing"
 func BenchmarkEventFnMouseMove(b *testing.B) {
 	w := newEventTestWindow()
 	w.layout = Layout{
-		Shape: &Shape{},
+		Shape: &Shape{shapeClip: w.windowRect()},
 		Children: []Layout{
 			{Shape: &Shape{
 				shapeClip: drawClip{X: 0, Y: 0, Width: 200, Height: 200},
@@ -25,6 +25,7 @@ func BenchmarkEventFnMouseMove(b *testing.B) {
 		MouseY:    25,
 		Modifiers: ModNone,
 	}
+	benchRequireHandled(b, w, e)
 	for b.Loop() {
 		e.IsHandled = false
 		w.EventFn(e)
@@ -34,7 +35,7 @@ func BenchmarkEventFnMouseMove(b *testing.B) {
 func BenchmarkEventFnMouseScrollFocused(b *testing.B) {
 	w := newEventTestWindow()
 	w.layout = Layout{
-		Shape: &Shape{},
+		Shape: &Shape{shapeClip: w.windowRect()},
 		Children: []Layout{
 			{Shape: &Shape{
 				Focusable: true, ID: "f77",
@@ -51,7 +52,9 @@ func BenchmarkEventFnMouseScrollFocused(b *testing.B) {
 					X: 0, Y: 0, Width: 100, Height: 50,
 				},
 			}, Children: []Layout{
-				{Shape: &Shape{Height: 200}},
+				// shapeRectangle: a shapeNone child is skipped by contentHeight, which
+				// leaves nothing to scroll, so the fallback never handled the event.
+				{Shape: &Shape{shapeType: shapeRectangle, Height: 200}},
 			}},
 		},
 	}
@@ -65,6 +68,7 @@ func BenchmarkEventFnMouseScrollFocused(b *testing.B) {
 		ScrollY:   -1,
 		Modifiers: ModNone,
 	}
+	benchRequireHandled(b, w, e)
 	for b.Loop() {
 		e.IsHandled = false
 		w.EventFn(e)
@@ -90,7 +94,10 @@ func BenchmarkEventFnDeepNesting(b *testing.B) {
 			Children: []Layout{leaf},
 		}
 	}
-	w.layout = Layout{Shape: &Shape{}, Children: []Layout{leaf}}
+	w.layout = Layout{
+		Shape:    &Shape{shapeClip: w.windowRect()},
+		Children: []Layout{leaf},
+	}
 
 	b.ReportAllocs()
 	b.ResetTimer()
@@ -100,6 +107,7 @@ func BenchmarkEventFnDeepNesting(b *testing.B) {
 		MouseY:    25,
 		Modifiers: ModNone,
 	}
+	benchRequireHandled(b, w, e)
 	for b.Loop() {
 		e.IsHandled = false
 		w.EventFn(e)
@@ -151,7 +159,8 @@ func BenchmarkEventFnMouseMoveDisjointPanels(b *testing.B) {
 		}},
 	}
 	w.layout.Children = make([]Layout, 0, panelCols*panelRows)
-	onMouseMove := func(EventCtx) {}
+	// Consume so benchRequireHandled can see that the walk reached a control.
+	onMouseMove := func(ctx EventCtx) { ctx.Consume() }
 	for panelY := range panelRows {
 		for panelX := range panelCols {
 			x := float32(panelX) * panelWidth
@@ -182,10 +191,24 @@ func BenchmarkEventFnMouseMoveDisjointPanels(b *testing.B) {
 	}
 
 	e := &Event{Type: EventMouseMove, MouseX: 12.5, MouseY: 25}
+	benchRequireHandled(b, w, e)
 	b.ReportAllocs()
 	b.ResetTimer()
 	for b.Loop() {
 		e.IsHandled = false
 		w.EventFn(e)
+	}
+}
+
+// benchRequireHandled sends one event and fails the benchmark when nothing
+// handles it. A dispatch benchmark whose fixture stops reaching its callback
+// still runs, and then reports the cost of an early return as a speedup. That
+// happened when hit testing began to prune at a root with an empty shapeClip.
+func benchRequireHandled(b *testing.B, w *Window, e *Event) {
+	b.Helper()
+	e.IsHandled = false
+	w.EventFn(e)
+	if !e.IsHandled {
+		b.Fatal("benchmark event was not handled; the fixture no longer dispatches")
 	}
 }
