@@ -4,22 +4,20 @@ package gl
 
 import (
 	"github.com/go-gui-org/go-gui/gui"
-	"github.com/jezek/xgb"
 )
 
 type platformState struct{}
 
-func (p *platformState) makeCurrent()                  {}
-func (p *platformState) swap()                         {}
-func (p *platformState) drawableSize() (int32, int32)  { return 0, 0 }
-func (p *platformState) dpiScale() float32             { return 1 }
-func (p *platformState) setCursor(_ gui.MouseCursor)   {}
-func (p *platformState) wake()                         {}
-func (p *platformState) destroy()                      {}
-func (p *platformState) pumpEvents(_ chan<- xgb.Event) {}
-func (n *nativePlatform) IMEStart()                    {}
-func (n *nativePlatform) IMEStop()                     {}
-func (n *nativePlatform) IMESetRect(_, _, _, _ int32)  {}
+func (p *platformState) makeCurrent()                 {}
+func (p *platformState) swap()                        {}
+func (p *platformState) drawableSize() (int32, int32) { return 0, 0 }
+func (p *platformState) dpiScale() float32            { return 1 }
+func (p *platformState) setCursor(_ gui.MouseCursor)  {}
+func (p *platformState) wake()                        {}
+func (p *platformState) destroy()                     {}
+func (n *nativePlatform) IMEStart()                   {}
+func (n *nativePlatform) IMEStop()                    {}
+func (n *nativePlatform) IMESetRect(_, _, _, _ int32) {}
 
 // No window system here to fade a window with.
 func (n *nativePlatform) SetWindowOpacity(_ float32) {}

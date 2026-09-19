@@ -28,7 +28,7 @@ func (b *Backend) Run(w *gui.Window) {
 	w.SetWakeMainFn(b.plat.wake)
 
 	events := make(chan xgb.Event, 64)
-	go b.plat.pumpEvents(events)
+	go pumpXEvents(b.plat.conn, events)
 
 	// drain processes every currently-queued event without blocking.
 	// Returns false when the connection has closed.
@@ -61,7 +61,7 @@ func (b *Backend) Run(w *gui.Window) {
 		if !rendered {
 			// Idle: block until an event or a wake arrives instead of
 			// polling (issue #405). wake() posts a ClientMessage that
-			// pumpEvents forwards onto this channel.
+			// pumpXEvents forwards onto this channel.
 			ev, ok := <-events
 			if !ok {
 				running = false
@@ -108,6 +108,16 @@ type taggedEvent struct {
 	closed bool
 }
 
+// liveBackend reports whether te should be handed to its backend. Events
+// queued before closeWindow ran still sit in the channel, and a destroyed
+// backend has a nil conn that handlers such as setCursor or a selection
+// reply would dereference (issue #701). closeWindow deletes the map entry
+// and destroy() zeroes plat.window, so a closed backend is never the map
+// entry for its id.
+func liveBackend(backends map[uint32]*Backend, te taggedEvent) bool {
+	return !te.closed && backends[uint32(te.b.plat.window)] == te.b
+}
+
 // RunAppE starts a multi-window event loop. Each window is created and
 // registered with app, keyed by its X window id. Blocks until the last
 // window closes.
@@ -132,14 +142,18 @@ func runAppE(app *gui.App, initialWindows ...*gui.Window) error {
 		if w.Config.OnInit != nil {
 			w.Config.OnInit(w)
 		}
-		go func(bk *Backend) {
+		// The connection is read here, on the main goroutine, and handed
+		// to the forwarder. Reading bk.plat.conn inside the goroutine
+		// would race closeWindow's destroy(), which nils the field, and
+		// could start the pump on a nil conn (issue #701).
+		go func(bk *Backend, conn *xgb.Conn) {
 			ch := make(chan xgb.Event, 64)
-			go bk.plat.pumpEvents(ch)
+			go pumpXEvents(conn, ch)
 			for ev := range ch {
 				events <- taggedEvent{b: bk, ev: ev}
 			}
 			events <- taggedEvent{b: bk, closed: true}
-		}(b)
+		}(b, b.plat.conn)
 		return nil
 	}
 
@@ -162,6 +176,12 @@ func runAppE(app *gui.App, initialWindows ...*gui.Window) error {
 		return app.Unregister(id)
 	}
 
+	dispatch := func(te taggedEvent) {
+		if liveBackend(backends, te) {
+			te.b.handleXEvent(te.ev)
+		}
+	}
+
 	var rendered bool
 	for len(backends) > 0 {
 		// Drain queued events + window opens.
@@ -169,10 +189,7 @@ func runAppE(app *gui.App, initialWindows ...*gui.Window) error {
 		for !drained {
 			select {
 			case te := <-events:
-				if te.closed {
-					continue
-				}
-				te.b.handleXEvent(te.ev)
+				dispatch(te)
 			case cfg := <-app.PendingOpen():
 				if err := open(gui.NewWindow(cfg)); err != nil {
 					log.Printf("gl: open window: %v", err)
@@ -218,9 +235,7 @@ func runAppE(app *gui.App, initialWindows ...*gui.Window) error {
 			// arrives instead of polling (issue #405).
 			select {
 			case te := <-events:
-				if !te.closed {
-					te.b.handleXEvent(te.ev)
-				}
+				dispatch(te)
 			case cfg := <-app.PendingOpen():
 				if err := open(gui.NewWindow(cfg)); err != nil {
 					log.Printf("gl: open window: %v", err)

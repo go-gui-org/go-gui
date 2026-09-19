@@ -25,7 +25,6 @@ var (
 	_ = (*platformState).setCursor
 	_ = (*platformState).wake
 	_ = (*platformState).destroy
-	_ = (*platformState).pumpEvents
 
 	_ = (*nativePlatform).IMEStart
 	_ = (*nativePlatform).IMEStop

@@ -200,15 +200,30 @@ func (p *platformState) destroy() {
 	}
 }
 
-// pumpEvents reads X events on a dedicated goroutine and forwards them
+// xEventSource is the one method of *xgb.Conn the event pump needs;
+// tests substitute a scripted source.
+type xEventSource interface {
+	WaitForEvent() (xgb.Event, xgb.Error)
+}
+
+// pumpXEvents reads X events on a dedicated goroutine and forwards them
 // on ch. It closes ch when the connection ends so the main loop exits.
-func (p *platformState) pumpEvents(ch chan<- xgb.Event) {
+//
+// src is captured once by the caller, on the main goroutine, and never
+// re-read from platformState: destroy() sets p.conn to nil after closing
+// it, and a pump that re-read the field each iteration raced that write
+// and dereferenced nil on shutdown (issue #701). The captured *xgb.Conn
+// stays valid after Close — WaitForEvent then reports (nil, nil), which
+// ends the loop below.
+func pumpXEvents(src xEventSource, ch chan<- xgb.Event) {
 	for {
-		ev, err := p.conn.WaitForEvent()
+		ev, err := src.WaitForEvent()
 		if ev == nil && err == nil {
 			close(ch) // connection closed
 			return
 		}
+		// A lone X error (ev == nil, err != nil) is dropped; the
+		// connection is still live.
 		if ev != nil {
 			ch <- ev
 		}

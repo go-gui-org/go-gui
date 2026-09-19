@@ -178,6 +178,14 @@ and this project adheres to
 
 ### Fixed
 
+- **Closing a window on Linux (X11) no longer crashes intermittently (#701)** —
+  the event-pump goroutine re-read the backend's X connection on every
+  iteration, while shutdown closed that connection and set it to `nil` on the
+  main goroutine. A pump that lost the race panicked with a nil pointer
+  dereference in `xgb.(*Conn).WaitForEvent`. The pump now holds the connection
+  it was started with and ends cleanly when it closes. In a multi-window
+  `RunApp`, events still queued for a window that just closed are now dropped
+  instead of handled by its destroyed backend.
 - **Text animation, layout and optical centring fixes** — from a second review
   of the `text*` code:
   - With more than 100 animated text IDs, finished entrances no longer play
