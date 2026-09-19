@@ -49,12 +49,20 @@ type DialogCfg struct {
 	Padding    Padding
 	SizeBorder Opt[float32]
 
+	// MinWidth and MaxWidth default to the theme's DialogStyle bounds.
+	// A MinWidth above the theme MaxWidth raises the max to match when
+	// MaxWidth is unset. Both are ignored when Width is set (issue #708).
 	MinWidth Opt[float32]
 	MaxWidth Opt[float32]
 
 	Radius Opt[float32]
 
-	Width     float32
+	// Width, when positive, fixes the dialog width. Zero sizes the
+	// width to the content, within MinWidth and MaxWidth.
+	Width float32
+	// Height, when positive, fixes the dialog height. Content taller
+	// than Height is not clipped, so give tall CustomContent its own
+	// scroll container. Zero sizes the height to the content.
 	Height    float32
 	MinHeight float32
 	MaxHeight float32
@@ -96,8 +104,7 @@ func dialogViewGenerator(cfg DialogCfg) View {
 	dn := &DefaultDialogStyle
 	sizeBorder := cfg.SizeBorder.Get(dn.SizeBorder)
 	radius := cfg.Radius.Get(dn.Radius)
-	minWidth := cfg.MinWidth.Get(dn.MinWidth)
-	maxWidth := cfg.MaxWidth.Get(dn.MaxWidth)
+	minWidth, maxWidth, sizing := dialogSizing(&cfg, dn)
 
 	var content []View
 
@@ -139,6 +146,7 @@ func dialogViewGenerator(cfg DialogCfg) View {
 		BlurRadius:  dn.BlurRadius,
 		Shadow:      dn.Shadow,
 		Padding:     cfg.Padding,
+		Sizing:      sizing,
 		Width:       cfg.Width,
 		Height:      cfg.Height,
 		MinWidth:    minWidth,
@@ -154,6 +162,37 @@ func dialogViewGenerator(cfg DialogCfg) View {
 		A11YState:   AccessStateModal,
 		Content:     content,
 	})
+}
+
+// dialogSizing resolves the dialog's width bounds and Sizing (issue #708).
+//
+// A positive Width or Height pins that axis: it is Fixed, not the seed a
+// Fit column adds its content to. On a Fixed width the theme's
+// MinWidth/MaxWidth are dropped, because applyFixedSizingConstraints pins
+// both to Width anyway and a theme default must not trip the debug
+// sizing-conflict warning. Bounds the caller states still pass through,
+// so a real conflict still warns.
+//
+// On a Fit width a caller MinWidth above the theme MaxWidth raises the
+// max to match. effectiveMinSize lets Max win a conflict, so without this
+// the theme's 300 silently beat the caller's own MinWidth.
+func dialogSizing(cfg *DialogCfg, dn *DialogStyle) (minWidth, maxWidth float32, sizing Sizing) {
+	sizing = FitFit
+	if cfg.Width > 0 {
+		sizing.Width = sizingFixed
+		minWidth = cfg.MinWidth.Get(0)
+		maxWidth = cfg.MaxWidth.Get(0)
+	} else {
+		minWidth = cfg.MinWidth.Get(dn.MinWidth)
+		maxWidth = cfg.MaxWidth.Get(dn.MaxWidth)
+		if cfg.MinWidth.IsSet() && !cfg.MaxWidth.IsSet() && minWidth > maxWidth {
+			maxWidth = minWidth
+		}
+	}
+	if cfg.Height > 0 {
+		sizing.Height = sizingFixed
+	}
+	return minWidth, maxWidth, sizing
 }
 
 // messageView returns an OK button row.

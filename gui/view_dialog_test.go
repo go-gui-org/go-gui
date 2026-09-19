@@ -606,3 +606,83 @@ func TestDialogButtonsUseLocaleStrings(t *testing.T) {
 		t.Fatal("de-DE preset must translate OK/Yes for this test to mean anything")
 	}
 }
+
+// arrangeDialog runs cfg through the full arrange pipeline and returns
+// the dialog's resolved shape.
+func arrangeDialog(t *testing.T, cfg DialogCfg) *Shape {
+	t.Helper()
+	w := newTestWindow()
+	layout := generateViewLayout(dialogViewGenerator(cfg), w)
+	layoutArrange(&layout, w)
+	return layout.Shape
+}
+
+// The config from issue #708 must arrange at exactly the stated size.
+// Before the fix the theme's MaxWidth (300) beat the caller's MinWidth
+// and Width, and the dialog came out 300x400.
+func TestDialogHonorsWidthHeightIssue708(t *testing.T) {
+	s := arrangeDialog(t, DialogCfg{
+		DialogType:    DialogCustom,
+		MinWidth:      SomeF(400),
+		Width:         400,
+		MaxHeight:     400,
+		Height:        400,
+		Title:         "Settings",
+		CustomContent: []View{Text(TextCfg{Text: "body"})},
+	})
+	if s.Width != 400 || s.Height != 400 {
+		t.Fatalf("dialog = %vx%v, want 400x400", s.Width, s.Height)
+	}
+}
+
+// Height alone pins the height. Before the fix Height was only a seed
+// on a Fit column, so the content height was added on top of it.
+func TestDialogHeightIsFixed(t *testing.T) {
+	s := arrangeDialog(t, DialogCfg{
+		DialogType:    DialogCustom,
+		Height:        250,
+		Title:         "Settings",
+		CustomContent: []View{Text(TextCfg{Text: "body"})},
+	})
+	if s.Height != 250 {
+		t.Fatalf("Height = %v, want 250", s.Height)
+	}
+}
+
+// Width alone pins the width. Before the fix Width was only a seed
+// on a Fit column, so the content width was added on top of it.
+func TestDialogWidthIsFixed(t *testing.T) {
+	s := arrangeDialog(t, DialogCfg{
+		DialogType:    DialogCustom,
+		Width:         250,
+		Title:         "Settings",
+		CustomContent: []View{Text(TextCfg{Text: "body"})},
+	})
+	if s.Width != 250 {
+		t.Fatalf("Width = %v, want 250", s.Width)
+	}
+}
+
+// A caller MinWidth above the theme's MaxWidth wins, when the caller
+// states no MaxWidth. A theme default must not override a caller value.
+func TestDialogMinWidthBeatsThemeMaxWidth(t *testing.T) {
+	want := DefaultDialogStyle.MaxWidth + 100
+	s := arrangeDialog(t, DialogCfg{
+		DialogType: DialogMessage,
+		Body:       "short",
+		MinWidth:   SomeF(want),
+	})
+	if s.Width != want {
+		t.Fatalf("Width = %v, want %v", s.Width, want)
+	}
+}
+
+// Without size fields the theme bounds still apply, so message text
+// wraps inside MaxWidth.
+func TestDialogThemeWidthBoundsStillApply(t *testing.T) {
+	s := arrangeDialog(t, DialogCfg{DialogType: DialogMessage, Body: "short"})
+	if s.Width < DefaultDialogStyle.MinWidth || s.Width > DefaultDialogStyle.MaxWidth {
+		t.Fatalf("Width = %v, want within [%v, %v]", s.Width,
+			DefaultDialogStyle.MinWidth, DefaultDialogStyle.MaxWidth)
+	}
+}

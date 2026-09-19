@@ -178,6 +178,13 @@ and this project adheres to
 
 ### Fixed
 
+- **A dialog now opens at the `Width` and `Height` it is given (#708)** — a
+  `DialogCfg` with `Width: 400` and `MinWidth: 400` opened 300 wide, because the
+  theme's `MaxWidth` of 300 won over the caller's values. `Width` and `Height`
+  also added the content size on top of themselves instead of setting the size.
+  A positive `Width` or `Height` now fixes that side of the dialog, and a
+  `MinWidth` above the theme's `MaxWidth` raises the max when `MaxWidth` is not
+  set. A dialog with no size fields keeps the theme's 200–300 width range.
 - **Closing a window on Linux (X11) no longer crashes intermittently (#701)** —
   the event-pump goroutine re-read the backend's X connection on every
   iteration, while shutdown closed that connection and set it to `nil` on the
