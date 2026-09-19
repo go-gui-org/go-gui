@@ -341,12 +341,6 @@ func (w *Window) updateLocked() {
 
 	if len(w.layout.Children) > 0 {
 		w.scratch.layerLayouts.put(w.layout.Children)
-		// put parks the backing array in the pool for this frame's
-		// take. Drop the live header so a panic in the view cannot
-		// leave w.layout.Children aliasing that array (a second put
-		// on the next frame would then truncate the same buffer
-		// while the old tree still pointed at it).
-		w.layout.Children = nil
 	}
 
 	t := w.Config.Timings

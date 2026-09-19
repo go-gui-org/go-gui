@@ -178,15 +178,12 @@ and this project adheres to
 
 ### Fixed
 
-- **Root view panic leaked `genDepth` and aliased the layer pool (#689)** —
-  `updateLocked` incremented `viewState.genDepth` around the root view function
-  without `defer`, so a panic skipped the decrement. The leaked depth stuck
-  across later good frames (`idScope` stopped resetting; after 256 panicked
-  frames the tree became placeholders). The same path put `w.layout.Children`
-  back into `layerLayouts` while the live header still pointed at that array, so
-  a panic left two owners for one buffer. The root bracket now defers its
-  decrement, matching `generateViewLayout`, and the live children header is
-  cleared after the put.
+- **Root view panic leaked `genDepth` (#689)** — `updateLocked` incremented
+  `viewState.genDepth` around the root view function without `defer`, so a panic
+  skipped the decrement. The leaked depth stuck across later good frames
+  (`idScope` stopped resetting; after 256 panicked frames the tree became
+  placeholders). The root bracket now defers its decrement, matching
+  `generateViewLayout`.
 - **Spellcheck hardening** — from a review of the `spellcheck*` code:
   - All Hunspell handle use on Linux is now serialized by a mutex. Before,
     concurrent `Check`/`Suggest`/`Learn` calls raced inside libhunspell, which

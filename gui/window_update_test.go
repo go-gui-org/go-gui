@@ -56,28 +56,31 @@ func TestRootViewPanicRestoresGenDepth(t *testing.T) {
 	}
 }
 
-// Putting w.layout.Children back into layerLayouts before the view
-// runs used to leave the live header pointing at the pooled array.
-// A panic then skipped the replacement, so the next frame's put/take
-// truncated that array under the still-live tree (issue #689).
-func TestRootViewPanicDoesNotAliasLayerPool(t *testing.T) {
+// A view function may query the previous frame's arranged tree (for
+// example ScrollOverflowY to size a scrollbar reservation). The layer
+// pool put in updateLocked must leave w.layout intact until the new
+// tree replaces it, on a normal frame and after a panicked one.
+func TestViewSeesPreviousFrameLayout(t *testing.T) {
 	w := NewTestWindow(WindowCfg{Width: 200, Height: 100})
 	boom := false
+	frame := 0
+	var found []bool
 	w.SetView(func(w *Window) View {
+		frame++
+		if frame > 1 {
+			// Record whether last frame's leaf is still reachable.
+			_, ok := w.layout.findByID("lbl")
+			found = append(found, ok)
+		}
 		if boom {
 			panic("view boom")
 		}
 		return Column(ContainerCfg{
-			Content: []View{
-				Text(TextCfg{Text: "a"}),
-				Text(TextCfg{Text: "b"}),
-			},
+			Content: []View{Text(TextCfg{ID: "lbl", Text: "a"})},
 		})
 	})
-	w.Update()
-	if len(w.layout.Children) == 0 {
-		t.Fatal("good frame should have children")
-	}
+	w.Update() // frame 1: builds the tree
+	w.Update() // frame 2: normal frame, queries frame 1
 
 	boom = true
 	func() {
@@ -86,19 +89,19 @@ func TestRootViewPanicDoesNotAliasLayerPool(t *testing.T) {
 				t.Fatal("expected view panic")
 			}
 		}()
-		w.Update()
+		w.Update() // frame 3: queries frame 2, then panics
 	}()
 
-	if w.layout.Children != nil {
-		t.Fatal("after panic, live Children must not still point at the pooled array")
-	}
-
 	boom = false
-	w.Update()
-	if len(w.layout.Children) == 0 {
-		t.Fatal("recovery frame should have children")
+	w.Update() // frame 4: queries the tree the panic left behind
+
+	want := []bool{true, true, true}
+	if len(found) != len(want) {
+		t.Fatalf("view ran %d query frames, want %d", len(found), len(want))
 	}
-	if w.viewState.genDepth != 0 {
-		t.Fatalf("recovery genDepth=%d, want 0", w.viewState.genDepth)
+	for i, ok := range found {
+		if !ok {
+			t.Errorf("frame %d: previous layout not findable from view", i+2)
+		}
 	}
 }
