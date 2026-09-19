@@ -302,6 +302,21 @@ func keydownScrollHandler(layout *Layout, e *Event, w *Window) {
 	}
 }
 
+// pointerMissesSubtree reports whether layout clipping guarantees that no
+// descendant can contain the pointer. layoutSetShapeClipsDepth intersects each
+// descendant's clip with its parent's shape clip, even when Clip is false.
+//
+// A non-clipping 90° or 270° container is the exception: its children use
+// the rotated rectangle, which can extend outside the container's own shape
+// clip. A nil shape passes the ancestor clip through unchanged.
+func pointerMissesSubtree(shape *Shape, x, y float32) bool {
+	if shape == nil ||
+		(!shape.Clip && (shape.QuarterTurns == 1 || shape.QuarterTurns == 3)) {
+		return false
+	}
+	return !shape.PointInShape(x, y)
+}
+
 // mouseDownHandler handles mouse button press events.
 // Traverses reverse (topmost first) and delivers to element under
 // cursor. Also handles focus changes on click.
@@ -327,12 +342,7 @@ func mouseDownHandlerDepth(
 			return
 		}
 	}
-	// A clipping shape bounds every descendant's visible hit region. If
-	// the press misses that clip, the whole subtree can be rejected before
-	// walking it. Non-clipping shapes cannot use this shortcut because a
-	// child may extend beyond its parent's bounds.
-	if layout.Shape != nil && layout.Shape.Clip &&
-		!layout.Shape.PointInShape(e.MouseX, e.MouseY) {
+	if pointerMissesSubtree(layout.Shape, e.MouseX, e.MouseY) {
 		return
 	}
 	// Traverse children in reverse (topmost/last child first).
@@ -400,6 +410,9 @@ func mouseMoveHandlerDepth(layout *Layout, e *Event, w *Window, depth int) {
 	if !w.pointerOverApp(e) {
 		return
 	}
+	if pointerMissesSubtree(layout.Shape, e.MouseX, e.MouseY) {
+		return
+	}
 	ox, oy := rotateMouseInverse(layout.Shape, e)
 	for i := range slices.Backward(layout.Children) {
 		if !isChildEnabled(&layout.Children[i]) {
@@ -441,6 +454,9 @@ func mouseUpHandler(layout *Layout, e *Event, w *Window) {
 
 func mouseUpHandlerDepth(layout *Layout, e *Event, w *Window, depth int) {
 	if overMaxDepth(depth) {
+		return
+	}
+	if pointerMissesSubtree(layout.Shape, e.MouseX, e.MouseY) {
 		return
 	}
 	ox, oy := rotateMouseInverse(layout.Shape, e)
@@ -517,6 +533,9 @@ func mouseScrollFallbackHandler(layout *Layout, e *Event, w *Window) {
 
 func mouseScrollFallbackHandlerDepth(layout *Layout, e *Event, w *Window, depth int, skip *Layout) {
 	if overMaxDepth(depth) {
+		return
+	}
+	if pointerMissesSubtree(layout.Shape, e.MouseX, e.MouseY) {
 		return
 	}
 	ox, oy := rotateMouseInverse(layout.Shape, e)

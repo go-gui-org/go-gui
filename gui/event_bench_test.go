@@ -132,103 +132,60 @@ func BenchmarkExecuteMouseCallback(b *testing.B) {
 	}
 }
 
-func BenchmarkMouseDownClippedSubtrees(b *testing.B) {
+func BenchmarkEventFnMouseMoveDisjointPanels(b *testing.B) {
 	const (
-		subtreeCount  = 64
-		leavesPerTree = 128
+		panelCols   = 4
+		panelRows   = 3
+		panelWidth  = float32(200)
+		panelHeight = float32(200)
+		controlCols = 8
+		controlRows = 4
+		controlW    = panelWidth / controlCols
+		controlH    = panelHeight / controlRows
 	)
 
-	buildLayout := func() Layout {
-		clip := drawClip{X: 10, Y: 10, Width: 100, Height: 100}
-		root := Layout{
-			Shape: &Shape{shapeClip: drawClip{Width: 1000, Height: 1000}},
-		}
-		root.Children = make([]Layout, subtreeCount)
-		for i := range root.Children {
-			subtree := &root.Children[i]
-			subtree.Shape = &Shape{Clip: true, shapeClip: clip}
-			subtree.Children = make([]Layout, leavesPerTree)
-			for j := range subtree.Children {
-				subtree.Children[j].Shape = &Shape{shapeClip: clip}
-			}
-		}
-		return root
+	w := newEventTestWindow()
+	w.layout = Layout{
+		Shape: &Shape{shapeClip: drawClip{
+			Width: float32(w.windowWidth), Height: float32(w.windowHeight),
+		}},
 	}
-
-	for _, tc := range []struct {
-		name string
-		x, y float32
-	}{
-		{name: "outside_clips", x: 500, y: 500},
-		{name: "inside_clips", x: 25, y: 25},
-	} {
-		b.Run(tc.name, func(b *testing.B) {
-			layout := buildLayout()
-			w := newEventTestWindow()
-			e := &Event{MouseX: tc.x, MouseY: tc.y, MouseButton: MouseLeft}
-
-			b.ReportAllocs()
-			b.ResetTimer()
-			for b.Loop() {
-				e.IsHandled = false
-				mouseDownHandler(&layout, false, e, w)
-			}
-		})
-	}
-}
-
-func BenchmarkMouseDownDisjointClippedPanels(b *testing.B) {
-	const (
-		panelCols    = 8
-		panelRows    = 8
-		panelSize    = float32(100)
-		cellCols     = 16
-		cellRows     = 8
-		cellWidth    = panelSize / cellCols
-		cellHeight   = panelSize / cellRows
-		windowWidth  = panelCols * panelSize
-		windowHeight = panelRows * panelSize
-	)
-
-	root := Layout{
-		Shape: &Shape{shapeClip: drawClip{Width: windowWidth, Height: windowHeight}},
-	}
-	root.Children = make([]Layout, 0, panelCols*panelRows)
+	w.layout.Children = make([]Layout, 0, panelCols*panelRows)
+	onMouseMove := func(EventCtx) {}
 	for panelY := range panelRows {
 		for panelX := range panelCols {
-			x := float32(panelX) * panelSize
-			y := float32(panelY) * panelSize
+			x := float32(panelX) * panelWidth
+			y := float32(panelY) * panelHeight
 			panel := Layout{
 				Shape: &Shape{
-					Clip: true,
 					shapeClip: drawClip{
-						X: x, Y: y, Width: panelSize, Height: panelSize,
+						X: x, Y: y, Width: panelWidth, Height: panelHeight,
 					},
 				},
-				Children: make([]Layout, 0, cellCols*cellRows),
+				Children: make([]Layout, 0, controlCols*controlRows),
 			}
-			for cellY := range cellRows {
-				for cellX := range cellCols {
+			for controlY := range controlRows {
+				for controlX := range controlCols {
 					panel.Children = append(panel.Children, Layout{Shape: &Shape{
 						shapeClip: drawClip{
-							X:      x + float32(cellX)*cellWidth,
-							Y:      y + float32(cellY)*cellHeight,
-							Width:  cellWidth,
-							Height: cellHeight,
+							X:      x + float32(controlX)*controlW,
+							Y:      y + float32(controlY)*controlH,
+							Width:  controlW,
+							Height: controlH,
 						},
+						events: &eventHandlers{OnMouseMove: onMouseMove},
 					}})
 				}
 			}
-			root.Children = append(root.Children, panel)
+			w.layout.Children = append(w.layout.Children, panel)
 		}
 	}
 
-	w := newEventTestWindow()
-	e := &Event{MouseX: 25, MouseY: 25, MouseButton: MouseLeft}
+	e := &Event{Type: EventMouseMove, MouseX: 12.5, MouseY: 25}
 	b.ReportAllocs()
 	b.ResetTimer()
 	for b.Loop() {
 		e.IsHandled = false
-		mouseDownHandler(&root, false, e, w)
+		w.EventFn(e)
 	}
 }

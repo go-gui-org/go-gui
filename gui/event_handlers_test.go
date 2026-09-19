@@ -219,7 +219,7 @@ func TestMouseDownHandler(t *testing.T) {
 		t.Parallel()
 		clicked := false
 		root := &Layout{
-			Shape: &Shape{},
+			Shape: &Shape{shapeClip: drawClip{Width: 800, Height: 600}},
 			Children: []Layout{
 				{Shape: &Shape{
 					shapeClip: drawClip{X: 0, Y: 0,
@@ -242,7 +242,7 @@ func TestMouseDownHandler(t *testing.T) {
 	t.Run("sets_focus", func(t *testing.T) {
 		t.Parallel()
 		root := &Layout{
-			Shape: &Shape{},
+			Shape: &Shape{shapeClip: drawClip{Width: 800, Height: 600}},
 			Children: []Layout{
 				{Shape: &Shape{
 					Focusable: true, ID: "f42",
@@ -292,7 +292,7 @@ func TestMouseDownHandler(t *testing.T) {
 			}}
 		}
 		root := &Layout{
-			Shape: &Shape{},
+			Shape: &Shape{shapeClip: drawClip{Width: 800, Height: 600}},
 			Children: []Layout{
 				mkChild("first", 0),
 				mkChild("second", 0),
@@ -309,7 +309,7 @@ func TestMouseDownHandler(t *testing.T) {
 		t.Parallel()
 		clicked := false
 		root := &Layout{
-			Shape: &Shape{},
+			Shape: &Shape{shapeClip: drawClip{Width: 800, Height: 600}},
 			Children: []Layout{{
 				Shape: &Shape{
 					Clip:      true,
@@ -328,11 +328,11 @@ func TestMouseDownHandler(t *testing.T) {
 			t.Error("child outside a clipping parent received the press")
 		}
 	})
-	t.Run("non_clipping_parent_allows_outside_child", func(t *testing.T) {
+	t.Run("non_clipping_parent_prunes_outside_child", func(t *testing.T) {
 		t.Parallel()
 		clicked := false
 		root := &Layout{
-			Shape: &Shape{},
+			Shape: &Shape{shapeClip: drawClip{Width: 800, Height: 600}},
 			Children: []Layout{{
 				Shape: &Shape{shapeClip: drawClip{Width: 100, Height: 100}},
 				Children: []Layout{{Shape: &Shape{
@@ -344,8 +344,58 @@ func TestMouseDownHandler(t *testing.T) {
 			}},
 		}
 		mouseDownHandler(root, false, &Event{MouseX: 175, MouseY: 50}, &Window{})
+		if clicked {
+			t.Error("child outside its inherited parent clip received the press")
+		}
+	})
+	t.Run("non_clipping_quarter_turn_reaches_child_outside_parent", func(t *testing.T) {
+		t.Parallel()
+		for _, tc := range []struct {
+			name  string
+			turns uint8
+			x     float32
+		}{
+			{name: "90_degrees", turns: 1, x: -10},
+			{name: "270_degrees", turns: 3, x: 50},
+		} {
+			t.Run(tc.name, func(t *testing.T) {
+				clicked := false
+				root := &Layout{
+					Children: []Layout{{
+						Shape: &Shape{
+							Width:        40,
+							Height:       100,
+							QuarterTurns: tc.turns,
+							shapeClip:    drawClip{Width: 40, Height: 100},
+						},
+						Children: []Layout{{Shape: &Shape{
+							shapeClip: drawClip{Y: 50, Width: 40, Height: 50},
+							events: &eventHandlers{OnClick: func(EventCtx) {
+								clicked = true
+							}},
+						}}},
+					}},
+				}
+				mouseDownHandler(root, false,
+					&Event{MouseX: tc.x, MouseY: 50}, &Window{})
+				if !clicked {
+					t.Error("rotated child outside the displayed parent missed the press")
+				}
+			})
+		}
+	})
+	t.Run("nil_shape_passes_through_to_child", func(t *testing.T) {
+		t.Parallel()
+		clicked := false
+		root := &Layout{Children: []Layout{{Shape: &Shape{
+			shapeClip: drawClip{Width: 100, Height: 100},
+			events: &eventHandlers{OnClick: func(EventCtx) {
+				clicked = true
+			}},
+		}}}}
+		mouseDownHandler(root, false, &Event{MouseX: 50, MouseY: 50}, &Window{})
 		if !clicked {
-			t.Error("child extending outside a non-clipping parent missed the press")
+			t.Error("nil-shape node did not pass the press to its child")
 		}
 	})
 }
@@ -361,7 +411,9 @@ func TestMouseLockHandlers(t *testing.T) {
 				lockCalled = true
 			},
 		})
-		root := &Layout{Shape: &Shape{}}
+		root := &Layout{Shape: &Shape{shapeClip: drawClip{
+			X: 100, Y: 100, Width: 100, Height: 100,
+		}}}
 		e := &Event{MouseX: 50, MouseY: 50}
 		mouseMoveHandler(root, e, w)
 		if !lockCalled {
@@ -377,7 +429,9 @@ func TestMouseLockHandlers(t *testing.T) {
 				lockCalled = true
 			},
 		})
-		root := &Layout{Shape: &Shape{}}
+		root := &Layout{Shape: &Shape{shapeClip: drawClip{
+			X: 100, Y: 100, Width: 100, Height: 100,
+		}}}
 		e := &Event{MouseX: 50, MouseY: 50}
 		mouseUpHandler(root, e, w)
 		if !lockCalled {
@@ -393,7 +447,9 @@ func TestMouseLockHandlers(t *testing.T) {
 				lockCalled = true
 			},
 		})
-		root := &Layout{Shape: &Shape{}}
+		root := &Layout{Shape: &Shape{shapeClip: drawClip{
+			X: 100, Y: 100, Width: 100, Height: 100,
+		}}}
 		e := &Event{MouseX: 50, MouseY: 50}
 		mouseDownHandler(root, false, e, w)
 		if !lockCalled {
@@ -409,7 +465,9 @@ func TestMouseLockHandlers(t *testing.T) {
 				lockCalled = true
 			},
 		})
-		root := &Layout{Shape: &Shape{}}
+		root := &Layout{Shape: &Shape{shapeClip: drawClip{
+			X: 100, Y: 100, Width: 100, Height: 100,
+		}}}
 		e := &Event{MouseX: 50, MouseY: 50}
 		mouseDownHandler(root, false, e, w)
 		if !lockCalled {
@@ -429,7 +487,9 @@ func TestMouseLockHandlers(t *testing.T) {
 				internalCalls++
 			},
 		})
-		root := &Layout{Shape: &Shape{}}
+		root := &Layout{Shape: &Shape{shapeClip: drawClip{
+			X: 100, Y: 100, Width: 100, Height: 100,
+		}}}
 		e := &Event{MouseX: 50, MouseY: 50}
 		mouseDownHandler(root, false, e, w)
 		if exportedCalls != 1 || internalCalls != 0 {
@@ -578,7 +638,7 @@ func TestMouseScrollUnhandledCascadesToScrollContainer(t *testing.T) {
 	// cascade to the scroll container fallback.
 	focusCalled := false
 	root := &Layout{
-		Shape: &Shape{},
+		Shape: &Shape{shapeClip: drawClip{Width: 800, Height: 600}},
 		Children: []Layout{
 			{Shape: &Shape{
 				Focusable: true, ID: "f7",
@@ -760,7 +820,7 @@ func TestMouseScrollSkipIsPointerNotID(t *testing.T) {
 	focused := mkScroll(&focusedCalls)
 	sibling := mkScroll(&siblingCalls)
 	root := &Layout{
-		Shape:    &Shape{},
+		Shape:    &Shape{shapeClip: drawClip{Width: 800, Height: 600}},
 		Children: []Layout{focused, sibling},
 	}
 	w := &Window{windowWidth: 800, windowHeight: 600}
@@ -1217,7 +1277,7 @@ func TestMouseDownHandler_ClickButtonFilter(t *testing.T) {
 		t.Parallel()
 		clicked := false
 		root := &Layout{
-			Shape: &Shape{},
+			Shape: &Shape{shapeClip: drawClip{Width: 800, Height: 600}},
 			Children: []Layout{
 				{Shape: &Shape{
 					shapeClip: drawClip{X: 0, Y: 0,
@@ -1243,7 +1303,7 @@ func TestMouseDownHandler_ClickButtonFilter(t *testing.T) {
 		t.Parallel()
 		clicked := false
 		root := &Layout{
-			Shape: &Shape{},
+			Shape: &Shape{shapeClip: drawClip{Width: 800, Height: 600}},
 			Children: []Layout{
 				{Shape: &Shape{
 					shapeClip: drawClip{X: 0, Y: 0,
@@ -1269,7 +1329,7 @@ func TestMouseDownHandler_ClickButtonFilter(t *testing.T) {
 		t.Parallel()
 		clicked := false
 		root := &Layout{
-			Shape: &Shape{},
+			Shape: &Shape{shapeClip: drawClip{Width: 800, Height: 600}},
 			Children: []Layout{
 				{Shape: &Shape{
 					shapeClip: drawClip{X: 0, Y: 0,
@@ -1315,7 +1375,10 @@ func TestContainerOnMouseScrollReceivesWheel(t *testing.T) {
 	s.X, s.Y, s.Width, s.Height = 10, 20, 100, 40
 	s.shapeClip = drawClip{X: 10, Y: 20, Width: 100, Height: 40}
 	root := &Layout{
-		Shape:    &Shape{Width: 800, Height: 600},
+		Shape: &Shape{
+			Width: 800, Height: 600,
+			shapeClip: drawClip{Width: 800, Height: 600},
+		},
 		Children: []Layout{child},
 	}
 	e := &Event{MouseX: 50, MouseY: 30, ScrollY: -3}

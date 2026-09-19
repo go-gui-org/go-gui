@@ -66,7 +66,7 @@ func TestEventFnTabCyclesFocus(t *testing.T) {
 func TestEventFnMouseDownSetsFocus(t *testing.T) {
 	w := newEventTestWindow()
 	w.layout = Layout{
-		Shape: &Shape{},
+		Shape: &Shape{shapeClip: drawClip{Width: 800, Height: 600}},
 		Children: []Layout{
 			{Shape: &Shape{
 				Focusable: true, ID: "f7",

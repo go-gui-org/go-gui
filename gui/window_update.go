@@ -433,10 +433,12 @@ func (w *Window) renderOnlyLocked() {
 
 // composeLayout wraps layer layouts into a single root.
 func composeLayout(layers []Layout, w *Window) Layout {
+	windowClip := w.windowRect()
 	return Layout{
 		Shape: w.allocShape(Shape{
-			Width:  float32(w.windowWidth),
-			Height: float32(w.windowHeight),
+			Width:     float32(w.windowWidth),
+			Height:    float32(w.windowHeight),
+			shapeClip: windowClip,
 		}),
 		Children: layers,
 	}
