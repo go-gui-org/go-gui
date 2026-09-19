@@ -116,7 +116,7 @@ and this project adheres to
 
 ### Changed
 
-- **Mouse-down hit testing skips clipped subtrees outside the pointer (#TBD)** —
+- **Mouse-down hit testing skips clipped subtrees outside the pointer (#703)** —
   dispatch no longer walks every descendant of a clipping container when the
   press is outside its visible bounds. Large interfaces with independent clipped
   panels avoid unnecessary traversal, while children of non-clipping containers
