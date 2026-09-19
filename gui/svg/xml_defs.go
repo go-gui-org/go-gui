@@ -184,6 +184,12 @@ func gradientCoordOrDefault(attrs map[string]string, attr string,
 func parseGradientStops(gradient *xmlNode) []gui.SvgGradientStop {
 	var stops []gui.SvgGradientStop
 	for i := range gradient.Children {
+		// Keep the first maxGradientStops stops. Extra stops
+		// add no visible detail and each one slows the
+		// per-vertex gradient scan.
+		if len(stops) >= maxGradientStops {
+			break
+		}
 		c := &gradient.Children[i]
 		if c.Name != "stop" {
 			continue

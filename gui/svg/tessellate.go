@@ -31,12 +31,25 @@ func clampStrokeWidthForScale(w, scale float32) float32 {
 	return w
 }
 
+// sanitizeTessScale maps a bad render scale to 1 (viewBox units).
+// Parser.Tessellate takes any caller value. NaN poisons the
+// tolerance test below (each compare is false) and forces full
+// subdivision of each curve. Zero and negative scales do the same
+// through a zero or negative tolerance.
+func sanitizeTessScale(scale float32) float32 {
+	if math.IsNaN(float64(scale)) || math.IsInf(float64(scale), 0) ||
+		scale <= 0 {
+		return 1
+	}
+	return scale
+}
+
 // tessellatePaths tessellates an arbitrary set of VectorPaths,
 // using the VectorGraphic's clip paths and gradients.
 func (vg *vectorGraphic) tessellatePaths(paths []vectorPath, scale float32) []gui.TessellatedPath {
 	result := make([]gui.TessellatedPath, 0, len(paths)*2)
 
-	baseTol := 0.5 / scale
+	baseTol := 0.5 / sanitizeTessScale(scale)
 	tolerance := baseTol
 	floor := float32(0.15)
 	if vg.FlatnessTolerance > 0 {

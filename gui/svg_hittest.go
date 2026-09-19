@@ -47,8 +47,11 @@ func (tp *TessellatedPath) ContainsPoint(px, py float32) bool {
 }
 
 // pointInTri does a barycentric containment test. Mirrors the
-// internal helper in gui/svg/tessellate.go. Inlined here so the gui
-// package does not gain a dependency on gui/svg.
+// helper in gui/svg/tessellate_scanline.go, kept here so the gui
+// package does not gain a dependency on gui/svg (which imports
+// gui). Edges count as inside: a tap on the outline still hits.
+// The scanline copy uses a strict edge for ear-clip containment;
+// that difference is set and covered by each side's tests.
 func pointInTri(px, py, ax, ay, bx, by, cx, cy float32) bool {
 	v0x := cx - ax
 	v0y := cy - ay
@@ -62,7 +65,10 @@ func pointInTri(px, py, ax, ay, bx, by, cx, cy float32) bool {
 	dot11 := v1x*v1x + v1y*v1y
 	dot12 := v1x*v2x + v1y*v2y
 	denom := dot00*dot11 - dot01*dot01
-	if denom == 0 {
+	// Near-zero areas are slivers, not regions. The epsilon
+	// matches the scanline copy; without it a sliver inverts
+	// and reports hits far from the shape.
+	if f32Abs(denom) < 1e-10 {
 		return false
 	}
 	inv := 1 / denom

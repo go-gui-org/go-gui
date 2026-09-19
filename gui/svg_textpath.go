@@ -12,12 +12,33 @@ type cachedDefsPathData struct {
 	totalLen float32
 }
 
+const (
+	// maxSvgPathTokens caps the tokens kept from one path data
+	// string. The svg package caps parsed segments at 100000;
+	// this tokenizer cannot import that package (it imports
+	// gui), so it carries its own bound.
+	maxSvgPathTokens = 200000
+	// maxDefsPathFloats caps the flattened points kept per defs
+	// path (65536 points). Text on a path is decoration: past
+	// this size the loader keeps a prefix and drops the rest.
+	maxDefsPathFloats = 131072
+)
+
 // flattenDefsPath parses an SVG path d attribute and flattens it
 // to a polyline with coordinates scaled by scale. Supports M, L,
 // C, Q, A commands (absolute and relative).
 //
+// The gui package cannot reuse gui/svg/path.go (that package
+// imports gui), so this is a separate small parser for defs
+// paths only. Bounds and number guards live here, not there.
+//
 //nolint:gocyclo // SVG path command switch
 func flattenDefsPath(d string, scale float32) []float32 {
+	// A bad scale writes NaN or Inf into each point. The arc
+	// table check below drops such paths, but skip the work.
+	if !f32IsFinite(scale) || scale <= 0 {
+		return nil
+	}
 	tokens := tokenizeSvgPath(d)
 	if len(tokens) == 0 {
 		return nil
@@ -31,6 +52,11 @@ func flattenDefsPath(d string, scale float32) []float32 {
 	i := 0
 
 	for i < len(tokens) {
+		// Stop at the cap. The path keeps its prefix, which
+		// still gives a valid (if shorter) line for sampling.
+		if len(out) >= maxDefsPathFloats {
+			break
+		}
 		cmd := tokens[i]
 		i++
 
@@ -187,24 +213,8 @@ func flattenDefsPath(d string, scale float32) []float32 {
 			}
 
 		case "A", "a":
-			rel := cmd == "a"
-			for i+6 < len(tokens) && !isSvgCommand(tokens[i]) {
-				rx := parseFloat(tokens[i])
-				ry := parseFloat(tokens[i+1])
-				rot := parseFloat(tokens[i+2])
-				largeArc := parseFloat(tokens[i+3])
-				sweep := parseFloat(tokens[i+4])
-				x := parseFloat(tokens[i+5])
-				y := parseFloat(tokens[i+6])
-				i += 7
-				if rel {
-					x += cx
-					y += cy
-				}
-				flattenArc(&out, cx, cy, rx, ry, rot,
-					largeArc != 0, sweep != 0, x, y, scale)
-				cx, cy = x, y
-			}
+			flattenArcCmd(&out, tokens, &i, &cx, &cy,
+				cmd == "a", scale)
 
 		case "Z", "z":
 			cx, cy = startX, startY
@@ -215,14 +225,49 @@ func flattenDefsPath(d string, scale float32) []float32 {
 		}
 		lastCmd = cmd
 	}
+	// The loop checks the cap once per command letter. One letter
+	// with many implicit repeats ("L 1,1 2,2 ...") appends past it,
+	// so cut the tail here. The cap is even: no point is split.
+	if len(out) > maxDefsPathFloats {
+		out = out[:maxDefsPathFloats]
+	}
 	return out
 }
 
+// flattenArcCmd flattens one run of SVG arc commands from tokens
+// at index *i, appending to out and moving the current point.
+// Split from flattenDefsPath to keep that switch small.
+func flattenArcCmd(out *[]float32, tokens []string, i *int,
+	cx, cy *float32, rel bool, scale float32) {
+	for *i+6 < len(tokens) && !isSvgCommand(tokens[*i]) {
+		rx := parseFloat(tokens[*i])
+		ry := parseFloat(tokens[*i+1])
+		rot := parseFloat(tokens[*i+2])
+		largeArc := parseFloat(tokens[*i+3])
+		sweep := parseFloat(tokens[*i+4])
+		x := parseFloat(tokens[*i+5])
+		y := parseFloat(tokens[*i+6])
+		*i += 7
+		if rel {
+			x += *cx
+			y += *cy
+		}
+		flattenArc(out, *cx, *cy, rx, ry, rot,
+			largeArc != 0, sweep != 0, x, y, scale)
+		*cx, *cy = x, y
+	}
+}
+
 // tokenizeSvgPath splits an SVG path d attribute into command
-// letters and numeric tokens.
+// letters and numeric tokens. The result stops at
+// maxSvgPathTokens entries so a hostile data string cannot force
+// an unbounded slice.
 func tokenizeSvgPath(d string) []string {
 	tokens := make([]string, 0, len(d)/4+1)
 	for i := 0; i < len(d); {
+		if len(tokens) >= maxSvgPathTokens {
+			break
+		}
 		c := d[i]
 		if unicode.IsSpace(rune(c)) || c == ',' {
 			i++
@@ -293,6 +338,11 @@ func isSvgCommandRune(ch rune) bool {
 
 func parseFloat(s string) float32 {
 	v, _ := strconv.ParseFloat(s, 32)
+	// Bad tokens become 0, as in the svg package parser. NaN
+	// and Inf become 0 too: both poison the arc table math.
+	if math.IsNaN(v) || math.IsInf(v, 0) {
+		return 0
+	}
 	return float32(v)
 }
 
@@ -376,7 +426,8 @@ func flattenArc(out *[]float32,
 
 	num := rx*rx*ry*ry - rx*rx*y1p*y1p - ry*ry*x1p*x1p
 	den := rx*rx*y1p*y1p + ry*ry*x1p*x1p
-	if den == 0 {
+	// A non-positive test also catches NaN, which == 0 misses.
+	if !(den > 0) {
 		*out = append(*out, x*scale, y*scale)
 		return
 	}
@@ -404,6 +455,12 @@ func flattenArc(out *[]float32,
 	if sweepFlag && dtheta < 0 {
 		dtheta += 2 * math.Pi
 	}
+	// A bad angle reaches the step count as NaN, and int(NaN)
+	// is undefined. Fall back to a line on this arc.
+	if math.IsNaN(dtheta) || math.IsInf(dtheta, 0) {
+		*out = append(*out, x*scale, y*scale)
+		return
+	}
 
 	steps := int(math.Ceil(math.Abs(dtheta) / (math.Pi / 8)))
 	steps = max(steps, 4)
@@ -421,6 +478,11 @@ func vecAngle(ux, uy, vx, vy float64) float64 {
 	dot := ux*vx + uy*vy
 	lenU := math.Sqrt(ux*ux + uy*uy)
 	lenV := math.Sqrt(vx*vx + vy*vy)
+	// A zero vector has no angle. Without this, 0/0 is NaN and
+	// poisons the arc center math below.
+	if lenU == 0 || lenV == 0 {
+		return 0
+	}
 	d := dot / (lenU * lenV)
 	if d < -1 {
 		d = -1
@@ -435,6 +497,8 @@ func vecAngle(ux, uy, vx, vy float64) float64 {
 
 // buildArcLengthTable computes cumulative arc lengths along a
 // polyline. Returns (table, totalLength). polyline is [x0,y0, ...].
+// A bad total (empty, zero-length, or non-finite input) returns
+// (nil, 0) so callers drop the path instead of sampling NaN.
 func buildArcLengthTable(polyline []float32) ([]float32, float32) {
 	n := len(polyline) / 2
 	if n < 1 {
@@ -448,19 +512,39 @@ func buildArcLengthTable(polyline []float32) ([]float32, float32) {
 		table[i] = table[i-1] + float32(math.Sqrt(
 			float64(dx*dx+dy*dy)))
 	}
-	return table, table[n-1]
+	total := table[n-1]
+	// A non-finite total means bad input points. Return nil so
+	// callers drop the path. A zero total (one point, or all
+	// points equal) keeps its table; callers skip it on the
+	// totalLen <= 0 test.
+	if !f32IsFinite(total) {
+		return nil, 0
+	}
+	return table, total
 }
 
 // SamplePathAt returns (x, y, angle) at distance dist along the
-// polyline. Uses binary search on the arc-length table.
+// polyline. Uses binary search on the arc-length table. Bad
+// inputs (short slices, mismatched table, bad length, NaN
+// distance) return the first point or zeros, never NaN.
 func samplePathAt(polyline, table []float32,
 	dist float32) (float32, float32, float32) {
 	n := len(table)
 	if n < 2 {
-		if n == 1 {
+		if n == 1 && len(polyline) >= 2 {
 			return polyline[0], polyline[1], 0
 		}
 		return 0, 0, 0
+	}
+	if len(polyline) < n*2 {
+		return 0, 0, 0
+	}
+	total := table[n-1]
+	if !f32IsFinite(total) || !(total > 0) {
+		return polyline[0], polyline[1], 0
+	}
+	if math.IsNaN(float64(dist)) {
+		dist = 0
 	}
 	// Clamp before start.
 	if dist <= 0 {
@@ -469,7 +553,6 @@ func samplePathAt(polyline, table []float32,
 		return polyline[0], polyline[1],
 			float32(math.Atan2(float64(dy), float64(dx)))
 	}
-	total := table[n-1]
 	// Clamp beyond end.
 	if dist >= total {
 		last := (n - 1) * 2

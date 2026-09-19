@@ -2,6 +2,7 @@ package svg
 
 import (
 	"fmt"
+	"io"
 	"math"
 	"os"
 	"strconv"
@@ -247,17 +248,20 @@ func parseSvgFile(path string) (*vectorGraphic, error) {
 }
 
 func loadSvgFile(path string) ([]byte, error) {
-	info, err := os.Stat(path)
-	if err != nil {
-		return nil, fmt.Errorf("read SVG file: %w", err)
-	}
-	if info.Size() > maxSvgFileSize {
-		return nil, fmt.Errorf("SVG file too large: %d bytes", info.Size())
-	}
 	// #nosec G304 — path validated by caller through AllowedSvgRoots
-	data, err := os.ReadFile(path)
+	f, err := os.Open(path)
 	if err != nil {
 		return nil, fmt.Errorf("read SVG file: %w", err)
+	}
+	defer f.Close() //nolint:errcheck // read-only; no data in error
+	// Read with a cap, not Stat then ReadFile. The file can grow
+	// between the two calls, and the extra byte detects that case.
+	data, err := io.ReadAll(io.LimitReader(f, maxSvgFileSize+1))
+	if err != nil {
+		return nil, fmt.Errorf("read SVG file: %w", err)
+	}
+	if len(data) > maxSvgFileSize {
+		return nil, fmt.Errorf("SVG file too large: %d bytes", len(data))
 	}
 	return data, nil
 }

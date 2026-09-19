@@ -328,7 +328,7 @@ func TestSvgFilterBeginBalancedWithZeroBlurLayers(t *testing.T) {
 		}},
 	}
 	sm := StateMap[svgCacheKey, *CachedSvg](w, nsSvgCache, capImageCache)
-	sm.Set(buildSvgCacheLookupKey(hashString(src), 10, 10,
+	sm.Set(buildSvgCacheLookupKey(hashString(src), 0, 10, 10,
 		w.svgParseOpts()), cached)
 
 	shape := &Shape{
@@ -398,7 +398,7 @@ func TestSvgFilterBlurOverflowStaysBalanced(t *testing.T) {
 		}},
 	}
 	sm := StateMap[svgCacheKey, *CachedSvg](w, nsSvgCache, capImageCache)
-	sm.Set(buildSvgCacheLookupKey(hashString(src), 340, 340,
+	sm.Set(buildSvgCacheLookupKey(hashString(src), 0, 340, 340,
 		w.svgParseOpts()), cached)
 
 	shape := &Shape{

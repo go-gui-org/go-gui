@@ -43,22 +43,22 @@ func TestClampSvgCacheIDTruncates(t *testing.T) {
 
 func TestBuildSvgCacheLookupKeyDifferentiates(t *testing.T) {
 	base := SvgParseOpts{}
-	a := buildSvgCacheLookupKey(0, 10, 10, base)
+	a := buildSvgCacheLookupKey(0, 0, 10, 10, base)
 
 	flat := SvgParseOpts{FlatnessTolerance: 0.5}
-	b := buildSvgCacheLookupKey(0, 10, 10, flat)
+	b := buildSvgCacheLookupKey(0, 0, 10, 10, flat)
 	if a == b {
 		t.Errorf("flatness must produce distinct cache key")
 	}
 
 	hov := SvgParseOpts{HoveredElementID: "x"}
-	c := buildSvgCacheLookupKey(0, 10, 10, hov)
+	c := buildSvgCacheLookupKey(0, 0, 10, 10, hov)
 	if a == c {
 		t.Errorf("hovered id must produce distinct cache key")
 	}
 
 	foc := SvgParseOpts{FocusedElementID: "x"}
-	d := buildSvgCacheLookupKey(0, 10, 10, foc)
+	d := buildSvgCacheLookupKey(0, 0, 10, 10, foc)
 	if a == d {
 		t.Errorf("focused id must produce distinct cache key")
 	}
@@ -72,7 +72,7 @@ func TestBuildSvgCacheLookupKeySanitizesHostileInputs(t *testing.T) {
 		FlatnessTolerance: float32(math.NaN()),
 		HoveredElementID:  strings.Repeat("z", 5000),
 	}
-	k := buildSvgCacheLookupKey(0, 10, 10, bad)
+	k := buildSvgCacheLookupKey(0, 0, 10, 10, bad)
 	if k.flatness10000 != 0 {
 		t.Errorf("NaN flatness must quantize to 0, got %d", k.flatness10000)
 	}

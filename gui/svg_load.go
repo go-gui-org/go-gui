@@ -3,6 +3,7 @@ package gui
 import (
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"slices"
@@ -142,8 +143,13 @@ type svgCacheKey struct {
 	hoveredID string
 	focusedID string
 	srcHash   uint64
-	w10       int32
-	h10       int32
+	// contentHash marks the file state behind a file-backed
+	// source. Size plus mtime is not a full content check, but
+	// it catches each normal save while it costs one Stat call.
+	// Inline sources set 0: srcHash already covers the content.
+	contentHash uint64
+	w10         int32
+	h10         int32
 	// flatness10000 is FlatnessTolerance × 10000 quantized into an
 	// int. Zero (default) keeps fingerprint stable. Quantization
 	// avoids float NaN/Inf collisions in map keys.
@@ -273,6 +279,123 @@ func pathWithinRoot(path, root string) bool {
 		!strings.HasPrefix(rel, ".."+string(filepath.Separator)))
 }
 
+// svgDimEntry pairs cached SVG dimensions with the file state
+// they were read from. See svgCacheKey.contentHash.
+type svgDimEntry struct {
+	dims        [2]float32
+	contentHash uint64
+	// checkedAt is when contentHash was last confirmed against the
+	// file. Within svgFileRecheckInterval of it, a load trusts
+	// contentHash and makes no file system call.
+	checkedAt time.Time
+}
+
+// svgFileRecheckInterval bounds how often a file-backed SVG is
+// resolved and stat'ed to catch an edit. renderSvg and svgView
+// load each visible SVG every frame, under the frame lock. A
+// check per frame puts EvalSymlinks and two Stat calls (syscalls
+// and allocations) in the render pass. An edit shows up within
+// this interval instead.
+const svgFileRecheckInterval = 500 * time.Millisecond
+
+// freshSvgFingerprint returns the file fingerprint recorded for
+// srcHash when it was confirmed less than svgFileRecheckInterval
+// before now. It makes no file system call and no allocation, so
+// a cache hit stays free.
+func (w *Window) freshSvgFingerprint(srcHash uint64,
+	now time.Time) (svgDimEntry, bool) {
+	dc := StateMapRead[uint64, svgDimEntry](w, nsSvgDimCache)
+	if dc == nil {
+		return svgDimEntry{}, false
+	}
+	entry, ok := dc.Get(srcHash)
+	if !ok || entry.checkedAt.IsZero() {
+		return svgDimEntry{}, false
+	}
+	// A negative age means a checkedAt from the future: a restored
+	// snapshot or a wall-clock jump with no monotonic reading.
+	// Treat it as stale, or the file is never checked again.
+	age := now.Sub(entry.checkedAt)
+	if age < 0 || age >= svgFileRecheckInterval {
+		return svgDimEntry{}, false
+	}
+	return entry, true
+}
+
+// confirmSvgFingerprint restarts the recheck interval for srcHash
+// when the file still has the recorded contentHash. A changed file
+// is left alone: its entry holds dims of the old content, and the
+// parse that follows records the new state.
+func (w *Window) confirmSvgFingerprint(srcHash, contentHash uint64,
+	now time.Time) {
+	dc := StateMapRead[uint64, svgDimEntry](w, nsSvgDimCache)
+	if dc == nil {
+		return
+	}
+	entry, ok := dc.Get(srcHash)
+	if !ok || entry.contentHash != contentHash {
+		return
+	}
+	entry.checkedAt = now
+	dc.Set(srcHash, entry)
+}
+
+// restoreSvgFingerprint records the file state for srcHash after a
+// slow-path render-cache hit, when the dim entry is missing or
+// holds another contentHash. The dim cache and the render cache
+// evict on their own, so a render entry can outlive its dim entry.
+// With no entry, the fast path misses on every load, and each load
+// then resolves and stats the file again. The dims come from the
+// cached parse, which is the parse that the fingerprint matched.
+func (w *Window) restoreSvgFingerprint(srcHash, contentHash uint64,
+	cached *CachedSvg, now time.Time) {
+	if cached == nil || cached.Parsed == nil {
+		return
+	}
+	dc := StateMap[uint64, svgDimEntry](w, nsSvgDimCache, capModerate)
+	if entry, ok := dc.Get(srcHash); ok && entry.contentHash == contentHash {
+		return // confirmSvgFingerprint already refreshed it
+	}
+	dc.Set(srcHash, svgDimEntry{
+		dims:        [2]float32{cached.Parsed.Width, cached.Parsed.Height},
+		contentHash: contentHash,
+		checkedAt:   now,
+	})
+}
+
+// svgFileFingerprint reads the size and mtime of a resolved SVG
+// file path into a cache key. A failed Stat returns 0, which
+// disables the check for that load. The later parse then fails
+// with the real error.
+func svgFileFingerprint(resolvedSrc string) uint64 {
+	info, err := os.Stat(resolvedSrc)
+	if err != nil {
+		return 0
+	}
+	mixed := fnvU64(Fnv64Offset, uint64(info.Size()))
+	return fnvU64(mixed, uint64(info.ModTime().UnixNano()))
+}
+
+// readCappedSvgFile reads a resolved SVG file with a size cap.
+// The cap applies at read time, so growth between the Stat probe
+// in checkSvgSourceSize and this read cannot widen the buffer.
+func readCappedSvgFile(resolvedSrc string) ([]byte, error) {
+	// #nosec G304 — resolvedSrc validated through AllowedSvgRoots
+	f, err := os.Open(resolvedSrc)
+	if err != nil {
+		return nil, fmt.Errorf("SVG not found: %s", resolvedSrc)
+	}
+	defer f.Close() //nolint:errcheck // read-only; no data in error
+	data, err := io.ReadAll(io.LimitReader(f, maxSvgSourceBytes+1))
+	if err != nil {
+		return nil, fmt.Errorf("SVG not found: %s", resolvedSrc)
+	}
+	if int64(len(data)) > maxSvgSourceBytes {
+		return nil, errors.New("SVG file too large")
+	}
+	return data, nil
+}
+
 // checkSvgSourceSize validates SVG source size.
 func checkSvgSourceSize(svgSrc string) error {
 	if strings.HasPrefix(svgSrc, "<") {
@@ -363,19 +486,46 @@ func (w *Window) LoadSvgWithOpts(svgSrc string, width, height float32,
 
 func (w *Window) loadSvgWithOpts(svgSrc string, width, height float32,
 	opts SvgParseOpts) (*CachedSvg, error) {
+	// Fast path: this runs per visible SVG per frame, from the
+	// render pass. An inline source is its own content, and a file
+	// confirmed within svgFileRecheckInterval keeps its recorded
+	// fingerprint, so neither touches the file system on a hit.
+	inline := strings.HasPrefix(svgSrc, "<")
 	srcHash := hashString(svgSrc)
-	cacheKey := buildSvgCacheLookupKey(srcHash, width, height, opts)
-
+	now := time.Now()
+	var contentHash uint64
+	known := inline
+	if !inline {
+		var entry svgDimEntry
+		entry, known = w.freshSvgFingerprint(srcHash, now)
+		contentHash = entry.contentHash
+	}
 	sm := StateMapRead[svgCacheKey, *CachedSvg](w, nsSvgCache)
-	if sm != nil {
+	if known && sm != nil {
+		cacheKey := buildSvgCacheLookupKey(srcHash, contentHash,
+			width, height, opts)
 		if cached, ok := sm.Get(cacheKey); ok {
 			return cached, nil
 		}
 	}
 
+	// Slow path: resolve, then read the file state. An unchanged
+	// file still hits the cache here.
 	resolvedSrc, err := w.resolveAndCheckSvgSource(svgSrc)
 	if err != nil {
 		return nil, err
+	}
+	if !inline {
+		contentHash = svgFileFingerprint(resolvedSrc)
+		w.confirmSvgFingerprint(srcHash, contentHash, now)
+		if sm != nil {
+			cacheKey := buildSvgCacheLookupKey(srcHash, contentHash,
+				width, height, opts)
+			if cached, ok := sm.Get(cacheKey); ok {
+				w.restoreSvgFingerprint(srcHash, contentHash, cached, now)
+				return cached, nil
+			}
+		}
 	}
 
 	if w.svgParser == nil {
@@ -388,9 +538,13 @@ func (w *Window) loadSvgWithOpts(svgSrc string, width, height float32,
 		return nil, err
 	}
 
-	// Cache dimensions.
-	dimCache := StateMap[uint64, [2]float32](w, nsSvgDimCache, capModerate)
-	dimCache.Set(srcHash, [2]float32{parsed.Width, parsed.Height})
+	// Cache dimensions with the file state they came from.
+	dimCache := StateMap[uint64, svgDimEntry](w, nsSvgDimCache, capModerate)
+	dimCache.Set(srcHash, svgDimEntry{
+		dims:        [2]float32{parsed.Width, parsed.Height},
+		contentHash: contentHash,
+		checkedAt:   now,
+	})
 
 	// Compute scale. preserveAspectRatio="<align> meet" → fit
 	// (min); "<align> slice" → fill (max). Alignment offset is
@@ -473,10 +627,17 @@ func (w *Window) loadSvgWithOpts(svgSrc string, width, height float32,
 		defsPathData:     defsPathData,
 	}
 
-	// Cache if vertex count is reasonable.
+	// Cache if vertex count is reasonable. Filtered groups
+	// count too: without them a filter-heavy file skips the cap
+	// while it still fills the vertex budget.
 	totalVerts := 0
 	for _, p := range renderPaths {
 		totalVerts += len(p.Triangles)
+	}
+	for _, g := range filteredGroups {
+		for _, p := range g.renderPaths {
+			totalVerts += len(p.Triangles)
+		}
 	}
 	const maxCachedVerts = 1_250_000
 	if totalVerts <= maxCachedVerts {
@@ -484,7 +645,8 @@ func (w *Window) loadSvgWithOpts(svgSrc string, width, height float32,
 		svgCache.evictToBudget(svgCacheMaxMemory,
 			cached.estimateMemory(),
 			func(c *CachedSvg) int { return c.estimateMemory() })
-		svgCache.Set(cacheKey, cached)
+		svgCache.Set(buildSvgCacheLookupKey(srcHash, contentHash,
+			width, height, opts), cached)
 	}
 	return cached, nil
 }
@@ -492,17 +654,38 @@ func (w *Window) loadSvgWithOpts(svgSrc string, width, height float32,
 // GetSvgDimensions returns natural SVG dimensions without full
 // parse+tessellate. Uses cached dimensions when available.
 func (w *Window) getSvgDimensions(svgSrc string) (float32, float32, error) {
+	// Fast path, as in loadSvgWithOpts: svgView asks every frame,
+	// so a recently confirmed file makes no file system call.
+	inline := strings.HasPrefix(svgSrc, "<")
 	srcHash := hashString(svgSrc)
-	dimCache := StateMapRead[uint64, [2]float32](w, nsSvgDimCache)
-	if dimCache != nil {
-		if dims, ok := dimCache.Get(srcHash); ok {
-			return dims[0], dims[1], nil
+	now := time.Now()
+	dimCache := StateMapRead[uint64, svgDimEntry](w, nsSvgDimCache)
+	if inline {
+		if dimCache != nil {
+			if entry, ok := dimCache.Get(srcHash); ok {
+				return entry.dims[0], entry.dims[1], nil
+			}
 		}
+	} else if entry, ok := w.freshSvgFingerprint(srcHash, now); ok {
+		return entry.dims[0], entry.dims[1], nil
 	}
 
+	// Slow path: resolve, then compare the file state with the
+	// recorded one.
 	resolvedSrc, err := w.resolveAndCheckSvgSource(svgSrc)
 	if err != nil {
 		return 0, 0, err
+	}
+	var contentHash uint64
+	if !inline {
+		contentHash = svgFileFingerprint(resolvedSrc)
+		if dimCache != nil {
+			if entry, ok := dimCache.Get(srcHash); ok &&
+				entry.contentHash == contentHash {
+				w.confirmSvgFingerprint(srcHash, contentHash, now)
+				return entry.dims[0], entry.dims[1], nil
+			}
+		}
 	}
 
 	if w.svgParser == nil {
@@ -510,13 +693,12 @@ func (w *Window) getSvgDimensions(svgSrc string) (float32, float32, error) {
 	}
 
 	var content string
-	if strings.HasPrefix(svgSrc, "<") {
+	if inline {
 		content = svgSrc
 	} else {
-		// #nosec G304 — resolvedSrc validated through AllowedSvgRoots
-		data, err := os.ReadFile(resolvedSrc)
+		data, err := readCappedSvgFile(resolvedSrc)
 		if err != nil {
-			return 0, 0, fmt.Errorf("SVG not found: %s", resolvedSrc)
+			return 0, 0, err
 		}
 		content = string(data)
 	}
@@ -526,8 +708,12 @@ func (w *Window) getSvgDimensions(svgSrc string) (float32, float32, error) {
 		return 0, 0, err
 	}
 
-	dc := StateMap[uint64, [2]float32](w, nsSvgDimCache, capModerate)
-	dc.Set(srcHash, [2]float32{svgW, svgH})
+	dc := StateMap[uint64, svgDimEntry](w, nsSvgDimCache, capModerate)
+	dc.Set(srcHash, svgDimEntry{
+		dims:        [2]float32{svgW, svgH},
+		contentHash: contentHash,
+		checkedAt:   now,
+	})
 	return svgW, svgH, nil
 }
 
@@ -548,7 +734,7 @@ func (w *Window) removeSvgFromCache(svgSrc string) {
 		}
 	}
 
-	dimCache := StateMapRead[uint64, [2]float32](w, nsSvgDimCache)
+	dimCache := StateMapRead[uint64, svgDimEntry](w, nsSvgDimCache)
 	if dimCache != nil {
 		dimCache.Delete(srcHash)
 	}
@@ -563,7 +749,7 @@ func (w *Window) clearSvgCache() {
 	if svgCache != nil {
 		svgCache.Clear()
 	}
-	dimCache := StateMapRead[uint64, [2]float32](w, nsSvgDimCache)
+	dimCache := StateMapRead[uint64, svgDimEntry](w, nsSvgDimCache)
 	if dimCache != nil {
 		dimCache.Clear()
 	}

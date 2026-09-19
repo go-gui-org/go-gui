@@ -2,6 +2,7 @@ package gui
 
 import (
 	"math"
+	"unicode/utf8"
 
 	glyph "github.com/go-gui-org/go-glyph"
 )
@@ -145,7 +146,10 @@ func cachedSvgTextPathDraws(textPaths []SvgTextPath,
 			continue
 		}
 		cached, ok := defsPathData[tp.PathID]
-		if !ok || len(cached.polyline) < 4 || cached.totalLen <= 0 {
+		// A NaN total passes a plain <= 0 test (each compare
+		// is false), so test finiteness first.
+		if !ok || len(cached.polyline) < 4 ||
+			!f32IsFinite(cached.totalLen) || cached.totalLen <= 0 {
 			continue
 		}
 		ts := buildSvgTextStyle(tp.FontFamily, tp.FontWeight,
@@ -290,7 +294,7 @@ func buildDefsPathDataCache(
 			continue
 		}
 		table, totalLen := buildArcLengthTable(polyline)
-		if totalLen <= 0 {
+		if table == nil || !f32IsFinite(totalLen) || totalLen <= 0 {
 			continue
 		}
 		cached[pathID] = cachedDefsPathData{
@@ -306,12 +310,14 @@ func buildDefsPathDataCache(
 }
 
 func buildSvgCacheLookupKey(
-	srcHash uint64, width, height float32, opts SvgParseOpts,
+	srcHash, contentHash uint64, width, height float32,
+	opts SvgParseOpts,
 ) svgCacheKey {
 	return svgCacheKey{
 		srcHash:       srcHash,
-		w10:           int32(width * 10),
-		h10:           int32(height * 10),
+		contentHash:   contentHash,
+		w10:           quantizeSvgDim(width),
+		h10:           quantizeSvgDim(height),
 		reducedMotion: opts.PrefersReducedMotion,
 		flatness10000: quantizeFlatness(opts.FlatnessTolerance),
 		hoveredID:     clampSvgCacheID(opts.HoveredElementID),
@@ -336,9 +342,37 @@ func quantizeFlatness(t float32) int32 {
 	return int32(scaled)
 }
 
+// quantizeSvgDim maps a display width or height into the int32
+// cache key slot. NaN and Inf collapse to 0. Without this guard,
+// `int32(NaN*10)` is undefined and huge values overflow.
+func quantizeSvgDim(v float32) int32 {
+	v64 := float64(v)
+	if math.IsNaN(v64) || math.IsInf(v64, 0) {
+		return 0
+	}
+	scaled := v64 * 10
+	if scaled > float64(math.MaxInt32) {
+		return math.MaxInt32
+	}
+	if scaled < float64(math.MinInt32) {
+		return math.MinInt32
+	}
+	return int32(scaled)
+}
+
 func clampSvgCacheID(s string) string {
-	if len(s) > maxSvgCacheElementIDLen {
-		return s[:maxSvgCacheElementIDLen]
+	if len(s) <= maxSvgCacheElementIDLen {
+		return s
+	}
+	s = s[:maxSvgCacheElementIDLen]
+	// Drop a trailing partial rune. The svg package cuts IDs the
+	// same way, so both layers hash the same hostile string.
+	for len(s) > 0 {
+		r, size := utf8.DecodeLastRuneInString(s)
+		if r != utf8.RuneError || size > 1 {
+			break
+		}
+		s = s[:len(s)-1]
 	}
 	return s
 }

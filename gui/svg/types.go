@@ -22,6 +22,11 @@ const (
 	// against a pathological input that lists thousands of
 	// semicolon-separated entries.
 	maxKeyframes = 256
+	// maxGradientStops caps the color stops kept per gradient.
+	// Real assets use a handful; the renderer scans stops per
+	// vertex, so an uncapped list turns one hostile gradient
+	// into an O(vertices x stops) slowdown.
+	maxGradientStops = 256
 )
 
 // Tessellation and stroke constants.

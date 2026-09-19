@@ -321,6 +321,13 @@ func earClip(polygon []float32) []float32 {
 	if n < 3 {
 		return nil
 	}
+	// Drop polygons with bad vertices. A NaN vertex passes the
+	// area tests below and ends in the GPU vertex buffer.
+	for _, v := range polygon {
+		if !finiteF32(v) {
+			return nil
+		}
+	}
 	// Strip trailing duplicate
 	if n > 3 {
 		lx := polygon[(n-1)*2]

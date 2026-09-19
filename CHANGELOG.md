@@ -178,6 +178,30 @@ and this project adheres to
 
 ### Fixed
 
+- **SVG hardening** — from a review of the `svg*` code:
+  - File-backed SVGs no longer serve stale art after an edit. The render cache
+    keyed the file path alone; it now mixes in file size and mtime, and the
+    dimension cache checks the same mark before a hit. The file is checked again
+    at most every 500 ms, so an edit shows up within that time and a cache hit
+    in the render pass makes no file system call and no allocation.
+  - The vertex-count cache cap now counts filtered-group paths. Before, a
+    filter-heavy file skipped the cap while it still filled the vertex budget.
+  - Defs-path flattening for text-on-a-path is bounded (token and point caps),
+    rejects a bad scale, and drops non-finite geometry instead of caching it.
+    `parseFloat` maps overflow to 0, and arc sampling guards a zero-vector
+    angle, a bad sweep angle, and bad sampler inputs.
+  - Tessellation maps a NaN, Inf, or non-positive scale to 1. Before, NaN forced
+    full subdivision of each curve. Ear clipping drops polygons with non-finite
+    vertices instead of emitting them.
+  - A gradient keeps the first 256 color stops. Before, an uncapped stop list
+    slowed the per-vertex gradient scan without bound.
+  - A missing or malformed opacity keeps its fallback instead of turning the
+    element transparent.
+  - Display-size and flatness cache keys map NaN, Inf, and overflow to a fixed
+    value instead of an undefined integer cast, and ID truncation keeps rune
+    boundaries the same way the parser does.
+  - File reads are size-capped at read time, so growth between the size probe
+    and the read cannot widen the buffer.
 - **Root view panic leaked `genDepth` (#689)** — `updateLocked` incremented
   `viewState.genDepth` around the root view function without `defer`, so a panic
   skipped the decrement. The leaked depth stuck across later good frames

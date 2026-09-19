@@ -20,12 +20,17 @@ func applyOpacity(c gui.SvgColor, opacity float32) gui.SvgColor {
 }
 
 // parseOpacityAttr extracts an opacity value from element attrs.
+// A missing or malformed value returns the fallback, so a typo
+// never turns an element transparent. The result stays in [0,1].
 func parseOpacityAttr(elem, name string, fallback float32) float32 {
 	val, ok := findAttrOrStyle(elem, name)
 	if !ok {
 		return fallback
 	}
-	o := parseFloatTrimmed(val)
+	o, ok := parseFloatStrict(val)
+	if !ok {
+		return fallback
+	}
 	if o < 0 {
 		return 0
 	}
