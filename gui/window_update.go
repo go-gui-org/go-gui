@@ -341,6 +341,12 @@ func (w *Window) updateLocked() {
 
 	if len(w.layout.Children) > 0 {
 		w.scratch.layerLayouts.put(w.layout.Children)
+		// put parks the backing array in the pool for this frame's
+		// take. Drop the live header so a panic in the view cannot
+		// leave w.layout.Children aliasing that array (a second put
+		// on the next frame would then truncate the same buffer
+		// while the old tree still pointed at it).
+		w.layout.Children = nil
 	}
 
 	t := w.Config.Timings
@@ -356,12 +362,7 @@ func (w *Window) updateLocked() {
 	// access scratch pools (frame-scoped, single-goroutine), atomic
 	// inputCursorOn, and animations (guarded by w.animMu).
 	w.mu.Unlock()
-	// The root view function is generation too, so a resolve made in
-	// its body is correctly timed and must not be reported as a
-	// depth-zero call. The empty scope it sees is the real one.
-	w.viewState.genDepth++
-	view := w.viewGenerator(w)
-	w.viewState.genDepth--
+	view := w.generateRootView()
 	rootLayout := generateViewLayout(view, w)
 	w.mu.Lock()
 	defer w.mu.Unlock()
@@ -410,6 +411,18 @@ func (w *Window) updateLocked() {
 			RenderBuild:   t3.Sub(t2),
 		}
 	}
+}
+
+// generateRootView runs the window's view function inside a generation
+// depth bracket. The root view function is generation too, so a resolve
+// made in its body is correctly timed and must not be reported as a
+// depth-zero call. generateViewLayout already defers its own decrement
+// so a panic in a child cannot leak genDepth; this call site has to do
+// the same, or a panic here leaves genDepth at 1 forever (issue #689).
+func (w *Window) generateRootView() View {
+	w.viewState.genDepth++
+	defer func() { w.viewState.genDepth-- }()
+	return w.viewGenerator(w)
 }
 
 // updateRenderOnly rebuilds renderers from the existing layout, then
