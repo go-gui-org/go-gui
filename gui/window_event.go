@@ -127,6 +127,14 @@ func (w *Window) handleUnfocusedEvent() {
 	// The key up of a held Space goes to the window that now has focus,
 	// so the press would never end: cancel it without a click.
 	w.clearKeyPress()
+	// The release of a held pointer goes there too, and a drag would
+	// keep its lock with no button held: cancel the gesture without
+	// committing it, and close popups that belong to this window.
+	// MouseCancel clears the press target and the held button with
+	// the lock, so IsPressed cannot stick on (#691).
+	w.MouseCancel()
+	dismissPopups(w)
+	dismissFieldPopups(w)
 }
 
 func (w *Window) handleKeyDownEvent(layout *Layout, e *Event) {
@@ -264,6 +272,16 @@ func dismissPopups(w *Window) bool {
 	b := clearStateMap[string, rtfLinkMenuState](w, nsRtfLinkMenu)
 	c := clearStateMap[string, string](w, nsMenu)
 	return a || b || c
+}
+
+// dismissFieldPopups closes open select and combobox dropdowns. It
+// stays separate from dismissPopups on purpose: the mouse-down path
+// clears these only when nothing handled the press (so a click on
+// the field itself still toggles), while window-unfocus and a modal
+// dialog close them unconditionally — there is no toggle to protect.
+func dismissFieldPopups(w *Window) {
+	clearStateMap[string, bool](w, nsSelect)
+	clearStateMap[string, bool](w, nsCombobox)
 }
 
 // clearStateMap clears a state map if it exists and is non-empty.

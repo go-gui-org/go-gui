@@ -251,3 +251,49 @@ func enabledIDKey(s *Shape) string {
 	}
 	return s.idKey()
 }
+
+// fixupInteractionLocked repairs held pointer state against the
+// composed tree, next to fixupFocusLocked. A press whose target left
+// the tree or went disabled can never release cleanly: without this
+// the release fires a click on whatever took its place (#691, gap
+// 3). An open popup whose field is gone or disabled has nothing to
+// anchor to. A modal dialog ends pointer gestures outright — the
+// pointer still belongs to the user, but the background no longer
+// answers it. Runs under w.mu once per full Update; every arm is
+// guarded so a quiet frame pays one branch.
+func (w *Window) fixupInteractionLocked() {
+	if w.dialogCfg.visible {
+		w.viewState.pressTargetID = ""
+		if w.mouseIsLocked() {
+			w.MouseCancel()
+		}
+		dismissPopups(w)
+		dismissFieldPopups(w)
+		return
+	}
+	if id := w.viewState.pressTargetID; id != "" {
+		ly, ok := w.layout.findByID(id)
+		if !ok || ly.Shape.Disabled {
+			w.viewState.pressTargetID = ""
+		}
+	}
+	fixupPopupMaps(w)
+}
+
+// fixupPopupMaps closes popups whose field left the tree or went
+// disabled. Whole-map clearing is wrong here: one dead field must
+// not close its siblings' popups.
+func fixupPopupMaps(w *Window) {
+	for _, ns := range []string{nsSelect, nsCombobox} {
+		sm := StateMapRead[string, bool](w, ns)
+		if sm == nil || sm.Len() == 0 {
+			continue
+		}
+		for _, id := range sm.Keys() {
+			ly, ok := w.layout.findByID(id)
+			if !ok || ly.Shape.Disabled {
+				sm.Delete(id)
+			}
+		}
+	}
+}

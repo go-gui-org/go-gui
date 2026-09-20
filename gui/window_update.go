@@ -395,6 +395,10 @@ func (w *Window) updateLocked() {
 	// w.mu, ahead of the debug audit and renderer build, so neither
 	// sees the dead ID.
 	w.fixupFocusLocked()
+	// Repair held pointer state against the same tree: a press on a
+	// widget that just lost eligibility, a popup with no field, a
+	// drag under a new modal (#691).
+	w.fixupInteractionLocked()
 	// Dev-mode identity checks. One atomic load when the gate is off.
 	w.debugAudit(&w.layout)
 	w.buildRenderers(w.Config.BgColor, w.windowRect())

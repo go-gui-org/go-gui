@@ -719,8 +719,12 @@ func TestInteractionContract(t *testing.T) {
 				ctl := &contractCtl{}
 				w := contractWindow(ctl, row.build)
 				id := contractTarget(t, w, row)
-				clicksBefore := ctl.clicks
 				px, py := contractBegin(t, w, row, id)
+				// Baseline after the begin: the press itself may
+				// legitimately fire (buttons click on press), so
+				// the guard compares post-transition release
+				// against post-begin, not against zero.
+				clicksBefore := ctl.clicks
 				contractTransition(t, w, ctl, tr)
 				contractAssert(t, w, row, id, want)
 				if row.guardClicks &&
