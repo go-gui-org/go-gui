@@ -203,10 +203,22 @@ func (lv *virtualListView) GenerateLayout(w *Window) Layout {
 			Invisible: cfg.Invisible,
 		}, w))}
 
+	// Scrollbars ride along exactly as container() appends them for
+	// every other Scrollable: the list scrolled by wheel and drag but
+	// never painted a position indicator. cfg.ID is already effective
+	// here, which is what the bar resolves its scroll target from.
+	// An invisible list takes no bars: its shape stays hidden while
+	// its children still generate, and an interactive overlay on top
+	// of that would be the worse inconsistency.
+	content := virtualListChildren(cfg, m, w, first, last, lead, trail)
+	if !cfg.Invisible {
+		content = appendScrollbar(content, nil, scrollbarHorizontal, cfg.ID)
+		content = appendScrollbar(content, nil, scrollbarVertical, cfg.ID)
+	}
+
 	// The parent shape must exist before the children generate: their
 	// IDs resolve under its scope (see appendChildViews).
-	appendChildViews(w, &layout,
-		virtualListChildren(cfg, m, w, first, last, lead, trail))
+	appendChildViews(w, &layout, content)
 	return layout
 }
 

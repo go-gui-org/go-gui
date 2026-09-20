@@ -4,4 +4,9 @@ Text xy=42.00,50.00 wh=0.00,0.00 color=#1a1d2195 text="row 10" size=14.00
 Text xy=42.00,72.00 wh=0.00,0.00 color=#1a1d2195 text="row 11" size=14.00
 Text xy=42.00,94.00 wh=0.00,0.00 color=#1a1d2195 text="row 12" size=14.00
 Text xy=42.00,138.00 wh=0.00,0.00 color=#1a1d2195 text="row 13" size=14.00
+Clip xy=28.00,164.00 wh=264.00,7.00
+Clip xy=28.00,28.00 wh=264.00,132.00
+Clip xy=296.00,28.00 wh=7.00,132.00
+Rect xy=296.00,32.89 wh=7.00,16.00 color=#e0e5ec7f radius=4.00 fill
+Clip xy=28.00,28.00 wh=264.00,132.00
 Clip xy=0.00,0.00 wh=320.00,240.00

@@ -294,6 +294,12 @@ and this project adheres to
 
 ### Fixed
 
+- **`VirtualList` never painted scrollbars** — `GenerateLayout` built its
+  container through `buildContainerShape` and bypassed the `container()` path
+  that appends the auto scrollbar pair to every other scrollable, so the list
+  scrolled by wheel and drag with no position indicator while its own docstring
+  promised one. It now appends the stock auto bars (hidden when the rows fit);
+  the goldens record the thumb.
 - **`Select` with `Invisible` kept a live, focusable shape (#691)** — the
   factory built its container directly and bypassed the invisible-to-singleton
   mapping, so a hidden field parked focus on a dead ID and still answered hover.

@@ -173,8 +173,17 @@ func TestVirtualListProbesWhenHeightUnresolved(t *testing.T) {
 	// row here; at this corpus size that is a hang, so the probe
 	// window is the whole point.
 	first := generateViewLayout(v, w)
-	if n := len(first.Children); n > virtualListProbeRows+2 {
-		t.Fatalf("frame 1 children = %d, want a bounded probe", n)
+	// The auto scrollbar pair rides along as OverDraw children, so
+	// the probe bound counts rows and spacers only.
+	rows := 0
+	for i := range first.Children {
+		if first.Children[i].Shape.OverDraw {
+			continue
+		}
+		rows++
+	}
+	if rows > virtualListProbeRows+2 {
+		t.Fatalf("frame 1 children = %d, want a bounded probe", rows)
 	}
 	if len(first.Children) < 2 {
 		t.Fatal("probe frame built nothing")
@@ -465,5 +474,69 @@ func TestVirtualListDefaultsTakeNoHoverColor(t *testing.T) {
 	if cfg.Colors.BorderFocus != defaultListBoxStyle.Colors.BorderFocus {
 		t.Errorf("BorderFocus = %v, want the list box focus border %v",
 			cfg.Colors.BorderFocus, defaultListBoxStyle.Colors.BorderFocus)
+	}
+}
+
+// A VirtualList that overflows carries the same auto scrollbar pair
+// container() appends to every other Scrollable. GenerateLayout used
+// to bypass it through buildContainerShape, so the list scrolled by
+// wheel and drag but never painted a position indicator while its
+// own docstring promised a scrollbar that tightens as the reader
+// travels.
+func TestVirtualListCarriesScrollbars(t *testing.T) {
+	w := NewTestWindow(WindowCfg{})
+	view := func(*Window) View {
+		return VirtualList(VirtualListCfg{
+			ID:        "feed",
+			ItemCount: 5000,
+			Height:    200,
+			Sizing:    FillFixed,
+			ItemView: func(i int, _ float32) View {
+				return Rectangle(RectangleCfg{Height: 30, Sizing: FillFixed})
+			},
+		})
+	}
+	w.TestRender(view)
+	w.TestRender(view)
+	feed, ok := w.layout.FindByID("feed")
+	if !ok {
+		t.Fatal("feed not found")
+	}
+	bar := findScrollbar(t, feed, scrollbarVertical)
+	thumb := bar.Children[thumbIndex].Shape
+	if thumb.Color == ColorTransparent {
+		t.Fatal("vertical thumb transparent despite 5000-row overflow")
+	}
+	if thumb.Height <= 0 || thumb.Height >= bar.Shape.Height {
+		t.Fatalf("thumb height %.1f is not a fraction of track %.1f",
+			thumb.Height, bar.Shape.Height)
+	}
+	findScrollbar(t, feed, scrollbarHorizontal)
+}
+
+// A list whose rows fit hides the thumb: the bars are auto, not
+// always-on.
+func TestVirtualListScrollbarHidesWhenFitting(t *testing.T) {
+	w := NewTestWindow(WindowCfg{})
+	view := func(*Window) View {
+		return VirtualList(VirtualListCfg{
+			ID:        "feed",
+			ItemCount: 2,
+			Height:    200,
+			Sizing:    FillFixed,
+			ItemView: func(i int, _ float32) View {
+				return Rectangle(RectangleCfg{Height: 30, Sizing: FillFixed})
+			},
+		})
+	}
+	w.TestRender(view)
+	w.TestRender(view)
+	feed, ok := w.layout.FindByID("feed")
+	if !ok {
+		t.Fatal("feed not found")
+	}
+	bar := findScrollbar(t, feed, scrollbarVertical)
+	if got := bar.Children[thumbIndex].Shape.Color; got != ColorTransparent {
+		t.Fatalf("thumb color = %v, want transparent: 2 rows fit", got)
 	}
 }
