@@ -159,10 +159,7 @@ func ExpandPanel(cfg ExpandPanelCfg) View {
 // applyExpandPanelDefaults fills zero-value color fields from the theme.
 func applyExpandPanelDefaults(cfg *ExpandPanelCfg) {
 	d := &defaultExpandPanelStyle
-	cfg.Colors = cfg.Colors.resolved(cfg.Color, themeColorSet(
-		d.Color, d.ColorHover, d.colorClick,
-		Color{}, d.ColorBorder, d.ColorBorderFocus,
-	))
+	cfg.Colors = cfg.Colors.resolved(cfg.Color, d.Colors)
 	cfg.Colors.applyTo(&cfg.Color, &cfg.ColorHover, &cfg.colorClick,
 		nil, &cfg.ColorBorder, &cfg.ColorBorderFocus)
 	if !cfg.Padding.IsSet() {

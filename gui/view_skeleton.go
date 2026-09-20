@@ -33,7 +33,7 @@ type SkeletonCfg struct {
 // Skeleton creates a skeleton shimmer placeholder view.
 func Skeleton(cfg SkeletonCfg) View {
 	if !cfg.Color.IsSet() {
-		cfg.Color = guiTheme.skeletonStyle.Color
+		cfg.Color = guiTheme.skeletonStyle.Colors.Base
 	}
 	if !cfg.ColorHighlight.IsSet() {
 		cfg.ColorHighlight = guiTheme.skeletonStyle.ColorHighlight

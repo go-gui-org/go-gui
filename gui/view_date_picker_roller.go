@@ -493,10 +493,10 @@ func applyRollerDefaults(cfg *DatePickerRollerCfg) {
 	}
 	d := &defaultDatePickerStyle
 	if !cfg.ColorBorder.IsSet() {
-		cfg.ColorBorder = d.ColorBorder
+		cfg.ColorBorder = d.Colors.Border
 	}
 	if !cfg.ColorBorderFocus.IsSet() {
-		cfg.ColorBorderFocus = d.ColorBorderFocus
+		cfg.ColorBorderFocus = d.Colors.BorderFocus
 	}
 	if !cfg.SizeBorder.IsSet() {
 		cfg.SizeBorder = Some(d.SizeBorder)

@@ -69,9 +69,9 @@ func TestLightThemeColors(t *testing.T) {
 		t.Errorf("light select = %v, want accent %v",
 			ThemeLight.ColorSelect, colorAccentLight)
 	}
-	if ThemeLight.ButtonStyle.ColorBorderFocus != colorAccentLight {
+	if ThemeLight.ButtonStyle.Colors.BorderFocus != colorAccentLight {
 		t.Errorf("light focus border = %v, want accent %v",
-			ThemeLight.ButtonStyle.ColorBorderFocus, colorAccentLight)
+			ThemeLight.ButtonStyle.Colors.BorderFocus, colorAccentLight)
 	}
 }
 

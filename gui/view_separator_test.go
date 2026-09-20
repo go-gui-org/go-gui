@@ -110,9 +110,9 @@ func TestSeparatorZeroColorFallsBackToTheme(t *testing.T) {
 	if sep == nil {
 		t.Fatal("separator shape not found")
 	}
-	if sep.Shape.Color != ThemeDark.separatorStyle.Color {
+	if sep.Shape.Color != ThemeDark.separatorStyle.Colors.Base {
 		t.Errorf("color = %v, want theme %v",
-			sep.Shape.Color, ThemeDark.separatorStyle.Color)
+			sep.Shape.Color, ThemeDark.separatorStyle.Colors.Base)
 	}
 }
 

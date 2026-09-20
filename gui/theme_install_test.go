@@ -136,11 +136,11 @@ func TestInstallThemeSkipsWhenUnchanged(t *testing.T) {
 
 	// Corrupt one mirror. installTheme must not rewrite it, proving the
 	// fast path took over once the theme was already installed.
-	saved := defaultButtonStyle.Color
-	defaultButtonStyle.Color = RGB(9, 9, 9)
+	saved := defaultButtonStyle.Colors.Base
+	defaultButtonStyle.Colors.Base = RGB(9, 9, 9)
 	w.installTheme()
-	got := defaultButtonStyle.Color
-	defaultButtonStyle.Color = saved
+	got := defaultButtonStyle.Colors.Base
+	defaultButtonStyle.Colors.Base = saved
 	if got != RGB(9, 9, 9) {
 		t.Error("installTheme rewrote mirrors for an already-installed theme")
 	}

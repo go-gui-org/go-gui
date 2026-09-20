@@ -312,7 +312,7 @@ func datePickerControls(
 			// one window keep separate focus and state identities.
 			ID:      ScopeID(cfgID, "month"),
 			Color:   ColorTransparent,
-			Colors:  ColorSet{Border: ColorTransparent}.resolved(ColorTransparent, themeButtonSet()),
+			Colors:  ColorSet{Border: ColorTransparent}.resolved(ColorTransparent, defaultButtonStyle.Colors),
 			OnClick: onToggle,
 			Content: []View{Text(TextCfg{
 				Text: monthLabel, TextStyle: cfg.TextStyle,
@@ -331,7 +331,7 @@ func datePickerControls(
 			// roller it dismisses.
 			ID:     ScopeID(cfgID, "done"),
 			Color:  ColorTransparent,
-			Colors: ColorSet{Border: ColorTransparent}.resolved(ColorTransparent, themeButtonSet()),
+			Colors: ColorSet{Border: ColorTransparent}.resolved(ColorTransparent, defaultButtonStyle.Colors),
 			OnClick: func(ctx EventCtx) {
 				datePickerRollerDismiss(cfgID, ctx.Window)
 				ctx.Consume()
@@ -346,7 +346,7 @@ func datePickerControls(
 			Button(ButtonCfg{
 				ID:      ScopeID(cfgID, "prev"),
 				Color:   ColorTransparent,
-				Colors:  ColorSet{Border: ColorTransparent}.resolved(ColorTransparent, themeButtonSet()),
+				Colors:  ColorSet{Border: ColorTransparent}.resolved(ColorTransparent, defaultButtonStyle.Colors),
 				OnClick: onPrev,
 				Content: []View{Text(TextCfg{
 					Text:      IconArrowLeft,
@@ -356,7 +356,7 @@ func datePickerControls(
 			Button(ButtonCfg{
 				ID:      ScopeID(cfgID, "next"),
 				Color:   ColorTransparent,
-				Colors:  ColorSet{Border: ColorTransparent}.resolved(ColorTransparent, themeButtonSet()),
+				Colors:  ColorSet{Border: ColorTransparent}.resolved(ColorTransparent, defaultButtonStyle.Colors),
 				OnClick: onNext,
 				Content: []View{Text(TextCfg{
 					Text:      IconArrowRight,
@@ -495,10 +495,7 @@ func datePickerCellSize(cfg *DatePickerCfg) float32 {
 
 func applyDatePickerDefaults(cfg *DatePickerCfg) {
 	d := &defaultDatePickerStyle
-	cfg.Colors = cfg.Colors.resolved(cfg.Color, themeColorSet(
-		d.Color, d.ColorHover, d.colorClick,
-		d.ColorFocus, d.ColorBorder, d.ColorBorderFocus,
-	))
+	cfg.Colors = cfg.Colors.resolved(cfg.Color, d.Colors)
 	if !cfg.ColorSelect.IsSet() {
 		cfg.ColorSelect = d.ColorSelect
 	}

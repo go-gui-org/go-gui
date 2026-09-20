@@ -427,10 +427,10 @@ func applyCommandPaletteDefaults(cfg *CommandPaletteCfg) {
 		cfg.Placeholder = "Type a command..."
 	}
 	if !cfg.Color.IsSet() {
-		cfg.Color = d.Color
+		cfg.Color = d.Colors.Base
 	}
 	if !cfg.ColorBorder.IsSet() {
-		cfg.ColorBorder = d.ColorBorder
+		cfg.ColorBorder = d.Colors.Border
 	}
 	// A caller-set ColorHighlight is an explicit override and wins
 	// over the theme's wash (subtleSlot). Resolved before the theme

@@ -112,7 +112,7 @@ func datePickerMonth(
 						opticalDigitLabel: true,
 						FocusDisabled:     true,
 						Color:             ColorTransparent,
-						Colors:            ColorSet{Border: ColorTransparent}.resolved(ColorTransparent, themeButtonSet()),
+						Colors:            ColorSet{Border: ColorTransparent}.resolved(ColorTransparent, defaultButtonStyle.Colors),
 						Disabled:          true,
 						MinWidth:          cellSize,
 						MaxWidth:          cellSize,
@@ -179,7 +179,7 @@ func datePickerMonth(
 				MaxWidth:          cellSize,
 				MaxHeight:         cellSize,
 				Color:             cellColor,
-				Colors:            ColorSet{Hover: colorHover, Click: cfg.ColorSelect, Border: borderColor}.resolved(cellColor, themeButtonSet()),
+				Colors:            ColorSet{Hover: colorHover, Click: cfg.ColorSelect, Border: borderColor}.resolved(cellColor, defaultButtonStyle.Colors),
 				SizeBorder:        SomeF(2),
 				Radius:            Some(radius),
 				Padding:           paddingThree,
@@ -269,7 +269,7 @@ func datePickerAdjacentCell(
 		// level with them.
 		opticalDigitLabel: true,
 		Color:             ColorTransparent,
-		Colors:            ColorSet{Border: ColorTransparent}.resolved(ColorTransparent, themeButtonSet()),
+		Colors:            ColorSet{Border: ColorTransparent}.resolved(ColorTransparent, defaultButtonStyle.Colors),
 		// An adjacent-month cell selects a day too — it just navigates
 		// first — so it takes the same cue as an in-month one.
 		Sound:         adjSound,

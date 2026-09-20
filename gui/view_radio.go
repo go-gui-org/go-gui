@@ -147,10 +147,7 @@ func Radio(cfg RadioCfg) View {
 
 func applyRadioDefaults(cfg *RadioCfg) {
 	d := &defaultRadioStyle
-	cfg.Colors = cfg.Colors.resolved(cfg.Color, themeColorSet(
-		d.Color, d.ColorHover, d.colorClick,
-		d.ColorFocus, d.ColorBorder, d.ColorBorderFocus,
-	))
+	cfg.Colors = cfg.Colors.resolved(cfg.Color, d.Colors)
 	if !cfg.ColorSelect.IsSet() {
 		cfg.ColorSelect = d.ColorSelect
 	}

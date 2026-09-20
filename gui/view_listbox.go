@@ -490,10 +490,7 @@ func listBoxOnKeyDown(
 
 func applyListBoxDefaults(cfg *ListBoxCfg) {
 	d := &defaultListBoxStyle
-	cfg.Colors = cfg.Colors.resolved(cfg.Color, themeColorSet(
-		d.Color, d.ColorHover, Color{},
-		Color{}, d.ColorBorder, d.ColorBorderFocus,
-	))
+	cfg.Colors = cfg.Colors.resolved(cfg.Color, d.Colors)
 	cfg.Colors.applyTo(&cfg.Color, &cfg.ColorHover, nil, nil,
 		&cfg.ColorBorder, &cfg.ColorBorderFocus)
 	// A caller-set ColorSelect is an explicit override and wins over

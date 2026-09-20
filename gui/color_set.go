@@ -89,31 +89,6 @@ func (cs ColorSet) resolve() ColorSet {
 	return cs
 }
 
-// themeColorSet packs a theme style's six flat colors into a ColorSet
-// so it can be handed to resolved. Theme styles keep their flat fields:
-// they are internal defaults, not caller-facing API, and each one holds
-// a different mix of extra colors that no shared struct would fit.
-func themeColorSet(base, hover, click, focus, border, borderFocus Color) ColorSet {
-	return ColorSet{
-		Base:        base,
-		Hover:       hover,
-		Click:       click,
-		Focus:       focus,
-		Border:      border,
-		BorderFocus: borderFocus,
-	}
-}
-
-// themeButtonSet returns the theme's button style as a ColorSet. It is
-// the seam for a construction site that hands Button a partial set:
-// resolving at the site makes the set self-contained instead of
-// relying on applyButtonDefaults to fill the unset fields (issue #342).
-func themeButtonSet() ColorSet {
-	d := &defaultButtonStyle
-	return themeColorSet(d.Color, d.ColorHover, d.colorClick,
-		d.ColorFocus, d.ColorBorder, d.ColorBorderFocus)
-}
-
 // resolved returns a fully-populated set: the caller's own fallbacks
 // first, then the theme for anything still unspecified.
 //

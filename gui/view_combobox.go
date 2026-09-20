@@ -474,10 +474,7 @@ func scrollEnsureVisible(
 
 func applyComboboxDefaults(cfg *ComboboxCfg) {
 	d := &defaultComboboxStyle
-	cfg.Colors = cfg.Colors.resolved(cfg.Color, themeColorSet(
-		d.Color, d.ColorHover, Color{},
-		d.ColorFocus, d.ColorBorder, d.ColorBorderFocus,
-	))
+	cfg.Colors = cfg.Colors.resolved(cfg.Color, d.Colors)
 	cfg.Colors.applyTo(&cfg.Color, &cfg.ColorHover, nil,
 		&cfg.ColorFocus, &cfg.ColorBorder, &cfg.ColorBorderFocus)
 	// A caller-set ColorHighlight is an explicit override and wins

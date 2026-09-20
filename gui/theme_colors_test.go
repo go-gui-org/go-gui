@@ -8,7 +8,7 @@ func TestWithColorsNilPreservesDefaults(t *testing.T) {
 	if updated.ColorBackground != theme.ColorBackground {
 		t.Error("nil override should preserve background")
 	}
-	if updated.ButtonStyle.Color != theme.ButtonStyle.Color {
+	if updated.ButtonStyle.Colors.Base != theme.ButtonStyle.Colors.Base {
 		t.Error("nil override should preserve button color")
 	}
 }
@@ -30,10 +30,10 @@ func TestWithColorsOverridesPropagates(t *testing.T) {
 	updated := theme.WithColors(ColorOverrides{
 		ColorInterior: newInterior,
 	})
-	if updated.ButtonStyle.Color != Blue {
+	if updated.ButtonStyle.Colors.Base != Blue {
 		t.Error("interior override should propagate to button color")
 	}
-	if updated.InputStyle.Color != Blue {
+	if updated.InputStyle.Colors.Base != Blue {
 		t.Error("interior override should propagate to input color")
 	}
 	if updated.dataGridStyle.ColorBackground != Blue {
@@ -50,7 +50,7 @@ func TestWithColorsOverridesBorder(t *testing.T) {
 	if updated.ColorBorder != Green {
 		t.Error("border should be overridden on theme")
 	}
-	if updated.ButtonStyle.ColorBorder != Green {
+	if updated.ButtonStyle.Colors.Border != Green {
 		t.Error("border should propagate to button")
 	}
 	if updated.rectangleStyle.ColorBorder != Green {
@@ -67,7 +67,7 @@ func TestWithColorsSelectPropagates(t *testing.T) {
 	if updated.ColorSelect != newSel {
 		t.Error("select should be overridden on theme")
 	}
-	if updated.radioStyle.ColorFocus != newSel {
+	if updated.radioStyle.Colors.Focus != newSel {
 		t.Error("select should propagate to radio focus")
 	}
 }
@@ -160,13 +160,13 @@ func TestWithColorsPreservesBorderFocusWithoutOverride(t *testing.T) {
 	theme := ThemeMaker(cfg)
 	newBg := Red
 	updated := theme.WithColors(ColorOverrides{ColorBackground: newBg})
-	if updated.ButtonStyle.ColorBorderFocus != cfg.ColorBorderFocus {
+	if updated.ButtonStyle.Colors.BorderFocus != cfg.ColorBorderFocus {
 		t.Errorf("ButtonStyle.ColorBorderFocus = %v, want %v",
-			updated.ButtonStyle.ColorBorderFocus, cfg.ColorBorderFocus)
+			updated.ButtonStyle.Colors.BorderFocus, cfg.ColorBorderFocus)
 	}
-	if updated.InputStyle.ColorBorderFocus != cfg.ColorBorderFocus {
+	if updated.InputStyle.Colors.BorderFocus != cfg.ColorBorderFocus {
 		t.Errorf("InputStyle.ColorBorderFocus = %v, want %v",
-			updated.InputStyle.ColorBorderFocus, cfg.ColorBorderFocus)
+			updated.InputStyle.Colors.BorderFocus, cfg.ColorBorderFocus)
 	}
 }
 
@@ -221,13 +221,13 @@ func TestWithColorsSelectAloneMovesAccentWhenAgree(t *testing.T) {
 	if updated.ColorAccentHover == theme.ColorAccentHover {
 		t.Error("accent hover did not re-derive from the new accent")
 	}
-	if updated.ButtonStylePrimary.Color != newSel {
+	if updated.ButtonStylePrimary.Colors.Base != newSel {
 		t.Errorf("primary button = %v, want %v",
-			updated.ButtonStylePrimary.Color, newSel)
+			updated.ButtonStylePrimary.Colors.Base, newSel)
 	}
-	if updated.ButtonStyle.ColorBorderFocus != newSel {
+	if updated.ButtonStyle.Colors.BorderFocus != newSel {
 		t.Errorf("border focus = %v, want %v (follow select while derived)",
-			updated.ButtonStyle.ColorBorderFocus, newSel)
+			updated.ButtonStyle.Colors.BorderFocus, newSel)
 	}
 }
 
@@ -272,9 +272,9 @@ func TestWithColorsTransparentOverrideWins(t *testing.T) {
 	updated := theme.WithColors(ColorOverrides{
 		ColorBorderFocus: ColorTransparent,
 	})
-	if updated.ButtonStyle.ColorBorderFocus != ColorTransparent {
+	if updated.ButtonStyle.Colors.BorderFocus != ColorTransparent {
 		t.Errorf("border focus = %v, want transparent %v",
-			updated.ButtonStyle.ColorBorderFocus, ColorTransparent)
+			updated.ButtonStyle.Colors.BorderFocus, ColorTransparent)
 	}
 }
 
@@ -292,9 +292,9 @@ func TestWithColorsSemanticFanOut(t *testing.T) {
 		t.Errorf("badge error = %v, want %v",
 			updated.badgeStyle.ColorError, newErr)
 	}
-	if updated.ButtonStyleDanger.Color != newErr {
+	if updated.ButtonStyleDanger.Colors.Base != newErr {
 		t.Errorf("danger button = %v, want %v",
-			updated.ButtonStyleDanger.Color, newErr)
+			updated.ButtonStyleDanger.Colors.Base, newErr)
 	}
 	if updated.ColorErrorSubtle == theme.ColorErrorSubtle {
 		t.Error("error subtle did not re-derive from the new error color")

@@ -271,9 +271,9 @@ func TestColorSwatchFocusRing(t *testing.T) {
 		t.Errorf("ring width = %v, want %v",
 			layer.Shape.SizeBorder, d.SizeBorder)
 	}
-	if layer.Shape.ColorBorder != d.ColorBorderFocus {
+	if layer.Shape.ColorBorder != d.Colors.BorderFocus {
 		t.Errorf("ring color = %v, want %v",
-			layer.Shape.ColorBorder, d.ColorBorderFocus)
+			layer.Shape.ColorBorder, d.Colors.BorderFocus)
 	}
 
 	// Without focus the layer keeps its resting hairline outline.

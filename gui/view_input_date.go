@@ -419,10 +419,7 @@ func requireDateFormat(widget, format string) {
 
 func applyInputDateDefaults(cfg *InputDateCfg) {
 	d := &defaultDatePickerStyle
-	cfg.Colors = cfg.Colors.resolved(cfg.Color, themeColorSet(
-		d.Color, d.ColorHover, d.colorClick,
-		d.ColorFocus, d.ColorBorder, d.ColorBorderFocus,
-	))
+	cfg.Colors = cfg.Colors.resolved(cfg.Color, d.Colors)
 	if !cfg.ColorSelect.IsSet() {
 		cfg.ColorSelect = d.ColorSelect
 	}

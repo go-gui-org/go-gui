@@ -37,7 +37,7 @@ func TestBadgeVariantColors(t *testing.T) {
 		variant badgeVariant
 		want    Color
 	}{
-		{badgeDefault, style.Color},
+		{badgeDefault, style.Colors.Base},
 		{BadgeInfo, style.colorInfo},
 		{BadgeSuccess, style.ColorSuccess},
 		{BadgeWarning, style.ColorWarning},

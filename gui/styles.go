@@ -338,18 +338,13 @@ func affineTransformIsIdentity(t glyph.AffineTransform) bool {
 // is caller vocabulary, the second a derivation. Do not export an
 // internal without moving its derivation into ThemeCfg.
 type buttonStyle struct {
-	Shadow           *BoxShadow
-	Gradient         *GradientDef
-	Padding          Padding
-	SizeBorder       float32
-	Radius           float32
-	BlurRadius       float32
-	Color            Color
-	ColorHover       Color
-	ColorFocus       Color
-	colorClick       Color
-	ColorBorder      Color
-	ColorBorderFocus Color
+	Shadow     *BoxShadow
+	Gradient   *GradientDef
+	Padding    Padding
+	SizeBorder float32
+	Radius     float32
+	BlurRadius float32
+	Colors     ColorSet
 }
 
 // ContainerStyle defines container visual properties.

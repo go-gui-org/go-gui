@@ -546,10 +546,7 @@ func selectScrollTo(cfg *SelectCfg, scrollID string, idx int, w *Window) {
 
 func applySelectDefaults(cfg *SelectCfg) {
 	d := &defaultSelectStyle
-	cfg.Colors = cfg.Colors.resolved(cfg.Color, themeColorSet(
-		d.Color, d.ColorHover, d.colorClick,
-		d.ColorFocus, d.ColorBorder, d.ColorBorderFocus,
-	))
+	cfg.Colors = cfg.Colors.resolved(cfg.Color, d.Colors)
 	cfg.Colors.applyTo(&cfg.Color, nil, nil,
 		&cfg.ColorFocus, &cfg.ColorBorder, &cfg.ColorBorderFocus)
 	// A caller-set ColorSelect is an explicit override and wins over

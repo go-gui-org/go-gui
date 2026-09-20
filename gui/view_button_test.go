@@ -263,17 +263,17 @@ func TestButtonVariantFills(t *testing.T) {
 			},
 		})
 	})
-	if c := mustShape(t, w, "sec").Color; c != defaultButtonStyle.Color {
-		t.Errorf("secondary fill = %v, want the plain button fill %v", c, defaultButtonStyle.Color)
+	if c := mustShape(t, w, "sec").Color; c != defaultButtonStyle.Colors.Base {
+		t.Errorf("secondary fill = %v, want the plain button fill %v", c, defaultButtonStyle.Colors.Base)
 	}
-	if c := mustShape(t, w, "pri").Color; c != ThemeDark.ButtonStylePrimary.Color {
-		t.Errorf("primary fill = %v, want the accent %v", c, ThemeDark.ButtonStylePrimary.Color)
+	if c := mustShape(t, w, "pri").Color; c != ThemeDark.ButtonStylePrimary.Colors.Base {
+		t.Errorf("primary fill = %v, want the accent %v", c, ThemeDark.ButtonStylePrimary.Colors.Base)
 	}
 	if c := mustShape(t, w, "gho").Color; !c.IsSet() {
 		t.Errorf("ghost fill = %v, want transparent", c)
 	}
-	if c := mustShape(t, w, "dng").Color; c != ThemeDark.ButtonStyleDanger.Color {
-		t.Errorf("danger fill = %v, want the error color %v", c, ThemeDark.ButtonStyleDanger.Color)
+	if c := mustShape(t, w, "dng").Color; c != ThemeDark.ButtonStyleDanger.Colors.Base {
+		t.Errorf("danger fill = %v, want the error color %v", c, ThemeDark.ButtonStyleDanger.Colors.Base)
 	}
 }
 
@@ -295,8 +295,8 @@ func TestButtonVariantColorsKeepPrecedence(t *testing.T) {
 	if !ok || ly.Shape.bc == nil {
 		t.Fatal("button colors record missing")
 	}
-	if c := ly.Shape.bc.ColorHover; c != ThemeDark.ButtonStylePrimary.ColorHover {
-		t.Errorf("hover = %v, want the variant's accent hover %v", c, ThemeDark.ButtonStylePrimary.ColorHover)
+	if c := ly.Shape.bc.ColorHover; c != ThemeDark.ButtonStylePrimary.Colors.Hover {
+		t.Errorf("hover = %v, want the variant's accent hover %v", c, ThemeDark.ButtonStylePrimary.Colors.Hover)
 	}
 }
 
@@ -371,9 +371,9 @@ func TestButtonVariantUnknownDegradesToSecondary(t *testing.T) {
 			})},
 		})
 	})
-	if c := mustShape(t, w, "weird").Color; c != defaultButtonStyle.Color {
+	if c := mustShape(t, w, "weird").Color; c != defaultButtonStyle.Colors.Base {
 		t.Errorf("unknown variant fill = %v, want the plain button fill %v",
-			c, defaultButtonStyle.Color)
+			c, defaultButtonStyle.Colors.Base)
 	}
 }
 

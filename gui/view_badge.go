@@ -37,7 +37,7 @@ type BadgeCfg struct {
 // circle; labeled mode renders text inside a rounded row.
 func Badge(cfg BadgeCfg) View {
 	if !cfg.Color.IsSet() {
-		cfg.Color = guiTheme.badgeStyle.Color
+		cfg.Color = guiTheme.badgeStyle.Colors.Base
 	}
 	if !cfg.Padding.IsSet() {
 		cfg.Padding = guiTheme.badgeStyle.Padding

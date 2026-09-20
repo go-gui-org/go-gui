@@ -54,7 +54,7 @@ func ProgressBar(cfg ProgressBarCfg) View {
 		cfg.TextStyle = guiTheme.progressBarStyle.TextStyle
 	}
 	if !cfg.Color.IsSet() {
-		cfg.Color = guiTheme.progressBarStyle.Color
+		cfg.Color = guiTheme.progressBarStyle.Colors.Base
 	}
 	if !cfg.ColorBar.IsSet() {
 		cfg.ColorBar = guiTheme.progressBarStyle.colorBar

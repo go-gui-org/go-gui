@@ -434,3 +434,37 @@ func TestVirtualListWidthRatchetWarns(t *testing.T) {
 		t.Fatalf("warned on a resize: %v", quiet)
 	}
 }
+
+// TestVirtualListDefaultsTakeNoHoverColor pins the one place where
+// VirtualList does not simply inherit defaultListBoxStyle.Colors. The
+// list box has a hover color; VirtualList has no hover path and no
+// ColorHover field, so the slot is left unset on purpose. Handing the
+// whole set to resolved would fill it, which is the accident this test
+// catches. Whether the omission is right is open (#717) — this test
+// records what the code does, so a change to it is deliberate.
+func TestVirtualListDefaultsTakeNoHoverColor(t *testing.T) {
+	if !defaultListBoxStyle.Colors.Hover.IsSet() {
+		t.Skip("list box style has no hover color to drop")
+	}
+	cfg := VirtualListCfg{ID: "vl"}
+	applyVirtualListDefaults(&cfg)
+
+	if cfg.Colors.Hover.IsSet() {
+		t.Errorf("Hover = %v, want unset: VirtualList has nowhere to "+
+			"paint it (#717)", cfg.Colors.Hover)
+	}
+	// The slots it does take must still arrive, or the widget loses
+	// its fill and its focus ring.
+	if cfg.Colors.Base != defaultListBoxStyle.Colors.Base {
+		t.Errorf("Base = %v, want the list box fill %v",
+			cfg.Colors.Base, defaultListBoxStyle.Colors.Base)
+	}
+	if cfg.Colors.Border != defaultListBoxStyle.Colors.Border {
+		t.Errorf("Border = %v, want the list box border %v",
+			cfg.Colors.Border, defaultListBoxStyle.Colors.Border)
+	}
+	if cfg.Colors.BorderFocus != defaultListBoxStyle.Colors.BorderFocus {
+		t.Errorf("BorderFocus = %v, want the list box focus border %v",
+			cfg.Colors.BorderFocus, defaultListBoxStyle.Colors.BorderFocus)
+	}
+}

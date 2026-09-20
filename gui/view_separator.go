@@ -29,7 +29,7 @@ func Separator(cfg SeparatorCfg) View {
 	}
 	color := cfg.Color
 	if !color.IsSet() {
-		color = style.Color
+		color = style.Colors.Base
 	}
 
 	// The rule itself is a borderless, radius-free box. Padding must be

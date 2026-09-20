@@ -107,8 +107,8 @@ func (tv *themePickerView) GenerateLayout(w *Window) Layout {
 	}
 	soundCue := resolveSoundCue(themeCue, cfg.Sound, cfg.SoundDisabled)
 
-	colorFocus := guiTheme.toggleStyle.ColorFocus
-	colorBorderFocus := guiTheme.toggleStyle.ColorBorderFocus
+	colorFocus := guiTheme.toggleStyle.Colors.Focus
+	colorBorderFocus := guiTheme.toggleStyle.Colors.BorderFocus
 
 	return generateViewLayout(Row(ContainerCfg{
 		ID:        cfg.ID,

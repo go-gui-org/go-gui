@@ -195,10 +195,7 @@ func Toggle(cfg ToggleCfg) View {
 
 func applyToggleDefaults(cfg *ToggleCfg) {
 	d := &defaultToggleStyle
-	cfg.Colors = cfg.Colors.resolved(cfg.Color, themeColorSet(
-		d.Color, d.ColorHover, d.colorClick,
-		d.ColorFocus, d.ColorBorder, d.ColorBorderFocus,
-	))
+	cfg.Colors = cfg.Colors.resolved(cfg.Color, d.Colors)
 	if cfg.TextSelect == "" {
 		cfg.TextSelect = "✓"
 	}

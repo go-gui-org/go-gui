@@ -370,7 +370,7 @@ func dockTabButton(
 			Padding:    NoPadding,
 			SizeBorder: NoBorder,
 			Color:      colorTab,
-			Colors:     ColorSet{Hover: guiTheme.ColorHover}.resolved(colorTab, themeButtonSet()),
+			Colors:     ColorSet{Hover: guiTheme.ColorHover}.resolved(colorTab, defaultButtonStyle.Colors),
 			Radius:     SomeF(2),
 			// SoundDisabled as well as Sound: a resolved SoundNone
 			// reads as "unset" inside ButtonCfg (issue #467).
@@ -403,7 +403,7 @@ func dockTabButton(
 		Radius:     NoRadius,
 		SizeBorder: NoBorder,
 		Color:      colorTab,
-		Colors:     ColorSet{Hover: colorHover}.resolved(colorTab, themeButtonSet()),
+		Colors:     ColorSet{Hover: colorHover}.resolved(colorTab, defaultButtonStyle.Colors),
 		// The cue marks selecting the panel, not the drag this handler
 		// also starts: dragging is phase 3's question (issue #467).
 		Sound:         tabSound,

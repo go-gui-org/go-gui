@@ -89,7 +89,7 @@ func TestRadioClickHoverChangesBorder(t *testing.T) {
 	w := newTestWindow()
 	v := Radio(RadioCfg{ID: "widget_test_test_radio_click_hover_changes_border", OnClick: noop, Label: "X"})
 	layout := generateViewLayout(v, w)
-	clickColor := defaultRadioStyle.colorClick
+	clickColor := defaultRadioStyle.Colors.Click
 	e := &Event{MouseButton: MouseLeft}
 	layout.Shape.events.OnHover(EventCtx{&layout, e, w})
 	got := layout.Children[0].Shape.ColorBorder
@@ -104,10 +104,10 @@ func TestRadioFocusBorder(t *testing.T) {
 	v := Radio(RadioCfg{OnClick: noop, ID: "f5"})
 	layout := generateViewLayout(v, w)
 	layout.Shape.events.AmendLayout(EventCtx{&layout, nil, w})
-	if layout.Children[0].Shape.ColorBorder != defaultRadioStyle.ColorBorderFocus {
+	if layout.Children[0].Shape.ColorBorder != defaultRadioStyle.Colors.BorderFocus {
 		t.Errorf("focus border = %v, want %v",
 			layout.Children[0].Shape.ColorBorder,
-			defaultRadioStyle.ColorBorderFocus)
+			defaultRadioStyle.Colors.BorderFocus)
 	}
 }
 
@@ -226,7 +226,7 @@ func TestToggleClickHoverChangesColor(t *testing.T) {
 	w := newTestWindow()
 	v := Toggle(ToggleCfg{ID: "widget_test_test_toggle_click_hover_changes_color", OnClick: noop})
 	layout := generateViewLayout(v, w)
-	clickColor := defaultToggleStyle.colorClick
+	clickColor := defaultToggleStyle.Colors.Click
 	e := &Event{MouseButton: MouseLeft}
 	layout.Shape.events.OnHover(EventCtx{&layout, e, w})
 	got := layout.Children[0].Shape.Color
@@ -241,10 +241,10 @@ func TestToggleFocusBorder(t *testing.T) {
 	v := Toggle(ToggleCfg{OnClick: noop, ID: "f5"})
 	layout := generateViewLayout(v, w)
 	layout.Shape.events.AmendLayout(EventCtx{&layout, nil, w})
-	if layout.Children[0].Shape.ColorBorder != defaultToggleStyle.ColorBorderFocus {
+	if layout.Children[0].Shape.ColorBorder != defaultToggleStyle.Colors.BorderFocus {
 		t.Errorf("focus border = %v, want %v",
 			layout.Children[0].Shape.ColorBorder,
-			defaultToggleStyle.ColorBorderFocus)
+			defaultToggleStyle.Colors.BorderFocus)
 	}
 }
 
@@ -254,11 +254,11 @@ func TestToggleDefaultStyles(t *testing.T) {
 	layout := generateViewLayout(v, w)
 	d := &defaultToggleStyle
 	box := layout.Children[0].Shape
-	if box.Color != d.Color {
-		t.Errorf("box color: got %v, want %v", box.Color, d.Color)
+	if box.Color != d.Colors.Base {
+		t.Errorf("box color: got %v, want %v", box.Color, d.Colors.Base)
 	}
-	if box.ColorBorder != d.ColorBorder {
-		t.Errorf("border color: got %v, want %v", box.ColorBorder, d.ColorBorder)
+	if box.ColorBorder != d.Colors.Border {
+		t.Errorf("border color: got %v, want %v", box.ColorBorder, d.Colors.Border)
 	}
 }
 
@@ -374,7 +374,7 @@ func TestSwitchClickHoverChangesColor(t *testing.T) {
 	w := newTestWindow()
 	v := Switch(SwitchCfg{ID: "widget_test_test_switch_click_hover_changes_color", OnClick: noop})
 	layout := generateViewLayout(v, w)
-	clickColor := defaultSwitchStyle.colorClick
+	clickColor := defaultSwitchStyle.Colors.Click
 	e := &Event{MouseButton: MouseLeft}
 	layout.Shape.events.OnHover(EventCtx{&layout, e, w})
 	got := layout.Children[0].Shape.Color
@@ -392,10 +392,10 @@ func TestSwitchFocusBorder(t *testing.T) {
 	// Focus paints the pill only; the outer row (which spans the
 	// label) stays untouched.
 	if layout.Children[0].Shape.ColorBorder !=
-		defaultSwitchStyle.ColorBorderFocus {
+		defaultSwitchStyle.Colors.BorderFocus {
 		t.Error("focused pill should have focus border color")
 	}
-	if layout.Shape.ColorBorder == defaultSwitchStyle.ColorBorderFocus {
+	if layout.Shape.ColorBorder == defaultSwitchStyle.Colors.BorderFocus {
 		t.Error("outer row should not be highlighted")
 	}
 }
@@ -415,11 +415,11 @@ func TestSwitchDefaultStyles(t *testing.T) {
 	layout := generateViewLayout(v, w)
 	d := &defaultSwitchStyle
 	pill := layout.Children[0].Shape
-	if pill.Color != d.Color {
-		t.Errorf("pill color: got %v, want %v", pill.Color, d.Color)
+	if pill.Color != d.Colors.Base {
+		t.Errorf("pill color: got %v, want %v", pill.Color, d.Colors.Base)
 	}
-	if pill.ColorBorder != d.ColorBorder {
-		t.Errorf("border color: got %v, want %v", pill.ColorBorder, d.ColorBorder)
+	if pill.ColorBorder != d.Colors.Border {
+		t.Errorf("border color: got %v, want %v", pill.ColorBorder, d.Colors.Border)
 	}
 }
 

@@ -6,8 +6,8 @@ func TestWithStyleMethodsSetsField(t *testing.T) {
 	var base Theme
 
 	// Verify a representative method properly sets its field.
-	got := base.withButtonStyle(buttonStyle{Color: RGBA(42, 0, 0, 0)})
-	if got.ButtonStyle.Color.R != 42 {
+	got := base.withButtonStyle(buttonStyle{Colors: ColorSet{Base: RGBA(42, 0, 0, 0)}})
+	if got.ButtonStyle.Colors.Base.R != 42 {
 		t.Error("WithButtonStyle did not set ButtonStyle.Color")
 	}
 	// Verify non-target fields are unchanged.

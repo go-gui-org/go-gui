@@ -41,7 +41,7 @@ func (theme *Theme) fillTextRungs(
 	// fills a neutral badge with ColorActive, a near-white, and
 	// drew a white label on it at contrast 1.26-1.32. Badge
 	// re-pairs per variant and per caller fill.
-	theme.badgeStyle.TextStyle.Color = textOnFor(theme.badgeStyle.Color)
+	theme.badgeStyle.TextStyle.Color = textOnFor(theme.badgeStyle.Colors.Base)
 
 	// Heading roles take B rungs (visual-refresh §2.2): a widget
 	// rendering a heading, a group-box title, a dialog title, a tab

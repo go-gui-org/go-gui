@@ -77,7 +77,7 @@ func focusRingBorderAmend(
 // amendAll drops — the control's own AmendLayout survives untouched.
 func colorControlFocusRing(cfg *ContainerCfg, key string) {
 	cfg.AmendLayout = amendAll(cfg.AmendLayout, focusRingBorderAmend(
-		key, focusRingBorderWidth, defaultColorPickerStyle.ColorBorderFocus))
+		key, focusRingBorderWidth, defaultColorPickerStyle.Colors.BorderFocus))
 }
 
 // amendAll runs several AmendLayout hooks in order, skipping nil ones,

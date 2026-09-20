@@ -50,7 +50,7 @@ func TestThemeMaker(t *testing.T) {
 	if theme.Name != "test" {
 		t.Errorf("name = %q", theme.Name)
 	}
-	if theme.ButtonStyle.Color != cfg.ColorInterior {
+	if theme.ButtonStyle.Colors.Base != cfg.ColorInterior {
 		t.Error("button color mismatch")
 	}
 	if theme.N1.Size != sizeTextXLarge {
@@ -93,14 +93,14 @@ func TestSetTheme(t *testing.T) {
 	t.Cleanup(func() { SetTheme(saved) })
 
 	theme := Theme{
-		ButtonStyle: buttonStyle{Color: Red},
-		treeStyle:   TreeStyle{ColorHover: Blue},
+		ButtonStyle: buttonStyle{Colors: ColorSet{Base: Red}},
+		treeStyle:   TreeStyle{Colors: ColorSet{Hover: Blue}},
 	}
 	SetTheme(theme)
-	if defaultButtonStyle.Color != Red {
+	if defaultButtonStyle.Colors.Base != Red {
 		t.Error("SetTheme should update DefaultButtonStyle")
 	}
-	if defaultTreeStyle.ColorHover != Blue {
+	if defaultTreeStyle.Colors.Hover != Blue {
 		t.Error("SetTheme should update DefaultTreeStyle")
 	}
 }
@@ -110,8 +110,7 @@ func TestWithColors(t *testing.T) {
 	theme := Theme{
 		ColorHover: RGB(1, 1, 1),
 		ButtonStyle: buttonStyle{
-			ColorHover:       RGB(1, 1, 1),
-			ColorBorderFocus: RGB(2, 2, 2),
+			Colors: ColorSet{Hover: RGB(1, 1, 1), BorderFocus: RGB(2, 2, 2)},
 		},
 	}
 	newHover := RGB(200, 200, 200)
@@ -121,7 +120,7 @@ func TestWithColors(t *testing.T) {
 	if updated.ColorHover != newHover {
 		t.Error("theme hover not updated")
 	}
-	if updated.ButtonStyle.ColorHover != newHover {
+	if updated.ButtonStyle.Colors.Hover != newHover {
 		t.Error("button hover not propagated")
 	}
 }
@@ -170,9 +169,9 @@ func TestAdjustFontSize(t *testing.T) {
 func TestWithButtonStyle(t *testing.T) {
 	t.Parallel()
 	theme := Theme{}
-	s := buttonStyle{Color: Blue}
+	s := buttonStyle{Colors: ColorSet{Base: Blue}}
 	updated := theme.withButtonStyle(s)
-	if updated.ButtonStyle.Color != Blue {
+	if updated.ButtonStyle.Colors.Base != Blue {
 		t.Error("WithButtonStyle not applied")
 	}
 }
@@ -260,7 +259,7 @@ func TestWithColorsSlider(t *testing.T) {
 	updated := theme.WithColors(ColorOverrides{
 		ColorHover: hover,
 	})
-	if updated.sliderStyle.ColorHover != hover {
+	if updated.sliderStyle.Colors.Hover != hover {
 		t.Error("slider hover not propagated")
 	}
 }
@@ -269,9 +268,9 @@ func TestThemeMakerTreeStyle(t *testing.T) {
 	t.Parallel()
 	cfg := baseDarkCfg()
 	theme := ThemeMaker(cfg)
-	if theme.treeStyle.ColorHover != cfg.ColorHover {
+	if theme.treeStyle.Colors.Hover != cfg.ColorHover {
 		t.Errorf("TreeStyle.ColorHover = %v, want %v",
-			theme.treeStyle.ColorHover, cfg.ColorHover)
+			theme.treeStyle.Colors.Hover, cfg.ColorHover)
 	}
 	if theme.treeStyle.indent != 25 {
 		t.Errorf("TreeStyle.Indent = %f, want 25",

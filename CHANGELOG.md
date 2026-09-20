@@ -116,6 +116,26 @@ and this project adheres to
 
 ### Changed
 
+- **BREAKING: theme style structs carry a `ColorSet`, not six flat color fields
+  (#716)** — the 24 widget style structs on `Theme` (`InputStyle`,
+  `SelectStyle`, `ListBoxStyle`, `MenubarStyle` and the rest) replace their
+  `Color`, `ColorHover`, `ColorFocus`, `colorClick`, `ColorBorder` and
+  `ColorBorderFocus` fields with one `Colors ColorSet`. The same six colors had
+  three spellings — flat fields on the theme, a `ColorSet` on the `Cfg`, and the
+  `themeColorSet`/`themeButtonSet` repackers that converted one into the other
+  on the view path every frame. Both repackers are gone. Each widget now hands
+  its theme defaults straight to `resolved`, which is what #690's shared state
+  picker needs to exist at all.
+
+  Rename at the call site, one to one, on every style struct: `X.Color` →
+  `X.Colors.Base`, `X.ColorHover` → `X.Colors.Hover`, `X.ColorFocus` →
+  `X.Colors.Focus`, `X.ColorBorder` → `X.Colors.Border`, `X.ColorBorderFocus` →
+  `X.Colors.BorderFocus`. Per-widget colors that are not interaction state —
+  `ColorSelect`, `ColorSelectSubtle`, `ColorHighlight`, `ScrollbarStyle` and
+  `SplitterStyle` — do not move. `Cfg` fields do not move either:
+  `Button(gui.Cfg{Color: c})` and `Cfg{Colors: gui.Flat(c)}` are unchanged. No
+  color changes: the golden tests pass unrecorded.
+
 - **Pointer hit testing skips subtrees outside the pointer (#704)** —
   mouse-move, mouse-down, mouse-up and scroll-fallback dispatch no longer walk
   descendants whose inherited clip cannot contain the pointer. Non-clipping

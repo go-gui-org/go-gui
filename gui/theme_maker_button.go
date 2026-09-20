@@ -16,36 +16,38 @@ func deriveButtonStyles(
 	cfg ThemeCfg, accent, accentHover, accentPressed, colorError, borderFocus Color,
 ) (buttonBase, buttonPrimary, buttonGhost, buttonDanger buttonStyle) {
 	buttonBase = buttonStyle{
-		Color:            cfg.ColorInterior,
-		ColorHover:       cfg.ColorHover,
-		ColorFocus:       cfg.ColorActive,
-		colorClick:       cfg.ColorFocus,
-		ColorBorder:      cfg.ColorBorder,
-		ColorBorderFocus: borderFocus,
-		Padding:          paddingButton,
-		SizeBorder:       cfg.SizeBorder,
-		Radius:           cfg.Radius,
+		Colors: ColorSet{
+			Base:        cfg.ColorInterior,
+			Hover:       cfg.ColorHover,
+			Click:       cfg.ColorFocus,
+			Focus:       cfg.ColorActive,
+			Border:      cfg.ColorBorder,
+			BorderFocus: borderFocus,
+		},
+		Padding:    paddingButton,
+		SizeBorder: cfg.SizeBorder,
+		Radius:     cfg.Radius,
 	}
 	errorHover := ColorToHSLA(colorError)
 	errorHover.L = f32Clamp(errorHover.L+0.12, 0, 1)
 	errorPressed := ColorToHSLA(colorError)
 	errorPressed.L = f32Clamp(errorPressed.L-0.12, 0, 1)
 	buttonPrimary = buttonBase
-	buttonPrimary.Color = accent
-	buttonPrimary.ColorHover = accentHover
-	buttonPrimary.colorClick = accentPressed
-	buttonPrimary.ColorFocus = accent
-	buttonPrimary.ColorBorder = accent
+	buttonPrimary.Colors.Base = accent
+	buttonPrimary.Colors.Hover = accentHover
+	buttonPrimary.Colors.Click = accentPressed
+	buttonPrimary.Colors.Focus = accent
+	buttonPrimary.Colors.Border = accent
 	buttonGhost = buttonBase
-	buttonGhost.Color = ColorTransparent
-	buttonGhost.ColorHover = cfg.ColorHover
-	buttonGhost.ColorFocus = ColorTransparent
-	buttonGhost.ColorBorder = ColorTransparent
+	buttonGhost.Colors.Base = ColorTransparent
+	buttonGhost.Colors.Hover = cfg.ColorHover
+	buttonGhost.Colors.Focus = ColorTransparent
+	buttonGhost.Colors.Border = ColorTransparent
 	buttonDanger = buttonBase
-	buttonDanger.Color = colorError
-	buttonDanger.ColorHover = errorHover.Color()
-	buttonDanger.colorClick = errorPressed.Color()
-	buttonDanger.ColorFocus = colorError
-	buttonDanger.ColorBorder = colorError
+	buttonDanger.Colors.Base = colorError
+	buttonDanger.Colors.Hover = errorHover.Color()
+	buttonDanger.Colors.Click = errorPressed.Color()
+	buttonDanger.Colors.Focus = colorError
+	buttonDanger.Colors.Border = colorError
 	return buttonBase, buttonPrimary, buttonGhost, buttonDanger
 }

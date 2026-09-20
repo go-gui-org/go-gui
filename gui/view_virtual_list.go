@@ -134,10 +134,16 @@ func VirtualList(cfg VirtualListCfg) View {
 // how rows are sized, not in how a list looks.
 func applyVirtualListDefaults(cfg *VirtualListCfg) {
 	d := &defaultListBoxStyle
-	cfg.Colors = cfg.Colors.resolved(cfg.Color, themeColorSet(
-		d.Color, Color{}, Color{},
-		Color{}, d.ColorBorder, d.ColorBorderFocus,
-	))
+	// Fill and borders only. The list box's hover color is not passed
+	// through: VirtualList has no hover path and no ColorHover field,
+	// so it has nowhere to land. Whether that is right is open — the
+	// doc comment above says the two widgets should look alike, and
+	// hovering a row is part of how a list looks (#717).
+	cfg.Colors = cfg.Colors.resolved(cfg.Color, ColorSet{
+		Base:        d.Colors.Base,
+		Border:      d.Colors.Border,
+		BorderFocus: d.Colors.BorderFocus,
+	})
 	cfg.Colors.applyTo(&cfg.Color, nil, nil, nil,
 		&cfg.ColorBorder, &cfg.ColorBorderFocus)
 	if !cfg.Padding.IsSet() {

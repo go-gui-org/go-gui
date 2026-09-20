@@ -205,12 +205,10 @@ Most widgets have a default style struct in `styles_widget.go`:
 // In styles_widget.go
 
 type ToggleStyle struct {
-    Color            Color
-    ColorFocus       Color
-    ColorHover       Color
-    ColorClick       Color
-    ColorBorder      Color
-    ColorBorderFocus Color
+    // Colors holds the six per-state colors: Base, Hover, Click,
+    // Focus, Border and BorderFocus. Extra colors a single widget
+    // needs, like ColorSelect, stay as their own fields.
+    Colors           ColorSet
     ColorSelect      Color
     Padding          Padding
     Size             float32
@@ -231,10 +229,7 @@ field as the `Base` shorthand:
 ```go
 func applyToggleDefaults(cfg *ToggleCfg) {
     d := &DefaultToggleStyle
-    cfg.Colors = cfg.Colors.resolved(cfg.Color, themeColorSet(
-        d.Color, d.ColorHover, d.ColorClick,
-        d.ColorFocus, d.ColorBorder, d.ColorBorderFocus,
-    ))
+    cfg.Colors = cfg.Colors.resolved(cfg.Color, d.Colors)
     if cfg.TextSelect == "" {
         cfg.TextSelect = "✓"
     }

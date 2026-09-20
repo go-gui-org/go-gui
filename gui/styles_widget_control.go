@@ -9,9 +9,8 @@ type ProgressBarStyle struct {
 	Size           float32
 	SizeBorder     float32
 	Radius         float32
-	Color          Color
+	Colors         ColorSet
 	colorBar       Color
-	ColorBorder    Color
 	textBackground Color
 	TextShow       bool
 }
@@ -19,19 +18,14 @@ type ProgressBarStyle struct {
 // SliderStyle defines slider visual properties.
 // exportaudit:keep — reachable from an exported signature
 type SliderStyle struct {
-	Size             float32
-	ThumbSize        float32
-	Color            Color
-	colorClick       Color
-	colorThumb       Color
-	colorLeft        Color
-	ColorFocus       Color
-	ColorHover       Color
-	ColorBorder      Color
-	ColorBorderFocus Color
-	Padding          Padding
-	SizeBorder       float32
-	Radius           float32
+	Size       float32
+	ThumbSize  float32
+	Colors     ColorSet
+	colorThumb Color
+	colorLeft  Color
+	Padding    Padding
+	SizeBorder float32
+	Radius     float32
 }
 
 // TabControlStyle defines tab control visual properties.
@@ -54,8 +48,7 @@ type TabControlStyle struct {
 	radiusTab           float32
 	Spacing             float32
 	spacingHeader       float32
-	Color               Color
-	ColorBorder         Color
+	Colors              ColorSet
 	ColorHeader         Color
 	colorHeaderBorder   Color
 	colorContent        Color
@@ -89,8 +82,7 @@ type BreadcrumbStyle struct {
 	spacingTrail       float32
 	SizeBorder         float32
 	sizeContentBorder  float32
-	Color              Color
-	ColorBorder        Color
+	Colors             ColorSet
 	colorTrail         Color
 	colorCrumb         Color
 	colorCrumbHover    Color
@@ -130,14 +122,12 @@ type TableStyle struct {
 	columnWidthDefault float32
 	columnWidthMin     float32
 	SizeBorder         float32
-	ColorBorder        Color
-	ColorBorderFocus   Color
+	Colors             ColorSet
 	ColorSelect        Color
 	// ColorSelectSubtle is the tint behind a selected row: the wash,
 	// never the full accent slab — focus is the ring, not a second
 	// fill (visual-refresh §4.3).
 	ColorSelectSubtle Color
-	ColorHover        Color
 	alignHead         HorizontalAlign
 }
 
@@ -154,11 +144,7 @@ type ComboboxStyle struct {
 	MinWidth          float32
 	MaxWidth          float32
 	maxDropdownHeight float32
-	Color             Color
-	ColorHover        Color
-	ColorFocus        Color
-	ColorBorder       Color
-	ColorBorderFocus  Color
+	Colors            ColorSet
 	ColorHighlight    Color
 	// ColorHighlightSubtle is the tint behind the highlighted
 	// dropdown row: the wash, never the full accent slab — focus is
@@ -178,8 +164,7 @@ type CommandPaletteStyle struct {
 	Radius         float32
 	Width          float32
 	MaxHeight      float32
-	Color          Color
-	ColorBorder    Color
+	Colors         ColorSet
 	ColorHighlight Color
 	// ColorHighlightSubtle is the tint behind the highlighted row:
 	// the wash, never the full accent slab (visual-refresh §4.3).
@@ -196,26 +181,22 @@ type MenubarStyle struct {
 	// off the content behind it. The menubar strip itself is flush
 	// with the window chrome and takes no elevation, so this is
 	// applied only where the menu actually floats.
-	Shadow           *BoxShadow
-	Padding          Padding
-	paddingMenuItem  Padding
-	paddingSubmenu   Padding
-	paddingSubtitle  Padding
-	widthSubmenuMin  float32
-	widthSubmenuMax  float32
-	SizeBorder       float32
-	Radius           float32
-	radiusBorder     float32
-	radiusSubmenu    float32
-	radiusMenuItem   float32
-	Spacing          float32
-	spacingSubmenu   float32
-	Color            Color
-	ColorHover       Color
-	ColorFocus       Color
-	ColorBorder      Color
-	ColorBorderFocus Color
-	ColorSelect      Color
+	Shadow          *BoxShadow
+	Padding         Padding
+	paddingMenuItem Padding
+	paddingSubmenu  Padding
+	paddingSubtitle Padding
+	widthSubmenuMin float32
+	widthSubmenuMax float32
+	SizeBorder      float32
+	Radius          float32
+	radiusBorder    float32
+	radiusSubmenu   float32
+	radiusMenuItem  float32
+	Spacing         float32
+	spacingSubmenu  float32
+	Colors          ColorSet
+	ColorSelect     Color
 	// ColorTextOnSelect is the text color drawn over the selected
 	// menu item. Resolved by ThemeMaker; unset themes keep body text.
 	ColorTextOnSelect Color
@@ -224,20 +205,15 @@ type MenubarStyle struct {
 // DatePickerStyle defines date picker visual properties.
 // exportaudit:keep — reachable from an exported signature
 type DatePickerStyle struct {
-	TextStyle        TextStyle
-	Shadow           *BoxShadow
-	Padding          Padding
-	cellSpacing      float32
-	SizeBorder       float32
-	Radius           float32
-	radiusBorder     float32
-	Color            Color
-	ColorHover       Color
-	ColorFocus       Color
-	colorClick       Color
-	ColorBorder      Color
-	ColorBorderFocus Color
-	ColorSelect      Color
+	TextStyle    TextStyle
+	Shadow       *BoxShadow
+	Padding      Padding
+	cellSpacing  float32
+	SizeBorder   float32
+	Radius       float32
+	radiusBorder float32
+	Colors       ColorSet
+	ColorSelect  Color
 	// ColorTextOnSelect is the text color drawn over ColorSelect
 	// fills. Resolved by ThemeMaker; unset themes keep body text.
 	ColorTextOnSelect    Color
@@ -250,21 +226,19 @@ type DatePickerStyle struct {
 // ColorPickerStyle defines color picker visual properties.
 // exportaudit:keep — reachable from an exported signature
 type ColorPickerStyle struct {
-	TextStyle        TextStyle
-	SizeBorder       float32
-	Radius           float32
-	sVSize           float32
-	sliderHeight     float32
-	indicatorSize    float32
-	Color            Color
-	ColorBorder      Color
-	ColorBorderFocus Color
+	TextStyle     TextStyle
+	SizeBorder    float32
+	Radius        float32
+	sVSize        float32
+	sliderHeight  float32
+	indicatorSize float32
+	Colors        ColorSet
 }
 
 // SkeletonStyle defines skeleton loader visual properties.
 // exportaudit:keep — reachable from an exported signature
 type SkeletonStyle struct {
-	Color          Color
+	Colors         ColorSet
 	ColorHighlight Color
 	Radius         float32
 }

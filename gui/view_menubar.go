@@ -157,10 +157,7 @@ func menubarBuild(w *Window, cfg MenubarCfg) View {
 
 func applyMenubarDefaults(cfg *MenubarCfg) {
 	d := &defaultMenubarStyle
-	cfg.Colors = cfg.Colors.resolved(cfg.Color, themeColorSet(
-		d.Color, d.ColorHover, Color{},
-		d.ColorFocus, d.ColorBorder, d.ColorBorderFocus,
-	))
+	cfg.Colors = cfg.Colors.resolved(cfg.Color, d.Colors)
 	cfg.Colors.applyTo(&cfg.Color, nil, nil, nil,
 		&cfg.ColorBorder, nil)
 	if !cfg.ColorSelect.IsSet() {

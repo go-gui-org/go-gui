@@ -71,7 +71,7 @@ func TestSkeletonA11YLabelDefault(t *testing.T) {
 func TestSkeletonThemeColor(t *testing.T) {
 	v := Skeleton(SkeletonCfg{ID: "s7"})
 	layout := generateViewLayout(v, &Window{})
-	want := guiTheme.skeletonStyle.Color
+	want := guiTheme.skeletonStyle.Colors.Base
 	if layout.Shape.Color != want {
 		t.Errorf("color = %v, want %v",
 			layout.Shape.Color, want)

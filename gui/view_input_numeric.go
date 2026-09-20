@@ -569,10 +569,7 @@ func numericModeCfgFromInput(cfg NumericInputCfg) numericModeCfg {
 
 func applyNumericInputDefaults(cfg *NumericInputCfg) {
 	d := &defaultInputStyle
-	cfg.Colors = cfg.Colors.resolved(cfg.Color, themeColorSet(
-		d.Color, d.ColorHover, d.colorClick,
-		d.ColorFocus, d.ColorBorder, d.ColorBorderFocus,
-	))
+	cfg.Colors = cfg.Colors.resolved(cfg.Color, d.Colors)
 	cfg.Colors.applyTo(&cfg.Color, &cfg.ColorHover, nil, nil,
 		&cfg.ColorBorder, &cfg.ColorBorderFocus)
 	if !cfg.Padding.IsSet() {

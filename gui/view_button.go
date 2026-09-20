@@ -440,10 +440,7 @@ func CommandButton(cmdID string, cfg ButtonCfg) View {
 // §6). d is the style the variant resolved to — the mirror for the
 // zero-value secondary, a Theme style otherwise.
 func applyButtonDefaults(cfg *ButtonCfg, d *buttonStyle) {
-	cfg.Colors = cfg.Colors.resolved(cfg.Color, themeColorSet(
-		d.Color, d.ColorHover, d.colorClick,
-		d.ColorFocus, d.ColorBorder, d.ColorBorderFocus,
-	))
+	cfg.Colors = cfg.Colors.resolved(cfg.Color, d.Colors)
 	if !cfg.Padding.IsSet() {
 		cfg.Padding = d.Padding
 	}

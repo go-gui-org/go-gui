@@ -359,7 +359,7 @@ func TestColorControlFocusRingComposesAndSkipsUnset(t *testing.T) {
 		t.Errorf("ring width = %v, want %v",
 			shape.SizeBorder, focusRingBorderWidth)
 	}
-	if want := defaultColorPickerStyle.ColorBorderFocus; shape.ColorBorder != want {
+	if want := defaultColorPickerStyle.Colors.BorderFocus; shape.ColorBorder != want {
 		t.Errorf("ring colour = %v, want the theme's %v", shape.ColorBorder, want)
 	}
 
@@ -393,7 +393,7 @@ func TestRegisteredThemesCarryColorPickerFocusColor(t *testing.T) {
 			if !ok {
 				t.Fatalf("theme %q not found", name)
 			}
-			color := th.colorPickerStyle.ColorBorderFocus
+			color := th.colorPickerStyle.Colors.BorderFocus
 			if !color.IsSet() {
 				t.Error("colorPickerStyle.ColorBorderFocus is unset")
 			}

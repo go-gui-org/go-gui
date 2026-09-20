@@ -118,7 +118,7 @@ func splitterButton(cfg *SplitterCfg, core *splitterCore,
 		// are not a state the widget produces today.
 		AmendLayout:   centerGlyphOnInk(icon, ts),
 		Color:         cfg.ColorButton,
-		Colors:        ColorSet{Hover: cfg.ColorButtonHover, Click: cfg.ColorButtonActive, Focus: cfg.ColorButtonHover}.resolved(cfg.ColorButton, themeButtonSet()),
+		Colors:        ColorSet{Hover: cfg.ColorButtonHover, Click: cfg.ColorButtonActive, Focus: cfg.ColorButtonHover}.resolved(cfg.ColorButton, defaultButtonStyle.Colors),
 		Radius:        cfg.RadiusBorder,
 		Sound:         btnSound,
 		SoundDisabled: btnSound == SoundNone,

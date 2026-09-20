@@ -71,7 +71,7 @@ func scrollColumn(scrollID string, focusID string, text string, w *gui.Window) g
 
 	var colorBorder gui.Color
 	if w.IsFocus(focusID) {
-		colorBorder = theme.ButtonStyle.ColorBorderFocus
+		colorBorder = theme.ButtonStyle.Colors.BorderFocus
 	} else {
 		colorBorder = theme.ContainerStyle.Color
 	}

@@ -488,10 +488,7 @@ func applyTreeDefaults(cfg *TreeCfg) {
 	if !cfg.Spacing.IsSet() {
 		cfg.Spacing = Some(d.Spacing)
 	}
-	cfg.Colors = cfg.Colors.resolved(cfg.Color, themeColorSet(
-		d.Color, d.ColorHover, Color{},
-		d.ColorFocus, d.ColorBorder, Color{},
-	))
+	cfg.Colors = cfg.Colors.resolved(cfg.Color, d.Colors)
 	cfg.Colors.applyTo(&cfg.Color, &cfg.ColorHover, nil,
 		&cfg.ColorFocus, &cfg.ColorBorder, nil)
 	if !cfg.Padding.IsSet() {

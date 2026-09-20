@@ -8,7 +8,7 @@ import (
 
 func TestDefaultInputStyleColors(t *testing.T) {
 	s := ThemeDark.InputStyle
-	if s.Color.eq(Color{}) {
+	if s.Colors.Base.eq(Color{}) {
 		t.Error("input color should not be zero")
 	}
 	if s.Radius != radiusMedium {
@@ -50,7 +50,7 @@ func TestDefaultWidgetStylesRadius(t *testing.T) {
 
 func TestDefaultDialogStyle(t *testing.T) {
 	s := ThemeDark.dialogStyle
-	if s.Color.eq(Color{}) {
+	if s.Colors.Base.eq(Color{}) {
 		t.Error("dialog color should not be zero")
 	}
 	if s.Radius != radiusMedium {
@@ -124,7 +124,7 @@ func TestEffectiveTextTransformDefault(t *testing.T) {
 
 func TestDefaultTreeStyle(t *testing.T) {
 	s := ThemeDark.treeStyle
-	if !s.ColorHover.IsSet() {
+	if !s.Colors.Hover.IsSet() {
 		t.Error("tree hover color should be set")
 	}
 	if s.Radius != radiusMedium {

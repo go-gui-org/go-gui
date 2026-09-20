@@ -129,10 +129,7 @@ type TableCfg struct {
 
 func applyTableDefaults(cfg *TableCfg) {
 	s := &defaultTableStyle
-	cfg.Colors = cfg.Colors.resolved(Color{}, themeColorSet(
-		Color{}, s.ColorHover, Color{},
-		Color{}, s.ColorBorder, s.ColorBorderFocus,
-	))
+	cfg.Colors = cfg.Colors.resolved(Color{}, s.Colors)
 	cfg.Colors.applyTo(nil, &cfg.ColorHover, nil, nil,
 		&cfg.ColorBorder, &cfg.ColorBorderFocus)
 	// A caller-set ColorSelect is an explicit override and wins over

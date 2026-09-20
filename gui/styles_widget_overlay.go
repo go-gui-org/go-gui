@@ -10,15 +10,12 @@ type ListBoxStyle struct {
 	Padding         Padding
 	SizeBorder      float32
 	Radius          float32
-	Color           Color
-	ColorHover      Color
-	ColorBorder     Color
-	// ColorBorderFocus is the border while the list holds focus. A
-	// ListBox is focusable and key-navigable but drew no focus ring at
-	// all, so a keyboard user could not tell which list they were in
-	// (issue #335).
-	ColorBorderFocus Color
-	ColorSelect      Color
+	// Colors carries the list's state colors. Colors.BorderFocus is
+	// the border while the list holds focus: a ListBox is focusable
+	// and key-navigable but drew no focus ring at all, so a keyboard
+	// user could not tell which list they were in (issue #335).
+	Colors      ColorSet
+	ColorSelect Color
 	// ColorSelectSubtle is the tint behind selected rows: selection
 	// paints the subtle wash, never the full accent slab — focus is
 	// the ring, not a second fill (visual-refresh §4.3).
@@ -35,29 +32,25 @@ type TreeStyle struct {
 	Radius        float32
 	indent        float32
 	Spacing       float32
-	Color         Color
-	ColorHover    Color
-	ColorFocus    Color
-	ColorBorder   Color
+	Colors        ColorSet
 }
 
 // DialogStyle defines dialog visual properties.
 // exportaudit:keep — reachable from an exported signature
 type DialogStyle struct {
-	titleTextStyle   TextStyle
-	TextStyle        TextStyle
-	Shadow           *BoxShadow
-	Padding          Padding
-	SizeBorder       float32
-	Radius           float32
-	radiusBorder     float32 // Reserved.
-	BlurRadius       float32
-	MinWidth         float32
-	MaxWidth         float32
-	Color            Color
-	ColorBorder      Color
-	ColorBorderFocus Color // Reserved for future focus-ring styling.
-	AlignButtons     HorizontalAlign
+	titleTextStyle TextStyle
+	TextStyle      TextStyle
+	Shadow         *BoxShadow
+	Padding        Padding
+	SizeBorder     float32
+	Radius         float32
+	radiusBorder   float32 // Reserved.
+	BlurRadius     float32
+	MinWidth       float32
+	MaxWidth       float32
+	// Colors.BorderFocus is reserved for future focus-ring styling.
+	Colors       ColorSet
+	AlignButtons HorizontalAlign
 }
 
 // ToastAnchor specifies toast notification position.
@@ -91,8 +84,7 @@ type ToastStyle struct {
 	accentWidth  float32
 	Radius       float32
 	SizeBorder   float32
-	Color        Color
-	ColorBorder  Color
+	Colors       ColorSet
 	colorInfo    Color
 	ColorSuccess Color
 	ColorWarning Color
@@ -103,14 +95,13 @@ type ToastStyle struct {
 // TooltipStyle defines tooltip visual properties.
 // exportaudit:keep — reachable from an exported signature
 type TooltipStyle struct {
-	TextStyle   TextStyle
-	Shadow      *BoxShadow
-	Delay       time.Duration
-	Padding     Padding
-	SizeBorder  float32
-	Radius      float32
-	Color       Color
-	ColorBorder Color
+	TextStyle  TextStyle
+	Shadow     *BoxShadow
+	Delay      time.Duration
+	Padding    Padding
+	SizeBorder float32
+	Radius     float32
+	Colors     ColorSet
 }
 
 // BadgeStyle defines badge visual properties.
@@ -119,7 +110,7 @@ type BadgeStyle struct {
 	TextStyle    TextStyle
 	Padding      Padding
 	dotSize      float32
-	Color        Color
+	Colors       ColorSet
 	colorInfo    Color
 	ColorSuccess Color
 	ColorWarning Color
@@ -129,15 +120,13 @@ type BadgeStyle struct {
 // ExpandPanelStyle defines expand panel visual properties.
 // exportaudit:keep — reachable from an exported signature
 type ExpandPanelStyle struct {
-	Color            Color
-	ColorHover       Color
-	colorClick       Color
-	ColorBorder      Color
-	ColorBorderFocus Color // the header's ring while the panel holds focus
-	Padding          Padding
-	SizeBorder       float32
-	Radius           float32
-	radiusBorder     float32
+	// Colors.BorderFocus is the header's ring while the panel holds
+	// focus.
+	Colors       ColorSet
+	Padding      Padding
+	SizeBorder   float32
+	Radius       float32
+	radiusBorder float32
 }
 
 // Widget style mirrors. See the note on the mirror block in styles.go:

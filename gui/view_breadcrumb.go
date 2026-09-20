@@ -119,10 +119,10 @@ func applyBreadcrumbDefaults(cfg *BreadcrumbCfg) {
 	}
 	cfg.Sizing = cfg.Sizing.Or(FillFit)
 	if !cfg.Color.IsSet() {
-		cfg.Color = s.Color
+		cfg.Color = s.Colors.Base
 	}
 	if !cfg.ColorBorder.IsSet() {
-		cfg.ColorBorder = s.ColorBorder
+		cfg.ColorBorder = s.Colors.Border
 	}
 	if !cfg.ColorTrail.IsSet() {
 		cfg.ColorTrail = s.colorTrail

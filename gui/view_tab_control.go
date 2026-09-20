@@ -135,10 +135,10 @@ func applyTabControlDefaults(cfg *TabControlCfg) {
 	s := &defaultTabControlStyle
 	cfg.Sizing = cfg.Sizing.Or(FillFill)
 	if !cfg.Color.IsSet() {
-		cfg.Color = s.Color
+		cfg.Color = s.Colors.Base
 	}
 	if !cfg.ColorBorder.IsSet() {
-		cfg.ColorBorder = s.ColorBorder
+		cfg.ColorBorder = s.Colors.Border
 	}
 	if !cfg.ColorHeader.IsSet() {
 		cfg.ColorHeader = s.ColorHeader
@@ -384,7 +384,7 @@ func (tv *tabControlView) GenerateLayout(w *Window) Layout {
 			A11YState:  a11yState,
 			A11YCfg:    A11YCfg{A11YLabel: item.Label},
 			Color:      tabColor,
-			Colors:     ColorSet{Hover: hoverColor, Click: clickColor, Focus: focusColor, Border: borderColor, BorderFocus: cfg.ColorTabBorderFocus}.resolved(tabColor, themeButtonSet()),
+			Colors:     ColorSet{Hover: hoverColor, Click: clickColor, Focus: focusColor, Border: borderColor, BorderFocus: cfg.ColorTabBorderFocus}.resolved(tabColor, defaultButtonStyle.Colors),
 			Padding:    cfg.PaddingTab,
 			SizeBorder: SomeF(sizeTabBorder),
 			Radius:     SomeF(radiusTab),
