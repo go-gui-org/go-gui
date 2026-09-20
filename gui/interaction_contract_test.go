@@ -517,8 +517,12 @@ var contractRows = []contractRow{
 		note:  contractFocusNote,
 		wants: contractFocusWants(wantNA)},
 	{widget: "combobox", state: stFocus, build: contractCombobox,
-		note:  contractFocusNote,
-		wants: contractFocusWants(wantNA)},
+		note: contractFocusNote + "; hidden is NA: ComboboxCfg " +
+			"has no Invisible, so the flag cannot be expressed",
+		wants: [8]contractWant{
+			wantMoved, wantNA, wantNA, wantMoved,
+			wantMoved, wantMoved, wantKept, wantCleared,
+		}},
 
 	{widget: "input", state: stIME, build: contractInput,
 		note: "P3: readonly keeps an in-flight composition but " +
@@ -587,9 +591,9 @@ var contractRows = []contractRow{
 			wantCleared, wantKept, wantCleared, wantCleared,
 		}},
 	{widget: "combobox", state: stPress, build: contractCombobox,
-		note: "P2, as button",
+		note: "P2, as button; hidden is NA: ComboboxCfg has no Invisible",
 		wants: [8]contractWant{
-			wantCleared, wantNA, wantCleared, wantCleared,
+			wantCleared, wantNA, wantNA, wantCleared,
 			wantCleared, wantKept, wantCleared, wantCleared,
 		}},
 	{widget: "dock", state: stPress, build: contractDock,

@@ -83,6 +83,13 @@ type selectView struct {
 
 // Select creates a select (dropdown) view.
 func Select(cfg SelectCfg) View {
+	// Invisible maps to the singleton before the label wraps: the
+	// factory used to build the containerView directly and bypass
+	// container()'s invisible mapping, so a hidden field kept a
+	// focusable shape with parked focus and live hover (#691).
+	if cfg.Invisible {
+		return invisibleContainerView()
+	}
 	applySelectDefaults(&cfg)
 	requireFocusID("Select", cfg.FocusDisabled, cfg.ID)
 	cfg.A11YLabel = a11yLabel(cfg.A11YLabel, cfg.Label)
