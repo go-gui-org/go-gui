@@ -18,8 +18,8 @@ func TestThemePickerOpen(t *testing.T) {
 		delete(themeRegistry, "light-test")
 		themeRegistryMu.Unlock()
 	}()
-	themeRegister(Theme{Name: "dark-test"})
-	themeRegister(Theme{Name: "light-test"})
+	ThemeRegister(Theme{Name: "dark-test"})
+	ThemeRegister(Theme{Name: "light-test"})
 
 	w := &Window{}
 	ss := StateMap[string, bool](w, nsSelect, capModerate)
@@ -40,8 +40,8 @@ func TestThemePickerSyncHighlight(t *testing.T) {
 		delete(themeRegistry, "beta")
 		themeRegistryMu.Unlock()
 	}()
-	themeRegister(Theme{Name: "alpha"})
-	themeRegister(Theme{Name: "beta"})
+	ThemeRegister(Theme{Name: "alpha"})
+	ThemeRegister(Theme{Name: "beta"})
 
 	// The sync runs post-generation and reads the window's theme, so
 	// pin the name on the window rather than on the frame cache. "dark"

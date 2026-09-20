@@ -10,6 +10,11 @@ and this project adheres to
 
 ### Added
 
+- **`gui.ThemeRegister` and `gui.ThemeRegisteredNames` (#713)** — an app that
+  builds a custom theme with `ThemeMaker` can now register it, so `ThemePicker`
+  lists it, and can enumerate registered names to build its own picker. Empty
+  and whitespace-only names are rejected (registration reports false);
+  duplicates keep the long-standing overwrite.
 - **`gui.RichFootnote`** — the footnote-marker constructor matches its siblings
   (`RichRun`, `RichLink`, `RichBr`, `RichAbbr`) and is now exported: it was the
   only one stuck unexported, so an app could not build a footnote marker outside

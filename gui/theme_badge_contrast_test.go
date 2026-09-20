@@ -50,7 +50,7 @@ func TestBadgeLabelPairsWithFill(t *testing.T) {
 	restore := CurrentTheme()
 	defer applyTheme(&restore)
 
-	for _, name := range themeRegisteredNames() {
+	for _, name := range ThemeRegisteredNames() {
 		theme, ok := ThemeGet(name)
 		if !ok {
 			t.Fatalf("theme %q registered but not retrievable", name)
@@ -81,7 +81,7 @@ func TestBadgeNeutralLabelReadable(t *testing.T) {
 	restore := CurrentTheme()
 	defer applyTheme(&restore)
 
-	for _, name := range themeRegisteredNames() {
+	for _, name := range ThemeRegisteredNames() {
 		theme, ok := ThemeGet(name)
 		if !ok {
 			t.Fatalf("theme %q registered but not retrievable", name)

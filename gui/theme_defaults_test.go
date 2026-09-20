@@ -76,7 +76,7 @@ func TestLightThemeColors(t *testing.T) {
 }
 
 func TestPresetThemesRegistered(t *testing.T) {
-	names := themeRegisteredNames()
+	names := ThemeRegisteredNames()
 	if len(names) < 8 {
 		t.Errorf("registered themes = %d, want >= 8",
 			len(names))

@@ -279,14 +279,14 @@ func init() {
 	themeWindowsDark = ThemeMaker(windowsDarkCfg())
 
 	// Register all preset themes.
-	themeRegister(ThemeDark)
-	themeRegister(ThemeLight)
-	themeRegister(themeMacOS)
-	themeRegister(themeMacOSDark)
-	themeRegister(themeGnome)
-	themeRegister(themeGnomeDark)
-	themeRegister(themeWindows)
-	themeRegister(themeWindowsDark)
+	ThemeRegister(ThemeDark)
+	ThemeRegister(ThemeLight)
+	ThemeRegister(themeMacOS)
+	ThemeRegister(themeMacOSDark)
+	ThemeRegister(themeGnome)
+	ThemeRegister(themeGnomeDark)
+	ThemeRegister(themeWindows)
+	ThemeRegister(themeWindowsDark)
 
 	// Dark is both the app default and the initially installed theme.
 	// applyTheme is what fills the default*Style mirrors — they carry no

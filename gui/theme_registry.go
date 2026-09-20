@@ -12,11 +12,20 @@ var (
 )
 
 // ThemeRegister adds a theme to the global registry by name.
-// Overwrites any existing entry with the same name.
-func themeRegister(t Theme) {
+// Overwrites any existing entry with the same name. Names that
+// are empty or hold only whitespace are rejected and report
+// false, so a typo cannot register a junk key. Preset names
+// from init are never empty, so their registration still
+// succeeds.
+// exportaudit:keep — documented public API (issue #713)
+func ThemeRegister(t Theme) bool {
+	if strings.TrimSpace(t.Name) == "" {
+		return false
+	}
 	themeRegistryMu.Lock()
 	themeRegistry[t.Name] = t
 	themeRegistryMu.Unlock()
+	return true
 }
 
 // ThemeGet retrieves a registered theme by name.
@@ -33,7 +42,8 @@ func ThemeGet(name string) (Theme, bool) {
 // this order, so the picker reads dark, light, macos, macos-dark,
 // gnome, gnome-dark, windows, windows-dark rather than splitting the
 // two toolkit themes apart alphabetically.
-func themeRegisteredNames() []string {
+// exportaudit:keep — documented public API (issue #713)
+func ThemeRegisteredNames() []string {
 	themeRegistryMu.RLock()
 	names := make([]string, 0, len(themeRegistry))
 	for k := range themeRegistry {

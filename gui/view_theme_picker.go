@@ -57,7 +57,7 @@ func (tv *themePickerView) GenerateLayout(w *Window) Layout {
 	}))
 
 	if isOpen {
-		names := themeRegisteredNames()
+		names := ThemeRegisteredNames()
 		data := make([]ListBoxOption, len(names))
 		for i, name := range names {
 			data[i] = NewListBoxOption(name, name, name)
@@ -153,7 +153,7 @@ func (tv *themePickerView) GenerateLayout(w *Window) Layout {
 				}
 				return
 			}
-			names := themeRegisteredNames()
+			names := ThemeRegisteredNames()
 			count := len(names)
 			if count == 0 {
 				return
@@ -210,7 +210,7 @@ func (tv *themePickerView) GenerateLayout(w *Window) Layout {
 // themePickerSyncHighlight sets listbox focus index to match the current
 // theme name.
 func themePickerSyncHighlight(lbID string, w *Window) {
-	names := themeRegisteredNames()
+	names := ThemeRegisteredNames()
 	// Runs from the listbox handlers, after generation: the frame cache
 	// holds whichever window generated last, so name this one.
 	current := w.Theme().Name

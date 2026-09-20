@@ -383,7 +383,7 @@ func TestColorControlFocusRingComposesAndSkipsUnset(t *testing.T) {
 // Every registered theme must still decide the colour, or a future
 // borderless preset silently removes the indicator again (issue #390).
 func TestRegisteredThemesCarryColorPickerFocusColor(t *testing.T) {
-	names := themeRegisteredNames()
+	names := ThemeRegisteredNames()
 	if len(names) == 0 {
 		t.Fatal("no registered themes")
 	}
