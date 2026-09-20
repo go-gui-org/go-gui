@@ -1316,8 +1316,9 @@ func goldenCases() []goldenCase {
 			},
 		},
 		{
-			// The list has no hover path of its own (#717); a
-			// disabled list under the pointer keeps resting colors.
+			// Hover belongs to the caller-built rows, not the list
+			// (#717); a disabled list under the pointer keeps
+			// resting colors.
 			name:   "virtual_list_disabled_hover",
 			hoverX: 100, hoverY: 60,
 			hoverInert: true,

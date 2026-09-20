@@ -124,16 +124,16 @@ func VirtualList(cfg VirtualListCfg) View {
 }
 
 // applyVirtualListDefaults fills unset styling from the theme's list
-// box style. VirtualList deliberately shares it rather than
-// introducing a second list appearance — the two widgets differ in
-// how rows are sized, not in how a list looks.
+// box style. VirtualList shares the list chrome — fill, borders, the
+// focus ring — rather than introducing a second list appearance. Row
+// hover is deliberately excluded: rows are caller-built through
+// ItemView, so hover, cursor and selection visuals belong to the row,
+// and a framework wash would lose to the row's own OnHover under the
+// deepest-wins hover rule (#717).
 func applyVirtualListDefaults(cfg *VirtualListCfg) {
 	d := &defaultListBoxStyle
 	// Fill and borders only. The list box's hover color is not passed
-	// through: VirtualList has no hover path and no ColorHover field,
-	// so it has nowhere to land. Whether that is right is open — the
-	// doc comment above says the two widgets should look alike, and
-	// hovering a row is part of how a list looks (#717).
+	// through: rows are caller-built, so hover belongs to ItemView.
 	cfg.Colors = cfg.Colors.resolved(cfg.Color, ColorSet{
 		Base:        d.Colors.Base,
 		Border:      d.Colors.Border,

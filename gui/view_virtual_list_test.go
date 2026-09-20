@@ -437,11 +437,10 @@ func TestVirtualListWidthRatchetWarns(t *testing.T) {
 
 // TestVirtualListDefaultsTakeNoHoverColor pins the one place where
 // VirtualList does not simply inherit defaultListBoxStyle.Colors. The
-// list box has a hover color; VirtualList has no hover path and no
-// ColorHover field, so the slot is left unset on purpose. Handing the
-// whole set to resolved would fill it, which is the accident this test
-// catches. Whether the omission is right is open (#717) — this test
-// records what the code does, so a change to it is deliberate.
+// list box has a hover color; VirtualList leaves the slot unset on
+// purpose — rows are caller-built through ItemView, so hover belongs
+// to the row (#717). Handing the whole set to resolved would fill it,
+// which is the accident this test catches.
 func TestVirtualListDefaultsTakeNoHoverColor(t *testing.T) {
 	if !defaultListBoxStyle.Colors.Hover.IsSet() {
 		t.Skip("list box style has no hover color to drop")
