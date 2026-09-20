@@ -1,0 +1,4 @@
+Shadow xy=14.00,14.00 wh=110.80,20.00 color=#2f6fe03f radius=6.00 blur=2.00 offset=0.00,0.00
+Rect xy=14.00,14.00 wh=34.00,20.00 color=#edf0f4ff radius=10.00 fill
+Circle xy=24.00,24.00 wh=0.00,0.00 color=#e0e5ecff radius=7.00 fill
+Text xy=62.00,14.20 wh=0.00,0.00 color=#1a1d21ff text="Enabled" size=14.00

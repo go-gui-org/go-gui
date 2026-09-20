@@ -116,6 +116,19 @@ and this project adheres to
 
 ### Changed
 
+- **Hovering a focused control now shows the hover color (#690)** — `Button`,
+  `Toggle`, `Switch` and `Radio` pick their interaction-state colors through one
+  internal rule instead of each writing its own. The fill follows the pointer
+  (`disabled` > `pressed` > `hovered` > `focused` > resting) and the border
+  follows focus (`disabled` > `focused` > resting), so a focused control under
+  the pointer shows its hover fill while keeping its focus ring and focus
+  border. `Button`, `Input` and `Tree` rows change: they used to hold the focus
+  fill until the pointer left, which reads as stuck after a click focuses the
+  control. `Toggle`, `Switch`, `Radio` and `ExpandPanel` already behaved this
+  way and are unchanged. The focus fill (`ColorSet.Focus`) is now what a control
+  reached by the keyboard looks like — focused with the pointer elsewhere.
+  Nothing exported moved.
+
 - **BREAKING: theme style structs carry a `ColorSet`, not six flat color fields
   (#716)** — the 24 widget style structs on `Theme` (`InputStyle`,
   `SelectStyle`, `ListBoxStyle`, `MenubarStyle` and the rest) replace their

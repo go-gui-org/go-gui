@@ -352,11 +352,14 @@ func Input(cfg InputCfg) View {
 		OnKeyUp:     makeInputOnKeyUp(hcfg),
 		OnHover: func(ctx EventCtx) {
 			ctx.Window.setMouseCursor(CursorIBeam)
-			// This handler sits on the container that claims cfg.ID, so
-			// its resolved identity is the focus key.
-			if !ctx.Window.IsFocus(ctx.Layout.Shape.idKey()) {
-				ctx.Layout.Shape.Color = colorHover
-			}
+			// The fill follows the pointer even while focused, which is
+			// the rule ColorSet.pick states (#690). The focus border is
+			// what keeps saying "focused"; inputAmendLayout sets it and
+			// this pass leaves it alone. Input is not routed through
+			// pick itself — it reads flat Cfg fields filled by
+			// Colors.applyTo — but it follows the same rule, so Button
+			// and Input do not diverge.
+			ctx.Layout.Shape.Color = colorHover
 		},
 		AmendLayout: inputAmendLayout(hcfg, focusID,
 			colorBorderFocus, spellChk, onBlur, cfg.onMouseScroll),

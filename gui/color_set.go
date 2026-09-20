@@ -27,6 +27,12 @@ type ColorSet struct {
 
 	// Hover, Click and Focus are the background colors for the three
 	// interactive states. Unset means "same as Base".
+	//
+	// Focus is the rarest of the three. pick gives the fill to the
+	// pointer, so the focus fill shows only where a control is focused
+	// and the pointer is elsewhere — a control reached by the keyboard.
+	// It is not dead; do not delete it because a hover test never
+	// reaches it.
 	Hover Color
 	Click Color
 	Focus Color
@@ -151,6 +157,84 @@ func (cs ColorSet) applyTo(
 	setIfUnset(focus, r.Focus)
 	setIfUnset(border, r.Border)
 	setIfUnset(borderFocus, r.BorderFocus)
+}
+
+// stateFlags is the interaction state of one widget at one point in one
+// frame. The caller assembles it from what its pass can see: the amend
+// pass knows focus and a held Space but has no Event and so no pointer;
+// the hover pass knows the pointer and the held mouse button as well.
+//
+// disabled makes the rule total: pick answers for every state rather
+// than leaving one to the caller. It is not what short-circuits a
+// disabled widget today. Every current call site still returns early
+// on Shape.Disabled, because that same guard also covers a shape with
+// no events and a nil OnClick, and on the amend path it is the only
+// thing stopping a disabled widget's user OnAmend callback — layoutAmend
+// walks disabled shapes, unlike layoutHoverDepth.
+//
+// So the flag reaches pick false at all eight sites, and that is fine:
+// it is what lets a widget with no guard of its own be routed through
+// pick without inventing one. Several have no such guard — tree rows,
+// slider, expand panel, listbox items, table rows (#721).
+type stateFlags struct {
+	disabled bool
+	pressed  bool
+	focused  bool
+	hovered  bool
+}
+
+// pick returns the fill and border for one interaction state.
+//
+// The two channels take separate rules, and that is the design, not an
+// oversight:
+//
+//	fill:   disabled > pressed > hovered > focused > base
+//	border: disabled > focused > base
+//
+// The fill follows the pointer. A mouse user clicks a control, the
+// click focuses it, and the pointer is still over it: under a
+// focus-first fill the control would hold its focus color until the
+// pointer left, which reads as stuck.
+//
+// The border does not follow the pointer, because the border is how a
+// focused control says so. A single hover-first rule over both channels
+// would drop the focus border exactly while someone is pointing at the
+// control, and for Input the border IS the focus affordance
+// (gui/view_input.go). Most toolkits split the same way: Fluent draws
+// its PointerOver fill and its focus rect at once, and the web design
+// systems pair a hover background with a focus ring. Material ranks
+// focus above hover instead, but it has to — its state layer is one
+// channel and cannot show both.
+//
+// Note what this makes of Focus: under a hover-first fill it is the
+// tint of a control that is focused with the pointer somewhere else,
+// which in practice means one reached by the keyboard. That is a real
+// state worth painting, but a rare one. See the field's own comment.
+//
+// cs must already have been through resolved(): pick does no fallback
+// of its own, so an unresolved set returns the zero Color for any state
+// the caller never set. Every widget resolves in its apply*Defaults.
+//
+// There is deliberately no "did anything change" return. Every caller
+// assigns unconditionally, which is the whole point — a reported change
+// would put back the per-site if that produced the bug history above.
+func (cs ColorSet) pick(s stateFlags) (fill, border Color) {
+	if s.disabled {
+		return cs.Base, cs.Border
+	}
+	border = cs.Border
+	if s.focused {
+		border = cs.BorderFocus
+	}
+	switch {
+	case s.pressed:
+		return cs.Click, border
+	case s.hovered:
+		return cs.Hover, border
+	case s.focused:
+		return cs.Focus, border
+	}
+	return cs.Base, border
 }
 
 // setIfUnset assigns src to *dst only when dst holds no explicit color

@@ -54,9 +54,17 @@ func Radio(cfg RadioCfg) View {
 	size := cfg.Size.Get(dr.Size)
 	sizeBorder := cfg.SizeBorder.Get(dr.SizeBorder)
 
-	colorBorderFocus := cfg.Colors.BorderFocus
-	colorHover := cfg.Colors.Hover
-	colorClick := cfg.Colors.Click
+	// Radio paints every interaction state onto the circle's BORDER,
+	// never its fill: the fill is the selection. So the set handed to
+	// ColorSet.pick is border-valued throughout, and pick's fill return
+	// is what lands on ColorBorder. Deliberate, not a wiring mistake —
+	// pick's border return is unused here (#690).
+	ringColors := ColorSet{
+		Base:  cfg.Colors.Border,
+		Hover: cfg.Colors.Hover,
+		Click: cfg.Colors.Click,
+		Focus: cfg.Colors.BorderFocus,
+	}
 	circleColor := cfg.ColorUnselect
 	if cfg.Selected {
 		circleColor = cfg.ColorSelect
@@ -118,9 +126,15 @@ func Radio(cfg RadioCfg) View {
 				if len(ctx.Layout.Children) == 0 {
 					return
 				}
-				if ctx.Window.IsFocus(ctx.Layout.Shape.idKey()) {
-					ctx.Layout.Children[0].Shape.ColorBorder = colorBorderFocus
-				}
+				// hovered stays false: this pass has no Event and so no
+				// pointer. The hover pass runs later and re-picks.
+				ring, _ := ringColors.pick(stateFlags{
+					disabled: ctx.Layout.Shape.Disabled,
+					pressed: ctx.Window.isKeyPressed(
+						ctx.Layout.Shape.idKey()),
+					focused: ctx.Window.IsFocus(ctx.Layout.Shape.idKey()),
+				})
+				ctx.Layout.Children[0].Shape.ColorBorder = ring
 			},
 			// Ring shadow on the focusable row, but no colour change:
 			// the ring is the row's focus indication while the pill
@@ -136,10 +150,14 @@ func Radio(cfg RadioCfg) View {
 			if len(ctx.Layout.Children) == 0 {
 				return
 			}
-			ctx.Layout.Children[0].Shape.ColorBorder = colorHover
-			if ctx.Event.MouseButton == MouseLeft {
-				ctx.Layout.Children[0].Shape.ColorBorder = colorClick
-			}
+			ring, _ := ringColors.pick(stateFlags{
+				disabled: ctx.Layout.Shape.Disabled,
+				pressed: ctx.Event.MouseButton == MouseLeft ||
+					ctx.Window.isKeyPressed(ctx.Layout.Shape.idKey()),
+				focused: ctx.Window.IsFocus(ctx.Layout.Shape.idKey()),
+				hovered: true,
+			})
+			ctx.Layout.Children[0].Shape.ColorBorder = ring
 		},
 		Content: content,
 	})

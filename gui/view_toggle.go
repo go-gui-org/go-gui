@@ -89,10 +89,12 @@ func Toggle(cfg ToggleCfg) View {
 		}
 	}
 
-	colorFocus := cfg.Colors.Focus
-	colorBorderFocus := cfg.Colors.BorderFocus
-	colorHover := cfg.Colors.Hover
-	colorClick := cfg.Colors.Click
+	// The box's own set: cfg.Colors, but resting on boxColor so a
+	// selected toggle keeps its accent fill at rest. ColorSet.pick
+	// assigns both channels outright, so the resting pair has to be in
+	// the set rather than left on the shape (#690).
+	boxColors := cfg.Colors
+	boxColors.Base = boxColor
 
 	content := make([]View, 0, 2)
 	// Fixed square box: without Fixed sizing the box fits the check
@@ -166,10 +168,14 @@ func Toggle(cfg ToggleCfg) View {
 			if len(ctx.Layout.Children) == 0 {
 				return
 			}
-			ctx.Layout.Children[0].Shape.Color = colorHover
-			if ctx.Event.MouseButton == MouseLeft {
-				ctx.Layout.Children[0].Shape.Color = colorClick
-			}
+			box := ctx.Layout.Children[0].Shape
+			box.Color, box.ColorBorder = boxColors.pick(stateFlags{
+				disabled: ctx.Layout.Shape.Disabled,
+				pressed: ctx.Event.MouseButton == MouseLeft ||
+					ctx.Window.isKeyPressed(ctx.Layout.Shape.idKey()),
+				focused: ctx.Window.IsFocus(ctx.Layout.Shape.idKey()),
+				hovered: true,
+			})
 		},
 		AmendLayout: amendAll(
 			func(ctx EventCtx) {
@@ -181,10 +187,15 @@ func Toggle(cfg ToggleCfg) View {
 				if len(ctx.Layout.Children) == 0 {
 					return
 				}
-				if ctx.Window.IsFocus(ctx.Layout.Shape.idKey()) {
-					ctx.Layout.Children[0].Shape.Color = colorFocus
-					ctx.Layout.Children[0].Shape.ColorBorder = colorBorderFocus
-				}
+				// hovered stays false: this pass has no Event and so no
+				// pointer. The hover pass runs later and re-picks.
+				box := ctx.Layout.Children[0].Shape
+				box.Color, box.ColorBorder = boxColors.pick(stateFlags{
+					disabled: ctx.Layout.Shape.Disabled,
+					pressed: ctx.Window.isKeyPressed(
+						ctx.Layout.Shape.idKey()),
+					focused: ctx.Window.IsFocus(ctx.Layout.Shape.idKey()),
+				})
 			},
 			// Ring shadow on the focusable row; the box keeps its own
 			// accent fill and border (visual-refresh § 5.4).

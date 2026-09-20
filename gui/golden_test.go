@@ -374,11 +374,36 @@ func renderGolden(t *testing.T, theme Theme, c goldenCase) string {
 		w.SetFocus(c.focusID)
 	}
 	w.viewState.keyPressTargetID = c.keyPressID
+	if c.hoverX != 0 || c.hoverY != 0 {
+		// Two positions, on purpose. mousePosX/Y is what layoutHover
+		// dispatches OnHover from, which is what paints a hover color
+		// today. pointerAt is what recordHoverTarget reads, and it also
+		// sets pointerInWindow — without it the frame records no hover
+		// target at all, because the pointer is taken to have never
+		// entered the window (docs/specs/build-time-interaction-state.md,
+		// rule 7).
+		w.viewState.mousePosX, w.viewState.mousePosY = c.hoverX, c.hoverY
+		w.pointerAt(c.hoverX, c.hoverY)
+	}
+	if c.mousePressed {
+		w.viewState.mouseButtonHeld = MouseLeft
+	}
 	w.refreshLayout = true
 	w.FrameFn()
 
 	if len(w.renderers) == 0 {
 		t.Fatal("pipeline emitted no render commands")
+	}
+	// A hover case whose point misses its widget records the resting
+	// appearance while claiming to be hovered, which is worse than no
+	// case at all: it reds nothing and asserts nothing. recordHoverTarget
+	// runs at the end of layoutArrange, so an empty target here means
+	// the pointer landed on nothing.
+	if (c.hoverX != 0 || c.hoverY != 0) && !c.hoverInert &&
+		w.viewState.hoverTargetID == "" {
+		t.Fatalf("hover point (%v,%v) is over nothing; "+
+			"read the resting golden for this case and use a point "+
+			"inside the widget", c.hoverX, c.hoverY)
 	}
 	return serializeCmds(w.renderers)
 }
@@ -459,6 +484,32 @@ type goldenCase struct {
 	// the frame is rendered (#658). Set after focusID, because a focus
 	// change cancels a key press.
 	keyPressID string
+
+	// hoverX, hoverY place the pointer before the frame is rendered, so
+	// layoutHover fires and the recording pins the hovered appearance.
+	// Without them no golden hovers anything: renderGolden leaves the
+	// pointer at the origin, layoutHover finds nothing under it, and a
+	// hover-color regression records clean. Take the coordinates from
+	// the case's own resting recording, not by guessing — hoverAsserts
+	// fails a case whose point misses.
+	hoverX, hoverY float32
+
+	// mousePressed holds the left button down for the hovered frame,
+	// pinning the pressed-by-mouse appearance the way keyPressID pins
+	// the pressed-by-Space one (#658).
+	//
+	// A bool rather than a MouseButton because MouseLeft is 0
+	// (gui/event.go:64): a MouseButton field would mark every case that
+	// did not mention it as pressed. NewWindow dodges the same trap by
+	// seeding mouseButtonHeld to MouseInvalid (gui/window_cfg.go:169).
+	mousePressed bool
+
+	// hoverInert says the pointer is expected to land on nothing, which
+	// is what a disabled widget does: layoutHoverDepth returns before
+	// the callback and recordHoverTarget skips disabled shapes, so the
+	// target stays empty. Without this the hit assert below would fail
+	// every disabled-hover case, which are the ones worth recording.
+	hoverInert bool
 }
 
 // goldenThemes are recorded for every case. Two themes is the point:

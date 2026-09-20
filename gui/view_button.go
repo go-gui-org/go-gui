@@ -160,16 +160,22 @@ func buttonAmendLayout(ctx EventCtx) {
 		ctx.Layout.Shape.events.OnClick == nil {
 		return
 	}
-	if ctx.Window.IsFocus(ctx.Layout.Shape.idKey()) {
-		ctx.Layout.Shape.Color = ctx.Layout.Shape.bc.ColorFocus
-		ctx.Layout.Shape.ColorBorder = ctx.Layout.Shape.bc.ColorBorderFocus
+	// hovered stays false here: AmendLayout runs with a nil Event and
+	// cannot see the pointer. buttonOnHover runs later in the same
+	// frame, knows strictly more, and re-picks both channels — so the
+	// appearance this pass writes is the correct one for a button the
+	// pointer is not over. A held Space is the press this pass can see
+	// (#658); the mouse button is the one the hover pass can.
+	focused := ctx.Window.IsFocus(ctx.Layout.Shape.idKey())
+	ctx.Layout.Shape.Color, ctx.Layout.Shape.ColorBorder =
+		ctx.Layout.Shape.bc.colors.pick(stateFlags{
+			disabled: ctx.Layout.Shape.Disabled,
+			pressed:  ctx.Window.isKeyPressed(ctx.Layout.Shape.idKey()),
+			focused:  focused,
+		})
+	if focused {
 		applyFocusRingShadow(ctx.Layout.Shape, ctx.Window,
 			ctx.Layout.Shape.bc.focusRing)
-	}
-	// A held Space shows the same pressed color a held mouse button
-	// shows in buttonOnHover (#658).
-	if ctx.Window.isKeyPressed(ctx.Layout.Shape.idKey()) {
-		ctx.Layout.Shape.Color = ctx.Layout.Shape.bc.colorClick
 	}
 	if ctx.Layout.Shape.bc.OnAmend != nil {
 		ctx.Layout.Shape.bc.OnAmend(EventCtx{ctx.Layout, nil, ctx.Window})
@@ -204,12 +210,18 @@ func buttonOnHover(ctx EventCtx) {
 		return
 	}
 	ctx.Window.setMouseCursor(CursorPointingHand)
-	if !ctx.Window.IsFocus(ctx.Layout.Shape.idKey()) {
-		ctx.Layout.Shape.Color = ctx.Layout.Shape.bc.ColorHover
-	}
-	if ctx.Event.MouseButton == MouseLeft {
-		ctx.Layout.Shape.Color = ctx.Layout.Shape.bc.colorClick
-	}
+	// This pass sees everything the amend pass saw plus the pointer, so
+	// it re-picks both channels outright rather than patching the fill
+	// the amend pass left. Either press counts: a held mouse button
+	// here, a held Space from the amend pass's half of the state.
+	ctx.Layout.Shape.Color, ctx.Layout.Shape.ColorBorder =
+		ctx.Layout.Shape.bc.colors.pick(stateFlags{
+			disabled: ctx.Layout.Shape.Disabled,
+			pressed: ctx.Event.MouseButton == MouseLeft ||
+				ctx.Window.isKeyPressed(ctx.Layout.Shape.idKey()),
+			focused: ctx.Window.IsFocus(ctx.Layout.Shape.idKey()),
+			hovered: true,
+		})
 	if ctx.Layout.Shape.bc.OnHover != nil {
 		ctx.Layout.Shape.bc.OnHover(EventCtx{ctx.Layout, ctx.Event, ctx.Window})
 	}
@@ -357,10 +369,7 @@ func Button(cfg ButtonCfg) View {
 	}).(*containerView)
 
 	cv.isButton = true
-	cv.colorHover = cfg.Colors.Hover
-	cv.colorClick = cfg.Colors.Click
-	cv.colorFocus = cfg.Colors.Focus
-	cv.colorBorderFocus = cfg.Colors.BorderFocus
+	cv.colors = cfg.Colors
 	cv.labelColor = labelColor
 	cv.userOnHover = cfg.OnHover
 	cv.userAmendLayout = cfg.AmendLayout

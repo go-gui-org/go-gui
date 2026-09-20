@@ -1159,7 +1159,221 @@ func goldenCases() []goldenCase {
 			name:  "markdown_callout",
 			build: buildMarkdownCallout,
 		},
+
+		// Interaction-state cases (#690). Every recording above this
+		// point leaves the pointer at the origin, so layoutHover fires
+		// in none of them and no golden pins a hovered, pressed-by-mouse
+		// or disabled-and-hovered appearance. Those are exactly the
+		// states one shared picker moves.
+		//
+		// These files pin the appearance AFTER #690, not before it. The
+		// cases were added and recorded against the shipped behavior
+		// first, so the precedence change had to land as a diff that was
+		// read rather than as silence — button_focus_hover and
+		// input_focus_hover were the two that moved, from the focus fill
+		// to the hover fill — and were then re-recorded. The evidence was
+		// that diff; what survives here is only the new state, so these
+		// cases would not have reddened on the change that created them.
+		//
+		// Coordinates come from each widget's resting recording, not
+		// from guesswork: button and input start at (15,15), the
+		// boolean controls at (15,15) with a pill or box under 34x20.
+		{
+			name:   "button_hover",
+			hoverX: 40, hoverY: 30,
+			build: buildStateButton,
+		},
+		{
+			// Hover with the left button held: the pressed color wins
+			// over the hover color.
+			name:   "button_hover_pressed",
+			hoverX: 40, hoverY: 30,
+			mousePressed: true,
+			build:        buildStateButton,
+		},
+		{
+			// Focused and hovered at once. This is the case the
+			// precedence decision lives in: the fill follows the
+			// pointer while the ring and border keep saying "focused".
+			name:    "button_focus_hover",
+			focusID: "btn",
+			hoverX:  40, hoverY: 30,
+			build: buildStateButton,
+		},
+		{
+			// A disabled button under the pointer keeps its resting
+			// fill. Four commits fixed this one widget at a time
+			// (e5ed61d9, cd9a8842, 6274186c, 89cbf85a) and nothing
+			// recorded it.
+			name:   "button_disabled_hover",
+			hoverX: 40, hoverY: 30,
+			hoverInert: true,
+			build:      buildStateButtonDisabled,
+		},
+		{
+			name:   "input_hover",
+			hoverX: 60, hoverY: 30,
+			build: buildStateInput,
+		},
+		{
+			// Input is the control group for the precedence decision:
+			// its border carries focus, so the border must survive the
+			// pointer even where the fill does not.
+			name:    "input_focus_hover",
+			focusID: "in",
+			hoverX:  60, hoverY: 30,
+			build: buildStateInput,
+		},
+		{
+			name:   "input_disabled_hover",
+			hoverX: 60, hoverY: 30,
+			hoverInert: true,
+			build:      buildStateInputDisabled,
+		},
+		{
+			name:  "toggle",
+			build: buildStateToggle,
+		},
+		{
+			name:   "toggle_hover",
+			hoverX: 25, hoverY: 25,
+			build: buildStateToggle,
+		},
+		{
+			name:   "toggle_hover_pressed",
+			hoverX: 25, hoverY: 25,
+			mousePressed: true,
+			build:        buildStateToggle,
+		},
+		{
+			name:    "toggle_focus_hover",
+			focusID: "tg",
+			hoverX:  25, hoverY: 25,
+			build: buildStateToggle,
+		},
+		{
+			name:   "toggle_disabled_hover",
+			hoverX: 25, hoverY: 25,
+			hoverInert: true,
+			build:      buildStateToggleDisabled,
+		},
+		{
+			name:  "switch",
+			build: buildStateSwitch,
+		},
+		{
+			name:   "switch_hover",
+			hoverX: 25, hoverY: 25,
+			build: buildStateSwitch,
+		},
+		{
+			name:   "switch_hover_pressed",
+			hoverX: 25, hoverY: 25,
+			mousePressed: true,
+			build:        buildStateSwitch,
+		},
+		{
+			name:    "switch_focus_hover",
+			focusID: "sw",
+			hoverX:  25, hoverY: 25,
+			build: buildStateSwitch,
+		},
+		{
+			name:   "switch_disabled_hover",
+			hoverX: 25, hoverY: 25,
+			hoverInert: true,
+			build:      buildStateSwitchDisabled,
+		},
+		{
+			name:  "radio",
+			build: buildStateRadio,
+		},
+		{
+			// Radio paints every interaction state onto its border,
+			// never its fill, so its recordings are the ones that would
+			// catch a picker wired to the wrong channel.
+			name:   "radio_hover",
+			hoverX: 25, hoverY: 25,
+			build: buildStateRadio,
+		},
+		{
+			name:   "radio_hover_pressed",
+			hoverX: 25, hoverY: 25,
+			mousePressed: true,
+			build:        buildStateRadio,
+		},
+		{
+			name:    "radio_focus_hover",
+			focusID: "rd",
+			hoverX:  25, hoverY: 25,
+			build: buildStateRadio,
+		},
+		{
+			name:   "radio_disabled_hover",
+			hoverX: 25, hoverY: 25,
+			hoverInert: true,
+			build:      buildStateRadioDisabled,
+		},
 	}
+}
+
+// The interaction-state builders (#690). One widget per case, alone
+// under the filling root, so the hover point is simple to aim and the
+// recorded diff names one widget.
+
+func buildStateButton(_ *Window) View {
+	return Button(ButtonCfg{
+		ID:      "btn",
+		Content: []View{Text(TextCfg{Text: "Save"})},
+		OnClick: func(EventCtx) {},
+	})
+}
+
+func buildStateButtonDisabled(_ *Window) View {
+	return Button(ButtonCfg{
+		ID:       "btn",
+		Disabled: true,
+		Content:  []View{Text(TextCfg{Text: "Save"})},
+		OnClick:  func(EventCtx) {},
+	})
+}
+
+func buildStateInput(_ *Window) View {
+	return Input(InputCfg{ID: "in", Text: "typed value"})
+}
+
+func buildStateInputDisabled(_ *Window) View {
+	return Input(InputCfg{ID: "in", Text: "typed value", Disabled: true})
+}
+
+func buildStateToggle(_ *Window) View {
+	return Toggle(ToggleCfg{ID: "tg", Label: "Enabled",
+		OnClick: func(EventCtx) {}})
+}
+
+func buildStateToggleDisabled(_ *Window) View {
+	return Toggle(ToggleCfg{ID: "tg", Label: "Enabled", Disabled: true,
+		OnClick: func(EventCtx) {}})
+}
+
+func buildStateSwitch(_ *Window) View {
+	return Switch(SwitchCfg{ID: "sw", Label: "Enabled",
+		OnClick: func(EventCtx) {}})
+}
+
+func buildStateSwitchDisabled(_ *Window) View {
+	return Switch(SwitchCfg{ID: "sw", Label: "Enabled", Disabled: true,
+		OnClick: func(EventCtx) {}})
+}
+
+func buildStateRadio(_ *Window) View {
+	return Radio(RadioCfg{ID: "rd", Label: "Enabled",
+		OnClick: func(EventCtx) {}})
+}
+
+func buildStateRadioDisabled(_ *Window) View {
+	return Radio(RadioCfg{ID: "rd", Label: "Enabled", Disabled: true,
+		OnClick: func(EventCtx) {}})
 }
 
 // goldenMarkdownSource exercises one block of every kind the loop

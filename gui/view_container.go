@@ -231,14 +231,14 @@ type containerView struct {
 	content []View
 
 	// Button-specific fields — set only by Button (step 4 fold-in).
-	isButton         bool
-	userOnHover      func(EventCtx)
-	userAmendLayout  func(EventCtx)
-	opticalDigits    bool
-	colorHover       Color
-	colorClick       Color
-	colorFocus       Color
-	colorBorderFocus Color
+	isButton        bool
+	userOnHover     func(EventCtx)
+	userAmendLayout func(EventCtx)
+	opticalDigits   bool
+	// colors is the button's resolved ColorSet, carried whole rather
+	// than fanned into flat fields and packed back into a set at the
+	// shape (#690).
+	colors ColorSet
 	// labelColor, when set, is a filled variant's ColorTextOnAccent:
 	// buttonAmendLayout recolors label shapes carrying the
 	// defaulted-color marker with it (visual-refresh §6).
@@ -273,15 +273,12 @@ func (cv *containerView) GenerateLayout(w *Window) Layout {
 	}
 	if cv.isButton && layout.Shape.events != nil {
 		bc := shapeButtonColors{
-			ColorHover:       cv.colorHover,
-			colorClick:       cv.colorClick,
-			ColorFocus:       cv.colorFocus,
-			ColorBorderFocus: cv.colorBorderFocus,
-			OnHover:          cv.userOnHover,
-			OnAmend:          cv.userAmendLayout,
-			opticalDigits:    cv.opticalDigits,
-			focusRing:        guiTheme.focusRing,
-			labelColor:       cv.labelColor,
+			colors:        cv.colors,
+			OnHover:       cv.userOnHover,
+			OnAmend:       cv.userAmendLayout,
+			opticalDigits: cv.opticalDigits,
+			focusRing:     guiTheme.focusRing,
+			labelColor:    cv.labelColor,
 		}
 		if w != nil {
 			layout.Shape.bc = w.scratch.buttonColors.alloc(bc)

@@ -1,0 +1,5 @@
+Shadow xy=15.00,15.00 wh=110.80,20.00 color=#4d82f03f radius=6.00 blur=2.00 offset=0.00,0.00
+Rect xy=15.00,15.00 wh=34.00,20.00 color=#2f343aff radius=10.00 fill
+StrokeRect xy=15.00,15.00 wh=34.00,20.00 color=#4d82f0ff radius=10.00 thickness=1.00
+Circle xy=25.00,25.00 wh=0.00,0.00 color=#424951ff radius=6.00 fill
+Text xy=63.00,15.20 wh=0.00,0.00 color=#e6e8ebff text="Enabled" size=14.00

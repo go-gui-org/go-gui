@@ -1,0 +1,3 @@
+Circle xy=27.50,29.80 wh=0.00,0.00 color=#424951ff radius=7.50 fill
+StrokeRect xy=20.00,22.30 wh=15.00,15.00 color=#ffffff1c radius=7.50 thickness=1.00
+Text xy=49.00,20.00 wh=0.00,0.00 color=#e6e8ebff text="Enabled" size=14.00

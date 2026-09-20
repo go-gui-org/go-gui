@@ -554,12 +554,14 @@ type eventHandlers struct {
 // package-level button event handlers, avoiding per-frame
 // closure allocations.
 type shapeButtonColors struct {
-	OnHover          func(EventCtx)
-	OnAmend          func(EventCtx)
-	ColorHover       Color
-	colorClick       Color
-	ColorFocus       Color
-	ColorBorderFocus Color
+	OnHover func(EventCtx)
+	OnAmend func(EventCtx)
+	// colors is the button's whole resolved set, not just the states
+	// that override the resting pair. ColorSet.pick assigns both
+	// channels on every call, so it needs Base and Border too — the
+	// resting pair used to live only on the Shape, which worked while
+	// each state was applied conditionally (#690).
+	colors ColorSet
 	// focusRing is the theme's focus-ring shadow, captured at
 	// generation because buttonAmendLayout is a plain func with no
 	// closure to read guiTheme from at the right time.

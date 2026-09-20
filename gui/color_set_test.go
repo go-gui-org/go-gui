@@ -250,3 +250,122 @@ func TestColorSetAdoptedByTheEleven(t *testing.T) {
 			win.ColorHover)
 	}
 }
+
+// pickTestSet gives every slot a distinguishable color, so a pick that
+// returns the wrong field cannot pass by aliasing another. Flat would
+// hide exactly that class of mistake.
+var pickTestSet = ColorSet{
+	Base:        RGB(1, 1, 1),
+	Hover:       RGB(2, 2, 2),
+	Click:       RGB(3, 3, 3),
+	Focus:       RGB(4, 4, 4),
+	Border:      RGB(5, 5, 5),
+	BorderFocus: RGB(6, 6, 6),
+}
+
+// TestColorSetPick walks all sixteen flag combinations. The rules under
+// test are two, one per channel:
+//
+//	fill:   disabled > pressed > hovered > focused > base
+//	border: disabled > focused > base
+func TestColorSetPick(t *testing.T) {
+	cs := pickTestSet
+	tests := []struct {
+		name         string
+		flags        stateFlags
+		fill, border Color
+	}{
+		{"resting", stateFlags{}, cs.Base, cs.Border},
+		{"hovered", stateFlags{hovered: true}, cs.Hover, cs.Border},
+		{"pressed", stateFlags{pressed: true}, cs.Click, cs.Border},
+		{"focused", stateFlags{focused: true}, cs.Focus, cs.BorderFocus},
+
+		// The decision this refactor exists to make: the fill goes to
+		// the pointer, the border stays with focus.
+		{"focused and hovered",
+			stateFlags{focused: true, hovered: true},
+			cs.Hover, cs.BorderFocus},
+		{"focused and pressed",
+			stateFlags{focused: true, pressed: true},
+			cs.Click, cs.BorderFocus},
+		{"pressed beats hovered",
+			stateFlags{pressed: true, hovered: true},
+			cs.Click, cs.Border},
+		{"pressed beats hovered and focused",
+			stateFlags{pressed: true, hovered: true, focused: true},
+			cs.Click, cs.BorderFocus},
+
+		// The bug history: a disabled widget takes its resting colors
+		// whatever else is true of it.
+		{"disabled", stateFlags{disabled: true}, cs.Base, cs.Border},
+		{"disabled and hovered",
+			stateFlags{disabled: true, hovered: true},
+			cs.Base, cs.Border},
+		{"disabled and pressed",
+			stateFlags{disabled: true, pressed: true},
+			cs.Base, cs.Border},
+		{"disabled and focused",
+			stateFlags{disabled: true, focused: true},
+			cs.Base, cs.Border},
+		{"disabled and hovered and focused",
+			stateFlags{disabled: true, hovered: true, focused: true},
+			cs.Base, cs.Border},
+		{"disabled and pressed and hovered",
+			stateFlags{disabled: true, pressed: true, hovered: true},
+			cs.Base, cs.Border},
+		{"disabled and pressed and focused",
+			stateFlags{disabled: true, pressed: true, focused: true},
+			cs.Base, cs.Border},
+		{"disabled and everything",
+			stateFlags{disabled: true, pressed: true, hovered: true,
+				focused: true},
+			cs.Base, cs.Border},
+	}
+	if len(tests) != 16 {
+		t.Fatalf("table covers %d combinations, want all 16",
+			len(tests))
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			fill, border := cs.pick(tc.flags)
+			if fill != tc.fill {
+				t.Errorf("fill = %v, want %v", fill, tc.fill)
+			}
+			if border != tc.border {
+				t.Errorf("border = %v, want %v", border, tc.border)
+			}
+		})
+	}
+}
+
+// TestColorSetPickUnresolvedStaysUnset pins the precondition in pick's
+// doc comment: pick does no fallback, so a set that never went through
+// resolved() answers with unset colors rather than with Base. A widget
+// that forgets to resolve gets a blank shape, not a plausible one.
+func TestColorSetPickUnresolvedStaysUnset(t *testing.T) {
+	cs := ColorSet{Base: RGB(1, 1, 1)}
+	if fill, _ := cs.pick(stateFlags{hovered: true}); fill.IsSet() {
+		t.Errorf("unresolved hover fill = %v, want unset", fill)
+	}
+	if fill, _ := cs.pick(stateFlags{}); fill != cs.Base {
+		t.Errorf("unresolved resting fill = %v, want Base", fill)
+	}
+}
+
+// pickFillSink and pickBorderSink keep the pick results reachable, so
+// the compiler cannot delete the call the allocation gate measures.
+var pickFillSink, pickBorderSink Color
+
+// TestColorSetPickAllocFree gates what makes pick usable on the view
+// path at all: it runs for every styled widget in both the amend and
+// the hover pass, every frame.
+func TestColorSetPickAllocFree(t *testing.T) {
+	cs := pickTestSet
+	s := stateFlags{hovered: true, focused: true}
+	allocs := testing.AllocsPerRun(100, func() {
+		pickFillSink, pickBorderSink = cs.pick(s)
+	})
+	if allocs != 0 {
+		t.Errorf("pick allocated %v times per run, want 0", allocs)
+	}
+}

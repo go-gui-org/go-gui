@@ -211,9 +211,9 @@ func treeRowView(
 		},
 		OnHover: func(ctx EventCtx) {
 			ctx.Window.SetMouseCursorPointingHand()
-			if !isFocused {
-				ctx.Layout.Shape.Color = cfg.ColorHover
-			}
+			// The fill follows the pointer even on the focused row,
+			// matching ColorSet.pick's rule (#690).
+			ctx.Layout.Shape.Color = cfg.ColorHover
 		},
 	})
 }
@@ -288,9 +288,9 @@ func treeDragRowView(
 		},
 		OnHover: func(ctx EventCtx) {
 			ctx.Window.SetMouseCursorPointingHand()
-			if !isFocused {
-				ctx.Layout.Shape.Color = cfg.ColorHover
-			}
+			// The fill follows the pointer even on the focused row,
+			// matching ColorSet.pick's rule (#690).
+			ctx.Layout.Shape.Color = cfg.ColorHover
 		},
 	})
 }

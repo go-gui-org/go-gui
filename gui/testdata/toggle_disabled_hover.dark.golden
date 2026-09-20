@@ -1,0 +1,4 @@
+Rect xy=15.00,15.80 wh=18.00,18.00 color=#1e21257f radius=6.00 fill
+StrokeRect xy=15.00,15.80 wh=18.00,18.00 color=#ffffff0e radius=6.00 thickness=1.00
+Text xy=19.80,17.80 wh=0.00,0.00 color=#00000080 text="✓" size=14.00
+Text xy=47.00,15.00 wh=0.00,0.00 color=#e6e8eb80 text="Enabled" size=14.00

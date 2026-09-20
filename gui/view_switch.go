@@ -77,10 +77,10 @@ func Switch(cfg SwitchCfg) View {
 	}
 	circleSize := height - cfg.Padding.Or(PaddingNone).Height() - (sizeBorder * 2)
 
-	colorFocus := cfg.Colors.Focus
-	colorBorderFocus := cfg.Colors.BorderFocus
-	colorHover := cfg.Colors.Hover
-	colorClick := cfg.Colors.Click
+	// The pill takes cfg.Colors whole: selection lives in the thumb,
+	// not in the pill's fill, so no resting override is needed here
+	// (contrast Toggle). ColorSet.pick assigns both channels (#690).
+	pillColors := cfg.Colors
 
 	hAlign := HAlignStart
 	if cfg.Selected {
@@ -159,10 +159,14 @@ func Switch(cfg SwitchCfg) View {
 			}
 			ctx.Window.setMouseCursor(CursorPointingHand)
 			if len(ctx.Layout.Children) > 0 {
-				ctx.Layout.Children[0].Shape.Color = colorHover
-				if ctx.Event.MouseButton == MouseLeft {
-					ctx.Layout.Children[0].Shape.Color = colorClick
-				}
+				pill := ctx.Layout.Children[0].Shape
+				pill.Color, pill.ColorBorder = pillColors.pick(stateFlags{
+					disabled: ctx.Layout.Shape.Disabled,
+					pressed: ctx.Event.MouseButton == MouseLeft ||
+						ctx.Window.isKeyPressed(ctx.Layout.Shape.idKey()),
+					focused: ctx.Window.IsFocus(ctx.Layout.Shape.idKey()),
+					hovered: true,
+				})
 			}
 		},
 		AmendLayout: amendAll(
@@ -177,10 +181,15 @@ func Switch(cfg SwitchCfg) View {
 				if len(ctx.Layout.Children) == 0 {
 					return
 				}
-				if ctx.Window.IsFocus(ctx.Layout.Shape.idKey()) {
-					ctx.Layout.Children[0].Shape.Color = colorFocus
-					ctx.Layout.Children[0].Shape.ColorBorder = colorBorderFocus
-				}
+				// hovered stays false: this pass has no Event and so no
+				// pointer. The hover pass runs later and re-picks.
+				pill := ctx.Layout.Children[0].Shape
+				pill.Color, pill.ColorBorder = pillColors.pick(stateFlags{
+					disabled: ctx.Layout.Shape.Disabled,
+					pressed: ctx.Window.isKeyPressed(
+						ctx.Layout.Shape.idKey()),
+					focused: ctx.Window.IsFocus(ctx.Layout.Shape.idKey()),
+				})
 			},
 			// Ring shadow on the focusable row; the pill keeps its own
 			// accent fill and border (visual-refresh § 5.4).

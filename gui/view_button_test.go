@@ -181,9 +181,9 @@ func TestButtonOpticalCorrectionIgnoresButtonState(t *testing.T) {
 // TestButtonHoverPressedColor pins the pressed-while-hovered branch of
 // buttonOnHover (view_button.go): a press-and-hold renders the click
 // color, release falls back to the hover color. FocusDisabled keeps the
-// press from taking focus — while focused, buttonAmendLayout paints the
-// focus color and buttonOnHover deliberately skips the hover color, so
-// the release assertion must observe the un-focused path.
+// press from taking focus, which isolates this test to the un-focused
+// path; the focused-and-hovered case is
+// TestPickFocusedAndHoveredShowsHoverFill (#690).
 func TestButtonHoverPressedColor(t *testing.T) {
 	hover := RGBA(40, 200, 40, 255)
 	click := RGBA(200, 40, 40, 255)
@@ -295,7 +295,7 @@ func TestButtonVariantColorsKeepPrecedence(t *testing.T) {
 	if !ok || ly.Shape.bc == nil {
 		t.Fatal("button colors record missing")
 	}
-	if c := ly.Shape.bc.ColorHover; c != ThemeDark.ButtonStylePrimary.Colors.Hover {
+	if c := ly.Shape.bc.colors.Hover; c != ThemeDark.ButtonStylePrimary.Colors.Hover {
 		t.Errorf("hover = %v, want the variant's accent hover %v", c, ThemeDark.ButtonStylePrimary.Colors.Hover)
 	}
 }
