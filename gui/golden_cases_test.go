@@ -743,6 +743,19 @@ func goldenCases() []goldenCase {
 			},
 		},
 		{
+			// Focused header button (#718): the month label is a
+			// ghost button, so this pins its focus ring without
+			// the old focused-button fill.
+			name:    "datepicker_focused",
+			focusID: ScopeID("dp", "month"),
+			build: func(_ *Window) View {
+				return DatePicker(DatePickerCfg{
+					ID:    "dp",
+					Dates: []time.Time{time.Date(2026, 8, 15, 0, 0, 0, 0, time.UTC)},
+				})
+			},
+		},
+		{
 			name: "button_disabled",
 			build: func(_ *Window) View {
 				return Button(ButtonCfg{

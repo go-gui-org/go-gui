@@ -311,8 +311,7 @@ func datePickerControls(
 			// Namespaced by the picker's ID so two date pickers in
 			// one window keep separate focus and state identities.
 			ID:      ScopeID(cfgID, "month"),
-			Color:   ColorTransparent,
-			Colors:  ColorSet{Border: ColorTransparent}.resolved(ColorTransparent, defaultButtonStyle.Colors),
+			Variant: ButtonGhost,
 			OnClick: onToggle,
 			Content: []View{Text(TextCfg{
 				Text: monthLabel, TextStyle: cfg.TextStyle,
@@ -329,9 +328,8 @@ func datePickerControls(
 		header = append(header, Button(ButtonCfg{
 			// Namespaced by the picker's ID, next to the
 			// roller it dismisses.
-			ID:     ScopeID(cfgID, "done"),
-			Color:  ColorTransparent,
-			Colors: ColorSet{Border: ColorTransparent}.resolved(ColorTransparent, defaultButtonStyle.Colors),
+			ID:      ScopeID(cfgID, "done"),
+			Variant: ButtonGhost,
 			OnClick: func(ctx EventCtx) {
 				datePickerRollerDismiss(cfgID, ctx.Window)
 				ctx.Consume()
@@ -345,8 +343,7 @@ func datePickerControls(
 		header = append(header,
 			Button(ButtonCfg{
 				ID:      ScopeID(cfgID, "prev"),
-				Color:   ColorTransparent,
-				Colors:  ColorSet{Border: ColorTransparent}.resolved(ColorTransparent, defaultButtonStyle.Colors),
+				Variant: ButtonGhost,
 				OnClick: onPrev,
 				Content: []View{Text(TextCfg{
 					Text:      IconArrowLeft,
@@ -355,8 +352,7 @@ func datePickerControls(
 			}),
 			Button(ButtonCfg{
 				ID:      ScopeID(cfgID, "next"),
-				Color:   ColorTransparent,
-				Colors:  ColorSet{Border: ColorTransparent}.resolved(ColorTransparent, defaultButtonStyle.Colors),
+				Variant: ButtonGhost,
 				OnClick: onNext,
 				Content: []View{Text(TextCfg{
 					Text:      IconArrowRight,

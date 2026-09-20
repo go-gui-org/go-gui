@@ -285,6 +285,12 @@ and this project adheres to
 - **Showcase synth pads center their lines** — the Live Synthesis pads had the
   same padding-filled fixed box, pushing note name and frequency to the bottom
   edge. They now opt out of the padding and centre each line on its own ink.
+- **Date picker header and adjacent-day buttons are `ButtonGhost` (#718)** — the
+  month label, confirm, previous/next, blank spacer, and adjacent-month day
+  cells hand-built the ghost button colors instead of asking for
+  `Variant: ButtonGhost`. They now use the variant, so they follow the theme. A
+  keyboard-focused header button no longer shows the focused-button fill, only
+  the focus ring and focus border.
 
 ### Fixed
 

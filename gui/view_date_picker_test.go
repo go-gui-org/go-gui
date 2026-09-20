@@ -640,3 +640,54 @@ func TestDatePickerRollerKeyDownIgnoresOtherKeys(t *testing.T) {
 			got.ViewMonth, got.ViewYear)
 	}
 }
+
+// The header buttons and the adjacent-month cells are ghost buttons
+// (#718): they take their resting fill and border from the theme's
+// ghost style rather than hand-building transparent colors. Dropping
+// the variant would give them the base button's interior fill, which
+// is visible but which no other test catches for the confirm button —
+// it only exists while the roller is open, and no golden records that
+// state.
+func TestDatePickerGhostButtonsFollowTheme(t *testing.T) {
+	ghost := guiTheme.ButtonStyleGhost.Colors
+	cfg := DatePickerCfg{ID: "dp-ghost", ShowAdjacentMonths: true}
+	applyDatePickerDefaults(&cfg)
+	w := &Window{}
+	state := datePickerState{ViewMonth: 8, ViewYear: 2026}
+
+	// Both header shapes: closed carries prev/next, open carries the
+	// confirm button in their place.
+	closed := generateViewLayout(datePickerControls(&cfg, state, w), w)
+	openState := state
+	openState.ShowYearMonthPicker = true
+	open := generateViewLayout(datePickerControls(&cfg, openState, w), w)
+
+	// August 2026 starts on a Saturday, so the first row holds six
+	// trailing days of July, the last of which is the 31st.
+	month := datePickerMonth(&cfg, state, w)
+	grid := generateViewLayout(Column(ContainerCfg{Content: month}), w)
+
+	cases := []struct {
+		layout *Layout
+		id     string
+	}{
+		{&closed, ScopeID(cfg.ID, "month")},
+		{&closed, ScopeID(cfg.ID, "prev")},
+		{&closed, ScopeID(cfg.ID, "next")},
+		{&open, ScopeID(cfg.ID, "done")},
+		{&grid, ScopeIDN(ScopeID(cfg.ID, "day", "prev"), "", 31)},
+	}
+	for _, c := range cases {
+		found := findShapeByID(c.layout, c.id)
+		if found == nil {
+			t.Fatalf("%s: not in the layout", c.id)
+		}
+		if got := found.Shape.Color; got != ghost.Base {
+			t.Errorf("%s fill = %v, want ghost %v", c.id, got, ghost.Base)
+		}
+		if got := found.Shape.ColorBorder; got != ghost.Border {
+			t.Errorf("%s border = %v, want ghost %v",
+				c.id, got, ghost.Border)
+		}
+	}
+}

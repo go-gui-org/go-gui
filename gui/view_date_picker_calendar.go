@@ -111,8 +111,7 @@ func datePickerMonth(
 						// recording does not carry an odd one out.
 						opticalDigitLabel: true,
 						FocusDisabled:     true,
-						Color:             ColorTransparent,
-						Colors:            ColorSet{Border: ColorTransparent}.resolved(ColorTransparent, defaultButtonStyle.Colors),
+						Variant:           ButtonGhost,
 						Disabled:          true,
 						MinWidth:          cellSize,
 						MaxWidth:          cellSize,
@@ -268,8 +267,7 @@ func datePickerAdjacentCell(
 		// Digits, like the in-month cells beside it, and it has to sit
 		// level with them.
 		opticalDigitLabel: true,
-		Color:             ColorTransparent,
-		Colors:            ColorSet{Border: ColorTransparent}.resolved(ColorTransparent, defaultButtonStyle.Colors),
+		Variant:           ButtonGhost,
 		// An adjacent-month cell selects a day too — it just navigates
 		// first — so it takes the same cue as an in-month one.
 		Sound:         adjSound,
