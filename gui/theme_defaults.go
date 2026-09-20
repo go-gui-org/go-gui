@@ -293,6 +293,13 @@ func init() {
 	// literals of their own, so an app that never calls SetTheme still
 	// gets ThemeDark everywhere rather than a mixture (issue #300). It
 	// also sets guiTheme and installedThemeID.
-	defaultTheme = &ThemeDark
-	applyTheme(ThemeDark)
+	//
+	// Published as a copy, not as &ThemeDark: ThemeDark is an exported
+	// mutable package var, and pointing the app default straight at it
+	// would let an assignment to gui.ThemeDark write through a pointer
+	// readers already hold — the one thing currentDefaultThemeRef
+	// promises never happens.
+	published := ThemeDark
+	defaultTheme = &published
+	applyTheme(&published)
 }

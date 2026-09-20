@@ -34,7 +34,7 @@ func (v themedView) GenerateLayout(w *Window) Layout {
 	if v.build == nil {
 		return Layout{}
 	}
-	prev := pushTheme(v.theme)
+	prev := pushTheme(&v.theme)
 	defer popTheme(prev)
 
 	inner := v.build(w)

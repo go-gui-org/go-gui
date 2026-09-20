@@ -43,6 +43,12 @@ func Badge(cfg BadgeCfg) View {
 		cfg.Padding = guiTheme.badgeStyle.Padding
 	}
 	style := guiTheme.badgeStyle
+	// A caller with no text color gets the paired label for the
+	// fill this badge actually paints. Full-zero still takes the
+	// theme's whole style; a partial style keeps its fields and
+	// only the color pairs, so Size:20 on an error fill stays 20
+	// and readable.
+	pairLabel := !cfg.TextStyle.Color.IsSet()
 	if cfg.TextStyle == (TextStyle{}) {
 		cfg.TextStyle = style.TextStyle
 	}
@@ -59,6 +65,13 @@ func Badge(cfg BadgeCfg) View {
 		bg = style.ColorWarning
 	case BadgeError:
 		bg = style.ColorError
+	}
+	if pairLabel {
+		// The fill and the text on it are one decision (issue #373).
+		// bg is whatever this badge actually paints — a variant color
+		// or the caller's own — so the label pairs with that, not
+		// with the neutral fill the theme resolved its label against.
+		cfg.TextStyle.Color = textOnFor(bg)
 	}
 
 	if cfg.Dot {

@@ -593,7 +593,11 @@ func SetTheme(t Theme) {
 	// before Run, tests building views directly — see the change at
 	// once. Each window's frame start re-installs its own theme, so
 	// this cannot outlive the next frame of a window that pinned one.
-	applyTheme(t)
+	//
+	// Frame-thread only: main before Run, or an event handler. See
+	// applyTheme. From another goroutine, queue it instead —
+	// w.QueueCommand(func(*Window) { gui.SetTheme(t) }).
+	applyTheme(&published)
 	appUpdateWindows()
 }
 
@@ -611,8 +615,11 @@ func currentDefaultThemeRef() *Theme {
 	defaultThemeMu.RUnlock()
 	if t == nil {
 		// Before init's SetTheme-equivalent runs (a test constructing
-		// a Window in an init of its own).
-		return &ThemeDark
+		// a Window in an init of its own). A copy, for the same reason
+		// init publishes one: the caller must not end up holding a
+		// pointer into the exported ThemeDark var.
+		fallback := ThemeDark
+		return &fallback
 	}
 	return t
 }
@@ -623,10 +630,20 @@ func currentDefaultThemeRef() *Theme {
 // Called at frame start ((*Window).installTheme), around a scoped
 // subtree (Themed's push/pop), at package init, and eagerly from
 // SetTheme so callers outside a frame pass see the change at once.
-func applyTheme(t Theme) {
+//
+// Frame-thread only. The write side takes guiThemeMu, but the ~166
+// factory-time reads of guiTheme and the default*Style mirrors take
+// no lock at all — they rely on the single-frame-thread invariant at
+// the top of this file. So a SetTheme from a timer or a network
+// goroutine races every widget the current frame is building. Both
+// exported entry points say so; nothing enforces it.
+//
+// Takes a pointer: Theme is ~12 KB and this is on the frame path.
+// The value is read, never retained.
+func applyTheme(t *Theme) {
 	guiThemeMu.Lock()
 	defer guiThemeMu.Unlock()
-	guiTheme = t
+	guiTheme = *t
 	DefaultTextStyle = t.TextStyleDef
 	defaultButtonStyle = t.ButtonStyle
 	defaultContainerStyle = t.ContainerStyle

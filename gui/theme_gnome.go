@@ -45,12 +45,12 @@ var (
 	}
 )
 
-// basegnomeCfg returns the geometry shared by both GNOME polarities.
+// baseGnomeCfg returns the geometry shared by both GNOME polarities.
 //
 // Starts from baseCfg so the text ladder, spacing ladder and scroll
 // deltas stay the toolkit's, and overrides only what GNOME actually
 // does differently.
-func basegnomeCfg() ThemeCfg {
+func baseGnomeCfg() ThemeCfg {
 	cfg := baseCfg()
 
 	// Hairlines. Adwaita outlines controls at a single pixel and leans
@@ -82,7 +82,7 @@ func basegnomeCfg() ThemeCfg {
 
 // gnomeCfg returns the light GNOME ThemeCfg.
 func gnomeCfg() ThemeCfg {
-	cfg := basegnomeCfg()
+	cfg := baseGnomeCfg()
 	cfg.Name = "gnome"
 	cfg.ColorBackground = mustThemeColor("#F6F5F4")
 	cfg.ColorPanel = mustThemeColor("#FAFAFA")
@@ -106,7 +106,7 @@ func gnomeCfg() ThemeCfg {
 
 // gnomeDarkCfg returns the dark GNOME ThemeCfg.
 func gnomeDarkCfg() ThemeCfg {
-	cfg := basegnomeCfg()
+	cfg := baseGnomeCfg()
 	cfg.Name = "gnome-dark"
 	cfg.ColorBackground = mustThemeColor("#242424")
 	cfg.ColorPanel = mustThemeColor("#2E2E2E")

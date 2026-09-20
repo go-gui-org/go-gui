@@ -44,13 +44,13 @@ var (
 	}
 )
 
-// basewindowsCfg returns the geometry shared by both Windows
+// baseWindowsCfg returns the geometry shared by both Windows
 // polarities.
 //
 // Starts from baseCfg so the text ladder, spacing ladder and scroll
 // deltas stay the toolkit's, and overrides only what Windows actually
 // does differently.
-func basewindowsCfg() ThemeCfg {
+func baseWindowsCfg() ThemeCfg {
 	cfg := baseCfg()
 
 	// Hairlines. Windows 11 outlines controls at a single pixel.
@@ -89,7 +89,7 @@ func basewindowsCfg() ThemeCfg {
 
 // windowsCfg returns the light Windows ThemeCfg.
 func windowsCfg() ThemeCfg {
-	cfg := basewindowsCfg()
+	cfg := baseWindowsCfg()
 	cfg.Name = "windows"
 	cfg.ColorBackground = mustThemeColor("#F3F3F3")
 	cfg.ColorPanel = mustThemeColor("#FFFFFF")
@@ -113,7 +113,7 @@ func windowsCfg() ThemeCfg {
 
 // windowsDarkCfg returns the dark Windows ThemeCfg.
 func windowsDarkCfg() ThemeCfg {
-	cfg := basewindowsCfg()
+	cfg := baseWindowsCfg()
 	cfg.Name = "windows-dark"
 	cfg.ColorBackground = mustThemeColor("#202020")
 	cfg.ColorPanel = mustThemeColor("#2B2B2B")

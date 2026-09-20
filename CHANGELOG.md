@@ -178,6 +178,50 @@ and this project adheres to
 
 ### Fixed
 
+- **Second theme review: `WithColors` drift, badge contrast, install cost** —
+  from a second review of the `theme*` code, five defects and their gates:
+  - **`Theme.WithColors` had drifted from `ThemeMaker`.** It restates the whole
+    cfg-to-style mapping by hand, so a slot added to `ThemeMaker` and not to it
+    silently kept the old theme's color. Fourteen slots had drifted on a
+    same-polarity recolor and twenty-eight across a polarity flip. Now fixed:
+    the spell-check underline, the radio, switch and toggle pressed, focus and
+    select colors, the focus ring on the primary, ghost and danger buttons, the
+    ghost button's pressed color, the skeleton shimmer, the tree's border (it
+    stays transparent, as `ThemeMaker` builds it) and the inspector panel
+    (deliberately theme-independent, so it no longer follows a recolor). The
+    four named text roles are re-derived for the new polarity along with every
+    placeholder, secondary and disabled style built from them, and the selected
+    tab's label pairs with the new select fill — a light accent used to keep a
+    white label on it. A theme that forked a slot by hand still keeps its fork.
+    `TestWithColorsMatchesThemeMaker` is the new gate: a full recolor through
+    both paths, compared field by field across four polarity combinations.
+  - **A badge drew its label in a hardcoded white (#373).** Every light preset
+    fills a neutral badge with `ColorActive`, a near-white, so the label sat on
+    it at contrast 1.26 to 1.32. The label now takes the theme's existing
+    pairing rule against the fill it actually paints — per variant and per
+    caller-supplied `Color` — while a caller-stated `TextStyle` still wins. The
+    semantic fills are brand colors at mid-luminance and reach no better than
+    about 3.5 with either foreground; that is a palette question, not a pairing
+    one, and is unchanged.
+  - **Theme install copied ~12 KB per window per frame.** The steady-state frame
+    does nothing but compare one id, and it copied the whole `Theme` out of the
+    window to reach it: 705 ns/op for a no-op. By reference it is 9.3 ns/op,
+    zero allocations (`BenchmarkInstallThemeSteadyState`).
+  - **`AdjustFontSize` reported the wrong rule and never checked its range.**
+    The guard is `minSize >= 1` but the error said `> 0`, and `maxSize` was
+    never compared to `minSize`, so an inverted range rejected every size and
+    blamed the size for it.
+  - **The app-default theme aliased the exported `ThemeDark` var.** It was
+    published as `&ThemeDark`, so assigning `gui.ThemeDark` wrote through a
+    pointer live readers hold — the one thing the no-copy theme path promises
+    cannot happen. It publishes a copy now.
+  - Also: dropped two dead stores in `ThemeMaker` that read the size config raw
+    and were overwritten by the weight rungs, gave every `GOOS` without a named
+    system font a default (`freebsd` and friends failed to compile on two
+    missing constants, now gated by `TestDefaultFontConstantsCoverEveryGOOS`
+    rather than by a cross-compile target, since `go-glyph` has no port to build
+    against there), and renamed `basegnomeCfg`/`basewindowsCfg` to match
+    `baseMacOSCfg`.
 - **Theme correctness fixes** — from a review of the `theme*` code:
   - **`Theme.WithColors` is now public and covers the full recolor story.**
     Overrides are plain `Color` values where unset means "keep" (an explicit

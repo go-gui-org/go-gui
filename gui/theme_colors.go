@@ -114,6 +114,7 @@ func (t Theme) WithColors(o ColorOverrides) Theme {
 	oldBg := t.ColorBackground
 	oldBorder := t.ColorBorder
 	oldTextOnAccent := t.ColorTextOnAccent
+	oldTextOnSelect := t.ColorTextOnSelect
 	oldBorderFocus := t.ButtonStyle.ColorBorderFocus
 	oldSeparator := t.separatorStyle.Color
 
@@ -159,6 +160,62 @@ func (t Theme) WithColors(o ColorOverrides) Theme {
 	errorSubtle := track(t.ColorErrorSubtle, o.ColorErrorSubtle,
 		subtleFor(oldError, oldBg), subtleFor(colorError, bg))
 
+	// Named text roles are polarity-matched, not fixed (textRolesFor):
+	// the same role means a different alpha over a dark ground than
+	// over a light one. A background override can therefore flip the
+	// whole ladder, and before this every quiet style kept the old
+	// polarity's alpha — unreadable across a dark-to-light recolor.
+	//
+	// Derived twice and carried with track's rule: a role the theme
+	// forked by hand (or stated through ThemeCfg.ColorText*) keeps its
+	// value, one still sitting on its derivation follows.
+	oldCfg := t.Cfg
+	newCfg := oldCfg
+	newCfg.ColorBackground = bg
+	oldSecondary, oldLabel, oldDisabled, oldPlaceholder :=
+		themeTextRoles(oldCfg, t.TextStyleDef, t.SizeTextXSmall)
+	newSecondary, newLabel, newDisabled, newPlaceholder :=
+		themeTextRoles(newCfg, t.TextStyleDef, t.SizeTextXSmall)
+	trackStyle := func(cur, oldWant, newWant TextStyle) TextStyle {
+		if cur == oldWant {
+			return newWant
+		}
+		return cur
+	}
+
+	t.TextStyleSecondary = trackStyle(
+		t.TextStyleSecondary, oldSecondary, newSecondary)
+	t.TextStyleLabel = trackStyle(t.TextStyleLabel, oldLabel, newLabel)
+	t.TextStyleDisabled = trackStyle(
+		t.TextStyleDisabled, oldDisabled, newDisabled)
+	t.TextStylePlaceholder = trackStyle(
+		t.TextStylePlaceholder, oldPlaceholder, newPlaceholder)
+
+	// Every style ThemeMaker builds from a role follows it here, or
+	// the role moves and the widget drawing it does not.
+	t.InputStyle.PlaceholderStyle = trackStyle(
+		t.InputStyle.PlaceholderStyle, oldPlaceholder, newPlaceholder)
+	t.selectStyle.PlaceholderStyle = trackStyle(
+		t.selectStyle.PlaceholderStyle, oldPlaceholder, newPlaceholder)
+	t.comboboxStyle.PlaceholderStyle = trackStyle(
+		t.comboboxStyle.PlaceholderStyle, oldPlaceholder, newPlaceholder)
+	t.progressBarStyle.TextStyle = trackStyle(
+		t.progressBarStyle.TextStyle, oldSecondary, newSecondary)
+	t.commandPaletteStyle.detailStyle = trackStyle(
+		t.commandPaletteStyle.detailStyle, oldSecondary, newSecondary)
+	t.breadcrumbStyle.textStyleSeparator = trackStyle(
+		t.breadcrumbStyle.textStyleSeparator, oldSecondary, newSecondary)
+	t.breadcrumbStyle.textStyleDisabled = trackStyle(
+		t.breadcrumbStyle.textStyleDisabled, oldDisabled, newDisabled)
+	t.tabControlStyle.textStyleDisabled = trackStyle(
+		t.tabControlStyle.textStyleDisabled, oldDisabled, newDisabled)
+	// The inspector's panel and wireframe colors stay deliberately
+	// theme-independent (inspectorStyleFor); only its help text is
+	// ordinary supporting text, so only that follows.
+	t.inspectorStyle.colorTextHelp = track(
+		t.inspectorStyle.colorTextHelp, Color{},
+		oldSecondary.Color, newSecondary.Color)
+
 	t.ColorBackground = bg
 	t.ColorPanel = panel
 	t.ColorInterior = interior
@@ -190,10 +247,12 @@ func (t Theme) WithColors(o ColorOverrides) Theme {
 	t.InputStyle.colorClick = active
 	t.InputStyle.ColorBorder = border
 	t.InputStyle.ColorBorderFocus = borderFocus
+	t.InputStyle.colorSpellError = colorError
 
 	t.radioStyle.Color = panel
 	t.radioStyle.ColorHover = hover
 	t.radioStyle.ColorFocus = sel
+	t.radioStyle.colorClick = active
 	t.radioStyle.ColorBorder = border
 	t.radioStyle.ColorBorderFocus = borderFocus
 	t.radioStyle.ColorSelect = sel
@@ -201,6 +260,8 @@ func (t Theme) WithColors(o ColorOverrides) Theme {
 
 	t.switchStyle.Color = panel
 	t.switchStyle.ColorHover = hover
+	t.switchStyle.colorClick = interior
+	t.switchStyle.ColorFocus = interior
 	t.switchStyle.ColorBorder = border
 	t.switchStyle.ColorBorderFocus = borderFocus
 	t.switchStyle.ColorSelect = sel
@@ -208,6 +269,9 @@ func (t Theme) WithColors(o ColorOverrides) Theme {
 
 	t.toggleStyle.Color = panel
 	t.toggleStyle.ColorHover = hover
+	t.toggleStyle.colorClick = interior
+	t.toggleStyle.ColorFocus = interior
+	t.toggleStyle.ColorSelect = interior
 	t.toggleStyle.ColorBorder = border
 	t.toggleStyle.ColorBorderFocus = borderFocus
 
@@ -229,9 +293,9 @@ func (t Theme) WithColors(o ColorOverrides) Theme {
 
 	t.treeStyle.ColorHover = hover
 	t.treeStyle.ColorFocus = focus
-	if o.ColorBorder.IsSet() {
-		t.treeStyle.ColorBorder = border
-	}
+	// No ColorBorder: ThemeMaker gives the tree a transparent border
+	// whatever the theme's border color is, and painting one here
+	// made a recolor add an outline the theme never asked for.
 
 	t.ScrollbarStyle.colorThumb = active
 	t.rectangleStyle.ColorBorder = border
@@ -241,8 +305,13 @@ func (t Theme) WithColors(o ColorOverrides) Theme {
 	t.ButtonStylePrimary.colorClick = accentPressed
 	t.ButtonStylePrimary.ColorFocus = accent
 	t.ButtonStylePrimary.ColorBorder = accent
+	t.ButtonStylePrimary.ColorBorderFocus = borderFocus
 
+	// Ghost drops fill and border, but keeps the base button's
+	// pressed color and focus ring (deriveButtonStyles).
 	t.ButtonStyleGhost.ColorHover = hover
+	t.ButtonStyleGhost.colorClick = focus
+	t.ButtonStyleGhost.ColorBorderFocus = borderFocus
 
 	errorHover := accentShift(colorError, 0.12)
 	errorPressed := accentShift(colorError, -0.12)
@@ -251,6 +320,7 @@ func (t Theme) WithColors(o ColorOverrides) Theme {
 	t.ButtonStyleDanger.colorClick = errorPressed
 	t.ButtonStyleDanger.ColorFocus = colorError
 	t.ButtonStyleDanger.ColorBorder = colorError
+	t.ButtonStyleDanger.ColorBorderFocus = borderFocus
 
 	t.dialogStyle.Color = panel
 	t.dialogStyle.ColorBorder = border
@@ -266,6 +336,11 @@ func (t Theme) WithColors(o ColorOverrides) Theme {
 	t.tooltipStyle.Color = interior
 	t.tooltipStyle.ColorBorder = border
 
+	// The neutral badge fill moves with ColorActive, and its label is
+	// the paired foreground (issue #373), so the label follows.
+	t.badgeStyle.TextStyle.Color = track(
+		t.badgeStyle.TextStyle.Color, Color{},
+		textOnFor(t.badgeStyle.Color), textOnFor(active))
 	t.badgeStyle.Color = active
 	t.badgeStyle.colorInfo = sel
 	t.badgeStyle.ColorSuccess = colorSuccess
@@ -304,6 +379,13 @@ func (t Theme) WithColors(o ColorOverrides) Theme {
 	t.tabControlStyle.colorTabDisabled = panel
 	t.tabControlStyle.colorTabBorder = border
 	t.tabControlStyle.colorTabBorderFocus = borderFocus
+	// The selected tab fills with the select color, so its label is
+	// the paired foreground (issue #373). Without this a light accent
+	// kept a white label on it.
+	t.tabControlStyle.textStyleSelected = trackStyle(
+		t.tabControlStyle.textStyleSelected,
+		textOnFill(t.B3, true, oldTextOnSelect),
+		textOnFill(t.B3, true, selText))
 
 	t.breadcrumbStyle.colorCrumbHover = hover
 	t.breadcrumbStyle.colorCrumbClick = active
@@ -374,9 +456,9 @@ func (t Theme) WithColors(o ColorOverrides) Theme {
 	t.separatorStyle.Color = separator
 
 	t.skeletonStyle.Color = interior
-	t.skeletonStyle.ColorHighlight = hover
-
-	t.inspectorStyle.ColorPanel = panel
+	// The shimmer is the fill lifted a fixed amount, not the hover
+	// color — same derivation ThemeMaker uses.
+	t.skeletonStyle.ColorHighlight = interior.Add(RGBA(20, 20, 20, 0))
 
 	// Keep Cfg in sync so a later rebuild from the configuration
 	// (WithPadding, WithBorders, AdjustFontSize) does not drop the
@@ -384,57 +466,43 @@ func (t Theme) WithColors(o ColorOverrides) Theme {
 	// the styles and the configuration alone. A stripped theme tunes
 	// its restore point the same way, so strip, recolor, restore
 	// keeps the recolor.
-	syncColor := func(dst *Color, src Color) {
-		if src.IsSet() {
-			*dst = src
+	// applyTo writes every set override into a configuration. Both the
+	// live Cfg and the restore point take the same pass, so a stripped
+	// theme's restore, restore-after-recolor and recolor-after-strip
+	// all land on the same colors.
+	applyTo := func(cfg *ThemeCfg) {
+		syncColor := func(dst *Color, src Color) {
+			if src.IsSet() {
+				*dst = src
+			}
 		}
+		syncColor(&cfg.ColorBackground, o.ColorBackground)
+		syncColor(&cfg.ColorPanel, o.ColorPanel)
+		syncColor(&cfg.ColorInterior, o.ColorInterior)
+		syncColor(&cfg.ColorHover, o.ColorHover)
+		syncColor(&cfg.ColorFocus, o.ColorFocus)
+		syncColor(&cfg.ColorActive, o.ColorActive)
+		syncColor(&cfg.ColorBorder, o.ColorBorder)
+		syncColor(&cfg.ColorBorderFocus, o.ColorBorderFocus)
+		syncColor(&cfg.ColorSeparator, o.ColorSeparator)
+		syncColor(&cfg.ColorSelect, o.ColorSelect)
+		syncColor(&cfg.ColorTextOnSelect, o.ColorTextOnSelect)
+		syncColor(&cfg.ColorAccent, o.ColorAccent)
+		syncColor(&cfg.ColorAccentHover, o.ColorAccentHover)
+		syncColor(&cfg.ColorAccentPressed, o.ColorAccentPressed)
+		syncColor(&cfg.ColorAccentSubtle, o.ColorAccentSubtle)
+		syncColor(&cfg.ColorTextOnAccent, o.ColorTextOnAccent)
+		syncColor(&cfg.ColorSuccess, o.ColorSuccess)
+		syncColor(&cfg.ColorWarning, o.ColorWarning)
+		syncColor(&cfg.ColorError, o.ColorError)
+		syncColor(&cfg.ColorSuccessSubtle, o.ColorSuccessSubtle)
+		syncColor(&cfg.ColorWarningSubtle, o.ColorWarningSubtle)
+		syncColor(&cfg.ColorErrorSubtle, o.ColorErrorSubtle)
 	}
-	syncColor(&t.Cfg.ColorBackground, o.ColorBackground)
-	syncColor(&t.Cfg.ColorPanel, o.ColorPanel)
-	syncColor(&t.Cfg.ColorInterior, o.ColorInterior)
-	syncColor(&t.Cfg.ColorHover, o.ColorHover)
-	syncColor(&t.Cfg.ColorFocus, o.ColorFocus)
-	syncColor(&t.Cfg.ColorActive, o.ColorActive)
-	syncColor(&t.Cfg.ColorBorder, o.ColorBorder)
-	syncColor(&t.Cfg.ColorBorderFocus, o.ColorBorderFocus)
-	syncColor(&t.Cfg.ColorSeparator, o.ColorSeparator)
-	syncColor(&t.Cfg.ColorSelect, o.ColorSelect)
-	syncColor(&t.Cfg.ColorTextOnSelect, o.ColorTextOnSelect)
-	syncColor(&t.Cfg.ColorAccent, o.ColorAccent)
-	syncColor(&t.Cfg.ColorAccentHover, o.ColorAccentHover)
-	syncColor(&t.Cfg.ColorAccentPressed, o.ColorAccentPressed)
-	syncColor(&t.Cfg.ColorAccentSubtle, o.ColorAccentSubtle)
-	syncColor(&t.Cfg.ColorTextOnAccent, o.ColorTextOnAccent)
-	syncColor(&t.Cfg.ColorSuccess, o.ColorSuccess)
-	syncColor(&t.Cfg.ColorWarning, o.ColorWarning)
-	syncColor(&t.Cfg.ColorError, o.ColorError)
-	syncColor(&t.Cfg.ColorSuccessSubtle, o.ColorSuccessSubtle)
-	syncColor(&t.Cfg.ColorWarningSubtle, o.ColorWarningSubtle)
-	syncColor(&t.Cfg.ColorErrorSubtle, o.ColorErrorSubtle)
+	applyTo(&t.Cfg)
 	if t.restoreCfg != nil {
 		dup := *t.restoreCfg
-		syncColor(&dup.ColorBackground, o.ColorBackground)
-		syncColor(&dup.ColorPanel, o.ColorPanel)
-		syncColor(&dup.ColorInterior, o.ColorInterior)
-		syncColor(&dup.ColorHover, o.ColorHover)
-		syncColor(&dup.ColorFocus, o.ColorFocus)
-		syncColor(&dup.ColorActive, o.ColorActive)
-		syncColor(&dup.ColorBorder, o.ColorBorder)
-		syncColor(&dup.ColorBorderFocus, o.ColorBorderFocus)
-		syncColor(&dup.ColorSeparator, o.ColorSeparator)
-		syncColor(&dup.ColorSelect, o.ColorSelect)
-		syncColor(&dup.ColorTextOnSelect, o.ColorTextOnSelect)
-		syncColor(&dup.ColorAccent, o.ColorAccent)
-		syncColor(&dup.ColorAccentHover, o.ColorAccentHover)
-		syncColor(&dup.ColorAccentPressed, o.ColorAccentPressed)
-		syncColor(&dup.ColorAccentSubtle, o.ColorAccentSubtle)
-		syncColor(&dup.ColorTextOnAccent, o.ColorTextOnAccent)
-		syncColor(&dup.ColorSuccess, o.ColorSuccess)
-		syncColor(&dup.ColorWarning, o.ColorWarning)
-		syncColor(&dup.ColorError, o.ColorError)
-		syncColor(&dup.ColorSuccessSubtle, o.ColorSuccessSubtle)
-		syncColor(&dup.ColorWarningSubtle, o.ColorWarningSubtle)
-		syncColor(&dup.ColorErrorSubtle, o.ColorErrorSubtle)
+		applyTo(&dup)
 		t.restoreCfg = &dup
 	}
 
@@ -442,13 +510,23 @@ func (t Theme) WithColors(o ColorOverrides) Theme {
 	return t
 }
 
-// AdjustFontSize returns a new Theme with all font sizes adjusted
-// by delta, clamped to [minSize, maxSize]. A stripped theme keeps
+// AdjustFontSize returns a new Theme with all font sizes adjusted by
+// delta. The body size must land inside [minSize, maxSize] or the
+// theme comes back unchanged with an error; the derived rungs are
+// clamped individually at a floor of sizeTextFloor, which is a
+// legibility limit and not the caller's range. A stripped theme keeps
 // its restore point, tuned by the same delta, so a later
 // WithPadding(true) restores with the tune kept.
 func (t Theme) AdjustFontSize(delta, minSize, maxSize float32) (Theme, error) {
+	// The guard is >= 1, so say so: the old text read "> 0" and a
+	// caller passing 0.5 got an error the message denied.
 	if minSize < 1 {
-		return t, errors.New("minSize must be > 0")
+		return t, errors.New("minSize must be >= 1")
+	}
+	// An inverted range accepted nothing, and said "out of range"
+	// about the size rather than about the range.
+	if maxSize < minSize {
+		return t, errors.New("maxSize must be >= minSize")
 	}
 	cfg := t.Cfg
 	newSize := cfg.TextStyleDef.Size + delta
@@ -456,22 +534,22 @@ func (t Theme) AdjustFontSize(delta, minSize, maxSize float32) (Theme, error) {
 		return t, errors.New("new font size out of range")
 	}
 	cfg.TextStyleDef.Size = newSize
-	cfg.SizeTextTiny = max(cfg.SizeTextTiny+delta, 6)
-	cfg.SizeTextXSmall = max(cfg.SizeTextXSmall+delta, 6)
-	cfg.SizeTextSmall = max(cfg.SizeTextSmall+delta, 6)
-	cfg.SizeTextMedium = max(cfg.SizeTextMedium+delta, 6)
-	cfg.SizeTextLarge = max(cfg.SizeTextLarge+delta, 6)
-	cfg.SizeTextXLarge = max(cfg.SizeTextXLarge+delta, 6)
+	cfg.SizeTextTiny = max(cfg.SizeTextTiny+delta, sizeTextFloor)
+	cfg.SizeTextXSmall = max(cfg.SizeTextXSmall+delta, sizeTextFloor)
+	cfg.SizeTextSmall = max(cfg.SizeTextSmall+delta, sizeTextFloor)
+	cfg.SizeTextMedium = max(cfg.SizeTextMedium+delta, sizeTextFloor)
+	cfg.SizeTextLarge = max(cfg.SizeTextLarge+delta, sizeTextFloor)
+	cfg.SizeTextXLarge = max(cfg.SizeTextXLarge+delta, sizeTextFloor)
 	out := ThemeMaker(cfg)
 	if t.restoreCfg != nil {
 		dup := *t.restoreCfg
 		dup.TextStyleDef.Size += delta
-		dup.SizeTextTiny = max(dup.SizeTextTiny+delta, 6)
-		dup.SizeTextXSmall = max(dup.SizeTextXSmall+delta, 6)
-		dup.SizeTextSmall = max(dup.SizeTextSmall+delta, 6)
-		dup.SizeTextMedium = max(dup.SizeTextMedium+delta, 6)
-		dup.SizeTextLarge = max(dup.SizeTextLarge+delta, 6)
-		dup.SizeTextXLarge = max(dup.SizeTextXLarge+delta, 6)
+		dup.SizeTextTiny = max(dup.SizeTextTiny+delta, sizeTextFloor)
+		dup.SizeTextXSmall = max(dup.SizeTextXSmall+delta, sizeTextFloor)
+		dup.SizeTextSmall = max(dup.SizeTextSmall+delta, sizeTextFloor)
+		dup.SizeTextMedium = max(dup.SizeTextMedium+delta, sizeTextFloor)
+		dup.SizeTextLarge = max(dup.SizeTextLarge+delta, sizeTextFloor)
+		dup.SizeTextXLarge = max(dup.SizeTextXLarge+delta, sizeTextFloor)
 		out.restoreCfg = &dup
 	}
 	return out, nil

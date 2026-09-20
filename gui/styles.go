@@ -46,6 +46,10 @@ const (
 	sizeTextSmall  float32 = sizeTextMedium - 2
 	sizeTextLarge  float32 = sizeTextMedium + 3
 	sizeTextXLarge float32 = sizeTextMedium + 8
+	// sizeTextFloor is the smallest rung AdjustFontSize will produce.
+	// A legibility limit, not the caller's range: a large negative
+	// delta collapses the ladder onto this rather than to zero.
+	sizeTextFloor float32 = 6
 	// sizeBorderDef is the hairline every platform draws. 1.5 was a
 	// 3-device-pixel stroke at 2x and the main reason the toolkit
 	// read as boxy; the platform themes already drew 1 for exactly
@@ -386,7 +390,7 @@ var DefaultTextStyle = TextStyle{
 }
 
 // Widget style mirrors (issue #300). ThemeMaker is the only source of
-// these values: init() fills them via applyTheme(ThemeDark) and
+// these values: init() fills them via applyTheme(&published) and
 // (*Window).installTheme refills them whenever the active theme changes.
 //
 // Never give one an initializer. A literal here is a second source of
