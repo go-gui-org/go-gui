@@ -317,8 +317,7 @@ func dataGridSourcePagerRow(cfg *DataGridCfg, focusID string, state dataGridSour
 			SizeBorder:  gg.SomeF(0),
 			Radius:      gg.SomeF(0),
 			Color:       cfg.ColorFilter,
-			ColorHover:  cfg.ColorFilter,
-			ColorBorder: cfg.ColorBorder,
+			Colors:      gg.ColorSet{Hover: cfg.ColorFilter, Border: cfg.ColorBorder},
 			TextStyle:   cfg.TextStyleFilter,
 			OnTextChanged: func(text string, ctx gg.EventCtx) {
 				digits := dataGridJumpDigits(text)

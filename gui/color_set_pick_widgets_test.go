@@ -148,41 +148,129 @@ func TestPickHeldSpaceShowsClick(t *testing.T) {
 	}
 }
 
+// ExpandPanel's header toggles on Space, so a held Space is a press
+// there the same way it is on Button (#721). The header is the only
+// widget outside Button whose amend pass reads the key-press target,
+// and it was the state the old two-color OnHover could not express.
+func TestPickExpandPanelHeldSpaceShowsClick(t *testing.T) {
+	w := NewTestWindow(WindowCfg{})
+	w.TestRender(func(*Window) View {
+		return ExpandPanel(ExpandPanelCfg{
+			ID:      "ep",
+			Head:    Text(TextCfg{Text: "Details"}),
+			Content: Text(TextCfg{Text: "content"}),
+			Open:    true,
+			Colors:  pickProbeColors,
+		})
+	})
+	head := ScopeID("ep", "head")
+	w.SetFocus(head)
+	pointerAway(w)
+	w.viewState.keyPressTargetID = head
+	w.InvalidateLayout()
+	w.settle()
+
+	shape := mustShape(t, w, head)
+	if shape.Color != pickProbeColors.Click {
+		t.Errorf("held Space: header fill = %+v, want %+v",
+			shape.Color, pickProbeColors.Click)
+	}
+	if shape.ColorBorder != pickProbeColors.BorderFocus {
+		t.Errorf("held Space: header border = %+v, want the focus "+
+			"border %+v", shape.ColorBorder, pickProbeColors.BorderFocus)
+	}
+}
+
 // TestPickDisabledIgnoresPointer is the bug history, once, for every
 // widget that now shares the picker. It was fixed one widget at a time
 // in e5ed61d9 (button), cd9a8842 (toggle, radio), 6274186c (switch) and
-// 89cbf85a (listbox), each time with another local guard.
+// 89cbf85a (listbox), each time with another local guard. #721 extends
+// the table to the applyTo twelve: a disabled widget takes its resting
+// colors whatever else is true of it. Table, ExpandPanel and
+// ContextMenu take no Disabled flag, so they cannot appear here.
+//
+// Two assertions, because the ID-bearing shape is not where most of
+// these widgets paint. Only Button, Toggle, Switch, Input and
+// NumericInput write a hover fill onto the shape (or immediate child)
+// that carries the ID; ListBox, Tree and Slider paint a row or a track
+// further down. So the root comparison alone would pass vacuously for
+// half the table, and the tree walk is what makes those rows able to
+// fail: no shape anywhere in a disabled widget may end the frame
+// holding an interaction color.
+//
+// Four widgets are deliberately absent because neither assertion could
+// fail for them — a row that cannot go red asserts nothing and reads as
+// coverage it is not. Combobox and Select paint hover only on dropdown
+// rows, which a closed control does not build; VirtualList has no hover
+// path at all (#717); Menubar's item hover records the hovered item in
+// state and takes its fill from ColorSelect, never from Colors.Hover.
+// Their disabled-under-pointer appearance is recorded instead by the
+// combobox/select/virtual_list/menubar `_disabled_hover` golden cases.
 func TestPickDisabledIgnoresPointer(t *testing.T) {
 	tests := []struct {
 		name string
 		// build returns the widget; onChild says whether the state is
 		// painted on the ID-bearing row or on its first child.
-		build   func() View
+		build   func(*Window) View
 		onChild bool
 	}{
-		{"button", func() View {
+		{"button", func(*Window) View {
 			return Button(ButtonCfg{
 				ID: "w", Width: 100, Height: 40, Disabled: true,
 				OnClick: func(EventCtx) {}, Colors: pickProbeColors,
 			})
 		}, false},
-		{"toggle", func() View {
+		{"toggle", func(*Window) View {
 			return Toggle(ToggleCfg{
 				ID: "w", Label: "x", Disabled: true,
 				OnClick: func(EventCtx) {}, Colors: pickProbeColors,
 			})
 		}, true},
-		{"switch", func() View {
+		{"switch", func(*Window) View {
 			return Switch(SwitchCfg{
 				ID: "w", Label: "x", Disabled: true,
 				OnClick: func(EventCtx) {}, Colors: pickProbeColors,
 			})
 		}, true},
+		{"input", func(*Window) View {
+			return Input(InputCfg{
+				ID: "w", Text: "x", Disabled: true,
+				Colors: pickProbeColors,
+			})
+		}, false},
+		{"numericinput", func(*Window) View {
+			return NumericInput(NumericInputCfg{
+				ID: "w", Text: "1", Disabled: true,
+				Colors: pickProbeColors,
+			})
+		}, false},
+		{"listbox", func(*Window) View {
+			// OnSelect is load-bearing: listBoxItemView attaches its
+			// hover writer only when the list can be selected from,
+			// so without one there is no hover path to suppress.
+			return ListBox(ListBoxCfg{
+				ID: "w", Items: []string{"a"}, Disabled: true,
+				OnSelect: func([]string, EventCtx) {},
+				Colors:   pickProbeColors,
+			})
+		}, false},
+		{"tree", func(*Window) View {
+			return Tree(TreeCfg{
+				ID: "w", Disabled: true,
+				Nodes:  []TreeNodeCfg{{ID: "a", Text: "A"}},
+				Colors: pickProbeColors,
+			})
+		}, false},
+		{"slider", func(*Window) View {
+			return Slider(SliderCfg{
+				ID: "w", Disabled: true, Colors: pickProbeColors,
+			})
+		}, false},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			w := NewTestWindow(WindowCfg{})
-			w.TestRender(func(*Window) View { return tc.build() })
+			w.TestRender(func(win *Window) View { return tc.build(win) })
 
 			shape := mustShape(t, w, "w")
 			if tc.onChild {
@@ -199,10 +287,37 @@ func TestPickDisabledIgnoresPointer(t *testing.T) {
 				t.Errorf("disabled and hovered: fill = %+v, want the "+
 					"resting %+v", after.Color, before)
 			}
-			if after.Color == pickProbeColors.Hover {
-				t.Error("disabled widget took the hover color")
-			}
+			assertNoInteractionColors(t, &w.layout)
 		})
+	}
+}
+
+// assertNoInteractionColors walks the whole tree and fails on any shape
+// holding the hover or click probe color in either channel. Widened to
+// both channels because Radio and Slider carry their interaction cue on
+// the border, not the fill.
+func assertNoInteractionColors(t *testing.T, ly *Layout) {
+	t.Helper()
+	if sh := ly.Shape; sh != nil {
+		for _, probe := range []struct {
+			name string
+			c    Color
+		}{
+			{"hover", pickProbeColors.Hover},
+			{"click", pickProbeColors.Click},
+		} {
+			if sh.Color == probe.c {
+				t.Errorf("disabled widget: shape %q took the %s fill",
+					sh.idKey(), probe.name)
+			}
+			if sh.ColorBorder == probe.c {
+				t.Errorf("disabled widget: shape %q took the %s border",
+					sh.idKey(), probe.name)
+			}
+		}
+	}
+	for i := range ly.Children {
+		assertNoInteractionColors(t, &ly.Children[i])
 	}
 }
 

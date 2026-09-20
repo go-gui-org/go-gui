@@ -98,7 +98,12 @@ authoring the field, not by copying the nearest neighbor.
 On Cfg structs use plain `Color`, never `Opt[Color]`: `Color{}` is unset and
 `ColorTransparent` is an explicit fully-transparent choice. `ColorSet`
 (`gui/color_set.go`) groups per-state colors; `Flat(c)` is the "one appearance"
-case. **An assigned flat `Color*` field wins over the `ColorSet`.**
+case. **`Colors` is the only spelling for per-state colors — the flat
+`ColorHover`/`ColorFocus`/`ColorBorder`/`ColorBorderFocus` Cfg fields are gone
+(#721).** The flat `Color` survives as the shorthand for `Colors.Base` and wins
+over it. Setting `Colors.Border` alone also pins `BorderFocus` to it
+(`ColorSet.resolve`); spell `BorderFocus` too when the theme's focus border
+should stay.
 
 ### Visual roles and tiers
 

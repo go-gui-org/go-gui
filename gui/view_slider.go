@@ -44,24 +44,16 @@ type SliderCfg struct {
 	// exportaudit:keep — caller-facing config (issue #468)
 	SoundDisabled bool
 
-	Color       Color
-	ColorBorder Color
+	Color Color
 	// ColorThumb paints the thumb. Unset takes the theme default.
 	// exportaudit:keep — caller-facing config (issue #372)
 	ColorThumb Color
-	ColorFocus Color
-	ColorHover Color
 	// ColorLeft paints the filled (value) side of the track. Unset
 	// takes the theme default.
 	// exportaudit:keep — caller-facing config (issue #372)
 	ColorLeft Color
-	// ColorClick paints the track while the thumb is dragged. Unset
-	// takes the theme default.
-	// exportaudit:keep — caller-facing config (issue #372)
-	ColorClick Color
 	// Colors sets the per-state colors. Color above is the
-	// shorthand for Colors.Base and wins over it; the other flat
-	// Color* fields win over their Colors slots the same way.
+	// shorthand for Colors.Base and wins over it.
 	Colors ColorSet
 	Sizing Sizing
 	// RoundValue snaps the thumb and reported value to integer
@@ -173,8 +165,7 @@ func Slider(cfg SliderCfg) View {
 	size := cfg.Size
 	szBorder := sizeBorder
 	thumbSize := cfg.ThumbSize
-	colorFocus := cfg.ColorFocus
-	colorHover := cfg.ColorHover
+	colors := cfg.Colors
 	disabled := cfg.Disabled
 
 	trackSizing := FillFixed
@@ -226,7 +217,7 @@ func Slider(cfg SliderCfg) View {
 			func(ctx EventCtx) {
 				sliderAmendLayoutSlide(ctx.Layout, ctx.Window,
 					onChange, value, minVal, maxVal, step, size, szBorder,
-					vertical, colorFocus, cfg.ColorLeft, disabled,
+					vertical, colors.Focus, cfg.ColorLeft, disabled,
 					ctx.Layout.Shape.idKey(), roundValue)
 			},
 			// Ring shadow on the focusable wrapper; the track keeps its
@@ -235,7 +226,9 @@ func Slider(cfg SliderCfg) View {
 		OnHover: func(ctx EventCtx) {
 			ctx.Window.SetMouseCursorPointingHand()
 			if len(ctx.Layout.Children) > 0 {
-				ctx.Layout.Children[0].Shape.ColorBorder = colorHover
+				// The track border carries the hover cue; the track
+				// fill stays resting. Hover comes from the set.
+				ctx.Layout.Children[0].Shape.ColorBorder = colors.Hover
 			}
 		},
 		OnKeyDown: func(ctx EventCtx) {
@@ -248,8 +241,8 @@ func Slider(cfg SliderCfg) View {
 				Width:       trackWidth,
 				Height:      trackHeight,
 				Sizing:      trackSizing,
-				Color:       cfg.Color,
-				ColorBorder: cfg.ColorBorder,
+				Color:       colors.Base,
+				ColorBorder: colors.Border,
 				SizeBorder:  Some(sizeBorder),
 				Radius:      Some(radiusBorder),
 				Padding:     NoPadding,
@@ -265,7 +258,7 @@ func Slider(cfg SliderCfg) View {
 						Width:       cfg.ThumbSize,
 						Height:      cfg.ThumbSize,
 						Color:       cfg.ColorThumb,
-						ColorBorder: cfg.ColorBorder,
+						ColorBorder: colors.Border,
 						SizeBorder:  Some(sizeBorder),
 						Padding:     NoPadding,
 						AmendLayout: func(ctx EventCtx) {
@@ -703,8 +696,6 @@ func sliderOnKeyDown(
 func applySliderDefaults(cfg *SliderCfg) {
 	d := &defaultSliderStyle
 	cfg.Colors = cfg.Colors.resolved(cfg.Color, d.Colors)
-	cfg.Colors.applyTo(&cfg.Color, &cfg.ColorHover, &cfg.ColorClick,
-		&cfg.ColorFocus, &cfg.ColorBorder, nil)
 	if !cfg.ColorThumb.IsSet() {
 		cfg.ColorThumb = d.colorThumb
 	}

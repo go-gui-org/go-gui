@@ -208,10 +208,9 @@ func TestExpandPanelHoverPressedColor(t *testing.T) {
 	w := NewTestWindow(WindowCfg{})
 	w.TestRender(func(win *Window) View {
 		return ExpandPanel(ExpandPanelCfg{
-			ID:         "ep",
-			Head:       Text(TextCfg{Text: "Head"}),
-			ColorHover: hover,
-			colorClick: click,
+			ID:     "ep",
+			Head:   Text(TextCfg{Text: "Head"}),
+			Colors: ColorSet{Hover: hover, Click: click},
 		})
 	})
 

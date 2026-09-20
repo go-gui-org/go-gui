@@ -341,6 +341,48 @@ func goldenCases() []goldenCase {
 			},
 		},
 		{
+			// Hovered unselected row takes the hover fill; the
+			// selected row keeps its wash (selection dominates
+			// hover — ColorSet has no selected slot, #721).
+			name:   "listbox_hover",
+			hoverX: 50, hoverY: 40,
+			build: func(_ *Window) View {
+				return ListBox(ListBoxCfg{
+					ID:          "lb",
+					Items:       []string{"one", "two", "three"},
+					SelectedIDs: []string{"two"},
+					OnSelect:    func([]string, EventCtx) {},
+				})
+			},
+		},
+		{
+			name:   "listbox_hover_pressed",
+			hoverX: 50, hoverY: 40,
+			mousePressed: true,
+			build: func(_ *Window) View {
+				return ListBox(ListBoxCfg{
+					ID:          "lb",
+					Items:       []string{"one", "two", "three"},
+					SelectedIDs: []string{"two"},
+					OnSelect:    func([]string, EventCtx) {},
+				})
+			},
+		},
+		{
+			// Disabled rows never take the hover color (89cbf85a).
+			name:   "listbox_disabled_hover",
+			hoverX: 50, hoverY: 40,
+			hoverInert: true,
+			build: func(_ *Window) View {
+				return ListBox(ListBoxCfg{
+					ID:          "lb",
+					Items:       []string{"one", "two", "three"},
+					SelectedIDs: []string{"two"},
+					Disabled:    true,
+				})
+			},
+		},
+		{
 			name:    "select_focused",
 			focusID: "sel",
 			build: func(_ *Window) View {
@@ -547,7 +589,37 @@ func goldenCases() []goldenCase {
 			},
 		},
 		{
+			// The field has no hover pass of its own; a disabled
+			// field under the pointer keeps its resting appearance.
+			name:   "select_disabled_hover",
+			hoverX: 60, hoverY: 30,
+			hoverInert: true,
+			build: func(_ *Window) View {
+				return Select(SelectCfg{
+					ID:       "sel",
+					Options:  []string{"alpha", "beta"},
+					Selected: []string{"beta"},
+					Disabled: true,
+				})
+			},
+		},
+		{
 			name: "combobox_disabled",
+			build: func(_ *Window) View {
+				return Combobox(ComboboxCfg{
+					ID:       "cb",
+					Options:  []string{"alpha", "beta"},
+					Value:    "alpha",
+					Disabled: true,
+				})
+			},
+		},
+		{
+			// The field has no hover pass of its own; a disabled
+			// field under the pointer keeps its resting appearance.
+			name:   "combobox_disabled_hover",
+			hoverX: 60, hoverY: 30,
+			hoverInert: true,
 			build: func(_ *Window) View {
 				return Combobox(ComboboxCfg{
 					ID:       "cb",
@@ -596,6 +668,52 @@ func goldenCases() []goldenCase {
 		},
 		{
 			name: "numericinput_disabled",
+			build: func(_ *Window) View {
+				return NumericInput(NumericInputCfg{
+					ID:       "num",
+					Text:     "42.5",
+					Disabled: true,
+				})
+			},
+		},
+		{
+			name:   "numericinput_hover",
+			hoverX: 60, hoverY: 30,
+			build: func(_ *Window) View {
+				return NumericInput(NumericInputCfg{
+					ID:   "num",
+					Text: "42.5",
+				})
+			},
+		},
+		{
+			name:   "numericinput_hover_pressed",
+			hoverX: 60, hoverY: 30,
+			mousePressed: true,
+			build: func(_ *Window) View {
+				return NumericInput(NumericInputCfg{
+					ID:   "num",
+					Text: "42.5",
+				})
+			},
+		},
+		{
+			// Focused wrapper under the pointer: the fill follows
+			// the pointer while the border keeps saying "focused".
+			name:    "numericinput_focus_hover",
+			focusID: ScopeID("num", "field"),
+			hoverX:  60, hoverY: 30,
+			build: func(_ *Window) View {
+				return NumericInput(NumericInputCfg{
+					ID:   "num",
+					Text: "42.5",
+				})
+			},
+		},
+		{
+			name:   "numericinput_disabled_hover",
+			hoverX: 60, hoverY: 30,
+			hoverInert: true,
 			build: func(_ *Window) View {
 				return NumericInput(NumericInputCfg{
 					ID:       "num",
@@ -660,6 +778,52 @@ func goldenCases() []goldenCase {
 			},
 		},
 		{
+			// Hovered row takes the hover fill even when it is the
+			// focused row — the fill follows the pointer (#690).
+			name:   "tree_hover",
+			hoverX: 60, hoverY: 25,
+			build: func(_ *Window) View {
+				return Tree(TreeCfg{
+					ID: "tr",
+					Nodes: []TreeNodeCfg{
+						{ID: "a", Text: "Alpha"},
+						{ID: "b", Text: "Beta"},
+					},
+					OnSelect: func(string, EventCtx) {},
+				})
+			},
+		},
+		{
+			name:   "tree_hover_pressed",
+			hoverX: 60, hoverY: 25,
+			mousePressed: true,
+			build: func(_ *Window) View {
+				return Tree(TreeCfg{
+					ID: "tr",
+					Nodes: []TreeNodeCfg{
+						{ID: "a", Text: "Alpha"},
+						{ID: "b", Text: "Beta"},
+					},
+					OnSelect: func(string, EventCtx) {},
+				})
+			},
+		},
+		{
+			name:   "tree_disabled_hover",
+			hoverX: 60, hoverY: 25,
+			hoverInert: true,
+			build: func(_ *Window) View {
+				return Tree(TreeCfg{
+					ID:       "tr",
+					Disabled: true,
+					Nodes: []TreeNodeCfg{
+						{ID: "a", Text: "Alpha"},
+						{ID: "b", Text: "Beta"},
+					},
+				})
+			},
+		},
+		{
 			name: "menubar_disabled",
 			build: func(w *Window) View {
 				return Menubar(w, MenubarCfg{
@@ -667,6 +831,23 @@ func goldenCases() []goldenCase {
 					Items: []MenuItemCfg{
 						MenuItemText("f", "File"),
 						MenuSubtitle("Grouped"),
+					},
+				})
+			},
+		},
+		{
+			// The bar carries no hover fill of its own; a disabled
+			// bar under the pointer keeps its resting appearance.
+			name:   "menubar_disabled_hover",
+			hoverX: 40, hoverY: 30,
+			hoverInert: true,
+			build: func(w *Window) View {
+				return Menubar(w, MenubarCfg{
+					ID:       "mb",
+					Disabled: true,
+					Items: []MenuItemCfg{
+						MenuItemText("f", "File"),
+						MenuItemText("e", "Edit"),
 					},
 				})
 			},
@@ -885,6 +1066,22 @@ func goldenCases() []goldenCase {
 			},
 		},
 		{
+			// Hover tints the track border; the fill stays resting.
+			name:   "slider_hover",
+			hoverX: 35, hoverY: 23,
+			build: func(_ *Window) View {
+				return Slider(SliderCfg{ID: "sl", Value: 40})
+			},
+		},
+		{
+			name:   "slider_disabled_hover",
+			hoverX: 35, hoverY: 23,
+			hoverInert: true,
+			build: func(_ *Window) View {
+				return Slider(SliderCfg{ID: "sl", Value: 40, Disabled: true})
+			},
+		},
+		{
 			name: "expand_panel",
 			build: func(_ *Window) View {
 				return ExpandPanel(ExpandPanelCfg{
@@ -901,6 +1098,48 @@ func goldenCases() []goldenCase {
 			// scoped under the panel, hence the ep:head focus ID.
 			name:    "expand_panel_focused",
 			focusID: "ep:head",
+			build: func(_ *Window) View {
+				return ExpandPanel(ExpandPanelCfg{
+					ID:      "ep",
+					Head:    Text(TextCfg{Text: "Details"}),
+					Content: Text(TextCfg{Text: "content"}),
+					Open:    true,
+				})
+			},
+		},
+		{
+			// Hovered header takes the hover fill; release falls
+			// back to it after a press takes the click color.
+			name:   "expand_panel_hover",
+			hoverX: 150, hoverY: 35,
+			build: func(_ *Window) View {
+				return ExpandPanel(ExpandPanelCfg{
+					ID:      "ep",
+					Head:    Text(TextCfg{Text: "Details"}),
+					Content: Text(TextCfg{Text: "content"}),
+					Open:    true,
+				})
+			},
+		},
+		{
+			name:   "expand_panel_hover_pressed",
+			hoverX: 150, hoverY: 35,
+			mousePressed: true,
+			build: func(_ *Window) View {
+				return ExpandPanel(ExpandPanelCfg{
+					ID:      "ep",
+					Head:    Text(TextCfg{Text: "Details"}),
+					Content: Text(TextCfg{Text: "content"}),
+					Open:    true,
+				})
+			},
+		},
+		{
+			// Focused header under the pointer: the fill follows
+			// the pointer while the border keeps saying "focused".
+			name:    "expand_panel_focus_hover",
+			focusID: "ep:head",
+			hoverX:  150, hoverY: 35,
 			build: func(_ *Window) View {
 				return ExpandPanel(ExpandPanelCfg{
 					ID:      "ep",
@@ -962,6 +1201,49 @@ func goldenCases() []goldenCase {
 			},
 		},
 		{
+			// Hovered row takes the hover fill; selection keeps its
+			// wash (no Selected slot on ColorSet, #721).
+			name:   "table_hover",
+			hoverX: 40, hoverY: 48,
+			build: func(_ *Window) View {
+				return Table(TableCfg{
+					ID:       "tbl",
+					OnSelect: func(map[int]bool, int, EventCtx) {},
+					Data: []TableRowCfg{
+						{Cells: []TableCellCfg{
+							{Value: "Name", HeadCell: true},
+							{Value: "Size", HeadCell: true},
+						}},
+						{Cells: []TableCellCfg{
+							{Value: "alpha"},
+							{Value: "12"},
+						}},
+					},
+				})
+			},
+		},
+		{
+			name:   "table_hover_pressed",
+			hoverX: 40, hoverY: 48,
+			mousePressed: true,
+			build: func(_ *Window) View {
+				return Table(TableCfg{
+					ID:       "tbl",
+					OnSelect: func(map[int]bool, int, EventCtx) {},
+					Data: []TableRowCfg{
+						{Cells: []TableCellCfg{
+							{Value: "Name", HeadCell: true},
+							{Value: "Size", HeadCell: true},
+						}},
+						{Cells: []TableCellCfg{
+							{Value: "alpha"},
+							{Value: "12"},
+						}},
+					},
+				})
+			},
+		},
+		{
 			name: "context_menu",
 			build: func(w *Window) View {
 				return ContextMenu(w, ContextMenuCfg{
@@ -1005,6 +1287,43 @@ func goldenCases() []goldenCase {
 					Height:     160,
 					Sizing:     FillFixed,
 					OverscanPx: 20,
+					ItemHeight: rowH,
+					ItemView: func(i int, _ float32) View {
+						return Column(ContainerCfg{
+							ID:         ScopeIDN(id, "row", i),
+							Height:     rowH(i, 0),
+							Sizing:     FillFixed,
+							SizeBorder: NoBorder,
+							Content: []View{Text(TextCfg{
+								Text: "row " + itoa(i),
+							})},
+						})
+					},
+				})
+			},
+		},
+		{
+			// The list has no hover path of its own (#717); a
+			// disabled list under the pointer keeps resting colors.
+			name:   "virtual_list_disabled_hover",
+			hoverX: 100, hoverY: 60,
+			hoverInert: true,
+			build: func(w *Window) View {
+				const id = "vl"
+				rowH := func(i int, _ float32) float32 {
+					if i%3 == 0 {
+						return 44
+					}
+					return 22
+				}
+				w.scrollY().Set(id, -300)
+				return VirtualList(VirtualListCfg{
+					ID:         id,
+					ItemCount:  400,
+					Height:     160,
+					Sizing:     FillFixed,
+					OverscanPx: 20,
+					Disabled:   true,
 					ItemHeight: rowH,
 					ItemView: func(i int, _ float32) View {
 						return Column(ContainerCfg{
@@ -1214,6 +1533,14 @@ func goldenCases() []goldenCase {
 			name:   "input_hover",
 			hoverX: 60, hoverY: 30,
 			build: buildStateInput,
+		},
+		{
+			// Held mouse button: the click color replaces the hover
+			// color while the button is down (#721).
+			name:   "input_hover_pressed",
+			hoverX: 60, hoverY: 30,
+			mousePressed: true,
+			build:        buildStateInput,
 		},
 		{
 			// Input is the control group for the precedence decision:

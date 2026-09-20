@@ -59,30 +59,25 @@ func TestColorSetTransparentIsNotUnset(t *testing.T) {
 	if !cs.IsSet() {
 		t.Fatal("ColorSet{Base: ColorTransparent}.IsSet() = false")
 	}
-	dst := Color{}
-	cs.applyTo(&dst, nil, nil, nil, nil, nil)
-	if dst != ColorTransparent {
-		t.Fatalf("dst = %v, want ColorTransparent", dst)
+	// It survives resolution rather than being refilled from the
+	// theme: the theme only speaks for a slot nobody claimed.
+	got := cs.resolved(Color{}, Flat(Red))
+	if got.Base != ColorTransparent {
+		t.Fatalf("Base = %v, want ColorTransparent", got.Base)
 	}
 }
 
-// The precedence rule: an assigned flat field beats the ColorSet.
-func TestColorSetApplyToLetsFlatFieldWin(t *testing.T) {
-	flat := Red
-	unset := Color{}
-	Flat(Blue).applyTo(&flat, &unset, nil, nil, nil, nil)
-	if flat != Red {
-		t.Errorf("assigned flat field = %v, want Red — ColorSet must "+
-			"not overwrite it", flat)
+// The precedence rule: the Color shorthand beats Colors.Base, and only
+// Base — the other slots are the set's to fill.
+func TestColorSetShorthandWinsOverBaseOnly(t *testing.T) {
+	got := ColorSet{Base: Blue, Hover: Green}.resolved(Red, ColorSet{})
+	if got.Base != Red {
+		t.Errorf("Base = %v, want Red — the shorthand must win", got.Base)
 	}
-	if unset != Blue {
-		t.Errorf("unassigned flat field = %v, want Blue", unset)
+	if got.Hover != Green {
+		t.Errorf("Hover = %v, want Green — the shorthand must not "+
+			"reach past Base", got.Hover)
 	}
-}
-
-func TestColorSetApplyToToleratesNilDestinations(t *testing.T) {
-	// A widget without, say, a click color passes nil for it.
-	Flat(Blue).applyTo(nil, nil, nil, nil, nil, nil)
 }
 
 // End to end through the widget: Flat resolves to one color in every
@@ -173,12 +168,11 @@ func TestColorSetAdoptedByAllSixWidgets(t *testing.T) {
 	}
 }
 
-// The eleven widgets that kept their flat Color* fields must fold a
-// caller's ColorSet into those fields through applyTo — with the flat
-// fields still winning when both are set (issue #342).
-func TestColorSetAdoptedByTheEleven(t *testing.T) {
-	// Each widget resolves Flat(Blue) into its flat fields, and a flat
-	// field set by the caller outranks the ColorSet.
+// The twelve widgets that fanned a caller's ColorSet out into flat
+// Color* fields through applyTo now resolve straight into Colors —
+// the flats are gone (issue #721). Flat(Blue) reaches every live
+// slot of each widget's set.
+func TestColorSetAdoptedByTheTwelve(t *testing.T) {
 	in := InputCfg{ID: "in", Colors: Flat(Blue)}
 	applyInputDefaults(&in)
 	ni := NumericInputCfg{ID: "ni", Colors: Flat(Blue)}
@@ -197,57 +191,54 @@ func TestColorSetAdoptedByTheEleven(t *testing.T) {
 	applyContextMenuDefaults(&cm)
 	mb := MenubarCfg{ID: "mb", Colors: Flat(Blue)}
 	applyMenubarDefaults(&mb)
-	tb := TableCfg{Colors: Flat(Blue)}
-	applyTableDefaults(&tb)
 	ep := ExpandPanelCfg{Colors: Flat(Blue)}
 	applyExpandPanelDefaults(&ep)
 
-	for name, got := range map[string]struct {
-		color, hover, border Color
-	}{
-		"Input":        {in.Color, in.ColorHover, in.ColorBorder},
-		"NumericInput": {ni.Color, ni.ColorHover, ni.ColorBorder},
-		"Select":       {sel.Color, sel.Color, sel.ColorBorder},
-		"Combobox":     {cb.Color, cb.ColorHover, cb.ColorBorder},
-		"ListBox":      {lb.Color, lb.ColorHover, lb.ColorBorder},
-		"Tree":         {tr.Color, tr.ColorHover, tr.ColorBorder},
-		"Slider":       {sl.Color, sl.ColorHover, sl.ColorBorder},
-		"ContextMenu":  {cm.Color, cm.Color, cm.ColorBorder},
-		"Menubar":      {mb.Color, mb.Color, mb.ColorBorder},
-		"ExpandPanel":  {ep.Color, ep.ColorHover, ep.ColorBorder},
+	for name, got := range map[string]ColorSet{
+		"Input":        in.Colors,
+		"NumericInput": ni.Colors,
+		"Select":       sel.Colors,
+		"Combobox":     cb.Colors,
+		"ListBox":      lb.Colors,
+		"Tree":         tr.Colors,
+		"Slider":       sl.Colors,
+		"ContextMenu":  cm.Colors,
+		"Menubar":      mb.Colors,
+		"ExpandPanel":  ep.Colors,
 	} {
-		if got.color != Blue || got.hover != Blue || got.border != Blue {
-			t.Errorf("%s: Flat(Blue) did not reach the flat fields: %+v",
-				name, got)
+		if got.Base != Blue || got.Hover != Blue || got.Click != Blue ||
+			got.Focus != Blue || got.Border != Blue ||
+			got.BorderFocus != Blue {
+			t.Errorf("%s: Flat(Blue) did not resolve: %+v", name, got)
 		}
 	}
-	// Table has no base Color field: Flat(Blue) reaches Hover and Border.
-	if tb.ColorHover != Blue || tb.ColorBorder != Blue {
-		t.Errorf("Table: Flat(Blue) did not reach Hover/Border: hover=%v border=%v",
-			tb.ColorHover, tb.ColorBorder)
+	// Table has no base fill: Flat(Blue) reaches Hover and Border.
+	tb := TableCfg{Colors: Flat(Blue)}
+	applyTableDefaults(&tb)
+	if tb.Colors.Hover != Blue || tb.Colors.Border != Blue ||
+		tb.Colors.BorderFocus != Blue {
+		t.Errorf("Table: Flat(Blue) did not resolve: %+v", tb.Colors)
 	}
-	// ExpandPanel folds its unexported click color through Colors.Click —
-	// the one slot no exported field can assert. Slider asserts it
-	// directly through the exported ColorClick.
-	if sl.ColorClick != Blue || sl.Colors.Click != Blue {
-		t.Errorf("Slider: Flat(Blue) did not reach the click slot: "+
-			"ColorClick=%v Colors.Click=%v", sl.ColorClick, sl.Colors.Click)
-	}
-	if ep.colorClick != Blue || ep.Colors.Click != Blue {
-		t.Errorf("ExpandPanel: Flat(Blue) did not reach the click slot: "+
-			"colorClick=%v Colors.Click=%v", ep.colorClick, ep.Colors.Click)
+	// VirtualList shares the list-box style and has no hover path:
+	// Flat(Blue) reaches Base and the borders.
+	vl := VirtualListCfg{ID: "vl", Colors: Flat(Blue)}
+	applyVirtualListDefaults(&vl)
+	if vl.Colors.Base != Blue || vl.Colors.Border != Blue ||
+		vl.Colors.BorderFocus != Blue {
+		t.Errorf("VirtualList: Flat(Blue) did not resolve: %+v",
+			vl.Colors)
 	}
 
-	// Precedence: an assigned flat field wins over the ColorSet.
+	// Precedence: the Color shorthand wins for Base, the set covers
+	// the rest.
 	win := InputCfg{ID: "in", Color: Red, Colors: Flat(Blue)}
 	applyInputDefaults(&win)
-	if win.Color != Red {
-		t.Errorf("flat Color = %v, want Red — flat must win over ColorSet",
-			win.Color)
+	if win.Colors.Base != Red {
+		t.Errorf("Base = %v, want Red — Color must win", win.Colors.Base)
 	}
-	if win.ColorHover != Blue {
-		t.Errorf("ColorHover = %v, want Blue — unset flats take the set",
-			win.ColorHover)
+	if win.Colors.Hover != Blue || win.Colors.Border != Blue {
+		t.Errorf("Hover/Border = %v/%v, want Blue — unset slots take "+
+			"the set", win.Colors.Hover, win.Colors.Border)
 	}
 }
 

@@ -1,0 +1,8 @@
+Rect xy=15.00,15.00 wh=290.00,160.00 color=#262a2f7f radius=6.00 fill
+StrokeRect xy=15.00,15.00 wh=290.00,160.00 color=#ffffff0e radius=6.00 thickness=1.00
+Clip xy=30.00,30.00 wh=260.00,130.00
+Text xy=44.00,52.00 wh=0.00,0.00 color=#e6e8eb80 text="row 10" size=14.00
+Text xy=44.00,74.00 wh=0.00,0.00 color=#e6e8eb80 text="row 11" size=14.00
+Text xy=44.00,96.00 wh=0.00,0.00 color=#e6e8eb80 text="row 12" size=14.00
+Text xy=44.00,140.00 wh=0.00,0.00 color=#e6e8eb80 text="row 13" size=14.00
+Clip xy=0.00,0.00 wh=320.00,240.00

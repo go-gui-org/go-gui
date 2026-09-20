@@ -275,7 +275,7 @@ func mdRenderTable(
 			w.Table(TableCfg{
 				ID:               ScopeIDN(cfg.ID, "table", idx),
 				BorderStyle:      cfg.Style.TableBorderStyle,
-				ColorBorder:      cfg.Style.tableBorderColor,
+				Colors:           ColorSet{Border: cfg.Style.tableBorderColor},
 				SizeBorder:       cfg.Style.tableBorderSize,
 				TextStyleHead:    cfg.Style.tableHeadStyle,
 				TextStyle:        cfg.Style.tableCellStyle,

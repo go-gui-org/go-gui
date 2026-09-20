@@ -77,7 +77,7 @@ func MenuSubmenu(id, text string, submenu []MenuItemCfg) MenuItemCfg {
 func menuItem(menubarCfg MenubarCfg, itemCfg MenuItemCfg, extra ...View) View {
 	if itemCfg.Separator {
 		return Separator(SeparatorCfg{
-			Color: menubarCfg.ColorBorder,
+			Color: menubarCfg.Colors.Border,
 			Inset: NewPadding(2, 0, 2, 0),
 		})
 	}

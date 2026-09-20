@@ -135,7 +135,10 @@ func listBoxItemView(
 	onSelect := cfg.OnSelect
 	hasOnSelect := onSelect != nil
 	selectedIDs := cfg.SelectedIDs
-	colorHover := cfg.ColorHover
+	// Hover comes from the set; the transparent check in OnHover
+	// stays — a selected row's resting fill is not transparent, and
+	// selection dominates hover (see #721).
+	colorHover := cfg.Colors.Hover
 	// Scalars, not cfg: the OnClick closure below would otherwise
 	// capture the whole ListBoxCfg and heap-allocate it per row.
 	listBoxID := cfg.ID
@@ -174,7 +177,7 @@ func listBoxItemView(
 		// decided at generation; the row carries no ID of its own,
 		// so the hook tests the list's effective ID.
 		AmendLayout: listBoxItemRingAmend(
-			isFocusRow, cfg.ID, cfg.ColorBorderFocus),
+			isFocusRow, cfg.ID, cfg.Colors.BorderFocus),
 		OnClick: func(ctx EventCtx) {
 			if hasOnSelect && !isSub {
 				// Keyboard focus follows the click, so the
@@ -228,7 +231,7 @@ func listBoxReorderItemView(
 	onSelect := cfg.OnSelect
 	hasOnSelect := onSelect != nil
 	selectedIDs := cfg.SelectedIDs
-	colorHover := cfg.ColorHover
+	colorHover := cfg.Colors.Hover
 	listBoxID := cfg.ID
 	focusDisabled := cfg.FocusDisabled
 	onReorder := cfg.OnReorder
@@ -267,7 +270,7 @@ func listBoxReorderItemView(
 		Sound:      rowSound,
 		Content:    []View{content},
 		AmendLayout: listBoxItemRingAmend(
-			isFocusRow, cfg.ID, cfg.ColorBorderFocus),
+			isFocusRow, cfg.ID, cfg.Colors.BorderFocus),
 		OnClick: func(ctx EventCtx) {
 			dragReorderStart(dragReorderStartCfg{
 				DragKey:       listBoxID,

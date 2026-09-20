@@ -121,6 +121,42 @@ and this project adheres to
 
 ### Changed
 
+- **BREAKING: widget `Cfg` flat state-color fields deleted, `Colors` is the only
+  spelling (#721)** — the twelve widgets that fanned their `ColorSet` out into
+  flat `Cfg` fields (`Input`, `NumericInput`, `Combobox`, `Select`, `ListBox`,
+  `VirtualList`, `Tree`, `Table`, `Menubar`, `ContextMenu`, `ExpandPanel`,
+  `Slider`) now resolve straight into `Colors` and pick every interaction state
+  through `ColorSet.pick`, closing the class #690 exists for. The flat field
+  used to win over the set; now there is no second spelling to win. `Color`
+  stays as the shorthand for `Colors.Base`. Migration, per widget:
+
+  | Before                                                                          | After                                               |
+  | ------------------------------------------------------------------------------- | --------------------------------------------------- |
+  | `InputCfg.ColorHover` / `ColorBorder` / `ColorBorderFocus`                      | `Colors.Hover` / `Border` / `BorderFocus`           |
+  | `NumericInputCfg.ColorHover` / `ColorBorder` / `ColorBorderFocus`               | `Colors.Hover` / `Border` / `BorderFocus`           |
+  | `ComboboxCfg.ColorHover` / `ColorFocus` / `ColorBorder` / `ColorBorderFocus`    | `Colors.Hover` / `Focus` / `Border` / `BorderFocus` |
+  | `SelectCfg.ColorFocus` / `ColorBorder` / `ColorBorderFocus`                     | `Colors.Focus` / `Border` / `BorderFocus`           |
+  | `ListBoxCfg.ColorHover` / `ColorBorder` / `ColorBorderFocus`                    | `Colors.Hover` / `Border` / `BorderFocus`           |
+  | `VirtualListCfg.ColorBorder` / `ColorBorderFocus`                               | `Colors.Border` / `BorderFocus`                     |
+  | `TreeCfg.ColorHover` / `ColorFocus` / `ColorBorder`                             | `Colors.Hover` / `Focus` / `Border`                 |
+  | `TableCfg.ColorHover` / `ColorBorder` / `ColorBorderFocus`                      | `Colors.Hover` / `Border` / `BorderFocus`           |
+  | `MenubarCfg.ColorBorder`, `ContextMenuCfg.ColorBorder`                          | `Colors.Border`                                     |
+  | `ExpandPanelCfg.ColorHover` / `colorClick` / `ColorBorder` / `ColorBorderFocus` | `Colors.Hover` / `Click` / `Border` / `BorderFocus` |
+  | `SliderCfg.ColorHover` / `ColorClick` / `ColorFocus` / `ColorBorder`            | `Colors.Hover` / `Click` / `Focus` / `Border`       |
+
+  One migration trap: `Colors.BorderFocus` falls back to `Colors.Border`, which
+  the flat `ColorBorder` never did. A call site that sets only `Border` now also
+  pins the focused border to that color instead of taking the theme's — spell
+  `BorderFocus` as well wherever the theme's focus border should stay.
+
+  The consumer scan over go-charts, go-edit, go-kite, go-map, go-term,
+  go-speedtest, go-shirei and falcon.go-gui.com found one hit:
+  `go-charts/chart/data_table.go` sets `TableCfg{ColorBorder: ...}`, which
+  becomes `Colors: gui.ColorSet{Border: ...}`. Behavior is unchanged except
+  where the set now rules: a caller-set `Focus`/`Click` tints a focused or
+  pressed widget the way the theme always said, and `ExpandPanel` shows the
+  click color while Space is held, like `Button`.
+
 - **Hovering a focused control now shows the hover color (#690)** — `Button`,
   `Toggle`, `Switch` and `Radio` pick their interaction-state colors through one
   internal rule instead of each writing its own. The fill follows the pointer

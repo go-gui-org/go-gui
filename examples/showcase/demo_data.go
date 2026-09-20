@@ -35,7 +35,7 @@ func demoTable(w *gui.Window) gui.View {
 	cfg.SizeBorder = 1
 	cfg.SizeBorderHeader = 2
 	cfg.BorderStyle = tableBorderStyleFromValue(app.TableBorderStyle)
-	cfg.ColorBorder = gui.Gray
+	cfg.Colors = gui.ColorSet{Border: gui.Gray}
 	cfg.TextStyleHead = gui.CurrentTheme().B4
 	cfg.MultiSelect = app.TableMultiSelect
 	cfg.FreezeHeader = app.TableFreezeHeader

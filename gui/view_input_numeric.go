@@ -50,13 +50,9 @@ type NumericInputCfg struct {
 	MinHeight     float32
 	MaxHeight     float32
 
-	Color            Color
-	ColorHover       Color
-	ColorBorder      Color
-	ColorBorderFocus Color
+	Color Color
 	// Colors sets the per-state colors. Color above is the
-	// shorthand for Colors.Base and wins over it; the other flat
-	// Color* fields win over their Colors slots the same way.
+	// shorthand for Colors.Base and wins over it.
 	Colors ColorSet
 
 	// Sizing
@@ -141,8 +137,7 @@ func (v *numericInputView) GenerateLayout(w *Window) Layout {
 		return generateViewLayout(field, w)
 	}
 
-	colorHover := cfg.ColorHover
-	colorBorderFocus := cfg.ColorBorderFocus
+	colors := cfg.Colors
 	// The wrapper is structural, not a tab stop: the inner field
 	// owns typing and arrow stepping, so a click parks the caret
 	// there instead of on the frame.
@@ -174,8 +169,8 @@ func (v *numericInputView) GenerateLayout(w *Window) Layout {
 		MaxHeight:   cfg.MaxHeight,
 		Sizing:      cfg.Sizing,
 		Clip:        true,
-		Color:       cfg.Color,
-		ColorBorder: cfg.ColorBorder,
+		Color:       colors.Base,
+		ColorBorder: colors.Border,
 		SizeBorder:  Some(sizeBorder),
 		Radius:      Some(radius),
 		Padding:     NoPadding,
@@ -191,11 +186,19 @@ func (v *numericInputView) GenerateLayout(w *Window) Layout {
 		OnHover: func(ctx EventCtx) {
 			if ctx.Window.IsFocus(fieldID) {
 				ctx.Window.setMouseCursor(CursorIBeam)
-			} else {
-				ctx.Layout.Shape.Color = colorHover
 			}
+			// Focus keeps the cursor but the fill still follows the
+			// pointer (#690): a focused wrapper under the pointer shows
+			// hover, and the inner field's focus border says "focused".
+			ctx.Layout.Shape.Color, ctx.Layout.Shape.ColorBorder =
+				colors.pick(stateFlags{
+					disabled: ctx.Layout.Shape.Disabled,
+					pressed:  ctx.Event.MouseButton == MouseLeft,
+					focused:  ctx.Window.IsFocus(fieldID),
+					hovered:  true,
+				})
 		},
-		AmendLayout: numericControlAmend(colorBorderFocus, fieldID),
+		AmendLayout: numericControlAmend(colors, fieldID),
 		Content:     content,
 	})
 	return generateViewLayout(
@@ -209,7 +212,7 @@ func (v *numericInputView) GenerateLayout(w *Window) Layout {
 // the focused inner field already hangs the theme's ring glow on
 // itself, and a second glow on the frame would double it.
 func numericControlAmend(
-	colorBorderFocus Color, fieldID string,
+	colors ColorSet, fieldID string,
 ) func(EventCtx) {
 	return func(ctx EventCtx) {
 		if ctx.Layout == nil || ctx.Window == nil {
@@ -219,12 +222,12 @@ func numericControlAmend(
 		if shape == nil || shape.Disabled {
 			return
 		}
-		if fieldID == "" || !ctx.Window.IsFocus(fieldID) {
-			return
-		}
-		if colorBorderFocus.IsSet() {
-			shape.ColorBorder = colorBorderFocus
-		}
+		// The frame follows the field's focus rather than its own; the
+		// wrapper is not focusable. Amend sees no pointer, so hovered
+		// stays false and the hover pass re-picks with pointer state.
+		shape.Color, shape.ColorBorder = colors.pick(stateFlags{
+			focused: fieldID != "" && ctx.Window.IsFocus(fieldID),
+		})
 	}
 }
 
@@ -252,17 +255,14 @@ func numericInputField(
 		// global "field" would collide louder, not safer.
 		inputID = ScopeID(ownerID, "field")
 	}
-	color := cfg.Color
-	colorHover := cfg.ColorHover
-	colorBorder := cfg.ColorBorder
-	colorBorderFocus := cfg.ColorBorderFocus
+	// Colors carries the whole appearance; cfg.Color is already folded
+	// into Colors.Base by applyNumericInputDefaults, so there is no
+	// second spelling to pass along.
+	colors := cfg.Colors
 	sizeBorder := cfg.SizeBorder
 	radius := cfg.Radius
 	if fillParent {
-		color = ColorTransparent
-		colorHover = ColorTransparent
-		colorBorder = ColorTransparent
-		colorBorderFocus = ColorTransparent
+		colors = Flat(ColorTransparent)
 		sizeBorder = Opt[float32]{}
 		radius = Opt[float32]{}
 	}
@@ -294,10 +294,7 @@ func numericInputField(
 		// provably empty and the value can be centred on its ink rather
 		// than on its line box (issue #346).
 		opticalDigitCenter: true,
-		Color:              color,
-		ColorHover:         colorHover,
-		ColorBorder:        colorBorder,
-		ColorBorderFocus:   colorBorderFocus,
+		Colors:             colors,
 		TextStyle:          cfg.TextStyle,
 		PlaceholderStyle:   cfg.PlaceholderStyle,
 		Disabled:           cfg.Disabled,
@@ -359,7 +356,7 @@ func numericInputStepButtons(
 		Size:   triangleSize,
 		Family: cfg.TextStyle.Family,
 	})
-	baseColor := cfg.Color
+	baseColor := cfg.Colors.Base
 
 	stepUpID := ""
 	if len(ownerID) > 0 {
@@ -570,8 +567,6 @@ func numericModeCfgFromInput(cfg NumericInputCfg) numericModeCfg {
 func applyNumericInputDefaults(cfg *NumericInputCfg) {
 	d := &defaultInputStyle
 	cfg.Colors = cfg.Colors.resolved(cfg.Color, d.Colors)
-	cfg.Colors.applyTo(&cfg.Color, &cfg.ColorHover, nil, nil,
-		&cfg.ColorBorder, &cfg.ColorBorderFocus)
 	if !cfg.Padding.IsSet() {
 		cfg.Padding = guiTheme.PaddingField
 	}

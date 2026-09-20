@@ -75,7 +75,7 @@ func tableBuildRow(
 		cells = append(cells, Column(ContainerCfg{
 			A11YRole:    AccessRoleGridCell,
 			Color:       ColorTransparent,
-			ColorBorder: cfg.ColorBorder,
+			ColorBorder: cfg.Colors.Border,
 			SizeBorder:  Some(cellBorder),
 			Padding:     cfg.CellPadding,
 			Radius:      SomeF(0),
@@ -190,7 +190,7 @@ func tableBuildRows(
 
 		if needsSep {
 			rows = append(rows, Rectangle(RectangleCfg{
-				Color:  cfg.ColorBorder,
+				Color:  cfg.Colors.Border,
 				Height: sepHeight,
 				Sizing: FillFixed,
 			}))
@@ -241,7 +241,7 @@ func tableFreezeLayout(
 	}
 	if needsSep {
 		headerViews = append(headerViews, Rectangle(RectangleCfg{
-			Color:  cfg.ColorBorder,
+			Color:  cfg.Colors.Border,
 			Height: sepHeight,
 			Sizing: FillFixed,
 		}))

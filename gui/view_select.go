@@ -42,14 +42,10 @@ type SelectCfg struct {
 	MaxWidth    float32
 	// FocusDisabled opts out of the default-on focus. Focus also
 	// requires a non-empty ID; without one the control is inert.
-	FocusDisabled    bool
-	Color            Color
-	ColorBorder      Color
-	ColorBorderFocus Color
-	ColorFocus       Color
+	FocusDisabled bool
+	Color         Color
 	// Colors sets the per-state colors. Color above is the
-	// shorthand for Colors.Base and wins over it; the other flat
-	// Color* fields win over their Colors slots the same way.
+	// shorthand for Colors.Base and wins over it.
 	Colors      ColorSet
 	ColorSelect Color
 	// ColorSelectSubtle is the tint behind the highlighted option
@@ -108,6 +104,7 @@ func (sv *selectView) GenerateLayout(w *Window) Layout {
 	id := w.EffID(cfg.ID)
 	isOpen := StateReadOr(w, nsSelect, id, false)
 	dropdownScrollID := ScopeID(id, "dropdown")
+	colors := cfg.Colors
 
 	empty := len(cfg.Selected) == 0 || len(cfg.Selected[0]) == 0
 	clip := cfg.SelectMultiple && cfg.NoWrap
@@ -188,8 +185,8 @@ func (sv *selectView) GenerateLayout(w *Window) Layout {
 			Shadow:        dn.Shadow,
 			SizeBorder:    Some(sizeBorder),
 			Radius:        Some(radius),
-			ColorBorder:   cfg.ColorBorder,
-			Color:         cfg.Color,
+			ColorBorder:   colors.Border,
+			Color:         colors.Base,
 			MinHeight:     50,
 			MaxHeight:     selectDropdownMaxH,
 			MinWidth:      cfg.MinWidth,
@@ -207,9 +204,6 @@ func (sv *selectView) GenerateLayout(w *Window) Layout {
 			Content: options,
 		}))
 	}
-
-	colorFocus := cfg.ColorFocus
-	colorBorderFocus := cfg.ColorBorderFocus
 
 	// Build the outer row layout directly.
 	// Two cues, two roles. Clicking the field opens or closes the
@@ -231,8 +225,8 @@ func (sv *selectView) GenerateLayout(w *Window) Layout {
 			A11YLabel:       a11yLabel(cfg.A11YLabel, cfg.Placeholder),
 			A11YDescription: cfg.A11YDescription,
 		},
-		Color:       cfg.Color,
-		ColorBorder: cfg.ColorBorder,
+		Color:       colors.Base,
+		ColorBorder: colors.Border,
 		SizeBorder:  Some(sizeBorder),
 		Radius:      Some(radius),
 		Padding:     cfg.Padding,
@@ -247,7 +241,9 @@ func (sv *selectView) GenerateLayout(w *Window) Layout {
 		// above (issue #346); the arrow is wrapped in its own row and
 		// carries its own nudge. Nothing here is a direct text child,
 		// so the field itself only draws the focus ring.
-		AmendLayout: focusRingAmend(colorFocus, colorBorderFocus),
+		// The field has no hover pass, so the focus fill it paints is
+		// exactly pick({focused}) plus the ring.
+		AmendLayout: focusRingAmend(colors.Focus, colors.BorderFocus),
 		Sound:       fieldSound,
 		OnKeyDown:   makeSelectOnKeyDown(&sv.cfg, id, dropdownScrollID),
 		OnClick: func(ctx EventCtx) {
@@ -547,8 +543,6 @@ func selectScrollTo(cfg *SelectCfg, scrollID string, idx int, w *Window) {
 func applySelectDefaults(cfg *SelectCfg) {
 	d := &defaultSelectStyle
 	cfg.Colors = cfg.Colors.resolved(cfg.Color, d.Colors)
-	cfg.Colors.applyTo(&cfg.Color, nil, nil,
-		&cfg.ColorFocus, &cfg.ColorBorder, &cfg.ColorBorderFocus)
 	// A caller-set ColorSelect is an explicit override and wins over
 	// the theme's wash (subtleSlot). Resolved before the theme fill
 	// below, so IsSet still tells caller-set from theme-set.

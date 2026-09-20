@@ -46,13 +46,9 @@ type TreeCfg struct {
 	MinHeight float32
 	MaxHeight float32
 
-	Color       Color
-	ColorHover  Color
-	ColorFocus  Color
-	ColorBorder Color
+	Color Color
 	// Colors sets the per-state colors. Color above is the
-	// shorthand for Colors.Base and wins over it; the other flat
-	// Color* fields win over their Colors slots the same way.
+	// shorthand for Colors.Base and wins over it.
 	Colors ColorSet
 
 	Sizing Sizing
@@ -304,8 +300,8 @@ func (tv *treeView) GenerateLayout(w *Window) Layout {
 		MaxWidth:    cfg.MaxWidth,
 		MinHeight:   cfg.MinHeight,
 		MaxHeight:   cfg.MaxHeight,
-		Color:       cfg.Color,
-		ColorBorder: cfg.ColorBorder,
+		Color:       cfg.Colors.Base,
+		ColorBorder: cfg.Colors.Border,
 		SizeBorder:  Some(sizeBorder),
 		Radius:      Some(radius),
 		Padding:     cfg.Padding,
@@ -489,8 +485,6 @@ func applyTreeDefaults(cfg *TreeCfg) {
 		cfg.Spacing = Some(d.Spacing)
 	}
 	cfg.Colors = cfg.Colors.resolved(cfg.Color, d.Colors)
-	cfg.Colors.applyTo(&cfg.Color, &cfg.ColorHover, nil,
-		&cfg.ColorFocus, &cfg.ColorBorder, nil)
 	if !cfg.Padding.IsSet() {
 		cfg.Padding = d.Padding
 	}

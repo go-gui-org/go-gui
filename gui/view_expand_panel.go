@@ -18,16 +18,9 @@ type ExpandPanelCfg struct {
 	MinHeight  float32
 	MaxHeight  float32
 
-	Color       Color
-	ColorHover  Color
-	colorClick  Color
-	ColorBorder Color
-	// ColorBorderFocus is the header's border while it holds focus.
-	// Unset takes the theme's.
-	ColorBorderFocus Color
+	Color Color
 	// Colors sets the per-state colors. Color above is the
-	// shorthand for Colors.Base and wins over it; the other flat
-	// Color* fields win over their Colors slots the same way.
+	// shorthand for Colors.Base and wins over it.
 	Colors ColorSet
 	Sizing Sizing
 	Open   bool
@@ -57,14 +50,57 @@ func ExpandPanel(cfg ExpandPanelCfg) View {
 	// A header that cannot take focus never draws a focus ring, so
 	// skip the amend closure rather than install a dead one.
 	headFocusable := !cfg.FocusDisabled
+	colors := cfg.Colors
+	// The header is a transparent row over the panel body: at rest
+	// the panel shows through, and hover/press tint only the header.
+	// Its set leaves Base and Border unset rather than taking the
+	// panel's, which is exactly what the header row carries out of
+	// generation, so pick's resting answer paints nothing. Used
+	// directly — no resolve(), which would back Hover and Click from
+	// Base and wipe them.
+	headerColors := ColorSet{
+		Hover:       colors.Hover,
+		Click:       colors.Click,
+		BorderFocus: colors.BorderFocus,
+	}
+	// Captured at generation; see focusRingAmend.
+	ring := guiTheme.focusRing
 	var headAmend func(EventCtx)
 	if headFocusable {
-		headAmend = focusRingAmend(Color{}, cfg.ColorBorderFocus)
+		headAmend = func(ctx EventCtx) {
+			// Same guards focusRingAmend carries: a hand-built
+			// Layout in a test reaches the amend pass with no
+			// Window and no Shape.
+			if ctx.Layout == nil || ctx.Window == nil {
+				return
+			}
+			shape := ctx.Layout.Shape
+			if shape == nil {
+				return
+			}
+			// Amend sees focus and a held Space but no pointer, so
+			// hovered stays false. Space toggles the panel
+			// (ClickOnSpace), so a held Space is the press this pass
+			// can see, the way it is for Button; the hover pass
+			// re-picks with the pointer state.
+			// ANDed with !Disabled, like Input's amend: a disabled
+			// header that still holds focus must not draw the ring.
+			// focusRingAmend, which this replaced, returned early on
+			// a disabled shape for the same reason.
+			key := shape.idKey()
+			focused := !shape.Disabled && ctx.Window.IsFocus(key)
+			shape.Color, shape.ColorBorder = headerColors.pick(stateFlags{
+				disabled: shape.Disabled,
+				pressed:  ctx.Window.isKeyPressed(key),
+				focused:  focused,
+			})
+			if focused {
+				applyFocusRingShadow(shape, ctx.Window, ring)
+			}
+		}
 	}
 
 	onToggle := cfg.OnToggle
-	colorHover := cfg.ColorHover
-	colorClick := cfg.colorClick
 
 	a11yState := AccessState(0)
 	if cfg.Open {
@@ -89,8 +125,8 @@ func ExpandPanel(cfg ExpandPanelCfg) View {
 		A11YRole:    AccessRoleDisclosure,
 		A11YState:   a11yState,
 		A11YCfg:     cfg.A11YCfg,
-		Color:       cfg.Color,
-		ColorBorder: cfg.ColorBorder,
+		Color:       colors.Base,
+		ColorBorder: colors.Border,
 		SizeBorder:  Some(sizeBorder),
 		Padding:     cfg.Padding,
 		Radius:      Some(radius),
@@ -136,10 +172,20 @@ func ExpandPanel(cfg ExpandPanelCfg) View {
 				},
 				OnHover: func(ctx EventCtx) {
 					ctx.Window.SetMouseCursorPointingHand()
-					ctx.Layout.Shape.Color = colorHover
-					if ctx.Event.MouseButton == MouseLeft {
-						ctx.Layout.Shape.Color = colorClick
-					}
+					// This pass sees everything the amend pass saw plus
+					// the pointer, so it re-picks both channels outright.
+					// Either press counts: a held mouse button here, a
+					// held Space from the amend pass's half of the state.
+					ctx.Layout.Shape.Color, ctx.Layout.Shape.ColorBorder =
+						headerColors.pick(stateFlags{
+							disabled: ctx.Layout.Shape.Disabled,
+							pressed: ctx.Event.MouseButton == MouseLeft ||
+								ctx.Window.isKeyPressed(
+									ctx.Layout.Shape.idKey()),
+							focused: ctx.Window.IsFocus(
+								ctx.Layout.Shape.idKey()),
+							hovered: true,
+						})
 					ctx.Consume()
 				},
 			}),
@@ -160,8 +206,6 @@ func ExpandPanel(cfg ExpandPanelCfg) View {
 func applyExpandPanelDefaults(cfg *ExpandPanelCfg) {
 	d := &defaultExpandPanelStyle
 	cfg.Colors = cfg.Colors.resolved(cfg.Color, d.Colors)
-	cfg.Colors.applyTo(&cfg.Color, &cfg.ColorHover, &cfg.colorClick,
-		nil, &cfg.ColorBorder, &cfg.ColorBorderFocus)
 	if !cfg.Padding.IsSet() {
 		cfg.Padding = d.Padding
 	}

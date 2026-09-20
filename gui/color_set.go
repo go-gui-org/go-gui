@@ -4,11 +4,12 @@ package gui
 // one value, so a caller who wants a single consistent appearance says
 // it once instead of assigning five or six flat Color* fields.
 //
-// Seventeen widgets carry it: Button, Switch, Toggle, Radio, DatePicker,
-// InputDate (flat state fields deleted), and Input, NumericInput, Select,
-// Combobox, ListBox, Tree, Slider, ContextMenu, Menubar, Table,
-// ExpandPanel (flat fields retained and winning over the set; see
-// applyTo).
+// Eighteen widgets carry it, and it is the only spelling on all of
+// them: Button, Switch, Toggle, Radio, DatePicker, InputDate, Input,
+// NumericInput, Select, Combobox, ListBox, VirtualList, Tree, Slider,
+// ContextMenu, Menubar, Table, ExpandPanel. The flat per-state Color*
+// Cfg fields the last twelve used to carry are gone (issue #721); the
+// flat Color survives as the shorthand for Base.
 //
 // Zero value is "nothing specified": every field falls back, and a
 // ColorSet a caller never touches changes nothing.
@@ -100,8 +101,8 @@ func (cs ColorSet) resolve() ColorSet {
 //
 // shorthand is the widget's flat Color field, which survives as the
 // spelling for the single-color case. It takes precedence over
-// Colors.Base for the same migration reason applyTo encodes — code
-// that set Color keeps its appearance when a ColorSet arrives.
+// Colors.Base: code that set Color keeps its appearance when a
+// ColorSet arrives.
 //
 // This is the seam every widget's apply*Defaults calls, replacing the
 // six near-identical `if !cfg.ColorX.IsSet()` blocks each of them
@@ -131,51 +132,26 @@ func (cs ColorSet) resolved(shorthand Color, theme ColorSet) ColorSet {
 	return cs
 }
 
-// applyTo fills each of the six flat Color* destinations from the set,
-// but only where the destination is still unset.
-//
-// That ordering is the precedence rule, and it is deliberately the
-// unintuitive direction: a flat field that the caller assigned wins
-// over the ColorSet. The reason is migration safety. Existing code
-// assigns flat fields; when a ColorSet arrives — from a preset, a
-// shared style value, or a half-finished edit — that code must keep
-// the appearance it has today rather than silently changing color.
-// The newer, more specific-looking API is the one that yields.
-//
-// Fields left unset by both are untouched, so the caller's theme
-// defaults still apply afterwards.
-// Written as straight-line assignments rather than a table because
-// this runs once per styled widget per frame, and the table form puts
-// a composite literal on the view path for no readability gain.
-func (cs ColorSet) applyTo(
-	base, hover, click, focus, border, borderFocus *Color,
-) {
-	r := cs.resolve()
-	setIfUnset(base, r.Base)
-	setIfUnset(hover, r.Hover)
-	setIfUnset(click, r.Click)
-	setIfUnset(focus, r.Focus)
-	setIfUnset(border, r.Border)
-	setIfUnset(borderFocus, r.BorderFocus)
-}
-
 // stateFlags is the interaction state of one widget at one point in one
 // frame. The caller assembles it from what its pass can see: the amend
 // pass knows focus and a held Space but has no Event and so no pointer;
 // the hover pass knows the pointer and the held mouse button as well.
 //
 // disabled makes the rule total: pick answers for every state rather
-// than leaving one to the caller. It is not what short-circuits a
-// disabled widget today. Every current call site still returns early
-// on Shape.Disabled, because that same guard also covers a shape with
-// no events and a nil OnClick, and on the amend path it is the only
-// thing stopping a disabled widget's user OnAmend callback — layoutAmend
-// walks disabled shapes, unlike layoutHoverDepth.
+// than leaving one to the caller, so a pass with no guard of its own
+// can be routed through it without inventing one.
 //
-// So the flag reaches pick false at all eight sites, and that is fine:
-// it is what lets a widget with no guard of its own be routed through
-// pick without inventing one. Several have no such guard — tree rows,
-// slider, expand panel, listbox items, table rows (#721).
+// It is still not what short-circuits most disabled widgets. Every
+// hover pass is already unreachable on a disabled shape — layoutHoverDepth
+// skips them, unlike layoutAmend — and most amend passes return early on
+// Shape.Disabled, because that same guard also covers a shape with no
+// events and a nil OnClick and is the only thing stopping a disabled
+// widget's user OnAmend callback.
+//
+// The two amend passes that do NOT guard are Input's and ExpandPanel's
+// header (#721): both reach pick with disabled true on a disabled
+// widget, and both get the resting colors back, which is what the shape
+// already carried out of generation.
 type stateFlags struct {
 	disabled bool
 	pressed  bool
@@ -238,10 +214,9 @@ func (cs ColorSet) pick(s stateFlags) (fill, border Color) {
 }
 
 // setIfUnset assigns src to *dst only when dst holds no explicit color
-// and src has one. Nil dst is tolerated so a widget can pass nil for a
-// state it does not have.
+// and src has one.
 func setIfUnset(dst *Color, src Color) {
-	if dst != nil && !dst.IsSet() && src.IsSet() {
+	if !dst.IsSet() && src.IsSet() {
 		*dst = src
 	}
 }

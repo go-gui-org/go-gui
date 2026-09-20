@@ -55,15 +55,13 @@ type MenubarCfg struct {
 	FloatOffsetX   float32
 	FloatOffsetY   float32
 	Color          Color
-	ColorBorder    Color
 	ColorSelect    Color
 	// ColorTextOnSelect is the text color drawn over the selected
 	// item's fill. Unset takes the theme's.
 	// exportaudit:keep — caller-facing config (issue #372)
 	ColorTextOnSelect Color
 	// Colors sets the per-state colors. Color above is the
-	// shorthand for Colors.Base and wins over it; the other flat
-	// Color* fields win over their Colors slots the same way.
+	// shorthand for Colors.Base and wins over it.
 	Colors      ColorSet
 	Sizing      Sizing
 	FloatAnchor floatAttach
@@ -132,8 +130,8 @@ func menubarBuild(w *Window, cfg MenubarCfg) View {
 	return Row(ContainerCfg{
 		ID:            cfg.ID,
 		Focusable:     true,
-		Color:         cfg.Color,
-		ColorBorder:   cfg.ColorBorder,
+		Color:         cfg.Colors.Base,
+		ColorBorder:   cfg.Colors.Border,
 		SizeBorder:    cfg.SizeBorder,
 		Radius:        cfg.RadiusBorder,
 		Spacing:       cfg.Spacing,
@@ -158,8 +156,6 @@ func menubarBuild(w *Window, cfg MenubarCfg) View {
 func applyMenubarDefaults(cfg *MenubarCfg) {
 	d := &defaultMenubarStyle
 	cfg.Colors = cfg.Colors.resolved(cfg.Color, d.Colors)
-	cfg.Colors.applyTo(&cfg.Color, nil, nil, nil,
-		&cfg.ColorBorder, nil)
 	if !cfg.ColorSelect.IsSet() {
 		cfg.ColorSelect = d.ColorSelect
 	}

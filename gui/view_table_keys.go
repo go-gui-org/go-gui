@@ -44,7 +44,7 @@ func tableFocusWiring(
 		guiTheme.Sounds.Selection, cfg.Sound, cfg.SoundDisabled)
 	return tableFocusState{
 		focusable: true,
-		ring:      focusRingAmend(Color{}, cfg.ColorBorderFocus),
+		ring:      focusRingAmend(Color{}, cfg.Colors.BorderFocus),
 		onKeyDown: func(ctx EventCtx) {
 			tableOnKeyDown(data, selected, multiSelect, onSelect,
 				activeKey, scrollID, rowH, listH, bodyRowOffset,

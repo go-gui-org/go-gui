@@ -73,14 +73,8 @@ type ListBoxCfg struct {
 	// requires a non-empty ID; without one the control is inert.
 	FocusDisabled bool
 	Color         Color
-	ColorHover    Color
-	ColorBorder   Color
-	// ColorBorderFocus is the border while the list holds focus.
-	// Unset takes the theme's.
-	ColorBorderFocus Color
 	// Colors sets the per-state colors. Color above is the
-	// shorthand for Colors.Base and wins over it; the other flat
-	// Color* fields win over their Colors slots the same way.
+	// shorthand for Colors.Base and wins over it.
 	Colors      ColorSet
 	ColorSelect Color
 	// ColorSelectSubtle is the tint behind a selected row — the
@@ -218,7 +212,7 @@ func (lv *listBoxView) GenerateLayout(w *Window) Layout {
 		Scrollable: true,
 		AmendLayout: amendAll(
 			listBoxAmendLayout(cache),
-			focusRingAmend(Color{}, cfg.ColorBorderFocus)),
+			focusRingAmend(Color{}, cfg.Colors.BorderFocus)),
 		OnKeyDown: func(ctx EventCtx) {
 			if canReorder {
 				if dragReorderEscape(
@@ -250,8 +244,8 @@ func (lv *listBoxView) GenerateLayout(w *Window) Layout {
 		MaxWidth:    cfg.MaxWidth,
 		MinHeight:   cfg.MinHeight,
 		MaxHeight:   cfg.MaxHeight,
-		Color:       cfg.Color,
-		ColorBorder: cfg.ColorBorder,
+		Color:       cfg.Colors.Base,
+		ColorBorder: cfg.Colors.Border,
 		SizeBorder:  Some(sizeBorder),
 		Radius:      Some(radius),
 		Padding:     cfg.Padding,
@@ -491,8 +485,6 @@ func listBoxOnKeyDown(
 func applyListBoxDefaults(cfg *ListBoxCfg) {
 	d := &defaultListBoxStyle
 	cfg.Colors = cfg.Colors.resolved(cfg.Color, d.Colors)
-	cfg.Colors.applyTo(&cfg.Color, &cfg.ColorHover, nil, nil,
-		&cfg.ColorBorder, &cfg.ColorBorderFocus)
 	// A caller-set ColorSelect is an explicit override and wins over
 	// the theme's wash (subtleSlot). Resolved before the theme fill
 	// below, so IsSet still tells caller-set from theme-set.

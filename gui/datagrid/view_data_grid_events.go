@@ -65,8 +65,7 @@ func dataGridQuickFilterRow(cfg *DataGridCfg, w *gg.Window) gg.View {
 				SizeBorder:       gg.SomeF(0),
 				Radius:           gg.SomeF(0),
 				Color:            cfg.ColorQuickFilter,
-				ColorHover:       cfg.ColorQuickFilter,
-				ColorBorder:      cfg.ColorBorder,
+				Colors:           gg.ColorSet{Hover: cfg.ColorQuickFilter, Border: cfg.ColorBorder},
 				TextStyle:        cfg.TextStyleFilter,
 				PlaceholderStyle: placeholderStyle,
 				OnTextChanged: dataGridQuickFilterOnTextChanged(

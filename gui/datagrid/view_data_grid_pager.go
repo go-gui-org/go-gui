@@ -180,8 +180,7 @@ func dataGridPagerJumpInput(cfg *DataGridCfg, inputID string, focusID string, ju
 		SizeBorder:  gg.SomeF(0),
 		Radius:      gg.SomeF(0),
 		Color:       cfg.ColorFilter,
-		ColorHover:  cfg.ColorFilter,
-		ColorBorder: cfg.ColorBorder,
+		Colors:      gg.ColorSet{Hover: cfg.ColorFilter, Border: cfg.ColorBorder},
 		TextStyle:   cfg.TextStyleFilter,
 		OnTextChanged: func(inputText string, ctx gg.EventCtx) {
 			digits := dataGridJumpDigits(inputText)

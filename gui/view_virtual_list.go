@@ -96,14 +96,9 @@ type VirtualListCfg struct {
 	MinHeight float32
 	MaxHeight float32
 
-	Color       Color
-	ColorBorder Color
-	// ColorBorderFocus is the border while the list holds focus.
-	// Unset takes the theme's.
-	ColorBorderFocus Color
+	Color Color
 	// Colors sets the per-state colors. Color above is the shorthand
-	// for Colors.Base and wins over it, as do the other flat Color*
-	// fields over their slots.
+	// for Colors.Base and wins over it.
 	Colors ColorSet
 
 	Sizing Sizing
@@ -144,8 +139,6 @@ func applyVirtualListDefaults(cfg *VirtualListCfg) {
 		Border:      d.Colors.Border,
 		BorderFocus: d.Colors.BorderFocus,
 	})
-	cfg.Colors.applyTo(&cfg.Color, nil, nil, nil,
-		&cfg.ColorBorder, &cfg.ColorBorderFocus)
 	if !cfg.Padding.IsSet() {
 		cfg.Padding = d.Padding
 	}
@@ -188,7 +181,7 @@ func (lv *virtualListView) GenerateLayout(w *Window) Layout {
 			},
 			Focusable:   !cfg.FocusDisabled,
 			Scrollable:  true,
-			AmendLayout: virtualListAmend(m, cfg.ColorBorderFocus),
+			AmendLayout: virtualListAmend(m, cfg.Colors.BorderFocus),
 			OnKeyDown:   virtualListKeyDown(cfg),
 			Width:       cfg.MaxWidth,
 			Height:      cfg.Height,
@@ -196,8 +189,8 @@ func (lv *virtualListView) GenerateLayout(w *Window) Layout {
 			MaxWidth:    cfg.MaxWidth,
 			MinHeight:   cfg.MinHeight,
 			MaxHeight:   cfg.MaxHeight,
-			Color:       cfg.Color,
-			ColorBorder: cfg.ColorBorder,
+			Color:       cfg.Colors.Base,
+			ColorBorder: cfg.Colors.Border,
 			SizeBorder:  Some(cfg.SizeBorder.Get(dn.SizeBorder)),
 			Radius:      Some(cfg.Radius.Get(dn.Radius)),
 			Padding:     cfg.Padding,

@@ -53,20 +53,16 @@ type ComboboxCfg struct {
 	// requires a non-empty ID; without one the control is inert.
 	FocusDisabled bool
 
-	Color            Color
-	ColorBorder      Color
-	ColorBorderFocus Color
-	ColorFocus       Color
-	ColorHighlight   Color
+	Color Color
+	// ColorHighlight is the selected-row fill in the dropdown.
+	ColorHighlight Color
 	// ColorHighlightSubtle is the tint behind the highlighted row —
 	// the wash, never the full accent slab; focus is the ring, not a
 	// second fill (visual-refresh §4.3). Unset takes the theme's.
 	// exportaudit:keep — caller-facing config (issue #372)
 	ColorHighlightSubtle Color
-	ColorHover           Color
 	// Colors sets the per-state colors. Color above is the
-	// shorthand for Colors.Base and wins over it; the other flat
-	// Color* fields win over their Colors slots the same way.
+	// shorthand for Colors.Base and wins over it.
 	Colors   ColorSet
 	Sizing   Sizing
 	Disabled bool
@@ -171,7 +167,7 @@ func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 	coreCfg := listCoreCfg{
 		TextStyle:      cfg.TextStyle,
 		ColorHighlight: cfg.ColorHighlightSubtle,
-		ColorHover:     cfg.ColorHover,
+		ColorHover:     cfg.Colors.Hover,
 		ColorSelected:  cfg.ColorHighlightSubtle,
 		PaddingItem:    cfg.Padding.Or(PaddingNone),
 		OnItemClick: func(itemID string, _ int, ctx EventCtx) {
@@ -242,8 +238,8 @@ func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 			Shadow:       dn.Shadow,
 			SizeBorder:   Some(sizeBorder),
 			Radius:       Some(radius),
-			ColorBorder:  cfg.ColorBorder,
-			Color:        cfg.Color,
+			ColorBorder:  cfg.Colors.Border,
+			Color:        cfg.Colors.Base,
 			MinHeight:    50,
 			MaxHeight:    cfg.MaxDropdownHeight,
 			Float:        true,
@@ -280,8 +276,7 @@ func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 		}))
 	}
 
-	colorFocus := cfg.ColorFocus
-	colorBorderFocus := cfg.ColorBorderFocus
+	colors := cfg.Colors
 
 	// The field click opens or closes the dropdown, so the cue names
 	// what it is about to do (issue #467). Rows in the dropdown are
@@ -301,8 +296,8 @@ func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 			A11YLabel:       a11yLabel(cfg.A11YLabel, cfg.Placeholder),
 			A11YDescription: cfg.A11YDescription,
 		},
-		Color:       cfg.Color,
-		ColorBorder: cfg.ColorBorder,
+		Color:       colors.Base,
+		ColorBorder: colors.Border,
 		SizeBorder:  Some(sizeBorder),
 		Radius:      Some(radius),
 		Padding:     cfg.Padding,
@@ -312,7 +307,9 @@ func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 		Disabled:    cfg.Disabled,
 		axis:        axisLeftToRight,
 		VAlign:      VAlignMiddle,
-		AmendLayout: focusRingAmend(colorFocus, colorBorderFocus),
+		// The field has no hover pass, so the focus fill it paints is
+		// exactly pick({focused}) plus the ring.
+		AmendLayout: focusRingAmend(colors.Focus, colors.BorderFocus),
 		Sound:       fieldSound,
 		OnKeyDown: makeComboboxOnKeyDown(id, onSelect, id, filteredIDs,
 			dropdownScrollID, rowH, listH),
@@ -475,8 +472,6 @@ func scrollEnsureVisible(
 func applyComboboxDefaults(cfg *ComboboxCfg) {
 	d := &defaultComboboxStyle
 	cfg.Colors = cfg.Colors.resolved(cfg.Color, d.Colors)
-	cfg.Colors.applyTo(&cfg.Color, &cfg.ColorHover, nil,
-		&cfg.ColorFocus, &cfg.ColorBorder, &cfg.ColorBorderFocus)
 	// A caller-set ColorHighlight is an explicit override and wins
 	// over the theme's wash (subtleSlot). Resolved before the theme
 	// fill below, so IsSet still tells caller-set from theme-set.

@@ -83,20 +83,14 @@ type TableCfg struct {
 	MaxWidth    float32
 	MinHeight   float32
 	MaxHeight   float32
-	ColorBorder Color
-	// ColorBorderFocus is the border while the table holds focus.
-	// Unset takes the theme's.
-	ColorBorderFocus Color
-	ColorSelect      Color
+	ColorSelect Color
 	// ColorSelectSubtle is the tint behind a selected row — the
 	// wash, never the full accent slab; focus is the ring, not a
 	// second fill (visual-refresh §4.3). Unset takes the theme's.
 	// exportaudit:keep — caller-facing config (issue #372)
 	ColorSelectSubtle Color
-	ColorHover        Color
-	// Colors sets the per-state colors. The flat Color* fields
-	// above win over their Colors slots. Table has no base fill,
-	// so Base is unused and Hover/Border are the live slots.
+	// Colors sets the per-state colors. Table has no base fill, so
+	// Base is unused and Hover/Border are the live slots.
 	Colors ColorSet
 
 	// Focusable opts the table into the tab order. When set, focus
@@ -130,8 +124,6 @@ type TableCfg struct {
 func applyTableDefaults(cfg *TableCfg) {
 	s := &defaultTableStyle
 	cfg.Colors = cfg.Colors.resolved(Color{}, s.Colors)
-	cfg.Colors.applyTo(nil, &cfg.ColorHover, nil, nil,
-		&cfg.ColorBorder, &cfg.ColorBorderFocus)
 	// A caller-set ColorSelect is an explicit override and wins over
 	// the theme's wash (subtleSlot). Resolved before the theme fill
 	// below, so IsSet still tells caller-set from theme-set.
@@ -280,7 +272,7 @@ func tableView(cfg TableCfg, w *Window) View {
 	onSelect := cfg.OnSelect
 	selected := cfg.Selected
 	multiSelect := cfg.MultiSelect
-	colorHover := cfg.ColorHover
+	colorHover := cfg.Colors.Hover
 
 	// Virtualization.
 	listHeight := cfg.Height

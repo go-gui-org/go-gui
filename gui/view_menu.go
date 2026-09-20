@@ -36,8 +36,8 @@ func menu(w *Window, cfg MenubarCfg) View {
 		ID:            cfg.ID,
 		A11YRole:      AccessRoleMenu,
 		Shadow:        shadow,
-		Color:         cfg.Color,
-		ColorBorder:   cfg.ColorBorder,
+		Color:         cfg.Colors.Base,
+		ColorBorder:   cfg.Colors.Border,
 		SizeBorder:    cfg.SizeBorder,
 		Radius:        cfg.RadiusBorder,
 		MinWidth:      cfg.WidthSubmenuMin.Get(defaultMenubarStyle.widthSubmenuMin),
@@ -227,8 +227,8 @@ func menuBuild(cfg MenubarCfg, level int, items []MenuItemCfg, w *Window) []View
 
 			submenu := Column(ContainerCfg{
 				Shadow:        defaultMenubarStyle.Shadow,
-				Color:         cfg.Color,
-				ColorBorder:   cfg.ColorBorder,
+				Color:         cfg.Colors.Base,
+				ColorBorder:   cfg.Colors.Border,
 				SizeBorder:    cfg.SizeBorder,
 				Radius:        cfg.RadiusSubmenu,
 				MinWidth:      cfg.WidthSubmenuMin.Get(defaultMenubarStyle.widthSubmenuMin),

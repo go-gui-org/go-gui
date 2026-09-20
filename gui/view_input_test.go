@@ -167,8 +167,8 @@ func TestInputPasswordMaskEmoji(t *testing.T) {
 func TestInputDefaults(t *testing.T) {
 	cfg := InputCfg{ID: "input_test_test_input_defaults"}
 	applyInputDefaults(&cfg)
-	if !cfg.Color.IsSet() {
-		t.Fatal("Color not defaulted")
+	if !cfg.Colors.Base.IsSet() {
+		t.Fatal("Colors.Base not defaulted")
 	}
 	if !cfg.Radius.IsSet() {
 		t.Fatal("Radius not defaulted")
@@ -2380,5 +2380,49 @@ func TestMultilineEnterPassesMask(t *testing.T) {
 	}
 	if got != "12" {
 		t.Fatalf("got %q, want %q", got, "12")
+	}
+}
+
+// A scoped Input must keep its focus border while the pointer is over
+// it. The hover pass re-picks both color channels (#721), so it has to
+// key focus the way the amend pass does — by the shape's effective ID.
+// Keying by the leaf cfg.ID read back "not focused" under any ID-bearing
+// ancestor and dropped the focus border exactly while the control was
+// being pointed at.
+func TestInputHoverKeepsFocusBorderUnderScope(t *testing.T) {
+	w := NewTestWindow(WindowCfg{})
+	build := func(*Window) View {
+		return Column(ContainerCfg{
+			ID: "panel",
+			Content: []View{Input(InputCfg{
+				ID:     "email",
+				Text:   "hello",
+				Width:  200,
+				Height: 30,
+			})},
+		})
+	}
+	w.TestRender(build)
+	w.SetFocus("panel:email")
+
+	// Park the pointer in the middle of the field, the way the golden
+	// harness does: mousePos is what layoutHover dispatches from,
+	// pointerAt is what records the hover target.
+	shape := mustShape(t, w, "panel:email")
+	cx := shape.X + shape.Width/2
+	cy := shape.Y + shape.Height/2
+	w.viewState.mousePosX, w.viewState.mousePosY = cx, cy
+	w.pointerAt(cx, cy)
+	w.TestRender(nil)
+
+	if got := w.viewState.hoverTargetID; got == "" {
+		t.Fatalf("pointer at (%v,%v) is over nothing", cx, cy)
+	}
+	shape = mustShape(t, w, "panel:email")
+	want := defaultInputStyle.Colors.BorderFocus
+	if shape.ColorBorder != want {
+		t.Errorf("hovered focused input ColorBorder = %v, want %v "+
+			"(the focus border, not the resting one)",
+			shape.ColorBorder, want)
 	}
 }

@@ -118,13 +118,9 @@ type InputCfg struct {
 	// Window.ScrollVerticalTo. Requires Mode == InputMultiline.
 	Scrollable bool
 
-	Color            Color
-	ColorHover       Color
-	ColorBorder      Color
-	ColorBorderFocus Color
+	Color Color
 	// Colors sets the per-state colors. Color above is the
-	// shorthand for Colors.Base and wins over it; the other flat
-	// Color* fields win over their Colors slots the same way.
+	// shorthand for Colors.Base and wins over it.
 	Colors ColorSet
 
 	Sizing Sizing
@@ -207,9 +203,7 @@ func Input(cfg InputCfg) View {
 		mode = TextModeWrapKeepSpaces
 	}
 
-	colorBorderFocus := cfg.ColorBorderFocus
-	colorHover := cfg.ColorHover
-	focusID := cfg.ID
+	colors := cfg.Colors
 	spellChk := cfg.SpellCheck && !cfg.IsPassword
 	onBlur := cfg.OnBlur
 
@@ -338,8 +332,8 @@ func Input(cfg InputCfg) View {
 		MaxHeight:   cfg.MaxHeight,
 		Disabled:    cfg.Disabled,
 		Clip:        true,
-		Color:       cfg.Color,
-		ColorBorder: cfg.ColorBorder,
+		Color:       colors.Base,
+		ColorBorder: colors.Border,
 		SizeBorder:  Some(sizeBorder),
 		Invisible:   cfg.Invisible,
 		Padding:     cfg.Padding,
@@ -354,15 +348,27 @@ func Input(cfg InputCfg) View {
 			ctx.Window.setMouseCursor(CursorIBeam)
 			// The fill follows the pointer even while focused, which is
 			// the rule ColorSet.pick states (#690). The focus border is
-			// what keeps saying "focused"; inputAmendLayout sets it and
-			// this pass leaves it alone. Input is not routed through
-			// pick itself — it reads flat Cfg fields filled by
-			// Colors.applyTo — but it follows the same rule, so Button
-			// and Input do not diverge.
-			ctx.Layout.Shape.Color = colorHover
+			// what keeps saying "focused", and this pass re-picks it
+			// rather than leaving the amend pass's alone, so the two
+			// passes cannot disagree. A held mouse button is the press
+			// this pass can see; a held Space is not — Space types here
+			// rather than activating, so it must not tint the fill.
+			ctx.Layout.Shape.Color, ctx.Layout.Shape.ColorBorder =
+				colors.pick(stateFlags{
+					disabled: ctx.Layout.Shape.Disabled,
+					pressed:  ctx.Event.MouseButton == MouseLeft,
+					// idKey, not cfg.ID: the focus store holds
+					// effective IDs, so a scoped input would read
+					// back "not focused" and drop the focus border
+					// exactly while the pointer is over it. The
+					// amend pass keys the same way.
+					focused: ctx.Window.IsFocus(
+						ctx.Layout.Shape.idKey()),
+					hovered: true,
+				})
 		},
-		AmendLayout: inputAmendLayout(hcfg, focusID,
-			colorBorderFocus, spellChk, onBlur, cfg.onMouseScroll),
+		AmendLayout: inputAmendLayout(hcfg, colors, spellChk,
+			onBlur, cfg.onMouseScroll),
 		Content: []View{inner},
 	})
 	return labelledField(cfg.Label, cfg.TextStyle, HAlignLeft, cfg.Sizing, field)
@@ -371,8 +377,6 @@ func Input(cfg InputCfg) View {
 func applyInputDefaults(cfg *InputCfg) {
 	d := &defaultInputStyle
 	cfg.Colors = cfg.Colors.resolved(cfg.Color, d.Colors)
-	cfg.Colors.applyTo(&cfg.Color, &cfg.ColorHover, nil, nil,
-		&cfg.ColorBorder, &cfg.ColorBorderFocus)
 	if !cfg.Padding.IsSet() {
 		// Was a hardcoded inset, which made InputStyle.Padding dead:
 		// a theme author editing it saw Container and ListBox move
@@ -664,8 +668,7 @@ func inputOnClick(leafID, leafScrollID string, canFocus bool) func(EventCtx) {
 }
 
 func inputAmendLayout(
-	hcfg inputHandlerCfg, focusID string,
-	colorBorderFocus Color, spellChk bool,
+	hcfg inputHandlerCfg, colors ColorSet, spellChk bool,
 	onBlur func(EventCtx), onMouseScroll func(EventCtx),
 ) func(EventCtx) {
 	// Captured at generation; see focusRingAmend.
@@ -690,8 +693,15 @@ func inputAmendLayout(
 		key := ctx.Layout.Shape.idKey()
 		focused := !ctx.Layout.Shape.Disabled &&
 			ctx.Window.IsFocus(key)
+		// Amend sees focus but no pointer, so hovered stays false and a
+		// held Space is not a press here — Space types rather than
+		// activating. The hover pass re-picks with the pointer state.
+		ctx.Layout.Shape.Color, ctx.Layout.Shape.ColorBorder =
+			colors.pick(stateFlags{
+				disabled: ctx.Layout.Shape.Disabled,
+				focused:  focused,
+			})
 		if focused {
-			ctx.Layout.Shape.ColorBorder = colorBorderFocus
 			applyFocusRingShadow(ctx.Layout.Shape, ctx.Window, ring)
 		}
 

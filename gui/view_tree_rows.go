@@ -180,7 +180,7 @@ func treeRowView(
 	isFocused := focusedID == rowID
 	rowColor := ColorTransparent
 	if isFocused {
-		rowColor = cfg.ColorFocus
+		rowColor = cfg.Colors.Focus
 	}
 	a11yState := AccessStateNone
 	if row.IsExpanded && row.HasChildren {
@@ -213,7 +213,7 @@ func treeRowView(
 			ctx.Window.SetMouseCursorPointingHand()
 			// The fill follows the pointer even on the focused row,
 			// matching ColorSet.pick's rule (#690).
-			ctx.Layout.Shape.Color = cfg.ColorHover
+			ctx.Layout.Shape.Color = cfg.Colors.Hover
 		},
 	})
 }
@@ -237,7 +237,7 @@ func treeDragRowView(
 	isFocused := focusedID == rowID
 	rowColor := ColorTransparent
 	if isFocused {
-		rowColor = cfg.ColorFocus
+		rowColor = cfg.Colors.Focus
 	}
 	a11yState := AccessStateNone
 	if row.IsExpanded && row.HasChildren {
@@ -290,7 +290,7 @@ func treeDragRowView(
 			ctx.Window.SetMouseCursorPointingHand()
 			// The fill follows the pointer even on the focused row,
 			// matching ColorSet.pick's rule (#690).
-			ctx.Layout.Shape.Color = cfg.ColorHover
+			ctx.Layout.Shape.Color = cfg.Colors.Hover
 		},
 	})
 }
@@ -305,7 +305,7 @@ func treeRowContent(
 ) View {
 	rowColor := ColorTransparent
 	if focusedID == row.ID {
-		rowColor = cfg.ColorFocus
+		rowColor = cfg.Colors.Focus
 	}
 	return Row(ContainerCfg{
 		Color:  rowColor,

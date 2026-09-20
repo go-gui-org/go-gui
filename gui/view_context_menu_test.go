@@ -197,11 +197,11 @@ func TestContextMenuDefaults(t *testing.T) {
 	applyContextMenuDefaults(&cfg)
 
 	d := &defaultMenubarStyle
-	if cfg.Color != d.Colors.Base {
-		t.Error("Color not defaulted")
+	if cfg.Colors.Base != d.Colors.Base {
+		t.Error("Colors.Base not defaulted")
 	}
-	if cfg.ColorBorder != d.Colors.Border {
-		t.Error("ColorBorder not defaulted")
+	if cfg.Colors.Border != d.Colors.Border {
+		t.Error("Colors.Border not defaulted")
 	}
 	if cfg.ColorSelect != d.ColorSelect {
 		t.Error("ColorSelect not defaulted")
