@@ -371,14 +371,14 @@ func (t Theme) WithColors(o ColorOverrides) Theme {
 	t.tabControlStyle.Colors.Border = border
 	t.tabControlStyle.colorContent = panel
 	t.tabControlStyle.colorContentBorder = border
-	t.tabControlStyle.colorTab = interior
-	t.tabControlStyle.colorTabHover = hover
-	t.tabControlStyle.colorTabFocus = focus
-	t.tabControlStyle.colorTabClick = active
+	t.tabControlStyle.ColorsTab.Base = interior
+	t.tabControlStyle.ColorsTab.Hover = hover
+	t.tabControlStyle.ColorsTab.Focus = focus
+	t.tabControlStyle.ColorsTab.Click = active
 	t.tabControlStyle.colorTabSelected = sel
 	t.tabControlStyle.colorTabDisabled = panel
-	t.tabControlStyle.colorTabBorder = border
-	t.tabControlStyle.colorTabBorderFocus = borderFocus
+	t.tabControlStyle.ColorsTab.Border = border
+	t.tabControlStyle.ColorsTab.BorderFocus = borderFocus
 	// The selected tab fills with the select color, so its label is
 	// the paired foreground (issue #373). Without this a light accent
 	// kept a white label on it.
@@ -387,19 +387,20 @@ func (t Theme) WithColors(o ColorOverrides) Theme {
 		textOnFill(t.B3, true, oldTextOnSelect),
 		textOnFill(t.B3, true, selText))
 
-	t.breadcrumbStyle.colorCrumbHover = hover
-	t.breadcrumbStyle.colorCrumbClick = active
+	t.breadcrumbStyle.ColorsCrumb.Hover = hover
+	t.breadcrumbStyle.ColorsCrumb.Click = active
 	t.breadcrumbStyle.colorContent = panel
 	t.breadcrumbStyle.colorContentBorder = border
 
-	t.splitterStyle.colorHandle = interior
-	t.splitterStyle.colorHandleHover = hover
-	t.splitterStyle.colorHandleActive = active
-	t.splitterStyle.colorHandleBorder = border
+	t.splitterStyle.ColorsHandle.Base = interior
+	t.splitterStyle.ColorsHandle.Hover = hover
+	t.splitterStyle.ColorsHandle.Click = active
+	t.splitterStyle.ColorsHandle.Border = border
 	t.splitterStyle.colorGrip = sel
-	t.splitterStyle.colorButton = interior
-	t.splitterStyle.colorButtonHover = hover
-	t.splitterStyle.colorButtonActive = active
+	t.splitterStyle.ColorsButton.Base = interior
+	t.splitterStyle.ColorsButton.Hover = hover
+	t.splitterStyle.ColorsButton.Click = active
+	t.splitterStyle.ColorsButton.Focus = hover
 
 	t.tableStyle.Colors.Border = border
 	t.tableStyle.Colors.BorderFocus = borderFocus
@@ -442,16 +443,16 @@ func (t Theme) WithColors(o ColorOverrides) Theme {
 	t.colorPickerStyle.Colors.BorderFocus = borderFocus
 
 	t.dataGridStyle.ColorBackground = interior
-	t.dataGridStyle.ColorHeader = panel
-	t.dataGridStyle.ColorHeaderHover = hover
+	t.dataGridStyle.ColorsHeader.Base = panel
+	t.dataGridStyle.ColorsHeader.Hover = hover
 	t.dataGridStyle.ColorFilter = interior
 	t.dataGridStyle.ColorQuickFilter = panel
-	t.dataGridStyle.ColorRowHover = hover
+	t.dataGridStyle.ColorsRow.Hover = hover
 	t.dataGridStyle.ColorRowSelected = sel
 	t.dataGridStyle.ColorRowSelectedSubtle = accentSubtle
-	t.dataGridStyle.ColorBorder = border
-	t.dataGridStyle.ColorResizeHandle = border
-	t.dataGridStyle.ColorResizeActive = sel
+	t.dataGridStyle.ColorsRow.Border = border
+	t.dataGridStyle.ColorsResize.Base = border
+	t.dataGridStyle.ColorsResize.Click = sel
 
 	t.separatorStyle.Colors.Base = separator
 

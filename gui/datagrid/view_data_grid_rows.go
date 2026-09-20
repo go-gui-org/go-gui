@@ -22,7 +22,7 @@ func dataGridGroupHeaderRowView(cfg *DataGridCfg, entry dataGridDisplayRow, rowH
 		Height:      rowHeight,
 		Sizing:      gg.FillFixed,
 		Color:       cfg.ColorFilter,
-		ColorBorder: cfg.ColorBorder,
+		ColorBorder: cfg.ColorsRow.Border,
 		SizeBorder:  gg.SomeF(0),
 		Padding:     gg.NewPadding(pc.Top, pc.Right, pc.Bottom, pc.Left+depthPad),
 		Spacing:     gg.Some(-cfg.SizeBorder.Get(0)),
@@ -54,7 +54,7 @@ func dataGridDetailRowView(dctx dataGridCtx, rowData GridRow, rowIdx int) gg.Vie
 		Height:      dctx.RowHeight,
 		Sizing:      gg.FillFixed,
 		Color:       cfg.ColorBackground,
-		ColorBorder: cfg.ColorBorder,
+		ColorBorder: cfg.ColorsRow.Border,
 		SizeBorder:  gg.SomeF(0),
 		Padding:     gg.NewPadding(pc.Top, pc.Right, pc.Bottom, pc.Left+dataGridDetailIndent()),
 		Spacing:     gg.Some(-cfg.SizeBorder.Get(0)),
@@ -156,7 +156,7 @@ func dataGridRowView(dctx dataGridCtx, rowData GridRow, rowIdx int, showDeleteAc
 			Clip:        !isEditingCell,
 			Padding:     cellPadding,
 			Color:       cellColor,
-			ColorBorder: cfg.ColorBorder,
+			ColorBorder: cfg.ColorsRow.Border,
 			SizeBorder:  cfg.SizeBorder,
 			HAlign:      cellHAlign,
 			VAlign:      gg.VAlignMiddle,
@@ -174,7 +174,7 @@ func dataGridRowView(dctx dataGridCtx, rowData GridRow, rowIdx int, showDeleteAc
 			SizeBorder: gg.SomeF(0),
 			Radius:     gg.SomeF(0),
 			Color:      gg.ColorTransparent,
-			Colors:     gg.ColorSet{Base: gg.ColorTransparent, Hover: cfg.ColorHeaderHover, Click: cfg.ColorHeaderHover, Focus: gg.ColorTransparent, Border: cfg.ColorBorder, BorderFocus: cfg.ColorBorder},
+			Colors:     gg.ColorSet{Base: gg.ColorTransparent, Hover: cfg.ColorsHeader.Hover, Click: cfg.ColorsHeader.Hover, Focus: gg.ColorTransparent, Border: cfg.ColorsRow.Border, BorderFocus: cfg.ColorsRow.Border},
 			// SoundDisabled as well as Sound: a resolved gg.SoundNone
 			// reads as "unset" inside gg.ButtonCfg (issue #467).
 			Sound:         cfg.sounds.click,
@@ -201,7 +201,7 @@ func dataGridRowView(dctx dataGridCtx, rowData GridRow, rowIdx int, showDeleteAc
 	} else if rowIdx%2 == 1 {
 		rowColor = cfg.ColorRowAlt
 	}
-	colorRowHover := cfg.ColorRowHover
+	colorRowHover := cfg.ColorsRow.Hover
 	disabled := cfg.Disabled
 
 	return gg.Row(gg.ContainerCfg{
@@ -209,7 +209,7 @@ func dataGridRowView(dctx dataGridCtx, rowData GridRow, rowIdx int, showDeleteAc
 		Height:      rowHeight,
 		Sizing:      gg.FillFixed,
 		Color:       rowColor,
-		ColorBorder: cfg.ColorBorder,
+		ColorBorder: cfg.ColorsRow.Border,
 		SizeBorder:  gg.SomeF(0),
 		Padding:     gg.NoPadding,
 		Spacing:     gg.Some(-cfg.SizeBorder.Get(0)),
@@ -401,7 +401,7 @@ func dataGridDetailToggleControl(cfg *DataGridCfg, rowID string, expanded, enabl
 		SizeBorder:    gg.SomeF(0),
 		Radius:        gg.SomeF(0),
 		Color:         gg.ColorTransparent,
-		Colors:        gg.ColorSet{Base: gg.ColorTransparent, Hover: cfg.ColorRowHover, Click: cfg.ColorRowHover, Focus: gg.ColorTransparent, Border: gg.ColorTransparent, BorderFocus: gg.ColorTransparent},
+		Colors:        gg.ColorSet{Base: gg.ColorTransparent, Hover: cfg.ColorsRow.Hover, Click: cfg.ColorsRow.Hover, Focus: gg.ColorTransparent, Border: gg.ColorTransparent, BorderFocus: gg.ColorTransparent},
 		Sound:         cfg.sounds.click,
 		SoundDisabled: cfg.sounds.click == gg.SoundNone,
 		OnClick: func(ctx gg.EventCtx) {
@@ -468,7 +468,7 @@ func dataGridFrozenTopZone(cfg *DataGridCfg, rowViews []gg.View, zoneHeight, tot
 		Sizing:      gg.FillFixed,
 		Clip:        true,
 		Color:       cfg.ColorBackground,
-		ColorBorder: cfg.ColorBorder,
+		ColorBorder: cfg.ColorsRow.Border,
 		SizeBorder:  gg.SomeF(0),
 		Padding:     dataGridScrollPadding(cfg),
 		Spacing:     gg.SomeF(0),

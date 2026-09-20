@@ -134,7 +134,7 @@ func TestThemeMakerBorderFocusFallsBackToSelect(t *testing.T) {
 		"ButtonStyle": theme.ButtonStyle.Colors.BorderFocus,
 		"ToggleStyle": theme.toggleStyle.Colors.BorderFocus,
 		"SliderStyle": theme.sliderStyle.Colors.BorderFocus,
-		"TabControl":  theme.tabControlStyle.colorTabBorderFocus,
+		"TabControl":  theme.tabControlStyle.ColorsTab.BorderFocus,
 	}
 	for name, got := range consumers {
 		if !got.eq(cfg.ColorSelect) {

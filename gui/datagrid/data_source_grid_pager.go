@@ -233,7 +233,7 @@ func dataGridSourcePagerRow(cfg *DataGridCfg, focusID string, state dataGridSour
 	content := make([]gg.View, 0, 10)
 
 	// Prev button.
-	content = append(content, dataGridIndicatorButton(gg.ScopeID(gridID, "src_prev"), "\u25C0", cfg.TextStyleHeader, cfg.ColorHeaderHover,
+	content = append(content, dataGridIndicatorButton(gg.ScopeID(gridID, "src_prev"), "\u25C0", cfg.TextStyleHeader, cfg.ColorsHeader.Hover,
 		state.Loading || !hasPrev, dataGridHeaderControlWidth+10, cfg.sounds.click, func(ctx gg.EventCtx) {
 			dataGridSourcePrevPage(gridID, kind, pageLimit, ctx.Window)
 			if focusID != "" {
@@ -248,7 +248,7 @@ func dataGridSourcePagerRow(cfg *DataGridCfg, focusID string, state dataGridSour
 		TextStyle: cfg.TextStyleFilter,
 	}))
 	// Next button.
-	content = append(content, dataGridIndicatorButton(gg.ScopeID(gridID, "src_next"), "\u25B6", cfg.TextStyleHeader, cfg.ColorHeaderHover,
+	content = append(content, dataGridIndicatorButton(gg.ScopeID(gridID, "src_next"), "\u25B6", cfg.TextStyleHeader, cfg.ColorsHeader.Hover,
 		state.Loading || !hasNext, dataGridHeaderControlWidth+10, cfg.sounds.click, func(ctx gg.EventCtx) {
 			dataGridSourceNextPage(gridID, kind, pageLimit, ctx.Window)
 			if focusID != "" {
@@ -270,7 +270,7 @@ func dataGridSourcePagerRow(cfg *DataGridCfg, focusID string, state dataGridSour
 			SizeBorder: gg.SomeF(0),
 			Radius:     gg.SomeF(0),
 			Color:      gg.ColorTransparent,
-			Colors:     gg.ColorSet{Base: gg.ColorTransparent, Hover: cfg.ColorHeaderHover, Click: cfg.ColorHeaderHover, Focus: gg.ColorTransparent, Border: gg.ColorTransparent, BorderFocus: gg.ColorTransparent},
+			Colors:     gg.ColorSet{Base: gg.ColorTransparent, Hover: cfg.ColorsHeader.Hover, Click: cfg.ColorsHeader.Hover, Focus: gg.ColorTransparent, Border: gg.ColorTransparent, BorderFocus: gg.ColorTransparent},
 			OnClick: func(ctx gg.EventCtx) {
 				dataGridSourceRetry(gridID, ctx.Window)
 				if focusID != "" {
@@ -317,7 +317,7 @@ func dataGridSourcePagerRow(cfg *DataGridCfg, focusID string, state dataGridSour
 			SizeBorder:  gg.SomeF(0),
 			Radius:      gg.SomeF(0),
 			Color:       cfg.ColorFilter,
-			Colors:      gg.ColorSet{Hover: cfg.ColorFilter, Border: cfg.ColorBorder},
+			Colors:      gg.ColorSet{Hover: cfg.ColorFilter, Border: cfg.ColorsRow.Border},
 			TextStyle:   cfg.TextStyleFilter,
 			OnTextChanged: func(text string, ctx gg.EventCtx) {
 				digits := dataGridJumpDigits(text)
@@ -337,7 +337,7 @@ func dataGridSourcePagerRow(cfg *DataGridCfg, focusID string, state dataGridSour
 		Height:      dataGridPagerHeight(cfg),
 		Sizing:      gg.FillFixed,
 		Color:       cfg.ColorFilter,
-		ColorBorder: cfg.ColorBorder,
+		ColorBorder: cfg.ColorsRow.Border,
 		SizeBorder:  gg.SomeF(0),
 		Padding:     dataGridPagerPadding(cfg),
 		Spacing:     gg.SomeF(6),
@@ -351,7 +351,7 @@ func dataGridSourceStatusRow(cfg *DataGridCfg, message string) gg.View {
 		Height:      cfg.RowHeight,
 		Sizing:      gg.FillFixed,
 		Color:       cfg.ColorFilter,
-		ColorBorder: cfg.ColorBorder,
+		ColorBorder: cfg.ColorsRow.Border,
 		SizeBorder:  gg.SomeF(0),
 		Padding:     cfg.PaddingFilter,
 		VAlign:      gg.VAlignMiddle,

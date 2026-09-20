@@ -121,6 +121,42 @@ and this project adheres to
 
 ### Changed
 
+- **BREAKING: secondary sub-element colors are `ColorSet`s, not flat fields
+  (#720)** — the four interaction-state groups #716 left flat are now named
+  `ColorSet` fields, so every interactive sub-element reaches `ColorSet.pick`
+  the same way the primary element does: `TabControlStyle.ColorsTab`,
+  `BreadcrumbStyle.ColorsCrumb`, `SplitterStyle.ColorsHandle` / `ColorsButton`,
+  and `DataGridStyle.ColorsHeader` / `ColorsRow` / `ColorsResize` (with matching
+  `ColorsTab`, `ColorsCrumb`, `ColorsHandle`, `ColorsButton` on the `gui` `Cfg`s
+  and `ColorsHeader`, `ColorsRow`, `ColorsResize` on `datagrid.DataGridCfg`).
+  The splitter's active color maps to `Click` (a drag is a held press) and so
+  does the data-grid resize-active color; the splitter button's `Focus` slot
+  takes the hover color, which is what it always painted. Selected and disabled
+  stay flat (`ColorTabSelected`, `ColorTabDisabled`, `ColorCrumbSelected`,
+  `ColorCrumbDisabled`, `ColorRowSelected`): `ColorSet` has no slot for them.
+  Migration, per struct:
+
+  | Before                                                                                                       | After                                                            |
+  | ------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------- |
+  | `DataGridStyle.ColorHeader` / `DataGridCfg.ColorHeader`                                                      | `ColorsHeader.Base`                                              |
+  | `DataGridStyle.ColorHeaderHover` / `DataGridCfg.ColorHeaderHover`                                            | `ColorsHeader.Hover`                                             |
+  | `DataGridStyle.ColorRowHover` / `DataGridCfg.ColorRowHover`                                                  | `ColorsRow.Hover`                                                |
+  | `DataGridStyle.ColorBorder` / `DataGridCfg.ColorBorder`                                                      | `ColorsRow.Border`                                               |
+  | `DataGridStyle.ColorResizeHandle` / `DataGridCfg.ColorResizeHandle`                                          | `ColorsResize.Base`                                              |
+  | `DataGridStyle.ColorResizeActive` / `DataGridCfg.ColorResizeActive`                                          | `ColorsResize.Click`                                             |
+  | `TabControlCfg.ColorTabHover` / `ColorTabFocus` / `ColorTabClick` / `ColorTabBorder` / `ColorTabBorderFocus` | `ColorsTab.Hover` / `Focus` / `Click` / `Border` / `BorderFocus` |
+  | `BreadcrumbCfg.ColorCrumbHover` / `ColorCrumbClick`                                                          | `ColorsCrumb.Hover` / `Click`                                    |
+  | `SplitterCfg.ColorHandleHover` / `ColorHandleActive` / `ColorHandleBorder`                                   | `ColorsHandle.Hover` / `Click` / `Border`                        |
+  | `SplitterCfg.ColorButtonHover` / `ColorButtonActive`                                                         | `ColorsButton.Hover` / `Click`                                   |
+
+  `ColorTab`, `ColorCrumb`, `ColorHandle` and `ColorButton` stay as the
+  shorthand for their set's `Base`, the same as `Color` on the primary sets.
+  `DataGridCfg` carries no flat shorthand: a single header, row or resize color
+  spells the set (`ColorsHeader: gg.ColorSet{Base: c}`). The consumer scan over
+  go-charts, go-edit, go-kite, go-map, go-term, go-speedtest, go-shirei and
+  falcon.go-gui.com found no hits. No color changes: the golden tests pass
+  unrecorded.
+
 - **BREAKING: widget `Cfg` flat state-color fields deleted, `Colors` is the only
   spelling (#721)** — the twelve widgets that fanned their `ColorSet` out into
   flat `Cfg` fields (`Input`, `NumericInput`, `Combobox`, `Select`, `ListBox`,

@@ -230,9 +230,8 @@ func TestBreadcrumbHoverPressedColor(t *testing.T) {
 				{ID: "one", Label: "One"},
 				{ID: "two", Label: "Two"},
 			},
-			Selected:        "two",
-			ColorCrumbHover: hover,
-			ColorCrumbClick: click,
+			Selected:    "two",
+			ColorsCrumb: ColorSet{Hover: hover, Click: click},
 		})
 	})
 

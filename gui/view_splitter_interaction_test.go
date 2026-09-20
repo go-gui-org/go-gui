@@ -818,9 +818,9 @@ func TestSplitterHandleHoverPaintsHoverColor(t *testing.T) {
 	h.move(x, y)
 
 	_, handle, _ = h.parts(t, "sp")
-	if handle.Shape.Color != defaultSplitterStyle.colorHandleHover {
+	if handle.Shape.Color != defaultSplitterStyle.ColorsHandle.Hover {
 		t.Errorf("hovered handle color = %v, want %v",
-			handle.Shape.Color, defaultSplitterStyle.colorHandleHover)
+			handle.Shape.Color, defaultSplitterStyle.ColorsHandle.Hover)
 	}
 	if h.w.viewState.mouseCursor != CursorResizeEW {
 		t.Errorf("cursor = %v, want CursorResizeEW", h.w.viewState.mouseCursor)
@@ -836,9 +836,9 @@ func TestSplitterHandleHoverAwayKeepsBaseColor(t *testing.T) {
 	})
 	h.move(5, 5)
 	_, handle, _ := h.parts(t, "sp")
-	if handle.Shape.Color != defaultSplitterStyle.colorHandle {
+	if handle.Shape.Color != defaultSplitterStyle.ColorsHandle.Base {
 		t.Errorf("unhovered handle color = %v, want %v",
-			handle.Shape.Color, defaultSplitterStyle.colorHandle)
+			handle.Shape.Color, defaultSplitterStyle.ColorsHandle.Base)
 	}
 }
 
@@ -861,9 +861,9 @@ func TestSplitterHandleDragShowsActiveColor(t *testing.T) {
 	h.move(120, 150)
 
 	_, handle, _ := h.parts(t, "sp")
-	if handle.Shape.Color != defaultSplitterStyle.colorHandleActive {
+	if handle.Shape.Color != defaultSplitterStyle.ColorsHandle.Click {
 		t.Errorf("dragging handle color = %v, want active %v",
-			handle.Shape.Color, defaultSplitterStyle.colorHandleActive)
+			handle.Shape.Color, defaultSplitterStyle.ColorsHandle.Click)
 	}
 
 	// A frame with no mouse event must keep the active color: the
@@ -871,26 +871,26 @@ func TestSplitterHandleDragShowsActiveColor(t *testing.T) {
 	// paint can hold the pressed look through an idle frame.
 	h.w.TestRender(nil)
 	_, handle, _ = h.parts(t, "sp")
-	if handle.Shape.Color != defaultSplitterStyle.colorHandleActive {
+	if handle.Shape.Color != defaultSplitterStyle.ColorsHandle.Click {
 		t.Errorf("handle color after idle frame = %v, want active %v",
-			handle.Shape.Color, defaultSplitterStyle.colorHandleActive)
+			handle.Shape.Color, defaultSplitterStyle.ColorsHandle.Click)
 	}
 
 	// Release with the pointer still over the handle (a drag centers
 	// the handle on the cursor): the hover repaint takes over.
 	h.release(120, 150)
 	_, handle, _ = h.parts(t, "sp")
-	if handle.Shape.Color != defaultSplitterStyle.colorHandleHover {
+	if handle.Shape.Color != defaultSplitterStyle.ColorsHandle.Hover {
 		t.Errorf("handle color after release = %v, want hover %v",
-			handle.Shape.Color, defaultSplitterStyle.colorHandleHover)
+			handle.Shape.Color, defaultSplitterStyle.ColorsHandle.Hover)
 	}
 
 	// Moving away restores the base color.
 	h.move(5, 5)
 	_, handle, _ = h.parts(t, "sp")
-	if handle.Shape.Color != defaultSplitterStyle.colorHandle {
+	if handle.Shape.Color != defaultSplitterStyle.ColorsHandle.Base {
 		t.Errorf("handle color after leaving = %v, want base %v",
-			handle.Shape.Color, defaultSplitterStyle.colorHandle)
+			handle.Shape.Color, defaultSplitterStyle.ColorsHandle.Base)
 	}
 }
 
@@ -906,24 +906,24 @@ func TestSplitterHandleClickAloneShowsActiveColor(t *testing.T) {
 	h.pressHandle(t, "sp")
 
 	_, handle, _ := h.parts(t, "sp")
-	if handle.Shape.Color != defaultSplitterStyle.colorHandleActive {
+	if handle.Shape.Color != defaultSplitterStyle.ColorsHandle.Click {
 		t.Errorf("handle color after press = %v, want active %v",
-			handle.Shape.Color, defaultSplitterStyle.colorHandleActive)
+			handle.Shape.Color, defaultSplitterStyle.ColorsHandle.Click)
 	}
 
 	h.w.TestRender(nil)
 	_, handle, _ = h.parts(t, "sp")
-	if handle.Shape.Color != defaultSplitterStyle.colorHandleActive {
+	if handle.Shape.Color != defaultSplitterStyle.ColorsHandle.Click {
 		t.Errorf("handle color after idle frame = %v, want active %v",
-			handle.Shape.Color, defaultSplitterStyle.colorHandleActive)
+			handle.Shape.Color, defaultSplitterStyle.ColorsHandle.Click)
 	}
 
 	// Release away from the handle: base color.
 	h.release(5, 5)
 	_, handle, _ = h.parts(t, "sp")
-	if handle.Shape.Color != defaultSplitterStyle.colorHandle {
+	if handle.Shape.Color != defaultSplitterStyle.ColorsHandle.Base {
 		t.Errorf("handle color after release = %v, want base %v",
-			handle.Shape.Color, defaultSplitterStyle.colorHandle)
+			handle.Shape.Color, defaultSplitterStyle.ColorsHandle.Base)
 	}
 }
 
@@ -940,9 +940,9 @@ func TestSplitterHandleDragCancelRestoresColor(t *testing.T) {
 	})
 	h.pressHandle(t, "sp")
 	_, handle, _ := h.parts(t, "sp")
-	if handle.Shape.Color != defaultSplitterStyle.colorHandleActive {
+	if handle.Shape.Color != defaultSplitterStyle.ColorsHandle.Click {
 		t.Fatalf("handle color after press = %v, want active %v",
-			handle.Shape.Color, defaultSplitterStyle.colorHandleActive)
+			handle.Shape.Color, defaultSplitterStyle.ColorsHandle.Click)
 	}
 
 	h.w.MouseCancel()
@@ -951,16 +951,16 @@ func TestSplitterHandleDragCancelRestoresColor(t *testing.T) {
 		t.Error("mouse still locked after MouseCancel")
 	}
 	_, handle, _ = h.parts(t, "sp")
-	if handle.Shape.Color != defaultSplitterStyle.colorHandle {
+	if handle.Shape.Color != defaultSplitterStyle.ColorsHandle.Base {
 		t.Errorf("handle color after cancel = %v, want base %v",
-			handle.Shape.Color, defaultSplitterStyle.colorHandle)
+			handle.Shape.Color, defaultSplitterStyle.ColorsHandle.Base)
 	}
 	// A further frame must not resurrect the active color.
 	h.w.TestRender(nil)
 	_, handle, _ = h.parts(t, "sp")
-	if handle.Shape.Color != defaultSplitterStyle.colorHandle {
+	if handle.Shape.Color != defaultSplitterStyle.ColorsHandle.Base {
 		t.Errorf("handle color after idle frame = %v, want base %v",
-			handle.Shape.Color, defaultSplitterStyle.colorHandle)
+			handle.Shape.Color, defaultSplitterStyle.ColorsHandle.Base)
 	}
 }
 
@@ -1555,10 +1555,10 @@ func TestSplitterHandleTakesBorderAndRadiusFromStyle(t *testing.T) {
 		defaultSplitterStyle.SizeBorder, 0.01)
 	nearF(t, "handle radius", handle.Shape.Radius,
 		defaultSplitterStyle.Radius, 0.01)
-	if handle.Shape.ColorBorder != defaultSplitterStyle.colorHandleBorder {
+	if handle.Shape.ColorBorder != defaultSplitterStyle.ColorsHandle.Border {
 		t.Errorf("handle border color = %v, want %v",
 			handle.Shape.ColorBorder,
-			defaultSplitterStyle.colorHandleBorder)
+			defaultSplitterStyle.ColorsHandle.Border)
 	}
 }
 
@@ -1687,5 +1687,53 @@ func TestSplitterIDsAreUniquePerInstance(t *testing.T) {
 	})
 	if dups := w.TestDuplicateIDs(); len(dups) > 0 {
 		t.Errorf("duplicate IDs: %v", dups)
+	}
+}
+
+// A caller's ColorsHandle/ColorsButton must survive resolution, with
+// ColorHandle/ColorButton acting as the shorthand for Base and the
+// theme filling anything still unset (issue #720).
+func TestSplitterDefaultsResolveHandleAndButtonSets(t *testing.T) {
+	handleBase := RGB(1, 0, 0)
+	handleClick := RGB(0, 1, 0)
+	buttonHover := RGB(0, 0, 1)
+	cfg := SplitterCfg{
+		ID:           "sp",
+		ColorHandle:  handleBase,
+		ColorsHandle: ColorSet{Click: handleClick},
+		ColorsButton: ColorSet{Hover: buttonHover},
+	}
+	applySplitterDefaults(&cfg)
+
+	if !cfg.ColorsHandle.Base.eq(handleBase) {
+		t.Errorf("handle Base = %v, want ColorHandle %v",
+			cfg.ColorsHandle.Base, handleBase)
+	}
+	if !cfg.ColorsHandle.Click.eq(handleClick) {
+		t.Errorf("handle Click = %v, want %v",
+			cfg.ColorsHandle.Click, handleClick)
+	}
+	// The shorthand is folded in AFTER the set's own fallbacks, so
+	// ColorHandle sets only the resting color and leaves Hover to the
+	// theme. That ordering is what keeps `ColorHandle: c` from
+	// silently pinning a widget's whole reaction to c (ColorSet.resolved).
+	if !cfg.ColorsHandle.Hover.eq(defaultSplitterStyle.ColorsHandle.Hover) {
+		t.Errorf("handle Hover = %v, want theme %v",
+			cfg.ColorsHandle.Hover,
+			defaultSplitterStyle.ColorsHandle.Hover)
+	}
+	// The handle border was never spelled at all, so the theme fills it.
+	if !cfg.ColorsHandle.Border.eq(defaultSplitterStyle.ColorsHandle.Border) {
+		t.Errorf("handle Border = %v, want theme %v",
+			cfg.ColorsHandle.Border,
+			defaultSplitterStyle.ColorsHandle.Border)
+	}
+	if !cfg.ColorsButton.Hover.eq(buttonHover) {
+		t.Errorf("button Hover = %v, want %v",
+			cfg.ColorsButton.Hover, buttonHover)
+	}
+	if !cfg.ColorsButton.Base.eq(defaultSplitterStyle.ColorsButton.Base) {
+		t.Errorf("button Base = %v, want theme %v",
+			cfg.ColorsButton.Base, defaultSplitterStyle.ColorsButton.Base)
 	}
 }

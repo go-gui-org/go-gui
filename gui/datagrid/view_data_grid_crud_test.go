@@ -515,12 +515,12 @@ func TestCrudToolbarHeight(t *testing.T) {
 
 func TestCrudToolbarRowReturnsView(t *testing.T) {
 	cfg := &DataGridCfg{
-		TextStyleFilter:  gg.DefaultTextStyle,
-		ColorFilter:      gg.RGBA(240, 240, 240, 255),
-		ColorHeaderHover: gg.RGBA(200, 200, 200, 255),
-		ColorBorder:      gg.RGBA(180, 180, 180, 255),
-		Selection:        GridSelection{},
-		Columns:          []GridColumnCfg{{ID: "c1"}},
+		TextStyleFilter: gg.DefaultTextStyle,
+		ColorFilter:     gg.RGBA(240, 240, 240, 255),
+		ColorsHeader:    gg.ColorSet{Hover: gg.RGBA(200, 200, 200, 255)},
+		ColorsRow:       gg.ColorSet{Border: gg.RGBA(180, 180, 180, 255)},
+		Selection:       GridSelection{},
+		Columns:         []GridColumnCfg{{ID: "c1"}},
 	}
 	state := dataGridCrudState{}
 	v := dataGridCrudToolbarRow(cfg, state, GridDataCapabilities{}, false, "")
@@ -531,12 +531,12 @@ func TestCrudToolbarRowReturnsView(t *testing.T) {
 
 func TestCrudToolbarRowWithUnsaved(t *testing.T) {
 	cfg := &DataGridCfg{
-		TextStyleFilter:  gg.DefaultTextStyle,
-		ColorFilter:      gg.RGBA(240, 240, 240, 255),
-		ColorHeaderHover: gg.RGBA(200, 200, 200, 255),
-		ColorBorder:      gg.RGBA(180, 180, 180, 255),
-		Selection:        GridSelection{},
-		Columns:          []GridColumnCfg{{ID: "c1"}},
+		TextStyleFilter: gg.DefaultTextStyle,
+		ColorFilter:     gg.RGBA(240, 240, 240, 255),
+		ColorsHeader:    gg.ColorSet{Hover: gg.RGBA(200, 200, 200, 255)},
+		ColorsRow:       gg.ColorSet{Border: gg.RGBA(180, 180, 180, 255)},
+		Selection:       GridSelection{},
+		Columns:         []GridColumnCfg{{ID: "c1"}},
 	}
 	state := dataGridCrudState{
 		DirtyRowIDs: map[string]bool{"r1": true},
@@ -549,12 +549,12 @@ func TestCrudToolbarRowWithUnsaved(t *testing.T) {
 
 func TestCrudToolbarRowSaving(t *testing.T) {
 	cfg := &DataGridCfg{
-		TextStyleFilter:  gg.DefaultTextStyle,
-		ColorFilter:      gg.RGBA(240, 240, 240, 255),
-		ColorHeaderHover: gg.RGBA(200, 200, 200, 255),
-		ColorBorder:      gg.RGBA(180, 180, 180, 255),
-		Selection:        GridSelection{},
-		Columns:          []GridColumnCfg{{ID: "c1"}},
+		TextStyleFilter: gg.DefaultTextStyle,
+		ColorFilter:     gg.RGBA(240, 240, 240, 255),
+		ColorsHeader:    gg.ColorSet{Hover: gg.RGBA(200, 200, 200, 255)},
+		ColorsRow:       gg.ColorSet{Border: gg.RGBA(180, 180, 180, 255)},
+		Selection:       GridSelection{},
+		Columns:         []GridColumnCfg{{ID: "c1"}},
 	}
 	state := dataGridCrudState{Saving: true}
 	v := dataGridCrudToolbarRow(cfg, state, GridDataCapabilities{}, false, "")

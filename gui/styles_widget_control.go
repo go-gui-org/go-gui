@@ -31,36 +31,33 @@ type SliderStyle struct {
 // TabControlStyle defines tab control visual properties.
 // exportaudit:keep — reachable from an exported signature
 type TabControlStyle struct {
-	TextStyle           TextStyle
-	textStyleSelected   TextStyle
-	textStyleDisabled   TextStyle
-	Padding             Padding
-	PaddingHeader       Padding
-	paddingContent      Padding
-	paddingTab          Padding
-	SizeBorder          float32
-	sizeHeaderBorder    float32
-	sizeContentBorder   float32
-	sizeTabBorder       float32
-	Radius              float32
-	radiusHeader        float32
-	radiusContent       float32
-	radiusTab           float32
-	Spacing             float32
-	spacingHeader       float32
-	Colors              ColorSet
-	ColorHeader         Color
-	colorHeaderBorder   Color
-	colorContent        Color
-	colorContentBorder  Color
-	colorTab            Color
-	colorTabHover       Color
-	colorTabFocus       Color
-	colorTabClick       Color
-	colorTabSelected    Color
-	colorTabDisabled    Color
-	colorTabBorder      Color
-	colorTabBorderFocus Color
+	TextStyle          TextStyle
+	textStyleSelected  TextStyle
+	textStyleDisabled  TextStyle
+	Padding            Padding
+	PaddingHeader      Padding
+	paddingContent     Padding
+	paddingTab         Padding
+	SizeBorder         float32
+	sizeHeaderBorder   float32
+	sizeContentBorder  float32
+	sizeTabBorder      float32
+	Radius             float32
+	radiusHeader       float32
+	radiusContent      float32
+	radiusTab          float32
+	Spacing            float32
+	spacingHeader      float32
+	Colors             ColorSet
+	ColorHeader        Color
+	colorHeaderBorder  Color
+	colorContent       Color
+	colorContentBorder Color
+	// ColorsTab themes the tabs. Selected and disabled stay flat:
+	// ColorSet has no slot for them (issue #720).
+	ColorsTab        ColorSet
+	colorTabSelected Color
+	colorTabDisabled Color
 }
 
 // BreadcrumbStyle defines breadcrumb visual properties.
@@ -84,9 +81,9 @@ type BreadcrumbStyle struct {
 	sizeContentBorder  float32
 	Colors             ColorSet
 	colorTrail         Color
-	colorCrumb         Color
-	colorCrumbHover    Color
-	colorCrumbClick    Color
+	// ColorsCrumb themes the crumbs. Selected and disabled stay
+	// flat: ColorSet has no slot for them (issue #720).
+	ColorsCrumb        ColorSet
 	colorCrumbSelected Color
 	colorCrumbDisabled Color
 	colorContent       Color
@@ -96,21 +93,19 @@ type BreadcrumbStyle struct {
 // SplitterStyle defines splitter visual properties.
 // exportaudit:keep — reachable from an exported signature
 type SplitterStyle struct {
-	HandleSize        float32
-	dragStep          float32
-	dragStepLarge     float32
-	colorHandle       Color
-	colorHandleHover  Color
-	colorHandleActive Color
-	colorHandleBorder Color
-	colorGrip         Color
-	colorButton       Color
-	colorButtonHover  Color
-	colorButtonActive Color
-	colorButtonIcon   Color
-	SizeBorder        float32
-	Radius            float32
-	radiusBorder      float32
+	HandleSize    float32
+	dragStep      float32
+	dragStepLarge float32
+	// ColorsHandle themes the drag handle; ColorsButton themes the
+	// collapse buttons. Active maps to Click: a drag is a held
+	// press (issue #720).
+	ColorsHandle    ColorSet
+	ColorsButton    ColorSet
+	colorGrip       Color
+	colorButtonIcon Color
+	SizeBorder      float32
+	Radius          float32
+	radiusBorder    float32
 }
 
 // TableStyle defines table visual properties.

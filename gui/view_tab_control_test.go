@@ -306,3 +306,75 @@ func TestTabControlKeydownCharCodeOnlyIsInert(t *testing.T) {
 		t.Error("a CharCode-only keydown was consumed")
 	}
 }
+
+// A caller's ColorsTab must survive resolution and reach the tab
+// button's own set, with ColorTab acting as the shorthand for Base
+// (issue #720).
+func TestTabControlColorsTabReachTabButton(t *testing.T) {
+	base := RGB(1, 0, 0)
+	hover := RGB(0, 1, 0)
+	border := RGB(0, 0, 1)
+	v := TabControl(TabControlCfg{
+		ID:       "tabs",
+		Selected: "a",
+		Items: []TabItemCfg{
+			{ID: "a", Label: "A"},
+			{ID: "b", Label: "B"},
+		},
+		ColorTab:  base,
+		ColorsTab: ColorSet{Hover: hover, Border: border},
+		OnSelect:  func(_ string, ctx EventCtx) {},
+	})
+	layout := generateViewLayout(v, &Window{})
+	// Tab "b" is the unselected one, so it keeps the caller's set.
+	tab := layout.Children[0].Children[1]
+	if tab.Shape.bc == nil {
+		t.Fatal("tab button carries no resolved color set")
+	}
+	got := tab.Shape.bc.colors
+	if !got.Base.eq(base) {
+		t.Errorf("Base = %v, want ColorTab %v", got.Base, base)
+	}
+	if !got.Hover.eq(hover) {
+		t.Errorf("Hover = %v, want %v", got.Hover, hover)
+	}
+	if !got.Border.eq(border) {
+		t.Errorf("Border = %v, want %v", got.Border, border)
+	}
+	// BorderFocus was never spelled, so it falls back to Border.
+	if !got.BorderFocus.eq(border) {
+		t.Errorf("BorderFocus = %v, want Border %v", got.BorderFocus, border)
+	}
+}
+
+// A selected tab pins its four fill slots flat but keeps the set's
+// borders, so the focus ring survives selection (issue #720).
+func TestTabControlSelectedTabKeepsBorders(t *testing.T) {
+	sel := RGB(1, 0, 1)
+	border := RGB(0, 0, 1)
+	v := TabControl(TabControlCfg{
+		ID:               "tabs",
+		Selected:         "a",
+		Items:            []TabItemCfg{{ID: "a", Label: "A"}},
+		ColorTabSelected: sel,
+		ColorsTab:        ColorSet{Border: border},
+		OnSelect:         func(_ string, ctx EventCtx) {},
+	})
+	layout := generateViewLayout(v, &Window{})
+	tab := layout.Children[0].Children[0]
+	if tab.Shape.bc == nil {
+		t.Fatal("tab button carries no resolved color set")
+	}
+	got := tab.Shape.bc.colors
+	for name, c := range map[string]Color{
+		"Base": got.Base, "Hover": got.Hover,
+		"Click": got.Click, "Focus": got.Focus,
+	} {
+		if !c.eq(sel) {
+			t.Errorf("%s = %v, want ColorTabSelected %v", name, c, sel)
+		}
+	}
+	if !got.Border.eq(border) {
+		t.Errorf("Border = %v, want %v", got.Border, border)
+	}
+}

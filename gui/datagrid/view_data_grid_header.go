@@ -20,7 +20,7 @@ func dataGridHeaderRow(cfg *DataGridCfg, columns []GridColumnCfg, columnWidths m
 		Height:      dataGridHeaderHeight(cfg),
 		Sizing:      gg.FillFixed,
 		Color:       gg.ColorTransparent,
-		ColorBorder: cfg.ColorBorder,
+		ColorBorder: cfg.ColorsRow.Border,
 		SizeBorder:  gg.SomeF(0),
 		Padding:     gg.NoPadding,
 		Spacing:     gg.Some(-cfg.SizeBorder.Get(0)),
@@ -82,7 +82,7 @@ func dataGridHeaderCell(cfg *DataGridCfg, col GridColumnCfg, colIdx, colCount in
 	multiSort := boolDefault(cfg.MultiSort, true)
 	colSortable := col.Sortable
 	colID := col.ID
-	colorHeaderHover := cfg.ColorHeaderHover
+	colorHeaderHover := cfg.ColorsHeader.Hover
 	headerSorted := dataGridSortIndex(query.Sorts, colID) >= 0
 	headerA11YState := gg.AccessStateNone
 	if headerSorted {
@@ -103,8 +103,8 @@ func dataGridHeaderCell(cfg *DataGridCfg, col GridColumnCfg, colIdx, colCount in
 		Sizing:      gg.FixedFill,
 		Padding:     cfg.PaddingHeader,
 		Clip:        true,
-		Color:       cfg.ColorHeader,
-		ColorBorder: cfg.ColorBorder,
+		Color:       cfg.ColorsHeader.Base,
+		ColorBorder: cfg.ColorsRow.Border,
 		SizeBorder:  cfg.SizeBorder,
 		Spacing:     gg.SomeF(0),
 		// Sorting picks one of the column's orders, so the selection
@@ -145,8 +145,7 @@ func dataGridResizeHandle(cfg *DataGridCfg, col GridColumnCfg, focusID string, r
 	textStyleHeader := cfg.TextStyleHeader
 	textStyle := cfg.TextStyle
 	paddingCell := cfg.PaddingCell.Or(gg.PaddingNone)
-	colorResizeHandle := cfg.ColorResizeHandle
-	colorResizeActive := cfg.ColorResizeActive
+	resizeSet := cfg.ColorsResize
 
 	disabled := cfg.Disabled
 
@@ -156,9 +155,9 @@ func dataGridResizeHandle(cfg *DataGridCfg, col GridColumnCfg, focusID string, r
 	// below cannot fire. dataGridActiveResizeColID is read at
 	// generation time each frame, so this paints the active color for
 	// the whole drag and reverts on release or cancel.
-	handleColor := colorResizeHandle
+	handleColor := resizeSet.Base
 	if resizingColID == col.ID {
-		handleColor = colorResizeActive
+		handleColor = resizeSet.Click
 	}
 
 	return gg.Row(gg.ContainerCfg{
@@ -184,9 +183,9 @@ func dataGridResizeHandle(cfg *DataGridCfg, col GridColumnCfg, focusID string, r
 			}
 			ctx.Window.SetMouseCursorEW()
 			if ctx.Event.MouseButton == gg.MouseLeft {
-				ctx.Layout.Shape.Color = colorResizeActive
+				ctx.Layout.Shape.Color = resizeSet.Click
 			} else {
-				ctx.Layout.Shape.Color = colorResizeHandle
+				ctx.Layout.Shape.Color = resizeSet.Base
 			}
 		},
 		Content: []gg.View{
@@ -232,8 +231,8 @@ func dataGridReorderControls(cfg *DataGridCfg, col GridColumnCfg) gg.View {
 		Width:   dataGridHeaderControlsWidth(true, false, false),
 		Sizing:  gg.FixedFill,
 		Content: []gg.View{
-			dataGridOrderButton(gg.ScopeID(cfg.ID, "reorder_left", colID), leftArrow, cfg.TextStyleHeader, cfg.ColorHeaderHover, cfg.sounds.selection, reorderCB(-1)),
-			dataGridOrderButton(gg.ScopeID(cfg.ID, "reorder_right", colID), rightArrow, cfg.TextStyleHeader, cfg.ColorHeaderHover, cfg.sounds.selection, reorderCB(1)),
+			dataGridOrderButton(gg.ScopeID(cfg.ID, "reorder_left", colID), leftArrow, cfg.TextStyleHeader, cfg.ColorsHeader.Hover, cfg.sounds.selection, reorderCB(-1)),
+			dataGridOrderButton(gg.ScopeID(cfg.ID, "reorder_right", colID), rightArrow, cfg.TextStyleHeader, cfg.ColorsHeader.Hover, cfg.sounds.selection, reorderCB(1)),
 		},
 	})
 }
@@ -308,7 +307,7 @@ func dataGridPinControl(cfg *DataGridCfg, col GridColumnCfg) gg.View {
 	colID := col.ID
 	colPin := col.Pin
 
-	return dataGridIndicatorButton(gg.ScopeID(cfg.ID, "pin", col.ID), label, cfg.TextStyleHeader, cfg.ColorHeaderHover,
+	return dataGridIndicatorButton(gg.ScopeID(cfg.ID, "pin", col.ID), label, cfg.TextStyleHeader, cfg.ColorsHeader.Hover,
 		false, dataGridHeaderControlWidth, cfg.sounds.selection, func(ctx gg.EventCtx) {
 			if onColumnPinChange == nil {
 				return
@@ -328,7 +327,7 @@ func dataGridFilterRow(cfg *DataGridCfg, columns []GridColumnCfg, columnWidths m
 		Height:      dataGridFilterHeight(cfg),
 		Sizing:      gg.FillFixed,
 		Color:       cfg.ColorFilter,
-		ColorBorder: cfg.ColorBorder,
+		ColorBorder: cfg.ColorsRow.Border,
 		SizeBorder:  gg.SomeF(0),
 		Padding:     cfg.PaddingFilter,
 		Spacing:     gg.Some(-cfg.SizeBorder.Get(0)),
@@ -353,7 +352,7 @@ func dataGridFilterCell(cfg *DataGridCfg, col GridColumnCfg, width float32) gg.V
 		Sizing:      gg.FixedFill,
 		Padding:     cfg.PaddingFilter,
 		Color:       gg.ColorTransparent,
-		ColorBorder: cfg.ColorBorder,
+		ColorBorder: cfg.ColorsRow.Border,
 		SizeBorder:  cfg.SizeBorder,
 		Spacing:     gg.SomeF(0),
 		Content: []gg.View{
@@ -373,7 +372,7 @@ func dataGridFilterCell(cfg *DataGridCfg, col GridColumnCfg, width float32) gg.V
 				SizeBorder:      gg.SomeF(0),
 				Radius:          gg.SomeF(0),
 				Color:           cfg.ColorFilter,
-				Colors:          gg.ColorSet{Hover: cfg.ColorFilter, Border: cfg.ColorBorder},
+				Colors:          gg.ColorSet{Hover: cfg.ColorFilter, Border: cfg.ColorsRow.Border},
 				TextStyle:       cfg.TextStyleFilter,
 				OnTextChanged: func(text string, ctx gg.EventCtx) {
 					if onQueryChange == nil {

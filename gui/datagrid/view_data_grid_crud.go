@@ -185,23 +185,23 @@ func dataGridCrudToolbarRow(cfg *DataGridCfg, state dataGridCrudState, caps Grid
 		Height:      dataGridHeaderHeight(cfg),
 		Sizing:      gg.FillFixed,
 		Color:       cfg.ColorFilter,
-		ColorBorder: cfg.ColorBorder,
+		ColorBorder: cfg.ColorsRow.Border,
 		SizeBorder:  gg.SomeF(0),
 		Padding:     dataGridPagerPadding(cfg),
 		Spacing:     gg.SomeF(6),
 		VAlign:      gg.VAlignMiddle,
 		Content: []gg.View{
-			dataGridIndicatorButton(gg.ScopeID(gridID, "crud_add"), loc.StrAdd, cfg.TextStyleFilter, cfg.ColorHeaderHover,
+			dataGridIndicatorButton(gg.ScopeID(gridID, "crud_add"), loc.StrAdd, cfg.TextStyleFilter, cfg.ColorsHeader.Hover,
 				!canCreate || state.Saving, 0, cfg.sounds.click, func(ctx gg.EventCtx) {
 					dataGridCrudAddRow(gridID, columns, onSelectionChange, focusID,
 						scrollID, pageSize, pageIndex, onPageChange, ctx.Event, ctx.Window)
 				}),
-			dataGridIndicatorButton(gg.ScopeID(gridID, "crud_delete"), loc.StrDelete, cfg.TextStyleFilter, cfg.ColorHeaderHover,
+			dataGridIndicatorButton(gg.ScopeID(gridID, "crud_delete"), loc.StrDelete, cfg.TextStyleFilter, cfg.ColorsHeader.Hover,
 				!canDelete || selectedCount == 0 || state.Saving, 0, cfg.sounds.click, func(ctx gg.EventCtx) {
 					dataGridCrudDeleteSelected(gridID, selection, onSelectionChange,
 						focusID, ctx.Event, ctx.Window)
 				}),
-			dataGridIndicatorButton(gg.ScopeID(gridID, "crud_save"), loc.StrSave, cfg.TextStyleFilter, cfg.ColorHeaderHover,
+			dataGridIndicatorButton(gg.ScopeID(gridID, "crud_save"), loc.StrSave, cfg.TextStyleFilter, cfg.ColorsHeader.Hover,
 				!hasUnsaved || state.Saving, 0, cfg.sounds.click, func(ctx gg.EventCtx) {
 					dataGridCrudSave(dataGridCrudSaveContext{
 						gridID:            gridID,
@@ -217,7 +217,7 @@ func dataGridCrudToolbarRow(cfg *DataGridCfg, state dataGridCrudState, caps Grid
 						errCue:            errCue,
 					}, ctx.Event, ctx.Window)
 				}),
-			dataGridIndicatorButton(gg.ScopeID(gridID, "crud_cancel"), loc.StrCancel, cfg.TextStyleFilter, cfg.ColorHeaderHover,
+			dataGridIndicatorButton(gg.ScopeID(gridID, "crud_cancel"), loc.StrCancel, cfg.TextStyleFilter, cfg.ColorsHeader.Hover,
 				(!hasUnsaved && state.SaveError == "") || state.Saving, 0, cfg.sounds.click, func(ctx gg.EventCtx) {
 					dataGridCrudCancel(gridID, focusID, ctx.Event, ctx.Window)
 				}),

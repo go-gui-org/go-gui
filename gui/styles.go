@@ -403,30 +403,37 @@ var (
 // DataGridStyle defines data grid visual properties.
 // exportaudit:keep — reachable from an exported signature
 type DataGridStyle struct {
-	TextStyle        TextStyle
-	TextStyleHeader  TextStyle
-	TextStyleFilter  TextStyle
-	PaddingCell      Padding
-	PaddingHeader    Padding
-	PaddingFilter    Padding
-	SizeBorder       float32
-	Radius           float32
-	ColorBackground  Color
-	ColorHeader      Color
-	ColorHeaderHover Color
+	TextStyle       TextStyle
+	TextStyleHeader TextStyle
+	TextStyleFilter TextStyle
+	PaddingCell     Padding
+	PaddingHeader   Padding
+	PaddingFilter   Padding
+	SizeBorder      float32
+	Radius          float32
+	ColorBackground Color
+	// ColorsHeader themes the header cells: Base is the cell fill,
+	// Hover tints the sort, reorder, pin, pager and CRUD buttons.
+	// The grid reads no other slot; Click, Focus and the borders
+	// stay unset (issue #720).
+	ColorsHeader ColorSet
 	// exportaudit:keep — reachable from an exported signature
 	ColorFilter      Color
 	ColorQuickFilter Color
-	ColorRowHover    Color
+	// ColorsRow themes the body rows: Hover is the row hover fill
+	// and Border is the shared grid border. The grid reads no other
+	// slot (issue #720).
+	ColorsRow        ColorSet
 	ColorRowAlt      Color
 	ColorRowSelected Color
 	// ColorRowSelectedSubtle is the tint behind a selected row: the
 	// wash, never the full accent slab — focus is the ring, not a
 	// second fill (visual-refresh §4.3).
 	ColorRowSelectedSubtle Color
-	ColorBorder            Color
-	ColorResizeHandle      Color
-	ColorResizeActive      Color
+	// ColorsResize themes the column-resize handles: Base is the
+	// resting handle, Click the active drag. The grid reads no
+	// other slot (issue #720).
+	ColorsResize ColorSet
 }
 
 // InspectorStyle defines the look and feel of the GUI inspector.

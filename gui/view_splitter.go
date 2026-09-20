@@ -148,26 +148,21 @@ type SplitterCfg struct {
 	// exportaudit:keep — caller-facing config (issue #372)
 	RadiusBorder Opt[float32]
 	Focusable    bool
-	// ColorHandle/ColorHandleHover/ColorHandleActive/
-	// ColorHandleBorder/ColorGrip/ColorButton/ColorButtonHover/
-	// ColorButtonActive/ColorButtonIcon theme the handle and its
-	// collapse buttons. Unset takes the theme defaults.
+	// ColorsHandle sets the handle's per-state colors; ColorHandle
+	// below is the shorthand for ColorsHandle.Base and wins over
+	// it. ColorsButton and ColorButton do the same for the collapse
+	// buttons. ColorGrip and ColorButtonIcon are single colors and
+	// stay flat. Unset takes the theme defaults.
+	// exportaudit:keep — caller-facing config (issue #372)
+	ColorsHandle ColorSet
 	// exportaudit:keep — caller-facing config (issue #372)
 	ColorHandle Color
 	// exportaudit:keep — caller-facing config (issue #372)
-	ColorHandleHover Color
-	// exportaudit:keep — caller-facing config (issue #372)
-	ColorHandleActive Color
-	// exportaudit:keep — caller-facing config (issue #372)
-	ColorHandleBorder Color
-	// exportaudit:keep — caller-facing config (issue #372)
-	ColorGrip Color
+	ColorsButton ColorSet
 	// exportaudit:keep — caller-facing config (issue #372)
 	ColorButton Color
 	// exportaudit:keep — caller-facing config (issue #372)
-	ColorButtonHover Color
-	// exportaudit:keep — caller-facing config (issue #372)
-	ColorButtonActive Color
+	ColorGrip Color
 	// exportaudit:keep — caller-facing config (issue #372)
 	ColorButtonIcon     Color
 	Sizing              Sizing
@@ -209,9 +204,7 @@ type splitterCore struct {
 	// itself lives in window state (nsSplitterDrag), not on this core —
 	// the view function rebuilds the core every frame, so a field here
 	// would not survive a drag.
-	colorHandle       Color
-	colorHandleHover  Color
-	colorHandleActive Color
+	colorsHandle ColorSet
 	// Collapse cues, resolved at generation time. The handle's key
 	// path reaches onChange directly, so dispatch never sees the
 	// toggle (issue #468).
@@ -248,13 +241,11 @@ func newSplitterCore(cfg *SplitterCfg) *splitterCore {
 			collapsible:   cfg.Second.Collapsible,
 			collapsedSize: cfg.Second.CollapsedSize,
 		},
-		handleSize:        cfg.HandleSize.Get(s.HandleSize),
-		dragStep:          cfg.DragStep.Get(s.dragStep),
-		dragStepLarge:     cfg.DragStepLarge.Get(s.dragStepLarge),
-		disabled:          cfg.Disabled,
-		colorHandle:       cfg.ColorHandle,
-		colorHandleHover:  cfg.ColorHandleHover,
-		colorHandleActive: cfg.ColorHandleActive,
+		handleSize:    cfg.HandleSize.Get(s.HandleSize),
+		dragStep:      cfg.DragStep.Get(s.dragStep),
+		dragStepLarge: cfg.DragStepLarge.Get(s.dragStepLarge),
+		disabled:      cfg.Disabled,
+		colorsHandle:  cfg.ColorsHandle,
 		soundCollapse: resolveSoundCue(
 			guiTheme.Sounds.ToggleOn, cfg.Sound, cfg.SoundDisabled),
 		soundExpand: resolveSoundCue(
@@ -282,29 +273,10 @@ func applySplitterDefaults(cfg *SplitterCfg) {
 	if !cfg.RadiusBorder.IsSet() {
 		cfg.RadiusBorder = SomeF(s.radiusBorder)
 	}
-	if !cfg.ColorHandle.IsSet() {
-		cfg.ColorHandle = s.colorHandle
-	}
-	if !cfg.ColorHandleHover.IsSet() {
-		cfg.ColorHandleHover = s.colorHandleHover
-	}
-	if !cfg.ColorHandleActive.IsSet() {
-		cfg.ColorHandleActive = s.colorHandleActive
-	}
-	if !cfg.ColorHandleBorder.IsSet() {
-		cfg.ColorHandleBorder = s.colorHandleBorder
-	}
+	cfg.ColorsHandle = cfg.ColorsHandle.resolved(cfg.ColorHandle, s.ColorsHandle)
+	cfg.ColorsButton = cfg.ColorsButton.resolved(cfg.ColorButton, s.ColorsButton)
 	if !cfg.ColorGrip.IsSet() {
 		cfg.ColorGrip = s.colorGrip
-	}
-	if !cfg.ColorButton.IsSet() {
-		cfg.ColorButton = s.colorButton
-	}
-	if !cfg.ColorButtonHover.IsSet() {
-		cfg.ColorButtonHover = s.colorButtonHover
-	}
-	if !cfg.ColorButtonActive.IsSet() {
-		cfg.ColorButtonActive = s.colorButtonActive
 	}
 	if !cfg.ColorButtonIcon.IsSet() {
 		cfg.ColorButtonIcon = s.colorButtonIcon
@@ -463,7 +435,14 @@ func splitterAmendLayout(core *splitterCore, layout *Layout, w *Window) {
 	ps := StateMapRead[string, bool](w, nsSplitterDrag)
 	if ps != nil && w.mouseIsLocked() {
 		if pressed, ok := ps.Get(layout.Shape.idKey()); ok && pressed {
-			layout.Children[1].Shape.Color = core.colorHandleActive
+			// The press this pass can see; the pointer is under
+			// lock, so hovered stays false. pick keeps the one
+			// precedence rule (issue #720).
+			hs := layout.Children[1].Shape
+			hs.Color, hs.ColorBorder = core.colorsHandle.pick(stateFlags{
+				disabled: hs.Disabled,
+				pressed:  true,
+			})
 		}
 	}
 }

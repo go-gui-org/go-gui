@@ -1238,8 +1238,8 @@ func TestMakeOnKeydownReturnsCallback(t *testing.T) {
 
 func TestPagerPrevButton(t *testing.T) {
 	cfg := &DataGridCfg{
-		TextStyleHeader:  gg.DefaultTextStyle,
-		ColorHeaderHover: gg.RGBA(200, 200, 200, 255),
+		TextStyleHeader: gg.DefaultTextStyle,
+		ColorsHeader:    gg.ColorSet{Hover: gg.RGBA(200, 200, 200, 255)},
 	}
 	v := dataGridPagerPrevButton(cfg, nil, 1, "", true, "◀")
 	if v == nil {
@@ -1249,8 +1249,8 @@ func TestPagerPrevButton(t *testing.T) {
 
 func TestPagerNextButton(t *testing.T) {
 	cfg := &DataGridCfg{
-		TextStyleHeader:  gg.DefaultTextStyle,
-		ColorHeaderHover: gg.RGBA(200, 200, 200, 255),
+		TextStyleHeader: gg.DefaultTextStyle,
+		ColorsHeader:    gg.ColorSet{Hover: gg.RGBA(200, 200, 200, 255)},
 	}
 	v := dataGridPagerNextButton(cfg, nil, 0, 5, "", true, "▶")
 	if v == nil {
@@ -1266,8 +1266,8 @@ func TestPagerPrevButtonOnClick(t *testing.T) {
 		nextPage = p
 	}
 	cfg := &DataGridCfg{
-		TextStyleHeader:  gg.DefaultTextStyle,
-		ColorHeaderHover: gg.RGBA(200, 200, 200, 255),
+		TextStyleHeader: gg.DefaultTextStyle,
+		ColorsHeader:    gg.ColorSet{Hover: gg.RGBA(200, 200, 200, 255)},
 	}
 	// Build the layout. The button's OnClick is wired through
 	// dataGridIndicatorButton. We verify construction succeeds.
@@ -1288,8 +1288,8 @@ func TestPagerNextButtonOnClick(t *testing.T) {
 		nextPage = p
 	}
 	cfg := &DataGridCfg{
-		TextStyleHeader:  gg.DefaultTextStyle,
-		ColorHeaderHover: gg.RGBA(200, 200, 200, 255),
+		TextStyleHeader: gg.DefaultTextStyle,
+		ColorsHeader:    gg.ColorSet{Hover: gg.RGBA(200, 200, 200, 255)},
 	}
 	dataGridPagerNextButton(cfg, cb, 0, 5, "", false, "▶")
 	// Callback fires through the button's OnClick; verified indirectly.
@@ -1302,7 +1302,7 @@ func TestBuildPagerRow(t *testing.T) {
 	cfg := &DataGridCfg{
 		TextStyleFilter: gg.DefaultTextStyle,
 		ColorFilter:     gg.RGBA(240, 240, 240, 255),
-		ColorBorder:     gg.RGBA(180, 180, 180, 255),
+		ColorsRow:       gg.ColorSet{Border: gg.RGBA(180, 180, 180, 255)},
 	}
 	pctx := dataGridPagerContext{
 		cfg:           cfg,

@@ -277,40 +277,52 @@ type DataGridCfg struct {
 	Radius              gg.Opt[float32]
 	SizeBorder          gg.Opt[float32]
 	// exportaudit:keep — caller-facing config (issue #372)
-	RowHeight        float32
-	HeaderHeight     float32
-	Width            float32
-	Height           float32
-	MinWidth         float32
-	MaxWidth         float32
-	MinHeight        float32
-	MaxHeight        float32
-	ColorBackground  gg.Color
-	ColorHeader      gg.Color
-	ColorHeaderHover gg.Color
+	RowHeight       float32
+	HeaderHeight    float32
+	Width           float32
+	Height          float32
+	MinWidth        float32
+	MaxWidth        float32
+	MinHeight       float32
+	MaxHeight       float32
+	ColorBackground gg.Color
+	// ColorsHeader themes the header cells: Base is the cell fill,
+	// Hover tints the sort, reorder, pin, pager and CRUD buttons.
+	// The grid reads no other slot. There is no flat shorthand;
+	// spell the set (issue #720).
+	// exportaudit:keep — caller-facing config (issue #372)
+	ColorsHeader     gg.ColorSet
 	ColorFilter      gg.Color
 	ColorQuickFilter gg.Color
-	ColorRowHover    gg.Color
+	// ColorsRow themes the body rows: Hover is the row hover fill
+	// and Border is the shared grid border. The grid reads no
+	// other slot. There is no flat shorthand; spell the set
+	// (issue #720).
+	// exportaudit:keep — caller-facing config (issue #372)
+	ColorsRow        gg.ColorSet
 	ColorRowAlt      gg.Color
 	ColorRowSelected gg.Color
 	// ColorRowSelectedSubtle is the tint behind a selected row — the
 	// wash, never the full accent slab; focus is the ring, not a
 	// second fill (visual-refresh §4.3). Unset takes the theme's.
 	ColorRowSelectedSubtle gg.Color
-	ColorBorder            gg.Color
-	ColorResizeHandle      gg.Color
-	ColorResizeActive      gg.Color
-	Sizing                 gg.Sizing
-	PaginationKind         GridPaginationKind
-	Loading                bool
-	ShowCRUDToolbar        bool
-	FreezeHeader           bool
-	ShowFilterRow          bool
-	ShowQuickFilter        bool
-	ShowColumnChooser      bool
-	Scrollbar              gg.ScrollbarOverflow
-	Disabled               bool
-	Invisible              bool
+	// ColorsResize themes the column-resize handles: Base is the
+	// resting handle, Click the active drag. The grid reads no
+	// other slot. There is no flat shorthand; spell the set
+	// (issue #720).
+	// exportaudit:keep — caller-facing config (issue #372)
+	ColorsResize      gg.ColorSet
+	Sizing            gg.Sizing
+	PaginationKind    GridPaginationKind
+	Loading           bool
+	ShowCRUDToolbar   bool
+	FreezeHeader      bool
+	ShowFilterRow     bool
+	ShowQuickFilter   bool
+	ShowColumnChooser bool
+	Scrollbar         gg.ScrollbarOverflow
+	Disabled          bool
+	Invisible         bool
 
 	// Sound overrides the theme's cue for every control the grid
 	// builds. Row activation, the toolbar and the pager take the
@@ -390,20 +402,12 @@ func applyDataGridDefaults(cfg *DataGridCfg) {
 	if !cfg.ColorBackground.IsSet() {
 		cfg.ColorBackground = s.ColorBackground
 	}
-	if !cfg.ColorHeader.IsSet() {
-		cfg.ColorHeader = s.ColorHeader
-	}
-	if !cfg.ColorHeaderHover.IsSet() {
-		cfg.ColorHeaderHover = s.ColorHeaderHover
-	}
+	cfg.ColorsHeader = dataGridResolveSet(cfg.ColorsHeader, s.ColorsHeader)
 	if !cfg.ColorFilter.IsSet() {
 		cfg.ColorFilter = s.ColorFilter
 	}
 	if !cfg.ColorQuickFilter.IsSet() {
 		cfg.ColorQuickFilter = s.ColorQuickFilter
-	}
-	if !cfg.ColorRowHover.IsSet() {
-		cfg.ColorRowHover = s.ColorRowHover
 	}
 	if !cfg.ColorRowAlt.IsSet() {
 		cfg.ColorRowAlt = s.ColorRowAlt
@@ -423,15 +427,8 @@ func applyDataGridDefaults(cfg *DataGridCfg) {
 	if !cfg.ColorRowSelected.IsSet() {
 		cfg.ColorRowSelected = s.ColorRowSelected
 	}
-	if !cfg.ColorBorder.IsSet() {
-		cfg.ColorBorder = s.ColorBorder
-	}
-	if !cfg.ColorResizeHandle.IsSet() {
-		cfg.ColorResizeHandle = s.ColorResizeHandle
-	}
-	if !cfg.ColorResizeActive.IsSet() {
-		cfg.ColorResizeActive = s.ColorResizeActive
-	}
+	cfg.ColorsRow = dataGridResolveSet(cfg.ColorsRow, s.ColorsRow)
+	cfg.ColorsResize = dataGridResolveSet(cfg.ColorsResize, s.ColorsResize)
 	if !cfg.PaddingCell.IsSet() {
 		cfg.PaddingCell = s.PaddingCell
 	}
@@ -762,7 +759,7 @@ func dataGridBuild(w *gg.Window, cfg DataGridCfg) gg.View {
 		OnChar:      dataGridMakeOnChar(&resolvedCfg, columns),
 		OnMouseMove: dataGridMakeOnMouseMove(resolvedCfg.ID),
 		Color:       resolvedCfg.ColorBackground,
-		ColorBorder: resolvedCfg.ColorBorder,
+		ColorBorder: resolvedCfg.ColorsRow.Border,
 		SizeBorder:  resolvedCfg.SizeBorder,
 		Radius:      resolvedCfg.Radius,
 		Padding:     gg.NoPadding,

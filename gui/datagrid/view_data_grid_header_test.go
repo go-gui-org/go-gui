@@ -280,8 +280,8 @@ func TestOrderButtonIDIsPerGridAndColumn(t *testing.T) {
 
 func TestPinControl(t *testing.T) {
 	cfg := &DataGridCfg{
-		TextStyleHeader:  gg.DefaultTextStyle,
-		ColorHeaderHover: gg.RGBA(200, 200, 200, 255),
+		TextStyleHeader: gg.DefaultTextStyle,
+		ColorsHeader:    gg.ColorSet{Hover: gg.RGBA(200, 200, 200, 255)},
 	}
 	col := GridColumnCfg{ID: "c1", Pin: GridColumnPinNone}
 	v := dataGridPinControl(cfg, col)
@@ -292,8 +292,8 @@ func TestPinControl(t *testing.T) {
 
 func TestPinControlLeft(t *testing.T) {
 	cfg := &DataGridCfg{
-		TextStyleHeader:  gg.DefaultTextStyle,
-		ColorHeaderHover: gg.RGBA(200, 200, 200, 255),
+		TextStyleHeader: gg.DefaultTextStyle,
+		ColorsHeader:    gg.ColorSet{Hover: gg.RGBA(200, 200, 200, 255)},
 	}
 	col := GridColumnCfg{ID: "c1", Pin: GridColumnPinLeft}
 	v := dataGridPinControl(cfg, col)
@@ -304,8 +304,8 @@ func TestPinControlLeft(t *testing.T) {
 
 func TestPinControlRight(t *testing.T) {
 	cfg := &DataGridCfg{
-		TextStyleHeader:  gg.DefaultTextStyle,
-		ColorHeaderHover: gg.RGBA(200, 200, 200, 255),
+		TextStyleHeader: gg.DefaultTextStyle,
+		ColorsHeader:    gg.ColorSet{Hover: gg.RGBA(200, 200, 200, 255)},
 	}
 	col := GridColumnCfg{ID: "c1", Pin: GridColumnPinRight}
 	v := dataGridPinControl(cfg, col)
@@ -319,7 +319,7 @@ func TestPinControlRight(t *testing.T) {
 func TestFilterRowReturnsView(t *testing.T) {
 	cfg := &DataGridCfg{
 		ColorFilter:   gg.RGBA(240, 240, 240, 255),
-		ColorBorder:   gg.RGBA(180, 180, 180, 255),
+		ColorsRow:     gg.ColorSet{Border: gg.RGBA(180, 180, 180, 255)},
 		SizeBorder:    gg.SomeF(1),
 		PaddingFilter: gg.NewPadding(2, 4, 2, 4),
 	}
@@ -362,7 +362,7 @@ func TestFilterCellReturnsView(t *testing.T) {
 	cfg := &DataGridCfg{
 		ID:              "g1",
 		ColorFilter:     gg.RGBA(240, 240, 240, 255),
-		ColorBorder:     gg.RGBA(180, 180, 180, 255),
+		ColorsRow:       gg.ColorSet{Border: gg.RGBA(180, 180, 180, 255)},
 		SizeBorder:      gg.SomeF(1),
 		PaddingFilter:   gg.NewPadding(2, 4, 2, 4),
 		TextStyleFilter: gg.DefaultTextStyle,
@@ -378,7 +378,7 @@ func TestFilterCellNotFilterable(t *testing.T) {
 	cfg := &DataGridCfg{
 		ID:              "g1",
 		ColorFilter:     gg.RGBA(240, 240, 240, 255),
-		ColorBorder:     gg.RGBA(180, 180, 180, 255),
+		ColorsRow:       gg.ColorSet{Border: gg.RGBA(180, 180, 180, 255)},
 		TextStyleFilter: gg.DefaultTextStyle,
 	}
 	col := GridColumnCfg{ID: "c1", Filterable: false}
@@ -392,12 +392,11 @@ func TestFilterCellNotFilterable(t *testing.T) {
 
 func TestResizeHandleReturnsView(t *testing.T) {
 	cfg := &DataGridCfg{
-		ID:                "g1",
-		ColorResizeHandle: gg.RGBA(180, 180, 180, 255),
-		ColorResizeActive: gg.RGBA(100, 100, 255, 255),
-		TextStyleHeader:   gg.DefaultTextStyle,
-		TextStyle:         gg.DefaultTextStyle,
-		Columns:           []GridColumnCfg{{ID: "c1"}},
+		ID:              "g1",
+		ColorsResize:    gg.ColorSet{Base: gg.RGBA(180, 180, 180, 255), Click: gg.RGBA(100, 100, 255, 255)},
+		TextStyleHeader: gg.DefaultTextStyle,
+		TextStyle:       gg.DefaultTextStyle,
+		Columns:         []GridColumnCfg{{ID: "c1"}},
 	}
 	col := GridColumnCfg{ID: "c1"}
 	v := dataGridResizeHandle(cfg, col, "", "")
@@ -423,15 +422,14 @@ func TestResizeHandleHoverPressedColor(t *testing.T) {
 	handle := gg.RGBA(180, 180, 180, 255)
 	active := gg.RGBA(100, 100, 255, 255)
 	cfg := DataGridCfg{
-		ID:                "g1",
-		ColorResizeHandle: handle,
-		ColorResizeActive: active,
-		TextStyleHeader:   gg.DefaultTextStyle,
-		TextStyle:         gg.DefaultTextStyle,
-		ColorHeader:       gg.RGBA(240, 240, 240, 255),
-		ColorBorder:       gg.RGBA(180, 180, 180, 255),
-		PaddingHeader:     gg.NewPadding(2, 4, 2, 4),
-		SizeBorder:        gg.SomeF(0),
+		ID:              "g1",
+		ColorsResize:    gg.ColorSet{Base: handle, Click: active},
+		TextStyleHeader: gg.DefaultTextStyle,
+		TextStyle:       gg.DefaultTextStyle,
+		ColorsHeader:    gg.ColorSet{Base: gg.RGBA(240, 240, 240, 255)},
+		ColorsRow:       gg.ColorSet{Border: gg.RGBA(180, 180, 180, 255)},
+		PaddingHeader:   gg.NewPadding(2, 4, 2, 4),
+		SizeBorder:      gg.SomeF(0),
 		Columns: []GridColumnCfg{{
 			ID: "c1", Title: "Col1", Resizable: true,
 			Width: gg.SomeF(120),
@@ -523,15 +521,14 @@ func TestResizeHandleActiveDuringDrag(t *testing.T) {
 	handle := gg.RGBA(180, 180, 180, 255)
 	active := gg.RGBA(100, 100, 255, 255)
 	cfg := DataGridCfg{
-		ID:                "g1",
-		ColorResizeHandle: handle,
-		ColorResizeActive: active,
-		TextStyleHeader:   gg.DefaultTextStyle,
-		TextStyle:         gg.DefaultTextStyle,
-		ColorHeader:       gg.RGBA(240, 240, 240, 255),
-		ColorBorder:       gg.RGBA(180, 180, 180, 255),
-		PaddingHeader:     gg.NewPadding(2, 4, 2, 4),
-		SizeBorder:        gg.SomeF(0),
+		ID:              "g1",
+		ColorsResize:    gg.ColorSet{Base: handle, Click: active},
+		TextStyleHeader: gg.DefaultTextStyle,
+		TextStyle:       gg.DefaultTextStyle,
+		ColorsHeader:    gg.ColorSet{Base: gg.RGBA(240, 240, 240, 255)},
+		ColorsRow:       gg.ColorSet{Border: gg.RGBA(180, 180, 180, 255)},
+		PaddingHeader:   gg.NewPadding(2, 4, 2, 4),
+		SizeBorder:      gg.SomeF(0),
 		Columns: []GridColumnCfg{{
 			ID: "c1", Title: "Col1", Resizable: true,
 			Width: gg.SomeF(120),
@@ -599,15 +596,14 @@ func TestResizeHandleRestingAfterCancel(t *testing.T) {
 	handle := gg.RGBA(180, 180, 180, 255)
 	active := gg.RGBA(100, 100, 255, 255)
 	cfg := DataGridCfg{
-		ID:                "g1",
-		ColorResizeHandle: handle,
-		ColorResizeActive: active,
-		TextStyleHeader:   gg.DefaultTextStyle,
-		TextStyle:         gg.DefaultTextStyle,
-		ColorHeader:       gg.RGBA(240, 240, 240, 255),
-		ColorBorder:       gg.RGBA(180, 180, 180, 255),
-		PaddingHeader:     gg.NewPadding(2, 4, 2, 4),
-		SizeBorder:        gg.SomeF(0),
+		ID:              "g1",
+		ColorsResize:    gg.ColorSet{Base: handle, Click: active},
+		TextStyleHeader: gg.DefaultTextStyle,
+		TextStyle:       gg.DefaultTextStyle,
+		ColorsHeader:    gg.ColorSet{Base: gg.RGBA(240, 240, 240, 255)},
+		ColorsRow:       gg.ColorSet{Border: gg.RGBA(180, 180, 180, 255)},
+		PaddingHeader:   gg.NewPadding(2, 4, 2, 4),
+		SizeBorder:      gg.SomeF(0),
 		Columns: []GridColumnCfg{{
 			ID: "c1", Title: "Col1", Resizable: true,
 			Width: gg.SomeF(120),
@@ -658,10 +654,10 @@ func TestResizeHandleRestingAfterCancel(t *testing.T) {
 
 func TestReorderControls(t *testing.T) {
 	cfg := &DataGridCfg{
-		TextStyleHeader:  gg.DefaultTextStyle,
-		ColorHeaderHover: gg.RGBA(200, 200, 200, 255),
-		Columns:          []GridColumnCfg{{ID: "c1"}},
-		ColumnOrder:      []string{"c1"},
+		TextStyleHeader: gg.DefaultTextStyle,
+		ColorsHeader:    gg.ColorSet{Hover: gg.RGBA(200, 200, 200, 255)},
+		Columns:         []GridColumnCfg{{ID: "c1"}},
+		ColumnOrder:     []string{"c1"},
 	}
 	col := GridColumnCfg{ID: "c1", Reorderable: true}
 	v := dataGridReorderControls(cfg, col)
@@ -719,7 +715,7 @@ func TestActiveResizeColIDInactive(t *testing.T) {
 func TestHeaderRowReturnsView(t *testing.T) {
 	cfg := &DataGridCfg{
 		ID:              "g1",
-		ColorBorder:     gg.RGBA(180, 180, 180, 255),
+		ColorsRow:       gg.ColorSet{Border: gg.RGBA(180, 180, 180, 255)},
 		SizeBorder:      gg.SomeF(1),
 		PaddingHeader:   gg.NewPadding(2, 4, 2, 4),
 		TextStyleHeader: gg.DefaultTextStyle,
@@ -735,13 +731,12 @@ func TestHeaderRowReturnsView(t *testing.T) {
 
 func TestHeaderCellReturnsView(t *testing.T) {
 	cfg := &DataGridCfg{
-		ID:               "g1",
-		ColorHeader:      gg.RGBA(240, 240, 240, 255),
-		ColorBorder:      gg.RGBA(180, 180, 180, 255),
-		SizeBorder:       gg.SomeF(1),
-		PaddingHeader:    gg.NewPadding(2, 4, 2, 4),
-		TextStyleHeader:  gg.DefaultTextStyle,
-		ColorHeaderHover: gg.RGBA(220, 220, 220, 255),
+		ID:              "g1",
+		ColorsHeader:    gg.ColorSet{Base: gg.RGBA(240, 240, 240, 255), Hover: gg.RGBA(220, 220, 220, 255)},
+		ColorsRow:       gg.ColorSet{Border: gg.RGBA(180, 180, 180, 255)},
+		SizeBorder:      gg.SomeF(1),
+		PaddingHeader:   gg.NewPadding(2, 4, 2, 4),
+		TextStyleHeader: gg.DefaultTextStyle,
 	}
 	col := GridColumnCfg{ID: "c1", Title: "Column 1"}
 	v := dataGridHeaderCell(cfg, col, 0, 2, 100, "", false, "")
@@ -753,12 +748,11 @@ func TestHeaderCellReturnsView(t *testing.T) {
 func TestHeaderCellWithControls(t *testing.T) {
 	cfg := &DataGridCfg{
 		ID:                  "g1",
-		ColorHeader:         gg.RGBA(240, 240, 240, 255),
-		ColorBorder:         gg.RGBA(180, 180, 180, 255),
+		ColorsHeader:        gg.ColorSet{Base: gg.RGBA(240, 240, 240, 255), Hover: gg.RGBA(220, 220, 220, 255)},
+		ColorsRow:           gg.ColorSet{Border: gg.RGBA(180, 180, 180, 255)},
 		SizeBorder:          gg.SomeF(1),
 		PaddingHeader:       gg.NewPadding(2, 4, 2, 4),
 		TextStyleHeader:     gg.DefaultTextStyle,
-		ColorHeaderHover:    gg.RGBA(220, 220, 220, 255),
 		OnColumnOrderChange: func(_ []string, ctx gg.EventCtx) {},
 		OnColumnPinChange:   func(_ string, _ GridColumnPin, ctx gg.EventCtx) {},
 	}

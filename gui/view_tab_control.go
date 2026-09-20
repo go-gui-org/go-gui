@@ -77,7 +77,10 @@ type TabControlCfg struct {
 	Focusable     bool
 	Color         Color
 	ColorBorder   Color
-	ColorHeader   Color
+	// ColorHeader colors the header strip. Unset takes the theme
+	// default.
+	// exportaudit:keep — caller-facing config (issue #372)
+	ColorHeader Color
 	// ColorHeaderBorder colors the header strip border. Unset takes
 	// the theme default.
 	// exportaudit:keep — caller-facing config (issue #372)
@@ -90,30 +93,22 @@ type TabControlCfg struct {
 	// takes the theme default.
 	// exportaudit:keep — caller-facing config (issue #372)
 	ColorContentBorder Color
-	// ColorTab/ColorTabHover/ColorTabFocus/ColorTabClick/
-	// ColorTabSelected/ColorTabDisabled/ColorTabBorder/
-	// ColorTabBorderFocus theme the tabs. Unset takes the theme
-	// defaults.
+	// ColorsTab sets the tabs' per-state colors. ColorTab below is
+	// the shorthand for ColorsTab.Base and wins over it.
+	// ColorTabSelected/ColorTabDisabled theme the selected and
+	// disabled tabs. Unset takes the theme defaults.
+	// exportaudit:keep — caller-facing config (issue #372)
+	ColorsTab ColorSet
 	// exportaudit:keep — caller-facing config (issue #372)
 	ColorTab Color
-	// exportaudit:keep — caller-facing config (issue #372)
-	ColorTabHover Color
-	// exportaudit:keep — caller-facing config (issue #372)
-	ColorTabFocus Color
-	// exportaudit:keep — caller-facing config (issue #372)
-	ColorTabClick Color
 	// exportaudit:keep — caller-facing config (issue #372)
 	ColorTabSelected Color
 	// exportaudit:keep — caller-facing config (issue #372)
 	ColorTabDisabled Color
-	// exportaudit:keep — caller-facing config (issue #372)
-	ColorTabBorder Color
-	// exportaudit:keep — caller-facing config (issue #372)
-	ColorTabBorderFocus Color
-	Sizing              Sizing
-	Disabled            bool
-	Invisible           bool
-	Reorderable         bool
+	Sizing           Sizing
+	Disabled         bool
+	Invisible        bool
+	Reorderable      bool
 
 	// Sound overrides the theme's selection cue for this instance.
 	// SoundNone (the zero value) takes the theme's cue for that role,
@@ -129,6 +124,17 @@ type TabControlCfg struct {
 
 type tabControlView struct {
 	cfg TabControlCfg
+}
+
+// tabFlatFill returns cs with its four fill slots pinned to c and its
+// two border slots untouched. A selected or disabled tab does not react
+// to the pointer, but it still draws the set's border and focus ring.
+func tabFlatFill(cs ColorSet, c Color) ColorSet {
+	cs.Base = c
+	cs.Hover = c
+	cs.Click = c
+	cs.Focus = c
+	return cs
 }
 
 func applyTabControlDefaults(cfg *TabControlCfg) {
@@ -152,29 +158,12 @@ func applyTabControlDefaults(cfg *TabControlCfg) {
 	if !cfg.ColorContentBorder.IsSet() {
 		cfg.ColorContentBorder = s.colorContentBorder
 	}
-	if !cfg.ColorTab.IsSet() {
-		cfg.ColorTab = s.colorTab
-	}
-	if !cfg.ColorTabHover.IsSet() {
-		cfg.ColorTabHover = s.colorTabHover
-	}
-	if !cfg.ColorTabFocus.IsSet() {
-		cfg.ColorTabFocus = s.colorTabFocus
-	}
-	if !cfg.ColorTabClick.IsSet() {
-		cfg.ColorTabClick = s.colorTabClick
-	}
+	cfg.ColorsTab = cfg.ColorsTab.resolved(cfg.ColorTab, s.ColorsTab)
 	if !cfg.ColorTabSelected.IsSet() {
 		cfg.ColorTabSelected = s.colorTabSelected
 	}
 	if !cfg.ColorTabDisabled.IsSet() {
 		cfg.ColorTabDisabled = s.colorTabDisabled
-	}
-	if !cfg.ColorTabBorder.IsSet() {
-		cfg.ColorTabBorder = s.colorTabBorder
-	}
-	if !cfg.ColorTabBorderFocus.IsSet() {
-		cfg.ColorTabBorderFocus = s.colorTabBorderFocus
 	}
 	if !cfg.Padding.IsSet() {
 		cfg.Padding = s.Padding
@@ -329,22 +318,15 @@ func (tv *tabControlView) GenerateLayout(w *Window) Layout {
 				dragReorderGapView(drag, dragReorderHorizontal))
 		}
 
-		tabColor := cfg.ColorTab
-		hoverColor := cfg.ColorTabHover
-		focusColor := cfg.ColorTabFocus
-		clickColor := cfg.ColorTabClick
-		borderColor := cfg.ColorTabBorder
-
+		// The tab's set. Selected and disabled stay flat in the fill
+		// slots: pick has no slot for them (issue #720). The borders
+		// keep the set's own, so a selected tab still shows the focus
+		// ring.
+		tabSet := cfg.ColorsTab
 		if isDisabled {
-			tabColor = cfg.ColorTabDisabled
-			hoverColor = cfg.ColorTabDisabled
-			focusColor = cfg.ColorTabDisabled
-			clickColor = cfg.ColorTabDisabled
+			tabSet = tabFlatFill(tabSet, cfg.ColorTabDisabled)
 		} else if isSelected {
-			tabColor = cfg.ColorTabSelected
-			hoverColor = cfg.ColorTabSelected
-			focusColor = cfg.ColorTabSelected
-			clickColor = cfg.ColorTabSelected
+			tabSet = tabFlatFill(tabSet, cfg.ColorTabSelected)
 		}
 
 		ts := cfg.TextStyle
@@ -379,12 +361,14 @@ func (tv *tabControlView) GenerateLayout(w *Window) Layout {
 		}
 
 		tabBtn := Button(ButtonCfg{
-			ID:         tabButtonID(cfg.ID, item.ID),
-			A11YRole:   AccessRoleTabItem,
-			A11YState:  a11yState,
-			A11YCfg:    A11YCfg{A11YLabel: item.Label},
-			Color:      tabColor,
-			Colors:     ColorSet{Hover: hoverColor, Click: clickColor, Focus: focusColor, Border: borderColor, BorderFocus: cfg.ColorTabBorderFocus}.resolved(tabColor, defaultButtonStyle.Colors),
+			ID:        tabButtonID(cfg.ID, item.ID),
+			A11YRole:  AccessRoleTabItem,
+			A11YState: a11yState,
+			A11YCfg:   A11YCfg{A11YLabel: item.Label},
+			Color:     tabSet.Base,
+			// Fully resolved in applyTabControlDefaults; Button
+			// fills anything still unset from its own theme.
+			Colors:     tabSet,
 			Padding:    cfg.PaddingTab,
 			SizeBorder: SomeF(sizeTabBorder),
 			Radius:     SomeF(radiusTab),

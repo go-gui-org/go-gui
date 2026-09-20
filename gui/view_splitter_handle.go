@@ -45,8 +45,8 @@ func splitterHandleView(cfg *SplitterCfg, core *splitterCore, id string) View {
 		Height:      handleHeight,
 		Padding:     NoPadding,
 		Spacing:     SomeF(1),
-		Color:       cfg.ColorHandle,
-		ColorBorder: cfg.ColorHandleBorder,
+		Color:       cfg.ColorsHandle.Base,
+		ColorBorder: cfg.ColorsHandle.Border,
 		SizeBorder:  cfg.SizeBorder,
 		Radius:      cfg.Radius,
 		HAlign:      HAlignCenter,
@@ -116,9 +116,11 @@ func splitterButton(cfg *SplitterCfg, core *splitterCore,
 		// hook skips a disabled button, so a disabled one keeps the
 		// uncorrected position — cosmetic, and disabled splitter buttons
 		// are not a state the widget produces today.
-		AmendLayout:   centerGlyphOnInk(icon, ts),
-		Color:         cfg.ColorButton,
-		Colors:        ColorSet{Hover: cfg.ColorButtonHover, Click: cfg.ColorButtonActive, Focus: cfg.ColorButtonHover}.resolved(cfg.ColorButton, defaultButtonStyle.Colors),
+		AmendLayout: centerGlyphOnInk(icon, ts),
+		Color:       cfg.ColorsButton.Base,
+		// Fully resolved in applySplitterDefaults; Button fills the
+		// border slots from its own theme, as before (issue #720).
+		Colors:        cfg.ColorsButton,
 		Radius:        cfg.RadiusBorder,
 		Sound:         btnSound,
 		SoundDisabled: btnSound == SoundNone,
@@ -256,7 +258,15 @@ func splitterOnHandleClick(core *splitterCore, layout *Layout, e *Event, w *Wind
 	// view function every frame, so cross-frame drag state lives in
 	// window state, mirroring the slider's nsSliderPress.
 	StateMap[string, bool](w, nsSplitterDrag, capModerate).Set(core.id, true)
-	layout.Shape.Color = core.colorHandleActive
+	// The press frame's amend pass already ran, so this is the only
+	// write that colors this frame. pick keeps the one precedence
+	// rule (issue #720); the border it returns is the seeding the
+	// shape already carries.
+	layout.Shape.Color, layout.Shape.ColorBorder =
+		core.colorsHandle.pick(stateFlags{
+			disabled: layout.Shape.Disabled,
+			pressed:  true,
+		})
 
 	focusID := core.focusID
 	w.MouseLock(MouseLockCfg{
@@ -291,7 +301,14 @@ func splitterOnHandleClick(core *splitterCore, layout *Layout, e *Event, w *Wind
 // paint lives in splitterAmendLayout instead.
 func splitterOnHandleHover(core *splitterCore, layout *Layout, e *Event, w *Window) {
 	splitterSetCursor(core.orientation, w)
-	layout.Shape.Color = core.colorHandleHover
+	// Amend sees the press (lock bails hover), so hovered is all
+	// this pass can be (issue #265). pick keeps the one
+	// precedence rule (issue #720).
+	layout.Shape.Color, layout.Shape.ColorBorder =
+		core.colorsHandle.pick(stateFlags{
+			disabled: layout.Shape.Disabled,
+			hovered:  true,
+		})
 	e.IsHandled = true
 }
 

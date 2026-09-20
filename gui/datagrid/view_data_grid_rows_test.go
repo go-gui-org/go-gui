@@ -759,9 +759,9 @@ func TestRowClickOutOfRange(t *testing.T) {
 
 func TestDetailToggleControlCollapsed(t *testing.T) {
 	cfg := &DataGridCfg{
-		ID:            "g1",
-		TextStyle:     gg.DefaultTextStyle,
-		ColorRowHover: gg.RGBA(220, 220, 220, 255),
+		ID:        "g1",
+		TextStyle: gg.DefaultTextStyle,
+		ColorsRow: gg.ColorSet{Hover: gg.RGBA(220, 220, 220, 255)},
 	}
 	v := dataGridDetailToggleControl(cfg, "r1", false, true, "g1")
 	if v == nil {
@@ -771,9 +771,9 @@ func TestDetailToggleControlCollapsed(t *testing.T) {
 
 func TestDetailToggleControlExpanded(t *testing.T) {
 	cfg := &DataGridCfg{
-		ID:            "g1",
-		TextStyle:     gg.DefaultTextStyle,
-		ColorRowHover: gg.RGBA(220, 220, 220, 255),
+		ID:        "g1",
+		TextStyle: gg.DefaultTextStyle,
+		ColorsRow: gg.ColorSet{Hover: gg.RGBA(220, 220, 220, 255)},
 	}
 	v := dataGridDetailToggleControl(cfg, "r1", true, true, "g1")
 	if v == nil {
@@ -797,7 +797,7 @@ func TestDetailToggleControlDisabled(t *testing.T) {
 func TestGroupHeaderRowView(t *testing.T) {
 	trueVal := true
 	cfg := &DataGridCfg{
-		ColorBorder:     gg.RGBA(180, 180, 180, 255),
+		ColorsRow:       gg.ColorSet{Border: gg.RGBA(180, 180, 180, 255)},
 		SizeBorder:      gg.SomeF(1),
 		PaddingCell:     gg.NewPadding(2, 4, 2, 4),
 		TextStyleHeader: gg.DefaultTextStyle,
@@ -819,7 +819,7 @@ func TestGroupHeaderRowView(t *testing.T) {
 
 func TestGroupHeaderRowViewWithAggregate(t *testing.T) {
 	cfg := &DataGridCfg{
-		ColorBorder:     gg.RGBA(180, 180, 180, 255),
+		ColorsRow:       gg.ColorSet{Border: gg.RGBA(180, 180, 180, 255)},
 		SizeBorder:      gg.SomeF(1),
 		PaddingCell:     gg.NewPadding(2, 4, 2, 4),
 		TextStyleHeader: gg.DefaultTextStyle,
@@ -844,7 +844,7 @@ func TestGroupHeaderRowViewWithAggregate(t *testing.T) {
 func TestFrozenTopZone(t *testing.T) {
 	cfg := &DataGridCfg{
 		ColorBackground: gg.RGBA(255, 255, 255, 255),
-		ColorBorder:     gg.RGBA(180, 180, 180, 255),
+		ColorsRow:       gg.ColorSet{Border: gg.RGBA(180, 180, 180, 255)},
 	}
 	v := dataGridFrozenTopZone(cfg, nil, 50, 200, 0)
 	if v == nil {

@@ -38,7 +38,7 @@ func dataGridBuildPagerRow(pctx dataGridPagerContext) gg.View {
 		Height:      dataGridPagerHeight(cfg),
 		Sizing:      gg.FillFixed,
 		Color:       cfg.ColorFilter,
-		ColorBorder: cfg.ColorBorder,
+		ColorBorder: cfg.ColorsRow.Border,
 		SizeBorder:  gg.SomeF(0),
 		Padding:     dataGridPagerPadding(cfg),
 		Spacing:     gg.SomeF(6),
@@ -92,7 +92,7 @@ func dataGridPagerArrows() (string, string) {
 }
 
 func dataGridPagerPrevButton(cfg *DataGridCfg, onPageChange func(int, gg.EventCtx), pageIndex int, focusID string, isFirst bool, prevArrow string) gg.View {
-	return dataGridIndicatorButton(gg.ScopeID(cfg.ID, "pager_prev"), prevArrow, cfg.TextStyleHeader, cfg.ColorHeaderHover,
+	return dataGridIndicatorButton(gg.ScopeID(cfg.ID, "pager_prev"), prevArrow, cfg.TextStyleHeader, cfg.ColorsHeader.Hover,
 		onPageChange == nil || isFirst, dataGridHeaderControlWidth+10, cfg.sounds.click,
 		func(ctx gg.EventCtx) {
 			if onPageChange == nil {
@@ -108,7 +108,7 @@ func dataGridPagerPrevButton(cfg *DataGridCfg, onPageChange func(int, gg.EventCt
 }
 
 func dataGridPagerNextButton(cfg *DataGridCfg, onPageChange func(int, gg.EventCtx), pageIndex, pageCount int, focusID string, isLast bool, nextArrow string) gg.View {
-	return dataGridIndicatorButton(gg.ScopeID(cfg.ID, "pager_next"), nextArrow, cfg.TextStyleHeader, cfg.ColorHeaderHover,
+	return dataGridIndicatorButton(gg.ScopeID(cfg.ID, "pager_next"), nextArrow, cfg.TextStyleHeader, cfg.ColorsHeader.Hover,
 		onPageChange == nil || isLast, dataGridHeaderControlWidth+10, cfg.sounds.click,
 		func(ctx gg.EventCtx) {
 			if onPageChange == nil {
@@ -180,7 +180,7 @@ func dataGridPagerJumpInput(cfg *DataGridCfg, inputID string, focusID string, ju
 		SizeBorder:  gg.SomeF(0),
 		Radius:      gg.SomeF(0),
 		Color:       cfg.ColorFilter,
-		Colors:      gg.ColorSet{Hover: cfg.ColorFilter, Border: cfg.ColorBorder},
+		Colors:      gg.ColorSet{Hover: cfg.ColorFilter, Border: cfg.ColorsRow.Border},
 		TextStyle:   cfg.TextStyleFilter,
 		OnTextChanged: func(inputText string, ctx gg.EventCtx) {
 			digits := dataGridJumpDigits(inputText)

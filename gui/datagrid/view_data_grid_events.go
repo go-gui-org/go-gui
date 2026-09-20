@@ -41,7 +41,7 @@ func dataGridQuickFilterRow(cfg *DataGridCfg, w *gg.Window) gg.View {
 		Height:      h,
 		Sizing:      gg.FillFixed,
 		Color:       cfg.ColorQuickFilter,
-		ColorBorder: cfg.ColorBorder,
+		ColorBorder: cfg.ColorsRow.Border,
 		SizeBorder:  gg.SomeF(0),
 		Padding:     gg.NewPadding(0, cfg.PaddingCell.Or(gg.PaddingNone).Right, 0, cfg.PaddingCell.Or(gg.PaddingNone).Left),
 		Spacing:     gg.SomeF(6),
@@ -65,7 +65,7 @@ func dataGridQuickFilterRow(cfg *DataGridCfg, w *gg.Window) gg.View {
 				SizeBorder:       gg.SomeF(0),
 				Radius:           gg.SomeF(0),
 				Color:            cfg.ColorQuickFilter,
-				Colors:           gg.ColorSet{Hover: cfg.ColorQuickFilter, Border: cfg.ColorBorder},
+				Colors:           gg.ColorSet{Hover: cfg.ColorQuickFilter, Border: cfg.ColorsRow.Border},
 				TextStyle:        cfg.TextStyleFilter,
 				PlaceholderStyle: placeholderStyle,
 				OnTextChanged: dataGridQuickFilterOnTextChanged(
@@ -76,7 +76,7 @@ func dataGridQuickFilterRow(cfg *DataGridCfg, w *gg.Window) gg.View {
 				Mode:      gg.TextModeSingleLine,
 				TextStyle: dataGridIndicatorTextStyle(cfg.TextStyleFilter),
 			}),
-			dataGridIndicatorButton(gg.ScopeID(gridID, "filter_clear"), gg.CurrentLocale().StrClear, cfg.TextStyleFilter, cfg.ColorHeaderHover,
+			dataGridIndicatorButton(gg.ScopeID(gridID, "filter_clear"), gg.CurrentLocale().StrClear, cfg.TextStyleFilter, cfg.ColorsHeader.Hover,
 				clearDisabled, 0, cfg.sounds.click, func(ctx gg.EventCtx) {
 					if queryCallback == nil {
 						return
@@ -184,7 +184,7 @@ func dataGridColumnChooserRow(cfg *DataGridCfg, isOpen bool, focusID string) gg.
 		Spacing: gg.SomeF(6),
 		VAlign:  gg.VAlignMiddle,
 		Content: []gg.View{
-			dataGridIndicatorButton(gg.ScopeID(gridID, "column_chooser"), chooserLabel, cfg.TextStyleFilter, cfg.ColorHeaderHover,
+			dataGridIndicatorButton(gg.ScopeID(gridID, "column_chooser"), chooserLabel, cfg.TextStyleFilter, cfg.ColorsHeader.Hover,
 				false, 0, cfg.sounds.click, func(ctx gg.EventCtx) {
 					dataGridToggleColumnChooserOpen(gridID, ctx.Window)
 					if focusID != "" {
@@ -221,7 +221,7 @@ func dataGridColumnChooserRow(cfg *DataGridCfg, isOpen bool, focusID string) gg.
 			Padding:     cfg.PaddingFilter,
 			Spacing:     gg.SomeF(8),
 			Color:       gg.ColorTransparent,
-			ColorBorder: cfg.ColorBorder,
+			ColorBorder: cfg.ColorsRow.Border,
 			SizeBorder:  gg.SomeF(0),
 			Content:     options,
 		}))
@@ -230,7 +230,7 @@ func dataGridColumnChooserRow(cfg *DataGridCfg, isOpen bool, focusID string) gg.
 		Height:      dataGridColumnChooserHeight(cfg, isOpen),
 		Sizing:      gg.FillFixed,
 		Color:       cfg.ColorFilter,
-		ColorBorder: cfg.ColorBorder,
+		ColorBorder: cfg.ColorsRow.Border,
 		SizeBorder:  gg.SomeF(0),
 		Padding:     gg.NoPadding,
 		Spacing:     gg.SomeF(0),
