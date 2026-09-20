@@ -296,17 +296,17 @@ and this project adheres to
 
 - **`Select` with `Invisible` kept a live, focusable shape (#691)** — the
   factory built its container directly and bypassed the invisible-to-singleton
-  mapping, so a hidden field parked focus on a dead ID and still answered
-  hover. It now returns the singleton like the other widgets, and the
+  mapping, so a hidden field parked focus on a dead ID and still answered hover.
+  It now returns the singleton like the other widgets, and the
   interaction-contract matrix pins the hidden column.
 - **Held interaction survived eligibility loss and window blur (#691)** — a
-  press whose target was disabled, hidden, removed or replaced stayed armed,
-  so the release could click whatever took its place; open select/combobox
-  popups never closed; a drag kept its lock when the window lost focus. A
-  per-frame repair next to `fixupFocusLocked` now clears a dead or disabled
-  press target, closes orphaned popups, and a modal dialog ends pointer
-  gestures outright; window-unfocus cancels the lock without committing and
-  dismisses popups. The interaction-contract matrix is the gate.
+  press whose target was disabled, hidden, removed or replaced stayed armed, so
+  the release could click whatever took its place; open select/combobox popups
+  never closed; a drag kept its lock when the window lost focus. A per-frame
+  repair next to `fixupFocusLocked` now clears a dead or disabled press target,
+  closes orphaned popups, and a modal dialog ends pointer gestures outright;
+  window-unfocus cancels the lock without committing and dismisses popups. The
+  interaction-contract matrix is the gate.
 - **Second theme review: `WithColors` drift, badge contrast, install cost** —
   from a second review of the `theme*` code, five defects and their gates:
   - **`Theme.WithColors` had drifted from `ThemeMaker`.** It restates the whole
