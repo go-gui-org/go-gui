@@ -284,8 +284,8 @@ by default and two when a theme needs them apart.
 | Field                | Dark                     | Light                    |
 | -------------------- | ------------------------ | ------------------------ |
 | `ColorAccent`        | `#4D82F0`                | `#2F6FE0`                |
-| `ColorAccentHover`   | `#85AAF5`                | `#6494E8`                |
-| `ColorAccentPressed` | `#155AEB`                | `#1B53B7`                |
+| `ColorAccentHover`   | `#89A7DE`                | `#7394CC`                |
+| `ColorAccentPressed` | `#3163CE`                | `#0D4FBE`                |
 | `ColorAccentSubtle`  | `RGBA(77, 130, 240, 40)` | `RGBA(47, 111, 224, 30)` |
 | `ColorTextOnAccent`  | `#FFFFFF`                | `#FFFFFF`                |
 
@@ -295,16 +295,25 @@ was corrected to the derivation rather than the other way round (recorded in the
 decisions).
 
 `ThemeMaker` derives every unset slot from `ColorAccent`, so a custom theme
-states one color and gets a working ramp. The derivation is pinned, because
-"+12% lightness" has at least three defensible readings:
+states one color and gets a working ramp. The derivation is pinned, because "one
+step lighter" has at least three defensible readings:
 
-- **Color space: sRGB HSL**, via the existing `ColorToHSLA` / `HSLA.Color()`
-  (`gui/color_hsl.go:63,86`). Not OKLCH, not linear RGB — the repo already has
-  this pair, and the table values above were picked in it.
-- **Offsets are absolute on `L`, not relative**: `L+0.12` for hover, `L-0.12`
-  for pressed, each clamped to `[0,1]`. Relative (`L*1.12`) collapses to nothing
-  on a dark accent and overshoots on a light one. `H` and `S` are carried
-  through unchanged.
+- **Color space: OKLCH** (issue #732), via the private `colorToOKLCH` /
+  `oklch.color()` pair (`gui/color_oklch.go`). The ramp previously derived in
+  sRGB HSL, where lightness is not perceptual: the same 0.12 step read large on
+  a blue accent and small on a yellow or green one. OKLCH L is uniform, so one
+  step reads the same on every hue. HSLA stays for the picker components, which
+  are app-owned UI, not derivation.
+- **Offsets are absolute on `L`, not relative**: `L+0.10` for hover, `L-0.10`
+  for pressed, each clamped to `[0,1]`. Relative (`L*1.10`) collapses to nothing
+  on a dark accent and overshoots on a light one. `C` and `H` carry through
+  unchanged, so a state reads as the same color, lighter or darker. The 0.10
+  step is calibrated, not fresh: the old hover/pressed sat ~0.11/0.10 OKLCH-L
+  off their accents, so the defaults keep their perceptual magnitude while other
+  hues stop drifting. A shifted color can leave the sRGB gamut — a lighter blue
+  at full chroma has no sRGB address — so chroma halves until the color fits,
+  keeping the hue a clip would shear off. The step is stated once as
+  `oklchRampDelta`, shared by `ThemeMaker`, the danger ramp and `WithColors`.
 - **`ColorAccentSubtle`** is `ColorAccent` at alpha 40 (dark) / 30 (light) —
   fixed per polarity, taken from the theme's own polarity as `textRolesFor`
   does, not one alpha for both.
@@ -1018,6 +1027,19 @@ done until the docs say the same thing:
   "dark emits no dropdown shadow" frame assertion now rides the blue preset —
   and the spec's table values are pinned by `TestThemePresetElevationConsts`
   (the `TestThemeMakerAccentRamp` role for elevation).
+- **Accent ramp in OKLCH (§ 4.3, issue #732)** — hover/pressed derive at
+  `L±0.10` in OKLCH instead of `L±0.12` in sRGB HSL, keeping `C`/`H` with a
+  chroma-halving gamut clamp. The step is calibrated: the old states sat
+  ~0.11/0.10 L off their accents, so the defaults keep their magnitude while
+  yellow/green accents stop reading weak. Exact match was impossible — HSL
+  "lighten" adds white while OKLCH holds hue, and the lighter blues exit the
+  sRGB gamut — so the new hover keeps more chroma (`#89A7DE` vs `#85AAF5` dark).
+  Rejected: Oklab shift (hue drift on clamp), a hue-compensated HSL step (keeps
+  the fault plus a magic table), a color-science dependency (~120 lines pin
+  better locally), and a public OKLCH type (no picker consumer; export-audit).
+  `subtleFor` stays alpha-only and the 0.45 `textOnAccent` threshold stays:
+  neither does lightness math. Goldens did not move — only resting states are
+  recorded, and the base accent fill is unchanged — so nothing re-recorded.
 
 ## Deferred questions
 

@@ -129,6 +129,17 @@ and this project adheres to
 
 ### Changed
 
+- **Accent and danger ramps derive in OKLCH instead of HSL (#732)** — hover and
+  pressed states move `±0.10` on the OKLCH lightness axis, keeping chroma and
+  hue, instead of `±0.12` on the HSL axis. HSL lightness is not perceptual, so
+  the old step read large on a blue accent and small on a yellow or green one;
+  one OKLCH step reads the same on every hue. The step is calibrated so the
+  default accents keep their magnitude (`#89A7DE`/`#3163CE` dark,
+  `#7394CC`/`#0D4FBE` light), and a shifted color that leaves the sRGB gamut
+  sheds chroma until it fits rather than clipping its hue. No migration: no
+  field or function changes, only derived values. `ColorAccentSubtle`
+  (alpha-only) and the `textOnAccent` threshold are untouched.
+
 - **BREAKING: numbered text rungs are semantic roles (#734)** — the closed 6x6
   grid (`Theme.N1`–`N6`, `B1`–`B6`, `I1`–`I6`, `BI1`–`BI6`, `M1`–`M6`,
   `Icon1`–`Icon6`) is removed. A number said how big the text was, never what it

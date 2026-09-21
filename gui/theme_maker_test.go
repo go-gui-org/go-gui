@@ -367,8 +367,8 @@ func TestThemeMakerLadderFallback(t *testing.T) {
 	}
 }
 
-// The accent ramp (visual-refresh §4.3): hover = L+0.12, pressed =
-// L-0.12 in sRGB HSL, subtle = accent at the polarity-fixed alpha,
+// The accent ramp (visual-refresh §4.3): hover = L+0.10, pressed =
+// L-0.10 in OKLCH, subtle = accent at the polarity-fixed alpha,
 // text = white under the 0.45 luminance threshold. These are the
 // values the rules actually produce — the spec table was corrected
 // to match when the two disagreed (see the spec's decisions).
@@ -377,11 +377,11 @@ func TestThemeMakerAccentRamp(t *testing.T) {
 	if dark.ColorAccent != colorAccentDark {
 		t.Errorf("accent = %v, want %v", dark.ColorAccent, colorAccentDark)
 	}
-	if dark.ColorAccentHover != RGB(133, 170, 245) {
-		t.Errorf("dark hover = %v, want #85AAF5", dark.ColorAccentHover)
+	if dark.ColorAccentHover != RGB(137, 167, 222) {
+		t.Errorf("dark hover = %v, want #89A7DE", dark.ColorAccentHover)
 	}
-	if dark.ColorAccentPressed != RGB(21, 90, 235) {
-		t.Errorf("dark pressed = %v, want #155AEB", dark.ColorAccentPressed)
+	if dark.ColorAccentPressed != RGB(49, 99, 206) {
+		t.Errorf("dark pressed = %v, want #3163CE", dark.ColorAccentPressed)
 	}
 	if dark.ColorAccentSubtle != RGBA(77, 130, 240, 40) {
 		t.Errorf("dark subtle = %v, want accent at alpha 40", dark.ColorAccentSubtle)
@@ -394,11 +394,11 @@ func TestThemeMakerAccentRamp(t *testing.T) {
 	if light.ColorAccent != colorAccentLight {
 		t.Errorf("accent = %v, want %v", light.ColorAccent, colorAccentLight)
 	}
-	if light.ColorAccentHover != RGB(100, 148, 232) {
-		t.Errorf("light hover = %v, want #6494E8", light.ColorAccentHover)
+	if light.ColorAccentHover != RGB(115, 148, 204) {
+		t.Errorf("light hover = %v, want #7394CC", light.ColorAccentHover)
 	}
-	if light.ColorAccentPressed != RGB(27, 83, 183) {
-		t.Errorf("light pressed = %v, want #1B53B7", light.ColorAccentPressed)
+	if light.ColorAccentPressed != RGB(13, 79, 190) {
+		t.Errorf("light pressed = %v, want #0D4FBE", light.ColorAccentPressed)
 	}
 	if light.ColorAccentSubtle != RGBA(47, 111, 224, 30) {
 		t.Errorf("light subtle = %v, want accent at alpha 30", light.ColorAccentSubtle)
@@ -450,13 +450,13 @@ func TestThemeMakerAccentFallback(t *testing.T) {
 	}
 }
 
-// The derivation's extremes: a black accent clamps hover at 0.12 L
+// The derivation's extremes: a black accent clamps hover at 0.10 L
 // and keeps pressed at black, and a light accent flips the text on it
 // to black under the 0.45 luminance threshold.
 func TestThemeMakerAccentExtremes(t *testing.T) {
 	black := ThemeMaker(ThemeCfg{ColorAccent: RGB(0, 0, 0)})
-	if black.ColorAccentHover != RGB(31, 31, 31) {
-		t.Errorf("black hover = %v, want L=0.12", black.ColorAccentHover)
+	if black.ColorAccentHover != RGB(3, 3, 3) {
+		t.Errorf("black hover = %v, want L=0.10", black.ColorAccentHover)
 	}
 	if black.ColorAccentPressed != RGB(0, 0, 0) {
 		t.Errorf("black pressed = %v, want clamped at 0",
@@ -472,8 +472,8 @@ func TestThemeMakerAccentExtremes(t *testing.T) {
 		t.Errorf("yellow text on accent = %v, want black",
 			yellow.ColorTextOnAccent)
 	}
-	if yellow.ColorAccentPressed != RGB(194, 194, 0) {
-		t.Errorf("yellow pressed = %v, want L-0.12", yellow.ColorAccentPressed)
+	if yellow.ColorAccentPressed != RGB(216, 218, 135) {
+		t.Errorf("yellow pressed = %v, want L-0.10", yellow.ColorAccentPressed)
 	}
 }
 

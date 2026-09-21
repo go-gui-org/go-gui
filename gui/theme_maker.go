@@ -71,21 +71,17 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 		colorSelect = accent
 	}
 
-	// HSL offsets are absolute on L, not relative: a relative step
+	// OKLCH offsets are absolute on L, not relative: a relative step
 	// collapses to nothing on a dark accent and overshoots on a light
 	// one. Clamped to [0,1]; the derivation is pinned against the
 	// spec table by TestThemeMakerAccentRamp.
 	accentHover := cfg.ColorAccentHover
 	if !accentHover.IsSet() {
-		hsla := ColorToHSLA(accent)
-		hsla.L = f32Clamp(hsla.L+0.12, 0, 1)
-		accentHover = hsla.Color()
+		accentHover = oklchShift(accent, oklchRampDelta)
 	}
 	accentPressed := cfg.ColorAccentPressed
 	if !accentPressed.IsSet() {
-		hsla := ColorToHSLA(accent)
-		hsla.L = f32Clamp(hsla.L-0.12, 0, 1)
-		accentPressed = hsla.Color()
+		accentPressed = oklchShift(accent, -oklchRampDelta)
 	}
 	accentSubtle := cfg.ColorAccentSubtle
 	if !accentSubtle.IsSet() {

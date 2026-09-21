@@ -69,9 +69,7 @@ func track(cur, override, oldWant, newWant Color) Color {
 // accentShift moves c by delta on the lightness axis, the same
 // absolute-L step ThemeMaker builds the accent and danger ramps with.
 func accentShift(c Color, delta float32) Color {
-	hsla := ColorToHSLA(c)
-	hsla.L = f32Clamp(hsla.L+delta, 0, 1)
-	return hsla.Color()
+	return oklchShift(c, delta)
 }
 
 // textOnFor returns the foreground paired with an accent fill: white
@@ -135,9 +133,9 @@ func (t Theme) WithColors(o ColorOverrides) Theme {
 
 	// Accent ramp, derived exactly as in ThemeMaker.
 	accentHover := track(t.ColorAccentHover, o.ColorAccentHover,
-		accentShift(oldAccent, 0.12), accentShift(accent, 0.12))
+		accentShift(oldAccent, oklchRampDelta), accentShift(accent, oklchRampDelta))
 	accentPressed := track(t.ColorAccentPressed, o.ColorAccentPressed,
-		accentShift(oldAccent, -0.12), accentShift(accent, -0.12))
+		accentShift(oldAccent, -oklchRampDelta), accentShift(accent, -oklchRampDelta))
 	accentSubtle := track(t.ColorAccentSubtle, o.ColorAccentSubtle,
 		subtleFor(oldAccent, textColor, oldBg),
 		subtleFor(accent, textColor, bg))
@@ -321,8 +319,8 @@ func (t Theme) WithColors(o ColorOverrides) Theme {
 	t.buttonStyleGhost.Colors.Click = focus
 	t.buttonStyleGhost.Colors.BorderFocus = borderFocus
 
-	errorHover := accentShift(colorError, 0.12)
-	errorPressed := accentShift(colorError, -0.12)
+	errorHover := accentShift(colorError, oklchRampDelta)
+	errorPressed := accentShift(colorError, -oklchRampDelta)
 	t.buttonStyleDanger.Colors.Base = colorError
 	t.buttonStyleDanger.Colors.Hover = errorHover
 	t.buttonStyleDanger.Colors.Click = errorPressed
