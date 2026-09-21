@@ -53,11 +53,9 @@ type TabControlStyle struct {
 	colorHeaderBorder  Color
 	colorContent       Color
 	colorContentBorder Color
-	// ColorsTab themes the tabs. Selected and disabled stay flat:
-	// ColorSet has no slot for them (issue #720).
-	ColorsTab        ColorSet
-	colorTabSelected Color
-	colorTabDisabled Color
+	// ColorsTab themes the tabs, the selected and disabled tab
+	// included (ColorsTab.Selected, ColorsTab.Disabled; #741).
+	ColorsTab ColorSet
 }
 
 // BreadcrumbStyle defines breadcrumb visual properties.
@@ -81,11 +79,9 @@ type BreadcrumbStyle struct {
 	sizeContentBorder  float32
 	Colors             ColorSet
 	colorTrail         Color
-	// ColorsCrumb themes the crumbs. Selected and disabled stay
-	// flat: ColorSet has no slot for them (issue #720).
+	// ColorsCrumb themes the crumbs, the current and disabled crumb
+	// included (ColorsCrumb.Selected, ColorsCrumb.Disabled; #741).
 	ColorsCrumb        ColorSet
-	colorCrumbSelected Color
-	colorCrumbDisabled Color
 	colorContent       Color
 	colorContentBorder Color
 }

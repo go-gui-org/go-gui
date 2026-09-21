@@ -77,16 +77,13 @@ type BreadcrumbCfg struct {
 	ColorTrail Color
 	// ColorsCrumb sets the crumbs' per-state colors. ColorCrumb
 	// below is the shorthand for ColorsCrumb.Base and wins over it.
-	// ColorCrumbSelected/ColorCrumbDisabled theme the current and
-	// disabled crumbs. Unset takes the theme defaults.
+	// ColorsCrumb.Selected and ColorsCrumb.Disabled theme the
+	// current and disabled crumbs (#741). Unset takes the theme
+	// defaults.
 	// exportaudit:keep — caller-facing config (issue #372)
 	ColorsCrumb ColorSet
 	// exportaudit:keep — caller-facing config (issue #372)
 	ColorCrumb Color
-	// exportaudit:keep — caller-facing config (issue #372)
-	ColorCrumbSelected Color
-	// exportaudit:keep — caller-facing config (issue #372)
-	ColorCrumbDisabled Color
 	// ColorContent colors the content area. Unset takes the theme
 	// default.
 	// exportaudit:keep — caller-facing config (issue #372)
@@ -127,12 +124,6 @@ func applyBreadcrumbDefaults(cfg *BreadcrumbCfg) {
 		cfg.ColorTrail = s.colorTrail
 	}
 	cfg.ColorsCrumb = cfg.ColorsCrumb.resolved(cfg.ColorCrumb, s.ColorsCrumb)
-	if !cfg.ColorCrumbSelected.IsSet() {
-		cfg.ColorCrumbSelected = s.colorCrumbSelected
-	}
-	if !cfg.ColorCrumbDisabled.IsSet() {
-		cfg.ColorCrumbDisabled = s.colorCrumbDisabled
-	}
 	if !cfg.ColorContent.IsSet() {
 		cfg.ColorContent = s.colorContent
 	}
@@ -207,17 +198,12 @@ func Breadcrumb(cfg BreadcrumbCfg) View {
 			ts = cfg.TextStyleSelected
 		}
 
-		// The crumb's set. Selected and disabled stay flat: pick has
-		// no slot for them, so each becomes a set that does not react
-		// (issue #720). Flat pins the borders too, which the crumb
-		// never draws.
-		crumbSet := cfg.ColorsCrumb
-		if isDisabled {
-			crumbSet = Flat(cfg.ColorCrumbDisabled)
-		} else if isSelected {
-			crumbSet = Flat(cfg.ColorCrumbSelected)
-		}
-		crumbColor := crumbSet.Base
+		// The crumb's resting fill, from the one set: pick answers
+		// selected and disabled as well (#741).
+		crumbColor, _ := cfg.ColorsCrumb.pick(stateFlags{
+			disabled: isDisabled,
+			selected: isSelected,
+		})
 
 		var onClick func(EventCtx)
 		var onHover func(EventCtx)
@@ -227,7 +213,7 @@ func Breadcrumb(cfg BreadcrumbCfg) View {
 		crumbSound := SoundNone
 		if !isDisabled {
 			onClick = makeBcOnClick(cfg.OnSelect, item.ID, cfg.ID)
-			onHover = makeBcOnHover(crumbSet)
+			onHover = makeBcOnHover(cfg.ColorsCrumb, isSelected)
 			crumbSound = soundCue
 		}
 
@@ -236,15 +222,18 @@ func Breadcrumb(cfg BreadcrumbCfg) View {
 		}
 
 		trailItems = append(trailItems, Row(ContainerCfg{
-			ID:      bcCrumbID(cfg.ID, item.ID),
-			Sound:   crumbSound,
-			Color:   crumbColor,
-			Padding: cfg.PaddingCrumb,
-			Radius:  Some(radiusCrumb),
-			Spacing: Some(spacingTrail),
-			OnClick: onClick,
-			OnHover: onHover,
-			Content: crumbContent,
+			ID:    bcCrumbID(cfg.ID, item.ID),
+			Sound: crumbSound,
+			Color: crumbColor,
+			// A disabled trail disables every crumb through
+			// layoutDisables; this is the fill it paints then.
+			colorDisabled: cfg.ColorsCrumb.Disabled,
+			Padding:       cfg.PaddingCrumb,
+			Radius:        Some(radiusCrumb),
+			Spacing:       Some(spacingTrail),
+			OnClick:       onClick,
+			OnHover:       onHover,
+			Content:       crumbContent,
 		}))
 	}
 
@@ -310,7 +299,7 @@ func makeBcOnClick(
 	}
 }
 
-func makeBcOnHover(cs ColorSet) func(EventCtx) {
+func makeBcOnHover(cs ColorSet, selected bool) func(EventCtx) {
 	return func(ctx EventCtx) {
 		if ctx.Layout.Shape.Disabled || !ctx.Layout.Shape.hasEvents() ||
 			ctx.Layout.Shape.events.OnClick == nil {
@@ -320,8 +309,9 @@ func makeBcOnHover(cs ColorSet) func(EventCtx) {
 		// One precedence rule, not two assignments: pressed
 		// (held mouse button) wins over hovered (issue #720).
 		fill, _ := cs.pick(stateFlags{
-			pressed: ctx.Event.MouseButton == MouseLeft,
-			hovered: true,
+			selected: selected,
+			pressed:  ctx.Event.MouseButton == MouseLeft,
+			hovered:  true,
 		})
 		ctx.Layout.Shape.Color = fill
 	}

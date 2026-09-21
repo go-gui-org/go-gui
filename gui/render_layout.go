@@ -262,7 +262,7 @@ func renderContainer(shape *Shape, _ Color, clip drawClip, w *Window) {
 			// The gradient and shadow siblings pass shape.Opacity
 			// because their colors are separate fields.
 			Color: dimColor(shape.Color,
-				1.0, shape.Disabled),
+				1.0, fillDims(shape)),
 			Shader: fx.Shader,
 		}, w)
 	case hasFX && fx.Gradient != nil:
@@ -281,7 +281,7 @@ func renderContainer(shape *Shape, _ Color, clip drawClip, w *Window) {
 		// SDF blur (skipped when ColorFilter is set; FBO blur
 		// handles it via the filter bracket pipeline).
 		c := shape.Color
-		if shape.Disabled {
+		if fillDims(shape) {
 			c = dimAlpha(c)
 		}
 		emitRenderer(RenderCmd{
@@ -306,12 +306,21 @@ func renderContainer(shape *Shape, _ Color, clip drawClip, w *Window) {
 	}
 }
 
+// fillDims reports whether a shape's own fill takes the disabled dim.
+// A disabled shape that carries an explicit disabled fill
+// (ColorSet.Disabled, #741) paints that color as given: the caller
+// chose the disabled look, so halving it again would not be that look.
+// Only the fill is exempt; border, text and children still dim.
+func fillDims(shape *Shape) bool {
+	return shape.Disabled && !shape.colorDisabled.IsSet()
+}
+
 // renderRectangleFill draws a shape's solid body, if it has a visible
 // Color and overlaps the clip.
 func renderRectangleFill(shape *Shape, clip drawClip, w *Window) {
 	dr := shapeBounds(shape)
 	c := shape.Color
-	if shape.Disabled {
+	if fillDims(shape) {
 		c = dimAlpha(c)
 	}
 	if c.A > 0 && rectsOverlap(dr, clip) {
@@ -378,7 +387,7 @@ func renderShapeBorder(shape *Shape, dr drawClip, radius float32, w *Window) {
 func renderCircle(shape *Shape, clip drawClip, w *Window) {
 	dr := shapeBounds(shape)
 	c := shape.Color
-	if shape.Disabled {
+	if fillDims(shape) {
 		c = dimAlpha(c)
 	}
 

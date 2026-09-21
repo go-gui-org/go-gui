@@ -121,7 +121,13 @@ type Shape struct {
 
 	Color       Color
 	ColorBorder Color
-	Sizing      Sizing // sizing logic
+	// colorDisabled is the explicit disabled fill from a widget's
+	// ColorSet.Disabled (#741). layoutDisables paints it into Color
+	// when the shape ends up disabled, whether the flag came from the
+	// widget or from an ancestor, and the renderer then skips the
+	// disabled dim for the fill. Unset keeps the dim.
+	colorDisabled Color
+	Sizing        Sizing // sizing logic
 
 	// Accessibility
 	A11YRole AccessRole
@@ -576,6 +582,9 @@ type shapeButtonColors struct {
 	// by construction — a date picker's day cell. Set from the
 	// unexported ButtonCfg.opticalDigitLabel; see buttonAmendLayout.
 	opticalDigits bool
+	// selected makes pick start from colors.Selected (#741). Set from
+	// the unexported ButtonCfg.selected.
+	selected bool
 }
 
 // shapeEffects holds optional visual effect fields.

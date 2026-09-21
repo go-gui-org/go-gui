@@ -122,6 +122,11 @@ type ButtonCfg struct {
 	// make. A date picker's day cell can; an app's button holding a
 	// count it also relabels cannot.
 	opticalDigitLabel bool
+	// selected paints the button from Colors.Selected, with hover and
+	// press derived from it (#741). Unexported: selection is the model
+	// of the widget that owns the button (a tab control's current tab),
+	// not something an app's own button states.
+	selected bool
 
 	// Accessibility
 	A11YRole AccessRole
@@ -170,6 +175,7 @@ func buttonAmendLayout(ctx EventCtx) {
 	ctx.Layout.Shape.Color, ctx.Layout.Shape.ColorBorder =
 		ctx.Layout.Shape.bc.colors.pick(stateFlags{
 			disabled: ctx.Layout.Shape.Disabled,
+			selected: ctx.Layout.Shape.bc.selected,
 			pressed:  ctx.Window.isKeyPressed(ctx.Layout.Shape.idKey()),
 			focused:  focused,
 		})
@@ -217,6 +223,7 @@ func buttonOnHover(ctx EventCtx) {
 	ctx.Layout.Shape.Color, ctx.Layout.Shape.ColorBorder =
 		ctx.Layout.Shape.bc.colors.pick(stateFlags{
 			disabled: ctx.Layout.Shape.Disabled,
+			selected: ctx.Layout.Shape.bc.selected,
 			pressed: ctx.Event.MouseButton == MouseLeft ||
 				ctx.Window.isKeyPressed(ctx.Layout.Shape.idKey()),
 			focused: ctx.Window.IsFocus(ctx.Layout.Shape.idKey()),
@@ -318,39 +325,47 @@ func Button(cfg ButtonCfg) View {
 		)
 	}
 
+	restFill, _ := cfg.Colors.pick(stateFlags{
+		disabled: cfg.Disabled,
+		selected: cfg.selected,
+	})
 	cv := Row(ContainerCfg{
-		ID:           cfg.ID,
-		Focusable:    !cfg.FocusDisabled,
-		A11YRole:     a11yRole,
-		A11YState:    cfg.A11YState,
-		A11YCfg:      cfg.A11YCfg,
-		Color:        cfg.Colors.Base,
-		ColorBorder:  cfg.Colors.Border,
-		SizeBorder:   Some(sizeBorder),
-		BlurRadius:   cfg.BlurRadius,
-		Shadow:       cfg.Shadow,
-		Gradient:     cfg.Gradient,
-		Padding:      cfg.Padding,
-		Radius:       Some(radius),
-		Width:        cfg.Width,
-		Height:       cfg.Height,
-		MinWidth:     cfg.MinWidth,
-		MaxWidth:     cfg.MaxWidth,
-		MinHeight:    cfg.MinHeight,
-		MaxHeight:    cfg.MaxHeight,
-		Sizing:       cfg.Sizing,
-		Disabled:     cfg.Disabled,
-		HAlign:       hAlign,
-		VAlign:       vAlign,
-		Float:        cfg.Float,
-		FloatAnchor:  cfg.FloatAnchor,
-		FloatTieOff:  cfg.FloatTieOff,
-		FloatOffsetX: cfg.FloatOffsetX,
-		FloatOffsetY: cfg.FloatOffsetY,
-		OnClick:      onClick,
-		Sound:        soundCue,
-		ClickOnSpace: true,
-		ClickOnEnter: true,
+		ID:        cfg.ID,
+		Focusable: !cfg.FocusDisabled,
+		A11YRole:  a11yRole,
+		A11YState: cfg.A11YState,
+		A11YCfg:   cfg.A11YCfg,
+		// The resting fill. Disabled is picked here too, but the
+		// disabled fill that sticks is layoutDisables' job, because a
+		// disabled ancestor is only known there (colorDisabled below).
+		Color:         restFill,
+		colorDisabled: cfg.Colors.Disabled,
+		ColorBorder:   cfg.Colors.Border,
+		SizeBorder:    Some(sizeBorder),
+		BlurRadius:    cfg.BlurRadius,
+		Shadow:        cfg.Shadow,
+		Gradient:      cfg.Gradient,
+		Padding:       cfg.Padding,
+		Radius:        Some(radius),
+		Width:         cfg.Width,
+		Height:        cfg.Height,
+		MinWidth:      cfg.MinWidth,
+		MaxWidth:      cfg.MaxWidth,
+		MinHeight:     cfg.MinHeight,
+		MaxHeight:     cfg.MaxHeight,
+		Sizing:        cfg.Sizing,
+		Disabled:      cfg.Disabled,
+		HAlign:        hAlign,
+		VAlign:        vAlign,
+		Float:         cfg.Float,
+		FloatAnchor:   cfg.FloatAnchor,
+		FloatTieOff:   cfg.FloatTieOff,
+		FloatOffsetX:  cfg.FloatOffsetX,
+		FloatOffsetY:  cfg.FloatOffsetY,
+		OnClick:       onClick,
+		Sound:         soundCue,
+		ClickOnSpace:  true,
+		ClickOnEnter:  true,
 		// A button's label takes the optical correction (issue #346);
 		// tabs, command buttons and every other widget built on Button
 		// inherit it. The hook here is not the one that runs —
@@ -370,6 +385,7 @@ func Button(cfg ButtonCfg) View {
 
 	cv.isButton = true
 	cv.colors = cfg.Colors
+	cv.selected = cfg.selected
 	cv.labelColor = labelColor
 	cv.userOnHover = cfg.OnHover
 	cv.userAmendLayout = cfg.AmendLayout

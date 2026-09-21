@@ -33,6 +33,10 @@ type ContainerCfg struct {
 	// Set to MouseLeft for left-click-only widgets; avoids the
 	// per-frame closure allocation from leftClickOnly.
 	clickButton MouseButton
+	// colorDisabled is the explicit disabled fill a widget built on a
+	// container passes down from its ColorSet.Disabled (#741). See
+	// Shape.colorDisabled.
+	colorDisabled Color
 
 	// ClickOnSpace makes Space press the focused widget on key down and
 	// fire OnClick on key up, like a mouse press and release. The press
@@ -235,6 +239,7 @@ type containerView struct {
 	userOnHover     func(EventCtx)
 	userAmendLayout func(EventCtx)
 	opticalDigits   bool
+	selected        bool
 	// colors is the button's resolved ColorSet, carried whole rather
 	// than fanned into flat fields and packed back into a set at the
 	// shape (#690).
@@ -277,6 +282,7 @@ func (cv *containerView) GenerateLayout(w *Window) Layout {
 			OnHover:       cv.userOnHover,
 			OnAmend:       cv.userAmendLayout,
 			opticalDigits: cv.opticalDigits,
+			selected:      cv.selected,
 			focusRing:     guiTheme.focusRing,
 			labelColor:    cv.labelColor,
 		}
@@ -509,6 +515,7 @@ func buildContainerShape(cfg *ContainerCfg, w *Window) Shape {
 		Color:                cfg.Color,
 		SizeBorder:           sizeBorder,
 		ColorBorder:          cfg.ColorBorder,
+		colorDisabled:        cfg.colorDisabled,
 		Disabled:             cfg.Disabled,
 		Float:                cfg.Float,
 		floatAutoFlip:        cfg.FloatAutoFlip,

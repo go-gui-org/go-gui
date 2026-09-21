@@ -95,20 +95,16 @@ type TabControlCfg struct {
 	ColorContentBorder Color
 	// ColorsTab sets the tabs' per-state colors. ColorTab below is
 	// the shorthand for ColorsTab.Base and wins over it.
-	// ColorTabSelected/ColorTabDisabled theme the selected and
-	// disabled tabs. Unset takes the theme defaults.
+	// ColorsTab.Selected and ColorsTab.Disabled theme the selected
+	// and disabled tabs (#741). Unset takes the theme defaults.
 	// exportaudit:keep — caller-facing config (issue #372)
 	ColorsTab ColorSet
 	// exportaudit:keep — caller-facing config (issue #372)
-	ColorTab Color
-	// exportaudit:keep — caller-facing config (issue #372)
-	ColorTabSelected Color
-	// exportaudit:keep — caller-facing config (issue #372)
-	ColorTabDisabled Color
-	Sizing           Sizing
-	Disabled         bool
-	Invisible        bool
-	Reorderable      bool
+	ColorTab    Color
+	Sizing      Sizing
+	Disabled    bool
+	Invisible   bool
+	Reorderable bool
 
 	// Sound overrides the theme's selection cue for this instance.
 	// SoundNone (the zero value) takes the theme's cue for that role,
@@ -124,17 +120,6 @@ type TabControlCfg struct {
 
 type tabControlView struct {
 	cfg TabControlCfg
-}
-
-// tabFlatFill returns cs with its four fill slots pinned to c and its
-// two border slots untouched. A selected or disabled tab does not react
-// to the pointer, but it still draws the set's border and focus ring.
-func tabFlatFill(cs ColorSet, c Color) ColorSet {
-	cs.Base = c
-	cs.Hover = c
-	cs.Click = c
-	cs.Focus = c
-	return cs
 }
 
 func applyTabControlDefaults(cfg *TabControlCfg) {
@@ -159,12 +144,6 @@ func applyTabControlDefaults(cfg *TabControlCfg) {
 		cfg.ColorContentBorder = s.colorContentBorder
 	}
 	cfg.ColorsTab = cfg.ColorsTab.resolved(cfg.ColorTab, s.ColorsTab)
-	if !cfg.ColorTabSelected.IsSet() {
-		cfg.ColorTabSelected = s.colorTabSelected
-	}
-	if !cfg.ColorTabDisabled.IsSet() {
-		cfg.ColorTabDisabled = s.colorTabDisabled
-	}
 	if !cfg.Padding.IsSet() {
 		cfg.Padding = s.Padding
 	}
@@ -318,17 +297,6 @@ func (tv *tabControlView) GenerateLayout(w *Window) Layout {
 				dragReorderGapView(drag, dragReorderHorizontal))
 		}
 
-		// The tab's set. Selected and disabled stay flat in the fill
-		// slots: pick has no slot for them (issue #720). The borders
-		// keep the set's own, so a selected tab still shows the focus
-		// ring.
-		tabSet := cfg.ColorsTab
-		if isDisabled {
-			tabSet = tabFlatFill(tabSet, cfg.ColorTabDisabled)
-		} else if isSelected {
-			tabSet = tabFlatFill(tabSet, cfg.ColorTabSelected)
-		}
-
 		ts := cfg.TextStyle
 		if isDisabled {
 			ts = cfg.TextStyleDisabled
@@ -365,10 +333,14 @@ func (tv *tabControlView) GenerateLayout(w *Window) Layout {
 			A11YRole:  AccessRoleTabItem,
 			A11YState: a11yState,
 			A11YCfg:   A11YCfg{A11YLabel: item.Label},
-			Color:     tabSet.Base,
+			Color:     cfg.ColorsTab.Base,
 			// Fully resolved in applyTabControlDefaults; Button
-			// fills anything still unset from its own theme.
-			Colors:     tabSet,
+			// fills anything still unset from its own theme. The
+			// selected and disabled fills come from the same set
+			// through pick (#741): a selected tab now reacts to
+			// hover and press, derived from ColorsTab.Selected.
+			Colors:     cfg.ColorsTab,
+			selected:   isSelected,
 			Padding:    cfg.PaddingTab,
 			SizeBorder: SomeF(sizeTabBorder),
 			Radius:     SomeF(radiusTab),

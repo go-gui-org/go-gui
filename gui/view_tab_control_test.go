@@ -347,34 +347,69 @@ func TestTabControlColorsTabReachTabButton(t *testing.T) {
 	}
 }
 
-// A selected tab pins its four fill slots flat but keeps the set's
-// borders, so the focus ring survives selection (issue #720).
-func TestTabControlSelectedTabKeepsBorders(t *testing.T) {
-	sel := RGB(1, 0, 1)
+// A selected tab rests on ColorsTab.Selected, reacts to hover and
+// press with the OKLCH step from it, and keeps the set's borders, so
+// the focus ring survives selection (#741). Before #741 the selected
+// color was pinned into every fill slot and the tab did not react.
+func TestTabControlSelectedTabReactsAndKeepsBorders(t *testing.T) {
+	sel := RGB(40, 90, 200)
 	border := RGB(0, 0, 1)
 	v := TabControl(TabControlCfg{
-		ID:               "tabs",
-		Selected:         "a",
-		Items:            []TabItemCfg{{ID: "a", Label: "A"}},
-		ColorTabSelected: sel,
-		ColorsTab:        ColorSet{Border: border},
-		OnSelect:         func(_ string, ctx EventCtx) {},
+		ID:        "tabs",
+		Selected:  "a",
+		Items:     []TabItemCfg{{ID: "a", Label: "A"}},
+		ColorsTab: ColorSet{Selected: sel, Border: border},
+		OnSelect:  func(_ string, ctx EventCtx) {},
 	})
 	layout := generateViewLayout(v, &Window{})
 	tab := layout.Children[0].Children[0]
 	if tab.Shape.bc == nil {
 		t.Fatal("tab button carries no resolved color set")
 	}
-	got := tab.Shape.bc.colors
-	for name, c := range map[string]Color{
-		"Base": got.Base, "Hover": got.Hover,
-		"Click": got.Click, "Focus": got.Focus,
-	} {
-		if !c.eq(sel) {
-			t.Errorf("%s = %v, want ColorTabSelected %v", name, c, sel)
-		}
+	if !tab.Shape.bc.selected {
+		t.Fatal("selected tab's button is not marked selected")
 	}
-	if !got.Border.eq(border) {
-		t.Errorf("Border = %v, want %v", got.Border, border)
+	if !tab.Shape.Color.eq(sel) {
+		t.Errorf("resting fill = %v, want Selected %v", tab.Shape.Color, sel)
+	}
+	cs := tab.Shape.bc.colors
+	hover, _ := cs.pick(stateFlags{selected: true, hovered: true})
+	press, _ := cs.pick(stateFlags{selected: true, pressed: true})
+	if want := accentShift(sel, oklchRampDelta); !hover.eq(want) {
+		t.Errorf("selected hover = %v, want %v", hover, want)
+	}
+	if want := accentShift(sel, -oklchRampDelta); !press.eq(want) {
+		t.Errorf("selected press = %v, want %v", press, want)
+	}
+	if hover.eq(sel) || press.eq(sel) {
+		t.Error("selected tab does not react to hover or press")
+	}
+	if !cs.Border.eq(border) {
+		t.Errorf("Border = %v, want %v", cs.Border, border)
+	}
+}
+
+// A disabled tab paints ColorsTab.Disabled, and the renderer does not
+// dim that fill again (#741).
+func TestTabControlDisabledTabPaintsExplicitColor(t *testing.T) {
+	dis := RGB(10, 200, 30)
+	v := TabControl(TabControlCfg{
+		ID:        "tabs",
+		Selected:  "a",
+		Items:     []TabItemCfg{{ID: "a", Label: "A"}, {ID: "b", Label: "B", Disabled: true}},
+		ColorsTab: ColorSet{Disabled: dis},
+		OnSelect:  func(_ string, ctx EventCtx) {},
+	})
+	layout := generateViewLayout(v, &Window{})
+	layoutDisables(&layout, false)
+	tab := layout.Children[0].Children[1]
+	if !tab.Shape.Disabled {
+		t.Fatal("disabled tab shape is not disabled")
+	}
+	if !tab.Shape.Color.eq(dis) {
+		t.Errorf("disabled fill = %v, want %v", tab.Shape.Color, dis)
+	}
+	if fillDims(tab.Shape) {
+		t.Error("explicit disabled fill still takes the render dim")
 	}
 }

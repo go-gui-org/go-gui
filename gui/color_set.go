@@ -47,6 +47,23 @@ type ColorSet struct {
 	// BorderFocus is the border color while keyboard-focused. Unset
 	// falls back to Border, then to the theme.
 	BorderFocus Color
+
+	// Selected is the resting fill of a selected element: the current
+	// tab, the current crumb, a selected row. Hover and press on a
+	// selected element do not take Hover and Click. pick derives them
+	// from Selected with the same OKLCH lightness step ThemeMaker uses
+	// for the accent ramp (#732), so the change reads the same on every
+	// hue and a caller sets one color, not three (#741). Unset falls
+	// through to the theme; with no theme value either, a selected
+	// element paints as an unselected one.
+	Selected Color
+
+	// Disabled is the fill of a disabled element. When it is set, it
+	// REPLACES the renderer's disabled dim for the fill: the color is
+	// painted as given, not at half alpha, so a caller says exactly
+	// what a disabled element looks like (#741). The border and the
+	// text still dim. Unset keeps the old rule: Base, dimmed.
+	Disabled Color
 }
 
 // Flat returns a ColorSet whose every field is c, including the two
@@ -56,6 +73,11 @@ type ColorSet struct {
 // Flat is not the same as ColorSet{Base: c}. Base only backs the three
 // interactive states; Flat also pins the borders, which is what makes
 // the widget visually inert rather than merely uniform in its fill.
+//
+// Flat leaves Selected and Disabled unset. Those two are not
+// interaction states the pointer drives, and pinning them would
+// override the theme's selected color and remove the disabled dim
+// from every Flat caller.
 func Flat(c Color) ColorSet {
 	return ColorSet{
 		Base:        c,
@@ -71,7 +93,8 @@ func Flat(c Color) ColorSet {
 // widgets to skip resolution entirely for the common zero-value case.
 func (cs ColorSet) IsSet() bool {
 	return cs.Base.IsSet() || cs.Hover.IsSet() || cs.Click.IsSet() ||
-		cs.Focus.IsSet() || cs.Border.IsSet() || cs.BorderFocus.IsSet()
+		cs.Focus.IsSet() || cs.Border.IsSet() || cs.BorderFocus.IsSet() ||
+		cs.Selected.IsSet() || cs.Disabled.IsSet()
 }
 
 // resolve returns the set with its internal fallbacks applied: the
@@ -129,6 +152,8 @@ func (cs ColorSet) resolved(shorthand Color, theme ColorSet) ColorSet {
 	setIfUnset(&cs.Focus, theme.Focus)
 	setIfUnset(&cs.Border, theme.Border)
 	setIfUnset(&cs.BorderFocus, theme.BorderFocus)
+	setIfUnset(&cs.Selected, theme.Selected)
+	setIfUnset(&cs.Disabled, theme.Disabled)
 	return cs
 }
 
@@ -152,8 +177,13 @@ func (cs ColorSet) resolved(shorthand Color, theme ColorSet) ColorSet {
 // header (#721): both reach pick with disabled true on a disabled
 // widget, and both get the resting colors back, which is what the shape
 // already carried out of generation.
+//
+// selected is not an interaction state; it is the widget's own model
+// (the current tab). It changes which colors the fill states use, not
+// which state wins.
 type stateFlags struct {
 	disabled bool
+	selected bool
 	pressed  bool
 	focused  bool
 	hovered  bool
@@ -166,6 +196,13 @@ type stateFlags struct {
 //
 //	fill:   disabled > pressed > hovered > focused > base
 //	border: disabled > focused > base
+//
+// A disabled fill is Disabled when set, else Base. A selected fill
+// keeps the same order but starts from Selected: pressed and hovered
+// are Selected moved one OKLCH lightness step down and up, and
+// focused and resting are Selected itself. The border rule does not
+// change with selection, so a selected element still shows the focus
+// border.
 //
 // The fill follows the pointer. A mouse user clicks a control, the
 // click focuses it, and the pointer is still over it: under a
@@ -196,11 +233,28 @@ type stateFlags struct {
 // would put back the per-site if that produced the bug history above.
 func (cs ColorSet) pick(s stateFlags) (fill, border Color) {
 	if s.disabled {
+		if cs.Disabled.IsSet() {
+			return cs.Disabled, cs.Border
+		}
 		return cs.Base, cs.Border
 	}
 	border = cs.Border
 	if s.focused {
 		border = cs.BorderFocus
+	}
+	if s.selected && cs.Selected.IsSet() {
+		// Derived here, not stored by resolved: the shift is a few
+		// float operations with no allocation, it runs only while a
+		// selected element is hovered or pressed, and storing it would
+		// add hidden fields that make a resolved set differ from the
+		// same set built by hand.
+		switch {
+		case s.pressed:
+			return accentShift(cs.Selected, -oklchRampDelta), border
+		case s.hovered:
+			return accentShift(cs.Selected, oklchRampDelta), border
+		}
+		return cs.Selected, border
 	}
 	switch {
 	case s.pressed:

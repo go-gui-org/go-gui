@@ -504,9 +504,13 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 				Click:       cfg.ColorActive,
 				Border:      cfg.ColorBorder,
 				BorderFocus: borderFocus,
+				Selected:    colorSelect,
+				// A disabled tab has always painted the panel color
+				// at the renderer's half alpha. An explicit Disabled
+				// replaces that dim (#741), so the theme states the
+				// dimmed color itself and the tab looks the same.
+				Disabled: dimAlpha(cfg.ColorPanel),
 			},
-			colorTabSelected:  colorSelect,
-			colorTabDisabled:  cfg.ColorPanel,
 			Padding:           PaddingNone,
 			PaddingHeader:     PaddingNone,
 			paddingContent:    cfg.PaddingMedium.withSet(),
@@ -527,12 +531,12 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			Colors:     ColorSet{Base: ColorTransparent, Border: ColorTransparent},
 			colorTrail: ColorTransparent,
 			ColorsCrumb: ColorSet{
-				Base:  ColorTransparent,
-				Hover: cfg.ColorHover,
-				Click: cfg.ColorActive,
+				Base:     ColorTransparent,
+				Hover:    cfg.ColorHover,
+				Click:    cfg.ColorActive,
+				Selected: ColorTransparent,
+				Disabled: ColorTransparent,
 			},
-			colorCrumbSelected: ColorTransparent,
-			colorCrumbDisabled: ColorTransparent,
 			colorContent:       cfg.ColorPanel,
 			colorContentBorder: cfg.ColorBorder,
 			Padding:            PaddingNone,

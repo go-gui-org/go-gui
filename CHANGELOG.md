@@ -8,6 +8,34 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Changed
+
+- **BREAKING: `ColorSet` has `Selected` and `Disabled` slots; the flat tab and
+  crumb fields are deleted (#741)** — selected and disabled colors were the last
+  interaction colors outside `ColorSet`, so each widget ordered them by hand. A
+  selected tab pinned its selected color into every fill slot and did not react
+  to hover or press. `ColorSet.Selected` is now the resting fill of a selected
+  element, and hover and press on it are derived with the same OKLCH lightness
+  step as the accent ramp (#732), so a selected tab now reacts to the pointer.
+  `ColorSet.Disabled` is the fill of a disabled element, and it **replaces** the
+  renderer's half-alpha dim for that fill: the color is painted as given. The
+  border and text still dim. With `Disabled` unset, the old rule stays (Base,
+  dimmed). `Flat` leaves both new slots unset. `Disabled` is honored by `Button`
+  and everything built on it (tabs included) and by `Breadcrumb`, also when the
+  disabled flag comes from an ancestor. Other widgets ignore it for now. The
+  theme states the disabled tab color pre-dimmed, so default tabs look the same
+  (the golden tests pass unchanged). Migration:
+
+  | Before                              | After                                                                               |
+  | ----------------------------------- | ----------------------------------------------------------------------------------- |
+  | `TabControlCfg.ColorTabSelected`    | `ColorsTab.Selected`                                                                |
+  | `TabControlCfg.ColorTabDisabled: c` | `ColorsTab.Disabled: c` (now undimmed; to keep the old look, use `c` at half alpha) |
+  | `BreadcrumbCfg.ColorCrumbSelected`  | `ColorsCrumb.Selected`                                                              |
+  | `BreadcrumbCfg.ColorCrumbDisabled`  | `ColorsCrumb.Disabled`                                                              |
+
+  The scan over go-charts, go-edit, go-kite, go-map, go-term, go-speedtest and
+  go-shirei found no uses of the deleted fields.
+
 ## [v0.78.0] - 2026-09-21
 
 ### Added

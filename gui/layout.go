@@ -82,6 +82,13 @@ func layoutDisablesDepth(layout *Layout, disabled bool, depth int) {
 	}
 	isDisabled := disabled || layout.Shape.Disabled
 	layout.Shape.Disabled = isDisabled
+	// An explicit disabled fill replaces the resting one here, not in
+	// the widget, because only this pass knows about a disabled
+	// ancestor (#741). The hover and amend passes skip disabled
+	// shapes, so nothing paints over it later in the frame.
+	if isDisabled && layout.Shape.colorDisabled.IsSet() {
+		layout.Shape.Color = layout.Shape.colorDisabled
+	}
 	for i := range layout.Children {
 		layoutDisablesDepth(&layout.Children[i], isDisabled, depth+1)
 	}

@@ -381,8 +381,9 @@ func (t Theme) WithColors(o ColorOverrides) Theme {
 	t.tabControlStyle.ColorsTab.Hover = hover
 	t.tabControlStyle.ColorsTab.Focus = focus
 	t.tabControlStyle.ColorsTab.Click = active
-	t.tabControlStyle.colorTabSelected = sel
-	t.tabControlStyle.colorTabDisabled = panel
+	t.tabControlStyle.ColorsTab.Selected = sel
+	// Pre-dimmed: an explicit Disabled replaces the render dim (#741).
+	t.tabControlStyle.ColorsTab.Disabled = dimAlpha(panel)
 	t.tabControlStyle.ColorsTab.Border = border
 	t.tabControlStyle.ColorsTab.BorderFocus = borderFocus
 	// The selected tab fills with the select color, so its label is
