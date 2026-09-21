@@ -8,6 +8,8 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [v0.78.0] - 2026-09-21
+
 ### Added
 
 - **`gui.WithExt` and `gui.Ext` (#733)** — a sibling widget package can now
