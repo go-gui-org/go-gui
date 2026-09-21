@@ -10,6 +10,14 @@ and this project adheres to
 
 ### Added
 
+- **`gui.WithExt` and `gui.Ext` (#733)** — a sibling widget package can now
+  store its own style value in the `Theme`, keyed by the exact value type.
+  `WithExt` returns a new theme with a fresh id, so the install fast path and
+  `Themed` scoping cover the value. `Ext` reports a missing value as the zero
+  value and false. Stored values must be immutable: theme copies share the
+  backing map. Every rebuild path (`WithColors`, `WithPadding`, `WithBorders`,
+  `AdjustFontSize`) carries the values, so a sibling derives once at build time
+  instead of syncing a parallel struct by hand.
 - **`gui.ThemeRegister` and `gui.ThemeRegisteredNames` (#713)** — an app that
   builds a custom theme with `ThemeMaker` can now register it, so `ThemePicker`
   lists it, and can enumerate registered names to build its own picker. Empty

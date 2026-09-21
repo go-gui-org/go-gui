@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"reflect"
 	"sync"
 	"sync/atomic"
 )
@@ -246,6 +247,13 @@ type Theme struct {
 	// restores the original instead of rebuilding from the zeroed
 	// Cfg. Nil on themes that were never stripped.
 	restoreCfg *ThemeCfg
+
+	// ext holds sibling theme extensions, keyed by exact value
+	// type (issue #733). A sibling stores its own style value
+	// with WithExt and reads it with Ext. Copies share the
+	// backing map, so stored values must be immutable;
+	// WithExt clones on write. Nil on themes with no extensions.
+	ext map[reflect.Type]any
 
 	ColorBackground Color
 	ColorPanel      Color
@@ -530,7 +538,9 @@ func (t Theme) WithPadding(padding bool) Theme {
 		if t.restoreCfg != nil {
 			source = *t.restoreCfg
 		}
-		return ThemeMaker(source)
+		out := ThemeMaker(source)
+		out.ext = t.ext
+		return out
 	}
 	cfg := t.Cfg
 	cfg.Padding = PaddingNone
@@ -544,6 +554,7 @@ func (t Theme) WithPadding(padding bool) Theme {
 	cfg.RadiusMedium = radiusNone
 	cfg.RadiusLarge = radiusNone
 	out := ThemeMaker(cfg)
+	out.ext = t.ext
 	if t.restoreCfg != nil {
 		out.restoreCfg = t.restoreCfg
 	} else {
@@ -565,6 +576,7 @@ func (t Theme) WithBorders(borders bool) Theme {
 		cfg.SizeBorder = 0
 	}
 	out := ThemeMaker(cfg)
+	out.ext = t.ext
 	if t.restoreCfg != nil {
 		dup := *t.restoreCfg
 		dup.SizeBorder = cfg.SizeBorder
