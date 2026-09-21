@@ -309,14 +309,24 @@ func selectOptionView(
 	selectMultiple := cfg.SelectMultiple
 	onSelect := cfg.OnSelect
 	selectArray := cfg.Selected
-	optColor := ColorTransparent
-	// The highlighted row paints the subtle wash, not the full
-	// accent slab (visual-refresh §4.3), so its label and check mark
-	// stay in the body text color — a tint needs no paired
-	// foreground.
-	if highlighted {
-		optColor = cfg.ColorSelectSubtle
+	// The row fill goes through pick, so the order is the one every
+	// widget uses and is not written here by hand (#741, #747). The
+	// keyboard highlight is the focus state, the pointer the hover
+	// state; both paint the subtle wash, not the full accent slab
+	// (visual-refresh §4.3), so the label and check mark stay in the
+	// body text color — a tint needs no paired foreground.
+	// Selected stays unset: selection is a check mark, not a fill.
+	rowColors := ColorSet{
+		Base:  ColorTransparent,
+		Hover: cfg.ColorSelectSubtle,
+		Focus: cfg.ColorSelectSubtle,
 	}
+	optColor, _ := rowColors.pick(stateFlags{focused: highlighted})
+	// Computed here, not in OnHover: the closure then holds one
+	// Color, not the whole set.
+	optHoverColor, _ := rowColors.pick(stateFlags{
+		focused: highlighted, hovered: true,
+	})
 
 	checkColor := ColorTransparent
 	if slices.Contains(cfg.Selected, option) {
@@ -369,8 +379,9 @@ func selectOptionView(
 		OnHover: func(ctx EventCtx) {
 			ctx.Window.setMouseCursor(CursorPointingHand)
 			// Hover paints the same subtle wash as the keyboard
-			// highlight (visual-refresh §4.3).
-			ctx.Layout.Shape.Color = cfg.ColorSelectSubtle
+			// highlight (visual-refresh §4.3); hover wins over
+			// focus in pick, and both slots hold the wash.
+			ctx.Layout.Shape.Color = optHoverColor
 			sh := StateMap[string, int](
 				ctx.Window, nsSelectHL, capModerate)
 			// Default 0: absent entry gets zero index, checked immediately.

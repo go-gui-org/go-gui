@@ -579,3 +579,60 @@ func TestSelectLabelAmendEmptyCtxNoPanic(t *testing.T) {
 	selectLabelAmend(EventCtx{Layout: &Layout{Shape: &Shape{}}})
 	selectLabelAmend(EventCtx{Layout: &Layout{Shape: &Shape{}, Children: []Layout{{}}}})
 }
+
+// An option row takes its fill from ColorSet.pick, the same order as
+// every other widget (#747): the keyboard highlight is Focus, the
+// pointer is Hover, both hold the subtle wash, and Selected stays
+// unset — selection is a check mark, not a fill. Membership in
+// Selected must never move the fill.
+func TestSelectOptionRowFillOrder(t *testing.T) {
+	subtle := RGB(10, 20, 30)
+	tests := []struct {
+		name               string
+		highlighted, hover bool
+		selectedMember     bool
+		want               Color
+	}{
+		{"plain", false, false, false, ColorTransparent},
+		{"highlighted", true, false, false, subtle},
+		{"hovered", false, true, false, subtle},
+		{"highlighted and hovered", true, true, false, subtle},
+		{"selected member not highlighted", false, false, true, ColorTransparent},
+		{"selected member highlighted", true, false, true, subtle},
+		{"selected member hovered", false, true, true, subtle},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg := &SelectCfg{
+				TextStyle:         DefaultTextStyle,
+				ColorSelectSubtle: subtle,
+			}
+			if tc.selectedMember {
+				cfg.Selected = []string{"B"}
+			}
+			w := &Window{}
+			layout := generateViewLayout(
+				selectOptionView(cfg, "s", "B", 0, tc.highlighted), w)
+			if tc.hover {
+				layout.Shape.events.OnHover(EventCtx{&layout, &Event{}, w})
+			}
+			if layout.Shape.Color != tc.want {
+				t.Errorf("fill = %v, want %v", layout.Shape.Color, tc.want)
+			}
+			// The row's fill also equals pick on the subtle set
+			// directly, so a future reorder of either side drifts
+			// the two apart instead of silently agreeing.
+			rowColors := ColorSet{
+				Base:  ColorTransparent,
+				Hover: subtle,
+				Focus: subtle,
+			}
+			wantPick, _ := rowColors.pick(stateFlags{
+				focused: tc.highlighted, hovered: tc.hover,
+			})
+			if wantPick != tc.want {
+				t.Errorf("pick = %v, want %v", wantPick, tc.want)
+			}
+		})
+	}
+}
