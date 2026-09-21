@@ -15,7 +15,7 @@ type themedView struct {
 // ready-made child views would receive children already built under the
 // enclosing theme. Deferring construction is what makes the scope work.
 //
-//	gui.Themed(gui.ThemeGet("light"), func(w *gui.Window) gui.View {
+//	gui.Themed(gui.ThemeLight, func(w *gui.Window) gui.View {
 //	    return gui.Column(gui.ContainerCfg{Content: []gui.View{
 //	        gui.Button(gui.ButtonCfg{ID: "ok", Text: "OK"}),
 //	    }})
