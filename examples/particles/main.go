@@ -227,15 +227,15 @@ func landingView(w *gui.Window, ww, wh float32) gui.View {
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      "PARTICLES",
-				TextStyle: ts(theme.B1, 52, colorNeonCyan),
+				TextStyle: ts(theme.TextStyleDisplay, 52, colorNeonCyan),
 			}),
 			gui.Text(gui.TextCfg{
 				Text:      "INTERACTIVE TOY",
-				TextStyle: ts(theme.B2, 24, colorNeonPink),
+				TextStyle: ts(theme.TextStyleTitle, 24, colorNeonPink),
 			}),
 			gui.Text(gui.TextCfg{
 				Text:      "ARCADE SECTOR 2026",
-				TextStyle: ts(theme.M3, 14, colorNeonCyan.WithOpacity(0.6)),
+				TextStyle: ts(theme.TextStyleCode, 14, colorNeonCyan.WithOpacity(0.6)),
 			}),
 			gui.Separator(gui.SeparatorCfg{
 				Length: 300,
@@ -256,13 +256,13 @@ func landingView(w *gui.Window, ww, wh float32) gui.View {
 				Content: []gui.View{
 					gui.Text(gui.TextCfg{
 						Text:      "START",
-						TextStyle: ts(theme.B3, 20, colorNeonGreen),
+						TextStyle: ts(theme.TextStyleTitleSmall, 20, colorNeonGreen),
 					}),
 				},
 			}),
 			gui.Text(gui.TextCfg{
 				Text:      "CLICK TO START",
-				TextStyle: ts(theme.B3, 16, startColor),
+				TextStyle: ts(theme.TextStyleTitleSmall, 16, startColor),
 			}),
 			gui.Separator(gui.SeparatorCfg{
 				Length: 300,
@@ -271,7 +271,7 @@ func landingView(w *gui.Window, ww, wh float32) gui.View {
 			}),
 			gui.Text(gui.TextCfg{
 				Text:      "DRAG TO AIM  •  1-5 PRESETS  •  ESC MENU",
-				TextStyle: ts(theme.M3, 12, colorDimText.WithOpacity(0.6)),
+				TextStyle: ts(theme.TextStyleCode, 12, colorDimText.WithOpacity(0.6)),
 			}),
 		},
 	})
@@ -465,7 +465,7 @@ func sidebarView(w *gui.Window, wh float32) gui.View {
 			gui.Text(gui.TextCfg{
 				Text: fmt.Sprintf("Particles: %d / %d",
 					len(app.Particles), maxParticles),
-				TextStyle: ts(theme.M3, 12, colorDimText.WithOpacity(0.5)),
+				TextStyle: ts(theme.TextStyleCode, 12, colorDimText.WithOpacity(0.5)),
 			}),
 		},
 	})
@@ -662,7 +662,7 @@ func sliderRow(label, id string, val, min, max, step float32,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      label,
-				TextStyle: ts(theme.M3, 12, colorDimText),
+				TextStyle: ts(theme.TextStyleCode, 12, colorDimText),
 				MinWidth:  58,
 			}),
 			gui.Slider(gui.SliderCfg{
@@ -697,7 +697,7 @@ func presetBtn(_ *gui.Window, label string, color gui.Color,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      label,
-				TextStyle: ts(theme.M3, 11, color),
+				TextStyle: ts(theme.TextStyleCode, 11, color),
 			}),
 		},
 	})

@@ -90,7 +90,7 @@ func mainView(w *gui.Window) gui.View {
 				}
 			},
 			Content: []gui.View{
-				gui.Text(gui.TextCfg{Text: cell.label, TextStyle: theme.B3}),
+				gui.Text(gui.TextCfg{Text: cell.label, TextStyle: theme.TextStyleTitleSmall}),
 			},
 		}))
 	}
@@ -128,11 +128,11 @@ func mainView(w *gui.Window) gui.View {
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      "Cursor Demo - hover a cell to change the cursor shape",
-				TextStyle: theme.B1,
+				TextStyle: theme.TextStyleDisplay,
 			}),
 			gui.Text(gui.TextCfg{
 				Text:      "On Linux the diagonal resize cursors come from the desktop cursor theme.",
-				TextStyle: theme.M3,
+				TextStyle: theme.TextStyleCode,
 			}),
 			row(cells[:5]),
 			row(cells[5:]),
@@ -143,7 +143,7 @@ func mainView(w *gui.Window) gui.View {
 				Content: []gui.View{
 					gui.Text(gui.TextCfg{
 						Text:      "Current: " + status,
-						TextStyle: theme.M2,
+						TextStyle: theme.Mono(theme.TextStyleBodyLarge),
 					}),
 				},
 			}),

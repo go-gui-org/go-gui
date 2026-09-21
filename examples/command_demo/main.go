@@ -200,12 +200,12 @@ func body(app *App, theme gui.Theme) gui.View {
 			}),
 			gui.Text(gui.TextCfg{
 				Text:      "Command Demo",
-				TextStyle: theme.B1,
+				TextStyle: theme.TextStyleDisplay,
 			}),
 			gui.Text(gui.TextCfg{
 				Text: fmt.Sprintf(
 					"Counter: %d  (%s)", app.Counter, savedText),
-				TextStyle: theme.M1,
+				TextStyle: theme.Mono(theme.TextStyleDisplay.Roman()),
 			}),
 			gui.Text(gui.TextCfg{Text: ""}),
 			gui.Row(gui.ContainerCfg{
@@ -245,7 +245,7 @@ func statusBar(app *App, theme gui.Theme) gui.View {
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      app.Log,
-				TextStyle: theme.M3,
+				TextStyle: theme.TextStyleCode,
 			}),
 		},
 	})

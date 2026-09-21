@@ -55,34 +55,34 @@ func mainView(w *gui.Window) gui.View {
 
 	// Compose the document from styled runs so each feature is easy to spot.
 	rt := gui.RichText{Runs: []gui.RichTextRun{
-		gui.RichRun("Rich Text Demo", t.B1),
+		gui.RichRun("Rich Text Demo", t.TextStyleDisplay),
 		gui.RichBr(),
 		gui.RichBr(),
-		gui.RichRun("This is normal text. ", t.N3),
-		gui.RichRun("This is bold text. ", t.B3),
-		gui.RichRun("This is italic text. ", t.I3),
-		gui.RichRun("This is bold-italic text.", t.BI3),
+		gui.RichRun("This is normal text. ", t.TextStyleBody),
+		gui.RichRun("This is bold text. ", t.TextStyleTitleSmall),
+		gui.RichRun("This is italic text. ", t.TextStyleBody.Italic()),
+		gui.RichRun("This is bold-italic text.", t.TextStyleBody.Italic().Bold()),
 		gui.RichBr(),
 		gui.RichBr(),
-		gui.RichRun("Links are supported: ", t.N3),
-		gui.RichLink("Go Website", "https://go.dev", t.N3),
-		gui.RichRun(" and ", t.N3),
-		gui.RichLink("Go GUI Repo", "https://github.com/go-gui-org/go-gui", t.N3),
-		gui.RichRun(".", t.N3),
+		gui.RichRun("Links are supported: ", t.TextStyleBody),
+		gui.RichLink("Go Website", "https://go.dev", t.TextStyleBody),
+		gui.RichRun(" and ", t.TextStyleBody),
+		gui.RichLink("Go GUI Repo", "https://github.com/go-gui-org/go-gui", t.TextStyleBody),
+		gui.RichRun(".", t.TextStyleBody),
 		gui.RichBr(),
 		gui.RichBr(),
-		gui.RichRun("Abbreviations show tooltips on hover: ", t.N3),
-		gui.RichAbbr("HTML", "HyperText Markup Language", t.N3),
-		gui.RichRun(" and ", t.N3),
-		gui.RichAbbr("CSS", "Cascading Style Sheets", t.N3),
-		gui.RichRun(".", t.N3),
+		gui.RichRun("Abbreviations show tooltips on hover: ", t.TextStyleBody),
+		gui.RichAbbr("HTML", "HyperText Markup Language", t.TextStyleBody),
+		gui.RichRun(" and ", t.TextStyleBody),
+		gui.RichAbbr("CSS", "Cascading Style Sheets", t.TextStyleBody),
+		gui.RichRun(".", t.TextStyleBody),
 		gui.RichBr(),
 		gui.RichBr(),
 		gui.RichRun("Long paragraphs wrap automatically when "+
 			"TextModeWrap is enabled. This paragraph contains "+
 			"enough text to demonstrate wrapping behavior in "+
 			"the RTF widget. Resize the window to see how the "+
-			"text reflows to fit the available width.", t.N3),
+			"text reflows to fit the available width.", t.TextStyleBody),
 	}}
 
 	return gui.Column(gui.ContainerCfg{
@@ -94,7 +94,7 @@ func mainView(w *gui.Window) gui.View {
 			gui.RTF(gui.RTFCfg{
 				RichText:      rt,
 				Mode:          gui.TextModeWrap,
-				BaseTextStyle: &t.N3,
+				BaseTextStyle: &t.TextStyleBody,
 			}),
 		},
 	})

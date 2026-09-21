@@ -91,7 +91,7 @@ func demoRadioGroup(w *gui.Window) gui.View {
 		Spacing: gui.SomeF(16),
 		Padding: gui.NoPadding,
 		Content: []gui.View{
-			gui.Text(gui.TextCfg{Text: "Column layout", TextStyle: t.B3}),
+			gui.Text(gui.TextCfg{Text: "Column layout", TextStyle: t.TextStyleTitleSmall}),
 			gui.RadioButtonGroupColumn(gui.RadioButtonGroupCfg{
 				ID:    "demo_selection_demo_radio_group",
 				Value: app.RadioValue,
@@ -104,7 +104,7 @@ func demoRadioGroup(w *gui.Window) gui.View {
 					appState(ctx.Window).RadioValue = v
 				},
 			}),
-			gui.Text(gui.TextCfg{Text: "Row layout", TextStyle: t.B3}),
+			gui.Text(gui.TextCfg{Text: "Row layout", TextStyle: t.TextStyleTitleSmall}),
 			gui.RadioButtonGroupRow(gui.RadioButtonGroupCfg{
 				ID:    "demo_selection_demo_radio_group_2",
 				Value: app.RadioValue,
@@ -131,7 +131,7 @@ func demoSelect(w *gui.Window) gui.View {
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      fmt.Sprintf("Selected: %v", app.SelectValue),
-				TextStyle: t.N3,
+				TextStyle: t.TextStyleBody,
 			}),
 			sectionLabel(t, "Single Select"),
 			gui.Select(gui.SelectCfg{
@@ -168,9 +168,9 @@ func demoListBox(w *gui.Window) gui.View {
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      fmt.Sprintf("Selected: %v", app.ListBoxSelected),
-				TextStyle: t.N3,
+				TextStyle: t.TextStyleBody,
 			}),
-			gui.Text(gui.TextCfg{Text: "Virtualized list (scroll)", TextStyle: t.B3}),
+			gui.Text(gui.TextCfg{Text: "Virtualized list (scroll)", TextStyle: t.TextStyleTitleSmall}),
 			gui.ListBox(gui.ListBoxCfg{
 				ID:          "listbox-demo",
 				Sizing:      gui.FillFit,
@@ -211,7 +211,7 @@ func demoCombobox(w *gui.Window) gui.View {
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      "Selected: " + app.ComboboxValue,
-				TextStyle: t.N3,
+				TextStyle: t.TextStyleBody,
 			}),
 			gui.Combobox(gui.ComboboxCfg{
 				ID:          "combobox-demo",
@@ -241,7 +241,7 @@ func demoDragReorder(w *gui.Window) gui.View {
 				Content: []gui.View{
 					gui.Text(gui.TextCfg{
 						Text:      tab.Label + " content",
-						TextStyle: t.N3,
+						TextStyle: t.TextStyleBody,
 					}),
 				},
 			}),
@@ -255,10 +255,10 @@ func demoDragReorder(w *gui.Window) gui.View {
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      "Drag items to reorder, or use Alt+Arrow keys. Escape cancels.",
-				TextStyle: t.N3,
+				TextStyle: t.TextStyleBody,
 			}),
 
-			gui.Text(gui.TextCfg{Text: "List Box", TextStyle: t.B3}),
+			gui.Text(gui.TextCfg{Text: "List Box", TextStyle: t.TextStyleTitleSmall}),
 			gui.ListBox(gui.ListBoxCfg{
 				ID:          "drag-listbox",
 				Sizing:      gui.FillFit,
@@ -276,7 +276,7 @@ func demoDragReorder(w *gui.Window) gui.View {
 				OnSelect: func(_ []string, ctx gui.EventCtx) {},
 			}),
 
-			gui.Text(gui.TextCfg{Text: "Tab Control", TextStyle: t.B3}),
+			gui.Text(gui.TextCfg{Text: "Tab Control", TextStyle: t.TextStyleTitleSmall}),
 			gui.TabControl(gui.TabControlCfg{
 				ID:          "drag-tabs",
 				Items:       tabItems,
@@ -296,7 +296,7 @@ func demoDragReorder(w *gui.Window) gui.View {
 				},
 			}),
 
-			gui.Text(gui.TextCfg{Text: "Tree View", TextStyle: t.B3}),
+			gui.Text(gui.TextCfg{Text: "Tree View", TextStyle: t.TextStyleTitleSmall}),
 			gui.Tree(gui.TreeCfg{
 				ID:          "drag-tree",
 				Nodes:       app.DragTreeNodes,
@@ -371,7 +371,7 @@ func demoSlider(w *gui.Window) gui.View {
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      fmt.Sprintf("Value: %.0f", app.RangeValue),
-				TextStyle: t.N3,
+				TextStyle: t.TextStyleBody,
 			}),
 			gui.Slider(gui.SliderCfg{
 				ID:     "slider-demo",

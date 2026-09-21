@@ -53,9 +53,9 @@ func TestNumericInputStepTriangleBounds(t *testing.T) {
 		TextStyle: small,
 		StepCfg:   NumericStepCfg{ShowButtons: true, Step: 1},
 	})
-	if got := minSize(smallSizes); got != guiTheme.N6.Size {
-		t.Errorf("small layout floors at %v, want N6 (%v); sizes = %v",
-			got, guiTheme.N6.Size, smallSizes)
+	if got := minSize(smallSizes); got != guiTheme.TextStyleCaptionSmall.Size {
+		t.Errorf("small layout floors at %v, want CaptionSmall (%v); sizes = %v",
+			got, guiTheme.TextStyleCaptionSmall.Size, smallSizes)
 	}
 
 	// A default field steps clear of both bounds.
@@ -68,12 +68,13 @@ func TestNumericInputStepTriangleBounds(t *testing.T) {
 			got, DefaultTextStyle.Size-4, defSizes)
 	}
 
-	// The ceiling: a field text below the bottom rung (8 against N6's
-	// 10) would have the floor lift the triangle *above* the text it
-	// decorates. The clamp keeps it at the text size. This is the bound
-	// a theme with a large SizeTextTiny crosses at ordinary text sizes.
+	// The ceiling: a field text below the bottom role (8 against
+	// CaptionSmall's 10) would have the floor lift the triangle *above*
+	// the text it decorates. The clamp keeps it at the text size. This
+	// is the bound a theme with a large SizeTextTiny crosses at ordinary
+	// text sizes.
 	belowFloor := DefaultTextStyle
-	belowFloor.Size = guiTheme.N6.Size - 2
+	belowFloor.Size = guiTheme.TextStyleCaptionSmall.Size - 2
 	belowSizes := textSizes(NumericInputCfg{
 		ID:        "ni-below",
 		TextStyle: belowFloor,
@@ -83,9 +84,9 @@ func TestNumericInputStepTriangleBounds(t *testing.T) {
 		t.Errorf("triangle is %v, want the field text %v; sizes = %v",
 			got, belowFloor.Size, belowSizes)
 	}
-	if belowSizes[guiTheme.N6.Size] {
-		t.Errorf("floor lifted the triangle to N6 (%v) above the field text %v; sizes = %v",
-			guiTheme.N6.Size, belowFloor.Size, belowSizes)
+	if belowSizes[guiTheme.TextStyleCaptionSmall.Size] {
+		t.Errorf("floor lifted the triangle to CaptionSmall (%v) above the field text %v; sizes = %v",
+			guiTheme.TextStyleCaptionSmall.Size, belowFloor.Size, belowSizes)
 	}
 }
 

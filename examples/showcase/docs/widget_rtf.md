@@ -8,9 +8,9 @@ t := gui.CurrentTheme()
 gui.RTF(gui.RTFCfg{
     RichText: gui.RichText{
         Runs: []gui.RichTextRun{
-            gui.RichRun("Normal, ", t.N3),
-            gui.RichRun("bold, ", t.B3),
-            gui.RichRun("italic", t.I3),
+            gui.RichRun("Normal, ", t.TextStyleBody),
+            gui.RichRun("bold, ", t.TextStyleTitleSmall),
+            gui.RichRun("italic", t.TextStyleBody.Italic()),
         },
     },
 })
@@ -22,10 +22,10 @@ gui.RTF(gui.RTFCfg{
 gui.RTF(gui.RTFCfg{
     RichText: gui.RichText{
         Runs: []gui.RichTextRun{
-            gui.RichRun("Visit ", t.N3),
-            gui.RichLink("Go docs", "https://go.dev", t.N3),
-            gui.RichRun(". ", t.N3),
-            gui.RichAbbr("HTML", "HyperText Markup Language", t.N3),
+            gui.RichRun("Visit ", t.TextStyleBody),
+            gui.RichLink("Go docs", "https://go.dev", t.TextStyleBody),
+            gui.RichRun(". ", t.TextStyleBody),
+            gui.RichAbbr("HTML", "HyperText Markup Language", t.TextStyleBody),
         },
     },
     Mode: gui.TextModeWrap,
@@ -47,7 +47,7 @@ Set `Underline` or `Strikethrough` on a `TextStyle`:
 
 ```go
 gui.RichRun("underlined", gui.TextStyle{
-    Color: t.N3.Color, Size: t.N3.Size,
+    Color: t.TextStyleBody.Color, Size: t.TextStyleBody.Size,
     Underline: true,
 })
 ```

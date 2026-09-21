@@ -61,7 +61,7 @@ func demoMathSpinner(w *gui.Window) gui.View {
 				}, w),
 				gui.Text(gui.TextCfg{
 					Text:      e.label,
-					TextStyle: t.N4,
+					TextStyle: t.TextStyleBodySmall,
 				}),
 			},
 		})

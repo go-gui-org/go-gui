@@ -49,7 +49,7 @@ var colDefs = []column{
 		label: "PID", width: 64,
 		less: func(a, b *Process) bool { return a.PID < b.PID },
 		cell: func(p *Process, _ *App) gui.View {
-			return textCell(64, strconv.Itoa(p.PID), gui.CurrentTheme().N5)
+			return textCell(64, strconv.Itoa(p.PID), gui.CurrentTheme().TextStyleCaption)
 		},
 	},
 	{
@@ -66,14 +66,14 @@ var colDefs = []column{
 		label: "RSS", width: 80, desc: true,
 		less: lessRSS,
 		cell: func(p *Process, _ *App) gui.View {
-			return textCell(80, p.RSSText(), gui.CurrentTheme().N5)
+			return textCell(80, p.RSSText(), gui.CurrentTheme().TextStyleCaption)
 		},
 	},
 	{
 		label: "MEM%", width: 74, desc: true,
 		less: lessRSS,
 		cell: func(p *Process, _ *App) gui.View {
-			return textCell(74, p.MemText(), gui.CurrentTheme().N5)
+			return textCell(74, p.MemText(), gui.CurrentTheme().TextStyleCaption)
 		},
 	},
 	{
@@ -85,7 +85,7 @@ var colDefs = []column{
 			return a.PID < b.PID
 		},
 		cell: func(p *Process, _ *App) gui.View {
-			return textCell(110, p.User, gui.CurrentTheme().N5)
+			return textCell(110, p.User, gui.CurrentTheme().TextStyleCaption)
 		},
 	},
 	{
@@ -97,7 +97,7 @@ var colDefs = []column{
 			return a.PID < b.PID
 		},
 		cell: func(p *Process, _ *App) gui.View {
-			return textCell(56, p.State, gui.CurrentTheme().N5)
+			return textCell(56, p.State, gui.CurrentTheme().TextStyleCaption)
 		},
 	},
 	{
@@ -109,7 +109,7 @@ var colDefs = []column{
 			return a.PID < b.PID
 		},
 		cell: func(p *Process, _ *App) gui.View {
-			return textCell(54, p.ThreadsText(), gui.CurrentTheme().N5)
+			return textCell(54, p.ThreadsText(), gui.CurrentTheme().TextStyleCaption)
 		},
 	},
 	{
@@ -159,7 +159,7 @@ func headerView(app *App) gui.View {
 			VAlign:  gui.VAlignMiddle,
 			Spacing: gui.SomeF(12),
 			Content: []gui.View{
-				gui.Text(gui.TextCfg{Text: "Process Monitor", TextStyle: theme.B2}),
+				gui.Text(gui.TextCfg{Text: "Process Monitor", TextStyle: theme.TextStyleTitle}),
 			},
 		}),
 	}
@@ -168,11 +168,11 @@ func headerView(app *App) gui.View {
 	case app.Err != nil:
 		content = append(content, gui.Text(gui.TextCfg{
 			Text:      "sample error: " + app.Err.Error(),
-			TextStyle: styleColor(theme.N5, colorAlert),
+			TextStyle: styleColor(theme.TextStyleCaption, colorAlert),
 		}))
 	case app.Snapshot == nil:
 		content = append(content, gui.Text(gui.TextCfg{
-			Text: "Collecting process samples…", TextStyle: theme.N5,
+			Text: "Collecting process samples…", TextStyle: theme.TextStyleCaption,
 		}))
 	default:
 		content = append(content, statsRow(app))
@@ -205,11 +205,11 @@ func statsRow(app *App) gui.View {
 			VAlign:  gui.VAlignMiddle,
 			Spacing: gui.SomeF(8),
 			Content: []gui.View{
-				gui.Text(gui.TextCfg{Text: "Memory", TextStyle: theme.N6}),
+				gui.Text(gui.TextCfg{Text: "Memory", TextStyle: theme.TextStyleCaptionSmall}),
 				usageBar(ratio, 160, 10, accentMem),
 				gui.Text(gui.TextCfg{
 					Text:      fmt.Sprintf("%s / %s", formatBytes(used), formatBytes(total)),
-					TextStyle: theme.N6,
+					TextStyle: theme.TextStyleCaptionSmall,
 				}),
 			},
 		}))
@@ -234,8 +234,8 @@ func statPill(label, value string) gui.View {
 		Spacing: gui.SomeF(6),
 		VAlign:  gui.VAlignMiddle,
 		Content: []gui.View{
-			gui.Text(gui.TextCfg{Text: label, TextStyle: theme.N6}),
-			gui.Text(gui.TextCfg{Text: value, TextStyle: theme.B5}),
+			gui.Text(gui.TextCfg{Text: label, TextStyle: theme.TextStyleCaptionSmall}),
+			gui.Text(gui.TextCfg{Text: value, TextStyle: theme.TextStyleCaption.Bold()}),
 		},
 	})
 }
@@ -249,7 +249,7 @@ func toolbarView(app *App) gui.View {
 		Spacing: gui.SomeF(12),
 		VAlign:  gui.VAlignMiddle,
 		Content: []gui.View{
-			gui.Text(gui.TextCfg{Text: "Filter", TextStyle: theme.B5}),
+			gui.Text(gui.TextCfg{Text: "Filter", TextStyle: theme.TextStyleCaption.Bold()}),
 			gui.Input(gui.InputCfg{
 				ID:          "pm-filter",
 				Sizing:      gui.FixedFit,
@@ -261,9 +261,9 @@ func toolbarView(app *App) gui.View {
 				},
 			}),
 			spacer(),
-			gui.Text(gui.TextCfg{Text: "View", TextStyle: theme.B5}),
+			gui.Text(gui.TextCfg{Text: "View", TextStyle: theme.TextStyleCaption.Bold()}),
 			viewModeRadio(app),
-			gui.Text(gui.TextCfg{Text: "Every", TextStyle: theme.B5}),
+			gui.Text(gui.TextCfg{Text: "Every", TextStyle: theme.TextStyleCaption.Bold()}),
 			intervalRadio(app),
 		},
 	})
@@ -363,7 +363,7 @@ func headerCell(col column, idx int, app *App) gui.View {
 		VAlign:  gui.VAlignMiddle,
 		Clip:    true,
 		Padding: gui.NewPadding(0, 6, 0, 6),
-		Content: []gui.View{gui.Text(gui.TextCfg{Text: label, TextStyle: theme.B6, Clip: true})},
+		Content: []gui.View{gui.Text(gui.TextCfg{Text: label, TextStyle: theme.TextStyleCaptionSmall.Bold(), Clip: true})},
 		OnClick: func(ctx gui.EventCtx) {
 			a := state(ctx.Window)
 			if a.Sort.Column == idx {
@@ -418,22 +418,22 @@ func detailView(app *App) gui.View {
 			Sizing:  gui.FillFit,
 			Color:   theme.ColorPanel,
 			Padding: gui.NewPadding(10, 16, 12, 16),
-			Content: []gui.View{gui.Text(gui.TextCfg{Text: "Select a process", TextStyle: theme.N5})},
+			Content: []gui.View{gui.Text(gui.TextCfg{Text: "Select a process", TextStyle: theme.TextStyleCaption})},
 		})
 	}
 
 	p := app.Selected
 	facts := []gui.View{
 		gui.Text(gui.TextCfg{
-			Text: fmt.Sprintf("%s  pid %d", p.Name, p.PID), TextStyle: theme.B4,
+			Text: fmt.Sprintf("%s  pid %d", p.Name, p.PID), TextStyle: theme.TextStyleBodySmall.Bold(),
 		}),
-		gui.Text(gui.TextCfg{Text: fmt.Sprintf("ppid %d", p.PPID), TextStyle: theme.N6}),
-		gui.Text(gui.TextCfg{Text: "cpu " + formatCPUPercent(p.CPUPercent), TextStyle: theme.N6}),
-		gui.Text(gui.TextCfg{Text: "rss " + p.RSSText(), TextStyle: theme.N6}),
+		gui.Text(gui.TextCfg{Text: fmt.Sprintf("ppid %d", p.PPID), TextStyle: theme.TextStyleCaptionSmall}),
+		gui.Text(gui.TextCfg{Text: "cpu " + formatCPUPercent(p.CPUPercent), TextStyle: theme.TextStyleCaptionSmall}),
+		gui.Text(gui.TextCfg{Text: "rss " + p.RSSText(), TextStyle: theme.TextStyleCaptionSmall}),
 	}
 	if !p.Running() {
 		facts = append(facts, gui.Text(gui.TextCfg{
-			Text: "stopped " + formatTime(p.StoppedAt), TextStyle: styleColor(theme.N6, colorAlert),
+			Text: "stopped " + formatTime(p.StoppedAt), TextStyle: styleColor(theme.TextStyleCaptionSmall, colorAlert),
 		}))
 	}
 
@@ -455,7 +455,7 @@ func detailView(app *App) gui.View {
 				Spacing: gui.SomeF(12),
 				Content: facts,
 			}),
-			gui.Text(gui.TextCfg{Text: truncate(cmd, 160), TextStyle: theme.N6, Clip: true}),
+			gui.Text(gui.TextCfg{Text: truncate(cmd, 160), TextStyle: theme.TextStyleCaptionSmall, Clip: true}),
 			historyCharts(p),
 		},
 	})
@@ -506,7 +506,7 @@ func cpuCell(p *Process, _ *App) gui.View {
 		Padding: gui.NewPadding(0, 6, 0, 6),
 		Spacing: gui.SomeF(6),
 		Content: []gui.View{
-			gui.Text(gui.TextCfg{Text: p.CPUText(), TextStyle: theme.N5}),
+			gui.Text(gui.TextCfg{Text: p.CPUText(), TextStyle: theme.TextStyleCaption}),
 			usageBar(ratio, 48, 8, accentCPU),
 		},
 	})
@@ -533,7 +533,7 @@ func nameCell(p *Process, app *App) gui.View {
 				Width:   16,
 				Sizing:  gui.FixedFill,
 				VAlign:  gui.VAlignMiddle,
-				Content: []gui.View{gui.Text(gui.TextCfg{Text: marker, TextStyle: theme.N5})},
+				Content: []gui.View{gui.Text(gui.TextCfg{Text: marker, TextStyle: theme.TextStyleCaption})},
 				OnClick: func(ctx gui.EventCtx) {
 					// p is a stable store pointer; toggling under event dispatch
 					// (which holds the window lock) is safe.
@@ -547,9 +547,9 @@ func nameCell(p *Process, app *App) gui.View {
 		}
 	}
 
-	style := theme.N5
+	style := theme.TextStyleCaption
 	if !p.Running() {
-		style = theme.N6 // dim stopped processes
+		style = theme.TextStyleCaptionSmall // dim stopped processes
 	}
 	kids = append(kids, gui.Text(gui.TextCfg{Text: p.Name, TextStyle: style, Clip: true}))
 
@@ -595,7 +595,7 @@ func centered(msg string) gui.View {
 		HAlign:  gui.HAlignCenter,
 		VAlign:  gui.VAlignMiddle,
 		Padding: gui.NoPadding,
-		Content: []gui.View{gui.Text(gui.TextCfg{Text: msg, TextStyle: theme.N4})},
+		Content: []gui.View{gui.Text(gui.TextCfg{Text: msg, TextStyle: theme.TextStyleBodySmall})},
 	})
 }
 

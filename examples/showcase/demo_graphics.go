@@ -23,7 +23,7 @@ func demoRectangle(_ *gui.Window) gui.View {
 				Radius:  gui.NoRadius,
 				HAlign:  gui.HAlignCenter,
 				VAlign:  gui.VAlignMiddle,
-				Content: []gui.View{gui.Text(gui.TextCfg{Text: "Sharp", TextStyle: t.N2})},
+				Content: []gui.View{gui.Text(gui.TextCfg{Text: "Sharp", TextStyle: t.TextStyleBodyLarge})},
 			}),
 			gui.Column(gui.ContainerCfg{
 				Width:   100,
@@ -33,7 +33,7 @@ func demoRectangle(_ *gui.Window) gui.View {
 				Radius:  gui.SomeF(8),
 				HAlign:  gui.HAlignCenter,
 				VAlign:  gui.VAlignMiddle,
-				Content: []gui.View{gui.Text(gui.TextCfg{Text: "Rounded", TextStyle: t.N2})},
+				Content: []gui.View{gui.Text(gui.TextCfg{Text: "Rounded", TextStyle: t.TextStyleBodyLarge})},
 			}),
 			gui.Column(gui.ContainerCfg{
 				Width:       100,
@@ -45,7 +45,7 @@ func demoRectangle(_ *gui.Window) gui.View {
 				Radius:      gui.SomeF(4),
 				HAlign:      gui.HAlignCenter,
 				VAlign:      gui.VAlignMiddle,
-				Content:     []gui.View{gui.Text(gui.TextCfg{Text: "Border", TextStyle: t.N2})},
+				Content:     []gui.View{gui.Text(gui.TextCfg{Text: "Border", TextStyle: t.TextStyleBodyLarge})},
 			}),
 			gui.Column(gui.ContainerCfg{
 				Width:  100,
@@ -56,7 +56,7 @@ func demoRectangle(_ *gui.Window) gui.View {
 				HAlign: gui.HAlignCenter,
 				VAlign: gui.VAlignMiddle,
 				Content: []gui.View{
-					gui.Text(gui.TextCfg{Text: "Pill", TextStyle: t.N2}),
+					gui.Text(gui.TextCfg{Text: "Pill", TextStyle: t.TextStyleBodyLarge}),
 				},
 			}),
 		},
@@ -73,7 +73,7 @@ func demoIcons(w *gui.Window) gui.View {
 
 	cellMinWidth := float32(0)
 	for _, key := range keys {
-		labelWidth := w.TextWidth(strings.TrimPrefix(key, "icon_"), t.N5)
+		labelWidth := w.TextWidth(strings.TrimPrefix(key, "icon_"), t.TextStyleCaption)
 		if labelWidth > cellMinWidth {
 			cellMinWidth = labelWidth
 		}
@@ -92,8 +92,8 @@ func demoIcons(w *gui.Window) gui.View {
 				Padding:  gui.NoPadding,
 				HAlign:   gui.HAlignCenter,
 				Content: []gui.View{
-					gui.Text(gui.TextCfg{Text: gui.IconLookup[key], TextStyle: t.Icon1}),
-					gui.Text(gui.TextCfg{Text: strings.TrimPrefix(key, "icon_"), TextStyle: t.N5}),
+					gui.Text(gui.TextCfg{Text: gui.IconLookup[key], TextStyle: t.TextStyleIconXLarge}),
+					gui.Text(gui.TextCfg{Text: strings.TrimPrefix(key, "icon_"), TextStyle: t.TextStyleCaption}),
 				},
 			}))
 		}
@@ -333,7 +333,7 @@ func demoBoxShadows(_ *gui.Window) gui.View {
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      "offset_x/offset_y move the shadow. blur_radius controls softness. spread grows the shadow beyond the caster.",
-				TextStyle: t.N5,
+				TextStyle: t.TextStyleCaption,
 				Mode:      gui.TextModeWrap,
 			}),
 			gui.Row(gui.ContainerCfg{
@@ -387,10 +387,10 @@ func showcaseShadowCard(title, note string, bg, shadowColor gui.Color, shadowOff
 			Spread:     shadowSpread,
 		},
 		Content: []gui.View{
-			gui.Text(gui.TextCfg{Text: title, TextStyle: t.B5}),
+			gui.Text(gui.TextCfg{Text: title, TextStyle: t.TextStyleCaption.Bold()}),
 			gui.Text(gui.TextCfg{
 				Text:      note,
-				TextStyle: t.N5,
+				TextStyle: t.TextStyleCaption,
 				Mode:      gui.TextModeWrap,
 			}),
 		},
@@ -472,7 +472,7 @@ func demoSvg(_ *gui.Window) gui.View {
 					}),
 				},
 			}),
-			gui.Text(gui.TextCfg{Text: "Gradient spread methods (linearGradient + spreadMethod)", TextStyle: t.B4}),
+			gui.Text(gui.TextCfg{Text: "Gradient spread methods (linearGradient + spreadMethod)", TextStyle: t.TextStyleBodySmall.Bold()}),
 			gui.Row(gui.ContainerCfg{
 				Sizing:  gui.FillFit,
 				Spacing: gui.SomeF(16),
@@ -483,7 +483,7 @@ func demoSvg(_ *gui.Window) gui.View {
 					svgSpreadSample(t, "svg-spread-repeat", "repeat", "repeat"),
 				},
 			}),
-			gui.Text(gui.TextCfg{Text: "Radial gradients (centered + focal offset)", TextStyle: t.B4}),
+			gui.Text(gui.TextCfg{Text: "Radial gradients (centered + focal offset)", TextStyle: t.TextStyleBodySmall.Bold()}),
 			gui.Row(gui.ContainerCfg{
 				Sizing:  gui.FillFit,
 				Spacing: gui.SomeF(16),
@@ -521,7 +521,7 @@ func demoSvg(_ *gui.Window) gui.View {
 </svg>`),
 				},
 			}),
-			gui.Text(gui.TextCfg{Text: "CSS selectors (class, attribute, sibling, :not, var, calc)", TextStyle: t.B4}),
+			gui.Text(gui.TextCfg{Text: "CSS selectors (class, attribute, sibling, :not, var, calc)", TextStyle: t.TextStyleBodySmall.Bold()}),
 			gui.Row(gui.ContainerCfg{
 				Sizing:  gui.FillFit,
 				Spacing: gui.SomeF(16),
@@ -599,7 +599,7 @@ func svgSpreadSample(t gui.Theme, id, label, spread string) gui.View {
 		Padding:    gui.NoPadding,
 		SizeBorder: gui.NoBorder,
 		Content: []gui.View{
-			gui.Text(gui.TextCfg{Text: label, TextStyle: t.B5}),
+			gui.Text(gui.TextCfg{Text: label, TextStyle: t.TextStyleCaption.Bold()}),
 			gui.Svg(gui.SvgCfg{ID: id, Width: 100, Height: 100, Sizing: gui.FixedFixed, SvgData: data}),
 		},
 	})
@@ -612,7 +612,7 @@ func svgRadialSample(t gui.Theme, id, label, data string) gui.View {
 		Padding:    gui.NoPadding,
 		SizeBorder: gui.NoBorder,
 		Content: []gui.View{
-			gui.Text(gui.TextCfg{Text: label, TextStyle: t.B5}),
+			gui.Text(gui.TextCfg{Text: label, TextStyle: t.TextStyleCaption.Bold()}),
 			gui.Svg(gui.SvgCfg{ID: id, Width: 100, Height: 100, Sizing: gui.FixedFixed, SvgData: data}),
 		},
 	})
@@ -637,7 +637,7 @@ func demoImage(_ *gui.Window) gui.View {
 						Padding:    gui.NoPadding,
 						SizeBorder: gui.NoBorder,
 						Content: []gui.View{
-							gui.Text(gui.TextCfg{Text: "Default", TextStyle: t.B4}),
+							gui.Text(gui.TextCfg{Text: "Default", TextStyle: t.TextStyleBodySmall.Bold()}),
 							gui.Image(gui.ImageCfg{
 								Src:    imgPath,
 								Width:  120,
@@ -651,7 +651,7 @@ func demoImage(_ *gui.Window) gui.View {
 						Padding:    gui.NoPadding,
 						SizeBorder: gui.NoBorder,
 						Content: []gui.View{
-							gui.Text(gui.TextCfg{Text: "Rounded (radius: 10)", TextStyle: t.B4}),
+							gui.Text(gui.TextCfg{Text: "Rounded (radius: 10)", TextStyle: t.TextStyleBodySmall.Bold()}),
 							gui.Column(gui.ContainerCfg{
 								Clip:       true,
 								Radius:     gui.SomeF(10),
@@ -676,7 +676,7 @@ func demoImage(_ *gui.Window) gui.View {
 						Padding:    gui.NoPadding,
 						SizeBorder: gui.NoBorder,
 						Content: []gui.View{
-							gui.Text(gui.TextCfg{Text: "Circle", TextStyle: t.B4}),
+							gui.Text(gui.TextCfg{Text: "Circle", TextStyle: t.TextStyleBodySmall.Bold()}),
 							gui.Circle(gui.ContainerCfg{
 								Clip:       true,
 								Width:      120,
@@ -698,7 +698,7 @@ func demoImage(_ *gui.Window) gui.View {
 			}),
 			gui.Text(gui.TextCfg{
 				Text:      "Embedded: assets/image_clip_face.jpg",
-				TextStyle: t.N4,
+				TextStyle: t.TextStyleBodySmall,
 			}),
 		},
 	})
@@ -719,21 +719,21 @@ func demoDrawCanvas(w *gui.Window) gui.View {
 			gui.Text(gui.TextCfg{
 				Text: "Line chart with joined polyline, dashed grid," +
 					" filled area, and text labels.",
-				TextStyle: t.N3,
+				TextStyle: t.TextStyleBody,
 				Mode:      gui.TextModeWrap,
 			}),
 			demoDrawCanvasLineChart(chartData),
 			gui.Text(gui.TextCfg{
 				Text: "Bar chart with rounded-rect bars and" +
 					" dashed reference line.",
-				TextStyle: t.N3,
+				TextStyle: t.TextStyleBody,
 				Mode:      gui.TextModeWrap,
 			}),
 			demoDrawCanvasBarChart(barData),
 			gui.Text(gui.TextCfg{
 				Text: "Image tiles drawn via DrawContext.Image." +
 					" Tab to focus, then arrow keys move the marker.",
-				TextStyle: t.N3,
+				TextStyle: t.TextStyleBody,
 				Mode:      gui.TextModeWrap,
 			}),
 			demoDrawCanvasInteractive(app),
@@ -990,7 +990,7 @@ func demoBlur(_ *gui.Window) gui.View {
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      "BlurRadius adds a Gaussian blur to a shape's fill. Higher values produce softer edges.",
-				TextStyle: t.N3,
+				TextStyle: t.TextStyleBody,
 				Mode:      gui.TextModeWrap,
 			}),
 			gui.Row(gui.ContainerCfg{
@@ -1009,7 +1009,7 @@ func demoBlur(_ *gui.Window) gui.View {
 						HAlign:     gui.HAlignCenter,
 						VAlign:     gui.VAlignMiddle,
 						Content: []gui.View{
-							gui.Text(gui.TextCfg{Text: "Soft Orb", TextStyle: t.N2}),
+							gui.Text(gui.TextCfg{Text: "Soft Orb", TextStyle: t.TextStyleBodyLarge}),
 						},
 					}),
 					gui.Column(gui.ContainerCfg{
@@ -1022,7 +1022,7 @@ func demoBlur(_ *gui.Window) gui.View {
 						HAlign:     gui.HAlignCenter,
 						VAlign:     gui.VAlignMiddle,
 						Content: []gui.View{
-							gui.Text(gui.TextCfg{Text: "Soft Rect", TextStyle: t.N2}),
+							gui.Text(gui.TextCfg{Text: "Soft Rect", TextStyle: t.TextStyleBodyLarge}),
 						},
 					}),
 					gui.Column(gui.ContainerCfg{
@@ -1035,7 +1035,7 @@ func demoBlur(_ *gui.Window) gui.View {
 						HAlign:     gui.HAlignCenter,
 						VAlign:     gui.VAlignMiddle,
 						Content: []gui.View{
-							gui.Text(gui.TextCfg{Text: "Heavy Glow", TextStyle: t.N2}),
+							gui.Text(gui.TextCfg{Text: "Heavy Glow", TextStyle: t.TextStyleBodyLarge}),
 						},
 					}),
 				},
@@ -1069,7 +1069,7 @@ func demoShader(w *gui.Window) gui.View {
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      "Custom fragment shaders (Metal + GLSL). Params[0] is animated time.",
-				TextStyle: t.N3,
+				TextStyle: t.TextStyleBody,
 			}),
 			gui.Row(gui.ContainerCfg{
 				Sizing:  gui.FillFit,
@@ -1098,7 +1098,7 @@ func demoShader(w *gui.Window) gui.View {
 							`,
 							Params: []float32{elapsed},
 						},
-						Content: []gui.View{gui.Text(gui.TextCfg{Text: "Rainbow", TextStyle: t.N2})},
+						Content: []gui.View{gui.Text(gui.TextCfg{Text: "Rainbow", TextStyle: t.TextStyleBodyLarge})},
 					}),
 					gui.Column(gui.ContainerCfg{
 						Width:  200,
@@ -1138,7 +1138,7 @@ func demoShader(w *gui.Window) gui.View {
 							`,
 							Params: []float32{elapsed},
 						},
-						Content: []gui.View{gui.Text(gui.TextCfg{Text: "Plasma", TextStyle: t.N2})},
+						Content: []gui.View{gui.Text(gui.TextCfg{Text: "Plasma", TextStyle: t.TextStyleBodyLarge})},
 					}),
 				},
 			}),
@@ -1173,7 +1173,7 @@ func demoColorFilter(_ *gui.Window) gui.View {
 				SizeBorder: gui.NoBorder,
 				Radius:     gui.SomeF(4),
 			}),
-			gui.Text(gui.TextCfg{Text: label, TextStyle: t.N4}),
+			gui.Text(gui.TextCfg{Text: label, TextStyle: t.TextStyleBodySmall}),
 		}
 	}
 
@@ -1188,7 +1188,7 @@ func demoColorFilter(_ *gui.Window) gui.View {
 				Text: "Color matrix transforms applied as a post-processing pass. " +
 					"Each container below renders content into an FBO, applies a 4×4 color transform, " +
 					"and composites back.",
-				TextStyle: t.N3,
+				TextStyle: t.TextStyleBody,
 				Mode:      gui.TextModeWrap,
 			}),
 			gui.Row(gui.ContainerCfg{
@@ -1239,7 +1239,7 @@ func demoColorFilter(_ *gui.Window) gui.View {
 			// Blur + color filter combined.
 			gui.Text(gui.TextCfg{
 				Text:      "Blur + color filter: gaussian blur combined with color matrix",
-				TextStyle: t.N3,
+				TextStyle: t.TextStyleBody,
 			}),
 			gui.Row(gui.ContainerCfg{
 				Sizing:     gui.FillFit,
@@ -1291,7 +1291,7 @@ func demoColorFilter(_ *gui.Window) gui.View {
 			// Bloom glow.
 			gui.Text(gui.TextCfg{
 				Text:      "Bloom glow: blur + brightness boost + multi-layer composite",
-				TextStyle: t.N3,
+				TextStyle: t.TextStyleBody,
 			}),
 			gui.Row(gui.ContainerCfg{
 				Sizing:     gui.FillFit,
@@ -1310,7 +1310,7 @@ func demoColorFilter(_ *gui.Window) gui.View {
 						HAlign:      gui.HAlignCenter,
 						VAlign:      gui.VAlignMiddle,
 						Content: []gui.View{
-							gui.Text(gui.TextCfg{Text: "Glow", TextStyle: t.N2}),
+							gui.Text(gui.TextCfg{Text: "Glow", TextStyle: t.TextStyleBodyLarge}),
 						},
 					}),
 					gui.Column(gui.ContainerCfg{
@@ -1324,7 +1324,7 @@ func demoColorFilter(_ *gui.Window) gui.View {
 						HAlign:      gui.HAlignCenter,
 						VAlign:      gui.VAlignMiddle,
 						Content: []gui.View{
-							gui.Text(gui.TextCfg{Text: "Glow", TextStyle: t.N2}),
+							gui.Text(gui.TextCfg{Text: "Glow", TextStyle: t.TextStyleBodyLarge}),
 						},
 					}),
 					gui.Column(gui.ContainerCfg{
@@ -1338,7 +1338,7 @@ func demoColorFilter(_ *gui.Window) gui.View {
 						HAlign:      gui.HAlignCenter,
 						VAlign:      gui.VAlignMiddle,
 						Content: []gui.View{
-							gui.Text(gui.TextCfg{Text: "Glow", TextStyle: t.N2}),
+							gui.Text(gui.TextCfg{Text: "Glow", TextStyle: t.TextStyleBodyLarge}),
 						},
 					}),
 				},

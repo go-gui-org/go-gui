@@ -25,7 +25,7 @@ func demoWindowOpacity(w *gui.Window) gui.View {
 					"content included. The fade is applied by the " +
 					"compositor above the GL or Metal surface, so the " +
 					"title bar goes with it and no widget has to know.",
-				TextStyle: t.N3,
+				TextStyle: t.TextStyleBody,
 				Mode:      gui.TextModeWrap,
 			}),
 			gui.Row(gui.ContainerCfg{
@@ -52,7 +52,7 @@ func demoWindowOpacity(w *gui.Window) gui.View {
 					}),
 					gui.Text(gui.TextCfg{
 						Text:      fmt.Sprintf("%.0f%%", app.WindowOpacity*100),
-						TextStyle: t.N3,
+						TextStyle: t.TextStyleBody,
 					}),
 					gui.Button(gui.ButtonCfg{
 						ID:       "showcase-window-opacity-reset",
@@ -60,7 +60,7 @@ func demoWindowOpacity(w *gui.Window) gui.View {
 						Content: []gui.View{
 							gui.Text(gui.TextCfg{
 								Text:      "Restore",
-								TextStyle: t.N3,
+								TextStyle: t.TextStyleBody,
 							}),
 						},
 						OnClick: func(ctx gui.EventCtx) {
@@ -78,7 +78,7 @@ func demoWindowOpacity(w *gui.Window) gui.View {
 					"runtime setter. Window.WindowOpacity reads the " +
 					"value back, which is what a fade animation steps " +
 					"from.",
-				TextStyle: t.N3,
+				TextStyle: t.TextStyleBody,
 				Mode:      gui.TextModeWrap,
 			}),
 			gui.Text(gui.TextCfg{

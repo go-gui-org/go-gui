@@ -53,7 +53,7 @@ func mainView(w *gui.Window) gui.View {
 		VAlign:  gui.VAlignMiddle,
 		Spacing: gui.SomeF(12),
 		Content: []gui.View{
-			gui.Label("Rendered without a GPU", gui.CurrentTheme().B1),
+			gui.Label("Rendered without a GPU", gui.CurrentTheme().TextStyleDisplay),
 			gui.TextButton("hp_counter",
 				fmt.Sprintf("%d Clicks", app.Clicks), nil),
 		},

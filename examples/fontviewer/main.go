@@ -241,8 +241,8 @@ func header() gui.View {
 		Spacing:    gui.SomeF(spacingTight),
 		SizeBorder: gui.NoBorder,
 		Content: []gui.View{
-			gui.Text(gui.TextCfg{Text: "go-gui font viewer", TextStyle: t.N1}),
-			gui.Text(gui.TextCfg{Text: "Browse and preview installed system fonts", TextStyle: t.B3}),
+			gui.Text(gui.TextCfg{Text: "go-gui font viewer", TextStyle: t.TextStyleDisplay.Roman()}),
+			gui.Text(gui.TextCfg{Text: "Browse and preview installed system fonts", TextStyle: t.TextStyleTitleSmall}),
 		},
 	})
 }
@@ -273,11 +273,11 @@ func toolbar(w *gui.Window, matchCount int) gui.View {
 	t := gui.CurrentTheme()
 
 	row1 := toolbarRow(toolbarEdgePad, toolbarSeamPad, []gui.View{
-		gui.Text(gui.TextCfg{Text: "Sample Text", TextStyle: t.B3, MinWidth: toolbarLabelW}),
+		gui.Text(gui.TextCfg{Text: "Sample Text", TextStyle: t.TextStyleTitleSmall, MinWidth: toolbarLabelW}),
 		gui.Input(gui.InputCfg{
 			ID:        sampleInputID,
 			Text:      s.Sample,
-			TextStyle: t.B3,
+			TextStyle: t.TextStyleTitleSmall,
 			Sizing:    gui.FillFit,
 			OnTextChanged: func(text string, ctx gui.EventCtx) {
 				state(ctx.Window).Sample = text
@@ -287,7 +287,7 @@ func toolbar(w *gui.Window, matchCount int) gui.View {
 			ID: "fontviewer_toolbar",
 			Content: []gui.View{gui.Text(gui.TextCfg{
 				Text:      gui.IconSync,
-				TextStyle: gui.TextStyle{Family: gui.IconFontName, Size: t.Icon3.Size, Color: t.Icon1.Color},
+				TextStyle: gui.TextStyle{Family: gui.IconFontName, Size: t.TextStyleIconMedium.Size, Color: t.TextStyleIconXLarge.Color},
 			})},
 			OnClick: shuffleSample,
 		}),
@@ -308,11 +308,11 @@ func toolbar(w *gui.Window, matchCount int) gui.View {
 // toolbarRow2 builds the filter / size / count controls.
 func toolbarRow2(s *FontViewerState, t gui.Theme, matchCount int) []gui.View {
 	content := []gui.View{
-		gui.Text(gui.TextCfg{Text: "Filter Fonts", TextStyle: t.B3, MinWidth: toolbarLabelW}),
+		gui.Text(gui.TextCfg{Text: "Filter Fonts", TextStyle: t.TextStyleTitleSmall, MinWidth: toolbarLabelW}),
 		gui.Input(gui.InputCfg{
 			ID:        "filter-input",
 			Text:      s.Filter,
-			TextStyle: t.B3,
+			TextStyle: t.TextStyleTitleSmall,
 			Width:     filterInputW,
 			Sizing:    gui.FixedFit,
 			OnTextChanged: func(text string, ctx gui.EventCtx) {
@@ -324,7 +324,7 @@ func toolbarRow2(s *FontViewerState, t gui.Theme, matchCount int) []gui.View {
 	if s.Filter != "" {
 		content = append(content, gui.Button(gui.ButtonCfg{
 			ID:      "fontviewer_toolbar_row2",
-			Content: []gui.View{gui.Text(gui.TextCfg{Text: "×", TextStyle: t.B3})},
+			Content: []gui.View{gui.Text(gui.TextCfg{Text: "×", TextStyle: t.TextStyleTitleSmall})},
 			OnClick: func(ctx gui.EventCtx) {
 				state(ctx.Window).Filter = ""
 				ctx.Window.ScrollVerticalTo(gridID, 0)
@@ -334,7 +334,7 @@ func toolbarRow2(s *FontViewerState, t gui.Theme, matchCount int) []gui.View {
 
 	return append(content,
 		flexGap(),
-		gui.Text(gui.TextCfg{Text: "Size", TextStyle: t.B3}),
+		gui.Text(gui.TextCfg{Text: "Size", TextStyle: t.TextStyleTitleSmall}),
 		gui.Slider(gui.SliderCfg{
 			ID:     "size-slider",
 			Value:  s.FontSize,
@@ -351,13 +351,13 @@ func toolbarRow2(s *FontViewerState, t gui.Theme, matchCount int) []gui.View {
 		}),
 		gui.Text(gui.TextCfg{
 			Text:      fmt.Sprintf("%d px", int(s.FontSize)),
-			TextStyle: t.B3,
+			TextStyle: t.TextStyleTitleSmall,
 			MinWidth:  sizeLabelW,
 		}),
 		flexGap(),
 		gui.Text(gui.TextCfg{
 			Text:      fmt.Sprintf("%d / %d fonts", matchCount, len(s.Families)),
-			TextStyle: t.B3,
+			TextStyle: t.TextStyleTitleSmall,
 			MinWidth:  countLabelW,
 		}),
 		flexGap(),
@@ -452,7 +452,7 @@ func emptyState(noFonts bool) gui.View {
 		Sizing:  gui.FillFill,
 		HAlign:  gui.HAlignCenter,
 		Padding: gui.NewPadding(emptyStateTopPad, 0, 0, 0),
-		Content: []gui.View{gui.Text(gui.TextCfg{Text: msg, TextStyle: gui.CurrentTheme().N3})},
+		Content: []gui.View{gui.Text(gui.TextCfg{Text: msg, TextStyle: gui.CurrentTheme().TextStyleBody})},
 	})
 }
 
@@ -508,19 +508,19 @@ func fontCard(w *gui.Window, name string, cardW, cardH float32) gui.View {
 // cardNameRow renders the family name plus a hover "Copy" / post-click
 // "Copied" affordance. Clip truncates over-long names.
 func cardNameRow(s *FontViewerState, t gui.Theme, name string) gui.View {
-	content := []gui.View{gui.Text(gui.TextCfg{Text: name, TextStyle: t.B3})}
+	content := []gui.View{gui.Text(gui.TextCfg{Text: name, TextStyle: t.TextStyleTitleSmall})}
 	switch {
 	case s.CopiedFam == name:
 		content = append(content, gui.Text(gui.TextCfg{
 			Text:    "Copied",
 			Opacity: gui.Some(s.CopyOpacity),
 			TextStyle: gui.TextStyle{
-				Family: t.N6.Family, Size: t.N6.Size,
+				Family: t.TextStyleCaptionSmall.Family, Size: t.TextStyleCaptionSmall.Size,
 				Color: colorCopiedBadge,
 			},
 		}))
 	case s.HoveredFam == name:
-		content = append(content, gui.Text(gui.TextCfg{Text: "Copy", TextStyle: t.N6}))
+		content = append(content, gui.Text(gui.TextCfg{Text: "Copy", TextStyle: t.TextStyleCaptionSmall}))
 	}
 	return gui.Row(gui.ContainerCfg{
 		Sizing:     gui.FillFixed,

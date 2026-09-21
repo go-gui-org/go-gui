@@ -73,11 +73,11 @@ func mainView(w *gui.Window) gui.View {
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      "10,000-item virtualized list box",
-				TextStyle: theme.B4,
+				TextStyle: theme.TextStyleBodySmall.Bold(),
 			}),
 			gui.Text(gui.TextCfg{
 				Text:      "Selected id: " + selected,
-				TextStyle: theme.N5,
+				TextStyle: theme.TextStyleCaption,
 			}),
 			gui.ListBox(gui.ListBoxCfg{
 				ID: "virtual-listbox-10k",

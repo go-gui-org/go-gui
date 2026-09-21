@@ -149,7 +149,7 @@ func mdCopyButton(
 	// loop writes w.animations from its own goroutine under animMu.
 	copied := w.HasAnimation(animID)
 
-	iconStyle := guiTheme.Icon5
+	iconStyle := guiTheme.TextStyleIconXSmall
 	iconStyle.Color = Gray
 
 	var btnContent []View
@@ -491,7 +491,7 @@ func mdTaskCheckbox(checked bool, boxSize float32, cfg MarkdownCfg) View {
 	var amend func(EventCtx)
 	if checked {
 		boxColor = cfg.Style.linkColor
-		checkStyle := guiTheme.Icon5
+		checkStyle := guiTheme.TextStyleIconXSmall
 		checkStyle.Size = boxSize * 1.1
 		checkStyle.Color = White
 		content = []View{

@@ -129,6 +129,49 @@ and this project adheres to
 
 ### Changed
 
+- **BREAKING: numbered text rungs are semantic roles (#734)** — the closed 6x6
+  grid (`Theme.N1`–`N6`, `B1`–`B6`, `I1`–`I6`, `BI1`–`BI6`, `M1`–`M6`,
+  `Icon1`–`Icon6`) is removed. A number said how big the text was, never what it
+  was for, so two callers with the same purpose picked different rungs and
+  drifted apart. Each purpose is now one role, derived from the same size
+  ladder, so every migrated call site renders pixel-identically (the golden
+  tests pass unchanged). Migration:
+
+  | Before                        | After                                                                                                                        |
+  | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+  | `theme.B1`                    | `theme.TextStyleDisplay`                                                                                                     |
+  | `theme.B2`                    | `theme.TextStyleTitle`                                                                                                       |
+  | `theme.B3`                    | `theme.TextStyleTitleSmall`                                                                                                  |
+  | `theme.N2`                    | `theme.TextStyleBodyLarge`                                                                                                   |
+  | `theme.N3`                    | `theme.TextStyleBody`                                                                                                        |
+  | `theme.N4`                    | `theme.TextStyleBodySmall`                                                                                                   |
+  | `theme.N5`                    | `theme.TextStyleCaption`                                                                                                     |
+  | `theme.N6`                    | `theme.TextStyleCaptionSmall`                                                                                                |
+  | `theme.M3`                    | `theme.TextStyleCode`                                                                                                        |
+  | `theme.M5`                    | `theme.TextStyleCodeSmall`                                                                                                   |
+  | `theme.M6`                    | `theme.TextStyleCodeTiny`                                                                                                    |
+  | `theme.Icon1`–`Icon6`         | `theme.TextStyleIconXLarge` … `theme.TextStyleIconTiny`                                                                      |
+  | `theme.N1`                    | `theme.TextStyleDisplay.Roman()`                                                                                             |
+  | `theme.B4`                    | `theme.TextStyleBodySmall.Bold()`                                                                                            |
+  | `theme.B5`                    | `theme.TextStyleCaption.Bold()`                                                                                              |
+  | `theme.B6`                    | `theme.TextStyleCaptionSmall.Bold()`                                                                                         |
+  | `theme.I3`                    | `theme.TextStyleBody.Italic()`                                                                                               |
+  | `theme.I4`                    | `theme.TextStyleBodySmall.Italic()`                                                                                          |
+  | `theme.BI3`                   | `theme.TextStyleBody.Italic().Bold()`                                                                                        |
+  | `theme.BI4`                   | `theme.TextStyleBodySmall.Italic().Bold()`                                                                                   |
+  | `theme.I1`/`I2`/`I5`/`I6`     | `theme.TextStyleDisplay`/`Title`/`Caption`/`CaptionSmall` + `.Italic()`                                                      |
+  | `theme.BI1`/`BI2`/`BI5`/`BI6` | as `I1`/`I2`/`I5`/`I6`, + `.Bold()` (order-independent)                                                                      |
+  | `theme.M1`/`M2`/`M4`          | `theme.Mono(theme.TextStyleDisplay.Roman())`, `theme.Mono(theme.TextStyleBodyLarge)`, `theme.Mono(theme.TextStyleBodySmall)` |
+
+  `Bold`, `Italic` and `Roman` are methods on `TextStyle`: pure face maps,
+  order-independent and idempotent, leaving size and color alone. `Mono` is a
+  method on `Theme` (only the theme knows `ThemeCfg.MonoFontFamily`) and applies
+  the mono +1 optical compensation; overriding the size afterwards discards it.
+  Decomposing a role (`role.Color`, `role.Size`) works exactly as decomposing a
+  rung did. The sibling migration (go-edit and go-term read `M5`/`M6`, go-charts
+  reads `N`/`B` rungs) rides the breaking-branch sync-siblings pass before this
+  ships.
+
 - **BREAKING: per-widget `Theme` styles are private, customize through
   `ThemeCfg` (#735)** — `Theme.ButtonStyle` (with `ButtonStylePrimary`,
   `ButtonStyleGhost`, `ButtonStyleDanger`), `Theme.ContainerStyle`,

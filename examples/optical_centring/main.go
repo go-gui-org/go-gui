@@ -67,7 +67,7 @@ func mainView(w *gui.Window) gui.View {
 	th := gui.CurrentTheme()
 
 	rows := []gui.View{
-		gui.Label("Optical centring probe — issue #346", th.B2),
+		gui.Label("Optical centring probe — issue #346", th.TextStyleTitle),
 		gui.Label("corrected: badge and progress readout on their own "+
 			"ink; button, tab, select and menu on the face's cap band; "+
 			"colour fields and masked inputs on its figures. "+
@@ -160,7 +160,7 @@ func mainView(w *gui.Window) gui.View {
 // error is a fraction of an em and is only obvious against a neighbour
 // that does not share it.
 func sizeRow(size float32, text string) gui.View {
-	ts := gui.CurrentTheme().N4
+	ts := gui.CurrentTheme().TextStyleBodySmall
 	ts.Size = size
 
 	return gui.Row(gui.ContainerCfg{

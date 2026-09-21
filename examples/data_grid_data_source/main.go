@@ -88,7 +88,7 @@ func mainView(w *gui.Window) gui.View {
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      "Data Source Demo (50k rows)",
-				TextStyle: theme.B2,
+				TextStyle: theme.TextStyleTitle,
 			}),
 			gui.Row(gui.ContainerCfg{
 				VAlign:  gui.VAlignMiddle,
@@ -123,7 +123,7 @@ func mainView(w *gui.Window) gui.View {
 					mode, loading, stats.RequestCount, stats.CancelledCount,
 					stats.StaleDropCount, stats.ReceivedCount, countText, app.LastAction,
 				),
-				TextStyle: theme.N4,
+				TextStyle: theme.TextStyleBodySmall,
 			}),
 			datagrid.New(w, datagrid.DataGridCfg{
 				ID:              "source-grid",

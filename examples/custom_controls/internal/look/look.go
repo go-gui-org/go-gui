@@ -30,15 +30,15 @@ type Styles struct {
 // init, and gui's init runs before this package's variables are set. Pages
 // read these fields and do not copy the theme (a Theme is about 12 KB).
 var Light = Styles{
-	Title:     gui.ThemeLight.B2,
-	Heading:   gui.ThemeLight.B3,
+	Title:     gui.ThemeLight.TextStyleTitle,
+	Heading:   gui.ThemeLight.TextStyleTitleSmall,
 	Label:     gui.ThemeLight.TextStyleLabel,
 	Secondary: gui.ThemeLight.TextStyleSecondary,
 	Body:      gui.ThemeLight.TextStyleDef,
-	Icon:      gui.ThemeLight.Icon4,
-	Bold4:     gui.ThemeLight.B4,
-	Bold5:     gui.ThemeLight.B5,
-	Bold6:     gui.ThemeLight.B6,
+	Icon:      gui.ThemeLight.TextStyleIconSmall,
+	Bold4:     gui.ThemeLight.TextStyleBodySmall.Bold(),
+	Bold5:     gui.ThemeLight.TextStyleCaption.Bold(),
+	Bold6:     gui.ThemeLight.TextStyleCaptionSmall.Bold(),
 }
 
 // Text returns the body style with a color and a size.

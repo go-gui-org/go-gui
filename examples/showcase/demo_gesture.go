@@ -29,7 +29,7 @@ func demoGesture(w *gui.Window) gui.View {
 					"Double-tap clears markers. " +
 					"Use a touchscreen or Chrome DevTools touch emulation. " +
 					"Mouse or trackpad: click adds a marker, scroll pans.",
-				TextStyle: t.N3,
+				TextStyle: t.TextStyleBody,
 				Mode:      gui.TextModeWrap,
 			}),
 			gui.DrawCanvas(gui.DrawCanvasCfg{
@@ -66,7 +66,7 @@ func demoGesture(w *gui.Window) gui.View {
 			}),
 			gui.Text(gui.TextCfg{
 				Text:      app.GesturePadLabel,
-				TextStyle: t.B3,
+				TextStyle: t.TextStyleTitleSmall,
 			}),
 		},
 	})

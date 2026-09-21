@@ -7,12 +7,12 @@ image files required.
 
 ```go
 // Single icon
-gui.Text(gui.TextCfg{Text: gui.IconCheck, TextStyle: t.Icon4})
+gui.Text(gui.TextCfg{Text: gui.IconCheck, TextStyle: t.TextStyleIconSmall})
 
 // Icon with custom color
 gui.Text(gui.TextCfg{
     Text:      gui.IconAlertCircle,
-    TextStyle: t.Icon3,
+    TextStyle: t.TextStyleIconMedium,
     Color:     gui.ColorRed,
 })
 
@@ -20,7 +20,7 @@ gui.Text(gui.TextCfg{
 gui.Button(gui.ButtonCfg{
     ID: "save",
     Content: []gui.View{
-        gui.Text(gui.TextCfg{Text: gui.IconSave, TextStyle: t.Icon4}),
+        gui.Text(gui.TextCfg{Text: gui.IconSave, TextStyle: t.TextStyleIconSmall}),
         gui.Text(gui.TextCfg{Text: "Save"}),
     },
 })
@@ -28,14 +28,14 @@ gui.Button(gui.ButtonCfg{
 
 ## Icon Styles
 
-| Style   | Size   | Maps to        |
-| ------- | ------ | -------------- |
-| t.Icon1 | XLarge | SizeTextXLarge |
-| t.Icon2 | Large  | SizeTextLarge  |
-| t.Icon3 | Medium | SizeTextMedium |
-| t.Icon4 | Small  | SizeTextSmall  |
-| t.Icon5 | XSmall | SizeTextXSmall |
-| t.Icon6 | Tiny   | SizeTextTiny   |
+| Style                 | Size   | Maps to        |
+| --------------------- | ------ | -------------- |
+| t.TextStyleIconXLarge | XLarge | SizeTextXLarge |
+| t.TextStyleIconLarge  | Large  | SizeTextLarge  |
+| t.TextStyleIconMedium | Medium | SizeTextMedium |
+| t.TextStyleIconSmall  | Small  | SizeTextSmall  |
+| t.TextStyleIconXSmall | XSmall | SizeTextXSmall |
+| t.TextStyleIconTiny   | Tiny   | SizeTextTiny   |
 
 ## Programmatic Access
 
@@ -44,7 +44,7 @@ glyphs:
 
 ```go
 for name, glyph := range gui.IconLookup {
-    gui.Text(gui.TextCfg{Text: glyph, TextStyle: t.Icon4})
+    gui.Text(gui.TextCfg{Text: glyph, TextStyle: t.TextStyleIconSmall})
 }
 ```
 

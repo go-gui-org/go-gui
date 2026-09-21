@@ -216,7 +216,7 @@ func body(w *gui.Window) gui.View {
 			}),
 			gui.Text(gui.TextCfg{
 				Text:      "Welcome to GUI",
-				TextStyle: theme.B1,
+				TextStyle: theme.TextStyleDisplay,
 			}),
 			gui.Button(gui.ButtonCfg{
 				ID: "menu_welcome_button",
@@ -232,11 +232,11 @@ func body(w *gui.Window) gui.View {
 			gui.Text(gui.TextCfg{Text: ""}),
 			gui.Text(gui.TextCfg{
 				Text:      selectedText,
-				TextStyle: theme.M3,
+				TextStyle: theme.TextStyleCode,
 			}),
 			gui.Text(gui.TextCfg{
 				Text:      searchText,
-				TextStyle: theme.M3,
+				TextStyle: theme.TextStyleCode,
 			}),
 		},
 	})

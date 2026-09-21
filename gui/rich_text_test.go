@@ -32,15 +32,15 @@ func TestRichLinkSetsUnderline(t *testing.T) {
 }
 
 // TestRichLinkForcesThemeColor pins the link role against the
-// documented call, RichLink(text, url, t.N3). Every theme style
+// documented call, RichLink(text, url, t.TextStyleBody). Every theme style
 // carries a color, so a constructor that honoured a caller color
 // would draw that call in plain body color with only an underline
 // to mark it as a link. A run that needs its own color is built as
 // a RichTextRun literal instead.
 func TestRichLinkForcesThemeColor(t *testing.T) {
-	themed := guiTheme.N3
+	themed := guiTheme.TextStyleBody
 	if !themed.Color.IsSet() {
-		t.Fatal("Theme.N3 carries no color; the test proves nothing")
+		t.Fatal("Theme.TextStyleBody carries no color; the test proves nothing")
 	}
 	r := RichLink("click", "https://example.com", themed)
 	if r.Style.Color != guiTheme.ColorSelect {

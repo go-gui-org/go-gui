@@ -120,8 +120,8 @@ func card(title, sub string, body gui.View) gui.View {
 				Padding: gui.NoPadding,
 				Spacing: gui.SomeF(2),
 				Content: []gui.View{
-					gui.Text(gui.TextCfg{Text: title, TextStyle: t.N2}),
-					gui.Text(gui.TextCfg{Text: sub, TextStyle: t.N4}),
+					gui.Text(gui.TextCfg{Text: title, TextStyle: t.TextStyleBodyLarge}),
+					gui.Text(gui.TextCfg{Text: sub, TextStyle: t.TextStyleBodySmall}),
 				},
 			}),
 			body,
@@ -162,7 +162,7 @@ func channelRow(
 				Padding: gui.NoPadding,
 				Content: []gui.View{
 					gui.Text(gui.TextCfg{
-						Text: label, TextStyle: t.N3,
+						Text: label, TextStyle: t.TextStyleBody,
 					}),
 					// Fill pushes the value to the right edge.
 					gui.Text(gui.TextCfg{
@@ -188,7 +188,7 @@ func channelRow(
 // valueStyle right-aligns the readout so the numbers line up down the
 // column as they change width.
 func valueStyle(t gui.Theme) gui.TextStyle {
-	s := t.N3
+	s := t.TextStyleBody
 	s.Align = gui.TextAlignRight
 	return s
 }
@@ -266,11 +266,11 @@ func previewBar(app *App) gui.View {
 				Content: []gui.View{
 					gui.Text(gui.TextCfg{
 						Text:      app.Color.String(),
-						TextStyle: t.N2,
+						TextStyle: t.TextStyleBodyLarge,
 					}),
 					gui.Text(gui.TextCfg{
 						Text:      app.Color.Color().Hex(),
-						TextStyle: t.N4,
+						TextStyle: t.TextStyleBodySmall,
 					}),
 				},
 			}),
@@ -304,7 +304,7 @@ func toggleTheme(app *App) gui.View {
 		ID:           "color_picker_toggle_theme",
 		TextSelect:   gui.IconMoon,
 		TextUnselect: gui.IconSunnyO,
-		TextStyle:    t.Icon3,
+		TextStyle:    t.TextStyleIconMedium,
 		Padding:      t.PaddingSmall,
 
 		Selected: app.LightTheme,

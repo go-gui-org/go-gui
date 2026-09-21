@@ -30,10 +30,10 @@ func animTweenDemo(t gui.Theme, app *ShowcaseApp) gui.View {
 		Spacing: gui.SomeF(8),
 		Padding: gui.NoPadding,
 		Content: []gui.View{
-			gui.Text(gui.TextCfg{Text: "Tween Animation", TextStyle: t.B4}),
+			gui.Text(gui.TextCfg{Text: "Tween Animation", TextStyle: t.TextStyleBodySmall.Bold()}),
 			gui.Text(gui.TextCfg{
 				Text:      fmt.Sprintf("Position: %.0f", app.AnimTweenX),
-				TextStyle: t.N3,
+				TextStyle: t.TextStyleBody,
 			}),
 			gui.Row(gui.ContainerCfg{
 				Sizing:  gui.FillFit,
@@ -61,7 +61,7 @@ func animTweenDemo(t gui.Theme, app *ShowcaseApp) gui.View {
 					gui.Button(gui.ButtonCfg{
 						ID:      "btn-tween-go",
 						Padding: gui.NewPadding(6, 16, 6, 16),
-						Content: []gui.View{gui.Text(gui.TextCfg{Text: "Animate", TextStyle: t.N3})},
+						Content: []gui.View{gui.Text(gui.TextCfg{Text: "Animate", TextStyle: t.TextStyleBody})},
 						OnClick: func(ctx gui.EventCtx) {
 							app := appState(ctx.Window)
 							target := float32(300)
@@ -87,10 +87,10 @@ func animSpringDemo(t gui.Theme, app *ShowcaseApp) gui.View {
 		Spacing: gui.SomeF(8),
 		Padding: gui.NoPadding,
 		Content: []gui.View{
-			gui.Text(gui.TextCfg{Text: "Spring Animation", TextStyle: t.B4}),
+			gui.Text(gui.TextCfg{Text: "Spring Animation", TextStyle: t.TextStyleBodySmall.Bold()}),
 			gui.Text(gui.TextCfg{
 				Text:      fmt.Sprintf("Position: %.0f", app.AnimSpringX),
-				TextStyle: t.N3,
+				TextStyle: t.TextStyleBody,
 			}),
 			gui.Row(gui.ContainerCfg{
 				Sizing:  gui.FillFit,
@@ -118,7 +118,7 @@ func animSpringDemo(t gui.Theme, app *ShowcaseApp) gui.View {
 					gui.Button(gui.ButtonCfg{
 						ID:      "btn-spring-go",
 						Padding: gui.NewPadding(6, 16, 6, 16),
-						Content: []gui.View{gui.Text(gui.TextCfg{Text: "Spring", TextStyle: t.N3})},
+						Content: []gui.View{gui.Text(gui.TextCfg{Text: "Spring", TextStyle: t.TextStyleBody})},
 						OnClick: func(ctx gui.EventCtx) {
 							app := appState(ctx.Window)
 							target := float32(300)
@@ -145,10 +145,10 @@ func animKeyframeDemo(t gui.Theme, app *ShowcaseApp) gui.View {
 		Spacing: gui.SomeF(8),
 		Padding: gui.NoPadding,
 		Content: []gui.View{
-			gui.Text(gui.TextCfg{Text: "Keyframe Animation", TextStyle: t.B4}),
+			gui.Text(gui.TextCfg{Text: "Keyframe Animation", TextStyle: t.TextStyleBodySmall.Bold()}),
 			gui.Text(gui.TextCfg{
 				Text:      fmt.Sprintf("Position: %.0f", app.AnimKeyframeX),
-				TextStyle: t.N3,
+				TextStyle: t.TextStyleBody,
 			}),
 			gui.Row(gui.ContainerCfg{
 				Sizing:  gui.FillFit,
@@ -176,7 +176,7 @@ func animKeyframeDemo(t gui.Theme, app *ShowcaseApp) gui.View {
 					gui.Button(gui.ButtonCfg{
 						ID:      "btn-keyframe-go",
 						Padding: gui.NewPadding(6, 16, 6, 16),
-						Content: []gui.View{gui.Text(gui.TextCfg{Text: "Keyframes", TextStyle: t.N3})},
+						Content: []gui.View{gui.Text(gui.TextCfg{Text: "Keyframes", TextStyle: t.TextStyleBody})},
 						OnClick: func(ctx gui.EventCtx) {
 							a := gui.NewKeyframeAnimation("showcase-keyframe",
 								[]gui.Keyframe{

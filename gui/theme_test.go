@@ -53,8 +53,8 @@ func TestThemeMaker(t *testing.T) {
 	if theme.buttonStyle.Colors.Base != cfg.ColorInterior {
 		t.Error("button color mismatch")
 	}
-	if theme.N1.Size != sizeTextXLarge {
-		t.Errorf("N1.Size = %f", theme.N1.Size)
+	if theme.TextStyleDisplay.Size != sizeTextXLarge {
+		t.Errorf("Display.Size = %f", theme.TextStyleDisplay.Size)
 	}
 }
 
@@ -212,8 +212,12 @@ func TestThemeBoldTypeface(t *testing.T) {
 		name  string
 		style TextStyle
 	}{
-		{"B1", theme.B1}, {"B2", theme.B2}, {"B3", theme.B3},
-		{"B4", theme.B4}, {"B5", theme.B5}, {"B6", theme.B6},
+		{"Display", theme.TextStyleDisplay},
+		{"Title", theme.TextStyleTitle},
+		{"TitleSmall", theme.TextStyleTitleSmall},
+		{"BodySmall.Bold", theme.TextStyleBodySmall.Bold()},
+		{"Caption.Bold", theme.TextStyleCaption.Bold()},
+		{"CaptionSmall.Bold", theme.TextStyleCaptionSmall.Bold()},
 	}
 	for _, s := range bold {
 		t.Run(s.name, func(t *testing.T) {
@@ -228,8 +232,12 @@ func TestThemeBoldTypeface(t *testing.T) {
 		name  string
 		style TextStyle
 	}{
-		{"N1", theme.N1}, {"N2", theme.N2}, {"N3", theme.N3},
-		{"N4", theme.N4}, {"N5", theme.N5}, {"N6", theme.N6},
+		{"Display.Roman", theme.TextStyleDisplay.Roman()},
+		{"BodyLarge", theme.TextStyleBodyLarge},
+		{"Body", theme.TextStyleBody},
+		{"BodySmall", theme.TextStyleBodySmall},
+		{"Caption", theme.TextStyleCaption},
+		{"CaptionSmall", theme.TextStyleCaptionSmall},
 	}
 	for _, s := range normal {
 		t.Run(s.name, func(t *testing.T) {

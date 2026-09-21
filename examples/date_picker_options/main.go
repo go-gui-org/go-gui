@@ -560,7 +560,7 @@ func toggleTheme(app *App) gui.View {
 		ID:           "date_picker_options_toggle_theme",
 		TextSelect:   gui.IconMoon,
 		TextUnselect: gui.IconSunnyO,
-		TextStyle:    gui.CurrentTheme().Icon3,
+		TextStyle:    gui.CurrentTheme().TextStyleIconMedium,
 		Padding:      gui.PaddingSmall,
 
 		Selected: app.LightTheme,

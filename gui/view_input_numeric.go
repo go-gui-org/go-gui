@@ -346,7 +346,7 @@ func numericInputStepButtons(
 	// above the text it decorates — a theme with a large SizeTextTiny
 	// can otherwise floor the triangle bigger than the field.
 	triangleSize := f32Min(
-		f32Max(cfg.TextStyle.Size-4, guiTheme.N6.Size), // ergonomics-audit:visual
+		f32Max(cfg.TextStyle.Size-4, guiTheme.TextStyleCaptionSmall.Size), // ergonomics-audit:visual
 		cfg.TextStyle.Size,
 	)
 	// A triangle is a glyph, not a label: it keeps its own ink

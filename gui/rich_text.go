@@ -34,9 +34,9 @@ func RichRun(text string, style TextStyle) RichTextRun {
 // RichLink creates a hyperlink run with underline styling. Color and
 // underline are both the link role, not caller data: a style passed
 // here is for family, size and typeface. Every theme style carries a
-// color (Theme.N3 and its siblings come from TextStyleDef), so
+// color (Theme.TextStyleBody and its siblings come from TextStyleDef), so
 // honouring a caller color would silently draw the documented
-// RichLink(text, url, t.N3) in plain body color.
+// RichLink(text, url, t.TextStyleBody) in plain body color.
 //
 // A run that must carry its own color is a RichTextRun literal —
 // Text, Link and Style are all exported:
@@ -53,7 +53,7 @@ func RichLink(
 
 // RichBr creates a line break run.
 func RichBr() RichTextRun {
-	return RichTextRun{Text: "\n", Style: guiTheme.N3}
+	return RichTextRun{Text: "\n", Style: guiTheme.TextStyleBody}
 }
 
 // RichAbbr creates an abbreviation run with tooltip. Bold is

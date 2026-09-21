@@ -72,7 +72,7 @@ func mainView(w *gui.Window) gui.View {
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      "Main Window",
-				TextStyle: gui.CurrentTheme().B1,
+				TextStyle: gui.CurrentTheme().TextStyleDisplay,
 			}),
 			gui.Button(gui.ButtonCfg{
 				ID: "mw_open_child",
@@ -139,7 +139,7 @@ func inspectorView(w *gui.Window) gui.View {
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      "Event Log",
-				TextStyle: gui.CurrentTheme().B2,
+				TextStyle: gui.CurrentTheme().TextStyleTitle,
 			}),
 			gui.Text(gui.TextCfg{
 				Text: state.Log,

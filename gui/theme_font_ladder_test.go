@@ -35,10 +35,11 @@ func TestAdjustFontSizeKeepsDerivedLadder(t *testing.T) {
 			t.Errorf("%s rung = %v, want %v", r.name, r.got, r.want)
 		}
 	}
-	// The rungs feed the closed grid, so a collapsed ladder shows up
-	// there too: N1 took the xLarge rung.
-	if out.N1.Size != base.N1.Size+1 {
-		t.Errorf("N1 size = %v, want %v", out.N1.Size, base.N1.Size+1)
+	// The roles feed off the ladder, so a collapsed ladder shows up
+	// there too: Display took the xLarge rung.
+	if out.TextStyleDisplay.Size != base.TextStyleDisplay.Size+1 {
+		t.Errorf("Display size = %v, want %v",
+			out.TextStyleDisplay.Size, base.TextStyleDisplay.Size+1)
 	}
 }
 
@@ -121,40 +122,40 @@ func TestThemeSubtleSlotsShareOnePolarity(t *testing.T) {
 	}
 }
 
-// Rung 3 was two values: N3 took TextStyleDef.Size directly while B3,
-// I3, M3 and BI3 took the SizeTextMedium rung. A Cfg that states both
-// and disagrees therefore rendered a bold word at a different size from
-// the sentence around it.
-func TestThemeRungThreeAgreesAcrossFaces(t *testing.T) {
+// Body and TitleSmall both come off the medium rung while Code sits
+// +1 above it. A Cfg that states the ladder and the body size and
+// disagrees must still agree across roles: a bold word at a different
+// size from the sentence around it was the original bug.
+func TestThemeMediumAgreesAcrossRoles(t *testing.T) {
 	cfg := baseDarkCfg()
 	cfg.SizeTextMedium = 20 // the ladder says 20, the body still says 14
 	th := ThemeMaker(cfg)
 
-	faces := map[string]float32{
-		"N3":  th.N3.Size,
-		"B3":  th.B3.Size,
-		"I3":  th.I3.Size,
-		"BI3": th.BI3.Size,
+	roles := map[string]float32{
+		"Body":       th.TextStyleBody.Size,
+		"TitleSmall": th.TextStyleTitleSmall.Size,
+		"Italic":     th.TextStyleBody.Italic().Size,
+		"BoldItalic": th.TextStyleBody.Italic().Bold().Size,
 	}
-	for name, got := range faces {
+	for name, got := range roles {
 		if got != th.SizeTextMedium {
 			t.Errorf("%s size = %v, want the medium rung %v",
 				name, got, th.SizeTextMedium)
 		}
 	}
-	// The M ladder sits +1 above the roman one at every rung.
-	if want := th.SizeTextMedium + 1; th.M3.Size != want {
-		t.Errorf("M3 size = %v, want %v", th.M3.Size, want)
+	// The Code roles sit +1 above the roman ones.
+	if want := th.SizeTextMedium + 1; th.TextStyleCode.Size != want {
+		t.Errorf("Code size = %v, want %v", th.TextStyleCode.Size, want)
 	}
 }
 
 // The presets state the body size and the medium rung as the same
 // value, so the fix above moves nothing for them.
-func TestPresetRungThreeMatchesBody(t *testing.T) {
+func TestPresetBodyMatchesDef(t *testing.T) {
 	for _, th := range []Theme{ThemeDark, ThemeLight} {
-		if th.N3.Size != th.TextStyleDef.Size {
-			t.Errorf("%s: N3 size = %v, want the body size %v",
-				th.Name, th.N3.Size, th.TextStyleDef.Size)
+		if th.TextStyleBody.Size != th.TextStyleDef.Size {
+			t.Errorf("%s: Body size = %v, want the body size %v",
+				th.Name, th.TextStyleBody.Size, th.TextStyleDef.Size)
 		}
 	}
 }

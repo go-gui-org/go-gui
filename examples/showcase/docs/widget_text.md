@@ -8,12 +8,12 @@ gradients, outlines, rotation, custom colors, and text selection via
 t := gui.CurrentTheme()
 
 // Basic text
-gui.Text(gui.TextCfg{Text: "Hello", TextStyle: t.N3})
+gui.Text(gui.TextCfg{Text: "Hello", TextStyle: t.TextStyleBody})
 
 // Wrapping text
 gui.Text(gui.TextCfg{
     Text:      "Long paragraph that wraps to container width.",
-    TextStyle: t.N4,
+    TextStyle: t.TextStyleBodySmall,
     Mode:      gui.TextModeWrap,
 })
 
@@ -22,7 +22,7 @@ gui.Text(gui.TextCfg{
     Text: "Colored",
     TextStyle: gui.TextStyle{
         Color: gui.ColorFromString("#3b82f6"),
-        Size:  t.N3.Size,
+        Size:  t.TextStyleBody.Size,
     },
 })
 ```

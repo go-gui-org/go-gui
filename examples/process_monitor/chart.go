@@ -70,8 +70,8 @@ func usageChart(
 				VAlign:  gui.VAlignMiddle,
 				Spacing: gui.SomeF(8),
 				Content: []gui.View{
-					gui.Text(gui.TextCfg{Text: title, TextStyle: theme.B5}),
-					gui.Text(gui.TextCfg{Text: "scale " + fmtFn(scale), TextStyle: theme.N6}),
+					gui.Text(gui.TextCfg{Text: title, TextStyle: theme.TextStyleCaption.Bold()}),
+					gui.Text(gui.TextCfg{Text: "scale " + fmtFn(scale), TextStyle: theme.TextStyleCaptionSmall}),
 				},
 			}),
 			gui.Row(gui.ContainerCfg{

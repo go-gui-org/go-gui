@@ -6,12 +6,12 @@ import "testing"
 // tests can assert them as a set.
 func iconStyleFamilies(theme Theme) []string {
 	return []string{
-		theme.Icon1.Family,
-		theme.Icon2.Family,
-		theme.Icon3.Family,
-		theme.Icon4.Family,
-		theme.Icon5.Family,
-		theme.Icon6.Family,
+		theme.TextStyleIconXLarge.Family,
+		theme.TextStyleIconLarge.Family,
+		theme.TextStyleIconMedium.Family,
+		theme.TextStyleIconSmall.Family,
+		theme.TextStyleIconXSmall.Family,
+		theme.TextStyleIconTiny.Family,
 		theme.treeStyle.textStyleIcon.Family,
 	}
 }
@@ -54,13 +54,19 @@ func TestThemeMakerMonoFamily(t *testing.T) {
 	cfg := baseCfg()
 	cfg.MonoFontFamily = "mycustommono"
 	theme := ThemeMaker(cfg)
-	styles := []TextStyle{
-		theme.M1, theme.M2, theme.M3, theme.M4, theme.M5, theme.M6,
+	styles := []struct {
+		name  string
+		style TextStyle
+	}{
+		{"Code", theme.TextStyleCode},
+		{"CodeSmall", theme.TextStyleCodeSmall},
+		{"CodeTiny", theme.TextStyleCodeTiny},
+		{"Mono donor", theme.Mono(theme.TextStyleBody)},
 	}
-	for i, s := range styles {
-		if s.Family != "mycustommono" {
-			t.Errorf("M%d family = %q, want %q",
-				i+1, s.Family, "mycustommono")
+	for _, s := range styles {
+		if s.style.Family != "mycustommono" {
+			t.Errorf("%s family = %q, want %q",
+				s.name, s.style.Family, "mycustommono")
 		}
 	}
 }
@@ -76,8 +82,10 @@ func TestThemeMakerIconFamilyDoesNotLeak(t *testing.T) {
 	theme := ThemeMaker(cfg)
 
 	text := map[string]TextStyle{
-		"I3": theme.I3, "I6": theme.I6,
-		"BI3": theme.BI3, "BI6": theme.BI6,
+		"Italic":       theme.TextStyleBody.Italic(),
+		"Italic small": theme.TextStyleCaptionSmall.Italic(),
+		"BoldItalic":   theme.TextStyleBody.Italic().Bold(),
+		"BI small":     theme.TextStyleCaptionSmall.Italic().Bold(),
 	}
 	for name, s := range text {
 		if s.Family != "mytextfamily" {
@@ -85,9 +93,9 @@ func TestThemeMakerIconFamilyDoesNotLeak(t *testing.T) {
 				name, s.Family, "mytextfamily")
 		}
 	}
-	if theme.M3.Family != "mymonofamily" {
-		t.Errorf("M3 family = %q, want %q",
-			theme.M3.Family, "mymonofamily")
+	if theme.TextStyleCode.Family != "mymonofamily" {
+		t.Errorf("Code family = %q, want %q",
+			theme.TextStyleCode.Family, "mymonofamily")
 	}
 }
 
@@ -277,15 +285,15 @@ func TestThemeMakerPostLiteralOverwrites(t *testing.T) {
 	cfg.TextStyleDef = TextStyle{Color: RGBA(200, 200, 200, 255), Size: sizeTextMedium}
 	theme := ThemeMaker(cfg)
 
-	if theme.tableStyle.TextStyleHead != theme.B3 {
-		t.Errorf("TableStyle.TextStyleHead = %+v, want B3 %+v",
-			theme.tableStyle.TextStyleHead, theme.B3)
+	if theme.tableStyle.TextStyleHead != theme.TextStyleTitleSmall {
+		t.Errorf("TableStyle.TextStyleHead = %+v, want TitleSmall %+v",
+			theme.tableStyle.TextStyleHead, theme.TextStyleTitleSmall)
 	}
 
-	wantBadge := theme.B5
+	wantBadge := theme.TextStyleCaption.Bold()
 	wantBadge.Color = White
 	if theme.badgeStyle.TextStyle != wantBadge {
-		t.Errorf("BadgeStyle.TextStyle = %+v, want B5 with White color %+v",
+		t.Errorf("BadgeStyle.TextStyle = %+v, want Caption.Bold with White color %+v",
 			theme.badgeStyle.TextStyle, wantBadge)
 	}
 	if !theme.badgeStyle.TextStyle.Color.eq(White) {
@@ -294,24 +302,24 @@ func TestThemeMakerPostLiteralOverwrites(t *testing.T) {
 	}
 }
 
-// Heading roles take B rungs (visual-refresh §2.2): dialog, toast and
-// selected-tab labels are bold while body and value text stays N. The
-// command golden serializer records no typeface, so this is the pin —
-// same pattern as TestThemeMakerPostLiteralOverwrites above.
+// Heading roles take the title roles (visual-refresh §2.2): dialog,
+// toast and selected-tab labels are bold while body and value text stays
+// Body. The command golden serializer records no typeface, so this is
+// the pin — same pattern as TestThemeMakerPostLiteralOverwrites above.
 func TestThemeMakerHeadingWeights(t *testing.T) {
 	theme := ThemeMaker(baseDarkCfg())
 
-	if theme.dialogStyle.titleTextStyle != theme.B2 {
-		t.Errorf("dialog title = %+v, want B2 %+v",
-			theme.dialogStyle.titleTextStyle, theme.B2)
+	if theme.dialogStyle.titleTextStyle != theme.TextStyleTitle {
+		t.Errorf("dialog title = %+v, want Title %+v",
+			theme.dialogStyle.titleTextStyle, theme.TextStyleTitle)
 	}
-	if theme.toastStyle.TitleStyle != theme.B3 {
-		t.Errorf("toast title = %+v, want B3 %+v",
-			theme.toastStyle.TitleStyle, theme.B3)
+	if theme.toastStyle.TitleStyle != theme.TextStyleTitleSmall {
+		t.Errorf("toast title = %+v, want TitleSmall %+v",
+			theme.toastStyle.TitleStyle, theme.TextStyleTitleSmall)
 	}
-	if theme.tabControlStyle.textStyleSelected.Typeface != theme.B3.Typeface {
-		t.Errorf("selected tab weight = %+v, want B3's %+v",
-			theme.tabControlStyle.textStyleSelected.Typeface, theme.B3.Typeface)
+	if theme.tabControlStyle.textStyleSelected.Typeface != theme.TextStyleTitleSmall.Typeface {
+		t.Errorf("selected tab weight = %+v, want TitleSmall's %+v",
+			theme.tabControlStyle.textStyleSelected.Typeface, theme.TextStyleTitleSmall.Typeface)
 	}
 	if theme.tabControlStyle.textStyleSelected.Color != White {
 		t.Errorf("selected tab color = %+v, want the paired foreground",
@@ -669,69 +677,82 @@ func TestThemeMakerZeroCfg(t *testing.T) {
 	}
 }
 
-// TestThemeMakerLadderGrid locks the closed 6x6 ladder (issue #343):
-// every rung of every face is populated, rungs ascend N1..N6 within a
-// face, the roman faces share one size scale, and the mono face sits
-// +1 above it. A zero rung or a drifted mono offset would otherwise
-// render silently and surface nowhere.
-func TestThemeMakerLadderGrid(t *testing.T) {
-	type face struct {
-		name string
-		runs [6]TextStyle
+// TestThemeMakerRoleLadder locks the role ladder (issues #343, #734):
+// every role is populated, sizes descend within each family, the icon
+// roles share the roman scale, and the code roles sit +1 above it. A
+// zero role or a drifted mono offset would otherwise render silently
+// and surface nowhere.
+func TestThemeMakerRoleLadder(t *testing.T) {
+	roman := [6]TextStyle{
+		ThemeDark.TextStyleDisplay.Roman(),
+		ThemeDark.TextStyleBodyLarge,
+		ThemeDark.TextStyleBody,
+		ThemeDark.TextStyleBodySmall,
+		ThemeDark.TextStyleCaption,
+		ThemeDark.TextStyleCaptionSmall,
 	}
-	faces := []face{
-		{"N", [6]TextStyle{ThemeDark.N1, ThemeDark.N2, ThemeDark.N3, ThemeDark.N4, ThemeDark.N5, ThemeDark.N6}},
-		{"B", [6]TextStyle{ThemeDark.B1, ThemeDark.B2, ThemeDark.B3, ThemeDark.B4, ThemeDark.B5, ThemeDark.B6}},
-		{"I", [6]TextStyle{ThemeDark.I1, ThemeDark.I2, ThemeDark.I3, ThemeDark.I4, ThemeDark.I5, ThemeDark.I6}},
-		{"BI", [6]TextStyle{ThemeDark.BI1, ThemeDark.BI2, ThemeDark.BI3, ThemeDark.BI4, ThemeDark.BI5, ThemeDark.BI6}},
-		{"Icon", [6]TextStyle{ThemeDark.Icon1, ThemeDark.Icon2, ThemeDark.Icon3, ThemeDark.Icon4, ThemeDark.Icon5, ThemeDark.Icon6}},
-		{"M", [6]TextStyle{ThemeDark.M1, ThemeDark.M2, ThemeDark.M3, ThemeDark.M4, ThemeDark.M5, ThemeDark.M6}},
+	titles := [3]TextStyle{
+		ThemeDark.TextStyleDisplay,
+		ThemeDark.TextStyleTitle,
+		ThemeDark.TextStyleTitleSmall,
+	}
+	icons := [6]TextStyle{
+		ThemeDark.TextStyleIconXLarge,
+		ThemeDark.TextStyleIconLarge,
+		ThemeDark.TextStyleIconMedium,
+		ThemeDark.TextStyleIconSmall,
+		ThemeDark.TextStyleIconXSmall,
+		ThemeDark.TextStyleIconTiny,
+	}
+	code := [3]TextStyle{
+		ThemeDark.TextStyleCode,
+		ThemeDark.TextStyleCodeSmall,
+		ThemeDark.TextStyleCodeTiny,
+	}
+	codeRoman := [3]TextStyle{
+		ThemeDark.TextStyleBody,
+		ThemeDark.TextStyleCaption,
+		ThemeDark.TextStyleCaptionSmall,
 	}
 
-	// The canonical roman scale the other faces must match, rung by rung.
-	nSizes := [6]float32{
-		ThemeDark.N1.Size, ThemeDark.N2.Size, ThemeDark.N3.Size,
-		ThemeDark.N4.Size, ThemeDark.N5.Size, ThemeDark.N6.Size,
+	families := []struct {
+		name  string
+		roles []TextStyle
+	}{
+		{"roman", roman[:]},
+		{"title", titles[:]},
+		{"icon", icons[:]},
 	}
-
-	for _, f := range faces {
-		for i, s := range f.runs {
+	for _, f := range families {
+		for i, s := range f.roles {
 			if s.Size <= 0 {
-				t.Errorf("%s%d.Size = %v, want > 0", f.name, i+1, s.Size)
+				t.Errorf("%s role %d Size = %v, want > 0",
+					f.name, i, s.Size)
 			}
 		}
-		// Rungs ascend within a face: N1 (xlarge) is the largest.
-		for i := 0; i+1 < len(f.runs); i++ {
-			if f.runs[i].Size <= f.runs[i+1].Size {
-				t.Errorf("%s%d.Size = %v, want > %s%d (%v)",
-					f.name, i+1, f.runs[i].Size,
-					f.name, i+2, f.runs[i+1].Size)
-			}
-		}
-	}
-
-	// The roman faces share the N scale at every rung.
-	for _, f := range faces {
-		if f.name == "M" {
-			continue
-		}
-		for rung := range 6 {
-			if f.runs[rung].Size != nSizes[rung] {
-				t.Errorf("%s%d.Size = %v, want N%d %v",
-					f.name, rung+1, f.runs[rung].Size, rung+1, nSizes[rung])
+		// Sizes descend within a family: the first role is largest.
+		for i := 0; i+1 < len(f.roles); i++ {
+			if f.roles[i].Size <= f.roles[i+1].Size {
+				t.Errorf("%s role %d Size = %v, want > role %d (%v)",
+					f.name, i, f.roles[i].Size,
+					i+1, f.roles[i+1].Size)
 			}
 		}
 	}
 
-	// The mono face sits +1 above the roman scale at every rung.
-	mSizes := [6]float32{
-		ThemeDark.M1.Size, ThemeDark.M2.Size, ThemeDark.M3.Size,
-		ThemeDark.M4.Size, ThemeDark.M5.Size, ThemeDark.M6.Size,
+	// The icon roles share the roman scale, rung by rung.
+	for i := range 6 {
+		if icons[i].Size != roman[i].Size {
+			t.Errorf("icon role %d Size = %v, want roman %v",
+				i, icons[i].Size, roman[i].Size)
+		}
 	}
-	for rung := range 6 {
-		if mSizes[rung] != nSizes[rung]+1 {
-			t.Errorf("M%d.Size = %v, want N%d+1 %v",
-				rung+1, mSizes[rung], rung+1, nSizes[rung]+1)
+
+	// The code roles sit +1 above the roman scale at their rungs.
+	for i := range 3 {
+		if code[i].Size != codeRoman[i].Size+1 {
+			t.Errorf("code role %d Size = %v, want roman+1 %v",
+				i, code[i].Size, codeRoman[i].Size+1)
 		}
 	}
 }

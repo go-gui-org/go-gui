@@ -73,31 +73,31 @@ type MarkdownStyle struct {
 func DefaultMarkdownStyle() MarkdownStyle {
 	// Line spacing comes from go-glyph's recommended line height (font
 	// leading, floored to a minimum em ratio); no manual LineSpacing needed.
-	text := guiTheme.N4
-	bold := guiTheme.B4
-	italic := guiTheme.I4
-	bi := guiTheme.BI4
+	text := guiTheme.TextStyleBodySmall
+	bold := guiTheme.TextStyleBodySmall.Bold()
+	italic := guiTheme.TextStyleBodySmall.Italic()
+	bi := guiTheme.TextStyleBodySmall.Italic().Bold()
 
 	return MarkdownStyle{
 		Text:          text,
-		H1:            guiTheme.B1,
-		H2:            guiTheme.B2,
-		H3:            guiTheme.B3,
-		H4:            guiTheme.B4,
-		H5:            guiTheme.B5,
-		H6:            guiTheme.B6,
+		H1:            guiTheme.TextStyleDisplay,
+		H2:            guiTheme.TextStyleTitle,
+		H3:            guiTheme.TextStyleTitleSmall,
+		H4:            bold,
+		H5:            guiTheme.TextStyleCaption.Bold(),
+		H6:            guiTheme.TextStyleCaptionSmall.Bold(),
 		Bold:          bold,
 		Italic:        italic,
 		BoldItalic:    bi,
-		Code:          guiTheme.M5,
-		codeBlockText: guiTheme.M5,
+		Code:          guiTheme.TextStyleCodeSmall,
+		codeBlockText: guiTheme.TextStyleCodeSmall,
 		// Non-text fills, exempt from the dimming roles (audit §1.2).
 		CodeBlockBG:       RGBA(0, 0, 0, 50), // ergonomics-audit:visual
 		codeKeywordColor:  guiTheme.ColorSelect,
 		codeStringColor:   RGB(75, 125, 75),
 		codeNumberColor:   RGB(169, 114, 62),
 		codeCommentColor:  guiTheme.ColorBorder,
-		codeOperatorColor: guiTheme.N3.Color,
+		codeOperatorColor: guiTheme.TextStyleBody.Color,
 		codeTypeColor:     RGB(78, 140, 178),
 		codeFunctionColor: RGB(160, 100, 170),
 		codeBuiltinColor:  RGB(78, 140, 178),
@@ -116,8 +116,8 @@ func DefaultMarkdownStyle() MarkdownStyle {
 		TableBorderStyle: TableBorderHeaderOnly,
 		tableBorderColor: guiTheme.ColorBorder,
 		tableBorderSize:  1,
-		tableHeadStyle:   guiTheme.B4,
-		tableCellStyle:   guiTheme.N4,
+		tableHeadStyle:   bold,
+		tableCellStyle:   text,
 		tableCellPadding: NewPadding(5, 10, 5, 10),
 		highlightBG:      RGB(199, 142, 18),
 		mathDPIDisplay:   150,

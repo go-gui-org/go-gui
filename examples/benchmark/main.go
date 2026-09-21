@@ -181,7 +181,7 @@ func benchView(w *gui.Window) gui.View {
 				Content: []gui.View{
 					gui.Text(gui.TextCfg{
 						Text:      "Count:",
-						TextStyle: theme.B3,
+						TextStyle: theme.TextStyleTitleSmall,
 					}),
 					gui.Select(gui.SelectCfg{
 						ID:       "bench-count",
@@ -199,7 +199,7 @@ func benchView(w *gui.Window) gui.View {
 					}),
 					gui.Text(gui.TextCfg{
 						Text:      "Type:",
-						TextStyle: theme.B3,
+						TextStyle: theme.TextStyleTitleSmall,
 					}),
 					gui.Select(gui.SelectCfg{
 						ID:       "bench-type",
@@ -237,7 +237,7 @@ func benchView(w *gui.Window) gui.View {
 				Text: fmt.Sprintf("FPS: %5.0f   View: %9s us   Layout: %9s us   Render: %9s us   Widgets: %5s",
 					fmtAvg(&app.FPS), commaFloat(fmtAvg(&app.ViewAvg)), commaFloat(fmtAvg(&app.LayoutAvg)),
 					commaFloat(fmtAvg(&app.RenderAvg)), commaInt(app.WidgetCount)),
-				TextStyle: theme.M4,
+				TextStyle: theme.Mono(theme.TextStyleBodySmall),
 			}),
 			// Widget area.
 			gui.Column(gui.ContainerCfg{

@@ -84,11 +84,11 @@ func mainView(w *gui.Window) gui.View {
 			}),
 			gui.Text(gui.TextCfg{
 				Text:      "System Tray Demo",
-				TextStyle: theme.B1,
+				TextStyle: theme.TextStyleDisplay,
 			}),
 			gui.Text(gui.TextCfg{
 				Text:      app.Status,
-				TextStyle: theme.M3,
+				TextStyle: theme.TextStyleCode,
 			}),
 		},
 	})

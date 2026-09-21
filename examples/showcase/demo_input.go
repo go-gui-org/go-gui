@@ -19,7 +19,7 @@ func demoInput(w *gui.Window) gui.View {
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      "Accessibility: supports IME composition, keyboard tab focus, masked input, and multiline editing.",
-				TextStyle: t.N3,
+				TextStyle: t.TextStyleBody,
 				Mode:      gui.TextModeWrap,
 			}),
 			gui.Switch(gui.SwitchCfg{
@@ -88,8 +88,8 @@ func demoInput(w *gui.Window) gui.View {
 
 func demoNumericInput(w *gui.Window) gui.View {
 	app := appState(w)
-	titleStyle := gui.CurrentTheme().B3
-	bodyStyle := gui.CurrentTheme().N3
+	titleStyle := gui.CurrentTheme().TextStyleTitleSmall
+	bodyStyle := gui.CurrentTheme().TextStyleBody
 
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
@@ -238,7 +238,7 @@ func demoColorPicker(w *gui.Window) gui.View {
 			}),
 			gui.Text(gui.TextCfg{
 				Text:      fmt.Sprintf("RGBA(%d, %d, %d, %d)", c.R, c.G, c.B, c.A),
-				TextStyle: gui.CurrentTheme().N3,
+				TextStyle: gui.CurrentTheme().TextStyleBody,
 			}),
 			// The composite control above and the loose components
 			// below edit different values, so a rule between them says
@@ -263,7 +263,7 @@ func demoColorComponents(app *ShowcaseApp) gui.View {
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      "Composable components",
-				TextStyle: gui.CurrentTheme().N2,
+				TextStyle: gui.CurrentTheme().TextStyleBodyLarge,
 			}),
 			gui.Row(gui.ContainerCfg{
 				Sizing:  gui.FitFit,
@@ -306,7 +306,7 @@ func demoColorComponents(app *ShowcaseApp) gui.View {
 			}),
 			gui.Text(gui.TextCfg{
 				Text:      app.ColorHSLA.String(),
-				TextStyle: gui.CurrentTheme().N3,
+				TextStyle: gui.CurrentTheme().TextStyleBody,
 			}),
 		},
 	})
@@ -346,7 +346,7 @@ func demoDatePicker(w *gui.Window) gui.View {
 			gui.Text(gui.TextCfg{
 				Text:      "Selected: " + selected,
 				Mode:      gui.TextModeWrap,
-				TextStyle: gui.CurrentTheme().N4}),
+				TextStyle: gui.CurrentTheme().TextStyleBodySmall}),
 		},
 	})
 }
@@ -368,7 +368,7 @@ func demoDatePickerRoller(w *gui.Window) gui.View {
 			}),
 			gui.Text(gui.TextCfg{
 				Text:      "Selected: " + gui.LocaleFormatDate(app.RollerDate, gui.CurrentLocale().Date.LongDate),
-				TextStyle: gui.CurrentTheme().N3,
+				TextStyle: gui.CurrentTheme().TextStyleBody,
 			}),
 		},
 	})
@@ -395,7 +395,7 @@ func demoInputDate(w *gui.Window) gui.View {
 			}),
 			gui.Text(gui.TextCfg{
 				Text:      "Selected: " + gui.LocaleFormatDate(app.InputDate, gui.CurrentLocale().Date.ShortDate),
-				TextStyle: gui.CurrentTheme().N3,
+				TextStyle: gui.CurrentTheme().TextStyleBody,
 			}),
 			// The same date through a field-level DateFormat. The
 			// format drives the text, the mask, the placeholder and
@@ -521,7 +521,7 @@ func demoForms(w *gui.Window) gui.View {
 					gui.Button(gui.ButtonCfg{
 						ID:      "showcase-form-submit",
 						Padding: gui.NewPadding(8, 16, 8, 16),
-						Content: []gui.View{gui.Text(gui.TextCfg{Text: gui.CurrentLocale().StrSubmit, TextStyle: gui.CurrentTheme().B3})},
+						Content: []gui.View{gui.Text(gui.TextCfg{Text: gui.CurrentLocale().StrSubmit, TextStyle: gui.CurrentTheme().TextStyleTitleSmall})},
 						OnClick: func(ctx gui.EventCtx) {
 							gui.FormRequestSubmit(ctx.Window, showcaseFormID)
 						},
@@ -529,7 +529,7 @@ func demoForms(w *gui.Window) gui.View {
 					gui.Button(gui.ButtonCfg{
 						ID:      "showcase-form-reset",
 						Padding: gui.NewPadding(8, 16, 8, 16),
-						Content: []gui.View{gui.Text(gui.TextCfg{Text: gui.CurrentLocale().StrReset, TextStyle: gui.CurrentTheme().N3})},
+						Content: []gui.View{gui.Text(gui.TextCfg{Text: gui.CurrentLocale().StrReset, TextStyle: gui.CurrentTheme().TextStyleBody})},
 						OnClick: func(ctx gui.EventCtx) {
 							gui.FormRequestReset(ctx.Window, showcaseFormID)
 						},
@@ -538,9 +538,9 @@ func demoForms(w *gui.Window) gui.View {
 			}),
 			gui.Text(gui.TextCfg{
 				Text:      fmt.Sprintf("Validation summary: invalid=%d, pending=%d", summary.InvalidCount, summary.PendingCount),
-				TextStyle: gui.CurrentTheme().N3,
+				TextStyle: gui.CurrentTheme().TextStyleBody,
 			}),
-			gui.Text(gui.TextCfg{Text: pendingText, TextStyle: gui.CurrentTheme().N3}),
+			gui.Text(gui.TextCfg{Text: pendingText, TextStyle: gui.CurrentTheme().TextStyleBody}),
 			gui.Text(gui.TextCfg{
 				Text: func() string {
 					if form.SubmitMessage != "" {
@@ -548,7 +548,7 @@ func demoForms(w *gui.Window) gui.View {
 					}
 					return "Submit form to view committed values"
 				}(),
-				TextStyle: gui.CurrentTheme().N3,
+				TextStyle: gui.CurrentTheme().TextStyleBody,
 			}),
 		},
 	})
@@ -563,7 +563,7 @@ func labeledRow(t gui.Theme, label string, content gui.View) gui.View {
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      label,
-				TextStyle: t.B3,
+				TextStyle: t.TextStyleTitleSmall,
 				MinWidth:  80,
 				Sizing:    gui.FixedFit,
 			}),
@@ -581,7 +581,7 @@ func showcaseFormRow(label string, field gui.View) gui.View {
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      label,
-				TextStyle: gui.CurrentTheme().N3,
+				TextStyle: gui.CurrentTheme().TextStyleBody,
 				MinWidth:  90,
 				Sizing:    gui.FixedFit,
 			}),
@@ -599,7 +599,7 @@ func showcaseFormFieldState(w *gui.Window, fieldID string) gui.View {
 	}
 	return gui.Text(gui.TextCfg{
 		Text:      text,
-		TextStyle: gui.CurrentTheme().N3,
+		TextStyle: gui.CurrentTheme().TextStyleBody,
 	})
 }
 
@@ -612,7 +612,7 @@ func showcaseFormFieldIssues(w *gui.Window, fieldID string) gui.View {
 	for i, issue := range issues {
 		msgs[i] = issue.Msg
 	}
-	style := gui.CurrentTheme().N3
+	style := gui.CurrentTheme().TextStyleBody
 	style.Color = gui.RGB(219, 87, 87)
 	return gui.Text(gui.TextCfg{
 		Text:      fieldID + ": " + strings.Join(msgs, "; "),

@@ -22,7 +22,7 @@ func demoDialog(w *gui.Window) gui.View {
 						ID:      "btn-dialog-msg",
 						Padding: gui.NewPadding(8, 16, 8, 16),
 						Content: []gui.View{
-							gui.Text(gui.TextCfg{Text: "Message", TextStyle: t.N3}),
+							gui.Text(gui.TextCfg{Text: "Message", TextStyle: t.TextStyleBody}),
 						},
 						OnClick: func(ctx gui.EventCtx) {
 							ctx.Window.Dialog(gui.DialogCfg{
@@ -39,7 +39,7 @@ func demoDialog(w *gui.Window) gui.View {
 						ID:      "btn-dialog-confirm",
 						Padding: gui.NewPadding(8, 16, 8, 16),
 						Content: []gui.View{
-							gui.Text(gui.TextCfg{Text: "Confirm", TextStyle: t.N3}),
+							gui.Text(gui.TextCfg{Text: "Confirm", TextStyle: t.TextStyleBody}),
 						},
 						OnClick: func(ctx gui.EventCtx) {
 							ctx.Window.Dialog(gui.DialogCfg{
@@ -59,7 +59,7 @@ func demoDialog(w *gui.Window) gui.View {
 						ID:      "btn-dialog-prompt",
 						Padding: gui.NewPadding(8, 16, 8, 16),
 						Content: []gui.View{
-							gui.Text(gui.TextCfg{Text: "Prompt", TextStyle: t.N3}),
+							gui.Text(gui.TextCfg{Text: "Prompt", TextStyle: t.TextStyleBody}),
 						},
 						OnClick: func(ctx gui.EventCtx) {
 							ctx.Window.Dialog(gui.DialogCfg{
@@ -79,7 +79,7 @@ func demoDialog(w *gui.Window) gui.View {
 						ID:      "btn-dialog-custom",
 						Padding: gui.NewPadding(8, 16, 8, 16),
 						Content: []gui.View{
-							gui.Text(gui.TextCfg{Text: "Custom", TextStyle: t.N3}),
+							gui.Text(gui.TextCfg{Text: "Custom", TextStyle: t.TextStyleBody}),
 						},
 						OnClick: func(ctx gui.EventCtx) {
 							ctx.Window.Dialog(gui.DialogCfg{
@@ -93,7 +93,7 @@ func demoDialog(w *gui.Window) gui.View {
 										Content: []gui.View{
 											gui.Text(gui.TextCfg{
 												Text:      "This dialog has custom content.",
-												TextStyle: t.N3,
+												TextStyle: t.TextStyleBody,
 											}),
 											gui.ProgressBar(gui.ProgressBarCfg{
 												ID:       "showcase-dialog-pb",
@@ -123,8 +123,8 @@ func demoDialog(w *gui.Window) gui.View {
 						ID:      "btn-open-file",
 						Padding: gui.NewPadding(8, 16, 8, 16),
 						Content: []gui.View{
-							gui.Text(gui.TextCfg{Text: gui.IconFolder, TextStyle: t.N3}),
-							gui.Text(gui.TextCfg{Text: "Open", TextStyle: t.N3}),
+							gui.Text(gui.TextCfg{Text: gui.IconFolder, TextStyle: t.TextStyleBody}),
+							gui.Text(gui.TextCfg{Text: "Open", TextStyle: t.TextStyleBody}),
 						},
 						OnClick: func(ctx gui.EventCtx) {
 							np := ctx.Window.NativePlatformBackend()
@@ -146,8 +146,8 @@ func demoDialog(w *gui.Window) gui.View {
 						ID:      "btn-save-file",
 						Padding: gui.NewPadding(8, 16, 8, 16),
 						Content: []gui.View{
-							gui.Text(gui.TextCfg{Text: gui.IconDownload, TextStyle: t.N3}),
-							gui.Text(gui.TextCfg{Text: "Save", TextStyle: t.N3}),
+							gui.Text(gui.TextCfg{Text: gui.IconDownload, TextStyle: t.TextStyleBody}),
+							gui.Text(gui.TextCfg{Text: "Save", TextStyle: t.TextStyleBody}),
 						},
 						OnClick: func(ctx gui.EventCtx) {
 							np := ctx.Window.NativePlatformBackend()
@@ -169,8 +169,8 @@ func demoDialog(w *gui.Window) gui.View {
 						ID:      "btn-folder",
 						Padding: gui.NewPadding(8, 16, 8, 16),
 						Content: []gui.View{
-							gui.Text(gui.TextCfg{Text: gui.IconFolder, TextStyle: t.N3}),
-							gui.Text(gui.TextCfg{Text: "Folder", TextStyle: t.N3}),
+							gui.Text(gui.TextCfg{Text: gui.IconFolder, TextStyle: t.TextStyleBody}),
+							gui.Text(gui.TextCfg{Text: "Folder", TextStyle: t.TextStyleBody}),
 						},
 						OnClick: func(ctx gui.EventCtx) {
 							np := ctx.Window.NativePlatformBackend()
@@ -192,7 +192,7 @@ func demoDialog(w *gui.Window) gui.View {
 			}),
 			gui.Text(gui.TextCfg{
 				Text:      "Result: " + app.DialogResult,
-				TextStyle: t.N3,
+				TextStyle: t.TextStyleBody,
 			}),
 		},
 	})
@@ -210,8 +210,8 @@ func demoNotification(w *gui.Window) gui.View {
 				ID:      "btn-notify",
 				Padding: gui.NewPadding(8, 16, 8, 16),
 				Content: []gui.View{
-					gui.Text(gui.TextCfg{Text: gui.IconBell, TextStyle: t.N3}),
-					gui.Text(gui.TextCfg{Text: "Send Notification", TextStyle: t.N3}),
+					gui.Text(gui.TextCfg{Text: gui.IconBell, TextStyle: t.TextStyleBody}),
+					gui.Text(gui.TextCfg{Text: "Send Notification", TextStyle: t.TextStyleBody}),
 				},
 				OnClick: func(ctx gui.EventCtx) {
 					ctx.Window.NativeNotification(gui.NativeNotificationCfg{
@@ -233,7 +233,7 @@ func demoNotification(w *gui.Window) gui.View {
 			}),
 			gui.Text(gui.TextCfg{
 				Text:      app.NotifyResult,
-				TextStyle: t.N3,
+				TextStyle: t.TextStyleBody,
 			}),
 		},
 	})
@@ -275,7 +275,7 @@ func demoInspector(w *gui.Window) gui.View {
 			sectionLabel(t, "Try It"),
 			gui.Text(gui.TextCfg{
 				Text:      "Press F12 to open the inspector now.",
-				TextStyle: t.N3,
+				TextStyle: t.TextStyleBody,
 			}),
 		},
 	})
@@ -316,7 +316,7 @@ func demoContextMenu(w *gui.Window) gui.View {
 						Content: []gui.View{
 							gui.Text(gui.TextCfg{
 								Text:      "Right-click here for a basic menu",
-								TextStyle: t.N3,
+								TextStyle: t.TextStyleBody,
 							}),
 						},
 					}),
@@ -353,7 +353,7 @@ func demoContextMenu(w *gui.Window) gui.View {
 						Content: []gui.View{
 							gui.Text(gui.TextCfg{
 								Text:      "Right-click here for submenus",
-								TextStyle: t.N3,
+								TextStyle: t.TextStyleBody,
 							}),
 						},
 					}),
@@ -362,7 +362,7 @@ func demoContextMenu(w *gui.Window) gui.View {
 			line(),
 			gui.Text(gui.TextCfg{
 				Text:      "Selected: " + app.ContextMenuResult,
-				TextStyle: t.N3,
+				TextStyle: t.TextStyleBody,
 			}),
 		},
 	})
@@ -382,7 +382,7 @@ func demoTooltip(w *gui.Window) gui.View {
 						ID:      "btn-tooltip",
 						Padding: gui.NewPadding(8, 16, 8, 16),
 						Content: []gui.View{
-							gui.Text(gui.TextCfg{Text: "Hover me", TextStyle: t.N3}),
+							gui.Text(gui.TextCfg{Text: "Hover me", TextStyle: t.TextStyleBody}),
 						},
 					}),
 				},

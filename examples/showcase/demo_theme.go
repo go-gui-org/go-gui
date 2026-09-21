@@ -23,7 +23,7 @@ func demoThemeGen(w *gui.Window) gui.View {
 	for i, strategy := range strategies {
 		selected := app.ThemeGenStrategy == strategy
 		color := t.ColorInterior
-		textStyle := t.N3
+		textStyle := t.TextStyleBody
 		if selected {
 			color = t.ColorActive
 			textStyle.Color = gui.White
@@ -53,7 +53,7 @@ func demoThemeGen(w *gui.Window) gui.View {
 		Spacing: gui.SomeF(12),
 		Padding: gui.NoPadding,
 		Content: []gui.View{
-			gui.Text(gui.TextCfg{Text: title, TextStyle: t.N3}),
+			gui.Text(gui.TextCfg{Text: title, TextStyle: t.TextStyleBody}),
 			gui.Row(gui.ContainerCfg{
 				Sizing:  gui.FillFit,
 				Spacing: gui.SomeF(16),
@@ -137,7 +137,7 @@ func demoThemeGen(w *gui.Window) gui.View {
 						Spacing: gui.SomeF(10),
 						Padding: gui.NoPadding,
 						Content: []gui.View{
-							gui.Text(gui.TextCfg{Text: "Palette", TextStyle: t.B3}),
+							gui.Text(gui.TextCfg{Text: "Palette", TextStyle: t.TextStyleTitleSmall}),
 							gui.Wrap(gui.ContainerCfg{
 								Sizing:  gui.FillFit,
 								Spacing: gui.SomeF(4),
@@ -160,7 +160,7 @@ func demoThemeGen(w *gui.Window) gui.View {
 									gui.Button(gui.ButtonCfg{
 										ID:      "btn-reset-dark",
 										Padding: gui.NewPadding(6, 12, 6, 12),
-										Content: []gui.View{gui.Text(gui.TextCfg{Text: "Reset Dark", TextStyle: t.N3})},
+										Content: []gui.View{gui.Text(gui.TextCfg{Text: "Reset Dark", TextStyle: t.TextStyleBody})},
 										OnClick: func(ctx gui.EventCtx) {
 											ctx.Window.SetTheme(gui.ThemeDark)
 											syncThemeGenFromCfg(appState(ctx.Window), gui.ThemeDark.Cfg)
@@ -169,7 +169,7 @@ func demoThemeGen(w *gui.Window) gui.View {
 									gui.Button(gui.ButtonCfg{
 										ID:      "btn-reset-light",
 										Padding: gui.NewPadding(6, 12, 6, 12),
-										Content: []gui.View{gui.Text(gui.TextCfg{Text: "Reset Light", TextStyle: t.N3})},
+										Content: []gui.View{gui.Text(gui.TextCfg{Text: "Reset Light", TextStyle: t.TextStyleBody})},
 										OnClick: func(ctx gui.EventCtx) {
 											ctx.Window.SetTheme(gui.ThemeLight)
 											syncThemeGenFromCfg(appState(ctx.Window), gui.ThemeLight.Cfg)
@@ -185,7 +185,7 @@ func demoThemeGen(w *gui.Window) gui.View {
 									gui.Button(gui.ButtonCfg{
 										ID:      "btn-theme-save",
 										Padding: gui.NewPadding(6, 12, 6, 12),
-										Content: []gui.View{gui.Text(gui.TextCfg{Text: "Save Theme", TextStyle: t.N3})},
+										Content: []gui.View{gui.Text(gui.TextCfg{Text: "Save Theme", TextStyle: t.TextStyleBody})},
 										OnClick: func(ctx gui.EventCtx) {
 											ctx.Window.NativeSaveDialog(gui.NativeSaveDialogCfg{
 												Title:            "Save Theme",
@@ -221,7 +221,7 @@ func demoThemeGen(w *gui.Window) gui.View {
 									gui.Button(gui.ButtonCfg{
 										ID:      "btn-theme-load",
 										Padding: gui.NewPadding(6, 12, 6, 12),
-										Content: []gui.View{gui.Text(gui.TextCfg{Text: "Load Theme", TextStyle: t.N3})},
+										Content: []gui.View{gui.Text(gui.TextCfg{Text: "Load Theme", TextStyle: t.TextStyleBody})},
 										OnClick: func(ctx gui.EventCtx) {
 											ctx.Window.NativeOpenDialog(gui.NativeOpenDialogCfg{
 												Title: "Load Theme",
@@ -250,7 +250,7 @@ func demoThemeGen(w *gui.Window) gui.View {
 							}),
 							gui.Text(gui.TextCfg{
 								Text:      fmt.Sprintf("Tint: %.0f%%", app.ThemeGenTint),
-								TextStyle: t.N3,
+								TextStyle: t.TextStyleBody,
 							}),
 							gui.Slider(gui.SliderCfg{
 								ID:       "theme-gen-tint",
@@ -298,7 +298,7 @@ func themeGenNumField(t gui.Theme, f themeGenField) gui.View {
 		Spacing: gui.SomeF(6),
 		Padding: gui.NoPadding,
 		Content: []gui.View{
-			gui.Text(gui.TextCfg{Text: f.Label, TextStyle: t.N3}),
+			gui.Text(gui.TextCfg{Text: f.Label, TextStyle: t.TextStyleBody}),
 			gui.NumericInput(gui.NumericInputCfg{
 				ID:       f.ID,
 				Disabled: f.Disabled,
@@ -374,7 +374,7 @@ func themeContrastPreview() gui.View {
 			Content: []gui.View{
 				gui.Text(gui.TextCfg{
 					Text:      "Scoped theme (light) — window theme unchanged",
-					TextStyle: lt.N3,
+					TextStyle: lt.TextStyleBody,
 				}),
 				gui.Row(gui.ContainerCfg{
 					Sizing:  gui.FillFit,

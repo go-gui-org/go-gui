@@ -94,7 +94,7 @@ func mainView(w *gui.Window) gui.View {
 				Content: []gui.View{
 					gui.Text(gui.TextCfg{
 						Text:      "See-through window",
-						TextStyle: t.B1,
+						TextStyle: t.TextStyleDisplay,
 					}),
 					gui.Text(gui.TextCfg{
 						Text:      "Drag me over something colourful.",

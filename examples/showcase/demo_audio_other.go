@@ -12,7 +12,7 @@ func demoAudio(w *gui.Window) gui.View {
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      "Audio not available on this platform.",
-				TextStyle: t.N3,
+				TextStyle: t.TextStyleBody,
 				Mode:      gui.TextModeWrap,
 			}),
 		},
@@ -25,7 +25,7 @@ func widgetSoundControls(_ *gui.Window) gui.View {
 	t := gui.CurrentTheme()
 	return gui.Text(gui.TextCfg{
 		Text:      "Widget sound is not available on this platform.",
-		TextStyle: t.N4,
+		TextStyle: t.TextStyleBodySmall,
 		Mode:      gui.TextModeWrap,
 	})
 }

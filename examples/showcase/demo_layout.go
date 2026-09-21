@@ -21,7 +21,7 @@ func demoRotatedBox(_ *gui.Window) gui.View {
 			Padding: gui.NoPadding,
 			HAlign:  gui.HAlignCenter,
 			Content: []gui.View{
-				gui.Text(gui.TextCfg{Text: labels[i], TextStyle: t.B4}),
+				gui.Text(gui.TextCfg{Text: labels[i], TextStyle: t.TextStyleBodySmall.Bold()}),
 				gui.RotatedBox(gui.RotatedBoxCfg{
 					QuarterTurns: i,
 					Content:      demoBoxSized("R", colors[i], 80, 50),
@@ -51,7 +51,7 @@ func demoRow(_ *gui.Window) gui.View {
 		Spacing: gui.SomeF(12),
 		Padding: gui.NoPadding,
 		Content: []gui.View{
-			gui.Text(gui.TextCfg{Text: "Left-aligned (default):", TextStyle: t.B3}),
+			gui.Text(gui.TextCfg{Text: "Left-aligned (default):", TextStyle: t.TextStyleTitleSmall}),
 			gui.Row(gui.ContainerCfg{
 				Sizing:      gui.FillFit,
 				Spacing:     gui.SomeF(8),
@@ -62,7 +62,7 @@ func demoRow(_ *gui.Window) gui.View {
 					demoBox("C", t.ColorHover),
 				},
 			}),
-			gui.Text(gui.TextCfg{Text: "Right-aligned:", TextStyle: t.B3}),
+			gui.Text(gui.TextCfg{Text: "Right-aligned:", TextStyle: t.TextStyleTitleSmall}),
 			gui.Row(gui.ContainerCfg{
 				Sizing:      gui.FillFit,
 				Spacing:     gui.SomeF(8),
@@ -73,7 +73,7 @@ func demoRow(_ *gui.Window) gui.View {
 					demoBox("Y", t.ColorSelect),
 				},
 			}),
-			gui.Text(gui.TextCfg{Text: "Center-aligned:", TextStyle: t.B3}),
+			gui.Text(gui.TextCfg{Text: "Center-aligned:", TextStyle: t.TextStyleTitleSmall}),
 			gui.Row(gui.ContainerCfg{
 				Sizing:      gui.FillFit,
 				Spacing:     gui.SomeF(8),
@@ -84,7 +84,7 @@ func demoRow(_ *gui.Window) gui.View {
 					demoBox("2", t.ColorSelect),
 				},
 			}),
-			gui.Text(gui.TextCfg{Text: "Row with Title:", TextStyle: t.B3}),
+			gui.Text(gui.TextCfg{Text: "Row with Title:", TextStyle: t.TextStyleTitleSmall}),
 			gui.Row(gui.ContainerCfg{
 				Title:   "Options",
 				TitleBG: t.ColorBackground,
@@ -109,7 +109,7 @@ func demoColumn(_ *gui.Window) gui.View {
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      "All columns are fixed size and center-aligned.",
-				TextStyle: t.N3,
+				TextStyle: t.TextStyleBody,
 			}),
 			gui.Row(gui.ContainerCfg{
 				Sizing:  gui.FillFit,
@@ -231,14 +231,14 @@ func demoExpandPanel(w *gui.Window) gui.View {
 				// layout being shown, so keep it out of tab order.
 				FocusDisabled: true,
 				Open:          app.ExpandOpen,
-				Head:          gui.Text(gui.TextCfg{Text: "Click to expand", TextStyle: t.B3}),
+				Head:          gui.Text(gui.TextCfg{Text: "Click to expand", TextStyle: t.TextStyleTitleSmall}),
 				Content: gui.Column(gui.ContainerCfg{
 					Sizing:  gui.FillFit,
 					Padding: gui.NewPadding(8, 0, 8, 0),
 					Content: []gui.View{
 						gui.Text(gui.TextCfg{
 							Text:      expandPanelBody,
-							TextStyle: t.N3,
+							TextStyle: t.TextStyleBody,
 							Mode:      gui.TextModeWrap,
 						}),
 					},
@@ -264,7 +264,7 @@ func demoSidebar(w *gui.Window) gui.View {
 				ID:      "btn-sidebar-toggle",
 				Padding: gui.NewPadding(8, 16, 8, 16),
 				Content: []gui.View{
-					gui.Text(gui.TextCfg{Text: "Toggle Sidebar", TextStyle: t.N3}),
+					gui.Text(gui.TextCfg{Text: "Toggle Sidebar", TextStyle: t.TextStyleBody}),
 				},
 				OnClick: func(ctx gui.EventCtx) {
 					a := appState(ctx.Window)
@@ -286,10 +286,10 @@ func demoSidebar(w *gui.Window) gui.View {
 								Padding: gui.NewPadding(12, 12, 12, 12),
 								Spacing: gui.SomeF(8),
 								Content: []gui.View{
-									gui.Text(gui.TextCfg{Text: "Sidebar", TextStyle: t.B4}),
+									gui.Text(gui.TextCfg{Text: "Sidebar", TextStyle: t.TextStyleBodySmall.Bold()}),
 									gui.Text(gui.TextCfg{
 										Text:      "Slide-out panel content.",
-										TextStyle: t.N3,
+										TextStyle: t.TextStyleBody,
 									}),
 								},
 							}),
@@ -300,7 +300,7 @@ func demoSidebar(w *gui.Window) gui.View {
 						Padding: gui.NewPadding(12, 12, 12, 12),
 						Color:   t.ColorPanel,
 						Content: []gui.View{
-							gui.Text(gui.TextCfg{Text: "Main content area", TextStyle: t.N3}),
+							gui.Text(gui.TextCfg{Text: "Main content area", TextStyle: t.TextStyleBody}),
 						},
 					}),
 				},
@@ -322,12 +322,12 @@ func demoSplitter(w *gui.Window) gui.View {
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      "Drag handle. Focus splitter, then use arrow keys. Shift+arrow moves faster.",
-				TextStyle: t.N5,
+				TextStyle: t.TextStyleCaption,
 				Mode:      gui.TextModeWrap,
 			}),
 			gui.Text(gui.TextCfg{
 				Text:      fmt.Sprintf("Main %d%% (%s), detail %d%% (%s).", mainRatio, splitterCollapsedLabel(app.SplitterMainState.Collapsed), detailRatio, splitterCollapsedLabel(app.SplitterDetailState.Collapsed)),
-				TextStyle: t.N5,
+				TextStyle: t.TextStyleCaption,
 				Mode:      gui.TextModeWrap,
 			}),
 			gui.Row(gui.ContainerCfg{
@@ -421,12 +421,12 @@ func showcaseSplitterPane(title, note string, accent gui.Color) gui.View {
 						Padding: gui.NoPadding,
 						Radius:  gui.SomeF(4),
 					}),
-					gui.Text(gui.TextCfg{Text: title, TextStyle: t.B5}),
+					gui.Text(gui.TextCfg{Text: title, TextStyle: t.TextStyleCaption.Bold()}),
 				},
 			}),
 			gui.Text(gui.TextCfg{
 				Text:      note,
-				TextStyle: t.N5,
+				TextStyle: t.TextStyleCaption,
 				Mode:      gui.TextModeWrap,
 			}),
 			gui.Rectangle(gui.RectangleCfg{
@@ -474,7 +474,7 @@ func demoScrollbar(_ *gui.Window) gui.View {
 	for i := range vItems {
 		vItems[i] = gui.Text(gui.TextCfg{
 			Text:      fmt.Sprintf("Vertical item %d", i+1),
-			TextStyle: t.N3,
+			TextStyle: t.TextStyleBody,
 		})
 	}
 
@@ -544,7 +544,7 @@ func demoMultiWindow(w *gui.Window) gui.View {
 			gui.Text(gui.TextCfg{
 				Text: "Open a child window from the showcase. Only one " +
 					"child window is allowed at a time.",
-				TextStyle: t.N3,
+				TextStyle: t.TextStyleBody,
 				Mode:      gui.TextModeWrap,
 			}),
 			gui.Button(gui.ButtonCfg{
@@ -554,7 +554,7 @@ func demoMultiWindow(w *gui.Window) gui.View {
 				Content: []gui.View{
 					gui.Text(gui.TextCfg{
 						Text:      "Open Child Window",
-						TextStyle: t.N3,
+						TextStyle: t.TextStyleBody,
 					}),
 				},
 				OnClick: func(ctx gui.EventCtx) {
@@ -595,7 +595,7 @@ func multiWindowChildView(parent *gui.Window) func(*gui.Window) gui.View {
 			Content: []gui.View{
 				gui.Text(gui.TextCfg{
 					Text:      "Child Window",
-					TextStyle: t.B2,
+					TextStyle: t.TextStyleTitle,
 				}),
 				gui.Button(gui.ButtonCfg{
 					ID:      "showcase_child_window_button",
@@ -603,7 +603,7 @@ func multiWindowChildView(parent *gui.Window) func(*gui.Window) gui.View {
 					Content: []gui.View{
 						gui.Text(gui.TextCfg{
 							Text:      "Say Hello to Parent",
-							TextStyle: t.N3,
+							TextStyle: t.TextStyleBody,
 						}),
 					},
 					OnClick: func(ctx gui.EventCtx) {
@@ -618,7 +618,7 @@ func multiWindowChildView(parent *gui.Window) func(*gui.Window) gui.View {
 				}),
 				gui.Text(gui.TextCfg{
 					Text:      cs.Message,
-					TextStyle: t.N4,
+					TextStyle: t.TextStyleBodySmall,
 				}),
 				gui.Row(gui.ContainerCfg{
 					Sizing:  gui.FillFit,
@@ -630,7 +630,7 @@ func multiWindowChildView(parent *gui.Window) func(*gui.Window) gui.View {
 					Content: []gui.View{
 						gui.Text(gui.TextCfg{
 							Text:      "Close",
-							TextStyle: t.N3,
+							TextStyle: t.TextStyleBody,
 						}),
 					},
 					OnClick: func(ctx gui.EventCtx) {
@@ -648,10 +648,10 @@ func multiWindowChildView(parent *gui.Window) func(*gui.Window) gui.View {
 
 func multiWindowStatus(t gui.Theme, active bool) gui.View {
 	text := "No child window open"
-	color := t.N5
+	color := t.TextStyleCaption
 	if active {
 		text = "Child window is open"
-		color = t.B4
+		color = t.TextStyleBodySmall.Bold()
 		color.Color = t.Cfg.ColorSuccess
 	}
 	return gui.Text(gui.TextCfg{Text: text, TextStyle: color})
@@ -674,8 +674,8 @@ func demoPrinting(w *gui.Window) gui.View {
 						ID:      "btn-export-pdf",
 						Padding: gui.NewPadding(8, 16, 8, 16),
 						Content: []gui.View{
-							gui.Text(gui.TextCfg{Text: gui.IconExport, TextStyle: t.N3}),
-							gui.Text(gui.TextCfg{Text: "Export PDF", TextStyle: t.N3}),
+							gui.Text(gui.TextCfg{Text: gui.IconExport, TextStyle: t.TextStyleBody}),
+							gui.Text(gui.TextCfg{Text: "Export PDF", TextStyle: t.TextStyleBody}),
 						},
 						OnClick: func(ctx gui.EventCtx) {
 							a := appState(ctx.Window)
@@ -696,8 +696,8 @@ func demoPrinting(w *gui.Window) gui.View {
 						ID:      "btn-print",
 						Padding: gui.NewPadding(8, 16, 8, 16),
 						Content: []gui.View{
-							gui.Text(gui.TextCfg{Text: gui.IconPrint, TextStyle: t.N3}),
-							gui.Text(gui.TextCfg{Text: "Print", TextStyle: t.N3}),
+							gui.Text(gui.TextCfg{Text: gui.IconPrint, TextStyle: t.TextStyleBody}),
+							gui.Text(gui.TextCfg{Text: "Print", TextStyle: t.TextStyleBody}),
 						},
 						OnClick: func(ctx gui.EventCtx) {
 							a := appState(ctx.Window)
@@ -715,7 +715,7 @@ func demoPrinting(w *gui.Window) gui.View {
 			}),
 			gui.Text(gui.TextCfg{
 				Text:      app.PrintingStatus,
-				TextStyle: t.N3,
+				TextStyle: t.TextStyleBody,
 			}),
 		},
 	})

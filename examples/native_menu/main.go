@@ -130,11 +130,11 @@ func mainView(w *gui.Window) gui.View {
 			}),
 			gui.Text(gui.TextCfg{
 				Text:      "Native Menu Demo",
-				TextStyle: theme.B1,
+				TextStyle: theme.TextStyleDisplay,
 			}),
 			gui.Text(gui.TextCfg{
 				Text:      app.LastAction,
-				TextStyle: theme.M3,
+				TextStyle: theme.TextStyleCode,
 			}),
 		},
 	})

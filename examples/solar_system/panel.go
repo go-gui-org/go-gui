@@ -95,7 +95,7 @@ func factSheet(p *Planet, theme gui.Theme) gui.View {
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      p.Name,
-				TextStyle: theme.B1,
+				TextStyle: theme.TextStyleDisplay,
 			}),
 			gui.Row(gui.ContainerCfg{
 				Padding:    gui.NoPadding,
@@ -138,7 +138,7 @@ func statCard(label, value string, theme gui.Theme) gui.View {
 			}),
 			gui.Text(gui.TextCfg{
 				Text:      value,
-				TextStyle: theme.B4,
+				TextStyle: theme.TextStyleBodySmall.Bold(),
 			}),
 		},
 	})

@@ -27,7 +27,7 @@ func demoTextAnim(w *gui.Window) gui.View {
 					"canned effect; Custom takes a function of progress. " +
 					"An animated text needs an ID: the animation and its " +
 					"progress are keyed by identity.",
-				TextStyle: t.N5,
+				TextStyle: t.TextStyleCaption,
 				Mode:      gui.TextModeWrap,
 			}),
 			textAnimEntranceCard(t, app),
@@ -48,7 +48,7 @@ func textAnimEntranceCard(t gui.Theme, app *ShowcaseApp) gui.View {
 		return gui.Text(gui.TextCfg{
 			ID:        gui.ScopeIDN("text-anim", part, app.TextAnimReplay),
 			Text:      text,
-			TextStyle: t.B4,
+			TextStyle: t.TextStyleBodySmall.Bold(),
 			Anim: gui.TextAnimCfg{
 				Kind:     kind,
 				Duration: 600 * time.Millisecond,
@@ -72,7 +72,7 @@ func textAnimEntranceCard(t gui.Theme, app *ShowcaseApp) gui.View {
 			ID:      "text-anim-replay",
 			Padding: gui.NewPadding(6, 16, 6, 16),
 			Content: []gui.View{
-				gui.Text(gui.TextCfg{Text: "Replay", TextStyle: t.N3}),
+				gui.Text(gui.TextCfg{Text: "Replay", TextStyle: t.TextStyleBody}),
 			},
 			OnClick: func(ctx gui.EventCtx) {
 				appState(ctx.Window).TextAnimReplay++
@@ -89,7 +89,7 @@ func textAnimLoopCard(t gui.Theme) gui.View {
 		return gui.Text(gui.TextCfg{
 			ID:        id,
 			Text:      text,
-			TextStyle: t.B4,
+			TextStyle: t.TextStyleBodySmall.Bold(),
 			Anim:      gui.TextAnimCfg{Kind: kind, Repeat: true},
 		})
 	}
@@ -121,7 +121,7 @@ func textAnimCustomCard(t gui.Theme) gui.View {
 		gui.Text(gui.TextCfg{
 			ID:        "text-anim-custom",
 			Text:      "Custom: sine offset and sway",
-			TextStyle: t.B4,
+			TextStyle: t.TextStyleBodySmall.Bold(),
 			Anim: gui.TextAnimCfg{
 				Duration: 2 * time.Second,
 				Repeat:   true,

@@ -57,7 +57,7 @@ func mainView(w *gui.Window) gui.View {
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      "Vibrant window (macOS)",
-				TextStyle: gui.CurrentTheme().B1,
+				TextStyle: gui.CurrentTheme().TextStyleDisplay,
 			}),
 			gui.Button(gui.ButtonCfg{
 				ID: "vibrancy_button",

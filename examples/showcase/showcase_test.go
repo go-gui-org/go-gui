@@ -744,7 +744,7 @@ func TestDemoBoxSizedCentersLabel(t *testing.T) {
 	// metric centre by the cap-band offset (headless fallback:
 	// 0.0886 * size for "H1", which has no descenders).
 	metric := (box.Shape.Height - text.Shape.Height) / 2
-	off := gui.CurrentTheme().N2.Size * 0.0886
+	off := gui.CurrentTheme().TextStyleBodyLarge.Size * 0.0886
 	if got := text.Shape.Y - box.Shape.Y; got-metric-off > 0.01 || metric+off-got > 0.01 {
 		t.Fatalf("label offset = %v, want %v (box h=%v text h=%v)",
 			got, metric+off, box.Shape.Height, text.Shape.Height)

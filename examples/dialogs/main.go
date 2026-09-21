@@ -351,7 +351,7 @@ func toggleTheme(app *App, theme gui.Theme) gui.View {
 				ID:           "dialogs_toggle_theme",
 				TextSelect:   gui.IconMoon,
 				TextUnselect: gui.IconSunnyO,
-				TextStyle:    theme.Icon3,
+				TextStyle:    theme.TextStyleIconMedium,
 				Padding:      gui.PaddingSmall,
 
 				Selected: app.LightTheme,

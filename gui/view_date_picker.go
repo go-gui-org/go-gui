@@ -336,7 +336,7 @@ func datePickerControls(
 			},
 			Content: []View{Text(TextCfg{
 				Text:      IconCheckCircleO,
-				TextStyle: CurrentTheme().Icon2,
+				TextStyle: CurrentTheme().TextStyleIconLarge,
 			})},
 		}))
 	} else {
@@ -347,7 +347,7 @@ func datePickerControls(
 				OnClick: onPrev,
 				Content: []View{Text(TextCfg{
 					Text:      IconArrowLeft,
-					TextStyle: CurrentTheme().Icon3,
+					TextStyle: CurrentTheme().TextStyleIconMedium,
 				})},
 			}),
 			Button(ButtonCfg{
@@ -356,7 +356,7 @@ func datePickerControls(
 				OnClick: onNext,
 				Content: []View{Text(TextCfg{
 					Text:      IconArrowRight,
-					TextStyle: CurrentTheme().Icon3,
+					TextStyle: CurrentTheme().TextStyleIconMedium,
 				})},
 			}),
 		)

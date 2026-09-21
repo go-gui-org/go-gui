@@ -149,12 +149,12 @@ func mainView(w *gui.Window) gui.View {
 		Spacing: gui.Some[float32](10),
 		Padding: gui.NewPadding(paddingOuter, paddingOuter, paddingOuter, paddingOuter),
 		Content: []gui.View{
-			gui.Text(gui.TextCfg{Text: "Snake", TextStyle: theme.B2}),
-			gui.Text(gui.TextCfg{Text: fmt.Sprintf("Score: %d", g.Score), TextStyle: theme.B3}),
-			gui.Text(gui.TextCfg{Text: status, TextStyle: theme.M3}),
+			gui.Text(gui.TextCfg{Text: "Snake", TextStyle: theme.TextStyleTitle}),
+			gui.Text(gui.TextCfg{Text: fmt.Sprintf("Score: %d", g.Score), TextStyle: theme.TextStyleTitleSmall}),
+			gui.Text(gui.TextCfg{Text: status, TextStyle: theme.TextStyleCode}),
 			renderGrid(g),
 			renderControls(g),
-			gui.Text(gui.TextCfg{Text: "Controls: Arrow keys or WASD. Space/P pauses. R restarts.", TextStyle: theme.M4}),
+			gui.Text(gui.TextCfg{Text: "Controls: Arrow keys or WASD. Space/P pauses. R restarts.", TextStyle: theme.Mono(theme.TextStyleBodySmall)}),
 		},
 	})
 }
@@ -196,19 +196,19 @@ func landingView(w *gui.Window, ww, wh float32) gui.View {
 							tileTitleView(frame),
 							gui.Text(gui.TextCfg{
 								Text:      "ARCADE SECTOR 1983",
-								TextStyle: textStyle(theme.M3, 18, gui.RGB(72, 198, 255)),
+								TextStyle: textStyle(theme.TextStyleCode, 18, gui.RGB(72, 198, 255)),
 							}),
 							gui.Text(gui.TextCfg{
 								Text:      "Dodge the void. Eat the cores. Chase the high score.",
-								TextStyle: textStyle(theme.B4, 16, gui.RGB(235, 240, 255)),
+								TextStyle: textStyle(theme.TextStyleBodySmall.Bold(), 16, gui.RGB(235, 240, 255)),
 							}),
 							gui.Text(gui.TextCfg{
 								Text:      "Arrow keys or WASD to steer",
-								TextStyle: textStyle(theme.M4, 14, gui.RGB(178, 191, 222)),
+								TextStyle: textStyle(theme.Mono(theme.TextStyleBodySmall), 14, gui.RGB(178, 191, 222)),
 							}),
 							gui.Text(gui.TextCfg{
 								Text:      "Space to P pause",
-								TextStyle: textStyle(theme.M4, 14, gui.RGB(178, 191, 222)),
+								TextStyle: textStyle(theme.Mono(theme.TextStyleBodySmall), 14, gui.RGB(178, 191, 222)),
 							}),
 							gui.Button(gui.ButtonCfg{
 								ID:         startButtonID,
@@ -220,7 +220,7 @@ func landingView(w *gui.Window, ww, wh float32) gui.View {
 								Content: []gui.View{
 									gui.Text(gui.TextCfg{
 										Text:      gui.IconGamepad + "  PRESS TO BEGIN",
-										TextStyle: textStyle(theme.B3, 18, gui.White),
+										TextStyle: textStyle(theme.TextStyleTitleSmall, 18, gui.White),
 									}),
 								},
 								OnClick: func(ctx gui.EventCtx) {
@@ -296,7 +296,7 @@ func landingBackdrop(ww, wh float32, _ int) gui.View {
 			Content: []gui.View{
 				gui.Text(gui.TextCfg{
 					Text:      icon.text,
-					TextStyle: textStyle(gui.CurrentTheme().Icon2, icon.size, icon.color),
+					TextStyle: textStyle(gui.CurrentTheme().TextStyleIconLarge, icon.size, icon.color),
 				}),
 			},
 		}))

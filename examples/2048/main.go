@@ -164,11 +164,11 @@ func landingView(w *gui.Window) gui.View {
 						Content: []gui.View{
 							gui.Text(gui.TextCfg{
 								Text:      "2048",
-								TextStyle: textStyle(theme.B1, 120, gui.White),
+								TextStyle: textStyle(theme.TextStyleDisplay, 120, gui.White),
 							}),
 							gui.Text(gui.TextCfg{
 								Text:      "JOIN THE NUMBERS TO GET TO THE 2048 TILE!",
-								TextStyle: textStyle(theme.N1, 16, gui.RGB(150, 150, 160)),
+								TextStyle: textStyle(theme.TextStyleDisplay.Roman(), 16, gui.RGB(150, 150, 160)),
 							}),
 						},
 					}),
@@ -183,7 +183,7 @@ func landingView(w *gui.Window) gui.View {
 						Content: []gui.View{
 							gui.Text(gui.TextCfg{
 								Text:      "NEW GAME",
-								TextStyle: textStyle(theme.B2, 24, gui.White),
+								TextStyle: textStyle(theme.TextStyleTitle, 24, gui.White),
 							}),
 						},
 						OnClick: func(ctx gui.EventCtx) {
@@ -193,7 +193,7 @@ func landingView(w *gui.Window) gui.View {
 
 					gui.Text(gui.TextCfg{
 						Text:      "PRESS SPACE TO BEGIN",
-						TextStyle: textStyle(theme.N1, 14, gui.RGB(100, 100, 110)),
+						TextStyle: textStyle(theme.TextStyleDisplay.Roman(), 14, gui.RGB(100, 100, 110)),
 					}),
 				},
 			}),
@@ -252,7 +252,7 @@ func gameView(w *gui.Window) gui.View {
 						Content: []gui.View{
 							gui.Text(gui.TextCfg{
 								Text:      "2048",
-								TextStyle: textStyle(theme.B1, 64, gui.White),
+								TextStyle: textStyle(theme.TextStyleDisplay, 64, gui.White),
 							}),
 						},
 					}),
@@ -281,7 +281,7 @@ func gameView(w *gui.Window) gui.View {
 			// Footer: Instructions
 			gui.Text(gui.TextCfg{
 				Text:      "HOW TO PLAY: Use your arrow keys to move the tiles.\nWhen two tiles with the same number touch, they merge into one!",
-				TextStyle: textStyle(theme.N1, 14, gui.RGB(150, 150, 160)),
+				TextStyle: textStyle(theme.TextStyleDisplay.Roman(), 14, gui.RGB(150, 150, 160)),
 			}),
 		},
 	})
@@ -289,7 +289,7 @@ func gameView(w *gui.Window) gui.View {
 
 func scoreBox(label string, value int) gui.View {
 	theme := gui.CurrentTheme()
-	labelStyle := textStyle(theme.B3, 14, gui.RGB(238, 228, 218))
+	labelStyle := textStyle(theme.TextStyleTitleSmall, 14, gui.RGB(238, 228, 218))
 	labelStyle.LetterSpacing = 1.0
 
 	return gui.Column(gui.ContainerCfg{
@@ -309,7 +309,7 @@ func scoreBox(label string, value int) gui.View {
 			}),
 			gui.Text(gui.TextCfg{
 				Text:      strconv.Itoa(value),
-				TextStyle: textStyle(theme.B2, 24, gui.White),
+				TextStyle: textStyle(theme.TextStyleTitle, 24, gui.White),
 			}),
 		},
 	})
@@ -386,7 +386,7 @@ func renderTile(x, y, val int) gui.View {
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      strconv.Itoa(val),
-				TextStyle: textStyle(theme.B1, fontSize, fg),
+				TextStyle: textStyle(theme.TextStyleDisplay, fontSize, fg),
 			}),
 		},
 	})
@@ -407,7 +407,7 @@ func gameOverlay(msg string) gui.View {
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      msg,
-				TextStyle: textStyle(theme.B1, 48, gui.RGB(119, 110, 101)),
+				TextStyle: textStyle(theme.TextStyleDisplay, 48, gui.RGB(119, 110, 101)),
 			}),
 			gui.Button(gui.ButtonCfg{
 				ID:      "g2048_try_again",
@@ -416,7 +416,7 @@ func gameOverlay(msg string) gui.View {
 				Content: []gui.View{
 					gui.Text(gui.TextCfg{
 						Text:      "TRY AGAIN",
-						TextStyle: textStyle(theme.B2, 18, gui.White),
+						TextStyle: textStyle(theme.TextStyleTitle, 18, gui.White),
 					}),
 				},
 				OnClick: func(ctx gui.EventCtx) {

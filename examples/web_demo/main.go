@@ -55,7 +55,7 @@ func mainView(w *gui.Window) gui.View {
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      "Hello from WASM!",
-				TextStyle: gui.CurrentTheme().B1,
+				TextStyle: gui.CurrentTheme().TextStyleDisplay,
 			}),
 			gui.Button(gui.ButtonCfg{
 				ID: "web_demo_button",

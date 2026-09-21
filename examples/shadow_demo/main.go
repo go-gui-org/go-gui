@@ -162,7 +162,7 @@ func toggleTheme(app *App) gui.View {
 				ID:           "shadow_demo_toggle_theme",
 				TextSelect:   gui.IconMoon,
 				TextUnselect: gui.IconSunnyO,
-				TextStyle:    gui.CurrentTheme().Icon3,
+				TextStyle:    gui.CurrentTheme().TextStyleIconMedium,
 				Selected:     app.LightTheme,
 				ColorSelect:  gui.RGBA(0, 0, 0, 0),
 				Padding:      gui.PaddingSmall,

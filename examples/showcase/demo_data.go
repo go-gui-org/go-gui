@@ -36,7 +36,7 @@ func demoTable(w *gui.Window) gui.View {
 	cfg.SizeBorderHeader = 2
 	cfg.BorderStyle = tableBorderStyleFromValue(app.TableBorderStyle)
 	cfg.Colors = gui.ColorSet{Border: gui.Gray}
-	cfg.TextStyleHead = gui.CurrentTheme().B4
+	cfg.TextStyleHead = gui.CurrentTheme().TextStyleBodySmall.Bold()
 	cfg.MultiSelect = app.TableMultiSelect
 	cfg.FreezeHeader = app.TableFreezeHeader
 	cfg.Selected = app.TableSelected
@@ -145,7 +145,7 @@ func demoTable(w *gui.Window) gui.View {
 			}),
 			gui.Text(gui.TextCfg{
 				Text:      "Click a column header to sort. Scroll to see all rows.",
-				TextStyle: gui.CurrentTheme().N5,
+				TextStyle: gui.CurrentTheme().TextStyleCaption,
 			}),
 			w.Table(cfg),
 		},
@@ -164,7 +164,7 @@ func demoDataGrid(w *gui.Window) gui.View {
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      "Simple controlled grid. Sort, filter, and select rows.",
-				TextStyle: gui.CurrentTheme().N3,
+				TextStyle: gui.CurrentTheme().TextStyleBody,
 			}),
 			gui.Text(gui.TextCfg{
 				Text: fmt.Sprintf("Rows: %d  Selected: %d", len(rows), len(app.DataGridSelection.SelectedRowIDs)),
@@ -263,10 +263,10 @@ func demoTree(w *gui.Window) gui.View {
 			}),
 			gui.Text(gui.TextCfg{
 				Text:      "Expand folders with the mouse or keyboard. The second tree enables virtualization, and the third simulates lazy loading.",
-				TextStyle: gui.CurrentTheme().N3,
+				TextStyle: gui.CurrentTheme().TextStyleBody,
 				Mode:      gui.TextModeWrap,
 			}),
-			gui.Text(gui.TextCfg{Text: "Basic tree", TextStyle: gui.CurrentTheme().B3}),
+			gui.Text(gui.TextCfg{Text: "Basic tree", TextStyle: gui.CurrentTheme().TextStyleTitleSmall}),
 			gui.Tree(gui.TreeCfg{
 				ID:       "showcase-tree-basic",
 				Sizing:   gui.FillFit,
@@ -300,7 +300,7 @@ func demoTree(w *gui.Window) gui.View {
 					},
 				},
 			}),
-			gui.Text(gui.TextCfg{Text: "Virtualized tree (scroll)", TextStyle: gui.CurrentTheme().B3}),
+			gui.Text(gui.TextCfg{Text: "Virtualized tree (scroll)", TextStyle: gui.CurrentTheme().TextStyleTitleSmall}),
 			gui.Tree(gui.TreeCfg{
 				ID:        "showcase-tree-virtual",
 				Sizing:    gui.FillFit,
@@ -308,7 +308,7 @@ func demoTree(w *gui.Window) gui.View {
 				OnSelect:  showcaseTreeOnSelect,
 				Nodes:     showcaseBigTreeNodes(),
 			}),
-			gui.Text(gui.TextCfg{Text: "Lazy-loading tree", TextStyle: gui.CurrentTheme().B3}),
+			gui.Text(gui.TextCfg{Text: "Lazy-loading tree", TextStyle: gui.CurrentTheme().TextStyleTitleSmall}),
 			gui.Tree(gui.TreeCfg{
 				ID:         "showcase-tree-lazy",
 				Sizing:     gui.FillFit,

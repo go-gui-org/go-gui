@@ -109,36 +109,57 @@ type Theme struct {
 	// exportaudit:keep — public styling vocabulary (see above).
 	TextStyleSecondary, TextStyleLabel, TextStyleDisabled, TextStylePlaceholder TextStyle
 
-	// Text size shortcuts (N = normal, B = bold,
-	// I = italic, M = mono, BI = bold+italic).
+	// Text roles name text by purpose instead of by face and step
+	// (issue #734): a caller rendering a title names TitleSmall rather
+	// than spelling a bold medium style, so two callers with the same
+	// purpose cannot drift apart. They replace the numbered rung grid
+	// (N1..Icon6), removed in the same change: every role derives in
+	// fillTextRungs from the size ladder, and the Bold/Italic/Roman
+	// modifiers plus Theme.Mono cover the donor and emphasis spellings
+	// the grid used to serve.
 	//
-	// The rungs are the toolkit's shorthand for the two dimensions a
-	// caller actually chooses — face and size — so a widget names one
-	// handle instead of filling in a whole TextStyle. Read them the way
-	// HTML's h1..h6 are read: the number is the step, not a measurement.
+	// Mapping from the removed grid: Display=B1 Title=B2
+	// TitleSmall=B3 BodyLarge=N2 Body=N3 BodySmall=N4 Caption=N5
+	// CaptionSmall=N6 Code=M3 CodeSmall=M5 CodeTiny=M6
+	// IconXLarge=Icon1 IconLarge=Icon2 IconMedium=Icon3
+	// IconSmall=Icon4 IconXSmall=Icon5 IconTiny=Icon6.
 	//
-	// The set is a closed 6x6 grid, and every cell is exported because a
-	// half-exported grid is a broken vocabulary: bold-small reachable
-	// and italic-small not is an accident of which cell a widget in this
-	// repo happened to need first. Completeness is the design here, so
-	// "no caller yet" is not the test for whether a rung belongs.
-	//
-	// The M ladder sits +1 above the roman ladder at every rung (M4 is
-	// 15 where N4 is 14); see ThemeMaker.
-	//
-	// Declared one face per line so a single keep marker covers the
-	// face: exportaudit reads the marker off the field declaration, and
-	// every name on that line shares it.
-	N1, N2, N3, N4, N5, N6 TextStyle
-	B1, B2, B3, B4, B5, B6 TextStyle
-	// exportaudit:keep — closed grid, exported for completeness (see above).
-	I1, I2, I3, I4, I5, I6 TextStyle
-	// exportaudit:keep — closed grid, exported for completeness (see above).
-	BI1, BI2, BI3, BI4, BI5, BI6 TextStyle
-	// exportaudit:keep — closed grid, exported for completeness (see above).
-	M1, M2, M3, M4, M5, M6 TextStyle
-	// exportaudit:keep — closed grid, exported for completeness (see above).
-	Icon1, Icon2, Icon3, Icon4, Icon5, Icon6 TextStyle
+	// Declared one purpose per line so a single keep marker covers the
+	// role.
+	// exportaudit:keep — semantic text roles (issue #734).
+	TextStyleDisplay TextStyle
+	// exportaudit:keep — semantic text roles (issue #734).
+	TextStyleTitle TextStyle
+	// exportaudit:keep — semantic text roles (issue #734).
+	TextStyleTitleSmall TextStyle
+	// exportaudit:keep — semantic text roles (issue #734).
+	TextStyleBodyLarge TextStyle
+	// exportaudit:keep — semantic text roles (issue #734).
+	TextStyleBody TextStyle
+	// exportaudit:keep — semantic text roles (issue #734).
+	TextStyleBodySmall TextStyle
+	// exportaudit:keep — semantic text roles (issue #734).
+	TextStyleCaption TextStyle
+	// exportaudit:keep — semantic text roles (issue #734).
+	TextStyleCaptionSmall TextStyle
+	// exportaudit:keep — semantic text roles (issue #734).
+	TextStyleCode TextStyle
+	// exportaudit:keep — semantic text roles (issue #734).
+	TextStyleCodeSmall TextStyle
+	// exportaudit:keep — semantic text roles (issue #734).
+	TextStyleCodeTiny TextStyle
+	// exportaudit:keep — semantic text roles (issue #734).
+	TextStyleIconXLarge TextStyle
+	// exportaudit:keep — semantic text roles (issue #734).
+	TextStyleIconLarge TextStyle
+	// exportaudit:keep — semantic text roles (issue #734).
+	TextStyleIconMedium TextStyle
+	// exportaudit:keep — semantic text roles (issue #734).
+	TextStyleIconSmall TextStyle
+	// exportaudit:keep — semantic text roles (issue #734).
+	TextStyleIconXSmall TextStyle
+	// exportaudit:keep — semantic text roles (issue #734).
+	TextStyleIconTiny TextStyle
 
 	// Per-widget styles. Private and derived only (issue #735): a
 	// style is customized through ThemeCfg tokens, never by field

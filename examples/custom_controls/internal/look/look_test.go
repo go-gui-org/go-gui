@@ -25,7 +25,7 @@ func TestColorMath(t *testing.T) {
 
 // Light takes its styles from ThemeLight, whatever the app theme is.
 func TestLightFollowsThemeLight(t *testing.T) {
-	if Light.Title != gui.ThemeLight.B2 || Light.Body != gui.ThemeLight.TextStyleDef {
+	if Light.Title != gui.ThemeLight.TextStyleTitle || Light.Body != gui.ThemeLight.TextStyleDef {
 		t.Fatal("Light styles do not match ThemeLight")
 	}
 	if got, want := Light.Text(gui.White, 9), (func() gui.TextStyle {

@@ -166,7 +166,7 @@ func demoSvgSpinner(w *gui.Window) gui.View {
 				}),
 				gui.Text(gui.TextCfg{
 					Text:      gui.SvgSpinnerName(k),
-					TextStyle: t.N4,
+					TextStyle: t.TextStyleBodySmall,
 				}),
 			},
 		})
@@ -187,7 +187,7 @@ func demoSvgSpinner(w *gui.Window) gui.View {
 				Content: []gui.View{
 					gui.Text(gui.TextCfg{
 						Text:      "Category",
-						TextStyle: t.N3,
+						TextStyle: t.TextStyleBody,
 					}),
 					gui.Select(gui.SelectCfg{
 						ID:       "svg-spinner-category",

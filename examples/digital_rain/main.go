@@ -147,7 +147,7 @@ func mainView(w *gui.Window) gui.View {
 	ww, wh := w.WindowSize()
 	app := gui.State[App](w)
 
-	baseStyle := gui.CurrentTheme().M3
+	baseStyle := gui.CurrentTheme().TextStyleCode
 	baseStyle.Size = fontSize
 
 	charW := w.TextWidth("M", baseStyle) + charPadding

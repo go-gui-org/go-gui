@@ -116,7 +116,7 @@ func pctRow(app *App) gui.View {
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      fmt.Sprintf("%.0f%%", app.Pct*100),
-				TextStyle: gui.CurrentTheme().B3,
+				TextStyle: gui.CurrentTheme().TextStyleTitleSmall,
 			}),
 			pctButton("scroll-panel", 0),
 			pctButton("scroll-panel", 25),
@@ -154,7 +154,7 @@ func topRow(app *App) gui.View {
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      "Scroll Demo",
-				TextStyle: theme.B1,
+				TextStyle: theme.TextStyleDisplay,
 			}),
 			gui.Rectangle(gui.RectangleCfg{
 				Sizing: gui.FillFit,
@@ -172,7 +172,7 @@ func themeButton(app *App) gui.View {
 		ID:           "scroll_theme_toggle",
 		TextSelect:   textSel,
 		TextUnselect: textUnsel,
-		TextStyle:    gui.CurrentTheme().Icon3,
+		TextStyle:    gui.CurrentTheme().TextStyleIconMedium,
 		Padding:      gui.PaddingSmall,
 
 		Selected: app.Light,

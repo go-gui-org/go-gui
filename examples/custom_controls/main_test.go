@@ -61,7 +61,7 @@ func TestClickTabSwitchesPage(t *testing.T) {
 // text on a light page.
 func TestPageTextStaysDarkUnderDarkTheme(t *testing.T) {
 	want := look.Light.Title.Color
-	if want == gui.ThemeDark.B2.Color {
+	if want == gui.ThemeDark.TextStyleTitle.Color {
 		t.Fatal("light and dark title colors are equal; the test proves nothing")
 	}
 	for _, id := range tabIDs {

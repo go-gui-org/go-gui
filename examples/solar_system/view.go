@@ -21,7 +21,7 @@ func mainView(w *gui.Window) gui.View {
 
 	// Resolved here, during generation, where the theme read is
 	// correct; OnDraw runs after generation and reads them back.
-	a.TipStyle = theme.B4
+	a.TipStyle = theme.TextStyleBodySmall.Bold()
 	a.LabelStyle = theme.TextStyleSecondary
 
 	return gui.Column(gui.ContainerCfg{

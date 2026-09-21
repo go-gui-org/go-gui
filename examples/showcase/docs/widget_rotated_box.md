@@ -18,7 +18,7 @@ gui.RotatedBox(gui.RotatedBoxCfg{
     QuarterTurns: 3,
     Content: gui.Text(gui.TextCfg{
         Text:      "Y Axis",
-        TextStyle: t.B3,
+        TextStyle: t.TextStyleTitleSmall,
     }),
 })
 ```

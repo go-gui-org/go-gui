@@ -56,7 +56,7 @@ func mainView(w *gui.Window) gui.View {
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      "Line Chart",
-				TextStyle: gui.CurrentTheme().B1,
+				TextStyle: gui.CurrentTheme().TextStyleDisplay,
 			}),
 			gui.DrawCanvas(gui.DrawCanvasCfg{
 				ID:      "chart",
@@ -70,7 +70,7 @@ func mainView(w *gui.Window) gui.View {
 			}),
 			gui.Text(gui.TextCfg{
 				Text:      "Gradient Fills",
-				TextStyle: gui.CurrentTheme().B1,
+				TextStyle: gui.CurrentTheme().TextStyleDisplay,
 			}),
 			gui.DrawCanvas(gui.DrawCanvasCfg{
 				ID:      "gradients",
@@ -84,7 +84,7 @@ func mainView(w *gui.Window) gui.View {
 			}),
 			gui.Text(gui.TextCfg{
 				Text:      "Per-Vertex Colors",
-				TextStyle: gui.CurrentTheme().B1,
+				TextStyle: gui.CurrentTheme().TextStyleDisplay,
 			}),
 			gui.DrawCanvas(gui.DrawCanvasCfg{
 				ID:      "vertex_colors",
@@ -98,7 +98,7 @@ func mainView(w *gui.Window) gui.View {
 			}),
 			gui.Text(gui.TextCfg{
 				Text:      "Transform",
-				TextStyle: gui.CurrentTheme().B1,
+				TextStyle: gui.CurrentTheme().TextStyleDisplay,
 			}),
 			gui.DrawCanvas(gui.DrawCanvasCfg{
 				ID:      "transform",

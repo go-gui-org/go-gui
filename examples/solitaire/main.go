@@ -197,15 +197,15 @@ func landingView(w *gui.Window, ww, wh float32) gui.View {
 			// Title
 			gui.Text(gui.TextCfg{
 				Text:      "SOLITAIRE",
-				TextStyle: ts(theme.B1, 48, colorNeonCyan),
+				TextStyle: ts(theme.TextStyleDisplay, 48, colorNeonCyan),
 			}),
 			gui.Text(gui.TextCfg{
 				Text:      "KLONDIKE",
-				TextStyle: ts(theme.B2, 28, colorNeonPink),
+				TextStyle: ts(theme.TextStyleTitle, 28, colorNeonPink),
 			}),
 			gui.Text(gui.TextCfg{
 				Text:      "ARCADE SECTOR 1983",
-				TextStyle: ts(theme.M3, 14, colorNeonCyan.WithOpacity(0.6)),
+				TextStyle: ts(theme.TextStyleCode, 14, colorNeonCyan.WithOpacity(0.6)),
 			}),
 
 			// Separator
@@ -243,17 +243,17 @@ func landingView(w *gui.Window, ww, wh float32) gui.View {
 			// Insert coin
 			gui.Text(gui.TextCfg{
 				Text:      "INSERT COIN TO PLAY",
-				TextStyle: ts(theme.B3, 18, insertCoinColor),
+				TextStyle: ts(theme.TextStyleTitleSmall, 18, insertCoinColor),
 			}),
 
 			// Controls
 			gui.Text(gui.TextCfg{
 				Text:      "DRAG CARDS \u2022 CLICK STOCK TO DRAW",
-				TextStyle: ts(theme.M4, 12, colorDimText),
+				TextStyle: ts(theme.Mono(theme.TextStyleBodySmall), 12, colorDimText),
 			}),
 			gui.Text(gui.TextCfg{
 				Text:      "RIGHT-CLICK: AUTO-MOVE \u2022 N: NEW \u2022 ESC: MENU",
-				TextStyle: ts(theme.M4, 12, colorDimText),
+				TextStyle: ts(theme.Mono(theme.TextStyleBodySmall), 12, colorDimText),
 			}),
 		},
 	})
@@ -273,7 +273,7 @@ func modeButton(w *gui.Window, title string, mode DrawMode, color gui.Color) gui
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      title,
-				TextStyle: ts(theme.B3, 18, color),
+				TextStyle: ts(theme.TextStyleTitleSmall, 18, color),
 			}),
 		},
 		OnClick: func(ctx gui.EventCtx) {
@@ -299,7 +299,7 @@ func miniCard(rank, suit string, color gui.Color) gui.View {
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      rank + suit,
-				TextStyle: ts(theme.B4, 11, color),
+				TextStyle: ts(theme.TextStyleBodySmall.Bold(), 11, color),
 			}),
 		},
 	})
@@ -463,7 +463,7 @@ func foundationSlot(x, y float32, suit Suit) gui.View {
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      suit.Symbol(),
-				TextStyle: ts(theme.B1, 28, hintColor),
+				TextStyle: ts(theme.TextStyleDisplay, 28, hintColor),
 			}),
 		},
 	})
@@ -558,7 +558,7 @@ func cardFaceUpView(c Card, x, y float32, onClick func(gui.EventCtx)) gui.View {
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      label,
-				TextStyle: ts(theme.B3, 14, color),
+				TextStyle: ts(theme.TextStyleTitleSmall, 14, color),
 			}),
 			// Large centered suit.
 			gui.Column(gui.ContainerCfg{
@@ -569,7 +569,7 @@ func cardFaceUpView(c Card, x, y float32, onClick func(gui.EventCtx)) gui.View {
 				Content: []gui.View{
 					gui.Text(gui.TextCfg{
 						Text:      c.Suit.Symbol(),
-						TextStyle: ts(theme.B1, 32, color),
+						TextStyle: ts(theme.TextStyleDisplay, 32, color),
 					}),
 				},
 			}),
@@ -740,7 +740,7 @@ func statusBar(app *App, theme gui.Theme, ww, wh float32) gui.View {
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      scoreText,
-				TextStyle: ts(theme.B4, 13, colorNeonGreen),
+				TextStyle: ts(theme.TextStyleBodySmall.Bold(), 13, colorNeonGreen),
 			}),
 			gui.Column(gui.ContainerCfg{
 				Sizing:     gui.FillFit,
@@ -748,7 +748,7 @@ func statusBar(app *App, theme gui.Theme, ww, wh float32) gui.View {
 			}),
 			gui.Text(gui.TextCfg{
 				Text:      movesText,
-				TextStyle: ts(theme.B4, 13, colorNeonCyan),
+				TextStyle: ts(theme.TextStyleBodySmall.Bold(), 13, colorNeonCyan),
 			}),
 		},
 	})
@@ -772,15 +772,15 @@ func winOverlay(theme gui.Theme, ww, wh float32) gui.View {
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      "YOU WIN!",
-				TextStyle: ts(theme.B1, 52, colorNeonYellow),
+				TextStyle: ts(theme.TextStyleDisplay, 52, colorNeonYellow),
 			}),
 			gui.Text(gui.TextCfg{
 				Text:      "CONGRATULATIONS",
-				TextStyle: ts(theme.B3, 20, colorGold),
+				TextStyle: ts(theme.TextStyleTitleSmall, 20, colorGold),
 			}),
 			gui.Text(gui.TextCfg{
 				Text:      "PRESS N FOR NEW GAME \u2022 ESC FOR MENU",
-				TextStyle: ts(theme.M4, 14, colorDimText),
+				TextStyle: ts(theme.Mono(theme.TextStyleBodySmall), 14, colorDimText),
 			}),
 		},
 	})

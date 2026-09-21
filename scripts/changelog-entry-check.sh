@@ -99,7 +99,10 @@ fi
 # how #538 shipped undocumented while Unreleased was full of #536 and #537.
 UNRELEASED="$(awk '/^## \[Unreleased\]/{f=1;next} /^## \[/{f=0} f' "$FILE")"
 HAS_BULLET=0
-printf '%s\n' "$UNRELEASED" | grep -qE '^[[:space:]]*-[[:space:]]+\S' && HAS_BULLET=1
+# No -q: grep -q closes the pipe on the first match, and once Unreleased
+# exceeds the 64 KB pipe buffer printf dies of SIGPIPE, which pipefail turns
+# into a false "no entry". Reading to the end costs one 70 KB scan.
+printf '%s\n' "$UNRELEASED" | grep -E '^[[:space:]]*-[[:space:]]+\S' >/dev/null && HAS_BULLET=1
 TOUCHED=0
 printf '%s\n' "$CHANGED" | grep -qxF "$FILE" && TOUCHED=1
 

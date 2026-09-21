@@ -210,10 +210,10 @@ func leftPane(w *gui.Window, app *ExplorerApp) gui.View {
 		Padding: gui.NewPadding(12, 12, 12, 12),
 		Spacing: gui.SomeF(8),
 		Content: []gui.View{
-			gui.Text(gui.TextCfg{Text: "Examples", TextStyle: t.B3}),
+			gui.Text(gui.TextCfg{Text: "Examples", TextStyle: t.TextStyleTitleSmall}),
 			gui.Text(gui.TextCfg{
 				Text:      fmt.Sprintf("%d examples (%d filtered)", len(app.Examples), len(filtered)),
-				TextStyle: t.N4,
+				TextStyle: t.TextStyleBodySmall,
 			}),
 			gui.Input(gui.InputCfg{
 				ID:          "explorer-filter",
@@ -344,7 +344,7 @@ func exampleRows(examples []ExampleMeta, app *ExplorerApp) []gui.View {
 					Content: []gui.View{
 						gui.Text(gui.TextCfg{
 							Text:      label + suffix,
-							TextStyle: gui.CurrentTheme().N4,
+							TextStyle: gui.CurrentTheme().TextStyleBodySmall,
 							Mode:      gui.TextModeSingleLine,
 						}),
 						gui.Text(gui.TextCfg{
@@ -377,7 +377,7 @@ func rightPane(w *gui.Window, app *ExplorerApp) gui.View {
 			HAlign:  gui.HAlignCenter,
 			VAlign:  gui.VAlignMiddle,
 			Content: []gui.View{
-				gui.Text(gui.TextCfg{Text: "Select an example", TextStyle: t.B2}),
+				gui.Text(gui.TextCfg{Text: "Select an example", TextStyle: t.TextStyleTitle}),
 			},
 		})
 	}
@@ -431,7 +431,7 @@ func rightPane(w *gui.Window, app *ExplorerApp) gui.View {
 		VAlign:  gui.VAlignMiddle,
 		Padding: gui.NewPadding(0, gui.PadMedium, 0, gui.PadMedium),
 		Content: []gui.View{
-			gui.Text(gui.TextCfg{Text: meta.Title, TextStyle: t.B2}),
+			gui.Text(gui.TextCfg{Text: meta.Title, TextStyle: t.TextStyleTitle}),
 			gui.Row(gui.ContainerCfg{
 				Sizing:  gui.FillFit,
 				HAlign:  gui.HAlignRight,

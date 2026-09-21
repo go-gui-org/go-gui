@@ -152,7 +152,7 @@ func mainView(w *gui.Window) gui.View {
 									gui.Text(gui.TextCfg{
 										Text: "Click Hero",
 										TextStyle: gui.TextStyle{
-											Size:  gui.CurrentTheme().N4.Size,
+											Size:  gui.CurrentTheme().TextStyleBodySmall.Size,
 											Color: gui.Black,
 										},
 									}),
@@ -275,7 +275,7 @@ func detailView(w *gui.Window) gui.View {
 						Hero: true,
 						Text: "Detail View",
 						TextStyle: gui.TextStyle{
-							Size:  theme.B1.Size,
+							Size:  theme.TextStyleDisplay.Size,
 							Color: gui.Black,
 						},
 					}),
@@ -284,7 +284,7 @@ func detailView(w *gui.Window) gui.View {
 						Hero: true,
 						Text: "The card morphed from small to large.",
 						TextStyle: gui.TextStyle{
-							Size:  theme.N4.Size,
+							Size:  theme.TextStyleBodySmall.Size,
 							Color: gui.Black,
 						},
 					}),
@@ -293,7 +293,7 @@ func detailView(w *gui.Window) gui.View {
 						Hero: true,
 						Text: "Click Back to morph it back.",
 						TextStyle: gui.TextStyle{
-							Size:  theme.N4.Size,
+							Size:  theme.TextStyleBodySmall.Size,
 							Color: gui.Black,
 						},
 					}),

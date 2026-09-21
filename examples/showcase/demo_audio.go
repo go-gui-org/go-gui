@@ -35,11 +35,11 @@ func demoAudio(w *gui.Window) gui.View {
 						Content: []gui.View{
 							gui.Text(gui.TextCfg{
 								Text:      gui.IconStop,
-								TextStyle: t.Icon3,
+								TextStyle: t.TextStyleIconMedium,
 							}),
 							gui.Text(gui.TextCfg{
 								Text:      "Halt All",
-								TextStyle: t.N3,
+								TextStyle: t.TextStyleBody,
 							}),
 						},
 						OnClick: func(ctx gui.EventCtx) {
@@ -50,7 +50,7 @@ func demoAudio(w *gui.Window) gui.View {
 						Text: "Press a pad to start a voice; release to let it decay. " +
 							"Press and drag off without releasing and the voice keeps playing — " +
 							"Halt All stops everything.",
-						TextStyle: t.N4,
+						TextStyle: t.TextStyleBodySmall,
 						Mode:      gui.TextModeWrap,
 					}),
 				},
@@ -68,11 +68,11 @@ func demoAudio(w *gui.Window) gui.View {
 						Content: []gui.View{
 							gui.Text(gui.TextCfg{
 								Text:      gui.IconFolder,
-								TextStyle: t.Icon3,
+								TextStyle: t.TextStyleIconMedium,
 							}),
 							gui.Text(gui.TextCfg{
 								Text:      "Load Music",
-								TextStyle: t.N3,
+								TextStyle: t.TextStyleBody,
 							}),
 						},
 						OnClick: func(ctx gui.EventCtx) {
@@ -85,11 +85,11 @@ func demoAudio(w *gui.Window) gui.View {
 						Content: []gui.View{
 							gui.Text(gui.TextCfg{
 								Text:      gui.IconPlay,
-								TextStyle: t.Icon3,
+								TextStyle: t.TextStyleIconMedium,
 							}),
 							gui.Text(gui.TextCfg{
 								Text:      "Play Music",
-								TextStyle: t.N3,
+								TextStyle: t.TextStyleBody,
 							}),
 						},
 						OnClick: func(ctx gui.EventCtx) {
@@ -102,11 +102,11 @@ func demoAudio(w *gui.Window) gui.View {
 						Content: []gui.View{
 							gui.Text(gui.TextCfg{
 								Text:      gui.IconStop,
-								TextStyle: t.Icon3,
+								TextStyle: t.TextStyleIconMedium,
 							}),
 							gui.Text(gui.TextCfg{
 								Text:      "Fade Out (1s)",
-								TextStyle: t.N3,
+								TextStyle: t.TextStyleBody,
 							}),
 						},
 						OnClick: func(ctx gui.EventCtx) {
@@ -119,11 +119,11 @@ func demoAudio(w *gui.Window) gui.View {
 						Content: []gui.View{
 							gui.Text(gui.TextCfg{
 								Text:      gui.IconStop,
-								TextStyle: t.Icon3,
+								TextStyle: t.TextStyleIconMedium,
 							}),
 							gui.Text(gui.TextCfg{
 								Text:      "Stop",
-								TextStyle: t.N3,
+								TextStyle: t.TextStyleBody,
 							}),
 						},
 						OnClick: func(ctx gui.EventCtx) {
@@ -163,7 +163,7 @@ func demoAudio(w *gui.Window) gui.View {
 					gui.Text(gui.TextCfg{
 						Text: fmt.Sprintf("%.0f%%",
 							app.AudioVolume*100),
-						TextStyle: t.N4,
+						TextStyle: t.TextStyleBodySmall,
 						MinWidth:  40,
 					}),
 				},
@@ -174,7 +174,7 @@ func demoAudio(w *gui.Window) gui.View {
 
 			gui.Text(gui.TextCfg{
 				Text:      app.AudioStatus,
-				TextStyle: t.N4,
+				TextStyle: t.TextStyleBodySmall,
 				Mode:      gui.TextModeWrap,
 			}),
 		},
@@ -201,7 +201,7 @@ func widgetSoundPanel(t gui.Theme, app *ShowcaseApp) gui.View {
 				Text: "Silent until you opt in twice: a theme that " +
 					"names a cue per role, and an installed " +
 					"SoundPlayer. See the Sound Feedback page.",
-				TextStyle: t.N4,
+				TextStyle: t.TextStyleBodySmall,
 				Mode:      gui.TextModeWrap,
 			}),
 			gui.Switch(gui.SwitchCfg{
@@ -248,7 +248,7 @@ func widgetSoundPanel(t gui.Theme, app *ShowcaseApp) gui.View {
 				Content: []gui.View{
 					gui.Text(gui.TextCfg{
 						Text:      "Cue volume",
-						TextStyle: t.N4,
+						TextStyle: t.TextStyleBodySmall,
 						MinWidth:  90,
 					}),
 					gui.Slider(gui.SliderCfg{
@@ -275,7 +275,7 @@ func widgetSoundPanel(t gui.Theme, app *ShowcaseApp) gui.View {
 					gui.Text(gui.TextCfg{
 						Text: fmt.Sprintf("%.0f%%",
 							app.WidgetSoundVolume*100),
-						TextStyle: t.N4,
+						TextStyle: t.TextStyleBodySmall,
 						MinWidth:  40,
 					}),
 				},
@@ -664,11 +664,11 @@ func synthPadView(t gui.Theme, i int, p synthPadDef) gui.View {
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      p.name,
-				TextStyle: t.N3,
+				TextStyle: t.TextStyleBody,
 			}),
 			gui.Text(gui.TextCfg{
 				Text:      fmt.Sprintf("%.0f Hz", p.freq),
-				TextStyle: t.N4,
+				TextStyle: t.TextStyleBodySmall,
 			}),
 		},
 		OnMouseDown: func(ctx gui.EventCtx) {

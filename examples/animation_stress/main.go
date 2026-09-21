@@ -89,7 +89,7 @@ func mainView(w *gui.Window) gui.View {
 				Content: []gui.View{
 					gui.Text(gui.TextCfg{
 						Text:      fmt.Sprintf("Active Animations: %d", len(state.Items)),
-						TextStyle: gui.CurrentTheme().B1,
+						TextStyle: gui.CurrentTheme().TextStyleDisplay,
 					}),
 					gui.Button(gui.ButtonCfg{
 						ID:      "animation_stress_add_10_items",

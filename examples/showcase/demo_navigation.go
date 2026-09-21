@@ -25,7 +25,7 @@ func demoBreadcrumb(w *gui.Window) gui.View {
 			}),
 			gui.Text(gui.TextCfg{
 				Text:      "Selected: " + app.BCSelected,
-				TextStyle: t.N3,
+				TextStyle: t.TextStyleBody,
 			}),
 		},
 	})
@@ -43,7 +43,7 @@ func demoTabControl(w *gui.Window) gui.View {
 					Sizing:  gui.FillFit,
 					Padding: gui.NewPadding(12, 12, 12, 12),
 					Content: []gui.View{
-						gui.Text(gui.TextCfg{Text: "Overview tab content.", TextStyle: t.N3}),
+						gui.Text(gui.TextCfg{Text: "Overview tab content.", TextStyle: t.TextStyleBody}),
 					},
 				}),
 			}),
@@ -52,7 +52,7 @@ func demoTabControl(w *gui.Window) gui.View {
 					Sizing:  gui.FillFit,
 					Padding: gui.NewPadding(12, 12, 12, 12),
 					Content: []gui.View{
-						gui.Text(gui.TextCfg{Text: "Details tab content.", TextStyle: t.N3}),
+						gui.Text(gui.TextCfg{Text: "Details tab content.", TextStyle: t.TextStyleBody}),
 					},
 				}),
 			}),
@@ -61,7 +61,7 @@ func demoTabControl(w *gui.Window) gui.View {
 					Sizing:  gui.FillFit,
 					Padding: gui.NewPadding(12, 12, 12, 12),
 					Content: []gui.View{
-						gui.Text(gui.TextCfg{Text: "Settings tab content.", TextStyle: t.N3}),
+						gui.Text(gui.TextCfg{Text: "Settings tab content.", TextStyle: t.TextStyleBody}),
 					},
 				}),
 			}),
@@ -229,7 +229,7 @@ func (v commandPaletteDemoView) GenerateLayout(w *gui.Window) gui.Layout {
 				ID:      "btn-palette",
 				Padding: gui.NewPadding(8, 16, 8, 16),
 				Content: []gui.View{
-					gui.Text(gui.TextCfg{Text: "Open Command Palette", TextStyle: t.N3}),
+					gui.Text(gui.TextCfg{Text: "Open Command Palette", TextStyle: t.TextStyleBody}),
 				},
 				OnClick: func(ctx gui.EventCtx) {
 					gui.CommandPaletteToggle(id, ctx.Window)
@@ -237,7 +237,7 @@ func (v commandPaletteDemoView) GenerateLayout(w *gui.Window) gui.Layout {
 			}),
 			gui.Text(gui.TextCfg{
 				Text:      "Last action: " + app.PaletteAction,
-				TextStyle: t.N3,
+				TextStyle: t.TextStyleBody,
 			}),
 			gui.CommandPalette(gui.CommandPaletteCfg{
 				ID:          id,

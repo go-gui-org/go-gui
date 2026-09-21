@@ -109,7 +109,7 @@ func mainView(w *gui.Window) gui.View {
 				Content: []gui.View{
 					gui.Text(gui.TextCfg{
 						Text:      "Floating column with content",
-						TextStyle: theme.B2,
+						TextStyle: theme.TextStyleTitle,
 					}),
 					gui.Button(gui.ButtonCfg{
 						ID: "floating_layout_ok",

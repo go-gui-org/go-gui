@@ -189,7 +189,7 @@ func view(w *gui.Window) gui.View {
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      "Go-Gui on Android",
-				TextStyle: gui.CurrentTheme().B1,
+				TextStyle: gui.CurrentTheme().TextStyleDisplay,
 			}),
 			gui.Text(gui.TextCfg{
 				Text: "Tap the button to increment.",

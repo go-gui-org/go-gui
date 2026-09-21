@@ -20,7 +20,7 @@ func detailPanel(w *gui.Window) gui.View {
 			Content: []gui.View{
 				gui.Text(gui.TextCfg{
 					Text:      "No component matches filter",
-					TextStyle: gui.CurrentTheme().B2,
+					TextStyle: gui.CurrentTheme().TextStyleTitle,
 				}),
 			},
 		})
@@ -52,7 +52,7 @@ func detailPanel(w *gui.Window) gui.View {
 		content = demoPlaceholder(gui.CurrentTheme(), "No demo configured")
 	case app.ShowDocs && entry.Group != groupWelcome:
 		style := gui.DefaultMarkdownStyle()
-		style.H2 = gui.CurrentTheme().B3
+		style.H2 = gui.CurrentTheme().TextStyleTitleSmall
 		style.CodeHighlighter = highlight.Default()
 		content = w.Markdown(gui.MarkdownCfg{
 			ID:      "doc-" + entry.ID,
@@ -75,7 +75,7 @@ func detailPanel(w *gui.Window) gui.View {
 		Spacing: gui.Some(gui.CurrentTheme().SpacingLarge),
 		Content: []gui.View{
 			viewTitleBar(entry, app.ShowDocs),
-			gui.Text(gui.TextCfg{Text: entry.Summary, TextStyle: gui.CurrentTheme().N3, Mode: gui.TextModeWrap}),
+			gui.Text(gui.TextCfg{Text: entry.Summary, TextStyle: gui.CurrentTheme().TextStyleBody, Mode: gui.TextModeWrap}),
 			content,
 			line(),
 			relatedExamplesFooter(entry.ID),
@@ -91,7 +91,7 @@ func detailPanelPadding() gui.Padding {
 
 func viewTitleBar(entry DemoEntry, showDocs bool) gui.View {
 	titleContent := []gui.View{
-		gui.Text(gui.TextCfg{Text: entry.Label, TextStyle: gui.CurrentTheme().B1}),
+		gui.Text(gui.TextCfg{Text: entry.Label, TextStyle: gui.CurrentTheme().TextStyleDisplay}),
 	}
 	if entry.ID != "welcome" {
 		titleContent = append(titleContent,
@@ -134,7 +134,7 @@ func docButton(showDocs bool) gui.View {
 		Padding:    gui.NewPadding(4, 8, 4, 8),
 		Radius:     gui.SomeF(3),
 		Content: []gui.View{
-			gui.Text(gui.TextCfg{Text: gui.IconBook, TextStyle: gui.CurrentTheme().Icon4}),
+			gui.Text(gui.TextCfg{Text: gui.IconBook, TextStyle: gui.CurrentTheme().TextStyleIconSmall}),
 		},
 		OnClick: func(ctx gui.EventCtx) {
 			appState(ctx.Window).ShowDocs = !appState(ctx.Window).ShowDocs
@@ -250,7 +250,7 @@ func demoPlaceholder(t gui.Theme, text string) gui.View {
 		Padding: gui.NewPadding(24, 24, 24, 24),
 		Radius:  gui.SomeF(8),
 		Content: []gui.View{
-			gui.Text(gui.TextCfg{Text: text, TextStyle: t.N3, Mode: gui.TextModeWrap}),
+			gui.Text(gui.TextCfg{Text: text, TextStyle: t.TextStyleBody, Mode: gui.TextModeWrap}),
 		},
 	})
 }
@@ -258,7 +258,7 @@ func demoPlaceholder(t gui.Theme, text string) gui.View {
 func relatedExamplesFooter(id string) gui.View {
 	return gui.Text(gui.TextCfg{
 		Text:      "Related examples: " + relatedExamples(id),
-		TextStyle: gui.CurrentTheme().N5,
+		TextStyle: gui.CurrentTheme().TextStyleCaption,
 		Mode:      gui.TextModeWrap,
 	})
 }

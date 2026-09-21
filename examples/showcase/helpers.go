@@ -46,7 +46,7 @@ func demoBoxSized(label string, color gui.Color, w, h float32) gui.View {
 		// Button and Badge do, instead of on the line box.
 		AmendLayout: gui.OpticalCenterText,
 		Content: []gui.View{
-			gui.Text(gui.TextCfg{Text: label, TextStyle: t.N2}),
+			gui.Text(gui.TextCfg{Text: label, TextStyle: t.TextStyleBodyLarge}),
 		},
 	})
 }

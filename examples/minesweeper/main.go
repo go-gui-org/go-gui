@@ -221,11 +221,11 @@ func landingContent(w *gui.Window, app *App, theme gui.Theme) []gui.View {
 		tileTitleView(app),
 		gui.Text(gui.TextCfg{
 			Text:      "SWEEPER",
-			TextStyle: ts(theme.B2, 28, colorNeonPink),
+			TextStyle: ts(theme.TextStyleTitle, 28, colorNeonPink),
 		}),
 		gui.Text(gui.TextCfg{
 			Text:      "ARCADE SECTOR 1983",
-			TextStyle: ts(theme.M3, 16, colorNeonCyan),
+			TextStyle: ts(theme.TextStyleCode, 16, colorNeonCyan),
 		}),
 		gui.Row(gui.ContainerCfg{
 			HAlign: gui.HAlignCenter, Spacing: gui.SomeF(10),
@@ -244,7 +244,7 @@ func landingContent(w *gui.Window, app *App, theme gui.Theme) []gui.View {
 					ID:        "minesweeper_landing_content",
 					Selected:  app.NoGuessMode,
 					Label:     "No-Guess",
-					TextStyle: ts(theme.M4, 14, colorDimText),
+					TextStyle: ts(theme.Mono(theme.TextStyleBodySmall), 14, colorDimText),
 					OnClick: func(ctx gui.EventCtx) {
 						state(ctx.Window).NoGuessMode =
 							!state(ctx.Window).NoGuessMode
@@ -254,7 +254,7 @@ func landingContent(w *gui.Window, app *App, theme gui.Theme) []gui.View {
 					ID:        "minesweeper_landing_content_2",
 					Selected:  app.TrainingMode,
 					Label:     "Training",
-					TextStyle: ts(theme.M4, 14, colorDimText),
+					TextStyle: ts(theme.Mono(theme.TextStyleBodySmall), 14, colorDimText),
 					OnClick: func(ctx gui.EventCtx) {
 						state(ctx.Window).TrainingMode =
 							!state(ctx.Window).TrainingMode
@@ -264,7 +264,7 @@ func landingContent(w *gui.Window, app *App, theme gui.Theme) []gui.View {
 					ID:        "minesweeper_landing_content_3",
 					Selected:  app.GardenTheme,
 					Label:     "Garden",
-					TextStyle: ts(theme.M4, 14, colorDimText),
+					TextStyle: ts(theme.Mono(theme.TextStyleBodySmall), 14, colorDimText),
 					OnClick: func(ctx gui.EventCtx) {
 						state(ctx.Window).GardenTheme =
 							!state(ctx.Window).GardenTheme
@@ -275,11 +275,11 @@ func landingContent(w *gui.Window, app *App, theme gui.Theme) []gui.View {
 		gui.Text(gui.TextCfg{
 			Text: "Left-click: reveal  Right-click: flag  " +
 				"H: hint  C: check",
-			TextStyle: ts(theme.M4, 12, colorDimText),
+			TextStyle: ts(theme.Mono(theme.TextStyleBodySmall), 12, colorDimText),
 		}),
 		gui.Text(gui.TextCfg{
 			Text:      "R: reset  Esc: menu",
-			TextStyle: ts(theme.M4, 12, colorDimText),
+			TextStyle: ts(theme.Mono(theme.TextStyleBodySmall), 12, colorDimText),
 		}),
 	}
 }
@@ -298,11 +298,11 @@ func diffButton(w *gui.Window, title, subtitle string, diff Difficulty, color gu
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      title,
-				TextStyle: ts(theme.B3, 16, color),
+				TextStyle: ts(theme.TextStyleTitleSmall, 16, color),
 			}),
 			gui.Text(gui.TextCfg{
 				Text:      subtitle,
-				TextStyle: ts(theme.M4, 14, color),
+				TextStyle: ts(theme.Mono(theme.TextStyleBodySmall), 14, color),
 			}),
 		},
 		OnClick: func(ctx gui.EventCtx) {
@@ -576,7 +576,7 @@ func headerView(app *App, theme gui.Theme, boardW float32) gui.View {
 						Content: []gui.View{
 							gui.Text(gui.TextCfg{
 								Text:      smileyIcon,
-								TextStyle: ts(theme.Icon2, 24, smileyColor),
+								TextStyle: ts(theme.TextStyleIconLarge, 24, smileyColor),
 							}),
 						},
 						OnClick: func(ctx gui.EventCtx) {
@@ -605,7 +605,7 @@ func ledDisplay(x, y float32, text string, theme gui.Theme) gui.View {
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      text,
-				TextStyle: ts(theme.M1, 24, gui.RGB(255, 0, 0)),
+				TextStyle: ts(theme.Mono(theme.TextStyleDisplay.Roman()), 24, gui.RGB(255, 0, 0)),
 			}),
 		},
 	})
@@ -784,7 +784,7 @@ func iconContent(icon string, cellPx float32, color gui.Color,
 	return []gui.View{
 		gui.Text(gui.TextCfg{
 			Text:      icon,
-			TextStyle: ts(theme.Icon3, cellPx*0.55, color),
+			TextStyle: ts(theme.TextStyleIconMedium, cellPx*0.55, color),
 		}),
 	}
 }
@@ -794,7 +794,7 @@ func textContent(text string, cellPx float32, color gui.Color,
 	return []gui.View{
 		gui.Text(gui.TextCfg{
 			Text:      text,
-			TextStyle: ts(theme.B3, cellPx*0.65, color),
+			TextStyle: ts(theme.TextStyleTitleSmall, cellPx*0.65, color),
 		}),
 	}
 }
@@ -803,7 +803,7 @@ func numContent(adj int, cellPx float32, theme gui.Theme) []gui.View {
 	return []gui.View{
 		gui.Text(gui.TextCfg{
 			Text:      digitStr[adj],
-			TextStyle: ts(theme.B3, cellPx*0.65, numberColors[adj]),
+			TextStyle: ts(theme.TextStyleTitleSmall, cellPx*0.65, numberColors[adj]),
 		}),
 	}
 }
@@ -857,24 +857,24 @@ func footerView(app *App, g *Game, theme gui.Theme) gui.View {
 	case GameWon:
 		items = append(items, gui.Text(gui.TextCfg{
 			Text:      "YOU WIN!",
-			TextStyle: ts(theme.B3, 16, gui.RGB(100, 255, 100)),
+			TextStyle: ts(theme.TextStyleTitleSmall, 16, gui.RGB(100, 255, 100)),
 		}))
 	case GameLost:
 		items = append(items, gui.Text(gui.TextCfg{
 			Text:      "GAME OVER",
-			TextStyle: ts(theme.B3, 16, gui.RGB(255, 80, 80)),
+			TextStyle: ts(theme.TextStyleTitleSmall, 16, gui.RGB(255, 80, 80)),
 		}))
 	default:
 		if app.NoGuessMode {
 			items = append(items, gui.Text(gui.TextCfg{
 				Text:      "No-Guess Mode",
-				TextStyle: ts(theme.M4, 13, colorNeonCyan),
+				TextStyle: ts(theme.Mono(theme.TextStyleBodySmall), 13, colorNeonCyan),
 			}))
 		}
 		if app.TrainingMode {
 			items = append(items, gui.Text(gui.TextCfg{
 				Text:      "Training: green=safe  red=mine",
-				TextStyle: ts(theme.M4, 12, colorDimText),
+				TextStyle: ts(theme.Mono(theme.TextStyleBodySmall), 12, colorDimText),
 			}))
 		}
 	}
@@ -929,7 +929,7 @@ func smallButton(label string, action func(*gui.Window)) gui.View {
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text: label,
-				TextStyle: ts(gui.CurrentTheme().M4, 12,
+				TextStyle: ts(gui.CurrentTheme().Mono(gui.CurrentTheme().TextStyleBodySmall), 12,
 					gui.RGB(200, 205, 210)),
 			}),
 		},

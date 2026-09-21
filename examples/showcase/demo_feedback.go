@@ -18,7 +18,7 @@ func demoButton(w *gui.Window) gui.View {
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      fmt.Sprintf("Clicks: %d", app.ButtonClicks),
-				TextStyle: gui.CurrentTheme().N3,
+				TextStyle: gui.CurrentTheme().TextStyleBody,
 			}),
 			gui.Column(gui.ContainerCfg{
 				Sizing:  gui.FillFit,
@@ -128,7 +128,7 @@ func buttonFeatureRow(label string, button gui.View) gui.View {
 		Padding: gui.NoPadding,
 		VAlign:  gui.VAlignMiddle,
 		Content: []gui.View{
-			gui.Text(gui.TextCfg{Text: label, TextStyle: gui.CurrentTheme().N3}),
+			gui.Text(gui.TextCfg{Text: label, TextStyle: gui.CurrentTheme().TextStyleBody}),
 			gui.Row(gui.ContainerCfg{Sizing: gui.FillFit, Padding: gui.NoPadding}),
 			button,
 		},
@@ -165,11 +165,11 @@ func demoPulsar(w *gui.Window) gui.View {
 		Spacing: gui.SomeF(8),
 		VAlign:  gui.VAlignMiddle,
 		Content: []gui.View{
-			gui.Text(gui.TextCfg{Text: "Loading", TextStyle: gui.CurrentTheme().N3}),
+			gui.Text(gui.TextCfg{Text: "Loading", TextStyle: gui.CurrentTheme().TextStyleBody}),
 			gui.Pulsar(gui.PulsarCfg{
 				Text1:     gui.IconSmile,
 				Text2:     gui.IconSmileAlt,
-				TextStyle: gui.CurrentTheme().Icon1,
+				TextStyle: gui.CurrentTheme().TextStyleIconXLarge,
 			}, w),
 		},
 	})
@@ -193,7 +193,7 @@ func demoBadge(_ *gui.Window) gui.View {
 		Padding:    gui.NoPadding,
 		SizeBorder: gui.NoBorder,
 		Content: []gui.View{
-			gui.Text(gui.TextCfg{Text: "Variants", TextStyle: t.B4}),
+			gui.Text(gui.TextCfg{Text: "Variants", TextStyle: t.TextStyleBodySmall.Bold()}),
 			badgeRow([]gui.View{
 				gui.Badge(gui.BadgeCfg{Label: "5"}),
 				gui.Badge(gui.BadgeCfg{Label: "3", Variant: gui.BadgeInfo}),
@@ -201,13 +201,13 @@ func demoBadge(_ *gui.Window) gui.View {
 				gui.Badge(gui.BadgeCfg{Label: "7", Variant: gui.BadgeWarning}),
 				gui.Badge(gui.BadgeCfg{Label: "99", Variant: gui.BadgeError}),
 			}),
-			gui.Text(gui.TextCfg{Text: "Max cap", TextStyle: t.B4}),
+			gui.Text(gui.TextCfg{Text: "Max cap", TextStyle: t.TextStyleBodySmall.Bold()}),
 			badgeRow([]gui.View{
 				gui.Badge(gui.BadgeCfg{Label: "5", Max: 99}),
 				gui.Badge(gui.BadgeCfg{Label: "150", Max: 99, Variant: gui.BadgeError}),
 				gui.Badge(gui.BadgeCfg{Label: "1000", Max: 999, Variant: gui.BadgeInfo}),
 			}),
-			gui.Text(gui.TextCfg{Text: "Dot mode", TextStyle: t.B4}),
+			gui.Text(gui.TextCfg{Text: "Dot mode", TextStyle: t.TextStyleBodySmall.Bold()}),
 			badgeRow([]gui.View{
 				gui.Badge(gui.BadgeCfg{Dot: true}),
 				gui.Badge(gui.BadgeCfg{Dot: true, Variant: gui.BadgeInfo}),
@@ -229,7 +229,7 @@ func demoCommandButton(w *gui.Window) gui.View {
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      fmt.Sprintf("Count: %d", app.CmdButtonCount),
-				TextStyle: t.N3,
+				TextStyle: t.TextStyleBody,
 			}),
 			sectionLabel(t, "Auto-labeled with shortcut hint"),
 			gui.Row(gui.ContainerCfg{
@@ -261,7 +261,7 @@ func demoThemePicker(w *gui.Window) gui.View {
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      "Palette icon that opens a dropdown of registered themes.",
-				TextStyle: t.N3,
+				TextStyle: t.TextStyleBody,
 				Mode:      gui.TextModeWrap,
 			}),
 			gui.ThemePicker(gui.ThemePickerCfg{
@@ -274,7 +274,7 @@ func demoThemePicker(w *gui.Window) gui.View {
 			}),
 			gui.Text(gui.TextCfg{
 				Text:      "Selected: " + result,
-				TextStyle: t.N3,
+				TextStyle: t.TextStyleBody,
 			}),
 		},
 	})
@@ -363,7 +363,7 @@ func demoToast(_ *gui.Window) gui.View {
 				ID:      "btn-toast",
 				Padding: gui.NewPadding(8, 16, 8, 16),
 				Content: []gui.View{
-					gui.Text(gui.TextCfg{Text: "Show Toast", TextStyle: t.N3}),
+					gui.Text(gui.TextCfg{Text: "Show Toast", TextStyle: t.TextStyleBody}),
 				},
 				OnClick: func(ctx gui.EventCtx) {
 					ctx.Window.Toast(gui.ToastCfg{Title: "showcase", Body: "Hello from showcase!"})
@@ -373,7 +373,7 @@ func demoToast(_ *gui.Window) gui.View {
 				ID:      "btn-toast-dismiss",
 				Padding: gui.NewPadding(8, 16, 8, 16),
 				Content: []gui.View{
-					gui.Text(gui.TextCfg{Text: "Dismiss All", TextStyle: t.N3}),
+					gui.Text(gui.TextCfg{Text: "Dismiss All", TextStyle: t.TextStyleBody}),
 				},
 				OnClick: func(ctx gui.EventCtx) {
 					ctx.Window.ToastDismissAll()

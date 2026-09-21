@@ -130,7 +130,7 @@ func panelContent(title, body string) []gui.View {
 			Content: []gui.View{
 				gui.Text(gui.TextCfg{
 					Text:      title,
-					TextStyle: gui.CurrentTheme().B2,
+					TextStyle: gui.CurrentTheme().TextStyleTitle,
 				}),
 				gui.Text(gui.TextCfg{Text: body}),
 			},

@@ -42,7 +42,7 @@ func mainView(w *gui.Window) gui.View {
 		HAlign: gui.HAlignCenter,
 		VAlign: gui.VAlignMiddle,
 		Content: []gui.View{
-			gui.Label("Hello GUI! 😀🚀🎉👍", gui.CurrentTheme().B1),
+			gui.Label("Hello GUI! 😀🚀🎉👍", gui.CurrentTheme().TextStyleDisplay),
 			gui.TextButton("gs_counter", fmt.Sprintf("%d Clicks", app.Clicks), func(ctx gui.EventCtx) {
 				// Update the typed window state; the next frame reads it back.
 				gui.State[App](ctx.Window).Clicks++

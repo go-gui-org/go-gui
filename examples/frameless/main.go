@@ -102,7 +102,7 @@ func header(decoration gui.WindowDecoration) gui.View {
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      "Drag me",
-				TextStyle: theme.B1,
+				TextStyle: theme.TextStyleDisplay,
 			}),
 			// Fill container: pushes the close button to the right.
 			gui.Row(gui.ContainerCfg{
@@ -136,7 +136,7 @@ func body(w *gui.Window) gui.View {
 		VAlign:     gui.VAlignMiddle,
 		Spacing:    gui.SomeF(theme.SpacingSmall),
 		Content: []gui.View{
-			gui.Text(gui.TextCfg{Text: label, TextStyle: theme.B1}),
+			gui.Text(gui.TextCfg{Text: label, TextStyle: theme.TextStyleDisplay}),
 			gui.Text(gui.TextCfg{
 				Text:      "Corner grip resizes on Windows and X11.",
 				TextStyle: theme.TextStyleSecondary,

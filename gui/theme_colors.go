@@ -392,8 +392,8 @@ func (t Theme) WithColors(o ColorOverrides) Theme {
 	// kept a white label on it.
 	t.tabControlStyle.textStyleSelected = trackStyle(
 		t.tabControlStyle.textStyleSelected,
-		textOnFill(t.B3, true, oldTextOnSelect),
-		textOnFill(t.B3, true, selText))
+		textOnFill(t.TextStyleTitleSmall, true, oldTextOnSelect),
+		textOnFill(t.TextStyleTitleSmall, true, selText))
 
 	t.breadcrumbStyle.ColorsCrumb.Hover = hover
 	t.breadcrumbStyle.ColorsCrumb.Click = active

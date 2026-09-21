@@ -160,7 +160,7 @@ func ExpandPanel(cfg ExpandPanelCfg) View {
 					Row(ContainerCfg{
 						Padding: NewPadding(0, PadMedium, 0, 0),
 						Content: []View{
-							disclosureArrow(cfg.Open, guiTheme.N3),
+							disclosureArrow(cfg.Open, guiTheme.TextStyleBody),
 						},
 					}),
 				},
