@@ -478,16 +478,15 @@ func TestThemeMakerAccentExtremes(t *testing.T) {
 }
 
 // The widget-level override: a caller-set ColorSelect is an explicit
-// choice and wins over the theme's wash, so the subtle slot follows
-// it (visual-refresh §4.3). One test covers the pattern the five
-// list-like widgets share.
+// choice and wins over the theme's wash, so the Selected slot follows
+// it (#744). One test covers the pattern the list-like widgets share.
 func TestWidgetColorOverrideWinsOverWash(t *testing.T) {
 	var lb ListBoxCfg
 	lb.ColorSelect = Blue
 	applyListBoxDefaults(&lb)
-	if lb.ColorSelectSubtle != Blue {
-		t.Errorf("listbox subtle = %v, want caller select %v",
-			lb.ColorSelectSubtle, Blue)
+	if lb.Colors.Selected != Blue {
+		t.Errorf("listbox Selected = %v, want caller select %v",
+			lb.Colors.Selected, Blue)
 	}
 
 	var cb ComboboxCfg
@@ -507,9 +506,9 @@ func TestWidgetColorOverrideWinsOverWash(t *testing.T) {
 func TestWidgetSubtleWashWhenUnset(t *testing.T) {
 	var lb ListBoxCfg
 	applyListBoxDefaults(&lb)
-	if !lb.ColorSelectSubtle.IsSet() || lb.ColorSelectSubtle == lb.ColorSelect {
-		t.Errorf("listbox unset subtle = %v, want the theme wash, not the full select %v",
-			lb.ColorSelectSubtle, lb.ColorSelect)
+	if !lb.Colors.Selected.IsSet() || lb.Colors.Selected == lb.ColorSelect {
+		t.Errorf("listbox unset Selected = %v, want the theme wash, not the full select %v",
+			lb.Colors.Selected, lb.ColorSelect)
 	}
 
 	var cb ComboboxCfg

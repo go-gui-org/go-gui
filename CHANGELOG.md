@@ -55,6 +55,31 @@ and this project adheres to
 
   The scan over the siblings found no uses of the removed fields.
 
+- **BREAKING: ListBox and Table rows use `Colors.Selected`; the
+  `ColorSelectSubtle` fields are deleted (#744)** — both widgets painted the
+  selected row by hand, so a selected row ignored the pointer. The row fill now
+  goes through `ColorSet.pick` with the selected and hovered states: a selected
+  row hovers one OKLCH step lighter, the same as data grid rows. The wash is
+  `Colors.Selected`, which the theme sets from the accent subtle color, so
+  resting rows look the same (the golden tests pass unchanged). The Table
+  keyboard-active row is the Focus state, and the theme sets `Colors.Focus` to
+  the hover fill, so it keeps its tint. Migration:
+
+  | Before                           | After                          |
+  | -------------------------------- | ------------------------------ |
+  | `ListBoxCfg.ColorSelectSubtle`   | `ListBoxCfg.Colors.Selected`   |
+  | `TableCfg.ColorSelectSubtle`     | `TableCfg.Colors.Selected`     |
+  | `ListBoxStyle.ColorSelectSubtle` | `ListBoxStyle.Colors.Selected` |
+  | `TableStyle.ColorSelectSubtle`   | `TableStyle.Colors.Selected`   |
+
+  `ListBoxCfg.ColorSelect` and `TableCfg.ColorSelect` still work: a set value
+  becomes `Colors.Selected` when that slot is unset. Prefer `Colors.Selected`
+  directly.
+
+  The scan over go-charts, go-edit, go-kite, go-map, go-term, go-speedtest and
+  go-shirei found no uses of the deleted fields (the one `ColorSelect` hit in
+  go-charts reads the theme-level color, which is unchanged).
+
 ## [v0.78.0] - 2026-09-21
 
 ### Added

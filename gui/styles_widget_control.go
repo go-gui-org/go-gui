@@ -115,11 +115,7 @@ type TableStyle struct {
 	SizeBorder         float32
 	Colors             ColorSet
 	ColorSelect        Color
-	// ColorSelectSubtle is the tint behind a selected row: the wash,
-	// never the full accent slab — focus is the ring, not a second
-	// fill (visual-refresh §4.3).
-	ColorSelectSubtle Color
-	alignHead         HorizontalAlign
+	alignHead          HorizontalAlign
 }
 
 // ComboboxStyle defines combobox visual properties.

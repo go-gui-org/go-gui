@@ -75,18 +75,16 @@ type ListBoxCfg struct {
 	Color         Color
 	// Colors sets the per-state colors. Color above is the
 	// shorthand for Colors.Base and wins over it.
-	Colors      ColorSet
+	Colors ColorSet
+	// ColorSelect is a deprecated alias for Colors.Selected: when
+	// Colors.Selected is unset, a set ColorSelect becomes the
+	// selected row fill. Prefer Colors.Selected directly.
 	ColorSelect Color
-	// ColorSelectSubtle is the tint behind a selected row — the
-	// wash, never the full accent slab; focus is the ring, not a
-	// second fill (visual-refresh §4.3). Unset takes the theme's.
-	// exportaudit:keep — caller-facing config (issue #372)
-	ColorSelectSubtle Color
-	Sizing            Sizing
-	Multiple          bool
-	Disabled          bool
-	Invisible         bool
-	Reorderable       bool
+	Sizing      Sizing
+	Multiple    bool
+	Disabled    bool
+	Invisible   bool
+	Reorderable bool
 
 	// Sound overrides the theme's selection cue for this instance.
 	// SoundNone (the zero value) takes the theme's cue for that role,
@@ -484,11 +482,15 @@ func listBoxOnKeyDown(
 
 func applyListBoxDefaults(cfg *ListBoxCfg) {
 	d := &defaultListBoxStyle
+	// Colors.Selected unset + a set ColorSelect means the caller
+	// used the deprecated alias, so it becomes the selected fill.
+	// Read before resolved fills Selected from the theme, after
+	// which caller-set and theme-set no longer differ.
+	callerSelected := cfg.Colors.Selected.IsSet()
 	cfg.Colors = cfg.Colors.resolved(cfg.Color, d.Colors)
-	// A caller-set ColorSelect is an explicit override and wins over
-	// the theme's wash (subtleSlot). Resolved before the theme fill
-	// below, so IsSet still tells caller-set from theme-set.
-	subtleSlot(&cfg.ColorSelectSubtle, cfg.ColorSelect, d.ColorSelectSubtle)
+	if !callerSelected && cfg.ColorSelect.IsSet() {
+		cfg.Colors.Selected = cfg.ColorSelect
+	}
 	if !cfg.ColorSelect.IsSet() {
 		cfg.ColorSelect = d.ColorSelect
 	}

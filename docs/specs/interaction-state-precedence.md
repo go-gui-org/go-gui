@@ -84,7 +84,8 @@ knows nothing about. `pick`'s `disabled` term is the belt to that braces.
 
 ## Scope
 
-Routed through `pick`: `Button`, `Toggle`, `Switch`, `Radio`.
+Routed through `pick`: `Button`, `Toggle`, `Switch`, `Radio`, `ListBox` rows
+(including the reorderable path) and `Table` rows.
 
 `Radio` is the one widget whose channels are crossed on purpose. Its fill is its
 selection, so every interaction state lands on the circle's border: it builds a
@@ -103,10 +104,14 @@ Not in scope:
   they lack, so a set rebuilt from them would be half-empty. That needs the
   `Cfg` flat-field inversion first, which #716 deferred.
 - Row widgets whose dominant state is _selected_ (`view_listbox_items.go`,
-  `view_table_build.go`). Those rows express it as "the resting fill is not
-  transparent". #741 added `ColorSet.Selected` and routed data grid rows and
-  list rows (combobox, command palette) through `pick`. Listbox and table rows
-  are not routed yet.
+  `view_table_build.go`) express it as "the resting fill is not transparent".
+  #741 added `ColorSet.Selected` and routed data grid rows and list rows
+  (combobox, command palette) through `pick`. #744 routed ListBox and Table rows
+  the same way and deleted their flat `ColorSelectSubtle` fields: the wash is
+  `Colors.Selected`, and the Table keyboard-active row is the `Focus` state (the
+  theme sets it to the hover fill). `Select` option rows are still hand-painted
+  and out of scope — their highlight and hover already agree by construction
+  (visual-refresh §4.3).
 - Menus, which have no per-state fill: hover writes a hovered index into a
   `StateMap` and the next frame paints `colorSelect`.
 

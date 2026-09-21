@@ -342,10 +342,25 @@ func goldenCases() []goldenCase {
 		},
 		{
 			// Hovered unselected row takes the hover fill; the
-			// selected row keeps its wash (selection dominates
-			// hover — ColorSet has no selected slot, #721).
+			// selected row keeps its resting wash until the
+			// pointer is over it (listbox_selected_hover).
 			name:   "listbox_hover",
 			hoverX: 50, hoverY: 40,
+			build: func(_ *Window) View {
+				return ListBox(ListBoxCfg{
+					ID:          "lb",
+					Items:       []string{"one", "two", "three"},
+					SelectedIDs: []string{"two"},
+					OnSelect:    func([]string, EventCtx) {},
+				})
+			},
+		},
+		{
+			// A selected row hovers one OKLCH step lighter than its
+			// resting wash, the same as data grid rows (#744). The
+			// point lands on the selected middle row.
+			name:   "listbox_selected_hover",
+			hoverX: 50, hoverY: 60,
 			build: func(_ *Window) View {
 				return ListBox(ListBoxCfg{
 					ID:          "lb",
@@ -1232,8 +1247,9 @@ func goldenCases() []goldenCase {
 			},
 		},
 		{
-			// Hovered row takes the hover fill; selection keeps its
-			// wash (no Selected slot on ColorSet, #721).
+			// Hovered unselected row takes the hover fill (a
+			// selected row under the pointer steps lighter
+			// instead — table_selected_hover).
 			name:   "table_hover",
 			hoverX: 40, hoverY: 48,
 			build: func(_ *Window) View {
@@ -1250,6 +1266,30 @@ func goldenCases() []goldenCase {
 							{Value: "12"},
 						}},
 					},
+				})
+			},
+		},
+		{
+			// A selected row hovers one OKLCH step lighter than its
+			// resting wash (#744). The point lands on the selected
+			// alpha row.
+			name:   "table_selected_hover",
+			hoverX: 40, hoverY: 48,
+			build: func(_ *Window) View {
+				return Table(TableCfg{
+					ID:       "tbl",
+					OnSelect: func(map[int]bool, int, EventCtx) {},
+					Data: []TableRowCfg{
+						{Cells: []TableCellCfg{
+							{Value: "Name", HeadCell: true},
+							{Value: "Size", HeadCell: true},
+						}},
+						{Cells: []TableCellCfg{
+							{Value: "alpha"},
+							{Value: "12"},
+						}},
+					},
+					Selected: map[int]bool{1: true},
 				})
 			},
 		},

@@ -77,18 +77,16 @@ type TableCfg struct {
 	SizeBorder       float32 // ergonomics-audit:opt-plain — 0 = no borders, applied as-is; public API kept plain
 	SizeBorderHeader float32 // ergonomics-audit:opt-plain — 0 = no header separator; public API kept plain
 
-	Width       float32
-	Height      float32
-	MinWidth    float32
-	MaxWidth    float32
-	MinHeight   float32
-	MaxHeight   float32
+	Width     float32
+	Height    float32
+	MinWidth  float32
+	MaxWidth  float32
+	MinHeight float32
+	MaxHeight float32
+	// ColorSelect is a deprecated alias for Colors.Selected: when
+	// Colors.Selected is unset, a set ColorSelect becomes the
+	// selected row fill. Prefer Colors.Selected directly.
 	ColorSelect Color
-	// ColorSelectSubtle is the tint behind a selected row — the
-	// wash, never the full accent slab; focus is the ring, not a
-	// second fill (visual-refresh §4.3). Unset takes the theme's.
-	// exportaudit:keep — caller-facing config (issue #372)
-	ColorSelectSubtle Color
 	// Colors sets the per-state colors. Table has no base fill, so
 	// Base is unused and Hover/Border are the live slots.
 	Colors ColorSet
@@ -123,11 +121,15 @@ type TableCfg struct {
 
 func applyTableDefaults(cfg *TableCfg) {
 	s := &defaultTableStyle
+	// Colors.Selected unset + a set ColorSelect means the caller
+	// used the deprecated alias, so it becomes the selected fill.
+	// Read before resolved fills Selected from the theme, after
+	// which caller-set and theme-set no longer differ.
+	callerSelected := cfg.Colors.Selected.IsSet()
 	cfg.Colors = cfg.Colors.resolved(Color{}, s.Colors)
-	// A caller-set ColorSelect is an explicit override and wins over
-	// the theme's wash (subtleSlot). Resolved before the theme fill
-	// below, so IsSet still tells caller-set from theme-set.
-	subtleSlot(&cfg.ColorSelectSubtle, cfg.ColorSelect, s.ColorSelectSubtle)
+	if !callerSelected && cfg.ColorSelect.IsSet() {
+		cfg.Colors.Selected = cfg.ColorSelect
+	}
 	if !cfg.ColorSelect.IsSet() {
 		cfg.ColorSelect = s.ColorSelect
 	}
@@ -272,7 +274,6 @@ func tableView(cfg TableCfg, w *Window) View {
 	onSelect := cfg.OnSelect
 	selected := cfg.Selected
 	multiSelect := cfg.MultiSelect
-	colorHover := cfg.Colors.Hover
 
 	// Virtualization.
 	listHeight := cfg.Height
@@ -306,7 +307,7 @@ func tableView(cfg TableCfg, w *Window) View {
 	}
 
 	rows := tableBuildRows(&cfg, columnWidths, cellBorder,
-		selected, multiSelect, colorHover, onSelect,
+		selected, multiSelect, onSelect,
 		activeRowIdx, navKey, first, last, lastRowIdx, dataStart,
 		rowHeight, virtualize)
 
@@ -317,7 +318,7 @@ func tableView(cfg TableCfg, w *Window) View {
 
 	if freeze {
 		return tableFreezeLayout(&cfg, columnWidths, cellBorder,
-			rowSpacing, selected, multiSelect, colorHover,
+			rowSpacing, selected, multiSelect,
 			onSelect, rows, scrollID, activeRowIdx, navKey, fw)
 	}
 

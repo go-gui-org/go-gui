@@ -114,19 +114,21 @@ func listBoxItemView(
 	focusedID string,
 	itemIDs []string,
 ) View {
-	color := ColorTransparent
-	// The keyboard-focus row takes a ring, never a fill: a fill here
-	// is the same grey the mouse hover paints, so the two cursors
-	// were indistinguishable (visual-refresh §4.3).
 	isFocusRow := listBoxIsFocusRow(dat, focusedID)
-	selected := false
-	if listCoreContainsSelected(selectedSet, cfg.SelectedIDs, dat.ID) {
-		// Selection paints the subtle wash, not the full accent
-		// slab; focus is the ring, not a second fill
-		// (visual-refresh §4.3).
-		color = cfg.ColorSelectSubtle
-		selected = true
-	}
+	selected := listCoreContainsSelected(selectedSet, cfg.SelectedIDs, dat.ID)
+	// The row fill goes through pick, so a selected row hovers one
+	// OKLCH step lighter instead of ignoring the pointer (#744).
+	// The keyboard-focus row still takes a ring, never a fill: a
+	// fill here is the same grey the mouse hover paints, so the two
+	// cursors were indistinguishable (visual-refresh §4.3).
+	colors := cfg.Colors
+	colors.Base = ColorTransparent
+	flags := stateFlags{selected: selected}
+	bg, _ := colors.pick(flags)
+	flags.hovered = true
+	// Computed here, not in OnHover: the closure then holds one
+	// Color, not the whole set.
+	bgHover, _ := colors.pick(flags)
 	isSub := dat.isSubheading
 	content := listBoxItemContent(dat, cfg)
 
@@ -135,10 +137,6 @@ func listBoxItemView(
 	onSelect := cfg.OnSelect
 	hasOnSelect := onSelect != nil
 	selectedIDs := cfg.SelectedIDs
-	// Hover comes from the set; the transparent check in OnHover
-	// stays — a selected row's resting fill is not transparent, and
-	// selection dominates hover (see #721).
-	colorHover := cfg.Colors.Hover
 	// Scalars, not cfg: the OnClick closure below would otherwise
 	// capture the whole ListBoxCfg and heap-allocate it per row.
 	listBoxID := cfg.ID
@@ -162,7 +160,7 @@ func listBoxItemView(
 		A11YRole:  AccessRoleListItem,
 		A11YCfg:   A11YCfg{A11YLabel: dat.Name},
 		A11YState: a11yState,
-		Color:     color,
+		Color:     bg,
 		Padding:   listBoxItemPad,
 		// No border in the Cfg: one there insets content, so every
 		// row would grow by the ring's width whether or not it ever
@@ -192,9 +190,7 @@ func listBoxItemView(
 		OnHover: func(ctx EventCtx) {
 			if hasOnSelect && !isSub {
 				ctx.Window.setMouseCursor(CursorPointingHand)
-				if ctx.Layout.Shape.Color == ColorTransparent {
-					ctx.Layout.Shape.Color = colorHover
-				}
+				ctx.Layout.Shape.Color = bgHover
 			}
 		},
 	})
@@ -211,18 +207,18 @@ func listBoxReorderItemView(
 	midsOffset int,
 	scrollID string,
 ) View {
-	color := ColorTransparent
 	// A reorderable row takes the same keyboard-focus ring as a plain
 	// one, by the same rule.
 	isFocusRow := listBoxIsFocusRow(dat, focusedID)
-	selected := false
-	if listCoreContainsSelected(selectedSet, cfg.SelectedIDs, dat.ID) {
-		// Selection paints the subtle wash, not the full accent
-		// slab; focus is the ring, not a second fill
-		// (visual-refresh §4.3).
-		color = cfg.ColorSelectSubtle
-		selected = true
-	}
+	selected := listCoreContainsSelected(selectedSet, cfg.SelectedIDs, dat.ID)
+	// Same pick routing as the plain row above: a selected row
+	// hovers one OKLCH step lighter (#744).
+	colors := cfg.Colors
+	colors.Base = ColorTransparent
+	flags := stateFlags{selected: selected}
+	bg, _ := colors.pick(flags)
+	flags.hovered = true
+	bgHover, _ := colors.pick(flags)
 	content := listBoxItemContent(dat, cfg)
 	layoutID := listBoxItemID(cfg.ID, dat.ID)
 
@@ -231,7 +227,6 @@ func listBoxReorderItemView(
 	onSelect := cfg.OnSelect
 	hasOnSelect := onSelect != nil
 	selectedIDs := cfg.SelectedIDs
-	colorHover := cfg.Colors.Hover
 	listBoxID := cfg.ID
 	focusDisabled := cfg.FocusDisabled
 	onReorder := cfg.OnReorder
@@ -260,7 +255,7 @@ func listBoxReorderItemView(
 		A11YRole:  AccessRoleListItem,
 		A11YCfg:   A11YCfg{A11YLabel: dat.Name},
 		A11YState: a11yState,
-		Color:     color,
+		Color:     bg,
 		Padding:   listBoxItemPad,
 		// Stroked from AmendLayout, never reserved in the Cfg — a
 		// border here would inset content and grow every row. See
@@ -305,9 +300,7 @@ func listBoxReorderItemView(
 				return
 			}
 			ctx.Window.setMouseCursor(CursorPointingHand)
-			if ctx.Layout.Shape.Color == ColorTransparent {
-				ctx.Layout.Shape.Color = colorHover
-			}
+			ctx.Layout.Shape.Color = bgHover
 		},
 	})
 }

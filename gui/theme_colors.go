@@ -292,10 +292,10 @@ func (t Theme) WithColors(o ColorOverrides) Theme {
 
 	t.listBoxStyle.Colors.Base = interior
 	t.listBoxStyle.Colors.Hover = hover
+	t.listBoxStyle.Colors.Selected = accentSubtle
 	t.listBoxStyle.Colors.Border = border
 	t.listBoxStyle.Colors.BorderFocus = borderFocus
 	t.listBoxStyle.ColorSelect = sel
-	t.listBoxStyle.ColorSelectSubtle = accentSubtle
 
 	t.treeStyle.Colors.Hover = hover
 	t.treeStyle.Colors.Focus = focus
@@ -412,8 +412,9 @@ func (t Theme) WithColors(o ColorOverrides) Theme {
 	t.tableStyle.Colors.Border = border
 	t.tableStyle.Colors.BorderFocus = borderFocus
 	t.tableStyle.ColorSelect = sel
-	t.tableStyle.ColorSelectSubtle = accentSubtle
 	t.tableStyle.Colors.Hover = hover
+	t.tableStyle.Colors.Focus = hover
+	t.tableStyle.Colors.Selected = accentSubtle
 
 	t.comboboxStyle.Colors.Base = interior
 	t.comboboxStyle.Colors.Hover = hover

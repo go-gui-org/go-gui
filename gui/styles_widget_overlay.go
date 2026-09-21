@@ -16,10 +16,6 @@ type ListBoxStyle struct {
 	// user could not tell which list they were in (issue #335).
 	Colors      ColorSet
 	ColorSelect Color
-	// ColorSelectSubtle is the tint behind selected rows: selection
-	// paints the subtle wash, never the full accent slab — focus is
-	// the ring, not a second fill (visual-refresh §4.3).
-	ColorSelectSubtle Color
 }
 
 // TreeStyle defines tree view visual properties.

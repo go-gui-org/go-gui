@@ -349,16 +349,16 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			Colors: ColorSet{
 				Base:        cfg.ColorInterior,
 				Hover:       cfg.ColorHover,
+				Selected:    accentSubtle,
 				Border:      cfg.ColorBorder,
 				BorderFocus: borderFocus,
 			},
-			ColorSelect:       colorSelect,
-			ColorSelectSubtle: accentSubtle,
-			Padding:           cfg.Padding,
-			SizeBorder:        cfg.SizeBorder,
-			Radius:            cfg.Radius,
-			textStyleNormal:   ts,
-			subheadingStyle:   ts,
+			ColorSelect:     colorSelect,
+			Padding:         cfg.Padding,
+			SizeBorder:      cfg.SizeBorder,
+			Radius:          cfg.Radius,
+			textStyleNormal: ts,
+			subheadingStyle: ts,
 		},
 		treeStyle: TreeStyle{
 			Colors: ColorSet{
@@ -579,11 +579,12 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 		tableStyle: TableStyle{
 			Colors: ColorSet{
 				Hover:       cfg.ColorHover,
+				Focus:       cfg.ColorHover,
+				Selected:    accentSubtle,
 				Border:      cfg.ColorBorder,
 				BorderFocus: borderFocus,
 			},
 			ColorSelect:        colorSelect,
-			ColorSelectSubtle:  accentSubtle,
 			cellPadding:        PaddingTwoFive,
 			TextStyle:          ts,
 			TextStyleHead:      ts,
