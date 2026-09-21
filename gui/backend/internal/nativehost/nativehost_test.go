@@ -47,17 +47,6 @@ func TestValidateOpenURI_SchemeCaseInsensitive(t *testing.T) {
 	}
 }
 
-func TestSendNotificationErrorPaths(t *testing.T) {
-	// Verify that empty title/body don't panic.
-	result := SendNotification("", "")
-	// Result may be OK or Error depending on platform; just verify
-	// it's a valid enum value.
-	if result.Status != gui.NotificationOK &&
-		result.Status != gui.NotificationError {
-		t.Errorf("unexpected status: %v", result.Status)
-	}
-}
-
 func TestSpellCheckForwardersDoNotPanic(t *testing.T) {
 	ranges := SpellCheck("hello")
 	_ = ranges
@@ -141,42 +130,37 @@ func TestSpellSuggestHugeLenDoesNotOverflow(t *testing.T) {
 	}
 }
 
-func TestSendNotificationLengthCapping(t *testing.T) {
-	// title and body are capped at maxNotifyTitleLen / maxNotifyBodyLen
-	// before the exec call. Verify no panic with oversized inputs.
-	longTitle := strings.Repeat("T", maxNotifyTitleLen+100)
-	longBody := strings.Repeat("B", maxNotifyBodyLen+100)
-	result := SendNotification(longTitle, longBody)
-	if result.Status != gui.NotificationOK &&
-		result.Status != gui.NotificationError {
-		t.Errorf("unexpected status: %v", result.Status)
-	}
-}
-
-func TestSendNotificationEmptyBody(t *testing.T) {
-	result := SendNotification("test", "")
-	if result.Status != gui.NotificationOK &&
-		result.Status != gui.NotificationError {
-		t.Errorf("unexpected status: %v", result.Status)
-	}
-}
-
-func TestSendNotificationBoundaries(t *testing.T) {
-	title := strings.Repeat("T", maxNotifyTitleLen)
-	body := strings.Repeat("B", maxNotifyBodyLen)
-	result := SendNotification(title, body)
-	if result.Status != gui.NotificationOK &&
-		result.Status != gui.NotificationError {
-		t.Errorf("unexpected status: %v", result.Status)
-	}
-
-	// One byte over should also not panic.
-	titleOver := strings.Repeat("T", maxNotifyTitleLen+1)
-	bodyOver := strings.Repeat("B", maxNotifyBodyLen+1)
-	result = SendNotification(titleOver, bodyOver)
-	if result.Status != gui.NotificationOK &&
-		result.Status != gui.NotificationError {
-		t.Errorf("unexpected status: %v", result.Status)
+// The dispatch boundary is synchronous. Never launch OS notifications in
+// unit tests: the process can exit before their owner has cleaned up.
+func TestSendNotificationDispatch(t *testing.T) {
+	original := notificationSender
+	t.Cleanup(func() { notificationSender = original })
+	for _, tc := range []struct{ name, title, body, wantTitle, wantBody string }{
+		{"empty", "", "", "", ""},
+		{"title only", "test", "", "test", ""},
+		{"exact limits", strings.Repeat("T", 256), strings.Repeat("B", 1024), strings.Repeat("T", 256), strings.Repeat("B", 1024)},
+		{"over limits", strings.Repeat("T", 257), strings.Repeat("B", 1025), strings.Repeat("T", 256), strings.Repeat("B", 1024)},
+		{"rune boundary", strings.Repeat("界", 100), strings.Repeat("界", 400), strings.Repeat("界", 85), strings.Repeat("界", 341)},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			for _, wantResult := range []gui.NativeNotificationResult{
+				{Status: gui.NotificationOK},
+				{Status: gui.NotificationError, ErrorCode: "notification_failed", ErrorMessage: "shell refused"},
+			} {
+				calls := 0
+				notificationSender = func(title, body string) gui.NativeNotificationResult {
+					calls++
+					if title != tc.wantTitle || body != tc.wantBody {
+						t.Errorf("wrong dispatched text lengths: title=%d body=%d", len(title), len(body))
+					}
+					return wantResult
+				}
+				result := SendNotification(tc.title, tc.body)
+				if result != wantResult || calls != 1 {
+					t.Errorf("result=%+v calls=%d", result, calls)
+				}
+			}
+		})
 	}
 }
 

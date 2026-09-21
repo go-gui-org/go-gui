@@ -80,6 +80,17 @@ and this project adheres to
   go-shirei found no uses of the deleted fields (the one `ColorSelect` hit in
   go-charts reads the theme-level color, which is unchanged).
 
+### Fixed
+
+- **Windows notifications use native APIs and application identity (#745)** —
+  Windows 10 and later send WinRT notifications under an identity bound to the
+  source executable. Notifications keep the application name in Notification
+  Center after exit, and clicking one opens that executable. Registration needs
+  no Start menu shortcut, reuses developer identities across `go run` builds,
+  and retries after a failure. Sending a notification no longer launches
+  PowerShell or creates temporary tray icons; unit tests no longer display
+  desktop notifications.
+
 ## [v0.78.0] - 2026-09-21
 
 ### Added

@@ -98,82 +98,16 @@ func truncateBytes(s string, max int) string {
 	return s[:end]
 }
 
-// SendNotification dispatches a desktop notification using the best
-// available OS mechanism. Returns NotificationOK on success or a
-// result with Status=NotificationError on failure.
-//
-// title is capped at maxNotifyTitleLen; body is capped at
-// maxNotifyBodyLen to prevent argument-list overflow in the
-// underlying shell commands.
-//
-// #nosec G204 — length-capped, -- separator on Linux, single-quote
-// escaping on Windows
+// SendNotification dispatches a desktop notification. NotificationOK
+// means the platform accepted the request, not that the user saw it.
 func SendNotification(title, body string) gui.NativeNotificationResult {
-	title = truncateBytes(title, maxNotifyTitleLen)
-	body = truncateBytes(body, maxNotifyBodyLen)
-	var cmd *exec.Cmd
-	var fireAndForget bool
-
-	switch runtime.GOOS {
-	case "darwin":
-		cmd = exec.Command("osascript",
-			"-e", "on run argv",
-			"-e", "display notification (item 2 of argv) with title (item 1 of argv)",
-			"-e", "end run",
-			"--", title, body)
-	case "linux":
-		// "--" so attacker-controlled title/body never get
-		// interpreted as flags.
-		cmd = exec.Command("notify-send", "--", title, body)
-	case "windows":
-		// BalloonTip via PowerShell — works on Windows 7+.
-		// Single-quoted strings prevent variable/escape
-		// injection; only ' needs escaping (doubled).
-		safeTitle := strings.ReplaceAll(title, "'", "''")
-		safeBody := strings.ReplaceAll(body, "'", "''")
-		cmd = exec.Command("powershell", "-NoProfile", "-NonInteractive",
-			"-Command", fmt.Sprintf(
-				`Add-Type -AssemblyName System.Windows.Forms;`+
-					`$n=New-Object System.Windows.Forms.NotifyIcon;`+
-					`$n.Icon=[System.Drawing.SystemIcons]::Information;`+
-					`$n.BalloonTipTitle='%s';`+
-					`$n.BalloonTipText='%s';`+
-					`$n.Visible=$true;`+
-					`$n.ShowBalloonTip(5000);`+
-					`Start-Sleep -Seconds 6;`+
-					`$n.Dispose()`,
-				safeTitle, safeBody))
-		// Fire-and-forget — notification outlives the call.
-		fireAndForget = true
-	default:
-		return gui.NativeNotificationResult{
-			Status:       gui.NotificationError,
-			ErrorCode:    "unsupported",
-			ErrorMessage: "unsupported platform: " + runtime.GOOS,
-		}
-	}
-
-	if fireAndForget {
-		if err := cmd.Start(); err != nil {
-			return gui.NativeNotificationResult{
-				Status:       gui.NotificationError,
-				ErrorCode:    "exec_failed",
-				ErrorMessage: err.Error(),
-			}
-		}
-		go cmd.Wait() //nolint:errcheck
-		return gui.NativeNotificationResult{Status: gui.NotificationOK}
-	}
-
-	if err := cmd.Run(); err != nil {
-		return gui.NativeNotificationResult{
-			Status:       gui.NotificationError,
-			ErrorCode:    "exec_failed",
-			ErrorMessage: err.Error(),
-		}
-	}
-	return gui.NativeNotificationResult{Status: gui.NotificationOK}
+	return notificationSender(truncateBytes(title, maxNotifyTitleLen),
+		truncateBytes(body, maxNotifyBodyLen))
 }
+
+// Tests replace the synchronous dispatch boundary, so testing argument
+// validation never creates a desktop notification or outliving subprocess.
+var notificationSender = sendNotification
 
 // --- Dialog forwarders ---
 
