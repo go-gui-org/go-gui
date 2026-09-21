@@ -119,7 +119,7 @@ func (t Theme) WithColors(o ColorOverrides) Theme {
 	oldBorder := t.ColorBorder
 	oldTextOnAccent := t.ColorTextOnAccent
 	oldTextOnSelect := t.ColorTextOnSelect
-	oldBorderFocus := t.ButtonStyle.Colors.BorderFocus
+	oldBorderFocus := t.buttonStyle.Colors.BorderFocus
 	oldSeparator := t.separatorStyle.Colors.Base
 
 	// Select and accent are one decision while they agree: a lone
@@ -201,8 +201,8 @@ func (t Theme) WithColors(o ColorOverrides) Theme {
 
 	// Every style ThemeMaker builds from a role follows it here, or
 	// the role moves and the widget drawing it does not.
-	t.InputStyle.PlaceholderStyle = trackStyle(
-		t.InputStyle.PlaceholderStyle, oldPlaceholder, newPlaceholder)
+	t.inputStyle.PlaceholderStyle = trackStyle(
+		t.inputStyle.PlaceholderStyle, oldPlaceholder, newPlaceholder)
 	t.selectStyle.PlaceholderStyle = trackStyle(
 		t.selectStyle.PlaceholderStyle, oldPlaceholder, newPlaceholder)
 	t.comboboxStyle.PlaceholderStyle = trackStyle(
@@ -242,20 +242,20 @@ func (t Theme) WithColors(o ColorOverrides) Theme {
 	t.ColorWarningSubtle = warningSubtle
 	t.ColorErrorSubtle = errorSubtle
 
-	t.ButtonStyle.Colors.Base = interior
-	t.ButtonStyle.Colors.Hover = hover
-	t.ButtonStyle.Colors.Focus = active
-	t.ButtonStyle.Colors.Click = focus
-	t.ButtonStyle.Colors.Border = border
-	t.ButtonStyle.Colors.BorderFocus = borderFocus
+	t.buttonStyle.Colors.Base = interior
+	t.buttonStyle.Colors.Hover = hover
+	t.buttonStyle.Colors.Focus = active
+	t.buttonStyle.Colors.Click = focus
+	t.buttonStyle.Colors.Border = border
+	t.buttonStyle.Colors.BorderFocus = borderFocus
 
-	t.InputStyle.Colors.Base = interior
-	t.InputStyle.Colors.Hover = hover
-	t.InputStyle.Colors.Focus = interior
-	t.InputStyle.Colors.Click = active
-	t.InputStyle.Colors.Border = border
-	t.InputStyle.Colors.BorderFocus = borderFocus
-	t.InputStyle.colorSpellError = colorError
+	t.inputStyle.Colors.Base = interior
+	t.inputStyle.Colors.Hover = hover
+	t.inputStyle.Colors.Focus = interior
+	t.inputStyle.Colors.Click = active
+	t.inputStyle.Colors.Border = border
+	t.inputStyle.Colors.BorderFocus = borderFocus
+	t.inputStyle.colorSpellError = colorError
 
 	t.radioStyle.Colors.Base = panel
 	t.radioStyle.Colors.Hover = hover
@@ -308,27 +308,27 @@ func (t Theme) WithColors(o ColorOverrides) Theme {
 	t.ScrollbarStyle.colorThumb = active
 	t.rectangleStyle.ColorBorder = border
 
-	t.ButtonStylePrimary.Colors.Base = accent
-	t.ButtonStylePrimary.Colors.Hover = accentHover
-	t.ButtonStylePrimary.Colors.Click = accentPressed
-	t.ButtonStylePrimary.Colors.Focus = accent
-	t.ButtonStylePrimary.Colors.Border = accent
-	t.ButtonStylePrimary.Colors.BorderFocus = borderFocus
+	t.buttonStylePrimary.Colors.Base = accent
+	t.buttonStylePrimary.Colors.Hover = accentHover
+	t.buttonStylePrimary.Colors.Click = accentPressed
+	t.buttonStylePrimary.Colors.Focus = accent
+	t.buttonStylePrimary.Colors.Border = accent
+	t.buttonStylePrimary.Colors.BorderFocus = borderFocus
 
 	// Ghost drops fill and border, but keeps the base button's
 	// pressed color and focus ring (deriveButtonStyles).
-	t.ButtonStyleGhost.Colors.Hover = hover
-	t.ButtonStyleGhost.Colors.Click = focus
-	t.ButtonStyleGhost.Colors.BorderFocus = borderFocus
+	t.buttonStyleGhost.Colors.Hover = hover
+	t.buttonStyleGhost.Colors.Click = focus
+	t.buttonStyleGhost.Colors.BorderFocus = borderFocus
 
 	errorHover := accentShift(colorError, 0.12)
 	errorPressed := accentShift(colorError, -0.12)
-	t.ButtonStyleDanger.Colors.Base = colorError
-	t.ButtonStyleDanger.Colors.Hover = errorHover
-	t.ButtonStyleDanger.Colors.Click = errorPressed
-	t.ButtonStyleDanger.Colors.Focus = colorError
-	t.ButtonStyleDanger.Colors.Border = colorError
-	t.ButtonStyleDanger.Colors.BorderFocus = borderFocus
+	t.buttonStyleDanger.Colors.Base = colorError
+	t.buttonStyleDanger.Colors.Hover = errorHover
+	t.buttonStyleDanger.Colors.Click = errorPressed
+	t.buttonStyleDanger.Colors.Focus = colorError
+	t.buttonStyleDanger.Colors.Border = colorError
+	t.buttonStyleDanger.Colors.BorderFocus = borderFocus
 
 	t.dialogStyle.Colors.Base = panel
 	t.dialogStyle.Colors.Border = border
@@ -429,13 +429,13 @@ func (t Theme) WithColors(o ColorOverrides) Theme {
 	t.commandPaletteStyle.ColorHighlight = sel
 	t.commandPaletteStyle.ColorHighlightSubtle = accentSubtle
 
-	t.MenubarStyle.Colors.Base = interior
-	t.MenubarStyle.Colors.Hover = hover
-	t.MenubarStyle.Colors.Focus = focus
-	t.MenubarStyle.Colors.Border = border
-	t.MenubarStyle.Colors.BorderFocus = borderFocus
-	t.MenubarStyle.ColorSelect = sel
-	t.MenubarStyle.ColorTextOnSelect = selText
+	t.menubarStyle.Colors.Base = interior
+	t.menubarStyle.Colors.Hover = hover
+	t.menubarStyle.Colors.Focus = focus
+	t.menubarStyle.Colors.Border = border
+	t.menubarStyle.Colors.BorderFocus = borderFocus
+	t.menubarStyle.ColorSelect = sel
+	t.menubarStyle.ColorTextOnSelect = selText
 
 	t.datePickerStyle.Colors.Base = interior
 	t.datePickerStyle.Colors.Hover = hover

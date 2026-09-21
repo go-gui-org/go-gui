@@ -131,7 +131,7 @@ func TestThemeMakerBorderFocusFallsBackToSelect(t *testing.T) {
 
 	theme := ThemeMaker(cfg)
 	consumers := map[string]Color{
-		"ButtonStyle": theme.ButtonStyle.Colors.BorderFocus,
+		"ButtonStyle": theme.buttonStyle.Colors.BorderFocus,
 		"ToggleStyle": theme.toggleStyle.Colors.BorderFocus,
 		"SliderStyle": theme.sliderStyle.Colors.BorderFocus,
 		"TabControl":  theme.tabControlStyle.ColorsTab.BorderFocus,
@@ -150,9 +150,9 @@ func TestThemeMakerBorderFocusExplicitWins(t *testing.T) {
 	cfg.ColorBorderFocus = RGBA(200, 100, 50, 255)
 
 	theme := ThemeMaker(cfg)
-	if !theme.ButtonStyle.Colors.BorderFocus.eq(cfg.ColorBorderFocus) {
+	if !theme.buttonStyle.Colors.BorderFocus.eq(cfg.ColorBorderFocus) {
 		t.Errorf("ButtonStyle.ColorBorderFocus = %v, want %v",
-			theme.ButtonStyle.Colors.BorderFocus, cfg.ColorBorderFocus)
+			theme.buttonStyle.Colors.BorderFocus, cfg.ColorBorderFocus)
 	}
 	if !theme.sliderStyle.Colors.BorderFocus.eq(cfg.ColorBorderFocus) {
 		t.Errorf("SliderStyle.ColorBorderFocus = %v, want %v",
@@ -169,9 +169,9 @@ func TestThemeMakerBorderFocusTransparentWins(t *testing.T) {
 	cfg.ColorBorderFocus = ColorTransparent
 
 	theme := ThemeMaker(cfg)
-	if theme.ButtonStyle.Colors.BorderFocus != ColorTransparent {
+	if theme.buttonStyle.Colors.BorderFocus != ColorTransparent {
 		t.Errorf("ButtonStyle.ColorBorderFocus = %v, want transparent %v",
-			theme.ButtonStyle.Colors.BorderFocus, ColorTransparent)
+			theme.buttonStyle.Colors.BorderFocus, ColorTransparent)
 	}
 }
 
@@ -253,7 +253,7 @@ func TestThemeMakerPlaceholderColor(t *testing.T) {
 	theme := ThemeMaker(cfg)
 	want := RGBA(220, 210, 200, 100)
 	placeholders := map[string]TextStyle{
-		"InputStyle":    theme.InputStyle.PlaceholderStyle,
+		"InputStyle":    theme.inputStyle.PlaceholderStyle,
 		"SelectStyle":   theme.selectStyle.PlaceholderStyle,
 		"ComboboxStyle": theme.comboboxStyle.PlaceholderStyle,
 	}
@@ -559,7 +559,7 @@ func TestThemeMakerSemanticColors(t *testing.T) {
 	if theme.toastStyle.ColorSuccess != Green || theme.badgeStyle.ColorSuccess != Green {
 		t.Error("stated success should reach both styles")
 	}
-	if theme.InputStyle.colorSpellError != Red {
+	if theme.inputStyle.colorSpellError != Red {
 		t.Error("stated error should reach the spell-error path")
 	}
 }
@@ -644,20 +644,20 @@ func TestThemeMakerZeroCfg(t *testing.T) {
 				i, got, IconFontName)
 		}
 	}
-	if theme.ButtonStyle.Radius != 0 || theme.ButtonStyle.SizeBorder != 0 {
+	if theme.buttonStyle.Radius != 0 || theme.buttonStyle.SizeBorder != 0 {
 		t.Errorf("ButtonStyle radius/border = %v/%v, want 0/0",
-			theme.ButtonStyle.Radius, theme.ButtonStyle.SizeBorder)
+			theme.buttonStyle.Radius, theme.buttonStyle.SizeBorder)
 	}
 	// The accent fallback chain bottoms out at the legacy select, so
 	// even a zero Cfg gets a working accent ramp and borderFocus.
-	if !theme.ButtonStyle.Colors.BorderFocus.eq(colorSelectDark) {
+	if !theme.buttonStyle.Colors.BorderFocus.eq(colorSelectDark) {
 		t.Errorf("ButtonStyle.ColorBorderFocus = %v, want legacy select %v",
-			theme.ButtonStyle.Colors.BorderFocus, colorSelectDark)
+			theme.buttonStyle.Colors.BorderFocus, colorSelectDark)
 	}
 	// Placeholder alpha is unconditional, even over a zero text color.
-	if theme.InputStyle.PlaceholderStyle.Color.A != 100 {
+	if theme.inputStyle.PlaceholderStyle.Color.A != 100 {
 		t.Errorf("placeholder alpha = %d, want 100",
-			theme.InputStyle.PlaceholderStyle.Color.A)
+			theme.inputStyle.PlaceholderStyle.Color.A)
 	}
 	// Separator falls back to the border color and 1px thickness.
 	if theme.separatorStyle.Colors.Base != theme.ColorBorder {
@@ -741,40 +741,40 @@ func TestThemeMakerLadderGrid(t *testing.T) {
 // align in a row (visual-refresh §6).
 func TestThemeMakerButtonVariants(t *testing.T) {
 	dark := ThemeMaker(baseDarkCfg())
-	if dark.ButtonStylePrimary.Colors.Base != dark.ColorAccent {
+	if dark.buttonStylePrimary.Colors.Base != dark.ColorAccent {
 		t.Errorf("primary fill = %v, want the accent %v",
-			dark.ButtonStylePrimary.Colors.Base, dark.ColorAccent)
+			dark.buttonStylePrimary.Colors.Base, dark.ColorAccent)
 	}
-	if dark.ButtonStylePrimary.Colors.Hover != dark.ColorAccentHover {
+	if dark.buttonStylePrimary.Colors.Hover != dark.ColorAccentHover {
 		t.Errorf("primary hover = %v, want %v",
-			dark.ButtonStylePrimary.Colors.Hover, dark.ColorAccentHover)
+			dark.buttonStylePrimary.Colors.Hover, dark.ColorAccentHover)
 	}
-	if dark.ButtonStylePrimary.Colors.Click != dark.ColorAccentPressed {
+	if dark.buttonStylePrimary.Colors.Click != dark.ColorAccentPressed {
 		t.Errorf("primary click = %v, want %v",
-			dark.ButtonStylePrimary.Colors.Click, dark.ColorAccentPressed)
+			dark.buttonStylePrimary.Colors.Click, dark.ColorAccentPressed)
 	}
-	if dark.ButtonStyleDanger.Colors.Base != dark.Cfg.ColorError {
+	if dark.buttonStyleDanger.Colors.Base != dark.Cfg.ColorError {
 		t.Errorf("danger fill = %v, want the error color %v",
-			dark.ButtonStyleDanger.Colors.Base, dark.Cfg.ColorError)
+			dark.buttonStyleDanger.Colors.Base, dark.Cfg.ColorError)
 	}
-	if dark.ButtonStyleDanger.Colors.Click == dark.ButtonStyleDanger.Colors.Base {
+	if dark.buttonStyleDanger.Colors.Click == dark.buttonStyleDanger.Colors.Base {
 		t.Errorf("danger click = %v, want a pressed variant of the error color",
-			dark.ButtonStyleDanger.Colors.Click)
+			dark.buttonStyleDanger.Colors.Click)
 	}
-	if dark.ButtonStyleGhost.Colors.Base != ColorTransparent {
-		t.Errorf("ghost fill = %v, want transparent", dark.ButtonStyleGhost.Colors.Base)
+	if dark.buttonStyleGhost.Colors.Base != ColorTransparent {
+		t.Errorf("ghost fill = %v, want transparent", dark.buttonStyleGhost.Colors.Base)
 	}
-	if dark.ButtonStyleGhost.Colors.Border != ColorTransparent {
-		t.Errorf("ghost border = %v, want transparent", dark.ButtonStyleGhost.Colors.Border)
+	if dark.buttonStyleGhost.Colors.Border != ColorTransparent {
+		t.Errorf("ghost border = %v, want transparent", dark.buttonStyleGhost.Colors.Border)
 	}
 	// Geometry comes from the base style, never its own literals.
 	for _, v := range []buttonStyle{
-		dark.ButtonStylePrimary, dark.ButtonStyleGhost, dark.ButtonStyleDanger,
+		dark.buttonStylePrimary, dark.buttonStyleGhost, dark.buttonStyleDanger,
 	} {
-		if v.Padding != dark.ButtonStyle.Padding || v.Radius != dark.ButtonStyle.Radius ||
-			v.SizeBorder != dark.ButtonStyle.SizeBorder {
+		if v.Padding != dark.buttonStyle.Padding || v.Radius != dark.buttonStyle.Radius ||
+			v.SizeBorder != dark.buttonStyle.SizeBorder {
 			t.Errorf("variant geometry diverged from the base: %+v vs %+v",
-				v, dark.ButtonStyle)
+				v, dark.buttonStyle)
 		}
 	}
 }
@@ -783,9 +783,9 @@ func TestThemeMakerButtonVariants(t *testing.T) {
 // accent (theme_maker's accent derivation), clamped to [0,1].
 func TestThemeMakerDangerRamp(t *testing.T) {
 	dark := ThemeMaker(baseDarkCfg())
-	hover := ColorToHSLA(dark.ButtonStyleDanger.Colors.Hover)
-	base := ColorToHSLA(dark.ButtonStyleDanger.Colors.Base)
-	pressed := ColorToHSLA(dark.ButtonStyleDanger.Colors.Click)
+	hover := ColorToHSLA(dark.buttonStyleDanger.Colors.Hover)
+	base := ColorToHSLA(dark.buttonStyleDanger.Colors.Base)
+	pressed := ColorToHSLA(dark.buttonStyleDanger.Colors.Click)
 	if hover.L < base.L {
 		t.Errorf("danger hover L = %.2f, want above base %.2f", hover.L, base.L)
 	}

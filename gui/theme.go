@@ -75,9 +75,9 @@ type Theme struct {
 	tabControlStyle  TabControlStyle
 	dataGridStyle    DataGridStyle
 	selectStyle      SelectStyle
-	MenubarStyle     MenubarStyle
+	menubarStyle     MenubarStyle
 	toastStyle       ToastStyle
-	InputStyle       InputStyle
+	inputStyle       InputStyle
 	dialogStyle      DialogStyle
 	comboboxStyle    ComboboxStyle
 	toggleStyle      ToggleStyle
@@ -139,16 +139,16 @@ type Theme struct {
 	// exportaudit:keep — closed grid, exported for completeness (see above).
 	Icon1, Icon2, Icon3, Icon4, Icon5, Icon6 TextStyle
 
-	// Per-widget styles.
-	ButtonStyle buttonStyle
-	// exportaudit:keep — phase-6 variant surface; consumers land with
-	// the next release (docs/specs/visual-refresh.md).
-	ButtonStylePrimary buttonStyle
-	// exportaudit:keep — phase-6 variant surface (see above).
-	ButtonStyleGhost buttonStyle
-	// exportaudit:keep — phase-6 variant surface (see above).
-	ButtonStyleDanger   buttonStyle
-	ContainerStyle      containerStyle
+	// Per-widget styles. Private and derived only (issue #735): a
+	// style is customized through ThemeCfg tokens, never by field
+	// assignment. ScrollbarStyle and TextStyleDef stay public —
+	// external layout code reads the scrollbar gutter size, and
+	// TextStyleDef is a ThemeMaker input, not a widget style.
+	buttonStyle         buttonStyle
+	buttonStylePrimary  buttonStyle
+	buttonStyleGhost    buttonStyle
+	buttonStyleDanger   buttonStyle
+	containerStyle      containerStyle
 	rectangleStyle      RectangleStyle
 	treeStyle           TreeStyle
 	commandPaletteStyle CommandPaletteStyle
@@ -645,9 +645,9 @@ func applyTheme(t *Theme) {
 	defer guiThemeMu.Unlock()
 	guiTheme = *t
 	DefaultTextStyle = t.TextStyleDef
-	defaultButtonStyle = t.ButtonStyle
-	defaultContainerStyle = t.ContainerStyle
-	defaultInputStyle = t.InputStyle
+	defaultButtonStyle = t.buttonStyle
+	defaultContainerStyle = t.containerStyle
+	defaultInputStyle = t.inputStyle
 	DefaultScrollbarStyle = t.ScrollbarStyle
 	defaultRadioStyle = t.radioStyle
 	defaultSwitchStyle = t.switchStyle
@@ -668,7 +668,7 @@ func applyTheme(t *Theme) {
 	defaultTableStyle = t.tableStyle
 	defaultComboboxStyle = t.comboboxStyle
 	defaultCommandPaletteStyle = t.commandPaletteStyle
-	defaultMenubarStyle = t.MenubarStyle
+	defaultMenubarStyle = t.menubarStyle
 	defaultDatePickerStyle = t.datePickerStyle
 	defaultColorPickerStyle = t.colorPickerStyle
 	DefaultDataGridStyle = t.dataGridStyle

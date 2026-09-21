@@ -266,14 +266,14 @@ func TestButtonVariantFills(t *testing.T) {
 	if c := mustShape(t, w, "sec").Color; c != defaultButtonStyle.Colors.Base {
 		t.Errorf("secondary fill = %v, want the plain button fill %v", c, defaultButtonStyle.Colors.Base)
 	}
-	if c := mustShape(t, w, "pri").Color; c != ThemeDark.ButtonStylePrimary.Colors.Base {
-		t.Errorf("primary fill = %v, want the accent %v", c, ThemeDark.ButtonStylePrimary.Colors.Base)
+	if c := mustShape(t, w, "pri").Color; c != ThemeDark.buttonStylePrimary.Colors.Base {
+		t.Errorf("primary fill = %v, want the accent %v", c, ThemeDark.buttonStylePrimary.Colors.Base)
 	}
 	if c := mustShape(t, w, "gho").Color; !c.IsSet() {
 		t.Errorf("ghost fill = %v, want transparent", c)
 	}
-	if c := mustShape(t, w, "dng").Color; c != ThemeDark.ButtonStyleDanger.Colors.Base {
-		t.Errorf("danger fill = %v, want the error color %v", c, ThemeDark.ButtonStyleDanger.Colors.Base)
+	if c := mustShape(t, w, "dng").Color; c != ThemeDark.buttonStyleDanger.Colors.Base {
+		t.Errorf("danger fill = %v, want the error color %v", c, ThemeDark.buttonStyleDanger.Colors.Base)
 	}
 }
 
@@ -295,8 +295,8 @@ func TestButtonVariantColorsKeepPrecedence(t *testing.T) {
 	if !ok || ly.Shape.bc == nil {
 		t.Fatal("button colors record missing")
 	}
-	if c := ly.Shape.bc.colors.Hover; c != ThemeDark.ButtonStylePrimary.Colors.Hover {
-		t.Errorf("hover = %v, want the variant's accent hover %v", c, ThemeDark.ButtonStylePrimary.Colors.Hover)
+	if c := ly.Shape.bc.colors.Hover; c != ThemeDark.buttonStylePrimary.Colors.Hover {
+		t.Errorf("hover = %v, want the variant's accent hover %v", c, ThemeDark.buttonStylePrimary.Colors.Hover)
 	}
 }
 

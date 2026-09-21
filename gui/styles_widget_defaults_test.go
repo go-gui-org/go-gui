@@ -53,9 +53,9 @@ func TestDefaultStylesMirrorThemeDark(t *testing.T) {
 		name string
 	}{
 		{DefaultTextStyle, ThemeDark.TextStyleDef, "DefaultTextStyle"},
-		{defaultButtonStyle, ThemeDark.ButtonStyle, "defaultButtonStyle"},
-		{defaultContainerStyle, ThemeDark.ContainerStyle, "defaultContainerStyle"},
-		{defaultInputStyle, ThemeDark.InputStyle, "defaultInputStyle"},
+		{defaultButtonStyle, ThemeDark.buttonStyle, "defaultButtonStyle"},
+		{defaultContainerStyle, ThemeDark.containerStyle, "defaultContainerStyle"},
+		{defaultInputStyle, ThemeDark.inputStyle, "defaultInputStyle"},
 		{DefaultScrollbarStyle, ThemeDark.ScrollbarStyle, "DefaultScrollbarStyle"},
 		{defaultRadioStyle, ThemeDark.radioStyle, "defaultRadioStyle"},
 		{defaultSwitchStyle, ThemeDark.switchStyle, "defaultSwitchStyle"},
@@ -76,7 +76,7 @@ func TestDefaultStylesMirrorThemeDark(t *testing.T) {
 		{defaultTableStyle, ThemeDark.tableStyle, "defaultTableStyle"},
 		{defaultComboboxStyle, ThemeDark.comboboxStyle, "defaultComboboxStyle"},
 		{defaultCommandPaletteStyle, ThemeDark.commandPaletteStyle, "defaultCommandPaletteStyle"},
-		{defaultMenubarStyle, ThemeDark.MenubarStyle, "defaultMenubarStyle"},
+		{defaultMenubarStyle, ThemeDark.menubarStyle, "defaultMenubarStyle"},
 		{defaultDatePickerStyle, ThemeDark.datePickerStyle, "defaultDatePickerStyle"},
 		{defaultColorPickerStyle, ThemeDark.colorPickerStyle, "defaultColorPickerStyle"},
 		{DefaultDataGridStyle, ThemeDark.dataGridStyle, "DefaultDataGridStyle"},
@@ -102,9 +102,9 @@ func TestDefaultStylesFilledAtInit(t *testing.T) {
 		t.Error("DefaultDataGridStyle was still the zero value after init; " +
 			"init must call applyTheme(ThemeDark)")
 	}
-	if pkgInitButtonStyle != ThemeDark.ButtonStyle {
-		t.Errorf("defaultButtonStyle after init = %+v, want ThemeDark.ButtonStyle %+v",
-			pkgInitButtonStyle, ThemeDark.ButtonStyle)
+	if pkgInitButtonStyle != ThemeDark.buttonStyle {
+		t.Errorf("defaultButtonStyle after init = %+v, want ThemeDark.buttonStyle %+v",
+			pkgInitButtonStyle, ThemeDark.buttonStyle)
 	}
 	if pkgInitInstalledThemeID != ThemeDark.id {
 		t.Errorf("installedThemeID after init = %d, want ThemeDark.id %d",

@@ -267,7 +267,7 @@ func TestFieldInsetIsThemed(t *testing.T) {
 	th := ThemeMaker(cfg)
 
 	for name, got := range map[string]Padding{
-		"input":    th.InputStyle.Padding,
+		"input":    th.inputStyle.Padding,
 		"select":   th.selectStyle.Padding,
 		"combobox": th.comboboxStyle.Padding,
 		"theme":    th.PaddingField,

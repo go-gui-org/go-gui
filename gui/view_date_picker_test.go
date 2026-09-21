@@ -649,7 +649,7 @@ func TestDatePickerRollerKeyDownIgnoresOtherKeys(t *testing.T) {
 // it only exists while the roller is open, and no golden records that
 // state.
 func TestDatePickerGhostButtonsFollowTheme(t *testing.T) {
-	ghost := guiTheme.ButtonStyleGhost.Colors
+	ghost := guiTheme.buttonStyleGhost.Colors
 	cfg := DatePickerCfg{ID: "dp-ghost", ShowAdjacentMonths: true}
 	applyDatePickerDefaults(&cfg)
 	w := &Window{}

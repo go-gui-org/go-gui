@@ -121,6 +121,29 @@ and this project adheres to
 
 ### Changed
 
+- **BREAKING: per-widget `Theme` styles are private, customize through
+  `ThemeCfg` (#735)** — `Theme.ButtonStyle` (with `ButtonStylePrimary`,
+  `ButtonStyleGhost`, `ButtonStyleDanger`), `Theme.ContainerStyle`,
+  `Theme.InputStyle` and `Theme.MenubarStyle` are now unexported fields, like
+  every other widget style. A theme is customized through `ThemeCfg` tokens,
+  never by field assignment. `Theme.ScrollbarStyle` and `Theme.TextStyleDef`
+  stay public: external layout code reads the scrollbar gutter size, and
+  `TextStyleDef` is a `ThemeMaker` input, not a widget style. Migration:
+
+  | Before                                 | After                                                                                  |
+  | -------------------------------------- | -------------------------------------------------------------------------------------- |
+  | `theme.ButtonStyle.Colors.BorderFocus` | `theme.Cfg.ColorBorderFocus`, or `theme.ColorSelect` when unset (the fallback it uses) |
+  | `theme.ContainerStyle.Color`           | `gui.ColorTransparent` (the style's constant value)                                    |
+  | `theme.InputStyle.Padding`             | `theme.PaddingField` (the token it derives from)                                       |
+  | `theme.MenubarStyle.TextStyle`         | `theme.TextStyleDef` (the identical body text)                                         |
+  | `theme.ScrollbarStyle.*`               | unchanged                                                                              |
+
+  The scan over go-charts, go-edit, go-kite, go-map, go-term and go-speedtest
+  found reads only and no writes in library code; the one outside reader that
+  breaks is the go-charts showcase example (`MenubarStyle.TextStyle`, same
+  one-line migration to `TextStyleDef`) on main. A reflect gate
+  (`TestThemeStyleFieldsPrivate`) fails any newly exported widget style.
+
 - **BREAKING: secondary sub-element colors are `ColorSet`s, not flat fields
   (#720)** — the four interaction-state groups #716 left flat are now named
   `ColorSet` fields, so every interactive sub-element reaches `ColorSet.pick`

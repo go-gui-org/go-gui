@@ -71,9 +71,15 @@ func scrollColumn(scrollID string, focusID string, text string, w *gui.Window) g
 
 	var colorBorder gui.Color
 	if w.IsFocus(focusID) {
-		colorBorder = theme.ButtonStyle.Colors.BorderFocus
+		// BorderFocus falls back to the select color when the cfg
+		// leaves it unset; read the same fallback ThemeMaker uses
+		// now that the button style is private (#735).
+		colorBorder = theme.Cfg.ColorBorderFocus
+		if !colorBorder.IsSet() {
+			colorBorder = theme.ColorSelect
+		}
 	} else {
-		colorBorder = theme.ContainerStyle.Color
+		colorBorder = gui.ColorTransparent
 	}
 
 	pad := gui.PaddingSmall

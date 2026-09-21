@@ -7,7 +7,7 @@ import (
 )
 
 func TestDefaultInputStyleColors(t *testing.T) {
-	s := ThemeDark.InputStyle
+	s := ThemeDark.inputStyle
 	if s.Colors.Base.eq(Color{}) {
 		t.Error("input color should not be zero")
 	}
@@ -35,8 +35,8 @@ func TestDefaultWidgetStylesRadius(t *testing.T) {
 		name   string
 		radius float32
 	}{
-		{"button", ThemeDark.ButtonStyle.Radius},
-		{"input", ThemeDark.InputStyle.Radius},
+		{"button", ThemeDark.buttonStyle.Radius},
+		{"input", ThemeDark.inputStyle.Radius},
 		{"toggle", ThemeDark.toggleStyle.Radius},
 		{"select", ThemeDark.selectStyle.Radius},
 		{"listbox", ThemeDark.listBoxStyle.Radius},

@@ -168,13 +168,13 @@ func menu(w *gui.Window) gui.View {
 							Sizing:      gui.FixedFill,
 							Placeholder: "Search",
 							Padding: gui.NewPadding(2,
-								gui.CurrentTheme().InputStyle.Padding.Right,
+								gui.CurrentTheme().PaddingField.Right,
 								2,
-								gui.CurrentTheme().InputStyle.Padding.Left),
+								gui.CurrentTheme().PaddingField.Left),
 							Radius:           gui.Some[float32](0),
 							SizeBorder:       gui.Some[float32](0),
-							TextStyle:        gui.CurrentTheme().MenubarStyle.TextStyle,
-							PlaceholderStyle: gui.CurrentTheme().MenubarStyle.TextStyle,
+							TextStyle:        gui.CurrentTheme().TextStyleDef,
+							PlaceholderStyle: gui.CurrentTheme().TextStyleDef,
 							OnTextChanged: func(s string, ctx gui.EventCtx) {
 								gui.State[MenuApp](ctx.Window).SearchText = s
 							},

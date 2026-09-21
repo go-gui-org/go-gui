@@ -104,7 +104,7 @@ func popoverShadows(th Theme) map[string]*BoxShadow {
 		"combobox":   th.comboboxStyle.Shadow,
 		"tooltip":    th.tooltipStyle.Shadow,
 		"toast":      th.toastStyle.Shadow,
-		"submenu":    th.MenubarStyle.Shadow,
+		"submenu":    th.menubarStyle.Shadow,
 		"datepicker": th.datePickerStyle.Shadow,
 	}
 }

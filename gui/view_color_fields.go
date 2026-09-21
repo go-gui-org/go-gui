@@ -429,7 +429,7 @@ func effectiveColorFieldWidth(
 	if w == nil || w.textMeasurer == nil {
 		return defaultColorFieldWidth
 	}
-	// defaultInputStyle mirrors guiTheme.InputStyle (one assignment
+	// defaultInputStyle mirrors guiTheme.inputStyle (one assignment
 	// under applyTheme's lock), so there is no second source to fall
 	// back to; a zero border means a borderless theme, and the 1
 	// keeps the estimate conservative rather than exact.

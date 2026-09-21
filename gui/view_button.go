@@ -274,12 +274,12 @@ func Button(cfg ButtonCfg) View {
 	labelColor := Color{}
 	switch cfg.Variant {
 	case ButtonPrimary:
-		d = &guiTheme.ButtonStylePrimary
+		d = &guiTheme.buttonStylePrimary
 		labelColor = guiTheme.ColorTextOnAccent
 	case ButtonGhost:
-		d = &guiTheme.ButtonStyleGhost
+		d = &guiTheme.buttonStyleGhost
 	case ButtonDanger:
-		d = &guiTheme.ButtonStyleDanger
+		d = &guiTheme.buttonStyleDanger
 		labelColor = guiTheme.ColorTextOnAccent
 	}
 

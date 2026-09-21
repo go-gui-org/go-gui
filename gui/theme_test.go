@@ -50,7 +50,7 @@ func TestThemeMaker(t *testing.T) {
 	if theme.Name != "test" {
 		t.Errorf("name = %q", theme.Name)
 	}
-	if theme.ButtonStyle.Colors.Base != cfg.ColorInterior {
+	if theme.buttonStyle.Colors.Base != cfg.ColorInterior {
 		t.Error("button color mismatch")
 	}
 	if theme.N1.Size != sizeTextXLarge {
@@ -77,8 +77,8 @@ func TestThemeMakerSpacingTierWiring(t *testing.T) {
 	if theme.tabControlStyle.spacingHeader != cfg.SpacingTight {
 		t.Errorf("tab spacingHeader = %v, want %v", theme.tabControlStyle.spacingHeader, cfg.SpacingTight)
 	}
-	if theme.MenubarStyle.spacingSubmenu != cfg.SpacingTight {
-		t.Errorf("submenu spacing = %v, want %v", theme.MenubarStyle.spacingSubmenu, cfg.SpacingTight)
+	if theme.menubarStyle.spacingSubmenu != cfg.SpacingTight {
+		t.Errorf("submenu spacing = %v, want %v", theme.menubarStyle.spacingSubmenu, cfg.SpacingTight)
 	}
 	if theme.datePickerStyle.cellSpacing != cfg.SpacingTight {
 		t.Errorf("calendar cellSpacing = %v, want %v", theme.datePickerStyle.cellSpacing, cfg.SpacingTight)
@@ -93,7 +93,7 @@ func TestSetTheme(t *testing.T) {
 	t.Cleanup(func() { SetTheme(saved) })
 
 	theme := Theme{
-		ButtonStyle: buttonStyle{Colors: ColorSet{Base: Red}},
+		buttonStyle: buttonStyle{Colors: ColorSet{Base: Red}},
 		treeStyle:   TreeStyle{Colors: ColorSet{Hover: Blue}},
 	}
 	SetTheme(theme)
@@ -109,7 +109,7 @@ func TestWithColors(t *testing.T) {
 	t.Parallel()
 	theme := Theme{
 		ColorHover: RGB(1, 1, 1),
-		ButtonStyle: buttonStyle{
+		buttonStyle: buttonStyle{
 			Colors: ColorSet{Hover: RGB(1, 1, 1), BorderFocus: RGB(2, 2, 2)},
 		},
 	}
@@ -120,7 +120,7 @@ func TestWithColors(t *testing.T) {
 	if updated.ColorHover != newHover {
 		t.Error("theme hover not updated")
 	}
-	if updated.ButtonStyle.Colors.Hover != newHover {
+	if updated.buttonStyle.Colors.Hover != newHover {
 		t.Error("button hover not propagated")
 	}
 }

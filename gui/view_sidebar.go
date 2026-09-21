@@ -68,7 +68,7 @@ func (sv *sidebarView) GenerateLayout(w *Window) Layout {
 		cfg.Color = guiTheme.ColorPanel
 	}
 	if !cfg.Padding.IsSet() {
-		cfg.Padding = guiTheme.ContainerStyle.Padding
+		cfg.Padding = guiTheme.containerStyle.Padding
 	}
 	if cfg.Spring == (SpringCfg{}) {
 		cfg.Spring = SpringStiff

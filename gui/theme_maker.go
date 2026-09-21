@@ -221,11 +221,11 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 		ColorWarningSubtle:   warningSubtle,
 		ColorErrorSubtle:     errorSubtle,
 
-		ButtonStyle:        buttonBase,
-		ButtonStylePrimary: buttonPrimary,
-		ButtonStyleGhost:   buttonGhost,
-		ButtonStyleDanger:  buttonDanger,
-		ContainerStyle: containerStyle{
+		buttonStyle:        buttonBase,
+		buttonStylePrimary: buttonPrimary,
+		buttonStyleGhost:   buttonGhost,
+		buttonStyleDanger:  buttonDanger,
+		containerStyle: containerStyle{
 			Color:       ColorTransparent,
 			ColorBorder: ColorTransparent,
 			Padding:     cfg.Padding,
@@ -240,7 +240,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			SizeBorder:  cfg.SizeBorder,
 		},
 		TextStyleDef: ts,
-		InputStyle: InputStyle{
+		inputStyle: InputStyle{
 			Colors: ColorSet{
 				Base:        cfg.ColorInterior,
 				Hover:       cfg.ColorHover,
@@ -627,7 +627,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			detailStyle:          textSecondary,
 			backdropColor:        RGBA(0, 0, 0, 120),
 		},
-		MenubarStyle: MenubarStyle{
+		menubarStyle: MenubarStyle{
 			Shadow:          cfg.ShadowPopover,
 			widthSubmenuMin: 50,
 			widthSubmenuMax: 200,

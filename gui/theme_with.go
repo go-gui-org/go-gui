@@ -17,14 +17,14 @@ package gui
 // withContainerStyle returns a Theme carrying the given container
 // style.
 func (t Theme) withContainerStyle(s containerStyle) Theme {
-	t.ContainerStyle = s
+	t.containerStyle = s
 	t.id = nextThemeID()
 	return t
 }
 
 // withInputStyle returns a Theme carrying the given input style.
 func (t Theme) withInputStyle(s InputStyle) Theme {
-	t.InputStyle = s
+	t.inputStyle = s
 	t.id = nextThemeID()
 	return t
 }
