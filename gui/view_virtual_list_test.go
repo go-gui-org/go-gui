@@ -185,7 +185,10 @@ func TestVirtualListProbesWhenHeightUnresolved(t *testing.T) {
 	if rows > virtualListProbeRows+2 {
 		t.Fatalf("frame 1 children = %d, want a bounded probe", rows)
 	}
-	if len(first.Children) < 2 {
+	// Count rows, not children: the bars are appended unconditionally
+	// for a visible list, so len(first.Children) is at least 2 even
+	// when virtualListChildren returns nothing at all.
+	if rows < 2 {
 		t.Fatal("probe frame built nothing")
 	}
 
@@ -538,5 +541,47 @@ func TestVirtualListScrollbarHidesWhenFitting(t *testing.T) {
 	bar := findScrollbar(t, feed, scrollbarVertical)
 	if got := bar.Children[thumbIndex].Shape.Color; got != ColorTransparent {
 		t.Fatalf("thumb color = %v, want transparent: 2 rows fit", got)
+	}
+}
+
+// The re-anchor correction shifts every child of the list by dy, and
+// virtualListMeasure runs from layoutAmend — which fires children-first,
+// so the scrollbars have already placed themselves against the parent
+// (scrollbarAmendLayout) by the time the loop runs. Shifting them again
+// drags the bar off the track and, on a deep scroll, clean off the list.
+// The other two scrollAnchorShiftY callers run in the position passes,
+// before layoutAmend, so the bar re-derives afterwards and they are safe.
+func TestVirtualListScrollbarStaysOnTrackAcrossWriteBack(t *testing.T) {
+	cfg := virtualListCfg("vl-bar", 500, 200)
+	w := virtualListWindow(t, cfg)
+	virtualListFrame(w)
+
+	// Land deep enough that the measurement write-back moves the
+	// content: the rows above the anchor are 400 px every tenth, so
+	// the estimate the first frame used is far off.
+	m, _ := listHeightLookup(w, "vl-bar")
+	// Each jump lands somewhere the estimate was wrong, so the next
+	// frame's write-back produces a non-zero correction. Which frame
+	// carries it depends on how far off the estimate was, so check
+	// every frame until the list settles.
+	for _, anchor := range []int{41, 300, 900} {
+		w.scrollY().Set("vl-bar", -m.Prefix(anchor))
+		for frame := range 3 {
+			virtualListFrame(w)
+			list, ok := w.layout.FindByID("vl-bar")
+			if !ok {
+				t.Fatal("list not found")
+			}
+			bar := findScrollbar(t, list, scrollbarVertical)
+			top := list.Shape.Y
+			bottom := top + list.Shape.Height
+			if bar.Shape.Y < top ||
+				bar.Shape.Y+bar.Shape.Height > bottom {
+				t.Fatalf("anchor %d frame %d: vertical bar at Y=%v "+
+					"height=%v is outside the list [%v, %v]",
+					anchor, frame, bar.Shape.Y, bar.Shape.Height,
+					top, bottom)
+			}
+		}
 	}
 }

@@ -412,7 +412,7 @@ func TestThemeMakerAccentFallback(t *testing.T) {
 	if selectTheme.ColorSelect != Blue {
 		t.Errorf("select = %v, want %v", selectTheme.ColorSelect, Blue)
 	}
-	if selectTheme.ColorAccentSubtle != subtleFor(Blue, Color{}) {
+	if selectTheme.ColorAccentSubtle != subtleFor(Blue, selectTheme.TextStyleDef.Color, Color{}) {
 		t.Errorf("subtle = %v, want derived from select", selectTheme.ColorAccentSubtle)
 	}
 
@@ -531,7 +531,8 @@ func TestThemeMakerSemanticColors(t *testing.T) {
 		dark.badgeStyle.ColorError != colorErrorDark {
 		t.Error("dark error should reach toast and badge styles")
 	}
-	if dark.ColorSuccessSubtle != subtleFor(colorSuccessDark, colorBackgroundDark) {
+	if dark.ColorSuccessSubtle != subtleFor(colorSuccessDark, dark.TextStyleDef.Color,
+		colorBackgroundDark) {
 		t.Errorf("dark success subtle = %v, want derived", dark.ColorSuccessSubtle)
 	}
 

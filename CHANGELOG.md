@@ -294,7 +294,34 @@ and this project adheres to
 
 ### Fixed
 
-- **`VirtualList` never painted scrollbars** — `GenerateLayout` built its
+- **`VirtualList` dragged its new scrollbars off the track (#730)** — the
+  re-anchor correction that holds a row still while the rows above it are
+  measured shifted every child of the list, and `virtualListMeasure` runs from
+  `layoutAmend`, which fires children-first. The scrollbars had therefore
+  already placed themselves against the list, and the shift moved them a second
+  time: on a deep scroll the vertical bar landed wholly outside the list. The
+  shift now skips out-of-flow children.
+- **`Theme.AdjustFontSize` flattened the size ladder on a theme that did not
+  state its rungs** — the tune was added to `ThemeCfg.SizeText*`, which
+  `ThemeMaker` leaves as the caller wrote them, so a theme built from a Cfg
+  stating only `TextStyleDef.Size` had six zeros there and one zoom step took a
+  10/11/12/14/17/22 ladder to a flat 6. The rungs are resolved before the tune
+  is applied, so a zoom now moves the whole ladder by the delta and clamps at
+  the legibility floor as documented.
+- **Subtle washes took their alpha from the color being washed** — `subtleFor`
+  read the dark-or-light polarity off its subject instead of off the theme, so a
+  dark-leaning accent on a dark theme got the light theme's weaker wash, and two
+  status colors of opposite lightness in one theme washed at two different
+  strengths. Polarity is now read off the theme's text against its background,
+  the same comparison the text roles make, so every derived `Color*Subtle` slot
+  of a theme shares one alpha.
+- **Rung 3 of the text grid disagreed between faces** — `N3` took
+  `TextStyleDef.Size` directly while `B3`, `I3`, `M3` and `BI3` took the
+  `SizeTextMedium` rung. A theme stating both and disagreeing rendered a bold
+  word at a different size from the sentence around it, and a table header
+  outgrew the rows it headed. `N3` now takes the same rung as its siblings; the
+  presets state the two as one value, so nothing moves for them.
+- **`VirtualList` never painted scrollbars (#730)** — `GenerateLayout` built its
   container through `buildContainerShape` and bypassed the `container()` path
   that appends the auto scrollbar pair to every other scrollable, so the list
   scrolled by wheel and drag with no position indicator while its own docstring

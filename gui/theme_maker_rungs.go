@@ -24,7 +24,16 @@ func (theme *Theme) fillTextRungs(
 	bold.Typeface = glyph.TypefaceBold
 	theme.N1 = makeStyle(normal, theme.SizeTextXLarge)
 	theme.N2 = makeStyle(normal, theme.SizeTextLarge)
-	theme.N3 = ts
+	// Rung 3 off the ladder, not off the body style directly. The two
+	// agree on every preset (baseCfg states SizeTextMedium and the body
+	// size as the same 14) and on any theme that states one of them,
+	// since the ladder derives the medium rung from the body. They part
+	// only when a Cfg states both and disagrees — and taking ts there
+	// left N3 at the body size while B3, I3, M3 and BI3 took the
+	// ladder, so a bold word inside a sentence rendered at a different
+	// size from the sentence, and a table header (B3) outgrew the rows
+	// it headed.
+	theme.N3 = makeStyle(normal, theme.SizeTextMedium)
 	theme.N4 = makeStyle(normal, theme.SizeTextSmall)
 	theme.N5 = makeStyle(normal, theme.SizeTextXSmall)
 	theme.N6 = makeStyle(normal, theme.SizeTextTiny)

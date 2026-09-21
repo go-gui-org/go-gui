@@ -101,7 +101,12 @@ func virtualListChildren(
 	if trail > 0 {
 		n++
 	}
-	views := w.scratch.takeViews(n)
+	// +2 for the scrollbar pair the caller appends. takeArena pins the
+	// reservation's capacity, so a slice sized to the rows exactly
+	// would send both appends to the heap and waste the reservation.
+	// An invisible list takes no bars and leaves the two slots unused,
+	// which costs nothing: the arena is frame-scoped.
+	views := w.scratch.takeViews(n + 2)
 	if lead > 0 {
 		views = append(views, virtualListSpacer(lead))
 	}
@@ -256,6 +261,17 @@ func virtualListMeasure(m *listHeightModel) func(EventCtx) {
 		// scrollable would not move its children (see scrollAnchor).
 		dy := next - scrollY
 		for i := range ly.Children {
+			// The scrollbars are OverDraw children that place
+			// themselves against the parent in their own amend hook,
+			// and layoutAmend runs children-first — so by the time
+			// this loop runs they are already where they belong.
+			// Shifting them again drags the bar off its track. The
+			// other two scrollAnchorShiftY callers run in the position
+			// passes, ahead of layoutAmend, so the bar re-derives
+			// after them and they need no such guard.
+			if skipLayoutChild(ly.Children[i].Shape) {
+				continue
+			}
 			scrollAnchorShiftY(&ly.Children[i], dy)
 		}
 		scrollSmoothShiftY(ctx.Window, scrollID, dy)

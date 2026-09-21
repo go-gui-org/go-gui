@@ -166,16 +166,6 @@ func TestAdjustFontSize(t *testing.T) {
 	}
 }
 
-func TestWithButtonStyle(t *testing.T) {
-	t.Parallel()
-	theme := Theme{}
-	s := buttonStyle{Colors: ColorSet{Base: Blue}}
-	updated := theme.withButtonStyle(s)
-	if updated.ButtonStyle.Colors.Base != Blue {
-		t.Error("WithButtonStyle not applied")
-	}
-}
-
 func TestThemeMakerBadgeStyle(t *testing.T) {
 	t.Parallel()
 	cfg := baseDarkCfg()

@@ -112,6 +112,10 @@ func (t Theme) WithColors(o ColorOverrides) Theme {
 	oldSel := t.ColorSelect
 	oldAccent := t.ColorAccent
 	oldBg := t.ColorBackground
+	// A recolor never moves the body text color, so one local
+	// serves both the before and after subtle washes: what flips
+	// their polarity is the background moving under it.
+	textColor := t.TextStyleDef.Color
 	oldBorder := t.ColorBorder
 	oldTextOnAccent := t.ColorTextOnAccent
 	oldTextOnSelect := t.ColorTextOnSelect
@@ -135,7 +139,8 @@ func (t Theme) WithColors(o ColorOverrides) Theme {
 	accentPressed := track(t.ColorAccentPressed, o.ColorAccentPressed,
 		accentShift(oldAccent, -0.12), accentShift(accent, -0.12))
 	accentSubtle := track(t.ColorAccentSubtle, o.ColorAccentSubtle,
-		subtleFor(oldAccent, oldBg), subtleFor(accent, bg))
+		subtleFor(oldAccent, textColor, oldBg),
+		subtleFor(accent, textColor, bg))
 	textOnAccent := track(oldTextOnAccent, o.ColorTextOnAccent,
 		textOnFor(oldAccent), textOnFor(accent))
 
@@ -154,11 +159,14 @@ func (t Theme) WithColors(o ColorOverrides) Theme {
 	colorWarning := colorOr(o.ColorWarning, oldWarning)
 	colorError := colorOr(o.ColorError, oldError)
 	successSubtle := track(t.ColorSuccessSubtle, o.ColorSuccessSubtle,
-		subtleFor(oldSuccess, oldBg), subtleFor(colorSuccess, bg))
+		subtleFor(oldSuccess, textColor, oldBg),
+		subtleFor(colorSuccess, textColor, bg))
 	warningSubtle := track(t.ColorWarningSubtle, o.ColorWarningSubtle,
-		subtleFor(oldWarning, oldBg), subtleFor(colorWarning, bg))
+		subtleFor(oldWarning, textColor, oldBg),
+		subtleFor(colorWarning, textColor, bg))
 	errorSubtle := track(t.ColorErrorSubtle, o.ColorErrorSubtle,
-		subtleFor(oldError, oldBg), subtleFor(colorError, bg))
+		subtleFor(oldError, textColor, oldBg),
+		subtleFor(colorError, textColor, bg))
 
 	// Named text roles are polarity-matched, not fixed (textRolesFor):
 	// the same role means a different alpha over a dark ground than
@@ -534,24 +542,35 @@ func (t Theme) AdjustFontSize(delta, minSize, maxSize float32) (Theme, error) {
 	if newSize < minSize || newSize > maxSize {
 		return t, errors.New("new font size out of range")
 	}
+	// Tune before the body size moves: an unstated rung derives from
+	// the body, so resolving after the bump would count delta twice.
+	tuneTextLadder(&cfg, delta)
 	cfg.TextStyleDef.Size = newSize
-	cfg.SizeTextTiny = max(cfg.SizeTextTiny+delta, sizeTextFloor)
-	cfg.SizeTextXSmall = max(cfg.SizeTextXSmall+delta, sizeTextFloor)
-	cfg.SizeTextSmall = max(cfg.SizeTextSmall+delta, sizeTextFloor)
-	cfg.SizeTextMedium = max(cfg.SizeTextMedium+delta, sizeTextFloor)
-	cfg.SizeTextLarge = max(cfg.SizeTextLarge+delta, sizeTextFloor)
-	cfg.SizeTextXLarge = max(cfg.SizeTextXLarge+delta, sizeTextFloor)
 	out := ThemeMaker(cfg)
 	if t.restoreCfg != nil {
 		dup := *t.restoreCfg
+		tuneTextLadder(&dup, delta)
 		dup.TextStyleDef.Size += delta
-		dup.SizeTextTiny = max(dup.SizeTextTiny+delta, sizeTextFloor)
-		dup.SizeTextXSmall = max(dup.SizeTextXSmall+delta, sizeTextFloor)
-		dup.SizeTextSmall = max(dup.SizeTextSmall+delta, sizeTextFloor)
-		dup.SizeTextMedium = max(dup.SizeTextMedium+delta, sizeTextFloor)
-		dup.SizeTextLarge = max(dup.SizeTextLarge+delta, sizeTextFloor)
-		dup.SizeTextXLarge = max(dup.SizeTextXLarge+delta, sizeTextFloor)
 		out.restoreCfg = &dup
 	}
 	return out, nil
+}
+
+// tuneTextLadder shifts a Cfg's six size rungs by delta, clamped at
+// sizeTextFloor.
+//
+// It resolves the ladder first. ThemeMaker leaves the Cfg's SizeText*
+// fields exactly as the caller wrote them — the resolved rungs land on
+// the Theme, not back on the Cfg — so a theme built from a Cfg that
+// states only TextStyleDef.Size still has six zeros here. Adding delta
+// to those zeros put every rung on the floor: a one-step zoom took a
+// 10/11/12/14/17/22 ladder to a flat 6.
+func tuneTextLadder(cfg *ThemeCfg, delta float32) {
+	ladder := resolveTextLadder(*cfg)
+	cfg.SizeTextTiny = max(ladder.tiny+delta, sizeTextFloor)
+	cfg.SizeTextXSmall = max(ladder.xSmall+delta, sizeTextFloor)
+	cfg.SizeTextSmall = max(ladder.small+delta, sizeTextFloor)
+	cfg.SizeTextMedium = max(ladder.medium+delta, sizeTextFloor)
+	cfg.SizeTextLarge = max(ladder.large+delta, sizeTextFloor)
+	cfg.SizeTextXLarge = max(ladder.xLarge+delta, sizeTextFloor)
 }

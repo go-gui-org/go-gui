@@ -7,17 +7,20 @@ import (
 	"github.com/go-gui-org/go-glyph"
 )
 
-// ThemeMaker builds a full Theme from a ThemeCfg.
-func ThemeMaker(cfg ThemeCfg) Theme {
-	ts := cfg.TextStyleDef
-
-	// Text size ladder. The body size is the per-theme decision
-	// (visual-refresh §2.1): the ladder derives from it, so a theme
-	// that states TextStyleDef.Size alone gets a complete ladder and a
-	// theme that seeds explicit rungs keeps them. Zero takes the
-	// derived value, which is what "Zero takes the built-in defaults"
-	// on ThemeCfg.SizeText* promises.
-	body := ts.Size
+// resolveTextLadder resolves a ThemeCfg's text size ladder to concrete
+// values. The body size is the per-theme decision (visual-refresh
+// §2.1): the ladder derives from it, so a theme that states
+// TextStyleDef.Size alone gets a complete ladder and a theme that seeds
+// explicit rungs keeps them. Zero takes the derived value, which is
+// what "Zero takes the built-in defaults" on ThemeCfg.SizeText*
+// promises.
+//
+// Shared with AdjustFontSize, which tunes the rungs and so has to know
+// what they currently are: the Cfg's own fields are still zero on a
+// theme that never stated them, and adding a delta to zero is not a
+// tune, it is a collapse.
+func resolveTextLadder(cfg ThemeCfg) textSizeLadder {
+	body := cfg.TextStyleDef.Size
 	if body <= 0 {
 		// Zero TextStyleDef.Size is "unset", not "0px text": fall back
 		// to the built-in body so a partial theme never derives a
@@ -25,7 +28,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 		body = sizeTextMedium
 	}
 	derived := textSizes(body)
-	ladder := textSizeLadder{
+	return textSizeLadder{
 		tiny:   cmp.Or(cfg.SizeTextTiny, derived.tiny),
 		xSmall: cmp.Or(cfg.SizeTextXSmall, derived.xSmall),
 		small:  cmp.Or(cfg.SizeTextSmall, derived.small),
@@ -33,6 +36,13 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 		large:  cmp.Or(cfg.SizeTextLarge, derived.large),
 		xLarge: cmp.Or(cfg.SizeTextXLarge, derived.xLarge),
 	}
+}
+
+// ThemeMaker builds a full Theme from a ThemeCfg.
+func ThemeMaker(cfg ThemeCfg) Theme {
+	ts := cfg.TextStyleDef
+
+	ladder := resolveTextLadder(cfg)
 
 	// Icon family for every theme-driven icon style. A ThemeCfg built
 	// from scratch (not via baseCfg) leaves this empty, so fall back to
@@ -79,7 +89,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 	}
 	accentSubtle := cfg.ColorAccentSubtle
 	if !accentSubtle.IsSet() {
-		accentSubtle = subtleFor(accent, cfg.ColorBackground)
+		accentSubtle = subtleFor(accent, ts.Color, cfg.ColorBackground)
 	}
 	// Text on the accent: white under the 0.45 luminance threshold,
 	// not the midpoint — white on a mid-blue reads better than black
@@ -111,15 +121,15 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 	}
 	successSubtle := cfg.ColorSuccessSubtle
 	if !successSubtle.IsSet() {
-		successSubtle = subtleFor(colorSuccess, cfg.ColorBackground)
+		successSubtle = subtleFor(colorSuccess, ts.Color, cfg.ColorBackground)
 	}
 	warningSubtle := cfg.ColorWarningSubtle
 	if !warningSubtle.IsSet() {
-		warningSubtle = subtleFor(colorWarning, cfg.ColorBackground)
+		warningSubtle = subtleFor(colorWarning, ts.Color, cfg.ColorBackground)
 	}
 	errorSubtle := cfg.ColorErrorSubtle
 	if !errorSubtle.IsSet() {
-		errorSubtle = subtleFor(colorError, cfg.ColorBackground)
+		errorSubtle = subtleFor(colorError, ts.Color, cfg.ColorBackground)
 	}
 
 	borderFocus := cfg.ColorBorderFocus

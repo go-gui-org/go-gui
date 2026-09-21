@@ -94,11 +94,17 @@ func textRolesFor(text, background Color) textRoleAlphas {
 
 // subtleFor returns c at the polarity-fixed subtle alpha: 40 on a dark
 // ground, 30 on a light one (visual-refresh §4.3/§4.4). The amount of
-// tint a light wash can carry without becoming a slab; the polarity is
-// the theme's own, detected the same way textRolesFor does it.
-func subtleFor(c, background Color) Color {
+// tint a light wash can carry without becoming a slab.
+//
+// The polarity is the theme's own, so it is read off text against
+// background — the same comparison textRolesFor makes, and the reason
+// text is a parameter. Reading it off c instead made the wash's alpha a
+// property of the subject: a dark-leaning accent on a dark theme took
+// the light ladder's 30, and two status colors of opposite lightness in
+// one theme washed at two different strengths.
+func subtleFor(c, text, background Color) Color {
 	alpha := uint8(40)
-	if srgbLuminance(c) < srgbLuminance(background) {
+	if srgbLuminance(text) < srgbLuminance(background) {
 		alpha = 30
 	}
 	return RGBA(c.R, c.G, c.B, alpha)
