@@ -121,14 +121,8 @@ func listBoxItemView(
 	// The keyboard-focus row still takes a ring, never a fill: a
 	// fill here is the same grey the mouse hover paints, so the two
 	// cursors were indistinguishable (visual-refresh §4.3).
-	colors := cfg.Colors
-	colors.Base = ColorTransparent
-	flags := stateFlags{selected: selected}
-	bg, _ := colors.pick(flags)
-	flags.hovered = true
-	// Computed here, not in OnHover: the closure then holds one
-	// Color, not the whole set.
-	bgHover, _ := colors.pick(flags)
+	bg, bgHover := rowFill(cfg.Colors, ColorTransparent, selected,
+		false)
 	isSub := dat.isSubheading
 	content := listBoxItemContent(dat, cfg)
 
@@ -213,12 +207,8 @@ func listBoxReorderItemView(
 	selected := listCoreContainsSelected(selectedSet, cfg.SelectedIDs, dat.ID)
 	// Same pick routing as the plain row above: a selected row
 	// hovers one OKLCH step lighter (#744).
-	colors := cfg.Colors
-	colors.Base = ColorTransparent
-	flags := stateFlags{selected: selected}
-	bg, _ := colors.pick(flags)
-	flags.hovered = true
-	bgHover, _ := colors.pick(flags)
+	bg, bgHover := rowFill(cfg.Colors, ColorTransparent, selected,
+		false)
 	content := listBoxItemContent(dat, cfg)
 	layoutID := listBoxItemID(cfg.ID, dat.ID)
 

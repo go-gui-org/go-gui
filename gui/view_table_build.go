@@ -91,22 +91,14 @@ func tableBuildRow(
 		}))
 	}
 
-	// The row fill goes through pick, so a selected row hovers
-	// one OKLCH step lighter instead of ignoring the pointer
-	// (#744). The resting fill is transparent, or the alternate
-	// color on odd rows; it lands in Base after resolve ran, so it
-	// changes only the resting fill.
-	cs := cfg.Colors
-	cs.Base = ColorTransparent
+	// The resting fill is transparent, or the alternate color on odd
+	// rows; it lands in Base after resolve ran, so it changes only the
+	// resting fill.
+	base := ColorTransparent
 	if cfg.ColorRowAlt != nil && rowIdx%2 == 1 {
-		cs.Base = *cfg.ColorRowAlt
+		base = *cfg.ColorRowAlt
 	}
-	flags := stateFlags{selected: isSelected, focused: isActive}
-	bg, _ := cs.pick(flags)
-	flags.hovered = true
-	// Computed here, not in OnHover: the closure then holds one
-	// Color, not the whole set.
-	bgHover, _ := cs.pick(flags)
+	bg, bgHover := rowFill(cfg.Colors, base, isSelected, isActive)
 
 	rowOnClick := r.OnClick
 	ri := rowIdx

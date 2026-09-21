@@ -374,6 +374,30 @@ func listCoreViews(items []listCoreItem, cfg listCoreCfg, first, last, highlight
 	return views
 }
 
+// rowFill returns the resting and hovered fills of one selectable
+// row. Both go through pick, so a selected row hovers one OKLCH step
+// lighter instead of ignoring the pointer (#744).
+//
+// base is the resting fill: transparent for list rows, transparent or
+// the alternate color for table rows. It lands in Base after resolve
+// ran, so it changes only the resting fill. focused is the
+// table-only keyboard-active row, or the list-core highlight; listBox
+// rows pass false — a keyboard-focus row there takes a ring, never a
+// fill, so the two cursors stay distinguishable (visual-refresh §4.3).
+//
+// Both fills are computed here, not in OnHover: the closure then
+// holds one Color, not the whole set.
+func rowFill(colors ColorSet, base Color, selected, focused bool) (
+	bg, bgHover Color,
+) {
+	colors.Base = base
+	flags := stateFlags{selected: selected, focused: focused}
+	bg, _ = colors.pick(flags)
+	flags.hovered = true
+	bgHover, _ = colors.pick(flags)
+	return bg, bgHover
+}
+
 // listCoreItemView renders a single item row.
 // Highlight and selection both paint the subtle wash, never the
 // full accent slab (visual-refresh §4.3). A tint needs no paired
@@ -386,14 +410,8 @@ func listCoreItemView(item listCoreItem, index int, isHighlighted, isSelected bo
 	// widget uses and is not written here by hand (#741). The
 	// keyboard highlight is the focus state: the pointer wins over it,
 	// and a selected row keeps Selected under it.
-	colors := cfg.Colors
-	colors.Base = ColorTransparent
-	flags := stateFlags{focused: isHighlighted, selected: isSelected}
-	bg, _ := colors.pick(flags)
-	flags.hovered = true
-	// Computed here, not in OnHover: the closure then holds one
-	// Color, not the whole set.
-	bgHover, _ := colors.pick(flags)
+	bg, bgHover := rowFill(cfg.Colors, ColorTransparent, isSelected,
+		isHighlighted)
 	ts := cfg.TextStyle
 
 	if item.isSubheading {
