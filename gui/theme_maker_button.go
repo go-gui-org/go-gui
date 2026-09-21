@@ -28,8 +28,8 @@ func deriveButtonStyles(
 		SizeBorder: cfg.SizeBorder,
 		Radius:     cfg.Radius,
 	}
-	errorHover := oklchShift(colorError, oklchRampDelta)
-	errorPressed := oklchShift(colorError, -oklchRampDelta)
+	errorHover := accentShift(colorError, oklchRampDelta)
+	errorPressed := accentShift(colorError, -oklchRampDelta)
 	buttonPrimary = buttonBase
 	buttonPrimary.Colors.Base = accent
 	buttonPrimary.Colors.Hover = accentHover

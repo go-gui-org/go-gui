@@ -169,9 +169,9 @@ const oklchRampDelta = float32(0.10)
 
 // oklchShift moves c by delta on the OKLCH lightness axis, keeping
 // chroma and hue: a state reads as the same color, lighter or
-// darker. The single shift site for the accent and danger ramps,
-// called from ThemeMaker and accentShift alike, so the two derive
-// identically. Alpha carries through untouched.
+// darker. The engine behind accentShift, which is the single ramp
+// spelling every derivation site uses. Alpha carries through
+// untouched.
 func oklchShift(c Color, delta float32) Color {
 	v := colorToOKLCH(c)
 	v.L = f32Clamp(v.L+delta, 0, 1)

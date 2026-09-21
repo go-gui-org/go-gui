@@ -77,11 +77,11 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 	// spec table by TestThemeMakerAccentRamp.
 	accentHover := cfg.ColorAccentHover
 	if !accentHover.IsSet() {
-		accentHover = oklchShift(accent, oklchRampDelta)
+		accentHover = accentShift(accent, oklchRampDelta)
 	}
 	accentPressed := cfg.ColorAccentPressed
 	if !accentPressed.IsSet() {
-		accentPressed = oklchShift(accent, -oklchRampDelta)
+		accentPressed = accentShift(accent, -oklchRampDelta)
 	}
 	accentSubtle := cfg.ColorAccentSubtle
 	if !accentSubtle.IsSet() {
