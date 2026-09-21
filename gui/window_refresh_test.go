@@ -180,12 +180,18 @@ func TestBlinkTickPresentsWithoutRebuild(t *testing.T) {
 
 	// The tree registered the blink animation during the initial frame
 	// (syncBlinkCursor). Backdate it and toggle exactly like the
-	// animation loop does.
+	// animation loop does — under animMu, which the loop holds across
+	// Update. Driving the same animation off-lock races the live loop
+	// goroutine on b.start, a plain struct field (race detector,
+	// macOS CI).
+	w.animMu.Lock()
 	b := w.animations[blinkCursorAnimationID].(*BlinkCursorAnimation)
 	b.start = time.Now().Add(-time.Second)
 	deferred := make([]queuedCommand, 0, 4)
 	ac := newAnimationCommands(&deferred)
-	if !updateBlinkCursor(b, w, &ac) {
+	toggled := updateBlinkCursor(b, w, &ac)
+	w.animMu.Unlock()
+	if !toggled {
 		t.Fatal("backdated blink should toggle")
 	}
 	w.queueCommandsBatch(deferred)
