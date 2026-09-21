@@ -267,6 +267,61 @@ func (cs ColorSet) pick(s stateFlags) (fill, border Color) {
 	return cs.Base, border
 }
 
+// PickState is the state of one element that ColorSet.Pick chooses
+// colors for. It is the exported form of the rule the widgets in gui/
+// use, so a widget outside gui/ (the data grid, a sibling repo) gets
+// the same order and does not write its own (#741).
+//
+// The fields are flat and not an embedded InteractionState. A caller in
+// an OnHover callback knows only Hovered, and a literal with embedded
+// fields cannot name them directly. A caller that has an
+// InteractionState copies the fields it needs.
+//
+// Pressed is the pressed look. A push button that must release when the
+// pointer is dragged off sets it from InteractionState.Armed, not from
+// InteractionState.Pressed.
+type PickState struct {
+	// Disabled wins over every other state. See ColorSet.Disabled.
+	Disabled bool
+	// Selected is the element's own model (the current row, the current
+	// tab), not an interaction state. It changes which colors the fill
+	// uses, not which state wins.
+	Selected bool
+	Pressed  bool
+	Focused  bool
+	Hovered  bool
+}
+
+// Pick returns the fill and border for one state. The order is the one
+// every widget in gui/ uses:
+//
+//	fill:   disabled > pressed > hovered > focused > base
+//	border: disabled > focused > base
+//
+// A selected fill starts from Selected: hover and press are Selected
+// moved one OKLCH lightness step up and down.
+//
+// cs must come from Resolved. Pick does no fallback of its own, so a
+// set that was not resolved returns the zero Color for a state the
+// caller did not set.
+func (cs ColorSet) Pick(s PickState) (fill, border Color) {
+	return cs.pick(stateFlags{
+		disabled: s.Disabled,
+		selected: s.Selected,
+		pressed:  s.Pressed,
+		focused:  s.Focused,
+		hovered:  s.Hovered,
+	})
+}
+
+// Resolved returns the set with its own fallbacks applied first (Hover,
+// Click and Focus take Base; BorderFocus takes Border), then theme for
+// every slot still unset. It is the step a widget outside gui/ runs in
+// its defaults pass before it calls Pick.
+func (cs ColorSet) Resolved(theme ColorSet) ColorSet {
+	return cs.resolved(Color{}, theme)
+}
+
 // setIfUnset assigns src to *dst only when dst holds no explicit color
 // and src has one.
 func setIfUnset(dst *Color, src Color) {

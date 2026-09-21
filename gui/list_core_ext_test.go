@@ -121,10 +121,9 @@ func TestListCoreViews(t *testing.T) {
 		{ID: "c", Label: "Gamma"},
 	}
 	cfg := listCoreCfg{
-		TextStyle:      DefaultTextStyle,
-		ColorHighlight: Red,
-		ColorHover:     Blue,
-		PaddingItem:    PaddingSmall,
+		TextStyle:   DefaultTextStyle,
+		Colors:      ColorSet{Focus: Red, Hover: Blue},
+		PaddingItem: PaddingSmall,
 	}
 	views := listCoreViews(items, cfg, 0, 2, 1, nil, 20)
 	if len(views) != 3 {
@@ -170,10 +169,9 @@ func TestListCoreSubheadingView(t *testing.T) {
 func TestListCoreItemViewTextOnSelectFill(t *testing.T) {
 	item := listCoreItem{ID: "a", Label: "Alpha"}
 	cfg := listCoreCfg{
-		TextStyle:      DefaultTextStyle,
-		ColorHighlight: Blue,
-		ColorSelected:  Blue,
-		PaddingItem:    PaddingSmall,
+		TextStyle:   DefaultTextStyle,
+		Colors:      ColorSet{Focus: Blue, Selected: Blue},
+		PaddingItem: PaddingSmall,
 	}
 
 	plain := firstTextColor(t, listCoreItemView(item, 0, false, false, cfg))
@@ -199,7 +197,7 @@ func TestListCoreDisabledRowHoverSilent(t *testing.T) {
 	hovered := false
 	cfg := listCoreCfg{
 		TextStyle:   DefaultTextStyle,
-		ColorHover:  Blue,
+		Colors:      ColorSet{Hover: Blue},
 		PaddingItem: PaddingSmall,
 		OnItemHover: func(int, EventCtx) { hovered = true },
 	}
@@ -216,5 +214,50 @@ func TestListCoreDisabledRowHoverSilent(t *testing.T) {
 	}
 	if w.viewState.mouseCursor != before {
 		t.Error("disabled row changed the mouse cursor")
+	}
+}
+
+// A list row takes its fill from ColorSet.pick, the same order as
+// every other widget (#741): the keyboard highlight is the Focus
+// slot, and a selected row keeps Selected under the highlight and
+// moves one lightness step under the pointer.
+func TestListCoreItemFillOrder(t *testing.T) {
+	colors := ColorSet{
+		Hover:    Blue,
+		Focus:    Red,
+		Selected: RGB(40, 90, 200),
+	}
+	cfg := listCoreCfg{
+		TextStyle:   DefaultTextStyle,
+		Colors:      colors,
+		PaddingItem: PaddingSmall,
+	}
+	item := listCoreItem{ID: "a", Label: "Alpha"}
+	selHover := accentShift(colors.Selected, oklchRampDelta)
+	tests := []struct {
+		name                         string
+		highlighted, selected, hover bool
+		want                         Color
+	}{
+		{"plain", false, false, false, ColorTransparent},
+		{"highlighted", true, false, false, Red},
+		{"selected", false, true, false, colors.Selected},
+		{"selected and highlighted", true, true, false, colors.Selected},
+		{"hovered", false, false, true, Blue},
+		{"highlighted and hovered", true, false, true, Blue},
+		{"selected and hovered", false, true, true, selHover},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			w := &Window{}
+			layout := generateViewLayout(
+				listCoreItemView(item, 0, tc.highlighted, tc.selected, cfg), w)
+			if tc.hover {
+				layout.Shape.events.OnHover(EventCtx{&layout, &Event{}, w})
+			}
+			if layout.Shape.Color != tc.want {
+				t.Errorf("fill = %v, want %v", layout.Shape.Color, tc.want)
+			}
+		})
 	}
 }

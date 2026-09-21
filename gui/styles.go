@@ -420,16 +420,13 @@ type DataGridStyle struct {
 	// exportaudit:keep — reachable from an exported signature
 	ColorFilter      Color
 	ColorQuickFilter Color
-	// ColorsRow themes the body rows: Hover is the row hover fill
-	// and Border is the shared grid border. The grid reads no other
-	// slot (issue #720).
-	ColorsRow        ColorSet
-	ColorRowAlt      Color
-	ColorRowSelected Color
-	// ColorRowSelectedSubtle is the tint behind a selected row: the
-	// wash, never the full accent slab — focus is the ring, not a
-	// second fill (visual-refresh §4.3).
-	ColorRowSelectedSubtle Color
+	// ColorsRow themes the body rows: Hover is the row hover fill,
+	// Selected the tint behind a selected row and Border the shared
+	// grid border. Selected is the wash, never the full accent slab —
+	// focus is the ring, not a second fill (visual-refresh §4.3). The
+	// grid reads no other slot (issues #720, #741).
+	ColorsRow   ColorSet
+	ColorRowAlt Color
 	// ColorsResize themes the column-resize handles: Base is the
 	// resting handle, Click the active drag. The grid reads no
 	// other slot (issue #720).

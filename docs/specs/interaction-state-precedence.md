@@ -103,8 +103,10 @@ Not in scope:
   they lack, so a set rebuilt from them would be half-empty. That needs the
   `Cfg` flat-field inversion first, which #716 deferred.
 - Row widgets whose dominant state is _selected_ (`view_listbox_items.go`,
-  `view_table_build.go`). `ColorSet` has no slot for selected, and those rows
-  express it as "the resting fill is not transparent".
+  `view_table_build.go`). Those rows express it as "the resting fill is not
+  transparent". #741 added `ColorSet.Selected` and routed data grid rows and
+  list rows (combobox, command palette) through `pick`. Listbox and table rows
+  are not routed yet.
 - Menus, which have no per-state fill: hover writes a hovered index into a
   `StateMap` and the next frame paints `colorSelect`.
 
@@ -156,7 +158,10 @@ what they guard is the next change.
 - **A `changed bool` return from `pick`.** Reintroduces the per-site `if`.
 - **`Disabled` / `Checked` / `Selected` fields on `ColorSet`.** No bug history
   asks for them, they add exported surface, and most widgets would carry slots
-  they never set. Revisit from evidence, not ahead of it.
+  they never set. Revisit from evidence, not ahead of it. _Superseded for
+  `Selected` and `Disabled` by #741
+  (`docs/specs/colorset-selected-disabled.md`): tabs, crumbs and grid rows each
+  ordered those states by hand. `Checked` is still rejected._
 - **Per-component theme token tables** (dxui's Primitive → Semantic →
   Component). Go-Gui already has semantic `Theme` roles (`docs/style-guide.md`).
   A token table moves the per-widget explosion into a map and loses the type

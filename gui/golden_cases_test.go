@@ -428,6 +428,24 @@ func goldenCases() []goldenCase {
 			},
 		},
 		{
+			// The selected tab under the pointer. Before #741 a
+			// selected tab painted ColorsTab.Selected in every fill
+			// slot and showed no hover; pick now moves it one OKLCH
+			// lightness step. The point is inside the first tab
+			// (xy=16,16 wh=56,33.6 in tab_control.*.golden).
+			name:   "tab_control_selected_hover",
+			build:  goldenSelectedTabs,
+			hoverX: 40, hoverY: 30,
+		},
+		{
+			// The selected tab with keyboard focus: the fill stays
+			// Selected and the border takes the focus color, because
+			// selection does not change the border rule (#741).
+			name:    "tab_control_selected_focused",
+			build:   goldenSelectedTabs,
+			focusID: "tabs:tab:a",
+		},
+		{
 			// Carries both the disabled crumb and the separator,
 			// the other two themed alphas.
 			name: "breadcrumb",
@@ -2075,6 +2093,19 @@ func buildContainerFillBorder(_ *Window) View {
 				BorderGradient: ramp,
 				SizeBorder:     SomeF(2),
 			}),
+		},
+	})
+}
+
+// goldenSelectedTabs is the tab control the selected-state goldens
+// hover and focus (#741). Its first tab is selected.
+func goldenSelectedTabs(_ *Window) View {
+	return TabControl(TabControlCfg{
+		ID:       "tabs",
+		Selected: "a",
+		Items: []TabItemCfg{
+			{ID: "a", Label: "First"},
+			{ID: "b", Label: "Second"},
 		},
 	})
 }

@@ -30,11 +30,12 @@ type listCoreCfg struct {
 	OnItemClick     func(string, int, EventCtx)
 	OnItemHover     func(int, EventCtx)
 	PaddingItem     Padding
-	ColorHighlight  Color
-	ColorHover      Color
-	ColorSelected   Color
-	ShowDetails     bool
-	ShowIcons       bool
+	// Colors is the row fill, chosen by ColorSet.pick (#741): Hover
+	// is the pointer, Focus the keyboard highlight and Selected the
+	// selected row. Base is not read; a resting row is transparent.
+	Colors      ColorSet
+	ShowDetails bool
+	ShowIcons   bool
 }
 
 // listCorePrepared holds pre-computed filter results for a frame.
@@ -381,12 +382,18 @@ func listCoreViews(items []listCoreItem, cfg listCoreCfg, first, last, highlight
 // accent fill still happens, which is menus and the focused
 // widget's own chrome.
 func listCoreItemView(item listCoreItem, index int, isHighlighted, isSelected bool, cfg listCoreCfg) View {
-	bg := ColorTransparent
-	if isHighlighted {
-		bg = cfg.ColorHighlight
-	} else if isSelected {
-		bg = cfg.ColorSelected
-	}
+	// The row fill goes through pick, so the order is the one every
+	// widget uses and is not written here by hand (#741). The
+	// keyboard highlight is the focus state: the pointer wins over it,
+	// and a selected row keeps Selected under it.
+	colors := cfg.Colors
+	colors.Base = ColorTransparent
+	flags := stateFlags{focused: isHighlighted, selected: isSelected}
+	bg, _ := colors.pick(flags)
+	flags.hovered = true
+	// Computed here, not in OnHover: the closure then holds one
+	// Color, not the whole set.
+	bgHover, _ := colors.pick(flags)
 	ts := cfg.TextStyle
 
 	if item.isSubheading {
@@ -426,7 +433,6 @@ func listCoreItemView(item listCoreItem, index int, isHighlighted, isSelected bo
 	onItemHover := cfg.OnItemHover
 	hasClick := onItemClick != nil
 	hasHover := onItemHover != nil
-	colorHover := cfg.ColorHover
 	isDisabled := item.Disabled
 	itemID := item.ID
 
@@ -448,9 +454,7 @@ func listCoreItemView(item listCoreItem, index int, isHighlighted, isSelected bo
 				return
 			}
 			ctx.Window.setMouseCursor(CursorPointingHand)
-			if ctx.Layout.Shape.Color == ColorTransparent {
-				ctx.Layout.Shape.Color = colorHover
-			}
+			ctx.Layout.Shape.Color = bgHover
 			if hasHover {
 				onItemHover(index, EventCtx{nil, ctx.Event, ctx.Window})
 			}

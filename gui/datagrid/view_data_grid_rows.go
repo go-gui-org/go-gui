@@ -192,16 +192,12 @@ func dataGridRowView(dctx dataGridCtx, rowData GridRow, rowIdx int, showDeleteAc
 		}))
 	}
 
-	rowColor := gg.ColorTransparent
-	if isSelected {
-		// Selection paints the subtle wash, not the full accent
-		// slab; focus is the ring, not a second fill
-		// (visual-refresh §4.3).
-		rowColor = cfg.ColorRowSelectedSubtle
-	} else if rowIdx%2 == 1 {
-		rowColor = cfg.ColorRowAlt
-	}
-	colorRowHover := cfg.ColorsRow.Hover
+	// Selection paints the subtle wash, not the full accent slab;
+	// focus is the ring, not a second fill (visual-refresh §4.3).
+	rowColor := dataGridRowFill(cfg, rowIdx, isSelected, false)
+	// Computed here, not in OnHover: the closure then holds one Color
+	// and not the cfg pointer.
+	rowHoverColor := dataGridRowFill(cfg, rowIdx, isSelected, true)
 	disabled := cfg.Disabled
 
 	return gg.Row(gg.ContainerCfg{
@@ -226,9 +222,9 @@ func dataGridRowView(dctx dataGridCtx, rowData GridRow, rowIdx int, showDeleteAc
 				return
 			}
 			ctx.Window.SetMouseCursorPointingHand()
-			if !isSelected {
-				ctx.Layout.Shape.Color = colorRowHover
-			}
+			// A selected row reacts to hover too: Pick moves the
+			// wash one lightness step (#741).
+			ctx.Layout.Shape.Color = rowHoverColor
 		},
 		Content: cells,
 	})

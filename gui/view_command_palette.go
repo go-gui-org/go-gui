@@ -160,14 +160,16 @@ func (cp *commandPaletteView) GenerateLayout(w *Window) Layout {
 	onDismiss := cfg.OnDismiss
 
 	coreCfg := listCoreCfg{
-		TextStyle:      cfg.TextStyle,
-		detailStyle:    cfg.DetailStyle,
-		ColorHighlight: cfg.ColorHighlightSubtle,
-		ColorHover:     cfg.ColorHighlightSubtle,
-		ColorSelected:  cfg.ColorHighlightSubtle,
-		PaddingItem:    PaddingTwoFive,
-		ShowDetails:    true,
-		ShowIcons:      true,
+		TextStyle:   cfg.TextStyle,
+		detailStyle: cfg.DetailStyle,
+		Colors: ColorSet{
+			Hover:    cfg.ColorHighlightSubtle,
+			Focus:    cfg.ColorHighlightSubtle,
+			Selected: cfg.ColorHighlightSubtle,
+		},
+		PaddingItem: PaddingTwoFive,
+		ShowDetails: true,
+		ShowIcons:   true,
 		OnItemClick: func(itemID string, _ int, ctx EventCtx) {
 			if onAction != nil {
 				onAction(itemID, EventCtx{nil, ctx.Event, ctx.Window})

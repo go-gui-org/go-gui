@@ -126,28 +126,24 @@ datagrid.New(w, datagrid.DataGridCfg{
 
 ## Appearance
 
-| Property          | Type              | Description                |
-| ----------------- | ----------------- | -------------------------- |
-| ColorBackground   | Color             | Grid background            |
-| ColorHeader       | Color             | Header background          |
-| ColorHeaderHover  | Color             | Header hover background    |
-| ColorFilter       | Color             | Filter row background      |
-| ColorQuickFilter  | Color             | Quick filter background    |
-| ColorRowHover     | Color             | Row hover background       |
-| ColorRowAlt       | Color             | Alternating row background |
-| ColorRowSelected  | Color             | Selected row background    |
-| ColorBorder       | Color             | Border/grid line color     |
-| ColorResizeHandle | Color             | Column resize handle color |
-| ColorResizeActive | Color             | Active resize handle color |
-| PaddingCell       | Opt[Padding]      | Cell padding               |
-| PaddingHeader     | Opt[Padding]      | Header cell padding        |
-| PaddingFilter     | Padding           | Filter row padding         |
-| TextStyle         | TextStyle         | Body cell text style       |
-| TextStyleHeader   | TextStyle         | Header text style          |
-| TextStyleFilter   | TextStyle         | Filter text style          |
-| Radius            | float32           | Corner radius              |
-| SizeBorder        | float32           | Border width               |
-| Scrollbar         | ScrollbarOverflow | Scrollbar overflow mode    |
+| Property         | Type              | Description                         |
+| ---------------- | ----------------- | ----------------------------------- |
+| ColorBackground  | Color             | Grid background                     |
+| ColorsHeader     | ColorSet          | Header: Base fill, Hover on buttons |
+| ColorFilter      | Color             | Filter row background               |
+| ColorQuickFilter | Color             | Quick filter background             |
+| ColorsRow        | ColorSet          | Rows: Hover, Selected wash, Border  |
+| ColorRowAlt      | Color             | Alternating row background          |
+| ColorsResize     | ColorSet          | Resize handle: Base, Click on drag  |
+| PaddingCell      | Padding           | Cell padding                        |
+| PaddingHeader    | Padding           | Header cell padding                 |
+| PaddingFilter    | Padding           | Filter row padding                  |
+| TextStyle        | TextStyle         | Body cell text style                |
+| TextStyleHeader  | TextStyle         | Header text style                   |
+| TextStyleFilter  | TextStyle         | Filter text style                   |
+| Radius           | Opt[float32]      | Corner radius                       |
+| SizeBorder       | Opt[float32]      | Border width                        |
+| Scrollbar        | ScrollbarOverflow | Scrollbar overflow mode             |
 
 ## Events
 

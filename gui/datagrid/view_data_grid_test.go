@@ -31,16 +31,13 @@ func TestBoolDefaultNonNilReturnsValue(t *testing.T) {
 	}
 }
 
-// --- dataGridResolveSet ---
+// --- ColorSet.Resolved, as the grid uses it ---
 
 func TestDataGridResolveSetBaseBacksStates(t *testing.T) {
 	t.Parallel()
 	base := gg.RGB(1, 0, 0)
 	themeHover := gg.RGB(0, 1, 0)
-	got := dataGridResolveSet(
-		gg.ColorSet{Base: base},
-		gg.ColorSet{Hover: themeHover},
-	)
+	got := gg.ColorSet{Base: base}.Resolved(gg.ColorSet{Hover: themeHover})
 	if got.Hover != base {
 		t.Errorf("Hover = %v, want Base %v", got.Hover, base)
 	}
@@ -56,10 +53,7 @@ func TestDataGridResolveSetExplicitStateWinsOverBase(t *testing.T) {
 	t.Parallel()
 	base := gg.RGB(1, 0, 0)
 	hover := gg.RGB(0, 0, 1)
-	got := dataGridResolveSet(
-		gg.ColorSet{Base: base, Hover: hover},
-		gg.ColorSet{},
-	)
+	got := gg.ColorSet{Base: base, Hover: hover}.Resolved(gg.ColorSet{})
 	if got.Hover != hover {
 		t.Errorf("Hover = %v, want explicit %v", got.Hover, hover)
 	}
@@ -68,10 +62,7 @@ func TestDataGridResolveSetExplicitStateWinsOverBase(t *testing.T) {
 func TestDataGridResolveSetBorderBacksBorderFocus(t *testing.T) {
 	t.Parallel()
 	border := gg.RGB(0, 1, 0)
-	got := dataGridResolveSet(
-		gg.ColorSet{Border: border},
-		gg.ColorSet{},
-	)
+	got := gg.ColorSet{Border: border}.Resolved(gg.ColorSet{})
 	if got.BorderFocus != border {
 		t.Errorf("BorderFocus = %v, want Border %v", got.BorderFocus, border)
 	}
@@ -80,7 +71,7 @@ func TestDataGridResolveSetBorderBacksBorderFocus(t *testing.T) {
 func TestDataGridResolveSetThemeFillsUnset(t *testing.T) {
 	t.Parallel()
 	themeHover := gg.RGB(0, 1, 0)
-	got := dataGridResolveSet(gg.ColorSet{}, gg.ColorSet{Hover: themeHover})
+	got := gg.ColorSet{}.Resolved(gg.ColorSet{Hover: themeHover})
 	if got.Hover != themeHover {
 		t.Errorf("Hover = %v, want theme %v", got.Hover, themeHover)
 	}

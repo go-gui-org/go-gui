@@ -455,8 +455,7 @@ func (t Theme) WithColors(o ColorOverrides) Theme {
 	t.dataGridStyle.ColorFilter = interior
 	t.dataGridStyle.ColorQuickFilter = panel
 	t.dataGridStyle.ColorsRow.Hover = hover
-	t.dataGridStyle.ColorRowSelected = sel
-	t.dataGridStyle.ColorRowSelectedSubtle = accentSubtle
+	t.dataGridStyle.ColorsRow.Selected = accentSubtle
 	t.dataGridStyle.ColorsRow.Border = border
 	t.dataGridStyle.ColorsResize.Base = border
 	t.dataGridStyle.ColorsResize.Click = sel

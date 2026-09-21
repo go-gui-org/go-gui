@@ -165,11 +165,13 @@ func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 	// Build dropdown content.
 	onSelect := cfg.OnSelect
 	coreCfg := listCoreCfg{
-		TextStyle:      cfg.TextStyle,
-		ColorHighlight: cfg.ColorHighlightSubtle,
-		ColorHover:     cfg.Colors.Hover,
-		ColorSelected:  cfg.ColorHighlightSubtle,
-		PaddingItem:    cfg.Padding.Or(PaddingNone),
+		TextStyle: cfg.TextStyle,
+		Colors: ColorSet{
+			Hover:    cfg.Colors.Hover,
+			Focus:    cfg.ColorHighlightSubtle,
+			Selected: cfg.ColorHighlightSubtle,
+		},
+		PaddingItem: cfg.Padding.Or(PaddingNone),
 		OnItemClick: func(itemID string, _ int, ctx EventCtx) {
 			if onSelect != nil {
 				onSelect(itemID, EventCtx{nil, ctx.Event, ctx.Window})

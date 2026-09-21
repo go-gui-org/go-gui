@@ -1,0 +1,10 @@
+Rect xy=15.00,15.00 wh=290.00,210.00 color=#1e2125ff radius=6.00 fill
+StrokeRect xy=15.00,15.00 wh=290.00,210.00 color=#ffffff1c radius=6.00 thickness=1.00
+Shadow xy=16.00,16.00 wh=56.00,33.60 color=#4d82f03f radius=4.00 blur=2.00 offset=0.00,0.00
+Rect xy=16.00,16.00 wh=56.00,33.60 color=#4d82f0ff radius=4.00 fill
+StrokeRect xy=16.00,16.00 wh=56.00,33.60 color=#4d82f0ff radius=4.00 thickness=1.00
+Text xy=23.00,24.24 wh=0.00,0.00 color=#ffffffff text="First" size=14.00
+Rect xy=74.00,16.00 wh=64.40,33.60 color=#262a2fff radius=4.00 fill
+StrokeRect xy=74.00,16.00 wh=64.40,33.60 color=#ffffff1c radius=4.00 thickness=1.00
+Text xy=81.00,24.24 wh=0.00,0.00 color=#e6e8ebff text="Second" size=14.00
+Rect xy=16.00,49.60 wh=288.00,174.40 color=#1e2125ff radius=6.00 fill

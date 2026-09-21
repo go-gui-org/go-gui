@@ -294,18 +294,17 @@ type DataGridCfg struct {
 	ColorsHeader     gg.ColorSet
 	ColorFilter      gg.Color
 	ColorQuickFilter gg.Color
-	// ColorsRow themes the body rows: Hover is the row hover fill
-	// and Border is the shared grid border. The grid reads no
-	// other slot. There is no flat shorthand; spell the set
-	// (issue #720).
+	// ColorsRow themes the body rows: Hover is the row hover fill,
+	// Selected the tint behind a selected row and Border the shared
+	// grid border. The theme's Selected is the subtle wash, never the
+	// full accent slab; focus is the ring, not a second fill
+	// (visual-refresh §4.3). A selected row's hover is derived from
+	// Selected by ColorSet.Pick (#741). The grid reads no other slot:
+	// the resting fill is transparent or ColorRowAlt. There is no flat
+	// shorthand; spell the set (issue #720).
 	// exportaudit:keep — caller-facing config (issue #372)
-	ColorsRow        gg.ColorSet
-	ColorRowAlt      gg.Color
-	ColorRowSelected gg.Color
-	// ColorRowSelectedSubtle is the tint behind a selected row — the
-	// wash, never the full accent slab; focus is the ring, not a
-	// second fill (visual-refresh §4.3). Unset takes the theme's.
-	ColorRowSelectedSubtle gg.Color
+	ColorsRow   gg.ColorSet
+	ColorRowAlt gg.Color
 	// ColorsResize themes the column-resize handles: Base is the
 	// resting handle, Click the active drag. The grid reads no
 	// other slot. There is no flat shorthand; spell the set
@@ -402,7 +401,7 @@ func applyDataGridDefaults(cfg *DataGridCfg) {
 	if !cfg.ColorBackground.IsSet() {
 		cfg.ColorBackground = s.ColorBackground
 	}
-	cfg.ColorsHeader = dataGridResolveSet(cfg.ColorsHeader, s.ColorsHeader)
+	cfg.ColorsHeader = cfg.ColorsHeader.Resolved(s.ColorsHeader)
 	if !cfg.ColorFilter.IsSet() {
 		cfg.ColorFilter = s.ColorFilter
 	}
@@ -412,23 +411,8 @@ func applyDataGridDefaults(cfg *DataGridCfg) {
 	if !cfg.ColorRowAlt.IsSet() {
 		cfg.ColorRowAlt = s.ColorRowAlt
 	}
-	if !cfg.ColorRowSelectedSubtle.IsSet() {
-		if cfg.ColorRowSelected.IsSet() {
-			// A caller-set ColorRowSelected is an explicit
-			// override: it wins over the theme's wash, preserving
-			// the pre-phase-3 behavior (visual-refresh §4.3).
-			// Resolved before the theme fill below, so IsSet
-			// still tells caller-set from theme-set.
-			cfg.ColorRowSelectedSubtle = cfg.ColorRowSelected
-		} else {
-			cfg.ColorRowSelectedSubtle = s.ColorRowSelectedSubtle
-		}
-	}
-	if !cfg.ColorRowSelected.IsSet() {
-		cfg.ColorRowSelected = s.ColorRowSelected
-	}
-	cfg.ColorsRow = dataGridResolveSet(cfg.ColorsRow, s.ColorsRow)
-	cfg.ColorsResize = dataGridResolveSet(cfg.ColorsResize, s.ColorsResize)
+	cfg.ColorsRow = cfg.ColorsRow.Resolved(s.ColorsRow)
+	cfg.ColorsResize = cfg.ColorsResize.Resolved(s.ColorsResize)
 	if !cfg.PaddingCell.IsSet() {
 		cfg.PaddingCell = s.PaddingCell
 	}

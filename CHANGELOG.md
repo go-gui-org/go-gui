@@ -36,6 +36,25 @@ and this project adheres to
   The scan over go-charts, go-edit, go-kite, go-map, go-term, go-speedtest and
   go-shirei found no uses of the deleted fields.
 
+- **BREAKING: `ColorSet.Pick` and `ColorSet.Resolved` are exported; data grid
+  rows and list rows use them (#741)** — a widget outside `gui/` could not call
+  the state picker, so the data grid kept its own copy of the color fallback and
+  its own hover rule, and a selected row did not react to the pointer.
+  `ColorSet.Pick(PickState)` returns the fill and border for one state in the
+  same order every widget in `gui/` uses, and `ColorSet.Resolved(theme)` applies
+  the fallbacks `Pick` needs first. A selected grid row now takes a lighter wash
+  under the pointer. Combobox and command palette rows use the same rule: the
+  pointer wins over the keyboard highlight, and a selected row hovered moves one
+  lightness step. Migration:
+
+  | Before                               | After                                                                         |
+  | ------------------------------------ | ----------------------------------------------------------------------------- |
+  | `DataGridCfg.ColorRowSelectedSubtle` | `DataGridCfg.ColorsRow.Selected`                                              |
+  | `DataGridCfg.ColorRowSelected`       | `DataGridCfg.ColorsRow.Selected` (the full accent is no longer used for rows) |
+  | `DataGridStyle.ColorRowSelected*`    | `DataGridStyle.ColorsRow.Selected`                                            |
+
+  The scan over the siblings found no uses of the removed fields.
+
 ## [v0.78.0] - 2026-09-21
 
 ### Added
