@@ -67,6 +67,7 @@ func (w *Window) setFocusLocked(effectiveID string) {
 		w.clearKeyPress()
 	}
 	w.viewState.focusID.Store(effectiveID)
+	w.viewState.focusSetCount++
 	if effectiveID != "" {
 		w.viewState.inputCursorOn.Store(true)
 	}

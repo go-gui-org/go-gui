@@ -126,6 +126,14 @@ type ViewState struct {
 	// (no Store yet) reads as unfocused.
 	focusID atomic.Value
 
+	// focusSetCount bumps on every SetFocus call, even a re-assert of
+	// the widget that already holds focus. Mouse dispatch snapshots it
+	// around the press walk: unchanged means no generic take and no
+	// widget callback claimed focus, so a press on non-focusable space
+	// blurs. A plain counter is enough — every writer runs on the main
+	// thread under w.mu or in EventFn.
+	focusSetCount uint64
+
 	// imeEditFocusID is the focus ID syncIMEEditContext last activated
 	// the input method for. Moving between two text fields must cycle
 	// the platform context so a composition left live in the engine
