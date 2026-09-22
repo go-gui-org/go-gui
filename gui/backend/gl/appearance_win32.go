@@ -4,6 +4,7 @@ package gl
 
 import (
 	"sync"
+	"unsafe"
 
 	"golang.org/x/sys/windows/registry"
 
@@ -48,6 +49,39 @@ func querySystemAppearance() (gui.Appearance, bool) {
 func (n *nativePlatform) SystemAppearance() (gui.Appearance, bool) {
 	return querySystemAppearance()
 }
+
+// PrefersReducedMotion reports the OS reduce-motion setting
+// (issue #757). Source is SPI_GETCLIENTAREAANIMATION, inverted:
+// the SPI flag reports animations enabled, so disabled means the
+// user asked for reduced motion. A failed query reads as no
+// preference, so the app keeps animating. Re-read per call like
+// the wheel settings: the setting changes while the app runs, and
+// a theme change or SVG load is far too rare for the syscall to
+// matter.
+func (n *nativePlatform) PrefersReducedMotion() bool {
+	enabled, ok := clientAreaAnimationQuery()
+	return ok && !enabled
+}
+
+// spiGetClientAreaAnimation is the SystemParametersInfo action
+// reporting whether client-area animations are enabled.
+const spiGetClientAreaAnimation = 0x1042
+
+// queryClientAreaAnimation reads SPI_GETCLIENTAREAANIMATION. The
+// second result is false when the call fails.
+func queryClientAreaAnimation() (bool, bool) {
+	var v int32
+	r, _, _ := pSysParamsInfoW.Call(
+		spiGetClientAreaAnimation, 0, uintptr(unsafe.Pointer(&v)), 0)
+	if r == 0 {
+		return false, false
+	}
+	return v != 0, true
+}
+
+// clientAreaAnimationQuery reads the OS setting. A var so tests can
+// feed a reading without touching Win32.
+var clientAreaAnimationQuery = queryClientAreaAnimation
 
 // winAppearanceQuery reads the OS setting. A var so tests can feed
 // a reading without touching the registry.

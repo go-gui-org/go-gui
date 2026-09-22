@@ -135,9 +135,7 @@ func blendThemeColors(dst, from, to *Theme, t float32) {
 //
 // The fade is skipped on a window that has not drawn a frame yet,
 // where there is nothing on screen to fade from, and when the backend
-// reports reduced motion through PrefersReducedMotion. No backend
-// reports it yet, so for now the OS reduce-motion setting does not
-// stop the fade.
+// reports reduced motion through PrefersReducedMotion.
 //
 // Frame-thread only, like SetTheme: call from main before Run or from
 // an event handler.

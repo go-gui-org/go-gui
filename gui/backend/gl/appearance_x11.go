@@ -29,6 +29,41 @@ func (n *nativePlatform) SystemAppearance() (gui.Appearance, bool) {
 	return querySystemAppearance()
 }
 
+// PrefersReducedMotion reports the OS reduce-motion setting
+// (issue #757). Source is the GNOME enable-animations key,
+// inverted like the Windows SPI flag: animations off means the
+// user asked for reduced motion. A missing binary or schema reads
+// as no setting, and the app keeps animating, like the color-scheme
+// query above. GNOME-family only; other desktops report no setting
+// (accepted gap, same as #752). Re-read per call: the setting
+// changes while the app runs, and a theme change or SVG load is far
+// too rare for a process spawn to matter.
+func (n *nativePlatform) PrefersReducedMotion() bool {
+	reduced, ok := reducedMotionQuery()
+	return ok && reduced
+}
+
+// enableAnimationsSchema and enableAnimationsKey name the gsettings
+// key reporting whether desktop animations are enabled.
+const (
+	enableAnimationsSchema = "org.gnome.desktop.interface"
+	enableAnimationsKey    = "enable-animations"
+)
+
+// queryPrefersReducedMotion runs `gsettings get` once for the
+// enable-animations key.
+func queryPrefersReducedMotion() (bool, bool) {
+	out, err := exec.Command("gsettings", "get", enableAnimationsSchema, enableAnimationsKey).Output()
+	if err != nil {
+		return false, false
+	}
+	return parseGsettingsEnableAnimations(string(out))
+}
+
+// reducedMotionQuery reads the OS setting. A var so tests can feed
+// a reading without spawning gsettings.
+var reducedMotionQuery = queryPrefersReducedMotion
+
 // SetSystemAppearanceCallback implements gui.NativePlatform. The
 // shared monitor runs while at least one window is subscribed; a nil
 // cb unregisters.

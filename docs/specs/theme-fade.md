@@ -20,9 +20,7 @@ layout every frame and move content while the fade runs.
   Zero (the default) keeps the one-frame switch. `Window.Theme` returns the
   target at once; only what is drawn travels.
 - **Skipped** when the backend reports `PrefersReducedMotion`, and before the
-  window's first frame (nothing on screen to fade from). No backend reports
-  `PrefersReducedMotion` yet, so on a real window only the first-frame skip
-  applies until a backend implements it.
+  window's first frame (nothing on screen to fade from).
 - **Blend.** A `reflect` walk of `Theme`, done once, records the byte offset of
   every `Color` stored by value (`themeColorOffsetTable`, `gui/theme_fade.go`).
   A fade frame walks that table with `unsafe` pointer math and lerps each

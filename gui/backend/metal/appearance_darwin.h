@@ -13,6 +13,11 @@
 // NSAppearance override is honored the way the titlebar is.
 int metalSystemAppearanceDark(void);
 
+// metalPrefersReducedMotion reports the OS reduce-motion setting:
+// 1 when the user asked for reduced motion, 0 otherwise. Reads
+// NSWorkspace.accessibilityDisplayShouldReduceMotion (issue #757).
+int metalPrefersReducedMotion(void);
+
 // metalAppearanceWatchStart installs the effectiveAppearance KVO
 // observer; a no-op when already installed. Changes arrive in Go as
 // goMetalAppearanceChanged (declared by the Go side). Main-thread

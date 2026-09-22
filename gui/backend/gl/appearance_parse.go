@@ -23,3 +23,20 @@ func parseGsettingsColorScheme(s string) (gui.Appearance, bool) {
 		return gui.AppearanceLight, false
 	}
 }
+
+// parseGsettingsEnableAnimations maps `gsettings get
+// org.gnome.desktop.interface enable-animations` output to a
+// reduced-motion report (issue #757). The key reports animations
+// enabled, so false inverts to reduced motion. Anything but true
+// or false is no setting. Shared (not Linux-only) so its test runs
+// everywhere.
+func parseGsettingsEnableAnimations(s string) (reduced bool, ok bool) {
+	switch {
+	case strings.Contains(s, "false"):
+		return true, true
+	case strings.Contains(s, "true"):
+		return false, true
+	default:
+		return false, false
+	}
+}
