@@ -198,6 +198,14 @@ func runMainThreadTests() {
 		panic("applicationDidBecomeActive: delegate not set")
 	}
 
+	// 8c. The OS appearance query must link and run: it reads
+	//     NSApp.effectiveAppearance on the main thread (issue #752).
+	//     Either value is correct; only "no setting" fails, since
+	//     macOS always reports one.
+	if _, ok := w.SystemAppearance(); !ok {
+		panic("SystemAppearance: macOS reported no setting")
+	}
+
 	b.Destroy()
 
 	// 9. Destroy must unregister the window. Regression test for

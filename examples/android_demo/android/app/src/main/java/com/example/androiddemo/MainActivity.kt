@@ -3,6 +3,7 @@ package com.example.androiddemo
 import android.app.Activity
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
 import androidx.core.app.NotificationCompat
@@ -25,6 +26,22 @@ class MainActivity : Activity() {
         Androidapp.init()
         glSurfaceView = GoGuiGLSurfaceView(this)
         setContentView(glSurfaceView)
+        pushAppearance(resources.configuration)
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        pushAppearance(newConfig)
+    }
+
+    // pushAppearance forwards the uiMode night flag to Go (issue
+    // #752). Delivered on the GL thread like every other bridge
+    // call. Needs uiMode in configChanges, or the activity
+    // restarts on toggle instead of landing here.
+    private fun pushAppearance(config: Configuration) {
+        val dark = config.uiMode and Configuration.UI_MODE_NIGHT_MASK ==
+            Configuration.UI_MODE_NIGHT_YES
+        glSurfaceView.queueEvent { Androidapp.appearanceChanged(dark) }
     }
 
     override fun onResume() {

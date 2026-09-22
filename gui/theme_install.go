@@ -97,7 +97,24 @@ func (w *Window) themeRef() *Theme {
 // SetTheme pins t as this window's theme and requests a rebuild. Other
 // windows keep theirs. The install happens at the start of the next
 // frame, which the requested rebuild guarantees.
+//
+// An explicit SetTheme ends system-appearance following until
+// FollowSystemAppearance is called again (issue #752).
 func (w *Window) SetTheme(t Theme) {
+	w.appearanceMu.Lock()
+	w.appearanceFollowing = false
+	w.appearanceMu.Unlock()
+	// Drop the watcher unless a hook still wants events: without
+	// this an un-followed window keeps its OS subscription (and the
+	// backend's watcher) alive for no-op callbacks.
+	w.refreshAppearanceSubscription()
+	w.pinTheme(t)
+}
+
+// pinTheme publishes t as this window's theme without touching the
+// appearance-follow flag. Shared by SetTheme (which clears it first)
+// and applySystemAppearance (which must keep it).
+func (w *Window) pinTheme(t Theme) {
 	// Publish a fresh value rather than writing through the pointer:
 	// a reader may still hold the previous one.
 	pinned := t

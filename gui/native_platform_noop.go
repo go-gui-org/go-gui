@@ -59,6 +59,8 @@ func (noopNativePlatform) IMEStop()                                            {
 func (noopNativePlatform) IMESetRect(_, _, _, _ int32)                         {}
 func (noopNativePlatform) OpenURI(_ string) error                              { return nil }
 func (noopNativePlatform) TitlebarDark(_ bool)                                 {}
+func (noopNativePlatform) SystemAppearance() (Appearance, bool)                { return AppearanceLight, false }
+func (noopNativePlatform) SetSystemAppearanceCallback(_ func(Appearance))      {}
 func (noopNativePlatform) SetWindowVibrancy(_ VibrancyMaterial)                {}
 func (noopNativePlatform) SetWindowOpacity(_ float32)                          {}
 func (noopNativePlatform) StartWindowDrag()                                    {}

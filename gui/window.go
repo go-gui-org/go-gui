@@ -242,6 +242,18 @@ type Window struct {
 	themeSet bool
 	themeMu  sync.RWMutex
 
+	// System-appearance follow state (issue #752). Guarded by
+	// appearanceMu, separate from themeMu: SetTheme clears the
+	// follow flag while holding themeMu, and applySystemAppearance
+	// pins a theme while holding neither across the pin. The pair
+	// is stored by pointer: Theme is ~12 KB and only a following
+	// window pays for it.
+	appearanceLight     *Theme
+	appearanceDark      *Theme
+	appearanceFollowing bool
+	appearanceHook      func(Appearance)
+	appearanceMu        sync.RWMutex
+
 	// Mutexes.
 	mu         sync.Mutex // guards layout/renderer state
 	commandsMu sync.Mutex // guards command queue
