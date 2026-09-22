@@ -75,6 +75,20 @@ type nativeSound interface {
 	BeepAvailable() bool
 }
 
+// NativeAppearance reports the OS light/dark setting (issue #752).
+// Noop where the OS has no setting; nil in tests reads as no setting.
+type nativeAppearance interface {
+	// SystemAppearance queries the current OS appearance. The second
+	// result is false when the OS reports no setting, in which case
+	// the app keeps its own theme.
+	SystemAppearance() (Appearance, bool)
+	// SetSystemAppearanceCallback registers cb for OS appearance
+	// changes. The backend invokes cb on a watcher thread; the gui
+	// side marshals to the frame thread with QueueCommand. A nil cb
+	// unregisters and lets the backend stop its watcher.
+	SetSystemAppearanceCallback(cb func(Appearance))
+}
+
 // NativePlatform composes all native OS sub-interfaces.
 // Set by the backend; nil in tests (operations no-op / return error).
 // exportaudit:keep — collides with the window's nativePlatform state field
@@ -89,6 +103,7 @@ type NativePlatform interface {
 	nativeMenubar
 	nativeSystemTray
 	nativeSound
+	nativeAppearance
 	OpenURI(uri string) error
 	TitlebarDark(dark bool)
 	SetWindowVibrancy(material VibrancyMaterial)
@@ -145,6 +160,20 @@ type NativePrintParams struct {
 // SetNativePlatform sets the native platform backend.
 func (w *Window) SetNativePlatform(np NativePlatform) {
 	w.nativePlatform = np
+	// Replay the appearance subscription: FollowSystemAppearance and
+	// OnSystemAppearance are reachable before a backend attaches (in
+	// OnInit, or before backend.Run), where refreshAppearanceSubscription
+	// found no platform. A following window also applies the now-known
+	// OS setting at once, like windowOpacity replays below 1.
+	w.refreshAppearanceSubscription()
+	w.appearanceMu.RLock()
+	following := w.appearanceFollowing
+	w.appearanceMu.RUnlock()
+	if following {
+		if a, ok := w.SystemAppearance(); ok {
+			w.applySystemAppearance(a)
+		}
+	}
 }
 
 // NativePlatformBackend returns the native platform backend (nil in tests).

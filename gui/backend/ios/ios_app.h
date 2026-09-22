@@ -27,4 +27,11 @@ extern void goIOSResize(int w, int h, float scale);
 extern void goIOSTouchEvent(int phase, uintptr_t identifier,
     float x, float y);
 
+// OS appearance (issue #752): 1 for dark, 0 for light. Reads the
+// last UITraitCollection the view controller saw.
+int iosAppearanceDark(void);
+
+// Appearance change callback, implemented in appearance_ios.go.
+extern void goIOSAppearanceChanged(int dark);
+
 #endif

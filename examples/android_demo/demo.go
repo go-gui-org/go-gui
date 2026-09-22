@@ -100,6 +100,11 @@ func IMEComposition(text string, cursor, selLen int64) {
 // IMECommit is called from Kotlin when text is committed.
 func IMECommit(text string) { android.IMECommit(text) }
 
+// AppearanceChanged is called from Kotlin with the uiMode night flag
+// (issue #752): once at startup with the current mode and again on
+// every onConfigurationChanged.
+func AppearanceChanged(dark bool) { android.AppearanceChanged(dark) }
+
 // --- Notification bridge ---
 
 // PendingNotificationTitle returns the pending notification title.

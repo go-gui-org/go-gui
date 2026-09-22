@@ -396,6 +396,7 @@ func (w *Window) WindowCleanup() {
 		w.ReleaseAllFileAccess()
 		if w.nativePlatform != nil {
 			w.nativePlatform.A11yDestroy()
+			w.nativePlatform.SetSystemAppearanceCallback(nil)
 		}
 		w.clearViewStateLocked()
 		w.renderGuardWarned = 0

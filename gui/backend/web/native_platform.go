@@ -19,6 +19,13 @@ type nativePlatform struct {
 	canvas   js.Value
 	a11y     a11yState
 	imeInput js.Value
+	// appearanceMQ and appearanceListener track the
+	// prefers-color-scheme subscription (issue #752).
+	// appearanceActive reports a live listener: a released
+	// js.Func must never be called or released twice.
+	appearanceMQ       js.Value
+	appearanceListener js.Func
+	appearanceActive   bool
 }
 
 // --- URI ---
@@ -505,9 +512,74 @@ func (n *nativePlatform) IMESetRect(x, y, _, _ int32) {
 	st.Set("top", itoa(int(y))+"px")
 }
 
-// --- Window appearance (no-op on web) ---
+// --- Window appearance (issue #752) ---
 
 func (n *nativePlatform) TitlebarDark(_ bool) {}
+
+// darkMediaQuery is the CSS media query tracking the OS setting.
+const darkMediaQuery = "(prefers-color-scheme: dark)"
+
+// darkQueryList returns the MediaQueryList for the dark-mode query,
+// or the zero value when matchMedia is unavailable.
+func darkQueryList() js.Value {
+	matchMedia := js.Global().Get("matchMedia")
+	if matchMedia.IsUndefined() || matchMedia.IsNull() {
+		return js.Value{}
+	}
+	return matchMedia.Invoke(darkMediaQuery)
+}
+
+// SystemAppearance reads the prefers-color-scheme media query.
+func (n *nativePlatform) SystemAppearance() (gui.Appearance, bool) {
+	mq := darkQueryList()
+	if !mq.Truthy() {
+		return gui.AppearanceLight, false
+	}
+	if mq.Get("matches").Bool() {
+		return gui.AppearanceDark, true
+	}
+	return gui.AppearanceLight, true
+}
+
+// SetSystemAppearanceCallback listens for media-query changes. The
+// listener and query list are released when cb is nil.
+func (n *nativePlatform) SetSystemAppearanceCallback(cb func(gui.Appearance)) {
+	n.releaseAppearanceListener()
+	if cb == nil {
+		return
+	}
+	mq := darkQueryList()
+	if !mq.Truthy() {
+		return
+	}
+	listener := js.FuncOf(func(_ js.Value, args []js.Value) any {
+		a := gui.AppearanceLight
+		if len(args) > 0 && args[0].Get("matches").Bool() {
+			a = gui.AppearanceDark
+		}
+		cb(a)
+		return nil
+	})
+	mq.Call("addEventListener", "change", listener)
+	n.appearanceMQ = mq
+	n.appearanceListener = listener
+	n.appearanceActive = true
+}
+
+// releaseAppearanceListener detaches and frees a previous listener.
+func (n *nativePlatform) releaseAppearanceListener() {
+	if !n.appearanceActive {
+		return
+	}
+	// Detach first: a late change event calling a released
+	// js.Func panics the wasm instance.
+	if n.appearanceMQ.Truthy() {
+		n.appearanceMQ.Call("removeEventListener", "change", n.appearanceListener)
+	}
+	n.appearanceListener.Release()
+	n.appearanceActive = false
+	n.appearanceMQ = js.Value{}
+}
 
 func (n *nativePlatform) SetWindowVibrancy(_ gui.VibrancyMaterial) {}
 

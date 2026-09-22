@@ -72,6 +72,8 @@
             object:nil];
 
         self.started = YES;
+        // Seed the appearance Go queries before any trait change.
+        gIOSAppearanceDark = iosTraitDark(self.traitCollection);
     } else {
         goIOSResize((int)bounds.size.width,
                     (int)bounds.size.height,
@@ -134,6 +136,27 @@
 
 - (void)appDidBecomeActive:(NSNotification *)n {
     self.displayLink.paused = NO;
+}
+
+// ─── Appearance (issue #752) ────────────────────────────────
+// The current setting, seeded from the first layout and refreshed
+// on every trait change. Go reads it through iosAppearanceDark and
+// learns of changes through goIOSAppearanceChanged.
+
+static int gIOSAppearanceDark = 0;
+
+static int iosTraitDark(UITraitCollection *traits) {
+    return traits.userInterfaceStyle == UIUserInterfaceStyleDark;
+}
+
+int iosAppearanceDark(void) {
+    return gIOSAppearanceDark;
+}
+
+- (void)traitCollectionDidChange:(UITraitCollection *)previous {
+    [super traitCollectionDidChange:previous];
+    gIOSAppearanceDark = iosTraitDark(self.traitCollection);
+    goIOSAppearanceChanged(gIOSAppearanceDark);
 }
 
 - (void)dealloc {

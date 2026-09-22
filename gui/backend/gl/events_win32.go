@@ -12,28 +12,29 @@ import (
 
 // Win32 window messages (subset).
 const (
-	wmSize        = 0x0005
-	wmSetFocus    = 0x0007
-	wmKillFocus   = 0x0008
-	wmPaint       = 0x000F
-	wmClose       = 0x0010
-	wmEraseBkgnd  = 0x0014
-	wmSetCursor   = 0x0020
-	wmKeyDown     = 0x0100
-	wmKeyUp       = 0x0101
-	wmChar        = 0x0102
-	wmSysKeyDown  = 0x0104
-	wmSysKeyUp    = 0x0105
-	wmMouseMove   = 0x0200
-	wmLButtonDown = 0x0201
-	wmLButtonUp   = 0x0202
-	wmRButtonDown = 0x0204
-	wmRButtonUp   = 0x0205
-	wmMButtonDown = 0x0207
-	wmMButtonUp   = 0x0208
-	wmMouseWheel  = 0x020A
-	wmMouseHWheel = 0x020E
-	wmDPIChanged  = 0x02E0
+	wmSize          = 0x0005
+	wmSetFocus      = 0x0007
+	wmKillFocus     = 0x0008
+	wmPaint         = 0x000F
+	wmClose         = 0x0010
+	wmEraseBkgnd    = 0x0014
+	wmSettingChange = 0x001A
+	wmSetCursor     = 0x0020
+	wmKeyDown       = 0x0100
+	wmKeyUp         = 0x0101
+	wmChar          = 0x0102
+	wmSysKeyDown    = 0x0104
+	wmSysKeyUp      = 0x0105
+	wmMouseMove     = 0x0200
+	wmLButtonDown   = 0x0201
+	wmLButtonUp     = 0x0202
+	wmRButtonDown   = 0x0204
+	wmRButtonUp     = 0x0205
+	wmMButtonDown   = 0x0207
+	wmMButtonUp     = 0x0208
+	wmMouseWheel    = 0x020A
+	wmMouseHWheel   = 0x020E
+	wmDPIChanged    = 0x02E0
 
 	// SetWindowPos flags used when adopting the rect Windows suggests
 	// for a new monitor: move and size only, leave stacking and focus.
@@ -252,6 +253,14 @@ func (b *Backend) handleMessage(msg, wparam, lparam uintptr) (uintptr, bool) {
 		return 0, true
 	case wmEraseBkgnd:
 		return 1, true // avoid background flicker; GL clears each frame
+
+	case wmSettingChange:
+		// Theme flips arrive here ("ImmersiveColorSet"). Re-query
+		// and fan out only on a real flip; other setting changes
+		// keep the theme (issue #752). Unhandled on purpose, so
+		// DefWindowProc still sees it.
+		systemAppearanceChanged()
+		return 0, false
 
 	case wmSetFocus:
 		b.emit(gui.Event{Type: gui.EventFocused})
