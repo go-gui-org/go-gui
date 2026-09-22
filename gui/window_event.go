@@ -207,8 +207,12 @@ func (w *Window) handleMouseDownEvent(layout *Layout, e *Event) {
 	if dismissPopups(w) {
 		w.ClearFocus()
 	}
+	// Inspector-handled presses never run the walk, so dev-tool clicks
+	// leave app focus alone.
 	if !e.IsHandled {
+		claimed := w.viewState.focusSetCount
 		mouseDownHandler(layout, false, e, w)
+		w.blurUnclaimedPress(layout, e, claimed)
 	}
 	if !e.IsHandled {
 		ss := StateMap[string, bool](w, nsSelect, capModerate)
@@ -216,6 +220,38 @@ func (w *Window) handleMouseDownEvent(layout *Layout, e *Event) {
 		cs := StateMap[string, bool](w, nsCombobox, capModerate)
 		cs.Clear()
 	}
+}
+
+// blurUnclaimedPress clears focus after a press walk that nothing
+// claimed, matching native toolkits. claimed is focusSetCount taken
+// before the walk. The count, not the ID, is the signal: composite
+// widgets (splitter, slider) set focus from their press callbacks,
+// including re-asserting the widget that already holds it, and a
+// same-ID compare would blur those.
+//
+// Two presses keep focus:
+//   - Right button, the same exclusion the focus take uses, so a
+//     context-menu press keeps focus.
+//   - A press inside the focused widget's own bounds. A child that
+//     consumes the press (the scrollbar of a listbox or a scrollable
+//     multiline input) stops the walk before the widget's own focus
+//     take runs, and that press must not blur the widget it is in.
+//
+// Backend presses and touch taps share it, so both follow one rule.
+func (w *Window) blurUnclaimedPress(layout *Layout, e *Event, claimed uint64) {
+	if e.MouseButton == MouseRight || w.viewState.focusSetCount != claimed {
+		return
+	}
+	// mouseDownHandler accepts a nil tree, so this must too.
+	focusID := w.FocusID()
+	if focusID == "" || layout == nil {
+		return
+	}
+	if ly, ok := findLayoutByFocusID(layout, focusID); ok &&
+		ly.Shape.PointInShape(e.MouseX, e.MouseY) {
+		return
+	}
+	w.ClearFocus()
 }
 
 func (w *Window) handleMouseMoveEvent(layout *Layout, e *Event) {

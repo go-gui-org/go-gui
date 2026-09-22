@@ -563,3 +563,164 @@ func TestEventFnFileDroppedFrozen(t *testing.T) {
 		t.Error("file drop must be gated while frozen")
 	}
 }
+
+func TestMouseDownBackgroundClearsFocus(t *testing.T) {
+	t.Parallel()
+	newFocusWindow := func() *Window {
+		w := newEventTestWindow()
+		w.layout = Layout{
+			Shape: &Shape{shapeClip: drawClip{Width: 800, Height: 600}},
+			Children: []Layout{
+				{Shape: &Shape{
+					Focusable: true, ID: "in",
+					shapeClip: drawClip{Width: 100, Height: 100},
+				}},
+				{Shape: &Shape{
+					Focusable: true, ID: "other",
+					shapeClip: drawClip{X: 200, Width: 100, Height: 100},
+				}},
+				{Shape: &Shape{
+					shapeClip: drawClip{X: 400, Width: 100, Height: 100},
+					events: &eventHandlers{
+						OnClick: func(ctx EventCtx) { ctx.Consume() },
+					},
+				}},
+				// A focusable scroll container whose scrollbar child
+				// consumes the press before the container's own focus
+				// take runs (listbox, scrollable multiline input).
+				{
+					Shape: &Shape{
+						Focusable: true, ID: "list",
+						shapeClip: drawClip{Y: 200, Width: 100, Height: 100},
+					},
+					Children: []Layout{{Shape: &Shape{
+						shapeClip: drawClip{X: 90, Y: 200, Width: 10, Height: 100},
+						events: &eventHandlers{
+							OnClick: func(ctx EventCtx) { ctx.Consume() },
+						},
+					}}},
+				},
+			},
+		}
+		return w
+	}
+	t.Run("background_clears", func(t *testing.T) {
+		t.Parallel()
+		w := newFocusWindow()
+		w.SetFocus("in")
+		w.EventFn(&Event{
+			Type: EventMouseDown, MouseButton: MouseLeft,
+			MouseX: 700, MouseY: 500,
+		})
+		if got := w.FocusID(); got != "" {
+			t.Errorf("background click: focus = %q, want empty", got)
+		}
+	})
+	t.Run("same_input_keeps", func(t *testing.T) {
+		t.Parallel()
+		w := newFocusWindow()
+		w.SetFocus("in")
+		w.EventFn(&Event{
+			Type: EventMouseDown, MouseButton: MouseLeft,
+			MouseX: 50, MouseY: 50,
+		})
+		if got := w.FocusID(); got != "in" {
+			t.Errorf("input click: focus = %q, want in", got)
+		}
+	})
+	t.Run("other_focusable_moves", func(t *testing.T) {
+		t.Parallel()
+		w := newFocusWindow()
+		w.SetFocus("in")
+		w.EventFn(&Event{
+			Type: EventMouseDown, MouseButton: MouseLeft,
+			MouseX: 250, MouseY: 50,
+		})
+		if got := w.FocusID(); got != "other" {
+			t.Errorf("second input click: focus = %q, want other", got)
+		}
+	})
+	t.Run("right_click_preserves", func(t *testing.T) {
+		t.Parallel()
+		w := newFocusWindow()
+		w.SetFocus("in")
+		w.EventFn(&Event{
+			Type: EventMouseDown, MouseButton: MouseRight,
+			MouseX: 700, MouseY: 500,
+		})
+		if got := w.FocusID(); got != "in" {
+			t.Errorf("right background click: focus = %q, want in", got)
+		}
+	})
+	t.Run("consumed_nonfocusable_clears", func(t *testing.T) {
+		t.Parallel()
+		w := newFocusWindow()
+		w.SetFocus("in")
+		w.EventFn(&Event{
+			Type: EventMouseDown, MouseButton: MouseLeft,
+			MouseX: 450, MouseY: 50,
+		})
+		if got := w.FocusID(); got != "" {
+			t.Errorf("consumed background click: focus = %q, want empty", got)
+		}
+	})
+	t.Run("consumed_child_of_focused_keeps", func(t *testing.T) {
+		t.Parallel()
+		w := newFocusWindow()
+		w.SetFocus("list")
+		w.EventFn(&Event{
+			Type: EventMouseDown, MouseButton: MouseLeft,
+			MouseX: 95, MouseY: 250,
+		})
+		if got := w.FocusID(); got != "list" {
+			t.Errorf("scrollbar click: focus = %q, want list", got)
+		}
+	})
+	t.Run("callback_reassert_keeps", func(t *testing.T) {
+		t.Parallel()
+		// A splitter or slider handle re-asserts the focus it already
+		// holds from its press callback. The ID does not change, so only
+		// the set count shows the press was claimed.
+		w := newFocusWindow()
+		w.layout.Children[2].Shape.events.OnClick = func(ctx EventCtx) {
+			ctx.Window.SetFocus("in")
+			ctx.Consume()
+		}
+		w.SetFocus("in")
+		w.EventFn(&Event{
+			Type: EventMouseDown, MouseButton: MouseLeft,
+			MouseX: 450, MouseY: 50,
+		})
+		if got := w.FocusID(); got != "in" {
+			t.Errorf("re-asserting click: focus = %q, want in", got)
+		}
+	})
+	t.Run("nil_layout_no_panic", func(t *testing.T) {
+		t.Parallel()
+		w := newFocusWindow()
+		w.SetFocus("in")
+		w.blurUnclaimedPress(nil, &Event{MouseButton: MouseLeft},
+			w.viewState.focusSetCount)
+		if got := w.FocusID(); got != "in" {
+			t.Errorf("nil layout: focus = %q, want in", got)
+		}
+	})
+	t.Run("touch_tap_background_clears", func(t *testing.T) {
+		t.Parallel()
+		w := newFocusWindow()
+		w.SetFocus("in")
+		synthMouse(EventMouseDown, 700, 500, MouseLeft, &w.layout, w)
+		if got := w.FocusID(); got != "" {
+			t.Errorf("background tap: focus = %q, want empty", got)
+		}
+	})
+	t.Run("touch_tap_consumed_child_of_focused_keeps", func(t *testing.T) {
+		t.Parallel()
+		w := newFocusWindow()
+		w.SetFocus("list")
+		synthMouse(EventMouseDown, 95, 250, MouseLeft, &w.layout, w)
+		if got := w.FocusID(); got != "list" {
+			t.Errorf("scrollbar tap: focus = %q, want list", got)
+		}
+	})
+}

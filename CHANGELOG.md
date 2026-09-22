@@ -131,6 +131,13 @@ and this project adheres to
 
 ### Fixed
 
+- **Clicking non-focusable space moves focus off the focused widget** — pressing
+  the left or middle button on empty space, or on a widget that cannot take
+  focus, now clears focus instead of leaving the old widget focused with its
+  caret still drawn. Touch taps follow the same rule. Right-click keeps focus, a
+  press inside the focused widget (for example on its scrollbar) keeps focus,
+  and a press whose callback claims focus (a splitter or slider handle) keeps
+  the focus it sets.
 - **`ThemeLight` draws borders like `ThemeDark`** — the light preset never
   picked up the bordered default (`SizeBorder`), so the showcase light theme
   rendered borderless while dark drew hairlines. Light now carries the same 1px
