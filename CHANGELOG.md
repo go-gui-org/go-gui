@@ -10,6 +10,15 @@ and this project adheres to
 
 ### Added
 
+- **Per-widget theme overrides (#754)** — `Theme.With` applies a geometry patch
+  for one widget class (`ButtonPatch`, `InputPatch`, `SelectPatch`,
+  `DialogPatch`, `ContainerPatch`), so an app states "all buttons use radius 2"
+  once in the theme instead of on each call site. Each patch holds padding,
+  border and radius; colors stay with `WithColors`. The patch applies at build
+  time to the private styles, so frames cost nothing new, and it survives
+  `WithPadding`, `WithBorders`, `AdjustFontSize` and `WithColors`. An unknown
+  patch type panics and names the type. A NaN, infinite or negative length in a
+  patch becomes 0. Start with these five classes; more land on demand.
 - **Animated theme switch (#753)** — `Window.SetThemeTransition(d)` makes later
   `SetTheme` calls and `FollowSystemAppearance` changes fade over `d` instead of
   switching in one frame. Only colors blend; sizes, radii, fonts and `WithExt`

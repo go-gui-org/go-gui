@@ -561,6 +561,7 @@ func (t Theme) WithPadding(padding bool) Theme {
 		}
 		out := ThemeMaker(source)
 		out.ext = t.ext
+		applyWidgetPatches(&out)
 		return out
 	}
 	cfg := t.Cfg
@@ -576,6 +577,7 @@ func (t Theme) WithPadding(padding bool) Theme {
 	cfg.RadiusLarge = radiusNone
 	out := ThemeMaker(cfg)
 	out.ext = t.ext
+	applyWidgetPatches(&out)
 	if t.restoreCfg != nil {
 		out.restoreCfg = t.restoreCfg
 	} else {
@@ -598,6 +600,7 @@ func (t Theme) WithBorders(borders bool) Theme {
 	}
 	out := ThemeMaker(cfg)
 	out.ext = t.ext
+	applyWidgetPatches(&out)
 	if t.restoreCfg != nil {
 		dup := *t.restoreCfg
 		dup.SizeBorder = cfg.SizeBorder

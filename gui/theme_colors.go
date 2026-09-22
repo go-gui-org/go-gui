@@ -547,6 +547,7 @@ func (t Theme) AdjustFontSize(delta, minSize, maxSize float32) (Theme, error) {
 	cfg.TextStyleDef.Size = newSize
 	out := ThemeMaker(cfg)
 	out.ext = t.ext
+	applyWidgetPatches(&out)
 	if t.restoreCfg != nil {
 		dup := *t.restoreCfg
 		tuneTextLadder(&dup, delta)
