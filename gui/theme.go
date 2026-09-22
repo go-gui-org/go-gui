@@ -319,7 +319,17 @@ type Theme struct {
 }
 
 // ThemeCfg is the configuration struct for ThemeMaker.
+//
+// The struct stays flat on purpose (issue #755): every theme in go-gui
+// and the siblings builds it as a keyed literal, so nesting the fields
+// into Color/Type/Shape groups breaks all of them for a learnability
+// gain. The section banners below are the grouping instead — each one
+// names the Material 3 family the fields belong to (color scheme, type,
+// shape) plus the repo-local families (spacing, control sizes,
+// elevation, focus, chrome). docs/theme-tokens.md is the same map as
+// an index.
 type ThemeCfg struct {
+	// --- Type: base style and font families ---
 	TextStyleDef TextStyle
 
 	Name string
@@ -339,6 +349,7 @@ type ThemeCfg struct {
 	// exportaudit:keep — caller-facing config (issue #372)
 	IconFontFamily string
 
+	// --- Spacing: padding ladder and form density ---
 	Padding Padding
 
 	PaddingSmall  Padding
@@ -361,6 +372,7 @@ type ThemeCfg struct {
 	// exportaudit:keep — caller-facing config (issue #446)
 	Sounds SoundSet
 
+	// --- Shape: border width and radius ladder ---
 	SizeBorder float32
 	Radius     float32
 
@@ -374,6 +386,7 @@ type ThemeCfg struct {
 	// ergonomics-audit:deadcfg-keep — reserved radius tier, set by themes
 	RadiusLarge float32
 
+	// --- Spacing: gap ladder between things ---
 	// SpacingTight seeds Theme.SpacingTight; see there.
 	//
 	// exportaudit:keep — themable tight spacing.
@@ -382,6 +395,7 @@ type ThemeCfg struct {
 	SpacingMedium float32
 	SpacingLarge  float32
 
+	// --- Type: text size ladder ---
 	SizeTextTiny float32
 	// SizeTextXSmall .. SizeTextXLarge are the text size ladder. Zero
 	// takes the built-in defaults.
@@ -396,6 +410,7 @@ type ThemeCfg struct {
 	// exportaudit:keep — caller-facing config (issue #372)
 	SizeTextXLarge float32
 
+	// --- Control sizes: scroll behavior ---
 	// ScrollMultiplier scales wheel/trackpad scroll distance.
 	// exportaudit:keep — caller-facing config (issue #372)
 	ScrollMultiplier float32
@@ -404,6 +419,7 @@ type ThemeCfg struct {
 	// exportaudit:keep — caller-facing config (issue #372)
 	ScrollDeltaPage float32
 
+	// --- Control sizes: widget geometry ---
 	// exportaudit:keep — caller-facing config (issue #372)
 	SizeSwitchWidth float32
 	// exportaudit:keep — caller-facing config (issue #372)
@@ -434,7 +450,9 @@ type ThemeCfg struct {
 	// exportaudit:keep — caller-facing config (issue #372)
 	SizeSliderThumb float32
 	// exportaudit:keep — caller-facing config (issue #372)
-	SizeSeparator    float32
+	SizeSeparator float32
+
+	// --- Color scheme: surfaces, borders, text roles ---
 	ColorBackground  Color
 	ColorPanel       Color
 	ColorInterior    Color
@@ -467,6 +485,7 @@ type ThemeCfg struct {
 	ColorWarning Color
 	ColorError   Color
 
+	// --- Color scheme: accent ramp ---
 	// Accent ramp. ColorAccent is the single accent decision; every
 	// other slot derives from it in ThemeMaker (visual-refresh §4.3):
 	// hover = L+0.12, pressed = L-0.12 in sRGB HSL, ColorAccentSubtle
@@ -510,6 +529,7 @@ type ThemeCfg struct {
 	// exportaudit:keep — theme override seam.
 	ColorTextOnSelect Color
 
+	// --- Elevation: two tiers ---
 	// Elevation. Two tiers, because that is how the platforms this
 	// exists to imitate actually think about it: a menu floats a
 	// little, a modal floats a lot. A per-widget field would be seven
@@ -530,6 +550,7 @@ type ThemeCfg struct {
 	// exportaudit:keep — caller-facing config (issue #372)
 	ShadowDialog *BoxShadow // modals, command palette
 
+	// --- Focus: outside-the-bounds ring ---
 	// focusRing is the focus indication drawn *outside* a control's
 	// bounds, as a zero-offset tinted shadow. macOS's ring is a soft
 	// accent glow, which the inset ColorBorderFocus border cannot
@@ -540,6 +561,7 @@ type ThemeCfg struct {
 	// exportaudit:keep — caller-facing config (issue #372)
 	FocusRing *BoxShadow
 
+	// --- Window chrome and flags ---
 	TitlebarDark bool
 	// exportaudit:keep — documented public API (showcase docs)
 	//
