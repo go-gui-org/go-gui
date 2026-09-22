@@ -224,7 +224,7 @@ func virtualListWindow(t *testing.T, cfg VirtualListCfg) *Window {
 }
 
 func virtualListFrame(w *Window) {
-	w.refreshLayout = true
+	w.refreshLayout.Store(true)
 	w.FrameFn()
 }
 

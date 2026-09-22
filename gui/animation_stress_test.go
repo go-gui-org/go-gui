@@ -297,7 +297,7 @@ func TestAnimationStressFrameFnWithAnimations(t *testing.T) {
 	}
 
 	// Mark for refresh and run FrameFn.
-	w.refreshLayout = true
+	w.refreshLayout.Store(true)
 	rebuilt := w.FrameFn()
 	if !rebuilt {
 		t.Error("expected FrameFn to rebuild")

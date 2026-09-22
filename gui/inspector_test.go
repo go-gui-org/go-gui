@@ -284,9 +284,8 @@ func TestLayoutArrangeWithInspector(t *testing.T) {
 func TestUpdateCachesInspectorTreeFromPreviousLayout(t *testing.T) {
 	requireInspector(t)
 	w := &Window{
-		windowWidth:   400,
-		windowHeight:  300,
-		refreshLayout: true,
+		windowWidth:  400,
+		windowHeight: 300,
 		windowInspector: windowInspector{
 			inspectorEnabled: true,
 		},
@@ -294,6 +293,8 @@ func TestUpdateCachesInspectorTreeFromPreviousLayout(t *testing.T) {
 			return Rectangle(RectangleCfg{Width: 10, Height: 10, Color: Blue})
 		},
 	}
+	// atomic.Bool takes no bool literal (see window.go); seed after.
+	w.refreshLayout.Store(true)
 	w.layout = Layout{
 		Shape: &Shape{},
 		Children: []Layout{{

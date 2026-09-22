@@ -60,7 +60,7 @@ func TestSpellCheckTriggerOnEnable(t *testing.T) {
 			SpellCheck: true,
 		})
 	}
-	w.refreshLayout = true
+	w.refreshLayout.Store(true)
 	w.Update()
 
 	// Pending state should exist (text set, ranges nil).
@@ -119,7 +119,7 @@ func TestSpellCheckPendingPreventsTimerReset(t *testing.T) {
 	// Second Update should NOT reset the animation (pending text
 	// matches).
 	time.Sleep(time.Millisecond)
-	w.refreshLayout = true
+	w.refreshLayout.Store(true)
 	w.Update()
 
 	anim2, ok := w.animations[animID]
@@ -154,7 +154,7 @@ func TestSpellCheckClearOnDisable(t *testing.T) {
 			SpellCheck: false,
 		})
 	}
-	w.refreshLayout = true
+	w.refreshLayout.Store(true)
 	w.Update()
 
 	// State should be cleared.

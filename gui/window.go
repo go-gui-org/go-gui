@@ -277,9 +277,11 @@ type Window struct {
 
 	frozen atomic.Bool
 
-	// Refresh flags.
-	refreshLayout     bool
-	refreshRenderOnly bool
+	// Refresh flags. Atomic: InvalidateLayout and InvalidateRender
+	// promise any-goroutine use while the frame loop reads and
+	// clears them (see window_update.go).
+	refreshLayout     atomic.Bool
+	refreshRenderOnly atomic.Bool
 
 	// caretCmd records the focused caret's RenderCmd position so a
 	// blink tick can toggle its color in place instead of rebuilding

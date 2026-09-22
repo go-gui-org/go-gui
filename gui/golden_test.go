@@ -388,7 +388,7 @@ func renderGolden(t *testing.T, theme Theme, c goldenCase) string {
 	if c.mousePressed {
 		w.viewState.mouseButtonHeld = MouseLeft
 	}
-	w.refreshLayout = true
+	w.refreshLayout.Store(true)
 	w.FrameFn()
 
 	if len(w.renderers) == 0 {

@@ -21,7 +21,7 @@ func scrollIndexListWindow(id string, n int) *Window {
 			})},
 		})
 	}
-	w.refreshLayout = true
+	w.refreshLayout.Store(true)
 	w.FrameFn()
 	return w
 }
@@ -53,7 +53,7 @@ func TestScrollToIndexOnNeverScrolledList(t *testing.T) {
 	}
 
 	w.ScrollToIndex("lb-jump", 300)
-	w.refreshLayout = true
+	w.refreshLayout.Store(true)
 	w.FrameFn()
 
 	// Default 0: absent entry means unscrolled — which is the failure
@@ -69,7 +69,7 @@ func TestScrollIndexIntoViewIsANoOpWhenVisible(t *testing.T) {
 	w := scrollIndexListWindow("lb-view", 500)
 	before := w.scrollY().GetOr("lb-view", 0)
 	w.ScrollIndexIntoView("lb-view", 1)
-	w.refreshLayout = true
+	w.refreshLayout.Store(true)
 	w.FrameFn()
 	if after := w.scrollY().GetOr("lb-view", 0); after != before {
 		t.Fatalf("visible row moved the offset: %v -> %v", before, after)
@@ -79,7 +79,7 @@ func TestScrollIndexIntoViewIsANoOpWhenVisible(t *testing.T) {
 	// lands on the viewport bottom, not its top on the viewport top.
 	m, _ := listHeightLookup(w, "lb-view")
 	w.ScrollIndexIntoView("lb-view", 40)
-	w.refreshLayout = true
+	w.refreshLayout.Store(true)
 	w.FrameFn()
 	sc, _ := findScrollLayout(w, "lb-view")
 	viewH := sc.Shape.Height - sc.Shape.paddingHeight()
@@ -93,7 +93,7 @@ func TestScrollIndexIntoViewIsANoOpWhenVisible(t *testing.T) {
 func TestScrollToEndPinsTheBottom(t *testing.T) {
 	w := scrollIndexListWindow("lb-end", 500)
 	w.ScrollToEnd("lb-end")
-	w.refreshLayout = true
+	w.refreshLayout.Store(true)
 	w.FrameFn()
 	sc, _ := findScrollLayout(w, "lb-end")
 	got := w.scrollY().GetOr("lb-end", 0)
@@ -112,7 +112,7 @@ func TestScrollToIndexAtFraction(t *testing.T) {
 	viewH := sc.Shape.Height - sc.Shape.paddingHeight()
 
 	w.ScrollToIndexAt("lb-frac", 200, 0.5)
-	w.refreshLayout = true
+	w.refreshLayout.Store(true)
 	w.FrameFn()
 	got := w.scrollY().GetOr("lb-frac", 0)
 	want := -(m.Prefix(200) - 0.5*(viewH-m.Height(200)))
@@ -224,7 +224,7 @@ func TestScrollToIndexOnTableRespectsFreeze(t *testing.T) {
 			})},
 		})
 	}
-	w.refreshLayout = true
+	w.refreshLayout.Store(true)
 	w.FrameFn()
 
 	scrollID := tableScrollID(&TableCfg{ID: "tbl"}, true)
@@ -236,7 +236,7 @@ func TestScrollToIndexOnTableRespectsFreeze(t *testing.T) {
 		t.Fatalf("indexBase = %d, want 1 (frozen header)", m.indexBase)
 	}
 	w.ScrollToIndex(scrollID, 100)
-	w.refreshLayout = true
+	w.refreshLayout.Store(true)
 	w.FrameFn()
 	got := w.scrollY().GetOr(scrollID, 0)
 	// Data index 100 is model item 99: the header is not scrollable.

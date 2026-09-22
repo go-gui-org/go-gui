@@ -136,7 +136,7 @@ func TestScrollbarThumbReachesTrackEnd(t *testing.T) {
 			},
 		})
 	}
-	w.refreshLayout = true
+	w.refreshLayout.Store(true)
 	w.FrameFn()
 
 	overflow, ok := w.ScrollOverflowY("scroller")
@@ -144,7 +144,7 @@ func TestScrollbarThumbReachesTrackEnd(t *testing.T) {
 		t.Fatalf("overflow = %v, %v, want a small positive overflow", overflow, ok)
 	}
 	w.ScrollVerticalTo("scroller", -overflow)
-	w.refreshLayout = true
+	w.refreshLayout.Store(true)
 	w.FrameFn()
 
 	sc, ok := w.layout.FindByID("scroller")

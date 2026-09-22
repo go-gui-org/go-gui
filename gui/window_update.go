@@ -139,15 +139,15 @@ func (w *Window) flushCommands() {
 // wakes the loop. Frame-thread sites (svg, command queue, testing hooks)
 // correctly do not wake — the loop is already running.
 func (w *Window) markLayoutRefresh() {
-	w.refreshLayout = true
-	w.refreshRenderOnly = false
+	w.refreshLayout.Store(true)
+	w.refreshRenderOnly.Store(false)
 }
 
 // markRenderOnlyRefresh requests a renderer-only rebuild from the
 // existing layout tree. No-op if a full layout refresh is pending.
 func (w *Window) markRenderOnlyRefresh() {
-	if !w.refreshLayout {
-		w.refreshRenderOnly = true
+	if !w.refreshLayout.Load() {
+		w.refreshRenderOnly.Store(true)
 	}
 }
 
@@ -239,8 +239,8 @@ func (w *Window) FrameFn() bool {
 	// picks it up anyway.
 	ran := false
 	for pass := 0; pass < 2 &&
-		(ran || w.refreshLayout || w.refreshRenderOnly); pass++ {
-		if w.refreshLayout || ran {
+		(ran || w.refreshLayout.Load() || w.refreshRenderOnly.Load()); pass++ {
+		if w.refreshLayout.Load() || ran {
 			ran = w.Update()
 		} else {
 			ran = w.updateRenderOnly()
@@ -316,8 +316,8 @@ func (w *Window) updateLocked() {
 	w.mu.Lock()
 	w.inFramePass.Store(true)
 	defer w.inFramePass.Store(false)
-	w.refreshLayout = false
-	w.refreshRenderOnly = false
+	w.refreshLayout.Store(false)
+	w.refreshRenderOnly.Store(false)
 	// Every full layout rebuild may have changed a11y-visible state
 	// (labels, geometry, roles, live values). Mark the tree dirty so
 	// syncA11y pushes once the throttle allows (issue #407).
@@ -439,7 +439,7 @@ func (w *Window) renderOnlyLocked() {
 	w.inFramePass.Store(true)
 	defer w.inFramePass.Store(false)
 	defer w.mu.Unlock()
-	w.refreshRenderOnly = false
+	w.refreshRenderOnly.Store(false)
 	w.buildRenderers(w.Config.BgColor, w.windowRect())
 }
 

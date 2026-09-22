@@ -141,7 +141,7 @@ func (w *Window) TestRender(view func(*Window) View) *Layout {
 	// new hover target, a scrollbar hook part that changed size), so a
 	// frame on screen shows the settled tree. Do the same, or a one-shot
 	// capture shows the first pass.
-	if w.refreshLayout {
+	if w.refreshLayout.Load() {
 		w.Update()
 	}
 	return &w.layout
@@ -155,11 +155,11 @@ func (w *Window) TestRender(view func(*Window) View) *Layout {
 // in layoutAdjustScrollOffsets during arrange, not in the scroll
 // handler.
 func (w *Window) settle() {
-	if w.refreshLayout {
+	if w.refreshLayout.Load() {
 		w.Update()
 		return
 	}
-	if w.refreshRenderOnly {
+	if w.refreshRenderOnly.Load() {
 		w.updateRenderOnly()
 	}
 }

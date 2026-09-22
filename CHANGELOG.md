@@ -131,6 +131,14 @@ and this project adheres to
 
 ### Fixed
 
+- **`InvalidateLayout` and `InvalidateRender` are race-free from other
+  goroutines** — both methods document any-goroutine use, but the refresh flags
+  they set were plain `bool` fields that the frame loop reads and clears. A
+  background goroutine that asked for a repaint while a frame ran tripped the
+  race detector, and in principle could lose the request. The flags are now
+  `atomic.Bool`. Behaviour for single-goroutine callers is unchanged; no
+  exported surface moves.
+
 - **Windows notifications use native APIs and application identity (#745)** —
   Windows 10 and later send WinRT notifications under an identity bound to the
   source executable. Notifications keep the application name in Notification

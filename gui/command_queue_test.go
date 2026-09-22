@@ -67,7 +67,7 @@ func TestAnimationCommands_NilSafe(t *testing.T) {
 func TestCommandMarkLayoutRefreshSetsFlag(t *testing.T) {
 	w := &Window{}
 	commandMarkLayoutRefresh(w)
-	if !w.refreshLayout {
+	if !w.refreshLayout.Load() {
 		t.Error("refreshLayout should be true")
 	}
 }
@@ -75,7 +75,7 @@ func TestCommandMarkLayoutRefreshSetsFlag(t *testing.T) {
 func TestCommandMarkRenderOnlyRefreshSetsFlag(t *testing.T) {
 	w := &Window{}
 	commandMarkRenderOnlyRefresh(w)
-	if !w.refreshRenderOnly {
+	if !w.refreshRenderOnly.Load() {
 		t.Error("refreshRenderOnly should be true")
 	}
 }

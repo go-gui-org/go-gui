@@ -58,7 +58,7 @@ func TestScrollbarThumbHookFillsThumb(t *testing.T) {
 	var thumb, track ScrollbarState
 	w := NewTestWindow(WindowCfg{})
 	w.TestRender(lookList(20, &thumb, &track))
-	if w.refreshLayout {
+	if w.refreshLayout.Load() {
 		t.Fatal("sizes still changing after the second pass")
 	}
 

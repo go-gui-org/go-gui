@@ -41,7 +41,7 @@ func TestStreamAppliesItemsInOrder(t *testing.T) {
 	state := &streamTestState{}
 	w := NewWindow(WindowCfg{State: state})
 	defer w.WindowCleanup()
-	w.refreshLayout = false
+	w.refreshLayout.Store(false)
 
 	ch := make(chan string, 4)
 	done := Stream(w, ch, streamAppend)
@@ -59,7 +59,7 @@ func TestStreamAppliesItemsInOrder(t *testing.T) {
 	// The #559 regression: values applied but no frame scheduled,
 	// so the window would sit stale until the next input event.
 	// Stream's InvalidateLayout must have armed a full layout refresh.
-	if !w.refreshLayout {
+	if !w.refreshLayout.Load() {
 		t.Error("refreshLayout: got false, want true")
 	}
 
