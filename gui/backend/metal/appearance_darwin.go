@@ -32,6 +32,14 @@ func (n *nativePlatform) SystemAppearance() (gui.Appearance, bool) {
 	return gui.AppearanceLight, true
 }
 
+// PrefersReducedMotion reports the OS reduce-motion setting
+// (issue #757). Queried per call: the theme fade and the SVG
+// parser read it only when a theme changes or an SVG loads, so no
+// watcher is needed.
+func (n *nativePlatform) PrefersReducedMotion() bool {
+	return C.metalPrefersReducedMotion() != 0
+}
+
 // SetSystemAppearanceCallback registers cb for OS appearance
 // changes. The KVO observer runs while at least one window is
 // registered; the last unregister stops it. A nil cb unregisters.

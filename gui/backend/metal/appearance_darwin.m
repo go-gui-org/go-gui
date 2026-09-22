@@ -14,6 +14,12 @@ int metalSystemAppearanceDark(void) {
   return [match isEqualToString:NSAppearanceNameDarkAqua] ? 1 : 0;
 }
 
+int metalPrefersReducedMotion(void) {
+  return NSWorkspace.sharedWorkspace.accessibilityDisplayShouldReduceMotion
+             ? 1
+             : 0;
+}
+
 // AppearanceObserver forwards effectiveAppearance KVO changes to Go.
 @interface GoGuiAppearanceObserver : NSObject
 @end

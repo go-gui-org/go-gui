@@ -33,3 +33,26 @@ func TestParseGsettingsColorScheme(t *testing.T) {
 		})
 	}
 }
+
+func TestParseGsettingsEnableAnimations(t *testing.T) {
+	cases := []struct {
+		name        string
+		in          string
+		wantReduced bool
+		wantOK      bool
+	}{
+		{"animations off", "false\n", true, true},
+		{"animations on", "true\n", false, true},
+		{"garbage", "oops\n", false, false},
+		{"empty", "", false, false},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			got, ok := parseGsettingsEnableAnimations(c.in)
+			if got != c.wantReduced || ok != c.wantOK {
+				t.Errorf("parse(%q): got (%v, %v), want (%v, %v)",
+					c.in, got, ok, c.wantReduced, c.wantOK)
+			}
+		})
+	}
+}

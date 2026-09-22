@@ -46,6 +46,30 @@ func TestNoteSystemAppearanceFansOutOnFlip(t *testing.T) {
 	}
 }
 
+// Regression (issue #757): SPI_GETCLIENTAREAANIMATION reports
+// animations enabled, so the report inverts to reduced motion. A
+// failed query reads as no preference.
+func TestPrefersReducedMotionInvertsClientAreaAnimation(t *testing.T) {
+	old := clientAreaAnimationQuery
+	defer func() { clientAreaAnimationQuery = old }()
+	n := &nativePlatform{}
+
+	clientAreaAnimationQuery = func() (bool, bool) { return false, true }
+	if !n.PrefersReducedMotion() {
+		t.Error("animations disabled: want reduced motion")
+	}
+
+	clientAreaAnimationQuery = func() (bool, bool) { return true, true }
+	if n.PrefersReducedMotion() {
+		t.Error("animations enabled: want no reduced motion")
+	}
+
+	clientAreaAnimationQuery = func() (bool, bool) { return false, false }
+	if n.PrefersReducedMotion() {
+		t.Error("failed query: want no preference")
+	}
+}
+
 // Regression: the first WM_SETTINGCHANGE after subscribe fanned out
 // even when the setting had not changed, because nothing seeded the
 // last-known value. Any setting change broadcasts the message.

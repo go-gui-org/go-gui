@@ -10,6 +10,15 @@ and this project adheres to
 
 ### Added
 
+- **Backends report the OS reduce-motion setting (#757)** — the Metal backend
+  (macOS `NSWorkspace.accessibilityDisplayShouldReduceMotion`), the GL backend
+  on Windows (`SPI_GETCLIENTAREAANIMATION`, inverted) and the GL backend on
+  Linux (GNOME `enable-animations`, inverted) now implement
+  `PrefersReducedMotion`. The #753 theme fade snaps instead of fading when the
+  OS asks for reduced motion, and SVG `prefers-reduced-motion` media queries now
+  match `reduce` on those backends. Queries that fail, and platforms with no
+  setting (non-GNOME Linux desktops, web, iOS, Android), report no preference
+  and keep animating.
 - **Per-widget theme overrides (#754)** — `Theme.With` applies a geometry patch
   for one widget class (`ButtonPatch`, `InputPatch`, `SelectPatch`,
   `DialogPatch`, `ContainerPatch`), so an app states "all buttons use radius 2"
@@ -26,8 +35,7 @@ and this project adheres to
   re-runs layout mid-way. `Window.Theme` returns the new theme at once. A fade
   frame allocates nothing (one reused scratch theme per window). The fade is
   skipped before a window's first frame, and when the backend reports
-  `PrefersReducedMotion`; no backend reports it yet. Zero, the default, keeps
-  the old one-frame switch.
+  `PrefersReducedMotion`. Zero, the default, keeps the old one-frame switch.
 - **Windows follow the OS light/dark setting (#752)** —
   `FollowSystemAppearance(light, dark)` pins the matching theme from the current
   OS setting and re-pins on every OS change, until an explicit `SetTheme` ends
