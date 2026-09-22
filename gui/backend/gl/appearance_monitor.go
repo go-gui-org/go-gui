@@ -51,6 +51,7 @@ var monitorRestartDelay = 2 * time.Second
 // simply never fire.
 func startAppearanceMonitorLocked() {
 	cmd := exec.Command(monitorCommand[0], monitorCommand[1:]...)
+	cmd.SysProcAttr = monitorSysProcAttr()
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return

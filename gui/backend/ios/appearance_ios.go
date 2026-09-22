@@ -26,8 +26,9 @@ var (
 )
 
 // SystemAppearance reads the last trait collection the view
-// controller saw. Always known on device; before first layout it
-// reads light.
+// controller saw. Always known: the view controller seeds the value
+// before goIOSInit attaches this platform, so no query can run
+// ahead of the seed.
 func (n *nativePlatform) SystemAppearance() (gui.Appearance, bool) {
 	if C.iosAppearanceDark() != 0 {
 		return gui.AppearanceDark, true
