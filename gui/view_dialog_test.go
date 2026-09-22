@@ -487,11 +487,11 @@ func TestRetainDialogFocus_DefaultButtonYes(t *testing.T) {
 
 func TestDialogMarksLayoutRefresh(t *testing.T) {
 	w := NewWindow(WindowCfg{})
-	w.refreshLayout = false
+	w.refreshLayout.Store(false)
 	w.dialogCfg = DialogCfg{} // visible=false
 
 	w.Dialog(DialogCfg{DialogType: DialogMessage, Title: "Hi"})
-	if !w.refreshLayout {
+	if !w.refreshLayout.Load() {
 		t.Error("Dialog should mark layout refresh")
 	}
 }
@@ -499,10 +499,10 @@ func TestDialogMarksLayoutRefresh(t *testing.T) {
 func TestDialogDismissMarksLayoutRefresh(t *testing.T) {
 	w := NewWindow(WindowCfg{})
 	w.Dialog(DialogCfg{DialogType: DialogMessage, Title: "Hi"})
-	w.refreshLayout = false
+	w.refreshLayout.Store(false)
 
 	w.DialogDismiss()
-	if !w.refreshLayout {
+	if !w.refreshLayout.Load() {
 		t.Error("DialogDismiss should mark layout refresh")
 	}
 }

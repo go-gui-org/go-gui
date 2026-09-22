@@ -1,17 +1,19 @@
 package gui
 
 import (
+	"sync"
 	"testing"
 	"time"
 )
 
 func TestMarkLayoutRefreshClearsRenderOnly(t *testing.T) {
-	w := &Window{refreshRenderOnly: true}
+	w := &Window{}
+	w.refreshRenderOnly.Store(true)
 	w.markLayoutRefresh()
-	if !w.refreshLayout {
+	if !w.refreshLayout.Load() {
 		t.Error("refreshLayout should be true")
 	}
-	if w.refreshRenderOnly {
+	if w.refreshRenderOnly.Load() {
 		t.Error("refreshRenderOnly should be false")
 	}
 }
@@ -19,21 +21,22 @@ func TestMarkLayoutRefreshClearsRenderOnly(t *testing.T) {
 func TestMarkRenderOnlyRefreshSetsWhenLayoutNotPending(t *testing.T) {
 	w := &Window{}
 	w.markRenderOnlyRefresh()
-	if w.refreshLayout {
+	if w.refreshLayout.Load() {
 		t.Error("refreshLayout should be false")
 	}
-	if !w.refreshRenderOnly {
+	if !w.refreshRenderOnly.Load() {
 		t.Error("refreshRenderOnly should be true")
 	}
 }
 
 func TestMarkRenderOnlyRefreshSkipsWhenLayoutPending(t *testing.T) {
-	w := &Window{refreshLayout: true}
+	w := &Window{}
+	w.refreshLayout.Store(true)
 	w.markRenderOnlyRefresh()
-	if !w.refreshLayout {
+	if !w.refreshLayout.Load() {
 		t.Error("refreshLayout should remain true")
 	}
-	if w.refreshRenderOnly {
+	if w.refreshRenderOnly.Load() {
 		t.Error("refreshRenderOnly should remain false")
 	}
 }
@@ -134,7 +137,7 @@ func TestFrameFnPresentsCaretPatchWithoutRebuild(t *testing.T) {
 	if w.renderersDirty {
 		t.Error("FrameFn should clear renderersDirty")
 	}
-	if w.refreshLayout || w.refreshRenderOnly {
+	if w.refreshLayout.Load() || w.refreshRenderOnly.Load() {
 		t.Error("blink patch must not request a rebuild")
 	}
 }
@@ -151,7 +154,7 @@ func focusedInputWindow(t *testing.T) *Window {
 			Content: []View{Input(InputCfg{ID: "f900"})},
 		})
 	}
-	w.refreshLayout = true
+	w.refreshLayout.Store(true)
 	w.FrameFn()
 	if !w.caretCmd.ok {
 		t.Fatal("focused input should record a caret command")
@@ -197,7 +200,7 @@ func TestBlinkTickPresentsWithoutRebuild(t *testing.T) {
 	w.queueCommandsBatch(deferred)
 	w.flushCommands()
 
-	if w.refreshLayout || w.refreshRenderOnly {
+	if w.refreshLayout.Load() || w.refreshRenderOnly.Load() {
 		t.Fatal("blink toggle must not request any refresh")
 	}
 	if !w.FrameFn() {
@@ -256,10 +259,76 @@ func TestAnimateRefreshKindOverride(t *testing.T) {
 func TestInvalidateRenderSetsRenderOnly(t *testing.T) {
 	w := &Window{}
 	w.InvalidateRender()
-	if w.refreshLayout {
+	if w.refreshLayout.Load() {
 		t.Error("refreshLayout should be false")
 	}
-	if !w.refreshRenderOnly {
+	if !w.refreshRenderOnly.Load() {
 		t.Error("refreshRenderOnly should be true")
+	}
+}
+
+// TestInvalidateLayoutConcurrentNoRace hammers InvalidateLayout from a
+// worker goroutine while the frame loop runs. InvalidateLayout promises
+// any-goroutine use, so this must report no race under -race: the
+// refresh flags it writes are read and cleared by the frame pass
+// (window_update.go). With plain bool flags the detector fires on
+// markLayoutRefresh vs updateLocked/FrameFn; atomic.Bool silences it.
+func TestInvalidateLayoutConcurrentNoRace(t *testing.T) {
+	w := NewWindow(WindowCfg{State: new(int), Width: 100, Height: 100})
+	w.viewGenerator = func(_ *Window) View {
+		return Text(TextCfg{Text: "x"})
+	}
+	const frames = 500
+	var wg sync.WaitGroup
+	wg.Go(func() {
+		for range frames {
+			w.InvalidateLayout()
+		}
+	})
+	for range frames {
+		w.FrameFn()
+	}
+	wg.Wait()
+}
+
+// TestInvalidateRenderConcurrentNoRace covers the one compound
+// operation in the atomic conversion: markRenderOnlyRefresh loads
+// refreshLayout and then stores refreshRenderOnly, so two goroutines
+// can interleave between the two. Both flags ending true is benign —
+// FrameFn checks refreshLayout first — but the pair must not race.
+func TestInvalidateRenderConcurrentNoRace(t *testing.T) {
+	w := NewWindow(WindowCfg{State: new(int), Width: 100, Height: 100})
+	w.viewGenerator = func(_ *Window) View {
+		return Text(TextCfg{Text: "x"})
+	}
+	const frames = 500
+	var wg sync.WaitGroup
+	wg.Go(func() {
+		for range frames {
+			w.InvalidateRender()
+		}
+	})
+	wg.Go(func() {
+		for range frames {
+			w.InvalidateLayout()
+		}
+	})
+	for range frames {
+		w.FrameFn()
+	}
+	wg.Wait()
+}
+
+// TestNewWindowRequestsFirstFrame pins the seed that moved out of the
+// NewWindow struct literal when the flag became atomic.Bool. A dropped
+// Store leaves a new window with nothing to paint until some other
+// event marks it dirty, and no other test asserts the flag directly.
+func TestNewWindowRequestsFirstFrame(t *testing.T) {
+	w := NewWindow(WindowCfg{State: new(int), Width: 100, Height: 100})
+	if !w.refreshLayout.Load() {
+		t.Error("NewWindow should request a first layout pass")
+	}
+	if w.refreshRenderOnly.Load() {
+		t.Error("NewWindow should not request a render-only pass")
 	}
 }

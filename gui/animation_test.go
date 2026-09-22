@@ -264,7 +264,7 @@ func TestAnimateSetStart(t *testing.T) {
 func TestCommandMarkLayoutRefresh(t *testing.T) {
 	w := &Window{}
 	commandMarkLayoutRefresh(w)
-	if !w.refreshLayout {
+	if !w.refreshLayout.Load() {
 		t.Error("should set refreshLayout")
 	}
 }
@@ -272,7 +272,7 @@ func TestCommandMarkLayoutRefresh(t *testing.T) {
 func TestCommandMarkRenderOnlyRefresh(t *testing.T) {
 	w := &Window{}
 	commandMarkRenderOnlyRefresh(w)
-	if !w.refreshRenderOnly {
+	if !w.refreshRenderOnly.Load() {
 		t.Error("should set refreshRenderOnly")
 	}
 }

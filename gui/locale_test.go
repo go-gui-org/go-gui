@@ -107,7 +107,7 @@ func TestWindowSetLocale(t *testing.T) {
 		t.Fatalf("CurrentLocale().ID = %q, want de-DE", CurrentLocale().ID)
 	}
 	// The locale swap must have requested a window refresh.
-	if !w.refreshLayout {
+	if !w.refreshLayout.Load() {
 		t.Fatal("SetLocale should mark the window for a layout refresh")
 	}
 }
@@ -124,7 +124,7 @@ func TestWindowSetLocaleIDKnown(t *testing.T) {
 	if CurrentLocale().ID != "de-DE" {
 		t.Fatalf("CurrentLocale().ID = %q, want de-DE", CurrentLocale().ID)
 	}
-	if !w.refreshLayout {
+	if !w.refreshLayout.Load() {
 		t.Fatal("SetLocaleID should mark the window for a layout refresh")
 	}
 }
@@ -142,7 +142,7 @@ func TestWindowSetLocaleIDUnknown(t *testing.T) {
 		t.Fatalf("CurrentLocale() changed to %q on a failed lookup",
 			CurrentLocale().ID)
 	}
-	if w.refreshLayout {
+	if w.refreshLayout.Load() {
 		t.Fatal("failed lookup must not request a window refresh")
 	}
 }

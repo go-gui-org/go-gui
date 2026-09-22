@@ -266,7 +266,7 @@ func contractTransition(t *testing.T, w *Window, ctl *contractCtl, tr contractTr
 	case transDialog:
 		w.dialogCfg.visible = true
 	}
-	w.refreshLayout = true
+	w.refreshLayout.Store(true)
 	w.TestRender(nil)
 }
 

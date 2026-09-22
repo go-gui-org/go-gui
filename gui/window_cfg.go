@@ -157,7 +157,6 @@ func NewWindow(cfg WindowCfg) *Window {
 		windowHeight:  cfg.Height,
 		windowOpacity: 1,
 		focused:       true,
-		refreshLayout: true,
 		OnEvent:       cfg.OnEvent,
 		Config:        cfg,
 		scratch:       newScratchPools(),
@@ -173,6 +172,9 @@ func NewWindow(cfg WindowCfg) *Window {
 			animationResumeCh: make(chan struct{}, 1),
 		},
 	}
+	// A new window paints on its first frame. Seeded here, not in the
+	// literal above: atomic.Bool takes no bool literal (see window.go).
+	w.refreshLayout.Store(true)
 	if cfg.DebugTimeTravel {
 		w.enableHistory(cfg.HistoryBytes)
 	}

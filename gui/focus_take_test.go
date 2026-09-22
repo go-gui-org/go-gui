@@ -76,7 +76,7 @@ func TestDisabledFocusMovesToFirstTabStop(t *testing.T) {
 		t.Fatalf("setup: FocusID() = %q, want %q", got, "fix-b")
 	}
 	disabled = true
-	w.refreshLayout = true
+	w.refreshLayout.Store(true)
 	w.Update()
 	if got := w.FocusID(); got != "fix-a" {
 		t.Fatalf("FocusID() = %q, want %q", got, "fix-a")
@@ -104,7 +104,7 @@ func TestFocusClearedWhenNothingFocusable(t *testing.T) {
 			},
 		})
 	}
-	w.refreshLayout = true
+	w.refreshLayout.Store(true)
 	w.Update()
 	if got := w.FocusID(); got != "" {
 		t.Fatalf("FocusID() = %q, want empty", got)
@@ -151,7 +151,7 @@ func TestRemovedFocusMovesToFirstTabStop(t *testing.T) {
 			},
 		})
 	}
-	w.refreshLayout = true
+	w.refreshLayout.Store(true)
 	w.Update()
 	if got := w.FocusID(); got != "fix-a" {
 		t.Fatalf("FocusID() = %q, want %q", got, "fix-a")

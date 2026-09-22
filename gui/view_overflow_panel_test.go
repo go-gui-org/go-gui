@@ -106,7 +106,7 @@ func TestOverflowPanelOpensUnderIDScope(t *testing.T) {
 			})},
 		})
 	}
-	w.refreshLayout = true
+	w.refreshLayout.Store(true)
 	w.FrameFn()
 	// Second frame: the first one writes the overflow count, and the
 	// panel reads it on the next generation.
@@ -126,7 +126,7 @@ func TestOverflowPanelOpensUnderIDScope(t *testing.T) {
 		MouseX: trig.Shape.X + trig.Shape.Width/2,
 		MouseY: trig.Shape.Y + trig.Shape.Height/2,
 	})
-	w.refreshLayout = true
+	w.refreshLayout.Store(true)
 	w.FrameFn()
 
 	if _, found := w.layout.FindByID("outer:op:menu"); !found {
@@ -141,7 +141,7 @@ func TestOverflowPanelOpensUnderIDScope(t *testing.T) {
 		MouseX: trig.Shape.X + trig.Shape.Width/2,
 		MouseY: trig.Shape.Y + trig.Shape.Height/2,
 	})
-	w.refreshLayout = true
+	w.refreshLayout.Store(true)
 	w.FrameFn()
 
 	if _, found := w.layout.FindByID("outer:op:menu"); found {

@@ -384,7 +384,7 @@ func scrollbarTrackX(t *testing.T, override *ScrollbarCfg) float32 {
 			Content:       rows,
 		})
 	}
-	w.refreshLayout = true
+	w.refreshLayout.Store(true)
 	w.FrameFn()
 
 	sc, ok := w.layout.FindByID("scroller")
@@ -438,7 +438,7 @@ func scrollbarTrackH(t *testing.T, override *ScrollbarCfg) (track, scroller *Lay
 			Content:       cells,
 		})
 	}
-	w.refreshLayout = true
+	w.refreshLayout.Store(true)
 	w.FrameFn()
 
 	sc, ok := w.layout.FindByID("scroller")

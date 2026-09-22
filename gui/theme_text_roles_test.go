@@ -221,7 +221,7 @@ func TestFieldControlsShareHeight(t *testing.T) {
 				Content: []View{build()},
 			})
 		}
-		w.refreshLayout = true
+		w.refreshLayout.Store(true)
 		w.FrameFn()
 		// Root -> filling wrapper -> the control.
 		field := &w.layout.Children[0].Children[0]

@@ -23,8 +23,8 @@ func newPumpTestWindow() *Window {
 
 func TestPumpFrameFlushesAndRebuilds(t *testing.T) {
 	w := newPumpTestWindow()
-	w.refreshLayout = false
-	w.refreshRenderOnly = false
+	w.refreshLayout.Store(false)
+	w.refreshRenderOnly.Store(false)
 
 	// A command queued while the backend loop is blocked — e.g. a
 	// terminal's debounced resize wake — must still be flushed.
@@ -40,14 +40,14 @@ func TestPumpFrameFlushesAndRebuilds(t *testing.T) {
 	if !flushed {
 		t.Error("queued command not flushed")
 	}
-	if w.refreshLayout {
+	if w.refreshLayout.Load() {
 		t.Error("refreshLayout should be cleared by the pumped frame")
 	}
 }
 
 func TestPumpFrameSkipsWhenLocked(t *testing.T) {
 	w := newPumpTestWindow()
-	w.refreshLayout = true
+	w.refreshLayout.Store(true)
 
 	// Stand in for a caller further up the stack — an event handler
 	// that opened the modal dialog from inside locked window code.
@@ -58,14 +58,14 @@ func TestPumpFrameSkipsWhenLocked(t *testing.T) {
 	if w.PumpFrame() {
 		t.Error("PumpFrame should decline the frame while the window is locked")
 	}
-	if !w.refreshLayout {
+	if !w.refreshLayout.Load() {
 		t.Error("pending refresh must survive a declined pump")
 	}
 }
 
 func TestPumpFrameRejectsReentry(t *testing.T) {
 	w := newPumpTestWindow()
-	w.refreshLayout = true
+	w.refreshLayout.Store(true)
 
 	// The timer firing again inside a command callback that itself
 	// spins a runloop.

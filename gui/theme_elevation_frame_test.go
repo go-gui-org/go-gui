@@ -31,7 +31,7 @@ func frameCmds(t *testing.T, theme Theme, build func(*Window) View,
 	if focusID != "" {
 		w.SetFocus(focusID)
 	}
-	w.refreshLayout = true
+	w.refreshLayout.Store(true)
 	w.FrameFn()
 	if len(w.renderers) == 0 {
 		t.Fatal("pipeline emitted no render commands")

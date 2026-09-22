@@ -155,7 +155,7 @@ func TestIMEEditContextThroughRealFrame(t *testing.T) {
 				})
 			}
 			w.SetFocus(c.focusID)
-			w.refreshLayout = true
+			w.refreshLayout.Store(true)
 			w.FrameFn()
 
 			if got := spy.starts > 0; got != c.want {
@@ -181,7 +181,7 @@ func TestIMEEditContextUnderIDScope(t *testing.T) {
 		})
 	}
 	w.SetFocus("panel:field")
-	w.refreshLayout = true
+	w.refreshLayout.Store(true)
 	w.FrameFn()
 
 	if spy.starts != 1 {
@@ -373,7 +373,7 @@ func TestBlinkCursorThroughRealFrame(t *testing.T) {
 				})
 			}
 			w.SetFocus(c.focusID)
-			w.refreshLayout = true
+			w.refreshLayout.Store(true)
 			w.FrameFn()
 
 			if got := w.HasAnimation(blinkCursorAnimationID); got != c.want {
@@ -447,7 +447,7 @@ func TestBlinkCursorWindowFocusThroughRealFrame(t *testing.T) {
 		})
 	}
 	w.SetFocus("field")
-	w.refreshLayout = true
+	w.refreshLayout.Store(true)
 	w.FrameFn()
 	if !w.HasAnimation(blinkCursorAnimationID) {
 		t.Fatal("blink animation missing for a focused input")
