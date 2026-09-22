@@ -19,12 +19,12 @@ when all steps are done, followed by a pass/fail summary. The race tests and the
 coverage gate share one test run (`make test-race-cover`).
 
 When only the fast gate checks are wanted, `make check` (vet, deps-doc,
-large-files, generate-check, tidy-check) is the quick subset. The tracked
-`.githooks/pre-push` hook runs `make check-all` (test + lint + check) on every
-push — enable it with `git config core.hooksPath .githooks`. gosec must be
-installed. golangci-lint does not: `make lint` builds the pinned version into
-`.bin/` from the `tools/lint` module, which is where the version lives. CI runs
-the same `make lint`, so local and CI cannot use different linters.
+large-files, generate-check, tidy-check, the widget-ID audit) is the quick
+subset. The tracked `.githooks/pre-push` hook runs `make prepush` on every push
+— enable it with `git config core.hooksPath .githooks`. gosec must be installed.
+golangci-lint does not: `make lint` builds the pinned version into `.bin/` from
+the `tools/lint` module, which is where the version lives. CI runs the same
+`make lint`, so local and CI cannot use different linters.
 
 For a tight edit → rebuild → relaunch loop while iterating on an example app,
 see [docs/dev-loop.md](docs/dev-loop.md)
@@ -116,9 +116,8 @@ the bare read is also what makes `gui.Themed` subtree scoping work.
 
 1. Fork, create a feature branch, make focused commits.
 2. Add or update tests.
-3. Run `make check-all` (test + lint + the `make check` gate). Run
-   `make prepush` once per branch for the full gate (race, cross-lint,
-   cross-compile, coverage, export audit).
+3. Run `make prepush` for the full gate (race, cross-lint, cross-compile,
+   coverage, export audit). The pre-push hook runs it too.
 4. Open a pull request against `main`.
 5. Once review and CI pass, squash-merge — `gh pr merge --squash` — after
    rebasing on the current `main` if it moved.

@@ -22,7 +22,7 @@ LINT_BIN = $(LINT_DIR)/golangci-lint
 LINT_ARGS ?=
 
 .PHONY: build-linux build-windows build-macos build-wasm build-ios build-android build-examples \
-	package-linux package-windows package-macos release clean test test-race vet lint lint-bin lint-cross lint-windows lint-js cross-compile coverage-gate test-race-cover prepush check bench bench-gate deps-doc deps-doc-check security gosec govulncheck large-files deadcode generate-check tidy-check workflow-audit cov-report license-check ergonomics-audit ergonomics-audit-fix ergonomics-audit-fix-dry fmt-md fmt-md-check
+	package-linux package-windows package-macos release clean test test-race vet lint lint-bin lint-cross lint-windows lint-js cross-compile coverage-gate test-race-cover prepush check bench bench-gate deps-doc deps-doc-check security gosec govulncheck large-files deadcode generate-check tidy-check workflow-audit cov-report license-check ergonomics-audit ergo-ids ergonomics-audit-fix ergonomics-audit-fix-dry fmt-md fmt-md-check
 
 # Desktop builds are cgo-free since the purego GL bindings (#155): the
 # backend/gl uses X11/xgb + purego EGL on Linux and Win32 syscalls on
@@ -323,14 +323,19 @@ coverage-gate:
 # -race forces -covermode=atomic, so the un-raced pass uses atomic too;
 # the profiles must share one mode to be merged. The merged profile keeps
 # only gui/ lines, to match the ./gui/... scope of coverage-gate.
+#
+# No -count=1, unlike test and test-race: Go's test cache serves a
+# package whose sources, env vars and read files did not change. A
+# prepush re-run after a non-Go fix (CHANGELOG, lint) then takes ~8s
+# instead of ~50s. CI's own test jobs keep their -count flags.
 COV_DIR = /tmp/go-gui-prepush-cov
 test-race-cover:
 	@rm -rf $(COV_DIR) && mkdir -p $(COV_DIR)
-	go test -race -count=1 -timeout=10m -coverprofile=$(COV_DIR)/race.out \
+	go test -race -timeout=10m -coverprofile=$(COV_DIR)/race.out \
 	  $$(go list ./... | grep -v -e '/gui/backend/gl$$' -e '/gui/audio$$')
-	CGO_ENABLED=0 go test -count=1 -timeout=5m -covermode=atomic \
+	CGO_ENABLED=0 go test -timeout=5m -covermode=atomic \
 	  -coverprofile=$(COV_DIR)/gl.out ./gui/backend/gl/
-	go test -count=1 -timeout=5m -covermode=atomic \
+	go test -timeout=5m -covermode=atomic \
 	  -coverprofile=$(COV_DIR)/audio.out ./gui/audio/
 	@{ echo 'mode: atomic'; \
 	  grep -h '^github.com/go-gui-org/go-gui/gui/' $(COV_DIR)/race.out \
@@ -349,7 +354,7 @@ changelog-entry-check:
 
 # Run non-duplicated validation steps for CI gate.
 # test and lint run as separate CI jobs with OS matrices.
-check: vet deps-doc-check large-files generate-check tidy-check fmt-md-check changelog-check changelog-entry-check
+check: vet deps-doc-check large-files generate-check tidy-check fmt-md-check changelog-check changelog-entry-check ergo-ids
 
 # Run all validation steps: test, vet, lint, and gate checks.
 check-all: test lint check
@@ -357,8 +362,8 @@ check-all: test lint check
 # Recommended full local validation before pushing (issue #292):
 # approximates the CI matrix from one host — race tests, linux + cross-
 # GOOS lint, cgo-free cross-compiles, coverage gate, export audit. The
-# .githooks/pre-push hook runs make check-all; run prepush once per
-# branch to cover the rest. Omissions vs CI, by design: OS-matrix runs,
+# .githooks/pre-push hook runs it on every push. It is a superset of
+# check-all and faster, because its steps run at the same time. Omissions vs CI, by design: OS-matrix runs,
 # coverage diff (needs a main baseline) and benchmark gate, WASM node
 # tests, iOS/Android vet+lint (Xcode/NDK), Windows smoke test, release
 # packaging. `make check` is the fast gate when only gate checks are
@@ -476,6 +481,14 @@ ergonomics-audit:
 	go run ./tools/ergonomics-audit/ -mode a11y .
 	go run ./tools/ergonomics-audit/ -mode visual .
 	go run ./tools/ergonomics-audit/ -mode deadcfg .
+
+# The one pass/fail mode of ergonomics-audit, alone, for `check`: it
+# gates hand-rolled `:` composition of widget IDs. Mirror of CI's
+# "Ergo-audit IDs" vet step, which no local gate ran before; it was
+# the most common CI failure (2 of 5 in the 100 runs to 2026-09-22).
+# Under 1s, so `check` stays fast.
+ergo-ids:
+	go run ./tools/ergonomics-audit/ -mode ids .
 
 # Insert a generated ID into every broken literal in this repo's tests
 # and examples. Scoped away from gui/ deliberately: go-gui's own widget
