@@ -257,6 +257,10 @@ func init() {
 		Color:  colorTextLight,
 		Size:   sizeTextMedium,
 	}
+	// Bordered like the dark preset (issue #325): the light config
+	// never picked up the bordered default, so the showcase light
+	// theme rendered borderless while dark drew hairlines.
+	themeLightCfg.SizeBorder = sizeBorderDef
 	// Elevation (visual-refresh §5.3), the light tier consts; the
 	// dark pattern is in baseDarkCfg.
 	themeLightCfg.ShadowPopover = lightShadowPopover
