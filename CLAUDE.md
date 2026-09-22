@@ -7,8 +7,9 @@ Guidance for Claude Code (claude.ai/code) in this repo.
 ```
 go run ./examples/get_started/  # run the example app
 make prepush                    # full gate (race, cross-lint, cross-compile, coverage, export audit)
-make check-all                  # test + lint + check (.githooks/pre-push runs this)
-make check                      # fast gate (vet, deps-doc, large-files, generate/tidy/fmt-md/changelog checks)
+                                # .githooks/pre-push runs prepush
+make check-all                  # test + lint + check, one step after another
+make check                      # fast gate (vet, deps-doc, large-files, generate/tidy/fmt-md/changelog checks, widget-ID audit)
 make test / lint / vet          # individually
 make fmt-md                     # Prettier over tracked .md (.prettierrc holds the flags)
 make ergonomics-audit           # focus/callbacks/opt/ids/literals/theme/a11y/visual/deadcfg gates
