@@ -1,3 +1,4 @@
-Rect xy=14.00,14.00 wh=292.00,35.60 color=#ffffffff radius=6.00 fill
-Text xy=25.00,23.24 wh=0.00,0.00 color=#1a1d21ff text="File" size=14.00
-Text xy=83.60,21.06 wh=0.00,0.00 color=#1a1d2195 text="Grouped" size=12.00
+Rect xy=15.00,15.00 wh=290.00,39.60 color=#ffffffff radius=6.00 fill
+StrokeRect xy=15.00,15.00 wh=290.00,39.60 color=#d8dde4ff radius=6.00 thickness=1.00
+Text xy=28.00,26.24 wh=0.00,0.00 color=#1a1d21ff text="File" size=14.00
+Text xy=88.60,24.06 wh=0.00,0.00 color=#1a1d2195 text="Grouped" size=12.00

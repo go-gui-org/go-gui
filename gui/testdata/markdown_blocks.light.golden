@@ -1,12 +1,12 @@
-RTF xy=28.00,31.00 wh=0.00,0.00 text="" +glyphlayout glyphs=0 items=0
-RTF xy=28.00,31.00 wh=0.00,0.00 text="" +glyphlayout glyphs=0 items=0
-RTF xy=45.00,31.00 wh=0.00,0.00 text="" +glyphlayout glyphs=0 items=0
+RTF xy=30.00,33.00 wh=0.00,0.00 text="" +glyphlayout glyphs=0 items=0
+RTF xy=30.00,33.00 wh=0.00,0.00 text="" +glyphlayout glyphs=0 items=0
+RTF xy=47.00,33.00 wh=0.00,0.00 text="" +glyphlayout glyphs=0 items=0
 Clip xy=0.00,0.00 wh=0.00,0.00
 Clip xy=0.00,0.00 wh=320.00,240.00
-Rect xy=28.00,59.00 wh=264.00,1.00 color=#e6eaefff fill
-Text xy=28.00,60.00 wh=0.00,0.00 color=#1a1d21ff text="• " size=14.00
-RTF xy=58.80,60.00 wh=0.00,0.00 text="" +glyphlayout glyphs=0 items=0
-Text xy=28.00,79.60 wh=0.00,0.00 color=#1a1d21ff text="• " size=14.00
-RTF xy=58.80,79.60 wh=0.00,0.00 text="" +glyphlayout glyphs=0 items=0
-Text xy=277.40,37.97 wh=0.00,0.00 color=#808080ff text="\uf1b1" size=11.00
-Text xy=291.40,20.97 wh=0.00,0.00 color=#808080ff text="\uf1b1" size=11.00
+Rect xy=30.00,61.00 wh=260.00,1.00 color=#e6eaefff fill
+Text xy=30.00,62.00 wh=0.00,0.00 color=#1a1d21ff text="• " size=14.00
+RTF xy=60.80,62.00 wh=0.00,0.00 text="" +glyphlayout glyphs=0 items=0
+Text xy=30.00,81.60 wh=0.00,0.00 color=#1a1d21ff text="• " size=14.00
+RTF xy=60.80,81.60 wh=0.00,0.00 text="" +glyphlayout glyphs=0 items=0
+Text xy=275.40,39.97 wh=0.00,0.00 color=#808080ff text="\uf1b1" size=11.00
+Text xy=290.40,21.97 wh=0.00,0.00 color=#808080ff text="\uf1b1" size=11.00

@@ -1,4 +1,5 @@
-Rect xy=14.00,14.00 wh=160.00,29.60 color=#ffffffff radius=6.00 fill
-Clip xy=24.00,19.00 wh=140.00,19.60
-Text xy=24.00,19.00 wh=0.00,0.00 color=#1a1d217c text="enter a value" size=14.00
+Rect xy=15.00,15.00 wh=160.00,31.60 color=#ffffffff radius=6.00 fill
+StrokeRect xy=15.00,15.00 wh=160.00,31.60 color=#d8dde4ff radius=6.00 thickness=1.00
+Clip xy=26.00,21.00 wh=138.00,19.60
+Text xy=26.00,21.00 wh=0.00,0.00 color=#1a1d217c text="enter a value" size=14.00
 Clip xy=0.00,0.00 wh=320.00,240.00

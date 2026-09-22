@@ -58,6 +58,19 @@ func TestDarkThemeBorderedDefault(t *testing.T) {
 	}
 }
 
+// ThemeLight carries the same bordered default as ThemeDark: the
+// light config never picked up the bordered default, so the showcase
+// light theme rendered borderless while dark drew hairlines.
+func TestLightThemeBorderedDefault(t *testing.T) {
+	if ThemeLight.Cfg.SizeBorder != sizeBorderDef {
+		t.Errorf("ThemeLight SizeBorder = %v, want %v",
+			ThemeLight.Cfg.SizeBorder, sizeBorderDef)
+	}
+	if got := ThemeLight.WithBorders(false).Cfg.SizeBorder; got != 0 {
+		t.Errorf("WithBorders(false) SizeBorder = %v, want 0", got)
+	}
+}
+
 func TestLightThemeColors(t *testing.T) {
 	if ThemeLight.ColorBackground != colorBackgroundLight {
 		t.Error("light background mismatch")

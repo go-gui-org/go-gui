@@ -131,6 +131,10 @@ and this project adheres to
 
 ### Fixed
 
+- **`ThemeLight` draws borders like `ThemeDark`** — the light preset never
+  picked up the bordered default (`SizeBorder`), so the showcase light theme
+  rendered borderless while dark drew hairlines. Light now carries the same 1px
+  default; `WithBorders(false)` still restores the borderless look.
 - **`InvalidateLayout` and `InvalidateRender` are race-free from other
   goroutines** — both methods document any-goroutine use, but the refresh flags
   they set were plain `bool` fields that the frame loop reads and clears. A
