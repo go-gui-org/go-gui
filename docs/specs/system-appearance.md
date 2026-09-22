@@ -51,6 +51,9 @@ pushes at startup and on change (wired in the `android_demo` host; `uiMode`
 added to its `configChanges` so the activity is not restarted on toggle).
 Queries before the first push report no setting.
 
+A theme change applied by following fades when the window has a transition set
+(`SetThemeTransition`, issue #753, `docs/specs/theme-fade.md`).
+
 ## Verification status
 
 Built and tested on macOS (gui suite, metal build, ObjC syntax against the iOS

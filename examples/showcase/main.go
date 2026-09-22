@@ -6,6 +6,7 @@ import (
 	"flag"
 	"log"
 	"os"
+	"time"
 
 	"github.com/go-gui-org/go-gui/gui"
 	"github.com/go-gui-org/go-gui/gui/backend"
@@ -36,6 +37,9 @@ func main() {
 		Height: 700,
 		OnInit: func(w *gui.Window) {
 			loadEmbeddedLocales()
+			// Fade the colors on a theme switch instead of snapping
+			// (issue #753).
+			w.SetThemeTransition(250 * time.Millisecond)
 			sa := appState(w)
 			syncThemeGenFromCfg(sa, gui.CurrentTheme().Cfg)
 			_ = w.RegisterCommands(
