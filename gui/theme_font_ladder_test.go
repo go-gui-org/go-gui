@@ -143,7 +143,7 @@ func TestThemeMediumAgreesAcrossRoles(t *testing.T) {
 				name, got, th.SizeTextMedium)
 		}
 	}
-	// The Code roles sit +1 above the roman ones.
+	// The Code roles sit +1 above the regular ones.
 	if want := th.SizeTextMedium + 1; th.TextStyleCode.Size != want {
 		t.Errorf("Code size = %v, want %v", th.TextStyleCode.Size, want)
 	}

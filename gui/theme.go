@@ -114,7 +114,7 @@ type Theme struct {
 	// than spelling a bold medium style, so two callers with the same
 	// purpose cannot drift apart. They replace the numbered rung grid
 	// (N1..Icon6), removed in the same change: every role derives in
-	// fillTextRungs from the size ladder, and the Bold/Italic/Roman
+	// fillTextRungs from the size ladder, and the Bold/Italic/Regular
 	// modifiers plus Theme.Mono cover the donor and emphasis spellings
 	// the grid used to serve.
 	//

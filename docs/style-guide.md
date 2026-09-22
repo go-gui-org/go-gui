@@ -34,6 +34,9 @@ marker (§ Deviating), not by a role.
 
 ## Type steps — size by named handle, or not at all
 
+The full scale lives in `docs/typography.md`. What follows is the when: which
+handle each widget reads.
+
 The size ladder is a set of named handles (`N1`..`N6`, `M1`..`M6`, `I1`..`I6`,
 `BI1`..`BI6`, `B1`..`B6`, `Icon1`..`Icon6`). Every rung is exported — an app's
 widget spells the step of the widget beside it instead of guessing. Take a step
@@ -46,7 +49,7 @@ still sizes text by arithmetic. The named rung only bounds the result. The gate
 reports it either way — it keys on the arithmetic, not on how the bound is
 spelled.
 
-The mono ladder sits +1 above the roman ladder at every rung (`M4` is 13 where
+The mono ladder sits +1 above the regular ladder at every rung (`M4` is 13 where
 `N4` is 12). This is an optical compensation for the mono face, uniform because
 it is the same face at every size. Expect the step when mixing `M`-rungs with
 `N`-rungs.

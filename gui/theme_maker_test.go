@@ -678,12 +678,12 @@ func TestThemeMakerZeroCfg(t *testing.T) {
 
 // TestThemeMakerRoleLadder locks the role ladder (issues #343, #734):
 // every role is populated, sizes descend within each family, the icon
-// roles share the roman scale, and the code roles sit +1 above it. A
+// roles share the regular scale, and the code roles sit +1 above it. A
 // zero role or a drifted mono offset would otherwise render silently
 // and surface nowhere.
 func TestThemeMakerRoleLadder(t *testing.T) {
-	roman := [6]TextStyle{
-		ThemeDark.TextStyleDisplay.Roman(),
+	regular := [6]TextStyle{
+		ThemeDark.TextStyleDisplay.Regular(),
 		ThemeDark.TextStyleBodyLarge,
 		ThemeDark.TextStyleBody,
 		ThemeDark.TextStyleBodySmall,
@@ -708,7 +708,7 @@ func TestThemeMakerRoleLadder(t *testing.T) {
 		ThemeDark.TextStyleCodeSmall,
 		ThemeDark.TextStyleCodeTiny,
 	}
-	codeRoman := [3]TextStyle{
+	codeRegular := [3]TextStyle{
 		ThemeDark.TextStyleBody,
 		ThemeDark.TextStyleCaption,
 		ThemeDark.TextStyleCaptionSmall,
@@ -718,7 +718,7 @@ func TestThemeMakerRoleLadder(t *testing.T) {
 		name  string
 		roles []TextStyle
 	}{
-		{"roman", roman[:]},
+		{"regular", regular[:]},
 		{"title", titles[:]},
 		{"icon", icons[:]},
 	}
@@ -739,19 +739,19 @@ func TestThemeMakerRoleLadder(t *testing.T) {
 		}
 	}
 
-	// The icon roles share the roman scale, rung by rung.
+	// The icon roles share the regular scale, rung by rung.
 	for i := range 6 {
-		if icons[i].Size != roman[i].Size {
-			t.Errorf("icon role %d Size = %v, want roman %v",
-				i, icons[i].Size, roman[i].Size)
+		if icons[i].Size != regular[i].Size {
+			t.Errorf("icon role %d Size = %v, want regular %v",
+				i, icons[i].Size, regular[i].Size)
 		}
 	}
 
-	// The code roles sit +1 above the roman scale at their rungs.
+	// The code roles sit +1 above the regular scale at their rungs.
 	for i := range 3 {
-		if code[i].Size != codeRoman[i].Size+1 {
-			t.Errorf("code role %d Size = %v, want roman+1 %v",
-				i, code[i].Size, codeRoman[i].Size+1)
+		if code[i].Size != codeRegular[i].Size+1 {
+			t.Errorf("code role %d Size = %v, want regular+1 %v",
+				i, code[i].Size, codeRegular[i].Size+1)
 		}
 	}
 }

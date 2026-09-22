@@ -52,6 +52,17 @@ var snippetEntries = []snippetEntry{
 			"../../docs/dx-cheat-sheet.md",
 		},
 	},
+	{
+		sourceFile: "demo_typography.go",
+		beginMark:  "// doc:snippet-begin typography-scale",
+		endMark:    "// doc:snippet-end typography-scale",
+		anchor:     "func typographyScaleSpecimens(",
+		heading:    "## Read the scale",
+		guides: []string{
+			"docs/widget_typography.md",
+			"../../docs/typography.md",
+		},
+	},
 }
 
 // markedRegion returns the source between the snippet markers, minus

@@ -67,7 +67,7 @@ func (theme *Theme) fillTextRungs(
 
 	// Code roles: +1 at every rung, so CodeSmall (13) does not share
 	// BodySmall's (12) baseline. Mono faces typically draw optically
-	// smaller than roman ones at the same point size; the offset is
+	// smaller than regular ones at the same point size; the offset is
 	// the compensation, applied uniformly because it is the same face
 	// at every size. Theme.Mono applies the same step to a donor.
 	mono := ts

@@ -168,6 +168,7 @@ var componentDemos = map[string]func(*gui.Window) gui.View{
 	"drag_reorder":        demoDragReorder,
 	"printing":            demoPrinting,
 	"text":                demoText,
+	"typography":          demoTypography,
 	"text_anim":           demoTextAnim,
 	"rtf":                 demoRtf,
 	"table":               demoTable,
