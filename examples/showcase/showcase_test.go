@@ -519,6 +519,53 @@ func TestDemoTextLayout(t *testing.T) {
 	})
 }
 
+func TestDemoTypographyLayout(t *testing.T) {
+	w := &gui.Window{}
+	layout := gui.GenerateViewLayout(demoTypography(w), w)
+
+	t.Run("intro text wraps", func(t *testing.T) {
+		l, ok := layout.FindByID("typo-intro")
+		if !ok {
+			t.Fatal("typo-intro not found")
+		}
+		if l.Shape.TC == nil || l.Shape.TC.TextMode != gui.TextModeWrap {
+			t.Fatal("typo-intro should use TextModeWrap")
+		}
+	})
+
+	t.Run("scale card holds specimens plus sized rows", func(t *testing.T) {
+		card, ok := layout.FindByID("typo-scale")
+		if !ok {
+			t.Fatal("typo-scale not found")
+		}
+		// A card title, five plain specimens from
+		// typographyScaleSpecimens, then six labeled rows from
+		// typographyScaleExtraRows.
+		if len(card.Children) != 12 {
+			t.Fatalf("len(typo-scale.Children) = %d, want 12",
+				len(card.Children))
+		}
+		first := card.Children[1].Shape.TC
+		if first == nil || first.Text != "Display" {
+			t.Fatalf("first specimen = %v, want Display", first)
+		}
+		for i := range 6 {
+			id := gui.ScopeIDN("typo-scale", "row", i)
+			if _, ok := layout.FindByID(id); !ok {
+				t.Fatalf("%s not found", id)
+			}
+		}
+	})
+
+	t.Run("roles and modifiers cards exist", func(t *testing.T) {
+		for _, id := range []string{"typo-roles", "typo-modifiers"} {
+			if _, ok := layout.FindByID(id); !ok {
+				t.Fatalf("%s not found", id)
+			}
+		}
+	})
+}
+
 func TestFormValidationHelpers(t *testing.T) {
 	snap := func(v string) gui.FormFieldSnapshot {
 		return gui.FormFieldSnapshot{Value: v}

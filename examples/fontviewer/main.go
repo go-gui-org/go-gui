@@ -241,7 +241,7 @@ func header() gui.View {
 		Spacing:    gui.SomeF(spacingTight),
 		SizeBorder: gui.NoBorder,
 		Content: []gui.View{
-			gui.Text(gui.TextCfg{Text: "go-gui font viewer", TextStyle: t.TextStyleDisplay.Roman()}),
+			gui.Text(gui.TextCfg{Text: "go-gui font viewer", TextStyle: t.TextStyleDisplay.Regular()}),
 			gui.Text(gui.TextCfg{Text: "Browse and preview installed system fonts", TextStyle: t.TextStyleTitleSmall}),
 		},
 	})

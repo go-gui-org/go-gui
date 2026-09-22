@@ -205,7 +205,7 @@ func body(app *App, theme gui.Theme) gui.View {
 			gui.Text(gui.TextCfg{
 				Text: fmt.Sprintf(
 					"Counter: %d  (%s)", app.Counter, savedText),
-				TextStyle: theme.Mono(theme.TextStyleDisplay.Roman()),
+				TextStyle: theme.Mono(theme.TextStyleDisplay.Regular()),
 			}),
 			gui.Text(gui.TextCfg{Text: ""}),
 			gui.Row(gui.ContainerCfg{

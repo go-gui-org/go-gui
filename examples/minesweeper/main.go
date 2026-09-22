@@ -605,7 +605,7 @@ func ledDisplay(x, y float32, text string, theme gui.Theme) gui.View {
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      text,
-				TextStyle: ts(theme.Mono(theme.TextStyleDisplay.Roman()), 24, gui.RGB(255, 0, 0)),
+				TextStyle: ts(theme.Mono(theme.TextStyleDisplay.Regular()), 24, gui.RGB(255, 0, 0)),
 			}),
 		},
 	})

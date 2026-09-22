@@ -10,6 +10,10 @@ and this project adheres to
 
 ### Added
 
+- **Typography guide and showcase section** — `docs/typography.md` documents the
+  type scale (regular, bold, code and icon roles), the four de-emphasis roles,
+  and the face modifiers, and the showcase gains a Typography page rendering
+  every role from the installed theme.
 - **Backends report the OS reduce-motion setting (#757)** — the Metal backend
   (macOS `NSWorkspace.accessibilityDisplayShouldReduceMotion`), the GL backend
   on Windows (`SPI_GETCLIENTAREAANIMATION`, inverted) and the GL backend on
@@ -50,6 +54,11 @@ and this project adheres to
 
 ### Changed
 
+- **BREAKING: `TextStyle.Roman()` is renamed to `TextStyle.Regular()`** — the
+  method sets `glyph.TypefaceRegular`, and `Bold()` and `Italic()` already match
+  their `Typeface` names, so `Roman()` was the odd one out. It also misleads:
+  the method drops bold as well as italic, while "roman" only means upright.
+  Replace every `.Roman()` with `.Regular()`; nothing else changes.
 - **BREAKING: `ColorSet` has `Selected` and `Disabled` slots; the flat tab and
   crumb fields are deleted (#741)** — selected and disabled colors were the last
   interaction colors outside `ColorSet`, so each widget ordered them by hand. A

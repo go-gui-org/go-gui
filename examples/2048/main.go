@@ -168,7 +168,7 @@ func landingView(w *gui.Window) gui.View {
 							}),
 							gui.Text(gui.TextCfg{
 								Text:      "JOIN THE NUMBERS TO GET TO THE 2048 TILE!",
-								TextStyle: textStyle(theme.TextStyleDisplay.Roman(), 16, gui.RGB(150, 150, 160)),
+								TextStyle: textStyle(theme.TextStyleDisplay.Regular(), 16, gui.RGB(150, 150, 160)),
 							}),
 						},
 					}),
@@ -193,7 +193,7 @@ func landingView(w *gui.Window) gui.View {
 
 					gui.Text(gui.TextCfg{
 						Text:      "PRESS SPACE TO BEGIN",
-						TextStyle: textStyle(theme.TextStyleDisplay.Roman(), 14, gui.RGB(100, 100, 110)),
+						TextStyle: textStyle(theme.TextStyleDisplay.Regular(), 14, gui.RGB(100, 100, 110)),
 					}),
 				},
 			}),
@@ -281,7 +281,7 @@ func gameView(w *gui.Window) gui.View {
 			// Footer: Instructions
 			gui.Text(gui.TextCfg{
 				Text:      "HOW TO PLAY: Use your arrow keys to move the tiles.\nWhen two tiles with the same number touch, they merge into one!",
-				TextStyle: textStyle(theme.TextStyleDisplay.Roman(), 14, gui.RGB(150, 150, 160)),
+				TextStyle: textStyle(theme.TextStyleDisplay.Regular(), 14, gui.RGB(150, 150, 160)),
 			}),
 		},
 	})

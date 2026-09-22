@@ -83,6 +83,7 @@ var widgetDocFiles = map[string]string{
 	"tab_control":        "docs/widget_tab_control.md",
 	"table":              "docs/widget_table.md",
 	"text":               "docs/widget_text.md",
+	"typography":         "docs/widget_typography.md",
 	"text_anim":          "docs/widget_text_anim.md",
 	"theme_gen":          "docs/widget_theme_gen.md",
 	"theme_picker":       "docs/widget_theme_picker.md",

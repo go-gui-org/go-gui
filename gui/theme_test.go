@@ -232,7 +232,7 @@ func TestThemeBoldTypeface(t *testing.T) {
 		name  string
 		style TextStyle
 	}{
-		{"Display.Roman", theme.TextStyleDisplay.Roman()},
+		{"Display.Regular", theme.TextStyleDisplay.Regular()},
 		{"BodyLarge", theme.TextStyleBodyLarge},
 		{"Body", theme.TextStyleBody},
 		{"BodySmall", theme.TextStyleBodySmall},

@@ -10,7 +10,7 @@ import "github.com/go-gui-org/go-glyph"
 //
 // The TextStyle modifiers only retarget Typeface and never touch
 // Color or any other field, so a donor keeps the caller's explicit
-// size and color: that is what makes Display.Roman() with an
+// size and color: that is what makes Display.Regular() with an
 // overridden size spell exactly what the N1 donor pattern spelled.
 // Each maps every face, so chaining is order-independent (Bold().
 // Italic() and Italic().Bold() are both bold-italic) and repeating is
@@ -44,9 +44,9 @@ func (s TextStyle) Italic() TextStyle {
 	return s
 }
 
-// Roman returns s in the regular face, dropping any bold or italic.
-// Display.Roman() is the N1 rung: extra-large roman.
-func (s TextStyle) Roman() TextStyle {
+// Regular returns s in the regular face, dropping any bold or italic.
+// Display.Regular() is the N1 rung: extra-large regular.
+func (s TextStyle) Regular() TextStyle {
 	s.Typeface = glyph.TypefaceRegular
 	return s
 }
@@ -54,7 +54,7 @@ func (s TextStyle) Roman() TextStyle {
 // Mono returns s in the theme's mono family, keeping face weight and
 // color. It applies the mono optical size compensation (+1, the same
 // step the M ladder bakes into every rung): mono faces draw optically
-// smaller than roman ones at the same point size. Overriding Size
+// smaller than regular ones at the same point size. Overriding Size
 // afterwards discards the compensation, so a donor that states its
 // size renders exactly that size. Prefer the Code roles where one
 // fits; this method is the donor path for ad-hoc mono sizes.

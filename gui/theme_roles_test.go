@@ -160,10 +160,10 @@ func TestTextModifierFaces(t *testing.T) {
 	base := theme.TextStyleBody
 
 	cases := []struct {
-		in     glyph.Typeface
-		bold   glyph.Typeface
-		italic glyph.Typeface
-		roman  glyph.Typeface
+		in      glyph.Typeface
+		bold    glyph.Typeface
+		italic  glyph.Typeface
+		regular glyph.Typeface
 	}{
 		{glyph.TypefaceRegular, glyph.TypefaceBold, glyph.TypefaceItalic, glyph.TypefaceRegular},
 		{glyph.TypefaceBold, glyph.TypefaceBold, glyph.TypefaceBoldItalic, glyph.TypefaceRegular},
@@ -179,8 +179,8 @@ func TestTextModifierFaces(t *testing.T) {
 		if got := base.Italic().Typeface; got != c.italic {
 			t.Errorf("Italic(%v) = %v, want %v", c.in, got, c.italic)
 		}
-		if got := base.Roman().Typeface; got != c.roman {
-			t.Errorf("Roman(%v) = %v, want %v", c.in, got, c.roman)
+		if got := base.Regular().Typeface; got != c.regular {
+			t.Errorf("Regular(%v) = %v, want %v", c.in, got, c.regular)
 		}
 	}
 }
@@ -200,7 +200,7 @@ func TestTextModifiersKeepFields(t *testing.T) {
 	}{
 		{"Bold", TextStyle.Bold},
 		{"Italic", TextStyle.Italic},
-		{"Roman", TextStyle.Roman},
+		{"Regular", TextStyle.Regular},
 	}
 
 	for _, m := range mods {
@@ -239,17 +239,17 @@ func TestTextModifierLaws(t *testing.T) {
 		t.Errorf("Italic() not idempotent: %+v vs %+v",
 			body.Italic().Italic(), body.Italic())
 	}
-	if body.Roman().Roman() != body.Roman() {
-		t.Errorf("Roman() not idempotent: %+v vs %+v",
-			body.Roman().Roman(), body.Roman())
+	if body.Regular().Regular() != body.Regular() {
+		t.Errorf("Regular() not idempotent: %+v vs %+v",
+			body.Regular().Regular(), body.Regular())
 	}
 	if body.Bold().Typeface != glyph.TypefaceBold {
 		t.Errorf("Bold Typeface = %v, want Bold",
 			body.Bold().Typeface)
 	}
-	if theme.TextStyleDisplay.Roman().Typeface != glyph.TypefaceRegular {
-		t.Errorf("Display.Roman() Typeface = %v, want Regular",
-			theme.TextStyleDisplay.Roman().Typeface)
+	if theme.TextStyleDisplay.Regular().Typeface != glyph.TypefaceRegular {
+		t.Errorf("Display.Regular() Typeface = %v, want Regular",
+			theme.TextStyleDisplay.Regular().Typeface)
 	}
 	if want := theme.Cfg.MonoFontFamily; theme.Mono(body).Family != want {
 		t.Errorf("Mono family = %q, want theme mono %q",

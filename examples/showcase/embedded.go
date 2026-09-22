@@ -129,6 +129,7 @@ var relatedExampleMap = map[string][]string{
 	"drag_reorder":        {"examples/showcase/demo_selection.go"},
 	"printing":            {"examples/showcase/demo_layout.go"},
 	"text":                {"examples/showcase/demo_text.go"},
+	"typography":          {"examples/showcase/demo_typography.go", "examples/showcase/docs/widget_typography.md"},
 	"rtf":                 {"examples/showcase/demo_text.go", "examples/rtf/main.go"},
 	"table":               {"examples/showcase/demo_data.go"},
 	"data_grid":           {"examples/showcase/demo_data.go", "examples/data_grid_data_source/main.go"},
