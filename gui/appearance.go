@@ -33,6 +33,10 @@ func (w *Window) SystemAppearance() (Appearance, bool) {
 // any previous callback; nil unregisters. Independent of
 // FollowSystemAppearance: a window can follow the setting and still
 // get the callback (applied first, callback second).
+//
+// cb also runs with the current setting, not only on a change, each
+// time a following window applies it: at FollowSystemAppearance and
+// when a backend attaches. Do not treat a call as proof of a flip.
 // exportaudit:keep — documented app API (issue #752); siblings adopt post-release
 func (w *Window) OnSystemAppearance(cb func(Appearance)) {
 	w.appearanceMu.Lock()
@@ -43,8 +47,9 @@ func (w *Window) OnSystemAppearance(cb func(Appearance)) {
 
 // FollowSystemAppearance pins light or dark as this window's theme
 // from the current OS setting and re-pins on every OS change, until
-// an explicit SetTheme ends following. The titlebar follows too
-// (TitlebarDark syncs to the applied theme).
+// an explicit SetTheme ends following. Each apply also calls
+// TitlebarDark, which no backend implements yet, so the titlebar
+// does not follow today.
 //
 // Frame-thread only, like SetTheme: call from main before Run or
 // from an event handler. With no OS setting (nil platform, unknown

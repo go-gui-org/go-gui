@@ -21,15 +21,15 @@ and this project adheres to
   the old one-frame switch.
 - **Windows follow the OS light/dark setting (#752)** —
   `FollowSystemAppearance(light, dark)` pins the matching theme from the current
-  OS setting and re-pins on every OS change, including a `TitlebarDark` sync,
-  until an explicit `SetTheme` ends following. The `SystemAppearance` query plus
-  `OnSystemAppearance` callback stay public for apps with custom logic. Queries
-  where the OS reports no setting (nil platform, non-GNOME Linux desktops) keep
-  the app theme. Sources: macOS `effectiveAppearance` (KVO), Windows registry +
-  `WM_SETTINGCHANGE`, Linux `gsettings` + monitor child, web
-  `prefers-color-scheme`, iOS trait collection, Android uiMode push from the
-  Kotlin host. The Windows, X11, web and Android paths are unverified on
-  hardware.
+  OS setting and re-pins on every OS change, until an explicit `SetTheme` ends
+  following. The titlebar does not follow yet: every backend's `TitlebarDark` is
+  a no-op. The `SystemAppearance` query plus `OnSystemAppearance` callback stay
+  public for apps with custom logic. Queries where the OS reports no setting
+  (nil platform, non-GNOME Linux desktops) keep the app theme. Sources: macOS
+  `effectiveAppearance` (KVO), Windows registry + `WM_SETTINGCHANGE`, Linux
+  `gsettings` + monitor child, web `prefers-color-scheme`, iOS trait collection,
+  Android uiMode push from the Kotlin host. The Windows, X11, web and Android
+  paths are unverified on hardware.
 
 ### Changed
 

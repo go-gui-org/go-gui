@@ -252,8 +252,8 @@ type Window struct {
 
 	// System-appearance follow state (issue #752). Guarded by
 	// appearanceMu, separate from themeMu: SetTheme clears the
-	// follow flag while holding themeMu, and applySystemAppearance
-	// pins a theme while holding neither across the pin. The pair
+	// follow flag under appearanceMu and releases it before
+	// pinTheme takes themeMu, so the two locks never nest. The pair
 	// is stored by pointer: Theme is ~12 KB and only a following
 	// window pays for it.
 	appearanceLight     *Theme

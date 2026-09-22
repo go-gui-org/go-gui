@@ -48,6 +48,13 @@
         layer.pixelFormat = MTLPixelFormatBGRA8Unorm;
         layer.framebufferOnly = YES;
 
+        // Seed the appearance before goIOSInit: it attaches the
+        // native platform and runs OnInit, and both can query the
+        // setting (FollowSystemAppearance). Seeded later, the
+        // first query reads the zero value (light) on a dark
+        // device, and nothing corrects it until a trait change.
+        gIOSAppearanceDark = iosTraitDark(self.traitCollection);
+
         void *layerPtr = (__bridge void *)layer;
         goIOSInit(layerPtr,
                   (int)bounds.size.width,
@@ -72,8 +79,6 @@
             object:nil];
 
         self.started = YES;
-        // Seed the appearance Go queries before any trait change.
-        gIOSAppearanceDark = iosTraitDark(self.traitCollection);
     } else {
         goIOSResize((int)bounds.size.width,
                     (int)bounds.size.height,
@@ -139,8 +144,8 @@
 }
 
 // ─── Appearance (issue #752) ────────────────────────────────
-// The current setting, seeded from the first layout and refreshed
-// on every trait change. Go reads it through iosAppearanceDark and
+// The current setting, seeded at first layout before goIOSInit and
+// refreshed on every trait change. Go reads it through iosAppearanceDark and
 // learns of changes through goIOSAppearanceChanged.
 
 static int gIOSAppearanceDark = 0;
