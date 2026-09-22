@@ -242,6 +242,14 @@ type Window struct {
 	themeSet bool
 	themeMu  sync.RWMutex
 
+	// Animated theme switch (issue #753, gui/theme_fade.go). Both are
+	// frame-thread state, like the installed theme: set by
+	// SetThemeTransition, read by pinTheme and installTheme. themeFade
+	// is made on the first fade and reused, so a fade frame allocates
+	// nothing.
+	themeTransition time.Duration
+	themeFade       *themeFade
+
 	// System-appearance follow state (issue #752). Guarded by
 	// appearanceMu, separate from themeMu: SetTheme clears the
 	// follow flag while holding themeMu, and applySystemAppearance

@@ -10,6 +10,15 @@ and this project adheres to
 
 ### Added
 
+- **Animated theme switch (#753)** — `Window.SetThemeTransition(d)` makes later
+  `SetTheme` calls and `FollowSystemAppearance` changes fade over `d` instead of
+  switching in one frame. Only colors blend; sizes, radii, fonts and `WithExt`
+  values take the new theme's values on the first frame, so the fade never
+  re-runs layout mid-way. `Window.Theme` returns the new theme at once. A fade
+  frame allocates nothing (one reused scratch theme per window). The fade is
+  skipped before a window's first frame, and when the backend reports
+  `PrefersReducedMotion`; no backend reports it yet. Zero, the default, keeps
+  the old one-frame switch.
 - **Windows follow the OS light/dark setting (#752)** —
   `FollowSystemAppearance(light, dark)` pins the matching theme from the current
   OS setting and re-pins on every OS change, including a `TitlebarDark` sync,

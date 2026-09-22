@@ -197,5 +197,10 @@ func (w *Window) FrameBackground() Color {
 	if w.Config.Transparent {
 		return ColorTransparent
 	}
+	// While a theme fade runs, w.Theme() is already the target; the
+	// clear color must travel with the drawn colors (issue #753).
+	if f := w.themeFade; f != nil && f.active {
+		return f.scratch.ColorBackground
+	}
 	return w.Theme().ColorBackground
 }

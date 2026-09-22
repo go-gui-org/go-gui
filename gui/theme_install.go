@@ -118,6 +118,7 @@ func (w *Window) pinTheme(t Theme) {
 	// Publish a fresh value rather than writing through the pointer:
 	// a reader may still hold the previous one.
 	pinned := t
+	prev := w.themeRef()
 	w.themeMu.Lock()
 	w.theme = &pinned
 	w.themeSet = true
@@ -129,7 +130,12 @@ func (w *Window) pinTheme(t Theme) {
 	// Frame-thread only, like every other writer of the installed
 	// theme. See the applyTheme doc comment for what an off-thread
 	// call races with.
-	applyTheme(&pinned)
+	//
+	// With a transition set, the fade installs its first blended
+	// frame instead (issue #753).
+	if !w.startThemeFade(prev, &pinned) {
+		applyTheme(&pinned)
+	}
 	w.InvalidateLayout()
 }
 
@@ -153,6 +159,9 @@ func needsInstall(t *Theme) bool {
 // frame to reach that word made the no-op path cost 705 ns instead of
 // the 9 ns the comparison actually takes.
 func (w *Window) installTheme() {
+	if w.installFadeTheme() {
+		return
+	}
 	t := w.themeRef()
 	if !needsInstall(t) {
 		return
