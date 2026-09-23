@@ -18,8 +18,10 @@ import (
 )
 
 // a11yCallbacks routes VoiceOver actions to the owning window: one
-// live tree per window, so one callback per window. Guarded by a11yMu
-// alongside the marshaling buffers below.
+// live tree per window, so one callback per window. Guarded by
+// a11yCbMu, separate from a11yBufMu below so a synchronous ObjC
+// re-entry into goA11yAction during C.a11ySync cannot deadlock
+// (sync.Mutex is not reentrant).
 var a11yCallbacks = make(map[uintptr]func(action, index int))
 
 func a11yToken(w C.GoGuiNSWindow) uintptr {
@@ -27,8 +29,8 @@ func a11yToken(w C.GoGuiNSWindow) uintptr {
 }
 
 func setA11yCallback(token uintptr, cb func(action, index int)) {
-	a11yMu.Lock()
-	defer a11yMu.Unlock()
+	a11yCbMu.Lock()
+	defer a11yCbMu.Unlock()
 	if cb == nil {
 		delete(a11yCallbacks, token)
 		return
@@ -37,24 +39,27 @@ func setA11yCallback(token uintptr, cb func(action, index int)) {
 }
 
 func clearA11yCallback(token uintptr) {
-	a11yMu.Lock()
-	defer a11yMu.Unlock()
+	a11yCbMu.Lock()
+	defer a11yCbMu.Unlock()
 	delete(a11yCallbacks, token)
 }
 
 //export goA11yAction
 func goA11yAction(action, index C.int, token C.uintptr_t) {
-	a11yMu.Lock()
+	a11yCbMu.Lock()
 	cb := a11yCallbacks[uintptr(token)]
-	a11yMu.Unlock()
+	a11yCbMu.Unlock()
 	if cb != nil {
 		cb(int(action), int(index))
 	}
 }
 
-// Reusable C buffers — grow only, never shrink.
+// Reusable C buffers — grow only, never shrink. Guarded by
+// a11yBufMu, separate from the callback map mutex so the C.a11ySync
+// call below never holds the callback lock.
 var (
-	a11yMu     sync.Mutex
+	a11yCbMu   sync.Mutex
+	a11yBufMu  sync.Mutex
 	cNodeBuf   []C.A11yCNode
 	cStringBuf []*C.char
 )
@@ -74,16 +79,16 @@ func a11ySyncBridge(w C.GoGuiNSWindow, nodes []gui.A11yNode, count, focusedIdx i
 		// Push the emptied tree so the previous content clears on
 		// the ObjC side rather than lingering. Nil nodes are safe:
 		// the callee clears without dereferencing.
-		a11yMu.Lock()
-		defer a11yMu.Unlock()
+		a11yBufMu.Lock()
+		defer a11yBufMu.Unlock()
 		C.a11ySync(w, nil, C.int(0), C.int(focusedIdx), C.float(windowH))
 		return
 	}
 	if count > maxA11yNodes {
 		count = maxA11yNodes
 	}
-	a11yMu.Lock()
-	defer a11yMu.Unlock()
+	a11yBufMu.Lock()
+	defer a11yBufMu.Unlock()
 	// Grow buffer if needed.
 	if cap(cNodeBuf) < count {
 		cNodeBuf = make([]C.A11yCNode, count)

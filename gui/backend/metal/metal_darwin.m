@@ -736,14 +736,21 @@ void metalSetScissor(MetalCtx ctx_,
     if (x < 0) { w += x; x = 0; }
     if (y < 0) { h += y; y = 0; }
     if (w <= 0 || h <= 0) {
-        // Zero-area scissor: clip everything.
-        [ctx->enc setScissorRect:(MTLScissorRect){0, 0, 1, 1}];
+        // Zero-area scissor: clip everything. A 1x1 rect at the
+        // origin would still paint one pixel, and a zero-size
+        // rect trips Metal validation, so park a 1x1 rect just
+        // outside the viewport where nothing can land.
+        NSUInteger ox = ctx->viewW > 0 ? (NSUInteger)ctx->viewW : 0;
+        NSUInteger oy = ctx->viewH > 0 ? (NSUInteger)ctx->viewH : 0;
+        [ctx->enc setScissorRect:(MTLScissorRect){ox, oy, 1, 1}];
         return;
     }
     if (x + w > ctx->viewW) w = ctx->viewW - x;
     if (y + h > ctx->viewH) h = ctx->viewH - y;
     if (w <= 0 || h <= 0) {
-        [ctx->enc setScissorRect:(MTLScissorRect){0, 0, 1, 1}];
+        NSUInteger ox = ctx->viewW > 0 ? (NSUInteger)ctx->viewW : 0;
+        NSUInteger oy = ctx->viewH > 0 ? (NSUInteger)ctx->viewH : 0;
+        [ctx->enc setScissorRect:(MTLScissorRect){ox, oy, 1, 1}];
         return;
     }
     [ctx->enc setScissorRect:(MTLScissorRect){
@@ -828,6 +835,7 @@ int metalCreateTexture(MetalCtx ctx_,
                        int w, int h, const void* pixels,
                        int hasData) {
     MetalContext* ctx = MC(ctx_);
+    if (!ctx || w <= 0 || h <= 0) return 0;
     int tid = 0;
     if (ctx->freeTexCount > 0) {
         tid = ctx->freeTexIDs[--ctx->freeTexCount];
@@ -858,7 +866,9 @@ void metalUpdateTexture(MetalCtx ctx_,
                         int id, int x, int y, int w, int h,
                         const void* data) {
     MetalContext* ctx = MC(ctx_);
+    if (!ctx || !data) return;
     if (id <= 0 || id >= MAX_TEX || !ctx->textures[id]) return;
+    if (w <= 0 || h <= 0 || x < 0 || y < 0) return;
     [ctx->textures[id]
         replaceRegion:MTLRegionMake2D(x, y, w, h)
           mipmapLevel:0
@@ -1167,6 +1177,12 @@ void metalBeginStencilClip(MetalCtx ctx_,
                            const float* verts, int depth) {
     MetalContext* ctx = MC(ctx_);
     if (!ctx->enc) return;
+    if (!verts) return;
+    // Clamp to the stencil buffer range. A depth below 1 would
+    // wrap to a huge reference value (fail-open: children draw
+    // unclipped); above 255 exceeds IncrementClamp.
+    if (depth < 1) depth = 1;
+    if (depth > 255) depth = 255;
 
     // Increment stencil where SDF passes, no color output.
     [ctx->enc setDepthStencilState:ctx->stencilIncr];
@@ -1188,6 +1204,9 @@ void metalEndStencilClip(MetalCtx ctx_,
                          const float* verts, int depth) {
     MetalContext* ctx = MC(ctx_);
     if (!ctx->enc) return;
+    if (!verts) return;
+    if (depth < 1) depth = 1;
+    if (depth > 255) depth = 255;
 
     // Decrement stencil where SDF passes, no color output.
     [ctx->enc setDepthStencilState:ctx->stencilDecr];
