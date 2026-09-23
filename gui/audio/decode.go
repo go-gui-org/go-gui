@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/gopxl/beep/v2"
 	"github.com/gopxl/beep/v2/flac"
@@ -20,12 +21,9 @@ import (
 // ---------------------------------------------------------------------------
 
 // decodeReader detects the audio format from file extension and decodes.
-func decodeReader(ext string, rc interface {
-	Read(p []byte) (n int, err error)
-	Seek(offset int64, whence int) (int64, error)
-	Close() error
-}) (beep.StreamSeekCloser, beep.Format, error) {
-	switch ext {
+// ext is matched case-insensitively so ".WAV" works like ".wav".
+func decodeReader(ext string, rc io.ReadSeekCloser) (beep.StreamSeekCloser, beep.Format, error) {
+	switch strings.ToLower(ext) {
 	case ".wav":
 		stream, format, err := wav.Decode(rc)
 		if err != nil {
@@ -33,19 +31,19 @@ func decodeReader(ext string, rc interface {
 		}
 		return stream, format, nil
 	case ".mp3":
-		stream, format, err := mp3.Decode(rc.(io.ReadCloser))
+		stream, format, err := mp3.Decode(rc)
 		if err != nil {
 			return nil, beep.Format{}, fmt.Errorf("audio: mp3: %w", err)
 		}
 		return stream, format, nil
 	case ".ogg":
-		stream, format, err := vorbis.Decode(rc.(io.ReadCloser))
+		stream, format, err := vorbis.Decode(rc)
 		if err != nil {
 			return nil, beep.Format{}, fmt.Errorf("audio: ogg: %w", err)
 		}
 		return stream, format, nil
 	case ".flac":
-		stream, format, err := flac.Decode(rc.(io.ReadCloser))
+		stream, format, err := flac.Decode(rc)
 		if err != nil {
 			return nil, beep.Format{}, fmt.Errorf("audio: flac: %w", err)
 		}
@@ -56,7 +54,10 @@ func decodeReader(ext string, rc interface {
 }
 
 // decodeBytes decodes in-memory audio data.  Detects format by magic
-// bytes and delegates to the appropriate decoder.
+// bytes and delegates to the appropriate decoder. The MP3 sync-word
+// check (0xFF 0xE0) can also match non-MP3 data starting with those
+// bytes; such input routes to the MP3 decoder, which then returns a
+// decode error rather than "unrecognized format".
 func decodeBytes(data []byte) (beep.StreamSeekCloser, beep.Format, error) {
 	if len(data) < 4 {
 		return nil, beep.Format{}, fmt.Errorf(

@@ -146,6 +146,8 @@ func resumeChannel(channel int) {
 }
 
 // IsPlaying reports whether the given channel is currently playing.
+// A paused channel reports false, matching isMusicPlaying; the channel
+// is still occupied until halted.
 // exportaudit:keep — collides with channelMixer.isPlaying
 func IsPlaying(channel int) bool {
 	initMu.Lock()

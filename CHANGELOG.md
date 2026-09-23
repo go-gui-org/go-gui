@@ -16,6 +16,16 @@ and this project adheres to
 
 ### Fixed
 
+- **Audio `Cfg` fields are exported and validated** — `Frequency`,
+  `OutputChannels`, `ChunkSize` and `MixChannels` were private, so an app could
+  only ever pass the zero value despite the guide documenting named fields. They
+  are now exported; `OutputChannels` accepts 1–2 and stays ignored (beep is
+  stereo-only). `LoadSound` stats before reading and caps the read at 50 MB, a
+  fade-out draining mid-fade still runs its completion, double fade-outs no
+  longer restart the ramp, `IsPlaying` reports false while paused like
+  `IsMusicPlaying`, `Sound.Play`/`FadeIn` report `[0, N)` for an explicit
+  out-of-range channel, music/sound paths accept uppercase extensions, and the
+  darwin event-sound cache initializes once per cue.
 - **Date picker month/year roller is an overlay** — opening it swapped the
   calendar grid out for the roller, so the picker changed size, and the confirm
   icon ran larger than the header arrows it replaced, adding a second height

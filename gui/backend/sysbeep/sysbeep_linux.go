@@ -23,7 +23,9 @@ var lookupOnce = sync.OnceValue(func() string {
 
 // Play plays the freedesktop "bell" event sound, if canberra-gtk-play
 // is installed. Non-blocking: the helper is spawned and reaped in the
-// background so a bell never stalls the caller.
+// background so a bell never stalls the caller. One process per bell:
+// fine for an occasional alert, wrong for rapid-fire cues — such an
+// app wants a sampled player (see gui/audio).
 func Play() {
 	path := lookupOnce()
 	if path == "" {

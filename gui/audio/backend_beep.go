@@ -5,6 +5,7 @@ package audio
 import (
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"sync"
@@ -15,6 +16,10 @@ import (
 )
 
 var _ Backend = (*beepBackend)(nil)
+
+// soundMaxBytes caps an in-memory sound effect at 50 MB of compressed
+// input. Sounds buffer fully decoded, so longer tracks belong in Music.
+const soundMaxBytes = 50 << 20
 
 // ---------------------------------------------------------------------------
 // musicState
@@ -59,9 +64,9 @@ func (b *beepBackend) Init(opts Cfg) error {
 	}
 	// Init (audio.go) already applied the defaults and range-validated
 	// every field, so no re-defaulting here.
-	sr := beep.SampleRate(opts.frequency)
-	bufSize := opts.chunkSize
-	nch := opts.mixChannels
+	sr := beep.SampleRate(opts.Frequency)
+	bufSize := opts.ChunkSize
+	nch := opts.MixChannels
 	if err := outputInit(sr, bufSize); err != nil {
 		return fmt.Errorf("audio: init output: %w", err)
 	}
@@ -154,21 +159,41 @@ func (b *beepBackend) LoadMusicBytes(data []byte) (*Music, error) {
 }
 
 func (b *beepBackend) LoadSound(path string) (*Sound, error) {
+	// Stat first so a huge file fails without allocating the whole
+	// read. The LimitReader below is the hard cap; the stat is only
+	// the fast path (the file can grow between stat and read).
+	if fi, statErr := os.Stat(path); statErr == nil && fi.Size() > soundMaxBytes {
+		return nil, fmt.Errorf(
+			"audio: sound file too large (%d bytes, max %d)",
+			fi.Size(), soundMaxBytes)
+	}
 	// #nosec G304 — path is a public-API argument; loading a caller-named
 	// audio file by arbitrary path is the intended behavior.
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil, fmt.Errorf("audio: read sound %q: %w", path, err)
+	f, openErr := os.Open(path)
+	if openErr != nil {
+		return nil, fmt.Errorf("audio: read sound %q: %w", path, openErr)
+	}
+	data, readErr := io.ReadAll(io.LimitReader(f, soundMaxBytes+1))
+	closeErr := f.Close()
+	if readErr != nil {
+		return nil, fmt.Errorf("audio: read sound %q: %w", path, readErr)
+	}
+	if closeErr != nil {
+		return nil, fmt.Errorf("audio: read sound %q: %w", path, closeErr)
+	}
+	if len(data) > soundMaxBytes {
+		return nil, fmt.Errorf(
+			"audio: sound data too large (%d bytes, max %d)",
+			len(data), soundMaxBytes)
 	}
 	return b.LoadSoundBytes(data)
 }
 
 func (b *beepBackend) LoadSoundBytes(data []byte) (*Sound, error) {
-	const maxBytes = 50 << 20 // 50 MB
-	if len(data) > maxBytes {
+	if len(data) > soundMaxBytes {
 		return nil, fmt.Errorf(
 			"audio: sound data too large (%d bytes, max %d)",
-			len(data), maxBytes)
+			len(data), soundMaxBytes)
 	}
 	stream, format, err := decodeBytes(data)
 	if err != nil {
@@ -302,6 +327,12 @@ func (b *beepBackend) FadeOutMusic(ms int) {
 	if b.music.ctrl.Streamer == nil {
 		return
 	}
+	// Idempotent: wrapping a fade-out in a second fade-out restarts
+	// the ramp from full volume, causing an audible jump. Leave an
+	// in-progress fade-out alone.
+	if existing, isFade := b.music.ctrl.Streamer.(*fadeStreamer); isFade && existing.targetVol == 0 {
+		return
+	}
 	inner := b.music.ctrl.Streamer
 	b.music.ctrl.Streamer = &fadeStreamer{
 		streamer:   inner,
@@ -365,9 +396,13 @@ func (b *beepBackend) SoundPlay(s *Sound, channel, loops int) (int, error) {
 	}
 	if channel < 0 {
 		channel = b.channels.firstFree()
+		if channel < 0 {
+			return -1, errors.New("audio: no free channel for sound")
+		}
 	}
-	if channel < 0 || channel >= b.channels.numChannels() {
-		return -1, errors.New("audio: no free channel for sound")
+	if channel >= b.channels.numChannels() {
+		return -1, fmt.Errorf("audio: channel %d out of range [0, %d)",
+			channel, b.channels.numChannels())
 	}
 	// No-op when LoadSoundBytes already converted the buffer; only a
 	// Sound loaded before Init still carries a foreign rate.  Wrapping
@@ -387,9 +422,13 @@ func (b *beepBackend) SoundFadeIn(s *Sound, channel, loops, ms int) (int, error)
 	}
 	if channel < 0 {
 		channel = b.channels.firstFree()
+		if channel < 0 {
+			return -1, errors.New("audio: no free channel for sound")
+		}
 	}
-	if channel < 0 || channel >= b.channels.numChannels() {
-		return -1, errors.New("audio: no free channel for sound")
+	if channel >= b.channels.numChannels() {
+		return -1, fmt.Errorf("audio: channel %d out of range [0, %d)",
+			channel, b.channels.numChannels())
 	}
 	// See SoundPlay.  The fade must stay outside the resampler: its
 	// endSamples is counted in output-rate samples.
@@ -458,6 +497,12 @@ func (b *beepBackend) FadeOutChannel(channel, ms int) {
 	b.channels.mu.Lock()
 	inner := b.channels.chans[ch].Streamer
 	if inner == nil {
+		b.channels.mu.Unlock()
+		return
+	}
+	// Idempotent like FadeOutMusic: a second fade-out would restart
+	// the ramp from full volume.
+	if existing, isFade := inner.(*fadeStreamer); isFade && existing.targetVol == 0 {
 		b.channels.mu.Unlock()
 		return
 	}

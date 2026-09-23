@@ -9,6 +9,7 @@ package sysbeep
 #include "sysbeep_event_darwin.h"
 */
 import "C"
+import "sync"
 
 // eventSounds maps an Event onto a sound in /System/Library/Sounds —
 // the same names the Sound preference pane lists, so every one of them
@@ -32,16 +33,21 @@ var eventSounds = [eventCount]string{
 // cNames holds one C string per event, allocated on first use, so a
 // cue costs no allocation and no free. The table is fixed and small,
 // and the strings live for the life of the process by design.
-var cNames [eventCount]*C.char
+var (
+	cNames     [eventCount]*C.char
+	cNamesOnce [eventCount]sync.Once
+)
 
 func playEvent(e Event) {
 	name := eventSounds[e]
 	if name == "" {
 		return
 	}
-	if cNames[e] == nil {
+	// Once per event: PlayEvent can run on any goroutine, and two
+	// first calls for the same cue must not race on the cache slot.
+	cNamesOnce[e].Do(func() {
 		cNames[e] = C.CString(name)
-	}
+	})
 	C.sysbeepPlayEvent(cNames[e])
 }
 

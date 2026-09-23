@@ -15,17 +15,21 @@ import (
 // exportaudit:keep — reachable from an exported signature
 type Cfg struct {
 	// Frequency is the output sample rate in Hz.  Default: 44100.
-	frequency int
+	// exportaudit:keep — caller-facing config, documented in widget_audio.md
+	Frequency int
 	// OutputChannels is the number of output channels
 	// (1 = mono, 2 = stereo).  beep is stereo-only; this field is
 	// accepted but ignored.  Default: 2.
-	outputChannels int
+	// exportaudit:keep — caller-facing config, documented in widget_audio.md
+	OutputChannels int
 	// ChunkSize is the speaker buffer size in samples.  Smaller
 	// values reduce latency but increase CPU.  Default: 2048.
-	chunkSize int
+	// exportaudit:keep — caller-facing config, documented in widget_audio.md
+	ChunkSize int
 	// MixChannels is the number of mixing channels for sound
 	// effects.  Default: 16.
-	mixChannels int
+	// exportaudit:keep — caller-facing config, documented in widget_audio.md
+	MixChannels int
 }
 
 var (
@@ -54,19 +58,22 @@ func Init(opts ...Cfg) error {
 	if len(opts) > 0 {
 		c = opts[0]
 	}
-	c.frequency = cmp.Or(c.frequency, 44100)
-	c.outputChannels = cmp.Or(c.outputChannels, 2)
-	c.chunkSize = cmp.Or(c.chunkSize, 2048)
-	c.mixChannels = cmp.Or(c.mixChannels, 16)
+	c.Frequency = cmp.Or(c.Frequency, 44100)
+	c.OutputChannels = cmp.Or(c.OutputChannels, 2)
+	c.ChunkSize = cmp.Or(c.ChunkSize, 2048)
+	c.MixChannels = cmp.Or(c.MixChannels, 16)
 
-	if c.frequency < 8000 || c.frequency > 192000 {
-		return fmt.Errorf("audio: frequency %d out of range [8000, 192000]", c.frequency)
+	if c.Frequency < 8000 || c.Frequency > 192000 {
+		return fmt.Errorf("audio: frequency %d out of range [8000, 192000]", c.Frequency)
 	}
-	if c.chunkSize < 64 || c.chunkSize > 16384 {
-		return fmt.Errorf("audio: chunk size %d out of range [64, 16384]", c.chunkSize)
+	if c.OutputChannels != 1 && c.OutputChannels != 2 {
+		return fmt.Errorf("audio: output channels %d out of range [1, 2]", c.OutputChannels)
 	}
-	if c.mixChannels < 1 || c.mixChannels > 256 {
-		return fmt.Errorf("audio: mix channels %d out of range [1, 256]", c.mixChannels)
+	if c.ChunkSize < 64 || c.ChunkSize > 16384 {
+		return fmt.Errorf("audio: chunk size %d out of range [64, 16384]", c.ChunkSize)
+	}
+	if c.MixChannels < 1 || c.MixChannels > 256 {
+		return fmt.Errorf("audio: mix channels %d out of range [1, 256]", c.MixChannels)
 	}
 
 	if err := backend.Init(c); err != nil {
