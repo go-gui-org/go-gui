@@ -252,7 +252,7 @@ func newShowcaseApp() *ShowcaseApp {
 		SplitterMainState:     gui.SplitterState{Ratio: 0.30},
 		SplitterDetailState:   gui.SplitterState{Ratio: 0.55},
 		SidebarOpen:           true,
-		ThemeGenSeed:          gui.ThemeDark.Cfg.ColorSelect,
+		ThemeGenSeed:          gui.ThemeDark.ColorSelect,
 		ThemeGenStrategy:      "mono",
 		ThemeGenRadius:        gui.ThemeDark.Cfg.Radius,
 		ThemeGenRadiusText:    floatString(gui.ThemeDark.Cfg.Radius),

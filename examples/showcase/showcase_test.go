@@ -738,6 +738,95 @@ func TestSyncThemeGenFromCfgMirrorsDensity(t *testing.T) {
 	}
 }
 
+// TestSyncThemeGenResetDarkKeepsSeed pins the reset-dark seed: the
+// dark and light preset cfgs leave ColorSelect unset (it resolves to
+// the accent in ThemeMaker), so syncing from them must fall back to
+// the accent rather than an unset color, which the picker renders as
+// red (255, 0, 0).
+func TestSyncThemeGenResetDarkKeepsSeed(t *testing.T) {
+	for _, cfg := range []gui.ThemeCfg{gui.ThemeDark.Cfg, gui.ThemeLight.Cfg} {
+		app := newShowcaseApp()
+		syncThemeGenFromCfg(app, cfg)
+		if !app.ThemeGenSeed.IsSet() {
+			t.Fatalf("ThemeGenSeed unset after sync from %q", cfg.Name)
+		}
+		if got, want := app.ThemeGenSeed, cfg.ColorAccent; got != want {
+			t.Errorf("ThemeGenSeed from %q = %v, want accent %v", cfg.Name, got, want)
+		}
+	}
+	if got := newShowcaseApp().ThemeGenSeed; !got.IsSet() {
+		t.Errorf("newShowcaseApp ThemeGenSeed unset, want %v", gui.ThemeDark.ColorSelect)
+	}
+}
+
+// TestGenerateThemeCfgZeroTintRestoresPreset pins the reset round-trip:
+// syncing from a preset then regenerating at tint 0 must reproduce the
+// preset surfaces verbatim. The generator used to rebuild every surface
+// from its own value ladder even at 0 (dark bg 48,48,48 vs preset
+// 23,25,28), so sliding back to 0 never restored the preset.
+func TestGenerateThemeCfgZeroTintRestoresPreset(t *testing.T) {
+	for _, preset := range []gui.Theme{gui.ThemeDark, gui.ThemeLight} {
+		app := newShowcaseApp()
+		syncThemeGenFromCfg(app, preset.Cfg)
+		cfg := generateThemeCfg(
+			app.ThemeGenSeed, app.ThemeGenStrategy,
+			preset.TitlebarDark, app.ThemeGenTint, app.ThemeGenText,
+			themeGenSizesOf(app),
+		)
+		got := gui.ThemeMaker(cfg)
+		surfaces := []struct {
+			name string
+			got  gui.Color
+			want gui.Color
+		}{
+			{"background", got.ColorBackground, preset.ColorBackground},
+			{"panel", got.ColorPanel, preset.ColorPanel},
+			{"interior", got.ColorInterior, preset.ColorInterior},
+			{"hover", got.ColorHover, preset.ColorHover},
+			{"focus", got.ColorFocus, preset.ColorFocus},
+			{"active", got.ColorActive, preset.ColorActive},
+			{"border", got.ColorBorder, preset.ColorBorder},
+		}
+		for _, s := range surfaces {
+			if s.got != s.want {
+				t.Errorf("%s tint-0 %s = %v, want preset %v",
+					preset.Cfg.Name, s.name, s.got, s.want)
+			}
+		}
+	}
+}
+
+// TestGenerateThemeCfgTintOneIsSubtle pins the slider meaning: tint is
+// a blend amount, so 1% must sit within a few levels of the preset. The
+// old ladder rebuild jumped ~25 levels at any tint above 0.
+func TestGenerateThemeCfgTintOneIsSubtle(t *testing.T) {
+	for _, preset := range []gui.Theme{gui.ThemeDark, gui.ThemeLight} {
+		app := newShowcaseApp()
+		syncThemeGenFromCfg(app, preset.Cfg)
+		cfg := generateThemeCfg(
+			app.ThemeGenSeed, app.ThemeGenStrategy,
+			preset.TitlebarDark, 1, app.ThemeGenText,
+			themeGenSizesOf(app),
+		)
+		got := gui.ThemeMaker(cfg).ColorBackground
+		for _, ch := range []struct {
+			name string
+			got  uint8
+			want uint8
+		}{
+			{"R", got.R, preset.ColorBackground.R},
+			{"G", got.G, preset.ColorBackground.G},
+			{"B", got.B, preset.ColorBackground.B},
+		} {
+			d := int(ch.got) - int(ch.want)
+			if d < -4 || d > 4 {
+				t.Errorf("%s tint-1 bg.%s = %v, want within 4 of %v (got %v)",
+					preset.Cfg.Name, ch.name, ch.got, ch.want, got)
+			}
+		}
+	}
+}
+
 func TestDemoTextAnimLayout(t *testing.T) {
 	// demoTextAnim reads app state for the replay counter, so this
 	// needs a window with the state slot filled, not a bare one.

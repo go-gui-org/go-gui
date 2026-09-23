@@ -407,7 +407,14 @@ func strategyLabel(s string) string {
 }
 
 func syncThemeGenFromCfg(app *ShowcaseApp, cfg gui.ThemeCfg) {
-	app.ThemeGenSeed = cfg.ColorSelect
+	// ColorSelect is unset on the dark and light presets: it resolves
+	// to the accent in ThemeMaker, so read the effective seed the same
+	// way rather than an unset color (which the picker renders as red).
+	seed := cfg.ColorSelect
+	if !seed.IsSet() {
+		seed = cfg.ColorAccent
+	}
+	app.ThemeGenSeed = seed
 	app.ThemeGenTint = 0
 	app.ThemeGenStrategy = "mono"
 	app.ThemeGenRadius = cfg.Radius
@@ -475,27 +482,31 @@ func generateThemeCfg(
 	var cfg gui.ThemeCfg
 	if isDark {
 		cfg = gui.ThemeDark.Cfg
-		sTint := max(min(s, 1.0), 0.3) * tintFactor
-		cfg.ColorBackground = gui.ColorFromHSV(ph, sTint, 0.19)
-		cfg.ColorPanel = gui.ColorFromHSV(ph, sTint, 0.25)
-		cfg.ColorInterior = gui.ColorFromHSV(ph, sTint, 0.29)
-		cfg.ColorHover = gui.ColorFromHSV(ph, sTint, 0.33)
-		cfg.ColorFocus = gui.ColorFromHSV(ah, sTint, 0.37)
-		cfg.ColorActive = gui.ColorFromHSV(ah, sTint, 0.41)
-		cfg.ColorBorder = gui.ColorFromHSV(ah, sTint*0.8, 0.39)
+		// The full-tint target at this seed and hue. The applied
+		// color blends from the preset to it by tintFactor, so 0
+		// keeps the preset verbatim, 1% is barely visible, and
+		// sliding back to 0 restores the preset.
+		sFull := max(min(s, 1.0), 0.3)
+		cfg.ColorBackground = themeGenBlend(cfg.ColorBackground, gui.ColorFromHSV(ph, sFull, 0.19), tintFactor)
+		cfg.ColorPanel = themeGenBlend(cfg.ColorPanel, gui.ColorFromHSV(ph, sFull, 0.25), tintFactor)
+		cfg.ColorInterior = themeGenBlend(cfg.ColorInterior, gui.ColorFromHSV(ph, sFull, 0.29), tintFactor)
+		cfg.ColorHover = themeGenBlend(cfg.ColorHover, gui.ColorFromHSV(ph, sFull, 0.33), tintFactor)
+		cfg.ColorFocus = themeGenBlend(cfg.ColorFocus, gui.ColorFromHSV(ah, sFull, 0.37), tintFactor)
+		cfg.ColorActive = themeGenBlend(cfg.ColorActive, gui.ColorFromHSV(ah, sFull, 0.41), tintFactor)
+		cfg.ColorBorder = themeGenBlend(cfg.ColorBorder, gui.ColorFromHSV(ah, sFull*0.8, 0.39), tintFactor)
 		cfg.ColorSelect = gui.ColorFromHSV(ah, accentS, accentV)
 		cfg.ColorBorderFocus = gui.ColorFromHSV(ah, accentS*0.7, accentV*0.9)
 		cfg.TextStyleDef.Color = textColor
 	} else {
 		cfg = gui.ThemeLight.Cfg
-		sTint := max(min(s, 1.0), 0.3) * tintFactor * 0.5
-		cfg.ColorBackground = gui.ColorFromHSV(ph, sTint*0.6, 0.96)
-		cfg.ColorPanel = gui.ColorFromHSV(ph, sTint, 0.90)
-		cfg.ColorInterior = gui.ColorFromHSV(ph, sTint, 0.86)
-		cfg.ColorHover = gui.ColorFromHSV(ph, sTint, 0.82)
-		cfg.ColorFocus = gui.ColorFromHSV(ah, sTint, 0.78)
-		cfg.ColorActive = gui.ColorFromHSV(ah, sTint, 0.74)
-		cfg.ColorBorder = gui.ColorFromHSV(ah, sTint*1.5, 0.55)
+		sFull := max(min(s, 1.0), 0.3) * 0.5
+		cfg.ColorBackground = themeGenBlend(cfg.ColorBackground, gui.ColorFromHSV(ph, sFull*0.6, 0.96), tintFactor)
+		cfg.ColorPanel = themeGenBlend(cfg.ColorPanel, gui.ColorFromHSV(ph, sFull, 0.90), tintFactor)
+		cfg.ColorInterior = themeGenBlend(cfg.ColorInterior, gui.ColorFromHSV(ph, sFull, 0.86), tintFactor)
+		cfg.ColorHover = themeGenBlend(cfg.ColorHover, gui.ColorFromHSV(ph, sFull, 0.82), tintFactor)
+		cfg.ColorFocus = themeGenBlend(cfg.ColorFocus, gui.ColorFromHSV(ah, sFull, 0.78), tintFactor)
+		cfg.ColorActive = themeGenBlend(cfg.ColorActive, gui.ColorFromHSV(ah, sFull, 0.74), tintFactor)
+		cfg.ColorBorder = themeGenBlend(cfg.ColorBorder, gui.ColorFromHSV(ah, sFull*1.5, 0.55), tintFactor)
 		cfg.ColorSelect = gui.ColorFromHSV(ah, accentS, accentV*0.75)
 		cfg.ColorBorderFocus = gui.ColorFromHSV(ah, accentS*0.8, accentV*0.6)
 		cfg.TextStyleDef.Color = textColor
@@ -519,6 +530,19 @@ func generateThemeCfg(
 	// the edge, which must not read as "unset".
 	cfg.SizeScrollbarGap = gui.SomeF(sizes.ScrollGap)
 	return cfg
+}
+
+// themeGenBlend linearly interpolates a surface from the preset (f=0)
+// to the full-tint target (f=1), alpha included. Tint is a blend
+// amount, so 0 restores the preset verbatim and small values stay
+// subtle.
+func themeGenBlend(base, target gui.Color, f float32) gui.Color {
+	f = max(0, min(f, 1))
+	mix := func(x, y uint8) uint8 {
+		return uint8(float32(x) + (float32(y)-float32(x))*f)
+	}
+	return gui.RGBA(mix(base.R, target.R), mix(base.G, target.G),
+		mix(base.B, target.B), mix(base.A, target.A))
 }
 
 func wrapHue(h float32) float32 {
