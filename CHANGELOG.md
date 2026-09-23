@@ -8,6 +8,8 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [v0.79.0] - 2026-09-23
+
 ### Added
 
 - **Typography guide and showcase section** — `docs/typography.md` documents the
