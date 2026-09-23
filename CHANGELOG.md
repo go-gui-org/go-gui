@@ -54,6 +54,11 @@ and this project adheres to
 
 ### Changed
 
+- **go-glyph bumped to v1.26.0.** Brings the composition API cleanup
+  (`HandleMarkedText` and `HandleInsertText` report errors, `CompositionBounds`
+  and `GetClauseRects` take `*Layout`) plus render-path, layout, bidi,
+  font-discovery, and caret-stop fixes (caret stops now split each character in
+  half). None of the breaking composition functions have callers here.
 - **BREAKING: `TextStyle.Roman()` is renamed to `TextStyle.Regular()`** — the
   method sets `glyph.TypefaceRegular`, and `Bold()` and `Italic()` already match
   their `Typeface` names, so `Roman()` was the odd one out. It also misleads:
