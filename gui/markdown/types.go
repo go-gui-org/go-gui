@@ -9,6 +9,15 @@ const (
 	maxFootnoteContinuationLines = 20
 )
 
+// Source and output caps. Parse truncates oversized input at a
+// line boundary and drops table rows and columns past the caps,
+// so hostile documents cost a bounded parse and layout.
+const (
+	maxSourceBytes = 1 << 20
+	maxTableRows   = 1000
+	maxTableCols   = 64
+)
+
 // Source length caps for external API submissions.
 const (
 	MaxLatexSourceLen   = 2000
@@ -38,7 +47,8 @@ const (
 // explicit alignment marker aligns left.
 type Align uint8
 
-// Align constants.
+// Align constants. The parser never emits AlignEnd (GFM has no
+// end marker); it exists for explicitly constructed tables.
 const (
 	AlignLeft Align = iota
 	AlignEnd

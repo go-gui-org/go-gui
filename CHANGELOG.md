@@ -8,6 +8,22 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Fixed
+
+- **Markdown blockquotes keep quoted lists, fences, headings and images** — a
+  quote wrapping anything but a paragraph used to drop the quote, so `> - item`
+  rendered as a bare list. The parser now stamps quote depth on every block a
+  quote emits, the render switch dispatches on the inner kind, and each kind
+  draws the shared quote chrome. A list item holding only a nested list no
+  longer emits an empty row.
+- **Markdown image paths reject absolute and double-encoded traversal** — image
+  sources now refuse filesystem roots (`/etc/x.png`) and decode
+  percent-encodings repeatedly before the `..` check, so `%252e` cannot hide
+  traversal. Link URLs are unchanged (`/relative/path` stays safe).
+- **Markdown parsing is bounded** — sources past 1 MiB truncate at a line
+  boundary, tables cap at 1000 rows and 64 columns, and the
+  footnote/abbreviation matchers build once per parse instead of per block.
+
 ## [v0.79.0] - 2026-09-23
 
 ### Added

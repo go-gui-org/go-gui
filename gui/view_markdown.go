@@ -431,11 +431,13 @@ func markdownTriggerMathFetches(
 }
 
 // mdKindOf names the branch markdownBuildContent's render switch
-// would take for a block. The flags are not mutually exclusive, so
-// the test order here copies that switch exactly; a second
-// hand-written order would silently disagree with the fallthrough
-// dispatch. Mermaid is deliberately absent: it dispatches from inside
-// the code branch on CodeLanguage, so it reads as code here.
+// would take for a block. The flags are not mutually exclusive — a
+// quoted fence is both code and quote — so the test order here
+// copies that switch exactly; a second hand-written order would
+// silently disagree with the fallthrough dispatch. Kind follows the
+// inner kind, and the quote survives on IsBlockquote/BlockquoteDepth.
+// Mermaid is deliberately absent: it dispatches from inside the code
+// branch on CodeLanguage, so it reads as code here.
 func mdKindOf(block markdownBlock) MarkdownBlockKind {
 	switch {
 	case block.IsMath:
@@ -446,8 +448,6 @@ func mdKindOf(block markdownBlock) MarkdownBlockKind {
 		return MarkdownKindTable
 	case block.IsHR:
 		return MarkdownKindHR
-	case block.IsBlockquote:
-		return MarkdownKindBlockquote
 	case block.IsImage:
 		return MarkdownKindImage
 	case block.HeaderLevel > 0:
@@ -458,6 +458,8 @@ func mdKindOf(block markdownBlock) MarkdownBlockKind {
 		return MarkdownKindDefValue
 	case block.IsList:
 		return MarkdownKindList
+	case block.IsBlockquote:
+		return MarkdownKindBlockquote
 	default:
 		return MarkdownKindParagraph
 	}
@@ -613,24 +615,25 @@ func markdownBuildContent(
 				content = append(content, v)
 			}
 		case block.IsHR:
-			content = append(content, mdRenderHR(cfg))
-		case block.IsBlockquote:
 			content = append(content,
-				mdRenderBlockquote(block, cfg, mode, makeCtx(block)))
+				mdWrapQuote(block, mdRenderHR(cfg), cfg))
 		case block.IsImage:
-			content = append(content, mdRenderImage(block))
+			content = append(content, mdRenderImage(block, cfg))
 		case block.HeaderLevel > 0:
 			content = append(content,
 				mdRenderHeading(block, cfg, mode, makeCtx(block))...)
 		case block.IsDefTerm:
-			content = append(content,
-				mdRenderDefTerm(block, mode, makeCtx(block)))
+			content = append(content, mdWrapQuote(block,
+				mdRenderDefTerm(block, mode, makeCtx(block)), cfg))
 		case block.IsDefValue:
 			content = append(content,
 				mdRenderDefValue(block, cfg, mode, makeCtx(block)))
 		case block.IsList:
 			listItems = append(listItems,
 				mdRenderListItem(block, cfg, mode, makeCtx(block)))
+		case block.IsBlockquote:
+			content = append(content,
+				mdRenderBlockquote(block, cfg, mode, makeCtx(block)))
 		default:
 			content = append(content,
 				mdRenderParagraph(block, cfg, mode, makeCtx(block)))

@@ -52,13 +52,23 @@ func IsSafeURL(url string) bool {
 }
 
 // decodePercentPrefix decodes leading percent-encoded bytes
-// (first 40 chars) for scheme detection.
+// (first 40 chars) for scheme detection. Decoding the window slice
+// keeps triplets straddling the edge raw: the slice ends where the
+// window ends, so no decoded byte overlaps the raw tail.
 func decodePercentPrefix(s string) string {
-	limit := len(s)
-	limit = min(limit, 40)
-	buf := make([]byte, 0, limit)
-	i := 0
-	for i < limit {
+	limit := min(len(s), 40)
+	return decodePercentAll(s[:limit]) + s[limit:]
+}
+
+// decodePercentAll decodes every valid %XX triplet in s. It feeds
+// the traversal check, where partially decoded input would hide
+// double-encoded ".." sequences such as %252e.
+func decodePercentAll(s string) string {
+	if !strings.Contains(s, "%") {
+		return s
+	}
+	buf := make([]byte, 0, len(s))
+	for i := 0; i < len(s); {
 		if s[i] == '%' && i+2 < len(s) {
 			hi := hexVal(s[i+1])
 			lo := hexVal(s[i+2])
@@ -70,9 +80,6 @@ func decodePercentPrefix(s string) string {
 		}
 		buf = append(buf, s[i])
 		i++
-	}
-	if limit < len(s) {
-		buf = append(buf, s[limit:]...)
 	}
 	return string(buf)
 }
@@ -127,9 +134,26 @@ func hasURIScheme(s string) bool {
 // path without query or fragment), so a remote non-image
 // resource is not fetched as image data.
 func isSafeImagePath(path string) bool {
-	lower := strings.ReplaceAll(
-		strings.ToLower(path), "%2e", ".")
-	if strings.Contains(lower, "..") {
+	// Decode repeatedly for this check, so a double-encoded
+	// ".." (%252e) cannot hide from it.
+	lower := strings.ToLower(path)
+	traversal := lower
+	for range 3 {
+		decoded := decodePercentAll(traversal)
+		if decoded == traversal {
+			break
+		}
+		traversal = decoded
+	}
+	if strings.Contains(traversal, "..") {
+		return false
+	}
+	// Image sources are relative references or http(s) URLs,
+	// never filesystem roots: the decoded form catches an
+	// encoded leading slash (%2f) too.
+	trimmed := strings.TrimSpace(traversal)
+	if strings.HasPrefix(trimmed, "/") ||
+		strings.HasPrefix(trimmed, "\\") {
 		return false
 	}
 	p := strings.TrimSpace(lower)

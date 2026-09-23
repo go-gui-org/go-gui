@@ -53,7 +53,7 @@ func TestMdRenderImage(t *testing.T) {
 		ImageSrc:    path,
 		ImageWidth:  123,
 		ImageHeight: 45,
-	}), &Window{})
+	}, MarkdownCfg{Style: DefaultMarkdownStyle()}), &Window{})
 
 	shape := layout.Shape
 	if shape == nil {

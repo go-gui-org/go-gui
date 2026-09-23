@@ -9,6 +9,40 @@ import (
 	"strings"
 )
 
+// applyRunMatches splits non-special runs with match, leaving
+// code, linked, tooltip and math runs alone: a pattern inside
+// code is literal text, not a reference. It returns the input
+// slice when nothing matched, so blocks with no hits pay no copy.
+func applyRunMatches(runs []Run, match runMatchFunc) []Run {
+	var result []Run
+	for idx, run := range runs {
+		if run.Format == FormatCode ||
+			run.Link != "" || run.Tooltip != "" ||
+			run.MathID != "" {
+			if result != nil {
+				result = append(result, run)
+			}
+			continue
+		}
+		nr, split := splitRunByMatches(run, match)
+		if !split {
+			if result != nil {
+				result = append(result, run)
+			}
+			continue
+		}
+		if result == nil {
+			result = make([]Run, 0, len(runs))
+			result = append(result, runs[:idx]...)
+		}
+		result = append(result, nr...)
+	}
+	if result == nil {
+		return runs
+	}
+	return result
+}
+
 // applyFootnoteRefs replaces [^id] patterns in run text
 // with superscript tooltip runs. Code runs are left alone:
 // a footnote pattern inside code is literal text, not a ref.
@@ -18,28 +52,7 @@ func applyFootnoteRefs(
 	if len(defs) == 0 {
 		return runs
 	}
-	match := footnoteMatchFunc(defs)
-	result := make([]Run, 0, len(runs))
-	changed := false
-	for _, run := range runs {
-		if run.Format == FormatCode ||
-			run.Link != "" || run.Tooltip != "" ||
-			run.MathID != "" {
-			result = append(result, run)
-			continue
-		}
-		nr, split := splitRunByMatches(run, match)
-		if split {
-			changed = true
-			result = append(result, nr...)
-			continue
-		}
-		result = append(result, run)
-	}
-	if !changed {
-		return runs
-	}
-	return result
+	return applyRunMatches(runs, footnoteMatchFunc(defs))
 }
 
 // runMatchFunc finds the next match at or after pos in text.
@@ -174,23 +187,7 @@ func replaceAbbreviations(
 	if matcher == nil {
 		return runs
 	}
-	match := abbrMatchFunc(matcher)
-	result := make([]Run, 0, len(runs))
-	for _, run := range runs {
-		if run.Format == FormatCode ||
-			run.Link != "" || run.Tooltip != "" ||
-			run.MathID != "" {
-			result = append(result, run)
-			continue
-		}
-		nr, split := splitRunByMatches(run, match)
-		if split {
-			result = append(result, nr...)
-			continue
-		}
-		result = append(result, run)
-	}
-	return result
+	return applyRunMatches(runs, abbrMatchFunc(matcher))
 }
 
 func buildAbbrMatcher(defs map[string]string) *abbrMatcher {

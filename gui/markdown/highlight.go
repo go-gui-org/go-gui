@@ -48,7 +48,7 @@ func normalizeLanguageHint(language string) string {
 	}
 }
 
-// LangFromHint maps a language hint string to a CodeLanguage.
+// langFromHint maps a language hint string to a CodeLanguage.
 func langFromHint(language string) CodeLanguage {
 	switch normalizeLanguageHint(language) {
 	case "v":

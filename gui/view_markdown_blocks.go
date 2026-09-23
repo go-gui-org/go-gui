@@ -235,30 +235,30 @@ func mdFlushListItems(
 func mdRenderMathBlock(
 	block markdownBlock, cfg MarkdownCfg, w *Window,
 ) View {
-	return Column(ContainerCfg{
+	return mdWrapQuote(block, Column(ContainerCfg{
 		Sizing:     FillFit,
 		HAlign:     HAlignCenter,
 		SizeBorder: NoBorder,
 		Content: []View{
 			renderMdMath(block, cfg, w),
 		},
-	})
+	}), cfg)
 }
 
 func mdRenderCodeBlock(
 	block markdownBlock, cfg MarkdownCfg, w *Window, idx int,
 ) View {
 	if block.CodeLanguage == "mermaid" {
-		return Column(ContainerCfg{
+		return mdWrapQuote(block, Column(ContainerCfg{
 			Sizing:     FillFit,
 			HAlign:     HAlignCenter,
 			SizeBorder: NoBorder,
 			Content: []View{
 				renderMdMermaid(block, cfg, w),
 			},
-		})
+		}), cfg)
 	}
-	return renderMdCode(block, cfg, w, idx)
+	return mdWrapQuote(block, renderMdCode(block, cfg, w, idx), cfg)
 }
 
 func mdRenderTable(
@@ -267,7 +267,7 @@ func mdRenderTable(
 	if block.TableData == nil {
 		return nil
 	}
-	return Column(ContainerCfg{
+	return mdWrapQuote(block, Column(ContainerCfg{
 		Sizing:  FillFit,
 		Padding: NoPadding,
 		Clip:    true,
@@ -285,7 +285,7 @@ func mdRenderTable(
 				Data:             buildMarkdownTableData(*block.TableData, cfg.Style),
 			}),
 		},
-	})
+	}), cfg)
 }
 
 func mdRenderHR(cfg MarkdownCfg) View {
@@ -302,18 +302,17 @@ func applyMdCtx(cfg *RTFCfg, ctx *mdBlockCtx) {
 	}
 }
 
-func mdRenderBlockquote(
-	block markdownBlock, cfg MarkdownCfg, mode textMode,
-	ctx *mdBlockCtx,
-) View {
+// mdWrapQuote draws quote chrome around an already-rendered view
+// when block carries quote depth from a stamped composite (a quoted
+// list, fence, heading, table or image), and returns v untouched
+// otherwise. Every kind shares this wrapper, so the bar and the
+// background cannot drift between kinds.
+func mdWrapQuote(block markdownBlock, v View, cfg MarkdownCfg) View {
+	if v == nil || block.BlockquoteDepth <= 0 {
+		return v
+	}
 	leftMargin := float32(
 		block.BlockquoteDepth-1) * cfg.Style.nestIndent
-	rtfCfg := RTFCfg{
-		RichText:      block.Content,
-		Mode:          mode,
-		BaseTextStyle: &block.baseStyle,
-	}
-	applyMdCtx(&rtfCfg, ctx)
 	return Row(ContainerCfg{
 		Sizing:     FillFit,
 		Padding:    NewPadding(0, 0, 0, leftMargin),
@@ -329,18 +328,31 @@ func mdRenderBlockquote(
 				Sizing:     FillFit,
 				Padding:    NoPadding,
 				SizeBorder: NoBorder,
-				Content:    []View{RTF(rtfCfg)},
+				Content:    []View{v},
 			}),
 		},
 	})
 }
 
-func mdRenderImage(block markdownBlock) View {
-	return Image(ImageCfg{
+func mdRenderBlockquote(
+	block markdownBlock, cfg MarkdownCfg, mode textMode,
+	ctx *mdBlockCtx,
+) View {
+	rtfCfg := RTFCfg{
+		RichText:      block.Content,
+		Mode:          mode,
+		BaseTextStyle: &block.baseStyle,
+	}
+	applyMdCtx(&rtfCfg, ctx)
+	return mdWrapQuote(block, RTF(rtfCfg), cfg)
+}
+
+func mdRenderImage(block markdownBlock, cfg MarkdownCfg) View {
+	return mdWrapQuote(block, Image(ImageCfg{
 		Src:    block.ImageSrc,
 		Width:  block.ImageWidth,
 		Height: block.ImageHeight,
-	})
+	}), cfg)
 }
 
 // mdRenderHeading returns 1 or 2 views: an optional H1 spacer
@@ -384,6 +396,9 @@ func mdRenderHeading(
 		a11Y:       &accessInfo{},
 		Content:    headingContent,
 	}))
+	for i := range views {
+		views[i] = mdWrapQuote(block, views[i], cfg)
+	}
 	return views
 }
 
@@ -406,11 +421,11 @@ func mdRenderDefValue(
 		BaseTextStyle: &block.baseStyle,
 	}
 	applyMdCtx(&rtfCfg, ctx)
-	return Row(ContainerCfg{
+	return mdWrapQuote(block, Row(ContainerCfg{
 		Sizing:  FillFit,
 		Padding: NewPadding(0, 0, 0, cfg.Style.nestIndent),
 		Content: []View{RTF(rtfCfg)},
-	})
+	}), cfg)
 }
 
 func mdRenderListItem(
@@ -452,7 +467,7 @@ func mdRenderListItem(
 		BaseTextStyle: &block.baseStyle,
 	}
 	applyMdCtx(&rtfCfg, ctx)
-	return Row(ContainerCfg{
+	return mdWrapQuote(block, Row(ContainerCfg{
 		Sizing:     FillFit,
 		Padding:    NewPadding(0, 0, 0, indentW),
 		SizeBorder: NoBorder,
@@ -478,7 +493,7 @@ func mdRenderListItem(
 				Content:    []View{RTF(rtfCfg)},
 			}),
 		},
-	})
+	}), cfg)
 }
 
 // mdTaskCheckbox renders a fixed-size box for a GFM task-list item.
