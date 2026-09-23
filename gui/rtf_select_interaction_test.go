@@ -791,17 +791,20 @@ func TestRtfSelectWrapModeKeyUpDownMovesBetweenLines(t *testing.T) {
 	h.release(ly.Shape.X+15, ly.Shape.Y+30)
 	expectRtfCursor(t, h, 12)
 
-	// Up lands on line 1 at x=10: 'a' of "alpha" (byte 0).
+	// Up lands on line 1 at x=10: past 'a' of "alpha" (byte 1). Caret
+	// stops split each character in half since go-glyph v1.26.0, so x=10
+	// past an ~8px 'a' picks the nearer boundary after it, not byte 0.
 	if err := h.w.TestKey("rtf", KeyUp, ModNone); err != nil {
 		t.Fatalf("TestKey(KeyUp): %v", err)
 	}
-	expectRtfCursor(t, h, 0)
+	expectRtfCursor(t, h, 1)
 
-	// Down returns to line 2 at x=0: 'g' of "gamma" (byte 11).
+	// Down returns to line 2 at the caret x of byte 1: past 'g' of
+	// "gamma" (byte 12) by the same half-character rule.
 	if err := h.w.TestKey("rtf", KeyDown, ModNone); err != nil {
 		t.Fatalf("TestKey(KeyDown): %v", err)
 	}
-	expectRtfCursor(t, h, 11)
+	expectRtfCursor(t, h, 12)
 }
 
 // --- AmendLayout stamping ---
