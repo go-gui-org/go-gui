@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"math"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -501,5 +502,102 @@ func TestPdfNum(t *testing.T) {
 			t.Errorf("pdfNum(%v) = %q, want %q",
 				tc.value, got, tc.want)
 		}
+	}
+}
+
+func TestDataGridSpreadsheetSafeTextWhitespacePrefixes(t *testing.T) {
+	tests := []struct {
+		input string
+		want  string
+	}{
+		{"\r=cmd", "'\r=cmd"},
+		{"\n@x", "'\n@x"},
+		{"\v+1", "'\v+1"},
+		{"\f-2", "'\f-2"},
+		{"\u00a0-x", "'\u00a0-x"},
+		{"|pipe", "'|pipe"},
+		{"\t=tab", "'\t=tab"},
+		{"normal", "normal"},
+	}
+	for _, tc := range tests {
+		got := dataGridSpreadsheetSafeText(tc.input)
+		if got != tc.want {
+			t.Errorf("safeText(%q) = %q, want %q",
+				tc.input, got, tc.want)
+		}
+	}
+}
+
+func TestGridDataFromCSVRowCap(t *testing.T) {
+	var sb strings.Builder
+	sb.WriteString("a\n")
+	for i := 0; i <= dataGridMaxCSVRows; i++ {
+		sb.WriteString("x\n")
+	}
+	if _, err := gridDataFromCSV(sb.String()); err == nil {
+		t.Fatal("expected row cap error past dataGridMaxCSVRows")
+	}
+}
+
+func TestGridDataFromCSVByteCap(t *testing.T) {
+	big := strings.Repeat("a", dataGridMaxCSVBytes+1)
+	if _, err := gridDataFromCSV(big); err == nil {
+		t.Fatal("expected size cap error past dataGridMaxCSVBytes")
+	}
+}
+
+func TestGridDataFromCSVHeaderColumnCap(t *testing.T) {
+	header := strings.Repeat("h,", dataGridMaxCSVColumns) + "h\nv\n"
+	if _, err := gridDataFromCSV(header); err == nil {
+		t.Fatal("expected column cap error past dataGridMaxCSVColumns in header")
+	}
+}
+
+func TestPDFColWidthsFitBudget(t *testing.T) {
+	columns := []GridColumnCfg{
+		{ID: "a", Title: "a"}, {ID: "b", Title: "b"}, {ID: "c", Title: "c"},
+		{ID: "d", Title: "d"}, {ID: "e", Title: "e"},
+	}
+	rows := []GridRow{{ID: "1", Cells: map[string]string{
+		"a": strings.Repeat("x", 100), "b": "y", "c": "y", "d": "y", "e": "y",
+	}}}
+	widths := dataGridPDFColWidths(columns, rows)
+	// (612-80)/6 = 88 chars less 4 separators of 3: budget 76.
+	// Proportional shares floor at 3 for a 85 total; the shrink
+	// pass pulls the widest down to fit.
+	sum := 0
+	for _, w := range widths {
+		sum += w
+	}
+	if sum != 76 {
+		t.Fatalf("widths sum: got %d, want 76 (budget)", sum)
+	}
+	if widths[0] != 64 {
+		t.Errorf("widest column: got %d, want 64", widths[0])
+	}
+}
+
+func TestPDFColWidthsFloorAtThreeChars(t *testing.T) {
+	// More columns than the page can hold even at minimum width:
+	// the shrink pass stops at the 3-char floor instead of
+	// looping forever, and the row degrades to minimums.
+	const ncols = 40
+	columns := make([]GridColumnCfg, 0, ncols)
+	for i := range ncols {
+		columns = append(columns, GridColumnCfg{
+			ID:    "c" + strconv.Itoa(i),
+			Title: "column " + strconv.Itoa(i),
+		})
+	}
+	widths := dataGridPDFColWidths(columns, nil)
+	sum := 0
+	for _, w := range widths {
+		if w != 3 {
+			t.Fatalf("width: got %d, want all floors at 3", w)
+		}
+		sum += w
+	}
+	if sum != 3*ncols {
+		t.Fatalf("widths sum: got %d, want %d", sum, 3*ncols)
 	}
 }

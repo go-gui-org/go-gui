@@ -29,7 +29,13 @@ func dataGridCachedPresentation(cfg *DataGridCfg, columns []GridColumnCfg, rowIn
 	groupCols := dataGridGroupColumns(cfg.GroupBy, columns)
 	valueCols := dataGridPresentationValueCols(groupCols, cfg.Aggregates)
 	visibleIndices := dataGridVisibleRowIndices(len(cfg.Rows), rowIndices)
-	groupTitles := dataGridGroupTitles(columns)
+	// Titles only feed the grouped/aggregated signature slow path:
+	// building the map before the hit check below would tax every
+	// cache hit with an allocation it never uses.
+	var groupTitles map[string]string
+	if len(groupCols) > 0 || len(cfg.Aggregates) > 0 {
+		groupTitles = dataGridGroupTitles(columns)
+	}
 	signature := dataGridPresentationSignature(cfg, columns, visibleIndices, groupCols, valueCols, groupTitles)
 	dgPC := gg.StateMap[string, dataGridPresentationCache](w, nsDgPresentation, capModerate)
 	if cached, ok := dgPC.Get(cfg.ID); ok {
@@ -159,8 +165,8 @@ func dataGridPresentationRows(cfg *DataGridCfg, columns []GridColumnCfg, rowIndi
 }
 
 func dataGridPresentationRowsWithGroupRanges(cfg *DataGridCfg, _ []GridColumnCfg, visibleIndices []int, groupCols []string, groupRanges map[string]int, groupTitles map[string]string) dataGridPresentation {
-	rows := make([]dataGridDisplayRow, 0, len(cfg.Rows)+8)
-	dataToDisplay := map[int]int{}
+	rows := make([]dataGridDisplayRow, 0, len(visibleIndices)+8)
+	dataToDisplay := make(map[int]int, len(visibleIndices))
 	if len(groupCols) == 0 || len(visibleIndices) == 0 {
 		for _, rowIdx := range visibleIndices {
 			row := cfg.Rows[rowIdx]
@@ -409,6 +415,13 @@ func dataGridFormatNumber(value float64) string {
 
 // --- Assembly functions ---
 
+// dataGridLoadErrorText is the sourced-grid error status. Generic
+// by design: the raw backend error (table names, DSN fragments,
+// paths) stays in state and callbacks, never in screenshots.
+func dataGridLoadErrorText() string {
+	return gg.CurrentLocale().StrLoadError
+}
+
 func dataGridScrollBodyRows(
 	dctx dataGridCtx,
 	presentation dataGridPresentation,
@@ -435,10 +448,9 @@ func dataGridScrollBodyRows(
 			dataGridSourceStatusRow(cfg, gg.CurrentLocale().StrLoading))
 	}
 	if hasSource && cfg.LoadError != "" && len(presentation.Rows) == 0 {
-		rows = append(rows, dataGridSourceStatusRow(cfg,
-			gg.CurrentLocale().StrLoadError+": "+cfg.LoadError))
+		rows = append(rows,
+			dataGridSourceStatusRow(cfg, dataGridLoadErrorText()))
 	}
-
 	lastRowIdx := len(presentation.Rows) - 1
 	if virtualize && firstVisible > 0 {
 		rows = append(rows, gg.Rectangle(gg.RectangleCfg{

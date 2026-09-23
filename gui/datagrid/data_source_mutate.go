@@ -136,14 +136,14 @@ func dataGridSourceApplyUpdate(
 ) (gridMutationApplyResult, error) {
 	updatedIDs := make(map[string]bool)
 	editsByRow := make(map[string][]GridCellEdit)
-	for _, edit := range edits {
+	for idx, edit := range edits {
 		if edit.RowID == "" {
 			return gridMutationApplyResult{},
-				errors.New("grid: row id is required")
+				fmt.Errorf("grid: update edit %d has empty row id", idx)
 		}
 		if edit.ColID == "" {
 			return gridMutationApplyResult{},
-				errors.New("grid: edit has empty col id")
+				fmt.Errorf("grid: update row %q has empty col id", edit.RowID)
 		}
 		editsByRow[edit.RowID] = append(
 			editsByRow[edit.RowID], edit)
@@ -154,28 +154,28 @@ func dataGridSourceApplyUpdate(
 	for idx, row := range *rows {
 		rowIdx[dataGridRowID(row, idx)] = idx
 	}
-	for _, reqRow := range reqRows {
+	for idx, reqRow := range reqRows {
 		if reqRow.ID == "" {
 			return gridMutationApplyResult{},
-				errors.New("grid: row id is required")
+				fmt.Errorf("grid: update row %d has empty row id", idx)
 		}
-		idx, ok := rowIdx[reqRow.ID]
+		rowPos, ok := rowIdx[reqRow.ID]
 		if !ok {
 			return gridMutationApplyResult{},
 				fmt.Errorf("grid: update row not found: %s",
 					reqRow.ID)
 		}
 		cells := make(map[string]string,
-			len((*rows)[idx].Cells))
-		maps.Copy(cells, (*rows)[idx].Cells)
+			len((*rows)[rowPos].Cells))
+		maps.Copy(cells, (*rows)[rowPos].Cells)
 		maps.Copy(cells, reqRow.Cells)
 		if rowEdits, hasEdits := editsByRow[reqRow.ID]; hasEdits {
 			for _, edit := range rowEdits {
 				cells[edit.ColID] = edit.Value
 			}
 		}
-		(*rows)[idx] = GridRow{ID: (*rows)[idx].ID, Cells: cells}
-		updated = append(updated, (*rows)[idx])
+		(*rows)[rowPos] = GridRow{ID: (*rows)[rowPos].ID, Cells: cells}
+		updated = append(updated, (*rows)[rowPos])
 		updatedIDs[reqRow.ID] = true
 	}
 	pendingIDs := make([]string, 0, len(editsByRow))

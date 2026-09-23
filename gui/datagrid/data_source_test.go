@@ -3,6 +3,7 @@ package datagrid
 import (
 	"runtime"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -662,5 +663,45 @@ func TestGridAggregateOp_String(t *testing.T) {
 			t.Errorf("GridAggregateOp(%d).String() = %q, want %q",
 				c.op, got, c.want)
 		}
+	}
+}
+
+func TestApplyQueryCapsFilterCount(t *testing.T) {
+	rows := []GridRow{{ID: "r", Cells: map[string]string{"a": "x"}}}
+	filters := make([]gridFilter, 0, dataGridMaxLocalFilterCount+1)
+	for range dataGridMaxLocalFilterCount {
+		filters = append(filters, gridFilter{ColID: "a", Op: "contains", Value: "x"})
+	}
+	// 101st filter rejects the row: honored, it would filter
+	// everything out; capped, the row survives.
+	filters = append(filters, gridFilter{ColID: "a", Op: "equals", Value: "zzz"})
+	got := dataGridSourceApplyQuery(rows, GridQueryState{Filters: filters})
+	if len(got) != 1 {
+		t.Fatalf("capped query matched %d rows, want 1", len(got))
+	}
+}
+
+func TestApplyQueryTruncatesLongQuickFilter(t *testing.T) {
+	cell := strings.Repeat("y", dataGridMaxQuickFilterLen)
+	rows := []GridRow{{ID: "r", Cells: map[string]string{"a": cell}}}
+	// 600-char needle truncated to the 500-char cell: contains
+	// matches. Untruncated, the longer needle could never match.
+	got := dataGridSourceApplyQuery(rows, GridQueryState{
+		QuickFilter: strings.Repeat("y", dataGridMaxQuickFilterLen+100),
+	})
+	if len(got) != 1 {
+		t.Fatalf("truncated query matched %d rows, want 1", len(got))
+	}
+}
+
+func TestApplyUpdateErrorMentionsPosition(t *testing.T) {
+	rows := &[]GridRow{{ID: "r", Cells: map[string]string{"a": "1"}}}
+	_, err := dataGridSourceApplyUpdate(rows, nil,
+		[]GridCellEdit{{RowID: "", ColID: "a", Value: "v"}})
+	if err == nil {
+		t.Fatal("expected error for empty row id")
+	}
+	if !strings.Contains(err.Error(), "edit 0") {
+		t.Errorf("error %q should name the edit position", err.Error())
 	}
 }

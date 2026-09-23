@@ -715,6 +715,7 @@ func TestNamespaceValuesPinned(t *testing.T) {
 		"nsDgJump":         nsDgJump,
 		"nsDgPendingJump":  nsDgPendingJump,
 		"nsDgQuickDraft":   nsDgQuickDraft,
+		"nsDgQuickPending": nsDgQuickPending,
 		"nsDgSource":       nsDgSource,
 	}
 	want := map[string]string{
@@ -729,11 +730,113 @@ func TestNamespaceValuesPinned(t *testing.T) {
 		"nsDgJump":         "gui.dg.jump",
 		"nsDgPendingJump":  "gui.dg.pending_jump",
 		"nsDgQuickDraft":   "gui.dg.quick_draft",
+		"nsDgQuickPending": "gui.dg.quick_pending",
 		"nsDgSource":       "gui.dg.source",
 	}
 	for name, got := range pinned {
 		if got != want[name] {
 			t.Errorf("%s: got %q, want %q", name, got, want[name])
 		}
+	}
+}
+
+func TestSourceNextPageClampsToPageStart(t *testing.T) {
+	w := gg.NewWindow(gg.WindowCfg{})
+	defer w.Close()
+	rc := 99
+	dgSource := gg.StateMap[string, dataGridSourceState](w, nsDgSource, 4)
+	dgSource.Set("g1", dataGridSourceState{
+		OffsetStart:    90,
+		RowCount:       &rc,
+		PaginationKind: GridPaginationOffset,
+	})
+	// Limit 10, 99 rows: last page starts at 90. Clamping to
+	// RowCount-1 would land mid-page at 98.
+	dataGridSourceNextPage("g1", GridPaginationOffset, 10, w)
+	state, _ := dgSource.Get("g1")
+	if state.OffsetStart != 90 {
+		t.Errorf("OffsetStart: got %d, want 90 (last page start)",
+			state.OffsetStart)
+	}
+}
+
+func TestSourceNextPageEmptyRowCount(t *testing.T) {
+	w := gg.NewWindow(gg.WindowCfg{})
+	defer w.Close()
+	rc := 0
+	dgSource := gg.StateMap[string, dataGridSourceState](w, nsDgSource, 4)
+	dgSource.Set("g1", dataGridSourceState{
+		OffsetStart:    0,
+		RowCount:       &rc,
+		PaginationKind: GridPaginationOffset,
+	})
+	dataGridSourceNextPage("g1", GridPaginationOffset, 10, w)
+	state, _ := dgSource.Get("g1")
+	if state.OffsetStart != 0 {
+		t.Errorf("OffsetStart: got %d, want 0", state.OffsetStart)
+	}
+}
+
+func TestSourceStatsAccessors(t *testing.T) {
+	w := gg.NewWindow(gg.WindowCfg{})
+	defer w.Close()
+	gg.StateMap[string, dataGridSourceState](w, nsDgSource, 4).Set("g1",
+		dataGridSourceState{LoadError: "db: table missing", hasMore: true})
+	stats := GetSourceStats(w, "g1")
+	if stats.LoadError() != "db: table missing" {
+		t.Errorf("LoadError: got %q", stats.LoadError())
+	}
+	if !stats.HasMore() {
+		t.Error("HasMore: got false, want true")
+	}
+}
+
+// --- dataGridSourcePagerRow builders ---
+
+func findShapeID(layout *gg.Layout, want string) bool {
+	if layout.Shape != nil && layout.Shape.ID == want {
+		return true
+	}
+	for i := range layout.Children {
+		if findShapeID(&layout.Children[i], want) {
+			return true
+		}
+	}
+	return false
+}
+
+func TestSourcePagerRowRendersRetryOnError(t *testing.T) {
+	w := gg.NewWindow(gg.WindowCfg{})
+	defer w.Close()
+	cfg := &DataGridCfg{ID: "g1"}
+	applyDataGridDefaults(cfg)
+	v := dataGridSourcePagerRow(cfg, "", dataGridSourceState{
+		LoadError:      "db gone",
+		PaginationKind: GridPaginationOffset,
+	}, GridDataCapabilities{}, "")
+	layout := gg.GenerateViewLayout(v, w)
+	if !findShapeID(&layout, "g1:src_retry") {
+		t.Fatal("retry button missing on load error")
+	}
+}
+
+func TestSourcePagerRowJumpOnlyInOffset(t *testing.T) {
+	w := gg.NewWindow(gg.WindowCfg{})
+	defer w.Close()
+	cfg := &DataGridCfg{ID: "g1"}
+	applyDataGridDefaults(cfg)
+	offset := dataGridSourceState{PaginationKind: GridPaginationOffset}
+	offsetCaps := GridDataCapabilities{supportsOffsetPagination: true}
+	offsetLayout := gg.GenerateViewLayout(
+		dataGridSourcePagerRow(cfg, "", offset, offsetCaps, ""), w)
+	if !findShapeID(&offsetLayout, "g1:jump") {
+		t.Fatal("jump input missing in offset mode")
+	}
+	cursor := dataGridSourceState{PaginationKind: GridPaginationCursor}
+	cursorCaps := GridDataCapabilities{supportsCursorPagination: true}
+	cursorLayout := gg.GenerateViewLayout(
+		dataGridSourcePagerRow(cfg, "", cursor, cursorCaps, ""), w)
+	if findShapeID(&cursorLayout, "g1:jump") {
+		t.Fatal("jump input should not render in cursor mode")
 	}
 }

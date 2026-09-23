@@ -45,6 +45,21 @@ func GetSourceStats(w *gg.Window, gridID string) SourceStats {
 	}
 }
 
+// LoadError reports the last backend fetch failure. Kept out of the
+// grid's on-screen status (which shows a generic label) so table
+// names and DSN fragments do not leak into screenshots; read it
+// here for logs and diagnostics.
+// exportaudit:keep — caller-facing diagnostics
+func (s SourceStats) LoadError() string {
+	return s.loadError
+}
+
+// HasMore reports whether the source holds further pages.
+// exportaudit:keep — caller-facing diagnostics
+func (s SourceStats) HasMore() bool {
+	return s.hasMore
+}
+
 func dataGridSourceApplyLocalMutation(gridID string, rows []GridRow, rowCount int, w *gg.Window) {
 	dgSrc := gg.StateMap[string, dataGridSourceState](w, nsDgSource, capModerate)
 	// Default zero state: absent entry means no prior mutation state;

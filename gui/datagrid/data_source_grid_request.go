@@ -40,8 +40,10 @@ func dataGridSourceStartRequest(cfg DataGridCfg, caps GridDataCapabilities, kind
 		}
 	}
 	req := GridDataRequest{
-		gridID:    cfg.ID,
-		Query:     cfg.Query,
+		gridID: cfg.ID,
+		// Deep-copy: cfg.Query is app-owned and stays live under
+		// further keystrokes while the fetch runs.
+		Query:     cfg.Query.Clone(),
 		page:      page,
 		Signal:    controller.Signal,
 		RequestID: nextRequestID,

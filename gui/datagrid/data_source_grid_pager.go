@@ -97,8 +97,15 @@ func dataGridSourceNextPage(gridID string, kind GridPaginationKind, pageLimit in
 		state.CurrentCursor = state.nextCursor
 	} else {
 		state.OffsetStart += max(1, pageLimit)
-		if state.RowCount != nil {
-			state.OffsetStart = min(state.OffsetStart, max(0, *state.RowCount-1))
+		if state.RowCount != nil && pageLimit > 0 {
+			// Clamp to the last page start, not the last row:
+			// RowCount-1 lands mid-page (99 with limit 10).
+			total := max(0, *state.RowCount)
+			lastStart := 0
+			if total > 0 {
+				lastStart = ((total - 1) / pageLimit) * pageLimit
+			}
+			state.OffsetStart = min(state.OffsetStart, max(0, lastStart))
 		}
 	}
 	state.RequestKey = ""
@@ -205,14 +212,25 @@ func dataGridSourceRetry(gridID string, w *gg.Window) {
 func dataGridSourcePagerRow(cfg *DataGridCfg, focusID string, state dataGridSourceState, caps GridDataCapabilities, jumpText string) gg.View {
 	kind := dataGridSourceEffectivePaginationKind(cfg.PaginationKind, caps)
 	pageLimit := dataGridPageLimit(cfg)
+	content := make([]gg.View, 0, 10)
+	content = append(content, dataGridSourcePagerNav(cfg, focusID, kind, pageLimit, state)...)
+	if retry := dataGridSourcePagerRetry(cfg, focusID, state); retry != nil {
+		content = append(content, retry)
+	}
+	content = append(content, dataGridPagerRowsStatus(cfg,
+		dataGridSourceRowsText(kind, state)))
+	if jump := dataGridSourcePagerJump(cfg, focusID, state, caps, kind, pageLimit, jumpText); jump != nil {
+		content = append(content, jump...)
+	}
+	return dataGridPagerShell(cfg, content)
+}
+
+// dataGridSourcePagerNav builds the prev/mode/next buttons plus the
+// spacer that pushes the row counts right.
+func dataGridSourcePagerNav(cfg *DataGridCfg, focusID string, kind GridPaginationKind, pageLimit int, state dataGridSourceState) []gg.View {
+	gridID := cfg.ID
 	hasPrev := dataGridSourceCanPrev(kind, state, pageLimit)
 	hasNext := dataGridSourceCanNext(kind, state, pageLimit)
-	rowsText := dataGridSourceRowsText(kind, state)
-	onSelectionChange := cfg.OnSelectionChange
-	rowCount := state.RowCount
-	loading := state.Loading
-	loadError := state.LoadError
-	jumpEnabled := dataGridSourceJumpEnabled(onSelectionChange, rowCount, loading, loadError, kind, pageLimit)
 	var modeText string
 	if kind == GridPaginationCursor {
 		modeText = "Cursor"
@@ -227,86 +245,82 @@ func dataGridSourcePagerRow(cfg *DataGridCfg, focusID string, state dataGridSour
 	} else {
 		status = modeText
 	}
-
-	gridID := cfg.ID
-	jumpInputID := gg.ScopeID(gridID, "jump")
-	content := make([]gg.View, 0, 10)
-
-	// Prev button.
-	content = append(content, dataGridIndicatorButton(gg.ScopeID(gridID, "src_prev"), "\u25C0", cfg.TextStyleHeader, cfg.ColorsHeader.Hover,
-		state.Loading || !hasPrev, dataGridHeaderControlWidth+10, cfg.sounds.click, func(ctx gg.EventCtx) {
-			dataGridSourcePrevPage(gridID, kind, pageLimit, ctx.Window)
-			if focusID != "" {
-				ctx.Window.SetFocus(focusID)
-			}
-			ctx.Consume()
-		}))
-	// Status.
-	content = append(content, gg.Text(gg.TextCfg{
-		Text:      status,
-		Mode:      gg.TextModeSingleLine,
-		TextStyle: cfg.TextStyleFilter,
-	}))
-	// Next button.
-	content = append(content, dataGridIndicatorButton(gg.ScopeID(gridID, "src_next"), "\u25B6", cfg.TextStyleHeader, cfg.ColorsHeader.Hover,
-		state.Loading || !hasNext, dataGridHeaderControlWidth+10, cfg.sounds.click, func(ctx gg.EventCtx) {
-			dataGridSourceNextPage(gridID, kind, pageLimit, ctx.Window)
-			if focusID != "" {
-				ctx.Window.SetFocus(focusID)
-			}
-			ctx.Consume()
-		}))
-	// Spacer.
-	content = append(content, gg.Row(gg.ContainerCfg{
-		Sizing:  gg.FillFill,
-		Padding: gg.NoPadding,
-	}))
-	// Retry button on error.
-	if state.LoadError != "" {
-		content = append(content, gg.Button(gg.ButtonCfg{
-			ID:         gg.ScopeID(gridID, "src_retry"),
-			Sizing:     gg.FitFill,
-			Padding:    gg.NoPadding,
-			SizeBorder: gg.SomeF(0),
-			Radius:     gg.SomeF(0),
-			Color:      gg.ColorTransparent,
-			Colors:     gg.ColorSet{Base: gg.ColorTransparent, Hover: cfg.ColorsHeader.Hover, Click: cfg.ColorsHeader.Hover, Focus: gg.ColorTransparent, Border: gg.ColorTransparent, BorderFocus: gg.ColorTransparent},
-			OnClick: func(ctx gg.EventCtx) {
-				dataGridSourceRetry(gridID, ctx.Window)
+	// Shared arrows: the local pager swaps them for RTL locales.
+	prevArrow, nextArrow := dataGridPagerArrows()
+	return []gg.View{
+		dataGridIndicatorButton(gg.ScopeID(gridID, "src_prev"), prevArrow, cfg.TextStyleHeader, cfg.ColorsHeader.Hover,
+			state.Loading || !hasPrev, dataGridHeaderControlWidth+10, cfg.sounds.click, func(ctx gg.EventCtx) {
+				dataGridSourcePrevPage(gridID, kind, pageLimit, ctx.Window)
 				if focusID != "" {
 					ctx.Window.SetFocus(focusID)
 				}
-			},
-			Content: []gg.View{
-				gg.Text(gg.TextCfg{
-					Text:      "Retry",
-					Mode:      gg.TextModeSingleLine,
-					TextStyle: dataGridIndicatorTextStyle(cfg.TextStyleFilter),
-				}),
-			},
-		}))
+				ctx.Consume()
+			}),
+		gg.Text(gg.TextCfg{
+			Text:      status,
+			Mode:      gg.TextModeSingleLine,
+			TextStyle: cfg.TextStyleFilter,
+		}),
+		dataGridIndicatorButton(gg.ScopeID(gridID, "src_next"), nextArrow, cfg.TextStyleHeader, cfg.ColorsHeader.Hover,
+			state.Loading || !hasNext, dataGridHeaderControlWidth+10, cfg.sounds.click, func(ctx gg.EventCtx) {
+				dataGridSourceNextPage(gridID, kind, pageLimit, ctx.Window)
+				if focusID != "" {
+					ctx.Window.SetFocus(focusID)
+				}
+				ctx.Consume()
+			}),
+		dataGridPagerSpacer(),
 	}
-	// Rows status.
-	content = append(content, gg.Row(gg.ContainerCfg{
-		Sizing:  gg.FitFill,
-		Padding: gg.NewPadding(0, 6, 0, 0),
-		VAlign:  gg.VAlignMiddle,
+}
+
+// dataGridSourcePagerRetry builds the error retry button, or nil
+// when there is no load error.
+func dataGridSourcePagerRetry(cfg *DataGridCfg, focusID string, state dataGridSourceState) gg.View {
+	if state.LoadError == "" {
+		return nil
+	}
+	gridID := cfg.ID
+	return gg.Button(gg.ButtonCfg{
+		ID:         gg.ScopeID(gridID, "src_retry"),
+		Sizing:     gg.FitFill,
+		Padding:    gg.NoPadding,
+		SizeBorder: gg.SomeF(0),
+		Radius:     gg.SomeF(0),
+		Color:      gg.ColorTransparent,
+		Colors:     gg.ColorSet{Base: gg.ColorTransparent, Hover: cfg.ColorsHeader.Hover, Click: cfg.ColorsHeader.Hover, Focus: gg.ColorTransparent, Border: gg.ColorTransparent, BorderFocus: gg.ColorTransparent},
+		OnClick: func(ctx gg.EventCtx) {
+			dataGridSourceRetry(gridID, ctx.Window)
+			if focusID != "" {
+				ctx.Window.SetFocus(focusID)
+			}
+			ctx.Consume()
+		},
 		Content: []gg.View{
 			gg.Text(gg.TextCfg{
-				Text:      rowsText,
+				Text:      "Retry",
 				Mode:      gg.TextModeSingleLine,
 				TextStyle: dataGridIndicatorTextStyle(cfg.TextStyleFilter),
 			}),
 		},
-	}))
-	// Jump input for offset mode.
-	if kind == GridPaginationOffset {
-		content = append(content, gg.Text(gg.TextCfg{
-			Text:      gg.CurrentLocale().StrJump,
-			Mode:      gg.TextModeSingleLine,
-			TextStyle: dataGridIndicatorTextStyle(cfg.TextStyleFilter),
-		}))
-		content = append(content, gg.Input(gg.InputCfg{
+	})
+}
+
+// dataGridSourcePagerJump builds the jump label and input for offset
+// mode, or nil otherwise.
+func dataGridSourcePagerJump(cfg *DataGridCfg, focusID string, state dataGridSourceState, caps GridDataCapabilities, kind GridPaginationKind, pageLimit int, jumpText string) []gg.View {
+	if kind != GridPaginationOffset {
+		return nil
+	}
+	gridID := cfg.ID
+	onSelectionChange := cfg.OnSelectionChange
+	rowCount := state.RowCount
+	loading := state.Loading
+	loadError := state.LoadError
+	jumpEnabled := dataGridSourceJumpEnabled(onSelectionChange, rowCount, loading, loadError, kind, pageLimit)
+	jumpInputID := gg.ScopeID(gridID, "jump")
+	return []gg.View{
+		dataGridPagerJumpLabel(cfg),
+		gg.Input(gg.InputCfg{
 			ID:          jumpInputID,
 			Text:        jumpText,
 			Placeholder: "#",
@@ -331,19 +345,8 @@ func dataGridSourcePagerRow(cfg *DataGridCfg, focusID string, state dataGridSour
 				dataGridSourceSubmitJump(onSelectionChange, rowCount, loading,
 					loadError, kind, pageLimit, gridID, focusID, ctx.Event, ctx.Window)
 			},
-		}))
+		}),
 	}
-	return gg.Row(gg.ContainerCfg{
-		Height:      dataGridPagerHeight(cfg),
-		Sizing:      gg.FillFixed,
-		Color:       cfg.ColorFilter,
-		ColorBorder: cfg.ColorsRow.Border,
-		SizeBorder:  gg.SomeF(0),
-		Padding:     dataGridPagerPadding(cfg),
-		Spacing:     gg.SomeF(6),
-		VAlign:      gg.VAlignMiddle,
-		Content:     content,
-	})
 }
 
 func dataGridSourceStatusRow(cfg *DataGridCfg, message string) gg.View {

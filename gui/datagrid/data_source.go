@@ -128,11 +128,15 @@ func (s *InMemoryDataSource) FetchData(req GridDataRequest) (GridDataResult, err
 		return GridDataResult{}, err
 	}
 	s.mu.RLock()
-	defer s.mu.RUnlock()
 	rows := make([]GridRow, len(s.Rows))
 	copy(rows, s.Rows)
 	defaultLimit := s.DefaultLimit
 	rowCountKnown := s.rowCountKnown
+	s.mu.RUnlock()
+	// Unlocked from here: mutations replace cell maps rather than
+	// editing in place, so the copied slice header sees a stable
+	// snapshot while sorts and filters run without blocking
+	// writers (or parallel fetches) on the read lock.
 	// latencyMs=0: sleep already applied above; inner call
 	// degenerates to abort-check only.
 	return dataGridSourceInMemoryFetch(
@@ -330,9 +334,18 @@ func dataGridSourceIsDecimal(input string) bool {
 }
 
 // dataGridSourceApplyQuery filters and sorts rows in memory.
+// Mirrors the ORM guards: over-long quick filters are truncated
+// and filter lists capped, so a pasted megabyte cannot wedge the
+// per-keystroke path the way the ORM path already prevents.
 func dataGridSourceApplyQuery(
 	rows []GridRow, query GridQueryState,
 ) []GridRow {
+	if len(query.QuickFilter) > dataGridMaxQuickFilterLen {
+		query.QuickFilter = dataGridTruncateRunes(query.QuickFilter, dataGridMaxQuickFilterLen)
+	}
+	if len(query.Filters) > dataGridMaxLocalFilterCount {
+		query.Filters = query.Filters[:dataGridMaxLocalFilterCount]
+	}
 	if query.QuickFilter == "" && len(query.Filters) == 0 &&
 		len(query.Sorts) == 0 {
 		return rows

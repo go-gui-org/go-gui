@@ -73,6 +73,7 @@ func dataGridDetailRowView(dctx dataGridCtx, rowData GridRow, rowIdx int) gg.Vie
 			if focusID != "" {
 				ctx.Window.SetFocus(focusID)
 			}
+			ctx.Consume()
 		},
 	})
 }
@@ -80,10 +81,7 @@ func dataGridDetailRowView(dctx dataGridCtx, rowData GridRow, rowIdx int) gg.Vie
 func dataGridRowView(dctx dataGridCtx, rowData GridRow, rowIdx int, showDeleteAction bool) gg.View {
 	cfg := dctx.cfg
 	columns := dctx.columns
-	columnWidths := dctx.columnWidths
-	rowHeight := dctx.RowHeight
 	focusID := dctx.focusID
-	w := dctx.w
 	rowID := dataGridRowID(rowData, rowIdx)
 	isSelected := cfg.Selection.SelectedRowIDs[rowID]
 	gridID := cfg.ID
@@ -95,10 +93,64 @@ func dataGridRowView(dctx dataGridCtx, rowData GridRow, rowIdx int, showDeleteAc
 	editEnabled := dataGridEditingEnabled(cfg)
 	editorFocusBase := dataGridCellEditorFocusBaseID(cfg, len(columns))
 	colCount := len(columns)
+	isEditingRow := dctx.editingRowID == rowID && editEnabled
+
+	cells := dataGridBuildRowCells(dctx, rowData, rowIdx, isEditingRow)
+	if showDeleteAction {
+		cells = append(cells, dataGridRowDeleteButton(dctx, rowID))
+	}
+
+	// Selection paints the subtle wash, not the full accent slab;
+	// focus is the ring, not a second fill (visual-refresh §4.3).
+	rowColor := dataGridRowFill(cfg, rowIdx, isSelected, false)
+	// Computed here, not in OnHover: the closure then holds one Color
+	// and not the cfg pointer.
+	rowHoverColor := dataGridRowFill(cfg, rowIdx, isSelected, true)
+	disabled := cfg.Disabled
+
+	return gg.Row(gg.ContainerCfg{
+		ID:          gg.ScopeID(cfg.ID, "row", rowID),
+		Height:      dctx.RowHeight,
+		Sizing:      gg.FillFixed,
+		Color:       rowColor,
+		ColorBorder: cfg.ColorsRow.Border,
+		SizeBorder:  gg.SomeF(0),
+		Padding:     gg.NoPadding,
+		Spacing:     gg.Some(-cfg.SizeBorder.Get(0)),
+		// Clicking a row selects it, which is the same activation a
+		// button makes — the grid's own click role (issue #467).
+		Sound: cfg.sounds.click,
+		OnClick: func(ctx gg.EventCtx) {
+			dataGridRowClick(rows, selection, gridID, multiSelect, rangeSelect,
+				onSelectionChange, editEnabled, editorFocusBase, colCount,
+				rowIdx, rowID, focusID, columns, ctx.Event, ctx.Window)
+			ctx.Consume()
+		},
+		OnHover: func(ctx gg.EventCtx) {
+			if disabled {
+				return
+			}
+			ctx.Window.SetMouseCursorPointingHand()
+			// A selected row reacts to hover too: Pick moves the
+			// wash one lightness step (#741).
+			ctx.Layout.Shape.Color = rowHoverColor
+		},
+		Content: cells,
+	})
+}
+
+// dataGridBuildRowCells builds one display cell per column, swapping
+// in the editor for editable cells of the editing row.
+func dataGridBuildRowCells(dctx dataGridCtx, rowData GridRow, rowIdx int, isEditingRow bool) []gg.View {
+	cfg := dctx.cfg
+	columns := dctx.columns
+	columnWidths := dctx.columnWidths
+	focusID := dctx.focusID
+	w := dctx.w
+	rowID := dataGridRowID(rowData, rowIdx)
 	detailEnabled := cfg.DetailRowView != nil
 	detailToggleEnabled := cfg.OnDetailExpandedChange != nil
 	detailExpanded := dataGridDetailRowExpanded(cfg, rowID)
-	isEditingRow := dctx.editingRowID == rowID && editEnabled
 
 	cells := make([]gg.View, 0, len(columns)+1)
 	for colIdx, col := range columns {
@@ -164,69 +216,43 @@ func dataGridRowView(dctx dataGridCtx, rowData GridRow, rowIdx int, showDeleteAc
 			Content:     cellContent,
 		}))
 	}
+	return cells
+}
 
-	if showDeleteAction {
-		cells = append(cells, gg.Button(gg.ButtonCfg{
-			ID:         gg.ScopeID(cfg.ID, "row-delete", rowID),
-			Width:      dataGridHeaderControlWidth + 10,
-			Sizing:     gg.FixedFill,
-			Padding:    gg.NoPadding,
-			SizeBorder: gg.SomeF(0),
-			Radius:     gg.SomeF(0),
-			Color:      gg.ColorTransparent,
-			Colors:     gg.ColorSet{Base: gg.ColorTransparent, Hover: cfg.ColorsHeader.Hover, Click: cfg.ColorsHeader.Hover, Focus: gg.ColorTransparent, Border: cfg.ColorsRow.Border, BorderFocus: cfg.ColorsRow.Border},
-			// SoundDisabled as well as Sound: a resolved gg.SoundNone
-			// reads as "unset" inside gg.ButtonCfg (issue #467).
-			Sound:         cfg.sounds.click,
-			SoundDisabled: cfg.sounds.click == gg.SoundNone,
-			OnClick: func(ctx gg.EventCtx) {
-				dataGridCrudDeleteRows(gridID, selection, onSelectionChange, []string{rowID}, focusID, ctx.Event, ctx.Window)
-			},
-			Content: []gg.View{
-				gg.Text(gg.TextCfg{
-					Text:      "\u00D7", // ×
-					Mode:      gg.TextModeSingleLine,
-					TextStyle: dataGridIndicatorTextStyle(cfg.TextStyleFilter),
-				}),
-			},
-		}))
-	}
-
-	// Selection paints the subtle wash, not the full accent slab;
-	// focus is the ring, not a second fill (visual-refresh §4.3).
-	rowColor := dataGridRowFill(cfg, rowIdx, isSelected, false)
-	// Computed here, not in OnHover: the closure then holds one Color
-	// and not the cfg pointer.
-	rowHoverColor := dataGridRowFill(cfg, rowIdx, isSelected, true)
-	disabled := cfg.Disabled
-
-	return gg.Row(gg.ContainerCfg{
-		ID:          gg.ScopeID(cfg.ID, "row", rowID),
-		Height:      rowHeight,
-		Sizing:      gg.FillFixed,
-		Color:       rowColor,
-		ColorBorder: cfg.ColorsRow.Border,
-		SizeBorder:  gg.SomeF(0),
-		Padding:     gg.NoPadding,
-		Spacing:     gg.Some(-cfg.SizeBorder.Get(0)),
-		// Clicking a row selects it, which is the same activation a
-		// button makes — the grid's own click role (issue #467).
-		Sound: cfg.sounds.click,
+// dataGridRowDeleteButton builds the CRUD row-delete button.
+func dataGridRowDeleteButton(dctx dataGridCtx, rowID string) gg.View {
+	cfg := dctx.cfg
+	// Copy what the closure needs: retaining the whole frame
+	// context per row would pin the config, columns, widths and
+	// window for the button lifetime.
+	gridID := cfg.ID
+	selection := cfg.Selection
+	onSelectionChange := cfg.OnSelectionChange
+	focusID := dctx.focusID
+	return gg.Button(gg.ButtonCfg{
+		ID:         gg.ScopeID(gridID, "row-delete", rowID),
+		Width:      dataGridHeaderControlWidth + 10,
+		Sizing:     gg.FixedFill,
+		Padding:    gg.NoPadding,
+		SizeBorder: gg.SomeF(0),
+		Radius:     gg.SomeF(0),
+		Color:      gg.ColorTransparent,
+		Colors:     gg.ColorSet{Base: gg.ColorTransparent, Hover: cfg.ColorsHeader.Hover, Click: cfg.ColorsHeader.Hover, Focus: gg.ColorTransparent, Border: cfg.ColorsRow.Border, BorderFocus: cfg.ColorsRow.Border},
+		// SoundDisabled as well as Sound: a resolved gg.SoundNone
+		// reads as "unset" inside gg.ButtonCfg (issue #467).
+		Sound:         cfg.sounds.click,
+		SoundDisabled: cfg.sounds.click == gg.SoundNone,
 		OnClick: func(ctx gg.EventCtx) {
-			dataGridRowClick(rows, selection, gridID, multiSelect, rangeSelect,
-				onSelectionChange, editEnabled, editorFocusBase, colCount,
-				rowIdx, rowID, focusID, columns, ctx.Event, ctx.Window)
+			dataGridCrudDeleteRows(gridID, selection, onSelectionChange, []string{rowID}, focusID, ctx.Event, ctx.Window)
+			ctx.Consume()
 		},
-		OnHover: func(ctx gg.EventCtx) {
-			if disabled {
-				return
-			}
-			ctx.Window.SetMouseCursorPointingHand()
-			// A selected row reacts to hover too: Pick moves the
-			// wash one lightness step (#741).
-			ctx.Layout.Shape.Color = rowHoverColor
+		Content: []gg.View{
+			gg.Text(gg.TextCfg{
+				Text:      "\u00D7", // ×
+				Mode:      gg.TextModeSingleLine,
+				TextStyle: dataGridIndicatorTextStyle(cfg.TextStyleFilter),
+			}),
 		},
-		Content: cells,
 	})
 }
 

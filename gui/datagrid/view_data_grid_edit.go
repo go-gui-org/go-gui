@@ -11,6 +11,21 @@ import (
 
 // --- Cell editors ---
 
+// dataGridCommitCellEdit applies one editor value to the CRUD
+// working copy (and the OnCellEdit callback), skipping rows or
+// columns without identity.
+func dataGridCommitCellEdit(gridID string, crudEnabled bool, onCellEdit func(GridCellEdit, gg.EventCtx), rowID string, rowIdx int, colID, value string, e *gg.Event, w *gg.Window) {
+	if rowID == "" || colID == "" {
+		return
+	}
+	dataGridCrudApplyCellEdit(gridID, crudEnabled, onCellEdit, GridCellEdit{
+		RowID:  rowID,
+		rowIdx: rowIdx,
+		ColID:  colID,
+		Value:  value,
+	}, e, w)
+}
+
 func dataGridCellEditorView(cfg *DataGridCfg, rowID string, rowIdx int, col GridColumnCfg, value string, editorFocusID, gridFocusID string, _ *gg.Window) gg.View {
 	editorID := editorFocusID
 	colID := col.ID
@@ -43,14 +58,7 @@ func dataGridCellEditorView(cfg *DataGridCfg, rowID string, rowIdx int, col Grid
 				if len(selected) > 0 {
 					nextValue = selected[0]
 				}
-				if rowID != "" && colID != "" {
-					dataGridCrudApplyCellEdit(gridID, crudEnabled, onCellEdit, GridCellEdit{
-						RowID:  rowID,
-						rowIdx: rowIdx,
-						ColID:  colID,
-						Value:  nextValue,
-					}, ctx.Event, ctx.Window)
-				}
+				dataGridCommitCellEdit(gridID, crudEnabled, onCellEdit, rowID, rowIdx, colID, nextValue, ctx.Event, ctx.Window)
 			},
 		})
 	case GridCellEditorDate:
@@ -65,14 +73,7 @@ func dataGridCellEditorView(cfg *DataGridCfg, rowID string, rowIdx int, col Grid
 					return
 				}
 				nextValue := dates[0].Format("1/2/2006")
-				if rowID != "" && colID != "" {
-					dataGridCrudApplyCellEdit(gridID, crudEnabled, onCellEdit, GridCellEdit{
-						RowID:  rowID,
-						rowIdx: rowIdx,
-						ColID:  colID,
-						Value:  nextValue,
-					}, ctx.Event, ctx.Window)
-				}
+				dataGridCommitCellEdit(gridID, crudEnabled, onCellEdit, rowID, rowIdx, colID, nextValue, ctx.Event, ctx.Window)
 			},
 		})
 	case GridCellEditorCheckbox:
@@ -92,14 +93,7 @@ func dataGridCellEditorView(cfg *DataGridCfg, rowID string, rowIdx int, col Grid
 				if !checked {
 					nextValue = editorTrueValue
 				}
-				if rowID != "" && colID != "" {
-					dataGridCrudApplyCellEdit(gridID, crudEnabled, onCellEdit, GridCellEdit{
-						RowID:  rowID,
-						rowIdx: rowIdx,
-						ColID:  colID,
-						Value:  nextValue,
-					}, ctx.Event, ctx.Window)
-				}
+				dataGridCommitCellEdit(gridID, crudEnabled, onCellEdit, rowID, rowIdx, colID, nextValue, ctx.Event, ctx.Window)
 			},
 		})
 	default: // GridCellEditorText
@@ -111,15 +105,8 @@ func dataGridCellEditorView(cfg *DataGridCfg, rowID string, rowIdx int, col Grid
 			SizeBorder: gg.NoBorder,
 			Radius:     gg.SomeF(0),
 			OnTextChanged: func(text string, ctx gg.EventCtx) {
-				if rowID != "" && colID != "" {
-					e := &gg.Event{}
-					dataGridCrudApplyCellEdit(gridID, crudEnabled, onCellEdit, GridCellEdit{
-						RowID:  rowID,
-						rowIdx: rowIdx,
-						ColID:  colID,
-						Value:  text,
-					}, e, ctx.Window)
-				}
+				e := &gg.Event{}
+				dataGridCommitCellEdit(gridID, crudEnabled, onCellEdit, rowID, rowIdx, colID, text, e, ctx.Window)
 			},
 			OnEnter: func(ctx gg.EventCtx) {
 				dataGridClearEditingRow(gridID, ctx.Window)
@@ -223,6 +210,10 @@ const dataGridEditFocusScope = "efocus"
 
 // dataGridCellEditorFocusBaseID returns the focus-ID prefix for
 // editor cells. Each cell appends its column index.
+// The prefix is completed only by dataGridEditorFocusIDFromBase,
+// which appends exactly as ScopeIDN would; both derive from
+// dataGridEditFocusScope, so the forward build and the key-handler
+// lookup cannot drift apart (the #519 absolute-ID exception).
 func dataGridCellEditorFocusBaseID(cfg *DataGridCfg, colCount int) string {
 	if colCount <= 0 {
 		return ""
@@ -279,7 +270,7 @@ func dataGridEditorBoolValue(value string) bool {
 func dataGridParseEditorDate(value string) time.Time {
 	trimmed := strings.TrimSpace(value)
 	if trimmed == "" {
-		return time.Now()
+		return time.Time{}
 	}
 	for _, layout := range []string{
 		"1/2/2006",
@@ -292,5 +283,8 @@ func dataGridParseEditorDate(value string) time.Time {
 			return parsed
 		}
 	}
-	return time.Now()
+	// Unparseable stays empty: inventing today would write a date
+	// the user never typed on confirm. InputDate renders zero as
+	// no selection.
+	return time.Time{}
 }

@@ -1090,3 +1090,44 @@ func assertDataGridRenderClipInsideCell(t *testing.T, clip gg.RenderCmd, cell *g
 			cell.X, cell.Y, cell.Width, cell.Height)
 	}
 }
+
+// --- DataGrid FocusDisabled ---
+
+func TestDataGridFocusableByDefault(t *testing.T) {
+	t.Parallel()
+	w := &gg.Window{}
+	v := New(w, DataGridCfg{
+		ID:      "dg-focus",
+		Columns: []GridColumnCfg{{ID: "a", Title: "A"}},
+		Rows:    []GridRow{{ID: "r0", Cells: map[string]string{"a": "1"}}},
+	})
+	layout := gg.GenerateViewLayout(v, w)
+	if !layout.Shape.Focusable {
+		t.Error("grid should be focusable by default")
+	}
+}
+
+func TestDataGridFocusDisabledOptsOut(t *testing.T) {
+	t.Parallel()
+	w := &gg.Window{}
+	v := New(w, DataGridCfg{
+		ID:            "dg-nofocus",
+		FocusDisabled: true,
+		Columns:       []GridColumnCfg{{ID: "a", Title: "A"}},
+		Rows:          []GridRow{{ID: "r0", Cells: map[string]string{"a": "1"}}},
+	})
+	layout := gg.GenerateViewLayout(v, w)
+	if layout.Shape.Focusable {
+		t.Error("FocusDisabled grid should not be focusable")
+	}
+}
+
+// --- Load error display ---
+
+func TestLoadErrorTextIsGeneric(t *testing.T) {
+	// The on-screen status never carries backend detail: table
+	// names and DSN fragments stay in state and callbacks.
+	if got := dataGridLoadErrorText(); got != gg.CurrentLocale().StrLoadError {
+		t.Errorf("load error text: got %q, want the generic locale string", got)
+	}
+}

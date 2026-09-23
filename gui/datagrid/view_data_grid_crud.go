@@ -21,6 +21,17 @@ func dataGridCrudHasUnsaved(state dataGridCrudState) bool {
 		len(state.DeletedRowIDs) > 0
 }
 
+// dataGridCrudHasUnsavedFor reports unsaved CRUD edits for a grid
+// without mutating state. Missing state means nothing to cancel.
+func dataGridCrudHasUnsavedFor(gridID string, w *gg.Window) bool {
+	dgCrud := gg.StateMap[string, dataGridCrudState](w, nsDgCrud, capModerate)
+	state, ok := dgCrud.Get(gridID)
+	if !ok {
+		return false
+	}
+	return dataGridCrudHasUnsaved(state)
+}
+
 func dataGridCrudRowDeleteEnabled(cfg *DataGridCfg, hasSource bool, caps GridDataCapabilities) bool {
 	if !dataGridCrudEnabled(cfg) || !boolDefault(cfg.AllowDelete, true) {
 		return false
@@ -69,20 +80,6 @@ func dataGridRowsSignature(rows []GridRow, colIDs []string) uint64 {
 	return h
 }
 
-func dataGridRowsIDSignature(rows []GridRow) uint64 {
-	if len(rows) == 0 {
-		return 0
-	}
-	h := uint64(gg.Fnv64Offset)
-	for idx, row := range rows {
-		if idx > 0 {
-			h = gg.Fnv64Str(h, dataGridGroupSep)
-		}
-		h = gg.Fnv64Str(h, dataGridRowID(row, idx))
-	}
-	return h
-}
-
 // dataGridCrudResolveCfg syncs the CRUD working copy with the
 // source data. Returns the effective cfg (with working rows)
 // and the current crud state.
@@ -91,26 +88,16 @@ func dataGridCrudResolveCfg(cfg DataGridCfg, w *gg.Window) (DataGridCfg, dataGri
 	// Default zero state: absent entry means no CRUD state yet.
 	state := dgCrud.GetOr(cfg.ID, dataGridCrudState{})
 
-	// Compute signature.
+	// Compute signature. The full cell hash runs every frame on
+	// the local-rows path: an ID/length shortcut would miss an
+	// app-driven cell edit that keeps IDs and length, leaving
+	// the working copy stale.
 	var signature uint64
 	dgSource := gg.StateMap[string, dataGridSourceState](w, nsDgSource, capModerate)
 	if srcState, ok := dgSource.Get(cfg.ID); ok {
 		signature = srcState.RowsSignature
-		state.LocalRowsSignatureValid = false
-		state.LocalRowsLen = -1
-		state.LocalRowsIDSignature = 0
 	} else {
-		localLen := len(cfg.Rows)
-		localIDSig := dataGridRowsIDSignature(cfg.Rows)
-		if state.LocalRowsSignatureValid && state.LocalRowsLen == localLen &&
-			state.LocalRowsIDSignature == localIDSig {
-			signature = state.SourceSignature
-		} else {
-			signature = dataGridRowsSignature(cfg.Rows, nil)
-			state.LocalRowsSignatureValid = true
-			state.LocalRowsLen = localLen
-			state.LocalRowsIDSignature = localIDSig
-		}
+		signature = dataGridRowsSignature(cfg.Rows, nil)
 	}
 
 	hasUnsaved := dataGridCrudHasUnsaved(state)
@@ -120,6 +107,7 @@ func dataGridCrudResolveCfg(cfg DataGridCfg, w *gg.Window) (DataGridCfg, dataGri
 		(len(state.WorkingRows) == 0 && len(state.CommittedRows) == 0 && len(cfg.Rows) > 0) {
 		state.CommittedRows = cloneRows(cfg.Rows)
 		state.WorkingRows = cloneRows(cfg.Rows)
+		state.WorkingVersion++
 		state.SourceSignature = signature
 		state.SourceChanged = false
 		dataGridCrudClearPendingChanges(&state)
@@ -133,7 +121,20 @@ func dataGridCrudResolveCfg(cfg DataGridCfg, w *gg.Window) (DataGridCfg, dataGri
 		loadError = state.SaveError
 	}
 	out := cfg
-	out.Rows = cloneRows(state.WorkingRows)
+	// Publish a memoized copy of the working rows. WorkingVersion
+	// bumps on every mutation of the working copy — grid-driven
+	// edits and app-input refreshes alike — so a hit means the
+	// published rows are still current.
+	if state.ClonedRows != nil && state.CloneVersion == state.WorkingVersion {
+		out.Rows = state.ClonedRows
+	} else {
+		out.Rows = cloneRows(state.WorkingRows)
+		state.ClonedRows = out.Rows
+		state.CloneVersion = state.WorkingVersion
+		// Persist the memo: the caller keeps the returned state
+		// for the toolbar but never writes it back.
+		dgCrud.Set(cfg.ID, state)
+	}
 	out.LoadError = loadError
 	out.Loading = cfg.Loading || state.Saving
 	return out, state
@@ -259,13 +260,17 @@ func dataGridCrudAddRow(gridID string, columns []GridColumnCfg, onSelectionChang
 	// Default zero state: absent entry means no rows added yet.
 	state := dgCrud.GetOr(gridID, dataGridCrudState{})
 	state.NextDraftSeq++
-	// A row key, not a scope: it becomes a part of composed row IDs.
-	draftID := fmt.Sprintf("__draft_%s_%d", gridID, state.NextDraftSeq) // ergonomics-audit:id-part
+	// A row key, not a scope: it becomes a part of composed row IDs,
+	// so the grid ID is flattened first — an effective ID carries
+	// ":" separators that a key part must not contain.
+	safeGridID := strings.ReplaceAll(gridID, ":", "_")
+	draftID := fmt.Sprintf("__draft_%s_%d", safeGridID, state.NextDraftSeq) // ergonomics-audit:id-part
 	row := GridRow{
 		ID:    draftID,
 		Cells: dataGridCrudDefaultCells(columns),
 	}
 	state.WorkingRows = append([]GridRow{row}, state.WorkingRows...)
+	state.WorkingVersion++
 	if state.DraftRowIDs == nil {
 		state.DraftRowIDs = map[string]bool{}
 	}
@@ -345,6 +350,7 @@ func dataGridCrudDeleteRows(gridID string, selection GridSelection, onSelectionC
 		kept = append(kept, row)
 	}
 	state.WorkingRows = kept
+	state.WorkingVersion++
 	state.SaveError = ""
 	dgCrud.Set(gridID, state)
 
@@ -388,6 +394,9 @@ func dataGridCrudApplyCellEdit(gridID string, crudEnabled bool, onCellEdit func(
 	if edit.RowID == "" || edit.ColID == "" {
 		return
 	}
+	// Bound unbounded editor input (e.g. a pasted megabyte) before
+	// it fans out into working-copy clones and signature hashes.
+	edit.Value = dataGridTruncateRunes(edit.Value, dataGridMaxCellValueLen)
 	if crudEnabled {
 		dgCrud := gg.StateMap[string, dataGridCrudState](w, nsDgCrud, capModerate)
 		// Default zero state: absent entry means no edit has been applied.
@@ -403,6 +412,7 @@ func dataGridCrudApplyCellEdit(gridID string, crudEnabled bool, onCellEdit func(
 				ID:    row.ID,
 				Cells: cells,
 			}
+			state.WorkingVersion++
 			if state.DirtyRowIDs == nil {
 				state.DirtyRowIDs = map[string]bool{}
 			}
@@ -422,6 +432,7 @@ func dataGridCrudCancel(gridID string, focusID string, e *gg.Event, w *gg.Window
 	// Default zero state: absent entry means no pending changes to cancel.
 	state := dgCrud.GetOr(gridID, dataGridCrudState{})
 	state.WorkingRows = cloneRows(state.CommittedRows)
+	state.WorkingVersion++
 	dataGridCrudClearPendingChanges(&state)
 	state.SaveError = ""
 	state.Saving = false
