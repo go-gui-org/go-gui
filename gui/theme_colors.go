@@ -464,9 +464,11 @@ func (t Theme) WithColors(o ColorOverrides) Theme {
 	t.separatorStyle.Colors.Base = separator
 
 	t.skeletonStyle.Colors.Base = interior
-	// The shimmer is the fill lifted a fixed amount, not the hover
-	// color — same derivation ThemeMaker uses.
-	t.skeletonStyle.ColorHighlight = interior.Add(RGBA(20, 20, 20, 0))
+	// The shimmer is the fill lifted a fixed amount on a dark
+	// ground and dropped on a light one — same derivation
+	// ThemeMaker uses. A fixed lighten clamps to identical on a
+	// white interior, which hid the animation on light themes.
+	t.skeletonStyle.ColorHighlight = skeletonHighlight(interior)
 
 	// Keep Cfg in sync so a later rebuild from the configuration
 	// (WithPadding, WithBorders, AdjustFontSize) does not drop the

@@ -483,6 +483,311 @@ func TestDatePickerYearMonthPickerView(t *testing.T) {
 	}
 }
 
+// The roller is an overlay, not a view swap: opening it keeps the
+// calendar grid in the tree and floats the roller over it behind a
+// dismissing backdrop.
+func TestDatePickerRollerOverlayKeepsCalendar(t *testing.T) {
+	w := newTestWindow()
+	cfg := DatePickerCfg{
+		ID:    "dp-overlay",
+		Dates: []time.Time{time.Date(2025, 6, 15, 0, 0, 0, 0, time.Local)},
+	}
+	generateViewLayout(DatePicker(cfg), w)
+	sm := StateMap[string, datePickerState](w, nsDatePicker, capModerate)
+	s, ok := sm.Get("dp-overlay")
+	if !ok {
+		t.Fatal("state should be seeded by layout generation")
+	}
+	s.ShowYearMonthPicker = true
+	sm.Set("dp-overlay", s)
+
+	layout := generateViewLayout(DatePicker(cfg), w)
+	rollerID := ScopeID("dp-overlay", "roller")
+	if findShapeByID(&layout, rollerID) == nil {
+		t.Fatal("open picker should carry the roller")
+	}
+	// The grid stays: a June 2025 day cell is still in the tree.
+	dayID := ScopeIDN(ScopeID("dp-overlay", "day"), "", 15)
+	if findShapeByID(&layout, dayID) == nil {
+		t.Fatal("open picker should keep the calendar grid, not swap it out")
+	}
+	backdropID := ScopeID("dp-overlay", "backdrop")
+	backdrop := findShapeByID(&layout, backdropID)
+	if backdrop == nil {
+		t.Fatal("open picker should carry a backdrop")
+	}
+	if !backdrop.Shape.Float {
+		t.Error("backdrop should float over the grid")
+	}
+	if backdrop.Shape.events.OnClick == nil {
+		t.Fatal("backdrop OnClick missing")
+	}
+	cardID := ScopeID("dp-overlay", "card")
+	card := findShapeByID(&layout, cardID)
+	if card == nil {
+		t.Fatal("open picker should carry a roller card")
+	}
+	if !card.Shape.Float {
+		t.Error("card should float over the grid")
+	}
+	if card.Shape.FloatAnchor != FloatMiddleCenter ||
+		card.Shape.FloatTieOff != FloatMiddleCenter {
+		t.Error("card should center over the grid")
+	}
+	if card.Shape.FloatZIndex <= backdrop.Shape.FloatZIndex {
+		t.Error("card should stack above the backdrop")
+	}
+
+	closed := generateViewLayout(DatePicker(DatePickerCfg{
+		ID: "dp-overlay-closed",
+	}), w)
+	if findShapeByID(&closed, ScopeID("dp-overlay-closed", "roller")) != nil {
+		t.Fatal("closed picker should not carry the roller")
+	}
+}
+
+// Opening the roller must not move the outer box: the grid stays in
+// flow and the overlay floats, so open and closed arrange identical.
+func TestDatePickerRollerOverlayStableSize(t *testing.T) {
+	sizes := func(open bool) (float32, float32) {
+		w := NewWindow(WindowCfg{State: new(int), Width: 600, Height: 800})
+		w.viewGenerator = func(win *Window) View {
+			return Column(ContainerCfg{Sizing: FillFill,
+				Content: []View{DatePicker(DatePickerCfg{
+					ID: "dp",
+					Dates: []time.Time{
+						time.Date(2025, 6, 15, 0, 0, 0, 0, time.UTC),
+					},
+				})}})
+		}
+		n := time.Date(2025, 6, 15, 12, 0, 0, 0, time.UTC)
+		w.setVirtualNow(&n)
+		w.refreshLayout.Store(true)
+		w.FrameFn()
+		if open {
+			sm := StateMap[string, datePickerState](w, nsDatePicker, capModerate)
+			s, ok := sm.Get("dp")
+			if !ok {
+				t.Fatal("no picker state")
+			}
+			s.ShowYearMonthPicker = true
+			sm.Set("dp", s)
+			w.refreshLayout.Store(true)
+			w.FrameFn()
+		}
+		l, ok := w.layout.FindByID("dp")
+		if !ok {
+			t.Fatal("no picker")
+		}
+		return l.Shape.Width, l.Shape.Height
+	}
+
+	closedW, closedH := sizes(false)
+	openW, openH := sizes(true)
+	if openW != closedW || openH != closedH {
+		t.Errorf("open size = %vx%v, want closed size %vx%v",
+			openW, openH, closedW, closedH)
+	}
+}
+
+// A backdrop click closes the roller without moving the view, and is
+// consumed so the grid underneath stays inert.
+func TestDatePickerRollerBackdropDismiss(t *testing.T) {
+	w := newTestWindow()
+	cfg := DatePickerCfg{ID: "dp-backdrop"}
+	applyDatePickerDefaults(&cfg)
+	sm := StateMap[string, datePickerState](w, nsDatePicker, capModerate)
+	sm.Set("dp-backdrop", datePickerState{
+		ViewMonth: 6, ViewYear: 2025, ShowYearMonthPicker: true,
+	})
+
+	layout := generateViewLayout(DatePicker(cfg), w)
+	backdrop := findShapeByID(&layout, ScopeID("dp-backdrop", "backdrop"))
+	if backdrop == nil {
+		t.Fatal("open picker should carry a backdrop")
+	}
+	e := &Event{}
+	backdrop.Shape.events.OnClick(EventCtx{backdrop, e, w})
+	if !e.IsHandled {
+		t.Error("backdrop click should be consumed")
+	}
+	got, _ := sm.Get("dp-backdrop")
+	if got.ShowYearMonthPicker {
+		t.Fatal("backdrop click should close the roller")
+	}
+	if got.ViewMonth != 6 || got.ViewYear != 2025 {
+		t.Fatalf("backdrop dismiss must not move the view: %d/%d",
+			got.ViewMonth, got.ViewYear)
+	}
+}
+
+// A press on the grid behind the overlay reaches the backdrop, not
+// the day cell: the roller closes and no date is selected. The
+// backdrop is a Fill float inside a fit-sized wrapper, which
+// arranges 0x0 unless its AmendLayout takes the body's size —
+// without that, the click falls through to the grid.
+func TestDatePickerRollerGridClickDismiss(t *testing.T) {
+	selected := false
+	w := NewWindow(WindowCfg{State: new(int), Width: 600, Height: 800})
+	w.focused = true
+	w.viewGenerator = func(win *Window) View {
+		return Column(ContainerCfg{Sizing: FillFill,
+			Content: []View{DatePicker(DatePickerCfg{
+				ID: "dp-gridclick",
+				Dates: []time.Time{
+					time.Date(2025, 6, 15, 0, 0, 0, 0, time.UTC),
+				},
+				OnSelect: func(dates []time.Time, ctx EventCtx) {
+					selected = true
+				},
+			})}})
+	}
+	n := time.Date(2025, 6, 15, 12, 0, 0, 0, time.UTC)
+	w.setVirtualNow(&n)
+	w.refreshLayout.Store(true)
+	w.FrameFn()
+	sm := StateMap[string, datePickerState](w, nsDatePicker, capModerate)
+	s, ok := sm.Get("dp-gridclick")
+	if !ok {
+		t.Fatal("no picker state")
+	}
+	s.ShowYearMonthPicker = true
+	sm.Set("dp-gridclick", s)
+	w.refreshLayout.Store(true)
+	w.FrameFn()
+
+	// June 2025 opens on a Sunday, so day 1 sits in the grid's top
+	// row — above the centered card, on the backdrop.
+	cell, ok := w.layout.FindByID(
+		ScopeIDN(ScopeID("dp-gridclick", "day"), "", 1))
+	if !ok {
+		t.Fatal("no day cell")
+	}
+	e := &Event{Type: EventMouseDown, MouseButton: MouseLeft,
+		MouseX: cell.Shape.X + cell.Shape.Width/2,
+		MouseY: cell.Shape.Y + cell.Shape.Height/2}
+	w.EventFn(e)
+	if selected {
+		t.Fatal("grid click behind the overlay must not select a date")
+	}
+	got, _ := sm.Get("dp-gridclick")
+	if got.ShowYearMonthPicker {
+		t.Fatal("grid click should dismiss the roller")
+	}
+}
+
+// A day press that reaches the grid while the roller is open
+// dismisses instead of selecting — in-month and adjacent-month
+// cells alike — so no dispatch path can select through the overlay.
+func TestDatePickerRollerDayPressDismiss(t *testing.T) {
+	selected := 0
+	w := newTestWindow()
+	cfg := DatePickerCfg{
+		ID:                 "dp-dayguard",
+		Dates:              []time.Time{time.Date(2025, 6, 15, 0, 0, 0, 0, time.Local)},
+		ShowAdjacentMonths: true,
+		OnSelect: func(dates []time.Time, ctx EventCtx) {
+			selected++
+		},
+	}
+	applyDatePickerDefaults(&cfg)
+	generateViewLayout(DatePicker(cfg), w)
+	sm := StateMap[string, datePickerState](w, nsDatePicker, capModerate)
+	s, ok := sm.Get("dp-dayguard")
+	if !ok {
+		t.Fatal("no picker state")
+	}
+	s.ShowYearMonthPicker = true
+	sm.Set("dp-dayguard", s)
+
+	layout := generateViewLayout(DatePicker(cfg), w)
+	fire := func(id string) {
+		t.Helper()
+		// Each press runs against an open roller: reopen, since a
+		// guarded press dismisses.
+		s, _ := sm.Get("dp-dayguard")
+		s.ShowYearMonthPicker = true
+		sm.Set("dp-dayguard", s)
+		cell := findShapeByID(&layout, id)
+		if cell == nil {
+			t.Fatalf("%s: not in the layout", id)
+		}
+		e := &Event{}
+		cell.Shape.events.OnClick(EventCtx{cell, e, w})
+		if !e.IsHandled {
+			t.Errorf("%s: press should be consumed", id)
+		}
+	}
+
+	// In-month day.
+	fire(ScopeIDN(ScopeID("dp-dayguard", "day"), "", 15))
+	// Adjacent-month day (July spills into June's last row).
+	fire(ScopeIDN(ScopeID("dp-dayguard", "day", "next"), "", 1))
+
+	if selected != 0 {
+		t.Fatalf("OnSelect fired %d times, want 0", selected)
+	}
+	got, _ := sm.Get("dp-dayguard")
+	if got.ShowYearMonthPicker {
+		t.Fatal("day press should dismiss the roller")
+	}
+	if got.ViewMonth != 6 || got.ViewYear != 2025 {
+		t.Fatalf("dismiss must not move the view: %d/%d",
+			got.ViewMonth, got.ViewYear)
+	}
+}
+
+// Clicks inside the card are absorbed so they never reach the
+// backdrop, and the card renders smaller than the picker on its own
+// solid surface.
+func TestDatePickerRollerCardAbsorbsClicks(t *testing.T) {
+	w := newTestWindow()
+	cfg := DatePickerCfg{ID: "dp-card"}
+	applyDatePickerDefaults(&cfg)
+	base := cfg.Colors.Base
+	sm := StateMap[string, datePickerState](w, nsDatePicker, capModerate)
+	sm.Set("dp-card", datePickerState{
+		ViewMonth: 6, ViewYear: 2025, ShowYearMonthPicker: true,
+	})
+
+	layout := generateViewLayout(DatePicker(cfg), w)
+	cardID := ScopeID("dp-card", "card")
+	card := findShapeByID(&layout, cardID)
+	if card == nil {
+		t.Fatal("open picker should carry a roller card")
+	}
+	if card.Shape.events.OnClick == nil {
+		t.Fatal("card OnClick missing")
+	}
+	e := &Event{}
+	card.Shape.events.OnClick(EventCtx{card, e, w})
+	if !e.IsHandled {
+		t.Error("card click should be consumed")
+	}
+	got, _ := sm.Get("dp-card")
+	if !got.ShowYearMonthPicker {
+		t.Error("card click must not dismiss the roller")
+	}
+	if card.Shape.Color != base {
+		t.Errorf("card fill = %v, want picker base %v", card.Shape.Color, base)
+	}
+
+	layers := layoutArrange(&layout, w)
+	var cardLayer *Layout
+	for i := range layers[1:] {
+		if layers[1+i].Shape.ID == cardID {
+			cardLayer = &layers[1+i]
+		}
+	}
+	if cardLayer == nil {
+		t.Fatal("card should arrange as a float layer")
+	}
+	if cardLayer.Shape.Width >= layers[0].Shape.Width {
+		t.Errorf("card width = %v, want narrower than picker %v",
+			cardLayer.Shape.Width, layers[0].Shape.Width)
+	}
+}
+
 // While the roller is open the header swaps the dead prev/next
 // arrows for a confirm button; closed, the arrows are back and the
 // confirm is gone.

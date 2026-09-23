@@ -147,6 +147,50 @@ func TestSkeletonAnimationIsViewBound(t *testing.T) {
 	}
 }
 
+func TestSkeletonHighlightVisibleOnLightTheme(t *testing.T) {
+	base := ThemeLight.skeletonStyle.Colors.Base
+	hl := ThemeLight.skeletonStyle.ColorHighlight
+	if base == hl {
+		t.Fatalf("light highlight = base %v: shimmer band "+
+			"renders identical, animation invisible", base)
+	}
+	if hl.R >= base.R || hl.G >= base.G || hl.B >= base.B {
+		t.Errorf("light highlight %v not darker than base %v: "+
+			"lighten clamps on a white fill", hl, base)
+	}
+	if hl.A != base.A {
+		t.Errorf("highlight alpha = %d, want %d (base)",
+			hl.A, base.A)
+	}
+}
+
+func TestSkeletonHighlightLighterOnDarkTheme(t *testing.T) {
+	base := ThemeDark.skeletonStyle.Colors.Base
+	hl := ThemeDark.skeletonStyle.ColorHighlight
+	if base == hl {
+		t.Fatalf("dark highlight = base %v", base)
+	}
+	if hl.R <= base.R || hl.G <= base.G || hl.B <= base.B {
+		t.Errorf("dark highlight %v not lighter than base %v",
+			hl, base)
+	}
+}
+
+func TestSkeletonHighlightWithColorsTracksPolarity(t *testing.T) {
+	light := ThemeDark.WithColors(ColorOverrides{
+		ColorInterior: RGB(255, 255, 255),
+	})
+	lb := light.skeletonStyle.Colors.Base
+	lh := light.skeletonStyle.ColorHighlight
+	if lb == lh {
+		t.Fatalf("recolored-to-white highlight = base %v", lb)
+	}
+	if lh.R >= lb.R || lh.G >= lb.G || lh.B >= lb.B {
+		t.Errorf("recolored-to-white highlight %v not darker "+
+			"than base %v", lh, lb)
+	}
+}
+
 func TestSkeletonAmendLayoutSetsGradient(t *testing.T) {
 	v := Skeleton(SkeletonCfg{ID: "s13"})
 	w := &Window{}

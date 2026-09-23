@@ -126,7 +126,10 @@ func mainView(w *gui.Window) gui.View {
 				TextStyle: theme.TextStyleBodySmall,
 			}),
 			datagrid.New(w, datagrid.DataGridCfg{
-				ID:              "source-grid",
+				ID: "source-grid",
+				// Fit width and height: the grid hugs its columns and rows
+				// instead of stretching to fill the window.
+				Sizing:          gui.FitFit,
 				MaxHeight:       620,
 				ShowCRUDToolbar: true,
 				ShowQuickFilter: true,

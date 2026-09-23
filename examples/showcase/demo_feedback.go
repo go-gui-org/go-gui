@@ -280,8 +280,32 @@ func demoThemePicker(w *gui.Window) gui.View {
 	})
 }
 
+// isLightGround reports whether t sits on a light ground: its text
+// reads darker than its background. Demo-local polarity check for
+// literals that must suit the ground; library code keys on Theme.id
+// instead, since names are not unique.
+func isLightGround(t gui.Theme) bool {
+	fg := t.TextStyleDef.Color
+	bg := t.ColorBackground
+	fgSum := uint(fg.R) + uint(fg.G) + uint(fg.B)
+	bgSum := uint(bg.R) + uint(bg.G) + uint(bg.B)
+	return fgSum < bgSum
+}
+
+// skeletonCustomColors returns the demo's explicit skeleton pair for
+// t. The dark slate suits a dark ground only — on a light theme it
+// reads as a near-black slab — so a light ground takes the same hue
+// lifted, with the shimmer step kept.
+func skeletonCustomColors(t gui.Theme) (base, highlight gui.Color) {
+	if isLightGround(t) {
+		return gui.RGB(200, 205, 218), gui.RGB(240, 245, 255)
+	}
+	return gui.RGB(60, 60, 80), gui.RGB(100, 100, 140)
+}
+
 func demoSkeleton(_ *gui.Window) gui.View {
 	t := gui.CurrentTheme()
+	customBase, customHighlight := skeletonCustomColors(t)
 	return gui.Column(gui.ContainerCfg{
 		Sizing:     gui.FillFit,
 		Spacing:    gui.SomeF(t.SpacingSmall),
@@ -345,8 +369,8 @@ func demoSkeleton(_ *gui.Window) gui.View {
 				ID:             "sk-custom",
 				Sizing:         gui.FillFixed,
 				Height:         24,
-				Color:          gui.RGB(60, 60, 80),
-				ColorHighlight: gui.RGB(100, 100, 140),
+				Color:          customBase,
+				ColorHighlight: customHighlight,
 			}),
 		},
 	})

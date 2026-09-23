@@ -58,6 +58,11 @@ gui.Skeleton(gui.SkeletonCfg{
 })
 ```
 
+Match the pair to the theme's polarity: the dark slate above suits dark grounds
+only. On a light theme lift the same hue, e.g. base `gui.RGB(200, 205, 218)`
+with highlight `gui.RGB(240, 245, 255)`, or the block reads as a near-black
+slab.
+
 ## Key Properties
 
 | Property  | Type            | Description                          |

@@ -7,6 +7,7 @@ type ScrollbarOverflow uint8
 const (
 	ScrollbarAuto ScrollbarOverflow = iota
 	ScrollbarHidden
+	// exportaudit:keep — one member of a public enum; the set ships whole.
 	ScrollbarVisible
 	scrollbarOnHover
 )

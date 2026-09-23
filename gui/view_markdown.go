@@ -96,7 +96,7 @@ func DefaultMarkdownStyle() MarkdownStyle {
 		codeKeywordColor:  guiTheme.ColorSelect,
 		codeStringColor:   RGB(75, 125, 75),
 		codeNumberColor:   RGB(169, 114, 62),
-		codeCommentColor:  guiTheme.ColorBorder,
+		codeCommentColor:  guiTheme.TextStyleSecondary.Color,
 		codeOperatorColor: guiTheme.TextStyleBody.Color,
 		codeTypeColor:     RGB(78, 140, 178),
 		codeFunctionColor: RGB(160, 100, 170),

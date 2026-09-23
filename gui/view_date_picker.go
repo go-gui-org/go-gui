@@ -52,7 +52,6 @@ type datePickerState struct {
 	ViewMonth           int
 	ViewYear            int
 	FocusDay            int
-	CalBodyHeight       float32
 	ShowYearMonthPicker bool
 }
 
@@ -152,39 +151,23 @@ func (dv *datePickerView) GenerateLayout(w *Window) Layout {
 	// Get/init state.
 	state := datePickerGetState(w, cfg)
 
-	// Build view tree: controls + body.
+	// Build view tree: controls + body. The calendar grid always
+	// stays in flow, so opening the month/year roller cannot move
+	// the outer box: the roller floats over the grid on a card
+	// smaller than the picker instead of swapping the body out.
 	content := make([]View, 0, 2)
 	content = append(content, datePickerControls(cfg, state, w))
-	if state.ShowYearMonthPicker {
-		// Wrap roller with calendar body height to prevent height
-		// change when switching views.
-		body := datePickerYearMonthPicker(cfg, state)
-		if state.CalBodyHeight > 0 {
-			body = Column(ContainerCfg{
-				Sizing:     FillFit,
-				MinHeight:  state.CalBodyHeight,
-				HAlign:     HAlignCenter,
-				VAlign:     VAlignMiddle,
-				Padding:    NoPadding,
-				SizeBorder: NoBorder,
-				Content:    []View{body},
-			})
-		}
-		content = append(content, body)
-	} else {
-		content = append(content, datePickerCalendar(cfg, state, w))
-	}
+	content = append(content, datePickerBody(cfg, state, w))
 
 	// Stable width: 7 columns wide + gaps, plus padding and border so
-	// the min covers the full outer box. Width has to be pinned
-	// because the month/year roller is narrower than the grid.
+	// the min covers the full outer box. The roller floats, so it
+	// sizes itself and never pulls the box narrower.
 	//
 	// Height is deliberately NOT pinned. A cell's height comes from
 	// its measured text, which is well short of cellSize (that value
 	// is a column width), so a 6*cellSize floor left a blank band
 	// under the last week row. The grid always emits six rows, so the
-	// natural height is already stable month to month, and the roller
-	// matches it through CalBodyHeight above.
+	// natural height is already stable month to month.
 	cellSize := datePickerCellSize(cfg)
 	pad := cfg.Padding.Or(dn.Padding)
 	sizeBorder := cfg.SizeBorder.Get(dn.SizeBorder)
@@ -336,7 +319,7 @@ func datePickerControls(
 			},
 			Content: []View{Text(TextCfg{
 				Text:      IconCheckCircleO,
-				TextStyle: CurrentTheme().TextStyleIconLarge,
+				TextStyle: CurrentTheme().TextStyleIconMedium,
 			})},
 		}))
 	} else {
