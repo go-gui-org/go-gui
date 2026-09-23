@@ -21,6 +21,18 @@ func FuzzMarkdownParse(f *testing.F) {
 			if blk.ListIndent < 0 {
 				t.Errorf("negative ListIndent: %d", blk.ListIndent)
 			}
+			if blk.IsBlockquote != (blk.BlockquoteDepth > 0) {
+				t.Errorf("IsBlockquote=%v disagrees with depth %d",
+					blk.IsBlockquote, blk.BlockquoteDepth)
+			}
+			if blk.HeaderLevel < 0 || blk.HeaderLevel > 6 {
+				t.Errorf("HeaderLevel out of range: %d",
+					blk.HeaderLevel)
+			}
+			if blk.IsList && !blk.IsTaskItem &&
+				len(blk.Runs) == 0 {
+				t.Error("empty non-task list block")
+			}
 		}
 	})
 }

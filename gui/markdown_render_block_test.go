@@ -130,6 +130,146 @@ func TestMarkdownRenderBlockKinds(t *testing.T) {
 	}
 }
 
+// TestMarkdownQuotedListKeepsListKind pins the composite dispatch:
+// a quoted list keeps the list kind (bullets, checkboxes) and
+// carries the quote on IsBlockquote/BlockquoteDepth, which the
+// renderer turns into quote chrome.
+func TestMarkdownQuotedListKeepsListKind(t *testing.T) {
+	var els []MarkdownElement
+	mdHookLayout(t, "> - quoted item\n", false,
+		func(_ *Window, el MarkdownElement) (View, bool) {
+			els = append(els, el)
+			return nil, false
+		})
+	if len(els) != 1 {
+		t.Fatalf("blocks: got %d, want 1", len(els))
+	}
+	el := els[0]
+	if el.Kind != MarkdownKindList {
+		t.Errorf("kind: got %d, want MarkdownKindList", el.Kind)
+	}
+	if !el.IsBlockquote || el.BlockquoteDepth != 1 {
+		t.Errorf("IsBlockquote=%v depth=%d, want true/1",
+			el.IsBlockquote, el.BlockquoteDepth)
+	}
+}
+
+// TestMarkdownQuotedCodeKeepsCodeKind pins the same rule for fences:
+// a quoted fence keeps the code kind and the quote flags.
+func TestMarkdownQuotedCodeKeepsCodeKind(t *testing.T) {
+	var els []MarkdownElement
+	mdHookLayout(t, "> ```go\n> x := 1\n> ```\n", false,
+		func(_ *Window, el MarkdownElement) (View, bool) {
+			els = append(els, el)
+			return nil, false
+		})
+	if len(els) != 1 {
+		t.Fatalf("blocks: got %d, want 1", len(els))
+	}
+	el := els[0]
+	if el.Kind != MarkdownKindCode {
+		t.Errorf("kind: got %d, want MarkdownKindCode", el.Kind)
+	}
+	if !el.IsBlockquote || el.BlockquoteDepth != 1 {
+		t.Errorf("IsBlockquote=%v depth=%d, want true/1",
+			el.IsBlockquote, el.BlockquoteDepth)
+	}
+}
+
+// TestMarkdownQuotedKindsKeepInnerKind pins the composite dispatch
+// for the remaining wrappable kinds: heading, table and image keep
+// their kind and carry the quote flags.
+func TestMarkdownQuotedKindsKeepInnerKind(t *testing.T) {
+	sources := map[string]MarkdownBlockKind{
+		"> # Head\n":                      MarkdownKindHeading,
+		"> | A |\n> |---|\n> | 1 |\n":     MarkdownKindTable,
+		"> ![alt](image.png)\n":           MarkdownKindImage,
+		"> Term\n> :   Definition text\n": MarkdownKindDefTerm,
+	}
+	for source, want := range sources {
+		var els []MarkdownElement
+		mdHookLayout(t, source, false,
+			func(_ *Window, el MarkdownElement) (View, bool) {
+				els = append(els, el)
+				return nil, false
+			})
+		if len(els) == 0 {
+			t.Errorf("%q: no blocks", source)
+			continue
+		}
+		el := els[0]
+		if el.Kind != want {
+			t.Errorf("%q: kind got %d, want %d",
+				source, el.Kind, want)
+		}
+		if !el.IsBlockquote || el.BlockquoteDepth != 1 {
+			t.Errorf("%q: IsBlockquote=%v depth=%d, want true/1",
+				source, el.IsBlockquote, el.BlockquoteDepth)
+		}
+	}
+}
+
+// TestMarkdownQuotedHeadingHasQuoteChrome checks the multi-view wrap:
+// a quoted H1 keeps its spacer and both views arrive inside quote
+// chrome. Only the first two children are the heading's: trailing
+// document chrome is unrelated.
+func TestMarkdownQuotedHeadingHasQuoteChrome(t *testing.T) {
+	layout := markdownLayoutForSource(t, "> # Head\n")
+	if len(layout.Children) < 2 {
+		t.Fatalf("len(layout.Children) = %d, want >= 2",
+			len(layout.Children))
+	}
+	for i, child := range layout.Children[:2] {
+		if got := len(child.Children); got != 2 {
+			t.Errorf("child %d: len(Children) = %d, want 2",
+				i, got)
+		}
+	}
+	if !mdHasText(layout, "Head") {
+		t.Error("heading text missing from layout")
+	}
+}
+
+// TestMarkdownQuotedListItemHasQuoteChrome checks the composed tree:
+// a quoted list item arrives wrapped in the quote row (bar plus
+// background column) instead of rendering as a bare list.
+func TestMarkdownQuotedListItemHasQuoteChrome(t *testing.T) {
+	layout := markdownLayoutForSource(t, "> - quoted item\n")
+	if len(layout.Children) == 0 {
+		t.Fatal("len(layout.Children) = 0, want flushed list")
+	}
+	flushed := layout.Children[0]
+	if len(flushed.Children) == 0 {
+		t.Fatal("flushed list has no items")
+	}
+	row := flushed.Children[0]
+	if got := len(row.Children); got != 2 {
+		t.Fatalf("len(quote row Children) = %d, want 2", got)
+	}
+	if got := row.Shape.SizeBorder; got != 0 {
+		t.Errorf("quote row SizeBorder = %v, want 0", got)
+	}
+	if !mdHasText(layout, "quoted item") {
+		t.Error("quoted item text missing from layout")
+	}
+}
+
+// TestMarkdownQuotedCodeHasQuoteChrome checks the same wrap for a
+// quoted fence: bar plus background around the code block.
+func TestMarkdownQuotedCodeHasQuoteChrome(t *testing.T) {
+	layout := markdownLayoutForSource(t, "> ```\n> quoted code\n> ```\n")
+	if len(layout.Children) == 0 {
+		t.Fatal("len(layout.Children) = 0, want quote row")
+	}
+	row := layout.Children[0]
+	if got := len(row.Children); got != 2 {
+		t.Fatalf("len(quote row Children) = %d, want 2", got)
+	}
+	if !mdHasText(layout, "quoted code") {
+		t.Error("quoted code text missing from layout")
+	}
+}
+
 // TestMarkdownRenderBlockMermaidIsCode pins the one kind with no
 // constant of its own: renderMdMermaid dispatches from inside the code
 // branch, so a hook must match on the language, not on a kind.

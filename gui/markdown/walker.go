@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"unicode/utf8"
 
 	"github.com/yuin/goldmark"
 	emoji "github.com/yuin/goldmark-emoji"
@@ -38,8 +39,26 @@ var getMarkdownParser = sync.OnceValue(func() goldmark.Markdown {
 	)
 })
 
-// Parse converts markdown source to []Block.
+// Parse converts markdown source to []Block. Sources past
+// maxSourceBytes are truncated at a line boundary, so a hostile
+// document costs a bounded parse and layout.
 func Parse(source string, hardLineBreaks bool) []Block {
+	if len(source) > maxSourceBytes {
+		cut := maxSourceBytes
+		for cut > 0 && source[cut] != '\n' {
+			cut--
+		}
+		if cut == 0 {
+			cut = maxSourceBytes
+		}
+		// Back off to a rune boundary: a newline-free megabyte
+		// would otherwise split mid-rune.
+		for cut > 0 && cut < len(source) &&
+			!utf8.RuneStart(source[cut]) {
+			cut--
+		}
+		source = source[:cut]
+	}
 	// Normalize CRLF/CR to LF. The WASM text backend's
 	// Intl.Segmenter treats \r\n as a single grapheme cluster,
 	// preventing newline recognition in code blocks.
@@ -48,7 +67,15 @@ func Parse(source string, hardLineBreaks bool) []Block {
 		source = strings.ReplaceAll(source, "\r", "\n")
 	}
 	source, abbrDefs, footnoteDefs := scanSource(source)
-	abbrMatcher := buildAbbrMatcher(abbrDefs)
+	// Build the match closures once: rebuilding them per block
+	// costs one allocation per block for the same matchers.
+	var footMatch, abbrMatch runMatchFunc
+	if len(footnoteDefs) > 0 {
+		footMatch = footnoteMatchFunc(footnoteDefs)
+	}
+	if abbrMatcher := buildAbbrMatcher(abbrDefs); abbrMatcher != nil {
+		abbrMatch = abbrMatchFunc(abbrMatcher)
+	}
 	src := []byte(source)
 
 	md := getMarkdownParser()
@@ -67,13 +94,13 @@ func Parse(source string, hardLineBreaks bool) []Block {
 		if !w.blocks[i].IsCode {
 			applyTypography(w.blocks[i].Runs)
 		}
-		if len(footnoteDefs) > 0 {
-			w.blocks[i].Runs = applyFootnoteRefs(
-				w.blocks[i].Runs, footnoteDefs)
+		if footMatch != nil {
+			w.blocks[i].Runs = applyRunMatches(
+				w.blocks[i].Runs, footMatch)
 		}
-		if len(abbrDefs) > 0 {
-			w.blocks[i].Runs = replaceAbbreviations(
-				w.blocks[i].Runs, abbrMatcher)
+		if abbrMatch != nil {
+			w.blocks[i].Runs = applyRunMatches(
+				w.blocks[i].Runs, abbrMatch)
 		}
 	}
 	return w.blocks
@@ -241,13 +268,61 @@ func (w *mdWalker) collectLines(node ast.Node) string {
 	return strings.TrimRight(sb.String(), "\n")
 }
 
+// stampQuoted marks blocks emitted for quoted content. Blocks a
+// nested quote already stamped keep their deeper depth.
+func (w *mdWalker) stampQuoted(start, depth int) {
+	for j := start; j < len(w.blocks); j++ {
+		if !w.blocks[j].IsBlockquote {
+			w.blocks[j].IsBlockquote = true
+			w.blocks[j].BlockquoteDepth = depth
+		}
+	}
+}
+
 func (w *mdWalker) walkBlockquote(bq *ast.Blockquote) {
 	w.bqDepth++
 	depth := w.bqDepth
 	var runs []Run
 	var nested []*ast.Blockquote
+	// flush emits the merged quote text so far, keeping source
+	// order when a standalone image or math block interrupts it.
+	flush := func() {
+		trimmed := trimTrailingBreaks(runs)
+		if len(trimmed) > 0 {
+			w.blocks = append(w.blocks, Block{
+				IsBlockquote:    true,
+				BlockquoteDepth: depth,
+				Runs:            trimmed,
+			})
+		}
+		runs = nil
+	}
 	for c := bq.FirstChild(); c != nil; c = c.NextSibling() {
 		if c.Kind() == ast.KindParagraph {
+			// A quoted paragraph holding only an image or a
+			// display-math span keeps its kind: merging it into
+			// quote text would drop the image and the math.
+			if c.ChildCount() == 1 {
+				switch c.FirstChild().Kind() {
+				case ast.KindImage:
+					flush()
+					start := len(w.blocks)
+					w.walkImage(
+						c.FirstChild().(*ast.Image))
+					w.stampQuoted(start, depth)
+					continue
+				case nodeKindMathDisplay:
+					dm := c.FirstChild().(*nodeMathDisplay)
+					flush()
+					start := len(w.blocks)
+					w.blocks = append(w.blocks, Block{
+						IsMath:    true,
+						MathLatex: dm.Latex,
+					})
+					w.stampQuoted(start, depth)
+					continue
+				}
+			}
 			cr := w.collectRuns(c, inlineState{})
 			if len(runs) > 0 && len(cr) > 0 {
 				runs = append(runs, Run{Text: "\n"})
@@ -256,17 +331,15 @@ func (w *mdWalker) walkBlockquote(bq *ast.Blockquote) {
 		} else if c.Kind() == ast.KindBlockquote {
 			nested = append(nested, c.(*ast.Blockquote))
 		} else {
+			// Stamp every block a quoted list, fence, heading,
+			// table or image emits: without the flag they render
+			// unquoted.
+			start := len(w.blocks)
 			w.walkBlock(c)
+			w.stampQuoted(start, depth)
 		}
 	}
-	runs = trimTrailingBreaks(runs)
-	if len(runs) > 0 {
-		w.blocks = append(w.blocks, Block{
-			IsBlockquote:    true,
-			BlockquoteDepth: depth,
-			Runs:            runs,
-		})
-	}
+	flush()
 	// Recurse after emitting parent; bqDepth still at
 	// current level so nested depths are correct.
 	for _, nbq := range nested {
@@ -326,14 +399,20 @@ func (w *mdWalker) walkList(list *ast.List) {
 			}
 		}
 		runs = trimTrailingBreaks(runs)
-		w.blocks = append(w.blocks, Block{
-			IsList:      true,
-			ListPrefix:  prefix,
-			ListIndent:  w.listDepth,
-			Runs:        runs,
-			IsTaskItem:  isTaskItem,
-			TaskChecked: taskChecked,
-		})
+		// An item holding only a nested list has no text of its
+		// own: emitting it would render an empty row. Task items
+		// still emit so the checkbox itself renders. The nested
+		// lists below still walk either way.
+		if len(runs) > 0 || isTaskItem {
+			w.blocks = append(w.blocks, Block{
+				IsList:      true,
+				ListPrefix:  prefix,
+				ListIndent:  w.listDepth,
+				Runs:        runs,
+				IsTaskItem:  isTaskItem,
+				TaskChecked: taskChecked,
+			})
+		}
 		for _, nl := range nested {
 			w.listDepth++
 			w.walkList(nl)
@@ -369,15 +448,20 @@ func (w *mdWalker) walkTable(tbl *east.Table) {
 		switch c.Kind() {
 		case east.KindTableHeader:
 			for cell := c.FirstChild(); cell != nil; cell = cell.NextSibling() {
-				if cell.Kind() == east.KindTableCell {
+				if cell.Kind() == east.KindTableCell &&
+					len(headers) < maxTableCols {
 					headers = append(headers,
 						w.collectRuns(cell, inlineState{}))
 				}
 			}
 		case east.KindTableRow:
+			if len(rows) >= maxTableRows {
+				continue
+			}
 			var row [][]Run
 			for cell := c.FirstChild(); cell != nil; cell = cell.NextSibling() {
-				if cell.Kind() == east.KindTableCell {
+				if cell.Kind() == east.KindTableCell &&
+					len(row) < maxTableCols {
 					row = append(row,
 						w.collectRuns(cell, inlineState{}))
 				}
@@ -455,7 +539,18 @@ func scanSource(source string) (string, map[string]string, map[string]string) {
 	lines := strings.Split(source, "\n")
 	abbrDefs := map[string]string{}
 	footnoteDefs := map[string]string{}
-	result := make([]string, 0, len(lines))
+	// One buffer straight through: the old slice-plus-Join kept
+	// two copies of the source alive at once.
+	var sb strings.Builder
+	sb.Grow(len(source))
+	first := true
+	writeLine := func(out string) {
+		if !first {
+			sb.WriteByte('\n')
+		}
+		first = false
+		sb.WriteString(out)
+	}
 	i := 0
 	for i < len(lines) {
 		line := lines[i]
@@ -472,7 +567,7 @@ func scanSource(source string) (string, map[string]string, map[string]string) {
 					}
 				}
 			}
-			result = append(result, "")
+			writeLine("")
 			i++
 			continue
 		}
@@ -484,7 +579,7 @@ func scanSource(source string) (string, map[string]string, map[string]string) {
 				id = trimmed[2:idx]
 				content = strings.TrimSpace(trimmed[idx+2:])
 			}
-			result = append(result, "")
+			writeLine("")
 			i++
 			contCount := 0
 			var contentSb strings.Builder
@@ -498,7 +593,7 @@ func scanSource(source string) (string, map[string]string, map[string]string) {
 						if contCount < maxFootnoteContinuationLines {
 							contentSb.WriteString("\n\n")
 						}
-						result = append(result, "")
+						writeLine("")
 						i++
 						continue
 					}
@@ -511,7 +606,7 @@ func scanSource(source string) (string, map[string]string, map[string]string) {
 					contentSb.WriteString(" " + strings.TrimSpace(next))
 					contCount++
 				}
-				result = append(result, "")
+				writeLine("")
 				i++
 			}
 			content += contentSb.String()
@@ -524,27 +619,27 @@ func scanSource(source string) (string, map[string]string, map[string]string) {
 
 		// Multi-line $$...$$ → ```math fences.
 		if trimmed == "$$" {
-			result = append(result, "```math")
+			writeLine("```math")
 			i++
 			const maxMathLines = 200
 			mathLines := 0
 			for i < len(lines) && mathLines < maxMathLines {
 				if strings.TrimSpace(lines[i]) == "$$" {
-					result = append(result, "```")
+					writeLine("```")
 					i++
 					break
 				}
-				result = append(result, lines[i])
+				writeLine(lines[i])
 				i++
 				mathLines++
 			}
 			continue
 		}
 
-		result = append(result, line)
+		writeLine(line)
 		i++
 	}
-	return strings.Join(result, "\n"), abbrDefs, footnoteDefs
+	return sb.String(), abbrDefs, footnoteDefs
 }
 
 func isAbbrDef(line string) bool {

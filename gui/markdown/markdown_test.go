@@ -1187,7 +1187,7 @@ func TestLangFromHint(t *testing.T) {
 	for _, tc := range tests {
 		got := langFromHint(tc.hint)
 		if got != tc.want {
-			t.Errorf("LangFromHint(%q): got %d, want %d",
+			t.Errorf("langFromHint(%q): got %d, want %d",
 				tc.hint, got, tc.want)
 		}
 	}
@@ -1350,6 +1350,258 @@ func TestHeadingSlug(t *testing.T) {
 		if got != tc.want {
 			t.Errorf("HeadingSlug(%q): got %q, want %q",
 				tc.input, got, tc.want)
+		}
+	}
+}
+
+// --- Blockquote composites ---
+
+func TestMarkdownBlockquoteListKeepsQuote(t *testing.T) {
+	t.Parallel()
+	blocks := parse("> - item1\n> - item2\n")
+	if len(blocks) != 2 {
+		t.Fatalf("expected 2 blocks, got %d", len(blocks))
+	}
+	for i, b := range blocks {
+		if !b.IsList {
+			t.Errorf("block %d: expected list item", i)
+		}
+		if !b.IsBlockquote || b.BlockquoteDepth != 1 {
+			t.Errorf("block %d: IsBlockquote=%v depth=%d, want true/1",
+				i, b.IsBlockquote, b.BlockquoteDepth)
+		}
+	}
+}
+
+func TestMarkdownBlockquoteCodeKeepsQuote(t *testing.T) {
+	t.Parallel()
+	blocks := parse("> ```go\n> x := 1\n> ```\n")
+	if len(blocks) != 1 {
+		t.Fatalf("expected 1 block, got %d", len(blocks))
+	}
+	b := blocks[0]
+	if !b.IsCode {
+		t.Error("expected code block")
+	}
+	if !b.IsBlockquote || b.BlockquoteDepth != 1 {
+		t.Errorf("IsBlockquote=%v depth=%d, want true/1",
+			b.IsBlockquote, b.BlockquoteDepth)
+	}
+}
+
+func TestMarkdownBlockquoteHeadingKeepsQuote(t *testing.T) {
+	t.Parallel()
+	blocks := parse("> # Head\n")
+	if len(blocks) != 1 {
+		t.Fatalf("expected 1 block, got %d", len(blocks))
+	}
+	b := blocks[0]
+	if b.HeaderLevel != 1 {
+		t.Errorf("HeaderLevel=%d, want 1", b.HeaderLevel)
+	}
+	if !b.IsBlockquote || b.BlockquoteDepth != 1 {
+		t.Errorf("IsBlockquote=%v depth=%d, want true/1",
+			b.IsBlockquote, b.BlockquoteDepth)
+	}
+}
+
+func TestMarkdownBlockquoteImageKeepsImage(t *testing.T) {
+	t.Parallel()
+	blocks := parse("> ![alt](image.png)\n")
+	if len(blocks) != 1 {
+		t.Fatalf("expected 1 block, got %d", len(blocks))
+	}
+	b := blocks[0]
+	if !b.IsImage || b.ImageSrc != "image.png" {
+		t.Errorf("expected image block, got %+v", b)
+	}
+	if !b.IsBlockquote || b.BlockquoteDepth != 1 {
+		t.Errorf("IsBlockquote=%v depth=%d, want true/1",
+			b.IsBlockquote, b.BlockquoteDepth)
+	}
+}
+
+func TestMarkdownBlockquoteMathKeepsMath(t *testing.T) {
+	t.Parallel()
+	blocks := parse("> $$x^2$$\n")
+	if len(blocks) != 1 {
+		t.Fatalf("expected 1 block, got %d", len(blocks))
+	}
+	b := blocks[0]
+	if !b.IsMath || b.MathLatex != "x^2" {
+		t.Errorf("expected math block, got %+v", b)
+	}
+	if !b.IsBlockquote || b.BlockquoteDepth != 1 {
+		t.Errorf("IsBlockquote=%v depth=%d, want true/1",
+			b.IsBlockquote, b.BlockquoteDepth)
+	}
+}
+
+func TestMarkdownBlockquoteMixedOrderKept(t *testing.T) {
+	t.Parallel()
+	blocks := parse("> quoted text\n>\n> ![alt](image.png)\n")
+	if len(blocks) != 2 {
+		t.Fatalf("expected 2 blocks, got %d", len(blocks))
+	}
+	if !blocks[0].IsBlockquote || blocks[0].IsImage {
+		t.Errorf("block 0 should be quote text, got %+v", blocks[0])
+	}
+	if !blocks[1].IsImage || !blocks[1].IsBlockquote {
+		t.Errorf("block 1 should be quoted image, got %+v",
+			blocks[1])
+	}
+}
+
+// --- Empty list items ---
+
+func TestMarkdownListItemOnlyNestedListEmitsNoEmptyBlock(t *testing.T) {
+	t.Parallel()
+	blocks := parse("-\n  - nested\n")
+	for i, b := range blocks {
+		if b.IsList && !b.IsTaskItem && len(b.Runs) == 0 {
+			t.Errorf("block %d: empty non-task list block", i)
+		}
+	}
+	if len(blocks) != 1 {
+		t.Fatalf("expected 1 block, got %d", len(blocks))
+	}
+}
+
+// --- Image path policy ---
+
+func TestMarkdownImageAbsolutePathBlocked(t *testing.T) {
+	t.Parallel()
+	blocks := parse("![a](/etc/passwd.png)\n")
+	if len(blocks) != 1 || !blocks[0].IsImage {
+		t.Fatalf("expected image block, got %+v", blocks)
+	}
+	if blocks[0].ImageSrc != "" {
+		t.Errorf("absolute path kept: %q", blocks[0].ImageSrc)
+	}
+}
+
+func TestIsSafeImagePathAbsoluteBlocked(t *testing.T) {
+	t.Parallel()
+	for _, p := range []string{
+		"/etc/passwd.png",
+		"/abs/image.png",
+		"//host/image.png",
+		"\\\\host\\share\\image.png",
+	} {
+		if isSafeImagePath(p) {
+			t.Errorf("expected blocked image: %q", p)
+		}
+	}
+}
+
+func TestIsSafeImagePathDoubleEncodingBlocked(t *testing.T) {
+	t.Parallel()
+	for _, p := range []string{
+		"%252e%252e/secret.png",
+		"..%252fsecret.png",
+		"%2e%2e/secret.png",
+	} {
+		if isSafeImagePath(p) {
+			t.Errorf("expected blocked image: %q", p)
+		}
+	}
+}
+
+// --- Percent-decode window ---
+
+func TestDecodePercentPrefixBoundaryIntact(t *testing.T) {
+	t.Parallel()
+	// A % triplet straddling the 40-char window must stay raw:
+	// decoding it would read past the window and duplicate bytes.
+	s := strings.Repeat("a", 38) + "%41" + strings.Repeat("b", 20)
+	if got := decodePercentPrefix(s); got != s {
+		t.Errorf("boundary triplet rewritten:\n got %q\nwant %q", got, s)
+	}
+}
+
+// --- Source and table caps ---
+
+func TestParseSourceCapBounded(t *testing.T) {
+	t.Parallel()
+	source := strings.Repeat("# title\n", 300000)
+	blocks := parse(source)
+	if len(blocks) >= 300000 {
+		t.Errorf("expected truncated parse, got %d blocks", len(blocks))
+	}
+	if len(blocks) == 0 {
+		t.Error("expected some blocks from capped source")
+	}
+}
+
+func TestParseSourceCapSingleLine(t *testing.T) {
+	t.Parallel()
+	// No newline in the first megabyte: truncation must land on
+	// a rune boundary and still parse without hanging.
+	source := strings.Repeat("é", 300000)
+	blocks := Parse(source, false)
+	if len(blocks) > 2 {
+		t.Errorf("expected ~1 block, got %d", len(blocks))
+	}
+}
+
+func TestParseTableRowCap(t *testing.T) {
+	t.Parallel()
+	var sb strings.Builder
+	sb.WriteString("| A |\n|---|\n")
+	for range 3000 {
+		sb.WriteString("| 1 |\n")
+	}
+	blocks := parse(sb.String())
+	for _, b := range blocks {
+		if b.IsTable && b.TableData != nil &&
+			len(b.TableData.Rows) > maxTableRows {
+			t.Errorf("rows=%d exceed cap %d",
+				len(b.TableData.Rows), maxTableRows)
+		}
+	}
+}
+
+func TestParseTableCapsExact(t *testing.T) {
+	t.Parallel()
+	// One past the cap keeps exactly the cap: pins the
+	// >= boundary against an off-by-one in either direction.
+	var sb strings.Builder
+	sb.WriteString("| A |\n|---|\n")
+	for range maxTableRows + 1 {
+		sb.WriteString("| 1 |\n")
+	}
+	for _, b := range parse(sb.String()) {
+		if b.IsTable && b.TableData != nil &&
+			len(b.TableData.Rows) != maxTableRows {
+			t.Errorf("rows=%d, want %d",
+				len(b.TableData.Rows), maxTableRows)
+		}
+	}
+	cols := maxTableCols + 1
+	header := "|" + strings.Repeat(" A |", cols) + "\n"
+	delim := "|" + strings.Repeat("---|", cols) + "\n"
+	row := "|" + strings.Repeat(" 1 |", cols) + "\n"
+	for _, b := range parse(header + delim + row) {
+		if b.IsTable && b.TableData != nil &&
+			b.TableData.ColCount != maxTableCols {
+			t.Errorf("cols=%d, want %d",
+				b.TableData.ColCount, maxTableCols)
+		}
+	}
+}
+
+func TestParseTableColCap(t *testing.T) {
+	t.Parallel()
+	cols := 100
+	header := "|" + strings.Repeat(" A |", cols) + "\n"
+	delim := "|" + strings.Repeat("---|", cols) + "\n"
+	row := "|" + strings.Repeat(" 1 |", cols) + "\n"
+	blocks := parse(header + delim + row)
+	for _, b := range blocks {
+		if b.IsTable && b.TableData != nil &&
+			b.TableData.ColCount > maxTableCols {
+			t.Errorf("cols=%d exceed cap %d",
+				b.TableData.ColCount, maxTableCols)
 		}
 	}
 }
