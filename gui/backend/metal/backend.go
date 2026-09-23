@@ -74,10 +74,12 @@ func wakeUp() {
 
 // Backend is the Metal backend for go-gui (single-window mode).
 // Embeds windowState so all draw methods are shared with
-// multi-window mode.
+// multi-window mode. A pointer: windowState owns texcache.Cache
+// values (container/list internals), which must not be copied
+// after first use.
 // exportaudit:keep — reachable from an exported signature
 type Backend struct {
-	windowState
+	*windowState
 }
 
 // New creates a Metal backend and initializes the window.
@@ -94,9 +96,9 @@ func New(w *gui.Window) (*Backend, error) {
 		return nil, fmt.Errorf("metal: %w", err)
 	}
 
-	b := &Backend{windowState: *ws}
+	b := &Backend{windowState: ws}
 	b.setAttachedWindow(w)
-	injectInterfaces(w, &b.windowState)
+	injectInterfaces(w, b.windowState)
 	return b, nil
 }
 
@@ -377,6 +379,14 @@ func runAppE(app *gui.App, initialWindows ...*gui.Window) error {
 
 // cursorSelector returns the NSCursor class method name for a
 // gui.MouseCursor.
+//
+// The diagonal-resize entries name private AppKit selectors
+// (underscore prefix): AppKit exposes no public diagonal-resize
+// cursor. If a future macOS removes them, the ObjC side
+// (metalWindowSetCursor) degrades to a no-op via its
+// respondsToSelector check, keeping the previous cursor rather
+// than crashing. Do not add more private selectors without a
+// public fallback.
 func cursorSelector(mc gui.MouseCursor) string {
 	switch mc {
 	case gui.CursorDefault, gui.CursorArrow:

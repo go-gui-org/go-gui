@@ -353,6 +353,9 @@ func (b *windowState) resolveImageTexture(
 		if err != nil {
 			log.Printf("metal: drawImage: %v", err)
 		}
+		// Negative caching: failures store the zero texture
+		// (id 0, skipped by drawImage), so a missing file logs
+		// once, not every frame. No retry until restart.
 		b.textures.Set(path, tex)
 	}
 	return tex, true
@@ -528,6 +531,9 @@ func (b *windowState) drawRtf(r *gui.RenderCmd) {
 }
 
 func (b *windowState) drawCustomShader(r *gui.RenderCmd) {
+	// Trust boundary: Shader.Metal is app-developer source, compiled
+	// as-is with no sandbox. Never feed network-supplied MSL here;
+	// a malicious shader hangs the GPU (app DoS).
 	if r.Shader == nil || r.Shader.Metal == "" {
 		return
 	}
@@ -592,29 +598,6 @@ func (b *windowState) endStencilClip(r *gui.RenderCmd) {
 		(*C.float)(unsafe.Pointer(&verts[0])),
 		C.int(r.StencilDepth))
 	// Restore solid pipeline.
-	C.metalSetPipeline(b.ctx, C.int(pipeSolid))
-	C.metalSetMVP(b.ctx, (*C.float)(&b.mvp[0]))
-}
-
-// --- Rotation ---
-
-func (b *windowState) beginRotation(r *gui.RenderCmd) {
-	b.mvpStack = append(b.mvpStack, b.mvp)
-	s := b.dpiScale
-	cx := r.RotCX * s
-	cy := r.RotCY * s
-	gpu.ApplyRotation(&b.mvp, r.RotAngle, cx, cy)
-	C.metalSetPipeline(b.ctx, C.int(pipeSolid))
-	C.metalSetMVP(b.ctx, (*C.float)(&b.mvp[0]))
-}
-
-func (b *windowState) endRotation() {
-	n := len(b.mvpStack)
-	if n == 0 {
-		return
-	}
-	b.mvp = b.mvpStack[n-1]
-	b.mvpStack = b.mvpStack[:n-1]
 	C.metalSetPipeline(b.ctx, C.int(pipeSolid))
 	C.metalSetMVP(b.ctx, (*C.float)(&b.mvp[0]))
 }

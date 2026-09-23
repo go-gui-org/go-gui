@@ -234,7 +234,9 @@ static uint32_t _nextWindowID = 1;
     CAMetalLayer *metalLayer = [CAMetalLayer layer];
     metalLayer.device = device;
     metalLayer.pixelFormat = MTLPixelFormatBGRA8Unorm;
-    metalLayer.framebufferOnly = NO; // allow readback for filters
+    metalLayer.framebufferOnly = YES; // no drawable readback:
+                                     // filters render into offscreen
+                                     // targets, never from the drawable
     // Off outside live resize: transaction mode costs a main-thread block
     // per frame, which delays every queued UI update. It is switched on
     // only for the duration of a resize drag, where it is what stops
@@ -829,18 +831,20 @@ void metalWindowStartDrag(GoGuiNSWindow w) {
 }
 
 void metalWindowGetSize(GoGuiNSWindow w, int *width, int *height) {
-    *width = 0; *height = 0;
+    if (width) *width = 0;
+    if (height) *height = 0;
     if (!w) return;
     GoGuiWindow *gw = (GoGuiWindow *)w;
     // Content bounds, not frame — matches the coordinate space the Go
     // framework renders into and what goMetalWindowResized reports.
     NSRect bounds = gw->contentView.bounds;
-    *width  = (int)bounds.size.width;
-    *height = (int)bounds.size.height;
+    if (width) *width  = (int)bounds.size.width;
+    if (height) *height = (int)bounds.size.height;
 }
 
 void metalWindowGetFramebufferSize(GoGuiNSWindow w, int *width, int *height) {
-    *width = 0; *height = 0;
+    if (width) *width = 0;
+    if (height) *height = 0;
     if (!w) return;
     GoGuiWindow *gw = (GoGuiWindow *)w;
     CAMetalLayer *layer = (CAMetalLayer *)gw->contentView.layer;
@@ -848,6 +852,9 @@ void metalWindowGetFramebufferSize(GoGuiNSWindow w, int *width, int *height) {
     // Compute drawable size from view bounds × screen backing scale.
     // This must be called after the window is displayed so the view
     // has a valid frame and the window is on a screen.
+    // Side effect is intentional: the drawable size is pushed to
+    // the layer here so creation and resize share one code path
+    // with the Go-side DPI-scale derivation.
     NSRect bounds = gw->contentView.bounds;
     CGFloat scale = gw->nsWindow.backingScaleFactor;
     if (scale <= 0) scale = 1.0;
@@ -856,8 +863,8 @@ void metalWindowGetFramebufferSize(GoGuiNSWindow w, int *width, int *height) {
                                      bounds.size.height * scale);
     layer.drawableSize = drawableSize;
 
-    *width  = (int)drawableSize.width;
-    *height = (int)drawableSize.height;
+    if (width) *width  = (int)drawableSize.width;
+    if (height) *height = (int)drawableSize.height;
 }
 
 void *metalWindowGetLayer(GoGuiNSWindow w) {
@@ -876,6 +883,8 @@ unsigned int metalWindowGetID(GoGuiNSWindow w) {
 
 // Map the cross-platform material enum (see gui.VibrancyMaterial) to an
 // NSVisualEffectMaterial. Keep in sync with the Go enum order.
+// Range-checked by the caller; default is unreachable for invalid
+// input and stays opaque-safe.
 static NSVisualEffectMaterial vibrancyMaterial(int material) {
     switch (material) {
         case 1:  return NSVisualEffectMaterialSidebar;
@@ -926,6 +935,14 @@ void metalWindowSetVibrancy(GoGuiNSWindow w, int material) {
         [gw->effectView removeFromSuperview];
         gw->effectView = nil;
         setWindowOpacity(gw, gw->transparent ? NO : YES);
+        return;
+    }
+
+    // Fail closed on out-of-range input: leave the window as-is
+    // rather than translucing it under an unintended material.
+    // Valid range is gui.VibrancyMaterial 1..4 (0 handled above).
+    if (material < 1 || material > 4) {
+        NSLog(@"gogui: ignoring unknown vibrancy material %d", material);
         return;
     }
 
@@ -1295,6 +1312,9 @@ char *metalClipboardGet(void) {
 
 void metalClipboardSet(const char *text) {
     if (!text) return;
+    // Mirror the get-path cap: refuse absurd input rather than
+    // handing an unbounded allocation to AppKit.
+    if (strlen(text) > MAX_CLIPBOARD_BYTES) return;
     NSPasteboard *pb = [NSPasteboard generalPasteboard];
     [pb clearContents];
     [pb setString:[NSString stringWithUTF8String:text]
@@ -1694,15 +1714,18 @@ void metalStopFramePump(void) {
 // CGFLOAT_MAX, so the caller does not have to know AppKit's sentinel.
 void metalTestSizeLimits(GoGuiNSWindow w, int *minW, int *minH,
                          int *maxW, int *maxH) {
-    *minW = 0; *minH = 0; *maxW = 0; *maxH = 0;
+    if (minW) *minW = 0;
+    if (minH) *minH = 0;
+    if (maxW) *maxW = 0;
+    if (maxH) *maxH = 0;
     if (!w) return;
     GoGuiWindow *gw = (GoGuiWindow *)w;
     NSSize mn = [gw->nsWindow contentMinSize];
     NSSize mx = [gw->nsWindow contentMaxSize];
-    *minW = (int)mn.width;
-    *minH = (int)mn.height;
-    *maxW = mx.width  >= CGFLOAT_MAX ? 0 : (int)mx.width;
-    *maxH = mx.height >= CGFLOAT_MAX ? 0 : (int)mx.height;
+    if (minW) *minW = (int)mn.width;
+    if (minH) *minH = (int)mn.height;
+    if (maxW) *maxW = mx.width  >= CGFLOAT_MAX ? 0 : (int)mx.width;
+    if (maxH) *maxH = mx.height >= CGFLOAT_MAX ? 0 : (int)mx.height;
 }
 
 int metalTestActivationPolicyIsRegular(void) {

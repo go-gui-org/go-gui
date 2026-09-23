@@ -51,8 +51,13 @@ func (gb *metalGlyphBackend) NewTexture(
 	gb.nextID++
 	id := gb.nextID
 
-	cID := C.metalCreateTexture(gb.ctx, C.int(width),
-		C.int(height), nil, C.int(0))
+	// A failed upload keeps cID 0; the Draw paths skip it
+	// instead of binding a stale texture (see below).
+	var cID C.int
+	if width > 0 && height > 0 {
+		cID = C.metalCreateTexture(gb.ctx, C.int(width),
+			C.int(height), nil, C.int(0))
+	}
 	gb.textures[id] = metalTexInfo{
 		cID: int32(cID), w: int32(width), h: int32(height),
 	}
@@ -62,7 +67,13 @@ func (gb *metalGlyphBackend) NewTexture(
 func (gb *metalGlyphBackend) UpdateTexture(
 	id glyph.TextureID, data []byte) {
 	t, ok := gb.textures[id]
-	if !ok || len(data) == 0 {
+	if !ok || t.cID == 0 || len(data) == 0 {
+		return
+	}
+	// Full-texture upload needs w*h*4 bytes (RGBA8). A short
+	// buffer would overread in C; drop it instead.
+	if t.w <= 0 || t.h <= 0 ||
+		int64(len(data)) < int64(t.w)*int64(t.h)*4 {
 		return
 	}
 	C.metalUpdateTexture(gb.ctx, C.int(t.cID), 0, 0,
@@ -85,7 +96,7 @@ func (gb *metalGlyphBackend) DrawTexturedQuad(
 	src, dst glyph.Rect, c glyph.Color) {
 
 	t, ok := gb.textures[id]
-	if !ok {
+	if !ok || t.cID == 0 {
 		return
 	}
 	cr, cg, cb, ca := gpu.NormColor(c.R, c.G, c.B, c.A)
@@ -143,7 +154,7 @@ func (gb *metalGlyphBackend) DrawTexturedQuadTransformed(
 	c glyph.Color, tr glyph.AffineTransform) {
 
 	t, ok := gb.textures[id]
-	if !ok {
+	if !ok || t.cID == 0 {
 		return
 	}
 	cr, cg, cb, ca := gpu.NormColor(c.R, c.G, c.B, c.A)
