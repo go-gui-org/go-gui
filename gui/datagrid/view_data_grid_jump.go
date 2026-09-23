@@ -38,8 +38,11 @@ func dataGridJumpEnabledLocal(rowsLen int, onSelectionChange func(GridSelection,
 }
 
 func dataGridJumpDigits(text string) string {
-	buf := make([]byte, 0, len(text))
+	buf := make([]byte, 0, min(len(text), dataGridMaxJumpDigits))
 	for i := range len(text) {
+		if len(buf) >= dataGridMaxJumpDigits {
+			break
+		}
 		if text[i] >= '0' && text[i] <= '9' {
 			buf = append(buf, text[i])
 		}

@@ -126,37 +126,39 @@ func dataGridMakeOnKeydown(cfg *DataGridCfg, columns []GridColumnCfg, rowHeight,
 		dataToDisplay:     dataToDisplay,
 	}
 	return func(ctx gg.EventCtx) {
-		dataGridOnKeydown(keyCtx, ctx.Event, ctx.Window)
+		if dataGridOnKeydown(keyCtx, ctx.Event, ctx.Window) {
+			ctx.Consume()
+		}
 	}
 }
 
-func dataGridOnKeydown(kc dataGridKeydownContext, e *gg.Event, w *gg.Window) {
+func dataGridOnKeydown(kc dataGridKeydownContext, e *gg.Event, w *gg.Window) bool {
 	if dataGridHandleEscapeKey(kc, e, w) {
-		return
+		return true
 	}
 	if dataGridHandleCrudKeys(kc, e, w) {
-		return
+		return true
 	}
 	if dataGridHandleEditStartKey(kc, e, w) {
-		return
+		return true
 	}
 	if dataGridHandlePageShortcut(kc, e, w) {
-		return
+		return true
 	}
 	if len(kc.rows) == 0 {
-		return
+		return false
 	}
 	visibleIndices := dataGridVisibleRowIndices(len(kc.rows), kc.pageIndices)
 	if len(visibleIndices) == 0 {
-		return
+		return false
 	}
 	if dataGridHandleSelectAllShortcut(kc, e, w) {
-		return
+		return true
 	}
 	if dataGridHandleEnterKey(kc, e, w) {
-		return
+		return true
 	}
-	dataGridHandleRowNavigationKeys(kc, visibleIndices, e, w)
+	return dataGridHandleRowNavigationKeys(kc, visibleIndices, e, w)
 }
 
 func dataGridHandleEscapeKey(kc dataGridKeydownContext, e *gg.Event, w *gg.Window) bool {
@@ -168,13 +170,15 @@ func dataGridHandleEscapeKey(kc dataGridKeydownContext, e *gg.Event, w *gg.Windo
 		e.IsHandled = true
 		return true
 	}
-	if kc.crudEnabled {
-		e.IsHandled = true
+	// Cancel CRUD only when something is actually dirty: an
+	// unconditional cancel would discard unsaved edits without
+	// asking, and consuming the key unconditionally would starve
+	// parent dialogs of Escape.
+	if kc.crudEnabled && dataGridCrudHasUnsavedFor(kc.gridID, w) {
 		dataGridCrudCancel(kc.gridID, "", e, w)
 		return true
 	}
-	e.IsHandled = true
-	return true
+	return false
 }
 
 func dataGridHandleCrudKeys(kc dataGridKeydownContext, e *gg.Event, w *gg.Window) bool {
@@ -187,6 +191,10 @@ func dataGridHandleCrudKeys(kc dataGridKeydownContext, e *gg.Event, w *gg.Window
 		e.IsHandled = true
 		return true
 	case gg.KeyDelete:
+		// Empty selection deletes nothing: leave the key alone.
+		if len(kc.selection.SelectedRowIDs) == 0 {
+			return false
+		}
 		dataGridCrudDeleteSelected(kc.gridID, kc.selection, kc.onSelectionChange, "", e, w)
 		e.IsHandled = true
 		return true
@@ -208,9 +216,11 @@ func dataGridHandleEditStartKey(kc dataGridKeydownContext, e *gg.Event, w *gg.Wi
 				w.SetFocus(editorFocusID)
 			}
 			e.IsHandled = true
+			return true
 		}
 	}
-	return true
+	// A no-op F2 must not swallow the key.
+	return false
 }
 
 func dataGridHandlePageShortcut(kc dataGridKeydownContext, e *gg.Event, w *gg.Window) bool {
@@ -265,22 +275,23 @@ func dataGridHandleEnterKey(kc dataGridKeydownContext, e *gg.Event, w *gg.Window
 		e.IsHandled = true
 		return true
 	}
+	// No activation configured: Enter is not ours.
 	if kc.onRowActivate == nil {
-		e.IsHandled = true
-		return true
+		return false
 	}
 	rowIdx := dataGridActiveRowIndex(kc.rows, kc.selection)
 	if rowIdx >= 0 && rowIdx < len(kc.rows) {
 		kc.onRowActivate(kc.rows[rowIdx], gg.EventCtx{Layout: nil, Event: e, Window: w})
 		e.IsHandled = true
+		return true
 	}
-	return true
+	return false
 }
 
-func dataGridHandleRowNavigationKeys(kc dataGridKeydownContext, visibleIndices []int, e *gg.Event, w *gg.Window) {
+func dataGridHandleRowNavigationKeys(kc dataGridKeydownContext, visibleIndices []int, e *gg.Event, w *gg.Window) bool {
 	isShift := e.Modifiers.Has(gg.ModShift)
 	if e.Modifiers != 0 && !isShift {
-		return
+		return false
 	}
 	currentIdx := dataGridActiveRowIndex(kc.rows, kc.selection)
 	currentPos := slices.Index(visibleIndices, currentIdx)
@@ -300,11 +311,12 @@ func dataGridHandleRowNavigationKeys(kc dataGridKeydownContext, visibleIndices [
 	case gg.KeyPageDown:
 		targetPos += kc.pageRows
 	default:
-		return
+		return false
 	}
+	// No selection callback: the keypress selects nothing, so it
+	// stays unconsumed for whoever is above us.
 	if kc.onSelectionChange == nil {
-		e.IsHandled = true
-		return
+		return false
 	}
 	targetPos = max(0, min(len(visibleIndices)-1, targetPos))
 	targetIdx := visibleIndices[targetPos]
@@ -313,13 +325,14 @@ func dataGridHandleRowNavigationKeys(kc dataGridKeydownContext, visibleIndices [
 	kc.onSelectionChange(nextSelection, gg.EventCtx{Layout: nil, Event: e, Window: w})
 	if kc.frozenTopIDs[targetRowID] {
 		e.IsHandled = true
-		return
+		return true
 	}
 	displayIdx, ok := kc.dataToDisplay[targetIdx]
 	if !ok || displayIdx < 0 {
 		e.IsHandled = true
-		return
+		return true
 	}
 	dataGridScrollRowIntoViewEx(kc.viewportH, displayIdx, kc.rowHeight, kc.staticTop, kc.scrollID, w)
 	e.IsHandled = true
+	return true
 }

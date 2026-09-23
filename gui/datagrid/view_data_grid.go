@@ -195,6 +195,11 @@ type DataGridCfg struct {
 	Selection       GridSelection
 	DataSource      DataGridDataSource
 	RowCount        *int
+	// Tri-state flags: nil takes the documented default, so a zero
+	// DataGridCfg is usable. Pointer (not Opt) is the long-standing
+	// grid spelling; changing it would break every caller.
+	// Defaults: AllowCreate/AllowDelete/MultiSort/MultiSelect/
+	// RangeSelect/ShowHeader/ShowGroupCounts all true.
 	// exportaudit:keep — caller-facing config (issue #372)
 	AllowCreate *bool
 	// exportaudit:keep — caller-facing config (issue #372)
@@ -322,6 +327,9 @@ type DataGridCfg struct {
 	Scrollbar         gg.ScrollbarOverflow
 	Disabled          bool
 	Invisible         bool
+	// FocusDisabled opts out of the default-on focus. Focus also
+	// requires a non-empty ID; without one the grid is inert.
+	FocusDisabled bool
 
 	// Sound overrides the theme's cue for every control the grid
 	// builds. Row activation, the toolbar and the pager take the
@@ -476,21 +484,26 @@ type dataGridEditState struct {
 }
 
 type dataGridCrudState struct {
-	DirtyRowIDs             map[string]bool
-	DraftRowIDs             map[string]bool
-	DeletedRowIDs           map[string]bool
-	SaveError               string
-	CommittedRows           []GridRow
-	WorkingRows             []GridRow
-	SourceSignature         uint64
-	LocalRowsLen            int
-	LocalRowsIDSignature    uint64
-	NextDraftSeq            int
-	LocalRowsSignatureValid bool
-	Saving                  bool
-	SourceChanged           bool
-	ActiveAbort             *gg.GridAbortController
-	RequestID               uint64
+	DirtyRowIDs     map[string]bool
+	DraftRowIDs     map[string]bool
+	DeletedRowIDs   map[string]bool
+	SaveError       string
+	CommittedRows   []GridRow
+	WorkingRows     []GridRow
+	SourceSignature uint64
+	NextDraftSeq    int
+	Saving          bool
+	SourceChanged   bool
+	ActiveAbort     *gg.GridAbortController
+	RequestID       uint64
+	// CloneVersion guards ClonedRows: the published copy of
+	// WorkingRows, reused across frames while neither the app
+	// input nor the working copy changed, so CRUD grids do not
+	// deep-copy every cell map per frame. Every site that
+	// assigns or mutates WorkingRows bumps WorkingVersion.
+	CloneVersion   uint64
+	WorkingVersion uint64
+	ClonedRows     []GridRow
 }
 
 type dataGridSourceState struct {
@@ -573,16 +586,16 @@ func New(w *gg.Window, cfg DataGridCfg) gg.View {
 	return &dataGridView{cfg: cfg}
 }
 
-// dataGridBuild assembles the grid. It runs at layout generation time,
-// under the ID scope of the enclosing panel.
-func dataGridBuild(w *gg.Window, cfg DataGridCfg) gg.View {
+// dataGridResolveInputCfg applies theme defaults, resolves the
+// grid ID into its panel scope, and expands RowsData convenience
+// input. Resolve happens once, here, before anything reads cfg.ID:
+// everything below flows from this string — the state keys,
+// focusID, scrollID, the child IDs and the header prefix that
+// dataGridHeaderColIDFromLayoutID trims back off. Resolving in one
+// place keeps the forward build and the reverse parse spelling the
+// same name.
+func dataGridResolveInputCfg(w *gg.Window, cfg DataGridCfg) DataGridCfg {
 	applyDataGridDefaults(&cfg)
-	// Resolve once, here, before anything reads cfg.ID. Everything
-	// below flows from this string: the state keys, focusID, scrollID,
-	// the child IDs and the header prefix that
-	// dataGridHeaderColIDFromLayoutID trims back off. Resolving in one
-	// place is what keeps the forward build and the reverse parse
-	// spelling the same name.
 	cfg.ID = w.EffID(cfg.ID)
 	if len(cfg.RowsData) > 0 && cfg.DataSource == nil {
 		n := min(len(cfg.RowsData), maxDataConvLen)
@@ -597,7 +610,12 @@ func dataGridBuild(w *gg.Window, cfg DataGridCfg) gg.View {
 				Cells: cfg.RowsData[i]}
 		}
 	}
+	return cfg
+}
 
+// dataGridResolveSourceCrud overlays the async source rows and the
+// CRUD working copy onto the input config.
+func dataGridResolveSourceCrud(w *gg.Window, cfg DataGridCfg) (DataGridCfg, dataGridSourceState, bool, GridDataCapabilities, dataGridCrudState, bool) {
 	// Resolve data source and apply pending jump/selection.
 	resolvedCfg, sourceState, hasSource, sourceCaps := dataGridResolveSourceCfg(cfg, w)
 	if hasSource {
@@ -608,8 +626,8 @@ func dataGridBuild(w *gg.Window, cfg DataGridCfg) gg.View {
 	var crudState dataGridCrudState
 	crudEnabled := dataGridCrudEnabled(&resolvedCfg)
 	if crudEnabled {
-		nextCfg, nextCrudState := dataGridCrudResolveCfg(resolvedCfg, w)
-		resolvedCfg = nextCfg
+		var nextCrudState dataGridCrudState
+		resolvedCfg, nextCrudState = dataGridCrudResolveCfg(resolvedCfg, w)
 		crudState = nextCrudState
 		if hasSource {
 			dgSrc := gg.StateMap[string, dataGridSourceState](w, nsDgSource, capModerate)
@@ -618,6 +636,15 @@ func dataGridBuild(w *gg.Window, cfg DataGridCfg) gg.View {
 			}
 		}
 	}
+	return resolvedCfg, sourceState, hasSource, sourceCaps, crudState, crudEnabled
+}
+
+// dataGridBuild assembles the grid. It runs at layout generation time,
+// under the ID scope of the enclosing panel.
+func dataGridBuild(w *gg.Window, cfg DataGridCfg) gg.View {
+	cfg = dataGridResolveInputCfg(w, cfg)
+	resolvedCfg, sourceState, hasSource, sourceCaps, crudState, crudEnabled :=
+		dataGridResolveSourceCrud(w, cfg)
 
 	// Interaction state.
 	rowDeleteEnabled := dataGridCrudRowDeleteEnabled(&resolvedCfg, hasSource, sourceCaps)
@@ -735,7 +762,7 @@ func dataGridBuild(w *gg.Window, cfg DataGridCfg) gg.View {
 
 	return gg.Column(gg.ContainerCfg{
 		ID:        resolvedCfg.ID,
-		Focusable: true,
+		Focusable: !resolvedCfg.FocusDisabled,
 		A11YRole:  gg.AccessRoleGrid,
 		A11YCfg:   resolvedCfg.A11YCfg,
 		OnKeyDown: dataGridMakeOnKeydown(&resolvedCfg, columns, rowHeight,

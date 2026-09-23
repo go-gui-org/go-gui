@@ -537,7 +537,11 @@ func dataGridHeaderCellID(gridID, colID string) string {
 
 // dataGridHeaderPrefix is what a header cell's ID starts with. The
 // remainder is the column ID, recovered verbatim: header cell IDs are
-// composed, never escaped, so the suffix needs no decoding.
+// composed, never escaped, so the suffix needs no decoding. The
+// trailing separator completes the ScopeID above for prefix
+// matching; both derive from dataGridHeaderScope (the #519
+// absolute-ID exception), so forward build and reverse parse stay
+// spelled the same.
 func dataGridHeaderPrefix(gridID string) string {
 	return gg.ScopeID(gridID, dataGridHeaderScope) + gg.IDSep
 }

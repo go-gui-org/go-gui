@@ -1,6 +1,8 @@
 package datagrid
 
 import (
+	"strconv"
+	"strings"
 	"testing"
 
 	gg "github.com/go-gui-org/go-gui/gui"
@@ -126,31 +128,6 @@ func TestRowsSignatureFallbackIncludesKeysFromAllRows(t *testing.T) {
 	h2 := dataGridRowsSignature(rows2, nil)
 	if h1 == h2 {
 		t.Fatal("fallback signature should include keys introduced in later rows")
-	}
-}
-
-// --- dataGridRowsIDSignature ---
-
-func TestRowsIDSignatureEmpty(t *testing.T) {
-	if dataGridRowsIDSignature(nil) != 0 {
-		t.Fatal("empty rows should return 0")
-	}
-}
-
-func TestRowsIDSignatureStable(t *testing.T) {
-	rows := []GridRow{{ID: "a"}, {ID: "b"}}
-	h1 := dataGridRowsIDSignature(rows)
-	h2 := dataGridRowsIDSignature(rows)
-	if h1 != h2 {
-		t.Fatal("same IDs should produce same hash")
-	}
-}
-
-func TestRowsIDSignatureDifferentIDs(t *testing.T) {
-	r1 := []GridRow{{ID: "a"}, {ID: "b"}}
-	r2 := []GridRow{{ID: "a"}, {ID: "c"}}
-	if dataGridRowsIDSignature(r1) == dataGridRowsIDSignature(r2) {
-		t.Fatal("different IDs should produce different hashes")
 	}
 }
 
@@ -833,6 +810,302 @@ func TestCrudRestoreOnErrorNoPhase(t *testing.T) {
 	dgCrud := gg.StateMap[string, dataGridCrudState](w, nsDgCrud, 4)
 	state, _ := dgCrud.Get("g1")
 	if state.SaveError != "generic error" {
+		t.Errorf("save error: got %q", state.SaveError)
+	}
+}
+
+// --- External cell-edit refresh ---
+
+func TestCrudResolveMemoizesPublishedRows(t *testing.T) {
+	w := gg.NewWindow(gg.WindowCfg{})
+	defer w.Close()
+	cfg := DataGridCfg{
+		ID:              "g1",
+		ShowCRUDToolbar: true,
+		Columns:         []GridColumnCfg{{ID: "a", Title: "A"}},
+		Rows: []GridRow{
+			{ID: "r1", Cells: map[string]string{"a": "orig"}},
+		},
+	}
+	out1, _ := dataGridCrudResolveCfg(cfg, w)
+	out2, _ := dataGridCrudResolveCfg(cfg, w)
+	if len(out1.Rows) == 0 || len(out2.Rows) == 0 {
+		t.Fatal("expected published rows")
+	}
+	// Idle frames share the memoized backing instead of cloning.
+	if &out1.Rows[0] != &out2.Rows[0] {
+		t.Fatal("expected shared backing across idle frames")
+	}
+}
+
+func TestCrudExternalCellEditRefreshesWorkingCopy(t *testing.T) {
+	w := gg.NewWindow(gg.WindowCfg{})
+	defer w.Close()
+	cfg := DataGridCfg{
+		ID:              "g1",
+		ShowCRUDToolbar: true,
+		Columns:         []GridColumnCfg{{ID: "a", Title: "A"}},
+		Rows: []GridRow{
+			{ID: "r1", Cells: map[string]string{"a": "orig"}},
+		},
+	}
+	out, _ := dataGridCrudResolveCfg(cfg, w)
+	if out.Rows[0].Cells["a"] != "orig" {
+		t.Fatalf("initial working copy: got %q", out.Rows[0].Cells["a"])
+	}
+	// App-driven cell edit: same IDs, same length. An ID/length
+	// shortcut would reuse the stale signature and lose this.
+	cfg.Rows[0].Cells["a"] = "changed"
+	out, _ = dataGridCrudResolveCfg(cfg, w)
+	if out.Rows[0].Cells["a"] != "changed" {
+		t.Fatalf("external edit lost: got %q, want changed",
+			out.Rows[0].Cells["a"])
+	}
+}
+
+// --- Draft ID scoping ---
+
+func TestCrudAddRowSanitizesScopedGridID(t *testing.T) {
+	w := gg.NewWindow(gg.WindowCfg{})
+	defer w.Close()
+	e := &gg.Event{}
+	dataGridCrudAddRow("detail:catalog", []GridColumnCfg{{ID: "a"}},
+		nil, "", "scroll", 0, 0, nil, e, w)
+	state, _ := gg.StateMap[string, dataGridCrudState](w, nsDgCrud, 4).Get("detail:catalog")
+	if len(state.WorkingRows) != 1 {
+		t.Fatalf("working rows: got %d, want 1", len(state.WorkingRows))
+	}
+	if strings.Contains(state.WorkingRows[0].ID, ":") {
+		t.Errorf("draft ID %q contains the scope separator",
+			state.WorkingRows[0].ID)
+	}
+}
+
+// --- Created-row remap ---
+
+func TestReplaceCreatedRowsMatchesByDraftID(t *testing.T) {
+	rows := []GridRow{
+		{ID: "d1", Cells: map[string]string{"a": "n1"}},
+		{ID: "keep", Cells: map[string]string{"a": "k"}},
+		{ID: "d2", Cells: map[string]string{"a": "n2"}},
+	}
+	createRows := []GridRow{{ID: "d1"}, {ID: "d2"}}
+	created := []GridRow{
+		{ID: "s1", Cells: map[string]string{"a": "n1"}},
+		{ID: "s2", Cells: map[string]string{"a": "n2"}},
+	}
+	replace, warn := dataGridCrudReplaceCreatedRows(rows, createRows, created)
+	if warn != "" {
+		t.Fatalf("unexpected warning: %s", warn)
+	}
+	if rows[0].ID != "s1" || rows[2].ID != "s2" || rows[1].ID != "keep" {
+		t.Fatalf("rows: got %q %q %q", rows[0].ID, rows[1].ID, rows[2].ID)
+	}
+	if replace["d1"] != "s1" || replace["d2"] != "s2" {
+		t.Fatalf("replace map: %v", replace)
+	}
+}
+
+func TestReplaceCreatedRowsSurvivesDraftDeletedMidSave(t *testing.T) {
+	// d1 left the working copy while saving: d2 must still pair
+	// with s2. Positional pairing would map s1 onto d2.
+	rows := []GridRow{
+		{ID: "keep", Cells: map[string]string{"a": "k"}},
+		{ID: "d2", Cells: map[string]string{"a": "n2"}},
+	}
+	createRows := []GridRow{{ID: "d1"}, {ID: "d2"}}
+	created := []GridRow{
+		{ID: "s1", Cells: map[string]string{"a": "n1"}},
+		{ID: "s2", Cells: map[string]string{"a": "n2"}},
+	}
+	replace, _ := dataGridCrudReplaceCreatedRows(rows, createRows, created)
+	if rows[1].ID != "s2" {
+		t.Fatalf("d2 mapped to %q, want s2", rows[1].ID)
+	}
+	if replace["d2"] != "s2" {
+		t.Fatalf("replace map: %v", replace)
+	}
+}
+
+func TestReplaceCreatedRowsSkipsEmptyDraftID(t *testing.T) {
+	rows := []GridRow{
+		{ID: "", Cells: map[string]string{"a": "blank"}},
+		{ID: "d2", Cells: map[string]string{"a": "n2"}},
+	}
+	createRows := []GridRow{{ID: ""}, {ID: "d2"}}
+	created := []GridRow{
+		{ID: "s0", Cells: map[string]string{"a": "blank"}},
+		{ID: "s2", Cells: map[string]string{"a": "n2"}},
+	}
+	replace, _ := dataGridCrudReplaceCreatedRows(rows, createRows, created)
+	if rows[0].ID != "" {
+		t.Fatalf("blank row mapped to %q, want untouched", rows[0].ID)
+	}
+	if rows[1].ID != "s2" {
+		t.Fatalf("d2 mapped to %q, want s2", rows[1].ID)
+	}
+	if _, ok := replace[""]; ok {
+		t.Fatalf("replace map should not key the empty ID: %v", replace)
+	}
+}
+
+// --- Partial save progress ---
+
+func TestApplySaveResultCountMismatchKeepsProgress(t *testing.T) {
+	w := gg.NewWindow(gg.WindowCfg{})
+	defer w.Close()
+	snapshot := []GridRow{{ID: "r1", Cells: map[string]string{"a": "orig"}}}
+	gg.StateMap[string, dataGridCrudState](w, nsDgCrud, 4).Set("g1", dataGridCrudState{
+		WorkingRows: []GridRow{
+			{ID: "d1", Cells: map[string]string{"a": "new"}},
+			{ID: "r1", Cells: map[string]string{"a": "edited"}},
+		},
+		CommittedRows: cloneRows(snapshot),
+		DraftRowIDs:   map[string]bool{"d1": true},
+		DirtyRowIDs:   map[string]bool{"d1": true, "r1": true},
+	})
+	result := dataGridCrudMutationResult{
+		createRows: []GridRow{
+			{ID: "d1", Cells: map[string]string{"a": "new"}},
+			{ID: "d2", Cells: map[string]string{"a": "ghost"}},
+		},
+		created:  []GridRow{{ID: "s1", Cells: map[string]string{"a": "new"}}},
+		rowCount: -1,
+	}
+	dataGridCrudApplySaveResult("g1", result, cloneRows(snapshot),
+		nil, nil, GridSelection{}, nil, "", gg.SoundNone, w)
+	state, _ := gg.StateMap[string, dataGridCrudState](w, nsDgCrud, 4).Get("g1")
+	byID := map[string]GridRow{}
+	for _, row := range state.WorkingRows {
+		byID[row.ID] = row
+	}
+	if _, ok := byID["s1"]; !ok {
+		t.Error("created row s1 missing: full rollback discarded it")
+	}
+	if byID["r1"].Cells["a"] != "edited" {
+		t.Error("good update lost to the count-mismatch rollback")
+	}
+	if state.SaveError == "" {
+		t.Error("count mismatch should still surface a warning")
+	}
+}
+
+func TestApplySaveResultWarnCallsOnCRUDError(t *testing.T) {
+	w := gg.NewWindow(gg.WindowCfg{})
+	defer w.Close()
+	snapshot := []GridRow{{ID: "r1", Cells: map[string]string{"a": "orig"}}}
+	gg.StateMap[string, dataGridCrudState](w, nsDgCrud, 4).Set("g1", dataGridCrudState{
+		WorkingRows: []GridRow{
+			{ID: "d1", Cells: map[string]string{"a": "new"}},
+		},
+		CommittedRows: cloneRows(snapshot),
+		DraftRowIDs:   map[string]bool{"d1": true},
+		DirtyRowIDs:   map[string]bool{"d1": true},
+	})
+	result := dataGridCrudMutationResult{
+		createRows: []GridRow{
+			{ID: "d1", Cells: map[string]string{"a": "new"}},
+			{ID: "d2", Cells: map[string]string{"a": "ghost"}},
+		},
+		created:  []GridRow{{ID: "s1", Cells: map[string]string{"a": "new"}}},
+		rowCount: -1,
+	}
+	var errs []string
+	dataGridCrudApplySaveResult("g1", result, cloneRows(snapshot),
+		func(msg string, ctx gg.EventCtx) { errs = append(errs, msg) },
+		nil, GridSelection{}, nil, "", gg.SoundNone, w)
+	if len(errs) != 1 {
+		t.Fatalf("onCRUDError calls: got %d, want 1", len(errs))
+	}
+	if !strings.Contains(errs[0], "expected 2") {
+		t.Errorf("warning: got %q, want count mismatch", errs[0])
+	}
+}
+
+func TestCrudSaveRejectsOversizeBatch(t *testing.T) {
+	w := gg.NewWindow(gg.WindowCfg{})
+	defer w.Close()
+	const over = dataGridMaxMutationBatch + 1
+	working := make([]GridRow, 0, over)
+	drafts := make(map[string]bool, over)
+	for i := range over {
+		id := "d" + strconv.Itoa(i)
+		working = append(working, GridRow{ID: id})
+		drafts[id] = true
+	}
+	gg.StateMap[string, dataGridCrudState](w, nsDgCrud, 4).Set("g1", dataGridCrudState{
+		WorkingRows:   working,
+		CommittedRows: nil,
+		DraftRowIDs:   drafts,
+		DirtyRowIDs:   drafts,
+	})
+	dataGridCrudSave(dataGridCrudSaveContext{gridID: "g1"}, &gg.Event{}, w)
+	state, _ := gg.StateMap[string, dataGridCrudState](w, nsDgCrud, 4).Get("g1")
+	if !strings.Contains(state.SaveError, "exceeds") {
+		t.Fatalf("save error: got %q, want batch rejection", state.SaveError)
+	}
+	if !state.DirtyRowIDs["d0"] {
+		t.Error("rejected batch should keep rows dirty, not save them")
+	}
+}
+
+func TestCommitCellEditSkipsIdentitylessEdit(t *testing.T) {
+	w := gg.NewWindow(gg.WindowCfg{})
+	defer w.Close()
+	called := false
+	dataGridCommitCellEdit("g1", true,
+		func(edit GridCellEdit, ctx gg.EventCtx) { called = true },
+		"", 0, "a", "v", &gg.Event{}, w)
+	if called {
+		t.Fatal("edit without row ID should not reach the callback")
+	}
+	if _, ok := gg.StateMap[string, dataGridCrudState](w, nsDgCrud, 4).Get("g1"); ok {
+		t.Fatal("identityless edit should not create CRUD state")
+	}
+}
+
+func TestApplySaveResultUpdateErrorPreservesCreates(t *testing.T) {
+	w := gg.NewWindow(gg.WindowCfg{})
+	defer w.Close()
+	snapshot := []GridRow{
+		{ID: "r1", Cells: map[string]string{"a": "one"}},
+		{ID: "r2", Cells: map[string]string{"a": "two"}},
+	}
+	gg.StateMap[string, dataGridCrudState](w, nsDgCrud, 4).Set("g1", dataGridCrudState{
+		WorkingRows: []GridRow{
+			{ID: "d1", Cells: map[string]string{"a": "new"}},
+			{ID: "r1", Cells: map[string]string{"a": "one"}},
+			{ID: "r2", Cells: map[string]string{"a": "TWO"}},
+		},
+		CommittedRows: cloneRows(snapshot),
+		DraftRowIDs:   map[string]bool{"d1": true},
+		DirtyRowIDs:   map[string]bool{"d1": true, "r2": true},
+	})
+	result := dataGridCrudMutationResult{
+		errPhase:   "update",
+		errMsg:     "boom",
+		createRows: []GridRow{{ID: "d1", Cells: map[string]string{"a": "new"}}},
+		created:    []GridRow{{ID: "s1", Cells: map[string]string{"a": "new"}}},
+	}
+	dataGridCrudApplySaveResult("g1", result, cloneRows(snapshot),
+		nil, nil, GridSelection{}, nil, "", gg.SoundNone, w)
+	state, _ := gg.StateMap[string, dataGridCrudState](w, nsDgCrud, 4).Get("g1")
+	found := false
+	for _, row := range state.CommittedRows {
+		if row.ID == "s1" {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("server-created s1 missing from committed rows: retry would duplicate it")
+	}
+	if !state.DirtyRowIDs["r2"] {
+		t.Error("failed update r2 should stay dirty for retry")
+	}
+	if state.DraftRowIDs["d1"] || state.DirtyRowIDs["d1"] {
+		t.Error("committed draft d1 should leave the dirty sets")
+	}
+	if state.SaveError != "update: boom" {
 		t.Errorf("save error: got %q", state.SaveError)
 	}
 }

@@ -226,16 +226,17 @@ func TestParseEditorDateFormats(t *testing.T) {
 
 func TestParseEditorDateEmpty(t *testing.T) {
 	got := dataGridParseEditorDate("")
-	// Empty returns time.Now(); verify it's recent.
-	if time.Since(got) > time.Second {
-		t.Error("empty should return ~now")
+	// Empty stays empty: inventing today would write a date the
+	// user never typed on confirm.
+	if !got.IsZero() {
+		t.Errorf("empty should return zero time, got %v", got)
 	}
 }
 
 func TestParseEditorDateInvalid(t *testing.T) {
 	got := dataGridParseEditorDate("not-a-date")
-	if time.Since(got) > time.Second {
-		t.Error("invalid should return ~now")
+	if !got.IsZero() {
+		t.Errorf("invalid should return zero time, got %v", got)
 	}
 }
 

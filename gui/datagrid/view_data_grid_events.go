@@ -10,6 +10,16 @@ import (
 
 // --- Quick filter ---
 
+// dataGridQuickPending snapshots the sorts/filters a debounced
+// quick-filter commit replays. The commit callback reads it at
+// fire time instead of the keystroke-time values: a sort or filter
+// change inside the debounce window would otherwise be reverted by
+// the stale capture.
+type dataGridQuickPending struct {
+	Sorts   []GridSort
+	Filters []gridFilter
+}
+
 func dataGridQuickFilterRow(cfg *DataGridCfg, w *gg.Window) gg.View {
 	h := dataGridQuickFilterHeight(cfg)
 	queryCallback := cfg.OnQueryChange
@@ -25,6 +35,14 @@ func dataGridQuickFilterRow(cfg *DataGridCfg, w *gg.Window) gg.View {
 	draftMap := gg.StateMap[string, string](w, nsDgQuickDraft, capModerate)
 	if draft, ok := draftMap.Get(gridID); ok {
 		value = draft
+		// A sort/filter change rebuilds the grid while a commit is
+		// still pending: refresh the snapshot so the delayed
+		// callback replays current values, not keystroke-time ones.
+		gg.StateMap[string, dataGridQuickPending](w, nsDgQuickPending,
+			capModerate).Set(gridID, dataGridQuickPending{
+			Sorts:   append([]GridSort(nil), query.Sorts...),
+			Filters: append([]gridFilter(nil), query.Filters...),
+		})
 	}
 	inputID := gg.ScopeID(cfg.ID, "quick_filter")
 	inputFocusID := inputID
@@ -84,11 +102,10 @@ func dataGridQuickFilterRow(cfg *DataGridCfg, w *gg.Window) gg.View {
 					ctx.Window.AnimationRemove(gg.ScopeID(inputID, "debounce"))
 					gg.StateMap[string, string](ctx.Window, nsDgQuickDraft,
 						capModerate).Delete(gridID)
-					next := GridQueryState{
-						Sorts:       append([]GridSort(nil), query.Sorts...),
-						Filters:     append([]gridFilter(nil), query.Filters...),
-						QuickFilter: "",
-					}
+					gg.StateMap[string, dataGridQuickPending](ctx.Window, nsDgQuickPending,
+						capModerate).Delete(gridID)
+					next := query.Clone()
+					next.QuickFilter = ""
 					queryCallback(next, gg.EventCtx{Layout: nil, Event: ctx.Event, Window: ctx.Window})
 					if inputFocusID != "" {
 						ctx.Window.SetFocus(inputFocusID)
@@ -118,32 +135,43 @@ func dataGridQuickFilterOnTextChanged(
 		if queryCallback == nil {
 			return
 		}
+		// Bound unbounded input (e.g. a pasted megabyte) before it
+		// fans out into per-keystroke re-filters and state growth.
+		text = dataGridTruncateRunes(text, dataGridMaxQuickFilterLen)
 		if debounce <= 0 {
-			next := GridQueryState{
-				Sorts:       append([]GridSort(nil), query.Sorts...),
-				Filters:     append([]gridFilter(nil), query.Filters...),
-				QuickFilter: text,
-			}
+			next := query.Clone()
+			next.QuickFilter = text
 			e := &gg.Event{}
 			queryCallback(next, gg.EventCtx{Layout: nil, Event: e, Window: ctx.Window})
 			return
 		}
-		sorts := append([]GridSort(nil), query.Sorts...)
-		filters := append([]gridFilter(nil), query.Filters...)
+		pending := dataGridQuickPending{
+			Sorts:   append([]GridSort(nil), query.Sorts...),
+			Filters: append([]gridFilter(nil), query.Filters...),
+		}
 		gg.StateMap[string, string](ctx.Window, nsDgQuickDraft,
 			capModerate).Set(gridID, text)
+		gg.StateMap[string, dataGridQuickPending](ctx.Window, nsDgQuickPending,
+			capModerate).Set(gridID, pending)
 		ctx.Window.AnimationAdd(&gg.Animate{
 			AnimID: gg.ScopeID(inputID, "debounce"),
 			Delay:  debounce,
 			Callback: func(_ *gg.Animate, w *gg.Window) {
+				commit := pending
+				if fresh, ok := gg.StateMap[string, dataGridQuickPending](w, nsDgQuickPending,
+					capModerate).Get(gridID); ok {
+					commit = fresh
+				}
 				next := GridQueryState{
-					Sorts:       sorts,
-					Filters:     filters,
+					Sorts:       commit.Sorts,
+					Filters:     commit.Filters,
 					QuickFilter: text,
 				}
 				e := &gg.Event{}
 				queryCallback(next, gg.EventCtx{Layout: nil, Event: e, Window: w})
 				gg.StateMap[string, string](w, nsDgQuickDraft,
+					capModerate).Delete(gridID)
+				gg.StateMap[string, dataGridQuickPending](w, nsDgQuickPending,
 					capModerate).Delete(gridID)
 			},
 		})

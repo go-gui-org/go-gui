@@ -1,6 +1,7 @@
 package datagrid
 
 import (
+	"strings"
 	"testing"
 
 	gg "github.com/go-gui-org/go-gui/gui"
@@ -394,14 +395,55 @@ func TestNextPageIndexForKeyClampLast(t *testing.T) {
 func TestHandleEscapeKeyMarksHandled(t *testing.T) {
 	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
+	dataGridSetEditingRow("g1", "r1", w)
 	kc := dataGridKeydownContext{gridID: "g1"}
 	e := &gg.Event{KeyCode: gg.KeyEscape}
 	handled := dataGridHandleEscapeKey(kc, e, w)
 	if !handled {
-		t.Fatal("escape should be handled")
+		t.Fatal("escape should be handled while a row is editing")
 	}
 	if !e.IsHandled {
 		t.Fatal("event should be marked handled")
+	}
+	if dataGridEditingRowID("g1", w) != "" {
+		t.Fatal("editing row should be cleared")
+	}
+}
+
+func TestHandleEscapeKeyNoopUnhandled(t *testing.T) {
+	w := gg.NewWindow(gg.WindowCfg{})
+	defer w.Close()
+	// No editing row, no CRUD dirt: Escape is not ours, so parent
+	// dialogs still receive it.
+	kc := dataGridKeydownContext{gridID: "g1"}
+	e := &gg.Event{KeyCode: gg.KeyEscape}
+	if handled := dataGridHandleEscapeKey(kc, e, w); handled {
+		t.Fatal("idle escape should not be handled")
+	}
+	if e.IsHandled {
+		t.Fatal("event should stay unhandled")
+	}
+}
+
+func TestHandleEscapeKeyCancelsDirtyCrud(t *testing.T) {
+	w := gg.NewWindow(gg.WindowCfg{})
+	defer w.Close()
+	gg.StateMap[string, dataGridCrudState](w, nsDgCrud, capModerate).Set("g1",
+		dataGridCrudState{DirtyRowIDs: map[string]bool{"a": true}})
+	kc := dataGridKeydownContext{gridID: "g1", crudEnabled: true}
+	e := &gg.Event{KeyCode: gg.KeyEscape}
+	if handled := dataGridHandleEscapeKey(kc, e, w); !handled {
+		t.Fatal("escape should cancel dirty CRUD state")
+	}
+}
+
+func TestHandleEscapeKeyCleanCrudUnhandled(t *testing.T) {
+	w := gg.NewWindow(gg.WindowCfg{})
+	defer w.Close()
+	kc := dataGridKeydownContext{gridID: "g1", crudEnabled: true}
+	e := &gg.Event{KeyCode: gg.KeyEscape}
+	if handled := dataGridHandleEscapeKey(kc, e, w); handled {
+		t.Fatal("escape with clean CRUD state should not be handled")
 	}
 }
 
@@ -567,9 +609,12 @@ func TestHandleRowNavigationKeysNoCallback(t *testing.T) {
 		onSelectionChange: nil,
 	}
 	e := &gg.Event{KeyCode: gg.KeyDown}
-	dataGridHandleRowNavigationKeys(kc, []int{0, 1}, e, w)
-	if !e.IsHandled {
-		t.Fatal("should still mark handled even without callback")
+	handled := dataGridHandleRowNavigationKeys(kc, []int{0, 1}, e, w)
+	if handled {
+		t.Fatal("no callback means no selection change: key stays unconsumed")
+	}
+	if e.IsHandled {
+		t.Fatal("event should stay unhandled without callback")
 	}
 }
 
@@ -599,9 +644,22 @@ func TestOnKeydownEscapeNoRows(t *testing.T) {
 	defer w.Close()
 	kc := dataGridKeydownContext{gridID: "g1"}
 	e := &gg.Event{KeyCode: gg.KeyEscape}
-	dataGridOnKeydown(kc, e, w)
-	if !e.IsHandled {
-		t.Fatal("escape should be handled")
+	if handled := dataGridOnKeydown(kc, e, w); handled {
+		t.Fatal("idle escape should not be handled")
+	}
+	if e.IsHandled {
+		t.Fatal("event should stay unhandled")
+	}
+}
+
+func TestOnKeydownEscapeEditingRow(t *testing.T) {
+	w := gg.NewWindow(gg.WindowCfg{})
+	defer w.Close()
+	dataGridSetEditingRow("g1", "r1", w)
+	kc := dataGridKeydownContext{gridID: "g1"}
+	e := &gg.Event{KeyCode: gg.KeyEscape}
+	if handled := dataGridOnKeydown(kc, e, w); !handled {
+		t.Fatal("escape should clear the editing row")
 	}
 }
 
@@ -655,11 +713,11 @@ func TestHandleEnterKeyNoActivate(t *testing.T) {
 	}
 	e := &gg.Event{KeyCode: gg.KeyEnter}
 	handled := dataGridHandleEnterKey(kc, e, w)
-	if !handled {
-		t.Fatal("enter should be handled")
+	if handled {
+		t.Fatal("enter without activation should not be handled")
 	}
-	if !e.IsHandled {
-		t.Fatal("event should be marked handled")
+	if e.IsHandled {
+		t.Fatal("event should stay unhandled")
 	}
 }
 
@@ -748,8 +806,11 @@ func TestHandleEditStartKeyF2NotEditable(t *testing.T) {
 	}
 	e := &gg.Event{KeyCode: gg.KeyF2}
 	handled := dataGridHandleEditStartKey(kc, e, w)
-	if !handled {
-		t.Fatal("F2 should return true even when not editable")
+	if handled {
+		t.Fatal("F2 should return false when not editable")
+	}
+	if e.IsHandled {
+		t.Fatal("event should stay unhandled")
 	}
 }
 
@@ -1322,5 +1383,78 @@ func TestBuildPagerRow(t *testing.T) {
 	v := dataGridBuildPagerRow(pctx)
 	if v == nil {
 		t.Fatal("pager row should return a view")
+	}
+}
+
+func TestHandleCrudKeysDeleteEmptySelectionUnhandled(t *testing.T) {
+	w := gg.NewWindow(gg.WindowCfg{})
+	defer w.Close()
+	kc := dataGridKeydownContext{
+		gridID:      "g1",
+		crudEnabled: true,
+		selection:   GridSelection{},
+	}
+	e := &gg.Event{KeyCode: gg.KeyDelete}
+	if handled := dataGridHandleCrudKeys(kc, e, w); handled {
+		t.Fatal("delete with empty selection deletes nothing: key stays unconsumed")
+	}
+	if e.IsHandled {
+		t.Fatal("event should stay unhandled")
+	}
+}
+
+func TestJumpDigitsCapped(t *testing.T) {
+	got := dataGridJumpDigits("123456789012345")
+	if got != "1234567890" {
+		t.Fatalf("digits: got %q, want first 10", got)
+	}
+	if got := dataGridJumpDigits("42"); got != "42" {
+		t.Fatalf("digits: got %q, want 42", got)
+	}
+}
+
+func TestQuickFilterTruncatesLongInput(t *testing.T) {
+	w := gg.NewWindow(gg.WindowCfg{})
+	defer w.Close()
+	var committed []string
+	handler := dataGridQuickFilterOnTextChanged("g1", "g1:quick_filter",
+		GridQueryState{},
+		func(q GridQueryState, ctx gg.EventCtx) {
+			committed = append(committed, q.QuickFilter)
+		}, 0)
+	long := strings.Repeat("x", dataGridMaxQuickFilterLen+100)
+	handler(long, gg.EventCtx{Layout: nil, Event: nil, Window: w})
+	if len(committed) != 1 {
+		t.Fatalf("committed %d times, want 1", len(committed))
+	}
+	if got := len([]rune(committed[0])); got != dataGridMaxQuickFilterLen {
+		t.Fatalf("committed runes: got %d, want %d", got, dataGridMaxQuickFilterLen)
+	}
+}
+
+func TestQuickFilterRowRefreshesPendingSorts(t *testing.T) {
+	w := gg.NewWindow(gg.WindowCfg{})
+	defer w.Close()
+	// A commit is pending with keystroke-time sorts; the committed
+	// query has since moved on.
+	gg.StateMap[string, string](w, nsDgQuickDraft, capModerate).Set("g1", "ab")
+	gg.StateMap[string, dataGridQuickPending](w, nsDgQuickPending, capModerate).Set("g1",
+		dataGridQuickPending{Sorts: []GridSort{{ColID: "old", Dir: GridSortAsc}}})
+	cfg := &DataGridCfg{
+		ID: "g1",
+		Query: GridQueryState{
+			Sorts:       []GridSort{{ColID: "new", Dir: GridSortDesc}},
+			QuickFilter: "a",
+		},
+		OnQueryChange: func(_ GridQueryState, ctx gg.EventCtx) {},
+	}
+	applyDataGridDefaults(cfg)
+	gg.GenerateViewLayout(dataGridQuickFilterRow(cfg, w), w)
+	pending, ok := gg.StateMap[string, dataGridQuickPending](w, nsDgQuickPending, capModerate).Get("g1")
+	if !ok {
+		t.Fatal("pending snapshot missing after render")
+	}
+	if len(pending.Sorts) != 1 || pending.Sorts[0].ColID != "new" {
+		t.Fatalf("pending sorts: %+v, want current [new]", pending.Sorts)
 	}
 }

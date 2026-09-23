@@ -10,11 +10,39 @@ and this project adheres to
 
 ### Added
 
+- **Data grid focus opt-out and query aliases** — `DataGridCfg.FocusDisabled`
+  opts out of the default-on grid focus like every other input control.
+  `SourceStats` gains `LoadError()` and `HasMore()` accessors for logs and
+  diagnostics (the on-screen status stays a generic label). `GridSortAsc`,
+  `GridSortDir` and `GridFilter` are caller-facing aliases, so ascending sorts
+  and `GridQueryState.Filters` entries are constructible outside the package.
+
 - **Date roller row spacing** — `DatePickerRollerCfg.RowSpacing` gaps the rows
   inside a drum. Unset keeps the theme default; the date picker's overlay card
   sets `NoSpacing` so its five rows stack edge to edge.
 
 ### Fixed
+
+- **Data grid correctness, hardening and efficiency pass** — app-driven cell
+  edits with unchanged IDs/length now refresh the CRUD working copy instead of
+  silently dropping; draft IDs flatten scoped grid IDs so row keys never carry
+  `:`; created-row remap matches by draft ID so a mid-save delete cannot
+  misalign server rows; a short-created response and an update/delete failure
+  after successful creates now keep the good progress instead of a full rollback
+  that duplicated creates on retry; empty/unparseable dates stay empty instead
+  of inventing today; source next-page clamps to the last page start; XLSX close
+  errors are reported instead of returning a truncated zip as success;
+  Escape/F2/Enter/Delete/navigation keys stay unconsumed on no-ops and Escape
+  cancels CRUD only when dirty; the formula sanitizer strips all leading
+  whitespace and also guards `|`; CSV import caps rows and bytes; PDF columns
+  shrink to the page budget; quick-filter commits replay current sorts/filters
+  and truncate past 500 chars; cell values cap at 32k chars; jump input caps at
+  10 digits; saves cap at 100k mutations per kind; fetch and save payloads are
+  deep-copied across goroutines; backend load errors display a generic label;
+  acting row/pager/CRUD clicks consume their events; the presentation cache
+  skips group-title work on hits and sizes miss allocations to the visible
+  window; in-memory fetches release the read lock before sorting; and the CRUD
+  published-rows copy is memoized across idle frames.
 
 - **Audio `Cfg` fields are exported and validated** — `Frequency`,
   `OutputChannels`, `ChunkSize` and `MixChannels` were private, so an app could

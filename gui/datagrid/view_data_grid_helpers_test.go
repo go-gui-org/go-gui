@@ -2,6 +2,7 @@ package datagrid
 
 import (
 	"testing"
+	"unicode/utf8"
 
 	gg "github.com/go-gui-org/go-gui/gui"
 )
@@ -532,5 +533,29 @@ func TestCrudDisabled(t *testing.T) {
 	cfg := &DataGridCfg{}
 	if dataGridCrudEnabled(cfg) {
 		t.Fatal("should be disabled")
+	}
+}
+
+func TestTruncateRunesShort(t *testing.T) {
+	if got := dataGridTruncateRunes("abc", 5); got != "abc" {
+		t.Fatalf("got %q, want abc", got)
+	}
+	if got := dataGridTruncateRunes("abc", -1); got != "abc" {
+		t.Fatalf("negative cap: got %q, want abc", got)
+	}
+	if got := dataGridTruncateRunes("abc", 0); got != "" {
+		t.Fatalf("zero cap: got %q, want empty", got)
+	}
+}
+
+func TestTruncateRunesMultibyte(t *testing.T) {
+	// "héllo wörld": cutting to 5 runes must not split the
+	// two-byte é/ö sequences into invalid UTF-8.
+	got := dataGridTruncateRunes("héllo wörld", 5)
+	if got != "héllo" {
+		t.Fatalf("got %q, want héllo", got)
+	}
+	if !utf8.ValidString(got) {
+		t.Fatalf("cut produced invalid UTF-8: %q", got)
 	}
 }

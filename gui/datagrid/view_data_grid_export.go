@@ -10,6 +10,7 @@ import (
 	"math"
 	"strconv"
 	"strings"
+	"unicode"
 	"unicode/utf8"
 )
 
@@ -34,10 +35,16 @@ var dataGridXLSXReplacer = strings.NewReplacer(
 )
 
 // gridDataFromCSV parses CSV data into data-grid columns
-// and rows. First CSV row becomes column headers.
+// and rows. First CSV row becomes column headers. Bounded: input
+// past dataGridMaxCSVBytes, rows past dataGridMaxCSVRows, or
+// fields past dataGridMaxCSVColumns fail instead of OOMing the UI.
 func gridDataFromCSV(data string) (gridCsvData, error) {
 	if strings.TrimSpace(data) == "" {
 		return gridCsvData{}, errors.New("csv data is required")
+	}
+	if len(data) > dataGridMaxCSVBytes {
+		return gridCsvData{}, fmt.Errorf(
+			"csv exceeds max size (%d bytes)", dataGridMaxCSVBytes)
 	}
 	source := data
 	if !strings.HasSuffix(source, "\n") {
@@ -51,6 +58,13 @@ func gridDataFromCSV(data string) (gridCsvData, error) {
 	}
 	if err != nil {
 		return gridCsvData{}, fmt.Errorf("failed to parse CSV: %w", err)
+	}
+	// Cap the header too, not just later wider rows: every data
+	// row fans out over len(columns), so a 200k-field header turns
+	// a small file into billions of cell iterations.
+	if len(header) > dataGridMaxCSVColumns {
+		return gridCsvData{}, fmt.Errorf(
+			"csv exceeds max column count (%d)", dataGridMaxCSVColumns)
 	}
 	maxCols := len(header)
 	columns := dataGridCSVColumns(header, maxCols)
@@ -80,6 +94,10 @@ func gridDataFromCSV(data string) (gridCsvData, error) {
 		}
 		if len(columns) == 0 {
 			continue
+		}
+		if nextRowID > dataGridMaxCSVRows {
+			return gridCsvData{}, fmt.Errorf(
+				"csv exceeds max row count (%d)", dataGridMaxCSVRows)
 		}
 		cells := make(map[string]string, len(columns))
 		for colIdx, col := range columns {
@@ -153,9 +171,15 @@ func gridRowsToXLSXWithCfg(columns []GridColumnCfg, rows []GridRow, exportCfg gr
 	return buf.Bytes(), nil
 }
 
-func gridRowsWriteXLSX(w io.Writer, columns []GridColumnCfg, rows []GridRow, exportCfg gridExportCfg) error {
+func gridRowsWriteXLSX(w io.Writer, columns []GridColumnCfg, rows []GridRow, exportCfg gridExportCfg) (err error) {
 	zw := zip.NewWriter(w)
-	defer func() { _ = zw.Close() }()
+	// Close flushes the central directory: discarding its error
+	// reports a truncated zip as success.
+	defer func() {
+		if cerr := zw.Close(); cerr != nil && err == nil {
+			err = fmt.Errorf("xlsx: close archive: %w", cerr)
+		}
+	}()
 	entries := [][2]string{
 		{"[Content_Types].xml", dataGridXLSXContentTypesXML()},
 		{"_rels/.rels", dataGridXLSXRootRelsXML()},
@@ -275,6 +299,25 @@ func dataGridPDFColWidths(columns []GridColumnCfg, rows []GridRow) []int {
 			}
 			widths[best]++
 			remainder--
+		}
+		// The 3-char floor above can overshoot the budget on many
+		// columns: shrink the widest first until the row fits.
+		over := -budget
+		for _, w := range widths {
+			over += w
+		}
+		for over > 0 {
+			worst := -1
+			for ci := range ncols {
+				if widths[ci] > 3 && (worst < 0 || widths[ci] > widths[worst]) {
+					worst = ci
+				}
+			}
+			if worst < 0 {
+				break
+			}
+			widths[worst]--
+			over--
 		}
 	}
 	return widths
@@ -578,15 +621,15 @@ func dataGridSpreadsheetSafeText(value string) string {
 	if value == "" {
 		return value
 	}
-	first := 0
-	for first < len(value) && (value[first] == ' ' || value[first] == '\t') {
-		first++
-	}
-	if first >= len(value) {
+	// Strip every leading whitespace rune, not just space/tab: a
+	// "\r=cmd" or NBSP-prefixed payload otherwise sails past the
+	// trigger check below and executes on open.
+	trimmed := strings.TrimLeftFunc(value, unicode.IsSpace)
+	if trimmed == "" {
 		return value
 	}
-	switch value[first] {
-	case '=', '+', '-', '@':
+	switch trimmed[0] {
+	case '=', '+', '-', '@', '|':
 		return "'" + value
 	}
 	return value

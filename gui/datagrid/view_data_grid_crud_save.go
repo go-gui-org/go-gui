@@ -59,7 +59,9 @@ func dataGridCrudBuildPayload(state dataGridCrudState) (createRows, updateRows [
 }
 
 // dataGridCrudReplaceCreatedRows replaces draft rows with
-// server-assigned rows. Returns (idMap, warningMsg).
+// server-assigned rows. Returns (idMap, warningMsg). Matching is
+// by draft ID, not position, so a draft deleted or reordered
+// while saving cannot misalign the server rows.
 func dataGridCrudReplaceCreatedRows(rows []GridRow, createRows, created []GridRow) (map[string]string, string) {
 	replace := map[string]string{}
 	if len(createRows) == 0 || len(created) == 0 {
@@ -72,21 +74,25 @@ func dataGridCrudReplaceCreatedRows(rows []GridRow, createRows, created []GridRo
 	if len(created) != len(createRows) {
 		warn = fmt.Sprintf("grid: source returned %d created rows, expected %d", len(created), len(createRows))
 	}
-	draftPos := 0
-	for idx := range rows {
-		if draftPos >= len(createRows) || draftPos >= len(created) {
-			break
-		}
-		draftID := createRows[draftPos].ID
-		if rows[idx].ID != draftID {
+	byDraft := make(map[string]GridRow, min(len(createRows), len(created)))
+	for idx := range min(len(createRows), len(created)) {
+		draftID := createRows[idx].ID
+		if draftID == "" {
 			continue
 		}
-		nextRow := created[draftPos]
+		byDraft[draftID] = created[idx]
+	}
+	for idx := range rows {
+		nextRow, ok := byDraft[rows[idx].ID]
+		if !ok {
+			continue
+		}
+		draftID := rows[idx].ID
 		rows[idx] = nextRow
 		if draftID != "" && nextRow.ID != "" {
 			replace[draftID] = nextRow.ID
 		}
-		draftPos++
+		delete(byDraft, draftID)
 	}
 	return replace, warn
 }
@@ -155,6 +161,23 @@ func dataGridCrudSave(ctx dataGridCrudSaveContext, e *gg.Event, w *gg.Window) {
 	}
 	createRows, updateRows, updateEdits, deleteIDs := dataGridCrudBuildPayload(state)
 	snapshotRows := cloneRows(state.CommittedRows)
+	// Fail fast on unbounded batches instead of fanning one save
+	// into an unbounded mutation storm that holds locks for ages.
+	// The working copy is kept: nothing was attempted, so there is
+	// nothing to roll back, and the user can shrink the batch and
+	// retry.
+	if len(createRows) > dataGridMaxMutationBatch ||
+		len(updateRows) > dataGridMaxMutationBatch ||
+		len(deleteIDs) > dataGridMaxMutationBatch {
+		msg := fmt.Sprintf("grid %s: mutation batch exceeds %d per kind", gridID, dataGridMaxMutationBatch)
+		state.SaveError = msg
+		dgCrud.Set(gridID, state)
+		w.PlaySoundCue(ctx.errCue)
+		if ctx.onCRUDError != nil {
+			ctx.onCRUDError(msg, gg.EventCtx{Layout: nil, Event: e, Window: w})
+		}
+		return
+	}
 	state.Saving = true
 	state.SaveError = ""
 	dgCrud.Set(gridID, state)
@@ -163,7 +186,7 @@ func dataGridCrudSave(ctx dataGridCrudSaveContext, e *gg.Event, w *gg.Window) {
 		source := ctx.dataSource
 		if source == nil {
 			state.Saving = false
-			state.SaveError = "grid: data source unavailable"
+			state.SaveError = fmt.Sprintf("grid %s: data source unavailable", gridID)
 			dgCrud.Set(gridID, state)
 			return
 		}
@@ -201,9 +224,16 @@ func dataGridCrudSave(ctx dataGridCrudSaveContext, e *gg.Event, w *gg.Window) {
 		state.RequestID++
 		nextRequestID := state.RequestID
 		dgCrud.Set(gridID, state)
+		// Deep-copy the payload: WorkingRows cell maps stay live
+		// under further keystrokes while the save runs, so the
+		// goroutine must not share them.
+		saveCreates := cloneRows(createRows)
+		saveUpdates := cloneRows(updateRows)
+		saveEdits := append([]GridCellEdit(nil), updateEdits...)
+		saveDeletes := append([]string(nil), deleteIDs...)
 		go func() {
 			result := dataGridCrudExecMutations(source, gridID, query,
-				createRows, updateRows, updateEdits, deleteIDs,
+				saveCreates, saveUpdates, saveEdits, saveDeletes,
 				ctrl.Signal, nextRequestID)
 			if wCtx.Err() != nil {
 				return
@@ -291,6 +321,15 @@ func dataGridCrudExecMutations(source DataGridDataSource, gridID string, query G
 func dataGridCrudApplySaveResult(gridID string, result dataGridCrudMutationResult, snapshotRows []GridRow, onCRUDError func(string, gg.EventCtx), onRowsChange func([]GridRow, gg.EventCtx), selection GridSelection, onSelectionChange func(GridSelection, gg.EventCtx), focusID string, errCue gg.SoundCue, w *gg.Window) {
 	e := &gg.Event{}
 	if result.errMsg != "" {
+		// The creates already committed server-side before the
+		// update/delete failed. Restoring the snapshot would drop
+		// them, so a retry would duplicate them: commit the
+		// creates, keep the failed phase dirty for retry.
+		if (result.errPhase == "update" || result.errPhase == "delete") && len(result.created) > 0 {
+			dataGridCrudCommitCreatesKeepDirty(gridID, result, snapshotRows,
+				onCRUDError, selection, onSelectionChange, focusID, errCue, e, w)
+			return
+		}
 		dataGridCrudRestoreOnError(gridID, result.errPhase, onCRUDError,
 			e, w, snapshotRows, result.errMsg, errCue)
 		return
@@ -300,15 +339,74 @@ func dataGridCrudApplySaveResult(gridID string, result dataGridCrudMutationResul
 	state := dgCrud.GetOr(gridID, dataGridCrudState{})
 	replaceIDs, createWarn := dataGridCrudReplaceCreatedRows(
 		state.WorkingRows, result.createRows, result.created)
-	if createWarn != "" {
+	// A count mismatch no longer discards the good updates and
+	// deletes with a full rollback: map what the server returned,
+	// finish the save, then surface the warning.
+	if createWarn != "" && len(result.created) == 0 {
 		dataGridCrudRestoreOnError(gridID, "create", onCRUDError,
 			e, w, snapshotRows, createWarn, errCue)
 		return
 	}
+	state.WorkingVersion++
 	dgCrud.Set(gridID, state)
 	dataGridCrudRemapSelection(selection, onSelectionChange, replaceIDs, e, w)
 	dataGridCrudFinishSave(gridID, replaceIDs, result.rowCount,
 		onRowsChange, true, focusID, e, w)
+	if createWarn != "" {
+		stuck := gg.StateMap[string, dataGridCrudState](w, nsDgCrud, capModerate)
+		warnState := stuck.GetOr(gridID, dataGridCrudState{})
+		warnState.SaveError = createWarn
+		stuck.Set(gridID, warnState)
+		if onCRUDError != nil {
+			onCRUDError(createWarn, gg.EventCtx{Layout: nil, Event: e, Window: w})
+		}
+	}
+}
+
+// dataGridCrudCommitCreatesKeepDirty commits server-created rows
+// after a later phase failed, keeping the failed updates/deletes
+// dirty so a retry sends only those.
+func dataGridCrudCommitCreatesKeepDirty(gridID string, result dataGridCrudMutationResult, snapshotRows []GridRow, onCRUDError func(string, gg.EventCtx), selection GridSelection, onSelectionChange func(GridSelection, gg.EventCtx), focusID string, errCue gg.SoundCue, e *gg.Event, w *gg.Window) {
+	dgCrud := gg.StateMap[string, dataGridCrudState](w, nsDgCrud, capModerate)
+	// Default zero state: absent entry means nothing to preserve.
+	state := dgCrud.GetOr(gridID, dataGridCrudState{})
+	replaceIDs, _ := dataGridCrudReplaceCreatedRows(
+		state.WorkingRows, result.createRows, result.created)
+	for draftID := range replaceIDs {
+		delete(state.DraftRowIDs, draftID)
+		delete(state.DirtyRowIDs, draftID)
+	}
+	committed := cloneRows(snapshotRows)
+	seen := make(map[string]bool, len(committed)+len(result.created))
+	for idx, row := range committed {
+		seen[dataGridRowID(row, idx)] = true
+	}
+	for _, created := range result.created {
+		rowID := created.ID
+		if rowID == "" || seen[rowID] {
+			continue
+		}
+		seen[rowID] = true
+		committed = append(committed, created)
+	}
+	state.CommittedRows = committed
+	state.WorkingVersion++
+	state.Saving = false
+	state.ActiveAbort = nil
+	state.SourceChanged = false
+	state.SaveError = result.errPhase + ": " + result.errMsg
+	state.SourceSignature = dataGridRowsSignature(state.CommittedRows, nil)
+	dgCrud.Set(gridID, state)
+	dataGridClearEditingRow(gridID, w)
+	dataGridSourceForceRefetch(gridID, w)
+	w.PlaySoundCue(errCue)
+	dataGridCrudRemapSelection(selection, onSelectionChange, replaceIDs, e, w)
+	if focusID != "" {
+		w.SetFocus(focusID)
+	}
+	if onCRUDError != nil {
+		onCRUDError(result.errMsg, gg.EventCtx{Layout: nil, Event: e, Window: w})
+	}
 }
 
 func dataGridCrudFinishSave(gridID string, _ map[string]string, rowCount int, onRowsChange func([]GridRow, gg.EventCtx), hasSource bool, focusID string, e *gg.Event, w *gg.Window) {
@@ -317,6 +415,7 @@ func dataGridCrudFinishSave(gridID string, _ map[string]string, rowCount int, on
 	state := dgCrud.GetOr(gridID, dataGridCrudState{})
 	state.CommittedRows = cloneRows(state.WorkingRows)
 	dataGridCrudClearPendingChanges(&state)
+	state.WorkingVersion++
 	state.Saving = false
 	state.ActiveAbort = nil
 	state.SaveError = ""
@@ -348,6 +447,7 @@ func dataGridCrudRestoreOnError(gridID, phase string, onCRUDError func(string, g
 	state.CommittedRows = snapshotRows
 	state.WorkingRows = cloneRows(snapshotRows)
 	dataGridCrudClearPendingChanges(&state)
+	state.WorkingVersion++
 	state.Saving = false
 	state.ActiveAbort = nil
 	state.SourceChanged = false

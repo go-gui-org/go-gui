@@ -32,8 +32,13 @@ func dataGridPagerRow(cfg *DataGridCfg, focusID string, pageIndex, pageCount, pa
 }
 
 func dataGridBuildPagerRow(pctx dataGridPagerContext) gg.View {
-	cfg := pctx.cfg
-	content := dataGridPagerContent(pctx)
+	return dataGridPagerShell(pctx.cfg, dataGridPagerContent(pctx))
+}
+
+// dataGridPagerShell is the shared pager container both the local
+// and the source pager rows render inside, so the two shells
+// cannot drift apart.
+func dataGridPagerShell(cfg *DataGridCfg, content []gg.View) gg.View {
 	return gg.Row(gg.ContainerCfg{
 		Height:      dataGridPagerHeight(cfg),
 		Sizing:      gg.FillFixed,
