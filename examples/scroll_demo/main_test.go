@@ -16,7 +16,7 @@ func newTestWindow(t *testing.T) *gui.Window {
 		Height: 600,
 		OnInit: func(w *gui.Window) {
 			w.SetView(mainView)
-			w.SetFocus("scroll-panel")
+			w.SetFocus(gui.ScopeID("scroll-panel", "scroll-text"))
 		},
 	})
 	w.TestRender(nil)
@@ -48,6 +48,39 @@ func TestScrollPanelScrolls(t *testing.T) {
 	}
 	if y1 >= 0 {
 		t.Fatalf("offset y = %v after scrolling down, want < 0", y1)
+	}
+}
+
+// The panel keeps both scrollbar views (X auto + Y auto) and the text
+// overflows, so a thumb is drawn. Before the fix the Y config was
+// ScrollbarHidden until the panel held focus, but the focus check
+// compared the bare leaf "scroll-panel" while the focused text resolves
+// to "scroll-panel:scroll-text" — so the Y bar was never appended.
+func TestScrollPanelHasScrollbar(t *testing.T) {
+	w := newTestWindow(t)
+
+	wantFocus := gui.ScopeID("scroll-panel", "scroll-text")
+	if got := w.FocusID(); got != wantFocus {
+		t.Fatalf("FocusID = %q, want %q", got, wantFocus)
+	}
+
+	overflow, ok := w.ScrollOverflowY("scroll-panel")
+	if !ok {
+		t.Fatalf("ScrollOverflowY(scroll-panel) not found")
+	}
+	if overflow <= 0 {
+		t.Fatalf("ScrollOverflowY = %v, want > 0", overflow)
+	}
+
+	root := w.TestRender(nil)
+	panel, ok := root.FindByID("scroll-panel")
+	if !ok {
+		t.Fatalf("FindByID(scroll-panel) not found")
+	}
+	// Content is the text plus the two appended scrollbar views. With
+	// the old Hidden overflow the Y bar was dropped and this was 2.
+	if len(panel.Children) != 3 {
+		t.Fatalf("scroll-panel children = %d, want 3 (text + X + Y scrollbars)", len(panel.Children))
 	}
 }
 

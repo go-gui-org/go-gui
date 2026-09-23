@@ -17,6 +17,54 @@ func TestDatePickerRollerLayout(t *testing.T) {
 	}
 }
 
+// RowSpacing stacks a drum's rows tighter: NoSpacing arranges shorter
+// than the unset default, while the row count stays put.
+func TestDatePickerRollerRowSpacing(t *testing.T) {
+	arrangedHeight := func(spacing Opt[float32], set bool) float32 {
+		w := &Window{}
+		cfg := DatePickerRollerCfg{
+			ID:           "roller-gap",
+			SelectedDate: time.Date(2025, 6, 15, 0, 0, 0, 0, time.Local),
+			DisplayMode:  RollerMonthYear,
+			VisibleItems: 5,
+		}
+		if set {
+			cfg.RowSpacing = spacing
+		}
+		layout := generateViewLayout(DatePickerRoller(cfg), w)
+		layers := layoutArrange(&layout, w)
+		return layers[0].Shape.Height
+	}
+
+	def := arrangedHeight(NoSpacing, false)
+	tight := arrangedHeight(NoSpacing, true)
+	if !(tight < def) {
+		t.Errorf("NoSpacing height = %v, want shorter than default %v",
+			tight, def)
+	}
+
+	// Same rows either way: the knob moves gaps, not content.
+	count := func() int {
+		w := &Window{}
+		layout := generateViewLayout(DatePickerRoller(DatePickerRollerCfg{
+			ID:           "roller-rows",
+			SelectedDate: time.Date(2025, 6, 15, 0, 0, 0, 0, time.Local),
+			DisplayMode:  RollerMonthYear,
+			VisibleItems: 5,
+			RowSpacing:   NoSpacing,
+		}), w)
+		// Root children are the drums; each drum holds 5 rows.
+		rows := 0
+		for i := range layout.Children {
+			rows += len(layout.Children[i].Children)
+		}
+		return rows
+	}
+	if got := count(); got != 10 {
+		t.Errorf("rows = %d, want 10 (5 per drum)", got)
+	}
+}
+
 // TestDatePickerRollerScopedFocusAndKeys is the regression test for
 // issue #565: under an ID-bearing parent the roller resolved no
 // effective ID, so click-to-focus parked focus in the void and key

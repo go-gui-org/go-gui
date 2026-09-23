@@ -6,6 +6,82 @@ import (
 	"time"
 )
 
+// datePickerBody wraps the calendar grid. Closed, it is just the
+// grid. Open, the grid stays in flow at its natural size and the
+// month/year roller floats over it on a card: a backdrop catches
+// clicks outside the card (dismissing) and keeps the grid inert,
+// and the card centers over the grid at its own intrinsic size,
+// smaller than the picker.
+func datePickerBody(
+	cfg *DatePickerCfg, state datePickerState, w *Window,
+) View {
+	if !state.ShowYearMonthPicker {
+		return datePickerCalendar(cfg, state, w)
+	}
+	dn := &defaultDatePickerStyle
+	radiusBorder := cfg.RadiusBorder.Get(dn.radiusBorder)
+	cfgID := cfg.ID
+	content := make([]View, 0, 3)
+	content = append(content, datePickerCalendar(cfg, state, w))
+	content = append(content, Column(ContainerCfg{
+		ID:         ScopeID(cfgID, "backdrop"),
+		Float:      true,
+		Sizing:     FillFill,
+		Color:      ColorTransparent,
+		Padding:    NoPadding,
+		SizeBorder: NoBorder,
+		// Below the card: stable extraction order keeps equal-Z
+		// floats in declaration order, but the explicit step
+		// holds even if a sibling float ever lands between them.
+		FloatZIndex: 1,
+		AmendLayout: func(ctx EventCtx) {
+			// A Fill float inside a fit-sized wrapper has no
+			// definite size to fill and arranges 0x0, leaving
+			// the grid clickable under the overlay. Take the
+			// body's arranged size instead, so the backdrop
+			// covers the grid exactly.
+			if ctx.Layout.Parent == nil {
+				return
+			}
+			ctx.Layout.Shape.Width = ctx.Layout.Parent.Shape.Width
+			ctx.Layout.Shape.Height = ctx.Layout.Parent.Shape.Height
+		},
+		OnClick: func(ctx EventCtx) {
+			datePickerRollerDismiss(cfgID, ctx.Window)
+			ctx.Consume()
+		},
+	}))
+	content = append(content, Column(ContainerCfg{
+		ID:          ScopeID(cfgID, "card"),
+		Float:       true,
+		FloatAnchor: FloatMiddleCenter,
+		FloatTieOff: FloatMiddleCenter,
+		FloatZIndex: 2,
+		// The card is a popover, not the picker face: it takes
+		// the solid base, border and shadow, while the roller
+		// inside stays transparent and borderless.
+		Color:       cfg.Colors.Base,
+		ColorBorder: cfg.Colors.Border,
+		SizeBorder:  cfg.SizeBorder,
+		Radius:      Some(radiusBorder),
+		Shadow:      dn.Shadow,
+		Padding:     NoPadding,
+		OnClick: func(ctx EventCtx) {
+			// Absorb clicks inside the card so they never
+			// reach the backdrop, which would dismiss the
+			// roller the user is clicking into.
+			ctx.Consume()
+		},
+		Content: []View{datePickerYearMonthPicker(cfg, state)},
+	}))
+	return Column(ContainerCfg{
+		Padding:    NoPadding,
+		SizeBorder: NoBorder,
+		Spacing:    NoSpacing,
+		Content:    content,
+	})
+}
+
 // datePickerCalendar builds the weekday headers and the day grid.
 func datePickerCalendar(
 	cfg *DatePickerCfg, state datePickerState, w *Window,
@@ -15,24 +91,11 @@ func datePickerCalendar(
 	content := make([]View, 0, 7)
 	content = append(content, datePickerWeekdays(cfg))
 	content = append(content, datePickerMonth(cfg, state, w)...)
-	cfgID := cfg.ID
 	return Column(ContainerCfg{
 		Spacing:    Some(cellSpacing),
 		Padding:    NoPadding,
 		SizeBorder: NoBorder,
 		Content:    content,
-		AmendLayout: func(ctx EventCtx) {
-			sm := StateMap[string, datePickerState](
-				ctx.Window, nsDatePicker, capModerate)
-			s, ok := sm.Get(cfgID)
-			if !ok {
-				return
-			}
-			if s.CalBodyHeight != ctx.Layout.Shape.Height {
-				s.CalBodyHeight = ctx.Layout.Shape.Height
-				sm.Set(cfgID, s)
-			}
-		},
 	})
 }
 
@@ -193,6 +256,14 @@ func datePickerMonth(
 						// No picker state: not ours
 						return
 					}
+					// While the roller floats above the grid, the grid
+					// is inert: a press that reaches a day dismisses
+					// instead of selecting, on every dispatch path.
+					if s.ShowYearMonthPicker {
+						datePickerRollerDismiss(cfgID, ctx.Window)
+						ctx.Consume()
+						return
+					}
 					s.FocusDay = dayVal
 					sm.Set(cfgID, s)
 
@@ -287,6 +358,14 @@ func datePickerAdjacentCell(
 			if !cfg.FocusDisabled {
 				ctx.Window.SetFocus(cfg.ID)
 			}
+			// As for an in-month day: while the roller is open the
+			// grid is inert, so dismiss instead of navigating and
+			// selecting.
+			if datePickerRollerOpen(cfgID, ctx.Window) {
+				datePickerRollerDismiss(cfgID, ctx.Window)
+				ctx.Consume()
+				return
+			}
 			datePickerNavMonth(cfgID, delta, ctx.Window)
 			// After navigation, select the day in the new month.
 			// Retrieve updated state to get correct year/month.
@@ -319,9 +398,11 @@ func datePickerYearMonthPicker(
 		SelectedDate: datePickerViewTime(state),
 		DisplayMode:  RollerMonthYear,
 		VisibleItems: 5,
-		Color:        ColorTransparent,
-		ColorBorder:  ColorTransparent,
-		SizeBorder:   NoBorder,
+		// Edge-to-edge rows keep the five-row overlay card short.
+		RowSpacing:  NoSpacing,
+		Color:       ColorTransparent,
+		ColorBorder: ColorTransparent,
+		SizeBorder:  NoBorder,
 		OnChange: func(t time.Time, ctx EventCtx) {
 			if !cfg.FocusDisabled {
 				ctx.Window.SetFocus(cfg.ID)
@@ -338,6 +419,14 @@ func datePickerYearMonthPicker(
 			ctx.Window.InvalidateLayout()
 		},
 	})
+}
+
+// datePickerRollerOpen reports whether the month/year roller floats
+// above the grid for the picker.
+func datePickerRollerOpen(cfgID string, w *Window) bool {
+	sm := StateMap[string, datePickerState](w, nsDatePicker, capModerate)
+	s, ok := sm.Get(cfgID)
+	return ok && s.ShowYearMonthPicker
 }
 
 // datePickerRollerDismiss closes the month/year roller, returning

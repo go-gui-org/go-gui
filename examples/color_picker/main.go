@@ -76,9 +76,11 @@ func mainView(w *gui.Window) gui.View {
 	}
 
 	return gui.Column(gui.ContainerCfg{
-		Sizing:  gui.FillFill,
-		Padding: t.PaddingMedium,
-		Spacing: gui.Some(t.SpacingMedium),
+		ID:         "color_picker_main",
+		Scrollable: true,
+		Sizing:     gui.FillFill,
+		Padding:    t.PaddingMedium,
+		Spacing:    gui.Some(t.SpacingMedium),
 		Content: []gui.View{
 			gui.Row(gui.ContainerCfg{
 				VAlign:  gui.VAlignMiddle,
@@ -90,8 +92,13 @@ func mainView(w *gui.Window) gui.View {
 					togglePacked(app),
 				},
 			}),
-			gui.Row(gui.ContainerCfg{
-				Sizing:  gui.FitFit,
+			// Wrap, not Row: four cards exceed the window
+			// width in one line, which puts the packed
+			// picker off-screen to the right. Wrapping
+			// drops it to a second row where the outer
+			// scroll reaches it.
+			gui.Wrap(gui.ContainerCfg{
+				Sizing:  gui.FillFit,
 				Padding: gui.NoPadding,
 				Spacing: gui.Some(t.SpacingMedium),
 				Content: panels,

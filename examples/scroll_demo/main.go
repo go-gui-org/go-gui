@@ -33,8 +33,11 @@ func main() {
 		Height: 600,
 		OnInit: func(w *gui.Window) {
 			w.SetView(mainView)
-			// Give the scroll panel focus so its scrollbar is visible on startup.
-			w.SetFocus("scroll-panel")
+			// Focus the text inside the scroll panel so the focus
+			// border shows on startup. The text sits under the
+			// ID-bearing panel, so its effective ID is the scoped
+			// join, not the bare leaf.
+			w.SetFocus(gui.ScopeID("scroll-panel", "scroll-text"))
 		},
 	})
 
@@ -57,20 +60,21 @@ func mainView(w *gui.Window) gui.View {
 			gui.Rectangle(gui.RectangleCfg{Height: 0.5, Sizing: gui.FillFixed}),
 			pctRow(app),
 			gui.Rectangle(gui.RectangleCfg{Height: 0.5, Sizing: gui.FillFixed}),
-			scrollColumn("scroll-panel", "scroll-panel", scrollText, w),
+			scrollColumn("scroll-panel", "scroll-text", scrollText, w),
 		},
 	})
 }
 
-func scrollColumn(scrollID string, focusID string, text string, w *gui.Window) gui.View {
+func scrollColumn(scrollID string, textID string, text string, w *gui.Window) gui.View {
 	theme := gui.CurrentTheme()
-	overflow := gui.ScrollbarHidden
-	if w.IsFocus(focusID) {
-		overflow = gui.ScrollbarVisible
-	}
+	// The scrollbar shows whenever the text overflows (ScrollbarAuto),
+	// with no focus gate: the old Hidden-until-focused setup never
+	// matched, because the focused text resolves to the scoped ID
+	// scroll-panel:scroll-text while the check compared the bare leaf.
+	focused := w.IsFocus(gui.ScopeID(scrollID, textID))
 
 	var colorBorder gui.Color
-	if w.IsFocus(focusID) {
+	if focused {
 		// BorderFocus falls back to the select color when the cfg
 		// leaves it unset; read the same fallback ThemeMaker uses
 		// now that the button style is private (#735).
@@ -89,7 +93,7 @@ func scrollColumn(scrollID string, focusID string, text string, w *gui.Window) g
 		ID:         scrollID,
 		Scrollable: true,
 		ScrollbarCfgY: &gui.ScrollbarCfg{
-			Overflow: overflow,
+			Overflow: gui.ScrollbarAuto,
 		},
 		ColorBorder: colorBorder,
 		Padding:     pad,
@@ -97,7 +101,7 @@ func scrollColumn(scrollID string, focusID string, text string, w *gui.Window) g
 		Sizing: gui.FillFill,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
-				ID:        focusID,
+				ID:        textID,
 				Focusable: true,
 				Text:      text,
 				Mode:      gui.TextModeWrap,

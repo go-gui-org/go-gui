@@ -38,6 +38,18 @@ func resolveTextLadder(cfg ThemeCfg) textSizeLadder {
 	}
 }
 
+// skeletonHighlight returns the shimmer band color for a skeleton
+// fill: the fill lifted on a dark ground, dropped on a light one.
+// A fixed lighten clamps to identical on a white interior, which is
+// why the shimmer vanished on every light preset. The step keeps
+// the dark value, so dark themes render as before.
+func skeletonHighlight(interior Color) Color {
+	if srgbLuminance(interior) >= 0.5 {
+		return interior.Sub(RGBA(20, 20, 20, 0))
+	}
+	return interior.Add(RGBA(20, 20, 20, 0))
+}
+
 // ThemeMaker builds a full Theme from a ThemeCfg.
 func ThemeMaker(cfg ThemeCfg) Theme {
 	ts := cfg.TextStyleDef
@@ -467,7 +479,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 		},
 		skeletonStyle: SkeletonStyle{
 			Colors:         ColorSet{Base: cfg.ColorInterior},
-			ColorHighlight: cfg.ColorInterior.Add(RGBA(20, 20, 20, 0)),
+			ColorHighlight: skeletonHighlight(cfg.ColorInterior),
 			Radius:         cfg.RadiusSmall,
 		},
 		separatorStyle: SeparatorStyle{

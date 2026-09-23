@@ -8,8 +8,30 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- **Date roller row spacing** — `DatePickerRollerCfg.RowSpacing` gaps the rows
+  inside a drum. Unset keeps the theme default; the date picker's overlay card
+  sets `NoSpacing` so its five rows stack edge to edge.
+
 ### Fixed
 
+- **Date picker month/year roller is an overlay** — opening it swapped the
+  calendar grid out for the roller, so the picker changed size, and the confirm
+  icon ran larger than the header arrows it replaced, adding a second height
+  jump. The grid now stays in place while the roller floats over it on a card
+  smaller than the picker: a backdrop dismisses on click and keeps the grid
+  inert, and the confirm icon matches the arrow size, so open and closed arrange
+  identical.
+
+- **Skeleton shimmer is visible on light themes** — the highlight was the fill
+  lightened by a fixed step, which clamps to identical white on light interiors,
+  so the animation band vanished. The highlight now darkens on light fills and
+  lightens on dark ones, so the shimmer reads on both polarities, including
+  `WithColors` recolors.
+- **Showcase skeleton custom colors suit the light theme** — the demo's explicit
+  dark slate read as a near-black slab on light grounds. It now takes the same
+  hue lifted on light themes, with the shimmer step kept.
 - **Markdown blockquotes keep quoted lists, fences, headings and images** — a
   quote wrapping anything but a paragraph used to drop the quote, so `> - item`
   rendered as a bare list. The parser now stamps quote depth on every block a
@@ -23,6 +45,10 @@ and this project adheres to
 - **Markdown parsing is bounded** — sources past 1 MiB truncate at a line
   boundary, tables cap at 1000 rows and 64 columns, and the
   footnote/abbreviation matchers build once per parse instead of per block.
+- **Markdown code comments stay readable on light themes** — fenced-block
+  comments drew in the border color (contrast near 1.0 on light fills), so `//`
+  notes read as white-on-white. They now take the theme's secondary text role,
+  which clears AA on the code fill in every preset.
 
 ## [v0.79.0] - 2026-09-23
 

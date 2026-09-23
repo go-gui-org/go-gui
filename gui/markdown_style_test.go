@@ -122,6 +122,58 @@ func TestCodeRunSizeFollowsContext(t *testing.T) {
 	}
 }
 
+// A fenced-block comment drew in the border color: contrast 1.24 on
+// light themes (near-white on near-white) and 1.37 on dark ones, not
+// merely low but invisible. Comments are de-emphasized text, so the
+// color is the theme's secondary role, which is contrast-matched per
+// polarity. Fails on the old ColorBorder for every preset.
+func TestMarkdownCommentColorUsesSecondaryRole(t *testing.T) {
+	restore := CurrentTheme()
+	defer applyTheme(&restore)
+
+	for _, name := range ThemeRegisteredNames() {
+		theme, ok := ThemeGet(name)
+		if !ok {
+			t.Fatalf("theme %q registered but not retrievable", name)
+		}
+		applyTheme(&theme)
+		style := DefaultMarkdownStyle()
+		if !style.codeCommentColor.eq(theme.TextStyleSecondary.Color) {
+			t.Errorf("%s: comment %v, want secondary %v",
+				name, style.codeCommentColor, theme.TextStyleSecondary.Color)
+		}
+		if style.codeCommentColor.eq(theme.ColorBorder) {
+			t.Errorf("%s: comment equals the border color %v",
+				name, theme.ColorBorder)
+		}
+	}
+}
+
+// TestMarkdownCommentReadable states the consequence as a number: the
+// comment clears AA on the code-block fill it actually sits on, in
+// every preset. The fill is the translucent CodeBlockBG wash over the
+// theme panel, so both layers are composited before the ratio.
+func TestMarkdownCommentReadable(t *testing.T) {
+	const wantAA = 4.5
+	restore := CurrentTheme()
+	defer applyTheme(&restore)
+
+	for _, name := range ThemeRegisteredNames() {
+		theme, ok := ThemeGet(name)
+		if !ok {
+			t.Fatalf("theme %q registered but not retrievable", name)
+		}
+		applyTheme(&theme)
+		style := DefaultMarkdownStyle()
+		bg := style.CodeBlockBG.Over(theme.ColorPanel)
+		fg := style.codeCommentColor.Over(bg)
+		if got := contrastRatio(fg, bg); got < wantAA {
+			t.Errorf("%s: comment %v on code fill %v is contrast "+
+				"%.2f, want >= %.2f", name, fg, bg, got, wantAA)
+		}
+	}
+}
+
 // A hostile fenced block keeps the parser's runs: the highlighter never
 // sees input over the cap.
 func TestHighlightCodeBlockSizeCap(t *testing.T) {

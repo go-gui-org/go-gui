@@ -261,8 +261,10 @@ the mouse wheel only when `MouseWheel` is set. Shift scales the step 10x, Alt
 ## Date picker sizing
 
 `DatePicker` is self-sized: `Height` is deliberately not pinned. A cell's height
-comes from the theme font, and the month grid keeps it across months through the
-internal `CalBodyHeight`. `HideTodayIndicator` opts out of the today ring;
+comes from the theme font, and the month grid always emits six rows so the
+height holds across months. The month/year roller floats over the grid on a card
+smaller than the picker instead of swapping the body out, so opening it never
+moves the outer box. `HideTodayIndicator` opts out of the today ring;
 `ShowAdjacentMonths` opts into filling the edge cells.
 
 ## `Wrap` with Fit width

@@ -45,6 +45,11 @@ type DatePickerRollerCfg struct {
 	// ItemHeight is one drum row's height. Zero takes 24.
 	// exportaudit:keep — caller-facing config (issue #372)
 	ItemHeight float32
+	// RowSpacing gaps the rows inside a drum. Unset takes the theme
+	// default container spacing; NoSpacing stacks the rows edge to
+	// edge, which is what the date picker's overlay card wants.
+	// exportaudit:keep — caller-facing config
+	RowSpacing Opt[float32]
 	MinWidth   float32
 	MaxWidth   float32
 	// WidthDay/WidthMonth/WidthYear size the three drums. Zero
@@ -285,6 +290,7 @@ func rollerDrum(
 	return Column(ContainerCfg{
 		Width:   drumWidth,
 		Padding: NoPadding,
+		Spacing: cfg.RowSpacing,
 		Content: items,
 	})
 }
