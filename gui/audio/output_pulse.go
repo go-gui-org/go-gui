@@ -14,8 +14,10 @@ import (
 // default Linux path.  See the package doc in backend.go for how the
 // sinks are selected.
 
-// pulseRequestTimeout bounds every protocol round-trip so a wedged
-// server fails Init instead of hanging app startup indefinitely.
+// pulseRequestTimeout bounds every protocol round-trip — client
+// creation and NewPlayback alike, since both go through the same
+// client timeout — so a wedged server fails Init instead of hanging
+// app startup indefinitely. Start is a fire-and-forget flush.
 const pulseRequestTimeout = 2 * time.Second
 
 // pulseOut is the process-wide sink state.  mu guards mixer and scratch,

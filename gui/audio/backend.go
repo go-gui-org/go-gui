@@ -1,8 +1,8 @@
 //go:build !js && !android && !ios
 
 // Package audio provides opt-in audio playback for sound effects and
-// music.  Call [Init] before loading or playing audio.  Call [Quit]
-// when done.
+// music.  Call [Init] before loading or playing audio. There is no
+// exported shutdown: the mixer lives for the process.
 //
 // Sound effects play on numbered mixing channels (default 16) and
 // support overlapping playback.  Music is a single track — starting

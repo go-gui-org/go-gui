@@ -99,15 +99,21 @@ type fadeStreamer struct {
 func (f *fadeStreamer) Stream(samples [][2]float64) (n int, ok bool) {
 	if f.done || f.endSamples <= 0 {
 		if f.targetVol == 0 {
-			if f.onComplete != nil {
-				f.onComplete()
-			}
+			f.complete()
 			return 0, false
 		}
 		return f.streamer.Stream(samples)
 	}
 	n, ok = f.streamer.Stream(samples)
 	if n == 0 && !ok {
+		// Inner drained mid-fade. For fade-out the channel must
+		// still reap and run onComplete; for fade-in there is
+		// nothing left to make audible.
+		if f.targetVol == 0 {
+			f.complete()
+		} else {
+			f.done = true
+		}
 		return 0, false
 	}
 	for i := range n {
@@ -118,15 +124,25 @@ func (f *fadeStreamer) Stream(samples [][2]float64) (n int, ok bool) {
 		f.elapsed++
 	}
 	if f.elapsed >= f.endSamples {
-		f.done = true
 		if f.targetVol == 0 {
-			if f.onComplete != nil {
-				f.onComplete()
-			}
+			f.complete()
 			return n, false
 		}
+		f.done = true
 	}
 	return n, ok
+}
+
+// complete runs onComplete exactly once. It is called on the audio
+// thread inside Stream, which already holds the music or channel lock,
+// so onComplete must not lock again.
+func (f *fadeStreamer) complete() {
+	fn := f.onComplete
+	f.onComplete = nil
+	f.done = true
+	if fn != nil {
+		fn()
+	}
 }
 
 func (f *fadeStreamer) Err() error { return f.streamer.Err() }
@@ -270,7 +286,9 @@ func (cm *channelMixer) isPlaying(channel int) bool {
 	if channel < 0 || channel >= len(cm.chans) {
 		return false
 	}
-	return cm.playing[channel]
+	// Matches IsMusicPlaying: a paused channel is occupied but not
+	// playing. firstFree still treats it as occupied via playing.
+	return cm.playing[channel] && !cm.chans[channel].Paused
 }
 
 func (cm *channelMixer) numChannels() int { return len(cm.chans) }

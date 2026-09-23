@@ -193,9 +193,9 @@ func TestInitIdempotent(t *testing.T) {
 
 func TestInitCustomCfg(t *testing.T) {
 	err := Init(Cfg{
-		frequency:   48000,
-		chunkSize:   4096,
-		mixChannels: 32,
+		Frequency:   48000,
+		ChunkSize:   4096,
+		MixChannels: 32,
 	})
 	if err != nil {
 		t.Skipf("audio init with custom cfg unavailable: %v", err)
@@ -724,12 +724,12 @@ func TestInitInvalidFreq(t *testing.T) {
 	if initialized {
 		quit()
 	}
-	err := Init(Cfg{frequency: 100})
+	err := Init(Cfg{Frequency: 100})
 	if err == nil {
 		quit()
 		t.Error("expected error for frequency 100 Hz")
 	}
-	err = Init(Cfg{frequency: 300000})
+	err = Init(Cfg{Frequency: 300000})
 	if err == nil {
 		quit()
 		t.Error("expected error for frequency 300000 Hz")
@@ -740,7 +740,7 @@ func TestInitInvalidChunkSize(t *testing.T) {
 	if initialized {
 		quit()
 	}
-	err := Init(Cfg{chunkSize: 8})
+	err := Init(Cfg{ChunkSize: 8})
 	if err == nil {
 		quit()
 		t.Error("expected error for chunk size 8")
@@ -753,7 +753,7 @@ func TestInitInvalidMixChannels(t *testing.T) {
 	}
 	// 0 is the "use default" sentinel (like Frequency/ChunkSize); use an
 	// out-of-range non-zero value to exercise the validation bound.
-	err := Init(Cfg{mixChannels: 300})
+	err := Init(Cfg{MixChannels: 300})
 	if err == nil {
 		quit()
 		t.Fatal("expected error for mix channels 300")
