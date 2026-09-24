@@ -8,17 +8,27 @@ const (
 	PadLarge  = 22
 )
 
-// Predefined paddings.
+// Predefined paddings. Each preset equals PadAll of one ladder
+// rung. App code that must follow the active theme reads
+// theme.PaddingSmall, theme.PaddingMedium, or theme.PaddingLarge
+// instead. These presets stay fixed when the theme changes, so use
+// them only for geometry that must not move with the theme.
 var (
 	// PaddingNone is explicitly zero padding: it is set, so it does NOT
 	// fall through to the theme default like Padding{} (unset) does.
-	PaddingNone    = Padding{set: true}
+	PaddingNone = Padding{set: true}
+	// paddingThree is calendar density, not a ladder rung. It
+	// stays private.
 	paddingThree   = PadAll(3)
 	PaddingTwoFive = NewPadding(2, 5, 2, 5)
-	paddingXSmall  = PadAll(PadXSmall)
-	PaddingSmall   = PadAll(PadSmall)
-	paddingMedium  = PadAll(PadMedium)
-	PaddingLarge   = PadAll(PadLarge)
+	// PaddingXSmall is the smallest ladder rung as a Padding.
+	// exportaudit:keep — documented API (issue #784).
+	PaddingXSmall = PadAll(PadXSmall)
+	PaddingSmall  = PadAll(PadSmall)
+	// PaddingMedium is the middle ladder rung as a Padding.
+	// exportaudit:keep — documented API (issue #784).
+	PaddingMedium = PadAll(PadMedium)
+	PaddingLarge  = PadAll(PadLarge)
 
 	// paddingButton is the inset of a Button. Deliberately not a ladder
 	// rung: a button's label is its whole content, so it gets more

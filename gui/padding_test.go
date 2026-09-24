@@ -80,13 +80,13 @@ func TestPaddingOr(t *testing.T) {
 }
 
 func TestPredefinedPaddings(t *testing.T) {
-	if paddingXSmall != PadAll(PadXSmall) {
+	if PaddingXSmall != PadAll(PadXSmall) {
 		t.Error("PaddingXSmall")
 	}
 	if PaddingSmall != PadAll(PadSmall) {
 		t.Error("PaddingSmall")
 	}
-	if paddingMedium != PadAll(PadMedium) {
+	if PaddingMedium != PadAll(PadMedium) {
 		t.Error("PaddingMedium")
 	}
 	if PaddingLarge != PadAll(PadLarge) {

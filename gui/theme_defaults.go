@@ -130,9 +130,9 @@ func baseCfg() ThemeCfg {
 	return ThemeCfg{
 		MonoFontFamily:    defaultMonoFontFamily,
 		IconFontFamily:    IconFontName,
-		Padding:           paddingMedium,
+		Padding:           PaddingMedium,
 		PaddingSmall:      PaddingSmall,
-		PaddingMedium:     paddingMedium,
+		PaddingMedium:     PaddingMedium,
 		PaddingLarge:      PaddingLarge,
 		Radius:            radiusMedium,
 		RadiusSmall:       radiusSmall,
