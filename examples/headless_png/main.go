@@ -31,7 +31,7 @@ func main() {
 	// output paths.
 	out = filepath.Clean(out)
 	if dir := filepath.Dir(out); dir != "." {
-		if err := os.MkdirAll(dir, 0o755); err != nil {
+		if err := os.MkdirAll(dir, 0o750); err != nil {
 			log.Fatalf("mkdir %s: %v", dir, err)
 		}
 	}
