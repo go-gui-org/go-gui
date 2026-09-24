@@ -63,8 +63,7 @@ spell-check state sets `Shape.focusOwner` (a reference) instead of repeating its
 `ID` (an identity) — see `Input`'s text shape and `Shape.focusKey()`. That
 reference is the one identity generation cannot stamp, because it names an
 ancestor by leaf: `resolveFocusOwners` (from `layoutArrange`) rewrites it in
-place, and is all that is left of the old resolve pass.
-`(*Window).TestDuplicateIDs` asserts a rendered window is clean.
+place. `(*Window).TestDuplicateIDs` asserts a rendered window is clean.
 
 ### Accessibility fields
 
@@ -98,12 +97,11 @@ authoring the field, not by copying the nearest neighbor.
 On Cfg structs use plain `Color`, never `Opt[Color]`: `Color{}` is unset and
 `ColorTransparent` is an explicit fully-transparent choice. `ColorSet`
 (`gui/color_set.go`) groups per-state colors; `Flat(c)` is the "one appearance"
-case. **`Colors` is the only spelling for per-state colors — the flat
-`ColorHover`/`ColorFocus`/`ColorBorder`/`ColorBorderFocus` Cfg fields are gone
-(#721).** The flat `Color` survives as the shorthand for `Colors.Base` and wins
-over it. Setting `Colors.Border` alone also pins `BorderFocus` to it
-(`ColorSet.resolve`); spell `BorderFocus` too when the theme's focus border
-should stay.
+case. **`Colors` is the only spelling for per-state colors; no Cfg has
+`ColorHover`/`ColorFocus`/`ColorBorder`/`ColorBorderFocus` fields.** The flat
+`Color` is the shorthand for `Colors.Base` and wins over it. Setting
+`Colors.Border` alone also pins `BorderFocus` to it (`ColorSet.resolve`); spell
+`BorderFocus` too when the theme's focus border should stay.
 
 ### Visual roles and tiers
 
