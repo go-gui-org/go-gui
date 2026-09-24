@@ -29,6 +29,7 @@ const (
 	xcLeftPtr           = 68
 	xcXterm             = 152
 	xcCrosshair         = 34
+	xcHand1             = 58
 	xcHand2             = 60
 	xcSbHDoubleArrow    = 108
 	xcSbVDoubleArrow    = 116
@@ -375,6 +376,11 @@ func loadCursors(p *platformState) {
 	p.cursors[gui.CursorResizeNESW] = load(neswCursorNames, xcBottomLeftCorner)
 	p.cursors[gui.CursorResizeAll] = load(moveCursorNames, xcFleur)
 	p.cursors[gui.CursorNotAllowed] = load(notAllowedCursorNames, xcXCursor)
+	// Grabbing falls back to the closed-hand glyph: the core font
+	// has no fist, and hand2 already serves the pointing hand.
+	// Themes resolve "grab"/"grabbing" properly first.
+	p.cursors[gui.CursorGrab] = load(grabCursorNames, xcHand1)
+	p.cursors[gui.CursorGrabbing] = load(grabbingCursorNames, xcHand2)
 	// X protocol ordering runs the glyph-cursor creations queued above
 	// before this closes the font.
 	xproto.CloseFont(p.conn, font)

@@ -513,6 +513,8 @@ var cursorCSS = map[gui.MouseCursor]string{
 	gui.CursorResizeNESW:   "nesw-resize",
 	gui.CursorResizeAll:    "move",
 	gui.CursorNotAllowed:   "not-allowed",
+	gui.CursorGrab:         "grab",
+	gui.CursorGrabbing:     "grabbing",
 }
 
 func mapTouchEvent(

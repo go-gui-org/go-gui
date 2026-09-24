@@ -103,6 +103,7 @@ type ViewState struct {
 	gesture gestureState
 
 	mouseLock     MouseLockCfg
+	dragPan       dragPanState
 	registry      stateRegistry
 	markdownCache *BoundedMap[int64, []markdownBlock]
 	diagramCache  *BoundedDiagramCache

@@ -190,6 +190,14 @@ type Shape struct {
 	// ScrollMode to control which axes scroll.
 	Scrollable bool
 
+	// DragScroll pans a Scrollable container when the pointer drags
+	// its content (issue #783). Set from ContainerCfg.DragScroll;
+	// honored only with Scrollable. The press is claimed before
+	// children dispatch, so a pan suppresses the child click past
+	// the drag threshold, while a tap replays the press for the
+	// child untouched.
+	DragScroll bool
+
 	// OverDraw draws this element on top of siblings in the same
 	// container without affecting layout. Used for overlays,
 	// tooltips, and drag indicators.

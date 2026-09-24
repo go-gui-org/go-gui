@@ -83,6 +83,11 @@ const (
 	CursorResizeNESW
 	CursorResizeAll
 	CursorNotAllowed
+	// CursorGrab is the open hand over a draggable surface.
+	// CursorGrabbing is the closed hand while the drag runs.
+	// Appended, never inserted: backends index tables by value.
+	CursorGrab
+	CursorGrabbing
 )
 
 // Modifier is a bitmask of keyboard/mouse modifier flags.
@@ -374,6 +379,12 @@ type Event struct {
 	GesturePhase    GesturePhase
 	KeyRepeat       bool
 	IsHandled       bool
+	// dragPanReplay marks a tap replay synthesized by the
+	// drag-to-scroll release path (issue #783). The replay runs
+	// the press through normal dispatch, but the DragScroll
+	// container must not claim its own replay, so the
+	// pre-order intercept skips events carrying this mark.
+	dragPanReplay bool
 	// ScrollPrecise is true for high-res / trackpad scroll deltas
 	// (already carrying OS momentum). False for discrete mouse-wheel
 	// notches, which the gui side eases via scrollSmoothAnimation.

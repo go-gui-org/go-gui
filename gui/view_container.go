@@ -140,7 +140,14 @@ type ContainerCfg struct {
 	// Scrollable opts the container into the scroll system. Scroll
 	// state is keyed by Cfg.ID — pass that same id to
 	// Window.ScrollVerticalTo and friends. Requires a non-empty ID.
-	Scrollable   bool
+	Scrollable bool
+	// DragScroll pans the container when the pointer drags its
+	// content (issue #783). Requires Scrollable and a non-empty
+	// ID. A drag past the threshold scrolls and suppresses the
+	// press-point click; a tap clicks normally. Touch uses the
+	// same path: the gesture pan fallback skips DragScroll
+	// containers so one finger never scrolls twice.
+	DragScroll   bool
 	FloatOffsetX float32
 	FloatOffsetY float32
 
@@ -481,7 +488,10 @@ func deriveContainerA11YRole(c *ContainerCfg) AccessRole {
 // buildContainerShape constructs a Shape from a ContainerCfg.
 // Uses pooled allocs for effects and events via w.
 func buildContainerShape(cfg *ContainerCfg, w *Window) Shape {
-	requireScrollID("container", cfg.Scrollable, cfg.ID)
+	requireScrollID("container", cfg.Scrollable || cfg.DragScroll, cfg.ID)
+	if cfg.DragScroll && !cfg.Scrollable {
+		panic("gui: container with DragScroll:true requires Scrollable:true")
+	}
 	requireOverflowID("container", cfg.Overflow, cfg.ID)
 	spacing, sizeBorder, radius, padding := applyContainerDefaults(cfg)
 	shapeType := cfg.shapeType
@@ -525,6 +535,7 @@ func buildContainerShape(cfg *ContainerCfg, w *Window) Shape {
 		FloatOffsetY:         cfg.FloatOffsetY,
 		FloatZIndex:          cfg.FloatZIndex,
 		Scrollable:           cfg.Scrollable,
+		DragScroll:           cfg.DragScroll,
 		OverDraw:             cfg.OverDraw,
 		ScrollMode:           cfg.ScrollMode,
 		Hero:                 cfg.Hero,
@@ -558,6 +569,9 @@ func container(cfg ContainerCfg) View {
 		cfg.OnClick = cfg.OnAnyClick
 	} else {
 		cfg.clickButton = MouseLeft
+	}
+	if cfg.DragScroll {
+		wrapDragScrollHover(&cfg)
 	}
 
 	content := cfg.Content

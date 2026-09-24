@@ -198,6 +198,7 @@ func TestCursorSelector_Known(t *testing.T) {
 		gui.CursorResizeEW, gui.CursorResizeNS,
 		gui.CursorResizeNWSE, gui.CursorResizeNESW,
 		gui.CursorResizeAll, gui.CursorNotAllowed,
+		gui.CursorGrab, gui.CursorGrabbing,
 	}
 	for _, mc := range cursors {
 		if got := cursorSelector(mc); got == "" {
@@ -223,6 +224,7 @@ func TestCursorCStrings_MatchSelector(t *testing.T) {
 		gui.CursorResizeEW, gui.CursorResizeNS,
 		gui.CursorResizeNWSE, gui.CursorResizeNESW,
 		gui.CursorResizeAll, gui.CursorNotAllowed,
+		gui.CursorGrab, gui.CursorGrabbing,
 	}
 	for _, mc := range cursors {
 		sel := cursorSelector(mc)

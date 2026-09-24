@@ -345,6 +345,13 @@ func mouseDownHandlerDepth(
 	if pointerMissesSubtree(layout.Shape, e.MouseX, e.MouseY) {
 		return
 	}
+	// Drag-to-scroll claims the press before children dispatch so
+	// a pan can suppress the press-point click (issue #783). A tap
+	// replays the press on release; nested pans and scrollbars pass
+	// through to their own handlers inside the claim.
+	if dragPanIntercept(layout, e, w) {
+		return
+	}
 	// Traverse children in reverse (topmost/last child first).
 	ox, oy := rotateMouseInverse(layout.Shape, e)
 	for i := range slices.Backward(layout.Children) {

@@ -22,7 +22,7 @@ type platformState struct {
 	eglSurface uintptr
 	eglContext uintptr
 
-	cursors   [11]xproto.Cursor
+	cursors   [13]xproto.Cursor
 	curCursor xproto.Cursor
 
 	wmDelete xproto.Atom
