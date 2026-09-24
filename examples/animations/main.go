@@ -134,7 +134,8 @@ func mainView(w *gui.Window) gui.View {
 					gui.Canvas(gui.ContainerCfg{
 						Sizing: gui.FillFill,
 						Content: []gui.View{
-							// Hero card
+							// Hero card — the same ID appears in detailView on
+							// purpose: the Hero transition morphs between the two.
 							gui.Column(gui.ContainerCfg{
 								ID:      "hero-card",
 								Hero:    true,
@@ -150,11 +151,8 @@ func mainView(w *gui.Window) gui.View {
 								HAlign:  gui.HAlignCenter,
 								Content: []gui.View{
 									gui.Text(gui.TextCfg{
-										Text: "Click Hero",
-										TextStyle: gui.TextStyle{
-											Size:  gui.CurrentTheme().TextStyleBodySmall.Size,
-											Color: gui.Black,
-										},
+										Text:      "Click Hero",
+										TextStyle: gui.CurrentTheme().TextStyleBodySmall,
 									}),
 								},
 							}),
@@ -359,6 +357,11 @@ func bounceAnim(w *gui.Window) {
 	a.Duration = 800 * time.Millisecond
 	a.Easing = gui.EaseOutBounce
 	a.OnDone = func(w *gui.Window) {
+		// The return leg orphans on a view switch: only re-arm while
+		// still on the view that started the bounce.
+		if state(w).ShowDetail {
+			return
+		}
 		ret := gui.NewTweenAnimation("bounce_return", 300, 100,
 			func(v float32, w *gui.Window) {
 				state(w).SpringValue = v
@@ -401,6 +404,7 @@ func layoutAnim(w *gui.Window) {
 
 // Hero: morph hero-card between main and detail views.
 func heroAnim(w *gui.Window) {
+	state(w).ShowDetail = true
 	w.AnimationAdd(gui.NewHeroTransition(gui.HeroTransitionCfg{
 		Duration: 600 * time.Millisecond,
 	}))
@@ -408,6 +412,7 @@ func heroAnim(w *gui.Window) {
 }
 
 func heroBack(w *gui.Window) {
+	state(w).ShowDetail = false
 	w.AnimationAdd(gui.NewHeroTransition(gui.HeroTransitionCfg{
 		Duration: 600 * time.Millisecond,
 	}))

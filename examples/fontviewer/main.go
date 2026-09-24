@@ -33,7 +33,11 @@ type FontViewerState struct {
 	Filter   string   // case-insensitive family-name substring
 	FontSize float32  // preview size in px (12–72; init: 28)
 	Families []string // all discovered family names, sorted; may be nil
-	Loaded   bool     // families have been enumerated (backend was ready)
+	// LowerFamilies caches strings.ToLower per family, same order as
+	// Families. Rebuilt whenever Families is filled, so the per-frame
+	// filter reads the cache instead of lowering every name.
+	LowerFamilies []string
+	Loaded        bool // families have been enumerated (backend was ready)
 
 	// ShapeAll drops virtualization and shapes every family in one
 	// frame (the --shape-all stress mode). Off by default.
@@ -57,6 +61,8 @@ func state(w *gui.Window) *FontViewerState {
 const (
 	gridID        = "font-grid"
 	sampleInputID = "sample-input"
+	// toolbarScope owns the toolbar button IDs below.
+	toolbarScope = "fontviewer-toolbar"
 )
 
 // Initial configuration, shared with tests.
@@ -146,6 +152,44 @@ func filterFontFamilies(all []string, filter string) []string {
 	return out
 }
 
+// filterFontFamiliesCached is the per-frame filter: it reads the
+// precomputed lowercase names instead of lowering every family every
+// frame. Falls back to filterFontFamilies when the cache is stale
+// (e.g. Families set without LowerFamilies, as in tests).
+func filterFontFamiliesCached(all, lower []string, filter string) []string {
+	if filter == "" {
+		return all
+	}
+	if len(lower) != len(all) {
+		return filterFontFamilies(all, filter)
+	}
+	lf := strings.ToLower(filter)
+	var out []string
+	for i, f := range all {
+		if strings.Contains(lower[i], lf) {
+			out = append(out, f)
+		}
+	}
+	return out
+}
+
+// lowerFamilyNames precomputes one lowercase name per family, kept in
+// the same order so filterFontFamiliesCached can index it directly.
+func lowerFamilyNames(all []string) []string {
+	lower := make([]string, len(all))
+	for i, f := range all {
+		lower[i] = strings.ToLower(f)
+	}
+	return lower
+}
+
+// cardID composes a card container ID from a family name. Names come
+// from the OS and may contain IDSep, which would make the leaf
+// absolute and drop the "card" scope — sanitize it away.
+func cardID(name string) string {
+	return gui.ScopeID("card", strings.ReplaceAll(name, gui.IDSep, "-"))
+}
+
 // inWindow reports whether fam's row in matches lies within the
 // emitted [firstRow, lastRow] window — used to clear HoveredFam when a
 // card is evicted by virtualization (layoutMouseLeave never visits an
@@ -174,12 +218,13 @@ func spacerV(h float32) gui.View {
 
 func main() {
 	screenshot := flag.String("screenshot", "", "write screenshot and exit")
+	shapeAll := flag.Bool("shape-all", false, "shape every family in one frame (stress mode)")
 	flag.Parse()
 
 	state := &FontViewerState{
 		FontSize: initialFontSize,
 		Sample:   randomPangram(""),
-		ShapeAll: len(os.Args) > 1 && os.Args[1] == "--shape-all",
+		ShapeAll: *shapeAll,
 	}
 
 	gui.SetTheme(gui.ThemeLight)
@@ -209,15 +254,15 @@ func main() {
 func mainView(w *gui.Window) gui.View {
 	s := state(w)
 
-	// Lazy one-time enumeration. ListSystemFonts reads a pre-built set
-	// (cheap, no shaping); nil until the backend is ready → retry next
-	// frame.
+	// One-time enumeration runs as a command, never in the view phase.
+	// ListSystemFonts reads a pre-built set (cheap, no shaping) that is
+	// nil until the backend is ready, so a not-ready backend just
+	// re-queues next frame via !Loaded.
 	if !s.Loaded {
-		s.Families = gui.ListSystemFonts(w)
-		s.Loaded = s.Families != nil
+		w.QueueCommand(ensureFamilies)
 	}
 
-	matches := filterFontFamilies(s.Families, s.Filter)
+	matches := filterFontFamiliesCached(s.Families, s.LowerFamilies, s.Filter)
 
 	// Zero all inherited chrome (default is PaddingMedium + SpacingMedium
 	// + SizeBorderDef 1.5) so listH = winH - headerH - toolbarH is exact.
@@ -228,6 +273,23 @@ func mainView(w *gui.Window) gui.View {
 		SizeBorder: gui.NoBorder,
 		Content:    []gui.View{header(), toolbar(w, len(matches)), fontGrid(w, matches)},
 	})
+}
+
+// ensureFamilies fills Families (and the lowercase cache) once the
+// backend is ready. Runs in the command phase, queued from mainView.
+func ensureFamilies(w *gui.Window) {
+	s := state(w)
+	if s.Loaded {
+		return
+	}
+	fams := gui.ListSystemFonts(w)
+	if fams == nil {
+		return // backend not ready; mainView re-queues next frame
+	}
+	s.Families = fams
+	s.LowerFamilies = lowerFamilyNames(fams)
+	s.Loaded = true
+	w.InvalidateLayout()
 }
 
 // --- Header ---
@@ -284,7 +346,7 @@ func toolbar(w *gui.Window, matchCount int) gui.View {
 			},
 		}),
 		gui.Button(gui.ButtonCfg{
-			ID: "fontviewer_toolbar",
+			ID: gui.ScopeID(toolbarScope, "shuffle"),
 			Content: []gui.View{gui.Text(gui.TextCfg{
 				Text:      gui.IconSync,
 				TextStyle: gui.TextStyle{Family: gui.IconFontName, Size: t.TextStyleIconMedium.Size, Color: t.TextStyleIconXLarge.Color},
@@ -323,7 +385,7 @@ func toolbarRow2(s *FontViewerState, t gui.Theme, matchCount int) []gui.View {
 	}
 	if s.Filter != "" {
 		content = append(content, gui.Button(gui.ButtonCfg{
-			ID:      "fontviewer_toolbar_row2",
+			ID:      gui.ScopeID(toolbarScope, "clear-filter"),
 			Content: []gui.View{gui.Text(gui.TextCfg{Text: "×", TextStyle: t.TextStyleTitleSmall})},
 			OnClick: func(ctx gui.EventCtx) {
 				state(ctx.Window).Filter = ""
@@ -346,7 +408,7 @@ func toolbarRow2(s *FontViewerState, t gui.Theme, matchCount int) []gui.View {
 			OnChange: func(v float32, ctx gui.EventCtx) {
 				state(ctx.Window).FontSize = v
 				ctx.Window.ScrollVerticalTo(gridID, 0) // rowH changed → reset offset
-				ctx.Event.IsHandled = true
+				ctx.Consume()
 			},
 		}),
 		gui.Text(gui.TextCfg{
@@ -364,11 +426,11 @@ func toolbarRow2(s *FontViewerState, t gui.Theme, matchCount int) []gui.View {
 	)
 }
 
-// shuffleSample replaces the sample text with a fresh pangram.
+// shuffleSample replaces the sample text with a fresh pangram. No
+// ctx.Consume: no ancestor handles clicks, so there is nothing to stop.
 func shuffleSample(ctx gui.EventCtx) {
 	s := state(ctx.Window)
 	s.Sample = randomPangram(s.Sample)
-	ctx.Consume()
 }
 
 // randomPangram returns a random pangram other than exclude. On a
@@ -413,9 +475,18 @@ func fontGrid(w *gui.Window, matches []string) gui.View {
 		scrollY, _ := w.ScrollY().Get(gridID)
 		first, last = gui.ListVisibleRange(rows, rowH, listH, scrollY, overscanRows)
 
-		// Clear a stale hover whose card was evicted by windowing.
+		// Clear a stale hover whose card was evicted by windowing. The
+		// view phase must not write state, so queue the clear for the
+		// command phase — the card is not emitted this frame anyway,
+		// so one stale frame is invisible.
 		if s.HoveredFam != "" && !inWindow(matches, s.HoveredFam, first, last, cols) {
-			s.HoveredFam = ""
+			stale := s.HoveredFam
+			w.QueueCommand(func(w *gui.Window) {
+				gs := state(w)
+				if gs.HoveredFam == stale {
+					gs.HoveredFam = ""
+				}
+			})
 		}
 	}
 
@@ -488,7 +559,7 @@ func fontCard(w *gui.Window, name string, cardW, cardH float32) gui.View {
 	}
 
 	return gui.Column(gui.ContainerCfg{
-		ID:      "card:" + name,
+		ID:      cardID(name),
 		Width:   cardW,
 		Height:  cardH,
 		Sizing:  gui.FixedFixed,
@@ -564,7 +635,11 @@ func copyFamily(name string) func(gui.EventCtx) {
 		s.CopyOpacity = 1
 		ctx.Window.SetClipboard(name)
 		ctx.Window.AnimationAdd(&gui.TweenAnimation{
-			AnimID:   "copied-fade",
+			// Per-card AnimID: one shared "copied-fade" would let a
+			// second card's click replace the first card's running
+			// fade mid-tween. CopiedFam/CopyOpacity stay singleton
+			// — only one badge shows at a time by construction.
+			AnimID:   gui.ScopeID(cardID(name), "copied-fade"),
 			Duration: copyFadeDuration,
 			Easing:   gui.EaseOutCubic,
 			From:     1,

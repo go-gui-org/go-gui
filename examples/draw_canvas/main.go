@@ -17,6 +17,11 @@ import (
 
 var data = []float32{2, 5, 3, 8, 6, 4, 7, 9, 5, 10, 8, 6, 11, 7}
 
+// canvasRadius is the corner radius shared by all four canvases. No
+// theme radius rung lands on 8 (0/4/6/12), and DrawCanvasCfg.Radius is
+// a plain float32 with no theme default — so it lives here, once.
+const canvasRadius = 8
+
 func main() {
 	screenshot := flag.String("screenshot", "", "write screenshot and exit")
 	flag.Parse()
@@ -48,6 +53,7 @@ func mainView(w *gui.Window) gui.View {
 		// scrolls. A scrollable container needs an ID: the scroll offset
 		// is stored against it.
 		ID:         "canvases",
+		Focusable:  true,
 		Scrollable: true,
 		Sizing:     gui.FillFill,
 		Padding:    gui.CurrentTheme().PaddingLarge,
@@ -64,7 +70,7 @@ func mainView(w *gui.Window) gui.View {
 				Width:   560,
 				Height:  360,
 				Color:   gui.RGBA(30, 30, 40, 255),
-				Radius:  8,
+				Radius:  canvasRadius,
 				Padding: gui.NewPadding(30, 40, 40, 50),
 				OnDraw:  drawChart,
 			}),
@@ -78,7 +84,7 @@ func mainView(w *gui.Window) gui.View {
 				Width:   560,
 				Height:  140,
 				Color:   gui.RGBA(30, 30, 40, 255),
-				Radius:  8,
+				Radius:  canvasRadius,
 				Padding: gui.PadAll(16),
 				OnDraw:  drawGradients,
 			}),
@@ -92,7 +98,7 @@ func mainView(w *gui.Window) gui.View {
 				Width:   560,
 				Height:  140,
 				Color:   gui.RGBA(30, 30, 40, 255),
-				Radius:  8,
+				Radius:  canvasRadius,
 				Padding: gui.PadAll(16),
 				OnDraw:  drawVertexColors,
 			}),
@@ -106,7 +112,7 @@ func mainView(w *gui.Window) gui.View {
 				Width:   560,
 				Height:  180,
 				Color:   gui.RGBA(30, 30, 40, 255),
-				Radius:  8,
+				Radius:  canvasRadius,
 				Padding: gui.PadAll(16),
 				OnDraw:  drawTransform,
 			}),
@@ -151,10 +157,11 @@ func badge(dc *gui.DrawContext) {
 	dc.Circle(30, 30, 26, gui.RGBA(120, 170, 255, 255), 2)
 	dc.FilledArc(30, 30, 20, 20, -math.Pi/2, math.Pi*1.2,
 		gui.RGBA(90, 200, 160, 255))
-	dc.Text(22, 24, "go", gui.TextStyle{
-		Size:  16,
-		Color: gui.RGBA(240, 240, 250, 255),
-	})
+	// Theme body role for family and color; only the size stays local —
+	// it lives in badge coordinate space and scales with the transform.
+	badgeStyle := gui.CurrentTheme().TextStyleBody
+	badgeStyle.Size = 16
+	dc.Text(22, 24, "go", badgeStyle)
 }
 
 func drawChart(dc *gui.DrawContext) {

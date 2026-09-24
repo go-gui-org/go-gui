@@ -17,6 +17,12 @@ import (
 
 const shaderTickAnimationID = "shader_tick"
 
+// rainbowParams and plasmaParams back the shaders' Params slices below.
+// Reused every frame so the two shader uniforms cost no allocation;
+// a []float32{elapsed} literal per shader would alloc twice per frame.
+var rainbowParams [1]float32
+var plasmaParams [1]float32
+
 type App struct {
 	StartTime time.Time
 }
@@ -36,6 +42,10 @@ func main() {
 			w.SetView(mainView)
 			w.AnimationAdd(&gui.Animate{
 				// Keep the frame loop hot so the shader parameter updates continuously.
+				// WARNING: Repeat with an empty per-tick callback rebuilds
+				// layout every animation tick (~16ms) forever. Fine for
+				// this demo, but do not copy it as a default — an idle
+				// app should have no repeating animations at all.
 				AnimID:   shaderTickAnimationID,
 				Repeat:   true,
 				Callback: func(_ *gui.Animate, _ *gui.Window) {},
@@ -54,7 +64,14 @@ func main() {
 
 func mainView(w *gui.Window) gui.View {
 	app := gui.State[App](w)
+	// Wall-clock elapsed, truncated to milliseconds. The Animate API
+	// passes no clock into its callback (Callback takes only the
+	// animation and the window; the nominal dt reaches Update, not the
+	// callback), so there is no animation-clock value to read here —
+	// the view recomputes from StartTime every hot-loop tick instead.
 	elapsed := float32(time.Since(app.StartTime).Milliseconds()) / 1000.0
+	rainbowParams[0] = elapsed
+	plasmaParams[0] = elapsed
 
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFill,
@@ -87,7 +104,7 @@ func mainView(w *gui.Window) gui.View {
 								vec3 c = 0.5 + 0.5 * cos(t + st.xyx + vec3(0,2,4));
 								vec4 frag_color = vec4(c, 1.0);
 							`,
-							Params: []float32{elapsed},
+							Params: rainbowParams[:],
 						},
 						Content: []gui.View{gui.Text(gui.TextCfg{Text: "Rainbow"})},
 					}),
@@ -103,15 +120,15 @@ func mainView(w *gui.Window) gui.View {
 							Metal: `
 								float t = in.p0.x;
 								float2 st = in.uv * 3.0;
-								float v = sin(st.x + t) + sin(st.y + t)
-									+ sin(st.x + st.y + t)
-									+ sin(length(st) + 1.5 * t);
-								v = v * 0.25 + 0.5;
+									float v = sin(st.x + t) + sin(st.y + t)
+										+ sin(st.x + st.y + t)
+										+ sin(length(st) + 1.5 * t);
+									v = v * 0.25 + 0.5;
 								float3 c = float3(
-									sin(v * 3.14159),
-									sin(v * 3.14159 + 2.094),
-									sin(v * 3.14159 + 4.188));
-								c = c * 0.5 + 0.5;
+										sin(v * 3.14159),
+										sin(v * 3.14159 + 2.094),
+										sin(v * 3.14159 + 4.188));
+									c = c * 0.5 + 0.5;
 								float4 frag_color = float4(c, 1.0);
 							`,
 							GLSL: `
@@ -128,7 +145,7 @@ func mainView(w *gui.Window) gui.View {
 								c = c * 0.5 + 0.5;
 								vec4 frag_color = vec4(c, 1.0);
 							`,
-							Params: []float32{elapsed},
+							Params: plasmaParams[:],
 						},
 						Content: []gui.View{gui.Text(gui.TextCfg{Text: "Plasma"})},
 					}),

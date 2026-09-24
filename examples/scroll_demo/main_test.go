@@ -90,7 +90,7 @@ func TestScrollPanelHasScrollbar(t *testing.T) {
 func TestPctButtonsJumpToPosition(t *testing.T) {
 	w := newTestWindow(t)
 
-	if err := w.TestClick("scroll_demo_pct_button_100"); err != nil {
+	if err := w.TestClick("scroll_demo:pct_button:100"); err != nil {
 		t.Fatalf("TestClick(100%%) = %v, want nil", err)
 	}
 	if got := gui.State[App](w).Pct; got != 1 {
@@ -106,7 +106,7 @@ func TestPctButtonsJumpToPosition(t *testing.T) {
 
 	// Back to the top: a distinct button, so a shared ID would show up
 	// here as the offset not moving.
-	if err = w.TestClick("scroll_demo_pct_button_0"); err != nil {
+	if err = w.TestClick("scroll_demo:pct_button:0"); err != nil {
 		t.Fatalf("TestClick(0%%) = %v, want nil", err)
 	}
 	if got := gui.State[App](w).Pct; got != 0 {

@@ -262,9 +262,9 @@ func landingView(w *gui.Window, ww, wh float32) gui.View {
 func modeButton(w *gui.Window, title string, mode DrawMode, color gui.Color) gui.View {
 	theme := gui.CurrentTheme()
 	return gui.Button(gui.ButtonCfg{
-		// title is a distinct literal at every call site, so it yields a
-		// unique, frame-stable focus ID without widening the signature.
-		ID:         "sol_mode_" + title,
+		// ScopeID composes a unique, frame-stable focus ID from the
+		// distinct title at each call site.
+		ID:         gui.ScopeID("sol_mode", title),
 		MinWidth:   140,
 		Color:      color.WithOpacity(0.12),
 		Colors:     gui.ColorSet{Hover: color.WithOpacity(0.3), Click: color.WithOpacity(0.5), Border: color},
@@ -318,7 +318,7 @@ func gameView(w *gui.Window, ww, wh float32) gui.View {
 	views = append(views, stockView(game))
 	views = append(views, wasteViews(app)...)
 	for s := Spades; s <= Clubs; s++ {
-		views = append(views, foundationView(game, s))
+		views = append(views, foundationView(app, s))
 	}
 
 	// --- Tableau columns ---
@@ -430,15 +430,40 @@ func makeWasteClickHandler() func(gui.EventCtx) {
 
 // --- Foundation piles ---
 
-func foundationView(game *Game, suit Suit) gui.View {
+func foundationView(app *App, suit Suit) gui.View {
+	game := app.Game
 	col := int(suit) + 3 // foundations at columns 3–6
 	x := colX(col)
 	pile := game.Foundation[suit]
 	if len(pile) == 0 {
 		return foundationSlot(x, boardTopY, suit)
 	}
+	// Skip the dragged card so the ghost is the only copy.
+	if app.DragActive && app.DragSource.Type == SourceFoundation &&
+		len(app.DragCards) == 1 && app.DragCards[0].Suit == suit {
+		return foundationSlot(x, boardTopY, suit)
+	}
 	top := pile[len(pile)-1]
-	return cardFaceUpViewNoClick(top, x, boardTopY)
+	return cardFaceUpView(top, x, boardTopY,
+		makeFoundationClickHandler(suit))
+}
+
+func makeFoundationClickHandler(suit Suit) func(gui.EventCtx) {
+	return func(ctx gui.EventCtx) {
+		if ctx.Event.MouseButton != gui.MouseLeft {
+			return
+		}
+		app := state(ctx.Window)
+		pile := app.Game.Foundation[suit]
+		if len(pile) == 0 {
+			return
+		}
+		top := pile[len(pile)-1]
+		startDrag(app, ctx.Layout, ctx.Event, ctx.Window, DragSource{
+			Type: SourceFoundation,
+		}, []Card{top})
+		ctx.Event.IsHandled = true
+	}
 }
 
 // foundationSlot renders an empty foundation with a dim suit hint.

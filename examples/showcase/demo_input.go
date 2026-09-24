@@ -613,7 +613,7 @@ func showcaseFormFieldIssues(w *gui.Window, fieldID string) gui.View {
 		msgs[i] = issue.Msg
 	}
 	style := gui.CurrentTheme().TextStyleBody
-	style.Color = gui.RGB(219, 87, 87)
+	style.Color = gui.CurrentTheme().Cfg.ColorError
 	return gui.Text(gui.TextCfg{
 		Text:      fieldID + ": " + strings.Join(msgs, "; "),
 		TextStyle: style,

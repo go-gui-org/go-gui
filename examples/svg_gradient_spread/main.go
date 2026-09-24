@@ -2,8 +2,9 @@
 // Svg_gradient_spread demonstrates spreadMethod="pad|reflect|repeat"
 // on linear and radial gradients. The same gradient is rendered with
 // each spread mode in a 2x3 grid so the falloff differences are
-// directly comparable. Stops are placed at 0..0.4 to leave headroom
-// for reflect/repeat to show the wrap.
+// directly comparable. Stops span 0..1 over a compressed gradient
+// vector (linear x2=40%, radial r=20%), leaving room beyond the last
+// stop for reflect/repeat to show the wrap.
 package main
 
 import (
@@ -63,8 +64,9 @@ func main() {
 
 func view(w *gui.Window) gui.View {
 	modes := []string{"pad", "reflect", "repeat"}
-	cell := func(title, data string) gui.View {
+	cell := func(n int, title, data string) gui.View {
 		return gui.Column(gui.ContainerCfg{
+			ID:      gui.ScopeIDN("svg_gradient_spread", "tile", n),
 			Padding: gui.PaddingTwoFive,
 
 			Sizing: gui.FillFit,
@@ -80,11 +82,11 @@ func view(w *gui.Window) gui.View {
 	}
 	linearRow := []gui.View{}
 	radialRow := []gui.View{}
-	for _, m := range modes {
+	for i, m := range modes {
 		linearRow = append(linearRow,
-			cell("linear "+m, fmt.Sprintf(linearTpl, m)))
+			cell(i, "linear "+m, fmt.Sprintf(linearTpl, m)))
 		radialRow = append(radialRow,
-			cell("radial "+m, fmt.Sprintf(radialTpl, m)))
+			cell(len(modes)+i, "radial "+m, fmt.Sprintf(radialTpl, m)))
 	}
 	return gui.Column(gui.ContainerCfg{
 		Sizing: gui.FillFill,

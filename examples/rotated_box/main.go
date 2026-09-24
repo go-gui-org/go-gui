@@ -19,6 +19,8 @@ func main() {
 	screenshot := flag.String("screenshot", "", "write screenshot and exit")
 	flag.Parse()
 
+	gui.SetTheme(gui.ThemeDark)
+
 	w := gui.NewWindow(gui.WindowCfg{
 		Title:  "RotatedBox Demo",
 		Width:  600,
@@ -44,6 +46,7 @@ type app struct {
 
 func mainView(w *gui.Window) gui.View {
 	state := gui.State[app](w)
+	theme := gui.CurrentTheme()
 
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFill,
@@ -53,7 +56,7 @@ func mainView(w *gui.Window) gui.View {
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      "RotatedBox Demo",
-				TextStyle: gui.TextStyle{Size: 24},
+				TextStyle: theme.TextStyleTitle,
 			}),
 
 			// All four rotations side by side.
@@ -63,10 +66,10 @@ func mainView(w *gui.Window) gui.View {
 				SizeBorder: gui.NoBorder,
 				VAlign:     gui.VAlignMiddle,
 				Content: []gui.View{
-					rotatedLabel(0, "0°", gui.RGBA(100, 180, 255, 255)),
-					rotatedLabel(1, "90°", gui.RGBA(100, 255, 100, 255)),
-					rotatedLabel(2, "180°", gui.RGBA(255, 180, 100, 255)),
-					rotatedLabel(3, "270°", gui.RGBA(255, 100, 180, 255)),
+					rotatedLabel(0, "0°", gui.RGB(100, 180, 255), theme),
+					rotatedLabel(1, "90°", gui.RGB(100, 255, 100), theme),
+					rotatedLabel(2, "180°", gui.RGB(255, 180, 100), theme),
+					rotatedLabel(3, "270°", gui.RGB(255, 100, 180), theme),
 				},
 			}),
 
@@ -83,20 +86,20 @@ func mainView(w *gui.Window) gui.View {
 					gui.RotatedBox(gui.RotatedBoxCfg{
 						QuarterTurns: 1,
 						Content: gui.Row(gui.ContainerCfg{
-							Sizing:  gui.FitFit,
-							Padding: gui.NewPadding(8, 16, 8, 16),
-							Color:   gui.RGBA(80, 120, 200, 255),
-							Radius:  gui.SomeF(6),
+							Sizing:     gui.FitFit,
+							Padding:    gui.NewPadding(8, 16, 8, 16),
+							Color:      gui.RGB(80, 120, 200),
+							Radius:     gui.SomeF(6),
+							SizeBorder: gui.NoBorder,
 							OnClick: func(ctx gui.EventCtx) {
 								s := gui.State[app](ctx.Window)
 								s.clicks++
-								ctx.Window.SetView(mainView)
 							},
 							Content: []gui.View{
 								gui.Text(gui.TextCfg{
 									Text: "Click Me",
 									TextStyle: gui.TextStyle{
-										Color: gui.White,
+										Color: theme.ColorTextOnAccent,
 									},
 								}),
 							},
@@ -125,13 +128,13 @@ func mainView(w *gui.Window) gui.View {
 							Content: gui.Row(gui.ContainerCfg{
 								Sizing:     gui.FitFit,
 								Padding:    gui.NewPadding(6, 12, 6, 12),
-								Color:      gui.RGBA(200, 100, 200, 255),
+								Color:      gui.RGB(200, 100, 200),
 								SizeBorder: gui.NoBorder,
 								Content: []gui.View{
 									gui.Text(gui.TextCfg{
 										Text: "Nested",
 										TextStyle: gui.TextStyle{
-											Color: gui.White,
+											Color: theme.ColorTextOnAccent,
 										},
 									}),
 								},
@@ -144,7 +147,7 @@ func mainView(w *gui.Window) gui.View {
 	})
 }
 
-func rotatedLabel(turns int, label string, bg gui.Color) gui.View {
+func rotatedLabel(turns int, label string, bg gui.Color, theme gui.Theme) gui.View {
 	return gui.RotatedBox(gui.RotatedBoxCfg{
 		QuarterTurns: turns,
 		Content: gui.Row(gui.ContainerCfg{
@@ -156,7 +159,7 @@ func rotatedLabel(turns int, label string, bg gui.Color) gui.View {
 			Content: []gui.View{
 				gui.Text(gui.TextCfg{
 					Text:      label,
-					TextStyle: gui.TextStyle{Color: gui.White},
+					TextStyle: gui.TextStyle{Color: theme.ColorTextOnAccent},
 				}),
 			},
 		}),

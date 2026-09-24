@@ -56,13 +56,14 @@ func mainView(w *gui.Window) gui.View {
 	app := gui.State[App](w)
 
 	return gui.Column(gui.ContainerCfg{
-		Sizing:  gui.FitFit,
+		Sizing:  gui.FillFill,
 		Spacing: gui.Some[float32](40),
 		Padding: gui.NewPadding(10, 40, 40, 40),
 		HAlign:  gui.HAlignCenter,
 		Content: []gui.View{
 			gui.Row(gui.ContainerCfg{
-				Padding: gui.NoPadding,
+				Padding:    gui.NoPadding,
+				SizeBorder: gui.NoBorder,
 				Content: []gui.View{
 					gui.Text(gui.TextCfg{
 						Text: "Drop Shadow Demo",
@@ -70,12 +71,13 @@ func mainView(w *gui.Window) gui.View {
 							Size: 30,
 						},
 					}),
-					gui.Rectangle(gui.RectangleCfg{Width: 100}),
+					gui.Rectangle(gui.RectangleCfg{Sizing: gui.FillFit}),
 					toggleTheme(app),
 				},
 			}),
 			gui.Row(gui.ContainerCfg{
-				Spacing: gui.Some[float32](40),
+				Spacing:    gui.Some[float32](40),
+				SizeBorder: gui.NoBorder,
 				Content: []gui.View{
 					shadowCard("Soft Shadow\n(Blur: 10, OffsetY: 4)", gui.Color{}, &gui.BoxShadow{
 						BlurRadius: 10,
@@ -90,7 +92,8 @@ func mainView(w *gui.Window) gui.View {
 				},
 			}),
 			gui.Row(gui.ContainerCfg{
-				Spacing: gui.Some[float32](40),
+				Spacing:    gui.Some[float32](40),
+				SizeBorder: gui.NoBorder,
 				Content: []gui.View{
 					shadowCard("Blue Glow\n(Blur: 30, Color: Blue)", gui.Color{}, &gui.BoxShadow{
 						BlurRadius: 30,
@@ -104,7 +107,8 @@ func mainView(w *gui.Window) gui.View {
 				},
 			}),
 			gui.Row(gui.ContainerCfg{
-				Spacing: gui.Some[float32](40),
+				Spacing:    gui.Some[float32](40),
+				SizeBorder: gui.NoBorder,
 				Content: []gui.View{
 					shadowCard("Focus Ring\n(Spread: 2, Blur: 3)", gui.Color{}, &gui.BoxShadow{
 						BlurRadius: 3,
@@ -128,11 +132,13 @@ func mainView(w *gui.Window) gui.View {
 }
 
 func shadowCard(text string, bg gui.Color, shadow *gui.BoxShadow) gui.View {
+	cardText := gui.CurrentTheme().TextStyleBody
+	cardText.Align = gui.TextAlignCenter
 	return gui.Column(gui.ContainerCfg{
 		Width:       200,
 		Height:      150,
 		Radius:      gui.Some[float32](10),
-		ColorBorder: gui.Black,
+		ColorBorder: gui.CurrentTheme().ColorBorder,
 		SizeBorder:  gui.Some[float32](1.5),
 		Color:       bg,
 		Shadow:      shadow,
@@ -140,11 +146,8 @@ func shadowCard(text string, bg gui.Color, shadow *gui.BoxShadow) gui.View {
 		VAlign:      gui.VAlignMiddle,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
-				Text: text,
-				TextStyle: gui.TextStyle{
-					Color: gui.Black,
-					Align: gui.TextAlignCenter,
-				},
+				Text:      text,
+				TextStyle: cardText,
 			}),
 		},
 	})
@@ -166,6 +169,7 @@ func toggleTheme(app *App) gui.View {
 				Selected:     app.LightTheme,
 				ColorSelect:  gui.RGBA(0, 0, 0, 0),
 				Padding:      gui.PaddingSmall,
+				A11YCfg:      gui.A11YCfg{A11YLabel: "Toggle theme"},
 
 				OnClick: func(ctx gui.EventCtx) {
 					a := gui.State[App](ctx.Window)

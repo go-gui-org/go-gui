@@ -11,17 +11,29 @@ func catalogPanel(w *gui.Window) gui.View {
 	app := appState(w)
 	entries := filteredEntries(app)
 
-	switch {
-	case len(entries) == 0:
-		app.SelectedComponent = ""
-		app.ShowDocs = false
-		w.ScrollVerticalTo(scrollDetail, 0)
-		w.ScrollHorizontalTo(scrollDetail, 0)
-	case !hasEntry(entries, app.SelectedComponent):
-		app.SelectedComponent = preferredComponentForGroup(entries)
-		app.ShowDocs = false
-		w.ScrollVerticalTo(scrollDetail, 0)
-		w.ScrollHorizontalTo(scrollDetail, 0)
+	// Generation must not write state or scroll synchronously, so a
+	// selection repair goes through QueueCommand (see detail.go): this
+	// frame renders the stale selection and the fix lands next frame.
+	fixSelection := len(entries) > 0 && !hasEntry(entries, app.SelectedComponent)
+	clearSelection := len(entries) == 0 && (app.SelectedComponent != "" || app.ShowDocs)
+	if fixSelection || clearSelection {
+		w.QueueCommand(func(w *gui.Window) {
+			fixed := appState(w)
+			latest := filteredEntries(fixed)
+			switch {
+			case len(latest) == 0:
+				fixed.SelectedComponent = ""
+				fixed.ShowDocs = false
+			case !hasEntry(latest, fixed.SelectedComponent):
+				fixed.SelectedComponent = preferredComponentForGroup(latest)
+				fixed.ShowDocs = false
+			default:
+				return
+			}
+			w.ScrollVerticalTo(scrollDetail, 0)
+			w.ScrollHorizontalTo(scrollDetail, 0)
+			w.InvalidateLayout()
+		})
 	}
 
 	return gui.Column(gui.ContainerCfg{
@@ -113,7 +125,7 @@ func groupPickerItem(label, key string, app *ShowcaseApp) gui.View {
 	}
 
 	return gui.Button(gui.ButtonCfg{
-		ID:      "grp-" + key,
+		ID:      gui.ScopeID("showcase", "grp", key),
 		Color:   color,
 		Colors:  gui.ColorSet{Border: color},
 		Radius:  gui.SomeF(3),
@@ -185,7 +197,7 @@ func catalogRow(entry DemoEntry, app *ShowcaseApp) gui.View {
 	}
 
 	return gui.Button(gui.ButtonCfg{
-		ID:      "cat-" + entry.ID,
+		ID:      gui.ScopeID("showcase", "cat", entry.ID),
 		Sizing:  gui.FillFit,
 		Color:   color,
 		Colors:  gui.ColorSet{Hover: t.ColorHover, Click: t.ColorActive, Focus: color, Border: gui.ColorTransparent, BorderFocus: gui.ColorTransparent},

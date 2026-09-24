@@ -69,8 +69,13 @@ func main() {
 }
 
 func view(w *gui.Window) gui.View {
-	cell := func(title, data string) gui.View {
+	// All tiles render at a fixed 360x120 cell (3:1). The
+	// symbol demos author a 240x80 viewBox (3:1, exact fit);
+	// useElementDemo authors 200x100 (2:1), so it letterboxes
+	// horizontally inside the cell by design.
+	cell := func(n int, title, data string) gui.View {
 		return gui.Column(gui.ContainerCfg{
+			ID:      gui.ScopeIDN("svg_use_symbol", "tile", n),
 			Padding: gui.PaddingTwoFive,
 
 			Sizing: gui.FillFit,
@@ -87,9 +92,9 @@ func view(w *gui.Window) gui.View {
 	return gui.Column(gui.ContainerCfg{
 		Sizing: gui.FillFill,
 		Content: []gui.View{
-			cell("<symbol> + <use> (4 instances)", useDemo),
-			cell("Manually duplicated polygons", manualDemo),
-			cell("<use> on <circle> with transform attrs", useElementDemo),
+			cell(0, "<symbol> + <use> (4 instances)", useDemo),
+			cell(1, "Manually duplicated polygons", manualDemo),
+			cell(2, "<use> on <circle> with transform attrs", useElementDemo),
 		},
 	})
 }

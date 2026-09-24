@@ -45,7 +45,7 @@ func demoTable(w *gui.Window) gui.View {
 	}
 
 	if cfg.BorderStyle == gui.TableBorderNone {
-		alt := gui.RGBA(128, 128, 128, 20)
+		alt := gui.CurrentTheme().ColorPanel
 		cfg.ColorRowAlt = &alt
 	}
 

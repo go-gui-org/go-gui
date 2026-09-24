@@ -346,6 +346,7 @@ const (
 	// exportaudit:keep — one member of a public set; the set ships whole
 	FloatMiddleLeft
 	FloatMiddleCenter
+	// exportaudit:keep — one member of a public set; the set ships whole
 	FloatMiddleRight
 	FloatBottomLeft
 	FloatBottomCenter

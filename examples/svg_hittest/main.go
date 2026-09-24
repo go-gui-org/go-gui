@@ -58,6 +58,16 @@ func hitLabel(cached *gui.CachedSvg, localX, localY float32) string {
 	if cached == nil || cached.Parsed == nil {
 		return "(no cache)"
 	}
+	// Assumes uniform scale and a zero draw offset: the tile
+	// renders the SVG at its natural aspect (400x400 over a
+	// 200x200 viewBox), so one scale plus the viewBox origin
+	// maps display space back to viewBox space. CachedSvg
+	// exposes no rendered-bounds offset (letterbox-aware
+	// geometry is not part of the Svg API), so a letterboxed
+	// tile would need that API first. Stroke-only paths never
+	// hit by framework design (gui/svg_hittest.go:18 keeps
+	// ContainsPoint on fill tessellation), so use a shape's
+	// fill path for hit-testing.
 	scale := cached.Scale
 	if scale == 0 {
 		scale = 1
@@ -77,7 +87,11 @@ func hitLabel(cached *gui.CachedSvg, localX, localY float32) string {
 
 func view(w *gui.Window) gui.View {
 	app := gui.State[App](w)
-	cached, _ := w.LoadSvg(sampleSvg, svgSize, svgSize)
+	_, loadErr := w.LoadSvg(sampleSvg, svgSize, svgSize)
+	loadMsg := ""
+	if loadErr != nil {
+		loadMsg = fmt.Sprintf("LoadSvg error: %v", loadErr)
+	}
 
 	return gui.Row(gui.ContainerCfg{
 		Sizing: gui.FillFill,
@@ -90,9 +104,23 @@ func view(w *gui.Window) gui.View {
 					gui.Svg(gui.SvgCfg{
 						SvgData: sampleSvg, Sizing: gui.FixedFixed,
 						Width: svgSize, Height: svgSize,
+						// No ctx.Consume: no ancestor in this
+						// tree handles OnClick, so nothing
+						// to stop.
 						OnClick: func(ctx gui.EventCtx) {
+							// Re-load on the event window:
+							// the cached value above is from
+							// the generation frame and may be
+							// stale by the time the click runs.
+							fresh, err := ctx.Window.LoadSvg(sampleSvg, svgSize, svgSize)
+							if err != nil {
+								gui.State[App](ctx.Window).Last = fmt.Sprintf("LoadSvg error: %v", err)
+								ctx.Window.InvalidateRender()
+								return
+							}
 							gui.State[App](ctx.Window).Last = hitLabel(
-								cached, ctx.Event.MouseX, ctx.Event.MouseY)
+								fresh, ctx.Event.MouseX, ctx.Event.MouseY)
+							ctx.Window.InvalidateRender()
 						},
 					}),
 				},
@@ -103,6 +131,7 @@ func view(w *gui.Window) gui.View {
 				Sizing: gui.FillFill,
 				Content: []gui.View{
 					gui.Text(gui.TextCfg{Text: "Click a shape."}),
+					gui.Text(gui.TextCfg{Text: loadMsg}),
 					gui.Text(gui.TextCfg{Text: app.Last}),
 				},
 			}),

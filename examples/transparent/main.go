@@ -35,6 +35,10 @@ type App struct {
 	Opaque  bool
 }
 
+// cardAlpha is the card's opacity when the window is see-through:
+// solid enough to read, clear enough to show the desktop behind it.
+const cardAlpha = 160
+
 func main() {
 	screenshot := flag.String("screenshot", "", "write screenshot and exit")
 	flag.Parse()
@@ -76,7 +80,7 @@ func mainView(w *gui.Window) gui.View {
 	// is see-through, not just its edges.
 	card := t.ColorPanel
 	if !app.Opaque {
-		card = gui.RGBA(card.R, card.G, card.B, 160)
+		card = gui.RGBA(card.R, card.G, card.B, cardAlpha)
 	}
 
 	return gui.Column(gui.ContainerCfg{
@@ -120,7 +124,8 @@ func mainView(w *gui.Window) gui.View {
 							gui.Text(gui.TextCfg{Text: "Toggle card opacity"}),
 						},
 						OnClick: func(ctx gui.EventCtx) {
-							gui.State[App](ctx.Window).Opaque = !app.Opaque
+							st := gui.State[App](ctx.Window)
+							st.Opaque = !st.Opaque
 							ctx.Consume()
 						},
 					}),

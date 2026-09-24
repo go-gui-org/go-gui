@@ -17,14 +17,22 @@ type App struct {
 	Clicks int
 }
 
+// demoWindow holds the window Init created; a repeat Init call
+// reuses it so the first window never leaks.
+var demoWindow *gui.Window
+
 // Init creates the gui.Window and registers it with the backend.
 func Init() {
+	if demoWindow != nil {
+		return
+	}
 	w := gui.NewWindow(gui.WindowCfg{
 		State: &App{},
 		OnInit: func(w *gui.Window) {
 			w.SetView(view)
 		},
 	})
+	demoWindow = w
 	android.SetWindow(w)
 }
 
@@ -43,21 +51,6 @@ func Render() {
 func TouchInput(phase int, identifier int64, x, y float32) {
 	android.TouchInput(phase, identifier, x, y)
 }
-
-// TouchBegan maps a touch-down event.
-//
-// Deprecated: use TouchInput for multi-touch support.
-func TouchBegan(x, y float32) { TouchInput(0, 0, x, y) }
-
-// TouchMoved maps a touch-move event.
-//
-// Deprecated: use TouchInput for multi-touch support.
-func TouchMoved(x, y float32) { TouchInput(1, 0, x, y) }
-
-// TouchEnded maps a touch-up event.
-//
-// Deprecated: use TouchInput for multi-touch support.
-func TouchEnded(x, y float32) { TouchInput(2, 0, x, y) }
 
 // Resize updates the viewport.
 func Resize(width, height int, scale float32) {
@@ -200,7 +193,8 @@ func view(w *gui.Window) gui.View {
 				Text: "Tap the button to increment.",
 			}),
 			gui.Button(gui.ButtonCfg{
-				ID: "android_click",
+				ID:      "android_click",
+				A11YCfg: gui.A11YCfg{A11YLabel: "Increment counter"},
 				Content: []gui.View{
 					gui.Text(gui.TextCfg{
 						Text: fmt.Sprintf("%d Clicks",

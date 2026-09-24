@@ -28,6 +28,10 @@ type App struct {
 	SimulateLatency bool
 }
 
+// pageLimit is the page size for both the grid view and its data
+// source — one literal so the two cannot drift apart.
+const pageLimit = 220
+
 func main() {
 	screenshot := flag.String("screenshot", "", "write screenshot and exit")
 	flag.Parse()
@@ -136,7 +140,7 @@ func mainView(w *gui.Window) gui.View {
 				Columns:         app.Columns,
 				DataSource:      app.Source,
 				PaginationKind:  paginationKind,
-				PageLimit:       220,
+				PageLimit:       pageLimit,
 				Query:           app.Query,
 				Selection:       app.Selection,
 				OnQueryChange: func(query datagrid.GridQueryState, ctx gui.EventCtx) {
@@ -164,7 +168,7 @@ func rebuildSource(app *App) {
 	// Recreate the source so pagination mode and latency toggles take effect.
 	app.Source = &datagrid.InMemoryDataSource{
 		Rows:           app.AllRows,
-		DefaultLimit:   220,
+		DefaultLimit:   pageLimit,
 		LatencyMs:      latency,
 		SupportsCursor: !app.UseOffset,
 	}

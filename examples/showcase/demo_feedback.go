@@ -36,7 +36,9 @@ func buttonFeatureRows(w *gui.Window) []gui.View {
 	buttonWidth := float32(160)
 	progress := float32(math.Mod(float64(app.ButtonClicks)/25.0, 1.0))
 	copyLabel := "Copy to clipboard"
-	if time.Now().Before(app.ButtonCopyUntil) {
+	// Expiry is driven by the copy-reset animation below, not by
+	// polling the wall clock here.
+	if !app.ButtonCopyUntil.IsZero() {
 		copyLabel = "Copied ✓"
 	}
 

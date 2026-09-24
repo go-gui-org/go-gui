@@ -17,49 +17,49 @@ type App struct {
 	Direction gui.GradientDirection
 }
 
-func directionName(d gui.GradientDirection) string {
+func directionName(d gui.GradientDirection) (string, bool) {
 	switch d {
 	case gui.GradientToTop:
-		return "to_top"
+		return "to_top", true
 	case gui.GradientToTopRight:
-		return "to_top_right"
+		return "to_top_right", true
 	case gui.GradientToRight:
-		return "to_right"
+		return "to_right", true
 	case gui.GradientToBottomRight:
-		return "to_bottom_right"
+		return "to_bottom_right", true
 	case gui.GradientToBottom:
-		return "to_bottom"
+		return "to_bottom", true
 	case gui.GradientToBottomLeft:
-		return "to_bottom_left"
+		return "to_bottom_left", true
 	case gui.GradientToLeft:
-		return "to_left"
+		return "to_left", true
 	case gui.GradientToTopLeft:
-		return "to_top_left"
+		return "to_top_left", true
 	default:
-		return "to_bottom"
+		return "", false
 	}
 }
 
-func parseDirection(s string) gui.GradientDirection {
+func parseDirection(s string) (gui.GradientDirection, bool) {
 	switch s {
 	case "to_top":
-		return gui.GradientToTop
+		return gui.GradientToTop, true
 	case "to_top_right":
-		return gui.GradientToTopRight
+		return gui.GradientToTopRight, true
 	case "to_right":
-		return gui.GradientToRight
+		return gui.GradientToRight, true
 	case "to_bottom_right":
-		return gui.GradientToBottomRight
+		return gui.GradientToBottomRight, true
 	case "to_bottom":
-		return gui.GradientToBottom
+		return gui.GradientToBottom, true
 	case "to_bottom_left":
-		return gui.GradientToBottomLeft
+		return gui.GradientToBottomLeft, true
 	case "to_left":
-		return gui.GradientToLeft
+		return gui.GradientToLeft, true
 	case "to_top_left":
-		return gui.GradientToTopLeft
+		return gui.GradientToTopLeft, true
 	default:
-		return gui.GradientToBottom
+		return gui.GradientDirection(0), false
 	}
 }
 
@@ -130,11 +130,36 @@ func gradientBox(w, h, radius float32, grad *gui.GradientDef,
 var (
 	magenta = gui.RGBA(255, 0, 255, 255)
 	cyan    = gui.RGBA(0, 255, 255, 255)
+
+	// Static radial gradients, hoisted so one shared def serves every
+	// frame. The linear ones stay built per frame: they take the live
+	// direction, so they are not static.
+	radialTall = radialGradient([]gui.GradientStop{
+		{Color: magenta, Pos: 0},
+		{Color: gui.Black, Pos: 1},
+	})
+	radialSquare = radialGradient([]gui.GradientStop{
+		{Color: gui.Red, Pos: 0},
+		{Color: gui.Green, Pos: 0.5},
+		{Color: gui.Blue, Pos: 1},
+	})
+	radialWide = radialGradient([]gui.GradientStop{
+		{Color: gui.Yellow, Pos: 0},
+		{Color: cyan, Pos: 1},
+	})
 )
 
 func mainView(w *gui.Window) gui.View {
 	app := gui.State[App](w)
+	theme := gui.CurrentTheme()
 	dir := app.Direction
+
+	dirName, dirOK := directionName(dir)
+	if !dirOK {
+		// Unreachable: dir only ever holds a parsed direction, but
+		// the radio group needs a string, so fall back explicitly.
+		dirName = "to_bottom"
+	}
 
 	dirOptions := []gui.RadioOption{
 		gui.NewRadioOption("to_top", "to_top"),
@@ -151,6 +176,9 @@ func mainView(w *gui.Window) gui.View {
 		ID:         "gradient-scroll",
 		Sizing:     gui.FillFill,
 		Scrollable: true,
+		ScrollbarCfgX: &gui.ScrollbarCfg{
+			Overflow: gui.ScrollbarAuto,
+		},
 		ScrollbarCfgY: &gui.ScrollbarCfg{
 			Overflow: gui.ScrollbarAuto,
 		},
@@ -159,23 +187,25 @@ func mainView(w *gui.Window) gui.View {
 		Content: []gui.View{
 			// Direction radio group
 			gui.Column(gui.ContainerCfg{
-				Spacing: gui.Some[float32](10),
+				Spacing:    gui.Some[float32](10),
+				SizeBorder: gui.NoBorder,
 				Content: []gui.View{
 					gui.Text(gui.TextCfg{
-						Text: "Direction",
-						TextStyle: gui.TextStyle{
-							Size: 20,
-						},
+						Text:      "Direction",
+						TextStyle: theme.TextStyleTitleSmall,
 					}),
 					gui.RadioButtonGroupColumn(gui.RadioButtonGroupCfg{
 						ID:          "gradient_demo_main_view",
-						Value:       directionName(dir),
+						Value:       dirName,
 						Options:     dirOptions,
 						SizeBorder:  gui.Some[float32](1),
-						ColorBorder: gui.DarkGray,
+						ColorBorder: theme.ColorBorder,
 						OnSelect: func(value string, ctx gui.EventCtx) {
-							gui.State[App](ctx.Window).Direction =
-								parseDirection(value)
+							parsed, ok := parseDirection(value)
+							if !ok {
+								return
+							}
+							gui.State[App](ctx.Window).Direction = parsed
 						},
 					}),
 				},
@@ -183,12 +213,13 @@ func mainView(w *gui.Window) gui.View {
 
 			// Linear gradients
 			gui.Column(gui.ContainerCfg{
-				Spacing: gui.Some[float32](20),
-				HAlign:  gui.HAlignCenter,
+				Spacing:    gui.Some[float32](20),
+				HAlign:     gui.HAlignCenter,
+				SizeBorder: gui.NoBorder,
 				Content: []gui.View{
 					gui.Text(gui.TextCfg{
 						Text:      "Linear Gradients",
-						TextStyle: gui.TextStyle{Size: 30},
+						TextStyle: theme.TextStyleTitle,
 					}),
 					gradientBox(200, 150, 15,
 						linearGradient(dir, gui.Blue, gui.Purple),
@@ -210,34 +241,28 @@ func mainView(w *gui.Window) gui.View {
 			// Vertical divider
 			gui.Rectangle(gui.RectangleCfg{
 				Width:  3,
-				Color:  gui.Gray,
+				Color:  theme.ColorBorder,
 				Sizing: gui.FitFill,
 			}),
 
 			// Radial gradients
 			gui.Column(gui.ContainerCfg{
-				Spacing: gui.Some[float32](40),
-				HAlign:  gui.HAlignCenter,
+				Spacing:    gui.Some[float32](40),
+				HAlign:     gui.HAlignCenter,
+				SizeBorder: gui.NoBorder,
 				Content: []gui.View{
 					gui.Text(gui.TextCfg{
 						Text:      "Radial Gradients",
-						TextStyle: gui.TextStyle{Size: 30},
+						TextStyle: theme.TextStyleTitle,
 					}),
 					gui.Row(gui.ContainerCfg{
 						Spacing: gui.Some[float32](30),
 						Content: []gui.View{
 							gradientBox(100, 300, 0,
-								radialGradient([]gui.GradientStop{
-									{Color: magenta, Pos: 0},
-									{Color: gui.Black, Pos: 1},
-								}),
+								radialTall,
 								nil, "Tall\n100x300", gui.White),
 							gradientBox(200, 200, 0,
-								radialGradient([]gui.GradientStop{
-									{Color: gui.Red, Pos: 0},
-									{Color: gui.Green, Pos: 0.5},
-									{Color: gui.Blue, Pos: 1},
-								}),
+								radialSquare,
 								nil, "Square\n200x200", gui.White),
 						},
 					}),
@@ -245,10 +270,7 @@ func mainView(w *gui.Window) gui.View {
 						Spacing: gui.Some[float32](40),
 						Content: []gui.View{
 							gradientBox(300, 100, 0,
-								radialGradient([]gui.GradientStop{
-									{Color: gui.Yellow, Pos: 0},
-									{Color: cyan, Pos: 1},
-								}),
+								radialWide,
 								nil, "Wide 300x100", gui.Black),
 						},
 					}),

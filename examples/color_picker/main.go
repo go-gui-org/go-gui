@@ -180,7 +180,7 @@ func channelRow(
 				},
 			}),
 			gui.ColorChannelSlider(gui.ColorChannelSliderCfg{
-				ID:      gui.ScopeID("channels", id),
+				ID:      gui.ScopeID("color_picker_main", "channels", id),
 				Channel: ch,
 				Value:   app.Color,
 				Width:   sliderWidth,

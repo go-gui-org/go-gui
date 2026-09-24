@@ -25,6 +25,11 @@ const (
 	buttonSize   = float32(42)
 	buttonGap    = float32(6)
 	displayFocus = "display"
+
+	// maxDisplayLen caps typed input at what the 200px display
+	// fits at its smallest size step; computed results already
+	// shorten themselves in formatValue.
+	maxDisplayLen = 16
 )
 
 var (
@@ -329,8 +334,8 @@ func displayView(w *gui.Window) gui.View {
 
 func keypadView(w *gui.Window) gui.View {
 	content := make([]gui.View, 0, len(keypadRows))
-	for _, row := range keypadRows {
-		content = append(content, keypadRow(w, row))
+	for ri, row := range keypadRows {
+		content = append(content, keypadRow(w, row, ri))
 	}
 
 	return gui.Column(gui.ContainerCfg{
@@ -343,10 +348,10 @@ func keypadView(w *gui.Window) gui.View {
 	})
 }
 
-func keypadRow(w *gui.Window, buttons []calcButton) gui.View {
+func keypadRow(w *gui.Window, buttons []calcButton, ri int) gui.View {
 	content := make([]gui.View, 0, len(buttons))
-	for _, button := range buttons {
-		content = append(content, calcKey(w, button))
+	for ci, button := range buttons {
+		content = append(content, calcKey(w, button, ri*len(buttons)+ci))
 	}
 
 	return gui.Row(gui.ContainerCfg{
@@ -359,7 +364,7 @@ func keypadRow(w *gui.Window, buttons []calcButton) gui.View {
 	})
 }
 
-func calcKey(_ *gui.Window, button calcButton) gui.View {
+func calcKey(_ *gui.Window, button calcButton, n int) gui.View {
 	labelStyle := gui.TextStyle{
 		Color: colorScreenText,
 		Size:  16,
@@ -373,7 +378,7 @@ func calcKey(_ *gui.Window, button calcButton) gui.View {
 	}
 
 	return gui.Button(gui.ButtonCfg{
-		ID:         "calc-" + strings.NewReplacer("/", "div", "*", "mul", "+", "add", "-", "sub", ".", "dot", "%", "pct", "=", "eq").Replace(button.Label),
+		ID:         gui.ScopeIDN("calc", "key", n),
 		Color:      button.Background,
 		Colors:     gui.ColorSet{Hover: lighten(button.Background, 12), Click: lighten(button.Background, 24), Focus: lighten(button.Background, 12), Border: lighten(button.Background, 18), BorderFocus: lighten(button.Background, 28)},
 		SizeBorder: gui.SomeF(2),
@@ -401,6 +406,9 @@ func appendDigit(state *calculatorState, digit string) {
 	if state.ReplaceDisplay || state.Display == "0" {
 		state.Display = digit
 		state.ReplaceDisplay = false
+		return
+	}
+	if len(state.Display) >= maxDisplayLen {
 		return
 	}
 	state.Display += digit

@@ -143,11 +143,12 @@ func mainView(w *gui.Window) gui.View {
 	}
 
 	return gui.Column(gui.ContainerCfg{
-		Sizing:  gui.FillFill,
-		HAlign:  gui.HAlignCenter,
-		VAlign:  gui.VAlignMiddle,
-		Spacing: gui.Some[float32](10),
-		Padding: gui.NewPadding(paddingOuter, paddingOuter, paddingOuter, paddingOuter),
+		Sizing:     gui.FillFill,
+		HAlign:     gui.HAlignCenter,
+		VAlign:     gui.VAlignMiddle,
+		Spacing:    gui.Some[float32](10),
+		Padding:    gui.NewPadding(paddingOuter, paddingOuter, paddingOuter, paddingOuter),
+		SizeBorder: gui.NoBorder,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{Text: "Snake", TextStyle: theme.TextStyleTitle}),
 			gui.Text(gui.TextCfg{Text: fmt.Sprintf("Score: %d", g.Score), TextStyle: theme.TextStyleTitleSmall}),
@@ -285,6 +286,7 @@ func landingBackdrop(ww, wh float32, _ int) gui.View {
 		{74, 526, 28, gui.RGB(72, 198, 255), gui.IconGamepad},
 		{462, 526, 28, gui.RGB(255, 110, 61), gui.IconKeyboard},
 	}
+	theme := gui.CurrentTheme()
 	for _, icon := range icons {
 		content = append(content, gui.Column(gui.ContainerCfg{
 			X:       icon.x,
@@ -296,7 +298,7 @@ func landingBackdrop(ww, wh float32, _ int) gui.View {
 			Content: []gui.View{
 				gui.Text(gui.TextCfg{
 					Text:      icon.text,
-					TextStyle: textStyle(gui.CurrentTheme().TextStyleIconLarge, icon.size, icon.color),
+					TextStyle: textStyle(theme.TextStyleIconLarge, icon.size, icon.color),
 				}),
 			},
 		}))

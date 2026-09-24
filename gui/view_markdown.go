@@ -35,17 +35,18 @@ type MarkdownStyle struct {
 	// code blocks whose info string names a supported language.
 	// When nil, the markdown parser's built-in primitive tokenizer
 	// is used. Use highlight.Default() for chroma-backed coverage.
-	CodeHighlighter   highlight.Highlighter
-	tableRowAlt       *Color
-	mathDPIDisplay    int
-	mathDPIInline     int
-	codeBlockPadding  Padding
-	tableCellPadding  Padding
-	blockSpacing      float32
-	nestIndent        float32
-	prefixCharWidth   float32
-	codeBlockRadius   float32
-	tableBorderSize   float32
+	CodeHighlighter  highlight.Highlighter
+	tableRowAlt      *Color
+	mathDPIDisplay   int
+	mathDPIInline    int
+	codeBlockPadding Padding
+	tableCellPadding Padding
+	blockSpacing     float32
+	nestIndent       float32
+	prefixCharWidth  float32
+	codeBlockRadius  float32
+	tableBorderSize  float32
+	// exportaudit:keep — public style field; app authors override it per theme
 	CodeBlockBG       Color
 	codeKeywordColor  Color
 	codeStringColor   Color

@@ -46,7 +46,7 @@ func mainView(w *gui.Window) gui.View {
 	app := gui.State[App](w)
 
 	return gui.ContextMenu(w, gui.ContextMenuCfg{
-		ID:     "ctx",
+		ID:     gui.ScopeID("context_menu", "ctx"),
 		Sizing: gui.FillFill,
 		HAlign: gui.HAlignCenter,
 		VAlign: gui.VAlignMiddle,

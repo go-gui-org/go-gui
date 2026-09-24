@@ -3,6 +3,7 @@
 package main
 
 import (
+	"fmt"
 	"strings"
 
 	"flag"
@@ -311,6 +312,8 @@ func showAlertResult(kind string, r gui.NativeAlertResult,
 		default:
 			body = "Unknown error."
 		}
+	default:
+		body = fmt.Sprintf("Status %d.", r.Status)
 	}
 	w.Dialog(gui.DialogCfg{Title: kind, Body: body})
 }
@@ -337,6 +340,8 @@ func showNativeResult(kind string, r gui.NativeDialogResult,
 		default:
 			body = "Unknown error."
 		}
+	default:
+		body = fmt.Sprintf("Status %d.", r.Status)
 	}
 	w.Dialog(gui.DialogCfg{Title: kind, Body: body})
 }

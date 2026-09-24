@@ -183,11 +183,22 @@ func subtreeWidth(p *Person) float32 {
 }
 
 // depth counts the generations from p down to the deepest descendant.
+// A revisit on the current path is a cycle, so that branch contributes
+// nothing instead of recursing forever.
 func depth(p *Person) int {
+	return depthVisit(p, make(map[*Person]bool))
+}
+
+func depthVisit(p *Person, onPath map[*Person]bool) int {
+	if p == nil || onPath[p] {
+		return 0
+	}
+	onPath[p] = true
 	d := 0
 	for _, c := range p.Children {
-		d = max(d, depth(c))
+		d = max(d, depthVisit(c, onPath))
 	}
+	delete(onPath, p)
 	return d + 1
 }
 
@@ -323,7 +334,18 @@ func mainView(w *gui.Window) gui.View {
 	return gui.Column(gui.ContainerCfg{
 		Sizing: gui.FillFill,
 		Content: []gui.View{
-			gui.Text(gui.TextCfg{Text: status}),
+			// Live region: selection changes announce. gui has no
+			// dedicated status role, so the wrapper carries the live
+			// state directly (the same mechanism Toast uses).
+			gui.Row(gui.ContainerCfg{
+				ID:         gui.ScopeID("family_tree", "status"),
+				SizeBorder: gui.NoBorder,
+				Padding:    gui.NoPadding,
+				A11YState:  gui.AccessStateLive,
+				Content: []gui.View{
+					gui.Text(gui.TextCfg{Text: status}),
+				},
+			}),
 			gui.Column(gui.ContainerCfg{
 				ID:         "tree",
 				Scrollable: true,

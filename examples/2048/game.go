@@ -19,11 +19,16 @@ type Point struct {
 }
 
 type Game struct {
-	Grid       Grid
+	Grid    Grid
+	TileIDs Grid // parallel identity grid: TileIDs[y][x] is the
+	// stable identity of the tile in Grid[y][x], so Hero
+	// animations track slides and merges instead of
+	// board positions.
 	Score      int
 	State      GameState
 	TargetWin  int  // Usually 2048
 	IsModified bool // True if the last move changed the grid
+	nextID     int  // last issued tile identity
 }
 
 func NewGame() *Game {
@@ -54,6 +59,8 @@ func (g *Game) Spawn() {
 		val = 4
 	}
 	g.Grid[p.Y][p.X] = val
+	g.nextID++
+	g.TileIDs[p.Y][p.X] = g.nextID
 }
 
 type Direction int
@@ -66,8 +73,20 @@ const (
 )
 
 func (g *Game) Move(dir Direction) bool {
-	if g.State == StateGameOver {
+	if g.State != StatePlaying {
 		return false
+	}
+
+	// Adopt identities for tiles placed without one (grids
+	// assigned directly, as in tests) so every tile the
+	// renderer sees carries a stable ID.
+	for y := range 4 {
+		for x := range 4 {
+			if g.Grid[y][x] != 0 && g.TileIDs[y][x] == 0 {
+				g.nextID++
+				g.TileIDs[y][x] = g.nextID
+			}
+		}
 	}
 
 	modified := false
@@ -76,21 +95,26 @@ func (g *Game) Move(dir Direction) bool {
 	// We'll process each row/column based on direction
 	for i := range 4 {
 		var line [4]int
+		var ids [4]int
 		// Extract line
 		for j := range 4 {
 			switch dir {
 			case DirUp:
 				line[j] = g.Grid[j][i]
+				ids[j] = g.TileIDs[j][i]
 			case DirDown:
 				line[j] = g.Grid[3-j][i]
+				ids[j] = g.TileIDs[3-j][i]
 			case DirLeft:
 				line[j] = g.Grid[i][j]
+				ids[j] = g.TileIDs[i][j]
 			case DirRight:
 				line[j] = g.Grid[i][3-j]
+				ids[j] = g.TileIDs[i][3-j]
 			}
 		}
 
-		newLine, s, m := g.mergeLine(line)
+		newLine, newIDs, s, m := mergeLineWithIDs(line, ids, &g.nextID)
 		scoreAdded += s
 		if m {
 			modified = true
@@ -101,12 +125,16 @@ func (g *Game) Move(dir Direction) bool {
 			switch dir {
 			case DirUp:
 				g.Grid[j][i] = newLine[j]
+				g.TileIDs[j][i] = newIDs[j]
 			case DirDown:
 				g.Grid[3-j][i] = newLine[j]
+				g.TileIDs[3-j][i] = newIDs[j]
 			case DirLeft:
 				g.Grid[i][j] = newLine[j]
+				g.TileIDs[i][j] = newIDs[j]
 			case DirRight:
 				g.Grid[i][3-j] = newLine[j]
+				g.TileIDs[i][3-j] = newIDs[j]
 			}
 		}
 	}
@@ -125,7 +153,17 @@ func (g *Game) Move(dir Direction) bool {
 }
 
 func (g *Game) mergeLine(line [4]int) ([4]int, int, bool) {
+	next, _, score, modified := mergeLineWithIDs(line, [4]int{}, nil)
+	return next, score, modified
+}
+
+// mergeLineWithIDs slides and merges line exactly like mergeLine
+// while carrying tile identities alongside values. A merged tile
+// takes a fresh identity from nextID so it animates as a new tile;
+// nextID may be nil (mergeLine's case), leaving merged IDs zero.
+func mergeLineWithIDs(line, ids [4]int, nextID *int) ([4]int, [4]int, int, bool) {
 	var next [4]int
+	var nextIDs [4]int
 	pos := 0
 	score := 0
 	modified := false
@@ -134,6 +172,7 @@ func (g *Game) mergeLine(line [4]int) ([4]int, int, bool) {
 	for i := range 4 {
 		if line[i] != 0 {
 			next[pos] = line[i]
+			nextIDs[pos] = ids[i]
 			if pos != i {
 				modified = true
 			}
@@ -147,15 +186,23 @@ func (g *Game) mergeLine(line [4]int) ([4]int, int, bool) {
 			next[i] *= 2
 			score += next[i]
 			modified = true
+			if nextID != nil {
+				*nextID++
+				nextIDs[i] = *nextID
+			} else {
+				nextIDs[i] = 0
+			}
 			// Shift remaining
 			for j := i + 1; j < 3; j++ {
 				next[j] = next[j+1]
+				nextIDs[j] = nextIDs[j+1]
 			}
 			next[3] = 0
+			nextIDs[3] = 0
 		}
 	}
 
-	return next, score, modified
+	return next, nextIDs, score, modified
 }
 
 func (g *Game) checkWin() bool {
@@ -192,6 +239,8 @@ func (g *Game) checkGameOver() bool {
 
 func (g *Game) Reset() {
 	g.Grid = Grid{}
+	g.TileIDs = Grid{}
+	g.nextID = 0
 	g.Score = 0
 	g.State = StatePlaying
 	g.Spawn()

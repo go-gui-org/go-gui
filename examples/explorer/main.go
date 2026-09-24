@@ -107,8 +107,8 @@ func main() {
 	metas, err := Discover(root)
 	if err != nil {
 		// Non-fatal: show empty list with error status.
+		log.Printf("discover %s: %v", root, err)
 		metas = nil
-		_ = err
 	}
 	// Default selection is first example.
 	selected := ""
@@ -139,8 +139,6 @@ func main() {
 		},
 	})
 	// Ensure child processes are killed when window closes.
-	origOnClose := w.Config.OnCloseRequest
-	_ = origOnClose
 	backend.RunApp(guiApp, w)
 	// Cleanup after backend exits.
 	globalRunner.KillAll()
@@ -265,20 +263,24 @@ func tagChips(tags []string, app *ExplorerApp) gui.View {
 		return gui.Column(gui.ContainerCfg{Sizing: gui.FillFit})
 	}
 	// Show All + first 12 tags to avoid overflow.
-	limit := 12
+	const limit = 12
+	visible := tags
+	overflow := 0
 	if len(tags) > limit {
-		tags = tags[:limit]
+		visible = tags[:limit]
+		overflow = len(tags) - limit
 	}
-	chips := make([]gui.View, 0, len(tags)+1)
+	chips := make([]gui.View, 0, len(visible)+2)
 	// All chip
 	allSelected := app.SelectedTag == ""
-	chips = append(chips, chipView("All", allSelected, func(ctx gui.EventCtx) {
+	chips = append(chips, chipView(gui.ScopeID("explorer", "chip", "all"), "All", allSelected, func(ctx gui.EventCtx) {
 		gui.State[ExplorerApp](ctx.Window).SelectedTag = ""
 		ctx.Window.InvalidateLayout()
 	}))
-	for _, tag := range tags {
+	for i, tag := range visible {
 		selected := app.SelectedTag == tag
-		chips = append(chips, chipView(tag, selected, func(ctx gui.EventCtx) {
+		// Index-based: raw tag text carries spaces and separators.
+		chips = append(chips, chipView(gui.ScopeIDN("explorer", "chip", i), tag, selected, func(ctx gui.EventCtx) {
 			a := gui.State[ExplorerApp](ctx.Window)
 			if a.SelectedTag == tag {
 				a.SelectedTag = ""
@@ -288,6 +290,12 @@ func tagChips(tags []string, app *ExplorerApp) gui.View {
 			ctx.Window.InvalidateLayout()
 		}))
 	}
+	if overflow > 0 {
+		chips = append(chips, gui.Text(gui.TextCfg{
+			Text:      fmt.Sprintf("+%d more", overflow),
+			TextStyle: gui.CurrentTheme().TextStyleCaption,
+		}))
+	}
 	return gui.Wrap(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
 		Spacing: gui.SomeF(6),
@@ -295,8 +303,7 @@ func tagChips(tags []string, app *ExplorerApp) gui.View {
 	})
 }
 
-func chipView(label string, selected bool, onClick func(gui.EventCtx)) gui.View {
-	id := gui.ScopeID("explorer", "chip", label)
+func chipView(id, label string, selected bool, onClick func(gui.EventCtx)) gui.View {
 	variant := gui.ButtonGhost
 	if selected {
 		variant = gui.ButtonPrimary

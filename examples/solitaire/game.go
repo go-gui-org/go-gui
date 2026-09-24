@@ -179,7 +179,7 @@ func (g *Game) Draw() {
 		}
 		g.Waste = g.Waste[:0]
 		if g.DrawMode == DrawThree {
-			g.Score -= 100
+			g.Score = max(g.Score-100, 0)
 		}
 		return
 	}

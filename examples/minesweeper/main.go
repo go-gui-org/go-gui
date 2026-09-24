@@ -287,9 +287,9 @@ func landingContent(w *gui.Window, app *App, theme gui.Theme) []gui.View {
 func diffButton(w *gui.Window, title, subtitle string, diff Difficulty, color gui.Color) gui.View {
 	theme := gui.CurrentTheme()
 	return gui.Button(gui.ButtonCfg{
-		// title is a distinct literal at every call site, so it yields a
-		// unique, frame-stable focus ID without widening the signature.
-		ID:         "mine_diff_" + title,
+		// ScopeID composes a unique, frame-stable focus ID from the
+		// distinct title at each call site.
+		ID:         gui.ScopeID("mine_diff", title),
 		MinWidth:   130,
 		Color:      color.WithOpacity(0.15),
 		Colors:     gui.ColorSet{Hover: color.WithOpacity(0.3), Click: color.WithOpacity(0.5), Border: color},
@@ -542,7 +542,7 @@ func gameView(w *gui.Window) gui.View {
 
 func headerView(app *App, theme gui.Theme, boardW float32) gui.View {
 	g := app.Game
-	remaining := g.MineCount - g.FlagsUsed
+	remaining := max(g.MineCount-g.FlagsUsed, 0)
 
 	smileyIcon := gui.IconSmile
 	smileyColor := gui.RGB(255, 200, 0)
@@ -920,8 +920,9 @@ func footerView(app *App, g *Game, theme gui.Theme) gui.View {
 }
 
 func smallButton(label string, action func(*gui.Window)) gui.View {
+	theme := gui.CurrentTheme()
 	return gui.Button(gui.ButtonCfg{
-		ID:         "minesweeper_small_button",
+		ID:         gui.ScopeID("minesweeper_small_button", label),
 		Color:      gui.RGB(45, 50, 58),
 		Colors:     gui.ColorSet{Hover: gui.RGB(60, 66, 74), Click: gui.RGB(35, 40, 48), Border: gui.RGB(90, 95, 100)},
 		SizeBorder: gui.SomeF(1),
@@ -929,7 +930,7 @@ func smallButton(label string, action func(*gui.Window)) gui.View {
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text: label,
-				TextStyle: ts(gui.CurrentTheme().Mono(gui.CurrentTheme().TextStyleBodySmall), 12,
+				TextStyle: ts(theme.Mono(theme.TextStyleBodySmall), 12,
 					gui.RGB(200, 205, 210)),
 			}),
 		},

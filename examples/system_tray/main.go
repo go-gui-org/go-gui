@@ -39,7 +39,8 @@ func main() {
 		OnInit: func(w *gui.Window) {
 			w.SetView(mainView)
 
-			_, err := app.SetSystemTray(gui.SystemTrayCfg{
+			var tray *gui.SystemTrayHandle
+			tray, err := app.SetSystemTray(gui.SystemTrayCfg{
 				Tooltip: "Go-GUI Tray Demo",
 				IconPNG: trayIcon,
 				Menu: []gui.NativeMenuItemCfg{
@@ -49,6 +50,24 @@ func main() {
 					{ID: "quit", Text: "Quit"},
 				},
 				OnAction: func(id string) {
+					switch id {
+					case "quit":
+						// Quit means removing the tray too:
+						// ExitOnTrayRemoved exits only when no
+						// window and no tray remain.
+						app.RemoveSystemTray(tray)
+						gui.DispatchQuitRequest(app)
+						return
+					case "show":
+						// No window show/raise affordance exists
+						// in gui, so acknowledge the already
+						// visible window in the status line.
+						w.QueueCommand(func(w *gui.Window) {
+							gui.State[App](w).Status =
+								"Window already visible."
+						})
+						return
+					}
 					w.QueueCommand(func(w *gui.Window) {
 						s := gui.State[App](w)
 						s.Status = "Tray action: " + id
@@ -57,6 +76,13 @@ func main() {
 			})
 			if err != nil {
 				log.Printf("tray: %v", err)
+				// The status line promises the tray keeps the
+				// app alive; without a tray that is false, so
+				// say the app runs tray-less instead.
+				w.QueueCommand(func(w *gui.Window) {
+					gui.State[App](w).Status =
+						"Running without tray: " + err.Error()
+				})
 			}
 		},
 	})
@@ -77,10 +103,14 @@ func mainView(w *gui.Window) gui.View {
 	return gui.Column(gui.ContainerCfg{
 		Sizing: gui.FillFill,
 		HAlign: gui.HAlignCenter,
+		// Structural wrapper: an unset border still reserves height.
+		SizeBorder: gui.NoBorder,
 		Content: []gui.View{
 			gui.Rectangle(gui.RectangleCfg{
 				Height: 40,
 				Sizing: gui.FillFixed,
+				// Primitive border: 0 is an explicit no-border.
+				SizeBorder: 0,
 			}),
 			gui.Text(gui.TextCfg{
 				Text:      "System Tray Demo",

@@ -18,6 +18,7 @@ type App struct {
 	keyUpCount   int
 	lastKeyDown  gui.KeyCode
 	lastKeyUp    gui.KeyCode
+	text         string
 }
 
 func main() {
@@ -64,19 +65,24 @@ func mainView(w *gui.Window) gui.View {
 				Text: fmt.Sprintf("Key Up: %d (Last: %v)", app.keyUpCount, app.lastKeyUp),
 			}),
 			gui.Input(gui.InputCfg{
-				ID:   "kud_input",
-				Text: "Type here to test key up events...",
+				ID:          "kud_input",
+				Text:        app.text,
+				Placeholder: "Type here to test key up events...",
+				A11YCfg: gui.A11YCfg{
+					A11YLabel: "Key event test field",
+				},
+				OnTextChanged: func(s string, ctx gui.EventCtx) {
+					gui.State[App](ctx.Window).text = s
+				},
 				OnKeyDown: func(ctx gui.EventCtx) {
-					app := gui.State[App](ctx.Window)
-					app.keyDownCount++
-					app.lastKeyDown = ctx.Event.KeyCode
-					ctx.Window.InvalidateLayout()
+					st := gui.State[App](ctx.Window)
+					st.keyDownCount++
+					st.lastKeyDown = ctx.Event.KeyCode
 				},
 				OnKeyUp: func(ctx gui.EventCtx) {
-					app := gui.State[App](ctx.Window)
-					app.keyUpCount++
-					app.lastKeyUp = ctx.Event.KeyCode
-					ctx.Window.InvalidateLayout()
+					st := gui.State[App](ctx.Window)
+					st.keyUpCount++
+					st.lastKeyUp = ctx.Event.KeyCode
 				},
 			}),
 		},

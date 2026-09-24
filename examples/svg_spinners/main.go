@@ -17,8 +17,6 @@ import (
 	"github.com/go-gui-org/go-gui/gui/backend/soft"
 )
 
-type App struct{}
-
 const (
 	cellsPerRow = 4
 	cellSize    = 140
@@ -57,15 +55,10 @@ func main() {
 
 	gui.SetTheme(gui.ThemeDark)
 	w := gui.NewWindow(gui.WindowCfg{
-		State:  &App{},
 		Title:  "svg_spinners",
 		Width:  cellsPerRow*cellSize + 65,
 		Height: 4 * cellSize,
 		OnInit: func(w *gui.Window) {
-			if useIsolation {
-				w.SetView(isolatedView)
-				return
-			}
 			w.SetView(mainView)
 		},
 	})

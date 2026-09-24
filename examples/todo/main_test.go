@@ -55,7 +55,7 @@ func TestDeleteTodoRemovesItem(t *testing.T) {
 	w := gui.NewTestWindow(gui.WindowCfg{State: app, Width: 540, Height: 640})
 	w.TestRender(mainView)
 
-	if err := w.TestClick("todo-delete-1"); err != nil {
+	if err := w.TestClick("todo:delete:1"); err != nil {
 		t.Fatalf("TestClick: %v", err)
 	}
 	for _, it := range app.Items {

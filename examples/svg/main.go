@@ -106,39 +106,49 @@ func main() {
 
 func mainView(w *gui.Window) gui.View {
 	app := gui.State[SvgViewerApp](w)
+	entries := svgEntries()
 
 	return gui.Row(gui.ContainerCfg{
 		Sizing: gui.FillFill,
 		Content: []gui.View{
-			navPanel(app.Selected),
-			contentPanel(app.Selected),
+			navPanel(w, entries, app.Selected),
+			contentPanel(entries, app.Selected),
 		},
 	})
 }
 
-func navPanel(selected int) gui.View {
-	entries := svgEntries()
+func navPanel(w *gui.Window, entries []svgEntry, selected int) gui.View {
 	items := make([]gui.View, len(entries))
 
 	for i, entry := range entries {
+		leaf := gui.ScopeIDN("svg_nav", "row", i)
+		// Hover look is re-picked at generation from the
+		// last arranged frame (cf. buttonOnHover in
+		// gui/view_button.go) instead of mutating
+		// Shape.Color in OnHover with no leave-reset.
 		color := gui.ColorTransparent
 		if i == selected {
 			color = gui.CurrentTheme().ColorActive
+		} else if w.IsHovered(leaf) {
+			color = gui.CurrentTheme().ColorHover
 		}
 		// Capture the current loop values for the click handler.
 		idx := i
 		name := entry.Name
 		items[i] = gui.Row(gui.ContainerCfg{
+			ID:      leaf,
 			Color:   color,
 			Padding: gui.PaddingTwoFive,
 
 			Sizing: gui.FillFit,
+			// No ctx.Consume: no ancestor in this tree
+			// handles OnClick, so nothing to stop.
 			OnClick: func(ctx gui.EventCtx) {
 				gui.State[SvgViewerApp](ctx.Window).Selected = idx
+				ctx.Window.InvalidateRender()
 			},
 			OnHover: func(ctx gui.EventCtx) {
 				ctx.Window.SetMouseCursorPointingHand()
-				ctx.Layout.Shape.Color = gui.CurrentTheme().ColorHover
 			},
 			Content: []gui.View{
 				gui.Text(gui.TextCfg{Text: name}),
@@ -147,21 +157,26 @@ func navPanel(selected int) gui.View {
 	}
 
 	return gui.Column(gui.ContainerCfg{
-		ID:      "nav",
-		Color:   gui.CurrentTheme().ColorPanel,
-		Sizing:  gui.FitFill,
-		Content: items,
+		ID:         "nav",
+		Color:      gui.CurrentTheme().ColorPanel,
+		SizeBorder: gui.NoBorder,
+		Sizing:     gui.FitFill,
+		Content:    items,
 	})
 }
 
-func contentPanel(selected int) gui.View {
-	entry := svgEntries()[selected]
+func contentPanel(entries []svgEntry, selected int) gui.View {
+	if selected < 0 || selected >= len(entries) {
+		selected = 0
+	}
+	entry := entries[selected]
 	return gui.Column(gui.ContainerCfg{
-		ID:     "content",
-		Color:  gui.CurrentTheme().ColorPanel,
-		Sizing: gui.FillFill,
-		HAlign: gui.HAlignCenter,
-		VAlign: gui.VAlignMiddle,
+		ID:         "content",
+		Color:      gui.CurrentTheme().ColorPanel,
+		SizeBorder: gui.NoBorder,
+		Sizing:     gui.FillFill,
+		HAlign:     gui.HAlignCenter,
+		VAlign:     gui.VAlignMiddle,
 		Content: []gui.View{
 			gui.Svg(gui.SvgCfg{SvgData: entry.Data, Sizing: gui.FillFill}),
 		},

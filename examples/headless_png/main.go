@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 
 	"github.com/go-gui-org/go-gui/gui"
 	"github.com/go-gui-org/go-gui/gui/backend/soft"
@@ -24,9 +25,15 @@ func main() {
 		out = *screenshot
 	} else if flag.NArg() > 0 {
 		out = flag.Arg(0)
-	} else if len(os.Args) > 1 && os.Args[1] != "" {
-		// Fallback for direct os.Args use without flag.Parse
-		out = os.Args[1]
+	}
+	// Clean the CLI-supplied path and ensure its directory exists, so
+	// "out/dir/headless.png" writes instead of failing on Mkdir-less
+	// output paths.
+	out = filepath.Clean(out)
+	if dir := filepath.Dir(out); dir != "." {
+		if err := os.MkdirAll(dir, 0o750); err != nil {
+			log.Fatalf("mkdir %s: %v", dir, err)
+		}
 	}
 
 	// A window built exactly as it would be for backend.Run — the
@@ -54,8 +61,7 @@ func mainView(w *gui.Window) gui.View {
 		Spacing: gui.SomeF(12),
 		Content: []gui.View{
 			gui.Label("Rendered without a GPU", gui.CurrentTheme().TextStyleDisplay),
-			gui.TextButton("hp_counter",
-				fmt.Sprintf("%d Clicks", app.Clicks), nil),
+			gui.Label(fmt.Sprintf("%d Clicks", app.Clicks), gui.CurrentTheme().TextStyleBody),
 		},
 	})
 }

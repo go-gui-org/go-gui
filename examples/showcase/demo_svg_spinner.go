@@ -159,7 +159,7 @@ func demoSvgSpinner(w *gui.Window) gui.View {
 			Spacing:    gui.SomeF(6),
 			Content: []gui.View{
 				gui.SvgSpinner(gui.SvgSpinnerCfg{
-					ID:     "svg-spin-" + gui.SvgSpinnerName(k),
+					ID:     gui.ScopeID("svg-spinner", gui.SvgSpinnerName(k)),
 					Kind:   k,
 					Width:  72,
 					Height: 72,

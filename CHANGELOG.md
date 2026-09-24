@@ -23,6 +23,14 @@ and this project adheres to
 
 ### Fixed
 
+- **CommandButton consumes the click it acts on** — the auto-wired `OnClick` now
+  calls `ctx.Consume()` when the command executes, so an ancestor handler no
+  longer double-fires behind the button. Declined clicks (failing `CanExecute`,
+  nil `Execute`) stay unconsumed. All 67 demos now follow the same rules:
+  `ScopeID`/`ScopeIDN` identity, Theme roles over literals, `NoBorder` on
+  structural wrappers, `QueueCommand` under the frame lock, and `w.Ctx`-bound
+  background goroutines.
+
 - **Data grid correctness, hardening and efficiency pass** — app-driven cell
   edits with unchanged IDs/length now refresh the CRUD working copy instead of
   silently dropping; draft IDs flatten scoped grid IDs so row keys never carry

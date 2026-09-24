@@ -10,6 +10,7 @@ import (
 	"flag"
 	"log"
 	"os"
+	"path/filepath"
 
 	"github.com/go-gui-org/go-gui/gui"
 	"github.com/go-gui-org/go-gui/gui/backend"
@@ -24,6 +25,8 @@ func main() {
 	screenshot := flag.String("screenshot", "", "write screenshot and exit")
 	flag.Parse()
 
+	// Pinned for the demo's look: the page is designed around the
+	// dark palette (get_started leaves the default unset).
 	gui.SetTheme(gui.ThemeDark)
 
 	w := gui.NewWindow(gui.WindowCfg{
@@ -37,7 +40,11 @@ func main() {
 	})
 
 	if *screenshot != "" {
-		if err := soft.RenderToPNG(w, 2, *screenshot); err != nil {
+		out := filepath.Clean(*screenshot)
+		if out == "" || out == "." {
+			log.Fatalf("screenshot: invalid path %q", *screenshot)
+		}
+		if err := soft.RenderToPNG(w, 2, out); err != nil {
 			log.Fatalf("screenshot: %v", err)
 		}
 		os.Exit(0)

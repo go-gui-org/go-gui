@@ -7,10 +7,9 @@ import (
 )
 
 func TestMainViewNoPanic(t *testing.T) {
-	t.Parallel()
+	// Not parallel: see TestIsolatedViewNoPanic — shared theme state.
 	gui.SetTheme(gui.ThemeDark)
 	w := gui.NewWindow(gui.WindowCfg{
-		State:  &App{},
 		Width:  520,
 		Height: 640,
 	})

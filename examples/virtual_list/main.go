@@ -36,7 +36,10 @@ type message struct {
 type App struct {
 	Messages []message
 	JumpText string
-	Pinned   bool
+	// JumpErr is the last jump failure, shown under the controls until
+	// the box text changes or a jump succeeds. "" means clean.
+	JumpErr string
+	Pinned  bool
 }
 
 // lorem supplies bodies of visibly different lengths.
@@ -97,27 +100,35 @@ func main() {
 
 // appender adds a message every second, so the pin-to-bottom toggle
 // has something to follow. Window state is main-goroutine only, so
-// the mutation goes through QueueCommand.
+// the mutation goes through QueueCommand. The ticker stops and the
+// goroutine exits when the window's lifecycle context ends.
 func appender(w *gui.Window) {
 	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
-	for range time.Tick(time.Second) {
-		w.QueueCommand(func(w *gui.Window) {
-			app := gui.State[App](w)
-			msg := newMessage(len(app.Messages) + rng.Intn(3))
-			// Seq is the row's ItemKey, so it has to be unique: the
-			// random part above only varies who and what, and two rows
-			// sharing a key would share one measured height.
-			msg.Seq = len(app.Messages)
-			app.Messages = append(app.Messages, msg)
-			if app.Pinned {
-				// The reason ScrollToEnd exists: the content height
-				// under virtualization is assembled from spacers over
-				// estimated rows, so a percentage-based "scroll to
-				// 100%" drifts a little further off with every append.
-				w.ScrollToEnd(listID)
-			}
-			w.InvalidateLayout()
-		})
+	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-w.Ctx().Done():
+			return
+		case <-ticker.C:
+			w.QueueCommand(func(w *gui.Window) {
+				app := gui.State[App](w)
+				msg := newMessage(len(app.Messages) + rng.Intn(3))
+				// Seq is the row's ItemKey, so it has to be unique: the
+				// random part above only varies who and what, and two rows
+				// sharing a key would share one measured height.
+				msg.Seq = len(app.Messages)
+				app.Messages = append(app.Messages, msg)
+				if app.Pinned {
+					// The reason ScrollToEnd exists: the content height
+					// under virtualization is assembled from spacers over
+					// estimated rows, so a percentage-based "scroll to
+					// 100%" drifts a little further off with every append.
+					w.ScrollToEnd(listID)
+				}
+				w.InvalidateLayout()
+			})
+		}
 	}
 }
 
@@ -154,11 +165,14 @@ func mainView(w *gui.Window) gui.View {
 	})
 }
 
-// controls is the jump-to-index box and the pin toggle.
+// controls is the jump-to-index box and the pin toggle. A failed jump
+// leaves its reason in app.JumpErr, rendered under the row until the
+// box text changes or a jump succeeds.
 func controls(app *App) gui.View {
-	return gui.Row(gui.ContainerCfg{
+	theme := gui.CurrentTheme()
+	row := gui.Row(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.Some(gui.CurrentTheme().SpacingSmall),
+		Spacing: gui.Some(theme.SpacingSmall),
 		VAlign:  gui.VAlignMiddle,
 		Content: []gui.View{
 			gui.Input(gui.InputCfg{
@@ -167,15 +181,19 @@ func controls(app *App) gui.View {
 				Placeholder: "row number",
 				Width:       120,
 				OnTextChanged: func(s string, ctx gui.EventCtx) {
-					gui.State[App](ctx.Window).JumpText = s
+					st := gui.State[App](ctx.Window)
+					st.JumpText = s
+					st.JumpErr = ""
 				},
 			}),
 			gui.TextButton("jump", "Jump", func(ctx gui.EventCtx) {
 				a := gui.State[App](ctx.Window)
 				n, err := strconv.Atoi(a.JumpText)
 				if err != nil {
+					a.JumpErr = fmt.Sprintf("not a row number: %q", a.JumpText)
 					return
 				}
+				a.JumpErr = ""
 				// Index-addressed: the target row does not exist yet,
 				// so there is no ID to resolve and no view to find.
 				ctx.Window.ScrollToIndexAt(listID, n, 0.5)
@@ -198,6 +216,20 @@ func controls(app *App) gui.View {
 					}
 				},
 			}),
+		},
+	})
+	if app.JumpErr == "" {
+		return row
+	}
+	errStyle := theme.TextStyleBodySmall
+	errStyle.Color = theme.Cfg.ColorError
+	return gui.Column(gui.ContainerCfg{
+		Sizing:     gui.FillFit,
+		Spacing:    gui.Some(theme.SpacingSmall),
+		SizeBorder: gui.NoBorder,
+		Content: []gui.View{
+			row,
+			gui.Text(gui.TextCfg{Text: app.JumpErr, TextStyle: errStyle}),
 		},
 	})
 }

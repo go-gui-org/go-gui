@@ -87,9 +87,10 @@ func mainView(w *gui.Window) gui.View {
 
 	return gui.Column(gui.ContainerCfg{
 		ID:         "rtf-scroll",
+		Focusable:  true,
 		Sizing:     gui.FillFill,
 		Scrollable: true,
-		Padding:    gui.NewPadding(10, 10, 10, 10),
+		Padding:    gui.PadAll(10),
 		Content: []gui.View{
 			gui.RTF(gui.RTFCfg{
 				RichText:      rt,
