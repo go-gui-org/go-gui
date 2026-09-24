@@ -1153,6 +1153,8 @@ func TestCursorHelpers(t *testing.T) {
 		{"NESW", (*Window).SetMouseCursorResizeNESW, CursorResizeNESW},
 		{"NWSE", (*Window).SetMouseCursorResizeNWSE, CursorResizeNWSE},
 		{"NotAllowed", (*Window).SetMouseCursorNotAllowed, CursorNotAllowed},
+		{"Grab", (*Window).SetMouseCursorGrab, CursorGrab},
+		{"Grabbing", (*Window).SetMouseCursorGrabbing, CursorGrabbing},
 	}
 	for _, tt := range tests {
 		w := &Window{}

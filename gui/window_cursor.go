@@ -43,3 +43,11 @@ func (w *Window) SetMouseCursorResizeNWSE() { w.setMouseCursor(CursorResizeNWSE)
 
 // SetMouseCursorNotAllowed sets the cursor to a not-allowed indicator.
 func (w *Window) SetMouseCursorNotAllowed() { w.setMouseCursor(CursorNotAllowed) }
+
+// SetMouseCursorGrab sets the cursor to an open hand, shown over a
+// surface the pointer can drag to scroll.
+func (w *Window) SetMouseCursorGrab() { w.setMouseCursor(CursorGrab) }
+
+// SetMouseCursorGrabbing sets the cursor to a closed hand, shown
+// while a drag-to-scroll pan runs.
+func (w *Window) SetMouseCursorGrabbing() { w.setMouseCursor(CursorGrabbing) }

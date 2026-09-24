@@ -135,9 +135,13 @@ func gestureHandlerDepth(
 	// Pan fallback: auto-scroll containers. Handled only when
 	// an offset actually moved, so a pan over a container
 	// already at its limit still reaches ancestors.
+	// DragScroll containers are skipped: their single-finger pan
+	// runs through the same mouse-lock path as a mouse drag
+	// (issue #783), and scrolling here too would move twice for
+	// one finger.
 	if e.GestureType == GesturePan &&
 		e.GesturePhase == GesturePhaseChanged &&
-		layout.Shape.Scrollable {
+		layout.Shape.Scrollable && !layout.Shape.DragScroll {
 		movedV := scrollVertical(layout, e.GestureDY, w)
 		movedH := scrollHorizontal(layout, e.GestureDX, w)
 		if movedV || movedH {

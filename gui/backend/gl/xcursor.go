@@ -365,6 +365,8 @@ var (
 	neswCursorNames       = []string{"nesw-resize", "size_bdiag", "fd_double_arrow"}
 	moveCursorNames       = []string{"fleur", "all-scroll", "move", "size_all"}
 	notAllowedCursorNames = []string{"X_cursor", "not-allowed", "circle", "crossed_circle", "no-drop"}
+	grabCursorNames       = []string{"grab", "hand1", "openhand"}
+	grabbingCursorNames   = []string{"grabbing", "closedhand", "hand2"}
 )
 
 // themeInheritsOf returns the Inherits chain of theme from the first

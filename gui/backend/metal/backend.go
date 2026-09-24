@@ -409,6 +409,10 @@ func cursorSelector(mc gui.MouseCursor) string {
 		return "closedHandCursor"
 	case gui.CursorNotAllowed:
 		return "operationNotAllowedCursor"
+	case gui.CursorGrab:
+		return "openHandCursor"
+	case gui.CursorGrabbing:
+		return "closedHandCursor"
 	default:
 		return ""
 	}
@@ -425,6 +429,7 @@ var cursorCStrings = func() map[gui.MouseCursor]*C.char {
 		gui.CursorResizeEW, gui.CursorResizeNS,
 		gui.CursorResizeNWSE, gui.CursorResizeNESW,
 		gui.CursorResizeAll, gui.CursorNotAllowed,
+		gui.CursorGrab, gui.CursorGrabbing,
 	}
 	m := make(map[gui.MouseCursor]*C.char, len(cursors))
 	for _, c := range cursors {

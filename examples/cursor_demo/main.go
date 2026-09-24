@@ -24,8 +24,10 @@ type cursorCell struct {
 	set   func(*gui.Window)
 }
 
-// The 11 MouseCursor values include CursorDefault, which renders the
-// same arrow as CursorArrow, so only the 10 distinct shapes appear.
+// The 13 MouseCursor values include CursorDefault, which renders the
+// same arrow as CursorArrow, so only the 12 distinct shapes appear.
+// Grab and Grabbing fall back to the arrow on Windows, which has no
+// open-hand stock cursor.
 var cursorCells = []cursorCell{
 	{"Arrow", (*gui.Window).SetMouseCursorArrow},
 	{"I-Beam", (*gui.Window).SetMouseCursorIBeam},
@@ -37,6 +39,8 @@ var cursorCells = []cursorCell{
 	{"Resize NE-SW", (*gui.Window).SetMouseCursorResizeNESW},
 	{"Resize All", (*gui.Window).SetMouseCursorAll},
 	{"Not Allowed", (*gui.Window).SetMouseCursorNotAllowed},
+	{"Grab", (*gui.Window).SetMouseCursorGrab},
+	{"Grabbing", (*gui.Window).SetMouseCursorGrabbing},
 }
 
 func main() {

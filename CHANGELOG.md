@@ -10,6 +10,14 @@ and this project adheres to
 
 ### Added
 
+- **Drag-to-scroll for scrollable containers** — `ContainerCfg.DragScroll` pans
+  a `Scrollable` container when the pointer drags its content (#783). A drag
+  past the threshold scrolls 1:1 and suppresses the press-point click; a tap
+  clicks normally. Touch uses the same path, and the gesture pan fallback skips
+  `DragScroll` containers so one finger never scrolls twice. Hover shows a grab
+  hand while content overflows (arrow on Windows, which has no open-hand stock
+  cursor). The family-tree example opts in.
+
 - **Data grid focus opt-out and query aliases** — `DataGridCfg.FocusDisabled`
   opts out of the default-on grid focus like every other input control.
   `SourceStats` gains `LoadError()` and `HasMore()` accessors for logs and

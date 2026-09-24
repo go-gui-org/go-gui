@@ -349,6 +349,9 @@ func mainView(w *gui.Window) gui.View {
 			gui.Column(gui.ContainerCfg{
 				ID:         "tree",
 				Scrollable: true,
+				// Drag the background to pan; taps still click
+				// the name buttons (issue #783).
+				DragScroll: true,
 				Sizing:     gui.FillFill,
 				Padding:    gui.PaddingNone,
 				Content: []gui.View{

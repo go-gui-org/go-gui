@@ -226,7 +226,7 @@ type platformState struct {
 	// component means that axis is unconstrained.
 	minTrack  pointL
 	maxTrack  pointL
-	cursors   [11]uintptr
+	cursors   [13]uintptr
 	curCursor uintptr
 	// cursorInClient is set by WM_SETCURSOR and cleared on leave.
 	// Frame updates must not replace the OS cursor over resize borders,
@@ -400,6 +400,10 @@ func loadCursors(p *platformState) {
 	p.cursors[gui.CursorResizeNESW] = ld(idcSizeNESW)
 	p.cursors[gui.CursorResizeAll] = ld(idcSizeAll)
 	p.cursors[gui.CursorNotAllowed] = ld(idcNo)
+	// No open-hand stock cursor exists; IDC_HAND is the pointing
+	// hand and would promise a link. Arrow is the honest fallback.
+	p.cursors[gui.CursorGrab] = ld(idcArrow)
+	p.cursors[gui.CursorGrabbing] = ld(idcArrow)
 }
 
 func setClipboard(hwnd uintptr, s string) {
