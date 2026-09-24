@@ -66,6 +66,13 @@ func main() {
 					},
 				},
 				OnAction: func(id string) {
+					// file.quit has no CommandID: quit here through
+					// the same DispatchQuitRequest the backend runs
+					// for an OS quit event.
+					if id == "file.quit" {
+						gui.DispatchQuitRequest(app)
+						return
+					}
 					w.QueueCommand(func(w *gui.Window) {
 						gui.State[App](w).LastAction =
 							"Action: " + id
@@ -85,7 +92,7 @@ func main() {
 }
 
 func registerCommands(w *gui.Window) {
-	_ = w.RegisterCommands(
+	if err := w.RegisterCommands(
 		gui.Command{
 			ID:       "file.new",
 			Label:    "New",
@@ -113,7 +120,9 @@ func registerCommands(w *gui.Window) {
 				gui.State[App](w).LastAction = "Saved"
 			},
 		},
-	)
+	); err != nil {
+		log.Fatalf("register commands: %v", err)
+	}
 }
 
 func mainView(w *gui.Window) gui.View {
@@ -123,10 +132,14 @@ func mainView(w *gui.Window) gui.View {
 	return gui.Column(gui.ContainerCfg{
 		Sizing: gui.FillFill,
 		HAlign: gui.HAlignCenter,
+		// Structural wrapper: an unset border still reserves height.
+		SizeBorder: gui.NoBorder,
 		Content: []gui.View{
 			gui.Rectangle(gui.RectangleCfg{
 				Height: 40,
 				Sizing: gui.FillFixed,
+				// Primitive border: 0 is an explicit no-border.
+				SizeBorder: 0,
 			}),
 			gui.Text(gui.TextCfg{
 				Text:      "Native Menu Demo",

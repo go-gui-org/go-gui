@@ -55,14 +55,19 @@ func main() {
 }
 
 func view(w *gui.Window) gui.View {
+	// Tolerances are in viewBox units against the renderer's
+	// 0.15-unit floor (gui/svg_parser.go SvgParseOpts): 0 keeps
+	// the default, the rest deliberately overshoot it by ~10x
+	// to 400x so coarser tessellation is visible.
 	tolerances := []float32{0, 2, 8, 25, 60}
 	cells := []gui.View{}
-	for _, tol := range tolerances {
+	for i, tol := range tolerances {
 		title := "default"
 		if tol > 0 {
 			title = fmt.Sprintf("tol=%.1f", tol)
 		}
 		cells = append(cells, gui.Column(gui.ContainerCfg{
+			ID:      gui.ScopeIDN("svg_flatness", "tile", i),
 			Padding: gui.PaddingTwoFive,
 
 			Sizing: gui.FillFit,

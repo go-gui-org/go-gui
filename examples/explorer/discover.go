@@ -111,9 +111,15 @@ func probeScreenshot(dir string) string {
 			return p
 		}
 	}
-	// Fallback: any *.png
+	// Fallback: only a screenshot-named png — a stray asset must
+	// not become the preview.
 	matches, _ := filepath.Glob(filepath.Join(dir, "*.png"))
 	for _, m := range matches {
+		base := strings.ToLower(filepath.Base(m))
+		if !strings.Contains(base, "screenshot") && !strings.Contains(base, "preview") &&
+			!strings.Contains(base, "capture") && !strings.Contains(base, "shot") {
+			continue
+		}
 		if info, err := os.Stat(m); err == nil && !info.IsDir() {
 			return m
 		}

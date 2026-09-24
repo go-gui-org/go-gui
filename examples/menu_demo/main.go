@@ -52,6 +52,8 @@ func mainView(w *gui.Window) gui.View {
 		Padding: gui.NoPadding,
 		Sizing:  gui.FillFill,
 		Spacing: gui.Some[float32](0),
+		// Structural wrapper: an unset border still reserves height.
+		SizeBorder: gui.NoBorder,
 		Content: []gui.View{
 			menu(w),
 			body(w),
@@ -198,21 +200,27 @@ func body(w *gui.Window) gui.View {
 	app := gui.State[MenuApp](w)
 	theme := gui.CurrentTheme()
 
-	var selectedText, searchText string
+	var selectedText string
 	if app.SelectedID != "" {
 		selectedText = fmt.Sprintf("Menu %q selected", app.SelectedID)
-		searchText = fmt.Sprintf("Search text: %q", app.SearchText)
 	}
+	// Search results show regardless of selection; only the
+	// selection highlight waits for an item click.
+	searchText := fmt.Sprintf("Search text: %q", app.SearchText)
 
 	return gui.Column(gui.ContainerCfg{
 		HAlign:  gui.HAlignCenter,
 		Padding: gui.NoPadding,
 		Sizing:  gui.FillFill,
+		// Structural wrapper: an unset border still reserves height.
+		SizeBorder: gui.NoBorder,
 		Content: []gui.View{
 			gui.Rectangle(gui.RectangleCfg{
 				Height: 40,
 				Color:  gui.ColorTransparent,
 				Sizing: gui.FillFixed,
+				// Primitive border: 0 is an explicit no-border.
+				SizeBorder: 0,
 			}),
 			gui.Text(gui.TextCfg{
 				Text:      "Welcome to GUI",
@@ -229,7 +237,13 @@ func body(w *gui.Window) gui.View {
 					gui.State[MenuApp](ctx.Window).Clicks++
 				},
 			}),
-			gui.Text(gui.TextCfg{Text: ""}),
+			gui.Rectangle(gui.RectangleCfg{
+				Height: 8,
+				Color:  gui.ColorTransparent,
+				Sizing: gui.FillFixed,
+				// Primitive border: 0 is an explicit no-border.
+				SizeBorder: 0,
+			}),
 			gui.Text(gui.TextCfg{
 				Text:      selectedText,
 				TextStyle: theme.TextStyleCode,

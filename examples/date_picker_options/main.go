@@ -308,49 +308,32 @@ func allowedWeekdaysGroup(app *App) gui.View {
 		id       string
 		label    string
 		selected bool
+		toggle   func(*App)
 	}
 	days := []weekdayToggle{
-		{"mon", "Monday", app.AllowMonday},
-		{"tue", "Tuesday", app.AllowTuesday},
-		{"wed", "Wednesday", app.AllowWednesday},
-		{"thu", "Thursday", app.AllowThursday},
-		{"fri", "Friday", app.AllowFriday},
-		{"sat", "Saturday", app.AllowSaturday},
-		{"sun", "Sunday", app.AllowSunday},
+		{"mon", "Monday", app.AllowMonday, func(a *App) { a.AllowMonday = !a.AllowMonday }},
+		{"tue", "Tuesday", app.AllowTuesday, func(a *App) { a.AllowTuesday = !a.AllowTuesday }},
+		{"wed", "Wednesday", app.AllowWednesday, func(a *App) { a.AllowWednesday = !a.AllowWednesday }},
+		{"thu", "Thursday", app.AllowThursday, func(a *App) { a.AllowThursday = !a.AllowThursday }},
+		{"fri", "Friday", app.AllowFriday, func(a *App) { a.AllowFriday = !a.AllowFriday }},
+		{"sat", "Saturday", app.AllowSaturday, func(a *App) { a.AllowSaturday = !a.AllowSaturday }},
+		{"sun", "Sunday", app.AllowSunday, func(a *App) { a.AllowSunday = !a.AllowSunday }},
 	}
 
 	content := make([]gui.View, len(days))
 	for i, d := range days {
+		toggle := d.toggle
 		content[i] = gui.Toggle(gui.ToggleCfg{
 			ID:       d.id,
 			Label:    d.label,
 			Selected: d.selected,
-			OnClick:  clickAllowWeekday,
+			OnClick: func(ctx gui.EventCtx) {
+				toggle(state(ctx.Window))
+			},
 		})
 	}
 
 	return borderedGroup("Allowed weekdays", content)
-}
-
-func clickAllowWeekday(ctx gui.EventCtx) {
-	app := state(ctx.Window)
-	switch ctx.Layout.Shape.ID {
-	case "mon":
-		app.AllowMonday = !app.AllowMonday
-	case "tue":
-		app.AllowTuesday = !app.AllowTuesday
-	case "wed":
-		app.AllowWednesday = !app.AllowWednesday
-	case "thu":
-		app.AllowThursday = !app.AllowThursday
-	case "fri":
-		app.AllowFriday = !app.AllowFriday
-	case "sat":
-		app.AllowSaturday = !app.AllowSaturday
-	case "sun":
-		app.AllowSunday = !app.AllowSunday
-	}
-	ctx.Consume()
 }
 
 func monthsGroup(app *App) gui.View {
@@ -358,64 +341,37 @@ func monthsGroup(app *App) gui.View {
 		id       string
 		label    string
 		selected bool
+		toggle   func(*App)
 	}
 	months := []monthToggle{
-		{"jan", "January", app.AllowJanuary},
-		{"feb", "February", app.AllowFebruary},
-		{"mar", "March", app.AllowMarch},
-		{"apr", "April", app.AllowApril},
-		{"may", "May", app.AllowMay},
-		{"jun", "June", app.AllowJune},
-		{"jul", "July", app.AllowJuly},
-		{"aug", "August", app.AllowAugust},
-		{"sep", "September", app.AllowSeptember},
-		{"oct", "October", app.AllowOctober},
-		{"nov", "November", app.AllowNovember},
-		{"dec", "December", app.AllowDecember},
+		{"jan", "January", app.AllowJanuary, func(a *App) { a.AllowJanuary = !a.AllowJanuary }},
+		{"feb", "February", app.AllowFebruary, func(a *App) { a.AllowFebruary = !a.AllowFebruary }},
+		{"mar", "March", app.AllowMarch, func(a *App) { a.AllowMarch = !a.AllowMarch }},
+		{"apr", "April", app.AllowApril, func(a *App) { a.AllowApril = !a.AllowApril }},
+		{"may", "May", app.AllowMay, func(a *App) { a.AllowMay = !a.AllowMay }},
+		{"jun", "June", app.AllowJune, func(a *App) { a.AllowJune = !a.AllowJune }},
+		{"jul", "July", app.AllowJuly, func(a *App) { a.AllowJuly = !a.AllowJuly }},
+		{"aug", "August", app.AllowAugust, func(a *App) { a.AllowAugust = !a.AllowAugust }},
+		{"sep", "September", app.AllowSeptember, func(a *App) { a.AllowSeptember = !a.AllowSeptember }},
+		{"oct", "October", app.AllowOctober, func(a *App) { a.AllowOctober = !a.AllowOctober }},
+		{"nov", "November", app.AllowNovember, func(a *App) { a.AllowNovember = !a.AllowNovember }},
+		{"dec", "December", app.AllowDecember, func(a *App) { a.AllowDecember = !a.AllowDecember }},
 	}
 
 	content := make([]gui.View, len(months))
 	for i, m := range months {
+		toggle := m.toggle
 		content[i] = gui.Toggle(gui.ToggleCfg{
 			ID:       m.id,
 			Label:    m.label,
 			Selected: m.selected,
-			OnClick:  clickAllowMonth,
+			OnClick: func(ctx gui.EventCtx) {
+				toggle(state(ctx.Window))
+			},
 		})
 	}
 
 	return borderedGroup("Allowed months", content)
-}
-
-func clickAllowMonth(ctx gui.EventCtx) {
-	app := state(ctx.Window)
-	switch ctx.Layout.Shape.ID {
-	case "jan":
-		app.AllowJanuary = !app.AllowJanuary
-	case "feb":
-		app.AllowFebruary = !app.AllowFebruary
-	case "mar":
-		app.AllowMarch = !app.AllowMarch
-	case "apr":
-		app.AllowApril = !app.AllowApril
-	case "may":
-		app.AllowMay = !app.AllowMay
-	case "jun":
-		app.AllowJune = !app.AllowJune
-	case "jul":
-		app.AllowJuly = !app.AllowJuly
-	case "aug":
-		app.AllowAugust = !app.AllowAugust
-	case "sep":
-		app.AllowSeptember = !app.AllowSeptember
-	case "oct":
-		app.AllowOctober = !app.AllowOctober
-	case "nov":
-		app.AllowNovember = !app.AllowNovember
-	case "dec":
-		app.AllowDecember = !app.AllowDecember
-	}
-	ctx.Consume()
 }
 
 func yearsDatesGroup(app *App, _ *gui.Window) gui.View {
@@ -488,34 +444,30 @@ func allowedYearsGroup(app *App) gui.View {
 			ID:       "year_now",
 			Label:    "This year",
 			Selected: app.AllowYearNow,
-			OnClick:  clickAllowYear,
+			OnClick: func(ctx gui.EventCtx) {
+				year := state(ctx.Window)
+				year.AllowYearNow = !year.AllowYearNow
+			},
 		}),
 		gui.Toggle(gui.ToggleCfg{
 			ID:       "year_last",
 			Label:    "Last year",
 			Selected: app.AllowYearLast,
-			OnClick:  clickAllowYear,
+			OnClick: func(ctx gui.EventCtx) {
+				year := state(ctx.Window)
+				year.AllowYearLast = !year.AllowYearLast
+			},
 		}),
 		gui.Toggle(gui.ToggleCfg{
 			ID:       "year_next",
 			Label:    "Next year",
 			Selected: app.AllowYearNext,
-			OnClick:  clickAllowYear,
+			OnClick: func(ctx gui.EventCtx) {
+				year := state(ctx.Window)
+				year.AllowYearNext = !year.AllowYearNext
+			},
 		}),
 	})
-}
-
-func clickAllowYear(ctx gui.EventCtx) {
-	app := state(ctx.Window)
-	switch ctx.Layout.Shape.ID {
-	case "year_now":
-		app.AllowYearNow = !app.AllowYearNow
-	case "year_last":
-		app.AllowYearLast = !app.AllowYearLast
-	case "year_next":
-		app.AllowYearNext = !app.AllowYearNext
-	}
-	ctx.Consume()
 }
 
 func allowedDatesGroup(app *App) gui.View {
@@ -525,34 +477,30 @@ func allowedDatesGroup(app *App) gui.View {
 			ID:       "tdy",
 			Label:    "Today",
 			Selected: app.AllowToday,
-			OnClick:  clickAllowDate,
+			OnClick: func(ctx gui.EventCtx) {
+				date := state(ctx.Window)
+				date.AllowToday = !date.AllowToday
+			},
 		}),
 		gui.Toggle(gui.ToggleCfg{
 			ID:       "ydy",
 			Label:    "Yesterday",
 			Selected: app.AllowYesterday,
-			OnClick:  clickAllowDate,
+			OnClick: func(ctx gui.EventCtx) {
+				date := state(ctx.Window)
+				date.AllowYesterday = !date.AllowYesterday
+			},
 		}),
 		gui.Toggle(gui.ToggleCfg{
 			ID:       "fdy",
 			Label:    "First of month",
 			Selected: app.AllowFirstOfMonth,
-			OnClick:  clickAllowDate,
+			OnClick: func(ctx gui.EventCtx) {
+				date := state(ctx.Window)
+				date.AllowFirstOfMonth = !date.AllowFirstOfMonth
+			},
 		}),
 	})
-}
-
-func clickAllowDate(ctx gui.EventCtx) {
-	app := state(ctx.Window)
-	switch ctx.Layout.Shape.ID {
-	case "tdy":
-		app.AllowToday = !app.AllowToday
-	case "ydy":
-		app.AllowYesterday = !app.AllowYesterday
-	case "fdy":
-		app.AllowFirstOfMonth = !app.AllowFirstOfMonth
-	}
-	ctx.Consume()
 }
 
 func toggleTheme(app *App) gui.View {

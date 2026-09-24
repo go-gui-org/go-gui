@@ -73,6 +73,10 @@ type App struct {
 	RenderAvg   RollingAvg
 	WidgetCount int
 	Running     bool
+	// Labels prebuilds per-widget text on count/type change so the
+	// frame path measures layout, not formatting.
+	Labels     []string
+	LabelsType string
 }
 
 func (a *App) ResetAvgs() {
@@ -84,16 +88,20 @@ func (a *App) ResetAvgs() {
 }
 
 func main() {
-	pprofPort := flag.String("pprof", "6060", "pprof HTTP server port")
+	pprofAddr := flag.String("pprof", "", "pprof listen address, e.g. localhost:6060 (empty disables)")
 	screenshot := flag.String("screenshot", "", "write screenshot and exit")
 	flag.Parse()
 
-	go func() {
-		addr := "localhost:" + *pprofPort
-		fmt.Println("pprof: http://" + addr + "/debug/pprof/")
-		// #nosec G104,G114 — debug pprof server, intentional
-		http.ListenAndServe(addr, nil) //nolint:errcheck
-	}()
+	if *pprofAddr != "" {
+		go func() {
+			addr := *pprofAddr
+			fmt.Println("pprof: http://" + addr + "/debug/pprof/")
+			// #nosec G104,G114 — debug pprof server, intentional
+			if err := http.ListenAndServe(addr, nil); err != nil { //nolint:errcheck
+				log.Printf("pprof: %v", err)
+			}
+		}()
+	}
 
 	gui.SetTheme(gui.ThemeDark)
 
@@ -130,6 +138,9 @@ func benchView(w *gui.Window) gui.View {
 		// caps the measurement at the ticker's rate. The view runs
 		// once per rebuilt frame, so the wall-clock delta between
 		// consecutive calls is the true frame time.
+		// What FPS actually reports is view-to-view wall time on a
+		// pump-forced loop (see InvalidateLayout below): it includes
+		// the pump overhead itself, not just widget cost.
 		now := time.Now()
 		if !app.LastFrame.IsZero() {
 			dt := now.Sub(app.LastFrame)
@@ -152,7 +163,18 @@ func benchView(w *gui.Window) gui.View {
 		// rebuild every frame. A full layout refresh is required —
 		// a render-only refresh never runs the view again, and
 		// InvalidateRender from here would stall after one frame.
+		// The forced pump is part of what FPS above measures.
 		w.InvalidateLayout()
+	}
+
+	// Labels are formatted here, on count/type change, so the
+	// per-widget loop below measures layout rather than Sprintf.
+	if len(app.Labels) != app.WidgetCount || app.LabelsType != app.WidgetType {
+		app.Labels = make([]string, app.WidgetCount)
+		for i := range app.Labels {
+			app.Labels[i] = benchLabel(app.WidgetType, i)
+		}
+		app.LabelsType = app.WidgetType
 	}
 
 	selectedCount := strconv.Itoa(app.WidgetCount)
@@ -166,7 +188,16 @@ func benchView(w *gui.Window) gui.View {
 
 	widgets := make([]gui.View, app.WidgetCount)
 	for i := range app.WidgetCount {
-		widgets[i] = makeWidget(app.WidgetType, i)
+		widgets[i] = makeWidget(app.WidgetType, i, app.Labels[i])
+	}
+
+	// The rolling averages read zero until the 500-frame buffer
+	// fills, so report warming up instead of zeros.
+	metricsText := "warming up…"
+	if app.FPS.Full() {
+		metricsText = fmt.Sprintf("FPS: %5.0f   View: %9s us   Layout: %9s us   Render: %9s us   Widgets: %5s",
+			fmtAvg(&app.FPS), commaFloat(fmtAvg(&app.ViewAvg)), commaFloat(fmtAvg(&app.LayoutAvg)),
+			commaFloat(fmtAvg(&app.RenderAvg)), commaInt(app.WidgetCount))
 	}
 
 	return gui.Column(gui.ContainerCfg{
@@ -188,13 +219,16 @@ func benchView(w *gui.Window) gui.View {
 						Selected: []string{selectedCount},
 						Options:  countOptions,
 						OnSelect: func(sel []string, ctx gui.EventCtx) {
-							if len(sel) > 0 {
-								if n, err := strconv.Atoi(sel[0]); err == nil {
-									app := gui.State[App](ctx.Window)
-									app.WidgetCount = n
-									app.ResetAvgs()
-								}
+							if len(sel) == 0 {
+								return
 							}
+							n, err := strconv.Atoi(sel[0])
+							if err != nil {
+								return // keep the current selection
+							}
+							app := gui.State[App](ctx.Window)
+							app.WidgetCount = n
+							app.ResetAvgs()
 						},
 					}),
 					gui.Text(gui.TextCfg{
@@ -234,9 +268,7 @@ func benchView(w *gui.Window) gui.View {
 			}),
 			// Metrics row.
 			gui.Text(gui.TextCfg{
-				Text: fmt.Sprintf("FPS: %5.0f   View: %9s us   Layout: %9s us   Render: %9s us   Widgets: %5s",
-					fmtAvg(&app.FPS), commaFloat(fmtAvg(&app.ViewAvg)), commaFloat(fmtAvg(&app.LayoutAvg)),
-					commaFloat(fmtAvg(&app.RenderAvg)), commaInt(app.WidgetCount)),
+				Text:      metricsText,
 				TextStyle: theme.Mono(theme.TextStyleBodySmall),
 			}),
 			// Widget area.
@@ -256,42 +288,42 @@ func benchView(w *gui.Window) gui.View {
 	})
 }
 
-func makeWidget(typ string, i int) gui.View {
+func makeWidget(typ string, i int, label string) gui.View {
 	switch typ {
 	case typeButton:
 		return gui.Button(gui.ButtonCfg{
-			ID: "benchmark_make_widget",
+			ID: gui.ScopeIDN("benchmark", "btn", i),
 			Content: []gui.View{
-				gui.Text(gui.TextCfg{Text: fmt.Sprintf("Btn %d", i)}),
+				gui.Text(gui.TextCfg{Text: label}),
 			},
 		})
 	case typeText:
 		return gui.Text(gui.TextCfg{
-			Text: fmt.Sprintf("Label %d", i),
+			Text: label,
 		})
 	case typeToggle:
 		return gui.Toggle(gui.ToggleCfg{
-			ID:       "benchmark_make_widget_2",
-			Label:    fmt.Sprintf("Opt %d", i),
+			ID:       gui.ScopeIDN("benchmark", "toggle", i),
+			Label:    label,
 			Selected: i%2 == 0,
 		})
 	case typeMixed:
 		switch i % 4 {
 		case 0:
 			return gui.Button(gui.ButtonCfg{
-				ID: "benchmark_make_widget_3",
+				ID: gui.ScopeIDN("benchmark", "btn", i),
 				Content: []gui.View{
-					gui.Text(gui.TextCfg{Text: fmt.Sprintf("Btn %d", i)}),
+					gui.Text(gui.TextCfg{Text: label}),
 				},
 			})
 		case 1:
 			return gui.Text(gui.TextCfg{
-				Text: fmt.Sprintf("Label %d", i),
+				Text: label,
 			})
 		case 2:
 			return gui.Toggle(gui.ToggleCfg{
-				ID:       "benchmark_make_widget_4",
-				Label:    fmt.Sprintf("Opt %d", i),
+				ID:       gui.ScopeIDN("benchmark", "toggle", i),
+				Label:    label,
 				Selected: i%2 == 0,
 			})
 		default:
@@ -306,6 +338,29 @@ func makeWidget(typ string, i int) gui.View {
 	default:
 		return gui.Text(gui.TextCfg{Text: fmt.Sprintf("? %d", i)})
 	}
+}
+
+// benchLabel formats one widget's text. Called on count/type change,
+// not per frame, so formatting stays out of the layout cost.
+func benchLabel(typ string, i int) string {
+	switch typ {
+	case typeButton:
+		return fmt.Sprintf("Btn %d", i)
+	case typeText:
+		return fmt.Sprintf("Label %d", i)
+	case typeToggle:
+		return fmt.Sprintf("Opt %d", i)
+	case typeMixed:
+		switch i % 4 {
+		case 0:
+			return fmt.Sprintf("Btn %d", i)
+		case 1:
+			return fmt.Sprintf("Label %d", i)
+		case 2:
+			return fmt.Sprintf("Opt %d", i)
+		}
+	}
+	return ""
 }
 
 func fmtAvg(r *RollingAvg) float64 {
@@ -327,6 +382,9 @@ func commaInt(n int) string {
 }
 
 func commaFloat(f float64) string {
+	if f < 0 {
+		return "-" + commaFloat(-f)
+	}
 	whole := int(f)
 	frac := fmt.Sprintf("%.1f", f-float64(whole))
 	// frac is "0.X" — take from the decimal point

@@ -53,7 +53,9 @@ func demoMathSpinner(w *gui.Window) gui.View {
 			Spacing:    gui.SomeF(6),
 			Content: []gui.View{
 				gui.MathSpinner(gui.MathSpinnerCfg{
-					ID:        "sp-" + e.label,
+					// Index-based: labels contain spaces, so they cannot
+					// be ID parts.
+					ID:        gui.ScopeIDN("spinner", "curve", i),
 					CurveType: e.curve,
 					Size:      100,
 					Color:     e.color,

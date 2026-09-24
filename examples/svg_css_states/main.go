@@ -63,6 +63,8 @@ func main() {
 
 func view(w *gui.Window) gui.View {
 	s := gui.State[state](w)
+	// Explicit precedence: ring wins when both hover flags are
+	// set (only Reset clears both, so this is belt and braces).
 	hoverID := ""
 	if s.hoverRing {
 		hoverID = "ring"
@@ -74,17 +76,21 @@ func view(w *gui.Window) gui.View {
 		focusID = "ring"
 	}
 	canvas := gui.Svg(gui.SvgCfg{
+		ID:      gui.ScopeID("svg_css_states_view", "canvas"),
+		A11YCfg: gui.A11YCfg{A11YLabel: "Hover and focus state demo"},
 		SvgData: stateSvg,
 		Sizing:  gui.FixedFixed,
 		Width:   240, Height: 240,
 		HoveredElementID: hoverID,
 		FocusedElementID: focusID,
 	})
-	btn := func(label string, toggle func(*state)) gui.View {
+	btn := func(n int, label string, toggle func(*state)) gui.View {
 		return gui.Button(gui.ButtonCfg{
-			ID:      "svg_css_states_view",
+			ID:      gui.ScopeIDN("svg_css_states_view", "btn", n),
 			Content: []gui.View{gui.Text(gui.TextCfg{Text: label})},
 			Sizing:  gui.FillFit,
+			// No ctx.Consume: no ancestor in this tree
+			// handles OnClick, so nothing to stop.
 			OnClick: func(ctx gui.EventCtx) {
 				toggle(gui.State[state](ctx.Window))
 				ctx.Window.InvalidateRender()
@@ -97,19 +103,19 @@ func view(w *gui.Window) gui.View {
 
 		Sizing: gui.FillFill,
 		Content: []gui.View{
-			btn("Hover #ring", func(s *state) {
+			btn(0, "Hover #ring", func(s *state) {
 				clear(s)
 				s.hoverRing = true
 			}),
-			btn("Hover #dot", func(s *state) {
+			btn(1, "Hover #dot", func(s *state) {
 				clear(s)
 				s.hoverDot = true
 			}),
-			btn("Focus #ring", func(s *state) {
+			btn(2, "Focus #ring", func(s *state) {
 				clear(s)
 				s.focusRing = true
 			}),
-			btn("Reset", func(s *state) { clear(s) }),
+			btn(3, "Reset", func(s *state) { clear(s) }),
 		},
 	})
 	return gui.Row(gui.ContainerCfg{

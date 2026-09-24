@@ -6,6 +6,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 
 	"flag"
 	"log"
@@ -22,6 +23,20 @@ type MainState struct {
 
 type InspectorState struct {
 	Log string
+}
+
+// maxInspectorLogLines caps the inspector event log: the demo appends
+// one line per broadcast click, so an unattended run would otherwise
+// grow it without bound.
+const maxInspectorLogLines = 200
+
+// trimLogLines keeps the last n lines of a newline-terminated log.
+func trimLogLines(s string, n int) string {
+	lines := strings.Split(s, "\n")
+	if len(lines) <= n {
+		return s
+	}
+	return strings.Join(lines[len(lines)-n:], "\n")
 }
 
 func main() {
@@ -69,13 +84,15 @@ func mainView(w *gui.Window) gui.View {
 		HAlign:  gui.HAlignCenter,
 		VAlign:  gui.VAlignMiddle,
 		Spacing: gui.SomeF(8),
+		// Structural wrapper: an unset border still reserves height.
+		SizeBorder: gui.NoBorder,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      "Main Window",
 				TextStyle: gui.CurrentTheme().TextStyleDisplay,
 			}),
 			gui.Button(gui.ButtonCfg{
-				ID: "mw_open_child",
+				ID: "mw_broadcast_clicks",
 				Content: []gui.View{
 					gui.Text(gui.TextCfg{
 						Text: fmt.Sprintf(
@@ -83,19 +100,26 @@ func mainView(w *gui.Window) gui.View {
 					}),
 				},
 				OnClick: func(ctx gui.EventCtx) {
-					gui.State[MainState](ctx.Window).Clicks++
+					src := ctx.Window
+					srcState := gui.State[MainState](src)
+					srcState.Clicks++
+					// Snapshot for the queued closure below:
+					// it runs later, on another window, where
+					// the event-scoped ctx is long gone.
+					clicks := srcState.Clicks
 					// Broadcast to inspector.
-					if a := ctx.Window.App(); a != nil {
+					if a := src.App(); a != nil {
 						a.Broadcast(func(other *gui.Window) {
-							if other == ctx.Window {
+							if other == src {
 								return
 							}
 							other.QueueCommand(
 								func(o *gui.Window) {
 									s := gui.State[InspectorState](o)
 									s.Log += fmt.Sprintf(
-										"Click #%d\n",
-										gui.State[MainState](ctx.Window).Clicks)
+										"Click #%d\n", clicks)
+									s.Log = trimLogLines(s.Log,
+										maxInspectorLogLines)
 									o.InvalidateLayout()
 								})
 						})
@@ -103,7 +127,7 @@ func mainView(w *gui.Window) gui.View {
 				},
 			}),
 			gui.Button(gui.ButtonCfg{
-				ID: "mw_close_child",
+				ID: "mw_open_child",
 				Content: []gui.View{
 					gui.Text(gui.TextCfg{
 						Text: "Open New Window",

@@ -27,6 +27,20 @@ type appState struct {
 	Count int
 }
 
+// maxLogEntries caps the retained event log: the snapshot ring already
+// bounds full-state history, but the live Log slice would otherwise
+// grow without bound one entry per click.
+const maxLogEntries = 500
+
+// appendLog records one event line, dropping the oldest entries past
+// the cap. Recent history survives; only its length is bounded.
+func appendLog(s *appState, line string) {
+	s.Log = append(s.Log, line)
+	if len(s.Log) > maxLogEntries {
+		s.Log = slices.Clone(s.Log[len(s.Log)-maxLogEntries:])
+	}
+}
+
 // Snapshot deep-copies the state into a fresh instance so the
 // time-travel ring holds an independent value per entry.
 func (s *appState) Snapshot() any {
@@ -38,7 +52,10 @@ func (s *appState) Snapshot() any {
 
 // Restore overwrites the receiver from a prior Snapshot.
 func (s *appState) Restore(v any) {
-	src := v.(*appState)
+	src, ok := v.(*appState)
+	if !ok {
+		panic(fmt.Sprintf("time_travel: Restore got %T, want *appState", v))
+	}
 	s.Count = src.Count
 	s.Log = slices.Clone(src.Log)
 }
@@ -84,16 +101,15 @@ func main() {
 
 func mainView(w *gui.Window) gui.View {
 	s := gui.State[appState](w)
+	theme := gui.CurrentTheme()
 	return gui.Column(gui.ContainerCfg{
 		Padding: gui.PadAll(16),
 
 		Spacing: gui.SomeF(12),
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
-				Text: fmt.Sprintf("Count: %d", s.Count),
-				TextStyle: gui.TextStyle{
-					Size: 28,
-				},
+				Text:      fmt.Sprintf("Count: %d", s.Count),
+				TextStyle: theme.TextStyleDisplay,
 			}),
 			gui.Row(gui.ContainerCfg{
 				Spacing: gui.SomeF(8),
@@ -106,8 +122,7 @@ func mainView(w *gui.Window) gui.View {
 						OnClick: func(ctx gui.EventCtx) {
 							st := gui.State[appState](ctx.Window)
 							st.Count++
-							st.Log = append(st.Log,
-								fmt.Sprintf("inc → %d", st.Count))
+							appendLog(st, fmt.Sprintf("inc → %d", st.Count))
 						},
 					}),
 					gui.Button(gui.ButtonCfg{
@@ -118,13 +133,14 @@ func mainView(w *gui.Window) gui.View {
 						OnClick: func(ctx gui.EventCtx) {
 							st := gui.State[appState](ctx.Window)
 							st.Count = 0
-							st.Log = append(st.Log, "reset")
+							appendLog(st, "reset")
 						},
 					}),
 				},
 			}),
 			gui.Text(gui.TextCfg{
-				Text: fmt.Sprintf("Events: %d", len(s.Log)),
+				Text:      fmt.Sprintf("Events: %d", len(s.Log)),
+				TextStyle: theme.TextStyleSecondary,
 			}),
 		},
 	})

@@ -435,6 +435,9 @@ func TestCommandButtonOnClickWiring(t *testing.T) {
 	if !executed {
 		t.Error("OnClick should execute the command")
 	}
+	if !e.IsHandled {
+		t.Error("OnClick should consume the event when it executes the command")
+	}
 }
 
 func TestCommandButtonOnClickChecksCanExecute(t *testing.T) {
@@ -458,6 +461,9 @@ func TestCommandButtonOnClickChecksCanExecute(t *testing.T) {
 	l.Shape.events.OnClick(EventCtx{&l, e, w})
 	if executed {
 		t.Error("OnClick should not execute when CanExecute returns false")
+	}
+	if e.IsHandled {
+		t.Error("OnClick should not consume the event when it declines to execute")
 	}
 }
 

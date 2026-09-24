@@ -446,6 +446,7 @@ func CommandButton(cmdID string, cfg ButtonCfg) View {
 			cfg.OnClick = func(ctx EventCtx) {
 				if ctx.Window.commandCanExecute(cID) && cmdExec != nil {
 					cmdExec(ctx.Event, ctx.Window)
+					ctx.Consume()
 				}
 			}
 		}

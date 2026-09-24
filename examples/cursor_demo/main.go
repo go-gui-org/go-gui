@@ -72,7 +72,7 @@ func mainView(w *gui.Window) gui.View {
 	for _, cc := range cursorCells {
 		cell := cc // capture per iteration
 		cells = append(cells, gui.Row(gui.ContainerCfg{
-			ID:         "cursor." + cell.label,
+			ID:         gui.ScopeID("cursor", cell.label),
 			Width:      160,
 			Height:     56,
 			Sizing:     gui.FixedFixed,

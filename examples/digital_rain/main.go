@@ -70,6 +70,7 @@ func main() {
 		Width:  800,
 		Height: 600,
 		OnInit: func(w *gui.Window) {
+			measureGrid(w)
 			w.SetView(mainView)
 			startTick(w)
 		},
@@ -86,8 +87,6 @@ func main() {
 }
 
 func startTick(w *gui.Window) {
-	app := gui.State[App](w)
-	app.TickProgress = 0
 	w.AnimationAdd(&gui.Animate{
 		AnimID: tickAnimation,
 		Delay:  renderInterval,
@@ -120,32 +119,47 @@ func advanceColumns(app *App) {
 }
 
 func handleEvent(e *gui.Event, w *gui.Window) {
+	if e.Type == gui.EventResized {
+		measureGrid(w)
+		return
+	}
 	if e.Type != gui.EventKeyUp {
 		return
 	}
 	app := gui.State[App](w)
 	switch e.KeyCode {
 	case gui.KeyUp:
+		oldDelay := app.Delay
 		app.Delay += delayStep
-		restartTick(w)
+		restartTick(w, oldDelay)
 		e.IsHandled = true
 	case gui.KeyDown:
+		oldDelay := app.Delay
 		app.Delay = max(app.Delay-delayStep, minDelay)
-		restartTick(w)
+		restartTick(w, oldDelay)
 		e.IsHandled = true
 	}
 }
 
-func restartTick(w *gui.Window) {
+func restartTick(w *gui.Window, oldDelay time.Duration) {
+	app := gui.State[App](w)
+	// Keep the elapsed fraction of the tick cycle across the speed
+	// change instead of snapping progress back to 0.
+	if oldDelay > 0 && app.Delay > 0 {
+		app.TickProgress *= float32(oldDelay) / float32(app.Delay)
+	}
 	w.AnimationRemove(tickAnimation)
 	startTick(w)
 }
 
-func mainView(w *gui.Window) gui.View {
-	// Allowlisted viewport use: the rain grid's column and row counts are
-	// the viewport divided by the character cell, not a layout result.
-	ww, wh := w.WindowSize()
+// measureGrid derives the character cell and grid dimensions from the
+// current window size. It runs on init and resize, never during
+// generation, so mainView stays pure. The cell depends only on the
+// fixed fontSize and the theme, so init covers it until a resize
+// changes the grid.
+func measureGrid(w *gui.Window) {
 	app := gui.State[App](w)
+	ww, wh := w.WindowSize()
 
 	baseStyle := gui.CurrentTheme().TextStyleCode
 	baseStyle.Size = fontSize
@@ -157,6 +171,19 @@ func mainView(w *gui.Window) gui.View {
 	app.CharHeight = charH
 	app.Cols = int(float32(ww) / charW)
 	app.Rows = int(float32(wh) / charH)
+}
+
+func mainView(w *gui.Window) gui.View {
+	// Allowlisted viewport use: the rain grid's column and row counts are
+	// the viewport divided by the character cell, not a layout result.
+	ww, wh := w.WindowSize()
+	app := gui.State[App](w)
+
+	baseStyle := gui.CurrentTheme().TextStyleCode
+	baseStyle.Size = fontSize
+
+	charW := app.CharWidth
+	charH := app.CharHeight
 
 	content := make([]gui.View, 0, len(app.RainColumns)*20)
 
@@ -206,8 +233,8 @@ func mainView(w *gui.Window) gui.View {
 		}
 	}
 
-	statusStyle := baseStyle
-	statusStyle.Color = gui.Gray
+	statusStyle := gui.CurrentTheme().TextStyleSecondary
+	statusStyle.Size = fontSize
 
 	content = append(content, gui.Column(gui.ContainerCfg{
 		X:          0,

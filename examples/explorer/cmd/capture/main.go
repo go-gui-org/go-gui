@@ -7,34 +7,44 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 )
 
 func main() {
 	var (
-		root  = flag.String("root", "examples", "examples root")
-		scale = flag.Float64("scale", 2, "device pixel ratio")
-		out   = flag.String("out", "screenshot.png", "output filename inside each example")
+		root = flag.String("root", "examples", "examples root")
+		out  = flag.String("out", "screenshot.png", "output filename inside each example")
 	)
 	flag.Parse()
-	_ = scale
+
+	// The output must stay a bare filename inside each example dir.
+	if *out == "" || *out == "." || filepath.Base(*out) != *out || strings.HasPrefix(*out, "-") {
+		fmt.Fprintf(os.Stderr, "out must be a bare filename: %q\n", *out)
+		os.Exit(1)
+	}
 
 	entries, err := os.ReadDir(*root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "read %s: %v\n", *root, err)
 		os.Exit(1)
 	}
-	fmt.Printf("capturing %d examples at scale %.1f\n", len(entries), *scale)
+	fmt.Printf("capturing %d examples\n", len(entries))
 	var ok, failed, skipped int
 	for _, e := range entries {
-		if !e.IsDir() || e.Name() == "bin" || e.Name()[0] == '.' {
+		name := e.Name()
+		if !e.IsDir() || name == "" || name == "bin" || name[0] == '.' {
 			continue
 		}
-		name := e.Name()
+		if strings.Contains(name, "..") || strings.ContainsAny(name, `/\`) || strings.HasPrefix(name, "-") {
+			fmt.Printf("%-24s skip (invalid name)\n", name)
+			skipped++
+			continue
+		}
 		dir := filepath.Join(*root, name)
 		target := filepath.Join(dir, *out)
 
 		// Try per-example -screenshot flag.
-		cmd := exec.Command("go", "run", "./examples/"+name, "-screenshot", target) // #nosec G204 -- name is directory basename
+		cmd := exec.Command("go", "run", "./examples/"+name, "-screenshot", target) // #nosec G204 -- name is validated basename
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		if err := cmd.Run(); err != nil {

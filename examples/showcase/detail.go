@@ -26,11 +26,22 @@ func detailPanel(w *gui.Window) gui.View {
 		})
 	}
 
-	if !hasEntry(entries, app.SelectedComponent) {
-		app.SelectedComponent = preferredComponentForGroup(entries)
+	// Generation must not write state: resolve locally and defer
+	// the repair so a filter miss heals next frame.
+	selected := app.SelectedComponent
+	if !hasEntry(entries, selected) {
+		selected = preferredComponentForGroup(entries)
+		w.QueueCommand(func(w *gui.Window) {
+			fixed := appState(w)
+			latest := filteredEntries(fixed)
+			if !hasEntry(latest, fixed.SelectedComponent) {
+				fixed.SelectedComponent = preferredComponentForGroup(latest)
+				w.InvalidateLayout()
+			}
+		})
 	}
 
-	entry := selectedEntry(entries, app.SelectedComponent)
+	entry := selectedEntry(entries, selected)
 
 	// Stop shader animation when not viewing the shader demo.
 	// QueueCommand defers to next frame (view functions hold w.mu).

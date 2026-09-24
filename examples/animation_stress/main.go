@@ -43,6 +43,8 @@ type animatedItem struct {
 type State struct {
 	Items  []animatedItem
 	NextID int
+	// ViewCache reuses the child slice backing array across frames.
+	ViewCache []gui.View
 }
 
 func main() {
@@ -74,7 +76,10 @@ func main() {
 func mainView(w *gui.Window) gui.View {
 	state := gui.State[State](w)
 
-	content := make([]gui.View, len(state.Items))
+	if cap(state.ViewCache) < len(state.Items) {
+		state.ViewCache = make([]gui.View, len(state.Items))
+	}
+	content := state.ViewCache[:len(state.Items)]
 	for i, item := range state.Items {
 		content[i] = renderItem(item)
 	}
@@ -166,6 +171,8 @@ func addItems(w *gui.Window, count int) {
 
 	safeW := float32(ww)
 	if safeW <= 0 {
+		// Headless/screenshot frames report no geometry yet; fall
+		// back so spawning still works without a window.
 		safeW = 800
 	}
 	safeH := float32(wh)
@@ -201,6 +208,14 @@ func addItems(w *gui.Window, count int) {
 		})
 
 		startWander(w, id)
+	}
+	// Cap the list; NextID stays monotonic so IDs never repeat.
+	// Dropped items' animations retire on their own: startWander
+	// finds no index for them and per-tick writes ID-check.
+	const maxStressItems = 500
+	if len(state.Items) > maxStressItems {
+		copy(state.Items, state.Items[len(state.Items)-maxStressItems:])
+		state.Items = state.Items[:maxStressItems]
 	}
 }
 
@@ -250,33 +265,35 @@ func startWander(w *gui.Window, id string) {
 
 	dur := time.Duration(durationMs) * time.Millisecond
 
-	ax := gui.NewTweenAnimation(id+"_x", currentX, destX,
+	ax := gui.NewTweenAnimation(gui.ScopeID(id, "x"), currentX, destX,
 		func(v float32, w *gui.Window) {
 			s := gui.State[State](w)
-			for i := range s.Items {
-				if s.Items[i].id == id {
-					s.Items[i].x = v
-					break
-				}
+			// Index captured at creation instead of scanning per
+			// tick; the ID check guards a list shift under us.
+			if idx < len(s.Items) && s.Items[idx].id == id {
+				s.Items[idx].x = v
 			}
 		})
 	ax.Duration = dur
 	ax.Easing = easing
 	w.AnimationAdd(ax)
 
-	ay := gui.NewTweenAnimation(id+"_y", currentY, destY,
+	ay := gui.NewTweenAnimation(gui.ScopeID(id, "y"), currentY, destY,
 		func(v float32, w *gui.Window) {
 			s := gui.State[State](w)
-			for i := range s.Items {
-				if s.Items[i].id == id {
-					s.Items[i].y = v
-					break
-				}
+			if idx < len(s.Items) && s.Items[idx].id == id {
+				s.Items[idx].y = v
 			}
 		})
 	ay.Duration = dur
 	ay.Easing = easing
 	ay.OnDone = func(w *gui.Window) {
+		// Stop re-arming once the window is gone.
+		select {
+		case <-w.Ctx().Done():
+			return
+		default:
+		}
 		startWander(w, id)
 	}
 	w.AnimationAdd(ay)

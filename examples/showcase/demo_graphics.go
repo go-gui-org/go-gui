@@ -63,21 +63,38 @@ func demoRectangle(_ *gui.Window) gui.View {
 	})
 }
 
+// iconCatalog caches the sorted icon keys and the widest label
+// width. The lookup is static data and the caption size is the only
+// theme input, so remeasure only when either changes — never per
+// frame.
+var iconCatalogKeys []string
+var iconCatalogWidth float32
+var iconCatalogCaptionSize float32
+
+func iconCatalog(w *gui.Window, t gui.Theme) ([]string, float32) {
+	if len(iconCatalogKeys) != len(gui.IconLookup) || iconCatalogCaptionSize != t.TextStyleCaption.Size {
+		keys := make([]string, 0, len(gui.IconLookup))
+		for key := range gui.IconLookup {
+			keys = append(keys, key)
+		}
+		sort.Strings(keys)
+		width := float32(0)
+		for _, key := range keys {
+			labelWidth := w.TextWidth(strings.TrimPrefix(key, "icon_"), t.TextStyleCaption)
+			if labelWidth > width {
+				width = labelWidth
+			}
+		}
+		iconCatalogKeys = keys
+		iconCatalogWidth = width
+		iconCatalogCaptionSize = t.TextStyleCaption.Size
+	}
+	return iconCatalogKeys, iconCatalogWidth
+}
+
 func demoIcons(w *gui.Window) gui.View {
 	t := gui.CurrentTheme()
-	keys := make([]string, 0, len(gui.IconLookup))
-	for key := range gui.IconLookup {
-		keys = append(keys, key)
-	}
-	sort.Strings(keys)
-
-	cellMinWidth := float32(0)
-	for _, key := range keys {
-		labelWidth := w.TextWidth(strings.TrimPrefix(key, "icon_"), t.TextStyleCaption)
-		if labelWidth > cellMinWidth {
-			cellMinWidth = labelWidth
-		}
-	}
+	keys, cellMinWidth := iconCatalog(w, t)
 
 	cols := 5
 	rows := make([]gui.View, 0, (len(keys)+cols-1)/cols)

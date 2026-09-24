@@ -127,14 +127,21 @@ func view(w *gui.Window) gui.View {
 	for r := range 2 {
 		cells := []gui.View{}
 		for c := range 3 {
-			s := all[r*3+c]
+			n := r*3 + c
+			if n >= len(all) {
+				continue
+			}
+			s := all[n]
 			cells = append(cells, gui.Column(gui.ContainerCfg{
+				ID:      gui.ScopeIDN("svg_radial", "tile", n),
 				Padding: gui.PaddingTwoFive,
 
 				Sizing: gui.FillFit,
 				HAlign: gui.HAlignCenter,
 				Content: []gui.View{
 					gui.Svg(gui.SvgCfg{
+						ID:      gui.ScopeIDN("svg_radial", "svg", n),
+						A11YCfg: gui.A11YCfg{A11YLabel: s.Title},
 						SvgData: s.Data, Sizing: gui.FixedFixed,
 						Width: 180, Height: 180,
 					}),

@@ -97,7 +97,7 @@ func New() *App {
 	}
 	for _, g := range allGroups {
 		for _, opt := range g.options {
-			app.pick[g.id+"/"+opt.id] = func(ctx gui.EventCtx) {
+			app.pick[gui.ScopeID(g.id, opt.id)] = func(ctx gui.EventCtx) {
 				app.selectOption(g, opt)
 				ctx.Consume()
 			}
@@ -151,11 +151,12 @@ func (app *App) arrowKeys(g group) func(gui.EventCtx) {
 		// focused option, which is the shape that got the key, so Down does
 		// not start from index 0 and land back on the option that has focus.
 		cur, focused := -1, 0
+		groupEff := ctx.EffID(g.id)
 		for i, opt := range g.options {
 			if opt.value == *g.value(app) {
 				cur = i
 			}
-			if ctx.Layout != nil && ctx.Layout.Shape != nil && ctx.Layout.Shape.ID == opt.id {
+			if ctx.Window.IsFocus(gui.ScopeID(groupEff, opt.id)) {
 				focused = i
 			}
 		}
@@ -295,7 +296,7 @@ func (app *App) optionState(g group, i int, tabStop string) optionState {
 		tabStop:   opt.id == tabStop,
 		selected:  opt.value == *g.value(app),
 		disabled:  app.optionDisabled(g, opt),
-		onClick:   app.pick[g.id+"/"+opt.id],
+		onClick:   app.pick[gui.ScopeID(g.id, opt.id)],
 		onKeyDown: app.keys[g.id],
 	}
 }

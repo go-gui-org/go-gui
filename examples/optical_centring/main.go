@@ -35,9 +35,13 @@ import (
 )
 
 // App holds the typed text, so the input row is a live jitter check
-// rather than a static picture.
+// rather than a static picture. The masked fields are state-backed too:
+// rebuilding InputDate's Date or NumericInput's Text per frame would
+// discard the pick on the next frame.
 type App struct {
-	Typed string
+	Typed   string
+	NumText string
+	Date    time.Time
 }
 
 // probeSizes are the sizes the correction is judged at. It scales with
@@ -48,8 +52,9 @@ func main() {
 	screenshot := flag.String("screenshot", "", "write screenshot and exit")
 	flag.Parse()
 
+	now := time.Now()
 	w := gui.SimpleWindow("Optical Centring", 900, 760,
-		&App{Typed: "128"}, func(w *gui.Window) {
+		&App{Typed: "128", NumText: "128", Date: now}, func(w *gui.Window) {
 			w.SetView(mainView)
 		})
 
@@ -137,10 +142,28 @@ func mainView(w *gui.Window) gui.View {
 			Padding:    gui.NoPadding,
 			Content: []gui.View{
 				gui.NumericInput(gui.NumericInputCfg{
-					ID: "probe_num", Text: "128",
+					ID:   "probe_num",
+					Text: app.NumText,
+					// The shared label above names both fields, so a
+					// per-field Label (the labelledField wrapper) does
+					// not fit; name each field for assistive tech instead.
+					A11YCfg: gui.A11YCfg{A11YLabel: "Masked numeric field"},
+					OnTextChanged: func(txt string, ctx gui.EventCtx) {
+						gui.State[App](ctx.Window).NumText = txt
+					},
 				}),
 				gui.InputDate(gui.InputDateCfg{
-					ID: "probe_date", Date: time.Now(),
+					ID:      "probe_date",
+					Date:    app.Date,
+					A11YCfg: gui.A11YCfg{A11YLabel: "Masked date field"},
+					// InputDate has no OnChange: typed and picked dates
+					// both funnel through OnSelect (see view_input_date.go).
+					OnSelect: func(dates []time.Time, ctx gui.EventCtx) {
+						if len(dates) == 0 {
+							return
+						}
+						gui.State[App](ctx.Window).Date = dates[0]
+					},
 				}),
 			},
 		}),
@@ -150,6 +173,7 @@ func mainView(w *gui.Window) gui.View {
 		Sizing:     gui.FillFill,
 		Scrollable: true,
 		ID:         "probe_scroll",
+		SizeBorder: gui.NoBorder,
 		Spacing:    gui.Some(gui.SpacingMedium),
 		Content:    rows,
 	})
@@ -171,7 +195,9 @@ func sizeRow(size float32, text string) gui.View {
 			gui.Button(gui.ButtonCfg{
 				ID:      gui.ScopeIDN("probe", "btn_"+text, int(size)),
 				Content: []gui.View{gui.Text(gui.TextCfg{Text: text, TextStyle: ts})},
-				OnClick: func(gui.EventCtx) {},
+				// No OnClick: an empty handler blocks nothing — events
+				// the callback does not act on travel on — so a no-op
+				// func would only add noise.
 			}),
 			// A cap-only button beside the row's own spelling. Buttons
 			// take the cap band, so this one and the "gypsy" button a
@@ -180,7 +206,7 @@ func sizeRow(size float32, text string) gui.View {
 			gui.Button(gui.ButtonCfg{
 				ID:      gui.ScopeIDN("probe", "btncap_"+text, int(size)),
 				Content: []gui.View{gui.Text(gui.TextCfg{Text: "PICK", TextStyle: ts})},
-				OnClick: func(gui.EventCtx) {},
+				// No OnClick here either: see the note above.
 			}),
 			gui.Text(gui.TextCfg{Text: text, TextStyle: ts}),
 		},

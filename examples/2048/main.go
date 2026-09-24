@@ -2,7 +2,6 @@
 package main
 
 import (
-	"fmt"
 	"math"
 	"strconv"
 	"time"
@@ -61,7 +60,9 @@ func main() {
 				Repeat: true,
 				Callback: func(_ *gui.Animate, w *gui.Window) {
 					app := gui.State[App](w)
-					app.LandingFrame++
+					if app.Screen == ScreenLanding {
+						app.LandingFrame++
+					}
 				},
 			})
 		},
@@ -144,12 +145,13 @@ func landingView(w *gui.Window) gui.View {
 	theme := gui.CurrentTheme()
 
 	return gui.Column(gui.ContainerCfg{
-		Width:  float32(ww),
-		Height: float32(wh),
-		Sizing: gui.FixedFixed,
-		Color:  gui.RGB(20, 20, 25),
-		HAlign: gui.HAlignCenter,
-		VAlign: gui.VAlignMiddle,
+		Width:      float32(ww),
+		Height:     float32(wh),
+		Sizing:     gui.FixedFixed,
+		Color:      gui.RGB(20, 20, 25),
+		HAlign:     gui.HAlignCenter,
+		VAlign:     gui.VAlignMiddle,
+		SizeBorder: gui.NoBorder,
 		Content: []gui.View{
 			// Background "jazz": floating tiles
 			landingBackdrop(float32(ww), float32(wh), app.LandingFrame),
@@ -236,10 +238,11 @@ func gameView(w *gui.Window) gui.View {
 	theme := gui.CurrentTheme()
 
 	return gui.Column(gui.ContainerCfg{
-		Sizing:  gui.FillFill,
-		HAlign:  gui.HAlignCenter,
-		Padding: gui.NewPadding(40, 0, 0, 0),
-		Spacing: gui.Some[float32](20),
+		Sizing:     gui.FillFill,
+		HAlign:     gui.HAlignCenter,
+		Padding:    gui.NewPadding(40, 0, 0, 0),
+		Spacing:    gui.Some[float32](20),
+		SizeBorder: gui.NoBorder,
 		Content: []gui.View{
 			// Header: Score and Best
 			gui.Row(gui.ContainerCfg{
@@ -293,15 +296,16 @@ func scoreBox(label string, value int) gui.View {
 	labelStyle.LetterSpacing = 1.0
 
 	return gui.Column(gui.ContainerCfg{
-		MinWidth: 90,
-		Height:   65,
-		Sizing:   gui.FixedFixed,
-		Color:    gui.RGB(187, 173, 160),
-		Radius:   gui.Some[float32](4),
-		Padding:  gui.NewPadding(8, 10, 8, 10),
-		VAlign:   gui.VAlignMiddle,
-		HAlign:   gui.HAlignCenter,
-		Spacing:  gui.Some[float32](4),
+		MinWidth:   90,
+		Height:     65,
+		Sizing:     gui.FixedFixed,
+		Color:      gui.RGB(187, 173, 160),
+		Radius:     gui.Some[float32](4),
+		Padding:    gui.NewPadding(8, 10, 8, 10),
+		VAlign:     gui.VAlignMiddle,
+		HAlign:     gui.HAlignCenter,
+		Spacing:    gui.Some[float32](4),
+		SizeBorder: gui.NoBorder,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      label,
@@ -343,7 +347,7 @@ func renderBoard(g *Game) []gui.View {
 				continue
 			}
 
-			views = append(views, renderTile(x, y, val))
+			views = append(views, renderTile(x, y, val, g.TileIDs[y][x]))
 		}
 	}
 
@@ -358,7 +362,7 @@ func renderBoard(g *Game) []gui.View {
 	return views
 }
 
-func renderTile(x, y, val int) gui.View {
+func renderTile(x, y, val, tileID int) gui.View {
 	theme := gui.CurrentTheme()
 	bg, fg := tileColors(val)
 	fontSize := float32(32)
@@ -371,7 +375,7 @@ func renderTile(x, y, val int) gui.View {
 	fx, fy := float32(x), float32(y)
 
 	return gui.Column(gui.ContainerCfg{
-		ID:      fmt.Sprintf("tile-%d-%d", x, y),
+		ID:      gui.ScopeIDN("g2048", "tile", tileID),
 		Hero:    true,
 		X:       fx*tilePx + (fx+1)*tileMargin,
 		Y:       fy*tilePx + (fy+1)*tileMargin,

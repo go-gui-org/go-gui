@@ -22,6 +22,13 @@ import (
 type appState struct {
 	ThemeIdx   int
 	StrokeBase int // calc(<base>px + 1px) → final stroke width
+	// iconCache holds the last built iconSvg output so the
+	// Sprintf rebuild runs once per (ThemeIdx, StrokeBase)
+	// change instead of once per frame.
+	iconCache       string
+	iconCacheIdx    int
+	iconCacheStroke int
+	iconCacheValid  bool
 }
 
 type theme struct {
@@ -81,20 +88,32 @@ func main() {
 
 func view(w *gui.Window) gui.View {
 	app := gui.State[appState](w)
+	if app.ThemeIdx < 0 || app.ThemeIdx >= len(themes) {
+		app.ThemeIdx = 0
+	}
 	t := themes[app.ThemeIdx]
+	if !app.iconCacheValid || app.iconCacheIdx != app.ThemeIdx ||
+		app.iconCacheStroke != app.StrokeBase {
+		app.iconCache = iconSvg(t, app.StrokeBase)
+		app.iconCacheIdx = app.ThemeIdx
+		app.iconCacheStroke = app.StrokeBase
+		app.iconCacheValid = true
+	}
 
 	themeButtons := []gui.View{}
 	for i, th := range themes {
 		idx := i
 		themeButtons = append(themeButtons, gui.Button(gui.ButtonCfg{
-			ID:      "svg_css_vars_view",
+			ID:      gui.ScopeIDN("svg_css_vars_view", "theme", idx),
 			Content: []gui.View{gui.Text(gui.TextCfg{Text: th.Name})},
 			Sizing:  gui.FitFit,
 			Padding: gui.PaddingTwoFive,
 
+			// No ctx.Consume: no ancestor in this tree
+			// handles OnClick, so nothing to stop.
 			OnClick: func(ctx gui.EventCtx) {
-				app.ThemeIdx = idx
-				w.SetView(view)
+				gui.State[appState](ctx.Window).ThemeIdx = idx
+				ctx.Window.InvalidateRender()
 			},
 		}))
 	}
@@ -103,16 +122,18 @@ func view(w *gui.Window) gui.View {
 	for _, n := range []int{0, 2, 4, 6, 8} {
 		base := n
 		strokeButtons = append(strokeButtons, gui.Button(gui.ButtonCfg{
-			ID: "svg_css_vars_view_2",
+			ID: gui.ScopeIDN("svg_css_vars_view_2", "stroke", base),
 			Content: []gui.View{gui.Text(gui.TextCfg{
 				Text: fmt.Sprintf("base=%dpx", base),
 			})},
 			Sizing:  gui.FitFit,
 			Padding: gui.PaddingTwoFive,
 
+			// No ctx.Consume: no ancestor in this tree
+			// handles OnClick, so nothing to stop.
 			OnClick: func(ctx gui.EventCtx) {
-				app.StrokeBase = base
-				w.SetView(view)
+				gui.State[appState](ctx.Window).StrokeBase = base
+				ctx.Window.InvalidateRender()
 			},
 		}))
 	}
@@ -138,7 +159,7 @@ func view(w *gui.Window) gui.View {
 				Sizing: gui.FillFill, HAlign: gui.HAlignCenter,
 				Content: []gui.View{
 					gui.Svg(gui.SvgCfg{
-						SvgData: iconSvg(t, app.StrokeBase),
+						SvgData: app.iconCache,
 						Sizing:  gui.FixedFixed,
 						Width:   240, Height: 240,
 					}),

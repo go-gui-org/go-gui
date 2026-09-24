@@ -84,27 +84,28 @@ func mainView(w *gui.Window) gui.View {
 
 func toolbar() gui.View {
 	return gui.Row(gui.ContainerCfg{
-		Sizing:  gui.FillFit,
-		Padding: gui.NewPadding(4, 8, 4, 8),
-		Spacing: gui.SomeF(8),
+		Sizing:     gui.FillFit,
+		Padding:    gui.NewPadding(4, 8, 4, 8),
+		Spacing:    gui.SomeF(8),
+		SizeBorder: gui.NoBorder,
 		Content: []gui.View{
 			gui.Button(gui.ButtonCfg{
-				ID:      "dock_layout_reset_layout",
+				ID:      gui.ScopeID("dock_layout", "reset_layout"),
 				Content: []gui.View{gui.Text(gui.TextCfg{Text: "Reset Layout"})},
 				OnClick: func(ctx gui.EventCtx) {
 					gui.State[App](ctx.Window).Root = initialLayout()
 				},
 			}),
 			gui.Button(gui.ButtonCfg{
-				ID:      "dock_layout_add_properties",
+				ID:      gui.ScopeID("dock_layout", "add_properties"),
 				Content: []gui.View{gui.Text(gui.TextCfg{Text: "Add Properties"})},
 				OnClick: func(ctx gui.EventCtx) {
 					app := gui.State[App](ctx.Window)
 					if _, ok := gui.DockTreeFindGroupByPanel(app.Root, "properties"); ok {
-						ctx.Consume()
 						return
 					}
 					app.Root = gui.DockTreeAddTab(app.Root, "left", "properties")
+					ctx.Consume()
 				},
 			}),
 		},
@@ -125,8 +126,9 @@ func panels() []gui.DockPanelDef {
 func panelContent(title, body string) []gui.View {
 	return []gui.View{
 		gui.Column(gui.ContainerCfg{
-			Sizing:  gui.FillFill,
-			Padding: gui.NewPadding(8, 12, 8, 12),
+			Sizing:     gui.FillFill,
+			Padding:    gui.NewPadding(8, 12, 8, 12),
+			SizeBorder: gui.NoBorder,
 			Content: []gui.View{
 				gui.Text(gui.TextCfg{
 					Text:      title,

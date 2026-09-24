@@ -26,6 +26,11 @@ const sampleSvg = `<svg xmlns="http://www.w3.org/2000/svg"
 
 type App struct {
 	Slice bool
+	// cellSvgs holds the 9 prebuilt tile sources for the
+	// current mode so the Sprintf runs on toggle, not per
+	// frame. cellMode names the mode they were built for.
+	cellSvgs []string
+	cellMode string
 }
 
 func main() {
@@ -75,18 +80,35 @@ func view(w *gui.Window) gui.View {
 				}),
 			},
 			OnClick: func(ctx gui.EventCtx) {
-				gui.State[App](ctx.Window).Slice = !gui.State[App](ctx.Window).Slice
+				st := gui.State[App](ctx.Window)
+				st.Slice = !st.Slice
+				// No ctx.Consume: no ancestor in this tree
+				// handles OnClick, so nothing to stop.
+				ctx.Window.InvalidateRender()
 			},
 		}),
 	}
 
 	all := aligns()
+	if app.cellMode != mode || len(app.cellSvgs) != len(all) {
+		built := make([]string, len(all))
+		for i, a := range all {
+			built[i] = fmt.Sprintf(sampleSvg, a, mode)
+		}
+		app.cellSvgs = built
+		app.cellMode = mode
+	}
 	for r := range 3 {
 		cells := []gui.View{}
 		for c := range 3 {
-			a := all[r*3+c]
-			data := fmt.Sprintf(sampleSvg, a, mode)
+			n := r*3 + c
+			if n >= len(all) || n >= len(app.cellSvgs) {
+				continue
+			}
+			a := all[n]
+			data := app.cellSvgs[n]
 			cells = append(cells, gui.Column(gui.ContainerCfg{
+				ID:      gui.ScopeIDN("svg_aspect", "tile", n),
 				Padding: gui.PaddingTwoFive,
 
 				Sizing: gui.FillFit,

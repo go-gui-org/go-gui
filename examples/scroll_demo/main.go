@@ -112,11 +112,12 @@ func scrollColumn(scrollID string, textID string, text string, w *gui.Window) gu
 
 func pctRow(app *App) gui.View {
 	return gui.Row(gui.ContainerCfg{
-		Sizing:  gui.FillFit,
-		Padding: gui.NoPadding,
-		HAlign:  gui.HAlignCenter,
-		VAlign:  gui.VAlignMiddle,
-		Spacing: gui.Some[float32](4),
+		Sizing:     gui.FillFit,
+		Padding:    gui.NoPadding,
+		SizeBorder: gui.NoBorder,
+		HAlign:     gui.HAlignCenter,
+		VAlign:     gui.VAlignMiddle,
+		Spacing:    gui.Some[float32](4),
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      fmt.Sprintf("%.0f%%", app.Pct*100),
@@ -136,8 +137,9 @@ func pctButton(idScroll string, pct int) gui.View {
 	return gui.Button(gui.ButtonCfg{
 		// IDs are unique per window: all five buttons shared one ID, so
 		// focus and per-widget state collided and no single button could
-		// be targeted by ID from a test. Suffix with the percentage.
-		ID: fmt.Sprintf("scroll_demo_pct_button_%d", pct),
+		// be targeted by ID from a test. ScopeIDN appends the percentage
+		// without a per-frame Sprintf.
+		ID: gui.ScopeIDN("scroll_demo", "pct_button", pct),
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{Text: fmt.Sprintf("%d%%", pct)}),
 		},
@@ -152,9 +154,10 @@ func pctButton(idScroll string, pct int) gui.View {
 func topRow(app *App) gui.View {
 	theme := gui.CurrentTheme()
 	return gui.Row(gui.ContainerCfg{
-		Sizing:  gui.FillFit,
-		Padding: gui.NoPadding,
-		VAlign:  gui.VAlignMiddle,
+		Sizing:     gui.FillFit,
+		Padding:    gui.NoPadding,
+		SizeBorder: gui.NoBorder,
+		VAlign:     gui.VAlignMiddle,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      "Scroll Demo",
@@ -178,6 +181,7 @@ func themeButton(app *App) gui.View {
 		TextUnselect: textUnsel,
 		TextStyle:    gui.CurrentTheme().TextStyleIconMedium,
 		Padding:      gui.PaddingSmall,
+		A11YCfg:      gui.A11YCfg{A11YLabel: "Toggle theme"},
 
 		Selected: app.Light,
 		OnClick: func(ctx gui.EventCtx) {

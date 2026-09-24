@@ -172,20 +172,30 @@ func handleEvent(e *gui.Event, w *gui.Window) {
 			e.IsHandled = true
 		}
 	case gui.Key1:
-		presetFountain(app)
-		e.IsHandled = true
+		if app.Screen == ScreenPlaying {
+			presetFountain(app)
+			e.IsHandled = true
+		}
 	case gui.Key2:
-		presetFire(app)
-		e.IsHandled = true
+		if app.Screen == ScreenPlaying {
+			presetFire(app)
+			e.IsHandled = true
+		}
 	case gui.Key3:
-		presetSnow(app)
-		e.IsHandled = true
+		if app.Screen == ScreenPlaying {
+			presetSnow(app)
+			e.IsHandled = true
+		}
 	case gui.Key4:
-		presetExplosion(app)
-		e.IsHandled = true
+		if app.Screen == ScreenPlaying {
+			presetExplosion(app)
+			e.IsHandled = true
+		}
 	case gui.Key5:
-		presetSparkler(app)
-		e.IsHandled = true
+		if app.Screen == ScreenPlaying {
+			presetSparkler(app)
+			e.IsHandled = true
+		}
 	}
 }
 
@@ -353,7 +363,7 @@ func sidebarView(w *gui.Window, wh float32) gui.View {
 				ColorBorder: colorNeonCyan.WithOpacity(0.5),
 				Content: []gui.View{
 					gui.Select(gui.SelectCfg{
-						ID:          "emitter-type",
+						ID:          gui.ScopeID("particles", "emitter-type"),
 						Selected:    []string{emitterName(app.EmitterType)},
 						Options:     []string{"Point", "Ring", "Line"},
 						FloatZIndex: 10,
@@ -369,11 +379,11 @@ func sidebarView(w *gui.Window, wh float32) gui.View {
 							}
 						},
 					}),
-					sliderRow("Rate", "spawn-rate", app.SpawnRate, 1, 30, 1,
+					sliderRow("Rate", gui.ScopeID("particles", "spawn-rate"), app.SpawnRate, 1, 30, 1,
 						func(v float32, ctx gui.EventCtx) {
 							state(ctx.Window).SpawnRate = v
 						}),
-					sliderRow("Spread", "spread", app.SpreadAngle, 0, math.Pi, 0.1,
+					sliderRow("Spread", gui.ScopeID("particles", "spread"), app.SpreadAngle, 0, math.Pi, 0.1,
 						func(v float32, ctx gui.EventCtx) {
 							state(ctx.Window).SpreadAngle = v
 						}),
@@ -388,15 +398,15 @@ func sidebarView(w *gui.Window, wh float32) gui.View {
 				SizeBorder:  gui.SomeF(1),
 				ColorBorder: colorNeonCyan.WithOpacity(0.4),
 				Content: []gui.View{
-					sliderRow("Gravity", "gravity", app.GravityY, -300, 300, 5,
+					sliderRow("Gravity", gui.ScopeID("particles", "gravity"), app.GravityY, -300, 300, 5,
 						func(v float32, ctx gui.EventCtx) {
 							state(ctx.Window).GravityY = v
 						}),
-					sliderRow("Wind", "wind", app.WindX, -200, 200, 5,
+					sliderRow("Wind", gui.ScopeID("particles", "wind"), app.WindX, -200, 200, 5,
 						func(v float32, ctx gui.EventCtx) {
 							state(ctx.Window).WindX = v
 						}),
-					sliderRow("Friction", "friction", app.Friction, 0.80, 1.00, 0.005,
+					sliderRow("Friction", gui.ScopeID("particles", "friction"), app.Friction, 0.80, 1.00, 0.005,
 						func(v float32, ctx gui.EventCtx) {
 							state(ctx.Window).Friction = v
 						}),
@@ -413,21 +423,21 @@ func sidebarView(w *gui.Window, wh float32) gui.View {
 				Content: []gui.View{
 					gui.Rectangle(gui.RectangleCfg{Height: 0}),
 					gui.ColorPicker(gui.ColorPickerCfg{
-						ID:    "base-color",
+						ID:    gui.ScopeID("particles", "base-color"),
 						Color: app.BaseColor,
 						OnColorChange: func(c gui.Color, ctx gui.EventCtx) {
 							state(ctx.Window).BaseColor = c
 						},
 					}),
-					sliderRow("Min Size", "size-min", app.SizeMin, 1, 10, 0.5,
+					sliderRow("Min Size", gui.ScopeID("particles", "size-min"), app.SizeMin, 1, 10, 0.5,
 						func(v float32, ctx gui.EventCtx) {
 							state(ctx.Window).SizeMin = v
 						}),
-					sliderRow("Max Size", "size-max", app.SizeMax, 1, 15, 0.5,
+					sliderRow("Max Size", gui.ScopeID("particles", "size-max"), app.SizeMax, 1, 15, 0.5,
 						func(v float32, ctx gui.EventCtx) {
 							state(ctx.Window).SizeMax = v
 						}),
-					sliderRow("Lifetime", "lifetime", app.Lifetime, 0.3, 8, 0.1,
+					sliderRow("Lifetime", gui.ScopeID("particles", "lifetime"), app.Lifetime, 0.3, 8, 0.1,
 						func(v float32, ctx gui.EventCtx) {
 							state(ctx.Window).Lifetime = v
 						}),
@@ -684,7 +694,7 @@ func presetBtn(_ *gui.Window, label string, color gui.Color,
 	apply func(*App)) gui.View {
 	theme := gui.CurrentTheme()
 	return gui.Button(gui.ButtonCfg{
-		ID:         "particles_preset_btn",
+		ID:         gui.ScopeID("particles_preset_btn", label),
 		Color:      color.WithOpacity(0.1),
 		Colors:     gui.ColorSet{Hover: color.WithOpacity(0.25), Click: color.WithOpacity(0.4), Border: color.WithOpacity(0.6)},
 		SizeBorder: gui.SomeF(1),

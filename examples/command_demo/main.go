@@ -23,6 +23,11 @@ type App struct {
 	Saved   bool
 }
 
+// menubarClearance keeps body content below the floating menubar,
+// which overlays instead of laying out. No theme token names a
+// menubar height, so this stays a named constant.
+const menubarClearance = 45
+
 func main() {
 	screenshot := flag.String("screenshot", "", "write screenshot and exit")
 	flag.Parse()
@@ -50,7 +55,7 @@ func main() {
 }
 
 func registerCommands(w *gui.Window) {
-	_ = w.RegisterCommands(
+	if err := w.RegisterCommands(
 		gui.Command{
 			ID:       "file.new",
 			Label:    "New",
@@ -131,7 +136,9 @@ func registerCommands(w *gui.Window) {
 				gui.CommandPaletteToggle("palette", w)
 			},
 		},
-	)
+	); err != nil {
+		log.Fatal(err)
+	}
 }
 
 func mainView(w *gui.Window) gui.View {
@@ -167,7 +174,9 @@ func menuBar(w *gui.Window) gui.View {
 				{ID: "file.new", CommandID: "file.new"},
 				{ID: "file.save", CommandID: "file.save"},
 				gui.MenuSeparator(),
-				gui.MenuItemText("exit", "Exit"),
+				{ID: "exit", Text: "Exit", Action: func(_ *gui.MenuItemCfg, ctx gui.EventCtx) {
+					ctx.Window.Close()
+				}},
 			}),
 			gui.MenuSubmenu("edit", "Edit", []gui.MenuItemCfg{
 				{ID: "edit.undo", CommandID: "edit.undo"},
@@ -192,9 +201,10 @@ func body(app *App, theme gui.Theme) gui.View {
 		HAlign:  gui.HAlignCenter,
 		Padding: gui.NoPadding,
 		Sizing:  gui.FillFill,
+		Spacing: gui.Some(theme.SpacingMedium),
 		Content: []gui.View{
 			gui.Rectangle(gui.RectangleCfg{
-				Height: 45,
+				Height: menubarClearance,
 				Color:  gui.ColorTransparent,
 				Sizing: gui.FillFixed,
 			}),
@@ -207,30 +217,28 @@ func body(app *App, theme gui.Theme) gui.View {
 					"Counter: %d  (%s)", app.Counter, savedText),
 				TextStyle: theme.Mono(theme.TextStyleDisplay.Regular()),
 			}),
-			gui.Text(gui.TextCfg{Text: ""}),
 			gui.Row(gui.ContainerCfg{
 				Sizing:     gui.FitFit,
 				SizeBorder: gui.NoBorder,
 				Padding:    gui.NoPadding,
 				Content: []gui.View{
 					gui.CommandButton("edit.increment",
-						gui.ButtonCfg{ID: "command_demo_body"}),
+						gui.ButtonCfg{ID: gui.ScopeIDN("command_demo", "body", 1)}),
 					gui.CommandButton("edit.decrement",
-						gui.ButtonCfg{ID: "command_demo_body_2"}),
+						gui.ButtonCfg{ID: gui.ScopeIDN("command_demo", "body", 2)}),
 					gui.CommandButton("edit.undo",
-						gui.ButtonCfg{ID: "command_demo_body_3"}),
+						gui.ButtonCfg{ID: gui.ScopeIDN("command_demo", "body", 3)}),
 				},
 			}),
-			gui.Text(gui.TextCfg{Text: ""}),
 			gui.Row(gui.ContainerCfg{
 				Sizing:     gui.FitFit,
 				SizeBorder: gui.NoBorder,
 				Padding:    gui.NoPadding,
 				Content: []gui.View{
 					gui.CommandButton("file.new",
-						gui.ButtonCfg{ID: "command_demo_body_4"}),
+						gui.ButtonCfg{ID: gui.ScopeIDN("command_demo", "body", 4)}),
 					gui.CommandButton("file.save",
-						gui.ButtonCfg{ID: "command_demo_body_5"}),
+						gui.ButtonCfg{ID: gui.ScopeIDN("command_demo", "body", 5)}),
 				},
 			}),
 		},

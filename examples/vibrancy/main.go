@@ -40,6 +40,8 @@ func main() {
 	})
 
 	if *screenshot != "" {
+		// Native vibrancy is a window property, not pixels: a capture
+		// holds the content without the backdrop.
 		if err := soft.RenderToPNG(w, 2, *screenshot); err != nil {
 			log.Fatalf("screenshot: %v", err)
 		}
@@ -48,16 +50,40 @@ func main() {
 	backend.Run(w)
 }
 
+// vibrancyCycle is every exported material: the rest of the enum is
+// unexported, so a raw ++ would land on values the app cannot name.
+var vibrancyCycle = []gui.VibrancyMaterial{
+	gui.VibrancySidebar,
+	gui.VibrancyUnderWindow,
+}
+
+func materialName(m gui.VibrancyMaterial) string {
+	switch m {
+	case gui.VibrancySidebar:
+		return "Sidebar"
+	case gui.VibrancyUnderWindow:
+		return "Under Window"
+	default:
+		return "Unknown"
+	}
+}
+
 func mainView(w *gui.Window) gui.View {
+	app := gui.State[App](w)
 
 	return gui.Column(gui.ContainerCfg{
-		Sizing: gui.FillFill,
-		HAlign: gui.HAlignCenter,
-		VAlign: gui.VAlignMiddle,
+		Sizing:     gui.FillFill,
+		SizeBorder: gui.NoBorder,
+		HAlign:     gui.HAlignCenter,
+		VAlign:     gui.VAlignMiddle,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      "Vibrant window (macOS)",
 				TextStyle: gui.CurrentTheme().TextStyleDisplay,
+			}),
+			gui.Text(gui.TextCfg{
+				Text:      "Material: " + materialName(app.Material),
+				TextStyle: gui.CurrentTheme().TextStyleSecondary,
 			}),
 			gui.Button(gui.ButtonCfg{
 				ID: "vibrancy_button",
@@ -66,11 +92,14 @@ func mainView(w *gui.Window) gui.View {
 				},
 				OnClick: func(ctx gui.EventCtx) {
 					app := gui.State[App](ctx.Window)
-					// Cycle through the materials, wrapping back to Sidebar.
-					app.Material++
-					if app.Material > gui.VibrancyUnderWindow {
-						app.Material = gui.VibrancySidebar
+					next := vibrancyCycle[0]
+					for i, m := range vibrancyCycle {
+						if m == app.Material {
+							next = vibrancyCycle[(i+1)%len(vibrancyCycle)]
+							break
+						}
 					}
+					app.Material = next
 					ctx.Window.SetWindowVibrancy(app.Material)
 				},
 			}),

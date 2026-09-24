@@ -4,7 +4,6 @@
 package main
 
 import (
-	"fmt"
 	"strings"
 
 	"flag"
@@ -50,11 +49,11 @@ func newAppState() *appState {
 	return &appState{
 		NextID: 6,
 		Items: []todoItem{
-			{ID: 1, Title: "Learn JavaScript projects"},
-			{ID: 2, Title: "Make a to do list app"},
-			{ID: 3, Title: "Host it on online server", Completed: true},
-			{ID: 4, Title: "Link it to your resume"},
-			{ID: 5, Title: "Get a software job"},
+			{ID: 1, Title: "Add a task with the input above"},
+			{ID: 2, Title: "Press Enter to add it to the list"},
+			{ID: 3, Title: "Click the circle to mark it done", Completed: true},
+			{ID: 4, Title: "Click × to delete a task"},
+			{ID: 5, Title: "Drafts wait until you press Enter"},
 		},
 	}
 }
@@ -116,6 +115,10 @@ func cardView(w *gui.Window) gui.View {
 }
 
 func headerView() gui.View {
+	titleStyle := gui.CurrentTheme().TextStyleDisplay
+	titleStyle.Color = gui.ColorFromString("#15326f")
+	iconStyle := gui.CurrentTheme().TextStyleIconXLarge
+	iconStyle.Color = colorAccent
 	return gui.Row(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
 		Padding: gui.NoPadding,
@@ -123,16 +126,12 @@ func headerView() gui.View {
 		VAlign:  gui.VAlignMiddle,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
-				Text: "To-Do List",
-				TextStyle: gui.TextStyle{
-					Color:    gui.ColorFromString("#15326f"),
-					Size:     28,
-					Typeface: 1,
-				},
+				Text:      "To-Do List",
+				TextStyle: titleStyle,
 			}),
 			gui.Text(gui.TextCfg{
 				Text:      gui.IconListTask,
-				TextStyle: gui.TextStyle{Family: gui.IconFontName, Color: colorAccent, Size: 24},
+				TextStyle: iconStyle,
 			}),
 		},
 	})
@@ -140,6 +139,13 @@ func headerView() gui.View {
 
 func composerView(w *gui.Window) gui.View {
 	app := gui.State[appState](w)
+	theme := gui.CurrentTheme()
+	inputStyle := theme.TextStyleBodyLarge
+	inputStyle.Color = colorText
+	placeholderStyle := theme.TextStyleBodyLarge
+	placeholderStyle.Color = colorMuted
+	addStyle := theme.TextStyleTitle
+	addStyle.Color = gui.RGB(255, 255, 255)
 
 	return gui.Row(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
@@ -147,7 +153,7 @@ func composerView(w *gui.Window) gui.View {
 		VAlign:  gui.VAlignMiddle,
 		Content: []gui.View{
 			gui.Input(gui.InputCfg{
-				ID:               "todo-input",
+				ID:               todoInputFocusID,
 				Sizing:           gui.FillFit,
 				Text:             app.Draft,
 				Placeholder:      "Add your task",
@@ -155,8 +161,8 @@ func composerView(w *gui.Window) gui.View {
 				Colors:           gui.ColorSet{Hover: colorInputBG, Border: colorInputBG, BorderFocus: colorAccent},
 				Radius:           gui.SomeF(20),
 				Padding:          gui.NewPadding(18, 20, 18, 20),
-				TextStyle:        gui.TextStyle{Color: colorText, Size: 18},
-				PlaceholderStyle: gui.TextStyle{Color: colorMuted, Size: 18},
+				TextStyle:        inputStyle,
+				PlaceholderStyle: placeholderStyle,
 				OnTextChanged: func(text string, ctx gui.EventCtx) {
 					// Keep the input fully controlled by app state.
 					gui.State[appState](ctx.Window).Draft = text
@@ -185,12 +191,8 @@ func composerView(w *gui.Window) gui.View {
 				MinWidth: 140,
 				Content: []gui.View{
 					gui.Text(gui.TextCfg{
-						Text: "ADD",
-						TextStyle: gui.TextStyle{
-							Color:    gui.RGB(255, 255, 255),
-							Size:     18,
-							Typeface: 1,
-						},
+						Text:      "ADD",
+						TextStyle: addStyle,
 					}),
 				},
 				OnClick: func(ctx gui.EventCtx) {
@@ -235,8 +237,10 @@ func todoRowView(item todoItem) gui.View {
 }
 
 func completeButton(item todoItem) gui.View {
+	checkStyle := gui.CurrentTheme().TextStyleTitle
+	checkStyle.Color = gui.RGB(255, 255, 255)
 	cfg := gui.ButtonCfg{
-		ID:      fmt.Sprintf("todo-check-%d", item.ID),
+		ID:      gui.ScopeIDN("todo", "check", item.ID),
 		Width:   32,
 		Height:  32,
 		Sizing:  gui.FixedFixed,
@@ -252,12 +256,8 @@ func completeButton(item todoItem) gui.View {
 		cfg.Colors = gui.Flat(colorAccent)
 		cfg.Content = []gui.View{
 			gui.Text(gui.TextCfg{
-				Text: "✓",
-				TextStyle: gui.TextStyle{
-					Color:    gui.RGB(255, 255, 255),
-					Size:     18,
-					Typeface: 1,
-				},
+				Text:      "✓",
+				TextStyle: checkStyle,
 			}),
 		}
 		return gui.Button(cfg)
@@ -275,8 +275,10 @@ func completeButton(item todoItem) gui.View {
 }
 
 func deleteButton(id int) gui.View {
+	deleteStyle := gui.CurrentTheme().TextStyleDisplay
+	deleteStyle.Color = colorMuted
 	return gui.Button(gui.ButtonCfg{
-		ID:      fmt.Sprintf("todo-delete-%d", id),
+		ID:      gui.ScopeIDN("todo", "delete", id),
 		Width:   28,
 		Height:  28,
 		Sizing:  gui.FixedFixed,
@@ -286,11 +288,8 @@ func deleteButton(id int) gui.View {
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
-				Text: "×",
-				TextStyle: gui.TextStyle{
-					Color: colorMuted,
-					Size:  24,
-				},
+				Text:      "×",
+				TextStyle: deleteStyle,
 			}),
 		},
 		OnClick: func(ctx gui.EventCtx) {
@@ -300,10 +299,8 @@ func deleteButton(id int) gui.View {
 }
 
 func itemTextStyle(completed bool) gui.TextStyle {
-	style := gui.TextStyle{
-		Color: colorText,
-		Size:  17,
-	}
+	style := gui.CurrentTheme().TextStyleBodyLarge
+	style.Color = colorText
 	if completed {
 		style.Color = colorStrike
 		style.Strikethrough = true
