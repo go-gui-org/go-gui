@@ -62,7 +62,9 @@ diff. Review ONLY the changed lines and the code they directly affect. Read
 surrounding source with Read/Grep/Glob when a judgement needs it. CLAUDE.md and
 gui/CLAUDE.md hold this repo's rules; apply them where they are specific.
 
-Report only defects you are confident are real. Check:
+Report any defect that could cause incorrect behavior, a panic, a failing test,
+a per-frame heap allocation, or a misleading result. Omit style and naming
+preferences. Check:
 - Correctness: off-by-one, nil/zero-value handling, early returns that skip
   cleanup, wrong boundary conditions.
 - Error paths: every returned error handled, or ignored on purpose with a reason.

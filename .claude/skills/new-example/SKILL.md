@@ -19,8 +19,8 @@ Every example follows this structure:
 
 1. Package comment that describes the example
 2. `App` state struct
-3. `main()` that sets the theme, creates `gui.NewWindow`, and calls
-   `backend.Run`
+3. `main()` that creates the window with `gui.SimpleWindow`, sets the view with
+   `w.SetView`, and calls `backend.Run`
 4. `mainView` function that returns `gui.View`
 
 ## Reference Pattern
@@ -40,30 +40,18 @@ type App struct {
 }
 
 func main() {
-    gui.SetTheme(gui.ThemeDark)
-
-    w := gui.NewWindow(gui.WindowCfg{
-        State:  &App{},
-        Title:  "<name>",
-        Width:  800,
-        Height: 600,
-        OnInit: func(w *gui.Window) {
-            w.UpdateView(mainView)
-        },
+    w := gui.SimpleWindow("<name>", 800, 600, &App{}, func(w *gui.Window) {
+        w.SetView(mainView)
     })
-
     backend.Run(w)
 }
 
 func mainView(w *gui.Window) gui.View {
-    ww, wh := w.WindowSize()
     app := gui.State[App](w)
     _ = app
 
     return gui.Column(gui.ContainerCfg{
-        Width:  float32(ww),
-        Height: float32(wh),
-        Sizing: gui.FixedFixed,
+        Sizing: gui.FillFill,
         // build UI here
     })
 }
@@ -72,6 +60,6 @@ func mainView(w *gui.Window) gui.View {
 ## Rules
 
 - Place in `examples/<name>/main.go`
-- Use `gui.ThemeDark` unless the user specifies otherwise
-- Use `gui.FixedFixed` sizing for the root container
+- Use the default theme unless the user specifies otherwise
+- Use `gui.FillFill` sizing for the root container; it fills the window
 - Follow all conventions in CLAUDE.md (no variable shadowing, clean lint)

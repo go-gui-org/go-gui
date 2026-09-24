@@ -34,9 +34,9 @@ type <Name>Cfg struct {
     ID string
 
     // Focusable opts into the focus system (with a non-empty ID).
-    // NOTE: input controls (Input, Select, Slider, Toggle, Switch)
-    // are focusable by default and expose FocusDisabled instead —
-    // pick the convention that matches the widget class.
+    // Input controls are focusable by default and expose FocusDisabled
+    // instead (inventory: `ergonomics-audit -mode focus`); pick the
+    // convention that matches the widget class.
     Focusable bool
 
     // Widget-specific fields...
