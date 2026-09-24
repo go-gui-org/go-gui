@@ -21,6 +21,12 @@ and this project adheres to
   inside a drum. Unset keeps the theme default; the date picker's overlay card
   sets `NoSpacing` so its five rows stack edge to edge.
 
+- **Missing padding presets are exported** — `PaddingXSmall` and `PaddingMedium`
+  complete the ladder beside `PaddingSmall` and `PaddingLarge` (#784). App code
+  that must follow the active theme reads `theme.PaddingSmall`,
+  `theme.PaddingMedium`, or `theme.PaddingLarge` instead; the package presets
+  stay fixed when the theme changes.
+
 ### Fixed
 
 - **CommandButton consumes the click it acts on** — the auto-wired `OnClick` now
