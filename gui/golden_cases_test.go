@@ -1784,7 +1784,56 @@ func goldenCases() []goldenCase {
 			hoverInert: true,
 			build:      buildStateRadioDisabled,
 		},
+		{
+			// Paused, so the recording pins the still frame:
+			// a live orb would record whatever tick the
+			// clock happened to land on.
+			name:  "thinking_orb_searching",
+			build: goldenThinkingOrbSearching,
+		},
+		{
+			name:  "thinking_orb_working_small",
+			build: goldenThinkingOrbWorkingSmall,
+		},
+		{
+			// The shimmer is seeded mid-cycle like the
+			// text_anim cases; the orb is paused.
+			name:  "thinking_orb_label",
+			build: goldenThinkingOrbLabel,
+		},
 	}
+}
+
+// goldenThinkingOrbSearching pins the searching still frame.
+func goldenThinkingOrbSearching(_ *Window) View {
+	return ThinkingOrb(ThinkingOrbCfg{
+		ID:     "orb-searching",
+		Design: ThinkingOrbSearching,
+		Paused: true,
+	})
+}
+
+// goldenThinkingOrbWorkingSmall pins the small busy still frame.
+func goldenThinkingOrbWorkingSmall(_ *Window) View {
+	return ThinkingOrb(ThinkingOrbCfg{
+		ID:     "orb-working-small",
+		Design: ThinkingOrbWorking,
+		Size:   ThinkingOrbSmall,
+		Paused: true,
+	})
+}
+
+// goldenThinkingOrbLabel pins a status label: paused orb plus a
+// seeded shimmer.
+func goldenThinkingOrbLabel(w *Window) View {
+	seedTextAnim(w, ScopeID("orb-label", "text"), 0.5)
+	return ThinkingOrbLabel(ThinkingOrbLabelCfg{
+		ID:     "orb-label",
+		Text:   "Searching the web…",
+		Design: ThinkingOrbSearching,
+		Size:   ThinkingOrbSmall,
+		Paused: true,
+	})
 }
 
 // The interaction-state builders (#690). One widget per case, alone

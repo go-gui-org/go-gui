@@ -10,6 +10,19 @@ and this project adheres to
 
 ### Added
 
+- **ThinkingOrb semantic spinners** — `ThinkingOrb(ThinkingOrbCfg)` shows one of
+  nine dotted 3D loading states for AI and agent interfaces: working, searching,
+  solving, listening, connecting, weaving, composing, breathing, and shaping
+  (#782). Each design is a tuned motion, not a generic spin, so "searching the
+  web" reads differently from "writing a reply". Two tuned sizes cover hero
+  moments (`ThinkingOrbRegular`, 64pt) and inline rows (`ThinkingOrbSmall`,
+  20pt). Ink is monochrome and follows the theme, with depth shading mirrored on
+  dark grounds. `ThinkingOrbLabel` pairs an orb with a shimmering status line
+  that reads as one accessibility element. Paused, Reduce Motion, and headless
+  captures pin a still frame. The geometry is a formula-for-formula port of the
+  MIT ThinkingOrbs engine and matches its golden vectors to 1e-4. The showcase
+  has a new Thinking Orb page with all nine designs in both sizes.
+
 - **SegmentedControl widget** — `SegmentedControl(SegmentedControlCfg)` shows a
   row of segments in one shared track, with one segment selected (#600). Use it
   for a compact choice of two to six short options, for example a view mode or a
