@@ -57,6 +57,11 @@ type TextCfg struct {
 	// Unexported: not a meaningful knob for standalone Text callers.
 	readOnly bool
 
+	// keyboard is the soft-keyboard kind of the owning Input, carried
+	// to the shape so the edit-context gate can ask for it. Set by
+	// input widgets only.
+	keyboard KeyboardKind
+
 	// focusOwner is set by input widgets (view_input.go) to the ID of
 	// the container that owns the focus and per-widget state this text
 	// renders from. See Shape.focusOwner. Unexported: a standalone
@@ -123,6 +128,7 @@ func (tv *textView) GenerateLayout(w *Window) Layout {
 		TextMode:          c.Mode,
 		TextTabSize:       c.TabSize,
 		textReadOnly:      c.readOnly,
+		textKeyboard:      c.keyboard,
 		overflowScrollX:   c.scrollOverflowX,
 		wrapSizingDefault: c.wrapSizingDefault,
 	}

@@ -54,6 +54,10 @@ const (
 	EventIMEComposition
 	eventGesture     // gesture recognized from touch input
 	EventScrollBegan // trackpad finger touch (zero-delta phase begin)
+	// EventSoftKeyboard reports that the OS soft keyboard covers a
+	// new height of the window: Event.SoftKeyboardInset carries it,
+	// 0 when the keyboard went down (issue #770).
+	EventSoftKeyboard
 )
 
 // MouseButton identifies which mouse button was pressed/released.
@@ -389,4 +393,9 @@ type Event struct {
 	// (already carrying OS momentum). False for discrete mouse-wheel
 	// notches, which the gui side eases via scrollSmoothAnimation.
 	ScrollPrecise bool
+
+	// SoftKeyboardInset is the logical-pixel height of the window the
+	// soft keyboard covers, set on EventSoftKeyboard. Read it through
+	// Window.SoftKeyboardInset, which clamps it.
+	SoftKeyboardInset float32
 }

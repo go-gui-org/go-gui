@@ -73,6 +73,18 @@ func PendingURI() string { return android.PendingURI() }
 // 0=none, 1=show keyboard, 2=hide keyboard.
 func PendingIMEAction() int32 { return android.PendingIMEAction() }
 
+// PendingIMEKeyboardKind returns the focused field's keyboard kind.
+// 0=text, 1=number, 2=decimal, 3=phone, 4=email, 5=url, 6=none.
+func PendingIMEKeyboardKind() int32 { return android.PendingIMEKeyboardKind() }
+
+// PendingIMEKeyboardSecure reports whether the focused field is a
+// password field.
+func PendingIMEKeyboardSecure() bool { return android.PendingIMEKeyboardSecure() }
+
+// SoftKeyboardInset is called from Kotlin with the logical-pixel height
+// the soft keyboard covers, 0 when it is down.
+func SoftKeyboardInset(h float32) { android.SoftKeyboardInset(h) }
+
 // PendingIMERectX returns the IME cursor rect X.
 func PendingIMERectX() int32 { return android.PendingIMERectX() }
 

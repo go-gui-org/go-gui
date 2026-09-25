@@ -294,6 +294,7 @@ func numericInputField(
 		// provably empty and the value can be centred on its ink rather
 		// than on its line box (issue #346).
 		opticalDigitCenter: true,
+		Keyboard:           numericKeyboard(cfg.Decimals), // digit pad, + separator with decimals
 		Colors:             colors,
 		TextStyle:          cfg.TextStyle,
 		PlaceholderStyle:   cfg.PlaceholderStyle,
@@ -589,4 +590,13 @@ func applyNumericInputDefaults(cfg *NumericInputCfg) {
 			Position: AffixSuffix,
 		}
 	}
+}
+
+// numericKeyboard picks the soft keyboard for a NumericInput: a digit
+// pad for whole numbers, a pad with a decimal separator otherwise.
+func numericKeyboard(decimals int) KeyboardKind {
+	if decimals > 0 {
+		return KeyboardDecimal
+	}
+	return KeyboardNumber
 }

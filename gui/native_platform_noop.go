@@ -57,6 +57,8 @@ func (noopNativePlatform) A11yAnnounce(_ string)                               {
 func (noopNativePlatform) IMEStart()                                           {}
 func (noopNativePlatform) IMEStop()                                            {}
 func (noopNativePlatform) IMESetRect(_, _, _, _ int32)                         {}
+func (noopNativePlatform) ShowSoftKeyboard(_ KeyboardKind, _ bool)             {}
+func (noopNativePlatform) HideSoftKeyboard()                                   {}
 func (noopNativePlatform) OpenURI(_ string) error                              { return nil }
 func (noopNativePlatform) TitlebarDark(_ bool)                                 {}
 func (noopNativePlatform) SystemAppearance() (Appearance, bool)                { return AppearanceLight, false }

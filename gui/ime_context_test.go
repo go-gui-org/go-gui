@@ -512,8 +512,8 @@ func TestFindEditTargetsDepthCap(t *testing.T) {
 			Children: []Layout{leaf},
 		}
 	}
-	if caret, ime := findEditTargets(&leaf, w, 0); caret || ime {
-		t.Fatalf("findEditTargets = (%v, %v), want (false, false)",
-			caret, ime)
+	if caret, edit := findEditTargets(&leaf, w, 0); caret || edit != nil {
+		t.Fatalf("findEditTargets = (%v, %v), want (false, nil)",
+			caret, edit)
 	}
 }

@@ -135,6 +135,13 @@ type InputCfg struct {
 	// IsPassword masks displayed characters with dots/bullets.
 	IsPassword bool
 
+	// Keyboard picks the OS soft-keyboard layout shown while the field
+	// is focused (touch platforms). The zero value is KeyboardText. It
+	// is a hint only and does not limit what can be typed; see
+	// KeyboardKind. KeyboardNone keeps the OS keyboard down for an app
+	// keypad. A password field is marked secure from IsPassword.
+	Keyboard KeyboardKind
+
 	// opticalDigitCenter opts the field's text into optical centring on
 	// the face's figure band (issue #346). Unexported and opt-in because
 	// it is only sound where the *caller* guarantees the alphabet is
@@ -257,6 +264,7 @@ func Input(cfg InputCfg) View {
 			IsPassword:        cfg.IsPassword,
 			placeholderActive: placeholderActive,
 			readOnly:          cfg.ReadOnly,
+			keyboard:          cfg.Keyboard,
 			// Multiline wraps, so a run with no break opportunity is
 			// the only thing that can reach past the field. Record it
 			// so the field's horizontal scroll can follow the cursor

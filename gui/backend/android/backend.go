@@ -337,7 +337,54 @@ var (
 	pendingIMERectY  int32
 	pendingIMERectW  int32
 	pendingIMERectH  int32
+	// pendingIMEKind and pendingIMESecure describe the keyboard the
+	// next show asks for. Unlike the action they are not cleared on
+	// read: onCreateInputConnection may read them again at any time.
+	pendingIMEKind   gui.KeyboardKind
+	pendingIMESecure bool
 )
+
+// setPendingIMEKeyboard records the keyboard kind for Kotlin.
+func setPendingIMEKeyboard(kind gui.KeyboardKind, secure bool) {
+	pendingIMEMu.Lock()
+	pendingIMEKind = kind
+	pendingIMESecure = secure
+	pendingIMEMu.Unlock()
+}
+
+// PendingIMEKeyboardKind returns the gui.KeyboardKind of the focused
+// field, as an int32 for gomobile: 0=text, 1=number, 2=decimal,
+// 3=phone, 4=email, 5=url, 6=none. The Kotlin bridge maps it to an
+// android.text.InputType class in onCreateInputConnection.
+func PendingIMEKeyboardKind() int32 {
+	pendingIMEMu.Lock()
+	k := pendingIMEKind
+	pendingIMEMu.Unlock()
+	return int32(k)
+}
+
+// PendingIMEKeyboardSecure reports whether the focused field is a
+// password field, so the bridge can add TYPE_TEXT_VARIATION_PASSWORD
+// and turn off suggestions.
+func PendingIMEKeyboardSecure() bool {
+	pendingIMEMu.Lock()
+	s := pendingIMESecure
+	pendingIMEMu.Unlock()
+	return s
+}
+
+// SoftKeyboardInset is called from Kotlin with the height, in logical
+// pixels, that the soft keyboard covers at the bottom of the view
+// (WindowInsets ime bottom minus the navigation bar), 0 when it is
+// down. Call it on the GL thread (queueEvent), like TouchInput. The
+// gui side clamps the value.
+func SoftKeyboardInset(h float32) {
+	if androidWindow == nil {
+		return
+	}
+	evt := gui.Event{Type: gui.EventSoftKeyboard, SoftKeyboardInset: h}
+	androidWindow.EventFn(&evt)
+}
 
 // setPendingIMEAction sets the IME action for Kotlin to pick up.
 func setPendingIMEAction(action int32) {

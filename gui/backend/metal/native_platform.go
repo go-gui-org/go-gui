@@ -130,6 +130,10 @@ func (n *nativePlatform) IMESetRect(x, y, w, h int32) {
 		C.float(x), C.float(y), C.float(w), C.float(h))
 }
 
+// macOS has no soft keyboard to ask for (issue #770).
+func (n *nativePlatform) ShowSoftKeyboard(_ gui.KeyboardKind, _ bool) {}
+func (n *nativePlatform) HideSoftKeyboard()                           {}
+
 // --- Appearance ---
 
 func (n *nativePlatform) TitlebarDark(_ bool) {}

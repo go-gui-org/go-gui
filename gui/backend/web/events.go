@@ -243,6 +243,26 @@ func (b *Backend) registerEvents(w *gui.Window) {
 		return nil
 	})
 
+	// The visual viewport shrinks when a mobile soft keyboard opens
+	// while the layout viewport (innerHeight) does not. The gap at
+	// the bottom is the keyboard inset (issue #770). Browsers
+	// without visualViewport never report one.
+	// iOS Safari moves the visual viewport (offsetTop) as the
+	// keyboard opens without always resizing it, so scroll reports
+	// too.
+	if vv := js.Global().Get("visualViewport"); vv.Truthy() {
+		report := func(_ js.Value, _ []js.Value) any {
+			*evt = gui.Event{
+				Type:              gui.EventSoftKeyboard,
+				SoftKeyboardInset: visualViewportInset(vv),
+			}
+			w.EventFn(evt)
+			return nil
+		}
+		reg(vv, "resize", report)
+		reg(vv, "scroll", report)
+	}
+
 	reg(js.Global(), "focus", func(_ js.Value, _ []js.Value) any {
 		*evt = gui.Event{Type: gui.EventFocused}
 		w.EventFn(evt)
@@ -553,4 +573,19 @@ func mapTouchEvent(
 	// touchEventFromLists: Ended and Cancelled carry the lifted
 	// fingers (changed), the rest carry the fingers still down.
 	*evt = touchEventFromLists(typ, allPts[:an], changedPts[:cn])
+}
+
+// visualViewportInset returns the height hidden below the visual
+// viewport: innerHeight minus the visual viewport's bottom edge. The
+// gui side clamps it, so a negative or odd value is harmless.
+//
+// Pinch-zoom also shrinks the visual viewport; that gap is not a
+// keyboard, so a zoomed viewport reports 0.
+func visualViewportInset(vv js.Value) float32 {
+	if s := vv.Get("scale").Float(); s > 1.01 {
+		return 0
+	}
+	inner := js.Global().Get("innerHeight").Float()
+	bottom := vv.Get("height").Float() + vv.Get("offsetTop").Float()
+	return float32(inner - bottom)
 }

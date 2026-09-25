@@ -46,7 +46,36 @@ fingerprint=$(
 )
 [ -f "$stamp" ] && [ "$(cat "$stamp")" = "$fingerprint" ] && exit 0
 
-pkgs=$(echo "$files" | xargs -n1 dirname | sort -u | sed 's|^|./|')
+allPkgs=$(echo "$files" | xargs -n1 dirname | sort -u | sed 's|^|./|')
+
+# hasFiles <pkg> [env...]: the package has Go files (source or test) for the
+# build target the env selects. go list -e reports an all-excluded package with
+# empty lists instead of failing.
+hasFiles() {
+	local pkg=$1 n
+	shift
+	n=$(env "$@" go list -e -f '{{len .GoFiles}}{{len .CgoFiles}}{{len .TestGoFiles}}{{len .XTestGoFiles}}' "$pkg" 2>/dev/null)
+	[ -n "$n" ] && [ "$n" != "0000" ]
+}
+
+# Split host packages from target-only ones (web, android, ios backends). The
+# host go vet/lint/test calls fail on a package whose build tags exclude the
+# host with "build constraints exclude all Go files" — a gate error, not a code
+# defect. Web packages are vetted under js/wasm below, which needs no extra
+# toolchain. Android and iOS need the NDK and the Xcode SDK; make prepush
+# cross-compiles and cross-lints them.
+pkgs=""
+wasmPkgs=""
+skipped=""
+for p in $allPkgs; do
+	if hasFiles "$p"; then
+		pkgs+="$p"$'\n'
+	elif hasFiles "$p" GOOS=js GOARCH=wasm; then
+		wasmPkgs+="$p"$'\n'
+	else
+		skipped+="$p "
+	fi
+done
 
 # Findings go to the shared log (~/.claude/scripts/log-finding.sh) so rules broken
 # again and again show up in quality-findings-report.sh. Only the first Stop of a
@@ -89,12 +118,18 @@ run() {
 	fi
 }
 
-# shellcheck disable=SC2086 # pkgs is a newline list; splitting is intended.
-run govet go vet $pkgs
-# shellcheck disable=SC2086
-run golangci-lint golangci-lint run $pkgs
-# shellcheck disable=SC2086
-run test-fail go test -short -count=1 $pkgs
+if [ -n "$pkgs" ]; then
+	# shellcheck disable=SC2086 # pkgs is a newline list; splitting is intended.
+	run govet go vet $pkgs
+	# shellcheck disable=SC2086
+	run golangci-lint golangci-lint run $pkgs
+	# shellcheck disable=SC2086
+	run test-fail go test -short -count=1 $pkgs
+fi
+if [ -n "$wasmPkgs" ]; then
+	# shellcheck disable=SC2086
+	run govet-wasm env GOOS=js GOARCH=wasm go vet $wasmPkgs
+fi
 
 # The modes that fail on findings. focus and callbacks only report, so they are
 # left out. The audits scan the whole repo; together they take about a second.
@@ -120,7 +155,8 @@ fi
 echo $((blocks + 1)) >"$counter"
 
 {
-	echo "Stop gate failed for changed packages: ${pkgs//$'\n'/ }"
+	echo "Stop gate failed for changed packages: ${allPkgs//$'\n'/ }"
+	[ -z "$skipped" ] || echo "Not checked here (no host or js/wasm files; make prepush covers them): $skipped"
 	echo "Fix these before ending the turn. If a finding is pre-existing or out of"
 	echo "scope, say so to the user instead of working around the check."
 	echo

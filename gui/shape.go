@@ -490,6 +490,7 @@ type shapeTextConfig struct {
 	// fields, which stay Focusable (for selection/cursor) but can
 	// never commit a composition. See render_text.go.
 	textReadOnly    bool
+	textKeyboard    KeyboardKind // soft-keyboard kind asked for while focused (#770)
 	wrapCacheValid  bool
 	textLayoutValid bool
 	textLayoutMode  textMode

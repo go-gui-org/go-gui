@@ -163,6 +163,13 @@ type ViewState struct {
 	// platform: true while the focused widget is an editable text
 	// context. Kept so syncIMEEditContext pushes transitions only.
 	imeEditContext bool
+	// imeEditKind and imeEditSecure are the soft-keyboard hint last
+	// pushed for the edit target (issue #770): its KeyboardKind and
+	// whether it is a password field. Kept so ShowSoftKeyboard can
+	// repeat the request, and so a kind change on the same field
+	// re-requests without cycling the input method.
+	imeEditKind   KeyboardKind
+	imeEditSecure bool
 
 	// hoverTargetID is the effective ID of the enabled, ID-bearing shape
 	// under the pointer in the last arranged frame; "" when nothing is.

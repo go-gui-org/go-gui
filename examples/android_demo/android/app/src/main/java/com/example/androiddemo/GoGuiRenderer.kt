@@ -53,6 +53,11 @@ class GoGuiRenderer(
         }
     }
 
+    // Keyboard kind of the last show, so a field of another kind
+    // restarts the InputConnection (issue #770). Main thread only.
+    private var shownKind = -1
+    private var shownSecure = false
+
     private fun pollPendingIMEAction() {
         when (Androidapp.pendingIMEAction().toInt()) {
             1 -> mainHandler.post {
@@ -60,6 +65,15 @@ class GoGuiRenderer(
                 val imm = activity.getSystemService(
                     Activity.INPUT_METHOD_SERVICE
                 ) as InputMethodManager
+                val kind = Androidapp.pendingIMEKeyboardKind().toInt()
+                val secure = Androidapp.pendingIMEKeyboardSecure()
+                if (kind != shownKind || secure != shownSecure) {
+                    shownKind = kind
+                    shownSecure = secure
+                    // Re-runs onCreateInputConnection, which reads
+                    // the new kind into EditorInfo.inputType.
+                    imm.restartInput(glView)
+                }
                 imm.showSoftInput(glView, InputMethodManager.SHOW_IMPLICIT)
             }
             2 -> mainHandler.post {

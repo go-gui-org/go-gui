@@ -652,16 +652,29 @@ func TestMouseDownBackgroundClearsFocus(t *testing.T) {
 			t.Errorf("right background click: focus = %q, want in", got)
 		}
 	})
-	t.Run("consumed_nonfocusable_clears", func(t *testing.T) {
+	t.Run("consumed_nonfocusable_keeps", func(t *testing.T) {
 		t.Parallel()
+		// A widget that consumes the press but cannot take focus (a
+		// FocusDisabled button, a custom keypad key) leaves focus
+		// where it is, like a macOS button that refuses first
+		// responder (issue #770).
 		w := newFocusWindow()
 		w.SetFocus("in")
 		w.EventFn(&Event{
 			Type: EventMouseDown, MouseButton: MouseLeft,
 			MouseX: 450, MouseY: 50,
 		})
-		if got := w.FocusID(); got != "" {
-			t.Errorf("consumed background click: focus = %q, want empty", got)
+		if got := w.FocusID(); got != "in" {
+			t.Errorf("consumed non-focusable click: focus = %q, want in", got)
+		}
+	})
+	t.Run("touch_tap_consumed_nonfocusable_keeps", func(t *testing.T) {
+		t.Parallel()
+		w := newFocusWindow()
+		w.SetFocus("in")
+		synthMouse(EventMouseDown, 450, 50, MouseLeft, &w.layout, w)
+		if got := w.FocusID(); got != "in" {
+			t.Errorf("consumed non-focusable tap: focus = %q, want in", got)
 		}
 	})
 	t.Run("consumed_child_of_focused_keeps", func(t *testing.T) {

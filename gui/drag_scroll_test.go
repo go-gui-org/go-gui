@@ -533,3 +533,42 @@ func TestDragScrollRightButtonNoClaim(t *testing.T) {
 		t.Error("right press claimed the press")
 	}
 }
+
+// A drag-to-scroll claim consumes every press inside its container,
+// empty space included, so the press puts off its blur decision. A tap
+// on empty space blurs on its replay, and a pan blurs when it starts
+// (issue #770).
+func TestDragScrollPressOnEmptySpaceBlurs(t *testing.T) {
+	for _, pan := range []bool{false, true} {
+		w := dragScrollTestWindow(t, scrollBoth, OnClickChild{})
+		w.focused = true
+		w.SetFocus("elsewhere")
+		w.EventFn(&Event{
+			Type: EventMouseDown, MouseButton: MouseLeft, MouseX: 60, MouseY: 60,
+		})
+		if !w.mouseIsLocked() {
+			t.Fatal("press did not start a pan claim")
+		}
+		if got := w.FocusID(); got != "elsewhere" {
+			t.Fatalf("pan=%v: focus at press = %q, want it kept until "+
+				"tap or pan", pan, got)
+		}
+		upY := float32(60)
+		if pan {
+			upY = 30
+			w.EventFn(&Event{
+				Type: EventMouseMove, MouseButton: MouseLeft,
+				MouseX: 60, MouseY: upY,
+			})
+			if got := w.FocusID(); got != "" {
+				t.Fatalf("focus at pan start = %q, want empty", got)
+			}
+		}
+		w.EventFn(&Event{
+			Type: EventMouseUp, MouseButton: MouseLeft, MouseX: 60, MouseY: upY,
+		})
+		if got := w.FocusID(); got != "" {
+			t.Errorf("pan=%v: focus = %q, want empty", pan, got)
+		}
+	}
+}

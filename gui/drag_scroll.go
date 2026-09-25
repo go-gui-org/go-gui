@@ -183,6 +183,12 @@ func dragPanOnMouseMove(ctx EventCtx) {
 		// read as held on the tap target.
 		w.viewState.pressTargetID = ""
 		w.setMouseCursor(CursorGrabbing)
+		// The press put off its blur decision (blurUnclaimedPress).
+		// A pan is not a press on a widget, so it blurs like a press
+		// on empty space.
+		w.blurUnlessPressInFocused(dialogRoute(w), &Event{
+			MouseX: st.startX, MouseY: st.startY, MouseButton: MouseLeft,
+		})
 	}
 	ly, ok := findScrollLayout(w, st.scrollID)
 	if !ok || ly.Shape == nil {
@@ -245,7 +251,11 @@ func dragPanOnMouseUp(ctx EventCtx) {
 	down.IsHandled = false
 	down.dragPanReplay = true
 	root := dialogRoute(w)
-	mouseDownHandler(root, false, &down, w)
+	// The original press put off its blur and keyboard decisions
+	// while the pan claim was open. Make them now, on the replayed
+	// press, where the widget under the tap has answered: a keypad
+	// key keeps focus, empty space blurs (issue #770).
+	w.pressWalk(root, &down)
 	mouseUpHandler(root, e, w)
 	w.InvalidateLayout()
 }

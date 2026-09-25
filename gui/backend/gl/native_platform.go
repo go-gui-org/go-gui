@@ -101,6 +101,12 @@ func (n *nativePlatform) ClearNativeMenubar()                                   
 
 // --- Sound ---
 
+// Linux and Windows desktops get no soft-keyboard request (issue
+// #770). Windows tablet mode shows its touch keyboard from the IME
+// context on its own.
+func (n *nativePlatform) ShowSoftKeyboard(_ gui.KeyboardKind, _ bool) {}
+func (n *nativePlatform) HideSoftKeyboard()                           {}
+
 func (n *nativePlatform) Beep() { nativehost.Beep() }
 
 func (n *nativePlatform) BeepAvailable() bool { return nativehost.BeepAvailable() }
