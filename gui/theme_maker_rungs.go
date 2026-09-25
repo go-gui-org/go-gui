@@ -89,4 +89,11 @@ func (theme *Theme) fillTextRungs(
 	theme.TextStyleIconSmall = makeStyle(icon, theme.SizeTextSmall)
 	theme.TextStyleIconXSmall = makeStyle(icon, theme.SizeTextXSmall)
 	theme.TextStyleIconTiny = makeStyle(icon, theme.SizeTextTiny)
+	// A segment's icon sits beside body-size label text, so it takes
+	// the body-size icon role.
+	theme.segmentedStyle.textStyleIcon = theme.TextStyleIconMedium
+	// The pill fills with the accent, so its label draws in the paired
+	// foreground, as on a selected tab (issue #373).
+	theme.segmentedStyle.textStyleSelected =
+		textOnFill(ts, true, theme.ColorTextOnSelect)
 }

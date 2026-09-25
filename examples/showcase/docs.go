@@ -65,6 +65,7 @@ var widgetDocFiles = map[string]string{
 	"pulsar":             "docs/widget_pulsar.md",
 	"radio":              "docs/widget_radio.md",
 	"radio_group":        "docs/widget_radio_group.md",
+	"segmented_control":  "docs/widget_segmented_control.md",
 	"rectangle":          "docs/widget_rectangle.md",
 	"rotated_box":        "docs/widget_rotated_box.md",
 	"row":                "docs/widget_row.md",

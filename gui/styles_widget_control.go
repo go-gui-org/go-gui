@@ -58,6 +58,40 @@ type TabControlStyle struct {
 	ColorsTab ColorSet
 }
 
+// segmentedControlStyle defines segmented control visual properties
+// (issue #600). Unexported, like buttonStyle: nothing outside the
+// package names it, and a theme customizes it through ThemeCfg
+// tokens (#735).
+//
+// The control is a track with an inset: the selected segment is its
+// own rounded fill (the pill) inside the track, never a flush fill.
+// The renderer has one radius per rect, so a flush fill with rounded
+// outer corners only is not drawable without per-corner radius.
+type segmentedControlStyle struct {
+	textStyle         TextStyle
+	textStyleSelected TextStyle
+	textStyleDisabled TextStyle
+	textStyleIcon     TextStyle
+	// padding is the track's inset: the gap between the track edge
+	// and the pill.
+	padding Padding
+	// paddingSegment is the text inset inside a segment. It is
+	// Theme.PaddingField, so the control shares a row height with an
+	// Input or a Select beside it.
+	paddingSegment Padding
+	sizeBorder     float32
+	sizeDivider    float32
+	radius         float32
+	radiusSegment  float32
+	// colors themes the track: Base is the track fill, Border and
+	// BorderFocus its outline.
+	colors ColorSet
+	// colorsSegment themes one segment. Base is transparent so the
+	// track shows through; Selected is the pill.
+	colorsSegment ColorSet
+	colorDivider  Color
+}
+
 // BreadcrumbStyle defines breadcrumb visual properties.
 // exportaudit:keep — reachable from an exported signature
 type BreadcrumbStyle struct {
@@ -239,6 +273,8 @@ var (
 	defaultSliderStyle SliderStyle
 
 	defaultTabControlStyle TabControlStyle
+
+	defaultSegmentedControlStyle segmentedControlStyle
 
 	defaultBreadcrumbStyle BreadcrumbStyle
 

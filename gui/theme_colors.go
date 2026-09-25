@@ -215,6 +215,8 @@ func (t Theme) WithColors(o ColorOverrides) Theme {
 		t.breadcrumbStyle.textStyleDisabled, oldDisabled, newDisabled)
 	t.tabControlStyle.textStyleDisabled = trackStyle(
 		t.tabControlStyle.textStyleDisabled, oldDisabled, newDisabled)
+	t.segmentedStyle.textStyleDisabled = trackStyle(
+		t.segmentedStyle.textStyleDisabled, oldDisabled, newDisabled)
 	// The inspector's panel and wireframe colors stay deliberately
 	// theme-independent (inspectorStyleFor); only its help text is
 	// ordinary supporting text, so only that follows.
@@ -373,6 +375,16 @@ func (t Theme) WithColors(o ColorOverrides) Theme {
 	t.sliderStyle.Colors.Border = border
 	t.sliderStyle.Colors.BorderFocus = borderFocus
 
+	// Field-fill track, accent pill: the same roles as
+	// segmentedControlStyleFor.
+	t.segmentedStyle.colors.Base = interior
+	t.segmentedStyle.colors.Border = border
+	t.segmentedStyle.colors.BorderFocus = borderFocus
+	t.segmentedStyle.colorsSegment.Hover = hover
+	t.segmentedStyle.colorsSegment.Click = active
+	t.segmentedStyle.colorsSegment.Selected = sel
+	t.segmentedStyle.colorDivider = border
+
 	t.tabControlStyle.Colors.Base = panel
 	t.tabControlStyle.Colors.Border = border
 	t.tabControlStyle.colorContent = panel
@@ -393,6 +405,10 @@ func (t Theme) WithColors(o ColorOverrides) Theme {
 		t.tabControlStyle.textStyleSelected,
 		textOnFill(t.TextStyleTitleSmall, true, oldTextOnSelect),
 		textOnFill(t.TextStyleTitleSmall, true, selText))
+	t.segmentedStyle.textStyleSelected = trackStyle(
+		t.segmentedStyle.textStyleSelected,
+		textOnFill(t.TextStyleDef, true, oldTextOnSelect),
+		textOnFill(t.TextStyleDef, true, selText))
 
 	t.breadcrumbStyle.ColorsCrumb.Hover = hover
 	t.breadcrumbStyle.ColorsCrumb.Click = active

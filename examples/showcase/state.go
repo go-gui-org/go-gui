@@ -64,6 +64,8 @@ type ShowcaseApp struct {
 	InputExpiry    string
 	InputMultiline string
 	RadioValue     string
+	SegmentValue   string
+	SegmentView    string
 
 	ComboboxValue      string
 	SvgSpinnerCategory string
@@ -231,6 +233,8 @@ func newShowcaseApp() *ShowcaseApp {
 		SelectedComponent:     "welcome",
 		InputMultiline:        "Now is the time for all good men to come to the aid of their country",
 		RadioValue:            "go",
+		SegmentValue:          "week",
+		SegmentView:           "list",
 		RangeValue:            50,
 		NumericENText:         "1,234.50",
 		NumericENValue:        gui.Some(1234.5),
@@ -356,6 +360,7 @@ var demoEntries = []DemoEntry{
 	{ID: "listbox", Label: "List Box", Group: groupSelection, Summary: "Single and multi-select list options.", Tags: []string{"list", "multi", "select"}},
 	{ID: "radio", Label: "Radio", Group: groupButtons, Summary: "Single radio control.", Tags: []string{"option", "boolean", "choice"}},
 	{ID: "radio_group", Label: "Radio Button Group", Group: groupButtons, Summary: "Mutually exclusive options in row or column.", Tags: []string{"group", "options", "select"}},
+	{ID: "segmented_control", Label: "Segmented Control", Group: groupButtons, Summary: "Compact single choice in one shared track.", Tags: []string{"segment", "options", "select", "toggle"}},
 	{ID: "slider", Label: "Slider", Group: groupInput, Summary: "Drag horizontal or vertical value controls.", Tags: []string{"slider", "value"}},
 	{ID: "gesture", Label: "Gestures", Group: groupInput, Summary: "Touch gesture recognition: tap, pan, pinch, rotate, swipe.", Tags: []string{"touch", "gesture", "pinch", "swipe", "pan", "rotate", "tap", "mobile"}},
 	{ID: "drag_reorder", Label: "Drag Reorder", Group: groupLayout, Summary: "Drag-to-reorder items in lists, tabs, and trees.", Tags: []string{"drag", "reorder", "list", "tabs", "tree", "keyboard"}},

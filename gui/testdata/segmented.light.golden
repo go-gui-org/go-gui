@@ -1,0 +1,8 @@
+Rect xy=15.00,15.00 wh=223.40,31.60 color=#ffffffff radius=6.00 fill
+StrokeRect xy=15.00,15.00 wh=223.40,31.60 color=#d8dde4ff radius=6.00 thickness=1.00
+Text xy=28.00,22.24 wh=0.00,0.00 color=#1a1d21ff text="Day" size=14.00
+Rect xy=64.20,18.00 wh=53.60,25.60 color=#2f6fe0ff radius=4.00 fill
+Text xy=74.20,22.24 wh=0.00,0.00 color=#ffffffff text="Week" size=14.00
+Text xy=128.80,22.24 wh=0.00,0.00 color=#1a1d21ff text="Month" size=14.00
+Rect xy=180.80,18.00 wh=1.00,25.60 color=#d8dde4ff fill
+Text xy=191.80,22.24 wh=0.00,0.00 color=#1a1d2195 text="Year" size=14.00

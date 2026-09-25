@@ -338,13 +338,13 @@ policy from code that drifts.
 
 ### Widget Cfg invariants
 
-- **Focusable defaults:** 20 Cfgs are focusable by default. They are `Button`,
+- **Focusable defaults:** 21 Cfgs are focusable by default. They are `Button`,
   `ColorChannelSlider`, `ColorPicker`, `ColorPlane`, `ColorWheel`, `Combobox`,
   `DatePicker`, `ExpandPanel`, `Input`, `InputDate`, `ListBox`, `NumericInput`,
-  `RadioButtonGroup`, `Radio`, `Select`, `Slider`, `Switch`, `Toggle`, `Tree`,
-  `VirtualList`. Opt out with `FocusDisabled`, never `Focusable: false`.
-  `Focusable` without a non-empty `ID` is a silent no-op — the widget renders
-  and clicks but never joins the tab order. Spec:
+  `RadioButtonGroup`, `Radio`, `SegmentedControl`, `Select`, `Slider`, `Switch`,
+  `Toggle`, `Tree`, `VirtualList`. Opt out with `FocusDisabled`, never
+  `Focusable: false`. `Focusable` without a non-empty `ID` is a silent no-op —
+  the widget renders and clicks but never joins the tab order. Spec:
   `docs/specs/focusable-default-input.md`.
 - **A11y fields:** `A11YLabel`/`A11YDescription` live on the embedded `A11YCfg`.
   Never redeclare them on a Cfg. Construction names the embed:

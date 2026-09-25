@@ -71,6 +71,7 @@ func TestDefaultStylesMirrorThemeDark(t *testing.T) {
 		{defaultProgressBarStyle, ThemeDark.progressBarStyle, "defaultProgressBarStyle"},
 		{defaultSliderStyle, ThemeDark.sliderStyle, "defaultSliderStyle"},
 		{defaultTabControlStyle, ThemeDark.tabControlStyle, "defaultTabControlStyle"},
+		{defaultSegmentedControlStyle, ThemeDark.segmentedStyle, "defaultSegmentedControlStyle"},
 		{defaultBreadcrumbStyle, ThemeDark.breadcrumbStyle, "defaultBreadcrumbStyle"},
 		{defaultSplitterStyle, ThemeDark.splitterStyle, "defaultSplitterStyle"},
 		{defaultTableStyle, ThemeDark.tableStyle, "defaultTableStyle"},

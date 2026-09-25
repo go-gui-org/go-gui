@@ -461,6 +461,77 @@ func goldenCases() []goldenCase {
 			focusID: "tabs:tab:a",
 		},
 		{
+			// The inset pill (issue #600): sunken track, raised pill
+			// on the selected segment, a divider only between two
+			// unselected segments, a disabled segment in the
+			// themed disabled text.
+			name:  "segmented",
+			build: goldenSegmented,
+		},
+		{
+			// Focus sits on the track, never on a segment: the ring
+			// goes round the whole control.
+			name:    "segmented_focus",
+			build:   goldenSegmented,
+			focusID: "seg",
+		},
+		{
+			// An unselected segment under the pointer tints like a
+			// ghost button. The point is inside "Day" (xy=18,18
+			// wh=45.2,25.6 in segmented.*.golden).
+			name:   "segmented_hover",
+			build:  goldenSegmented,
+			hoverX: 40, hoverY: 30,
+		},
+		{
+			name:   "segmented_hover_pressed",
+			build:  goldenSegmented,
+			hoverX: 40, hoverY: 30,
+			mousePressed: true,
+		},
+		{
+			// The pill under the pointer moves one OKLCH step off
+			// Selected, as a selected tab does (#741). The point is
+			// inside "Week" (xy=64.2,18 wh=53.6,25.6).
+			name:   "segmented_selected_hover",
+			build:  goldenSegmented,
+			hoverX: 90, hoverY: 30,
+		},
+		{
+			name: "segmented_disabled",
+			build: func(_ *Window) View {
+				return SegmentedControl(SegmentedControlCfg{
+					ID: "seg", Value: "Day", Disabled: true,
+					Items: []string{"Day", "Week", "Month"},
+				})
+			},
+		},
+		{
+			// FillFit: the control spans the root and every segment
+			// takes the same width whatever its label.
+			name: "segmented_fill",
+			build: func(_ *Window) View {
+				return SegmentedControl(SegmentedControlCfg{
+					ID: "seg", Value: "b", Sizing: FillFit,
+					Items: []string{"a", "b", "a longer label"},
+				})
+			},
+		},
+		{
+			// Icon-only and icon-with-label segments.
+			name: "segmented_icon",
+			build: func(_ *Window) View {
+				return SegmentedControl(SegmentedControlCfg{
+					ID: "seg", Value: "list",
+					Options: []SegmentOption{
+						{Icon: IconListBullet, Value: "list"},
+						{Icon: IconTable, Value: "table"},
+						{Icon: IconCalendar, Label: "Calendar", Value: "cal"},
+					},
+				})
+			},
+		},
+		{
 			// Carries both the disabled crumb and the separator,
 			// the other two themed alphas.
 			name: "breadcrumb",
@@ -2146,6 +2217,21 @@ func goldenSelectedTabs(_ *Window) View {
 		Items: []TabItemCfg{
 			{ID: "a", Label: "First"},
 			{ID: "b", Label: "Second"},
+		},
+	})
+}
+
+// goldenSegmented is the resting SegmentedControl shared by the
+// segmented cases: the middle segment is selected and the last is
+// disabled.
+func goldenSegmented(_ *Window) View {
+	return SegmentedControl(SegmentedControlCfg{
+		ID: "seg", Value: "week",
+		Options: []SegmentOption{
+			NewSegmentOption("Day", "day"),
+			NewSegmentOption("Week", "week"),
+			NewSegmentOption("Month", "month"),
+			{Label: "Year", Value: "year", Disabled: true},
 		},
 	})
 }

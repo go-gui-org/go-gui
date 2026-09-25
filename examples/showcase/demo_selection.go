@@ -125,6 +125,67 @@ func demoRadioGroup(w *gui.Window) gui.View {
 	})
 }
 
+func demoSegmentedControl(w *gui.Window) gui.View {
+	app := appState(w)
+	t := gui.CurrentTheme()
+	onRange := func(v string, ctx gui.EventCtx) {
+		appState(ctx.Window).SegmentValue = v
+		ctx.Consume()
+	}
+	ranges := []gui.SegmentOption{
+		gui.NewSegmentOption("Day", "day"),
+		gui.NewSegmentOption("Week", "week"),
+		gui.NewSegmentOption("Month", "month"),
+		{Label: "Year", Value: "year", Disabled: true},
+	}
+	return gui.Column(gui.ContainerCfg{
+		Sizing:  gui.FillFit,
+		Spacing: gui.SomeF(16),
+		Padding: gui.NoPadding,
+		Content: []gui.View{
+			gui.Text(gui.TextCfg{Text: "Fit to content", TextStyle: t.TextStyleTitleSmall}),
+			gui.SegmentedControl(gui.SegmentedControlCfg{
+				ID:       "demo_segmented_range",
+				Value:    app.SegmentValue,
+				Options:  ranges,
+				OnSelect: onRange,
+			}),
+			gui.Text(gui.TextCfg{Text: "Fill width, equal segments", TextStyle: t.TextStyleTitleSmall}),
+			gui.SegmentedControl(gui.SegmentedControlCfg{
+				ID:       "demo_segmented_fill",
+				Value:    app.SegmentValue,
+				Options:  ranges,
+				Sizing:   gui.FillFit,
+				OnSelect: onRange,
+			}),
+			gui.Text(gui.TextCfg{Text: "Icons", TextStyle: t.TextStyleTitleSmall}),
+			gui.SegmentedControl(gui.SegmentedControlCfg{
+				ID:    "demo_segmented_icons",
+				Value: app.SegmentView,
+				A11YCfg: gui.A11YCfg{
+					A11YLabel: "View mode",
+				},
+				Options: []gui.SegmentOption{
+					{Icon: gui.IconListBullet, Value: "list"},
+					{Icon: gui.IconTable, Value: "table"},
+					{Icon: gui.IconCalendar, Value: "calendar"},
+				},
+				OnSelect: func(v string, ctx gui.EventCtx) {
+					appState(ctx.Window).SegmentView = v
+					ctx.Consume()
+				},
+			}),
+			gui.Text(gui.TextCfg{Text: "Disabled", TextStyle: t.TextStyleTitleSmall}),
+			gui.SegmentedControl(gui.SegmentedControlCfg{
+				ID:       "demo_segmented_disabled",
+				Value:    app.SegmentValue,
+				Items:    []string{"day", "week", "month"},
+				Disabled: true,
+			}),
+		},
+	})
+}
+
 func demoSelect(w *gui.Window) gui.View {
 	app := appState(w)
 	t := gui.CurrentTheme()
