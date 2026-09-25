@@ -11,6 +11,10 @@ borderline set (Decision 9) — twenty Cfgs in total. Only `ThemePicker` (and th
 non-input opt-ins) keeps `Focusable bool`. The table and Decisions 8–9 below
 keep their original verdicts as history; read them as landed.
 
+`SegmentedControl` (#600) is focusable by default from the start: the track is
+the one focus target, and the segments set `FocusDisabled`. That makes
+twenty-one Cfgs.
+
 Base: `main` @ `8522098` Target release: go-gui `v0.36.0` (breaking)
 
 ## Motivation

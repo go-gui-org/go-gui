@@ -10,6 +10,17 @@ and this project adheres to
 
 ### Added
 
+- **SegmentedControl widget** — `SegmentedControl(SegmentedControlCfg)` shows a
+  row of segments in one shared track, with one segment selected (#600). Use it
+  for a compact choice of two to six short options, for example a view mode or a
+  time range. The selected segment is a rounded accent fill inside the track. A
+  segment shows a label, an icon, or both. The API is the same as
+  `RadioButtonGroupCfg` (`Value`, `Items`, `Options`, `OnSelect`), so you can
+  replace one control with the other. The control is one tab stop: the arrow
+  keys and Home/End move the selection and skip disabled segments. It is as high
+  as an `Input`, so the two share a row. `Sizing: FillFit` gives the segments
+  equal widths. The showcase has a new Segmented Control page.
+
 - **Soft-keyboard kind, show/hide and inset** — `InputCfg.Keyboard` picks the OS
   soft-keyboard layout a field asks for on touch platforms: `KeyboardNumber`,
   `KeyboardDecimal`, `KeyboardPhone`, `KeyboardEmail`, `KeyboardURL`, or

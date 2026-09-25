@@ -162,6 +162,7 @@ var componentDemos = map[string]func(*gui.Window) gui.View{
 	"switch":              demoSwitch,
 	"radio":               demoRadio,
 	"radio_group":         demoRadioGroup,
+	"segmented_control":   demoSegmentedControl,
 	"combobox":            demoCombobox,
 	"select":              demoSelect,
 	"listbox":             demoListBox,

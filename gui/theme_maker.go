@@ -503,6 +503,8 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			SizeBorder: cfg.SizeBorder,
 			Radius:     cfg.SizeSlider / 2,
 		},
+		segmentedStyle: segmentedControlStyleFor(
+			cfg, ts, textDisabled, fieldPad, colorSelect, borderFocus),
 		tabControlStyle: TabControlStyle{
 			Colors:             ColorSet{Base: cfg.ColorPanel, Border: cfg.ColorBorder},
 			ColorHeader:        ColorTransparent,

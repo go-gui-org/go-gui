@@ -868,6 +868,11 @@ func TestFocusWidgetsRequireID(t *testing.T) {
 			func() {
 				_ = RadioButtonGroupColumn(RadioButtonGroupCfg{FocusDisabled: true})
 			}},
+		{"SegmentedControl",
+			func() { _ = SegmentedControl(SegmentedControlCfg{}) }, // requiredid:ignore
+			func() {
+				_ = SegmentedControl(SegmentedControlCfg{FocusDisabled: true})
+			}},
 		{"Radio",
 			func() { _ = Radio(RadioCfg{}) }, // requiredid:ignore
 			func() { _ = Radio(RadioCfg{FocusDisabled: true}) }},

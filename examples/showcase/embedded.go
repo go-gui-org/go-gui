@@ -112,6 +112,7 @@ var relatedExampleMap = map[string][]string{
 	"switch":              {"examples/showcase/demo_selection.go"},
 	"radio":               {"examples/showcase/demo_selection.go"},
 	"radio_group":         {"examples/showcase/demo_selection.go"},
+	"segmented_control":   {"examples/showcase/demo_selection.go"},
 	"combobox":            {"examples/showcase/demo_selection.go"},
 	"select":              {"examples/showcase/demo_selection.go"},
 	"listbox":             {"examples/showcase/demo_selection.go", "examples/listbox/main.go"},

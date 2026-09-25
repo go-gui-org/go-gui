@@ -74,6 +74,7 @@ func isolateThemeShadows(cfg *ThemeCfg) {
 type Theme struct {
 	breadcrumbStyle  BreadcrumbStyle
 	tabControlStyle  TabControlStyle
+	segmentedStyle   segmentedControlStyle
 	dataGridStyle    DataGridStyle
 	selectStyle      SelectStyle
 	menubarStyle     MenubarStyle
@@ -721,6 +722,7 @@ func applyTheme(t *Theme) {
 	defaultProgressBarStyle = t.progressBarStyle
 	defaultSliderStyle = t.sliderStyle
 	defaultTabControlStyle = t.tabControlStyle
+	defaultSegmentedControlStyle = t.segmentedStyle
 	defaultBreadcrumbStyle = t.breadcrumbStyle
 	defaultSplitterStyle = t.splitterStyle
 	defaultTableStyle = t.tableStyle
