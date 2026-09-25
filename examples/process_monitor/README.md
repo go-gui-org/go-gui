@@ -62,6 +62,11 @@ process library. It shells out to the OS instead:
 - System memory totals come from `/proc/meminfo` (Linux) or `sysctl` + `vm_stat`
   (macOS). Other platforms omit the memory bar.
 
+Process start times feed the store's (PID, StartTime) identity, which guards
+against PID reuse: `etimes` on Linux, `lstart` on macOS, and the process
+creation time (via `GetProcessTimes`, no extra subprocess) on Windows. A row
+whose start time the OS refuses to report falls back to PID-only.
+
 **CPU% caveat:** on Unix the value is `ps`'s `%cpu`, which is a _lifetime
 average_, not an instantaneous interval rate. It is a real, useful number that
 needs only one sample. A delta-based interval CPU% is the enhancement. It
@@ -89,10 +94,18 @@ these intervals need no explicit wake.
 
 ### Stable processes + rolling history
 
-`ProcessStore` (`store.go`) keeps a stable `*Process` per identity so table rows
-and chart history survive across refreshes. Exited processes linger for 60 s, so
+`ProcessStore` (`store.go`) keeps a stable `*Process` per (PID, StartTime)
+identity so table rows and chart history survive across refreshes. When the
+kernel recycles a PID, the new process arrives as a new identity: the old
+selection stays marked stopped — its detail title gains "(exited)" — instead of
+silently attaching to the new process. Exited processes linger for 60 s, so
 their charts stay visible. The app evicts them after that, unless they are
 selected.
+
+The table body is a `gui.VirtualList`: only the visible rows (plus overscan) are
+built each frame, so per-sample view work stays proportional to the viewport
+rather than the process count. Sorting, filtering, and tree flattening still run
+over the full set above it.
 
 ### Charts from plain containers
 

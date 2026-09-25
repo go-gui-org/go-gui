@@ -85,6 +85,52 @@ func TestStoreKeepsSelectedStopped(t *testing.T) {
 	}
 }
 
+func TestStorePIDReuseCreatesNewIdentity(t *testing.T) {
+	t.Parallel()
+	s := NewProcessStore()
+	t0 := time.Unix(1_700_000_000, 0)
+	oldStart := t0.Add(-time.Hour)
+	s.Update(snapAt(t0, ProcInfo{PID: 9, Name: "old", StartTime: oldStart}), nil)
+	selected := s.ByKey[ProcessKey{PID: 9, StartTime: oldStart}]
+	if selected == nil {
+		t.Fatal("expected PID 9 in the store")
+	}
+
+	// PID 9 exits and the kernel recycles it for a new process with a new
+	// start time. The store must track two identities: the selected old one
+	// stays stopped, the new one is live. The detail view must never
+	// silently attach to the new process.
+	newStart := t0.Add(time.Second)
+	s.Update(snapAt(newStart, ProcInfo{PID: 9, Name: "new", StartTime: newStart}), selected)
+
+	if got := len(s.ByKey); got != 2 {
+		t.Fatalf("ByKey len = %d, want 2 (old stopped + new live)", got)
+	}
+	if selected.Running() {
+		t.Fatal("selected old process must stay stopped after PID reuse")
+	}
+	if selected.Name != "old" {
+		t.Fatalf("selected name = %q, want old (must not attach to the new process)", selected.Name)
+	}
+	fresh := s.ByKey[ProcessKey{PID: 9, StartTime: newStart}]
+	if fresh == nil || !fresh.Running() {
+		t.Fatal("expected a live entry for the recycled PID")
+	}
+	if fresh == selected {
+		t.Fatal("recycled PID must be a distinct *Process")
+	}
+
+	// The old stopped entry still ages out on schedule when unselected.
+	s.Update(snapAt(newStart.Add(keepStoppedFor+2*time.Second),
+		ProcInfo{PID: 9, Name: "new", StartTime: newStart}), fresh)
+	if _, ok := s.ByKey[ProcessKey{PID: 9, StartTime: oldStart}]; ok {
+		t.Fatal("old stopped entry should have been evicted after keepStoppedFor")
+	}
+	if _, ok := s.ByKey[ProcessKey{PID: 9, StartTime: newStart}]; !ok {
+		t.Fatal("live entry must survive the eviction of the old one")
+	}
+}
+
 func TestHistoryRingBufferCap(t *testing.T) {
 	t.Parallel()
 	p := &Process{}

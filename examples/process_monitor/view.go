@@ -143,7 +143,6 @@ func rootView(w *gui.Window) gui.View {
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			headerView(app),
-			toolbarView(app),
 			processTable(app),
 			detailView(app),
 		},
@@ -152,44 +151,84 @@ func rootView(w *gui.Window) gui.View {
 
 func headerView(app *App) gui.View {
 	theme := gui.CurrentTheme()
-	content := []gui.View{
-		gui.Row(gui.ContainerCfg{
-			Sizing:  gui.FillFit,
-			Padding: gui.NoPadding,
-			VAlign:  gui.VAlignMiddle,
-			Spacing: gui.SomeF(12),
-			Content: []gui.View{
-				gui.Text(gui.TextCfg{Text: "Process Monitor", TextStyle: theme.TextStyleTitle}),
-			},
-		}),
-	}
 
+	// Header panel: row 1 title plus filter, row 2 statistics, row 3 the
+	// view and interval selectors. One group per row keeps every row
+	// inside the window width; packing two groups into a row overflowed
+	// it and pushed the trailing controls off screen.
+	top := gui.Row(gui.ContainerCfg{
+		Sizing:  gui.FillFit,
+		Padding: gui.NoPadding,
+		VAlign:  gui.VAlignMiddle,
+		Spacing: gui.SomeF(12),
+		Content: []gui.View{
+			gui.Text(gui.TextCfg{Text: "Process Monitor", TextStyle: theme.TextStyleTitle}),
+			spacer(),
+			gui.Text(gui.TextCfg{Text: "Filter", TextStyle: theme.TextStyleCaption.Bold()}),
+			gui.Input(gui.InputCfg{
+				ID:          "pm-filter",
+				Sizing:      gui.FixedFit,
+				Width:       240,
+				Text:        app.Filter,
+				Placeholder: "name, command, user, or PID",
+				OnTextChanged: func(text string, ctx gui.EventCtx) {
+					state(ctx.Window).Filter = text
+				},
+			}),
+		},
+	})
+
+	// Row 2: status or stats.
+	var status []gui.View
 	switch {
 	case app.Err != nil:
-		content = append(content, gui.Text(gui.TextCfg{
+		status = []gui.View{gui.Text(gui.TextCfg{
 			Text:      "sample error: " + app.Err.Error(),
 			TextStyle: styleColor(theme.TextStyleCaption, colorAlert),
-		}))
+		})}
 	case app.Snapshot == nil:
-		content = append(content, gui.Text(gui.TextCfg{
+		status = []gui.View{gui.Text(gui.TextCfg{
 			Text: "Collecting process samples…", TextStyle: theme.TextStyleCaption,
-		}))
+		})}
 	default:
-		content = append(content, statsRow(app))
+		status = statItems(app)
 	}
+	middle := gui.Row(gui.ContainerCfg{
+		Sizing:  gui.FillFit,
+		Padding: gui.NoPadding,
+		VAlign:  gui.VAlignMiddle,
+		Spacing: gui.SomeF(12),
+		Content: status,
+	})
+
+	// Row 3: view and interval selectors with small caption labels.
+	bottom := gui.Row(gui.ContainerCfg{
+		Sizing:  gui.FillFit,
+		Padding: gui.NoPadding,
+		VAlign:  gui.VAlignMiddle,
+		Spacing: gui.SomeF(12),
+		Content: []gui.View{
+			gui.Text(gui.TextCfg{Text: "View", TextStyle: theme.TextStyleCaption.Bold()}),
+			viewModeRadio(app),
+			gui.Text(gui.TextCfg{Text: "Every", TextStyle: theme.TextStyleCaption.Bold()}),
+			intervalRadio(app),
+		},
+	})
 
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
 		Color:   theme.ColorPanel,
 		Padding: gui.NewPadding(12, 16, 12, 16),
 		Spacing: gui.SomeF(8),
-		Content: content,
+		Content: []gui.View{top, middle, bottom},
 	})
 }
 
-func statsRow(app *App) gui.View {
+// statItems builds the header's status widgets: the process counts and,
+// when the platform reports totals, the system memory bar.
+func statItems(app *App) []gui.View {
 	theme := gui.CurrentTheme()
-	content := []gui.View{
+	items := []gui.View{
 		statPill("Processes", fmt.Sprintf("%s active / %s kept",
 			formatCount(app.Store.ActiveCount()), formatCount(len(app.Store.ByKey)))),
 		statPill("Updated", formatTime(app.LastRefresh)),
@@ -199,7 +238,7 @@ func statsRow(app *App) gui.View {
 	if app.Snapshot.TotalMemoryBytes > 0 {
 		used, total := app.Snapshot.UsedMemoryBytes, app.Snapshot.TotalMemoryBytes
 		ratio := float32(float64(used) / float64(total))
-		content = append(content, gui.Row(gui.ContainerCfg{
+		items = append(items, gui.Row(gui.ContainerCfg{
 			Sizing:  gui.FitFit,
 			Padding: gui.NoPadding,
 			VAlign:  gui.VAlignMiddle,
@@ -215,13 +254,7 @@ func statsRow(app *App) gui.View {
 		}))
 	}
 
-	return gui.Row(gui.ContainerCfg{
-		Sizing:  gui.FillFit,
-		Padding: gui.NoPadding,
-		VAlign:  gui.VAlignMiddle,
-		Spacing: gui.SomeF(18),
-		Content: content,
-	})
+	return items
 }
 
 func statPill(label, value string) gui.View {
@@ -240,44 +273,24 @@ func statPill(label, value string) gui.View {
 	})
 }
 
-func toolbarView(app *App) gui.View {
-	theme := gui.CurrentTheme()
-	return gui.Row(gui.ContainerCfg{
-		Sizing:  gui.FillFit,
-		Color:   theme.ColorPanel,
-		Padding: gui.NewPadding(8, 16, 8, 16),
-		Spacing: gui.SomeF(12),
-		VAlign:  gui.VAlignMiddle,
-		Content: []gui.View{
-			gui.Text(gui.TextCfg{Text: "Filter", TextStyle: theme.TextStyleCaption.Bold()}),
-			gui.Input(gui.InputCfg{
-				ID:          "pm-filter",
-				Sizing:      gui.FixedFit,
-				Width:       300,
-				Text:        app.Filter,
-				Placeholder: "name, command, user, or PID",
-				OnTextChanged: func(text string, ctx gui.EventCtx) {
-					state(ctx.Window).Filter = text
-				},
-			}),
-			spacer(),
-			gui.Text(gui.TextCfg{Text: "View", TextStyle: theme.TextStyleCaption.Bold()}),
-			viewModeRadio(app),
-			gui.Text(gui.TextCfg{Text: "Every", TextStyle: theme.TextStyleCaption.Bold()}),
-			intervalRadio(app),
-		},
-	})
-}
-
 func viewModeRadio(app *App) gui.View {
 	value := "Flat"
 	if app.TreeMode {
 		value = "Tree"
 	}
+	// No Title legend: the group-box heading renders at title size with no
+	// style hook, far too large for toolbar controls. The groups stay real
+	// radio groups (single-select behavior, radiogroup role); small caption
+	// labels beside the borderless options name them instead.
+	theme := gui.CurrentTheme()
 	return gui.RadioButtonGroupRow(gui.RadioButtonGroupCfg{
-		ID:    "pm-view",
-		Items: []string{"Flat", "Tree"},
-		Value: value,
+		ID:             "pm-view",
+		SizeBorder:     gui.NoBorder,
+		Padding:        theme.PaddingSmall,
+		Spacing:        gui.Some(theme.SpacingSmall),
+		TextStyleLabel: theme.TextStyleCaptionSmall,
+		Items:          []string{"Flat", "Tree"},
+		Value:          value,
 		OnSelect: func(v string, ctx gui.EventCtx) {
 			state(ctx.Window).TreeMode = v == "Tree"
 		},
@@ -285,10 +298,15 @@ func viewModeRadio(app *App) gui.View {
 }
 
 func intervalRadio(app *App) gui.View {
+	theme := gui.CurrentTheme()
 	return gui.RadioButtonGroupRow(gui.RadioButtonGroupCfg{
-		ID:    "pm-interval",
-		Items: intervalLabels,
-		Value: intervalLabel(app.Interval),
+		ID:             "pm-interval",
+		SizeBorder:     gui.NoBorder,
+		Padding:        theme.PaddingSmall,
+		Spacing:        gui.Some(theme.SpacingSmall),
+		TextStyleLabel: theme.TextStyleCaptionSmall,
+		Items:          intervalLabels,
+		Value:          intervalLabel(app.Interval),
 		OnSelect: func(v string, ctx gui.EventCtx) {
 			state(ctx.Window).Interval = intervalFromLabel(v)
 		},
@@ -310,17 +328,25 @@ func processTable(app *App) gui.View {
 	if len(rows) == 0 {
 		body = centered("No matching processes")
 	} else {
-		rowViews := make([]gui.View, 0, len(rows))
-		for i, p := range rows {
-			rowViews = append(rowViews, processRow(p, app, i))
-		}
-		body = gui.Column(gui.ContainerCfg{
-			ID:            "pm-scroll",
-			Scrollable:    true,
-			ScrollbarCfgY: &gui.ScrollbarCfg{Overflow: gui.ScrollbarAuto},
-			Sizing:        gui.FillFill,
-			Padding:       gui.NoPadding,
-			Content:       rowViews,
+		// Rows are virtualized: only the viewport (plus overscan) is
+		// built each frame, so per-sample view churn stays proportional
+		// to visible rows, not the process count. Sorting, filtering and
+		// tree flattening above still run over the full set. The fixed
+		// ItemHeight takes the cheap path (no measuring); ItemKey carries
+		// the store identity so measured state follows the process, not
+		// the row index. The ID is unchanged from the old scroll
+		// container, so existing scroll offsets carry over.
+		body = gui.VirtualList(gui.VirtualListCfg{
+			ID:        "pm-scroll",
+			Sizing:    gui.FillFill,
+			ItemCount: len(rows),
+			ItemHeight: func(_ int, _ float32) float32 {
+				return rowHeight
+			},
+			ItemKey: func(i int) string { return processRowKey(rows[i]) },
+			ItemView: func(i int, _ float32) gui.View {
+				return processRow(rows[i], app, i)
+			},
 		})
 	}
 
@@ -383,6 +409,16 @@ func headerCell(col column, idx int, app *App) gui.View {
 	return gui.Row(cfg)
 }
 
+// processRowKey renders the store identity as the VirtualList row key, so
+// measured state follows the process across sorts, filters and PID reuse. A
+// zero StartTime (unreadable row) falls back to PID-only.
+func processRowKey(p *Process) string {
+	if p.StartTime.IsZero() {
+		return "pid:" + strconv.Itoa(p.PID)
+	}
+	return "pid:" + strconv.Itoa(p.PID) + "@" + strconv.FormatInt(p.StartTime.UnixNano(), 10)
+}
+
 func processRow(p *Process, app *App, i int) gui.View {
 	theme := gui.CurrentTheme()
 	bg := theme.ColorPanel
@@ -423,9 +459,13 @@ func detailView(app *App) gui.View {
 	}
 
 	p := app.Selected
+	title := fmt.Sprintf("%s  pid %d", p.Name, p.PID)
+	if !p.Running() {
+		title += "  (exited)"
+	}
 	facts := []gui.View{
 		gui.Text(gui.TextCfg{
-			Text: fmt.Sprintf("%s  pid %d", p.Name, p.PID), TextStyle: theme.TextStyleBodySmall.Bold(),
+			Text: title, TextStyle: theme.TextStyleBodySmall.Bold(),
 		}),
 		gui.Text(gui.TextCfg{Text: fmt.Sprintf("ppid %d", p.PPID), TextStyle: theme.TextStyleCaptionSmall}),
 		gui.Text(gui.TextCfg{Text: "cpu " + formatCPUPercent(p.CPUPercent), TextStyle: theme.TextStyleCaptionSmall}),

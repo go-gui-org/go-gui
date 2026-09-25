@@ -12,9 +12,11 @@ const (
 	keepStoppedFor   = 60 * time.Second
 )
 
-// ProcessKey identifies a process across samples. Including StartTime guards
-// against PID reuse; our collectors do not populate StartTime yet, so in
-// practice the key is PID-only. Documented limitation (see README).
+// ProcessKey identifies a process across samples. StartTime guards against
+// PID reuse: collectors populate it from the OS (ps etimes/lstart on Unix,
+// process creation time on Windows), so a recycled PID arrives as a new key
+// instead of resurrecting the old row. A zero StartTime (unreadable on some
+// rows) degrades that row to PID-only.
 type ProcessKey struct {
 	StartTime time.Time
 	PID       int
