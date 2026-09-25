@@ -21,9 +21,9 @@ func seededApp() *App {
 		TotalMemoryBytes: 16 << 30,
 		UsedMemoryBytes:  8 << 30,
 		Processes: []ProcInfo{
-			{PID: 1, PPID: 0, Name: "init", User: "root", State: "S", RSSBytes: 10 << 20, Threads: 1},
-			{PID: 100, PPID: 1, Name: "app", User: "me", State: "R", RSSBytes: 200 << 20, CPUPercent: 12.5, MemPercent: 1.2, Threads: 8},
-			{PID: 101, PPID: 100, Name: "child", User: "me", State: "S", RSSBytes: 50 << 20, CPUPercent: 1.0, MemPercent: 0.3, Threads: 2},
+			{PID: 1, PPID: 0, Name: "init", User: "root", State: "S", RSSBytes: 10 << 20, Threads: 1, StartTime: time.Unix(1_699_990_000, 0)},
+			{PID: 100, PPID: 1, Name: "app", User: "me", State: "R", RSSBytes: 200 << 20, CPUPercent: 12.5, MemPercent: 1.2, Threads: 8, StartTime: time.Unix(1_699_995_000, 0)},
+			{PID: 101, PPID: 100, Name: "child", User: "me", State: "S", RSSBytes: 50 << 20, CPUPercent: 1.0, MemPercent: 0.3, Threads: 2, StartTime: time.Unix(1_699_998_000, 0)},
 		},
 	}
 	app.Store.Update(snap, nil)
@@ -77,4 +77,16 @@ func TestRootViewFilterNoMatches(t *testing.T) {
 	app := seededApp()
 	app.Filter = "does-not-exist-xyz"
 	_ = buildView(t, app)
+}
+
+func TestProcessRowKeyIncludesStartTime(t *testing.T) {
+	t.Parallel()
+	a := &Process{ProcInfo: ProcInfo{PID: 9, StartTime: time.Unix(1000, 0)}}
+	b := &Process{ProcInfo: ProcInfo{PID: 9, StartTime: time.Unix(2000, 0)}}
+	if processRowKey(a) == processRowKey(b) {
+		t.Fatal("row keys must differ across StartTime for a recycled PID")
+	}
+	if got := processRowKey(&Process{ProcInfo: ProcInfo{PID: 9}}); got == "" {
+		t.Fatal("zero StartTime must still produce a key")
+	}
 }

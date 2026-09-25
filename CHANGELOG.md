@@ -65,6 +65,16 @@ and this project adheres to
 
 ### Fixed
 
+- **Process monitor keys processes by (PID, StartTime) and virtualizes rows
+  (#778)** — collectors now populate `StartTime` (`etimes` on Linux, `lstart` on
+  macOS, process creation time via `GetProcessTimes` on Windows), so a recycled
+  PID arrives as a new identity instead of resurrecting the selected row. The
+  old selection stays marked stopped and its detail title gains "(exited)". The
+  table body is a `VirtualList`, so per-sample view work is proportional to
+  visible rows rather than the process count. The old toolbar folds into the
+  header panel (title plus filter, statistics, view and interval selectors on
+  three rows), so the table starts one row higher.
+
 - **CommandButton consumes the click it acts on** — the auto-wired `OnClick` now
   calls `ctx.Consume()` when the command executes, so an ancestor handler no
   longer double-fires behind the button. Declined clicks (failing `CanExecute`,

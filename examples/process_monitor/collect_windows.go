@@ -52,6 +52,10 @@ func collectProcesses() ([]ProcInfo, error) {
 			CPUPercent:     CPUPercentUnknown,
 			MetricsUnknown: true, // no live CPU% / thread count from tasklist
 		}
+		// StartTime feeds the store's (PID, StartTime) identity and guards
+		// against PID reuse. Unreadable for protected processes; zero
+		// degrades that row to PID-only, never to a wrong time.
+		p.StartTime = processStartTime(pid)
 		procs = append(procs, p)
 	}
 	return procs, nil

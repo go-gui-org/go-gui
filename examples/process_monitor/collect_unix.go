@@ -10,6 +10,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // collectProcesses shells out to `ps` and parses one line per process. This
@@ -19,16 +20,25 @@ import (
 // whitespace-free token; the trailing `args` column (the full command line)
 // absorbs the rest of the line. Linux additionally exposes `nlwp` (thread
 // count); macOS `ps` does not, so threads are reported as unknown there.
+// lstartTokens is the token count of `ps lstart` output ("Sun Sep 13
+// 20:46:57 2026"). Fields collapses the padding of single-digit days
+// ("Sep  5" -> "Sep","5"), so the count is stable at five.
+const lstartTokens = 5
+
 func collectProcesses() ([]ProcInfo, error) {
 	linux := runtime.GOOS == "linux"
+	now := time.Now()
 
 	// Field order must match the parsing below. Trailing "=" suppresses the
-	// header line for every column.
-	format := "pid=,ppid=,pcpu=,rss=,state=,user=,args="
+	// header line for every column. The start-time column sits just before
+	// args: Linux reports elapsed seconds (one numeric token), macOS a
+	// start timestamp (five tokens, see lstartTokens). It feeds the store's
+	// (PID, StartTime) identity, which guards against PID reuse.
+	format := "pid=,ppid=,pcpu=,rss=,state=,user=,lstart=,args="
 	fixed := 6 // number of leading fixed tokens before args
 	if linux {
-		format = "pid=,ppid=,pcpu=,rss=,nlwp=,state=,user=,args="
-		fixed = 7
+		format = "pid=,ppid=,pcpu=,rss=,nlwp=,state=,user=,etimes=,args="
+		fixed = 8
 	}
 
 	// #nosec G204 — format is a constant, not user input.
@@ -46,7 +56,7 @@ func collectProcesses() ([]ProcInfo, error) {
 		if strings.TrimSpace(line) == "" {
 			continue
 		}
-		p, ok := parsePSLine(line, linux, fixed)
+		p, ok := parsePSLine(line, linux, fixed, now)
 		if ok {
 			procs = append(procs, p)
 		}
@@ -59,8 +69,9 @@ func collectProcesses() ([]ProcInfo, error) {
 
 // parsePSLine splits one `ps` line into its fixed columns plus the free-form
 // command line. Unparseable numeric fields fall back to MetricsUnknown so the
-// row still lists but shows "--" for the missing metric.
-func parsePSLine(line string, linux bool, fixed int) (ProcInfo, bool) {
+// row still lists but shows "--" for the missing metric. now anchors the
+// Linux etimes column (elapsed seconds) to an absolute start time.
+func parsePSLine(line string, linux bool, fixed int, now time.Time) (ProcInfo, bool) {
 	// Fields() collapses runs of spaces; the trailing args column can contain
 	// spaces, so grab the fixed columns first and keep the remainder intact.
 	fields := strings.Fields(line)
@@ -106,11 +117,39 @@ func parsePSLine(line string, linux bool, fixed int) (ProcInfo, bool) {
 	p.User = fields[idx]
 	idx++
 
+	// Start time feeds the store's (PID, StartTime) identity and guards
+	// against PID reuse. Either column may fail on odd rows; a zero
+	// StartTime degrades that row to PID-only, never to a wrong time.
+	if linux {
+		if elapsed, err := strconv.ParseUint(fields[idx], 10, 64); err == nil {
+			p.StartTime = now.Add(-time.Duration(elapsed) * time.Second)
+		}
+		idx++
+	} else {
+		if len(fields) < idx+lstartTokens {
+			return ProcInfo{}, false
+		}
+		p.StartTime = parseLstart(strings.Join(fields[idx:idx+lstartTokens], " "))
+		idx += lstartTokens
+	}
+
 	// The command line is everything from the first args token to end of line.
 	// Recover it from the original string to preserve internal spacing.
 	p.Cmdline = commandTail(line, fields[:idx])
 	p.Name = processName(p.Cmdline)
 	return p, true
+}
+
+// parseLstart parses `ps lstart` output ("Sun Sep 13 20:46:57 2026").
+// Fields collapses the space padding of single-digit days, so the unpadded
+// layout comes first; the padded one stays as a fallback.
+func parseLstart(s string) time.Time {
+	for _, layout := range []string{"Mon Jan 2 15:04:05 2006", "Mon Jan _2 15:04:05 2006"} {
+		if t, err := time.Parse(layout, s); err == nil {
+			return t
+		}
+	}
+	return time.Time{}
 }
 
 // commandTail returns the portion of line following the already-consumed
