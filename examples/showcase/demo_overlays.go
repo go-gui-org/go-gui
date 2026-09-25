@@ -85,8 +85,8 @@ func demoDialog(w *gui.Window) gui.View {
 							ctx.Window.Dialog(gui.DialogCfg{
 								Title:      "Custom Dialog",
 								DialogType: gui.DialogCustom,
-								CustomContent: []gui.View{
-									gui.Column(gui.ContainerCfg{
+								CustomView: func(*gui.Window) gui.View {
+									return gui.Column(gui.ContainerCfg{
 										Sizing:  gui.FillFit,
 										Spacing: gui.SomeF(8),
 										Padding: gui.NewPadding(8, 8, 8, 8),
@@ -102,7 +102,7 @@ func demoDialog(w *gui.Window) gui.View {
 												Sizing:   gui.FillFit,
 											}),
 										},
-									}),
+									})
 								},
 								OnOkYes: func(w *gui.Window) {
 									appState(w).DialogResult = "Custom OK"

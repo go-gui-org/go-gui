@@ -10,6 +10,12 @@ and this project adheres to
 
 ### Added
 
+- **Dialog content that follows state** — `DialogCfg.CustomView` builds the body
+  of a `DialogCustom` dialog on every frame while it shows (#787). Content that
+  reads `State[T](w)` now updates when the state changes; before, the dialog
+  kept the views made at the `Dialog()` call and never showed a change. The
+  dialogs example counts clicks inside its custom dialog.
+
 - **Drag-to-scroll for scrollable containers** — `ContainerCfg.DragScroll` pans
   a `Scrollable` container when the pointer drags its content (#783). A drag
   past the threshold scrolls 1:1 and suppresses the press-point click; a tap
@@ -34,6 +40,14 @@ and this project adheres to
   that must follow the active theme reads `theme.PaddingSmall`,
   `theme.PaddingMedium`, or `theme.PaddingLarge` instead; the package presets
   stay fixed when the theme changes.
+
+### Changed
+
+- **`DialogCfg.CustomContent` is deprecated (#787)** — its views are built once
+  and cannot show later state changes. It still works; `CustomView` wins when
+  both are set. Migrate `CustomContent: []gui.View{x}` to
+  `CustomView: func(*gui.Window) gui.View { return x }`, and read state inside
+  the function so it stays current.
 
 ### Fixed
 
