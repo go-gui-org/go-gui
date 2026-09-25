@@ -12,14 +12,20 @@ type View interface {
 }
 
 // ViewFunc adapts a function to a View, deferring construction to
-// layout-generation time so the function can read window state. It is
-// useful inside Content slices when a subtree needs State(*Window)
-// but the enclosing function does not receive w.
-type viewFunc func(*Window) View
+// layout-generation time so the function can read window state. Use it
+// inside Content slices when a subtree needs State(*Window) or
+// (*Window).EffID but the enclosing function does not receive w. A
+// subtree that reads no window state needs no wrapper.
+//
+// A View kept across frames, rather than rebuilt each frame by the view
+// generator, has the same staleness trap; there prefer a func field on
+// the config, as DialogCfg.CustomView does.
+// exportaudit:keep — documented public API for app/sibling Content slices (issue #790)
+type ViewFunc func(*Window) View
 
 // GenerateLayout calls the wrapped function and recursively
 // builds the full Layout tree from the returned View.
-func (f viewFunc) GenerateLayout(w *Window) Layout {
+func (f ViewFunc) GenerateLayout(w *Window) Layout {
 	v := f(w)
 	if v == nil {
 		return Layout{}

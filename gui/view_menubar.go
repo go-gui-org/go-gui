@@ -101,7 +101,7 @@ func Menubar(_ *Window, cfg MenubarCfg) View {
 	// site rather than a frame later.
 	RequireID("Menubar", cfg.ID)
 	checkForDuplicateMenuIDs(cfg.Items)
-	return viewFunc(func(vw *Window) View {
+	return ViewFunc(func(vw *Window) View {
 		return menubarBuild(vw, cfg)
 	})
 }

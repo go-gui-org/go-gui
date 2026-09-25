@@ -412,7 +412,7 @@ const commandButtonIDScope = "cmdbtn"
 // explicitly when placing two buttons for the same command in one
 // window, otherwise both get the same focus ID.
 func CommandButton(cmdID string, cfg ButtonCfg) View {
-	return viewFunc(func(w *Window) View {
+	return ViewFunc(func(w *Window) View {
 		cmd, ok := w.CommandByID(cmdID)
 		if !ok {
 			return Text(TextCfg{

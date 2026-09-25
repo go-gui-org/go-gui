@@ -89,7 +89,7 @@ func ContextMenu(w *Window, cfg ContextMenuCfg) View {
 	// site rather than a frame later.
 	RequireID("ContextMenu", cfg.ID)
 	checkForDuplicateMenuIDs(cfg.Items)
-	return viewFunc(func(vw *Window) View {
+	return ViewFunc(func(vw *Window) View {
 		return contextMenuBuild(vw, cfg)
 	})
 }

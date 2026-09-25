@@ -145,10 +145,10 @@ func dialogViewGenerator(cfg DialogCfg) View {
 		content = append(content, promptView(cfg)...)
 	case DialogCustom:
 		// w.dialogCfg keeps this cfg for the life of the dialog, so views
-		// held in it are frozen. viewFunc defers the CustomView call to
+		// held in it are frozen. ViewFunc defers the CustomView call to
 		// layout generation, which runs each frame and reads live state.
 		if cfg.CustomView != nil {
-			content = append(content, viewFunc(cfg.CustomView))
+			content = append(content, ViewFunc(cfg.CustomView))
 		} else {
 			content = append(content, cfg.CustomContent...)
 		}

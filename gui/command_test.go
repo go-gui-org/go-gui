@@ -527,7 +527,7 @@ func TestCommandButtonViewFuncType(t *testing.T) {
 	})
 
 	v := CommandButton("test.cmd", ButtonCfg{ID: "command_test_test_command_button_view_func_type"})
-	if _, ok := v.(viewFunc); !ok {
+	if _, ok := v.(ViewFunc); !ok {
 		t.Error("CommandButton should return ViewFunc")
 	}
 }

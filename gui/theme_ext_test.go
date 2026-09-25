@@ -183,7 +183,7 @@ func TestExtFollowsThemedScope(t *testing.T) {
 						Color: paint(),
 					})
 				}),
-				viewFunc(func(*Window) View {
+				ViewFunc(func(*Window) View {
 					return Column(ContainerCfg{
 						ID:    "sibling",
 						Color: paint(),

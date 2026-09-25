@@ -166,7 +166,7 @@ func TestThemedScopesSubtree(t *testing.T) {
 				}),
 				// Built after Themed's node, so it also proves the
 				// theme was restored on the way out.
-				viewFunc(func(*Window) View {
+				ViewFunc(func(*Window) View {
 					return Column(ContainerCfg{
 						ID:    "sibling",
 						Color: CurrentTheme().ColorPanel,
@@ -212,7 +212,7 @@ func TestThemedNests(t *testing.T) {
 							Color: CurrentTheme().ColorPanel,
 						})
 					}),
-					viewFunc(func(*Window) View {
+					ViewFunc(func(*Window) View {
 						return Column(ContainerCfg{
 							ID:    "after-c",
 							Color: CurrentTheme().ColorPanel,

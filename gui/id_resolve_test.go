@@ -257,7 +257,7 @@ func TestGenerationScopeMatchesResolvePass(t *testing.T) {
 						Column(ContainerCfg{
 							ID: "inner",
 							Content: []View{
-								viewFunc(func(w *Window) View {
+								ViewFunc(func(w *Window) View {
 									generated = w.EffID("leaf")
 									return Column(ContainerCfg{ID: "leaf"})
 								}),
@@ -297,7 +297,7 @@ func TestGenerationScopeRestoredForSiblings(t *testing.T) {
 					ID:      "first",
 					Content: []View{Column(ContainerCfg{ID: "child"})},
 				}),
-				viewFunc(func(w *Window) View {
+				ViewFunc(func(w *Window) View {
 					sibling = w.EffID("after")
 					return Column(ContainerCfg{ID: "after"})
 				}),

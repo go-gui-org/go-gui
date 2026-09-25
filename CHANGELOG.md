@@ -46,6 +46,15 @@ and this project adheres to
   alongside `PadAll`. It replaces the unexported helper, so app code stops
   spelling `NewPadding(tb, lr, tb, lr)` by hand.
 
+- **Deferred subtree builder is exported** — `gui.ViewFunc` adapts a
+  `func(*Window) View` to a `View`, deferring construction to layout-generation
+  time (#790). Inside a `Content` slice built without `w`, wrap a subtree that
+  reads `State[T](w)` or resolves `w.EffID`, so it sees live state and the
+  generation-time ID scope instead of a stale snapshot. It replaces the
+  unexported `viewFunc` with the same behavior at the same zero-alloc cost; the
+  in-tree callers (menubar, dialog `CustomView`, table, tooltip, and others) are
+  unchanged apart from the name.
+
 ### Changed
 
 - **`DialogCfg.CustomContent` is deprecated (#787)** — its views are built once
