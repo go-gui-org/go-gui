@@ -17,6 +17,7 @@ import (
 
 type App struct {
 	LightTheme bool
+	Clicks     int
 }
 
 func main() {
@@ -54,9 +55,9 @@ func mainView(w *gui.Window) gui.View {
 		Content: []gui.View{
 			toggleTheme(app, theme),
 			gui.Column(gui.ContainerCfg{
-				Title:       "Custom Dialogs",
-				ColorBorder: theme.ColorActive,
-				Padding:     gui.PaddingLarge,
+				Title:   "Custom Dialogs",
+				TitleBG: theme.ColorBackground,
+				Padding: gui.PaddingLarge,
 
 				Content: []gui.View{
 					messageButton(),
@@ -66,9 +67,9 @@ func mainView(w *gui.Window) gui.View {
 				},
 			}),
 			gui.Column(gui.ContainerCfg{
-				Title:       "Native Dialogs",
-				ColorBorder: theme.ColorActive,
-				Padding:     gui.PaddingLarge,
+				Title:   "Native Dialogs",
+				TitleBG: theme.ColorBackground,
+				Padding: gui.PaddingLarge,
 
 				Content: []gui.View{
 					nativeOpenButton(),
@@ -162,13 +163,26 @@ func customButton() gui.View {
 		OnClick: func(ctx gui.EventCtx) {
 			ctx.Window.Dialog(gui.DialogCfg{
 				DialogType: gui.DialogCustom,
-				CustomContent: []gui.View{
-					gui.Column(gui.ContainerCfg{
+				// CustomView runs on every frame while the dialog shows, so
+				// the count below reads the current state after each click.
+				CustomView: func(w *gui.Window) gui.View {
+					app := gui.State[App](w)
+					return gui.Column(gui.ContainerCfg{
 						HAlign: gui.HAlignCenter,
 						VAlign: gui.VAlignMiddle,
 						Content: []gui.View{
 							gui.Text(gui.TextCfg{
-								Text: "Custom Content",
+								Text: fmt.Sprintf("Custom Content: %d clicks", app.Clicks),
+							}),
+							gui.Button(gui.ButtonCfg{
+								ID: "dlg_custom_count",
+								Content: []gui.View{gui.Text(gui.TextCfg{
+									Text: "Click Me",
+								})},
+								OnClick: func(ctx gui.EventCtx) {
+									gui.State[App](ctx.Window).Clicks++
+									ctx.Consume()
+								},
 							}),
 							gui.Button(gui.ButtonCfg{
 								ID: "dlg_custom_close",
@@ -177,10 +191,11 @@ func customButton() gui.View {
 								})},
 								OnClick: func(ctx gui.EventCtx) {
 									ctx.Window.DialogDismiss()
+									ctx.Consume()
 								},
 							}),
 						},
-					}),
+					})
 				},
 			})
 		},

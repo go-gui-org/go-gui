@@ -340,6 +340,76 @@ func TestDialogCustomView(t *testing.T) {
 	}
 }
 
+// dialogTexts collects every text string in a dialog layout, in tree
+// order, so a test can check what the dialog shows.
+func dialogTexts(l *Layout, out []string) []string {
+	if l.Shape != nil && l.Shape.TC != nil && l.Shape.TC.Text != "" {
+		out = append(out, l.Shape.TC.Text)
+	}
+	for i := range l.Children {
+		out = dialogTexts(&l.Children[i], out)
+	}
+	return out
+}
+
+// TestDialogCustomViewReadsStateEachFrame is the regression test for
+// issue #787: content built by CustomView must read window state on
+// every frame, not once at the Dialog() call.
+func TestDialogCustomViewReadsStateEachFrame(t *testing.T) {
+	type app struct{ text string }
+	w := NewWindow(WindowCfg{State: &app{text: "before"}})
+	w.Dialog(DialogCfg{
+		DialogType: DialogCustom,
+		CustomView: func(w *Window) View {
+			return Text(TextCfg{Text: State[app](w).text})
+		},
+	})
+
+	first := generateViewLayout(dialogViewGenerator(w.dialogCfg), w)
+	if got := dialogTexts(&first, nil); len(got) != 1 || got[0] != "before" {
+		t.Fatalf("first frame texts = %q, want [before]", got)
+	}
+
+	// A state change after Dialog() must show on the next frame.
+	State[app](w).text = "after"
+	second := generateViewLayout(dialogViewGenerator(w.dialogCfg), w)
+	if got := dialogTexts(&second, nil); len(got) != 1 || got[0] != "after" {
+		t.Fatalf("second frame texts = %q, want [after]", got)
+	}
+}
+
+// TestDialogCustomViewWinsOverCustomContent checks that when both
+// fields are set, only CustomView content is shown.
+func TestDialogCustomViewWinsOverCustomContent(t *testing.T) {
+	w := NewWindow(WindowCfg{})
+	w.Dialog(DialogCfg{
+		DialogType:    DialogCustom,
+		CustomContent: []View{Text(TextCfg{Text: "static"})},
+		CustomView: func(*Window) View {
+			return Text(TextCfg{Text: "dynamic"})
+		},
+	})
+	layout := generateViewLayout(dialogViewGenerator(w.dialogCfg), w)
+	if got := dialogTexts(&layout, nil); len(got) != 1 || got[0] != "dynamic" {
+		t.Fatalf("texts = %q, want [dynamic]", got)
+	}
+}
+
+// TestDialogCustomViewNilResult checks that a CustomView returning nil
+// shows no content and does not panic.
+func TestDialogCustomViewNilResult(t *testing.T) {
+	w := NewWindow(WindowCfg{})
+	w.Dialog(DialogCfg{
+		DialogType: DialogCustom,
+		Title:      "T",
+		CustomView: func(*Window) View { return nil },
+	})
+	layout := generateViewLayout(dialogViewGenerator(w.dialogCfg), w)
+	if got := dialogTexts(&layout, nil); len(got) != 1 || got[0] != "T" {
+		t.Fatalf("texts = %q, want [T]", got)
+	}
+}
+
 func TestDialogDefaultsPreserveUserSet(t *testing.T) {
 	cfg := DialogCfg{
 		Color:        RGBA(255, 0, 0, 255),

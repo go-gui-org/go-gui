@@ -44,7 +44,17 @@ type DialogCfg struct {
 	Reply string
 	ID    string
 
+	// CustomContent is the body of a DialogCustom dialog.
+	//
+	// Deprecated: these views are built once, at the Dialog call, and
+	// never see later state changes (issue #787). Use CustomView.
 	CustomContent []View
+
+	// CustomView builds the body of a DialogCustom dialog. The dialog
+	// calls it on every frame while it shows, so content that reads
+	// window state (State[T](w)) stays current. When set, it replaces
+	// CustomContent.
+	CustomView func(*Window) View
 
 	Padding    Padding
 	SizeBorder Opt[float32]
@@ -61,7 +71,7 @@ type DialogCfg struct {
 	// width to the content, within MinWidth and MaxWidth.
 	Width float32
 	// Height, when positive, fixes the dialog height. Content taller
-	// than Height is not clipped, so give tall CustomContent its own
+	// than Height is not clipped, so give tall custom content its own
 	// scroll container. Zero sizes the height to the content.
 	Height    float32
 	MinHeight float32
@@ -134,7 +144,14 @@ func dialogViewGenerator(cfg DialogCfg) View {
 	case DialogPrompt:
 		content = append(content, promptView(cfg)...)
 	case DialogCustom:
-		content = append(content, cfg.CustomContent...)
+		// w.dialogCfg keeps this cfg for the life of the dialog, so views
+		// held in it are frozen. viewFunc defers the CustomView call to
+		// layout generation, which runs each frame and reads live state.
+		if cfg.CustomView != nil {
+			content = append(content, viewFunc(cfg.CustomView))
+		} else {
+			content = append(content, cfg.CustomContent...)
+		}
 	}
 
 	return Column(ContainerCfg{

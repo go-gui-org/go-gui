@@ -31,6 +31,22 @@ w.Dialog(gui.DialogCfg{
 })
 ```
 
+## Custom Dialog
+
+`CustomView` runs on every frame while the dialog shows. Read state inside it,
+so the dialog shows changes. `CustomContent` is deprecated: its views are built
+once and do not change.
+
+```go
+w.Dialog(gui.DialogCfg{
+    Title:      "Progress",
+    DialogType: gui.DialogCustom,
+    CustomView: func(w *gui.Window) gui.View {
+        return gui.Text(gui.TextCfg{Text: gui.State[App](w).Status})
+    },
+})
+```
+
 ## API
 
 | Method                   | Description                |
@@ -41,31 +57,31 @@ w.Dialog(gui.DialogCfg{
 
 ## Dialog Types
 
-| Type          | Buttons                     |
-| ------------- | --------------------------- |
-| DialogMessage | OK                          |
-| DialogConfirm | Yes / No                    |
-| DialogPrompt  | Text input + OK / Cancel    |
-| DialogCustom  | User-provided CustomContent |
+| Type          | Buttons                  |
+| ------------- | ------------------------ |
+| DialogMessage | OK                       |
+| DialogConfirm | Yes / No                 |
+| DialogPrompt  | Text input + OK / Cancel |
+| DialogCustom  | User-provided CustomView |
 
 ## Key Properties
 
-| Property      | Type            | Description                    |
-| ------------- | --------------- | ------------------------------ |
-| Title         | string          | Dialog heading                 |
-| Body          | string          | Message text                   |
-| Reply         | string          | Pre-filled text (DialogPrompt) |
-| ID            | string          | Unique identifier              |
-| DialogType    | DialogType      | Button configuration           |
-| CustomContent | []View          | Custom views (DialogCustom)    |
-| FocusID       | string          | Initial focus target           |
-| AlignButtons  | HorizontalAlign | Button alignment               |
-| Width         | float32         | Dialog width                   |
-| Height        | float32         | Dialog height                  |
-| MinWidth      | float32         | Minimum width                  |
-| MinHeight     | float32         | Minimum height                 |
-| MaxWidth      | float32         | Maximum width                  |
-| MaxHeight     | float32         | Maximum height                 |
+| Property     | Type               | Description                                    |
+| ------------ | ------------------ | ---------------------------------------------- |
+| Title        | string             | Dialog heading                                 |
+| Body         | string             | Message text                                   |
+| Reply        | string             | Pre-filled text (DialogPrompt)                 |
+| ID           | string             | Unique identifier                              |
+| DialogType   | DialogType         | Button configuration                           |
+| CustomView   | func(*Window) View | Custom body, rebuilt each frame (DialogCustom) |
+| FocusID      | string             | Initial focus target                           |
+| AlignButtons | HorizontalAlign    | Button alignment                               |
+| Width        | float32            | Dialog width                                   |
+| Height       | float32            | Dialog height                                  |
+| MinWidth     | float32            | Minimum width                                  |
+| MinHeight    | float32            | Minimum height                                 |
+| MaxWidth     | float32            | Maximum width                                  |
+| MaxHeight    | float32            | Maximum height                                 |
 
 ## Appearance
 
