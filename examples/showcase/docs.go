@@ -86,6 +86,7 @@ var widgetDocFiles = map[string]string{
 	"text":               "docs/widget_text.md",
 	"typography":         "docs/widget_typography.md",
 	"text_anim":          "docs/widget_text_anim.md",
+	"thinking_orb":       "docs/widget_thinking_orb.md",
 	"theme_gen":          "docs/widget_theme_gen.md",
 	"theme_picker":       "docs/widget_theme_picker.md",
 	"toast":              "docs/widget_toast.md",

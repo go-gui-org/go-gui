@@ -408,6 +408,7 @@ var demoEntries = []DemoEntry{
 	{ID: "skeleton", Label: "Skeleton", Group: groupFeedback, Summary: "Shimmer placeholder for loading states.", Tags: []string{"skeleton", "shimmer", "loading", "placeholder"}},
 	{ID: "spinner", Label: "Math Spinner", Group: groupFeedback, Summary: "Animated mathematical curves as loading indicators.", Tags: []string{"math spinner", "loading", "curve", "animation", "rose", "lissajous", "butterfly", "cardioid", "spiral"}},
 	{ID: "svg_spinner", Label: "SVG Spinner", Group: groupFeedback, Summary: "One hundred six built-in animated SVG spinners grouped by visual family.", Tags: []string{"svg", "spinner", "loading", "animation", "dots", "bars", "ring", "loader", "blocks"}},
+	{ID: "thinking_orb", Label: "Thinking Orb", Group: groupFeedback, Summary: "Nine semantic dotted-3D spinners for AI and agent states.", Tags: []string{"thinking", "orb", "spinner", "loading", "ai", "agent", "searching", "composing"}},
 	{ID: "native_notification", Label: "Native Notification", Group: groupFeedback, Summary: "OS-level notifications on macOS, Windows, and Linux.", Tags: []string{"notification", "native", "os", "alert", "push"}},
 	{ID: "audio", Label: "Audio", Group: groupFeedback, Summary: "Sound effects and music playback via beep.", Tags: []string{"audio", "sound", "music", "sfx", "beep", "mixer"}},
 
