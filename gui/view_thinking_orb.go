@@ -1,15 +1,17 @@
 package gui
 
 import (
+	"cmp"
 	"math"
 	"time"
 )
 
-// orbCycleLen is the geometry-seconds loop of one orb animation
-// tick cycle. Progress runs 0..1 over the keyframe duration and
-// maps to 0..orbCycleLen geometry seconds, so Speed only changes
-// how fast the loop runs, never which frames exist. 12 covers the
-// slowest golden instant (5.1) and the morph cycle (~6.9).
+// orbCycleLen is the geometry seconds one keyframe tick period
+// adds to the orb clock. Progress runs 0..1 over the keyframe
+// duration and each step adds its share of orbCycleLen, so Speed
+// only changes how fast the clock runs, never which frames exist.
+// The clock itself never wraps (see orbClock): no design repeats
+// at a fixed period, so a wrap would show as a jump.
 const orbCycleLen = 12.0
 
 // orbStillT is the geometry-time representative frame for still
@@ -58,17 +60,16 @@ type ThinkingOrbLabelCfg struct {
 
 // ThinkingOrb creates a semantic loading orb. The zero Design is
 // Working (safe general busy) and the zero Size is Regular. A
-// zero or invalid Speed means 1. Speed, Pause state, and Design
-// are sampled on first render; use a different widget ID to
-// apply new parameters.
+// zero or invalid Speed means 1. Speed, Paused, and Design apply
+// live: a change continues from the current frame, with no jump.
 func ThinkingOrb(cfg ThinkingOrbCfg) View {
 	RequireID("ThinkingOrb", cfg.ID)
 	return &thinkingOrbView{cfg: cfg}
 }
 
 // ThinkingOrbLabel creates an orb beside a status line. Text
-// shimmers while live and holds still at full strength under
-// Reduce Motion.
+// shimmers while live and holds still at full strength when
+// Paused and under Reduce Motion.
 func ThinkingOrbLabel(cfg ThinkingOrbLabelCfg) View {
 	RequireID("ThinkingOrbLabel", cfg.ID)
 	return &thinkingOrbLabelView{cfg: cfg}
@@ -83,6 +84,36 @@ type thinkingOrbView struct {
 
 type thinkingOrbLabelView struct {
 	cfg ThinkingOrbLabelCfg
+}
+
+// orbClock is one orb's geometry clock, kept per effective ID in
+// the nsThinkingOrb StateMap. The keyframe tick only supplies
+// progress steps; t adds them up and never wraps, so the motion
+// stays continuous across tick loops, pauses and speed changes.
+type orbClock struct {
+	// t is the geometry time in seconds on the orb clock.
+	t float64
+	// speed is the effective speed the running tick was built
+	// for. A different speed rebuilds the tick.
+	speed float64
+	// prev is the last progress value the running tick sent.
+	prev float32
+	// gen names the running tick. A value that an old tick
+	// queued before it was removed carries an old gen and is
+	// dropped, so it cannot move the clock.
+	gen uint32
+}
+
+// advance adds the step from prev to val to the clock. Progress
+// wraps from 1 to 0 at each tick loop, so a negative step is a
+// wrap and adds the rest of the loop.
+func (c *orbClock) advance(val float32) {
+	step := float64(val - c.prev)
+	if step < 0 {
+		step++
+	}
+	c.t += step * orbCycleLen
+	c.prev = val
 }
 
 // thinkingOrbDuration converts an effective speed (resolved tuned
@@ -124,24 +155,22 @@ func (v *thinkingOrbView) GenerateLayout(w *Window) Layout {
 	height := mathSpinnerPositive(cfg.Height, length)
 
 	eid := w.EffID(cfg.ID)
-	still := cfg.Paused || w.prefersReducedMotion() ||
-		w.HeadlessRender()
-	progress := StateReadOr(w, nsThinkingOrb, eid, float32(0))
-	geomT := float64(progress) * orbCycleLen
-	if still {
+	clk := StateReadOr(w, nsThinkingOrb, eid, orbClock{})
+	geomT := clk.t
+	// Reduce Motion and headless captures show the representative
+	// frame. A paused orb holds the frame it reached; one paused
+	// before its first tick has no frame yet and shows the
+	// representative one too.
+	if w.prefersReducedMotion() || w.HeadlessRender() ||
+		(cfg.Paused && clk.t == 0) {
 		geomT = orbStillT
-		if cfg.Paused && progress != 0 {
-			geomT = float64(progress) * orbCycleLen
-		}
 	}
 
 	custom := cfg.Color.IsSet()
 	baseColor := cfg.Color
-	if !custom {
-		baseColor = guiTheme.TextStyleDef.Color
-	}
 	dark := thinkingOrbDarkGround()
-	frame := orbFrame(cfg.Design, cfg.Size, geomT)
+	design := cfg.Design
+	size := cfg.Size
 
 	role := AccessRoleImage
 	state := AccessStateBusy | AccessStateLive
@@ -183,11 +212,20 @@ func (v *thinkingOrbView) GenerateLayout(w *Window) Layout {
 		},
 		Content: []View{
 			DrawCanvas(DrawCanvasCfg{
-				ID:      "cv",
-				Sizing:  FillFill,
-				Clip:    true,
-				Version: uint64(math.Float32bits(progress)),
+				ID:     "cv",
+				Sizing: FillFill,
+				Clip:   true,
+				// The canvas redraws only when Version changes, so
+				// it folds in every input OnDraw reads.
+				Version: thinkingOrbVersion(geomT, design, size,
+					dark, custom, baseColor),
 				OnDraw: func(dc *DrawContext) {
+					// Built here, not in GenerateLayout, so a cache
+					// hit skips the geometry. The frame aliases the
+					// window's scratch buffers and is used up before
+					// this returns.
+					frame := orbFrameInto(&w.scratch.orb,
+						design, size, geomT)
 					thinkingOrbDraw(dc, frame, float64(length),
 						dark, custom, baseColor)
 				},
@@ -196,39 +234,98 @@ func (v *thinkingOrbView) GenerateLayout(w *Window) Layout {
 	}), w)
 }
 
-// thinkingOrbAmendLayout registers the repeating progress tick
-// keyed by the effective ID. Still orbs (paused, reduced
-// motion, headless) register nothing and keep their frame.
+// thinkingOrbVersion folds every input of the orb drawing into
+// the canvas Version: the frame time, design, size, ground
+// polarity and caller color. A still orb keeps one frame time, so
+// without the other inputs a theme, Color or Design change would
+// leave the cached drawing on screen.
+func thinkingOrbVersion(t float64, design ThinkingOrbDesign,
+	size ThinkingOrbSize, dark, custom bool, base Color) uint64 {
+	// FNV-1a style mixing: cheap, and a one-bit change in any
+	// input changes the result.
+	const prime = 1099511628211
+	v := math.Float64bits(t)
+	v = (v ^ uint64(design)) * prime
+	v = (v ^ uint64(size)) * prime
+	var flags uint64
+	if dark {
+		flags |= 1
+	}
+	if custom {
+		flags |= 2
+		// The color only counts when set: an unset color draws
+		// gray whatever its bytes are.
+		flags |= uint64(base.R)<<8 | uint64(base.G)<<16 |
+			uint64(base.B)<<24 | uint64(base.A)<<32
+	}
+	return (v ^ flags) * prime
+}
+
+// thinkingOrbAmendLayout runs the repeating progress tick keyed
+// by the effective ID. Still orbs (paused, reduced motion,
+// headless) remove the tick at once, so the frame stops where it
+// is. A speed change (Speed or Design) rebuilds the tick; the
+// clock carries on from its current time.
 func thinkingOrbAmendLayout(layout *Layout, w *Window,
 	design ThinkingOrbDesign, size ThinkingOrbSize, speed float64,
 	paused bool, id string) {
+	sm := StateMap[string, orbClock](w, nsThinkingOrb, capModerate)
+	clk, _ := sm.Get(id)
 	if paused || w.prefersReducedMotion() || w.HeadlessRender() {
+		// speed != 0 means a tick was built and not yet stopped, so
+		// the work below runs once, on the live-to-still frame. A
+		// still orb on later frames returns here without building
+		// the scoped ID string.
+		if clk.speed == 0 {
+			return
+		}
+		// Bump gen first: a value the old tick already queued then
+		// fails the gen check and cannot move the paused frame.
+		clk.gen++
+		clk.speed = 0
+		sm.Set(id, clk)
+		// A view-bound tick left alone runs on for up to
+		// animViewBoundStale and keeps moving the frame.
+		w.AnimationRemove(ScopeID(id, "orb"))
 		return
 	}
 	animID := ScopeID(id, "orb")
-	if !w.touchViewBoundAnimation(animID) {
-		w.animationAddViewBound(&KeyframeAnimation{
-			AnimID:   animID,
-			Duration: thinkingOrbDuration(speed),
-			Repeat:   true,
-			Keyframes: []Keyframe{
-				{At: 0, Value: 0},
-				{At: 1, Value: 1},
-			},
-			OnValue: func(val float32, win *Window) {
-				StateMap[string, float32](
-					win, nsThinkingOrb, capModerate).Set(id, val)
-			},
-		})
+	if w.touchViewBoundAnimation(animID) && clk.speed == speed {
+		return
 	}
+	// New tick: it starts at progress 0, so prev restarts at 0 and
+	// the first step adds only the time since the start.
+	w.AnimationRemove(animID)
+	clk.speed = speed
+	clk.prev = 0
+	clk.gen++
+	gen := clk.gen
+	sm.Set(id, clk)
+	w.animationAddViewBound(&KeyframeAnimation{
+		AnimID:   animID,
+		Duration: thinkingOrbDuration(speed),
+		Repeat:   true,
+		Keyframes: []Keyframe{
+			{At: 0, Value: 0},
+			{At: 1, Value: 1},
+		},
+		OnValue: func(val float32, win *Window) {
+			clocks := StateMap[string, orbClock](
+				win, nsThinkingOrb, capModerate)
+			cur, ok := clocks.Get(id)
+			if !ok || cur.gen != gen {
+				return
+			}
+			cur.advance(val)
+			clocks.Set(id, cur)
+		},
+	})
 }
 
 // thinkingOrbDraw paints lines first, then dots far to near (the
 // frame order). Box units map onto the canvas with independent
-// axis scales; radii and widths take the smaller one. Ink is
-// matte gray from the white field, mirrored on dark grounds. A
-// caller color replaces the gray with its own RGB at the dot
-// alpha.
+// axis scales; radii and widths take the smaller one. Ink comes
+// from orbInk for lines and dots alike.
 func thinkingOrbDraw(dc *DrawContext, frame orbFrameResult,
 	boxLen float64, dark bool, custom bool, base Color) {
 	if !(boxLen > 0) || !(dc.Width > 0) || !(dc.Height > 0) {
@@ -242,25 +339,30 @@ func thinkingOrbDraw(dc *DrawContext, frame orbFrameResult,
 	}
 	for i := range frame.lines {
 		line := &frame.lines[i]
-		gray := orbInkByte(line.white, dark)
-		alpha := orbAlphaByte(line.a)
 		dc.Line(float32(float64(line.x1)*sx), float32(float64(line.y1)*sy),
 			float32(float64(line.x2)*sx), float32(float64(line.y2)*sy),
-			RGBA(gray, gray, gray, alpha), float32(line.w*rs))
+			orbInk(line.white, line.a, dark, custom, base),
+			float32(line.w*rs))
 	}
 	for i := range frame.dots {
 		dot := &frame.dots[i]
-		alpha := orbAlphaByte(dot.a)
-		var col Color
-		if custom {
-			col = RGBA(base.R, base.G, base.B, alpha)
-		} else {
-			gray := orbInkByte(dot.white, dark)
-			col = RGBA(gray, gray, gray, alpha)
-		}
 		dc.FilledCircle(float32(dot.x*sx), float32(dot.y*sy),
-			float32(dot.r*rs), col)
+			float32(dot.r*rs),
+			orbInk(dot.white, dot.a, dark, custom, base))
 	}
+}
+
+// orbInk returns the color of one mark. Unset ink is matte gray
+// from the white field, mirrored on dark grounds. A caller color
+// replaces the gray with its own RGB, and its alpha scales the
+// mark alpha, so a half-transparent color draws half as strong.
+func orbInk(white, a float64, dark, custom bool, base Color) Color {
+	if custom {
+		return RGBA(base.R, base.G, base.B,
+			orbAlphaByte(a*float64(base.A)/255))
+	}
+	gray := orbInkByte(white, dark)
+	return RGBA(gray, gray, gray, orbAlphaByte(a))
 }
 
 // orbInkByte maps a white field (0 darkest) to a gray byte,
@@ -300,7 +402,9 @@ func (v *thinkingOrbLabelView) GenerateLayout(w *Window) Layout {
 		style = guiTheme.TextStyleDef
 	}
 	anim := TextAnimCfg{Kind: TextAnimShimmer, Repeat: true}
-	if w.prefersReducedMotion() || w.HeadlessRender() {
+	// A paused orb beside moving text still reads as busy, so the
+	// text holds still with the orb.
+	if cfg.Paused || w.prefersReducedMotion() || w.HeadlessRender() {
 		anim = TextAnimCfg{}
 	}
 	orbCfg := ThinkingOrbCfg{
@@ -319,7 +423,10 @@ func (v *thinkingOrbLabelView) GenerateLayout(w *Window) Layout {
 		A11YRole:  AccessRoleImage,
 		A11YState: AccessStateBusy | AccessStateLive,
 		a11Y: &accessInfo{
-			Label:       a11yLabel(cfg.A11YLabel, cfg.Text),
+			// The inner orb has no node of its own, so empty Text
+			// falls back to the design name, as a bare orb reads.
+			Label: a11yLabel(cfg.A11YLabel,
+				cmp.Or(cfg.Text, cfg.Design.A11YLabel())),
 			Description: cfg.A11YDescription,
 		},
 		Sizing:     cfg.Sizing.Or(FitFit),

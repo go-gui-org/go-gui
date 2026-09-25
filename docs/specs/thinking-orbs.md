@@ -35,10 +35,11 @@ gui.ThinkingOrbLabel(gui.ThinkingOrbLabelCfg{
 `ThinkingOrbRegular`. A zero `Speed` means 1.0 (sanitize like `MathSpinner`).
 `Paused` freezes the orb on the current frame.
 
-`Color` is a plain `Color`. Unset takes the theme text color. A set color wins
-over the theme. `A11YLabel` and `A11YDescription` come from the embedded
-`A11YCfg`. The Cfg never redeclares them. Callbacks use `func(EventCtx)`. The
-orb is not focusable by default. It is status, not a control.
+`Color` is a plain `Color`. Unset ink is matte gray that follows the theme
+polarity. A set color replaces the gray on dots and lines, and its alpha scales
+the ink. `A11YLabel` and `A11YDescription` come from the embedded `A11YCfg`. The
+Cfg never redeclares them. Callbacks use `func(EventCtx)`. The orb is not
+focusable by default. It is status, not a control.
 
 The label helper uses a Cfg struct (4b-lite). It carries `Text`, `Design`,
 `Size`, `Speed`, `Paused`, `TextStyle`, `Color`, `Padding`, `Sizing`, and
@@ -74,10 +75,15 @@ for v1.
 
 The widget follows the `ProgressBar` and `MathSpinner` pattern. `AmendLayout`
 drives a repeating `KeyframeAnimation`. The animation key is the effective ID
-(`Shape.idKey`). Progress lives in the window `StateMap`. The child `DrawCanvas`
-carries `Version` from the progress bits, so each tick redraws the canvas.
+(`Shape.idKey`). The tick only supplies progress steps. An `orbClock` in the
+window `StateMap` adds them up and never wraps, because no design repeats at a
+fixed period: a clock that loops back to 0 shows a jump at each loop. The child
+`DrawCanvas` carries a `Version` that folds in the clock time, design, size,
+ground polarity and color, so each tick redraws the canvas and a still orb
+redraws when the theme or Cfg changes.
 
-Multiple orbs on one screen stay in phase. They share the same clock source.
+Each orb keeps its own clock. Two orbs that start at different times are not in
+phase.
 
 Offscreen parking for v1 is free (2a). `renderDrawCanvas` already skips shapes
 outside the clip, so an offscreen orb emits no GPU work. The animation tick
@@ -86,9 +92,11 @@ later optimization, not v1 work. View-bound auto-cancel still applies. An orb
 that leaves the tree stops within 2s (`animViewBoundStale` in
 `gui/animation_loop.go`).
 
-Speed and pause parameters are sampled at first render. A change after the
-widget is visible has no effect. Use a different widget ID to apply new
-parameters. This matches the `MathSpinner` rule.
+Speed, pause and design apply live. `Paused` (and Reduce Motion) removes the
+tick at once, so the frame stops where it is. A speed change (from `Speed` or
+from a new `Design`) rebuilds the tick. The clock carries on from its current
+time, so neither case jumps. A value that a removed tick queued is dropped by a
+generation check.
 
 ### Theme ink
 
@@ -100,18 +108,21 @@ default.
 ### Accessibility
 
 Each design has a default VoiceOver label (for example "Searching…"). A caller
-label overrides it. The label widget reads as one element. With Reduce Motion
-on, the orb shows a single representative frame and the shimmer holds still.
-With Increase Contrast on, shimmer text stays at full strength. The widget reads
-`w.prefersReducedMotion()`. Headless captures (`SetHeadlessRender`) also pin a
-still frame.
+label overrides it. The label widget reads as one element. Its name is the
+caller label, else `Text`, else the design label. With Reduce Motion on, the orb
+shows a single representative frame and the shimmer holds still. A paused label
+also holds its shimmer still. The widget reads `w.prefersReducedMotion()`.
+Headless captures (`SetHeadlessRender`) also pin a still frame. go-gui reads no
+Increase Contrast preference, so the shimmer does not change for it.
 
 ### Performance budget
 
 One draw list per orb. No view per dot. Dots draw as filled circles, edges as
 lines, far to near. Upstream heaviest frame (composing, 566 dots) costs ~65µs
-compute + 0.27ms rasterize at 120Hz. The port keeps heap allocations flat across
-frames.
+compute + 0.27ms rasterize at 120Hz. The port builds the frame inside the canvas
+`OnDraw`, so a cache hit skips the geometry. The builders write into a
+per-window `orbScratch` (`scratchPools.orb`), so a warm rebuild allocates
+nothing (`TestOrbFrameIntoAllocFree`).
 
 ## Engine (decision 1: Swift as reference)
 

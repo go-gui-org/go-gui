@@ -1801,6 +1801,13 @@ func goldenCases() []goldenCase {
 			name:  "thinking_orb_label",
 			build: goldenThinkingOrbLabel,
 		},
+		{
+			// Connecting is the one design with edge lines. A caller
+			// color must tint them too, and its alpha must scale the
+			// ink of dots and lines.
+			name:  "thinking_orb_connecting_color",
+			build: goldenThinkingOrbConnectingColor,
+		},
 	}
 }
 
@@ -1832,6 +1839,17 @@ func goldenThinkingOrbLabel(w *Window) View {
 		Text:   "Searching the web…",
 		Design: ThinkingOrbSearching,
 		Size:   ThinkingOrbSmall,
+		Paused: true,
+	})
+}
+
+// goldenThinkingOrbConnectingColor pins a custom half-transparent
+// ink on the design that draws lines.
+func goldenThinkingOrbConnectingColor(_ *Window) View {
+	return ThinkingOrb(ThinkingOrbCfg{
+		ID:     "orb-connecting",
+		Design: ThinkingOrbConnecting,
+		Color:  RGBA(46, 160, 67, 128),
 		Paused: true,
 	})
 }

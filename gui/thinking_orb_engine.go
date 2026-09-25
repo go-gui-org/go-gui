@@ -8,7 +8,7 @@ package gui
 import (
 	"maps"
 	"math"
-	"sort"
+	"slices"
 )
 
 // ThinkingOrbDesign selects one of the nine hand-tuned spinner
@@ -275,10 +275,28 @@ func (p orbProjector) project(x, y, z float64) (float64, float64, float64) {
 	return p.cx + x1*p.scale, p.cy - y1*p.scale, z2
 }
 
+// orbScratch holds the buffers a frame build writes into. A live
+// orb rebuilds its frame on every tick, so the render path keeps
+// one orbScratch per window (scratchPools.orb) and the builders
+// append into it: after the first frames have grown the buffers,
+// a rebuild allocates nothing. A frame built into a scratch
+// aliases its buffers and is valid only until the next build.
+type orbScratch struct {
+	dots   []orbDot
+	lines  []orbLine
+	nodes  [][3]float64
+	amount []float64
+	moves  []orbMove
+}
+
 // orbFinalize drops invisible marks, clamps radii to the mode's
-// floor, and z-sorts far → near (stable) into draw order.
-func orbFinalize(dots []orbDot, lines []orbLine, rMin float64) orbFrameResult {
-	visible := make([]orbDot, 0, len(dots))
+// floor, and z-sorts far → near (stable) into draw order. It
+// filters in place and keeps the grown buffers in sc for the next
+// frame.
+func orbFinalize(sc *orbScratch, dots []orbDot, lines []orbLine,
+	rMin float64) orbFrameResult {
+	sc.dots = dots
+	visible := dots[:0]
 	for idx := range dots {
 		mark := dots[idx]
 		if mark.a < 0.02 {
@@ -289,10 +307,22 @@ func orbFinalize(dots []orbDot, lines []orbLine, rMin float64) orbFrameResult {
 		}
 		visible = append(visible, mark)
 	}
-	sort.SliceStable(visible, func(ai, bi int) bool {
-		return visible[ai].z < visible[bi].z
+	// Same strict order as a plain z < z test, so a NaN depth
+	// sorts exactly as it did with sort.SliceStable. SortStableFunc
+	// needs no reflection swapper and does not allocate.
+	slices.SortStableFunc(visible, func(a, b orbDot) int {
+		switch {
+		case a.z < b.z:
+			return -1
+		case b.z < a.z:
+			return 1
+		}
+		return 0
 	})
-	kept := make([]orbLine, 0, len(lines))
+	if lines != nil {
+		sc.lines = lines
+	}
+	kept := lines[:0]
 	for idx := range lines {
 		if lines[idx].a >= 0.02 {
 			kept = append(kept, lines[idx])
@@ -514,7 +544,8 @@ func orbComputeResolved(design ThinkingOrbDesign, size ThinkingOrbSize) orbResol
 }
 
 // orbResolvedTable caches every (design, size) pair, so the
-// render loop only ever sees plain numbers.
+// render loop never rebuilds or rescales an option map. Builders
+// still read options by key; a map read does not allocate.
 var orbResolvedTable = buildOrbResolvedTable()
 
 func buildOrbResolvedTable() [9][2]orbResolved {
@@ -543,34 +574,44 @@ func orbResolve(design ThinkingOrbDesign, size ThinkingOrbSize) orbResolved {
 // orbFrame returns the draw list for a design at geometry time t
 // (seconds on the orb clock, already scaled by the resolved
 // speed). Any time is safe, negative or not; a non-finite one
-// draws time zero. An invalid design draws working.
+// draws time zero. An invalid design draws working. The result
+// owns fresh buffers; the render path uses orbFrameInto.
 func orbFrame(design ThinkingOrbDesign, size ThinkingOrbSize, t float64) orbFrameResult {
+	var sc orbScratch
+	return orbFrameInto(&sc, design, size, t)
+}
+
+// orbFrameInto is orbFrame building into sc. The result aliases
+// sc's buffers and is valid until the next build into sc.
+func orbFrameInto(sc *orbScratch, design ThinkingOrbDesign,
+	size ThinkingOrbSize, t float64) orbFrameResult {
 	resolved := orbResolve(design, size)
 	tt := t
 	if math.IsNaN(tt) || math.IsInf(tt, 0) {
 		tt = 0
 	}
-	return orbModeFrame(resolved.mode, size.Length(), tt, resolved.opts)
+	return orbModeFrame(sc, resolved.mode, size.Length(), tt, resolved.opts)
 }
 
 // orbModeFrame dispatches to the geometry builder.
-func orbModeFrame(mode orbMode, size, t float64, o orbOpts) orbFrameResult {
+func orbModeFrame(sc *orbScratch, mode orbMode, size, t float64,
+	o orbOpts) orbFrameResult {
 	switch mode {
 	case orbModeOrbits:
-		return orbOrbits(size, t, o)
+		return orbOrbits(sc, size, t, o)
 	case orbModeGlobe:
-		return orbGlobe(size, t, o)
+		return orbGlobe(sc, size, t, o)
 	case orbModeRubik:
-		return orbRubik(size, t, o)
+		return orbRubik(sc, size, t, o)
 	case orbModeWave:
-		return orbWave(size, t, o)
+		return orbWave(sc, size, t, o)
 	case orbModeWeb:
-		return orbWeb(size, t, o)
+		return orbWeb(sc, size, t, o)
 	case orbModeBraid:
-		return orbBraid(size, t, o)
+		return orbBraid(sc, size, t, o)
 	case orbModeRibbon, orbModeRing:
-		return orbRibbon(size, t, o)
+		return orbRibbon(sc, size, t, o)
 	default:
-		return orbMorph(size, t, o)
+		return orbMorph(sc, size, t, o)
 	}
 }
