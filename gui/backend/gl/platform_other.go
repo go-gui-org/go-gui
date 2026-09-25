@@ -26,6 +26,10 @@ func (n *nativePlatform) SetWindowOpacity(_ float32) {}
 func (n *nativePlatform) StartWindowDrag()                   {}
 func (n *nativePlatform) StartWindowResize(_ gui.WindowEdge) {}
 
+// No window system here to show or hide a window with.
+func (n *nativePlatform) ShowWindow() {}
+func (n *nativePlatform) HideWindow() {}
+
 // New creates a GL backend.  This is a stub for unsupported platforms.
 // exportaudit:keep — lowercase new shadows the Go builtin
 func New(w *gui.Window) (*Backend, error) { return nil, nil }

@@ -75,6 +75,27 @@ func (n *nativePlatform) StartWindowResize(edge gui.WindowEdge) {
 	n.b.plat.startMoveResize(uint32(edge))
 }
 
+// ShowWindow maps a hidden window and raises it above its siblings
+// (issue #779). MapWindow alone can leave the window under its old
+// position in the stacking order, so a ConfigureWindow raise follows.
+func (n *nativePlatform) ShowWindow() {
+	if n.b == nil || n.b.plat.conn == nil || n.b.plat.window == 0 {
+		return
+	}
+	xproto.MapWindow(n.b.plat.conn, n.b.plat.window)
+	xproto.ConfigureWindow(n.b.plat.conn, n.b.plat.window,
+		xproto.ConfigWindowStackMode, []uint32{xproto.StackModeAbove})
+}
+
+// HideWindow unmaps the window without destroying it, so a tray menu
+// can bring it back with ShowWindow.
+func (n *nativePlatform) HideWindow() {
+	if n.b == nil || n.b.plat.conn == nil || n.b.plat.window == 0 {
+		return
+	}
+	xproto.UnmapWindow(n.b.plat.conn, n.b.plat.window)
+}
+
 // startMoveResize sends _NET_WM_MOVERESIZE for the last button press.
 // The press left an implicit pointer grab on the app, so the grab is
 // released first or the window manager never sees the drag.

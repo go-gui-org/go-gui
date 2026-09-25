@@ -64,6 +64,15 @@ type nativeSystemTray interface {
 	RemoveSystemTray(id int)
 }
 
+// NativeWindowVisibility shows and hides the OS window without
+// destroying it. Hide keeps the window registered and framing; Show
+// unhides and raises it (issue #779). No-op where there is no window
+// manager to ask (web, iOS, Android).
+type nativeWindowVisibility interface {
+	ShowWindow()
+	HideWindow()
+}
+
 // NativeSound plays OS-level alert sounds.
 type nativeSound interface {
 	// Beep plays the user's configured system alert sound, honoring
@@ -102,6 +111,7 @@ type NativePlatform interface {
 	nativeSpellChecker
 	nativeMenubar
 	nativeSystemTray
+	nativeWindowVisibility
 	nativeSound
 	nativeAppearance
 	OpenURI(uri string) error

@@ -31,40 +31,41 @@ var (
 	pRtlMoveMemory    = kernel32.NewProc("RtlMoveMemory")
 	pLstrlenW         = kernel32.NewProc("lstrlenW")
 
-	pRegisterClassExW = user32.NewProc("RegisterClassExW")
-	pCreateWindowExW  = user32.NewProc("CreateWindowExW")
-	pDestroyWindow    = user32.NewProc("DestroyWindow")
-	pDefWindowProcW   = user32.NewProc("DefWindowProcW")
-	pShowWindow       = user32.NewProc("ShowWindow")
-	pUpdateWindow     = user32.NewProc("UpdateWindow")
-	pPeekMessageW     = user32.NewProc("PeekMessageW")
-	pTranslateMessage = user32.NewProc("TranslateMessage")
-	pDispatchMessageW = user32.NewProc("DispatchMessageW")
-	pPostMessageW     = user32.NewProc("PostMessageW")
-	pGetDC            = user32.NewProc("GetDC")
-	pReleaseDC        = user32.NewProc("ReleaseDC")
-	pMsgWaitForMulti  = user32.NewProc("MsgWaitForMultipleObjectsEx")
-	pLoadCursorW      = user32.NewProc("LoadCursorW")
-	pSetCursor        = user32.NewProc("SetCursor")
-	pGetClientRect    = user32.NewProc("GetClientRect")
-	pSetWindowTextW   = user32.NewProc("SetWindowTextW")
-	pSetWindowPos     = user32.NewProc("SetWindowPos")
-	pScreenToClient   = user32.NewProc("ScreenToClient")
-	pSetCapture       = user32.NewProc("SetCapture")
-	pReleaseCapture   = user32.NewProc("ReleaseCapture")
-	pTrackMouseEvent  = user32.NewProc("TrackMouseEvent")
-	pValidateRect     = user32.NewProc("ValidateRect")
-	pGetDpiForWindow  = user32.NewProc("GetDpiForWindow")
-	pGetDpiForSystem  = user32.NewProc("GetDpiForSystem")
-	pSetDpiAware      = user32.NewProc("SetProcessDpiAwarenessContext")
-	pAdjustRectDpi    = user32.NewProc("AdjustWindowRectExForDpi")
-	pOpenClipboard    = user32.NewProc("OpenClipboard")
-	pCloseClipboard   = user32.NewProc("CloseClipboard")
-	pEmptyClipboard   = user32.NewProc("EmptyClipboard")
-	pGetClipboardData = user32.NewProc("GetClipboardData")
-	pSetClipboardData = user32.NewProc("SetClipboardData")
-	pSendMessageW     = user32.NewProc("SendMessageW")
-	pSysParamsInfoW   = user32.NewProc("SystemParametersInfoW")
+	pRegisterClassExW    = user32.NewProc("RegisterClassExW")
+	pCreateWindowExW     = user32.NewProc("CreateWindowExW")
+	pDestroyWindow       = user32.NewProc("DestroyWindow")
+	pDefWindowProcW      = user32.NewProc("DefWindowProcW")
+	pShowWindow          = user32.NewProc("ShowWindow")
+	pUpdateWindow        = user32.NewProc("UpdateWindow")
+	pPeekMessageW        = user32.NewProc("PeekMessageW")
+	pTranslateMessage    = user32.NewProc("TranslateMessage")
+	pDispatchMessageW    = user32.NewProc("DispatchMessageW")
+	pPostMessageW        = user32.NewProc("PostMessageW")
+	pGetDC               = user32.NewProc("GetDC")
+	pReleaseDC           = user32.NewProc("ReleaseDC")
+	pMsgWaitForMulti     = user32.NewProc("MsgWaitForMultipleObjectsEx")
+	pLoadCursorW         = user32.NewProc("LoadCursorW")
+	pSetCursor           = user32.NewProc("SetCursor")
+	pGetClientRect       = user32.NewProc("GetClientRect")
+	pSetWindowTextW      = user32.NewProc("SetWindowTextW")
+	pSetWindowPos        = user32.NewProc("SetWindowPos")
+	pScreenToClient      = user32.NewProc("ScreenToClient")
+	pSetCapture          = user32.NewProc("SetCapture")
+	pReleaseCapture      = user32.NewProc("ReleaseCapture")
+	pTrackMouseEvent     = user32.NewProc("TrackMouseEvent")
+	pValidateRect        = user32.NewProc("ValidateRect")
+	pGetDpiForWindow     = user32.NewProc("GetDpiForWindow")
+	pGetDpiForSystem     = user32.NewProc("GetDpiForSystem")
+	pSetDpiAware         = user32.NewProc("SetProcessDpiAwarenessContext")
+	pAdjustRectDpi       = user32.NewProc("AdjustWindowRectExForDpi")
+	pOpenClipboard       = user32.NewProc("OpenClipboard")
+	pCloseClipboard      = user32.NewProc("CloseClipboard")
+	pEmptyClipboard      = user32.NewProc("EmptyClipboard")
+	pGetClipboardData    = user32.NewProc("GetClipboardData")
+	pSetClipboardData    = user32.NewProc("SetClipboardData")
+	pSendMessageW        = user32.NewProc("SendMessageW")
+	pSysParamsInfoW      = user32.NewProc("SystemParametersInfoW")
+	pSetForegroundWindow = user32.NewProc("SetForegroundWindow")
 )
 
 const (
@@ -78,6 +79,8 @@ const (
 	wsClipChildren     = 0x02000000
 
 	swShow       = 5
+	swRestore    = 9
+	swHide       = 0
 	pmRemove     = 0x0001
 	cwUseDefault = 0x80000000
 
@@ -592,6 +595,25 @@ func (n *nativePlatform) SetWindowOpacity(opacity float32) {
 	// exists to refuse.
 	applyWindowOpacity(n.b.plat.w, n.b.plat.hwnd,
 		n.b.plat.transparent, opacity)
+}
+
+// ShowWindow unhides a hidden window, restoring it when minimized,
+// and brings it to the foreground (issue #779).
+func (n *nativePlatform) ShowWindow() {
+	if n.b == nil || n.b.plat.hwnd == 0 {
+		return
+	}
+	pShowWindow.Call(n.b.plat.hwnd, swRestore)
+	pSetForegroundWindow.Call(n.b.plat.hwnd)
+}
+
+// HideWindow removes the window from the screen without destroying
+// it, so a tray menu can bring it back with ShowWindow.
+func (n *nativePlatform) HideWindow() {
+	if n.b == nil || n.b.plat.hwnd == 0 {
+		return
+	}
+	pShowWindow.Call(n.b.plat.hwnd, swHide)
 }
 
 // Run starts the event loop. Blocks until the window is closed.

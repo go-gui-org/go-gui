@@ -40,6 +40,14 @@ void metalWindowStartDrag(GoGuiNSWindow w);
 // Destroy the window and release all resources.
 void metalWindowDestroy(GoGuiNSWindow w);
 
+// Hide the window without destroying it (issue #779). The window
+// stays alive and can come back with metalWindowShow.
+void metalWindowHide(GoGuiNSWindow w);
+
+// Show a hidden window again, key and front, activating the app so
+// a tray "Show Window" item brings the app forward.
+void metalWindowShow(GoGuiNSWindow w);
+
 // ─── Properties ────────────────────────────────────────────────
 
 // Set the window title.

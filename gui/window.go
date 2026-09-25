@@ -75,6 +75,7 @@ func ListSystemFonts(w *Window) []string {
 //   - [Window.SetView] — request a full rebuild next frame
 //   - [Window.SetTitle] — update the OS window title
 //   - [Window.Close] — request window close (safe from any goroutine)
+//   - [Window.Hide] / [Window.Show] — hide and re-show without destroying
 //   - [Window.Backend] — access text measurement, clipboard, native dialogs
 type Window struct {
 	a11y a11y // Accessibility backend state.
@@ -270,6 +271,15 @@ type Window struct {
 	// unregistered). Atomic for the same reason as app above.
 	platformID atomic.Uint32
 	closeReq   atomic.Bool
+
+	// hidden is true after Hide until Show. Atomic: IsVisible reads
+	// lock-free from any goroutine while Hide/Show write on the
+	// frame thread. The zero value reads as visible.
+	hidden atomic.Bool
+	// destroyed latches in WindowCleanup. Hide/Show check it so a
+	// Show after the backend tore the OS window down is a no-op
+	// instead of a call into a dead handle (issue #779).
+	destroyed atomic.Bool
 
 	// BackingScale is the device pixel ratio set by the backend each frame
 	// (e.g. 2.0 on Retina/HiDPI). Zero until the first frame is rendered.
