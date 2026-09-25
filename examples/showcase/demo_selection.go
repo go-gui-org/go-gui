@@ -93,8 +93,10 @@ func demoRadioGroup(w *gui.Window) gui.View {
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{Text: "Column layout", TextStyle: t.TextStyleTitleSmall}),
 			gui.RadioButtonGroupColumn(gui.RadioButtonGroupCfg{
-				ID:    "demo_selection_demo_radio_group",
-				Value: app.RadioValue,
+				ID:      "demo_selection_demo_radio_group",
+				Value:   app.RadioValue,
+				Title:   "Language",
+				TitleBG: t.ColorBackground,
 				Options: []gui.RadioOption{
 					gui.NewRadioOption("Go", "go"),
 					gui.NewRadioOption("Rust", "rust"),
@@ -106,8 +108,10 @@ func demoRadioGroup(w *gui.Window) gui.View {
 			}),
 			gui.Text(gui.TextCfg{Text: "Row layout", TextStyle: t.TextStyleTitleSmall}),
 			gui.RadioButtonGroupRow(gui.RadioButtonGroupCfg{
-				ID:    "demo_selection_demo_radio_group_2",
-				Value: app.RadioValue,
+				ID:      "demo_selection_demo_radio_group_2",
+				Value:   app.RadioValue,
+				Title:   "Language",
+				TitleBG: t.ColorBackground,
 				Options: []gui.RadioOption{
 					gui.NewRadioOption("Go", "go"),
 					gui.NewRadioOption("Rust", "rust"),
