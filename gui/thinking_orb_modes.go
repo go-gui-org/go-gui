@@ -7,10 +7,11 @@ package gui
 
 import (
 	"math"
+	"slices"
 )
 
 // orbOrbits draws working: particles on tilted orbits.
-func orbOrbits(size, t float64, o orbOpts) orbFrameResult {
+func orbOrbits(sc *orbScratch, size, t float64, o orbOpts) orbFrameResult {
 	cx := size / 2
 	cy := size / 2
 	rr := (size / 2) * 0.82
@@ -25,8 +26,7 @@ func orbOrbits(size, t float64, o orbOpts) orbFrameResult {
 	partR := orbOpt(o, "partR", 1.2)
 	partRDepth := orbOpt(o, "partRDepth", 1.6)
 
-	dots := make([]orbDot, 0,
-		orbBelow(orbitN)*(orbBelow(ghostN)+orbBelow(particles)))
+	dots := sc.dots[:0]
 
 	for orb := 0; orb < orbBelow(orbitN); orb++ {
 		h1 := orbHash(float64(orb), 1.7)
@@ -78,12 +78,12 @@ func orbOrbits(size, t float64, o orbOpts) orbFrameResult {
 				white: 0.3 - 0.22*depth, a: 1})
 		}
 	}
-	return orbFinalize(dots, nil, orbOpt(o, "rMin", 0.3))
+	return orbFinalize(sc, dots, nil, orbOpt(o, "rMin", 0.3))
 }
 
 // orbGlobe draws searching: a scan meridian sweeping a dotted
 // globe.
-func orbGlobe(size, t float64, o orbOpts) orbFrameResult {
+func orbGlobe(sc *orbScratch, size, t float64, o orbOpts) orbFrameResult {
 	spin := 0.5
 	cx := size / 2
 	cy := size / 2
@@ -101,7 +101,7 @@ func orbGlobe(size, t float64, o orbOpts) orbFrameResult {
 	inkFar := orbOpt(o, "inkFar", 0.62)
 	inkSpan := orbOpt(o, "inkSpan", 0.54)
 
-	var dots []orbDot
+	dots := sc.dots[:0]
 	latRings := orbCountOpt(o, "latRings", 17)
 	lonDensity := orbOpt(o, "lonDensity", 44)
 	for li := 0; li < orbThrough(latRings); li++ {
@@ -128,7 +128,7 @@ func orbGlobe(size, t float64, o orbOpts) orbFrameResult {
 			})
 		}
 	}
-	return orbFinalize(dots, nil, orbOpt(o, "rMin", 0.3))
+	return orbFinalize(sc, dots, nil, orbOpt(o, "rMin", 0.3))
 }
 
 // orbMove is one scramble quarter-turn of a band.
@@ -142,6 +142,15 @@ type orbMove struct {
 // palindrome) so everything clicks back to solved, rests,
 // repeats. Returns per-move amounts and the active move.
 func orbSolveCycle(time float64, count int, slotDur, rest float64) ([]float64, int) {
+	amount := make([]float64, count)
+	return amount, orbSolveCycleInto(amount, time, count, slotDur, rest)
+}
+
+// orbSolveCycleInto is orbSolveCycle writing the per-move amounts
+// into amount (length count) and returning the active move.
+func orbSolveCycleInto(amount []float64, time float64, count int,
+	slotDur, rest float64) int {
+	clear(amount)
 	cyc := 2*float64(count)*slotDur + rest
 	// Wrapped into [0, cyc) so a negative time can never index
 	// before the start.
@@ -149,7 +158,6 @@ func orbSolveCycle(time float64, count int, slotDur, rest float64) ([]float64, i
 	if tc < 0 {
 		tc += cyc
 	}
-	amount := make([]float64, count)
 	active := -1
 	if tc < 2*float64(count)*slotDur {
 		slot := int(math.Floor(tc / slotDur))
@@ -171,7 +179,7 @@ func orbSolveCycle(time float64, count int, slotDur, rest float64) ([]float64, i
 			active = u
 		}
 	}
-	return amount, active
+	return active
 }
 
 func orbMakeMoves(count int) []orbMove {
@@ -238,22 +246,29 @@ func orbApplyMoves(px, py, pz float64, moves []orbMove, amount []float64,
 
 // orbRubik draws solving: rapid eased moves scramble, then
 // replay in reverse.
-func orbRubik(size, t float64, o orbOpts) orbFrameResult {
+func orbRubik(sc *orbScratch, size, t float64, o orbOpts) orbFrameResult {
 	cx := size / 2
 	cy := size / 2
 	rr := (size / 2) * 0.82
 	pt := newOrbProjector(t*0.55, 0.35+0.1*math.Sin(t*0.9), cx, cy, rr)
 	rs := orbRadiusScale(size, orbOpt(o, "rsPow", 0.6))
 	moveCount := int(orbCountOpt(o, "moveCount", 14))
-	moves := orbMakeMoves(moveCount)
-	amount, active := orbSolveCycle(t, moveCount, 0.42, 1.2)
+	// The moves depend only on the count, so they are built once
+	// per scratch and reused while the count holds.
+	if len(sc.moves) != moveCount {
+		sc.moves = orbMakeMoves(moveCount)
+	}
+	moves := sc.moves
+	sc.amount = slices.Grow(sc.amount[:0], moveCount)[:moveCount]
+	amount := sc.amount
+	active := orbSolveCycleInto(amount, t, moveCount, 0.42, 1.2)
 	rBase := orbOpt(o, "rBase", 0.6)
 	rDepth := orbOpt(o, "rDepth", 1.7)
 	rActive := orbOpt(o, "rActive", 0.3)
 	inkFar := orbOpt(o, "inkFar", 0.62)
 	inkSpan := orbOpt(o, "inkSpan", 0.54)
 
-	var dots []orbDot
+	dots := sc.dots[:0]
 	latRings := orbCountOpt(o, "latRings", 15)
 	lonDensity := orbOpt(o, "lonDensity", 40)
 	for li := 0; li < orbThrough(latRings); li++ {
@@ -283,12 +298,12 @@ func orbRubik(size, t float64, o orbOpts) orbFrameResult {
 			})
 		}
 	}
-	return orbFinalize(dots, nil, orbOpt(o, "rMin", 0.3))
+	return orbFinalize(sc, dots, nil, orbOpt(o, "rMin", 0.3))
 }
 
 // orbWave draws listening: a waveform rolling through the
 // latitude rings.
-func orbWave(size, t float64, o orbOpts) orbFrameResult {
+func orbWave(sc *orbScratch, size, t float64, o orbOpts) orbFrameResult {
 	cx := size / 2
 	cy := size / 2
 	// 0.76 base × 1.15: the undulation pulls the sphere inward,
@@ -300,7 +315,7 @@ func orbWave(size, t float64, o orbOpts) orbFrameResult {
 	rBase := orbOpt(o, "rBase", 0.6)
 	rDepth := orbOpt(o, "rDepth", 1.7)
 
-	var dots []orbDot
+	dots := sc.dots[:0]
 	rings := orbCountOpt(o, "rings", 15)
 	lonDensity := orbOpt(o, "lonDensity", 40)
 	for ri := 0; ri < orbThrough(rings); ri++ {
@@ -327,12 +342,12 @@ func orbWave(size, t float64, o orbOpts) orbFrameResult {
 			})
 		}
 	}
-	return orbFinalize(dots, nil, orbOpt(o, "rMin", 0.3))
+	return orbFinalize(sc, dots, nil, orbOpt(o, "rMin", 0.3))
 }
 
 // orbWeb draws connecting: a constellation wiring itself,
 // packets running the edges.
-func orbWeb(size, t float64, o orbOpts) orbFrameResult {
+func orbWeb(sc *orbScratch, size, t float64, o orbOpts) orbFrameResult {
 	cx := size / 2
 	cy := size / 2
 	rr := (size / 2) * 0.8 * orbOpt(o, "spread", 1)
@@ -351,7 +366,7 @@ func orbWeb(size, t float64, o orbOpts) orbFrameResult {
 	// Nodes: fib lattice + slow noise wander, renormalised to
 	// the surface.
 	nodeCount := orbBelow(nodeN)
-	nodes := make([][3]float64, 0, nodeCount)
+	nodes := sc.nodes[:0]
 	for i := range nodeCount {
 		fi := float64(i)
 		dx, dy, dz := orbFibDir(i, nodeN)
@@ -361,15 +376,15 @@ func orbWeb(size, t float64, o orbOpts) orbFrameResult {
 		ll := math.Sqrt(nx*nx + ny*ny + nz*nz)
 		nodes = append(nodes, [3]float64{nx / ll, ny / ll, nz / ll})
 	}
+	sc.nodes = nodes
 
-	var lines []orbLine
-	var dots []orbDot
+	lines := sc.lines[:0]
+	dots := sc.dots[:0]
 
 	// Edges between close neighbours, alpha by proximity and
 	// depth.
 	for ii := range nodeCount {
-		edgeEnd := max(nodeCount, ii+1)
-		for jj := ii + 1; jj < edgeEnd; jj++ {
+		for jj := ii + 1; jj < nodeCount; jj++ {
 			dx := nodes[ii][0] - nodes[jj][0]
 			dy := nodes[ii][1] - nodes[jj][1]
 			dz := nodes[ii][2] - nodes[jj][2]
@@ -421,12 +436,12 @@ func orbWeb(size, t float64, o orbOpts) orbFrameResult {
 			white: 0.05, a: 0.5 + 0.5*depth})
 	}
 
-	return orbFinalize(dots, lines, orbOpt(o, "rMin", 0.3))
+	return orbFinalize(sc, dots, lines, orbOpt(o, "rMin", 0.3))
 }
 
 // orbBraid draws weaving: three strands plaiting around the
 // sphere.
-func orbBraid(size, t float64, o orbOpts) orbFrameResult {
+func orbBraid(sc *orbScratch, size, t float64, o orbOpts) orbFrameResult {
 	cx := size / 2
 	cy := size / 2
 	rr := (size / 2) * 0.76
@@ -435,7 +450,7 @@ func orbBraid(size, t float64, o orbOpts) orbFrameResult {
 	rBase := orbOpt(o, "rBase", 1.2)
 	rDepth := orbOpt(o, "rDepth", 1.8)
 
-	var dots []orbDot
+	dots := sc.dots[:0]
 	ghostN := orbCountOpt(o, "ghostN", 150)
 	for i := 0; i < orbBelow(ghostN); i++ {
 		dx, dy, dz := orbFibDir(i, ghostN)
@@ -471,12 +486,12 @@ func orbBraid(size, t float64, o orbOpts) orbFrameResult {
 			})
 		}
 	}
-	return orbFinalize(dots, nil, orbOpt(o, "rMin", 0.3))
+	return orbFinalize(sc, dots, nil, orbOpt(o, "rMin", 0.3))
 }
 
 // orbRibbon draws composing (and breathing via faceOn): an
 // undulating band, frozen in place while waves travel along it.
-func orbRibbon(size, t float64, o orbOpts) orbFrameResult {
+func orbRibbon(sc *orbScratch, size, t float64, o orbOpts) orbFrameResult {
 	cx := size / 2
 	cy := size / 2
 	rr := (size / 2) * 0.78
@@ -491,7 +506,7 @@ func orbRibbon(size, t float64, o orbOpts) orbFrameResult {
 	rBase := orbOpt(o, "rBase", 1.1)
 	rDepth := orbOpt(o, "rDepth", 1.7)
 
-	var dots []orbDot
+	dots := sc.dots[:0]
 	ghostN := orbCountOpt(o, "ghostN", 150)
 	for i := 0; i < orbBelow(ghostN); i++ {
 		dx, dy, dz := orbFibDir(i, ghostN)
@@ -568,7 +583,7 @@ func orbRibbon(size, t float64, o orbOpts) orbFrameResult {
 			})
 		}
 	}
-	return orbFinalize(dots, nil, orbOpt(o, "rMin", 0.3))
+	return orbFinalize(sc, dots, nil, orbOpt(o, "rMin", 0.3))
 }
 
 // lanesInt converts the lanes float (already rounded) to an int
@@ -647,7 +662,7 @@ const (
 // by arc length (top-centre start, clockwise). Every frame
 // blends the two neighbouring paths, then lays the dots evenly
 // along the blended outline.
-func orbMorph(size, t float64, o orbOpts) orbFrameResult {
+func orbMorph(sc *orbScratch, size, t float64, o orbOpts) orbFrameResult {
 	shapeCount := 3
 	segDur := orbMorphHold + orbMorphTime
 	tc := math.Mod(t, segDur*float64(shapeCount))
@@ -666,21 +681,22 @@ func orbMorph(size, t float64, o orbOpts) orbFrameResult {
 	// Blend the two shape paths at m, then measure the blended
 	// outline.
 	const pathSamples = 160
-	pts := make([][2]float64, 0, pathSamples)
+	// Fixed-size arrays stay on the stack: no heap per frame.
+	var pts [pathSamples][2]float64
 	for i := range pathSamples {
 		ff := float64(i) / float64(pathSamples)
 		ax, ay := orbShapePoint(kk, ff)
 		bx, by := orbShapePoint((kk+1)%shapeCount, ff)
-		pts = append(pts, [2]float64{
-			(ax + (bx-ax)*mm) * sprd, (ay + (by-ay)*mm) * sprd})
+		pts[i] = [2]float64{
+			(ax + (bx-ax)*mm) * sprd, (ay + (by-ay)*mm) * sprd}
 	}
-	segLens := make([]float64, 0, pathSamples)
+	var segLens [pathSamples]float64
 	total := 0.0
 	for i := range pts {
 		aa := pts[i]
 		bb := pts[(i+1)%pathSamples]
 		ll := math.Hypot(bb[0]-aa[0], bb[1]-aa[1])
-		segLens = append(segLens, ll)
+		segLens[i] = ll
 		total += ll
 	}
 
@@ -690,7 +706,7 @@ func orbMorph(size, t float64, o orbOpts) orbFrameResult {
 	re := orbOpt(o, "rDot", 0.021) * 1.35 * sprd
 	pulse := 1 + 0.02*math.Sin(local*3.1)
 
-	dots := make([]orbDot, 0, int(dotN))
+	dots := sc.dots[:0]
 	c2 := size / 2
 	seg := 0
 	acc := 0.0
@@ -711,5 +727,5 @@ func orbMorph(size, t float64, o orbOpts) orbFrameResult {
 		dots = append(dots, orbDot{x: c2 + xx*size, y: c2 + yy*size,
 			z: 0, r: math.Max(0.35, re*size), white: 0.1, a: 1})
 	}
-	return orbFinalize(dots, nil, orbOpt(o, "rMin", 0.25))
+	return orbFinalize(sc, dots, nil, orbOpt(o, "rMin", 0.25))
 }

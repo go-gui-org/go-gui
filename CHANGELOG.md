@@ -18,10 +18,12 @@ and this project adheres to
   moments (`ThinkingOrbRegular`, 64pt) and inline rows (`ThinkingOrbSmall`,
   20pt). Ink is monochrome and follows the theme, with depth shading mirrored on
   dark grounds. `ThinkingOrbLabel` pairs an orb with a shimmering status line
-  that reads as one accessibility element. Paused, Reduce Motion, and headless
-  captures pin a still frame. The geometry is a formula-for-formula port of the
-  MIT ThinkingOrbs engine and matches its golden vectors to 1e-4. The showcase
-  has a new Thinking Orb page with all nine designs in both sizes.
+  that reads as one accessibility element. Speed, Paused and Design apply live
+  and continue from the current frame. Paused, Reduce Motion, and headless
+  captures pin a still frame. A warm frame rebuild allocates nothing. The
+  geometry is a formula-for-formula port of the MIT ThinkingOrbs engine and
+  matches its golden vectors to 1e-4. The showcase has a new Thinking Orb page
+  with all nine designs in both sizes.
 
 - **SegmentedControl widget** — `SegmentedControl(SegmentedControlCfg)` shows a
   row of segments in one shared track, with one segment selected (#600). Use it

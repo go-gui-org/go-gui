@@ -290,6 +290,12 @@ type scratchPools struct {
 	// to each canvas in turn.
 	canvasCtx DrawContext
 
+	// orb holds the ThinkingOrb frame buffers. An orb builds its
+	// frame inside its canvas OnDraw, which renderDrawCanvas calls
+	// one canvas at a time, and the frame is drawn before OnDraw
+	// returns, so one set serves every orb in the window.
+	orb orbScratch
+
 	floatingPoolUsed    int
 	placeholderPoolUsed int
 

@@ -50,8 +50,9 @@ gui.ThinkingOrb(gui.ThinkingOrbCfg{
 })
 ```
 
-Unset takes the theme text color. A set color wins and replaces the gray ink
-with its own RGB at the dot alpha.
+Unset ink is matte gray that follows the theme: dark dots on light themes, light
+dots on dark themes. A set color replaces the gray on dots and lines. Its alpha
+scales the ink, so a half-transparent color draws half as strong.
 
 ## Key Properties
 
@@ -70,9 +71,9 @@ with its own RGB at the dot alpha.
 
 ## Appearance
 
-| Property | Type  | Description                        |
-| -------- | ----- | ---------------------------------- |
-| Color    | Color | Dot ink (default theme text color) |
+| Property | Type  | Description                      |
+| -------- | ----- | -------------------------------- |
+| Color    | Color | Dot ink (default theme gray ink) |
 
 ## Animation
 
@@ -81,9 +82,10 @@ with its own RGB at the dot alpha.
 | Speed    | float32 | Multiplier on the tuned speed (default 1)   |
 | Paused   | bool    | Freeze on the current frame (default false) |
 
-Speed, pause state, and design are sampled on first render. Use a different
-widget ID to apply new parameters. Paused, Reduce Motion, and headless captures
-pin a still frame. Multiple orbs on one screen stay in phase.
+Speed, pause state, and design apply live. A change continues from the current
+frame, with no jump. Paused holds the current frame. Reduce Motion and headless
+captures show one representative frame. Each orb keeps its own clock, so two
+orbs that start at different times are not in phase.
 
 ## Designs
 

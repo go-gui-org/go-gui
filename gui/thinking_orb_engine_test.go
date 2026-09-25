@@ -596,3 +596,54 @@ func TestThinkingOrbA11YLabels(t *testing.T) {
 		t.Errorf("invalid label = %q, want Working…", got)
 	}
 }
+
+func TestOrbFrameIntoAllocFree(t *testing.T) {
+	// A live orb rebuilds its frame on every tick. Once the scratch
+	// buffers have grown, a rebuild must not touch the heap.
+	for design := ThinkingOrbWorking; design <= ThinkingOrbShaping; design++ {
+		for _, size := range []ThinkingOrbSize{ThinkingOrbRegular, ThinkingOrbSmall} {
+			var sc orbScratch
+			tt := 0.0
+			orbFrameInto(&sc, design, size, tt)
+			// AllocsPerRun counts every malloc in the process, so a
+			// background goroutine from another test can add some.
+			// A big frame under -race takes milliseconds, long enough
+			// for that noise to land in most multi-frame runs. So
+			// measure one frame at a time and keep the lowest: a real
+			// per-frame allocation shows in every frame, noise does
+			// not (the guard TestThemeFadeInstallNoAlloc uses).
+			allocs := math.Inf(1)
+			for range 20 {
+				allocs = min(allocs, testing.AllocsPerRun(1, func() {
+					tt += 0.37
+					orbFrameInto(&sc, design, size, tt)
+				}))
+				if allocs == 0 {
+					break
+				}
+			}
+			if allocs != 0 {
+				t.Errorf("%v/%v: %v allocs per frame, want 0",
+					design.Title(), size.Length(), allocs)
+			}
+		}
+	}
+}
+
+func TestOrbFrameIntoMatchesFreshScratch(t *testing.T) {
+	// Reused buffers must not leak marks from an earlier frame of
+	// another design into this one.
+	var sc orbScratch
+	for design := ThinkingOrbWorking; design <= ThinkingOrbShaping; design++ {
+		for _, size := range []ThinkingOrbSize{ThinkingOrbRegular, ThinkingOrbSmall} {
+			for _, tt := range []float64{0, 1.3, 7.9} {
+				got := orbFrameInto(&sc, design, size, tt)
+				want := orbFrame(design, size, tt)
+				if !orbFramesEqual(got, want) {
+					t.Errorf("%v/%v t=%v: reused scratch differs",
+						design.Title(), size.Length(), tt)
+				}
+			}
+		}
+	}
+}
