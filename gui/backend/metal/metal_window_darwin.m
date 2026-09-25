@@ -796,6 +796,19 @@ void metalWindowDestroy(GoGuiNSWindow w) {
     free(gw);
 }
 
+void metalWindowHide(GoGuiNSWindow w) {
+    if (!w) return;
+    GoGuiWindow *gw = (GoGuiWindow *)w;
+    [gw->nsWindow orderOut:nil];
+}
+
+void metalWindowShow(GoGuiNSWindow w) {
+    if (!w) return;
+    GoGuiWindow *gw = (GoGuiWindow *)w;
+    [gw->nsWindow makeKeyAndOrderFront:nil];
+    [NSApp activateIgnoringOtherApps:YES];
+}
+
 // ─── Properties ────────────────────────────────────────────────
 
 void metalWindowSetTitle(GoGuiNSWindow w, const char *title) {

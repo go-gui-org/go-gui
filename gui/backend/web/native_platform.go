@@ -589,6 +589,11 @@ func (n *nativePlatform) SetWindowOpacity(_ float32) {}
 func (n *nativePlatform) StartWindowDrag()                   {}
 func (n *nativePlatform) StartWindowResize(_ gui.WindowEdge) {}
 
+// No window manager to show or hide a window with: the browser tab
+// is the window.
+func (n *nativePlatform) ShowWindow() {}
+func (n *nativePlatform) HideWindow() {}
+
 // --- Spell check (no browser JS API exposes spell results) ---
 
 func (n *nativePlatform) SpellCheck(_ string) []gui.SpellRange     { return nil }

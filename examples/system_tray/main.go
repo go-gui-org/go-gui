@@ -36,6 +36,12 @@ func main() {
 		Title:  "System Tray Demo",
 		Width:  500,
 		Height: 300,
+		// Closing hides instead of destroying: the window stays
+		// registered, so the tray menu can bring it back with
+		// Show and ExitOnTrayRemoved keeps the app alive.
+		OnCloseRequest: func(w *gui.Window) {
+			w.Hide()
+		},
 		OnInit: func(w *gui.Window) {
 			w.SetView(mainView)
 
@@ -59,12 +65,15 @@ func main() {
 						gui.DispatchQuitRequest(app)
 						return
 					case "show":
-						// No window show/raise affordance exists
-						// in gui, so acknowledge the already
-						// visible window in the status line.
 						w.QueueCommand(func(w *gui.Window) {
-							gui.State[App](w).Status =
-								"Window already visible."
+							s := gui.State[App](w)
+							if w.IsVisible() {
+								s.Status =
+									"Window already visible."
+								return
+							}
+							w.Show()
+							s.Status = "Window shown from tray."
 						})
 						return
 					}

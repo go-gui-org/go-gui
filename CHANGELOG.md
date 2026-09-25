@@ -10,6 +10,15 @@ and this project adheres to
 
 ### Added
 
+- **Window show and hide** — `Window.Hide()` removes a window from the screen
+  without destroying it, `Window.Show()` brings it back, raised and active, and
+  `Window.IsVisible()` reports the state (#779). Hide keeps the window
+  registered, so with `ExitOnTrayRemoved` the app stays alive with no window
+  showing; pair it with an `OnCloseRequest` hook that hides instead of closing.
+  Show on a destroyed window is a no-op — a closed window is gone, open a new
+  one with `App.OpenWindow`. The system-tray example hides on close and its Show
+  Window menu item now re-shows the window.
+
 - **Dialog content that follows state** — `DialogCfg.CustomView` builds the body
   of a `DialogCustom` dialog on every frame while it shows (#787). Content that
   reads `State[T](w)` now updates when the state changes; before, the dialog

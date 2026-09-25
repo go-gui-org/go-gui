@@ -108,6 +108,10 @@ func (n *nativePlatform) SetWindowOpacity(_ float32) {}
 func (n *nativePlatform) StartWindowDrag()                   {}
 func (n *nativePlatform) StartWindowResize(_ gui.WindowEdge) {}
 
+// No window manager to show or hide a window with on Android.
+func (n *nativePlatform) ShowWindow() {}
+func (n *nativePlatform) HideWindow() {}
+
 func (n *nativePlatform) SpellSuggest(text string, s, l int) []string {
 	// Bounds handling mirrors nativehost.SpellSuggest so the spell
 	// engine never sees out-of-range offsets.

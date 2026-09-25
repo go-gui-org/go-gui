@@ -151,6 +151,18 @@ func (n *nativePlatform) StartWindowDrag() {
 // edges and an app-drawn grip has nothing to add.
 func (n *nativePlatform) StartWindowResize(_ gui.WindowEdge) {}
 
+// ShowWindow unhides a hidden window, keys it, and activates the app
+// so a tray "Show Window" item brings the app forward (issue #779).
+func (n *nativePlatform) ShowWindow() {
+	C.metalWindowShow(n.window)
+}
+
+// HideWindow removes the window from the screen without destroying
+// it, so a tray menu can bring it back with ShowWindow.
+func (n *nativePlatform) HideWindow() {
+	C.metalWindowHide(n.window)
+}
+
 // --- Spell check ---
 
 func (n *nativePlatform) SpellCheck(text string) []gui.SpellRange {
