@@ -7,9 +7,9 @@ Status: **implemented** — `SegmentedControl(SegmentedControlCfg)`, unreleased.
 ## The problem
 
 An app that wants a compact single choice of two to six short options (a view
-mode, a time range) had no control with that look. `RadioButtonGroupRow` has
-the same semantics but draws radio dots. `TabControl` has arrow-key selection
-but owns a content area. `Toggle` and `Switch` hold one boolean only.
+mode, a time range) had no control with that look. `RadioButtonGroupRow` has the
+same semantics but draws radio dots. `TabControl` has arrow-key selection but
+owns a content area. `Toggle` and `Switch` hold one boolean only.
 
 ## The design
 
@@ -56,8 +56,8 @@ and `WithColors` moves its colors.
 
 - **A style variant of `RadioButtonGroup`**
   (`RadioButtonGroupCfg.Style: RadioGroupSegmented`). It adds fields to
-  `RadioButtonGroupCfg` that do nothing in the radio style. A field that silently
-  does nothing is the failure that the ergonomics audits exist to stop.
+  `RadioButtonGroupCfg` that do nothing in the radio style. A field that
+  silently does nothing is the failure that the ergonomics audits exist to stop.
 - **A per-cell event helper with a default skin** (go-shirei
   `ProcessSegmentEvents`). It fits an immediate-mode builder, not the
   zero-initializable Cfg factories of go-gui. The caller owns the chrome and can
@@ -70,8 +70,8 @@ and `WithColors` moves its colors.
   dated beside the rounded controls of every theme.
 - **A neutral raised pill** (Apple: grey track, white pill). The goldens showed
   that it fails: in `ThemeLight`, `ColorPanel` and `ColorInterior` are both
-  white, so the pill cannot be seen. In `ThemeDark`, the panel is darker than the
-  interior, so the pill looks sunken. The two ladders go in opposite
+  white, so the pill cannot be seen. In `ThemeDark`, the panel is darker than
+  the interior, so the pill looks sunken. The two ladders go in opposite
   directions, and each platform preset has its own ladder.
 - **The name `ButtonGroup`.** In Bootstrap and MUI, a button group is a set of
   action buttons with no selection. `SegmentedControl` is the name that Apple

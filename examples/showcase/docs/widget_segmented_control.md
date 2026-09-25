@@ -59,25 +59,25 @@ set, the control ignores `Options`.
 The control is one tab stop. The track gets the focus, and the segments do not.
 A click on a segment moves the focus to the track.
 
-| Key                     | Result                                       |
-| ----------------------- | -------------------------------------------- |
-| Left, Up / Right, Down  | Select the previous / next enabled segment   |
-| Home / End              | Select the first / last enabled segment      |
-| Space, Enter            | Send `OnSelect` again for the current value  |
+| Key                    | Result                                      |
+| ---------------------- | ------------------------------------------- |
+| Left, Up / Right, Down | Select the previous / next enabled segment  |
+| Home / End             | Select the first / last enabled segment     |
+| Space, Enter           | Send `OnSelect` again for the current value |
 
 The selection wraps at the ends. The keys skip disabled segments.
 
 ## Key Properties
 
-| Property      | Type            | Description                              |
-| ------------- | --------------- | ---------------------------------------- |
-| ID            | string          | Required unless `FocusDisabled` is set   |
-| Value         | string          | The selected value                       |
-| Items         | []string        | Simple string list (alt. to Options)     |
-| Options       | []SegmentOption | Segments: Label, Value, Icon, Disabled   |
-| Sizing        | Sizing          | `FitFit` (default) or `FillFit`          |
-| Disabled      | bool            | Disable the whole control                |
-| FocusDisabled | bool            | Remove the control from the tab order    |
+| Property      | Type            | Description                            |
+| ------------- | --------------- | -------------------------------------- |
+| ID            | string          | Required unless `FocusDisabled` is set |
+| Value         | string          | The selected value                     |
+| Items         | []string        | Simple string list (alt. to Options)   |
+| Options       | []SegmentOption | Segments: Label, Value, Icon, Disabled |
+| Sizing        | Sizing          | `FitFit` (default) or `FillFit`        |
+| Disabled      | bool            | Disable the whole control              |
+| FocusDisabled | bool            | Remove the control from the tab order  |
 
 ## Appearance
 
@@ -93,9 +93,9 @@ The selection wraps at the ends. The keys skip disabled segments.
 
 ## Events
 
-| Callback | Signature              | Sent when                      |
-| -------- | ---------------------- | ------------------------------ |
-| OnSelect | func(string, EventCtx) | The user selects a segment     |
+| Callback | Signature              | Sent when                  |
+| -------- | ---------------------- | -------------------------- |
+| OnSelect | func(string, EventCtx) | The user selects a segment |
 
 ## Accessibility
 
@@ -108,7 +108,7 @@ the selected segment has the selected state.
 
 ## Sound
 
-| Property      | Type     | Description                                |
-| ------------- | -------- | ------------------------------------------ |
-| Sound         | SoundCue | Replaces the theme selection cue           |
-| SoundDisabled | bool     | No sound, whatever the theme and `Sound`   |
+| Property      | Type     | Description                              |
+| ------------- | -------- | ---------------------------------------- |
+| Sound         | SoundCue | Replaces the theme selection cue         |
+| SoundDisabled | bool     | No sound, whatever the theme and `Sound` |
