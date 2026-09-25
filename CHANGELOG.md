@@ -8,6 +8,8 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [v0.80.0] - 2026-09-25
+
 ### Added
 
 - **ThinkingOrb semantic spinners** — `ThinkingOrb(ThinkingOrbCfg)` shows one of
