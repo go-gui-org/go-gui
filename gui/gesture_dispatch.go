@@ -211,11 +211,9 @@ func synthMouse(
 		w.viewState.mouseButtonHeld = btn
 		w.pointerAt(x, y)
 		w.recordPressTarget(&w.scratch.gestureEvent)
-		claimed := w.viewState.focusSetCount
-		mouseDownHandler(layout, false, &w.scratch.gestureEvent, w)
 		// Touch tap on non-focusable space blurs, the same rule
 		// handleMouseDownEvent applies to backend presses.
-		w.blurUnclaimedPress(layout, &w.scratch.gestureEvent, claimed)
+		w.pressWalk(layout, &w.scratch.gestureEvent)
 	case EventMouseMove:
 		w.pointerAt(x, y)
 		mouseMoveHandler(layout, &w.scratch.gestureEvent, w)

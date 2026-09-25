@@ -44,6 +44,19 @@ type nativeIME interface {
 	IMESetRect(x, y, w, h int32)
 }
 
+// NativeSoftKeyboard shows and hides the OS soft (on-screen) keyboard
+// (issue #770). The framework calls ShowSoftKeyboard right after
+// IMEStart when an editable text field takes focus, and
+// HideSoftKeyboard right before IMEStop when it loses focus. kind picks
+// the layout; secure is true for a password field, so the platform can
+// turn off suggestions and learning. KeyboardNone means keep the
+// keyboard down with the input method still live. No-op on platforms
+// without a soft keyboard (desktop).
+type nativeSoftKeyboard interface {
+	ShowSoftKeyboard(kind KeyboardKind, secure bool)
+	HideSoftKeyboard()
+}
+
 // NativeSpellChecker provides OS-level spell checking.
 type nativeSpellChecker interface {
 	SpellCheck(text string) []SpellRange
@@ -108,6 +121,7 @@ type NativePlatform interface {
 	nativeBookmarks
 	nativeAccessibility
 	nativeIME
+	nativeSoftKeyboard
 	nativeSpellChecker
 	nativeMenubar
 	nativeSystemTray

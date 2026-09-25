@@ -10,6 +10,20 @@ and this project adheres to
 
 ### Added
 
+- **Soft-keyboard kind, show/hide and inset** — `InputCfg.Keyboard` picks the OS
+  soft-keyboard layout a field asks for on touch platforms: `KeyboardNumber`,
+  `KeyboardDecimal`, `KeyboardPhone`, `KeyboardEmail`, `KeyboardURL`, or
+  `KeyboardNone` to keep the OS keyboard down for an app keypad (#770). The zero
+  value is today's text keyboard. A password field asks for a secure keyboard,
+  and `NumericInput` and `InputDate` ask for a digit pad. The keyboard still
+  opens and closes with text-field focus; `Window.HideSoftKeyboard` dismisses it
+  and keeps the focus, `Window.ShowSoftKeyboard` brings it back, and a tap on
+  the focused field re-opens it after the user dismissed it.
+  `Window.SoftKeyboardInset` reports how much of the window the keyboard covers
+  (also sent as `EventSoftKeyboard`); the framework moves no layout for it.
+  Android and web implement it, iOS and desktop ignore it. The new `pin_pad`
+  example shows an app-drawn keypad typing into a focused field.
+
 - **Window show and hide** — `Window.Hide()` removes a window from the screen
   without destroying it, `Window.Show()` brings it back, raised and active, and
   `Window.IsVisible()` reports the state (#779). Hide keeps the window
@@ -65,6 +79,15 @@ and this project adheres to
   unchanged apart from the name.
 
 ### Changed
+
+- **A press on a non-focusable widget keeps focus (#770)** — pressing a widget
+  that consumes the press but cannot take focus (a `FocusDisabled` button, a
+  keypad key) no longer blurs the focused field. Before, #767 blurred on every
+  press nothing focused. Now the focused field keeps its caret, so an on-screen
+  keypad or a toolbar button can act on it, like a macOS button that refuses
+  first responder. A press on empty space, or on the empty part of a
+  `DragScroll` container, still blurs. To blur from such a button, call
+  `ctx.Window.ClearFocus()` in its `OnClick`.
 
 - **`DialogCfg.CustomContent` is deprecated (#787)** — its views are built once
   and cannot show later state changes. It still works; `CustomView` wins when

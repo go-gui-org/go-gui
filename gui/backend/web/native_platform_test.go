@@ -5,6 +5,8 @@ package web
 import (
 	"syscall/js"
 	"testing"
+
+	"github.com/go-gui-org/go-gui/gui"
 )
 
 // --- dotExtensions ---
@@ -69,5 +71,34 @@ func TestJsObject(t *testing.T) {
 	obj := jsObject()
 	if obj.Type() != js.TypeObject {
 		t.Fatalf("jsObject() type = %v, want Object", obj.Type())
+	}
+}
+
+// --- webKeyboardAttrs (issue #770) ---
+
+func TestWebKeyboardAttrs(t *testing.T) {
+	tests := []struct {
+		kind     gui.KeyboardKind
+		secure   bool
+		wantMode string
+		wantType string
+	}{
+		{gui.KeyboardText, false, "text", "text"},
+		{gui.KeyboardNumber, false, "numeric", "text"},
+		{gui.KeyboardDecimal, false, "decimal", "text"},
+		{gui.KeyboardPhone, false, "tel", "text"},
+		{gui.KeyboardEmail, false, "email", "text"},
+		{gui.KeyboardURL, false, "url", "text"},
+		{gui.KeyboardNone, false, "none", "text"},
+		{gui.KeyboardText, true, "text", "password"},
+		{gui.KeyboardNumber, true, "numeric", "password"},
+		{gui.KeyboardKind(200), false, "text", "text"},
+	}
+	for _, tt := range tests {
+		mode, typ := webKeyboardAttrs(tt.kind, tt.secure)
+		if mode != tt.wantMode || typ != tt.wantType {
+			t.Errorf("webKeyboardAttrs(%v, %v) = (%q, %q), want (%q, %q)",
+				tt.kind, tt.secure, mode, typ, tt.wantMode, tt.wantType)
+		}
 	}
 }

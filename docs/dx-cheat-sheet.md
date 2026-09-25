@@ -28,6 +28,26 @@ never answers the keyboard, the usual cause is a missing `ID`. The `requiredid`
 analyzer and the `DebugMissingIDs` gate report it. See
 `docs/specs/focusable-default-input.md`.
 
+## Soft keyboard
+
+A touch platform opens its keyboard when a text field takes focus and closes it
+when the field loses focus. The app does not call anything for that. Set the
+layout on the field:
+
+```go
+gui.Input(gui.InputCfg{ID: "email", Keyboard: gui.KeyboardEmail})
+gui.Input(gui.InputCfg{ID: "pin", Keyboard: gui.KeyboardNone}) // app keypad
+```
+
+- `Keyboard` is a hint, not a filter. Use `Mask` or `PreTextChange` to limit
+  what can be typed.
+- `w.HideSoftKeyboard()` keeps focus; `w.ClearFocus()` leaves the field.
+- The framework does not move layout for the keyboard. Read
+  `w.SoftKeyboardInset()` in the View function if content must stay above it.
+- An app keypad uses `FocusDisabled` buttons (a press on them keeps focus) that
+  send `EventChar` through `ctx.Window.QueueCommand` + `w.EventFn`. See
+  `examples/pin_pad`.
+
 ## ID scoping
 
 `Shape.ID` is a leaf. The real identity is the effective ID: the leaf joined

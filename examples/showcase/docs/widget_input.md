@@ -63,6 +63,7 @@ token definitions).
 | Text        | string          | Current text value                    |
 | Placeholder | string          | Hint text shown when empty            |
 | IsPassword  | bool            | Mask characters for password entry    |
+| Keyboard    | KeyboardKind    | Soft-keyboard layout on touch devices |
 | Mode        | InputMode       | InputSingleLine or InputMultiline     |
 | MaskPreset  | InputMaskPreset | Built-in mask (phone, card, and more) |
 | Mask        | string          | Custom mask pattern                   |

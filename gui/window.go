@@ -199,6 +199,11 @@ type Window struct {
 	windowWidth  int
 	windowHeight int
 
+	// softKeyboardInset is the height the OS soft keyboard covers at
+	// the bottom of the window, in logical pixels; 0 while it is down.
+	// Written by EventFn from EventSoftKeyboard. See SoftKeyboardInset.
+	softKeyboardInset float32
+
 	// windowOpacity is the whole-window fade set by SetWindowOpacity,
 	// in [0, 1]. Seeded to 1 by NewWindow: the zero value would read as
 	// an invisible window. Cached so WindowOpacity can answer, and so a

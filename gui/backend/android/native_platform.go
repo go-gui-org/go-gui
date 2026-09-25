@@ -88,8 +88,30 @@ func (n *nativePlatform) A11ySync(nodes []gui.A11yNode, count, focusedIdx int) {
 }
 func (n *nativePlatform) A11yDestroy()             { destroyA11y() }
 func (n *nativePlatform) A11yAnnounce(text string) { setA11yAnnounce(text) }
-func (n *nativePlatform) IMEStart()                { setPendingIMEAction(pendingIMEShow) }
-func (n *nativePlatform) IMEStop()                 { setPendingIMEAction(pendingIMEHide) }
+
+// IMEStart and IMEStop do nothing here: the gui side follows IMEStart
+// with ShowSoftKeyboard and precedes IMEStop with HideSoftKeyboard,
+// which carry the keyboard kind the Kotlin bridge needs (issue #770).
+// The InputConnection itself stays attached to the GL view.
+func (n *nativePlatform) IMEStart() {}
+func (n *nativePlatform) IMEStop()  {}
+
+// ShowSoftKeyboard queues a show with the field's keyboard kind.
+// KeyboardNone queues a hide instead: the field keeps focus and the
+// InputConnection, so a hardware keyboard still types into it.
+func (n *nativePlatform) ShowSoftKeyboard(kind gui.KeyboardKind, secure bool) {
+	// Recorded for KeyboardNone too: onCreateInputConnection can run
+	// for a hardware keyboard, and it must see this field's secure
+	// flag, not the last shown field's.
+	setPendingIMEKeyboard(kind, secure)
+	if kind == gui.KeyboardNone {
+		setPendingIMEAction(pendingIMEHide)
+		return
+	}
+	setPendingIMEAction(pendingIMEShow)
+}
+
+func (n *nativePlatform) HideSoftKeyboard() { setPendingIMEAction(pendingIMEHide) }
 func (n *nativePlatform) IMESetRect(x, y, w, h int32) {
 	setPendingIMERect(x, y, w, h)
 }

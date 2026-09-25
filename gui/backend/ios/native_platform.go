@@ -93,7 +93,13 @@ func (n *nativePlatform) A11yAnnounce(_ string)               {}
 func (n *nativePlatform) IMEStart()                           {}
 func (n *nativePlatform) IMEStop()                            {}
 func (n *nativePlatform) IMESetRect(_, _, _, _ int32)         {}
-func (n *nativePlatform) TitlebarDark(_ bool)                 {}
+
+// The iOS backend has no text input yet (no UIKeyInput), so there is
+// no keyboard to show (issue #770).
+func (n *nativePlatform) ShowSoftKeyboard(_ gui.KeyboardKind, _ bool) {}
+func (n *nativePlatform) HideSoftKeyboard()                           {}
+
+func (n *nativePlatform) TitlebarDark(_ bool) {}
 func (n *nativePlatform) SpellCheck(text string) []gui.SpellRange {
 	// Cap mirrors nativehost: pathological input must not reach
 	// the spell engine uncapped.

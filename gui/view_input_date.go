@@ -307,6 +307,7 @@ func inputDateTextField(
 		// descent is provably empty and the date can be centred on its
 		// ink rather than on its line box (issue #346).
 		opticalDigitCenter: true,
+		Keyboard:           KeyboardNumber, // the mask inserts the separators
 		TextStyle:          cfg.TextStyle,
 		PlaceholderStyle:   cfg.PlaceholderStyle,
 		Sizing:             FillFit,

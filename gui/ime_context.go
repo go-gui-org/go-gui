@@ -54,9 +54,10 @@ func shapeDrawsCaret(s *Shape) bool {
 }
 
 // findEditTargets reports both focus signals — whether the focused
-// widget draws a framework caret (the blink gate) and whether it is
-// an editable IME context — in one walk. See findEditTargetsIn.
-func findEditTargets(layout *Layout, w *Window, depth int) (caret, ime bool) {
+// widget draws a framework caret (the blink gate) and the shape of its
+// editable IME context, nil when it has none — in one walk. See
+// findEditTargetsIn.
+func findEditTargets(layout *Layout, w *Window, depth int) (caret bool, edit *Shape) {
 	// Loaded once: focus cannot change mid-walk on the frame
 	// goroutine, and IsFocus would reload the same atomic at
 	// every node otherwise.
@@ -72,33 +73,35 @@ func findEditTargets(layout *Layout, w *Window, depth int) (caret, ime bool) {
 // the walk keeps going for the other. Depth is capped like every
 // other tree walk: the tree is not always the app's own, and past
 // maxEventDepth the frame drops input rather than the process.
-func findEditTargetsIn(layout *Layout, focusID string, depth int) (caret, ime bool) {
+func findEditTargetsIn(layout *Layout, focusID string, depth int) (caret bool, edit *Shape) {
 	if layout == nil || layout.Shape == nil || focusID == "" {
-		return false, false
+		return false, nil
 	}
 	if overMaxDepth(depth) {
-		return false, false
+		return false, nil
 	}
 	if focusID == layout.Shape.focusKey() {
 		if shapeDrawsCaret(layout.Shape) {
 			caret = true
 		}
 		if shapeIsIMEEditTarget(layout.Shape) {
-			ime = true
+			edit = layout.Shape
 		}
-		if caret && ime {
-			return true, true
+		if caret && edit != nil {
+			return caret, edit
 		}
 	}
 	for i := range layout.Children {
 		c, e := findEditTargetsIn(&layout.Children[i], focusID, depth+1)
 		caret = caret || c
-		ime = ime || e
-		if caret && ime {
-			return true, true
+		if edit == nil {
+			edit = e
+		}
+		if caret && edit != nil {
+			return caret, edit
 		}
 	}
-	return caret, ime
+	return caret, edit
 }
 
 // syncIMEEditContext starts or stops the platform input method as the
@@ -119,37 +122,61 @@ func findEditTargetsIn(layout *Layout, focusID string, depth int) (caret, ime bo
 // FocusOut, the IMM context detach, the web hidden input being
 // removed.
 func (w *Window) syncIMEEditContext() {
-	_, ime := findEditTargets(&w.layout, w, 0)
-	w.applyIMEEditContext(ime)
+	_, edit := findEditTargets(&w.layout, w, 0)
+	w.applyIMEEditContext(edit)
 }
 
 // applyIMEEditContext pushes an edit-context transition to the
-// platform. Split from the walk so the combined per-frame sync can
-// share one walk between both gates.
-func (w *Window) applyIMEEditContext(ime bool) {
+// platform. edit is the focused editable text shape, nil when there is
+// none. Split from the walk so the combined per-frame sync can share
+// one walk between both gates.
+//
+// The soft keyboard (issue #770) rides the same transitions: it is
+// shown right after IMEStart, with the field's kind, and hidden right
+// before IMEStop. Moving between two fields therefore hides and shows;
+// the Android backend keeps only the last request per frame, so the
+// keyboard does not flicker.
+func (w *Window) applyIMEEditContext(edit *Shape) {
 	focusID := w.FocusID()
-	editing := focusID != "" && ime
+	editing := focusID != "" && edit != nil
 	id := ""
+	var kind KeyboardKind
+	var secure bool
 	if editing {
 		id = focusID
+		kind = edit.TC.textKeyboard
+		secure = edit.TC.textIsPassword
 	}
 	if editing == w.viewState.imeEditContext &&
 		id == w.viewState.imeEditFocusID {
+		// Same field. The app may have changed its Keyboard or
+		// IsPassword since the last frame: ask again for the new
+		// layout, but leave the input method alone (#156).
+		if editing && (kind != w.viewState.imeEditKind ||
+			secure != w.viewState.imeEditSecure) {
+			w.viewState.imeEditKind = kind
+			w.viewState.imeEditSecure = secure
+			w.showSoftKeyboard()
+		}
 		return
 	}
 	wasEditing := w.viewState.imeEditContext
 	w.viewState.imeEditContext = editing
 	w.viewState.imeEditFocusID = id
+	w.viewState.imeEditKind = kind
+	w.viewState.imeEditSecure = secure
 
 	np := w.nativePlatform
 	if np == nil {
 		return
 	}
 	if wasEditing {
+		np.HideSoftKeyboard()
 		np.IMEStop()
 	}
 	if editing {
 		np.IMEStart()
+		np.ShowSoftKeyboard(kind, secure)
 	}
 }
 
@@ -200,7 +227,7 @@ func (w *Window) applyBlinkCursor(caret bool) {
 // input method and the caret-blink animation — off one tree walk.
 // The frame calls this instead of the two syncs above.
 func (w *Window) syncIMECaretState() {
-	caret, ime := findEditTargets(&w.layout, w, 0)
-	w.applyIMEEditContext(ime)
+	caret, edit := findEditTargets(&w.layout, w, 0)
+	w.applyIMEEditContext(edit)
 	w.applyBlinkCursor(caret)
 }

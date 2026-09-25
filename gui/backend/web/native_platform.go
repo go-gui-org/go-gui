@@ -491,7 +491,10 @@ func (n *nativePlatform) IMEStart() {
 	st.Set("top", "0px")
 	n.doc.Get("body").Call("appendChild", input)
 	n.imeInput = input
-	input.Call("focus")
+	// Not focused here. The gui side calls ShowSoftKeyboard right
+	// after IMEStart, and that sets inputmode before the first focus:
+	// a mobile browser picks its keyboard at focus, so focusing first
+	// would open the text keyboard and then swap it (issue #770).
 }
 
 func (n *nativePlatform) IMEStop() {
@@ -501,6 +504,75 @@ func (n *nativePlatform) IMEStop() {
 	n.imeInput.Call("remove")
 	n.imeInput = js.Value{}
 	n.canvas.Call("focus")
+}
+
+// webKeyboardAttrs maps a soft-keyboard request to the hidden input's
+// inputmode and type attributes (issue #770). Mobile browsers pick the
+// on-screen keyboard from inputmode; "none" keeps it down while the
+// input still takes key and IME events. A password field becomes
+// type=password so the keyboard turns off suggestions and learning.
+func webKeyboardAttrs(kind gui.KeyboardKind, secure bool) (inputMode, inputType string) {
+	inputType = "text"
+	if secure {
+		inputType = "password"
+	}
+	switch kind {
+	case gui.KeyboardNumber:
+		inputMode = "numeric"
+	case gui.KeyboardDecimal:
+		inputMode = "decimal"
+	case gui.KeyboardPhone:
+		inputMode = "tel"
+	case gui.KeyboardEmail:
+		inputMode = "email"
+	case gui.KeyboardURL:
+		inputMode = "url"
+	case gui.KeyboardNone:
+		inputMode = "none"
+	default:
+		inputMode = "text"
+	}
+	return inputMode, inputType
+}
+
+// ShowSoftKeyboard sets the hidden input's keyboard attributes and
+// focuses it, which is what makes a mobile browser show its keyboard.
+// IMEStart has created the input by now, unfocused, so the first show
+// sets inputmode before the first focus and the keyboard opens once.
+//
+// An input that already has focus is blurred and focused again. A
+// browser reads inputmode only when the input gains focus, and focus()
+// on the focused element does nothing. Both cases need the cycle: a
+// kind change on the same field, and a re-show after the user closed
+// the keyboard (Android Chrome's Back closes it and keeps focus).
+func (n *nativePlatform) ShowSoftKeyboard(kind gui.KeyboardKind, secure bool) {
+	if !n.imeInput.Truthy() {
+		return
+	}
+	mode, typ := webKeyboardAttrs(kind, secure)
+	n.imeInput.Set("inputMode", mode)
+	n.imeInput.Set("type", typ)
+	if n.doc.Get("activeElement").Equal(n.imeInput) {
+		n.imeInput.Call("blur")
+	}
+	n.imeInput.Call("focus")
+}
+
+// HideSoftKeyboard dismisses a mobile keyboard and keeps the hidden
+// input focused. A desktop IME (CJK, dead keys) composes only inside a
+// focused editable element, and the field is still the edit target, so
+// moving focus to the canvas would stop that typing. Instead inputmode
+// becomes "none" and the input is blurred and focused again: the blur
+// closes the keyboard, and the browser reads the new inputmode on the
+// focus, so it does not open again. ShowSoftKeyboard sets the field's
+// inputmode back the same way.
+func (n *nativePlatform) HideSoftKeyboard() {
+	if !n.imeInput.Truthy() {
+		return
+	}
+	n.imeInput.Set("inputMode", "none")
+	n.imeInput.Call("blur")
+	n.imeInput.Call("focus")
 }
 
 func (n *nativePlatform) IMESetRect(x, y, _, _ int32) {

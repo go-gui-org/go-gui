@@ -9,6 +9,8 @@ import android.view.accessibility.AccessibilityNodeProvider
 import android.view.inputmethod.BaseInputConnection
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputConnection
+import android.os.Build
+import android.view.WindowInsets
 import androidapp.Androidapp
 
 class GoGuiGLSurfaceView(context: Context) : GLSurfaceView(context) {
@@ -25,6 +27,51 @@ class GoGuiGLSurfaceView(context: Context) : GLSurfaceView(context) {
         isFocusable = true
         isFocusableInTouchMode = true
         importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_YES
+        // Report how much of the view the soft keyboard covers
+        // (issue #770). The activity uses adjustNothing, so the
+        // surface keeps its size and the app decides what to move.
+        // IME insets need API 30; below that the inset stays 0,
+        // which gui documents as "cannot report".
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            setOnApplyWindowInsetsListener { _, insets ->
+                val ime = insets.getInsets(WindowInsets.Type.ime()).bottom
+                val nav = insets.getInsets(
+                    WindowInsets.Type.navigationBars()
+                ).bottom
+                val h = maxOf(0, ime - nav) / density
+                queueEvent { Androidapp.softKeyboardInset(h) }
+                insets
+            }
+        }
+    }
+
+    /** Maps the focused field's gui.KeyboardKind (issue #770) to an
+     *  InputType. Kind values: 0=text, 1=number, 2=decimal,
+     *  3=phone, 4=email, 5=url. */
+    private fun inputTypeFor(kind: Int, secure: Boolean): Int {
+        val numeric = kind == 1 || kind == 2
+        if (secure) {
+            return if (numeric) {
+                InputType.TYPE_CLASS_NUMBER or
+                    InputType.TYPE_NUMBER_VARIATION_PASSWORD
+            } else {
+                InputType.TYPE_CLASS_TEXT or
+                    InputType.TYPE_TEXT_VARIATION_PASSWORD
+            }
+        }
+        return when (kind) {
+            1 -> InputType.TYPE_CLASS_NUMBER or
+                InputType.TYPE_NUMBER_FLAG_SIGNED
+            2 -> InputType.TYPE_CLASS_NUMBER or
+                InputType.TYPE_NUMBER_FLAG_SIGNED or
+                InputType.TYPE_NUMBER_FLAG_DECIMAL
+            3 -> InputType.TYPE_CLASS_PHONE
+            4 -> InputType.TYPE_CLASS_TEXT or
+                InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
+            5 -> InputType.TYPE_CLASS_TEXT or
+                InputType.TYPE_TEXT_VARIATION_URI
+            else -> InputType.TYPE_CLASS_TEXT
+        }
     }
 
     // --- Accessibility ---
@@ -88,7 +135,10 @@ class GoGuiGLSurfaceView(context: Context) : GLSurfaceView(context) {
     override fun onCreateInputConnection(
         outAttrs: EditorInfo
     ): InputConnection {
-        outAttrs.inputType = InputType.TYPE_CLASS_TEXT
+        outAttrs.inputType = inputTypeFor(
+            Androidapp.pendingIMEKeyboardKind().toInt(),
+            Androidapp.pendingIMEKeyboardSecure()
+        )
         outAttrs.imeOptions = EditorInfo.IME_FLAG_NO_FULLSCREEN or
             EditorInfo.IME_FLAG_NO_EXTRACT_UI
         return object : BaseInputConnection(this, false) {

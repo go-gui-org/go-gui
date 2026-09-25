@@ -55,6 +55,8 @@ func (w *Window) EventFn(e *Event) {
 		w.handleMouseScrollEvent(layout, e)
 	case EventResized:
 		w.handleResizedEvent(e)
+	case EventSoftKeyboard:
+		w.handleSoftKeyboardEvent(e)
 	case EventFileDropped:
 		w.handleFileDroppedEvent(layout, e)
 	case EventTouchesBegan, EventTouchesMoved,
@@ -210,9 +212,7 @@ func (w *Window) handleMouseDownEvent(layout *Layout, e *Event) {
 	// Inspector-handled presses never run the walk, so dev-tool clicks
 	// leave app focus alone.
 	if !e.IsHandled {
-		claimed := w.viewState.focusSetCount
-		mouseDownHandler(layout, false, e, w)
-		w.blurUnclaimedPress(layout, e, claimed)
+		w.pressWalk(layout, e)
 	}
 	if !e.IsHandled {
 		ss := StateMap[string, bool](w, nsSelect, capModerate)
@@ -222,6 +222,18 @@ func (w *Window) handleMouseDownEvent(layout *Layout, e *Event) {
 	}
 }
 
+// pressWalk runs the press walk, then the focus and soft-keyboard
+// decisions that read what the walk did. Backend presses, touch taps
+// and the drag-scroll tap replay all press through it, so all three
+// follow one rule.
+func (w *Window) pressWalk(layout *Layout, e *Event) {
+	claimed := w.viewState.focusSetCount
+	focusBefore := w.FocusID()
+	mouseDownHandler(layout, false, e, w)
+	w.blurUnclaimedPress(layout, e, claimed)
+	w.reshowSoftKeyboardOnPress(layout, e, focusBefore)
+}
+
 // blurUnclaimedPress clears focus after a press walk that nothing
 // claimed, matching native toolkits. claimed is focusSetCount taken
 // before the walk. The count, not the ID, is the signal: composite
@@ -229,19 +241,38 @@ func (w *Window) handleMouseDownEvent(layout *Layout, e *Event) {
 // including re-asserting the widget that already holds it, and a
 // same-ID compare would blur those.
 //
-// Two presses keep focus:
+// Three presses keep focus:
 //   - Right button, the same exclusion the focus take uses, so a
 //     context-menu press keeps focus.
+//   - A press that a widget consumed without taking focus: a
+//     FocusDisabled button, a custom keypad key. Like a macOS button
+//     that refuses first responder, it acts and leaves focus where it
+//     is, so a keypad can type into the focused field (issue #770).
 //   - A press inside the focused widget's own bounds. A child that
 //     consumes the press (the scrollbar of a listbox or a scrollable
 //     multiline input) stops the walk before the widget's own focus
 //     take runs, and that press must not blur the widget it is in.
+//
+// A drag-to-scroll claim consumes every press inside its container,
+// so the press alone cannot say what was hit. The decision waits: a
+// pan blurs when it starts (dragPanOnMouseMove), and a tap decides on
+// its replayed press (dragPanOnMouseUp), where the key under it is
+// known.
 //
 // Backend presses and touch taps share it, so both follow one rule.
 func (w *Window) blurUnclaimedPress(layout *Layout, e *Event, claimed uint64) {
 	if e.MouseButton == MouseRight || w.viewState.focusSetCount != claimed {
 		return
 	}
+	if w.viewState.dragPan.active || e.IsHandled {
+		return
+	}
+	w.blurUnlessPressInFocused(layout, e)
+}
+
+// blurUnlessPressInFocused clears focus unless the press point is
+// inside the focused widget's bounds.
+func (w *Window) blurUnlessPressInFocused(layout *Layout, e *Event) {
 	// mouseDownHandler accepts a nil tree, so this must too.
 	focusID := w.FocusID()
 	if focusID == "" || layout == nil {
@@ -298,6 +329,9 @@ func (w *Window) eventAllowed(e *Event) bool {
 		e.Type == EventTouchesEnded ||
 		e.Type == EventTouchesCancelled ||
 		e.Type == EventFileDropped ||
+		// The soft keyboard closes as the app loses focus; a
+		// dropped report would leave a stale inset behind.
+		e.Type == EventSoftKeyboard ||
 		(e.Type == EventMouseDown && e.MouseButton == MouseRight)
 }
 
