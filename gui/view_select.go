@@ -343,7 +343,7 @@ func selectOptionView(
 		Sound:   optionSound,
 		Content: []View{
 			Row(ContainerCfg{
-				Padding: padTBLR(2, 0),
+				Padding: PadVH(2, 0),
 				Content: []View{
 					Text(TextCfg{
 						Text: "✓",
