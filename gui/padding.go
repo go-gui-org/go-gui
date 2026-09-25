@@ -119,7 +119,9 @@ func PadAll(p float32) Padding {
 	return Padding{Top: p, Right: p, Bottom: p, Left: p, set: true}
 }
 
-// PadTBLR creates a Padding with top/bottom = tb and left/right = lr.
-func padTBLR(tb, lr float32) Padding {
-	return Padding{Top: tb, Right: lr, Bottom: tb, Left: lr, set: true}
+// PadVH creates a Padding with top/bottom = vertical and left/right =
+// horizontal, like the two-value CSS shorthand (issue #788).
+// exportaudit:keep — caller-facing constructor (issue #788)
+func PadVH(vertical, horizontal float32) Padding {
+	return Padding{Top: vertical, Right: horizontal, Bottom: vertical, Left: horizontal, set: true}
 }

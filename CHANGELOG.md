@@ -41,6 +41,11 @@ and this project adheres to
   `theme.PaddingMedium`, or `theme.PaddingLarge` instead; the package presets
   stay fixed when the theme changes.
 
+- **Two-axis padding shorthand** — `PadVH(vertical, horizontal)` builds a
+  `Padding` with top/bottom = vertical and left/right = horizontal (#788),
+  alongside `PadAll`. It replaces the unexported helper, so app code stops
+  spelling `NewPadding(tb, lr, tb, lr)` by hand.
+
 ### Changed
 
 - **`DialogCfg.CustomContent` is deprecated (#787)** — its views are built once

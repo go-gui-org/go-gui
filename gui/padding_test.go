@@ -16,8 +16,8 @@ func TestPadAll(t *testing.T) {
 	}
 }
 
-func TestPadTBLR(t *testing.T) {
-	p := padTBLR(3, 7)
+func TestPadVH(t *testing.T) {
+	p := PadVH(3, 7)
 	if p.Top != 3 || p.Bottom != 3 || p.Left != 7 || p.Right != 7 {
 		t.Errorf("got %+v", p)
 	}
