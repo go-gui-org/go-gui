@@ -144,7 +144,7 @@ type WithTooltipCfg struct {
 // label in two ID-bearing panels would share one hover entry. See
 // issue #528.
 func WithTooltip(_ *Window, cfg WithTooltipCfg) View {
-	return viewFunc(func(w *Window) View {
+	return ViewFunc(func(w *Window) View {
 		return withTooltipBuild(w, cfg)
 	})
 }

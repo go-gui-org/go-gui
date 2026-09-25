@@ -818,7 +818,7 @@ func renderScopedFormChild(
 		form := Form(FormCfg{
 			ID: formID,
 			Content: []View{
-				viewFunc(func(w *Window) View {
+				ViewFunc(func(w *Window) View {
 					captured = w.EffID(leaf)
 					return Input(InputCfg{ID: leaf})
 				}),

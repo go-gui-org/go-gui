@@ -830,7 +830,7 @@ func TestEffIDDuringGenerationIsQuiet(t *testing.T) {
 		return Column(ContainerCfg{
 			ID:     "panel",
 			Sizing: FillFill,
-			Content: []View{viewFunc(func(vw *Window) View {
+			Content: []View{ViewFunc(func(vw *Window) View {
 				scoped = vw.EffID("save")
 				return Column(ContainerCfg{})
 			})},
@@ -860,7 +860,7 @@ func TestGenDepthUnwindsOnPanic(t *testing.T) {
 	w := NewTestWindow(WindowCfg{})
 	func() {
 		defer func() { _ = recover() }()
-		generateViewLayout(viewFunc(func(_ *Window) View {
+		generateViewLayout(ViewFunc(func(_ *Window) View {
 			panic("boom")
 		}), w)
 	}()

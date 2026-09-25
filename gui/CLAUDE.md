@@ -238,7 +238,7 @@ Four categories worth knowing by name:
 body runs while the _parent's_ `Content` slice is being built, before the
 framework descends into the container the widget will sit in, so `w.EffID` there
 joins the enclosing scope rather than the widget's own. Return a view struct or
-a `viewFunc` and resolve inside `GenerateLayout`.
+a `ViewFunc` and resolve inside `GenerateLayout`.
 
 Assertable forms for tests, returning findings as data:
 `(*Window).TestDuplicateIDs`, `(*Window).TestUnconsumedEvents`, and the general

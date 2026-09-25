@@ -28,7 +28,7 @@ type OverflowPanelCfg struct {
 // OverflowPanel creates a row that hides items that don't fit
 // and shows a trigger button to reveal them in a dropdown.
 //
-// Construction is deferred to layout-generation time via viewFunc,
+// Construction is deferred to layout-generation time via ViewFunc,
 // because the panel keys its overflow count and menu-open flag on its
 // own effective ID and w.EffID only knows the enclosing scope while
 // generation is running. Building eagerly in the factory — which is how
@@ -45,7 +45,7 @@ func OverflowPanel(_ *Window, base OverflowPanelCfg) View {
 	// panels without one would share a slot, overwrite each other's
 	// count every frame and relayout forever.
 	RequireID("OverflowPanel", base.ID)
-	return viewFunc(func(w *Window) View {
+	return ViewFunc(func(w *Window) View {
 		// Defaults resolve per generation, off a fresh copy, so they
 		// read the theme installed for the window being generated —
 		// including a theme scoped by Themed — instead of freezing the

@@ -494,7 +494,7 @@ resolve returns a view struct, or defers its body:
 
 ```go
 func (w *Window) Thing(cfg ThingCfg) View {
-	return viewFunc(func(vw *Window) View { return thingView(cfg, vw) })
+	return ViewFunc(func(vw *Window) View { return thingView(cfg, vw) })
 }
 ```
 

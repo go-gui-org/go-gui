@@ -276,7 +276,7 @@ func TestGenerateViewLayoutNormalizesNilShape(t *testing.T) {
 // --- ViewFunc tests ---
 
 func TestViewFuncGenerateLayout(t *testing.T) {
-	f := viewFunc(func(w *Window) View {
+	f := ViewFunc(func(w *Window) View {
 		return &stubView{id: "inner"}
 	})
 	layout := f.GenerateLayout(&Window{})
@@ -286,7 +286,7 @@ func TestViewFuncGenerateLayout(t *testing.T) {
 }
 
 func TestViewFuncGenerateLayoutNested(t *testing.T) {
-	f := viewFunc(func(w *Window) View {
+	f := ViewFunc(func(w *Window) View {
 		return &stubView{
 			id: "parent",
 			children: []View{
@@ -311,7 +311,7 @@ func TestViewFuncGenerateLayoutNested(t *testing.T) {
 }
 
 func TestViewFuncNilReturn(t *testing.T) {
-	f := viewFunc(func(w *Window) View {
+	f := ViewFunc(func(w *Window) View {
 		return nil
 	})
 	layout := f.GenerateLayout(&Window{})
@@ -326,7 +326,7 @@ func TestViewFuncInContentSlice(t *testing.T) {
 	v := Column(ContainerCfg{
 		ID: "root",
 		Content: []View{
-			viewFunc(func(w *Window) View {
+			ViewFunc(func(w *Window) View {
 				return &stubView{
 					id: "dynamic",
 					children: []View{
@@ -356,7 +356,7 @@ func TestViewFuncNilInContentSlice(t *testing.T) {
 	v := Column(ContainerCfg{
 		ID: "root",
 		Content: []View{
-			viewFunc(func(w *Window) View {
+			ViewFunc(func(w *Window) View {
 				return nil
 			}),
 		},
@@ -370,7 +370,7 @@ func TestViewFuncNilInContentSlice(t *testing.T) {
 }
 
 func TestViewFuncWithNilWindow(t *testing.T) {
-	f := viewFunc(func(w *Window) View {
+	f := ViewFunc(func(w *Window) View {
 		return &stubView{id: "inner"}
 	})
 	layout := f.GenerateLayout(nil)

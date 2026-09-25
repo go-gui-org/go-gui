@@ -168,7 +168,7 @@ type tableColWidthCache struct {
 // are auto-sized when a Window is available during layout.
 func Table(cfg TableCfg) View {
 	RequireID("Table", cfg.ID)
-	return viewFunc(func(w *Window) View {
+	return ViewFunc(func(w *Window) View {
 		return tableView(cfg, w)
 	})
 }
@@ -185,7 +185,7 @@ func Table(cfg TableCfg) View {
 // an ID-bearing panel would key its state on the bare leaf. See issue
 // #518.
 func (*Window) Table(cfg TableCfg) View {
-	return viewFunc(func(w *Window) View {
+	return ViewFunc(func(w *Window) View {
 		return tableView(cfg, w)
 	})
 }

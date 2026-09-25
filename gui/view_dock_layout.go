@@ -88,7 +88,7 @@ func newDockLayoutCore(cfg *DockLayoutCfg) *dockLayoutCore {
 // panel rearrangement.
 func DockLayout(cfg DockLayoutCfg) View {
 	applyDockLayoutDefaults(&cfg)
-	return viewFunc(func(w *Window) View {
+	return ViewFunc(func(w *Window) View {
 		// One resolved identity for every key below; see (*Window).EffID.
 		// cfg is captured by this per-frame closure, so re-resolving it
 		// each frame is fine: the join is idempotent.
