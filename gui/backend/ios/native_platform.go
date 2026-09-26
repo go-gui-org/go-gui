@@ -90,14 +90,11 @@ func (n *nativePlatform) A11yInit(_ func(action, index int))  {}
 func (n *nativePlatform) A11ySync(_ []gui.A11yNode, _, _ int) {}
 func (n *nativePlatform) A11yDestroy()                        {}
 func (n *nativePlatform) A11yAnnounce(_ string)               {}
-func (n *nativePlatform) IMEStart()                           {}
-func (n *nativePlatform) IMEStop()                            {}
-func (n *nativePlatform) IMESetRect(_, _, _, _ int32)         {}
 
-// The iOS backend has no text input yet (no UIKeyInput), so there is
-// no keyboard to show (issue #770).
-func (n *nativePlatform) ShowSoftKeyboard(_ gui.KeyboardKind, _ bool) {}
-func (n *nativePlatform) HideSoftKeyboard()                           {}
+// IMESetRect does nothing: UIKeyInput has no marked text, so there is no
+// candidate window to place. IMEStart, IMEStop and the soft keyboard are
+// in keyboard_ios.go.
+func (n *nativePlatform) IMESetRect(_, _, _, _ int32) {}
 
 func (n *nativePlatform) TitlebarDark(_ bool) {}
 func (n *nativePlatform) SpellCheck(text string) []gui.SpellRange {

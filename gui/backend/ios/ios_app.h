@@ -34,4 +34,31 @@ int iosAppearanceDark(void);
 // Appearance change callback, implemented in appearance_ios.go.
 extern void goIOSAppearanceChanged(int dark);
 
+// ─── Text input and soft keyboard (issue #806) ──────────────
+// Implemented in keyboard_ios.go.
+
+// Queue one block on the main queue that reads the wanted keyboard
+// state with goIOSKeyboardTake and applies it to the view. Safe to
+// call from any thread.
+void iosKeyboardQueueApply(void);
+
+// Report the wanted keyboard state. Each out value is 0 or 1, except
+// type, which is a UIKeyboardType.
+extern void goIOSKeyboardTake(int *active, int *hidden, int *type,
+    int *secure);
+
+// UIKeyInput callbacks. text is UTF-8.
+extern void goIOSInsertText(char *text);
+extern void goIOSDeleteBackward(void);
+
+// Hardware key press (down 1) or release (down 0). usage is a
+// UIKeyboardHIDUsage, flags UIKeyModifierFlags. editing is 1 while a
+// text field is active. Returns 1 when Go took the key; 0 means pass
+// the press on to UIKit.
+extern int goIOSKey(int usage, int flags, int down, int repeat,
+    int editing);
+
+// Soft keyboard height over the bottom of the view, in points.
+extern void goIOSSoftKeyboardInset(float h);
+
 #endif
