@@ -46,6 +46,25 @@ type Backend struct {
 
 	textPathPlacements []glyph.GlyphPlacement
 
+	// tris is the shared vertex buffer and JS path helper for
+	// triangle meshes (draw_tris.go).
+	tris triMesh
+
+	// redrawPending asks the next animation frame to paint even when
+	// FrameFn reports no change. The loop skips idle frames, so any
+	// change the gui package cannot see — an image that finished
+	// loading, a font arriving, a restored canvas — must call
+	// requestRedraw or it stays off screen until the next input.
+	//
+	// Animated images (GIF, APNG, SMIL SVG in an <img>) show one
+	// frame and do not animate: go-gui does not support them on any
+	// backend, and repainting every frame just in case would bring
+	// back the idle cost this gate removes.
+	redrawPending bool
+	// imgSettled is the shared onload/onerror handler for Image
+	// elements; it sets redrawPending.
+	imgSettled js.Func
+
 	canvasLeft float64 // cached getBoundingClientRect().left
 	canvasTop  float64 // cached getBoundingClientRect().top
 
@@ -152,9 +171,6 @@ func newBackend(w *gui.Window) (*Backend, error) {
 		return nil, fmt.Errorf("%s", msg)
 	}
 
-	// Load embedded icon font via JS FontFace API.
-	loadIconFont(gui.IconFontData)
-
 	b := &Backend{
 		win:          w,
 		canvas:       canvas,
@@ -168,7 +184,13 @@ func newBackend(w *gui.Window) (*Backend, error) {
 		failedImages: make(map[string]struct{}),
 		hasRoundRect: hasRR,
 	}
-	b.shaders = newCustomShaderRenderer(doc, &b.callbacks)
+	b.shaders = newCustomShaderRenderer(doc, &b.callbacks, b.requestRedraw)
+	b.tris.fill = newTriPathFn()
+	b.watchRedrawSources(doc, canvas)
+
+	// Load embedded icon font via JS FontFace API. Text drawn before
+	// it arrives used a fallback face, so repaint once it lands.
+	loadIconFont(gui.IconFontData, b.requestRedraw)
 
 	b.updateCanvasRect()
 
@@ -224,14 +246,20 @@ func (b *Backend) run(w *gui.Window) {
 		defer func() {
 			if r := recover(); r != nil {
 				log.Printf("web: render panic: %v", r)
+				// The canvas may be half drawn. Paint it again on
+				// the next frame instead of leaving it on screen.
+				b.requestRedraw()
 				// Keep the loop alive so a transient error
 				// doesn't kill the entire WASM instance.
 				js.Global().Call("requestAnimationFrame",
 					renderFunc)
 			}
 		}()
-		w.FrameFn()
-		b.renderFrame(w)
+		// Paint only when something changed. The canvas keeps its
+		// pixels between frames, so an idle frame costs nothing
+		// instead of a full Canvas2D redraw. Native backends gate
+		// renderFrame on FrameFn the same way.
+		b.paintIfNeeded(w.FrameFn(), func() { b.renderFrame(w) })
 
 		// Update cursor.
 		mc := w.MouseCursorState()
@@ -287,6 +315,64 @@ func (b *Backend) renderFrame(w *gui.Window) {
 	b.glyphBack.EndFrame()
 }
 
+// watchRedrawSources hooks the browser events that change what the
+// canvas should show without the gui package knowing, so the idle
+// frame gate still repaints for them.
+func (b *Backend) watchRedrawSources(doc, canvas js.Value) {
+	// Shared onload/onerror handler for Image elements.
+	b.imgSettled = js.FuncOf(func(_ js.Value, _ []js.Value) any {
+		b.requestRedraw()
+		return nil
+	})
+	b.callbacks = append(b.callbacks, b.imgSettled)
+
+	// A face the page declares with CSS @font-face can arrive after
+	// the first paint. Repaint when any font load finishes.
+	b.onEvent(doc.Get("fonts"), "loadingdone", b.requestRedraw)
+
+	// Chrome may drop a 2D canvas's backing store while the tab is
+	// in the background and restore it blank. Repaint when it does.
+	b.onEvent(canvas, "contextrestored", b.requestRedraw)
+}
+
+// requestRedraw makes the next animation frame paint even if
+// FrameFn reports no change.
+func (b *Backend) requestRedraw() { b.redrawPending = true }
+
+// needsPaint reports whether this animation frame must paint: the
+// gui package changed the frame, or something outside it asked.
+func (b *Backend) needsPaint(changed bool) bool {
+	return changed || b.redrawPending
+}
+
+// paintIfNeeded runs paint when needsPaint says so, and reports whether
+// it did. The request is cleared BEFORE the paint: a requestRedraw made
+// while paint runs is for a later frame and must stand. A panic inside
+// paint loses nothing, because the render loop's recover asks again.
+func (b *Backend) paintIfNeeded(changed bool, paint func()) bool {
+	if !b.needsPaint(changed) {
+		return false
+	}
+	b.redrawPending = false
+	paint()
+	return true
+}
+
+// onEvent registers fn for a DOM event on target and keeps the
+// callback alive for the life of the backend. A missing target (no
+// document.fonts on an old browser) is skipped.
+func (b *Backend) onEvent(target js.Value, name string, fn func()) {
+	if target.Type() != js.TypeObject {
+		return
+	}
+	cb := js.FuncOf(func(_ js.Value, _ []js.Value) any {
+		fn()
+		return nil
+	})
+	b.callbacks = append(b.callbacks, cb)
+	target.Call("addEventListener", name, cb)
+}
+
 // updateCanvasRect caches the canvas bounding rect to avoid
 // a DOM layout query on every touch event.
 func (b *Backend) updateCanvasRect() {
@@ -315,6 +401,10 @@ func (b *Backend) resizeCanvas(cssW, cssH int) {
 	physH := int(float32(cssH) * b.dpiScale)
 	b.canvas.Set("width", physW)
 	b.canvas.Set("height", physH)
+	// Setting the size clears the canvas. The resize event that
+	// follows can be dropped (unfocused or frozen window), so ask
+	// for the repaint here.
+	b.requestRedraw()
 	// Re-apply DPI scale after resize resets transform.
 	if b.dpiScale != 1.0 {
 		b.ctx2d.Call("setTransform",
@@ -326,7 +416,7 @@ func (b *Backend) resizeCanvas(cssW, cssH int) {
 
 // loadIconFont loads the embedded icon font via the JS FontFace
 // API. Converts TTF bytes to a base64 data URL.
-func loadIconFont(data []byte) {
+func loadIconFont(data []byte, onLoaded func()) {
 	if len(data) == 0 {
 		return
 	}
@@ -338,6 +428,7 @@ func loadIconFont(data []byte) {
 	var thenFn, catchFn js.Func
 	thenFn = js.FuncOf(func(_ js.Value, _ []js.Value) any {
 		js.Global().Get("document").Get("fonts").Call("add", ff)
+		onLoaded()
 		thenFn.Release()
 		catchFn.Release()
 		return nil

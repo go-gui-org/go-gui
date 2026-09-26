@@ -250,10 +250,99 @@ func TestArcPointsBufferBounded(t *testing.T) {
 
 func TestArcPointsNormalUnchanged(t *testing.T) {
 	dc := DrawContext{Width: 100, Height: 100}
-	// r=25 full turn: n = ceil(64*sqrt(25/50+1)) = 79 segments, 80 points.
-	// Asserted concretely so a future density edit has to be deliberate.
-	if got := len(dc.arcPoints(50, 50, 25, 25, 0, 2*math.Pi)); got != 160 {
-		t.Errorf("points = %d, want 160", got)
+	// r=25 full turn at scale 1: step = 2·acos(1 - 0.25/25) = 0.2831 rad,
+	// n = ceil(2π/0.2831) = 23 segments, 24 points. Asserted concretely so
+	// a future density edit has to be deliberate.
+	if got := len(dc.arcPoints(50, 50, 25, 25, 0, 2*math.Pi)); got != 48 {
+		t.Errorf("points = %d, want 48", got)
+	}
+}
+
+// arcSegs is the number of segments arcPoints used for a full circle.
+func arcSegs(dc *DrawContext, r float32) int {
+	return len(dc.arcPoints(0, 0, r, r, 0, 2*math.Pi))/2 - 1
+}
+
+// Every chord stays within arcTolerance device pixels of the true
+// curve, at any radius, backing scale and canvas transform. This is
+// the whole contract of the segment count: fewer segments would show
+// facets, more would only add triangles no one can see.
+func TestArcPointsChordErrorBounded(t *testing.T) {
+	for _, scale := range []float32{1, 2, 3} {
+		for _, xs := range []float32{1, 4} {
+			for _, r := range []float32{0.5, 1, 3, 6, 25, 100, 1000} {
+				dc := DrawContext{Width: 100, Height: 100, Scale: scale}
+				dc.ScaleBy(xs, xs)
+				n := arcSegs(&dc, r)
+				devR := float64(r * scale * xs)
+				step := 2 * math.Pi / float64(n)
+				sag := devR * (1 - math.Cos(step/2))
+				// Below the 4-segment floor the error is the floor's,
+				// not the tolerance's; only check where it can hold.
+				if n > 4 && sag > arcTolerance+1e-6 {
+					t.Errorf("scale %v xf %v r %v: %d segs, sagitta %.4f "+
+						"device px > %v", scale, xs, r, n, sag, arcTolerance)
+				}
+			}
+		}
+	}
+}
+
+// A stroked arc's outer edge sits width/2 outside the centerline and
+// is cut by the same chords, so its error is what the tolerance must
+// bound. r=2 with width 4 used to get 7 segments, 0.40 px out.
+func TestArcStrokeOuterEdgeChordErrorBounded(t *testing.T) {
+	for _, scale := range []float32{1, 2} {
+		for _, tc := range []struct{ r, w float32 }{
+			{2, 4}, {3, 1.5}, {6, 3}, {25, 10}, {1, 8},
+		} {
+			dc := DrawContext{Width: 100, Height: 100, Scale: scale}
+			dc.Arc(0, 0, tc.r, tc.r, 0, 2*math.Pi, Red, tc.w)
+			n := len(dc.arcBuf)/2 - 1
+			outer := float64((tc.r + tc.w/2) * scale)
+			sag := outer * (1 - math.Cos(math.Pi/float64(n)))
+			if n > 4 && sag > arcTolerance+1e-6 {
+				t.Errorf("scale %v r %v w %v: %d segs, outer-edge sagitta "+
+					"%.3f device px > %v", scale, tc.r, tc.w, n, sag,
+					arcTolerance)
+			}
+		}
+	}
+}
+
+// The count follows the device-pixel radius: the backing scale and a
+// canvas ScaleBy both enlarge the circle on screen and so need more
+// segments, and a small dot needs few. A ThinkingOrb dot is r≈3 at
+// 2× — it used to get 66 segments.
+func TestArcPointsDensityFollowsDeviceRadius(t *testing.T) {
+	at := func(scale, xs float32) int {
+		dc := DrawContext{Width: 100, Height: 100, Scale: scale}
+		if xs != 1 {
+			dc.ScaleBy(xs, xs)
+		}
+		return arcSegs(&dc, 3)
+	}
+	if n := at(2, 1); n > 16 {
+		t.Errorf("r=3 at 2×: %d segs, want ≤ 16", n)
+	}
+	if at(2, 1) <= at(1, 1) {
+		t.Errorf("2× backing scale: %d segs, not more than 1×'s %d",
+			at(2, 1), at(1, 1))
+	}
+	if at(1, 4) <= at(1, 1) {
+		t.Errorf("ScaleBy(4): %d segs, not more than unscaled %d",
+			at(1, 4), at(1, 1))
+	}
+	// An unset Scale (NewDrawContext, a zero DrawContext) counts as 1×.
+	if z := at(0, 1); z != at(1, 1) {
+		t.Errorf("Scale 0: %d segs, want the 1× count %d", z, at(1, 1))
+	}
+	// An ellipse is counted by its larger device-space radius.
+	dc := DrawContext{Width: 100, Height: 100, Scale: 1}
+	dc.ScaleBy(1, 8)
+	wide := len(dc.arcPoints(0, 0, 3, 3, 0, 2*math.Pi))/2 - 1
+	if want := at(1, 8); wide != want {
+		t.Errorf("ScaleBy(1, 8): %d segs, want %d (the 8× radius)", wide, want)
 	}
 }
 

@@ -61,6 +61,8 @@ examples/ios_demo/ios/libgoguiapp.h
 # WASM build artifacts
 *.wasm
 wasm_exec.js
+# Copied from gui/backend/web/gogui.js by the example Makefiles.
+/examples/*/gogui.js
 
 # npm
 package-lock.json
