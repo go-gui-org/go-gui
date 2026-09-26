@@ -477,6 +477,11 @@ func (b *Backend) resolveImageSource(res string) (js.Value, bool) {
 		}
 		b.evictImageCache()
 		img = js.Global().Get("Image").New()
+		// The render loop skips idle frames, so a finished download
+		// must ask for a repaint itself. The handlers go on before
+		// src so no load can finish unobserved.
+		img.Set("onload", b.imgSettled)
+		img.Set("onerror", b.imgSettled)
 		img.Set("src", res)
 		b.imgCache[res] = img
 	}
@@ -562,60 +567,22 @@ func (b *Backend) drawSvg(r *gui.RenderCmd) {
 		vAlpha = max(0, min(r.VertexAlphaScale, 1))
 	}
 
-	hasXform := r.HasXform
-	var sx, sy, tx, ty float32
-	if hasXform {
-		sx, sy, tx, ty = r.ScaleX, r.ScaleY, r.TransX, r.TransY
-	}
-	hasRot := r.RotAngle != 0
-	var sinA, cosA, rcx, rcy float32
-	if hasRot {
-		rad := float64(r.RotAngle) * math.Pi / 180
-		sinA = float32(math.Sin(rad))
-		cosA = float32(math.Cos(rad))
-		rcx, rcy = r.RotCX, r.RotCY
-	}
-
-	addTri := func(i int) {
-		for j := range 3 {
-			vi := i + j
-			vx := r.Triangles[vi*2]
-			vy := r.Triangles[vi*2+1]
-			if hasXform {
-				vx = vx*sx + tx
-				vy = vy*sy + ty
-			}
-			if hasRot {
-				dx := vx - rcx
-				dy := vy - rcy
-				vx = rcx + dx*cosA - dy*sinA
-				vy = rcy + dx*sinA + dy*cosA
-			}
-			px := float64(r.X + vx*r.Scale)
-			py := float64(r.Y + vy*r.Scale)
-			if j == 0 {
-				b.ctx2d.Call("moveTo", px, py)
-			} else {
-				b.ctx2d.Call("lineTo", px, py)
-			}
-		}
-		b.ctx2d.Call("closePath")
-	}
+	// Transform once in Go, cross into JS once, then fill each
+	// same-color run with one helper call (see draw_tris.go).
+	b.tris.floats = transformTris(b.tris.floats[:0], r)
+	b.tris.upload()
 
 	if !hasVCols {
 		// All triangles share the same color — single path.
 		b.setFillColor(r.Color)
-		b.ctx2d.Call("beginPath")
-		for i := 0; i < numVerts; i += 3 {
-			addTri(i)
-		}
-		b.ctx2d.Call("fill")
+		b.fillTris(0, len(b.tris.floats))
 		return
 	}
 
-	// Batch consecutive same-color triangles into one path.
+	// Batch consecutive same-color triangles into one path. A run
+	// covers floats [runStart, i*2) of the uploaded mesh.
 	var batchColor gui.Color
-	batchOpen := false
+	runStart := -1
 	for i := 0; i < numVerts; i += 3 {
 		vc := r.VertexColors[i]
 		alpha := vc.A
@@ -623,19 +590,18 @@ func (b *Backend) drawSvg(r *gui.RenderCmd) {
 			alpha = uint8(float32(alpha) * vAlpha)
 		}
 		c := gui.RGBA(vc.R, vc.G, vc.B, alpha)
-		if !batchOpen || c != batchColor {
-			if batchOpen {
-				b.ctx2d.Call("fill")
-			}
-			batchColor = c
-			b.setFillColor(c)
-			b.ctx2d.Call("beginPath")
-			batchOpen = true
+		if runStart >= 0 && c == batchColor {
+			continue
 		}
-		addTri(i)
+		if runStart >= 0 {
+			b.fillTris(runStart, i*2)
+		}
+		batchColor = c
+		b.setFillColor(c)
+		runStart = i * 2
 	}
-	if batchOpen {
-		b.ctx2d.Call("fill")
+	if runStart >= 0 {
+		b.fillTris(runStart, numVerts*2)
 	}
 }
 

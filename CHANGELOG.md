@@ -17,6 +17,27 @@ and this project adheres to
 
 ### Fixed
 
+- **Web backend draws triangle meshes 3–5× faster and skips idle frames** — SVG,
+  DrawCanvas, charts and ThinkingOrb meshes were built with one `syscall/js`
+  call per vertex, about 170k calls per frame for one ThinkingOrb. Now each mesh
+  goes to JS in one copy, and a small helper builds the path. The helper is in
+  `gui/backend/web/gogui.js`. A page with a strict Content-Security-Policy (no
+  `'unsafe-eval'`) must load it with `<script src="gogui.js"></script>`. Without
+  it, such a page falls back to the old slow path. The showcase and web_demo
+  load it. The render loop also skips painting when a frame changed nothing, so
+  an idle page costs about 0.1 ms per frame, down from about 4 ms. Animated
+  images (GIF, APNG, animated SVG in an image URL) no longer animate by accident
+  on web. go-gui does not support them on any backend.
+
+- **DrawCanvas circles and arcs use as many segments as the screen needs** — the
+  segment count came from the radius alone, with at least 64 for every full
+  circle. A 3 px dot got 66 segments. Now the count keeps each chord within a
+  quarter of a device pixel of the true curve, counting the display scale and
+  any `ScaleBy`. Small dots get far fewer triangles: the ThinkingOrb page on web
+  went from 12 fps to 59 fps. Large circles under a zoom get more segments than
+  before, so they no longer show flat edges. Concentric radial gradients keep
+  the 36 segments their color blending needs.
+
 - **DataGrid CRUD save no longer loses edits made while it runs** — the grid now
   refuses cell edits, row adds and row deletes while a source-backed save is in
   flight, and closes an open cell editor when the save starts. Before, the save

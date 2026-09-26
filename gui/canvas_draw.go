@@ -254,7 +254,7 @@ func (dc *DrawContext) Arc(cx, cy, rx, ry, start, sweep float32, color Color, wi
 		dc.rec().Arc(cx, cy, rx, ry, start, sweep, color, width)
 		return
 	}
-	pts := dc.arcPoints(cx, cy, rx, ry, start, sweep)
+	pts := dc.arcPointsMin(cx, cy, rx, ry, start, sweep, 4, width/2)
 	if len(pts) >= 4 {
 		dc.Polyline(pts, color, width)
 	}
@@ -280,9 +280,45 @@ func (dc *DrawContext) FilledArc(cx, cy, rx, ry, start, sweep float32, color Col
 // per-call work and the reused dc.arcBuf.
 const maxArcSegments = 4096
 
+// arcTolerance is the most a chord may stray from the true arc, in device pixels.
+// Anti-aliasing blends across about one pixel, so a quarter-pixel error cannot be
+// seen, and it keeps small circles cheap: a ThinkingOrb dot (r≈3, 2× display) is
+// 11 segments instead of the 66 a radius-only rule gave it. Triangle count is what
+// the Canvas2D (web) backend pays for, per frame.
+const arcTolerance = 0.25
+
+// arcDeviceScale is how many device pixels one local unit covers along x and y:
+// the backing scale times the canvas transform. A zero or broken Scale (a
+// DrawContext built by NewDrawContext) counts as 1×, as Scale's doc says.
+func (dc *DrawContext) arcDeviceScale() (sx, sy float64) {
+	s := float64(dc.Scale)
+	if !(s > 0) || math.IsInf(s, 0) {
+		s = 1
+	}
+	sx, sy = s, s
+	if dc.xfActive {
+		sx *= math.Abs(float64(dc.xf.sx))
+		sy *= math.Abs(float64(dc.xf.sy))
+	}
+	return sx, sy
+}
+
 // arcPoints is the buffer-reusing version of arcToPolyline.
 // Writes into dc.arcBuf and returns the populated slice.
 func (dc *DrawContext) arcPoints(cx, cy, rx, ry, start, sweep float32) []float32 {
+	return dc.arcPointsMin(cx, cy, rx, ry, start, sweep, 4, 0)
+}
+
+// arcPointsMin is arcPoints with at least minSegs segments, for a caller
+// whose mesh needs angular resolution the geometric tolerance does not
+// give it — the concentric gradient rings interpolate color along each
+// chord. minSegs is capped at maxArcSegments.
+//
+// outset is how far outside the points the drawn edge lies, in local
+// units: half the stroke width for Arc. That edge is cut by the same
+// chords at a larger radius, so the count must hold the tolerance there.
+func (dc *DrawContext) arcPointsMin(cx, cy, rx, ry, start, sweep float32,
+	minSegs int, outset float32) []float32 {
 	// NaN fails every ordered comparison, so r <= 0 below would let it through and
 	// math.Ceil(NaN) -> int is undefined in Go. Screen first, and no-op the way the
 	// r <= 0 case does — every caller already guards on len(pts).
@@ -291,9 +327,7 @@ func (dc *DrawContext) arcPoints(cx, cy, rx, ry, start, sweep float32) []float32
 		!f32IsFinite(start) || !f32IsFinite(sweep) {
 		return nil
 	}
-	r := rx
-	r = max(r, ry)
-	if r <= 0 {
+	if max(rx, ry) <= 0 {
 		return nil
 	}
 	// Past a full turn the arc retraces itself, so a clamped sweep draws the same
@@ -303,15 +337,28 @@ func (dc *DrawContext) arcPoints(cx, cy, rx, ry, start, sweep float32) []float32
 	if f32Abs(sweep) > 2*math.Pi {
 		sweep = float32(math.Copysign(2*math.Pi, float64(sweep)))
 	}
-	// With sweep clamped the density term alone drives the count, and it only
-	// reaches the ceiling near r = 200,000 px — far past any visible improvement.
-	// The cap also bounds the retained dc.arcBuf at ~32 KB, so it needs no shrink.
-	// Clamp in float64: a finite r can still be 3.4e38, whose segment count is past
-	// int64, and an out-of-range float-to-int conversion is undefined in Go.
-	segs := math.Ceil(
-		float64(f32Abs(sweep)) / (2 * math.Pi) * 64 *
-			math.Sqrt(float64(r)/50+1))
-	n := max(int(min(segs, maxArcSegments)), 4)
+	// Count segments from the radius on screen, in device pixels. A chord that
+	// spans angle θ strays r·(1-cos(θ/2)) from the arc at its middle; solving for
+	// arcTolerance gives the largest θ that still looks round. An ellipse is
+	// counted by its larger device radius, which is where its chords stray most.
+	//
+	// All in float64: a finite r can be 3.4e38, and times the scale that is past
+	// float32. With sweep clamped, the count reaches the cap only near r = 850,000
+	// device px — far past any visible improvement. The cap also bounds the
+	// retained dc.arcBuf at ~32 KB, so it needs no shrink. An out-of-range
+	// float-to-int conversion is undefined in Go, so the clamp comes first.
+	dsx, dsy := dc.arcDeviceScale()
+	out := float64(max(outset, 0))
+	devR := max((float64(f32Abs(rx))+out)*dsx, (float64(f32Abs(ry))+out)*dsy)
+	// Below half the tolerance the cosine term passes -1; clamp it so a tiny
+	// circle gets θ = 2π and falls to the 4-segment floor.
+	theta := 2 * math.Acos(max(1-arcTolerance/devR, -1))
+	segs := float64(maxArcSegments)
+	if theta > 0 {
+		// theta is 0 only when devR is so large that 1-tol/devR rounds to 1.
+		segs = min(math.Ceil(float64(f32Abs(sweep))/theta), maxArcSegments)
+	}
+	n := max(int(segs), min(minSegs, maxArcSegments))
 	need := (n + 1) * 2
 	if cap(dc.arcBuf) < need {
 		dc.arcBuf = make([]float32, 0, need)

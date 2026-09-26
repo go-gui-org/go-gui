@@ -39,8 +39,12 @@ type customShaderProgram struct {
 	uTex    js.Value
 }
 
+// onRestored runs after the WebGL context comes back, restored or
+// not. The backend passes requestRedraw: while the context was lost
+// the shader area drew the solid fallback, and an idle frame would
+// otherwise never repaint it.
 func newCustomShaderRenderer(
-	doc js.Value, callbacks *[]js.Func,
+	doc js.Value, callbacks *[]js.Func, onRestored func(),
 ) *customShaderRenderer {
 	canvas := doc.Call("createElement", "canvas")
 	attrs := js.Global().Get("Object").New()
@@ -64,7 +68,7 @@ func newCustomShaderRenderer(
 		vertexBuf: js.Global().Get("Float32Array").New(4 * 9),
 	}
 	r.resetProgramCache()
-	r.registerContextCallbacks(callbacks)
+	r.registerContextCallbacks(callbacks, onRestored)
 	if !r.initResources() {
 		log.Printf("web: custom shader init failed; using solid fallback")
 		return nil
@@ -315,7 +319,7 @@ func (r *customShaderRenderer) ensureCanvasSize(w, h int) {
 }
 
 func (r *customShaderRenderer) registerContextCallbacks(
-	callbacks *[]js.Func,
+	callbacks *[]js.Func, onRestored func(),
 ) {
 	lostFn := js.FuncOf(func(_ js.Value, args []js.Value) any {
 		if len(args) > 0 {
@@ -326,6 +330,7 @@ func (r *customShaderRenderer) registerContextCallbacks(
 	})
 	restoredFn := js.FuncOf(func(_ js.Value, _ []js.Value) any {
 		r.handleContextRestored()
+		onRestored()
 		return nil
 	})
 	*callbacks = append(*callbacks, lostFn, restoredFn)

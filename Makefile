@@ -84,6 +84,7 @@ build-wasm:
 	go build -ldflags "$(LDFLAGS)" \
 	  -o build/showcase.wasm ./examples/showcase/
 	cp "$$(go env GOROOT)/lib/wasm/wasm_exec.js" build/
+	cp gui/backend/web/gogui.js build/
 
 build-ios:
 	SDK=$$(xcrun --sdk iphoneos --show-sdk-path); \

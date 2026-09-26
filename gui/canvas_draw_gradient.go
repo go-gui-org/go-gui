@@ -351,9 +351,9 @@ func (dc *DrawContext) emitRadialGradient(cx, cy, r float32,
 // the general path's radial pass refines to — that is under one step
 // of an 8-bit channel, and 1-cos(pi/36) is 0.0038.
 //
-// A full circle's segment count starts at 64 and climbs with radius,
-// so this never rejects one in practice; it is the invariant stated
-// rather than inherited from arcPoints' formula.
+// arcPoints counts segments from a pixel tolerance, which gives a
+// small circle far fewer than this, so fillConcentricRings asks
+// arcPointsMin for this floor instead of inheriting the count.
 const concentricMinSegs = 36
 
 // gradRing is one boundary of the concentric ring mesh: the radius the
@@ -402,7 +402,8 @@ func (dc *DrawContext) fillConcentricRings(cx, cy, r float32,
 	if len(stops) == 0 {
 		return false
 	}
-	pts := dc.arcPoints(cx, cy, r, r, 0, 2*math.Pi)
+	pts := dc.arcPointsMin(cx, cy, r, r, 0, 2*math.Pi,
+		concentricMinSegs, 0)
 	if len(pts) < 4 {
 		return false
 	}
