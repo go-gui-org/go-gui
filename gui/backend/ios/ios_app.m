@@ -28,6 +28,8 @@
 @property (nonatomic) UITextSmartQuotesType smartQuotesType;
 @property (nonatomic) UITextSmartDashesType smartDashesType;
 @property (nonatomic) UITextSmartInsertDeleteType smartInsertDeleteType;
+@property (nonatomic) UITextInlinePredictionType inlinePredictionType
+    API_AVAILABLE(ios(17.0));
 // Hardware key repeat. UIKit sends pressesBegan: once per press, so
 // the view repeats a key Go took while it is held.
 @property (nonatomic, strong) NSTimer *repeatTimer;
@@ -63,6 +65,11 @@ static const NSTimeInterval kKeyRepeatInterval = 0.05;
         _smartQuotesType = UITextSmartQuotesTypeNo;
         _smartDashesType = UITextSmartDashesTypeNo;
         _smartInsertDeleteType = UITextSmartInsertDeleteTypeNo;
+        // With inline predictions on, a hardware keyboard typed one key
+        // behind: UIKit held each key until the next press came.
+        if (@available(iOS 17.0, *)) {
+            _inlinePredictionType = UITextInlinePredictionTypeNo;
+        }
         _goKeys = [NSMutableSet set];
     }
     return self;
@@ -371,6 +378,13 @@ void iosKeyboardQueueApply(void) {
 
 - (void)pressesBegan:(NSSet<UIPress *> *)presses
            withEvent:(UIPressesEvent *)event {
+    // While the view is first responder, these presses came up the
+    // responder chain from it: Go passed on them so UIKit can type
+    // them. Taking them here as keys would stop insertText:.
+    if (self.view.isFirstResponder) {
+        [super pressesBegan:presses withEvent:event];
+        return;
+    }
     NSSet<UIPress *> *rest =
         [(GoGuiView *)self.view takePresses:presses editing:NO];
     if (rest.count > 0) {

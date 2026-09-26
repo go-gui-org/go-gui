@@ -14,7 +14,7 @@ Runs go-gui on the iOS Simulator. No Apple Developer account needed.
 # Download and unzip the release artifact, then:
 
 # 1. Boot a simulator (or use an already-booted one)
-open -a Simulator
+open -a Simulator   # Xcode 27 and later: open -a DeviceHub
 
 # 2. Install the app
 xcrun simctl install booted IOSDemo.app
