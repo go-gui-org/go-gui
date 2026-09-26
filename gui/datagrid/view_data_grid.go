@@ -396,9 +396,9 @@ func applyDataGridDefaults(cfg *DataGridCfg) {
 	if cfg.HeaderHeight == 0 {
 		cfg.HeaderHeight = dataGridDefaultHeaderHeight
 	}
-	if cfg.PageLimit == 0 {
-		cfg.PageLimit = dataGridDefaultPageLimit
-	}
+	// PageLimit stays 0 when unset: dataGridPageLimit falls back to
+	// PageSize, then to dataGridDefaultPageLimit. A default written
+	// here would hide PageSize from a source grid's fetch size.
 	// Debounce only pays off when filtering triggers async fetches;
 	// on in-memory grids it just delays the query round-trip. A
 	// negative value opts a sourced grid out of debouncing (the
@@ -533,6 +533,10 @@ type dataGridSourceState struct {
 	PaginationKind GridPaginationKind
 	CapsCached     bool
 	RowsDirty      bool
+	// ConfigPageIdx is the cfg.PageIndex last applied to
+	// OffsetStart. The app's PageIndex moves the offset only when it
+	// changes, so the source pager's own Next/Prev/jump persist.
+	ConfigPageIdx int
 }
 
 // dataGridCtx bundles commonly repeated DataGrid parameters
@@ -669,16 +673,12 @@ func dataGridBuild(w *gg.Window, cfg DataGridCfg) gg.View {
 	frozenTopIDs := dataGridFrozenTopIDSet(&resolvedCfg)
 	pagerEnabled := dataGridPagerEnabled(&resolvedCfg, pageCount)
 	sourcePagerEnabled := hasSource
-	gridHeight := dataGridHeight(&resolvedCfg)
-	if (pagerEnabled || sourcePagerEnabled) && gridHeight > 0 {
-		gridHeight = f32Max(0, gridHeight-dataGridPagerHeight(&resolvedCfg))
-	}
-	if crudEnabled {
-		toolbarHeight := dataGridCrudToolbarHeight(&resolvedCfg)
-		if gridHeight > 0 {
-			gridHeight = f32Max(0, gridHeight-toolbarHeight)
-		}
-	}
+	// gridHeight is the scroll body's viewport, not the whole grid:
+	// keyboard scroll-into-view, jump scroll and virtualization all
+	// measure against it.
+	gridHeight := dataGridScrollViewportHeight(&resolvedCfg,
+		pagerEnabled || sourcePagerEnabled, crudEnabled,
+		dataGridFrozenTopDisplayRowCount(&resolvedCfg, frozenTopIndices), rowHeight)
 	virtualize := gridHeight > 0 && len(resolvedCfg.Rows) > 0
 	scrollY := float32(0)
 	if virtualize {
@@ -691,10 +691,10 @@ func dataGridBuild(w *gg.Window, cfg DataGridCfg) gg.View {
 	columns := dataGridEffectiveColumns(resolvedCfg.Columns, resolvedCfg.ColumnOrder,
 		resolvedCfg.HiddenColumnIDs)
 	presentation := dataGridCachedPresentation(&resolvedCfg, columns, bodyPageIndices, w)
-	if !hasSource {
-		dataGridApplyPendingLocalJumpScroll(&resolvedCfg, gridHeight, rowHeight,
-			staticTop, scrollID, presentation.DataToDisplay, w)
-	}
+	// Source grids use the same slot: dataGridSourceApplyPendingJumpSelection
+	// sets it to the jump target's index within the fetched page.
+	dataGridApplyPendingLocalJumpScroll(&resolvedCfg, gridHeight, rowHeight,
+		staticTop, scrollID, presentation.DataToDisplay, w)
 
 	// Clear stale editing state.
 	editingRowID := dataGridEditingRowID(resolvedCfg.ID, w)
@@ -766,7 +766,7 @@ func dataGridBuild(w *gg.Window, cfg DataGridCfg) gg.View {
 		A11YRole:  gg.AccessRoleGrid,
 		A11YCfg:   resolvedCfg.A11YCfg,
 		OnKeyDown: dataGridMakeOnKeydown(&resolvedCfg, columns, rowHeight,
-			staticTop, scrollID, pageIndices, frozenTopIDs, presentation.DataToDisplay),
+			staticTop, gridHeight, scrollID, pageIndices, frozenTopIDs, presentation.DataToDisplay),
 		OnChar:      dataGridMakeOnChar(&resolvedCfg, columns),
 		OnMouseMove: dataGridMakeOnMouseMove(resolvedCfg.ID),
 		Color:       resolvedCfg.ColorBackground,

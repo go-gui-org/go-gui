@@ -98,7 +98,7 @@ type dataGridKeydownContext struct {
 	crudEnabled       bool
 }
 
-func dataGridMakeOnKeydown(cfg *DataGridCfg, columns []GridColumnCfg, rowHeight, staticTop float32, scrollID string, pageIndices []int, frozenTopIDs map[string]bool, dataToDisplay map[int]int) func(gg.EventCtx) {
+func dataGridMakeOnKeydown(cfg *DataGridCfg, columns []GridColumnCfg, rowHeight, staticTop, viewportH float32, scrollID string, pageIndices []int, frozenTopIDs map[string]bool, dataToDisplay map[int]int) func(gg.EventCtx) {
 	keyCtx := dataGridKeydownContext{
 		gridID:            cfg.ID,
 		rows:              cfg.Rows,
@@ -113,8 +113,8 @@ func dataGridMakeOnKeydown(cfg *DataGridCfg, columns []GridColumnCfg, rowHeight,
 		crudEnabled:       dataGridCrudEnabled(cfg),
 		pageSize:          cfg.PageSize,
 		pageIndex:         cfg.PageIndex,
-		viewportH:         dataGridHeight(cfg),
-		pageRows:          dataGridPageRows(cfg, rowHeight),
+		viewportH:         viewportH,
+		pageRows:          dataGridPageRows(viewportH, rowHeight),
 		firstEditColIdx:   dataGridFirstEditableColumnIndex(cfg, columns),
 		editorFocusBase:   dataGridCellEditorFocusBaseID(cfg, len(columns)),
 		colCount:          len(columns),

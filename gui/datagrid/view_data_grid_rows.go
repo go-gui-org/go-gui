@@ -533,6 +533,24 @@ func dataGridFrozenTopViews(dctx dataGridCtx, frozenTopIndices []int, showDelete
 	return views, displayRows
 }
 
+// dataGridFrozenTopDisplayRowCount counts the rows dataGridFrozenTopViews
+// emits for frozenTopIndices, detail rows included, without building
+// the views.
+func dataGridFrozenTopDisplayRowCount(cfg *DataGridCfg, frozenTopIndices []int) int {
+	n := 0
+	for _, rowIdx := range frozenTopIndices {
+		if rowIdx < 0 || rowIdx >= len(cfg.Rows) {
+			continue
+		}
+		n++
+		if cfg.DetailRowView != nil &&
+			dataGridDetailRowExpanded(cfg, dataGridRowID(cfg.Rows[rowIdx], rowIdx)) {
+			n++
+		}
+	}
+	return n
+}
+
 func dataGridFrozenTopIDSet(cfg *DataGridCfg) map[string]bool {
 	if len(cfg.FrozenTopRowIDs) == 0 {
 		return nil

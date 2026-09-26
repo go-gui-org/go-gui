@@ -1109,3 +1109,102 @@ func TestApplySaveResultUpdateErrorPreservesCreates(t *testing.T) {
 		t.Errorf("save error: got %q", state.SaveError)
 	}
 }
+
+// --- edits during an async save (review fix) ---
+
+func TestCrudMutationsRefusedWhileSaving(t *testing.T) {
+	w := gg.NewWindow(gg.WindowCfg{})
+	defer w.Close()
+	dgCrud := gg.StateMap[string, dataGridCrudState](w, nsDgCrud, 4)
+	dgCrud.Set("g1", dataGridCrudState{
+		CommittedRows: []GridRow{{ID: "r1", Cells: map[string]string{"a": "old"}}},
+		WorkingRows:   []GridRow{{ID: "r1", Cells: map[string]string{"a": "old"}}},
+		Saving:        true,
+	})
+	e := &gg.Event{}
+	dataGridCrudApplyCellEdit("g1", true, nil,
+		GridCellEdit{RowID: "r1", ColID: "a", Value: "new"}, e, w)
+	dataGridCrudAddRow("g1", nil, nil, "", "", 0, 0, nil, e, w)
+	dataGridCrudDeleteRows("g1", GridSelection{}, nil, []string{"r1"}, "", e, w)
+	state, _ := dgCrud.Get("g1")
+	if dataGridCrudHasUnsaved(state) {
+		t.Fatalf("mutation during save recorded: %+v", state)
+	}
+	if len(state.WorkingRows) != 1 || state.WorkingRows[0].Cells["a"] != "old" {
+		t.Fatalf("working rows changed during save: %+v", state.WorkingRows)
+	}
+}
+
+func TestApplySaveResultDropsStaleResult(t *testing.T) {
+	w := gg.NewWindow(gg.WindowCfg{})
+	defer w.Close()
+	dgCrud := gg.StateMap[string, dataGridCrudState](w, nsDgCrud, 4)
+	snapshot := []GridRow{{ID: "r1", Cells: map[string]string{"a": "orig"}}}
+	dgCrud.Set("g1", dataGridCrudState{
+		CommittedRows: cloneRows(snapshot),
+		WorkingRows:   []GridRow{{ID: "r1", Cells: map[string]string{"a": "B"}}},
+		DirtyRowIDs:   map[string]bool{"r1": true},
+		Saving:        true,
+		RequestID:     2, // save B runs; the result below is from save A
+	})
+	for _, result := range []dataGridCrudMutationResult{
+		{errPhase: "update", errMsg: "aborted", requestID: 1},
+		{rowCount: -1, requestID: 1},
+	} {
+		dataGridCrudApplySaveResult("g1", result, cloneRows(snapshot),
+			nil, nil, GridSelection{}, nil, "", gg.SoundNone, w)
+		state, _ := dgCrud.Get("g1")
+		if !state.Saving || !state.DirtyRowIDs["r1"] ||
+			state.WorkingRows[0].Cells["a"] != "B" {
+			t.Fatalf("stale result %+v applied: %+v", result, state)
+		}
+	}
+}
+
+func TestCrudCancelDuringSaveAbortsAndStalesResult(t *testing.T) {
+	w := gg.NewWindow(gg.WindowCfg{})
+	defer w.Close()
+	dgCrud := gg.StateMap[string, dataGridCrudState](w, nsDgCrud, 4)
+	ctrl := gg.NewGridAbortController()
+	dgCrud.Set("g1", dataGridCrudState{
+		CommittedRows: []GridRow{{ID: "r1", Cells: map[string]string{"a": "orig"}}},
+		WorkingRows:   []GridRow{{ID: "r1", Cells: map[string]string{"a": "edit"}}},
+		DirtyRowIDs:   map[string]bool{"r1": true},
+		Saving:        true,
+		ActiveAbort:   ctrl,
+		RequestID:     1,
+	})
+	dataGridCrudCancel("g1", "", &gg.Event{}, w)
+	if !ctrl.Signal.IsAborted() {
+		t.Fatal("cancel during save did not abort the save")
+	}
+	var rowsChanged bool
+	dataGridCrudApplySaveResult("g1", dataGridCrudMutationResult{rowCount: -1, requestID: 1},
+		nil, nil, func([]GridRow, gg.EventCtx) { rowsChanged = true },
+		GridSelection{}, nil, "", gg.SoundNone, w)
+	if rowsChanged {
+		t.Fatal("cancelled save's result still reached OnRowsChange")
+	}
+}
+
+func TestCrudApplyCellEditKeepsAutoRowID(t *testing.T) {
+	w := gg.NewWindow(gg.WindowCfg{})
+	defer w.Close()
+	dgCrud := gg.StateMap[string, dataGridCrudState](w, nsDgCrud, 4)
+	row := GridRow{Cells: map[string]string{"a": "old"}}
+	autoID := dataGridRowID(row, 0)
+	dgCrud.Set("g1", dataGridCrudState{
+		CommittedRows: cloneRows([]GridRow{row}),
+		WorkingRows:   cloneRows([]GridRow{row}),
+	})
+	dataGridCrudApplyCellEdit("g1", true, nil,
+		GridCellEdit{RowID: autoID, ColID: "a", Value: "new"}, &gg.Event{}, w)
+	state, _ := dgCrud.Get("g1")
+	if got := dataGridRowID(state.WorkingRows[0], 0); got != autoID {
+		t.Fatalf("row ID changed by edit: got %q, want %q", got, autoID)
+	}
+	_, updates, edits, _ := dataGridCrudBuildPayload(state)
+	if len(updates) != 1 || len(edits) != 1 || edits[0].Value != "new" {
+		t.Fatalf("payload lost the edit: updates=%v edits=%v", updates, edits)
+	}
+}

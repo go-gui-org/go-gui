@@ -100,6 +100,10 @@ func dataGridSourceForceRefetch(gridID string, w *gg.Window) {
 		return
 	}
 	dataGridSourceCancelActive(&state)
+	// Make the cancelled fetch's result stale. One already queued
+	// would otherwise match RequestID and overwrite the rows a
+	// refetch was asked for (after a save, or Escape during one).
+	state.RequestID++
 	state.Loading = false
 	state.RequestKey = ""
 	state.LoadError = ""
@@ -143,6 +147,10 @@ func dataGridResolveSourceCfg(cfg DataGridCfg, w *gg.Window) (DataGridCfg, dataG
 	rows = dataGridSourceRowsWithStableIDs(rows, state.PaginationKind, state)
 	resolved := cfg
 	resolved.Rows = rows
+	// Keep the fetch size before PageSize is zeroed: the pager's
+	// Next/Prev/jump read dataGridPageLimit on this resolved cfg and
+	// must step by the same size the fetch used.
+	resolved.PageLimit = dataGridPageLimit(&cfg)
 	resolved.PageSize = 0
 	resolved.PageIndex = 0
 	resolved.Loading = state.Loading
@@ -159,6 +167,10 @@ func dataGridSourceResolveState(cfg DataGridCfg, caps GridDataCapabilities, dgSr
 			OffsetStart:    max(0, cfg.PageIndex*dataGridPageLimit(&cfg)),
 			PaginationKind: cfg.PaginationKind,
 			ConfigCursor:   cfg.Cursor,
+			// -1 so the block below applies PageIndex on the first
+			// frame too: the query reset that always runs on a new
+			// state sets OffsetStart to 0.
+			ConfigPageIdx: -1,
 		}
 	}
 	if !state.CapsCached {
@@ -178,11 +190,18 @@ func dataGridSourceResolveState(cfg DataGridCfg, caps GridDataCapabilities, dgSr
 	}
 	querySig := gridQuerySignature(cfg.Query)
 	dataGridSourceApplyQueryReset(&state, &cfg, querySig)
-	if kind == GridPaginationOffset && cfg.PageSize > 0 {
-		desiredStart := max(0, cfg.PageIndex*cfg.PageSize)
-		if desiredStart != state.OffsetStart {
-			state.OffsetStart = desiredStart
-			state.RequestKey = ""
+	// Apply the app's PageIndex only when it changes. Applying it
+	// every frame undid the source pager, which moves OffsetStart
+	// without touching cfg.PageIndex. The step is the fetch size, so
+	// the offset and the rows fetched stay on the same page grid.
+	if cfg.PageIndex != state.ConfigPageIdx {
+		state.ConfigPageIdx = cfg.PageIndex
+		if kind == GridPaginationOffset && cfg.PageSize > 0 {
+			desiredStart := max(0, cfg.PageIndex*dataGridPageLimit(&cfg))
+			if desiredStart != state.OffsetStart {
+				state.OffsetStart = desiredStart
+				state.RequestKey = ""
+			}
 		}
 	}
 	requestKey := dataGridSourceRequestKey(&cfg, state, kind, querySig)
@@ -211,9 +230,18 @@ func dataGridSourceApplyPendingJumpSelection(cfg *DataGridCfg, state dataGridSou
 		activeRowID:    rowID,
 		SelectedRowIDs: map[string]bool{rowID: true},
 	}
-	e := &gg.Event{}
-	cfg.OnSelectionChange(next, gg.EventCtx{Layout: nil, Event: e, Window: w})
 	dataGridSetAnchor(cfg.ID, rowID, w)
+	// This runs during view generation, under w.mu. The app's
+	// callback may call window APIs that take w.mu (SetFocus, say),
+	// so it runs from the command queue, after the frame.
+	onSelectionChange := cfg.OnSelectionChange
+	w.QueueCommand(func(w *gg.Window) {
+		onSelectionChange(next, gg.EventCtx{Layout: nil, Event: &gg.Event{}, Window: w})
+	})
+	// Scroll the row into view this frame. The local pending-jump
+	// slot is keyed by data index, and cfg.Rows is the fetched page,
+	// so the local index is the right key.
+	gg.StateMap[string, int](w, nsDgPendingJump, capModerate).Set(cfg.ID, localIdx)
 	dgSrc := gg.StateMap[string, dataGridSourceState](w, nsDgSource, capModerate)
 	nextState, ok := dgSrc.Get(cfg.ID)
 	if !ok {

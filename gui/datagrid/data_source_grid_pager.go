@@ -123,12 +123,19 @@ func dataGridSourceJumpToRow(gridID string, targetIdx, pageLimit int, w *gg.Wind
 	if !ok {
 		return
 	}
-	if state.Loading {
-		return
-	}
 	state.PendingJumpRow = targetIdx
 	pageStart := (targetIdx / pageLimit) * pageLimit
 	if pageStart != state.OffsetStart {
+		// A newer jump replaces a fetch still in flight. The jump
+		// input submits on each keystroke, so refusing while Loading
+		// dropped the last digits: "1234" typed fast left the grid on
+		// the page of row 123. Bumping RequestID makes the aborted
+		// fetch's result stale, even one already queued: applied, it
+		// would show the old page and the jump would select from it.
+		dataGridSourceCancelActive(&state)
+		state.RequestID++
+		state.Loading = false
+		state.ActiveAbort = nil
 		state.OffsetStart = pageStart
 		state.RequestKey = ""
 		state.LoadError = ""
@@ -161,11 +168,14 @@ func dataGridSourceRowPositionText(cfg *DataGridCfg, state dataGridSourceState, 
 	return "Row " + strconv.Itoa(current) + " of " + totalText
 }
 
-func dataGridSourceJumpEnabled(onSelectionChange func(GridSelection, gg.EventCtx), rowCount *int, loading bool, loadError string, kind GridPaginationKind, pageLimit int) bool {
+func dataGridSourceJumpEnabled(onSelectionChange func(GridSelection, gg.EventCtx), rowCount *int, loadError string, kind GridPaginationKind, pageLimit int) bool {
 	if onSelectionChange == nil || pageLimit <= 0 {
 		return false
 	}
-	if kind != GridPaginationOffset || loading || loadError != "" {
+	// Loading does not disable the jump: dataGridSourceJumpToRow
+	// replaces an in-flight fetch. Disabling the input mid-fetch
+	// dropped keystrokes typed while the previous digits loaded.
+	if kind != GridPaginationOffset || loadError != "" {
 		return false
 	}
 	if rowCount != nil {
@@ -174,8 +184,8 @@ func dataGridSourceJumpEnabled(onSelectionChange func(GridSelection, gg.EventCtx
 	return false
 }
 
-func dataGridSourceSubmitJump(onSelectionChange func(GridSelection, gg.EventCtx), rowCount *int, loading bool, loadError string, kind GridPaginationKind, pageLimit int, gridID string, focusID string, e *gg.Event, w *gg.Window) {
-	if !dataGridSourceJumpEnabled(onSelectionChange, rowCount, loading, loadError, kind, pageLimit) {
+func dataGridSourceSubmitJump(onSelectionChange func(GridSelection, gg.EventCtx), rowCount *int, loadError string, kind GridPaginationKind, pageLimit int, gridID string, focusID string, e *gg.Event, w *gg.Window) {
+	if !dataGridSourceJumpEnabled(onSelectionChange, rowCount, loadError, kind, pageLimit) {
 		return
 	}
 	if rowCount == nil {
@@ -314,9 +324,8 @@ func dataGridSourcePagerJump(cfg *DataGridCfg, focusID string, state dataGridSou
 	gridID := cfg.ID
 	onSelectionChange := cfg.OnSelectionChange
 	rowCount := state.RowCount
-	loading := state.Loading
 	loadError := state.LoadError
-	jumpEnabled := dataGridSourceJumpEnabled(onSelectionChange, rowCount, loading, loadError, kind, pageLimit)
+	jumpEnabled := dataGridSourceJumpEnabled(onSelectionChange, rowCount, loadError, kind, pageLimit)
 	jumpInputID := gg.ScopeID(gridID, "jump")
 	return []gg.View{
 		dataGridPagerJumpLabel(cfg),
@@ -338,11 +347,11 @@ func dataGridSourcePagerJump(cfg *DataGridCfg, focusID string, state dataGridSou
 				dgJI := gg.StateMap[string, string](ctx.Window, nsDgJump, capModerate)
 				dgJI.Set(gridID, digits)
 				e := &gg.Event{}
-				dataGridSourceSubmitJump(onSelectionChange, rowCount, loading,
+				dataGridSourceSubmitJump(onSelectionChange, rowCount,
 					loadError, kind, pageLimit, gridID, "", e, ctx.Window)
 			},
 			OnEnter: func(ctx gg.EventCtx) {
-				dataGridSourceSubmitJump(onSelectionChange, rowCount, loading,
+				dataGridSourceSubmitJump(onSelectionChange, rowCount,
 					loadError, kind, pageLimit, gridID, focusID, ctx.Event, ctx.Window)
 			},
 		}),

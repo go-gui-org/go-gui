@@ -47,7 +47,7 @@ func TestAggregateLabelOpOnly(t *testing.T) {
 
 func TestGroupAggregateTextEmpty(t *testing.T) {
 	cfg := &DataGridCfg{Rows: []GridRow{{ID: "r1"}}}
-	got := dataGridGroupAggregateText(cfg, 0, 0)
+	got := dataGridGroupAggregateText(cfg, testIdxRange(0, 0))
 	if got != "" {
 		t.Errorf("got %q, want empty", got)
 	}
@@ -58,7 +58,7 @@ func TestGroupAggregateTextCount(t *testing.T) {
 		Rows:       []GridRow{{ID: "a"}, {ID: "b"}, {ID: "c"}},
 		Aggregates: []GridAggregateCfg{{Op: gridAggregateCount, Label: "Rows"}},
 	}
-	got := dataGridGroupAggregateText(cfg, 0, 2)
+	got := dataGridGroupAggregateText(cfg, testIdxRange(0, 2))
 	if got != "Rows: 3" {
 		t.Errorf("got %q, want 'Rows: 3'", got)
 	}
@@ -70,17 +70,17 @@ func TestGroupAggregateTextInvalidRange(t *testing.T) {
 		Aggregates: []GridAggregateCfg{{Op: gridAggregateCount, Label: "N"}},
 	}
 	// startIdx > endIdx
-	got := dataGridGroupAggregateText(cfg, 1, 0)
+	got := dataGridGroupAggregateText(cfg, testIdxRange(1, 0))
 	if got != "" {
 		t.Errorf("got %q, want empty", got)
 	}
 	// endIdx out of range
-	got = dataGridGroupAggregateText(cfg, 0, 99)
+	got = dataGridGroupAggregateText(cfg, testIdxRange(0, 99))
 	if got != "" {
 		t.Errorf("got %q, want empty", got)
 	}
 	// negative startIdx
-	got = dataGridGroupAggregateText(cfg, -1, 0)
+	got = dataGridGroupAggregateText(cfg, testIdxRange(-1, 0))
 	if got != "" {
 		t.Errorf("got %q, want empty", got)
 	}
@@ -162,7 +162,7 @@ func TestAggregateValueCount(t *testing.T) {
 		{ID: "a"}, {ID: "b"}, {ID: "c"}, {ID: "d"},
 	}
 	agg := GridAggregateCfg{Op: gridAggregateCount}
-	got, ok := dataGridAggregateValue(rows, 1, 3, agg)
+	got, ok := dataGridAggregateValue(rows, testIdxRange(1, 3), agg)
 	if !ok {
 		t.Fatal("count should succeed")
 	}
@@ -178,7 +178,7 @@ func TestAggregateValueSum(t *testing.T) {
 		{Cells: map[string]string{"val": "30"}},
 	}
 	agg := GridAggregateCfg{Op: gridAggregateSum, ColID: "val"}
-	got, ok := dataGridAggregateValue(rows, 0, 2, agg)
+	got, ok := dataGridAggregateValue(rows, testIdxRange(0, 2), agg)
 	if !ok {
 		t.Fatal("sum should succeed")
 	}
@@ -193,7 +193,7 @@ func TestAggregateValueAvg(t *testing.T) {
 		{Cells: map[string]string{"val": "20"}},
 	}
 	agg := GridAggregateCfg{Op: gridAggregateAvg, ColID: "val"}
-	got, ok := dataGridAggregateValue(rows, 0, 1, agg)
+	got, ok := dataGridAggregateValue(rows, testIdxRange(0, 1), agg)
 	if !ok {
 		t.Fatal("avg should succeed")
 	}
@@ -209,7 +209,7 @@ func TestAggregateValueMin(t *testing.T) {
 		{Cells: map[string]string{"val": "3"}},
 	}
 	agg := GridAggregateCfg{Op: gridAggregateMin, ColID: "val"}
-	got, ok := dataGridAggregateValue(rows, 0, 2, agg)
+	got, ok := dataGridAggregateValue(rows, testIdxRange(0, 2), agg)
 	if !ok {
 		t.Fatal("min should succeed")
 	}
@@ -225,7 +225,7 @@ func TestAggregateValueMax(t *testing.T) {
 		{Cells: map[string]string{"val": "3"}},
 	}
 	agg := GridAggregateCfg{Op: gridAggregateMax, ColID: "val"}
-	got, ok := dataGridAggregateValue(rows, 0, 2, agg)
+	got, ok := dataGridAggregateValue(rows, testIdxRange(0, 2), agg)
 	if !ok {
 		t.Fatal("max should succeed")
 	}
@@ -237,7 +237,7 @@ func TestAggregateValueMax(t *testing.T) {
 func TestAggregateValueNoColID(t *testing.T) {
 	rows := []GridRow{{ID: "a"}}
 	agg := GridAggregateCfg{Op: gridAggregateSum}
-	_, ok := dataGridAggregateValue(rows, 0, 0, agg)
+	_, ok := dataGridAggregateValue(rows, testIdxRange(0, 0), agg)
 	if ok {
 		t.Fatal("should return false with empty colID and non-count op")
 	}
@@ -249,7 +249,7 @@ func TestAggregateValueAllNonNumeric(t *testing.T) {
 		{Cells: map[string]string{"val": "xyz"}},
 	}
 	agg := GridAggregateCfg{Op: gridAggregateSum, ColID: "val"}
-	_, ok := dataGridAggregateValue(rows, 0, 1, agg)
+	_, ok := dataGridAggregateValue(rows, testIdxRange(0, 1), agg)
 	if ok {
 		t.Fatal("should return false when no numeric values")
 	}
@@ -390,5 +390,57 @@ func TestFnv64U64(t *testing.T) {
 	}
 	if a == gg.Fnv64Offset {
 		t.Fatal("should differ from offset")
+	}
+}
+
+// testIdxRange lists start..end inclusive; empty when end < start.
+func testIdxRange(start, end int) []int {
+	var out []int
+	for i := start; i <= end; i++ {
+		out = append(out, i)
+	}
+	return out
+}
+
+// A frozen-top row sits inside its group's data range but is cut out
+// of the scroll body; the group's count and sum must leave it out.
+func TestGroupAggregateSkipsFrozenTopRows(t *testing.T) {
+	cfg := &DataGridCfg{
+		Rows: []GridRow{
+			{ID: "a", Cells: map[string]string{"g": "x", "n": "1"}},
+			{ID: "b", Cells: map[string]string{"g": "x", "n": "10"}},
+			{ID: "c", Cells: map[string]string{"g": "x", "n": "100"}},
+		},
+		GroupBy:         []string{"g"},
+		FrozenTopRowIDs: []string{"b"},
+		Aggregates: []GridAggregateCfg{
+			{Op: gridAggregateCount, Label: "N"},
+			{Op: gridAggregateSum, ColID: "n", Label: "S"},
+		},
+	}
+	cols := []GridColumnCfg{{ID: "g"}, {ID: "n"}}
+	_, body := dataGridSplitFrozenTopIndices(cfg, dataGridPageRowIndices(0, 3))
+	p := dataGridPresentationRows(cfg, cols, body)
+	if len(p.Rows) == 0 || p.Rows[0].Kind != dataGridDisplayRowGroupHeader {
+		t.Fatalf("first display row is not a group header: %+v", p.Rows)
+	}
+	if got := p.Rows[0].AggregateText; got != "N: 2  S: 101" {
+		t.Fatalf("aggregate: got %q, want %q", got, "N: 2  S: 101")
+	}
+}
+
+func TestGroupPresentationClampsBadRange(t *testing.T) {
+	cfg := &DataGridCfg{
+		Rows: []GridRow{
+			{ID: "a", Cells: map[string]string{"g": "x"}},
+			{ID: "b", Cells: map[string]string{"g": "x"}},
+		},
+		Aggregates: []GridAggregateCfg{{Op: gridAggregateCount, Label: "N"}},
+	}
+	// A range end past the visible list must not panic the slice.
+	p := dataGridPresentationRowsWithGroupRanges(cfg, nil, []int{0, 1},
+		[]string{"g"}, map[string]int{dataGridGroupRangeKey(0, 0): 99}, nil)
+	if got := p.Rows[0].AggregateText; got != "N: 2" {
+		t.Fatalf("aggregate: got %q, want N: 2", got)
 	}
 }

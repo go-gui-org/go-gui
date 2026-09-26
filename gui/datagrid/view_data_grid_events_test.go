@@ -1,6 +1,7 @@
 package datagrid
 
 import (
+	"strconv"
 	"strings"
 	"testing"
 
@@ -1289,7 +1290,7 @@ func TestMakeOnKeydownReturnsCallback(t *testing.T) {
 		Columns:  []GridColumnCfg{{ID: "col1"}},
 		PageSize: 0,
 	}
-	fn := dataGridMakeOnKeydown(cfg, cfg.Columns, 25, 0, "1", nil, nil, nil)
+	fn := dataGridMakeOnKeydown(cfg, cfg.Columns, 25, 0, 0, "1", nil, nil, nil)
 	if fn == nil {
 		t.Fatal("should return a callback")
 	}
@@ -1456,5 +1457,43 @@ func TestQuickFilterRowRefreshesPendingSorts(t *testing.T) {
 	}
 	if len(pending.Sorts) != 1 || pending.Sorts[0].ColID != "new" {
 		t.Fatalf("pending sorts: %+v, want current [new]", pending.Sorts)
+	}
+}
+
+// Chrome outside the scroll body (quick filter, frozen header) must
+// shrink the viewport keyboard navigation scrolls against. With the
+// whole grid height as viewport, Down onto row 8 left it hidden.
+func TestKeyDownScrollsAgainstBodyViewport(t *testing.T) {
+	rows := make([]GridRow, 50)
+	for i := range rows {
+		id := strconv.Itoa(i)
+		rows[i] = GridRow{ID: id, Cells: map[string]string{"c": id}}
+	}
+	sel := GridSelection{activeRowID: "7", anchorRowID: "7",
+		SelectedRowIDs: map[string]bool{"7": true}}
+	cfg := DataGridCfg{
+		ID: "g1", Rows: rows, Columns: []GridColumnCfg{{ID: "c", Title: "C"}},
+		Height: 200, RowHeight: 20, HeaderHeight: 20,
+		ShowQuickFilter: true, FreezeHeader: true,
+		OnSelectionChange: func(s GridSelection, ctx gg.EventCtx) { sel = s },
+	}
+	w := gg.NewTestWindow(gg.WindowCfg{})
+	defer w.Close()
+	w.TestRender(func(*gg.Window) gg.View {
+		c := cfg
+		c.Selection = sel
+		return New(w, c)
+	})
+	// Body viewport: 200 - quick filter 20 - frozen header 20 = 160,
+	// rows 0-7. Row 8 ends at 180 and must scroll into view.
+	if err := w.TestKey("g1", gg.KeyDown, gg.ModNone); err != nil {
+		t.Fatal(err)
+	}
+	if sel.activeRowID != "8" {
+		t.Fatalf("active row: got %q, want 8", sel.activeRowID)
+	}
+	y, _ := w.ScrollY().Get(dataGridScrollID(&DataGridCfg{ID: "g1"}))
+	if y >= 0 {
+		t.Fatalf("scroll Y: got %v, want < 0 (row 8 scrolled into view)", y)
 	}
 }

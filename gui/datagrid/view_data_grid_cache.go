@@ -212,8 +212,10 @@ func dataGridPresentationRowsWithGroupRanges(cfg *DataGridCfg, _ []GridColumnCfg
 				if !ok {
 					rangeEndLocal = localIdx
 				}
+				// groupRanges can come from the presentation cache; keep
+				// the slice below in bounds even if it disagrees.
+				rangeEndLocal = max(localIdx, min(rangeEndLocal, len(visibleIndices)-1))
 				count := max(0, rangeEndLocal-localIdx+1)
-				rangeEnd := visibleIndices[rangeEndLocal]
 				rows = append(rows, dataGridDisplayRow{
 					Kind:          dataGridDisplayRowGroupHeader,
 					GroupColID:    colID,
@@ -221,7 +223,10 @@ func dataGridPresentationRowsWithGroupRanges(cfg *DataGridCfg, _ []GridColumnCfg
 					GroupColTitle: groupTitles[colID],
 					GroupDepth:    depth,
 					GroupCount:    count,
-					AggregateText: dataGridGroupAggregateText(cfg, rowIdx, rangeEnd),
+					// Aggregate the group's visible rows, not the data
+					// range rowIdx..rangeEnd: frozen-top rows are cut out
+					// of visibleIndices and must not be counted.
+					AggregateText: dataGridGroupAggregateText(cfg, visibleIndices[localIdx:rangeEndLocal+1]),
 				})
 			}
 		}
@@ -315,13 +320,18 @@ func dataGridGroupRanges(rows []GridRow, indices []int, groupCols []string) map[
 	return ranges
 }
 
-func dataGridGroupAggregateText(cfg *DataGridCfg, startIdx, endIdx int) string {
-	if len(cfg.Aggregates) == 0 || startIdx < 0 || endIdx < startIdx || endIdx >= len(cfg.Rows) {
+func dataGridGroupAggregateText(cfg *DataGridCfg, indices []int) string {
+	if len(cfg.Aggregates) == 0 || len(indices) == 0 {
 		return ""
+	}
+	for _, idx := range indices {
+		if idx < 0 || idx >= len(cfg.Rows) {
+			return ""
+		}
 	}
 	parts := make([]string, 0, len(cfg.Aggregates))
 	for _, agg := range cfg.Aggregates {
-		value, ok := dataGridAggregateValue(cfg.Rows, startIdx, endIdx, agg)
+		value, ok := dataGridAggregateValue(cfg.Rows, indices, agg)
 		if !ok {
 			continue
 		}
@@ -343,15 +353,17 @@ func dataGridAggregateLabel(agg GridAggregateCfg) string {
 	return agg.Op.String() + " " + agg.ColID
 }
 
-func dataGridAggregateValue(rows []GridRow, startIdx, endIdx int, agg GridAggregateCfg) (string, bool) {
+// dataGridAggregateValue aggregates agg over rows[indices]. Callers
+// check that every index is in range.
+func dataGridAggregateValue(rows []GridRow, indices []int, agg GridAggregateCfg) (string, bool) {
 	if agg.Op == gridAggregateCount {
-		return strconv.Itoa(endIdx - startIdx + 1), true
+		return strconv.Itoa(len(indices)), true
 	}
 	if agg.ColID == "" {
 		return "", false
 	}
 	var values []float64
-	for idx := startIdx; idx <= endIdx; idx++ {
+	for _, idx := range indices {
 		raw := rows[idx].Cells[agg.ColID]
 		n, ok := dataGridParseNumber(raw)
 		if !ok {

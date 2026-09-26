@@ -162,7 +162,7 @@ func TestNormalizedColumnOrderDeduplicates(t *testing.T) {
 
 func TestColumnOrderMoveRight(t *testing.T) {
 	order := []string{"a", "b", "c"}
-	got := dataGridColumnOrderMove(order, "a", 1)
+	got := dataGridColumnOrderMove(order, "a", 1, nil)
 	want := []string{"b", "a", "c"}
 	if !strSliceEq(got, want) {
 		t.Fatalf("got %v, want %v", got, want)
@@ -171,7 +171,7 @@ func TestColumnOrderMoveRight(t *testing.T) {
 
 func TestColumnOrderMoveLeft(t *testing.T) {
 	order := []string{"a", "b", "c"}
-	got := dataGridColumnOrderMove(order, "c", -1)
+	got := dataGridColumnOrderMove(order, "c", -1, nil)
 	want := []string{"a", "c", "b"}
 	if !strSliceEq(got, want) {
 		t.Fatalf("got %v, want %v", got, want)
@@ -180,7 +180,7 @@ func TestColumnOrderMoveLeft(t *testing.T) {
 
 func TestColumnOrderMoveClampLeft(t *testing.T) {
 	order := []string{"a", "b", "c"}
-	got := dataGridColumnOrderMove(order, "a", -5)
+	got := dataGridColumnOrderMove(order, "a", -5, nil)
 	// Already at index 0, clamped target = 0, no change.
 	want := []string{"a", "b", "c"}
 	if !strSliceEq(got, want) {
@@ -190,7 +190,7 @@ func TestColumnOrderMoveClampLeft(t *testing.T) {
 
 func TestColumnOrderMoveClampRight(t *testing.T) {
 	order := []string{"a", "b", "c"}
-	got := dataGridColumnOrderMove(order, "c", 10)
+	got := dataGridColumnOrderMove(order, "c", 10, nil)
 	// Already at last index, clamped target = 2, no change.
 	want := []string{"a", "b", "c"}
 	if !strSliceEq(got, want) {
@@ -200,7 +200,7 @@ func TestColumnOrderMoveClampRight(t *testing.T) {
 
 func TestColumnOrderMoveMissingID(t *testing.T) {
 	order := []string{"a", "b", "c"}
-	got := dataGridColumnOrderMove(order, "z", 1)
+	got := dataGridColumnOrderMove(order, "z", 1, nil)
 	want := []string{"a", "b", "c"}
 	if !strSliceEq(got, want) {
 		t.Fatalf("got %v, want %v", got, want)
@@ -209,10 +209,31 @@ func TestColumnOrderMoveMissingID(t *testing.T) {
 
 func TestColumnOrderMoveZeroDelta(t *testing.T) {
 	order := []string{"a", "b"}
-	got := dataGridColumnOrderMove(order, "a", 0)
+	got := dataGridColumnOrderMove(order, "a", 0, nil)
 	want := []string{"a", "b"}
 	if !strSliceEq(got, want) {
 		t.Fatalf("got %v, want %v", got, want)
+	}
+}
+
+func TestColumnOrderMoveSkipsHidden(t *testing.T) {
+	order := []string{"a", "b", "c", "d"}
+	hidden := map[string]bool{"b": true, "c": true}
+	// a's visible right neighbor is d: one step right must pass it.
+	got := dataGridColumnOrderMove(order, "a", 1, hidden)
+	want := []string{"b", "c", "d", "a"}
+	if !strSliceEq(got, want) {
+		t.Fatalf("right: got %v, want %v", got, want)
+	}
+	got = dataGridColumnOrderMove(order, "d", -1, hidden)
+	want = []string{"d", "a", "b", "c"}
+	if !strSliceEq(got, want) {
+		t.Fatalf("left: got %v, want %v", got, want)
+	}
+	// Only hidden columns beyond the edge: nothing moves.
+	got = dataGridColumnOrderMove([]string{"a", "b"}, "a", 1, map[string]bool{"b": true})
+	if !strSliceEq(got, []string{"a", "b"}) {
+		t.Fatalf("edge: got %v, want [a b]", got)
 	}
 }
 

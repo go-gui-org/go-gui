@@ -202,6 +202,7 @@ func dataGridResizeHandle(cfg *DataGridCfg, col GridColumnCfg, focusID string, r
 func dataGridReorderControls(cfg *DataGridCfg, col GridColumnCfg) gg.View {
 	onColumnOrderChange := cfg.OnColumnOrderChange
 	baseOrder, _ := dataGridColumnOrderAndMap(cfg.Columns, cfg.ColumnOrder)
+	hidden := cfg.HiddenColumnIDs
 	colID := col.ID
 	leftArrow := "\u25C0"  // ◀
 	rightArrow := "\u25B6" // ▶
@@ -215,7 +216,7 @@ func dataGridReorderControls(cfg *DataGridCfg, col GridColumnCfg) gg.View {
 				e.IsHandled = true
 				return
 			}
-			nextOrder := dataGridColumnOrderMove(baseOrder, colID, delta)
+			nextOrder := dataGridColumnOrderMove(baseOrder, colID, delta, hidden)
 			if len(nextOrder) == len(baseOrder) && slices.Equal(nextOrder, baseOrder) {
 				e.IsHandled = true
 				return

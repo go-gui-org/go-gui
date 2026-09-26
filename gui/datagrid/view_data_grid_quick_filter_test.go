@@ -16,16 +16,7 @@ func quickFilterDraft(w *gg.Window, gridID string) (string, bool) {
 // findShapeText walks a layout tree for a text shape whose text
 // matches want. Returns true when found.
 func findShapeText(layout *gg.Layout, want string) bool {
-	if layout.Shape != nil && layout.Shape.TC != nil &&
-		layout.Shape.TC.Text == want {
-		return true
-	}
-	for i := range layout.Children {
-		if findShapeText(&layout.Children[i], want) {
-			return true
-		}
-	}
-	return false
+	return findShapeByText(layout, want) != nil
 }
 
 func TestQuickFilterDebounceDefaultInMemory(t *testing.T) {
@@ -156,5 +147,41 @@ func TestQuickFilterRowRendersCommittedWithoutDraft(t *testing.T) {
 	layout := gg.GenerateViewLayout(dataGridQuickFilterRow(cfg, w), w)
 	if !findShapeText(&layout, "committed") {
 		t.Fatal("committed query text not rendered")
+	}
+}
+
+func findShapeByText(layout *gg.Layout, want string) *gg.Layout {
+	if layout.Shape != nil && layout.Shape.TC != nil &&
+		layout.Shape.TC.Text == want {
+		return layout
+	}
+	for i := range layout.Children {
+		if found := findShapeByText(&layout.Children[i], want); found != nil {
+			return found
+		}
+	}
+	return nil
+}
+
+// The placeholder takes the theme's placeholder-role alpha, not a
+// grid-local literal, and keeps the caller's filter hue.
+func TestQuickFilterPlaceholderUsesThemeRole(t *testing.T) {
+	w := gg.NewWindow(gg.WindowCfg{})
+	cfg := &DataGridCfg{
+		ID:                     "g1",
+		QuickFilterPlaceholder: "Search here",
+		OnQueryChange:          func(_ GridQueryState, ctx gg.EventCtx) {},
+	}
+	applyDataGridDefaults(cfg)
+	cfg.TextStyleFilter.Color = gg.RGB(10, 20, 30)
+	layout := gg.GenerateViewLayout(dataGridQuickFilterRow(cfg, w), w)
+	ly := findShapeByText(&layout, "Search here")
+	if ly == nil || ly.Shape.TC.TextStyle == nil {
+		t.Fatal("placeholder text not rendered")
+	}
+	got := ly.Shape.TC.TextStyle.Color
+	want := gg.RGBA(10, 20, 30, gg.CurrentTheme().TextStylePlaceholder.Color.A)
+	if got != want {
+		t.Fatalf("placeholder color: got %v, want %v", got, want)
 	}
 }

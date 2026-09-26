@@ -3,6 +3,9 @@ package datagrid
 import (
 	"archive/zip"
 	"bytes"
+	"encoding/xml"
+	"errors"
+	"io"
 	"math"
 	"strconv"
 	"strings"
@@ -600,4 +603,43 @@ func TestPDFColWidthsFloorAtThreeChars(t *testing.T) {
 	if sum != 3*ncols {
 		t.Fatalf("widths sum: got %d, want %d", sum, 3*ncols)
 	}
+}
+
+// A control character in a cell must not make sheet1.xml ill-formed:
+// Excel rejects the whole workbook as corrupt.
+func TestGridRowsToXLSXDropsXMLInvalidChars(t *testing.T) {
+	cols := []GridColumnCfg{{ID: "a", Title: "Name\x0b"}}
+	rows := []GridRow{
+		{ID: "1", Cells: map[string]string{"a": "x\x01y\x00z￾\xffend\tok"}},
+	}
+	data, err := gridRowsToXLSX(cols, rows)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	r, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
+	if err != nil {
+		t.Fatalf("not valid ZIP: %v", err)
+	}
+	for _, f := range r.File {
+		if f.Name != "xl/worksheets/sheet1.xml" {
+			continue
+		}
+		rc, err := f.Open()
+		if err != nil {
+			t.Fatal(err)
+		}
+		dec := xml.NewDecoder(rc)
+		for {
+			_, err = dec.Token()
+			if err != nil {
+				break
+			}
+		}
+		rc.Close()
+		if !errors.Is(err, io.EOF) {
+			t.Fatalf("sheet1.xml is not well-formed XML: %v", err)
+		}
+		return
+	}
+	t.Fatal("sheet1.xml missing")
 }

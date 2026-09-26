@@ -2,6 +2,7 @@ package datagrid
 
 import (
 	"maps"
+	"slices"
 	"strings"
 
 	gg "github.com/go-gui-org/go-gui/gui"
@@ -100,34 +101,44 @@ func dataGridColumnNextPin(pin GridColumnPin) GridColumnPin {
 	}
 }
 
-// dataGridColumnOrderMove moves colID in order by delta
-// (-1 left, +1 right). Returns a new slice.
-func dataGridColumnOrderMove(order []string, colID string, delta int) []string {
+// dataGridColumnOrderMove moves colID in order by delta visible
+// steps (-1 left, +1 right). Each step passes one column not in
+// hidden: order also lists hidden columns, and moving past one of
+// them changed nothing on screen, so a click appeared to do nothing.
+// Returns order itself when nothing moves, else a new slice.
+func dataGridColumnOrderMove(order []string, colID string, delta int, hidden map[string]bool) []string {
 	if len(order) == 0 || delta == 0 {
 		return order
 	}
-	idx := -1
-	for i, id := range order {
-		if id == colID {
-			idx = i
-			break
-		}
-	}
+	idx := slices.Index(order, colID)
 	if idx < 0 {
 		return order
 	}
-	target := max(0, min(len(order)-1, idx+delta))
+	step := 1
+	if delta < 0 {
+		step = -1
+	}
+	// Walk |delta| visible neighbors; stop at the edge.
+	target := idx
+	for moved := 0; moved != delta; moved += step {
+		next := target + step
+		for next >= 0 && next < len(order) && hidden[order[next]] {
+			next += step
+		}
+		if next < 0 || next >= len(order) {
+			break
+		}
+		target = next
+	}
 	if target == idx {
 		return order
 	}
-	next := make([]string, len(order))
-	copy(next, order)
-	val := next[idx]
-	// Remove at idx.
-	next = append(next[:idx], next[idx+1:]...)
-	// Insert at target.
-	next = append(next[:target], append([]string{val}, next[target:]...)...)
-	return next
+	// Removing idx shifts every later index left by one, so inserting
+	// at target puts colID just past the neighbor in both directions.
+	next := make([]string, 0, len(order))
+	next = append(next, order[:idx]...)
+	next = append(next, order[idx+1:]...)
+	return slices.Insert(next, target, colID)
 }
 
 func dataGridVisibleColumnCount(columns []GridColumnCfg, hidden map[string]bool) int {

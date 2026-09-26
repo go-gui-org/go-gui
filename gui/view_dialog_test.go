@@ -181,14 +181,14 @@ func TestDialogEscapeWithFocusedChildKeyHandler(t *testing.T) {
 		DialogType: DialogCustom,
 		FocusID:    "keys",
 		OnCancelNo: func(_ *Window) { cancelled = true },
-		CustomContent: []View{
-			Column(ContainerCfg{
+		CustomView: func(*Window) View {
+			return Column(ContainerCfg{
 				ID:        "keys",
 				Focusable: true,
 				OnKeyDown: func(ctx EventCtx) {
 					// Declines everything: no Consume.
 				},
-			}),
+			})
 		},
 	})
 	w.TestRender(nil)
@@ -223,8 +223,8 @@ func TestDialogEscapeChildConsumeOverrides(t *testing.T) {
 		DialogType: DialogCustom,
 		FocusID:    "keys",
 		OnCancelNo: func(_ *Window) { cancelled = true },
-		CustomContent: []View{
-			Column(ContainerCfg{
+		CustomView: func(*Window) View {
+			return Column(ContainerCfg{
 				ID:        "keys",
 				Focusable: true,
 				OnKeyDown: func(ctx EventCtx) {
@@ -232,7 +232,7 @@ func TestDialogEscapeChildConsumeOverrides(t *testing.T) {
 						ctx.Consume()
 					}
 				},
-			}),
+			})
 		},
 	})
 	w.TestRender(nil)
@@ -322,11 +322,12 @@ func TestDialogPromptView(t *testing.T) {
 }
 
 func TestDialogCustomView(t *testing.T) {
-	custom := Text(TextCfg{Text: "custom content"})
 	cfg := DialogCfg{
-		Title:         "Custom",
-		DialogType:    DialogCustom,
-		CustomContent: []View{custom},
+		Title:      "Custom",
+		DialogType: DialogCustom,
+		CustomView: func(*Window) View {
+			return Text(TextCfg{Text: "custom content"})
+		},
 	}
 	v := dialogViewGenerator(cfg)
 	if v == nil {
@@ -378,23 +379,6 @@ func TestDialogCustomViewReadsStateEachFrame(t *testing.T) {
 	}
 }
 
-// TestDialogCustomViewWinsOverCustomContent checks that when both
-// fields are set, only CustomView content is shown.
-func TestDialogCustomViewWinsOverCustomContent(t *testing.T) {
-	w := NewWindow(WindowCfg{})
-	w.Dialog(DialogCfg{
-		DialogType:    DialogCustom,
-		CustomContent: []View{Text(TextCfg{Text: "static"})},
-		CustomView: func(*Window) View {
-			return Text(TextCfg{Text: "dynamic"})
-		},
-	})
-	layout := generateViewLayout(dialogViewGenerator(w.dialogCfg), w)
-	if got := dialogTexts(&layout, nil); len(got) != 1 || got[0] != "dynamic" {
-		t.Fatalf("texts = %q, want [dynamic]", got)
-	}
-}
-
 // TestDialogCustomViewNilResult checks that a CustomView returning nil
 // shows no content and does not panic.
 func TestDialogCustomViewNilResult(t *testing.T) {
@@ -436,9 +420,11 @@ func TestDialogCustomEscapeDismisses(t *testing.T) {
 	w := newTestWindow()
 	cancelled := false
 	w.Dialog(DialogCfg{
-		DialogType:    DialogCustom,
-		CustomContent: []View{Text(TextCfg{Text: "no buttons"})},
-		OnCancelNo:    func(_ *Window) { cancelled = true },
+		DialogType: DialogCustom,
+		CustomView: func(*Window) View {
+			return Text(TextCfg{Text: "no buttons"})
+		},
+		OnCancelNo: func(_ *Window) { cancelled = true },
 	})
 	if !w.DialogIsVisible() {
 		t.Fatal("dialog should be visible")
@@ -692,13 +678,13 @@ func arrangeDialog(t *testing.T, cfg DialogCfg) *Shape {
 // and Width, and the dialog came out 300x400.
 func TestDialogHonorsWidthHeightIssue708(t *testing.T) {
 	s := arrangeDialog(t, DialogCfg{
-		DialogType:    DialogCustom,
-		MinWidth:      SomeF(400),
-		Width:         400,
-		MaxHeight:     400,
-		Height:        400,
-		Title:         "Settings",
-		CustomContent: []View{Text(TextCfg{Text: "body"})},
+		DialogType: DialogCustom,
+		MinWidth:   SomeF(400),
+		Width:      400,
+		MaxHeight:  400,
+		Height:     400,
+		Title:      "Settings",
+		CustomView: func(*Window) View { return Text(TextCfg{Text: "body"}) },
 	})
 	if s.Width != 400 || s.Height != 400 {
 		t.Fatalf("dialog = %vx%v, want 400x400", s.Width, s.Height)
@@ -709,10 +695,10 @@ func TestDialogHonorsWidthHeightIssue708(t *testing.T) {
 // on a Fit column, so the content height was added on top of it.
 func TestDialogHeightIsFixed(t *testing.T) {
 	s := arrangeDialog(t, DialogCfg{
-		DialogType:    DialogCustom,
-		Height:        250,
-		Title:         "Settings",
-		CustomContent: []View{Text(TextCfg{Text: "body"})},
+		DialogType: DialogCustom,
+		Height:     250,
+		Title:      "Settings",
+		CustomView: func(*Window) View { return Text(TextCfg{Text: "body"}) },
 	})
 	if s.Height != 250 {
 		t.Fatalf("Height = %v, want 250", s.Height)
@@ -723,10 +709,10 @@ func TestDialogHeightIsFixed(t *testing.T) {
 // on a Fit column, so the content width was added on top of it.
 func TestDialogWidthIsFixed(t *testing.T) {
 	s := arrangeDialog(t, DialogCfg{
-		DialogType:    DialogCustom,
-		Width:         250,
-		Title:         "Settings",
-		CustomContent: []View{Text(TextCfg{Text: "body"})},
+		DialogType: DialogCustom,
+		Width:      250,
+		Title:      "Settings",
+		CustomView: func(*Window) View { return Text(TextCfg{Text: "body"}) },
 	})
 	if s.Width != 250 {
 		t.Fatalf("Width = %v, want 250", s.Width)

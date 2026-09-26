@@ -1,6 +1,7 @@
 package datagrid
 
 import (
+	"strings"
 	"testing"
 
 	gg "github.com/go-gui-org/go-gui/gui"
@@ -408,5 +409,37 @@ func TestGridOrmBuildSQLClampsLimitOffset(t *testing.T) {
 	if out.Params[n-2] != "100" || out.Params[n-1] != "0" {
 		t.Fatalf("limit/offset params = [%s %s], want [100 0]",
 			out.Params[n-2], out.Params[n-1])
+	}
+}
+
+func TestGridOrmValidateQueryQuickFilterCountsRunes(t *testing.T) {
+	// 200 CJK characters are 600 bytes: under the rune limit the grid
+	// truncates input by, so the ORM must accept them.
+	cjk := strings.Repeat("漢", 200)
+	if _, err := gridOrmValidateQuery(GridQueryState{QuickFilter: cjk}, testColumns()); err != nil {
+		t.Fatalf("200-rune quick filter rejected: %v", err)
+	}
+	over := strings.Repeat("漢", gridOrmMaxFilterValueLen+1)
+	if _, err := gridOrmValidateQuery(GridQueryState{QuickFilter: over}, testColumns()); err == nil {
+		t.Fatal("501-rune quick filter accepted")
+	}
+}
+
+func TestGridOrmTooLongBoundaries(t *testing.T) {
+	cases := []struct {
+		s    string
+		want bool
+	}{
+		{strings.Repeat("a", gridOrmMaxFilterValueLen), false},
+		{strings.Repeat("a", gridOrmMaxFilterValueLen+1), true},
+		{strings.Repeat("漢", gridOrmMaxFilterValueLen), false},
+		{strings.Repeat("漢", gridOrmMaxFilterValueLen+1), true},
+		// Past UTFMax bytes per rune: rejected without a rune count.
+		{strings.Repeat("a", gridOrmMaxFilterValueLen*4+1), true},
+	}
+	for i, c := range cases {
+		if got := gridOrmTooLong(c.s); got != c.want {
+			t.Errorf("case %d (len %d): got %v, want %v", i, len(c.s), got, c.want)
+		}
 	}
 }

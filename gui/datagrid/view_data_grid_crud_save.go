@@ -135,6 +135,7 @@ type dataGridCrudMutationResult struct {
 	createRows []GridRow // input create rows (for replace mapping)
 	created    []GridRow // server-returned created rows
 	rowCount   int       // -1 when unknown
+	requestID  uint64    // dataGridCrudState.RequestID the save ran under
 }
 
 type dataGridCrudSaveContext struct {
@@ -231,10 +232,15 @@ func dataGridCrudSave(ctx dataGridCrudSaveContext, e *gg.Event, w *gg.Window) {
 		saveUpdates := cloneRows(updateRows)
 		saveEdits := append([]GridCellEdit(nil), updateEdits...)
 		saveDeletes := append([]string(nil), deleteIDs...)
+		// Close any open cell editor. Edits are refused while Saving
+		// (see dataGridCrudApplyCellEdit), so an editor left open would
+		// take keystrokes that go nowhere.
+		dataGridClearEditingRow(gridID, w)
 		go func() {
 			result := dataGridCrudExecMutations(source, gridID, query,
 				saveCreates, saveUpdates, saveEdits, saveDeletes,
 				ctrl.Signal, nextRequestID)
+			result.requestID = nextRequestID
 			if wCtx.Err() != nil {
 				return
 			}
@@ -320,6 +326,15 @@ func dataGridCrudExecMutations(source DataGridDataSource, gridID string, query G
 
 func dataGridCrudApplySaveResult(gridID string, result dataGridCrudMutationResult, snapshotRows []GridRow, onCRUDError func(string, gg.EventCtx), onRowsChange func([]GridRow, gg.EventCtx), selection GridSelection, onSelectionChange func(GridSelection, gg.EventCtx), focusID string, errCue gg.SoundCue, w *gg.Window) {
 	e := &gg.Event{}
+	// A result from a save that was cancelled (Escape) or replaced by
+	// a newer save is stale. Applying it would restore or commit rows
+	// the user has since discarded or changed, and clear the flags of
+	// the save that now runs. dataGridCrudCancel and dataGridCrudSave
+	// both bump RequestID, so a mismatch means the result is stale.
+	dgCrud := gg.StateMap[string, dataGridCrudState](w, nsDgCrud, capModerate)
+	if cur, ok := dgCrud.Get(gridID); !ok || cur.RequestID != result.requestID {
+		return
+	}
 	if result.errMsg != "" {
 		// The creates already committed server-side before the
 		// update/delete failed. Restoring the snapshot would drop
@@ -334,7 +349,6 @@ func dataGridCrudApplySaveResult(gridID string, result dataGridCrudMutationResul
 			e, w, snapshotRows, result.errMsg, errCue)
 		return
 	}
-	dgCrud := gg.StateMap[string, dataGridCrudState](w, nsDgCrud, capModerate)
 	// Default zero state: absent entry means save was not in CRUD mode.
 	state := dgCrud.GetOr(gridID, dataGridCrudState{})
 	replaceIDs, createWarn := dataGridCrudReplaceCreatedRows(

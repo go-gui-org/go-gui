@@ -50,10 +50,12 @@ func dataGridQuickFilterRow(cfg *DataGridCfg, w *gg.Window) gg.View {
 	clearDisabled := value == "" || queryCallback == nil
 	debounce := cfg.QuickFilterDebounce
 
-	dimColor := cfg.TextStyleFilter.Color
-	dimColor.A = 140
+	// The placeholder role's alpha on the caller's filter color: the
+	// hue stays the caller's, the amount of quiet is the theme's.
 	placeholderStyle := cfg.TextStyleFilter
-	placeholderStyle.Color = dimColor
+	c := cfg.TextStyleFilter.Color
+	placeholderStyle.Color = gg.RGBA(c.R, c.G, c.B,
+		gg.CurrentTheme().TextStylePlaceholder.Color.A)
 
 	return gg.Row(gg.ContainerCfg{
 		Height:      h,

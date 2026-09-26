@@ -6,6 +6,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	gg "github.com/go-gui-org/go-gui/gui"
 )
@@ -15,6 +16,9 @@ var gridOrmDefaultFilterOps = []string{
 }
 
 const (
+	// gridOrmMaxFilterValueLen counts runes, the unit the grid
+	// truncates quick-filter input by (dataGridMaxQuickFilterLen). A
+	// byte limit rejected 200 CJK characters the grid had accepted.
 	gridOrmMaxFilterValueLen = 500
 	gridOrmMaxFilterCount    = 100
 )
@@ -289,11 +293,25 @@ func gridOrmValidateQuery(
 	return gridOrmValidateQueryWithMap(query, colMap)
 }
 
+// gridOrmTooLong reports whether s has more than
+// gridOrmMaxFilterValueLen runes. A rune is at most utf8.UTFMax bytes,
+// so the byte checks settle most strings without a count, and a pasted
+// megabyte is rejected without a walk over it.
+func gridOrmTooLong(s string) bool {
+	if len(s) <= gridOrmMaxFilterValueLen {
+		return false
+	}
+	if len(s) > gridOrmMaxFilterValueLen*utf8.UTFMax {
+		return true
+	}
+	return utf8.RuneCountInString(s) > gridOrmMaxFilterValueLen
+}
+
 func gridOrmValidateQueryWithMap(
 	query GridQueryState,
 	colMap map[string]gridOrmColumnSpec,
 ) (GridQueryState, error) {
-	if len(query.QuickFilter) > gridOrmMaxFilterValueLen {
+	if gridOrmTooLong(query.QuickFilter) {
 		return GridQueryState{}, fmt.Errorf(
 			"grid orm: quick_filter exceeds max length (%d)",
 			gridOrmMaxFilterValueLen)
@@ -315,7 +333,7 @@ func gridOrmValidateQueryWithMap(
 	}
 	var filters []gridFilter
 	for _, f := range query.Filters {
-		if len(f.Value) > gridOrmMaxFilterValueLen {
+		if gridOrmTooLong(f.Value) {
 			return GridQueryState{}, fmt.Errorf(
 				"grid orm: filter value exceeds max length (%d)",
 				gridOrmMaxFilterValueLen)
