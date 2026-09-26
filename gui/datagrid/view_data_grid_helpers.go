@@ -68,6 +68,34 @@ func dataGridHeight(cfg *DataGridCfg) float32 {
 	return 0
 }
 
+// dataGridScrollViewportHeight is the height of the scroll body: the
+// grid height less the chrome stacked outside it (CRUD toolbar, quick
+// filter, frozen header, frozen-top rows, pager). Returns 0 when the
+// grid has no fixed height. Using the whole grid height let the
+// selected row scroll below the visible body before the grid moved.
+func dataGridScrollViewportHeight(cfg *DataGridCfg, pagerShown, crudEnabled bool, frozenTopRows int, rowHeight float32) float32 {
+	h := dataGridHeight(cfg)
+	if h <= 0 {
+		return 0
+	}
+	if crudEnabled {
+		h -= dataGridCrudToolbarHeight(cfg)
+	}
+	if cfg.ShowQuickFilter {
+		h -= dataGridQuickFilterHeight(cfg)
+	}
+	if boolDefault(cfg.ShowHeader, true) && cfg.FreezeHeader {
+		h -= dataGridHeaderHeight(cfg)
+	}
+	if frozenTopRows > 0 && rowHeight > 0 {
+		h -= float32(frozenTopRows) * rowHeight
+	}
+	if pagerShown {
+		h -= dataGridPagerHeight(cfg)
+	}
+	return f32Max(0, h)
+}
+
 func dataGridPagerEnabled(cfg *DataGridCfg, pageCount int) bool {
 	return cfg.PageSize > 0 && pageCount > 1
 }
@@ -193,8 +221,13 @@ func dataGridPageRowIndices(start, end int) []int {
 	return indices
 }
 
+// dataGridVisibleRowIndices returns pageIndices, or every row when
+// pageIndices is nil. Only nil means "no page list": an empty,
+// non-nil slice is a real empty list, for example the scroll body
+// when every row on the page is frozen at the top. Treating it as
+// "all rows" showed the frozen rows twice, with rows from other pages.
 func dataGridVisibleRowIndices(rowCount int, pageIndices []int) []int {
-	if len(pageIndices) > 0 {
+	if pageIndices != nil {
 		return pageIndices
 	}
 	return dataGridPageRowIndices(0, max(0, rowCount))
@@ -258,11 +291,13 @@ func dataGridSelectedRows(rows []GridRow, selection GridSelection) []GridRow {
 	return selected
 }
 
-func dataGridPageRows(cfg *DataGridCfg, rowHeight float32) int {
+// dataGridPageRows is the PageUp/PageDown step: the rows that fit in
+// the scroll body's viewport (see dataGridScrollViewportHeight).
+func dataGridPageRows(viewportH, rowHeight float32) int {
 	if rowHeight <= 0 {
 		return 1
 	}
-	page := int(dataGridHeight(cfg) / rowHeight)
+	page := int(viewportH / rowHeight)
 	if page < 1 {
 		return 1
 	}

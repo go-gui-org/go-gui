@@ -44,16 +44,9 @@ type DialogCfg struct {
 	Reply string
 	ID    string
 
-	// CustomContent is the body of a DialogCustom dialog.
-	//
-	// Deprecated: these views are built once, at the Dialog call, and
-	// never see later state changes (issue #787). Use CustomView.
-	CustomContent []View
-
 	// CustomView builds the body of a DialogCustom dialog. The dialog
 	// calls it on every frame while it shows, so content that reads
-	// window state (State[T](w)) stays current. When set, it replaces
-	// CustomContent.
+	// window state (State[T](w)) stays current.
 	CustomView func(*Window) View
 
 	Padding    Padding
@@ -149,8 +142,6 @@ func dialogViewGenerator(cfg DialogCfg) View {
 		// layout generation, which runs each frame and reads live state.
 		if cfg.CustomView != nil {
 			content = append(content, ViewFunc(cfg.CustomView))
-		} else {
-			content = append(content, cfg.CustomContent...)
 		}
 	}
 

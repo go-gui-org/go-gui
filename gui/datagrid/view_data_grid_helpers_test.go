@@ -472,16 +472,14 @@ func TestActiveRowIndexStrictNotFound(t *testing.T) {
 // --- dataGridPageRows ---
 
 func TestPageRows(t *testing.T) {
-	cfg := &DataGridCfg{Height: 200}
-	got := dataGridPageRows(cfg, 25)
+	got := dataGridPageRows(200, 25)
 	if got != 8 {
 		t.Errorf("got %d, want 8", got)
 	}
 }
 
 func TestPageRowsMinOne(t *testing.T) {
-	cfg := &DataGridCfg{Height: 200}
-	got := dataGridPageRows(cfg, 0)
+	got := dataGridPageRows(200, 0)
 	if got != 1 {
 		t.Errorf("got %d, want 1", got)
 	}
@@ -557,5 +555,56 @@ func TestTruncateRunesMultibyte(t *testing.T) {
 	}
 	if !utf8.ValidString(got) {
 		t.Fatalf("cut produced invalid UTF-8: %q", got)
+	}
+}
+
+func TestSplitFrozenTopAllFrozenLeavesEmptyBody(t *testing.T) {
+	cfg := &DataGridCfg{
+		Rows: []GridRow{
+			{ID: "a"}, {ID: "b"}, {ID: "c"}, {ID: "d"},
+		},
+		FrozenTopRowIDs: []string{"c", "d"},
+	}
+	// Page 2 of size 2 holds rows c and d, both frozen.
+	frozen, body := dataGridSplitFrozenTopIndices(cfg, dataGridPageRowIndices(2, 4))
+	if len(frozen) != 2 {
+		t.Fatalf("frozen: got %v, want [2 3]", frozen)
+	}
+	if got := dataGridVisibleRowIndices(len(cfg.Rows), body); len(got) != 0 {
+		t.Fatalf("body rows: got %v, want none", got)
+	}
+	if got := dataGridVisibleRowIndices(len(cfg.Rows), nil); len(got) != 4 {
+		t.Fatalf("nil page list: got %v, want all 4 rows", got)
+	}
+}
+
+func TestScrollViewportHeightSubtractsChrome(t *testing.T) {
+	cfg := &DataGridCfg{Height: 400, RowHeight: 20, HeaderHeight: 30,
+		ShowQuickFilter: true, FreezeHeader: true}
+	// 400 - toolbar - quick filter 30 - frozen header 30 - 2 frozen
+	// rows 40 - pager 20.
+	want := 400 - dataGridCrudToolbarHeight(cfg) - 30 - 30 - 40 - 20
+	if got := dataGridScrollViewportHeight(cfg, true, true, 2, 20); got != want {
+		t.Fatalf("viewport: got %v, want %v", got, want)
+	}
+	if got := dataGridScrollViewportHeight(&DataGridCfg{}, true, true, 2, 20); got != 0 {
+		t.Fatalf("no fixed height: got %v, want 0", got)
+	}
+}
+
+func TestFrozenTopDisplayRowCountIncludesDetailRows(t *testing.T) {
+	cfg := &DataGridCfg{
+		Rows:                 []GridRow{{ID: "a"}, {ID: "b"}},
+		DetailRowView:        func(GridRow, *gg.Window) gg.View { return nil },
+		DetailExpandedRowIDs: map[string]bool{"b": true},
+	}
+	// a, b, b's detail row; the out-of-range index is skipped.
+	if got := dataGridFrozenTopDisplayRowCount(cfg, []int{0, 1, 7}); got != 3 {
+		t.Fatalf("got %d, want 3", got)
+	}
+	// The count must match what dataGridFrozenTopViews emits.
+	_, want := dataGridFrozenTopViews(dataGridCtx{cfg: cfg}, []int{0, 1, 7}, false)
+	if want != 3 {
+		t.Fatalf("dataGridFrozenTopViews rows: got %d, want 3", want)
 	}
 }

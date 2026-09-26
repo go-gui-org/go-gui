@@ -8,6 +8,48 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Changed
+
+- **BREAKING: `DialogCfg.CustomContent` is removed (#787)** — deprecated in
+  v0.80.0, it built its views once and never saw later state changes. Use
+  `CustomView: func(*gui.Window) gui.View { return x }` and read state inside
+  the function so the dialog stays current.
+
+### Fixed
+
+- **DataGrid CRUD save no longer loses edits made while it runs** — the grid now
+  refuses cell edits, row adds and row deletes while a source-backed save is in
+  flight, and closes an open cell editor when the save starts. Before, the save
+  committed those changes as saved when it finished, but never sent them to the
+  source, so the refetch after it dropped them. Escape during a save now aborts
+  the save and fetches again. A result from a cancelled or replaced save is
+  dropped, so it can no longer restore old rows over a newer save or send them
+  to `OnRowsChange`.
+
+- **DataGrid rows without an ID keep their identity when edited** — a row with
+  an empty `ID` is keyed by a hash of its cells. An edit changed that hash, so
+  the cell editor closed after the first keystroke and Save sent no update. The
+  edited row now keeps the ID it had.
+
+- **DataGrid source paging and jump work** — with a `DataSource` and `PageSize`,
+  Next and Prev no longer snap back to `PageIndex` on the next frame. The app's
+  `PageIndex` now moves the offset only when it changes. `PageSize` sets the
+  fetch size again when `PageLimit` is unset: a hidden default of 100 had
+  replaced it. Row jump no longer drops digits typed while the previous digits
+  load, scrolls the target row into view, and calls `OnSelectionChange` after
+  the frame instead of during view generation, under the window lock.
+
+- **DataGrid layout and export fixes** — rows pinned with `FrozenTopRowIDs` no
+  longer show twice when they fill the whole page. Keyboard scrolling and
+  PageUp/PageDown measure the scroll body, not the whole grid, so a selected row
+  no longer hides under the toolbar, quick filter or pager. Group aggregates no
+  longer count frozen rows. Column reorder buttons step over hidden columns, so
+  each click moves the column on screen. The ORM data source limits the quick
+  filter and filter values to 500 characters, not 500 bytes, which matches the
+  grid's own limit. XLSX export drops control characters that XML does not
+  allow, so Excel opens the file. The quick filter placeholder uses the theme's
+  placeholder role for its transparency.
+
 ## [v0.80.0] - 2026-09-25
 
 ### Added

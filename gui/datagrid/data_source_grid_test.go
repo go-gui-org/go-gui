@@ -293,36 +293,32 @@ func TestDataGridSourceJumpEnabled(t *testing.T) {
 	rc := 50
 
 	// Happy path: all conditions met.
-	if !dataGridSourceJumpEnabled(sel, &rc, false, "", GridPaginationOffset, 10) {
+	if !dataGridSourceJumpEnabled(sel, &rc, "", GridPaginationOffset, 10) {
 		t.Fatal("expected true")
 	}
 	// Nil onSelectionChange → false.
-	if dataGridSourceJumpEnabled(nil, &rc, false, "", GridPaginationOffset, 10) {
+	if dataGridSourceJumpEnabled(nil, &rc, "", GridPaginationOffset, 10) {
 		t.Fatal("expected false with nil onSelectionChange")
 	}
 	// PageLimit zero → false.
-	if dataGridSourceJumpEnabled(sel, &rc, false, "", GridPaginationOffset, 0) {
+	if dataGridSourceJumpEnabled(sel, &rc, "", GridPaginationOffset, 0) {
 		t.Fatal("expected false with pageLimit 0")
 	}
 	// Cursor mode → false.
-	if dataGridSourceJumpEnabled(sel, &rc, false, "", GridPaginationCursor, 10) {
+	if dataGridSourceJumpEnabled(sel, &rc, "", GridPaginationCursor, 10) {
 		t.Fatal("expected false in cursor mode")
 	}
-	// Loading → false.
-	if dataGridSourceJumpEnabled(sel, &rc, true, "", GridPaginationOffset, 10) {
-		t.Fatal("expected false when loading")
-	}
 	// Load error → false.
-	if dataGridSourceJumpEnabled(sel, &rc, false, "err", GridPaginationOffset, 10) {
+	if dataGridSourceJumpEnabled(sel, &rc, "err", GridPaginationOffset, 10) {
 		t.Fatal("expected false with load error")
 	}
 	// Nil rowCount → false.
-	if dataGridSourceJumpEnabled(sel, nil, false, "", GridPaginationOffset, 10) {
+	if dataGridSourceJumpEnabled(sel, nil, "", GridPaginationOffset, 10) {
 		t.Fatal("expected false with nil rowCount")
 	}
 	// Zero rowCount → false.
 	zero := 0
-	if dataGridSourceJumpEnabled(sel, &zero, false, "", GridPaginationOffset, 10) {
+	if dataGridSourceJumpEnabled(sel, &zero, "", GridPaginationOffset, 10) {
 		t.Fatal("expected false with zero rowCount")
 	}
 }
@@ -699,6 +695,61 @@ func TestSourceApplyPendingJumpSelection(t *testing.T) {
 	dataGridSourceApplyPendingJumpSelection(cfg, state, w)
 }
 
+func TestSourcePendingJumpDefersCallbackAndScrolls(t *testing.T) {
+	w := gg.NewWindow(gg.WindowCfg{})
+	defer w.Close()
+	rows := []GridRow{{ID: "a"}, {ID: "b"}, {ID: "c"}}
+	var got []string
+	cfg := &DataGridCfg{
+		ID:   "g1",
+		Rows: rows,
+		OnSelectionChange: func(s GridSelection, ctx gg.EventCtx) {
+			got = append(got, s.activeRowID)
+		},
+	}
+	// Absolute row 101 on the page starting at 100 is local row 1.
+	dataGridSourceApplyPendingJumpSelection(cfg,
+		dataGridSourceState{Rows: rows, OffsetStart: 100, PendingJumpRow: 101}, w)
+	if len(got) != 0 {
+		t.Fatal("OnSelectionChange ran during view generation, under w.mu")
+	}
+	idx, ok := gg.StateMap[string, int](w, nsDgPendingJump, capModerate).Get("g1")
+	if !ok || idx != 1 {
+		t.Fatalf("pending scroll target: got %d,%v, want 1,true", idx, ok)
+	}
+	w.FrameFn() // flushes the command queue
+	if len(got) != 1 || got[0] != "b" {
+		t.Fatalf("queued selection: got %v, want [b]", got)
+	}
+}
+
+func TestSourceJumpWhileLoadingReplacesFetch(t *testing.T) {
+	w := gg.NewWindow(gg.WindowCfg{})
+	defer w.Close()
+	ctrl := gg.NewGridAbortController()
+	dgSource := gg.StateMap[string, dataGridSourceState](w, nsDgSource, 4)
+	dgSource.Set("g1", dataGridSourceState{
+		OffsetStart: 100, Loading: true, ActiveAbort: ctrl, RequestKey: "k",
+		RequestID: 5, // the in-flight fetch
+	})
+	dataGridSourceJumpToRow("g1", 1233, 100, w)
+	state, _ := dgSource.Get("g1")
+	if state.OffsetStart != 1200 || state.PendingJumpRow != 1233 {
+		t.Fatalf("jump while loading dropped: offset=%d pending=%d",
+			state.OffsetStart, state.PendingJumpRow)
+	}
+	if !ctrl.Signal.IsAborted() || state.Loading || state.RequestKey != "" {
+		t.Fatal("in-flight fetch not replaced by the jump")
+	}
+	// A result the old fetch already queued must now be stale.
+	dataGridSourceApplySuccess("g1", 5, GridDataResult{
+		Rows: []GridRow{{ID: "old"}}, RowCount: -1}, GridDataCapabilities{}, w)
+	state, _ = dgSource.Get("g1")
+	if len(state.Rows) != 0 {
+		t.Fatalf("stale fetch result applied after jump: %v", state.Rows)
+	}
+}
+
 // TestNamespaceValuesPinned guards the "gui.dg.*" strings owned by
 // state.go. StateMap storage is addressed by these literals, so a
 // rename orphans stored state; the test forces a conscious update.
@@ -838,5 +889,72 @@ func TestSourcePagerRowJumpOnlyInOffset(t *testing.T) {
 		dataGridSourcePagerRow(cfg, "", cursor, cursorCaps, ""), w)
 	if findShapeID(&cursorLayout, "g1:jump") {
 		t.Fatal("jump input should not render in cursor mode")
+	}
+}
+
+func TestSourceOffsetPagerSurvivesNextFrame(t *testing.T) {
+	w := gg.NewWindow(gg.WindowCfg{})
+	defer w.Close()
+	src := NewInMemoryDataSource(makeTestRows(300))
+	cfg := DataGridCfg{ID: "g1", DataSource: src, PageSize: 25,
+		PaginationKind: GridPaginationOffset}
+	applyDataGridDefaults(&cfg)
+	dgSrc := gg.StateMap[string, dataGridSourceState](w, nsDgSource, capModerate)
+	notLoading := func() {
+		state, _ := dgSrc.Get("g1")
+		state.Loading = false
+		dgSrc.Set("g1", state)
+	}
+	// The pager reads its step from the resolved cfg, where PageSize
+	// is zeroed: it must still step by the 25-row fetch size.
+	resolved, _, _, _ := dataGridResolveSourceCfg(cfg, w)
+	limit := dataGridPageLimit(&resolved)
+	if limit != 25 {
+		t.Fatalf("pager step with PageSize 25: got %d, want 25", limit)
+	}
+	notLoading()
+	dataGridSourceNextPage("g1", GridPaginationOffset, limit, w)
+	dataGridResolveSourceCfg(cfg, w)
+	state, _ := dgSrc.Get("g1")
+	if state.OffsetStart != 25 {
+		t.Fatalf("OffsetStart after Next + frame: got %d, want 25", state.OffsetStart)
+	}
+	// A change of the app's PageIndex still moves the offset.
+	cfg.PageIndex = 3
+	notLoading()
+	dataGridResolveSourceCfg(cfg, w)
+	state, _ = dgSrc.Get("g1")
+	if state.OffsetStart != 75 {
+		t.Fatalf("OffsetStart after PageIndex=3: got %d, want 75", state.OffsetStart)
+	}
+}
+
+// A grid created on PageIndex 3 must open on page 3: the query reset
+// that runs on a new state's first frame sets the offset to 0.
+func TestSourceOffsetStartsOnPageIndex(t *testing.T) {
+	w := gg.NewWindow(gg.WindowCfg{})
+	defer w.Close()
+	cfg := DataGridCfg{ID: "g1", DataSource: NewInMemoryDataSource(makeTestRows(300)),
+		PageSize: 25, PageIndex: 3, PaginationKind: GridPaginationOffset}
+	applyDataGridDefaults(&cfg)
+	dataGridResolveSourceCfg(cfg, w)
+	state, _ := gg.StateMap[string, dataGridSourceState](w, nsDgSource, capModerate).Get("g1")
+	if state.OffsetStart != 75 {
+		t.Fatalf("first-frame OffsetStart: got %d, want 75", state.OffsetStart)
+	}
+}
+
+func TestSourceForceRefetchStalesQueuedResult(t *testing.T) {
+	w := gg.NewWindow(gg.WindowCfg{})
+	defer w.Close()
+	dgSource := gg.StateMap[string, dataGridSourceState](w, nsDgSource, 4)
+	dgSource.Set("g1", dataGridSourceState{Loading: true, RequestID: 5,
+		ActiveAbort: gg.NewGridAbortController()})
+	dataGridSourceForceRefetch("g1", w)
+	dataGridSourceApplySuccess("g1", 5, GridDataResult{
+		Rows: []GridRow{{ID: "old"}}, RowCount: -1}, GridDataCapabilities{}, w)
+	state, _ := dgSource.Get("g1")
+	if len(state.Rows) != 0 {
+		t.Fatalf("result of the fetch refetch cancelled was applied: %v", state.Rows)
 	}
 }

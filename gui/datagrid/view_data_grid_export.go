@@ -540,7 +540,44 @@ func dataGridXLSXStringCellXML(cellRef, value string) string {
 }
 
 func dataGridXLSXEscape(value string) string {
+	// XML 1.0 forbids C0 controls other than tab, LF and CR, and
+	// U+FFFE/U+FFFF, even as character references. One in a cell made
+	// Excel reject the whole workbook as corrupt, so drop them. Invalid
+	// UTF-8 is also not XML; strings.Map turns it into U+FFFD. The scan
+	// first keeps the common clean value free of an extra copy.
+	if !dataGridXMLClean(value) {
+		value = strings.Map(func(r rune) rune {
+			if dataGridXMLInvalidRune(r) {
+				return -1
+			}
+			return r
+		}, value)
+	}
 	return dataGridXLSXReplacer.Replace(value)
+}
+
+// dataGridXMLClean reports whether value is valid UTF-8 with no rune
+// XML 1.0 forbids.
+func dataGridXMLClean(value string) bool {
+	for i, r := range value {
+		if dataGridXMLInvalidRune(r) {
+			return false
+		}
+		// range yields RuneError, width 1, for a byte that is not UTF-8.
+		if r == utf8.RuneError {
+			if _, size := utf8.DecodeRuneInString(value[i:]); size == 1 {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+func dataGridXMLInvalidRune(r rune) bool {
+	if r < 0x20 {
+		return r != '\t' && r != '\n' && r != '\r'
+	}
+	return r == 0xFFFE || r == 0xFFFF
 }
 
 func dataGridXLSXPreserveSpaces(value string) bool {

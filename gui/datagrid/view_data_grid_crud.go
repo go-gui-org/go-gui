@@ -259,6 +259,11 @@ func dataGridCrudAddRow(gridID string, columns []GridColumnCfg, onSelectionChang
 	dgCrud := gg.StateMap[string, dataGridCrudState](w, nsDgCrud, capModerate)
 	// Default zero state: absent entry means no rows added yet.
 	state := dgCrud.GetOr(gridID, dataGridCrudState{})
+	// The save commits WorkingRows when it finishes. A row added now
+	// would be marked saved without ever reaching the source.
+	if state.Saving {
+		return
+	}
 	state.NextDraftSeq++
 	// A row key, not a scope: it becomes a part of composed row IDs,
 	// so the grid ID is flattened first — an effective ID carries
@@ -332,6 +337,11 @@ func dataGridCrudDeleteRows(gridID string, selection GridSelection, onSelectionC
 	dgCrud := gg.StateMap[string, dataGridCrudState](w, nsDgCrud, capModerate)
 	// Default zero state: absent entry means nothing to delete.
 	state := dgCrud.GetOr(gridID, dataGridCrudState{})
+	// Same as dataGridCrudAddRow: a delete made during a save would
+	// be marked saved without ever reaching the source.
+	if state.Saving {
+		return
+	}
 	kept := make([]GridRow, 0, len(state.WorkingRows))
 	for idx, row := range state.WorkingRows {
 		rowID := dataGridRowID(row, idx)
@@ -401,6 +411,12 @@ func dataGridCrudApplyCellEdit(gridID string, crudEnabled bool, onCellEdit func(
 		dgCrud := gg.StateMap[string, dataGridCrudState](w, nsDgCrud, capModerate)
 		// Default zero state: absent entry means no edit has been applied.
 		state := dgCrud.GetOr(gridID, dataGridCrudState{})
+		// Refuse the edit while a save runs: the save commits
+		// WorkingRows when it finishes and clears the dirty flags, so
+		// this edit would be marked saved without reaching the source.
+		if state.Saving {
+			return
+		}
 		for idx, row := range state.WorkingRows {
 			if dataGridRowID(row, idx) != edit.RowID {
 				continue
@@ -408,8 +424,13 @@ func dataGridCrudApplyCellEdit(gridID string, crudEnabled bool, onCellEdit func(
 			cells := make(map[string]string, len(row.Cells))
 			maps.Copy(cells, row.Cells)
 			cells[edit.ColID] = edit.Value
+			// Keep the identity the row was found by. A row without an
+			// ID is keyed by a hash of its cells (dataGridRowAutoID), so
+			// the edit would give it a new ID: the open editor would
+			// lose its row and DirtyRowIDs would name a row that no
+			// longer exists. Pinning edit.RowID keeps both valid.
 			state.WorkingRows[idx] = GridRow{
-				ID:    row.ID,
+				ID:    edit.RowID,
 				Cells: cells,
 			}
 			state.WorkingVersion++
@@ -431,6 +452,16 @@ func dataGridCrudCancel(gridID string, focusID string, e *gg.Event, w *gg.Window
 	dgCrud := gg.StateMap[string, dataGridCrudState](w, nsDgCrud, capModerate)
 	// Default zero state: absent entry means no pending changes to cancel.
 	state := dgCrud.GetOr(gridID, dataGridCrudState{})
+	wasSaving := state.Saving
+	if wasSaving {
+		// Stop the running save and make its result stale: bumping
+		// RequestID makes dataGridCrudApplySaveResult drop it.
+		if state.ActiveAbort != nil {
+			state.ActiveAbort.Abort()
+		}
+		state.ActiveAbort = nil
+		state.RequestID++
+	}
 	state.WorkingRows = cloneRows(state.CommittedRows)
 	state.WorkingVersion++
 	dataGridCrudClearPendingChanges(&state)
@@ -439,6 +470,11 @@ func dataGridCrudCancel(gridID string, focusID string, e *gg.Event, w *gg.Window
 	state.SourceChanged = false
 	dgCrud.Set(gridID, state)
 	dataGridClearEditingRow(gridID, w)
+	if wasSaving {
+		// Part of the save can already be on the server. Fetch again
+		// so the grid shows what the source holds.
+		dataGridSourceForceRefetch(gridID, w)
+	}
 	if focusID != "" {
 		w.SetFocus(focusID)
 	}

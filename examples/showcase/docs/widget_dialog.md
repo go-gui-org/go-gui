@@ -34,8 +34,7 @@ w.Dialog(gui.DialogCfg{
 ## Custom Dialog
 
 `CustomView` runs on every frame while the dialog shows. Read state inside it,
-so the dialog shows changes. `CustomContent` is deprecated: its views are built
-once and do not change.
+so the dialog shows changes.
 
 ```go
 w.Dialog(gui.DialogCfg{
