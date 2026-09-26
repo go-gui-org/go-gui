@@ -111,6 +111,7 @@ func groupPicker(app *ShowcaseApp) gui.View {
 			groupPickerItem("Nav", groupNav, app),
 			groupPickerItem("Layout", groupLayout, app),
 			groupPickerItem("Feedback", groupFeedback, app),
+			groupPickerItem("Spinners", groupSpinners, app),
 			groupPickerItem("Overlays", groupOverlays, app),
 		},
 	})

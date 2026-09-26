@@ -21,6 +21,7 @@ const (
 	groupNav       = "navigation"
 	groupLayout    = "layout"
 	groupFeedback  = "feedback"
+	groupSpinners  = "spinners"
 	groupOverlays  = "overlays"
 )
 
@@ -320,6 +321,7 @@ var demoGroups = []DemoGroup{
 	{Key: groupLayout, Label: "Layout"},
 	{Key: groupNav, Label: "Navigation"},
 	{Key: groupFeedback, Label: "Feedback"},
+	{Key: groupSpinners, Label: "Spinners"},
 	{Key: groupOverlays, Label: "Overlays"},
 	{Key: groupText, Label: "Text"},
 	{Key: groupButtons, Label: "Buttons"},
@@ -402,13 +404,13 @@ var demoEntries = []DemoEntry{
 	{ID: "command_button", Label: "Command Button", Group: groupButtons, Summary: "Button wired to a registered command with auto-label, shortcut hint, and CanExecute.", Tags: []string{"command", "button", "shortcut", "action"}},
 	{ID: "theme_picker", Label: "Theme Picker", Group: groupSelection, Summary: "Palette icon dropdown for switching registered themes.", Tags: []string{"theme", "picker", "palette", "dark", "light"}},
 	{ID: "progress_bar", Label: "Progress Bar", Group: groupFeedback, Summary: "Determinate and indeterminate progress indicators.", Tags: []string{"progress", "loader", "status"}},
-	{ID: "pulsar", Label: "Pulsar", Group: groupFeedback, Summary: "Animated pulse indicator with optional icons.", Tags: []string{"pulse", "loading", "indicator"}},
+	{ID: "pulsar", Label: "Pulsar", Group: groupSpinners, Summary: "Animated pulse indicator with optional icons.", Tags: []string{"pulse", "loading", "indicator"}},
 	{ID: "toast", Label: "Toast", Group: groupFeedback, Summary: "Non-blocking notifications with auto-dismiss and actions.", Tags: []string{"notification", "alert", "severity", "stack"}},
 	{ID: "badge", Label: "Badge", Group: groupFeedback, Summary: "Numeric and colored pill labels for counts and status.", Tags: []string{"badge", "count", "status", "pill", "label"}},
 	{ID: "skeleton", Label: "Skeleton", Group: groupFeedback, Summary: "Shimmer placeholder for loading states.", Tags: []string{"skeleton", "shimmer", "loading", "placeholder"}},
-	{ID: "spinner", Label: "Math Spinner", Group: groupFeedback, Summary: "Animated mathematical curves as loading indicators.", Tags: []string{"math spinner", "loading", "curve", "animation", "rose", "lissajous", "butterfly", "cardioid", "spiral"}},
-	{ID: "svg_spinner", Label: "SVG Spinner", Group: groupFeedback, Summary: "One hundred six built-in animated SVG spinners grouped by visual family.", Tags: []string{"svg", "spinner", "loading", "animation", "dots", "bars", "ring", "loader", "blocks"}},
-	{ID: "thinking_orb", Label: "Thinking Orb", Group: groupFeedback, Summary: "Nine semantic dotted-3D spinners for AI and agent states.", Tags: []string{"thinking", "orb", "spinner", "loading", "ai", "agent", "searching", "composing"}},
+	{ID: "spinner", Label: "Math Spinner", Group: groupSpinners, Summary: "Animated mathematical curves as loading indicators.", Tags: []string{"math spinner", "loading", "curve", "animation", "rose", "lissajous", "butterfly", "cardioid", "spiral"}},
+	{ID: "svg_spinner", Label: "SVG Spinner", Group: groupSpinners, Summary: "One hundred six built-in animated SVG spinners grouped by visual family.", Tags: []string{"svg", "spinner", "loading", "animation", "dots", "bars", "ring", "loader", "blocks"}},
+	{ID: "thinking_orb", Label: "Thinking Orb", Group: groupSpinners, Summary: "Nine semantic dotted-3D spinners for AI and agent states.", Tags: []string{"thinking", "orb", "spinner", "loading", "ai", "agent", "searching", "composing"}},
 	{ID: "native_notification", Label: "Native Notification", Group: groupFeedback, Summary: "OS-level notifications on macOS, Windows, and Linux.", Tags: []string{"notification", "native", "os", "alert", "push"}},
 	{ID: "audio", Label: "Audio", Group: groupFeedback, Summary: "Sound effects and music playback via beep.", Tags: []string{"audio", "sound", "music", "sfx", "beep", "mixer"}},
 
