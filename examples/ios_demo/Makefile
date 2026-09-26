@@ -20,7 +20,8 @@ build:
 
 run: build
 	xcrun simctl boot "$(SIM)" 2>/dev/null || true
-	open -a Simulator
+	# Xcode 27 replaced Simulator.app with DeviceHub.app.
+	open -a Simulator 2>/dev/null || open -a DeviceHub
 	xcrun simctl install booted "$(APP_PATH)"
 	xcrun simctl launch booted com.example.IOSDemo
 
