@@ -1,7 +1,7 @@
 # Soft keyboard
 
-Issue #770. Status: implemented for Android and web. iOS and desktop implement
-the methods as no-ops.
+Issue #770. Status: implemented for Android and web (#770) and iOS (#806).
+Desktop implements the methods as no-ops.
 
 ## Decision
 
@@ -41,13 +41,42 @@ adds no second show/hide path.
 | -------- | ------------------------------------------------------------ | ----------------------------------------------- |
 | Android  | `EditorInfo.inputType` via `PendingIMEKeyboardKind`; restart | `WindowInsets.Type.ime()`, API 30+; 0 below     |
 | Web      | hidden input `inputmode` and `type=password`                 | `visualViewport` resize: `innerHeight` − bottom |
-| iOS      | no-op (backend has no text input; separate issue)            | none                                            |
+| iOS      | `UIKeyInput` traits `keyboardType`, `secureTextEntry`        | `UIKeyboardWillChangeFrame`, docked only        |
 | Desktop  | no-op                                                        | none                                            |
 
 The Android host sets `windowSoftInputMode="adjustNothing"`, so the GL surface
 keeps its size and the app decides what to move.
 
+### iOS (#806)
+
+The Metal view (`GoGuiView`, `gui/backend/ios/ios_app.m`) adopts `UIKeyInput`.
+It is first responder only while a text field is active. With no text field, the
+view controller is first responder: it opens no keyboard, and hardware keys
+still reach Go. `insertText:` becomes an `EventChar` (a line break becomes
+`KeyEnter`), and `deleteBackward` becomes a `KeyBackspace` key-down. Hardware
+keys that type no text, and Command or Control chords, come from
+`pressesBegan:`. The conversion is in `gui/backend/internal/ioskey`, which has
+host tests.
+
+- Hide (`HideSoftKeyboard`, `KeyboardNone`) sets an empty `inputView`. The view
+  stays first responder, so a hardware keyboard still types, as with the web
+  backend's `inputmode="none"`.
+- The four gui calls only record the wanted state. One `dispatch_async` block
+  applies the last state, so a move between two fields does not close and open
+  the keyboard, and UIKit is never called with the window lock held.
+- Autocorrect, autocapitalization, spell check and smart punctuation are off:
+  UIKit sees none of the text, so it would rewrite text it cannot see.
+- No marked text: CJK conversion needs `UITextInput`, a separate change.
+- A floating or undocked iPad keyboard reports inset 0.
+
 ## Rejected Approaches
+
+- **iOS: full `UITextInput`** now. Marked text (CJK) and autocorrect need the
+  field's text and caret mirrored into UIKit on each change. That is large and
+  easy to desync. Kept for a later change.
+- **iOS: hidden `UITextField` proxy**, as on web. Two text buffers, and diffing
+  the field's text into commits and deletes drifts on paste and autocorrect. Web
+  needs a hidden input because the browser gives no other hook; UIKit does.
 
 - **Imperative keyboard object** (`w.Keyboard().Show(kind)`, called from
   `OnFocus`). It duplicates the edit-context gate, lets an app show a keyboard

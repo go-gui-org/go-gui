@@ -8,6 +8,19 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- **iOS text input and soft keyboard (#806)** — the iOS backend had no text
+  input: a focused `Input` took no typing. Now a tapped text field opens the
+  soft keyboard its `Keyboard` kind asks for, a password field gets a secure
+  keyboard, and typing, Backspace and Return reach the field.
+  `Window.HideSoftKeyboard`, `Window.ShowSoftKeyboard` and `KeyboardNone` work
+  as on Android and web, and `Window.SoftKeyboardInset` reports the docked
+  keyboard's height. A hardware keyboard types too: arrows, Tab, Escape and
+  Command shortcuts reach Go, also when a button holds focus. Autocorrect is
+  off, and CJK conversion (marked text) is not supported yet. Copy and paste
+  still do nothing on iOS: the clipboard is not wired.
+
 ### Changed
 
 - **BREAKING: `DialogCfg.CustomContent` is removed (#787)** — deprecated in
