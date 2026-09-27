@@ -46,6 +46,13 @@ and this project adheres to
 
 ### Fixed
 
+- **Select, Combobox, menus and drags work inside a Dialog again (#810)** — a
+  `Select` or `Combobox` in a dialog did not open, because the frame repair
+  added in #729 closed every dropdown and menu, and cancelled every mouse lock,
+  on each frame a dialog was visible. Now it does this only once, when the
+  dialog opens. Popups and drags that started behind the dialog still end, and
+  controls inside the dialog work as they do outside it.
+
 - **Web backend draws triangle meshes 3–5× faster and skips idle frames** — SVG,
   DrawCanvas, charts and ThinkingOrb meshes were built with one `syscall/js`
   call per vertex, about 170k calls per frame for one ThinkingOrb. Now each mesh

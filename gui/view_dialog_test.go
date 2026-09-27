@@ -742,3 +742,171 @@ func TestDialogThemeWidthBoundsStillApply(t *testing.T) {
 			DefaultDialogStyle.MinWidth, DefaultDialogStyle.MaxWidth)
 	}
 }
+
+// openDialogWith renders an empty main view, then shows a DialogCustom
+// whose body is content, and renders the frame that shows it.
+func openDialogWith(t *testing.T, content func(*Window) View) *Window {
+	t.Helper()
+	w := NewTestWindow(WindowCfg{})
+	w.TestRender(func(*Window) View {
+		return Column(ContainerCfg{ID: "root"})
+	})
+	w.Dialog(DialogCfg{DialogType: DialogCustom, CustomView: content})
+	w.TestRender(nil)
+	if !w.DialogIsVisible() {
+		t.Fatal("dialog did not open")
+	}
+	return w
+}
+
+// resolveOne returns the one effective ID the last frame stamped for
+// leaf.
+func resolveOne(t *testing.T, w *Window, leaf string) string {
+	t.Helper()
+	ids := w.ResolveID(leaf)
+	if len(ids) != 1 {
+		t.Fatalf("ResolveID(%q) = %q, want one ID", leaf, ids)
+	}
+	return ids[0]
+}
+
+// TestDialogSelectOpens is the regression test for issue #810: a
+// Select inside a dialog must open its dropdown and keep it open. The
+// per-frame interaction fixup closed every select popup on each frame
+// the dialog was visible, so the dropdown never showed.
+func TestDialogSelectOpens(t *testing.T) {
+	w := openDialogWith(t, func(*Window) View {
+		return Select(SelectCfg{
+			ID:          "time-select",
+			Placeholder: "time",
+			Options: []SelectOption{
+				{Label: "seconds", Value: "seconds"},
+				{Label: "minutes", Value: "minutes"},
+				{Label: "hours", Value: "hours"},
+			},
+			OnSelect: func([]string, EventCtx) {},
+		})
+	})
+	id := resolveOne(t, w, "time-select")
+	if err := w.TestClick(id); err != nil {
+		t.Fatal(err)
+	}
+	// Two more frames: the fixup runs on every one of them.
+	w.TestRender(nil)
+	w.TestRender(nil)
+	if !StateReadOr(w, nsSelect, id, false) {
+		t.Fatal("select dropdown closed after the click")
+	}
+	if _, ok := w.layout.FindByID(ScopeID(id, "dropdown")); !ok {
+		t.Fatal("select dropdown not in the tree")
+	}
+}
+
+// TestDialogComboboxOpens is the Combobox half of issue #810.
+func TestDialogComboboxOpens(t *testing.T) {
+	w := openDialogWith(t, func(*Window) View {
+		return Combobox(ComboboxCfg{
+			ID: "unit",
+			Options: []SelectOption{
+				{Label: "seconds", Value: "seconds"},
+				{Label: "minutes", Value: "minutes"},
+			},
+			OnSelect: func(string, EventCtx) {},
+		})
+	})
+	id := resolveOne(t, w, "unit")
+	if err := w.TestClick(id); err != nil {
+		t.Fatal(err)
+	}
+	w.TestRender(nil)
+	w.TestRender(nil)
+	if !StateReadOr(w, nsCombobox, id, false) {
+		t.Fatal("combobox dropdown closed after the click")
+	}
+}
+
+// TestDialogKeepsDragLock checks that a mouse lock taken while a
+// dialog is visible (a slider or scrollbar drag inside the dialog)
+// survives the following frames. Only the dialog's opening ends a
+// gesture (issue #810).
+func TestDialogKeepsDragLock(t *testing.T) {
+	w := openDialogWith(t, func(*Window) View {
+		return Text(TextCfg{Text: "body"})
+	})
+	w.MouseLock(MouseLockCfg{MouseMove: func(EventCtx) {}})
+	w.TestRender(nil)
+	w.TestRender(nil)
+	if !w.mouseIsLocked() {
+		t.Fatal("mouse lock cancelled while the dialog stayed open")
+	}
+}
+
+// TestDialogReopenCutsAgain checks the dismiss path: a Select opened in
+// the main view after the first dialog was dismissed is closed when a
+// second dialog opens (issue #810).
+func TestDialogReopenCutsAgain(t *testing.T) {
+	w := NewTestWindow(WindowCfg{})
+	view := func(*Window) View {
+		return Column(ContainerCfg{ID: "root", Content: []View{
+			Select(SelectCfg{
+				ID: "bg-select",
+				Options: []SelectOption{
+					{Label: "a", Value: "a"},
+					{Label: "b", Value: "b"},
+				},
+				OnSelect: func([]string, EventCtx) {},
+			}),
+		}})
+	}
+	w.TestRender(view)
+	w.Dialog(DialogCfg{DialogType: DialogMessage, Body: "one"})
+	w.TestRender(nil)
+	w.DialogDismiss()
+	w.TestRender(nil)
+
+	id := resolveOne(t, w, "bg-select")
+	if err := w.TestClick(id); err != nil {
+		t.Fatal(err)
+	}
+	w.TestRender(nil)
+	if !StateReadOr(w, nsSelect, id, false) {
+		t.Fatal("background select did not open")
+	}
+
+	w.Dialog(DialogCfg{DialogType: DialogMessage, Body: "two"})
+	w.TestRender(nil)
+	if StateReadOr(w, nsSelect, id, false) {
+		t.Fatal("second dialog left the background select open")
+	}
+}
+
+// TestDialogReplaceCutsAgain checks that Dialog called while a dialog is
+// still visible cuts again, even when the new cfg is a copy of the shown
+// one (so it carries interactionCut = true). A Select opened inside the
+// first dialog must close when the replacement opens (issue #810).
+func TestDialogReplaceCutsAgain(t *testing.T) {
+	w := openDialogWith(t, func(*Window) View {
+		return Select(SelectCfg{
+			ID: "in-select",
+			Options: []SelectOption{
+				{Label: "a", Value: "a"},
+				{Label: "b", Value: "b"},
+			},
+			OnSelect: func([]string, EventCtx) {},
+		})
+	})
+	id := resolveOne(t, w, "in-select")
+	if err := w.TestClick(id); err != nil {
+		t.Fatal(err)
+	}
+	w.TestRender(nil)
+	if !StateReadOr(w, nsSelect, id, false) {
+		t.Fatal("select in the dialog did not open")
+	}
+
+	w.Dialog(w.dialogCfg)
+	w.TestRender(nil)
+	if StateReadOr(w, nsSelect, id, false) {
+		t.Fatal("replacement dialog left the select open")
+	}
+}

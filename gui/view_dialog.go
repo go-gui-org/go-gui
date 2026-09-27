@@ -99,6 +99,11 @@ type DialogCfg struct {
 
 	// unexported
 	visible bool
+	// interactionCut is set once fixupInteractionLocked has ended the
+	// gestures and popups begun under this dialog. Dialog stores a fresh
+	// cfg, so each dialog shown gets its own cut, and state started
+	// inside the dialog is left alone after that (issue #810).
+	interactionCut bool
 }
 
 // dialogViewGenerator builds the dialog overlay view from cfg.
@@ -397,6 +402,9 @@ func dialogFocusID(cfg DialogCfg) string {
 func (w *Window) Dialog(cfg DialogCfg) {
 	applyDialogDefaults(&cfg)
 	cfg.visible = true
+	// A new dialog always gets its own interaction cut, even when cfg
+	// was copied from w.dialogCfg of a dialog already shown.
+	cfg.interactionCut = false
 	cfg.oldFocusID = w.FocusID()
 	w.dialogCfg = cfg
 	// The open cue, not cfg.Sound: Sound names the buttons' activation
