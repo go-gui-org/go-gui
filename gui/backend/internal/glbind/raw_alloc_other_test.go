@@ -30,11 +30,24 @@ func harmlessProcAddr(tb testing.TB) uintptr {
 	return proc
 }
 
+// rawCallAllocs is the per-call allocation budget for a wrapper that passes
+// integers only. purego.SyscallN (v0.10.2) allocates twice on every call, and
+// no caller can avoid it:
+//
+//  1. SyscallN carries //go:uintptrescapes and is variadic, so its args slice
+//     goes to the heap (syscall.go).
+//  2. syscall_syscall15X builds &syscall15Args{...} and hands it to
+//     runtime_cgocall, so that struct goes to the heap too (syscall_sysv.go).
+//
+// Two is still far below the six the purego.RegisterFunc path cost per call
+// before #812. Reaching zero means bypassing SyscallN, which needs purego's
+// unexported internals; that is tracked separately. If a purego upgrade drops
+// either allocation, this test keeps passing — lower the budget then.
+const rawCallAllocs = 2.0
+
 // ptrArgAllocs is the per-call allocation budget for a wrapper that hands a Go
-// pointer to the driver. purego.SyscallN carries //go:uintptrescapes, which
+// pointer to the driver: the two above, plus one more. //go:uintptrescapes
 // keeps the referent alive but also forces it to the heap, so a caller passing
 // a function-local array pays one allocation for that array — where Windows,
-// with //go:uintptrkeepalive, pays none. There is no CGo-free alternative, and
-// one allocation still sits far below the six the purego.RegisterFunc path cost
-// per call before #812.
-const ptrArgAllocs = 1.0
+// with //go:uintptrkeepalive, pays none. There is no CGo-free alternative.
+const ptrArgAllocs = 3.0

@@ -22,12 +22,14 @@ func sysN(fn uintptr, args ...uintptr) {
 	_, _, _ = purego.SyscallN(fn, args...)
 }
 
-// Unlike syscall.SyscallN's //go:uintptrkeepalive on Windows,
-// purego.SyscallN's //go:uintptrescapes also forces the referent to the heap.
-// A caller passing &localArray[0] therefore pays one allocation for that
-// array here where Windows pays none. That is still far below the six
-// allocations per call the purego.RegisterFunc path cost, and there is no
-// CGo-free alternative.
+// Unlike syscall.SyscallN on Windows, purego.SyscallN allocates twice on every
+// call: its variadic slice escapes through //go:uintptrescapes, and it heap-
+// allocates the args struct it hands to runtime_cgocall. //go:uintptrescapes
+// also forces a pointer argument's referent to the heap, so a caller passing
+// &localArray[0] pays a third allocation where Windows pays none. That is
+// still below the six allocations per call the purego.RegisterFunc path cost,
+// and there is no CGo-free alternative that stays on purego's public API.
+// raw_alloc_other_test.go pins these numbers.
 
 func BufferData(target uint32, size int, data unsafe.Pointer, usage uint32) {
 	_, _, _ = purego.SyscallN(addrBufferData, uintptr(target), uintptr(size),

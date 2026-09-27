@@ -88,7 +88,7 @@ func TestHotCallsCoverRawBindings(t *testing.T) {
 }
 
 // pointerArgCalls names the wrappers that hand a live Go pointer to the driver,
-// and so answer to ptrArgAllocs rather than to zero.
+// and so answer to ptrArgAllocs rather than to rawCallAllocs.
 //
 // glDrawElements is not among them although its parameter is an
 // unsafe.Pointer: every call site passes nil, because the indices come from the
@@ -116,7 +116,7 @@ func TestRawCallsDoNotAllocate(t *testing.T) {
 
 	for name, call := range hotCalls() {
 		t.Run(name, func(t *testing.T) {
-			want := 0.0
+			want := rawCallAllocs
 			if pointerArgCalls[name] {
 				want = ptrArgAllocs
 			}

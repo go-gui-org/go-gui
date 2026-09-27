@@ -23,6 +23,11 @@ func harmlessProcAddr(tb testing.TB) uintptr {
 	return proc.Addr()
 }
 
+// rawCallAllocs is the per-call allocation budget for a wrapper that passes
+// integers only. syscall.SyscallN keeps its variadic slice on the stack, so the
+// raw path allocates nothing.
+const rawCallAllocs = 0.0
+
 // ptrArgAllocs is the per-call allocation budget for a wrapper that hands a Go
 // pointer to the driver. syscall.SyscallN carries //go:uintptrkeepalive, which
 // keeps the referent alive without forcing it to the heap, so a caller passing
