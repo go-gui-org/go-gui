@@ -257,12 +257,18 @@ func enabledIDKey(s *Shape) string {
 // the tree or went disabled can never release cleanly: without this
 // the release fires a click on whatever took its place (#691, gap
 // 3). An open popup whose field is gone or disabled has nothing to
-// anchor to. A modal dialog ends pointer gestures outright — the
-// pointer still belongs to the user, but the background no longer
-// answers it. Runs under w.mu once per full Update; every arm is
-// guarded so a quiet frame pays one branch.
+// anchor to. A modal dialog's opening ends pointer gestures and popups
+// outright — the pointer still belongs to the user, but the background
+// no longer answers it. Runs under w.mu once per full Update; every
+// arm is guarded so a quiet frame pays one branch.
 func (w *Window) fixupInteractionLocked() {
-	if w.dialogCfg.visible {
+	// Only on the first frame of each dialog. Doing this on every frame
+	// the dialog is up also closed a Select, Combobox or menu opened
+	// inside the dialog, and cancelled every drag there (issue #810).
+	// After the cut, events route only to the dialog layer, so nothing
+	// new can start in the background.
+	if w.dialogCfg.visible && !w.dialogCfg.interactionCut {
+		w.dialogCfg.interactionCut = true
 		w.viewState.pressTargetID = ""
 		if w.mouseIsLocked() {
 			w.MouseCancel()
