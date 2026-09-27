@@ -50,6 +50,15 @@ func inspectorToggle(w *Window) {
 	w.InvalidateLayout()
 }
 
+// isInspectorLayer reports whether ly is the root of the inspector's own
+// top-level layer. The panel is identified by its reserved ID, not by its
+// position, so a layout that is one frame stale after F12 still answers
+// correctly.
+func isInspectorLayer(ly *Layout) bool {
+	return ly != nil && ly.Shape != nil &&
+		ly.Shape.idKey() == inspectorScrollPanel
+}
+
 func inspectorIsLeft(w *Window) bool {
 	if w == nil {
 		return false

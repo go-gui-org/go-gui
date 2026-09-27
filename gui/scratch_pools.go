@@ -276,6 +276,12 @@ type scratchPools struct {
 	hoverEvent   Event
 	gestureEvent Event
 
+	// modalRoute is the root dialogRoute hands out when layers sit above
+	// a modal dialog (the inspector panel). Its Children re-slice
+	// w.layout.Children, so building it allocates nothing. Valid for one
+	// dispatch only: the next frame rebuilds the layers under it.
+	modalRoute Layout
+
 	// canvasCtx is the DrawContext every DrawCanvas redraw runs
 	// through. It is parked here rather than built per redraw for two
 	// reasons: it escapes to the heap the moment it is handed to an
