@@ -46,6 +46,22 @@ and this project adheres to
 
 ### Fixed
 
+- **GL calls no longer allocate on every frame on Linux and Windows (#812)** —
+  the native GL backend bound all of its OpenGL entry points through
+  `purego.RegisterFunc`, whose wrapper is a `reflect.MakeFunc` closure: every
+  call boxed its arguments into `reflect.Value`s and allocated 304 bytes across
+  six allocations. A frame issues hundreds of GL calls, so in a profile of an
+  idle app the wrapper accounted for 43% of all bytes allocated — more than text
+  shaping, rasterization and layout together — and drove a steady heap sawtooth
+  with nothing on screen changing. The 22 per-frame entry points now call their
+  resolved address directly, at zero allocations and roughly a seventh of the
+  latency (1246 ns/op to 165 ns/op measured on windows/amd64); one allocation
+  per call remains on Linux for the four entry points that pass a Go pointer.
+  Cold entry points — shader compilation, object creation, queries — still go
+  through purego, where the type safety is worth more than the startup cost. No
+  API change; apps see lower memory use and less GC pressure, most visibly in
+  apps that redraw continuously.
+
 - **Select, Combobox, menus and drags work inside a Dialog again (#810)** — a
   `Select` or `Combobox` in a dialog did not open, because the frame repair
   added in #729 closed every dropdown and menu, and cancelled every mouse lock,
