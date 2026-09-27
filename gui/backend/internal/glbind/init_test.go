@@ -81,7 +81,10 @@ func TestBindingNamesMatchVars(t *testing.T) {
 			return true
 		}
 
-		varName := strings.TrimPrefix(ident.Name, "pfn")
+		varName, ok := trimBindingPrefix(ident.Name)
+		if !ok {
+			return true
+		}
 		entryPoint := strings.TrimPrefix(strings.Trim(str.Value, `"`), "gl")
 		if varName != entryPoint {
 			t.Errorf("%s is bound to gl%s: variable and entry point disagree",
@@ -91,8 +94,68 @@ func TestBindingNamesMatchVars(t *testing.T) {
 		return true
 	})
 
-	if want := len(bindings()); checked != want {
-		t.Errorf("parsed %d binding literals, table has %d entries", checked, want)
+	if want := len(bindings()) + len(rawBindings()); checked != want {
+		t.Errorf("parsed %d binding literals, tables have %d entries", checked, want)
+	}
+}
+
+// trimBindingPrefix strips the destination-kind prefix from a binding
+// variable's name: pfn for a purego-bound func pointer, addr for a raw
+// address. It reports false for anything else, so the source-parsing tests
+// ignore unrelated composite literals.
+func trimBindingPrefix(name string) (string, bool) {
+	for _, prefix := range []string{"pfn", "addr"} {
+		if rest, ok := strings.CutPrefix(name, prefix); ok {
+			return rest, true
+		}
+	}
+	return "", false
+}
+
+// TestTablesPartitionEntryPoints holds the two tables to being a partition,
+// not an overlap. An entry point in both would be resolved twice and called
+// through whichever wrapper the exported name happens to reach — and since the
+// two halves declare the same exported functions across different files, a
+// duplicate is exactly the mistake that compiles.
+func TestTablesPartitionEntryPoints(t *testing.T) {
+	seen := map[string]string{}
+	for _, b := range bindings() {
+		seen[b.name] = "purego"
+	}
+	for _, b := range rawBindings() {
+		if where, dup := seen[b.name]; dup {
+			t.Errorf("%s is in both tables (%s and raw)", b.name, where)
+		}
+		seen[b.name] = "raw"
+	}
+}
+
+// TestRawBindingsWellFormed mirrors TestBindingsWellFormed for the raw half:
+// every row must name a distinct entry point and a distinct address variable.
+// A duplicated address would leave one entry point permanently zero, and a
+// call through a zero address is a nil-pointer jump into address space, not a
+// recoverable error.
+func TestRawBindingsWellFormed(t *testing.T) {
+	seenName := map[string]bool{}
+	seenAddr := map[*uintptr]bool{}
+
+	for _, b := range rawBindings() {
+		if !strings.HasPrefix(b.name, "gl") {
+			t.Errorf("%s: entry-point name must start with %q", b.name, "gl")
+		}
+		if seenName[b.name] {
+			t.Errorf("%s: duplicate entry-point name", b.name)
+		}
+		seenName[b.name] = true
+
+		if b.addr == nil {
+			t.Errorf("%s: nil address destination", b.name)
+			continue
+		}
+		if seenAddr[b.addr] {
+			t.Errorf("%s: duplicate address variable", b.name)
+		}
+		seenAddr[b.addr] = true
 	}
 }
 
@@ -104,8 +167,12 @@ func TestInitReportsMissingSymbol(t *testing.T) {
 	if err == nil {
 		t.Fatal("InitWithProcAddrFunc(always 0) = nil, want error")
 	}
-	if !strings.Contains(err.Error(), "glActiveTexture") {
-		t.Errorf("error %q does not name the missing symbol", err)
+	// With nothing resolvable, the first row of the first table resolved is
+	// the one reported. Read the name from the table rather than spelling it,
+	// so reordering a row is not a test failure.
+	first := bindings()[0].name
+	if !strings.Contains(err.Error(), first) {
+		t.Errorf("error %q does not name the missing symbol %s", err, first)
 	}
 }
 
@@ -114,6 +181,10 @@ func TestInitReportsMissingSymbol(t *testing.T) {
 // that mishandles the error can never observe a half-bound package. In the
 // single-pass form, every entry point resolved before the failure would have
 // stayed bound.
+//
+// glBindBuffer is deliberately a raw-table row, so the failure lands after the
+// whole purego table has resolved. That is the case where a per-table two-pass
+// would not be enough: the purego half must stay unbound too.
 func TestInitFailureLeavesNothingBound(t *testing.T) {
 	err := InitWithProcAddrFunc(func(name string) uintptr {
 		if name == "glBindBuffer" {
@@ -124,22 +195,25 @@ func TestInitFailureLeavesNothingBound(t *testing.T) {
 	if err == nil {
 		t.Fatal("InitWithProcAddrFunc = nil, want error")
 	}
-	if pfnActiveTexture != nil || pfnAttachShader != nil || pfnBindBuffer != nil {
+	if pfnAttachShader != nil || pfnClearColor != nil {
 		t.Fatal("failed init left function pointers bound")
+	}
+	if addrBindBuffer != 0 || addrDrawArrays != 0 {
+		t.Fatal("failed init left entry-point addresses bound")
 	}
 }
 
 // TestTableCoversEveryPointer guards the completeness direction the other
-// tests cannot see: a pfn variable (and its wrapper) added without a
-// {&pfn, "gl..."} table entry would leave the wrapper permanently nil at
+// tests cannot see: a pfn or addr variable (and its wrapper) added without a
+// table entry would leave the wrapper permanently nil, or its address zero, at
 // runtime, and the table-shape tests cannot catch it because they never look
-// at glbind.go. Re-parse both files and require every pfn name to appear
-// exactly twice: once as a declaration, once as a table entry. (A table
-// entry without a declaration cannot compile.)
+// at glbind.go or raw.go. Re-parse all three files and require every pfn and
+// addr name to appear exactly twice: once as a declaration, once as a table
+// entry. (A table entry without a declaration cannot compile.)
 func TestTableCoversEveryPointer(t *testing.T) {
 	fset := token.NewFileSet()
 	counts := map[string]int{}
-	for _, f := range []string{"glbind.go", "init.go"} {
+	for _, f := range []string{"glbind.go", "init.go", "raw.go"} {
 		file, err := parser.ParseFile(fset, f, nil, 0)
 		if err != nil {
 			t.Fatalf("parse %s: %v", f, err)
@@ -147,16 +221,20 @@ func TestTableCoversEveryPointer(t *testing.T) {
 		ast.Inspect(file, func(n ast.Node) bool {
 			switch v := n.(type) {
 			case *ast.ValueSpec:
-				// pfnActiveTexture func(...) — the declaration side.
+				// pfnActiveTexture func(...) / addrDrawArrays uintptr — the
+				// declaration side.
 				for _, name := range v.Names {
-					if strings.HasPrefix(name.Name, "pfn") {
+					if _, ok := trimBindingPrefix(name.Name); ok {
 						counts[name.Name]++
 					}
 				}
 			case *ast.UnaryExpr:
-				// &pfnActiveTexture — the table-entry side.
+				// &pfnAttachShader / &addrDrawArrays — the table-entry side.
 				ident, ok := v.X.(*ast.Ident)
-				if ok && v.Op == token.AND && strings.HasPrefix(ident.Name, "pfn") {
+				if !ok || v.Op != token.AND {
+					return true
+				}
+				if _, named := trimBindingPrefix(ident.Name); named {
 					counts[ident.Name]++
 				}
 			}

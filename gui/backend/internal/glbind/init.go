@@ -15,25 +15,28 @@ type binding struct {
 	name string
 }
 
-// bindings lists every GL entry point this package exposes. Order is
+// rawBinding pairs a package-level address variable with the GL entry-point
+// name that fills it. Its entry points are called through sysN rather than a
+// purego wrapper; raw.go explains why and what may join it.
+type rawBinding struct {
+	addr *uintptr
+	name string
+}
+
+// bindings lists the GL entry points bound through purego. Order is
 // irrelevant; all of them are OpenGL 3.3 core, so a driver advertising a 3.3
 // context must resolve all of them.
+//
+// Together with rawBindings it covers every entry point this package exposes.
+// TestTablesPartitionEntryPoints holds the two tables to that contract.
 func bindings() []binding {
 	return []binding{
-		{&pfnActiveTexture, "glActiveTexture"},
 		{&pfnAttachShader, "glAttachShader"},
-		{&pfnBindBuffer, "glBindBuffer"},
 		{&pfnBindFramebuffer, "glBindFramebuffer"},
 		{&pfnBindRenderbuffer, "glBindRenderbuffer"},
-		{&pfnBindTexture, "glBindTexture"},
-		{&pfnBindVertexArray, "glBindVertexArray"},
 		{&pfnBlendFunc, "glBlendFunc"},
-		{&pfnBufferData, "glBufferData"},
-		{&pfnBufferSubData, "glBufferSubData"},
 		{&pfnCheckFramebufferStatus, "glCheckFramebufferStatus"},
-		{&pfnClear, "glClear"},
 		{&pfnClearColor, "glClearColor"},
-		{&pfnColorMask, "glColorMask"},
 		{&pfnCompileShader, "glCompileShader"},
 		{&pfnCreateProgram, "glCreateProgram"},
 		{&pfnCreateShader, "glCreateShader"},
@@ -44,11 +47,6 @@ func bindings() []binding {
 		{&pfnDeleteShader, "glDeleteShader"},
 		{&pfnDeleteTextures, "glDeleteTextures"},
 		{&pfnDeleteVertexArrays, "glDeleteVertexArrays"},
-		{&pfnDisable, "glDisable"},
-		{&pfnDrawArrays, "glDrawArrays"},
-		{&pfnDrawElements, "glDrawElements"},
-		{&pfnEnable, "glEnable"},
-		{&pfnEnableVertexAttribArray, "glEnableVertexAttribArray"},
 		{&pfnFramebufferRenderbuffer, "glFramebufferRenderbuffer"},
 		{&pfnFramebufferTexture2D, "glFramebufferTexture2D"},
 		{&pfnGenBuffers, "glGenBuffers"},
@@ -63,18 +61,40 @@ func bindings() []binding {
 		{&pfnGetUniformLocation, "glGetUniformLocation"},
 		{&pfnLinkProgram, "glLinkProgram"},
 		{&pfnRenderbufferStorage, "glRenderbufferStorage"},
-		{&pfnScissor, "glScissor"},
 		{&pfnShaderSource, "glShaderSource"},
-		{&pfnStencilFunc, "glStencilFunc"},
-		{&pfnStencilOp, "glStencilOp"},
 		{&pfnTexImage2D, "glTexImage2D"},
 		{&pfnTexParameteri, "glTexParameteri"},
-		{&pfnTexSubImage2D, "glTexSubImage2D"},
-		{&pfnUniform1i, "glUniform1i"},
-		{&pfnUniformMatrix4fv, "glUniformMatrix4fv"},
-		{&pfnUseProgram, "glUseProgram"},
-		{&pfnVertexAttribPointer, "glVertexAttribPointer"},
-		{&pfnViewport, "glViewport"},
+	}
+}
+
+// rawBindings lists the per-frame GL entry points, resolved to a bare address
+// and called through sysN. Membership is a performance decision with two hard
+// constraints — no float parameters, and no pointer parameters routed through
+// sysN — both spelled out in raw.go. Read that before adding a row.
+func rawBindings() []rawBinding {
+	return []rawBinding{
+		{&addrActiveTexture, "glActiveTexture"},
+		{&addrBindBuffer, "glBindBuffer"},
+		{&addrBindTexture, "glBindTexture"},
+		{&addrBindVertexArray, "glBindVertexArray"},
+		{&addrBufferData, "glBufferData"},
+		{&addrBufferSubData, "glBufferSubData"},
+		{&addrClear, "glClear"},
+		{&addrColorMask, "glColorMask"},
+		{&addrDisable, "glDisable"},
+		{&addrDrawArrays, "glDrawArrays"},
+		{&addrDrawElements, "glDrawElements"},
+		{&addrEnable, "glEnable"},
+		{&addrEnableVertexAttribArray, "glEnableVertexAttribArray"},
+		{&addrScissor, "glScissor"},
+		{&addrStencilFunc, "glStencilFunc"},
+		{&addrStencilOp, "glStencilOp"},
+		{&addrTexSubImage2D, "glTexSubImage2D"},
+		{&addrUniform1i, "glUniform1i"},
+		{&addrUniformMatrix4fv, "glUniformMatrix4fv"},
+		{&addrUseProgram, "glUseProgram"},
+		{&addrVertexAttribPointer, "glVertexAttribPointer"},
+		{&addrViewport, "glViewport"},
 	}
 }
 
@@ -91,11 +111,13 @@ func bindings() []binding {
 // A missing symbol is reported as an error naming it, rather than deferred to
 // a nil-pointer panic at the first draw call.
 //
-// Registration is two-pass: every entry point is resolved before any is
-// bound, so a failure leaves the package fully unbound rather than
-// half-bound. Callers must treat any error as "do not proceed".
+// Registration is two-pass across both tables: every entry point is resolved
+// before any is bound, so a failure leaves the package fully unbound rather
+// than half-bound. Callers must treat any error as "do not proceed".
 func InitWithProcAddrFunc(getProcAddr func(name string) uintptr) error {
 	table := bindings()
+	rawTable := rawBindings()
+
 	procs := make([]uintptr, len(table))
 	for i, b := range table {
 		proc := getProcAddr(b.name)
@@ -104,8 +126,20 @@ func InitWithProcAddrFunc(getProcAddr func(name string) uintptr) error {
 		}
 		procs[i] = proc
 	}
+	rawProcs := make([]uintptr, len(rawTable))
+	for i, b := range rawTable {
+		proc := getProcAddr(b.name)
+		if proc == 0 {
+			return fmt.Errorf("glbind: %s unavailable", b.name)
+		}
+		rawProcs[i] = proc
+	}
+
 	for i, b := range table {
 		purego.RegisterFunc(b.fptr, procs[i])
+	}
+	for i, b := range rawTable {
+		*b.addr = rawProcs[i]
 	}
 	return nil
 }
