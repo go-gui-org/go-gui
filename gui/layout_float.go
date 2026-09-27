@@ -182,6 +182,18 @@ func floatAttachLayout(
 	return x, y
 }
 
+// liftOverlayFloats extracts the floats declared inside an injected
+// overlay layer (toast, dialog, inspector) to their own top-level
+// layers above it. A Select dropdown or menu inside a dialog must
+// escape the dialog's bounds and scroll viewports the same way a
+// main-tree float escapes its ancestors (#819). A lifted float keeps
+// its Parent pointer into the overlay, so floatAttachLayout still
+// anchors it to its host and layoutDisables still inherits from it.
+// A layer with no floats is untouched.
+func liftOverlayFloats(layer *Layout, w *Window, layouts *[]*Layout) {
+	layoutRemoveFloatingLayouts(layer, w, layouts)
+}
+
 // layoutRemoveFloatingLayouts extracts floating elements from the
 // main layout tree, replacing them with placeholders.
 //

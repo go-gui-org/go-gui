@@ -39,6 +39,30 @@ func TestRetainDialogFocus_KeepsDialogFocus(t *testing.T) {
 	}
 }
 
+// TestRetainDialogFocus_KeepsAboveDialogFocus verifies that focus on a
+// layer above the dialog — a float lifted out of it (a Select dropdown,
+// a menu, #819) or the inspector panel — is left alone, not reasserted
+// to the dialog.
+func TestRetainDialogFocus_KeepsAboveDialogFocus(t *testing.T) {
+	w := NewWindow(WindowCfg{})
+	w.Dialog(DialogCfg{DialogType: DialogConfirm, Title: "Quit?"})
+	dialog := generateViewLayout(dialogViewGenerator(w.dialogCfg), w)
+
+	// Stand-in for a lifted float layer: a focusable shape outside the
+	// dialog subtree, the way an extracted dropdown sits above it.
+	above := generateViewLayout(Button(ButtonCfg{
+		ID:      "above-btn",
+		Content: []View{Text(TextCfg{Text: "Above"})},
+	}), w)
+
+	w.SetFocus("above-btn")
+	w.retainDialogFocus(&dialog, []*Layout{&above})
+
+	if got := w.FocusID(); got != "above-btn" {
+		t.Fatalf("focus = %q, want above-btn (above-dialog focus preserved)", got)
+	}
+}
+
 // TestRetainDialogFocus_NoFocusReasserts verifies that no focus (id 0),
 // which would spuriously match the dialog root, is treated as escaped.
 func TestRetainDialogFocus_NoFocusReasserts(t *testing.T) {
@@ -799,6 +823,116 @@ func TestDialogSelectOpens(t *testing.T) {
 	}
 	if _, ok := w.layout.FindByID(ScopeID(id, "dropdown")); !ok {
 		t.Fatal("select dropdown not in the tree")
+	}
+}
+
+// TestDialogSelectDropdownAboveDialog is the regression test for issue
+// #819: a Select dropdown inside a dialog stayed nested in the dialog
+// layer, so the dialog bounds and any scroll viewport clipped it. The
+// dropdown must lift to its own layer above the dialog, the way a
+// main-tree dropdown lifts above the app.
+func TestDialogSelectDropdownAboveDialog(t *testing.T) {
+	w := NewTestWindow(WindowCfg{})
+	w.TestRender(func(*Window) View {
+		return Column(ContainerCfg{ID: "root"})
+	})
+	w.Dialog(DialogCfg{
+		DialogType: DialogCustom,
+		Width:      300,
+		Height:     150,
+		Title:      "Settings",
+		CustomView: func(*Window) View {
+			return Column(ContainerCfg{
+				ID:         "settings_content",
+				Sizing:     FillFill,
+				Scrollable: true,
+				ScrollMode: ScrollVerticalOnly,
+				Content: []View{
+					Select(SelectCfg{
+						ID:          "unit-select",
+						Placeholder: "unit",
+						Selected:    []string{"dollar"},
+						Options: []SelectOption{
+							{Label: "$", Value: "dollar"},
+							{Label: "P", Value: "rub"},
+							{Label: "E", Value: "euro"},
+							{Label: "Y", Value: "yen"},
+							{Label: "F", Value: "franc"},
+							{Label: "L", Value: "lira"},
+						},
+						OnSelect: func([]string, EventCtx) {},
+					}),
+				},
+			})
+		},
+	})
+	w.TestRender(nil)
+	if !w.DialogIsVisible() {
+		t.Fatal("dialog did not open")
+	}
+	id := resolveOne(t, w, "unit-select")
+	if err := w.TestClick(id); err != nil {
+		t.Fatal(err)
+	}
+	// Two more frames: the dropdown must stay open and settled.
+	w.TestRender(nil)
+	w.TestRender(nil)
+	if !StateReadOr(w, nsSelect, id, false) {
+		t.Fatal("select dropdown closed after the click")
+	}
+	dropID := ScopeID(id, "dropdown")
+	dialogIdx := layerIndex(w, reservedDialogID)
+	if dialogIdx < 0 {
+		t.Fatal("dialog layer not in the tree")
+	}
+	dropIdx := -1
+	for i := range w.layout.Children {
+		if _, found := w.layout.Children[i].findByID(dropID); found {
+			if dropIdx >= 0 {
+				t.Fatal("dropdown in more than one layer")
+			}
+			dropIdx = i
+		}
+	}
+	if dropIdx < 0 {
+		t.Fatal("select dropdown not in the tree")
+	}
+	if dropIdx == dialogIdx {
+		t.Fatal("dropdown nested in the dialog layer, clipped by " +
+			"dialog bounds and scroll viewport (#819)")
+	}
+	if dropIdx < dialogIdx {
+		t.Fatal("dropdown layered below the dialog")
+	}
+	drop, found := w.layout.FindByID(dropID)
+	if !found {
+		t.Fatal("select dropdown not in the tree")
+	}
+	shape := drop.Shape
+	clip := shape.shapeClip
+	const eps = float32(0.001)
+	if clip.X > shape.X+eps || clip.Y > shape.Y+eps ||
+		clip.X+clip.Width < shape.X+shape.Width-eps ||
+		clip.Y+clip.Height < shape.Y+shape.Height-eps {
+		t.Fatalf("dropdown clip %v cuts shape bounds (%v, %v, %v, %v) (#819)",
+			clip, shape.X, shape.Y, shape.Width, shape.Height)
+	}
+	// An option in the lifted layer must take the click: route the
+	// press at the first option and the dropdown must close.
+	opt := firstClickable(&w.layout.Children[dropIdx])
+	if opt == nil {
+		t.Fatal("no clickable option in the dropdown")
+	}
+	c := opt.Shape.shapeClip
+	x, y := c.X+c.Width/2, c.Y+c.Height/2
+	down := Event{Type: EventMouseDown, MouseButton: MouseLeft, MouseX: x, MouseY: y}
+	w.EventFn(&down)
+	w.settle()
+	up := Event{Type: EventMouseUp, MouseButton: MouseLeft, MouseX: x, MouseY: y}
+	w.EventFn(&up)
+	w.settle()
+	if StateReadOr(w, nsSelect, id, false) {
+		t.Fatal("dropdown still open after an option click (#819)")
 	}
 }
 

@@ -39,14 +39,23 @@ func layoutArrange(layout *Layout, w *Window) []Layout {
 	// Inject toast container as floating layer.
 	if len(w.toasts) > 0 {
 		injectFloatingLayer(toastContainerView(w), w, &floatingLayouts)
+		if n := len(floatingLayouts); n > 0 {
+			liftOverlayFloats(floatingLayouts[n-1], w, &floatingLayouts)
+		}
 	}
 
 	// Inject dialog above the app and its toasts.
 	var dialogLayer *Layout
+	dialogAboveIdx := -1
 	if w.dialogCfg.visible {
 		injectFloatingLayer(dialogViewGenerator(w.dialogCfg), w, &floatingLayouts)
 		if n := len(floatingLayouts); n > 0 {
 			dialogLayer = floatingLayouts[n-1]
+			// Layers above the dialog start here: extraction below
+			// appends the dialog's own floats first, then the
+			// inspector injection appends after them.
+			dialogAboveIdx = n
+			liftOverlayFloats(dialogLayer, w, &floatingLayouts)
 		}
 	}
 
@@ -54,18 +63,17 @@ func layoutArrange(layout *Layout, w *Window) []Layout {
 	// covered by the app it inspects (#811). dialogRoute routes events to
 	// the dialog layer and every layer above it, so the panel stays
 	// clickable while a modal dialog is open.
-	var inspectorLayer *Layout
 	if inspectorSupported && w.inspectorEnabled {
 		injectFloatingLayer(inspectorFloatingPanel(w), w, &floatingLayouts)
 		if n := len(floatingLayouts); n > 0 && isInspectorLayer(floatingLayouts[n-1]) {
-			inspectorLayer = floatingLayouts[n-1]
+			liftOverlayFloats(floatingLayouts[n-1], w, &floatingLayouts)
 		}
 	}
 
 	// After both injections: focus held by the inspector tree is not an
 	// escape from the dialog.
 	if dialogLayer != nil {
-		w.retainDialogFocus(dialogLayer, inspectorLayer)
+		w.retainDialogFocus(dialogLayer, floatingLayouts[dialogAboveIdx:])
 	}
 
 	// Run pipeline on main layout.
