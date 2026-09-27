@@ -32,13 +32,24 @@ type ComboboxCfg struct {
 	Label            string
 	TextStyle        TextStyle
 	PlaceholderStyle TextStyle
-	OnSelect         func(string, EventCtx)
-	ID               string `gui:"required"`
-	Value            string
-	Placeholder      string
+	// OnSelect receives the Value of the picked option.
+	OnSelect func(string, EventCtx)
+	ID       string `gui:"required"`
+	// Value is the Value of the current option. The closed field shows
+	// that option's Label, or Value itself when no option holds it.
+	Value       string
+	Placeholder string
 
 	A11YCfg
-	Options     []string
+	// Items is a convenience field for simple string lists. Each
+	// string is both label and value. When set, Items takes
+	// precedence over Options.
+	Items []string
+	// Options lists the choices as label/value pairs. The dropdown
+	// shows and filters on Label; Value and OnSelect carry Value. A
+	// Combobox has no section rows, so a NewSelectSubheading entry is
+	// left out.
+	Options     []SelectOption
 	FloatZIndex int
 	Padding     Padding
 	SizeBorder  Opt[float32]
@@ -116,18 +127,13 @@ func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 		cacheMap.Set(id, cache)
 	}
 
-	// Convert options to core items only when options changed.
-	optionsHash := comboboxOptionsHash(cfg.Options)
-	if cache.optionsHash != optionsHash || len(cache.items) != len(cfg.Options) {
-		if cap(cache.items) < len(cfg.Options) {
-			cache.items = make([]listCoreItem, len(cfg.Options))
-		} else {
-			cache.items = cache.items[:len(cfg.Options)]
-		}
-		for i := range cfg.Options {
-			opt := cfg.Options[i]
-			cache.items[i] = listCoreItem{ID: opt, Label: opt}
-		}
+	// Convert options to core items only when options changed. Items
+	// is read in place, never copied into Options, so an unchanged
+	// list costs one hash pass and no allocation.
+	optionsHash := comboboxOptionsHash(cfg.Items, cfg.Options)
+	if cache.optionsHash != optionsHash {
+		cache.items = comboboxCoreItems(
+			cache.items[:0], cfg.Items, cfg.Options)
 		cache.optionsHash = optionsHash
 	}
 
@@ -184,7 +190,7 @@ func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 
 	// What the field shows: the live query while open, the picked
 	// value (or the placeholder) while closed.
-	txt := cfg.Value
+	txt := comboboxLabelOf(cfg.Value, cache.items)
 	ts := cfg.TextStyle
 	if isOpen {
 		txt = query
@@ -501,11 +507,64 @@ func applyComboboxDefaults(cfg *ComboboxCfg) {
 	}
 }
 
-func comboboxOptionsHash(options []string) uint64 {
+// comboboxOptionsHash hashes the rows comboboxCoreItems would build.
+// Each path starts with its own domain byte (0 for Items, 1 for typed
+// Options): without it Items ["\x01a","b"] (two rows) and Options
+// [{a,b}] (one row) would hash to the same bytes.
+func comboboxOptionsHash(items []string, options []SelectOption) uint64 {
 	h := Fnv64Offset
+	if len(items) > 0 {
+		h = Fnv64Byte(h, 0)
+		for i := range items {
+			h = Fnv64Str(h, items[i])
+			h = Fnv64Byte(h, fnvUnitSep)
+		}
+		return h
+	}
+	h = Fnv64Byte(h, 1)
 	for i := range options {
-		h = Fnv64Str(h, options[i])
+		opt := &options[i]
+		if opt.isSubheading {
+			continue
+		}
+		h = Fnv64Str(h, opt.Label)
+		h = Fnv64Byte(h, fnvUnitSep)
+		h = Fnv64Str(h, opt.Value)
 		h = Fnv64Byte(h, fnvUnitSep)
 	}
 	return h
+}
+
+// comboboxCoreItems appends one list-core row per option to dst: ID is
+// the Value (what click and Enter emit), Label the shown and matched
+// text. Items wins over Options. Subheadings are left out, because the
+// combobox keyboard walks the filtered rows without skipping any.
+func comboboxCoreItems(
+	dst []listCoreItem, items []string, options []SelectOption,
+) []listCoreItem {
+	if len(items) > 0 {
+		for _, it := range items {
+			dst = append(dst, listCoreItem{ID: it, Label: it})
+		}
+		return dst
+	}
+	for i := range options {
+		opt := &options[i]
+		if opt.isSubheading {
+			continue
+		}
+		dst = append(dst, listCoreItem{ID: opt.Value, Label: opt.Label})
+	}
+	return dst
+}
+
+// comboboxLabelOf returns the label of the row holding value, or value
+// itself when no row holds it.
+func comboboxLabelOf(value string, items []listCoreItem) string {
+	for i := range items {
+		if items[i].ID == value {
+			return items[i].Label
+		}
+	}
+	return value
 }

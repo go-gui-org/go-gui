@@ -224,7 +224,7 @@ func TestWiredFocusablesEmitRingWhenFocused(t *testing.T) {
 		build func() View
 	}{
 		{"combobox", "cb", func() View {
-			return Combobox(ComboboxCfg{ID: "cb", Options: []string{"a"}})
+			return Combobox(ComboboxCfg{ID: "cb", Items: []string{"a"}})
 		}},
 		{"date_picker", "dp", func() View {
 			return DatePicker(DatePickerCfg{ID: "dp"})

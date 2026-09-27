@@ -7,11 +7,99 @@ import (
 
 const selectDropdownMaxH float32 = 200
 
-// selectSubheaderPrefix marks options as section subheaders.
+// selectSubheaderPrefix marks an Items string as a section subheader.
+// Typed Options do not read it: a Label is shown as written, and
+// NewSelectSubheading makes a subheader on that path (issue #809).
 const selectSubheaderPrefix = "---"
 
-func isSelectSubheader(option string) bool {
-	return strings.HasPrefix(option, selectSubheaderPrefix)
+// SelectOption is one entry of a Select or Combobox list. Label is the
+// text the user sees; Value is what Selected, Value and OnSelect carry,
+// so app state can hold a stable key ("typescript_node") and not the
+// display text ("TypeScript (Node.js)").
+type SelectOption struct {
+	Label string
+	Value string
+	// isSubheading marks a section header row. It is unexported so the
+	// only way to make one is NewSelectSubheading, the same rule as
+	// ListBoxOption.
+	isSubheading bool
+}
+
+// NewSelectOption creates a SelectOption.
+func NewSelectOption(label, value string) SelectOption {
+	return SelectOption{Label: label, Value: value}
+}
+
+// NewSelectSubheading creates a section header row. It cannot be
+// selected, and the arrow keys skip it.
+func NewSelectSubheading(label string) SelectOption {
+	return SelectOption{Label: label, isSubheading: true}
+}
+
+// optionCount is the number of rows: len(Items) when Items is set,
+// else len(Options). Items is read in place and never copied into a
+// []SelectOption, so a string list costs no allocation per frame and
+// has no length cap, as the old Options []string path had none.
+func (cfg *SelectCfg) optionCount() int {
+	if len(cfg.Items) > 0 {
+		return len(cfg.Items)
+	}
+	return len(cfg.Options)
+}
+
+// optionAt returns row i as a SelectOption, by value. An Items string
+// is both label and value; a "---" prefix makes a subheader with the
+// prefix removed. A bare "---" keeps its text, so the header is not
+// blank. Typed Options are returned as written.
+func (cfg *SelectCfg) optionAt(i int) SelectOption {
+	if len(cfg.Items) == 0 {
+		return cfg.Options[i]
+	}
+	item := cfg.Items[i]
+	if label, ok := strings.CutPrefix(item, selectSubheaderPrefix); ok {
+		if label == "" {
+			label = item
+		}
+		return SelectOption{Label: label, isSubheading: true}
+	}
+	return SelectOption{Label: item, Value: item}
+}
+
+// selectShownLabel is the text shown for one selected value: its
+// option's label, or the value itself when no option holds it. The
+// fallback keeps a value that is not in the list visible (the data
+// grid edits such cells). An unmatched "" shows nothing.
+func (cfg *SelectCfg) selectShownLabel(value string) string {
+	for i := range cfg.optionCount() {
+		opt := cfg.optionAt(i)
+		if !opt.isSubheading && opt.Value == value {
+			return opt.Label
+		}
+	}
+	return value
+}
+
+// fieldText is what the closed field shows for the selected values:
+// their labels, comma-joined, skipping any that show as "". One value
+// returns its label without an allocation. "" means no selection, so
+// the caller shows the placeholder. A matched option with an empty
+// value ("None") is a real selection and shows its label.
+func (cfg *SelectCfg) fieldText() string {
+	if len(cfg.Selected) == 1 {
+		return cfg.selectShownLabel(cfg.Selected[0])
+	}
+	var b strings.Builder
+	for _, v := range cfg.Selected {
+		label := cfg.selectShownLabel(v)
+		if label == "" {
+			continue
+		}
+		if b.Len() > 0 {
+			b.WriteString(", ")
+		}
+		b.WriteString(label)
+	}
+	return b.String()
 }
 
 // SelectCfg configures a select (dropdown) view.
@@ -22,8 +110,9 @@ type SelectCfg struct {
 	// See gui/field_label.go for the convention and why it is one.
 	Label     string
 	TextStyle TextStyle
-	// SubheadingStyle styles the subheader rows (options prefixed with
-	// the subheader marker). Zero takes the theme default.
+	// SubheadingStyle styles the subheader rows (NewSelectSubheading,
+	// or an Items string with the "---" prefix). Zero takes the theme
+	// default.
 	// exportaudit:keep — caller-facing config (issue #372)
 	SubheadingStyle  TextStyle
 	PlaceholderStyle TextStyle
@@ -32,8 +121,15 @@ type SelectCfg struct {
 	Placeholder      string
 
 	A11YCfg
-	Selected    []string // currently selected option text(s)
-	Options     []string
+	// Selected holds the Value of each selected option.
+	Selected []string
+	// Items is a convenience field for simple string lists. Each
+	// string becomes a SelectOption with Label==Value; a "---" prefix
+	// makes a subheader. When set, Items takes precedence over Options.
+	Items []string
+	// Options lists the choices as label/value pairs. The field and
+	// the dropdown show Label; Selected and OnSelect carry Value.
+	Options     []SelectOption
 	FloatZIndex int
 	Padding     Padding
 	SizeBorder  Opt[float32]
@@ -113,12 +209,16 @@ func (sv *selectView) GenerateLayout(w *Window) Layout {
 	dropdownScrollID := ScopeID(id, "dropdown")
 	colors := cfg.Colors
 
-	empty := len(cfg.Selected) == 0 || len(cfg.Selected[0]) == 0
+	// Empty is judged on the shown text, not on Selected[0]: an option
+	// with an empty value ("None") is a real selection, and an
+	// unmatched "" first in a multi-select must not hide the rest.
+	selectedText := cfg.fieldText()
+	empty := selectedText == ""
 	clip := cfg.SelectMultiple && cfg.NoWrap
 
 	txt := cfg.Placeholder
 	if !empty {
-		txt = strings.Join(cfg.Selected, ", ")
+		txt = selectedText
 	}
 	txtStyle := cfg.PlaceholderStyle
 	if !empty {
@@ -176,11 +276,13 @@ func (sv *selectView) GenerateLayout(w *Window) Layout {
 	if isOpen {
 		highlightedIdx := StateReadOr(
 			w, nsSelectHL, id, 0)
-		options := make([]View, 0, len(cfg.Options))
-		for i, option := range cfg.Options {
-			if isSelectSubheader(option) {
+		n := cfg.optionCount()
+		options := make([]View, 0, n)
+		for i := range n {
+			option := cfg.optionAt(i)
+			if option.isSubheading {
 				options = append(options,
-					selectSubHeaderView(cfg, option))
+					selectSubHeaderView(cfg, option.Label))
 			} else {
 				options = append(options,
 					selectOptionView(cfg, id, option, i,
@@ -263,8 +365,7 @@ func (sv *selectView) GenerateLayout(w *Window) Layout {
 				ss.Set(id, true)
 				sh := StateMap[string, int](
 					ctx.Window, nsSelectHL, capModerate)
-				sh.Set(id, selectInitialHighlight(
-					cfg.Selected, cfg.Options))
+				sh.Set(id, selectInitialHighlight(cfg))
 			}
 		},
 	}
@@ -304,7 +405,8 @@ func selectLabelAmend(ctx EventCtx) {
 
 // selectOptionView builds a single option row.
 func selectOptionView(
-	cfg *SelectCfg, id, option string, index int, highlighted bool,
+	cfg *SelectCfg, id string, option SelectOption, index int,
+	highlighted bool,
 ) View {
 	selectMultiple := cfg.SelectMultiple
 	onSelect := cfg.OnSelect
@@ -329,7 +431,8 @@ func selectOptionView(
 	})
 
 	checkColor := ColorTransparent
-	if slices.Contains(cfg.Selected, option) {
+	value := option.Value
+	if slices.Contains(cfg.Selected, value) {
 		checkColor = cfg.TextStyle.Color
 	}
 
@@ -353,7 +456,7 @@ func selectOptionView(
 						},
 					}),
 					Text(TextCfg{
-						Text:      option,
+						Text:      option.Label,
 						TextStyle: cfg.TextStyle,
 					}),
 				},
@@ -369,10 +472,10 @@ func selectOptionView(
 			var s []string
 			if selectMultiple {
 				s = listBoxNextSelectedIDs(
-					selectArray, option, true)
+					selectArray, value, true)
 			} else {
 				ss.Clear()
-				s = []string{option}
+				s = []string{value}
 			}
 			onSelect(s, EventCtx{nil, ctx.Event, ctx.Window})
 		},
@@ -394,11 +497,7 @@ func selectOptionView(
 }
 
 // selectSubHeaderView builds a section header row.
-func selectSubHeaderView(cfg *SelectCfg, option string) View {
-	label := option
-	if len(option) > len(selectSubheaderPrefix) {
-		label = option[len(selectSubheaderPrefix):]
-	}
+func selectSubHeaderView(cfg *SelectCfg, label string) View {
 	return Column(ContainerCfg{
 		Padding: NewPadding(guiTheme.PaddingMedium.Top, 0, 0, 0),
 		Sizing:  FillFit,
@@ -437,12 +536,13 @@ func makeSelectOnKeyDown(
 	}
 }
 
-// selectInitialHighlight returns the index of the first selected
-// option, or 0 if none match.
-func selectInitialHighlight(selected, options []string) int {
-	if len(selected) > 0 {
-		for i, opt := range options {
-			if opt == selected[0] {
+// selectInitialHighlight returns the index of the option holding the
+// first selected value, or 0 if none match.
+func selectInitialHighlight(cfg *SelectCfg) int {
+	if len(cfg.Selected) > 0 {
+		for i := range cfg.optionCount() {
+			opt := cfg.optionAt(i)
+			if !opt.isSubheading && opt.Value == cfg.Selected[0] {
 				return i
 			}
 		}
@@ -453,7 +553,8 @@ func selectInitialHighlight(selected, options []string) int {
 func selectOnKeyDown(
 	cfg *SelectCfg, id, scrollID string, e *Event, w *Window,
 ) {
-	if len(cfg.Options) == 0 {
+	n := cfg.optionCount()
+	if n == 0 {
 		return
 	}
 
@@ -465,8 +566,7 @@ func selectOnKeyDown(
 	// Open on space/enter.
 	if (e.KeyCode == KeySpace || e.KeyCode == KeyEnter) && !isOpen {
 		ss.Set(id, true)
-		sh.Set(id, selectInitialHighlight(
-			cfg.Selected, cfg.Options))
+		sh.Set(id, selectInitialHighlight(cfg))
 		e.IsHandled = true
 		return
 	}
@@ -484,19 +584,19 @@ func selectOnKeyDown(
 
 	// Default 0: first item highlighted; bounds-checked before use.
 	currentIdx := sh.GetOr(id, 0)
-	action := listCoreNavigate(e.KeyCode, len(cfg.Options))
+	action := listCoreNavigate(e.KeyCode, n)
 
 	if action == listCoreSelectItem {
-		if currentIdx >= 0 && currentIdx < len(cfg.Options) {
-			option := cfg.Options[currentIdx]
-			if !isSelectSubheader(option) {
+		if currentIdx >= 0 && currentIdx < n {
+			option := cfg.optionAt(currentIdx)
+			if !option.isSubheading {
 				var s []string
 				if cfg.SelectMultiple {
 					s = listBoxNextSelectedIDs(
-						cfg.Selected, option, true)
+						cfg.Selected, option.Value, true)
 				} else {
 					ss.Clear()
-					s = []string{option}
+					s = []string{option.Value}
 				}
 				if cfg.OnSelect != nil {
 					cfg.OnSelect(s, EventCtx{nil, e, w})
@@ -510,10 +610,9 @@ func selectOnKeyDown(
 	if action == listCoreFirst || action == listCoreLast {
 		var nextIdx int
 		if action == listCoreFirst {
-			nextIdx = selectNextSelectable(cfg.Options, 0, 1)
+			nextIdx = selectNextSelectable(cfg, 0, 1)
 		} else {
-			nextIdx = selectNextSelectable(
-				cfg.Options, len(cfg.Options)-1, -1)
+			nextIdx = selectNextSelectable(cfg, n-1, -1)
 		}
 		if nextIdx >= 0 {
 			sh.Set(id, nextIdx)
@@ -528,8 +627,7 @@ func selectOnKeyDown(
 		if action == listCoreMoveUp {
 			dir = -1
 		}
-		nextIdx := selectNextSelectable(
-			cfg.Options, currentIdx+dir, dir)
+		nextIdx := selectNextSelectable(cfg, currentIdx+dir, dir)
 		if nextIdx >= 0 {
 			sh.Set(id, nextIdx)
 			selectScrollTo(cfg, scrollID, nextIdx, w)
@@ -540,9 +638,9 @@ func selectOnKeyDown(
 
 // selectNextSelectable finds the next non-subheader option starting
 // at start, stepping by dir (+1 or -1). Returns -1 if none found.
-func selectNextSelectable(options []string, start, dir int) int {
-	for i := start; i >= 0 && i < len(options); i += dir {
-		if !isSelectSubheader(options[i]) {
+func selectNextSelectable(cfg *SelectCfg, start, dir int) int {
+	for i := start; i >= 0 && i < cfg.optionCount(); i += dir {
+		if !cfg.optionAt(i).isSubheading {
 			return i
 		}
 	}

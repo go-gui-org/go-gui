@@ -10,7 +10,7 @@ func TestSelectGeneratesClosedLayout(t *testing.T) {
 	w := &Window{}
 	v := Select(SelectCfg{
 		ID:       "s1",
-		Options:  []string{"A", "B", "C"},
+		Items:    []string{"A", "B", "C"},
 		OnSelect: func(_ []string, ctx EventCtx) {},
 	})
 	layout := v.GenerateLayout(w)
@@ -34,7 +34,7 @@ func TestSelectOptionHighlightedTextColor(t *testing.T) {
 	}
 
 	highlighted := generateViewLayout(
-		selectOptionView(cfg, "s", "B", 0, true), w)
+		selectOptionView(cfg, "s", NewSelectOption("B", "B"), 0, true), w)
 	optionRow := highlighted.Children[0]
 	if len(optionRow.Children) < 2 {
 		t.Fatalf("option children = %d, want 2", len(optionRow.Children))
@@ -57,7 +57,7 @@ func TestSelectOptionHighlightedTextColor(t *testing.T) {
 	}
 
 	plain := generateViewLayout(
-		selectOptionView(cfg, "s", "B", 0, false), w)
+		selectOptionView(cfg, "s", NewSelectOption("B", "B"), 0, false), w)
 	plainRow := plain.Children[0]
 	plainLabel := plainRow.Children[1].Shape.TC
 	if plainLabel == nil {
@@ -78,7 +78,7 @@ func TestSelectGeneratesDropdownWhenOpen(t *testing.T) {
 
 	v := Select(SelectCfg{
 		ID:       "s2",
-		Options:  []string{"A", "B", "C"},
+		Items:    []string{"A", "B", "C"},
 		OnSelect: func(_ []string, ctx EventCtx) {},
 	})
 	sv := v.(*selectView)
@@ -100,7 +100,7 @@ func TestSelectArrowChangesWithState(t *testing.T) {
 	w := &Window{}
 	v := Select(SelectCfg{
 		ID:       "s3",
-		Options:  []string{"X"},
+		Items:    []string{"X"},
 		OnSelect: func(_ []string, ctx EventCtx) {},
 	})
 	sv := v.(*selectView)
@@ -126,8 +126,8 @@ func TestSelectOptionViewOnClickFires(t *testing.T) {
 	fired := false
 	var selected []string
 	cfg := &SelectCfg{
-		ID:      "s4",
-		Options: []string{"A", "B"},
+		ID:    "s4",
+		Items: []string{"A", "B"},
 		OnSelect: func(s []string, ctx EventCtx) {
 			fired = true
 			selected = s
@@ -135,7 +135,7 @@ func TestSelectOptionViewOnClickFires(t *testing.T) {
 		TextStyle: DefaultTextStyle,
 	}
 	applySelectDefaults(cfg)
-	v := selectOptionView(cfg, cfg.ID, "B", 1, false)
+	v := selectOptionView(cfg, cfg.ID, NewSelectOption("B", "B"), 1, false)
 	cv := v.(*containerView)
 
 	w := &Window{}
@@ -172,7 +172,7 @@ func TestSelectKeyboardNavigation(t *testing.T) {
 	w := &Window{}
 	cfg := SelectCfg{
 		ID:       "s6",
-		Options:  []string{"A", "B", "C"},
+		Items:    []string{"A", "B", "C"},
 		OnSelect: func(_ []string, ctx EventCtx) {},
 	}
 	applySelectDefaults(&cfg)
@@ -218,8 +218,8 @@ func TestSelectKeyboardSelectItem(t *testing.T) {
 	w := &Window{}
 	var selected []string
 	cfg := SelectCfg{
-		ID:      "s7",
-		Options: []string{"A", "B"},
+		ID:    "s7",
+		Items: []string{"A", "B"},
 		OnSelect: func(s []string, ctx EventCtx) {
 			selected = s
 		},
@@ -246,7 +246,7 @@ func TestSelectSkipsSubHeaders(t *testing.T) {
 	w := &Window{}
 	cfg := SelectCfg{
 		ID:       "s8",
-		Options:  []string{"A", "---Section", "B"},
+		Items:    []string{"A", "---Section", "B"},
 		OnSelect: func(_ []string, ctx EventCtx) {},
 	}
 	applySelectDefaults(&cfg)
@@ -274,7 +274,7 @@ func TestSelectHomeEndKeys(t *testing.T) {
 	w := &Window{}
 	cfg := SelectCfg{
 		ID:       "she",
-		Options:  []string{"A", "---S", "B", "C"},
+		Items:    []string{"A", "---S", "B", "C"},
 		OnSelect: func(_ []string, ctx EventCtx) {},
 	}
 	applySelectDefaults(&cfg)
@@ -312,7 +312,7 @@ func TestSelectClickOpenResetsHighlight(t *testing.T) {
 	w := &Window{}
 	cfg := SelectCfg{
 		ID:       "scr",
-		Options:  []string{"A", "B", "C"},
+		Items:    []string{"A", "B", "C"},
 		Selected: []string{"B"},
 		OnSelect: func(_ []string, ctx EventCtx) {},
 	}
@@ -413,7 +413,7 @@ func TestSelectPlaceholderWhenEmpty(t *testing.T) {
 	v := Select(SelectCfg{
 		ID:          "s9",
 		Placeholder: "Choose...",
-		Options:     []string{"A"},
+		Items:       []string{"A"},
 		OnSelect:    func(_ []string, ctx EventCtx) {},
 	})
 	sv := v.(*selectView)
@@ -433,7 +433,7 @@ func TestSelectMultipleJoinsSelected(t *testing.T) {
 	v := Select(SelectCfg{
 		ID:             "s10",
 		Selected:       []string{"A", "B"},
-		Options:        []string{"A", "B", "C"},
+		Items:          []string{"A", "B", "C"},
 		SelectMultiple: true,
 		OnSelect:       func(_ []string, ctx EventCtx) {},
 	})
@@ -516,7 +516,7 @@ func TestSelectLongValueKeepsArrowInside(t *testing.T) {
 	v := Select(SelectCfg{
 		ID:       "sel-long",
 		Selected: []string{"Atlanta, United States (Clouvider) — a long one"},
-		Options:  []string{"Atlanta, United States (Clouvider)"},
+		Items:    []string{"Atlanta, United States (Clouvider)"},
 		MinWidth: maxW,
 		MaxWidth: maxW,
 	})
@@ -550,7 +550,7 @@ func TestSelectDescenderStaysInsideClipWrapper(t *testing.T) {
 		return Select(SelectCfg{
 			ID:       "s",
 			Selected: []string{"Cogs"},
-			Options:  []string{"Cogs", "Rings & Circles"},
+			Items:    []string{"Cogs", "Rings & Circles"},
 		})
 	})
 	field, ok := w.layout.FindByID("s")
@@ -612,7 +612,7 @@ func TestSelectOptionRowFillOrder(t *testing.T) {
 			}
 			w := &Window{}
 			layout := generateViewLayout(
-				selectOptionView(cfg, "s", "B", 0, tc.highlighted), w)
+				selectOptionView(cfg, "s", NewSelectOption("B", "B"), 0, tc.highlighted), w)
 			if tc.hover {
 				layout.Shape.events.OnHover(EventCtx{&layout, &Event{}, w})
 			}

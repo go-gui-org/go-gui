@@ -458,7 +458,7 @@ func contractDock(ctl *contractCtl, id string) View {
 
 func contractSelect(ctl *contractCtl, id string) View {
 	return Select(SelectCfg{
-		ID: id, Options: []string{"a", "b"},
+		ID: id, Items: []string{"a", "b"},
 		Disabled: ctl.disabled, Invisible: ctl.invisible,
 	})
 }
@@ -467,7 +467,7 @@ func contractSelect(ctl *contractCtl, id string) View {
 // a note, which is itself a finding of this matrix.
 func contractCombobox(ctl *contractCtl, id string) View {
 	return Combobox(ComboboxCfg{
-		ID: id, Options: []string{"a", "b"},
+		ID: id, Items: []string{"a", "b"},
 		Disabled: ctl.disabled,
 	})
 }

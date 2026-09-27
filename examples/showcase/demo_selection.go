@@ -186,6 +186,20 @@ func demoSegmentedControl(w *gui.Window) gui.View {
 	})
 }
 
+// selectLanguageOptions pairs a display label with a stable value. The
+// field shows the label; "Selected:" above prints the values the app
+// state holds.
+var selectLanguageOptions = []gui.SelectOption{
+	gui.NewSelectOption("Go", "go"),
+	gui.NewSelectOption("Rust", "rust"),
+	gui.NewSelectOption("Zig", "zig"),
+	gui.NewSelectOption("C", "c"),
+	gui.NewSelectOption("Python", "python"),
+	gui.NewSelectSubheading("TypeScript"),
+	gui.NewSelectOption("TypeScript (Node.js)", "typescript_node"),
+	gui.NewSelectOption("TypeScript (Bun)", "typescript_bun"),
+}
+
 func demoSelect(w *gui.Window) gui.View {
 	app := appState(w)
 	t := gui.CurrentTheme()
@@ -203,7 +217,7 @@ func demoSelect(w *gui.Window) gui.View {
 				ID:          "select-single",
 				Placeholder: "Pick a language",
 				Selected:    app.SelectValue,
-				Options:     []string{"Go", "Rust", "Zig", "C", "Python", "TypeScript"},
+				Options:     selectLanguageOptions,
 				OnSelect: func(sel []string, ctx gui.EventCtx) {
 					appState(ctx.Window).SelectValue = sel
 				},
@@ -214,7 +228,7 @@ func demoSelect(w *gui.Window) gui.View {
 				Placeholder:    "Pick languages",
 				Selected:       app.SelectValue,
 				SelectMultiple: true,
-				Options:        []string{"Go", "Rust", "Zig", "C", "Python", "TypeScript"},
+				Options:        selectLanguageOptions,
 				OnSelect: func(sel []string, ctx gui.EventCtx) {
 					appState(ctx.Window).SelectValue = sel
 				},
@@ -282,7 +296,7 @@ func demoCombobox(w *gui.Window) gui.View {
 				ID:          "combobox-demo",
 				Placeholder: "Type to search...",
 				Value:       app.ComboboxValue,
-				Options:     []string{"Go", "Rust", "Zig", "C", "C++", "Python", "TypeScript", "JavaScript", "Ruby", "Elixir"},
+				Items:       []string{"Go", "Rust", "Zig", "C", "C++", "Python", "TypeScript", "JavaScript", "Ruby", "Elixir"},
 				Sizing:      gui.FillFit,
 				OnSelect: func(v string, ctx gui.EventCtx) {
 					appState(ctx.Window).ComboboxValue = v

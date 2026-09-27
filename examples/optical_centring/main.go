@@ -98,12 +98,12 @@ func mainView(w *gui.Window) gui.View {
 				gui.Select(gui.SelectCfg{
 					ID:          "probe_sel_desc",
 					Placeholder: "Pick a language",
-					Options:     []string{"Go", "Rust"},
+					Items:       []string{"Go", "Rust"},
 				}),
 				gui.Select(gui.SelectCfg{
 					ID:          "probe_sel_caps",
 					Placeholder: "PICK",
-					Options:     []string{"Go", "Rust"},
+					Items:       []string{"Go", "Rust"},
 				}),
 			},
 		}),

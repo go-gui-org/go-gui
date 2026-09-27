@@ -306,7 +306,7 @@ func TestSoundPhase2DropdownOpenClose(t *testing.T) {
 		name: "select",
 		view: func(*Window) View {
 			return Select(SelectCfg{
-				ID: "sel", Options: []string{"One", "Two"},
+				ID: "sel", Items: []string{"One", "Two"},
 				OnSelect: func([]string, EventCtx) {},
 			})
 		},
@@ -314,7 +314,7 @@ func TestSoundPhase2DropdownOpenClose(t *testing.T) {
 		name: "combobox",
 		view: func(*Window) View {
 			return Combobox(ComboboxCfg{
-				ID: "cb", Options: []string{"Alpha", "Beta"},
+				ID: "cb", Items: []string{"Alpha", "Beta"},
 				OnSelect: func(string, EventCtx) {},
 			})
 		},

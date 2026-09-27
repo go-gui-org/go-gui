@@ -7,7 +7,7 @@ func TestComboboxClosedLayout(t *testing.T) {
 	v := Combobox(ComboboxCfg{
 		ID:          "cb1",
 		Value:       "Apple",
-		Options:     []string{"Apple", "Banana", "Cherry"},
+		Items:       []string{"Apple", "Banana", "Cherry"},
 		Placeholder: "Pick fruit",
 		OnSelect:    func(_ string, ctx EventCtx) {},
 	})
@@ -28,7 +28,7 @@ func TestComboboxOpenLayout(t *testing.T) {
 
 	v := Combobox(ComboboxCfg{
 		ID:       "cb-open",
-		Options:  []string{"A", "B", "C"},
+		Items:    []string{"A", "B", "C"},
 		OnSelect: func(_ string, ctx EventCtx) {},
 	})
 	layout := generateViewLayout(v, w)
@@ -50,7 +50,7 @@ func TestComboboxDropdownHighlightedTextColor(t *testing.T) {
 
 	v := Combobox(ComboboxCfg{
 		ID:       "cb-sel-text",
-		Options:  []string{"A", "B", "C"},
+		Items:    []string{"A", "B", "C"},
 		OnSelect: func(_ string, ctx EventCtx) {},
 	})
 	layout := generateViewLayout(v, w)
@@ -348,7 +348,7 @@ func TestComboboxScrollEndToEnd(t *testing.T) {
 	// Generate the layout (simulates next frame).
 	v := Combobox(ComboboxCfg{
 		ID:       "cb-e2e",
-		Options:  options,
+		Items:    options,
 		OnSelect: func(_ string, ctx EventCtx) {},
 	})
 	layout := generateViewLayout(v, w)
@@ -412,7 +412,7 @@ func TestComboboxItemsCacheInvalidatesOnOptionsChange(t *testing.T) {
 
 	v := Combobox(ComboboxCfg{
 		ID:       id,
-		Options:  []string{"A"},
+		Items:    []string{"A"},
 		OnSelect: func(_ string, ctx EventCtx) {},
 	})
 	_ = generateViewLayout(v, w)
@@ -431,7 +431,7 @@ func TestComboboxItemsCacheInvalidatesOnOptionsChange(t *testing.T) {
 
 	v = Combobox(ComboboxCfg{
 		ID:       id,
-		Options:  []string{"A", "B"},
+		Items:    []string{"A", "B"},
 		OnSelect: func(_ string, ctx EventCtx) {},
 	})
 	_ = generateViewLayout(v, w)
@@ -454,7 +454,7 @@ func TestComboboxLongValueKeepsArrowInside(t *testing.T) {
 	v := Combobox(ComboboxCfg{
 		ID:       "cb-long",
 		Value:    "Atlanta, United States (Clouvider) — a very long label",
-		Options:  []string{"Atlanta, United States (Clouvider)"},
+		Items:    []string{"Atlanta, United States (Clouvider)"},
 		MinWidth: maxW,
 		MaxWidth: maxW,
 	})

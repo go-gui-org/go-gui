@@ -46,7 +46,7 @@ func BenchmarkComboboxGenerateLayout(b *testing.B) {
 	w := newTestWindow()
 	cfg := ComboboxCfg{
 		ID:       "bench-cb",
-		Options:  options,
+		Items:    options,
 		OnSelect: func(_ string, ctx EventCtx) {},
 	}
 
@@ -75,6 +75,37 @@ func BenchmarkComboboxGenerateLayout(b *testing.B) {
 			_ = generateViewLayout(v, w)
 		}
 	})
+}
+
+// BenchmarkSelectGenerateLayout runs the factory inside the loop, as a
+// frame does: that is where an Items→Options copy would allocate. The
+// items and options cases should report the same allocs/op (#809).
+func BenchmarkSelectGenerateLayout(b *testing.B) {
+	items := benchmarkOptions(500)
+	opts := make([]SelectOption, len(items))
+	for i, it := range items {
+		opts[i] = NewSelectOption(it, it)
+	}
+	w := newTestWindow()
+	cases := []struct {
+		name string
+		cfg  SelectCfg
+	}{
+		{"items", SelectCfg{ID: "bench-sel", Items: items,
+			Selected: []string{"Option 250"}}},
+		{"options", SelectCfg{ID: "bench-sel", Options: opts,
+			Selected: []string{"Option 250"}}},
+	}
+	for _, tc := range cases {
+		b.Run(tc.name, func(b *testing.B) {
+			b.ReportAllocs()
+			b.ResetTimer()
+			for b.Loop() {
+				w.scratch.resetViewPools()
+				_ = generateViewLayout(Select(tc.cfg), w)
+			}
+		})
+	}
 }
 
 func BenchmarkCommandPaletteGenerateLayout(b *testing.B) {

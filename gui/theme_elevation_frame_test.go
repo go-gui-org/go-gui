@@ -59,8 +59,8 @@ func countShadows(cmds []RenderCmd) int {
 func TestOpenDropdownEmitsShadowOnlyWhenThemed(t *testing.T) {
 	build := func(*Window) View {
 		return Select(SelectCfg{
-			ID:      "picker",
-			Options: []string{"one", "two", "three"},
+			ID:    "picker",
+			Items: []string{"one", "two", "three"},
 		})
 	}
 	open := func(w *Window) {
@@ -97,8 +97,8 @@ func TestDropdownShadowSurvivesAncestorClip(t *testing.T) {
 			Scrollable: true,
 			Content: []View{
 				Select(SelectCfg{
-					ID:      "picker",
-					Options: []string{"one", "two", "three"},
+					ID:    "picker",
+					Items: []string{"one", "two", "three"},
 				}),
 			},
 		})

@@ -365,7 +365,7 @@ func sidebarView(w *gui.Window, wh float32) gui.View {
 					gui.Select(gui.SelectCfg{
 						ID:          gui.ScopeID("particles", "emitter-type"),
 						Selected:    []string{emitterName(app.EmitterType)},
-						Options:     []string{"Point", "Ring", "Line"},
+						Items:       []string{"Point", "Ring", "Line"},
 						FloatZIndex: 10,
 						OnSelect: func(sel []string, ctx gui.EventCtx) {
 							a := state(ctx.Window)
