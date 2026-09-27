@@ -5,6 +5,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"math"
 	"os/exec"
 	"path/filepath"
 	"runtime"
@@ -122,7 +123,9 @@ func parsePSLine(line string, linux bool, fixed int, now time.Time) (ProcInfo, b
 	// StartTime degrades that row to PID-only, never to a wrong time.
 	if linux {
 		if elapsed, err := strconv.ParseUint(fields[idx], 10, 64); err == nil {
-			p.StartTime = now.Add(-time.Duration(elapsed) * time.Second)
+			if elapsed <= uint64(math.MaxInt64) {
+				p.StartTime = now.Add(-time.Duration(elapsed) * time.Second)
+			}
 		}
 		idx++
 	} else {
