@@ -46,6 +46,14 @@ and this project adheres to
 
 ### Fixed
 
+- **The Inspector works while a Dialog is open (#811)** — the dialog was drawn
+  over the inspector panel and took all events, so the panel did not respond to
+  clicks. A pick-click on a dialog widget selected the app widget behind the
+  dialog, because the pick and the tree saw only the main layer. Now the panel
+  is drawn above the dialog and takes clicks, a pick selects the widget in the
+  topmost layer under the pointer, and the tree lists each layer (app, floats,
+  dialog) as a root. Focus on the inspector tree stays there while the dialog is
+  open.
 - **GL calls allocate far less on every frame on Linux and Windows (#812)** —
   the native GL backend bound all of its OpenGL entry points through
   `purego.RegisterFunc`, whose wrapper is a `reflect.MakeFunc` closure: every

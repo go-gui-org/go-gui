@@ -14,7 +14,7 @@ func TestRetainDialogFocus_RestoresStolenFocus(t *testing.T) {
 	// Simulate a widget re-asserting focus onto itself (id 42, not in
 	// the dialog subtree).
 	w.SetFocus("f42")
-	w.retainDialogFocus(&dialog)
+	w.retainDialogFocus(&dialog, nil)
 
 	if got := w.FocusID(); got != w.dialogCfg.FocusID {
 		t.Fatalf("focus = %q, want dialog focus %q", got, w.dialogCfg.FocusID)
@@ -32,7 +32,7 @@ func TestRetainDialogFocus_KeepsDialogFocus(t *testing.T) {
 	// target inside the dialog must be preserved.
 	yes := ScopeIDN(w.dialogCfg.FocusID, "", 1)
 	w.SetFocus(yes)
-	w.retainDialogFocus(&dialog)
+	w.retainDialogFocus(&dialog, nil)
 
 	if got := w.FocusID(); got != yes {
 		t.Fatalf("focus = %q, want %q (in-dialog focus preserved)", got, yes)
@@ -47,7 +47,7 @@ func TestRetainDialogFocus_NoFocusReasserts(t *testing.T) {
 	dialog := generateViewLayout(dialogViewGenerator(w.dialogCfg), w)
 
 	w.ClearFocus()
-	w.retainDialogFocus(&dialog)
+	w.retainDialogFocus(&dialog, nil)
 
 	if got := w.FocusID(); got != w.dialogCfg.FocusID {
 		t.Fatalf("focus = %q, want dialog focus %q", got, w.dialogCfg.FocusID)
@@ -60,7 +60,7 @@ func TestRetainDialogFocus_NilLayoutNoPanic(t *testing.T) {
 	w := NewWindow(WindowCfg{})
 	w.Dialog(DialogCfg{DialogType: DialogConfirm, Title: "Quit?"})
 	w.SetFocus("f42")
-	w.retainDialogFocus(nil)
+	w.retainDialogFocus(nil, nil)
 	if got := w.FocusID(); got != "f42" {
 		t.Fatalf("focus = %q, want f42 (nil layer must not touch focus)", got)
 	}
@@ -72,7 +72,7 @@ func TestRetainDialogFocus_NilShapeNoPanic(t *testing.T) {
 	w := NewWindow(WindowCfg{})
 	w.Dialog(DialogCfg{DialogType: DialogConfirm, Title: "Quit?"})
 	w.SetFocus("f42")
-	w.retainDialogFocus(&Layout{})
+	w.retainDialogFocus(&Layout{}, nil)
 	if got := w.FocusID(); got != "f42" {
 		t.Fatalf("focus = %q, want f42 (nil Shape must not touch focus)", got)
 	}
@@ -533,7 +533,7 @@ func TestRetainDialogFocus_DefaultButtonYes(t *testing.T) {
 	dialog := generateViewLayout(dialogViewGenerator(w.dialogCfg), w)
 
 	w.SetFocus("f42") // steal focus outside the dialog
-	w.retainDialogFocus(&dialog)
+	w.retainDialogFocus(&dialog, nil)
 
 	want := ScopeIDN(w.dialogCfg.FocusID, "", 1)
 	if got := w.FocusID(); got != want {

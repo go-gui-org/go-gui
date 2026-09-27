@@ -71,11 +71,25 @@ func inspectorSelect(path string, w *Window) {
 	w.InvalidateLayout()
 }
 
+// inspectorPickPath returns the path of the deepest shape under (x, y).
+// It walks the top-level layers topmost first, so a pick lands on a
+// dialog or popup rather than on the app widget behind it (#811). The
+// inspector's own layer is skipped: it is the tool, not the subject.
 func inspectorPickPath(layout *Layout, x, y float32) string {
-	if layout == nil || len(layout.Children) == 0 {
+	if layout == nil {
 		return ""
 	}
-	return inspectorPickRecurse(&layout.Children[0], "0", x, y)
+	for i := range slices.Backward(layout.Children) {
+		ly := &layout.Children[i]
+		if isInspectorLayer(ly) {
+			continue
+		}
+		if picked := inspectorPickRecurse(
+			ly, strconv.Itoa(i), x, y); picked != "" {
+			return picked
+		}
+	}
+	return ""
 }
 
 func inspectorPickRecurse(layout *Layout, path string, x, y float32) string {
@@ -119,8 +133,20 @@ func inspectorBuildTreeNodes(
 	// and the selected node's ancestors. Collapsed subtrees are
 	// never walked, so a missing key means "not visited", not
 	// "no props".
-	return inspectorLayoutToTree(
-		expanded, &layout.Children[0], "0", selected, props)
+	//
+	// One root per top-level layer, so floats and an open dialog are
+	// listed next to the app and a pick inside them has a row to
+	// select (#811). The inspector's own layer is left out.
+	var nodes []TreeNodeCfg
+	for i := range layout.Children {
+		ly := &layout.Children[i]
+		if isInspectorLayer(ly) {
+			continue
+		}
+		nodes = append(nodes, inspectorLayoutToTree(
+			expanded, ly, strconv.Itoa(i), selected, props)...)
+	}
+	return nodes
 }
 
 func inspectorLayoutToTree(

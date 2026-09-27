@@ -75,15 +75,41 @@ func emitRotate(
 // window_event.go). The long-press timer fires outside the event
 // path, so it re-derives the route at fire time instead of
 // capturing a layout that a later frame may have rebuilt.
+//
+// The inspector panel is the one layer injected above the dialog
+// (layoutArrange). A dev tool must stay usable while a modal dialog is
+// open (#811), so when the panel is on top the route is the dialog and
+// the panel together: a root whose children are those two layers.
+// Reverse dispatch reaches the panel first, and the panel consumes the
+// presses that land on it.
 func dialogRoute(w *Window) *Layout {
 	if w == nil {
 		return nil
 	}
 	ly := &w.layout
-	if w.dialogCfg.visible && len(w.layout.Children) > 0 {
-		ly = &w.layout.Children[len(w.layout.Children)-1]
+	n := len(w.layout.Children)
+	if !w.dialogCfg.visible || n == 0 {
+		return ly
 	}
-	return ly
+	top := n - 1
+	// Widen only when the layer under the panel really is the dialog. A
+	// dialog opened since the last frame is visible but not yet a layer;
+	// the layer under the panel is then the app or a toast, and widening
+	// would let a click through the modal. That one stale event goes to
+	// the top layer alone, as before #811.
+	if n < 2 || !isInspectorLayer(&w.layout.Children[top]) ||
+		w.layout.Children[top-1].Shape == nil ||
+		w.layout.Children[top-1].Shape.idKey() != reservedDialogID {
+		return &w.layout.Children[top]
+	}
+	// Re-slice, do not copy: the route must reach the same Layout values
+	// the frame arranged.
+	w.scratch.modalRoute = Layout{
+		Shape:    w.layout.Shape,
+		Parent:   w.layout.Parent,
+		Children: w.layout.Children[top-1:],
+	}
+	return &w.scratch.modalRoute
 }
 
 // gestureHandler dispatches a gesture event to the layout tree.

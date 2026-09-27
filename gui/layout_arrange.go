@@ -36,22 +36,36 @@ func layoutArrange(layout *Layout, w *Window) []Layout {
 	layoutRemoveFloatingLayouts(layout, w, &floatingLayouts)
 	extracted := len(floatingLayouts)
 
-	// Inject inspector overlay as a floating layer.
-	if inspectorSupported && w.inspectorEnabled {
-		injectFloatingLayer(inspectorFloatingPanel(w), w, &floatingLayouts)
-	}
-
 	// Inject toast container as floating layer.
 	if len(w.toasts) > 0 {
 		injectFloatingLayer(toastContainerView(w), w, &floatingLayouts)
 	}
 
-	// Inject dialog as last floating layer (always on top).
+	// Inject dialog above the app and its toasts.
+	var dialogLayer *Layout
 	if w.dialogCfg.visible {
 		injectFloatingLayer(dialogViewGenerator(w.dialogCfg), w, &floatingLayouts)
 		if n := len(floatingLayouts); n > 0 {
-			w.retainDialogFocus(floatingLayouts[n-1])
+			dialogLayer = floatingLayouts[n-1]
 		}
+	}
+
+	// Inject the inspector last, above the dialog, so a dev tool is never
+	// covered by the app it inspects (#811). dialogRoute routes events to
+	// the dialog layer and every layer above it, so the panel stays
+	// clickable while a modal dialog is open.
+	var inspectorLayer *Layout
+	if inspectorSupported && w.inspectorEnabled {
+		injectFloatingLayer(inspectorFloatingPanel(w), w, &floatingLayouts)
+		if n := len(floatingLayouts); n > 0 && isInspectorLayer(floatingLayouts[n-1]) {
+			inspectorLayer = floatingLayouts[n-1]
+		}
+	}
+
+	// After both injections: focus held by the inspector tree is not an
+	// escape from the dialog.
+	if dialogLayer != nil {
+		w.retainDialogFocus(dialogLayer, inspectorLayer)
 	}
 
 	// Run pipeline on main layout.
@@ -69,8 +83,8 @@ func layoutArrange(layout *Layout, w *Window) []Layout {
 
 	// Layer order: extracted floats by Z (stable, so equal Z keeps
 	// extraction order), then the injected overlays in the order they were
-	// added, dialog last. cmp.Compare, not subtraction, which overflows
-	// for extreme Z values.
+	// added: toasts, dialog, inspector. cmp.Compare, not subtraction,
+	// which overflows for extreme Z values.
 	slices.SortStableFunc(layouts[1:1+extracted],
 		func(a, b Layout) int {
 			return cmp.Compare(a.Shape.FloatZIndex, b.Shape.FloatZIndex)
