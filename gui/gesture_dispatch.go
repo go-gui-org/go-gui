@@ -70,18 +70,32 @@ func emitRotate(
 	gestureHandler(layout, &w.scratch.gestureEvent, w)
 }
 
+// dialogLayerIndex returns the index of the dialog overlay layer in
+// layers, or -1 when the dialog is not yet a layer (it opened since
+// the last frame). The dialog root carries reservedDialogID, so the
+// scan is one comparison per top-level layer.
+func dialogLayerIndex(layers []Layout) int {
+	for i := range layers {
+		if s := layers[i].Shape; s != nil && s.idKey() == reservedDialogID {
+			return i
+		}
+	}
+	return -1
+}
+
 // dialogRoute returns the dialog layer while a modal dialog is
 // visible, the same routing EventFn applies before dispatch (see
 // window_event.go). The long-press timer fires outside the event
 // path, so it re-derives the route at fire time instead of
 // capturing a layout that a later frame may have rebuilt.
 //
-// The inspector panel is the one layer injected above the dialog
-// (layoutArrange). A dev tool must stay usable while a modal dialog is
-// open (#811), so when the panel is on top the route is the dialog and
-// the panel together: a root whose children are those two layers.
-// Reverse dispatch reaches the panel first, and the panel consumes the
-// presses that land on it.
+// The layers above the dialog ride along: the inspector panel, the
+// one layer injected above the dialog (layoutArrange), so a dev tool
+// stays usable while a modal dialog is open (#811) — and the floats
+// lifted out of the dialog itself, so a Select dropdown or menu in
+// the dialog stays clickable (#819). The route is a root whose
+// children are those layers. Reverse dispatch reaches the topmost
+// first, and each layer consumes the presses that land on it.
 func dialogRoute(w *Window) *Layout {
 	if w == nil {
 		return nil
@@ -92,14 +106,12 @@ func dialogRoute(w *Window) *Layout {
 		return ly
 	}
 	top := n - 1
-	// Widen only when the layer under the panel really is the dialog. A
-	// dialog opened since the last frame is visible but not yet a layer;
-	// the layer under the panel is then the app or a toast, and widening
-	// would let a click through the modal. That one stale event goes to
-	// the top layer alone, as before #811.
-	if n < 2 || !isInspectorLayer(&w.layout.Children[top]) ||
-		w.layout.Children[top-1].Shape == nil ||
-		w.layout.Children[top-1].Shape.idKey() != reservedDialogID {
+	// No dialog layer yet: a dialog opened since the last frame is
+	// visible but not yet arranged. Route the top layer alone, or a
+	// click leaks past the modal onto the app or a toast below. That
+	// one stale event goes to the top layer alone, as before #811.
+	d := dialogLayerIndex(w.layout.Children)
+	if d < 0 || d == top {
 		return &w.layout.Children[top]
 	}
 	// Re-slice, do not copy: the route must reach the same Layout values
@@ -107,7 +119,7 @@ func dialogRoute(w *Window) *Layout {
 	w.scratch.modalRoute = Layout{
 		Shape:    w.layout.Shape,
 		Parent:   w.layout.Parent,
-		Children: w.layout.Children[top-1:],
+		Children: w.layout.Children[d:],
 	}
 	return &w.scratch.modalRoute
 }

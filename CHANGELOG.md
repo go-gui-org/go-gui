@@ -77,6 +77,13 @@ and this project adheres to
   on each frame a dialog was visible. Now it does this only once, when the
   dialog opens. Popups and drags that started behind the dialog still end, and
   controls inside the dialog work as they do outside it.
+- **Select and Combobox dropdowns escape the dialog bounds (#819)** — a dropdown
+  inside a dialog stayed nested in the dialog layer, so the dialog bounds and
+  any scroll viewport clipped it. Now floats declared inside an overlay (dialog,
+  toast, inspector panel) lift to their own layer above it, the way a main-tree
+  float lifts above the app. Events route to the dialog and every layer above
+  it, so options in the dropdown stay clickable, and focus there no longer reads
+  as escaped from the dialog.
 
 - **Web backend draws triangle meshes 3–5× faster and skips idle frames** — SVG,
   DrawCanvas, charts and ThinkingOrb meshes were built with one `syscall/js`

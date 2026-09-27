@@ -454,12 +454,13 @@ func (w *Window) DialogIsVisible() bool {
 // subtree, reassert the dialog's focus id so apps need not guard their
 // own SetFocus with DialogIsVisible.
 //
-// dialog is the dialog's layout for this frame. inspector is the
-// inspector panel's layer, or nil when the inspector is off. The panel
-// sits above the dialog and takes events while it is open (#811), so
-// focus on its tree is left alone: a dev tool is not an escape from the
-// dialog. Called from layoutArrange under w.mu.
-func (w *Window) retainDialogFocus(dialog, inspector *Layout) {
+// dialog is the dialog's layout for this frame. above holds the layers
+// above the dialog — its lifted floats (a Select dropdown, a menu) and
+// the inspector panel — or nil when there are none. Focus on any of
+// them is left alone: a dropdown the dialog opened is not an escape
+// from the dialog, and neither is a dev tool (#811, #819). Called from
+// layoutArrange under w.mu.
+func (w *Window) retainDialogFocus(dialog *Layout, above []*Layout) {
 	// A malformed/empty dialog layer has no focusable target; leave focus
 	// untouched rather than blindly reasserting (which could steal it).
 	if dialog == nil || dialog.Shape == nil {
@@ -471,8 +472,11 @@ func (w *Window) retainDialogFocus(dialog, inspector *Layout) {
 		if _, ok := findLayoutByFocusID(dialog, id); ok {
 			return
 		}
-		if inspector != nil && inspector.Shape != nil {
-			if _, ok := findLayoutByFocusID(inspector, id); ok {
+		for _, ly := range above {
+			if ly == nil || ly.Shape == nil {
+				continue
+			}
+			if _, ok := findLayoutByFocusID(ly, id); ok {
 				return
 			}
 		}

@@ -166,14 +166,19 @@ func (w *Window) pointerLeftWindow() {
 // layer holds no usable ID, a float layer's target is the nearest
 // enabled ID-bearing ancestor of the tree it was lifted from, the same
 // widget a click there reaches (#661). While a dialog is visible
-// only the dialog layer (always the last) is tried, the same rule
-// event dispatch applies.
+// only the dialog layer and the layers above it (its lifted floats,
+// the inspector panel) are tried, the same rule event dispatch
+// applies.
 func interactionTargetAt(layers []Layout, x, y float32, w *Window) string {
 	if len(layers) == 0 {
 		return ""
 	}
 	if w.dialogCfg.visible {
-		layers = layers[len(layers)-1:]
+		if d := dialogLayerIndex(layers); d >= 0 {
+			layers = layers[d:]
+		} else {
+			layers = layers[len(layers)-1:]
+		}
 	}
 	for i := range slices.Backward(layers) {
 		if id, hit := interactionTargetDepth(&layers[i], x, y, 0); hit {
