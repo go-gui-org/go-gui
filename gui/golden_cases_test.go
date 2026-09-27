@@ -256,7 +256,7 @@ func goldenCases() []goldenCase {
 			build: func(_ *Window) View {
 				return Select(SelectCfg{
 					ID:       "sel",
-					Options:  []string{"alpha", "beta", "gamma"},
+					Items:    []string{"alpha", "beta", "gamma"},
 					Selected: []string{"beta"},
 				})
 			},
@@ -268,7 +268,7 @@ func goldenCases() []goldenCase {
 			build: func(_ *Window) View {
 				return Select(SelectCfg{
 					ID:          "sel",
-					Options:     []string{"alpha", "beta"},
+					Items:       []string{"alpha", "beta"},
 					Placeholder: "choose one",
 				})
 			},
@@ -285,7 +285,7 @@ func goldenCases() []goldenCase {
 			build: func(_ *Window) View {
 				return Select(SelectCfg{
 					ID:          "sel",
-					Options:     []string{"alpha", "beta"},
+					Items:       []string{"alpha", "beta"},
 					Placeholder: "pick a language",
 				})
 			},
@@ -294,9 +294,9 @@ func goldenCases() []goldenCase {
 			name: "combobox",
 			build: func(_ *Window) View {
 				return Combobox(ComboboxCfg{
-					ID:      "cb",
-					Options: []string{"alpha", "beta"},
-					Value:   "alpha",
+					ID:    "cb",
+					Items: []string{"alpha", "beta"},
+					Value: "alpha",
 				})
 			},
 		},
@@ -403,7 +403,7 @@ func goldenCases() []goldenCase {
 			build: func(_ *Window) View {
 				return Select(SelectCfg{
 					ID:       "sel",
-					Options:  []string{"alpha", "beta"},
+					Items:    []string{"alpha", "beta"},
 					Selected: []string{"beta"},
 				})
 			},
@@ -569,7 +569,7 @@ func goldenCases() []goldenCase {
 			build: func(_ *Window) View {
 				return Select(SelectCfg{
 					ID:       "sel",
-					Options:  []string{"alpha", "beta"},
+					Items:    []string{"alpha", "beta"},
 					Selected: []string{"beta"},
 					Label:    "Variant",
 				})
@@ -601,7 +601,7 @@ func goldenCases() []goldenCase {
 						Select(SelectCfg{
 							ID:       "role",
 							Label:    "Role",
-							Options:  []string{"admin", "user"},
+							Items:    []string{"admin", "user"},
 							Selected: []string{"user"},
 							Sizing:   FillFit,
 							MinWidth: 40,
@@ -686,7 +686,7 @@ func goldenCases() []goldenCase {
 			build: func(_ *Window) View {
 				return Select(SelectCfg{
 					ID:       "sel",
-					Options:  []string{"alpha", "beta"},
+					Items:    []string{"alpha", "beta"},
 					Selected: []string{"beta"},
 					Disabled: true,
 				})
@@ -701,7 +701,7 @@ func goldenCases() []goldenCase {
 			build: func(_ *Window) View {
 				return Select(SelectCfg{
 					ID:       "sel",
-					Options:  []string{"alpha", "beta"},
+					Items:    []string{"alpha", "beta"},
 					Selected: []string{"beta"},
 					Disabled: true,
 				})
@@ -712,7 +712,7 @@ func goldenCases() []goldenCase {
 			build: func(_ *Window) View {
 				return Combobox(ComboboxCfg{
 					ID:       "cb",
-					Options:  []string{"alpha", "beta"},
+					Items:    []string{"alpha", "beta"},
 					Value:    "alpha",
 					Disabled: true,
 				})
@@ -727,7 +727,7 @@ func goldenCases() []goldenCase {
 			build: func(_ *Window) View {
 				return Combobox(ComboboxCfg{
 					ID:       "cb",
-					Options:  []string{"alpha", "beta"},
+					Items:    []string{"alpha", "beta"},
 					Value:    "alpha",
 					Disabled: true,
 				})

@@ -23,6 +23,22 @@ and this project adheres to
 
 ### Changed
 
+- **BREAKING: `Select` and `Combobox` options are label/value pairs (#809)** —
+  `SelectCfg.Options` and `ComboboxCfg.Options` are now `[]gui.SelectOption`.
+  Each option has a `Label`, the text the user sees, and a `Value`, the text
+  that `Selected`, `ComboboxCfg.Value` and `OnSelect` carry. App state can now
+  hold a stable key such as `"typescript_node"` and show "TypeScript (Node.js)".
+  The closed field shows the label of the selected value. A value that no option
+  holds shows as written. A Combobox query matches labels. The API is now the
+  same as `RadioButtonGroupCfg` and `SegmentedControlCfg`. Migration: for a
+  plain string list, change `Options: []string{...}` to `Items: []string{...}`;
+  each string is then both label and value, and behavior does not change.
+  `Items` wins when both are set. For different labels and values, use
+  `Options: []gui.SelectOption{gui.NewSelectOption( "TypeScript (Node.js)", "typescript_node")}`.
+  On the typed path a "---" label prefix is shown as written; use
+  `gui.NewSelectSubheading("Section")` for a Select subheading. A Combobox has
+  no subheadings and leaves them out.
+
 - **BREAKING: `DialogCfg.CustomContent` is removed (#787)** — deprecated in
   v0.80.0, it built its views once and never saw later state changes. Use
   `CustomView: func(*gui.Window) gui.View { return x }` and read state inside

@@ -457,7 +457,7 @@ func TestSelectGeneratesLayout(t *testing.T) {
 	w := newTestWindow()
 	v := Select(SelectCfg{
 		ID:       "country",
-		Options:  []string{"US", "UK", "DE"},
+		Items:    []string{"US", "UK", "DE"},
 		OnSelect: func(_ []string, ctx EventCtx) {},
 	})
 	layout := generateViewLayout(v, w)
@@ -475,7 +475,7 @@ func TestSelectPlaceholder(t *testing.T) {
 	v := Select(SelectCfg{
 		ID:          "sel",
 		Placeholder: "Choose...",
-		Options:     []string{"A", "B"},
+		Items:       []string{"A", "B"},
 		OnSelect:    func(_ []string, ctx EventCtx) {},
 	})
 	layout := generateViewLayout(v, w)
@@ -493,7 +493,7 @@ func TestSelectShowsSelected(t *testing.T) {
 	v := Select(SelectCfg{
 		ID:       "sel",
 		Selected: []string{"B"},
-		Options:  []string{"A", "B", "C"},
+		Items:    []string{"A", "B", "C"},
 		OnSelect: func(_ []string, ctx EventCtx) {},
 	})
 	layout := generateViewLayout(v, w)
@@ -815,8 +815,8 @@ func TestPhase2WidgetsFocusableByDefault(t *testing.T) {
 		},
 		{
 			name:     "Select",
-			withID:   Select(SelectCfg{ID: "fc-sel", Options: []string{"a"}}),
-			disabled: Select(SelectCfg{ID: "fc-sel", Options: []string{"a"}, FocusDisabled: true}),
+			withID:   Select(SelectCfg{ID: "fc-sel", Items: []string{"a"}}),
+			disabled: Select(SelectCfg{ID: "fc-sel", Items: []string{"a"}, FocusDisabled: true}),
 		},
 		{
 			name:     "Slider",
@@ -877,9 +877,9 @@ func TestFocusWidgetsRequireID(t *testing.T) {
 			func() { _ = Radio(RadioCfg{}) }, // requiredid:ignore
 			func() { _ = Radio(RadioCfg{FocusDisabled: true}) }},
 		{"Select",
-			func() { _ = Select(SelectCfg{Options: []string{"a"}}) }, // requiredid:ignore
+			func() { _ = Select(SelectCfg{Items: []string{"a"}}) }, // requiredid:ignore
 			func() {
-				_ = Select(SelectCfg{Options: []string{"a"}, FocusDisabled: true})
+				_ = Select(SelectCfg{Items: []string{"a"}, FocusDisabled: true})
 			}},
 		{"Switch",
 			func() { _ = Switch(SwitchCfg{}) }, // requiredid:ignore

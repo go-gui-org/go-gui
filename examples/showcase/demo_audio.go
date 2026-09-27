@@ -226,7 +226,7 @@ func widgetSoundPanel(t gui.Theme, app *ShowcaseApp) gui.View {
 			gui.Select(gui.SelectCfg{
 				ID:       "widget-sound-player",
 				Label:    "Player",
-				Options:  soundPlayerLabels,
+				Items:    soundPlayerLabels,
 				Selected: []string{soundPlayerValue(app.WidgetSoundPlayer)},
 				OnSelect: func(selected []string, ctx gui.EventCtx) {
 					if len(selected) == 0 {

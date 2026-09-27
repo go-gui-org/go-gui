@@ -48,7 +48,7 @@ func dataGridCellEditorView(cfg *DataGridCfg, rowID string, rowIdx int, col Grid
 		editor = gg.Select(gg.SelectCfg{
 			ID:         editorID,
 			Selected:   selectVal,
-			Options:    options,
+			Items:      options,
 			Sizing:     gg.FillFill,
 			Padding:    gg.NoPadding,
 			SizeBorder: gg.NoBorder,

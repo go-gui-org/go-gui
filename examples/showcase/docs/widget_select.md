@@ -1,8 +1,9 @@
-Dropdown selector with single or multi-select. Options prefixed with "---"
-render as subheadings.
+Dropdown selector with single or multi-select. Each option has a `Label` (the
+text shown) and a `Value` (what `Selected` and `OnSelect` carry), so app state
+can hold a stable key and not the display text.
 
-Select accepts `[]string` directly through the `Options` field. This path needs
-no configuration.
+For a plain string list, use `Items`. Each string is both label and value. An
+`Items` string with the prefix "---" renders as a subheading.
 
 ## Usage
 
@@ -10,7 +11,7 @@ no configuration.
 gui.Select(gui.SelectCfg{
     ID:       "lang",
     Selected: app.Selected,
-    Options:  []string{"Go", "Rust", "Zig"},
+    Items:    []string{"Go", "Rust", "Zig"},
     OnSelect: func(sel []string, ctx gui.EventCtx) {
         gui.State[App](ctx.Window).Selected = sel
     },
@@ -24,28 +25,47 @@ gui.Select(gui.SelectCfg{
     ID:             "tags",
     Placeholder:    "Choose tags...",
     SelectMultiple: true,
-    Options:        []string{"alpha", "beta", "stable"},
+    Items:          []string{"alpha", "beta", "stable"},
     OnSelect: func(sel []string, ctx gui.EventCtx) {
         gui.State[App](ctx.Window).Tags = sel
     },
 })
 ```
 
+## Label/Value Options
+
+```go
+gui.Select(gui.SelectCfg{
+    ID:       "runtime",
+    Selected: app.Runtime, // for example []string{"typescript_node"}
+    Options: []gui.SelectOption{
+        gui.NewSelectOption("Go", "go"),
+        gui.NewSelectSubheading("TypeScript"),
+        gui.NewSelectOption("TypeScript (Node.js)", "typescript_node"),
+        gui.NewSelectOption("TypeScript (Bun)", "typescript_bun"),
+    },
+    OnSelect: func(sel []string, ctx gui.EventCtx) {
+        gui.State[App](ctx.Window).Runtime = sel // values
+    },
+})
+```
+
 ## Key Properties
 
-| Property       | Type     | Description                         |
-| -------------- | -------- | ----------------------------------- |
-| Selected       | []string | Currently selected option(s)        |
-| Options        | []string | Available choices ("---" = subhead) |
-| Placeholder    | string   | Hint text when empty                |
-| SelectMultiple | bool     | Allow multi-select                  |
-| NoWrap         | bool     | Clip text in multi-select mode      |
-| MinWidth       | float32  | Minimum width                       |
-| MaxWidth       | float32  | Maximum width                       |
-| FloatZIndex    | int      | Z-order for dropdown overlay        |
-| Sizing         | Sizing   | Combined axis sizing mode           |
-| Disabled       | bool     | Disable interaction                 |
-| Invisible      | bool     | Hide without removing from layout   |
+| Property       | Type           | Description                         |
+| -------------- | -------------- | ----------------------------------- |
+| Selected       | []string       | Values of the selected option(s)    |
+| Items          | []string       | Label==Value list ("---" = subhead) |
+| Options        | []SelectOption | Label/value choices; Items wins     |
+| Placeholder    | string         | Hint text when empty                |
+| SelectMultiple | bool           | Allow multi-select                  |
+| NoWrap         | bool           | Clip text in multi-select mode      |
+| MinWidth       | float32        | Minimum width                       |
+| MaxWidth       | float32        | Maximum width                       |
+| FloatZIndex    | int            | Z-order for dropdown overlay        |
+| Sizing         | Sizing         | Combined axis sizing mode           |
+| Disabled       | bool           | Disable interaction                 |
+| Invisible      | bool           | Hide without removing from layout   |
 
 ## Appearance
 
@@ -65,9 +85,9 @@ gui.Select(gui.SelectCfg{
 
 ## Events
 
-| Callback | Signature                | Fired when        |
-| -------- | ------------------------ | ----------------- |
-| OnSelect | func([]string, EventCtx) | Selection changes |
+| Callback | Signature                | Fired when                     |
+| -------- | ------------------------ | ------------------------------ |
+| OnSelect | func([]string, EventCtx) | Selection changes; gets values |
 
 ## Accessibility
 

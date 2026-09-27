@@ -217,7 +217,7 @@ func benchView(w *gui.Window) gui.View {
 					gui.Select(gui.SelectCfg{
 						ID:       "bench-count",
 						Selected: []string{selectedCount},
-						Options:  countOptions,
+						Items:    countOptions,
 						OnSelect: func(sel []string, ctx gui.EventCtx) {
 							if len(sel) == 0 {
 								return
@@ -238,7 +238,7 @@ func benchView(w *gui.Window) gui.View {
 					gui.Select(gui.SelectCfg{
 						ID:       "bench-type",
 						Selected: []string{app.WidgetType},
-						Options:  typeOptions,
+						Items:    typeOptions,
 						OnSelect: func(sel []string, ctx gui.EventCtx) {
 							if len(sel) > 0 {
 								app := gui.State[App](ctx.Window)

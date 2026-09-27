@@ -176,8 +176,8 @@ func TestStatefulWidgetStateIsPerScope(t *testing.T) {
 				ID: id,
 				Content: []View{
 					Combobox(ComboboxCfg{
-						ID:      "cb",
-						Options: []string{"a", "b"},
+						ID:    "cb",
+						Items: []string{"a", "b"},
 						OnSelect: func(string, EventCtx) {
 						},
 					}),

@@ -232,10 +232,10 @@ func TestFieldControlsShareHeight(t *testing.T) {
 		return Input(InputCfg{ID: "in", Text: "x"})
 	})
 	sel := arrangedHeight(t, func() View {
-		return Select(SelectCfg{ID: "sel", Options: []string{"x"}})
+		return Select(SelectCfg{ID: "sel", Items: []string{"x"}})
 	})
 	cb := arrangedHeight(t, func() View {
-		return Combobox(ComboboxCfg{ID: "cb", Options: []string{"x"}})
+		return Combobox(ComboboxCfg{ID: "cb", Items: []string{"x"}})
 	})
 
 	if in != sel || in != cb {
