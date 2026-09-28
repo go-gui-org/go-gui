@@ -135,7 +135,11 @@ func New(w *gui.Window) (*Backend, error) {
 	b.plat.haveRandr = haveRandr
 	b.plat.curCrtc = crtc
 
-	setWindowTitle(conn, win, title)
+	// Title atoms first: setWindowTitle needs them to write the UTF-8
+	// properties.
+	b.plat.atomUTF8 = internAtom(conn, "UTF8_STRING")
+	b.plat.atomNetWMName = internAtom(conn, "_NET_WM_NAME")
+	setWindowTitle(conn, win, &b.plat, title)
 	// Hints are in physical pixels, matching the CreateWindow call.
 	b.plat.limits = gui.WindowSizeLimits(cfg)
 	setSizeHints(conn, win, b.plat.limits.Scaled(scale))
@@ -147,7 +151,6 @@ func New(w *gui.Window) (*Backend, error) {
 	b.plat.wmDelete = setupCloseProtocol(conn, win)
 	b.plat.wakeAtom = internAtom(conn, "_GOGUI_WAKE")
 	b.plat.atomClipboard = internAtom(conn, "CLIPBOARD")
-	b.plat.atomUTF8 = internAtom(conn, "UTF8_STRING")
 	b.plat.atomTargets = internAtom(conn, "TARGETS")
 	b.plat.atomClipProp = internAtom(conn, "_GOGUI_CLIPBOARD")
 	b.plat.minKeycode = setup.MinKeycode
@@ -201,7 +204,7 @@ func New(w *gui.Window) (*Backend, error) {
 		return nil, fmt.Errorf("gl: initGLResources: %w", err)
 	}
 
-	w.SetTitleFn(func(t string) { setWindowTitle(conn, win, t) })
+	w.SetTitleFn(func(t string) { setWindowTitle(conn, win, &b.plat, t) })
 	w.SetClipboardFn(func(s string) { setClipboard(&b.plat, s) })
 	w.SetClipboardGetFn(func() string { return getClipboard(&b.plat) })
 	w.SetPrimaryFn(func(s string) { setPrimary(&b.plat, s) })
@@ -232,10 +235,33 @@ func internAtom(conn *xgb.Conn, name string) xproto.Atom {
 	return reply.Atom
 }
 
-func setWindowTitle(conn *xgb.Conn, win xproto.Window, title string) {
+// setWindowTitle publishes title as the window's name. Go strings are UTF-8,
+// but WM_NAME typed STRING is ICCCM Latin-1: a window manager decodes it byte
+// by byte, so "✳" (E2 9C B3) shows as "â", a C1 control box, and "³". Two
+// properties fix that:
+//
+//   - _NET_WM_NAME typed UTF8_STRING, the EWMH title every modern WM and
+//     taskbar prefers over WM_NAME.
+//   - WM_NAME typed UTF8_STRING rather than STRING, for older WMs and tools
+//     (xprop, xdotool) that only read WM_NAME. The type tag tells a reader the
+//     encoding, which is what Xutf8SetWMProperties does in Xlib.
+//
+// If either atom failed to intern (0), the fallback is the old Latin-1 write,
+// which is still correct for pure-ASCII titles.
+func setWindowTitle(conn *xgb.Conn, win xproto.Window, p *platformState, title string) {
+	b := []byte(title)
+	n := uint32(len(b))
+	if p.atomUTF8 == 0 {
+		xproto.ChangeProperty(conn, xproto.PropModeReplace, win,
+			xproto.AtomWmName, xproto.AtomString, 8, n, b)
+		return
+	}
 	xproto.ChangeProperty(conn, xproto.PropModeReplace, win,
-		xproto.AtomWmName, xproto.AtomString, 8,
-		uint32(len(title)), []byte(title))
+		xproto.AtomWmName, p.atomUTF8, 8, n, b)
+	if p.atomNetWMName != 0 {
+		xproto.ChangeProperty(conn, xproto.PropModeReplace, win,
+			p.atomNetWMName, p.atomUTF8, 8, n, b)
+	}
 }
 
 // XSizeHints flag bits (Xutil.h). Only the two size bounds are used;

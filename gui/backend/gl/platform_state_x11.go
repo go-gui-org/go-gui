@@ -52,6 +52,10 @@ type platformState struct {
 	atomUTF8      xproto.Atom
 	atomTargets   xproto.Atom
 	atomClipProp  xproto.Atom
+	// atomNetWMName is _NET_WM_NAME, the EWMH title property. Cached
+	// because a child program can retitle the window several times a
+	// second (terminal spinners), and interning is a server round trip.
+	atomNetWMName xproto.Atom
 	clipboardText string
 	ownsClipboard bool
 	primaryText   string
