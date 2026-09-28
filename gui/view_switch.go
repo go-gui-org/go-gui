@@ -150,7 +150,7 @@ func Switch(cfg SwitchCfg) View {
 		ClickOnSpace: true,
 		OnClick:      cfg.OnClick,
 		Sound:        soundCue,
-		clickButton:  MouseLeft,
+		clickButton:  clickLeftOnly,
 		OnHover: func(ctx EventCtx) {
 			if ctx.Layout.Shape.Disabled ||
 				!ctx.Layout.Shape.hasEvents() ||

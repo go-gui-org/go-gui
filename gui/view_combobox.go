@@ -330,7 +330,7 @@ func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 			}
 		},
 	}
-	ccfg.clickButton = MouseLeft
+	ccfg.clickButton = clickLeftOnly
 	return generateViewLayout(&containerView{
 		cfg:     ccfg,
 		content: content,

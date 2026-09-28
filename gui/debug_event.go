@@ -135,7 +135,7 @@ func (c evClass) wouldReach(anc *Layout, e *Event, w *Window) bool {
 		// (mouseDownHandler), so an ancestor listening for right-click
 		// only is not reached by a left-click.
 		if ev.OnClick == nil ||
-			(ev.clickButton != 0 && e.MouseButton != ev.clickButton) {
+			!ev.clickButton.accepts(e.MouseButton) {
 			return false
 		}
 		return s.PointInShape(e.MouseX, e.MouseY)
@@ -264,7 +264,7 @@ func (w *Window) sweepShape(root, l *Layout) {
 	cy := s.shapeClip.Y + s.shapeClip.Height/2
 	if ev.OnClick != nil {
 		mouseDownHandler(root, false,
-			&Event{MouseX: cx, MouseY: cy, MouseButton: ev.clickButton}, w)
+			&Event{MouseX: cx, MouseY: cy, MouseButton: ev.clickButton.button()}, w)
 	}
 	if ev.OnMouseDown != nil {
 		mouseDownHandler(root, false, &Event{MouseX: cx, MouseY: cy}, w)

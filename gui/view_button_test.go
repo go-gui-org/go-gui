@@ -466,3 +466,56 @@ func textShapeIn(l *Layout) (string, Color, bool) {
 	}
 	return "", Color{}, false
 }
+
+// Left-click-only widgets must not fire OnClick for the right or
+// middle button. Their filter is clickLeftOnly; the bug was that the
+// old MouseLeft filter (0) read as "any button" (#838).
+func TestLeftClickWidgetsIgnoreOtherButtons(t *testing.T) {
+	cases := []struct {
+		name string
+		view func(on func(EventCtx)) View
+	}{
+		{"button", func(on func(EventCtx)) View {
+			return Button(ButtonCfg{ID: "w", Width: 100, Height: 40,
+				FocusDisabled: true, OnClick: on})
+		}},
+		{"row", func(on func(EventCtx)) View {
+			return Row(ContainerCfg{ID: "w", Width: 100, Height: 40,
+				Sizing: FixedFixed, OnClick: on})
+		}},
+		{"toggle", func(on func(EventCtx)) View {
+			return Toggle(ToggleCfg{ID: "w", OnClick: on})
+		}},
+		{"switch", func(on func(EventCtx)) View {
+			return Switch(SwitchCfg{ID: "w", OnClick: on})
+		}},
+		{"radio", func(on func(EventCtx)) View {
+			return Radio(RadioCfg{ID: "w", OnClick: on})
+		}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			var clicks int
+			w := NewTestWindow(t, WindowCfg{})
+			w.TestRender(func(*Window) View {
+				return tc.view(func(ctx EventCtx) {
+					clicks++
+					ctx.Consume()
+				})
+			})
+			x, y := hoverOver(t, w, "w")
+			for _, btn := range []MouseButton{MouseRight, MouseMiddle} {
+				pressAt(w, btn, x, y)
+				releaseAt(w, btn, x, y)
+			}
+			if clicks != 0 {
+				t.Fatalf("right/middle clicks fired OnClick %d times, want 0", clicks)
+			}
+			pressAt(w, MouseLeft, x, y)
+			releaseAt(w, MouseLeft, x, y)
+			if clicks != 1 {
+				t.Fatalf("left click fired OnClick %d times, want 1", clicks)
+			}
+		})
+	}
+}

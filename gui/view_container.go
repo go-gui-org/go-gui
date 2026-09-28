@@ -29,10 +29,10 @@ type ContainerCfg struct {
 	OnMouseDown func(EventCtx)
 	OnMouseUp   func(EventCtx)
 
-	// ClickButton filters OnClick by mouse button (0 = any).
-	// Set to MouseLeft for left-click-only widgets; avoids the
-	// per-frame closure allocation from leftClickOnly.
-	clickButton MouseButton
+	// clickButton filters OnClick by mouse button (zero = any).
+	// Set to clickLeftOnly for left-click-only widgets; avoids the
+	// per-frame closure allocation a wrapper callback would cost.
+	clickButton clickFilter
 	// colorDisabled is the explicit disabled fill a widget built on a
 	// container passes down from its ColorSet.Disabled (#741). See
 	// Shape.colorDisabled.
@@ -568,7 +568,7 @@ func container(cfg ContainerCfg) View {
 	if cfg.OnAnyClick != nil {
 		cfg.OnClick = cfg.OnAnyClick
 	} else {
-		cfg.clickButton = MouseLeft
+		cfg.clickButton = clickLeftOnly
 	}
 	if cfg.DragScroll {
 		wrapDragScrollHover(&cfg)

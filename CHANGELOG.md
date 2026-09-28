@@ -75,6 +75,15 @@ and this project adheres to
 
 ### Fixed
 
+- **Left-click widgets no longer fire `OnClick` on a right or middle click
+  (#838)** — `Button`, `Toggle`, `Radio`, `Switch`, the `Select` and `Combobox`
+  triggers, `Image`, `DrawCanvas`, `SVG` and every container without
+  `OnAnyClick` filter their click to the left button. That filter stored
+  `MouseLeft`, which is 0, and the dispatcher read 0 as "any button", so the
+  filter did nothing. A right click on a widget inside a `ContextMenu` both
+  opened the menu and ran the widget's action. The filter now has its own type
+  whose zero value means "any", so "left only" is a separate value.
+
 - **Text backgrounds, underlines and strikethroughs render reliably on the GL
   backend, and rotate with their text on every backend (#835)** — on Linux and
   Windows a text fill sampled whichever texture happened to be bound, so it drew

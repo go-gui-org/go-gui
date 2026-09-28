@@ -1286,7 +1286,7 @@ func TestMouseDownHandler_ClickButtonFilter(t *testing.T) {
 						OnClick: func(ctx EventCtx) {
 							clicked = true
 						},
-						clickButton: MouseRight,
+						clickButton: clickRightOnly,
 					},
 				}},
 			},
@@ -1296,7 +1296,7 @@ func TestMouseDownHandler_ClickButtonFilter(t *testing.T) {
 			MouseButton: MouseRight}
 		mouseDownHandler(root, false, e, w)
 		if !clicked {
-			t.Error("right click should fire when ClickButton=MouseRight")
+			t.Error("right click should fire when clickButton=clickRightOnly")
 		}
 	})
 	t.Run("non_zero_blocks_wrong_button", func(t *testing.T) {
@@ -1312,7 +1312,7 @@ func TestMouseDownHandler_ClickButtonFilter(t *testing.T) {
 						OnClick: func(ctx EventCtx) {
 							clicked = true
 						},
-						clickButton: MouseRight,
+						clickButton: clickRightOnly,
 					},
 				}},
 			},
@@ -1322,7 +1322,7 @@ func TestMouseDownHandler_ClickButtonFilter(t *testing.T) {
 			MouseButton: MouseLeft}
 		mouseDownHandler(root, false, e, w)
 		if clicked {
-			t.Error("left click should not fire when ClickButton=MouseRight")
+			t.Error("left click should not fire when clickButton=clickRightOnly")
 		}
 	})
 	t.Run("zero_clickbutton_allows_any", func(t *testing.T) {
@@ -1338,7 +1338,7 @@ func TestMouseDownHandler_ClickButtonFilter(t *testing.T) {
 						OnClick: func(ctx EventCtx) {
 							clicked = true
 						},
-						clickButton: 0,
+						clickButton: clickAnyButton,
 					},
 				}},
 			},
@@ -1348,7 +1348,59 @@ func TestMouseDownHandler_ClickButtonFilter(t *testing.T) {
 			MouseButton: MouseRight}
 		mouseDownHandler(root, false, e, w)
 		if !clicked {
-			t.Error("ClickButton=0 should allow any mouse button")
+			t.Error("clickButton=clickAnyButton should allow any mouse button")
+		}
+	})
+	t.Run("right_only_blocks_middle", func(t *testing.T) {
+		t.Parallel()
+		clicked := false
+		root := &Layout{
+			Shape: &Shape{shapeClip: drawClip{Width: 800, Height: 600}},
+			Children: []Layout{
+				{Shape: &Shape{
+					shapeClip: drawClip{X: 0, Y: 0,
+						Width: 100, Height: 100},
+					events: &eventHandlers{
+						OnClick: func(ctx EventCtx) {
+							clicked = true
+						},
+						clickButton: clickRightOnly,
+					},
+				}},
+			},
+		}
+		w := &Window{windowWidth: 800, windowHeight: 600}
+		e := &Event{MouseX: 50, MouseY: 50,
+			MouseButton: MouseMiddle}
+		mouseDownHandler(root, false, e, w)
+		if clicked {
+			t.Error("middle click should not fire when clickButton=clickRightOnly")
+		}
+	})
+	t.Run("any_allows_middle", func(t *testing.T) {
+		t.Parallel()
+		clicked := false
+		root := &Layout{
+			Shape: &Shape{shapeClip: drawClip{Width: 800, Height: 600}},
+			Children: []Layout{
+				{Shape: &Shape{
+					shapeClip: drawClip{X: 0, Y: 0,
+						Width: 100, Height: 100},
+					events: &eventHandlers{
+						OnClick: func(ctx EventCtx) {
+							clicked = true
+						},
+						clickButton: clickAnyButton,
+					},
+				}},
+			},
+		}
+		w := &Window{windowWidth: 800, windowHeight: 600}
+		e := &Event{MouseX: 50, MouseY: 50,
+			MouseButton: MouseMiddle}
+		mouseDownHandler(root, false, e, w)
+		if !clicked {
+			t.Error("middle click should fire when clickButton=clickAnyButton")
 		}
 	})
 }
