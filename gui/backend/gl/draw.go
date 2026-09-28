@@ -29,6 +29,7 @@ func (b *Backend) renderersDraw(w *gui.Window) {
 		b.mvp = savedMVP
 		b.mvpStack = b.mvpStack[:savedStackLen]
 		b.usePipeline(&b.pipelines.solid)
+		b.filterMSAA = false
 		b.unbindFBO()
 		gogl.Viewport(0, 0, b.physW, b.physH)
 		gogl.Disable(gogl.STENCIL_TEST)
@@ -102,6 +103,7 @@ func (b *Backend) drawClip(r *gui.RenderCmd) {
 	x, y, w, h := gpu.ClipRect(r.X, r.Y, r.W, r.H, b.dpiScale)
 	// GL scissor Y is bottom-up.
 	gogl.Enable(gogl.SCISSOR_TEST)
+	b.scissorOn = true
 	gogl.Scissor(x, b.physH-y-h, w, h)
 }
 
@@ -564,13 +566,29 @@ func (b *Backend) beginFilter(r *gui.RenderCmd) {
 	b.filterLayer = min(max(r.Layers, 1), maxFilterLayers)
 	b.filterColorMatrix = r.ColorMatrix
 
-	b.bindFBO(b.filterTexA)
+	// The filter content is drawn multisampled, like the main pass, so
+	// shapes inside a filter container keep smooth edges (#823).
+	// endFilter resolves it into filterTexA before the blur reads it.
+	b.filterMSAA = b.msaaSamples > 1 &&
+		b.msaaFilter.ensure(b.physW, b.physH, b.msaaSamples)
+	clearMask := uint32(gogl.COLOR_BUFFER_BIT)
+	if b.filterMSAA {
+		gogl.BindFramebuffer(gogl.FRAMEBUFFER, b.msaaFilter.fbo)
+		clearMask |= gogl.STENCIL_BUFFER_BIT
+	} else {
+		b.bindFBO(b.filterTexA)
+	}
 	gogl.Viewport(0, 0, b.physW, b.physH)
 	gogl.ClearColor(0, 0, 0, 0)
-	gogl.Clear(gogl.COLOR_BUFFER_BIT)
+	gogl.Clear(clearMask)
 }
 
 func (b *Backend) endFilter() {
+	if b.filterMSAA {
+		b.filterMSAA = false
+		b.bindFBO(b.filterTexA)
+		b.resolve(&b.msaaFilter, b.filterFBO)
+	}
 	b.unbindFBO()
 	gogl.Viewport(0, 0, b.physW, b.physH)
 

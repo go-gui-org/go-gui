@@ -46,6 +46,20 @@ and this project adheres to
 
 ### Fixed
 
+- **SVG edges are antialiased on macOS, Linux and Windows (#823)** — the Metal
+  and GL backends drew SVG fills and strokes as bare triangles in a
+  single-sample pass, so each pixel was fully in or fully out. A large-viewBox
+  icon scaled down to 25 px showed hard pixel stairs on its diagonals, and thin
+  parts snapped to whole pixels. The main pass and the filter content pass now
+  use 4x multisampling and resolve into the window, so triangle edges get
+  partial coverage as in a browser. This also smooths custom-shader and other
+  triangle-mesh edges. On GL the frame goes to an offscreen multisampled
+  framebuffer and is copied to the window with one blit before the swap; a
+  driver without multisampling, or one that refuses the copy into the window
+  (its window format differs from the offscreen one), falls back to the old
+  single-sample drawing. The web backend needed no change: it fills paths with
+  Canvas 2D, which already antialiases edges. Android is not changed yet.
+
 - **The Inspector works while a Dialog is open (#811)** — the dialog was drawn
   over the inspector panel and took all events, so the panel did not respond to
   clicks. A pick-click on a dialog widget selected the app widget behind the

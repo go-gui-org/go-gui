@@ -89,4 +89,10 @@ void metalEndStencilClip(MetalCtx ctx,
 //   0 = compiled, -1 = compile failed, 1 = no Metal device.
 int metalCompileShadersProbe(const char* mslSrc);
 
+// Test hook: draw one triangle through the main pass into an
+// offscreen 16x16 target and count the pixels on its diagonal edge
+// that are only partly covered. Needs a Metal device but no window.
+//   >= 0 = count, -1 = no Metal device, -2 = setup failed.
+int metalEdgeCoverageProbe(const char* mslSrc);
+
 #endif

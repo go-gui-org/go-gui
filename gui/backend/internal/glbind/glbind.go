@@ -37,44 +37,45 @@ import "unsafe"
 // -> int32, GLboolean -> bool, GLsizeiptr/GLintptr -> int, pointers ->
 // unsafe.Pointer or a typed Go pointer (purego passes both as void*).
 var (
-	pfnAttachShader            func(program, shader uint32)
-	pfnBindFramebuffer         func(target, framebuffer uint32)
-	pfnBindRenderbuffer        func(target, renderbuffer uint32)
-	pfnBlendFunc               func(sfactor, dfactor uint32)
-	pfnCheckFramebufferStatus  func(target uint32) uint32
-	pfnClearColor              func(red, green, blue, alpha float32)
-	pfnCompileShader           func(shader uint32)
-	pfnCreateProgram           func() uint32
-	pfnCreateShader            func(xtype uint32) uint32
-	pfnDeleteBuffers           func(n int32, buffers *uint32)
-	pfnDeleteFramebuffers      func(n int32, framebuffers *uint32)
-	pfnDeleteProgram           func(program uint32)
-	pfnDeleteRenderbuffers     func(n int32, renderbuffers *uint32)
-	pfnDeleteShader            func(shader uint32)
-	pfnDeleteTextures          func(n int32, textures *uint32)
-	pfnDeleteVertexArrays      func(n int32, arrays *uint32)
-	pfnFramebufferRenderbuffer func(target, attachment, renderbuffertarget, renderbuffer uint32)
-	pfnFramebufferTexture2D    func(target, attachment, textarget, texture uint32, level int32)
-	pfnGenBuffers              func(n int32, buffers *uint32)
-	pfnGenFramebuffers         func(n int32, framebuffers *uint32)
-	pfnGenRenderbuffers        func(n int32, renderbuffers *uint32)
-	pfnGenTextures             func(n int32, textures *uint32)
-	pfnGenVertexArrays         func(n int32, arrays *uint32)
-	pfnGetProgramInfoLog       func(program uint32, bufSize int32, length *int32, infoLog *uint8)
-	pfnGetProgramiv            func(program, pname uint32, params *int32)
-	pfnGetShaderInfoLog        func(shader uint32, bufSize int32, length *int32, infoLog *uint8)
-	pfnGetShaderiv             func(shader, pname uint32, params *int32)
-	pfnGetUniformLocation      func(program uint32, name *uint8) int32
-	pfnLinkProgram             func(program uint32)
-	pfnRenderbufferStorage     func(target, internalformat uint32, width, height int32)
-	pfnShaderSource            func(shader uint32, count int32, xstring **uint8, length *int32)
-	pfnTexImage2D              func(target uint32, level, internalformat, width, height, border int32, format, xtype uint32, pixels unsafe.Pointer)
-	pfnTexParameteri           func(target, pname uint32, param int32)
+	pfnAttachShader                   func(program, shader uint32)
+	pfnBindRenderbuffer               func(target, renderbuffer uint32)
+	pfnBlendFunc                      func(sfactor, dfactor uint32)
+	pfnCheckFramebufferStatus         func(target uint32) uint32
+	pfnClearColor                     func(red, green, blue, alpha float32)
+	pfnCompileShader                  func(shader uint32)
+	pfnCreateProgram                  func() uint32
+	pfnCreateShader                   func(xtype uint32) uint32
+	pfnDeleteBuffers                  func(n int32, buffers *uint32)
+	pfnDeleteFramebuffers             func(n int32, framebuffers *uint32)
+	pfnDeleteProgram                  func(program uint32)
+	pfnDeleteRenderbuffers            func(n int32, renderbuffers *uint32)
+	pfnDeleteShader                   func(shader uint32)
+	pfnDeleteTextures                 func(n int32, textures *uint32)
+	pfnDeleteVertexArrays             func(n int32, arrays *uint32)
+	pfnFramebufferRenderbuffer        func(target, attachment, renderbuffertarget, renderbuffer uint32)
+	pfnFramebufferTexture2D           func(target, attachment, textarget, texture uint32, level int32)
+	pfnGenBuffers                     func(n int32, buffers *uint32)
+	pfnGenFramebuffers                func(n int32, framebuffers *uint32)
+	pfnGenRenderbuffers               func(n int32, renderbuffers *uint32)
+	pfnGenTextures                    func(n int32, textures *uint32)
+	pfnGenVertexArrays                func(n int32, arrays *uint32)
+	pfnGetError                       func() uint32
+	pfnGetIntegerv                    func(pname uint32, data *int32)
+	pfnGetProgramInfoLog              func(program uint32, bufSize int32, length *int32, infoLog *uint8)
+	pfnGetProgramiv                   func(program, pname uint32, params *int32)
+	pfnGetShaderInfoLog               func(shader uint32, bufSize int32, length *int32, infoLog *uint8)
+	pfnGetShaderiv                    func(shader, pname uint32, params *int32)
+	pfnGetUniformLocation             func(program uint32, name *uint8) int32
+	pfnLinkProgram                    func(program uint32)
+	pfnReadPixels                     func(x, y, width, height int32, format, xtype uint32, pixels unsafe.Pointer)
+	pfnRenderbufferStorage            func(target, internalformat uint32, width, height int32)
+	pfnRenderbufferStorageMultisample func(target uint32, samples int32, internalformat uint32, width, height int32)
+	pfnShaderSource                   func(shader uint32, count int32, xstring **uint8, length *int32)
+	pfnTexImage2D                     func(target uint32, level, internalformat, width, height, border int32, format, xtype uint32, pixels unsafe.Pointer)
+	pfnTexParameteri                  func(target, pname uint32, param int32)
 )
 
 func AttachShader(program uint32, shader uint32) { pfnAttachShader(program, shader) }
-
-func BindFramebuffer(target uint32, framebuffer uint32) { pfnBindFramebuffer(target, framebuffer) }
 
 func BindRenderbuffer(target uint32, renderbuffer uint32) {
 	pfnBindRenderbuffer(target, renderbuffer)
@@ -128,6 +129,12 @@ func GenTextures(n int32, textures *uint32) { pfnGenTextures(n, textures) }
 
 func GenVertexArrays(n int32, arrays *uint32) { pfnGenVertexArrays(n, arrays) }
 
+// GetError returns and clears one recorded GL error. Cold path: the backend
+// calls it once per multisample target, not every frame.
+func GetError() uint32 { return pfnGetError() }
+
+func GetIntegerv(pname uint32, data *int32) { pfnGetIntegerv(pname, data) }
+
 func GetProgramInfoLog(program uint32, bufSize int32, length *int32, infoLog *uint8) {
 	pfnGetProgramInfoLog(program, bufSize, length, infoLog)
 }
@@ -152,6 +159,18 @@ func LinkProgram(program uint32) { pfnLinkProgram(program) }
 
 func RenderbufferStorage(target uint32, internalformat uint32, width int32, height int32) {
 	pfnRenderbufferStorage(target, internalformat, width, height)
+}
+
+// ReadPixels reads back the bound read framebuffer. Only tests call it; it is
+// on the cold path because a readback stalls the GPU anyway.
+func ReadPixels(x int32, y int32, width int32, height int32, format uint32, xtype uint32, pixels unsafe.Pointer) {
+	pfnReadPixels(x, y, width, height, format, xtype, pixels)
+}
+
+// RenderbufferStorageMultisample allocates a multisampled renderbuffer, the
+// storage behind the backend's antialiased draw target (#823).
+func RenderbufferStorageMultisample(target uint32, samples int32, internalformat uint32, width int32, height int32) {
+	pfnRenderbufferStorageMultisample(target, samples, internalformat, width, height)
 }
 
 func ShaderSource(shader uint32, count int32, xstring **uint8, length *int32) {

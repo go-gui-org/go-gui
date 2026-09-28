@@ -16,6 +16,7 @@ const (
 	CULL_FACE            = 0x0B44
 	DECR                 = 0x1E03
 	DEPTH_TEST           = 0x0B71
+	DRAW_FRAMEBUFFER     = 0x8CA9
 	DYNAMIC_DRAW         = 0x88E8
 	ELEMENT_ARRAY_BUFFER = 0x8893
 	FALSE                = 0
@@ -29,7 +30,11 @@ const (
 	LEQUAL               = 0x0203
 	LINEAR               = 0x2601
 	LINK_STATUS          = 0x8B82
+	MAX_SAMPLES          = 0x8D57
+	NEAREST              = 0x2600
+	NO_ERROR             = 0
 	ONE_MINUS_SRC_ALPHA  = 0x0303
+	READ_FRAMEBUFFER     = 0x8CA8
 	RENDERBUFFER         = 0x8D41
 	RGBA                 = 0x1908
 	RGBA8                = 0x8058

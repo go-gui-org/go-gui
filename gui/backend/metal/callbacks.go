@@ -177,6 +177,16 @@ func testCompileShaders() int {
 	return int(C.metalCompileShadersProbe(cMSL))
 }
 
+// testEdgeCoverage draws a diagonal triangle edge through the main
+// render pass and returns how many edge pixels are partly covered.
+// -1 = no Metal device, -2 = setup failed. See
+// TestTriangleEdgesAntialiased.
+func testEdgeCoverage() int {
+	cMSL := C.CString(msl.Source)
+	defer C.free(unsafe.Pointer(cMSL))
+	return int(C.metalEdgeCoverageProbe(cMSL))
+}
+
 func testMenuExists() bool {
 	return C.metalTestMainMenuExists() != 0
 }
