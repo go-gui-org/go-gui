@@ -24,13 +24,12 @@ indexed `DrawElements(TRIANGLES)` per run of quads that sample the same texture.
 
 - **Storage.** `batch [maxGlyphQuads][4][8]float32` sits inline in
   `glyphBackend`, which is allocated once per backend. Queueing a quad is a
-  128-byte copy. A frame allocates nothing on the heap.
-  `maxGlyphQuads = 1024`, so the VBO is 128 KiB and the largest index,
-  4·1024−1, fits in `uint16`.
+  128-byte copy. A frame allocates nothing on the heap. `maxGlyphQuads = 1024`,
+  so the VBO is 128 KiB and the largest index, 4·1024−1, fits in `uint16`.
 - **Indices.** At init a static `ELEMENT_ARRAY_BUFFER` is filled with
-  `(4i, 4i+1, 4i+2, 4i, 4i+2, 4i+3)` for every quad. This is the same
-  triangle split `TRIANGLE_FAN` made of a single quad, so each quad covers the
-  same pixels as before.
+  `(4i, 4i+1, 4i+2, 4i, 4i+2, 4i+3)` for every quad. This is the same triangle
+  split `TRIANGLE_FAN` made of a single quad, so each quad covers the same
+  pixels as before.
 - **Scope.** A batch never outlives the text command that filled it.
   `Backend.restoreAfterGlyph` flushes it before the next `RenderCmd`. Scissor,
   stencil, blend, framebuffer and MVP are therefore constant across every quad
@@ -41,14 +40,14 @@ indexed `DrawElements(TRIANGLES)` per run of quads that sample the same texture.
 
 Each trigger below is required for correctness:
 
-| Trigger                                                         | Why                                                                                                                                   |
-| --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| Quad from another texture                                       | One draw samples one bound page.                                                                                                      |
-| Batch full (`batchN == batchCap`)                               | Capacity. The flush happens right away, so `batchCap = 1` reproduces the old draw-per-quad sequence exactly.                           |
-| `UpdateTexture` / `UpdateTextureRect` on the queued page        | go-glyph evicts a page mid-command (`atlas.go` `resetPage`) and re-uploads it before the next quad. Queued quads must sample the old texels. |
-| `DeleteTexture` of the queued page                              | Queued quads would otherwise sample a deleted texture name.                                                                            |
-| `DrawFilledRect`                                                | It draws immediately, and it must stay behind the glyphs queued before it.                                                             |
-| `restoreAfterGlyph`                                             | End of the text command. This is the scope rule above.                                                                                 |
+| Trigger                                                  | Why                                                                                                                                          |
+| -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Quad from another texture                                | One draw samples one bound page.                                                                                                             |
+| Batch full (`batchN == batchCap`)                        | Capacity. The flush happens right away, so `batchCap = 1` reproduces the old draw-per-quad sequence exactly.                                 |
+| `UpdateTexture` / `UpdateTextureRect` on the queued page | go-glyph evicts a page mid-command (`atlas.go` `resetPage`) and re-uploads it before the next quad. Queued quads must sample the old texels. |
+| `DeleteTexture` of the queued page                       | Queued quads would otherwise sample a deleted texture name.                                                                                  |
+| `DrawFilledRect`                                         | It draws immediately, and it must stay behind the glyphs queued before it.                                                                   |
+| `restoreAfterGlyph`                                      | End of the text command. This is the scope rule above.                                                                                       |
 
 An upload to a page other than the queued one leaves the batch alone, because it
 cannot change what the queued quads sample. `NewTexture` does not flush: it
@@ -61,8 +60,8 @@ never has queued quads at that point.
 ### Result
 
 A text command of N glyphs over P page runs costs `4 + 7P + 1` calls, plus 7
-more for each run longer than 1024 quads. For a 40-glyph label on one page that is 12
-calls, down from 285.
+more for each run longer than 1024 quads. For a 40-glyph label on one page that
+is 12 calls, down from 285.
 
 ## Verification
 
@@ -99,13 +98,13 @@ comparison, because the batch then leaks across the clip change.
   bindings, and skipping redundant binds). It would need every bind site in
   `draw.go`, `buffers.go`, `text.go`, `textures.go` and `msaa.go` to go through
   the cache. One missed raw bind leaves the cache out of sync, and the symptom
-  is a wrong texture, not a crash. It cuts 7 calls per quad to 2, while
-  batching cuts them to about 7 per page run. It is larger in scope and smaller
-  in payoff. A narrow skip-if-current in `usePipeline` could be considered
-  later if a profile asks for it.
+  is a wrong texture, not a crash. It cuts 7 calls per quad to 2, while batching
+  cuts them to about 7 per page run. It is larger in scope and smaller in
+  payoff. A narrow skip-if-current in `usePipeline` could be considered later if
+  a profile asks for it.
 - **Batches spanning consecutive text commands**, flushed by the next non-text
-  command. It saves only the fixed cost of each command (about 12 calls), and
-  it brings back the cache's failure mode: every draw path, and every scissor,
+  command. It saves only the fixed cost of each command (about 12 calls), and it
+  brings back the cache's failure mode: every draw path, and every scissor,
   stencil, FBO or rotation change, would have to flush. A missed one reorders
   draws or ignores a clip.
 - **Golden renders as verification.** They cannot observe backend output. See
@@ -114,5 +113,5 @@ comparison, because the batch then leaks across the clip change.
   shader hooks bind their own GL state. They do not. `RenderCustomShader`
   supplies only a GLSL fragment body. The backend compiles it into a program it
   owns (`getOrBuildCustomPipeline`) and draws it with `drawQuad`. `glbind` is
-  `internal`, so no consumer can issue GL calls. There is no contract to
-  define, and consumers are not affected.
+  `internal`, so no consumer can issue GL calls. There is no contract to define,
+  and consumers are not affected.
