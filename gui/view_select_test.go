@@ -451,7 +451,7 @@ func TestSelectMultipleJoinsSelected(t *testing.T) {
 // shape — the one number optical centring moves.
 func selectLabelY(t *testing.T, cfg SelectCfg) float32 {
 	t.Helper()
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	cfg.ID = "s"
 	w.TestRender(func(*Window) View { return Select(cfg) })
 	field, ok := w.layout.FindByID("s")
@@ -545,7 +545,7 @@ func TestSelectLongValueKeepsArrowInside(t *testing.T) {
 // and the wrapper must clip horizontally — which cut the tail of labels
 // like "Cogs" in the svg-spinners demo.
 func TestSelectDescenderStaysInsideClipWrapper(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.TestRender(func(*Window) View {
 		return Select(SelectCfg{
 			ID:       "s",

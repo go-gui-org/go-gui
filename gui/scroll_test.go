@@ -601,7 +601,7 @@ func TestScrollHorizontalByAndToWithClampAndOnScroll(t *testing.T) {
 // container's ScrollMode.
 func preciseScrollWindow(t *testing.T, mode scrollMode) *Window {
 	t.Helper()
-	w := NewTestWindow(WindowCfg{Width: 400, Height: 300})
+	w := NewTestWindow(t, WindowCfg{Width: 400, Height: 300})
 	w.TestRender(func(_ *Window) View {
 		return Column(ContainerCfg{
 			ID:         "s",

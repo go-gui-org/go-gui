@@ -9,7 +9,7 @@ import (
 // after maxEventDepth panicked frames the tree became all placeholders
 // (issue #689).
 func TestRootViewPanicRestoresGenDepth(t *testing.T) {
-	w := NewTestWindow(WindowCfg{Width: 200, Height: 100})
+	w := NewTestWindow(t, WindowCfg{Width: 200, Height: 100})
 	boom := false
 	w.SetView(func(w *Window) View {
 		if boom {
@@ -61,7 +61,7 @@ func TestRootViewPanicRestoresGenDepth(t *testing.T) {
 // pool put in updateLocked must leave w.layout intact until the new
 // tree replaces it, on a normal frame and after a panicked one.
 func TestViewSeesPreviousFrameLayout(t *testing.T) {
-	w := NewTestWindow(WindowCfg{Width: 200, Height: 100})
+	w := NewTestWindow(t, WindowCfg{Width: 200, Height: 100})
 	boom := false
 	frame := 0
 	var found []bool

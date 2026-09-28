@@ -358,7 +358,7 @@ type tooltipPanel struct {
 // The trigger is a fixed-size rectangle so the hit test does not depend
 // on text measurement, which is a nil-measurer approximation in tests.
 func tooltipsInPanels(t *testing.T, panels ...tooltipPanel) *Window {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	t.Cleanup(w.WindowCleanup)
 	w.viewState.mousePosX = 60
 	w.viewState.mousePosY = 60

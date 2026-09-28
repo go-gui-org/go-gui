@@ -268,7 +268,7 @@ func TestMdCopyButtonAnimationReadIsLocked(t *testing.T) {
 // hard 8px holding a 40px marker, which DebugLayoutInvariants reports as
 // a child escaping its parent.
 func TestMdRenderListItemMarkerFitsWideGlyphs(t *testing.T) {
-	w := NewTestWindow(WindowCfg{State: new(int)})
+	w := NewTestWindow(t, WindowCfg{State: new(int)})
 	w.textMeasurer = &stubTextMeasurer{charWidth: 10, fontHeight: 20}
 
 	layout := generateViewLayout(mdRenderListItem(

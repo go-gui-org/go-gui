@@ -167,7 +167,7 @@ func TestLayoutWidthsAxisNoneLeavesChildrenAlone(t *testing.T) {
 // FillFill root (a Canvas, not a splitter) resolves to the window size —
 // the fix lives in the sizing passes, not in the splitter.
 func TestCanvasFillFillRootFillsWindow(t *testing.T) {
-	w := NewTestWindow(WindowCfg{Width: 400, Height: 300})
+	w := NewTestWindow(t, WindowCfg{Width: 400, Height: 300})
 	w.TestRender(func(_ *Window) View {
 		return Canvas(ContainerCfg{
 			ID:      "c",
@@ -1251,7 +1251,7 @@ func TestComputeContentSizeAxisNoneCountsChildOffset(t *testing.T) {
 // window, the shape examples/family_tree uses.
 func scrollFillWindow(t *testing.T, inner View) *Window {
 	t.Helper()
-	w := NewTestWindow(WindowCfg{Width: 900, Height: 600})
+	w := NewTestWindow(t, WindowCfg{Width: 900, Height: 600})
 	w.TestRender(func(_ *Window) View {
 		return Column(ContainerCfg{
 			Sizing:  FillFill,

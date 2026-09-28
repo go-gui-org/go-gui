@@ -196,7 +196,7 @@ func TestDialogKeyDownEscape(t *testing.T) {
 // the dialog root whenever any focused child ran first, so Escape died
 // while Enter (handled by the child itself) kept working.
 func TestDialogEscapeWithFocusedChildKeyHandler(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.TestRender(func(*Window) View {
 		return Column(ContainerCfg{ID: "root"})
 	})
@@ -238,7 +238,7 @@ func TestDialogEscapeWithFocusedChildKeyHandler(t *testing.T) {
 // root, so the dialog stays open. Post-order dispatch reaches the child
 // first, and its Consume short-circuits before the dialog root runs.
 func TestDialogEscapeChildConsumeOverrides(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.TestRender(func(*Window) View {
 		return Column(ContainerCfg{ID: "root"})
 	})
@@ -640,7 +640,7 @@ func TestDialogFocusTargetIsAddressable(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			w := NewTestWindow(WindowCfg{})
+			w := NewTestWindow(t, WindowCfg{})
 			t.Cleanup(w.WindowCleanup)
 			w.Dialog(tc.cfg)
 			root := w.TestRender(func(_ *Window) View {
@@ -772,7 +772,7 @@ func TestDialogThemeWidthBoundsStillApply(t *testing.T) {
 // whose body is content, and renders the frame that shows it.
 func openDialogWith(t *testing.T, content func(*Window) View) *Window {
 	t.Helper()
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.TestRender(func(*Window) View {
 		return Column(ContainerCfg{ID: "root"})
 	})
@@ -833,7 +833,7 @@ func TestDialogSelectOpens(t *testing.T) {
 // dropdown must lift to its own layer above the dialog, the way a
 // main-tree dropdown lifts above the app.
 func TestDialogSelectDropdownAboveDialog(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.TestRender(func(*Window) View {
 		return Column(ContainerCfg{ID: "root"})
 	})
@@ -980,7 +980,7 @@ func TestDialogKeepsDragLock(t *testing.T) {
 // the main view after the first dialog was dismissed is closed when a
 // second dialog opens (issue #810).
 func TestDialogReopenCutsAgain(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	view := func(*Window) View {
 		return Column(ContainerCfg{ID: "root", Content: []View{
 			Select(SelectCfg{

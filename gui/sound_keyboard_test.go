@@ -206,7 +206,7 @@ func TestSoundInputDisabledSuppressesBoth(t *testing.T) {
 // through the real reject path.
 func TestSoundInputRejectReachesBeepPlayer(t *testing.T) {
 	restoreTheme(t)
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	t.Cleanup(w.WindowCleanup)
 	w.SetTheme(soundingTheme(t))
 	w.SetSoundPlayer(NewBeepSoundPlayer(w))
@@ -360,7 +360,7 @@ func dragReorderSoundState(
 
 func TestSoundDragReorderDropSelects(t *testing.T) {
 	restoreTheme(t)
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.SetTheme(soundingTheme(t))
 	spy := &soundSpy{}
 	w.SetSoundPlayer(spy)
@@ -377,7 +377,7 @@ func TestSoundDragReorderDropSelects(t *testing.T) {
 
 func TestSoundDragReorderNoOpDropSilent(t *testing.T) {
 	restoreTheme(t)
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.SetTheme(soundingTheme(t))
 	spy := &soundSpy{}
 	w.SetSoundPlayer(spy)
@@ -393,7 +393,7 @@ func TestSoundDragReorderNoOpDropSilent(t *testing.T) {
 
 func TestSoundDragReorderCancelSilent(t *testing.T) {
 	restoreTheme(t)
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.SetTheme(soundingTheme(t))
 	spy := &soundSpy{}
 	w.SetSoundPlayer(spy)
@@ -411,7 +411,7 @@ func TestSoundDragReorderCancelSilent(t *testing.T) {
 
 func TestSoundDragReorderKeyboardMoveSelects(t *testing.T) {
 	restoreTheme(t)
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.SetTheme(soundingTheme(t))
 	spy := &soundSpy{}
 	w.SetSoundPlayer(spy)
@@ -514,14 +514,14 @@ func TestSoundPhase3SilentConfigurations(t *testing.T) {
 
 	t.Run("no player", func(t *testing.T) {
 		restoreTheme(t)
-		w := NewTestWindow(WindowCfg{})
+		w := NewTestWindow(t, WindowCfg{})
 		w.SetTheme(soundingTheme(t))
 		drive(t, w)
 	})
 
 	t.Run("silent theme", func(t *testing.T) {
 		restoreTheme(t)
-		w := NewTestWindow(WindowCfg{})
+		w := NewTestWindow(t, WindowCfg{})
 		w.SetTheme(silentTheme(t))
 		spy := &soundSpy{}
 		w.SetSoundPlayer(spy)
@@ -531,7 +531,7 @@ func TestSoundPhase3SilentConfigurations(t *testing.T) {
 
 	t.Run("zero volume", func(t *testing.T) {
 		restoreTheme(t)
-		w := NewTestWindow(WindowCfg{})
+		w := NewTestWindow(t, WindowCfg{})
 		w.SetTheme(soundingTheme(t))
 		spy := &soundSpy{}
 		w.SetSoundPlayer(spy)

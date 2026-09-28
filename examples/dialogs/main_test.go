@@ -19,7 +19,7 @@ func TestMessageButtonOpensDialog(t *testing.T) {
 	t.Parallel()
 	gui.SetTheme(gui.ThemeDark)
 
-	w := gui.NewTestWindow(gui.WindowCfg{State: &App{}, Width: 640, Height: 550})
+	w := gui.NewTestWindow(t, gui.WindowCfg{State: &App{}, Width: 640, Height: 550})
 	root := w.TestRender(mainView)
 	if _, ok := root.FindByID(dialogShapeID); ok {
 		t.Fatal("dialog present before any click")

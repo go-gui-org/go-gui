@@ -119,7 +119,7 @@ func (hoverPadView) GenerateLayout(w *Window) Layout {
 
 func newInteractionWindow(t *testing.T, o interactionOpts) *Window {
 	t.Helper()
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.TestRender(interactionView(o))
 	return w
 }

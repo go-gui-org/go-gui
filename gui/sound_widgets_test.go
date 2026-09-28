@@ -24,7 +24,7 @@ import (
 func soundWindow(t *testing.T, view func(*Window) View) (*Window, *soundSpy) {
 	t.Helper()
 	spy := &soundSpy{}
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	t.Cleanup(w.WindowCleanup)
 	w.SetTheme(soundingTheme(t))
 	w.SetSoundPlayer(spy)

@@ -83,7 +83,7 @@ func TestWmszFor(t *testing.T) {
 func TestFramelessMessagesIgnoredWhenDecorated(t *testing.T) {
 	t.Parallel()
 	b := &Backend{}
-	b.plat.w = gui.NewTestWindow(gui.WindowCfg{})
+	b.plat.w = gui.NewTestWindow(t, gui.WindowCfg{})
 	if _, handled := b.handleMessage(wmNcCalcSize, 1, 0); handled {
 		t.Error("WM_NCCALCSIZE handled on a decorated window")
 	}
@@ -97,7 +97,7 @@ func TestFramelessMessagesIgnoredWhenDecorated(t *testing.T) {
 func TestNcCalcSizeFrameless(t *testing.T) {
 	t.Parallel()
 	b := &Backend{}
-	b.plat.w = gui.NewTestWindow(gui.WindowCfg{})
+	b.plat.w = gui.NewTestWindow(t, gui.WindowCfg{})
 	b.plat.frameless = true
 	res, handled := b.handleMessage(wmNcCalcSize, 1, 0)
 	if !handled || res != 0 {
@@ -113,7 +113,7 @@ func TestNcCalcSizeFrameless(t *testing.T) {
 func TestApplySizeLimitsPartialAxes(t *testing.T) {
 	t.Parallel()
 	b := &Backend{}
-	b.plat.w = gui.NewTestWindow(gui.WindowCfg{})
+	b.plat.w = gui.NewTestWindow(t, gui.WindowCfg{})
 	b.plat.minTrack = pointL{x: 500}
 	b.plat.maxTrack = pointL{y: 900}
 
@@ -143,7 +143,7 @@ func TestApplySizeLimitsPartialAxes(t *testing.T) {
 func TestApplySizeLimitsUnconstrained(t *testing.T) {
 	t.Parallel()
 	b := &Backend{}
-	b.plat.w = gui.NewTestWindow(gui.WindowCfg{})
+	b.plat.w = gui.NewTestWindow(t, gui.WindowCfg{})
 	var mmi minMaxInfo
 	if b.applySizeLimits(uintptr(unsafe.Pointer(&mmi))) {
 		t.Error("unconstrained window claimed WM_GETMINMAXINFO")

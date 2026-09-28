@@ -837,7 +837,7 @@ func renderScopedFormChild(
 // identity (so FindByID finds it), and that SetFocus accepts the
 // scoped name end to end.
 func TestFormChildrenScoped(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	const formID = "scoped-form"
 	captured, root := renderScopedFormChild(t, w, formID, "email", nil)
 	want := ScopeID(formLayoutID(formID), "email")
@@ -862,7 +862,7 @@ func TestFormChildrenScoped(t *testing.T) {
 // pattern as gui/datagrid and is what formDecodeLayoutID's
 // reverse-parse relies on.
 func TestFormChildrenScopedInsideIDPanel(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	const formID = "nested-form"
 	captured, root := renderScopedFormChild(t, w, formID, "email",
 		func(v View) View {
@@ -883,7 +883,7 @@ func TestFormChildrenScopedInsideIDPanel(t *testing.T) {
 // Input{ID: "email"} without colliding on one effective ID. The flat
 // behavior Form had before made such a window fail TestDuplicateIDs.
 func TestFormChildrenDistinctPerForm(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	root := w.TestRender(func(_ *Window) View {
 		return Column(ContainerCfg{
 			Sizing: FillFill,
@@ -968,7 +968,7 @@ func TestFormChildrenShareEventCap(t *testing.T) {
 // A form is a full-width block by default; an explicitly-set Sizing
 // still wins, because Sizing self-flags and FitFit is a real choice.
 func TestFormSizingDefault(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	def := generateViewLayout(Form(FormCfg{ID: "f1"}), w)
 	if def.Shape.Sizing != FillFit {
 		t.Errorf("default sizing = %+v, want FillFit", def.Shape.Sizing)

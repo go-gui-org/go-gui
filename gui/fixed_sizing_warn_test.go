@@ -9,7 +9,7 @@ import (
 // never takes effect (issue #635). The DebugSizing category reports
 // it at generation time, while the stated bounds are still visible.
 func TestFixedSizingConflictWarns(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.SetView(func(_ *Window) View {
 		return Column(ContainerCfg{
 			ID:       "fixed-warn",
@@ -35,7 +35,7 @@ func TestFixedSizingConflictWarns(t *testing.T) {
 // A bound equal to the size is redundant but harmless: the pin
 // changes nothing, so it stays quiet.
 func TestFixedSizingRedundantBoundsQuiet(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.SetView(func(_ *Window) View {
 		return Column(ContainerCfg{
 			ID:        "fixed-redundant",
@@ -57,7 +57,7 @@ func TestFixedSizingRedundantBoundsQuiet(t *testing.T) {
 // Unset bounds (zero) and non-Fixed axes keep whatever the pass
 // computes; there is nothing to report.
 func TestFixedSizingUnsetAndNonFixedQuiet(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.SetView(func(_ *Window) View {
 		return Column(ContainerCfg{
 			Sizing: FillFill,
@@ -86,7 +86,7 @@ func TestFixedSizingUnsetAndNonFixedQuiet(t *testing.T) {
 // A Fixed axis with no positive size degrades to content sizing
 // (issue #94) and keeps its bounds, so it stays quiet.
 func TestFixedSizingZeroSizeQuiet(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.SetView(func(_ *Window) View {
 		return Column(ContainerCfg{
 			ID:       "fixed-zero",
@@ -102,7 +102,7 @@ func TestFixedSizingZeroSizeQuiet(t *testing.T) {
 
 // The height axis reports independently of the width axis.
 func TestFixedSizingHeightAxisWarns(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.SetView(func(_ *Window) View {
 		return Column(ContainerCfg{
 			ID:        "fixed-height",
@@ -127,7 +127,7 @@ func TestFixedSizingHeightAxisWarns(t *testing.T) {
 // A DrawCanvas with Fixed sizing and stated bounds goes through the
 // same pin, so it reports through the same category.
 func TestFixedSizingDrawCanvasWarns(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.SetView(func(_ *Window) View {
 		return DrawCanvas(DrawCanvasCfg{
 			ID:       "fixed-canvas",
@@ -151,7 +151,7 @@ func TestFixedSizingDrawCanvasWarns(t *testing.T) {
 // The finding is gated by its own category: a mask without
 // DebugSizing stays silent at the site.
 func TestFixedSizingGatedByCategory(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.SetView(func(_ *Window) View {
 		return Column(ContainerCfg{
 			ID:       "fixed-gated",

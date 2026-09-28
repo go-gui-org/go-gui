@@ -195,7 +195,7 @@ func TestThinkingOrbLabelStructure(t *testing.T) {
 // goroutine adds mallocs to the alloc gates of later tests.
 func newOrbTestWindow(t *testing.T) *Window {
 	t.Helper()
-	w := NewTestWindow(WindowCfg{State: new(int)})
+	w := NewTestWindow(t, WindowCfg{State: new(int)})
 	t.Cleanup(w.stopAnimationLoop)
 	return w
 }

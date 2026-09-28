@@ -1477,7 +1477,7 @@ func TestKeyDownScrollsAgainstBodyViewport(t *testing.T) {
 		ShowQuickFilter: true, FreezeHeader: true,
 		OnSelectionChange: func(s GridSelection, ctx gg.EventCtx) { sel = s },
 	}
-	w := gg.NewTestWindow(gg.WindowCfg{})
+	w := gg.NewTestWindow(t, gg.WindowCfg{})
 	defer w.Close()
 	w.TestRender(func(*gg.Window) gg.View {
 		c := cfg

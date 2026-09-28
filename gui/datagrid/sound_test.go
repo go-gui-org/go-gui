@@ -39,7 +39,7 @@ func soundingGridTheme(w *gg.Window) gg.Theme {
 // installed and a spy attached.
 func soundGrid(t *testing.T, cfg DataGridCfg) (*gg.Window, *gridSoundSpy) {
 	t.Helper()
-	w := gg.NewTestWindow(gg.WindowCfg{})
+	w := gg.NewTestWindow(t, gg.WindowCfg{})
 	t.Cleanup(w.Close)
 	w.SetTheme(soundingGridTheme(w))
 	spy := &gridSoundSpy{}

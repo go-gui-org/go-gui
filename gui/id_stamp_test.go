@@ -11,7 +11,7 @@ import (
 // clears the scope whenever it starts from the top. Without that, every
 // overlay would inherit whatever prefix the last panel left behind.
 func TestInjectedOverlayResolvesFromEmptyScope(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.Dialog(DialogCfg{DialogType: DialogMessage, Title: "hi", Body: "there"})
 	root := w.TestRender(func(_ *Window) View {
 		return Column(ContainerCfg{
@@ -38,7 +38,7 @@ func TestInjectedOverlayResolvesFromEmptyScope(t *testing.T) {
 // extraction later lifts it into a layer of its own. Two panels may
 // each hold a popup with the same leaf and get distinct identities.
 func TestFloatKeepsTheScopeItWasWrittenIn(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	root := w.TestRender(func(_ *Window) View {
 		return Column(ContainerCfg{
 			Sizing: FillFill,
@@ -73,7 +73,7 @@ func TestFloatKeepsTheScopeItWasWrittenIn(t *testing.T) {
 // children's IDs itself — gui/datagrid does, and so do the RTF popups,
 // whose IDs are framework constants an event handler names directly.
 func TestAbsoluteLeafIsNotJoinedUnderAScope(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	root := w.TestRender(func(_ *Window) View {
 		return Column(ContainerCfg{
 			Sizing: FillFill,
@@ -153,7 +153,7 @@ func (v splicedParentView) GenerateLayout(w *Window) Layout {
 // still arrange under it. Their findings must name the full scope
 // through that parent rather than the grandparent scope.
 func TestStampDriftNamesScopeThroughUnstampedParent(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.SetView(func(_ *Window) View {
 		return Column(ContainerCfg{
 			Sizing: FillFill,
@@ -190,7 +190,7 @@ func TestStampDriftNamesScopeThroughUnstampedParent(t *testing.T) {
 // never went through generation carries no identity, every store keys
 // it on its bare leaf, and nothing else about the frame looks wrong.
 func TestStampDriftReportsAnUnstampedShape(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.SetView(func(_ *Window) View {
 		return Column(ContainerCfg{
 			Sizing: FillFill,
@@ -225,7 +225,7 @@ func TestStampDriftReportsAnUnstampedShape(t *testing.T) {
 // that is correct as written, including the opt-in reusability
 // advisory: every identity here sits under an ID-bearing ancestor.
 func TestNestedLayoutHasNoIdentityFindings(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.SetView(func(_ *Window) View {
 		return Column(ContainerCfg{
 			Sizing: FillFill,
@@ -277,7 +277,7 @@ func (v staleStampView) GenerateLayout(w *Window) Layout {
 // focus and scroll slots are all keyed on the stale string, so nothing
 // downstream finds them and nothing else about the frame looks wrong.
 func TestStampDriftReportsAStaleStamp(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.SetView(func(_ *Window) View {
 		return Column(ContainerCfg{
 			Sizing: FillFill,
@@ -315,7 +315,7 @@ func TestStampDriftReportsAStaleStamp(t *testing.T) {
 // reports nothing, so a window with a genuinely drifted shape stays
 // silent until the gate asks for it.
 func TestStampDriftIsSilentWhenTheCategoryIsOff(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.SetView(func(_ *Window) View {
 		return Column(ContainerCfg{
 			Sizing: FillFill,
@@ -363,7 +363,7 @@ func (v unstampedParentView) GenerateLayout(w *Window) Layout {
 // against an empty scope: a child stamped exactly right gets reported
 // as drifted, and the real fault — the parent — is buried under it.
 func TestUnstampedParentDoesNotMisplaceItsChildren(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.SetView(func(_ *Window) View {
 		return Column(ContainerCfg{
 			Sizing: FillFill,

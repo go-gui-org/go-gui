@@ -761,7 +761,7 @@ func TestDataGridRowsDataEmptyFirstRow(t *testing.T) {
 // namespace: the grid owns column widths, presentation, CRUD and
 // data-source state, and a missed resolve in any of them is the defect.
 func TestDataGridStateKeysResolveUnderScope(t *testing.T) {
-	w := gg.NewTestWindow(gg.WindowCfg{})
+	w := gg.NewTestWindow(t, gg.WindowCfg{})
 	w.SetView(func(_ *gg.Window) gg.View {
 		return gg.Column(gg.ContainerCfg{
 			ID:      "detail",
@@ -778,7 +778,7 @@ func TestDataGridStateKeysResolveUnderScope(t *testing.T) {
 // The grid's own shape answers to the scoped name, which is what
 // SetFocus and FindByID must be given.
 func TestDataGridRootResolvesToEffectiveID(t *testing.T) {
-	w := gg.NewTestWindow(gg.WindowCfg{})
+	w := gg.NewTestWindow(t, gg.WindowCfg{})
 	w.SetView(func(_ *gg.Window) gg.View {
 		return gg.Column(gg.ContainerCfg{
 			ID:      "detail",
@@ -802,7 +802,7 @@ func TestDataGridRootResolvesToEffectiveID(t *testing.T) {
 // Two grids sharing one cfg.ID under different panels are distinct
 // identities, which is the case the unresolved key silently merged.
 func TestDataGridTwoScopesAreDistinct(t *testing.T) {
-	w := gg.NewTestWindow(gg.WindowCfg{})
+	w := gg.NewTestWindow(t, gg.WindowCfg{})
 	w.SetView(func(_ *gg.Window) gg.View {
 		return gg.Column(gg.ContainerCfg{
 			Sizing: gg.FillFill,
@@ -841,7 +841,7 @@ func scopedTestGrid(w *gg.Window) gg.View {
 // this checks the stamp leaves an absolute leaf alone rather than
 // joining the enclosing scope onto a name that already carries it.
 func TestDataGridChildIDsAreNotJoinedTwice(t *testing.T) {
-	w := gg.NewTestWindow(gg.WindowCfg{})
+	w := gg.NewTestWindow(t, gg.WindowCfg{})
 	w.SetView(func(_ *gg.Window) gg.View {
 		return gg.Column(gg.ContainerCfg{
 			ID:      "detail",
@@ -869,7 +869,7 @@ func TestDataGridChildIDsAreNotJoinedTwice(t *testing.T) {
 // and a Fit grid sticks out of the column around it. A Fill-width
 // grid stays inside: the scroll body absorbs the excess instead.
 func TestFillWidthGridStaysInsideNarrowPanel(t *testing.T) {
-	w := gg.NewTestWindow(gg.WindowCfg{})
+	w := gg.NewTestWindow(t, gg.WindowCfg{})
 	defer w.Close()
 	cfg := DataGridCfg{
 		ID:     "grid",
@@ -940,7 +940,7 @@ func (dataGridRenderTextMeasurer) LayoutText(_ string, _ gg.TextStyle, _ float32
 }
 
 func TestDataGridLongCellTextRenderIsClippedAfterEditingEnds(t *testing.T) {
-	w := gg.NewTestWindow(gg.WindowCfg{Width: 360, Height: 180})
+	w := gg.NewTestWindow(t, gg.WindowCfg{Width: 360, Height: 180})
 	defer w.Close()
 	w.SetTextMeasurer(dataGridRenderTextMeasurer{})
 
@@ -1012,7 +1012,7 @@ func TestDataGridLongCellTextRenderIsClippedAfterEditingEnds(t *testing.T) {
 }
 
 func TestDataGridEditingCellFocusRingIsNotClipped(t *testing.T) {
-	w := gg.NewTestWindow(gg.WindowCfg{Width: 360, Height: 180})
+	w := gg.NewTestWindow(t, gg.WindowCfg{Width: 360, Height: 180})
 	defer w.Close()
 	w.SetTextMeasurer(dataGridRenderTextMeasurer{})
 	w.SetTheme(gg.ThemeDark)

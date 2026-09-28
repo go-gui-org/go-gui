@@ -291,6 +291,14 @@ func TestToggleSelectedTextContent(t *testing.T) {
 For interactive widgets, also test event handling with `NewTestWindow` and the
 `Test*` methods — `TestRender`, `TestClick`, `TestKey`. They push real events
 through the same dispatch the backend uses, with no run loop.
+`NewTestWindow(t, cfg)` tears the window down when the test ends. A window built
+with `NewWindow` in a test needs `t.Cleanup(w.WindowCleanup)`, or its animation
+goroutine keeps ticking for the rest of the test binary. To catch a missed
+cleanup, gate the package in `TestMain`:
+
+```go
+func TestMain(m *testing.M) { os.Exit(gui.RunTestsCheckingLeaks(m)) }
+```
 
 ## 5. Add to showcase
 

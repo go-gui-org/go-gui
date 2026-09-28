@@ -15,7 +15,7 @@ func newTestApp(t *testing.T) (*App, *gui.Window) {
 	app := New()
 	// Taller than the real window: with no text measurer the test layout
 	// runs longer, and the pointer must stay inside the window to hover.
-	w := gui.NewTestWindow(gui.WindowCfg{State: app, Width: 720, Height: 1000})
+	w := gui.NewTestWindow(t, gui.WindowCfg{State: app, Width: 720, Height: 1000})
 	w.TestRender(func(*gui.Window) gui.View { return View(app) })
 	return app, w
 }

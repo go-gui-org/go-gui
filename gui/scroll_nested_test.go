@@ -33,7 +33,7 @@ const innerID = "outer:inner"
 // go and "who moved" is unambiguous.
 func newNestedScrollWindow(t *testing.T) *Window {
 	t.Helper()
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.TestRender(func(_ *Window) View {
 		rows := func(n int) []View {
 			out := make([]View, 0, n)

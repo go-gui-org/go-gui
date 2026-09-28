@@ -187,7 +187,7 @@ func TestButtonOpticalCorrectionIgnoresButtonState(t *testing.T) {
 func TestButtonHoverPressedColor(t *testing.T) {
 	hover := RGBA(40, 200, 40, 255)
 	click := RGBA(200, 40, 40, 255)
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.TestRender(func(win *Window) View {
 		return Button(ButtonCfg{
 			ID: "b", Width: 100, Height: 40,
@@ -222,7 +222,7 @@ func TestButtonHoverPressedColor(t *testing.T) {
 func TestButtonHoverRightButtonStaysHoverColor(t *testing.T) {
 	hover := RGBA(40, 200, 40, 255)
 	click := RGBA(200, 40, 40, 255)
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.TestRender(func(win *Window) View {
 		return Button(ButtonCfg{
 			ID: "b", Width: 100, Height: 40,
@@ -250,7 +250,7 @@ func TestButtonHoverRightButtonStaysHoverColor(t *testing.T) {
 // Variant fills come from the installed theme's derived styles; the
 // zero-value variant is today's button (visual-refresh §6).
 func TestButtonVariantFills(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.TestRender(func(win *Window) View {
 		return Column(ContainerCfg{
 			Sizing:  FillFill,
@@ -281,7 +281,7 @@ func TestButtonVariantFills(t *testing.T) {
 // Color shorthand sets the resting fill and leaves hover to the
 // variant's ramp (visual-refresh §6).
 func TestButtonVariantColorsKeepPrecedence(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.TestRender(func(win *Window) View {
 		return Column(ContainerCfg{
 			Sizing:  FillFill,
@@ -304,7 +304,7 @@ func TestButtonVariantColorsKeepPrecedence(t *testing.T) {
 // color already applied — the one way a filled variant's label can be
 // recolored at construction (visual-refresh §6).
 func TestButtonVariantLabelPath(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.TestRender(func(win *Window) View {
 		return Column(ContainerCfg{
 			Sizing:  FillFill,
@@ -332,7 +332,7 @@ func TestButtonVariantLabelPath(t *testing.T) {
 // caller's choice and is left alone. Only the filled variants stamp —
 // the ghost keeps the default color (visual-refresh §6).
 func TestButtonVariantRecolorsDefaultedLabel(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.TestRender(func(win *Window) View {
 		return Column(ContainerCfg{
 			Sizing:  FillFill,
@@ -362,7 +362,7 @@ func TestButtonVariantRecolorsDefaultedLabel(t *testing.T) {
 // An out-of-range variant value degrades to the zero-value button
 // rather than panic or render nothing.
 func TestButtonVariantUnknownDegradesToSecondary(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.TestRender(func(win *Window) View {
 		return Column(ContainerCfg{
 			Sizing: FillFill,
@@ -381,7 +381,7 @@ func TestButtonVariantUnknownDegradesToSecondary(t *testing.T) {
 // caller's content (an icon under the label, say) — Content is "used
 // as-is" either way.
 func TestButtonVariantLabelWithContent(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.TestRender(func(win *Window) View {
 		return Column(ContainerCfg{
 			Sizing: FillFill,

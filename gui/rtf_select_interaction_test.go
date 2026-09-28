@@ -206,7 +206,7 @@ type rtfSelectHarness struct {
 func newRtfSelectHarness(t *testing.T, rt RichText) *rtfSelectHarness {
 	t.Helper()
 	h := &rtfSelectHarness{
-		w:  NewTestWindow(WindowCfg{Width: 800, Height: 800}),
+		w:  NewTestWindow(t, WindowCfg{Width: 800, Height: 800}),
 		id: "rtf",
 		rt: rt,
 	}
@@ -219,7 +219,7 @@ func newRtfSelectHarness(t *testing.T, rt RichText) *rtfSelectHarness {
 func newRtfSelectHarnessNested(t *testing.T, rt RichText) *rtfSelectHarness {
 	t.Helper()
 	h := &rtfSelectHarness{
-		w:      NewTestWindow(WindowCfg{Width: 800, Height: 800}),
+		w:      NewTestWindow(t, WindowCfg{Width: 800, Height: 800}),
 		id:     "panel:rtf",
 		rt:     rt,
 		nested: true,
@@ -838,7 +838,7 @@ func TestRtfSelectAmendStampsSelectionOnFrame(t *testing.T) {
 // the ShapeX/ShapeY/scrollDelta translation stays correct while the
 // container scrolls under the cursor.
 func TestRtfSelectScrollDragEdgeScrolls(t *testing.T) {
-	w := NewTestWindow(WindowCfg{Width: 800, Height: 800})
+	w := NewTestWindow(t, WindowCfg{Width: 800, Height: 800})
 	t.Cleanup(w.WindowCleanup)
 	w.textMeasurer = rtfSelTestMeasurer{}
 	w.TestRender(func(win *Window) View {
@@ -1151,7 +1151,7 @@ func TestRtfSelectClickOnLinkNavigatesAndSelects(t *testing.T) {
 // scroll container ("view:bottom"), the same way a heading slug would
 // carry the markdown container's prefix.
 func TestRtfOnClickAnchorLinkScrollsToView(t *testing.T) {
-	w := NewTestWindow(WindowCfg{Width: 800, Height: 800})
+	w := NewTestWindow(t, WindowCfg{Width: 800, Height: 800})
 	w.textMeasurer = rtfSelTestMeasurer{}
 	w.TestRender(func(win *Window) View {
 		return Column(ContainerCfg{
@@ -1232,7 +1232,7 @@ func TestRtfSelectDragUsesRebuiltFrame(t *testing.T) {
 // "pointer outside" for every Y, arm the edge-scroll, and clamp the
 // container back to the top under the user's drag.
 func TestRtfSelectDragMissingShapeKeepsScroll(t *testing.T) {
-	w := NewTestWindow(WindowCfg{Width: 800, Height: 800})
+	w := NewTestWindow(t, WindowCfg{Width: 800, Height: 800})
 	w.textMeasurer = rtfSelTestMeasurer{}
 	showRTF := true
 	render := func() {
@@ -1304,7 +1304,7 @@ func TestRtfSelectDragMissingShapeKeepsScroll(t *testing.T) {
 // against the press-time offset as well shifts the mapped rune by the
 // distance scrolled — here 40px, two whole lines.
 func TestRtfSelectDragScrollThenRelayout(t *testing.T) {
-	w := NewTestWindow(WindowCfg{Width: 800, Height: 800})
+	w := NewTestWindow(t, WindowCfg{Width: 800, Height: 800})
 	t.Cleanup(w.WindowCleanup)
 	w.textMeasurer = rtfSelTestMeasurer{}
 	w.TestRender(func(win *Window) View {

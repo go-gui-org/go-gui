@@ -94,7 +94,7 @@ func TestA11YDescriptionForwarded(t *testing.T) {
 	const desc = "known description"
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			w := NewTestWindow(WindowCfg{})
+			w := NewTestWindow(t, WindowCfg{})
 			layout := generateViewLayout(tc.view(desc), w)
 			info := layout.Shape.a11Y
 			if info == nil {

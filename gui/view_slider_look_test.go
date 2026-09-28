@@ -67,7 +67,7 @@ func lookShape(t *testing.T, w *Window, id string) *Shape {
 func TestSliderLookPlacesParts(t *testing.T) {
 	value := float32(25)
 	var got SliderLookState
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.TestRender(lookSlider(&value, false, &got))
 
 	slider := lookShape(t, w, "vol")
@@ -102,7 +102,7 @@ func TestSliderLookPlacesParts(t *testing.T) {
 func TestSliderLookPlacesPartsVertical(t *testing.T) {
 	value := float32(50)
 	var got SliderLookState
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.TestRender(lookSlider(&value, true, &got))
 
 	slider := lookShape(t, w, "vol")
@@ -128,7 +128,7 @@ func TestSliderLookPlacesPartsVertical(t *testing.T) {
 func TestSliderLookPressAndDrag(t *testing.T) {
 	value := float32(25)
 	var got SliderLookState
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.TestRender(lookSlider(&value, false, &got))
 	track := lookShape(t, w, "vol:track")
 	y := track.Y + 3
@@ -158,7 +158,7 @@ func TestSliderLookPressAndDrag(t *testing.T) {
 func TestSliderLookKeysWheelFocus(t *testing.T) {
 	value := float32(25)
 	var got SliderLookState
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.TestRender(lookSlider(&value, false, &got))
 
 	if err := w.TestKey("vol", KeyEnd, ModNone); err != nil {
@@ -182,7 +182,7 @@ func TestSliderLookKeysWheelFocus(t *testing.T) {
 // A nil part is left out. With no track and no handle, the fill runs from
 // the slider's start to the value over the whole width.
 func TestSliderLookNilParts(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.TestRender(func(*Window) View {
 		return Slider(SliderCfg{ID: "s", Value: 50, Width: 100, Height: 10,
 			Look: func(SliderLookState) SliderParts {

@@ -81,6 +81,15 @@ const (
 	tabBackward
 )
 
+// Cleanuper is the part of testing.TB that NewTestWindow needs.
+// *testing.T, *testing.B and *testing.F satisfy it. An interface rather
+// than testing.TB keeps package testing out of the library's import
+// graph.
+// exportaudit:keep — reachable from an exported signature
+type Cleanuper interface {
+	Cleanup(func())
+}
+
 // testWindowSize is the default viewport for a test window. Arbitrary,
 // but large enough that a FillFill root does not clip typical content
 // down to nothing — a zero-size window would make every TestClick fail
@@ -104,7 +113,17 @@ const testWindowSize = 800
 // nil, exactly as in the existing package tests. Layout therefore uses
 // the no-measurer fallbacks: text extents are approximations, so assert
 // on structure, state and focus, not on pixel widths.
-func NewTestWindow(cfg WindowCfg) *Window {
+//
+// tb is the test (*testing.T, *testing.B or *testing.F). NewTestWindow
+// registers w.WindowCleanup with it, so the window is torn down when the
+// test ends (#840). In an app the backend calls WindowCleanup; a test has
+// no backend. Without the cleanup, a window whose view started a
+// repeating animation (a focused Input's blink cursor, a tooltip, drag
+// auto-scroll) keeps its animation goroutine ticking at 60 Hz for the
+// rest of the test binary, and that goroutine's mallocs show up in every
+// later testing.AllocsPerRun gate. Taking tb makes the cleanup
+// impossible to forget.
+func NewTestWindow(tb Cleanuper, cfg WindowCfg) *Window {
 	if cfg.Width == 0 {
 		cfg.Width = testWindowSize
 	}
@@ -112,6 +131,7 @@ func NewTestWindow(cfg WindowCfg) *Window {
 		cfg.Height = testWindowSize
 	}
 	w := NewWindow(cfg)
+	tb.Cleanup(w.WindowCleanup)
 	if cfg.OnInit != nil {
 		cfg.OnInit(w)
 	}

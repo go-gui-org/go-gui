@@ -468,7 +468,7 @@ func TestSliderWheelMovesByStep(t *testing.T) {
 						Height: 6, Sizing: FillFixed, SizeBorder: NoBorder})}
 				}
 			}
-			w := NewTestWindow(WindowCfg{})
+			w := NewTestWindow(t, WindowCfg{})
 			w.TestRender(func(*Window) View {
 				c := cfg
 				c.Value = value

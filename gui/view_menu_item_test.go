@@ -94,7 +94,7 @@ func menuItemTextYs(t *testing.T, itemCfg MenuItemCfg) []float32 {
 	t.Helper()
 	itemCfg.textStyle = DefaultTextStyle
 	itemCfg.sizing = FitFit
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.TestRender(func(*Window) View {
 		return menuItem(MenubarCfg{}, itemCfg)
 	})

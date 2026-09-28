@@ -487,7 +487,7 @@ func TestVirtualListDefaultsTakeNoHoverColor(t *testing.T) {
 // own docstring promised a scrollbar that tightens as the reader
 // travels.
 func TestVirtualListCarriesScrollbars(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	view := func(*Window) View {
 		return VirtualList(VirtualListCfg{
 			ID:        "feed",
@@ -520,7 +520,7 @@ func TestVirtualListCarriesScrollbars(t *testing.T) {
 // A list whose rows fit hides the thumb: the bars are auto, not
 // always-on.
 func TestVirtualListScrollbarHidesWhenFitting(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	view := func(*Window) View {
 		return VirtualList(VirtualListCfg{
 			ID:        "feed",

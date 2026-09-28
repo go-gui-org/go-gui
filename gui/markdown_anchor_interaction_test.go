@@ -47,7 +47,7 @@ func mdAnchorWindow(
 	t *testing.T, source string, nested, focusable, bareHeading bool,
 ) *Window {
 	t.Helper()
-	w := NewTestWindow(WindowCfg{Width: 800, Height: 800})
+	w := NewTestWindow(t, WindowCfg{Width: 800, Height: 800})
 	w.textMeasurer = mdSelectTestMeasurer{}
 	w.TestRender(func(win *Window) View {
 		md := win.Markdown(MarkdownCfg{
@@ -176,7 +176,7 @@ func TestMarkdownAnchorLinkScrollsToView(t *testing.T) {
 // hits. Non-focusable document, so the plain rtfOnClick path carries
 // the resolution.
 func TestMarkdownAnchorLinkBareIDFallback(t *testing.T) {
-	w := NewTestWindow(WindowCfg{Width: 800, Height: 800})
+	w := NewTestWindow(t, WindowCfg{Width: 800, Height: 800})
 	w.textMeasurer = mdSelectTestMeasurer{}
 	w.TestRender(func(win *Window) View {
 		return Column(ContainerCfg{

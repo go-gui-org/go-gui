@@ -5,7 +5,7 @@ import "testing"
 // A new window starts visible: the zero hidden flag reads as shown.
 func TestWindowStartsVisible(t *testing.T) {
 	t.Parallel()
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	if !w.IsVisible() {
 		t.Error("IsVisible = false for a new window, want true")
 	}
@@ -15,7 +15,7 @@ func TestWindowStartsVisible(t *testing.T) {
 // the flag alone, the way headless tests run.
 func TestWindowHideShowNilPlatform(t *testing.T) {
 	t.Parallel()
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.Hide()
 	if w.IsVisible() {
 		t.Error("IsVisible = true after Hide, want false")
@@ -32,7 +32,7 @@ func TestWindowHideShowNilPlatform(t *testing.T) {
 func TestWindowHideShowReachPlatform(t *testing.T) {
 	t.Parallel()
 	np := &recordingVisibilityPlatform{}
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.SetNativePlatform(np)
 
 	w.Hide()
@@ -55,7 +55,7 @@ func TestWindowHideShowReachPlatform(t *testing.T) {
 func TestWindowHideIsNotClose(t *testing.T) {
 	t.Parallel()
 	app := NewApp()
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	app.Register(1, w)
 
 	w.Hide()
@@ -73,7 +73,7 @@ func TestWindowHideIsNotClose(t *testing.T) {
 func TestWindowShowAfterDestroyNoops(t *testing.T) {
 	t.Parallel()
 	np := &recordingVisibilityPlatform{}
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.SetNativePlatform(np)
 
 	w.Hide()

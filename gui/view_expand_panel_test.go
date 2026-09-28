@@ -169,7 +169,7 @@ func TestExpandPanelHeaderOtherCharsTravel(t *testing.T) {
 // rendered window, so a future reorder that puts a body control
 // before the header fails here.
 func TestExpandPanelHeaderPrecedesBodyInTabOrder(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.TestRender(func(win *Window) View {
 		return ExpandPanel(ExpandPanelCfg{
 			ID:   "ep",
@@ -205,7 +205,7 @@ func TestExpandPanelHeaderPrecedesBodyInTabOrder(t *testing.T) {
 func TestExpandPanelHoverPressedColor(t *testing.T) {
 	hover := RGBA(40, 200, 40, 255)
 	click := RGBA(200, 40, 40, 255)
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.TestRender(func(win *Window) View {
 		return ExpandPanel(ExpandPanelCfg{
 			ID:     "ep",

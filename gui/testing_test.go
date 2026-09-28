@@ -24,7 +24,7 @@ type counterState struct {
 // rendered.
 func newCounterWindow(t *testing.T) *Window {
 	t.Helper()
-	w := NewTestWindow(WindowCfg{State: &counterState{}})
+	w := NewTestWindow(t, WindowCfg{State: &counterState{}})
 	t.Cleanup(w.WindowCleanup)
 	w.TestRender(func(w *Window) View {
 		app := State[counterState](w)
@@ -91,7 +91,7 @@ func TestTestClickUnknownID(t *testing.T) {
 }
 
 func TestTestClickDisabled(t *testing.T) {
-	w := NewTestWindow(WindowCfg{State: &counterState{}})
+	w := NewTestWindow(t, WindowCfg{State: &counterState{}})
 	w.TestRender(func(_ *Window) View {
 		return Button(ButtonCfg{
 			ID:       "off",
@@ -107,7 +107,7 @@ func TestTestClickDisabled(t *testing.T) {
 }
 
 func TestTestClickNoHandler(t *testing.T) {
-	w := NewTestWindow(WindowCfg{State: &counterState{}})
+	w := NewTestWindow(t, WindowCfg{State: &counterState{}})
 	w.TestRender(func(_ *Window) View {
 		// A plain container: no OnClick, not focusable. Clicking it
 		// cannot do anything, so asking to click it is a test bug.
@@ -135,7 +135,7 @@ func TestTestClickNoHandler(t *testing.T) {
 // the event. A test must assert on state, not on the nil.
 func TestTestClickBlockedByOverlay(t *testing.T) {
 	var fired, overFired bool
-	w := NewTestWindow(WindowCfg{State: &counterState{}})
+	w := NewTestWindow(t, WindowCfg{State: &counterState{}})
 	w.TestRender(func(_ *Window) View {
 		return Column(ContainerCfg{
 			Sizing: FixedFixed,
@@ -222,7 +222,7 @@ func TestTestKeyReachesOnKeyDown(t *testing.T) {
 // widget's own state, not the app callback. This is what proves TestKey
 // goes through real dispatch rather than poking a callback.
 func TestTestKeyDrivesWidgetState(t *testing.T) {
-	w := NewTestWindow(WindowCfg{State: &counterState{}})
+	w := NewTestWindow(t, WindowCfg{State: &counterState{}})
 	t.Cleanup(w.WindowCleanup)
 	w.TestRender(func(w *Window) View {
 		app := State[counterState](w)
@@ -250,7 +250,7 @@ func TestTestKeyDrivesWidgetState(t *testing.T) {
 }
 
 func TestTestFocusNotFocusable(t *testing.T) {
-	w := NewTestWindow(WindowCfg{State: &counterState{}})
+	w := NewTestWindow(t, WindowCfg{State: &counterState{}})
 	w.TestRender(func(_ *Window) View {
 		return Column(ContainerCfg{
 			ID:      "plain",
@@ -265,7 +265,7 @@ func TestTestFocusNotFocusable(t *testing.T) {
 }
 
 func TestTestTypeEntersText(t *testing.T) {
-	w := NewTestWindow(WindowCfg{State: &counterState{}})
+	w := NewTestWindow(t, WindowCfg{State: &counterState{}})
 	t.Cleanup(w.WindowCleanup)
 	w.TestRender(func(w *Window) View {
 		app := State[counterState](w)
@@ -362,7 +362,7 @@ func TestTestTabWhileDraggingTraverses(t *testing.T) {
 // silent no-op phase 1 made impossible for the nine input factories;
 // containers can still express it, and TestTab must show it.
 func TestTestTabSkipsIDlessFocusable(t *testing.T) {
-	w := NewTestWindow(WindowCfg{State: &counterState{}})
+	w := NewTestWindow(t, WindowCfg{State: &counterState{}})
 	w.TestRender(func(_ *Window) View {
 		return Column(ContainerCfg{
 			Sizing: FillFill,
@@ -391,7 +391,7 @@ func TestTestTabSkipsIDlessFocusable(t *testing.T) {
 // taller than it, so scrolling has somewhere to go.
 func newScrollWindow(t *testing.T) *Window {
 	t.Helper()
-	w := NewTestWindow(WindowCfg{State: &counterState{}})
+	w := NewTestWindow(t, WindowCfg{State: &counterState{}})
 	w.TestRender(func(_ *Window) View {
 		rows := make([]View, 0, 40)
 		for range 40 {
@@ -485,7 +485,7 @@ func TestTestScrollClampsAtEnd(t *testing.T) {
 // container gets. The two mean opposite things to whoever is reading
 // the failure: this one says the fixture never had anything to scroll.
 func TestTestScrollNoRoom(t *testing.T) {
-	w := NewTestWindow(WindowCfg{State: &counterState{}})
+	w := NewTestWindow(t, WindowCfg{State: &counterState{}})
 	w.TestRender(func(_ *Window) View {
 		return Column(ContainerCfg{
 			ID:         "roomy",
@@ -512,7 +512,7 @@ func TestTestScrollNoRoom(t *testing.T) {
 // tried and abandoned.
 func TestTestScrollOverWrappedText(t *testing.T) {
 	long := strings.Repeat("word ", 300)
-	w := NewTestWindow(WindowCfg{State: &counterState{}})
+	w := NewTestWindow(t, WindowCfg{State: &counterState{}})
 	w.TestRender(func(_ *Window) View {
 		return Column(ContainerCfg{
 			ID:         "panel",
@@ -555,7 +555,7 @@ func TestTestScrollNotScrollable(t *testing.T) {
 
 func TestNewTestWindowRunsOnInit(t *testing.T) {
 	var called bool
-	w := NewTestWindow(WindowCfg{
+	w := NewTestWindow(t, WindowCfg{
 		State:  &counterState{},
 		OnInit: func(_ *Window) { called = true },
 	})

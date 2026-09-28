@@ -510,7 +510,7 @@ func TestDebugAuditMouseLeaveDisabledIsQuiet(t *testing.T) {
 // widget's ID. Both now reference their owner instead of claiming its
 // identity, so a window built only from them is silent.
 func TestTestDuplicateIDsCompositeWidgetsAreQuiet(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.SetView(func(w *Window) View {
 		return Column(ContainerCfg{
 			Sizing: FillFill,
@@ -534,7 +534,7 @@ func TestTestDuplicateIDsCompositeWidgetsAreQuiet(t *testing.T) {
 // collision: the framework scopes it, so the inner bar is "dup:dup",
 // a different identity from the button's "dup".
 func TestTestDuplicateIDsScopesNestedLeaf(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.SetView(func(_ *Window) View {
 		return Column(ContainerCfg{
 			Sizing: FillFill,
@@ -558,7 +558,7 @@ func TestTestDuplicateIDsScopesNestedLeaf(t *testing.T) {
 // Two leaves under one ID-less parent share a scope, so they still
 // collide. Scoping joins explicit ancestor IDs and nothing else.
 func TestTestDuplicateIDsReportsSameScopeCollision(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.SetView(func(_ *Window) View {
 		return Column(ContainerCfg{
 			Sizing: FillFill,
@@ -580,7 +580,7 @@ func TestTestDuplicateIDsReportsSameScopeCollision(t *testing.T) {
 // There is no escaping, so this stays a duplicate — reported loudly
 // rather than silently sharing a slot.
 func TestTestDuplicateIDsReportsJoinedVsAbsolute(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.SetView(func(_ *Window) View {
 		return Column(ContainerCfg{
 			Sizing: FillFill,
@@ -609,7 +609,7 @@ func TestTestDuplicateIDsReportsJoinedVsAbsolute(t *testing.T) {
 // or a test that calls it silently changes what every later frame in
 // the process reports.
 func TestTestDuplicateIDsRestoresDebugState(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.SetView(func(_ *Window) View {
 		return Column(ContainerCfg{
 			Sizing:  FillFill,
@@ -643,7 +643,7 @@ func TestTestDuplicateIDsRestoresDebugState(t *testing.T) {
 func TestDebugUnscopedIDsReportsGlobalLeaf(t *testing.T) {
 	buf := captureDebug(t)
 	DebugCategories(DebugUnscopedIDs)
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	tree := generatedTree(w, ContainerCfg{ID: "save", Focusable: true})
 
 	w.debugAudit(&tree)
@@ -673,7 +673,7 @@ func TestDebugUnscopedIDsReportsGlobalLeaf(t *testing.T) {
 func TestDebugAllExcludesUnscopedIDs(t *testing.T) {
 	buf := captureDebug(t)
 	Debug(true)
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	tree := generatedTree(w, ContainerCfg{ID: "save", Focusable: true})
 
 	w.debugAudit(&tree)
@@ -771,7 +771,7 @@ func TestWrapOverflowGatedByCategory(t *testing.T) {
 // it. DebugUnscopedIDs is the case — a window-global ID is a design
 // property, not a defect, so the default sweep stays quiet on it.
 func TestTestFindingsReachesOptInCategory(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.SetView(func(_ *Window) View {
 		return Column(ContainerCfg{
 			Sizing:  FillFill,
@@ -792,7 +792,7 @@ func TestTestFindingsReachesOptInCategory(t *testing.T) {
 // gate a caller had installed must survive it unwidened.
 func TestTestFindingsRestoresMask(t *testing.T) {
 	captureDebugMask(t, DebugMissingIDs)
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.SetView(func(_ *Window) View {
 		return Column(ContainerCfg{Sizing: FillFill})
 	})
@@ -809,7 +809,7 @@ func TestTestFindingsRestoresMask(t *testing.T) {
 // thing that separates them, so it has to fire on the call itself.
 func TestEffIDOutsideGenerationReports(t *testing.T) {
 	buf := captureDebugMask(t, DebugUnresolvedKeys)
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 
 	if got := w.EffID("save"); got != "save" {
 		t.Fatalf("EffID must still answer with the leaf, got %q", got)
@@ -823,7 +823,7 @@ func TestEffIDOutsideGenerationReports(t *testing.T) {
 // stay silent, whether or not the widget has a scope above it.
 func TestEffIDDuringGenerationIsQuiet(t *testing.T) {
 	buf := captureDebugMask(t, DebugUnresolvedKeys)
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 
 	var scoped, unscoped string
 	w.SetView(func(_ *Window) View {
@@ -857,7 +857,7 @@ func TestEffIDDuringGenerationIsQuiet(t *testing.T) {
 // The depth is restored when a view function panics, so one bad frame
 // does not leave every later EffID call looking correctly timed.
 func TestGenDepthUnwindsOnPanic(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	func() {
 		defer func() { _ = recover() }()
 		generateViewLayout(ViewFunc(func(_ *Window) View {
@@ -896,7 +896,7 @@ func (p *eagerFactoryParent) GenerateLayout(w *Window) Layout {
 // the shape resolved is what catches it.
 func TestEffIDEagerFactoryUnderPanelReports(t *testing.T) {
 	buf := captureDebugMask(t, DebugUnresolvedKeys)
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 
 	var resolved string
 	w.SetView(func(_ *Window) View {
@@ -918,7 +918,7 @@ func TestEffIDEagerFactoryUnderPanelReports(t *testing.T) {
 // the previous frame's answers.
 func TestEffIDAnswersAreFrameScoped(t *testing.T) {
 	captureDebugMask(t, DebugUnresolvedKeys)
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 
 	var resolved string
 	w.SetView(func(_ *Window) View {
@@ -947,7 +947,7 @@ func TestCheckCategoryPanicsOnUnknown(t *testing.T) {
 // gate a caller had installed must survive it unwidened.
 func TestTestUnconsumedEventsRestoresMask(t *testing.T) {
 	captureDebugMask(t, DebugDuplicates)
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.SetView(func(_ *Window) View {
 		return Column(ContainerCfg{Sizing: FillFill})
 	})

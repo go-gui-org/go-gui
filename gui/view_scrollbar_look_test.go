@@ -56,7 +56,7 @@ func lookFind(t *testing.T, w *Window, id string) *Layout {
 // carries that size.
 func TestScrollbarThumbHookFillsThumb(t *testing.T) {
 	var thumb, track ScrollbarState
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.TestRender(lookList(20, &thumb, &track))
 	if w.refreshLayout.Load() {
 		t.Fatal("sizes still changing after the second pass")
@@ -99,7 +99,7 @@ func TestScrollbarThumbHookFillsThumb(t *testing.T) {
 // Scrolling moves the thumb, and the hook view's children move with it.
 func TestScrollbarThumbHookFollowsScroll(t *testing.T) {
 	var thumb, track ScrollbarState
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.TestRender(lookList(20, &thumb, &track))
 	w.TestRender(nil)
 	top := lookFind(t, w, "list:scrollbar-y").Children[1].Shape.Y
@@ -124,7 +124,7 @@ func TestScrollbarThumbHookFollowsScroll(t *testing.T) {
 // track stays, as the stock background does.
 func TestScrollbarThumbHookHiddenWithoutOverflow(t *testing.T) {
 	var thumb, track ScrollbarState
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.TestRender(lookList(2, &thumb, &track))
 	w.TestRender(nil)
 	box := lookFind(t, w, "list:scrollbar-y").Children[1].Shape
@@ -138,7 +138,7 @@ func TestScrollbarThumbHookHiddenWithoutOverflow(t *testing.T) {
 // drag on the thumb scrolls.
 func TestScrollbarThumbHookHoverPressDrag(t *testing.T) {
 	var thumb, track ScrollbarState
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.TestRender(lookList(20, &thumb, &track))
 	w.TestRender(nil)
 	box := lookFind(t, w, "list:scrollbar-y").Children[1].Shape

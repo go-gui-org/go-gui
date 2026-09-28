@@ -62,8 +62,8 @@ func waitForDiagramCommand(t *testing.T, w *Window) {
 // It runs the production lazy init first so a break there fails
 // here too, then installs a small isolated cache to keep tests
 // fast and independent.
-func newDiagramWindow() *Window {
-	w := NewTestWindow(WindowCfg{Width: 100, Height: 100})
+func newDiagramWindow(t *testing.T) *Window {
+	w := NewTestWindow(t, WindowCfg{Width: 100, Height: 100})
 	ensureDiagramCache(w)
 	w.viewState.diagramCache = newBoundedDiagramCache(10)
 	return w
@@ -119,7 +119,7 @@ func TestDiagramCacheShouldApplyResult(t *testing.T) {
 // queued finishDiagramFetch command. The cache must end up ready with
 // the decoded dimensions and a stored temp file.
 func TestFetchMermaidAsyncStoresReadyEntry(t *testing.T) {
-	w := newDiagramWindow()
+	w := newDiagramWindow(t)
 
 	body := testPNGBytes(t, 60, 40)
 	hash := diagramCacheHash("graph TD\n  A-->B")
@@ -192,7 +192,7 @@ func TestFetchMermaidAsyncStoresReadyEntry(t *testing.T) {
 // failure lands as a diagramError entry (queueDiagramError's apply
 // path).
 func TestFetchMermaidAsyncFetcherErrorQueuesError(t *testing.T) {
-	w := newDiagramWindow()
+	w := newDiagramWindow(t)
 
 	hash := diagramCacheHash("graph TD\n  A-->B")
 	reqID := nextDiagramRequestID(w)
@@ -227,7 +227,7 @@ func TestFetchMermaidAsyncFetcherErrorQueuesError(t *testing.T) {
 // TestFetchMermaidAsyncSourceTooLarge asserts the size guard fires
 // before the fetcher is consulted.
 func TestFetchMermaidAsyncSourceTooLarge(t *testing.T) {
-	w := newDiagramWindow()
+	w := newDiagramWindow(t)
 
 	hash := diagramCacheHash("x")
 	reqID := nextDiagramRequestID(w)
@@ -261,7 +261,7 @@ func TestFetchMermaidAsyncSourceTooLarge(t *testing.T) {
 // TestFinishDiagramFetchBadPNGQueuesError asserts a body that is not a
 // PNG fails decode and lands as an error entry.
 func TestFinishDiagramFetchBadPNGQueuesError(t *testing.T) {
-	w := newDiagramWindow()
+	w := newDiagramWindow(t)
 
 	hash := diagramCacheHash("math1")
 	reqID := nextDiagramRequestID(w)
@@ -287,7 +287,7 @@ func TestFinishDiagramFetchBadPNGQueuesError(t *testing.T) {
 // the cache entry is replaced by a newer request before the fetch
 // lands, the queued completion must not overwrite it.
 func TestStaleDiagramResultDropped(t *testing.T) {
-	w := newDiagramWindow()
+	w := newDiagramWindow(t)
 
 	body := testPNGBytes(t, 10, 10)
 	hash := diagramCacheHash("stale")
@@ -336,7 +336,7 @@ func TestStaleDiagramResultDropped(t *testing.T) {
 // TestStaleDiagramErrorDropped is the same guard on the error path:
 // queueDiagramError must also refuse a stale requestID.
 func TestStaleDiagramErrorDropped(t *testing.T) {
-	w := newDiagramWindow()
+	w := newDiagramWindow(t)
 
 	hash := diagramCacheHash("stale-err")
 	oldReq := nextDiagramRequestID(w)

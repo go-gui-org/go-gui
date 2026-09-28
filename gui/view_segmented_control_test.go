@@ -19,7 +19,7 @@ func segTestOptions() []SegmentOption {
 // so a click or key that calls OnSelect changes the next frame.
 func segTestWindow(t *testing.T, value *string, cfg SegmentedControlCfg) *Window {
 	t.Helper()
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	cfg.ID = "seg"
 	cfg.OnSelect = func(v string, ctx EventCtx) {
 		*value = v
@@ -143,7 +143,7 @@ func TestSegmentedControlKeyboard(t *testing.T) {
 func TestSegmentedControlEnterRefires(t *testing.T) {
 	value := "day"
 	calls := 0
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.TestRender(func(*Window) View {
 		return SegmentedControl(SegmentedControlCfg{
 			ID: "seg", Value: value, Options: segTestOptions(),
@@ -409,7 +409,7 @@ func TestSegmentedControlUnknownValueSelectsNone(t *testing.T) {
 // TestSegmentedControlNilOnSelect: a click with no OnSelect still
 // focuses the track and does not panic.
 func TestSegmentedControlNilOnSelect(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.TestRender(func(*Window) View {
 		return SegmentedControl(SegmentedControlCfg{
 			ID: "seg", Value: "day", Options: segTestOptions()})

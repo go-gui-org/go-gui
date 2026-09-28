@@ -9,7 +9,7 @@ import (
 // Deferred callbacks run in the order they were raised, and they run
 // with no lock held — the whole point, so SetFocus is legal in one.
 func TestFlushDeferredCallbacksRunsInOrder(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	var order []string
 	w.deferCallback(func(*Window) { order = append(order, "first") })
 	w.deferCallback(func(w *Window) {
@@ -31,7 +31,7 @@ func TestFlushDeferredCallbacksRunsInOrder(t *testing.T) {
 // focus blurs the next field — so the flush keeps draining rather than
 // leaving the second one for the following frame.
 func TestFlushDeferredCallbacksDrainsCascade(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	ran := 0
 	w.deferCallback(func(w *Window) {
 		ran++
@@ -47,7 +47,7 @@ func TestFlushDeferredCallbacksDrainsCascade(t *testing.T) {
 // forever. The flush bounds the rounds, drops the rest and says so.
 func TestFlushDeferredCallbacksBoundsRunaway(t *testing.T) {
 	buf := captureDebugMask(t, DebugCallbacks)
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	ran := 0
 	var again func(*Window)
 	again = func(w *Window) {
@@ -85,7 +85,7 @@ func TestFlushDeferredCallbacksBoundsRunaway(t *testing.T) {
 // path an app takes when it calls SetFocus from its own AmendLayout
 // hook, which cannot be deferred — the hook exists to mutate the tree.
 func TestLockForAPIPanicsUnderFrameLock(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.mu.Lock()
 	w.inFramePass.Store(true)
 	defer func() {
@@ -109,7 +109,7 @@ func TestLockForAPIPanicsUnderFrameLock(t *testing.T) {
 // An app AmendLayout hook is the one route into app code the frame pass
 // cannot defer, so it is the case the probe has to catch end to end.
 func TestAppAmendLayoutHookCallingSetFocusPanics(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	defer func() {
 		r := recover()
 		if r == nil {
@@ -132,7 +132,7 @@ func TestAppAmendLayoutHookCallingSetFocusPanics(t *testing.T) {
 
 // A flush that ran callbacks reports it, an empty one does not.
 func TestFlushDeferredCallbacksReports(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	if w.flushDeferredCallbacks() {
 		t.Fatal("an empty flush reported callbacks")
 	}
@@ -150,7 +150,7 @@ func TestFlushDeferredCallbacksReports(t *testing.T) {
 // report can make FrameFn re-run. Without the re-run the frame shows
 // the pre-callback text until the next event.
 func TestFrameFnRerunsPassAfterDeferredCallbacks(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	label := "before"
 	w.SetView(func(*Window) View {
 		return Text(TextCfg{ID: "label", Text: label})
@@ -174,7 +174,7 @@ func TestFrameFnRerunsPassAfterDeferredCallbacks(t *testing.T) {
 // The flip side of the re-run: a frame with nothing deferred must not
 // pay for it — one pass, one view generation.
 func TestFrameFnSinglePassWithoutDeferredCallbacks(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	gens := 0
 	w.SetView(func(*Window) View {
 		gens++
@@ -192,7 +192,7 @@ func TestFrameFnSinglePassWithoutDeferredCallbacks(t *testing.T) {
 // because the failure mode (an unbounded loop) would otherwise hang
 // the whole package.
 func TestFrameFnStopsAfterTwoPasses(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	gens := 0
 	w.SetView(func(w *Window) View {
 		gens++
