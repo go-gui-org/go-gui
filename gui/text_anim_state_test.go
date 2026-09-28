@@ -366,6 +366,7 @@ func TestTextAnimShimmerUsesEasing(t *testing.T) {
 // text colour: dark text on the accent fill.
 func TestTextAnimShimmerFollowsButtonLabelColor(t *testing.T) {
 	w := NewTestWindow(WindowCfg{})
+	t.Cleanup(w.WindowCleanup)
 	w.TestRender(func(*Window) View {
 		return Column(ContainerCfg{
 			Sizing: FillFill,

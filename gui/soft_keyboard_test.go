@@ -35,8 +35,9 @@ func (p *softKeyboardSpy) IMEStop()  { p.imeStops++ }
 // a FillFill column, with a spy platform attached. Tests drive it
 // through FrameFn so the edit-context gate runs where it runs in an
 // app: in the render pass.
-func newSoftKeyboardWindow(content ...View) (*Window, *softKeyboardSpy) {
+func newSoftKeyboardWindow(t *testing.T, content ...View) (*Window, *softKeyboardSpy) {
 	w := NewWindow(WindowCfg{State: new(int), Width: 400, Height: 300})
+	t.Cleanup(w.WindowCleanup)
 	spy := &softKeyboardSpy{}
 	w.SetNativePlatform(spy)
 	w.viewGenerator = func(_ *Window) View {
@@ -92,7 +93,7 @@ func TestSoftKeyboardShownWithFieldKind(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			w, spy := newSoftKeyboardWindow(c.view)
+			w, spy := newSoftKeyboardWindow(t, c.view)
 			w.SetFocus(c.id)
 			frame(w)
 			if len(spy.shows) != 1 {
@@ -109,7 +110,7 @@ func TestSoftKeyboardShownWithFieldKind(t *testing.T) {
 // the field that holds it must not re-show (the #156 invariant), and
 // leaving the field hides the keyboard.
 func TestSoftKeyboardFollowsEditContext(t *testing.T) {
-	w, spy := newSoftKeyboardWindow(Input(InputCfg{ID: "f"}))
+	w, spy := newSoftKeyboardWindow(t, Input(InputCfg{ID: "f"}))
 	w.SetFocus("f")
 	frame(w)
 	for range 3 {
@@ -131,7 +132,7 @@ func TestSoftKeyboardFollowsEditContext(t *testing.T) {
 
 // Moving between two fields re-requests with the new field's kind.
 func TestSoftKeyboardMovesBetweenFields(t *testing.T) {
-	w, spy := newSoftKeyboardWindow(
+	w, spy := newSoftKeyboardWindow(t,
 		Input(InputCfg{ID: "a"}),
 		Input(InputCfg{ID: "b", Keyboard: KeyboardURL}),
 	)
@@ -148,7 +149,7 @@ func TestSoftKeyboardMovesBetweenFields(t *testing.T) {
 }
 
 func TestSoftKeyboardNotShownForReadOnlyOrButton(t *testing.T) {
-	w, spy := newSoftKeyboardWindow(
+	w, spy := newSoftKeyboardWindow(t,
 		Input(InputCfg{ID: "ro", ReadOnly: true}),
 		Button(ButtonCfg{ID: "b", Content: []View{Text(TextCfg{Text: "b"})}}),
 	)
@@ -164,7 +165,7 @@ func TestSoftKeyboardNotShownForReadOnlyOrButton(t *testing.T) {
 // A tap on the field that already holds focus re-opens a keyboard the
 // user dismissed (Android Back) without the field losing focus.
 func TestSoftKeyboardReshownOnTapOfFocusedField(t *testing.T) {
-	w, spy := newSoftKeyboardWindow(Input(InputCfg{ID: "f"}))
+	w, spy := newSoftKeyboardWindow(t, Input(InputCfg{ID: "f"}))
 	w.SetFocus("f")
 	frame(w)
 	pressCenter(t, w, "f")
@@ -187,7 +188,7 @@ func TestSoftKeyboardReshownOnTapOfFocusedField(t *testing.T) {
 // the field focused and must not pop the OS keyboard back up.
 func TestSoftKeyboardKeypadPressKeepsFocus(t *testing.T) {
 	typed := 0
-	w, spy := newSoftKeyboardWindow(
+	w, spy := newSoftKeyboardWindow(t,
 		Input(InputCfg{ID: "f", Keyboard: KeyboardNone}),
 		Button(ButtonCfg{
 			ID: "k1", FocusDisabled: true,
@@ -242,7 +243,7 @@ func dragScrollPad(content ...View) View {
 // press, and the tap replay must still keep the field focused.
 func TestSoftKeyboardKeypadInDragScrollKeepsFocus(t *testing.T) {
 	typed := 0
-	w, spy := newSoftKeyboardWindow(
+	w, spy := newSoftKeyboardWindow(t,
 		Input(InputCfg{ID: "f", Keyboard: KeyboardNone}),
 		dragScrollPad(Button(ButtonCfg{
 			ID: "k1", FocusDisabled: true,
@@ -270,7 +271,7 @@ func TestSoftKeyboardKeypadInDragScrollKeepsFocus(t *testing.T) {
 // A pan that starts on the focused field scrolls; it must not re-open
 // a keyboard the user dismissed. A tap on the same field does.
 func TestSoftKeyboardPanOnFocusedFieldNoReshow(t *testing.T) {
-	w, spy := newSoftKeyboardWindow(dragScrollPad(Input(InputCfg{ID: "f"})))
+	w, spy := newSoftKeyboardWindow(t, dragScrollPad(Input(InputCfg{ID: "f"})))
 	w.SetFocus("pad:f")
 	frame(w)
 	if len(spy.shows) != 1 {
@@ -296,7 +297,7 @@ func TestSoftKeyboardPanOnFocusedFieldNoReshow(t *testing.T) {
 }
 
 func TestSoftKeyboardShowHideAPI(t *testing.T) {
-	w, spy := newSoftKeyboardWindow(Input(InputCfg{ID: "f", Keyboard: KeyboardPhone}))
+	w, spy := newSoftKeyboardWindow(t, Input(InputCfg{ID: "f", Keyboard: KeyboardPhone}))
 
 	// Nothing editable is focused: both calls are inert.
 	frame(w)
@@ -374,7 +375,7 @@ func TestSoftKeyboardInsetEvent(t *testing.T) {
 func TestSoftKeyboardKindChangeOnSameField(t *testing.T) {
 	kind := KeyboardText
 	secure := false
-	w, spy := newSoftKeyboardWindow()
+	w, spy := newSoftKeyboardWindow(t)
 	w.viewGenerator = func(_ *Window) View {
 		return Column(ContainerCfg{Sizing: FillFill, Content: []View{
 			Input(InputCfg{ID: "f", Keyboard: kind, IsPassword: secure}),

@@ -135,9 +135,10 @@ func (r contractRow) want(tr contractTrans) contractWant {
 // subject under test plus a trailing button, so a moved focus has a
 // live tab stop to land on and Tab away has somewhere to go.
 func contractWindow(
-	ctl *contractCtl, build func(ctl *contractCtl, id string) View,
+	t *testing.T, ctl *contractCtl, build func(ctl *contractCtl, id string) View,
 ) *Window {
 	w := NewTestWindow(WindowCfg{})
+	t.Cleanup(w.WindowCleanup)
 	w.TestRender(func(*Window) View {
 		views := make([]View, 0, 2)
 		if !ctl.removed {
@@ -717,7 +718,7 @@ func TestInteractionContract(t *testing.T) {
 			t.Run(row.widget+"/"+row.state.String()+
 				"/"+tr.String(), func(t *testing.T) {
 				ctl := &contractCtl{}
-				w := contractWindow(ctl, row.build)
+				w := contractWindow(t, ctl, row.build)
 				id := contractTarget(t, w, row)
 				px, py := contractBegin(t, w, row, id)
 				// Baseline after the begin: the press itself may

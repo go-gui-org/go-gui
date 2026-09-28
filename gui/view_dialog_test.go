@@ -641,6 +641,7 @@ func TestDialogFocusTargetIsAddressable(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			w := NewTestWindow(WindowCfg{})
+			t.Cleanup(w.WindowCleanup)
 			w.Dialog(tc.cfg)
 			root := w.TestRender(func(_ *Window) View {
 				return Column(ContainerCfg{Sizing: FillFill})

@@ -81,6 +81,7 @@ func TestEffIDScopesLeafByAncestor(t *testing.T) {
 // tab traversal reports it, and the widget paints from it.
 func TestFocusUsesEffectiveID(t *testing.T) {
 	w := NewTestWindow(WindowCfg{})
+	t.Cleanup(w.WindowCleanup)
 	w.TestRender(func(_ *Window) View {
 		return Column(ContainerCfg{
 			Sizing: FillFill,

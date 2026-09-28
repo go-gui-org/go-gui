@@ -25,6 +25,7 @@ type counterState struct {
 func newCounterWindow(t *testing.T) *Window {
 	t.Helper()
 	w := NewTestWindow(WindowCfg{State: &counterState{}})
+	t.Cleanup(w.WindowCleanup)
 	w.TestRender(func(w *Window) View {
 		app := State[counterState](w)
 		return Column(ContainerCfg{
@@ -222,6 +223,7 @@ func TestTestKeyReachesOnKeyDown(t *testing.T) {
 // goes through real dispatch rather than poking a callback.
 func TestTestKeyDrivesWidgetState(t *testing.T) {
 	w := NewTestWindow(WindowCfg{State: &counterState{}})
+	t.Cleanup(w.WindowCleanup)
 	w.TestRender(func(w *Window) View {
 		app := State[counterState](w)
 		return Input(InputCfg{
@@ -264,6 +266,7 @@ func TestTestFocusNotFocusable(t *testing.T) {
 
 func TestTestTypeEntersText(t *testing.T) {
 	w := NewTestWindow(WindowCfg{State: &counterState{}})
+	t.Cleanup(w.WindowCleanup)
 	w.TestRender(func(w *Window) View {
 		app := State[counterState](w)
 		return Input(InputCfg{

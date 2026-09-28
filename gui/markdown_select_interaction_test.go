@@ -679,6 +679,7 @@ func TestMarkdownClickAtOffsetSelectsExactRune(t *testing.T) {
 // callRelative coordinate contract.
 func TestRtfSelectClickAtOffsetSelectsExactRune(t *testing.T) {
 	w := NewTestWindow(WindowCfg{Width: 800, Height: 800})
+	t.Cleanup(w.WindowCleanup)
 	w.textMeasurer = mdSelectTestMeasurer{}
 	w.TestRender(func(win *Window) View {
 		return Row(ContainerCfg{
