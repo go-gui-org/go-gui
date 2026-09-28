@@ -26,6 +26,10 @@ struct MetalContext {
     id<MTLRenderPipelineState> pipelines[PIPE_COUNT];
     // Per-frame
     id<CAMetalDrawable>          drawable;
+    // target is the single-sample texture the main pass resolves
+    // into: the drawable's texture in a real frame, an offscreen
+    // texture in the edge-coverage probe.
+    id<MTLTexture>               target;
     id<MTLCommandBuffer>         cmdBuf;
     id<MTLRenderCommandEncoder>  enc;
     // Viewport
@@ -39,7 +43,18 @@ struct MetalContext {
     id<MTLBuffer> triBufs[TRI_BUF_RING][TRI_BUF_MAX_PER_FRAME];
     int triBufCursor[TRI_BUF_RING];
     int triBufFrame;
-    // Filter
+    // Multisampling. sampleCount is 4 on every Mac GPU, 1 only
+    // when the device reports no 4x support. SVG and other
+    // triangle-mesh geometry has no antialiasing of its own (the
+    // solid shader returns full alpha inside a triangle), so without
+    // per-sample coverage its edges are hard pixel stairs (#823).
+    // msaaTex is the multisampled color attachment of the main pass;
+    // it resolves into target.
+    int sampleCount;
+    id<MTLTexture> msaaTex;
+    // Filter. filterMsaaTex is the multisampled attachment of the
+    // filter content pass; it resolves into filterTexA.
+    id<MTLTexture> filterMsaaTex;
     id<MTLTexture> filterTexA;
     id<MTLTexture> filterTexB;
     id<MTLTexture> filterStencilTex;
@@ -138,10 +153,14 @@ static id<MTLRenderPipelineState> makePipeline(
     NSString *vsName,
     NSString *fsName,
     MTLVertexDescriptor *vd,
-    MTLPixelFormat pixFmt
+    MTLPixelFormat pixFmt,
+    int sampleCount
 ) {
     MTLRenderPipelineDescriptor *desc =
         [[MTLRenderPipelineDescriptor alloc] init];
+    // A pipeline's sample count must equal the sample count of the
+    // pass it draws in, or Metal rejects the draw.
+    desc.rasterSampleCount = (NSUInteger)sampleCount;
     desc.vertexFunction   = [lib newFunctionWithName:vsName];
     desc.fragmentFunction = [lib newFunctionWithName:fsName];
     desc.vertexDescriptor = vd;
@@ -188,10 +207,14 @@ static id<MTLRenderPipelineState> makePipelineReplace(
     NSString *vsName,
     NSString *fsName,
     MTLVertexDescriptor *vd,
-    MTLPixelFormat pixFmt
+    MTLPixelFormat pixFmt,
+    int sampleCount
 ) {
     MTLRenderPipelineDescriptor *desc =
         [[MTLRenderPipelineDescriptor alloc] init];
+    // A pipeline's sample count must equal the sample count of the
+    // pass it draws in, or Metal rejects the draw.
+    desc.rasterSampleCount = (NSUInteger)sampleCount;
     desc.vertexFunction   = [lib newFunctionWithName:vsName];
     desc.fragmentFunction = [lib newFunctionWithName:fsName];
     desc.vertexDescriptor = vd;
@@ -228,10 +251,14 @@ static id<MTLRenderPipelineState> makePipelineStencilMask(
     NSString *vsName,
     NSString *fsName,
     MTLVertexDescriptor *vd,
-    MTLPixelFormat pixFmt
+    MTLPixelFormat pixFmt,
+    int sampleCount
 ) {
     MTLRenderPipelineDescriptor *desc =
         [[MTLRenderPipelineDescriptor alloc] init];
+    // A pipeline's sample count must equal the sample count of the
+    // pass it draws in, or Metal rejects the draw.
+    desc.rasterSampleCount = (NSUInteger)sampleCount;
     desc.vertexFunction   = [lib newFunctionWithName:vsName];
     desc.fragmentFunction = [lib newFunctionWithName:fsName];
     desc.vertexDescriptor = vd;
@@ -278,29 +305,69 @@ static id<MTLTexture> makeRenderTarget(id<MTLDevice> device,
     return [device newTextureWithDescriptor:td];
 }
 
-static void ensureStencilTexture(MetalContext* ctx, int w,
+// makeAttachment creates a GPU-private render-target texture with
+// sampleCount samples per pixel. A count above 1 makes it a
+// multisampled texture, which can only be drawn into and resolved,
+// never sampled by a shader.
+static id<MTLTexture> makeAttachment(id<MTLDevice> device,
+    int w, int h, MTLPixelFormat fmt, int sampleCount) {
+    MTLTextureDescriptor *td = [MTLTextureDescriptor
+        texture2DDescriptorWithPixelFormat:fmt
+                                     width:w height:h
+                                  mipmapped:NO];
+    if (sampleCount > 1) {
+        td.textureType = MTLTextureType2DMultisample;
+        td.sampleCount = (NSUInteger)sampleCount;
+    }
+    td.usage = MTLTextureUsageRenderTarget;
+    td.storageMode = MTLStorageModePrivate;
+    return [device newTextureWithDescriptor:td];
+}
+
+// ensureMainAttachments sizes the multisampled color texture and the
+// stencil texture to the resolve target. Every attachment of a pass
+// must have the same size, so they follow the target texture itself
+// rather than viewW/viewH, which can lag the drawable during a live
+// resize.
+static void ensureMainAttachments(MetalContext* ctx, int w,
     int h) {
     if (ctx->stencilTex && ctx->stencilTexW == w &&
         ctx->stencilTexH == h)
         return;
-    MTLTextureDescriptor *td = [MTLTextureDescriptor
-        texture2DDescriptorWithPixelFormat:MTLPixelFormatStencil8
-                                     width:w height:h
-                                  mipmapped:NO];
-    td.usage = MTLTextureUsageRenderTarget;
-    td.storageMode = MTLStorageModePrivate;
-    ctx->stencilTex = [ctx->device newTextureWithDescriptor:td];
+    ctx->stencilTex = makeAttachment(ctx->device, w, h,
+        MTLPixelFormatStencil8, ctx->sampleCount);
+    ctx->msaaTex = nil;
+    if (ctx->sampleCount > 1) {
+        ctx->msaaTex = makeAttachment(ctx->device, w, h,
+            MTLPixelFormatBGRA8Unorm, ctx->sampleCount);
+    }
     ctx->stencilTexW = w;
     ctx->stencilTexH = h;
 }
 
 // Start or resume the main render pass.
+//
+// The store actions are left open (MTLStoreActionUnknown) and chosen
+// in endMainEncoder, because only the caller ending the pass knows
+// whether it will be resumed. A pass suspended for a filter must keep
+// its multisampled color and its stencil so the resumed pass can load
+// them. The last pass of the frame only needs the resolved color, so
+// it resolves and throws the samples away, which on Apple GPUs means
+// the samples are never written to memory at all.
 static void beginMainEncoder(MetalContext* ctx, float r, float g,
     float b, float a, int clear) {
     MTLRenderPassDescriptor *rpd =
         [MTLRenderPassDescriptor renderPassDescriptor];
-    rpd.colorAttachments[0].texture = ctx->drawable.texture;
-    rpd.colorAttachments[0].storeAction = MTLStoreActionStore;
+    int w = (int)ctx->target.width;
+    int h = (int)ctx->target.height;
+    ensureMainAttachments(ctx, w, h);
+    if (ctx->msaaTex) {
+        rpd.colorAttachments[0].texture = ctx->msaaTex;
+        rpd.colorAttachments[0].resolveTexture = ctx->target;
+    } else {
+        rpd.colorAttachments[0].texture = ctx->target;
+    }
+    rpd.colorAttachments[0].storeAction = MTLStoreActionUnknown;
     if (clear) {
         rpd.colorAttachments[0].loadAction = MTLLoadActionClear;
         rpd.colorAttachments[0].clearColor =
@@ -310,10 +377,9 @@ static void beginMainEncoder(MetalContext* ctx, float r, float g,
     }
 
     // Attach stencil buffer.
-    ensureStencilTexture(ctx, ctx->viewW, ctx->viewH);
     if (ctx->stencilTex) {
         rpd.stencilAttachment.texture = ctx->stencilTex;
-        rpd.stencilAttachment.storeAction = MTLStoreActionStore;
+        rpd.stencilAttachment.storeAction = MTLStoreActionUnknown;
         if (clear) {
             rpd.stencilAttachment.loadAction =
                 MTLLoadActionClear;
@@ -328,6 +394,31 @@ static void beginMainEncoder(MetalContext* ctx, float r, float g,
     [ctx->enc setViewport:(MTLViewport){
         0, 0, (double)ctx->viewW, (double)ctx->viewH, 0, 1}];
     [ctx->enc setFragmentSamplerState:ctx->sampler atIndex:0];
+}
+
+// endMainEncoder sets the store actions beginMainEncoder left open,
+// then ends the pass. resume is 1 when a later pass in this frame
+// loads the attachments again (a filter suspends the main pass), 0
+// at the end of the frame.
+static void endMainEncoder(MetalContext* ctx, int resume) {
+    if (!ctx->enc) return;
+    MTLStoreAction color = MTLStoreActionStore;
+    if (ctx->msaaTex) {
+        // A pass with a resolve texture must resolve, even when it
+        // is suspended, so a suspended pass resolves and also keeps
+        // its samples for the resumed pass to load. Only frames with
+        // a filter pay for that extra store.
+        color = resume ? MTLStoreActionStoreAndMultisampleResolve
+                       : MTLStoreActionMultisampleResolve;
+    }
+    [ctx->enc setColorStoreAction:color atIndex:0];
+    if (ctx->stencilTex) {
+        [ctx->enc setStencilStoreAction:
+            (resume ? MTLStoreActionStore
+                    : MTLStoreActionDontCare)];
+    }
+    [ctx->enc endEncoding];
+    ctx->enc = nil;
 }
 
 // ─── Public API ───────────────────────────────────────────────
@@ -386,43 +477,51 @@ MetalCtx metalCtxCreate(void* layerPtr, const char* mslSrc) {
     MTLVertexDescriptor *mvd = mainVertexDesc();
     MTLVertexDescriptor *gvd = glyphVertexDesc();
 
+    // 4x multisampling when the GPU has it, which every Mac GPU
+    // does. ms is the count for pipelines that draw in the main pass
+    // or the filter content pass; the blur and color-matrix passes
+    // run on single-sample filter textures and stay at 1.
+    ctx->sampleCount =
+        [ctx->device supportsTextureSampleCount:4] ? 4 : 1;
+    int ms = ctx->sampleCount;
+
     // Build pipeline states.
     ctx->pipelines[PIPE_SOLID] =
         makePipeline(ctx->device, lib, @"vs_solid", @"fs_solid",
-                     mvd, pf);
+                     mvd, pf, ms);
     ctx->pipelines[PIPE_SHADOW] =
         makePipeline(ctx->device, lib, @"vs_shadow", @"fs_shadow",
-                     mvd, pf);
+                     mvd, pf, ms);
     ctx->pipelines[PIPE_BLUR] =
         makePipeline(ctx->device, lib, @"vs_blur", @"fs_blur",
-                     mvd, pf);
+                     mvd, pf, ms);
     ctx->pipelines[PIPE_GRADIENT] =
         makePipeline(ctx->device, lib, @"vs_gradient",
-                     @"fs_gradient", mvd, pf);
+                     @"fs_gradient", mvd, pf, ms);
     ctx->pipelines[PIPE_IMAGE_CLIP] =
         makePipeline(ctx->device, lib, @"vs_solid",
-                     @"fs_image_clip", mvd, pf);
+                     @"fs_image_clip", mvd, pf, ms);
     ctx->pipelines[PIPE_FILTER_BLUR_H] =
         makePipelineReplace(ctx->device, lib, @"vs_filter",
-                     @"fs_filter_blur_h", mvd, pf);
+                     @"fs_filter_blur_h", mvd, pf, 1);
     ctx->pipelines[PIPE_FILTER_BLUR_V] =
         makePipelineReplace(ctx->device, lib, @"vs_filter",
-                     @"fs_filter_blur_v", mvd, pf);
+                     @"fs_filter_blur_v", mvd, pf, 1);
     ctx->pipelines[PIPE_FILTER_TEX] =
         makePipeline(ctx->device, lib, @"vs_filter",
-                     @"fs_filter_tex", mvd, pf);
+                     @"fs_filter_tex", mvd, pf, ms);
     ctx->pipelines[PIPE_FILTER_COLOR] =
         makePipelineReplace(ctx->device, lib, @"vs_filter",
-                     @"fs_filter_color", mvd, pf);
+                     @"fs_filter_color", mvd, pf, 1);
     ctx->pipelines[PIPE_GLYPH_TEX] =
         makePipeline(ctx->device, lib, @"vs_glyph",
-                     @"fs_glyph_tex", gvd, pf);
+                     @"fs_glyph_tex", gvd, pf, ms);
     ctx->pipelines[PIPE_GLYPH_COLOR] =
         makePipeline(ctx->device, lib, @"vs_glyph",
-                     @"fs_glyph_color", gvd, pf);
+                     @"fs_glyph_color", gvd, pf, ms);
     ctx->pipelines[PIPE_STENCIL] =
         makePipelineStencilMask(ctx->device, lib, @"vs_solid",
-                                @"fs_stencil", mvd, pf);
+                                @"fs_stencil", mvd, pf, ms);
 
     for (int i = 0; i < PIPE_COUNT; i++) {
         if (!ctx->pipelines[i]) {
@@ -531,6 +630,9 @@ int metalBuildCustomPipeline(MetalCtx ctx_,
     desc.fragmentFunction =
         [lib newFunctionWithName:@"fs_main"];
     desc.vertexDescriptor = mainVertexDesc();
+    // Custom shaders draw in the main pass, so they match its
+    // sample count.
+    desc.rasterSampleCount = (NSUInteger)ctx->sampleCount;
     desc.colorAttachments[0].pixelFormat =
         MTLPixelFormatBGRA8Unorm;
     desc.colorAttachments[0].blendingEnabled = YES;
@@ -613,9 +715,12 @@ void metalCtxDestroy(MetalCtx ctx_) {
         }
     }
     ctx->triBufFrame = -1;
+    ctx->filterMsaaTex = nil;
     ctx->filterTexA = nil;
     ctx->filterTexB = nil;
     ctx->filterStencilTex = nil;
+    ctx->msaaTex = nil;
+    ctx->target = nil;
     ctx->stencilTex = nil;
     ctx->stencilTexW = 0;
     ctx->stencilTexH = 0;
@@ -657,6 +762,7 @@ int metalBeginFrame(MetalCtx ctx_,
         ctx->framePool = nil;
         return -1;
     }
+    ctx->target = ctx->drawable.texture;
 
     ctx->triBufFrame =
         (ctx->triBufFrame + 1) % TRI_BUF_RING;
@@ -669,10 +775,7 @@ int metalBeginFrame(MetalCtx ctx_,
 
 void metalEndFrame(MetalCtx ctx_) {
     MetalContext* ctx = MC(ctx_);
-    if (ctx->enc) {
-        [ctx->enc endEncoding];
-        ctx->enc = nil;
-    }
+    endMainEncoder(ctx, 0);
     if (ctx->drawable && ctx->cmdBuf) {
         // The two presentation modes are not interchangeable at the call
         // site: presentsWithTransaction requires the app to present the
@@ -692,6 +795,7 @@ void metalEndFrame(MetalCtx ctx_) {
         }
     }
     ctx->drawable = nil;
+    ctx->target   = nil;
     ctx->cmdBuf   = nil;
     if (ctx->framePool) {
         objc_autoreleasePoolPop(ctx->framePool);
@@ -904,15 +1008,17 @@ static void ensureFilterTextures(MetalContext* ctx,
     MTLPixelFormat pf = MTLPixelFormatBGRA8Unorm;
     ctx->filterTexA = makeRenderTarget(ctx->device, w, h, pf);
     ctx->filterTexB = makeRenderTarget(ctx->device, w, h, pf);
+    // The filter content pass draws with the main pipelines, so it
+    // is multisampled like the main pass and resolves into
+    // filterTexA. The blur and color passes read filterTexA.
+    ctx->filterMsaaTex = nil;
+    if (ctx->sampleCount > 1) {
+        ctx->filterMsaaTex = makeAttachment(ctx->device, w, h, pf,
+            ctx->sampleCount);
+    }
     // Stencil attachment so ClipContents works inside filters.
-    MTLTextureDescriptor *std = [MTLTextureDescriptor
-        texture2DDescriptorWithPixelFormat:MTLPixelFormatStencil8
-                                     width:w height:h
-                                  mipmapped:NO];
-    std.usage = MTLTextureUsageRenderTarget;
-    std.storageMode = MTLStorageModePrivate;
-    ctx->filterStencilTex =
-        [ctx->device newTextureWithDescriptor:std];
+    ctx->filterStencilTex = makeAttachment(ctx->device, w, h,
+        MTLPixelFormatStencil8, ctx->sampleCount);
     ctx->filterW = w;
     ctx->filterH = h;
 }
@@ -923,26 +1029,36 @@ int metalBeginFilter(MetalCtx ctx_, int w, int h) {
 
     ensureFilterTextures(ctx, w, h);
     if (!ctx->filterTexA || !ctx->filterTexB) return -2;
+    if (ctx->sampleCount > 1 && !ctx->filterMsaaTex) return -2;
 
-    // End current main encoder.
-    [ctx->enc endEncoding];
-    ctx->enc = nil;
+    // Suspend the main pass. metalEndFilter resumes it.
+    endMainEncoder(ctx, 1);
 
-    // Start render pass targeting filterTexA.
+    // Start render pass targeting filterTexA, through the
+    // multisampled texture when there is one. The pass is never
+    // resumed, so the samples resolve and are discarded.
     MTLRenderPassDescriptor *rpd =
         [MTLRenderPassDescriptor renderPassDescriptor];
-    rpd.colorAttachments[0].texture     = ctx->filterTexA;
+    if (ctx->filterMsaaTex) {
+        rpd.colorAttachments[0].texture        = ctx->filterMsaaTex;
+        rpd.colorAttachments[0].resolveTexture = ctx->filterTexA;
+        rpd.colorAttachments[0].storeAction    =
+            MTLStoreActionMultisampleResolve;
+    } else {
+        rpd.colorAttachments[0].texture     = ctx->filterTexA;
+        rpd.colorAttachments[0].storeAction = MTLStoreActionStore;
+    }
     rpd.colorAttachments[0].loadAction  = MTLLoadActionClear;
-    rpd.colorAttachments[0].storeAction = MTLStoreActionStore;
     rpd.colorAttachments[0].clearColor  =
         MTLClearColorMake(0, 0, 0, 0);
 
-    // Attach stencil so ClipContents works inside filters.
+    // Attach stencil so ClipContents works inside filters. Cleared
+    // on every begin, so nothing needs to be stored.
     if (ctx->filterStencilTex) {
         rpd.stencilAttachment.texture     =
             ctx->filterStencilTex;
         rpd.stencilAttachment.loadAction  = MTLLoadActionClear;
-        rpd.stencilAttachment.storeAction = MTLStoreActionStore;
+        rpd.stencilAttachment.storeAction = MTLStoreActionDontCare;
         rpd.stencilAttachment.clearStencil = 0;
     }
 
@@ -1257,5 +1373,114 @@ int metalCompileShadersProbe(const char* mslSrc) {
             return -1;
         }
         return 0;
+    }
+}
+
+// ─── Edge Coverage Probe (test hook) ──────────────────────────
+
+// metalEdgeCoverageProbe draws one white right triangle, legs along
+// the top and left edges of a black 16x16 target, through the same
+// context, pipeline and main-pass code a window frame uses. It then
+// counts the pixels along the hypotenuse that are neither black nor
+// white. A triangle mesh (an SVG fill) has no antialiasing in the
+// shader, so a partial pixel can only come from multisampling: 0
+// partial pixels means the edge is a hard stair (#823).
+//
+// Returns the count, or -1 when there is no Metal device, -2 when
+// setup fails.
+int metalEdgeCoverageProbe(const char* mslSrc) {
+    @autoreleasepool {
+        id<MTLDevice> dev = MTLCreateSystemDefaultDevice();
+        if (!dev) {
+            return -1;  // headless/virtualized runner — caller skips
+        }
+        CAMetalLayer *layer = [CAMetalLayer layer];
+        MetalCtx c = metalCtxCreate((__bridge void*)layer, mslSrc);
+        if (!c) return -2;
+        MetalContext* ctx = MC(c);
+
+        const int n = 16;
+        MTLTextureDescriptor *td = [MTLTextureDescriptor
+            texture2DDescriptorWithPixelFormat:MTLPixelFormatBGRA8Unorm
+                                         width:n height:n
+                                      mipmapped:NO];
+        td.usage = MTLTextureUsageRenderTarget;
+        td.storageMode = MTLStorageModePrivate;
+        id<MTLTexture> tex = [ctx->device newTextureWithDescriptor:td];
+        id<MTLBuffer> out = [ctx->device
+            newBufferWithLength:n * n * 4
+                        options:MTLResourceStorageModeShared];
+        if (!tex || !out) {
+            metalCtxDestroy(c);
+            return -2;
+        }
+
+        ctx->viewW = n;
+        ctx->viewH = n;
+        ctx->target = tex;
+        ctx->cmdBuf = [ctx->queue commandBuffer];
+        beginMainEncoder(ctx, 0, 0, 0, 1, 1);
+        if (!ctx->enc) {
+            // Without an encoder every draw below is a silent no-op
+            // and the readback is all black: report a setup failure,
+            // not "0 partial pixels".
+            ctx->target = nil;
+            ctx->cmdBuf = nil;
+            metalCtxDestroy(c);
+            return -2;
+        }
+
+        // Same pixel-space orthographic MVP the backend builds.
+        float mvp[16] = {0};
+        mvp[0]  =  2.0f / n;
+        mvp[5]  = -2.0f / n;
+        mvp[10] = -1.0f;
+        mvp[12] = -1.0f;
+        mvp[13] =  1.0f;
+        mvp[15] =  1.0f;
+        // x, y, params, u, v, r, g, b, a — the SVG vertex layout.
+        float verts[] = {
+            0,        0,        0, 0, 0, 1, 1, 1, 1,
+            (float)n, 0,        0, 0, 0, 1, 1, 1, 1,
+            0,        (float)n, 0, 0, 0, 1, 1, 1, 1,
+        };
+        metalSetPipeline(c, PIPE_SOLID);
+        metalSetMVP(c, mvp);
+        metalDrawTriangles(c, verts, 3);
+        endMainEncoder(ctx, 0);
+
+        id<MTLBlitCommandEncoder> blit = [ctx->cmdBuf blitCommandEncoder];
+        [blit copyFromTexture:tex
+                  sourceSlice:0
+                  sourceLevel:0
+                 sourceOrigin:MTLOriginMake(0, 0, 0)
+                   sourceSize:MTLSizeMake(n, n, 1)
+                     toBuffer:out
+            destinationOffset:0
+       destinationBytesPerRow:n * 4
+     destinationBytesPerImage:n * n * 4];
+        [blit endEncoding];
+        [ctx->cmdBuf commit];
+        [ctx->cmdBuf waitUntilCompleted];
+        if (ctx->cmdBuf.status != MTLCommandBufferStatusCompleted) {
+            // A failed command buffer leaves the readback unwritten,
+            // which would also read as "0 partial pixels".
+            NSLog(@"metal: edge probe: %@", ctx->cmdBuf.error);
+            ctx->target = nil;
+            ctx->cmdBuf = nil;
+            metalCtxDestroy(c);
+            return -2;
+        }
+
+        const uint8_t *px = (const uint8_t *)[out contents];
+        int partial = 0;
+        for (int i = 0; i < n * n; i++) {
+            uint8_t g = px[i * 4 + 1];
+            if (g > 0 && g < 255) partial++;
+        }
+        ctx->target = nil;
+        ctx->cmdBuf = nil;
+        metalCtxDestroy(c);
+        return partial;
     }
 }
