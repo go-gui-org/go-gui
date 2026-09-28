@@ -357,8 +357,9 @@ type tooltipPanel struct {
 // wrapper's AmendLayout runs hovered and every later one runs outside.
 // The trigger is a fixed-size rectangle so the hit test does not depend
 // on text measurement, which is a nil-measurer approximation in tests.
-func tooltipsInPanels(panels ...tooltipPanel) *Window {
+func tooltipsInPanels(t *testing.T, panels ...tooltipPanel) *Window {
 	w := NewTestWindow(WindowCfg{})
+	t.Cleanup(w.WindowCleanup)
 	w.viewState.mousePosX = 60
 	w.viewState.mousePosY = 60
 	w.SetView(func(vw *Window) View {
@@ -393,7 +394,7 @@ func tooltipsInPanels(panels ...tooltipPanel) *Window {
 // the identity its own shape resolves to, not on the scope of whatever
 // was being built when the factory ran (issue #528).
 func TestWithTooltipScopesHoverStateToPanel(t *testing.T) {
-	w := tooltipsInPanels(tooltipPanel{"panel", "tip1", "hello"})
+	w := tooltipsInPanels(t, tooltipPanel{"panel", "tip1", "hello"})
 	w.TestRender(nil)
 
 	if got := w.viewState.tooltip.hoverID; got != "panel:tip1" {
@@ -407,7 +408,7 @@ func TestWithTooltipScopesHoverStateToPanel(t *testing.T) {
 // the first wrapper's hover. The observable result is that hovering a
 // tooltip did nothing whenever a same-labelled twin existed elsewhere.
 func TestWithTooltipSameTextInTwoPanelsIsTwoKeys(t *testing.T) {
-	w := tooltipsInPanels(
+	w := tooltipsInPanels(t,
 		tooltipPanel{panelID: "a", text: "hello"},
 		tooltipPanel{panelID: "b", text: "hello"},
 	)
@@ -421,7 +422,7 @@ func TestWithTooltipSameTextInTwoPanelsIsTwoKeys(t *testing.T) {
 // The popup's own shape resolves under the panel too, so the identity
 // and the state key are one string.
 func TestWithTooltipPopupIDResolvesUnderPanel(t *testing.T) {
-	w := tooltipsInPanels(tooltipPanel{"panel", "tip1", "hello"})
+	w := tooltipsInPanels(t, tooltipPanel{"panel", "tip1", "hello"})
 	w.viewState.tooltip.id = "panel:tip1"
 	w.viewState.tooltip.popupID = ScopeID("panel:tip1", "popup")
 	root := w.TestRender(nil)
@@ -434,7 +435,7 @@ func TestWithTooltipPopupIDResolvesUnderPanel(t *testing.T) {
 // The dev-mode gate that reports an eagerly resolved key must stay quiet
 // for the fixed widget.
 func TestWithTooltipUnderPanelIsQuiet(t *testing.T) {
-	w := tooltipsInPanels(tooltipPanel{"panel", "tip1", "hello"})
+	w := tooltipsInPanels(t, tooltipPanel{"panel", "tip1", "hello"})
 	if found := w.TestFindings(DebugAll); len(found) != 0 {
 		t.Fatalf("findings = %v, want none", found)
 	}

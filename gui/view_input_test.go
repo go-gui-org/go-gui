@@ -1778,6 +1778,7 @@ func TestSetFocusReassertSameIDPreservesSelection(t *testing.T) {
 // frame's re-assert must not have wiped.
 func TestSetFocusReassertFromViewPreservesSelection(t *testing.T) {
 	w := NewTestWindow(WindowCfg{})
+	t.Cleanup(w.WindowCleanup)
 	view := func(win *Window) View {
 		w.SetFocus("f901")
 		return Input(InputCfg{ID: "f901", Text: "hello"})
@@ -1871,6 +1872,7 @@ const (
 // — cannot regress it.
 func TestInputClickOnFocusedInputCollapsesSelectionToCaret(t *testing.T) {
 	w := NewTestWindow(WindowCfg{})
+	t.Cleanup(w.WindowCleanup)
 	w.textMeasurer = inputSelTestMeasurer{}
 	w.TestRender(func(win *Window) View {
 		return Input(InputCfg{ID: "f930", Text: "hello world"})
@@ -2011,6 +2013,7 @@ func TestInputDoubleClickDragExtendsByWord(t *testing.T) {
 func newInputSelWindow(t *testing.T, cfg InputCfg) (*Window, *Layout) {
 	t.Helper()
 	w := NewTestWindow(WindowCfg{})
+	t.Cleanup(w.WindowCleanup)
 	w.textMeasurer = inputSelTestMeasurer{}
 	w.TestRender(func(win *Window) View { return Input(cfg) })
 	ly, ok := w.layout.FindByID(cfg.ID)
@@ -2391,6 +2394,7 @@ func TestMultilineEnterPassesMask(t *testing.T) {
 // being pointed at.
 func TestInputHoverKeepsFocusBorderUnderScope(t *testing.T) {
 	w := NewTestWindow(WindowCfg{})
+	t.Cleanup(w.WindowCleanup)
 	build := func(*Window) View {
 		return Column(ContainerCfg{
 			ID: "panel",

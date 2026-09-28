@@ -147,6 +147,7 @@ func TestFrameFnPresentsCaretPatchWithoutRebuild(t *testing.T) {
 func focusedInputWindow(t *testing.T) *Window {
 	t.Helper()
 	w := NewWindow(WindowCfg{State: new(int), Width: 300, Height: 120})
+	t.Cleanup(w.WindowCleanup)
 	w.SetFocus("f900")
 	w.viewGenerator = func(_ *Window) View {
 		return Row(ContainerCfg{

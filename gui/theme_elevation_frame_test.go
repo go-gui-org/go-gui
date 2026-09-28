@@ -18,6 +18,7 @@ func frameCmds(t *testing.T, theme Theme, build func(*Window) View,
 ) []RenderCmd {
 	t.Helper()
 	w := NewWindow(WindowCfg{State: new(int), Width: 400, Height: 300})
+	t.Cleanup(w.WindowCleanup)
 	w.viewGenerator = func(win *Window) View {
 		if setup != nil {
 			setup(win)

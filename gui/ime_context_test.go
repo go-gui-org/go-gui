@@ -146,6 +146,7 @@ func TestIMEEditContextThroughRealFrame(t *testing.T) {
 			w := NewWindow(WindowCfg{
 				State: new(int), Width: 200, Height: 100,
 			})
+			t.Cleanup(w.WindowCleanup)
 			spy := &imeSpyPlatform{}
 			w.SetNativePlatform(spy)
 			w.viewGenerator = func(_ *Window) View {
@@ -171,6 +172,7 @@ func TestIMEEditContextThroughRealFrame(t *testing.T) {
 // two; assert the edit context still resolves under a scope.
 func TestIMEEditContextUnderIDScope(t *testing.T) {
 	w := NewWindow(WindowCfg{State: new(int), Width: 200, Height: 100})
+	t.Cleanup(w.WindowCleanup)
 	spy := &imeSpyPlatform{}
 	w.SetNativePlatform(spy)
 	w.viewGenerator = func(_ *Window) View {
@@ -366,6 +368,7 @@ func TestBlinkCursorThroughRealFrame(t *testing.T) {
 			w := NewWindow(WindowCfg{
 				State: new(int), Width: 200, Height: 100,
 			})
+			t.Cleanup(w.WindowCleanup)
 			w.viewGenerator = func(_ *Window) View {
 				return Column(ContainerCfg{
 					Sizing:  FillFill,
@@ -440,6 +443,7 @@ func TestBlinkCursorKeptWhilePulsarActiveUnfocused(t *testing.T) {
 // animation, which is what lets animationLoop park its ticker.
 func TestBlinkCursorWindowFocusThroughRealFrame(t *testing.T) {
 	w := NewWindow(WindowCfg{State: new(int), Width: 200, Height: 100})
+	t.Cleanup(w.WindowCleanup)
 	w.viewGenerator = func(_ *Window) View {
 		return Column(ContainerCfg{
 			Sizing:  FillFill,

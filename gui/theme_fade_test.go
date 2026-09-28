@@ -110,6 +110,7 @@ func TestThemeFadeBlendEndsAndUnset(t *testing.T) {
 func fadeTestWindow(t *testing.T, d time.Duration) *Window {
 	t.Helper()
 	w := NewWindow(WindowCfg{State: new(int), Width: 200, Height: 100})
+	t.Cleanup(w.WindowCleanup)
 	w.viewGenerator = func(*Window) View {
 		return Column(ContainerCfg{Sizing: FillFill})
 	}

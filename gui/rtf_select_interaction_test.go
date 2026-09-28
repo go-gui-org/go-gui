@@ -211,6 +211,7 @@ func newRtfSelectHarness(t *testing.T, rt RichText) *rtfSelectHarness {
 		rt: rt,
 	}
 	h.w.textMeasurer = rtfSelTestMeasurer{}
+	t.Cleanup(h.w.WindowCleanup)
 	h.render()
 	return h
 }
@@ -224,6 +225,7 @@ func newRtfSelectHarnessNested(t *testing.T, rt RichText) *rtfSelectHarness {
 		nested: true,
 	}
 	h.w.textMeasurer = rtfSelTestMeasurer{}
+	t.Cleanup(h.w.WindowCleanup)
 	h.render()
 	return h
 }
@@ -837,6 +839,7 @@ func TestRtfSelectAmendStampsSelectionOnFrame(t *testing.T) {
 // container scrolls under the cursor.
 func TestRtfSelectScrollDragEdgeScrolls(t *testing.T) {
 	w := NewTestWindow(WindowCfg{Width: 800, Height: 800})
+	t.Cleanup(w.WindowCleanup)
 	w.textMeasurer = rtfSelTestMeasurer{}
 	w.TestRender(func(win *Window) View {
 		return Column(ContainerCfg{
@@ -1302,6 +1305,7 @@ func TestRtfSelectDragMissingShapeKeepsScroll(t *testing.T) {
 // distance scrolled — here 40px, two whole lines.
 func TestRtfSelectDragScrollThenRelayout(t *testing.T) {
 	w := NewTestWindow(WindowCfg{Width: 800, Height: 800})
+	t.Cleanup(w.WindowCleanup)
 	w.textMeasurer = rtfSelTestMeasurer{}
 	w.TestRender(func(win *Window) View {
 		return Column(ContainerCfg{

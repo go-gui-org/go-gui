@@ -353,6 +353,7 @@ func renderGolden(t *testing.T, theme Theme, c goldenCase) string {
 		Width:  goldenWidth,
 		Height: goldenHeight,
 	})
+	t.Cleanup(w.WindowCleanup)
 	// Wrap in a filling root. A widget generated as the bare root
 	// sizes Fit, and with a nil TextMeasurer several collapse to zero
 	// and emit nothing. Real apps put widgets inside a layout, so the

@@ -207,6 +207,7 @@ func TestSoundInputDisabledSuppressesBoth(t *testing.T) {
 func TestSoundInputRejectReachesBeepPlayer(t *testing.T) {
 	restoreTheme(t)
 	w := NewTestWindow(WindowCfg{})
+	t.Cleanup(w.WindowCleanup)
 	w.SetTheme(soundingTheme(t))
 	w.SetSoundPlayer(NewBeepSoundPlayer(w))
 	w.TestRender(inputSoundView(func(c *InputCfg) {

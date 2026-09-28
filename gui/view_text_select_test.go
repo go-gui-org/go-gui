@@ -163,6 +163,7 @@ var textSelCharW = DefaultTextStyle.Size * 0.6
 func newTextSelWindow(t *testing.T, cfg TextCfg) (*Window, *Layout) {
 	t.Helper()
 	w := NewTestWindow(WindowCfg{})
+	t.Cleanup(w.WindowCleanup)
 	w.TestRender(func(win *Window) View { return Text(cfg) })
 	ly, ok := w.layout.FindByID(cfg.ID)
 	if !ok {

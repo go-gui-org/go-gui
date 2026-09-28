@@ -16,13 +16,14 @@ func (m *mockSpellPlatform) SpellCheck(text string) []SpellRange {
 	return []SpellRange{{StartByte: 0, LenBytes: len(text)}}
 }
 
-func newSpellCheckWindow(spellChk bool, text string) *Window {
+func newSpellCheckWindow(t *testing.T, spellChk bool, text string) *Window {
 	type appState struct{ text string }
 	w := NewWindow(WindowCfg{
 		State:  &appState{text: text},
 		Width:  400,
 		Height: 200,
 	})
+	t.Cleanup(w.WindowCleanup)
 	w.SetNativePlatform(&mockSpellPlatform{})
 	w.viewGenerator = func(w *Window) View {
 		app := State[appState](w)
@@ -40,7 +41,7 @@ func newSpellCheckWindow(spellChk bool, text string) *Window {
 func TestSpellCheckTriggerOnEnable(t *testing.T) {
 	// Simulate: user types "helo" with spell check OFF, then
 	// enables it. Verify results are stored after delay.
-	w := newSpellCheckWindow(false, "helo")
+	w := newSpellCheckWindow(t, false, "helo")
 	w.Update()
 
 	// No spell state should exist yet.
@@ -105,7 +106,7 @@ func TestSpellCheckTriggerOnEnable(t *testing.T) {
 }
 
 func TestSpellCheckPendingPreventsTimerReset(t *testing.T) {
-	w := newSpellCheckWindow(true, "helo")
+	w := newSpellCheckWindow(t, true, "helo")
 	w.Update()
 
 	// Trigger happened during Update. Get the animation.
@@ -133,7 +134,7 @@ func TestSpellCheckPendingPreventsTimerReset(t *testing.T) {
 }
 
 func TestSpellCheckClearOnDisable(t *testing.T) {
-	w := newSpellCheckWindow(true, "helo")
+	w := newSpellCheckWindow(t, true, "helo")
 	w.Update()
 
 	// State should exist (pending).

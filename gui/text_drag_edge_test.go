@@ -249,6 +249,7 @@ func (textDragMeasurer) LayoutText(
 func newTextDragWindow(t *testing.T, text string) (*Window, *Layout) {
 	t.Helper()
 	w := NewTestWindow(WindowCfg{Width: 800, Height: 800})
+	t.Cleanup(w.WindowCleanup)
 	w.textMeasurer = textDragMeasurer{}
 	w.TestRender(func(_ *Window) View {
 		return Text(TextCfg{
