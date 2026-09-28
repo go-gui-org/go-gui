@@ -31,23 +31,21 @@ func harmlessProcAddr(tb testing.TB) uintptr {
 }
 
 // rawCallAllocs is the per-call allocation budget for a wrapper that passes
-// integers only. purego.SyscallN (v0.10.2) allocates twice on every call, and
-// no caller can avoid it:
+// integers only. purego.SyscallN (v0.11.1) allocates once on every call, and
+// no caller can avoid it: SyscallN carries //go:uintptrescapes and is variadic,
+// so its args slice goes to the heap (syscall.go). v0.10.2 also heap-allocated
+// the args struct it hands to runtime_cgocall; v0.11 takes it from a sync.Pool.
 //
-//  1. SyscallN carries //go:uintptrescapes and is variadic, so its args slice
-//     goes to the heap (syscall.go).
-//  2. syscall_syscall15X builds &syscall15Args{...} and hands it to
-//     runtime_cgocall, so that struct goes to the heap too (syscall_sysv.go).
-//
-// Two is still far below the six the purego.RegisterFunc path cost per call
-// before #812. Reaching zero means bypassing SyscallN, which needs purego's
-// unexported internals; that is tracked separately. If a purego upgrade drops
-// either allocation, this test keeps passing — lower the budget then.
-const rawCallAllocs = 2.0
+// One is far below the six the purego.RegisterFunc path cost per call before
+// #812. Reaching zero means bypassing SyscallN — linkname into purego's
+// internals or an own trampoline — which #817 judged not worth its risk for one
+// small allocation. If a purego upgrade drops it, this test keeps passing —
+// lower the budget then.
+const rawCallAllocs = 1.0
 
 // ptrArgAllocs is the per-call allocation budget for a wrapper that hands a Go
-// pointer to the driver: the two above, plus one more. //go:uintptrescapes
+// pointer to the driver: the one above, plus one more. //go:uintptrescapes
 // keeps the referent alive but also forces it to the heap, so a caller passing
 // a function-local array pays one allocation for that array — where Windows,
 // with //go:uintptrkeepalive, pays none. There is no CGo-free alternative.
-const ptrArgAllocs = 3.0
+const ptrArgAllocs = 2.0
