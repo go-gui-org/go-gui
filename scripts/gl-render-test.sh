@@ -37,9 +37,13 @@ CGO_ENABLED=0 go test -c -o "$bin" ./gui/backend/gl/ || exit 1
 # So there is no retry here: a run that crashes before reporting a verdict is
 # a failure, like any other.
 status=0
-for t in TestTriangleEdgesAntialiased TestProbeSeesAliasedEdges \
-  TestFilterEdgesAntialiased TestFilterProbeSeesAliasedEdges TestRefusedResolveFallsBack \
-  TestBackendRenderSmoke TestNewErrorReleasesThread TestDestroyReleasesThread; do
+tests="TestTriangleEdgesAntialiased TestProbeSeesAliasedEdges
+  TestFilterEdgesAntialiased TestFilterProbeSeesAliasedEdges TestRefusedResolveFallsBack
+  TestBackendRenderSmoke"
+# The thread-release tests (#827) are X11-only: on Windows they do not exist,
+# and a name that matches nothing reports no verdict, which counts as a crash.
+[ "${OS:-}" = Windows_NT ] || tests="$tests TestNewErrorReleasesThread TestDestroyReleasesThread"
+for t in $tests; do
   out=$(GOGUI_REQUIRE_GL=1 "$bin" -test.run "^$t\$" -test.v 2>&1)
   code=$?
   printf '%s\n' "$out"
