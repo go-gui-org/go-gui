@@ -26,6 +26,13 @@ func (b *Backend) renderersDraw(w *gui.Window) {
 	savedMVP := b.mvp
 	savedStackLen := len(b.mvpStack)
 	defer func() {
+		// Queued glyph quads were laid out under state this cleanup is
+		// about to reset; drawing them into the next frame would be
+		// wrong, so a truncated stream drops them. A balanced stream
+		// has none: restoreAfterGlyph flushed them.
+		if b.glyphBack != nil {
+			b.glyphBack.discard()
+		}
 		b.mvp = savedMVP
 		b.mvpStack = b.mvpStack[:savedStackLen]
 		b.usePipeline(&b.pipelines.solid)
@@ -740,6 +747,12 @@ func (b *Backend) useGlyphPipeline() {
 }
 
 func (b *Backend) restoreAfterGlyph() {
+	// Draw the text command's queued quads now, while its scissor,
+	// stencil and framebuffer still hold (#816). A batch must never
+	// cross into the next RenderCmd.
+	if b.glyphBack != nil {
+		b.glyphBack.flush()
+	}
 	// Re-bind the quad VAO in case glyph changed it.
 	gogl.BindVertexArray(0)
 }

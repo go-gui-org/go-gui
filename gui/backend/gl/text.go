@@ -19,9 +19,49 @@ type glyphBackend struct {
 	nextID   glyph.TextureID
 	dpiScale float32
 
-	// Quad VAO/VBO for text rendering.
-	vao, vbo uint32
+	// VAO/VBO/IBO for text rendering. The VBO holds up to
+	// maxGlyphQuads quads; the IBO is a static two-triangles-per-quad
+	// index list over all of them.
+	vao, vbo, ibo uint32
+
+	// Quad batch (#816). Glyph emits one DrawTexturedQuad per glyph;
+	// drawing each at once cost 7 GL calls a glyph, 4 of them re-binding
+	// state already bound. Quads now queue here and draw with one
+	// DrawElements per run from the same atlas page.
+	//
+	// A batch never outlives the text command that filled it:
+	// Backend.restoreAfterGlyph flushes it before the next RenderCmd, so
+	// scissor, stencil, blend, framebuffer and MVP are constant for every
+	// quad in it, and GL draws a single call's primitives in order. That
+	// is what keeps overlap and clipping identical to the unbatched path.
+	//
+	// Other flush triggers, each needed for correctness:
+	//   - a quad from a different texture (one draw samples one page);
+	//   - the batch filling up (flushed at once, so batchCap 1 is exactly
+	//     the old draw-per-quad sequence, which the tests compare against);
+	//   - an upload to, or deletion of, the queued page. go-glyph evicts
+	//     and re-uploads a page mid-command (atlas.go resetPage); queued
+	//     quads must draw from the texels they were laid out against.
+	//   - DrawFilledRect, which draws immediately and must stay behind
+	//     the glyphs queued before it.
+	//
+	// The array lives inside the backend, allocated once with it, so
+	// queueing is a copy with no per-frame heap allocation.
+	batch    [maxGlyphQuads][4][8]float32
+	batchN   int    // queued quads
+	batchTex uint32 // GL texture the queued quads sample
+	batchCap int    // flush threshold, maxGlyphQuads; tests lower it to 1
+	flushes  int    // draws issued by flush; read by tests as a call count
 }
+
+// maxGlyphQuads bounds one batch. 1024 quads (a dense screen of text is a
+// few thousand glyphs) keep the VBO at 128 KiB and the quad indices
+// (4*maxGlyphQuads-1) inside uint16 range.
+const maxGlyphQuads = 1024
+
+// glyphQuadBytes is one quad: 4 verts * 8 floats (pos2 + uv2 + color4)
+// * 4 bytes.
+const glyphQuadBytes = 4 * 8 * 4
 
 // Asserted, not merely implemented: RectTextureUpdater is an optional
 // interface, so a drifted signature would silently drop this backend back
@@ -33,15 +73,29 @@ func newGlyphBackend(dpiScale float32) *glyphBackend {
 	gb := &glyphBackend{
 		textures: make(map[glyph.TextureID]glTexture),
 		dpiScale: dpiScale,
+		batchCap: maxGlyphQuads,
 	}
 	gogl.GenVertexArrays(1, &gb.vao)
 	gogl.GenBuffers(1, &gb.vbo)
+	gogl.GenBuffers(1, &gb.ibo)
 
 	gogl.BindVertexArray(gb.vao)
 	gogl.BindBuffer(gogl.ARRAY_BUFFER, gb.vbo)
-	// 4 verts * 8 floats (pos2 + uv2 + color4) * 4 bytes
-	gogl.BufferData(gogl.ARRAY_BUFFER, 4*8*4,
+	gogl.BufferData(gogl.ARRAY_BUFFER, maxGlyphQuads*glyphQuadBytes,
 		nil, gogl.DYNAMIC_DRAW)
+
+	// Quad i's corners are verts 4i..4i+3 in fan order (TL, TR, BR,
+	// BL), so the triangles are (0,1,2) and (0,2,3) offset by 4i — the
+	// same split TRIANGLE_FAN made of a single quad. The element buffer
+	// binding is VAO state, so it is bound while the VAO is.
+	indices := make([]uint16, maxGlyphQuads*6)
+	for i := range maxGlyphQuads {
+		v := uint16(i * 4)
+		copy(indices[i*6:], []uint16{v, v + 1, v + 2, v, v + 2, v + 3})
+	}
+	gogl.BindBuffer(gogl.ELEMENT_ARRAY_BUFFER, gb.ibo)
+	gogl.BufferData(gogl.ELEMENT_ARRAY_BUFFER, len(indices)*2,
+		unsafe.Pointer(&indices[0]), gogl.STATIC_DRAW)
 
 	// Position (vec2) at location 0
 	gogl.EnableVertexAttribArray(0)
@@ -71,6 +125,59 @@ func (gb *glyphBackend) destroy() {
 	if gb.vbo != 0 {
 		gogl.DeleteBuffers(1, &gb.vbo)
 	}
+	if gb.ibo != 0 {
+		gogl.DeleteBuffers(1, &gb.ibo)
+	}
+}
+
+// queue adds one quad sampling GL texture tex, flushing first when the
+// batch holds another texture's quads, and after when it is full.
+func (gb *glyphBackend) queue(tex uint32, verts *[4][8]float32) {
+	if gb.batchN > 0 && gb.batchTex != tex {
+		gb.flush()
+	}
+	gb.batchTex = tex
+	gb.batch[gb.batchN] = *verts
+	gb.batchN++
+	if gb.batchN >= gb.batchCap {
+		gb.flush()
+	}
+}
+
+// flush draws the queued quads with one DrawElements and empties the
+// batch. No-op when empty, so callers flush unconditionally.
+func (gb *glyphBackend) flush() {
+	n := gb.batchN
+	if n == 0 {
+		return
+	}
+	gb.batchN = 0
+
+	gogl.ActiveTexture(gogl.TEXTURE0)
+	gogl.BindTexture(gogl.TEXTURE_2D, gb.batchTex)
+
+	gogl.BindVertexArray(gb.vao)
+	gogl.BindBuffer(gogl.ARRAY_BUFFER, gb.vbo)
+	gogl.BufferSubData(gogl.ARRAY_BUFFER, 0,
+		n*glyphQuadBytes, unsafe.Pointer(&gb.batch[0]))
+	gogl.DrawElements(gogl.TRIANGLES, int32(n*6), gogl.UNSIGNED_SHORT, nil)
+	gogl.BindVertexArray(0)
+	gb.flushes++
+}
+
+// flushIfSampling flushes when the queued quads sample GL texture tex,
+// ahead of a call that changes or frees it. Other textures leave the batch
+// queued: changing them cannot change what the queued quads sample.
+func (gb *glyphBackend) flushIfSampling(tex uint32) {
+	if gb.batchN > 0 && gb.batchTex == tex {
+		gb.flush()
+	}
+}
+
+// discard drops queued quads without drawing them. For a frame cut short,
+// where the state they were queued under is already gone.
+func (gb *glyphBackend) discard() {
+	gb.batchN = 0
 }
 
 func (gb *glyphBackend) NewTexture(width, height int) glyph.TextureID {
@@ -89,6 +196,7 @@ func (gb *glyphBackend) UpdateTexture(id glyph.TextureID, data []byte) {
 	if len(data) == 0 {
 		return
 	}
+	gb.flushIfSampling(tex.id)
 	gogl.BindTexture(gogl.TEXTURE_2D, tex.id)
 	gogl.TexSubImage2D(gogl.TEXTURE_2D, 0, 0, 0,
 		tex.w, tex.h, gogl.RGBA, gogl.UNSIGNED_BYTE,
@@ -141,6 +249,7 @@ func (gb *glyphBackend) UpdateTextureRect(id glyph.TextureID, data []byte,
 		return
 	}
 
+	gb.flushIfSampling(tex.id)
 	gogl.BindTexture(gogl.TEXTURE_2D, tex.id)
 	gogl.TexSubImage2D(gogl.TEXTURE_2D, 0, 0, int32(y),
 		tex.w, int32(h), gogl.RGBA, gogl.UNSIGNED_BYTE,
@@ -153,6 +262,7 @@ func (gb *glyphBackend) DeleteTexture(id glyph.TextureID) {
 	if !ok {
 		return
 	}
+	gb.flushIfSampling(tex.id)
 	gogl.DeleteTextures(1, &tex.id)
 	delete(gb.textures, id)
 }
@@ -189,15 +299,7 @@ func (gb *glyphBackend) DrawTexturedQuad(id glyph.TextureID,
 		{x0, y1, u0, v1, cr, cg, cb, ca},
 	}
 
-	gogl.ActiveTexture(gogl.TEXTURE0)
-	gogl.BindTexture(gogl.TEXTURE_2D, tex.id)
-
-	gogl.BindVertexArray(gb.vao)
-	gogl.BindBuffer(gogl.ARRAY_BUFFER, gb.vbo)
-	gogl.BufferSubData(gogl.ARRAY_BUFFER, 0,
-		int(unsafe.Sizeof(verts)), unsafe.Pointer(&verts[0]))
-	gogl.DrawArrays(gogl.TRIANGLE_FAN, 0, 4)
-	gogl.BindVertexArray(0)
+	gb.queue(tex.id, &verts)
 }
 
 func (gb *glyphBackend) DrawFilledRect(dst glyph.Rect, c glyph.Color) {
@@ -216,6 +318,9 @@ func (gb *glyphBackend) DrawFilledRect(dst glyph.Rect, c glyph.Color) {
 		{x0, y1, 0, 0, cr, cg, cb, ca},
 	}
 
+	// Drawn at once, not queued: it binds no texture of its own (#835),
+	// so it cannot join a batch. Queued glyphs go first to keep order.
+	gb.flush()
 	gogl.BindVertexArray(gb.vao)
 	gogl.BindBuffer(gogl.ARRAY_BUFFER, gb.vbo)
 	gogl.BufferSubData(gogl.ARRAY_BUFFER, 0,
@@ -267,15 +372,7 @@ func (gb *glyphBackend) DrawTexturedQuadTransformed(
 		}
 	}
 
-	gogl.ActiveTexture(gogl.TEXTURE0)
-	gogl.BindTexture(gogl.TEXTURE_2D, tex.id)
-
-	gogl.BindVertexArray(gb.vao)
-	gogl.BindBuffer(gogl.ARRAY_BUFFER, gb.vbo)
-	gogl.BufferSubData(gogl.ARRAY_BUFFER, 0,
-		int(unsafe.Sizeof(verts)), unsafe.Pointer(&verts[0]))
-	gogl.DrawArrays(gogl.TRIANGLE_FAN, 0, 4)
-	gogl.BindVertexArray(0)
+	gb.queue(tex.id, &verts)
 }
 
 func (gb *glyphBackend) DPIScale() float32 {

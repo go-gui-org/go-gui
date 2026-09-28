@@ -39,7 +39,10 @@ CGO_ENABLED=0 go test -c -o "$bin" ./gui/backend/gl/ || exit 1
 status=0
 tests="TestTriangleEdgesAntialiased TestProbeSeesAliasedEdges
   TestFilterEdgesAntialiased TestFilterProbeSeesAliasedEdges TestRefusedResolveFallsBack
-  TestBackendRenderSmoke"
+  TestBackendRenderSmoke
+  TestGlyphBatchFlushCounts TestGlyphBatchFlushesBeforeUpload
+  TestGlyphBatchFlushesBeforeDelete TestGlyphBatchFlushesBeforeFilledRect
+  TestGlyphBatchMatchesUnbatched"
 # The thread-release tests (#827) are X11-only: on Windows they do not exist,
 # and a name that matches nothing reports no verdict, which counts as a crash.
 [ "${OS:-}" = Windows_NT ] || tests="$tests TestNewErrorReleasesThread TestDestroyReleasesThread"
