@@ -57,7 +57,8 @@ and this project adheres to
   framebuffer and is copied to the window with one blit before the swap; a
   driver without multisampling, or one that refuses the copy into the window
   (its window format differs from the offscreen one), falls back to the old
-  single-sample drawing. The web and Android backends are not changed yet.
+  single-sample drawing. The web backend needed no change: it fills paths with
+  Canvas 2D, which already antialiases edges. Android is not changed yet.
 
 - **The Inspector works while a Dialog is open (#811)** — the dialog was drawn
   over the inspector panel and took all events, so the panel did not respond to
