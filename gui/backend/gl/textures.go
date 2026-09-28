@@ -124,8 +124,10 @@ func (b *Backend) bindFBO(tex uint32) {
 		gogl.COLOR_ATTACHMENT0, gogl.TEXTURE_2D, tex, 0)
 }
 
+// unbindFBO returns to the frame's draw target: the multisampled one when
+// MSAA is on (#823), else the window.
 func (b *Backend) unbindFBO() {
-	gogl.BindFramebuffer(gogl.FRAMEBUFFER, 0)
+	gogl.BindFramebuffer(gogl.FRAMEBUFFER, b.msaaMain.fbo)
 }
 
 // --- Image loading ---

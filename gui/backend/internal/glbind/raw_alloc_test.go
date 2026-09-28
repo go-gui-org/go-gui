@@ -36,8 +36,10 @@ func hotCalls() map[string]func() {
 	return map[string]func(){
 		"glActiveTexture":   func() { ActiveTexture(TEXTURE0) },
 		"glBindBuffer":      func() { BindBuffer(ARRAY_BUFFER, 1) },
+		"glBindFramebuffer": func() { BindFramebuffer(FRAMEBUFFER, 1) },
 		"glBindTexture":     func() { BindTexture(TEXTURE_2D, 1) },
 		"glBindVertexArray": func() { BindVertexArray(1) },
+		"glBlitFramebuffer": func() { BlitFramebuffer(0, 0, 64, 64, 0, 0, 64, 64, COLOR_BUFFER_BIT, NEAREST) },
 		"glBufferData": func() {
 			var pixels [4]byte
 			BufferData(ARRAY_BUFFER, 4, unsafe.Pointer(&pixels[0]), DYNAMIC_DRAW)

@@ -37,8 +37,10 @@ package glbind
 var (
 	addrActiveTexture           uintptr
 	addrBindBuffer              uintptr
+	addrBindFramebuffer         uintptr
 	addrBindTexture             uintptr
 	addrBindVertexArray         uintptr
+	addrBlitFramebuffer         uintptr
 	addrBufferData              uintptr
 	addrBufferSubData           uintptr
 	addrClear                   uintptr
@@ -79,11 +81,26 @@ func BindBuffer(target uint32, buffer uint32) {
 	sysN(addrBindBuffer, uintptr(target), uintptr(buffer))
 }
 
+// BindFramebuffer is on the raw path because the antialiased frame (#823)
+// binds its multisampled target, and the filter targets, several times a frame.
+func BindFramebuffer(target uint32, framebuffer uint32) {
+	sysN(addrBindFramebuffer, uintptr(target), uintptr(framebuffer))
+}
+
 func BindTexture(target uint32, texture uint32) {
 	sysN(addrBindTexture, uintptr(target), uintptr(texture))
 }
 
 func BindVertexArray(array uint32) { sysN(addrBindVertexArray, uintptr(array)) }
+
+// BlitFramebuffer copies a rectangle from the read framebuffer to the draw
+// framebuffer. The backend calls it once a frame to resolve its multisampled
+// target into the window (#823), and once per filter container.
+func BlitFramebuffer(srcX0 int32, srcY0 int32, srcX1 int32, srcY1 int32, dstX0 int32, dstY0 int32, dstX1 int32, dstY1 int32, mask uint32, filter uint32) {
+	sysN(addrBlitFramebuffer, uintptr(srcX0), uintptr(srcY0), uintptr(srcX1),
+		uintptr(srcY1), uintptr(dstX0), uintptr(dstY0), uintptr(dstX1),
+		uintptr(dstY1), uintptr(mask), uintptr(filter))
+}
 
 func Clear(mask uint32) { sysN(addrClear, uintptr(mask)) }
 

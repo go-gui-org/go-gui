@@ -400,6 +400,32 @@ jobs:
           chmod +x /tmp/go_js_wasm_exec
           GOOS=js GOARCH=wasm go test -exec=/tmp/go_js_wasm_exec ./gui/...
 
+  # The GL backend's pixel output needs a real GL context, which `go test`
+  # on a plain runner does not have, so those tests skip there. This job
+  # gives them Mesa's software renderer under Xvfb (#823).
+  gl-render:
+    name: GL render (Mesa)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: ./.github/actions/setup-go-glyph
+
+      - name: Install Mesa and Xvfb
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            xvfb libegl1 libegl-mesa0 libgl1-mesa-dri
+
+      - name: GL render tests
+        env:
+          LIBGL_ALWAYS_SOFTWARE: '1'
+          DISPLAY: ':99'
+        run: |
+          Xvfb :99 -screen 0 800x600x24 &
+          sleep 1
+          ./scripts/gl-render-test.sh "$RUNNER_TEMP"
+
   windows:
     name: Windows
     runs-on: windows-latest
@@ -432,6 +458,14 @@ jobs:
 
       - name: Test (headless)
         run: CGO_ENABLED=0 go test ./gui/...
+
+      # Same Mesa opengl32.dll trick as the showcase smoke test below, so
+      # the GL tests that need a context run instead of skipping (#823).
+      - name: GL render tests
+        run: |
+          mkdir -p build
+          cp /mingw64/bin/opengl32.dll build/
+          GALLIUM_DRIVER=llvmpipe ./scripts/gl-render-test.sh build
 
       - name: Build showcase
         run: |

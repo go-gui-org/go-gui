@@ -85,6 +85,18 @@ type Backend struct {
 	filterH       int32
 	filterBlur    float32
 
+	// Antialiasing (#823), see msaa.go. msaaSamples is 1 when the driver
+	// gives no usable multisampled framebuffer. filterMSAA is true between
+	// beginFilter and endFilter while the filter content goes to msaaFilter.
+	msaaMain    msaaTarget
+	msaaFilter  msaaTarget
+	msaaSamples int32
+	filterMSAA  bool
+
+	// scissorOn mirrors GL_SCISSOR_TEST, so a mid-frame resolve can lift the
+	// scissor for its blit and put it back.
+	scissorOn bool
+
 	customOnce sync.Once
 }
 
@@ -126,6 +138,7 @@ func (b *Backend) initGLResources(w *gui.Window) error {
 	if err := b.initPipelines(); err != nil {
 		return err
 	}
+	b.initMSAA()
 	b.initQuadBuffers()
 	b.initSvgBuffers()
 	b.updateProjection()
@@ -179,6 +192,7 @@ func (b *Backend) destroyGLResources() {
 		gogl.DeleteBuffers(1, &b.svgVBO)
 	}
 	b.destroyFilterFBO()
+	b.destroyMSAA()
 	if b.glyphBack != nil {
 		b.glyphBack.destroy()
 	}
@@ -203,6 +217,8 @@ func (b *Backend) renderFrame(w *gui.Window) {
 		float32(bg.A)/255.0,
 	)
 	gogl.Disable(gogl.SCISSOR_TEST)
+	b.scissorOn = false
+	b.beginMainPass()
 	gogl.Clear(gogl.COLOR_BUFFER_BIT | gogl.STENCIL_BUFFER_BIT)
 
 	w.Lock()
@@ -211,6 +227,7 @@ func (b *Backend) renderFrame(w *gui.Window) {
 	w.Unlock()
 
 	b.textSys.Commit()
+	b.endMainPass(0)
 	b.plat.swap()
 }
 
