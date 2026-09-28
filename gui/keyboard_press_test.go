@@ -195,7 +195,7 @@ func TestEnterClicksOnDownWithoutPress(t *testing.T) {
 
 // End to end through EventFn on a real Button: TestKey sends down then up.
 func TestButtonSpaceThroughEventFn(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	clicks := 0
 	w.TestRender(func(_ *Window) View {
 		return Button(ButtonCfg{ID: "ok", OnClick: func(ctx EventCtx) {

@@ -541,7 +541,7 @@ func TestMarkdownRenderBlockTailListUnhooked(t *testing.T) {
 // hook output. A hook owns its IDs: composed from el.DocID with
 // ScopeIDN they are unique per block, and the sweep stays quiet.
 func TestMarkdownRenderBlockIDsScoped(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.SetView(func(win *Window) View {
 		return Column(ContainerCfg{
 			Sizing: FillFill,
@@ -573,7 +573,7 @@ func TestMarkdownRenderBlockIDsScoped(t *testing.T) {
 // gate must report it rather than let the blocks silently share a
 // state slot.
 func TestMarkdownRenderBlockIDCollisionReported(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.SetView(func(win *Window) View {
 		return Column(ContainerCfg{
 			Sizing: FillFill,

@@ -14,7 +14,7 @@ func TestKeyPressCountsBothEdges(t *testing.T) {
 	gui.SetTheme(gui.ThemeDark)
 
 	app := &App{}
-	w := gui.NewTestWindow(gui.WindowCfg{State: app, Width: 400, Height: 300})
+	w := gui.NewTestWindow(t, gui.WindowCfg{State: app, Width: 400, Height: 300})
 	w.TestRender(mainView)
 
 	// TestKey delivers a press and a release, so one call should move

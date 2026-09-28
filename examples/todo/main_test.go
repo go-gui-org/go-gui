@@ -19,7 +19,7 @@ func TestAddTodoAppendsItem(t *testing.T) {
 
 	app := newAppState()
 	before := len(app.Items)
-	w := gui.NewTestWindow(gui.WindowCfg{State: app, Width: 540, Height: 640})
+	w := gui.NewTestWindow(t, gui.WindowCfg{State: app, Width: 540, Height: 640})
 	w.TestRender(mainView)
 
 	if err := w.TestType("todo-input", "write the test"); err != nil {
@@ -52,7 +52,7 @@ func TestDeleteTodoRemovesItem(t *testing.T) {
 	gui.SetTheme(gui.ThemeLight.WithPadding(false))
 
 	app := newAppState()
-	w := gui.NewTestWindow(gui.WindowCfg{State: app, Width: 540, Height: 640})
+	w := gui.NewTestWindow(t, gui.WindowCfg{State: app, Width: 540, Height: 640})
 	w.TestRender(mainView)
 
 	if err := w.TestClick("todo:delete:1"); err != nil {
@@ -84,7 +84,7 @@ func TestTabOutOfComposerDoesNotHang(t *testing.T) {
 		defer close(done)
 		app := newAppState()
 		before := len(app.Items)
-		w := gui.NewTestWindow(gui.WindowCfg{State: app, Width: 540, Height: 640})
+		w := gui.NewTestWindow(t, gui.WindowCfg{State: app, Width: 540, Height: 640})
 		w.TestRender(mainView)
 		if err := w.TestType("todo-input", "abc"); err != nil {
 			t.Errorf("TestType: %v", err)

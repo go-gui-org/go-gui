@@ -505,7 +505,7 @@ func TestNumericInputScopedInnerIDs(t *testing.T) {
 	// Two controls share one leaf under different scopes: every
 	// inner ID must join its own scope, or the pair collides on
 	// one window-global "ni:field".
-	w := NewTestWindow(WindowCfg{Width: 800, Height: 600})
+	w := NewTestWindow(t, WindowCfg{Width: 800, Height: 600})
 	w.TestRender(func(_ *Window) View {
 		panel := func(id string) View {
 			return Column(ContainerCfg{

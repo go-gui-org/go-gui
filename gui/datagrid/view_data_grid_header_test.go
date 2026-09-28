@@ -349,7 +349,7 @@ func TestFilterCellNarrowColumnStaysInsideCell(t *testing.T) {
 		},
 		OnQueryChange: func(GridQueryState, gg.EventCtx) {},
 	}
-	w := gg.NewTestWindow(gg.WindowCfg{})
+	w := gg.NewTestWindow(t, gg.WindowCfg{})
 	defer w.Close()
 	w.TestRender(func(*gg.Window) gg.View { return New(w, cfg) })
 
@@ -435,7 +435,7 @@ func TestResizeHandleHoverPressedColor(t *testing.T) {
 			Width: gg.SomeF(120),
 		}},
 	}
-	w := gg.NewTestWindow(gg.WindowCfg{})
+	w := gg.NewTestWindow(t, gg.WindowCfg{})
 	defer w.Close()
 	w.TestRender(func(win *gg.Window) gg.View { return New(w, cfg) })
 
@@ -534,7 +534,7 @@ func TestResizeHandleActiveDuringDrag(t *testing.T) {
 			Width: gg.SomeF(120),
 		}},
 	}
-	w := gg.NewTestWindow(gg.WindowCfg{})
+	w := gg.NewTestWindow(t, gg.WindowCfg{})
 	defer w.Close()
 	w.TestRender(func(win *gg.Window) gg.View { return New(w, cfg) })
 
@@ -609,7 +609,7 @@ func TestResizeHandleRestingAfterCancel(t *testing.T) {
 			Width: gg.SomeF(120),
 		}},
 	}
-	w := gg.NewTestWindow(gg.WindowCfg{})
+	w := gg.NewTestWindow(t, gg.WindowCfg{})
 	defer w.Close()
 	w.TestRender(func(win *gg.Window) gg.View { return New(w, cfg) })
 

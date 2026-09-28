@@ -21,7 +21,7 @@ const fieldSizingWindow = 400
 // the field shape itself.
 func arrangeLabelledField(t *testing.T, field View, id string) (*Layout, *Layout) {
 	t.Helper()
-	w := NewTestWindow(WindowCfg{
+	w := NewTestWindow(t, WindowCfg{
 		Width:  fieldSizingWindow,
 		Height: 200,
 	})

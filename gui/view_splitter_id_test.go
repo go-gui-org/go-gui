@@ -24,7 +24,7 @@ func splitterScopedPanel(id string, v View) View {
 // TestSplitterPartsResolveUnderAncestorScope walks every part of a
 // nested splitter by its scoped public ID.
 func TestSplitterPartsResolveUnderAncestorScope(t *testing.T) {
-	w := NewTestWindow(WindowCfg{
+	w := NewTestWindow(t, WindowCfg{
 		Width:  splitterTestW,
 		Height: splitterTestH,
 	})
@@ -62,7 +62,7 @@ func TestSplitterPartsResolveUnderAncestorScope(t *testing.T) {
 // case scoping exists for: one splitter leaf ID reused under two
 // different ID-bearing panels in the same frame.
 func TestSplitterSameLeafIDInTwoScopesDoesNotCollide(t *testing.T) {
-	w := NewTestWindow(WindowCfg{
+	w := NewTestWindow(t, WindowCfg{
 		Width:  splitterTestW,
 		Height: splitterTestH,
 	})

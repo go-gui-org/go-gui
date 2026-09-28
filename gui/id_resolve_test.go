@@ -41,7 +41,7 @@ func TestResolveLeafRules(t *testing.T) {
 
 // The headline case: one leaf, two panels, two identities.
 func TestEffIDScopesLeafByAncestor(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	root := w.TestRender(func(_ *Window) View {
 		return Column(ContainerCfg{
 			Sizing: FillFill,
@@ -80,7 +80,7 @@ func TestEffIDScopesLeafByAncestor(t *testing.T) {
 // Focus is keyed on the effective ID end to end: the store holds it,
 // tab traversal reports it, and the widget paints from it.
 func TestFocusUsesEffectiveID(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	t.Cleanup(w.WindowCleanup)
 	w.TestRender(func(_ *Window) View {
 		return Column(ContainerCfg{
@@ -118,7 +118,7 @@ func TestFocusUsesEffectiveID(t *testing.T) {
 // else, so a reorder or an added wrapper cannot silently re-identify a
 // widget.
 func TestIDLessAncestorAddsNoScope(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	root := w.TestRender(func(_ *Window) View {
 		return Column(ContainerCfg{
 			Sizing: FillFill,
@@ -140,7 +140,7 @@ func TestIDLessAncestorAddsNoScope(t *testing.T) {
 // owner's *effective* ID, or the caret and selection would be read
 // from a key nothing writes.
 func TestFocusOwnerResolvesToOwnerEffID(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	root := w.TestRender(func(_ *Window) View {
 		return Column(ContainerCfg{
 			Sizing: FillFill,
@@ -170,7 +170,7 @@ func TestFocusOwnerResolvesToOwnerEffID(t *testing.T) {
 // combobox reads its open flag while building its own subtree, before
 // the resolve pass has run.
 func TestStatefulWidgetStateIsPerScope(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	view := func(_ *Window) View {
 		panel := func(id string) View {
 			return Column(ContainerCfg{
@@ -216,7 +216,7 @@ func TestStatefulWidgetStateIsPerScope(t *testing.T) {
 // written in. Identity is resolved before the floats are split into
 // their own layers, which is what makes that possible.
 func TestFloatKeepsAncestorScope(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	root := w.TestRender(func(_ *Window) View {
 		return Column(ContainerCfg{
 			Sizing: FillFill,
@@ -246,7 +246,7 @@ func TestFloatKeepsAncestorScope(t *testing.T) {
 // key a widget computes while generating (w.EffID) and the identity the
 // pass stamps on its shape.
 func TestGenerationScopeMatchesResolvePass(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	var generated string
 	root := w.TestRender(func(_ *Window) View {
 		return Column(ContainerCfg{
@@ -288,7 +288,7 @@ func TestGenerationScopeMatchesResolvePass(t *testing.T) {
 // follows an ID-bearing container must not inherit that container's
 // scope.
 func TestGenerationScopeRestoredForSiblings(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	var sibling string
 	w.TestRender(func(_ *Window) View {
 		return Column(ContainerCfg{
@@ -320,7 +320,7 @@ func TestEventCtxEffID(t *testing.T) {
 	//
 	// Generated rather than hand-built: identity is stamped during
 	// generation, so a tree assembled from Shape literals carries none.
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	root := generateViewLayout(Column(ContainerCfg{
 		Content: []View{
 			Column(ContainerCfg{
@@ -420,7 +420,7 @@ var sinkEffID string
 // focusOwner is resolved in place, so resolving twice — two frames over
 // a retained tree, or an extra pass — must not compound the prefix.
 func TestResolveFocusOwnersIsIdempotent(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	// Input is the widget that sets focusOwner: its text shape reads the
 	// container's focus state without claiming the container's ID.
 	root := generateViewLayout(Column(ContainerCfg{
@@ -488,7 +488,7 @@ func findShapeByLeaf(layout *Layout, leaf string) *Shape {
 // Generation clears the scope whenever it starts from the top, which is
 // the main tree and every injected overlay.
 func TestGenerationClearsStaleScope(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.viewState.idScope = "stale"
 	root := generateViewLayout(Column(ContainerCfg{ID: "root"}), w)
 

@@ -715,7 +715,7 @@ func TestTableRichTextCell(t *testing.T) {
 // A table is a full-width block by default, on both the plain and the
 // frozen-header path; an explicitly-set Sizing still wins.
 func TestTableSizingDefault(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	data := []TableRowCfg{
 		TR([]TableCellCfg{tH("Name")}),
 		TR([]TableCellCfg{tD("Alice")}),

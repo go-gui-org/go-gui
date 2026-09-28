@@ -10,7 +10,7 @@ import (
 func newTestWindow(t *testing.T) *gui.Window {
 	t.Helper()
 	gui.SetTheme(gui.ThemeDark)
-	w := gui.NewTestWindow(gui.WindowCfg{
+	w := gui.NewTestWindow(t, gui.WindowCfg{
 		State:  &App{},
 		Width:  400,
 		Height: 600,

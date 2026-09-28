@@ -13,7 +13,7 @@ func newTestApp(t *testing.T, root *Person) (*App, *gui.Window) {
 	t.Helper()
 	gui.SetTheme(gui.ThemeDark)
 	app := newApp(root)
-	w := gui.NewTestWindow(gui.WindowCfg{State: app, Width: 900, Height: 600})
+	w := gui.NewTestWindow(t, gui.WindowCfg{State: app, Width: 900, Height: 600})
 	w.TestRender(mainView)
 	return app, w
 }

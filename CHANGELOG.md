@@ -10,6 +10,15 @@ and this project adheres to
 
 ### Added
 
+- **`gui.RunTestsCheckingLeaks` fails a test package that leaks a window
+  (#840)** — call it from `TestMain`:
+  `func TestMain(m *testing.M) { os.Exit(gui.RunTestsCheckingLeaks(m)) }`. After
+  the tests pass it waits for animations to settle, then fails the run if any
+  window still has a ticking animation loop, and names the leaked animation IDs.
+  Before, such a leak failed silently: the goroutine kept ticking at 60 Hz, and
+  `testing.AllocsPerRun` gates elsewhere in the package counted its allocations
+  (#836). go-gui's own `gui` tests use it.
+
 - **iOS text input and soft keyboard (#806)** — the iOS backend had no text
   input: a focused `Input` took no typing. Now a tapped text field opens the
   soft keyboard its `Keyboard` kind asks for, a password field gets a secure
@@ -22,6 +31,17 @@ and this project adheres to
   still do nothing on iOS: the clipboard is not wired.
 
 ### Changed
+
+- **BREAKING: `NewTestWindow` takes the test and cleans up the window (#840)** —
+  the signature is now `NewTestWindow(tb gui.Cleanuper, cfg gui.WindowCfg)`.
+  `Cleanuper` is `interface{ Cleanup(func()) }`, which `*testing.T`,
+  `*testing.B` and `*testing.F` satisfy, so `gui` does not import `testing`. The
+  window's `WindowCleanup` now runs when the test ends. Before, nothing stopped
+  a test window's animation goroutine: a focused `Input`, a tooltip or a drag
+  auto-scroll left it ticking at 60 Hz for the rest of the test binary, which
+  cost CPU and memory and put allocations into unrelated `AllocsPerRun` gates.
+  Migration: `gui.NewTestWindow(cfg)` → `gui.NewTestWindow(t, cfg)`. A helper
+  that builds the window takes `t` (or `testing.TB`) as a parameter.
 
 - **GL backend draws text with far fewer GL calls (#816)** — the Linux and
   Windows GL backend drew every glyph with its own 7 GL calls, 4 of them

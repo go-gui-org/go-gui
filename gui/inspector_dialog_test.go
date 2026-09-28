@@ -16,7 +16,7 @@ import (
 func inspectorDialogWindow(t *testing.T) *Window {
 	t.Helper()
 	requireInspector(t)
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.inspectorEnabled = true
 	w.TestRender(func(*Window) View {
 		return Column(ContainerCfg{ID: "app", Sizing: FillFill})
@@ -102,7 +102,7 @@ func TestDialogRouteIncludesInspectorLayer(t *testing.T) {
 // layer under the panel, or a click leaks past the modal dialog.
 func TestDialogRouteStaleLayoutExcludesAppLayer(t *testing.T) {
 	requireInspector(t)
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.inspectorEnabled = true
 	w.TestRender(func(*Window) View {
 		return Column(ContainerCfg{ID: "app", Sizing: FillFill})

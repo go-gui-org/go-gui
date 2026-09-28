@@ -7,7 +7,7 @@ import "testing"
 // padding-free so the fill area is exactly the window.
 func separatorWindow(t *testing.T, vertical bool, cfg SeparatorCfg) *Window {
 	t.Helper()
-	w := NewTestWindow(WindowCfg{Width: 400, Height: 300})
+	w := NewTestWindow(t, WindowCfg{Width: 400, Height: 300})
 	w.TestRender(func(win *Window) View {
 		root := ContainerCfg{
 			Sizing:     FillFill,

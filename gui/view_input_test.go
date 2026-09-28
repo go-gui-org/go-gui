@@ -1777,7 +1777,7 @@ func TestSetFocusReassertSameIDPreservesSelection(t *testing.T) {
 // (SetView would), so the second frame observes the state the first
 // frame's re-assert must not have wiped.
 func TestSetFocusReassertFromViewPreservesSelection(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	t.Cleanup(w.WindowCleanup)
 	view := func(win *Window) View {
 		w.SetFocus("f901")
@@ -1798,7 +1798,7 @@ func TestSetFocusReassertFromViewPreservesSelection(t *testing.T) {
 // the window is cleared — the widget losing focus, the one gaining it,
 // and unrelated fields — not just the newly focused one.
 func TestSetFocusRealChangeClearsSelectionsWindowWide(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.TestRender(func(win *Window) View {
 		return Column(ContainerCfg{Sizing: FillFill, Content: []View{
 			Input(InputCfg{ID: "f911", Text: "aaaa"}),
@@ -1871,7 +1871,7 @@ const (
 // from the click, so the fix — which leaves same-id re-asserts alone
 // — cannot regress it.
 func TestInputClickOnFocusedInputCollapsesSelectionToCaret(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	t.Cleanup(w.WindowCleanup)
 	w.textMeasurer = inputSelTestMeasurer{}
 	w.TestRender(func(win *Window) View {
@@ -2012,7 +2012,7 @@ func TestInputDoubleClickDragExtendsByWord(t *testing.T) {
 // measurer and returns the window plus the layout for ID.
 func newInputSelWindow(t *testing.T, cfg InputCfg) (*Window, *Layout) {
 	t.Helper()
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	t.Cleanup(w.WindowCleanup)
 	w.textMeasurer = inputSelTestMeasurer{}
 	w.TestRender(func(win *Window) View { return Input(cfg) })
@@ -2187,7 +2187,7 @@ func TestInputDragCancelCollapsedSelectionHarmless(t *testing.T) {
 // text shape, which is what the optical correction moves.
 func inputTextShapeY(t *testing.T, cfg InputCfg) float32 {
 	t.Helper()
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	cfg.ID = "f"
 	w.TestRender(func(*Window) View { return Input(cfg) })
 	field, ok := w.layout.FindByID("f")
@@ -2300,7 +2300,7 @@ func TestInputBlurNormalizeDefersOnTextChanged(t *testing.T) {
 func TestInputBlurCommitMaySetFocus(t *testing.T) {
 	done := make(chan string, 1)
 	go func() {
-		w := NewTestWindow(WindowCfg{})
+		w := NewTestWindow(t, WindowCfg{})
 		view := func(w *Window) View {
 			return Column(ContainerCfg{
 				Content: []View{
@@ -2393,7 +2393,7 @@ func TestMultilineEnterPassesMask(t *testing.T) {
 // ancestor and dropped the focus border exactly while the control was
 // being pointed at.
 func TestInputHoverKeepsFocusBorderUnderScope(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	t.Cleanup(w.WindowCleanup)
 	build := func(*Window) View {
 		return Column(ContainerCfg{

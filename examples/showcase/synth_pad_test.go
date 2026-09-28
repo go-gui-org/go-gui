@@ -14,7 +14,7 @@ import (
 // showcase_test.go because synthPadGrid is desktop-only, like
 // sound_player_test.go.
 func TestSynthPadCentersLines(t *testing.T) {
-	w := gui.NewTestWindow(gui.WindowCfg{Width: 600, Height: 400})
+	w := gui.NewTestWindow(t, gui.WindowCfg{Width: 600, Height: 400})
 	defer w.Close()
 	root := w.TestRender(func(w *gui.Window) gui.View {
 		return synthPadGrid(gui.CurrentTheme())

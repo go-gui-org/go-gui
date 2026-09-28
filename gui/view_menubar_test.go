@@ -141,8 +141,8 @@ func TestFindMenuByID(t *testing.T) {
 // menubarInPanels renders one menubar, all named "bar", inside each of
 // the given ID-bearing panels. The bar's identity is therefore
 // "<panel>:bar", which is what every assertion below is about.
-func menubarInPanels(panelIDs ...string) *Window {
-	w := NewTestWindow(WindowCfg{})
+func menubarInPanels(t *testing.T, panelIDs ...string) *Window {
+	w := NewTestWindow(t, WindowCfg{})
 	w.SetView(func(vw *Window) View {
 		panels := make([]View, 0, len(panelIDs))
 		for _, id := range panelIDs {
@@ -171,7 +171,7 @@ func menubarInPanels(panelIDs ...string) *Window {
 // identity its shape resolves to. Window-global is the common case, not
 // the only one (issue #528).
 func TestMenubarScopesSelectionToPanel(t *testing.T) {
-	w := menubarInPanels("panel")
+	w := menubarInPanels(t, "panel")
 	// Focus drives the auto-select branch, which is the write this test
 	// is about.
 	w.SetFocus("panel:bar")
@@ -199,7 +199,7 @@ func TestMenubarScopesSelectionToPanel(t *testing.T) {
 // auto-select and the unfocused bar's AmendLayout cleanup fought over
 // one entry.
 func TestMenubarSameIDInTwoPanelsIsTwoKeys(t *testing.T) {
-	w := menubarInPanels("a", "b")
+	w := menubarInPanels(t, "a", "b")
 	w.SetFocus("a:bar")
 	w.TestRender(nil)
 
@@ -224,7 +224,7 @@ func TestMenubarSameIDInTwoPanelsIsTwoKeys(t *testing.T) {
 // The dev-mode gate that reports an unresolved state key must stay quiet
 // for the fixed widget.
 func TestMenubarUnderPanelIsQuiet(t *testing.T) {
-	w := menubarInPanels("panel")
+	w := menubarInPanels(t, "panel")
 	w.SetFocus("panel:bar")
 	if found := w.TestFindings(DebugAll); len(found) != 0 {
 		t.Fatalf("findings = %v, want none", found)

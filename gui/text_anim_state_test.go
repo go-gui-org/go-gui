@@ -365,7 +365,7 @@ func TestTextAnimShimmerUsesEasing(t *testing.T) {
 // stamps after arrange. Baked in the view pass, it kept the theme's
 // text colour: dark text on the accent fill.
 func TestTextAnimShimmerFollowsButtonLabelColor(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	t.Cleanup(w.WindowCleanup)
 	w.TestRender(func(*Window) View {
 		return Column(ContainerCfg{

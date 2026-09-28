@@ -54,7 +54,7 @@ func buttonView(cfg ButtonCfg) func(*Window) View {
 func TestSoundThemeDefaultIsSilent(t *testing.T) {
 	restoreTheme(t)
 	spy := &soundSpy{}
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.SetTheme(silentTheme(t))
 	w.SetSoundPlayer(spy)
 	w.TestRender(buttonView(ButtonCfg{}))
@@ -69,7 +69,7 @@ func TestSoundThemeDefaultIsSilent(t *testing.T) {
 
 func TestSoundNilPlayerDoesNotPanic(t *testing.T) {
 	restoreTheme(t)
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.SetTheme(soundingTheme(t))
 	// No SetSoundPlayer: the default, and every headless test.
 	w.TestRender(buttonView(ButtonCfg{}))
@@ -123,7 +123,7 @@ func TestSoundButtonAllActivationPaths(t *testing.T) {
 	for name, act := range activate {
 		t.Run(name, func(t *testing.T) {
 			spy := &soundSpy{}
-			w := NewTestWindow(WindowCfg{})
+			w := NewTestWindow(t, WindowCfg{})
 			w.SetTheme(th)
 			w.SetSoundPlayer(spy)
 			w.TestRender(buttonView(ButtonCfg{}))
@@ -138,7 +138,7 @@ func TestSoundButtonAllActivationPaths(t *testing.T) {
 func TestSoundToggleStateDependentCue(t *testing.T) {
 	restoreTheme(t)
 	spy := &soundSpy{}
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.SetTheme(soundingTheme(t))
 	w.SetSoundPlayer(spy)
 
@@ -172,7 +172,7 @@ func TestSoundToggleStateDependentCue(t *testing.T) {
 func TestSoundCfgOverridesTheme(t *testing.T) {
 	restoreTheme(t)
 	spy := &soundSpy{}
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.SetTheme(soundingTheme(t))
 	w.SetSoundPlayer(spy)
 	w.TestRender(buttonView(ButtonCfg{Sound: SoundError}))
@@ -188,7 +188,7 @@ func TestSoundCfgOverridesTheme(t *testing.T) {
 func TestSoundDisabledSuppresses(t *testing.T) {
 	restoreTheme(t)
 	spy := &soundSpy{}
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.SetTheme(soundingTheme(t))
 	w.SetSoundPlayer(spy)
 	// SoundDisabled beats an explicit Sound, not just the theme.
@@ -226,7 +226,7 @@ func TestSoundVolumeClampAndMute(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			spy := &soundSpy{}
-			w := NewTestWindow(WindowCfg{})
+			w := NewTestWindow(t, WindowCfg{})
 			w.SetTheme(th)
 			w.SetSoundPlayer(spy)
 			if tc.set {
@@ -263,7 +263,7 @@ func TestSoundVolumeClampAndMute(t *testing.T) {
 func TestSoundConcurrentVolumeAndPlayerNoRace(t *testing.T) {
 	restoreTheme(t)
 	spy := &soundSpy{}
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.SetTheme(soundingTheme(t))
 	w.SetSoundPlayer(spy)
 	w.TestRender(buttonView(ButtonCfg{}))
@@ -287,7 +287,7 @@ func TestSoundConcurrentVolumeAndPlayerNoRace(t *testing.T) {
 }
 
 func TestSoundPlayerAccessorRoundTrip(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	if w.SoundPlayer() != nil {
 		t.Error("a fresh window has a sound player")
 	}
@@ -304,7 +304,7 @@ func TestSoundPlayerAccessorRoundTrip(t *testing.T) {
 
 func TestBeepSoundPlayerOnlyErrors(t *testing.T) {
 	spy := &beepSpy{available: true}
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.SetNativePlatform(spy)
 	p := NewBeepSoundPlayer(w)
 
@@ -327,7 +327,7 @@ func TestBeepSoundPlayerOnlyErrors(t *testing.T) {
 
 func TestBeepSoundPlayerNoNativePlatform(t *testing.T) {
 	// Headless: must not panic and must report unavailable.
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	p := NewBeepSoundPlayer(w)
 	p.PlaySound(SoundError, 1)
 	if p.SoundAvailable() {
@@ -375,7 +375,7 @@ func TestSoundVolumeNaNAndInfClamped(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			spy := &soundSpy{}
-			w := NewTestWindow(WindowCfg{})
+			w := NewTestWindow(t, WindowCfg{})
 			w.SetTheme(th)
 			w.SetSoundPlayer(spy)
 			w.SetSoundVolume(tc.volume)
@@ -401,7 +401,7 @@ func TestSoundVolumeNaNAndInfClamped(t *testing.T) {
 func TestSoundDisabledWidgetSilent(t *testing.T) {
 	restoreTheme(t)
 	spy := &soundSpy{}
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.SetTheme(soundingTheme(t))
 	w.SetSoundPlayer(spy)
 	// A disabled button must not emit even when the theme is sounding.

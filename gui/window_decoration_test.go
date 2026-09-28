@@ -29,7 +29,7 @@ func TestWindowEdgeMatchesNetMoveResizeCodes(t *testing.T) {
 
 func TestStartWindowDragNilPlatform(t *testing.T) {
 	t.Parallel()
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.StartWindowDrag()
 	w.StartWindowResize(EdgeBottomRight)
 }
@@ -37,7 +37,7 @@ func TestStartWindowDragNilPlatform(t *testing.T) {
 func TestStartWindowGesturesReachPlatform(t *testing.T) {
 	t.Parallel()
 	np := &recordingGesturePlatform{}
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.SetNativePlatform(np)
 
 	w.StartWindowDrag()

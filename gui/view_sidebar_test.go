@@ -299,7 +299,7 @@ func TestSidebarNoDoubleAnimation(t *testing.T) {
 // it, so the scope is still empty there. sidebarView.GenerateLayout
 // resolves it in the phase that knows the scope.
 func TestSidebarStateKeyIsScoped(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.TestRender(func(w *Window) View {
 		return Column(ContainerCfg{
 			ID:     "detail",
@@ -347,7 +347,7 @@ func TestSidebarAlwaysClips(t *testing.T) {
 // the clip exempts the sidebar from the containment invariant, so
 // the audit that found the defect stays silent on the widget.
 func TestSidebarWideContentStaysInside(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	defer w.Close()
 	w.TestRender(func(w *Window) View {
 		return w.Sidebar(SidebarCfg{
@@ -372,7 +372,7 @@ func TestSidebarWideContentStaysInside(t *testing.T) {
 // The audit that found this defect must now be silent on the widget.
 func TestSidebarNoUnresolvedKeyFinding(t *testing.T) {
 	buf := captureDebugMask(t, DebugAll|DebugUnresolvedKeys)
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.TestRender(func(w *Window) View {
 		return Column(ContainerCfg{
 			ID:     "detail",

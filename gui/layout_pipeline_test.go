@@ -150,7 +150,7 @@ func TestLayoutHoverMouseLocked(t *testing.T) {
 // is the layoutHover call, matching the direct-call harness of the
 // other layout-pipeline tests.
 func TestLayoutHoverSynthesizesHeldMouseButton(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.viewState.mousePosX = 15
 	w.viewState.mousePosY = 15
 
@@ -210,7 +210,7 @@ func TestLayoutHoverSynthesizesHeldMouseButton(t *testing.T) {
 // callback, even though a button is held — the lock bail is what keeps
 // pressed state out of drags.
 func TestLayoutHoverMouseLockedSilencesHeldButton(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.viewState.mousePosX = 15
 	w.viewState.mousePosY = 15
 
@@ -239,8 +239,8 @@ func TestLayoutHoverMouseLockedSilencesHeldButton(t *testing.T) {
 // gesture target (no handlers), with a local hover-recording layout
 // ready for layoutHover, and a hover closure that reports the
 // synthesized button. Shared by the gesture-path tests below.
-func hoverButtonWindow() (w *Window, hover func() MouseButton) {
-	w = NewTestWindow(WindowCfg{})
+func hoverButtonWindow(t *testing.T) (w *Window, hover func() MouseButton) {
+	w = NewTestWindow(t, WindowCfg{})
 	w.viewState.mousePosX = 15
 	w.viewState.mousePosY = 15
 	got := MouseInvalid
@@ -266,7 +266,7 @@ func hoverButtonWindow() (w *Window, hover func() MouseButton) {
 // record the held button just like a backend press, so the next hover
 // pass carries it.
 func TestTouchSynthesizedPressReportsHeldButton(t *testing.T) {
-	w, hover := hoverButtonWindow()
+	w, hover := hoverButtonWindow(t)
 	if btn := hover(); btn != MouseInvalid {
 		t.Fatalf("before touch: hover button = %v, want MouseInvalid", btn)
 	}
@@ -283,7 +283,7 @@ func TestTouchSynthesizedPressReportsHeldButton(t *testing.T) {
 // handleMouseUpEvent — must clear it. Without the clear, hover would
 // keep reporting a left press no one is holding.
 func TestTouchSynthesizedReleaseClearsHeldButton(t *testing.T) {
-	w, hover := hoverButtonWindow()
+	w, hover := hoverButtonWindow(t)
 
 	// Backend press: the real mouse button goes down.
 	w.EventFn(&Event{Type: EventMouseDown, MouseButton: MouseLeft})

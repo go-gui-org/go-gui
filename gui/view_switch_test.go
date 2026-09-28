@@ -155,7 +155,7 @@ func TestSwitchLabelAddsChild(t *testing.T) {
 func TestSwitchHoverPressedColor(t *testing.T) {
 	hover := RGBA(40, 200, 40, 255)
 	click := RGBA(200, 40, 40, 255)
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.TestRender(func(win *Window) View {
 		return Switch(SwitchCfg{
 			ID:      "sw",

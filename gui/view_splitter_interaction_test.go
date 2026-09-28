@@ -45,7 +45,7 @@ func newSplitterHarness(t *testing.T, cfg SplitterCfg) *splitterHarness {
 			Collapsed: cfg.Collapsed,
 		},
 	}
-	h.w = NewTestWindow(WindowCfg{
+	h.w = NewTestWindow(t, WindowCfg{
 		Width:  splitterTestW,
 		Height: splitterTestH,
 	})
@@ -161,7 +161,7 @@ func splitterEmptyPanes() (first, second SplitterPaneCfg) {
 // container, so the root stayed 0x0 and the widget was invisible.
 func TestSplitterAsRootViewFillsWindow(t *testing.T) {
 	a, b := splitterTwoPanes()
-	w := NewTestWindow(WindowCfg{Width: splitterTestW, Height: splitterTestH})
+	w := NewTestWindow(t, WindowCfg{Width: splitterTestW, Height: splitterTestH})
 	w.TestRender(func(_ *Window) View {
 		return Splitter(SplitterCfg{
 			ID: "sp", Ratio: SomeF(0.5), First: a, Second: b,
@@ -555,7 +555,7 @@ func TestSplitterAmendLayoutOversizedHandleWithContent(t *testing.T) {
 func TestSplitterAmendLayoutShortCircuitsOnMissingChildren(t *testing.T) {
 	core := &splitterCore{id: "sp", handleSize: 9}
 	layout := Layout{Shape: &Shape{ID: "sp", Width: 100, Height: 50}}
-	splitterAmendLayout(core, &layout, NewTestWindow(WindowCfg{}))
+	splitterAmendLayout(core, &layout, NewTestWindow(t, WindowCfg{}))
 	if core.id != "sp" {
 		t.Errorf("core.id = %q, want unchanged", core.id)
 	}
@@ -567,7 +567,7 @@ func TestSplitterAmendLayoutShortCircuitsOnMissingChildren(t *testing.T) {
 // the leaf "sp" is no longer the identity.
 func TestSplitterAmendLayoutStampsEffectiveID(t *testing.T) {
 	a, b := splitterTwoPanes()
-	w := NewTestWindow(WindowCfg{Width: splitterTestW, Height: splitterTestH})
+	w := NewTestWindow(t, WindowCfg{Width: splitterTestW, Height: splitterTestH})
 	var got float32 = -1
 	w.TestRender(func(_ *Window) View {
 		return Column(ContainerCfg{
@@ -1485,7 +1485,7 @@ func TestSplitterCurrentRatioFallsBackToStored(t *testing.T) {
 }
 
 func TestSplitterSetCursorPerOrientation(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	splitterSetCursor(SplitterHorizontal, w)
 	if w.viewState.mouseCursor != CursorResizeEW {
 		t.Errorf("horizontal cursor = %v, want EW", w.viewState.mouseCursor)
@@ -1499,7 +1499,7 @@ func TestSplitterSetCursorPerOrientation(t *testing.T) {
 // An ID-less splitter cannot be focused, so emitting a change must not
 // try to move focus to the empty string.
 func TestSplitterFocusSkippedWithoutID(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.SetFocus("elsewhere")
 	splitterFocus(&splitterCore{}, w)
 	if w.FocusID() != "elsewhere" {
@@ -1508,7 +1508,7 @@ func TestSplitterFocusSkippedWithoutID(t *testing.T) {
 }
 
 func TestSplitterEmitChangeNormalizesAndConsumes(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	var gotRatio float32
 	var gotCollapsed SplitterCollapsed
 	core := &splitterCore{
@@ -1532,7 +1532,7 @@ func TestSplitterEmitChangeNormalizesAndConsumes(t *testing.T) {
 // A splitter with no OnChange is legal (a fixed 50/50 split); driving it
 // must not panic on the nil callback.
 func TestSplitterEmitChangeNilCallback(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	e := Event{Type: EventKeyDown}
 	splitterEmitChange(&splitterCore{}, 0.5, splitterCollapseNone, &e, w)
 	if !e.IsHandled {
@@ -1669,7 +1669,7 @@ func TestSplitterHandleReleaseWithoutIDStillUnlocks(t *testing.T) {
 // under the splitter's own ID.
 func TestSplitterIDsAreUniquePerInstance(t *testing.T) {
 	a, b := splitterTwoPanes()
-	w := NewTestWindow(WindowCfg{Width: splitterTestW, Height: splitterTestH})
+	w := NewTestWindow(t, WindowCfg{Width: splitterTestW, Height: splitterTestH})
 	w.TestRender(func(_ *Window) View {
 		mk := func(id string) View {
 			cfg := splitterCollapsibleCfg(id)

@@ -27,7 +27,7 @@ func TestMainViewNoPanic(t *testing.T) {
 func TestPackedPickerStaysOnScreen(t *testing.T) {
 	t.Parallel()
 	gui.SetTheme(gui.ThemeDark)
-	w := gui.NewTestWindow(gui.WindowCfg{
+	w := gui.NewTestWindow(t, gui.WindowCfg{
 		State: &App{
 			Color: gui.HSLA{H: 210, S: 0.7, L: 0.55, A: 0.85},
 		},

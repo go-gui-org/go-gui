@@ -14,7 +14,7 @@ func soundNonClickWindow(t *testing.T) (*Window, *soundSpy) {
 	t.Helper()
 	restoreTheme(t)
 	spy := &soundSpy{}
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.SetTheme(soundingTheme(t))
 	w.SetSoundPlayer(spy)
 	return w, spy
@@ -68,7 +68,7 @@ func TestSoundToastSilentCases(t *testing.T) {
 	t.Run("silent theme", func(t *testing.T) {
 		restoreTheme(t)
 		spy := &soundSpy{}
-		w := NewTestWindow(WindowCfg{})
+		w := NewTestWindow(t, WindowCfg{})
 		w.SetTheme(silentTheme(t))
 		w.SetSoundPlayer(spy)
 		w.Toast(ToastCfg{Title: "T"})
@@ -129,7 +129,7 @@ func soundFormSubmit(t *testing.T, cfg FormCfg, value string) []SoundCue {
 	t.Helper()
 	restoreTheme(t)
 	spy := &soundSpy{}
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.SetTheme(soundingTheme(t))
 	w.SetSoundPlayer(spy)
 
@@ -196,7 +196,7 @@ func TestSoundFormSubmitAcceptedAndBlocked(t *testing.T) {
 func TestSoundFormSubmitBlockedByPending(t *testing.T) {
 	restoreTheme(t)
 	spy := &soundSpy{}
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.SetTheme(soundingTheme(t))
 	w.SetSoundPlayer(spy)
 
@@ -258,7 +258,7 @@ func TestSoundFormCfgOverrideAndDisable(t *testing.T) {
 func TestSoundFormThroughRenderedView(t *testing.T) {
 	restoreTheme(t)
 	spy := &soundSpy{}
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.SetTheme(soundingTheme(t))
 	w.SetSoundPlayer(spy)
 	formID := "rendered-form"

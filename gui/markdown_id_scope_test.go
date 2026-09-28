@@ -24,7 +24,7 @@ var mdTwoDocSource = strings.Join([]string{
 // heading and code-block IDs were scoped by cfg.ID, this produced one
 // duplicate per heading and one per code block.
 func TestMarkdownIDsScopedToDocument(t *testing.T) {
-	w := NewTestWindow(WindowCfg{Width: 800, Height: 600})
+	w := NewTestWindow(t, WindowCfg{Width: 800, Height: 600})
 	w.TestRender(func(win *Window) View {
 		return Column(ContainerCfg{
 			Sizing: FillFill,

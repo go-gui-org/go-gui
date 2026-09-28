@@ -35,8 +35,8 @@ func TestWindowThemeIsolated(t *testing.T) {
 	red := themeWithPanel(t, "red", RGB(200, 0, 0))
 	blue := themeWithPanel(t, "blue", RGB(0, 0, 200))
 
-	w1 := NewTestWindow(WindowCfg{})
-	w2 := NewTestWindow(WindowCfg{})
+	w1 := NewTestWindow(t, WindowCfg{})
+	w2 := NewTestWindow(t, WindowCfg{})
 	w1.SetTheme(red)
 	w2.SetTheme(blue)
 
@@ -107,8 +107,8 @@ func TestWindowThemeFollowsDefault(t *testing.T) {
 	green := themeWithPanel(t, "green", RGB(0, 200, 0))
 	pinned := themeWithPanel(t, "pinned", RGB(200, 0, 200))
 
-	follower := NewTestWindow(WindowCfg{})
-	pinnedWin := NewTestWindow(WindowCfg{})
+	follower := NewTestWindow(t, WindowCfg{})
+	pinnedWin := NewTestWindow(t, WindowCfg{})
 	pinnedWin.SetTheme(pinned)
 
 	SetTheme(green)
@@ -130,7 +130,7 @@ func TestWindowThemeFollowsDefault(t *testing.T) {
 func TestInstallThemeSkipsWhenUnchanged(t *testing.T) {
 	restoreTheme(t)
 	th := themeWithPanel(t, "steady", RGB(1, 2, 3))
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.SetTheme(th)
 	w.TestRender(panelView)
 
@@ -151,7 +151,7 @@ func TestThemedScopesSubtree(t *testing.T) {
 	outer := themeWithPanel(t, "outer", RGB(10, 0, 0))
 	inner := themeWithPanel(t, "inner", RGB(0, 10, 0))
 
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.SetTheme(outer)
 
 	root := w.TestRender(func(win *Window) View {
@@ -197,7 +197,7 @@ func TestThemedNests(t *testing.T) {
 	b := themeWithPanel(t, "b", RGB(0, 1, 0))
 	c := themeWithPanel(t, "c", RGB(0, 0, 1))
 
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.SetTheme(a)
 
 	root := w.TestRender(func(*Window) View {
@@ -236,7 +236,7 @@ func TestThemedKeepsExplicitOverride(t *testing.T) {
 	inner := themeWithPanel(t, "inner-ovr", RGB(0, 10, 0))
 	want := RGB(123, 45, 67)
 
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	root := w.TestRender(func(*Window) View {
 		return Themed(inner, func(*Window) View {
 			return Column(ContainerCfg{ID: "explicit", Color: want})
@@ -249,7 +249,7 @@ func TestThemedKeepsExplicitOverride(t *testing.T) {
 
 func TestThemedNilBuild(t *testing.T) {
 	restoreTheme(t)
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.TestRender(func(*Window) View {
 		return Column(ContainerCfg{
 			ID:      "root",
@@ -260,7 +260,7 @@ func TestThemedNilBuild(t *testing.T) {
 
 func TestThemedZeroIDThemeInstalls(t *testing.T) {
 	restoreTheme(t)
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.SetTheme(themeWithPanel(t, "base", RGB(0, 0, 10)))
 	// A hand-built Theme has id 0, which must bypass the install fast
 	// path rather than masquerade as the already-installed theme.

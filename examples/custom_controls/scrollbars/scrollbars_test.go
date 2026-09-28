@@ -11,7 +11,7 @@ import (
 func newTestWindow(t *testing.T) *gui.Window {
 	t.Helper()
 	gui.SetTheme(gui.ThemeLight)
-	w := gui.NewTestWindow(gui.WindowCfg{Width: 960, Height: 640})
+	w := gui.NewTestWindow(t, gui.WindowCfg{Width: 960, Height: 640})
 	w.TestRender(func(*gui.Window) gui.View { return View() })
 	return w
 }

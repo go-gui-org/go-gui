@@ -173,7 +173,7 @@ type mdSelectHarness struct {
 func newMdSelectHarness(t *testing.T) *mdSelectHarness {
 	t.Helper()
 	h := &mdSelectHarness{
-		w:      NewTestWindow(WindowCfg{Width: 800, Height: 800}),
+		w:      NewTestWindow(t, WindowCfg{Width: 800, Height: 800}),
 		id:     "md",
 		source: mdSelSource,
 	}
@@ -185,7 +185,7 @@ func newMdSelectHarness(t *testing.T) *mdSelectHarness {
 func newMdSelectHarnessNested(t *testing.T) *mdSelectHarness {
 	t.Helper()
 	h := &mdSelectHarness{
-		w:      NewTestWindow(WindowCfg{Width: 800, Height: 800}),
+		w:      NewTestWindow(t, WindowCfg{Width: 800, Height: 800}),
 		id:     "panel:md",
 		source: mdSelSource,
 		nested: true,
@@ -369,7 +369,7 @@ func TestMarkdownWalkBlocksSkipsNonSelectableBlocks(t *testing.T) {
 		"",
 	}, "\n")
 
-	w := NewTestWindow(WindowCfg{Width: 800, Height: 800})
+	w := NewTestWindow(t, WindowCfg{Width: 800, Height: 800})
 	w.textMeasurer = mdSelectTestMeasurer{}
 	w.TestRender(func(win *Window) View {
 		return win.Markdown(MarkdownCfg{
@@ -550,7 +550,7 @@ func TestMarkdownNestedDragAcrossBlocks(t *testing.T) {
 // documents with one leaf ID must keep separate selections, focus and
 // block lists.
 func TestMarkdownSameLeafUnderTwoPanelsIsolates(t *testing.T) {
-	w := NewTestWindow(WindowCfg{Width: 800, Height: 800})
+	w := NewTestWindow(t, WindowCfg{Width: 800, Height: 800})
 	w.textMeasurer = mdSelectTestMeasurer{}
 	w.TestRender(func(win *Window) View {
 		return Column(ContainerCfg{
@@ -623,7 +623,7 @@ func TestMarkdownSameLeafUnderTwoPanelsIsolates(t *testing.T) {
 // shape-local coordinates, so a click at the center of local rune 2
 // must select rune 2 regardless of where the block sits in the window.
 func TestMarkdownClickAtOffsetSelectsExactRune(t *testing.T) {
-	w := NewTestWindow(WindowCfg{Width: 800, Height: 800})
+	w := NewTestWindow(t, WindowCfg{Width: 800, Height: 800})
 	w.textMeasurer = mdSelectTestMeasurer{}
 	w.TestRender(func(win *Window) View {
 		return Row(ContainerCfg{
@@ -678,7 +678,7 @@ func TestMarkdownClickAtOffsetSelectsExactRune(t *testing.T) {
 // standalone selectable RTF (rtfSelectOnClick), which shares the
 // callRelative coordinate contract.
 func TestRtfSelectClickAtOffsetSelectsExactRune(t *testing.T) {
-	w := NewTestWindow(WindowCfg{Width: 800, Height: 800})
+	w := NewTestWindow(t, WindowCfg{Width: 800, Height: 800})
 	t.Cleanup(w.WindowCleanup)
 	w.textMeasurer = mdSelectTestMeasurer{}
 	w.TestRender(func(win *Window) View {
@@ -1088,7 +1088,7 @@ func TestMarkdownSelectionSurvivesIdleFrame(t *testing.T) {
 // and asserts each keeps its own selection — the nsMdSel state is
 // keyed by widget ID, so a click in one must not disturb the other.
 func TestMarkdownSelectionStateIsPerWidget(t *testing.T) {
-	w := NewTestWindow(WindowCfg{Width: 800, Height: 800})
+	w := NewTestWindow(t, WindowCfg{Width: 800, Height: 800})
 	w.textMeasurer = mdSelectTestMeasurer{}
 	w.TestRender(func(win *Window) View {
 		return Column(ContainerCfg{
@@ -1165,7 +1165,7 @@ func TestMarkdownKeydownWhenNotFocusedIgnored(t *testing.T) {
 // block-list guard: a focusable markdown containing only non-RTF
 // blocks has nothing to select, so Ctrl+A must not consume.
 func TestMarkdownKeydownWithoutBlocksInert(t *testing.T) {
-	w := NewTestWindow(WindowCfg{Width: 800, Height: 800})
+	w := NewTestWindow(t, WindowCfg{Width: 800, Height: 800})
 	w.TestRender(func(win *Window) View {
 		return win.Markdown(MarkdownCfg{
 			ID:        "md",
@@ -1199,7 +1199,7 @@ func TestMarkdownKeydownWithoutBlocksInert(t *testing.T) {
 // TestMarkdownAmendLayoutWithEmptyIDSkips asserts the amend hook bails
 // on an ID-less container instead of writing a block list.
 func TestMarkdownAmendLayoutWithEmptyIDSkips(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	e := &Event{}
 	markdownContainerAmendLayout(EventCtx{
 		Layout: &Layout{Shape: &Shape{}},

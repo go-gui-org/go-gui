@@ -14,7 +14,7 @@ func newTestApp(t *testing.T, tab string) (*App, *gui.Window) {
 	gui.SetTheme(gui.ThemeLight)
 	app := newApp()
 	app.tab = tab
-	w := gui.NewTestWindow(gui.WindowCfg{State: app, Width: 960, Height: 780})
+	w := gui.NewTestWindow(t, gui.WindowCfg{State: app, Width: 960, Height: 780})
 	w.TestRender(mainView)
 	return app, w
 }

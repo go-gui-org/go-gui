@@ -403,7 +403,7 @@ func TestInspectorLazyBuilding(t *testing.T) {
 // never shows the selected row — the two halves write different slots.
 func TestInspectorTreeIDIsTheRenderedIdentity(t *testing.T) {
 	requireInspector(t)
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.inspectorEnabled = true
 	root := w.TestRender(func(_ *Window) View {
 		return Column(ContainerCfg{Sizing: FillFill})

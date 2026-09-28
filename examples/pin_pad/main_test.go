@@ -9,7 +9,7 @@ import (
 func newPadWindow(t *testing.T) (*gui.Window, *App) {
 	t.Helper()
 	app := &App{}
-	w := gui.NewTestWindow(gui.WindowCfg{State: app, Width: 320, Height: 480})
+	w := gui.NewTestWindow(t, gui.WindowCfg{State: app, Width: 320, Height: 480})
 	w.TestRender(mainView)
 	w.SetFocus(fieldID)
 	w.TestRender(nil)

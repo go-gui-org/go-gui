@@ -25,7 +25,7 @@ func TestTextButtonStructure(t *testing.T) {
 
 func TestTextButtonClickFires(t *testing.T) {
 	type state struct{ clicks int }
-	w := NewTestWindow(WindowCfg{State: &state{}})
+	w := NewTestWindow(t, WindowCfg{State: &state{}})
 	w.TestRender(func(w *Window) View {
 		return Column(ContainerCfg{
 			Sizing: FillFill,
@@ -101,7 +101,7 @@ func TestLabeledToggleForwards(t *testing.T) {
 
 func TestLabeledToggleClickFires(t *testing.T) {
 	type state struct{ hits int }
-	w := NewTestWindow(WindowCfg{State: &state{}})
+	w := NewTestWindow(t, WindowCfg{State: &state{}})
 	w.TestRender(func(w *Window) View {
 		return Column(ContainerCfg{
 			Sizing: FillFill,
@@ -146,7 +146,7 @@ func TestLabeledSwitchForwards(t *testing.T) {
 
 func TestLabeledSwitchClickFires(t *testing.T) {
 	type state struct{ hits int }
-	w := NewTestWindow(WindowCfg{State: &state{}})
+	w := NewTestWindow(t, WindowCfg{State: &state{}})
 	w.TestRender(func(w *Window) View {
 		return Column(ContainerCfg{
 			Sizing: FillFill,

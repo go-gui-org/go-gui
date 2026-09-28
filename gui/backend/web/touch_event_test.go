@@ -167,7 +167,7 @@ func gesturePad(t *testing.T) (*gui.Window, float32, float32,
 	*[]gui.GestureType) {
 	t.Helper()
 	var got []gui.GestureType
-	w := gui.NewTestWindow(gui.WindowCfg{})
+	w := gui.NewTestWindow(t, gui.WindowCfg{})
 	w.SetView(func(*gui.Window) gui.View {
 		return gui.DrawCanvas(gui.DrawCanvasCfg{
 			ID:     "pad",
@@ -235,7 +235,7 @@ func TestWebDoubleTapReachesGesture(t *testing.T) {
 func TestWebPinchReachesGesture(t *testing.T) {
 	var got []gui.GestureType
 	var scales []float32
-	w := gui.NewTestWindow(gui.WindowCfg{})
+	w := gui.NewTestWindow(t, gui.WindowCfg{})
 	w.SetView(func(*gui.Window) gui.View {
 		return gui.DrawCanvas(gui.DrawCanvasCfg{
 			ID:     "pad",
@@ -298,7 +298,7 @@ func TestWebPinchReachesGesture(t *testing.T) {
 func TestWebRotateReachesGesture(t *testing.T) {
 	var got []gui.GestureType
 	var rotations []float32
-	w := gui.NewTestWindow(gui.WindowCfg{})
+	w := gui.NewTestWindow(t, gui.WindowCfg{})
 	w.SetView(func(*gui.Window) gui.View {
 		return gui.DrawCanvas(gui.DrawCanvasCfg{
 			ID:     "pad",

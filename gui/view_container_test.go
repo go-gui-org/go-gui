@@ -93,7 +93,7 @@ func TestContainerGenerateLayoutShapeIsolation(t *testing.T) {
 func TestContainerOnMouseDownFiresOnPress(t *testing.T) {
 	pressed := 0
 	released := 0
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.TestRender(func(w *Window) View {
 		return Column(ContainerCfg{
 			ID:     "pad",

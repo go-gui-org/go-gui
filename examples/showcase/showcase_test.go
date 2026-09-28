@@ -140,7 +140,7 @@ func TestShowcaseWidgetSoundWiring(t *testing.T) {
 	app := newShowcaseApp()
 	app.SelectedGroup = groupFeedback
 	app.SelectedComponent = "audio"
-	w := gui.NewTestWindow(gui.WindowCfg{State: app})
+	w := gui.NewTestWindow(t, gui.WindowCfg{State: app})
 	w.SetView(mainView)
 
 	installWidgetSounds(w, soundPlayerSynth)
@@ -646,7 +646,7 @@ func TestDetailPanel_BumpsAbortCounterWhenNavigatingAwayFromTree(t *testing.T) {
 // The sweep sees the window as rendered, which is why it walks every
 // entry: a widget behind an unselected catalog item is not in the tree.
 func TestDemoPagesHaveNoIDDefects(t *testing.T) {
-	w := gui.NewTestWindow(gui.WindowCfg{State: newShowcaseApp()})
+	w := gui.NewTestWindow(t, gui.WindowCfg{State: newShowcaseApp()})
 	w.SetView(mainView)
 	app := appState(w)
 
@@ -830,7 +830,7 @@ func TestGenerateThemeCfgTintOneIsSubtle(t *testing.T) {
 func TestDemoTextAnimLayout(t *testing.T) {
 	// demoTextAnim reads app state for the replay counter, so this
 	// needs a window with the state slot filled, not a bare one.
-	w := gui.NewTestWindow(gui.WindowCfg{State: newShowcaseApp()})
+	w := gui.NewTestWindow(t, gui.WindowCfg{State: newShowcaseApp()})
 	layout := gui.GenerateViewLayout(demoTextAnim(w), w)
 
 	t.Run("entrance labels carry the replay counter", func(t *testing.T) {
@@ -866,7 +866,7 @@ func TestDemoTextAnimLayout(t *testing.T) {
 // padding used to fill the whole box, pinning the text to the
 // padding edge so it touched the box bottom.
 func TestDemoBoxSizedCentersLabel(t *testing.T) {
-	w := gui.NewTestWindow(gui.WindowCfg{Width: 400, Height: 200})
+	w := gui.NewTestWindow(t, gui.WindowCfg{Width: 400, Height: 200})
 	defer w.Close()
 	root := w.TestRender(func(*gui.Window) gui.View {
 		return gui.Column(gui.ContainerCfg{

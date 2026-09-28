@@ -137,7 +137,7 @@ func (r contractRow) want(tr contractTrans) contractWant {
 func contractWindow(
 	t *testing.T, ctl *contractCtl, build func(ctl *contractCtl, id string) View,
 ) *Window {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	t.Cleanup(w.WindowCleanup)
 	w.TestRender(func(*Window) View {
 		views := make([]View, 0, 2)

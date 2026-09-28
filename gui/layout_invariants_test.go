@@ -228,7 +228,7 @@ func TestLayoutInvariantsCategoryOptIn(t *testing.T) {
 // category is on. Asserted through the public switch rather than the
 // atomic, so the test breaks if the wiring changes.
 func TestLayoutInvariantsGateFollowsCategories(t *testing.T) {
-	w := NewTestWindow(WindowCfg{State: new(int)})
+	w := NewTestWindow(t, WindowCfg{State: new(int)})
 	captureDebugMask(t, DebugLayoutInvariants)
 	if !w.debugLayoutInvariantsChecked() {
 		t.Error("gate off while DebugLayoutInvariants is enabled")
@@ -243,7 +243,7 @@ func TestLayoutInvariantsGateFollowsCategories(t *testing.T) {
 // a message that names the rule rather than only the shape.
 func TestLayoutInvariantsReportsThroughDebugWarn(t *testing.T) {
 	out := captureDebugMask(t, DebugLayoutInvariants)
-	w := NewTestWindow(WindowCfg{State: new(int)})
+	w := NewTestWindow(t, WindowCfg{State: new(int)})
 	w.debugCheckLayoutInvariants(&Layout{
 		Shape: &Shape{shapeType: shapeRectangle, ID: "box",
 			Sizing: FixedFixed, Width: -5, Height: 10},

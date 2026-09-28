@@ -257,7 +257,7 @@ func TestTabOptZeroOverride(t *testing.T) {
 // handler used to test CharCode, which backends populate only on
 // EventChar, so the spacebar reached it as a no-op.
 func TestTabControlKeydownSpaceSelects(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	var selected string
 	fires := 0
 	w.TestRender(func(_ *Window) View {

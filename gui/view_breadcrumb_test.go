@@ -161,7 +161,7 @@ func TestBcOnKeydown(t *testing.T) {
 // The handler used to test CharCode, which backends populate only on
 // EventChar, so the spacebar reached it as a no-op.
 func TestBcKeydownSpaceSelects(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	var selected string
 	fires := 0
 	w.TestRender(func(_ *Window) View {
@@ -221,7 +221,7 @@ func TestBcKeydownCharCodeOnlyIsInert(t *testing.T) {
 func TestBreadcrumbHoverPressedColor(t *testing.T) {
 	hover := RGBA(40, 200, 40, 255)
 	click := RGBA(200, 40, 40, 255)
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.TestRender(func(win *Window) View {
 		return Breadcrumb(BreadcrumbCfg{
 			ID:       "bc",

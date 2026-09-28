@@ -171,7 +171,7 @@ func TestExtFollowsThemedScope(t *testing.T) {
 		return unmarked
 	}
 
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.SetTheme(outer)
 	root := w.TestRender(func(*Window) View {
 		return Column(ContainerCfg{

@@ -41,7 +41,7 @@ func childShape(t *testing.T, w *Window, id string) *Shape {
 // border stays with focus. Before #690 Button kept its focus fill while
 // hovered, which reads as stuck after a click focuses it.
 func TestPickFocusedAndHoveredShowsHoverFill(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.TestRender(func(*Window) View {
 		return Button(ButtonCfg{
 			ID: "b", Width: 100, Height: 40,
@@ -78,7 +78,7 @@ func pointerAway(w *Window) {
 // fill is not dead, it is what a control reached by the keyboard looks
 // like.
 func TestPickFocusedNotHoveredShowsFocusFill(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.TestRender(func(*Window) View {
 		return Button(ButtonCfg{
 			ID: "b", Width: 100, Height: 40,
@@ -99,7 +99,7 @@ func TestPickFocusedNotHoveredShowsFocusFill(t *testing.T) {
 // TestPickPressedBeatsFocusAndHover pins the top of the fill rule:
 // whatever else is true, a held button shows the pressed color.
 func TestPickPressedBeatsFocusAndHover(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.TestRender(func(*Window) View {
 		return Button(ButtonCfg{
 			ID: "b", Width: 100, Height: 40,
@@ -125,7 +125,7 @@ func TestPickPressedBeatsFocusAndHover(t *testing.T) {
 // TestPickHeldSpaceShowsClick pins #658: a held Space is a press, and
 // the amend pass is the only pass that can see it.
 func TestPickHeldSpaceShowsClick(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.TestRender(func(*Window) View {
 		return Button(ButtonCfg{
 			ID: "b", Width: 100, Height: 40,
@@ -153,7 +153,7 @@ func TestPickHeldSpaceShowsClick(t *testing.T) {
 // widget outside Button whose amend pass reads the key-press target,
 // and it was the state the old two-color OnHover could not express.
 func TestPickExpandPanelHeldSpaceShowsClick(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.TestRender(func(*Window) View {
 		return ExpandPanel(ExpandPanelCfg{
 			ID:      "ep",
@@ -269,7 +269,7 @@ func TestPickDisabledIgnoresPointer(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			w := NewTestWindow(WindowCfg{})
+			w := NewTestWindow(t, WindowCfg{})
 			w.TestRender(func(win *Window) View { return tc.build(win) })
 
 			shape := mustShape(t, w, "w")
@@ -326,7 +326,7 @@ func assertNoInteractionColors(t *testing.T, ly *Layout) {
 // interaction state lands on the circle's border and pick's fill return
 // is what carries it.
 func TestPickRadioPaintsBorderNotFill(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.TestRender(func(*Window) View {
 		return Radio(RadioCfg{
 			ID: "r", Label: "x",
@@ -353,7 +353,7 @@ func TestPickRadioPaintsBorderNotFill(t *testing.T) {
 // Nothing else asserts this.
 func TestAmendRunsBeforeHover(t *testing.T) {
 	var order []string
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	w.TestRender(func(*Window) View {
 		return Button(ButtonCfg{
 			ID: "b", Width: 100, Height: 40,

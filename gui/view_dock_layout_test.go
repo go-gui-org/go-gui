@@ -606,7 +606,7 @@ func findShapeByID(layout *Layout, id string) *Layout {
 // TestDockTabClickStaysOnTab: the tab selects its panel, so the click
 // is handled there. An ancestor click handler must not also fire.
 func TestDockTabClickStaysOnTab(t *testing.T) {
-	w := NewTestWindow(WindowCfg{})
+	w := NewTestWindow(t, WindowCfg{})
 	ancestorClicks := 0
 	selected := ""
 	w.TestRender(func(win *Window) View {
