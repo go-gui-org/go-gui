@@ -23,6 +23,15 @@ and this project adheres to
 
 ### Changed
 
+- **GL backend draws text with far fewer GL calls (#816)** — the Linux and
+  Windows GL backend drew every glyph with its own 7 GL calls, 4 of them
+  re-binding state that was already bound. Glyph quads from one text command now
+  queue and draw with one `DrawElements` per run from the same atlas page, so a
+  40-glyph label on one page goes from 285 GL calls to 12. The batch never
+  crosses a render command, so clipping, overlap and draw order are unchanged;
+  pixel tests against the old draw-per-glyph path hold that in CI. No allocation
+  per frame, and no API change.
+
 - **BREAKING: `Select` and `Combobox` options are label/value pairs (#809)** —
   `SelectCfg.Options` and `ComboboxCfg.Options` are now `[]gui.SelectOption`.
   Each option has a `Label`, the text the user sees, and a `Value`, the text
