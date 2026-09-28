@@ -135,6 +135,40 @@ func (gb *glesGlyphBackend) DrawFilledRect(
 		(*C.float)(unsafe.Pointer(&verts[0])))
 }
 
+// DrawFilledRectTransformed implements glyph.TransformedFillBackend: the
+// fill's corners go through t, as DrawTexturedQuadTransformed's do, so
+// backgrounds and decorations rotate with their glyphs (#835). Without it
+// go-glyph falls back to an axis-aligned rect at the transformed origin.
+func (gb *glesGlyphBackend) DrawFilledRectTransformed(
+	dst glyph.Rect, c glyph.Color, tr glyph.AffineTransform) {
+	cr, cg, cb, ca := gpu.NormColor(c.R, c.G, c.B, c.A)
+
+	corners := [4][2]float32{
+		{dst.X, dst.Y},
+		{dst.X + dst.Width, dst.Y},
+		{dst.X + dst.Width, dst.Y + dst.Height},
+		{dst.X, dst.Y + dst.Height},
+	}
+
+	s := gb.dpiScale
+	var verts [4][8]float32
+	for i := range 4 {
+		px := corners[i][0]
+		py := corners[i][1]
+		tx := (tr.XX*px + tr.XY*py + tr.X0) * s
+		ty := (tr.YX*px + tr.YY*py + tr.Y0) * s
+		verts[i] = [8]float32{tx, ty, 0, 0, cr, cg, cb, ca}
+	}
+
+	C.glesSetPipeline(C.int(pipeGlyphColor))
+	C.glesDrawGlyphQuad(
+		(*C.float)(unsafe.Pointer(&verts[0])))
+}
+
+// Asserted, not merely implemented: the interface is optional, so a
+// drifted signature would silently bring back unrotated fills.
+var _ glyph.TransformedFillBackend = (*glesGlyphBackend)(nil)
+
 func (gb *glesGlyphBackend) DrawTexturedQuadTransformed(
 	id glyph.TextureID, src, dst glyph.Rect,
 	c glyph.Color, tr glyph.AffineTransform) {

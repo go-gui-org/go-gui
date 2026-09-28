@@ -75,6 +75,17 @@ and this project adheres to
 
 ### Fixed
 
+- **Text backgrounds, underlines and strikethroughs render reliably on the GL
+  backend, and rotate with their text on every backend (#835)** — on Linux and
+  Windows a text fill sampled whichever texture happened to be bound, so it drew
+  at full colour, faded or not at all depending on draw order and atlas
+  contents. Fills now sample a backend-owned white texel, and run in the same
+  batch as the glyphs, so consecutive fills cost one draw. Separately, under a
+  rotated or skewed `LayoutTransform` the GL, Metal, iOS, Android and software
+  backends drew these fills as unrotated rectangles at the rotated origin; they
+  now implement go-glyph's `TransformedFillBackend` and draw the fill through
+  the transform.
+
 - **Linux GL backend no longer segfaults on arm64 when the creating goroutine
   exits (#827)** — `gl.New` locked its goroutine to the OS thread and never
   released it. When such a goroutine returns, the Go runtime ends its thread. On

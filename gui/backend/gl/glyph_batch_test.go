@@ -222,13 +222,13 @@ func TestGlyphBatchFlushesBeforeDelete(t *testing.T) {
 }
 
 // TestGlyphBatchFlushesBeforeFilledRect: DrawFilledRect (text backgrounds,
-// underlines, strikethrough) draws at once, not queued, so it must draw the
-// queued glyphs first or it lands underneath glyphs emitted before it.
+// underlines, strikethrough) samples the backend's white texel, not the
+// glyph's page, so it starts a new batch. The glyphs queued before it must
+// draw first or the fill lands underneath them.
 //
-// The page is white, so the quad renders its vertex color (red). The fill
-// samples texel (0, 0) of the bound texture (#835); with the flush in place
-// that is the white page, so the fill renders its own color (blue) on top.
-// Without the flush the fill draws first and the red quad covers it.
+// The page is white, so the quad renders its vertex color (red) and the
+// fill its own (blue) on top. Were the fill drawn ahead of the queued
+// quad, the red quad would cover it.
 func TestGlyphBatchFlushesBeforeFilledRect(t *testing.T) {
 	b := newBatchProbeBackend(t)
 	gb := b.glyphBack
@@ -249,6 +249,94 @@ func TestGlyphBatchFlushesBeforeFilledRect(t *testing.T) {
 	if got := pixelAt(b, px, 4, 4); got != blue {
 		t.Errorf("fill drawn after a queued glyph = %v, want blue %v on top",
 			got, blue)
+	}
+}
+
+// TestGlyphFillIgnoresBoundTexture (#835): a fill renders its own color
+// whatever texture was bound before it. The fill used to sample texel
+// (0, 0) of whichever texture was bound, so after a glyph from a page
+// whose (0, 0) is transparent it multiplied its color by zero and vanished.
+// The page here is transparent throughout, so the quad draws nothing and
+// leaves that page bound.
+func TestGlyphFillIgnoresBoundTexture(t *testing.T) {
+	b := newBatchProbeBackend(t)
+	gb := b.glyphBack
+	rt := newReadbackTarget(t, b)
+	const size = 4
+	page, _ := solidPage(gb, size, [4]byte{})
+	s := b.dpiScale
+	blueFill := glyph.Color{B: 255, A: 255}
+
+	px := rt.render(b, func() {
+		// First fill: nothing queued, texture 0 (or whatever the last
+		// non-glyph draw left) bound.
+		b.useGlyphPipeline()
+		gb.DrawFilledRect(glyph.Rect{Width: 8 / s, Height: 8 / s}, blueFill)
+		b.restoreAfterGlyph()
+
+		// Second fill: after a quad from the transparent page.
+		b.useGlyphPipeline()
+		quadAt(b, page, size, 16, 0, 8)
+		gb.DrawFilledRect(glyph.Rect{X: 16 / s, Width: 8 / s,
+			Height: 8 / s}, blueFill)
+		b.restoreAfterGlyph()
+	})
+	if got := pixelAt(b, px, 4, 4); got != blue {
+		t.Errorf("fill with no glyph before it = %v, want blue %v", got, blue)
+	}
+	if got := pixelAt(b, px, 20, 4); got != blue {
+		t.Errorf("fill after a transparent-page glyph = %v, want blue %v",
+			got, blue)
+	}
+}
+
+// TestGlyphFillsShareABatch: fills all sample the one white texel, so a run
+// of them (a line of underlines, a selection band per line) is one draw.
+func TestGlyphFillsShareABatch(t *testing.T) {
+	b := newBatchProbeBackend(t)
+	gb := b.glyphBack
+	b.plat.makeCurrent()
+	b.useGlyphPipeline()
+	before := gb.flushes
+	for i := range 10 {
+		gb.DrawFilledRect(glyph.Rect{X: float32(i), Width: 1, Height: 1},
+			glyph.Color{R: 255, A: 255})
+		gb.DrawFilledRectTransformed(glyph.Rect{X: float32(i), Width: 1,
+			Height: 1}, glyph.Color{R: 255, A: 255}, glyph.AffineIdentity())
+	}
+	b.restoreAfterGlyph()
+	if got := gb.flushes - before; got != 1 {
+		t.Errorf("20 fills took %d draws, want 1", got)
+	}
+}
+
+// TestGlyphFillTransformed (#835): a fill drawn through a rotation lands on
+// the rotated rect, not on an axis-aligned rect at the rotated origin.
+//
+// The rect is 16x4 physical pixels at the origin. The transform turns it a
+// quarter clockwise, (x, y) -> (-y, x), then moves it 20 px right, so it
+// covers x 16..20, y 0..16. The unrotated fallback would cover x 20..36,
+// y 0..4 instead.
+func TestGlyphFillTransformed(t *testing.T) {
+	b := newBatchProbeBackend(t)
+	gb := b.glyphBack
+	rt := newReadbackTarget(t, b)
+	s := b.dpiScale
+	rot := glyph.AffineTransform{XX: 0, XY: -1, YX: 1, YY: 0, X0: 20 / s}
+
+	px := rt.render(b, func() {
+		b.useGlyphPipeline()
+		gb.DrawFilledRectTransformed(
+			glyph.Rect{Width: 16 / s, Height: 4 / s},
+			glyph.Color{B: 255, A: 255}, rot)
+		b.restoreAfterGlyph()
+	})
+	if got := pixelAt(b, px, 18, 12); got != blue {
+		t.Errorf("inside the rotated rect = %v, want blue %v", got, blue)
+	}
+	if got := pixelAt(b, px, 30, 2); got != [4]byte{0, 0, 0, 255} {
+		t.Errorf("where the unrotated fallback would draw = %v, want black",
+			got)
 	}
 }
 
