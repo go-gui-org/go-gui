@@ -25,9 +25,9 @@ CGO_ENABLED=0 go test -c -o "$bin" ./gui/backend/gl/ || exit 1
 #
 # linux/arm64 used to segfault right after each test (#827). A goroutine that
 # exits while locked to its OS thread takes the thread down with it, and on
-# arm64 purego's fakecgo thread-exit trampoline corrupts the frame pointer.
-# New and Destroy now balance their LockOSThread; TestNewErrorReleasesThread
-# and TestDestroyReleasesThread guard that on both architectures.
+# arm64 purego before v0.11.0 corrupted the frame pointer on thread exit.
+# purego is now v0.11.1, and New and Destroy balance their LockOSThread;
+# TestNewErrorReleasesThread and TestDestroyReleasesThread guard the latter.
 #
 # The "found bad pointer in Go heap" crashes tracked as #824 were reproduced
 # only under qemu-user emulation (an amd64 container on an arm64 host), where

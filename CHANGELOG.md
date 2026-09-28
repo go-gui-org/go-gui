@@ -49,13 +49,14 @@ and this project adheres to
 - **Linux GL backend no longer segfaults on arm64 when the creating goroutine
   exits (#827)** — `gl.New` locked its goroutine to the OS thread and never
   released it. When such a goroutine returns, the Go runtime ends its thread. On
-  linux/arm64 under `CGO_ENABLED=0`, a bug in purego's thread-exit trampoline
-  then crashed the process with exit 139. Every GL test hit this, and so did any
-  program that opened a backend off the main goroutine. Now `Destroy` releases
-  the lock, `New` releases it on every error return, and `RunApp` releases its
-  own. Apps that run the backend on the main goroutine are unaffected: that
-  goroutine stays pinned to thread 0 from `init`. The GL render CI job now also
-  runs on linux/arm64.
+  linux/arm64 under `CGO_ENABLED=0`, a bug in purego v0.10.2's thread-exit
+  trampoline then crashed the process with exit 139. Every GL test hit this, and
+  so did any program that opened a backend off the main goroutine. purego is now
+  v0.11.1, which fixes the trampoline. Also, `Destroy` releases the lock, `New`
+  releases it on every error return, and `RunApp` releases its own, so a
+  Destroyed backend no longer costs its caller an OS thread. Apps that run the
+  backend on the main goroutine are unaffected: that goroutine stays pinned to
+  thread 0 from `init`. The GL render CI job now also runs on linux/arm64.
 
 - **SVG edges are antialiased on macOS, Linux and Windows (#823)** — the Metal
   and GL backends drew SVG fills and strokes as bare triangles in a

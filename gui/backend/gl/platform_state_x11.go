@@ -171,8 +171,11 @@ func (p *platformState) wake() {
 // locked from init and never exits. It is not harmless for a goroutine that
 // returns after Destroy, as every test does: the Go runtime then terminates
 // that goroutine's OS thread. On linux/arm64 under CGO_ENABLED=0 thread exit
-// runs through purego's fakecgo threadentry_trampoline, which corrupts the
-// frame pointer it returns to glibc with, and the process segfaults (#827).
+// runs through purego's fakecgo threadentry_trampoline. Before purego v0.11.0
+// that trampoline corrupted the frame pointer it returned to glibc with, and
+// the process segfaulted (#827). The bump to v0.11.1 fixes the crash. This
+// unlock still matters: without it, every Destroyed backend costs its caller
+// an OS thread.
 //
 // The unlock applies only on the thread New locked. A locked goroutine owns
 // its thread, so a matching tid means Destroy runs on New's goroutine. A
