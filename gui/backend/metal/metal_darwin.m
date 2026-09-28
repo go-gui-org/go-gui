@@ -331,8 +331,13 @@ static id<MTLTexture> makeAttachment(id<MTLDevice> device,
 // resize.
 static void ensureMainAttachments(MetalContext* ctx, int w,
     int h) {
-    if (ctx->stencilTex && ctx->stencilTexW == w &&
-        ctx->stencilTexH == h)
+    // A missing texture (a failed allocation) is retried on the next
+    // pass instead of cached: with msaaTex nil the pass would be
+    // single-sample while every pipeline is multisampled, and Metal
+    // would reject each draw for the rest of the window's life.
+    if (ctx->stencilTex &&
+        (ctx->sampleCount == 1 || ctx->msaaTex) &&
+        ctx->stencilTexW == w && ctx->stencilTexH == h)
         return;
     ctx->stencilTex = makeAttachment(ctx->device, w, h,
         MTLPixelFormatStencil8, ctx->sampleCount);
