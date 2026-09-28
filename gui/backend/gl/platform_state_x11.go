@@ -3,6 +3,9 @@
 package gl
 
 import (
+	"runtime"
+	"syscall"
+
 	"github.com/jezek/xgb"
 	"github.com/jezek/xgb/randr"
 	"github.com/jezek/xgb/xproto"
@@ -21,6 +24,11 @@ type platformState struct {
 	eglConfig  uintptr
 	eglSurface uintptr
 	eglContext uintptr
+
+	// lockedTid is the OS thread New locked its goroutine to, handed to
+	// Destroy so it can release that lock (#827). Zero once released, or
+	// when New failed and released it itself.
+	lockedTid int
 
 	cursors   [13]xproto.Cursor
 	curCursor xproto.Cursor
@@ -155,6 +163,28 @@ func (p *platformState) wake() {
 		Data:   xproto.ClientMessageDataUnionData32New([]uint32{0, 0, 0, 0, 0}),
 	}
 	xproto.SendEvent(p.wakeConn, false, p.window, 0, string(ev.Bytes()))
+}
+
+// releaseThread undoes New's runtime.LockOSThread, once.
+//
+// Leaving the lock held is harmless for an app, whose main goroutine is
+// locked from init and never exits. It is not harmless for a goroutine that
+// returns after Destroy, as every test does: the Go runtime then terminates
+// that goroutine's OS thread. On linux/arm64 under CGO_ENABLED=0 thread exit
+// runs through purego's fakecgo threadentry_trampoline, which corrupts the
+// frame pointer it returns to glibc with, and the process segfaults (#827).
+//
+// The unlock applies only on the thread New locked. A locked goroutine owns
+// its thread, so a matching tid means Destroy runs on New's goroutine. A
+// Destroy called from any other goroutine must not unlock, because that
+// would release a lock that goroutine took for its own reasons. In that case
+// the lock is left held, exactly as before this fix.
+func (p *platformState) releaseThread() {
+	if p.lockedTid == 0 || p.lockedTid != syscall.Gettid() {
+		return
+	}
+	p.lockedTid = 0
+	runtime.UnlockOSThread()
 }
 
 func (p *platformState) destroy() {

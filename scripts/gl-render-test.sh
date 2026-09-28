@@ -21,9 +21,13 @@ bin="$dir/gl.test"
 CGO_ENABLED=0 go test -c -o "$bin" ./gui/backend/gl/ || exit 1
 
 # One process per test. Under Xvfb a second backend in the same process gets
-# its X connection reset (cause not traced). On linux/arm64 Mesa the process
-# also segfaults shortly after its first backend, on main as well, so run
-# this on linux/amd64, as CI does.
+# its X connection reset (cause not traced).
+#
+# linux/arm64 used to segfault right after each test (#827). A goroutine that
+# exits while locked to its OS thread takes the thread down with it, and on
+# arm64 purego's fakecgo thread-exit trampoline corrupts the frame pointer.
+# New and Destroy now balance their LockOSThread; TestNewErrorReleasesThread
+# and TestDestroyReleasesThread guard that on both architectures.
 #
 # The "found bad pointer in Go heap" crashes tracked as #824 were reproduced
 # only under qemu-user emulation (an amd64 container on an arm64 host), where
@@ -35,7 +39,7 @@ CGO_ENABLED=0 go test -c -o "$bin" ./gui/backend/gl/ || exit 1
 status=0
 for t in TestTriangleEdgesAntialiased TestProbeSeesAliasedEdges \
   TestFilterEdgesAntialiased TestFilterProbeSeesAliasedEdges TestRefusedResolveFallsBack \
-  TestBackendRenderSmoke; do
+  TestBackendRenderSmoke TestNewErrorReleasesThread TestDestroyReleasesThread; do
   out=$(GOGUI_REQUIRE_GL=1 "$bin" -test.run "^$t\$" -test.v 2>&1)
   code=$?
   printf '%s\n' "$out"

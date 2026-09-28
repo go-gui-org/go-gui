@@ -5,6 +5,7 @@ package gl
 import (
 	"fmt"
 	"runtime"
+	"syscall"
 
 	"github.com/jezek/xgb"
 	"github.com/jezek/xgb/randr"
@@ -44,6 +45,16 @@ const (
 // exportaudit:keep — lowercase new shadows the Go builtin
 func New(w *gui.Window) (*Backend, error) {
 	runtime.LockOSThread()
+	// Every error return below releases the lock again, so a caller whose
+	// goroutine then exits does not take its OS thread down with it (#827,
+	// see releaseThread). On success the lock passes to the Backend and
+	// Destroy releases it.
+	handedOff := false
+	defer func() {
+		if !handedOff {
+			runtime.UnlockOSThread()
+		}
+	}()
 
 	conn, err := xgb.NewConn()
 	if err != nil {
@@ -196,6 +207,11 @@ func New(w *gui.Window) (*Backend, error) {
 	w.SetPrimaryFn(func(s string) { setPrimary(&b.plat, s) })
 	w.SetPrimaryGetFn(func() string { return getPrimary(&b.plat) })
 
+	// Set only here, after the last error return: the initGLResources
+	// failure path calls Destroy, which must not release the lock that
+	// the deferred unlock above is about to release.
+	b.plat.lockedTid = syscall.Gettid()
+	handedOff = true
 	return b, nil
 }
 

@@ -16,6 +16,7 @@ import (
 func (b *Backend) Destroy() {
 	b.destroyGLResources()
 	b.plat.destroy()
+	b.plat.releaseThread()
 }
 
 // Run starts the event loop. Blocks until the window is closed.
@@ -125,6 +126,9 @@ func liveBackend(backends map[uint32]*Backend, te taggedEvent) bool {
 //nolint:gocyclo // backend event loop
 func runAppE(app *gui.App, initialWindows ...*gui.Window) error {
 	runtime.LockOSThread()
+	// Balanced for the same reason as New's lock (#827): a caller whose
+	// goroutine returns after RunApp must not exit with its thread locked.
+	defer runtime.UnlockOSThread()
 
 	backends := make(map[uint32]*Backend) // window XID → backend
 	events := make(chan taggedEvent, 128)

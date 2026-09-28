@@ -402,10 +402,15 @@ jobs:
 
   # The GL backend's pixel output needs a real GL context, which `go test`
   # on a plain runner does not have, so those tests skip there. This job
-  # gives them Mesa's software renderer under Xvfb (#823).
+  # gives them Mesa's software renderer under Xvfb (#823). arm64 runs too:
+  # it caught the locked-thread exit segfault in purego's fakecgo (#827).
   gl-render:
-    name: GL render (Mesa)
-    runs-on: ubuntu-latest
+    name: GL render (Mesa, ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, ubuntu-24.04-arm]
     steps:
       - uses: actions/checkout@v6
 
