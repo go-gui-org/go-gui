@@ -74,7 +74,7 @@ func (dv *drawCanvasView) GenerateLayout(w *Window) Layout {
 		c.OnKeyDown != nil || c.OnDraw != nil {
 		events = w.allocEventHandlers(eventHandlers{
 			OnClick:       c.OnClick,
-			clickButton:   MouseLeft,
+			clickButton:   clickLeftOnly,
 			OnHover:       c.OnHover,
 			OnMouseMove:   c.OnMouseMove,
 			OnMouseUp:     c.OnMouseUp,

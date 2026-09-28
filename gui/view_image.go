@@ -11,7 +11,7 @@ import (
 // ImageCfg configures an image view.
 type ImageCfg struct {
 	OnClick     func(EventCtx)
-	clickButton MouseButton // left-click filter; avoids leftClickOnly closure
+	clickButton clickFilter // left-click filter; avoids a wrapper closure
 	OnHover     func(EventCtx)
 	ID          string
 	Src         string
@@ -53,7 +53,7 @@ func Image(cfg ImageCfg) View {
 	if cfg.Invisible {
 		return invisibleContainerView()
 	}
-	cfg.clickButton = MouseLeft
+	cfg.clickButton = clickLeftOnly
 	return &imageView{cfg: cfg}
 }
 

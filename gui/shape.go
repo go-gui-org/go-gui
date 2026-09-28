@@ -555,7 +555,7 @@ type eventHandlers struct {
 
 	// Click filters — set by widget factories to avoid the per-frame
 	// closure allocation a wrapper callback would cost.
-	clickButton  MouseButton // non-zero filters OnClick by mouse button
+	clickButton  clickFilter // limits which mouse button fires OnClick
 	clickOnSpace bool        // fire OnClick on spacebar via OnChar dispatch
 	clickOnEnter bool        // fire OnClick on Enter key via OnKeyDown dispatch
 

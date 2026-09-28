@@ -384,8 +384,7 @@ func mouseDownHandlerDepth(
 		var onClick shapeCallback
 		if layout.Shape.hasEvents() {
 			events := layout.Shape.events
-			if events.clickButton == 0 ||
-				e.MouseButton == events.clickButton {
+			if events.clickButton.accepts(e.MouseButton) {
 				onClick = events.OnClick
 			}
 		}

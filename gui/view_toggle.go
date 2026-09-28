@@ -156,7 +156,7 @@ func Toggle(cfg ToggleCfg) View {
 		ClickOnSpace: true,
 		OnClick:      cfg.OnClick,
 		Sound:        soundCue,
-		clickButton:  MouseLeft,
+		clickButton:  clickLeftOnly,
 		MinWidth:     cfg.MinWidth,
 		OnHover: func(ctx EventCtx) {
 			if ctx.Layout.Shape.Disabled ||

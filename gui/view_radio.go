@@ -114,7 +114,7 @@ func Radio(cfg RadioCfg) View {
 		},
 		OnClick:      cfg.OnClick,
 		Sound:        soundCue,
-		clickButton:  MouseLeft,
+		clickButton:  clickLeftOnly,
 		ClickOnSpace: true,
 		AmendLayout: amendAll(
 			func(ctx EventCtx) {

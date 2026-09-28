@@ -156,7 +156,7 @@ func (sv *svgView) GenerateLayout(w *Window) Layout {
 	if c.OnClick != nil {
 		events = w.allocEventHandlers(eventHandlers{
 			OnClick:     c.OnClick,
-			clickButton: MouseLeft,
+			clickButton: clickLeftOnly,
 			soundCue: resolveSoundCue(
 				guiTheme.Sounds.Click, c.Sound, c.SoundDisabled),
 		})

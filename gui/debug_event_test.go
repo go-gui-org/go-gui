@@ -84,7 +84,7 @@ func TestCollapseSilentWhenAncestorDisabled(t *testing.T) {
 func TestCollapseRespectsAncestorClickButton(t *testing.T) {
 	root := collapseTree(
 		&eventHandlers{
-			OnClick: func(EventCtx) {}, clickButton: MouseRight,
+			OnClick: func(EventCtx) {}, clickButton: clickRightOnly,
 		},
 		&eventHandlers{OnClick: func(EventCtx) {}},
 	)

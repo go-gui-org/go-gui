@@ -461,10 +461,10 @@ func TestContainerLeftClickOnly(t *testing.T) {
 	if layout.Shape.events == nil {
 		t.Fatal("events should be set")
 	}
-	if layout.Shape.events.clickButton != MouseLeft {
-		t.Fatal("ClickButton should be MouseLeft")
+	if layout.Shape.events.clickButton != clickLeftOnly {
+		t.Fatal("clickButton should be clickLeftOnly")
 	}
-	// left click fires (via dispatch's ClickButton check)
+	// left click fires (via dispatch's clickButton filter)
 	e := &Event{MouseButton: MouseLeft}
 	layout.Shape.events.OnClick(EventCtx{nil, e, nil})
 	if !called {
