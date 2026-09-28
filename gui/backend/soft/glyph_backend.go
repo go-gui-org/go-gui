@@ -93,6 +93,53 @@ func (gb *glyphBackend) DrawFilledRect(dst glyph.Rect, c glyph.Color) {
 		})
 }
 
+// DrawFilledRectTransformed implements glyph.TransformedFillBackend: the
+// fill's corners go through t, so backgrounds and decorations rotate with
+// their glyphs (#835). The quad is rasterized as a path, which antialiases
+// its edges the way the GPU's MSAA does.
+func (gb *glyphBackend) DrawFilledRectTransformed(dst glyph.Rect,
+	c glyph.Color, t glyph.AffineTransform) {
+
+	if gb.buf == nil || c.A == 0 {
+		return
+	}
+	s := gb.scale
+	// Device-space corners in winding order, and their bounding box to
+	// size the rasterizer's region.
+	var pts [4][2]float32
+	corners := [4][2]float32{
+		{dst.X, dst.Y},
+		{dst.X + dst.Width, dst.Y},
+		{dst.X + dst.Width, dst.Y + dst.Height},
+		{dst.X, dst.Y + dst.Height},
+	}
+	minX, minY := float32(math.MaxFloat32), float32(math.MaxFloat32)
+	maxX, maxY := -float32(math.MaxFloat32), -float32(math.MaxFloat32)
+	for i := range corners {
+		cx, cy := t.Apply(corners[i][0], corners[i][1])
+		pts[i] = [2]float32{cx * s, cy * s}
+		minX, maxX = min(minX, pts[i][0]), max(maxX, pts[i][0])
+		minY, maxY = min(minY, pts[i][1]), max(maxY, pts[i][1])
+	}
+	// The transform comes from the caller's LayoutTransform, so bound the
+	// box like every other soft draw (validBox): NaN propagates through
+	// min/max and Inf through the width, and either would reach
+	// deviceRect's arch-specific float-to-int conversion.
+	if !validBox(minX, minY, maxX-minX, maxY-minY) {
+		return
+	}
+	region := gb.buf.region(minX, minY, maxX-minX, maxY-minY)
+	col := gui.RGBA(c.R, c.G, c.B, c.A)
+	gb.buf.fillPath(region, gb.buf.solid(col),
+		func(z *vector.Rasterizer, ox, oy float32) {
+			z.MoveTo(pts[0][0]-ox, pts[0][1]-oy)
+			for i := 1; i < 4; i++ {
+				z.LineTo(pts[i][0]-ox, pts[i][1]-oy)
+			}
+			z.ClosePath()
+		})
+}
+
 // DrawTexturedQuad blits an axis-aligned atlas region, tinted by c.
 //
 // The atlas is rasterized at the device scale already, so the mapping is

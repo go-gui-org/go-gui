@@ -42,8 +42,9 @@ type glyphBackend struct {
 	//   - an upload to, or deletion of, the queued page. go-glyph evicts
 	//     and re-uploads a page mid-command (atlas.go resetPage); queued
 	//     quads must draw from the texels they were laid out against.
-	//   - DrawFilledRect, which draws immediately and must stay behind
-	//     the glyphs queued before it.
+	//
+	// Fills (DrawFilledRect*) queue too, against the white texture, so a
+	// fill after glyphs is a texture change like any other.
 	//
 	// The array lives inside the backend, allocated once with it, so
 	// queueing is a copy with no per-frame heap allocation.
@@ -52,6 +53,11 @@ type glyphBackend struct {
 	batchTex uint32 // GL texture the queued quads sample
 	batchCap int    // flush threshold, maxGlyphQuads; tests lower it to 1
 	flushes  int    // draws issued by flush; read by tests as a call count
+
+	// white is a 1x1 opaque-white texture the fills sample, so the glyph
+	// shader's texel multiply leaves a fill's color unchanged (#835).
+	// go-glyph reserves no white texel in its atlas pages.
+	white glTexture
 }
 
 // maxGlyphQuads bounds one batch. 1024 quads (a dense screen of text is a
@@ -69,11 +75,16 @@ const glyphQuadBytes = 4 * 8 * 4
 // with nothing failing to compile.
 var _ glyph.RectTextureUpdater = (*glyphBackend)(nil)
 
+// Asserted for the same reason: without TransformedFillBackend go-glyph
+// silently draws rotated text's backgrounds and decorations unrotated.
+var _ glyph.TransformedFillBackend = (*glyphBackend)(nil)
+
 func newGlyphBackend(dpiScale float32) *glyphBackend {
 	gb := &glyphBackend{
 		textures: make(map[glyph.TextureID]glTexture),
 		dpiScale: dpiScale,
 		batchCap: maxGlyphQuads,
+		white:    createTexture(1, 1, []byte{255, 255, 255, 255}),
 	}
 	gogl.GenVertexArrays(1, &gb.vao)
 	gogl.GenBuffers(1, &gb.vbo)
@@ -119,6 +130,9 @@ func (gb *glyphBackend) destroy() {
 		gogl.DeleteTextures(1, &tex.id)
 	}
 	gb.textures = nil
+	if gb.white.id != 0 {
+		gogl.DeleteTextures(1, &gb.white.id)
+	}
 	if gb.vao != 0 {
 		gogl.DeleteVertexArrays(1, &gb.vao)
 	}
@@ -302,6 +316,19 @@ func (gb *glyphBackend) DrawTexturedQuad(id glyph.TextureID,
 	gb.queue(tex.id, &verts)
 }
 
+// DrawFilledRect draws a text background, underline or strikethrough.
+//
+// The glyph shader multiplies the vertex color by the sampled texel, so a
+// fill must sample a texel it owns (#835). It queues against gb.white,
+// whose only texel is opaque white, so the texel leaves the color
+// unchanged. Before that the fill bound nothing and sampled texel (0, 0)
+// of whatever was left bound: an atlas page (glyph coverage, often
+// transparent) or texture 0, so it rendered full, faded or not at all
+// depending on draw order.
+//
+// Queueing, not drawing at once, also keeps order for free: a fill after
+// glyphs from a page flushes them on the texture change, and consecutive
+// fills share one draw.
 func (gb *glyphBackend) DrawFilledRect(dst glyph.Rect, c glyph.Color) {
 	cr, cg, cb, ca := gpu.NormColor(c.R, c.G, c.B, c.A)
 
@@ -311,22 +338,47 @@ func (gb *glyphBackend) DrawFilledRect(dst glyph.Rect, c glyph.Color) {
 	x1 := (dst.X + dst.Width) * s
 	y1 := (dst.Y + dst.Height) * s
 
+	// UV (0.5, 0.5) is the centre of the 1x1 texture; with CLAMP_TO_EDGE
+	// any UV would do, the centre just states the intent.
 	verts := [4][8]float32{
-		{x0, y0, 0, 0, cr, cg, cb, ca},
-		{x1, y0, 0, 0, cr, cg, cb, ca},
-		{x1, y1, 0, 0, cr, cg, cb, ca},
-		{x0, y1, 0, 0, cr, cg, cb, ca},
+		{x0, y0, 0.5, 0.5, cr, cg, cb, ca},
+		{x1, y0, 0.5, 0.5, cr, cg, cb, ca},
+		{x1, y1, 0.5, 0.5, cr, cg, cb, ca},
+		{x0, y1, 0.5, 0.5, cr, cg, cb, ca},
 	}
 
-	// Drawn at once, not queued: it binds no texture of its own (#835),
-	// so it cannot join a batch. Queued glyphs go first to keep order.
-	gb.flush()
-	gogl.BindVertexArray(gb.vao)
-	gogl.BindBuffer(gogl.ARRAY_BUFFER, gb.vbo)
-	gogl.BufferSubData(gogl.ARRAY_BUFFER, 0,
-		int(unsafe.Sizeof(verts)), unsafe.Pointer(&verts[0]))
-	gogl.DrawArrays(gogl.TRIANGLE_FAN, 0, 4)
-	gogl.BindVertexArray(0)
+	gb.queue(gb.white.id, &verts)
+}
+
+// DrawFilledRectTransformed implements glyph.TransformedFillBackend: a
+// fill drawn through t, so backgrounds and decorations rotate and skew
+// with their glyphs under a LayoutTransform (#835). Without it go-glyph
+// falls back to an axis-aligned rect at the transformed origin. Corners
+// go through t exactly as DrawTexturedQuadTransformed's do.
+func (gb *glyphBackend) DrawFilledRectTransformed(dst glyph.Rect,
+	c glyph.Color, t glyph.AffineTransform) {
+
+	cr, cg, cb, ca := gpu.NormColor(c.R, c.G, c.B, c.A)
+
+	corners := [4][2]float32{
+		{dst.X, dst.Y},
+		{dst.X + dst.Width, dst.Y},
+		{dst.X + dst.Width, dst.Y + dst.Height},
+		{dst.X, dst.Y + dst.Height},
+	}
+
+	// Apply affine transform then scale to physical pixels.
+	s := gb.dpiScale
+	var verts [4][8]float32
+	for i := range 4 {
+		px := corners[i][0]
+		py := corners[i][1]
+		tx := (t.XX*px + t.XY*py + t.X0) * s
+		ty := (t.YX*px + t.YY*py + t.Y0) * s
+		verts[i] = [8]float32{tx, ty, 0.5, 0.5, cr, cg, cb, ca}
+	}
+
+	gb.queue(gb.white.id, &verts)
 }
 
 func (gb *glyphBackend) DrawTexturedQuadTransformed(

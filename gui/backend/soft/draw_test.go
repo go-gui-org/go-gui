@@ -2,9 +2,11 @@ package soft
 
 import (
 	"image"
+	"image/color"
 	"math"
 	"testing"
 
+	"github.com/go-gui-org/go-glyph"
 	"github.com/go-gui-org/go-gui/gui"
 )
 
@@ -387,6 +389,56 @@ func TestNewTextureRejectsUnboundedSize(t *testing.T) {
 		t.Error("valid texture rejected")
 	}
 }
+
+// TestDrawFilledRectTransformed (#835): a fill drawn through a rotation
+// lands on the rotated rect. The 16x4 rect at the origin turns a quarter
+// clockwise, (x, y) -> (-y, x), and moves 20 px right, so it covers
+// x 16..20, y 0..16; go-glyph's unrotated fallback would cover x 20..36,
+// y 0..4.
+func TestDrawFilledRectTransformed(t *testing.T) {
+	gb := newGlyphBackend(1)
+	gb.buf = newBuffer(40, 20)
+	rot := glyph.AffineTransform{XX: 0, XY: -1, YX: 1, YY: 0, X0: 20}
+	gb.DrawFilledRectTransformed(glyph.Rect{Width: 16, Height: 4},
+		glyph.Color{B: 255, A: 255}, rot)
+
+	if got := gb.buf.img.RGBAAt(18, 12); got != (color.RGBA{B: 255, A: 255}) {
+		t.Errorf("inside the rotated rect = %v, want opaque blue", got)
+	}
+	if got := gb.buf.img.RGBAAt(30, 2); got.A != 0 {
+		t.Errorf("where the unrotated fallback would draw = %v, want empty", got)
+	}
+}
+
+// A non-finite or huge transform must draw nothing. The corners' bounding
+// box feeds deviceRect, whose float-to-int conversion of NaN, Inf and
+// out-of-range values is arch-specific (on arm64 +Inf saturates, so the
+// region can become the whole clip rect with Inf reaching the rasterizer).
+func TestDrawFilledRectTransformedRejectsNonFinite(t *testing.T) {
+	cases := map[string]glyph.AffineTransform{
+		"nan":  {XX: float32(math.NaN()), YY: 1},
+		"inf":  {XX: 1, YY: 1, X0: float32(math.Inf(1))},
+		"huge": {XX: 1e30, YY: 1},
+	}
+	for name, tr := range cases {
+		gb := newGlyphBackend(1)
+		gb.buf = newBuffer(8, 8)
+		gb.DrawFilledRectTransformed(glyph.Rect{Width: 4, Height: 4},
+			glyph.Color{G: 255, A: 255}, tr)
+		for y := range 8 {
+			for x := range 8 {
+				if got := gb.buf.img.RGBAAt(x, y); got.A != 0 {
+					t.Fatalf("%s: pixel (%d,%d) = %v, want empty", name, x, y, got)
+				}
+			}
+		}
+	}
+}
+
+// The soft backend must keep implementing the optional interface; a
+// drifted signature would fall back to unrotated fills with nothing
+// failing to compile.
+var _ glyph.TransformedFillBackend = (*glyphBackend)(nil)
 
 func TestDrawSvgDropsOversizedTriangles(t *testing.T) {
 	r := newRenderer(8, 8, 1)
