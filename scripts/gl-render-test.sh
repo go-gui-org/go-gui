@@ -25,33 +25,29 @@ CGO_ENABLED=0 go test -c -o "$bin" ./gui/backend/gl/ || exit 1
 # also segfaults shortly after its first backend, on main as well, so run
 # this on linux/amd64, as CI does.
 #
-# Even there, about one run in five crashes inside the backend's own setup or
-# teardown ("found bad pointer in Go heap", or an xgb fatal error in
-# Destroy), on main as well as with the #823 change. That is a bug of its
-# own (#824), not this job's. So a run that crashes before the test
-# reports a verdict is retried, up to 3 tries, with a warning. A test that
-# reports FAIL or SKIP is never retried.
+# The "found bad pointer in Go heap" crashes tracked as #824 were reproduced
+# only under qemu-user emulation (an amd64 container on an arm64 host), where
+# a plain Go program with no GL, no C and no purego corrupts its own heap too.
+# On real linux/amd64 hardware the same binary ran 270 single-test processes
+# and 10 whole-package processes clean, on the native driver and on llvmpipe.
+# So there is no retry here: a run that crashes before reporting a verdict is
+# a failure, like any other.
 status=0
 for t in TestTriangleEdgesAntialiased TestProbeSeesAliasedEdges \
   TestFilterEdgesAntialiased TestFilterProbeSeesAliasedEdges TestRefusedResolveFallsBack \
   TestBackendRenderSmoke; do
-  result=crash
-  for try in 1 2 3; do
-    out=$(GOGUI_REQUIRE_GL=1 "$bin" -test.run "^$t\$" -test.v 2>&1)
-    code=$?
-    printf '%s\n' "$out"
-    if printf '%s\n' "$out" | grep -q -- "--- FAIL: $t"; then
-      result=fail
-    elif printf '%s\n' "$out" | grep -q -- "--- SKIP: $t"; then
-      result=skip
-    elif [ "$code" -eq 0 ] && printf '%s\n' "$out" | grep -q -- "--- PASS: $t"; then
-      result=pass
-    else
-      echo "::warning::$t crashed without a verdict (exit $code, try $try of 3)"
-      continue
-    fi
-    break
-  done
+  out=$(GOGUI_REQUIRE_GL=1 "$bin" -test.run "^$t\$" -test.v 2>&1)
+  code=$?
+  printf '%s\n' "$out"
+  if printf '%s\n' "$out" | grep -q -- "--- FAIL: $t"; then
+    result=fail
+  elif printf '%s\n' "$out" | grep -q -- "--- SKIP: $t"; then
+    result=skip
+  elif [ "$code" -eq 0 ] && printf '%s\n' "$out" | grep -q -- "--- PASS: $t"; then
+    result=pass
+  else
+    result=crash
+  fi
   case $result in
   pass) ;;
   fail)
@@ -64,7 +60,7 @@ for t in TestTriangleEdgesAntialiased TestProbeSeesAliasedEdges \
     status=1
     ;;
   crash)
-    echo "::error::$t crashed on all 3 tries"
+    echo "::error::$t crashed without reporting a verdict (exit $code)"
     status=1
     ;;
   esac
