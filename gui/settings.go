@@ -161,7 +161,7 @@ func (w *Window) settingsSave(data []byte) error {
 	if err != nil {
 		return err
 	}
-	if err = os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+	if err = os.MkdirAll(filepath.Dir(path), 0o750); err != nil {
 		return fmt.Errorf("gui: save settings: %w", err)
 	}
 	if err = atomicfile.WriteFile(path, data, 0o644); err != nil {

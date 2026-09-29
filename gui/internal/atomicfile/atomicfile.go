@@ -81,6 +81,8 @@ func ReadFile(path string, limit int64) ([]byte, error) {
 	if limit < 0 {
 		return nil, fmt.Errorf("atomicfile: negative read limit %d", limit)
 	}
+	// #nosec G304 — path is the caller's settings file under its own
+	// config dir, not user input opened blindly.
 	f, err := os.Open(path)
 	if errors.Is(err, fs.ErrNotExist) {
 		return nil, nil
@@ -117,6 +119,7 @@ func createTemp(dir, hint string, perm fs.FileMode) (*os.File, error) {
 			"."+hint+"-"+strconv.FormatUint(uint64(rand.Uint32()), 10)+".tmp")
 		// O_EXCL makes the "is it free?" test and the claim one atomic
 		// step.
+		// #nosec G304 — name is a random staging file in the target's own dir.
 		f, err := os.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_EXCL, perm)
 		if errors.Is(err, fs.ErrExist) {
 			continue

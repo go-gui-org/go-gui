@@ -72,7 +72,7 @@ func (s *Store) Save(appID string, data []byte) error {
 	if err != nil {
 		return err
 	}
-	if err = os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+	if err = os.MkdirAll(filepath.Dir(path), 0o750); err != nil {
 		return err
 	}
 	// 0o600: the files directory is already private to the app, so no
