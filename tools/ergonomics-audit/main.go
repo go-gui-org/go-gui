@@ -12,6 +12,7 @@
 //	go run ./tools/ergonomics-audit/ -mode theme [repo...]
 //	go run ./tools/ergonomics-audit/ -mode a11y [repo...]
 //	go run ./tools/ergonomics-audit/ -mode visual [repo...]
+//	go run ./tools/ergonomics-audit/ -mode spacing [repo...]
 //	go run ./tools/ergonomics-audit/ -mode deadcfg [repo...]
 //
 // With no repo arguments both modes audit the current directory.
@@ -65,6 +66,12 @@
 // unmarked finding, so it gates. See visual.go for what counts and how to
 // mark an exception.
 //
+// Mode spacing answers: does a call site still spell a gap (Spacing) or an
+// inset (PadAll, NewPadding, PadVH) as a number, when the theme names both
+// as ladder steps (issue #851)? In go-gui it scans gui/view_*.go and
+// examples/; in a consumer repo, every non-test file. It exits non-zero on
+// any unmarked finding, so it gates. See spacing.go.
+//
 // Mode deadcfg answers: can a caller set an exported *Cfg field and have
 // it change nothing? It classifies every read as consuming or as a mere
 // forward into another Cfg field of the same name — which is what catches
@@ -92,7 +99,7 @@ import (
 var listShape *string
 
 func main() {
-	mode := flag.String("mode", "focus", "audit to run: focus | callbacks | ids | opt | literals | theme | a11y | visual | deadcfg")
+	mode := flag.String("mode", "focus", "audit to run: focus | callbacks | ids | opt | literals | theme | a11y | visual | spacing | deadcfg")
 	guiRoot := flag.String("gui", ".", "path to the go-gui repo (source of truth for mode=focus)")
 	listShape = flag.String("list", "", "mode=callbacks: also list distinct signatures of this shape, or \"all\"")
 	fix := flag.Bool("fix", false, "mode=focus: rewrite broken literals in place, adding a generated ID")
@@ -136,10 +143,12 @@ func main() {
 		err = runA11Y(repos)
 	case "visual":
 		err = runVisual(repos)
+	case "spacing":
+		err = runSpacing(repos)
 	case "deadcfg":
 		err = runDeadCfg(repos)
 	default:
-		err = fmt.Errorf("unknown -mode %q (want focus, callbacks, ids, opt, literals, theme, a11y, visual or deadcfg)", *mode)
+		err = fmt.Errorf("unknown -mode %q (want focus, callbacks, ids, opt, literals, theme, a11y, visual, spacing or deadcfg)", *mode)
 	}
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "ergonomics-audit:", err)

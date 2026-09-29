@@ -62,13 +62,13 @@ func usageChart(
 	return gui.Column(gui.ContainerCfg{
 		Width:   chartWidth,
 		Sizing:  gui.FixedFit,
-		Spacing: gui.SomeF(4),
+		Spacing: gui.SomeF(gui.SpacingSmall),
 		Content: []gui.View{
 			gui.Row(gui.ContainerCfg{
 				Sizing:  gui.FillFit,
 				Padding: gui.NoPadding,
 				VAlign:  gui.VAlignMiddle,
-				Spacing: gui.SomeF(8),
+				Spacing: gui.SomeF(gui.SpacingSmall),
 				Content: []gui.View{
 					gui.Text(gui.TextCfg{Text: title, TextStyle: theme.TextStyleCaption.Bold()}),
 					gui.Text(gui.TextCfg{Text: "scale " + fmtFn(scale), TextStyle: theme.TextStyleCaptionSmall}),
@@ -81,8 +81,8 @@ func usageChart(
 				Clip:    true,
 				Radius:  gui.SomeF(theme.RadiusSmall),
 				Color:   theme.ColorInterior,
-				Padding: gui.NewPadding(4, 4, 4, 4),
-				Spacing: gui.SomeF(1),
+				Padding: gui.PaddingXSmall,
+				Spacing: gui.SomeF(1), // ergonomics-audit:spacing — 1px seam between chart bars, not a gap
 				Content: bars,
 			}),
 		},

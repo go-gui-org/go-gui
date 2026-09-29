@@ -446,7 +446,7 @@ func selectOptionView(
 		Sound:   optionSound,
 		Content: []View{
 			Row(ContainerCfg{
-				Padding: PadVH(2, 0),
+				Padding: PadVH(2, 0), // ergonomics-audit:spacing — checkmark optical nudge
 				Content: []View{
 					Text(TextCfg{
 						Text: "✓",

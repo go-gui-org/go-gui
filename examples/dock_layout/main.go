@@ -85,8 +85,8 @@ func mainView(w *gui.Window) gui.View {
 func toolbar() gui.View {
 	return gui.Row(gui.ContainerCfg{
 		Sizing:     gui.FillFit,
-		Padding:    gui.NewPadding(4, 8, 4, 8),
-		Spacing:    gui.SomeF(8),
+		Padding:    gui.NewPadding(gui.PadXSmall, gui.PadSmall, gui.PadXSmall, gui.PadSmall),
+		Spacing:    gui.SomeF(gui.SpacingMedium),
 		SizeBorder: gui.NoBorder,
 		Content: []gui.View{
 			gui.Button(gui.ButtonCfg{
@@ -127,7 +127,7 @@ func panelContent(title, body string) []gui.View {
 	return []gui.View{
 		gui.Column(gui.ContainerCfg{
 			Sizing:     gui.FillFill,
-			Padding:    gui.NewPadding(8, 12, 8, 12),
+			Padding:    gui.NewPadding(gui.PadSmall, gui.PadMedium, gui.PadSmall, gui.PadMedium),
 			SizeBorder: gui.NoBorder,
 			Content: []gui.View{
 				gui.Text(gui.TextCfg{

@@ -21,7 +21,7 @@ func safeFloat(v, fallback float32) float32 {
 // applies; the top inset is the demo's breathing room above the rule.
 func line() gui.View {
 	return gui.Separator(gui.SeparatorCfg{
-		Inset: gui.NewPadding(3, 0, 0, 0),
+		Inset: gui.NewPadding(3, 0, 0, 0), // ergonomics-audit:spacing — breathing room above the rule, not a ladder inset
 	})
 }
 

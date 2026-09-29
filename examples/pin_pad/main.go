@@ -71,7 +71,7 @@ func mainView(w *gui.Window) gui.View {
 		Sizing:  gui.FillFill,
 		HAlign:  gui.HAlignCenter,
 		VAlign:  gui.VAlignMiddle,
-		Spacing: gui.SomeF(12),
+		Spacing: gui.SomeF(gui.SpacingMedium),
 		// Keep the pad above an OS keyboard if one is ever shown (a
 		// physical keyboard attached, another field focused). The
 		// framework reports the inset; the app decides what to move.
@@ -136,7 +136,7 @@ func keypad() gui.View {
 			keys = append(keys, key(label))
 		}
 		views = append(views, gui.Row(gui.ContainerCfg{
-			Spacing:    gui.SomeF(8),
+			Spacing:    gui.SomeF(gui.SpacingSmall),
 			Padding:    gui.NoPadding,
 			SizeBorder: gui.NoBorder,
 			Content:    keys,
@@ -144,7 +144,7 @@ func keypad() gui.View {
 	}
 	return gui.Column(gui.ContainerCfg{
 		ID:         "pin:pad",
-		Spacing:    gui.SomeF(8),
+		Spacing:    gui.SomeF(gui.SpacingSmall),
 		Padding:    gui.NoPadding,
 		SizeBorder: gui.NoBorder,
 		Content:    views,

@@ -487,6 +487,7 @@ ergonomics-audit:
 	go run ./tools/ergonomics-audit/ -mode theme .
 	go run ./tools/ergonomics-audit/ -mode a11y .
 	go run ./tools/ergonomics-audit/ -mode visual .
+	go run ./tools/ergonomics-audit/ -mode spacing .
 	go run ./tools/ergonomics-audit/ -mode deadcfg .
 
 # The one pass/fail mode of ergonomics-audit, alone, for `check`: it

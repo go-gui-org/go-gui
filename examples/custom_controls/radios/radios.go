@@ -272,7 +272,7 @@ func radioGroup(app *App, g group, bg gui.Color, spacing float32, lk lookFunc) g
 	pad, border := gui.PaddingNone, gui.NoBorder
 	if bg != gui.ColorTransparent {
 		// The XP group is a dialog surface with a thin frame.
-		pad, border = gui.PadAll(14), gui.SomeF(1)
+		pad, border = gui.PaddingMedium, gui.SomeF(1)
 	}
 	return gui.Column(gui.ContainerCfg{
 		ID:          g.id,
@@ -306,7 +306,7 @@ func lockRow(id, label string, locked bool, onClick func(gui.EventCtx), target g
 	return gui.Row(gui.ContainerCfg{
 		ID:         id,
 		Padding:    gui.PaddingNone,
-		Spacing:    gui.SomeF(16),
+		Spacing:    gui.SomeF(gui.SpacingMedium),
 		SizeBorder: gui.NoBorder,
 		VAlign:     gui.VAlignMiddle,
 		Content: []gui.View{
@@ -384,7 +384,7 @@ func materialLook(accent gui.Color) lookFunc {
 			center = []gui.View{circle(dot, dotColor, nil)}
 		}
 		return gui.Row(radioShell(gui.ContainerCfg{
-			Spacing: gui.SomeF(10),
+			Spacing: gui.SomeF(gui.SpacingSmall),
 			Content: []gui.View{
 				gui.Row(gui.ContainerCfg{
 					Width:       size,
@@ -472,7 +472,7 @@ func xpLook(o optionState, s gui.InteractionState) gui.View {
 	well := gui.Row(gui.ContainerCfg{
 		Color:      border,
 		Radius:     gui.SomeF(face/2 + 1),
-		Padding:    gui.PadAll(1),
+		Padding:    gui.PadAll(1), // ergonomics-audit:spacing — 1px frame, not an inset
 		SizeBorder: gui.NoBorder,
 		Content: []gui.View{gui.Row(gui.ContainerCfg{
 			// The face gradient sits under the rims, so a see-through rim
@@ -483,8 +483,8 @@ func xpLook(o optionState, s gui.InteractionState) gui.View {
 			Padding:    gui.PaddingNone,
 			SizeBorder: gui.NoBorder,
 			Content: []gui.View{
-				ring(rimLo, gui.NewPadding(0, 1, 1, 0), face/2,
-					ring(rimHi, gui.NewPadding(1, 0, 0, 1), face/2-1,
+				ring(rimLo, gui.NewPadding(0, 1, 1, 0), face/2, // ergonomics-audit:spacing — 1px bevel edge, not an inset
+					ring(rimHi, gui.NewPadding(1, 0, 0, 1), face/2-1, // ergonomics-audit:spacing — 1px bevel edge, not an inset
 						gui.Row(gui.ContainerCfg{
 							Width:      inner,
 							Height:     inner,
@@ -500,7 +500,7 @@ func xpLook(o optionState, s gui.InteractionState) gui.View {
 		})},
 	})
 	return gui.Row(radioShell(gui.ContainerCfg{
-		Spacing: gui.SomeF(6),
+		Spacing: gui.SomeF(gui.SpacingSmall),
 		Content: []gui.View{
 			well,
 			gui.Text(gui.TextCfg{Text: o.label, TextStyle: look.Light.Text(text, 12)}),

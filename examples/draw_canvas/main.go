@@ -58,7 +58,7 @@ func mainView(w *gui.Window) gui.View {
 		Sizing:     gui.FillFill,
 		Padding:    gui.CurrentTheme().PaddingLarge,
 
-		Spacing: gui.SomeF(16),
+		Spacing: gui.SomeF(gui.SpacingMedium),
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      "Line Chart",

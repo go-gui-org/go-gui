@@ -90,7 +90,7 @@ func mainView(w *gui.Window) gui.View {
 		Focusable:  true,
 		Sizing:     gui.FillFill,
 		Scrollable: true,
-		Padding:    gui.PadAll(10),
+		Padding:    gui.PaddingMedium,
 		Content: []gui.View{
 			gui.RTF(gui.RTFCfg{
 				RichText:      rt,

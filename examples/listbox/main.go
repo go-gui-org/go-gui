@@ -69,7 +69,7 @@ func mainView(w *gui.Window) gui.View {
 		HAlign:  gui.HAlignCenter,
 		Sizing:  gui.FillFill,
 		Spacing: gui.Some(theme.SpacingSmall),
-		Padding: gui.NewPadding(8, 8, 8, 8),
+		Padding: gui.PaddingSmall,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      "10,000-item virtualized list box",

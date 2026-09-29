@@ -80,7 +80,7 @@ func panelRow(content ...gui.View) gui.View {
 		Sizing:     gui.FillFill,
 		Padding:    gui.PaddingNone,
 		SizeBorder: gui.NoBorder,
-		Spacing:    gui.SomeF(14),
+		Spacing:    gui.SomeF(gui.SpacingMedium),
 		Content:    content,
 	})
 }
@@ -96,12 +96,12 @@ func panel(id, title, sub string, bar *gui.ScrollbarCfg) gui.View {
 		Sizing:     gui.FillFill,
 		Padding:    gui.PaddingNone,
 		SizeBorder: gui.NoBorder,
-		Spacing:    gui.SomeF(8),
+		Spacing:    gui.SomeF(gui.SpacingMedium),
 		Content: []gui.View{
 			gui.Column(gui.ContainerCfg{
 				Padding:    gui.PaddingNone,
 				SizeBorder: gui.NoBorder,
-				Spacing:    gui.SomeF(2),
+				Spacing:    gui.SomeF(gui.SpacingTight),
 				Content: []gui.View{
 					gui.Text(gui.TextCfg{Text: title, TextStyle: look.Light.Bold4}),
 					gui.Text(gui.TextCfg{Text: sub, TextStyle: look.Light.Secondary}),
@@ -117,7 +117,7 @@ func panel(id, title, sub string, bar *gui.ScrollbarCfg) gui.View {
 				ColorBorder:   gui.RGBA(0, 0, 0, 26),
 				SizeBorder:    gui.SomeF(1),
 				Padding:       gui.NewPadding(12, 12+barSize, 12, 12),
-				Spacing:       gui.SomeF(6),
+				Spacing:       gui.SomeF(gui.SpacingSmall),
 				Content:       rows,
 			}),
 		},
@@ -136,7 +136,7 @@ func row(i int) gui.View {
 		Color:      rowShades[i%len(rowShades)],
 		Radius:     gui.SomeF(3),
 		SizeBorder: gui.NoBorder,
-		Padding:    gui.NewPadding(6, 8, 6, 8),
+		Padding:    gui.PaddingSmall,
 		Content:    []gui.View{gui.Text(gui.TextCfg{Text: rowLabels[i], TextStyle: rowStyle})},
 	})
 }
@@ -167,7 +167,7 @@ func ticks(s gui.ScrollbarState, frac, h float32, c gui.Color) gui.View {
 	return gui.Column(gui.ContainerCfg{
 		Padding:    gui.PaddingNone,
 		SizeBorder: gui.NoBorder,
-		Spacing:    gui.SomeF(2),
+		Spacing:    gui.SomeF(gui.SpacingTight),
 		Content:    lines,
 	})
 }
@@ -208,7 +208,7 @@ func classicBar() *gui.ScrollbarCfg {
 		pill.ColorBorder = classicEdge
 		pill.SizeBorder = gui.SomeF(1)
 		// One pixel of track shows around the pill.
-		return gui.Column(fill(gui.ColorTransparent, gui.PadAll(1), 0, gui.Column(pill)))
+		return gui.Column(fill(gui.ColorTransparent, gui.PadAll(1), 0, gui.Column(pill))) // ergonomics-audit:spacing — 1px track ring, not an inset
 	}
 	return cfg
 }
@@ -230,8 +230,8 @@ func win98Bar() *gui.ScrollbarCfg {
 		return gui.Column(fill(win98Face, gui.PaddingNone, 0))
 	}
 	cfg.Thumb = func(s gui.ScrollbarState) gui.View {
-		return gui.Column(fill(win98Dark, gui.NewPadding(0, 1, 1, 0), 0,
-			gui.Column(fill(win98Light, gui.NewPadding(1, 0, 0, 1), 0,
+		return gui.Column(fill(win98Dark, gui.NewPadding(0, 1, 1, 0), 0, // ergonomics-audit:spacing — 1px bevel edge, not an inset
+			gui.Column(fill(win98Light, gui.NewPadding(1, 0, 0, 1), 0, // ergonomics-audit:spacing — 1px bevel edge, not an inset
 				gui.Column(fill(win98Face, gui.PaddingNone, 0, ticks(s, 0.45, 1, win98Ridge)))))))
 	}
 	return cfg
@@ -258,8 +258,8 @@ func coolBlueBar() *gui.ScrollbarCfg {
 		if s.Hovered || s.Pressed {
 			face = blueHot
 		}
-		return gui.Column(fill(gui.ColorTransparent, gui.PadAll(2), 0,
-			gui.Column(fill(blueRim, gui.PadAll(1), 3,
+		return gui.Column(fill(gui.ColorTransparent, gui.PadAll(2), 0, // ergonomics-audit:spacing — 2px track ring, not an inset
+			gui.Column(fill(blueRim, gui.PadAll(1), 3, // ergonomics-audit:spacing — 1px rim, not an inset
 				gui.Column(fill(face, gui.PaddingNone, 2, ticks(s, 0.45, 1.5, white)))))))
 	}
 	return cfg

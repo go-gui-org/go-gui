@@ -7,7 +7,7 @@ func demoBreadcrumb(w *gui.Window) gui.View {
 	t := gui.CurrentTheme()
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.SomeF(12),
+		Spacing: gui.SomeF(gui.SpacingMedium),
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			gui.Breadcrumb(gui.BreadcrumbCfg{
@@ -41,7 +41,7 @@ func demoTabControl(w *gui.Window) gui.View {
 			gui.NewTabItem("tab1", "Overview", []gui.View{
 				gui.Column(gui.ContainerCfg{
 					Sizing:  gui.FillFit,
-					Padding: gui.NewPadding(12, 12, 12, 12),
+					Padding: gui.PaddingMedium,
 					Content: []gui.View{
 						gui.Text(gui.TextCfg{Text: "Overview tab content.", TextStyle: t.TextStyleBody}),
 					},
@@ -50,7 +50,7 @@ func demoTabControl(w *gui.Window) gui.View {
 			gui.NewTabItem("tab2", "Details", []gui.View{
 				gui.Column(gui.ContainerCfg{
 					Sizing:  gui.FillFit,
-					Padding: gui.NewPadding(12, 12, 12, 12),
+					Padding: gui.PaddingMedium,
 					Content: []gui.View{
 						gui.Text(gui.TextCfg{Text: "Details tab content.", TextStyle: t.TextStyleBody}),
 					},
@@ -59,7 +59,7 @@ func demoTabControl(w *gui.Window) gui.View {
 			gui.NewTabItem("tab3", "Settings", []gui.View{
 				gui.Column(gui.ContainerCfg{
 					Sizing:  gui.FillFit,
-					Padding: gui.NewPadding(12, 12, 12, 12),
+					Padding: gui.PaddingMedium,
 					Content: []gui.View{
 						gui.Text(gui.TextCfg{Text: "Settings tab content.", TextStyle: t.TextStyleBody}),
 					},
@@ -222,12 +222,11 @@ func (v commandPaletteDemoView) GenerateLayout(w *gui.Window) gui.Layout {
 
 	return gui.GenerateViewLayout(gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.SomeF(12),
+		Spacing: gui.SomeF(gui.SpacingMedium),
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			gui.Button(gui.ButtonCfg{
-				ID:      "btn-palette",
-				Padding: gui.NewPadding(8, 16, 8, 16),
+				ID: "btn-palette",
 				Content: []gui.View{
 					gui.Text(gui.TextCfg{Text: "Open Command Palette", TextStyle: t.TextStyleBody}),
 				},

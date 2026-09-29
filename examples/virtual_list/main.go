@@ -139,7 +139,7 @@ func mainView(w *gui.Window) gui.View {
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFill,
 		Spacing: gui.Some(theme.SpacingMedium),
-		Padding: gui.PadAll(10),
+		Padding: gui.PaddingMedium,
 		Content: []gui.View{
 			controls(app),
 			gui.VirtualList(gui.VirtualListCfg{
@@ -257,7 +257,7 @@ func card(m message, i int, w *gui.Window) gui.View {
 		ID:      gui.ScopeIDN(listID, "row", i),
 		Sizing:  gui.FillFit,
 		Color:   bg,
-		Padding: gui.PadAll(8),
+		Padding: gui.PaddingSmall,
 		// Row spacing lives inside the row: the list itself is fixed
 		// at zero spacing, because a gap between rows is height the
 		// model does not account for.

@@ -129,7 +129,7 @@ func statCard(label, value string, theme gui.Theme) gui.View {
 		Padding:    theme.PaddingSmall,
 		SizeBorder: gui.NoBorder,
 		Sizing:     gui.FillFit,
-		Spacing:    gui.SomeF(2),
+		Spacing:    gui.SomeF(gui.SpacingTight),
 		HAlign:     gui.HAlignCenter,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{

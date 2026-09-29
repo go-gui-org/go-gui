@@ -130,8 +130,8 @@ func row(id string, bg gui.Color, content ...gui.View) gui.View {
 	return gui.Row(gui.ContainerCfg{
 		ID:         id,
 		Color:      bg,
-		Padding:    gui.PadAll(12),
-		Spacing:    gui.SomeF(10),
+		Padding:    gui.PaddingMedium,
+		Spacing:    gui.SomeF(gui.SpacingMedium),
 		SizeBorder: gui.NoBorder,
 		Content:    content,
 	})
@@ -140,8 +140,8 @@ func row(id string, bg gui.Color, content ...gui.View) gui.View {
 func toggleRow(id, label string, selected bool, onClick func(gui.EventCtx), target gui.View) gui.View {
 	return gui.Row(gui.ContainerCfg{
 		ID:         id,
-		Padding:    gui.NewPadding(0, 12, 0, 12),
-		Spacing:    gui.SomeF(10),
+		Padding:    gui.NewPadding(0, gui.PadMedium, 0, gui.PadMedium),
+		Spacing:    gui.SomeF(gui.SpacingMedium),
 		SizeBorder: gui.NoBorder,
 		Content: []gui.View{
 			gui.Toggle(gui.ToggleCfg{ID: "disable", Label: label, Selected: selected, OnClick: onClick}),
@@ -193,7 +193,7 @@ func flatButton(id, label string, accent gui.Color, disabled bool, onClick func(
 		OnClick:    onClick,
 		Radius:     gui.SomeF(4),
 		SizeBorder: gui.NoBorder,
-		Padding:    gui.NewPadding(8, 16, 8, 16),
+		Padding:    gui.NewPadding(gui.PadSmall, gui.PadMedium, gui.PadSmall, gui.PadMedium),
 		Colors: gui.ColorSet{
 			Base:  face,
 			Hover: look.Darken(accent, 0.9),
@@ -229,7 +229,7 @@ func outlineLook(id, label string, accent gui.Color, s gui.InteractionState, onC
 		ColorBorder: accent,
 		SizeBorder:  gui.SomeF(1.5),
 		Radius:      gui.SomeF(4),
-		Padding:     gui.NewPadding(7, 15, 7, 15),
+		Padding:     gui.NewPadding(7, 15, 7, 15), // ergonomics-audit:spacing — skin metrics: imitates a platform button
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{Text: label, TextStyle: look.Light.Text(text, 13)}),
 		},
@@ -282,11 +282,11 @@ func win98Look(id, label string, disabled bool, s gui.InteractionState, onClick 
 		ID:         id,
 		Color:      win98Frame,
 		Radius:     gui.SomeF(0),
-		Padding:    gui.PadAll(1),
+		Padding:    gui.PadAll(1), // ergonomics-audit:spacing — 1px bevel frame, not an inset
 		SizeBorder: gui.NoBorder,
 		Content: []gui.View{
-			look.Bevel(shadow, gui.NewPadding(0, 1, 1, 0),
-				look.Bevel(light, gui.NewPadding(1, 0, 0, 1),
+			look.Bevel(shadow, gui.NewPadding(0, 1, 1, 0), // ergonomics-audit:spacing — 1px bevel edge, not an inset
+				look.Bevel(light, gui.NewPadding(1, 0, 0, 1), // ergonomics-audit:spacing — 1px bevel edge, not an inset
 					gui.Row(gui.ContainerCfg{
 						Color:      face,
 						Radius:     gui.SomeF(0),
@@ -372,8 +372,8 @@ func xpLook(id, label string, disabled bool, s gui.InteractionState, onClick fun
 		ColorBorder: border,
 		SizeBorder:  gui.SomeF(1),
 		Padding:     gui.PaddingNone,
-		Content: []gui.View{rim(rimOuter, gui.NewPadding(0, 3, 3, 0),
-			rim(rimInner, gui.NewPadding(3, 0, 0, 3),
+		Content: []gui.View{rim(rimOuter, gui.NewPadding(0, 3, 3, 0), // ergonomics-audit:spacing — 3px rim edge, not an inset
+			rim(rimInner, gui.NewPadding(3, 0, 0, 3), // ergonomics-audit:spacing — 3px rim edge, not an inset
 				gui.Row(gui.ContainerCfg{
 					Sizing:     gui.FillFill,
 					Color:      faceFill,

@@ -112,14 +112,14 @@ func DefaultMarkdownStyle() MarkdownStyle {
 		blockSpacing:     SpacingMedium,
 		nestIndent:       16, // structural indent, not a sibling gap — off the ladder
 		prefixCharWidth:  4,
-		codeBlockPadding: PadAll(10),
+		codeBlockPadding: PadAll(10), // ergonomics-audit:spacing — fixed style default, theme-invariant
 		codeBlockRadius:  3.5,
 		TableBorderStyle: TableBorderHeaderOnly,
 		tableBorderColor: guiTheme.ColorBorder,
 		tableBorderSize:  1,
 		tableHeadStyle:   bold,
 		tableCellStyle:   text,
-		tableCellPadding: NewPadding(5, 10, 5, 10),
+		tableCellPadding: NewPadding(5, 10, 5, 10), // ergonomics-audit:spacing — fixed style default, theme-invariant
 		highlightBG:      RGB(199, 142, 18),
 		mathDPIDisplay:   150,
 		mathDPIInline:    200,

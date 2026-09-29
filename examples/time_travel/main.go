@@ -103,16 +103,16 @@ func mainView(w *gui.Window) gui.View {
 	s := gui.State[appState](w)
 	theme := gui.CurrentTheme()
 	return gui.Column(gui.ContainerCfg{
-		Padding: gui.PadAll(16),
+		Padding: gui.PaddingMedium,
 
-		Spacing: gui.SomeF(12),
+		Spacing: gui.SomeF(gui.SpacingMedium),
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      fmt.Sprintf("Count: %d", s.Count),
 				TextStyle: theme.TextStyleDisplay,
 			}),
 			gui.Row(gui.ContainerCfg{
-				Spacing: gui.SomeF(8),
+				Spacing: gui.SomeF(gui.SpacingMedium),
 				Content: []gui.View{
 					gui.Button(gui.ButtonCfg{
 						ID: "time_travel_increment",
