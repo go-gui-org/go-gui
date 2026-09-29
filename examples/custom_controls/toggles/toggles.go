@@ -92,7 +92,7 @@ func View(app *App) gui.View {
 			sectionTitle("Material (colored knob)"),
 			gui.Column(gui.ContainerCfg{
 				ID:         "material",
-				Spacing:    gui.SomeF(gui.SpacingMedium),
+				Spacing:    gui.SpacingMedium,
 				Padding:    gui.PaddingNone,
 				SizeBorder: gui.NoBorder,
 				Content: []gui.View{
@@ -139,7 +139,7 @@ func sectionTitle(s string) gui.View {
 // "page:check:a".
 func group(id string, cfg gui.ContainerCfg, content ...gui.View) gui.View {
 	cfg.ID = id
-	cfg.Spacing = gui.SomeF(20)
+	cfg.Spacing = gui.SpacingMedium
 	cfg.Padding = gui.PaddingNone
 	cfg.SizeBorder = gui.NoBorder
 	cfg.VAlign = gui.VAlignMiddle

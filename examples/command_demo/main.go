@@ -148,7 +148,7 @@ func mainView(w *gui.Window) gui.View {
 	return gui.Column(gui.ContainerCfg{
 		Padding: gui.NoPadding,
 		Sizing:  gui.FillFill,
-		Spacing: gui.SomeF(0),
+		Spacing: gui.NoSpacing,
 		Content: []gui.View{
 			menuBar(w),
 			body(app, theme),
@@ -201,7 +201,7 @@ func body(app *App, theme gui.Theme) gui.View {
 		HAlign:  gui.HAlignCenter,
 		Padding: gui.NoPadding,
 		Sizing:  gui.FillFill,
-		Spacing: gui.Some(theme.SpacingMedium),
+		Spacing: gui.SpacingMedium,
 		Content: []gui.View{
 			gui.Rectangle(gui.RectangleCfg{
 				Height: menubarClearance,

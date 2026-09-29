@@ -483,7 +483,7 @@ func listCoreItemView(item listCoreItem, index int, isHighlighted, isSelected bo
 // listCoreSubheadingView renders a subheading row.
 func listCoreSubheadingView(item listCoreItem, cfg listCoreCfg) View {
 	return Column(ContainerCfg{
-		Spacing: SomeF(1),
+		Spacing: SpacingPx(1),
 		Padding: NoPadding,
 		Sizing:  FillFit,
 		Content: []View{

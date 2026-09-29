@@ -124,7 +124,7 @@ func dataGridCellEditorView(cfg *DataGridCfg, rowID string, rowIdx int, col Grid
 		FocusSkip: true,
 		Sizing:    gg.FillFill,
 		Padding:   gg.NoPadding,
-		Spacing:   gg.SomeF(0),
+		Spacing:   gg.NoSpacing,
 		OnKeyDown: dataGridMakeEditorOnKeydown(cfg.ID, gridFocusID),
 		Content:   []gg.View{editor},
 	})

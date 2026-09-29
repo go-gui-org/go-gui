@@ -160,7 +160,7 @@ func headerView(app *App) gui.View {
 		Sizing:  gui.FillFit,
 		Padding: gui.NoPadding,
 		VAlign:  gui.VAlignMiddle,
-		Spacing: gui.SomeF(gui.SpacingMedium),
+		Spacing: gui.SpacingMedium,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{Text: "Process Monitor", TextStyle: theme.TextStyleTitle}),
 			spacer(),
@@ -197,7 +197,7 @@ func headerView(app *App) gui.View {
 		Sizing:  gui.FillFit,
 		Padding: gui.NoPadding,
 		VAlign:  gui.VAlignMiddle,
-		Spacing: gui.SomeF(gui.SpacingMedium),
+		Spacing: gui.SpacingMedium,
 		Content: status,
 	})
 
@@ -206,7 +206,7 @@ func headerView(app *App) gui.View {
 		Sizing:  gui.FillFit,
 		Padding: gui.NoPadding,
 		VAlign:  gui.VAlignMiddle,
-		Spacing: gui.SomeF(gui.SpacingMedium),
+		Spacing: gui.SpacingMedium,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{Text: "View", TextStyle: theme.TextStyleCaption.Bold()}),
 			viewModeRadio(app),
@@ -219,7 +219,7 @@ func headerView(app *App) gui.View {
 		Sizing:  gui.FillFit,
 		Color:   theme.ColorPanel,
 		Padding: gui.PaddingMedium,
-		Spacing: gui.SomeF(gui.SpacingMedium),
+		Spacing: gui.SpacingMedium,
 		Content: []gui.View{top, middle, bottom},
 	})
 }
@@ -242,7 +242,7 @@ func statItems(app *App) []gui.View {
 			Sizing:  gui.FitFit,
 			Padding: gui.NoPadding,
 			VAlign:  gui.VAlignMiddle,
-			Spacing: gui.SomeF(gui.SpacingSmall),
+			Spacing: gui.SpacingSmall,
 			Content: []gui.View{
 				gui.Text(gui.TextCfg{Text: "Memory", TextStyle: theme.TextStyleCaptionSmall}),
 				usageBar(ratio, 160, 10, accentMem),
@@ -264,7 +264,7 @@ func statPill(label, value string) gui.View {
 		Color:   theme.ColorInterior,
 		Radius:  gui.SomeF(theme.RadiusSmall),
 		Padding: gui.NewPadding(gui.PadXSmall, gui.PadSmall, gui.PadXSmall, gui.PadSmall),
-		Spacing: gui.SomeF(gui.SpacingSmall),
+		Spacing: gui.SpacingSmall,
 		VAlign:  gui.VAlignMiddle,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{Text: label, TextStyle: theme.TextStyleCaptionSmall}),
@@ -287,7 +287,7 @@ func viewModeRadio(app *App) gui.View {
 		ID:             "pm-view",
 		SizeBorder:     gui.NoBorder,
 		Padding:        theme.PaddingSmall,
-		Spacing:        gui.Some(theme.SpacingSmall),
+		Spacing:        gui.SpacingSmall,
 		TextStyleLabel: theme.TextStyleCaptionSmall,
 		Items:          []string{"Flat", "Tree"},
 		Value:          value,
@@ -303,7 +303,7 @@ func intervalRadio(app *App) gui.View {
 		ID:             "pm-interval",
 		SizeBorder:     gui.NoBorder,
 		Padding:        theme.PaddingSmall,
-		Spacing:        gui.Some(theme.SpacingSmall),
+		Spacing:        gui.SpacingSmall,
 		TextStyleLabel: theme.TextStyleCaptionSmall,
 		Items:          intervalLabels,
 		Value:          intervalLabel(app.Interval),
@@ -486,13 +486,13 @@ func detailView(app *App) gui.View {
 		Sizing:  gui.FillFit,
 		Color:   theme.ColorPanel,
 		Padding: gui.PaddingMedium,
-		Spacing: gui.SomeF(gui.SpacingSmall),
+		Spacing: gui.SpacingSmall,
 		Content: []gui.View{
 			gui.Row(gui.ContainerCfg{
 				Sizing:  gui.FillFit,
 				Padding: gui.NoPadding,
 				VAlign:  gui.VAlignMiddle,
-				Spacing: gui.SomeF(gui.SpacingMedium),
+				Spacing: gui.SpacingMedium,
 				Content: facts,
 			}),
 			gui.Text(gui.TextCfg{Text: truncate(cmd, 160), TextStyle: theme.TextStyleCaptionSmall, Clip: true}),
@@ -505,7 +505,7 @@ func historyCharts(p *Process) gui.View {
 	return gui.Row(gui.ContainerCfg{
 		Sizing:  gui.FitFit,
 		Padding: gui.NoPadding,
-		Spacing: gui.SomeF(gui.SpacingMedium),
+		Spacing: gui.SpacingMedium,
 		Content: []gui.View{
 			usageChart(p, "CPU", 100, accentCPU,
 				func(pt ProcessPoint) float64 { return pt.CPUPercent },
@@ -544,7 +544,7 @@ func cpuCell(p *Process, _ *App) gui.View {
 		VAlign:  gui.VAlignMiddle,
 		Clip:    true,
 		Padding: gui.NewPadding(0, gui.PadSmall, 0, gui.PadSmall),
-		Spacing: gui.SomeF(gui.SpacingSmall),
+		Spacing: gui.SpacingSmall,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{Text: p.CPUText(), TextStyle: theme.TextStyleCaption}),
 			usageBar(ratio, 48, 8, accentCPU),
@@ -598,7 +598,7 @@ func nameCell(p *Process, app *App) gui.View {
 		VAlign:  gui.VAlignMiddle,
 		Clip:    true,
 		Padding: gui.NewPadding(0, gui.PadSmall, 0, gui.PadSmall),
-		Spacing: gui.SomeF(gui.SpacingTight),
+		Spacing: gui.SpacingTight,
 		Content: kids,
 	})
 }

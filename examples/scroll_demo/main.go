@@ -117,7 +117,7 @@ func pctRow(app *App) gui.View {
 		SizeBorder: gui.NoBorder,
 		HAlign:     gui.HAlignCenter,
 		VAlign:     gui.VAlignMiddle,
-		Spacing:    gui.SomeF(gui.SpacingSmall),
+		Spacing:    gui.SpacingSmall,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      fmt.Sprintf("%.0f%%", app.Pct*100),

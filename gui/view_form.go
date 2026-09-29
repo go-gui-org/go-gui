@@ -177,7 +177,7 @@ type FormCfg struct {
 
 	Content    []View
 	Padding    Padding
-	Spacing    Opt[float32]
+	Spacing    Spacing
 	SizeBorder Opt[float32]
 	Radius     Opt[float32]
 

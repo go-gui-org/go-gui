@@ -21,7 +21,7 @@ func demoDockLayout(w *gui.Window) gui.View {
 	return gui.Column(gui.ContainerCfg{
 		Sizing:     gui.FillFixed,
 		Height:     500,
-		Spacing:    gui.SomeF(gui.SpacingMedium),
+		Spacing:    gui.SpacingMedium,
 		Padding:    gui.NoPadding,
 		SizeBorder: gui.NoBorder,
 		Content: []gui.View{
@@ -50,7 +50,7 @@ func dockToolbar(_ *ShowcaseApp) gui.View {
 	return gui.Row(gui.ContainerCfg{
 		Sizing:     gui.FillFit,
 		Padding:    gui.NoPadding,
-		Spacing:    gui.SomeF(gui.SpacingMedium),
+		Spacing:    gui.SpacingMedium,
 		SizeBorder: gui.NoBorder,
 		Content: []gui.View{
 			gui.Button(gui.ButtonCfg{

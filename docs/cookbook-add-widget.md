@@ -309,7 +309,7 @@ In `examples/showcase/`, create a demo function and register it:
 func demoToggle(_ *gui.Window) gui.View {
     return gui.Column(gui.ContainerCfg{
         Padding: gui.PadAll(8),
-        Spacing: gui.SomeF(8),
+        Spacing: gui.SpacingPx(8),
         Content: []gui.View{
             gui.Toggle(gui.ToggleCfg{
                 Label:    "Basic toggle",

@@ -222,7 +222,7 @@ func (sv *segmentedControlView) GenerateLayout(w *Window) Layout {
 		Padding:     s.padding,
 		// The dividers are the separation; a gap would open a seam of
 		// track color between a segment and its divider.
-		Spacing:  NoBorder,
+		Spacing:  NoSpacing,
 		Sizing:   cfg.Sizing,
 		VAlign:   VAlignMiddle,
 		Disabled: cfg.Disabled,

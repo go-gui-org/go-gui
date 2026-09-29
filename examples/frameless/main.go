@@ -99,7 +99,7 @@ func header(owner string, decoration gui.WindowDecoration) gui.View {
 		Height:     headerHeight,
 		SizeBorder: gui.NoBorder,
 		Padding:    gui.NewPadding(0, theme.SpacingMedium, 0, left),
-		Spacing:    gui.SomeF(theme.SpacingSmall),
+		Spacing:    gui.SpacingSmall,
 		VAlign:     gui.VAlignMiddle,
 		Color:      theme.ColorPanel,
 		OnMouseDown: func(ctx gui.EventCtx) {
@@ -141,7 +141,7 @@ func body(owner string, w *gui.Window) gui.View {
 		SizeBorder: gui.NoBorder,
 		HAlign:     gui.HAlignCenter,
 		VAlign:     gui.VAlignMiddle,
-		Spacing:    gui.SomeF(theme.SpacingSmall),
+		Spacing:    gui.SpacingSmall,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{Text: label, TextStyle: theme.TextStyleDisplay}),
 			gui.Text(gui.TextCfg{

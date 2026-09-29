@@ -6,7 +6,7 @@ Column over Row when either direction works.
 
 ```go
 gui.Column(gui.ContainerCfg{
-    Spacing: gui.SomeF(8),
+    Spacing: gui.SpacingPx(8),
     Padding: gui.NewPadding(4, 8, 4, 8),
     Sizing:  gui.FillFit,
     Content: []gui.View{child1, child2},

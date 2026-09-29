@@ -239,8 +239,8 @@ func TestRadioButtonGroupBorderFollowsTheme(t *testing.T) {
 func TestRadioButtonGroupDefaultSpacingMedium(t *testing.T) {
 	cfg := RadioButtonGroupCfg{}
 	applyRadioGroupDefaults(&cfg)
-	if got := cfg.Spacing.Get(0); got != SpacingMedium {
-		t.Errorf("default Spacing = %v, want %v (SpacingMedium)", got, SpacingMedium)
+	if cfg.Spacing != SpacingMedium {
+		t.Errorf("default Spacing = %+v, want the SpacingMedium role", cfg.Spacing)
 	}
 }
 

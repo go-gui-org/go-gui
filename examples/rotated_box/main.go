@@ -50,7 +50,7 @@ func mainView(w *gui.Window) gui.View {
 
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFill,
-		Spacing: gui.SomeF(gui.SpacingLarge),
+		Spacing: gui.SpacingLarge,
 		Padding: gui.PaddingLarge,
 		HAlign:  gui.HAlignCenter,
 		Content: []gui.View{
@@ -62,7 +62,7 @@ func mainView(w *gui.Window) gui.View {
 			// All four rotations side by side.
 			gui.Row(gui.ContainerCfg{
 				Sizing:     gui.FitFit,
-				Spacing:    gui.SomeF(gui.SpacingLarge),
+				Spacing:    gui.SpacingLarge,
 				SizeBorder: gui.NoBorder,
 				VAlign:     gui.VAlignMiddle,
 				Content: []gui.View{
@@ -76,7 +76,7 @@ func mainView(w *gui.Window) gui.View {
 			// Interactive: rotated button.
 			gui.Row(gui.ContainerCfg{
 				Sizing:     gui.FitFit,
-				Spacing:    gui.SomeF(gui.SpacingLarge),
+				Spacing:    gui.SpacingLarge,
 				SizeBorder: gui.NoBorder,
 				VAlign:     gui.VAlignMiddle,
 				Content: []gui.View{
@@ -114,7 +114,7 @@ func mainView(w *gui.Window) gui.View {
 			// Nested rotation: 90° + 90° = 180° visual.
 			gui.Row(gui.ContainerCfg{
 				Sizing:     gui.FitFit,
-				Spacing:    gui.SomeF(gui.SpacingLarge),
+				Spacing:    gui.SpacingLarge,
 				SizeBorder: gui.NoBorder,
 				VAlign:     gui.VAlignMiddle,
 				Content: []gui.View{

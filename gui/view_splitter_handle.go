@@ -44,7 +44,7 @@ func splitterHandleView(cfg *SplitterCfg, core *splitterCore, id string) View {
 		Width:       handleWidth,
 		Height:      handleHeight,
 		Padding:     NoPadding,
-		Spacing:     SomeF(1), // ergonomics-audit:spacing — 1px grip hairline, not a gap
+		Spacing:     SpacingPx(1), // ergonomics-audit:spacing — 1px grip hairline, not a gap
 		Color:       cfg.ColorsHandle.Base,
 		ColorBorder: cfg.ColorsHandle.Border,
 		SizeBorder:  cfg.SizeBorder,

@@ -432,7 +432,7 @@ func (v *thinkingOrbLabelView) GenerateLayout(w *Window) Layout {
 		Sizing:     cfg.Sizing.Or(FitFit),
 		Padding:    cfg.Padding.Or(NoPadding),
 		SizeBorder: NoBorder,
-		Spacing:    SomeF(guiTheme.SpacingSmall),
+		Spacing:    SpacingSmall,
 		HAlign:     HAlignStart,
 		VAlign:     VAlignMiddle,
 		Content: []View{

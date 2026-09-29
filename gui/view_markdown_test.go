@@ -15,8 +15,8 @@ import (
 // off the spacing ladder.
 func TestDefaultMarkdownStyleSpacing(t *testing.T) {
 	style := DefaultMarkdownStyle()
-	if style.blockSpacing != SpacingMedium {
-		t.Errorf("blockSpacing = %v, want SpacingMedium (%v)", style.blockSpacing, SpacingMedium)
+	if style.blockSpacing != gapMedium {
+		t.Errorf("blockSpacing = %v, want SpacingMedium (%v)", style.blockSpacing, gapMedium)
 	}
 	if style.nestIndent != 16 {
 		t.Errorf("nestIndent = %v, want 16", style.nestIndent)

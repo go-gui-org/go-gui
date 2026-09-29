@@ -229,7 +229,7 @@ func (cp *commandPaletteView) GenerateLayout(w *Window) Layout {
 				Radius:      Some(radius),
 				Width:       cfg.Width,
 				Padding:     NoPadding,
-				Spacing:     SomeF(0),
+				Spacing:     NoSpacing,
 				Sizing:      FixedFit,
 				OnClick: func(ctx EventCtx) {
 					// Absorb the click so it never reaches the
@@ -265,7 +265,7 @@ func (cp *commandPaletteView) GenerateLayout(w *Window) Layout {
 						Sizing:     FillFit,
 						Padding:    NoPadding,
 						SizeBorder: NoBorder,
-						Spacing:    SomeF(0),
+						Spacing:    NoSpacing,
 						Clip:       true,
 						Content:    resultViews,
 					}),

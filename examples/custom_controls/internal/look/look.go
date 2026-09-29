@@ -62,7 +62,7 @@ func (s *Styles) IconStyle(c gui.Color, size float32) gui.TextStyle {
 // so the pages share one rhythm with the rest of go-gui.
 var (
 	PagePadding = gui.PaddingLarge
-	PageSpacing = gui.SomeF(gui.SpacingMedium)
+	PageSpacing = gui.SpacingMedium
 )
 
 // white is the target of Lighten.

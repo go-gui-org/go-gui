@@ -41,7 +41,7 @@ func mainView(_ *gui.Window) gui.View {
 	theme := gui.CurrentTheme()
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFill,
-		Spacing: gui.SomeF(gui.SpacingLarge),
+		Spacing: gui.SpacingLarge,
 		Padding: gui.PaddingLarge,
 		HAlign:  gui.HAlignCenter,
 		Content: []gui.View{
@@ -51,7 +51,7 @@ func mainView(_ *gui.Window) gui.View {
 				TextStyle: theme.TextStyleDisplay,
 			}),
 			gui.Row(gui.ContainerCfg{
-				Spacing:    gui.SomeF(gui.SpacingLarge),
+				Spacing:    gui.SpacingLarge,
 				SizeBorder: gui.NoBorder,
 				Content: []gui.View{
 					// Soft Green Glow / Orb
@@ -88,7 +88,7 @@ func mainView(_ *gui.Window) gui.View {
 				},
 			}),
 			gui.Row(gui.ContainerCfg{
-				Spacing:    gui.SomeF(gui.SpacingLarge),
+				Spacing:    gui.SpacingLarge,
 				SizeBorder: gui.NoBorder,
 				Content: []gui.View{
 					// Large blur

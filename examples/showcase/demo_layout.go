@@ -17,7 +17,7 @@ func demoRotatedBox(_ *gui.Window) gui.View {
 	for i := range boxes {
 		boxes[i] = gui.Column(gui.ContainerCfg{
 			Sizing:  gui.FitFit,
-			Spacing: gui.SomeF(gui.SpacingSmall),
+			Spacing: gui.SpacingSmall,
 			Padding: gui.NoPadding,
 			HAlign:  gui.HAlignCenter,
 			Content: []gui.View{
@@ -31,12 +31,12 @@ func demoRotatedBox(_ *gui.Window) gui.View {
 	}
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.SomeF(gui.SpacingMedium),
+		Spacing: gui.SpacingMedium,
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			gui.Row(gui.ContainerCfg{
 				Sizing:  gui.FillFit,
-				Spacing: gui.SomeF(gui.SpacingMedium),
+				Spacing: gui.SpacingMedium,
 				Padding: gui.NoPadding,
 				Content: boxes,
 			}),
@@ -48,13 +48,13 @@ func demoRow(_ *gui.Window) gui.View {
 	t := gui.CurrentTheme()
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.SomeF(gui.SpacingMedium),
+		Spacing: gui.SpacingMedium,
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{Text: "Left-aligned (default):", TextStyle: t.TextStyleTitleSmall}),
 			gui.Row(gui.ContainerCfg{
 				Sizing:      gui.FillFit,
-				Spacing:     gui.SomeF(gui.SpacingMedium),
+				Spacing:     gui.SpacingMedium,
 				ColorBorder: t.ColorBorder,
 				Content: []gui.View{
 					demoBox("A", t.ColorActive),
@@ -65,7 +65,7 @@ func demoRow(_ *gui.Window) gui.View {
 			gui.Text(gui.TextCfg{Text: "Right-aligned:", TextStyle: t.TextStyleTitleSmall}),
 			gui.Row(gui.ContainerCfg{
 				Sizing:      gui.FillFit,
-				Spacing:     gui.SomeF(gui.SpacingMedium),
+				Spacing:     gui.SpacingMedium,
 				ColorBorder: t.ColorBorder,
 				HAlign:      gui.HAlignRight,
 				Content: []gui.View{
@@ -76,7 +76,7 @@ func demoRow(_ *gui.Window) gui.View {
 			gui.Text(gui.TextCfg{Text: "Center-aligned:", TextStyle: t.TextStyleTitleSmall}),
 			gui.Row(gui.ContainerCfg{
 				Sizing:      gui.FillFit,
-				Spacing:     gui.SomeF(gui.SpacingMedium),
+				Spacing:     gui.SpacingMedium,
 				ColorBorder: t.ColorBorder,
 				HAlign:      gui.HAlignCenter,
 				Content: []gui.View{
@@ -89,7 +89,7 @@ func demoRow(_ *gui.Window) gui.View {
 				Title:   "Options",
 				TitleBG: t.ColorBackground,
 				Sizing:  gui.FillFit,
-				Spacing: gui.SomeF(gui.SpacingMedium),
+				Spacing: gui.SpacingMedium,
 				Content: []gui.View{
 					demoBox("A", t.ColorActive),
 					demoBox("B", t.ColorSelect),
@@ -104,7 +104,7 @@ func demoColumn(_ *gui.Window) gui.View {
 	t := gui.CurrentTheme()
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.SomeF(gui.SpacingMedium),
+		Spacing: gui.SpacingMedium,
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
@@ -113,7 +113,7 @@ func demoColumn(_ *gui.Window) gui.View {
 			}),
 			gui.Row(gui.ContainerCfg{
 				Sizing:  gui.FillFit,
-				Spacing: gui.SomeF(gui.SpacingMedium),
+				Spacing: gui.SpacingMedium,
 				Padding: gui.NoPadding,
 				Content: []gui.View{
 					gui.Column(gui.ContainerCfg{
@@ -122,7 +122,7 @@ func demoColumn(_ *gui.Window) gui.View {
 						Width:   180,
 						Height:  180,
 						Sizing:  gui.FixedFixed,
-						Spacing: gui.SomeF(gui.SpacingMedium),
+						Spacing: gui.SpacingMedium,
 						HAlign:  gui.HAlignCenter,
 						Content: []gui.View{
 							demoBoxSized("A", t.ColorActive, 90, 40),
@@ -135,7 +135,7 @@ func demoColumn(_ *gui.Window) gui.View {
 						Width:   180,
 						Height:  180,
 						Sizing:  gui.FixedFixed,
-						Spacing: gui.SomeF(gui.SpacingMedium),
+						Spacing: gui.SpacingMedium,
 						HAlign:  gui.HAlignCenter,
 						VAlign:  gui.VAlignMiddle,
 						Content: []gui.View{
@@ -149,7 +149,7 @@ func demoColumn(_ *gui.Window) gui.View {
 						Width:   180,
 						Height:  180,
 						Sizing:  gui.FixedFixed,
-						Spacing: gui.SomeF(gui.SpacingMedium),
+						Spacing: gui.SpacingMedium,
 						HAlign:  gui.HAlignCenter,
 						VAlign:  gui.VAlignBottom,
 						Content: []gui.View{
@@ -172,7 +172,7 @@ func demoWrapPanel(_ *gui.Window) gui.View {
 	}
 	return gui.Wrap(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.SomeF(gui.SpacingMedium),
+		Spacing: gui.SpacingMedium,
 		Padding: gui.NoPadding,
 		Content: views,
 	})
@@ -222,7 +222,7 @@ func demoExpandPanel(w *gui.Window) gui.View {
 	app := appState(w)
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.SomeF(gui.SpacingMedium),
+		Spacing: gui.SpacingMedium,
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			gui.ExpandPanel(gui.ExpandPanelCfg{
@@ -257,7 +257,7 @@ func demoSidebar(w *gui.Window) gui.View {
 	app := appState(w)
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.SomeF(gui.SpacingMedium),
+		Spacing: gui.SpacingMedium,
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			gui.Button(gui.ButtonCfg{
@@ -283,7 +283,7 @@ func demoSidebar(w *gui.Window) gui.View {
 							gui.Column(gui.ContainerCfg{
 								Sizing:  gui.FillFill,
 								Padding: gui.PaddingMedium,
-								Spacing: gui.SomeF(gui.SpacingSmall),
+								Spacing: gui.SpacingSmall,
 								Content: []gui.View{
 									gui.Text(gui.TextCfg{Text: "Sidebar", TextStyle: t.TextStyleBodySmall.Bold()}),
 									gui.Text(gui.TextCfg{
@@ -316,7 +316,7 @@ func demoSplitter(w *gui.Window) gui.View {
 
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.Some(t.SpacingSmall),
+		Spacing: gui.SpacingSmall,
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
@@ -403,14 +403,14 @@ func showcaseSplitterPane(title, note string, accent gui.Color) gui.View {
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFill,
 		Padding: gui.PaddingMedium,
-		Spacing: gui.SomeF(gui.SpacingSmall),
+		Spacing: gui.SpacingSmall,
 		Color:   t.ColorPanel,
 		Content: []gui.View{
 			gui.Row(gui.ContainerCfg{
 				Sizing:  gui.FillFit,
 				Padding: gui.NoPadding,
 				VAlign:  gui.VAlignMiddle,
-				Spacing: gui.SomeF(gui.SpacingSmall),
+				Spacing: gui.SpacingSmall,
 				Content: []gui.View{
 					gui.Row(gui.ContainerCfg{
 						Width:   8,
@@ -484,7 +484,7 @@ func demoScrollbar(_ *gui.Window) gui.View {
 
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.SomeF(gui.SpacingMedium),
+		Spacing: gui.SpacingMedium,
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			sectionLabel(t, "Vertical Scrollbar"),
@@ -495,7 +495,7 @@ func demoScrollbar(_ *gui.Window) gui.View {
 				Overflow:      true,
 				Scrollable:    true,
 				Padding:       gui.NoPadding,
-				Spacing:       gui.SomeF(gui.SpacingSmall),
+				Spacing:       gui.SpacingSmall,
 				ScrollbarCfgY: &gui.ScrollbarCfg{GapEdge: gui.SomeF(4)},
 				Content:       vItems,
 			}),
@@ -508,7 +508,7 @@ func demoScrollbar(_ *gui.Window) gui.View {
 				Scrollable:    true,
 				ScrollMode:    gui.ScrollHorizontalOnly,
 				Padding:       gui.NoPadding,
-				Spacing:       gui.SomeF(gui.SpacingSmall),
+				Spacing:       gui.SpacingSmall,
 				ScrollbarCfgX: &gui.ScrollbarCfg{GapEdge: gui.SomeF(4)},
 				Content:       hItems,
 			}),
@@ -537,7 +537,7 @@ func demoMultiWindow(w *gui.Window) gui.View {
 
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.SomeF(gui.SpacingMedium),
+		Spacing: gui.SpacingMedium,
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
@@ -589,7 +589,7 @@ func multiWindowChildView(parent *gui.Window) func(*gui.Window) gui.View {
 			Sizing:  gui.FillFill,
 			Padding: gui.PaddingMedium,
 
-			Spacing: gui.SomeF(gui.SpacingMedium),
+			Spacing: gui.SpacingMedium,
 			Content: []gui.View{
 				gui.Text(gui.TextCfg{
 					Text:      "Child Window",
@@ -658,12 +658,12 @@ func demoPrinting(w *gui.Window) gui.View {
 	app := appState(w)
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.SomeF(gui.SpacingMedium),
+		Spacing: gui.SpacingMedium,
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			gui.Row(gui.ContainerCfg{
 				Sizing:  gui.FillFit,
-				Spacing: gui.SomeF(gui.SpacingMedium),
+				Spacing: gui.SpacingMedium,
 				Padding: gui.NoPadding,
 				Content: []gui.View{
 					gui.Button(gui.ButtonCfg{

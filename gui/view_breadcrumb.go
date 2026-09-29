@@ -59,10 +59,10 @@ type BreadcrumbCfg struct {
 	// default.
 	// exportaudit:keep — caller-facing config (issue #372)
 	RadiusContent Opt[float32]
-	Spacing       Opt[float32]
+	Spacing       Spacing
 	// SpacingTrail gaps the crumbs. Unset takes the theme default.
 	// exportaudit:keep — caller-facing config (issue #372)
-	SpacingTrail Opt[float32]
+	SpacingTrail Spacing
 	SizeBorder   Opt[float32]
 	// SizeContentBorder widths the content border. Unset takes the
 	// theme default.
@@ -164,8 +164,8 @@ func Breadcrumb(cfg BreadcrumbCfg) View {
 	radius := cfg.Radius.Get(s.Radius)
 	radiusCrumb := cfg.RadiusCrumb.Get(s.radiusCrumb)
 	radiusContent := cfg.RadiusContent.Get(s.radiusContent)
-	spacing := cfg.Spacing.Get(s.Spacing)
-	spacingTrail := cfg.SpacingTrail.Get(s.spacingTrail)
+	spacing := cfg.Spacing.Or(s.Spacing)
+	spacingTrail := cfg.SpacingTrail.Or(s.spacingTrail)
 	sizeBorder := cfg.SizeBorder.Get(s.SizeBorder)
 	sizeContentBorder := cfg.SizeContentBorder.Get(s.sizeContentBorder)
 
@@ -230,7 +230,7 @@ func Breadcrumb(cfg BreadcrumbCfg) View {
 			colorDisabled: cfg.ColorsCrumb.Disabled,
 			Padding:       cfg.PaddingCrumb,
 			Radius:        Some(radiusCrumb),
-			Spacing:       Some(spacingTrail),
+			Spacing:       SpacingPx(spacingTrail),
 			OnClick:       onClick,
 			OnHover:       onHover,
 			Content:       crumbContent,
@@ -241,7 +241,7 @@ func Breadcrumb(cfg BreadcrumbCfg) View {
 	outerContent = append(outerContent, Row(ContainerCfg{
 		Color:   cfg.ColorTrail,
 		Padding: cfg.PaddingTrail,
-		Spacing: Some(spacingTrail),
+		Spacing: SpacingPx(spacingTrail),
 		Sizing:  FillFit,
 		VAlign:  VAlignMiddle,
 		Content: trailItems,
@@ -273,7 +273,7 @@ func Breadcrumb(cfg BreadcrumbCfg) View {
 		SizeBorder:  Some(sizeBorder),
 		Radius:      Some(radius),
 		Padding:     cfg.Padding,
-		Spacing:     Some(spacing),
+		Spacing:     SpacingPx(spacing),
 		Disabled:    cfg.Disabled,
 		Invisible:   cfg.Invisible,
 		OnKeyDown: func(ctx EventCtx) {

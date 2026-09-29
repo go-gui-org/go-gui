@@ -111,7 +111,7 @@ func TestApplyMenubarDefaultsSpacingSubmenu(t *testing.T) {
 	if !cfg.SpacingSubmenu.IsSet() {
 		t.Fatal("SpacingSubmenu should be set after defaults")
 	}
-	got := cfg.SpacingSubmenu.Get(0)
+	got := cfg.SpacingSubmenu.Or(0)
 	want := defaultMenubarStyle.spacingSubmenu
 	if got != want {
 		t.Errorf("SpacingSubmenu = %v, want %v", got, want)

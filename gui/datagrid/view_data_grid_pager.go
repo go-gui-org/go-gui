@@ -46,7 +46,7 @@ func dataGridPagerShell(cfg *DataGridCfg, content []gg.View) gg.View {
 		ColorBorder: cfg.ColorsRow.Border,
 		SizeBorder:  gg.SomeF(0),
 		Padding:     dataGridPagerPadding(cfg),
-		Spacing:     gg.SomeF(6),
+		Spacing:     gg.SpacingPx(6),
 		VAlign:      gg.VAlignMiddle,
 		Content:     content,
 	})

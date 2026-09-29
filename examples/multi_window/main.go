@@ -83,7 +83,7 @@ func mainView(w *gui.Window) gui.View {
 		Sizing:  gui.FillFill,
 		HAlign:  gui.HAlignCenter,
 		VAlign:  gui.VAlignMiddle,
-		Spacing: gui.SomeF(gui.SpacingMedium),
+		Spacing: gui.SpacingMedium,
 		// Structural wrapper: an unset border still reserves height.
 		SizeBorder: gui.NoBorder,
 		Content: []gui.View{

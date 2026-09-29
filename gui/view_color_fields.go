@@ -117,7 +117,7 @@ func (fv *colorFieldsView) GenerateLayout(w *Window) Layout {
 			// under a bordered theme, and every nesting level then adds
 			// its width to the row and shifts its children.
 			SizeBorder: NoBorder,
-			Spacing:    Some(SpacingSmall),
+			Spacing:    SpacingSmall,
 			axis:       axisTopToBottom,
 			A11YCfg:    cfg.A11YCfg,
 		},
@@ -138,7 +138,7 @@ func colorHexRow(
 	return Row(ContainerCfg{
 		Padding:    NoPadding,
 		SizeBorder: NoBorder, // structural; see colorFieldsView
-		Spacing:    Some(SpacingSmall),
+		Spacing:    SpacingSmall,
 		VAlign:     VAlignMiddle,
 		// Fill so the row spans the block's full width — set by the
 		// wider RGBA row below — giving the spacer something to take
@@ -235,7 +235,7 @@ func colorFieldRow(cfg *ColorFieldsCfg, pad Padding, specs []colorFieldSpec, fie
 	return Row(ContainerCfg{
 		Padding:    NoPadding,
 		SizeBorder: NoBorder, // structural; see colorFieldsView
-		Spacing:    Some(SpacingSmall),
+		Spacing:    SpacingSmall,
 		Content:    fields,
 	})
 }
@@ -397,7 +397,7 @@ func colorFieldsBlockWidth() float32 {
 // width. Used by the picker when the effective width has been
 // measured for the current theme/style.
 func colorFieldsBlockWidthFor(fieldWidth float32) float32 {
-	return 4*fieldWidth + 3*SpacingSmall
+	return 4*fieldWidth + 3*guiTheme.SpacingSmall
 }
 
 // colorFieldTextWidth measures the widest three-digit value ("888")

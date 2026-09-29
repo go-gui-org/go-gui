@@ -7,7 +7,7 @@ func demoBreadcrumb(w *gui.Window) gui.View {
 	t := gui.CurrentTheme()
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.SomeF(gui.SpacingMedium),
+		Spacing: gui.SpacingMedium,
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			gui.Breadcrumb(gui.BreadcrumbCfg{
@@ -222,7 +222,7 @@ func (v commandPaletteDemoView) GenerateLayout(w *gui.Window) gui.Layout {
 
 	return gui.GenerateViewLayout(gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.SomeF(gui.SpacingMedium),
+		Spacing: gui.SpacingMedium,
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			gui.Button(gui.ButtonCfg{

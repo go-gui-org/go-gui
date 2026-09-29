@@ -263,7 +263,7 @@ func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 			// Scroll state is keyed by ScopeID(Cfg.ID, "dropdown").
 			Scrollable: true,
 			Padding:    cfg.Padding,
-			Spacing:    SomeF(0),
+			Spacing:    NoSpacing,
 			Content:    dropdownContent,
 			AmendLayout: func(ctx EventCtx) {
 				if ctx.Layout.Parent == nil {

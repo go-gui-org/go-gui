@@ -77,6 +77,26 @@ type ThemeCfg struct {
 	}
 }
 
+// Spacing self-flags like Padding (gui/spacing.go), so a plain Spacing
+// field needs no Opt.
+func TestOptIgnoresSelfFlaggingSpacing(t *testing.T) {
+	t.Parallel()
+	const src = `package p
+
+type WidgetCfg struct {
+	Spacing Spacing
+}
+
+type OtherCfg struct {
+	Spacing gg.Spacing
+}
+`
+	findings, _ := scanOptSrc(t, src)
+	if len(findings) != 0 {
+		t.Fatalf("findings = %q, want none", findings)
+	}
+}
+
 func TestOptFlagsVAlignAndQualifiedEnum(t *testing.T) {
 	t.Parallel()
 	const src = `package p

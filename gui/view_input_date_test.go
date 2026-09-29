@@ -67,7 +67,7 @@ func TestInputDateDefaultsPreserve(t *testing.T) {
 	cfg := InputDateCfg{
 		ID:           "input_date_test_test_input_date_defaults_preserve",
 		SizeBorder:   SomeF(1),
-		CellSpacing:  SomeF(3),
+		CellSpacing:  SpacingPx(3),
 		Radius:       SomeF(4),
 		RadiusBorder: SomeF(4),
 		TextStyle:    DefaultTextStyle,
@@ -77,8 +77,8 @@ func TestInputDateDefaultsPreserve(t *testing.T) {
 	if cfg.SizeBorder.Get(0) != 1 {
 		t.Errorf("SizeBorder overwritten = %f", cfg.SizeBorder.Get(0))
 	}
-	if cfg.CellSpacing.Get(0) != 3 {
-		t.Errorf("CellSpacing overwritten = %f", cfg.CellSpacing.Get(0))
+	if cfg.CellSpacing.Or(0) != 3 {
+		t.Errorf("CellSpacing overwritten = %f", cfg.CellSpacing.Or(0))
 	}
 	if cfg.Color != RGB(30, 30, 30) {
 		t.Error("Color should not be overwritten")

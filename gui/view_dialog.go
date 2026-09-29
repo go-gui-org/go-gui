@@ -169,7 +169,7 @@ func dialogViewGenerator(cfg DialogCfg) View {
 		Float:       true,
 		FloatAnchor: FloatMiddleCenter,
 		FloatTieOff: FloatMiddleCenter,
-		Spacing:     Some(SpacingMedium),
+		Spacing:     SpacingMedium,
 		OnKeyDown:   dialogKeyDown(cfg),
 		A11YRole:    AccessRoleDialog,
 		A11YState:   AccessStateModal,
@@ -244,7 +244,7 @@ func confirmView(cfg DialogCfg) View {
 		HAlign:     cfg.AlignButtons,
 		Padding:    NoPadding,
 		SizeBorder: NoBorder,
-		Spacing:    Some(SpacingMedium),
+		Spacing:    SpacingMedium,
 		Content: []View{
 			Button(ButtonCfg{
 				Sound:         cfg.Sound,
@@ -296,7 +296,7 @@ func promptView(cfg DialogCfg) []View {
 		HAlign:     cfg.AlignButtons,
 		Padding:    NoPadding,
 		SizeBorder: NoBorder,
-		Spacing:    Some(SpacingMedium),
+		Spacing:    SpacingMedium,
 		Content: []View{
 			Button(ButtonCfg{
 				Sound:         cfg.Sound,

@@ -104,7 +104,7 @@ func cardView(w *gui.Window) gui.View {
 		Color:       colorCardBG,
 		Radius:      gui.SomeF(18),
 		Padding:     gui.PaddingLarge,
-		Spacing:     gui.SomeF(gui.SpacingLarge),
+		Spacing:     gui.SpacingLarge,
 		ColorBorder: colorCardBG,
 		Content: []gui.View{
 			headerView(),
@@ -122,7 +122,7 @@ func headerView() gui.View {
 	return gui.Row(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
 		Padding: gui.NoPadding,
-		Spacing: gui.SomeF(gui.SpacingMedium),
+		Spacing: gui.SpacingMedium,
 		VAlign:  gui.VAlignMiddle,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
@@ -213,7 +213,7 @@ func listView(w *gui.Window) gui.View {
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFill,
 		Padding: gui.NoPadding,
-		Spacing: gui.SomeF(gui.SpacingMedium),
+		Spacing: gui.SpacingMedium,
 		Content: content,
 	})
 }
@@ -222,7 +222,7 @@ func todoRowView(item todoItem) gui.View {
 	return gui.Row(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
 		Padding: gui.NoPadding,
-		Spacing: gui.SomeF(gui.SpacingMedium),
+		Spacing: gui.SpacingMedium,
 		VAlign:  gui.VAlignMiddle,
 		Content: []gui.View{
 			completeButton(item),

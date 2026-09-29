@@ -139,6 +139,14 @@ box, `PaddingMedium` (14) for a panel, `PaddingLarge` (22) for the outer edge of
 a window or card. The `Pad*` constants build an uneven inset from the same
 steps: `NewPadding(gui.PadSmall, gui.PadMedium, gui.PadSmall, gui.PadMedium)`.
 
+The four steps are values of type `gui.Spacing`, and every spacing field on a
+Cfg takes one: `Spacing: gui.SpacingMedium`. A step is a role. The widget reads
+its value from the active theme when it is built, so a `ThemeCfg` that changes
+`SpacingMedium` moves every call site that names it. `gui.SpacingPx(n)` is a
+fixed gap that does not follow the theme, and `gui.NoSpacing` is an explicit
+zero. To compute a gap from a step, read the theme:
+`gui.SpacingPx(2 * w.Theme().SpacingLarge)`.
+
 `ergonomics-audit -mode spacing` enforces this (#851). A number that is not a
 gap or inset (a 1px hairline, a bevel edge, a skin that imitates another
 platform) carries `// ergonomics-audit:spacing` and a reason on the same line. A

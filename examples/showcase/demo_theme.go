@@ -50,19 +50,19 @@ func demoThemeGen(w *gui.Window) gui.View {
 
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.SomeF(gui.SpacingMedium),
+		Spacing: gui.SpacingMedium,
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{Text: title, TextStyle: t.TextStyleBody}),
 			gui.Row(gui.ContainerCfg{
 				Sizing:  gui.FillFit,
-				Spacing: gui.SomeF(gui.SpacingMedium),
+				Spacing: gui.SpacingMedium,
 				Padding: gui.NoPadding,
 				VAlign:  gui.VAlignTop,
 				Content: []gui.View{
 					gui.Column(gui.ContainerCfg{
 						Sizing:  gui.FitFit,
-						Spacing: gui.SomeF(gui.SpacingMedium),
+						Spacing: gui.SpacingMedium,
 						Padding: gui.NoPadding,
 						Content: []gui.View{
 							gui.ColorPicker(gui.ColorPickerCfg{
@@ -80,7 +80,7 @@ func demoThemeGen(w *gui.Window) gui.View {
 							}),
 							gui.Row(gui.ContainerCfg{
 								Sizing:  gui.FillFit,
-								Spacing: gui.SomeF(gui.SpacingMedium),
+								Spacing: gui.SpacingMedium,
 								Padding: gui.NoPadding,
 								Content: []gui.View{
 									themeGenNumField(t, themeGenField{
@@ -111,7 +111,7 @@ func demoThemeGen(w *gui.Window) gui.View {
 							// and five fields on one line overflow the column.
 							gui.Row(gui.ContainerCfg{
 								Sizing:  gui.FillFit,
-								Spacing: gui.SomeF(gui.SpacingMedium),
+								Spacing: gui.SpacingMedium,
 								Padding: gui.NoPadding,
 								Content: []gui.View{
 									themeGenNumField(t, themeGenField{
@@ -134,13 +134,13 @@ func demoThemeGen(w *gui.Window) gui.View {
 					}),
 					gui.Column(gui.ContainerCfg{
 						Sizing:  gui.FillFit,
-						Spacing: gui.SomeF(gui.SpacingMedium),
+						Spacing: gui.SpacingMedium,
 						Padding: gui.NoPadding,
 						Content: []gui.View{
 							gui.Text(gui.TextCfg{Text: "Palette", TextStyle: t.TextStyleTitleSmall}),
 							gui.Wrap(gui.ContainerCfg{
 								Sizing:  gui.FillFit,
-								Spacing: gui.SomeF(gui.SpacingSmall),
+								Spacing: gui.SpacingSmall,
 								Padding: gui.NoPadding,
 								Content: strategyViews,
 							}),
@@ -154,7 +154,7 @@ func demoThemeGen(w *gui.Window) gui.View {
 							}),
 							gui.Row(gui.ContainerCfg{
 								Sizing:  gui.FillFit,
-								Spacing: gui.SomeF(gui.SpacingMedium),
+								Spacing: gui.SpacingMedium,
 								Padding: gui.NoPadding,
 								Content: []gui.View{
 									gui.Button(gui.ButtonCfg{
@@ -177,7 +177,7 @@ func demoThemeGen(w *gui.Window) gui.View {
 							}),
 							gui.Row(gui.ContainerCfg{
 								Sizing:  gui.FillFit,
-								Spacing: gui.SomeF(gui.SpacingMedium),
+								Spacing: gui.SpacingMedium,
 								Padding: gui.NoPadding,
 								Content: []gui.View{
 									gui.Button(gui.ButtonCfg{
@@ -291,7 +291,7 @@ type themeGenField struct {
 func themeGenNumField(t gui.Theme, f themeGenField) gui.View {
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FitFit,
-		Spacing: gui.SomeF(gui.SpacingSmall),
+		Spacing: gui.SpacingSmall,
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{Text: f.Label, TextStyle: t.TextStyleBody}),
@@ -363,7 +363,7 @@ func themeContrastPreview() gui.View {
 		return gui.Column(gui.ContainerCfg{
 			ID:      "theme-preview",
 			Sizing:  gui.FillFit,
-			Spacing: gui.SomeF(gui.SpacingMedium),
+			Spacing: gui.SpacingMedium,
 			Padding: gui.PaddingMedium,
 			Color:   lt.ColorPanel,
 			Radius:  gui.SomeF(8),
@@ -374,7 +374,7 @@ func themeContrastPreview() gui.View {
 				}),
 				gui.Row(gui.ContainerCfg{
 					Sizing:  gui.FillFit,
-					Spacing: gui.SomeF(gui.SpacingMedium),
+					Spacing: gui.SpacingMedium,
 					Padding: gui.NoPadding,
 					Content: []gui.View{
 						gui.Button(gui.ButtonCfg{

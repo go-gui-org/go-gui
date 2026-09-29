@@ -105,7 +105,7 @@ func tableBuildRow(
 
 	return Row(ContainerCfg{
 		Color:      bg,
-		Spacing:    Some(-cellBorder),
+		Spacing:    SpacingPx(-cellBorder),
 		Padding:    NoPadding,
 		SizeBorder: NoBorder,
 		Content:    cells,
@@ -248,7 +248,7 @@ func tableFreezeLayout(
 	headerZone := Column(ContainerCfg{
 		Sizing:     FillFit,
 		Padding:    NoPadding,
-		Spacing:    Some(rowSpacing),
+		Spacing:    SpacingPx(rowSpacing),
 		SizeBorder: NoBorder,
 		Content:    headerViews,
 	})
@@ -256,7 +256,7 @@ func tableFreezeLayout(
 	bodyCfg := ContainerCfg{
 		Sizing:     FillFill,
 		Padding:    NewPadding(0, DefaultScrollbarStyle.Size+PadXSmall, 0, 0),
-		Spacing:    Some(rowSpacing),
+		Spacing:    SpacingPx(rowSpacing),
 		SizeBorder: NoBorder,
 		ID:         scrollID,
 		Scrollable: true,
@@ -278,7 +278,7 @@ func tableFreezeLayout(
 		A11YCfg:   A11YCfg{A11YLabel: cfg.A11YLabel, A11YDescription: cfg.A11YDescription},
 		Color:     ColorTransparent,
 		Padding:   NoPadding,
-		Spacing:   SomeF(0),
+		Spacing:   NoSpacing,
 		Radius:    SomeF(0),
 		Sizing:    cfg.Sizing,
 		Width:     cfg.Width,

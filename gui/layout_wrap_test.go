@@ -508,7 +508,7 @@ func TestWrapCardsStayInsideWindow(t *testing.T) {
 			Content: []View{Wrap(ContainerCfg{
 				ID:         "cards-wrap",
 				Sizing:     FillFill,
-				Spacing:    SomeF(spacing),
+				Spacing:    SpacingPx(spacing),
 				Scrollable: true,
 				ScrollMode: ScrollVerticalOnly,
 				Content:    cards,
@@ -844,7 +844,7 @@ func TestWrapFitCardsStayInsideWindow(t *testing.T) {
 			Content: []View{Wrap(ContainerCfg{
 				ID:         "cards-wrap",
 				Sizing:     FitFit,
-				Spacing:    SomeF(spacing),
+				Spacing:    SpacingPx(spacing),
 				Scrollable: true,
 				ScrollMode: ScrollVerticalOnly,
 				Content:    cards,

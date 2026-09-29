@@ -51,7 +51,9 @@ package main
 // Sizing is out of scope the same way: it self-flags (gui/sizing.go),
 // and its zero value (FitFit) is a real combination, so a plain Sizing
 // field needs no Opt — but callers must use the predefined vars, never
-// a raw Sizing{...} literal (mode literals gates that).
+// a raw Sizing{...} literal (mode literals gates that). Spacing is out
+// of scope the same way: it self-flags (gui/spacing.go), so a plain
+// Spacing field tells "unset" from an explicit zero (NoSpacing).
 
 import (
 	"fmt"
@@ -230,7 +232,7 @@ func inspectOptFields(
 				if len(fld.Names) == 0 {
 					continue // embedded field: no name to decide on
 				}
-				if optWrapped(fld.Type) || nilableType(fld.Type) || paddingTyped(fld.Type) {
+				if optWrapped(fld.Type) || nilableType(fld.Type) || selfFlaggingTyped(fld.Type) {
 					continue
 				}
 				for _, n := range fld.Names {
@@ -283,17 +285,19 @@ func optName(expr ast.Expr) bool {
 	return false
 }
 
-// paddingTyped reports whether a field type is Padding — bare ident or
-// qualified (gg.Padding). Padding self-flags (#243), so a plain Padding
-// field is exempt from the Opt rule the same way Color is.
-func paddingTyped(typ ast.Expr) bool {
+// selfFlaggingTyped reports whether a field type is Padding or Spacing —
+// bare ident or qualified (gg.Padding). Both self-flag (#243, #866), so a
+// plain field of either type is exempt from the Opt rule the same way
+// Color is.
+func selfFlaggingTyped(typ ast.Expr) bool {
+	var name string
 	switch t := typ.(type) {
 	case *ast.Ident:
-		return t.Name == "Padding"
+		name = t.Name
 	case *ast.SelectorExpr:
-		return t.Sel.Name == "Padding"
+		name = t.Sel.Name
 	}
-	return false
+	return name == "Padding" || name == "Spacing"
 }
 
 // nilableType reports whether a field type's zero is nil, which

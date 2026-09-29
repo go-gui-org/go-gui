@@ -121,7 +121,7 @@ func TestRotatedBoxParentReaccumulation(t *testing.T) {
 		Sizing:     FitFit,
 		SizeBorder: NoBorder,
 		Padding:    NoPadding,
-		Spacing:    SomeF(0),
+		Spacing:    NoSpacing,
 		Content: []View{
 			RotatedBox(RotatedBoxCfg{
 				QuarterTurns: 1,

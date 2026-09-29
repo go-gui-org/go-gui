@@ -58,7 +58,7 @@ func interactionView(o interactionOpts) func(*Window) View {
 		content := []View{
 			Row(ContainerCfg{
 				ID: "panel", Sizing: FixedFixed, Width: 300, Height: 200,
-				Padding: PadAll(20), SizeBorder: NoBorder, Spacing: SomeF(10),
+				Padding: PadAll(20), SizeBorder: NoBorder, Spacing: SpacingPx(10),
 				Content: panelContent,
 			}),
 		}

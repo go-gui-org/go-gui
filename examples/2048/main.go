@@ -157,11 +157,11 @@ func landingView(w *gui.Window) gui.View {
 			landingBackdrop(float32(ww), float32(wh), app.LandingFrame),
 
 			gui.Column(gui.ContainerCfg{
-				Spacing: gui.SomeF(gui.SpacingLarge),
+				Spacing: gui.SpacingLarge,
 				HAlign:  gui.HAlignCenter,
 				Content: []gui.View{
 					gui.Column(gui.ContainerCfg{
-						Spacing: gui.SomeF(gui.SpacingSmall),
+						Spacing: gui.SpacingSmall,
 						HAlign:  gui.HAlignCenter,
 						Content: []gui.View{
 							gui.Text(gui.TextCfg{
@@ -241,7 +241,7 @@ func gameView(w *gui.Window) gui.View {
 		Sizing:     gui.FillFill,
 		HAlign:     gui.HAlignCenter,
 		Padding:    gui.NewPadding(gui.PadLarge, 0, 0, 0),
-		Spacing:    gui.SomeF(gui.SpacingLarge),
+		Spacing:    gui.SpacingLarge,
 		SizeBorder: gui.NoBorder,
 		Content: []gui.View{
 			// Header: Score and Best
@@ -261,7 +261,7 @@ func gameView(w *gui.Window) gui.View {
 					}),
 					gui.Row(gui.ContainerCfg{
 						HAlign:  gui.HAlignRight,
-						Spacing: gui.SomeF(gui.SpacingMedium),
+						Spacing: gui.SpacingMedium,
 						Content: []gui.View{
 							scoreBox("SCORE", app.Game.Score),
 							scoreBox("BEST", app.BestScore),
@@ -304,7 +304,7 @@ func scoreBox(label string, value int) gui.View {
 		Padding:    gui.NewPadding(gui.PadSmall, gui.PadMedium, gui.PadSmall, gui.PadMedium),
 		VAlign:     gui.VAlignMiddle,
 		HAlign:     gui.HAlignCenter,
-		Spacing:    gui.SomeF(gui.SpacingSmall),
+		Spacing:    gui.SpacingSmall,
 		SizeBorder: gui.NoBorder,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
@@ -407,7 +407,7 @@ func gameOverlay(msg string) gui.View {
 		Padding: gui.NoPadding,
 		VAlign:  gui.VAlignMiddle,
 		HAlign:  gui.HAlignCenter,
-		Spacing: gui.SomeF(gui.SpacingLarge),
+		Spacing: gui.SpacingLarge,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      msg,

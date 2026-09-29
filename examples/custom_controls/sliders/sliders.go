@@ -146,7 +146,7 @@ func section(title, sub string) gui.View {
 	return gui.Column(gui.ContainerCfg{
 		Padding:    gui.PaddingNone,
 		SizeBorder: gui.NoBorder,
-		Spacing:    gui.SomeF(gui.SpacingSmall),
+		Spacing:    gui.SpacingSmall,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{Text: title, TextStyle: look.Light.Heading}),
 			gui.Text(gui.TextCfg{Text: sub, TextStyle: look.Light.Secondary}),
@@ -164,7 +164,7 @@ func valueRowStyled(app *App, name string, slider gui.View, style gui.TextStyle)
 	return gui.Row(gui.ContainerCfg{
 		Padding:    gui.PaddingNone,
 		SizeBorder: gui.NoBorder,
-		Spacing:    gui.SomeF(gui.SpacingMedium),
+		Spacing:    gui.SpacingMedium,
 		VAlign:     gui.VAlignMiddle,
 		Content: []gui.View{
 			slider,
@@ -216,7 +216,7 @@ func appleCard(app *App) gui.View {
 		Radius:     gui.SomeF(12),
 		Padding:    gui.PaddingMedium,
 		SizeBorder: gui.NoBorder,
-		Spacing:    gui.SomeF(gui.SpacingMedium),
+		Spacing:    gui.SpacingMedium,
 		Content: append(row("Display", gui.IconSunnyO, displayTrack),
 			row("Sound", gui.IconSpeaker, soundTrack)...),
 	})
@@ -293,12 +293,12 @@ func materialCard(app *App) gui.View {
 		return gui.Column(gui.ContainerCfg{
 			Padding:    gui.PaddingNone,
 			SizeBorder: gui.NoBorder,
-			Spacing:    gui.SomeF(gui.SpacingMedium),
+			Spacing:    gui.SpacingMedium,
 			Content: []gui.View{
 				gui.Row(gui.ContainerCfg{
 					Padding:    gui.PaddingNone,
 					SizeBorder: gui.NoBorder,
-					Spacing:    gui.SomeF(gui.SpacingSmall),
+					Spacing:    gui.SpacingSmall,
 					VAlign:     gui.VAlignMiddle,
 					Content: []gui.View{
 						gui.Text(gui.TextCfg{Text: icon, TextStyle: iconStyle}),
@@ -315,7 +315,7 @@ func materialCard(app *App) gui.View {
 		Radius:     gui.SomeF(8),
 		Padding:    gui.PaddingMedium,
 		SizeBorder: gui.NoBorder,
-		Spacing:    gui.SomeF(gui.SpacingMedium),
+		Spacing:    gui.SpacingMedium,
 		Content: []gui.View{
 			row("Call volume", gui.IconPhone, callTrack),
 			row("Media volume", gui.IconSpeaker, mediaTrack),
@@ -397,7 +397,7 @@ func xpSlider(app *App, t track) gui.View {
 				Color:      xpTrough,
 				SizeBorder: gui.NoBorder,
 				Padding:    gui.PaddingNone,
-				Spacing:    gui.SomeF(0),
+				Spacing:    gui.NoSpacing,
 				Content: []gui.View{
 					strip(2, xpTroughDark),
 					gui.Rectangle(gui.RectangleCfg{Sizing: gui.FillFill, Color: xpTrough}),
@@ -413,7 +413,7 @@ func xpSlider(app *App, t track) gui.View {
 				Color:      xpOutline,
 				SizeBorder: gui.NoBorder,
 				Padding:    gui.PadAll(1), // ergonomics-audit:spacing — 1px outline frame, not an inset
-				Spacing:    gui.SomeF(0),
+				Spacing:    gui.NoSpacing,
 				Content: []gui.View{
 					strip(capH, caps),
 					// Face: light ridge left, dark ridge right.
@@ -421,7 +421,7 @@ func xpSlider(app *App, t track) gui.View {
 						Sizing:     gui.FillFill,
 						Padding:    gui.PaddingNone,
 						SizeBorder: gui.NoBorder,
-						Spacing:    gui.SomeF(0),
+						Spacing:    gui.NoSpacing,
 						Color:      xpFace,
 						Content: []gui.View{
 							gui.Rectangle(gui.RectangleCfg{Width: 2, Sizing: gui.FixedFill, Color: white}),

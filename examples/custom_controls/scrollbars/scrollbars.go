@@ -80,7 +80,7 @@ func panelRow(content ...gui.View) gui.View {
 		Sizing:     gui.FillFill,
 		Padding:    gui.PaddingNone,
 		SizeBorder: gui.NoBorder,
-		Spacing:    gui.SomeF(gui.SpacingMedium),
+		Spacing:    gui.SpacingMedium,
 		Content:    content,
 	})
 }
@@ -96,12 +96,12 @@ func panel(id, title, sub string, bar *gui.ScrollbarCfg) gui.View {
 		Sizing:     gui.FillFill,
 		Padding:    gui.PaddingNone,
 		SizeBorder: gui.NoBorder,
-		Spacing:    gui.SomeF(gui.SpacingMedium),
+		Spacing:    gui.SpacingMedium,
 		Content: []gui.View{
 			gui.Column(gui.ContainerCfg{
 				Padding:    gui.PaddingNone,
 				SizeBorder: gui.NoBorder,
-				Spacing:    gui.SomeF(gui.SpacingTight),
+				Spacing:    gui.SpacingTight,
 				Content: []gui.View{
 					gui.Text(gui.TextCfg{Text: title, TextStyle: look.Light.Bold4}),
 					gui.Text(gui.TextCfg{Text: sub, TextStyle: look.Light.Secondary}),
@@ -117,7 +117,7 @@ func panel(id, title, sub string, bar *gui.ScrollbarCfg) gui.View {
 				ColorBorder:   gui.RGBA(0, 0, 0, 26),
 				SizeBorder:    gui.SomeF(1),
 				Padding:       gui.NewPadding(12, 12+barSize, 12, 12),
-				Spacing:       gui.SomeF(gui.SpacingSmall),
+				Spacing:       gui.SpacingSmall,
 				Content:       rows,
 			}),
 		},
@@ -150,7 +150,7 @@ func fill(c gui.Color, pad gui.Padding, radius float32, content ...gui.View) gui
 		Padding:    pad,
 		Radius:     gui.SomeF(radius),
 		SizeBorder: gui.NoBorder,
-		Spacing:    gui.SomeF(0),
+		Spacing:    gui.NoSpacing,
 		HAlign:     gui.HAlignCenter,
 		VAlign:     gui.VAlignMiddle,
 		Content:    content,
@@ -167,7 +167,7 @@ func ticks(s gui.ScrollbarState, frac, h float32, c gui.Color) gui.View {
 	return gui.Column(gui.ContainerCfg{
 		Padding:    gui.PaddingNone,
 		SizeBorder: gui.NoBorder,
-		Spacing:    gui.SomeF(gui.SpacingTight),
+		Spacing:    gui.SpacingTight,
 		Content:    lines,
 	})
 }

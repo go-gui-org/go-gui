@@ -23,7 +23,7 @@ func dataGridHeaderRow(cfg *DataGridCfg, columns []GridColumnCfg, columnWidths m
 		ColorBorder: cfg.ColorsRow.Border,
 		SizeBorder:  gg.SomeF(0),
 		Padding:     gg.NoPadding,
-		Spacing:     gg.Some(-cfg.SizeBorder.Get(0)),
+		Spacing:     gg.SpacingPx(-cfg.SizeBorder.Get(0)),
 		Content:     cells,
 	})
 }
@@ -58,7 +58,7 @@ func dataGridHeaderCell(cfg *DataGridCfg, col GridColumnCfg, colIdx, colCount in
 			Padding: gg.NoPadding,
 			HAlign:  col.Align,
 			VAlign:  gg.VAlignMiddle,
-			Spacing: gg.SomeF(6),
+			Spacing: gg.SpacingPx(6),
 			Content: labelContent,
 		}))
 	} else {
@@ -106,7 +106,7 @@ func dataGridHeaderCell(cfg *DataGridCfg, col GridColumnCfg, colIdx, colCount in
 		Color:       cfg.ColorsHeader.Base,
 		ColorBorder: cfg.ColorsRow.Border,
 		SizeBorder:  cfg.SizeBorder,
-		Spacing:     gg.SomeF(0),
+		Spacing:     gg.NoSpacing,
 		// Sorting picks one of the column's orders, so the selection
 		// role. A non-sortable column has nothing to pick and stays
 		// silent (issue #467).
@@ -228,7 +228,7 @@ func dataGridReorderControls(cfg *DataGridCfg, col GridColumnCfg) gg.View {
 
 	return gg.Row(gg.ContainerCfg{
 		Padding: gg.NoPadding,
-		Spacing: gg.Some(dataGridHeaderReorderSpacing),
+		Spacing: gg.SpacingPx(dataGridHeaderReorderSpacing),
 		Width:   dataGridHeaderControlsWidth(true, false, false),
 		Sizing:  gg.FixedFill,
 		Content: []gg.View{
@@ -331,7 +331,7 @@ func dataGridFilterRow(cfg *DataGridCfg, columns []GridColumnCfg, columnWidths m
 		ColorBorder: cfg.ColorsRow.Border,
 		SizeBorder:  gg.SomeF(0),
 		Padding:     cfg.PaddingFilter,
-		Spacing:     gg.Some(-cfg.SizeBorder.Get(0)),
+		Spacing:     gg.SpacingPx(-cfg.SizeBorder.Get(0)),
 		Content:     cells,
 	})
 }
@@ -355,7 +355,7 @@ func dataGridFilterCell(cfg *DataGridCfg, col GridColumnCfg, width float32) gg.V
 		Color:       gg.ColorTransparent,
 		ColorBorder: cfg.ColorsRow.Border,
 		SizeBorder:  cfg.SizeBorder,
-		Spacing:     gg.SomeF(0),
+		Spacing:     gg.NoSpacing,
 		Content: []gg.View{
 			gg.Input(gg.InputCfg{
 				ID:          inputID,

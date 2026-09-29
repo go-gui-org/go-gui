@@ -231,7 +231,7 @@ func landingView(w *gui.Window, ww, wh float32) gui.View {
 		Color:      colorBG,
 		HAlign:     gui.HAlignCenter,
 		VAlign:     gui.VAlignMiddle,
-		Spacing:    gui.SomeF(gui.SpacingMedium),
+		Spacing:    gui.SpacingMedium,
 		SizeBorder: gui.NoBorder,
 		Padding:    gui.PaddingLarge,
 		Content: []gui.View{
@@ -340,14 +340,14 @@ func playView(w *gui.Window, ww, wh float32) gui.View {
 func sidebarView(w *gui.Window, wh float32) gui.View {
 	app := state(w)
 	theme := gui.CurrentTheme()
-	sectionSpacing := gui.SomeF(gui.SpacingMedium)
+	sectionSpacing := gui.SpacingMedium
 	sectionPadding := gui.PaddingMedium
 
 	return gui.Column(gui.ContainerCfg{
 		Width:      sidebarW,
 		Sizing:     gui.FixedFill,
 		Color:      colorPanel,
-		Spacing:    gui.SomeF(gui.SpacingMedium),
+		Spacing:    gui.SpacingMedium,
 		Padding:    gui.PaddingMedium,
 		SizeBorder: gui.NoBorder,
 		ID:         "particles-scroll",
@@ -447,7 +447,7 @@ func sidebarView(w *gui.Window, wh float32) gui.View {
 			gui.Column(gui.ContainerCfg{
 				Title:       "Presets",
 				TitleBG:     colorPanel,
-				Spacing:     gui.SomeF(0),
+				Spacing:     gui.NoSpacing,
 				Padding:     gui.NoPadding,
 				SizeBorder:  gui.SomeF(1),
 				ColorBorder: colorNeonCyan.WithOpacity(0.5),
@@ -666,7 +666,7 @@ func sliderRow(label, id string, val, min, max, step float32,
 	theme := gui.CurrentTheme()
 	return gui.Row(gui.ContainerCfg{
 		Padding:    gui.NoPadding,
-		Spacing:    gui.SomeF(gui.SpacingSmall),
+		Spacing:    gui.SpacingSmall,
 		SizeBorder: gui.NoBorder,
 		VAlign:     gui.VAlignMiddle,
 		Content: []gui.View{

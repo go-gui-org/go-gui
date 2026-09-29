@@ -185,7 +185,7 @@ func (c *timeTravelController) View(w *Window) View {
 		Sizing:    FixedFixed,
 		HAlign:    HAlignCenter,
 		VAlign:    VAlignMiddle,
-		Spacing:   SomeF(10),
+		Spacing:   SpacingPx(10),
 		Padding:   PadAll(12),
 		Content: []View{
 			Text(TextCfg{Text: counter}),

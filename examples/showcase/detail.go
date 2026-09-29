@@ -83,7 +83,7 @@ func detailPanel(w *gui.Window) gui.View {
 		SizeBorder: gui.NoBorder,
 		Padding:    detailPanelPadding(),
 
-		Spacing: gui.Some(gui.CurrentTheme().SpacingLarge),
+		Spacing: gui.SpacingPx(gui.CurrentTheme().SpacingLarge),
 		Content: []gui.View{
 			viewTitleBar(entry, app.ShowDocs),
 			gui.Text(gui.TextCfg{Text: entry.Summary, TextStyle: gui.CurrentTheme().TextStyleBody, Mode: gui.TextModeWrap}),
@@ -241,7 +241,7 @@ func componentDemo(w *gui.Window, id string) gui.View {
 		return gui.Column(gui.ContainerCfg{
 			ID:         "sound-page",
 			Sizing:     gui.FillFill,
-			Spacing:    gui.SomeF(gui.SpacingMedium),
+			Spacing:    gui.SpacingMedium,
 			Padding:    gui.NoPadding,
 			SizeBorder: gui.NoBorder,
 			Content: []gui.View{

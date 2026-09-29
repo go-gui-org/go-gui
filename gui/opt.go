@@ -29,9 +29,8 @@ func SomeF(v float32) Opt[float32] { return Opt[float32]{val: v, set: true} }
 
 // Named zero-override constants for common Opt[float32] fields.
 var (
-	NoBorder  = SomeF(0)
-	NoSpacing = SomeF(0)
-	NoRadius  = SomeF(0)
+	NoBorder = SomeF(0)
+	NoRadius = SomeF(0)
 )
 
 // NoPadding is shorthand for PaddingNone, the explicitly-set zero

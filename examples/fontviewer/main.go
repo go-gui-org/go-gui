@@ -300,7 +300,7 @@ func header() gui.View {
 		Sizing:     gui.FillFixed,
 		Height:     headerH,
 		Padding:    gui.NewPadding(headerTopPad, sidePad, 0, sidePad),
-		Spacing:    gui.SomeF(spacingTight),
+		Spacing:    gui.SpacingPx(spacingTight),
 		SizeBorder: gui.NoBorder,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{Text: "go-gui font viewer", TextStyle: t.TextStyleDisplay.Regular()}),
@@ -318,7 +318,7 @@ func toolbarRow(topPad, bottomPad float32, content []gui.View) gui.View {
 		Sizing:     gui.FillFixed,
 		Height:     toolbarH / 2,
 		Padding:    gui.NewPadding(topPad, sidePad, bottomPad, sidePad),
-		Spacing:    gui.SomeF(toolbarSpacing),
+		Spacing:    gui.SpacingPx(toolbarSpacing),
 		VAlign:     gui.VAlignMiddle,
 		SizeBorder: gui.NoBorder,
 		Content:    content,
@@ -540,7 +540,7 @@ func gridRow(w *gui.Window, matches []string, rowIdx, cols int, cardW, cardH, ro
 	return gui.Row(gui.ContainerCfg{
 		Sizing:     gui.FitFixed,
 		Height:     rowH,
-		Spacing:    gui.SomeF(gap), // horizontal gutter between cards
+		Spacing:    gui.SpacingPx(gap), // horizontal gutter between cards
 		Padding:    gui.NoPadding,
 		SizeBorder: gui.NoBorder,
 		Content:    cards,
@@ -566,7 +566,7 @@ func fontCard(w *gui.Window, name string, cardW, cardH float32) gui.View {
 		Color:   bg,
 		Radius:  gui.SomeF(cardRadius),
 		Padding: gui.NewPadding(cardVPad, previewPad, cardVPad, previewPad),
-		Spacing: gui.SomeF(spacingTight),
+		Spacing: gui.SpacingPx(spacingTight),
 		Content: []gui.View{
 			cardNameRow(s, t, name),
 			cardPreview(s.Sample, name, s.FontSize),
@@ -597,7 +597,7 @@ func cardNameRow(s *FontViewerState, t gui.Theme, name string) gui.View {
 		Sizing:     gui.FillFixed,
 		Height:     nameRowH,
 		Clip:       true,
-		Spacing:    gui.SomeF(spacingTight),
+		Spacing:    gui.SpacingPx(spacingTight),
 		VAlign:     gui.VAlignMiddle,
 		Padding:    gui.NoPadding,
 		SizeBorder: gui.NoBorder,

@@ -116,7 +116,7 @@ func (cv *colorPickerView) GenerateLayout(w *Window) Layout {
 			// Structural: a bordered theme would otherwise give this
 			// row a border of its own, widening it past the fields.
 			SizeBorder: NoBorder,
-			Spacing:    Some(colorPickerPlaneGap),
+			Spacing:    colorPickerPlaneGap,
 			Content: []View{
 				ColorPlane(ColorPlaneCfg{
 					ID:            ScopeID(cfg.ID, "plane"),
@@ -170,7 +170,7 @@ func (cv *colorPickerView) GenerateLayout(w *Window) Layout {
 		ColorBorder: style.Colors.Border,
 		SizeBorder:  Some(style.SizeBorder),
 		Radius:      Some(style.Radius),
-		Spacing:     Some(SpacingSmall),
+		Spacing:     SpacingSmall,
 		Sizing:      cfg.Sizing,
 		Width:       cfg.Width,
 		Height:      cfg.Height,
@@ -192,7 +192,7 @@ const colorPickerSwatchSize = 32
 //
 // colorPickerPlaneSizeFor subtracts it, so widening the gap narrows
 // the plane and the row's total width does not move.
-const colorPickerPlaneGap = SpacingMedium
+var colorPickerPlaneGap = SpacingMedium
 
 // colorPickerMinPlane floors the derived plane size. A theme with wide
 // sliders and narrow fields could otherwise drive the plane down to
@@ -220,7 +220,7 @@ const colorPickerMinPlane = 112
 // grow the plane past sVSize rather than reintroduce the dead space.
 func colorPickerPlaneSizeFor(style ColorPickerStyle, blockWidth float32) float32 {
 	sliderThick := f32Max(style.sliderHeight, style.indicatorSize)
-	size := blockWidth - 2*(sliderThick+colorPickerPlaneGap)
+	size := blockWidth - 2*(sliderThick+colorPickerPlaneGap.Or(0))
 	return f32Max(size, colorPickerMinPlane)
 }
 

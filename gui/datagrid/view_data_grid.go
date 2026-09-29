@@ -747,7 +747,7 @@ func dataGridBuild(w *gg.Window, cfg DataGridCfg) gg.View {
 		ScrollbarCfgY: &scrollbarCfg,
 		Color:         resolvedCfg.ColorBackground,
 		Padding:       dataGridScrollPadding(&resolvedCfg),
-		Spacing:       gg.SomeF(0),
+		Spacing:       gg.NoSpacing,
 		Sizing:        gg.FillFill,
 		Content:       rows,
 	})
@@ -774,7 +774,7 @@ func dataGridBuild(w *gg.Window, cfg DataGridCfg) gg.View {
 		SizeBorder:  resolvedCfg.SizeBorder,
 		Radius:      resolvedCfg.Radius,
 		Padding:     gg.NoPadding,
-		Spacing:     gg.SomeF(0),
+		Spacing:     gg.NoSpacing,
 		Disabled:    resolvedCfg.Disabled,
 		Invisible:   resolvedCfg.Invisible,
 		Sizing:      resolvedCfg.Sizing,

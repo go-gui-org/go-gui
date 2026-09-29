@@ -138,7 +138,7 @@ func group(id string, bg gui.Color, spacing float32, content ...gui.View) gui.Vi
 		SizeBorder:  border,
 		Radius:      gui.SomeF(0),
 		Padding:     pad,
-		Spacing:     gui.SomeF(spacing),
+		Spacing:     gui.SpacingPx(spacing),
 		Content:     content,
 	})
 }
@@ -149,7 +149,7 @@ func toggleRow(id, label, key string, app *App, target gui.View) gui.View {
 	return gui.Row(gui.ContainerCfg{
 		ID:         id,
 		Padding:    gui.PaddingNone,
-		Spacing:    gui.SomeF(gui.SpacingMedium),
+		Spacing:    gui.SpacingMedium,
 		SizeBorder: gui.NoBorder,
 		VAlign:     gui.VAlignMiddle,
 		Content: []gui.View{
@@ -241,7 +241,7 @@ func materialCheck(id, key string, app *App, accent gui.Color, disabled bool) gu
 		}
 		return gui.Row(checkShell(gui.ContainerCfg{
 			ID:      id,
-			Spacing: gui.SomeF(gui.SpacingSmall),
+			Spacing: gui.SpacingSmall,
 			Content: []gui.View{
 				gui.Row(gui.ContainerCfg{
 					Width:       size,
@@ -350,7 +350,7 @@ func xpCheck(id, key string, app *App, disabled bool) gui.View {
 
 		return gui.Row(checkShell(gui.ContainerCfg{
 			ID:      id,
-			Spacing: gui.SomeF(gui.SpacingSmall),
+			Spacing: gui.SpacingSmall,
 			Content: []gui.View{
 				box,
 				gui.Text(gui.TextCfg{Text: label, TextStyle: look.Light.Text(text, 12)}),

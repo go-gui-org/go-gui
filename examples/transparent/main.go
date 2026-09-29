@@ -93,7 +93,7 @@ func mainView(w *gui.Window) gui.View {
 			gui.Column(gui.ContainerCfg{
 				Color:   card,
 				Padding: gui.PadAll(t.SpacingLarge),
-				Spacing: gui.SomeF(t.SpacingMedium),
+				Spacing: gui.SpacingMedium,
 				HAlign:  gui.HAlignCenter,
 				Content: []gui.View{
 					gui.Text(gui.TextCfg{

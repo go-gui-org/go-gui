@@ -47,11 +47,11 @@ type MenubarCfg struct {
 	// default.
 	// exportaudit:keep — caller-facing config (issue #372)
 	RadiusMenuItem Opt[float32]
-	Spacing        Opt[float32]
+	Spacing        Spacing
 	// SpacingSubmenu gaps submenu items. Unset takes the theme
 	// default.
 	// exportaudit:keep — caller-facing config (issue #372)
-	SpacingSubmenu Opt[float32]
+	SpacingSubmenu Spacing
 	FloatOffsetX   float32
 	FloatOffsetY   float32
 	Color          Color
@@ -182,7 +182,7 @@ func applyMenubarDefaults(cfg *MenubarCfg) {
 		cfg.PaddingSubtitle = d.paddingSubtitle
 	}
 	if !cfg.SpacingSubmenu.IsSet() {
-		cfg.SpacingSubmenu = Some(d.spacingSubmenu)
+		cfg.SpacingSubmenu = SpacingPx(d.spacingSubmenu)
 	}
 	if cfg.Action == nil {
 		cfg.Action = func(_ string, ctx EventCtx) {

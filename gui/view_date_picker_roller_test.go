@@ -20,7 +20,7 @@ func TestDatePickerRollerLayout(t *testing.T) {
 // RowSpacing stacks a drum's rows tighter: NoSpacing arranges shorter
 // than the unset default, while the row count stays put.
 func TestDatePickerRollerRowSpacing(t *testing.T) {
-	arrangedHeight := func(spacing Opt[float32], set bool) float32 {
+	arrangedHeight := func(spacing Spacing, set bool) float32 {
 		w := &Window{}
 		cfg := DatePickerRollerCfg{
 			ID:           "roller-gap",

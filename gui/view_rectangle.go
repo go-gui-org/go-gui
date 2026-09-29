@@ -45,6 +45,5 @@ func Rectangle(cfg RectangleCfg) View {
 		Padding:        NoPadding,
 		Radius:         Some(cfg.Radius),
 		SizeBorder:     Some(cfg.SizeBorder),
-		Spacing:        Opt[float32]{},
 	})
 }

@@ -75,7 +75,7 @@ type DatePickerCfg struct {
 	SizeBorder      Opt[float32]
 	// CellSpacing gaps the day cells. Unset takes the theme default.
 	// exportaudit:keep — caller-facing config (issue #372)
-	CellSpacing Opt[float32]
+	CellSpacing Spacing
 	Radius      Opt[float32]
 	// RadiusBorder rounds the calendar frame. Unset takes the theme
 	// default.
@@ -145,7 +145,7 @@ func (dv *datePickerView) GenerateLayout(w *Window) Layout {
 	// One resolved identity for every key below; see (*Window).EffID.
 	cfg.ID = w.EffID(cfg.ID)
 	dn := &defaultDatePickerStyle
-	cellSpacing := cfg.CellSpacing.Get(dn.cellSpacing)
+	cellSpacing := cfg.CellSpacing.Or(dn.cellSpacing)
 	radiusBorder := cfg.RadiusBorder.Get(dn.radiusBorder)
 
 	// Get/init state.
@@ -188,7 +188,7 @@ func (dv *datePickerView) GenerateLayout(w *Window) Layout {
 		SizeBorder:  cfg.SizeBorder,
 		Radius:      Some(radiusBorder),
 		Padding:     cfg.Padding,
-		Spacing:     Some(cellSpacing),
+		Spacing:     SpacingPx(cellSpacing),
 		MinWidth:    minWidth,
 		Disabled:    cfg.Disabled,
 		Invisible:   cfg.Invisible,
@@ -488,7 +488,7 @@ func applyDatePickerDefaults(cfg *DatePickerCfg) {
 		cfg.TextStyle = d.TextStyle
 	}
 	if !cfg.CellSpacing.IsSet() {
-		cfg.CellSpacing = Some(d.cellSpacing)
+		cfg.CellSpacing = SpacingPx(d.cellSpacing)
 	}
 	if !cfg.Radius.IsSet() {
 		cfg.Radius = Some(d.Radius)

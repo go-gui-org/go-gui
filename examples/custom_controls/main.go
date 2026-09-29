@@ -154,7 +154,7 @@ func mainView(w *gui.Window) gui.View {
 		// The padding keeps the tab control off the window edges.
 		Padding:    th.PaddingLarge,
 		SizeBorder: gui.NoBorder,
-		Spacing:    gui.SomeF(th.SpacingMedium),
+		Spacing:    gui.SpacingMedium,
 		Content: []gui.View{
 			intro(&th),
 			gui.TabControl(gui.TabControlCfg{

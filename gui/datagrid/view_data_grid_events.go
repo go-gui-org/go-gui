@@ -64,7 +64,7 @@ func dataGridQuickFilterRow(cfg *DataGridCfg, w *gg.Window) gg.View {
 		ColorBorder: cfg.ColorsRow.Border,
 		SizeBorder:  gg.SomeF(0),
 		Padding:     gg.NewPadding(0, cfg.PaddingCell.Or(gg.PaddingNone).Right, 0, cfg.PaddingCell.Or(gg.PaddingNone).Left),
-		Spacing:     gg.SomeF(6),
+		Spacing:     gg.SpacingPx(6),
 		VAlign:      gg.VAlignMiddle,
 		OnClick: func(ctx gg.EventCtx) {
 			if inputFocusID != "" {
@@ -211,7 +211,7 @@ func dataGridColumnChooserRow(cfg *DataGridCfg, isOpen bool, focusID string) gg.
 		Height:  rowH,
 		Sizing:  gg.FillFixed,
 		Padding: cfg.PaddingFilter,
-		Spacing: gg.SomeF(6),
+		Spacing: gg.SpacingPx(6),
 		VAlign:  gg.VAlignMiddle,
 		Content: []gg.View{
 			dataGridIndicatorButton(gg.ScopeID(gridID, "column_chooser"), chooserLabel, cfg.TextStyleFilter, cfg.ColorsHeader.Hover,
@@ -249,7 +249,7 @@ func dataGridColumnChooserRow(cfg *DataGridCfg, isOpen bool, focusID string) gg.
 			Height:      rowH,
 			Sizing:      gg.FillFixed,
 			Padding:     cfg.PaddingFilter,
-			Spacing:     gg.SomeF(8),
+			Spacing:     gg.SpacingPx(8),
 			Color:       gg.ColorTransparent,
 			ColorBorder: cfg.ColorsRow.Border,
 			SizeBorder:  gg.SomeF(0),
@@ -263,7 +263,7 @@ func dataGridColumnChooserRow(cfg *DataGridCfg, isOpen bool, focusID string) gg.
 		ColorBorder: cfg.ColorsRow.Border,
 		SizeBorder:  gg.SomeF(0),
 		Padding:     gg.NoPadding,
-		Spacing:     gg.SomeF(0),
+		Spacing:     gg.NoSpacing,
 		Content:     content,
 	})
 }

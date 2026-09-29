@@ -5,7 +5,7 @@ import "testing"
 func TestTreeEstimateRowHeightNilWindow(t *testing.T) {
 	// Without a text measurer the estimate falls back to the style
 	// size, then adds the fixed padding and the configured spacing.
-	cfg := TreeCfg{Spacing: Some(float32(4))}
+	cfg := TreeCfg{Spacing: SpacingPx(4)}
 	got := treeEstimateRowHeight(cfg, nil)
 	want := defaultTreeStyle.TextStyle.Size +
 		PaddingTwoFive.Height() + 4
@@ -17,7 +17,7 @@ func TestTreeEstimateRowHeightNilWindow(t *testing.T) {
 func TestTreeEstimateRowHeightWithMeasurer(t *testing.T) {
 	w := newTestWindow()
 	w.textMeasurer = &stubTextMeasurer{fontHeight: 22}
-	cfg := TreeCfg{Spacing: Some(float32(0))}
+	cfg := TreeCfg{Spacing: NoSpacing}
 	got := treeEstimateRowHeight(cfg, w)
 	want := float32(22) + PaddingTwoFive.Height() + 0
 	if got != want {
@@ -41,7 +41,7 @@ func TestTreeSiblingIndex(t *testing.T) {
 func TestTreeDragRowViewLoadingDelegates(t *testing.T) {
 	// A loading placeholder row must render through treeRowView with
 	// no drag arm, so no layout ID is attached.
-	cfg := TreeCfg{ID: "tree", Spacing: Some(float32(0))}
+	cfg := TreeCfg{ID: "tree", Spacing: NoSpacing}
 	view := treeDragRowView(
 		cfg,
 		treeFlatRow{ID: "load", IsLoading: true, Text: "Loading..."},
@@ -63,7 +63,7 @@ func TestTreeDragRowViewLoadingDelegates(t *testing.T) {
 func TestTreeDragRowViewArmsDrag(t *testing.T) {
 	// A reorderable row must carry its layout ID and arm the
 	// drag-reorder state when clicked.
-	cfg := TreeCfg{ID: "tree", Spacing: Some(float32(0))}
+	cfg := TreeCfg{ID: "tree", Spacing: NoSpacing}
 	view := treeDragRowView(
 		cfg,
 		treeFlatRow{ID: "a", Text: "A"},
@@ -93,7 +93,7 @@ func TestTreeDragRowViewArmsDrag(t *testing.T) {
 func TestTreeRowContent(t *testing.T) {
 	// treeRowContent builds the ghost content for a drag — a row
 	// container with the tree's icon + text children.
-	cfg := TreeCfg{ID: "tree", Spacing: Some(float32(0))}
+	cfg := TreeCfg{ID: "tree", Spacing: NoSpacing}
 	view := treeRowContent(
 		cfg,
 		treeFlatRow{ID: "a", Text: "Alpha", HasChildren: true},

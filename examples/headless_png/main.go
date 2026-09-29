@@ -58,7 +58,7 @@ func mainView(w *gui.Window) gui.View {
 		Sizing:  gui.FillFill,
 		HAlign:  gui.HAlignCenter,
 		VAlign:  gui.VAlignMiddle,
-		Spacing: gui.SomeF(gui.SpacingMedium),
+		Spacing: gui.SpacingMedium,
 		Content: []gui.View{
 			gui.Label("Rendered without a GPU", gui.CurrentTheme().TextStyleDisplay),
 			gui.Label(fmt.Sprintf("%d Clicks", app.Clicks), gui.CurrentTheme().TextStyleBody),

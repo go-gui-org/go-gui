@@ -10,12 +10,12 @@ func demoDialog(w *gui.Window) gui.View {
 	app := appState(w)
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.SomeF(gui.SpacingMedium),
+		Spacing: gui.SpacingMedium,
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			gui.Row(gui.ContainerCfg{
 				Sizing:  gui.FillFit,
-				Spacing: gui.SomeF(gui.SpacingMedium),
+				Spacing: gui.SpacingMedium,
 				Padding: gui.NoPadding,
 				Content: []gui.View{
 					gui.Button(gui.ButtonCfg{
@@ -84,7 +84,7 @@ func demoDialog(w *gui.Window) gui.View {
 								CustomView: func(*gui.Window) gui.View {
 									return gui.Column(gui.ContainerCfg{
 										Sizing:  gui.FillFit,
-										Spacing: gui.SomeF(gui.SpacingMedium),
+										Spacing: gui.SpacingMedium,
 										Padding: gui.PaddingSmall,
 										Content: []gui.View{
 											gui.Text(gui.TextCfg{
@@ -112,7 +112,7 @@ func demoDialog(w *gui.Window) gui.View {
 			sectionLabel(t, "Native File Dialogs"),
 			gui.Row(gui.ContainerCfg{
 				Sizing:  gui.FillFit,
-				Spacing: gui.SomeF(gui.SpacingMedium),
+				Spacing: gui.SpacingMedium,
 				Padding: gui.NoPadding,
 				Content: []gui.View{
 					gui.Button(gui.ButtonCfg{
@@ -196,7 +196,7 @@ func demoNotification(w *gui.Window) gui.View {
 	app := appState(w)
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.SomeF(gui.SpacingMedium),
+		Spacing: gui.SpacingMedium,
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			gui.Button(gui.ButtonCfg{
@@ -237,7 +237,7 @@ func demoInspector(w *gui.Window) gui.View {
 	inspectorStyle.CodeHighlighter = highlight.Default()
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.SomeF(gui.SpacingMedium),
+		Spacing: gui.SpacingMedium,
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			w.Markdown(gui.MarkdownCfg{
@@ -284,7 +284,7 @@ func demoContextMenu(w *gui.Window) gui.View {
 
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.SomeF(gui.SpacingMedium),
+		Spacing: gui.SpacingMedium,
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			sectionLabel(t, "Basic Context Menu"),
@@ -364,7 +364,7 @@ func demoTooltip(w *gui.Window) gui.View {
 	t := gui.CurrentTheme()
 	return gui.Row(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.SomeF(gui.SpacingMedium),
+		Spacing: gui.SpacingMedium,
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			gui.WithTooltip(w, gui.WithTooltipCfg{

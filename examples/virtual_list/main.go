@@ -138,7 +138,7 @@ func mainView(w *gui.Window) gui.View {
 
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFill,
-		Spacing: gui.Some(theme.SpacingMedium),
+		Spacing: gui.SpacingMedium,
 		Padding: gui.PaddingMedium,
 		Content: []gui.View{
 			controls(app),
@@ -172,7 +172,7 @@ func controls(app *App) gui.View {
 	theme := gui.CurrentTheme()
 	row := gui.Row(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.Some(theme.SpacingSmall),
+		Spacing: gui.SpacingSmall,
 		VAlign:  gui.VAlignMiddle,
 		Content: []gui.View{
 			gui.Input(gui.InputCfg{
@@ -223,7 +223,7 @@ func controls(app *App) gui.View {
 	}
 	return gui.Column(gui.ContainerCfg{
 		Sizing:     gui.FillFit,
-		Spacing:    gui.Some(theme.SpacingSmall),
+		Spacing:    gui.SpacingSmall,
 		SizeBorder: gui.NoBorder,
 		Content: []gui.View{
 			row,
@@ -261,7 +261,7 @@ func card(m message, i int, w *gui.Window) gui.View {
 		// Row spacing lives inside the row: the list itself is fixed
 		// at zero spacing, because a gap between rows is height the
 		// model does not account for.
-		Spacing: gui.Some(theme.SpacingTight),
+		Spacing: gui.SpacingTight,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      fmt.Sprintf("#%d — %s", m.Seq, m.Who),

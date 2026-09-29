@@ -50,7 +50,7 @@ func demoMathSpinner(w *gui.Window) gui.View {
 
 			SizeBorder: gui.NoBorder,
 			HAlign:     gui.HAlignCenter,
-			Spacing:    gui.SomeF(gui.SpacingSmall),
+			Spacing:    gui.SpacingSmall,
 			Content: []gui.View{
 				gui.MathSpinner(gui.MathSpinnerCfg{
 					// Index-based: labels contain spaces, so they cannot
@@ -73,11 +73,11 @@ func demoMathSpinner(w *gui.Window) gui.View {
 		Sizing:     gui.FillFit,
 		Padding:    gui.NoPadding,
 		SizeBorder: gui.NoBorder,
-		Spacing:    gui.SomeF(gui.SpacingMedium),
+		Spacing:    gui.SpacingMedium,
 		Content: []gui.View{
 			gui.Wrap(gui.ContainerCfg{
 				Sizing:     gui.FillFit,
-				Spacing:    gui.SomeF(gui.SpacingMedium),
+				Spacing:    gui.SpacingMedium,
 				Padding:    gui.NoPadding,
 				SizeBorder: gui.NoBorder,
 				Content:    cells,

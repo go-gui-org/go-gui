@@ -90,12 +90,12 @@ func demoTable(w *gui.Window) gui.View {
 
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.SomeF(gui.SpacingMedium),
+		Spacing: gui.SpacingMedium,
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			gui.Row(gui.ContainerCfg{
 				Sizing:  gui.FillFit,
-				Spacing: gui.SomeF(gui.SpacingMedium),
+				Spacing: gui.SpacingMedium,
 				Padding: gui.NoPadding,
 				Content: []gui.View{
 					gui.RadioButtonGroupRow(gui.RadioButtonGroupCfg{
@@ -116,7 +116,7 @@ func demoTable(w *gui.Window) gui.View {
 					gui.Column(gui.ContainerCfg{
 						Padding:    gui.NoPadding,
 						SizeBorder: gui.NoBorder,
-						Spacing:    gui.SomeF(gui.SpacingSmall),
+						Spacing:    gui.SpacingSmall,
 						Content: []gui.View{
 							gui.Toggle(gui.ToggleCfg{
 								ID:       "showcase_table_multiselect",
@@ -159,7 +159,7 @@ func demoDataGrid(w *gui.Window) gui.View {
 	gridFeaturesStyle.CodeHighlighter = highlight.Default()
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.SomeF(gui.SpacingMedium),
+		Spacing: gui.SpacingMedium,
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
@@ -214,7 +214,7 @@ func demoDataSource(w *gui.Window) gui.View {
 
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.SomeF(gui.SpacingMedium),
+		Spacing: gui.SpacingMedium,
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
@@ -254,7 +254,7 @@ func demoTree(w *gui.Window) gui.View {
 
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.SomeF(gui.SpacingMedium),
+		Spacing: gui.SpacingMedium,
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{

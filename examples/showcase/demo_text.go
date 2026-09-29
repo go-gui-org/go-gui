@@ -25,7 +25,7 @@ func demoText(_ *gui.Window) gui.View {
 		}),
 		gui.Row(gui.ContainerCfg{
 			Sizing:  gui.FillFit,
-			Spacing: gui.Some(t.SpacingMedium),
+			Spacing: gui.SpacingMedium,
 			Padding: gui.NoPadding,
 			VAlign:  gui.VAlignMiddle,
 			Content: []gui.View{
@@ -37,7 +37,7 @@ func demoText(_ *gui.Window) gui.View {
 		}),
 		gui.Row(gui.ContainerCfg{
 			Sizing:  gui.FillFit,
-			Spacing: gui.Some(t.SpacingMedium),
+			Spacing: gui.SpacingMedium,
 			Padding: gui.NoPadding,
 			VAlign:  gui.VAlignMiddle,
 			Content: []gui.View{
@@ -84,7 +84,7 @@ func demoText(_ *gui.Window) gui.View {
 		}),
 		gui.Row(gui.ContainerCfg{
 			Sizing:  gui.FillFit,
-			Spacing: gui.Some(t.SpacingMedium),
+			Spacing: gui.SpacingMedium,
 			Padding: gui.NoPadding,
 			VAlign:  gui.VAlignTop,
 			Content: []gui.View{
@@ -271,7 +271,7 @@ func demoText(_ *gui.Window) gui.View {
 
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.Some(t.SpacingSmall),
+		Spacing: gui.SpacingSmall,
 		Padding: gui.NoPadding,
 		Content: content,
 	})
@@ -297,7 +297,7 @@ func textDemoCard(
 		SizeBorder:  gui.SomeF(1),
 		Padding:     t.PaddingSmall,
 
-		Spacing: gui.Some(t.SpacingSmall),
+		Spacing: gui.SpacingSmall,
 		Content: items,
 	}
 	if width > 0 {
@@ -311,7 +311,7 @@ func demoRtf(_ *gui.Window) gui.View {
 	t := gui.CurrentTheme()
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.SomeF(gui.SpacingMedium),
+		Spacing: gui.SpacingMedium,
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
@@ -481,7 +481,7 @@ func renderMarkdownCallout(
 			ID:      gui.ScopeIDN(el.DocID, "callout", el.Index),
 			Sizing:  gui.FillFit,
 			Padding: gui.PadAll(t.SpacingMedium),
-			Spacing: gui.Some(t.SpacingSmall),
+			Spacing: gui.SpacingSmall,
 			// The tint is the whole signal, so no border: a container
 			// reserves border space whether or not it paints one, and
 			// an unset SizeBorder would inherit the theme's and add

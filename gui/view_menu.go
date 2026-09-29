@@ -42,7 +42,7 @@ func menu(w *Window, cfg MenubarCfg) View {
 		Radius:        cfg.RadiusBorder,
 		MinWidth:      cfg.WidthSubmenuMin.Get(defaultMenubarStyle.widthSubmenuMin),
 		MaxWidth:      cfg.WidthSubmenuMax.Get(defaultMenubarStyle.widthSubmenuMax),
-		Spacing:       Some(cfg.SpacingSubmenu.Get(defaultMenubarStyle.spacingSubmenu)),
+		Spacing:       SpacingPx(cfg.SpacingSubmenu.Or(defaultMenubarStyle.spacingSubmenu)),
 		Padding:       cfg.PaddingSubmenu,
 		Float:         cfg.Float,
 		FloatAutoFlip: cfg.FloatAutoFlip,
@@ -183,7 +183,7 @@ func menuBuild(cfg MenubarCfg, level int, items []MenuItemCfg, w *Window) []View
 		configured.selected = (selectedID == item.ID)
 		configured.sizing = sizing
 		configured.radius = cfg.RadiusMenuItem.Get(defaultMenubarStyle.radiusMenuItem)
-		configured.spacing = cfg.SpacingSubmenu.Get(defaultMenubarStyle.spacingSubmenu)
+		configured.spacing = cfg.SpacingSubmenu.Or(defaultMenubarStyle.spacingSubmenu)
 		configured.level = level
 		configured.textStyle = ts
 
@@ -233,7 +233,7 @@ func menuBuild(cfg MenubarCfg, level int, items []MenuItemCfg, w *Window) []View
 				Radius:        cfg.RadiusSubmenu,
 				MinWidth:      cfg.WidthSubmenuMin.Get(defaultMenubarStyle.widthSubmenuMin),
 				MaxWidth:      cfg.WidthSubmenuMax.Get(defaultMenubarStyle.widthSubmenuMax),
-				Spacing:       Some(cfg.SpacingSubmenu.Get(defaultMenubarStyle.spacingSubmenu)),
+				Spacing:       SpacingPx(cfg.SpacingSubmenu.Or(defaultMenubarStyle.spacingSubmenu)),
 				Padding:       cfg.PaddingSubmenu,
 				Float:         true,
 				FloatAutoFlip: true,

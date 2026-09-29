@@ -313,7 +313,7 @@ func listBoxItemID(listID, optionID string) string {
 func listBoxItemContent(dat ListBoxOption, cfg ListBoxCfg) View {
 	if dat.isSubheading {
 		return Column(ContainerCfg{
-			Spacing: SomeF(1), // ergonomics-audit:spacing — 1px hairline, not a gap
+			Spacing: SpacingPx(1), // ergonomics-audit:spacing — 1px hairline, not a gap
 			Padding: NoPadding,
 			Sizing:  FillFit,
 			Content: []View{

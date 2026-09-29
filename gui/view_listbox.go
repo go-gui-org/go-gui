@@ -248,7 +248,7 @@ func (lv *listBoxView) GenerateLayout(w *Window) Layout {
 		Radius:      Some(radius),
 		Padding:     cfg.Padding,
 		Sizing:      cfg.Sizing,
-		Spacing:     SomeF(0),
+		Spacing:     NoSpacing,
 		Disabled:    cfg.Disabled,
 		Invisible:   cfg.Invisible,
 		Content:     list,

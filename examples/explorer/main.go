@@ -206,7 +206,7 @@ func leftPane(w *gui.Window, app *ExplorerApp) gui.View {
 		Sizing:  gui.FixedFill,
 		Color:   t.ColorPanel,
 		Padding: gui.PaddingMedium,
-		Spacing: gui.SomeF(gui.SpacingMedium),
+		Spacing: gui.SpacingMedium,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{Text: "Examples", TextStyle: t.TextStyleTitleSmall}),
 			gui.Text(gui.TextCfg{
@@ -228,14 +228,14 @@ func leftPane(w *gui.Window, app *ExplorerApp) gui.View {
 				Scrollable:    true,
 				Sizing:        gui.FillFill,
 				Padding:       gui.NewPadding(0, t.ScrollbarStyle.Size+4, 0, 0),
-				Spacing:       gui.SomeF(gui.SpacingTight),
+				Spacing:       gui.SpacingTight,
 				ScrollbarCfgY: &gui.ScrollbarCfg{GapEdge: gui.SomeF(3)},
 				Content:       exampleRows(filtered, app),
 			}),
 			gui.Row(gui.ContainerCfg{
 				Sizing:  gui.FillFit,
 				HAlign:  gui.HAlignRight,
-				Spacing: gui.SomeF(gui.SpacingMedium),
+				Spacing: gui.SpacingMedium,
 				Content: []gui.View{
 					gui.TextButton("explorer-refresh", "Refresh", func(ctx gui.EventCtx) {
 						a := gui.State[ExplorerApp](ctx.Window)
@@ -298,7 +298,7 @@ func tagChips(tags []string, app *ExplorerApp) gui.View {
 	}
 	return gui.Wrap(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.SomeF(gui.SpacingSmall),
+		Spacing: gui.SpacingSmall,
 		Content: chips,
 	})
 }
@@ -347,7 +347,7 @@ func exampleRows(examples []ExampleMeta, app *ExplorerApp) []gui.View {
 			Content: []gui.View{
 				gui.Column(gui.ContainerCfg{
 					Sizing:  gui.FillFit,
-					Spacing: gui.SomeF(gui.SpacingTight),
+					Spacing: gui.SpacingTight,
 					Content: []gui.View{
 						gui.Text(gui.TextCfg{
 							Text:      label + suffix,
@@ -443,7 +443,7 @@ func rightPane(w *gui.Window, app *ExplorerApp) gui.View {
 				Sizing:  gui.FillFit,
 				HAlign:  gui.HAlignRight,
 				VAlign:  gui.VAlignMiddle,
-				Spacing: gui.SomeF(gui.SpacingMedium),
+				Spacing: gui.SpacingMedium,
 				Content: runRow,
 			}),
 		},
@@ -469,7 +469,7 @@ func rightPane(w *gui.Window, app *ExplorerApp) gui.View {
 		Scrollable:    true,
 		Sizing:        gui.FillFill,
 		Padding:       gui.PaddingMedium,
-		Spacing:       gui.SomeF(gui.SpacingSmall),
+		Spacing:       gui.SpacingSmall,
 		ScrollbarCfgY: &gui.ScrollbarCfg{GapEdge: gui.SomeF(3)},
 		Content:       detailContent,
 	})

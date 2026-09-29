@@ -135,7 +135,7 @@ func ExpandPanel(cfg ExpandPanelCfg) View {
 		MaxWidth:    cfg.MaxWidth,
 		MinHeight:   cfg.MinHeight,
 		MaxHeight:   cfg.MaxHeight,
-		Spacing:     SomeF(0),
+		Spacing:     NoSpacing,
 		Content: []View{
 			Row(ContainerCfg{
 				ID:           headID,
@@ -193,7 +193,7 @@ func ExpandPanel(cfg ExpandPanelCfg) View {
 				Invisible: !cfg.Open,
 				Padding:   NoPadding,
 				Sizing:    FillFit,
-				Spacing:   SomeF(0),
+				Spacing:   NoSpacing,
 				Content: []View{
 					cfg.Content,
 				},

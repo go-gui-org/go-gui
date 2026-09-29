@@ -227,7 +227,7 @@ func mdFlushListItems(
 		Sizing:     FillFit,
 		Padding:    NoPadding,
 		SizeBorder: NoBorder,
-		Spacing:    Some(cfg.Style.blockSpacing / 2),
+		Spacing:    SpacingPx(cfg.Style.blockSpacing / 2),
 		Content:    listItems,
 	})
 }
