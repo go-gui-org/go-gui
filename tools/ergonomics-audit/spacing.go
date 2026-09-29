@@ -174,6 +174,9 @@ func goGuiCallSite(rel string) bool {
 
 // repoModule returns the module path from repo/go.mod, or "" when there is
 // none. A missing go.mod scans as a consumer: the wider scope.
+//
+// #nosec G304 — repo is a developer-supplied CLI argument; this is a local
+// audit, not a service reading user input
 func repoModule(repo string) string {
 	data, err := os.ReadFile(filepath.Join(repo, "go.mod"))
 	if err != nil {
