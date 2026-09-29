@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/go-gui-org/go-gui/gui/internal/atomicfile"
 )
 
 // Public golden-file helpers for the render pipeline (issue #847).
@@ -263,17 +265,17 @@ func checkGolden(tb GoldenTB, dir, name, got string, versioned bool) {
 
 	path := filepath.Join(dir, name+".golden")
 	if goldenUpdate() {
-		if err := os.MkdirAll(dir, 0o755); err != nil {
+		if err := os.MkdirAll(dir, 0o750); err != nil {
 			tb.Fatalf("gui: mkdir %s: %v", dir, err)
 		}
-		if err := os.WriteFile(path, []byte(got), 0o644); err != nil {
+		if err := atomicfile.WriteFile(path, []byte(got), 0o644); err != nil {
 			tb.Fatalf("gui: write %s: %v", path, err)
 		}
 		tb.Logf("gui: recorded %s", path)
 		return
 	}
 
-	want, err := os.ReadFile(path)
+	want, err := os.ReadFile(filepath.Clean(path))
 	if err != nil {
 		writeGoldenArtifact(dir, name, got)
 		tb.Fatalf("gui: read %s: %v "+
@@ -317,10 +319,10 @@ func parseGoldenHeader(s string) (ver int, ok bool) {
 // it records.
 func writeGoldenArtifact(dir, name, got string) {
 	fdir := filepath.Join(dir, "failures")
-	if err := os.MkdirAll(fdir, 0o755); err != nil {
+	if err := os.MkdirAll(fdir, 0o750); err != nil {
 		return
 	}
-	_ = os.WriteFile(
+	_ = atomicfile.WriteFile(
 		filepath.Join(fdir, name+".actual.golden"), []byte(got), 0o644)
 }
 
