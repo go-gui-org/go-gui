@@ -187,6 +187,12 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 	if !fieldPad.IsSet() {
 		fieldPad = paddingField
 	}
+	// Button inset: the same shape as the field inset, one value for
+	// every variant so they align in a row (issue #850).
+	buttonPad := cfg.PaddingButton
+	if !buttonPad.IsSet() {
+		buttonPad = paddingButton
+	}
 
 	// Elevation and focus pointers are per-theme values; isolate the
 	// local cfg so the styles and the stored theme.Cfg share copies
@@ -199,8 +205,8 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 		themeTextRoles(cfg, ts, ladder.xSmall)
 
 	buttonBase, buttonPrimary, buttonGhost, buttonDanger :=
-		deriveButtonStyles(cfg, accent, accentHover, accentPressed,
-			colorError, borderFocus)
+		deriveButtonStyles(cfg, buttonPad, accent, accentHover,
+			accentPressed, colorError, borderFocus)
 
 	theme := Theme{
 		Cfg:                  cfg,
@@ -736,6 +742,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 		PaddingMedium:     cfg.PaddingMedium.withSet(),
 		PaddingLarge:      cfg.PaddingLarge.withSet(),
 		PaddingField:      fieldPad,
+		PaddingButton:     buttonPad,
 		SizeFieldMinWidth: cfg.SizeFieldMinWidth,
 		SizeBorder:        cfg.SizeBorder,
 

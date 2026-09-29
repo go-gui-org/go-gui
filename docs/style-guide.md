@@ -115,11 +115,12 @@ basis as a dimming alpha. A structural indent (a nested blockquote, a list
 depth) is not a gap between siblings and stays off the ladder. A comment must
 say so.
 
-A form control's text inset is `Theme.PaddingField` — that is what makes
-controls in one row share a height. A structural wrapper (a container that
-groups children but is not a box) must set `SizeBorder: NoBorder` and
-`Padding: NoPadding`, so its reserved border and padding do not silently add
-height.
+A form control's text inset is `Theme.PaddingField`, and a button's label inset
+is `Theme.PaddingButton`. Together they make controls in one row share a height.
+A custom button reads `Theme.PaddingButton` rather than writing a literal inset.
+A structural wrapper (a container that groups children but is not a box) must
+set `SizeBorder: NoBorder` and `Padding: NoPadding`, so its reserved border and
+padding do not silently add height.
 
 ## Radius and elevation — one ladder, two elevation tiers
 

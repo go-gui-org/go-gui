@@ -179,7 +179,7 @@ w := gui.NewWindow(gui.WindowCfg{
 gui.Button(gui.ButtonCfg{
     ID:      "counter",
     Content: []gui.View{gui.Text(gui.TextCfg{Text: "Click Me"})},
-    Padding: gui.NewPadding(8, 16, 8, 16),
+    Padding: gui.NewPadding(8, 16, 8, 16), // overrides Theme.PaddingButton
     OnClick: func(ctx gui.EventCtx) {
         gui.State[App](ctx.Window).Clicks++
     },

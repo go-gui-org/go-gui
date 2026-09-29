@@ -37,6 +37,7 @@ Theme.ColorTextOnAccent gui.Color
 Theme.ColorTextOnSelect gui.Color
 Theme.ColorWarningSubtle gui.Color
 Theme.Name string
+Theme.PaddingButton gui.Padding
 Theme.PaddingField gui.Padding
 Theme.PaddingLarge gui.Padding
 Theme.PaddingMedium gui.Padding
@@ -116,6 +117,7 @@ ThemeCfg.IconFontFamily string
 ThemeCfg.MonoFontFamily string
 ThemeCfg.Name string
 ThemeCfg.Padding gui.Padding
+ThemeCfg.PaddingButton gui.Padding
 ThemeCfg.PaddingField gui.Padding
 ThemeCfg.PaddingLarge gui.Padding
 ThemeCfg.PaddingMedium gui.Padding

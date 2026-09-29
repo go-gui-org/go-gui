@@ -279,6 +279,46 @@ func TestFieldInsetIsThemed(t *testing.T) {
 	}
 }
 
+// The button inset is a theme role like the field inset (issue #850):
+// a theme that sets it moves every button variant together, so
+// variants of one theme still align in a row.
+func TestButtonInsetIsThemed(t *testing.T) {
+	cfg := baseCfg()
+	cfg.TextStyleDef = DefaultTextStyle
+	cfg.PaddingButton = PadAll(9)
+	th := ThemeMaker(cfg)
+
+	for name, got := range map[string]Padding{
+		"secondary": th.buttonStyle.Padding,
+		"primary":   th.buttonStylePrimary.Padding,
+		"ghost":     th.buttonStyleGhost.Padding,
+		"danger":    th.buttonStyleDanger.Padding,
+		"theme":     th.PaddingButton,
+	} {
+		if got != PadAll(9) {
+			t.Errorf("%s padding = %+v, want the configured %+v",
+				name, got, PadAll(9))
+		}
+	}
+}
+
+// An unset button inset falls back to paddingButton, so existing
+// themes (and every golden) keep today's 5/12.
+func TestButtonInsetDefault(t *testing.T) {
+	cfg := baseCfg()
+	cfg.TextStyleDef = DefaultTextStyle
+	th := ThemeMaker(cfg)
+
+	if th.PaddingButton != paddingButton {
+		t.Errorf("Theme.PaddingButton = %+v, want %+v",
+			th.PaddingButton, paddingButton)
+	}
+	if th.buttonStyle.Padding != paddingButton {
+		t.Errorf("button padding = %+v, want %+v",
+			th.buttonStyle.Padding, paddingButton)
+	}
+}
+
 // An unset Label must produce no wrapper and no extra shape, or adding
 // the field to eight Cfgs would be a visual break rather than an
 // addition (issue #335, audit section 3).

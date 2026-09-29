@@ -36,6 +36,8 @@ Padding ladder, form density, and the gap ladder.
   These size the gap between things.
 - `PaddingField` — text inset inside a form control. It sets the control height.
   It is not part of the ladder.
+- `PaddingButton` — label inset inside a Button. At body size it gives the same
+  height as `PaddingField`. It is not part of the ladder.
 - `SizeFieldMinWidth` — minimum width floor for a text-bearing form control.
 - `SpacingTight`, `SpacingSmall`, `SpacingMedium`, `SpacingLarge` — gap ladder
   between things.

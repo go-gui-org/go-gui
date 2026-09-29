@@ -13,7 +13,8 @@ package gui
 //
 // Own file so theme_maker.go stays under the large-files gate.
 func deriveButtonStyles(
-	cfg ThemeCfg, accent, accentHover, accentPressed, colorError, borderFocus Color,
+	cfg ThemeCfg, padding Padding,
+	accent, accentHover, accentPressed, colorError, borderFocus Color,
 ) (buttonBase, buttonPrimary, buttonGhost, buttonDanger buttonStyle) {
 	buttonBase = buttonStyle{
 		Colors: ColorSet{
@@ -24,7 +25,7 @@ func deriveButtonStyles(
 			Border:      cfg.ColorBorder,
 			BorderFocus: borderFocus,
 		},
-		Padding:    paddingButton,
+		Padding:    padding,
 		SizeBorder: cfg.SizeBorder,
 		Radius:     cfg.Radius,
 	}

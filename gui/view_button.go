@@ -235,14 +235,14 @@ func buttonOnHover(ctx EventCtx) {
 }
 
 // TextButton is the thin form of Button for the common case: one
-// label on a clickable button. The padding default (8, 16, 8, 16) is
-// the most common explicit padding across the examples; a caller that
-// wants the theme default or a custom inset uses Button directly.
+// label on a clickable button. It sets no padding, so the button takes
+// the theme's button inset (Theme.PaddingButton) and shares a row
+// height with an Input (issue #850). A caller that wants a custom
+// inset uses Button directly.
 func TextButton(id, label string, onClick func(EventCtx)) View {
 	return Button(ButtonCfg{
 		ID:      id,
 		OnClick: onClick,
-		Padding: NewPadding(8, 16, 8, 16),
 		Content: []View{
 			Text(TextCfg{Text: label}),
 		},
