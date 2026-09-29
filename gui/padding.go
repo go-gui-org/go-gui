@@ -35,7 +35,8 @@ var (
 	// horizontal room than a field (5 vertical / 12 horizontal, against
 	// paddingField's 5/10), and at body 14 both land at the same ~31px
 	// control height — the invariant that keeps a Button, an Input and
-	// a Select in one row level (visual-refresh §3.1).
+	// a Select in one row level (visual-refresh §3.1). It is the seed
+	// for ThemeCfg.PaddingButton (issue #850).
 	paddingButton = NewPadding(5, 12, 5, 12)
 
 	// paddingField is the inset a text-bearing form control puts

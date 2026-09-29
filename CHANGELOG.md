@@ -10,6 +10,14 @@ and this project adheres to
 
 ### Added
 
+- **Button inset is a public theme role: `Theme.PaddingButton` /
+  `ThemeCfg.PaddingButton` (#850)** — the inset a Button puts around its label
+  was the unexported `paddingButton` (5/12). A custom button could not read it,
+  so it could not match the theme's buttons. It is now a theme role like
+  `PaddingField`: a theme sets it once, and all four variants (secondary,
+  primary, ghost, danger) use it, so they still align in a row. Unset keeps
+  5/12, so existing themes do not change.
+
 - **Public command-golden helpers for apps and siblings (#847)** —
   `(*Window).TestGolden` with `GoldenCfg` pins a window's appearance as text
   from any package: one frame under `ThemeDark` and one under `ThemeLight`,
@@ -69,6 +77,16 @@ and this project adheres to
   `[darwin] category` and `[linux] categories` keys. The format is a strict
   subset of TOML with no new dependency. See `examples/app_manifest` and
   `docs/deployment.md`.
+
+### Changed
+
+- **`TextButton` uses the theme button inset (#850)** — `TextButton` hardcoded
+  an 8/16 inset, which made it taller than an `Input` or `Select` in the same
+  row. It now sets no padding and takes `Theme.PaddingButton` (5/12 by default),
+  like a plain `Button`. A caller that wants the old inset passes
+  `Padding: gui.NewPadding(8, 16, 8, 16)` to `Button`. Also,
+  `Theme.WithPadding(false)` now removes the button inset too. Before, a
+  stripped theme kept 5/12 on every button.
 
 ### Fixed
 

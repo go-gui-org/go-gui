@@ -200,6 +200,15 @@ type Theme struct {
 	// exportaudit:keep — themable form density.
 	PaddingField Padding
 
+	// PaddingButton is the inset a Button puts around its label. It is
+	// a control inset like PaddingField, not a ladder rung. It has more
+	// horizontal room than the field inset, and at body size both give
+	// the same control height, so a Button and an Input share a row.
+	// A custom button reads it to match the theme's buttons (issue #850).
+	//
+	// exportaudit:keep — themable form density.
+	PaddingButton Padding
+
 	// SizeFieldMinWidth is the MinWidth floor a text-bearing form
 	// control takes when its Cfg states none. A Fit-sized empty field
 	// is a stub; without a floor a field is the width of whatever
@@ -362,6 +371,12 @@ type ThemeCfg struct {
 	//
 	// exportaudit:keep — themable form density.
 	PaddingField Padding
+
+	// PaddingButton seeds Theme.PaddingButton; see there. Unset falls
+	// back to paddingButton.
+	//
+	// exportaudit:keep — themable form density.
+	PaddingButton Padding
 
 	// SizeFieldMinWidth seeds Theme.SizeFieldMinWidth; see there.
 	//
@@ -593,6 +608,7 @@ func (t Theme) WithPadding(padding bool) Theme {
 	cfg.PaddingMedium = PaddingNone
 	cfg.PaddingLarge = PaddingNone
 	cfg.PaddingField = PaddingNone
+	cfg.PaddingButton = PaddingNone
 	cfg.SizeBorder = 0
 	cfg.Radius = radiusNone
 	cfg.RadiusSmall = radiusNone

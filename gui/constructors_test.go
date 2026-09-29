@@ -18,8 +18,11 @@ func TestTextButtonStructure(t *testing.T) {
 	if got := layout.Children[0].Shape.TC.Text; got != "Click Me" {
 		t.Fatalf("button label = %q, want %q", got, "Click Me")
 	}
-	if got := layout.Shape.Padding; got != NewPadding(8, 16, 8, 16) {
-		t.Fatalf("padding = %v, want NewPadding(8, 16, 8, 16)", got)
+	// The theme's button inset, not a literal (issue #850), so a
+	// TextButton shares a row height with an Input.
+	if got := layout.Shape.Padding; got != defaultButtonStyle.Padding {
+		t.Fatalf("padding = %v, want the theme inset %v",
+			got, defaultButtonStyle.Padding)
 	}
 }
 

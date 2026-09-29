@@ -298,6 +298,14 @@ func TestThemeWithPadding(t *testing.T) {
 		flat.Cfg.PaddingLarge != PaddingNone {
 		t.Error("WithPadding(false) must zero all paddings")
 	}
+	// The button inset is a padding too (issue #850). Check the built
+	// style, not only the stored value: the style is what Button reads.
+	if flat.Cfg.PaddingButton != PaddingNone ||
+		flat.PaddingButton != PaddingNone ||
+		flat.buttonStyle.Padding != PaddingNone {
+		t.Errorf("WithPadding(false) must zero the button inset, got %+v",
+			flat.buttonStyle.Padding)
+	}
 	if flat.Cfg.SizeBorder != 0 {
 		t.Errorf("SizeBorder = %v, want 0", flat.Cfg.SizeBorder)
 	}
