@@ -32,27 +32,32 @@ Never spell an alpha. An opaque color (`alpha 255`) is not de-emphasis and does
 not need a role. A fade, a ramp, or a fill is not text and is covered by the
 marker (§ Deviating), not by a role.
 
-## Type steps — size by named handle, or not at all
+## Type steps — size by named role, or not at all
 
 The full scale lives in `docs/typography.md`. What follows is the when: which
-handle each widget reads.
+role each widget reads.
 
-The size ladder is a set of named handles (`N1`..`N6`, `M1`..`M6`, `I1`..`I6`,
-`BI1`..`BI6`, `B1`..`B6`, `Icon1`..`Icon6`). Every rung is exported — an app's
-widget spells the step of the widget beside it instead of guessing. Take a step
-by reading the handle, never by arithmetic on `X.Size`. A `Size ± N` that
-produces a text style is a finding. Two tracked exceptions carry the marker (§
-Deviating).
+Text is sized by purpose roles on `Theme` (issue #734): `TextStyleDisplay`,
+`TextStyleTitle`, `TextStyleTitleSmall`, `TextStyleBodyLarge`, `TextStyleBody`,
+`TextStyleBodySmall`, `TextStyleCaption`, `TextStyleCaptionSmall`, the code
+roles `TextStyleCode`, `TextStyleCodeSmall`, `TextStyleCodeTiny`, and the icon
+roles `TextStyleIconXLarge` .. `TextStyleIconTiny`. Every role is exported — an
+app's widget names the role of the widget beside it instead of guessing. The
+list and the rules for changing it are in `docs/theme-tokens.md` (§ Text roles).
+For weight and slant, apply `Bold()`, `Italic()` or `Regular()` to a role. For a
+mono donor, use `Theme.Mono`. Take a step by reading a role, never by arithmetic
+on `X.Size`. A `Size ± N` that produces a text style is a finding. Two tracked
+exceptions carry the marker (§ Deviating).
 
-Naming a step's _floor_ does not resolve the step. `f32Max(X.Size-4, N6.Size)`
-still sizes text by arithmetic. The named rung only bounds the result. The gate
-reports it either way — it keys on the arithmetic, not on how the bound is
-spelled.
+Naming a step's _floor_ does not resolve the step.
+`f32Max(X.Size-4, TextStyleCaptionSmall.Size)` still sizes text by arithmetic.
+The named role only bounds the result. The gate reports it either way — it keys
+on the arithmetic, not on how the bound is spelled.
 
-The mono ladder sits +1 above the regular ladder at every rung (`M4` is 13 where
-`N4` is 12). This is an optical compensation for the mono face, uniform because
-it is the same face at every size. Expect the step when mixing `M`-rungs with
-`N`-rungs.
+The code roles sit +1 above the body roles at the same rung
+(`TextStyleCodeSmall` is 13 where `TextStyleBodySmall` is 12). This is an
+optical compensation for the mono face, uniform because it is the same face at
+every size. Expect the step when you mix code roles with body roles.
 
 The ladder is derived, not stated: each theme states a **body size** and the six
 rungs come from it (`textSizes`, visual-refresh §2.1). The dark/light body
@@ -60,21 +65,22 @@ is 14. The rungs are 10, 11, 12, 14, 17, 22. The platform themes carry their
 platform's native body — macOS 13, Windows 12, GNOME 15 — which is what they
 exist for. A custom theme states `TextStyleDef.Size` and gets a complete ladder.
 
-**Headings take B rungs.** A widget that renders a heading, a group-box title, a
-dialog title, a tab label, or a table header names a bold step. Body and value
-text stays N (visual-refresh §2.2):
+**Headings take title roles.** A widget that renders a heading, a group-box
+title, a dialog title, a tab label, or a table header names a title role. Body
+and value text stays `TextStyleBody` (visual-refresh §2.2):
 
-| Widget                           | Role               | Rung               |
-| -------------------------------- | ------------------ | ------------------ |
-| Dialog                           | title              | `B2`               |
-| Toast                            | title              | `B3`               |
-| Group-box (`ContainerCfg.Title`) | title              | `B3`               |
-| TabControl                       | selected tab label | `B3`               |
-| TabControl                       | resting tab labels | `N3`               |
-| Table / DataGrid                 | header             | bold (theme-owned) |
+| Widget                           | Role               | Theme field           |
+| -------------------------------- | ------------------ | --------------------- |
+| Dialog                           | title              | `TextStyleTitle`      |
+| Toast                            | title              | `TextStyleTitleSmall` |
+| Group-box (`ContainerCfg.Title`) | title              | `TextStyleTitleSmall` |
+| TabControl                       | selected tab label | `TextStyleTitleSmall` |
+| TabControl                       | resting tab labels | `TextStyleDef`        |
+| Table                            | header             | `TextStyleTitleSmall` |
+| DataGrid                         | header             | bold (theme-owned)    |
 
-Recorded as **staying N**: list and tree subheadings (their hierarchy comes from
-size and color, not weight), breadcrumbs, menu items, field labels, button
+Recorded as **staying body**: list and tree subheadings (their hierarchy comes
+from size and color, not weight), breadcrumbs, menu items, field labels, button
 labels, the progress readout.
 
 The only automatic step in the toolkit is a field label. `TextStyleLabel` steps
@@ -167,7 +173,7 @@ one rule:
   ink.
 - a **label** — a button, tab, menu item, select — on the face's cap band.
 - a **glyph** — an icon, a step triangle, a `×` — always on its own ink, and it
-  says so through its style. The theme's `Icon` rungs carry the mark, and
+  says so through its style. The theme's icon roles carry the mark, and
   `glyphStyle(ts)` applies it to a symbol drawn in a text face. A glyph child
   inside a cap-band container corrects itself, so an icon button needs nothing
   at the call site.

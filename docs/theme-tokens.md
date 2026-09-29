@@ -94,3 +94,60 @@ Unset derives. A theme states only the override.
 - `Sounds` — sound set. Zero is silent.
 - `TitlebarDark` — dark titlebar flag.
 - `FillBorder` — fill border flag.
+
+## Text roles (contract)
+
+Issue #846. The text roles are fields on `Theme`. Apps read them to style their
+own widgets. `ThemeMaker` fills them from the `ThemeCfg` type tokens above. The
+role names are a contract: code outside this repo uses them.
+
+De-emphasis roles. Each one names why text is quiet (issue #335).
+
+| Role                   | Purpose                                  | Added   |
+| ---------------------- | ---------------------------------------- | ------- |
+| `TextStyleSecondary`   | Supporting text beside primary text      | v0.62.0 |
+| `TextStyleLabel`       | Text that names a nearby value           | v0.62.0 |
+| `TextStyleDisabled`    | Text in a control the user cannot use    | v0.62.0 |
+| `TextStylePlaceholder` | Text in place of a value not yet entered | v0.62.0 |
+
+Purpose roles. Each one names what the text is for (issue #734). Size is the
+`ThemeCfg` ladder rung.
+
+| Role                    | Purpose                     | Face    | Rung     | Added   |
+| ----------------------- | --------------------------- | ------- | -------- | ------- |
+| `TextStyleDisplay`      | Largest heading             | bold    | XLarge   | v0.78.0 |
+| `TextStyleTitle`        | Heading, dialog title       | bold    | Large    | v0.78.0 |
+| `TextStyleTitleSmall`   | Group, toast, table heading | bold    | Medium   | v0.78.0 |
+| `TextStyleBodyLarge`    | Large body text             | regular | Large    | v0.78.0 |
+| `TextStyleBody`         | Body and value text         | regular | Medium   | v0.78.0 |
+| `TextStyleBodySmall`    | Small body text             | regular | Small    | v0.78.0 |
+| `TextStyleCaption`      | Caption, badge              | regular | XSmall   | v0.78.0 |
+| `TextStyleCaptionSmall` | Smallest caption            | regular | Tiny     | v0.78.0 |
+| `TextStyleCode`         | Code                        | mono    | Medium+1 | v0.78.0 |
+| `TextStyleCodeSmall`    | Small code                  | mono    | XSmall+1 | v0.78.0 |
+| `TextStyleCodeTiny`     | Smallest code               | mono    | Tiny+1   | v0.78.0 |
+| `TextStyleIconXLarge`   | Icon glyph                  | icon    | XLarge   | v0.78.0 |
+| `TextStyleIconLarge`    | Icon glyph                  | icon    | Large    | v0.78.0 |
+| `TextStyleIconMedium`   | Icon glyph beside body text | icon    | Medium   | v0.78.0 |
+| `TextStyleIconSmall`    | Icon glyph                  | icon    | Small    | v0.78.0 |
+| `TextStyleIconXSmall`   | Icon glyph                  | icon    | XSmall   | v0.78.0 |
+| `TextStyleIconTiny`     | Icon glyph                  | icon    | Tiny     | v0.78.0 |
+
+Rules:
+
+1. Adding a role is not a breaking change.
+2. Removing a role, renaming it, or changing its purpose is a breaking change.
+3. To rename a role, keep the old field for one release. Mark it
+   `// Deprecated: use <new>.` and fill it in `fillTextRungs`
+   (`gui/theme_maker_rungs.go`) next to the new field. Remove it in the next
+   release, with a `**BREAKING:` entry.
+4. At 1.0 the role set is frozen.
+
+The gate: `gui/testdata/theme_surface.golden` lists every exported field of
+`Theme`, `ThemeCfg` and `TextStyle`. `TestThemeSurface` keeps it in step with
+the code. `make theme-surface-check` (part of `make check` and CI) fails a
+branch that removes a line from the golden, unless the branch adds a
+`**BREAKING:` entry under `## [Unreleased]` in `CHANGELOG.md`. Re-recording the
+golden with `-update` does not pass the gate; the removed line stays in the
+diff. The gate cannot see a change of purpose. Rule 2 covers that; review it by
+hand.
