@@ -135,6 +135,17 @@ Purpose roles. Each one names what the text is for (issue #734). Size is the
 | `TextStyleIconXSmall`   | Icon glyph                  | icon    | XSmall   | v0.78.0 |
 | `TextStyleIconTiny`     | Icon glyph                  | icon    | Tiny     | v0.78.0 |
 
+Status roles. Each one is body text in a status hue (issue #861). The color is
+the status color (`ColorError`, `ColorSuccess`, `ColorWarning`) moved on
+lightness until it reaches 4.5:1 contrast on `ColorBackground` and `ColorPanel`.
+The status colors are tuned as fills and are too faint as text on light themes.
+
+| Role               | Purpose                          | Face    | Rung   | Added  |
+| ------------------ | -------------------------------- | ------- | ------ | ------ |
+| `TextStyleError`   | Validation message, failure text | regular | Medium | Unrel. |
+| `TextStyleSuccess` | Saved or completed notice        | regular | Medium | Unrel. |
+| `TextStyleWarning` | Caution text                     | regular | Medium | Unrel. |
+
 Rules:
 
 1. Adding a role is not a breaking change.

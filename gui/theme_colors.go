@@ -110,6 +110,7 @@ func (t Theme) WithColors(o ColorOverrides) Theme {
 	oldSel := t.ColorSelect
 	oldAccent := t.ColorAccent
 	oldBg := t.ColorBackground
+	oldPanel := t.ColorPanel
 	// A recolor never moves the body text color, so one local
 	// serves both the before and after subtle washes: what flips
 	// their polarity is the background moving under it.
@@ -241,6 +242,22 @@ func (t Theme) WithColors(o ColorOverrides) Theme {
 	t.ColorSuccessSubtle = successSubtle
 	t.ColorWarningSubtle = warningSubtle
 	t.ColorErrorSubtle = errorSubtle
+	// The status text roles follow their status color, and the
+	// surfaces their readable lightness is solved against, while they
+	// still sit on their derivation (issue #861). No override slot: a
+	// role the app forked by hand keeps its color even when the status
+	// color is stated.
+	trackStatus := func(cur, oldC, newC Color) Color {
+		return track(cur, Color{},
+			statusTextColor(oldC, oldBg, oldPanel),
+			statusTextColor(newC, bg, panel))
+	}
+	t.TextStyleError.Color = trackStatus(
+		t.TextStyleError.Color, oldError, colorError)
+	t.TextStyleSuccess.Color = trackStatus(
+		t.TextStyleSuccess.Color, oldSuccess, colorSuccess)
+	t.TextStyleWarning.Color = trackStatus(
+		t.TextStyleWarning.Color, oldWarning, colorWarning)
 
 	t.buttonStyle.Colors.Base = interior
 	t.buttonStyle.Colors.Hover = hover

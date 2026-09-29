@@ -10,6 +10,21 @@ and this project adheres to
 
 ### Added
 
+- **Status text roles: `Theme.TextStyleError`, `TextStyleSuccess`,
+  `TextStyleWarning` (#861)** — body text in the theme's error, success or
+  warning hue, for a validation message, a saved notice or a caution line. Same
+  size and face as `TextStyleBody`, so a status line sits in running text
+  without a size jump. The color is the status color moved on lightness only
+  (hue and saturation kept) until it reads at 4.5:1 (WCAG AA body text) on
+  `ColorBackground` and `ColorPanel`. The status colors are tuned as fills: as
+  text they measured 3.1 to 4.0 on the light theme and 3.8 for dark-theme error.
+  `WithColors` moves each role with its status color unless the app changed it
+  by hand. Before, apps copied `Cfg.ColorError` onto a body style themselves;
+  that text was below AA, and on a theme with `ColorError` unset it copied an
+  empty color. The showcase form and the `virtual_list` example now use
+  `TextStyleError`; the `virtual_list` jump error is one step larger (Body, was
+  BodySmall).
+
 - **Button inset is a public theme role: `Theme.PaddingButton` /
   `ThemeCfg.PaddingButton` (#850)** — the inset a Button puts around its label
   was the unexported `paddingButton` (5/12). A custom button could not read it,

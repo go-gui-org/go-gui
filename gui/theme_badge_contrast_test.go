@@ -8,15 +8,6 @@ import "testing"
 // invisible, not merely low. The theme already owned the pairing rule
 // (textOnFor, the same one behind ColorTextOnAccent); the badge just
 // was not asking.
-//
-// contrastRatio is the WCAG ratio between two opaque colors.
-func contrastRatio(a, b Color) float64 {
-	la, lb := srgbLuminance(a), srgbLuminance(b)
-	if la < lb {
-		la, lb = lb, la
-	}
-	return (la + 0.05) / (lb + 0.05)
-}
 
 // badgeVariantCases is every fill a badge can paint.
 var badgeVariantCases = []struct {

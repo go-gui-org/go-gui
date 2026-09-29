@@ -162,6 +162,23 @@ type Theme struct {
 	// exportaudit:keep — semantic text roles (issue #734).
 	TextStyleIconTiny TextStyle
 
+	// Status text roles (issue #861): body text in the theme's error,
+	// success or warning hue — a validation message, a saved notice, a
+	// caution line. Same size and face as TextStyleBody, so a status
+	// line sits in running text without a size jump.
+	//
+	// The color is the status color moved on lightness until it reads
+	// at 4.5:1 (WCAG AA body text) on ColorBackground and ColorPanel;
+	// the status colors themselves are tuned as fills and fall near 3:1
+	// on light themes. Derived in fillTextRungs; WithColors moves each
+	// with its status color until the app forks it.
+	// exportaudit:keep — status text roles (issue #861).
+	TextStyleError TextStyle
+	// exportaudit:keep — status text roles (issue #861).
+	TextStyleSuccess TextStyle
+	// exportaudit:keep — status text roles (issue #861).
+	TextStyleWarning TextStyle
+
 	// Per-widget styles. Private and derived only (issue #735): a
 	// style is customized through ThemeCfg tokens, never by field
 	// assignment. ScrollbarStyle and TextStyleDef stay public —

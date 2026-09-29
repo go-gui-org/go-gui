@@ -77,6 +77,89 @@ func srgbLuminance(c Color) float64 {
 	return 0.2126*lin(c.R) + 0.7152*lin(c.G) + 0.0722*lin(c.B)
 }
 
+// contrastRatio is the WCAG ratio between two opaque colors, 1 to 21.
+func contrastRatio(a, b Color) float64 {
+	la, lb := srgbLuminance(a), srgbLuminance(b)
+	if la < lb {
+		la, lb = lb, la
+	}
+	return (la + 0.05) / (lb + 0.05)
+}
+
+// readableStep is the OKLCH lightness step readableOn moves by. Small
+// enough that the result lands close to the floor, not far past it.
+const readableStep = float32(0.01)
+
+// readableOn returns c moved on the OKLCH lightness axis until it
+// reaches minRatio contrast against every surface in bgs. Hue and
+// chroma stay, so red text still reads as red (issue #861).
+//
+// A status color is picked as a fill: a toast accent or a badge
+// background, where 3:1 is enough. As body text it needs 4.5:1, and
+// on a light theme the fills land near 3. So the text role takes the
+// fill's hue at a lightness that reads.
+//
+// The direction is toward black or white, whichever gives the higher
+// contrast against the first surface. c already readable comes back
+// unchanged. The loop is bounded by the lightness range: when the
+// floor is out of reach (a mid-gray surface), it returns the extreme,
+// which is the best contrast on offer.
+//
+// Values only; no allocation.
+func readableOn(c Color, minRatio float64, bgs ...Color) Color {
+	readable := func(x Color) bool {
+		for _, bg := range bgs {
+			if contrastRatio(x, bg) < minRatio {
+				return false
+			}
+		}
+		return true
+	}
+	if len(bgs) == 0 || readable(c) {
+		return c
+	}
+	step := readableStep
+	if contrastRatio(Black, bgs[0]) > contrastRatio(White, bgs[0]) {
+		step = -step
+	}
+	v := colorToOKLCH(c)
+	for range int(1/readableStep) + 1 {
+		v.L = f32Clamp(v.L+step, 0, 1)
+		out := fitChroma(v)
+		if readable(out) || v.L == 0 || v.L == 1 {
+			return out
+		}
+	}
+	return fitChroma(v)
+}
+
+// fitChroma converts v to a Color at the most chroma sRGB can hold for
+// v's lightness and hue, up to v.C.
+//
+// oklch.color() halves chroma until the color fits. That is fine for a
+// ramp step, which leaves the gamut rarely and by little, but a status
+// color darkened for text sits just past the wall, and one halving
+// turned light-theme amber text gray-brown. A binary search lands on
+// the wall instead. Sixteen rounds resolve chroma to under 1e-5, far
+// below one 8-bit step.
+func fitChroma(v oklch) Color {
+	n := v.normalize()
+	if r, g, b := oklchToLinearRGB(n.L, n.C, n.H); inGamut(r, g, b) {
+		return oklchToColor(r, g, b, n.A)
+	}
+	lo, hi := float32(0), n.C
+	for range 16 {
+		mid := (lo + hi) / 2
+		if r, g, b := oklchToLinearRGB(n.L, mid, n.H); inGamut(r, g, b) {
+			lo = mid
+		} else {
+			hi = mid
+		}
+	}
+	r, g, b := oklchToLinearRGB(n.L, lo, n.H)
+	return oklchToColor(r, g, b, n.A)
+}
+
 // textRolesFor picks the ladder matching a theme's polarity: text
 // lighter than its background is a dark theme, and the reverse is a
 // light one.
