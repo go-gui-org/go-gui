@@ -19,8 +19,12 @@ import (
 // one and not the other is exactly the drift this catches.
 type snippetEntry struct {
 	sourceFile string
-	beginMark  string
-	endMark    string
+	// beginMark and endMark bound the quoted region. When both are
+	// empty the guide quotes the whole file, so the source needs no
+	// markers. The get_started example uses this: markers would add
+	// noise to the first file a new reader opens.
+	beginMark string
+	endMark   string
 	// anchor is a substring the marked region must contain. It
 	// catches the markers drifting off the code they pin.
 	anchor string
@@ -71,6 +75,14 @@ var snippetEntries = []snippetEntry{
 		heading:    "## Reading the manifest at run time",
 		guides: []string{
 			"../../docs/deployment.md",
+		},
+	},
+	{
+		sourceFile: "../get_started/main.go",
+		anchor:     "func mainView(",
+		heading:    "## It's just Go",
+		guides: []string{
+			"../../README.md",
 		},
 	},
 }
@@ -127,8 +139,11 @@ func TestGuideSnippetsMatchSource(t *testing.T) {
 		if err != nil {
 			t.Fatalf("read %s: %v", e.sourceFile, err)
 		}
-		want := markedRegion(t, string(raw), e.sourceFile,
-			e.beginMark, e.endMark)
+		want := strings.Trim(string(raw), "\n")
+		if e.beginMark != "" || e.endMark != "" {
+			want = markedRegion(t, string(raw), e.sourceFile,
+				e.beginMark, e.endMark)
+		}
 		if !strings.Contains(want, e.anchor) {
 			t.Fatalf("%s: marked region no longer contains %q; the "+
 				"markers have drifted off the code they pin",
