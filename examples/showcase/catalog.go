@@ -129,7 +129,7 @@ func groupPickerItem(label, key string, app *ShowcaseApp) gui.View {
 		ID:      gui.ScopeID("showcase", "grp", key),
 		Color:   color,
 		Colors:  gui.ColorSet{Border: color},
-		Radius:  gui.SomeF(3),
+		Radius:  gui.RadiusSmall,
 		Padding: gui.PaddingTwoFive,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{Text: label, TextStyle: t.TextStyleCaption}),
@@ -202,7 +202,7 @@ func catalogRow(entry DemoEntry, app *ShowcaseApp) gui.View {
 		Sizing:  gui.FillFit,
 		Color:   color,
 		Colors:  gui.ColorSet{Hover: t.ColorHover, Click: t.ColorActive, Focus: color, Border: gui.ColorTransparent, BorderFocus: gui.ColorTransparent},
-		Radius:  gui.SomeF(4),
+		Radius:  gui.RadiusSmall,
 		Padding: gui.PaddingTwoFive,
 		HAlign:  gui.Some(gui.HAlignLeft),
 		Content: []gui.View{

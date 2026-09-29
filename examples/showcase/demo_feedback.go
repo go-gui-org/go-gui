@@ -62,7 +62,7 @@ func buttonFeatureRows(w *gui.Window) []gui.View {
 			ID:         "showcase-button-border",
 			MinWidth:   buttonWidth,
 			MaxWidth:   buttonWidth,
-			SizeBorder: gui.SomeF(2),
+			SizeBorder: gui.BorderPx(2), // ergonomics-audit:spacing — emphasis border, heavier than the theme hairline
 			Content:    []gui.View{gui.Text(gui.TextCfg{Text: buttonText})},
 			OnClick:    showcaseButtonClick,
 		})),
@@ -72,7 +72,7 @@ func buttonFeatureRows(w *gui.Window) []gui.View {
 			MaxWidth:   200,
 			Color:      gui.RGB(195, 105, 0),
 			Colors:     gui.ColorSet{Hover: gui.RGB(195, 105, 0), Click: gui.RGB(205, 115, 0), Border: gui.RGB(160, 160, 160)},
-			SizeBorder: gui.SomeF(2),
+			SizeBorder: gui.BorderPx(2), // ergonomics-audit:spacing — emphasis border, heavier than the theme hairline
 			Padding:    gui.CurrentTheme().PaddingMedium,
 
 			VAlign: gui.Some(gui.VAlignMiddle),

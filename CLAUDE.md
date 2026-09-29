@@ -66,9 +66,11 @@ before you change a widget, identity, theme, event or layout-hook code.
 - **Accessibility.** Set `A11YLabel` / `A11YDescription` through the embedded
   `A11YCfg`. Never redeclare them on a Cfg.
 - **Opt, colors, literals.** Use `Opt[T]` only for a primitive whose zero value
-  is a real choice (`SizeBorder`). `Color`, `Padding` and `Sizing` flag
-  themselves: build them with their constructors (`RGB`, `PadAll`, `FillFit`),
-  never raw literals. On a Cfg, use plain `Color`, not `Opt[Color]`.
+  is a real choice (`ScrollbarCfg.GapEdge`). `Color`, `Padding`, `Sizing`,
+  `Spacing`, `Radius` and `Border` flag themselves: build them with their
+  constructors or roles (`RGB`, `PadAll`, `FillFit`, `SpacingMedium`,
+  `RadiusMedium`, `BorderThin`), never raw literals. On a Cfg, use plain
+  `Color`, not `Opt[Color]`.
 - **Visual roles.** Never write a de-emphasis alpha, a label size step or a
   control text inset at a call site. Use the `Theme` roles
   (`docs/style-guide.md`). A structural wrapper sets `SizeBorder: NoBorder`.

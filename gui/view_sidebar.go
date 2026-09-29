@@ -111,7 +111,7 @@ func (sv *sidebarView) GenerateLayout(w *Window) Layout {
 		Padding: pad,
 		Color:   cfg.Color,
 		Shadow:  cfg.Shadow,
-		Radius:  Some(cfg.Radius),
+		Radius:  RadiusPx(cfg.Radius),
 		// A sidebar animates its width from 0, so its content must
 		// always clip: unclipped content sticks out for the whole
 		// slide, not only at rest (issue #641).

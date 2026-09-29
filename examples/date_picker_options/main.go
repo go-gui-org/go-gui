@@ -529,7 +529,7 @@ func borderedGroup(title string, content []gui.View) gui.View {
 	return gui.Column(gui.ContainerCfg{
 		Title:      title,
 		TitleBG:    theme.ColorBackground,
-		SizeBorder: gui.Some[float32](1),
+		SizeBorder: gui.BorderThin,
 		MinWidth:   200,
 		Padding:    theme.Cfg.PaddingLarge,
 

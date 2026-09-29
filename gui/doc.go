@@ -62,7 +62,7 @@
 //   - Zero-initializable: all fields have usable zero values. Create
 //     with ButtonCfg{Text: "Click"} — omit fields you don't need.
 //   - Opt[T] fields: optional overrides that distinguish "not set"
-//     from an explicit zero. Use cfg.Radius.Get(default) or
+//     from an explicit zero. Use cfg.Radius.Or(default) or
 //     cfg.Radius.Set(5).
 //   - required tags: fields tagged `gui:"required"` (e.g. FormCfg.ID)
 //     must be non-empty. Enforced by the requiredid vet analyzer.

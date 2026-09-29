@@ -137,8 +137,8 @@ type MarkdownCfg struct {
 	// exportaudit:keep — caller-facing config (issue #372)
 	MermaidWidth int
 	Padding      Padding
-	SizeBorder   Opt[float32]
-	Radius       Opt[float32]
+	SizeBorder   Border
+	Radius       Radius
 	Focusable    bool
 	MinWidth     float32
 	Color        Color

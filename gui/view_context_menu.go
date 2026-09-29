@@ -36,12 +36,12 @@ type ContextMenuCfg struct {
 	// default.
 	// exportaudit:keep — caller-facing config (issue #372)
 	PaddingSubmenu Padding
-	SizeBorder     Opt[float32]
-	Radius         Opt[float32]
+	SizeBorder     Border
+	Radius         Radius
 	// RadiusMenuItem rounds each item. Unset takes the theme
 	// default.
 	// exportaudit:keep — caller-facing config (issue #372)
-	RadiusMenuItem Opt[float32]
+	RadiusMenuItem Radius
 	// SpacingSubmenu gaps submenu items. Unset takes the theme
 	// default.
 	// exportaudit:keep — caller-facing config (issue #372)
@@ -226,7 +226,7 @@ func applyContextMenuDefaults(cfg *ContextMenuCfg) {
 		cfg.ColorSelect = d.ColorSelect
 	}
 	if !cfg.SizeBorder.IsSet() {
-		cfg.SizeBorder = Some(d.SizeBorder)
+		cfg.SizeBorder = BorderPx(d.SizeBorder)
 	}
 	if cfg.TextStyle == (TextStyle{}) {
 		cfg.TextStyle = d.TextStyle

@@ -44,8 +44,8 @@ type CommandPaletteCfg struct {
 	Placeholder string
 	Items       []CommandPaletteItem
 	FloatZIndex int
-	SizeBorder  Opt[float32]
-	Radius      Opt[float32]
+	SizeBorder  Border
+	Radius      Radius
 	Width       float32
 	MaxHeight   float32
 
@@ -93,8 +93,8 @@ func CommandPalette(cfg CommandPaletteCfg) View {
 func (cp *commandPaletteView) GenerateLayout(w *Window) Layout {
 	cfg := &cp.cfg
 	dn := &defaultCommandPaletteStyle
-	sizeBorder := cfg.SizeBorder.Get(dn.SizeBorder)
-	radius := cfg.Radius.Get(dn.Radius)
+	sizeBorder := cfg.SizeBorder.Or(dn.SizeBorder)
+	radius := cfg.Radius.Or(dn.Radius)
 	// Palette state is keyed by the effective ID. The public helpers
 	// (CommandPaletteShow and friends) take effective IDs too, so an app
 	// that nests a palette under an ID-bearing panel passes the full
@@ -225,8 +225,8 @@ func (cp *commandPaletteView) GenerateLayout(w *Window) Layout {
 				Shadow:      dn.Shadow,
 				Color:       cfg.Color,
 				ColorBorder: cfg.ColorBorder,
-				SizeBorder:  Some(sizeBorder),
-				Radius:      Some(radius),
+				SizeBorder:  BorderPx(sizeBorder),
+				Radius:      RadiusPx(radius),
 				Width:       cfg.Width,
 				Padding:     NoPadding,
 				Spacing:     NoSpacing,

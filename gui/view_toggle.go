@@ -17,8 +17,8 @@ type ToggleCfg struct {
 	Padding Padding
 	// Size overrides the square edge length of the check box.
 	Size       Opt[float32]
-	SizeBorder Opt[float32]
-	Radius     Opt[float32]
+	SizeBorder Border
+	Radius     Radius
 	MinWidth   float32
 	// FocusDisabled opts out of the default-on focus. Focus also
 	// requires a non-empty ID; without one the control is inert.
@@ -70,8 +70,8 @@ func Toggle(cfg ToggleCfg) View {
 	requireFocusID("Toggle", cfg.FocusDisabled, cfg.ID)
 
 	d := &defaultToggleStyle
-	sizeBorder := cfg.SizeBorder.Get(d.SizeBorder)
-	radius := cfg.Radius.Get(d.Radius)
+	sizeBorder := cfg.SizeBorder.Or(d.SizeBorder)
+	radius := cfg.Radius.Or(d.Radius)
 	size := cfg.Size.Get(d.Size)
 
 	boxColor := cfg.Colors.Base
@@ -103,9 +103,9 @@ func Toggle(cfg ToggleCfg) View {
 	content = append(content, Row(ContainerCfg{
 		Color:       boxColor,
 		ColorBorder: cfg.Colors.Border,
-		SizeBorder:  Some(sizeBorder),
+		SizeBorder:  BorderPx(sizeBorder),
 		Padding:     cfg.Padding,
-		Radius:      Some(radius),
+		Radius:      RadiusPx(radius),
 		Disabled:    cfg.Disabled,
 		Invisible:   cfg.Invisible,
 		Width:       size,

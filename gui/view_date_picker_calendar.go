@@ -19,7 +19,7 @@ func datePickerBody(
 		return datePickerCalendar(cfg, state, w)
 	}
 	dn := &defaultDatePickerStyle
-	radiusBorder := cfg.RadiusBorder.Get(dn.radiusBorder)
+	radiusBorder := cfg.RadiusBorder.Or(dn.radiusBorder)
 	cfgID := cfg.ID
 	content := make([]View, 0, 3)
 	content = append(content, datePickerCalendar(cfg, state, w))
@@ -63,7 +63,7 @@ func datePickerBody(
 		Color:       cfg.Colors.Base,
 		ColorBorder: cfg.Colors.Border,
 		SizeBorder:  cfg.SizeBorder,
-		Radius:      Some(radiusBorder),
+		Radius:      RadiusPx(radiusBorder),
 		Shadow:      dn.Shadow,
 		Padding:     NoPadding,
 		OnClick: func(ctx EventCtx) {
@@ -133,7 +133,7 @@ func datePickerMonth(
 ) []View {
 
 	dn := &defaultDatePickerStyle
-	radius := cfg.Radius.Get(dn.Radius)
+	radius := cfg.Radius.Or(dn.Radius)
 	cellSpacing := cfg.CellSpacing.Or(dn.cellSpacing)
 	cellSize := datePickerCellSize(cfg)
 	viewTime := datePickerViewTime(state)
@@ -184,7 +184,7 @@ func datePickerMonth(
 						// shorter without it, so a month that fills
 						// only five rows would size the whole picker
 						// shorter than a six-row one.
-						SizeBorder: SomeF(2),
+						SizeBorder: BorderPx(2), // ergonomics-audit:spacing — the 2px ring marks today, not an outline
 						Padding:    paddingThree,
 						Content:    []View{Text(TextCfg{Text: " "})},
 					}))
@@ -242,8 +242,8 @@ func datePickerMonth(
 				MaxHeight:         cellSize,
 				Color:             cellColor,
 				Colors:            ColorSet{Hover: colorHover, Click: cfg.ColorSelect, Border: borderColor}.resolved(cellColor, defaultButtonStyle.Colors),
-				SizeBorder:        SomeF(2),
-				Radius:            Some(radius),
+				SizeBorder:        BorderPx(2), // ergonomics-audit:spacing — the 2px ring marks today, not an outline
+				Radius:            RadiusPx(radius),
 				Padding:           paddingThree,
 				Disabled:          disabled,
 				Content: []View{Text(TextCfg{
@@ -348,7 +348,7 @@ func datePickerAdjacentCell(
 		MaxHeight:     cellSize,
 		// Matches the in-month cells' reserve so every row measures
 		// the same height — see the spacer cell above.
-		SizeBorder: SomeF(2),
+		SizeBorder: BorderPx(2), // ergonomics-audit:spacing — the 2px ring marks today, not an outline
 		Padding:    paddingThree,
 		Content: []View{Text(TextCfg{
 			Text:      strconv.Itoa(adjDay),

@@ -335,7 +335,7 @@ func exampleRows(examples []ExampleMeta, app *ExplorerApp) []gui.View {
 			HAlign:  gui.Some(gui.HAlignLeft),
 			Padding: gui.PaddingSmall,
 			Color:   bg,
-			Radius:  gui.SomeF(6),
+			Radius:  gui.RadiusMedium,
 			OnClick: func(ctx gui.EventCtx) {
 				a := gui.State[ExplorerApp](ctx.Window)
 				a.Selected = ex.Name
@@ -498,8 +498,8 @@ func screenshotView(meta *ExampleMeta) gui.View {
 				Content: []gui.View{
 					gui.Column(gui.ContainerCfg{
 						Sizing:      gui.FitFit,
-						Radius:      gui.SomeF(0),
-						SizeBorder:  gui.SomeF(1),
+						Radius:      gui.NoRadius,
+						SizeBorder:  gui.BorderThin,
 						ColorBorder: t.ColorBorder,
 						Padding:     gui.PaddingNone,
 						Content: []gui.View{
@@ -522,8 +522,8 @@ func screenshotView(meta *ExampleMeta) gui.View {
 		Sizing:     gui.FillFit,
 		Height:     160,
 		Color:      t.ColorPanel,
-		Radius:     gui.SomeF(8),
-		SizeBorder: gui.SomeF(1),
+		Radius:     gui.RadiusMedium,
+		SizeBorder: gui.BorderThin,
 		HAlign:     gui.HAlignCenter,
 		VAlign:     gui.VAlignMiddle,
 		Padding:    gui.PaddingMedium,

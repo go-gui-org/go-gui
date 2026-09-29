@@ -73,8 +73,8 @@ type InputCfg struct {
 
 	// Appearance
 	Padding    Padding
-	Radius     Opt[float32]
-	SizeBorder Opt[float32]
+	Radius     Radius
+	SizeBorder Border
 	Width      float32
 	Height     float32
 	MinWidth   float32
@@ -193,8 +193,8 @@ func Input(cfg InputCfg) View {
 	requireFocusID("Input", cfg.FocusDisabled, cfg.ID)
 
 	d := &defaultInputStyle
-	sizeBorder := cfg.SizeBorder.Get(d.SizeBorder)
-	radius := cfg.Radius.Get(d.Radius)
+	sizeBorder := cfg.SizeBorder.Or(d.SizeBorder)
+	radius := cfg.Radius.Or(d.Radius)
 
 	placeholderActive := len(cfg.Text) == 0
 	txt := cfg.Text
@@ -342,10 +342,10 @@ func Input(cfg InputCfg) View {
 		Clip:        true,
 		Color:       colors.Base,
 		ColorBorder: colors.Border,
-		SizeBorder:  Some(sizeBorder),
+		SizeBorder:  BorderPx(sizeBorder),
 		Invisible:   cfg.Invisible,
 		Padding:     cfg.Padding,
-		Radius:      Some(radius),
+		Radius:      RadiusPx(radius),
 		Sizing:      cfg.Sizing,
 		Scrollable:  cfg.Scrollable,
 		Spacing:     NoSpacing,
@@ -398,13 +398,13 @@ func applyInputDefaults(cfg *InputCfg) {
 		cfg.PlaceholderStyle = defaultInputStyle.PlaceholderStyle
 	}
 	if !cfg.Radius.IsSet() {
-		cfg.Radius = Some(d.Radius)
+		cfg.Radius = RadiusPx(d.Radius)
 	}
 	if !cfg.NoMinWidthFloor {
 		cfg.MinWidth = fieldMinWidth(cfg.MinWidth, cfg.Width)
 	}
 	if !cfg.SizeBorder.IsSet() {
-		cfg.SizeBorder = Some(d.SizeBorder)
+		cfg.SizeBorder = BorderPx(d.SizeBorder)
 	}
 }
 

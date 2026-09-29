@@ -134,7 +134,7 @@ func dataGridRowHeight(cfg *DataGridCfg, _ *gg.Window) float32 {
 	if cfg.RowHeight > 0 {
 		return cfg.RowHeight
 	}
-	return cfg.TextStyle.Size + cfg.PaddingCell.Or(gg.PaddingNone).Height() + cfg.SizeBorder.Get(0)
+	return cfg.TextStyle.Size + cfg.PaddingCell.Or(gg.PaddingNone).Height() + cfg.SizeBorder.Or(0)
 }
 
 func dataGridStaticTopHeight(cfg *DataGridCfg, _ float32, chooserOpen bool, includeHeader bool) float32 {

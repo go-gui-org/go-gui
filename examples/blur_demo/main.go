@@ -58,7 +58,7 @@ func mainView(_ *gui.Window) gui.View {
 					gui.Column(gui.ContainerCfg{
 						Width:  150,
 						Height: 150,
-						Radius: gui.Some[float32](75),
+						Radius: gui.RadiusPx(75), // ergonomics-audit:spacing — decorative radius, not a control corner
 						Color:  gui.RGBA(0, 255, 0, 150),
 						// Glow via Shadow, not BlurRadius: blur would
 						// soften the label too, a shadow only glows
@@ -75,7 +75,7 @@ func mainView(_ *gui.Window) gui.View {
 					gui.Column(gui.ContainerCfg{
 						Width:  150,
 						Height: 150,
-						Radius: gui.Some[float32](20),
+						Radius: gui.RadiusPx(20), // ergonomics-audit:spacing — decorative radius, not a control corner
 						Color:  gui.RGBA(255, 100, 100, 200),
 						Shadow: &gui.BoxShadow{
 							BlurRadius: 10,
@@ -95,7 +95,7 @@ func mainView(_ *gui.Window) gui.View {
 					gui.Column(gui.ContainerCfg{
 						Width:  200,
 						Height: 100,
-						Radius: gui.Some[float32](10),
+						Radius: gui.RadiusLarge,
 						Color:  gui.Blue,
 						Shadow: &gui.BoxShadow{
 							BlurRadius: 50,

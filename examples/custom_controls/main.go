@@ -188,9 +188,9 @@ func intro(th *gui.Theme) gui.View {
 	return gui.Column(gui.ContainerCfg{
 		Sizing:      gui.FillFit,
 		Padding:     th.PaddingMedium,
-		Radius:      gui.SomeF(10),
+		Radius:      gui.RadiusLarge,
 		Gradient:    introGradient,
-		SizeBorder:  gui.SomeF(1),
+		SizeBorder:  gui.BorderThin,
 		ColorBorder: gui.Hex(0xd3dcec),
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{

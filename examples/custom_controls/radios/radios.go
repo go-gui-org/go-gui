@@ -272,7 +272,7 @@ func radioGroup(app *App, g group, bg gui.Color, spacing float32, lk lookFunc) g
 	pad, border := gui.PaddingNone, gui.NoBorder
 	if bg != gui.ColorTransparent {
 		// The XP group is a dialog surface with a thin frame.
-		pad, border = gui.PaddingMedium, gui.SomeF(1)
+		pad, border = gui.PaddingMedium, gui.BorderThin
 	}
 	return gui.Column(gui.ContainerCfg{
 		ID:          g.id,
@@ -280,7 +280,7 @@ func radioGroup(app *App, g group, bg gui.Color, spacing float32, lk lookFunc) g
 		Color:       bg,
 		ColorBorder: xpSurfaceBorder,
 		SizeBorder:  border,
-		Radius:      gui.SomeF(0),
+		Radius:      gui.NoRadius,
 		Padding:     pad,
 		Spacing:     gui.SpacingPx(spacing),
 		Content:     content,
@@ -390,10 +390,10 @@ func materialLook(accent gui.Color) lookFunc {
 					Width:       size,
 					Height:      size,
 					Sizing:      gui.FixedFixed,
-					Radius:      gui.SomeF(size / 2),
+					Radius:      gui.RadiusPx(size / 2),
 					Color:       bg,
 					ColorBorder: border,
-					SizeBorder:  gui.SomeF(ring),
+					SizeBorder:  gui.BorderPx(ring),
 					Padding:     gui.PaddingNone,
 					HAlign:      gui.HAlignCenter,
 					VAlign:      gui.VAlignMiddle,
@@ -411,7 +411,7 @@ func circle(size float32, c gui.Color, content []gui.View) gui.View {
 		Width:      size,
 		Height:     size,
 		Sizing:     gui.FixedFixed,
-		Radius:     gui.SomeF(size / 2),
+		Radius:     gui.RadiusPx(size / 2),
 		Color:      c,
 		SizeBorder: gui.NoBorder,
 		Padding:    gui.PaddingNone,
@@ -471,7 +471,7 @@ func xpLook(o optionState, s gui.InteractionState) gui.View {
 	const inner = face - 2
 	well := gui.Row(gui.ContainerCfg{
 		Color:      border,
-		Radius:     gui.SomeF(face/2 + 1),
+		Radius:     gui.RadiusPx(face/2 + 1),
 		Padding:    gui.PadAll(1), // ergonomics-audit:spacing — 1px frame, not an inset
 		SizeBorder: gui.NoBorder,
 		Content: []gui.View{gui.Row(gui.ContainerCfg{
@@ -479,7 +479,7 @@ func xpLook(o optionState, s gui.InteractionState) gui.View {
 			// shows the face.
 			Color:      faceColor,
 			Gradient:   grad,
-			Radius:     gui.SomeF(face / 2),
+			Radius:     gui.RadiusPx(face / 2),
 			Padding:    gui.PaddingNone,
 			SizeBorder: gui.NoBorder,
 			Content: []gui.View{
@@ -489,7 +489,7 @@ func xpLook(o optionState, s gui.InteractionState) gui.View {
 							Width:      inner,
 							Height:     inner,
 							Sizing:     gui.FixedFixed,
-							Radius:     gui.SomeF(inner / 2),
+							Radius:     gui.RadiusPx(inner / 2),
 							Padding:    gui.PaddingNone,
 							SizeBorder: gui.NoBorder,
 							HAlign:     gui.HAlignCenter,
@@ -512,7 +512,7 @@ func xpLook(o optionState, s gui.InteractionState) gui.View {
 func ring(c gui.Color, pad gui.Padding, radius float32, content gui.View) gui.View {
 	return gui.Row(gui.ContainerCfg{
 		Color:      c,
-		Radius:     gui.SomeF(radius),
+		Radius:     gui.RadiusPx(radius),
 		Padding:    pad,
 		SizeBorder: gui.NoBorder,
 		Content:    []gui.View{content},

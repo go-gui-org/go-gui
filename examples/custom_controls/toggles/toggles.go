@@ -227,7 +227,7 @@ func materialToggle(id, label string, on bool, accent, onTrack gui.Color, onClic
 			ID:      id,
 			Width:   w,
 			Height:  h,
-			Radius:  gui.SomeF(h / 2),
+			Radius:  gui.RadiusPx(h / 2),
 			Color:   hoverShade(track, on, s),
 			Padding: gui.PadAll((h - knob) / 2),
 		}, label, on, onClick), on, knobCircle(knob, knobColor, nil))
@@ -284,7 +284,7 @@ func greenToggle(id, label string, on bool, onClick func(gui.EventCtx)) gui.View
 			ID:      id,
 			Width:   w,
 			Height:  h,
-			Radius:  gui.SomeF(h / 2),
+			Radius:  gui.RadiusPx(h / 2),
 			Color:   hoverShade(track, on, s),
 			Padding: gui.PadAll(pad),
 		}, label, on, onClick), on, knobCircle(h-pad*2, white, nil))
@@ -317,7 +317,7 @@ func checkToggle(id, label string, on bool, onClick func(gui.EventCtx)) gui.View
 			ID:      id,
 			Width:   w,
 			Height:  h,
-			Radius:  gui.SomeF(h / 2),
+			Radius:  gui.RadiusPx(h / 2),
 			Color:   hoverShade(track, on, s),
 			Padding: gui.PadAll(pad),
 		}, label, on, onClick), on, knobCircle(knob, knobColor, mark))
@@ -381,7 +381,7 @@ func labelToggle(id, label string, on bool, onClick func(gui.EventCtx)) gui.View
 				Width:      trackW,
 				Height:     trackH,
 				Sizing:     gui.FixedFixed,
-				Radius:     gui.SomeF(trackH / 2),
+				Radius:     gui.RadiusPx(trackH / 2),
 				Color:      hoverShade(track, on, s),
 				SizeBorder: gui.NoBorder,
 				// Inset from the rounded end, so the text stays out of

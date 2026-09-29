@@ -268,7 +268,7 @@ func modeButton(w *gui.Window, title string, mode DrawMode, color gui.Color) gui
 		MinWidth:   140,
 		Color:      color.WithOpacity(0.12),
 		Colors:     gui.ColorSet{Hover: color.WithOpacity(0.3), Click: color.WithOpacity(0.5), Border: color},
-		SizeBorder: gui.SomeF(2),
+		SizeBorder: gui.BorderPx(2), // ergonomics-audit:spacing — emphasis border, heavier than the theme hairline
 		Padding:    gui.NewPadding(gui.PadMedium, gui.PadLarge, gui.PadMedium, gui.PadLarge),
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
@@ -293,8 +293,8 @@ func miniCard(rank, suit string, color gui.Color) gui.View {
 		Sizing:      gui.FixedFixed,
 		Color:       colorCardWhite,
 		ColorBorder: colorCardBorder,
-		SizeBorder:  gui.SomeF(1),
-		Radius:      gui.SomeF(4),
+		SizeBorder:  gui.BorderThin,
+		Radius:      gui.RadiusSmall,
 		Padding:     gui.NewPadding(2, 3, 2, 3), // ergonomics-audit:spacing — card-face corner geometry
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
@@ -481,8 +481,8 @@ func foundationSlot(x, y float32, suit Suit) gui.View {
 		Sizing:      gui.FixedFixed,
 		Color:       colorFelt,
 		ColorBorder: colorSlotBorder,
-		SizeBorder:  gui.SomeF(1.5),
-		Radius:      gui.SomeF(6),
+		SizeBorder:  gui.BorderPx(1.5), // ergonomics-audit:spacing — emphasis border, heavier than the theme hairline
+		Radius:      gui.RadiusMedium,
 		HAlign:      gui.HAlignCenter,
 		VAlign:      gui.VAlignMiddle,
 		Content: []gui.View{
@@ -575,8 +575,8 @@ func cardFaceUpView(c Card, x, y float32, onClick func(gui.EventCtx)) gui.View {
 		Sizing:      gui.FixedFixed,
 		Color:       colorCardWhite,
 		ColorBorder: colorCardBorder,
-		SizeBorder:  gui.SomeF(1),
-		Radius:      gui.SomeF(6),
+		SizeBorder:  gui.BorderThin,
+		Radius:      gui.RadiusMedium,
 		Padding:     gui.NewPadding(4, 5, 4, 5), // ergonomics-audit:spacing — card-face geometry
 		Clip:        true,
 		OnAnyClick:  onClick,
@@ -615,8 +615,8 @@ func cardBackView(x, y float32, onClick func(gui.EventCtx)) gui.View {
 		Sizing:      gui.FixedFixed,
 		Color:       colorCardBack,
 		ColorBorder: colorNeonCyan,
-		SizeBorder:  gui.SomeF(2),
-		Radius:      gui.SomeF(6),
+		SizeBorder:  gui.BorderPx(2), // ergonomics-audit:spacing — emphasis border, heavier than the theme hairline
+		Radius:      gui.RadiusMedium,
 		OnAnyClick:  onClick,
 	})
 }
@@ -630,8 +630,8 @@ func emptySlot(x, y float32, onClick func(gui.EventCtx)) gui.View {
 		Sizing:      gui.FixedFixed,
 		Color:       colorFelt,
 		ColorBorder: colorSlotBorder,
-		SizeBorder:  gui.SomeF(1.5),
-		Radius:      gui.SomeF(6),
+		SizeBorder:  gui.BorderPx(1.5), // ergonomics-audit:spacing — emphasis border, heavier than the theme hairline
+		Radius:      gui.RadiusMedium,
 		OnClick:     onClick,
 	})
 }

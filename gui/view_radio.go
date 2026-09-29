@@ -16,7 +16,7 @@ type RadioCfg struct {
 	A11YCfg
 	Padding    Padding
 	Size       Opt[float32]
-	SizeBorder Opt[float32]
+	SizeBorder Border
 	// FocusDisabled opts out of the default-on focus. Focus also
 	// requires a non-empty ID; without one the control is inert.
 	FocusDisabled bool
@@ -52,7 +52,7 @@ func Radio(cfg RadioCfg) View {
 
 	dr := &defaultRadioStyle
 	size := cfg.Size.Get(dr.Size)
-	sizeBorder := cfg.SizeBorder.Get(dr.SizeBorder)
+	sizeBorder := cfg.SizeBorder.Or(dr.SizeBorder)
 
 	// Radio paints every interaction state onto the circle's BORDER,
 	// never its fill: the fill is the selection. So the set handed to
@@ -76,7 +76,7 @@ func Radio(cfg RadioCfg) View {
 		Height:      size,
 		Color:       circleColor,
 		ColorBorder: cfg.Colors.Border,
-		SizeBorder:  Some(sizeBorder),
+		SizeBorder:  BorderPx(sizeBorder),
 		Disabled:    cfg.Disabled,
 		Invisible:   cfg.Invisible,
 		Sizing:      FixedFixed,

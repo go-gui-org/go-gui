@@ -145,7 +145,7 @@ func renderItem(item animatedItem) gui.View {
 			Height:     item.size,
 			Sizing:     gui.FixedFixed,
 			Color:      item.color,
-			Radius:     gui.SomeF(item.size / 2),
+			Radius:     gui.RadiusPx(item.size / 2),
 			SizeBorder: gui.NoBorder,
 		})
 	default: // kindRect
@@ -157,7 +157,7 @@ func renderItem(item animatedItem) gui.View {
 			Height:     item.size,
 			Sizing:     gui.FixedFixed,
 			Color:      item.color,
-			Radius:     gui.SomeF(item.size / 4),
+			Radius:     gui.RadiusPx(item.size / 4),
 			SizeBorder: gui.NoBorder,
 		})
 	}

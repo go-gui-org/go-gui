@@ -44,8 +44,8 @@ type SegmentedControlCfg struct {
 	// theme's field inset, so the control shares a row height with an
 	// Input or a Select.
 	Padding    Padding
-	SizeBorder Opt[float32]
-	Radius     Opt[float32]
+	SizeBorder Border
+	Radius     Radius
 	// Colors themes the track: Base is its fill, Border and
 	// BorderFocus its outline.
 	Colors ColorSet
@@ -127,8 +127,8 @@ func (sv *segmentedControlView) GenerateLayout(w *Window) Layout {
 	s := &defaultSegmentedControlStyle
 	effID := w.EffID(cfg.ID)
 
-	sizeBorder := cfg.SizeBorder.Get(s.sizeBorder)
-	radius := cfg.Radius.Get(s.radius)
+	sizeBorder := cfg.SizeBorder.Or(s.sizeBorder)
+	radius := cfg.Radius.Or(s.radius)
 	// Concentric corners: keep the pill's radius the track's less the
 	// inset, also when the caller changed the track radius.
 	radiusSegment := s.radiusSegment
@@ -217,8 +217,8 @@ func (sv *segmentedControlView) GenerateLayout(w *Window) Layout {
 		},
 		Color:       cfg.Colors.Base,
 		ColorBorder: cfg.Colors.Border,
-		SizeBorder:  SomeF(sizeBorder),
-		Radius:      SomeF(radius),
+		SizeBorder:  BorderPx(sizeBorder),
+		Radius:      RadiusPx(radius),
 		Padding:     s.padding,
 		// The dividers are the separation; a gap would open a seam of
 		// track color between a segment and its divider.
@@ -339,7 +339,7 @@ func segmentButton(a segmentButtonArgs) View {
 		selected:      a.selected,
 		Padding:       a.cfg.Padding,
 		SizeBorder:    NoBorder,
-		Radius:        SomeF(a.radius),
+		Radius:        RadiusPx(a.radius),
 		Sizing:        a.sizing,
 		Disabled:      a.disabled,
 		OnClick:       onClick,

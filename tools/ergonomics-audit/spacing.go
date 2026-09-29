@@ -1,7 +1,8 @@
 package main
 
-// Mode spacing answers: does a call site still spell a gap or an inset as a
-// number, when the theme names both as roles?
+// Mode spacing answers: does a call site still spell a gap, an inset, a
+// corner radius or a border width as a number, when the theme names each as
+// a role?
 //
 // Issue #851 counted about 186 Spacing literals and 178 padding literals in
 // go-gui's examples alone, most of them between the ladder steps (8, 12, 16
@@ -9,7 +10,7 @@ package main
 // §3.3: each step doubles, so group membership reads at a glance), so the
 // call sites move to the steps, and this mode keeps new literals out.
 //
-// Three rules:
+// Four rules:
 //
 //  1. Gap literal — SpacingPx(n) with a literal n > 0, wherever it appears.
 //     SpacingPx builds only a gap, so no field key is needed. Zero is a real
@@ -22,6 +23,10 @@ package main
 //  3. Button inset — rule 2 as the Padding of a ButtonCfg. Theme.PaddingButton
 //     is the one button inset (issue #850); the fix is to delete the field,
 //     not to snap it.
+//  4. Radius or border literal — RadiusPx(n) or BorderPx(n) with a literal
+//     n > 0, on the same terms as rule 1 (issue #867). The roles are
+//     RadiusSmall/Medium/Large and BorderThin; a pill (RadiusPx(h/2)) is
+//     computed and passes.
 //
 // A literal whose nearest enclosing composite literal is a Cfg in
 // spacingExemptCfgs is layout, not spacing, and passes: a DrawCanvasCfg
@@ -61,6 +66,8 @@ const (
 	verbGap         = "spells a gap"
 	verbInset       = "spells an inset"
 	verbButtonInset = "spells a button inset (delete it; Theme.PaddingButton applies)"
+	verbRadius      = "spells a radius"
+	verbBorder      = "spells a border width"
 )
 
 // spacingExemptCfgs names Cfg types whose padding is layout geometry, not a
@@ -235,8 +242,12 @@ func spacingVerb(call *ast.CallExpr, stack []ast.Node) (string, bool) {
 		return "", false
 	}
 	switch {
-	case gapLiteralCall(call):
+	case pxLiteralCall(call, "SpacingPx"):
 		return verbGap, true
+	case pxLiteralCall(call, "RadiusPx"):
+		return verbRadius, true
+	case pxLiteralCall(call, "BorderPx"):
+		return verbBorder, true
 	case insetLiteralCall(call):
 		if key == "Padding" && lit != nil && structName(lit) == "ButtonCfg" {
 			return verbButtonInset, true
@@ -272,9 +283,11 @@ func nearestLit(stack []ast.Node) *ast.CompositeLit {
 	return nil
 }
 
-// gapLiteralCall reports SpacingPx(n) with a literal n > 0.
-func gapLiteralCall(call *ast.CallExpr) bool {
-	if len(call.Args) != 1 || callName(call) != "SpacingPx" {
+// pxLiteralCall reports ctor(n) with a literal n > 0, where ctor is one of
+// the fixed-pixel constructors (SpacingPx, RadiusPx, BorderPx). Each builds
+// only its own kind of value, so no field key is needed.
+func pxLiteralCall(call *ast.CallExpr, ctor string) bool {
+	if len(call.Args) != 1 || callName(call) != ctor {
 		return false
 	}
 	v, ok := floatLiteral(call.Args[0])

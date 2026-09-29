@@ -137,9 +137,9 @@ func shadowCard(text string, bg gui.Color, shadow *gui.BoxShadow) gui.View {
 	return gui.Column(gui.ContainerCfg{
 		Width:       200,
 		Height:      150,
-		Radius:      gui.Some[float32](10),
+		Radius:      gui.RadiusLarge,
 		ColorBorder: gui.CurrentTheme().ColorBorder,
-		SizeBorder:  gui.Some[float32](1.5),
+		SizeBorder:  gui.BorderPx(1.5), // ergonomics-audit:spacing — emphasis border, heavier than the theme hairline
 		Color:       bg,
 		Shadow:      shadow,
 		HAlign:      gui.HAlignCenter,

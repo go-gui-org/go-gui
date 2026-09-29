@@ -1568,8 +1568,8 @@ func TestSplitterExplicitBorderWinsOverStyle(t *testing.T) {
 	a, b := splitterTwoPanes()
 	h := newSplitterHarness(t, SplitterCfg{
 		ID: "sp", Ratio: SomeF(0.5), First: a, Second: b,
-		SizeBorder: SomeF(0),
-		Radius:     SomeF(0),
+		SizeBorder: NoBorder,
+		Radius:     NoRadius,
 	})
 	_, handle, _ := h.parts(t, "sp")
 	nearF(t, "handle border", handle.Shape.SizeBorder, 0, 0.01)

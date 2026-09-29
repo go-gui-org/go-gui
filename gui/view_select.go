@@ -132,8 +132,8 @@ type SelectCfg struct {
 	Options     []SelectOption
 	FloatZIndex int
 	Padding     Padding
-	SizeBorder  Opt[float32]
-	Radius      Opt[float32]
+	SizeBorder  Border
+	Radius      Radius
 	MinWidth    float32
 	MaxWidth    float32
 	// FocusDisabled opts out of the default-on focus. Focus also
@@ -197,8 +197,8 @@ func Select(cfg SelectCfg) View {
 func (sv *selectView) GenerateLayout(w *Window) Layout {
 	cfg := &sv.cfg
 	dn := &defaultSelectStyle
-	sizeBorder := cfg.SizeBorder.Get(dn.SizeBorder)
-	radius := cfg.Radius.Get(dn.Radius)
+	sizeBorder := cfg.SizeBorder.Or(dn.SizeBorder)
+	radius := cfg.Radius.Or(dn.Radius)
 	// Open/highlight state is keyed by the widget's effective ID, so two
 	// selects written with the same leaf under different ID-bearing
 	// panels do not share one dropdown. The dropdown itself is a child
@@ -292,8 +292,8 @@ func (sv *selectView) GenerateLayout(w *Window) Layout {
 		content = append(content, Column(ContainerCfg{
 			ID:            "dropdown",
 			Shadow:        dn.Shadow,
-			SizeBorder:    Some(sizeBorder),
-			Radius:        Some(radius),
+			SizeBorder:    BorderPx(sizeBorder),
+			Radius:        RadiusPx(radius),
 			ColorBorder:   colors.Border,
 			Color:         colors.Base,
 			MinHeight:     50,
@@ -336,8 +336,8 @@ func (sv *selectView) GenerateLayout(w *Window) Layout {
 		},
 		Color:       colors.Base,
 		ColorBorder: colors.Border,
-		SizeBorder:  Some(sizeBorder),
-		Radius:      Some(radius),
+		SizeBorder:  BorderPx(sizeBorder),
+		Radius:      RadiusPx(radius),
 		Padding:     cfg.Padding,
 		Sizing:      cfg.Sizing,
 		MinWidth:    cfg.MinWidth,
@@ -651,7 +651,7 @@ func selectScrollTo(cfg *SelectCfg, scrollID string, idx int, w *Window) {
 	rowH := cfg.TextStyle.Size + 4
 	// Called from the key handler, after generation: read the window's
 	// theme rather than the frame-scoped style mirror.
-	listH := selectDropdownMaxH - 2*cfg.SizeBorder.Get(
+	listH := selectDropdownMaxH - 2*cfg.SizeBorder.Or(
 		w.Theme().selectStyle.SizeBorder)
 	scrollEnsureVisible(scrollID, idx, rowH, listH, w)
 }

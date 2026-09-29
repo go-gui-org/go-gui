@@ -181,7 +181,7 @@ func landingView(w *gui.Window) gui.View {
 						Color:      gui.RGB(237, 194, 46),
 						Colors:     gui.ColorSet{Hover: gui.RGB(245, 210, 80), Border: gui.White},
 						Padding:    gui.NewPadding(gui.PadMedium, gui.PadLarge, gui.PadMedium, gui.PadLarge),
-						SizeBorder: gui.Some[float32](2),
+						SizeBorder: gui.BorderPx(2), // ergonomics-audit:spacing — emphasis border, heavier than the theme hairline
 						Content: []gui.View{
 							gui.Text(gui.TextCfg{
 								Text:      "NEW GAME",
@@ -221,7 +221,7 @@ func landingBackdrop(ww, wh float32, frame int) gui.View {
 			Height: size,
 			Sizing: gui.FixedFixed,
 			Color:  gui.RGBA(237, 194, 46, alpha),
-			Radius: gui.Some[float32](12),
+			Radius: gui.RadiusLarge,
 			Float:  true, // Make sure backdrop elements are floating
 		}))
 	}
@@ -276,7 +276,7 @@ func gameView(w *gui.Window) gui.View {
 				Height:  gridPx,
 				Sizing:  gui.FixedFixed,
 				Color:   gui.RGB(187, 173, 160),
-				Radius:  gui.Some[float32](radiusBoard),
+				Radius:  gui.RadiusPx(radiusBoard),
 				Padding: gui.NoPadding,
 				Content: renderBoard(app.Game),
 			}),
@@ -300,7 +300,7 @@ func scoreBox(label string, value int) gui.View {
 		Height:     65,
 		Sizing:     gui.FixedFixed,
 		Color:      gui.RGB(187, 173, 160),
-		Radius:     gui.Some[float32](4),
+		Radius:     gui.RadiusSmall,
 		Padding:    gui.NewPadding(gui.PadSmall, gui.PadMedium, gui.PadSmall, gui.PadMedium),
 		VAlign:     gui.VAlignMiddle,
 		HAlign:     gui.HAlignCenter,
@@ -333,7 +333,7 @@ func renderBoard(g *Game) []gui.View {
 				Height:  tilePx,
 				Sizing:  gui.FixedFixed,
 				Color:   gui.RGBA(238, 228, 218, 89),
-				Radius:  gui.Some[float32](radiusTile),
+				Radius:  gui.RadiusPx(radiusTile),
 				Padding: gui.NoPadding,
 			}))
 		}
@@ -383,7 +383,7 @@ func renderTile(x, y, val, tileID int) gui.View {
 		Height:  tilePx,
 		Sizing:  gui.FixedFixed,
 		Color:   bg,
-		Radius:  gui.Some[float32](radiusTile),
+		Radius:  gui.RadiusPx(radiusTile),
 		Padding: gui.NoPadding,
 		VAlign:  gui.VAlignMiddle,
 		HAlign:  gui.HAlignCenter,
@@ -403,7 +403,7 @@ func gameOverlay(msg string) gui.View {
 		Height:  gridPx,
 		Sizing:  gui.FixedFixed,
 		Color:   gui.RGBA(238, 228, 218, 150),
-		Radius:  gui.Some[float32](radiusBoard),
+		Radius:  gui.RadiusPx(radiusBoard),
 		Padding: gui.NoPadding,
 		VAlign:  gui.VAlignMiddle,
 		HAlign:  gui.HAlignCenter,

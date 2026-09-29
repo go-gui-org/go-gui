@@ -143,7 +143,7 @@ func docButton(showDocs bool) gui.View {
 		Color:      color,
 		SizeBorder: gui.NoBorder,
 		Padding:    gui.NewPadding(gui.PadXSmall, gui.PadSmall, gui.PadXSmall, gui.PadSmall),
-		Radius:     gui.SomeF(3),
+		Radius:     gui.RadiusSmall,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{Text: gui.IconBook, TextStyle: gui.CurrentTheme().TextStyleIconSmall}),
 		},
@@ -262,7 +262,7 @@ func demoPlaceholder(t gui.Theme, text string) gui.View {
 		Sizing:  gui.FillFit,
 		Color:   t.ColorPanel,
 		Padding: gui.PaddingLarge,
-		Radius:  gui.SomeF(8),
+		Radius:  gui.RadiusMedium,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{Text: text, TextStyle: t.TextStyleBody, Mode: gui.TextModeWrap}),
 		},

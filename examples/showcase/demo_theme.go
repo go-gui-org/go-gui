@@ -34,7 +34,7 @@ func demoThemeGen(w *gui.Window) gui.View {
 			Color:    color,
 			Disabled: pickText,
 			Padding:  gui.NewPadding(gui.PadXSmall, gui.PadMedium, gui.PadXSmall, gui.PadMedium),
-			Radius:   gui.SomeF(12),
+			Radius:   gui.RadiusLarge,
 			Content:  []gui.View{gui.Text(gui.TextCfg{Text: strategyLabel(sv), TextStyle: textStyle})},
 			OnClick: func(ctx gui.EventCtx) {
 				appState(ctx.Window).ThemeGenStrategy = sv
@@ -366,7 +366,7 @@ func themeContrastPreview() gui.View {
 			Spacing: gui.SpacingMedium,
 			Padding: gui.PaddingMedium,
 			Color:   lt.ColorPanel,
-			Radius:  gui.SomeF(8),
+			Radius:  gui.RadiusMedium,
 			Content: []gui.View{
 				gui.Text(gui.TextCfg{
 					Text:      "Scoped theme (light) — window theme unchanged",

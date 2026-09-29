@@ -564,7 +564,7 @@ func fontCard(w *gui.Window, name string, cardW, cardH float32) gui.View {
 		Height:  cardH,
 		Sizing:  gui.FixedFixed,
 		Color:   bg,
-		Radius:  gui.SomeF(cardRadius),
+		Radius:  gui.RadiusPx(cardRadius),
 		Padding: gui.NewPadding(cardVPad, previewPad, cardVPad, previewPad),
 		Spacing: gui.SpacingPx(spacingTight),
 		Content: []gui.View{

@@ -26,8 +26,8 @@ type TreeCfg struct {
 	ItemPaths  []string
 	Nodes      []TreeNodeCfg
 	Padding    Padding
-	SizeBorder Opt[float32]
-	Radius     Opt[float32]
+	SizeBorder Border
+	Radius     Radius
 
 	// Indent is the horizontal pitch per tree depth. Zero takes the
 	// theme default.
@@ -247,8 +247,8 @@ func (tv *treeView) GenerateLayout(w *Window) Layout {
 			dragReorderGhostView(drag, ghostContent))
 	}
 
-	sizeBorder := cfg.SizeBorder.Get(defaultTreeStyle.SizeBorder)
-	radius := cfg.Radius.Get(defaultTreeStyle.Radius)
+	sizeBorder := cfg.SizeBorder.Or(defaultTreeStyle.SizeBorder)
+	radius := cfg.Radius.Or(defaultTreeStyle.Radius)
 
 	return generateViewLayout(Column(ContainerCfg{
 		ID:       cfg.ID,
@@ -302,8 +302,8 @@ func (tv *treeView) GenerateLayout(w *Window) Layout {
 		MaxHeight:   cfg.MaxHeight,
 		Color:       cfg.Colors.Base,
 		ColorBorder: cfg.Colors.Border,
-		SizeBorder:  Some(sizeBorder),
-		Radius:      Some(radius),
+		SizeBorder:  BorderPx(sizeBorder),
+		Radius:      RadiusPx(radius),
 		Padding:     cfg.Padding,
 		Spacing:     cfg.Spacing,
 		Disabled:    cfg.Disabled,

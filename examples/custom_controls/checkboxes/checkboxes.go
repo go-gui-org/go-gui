@@ -129,14 +129,14 @@ func group(id string, bg gui.Color, spacing float32, content ...gui.View) gui.Vi
 	pad, border := gui.PaddingNone, gui.NoBorder
 	if bg != gui.ColorTransparent {
 		// The XP group is a dialog surface with a thin frame.
-		pad, border = gui.PaddingMedium, gui.SomeF(1)
+		pad, border = gui.PaddingMedium, gui.BorderThin
 	}
 	return gui.Column(gui.ContainerCfg{
 		ID:          id,
 		Color:       bg,
 		ColorBorder: xpSurfaceBorder,
 		SizeBorder:  border,
-		Radius:      gui.SomeF(0),
+		Radius:      gui.NoRadius,
 		Padding:     pad,
 		Spacing:     gui.SpacingPx(spacing),
 		Content:     content,
@@ -247,10 +247,10 @@ func materialCheck(id, key string, app *App, accent gui.Color, disabled bool) gu
 					Width:       size,
 					Height:      size,
 					Sizing:      gui.FixedFixed,
-					Radius:      gui.SomeF(radius),
+					Radius:      gui.RadiusPx(radius),
 					Color:       bg,
 					ColorBorder: border,
-					SizeBorder:  gui.SomeF(2),
+					SizeBorder:  gui.BorderPx(2), // ergonomics-audit:spacing — emphasis border, heavier than the theme hairline
 					Padding:     gui.PaddingNone,
 					HAlign:      gui.HAlignCenter,
 					VAlign:      gui.VAlignMiddle,
@@ -321,13 +321,13 @@ func xpCheck(id, key string, app *App, disabled bool) gui.View {
 		box := gui.Column(gui.ContainerCfg{
 			// The frame is a 1px pad of border color around the well.
 			Color:      border,
-			Radius:     gui.SomeF(0),
+			Radius:     gui.NoRadius,
 			Padding:    gui.PadAll(1), // ergonomics-audit:spacing — 1px frame, not an inset
 			SizeBorder: gui.NoBorder,
 			Content: []gui.View{gui.Column(gui.ContainerCfg{
 				Color:      faceColor,
 				Gradient:   face,
-				Radius:     gui.SomeF(0),
+				Radius:     gui.NoRadius,
 				Padding:    gui.PaddingNone,
 				SizeBorder: gui.NoBorder,
 				Content: []gui.View{
@@ -337,7 +337,7 @@ func xpCheck(id, key string, app *App, disabled bool) gui.View {
 								Width:      11,
 								Height:     11,
 								Sizing:     gui.FixedFixed,
-								Radius:     gui.SomeF(0),
+								Radius:     gui.NoRadius,
 								Padding:    gui.PaddingNone,
 								SizeBorder: gui.NoBorder,
 								HAlign:     gui.HAlignCenter,

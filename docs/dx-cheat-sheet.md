@@ -102,15 +102,18 @@ asserts a clean window. See `docs/specs/widget-id-scoping.md` and
 `Opt[T]` distinguishes "zero" from "not set". Use it for primitives where zero
 is a real choice:
 
-- Zero is a real choice (a border width of 0): `Opt[float32]`.
+- Zero is a real choice (a scrollbar inset of 0): `Opt[float32]`.
 - Zero is not meaningful (widths, heights, counts): plain field.
-- The type knows whether it was set (`Color`, `Padding`): plain field.
+- The type knows whether it was set (`Color`, `Padding`, `Spacing`, `Radius`,
+  `Border`): plain field.
 
-`SizeBorder` is the example: `0` means "no border", so a plain `float32` cannot
-tell that from "not specified". `Color` and `Padding` carry their own set flag
-and stay plain. `ScrollbarCfg.GapEdge`/`GapEnd` are the same case — `0` is a
-real inset — so they are `Opt[float32]` defaulting to the theme's
-`SizeScrollbarGap`/`SizeScrollbarGapEnd` (write `gui.SomeF(4)`).
+`ScrollbarCfg.GapEdge`/`GapEnd` are the example: `0` is a real inset, so a plain
+`float32` cannot tell that from "not specified". They are `Opt[float32]`
+defaulting to the theme's `SizeScrollbarGap`/`SizeScrollbarGapEnd` (write
+`gui.SomeF(4)`). Gaps, corner radii and border widths have theme roles, so they
+use their own types: `Spacing: gui.SpacingMedium`, `Radius: gui.RadiusMedium`,
+`SizeBorder: gui.BorderThin`, with `gui.NoBorder` / `gui.NoRadius` for an
+explicit zero (#866, #867).
 
 ## Colors
 

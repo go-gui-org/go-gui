@@ -66,16 +66,16 @@ func TestInputDateSelectedDayTextColor(t *testing.T) {
 func TestInputDateDefaultsPreserve(t *testing.T) {
 	cfg := InputDateCfg{
 		ID:           "input_date_test_test_input_date_defaults_preserve",
-		SizeBorder:   SomeF(1),
+		SizeBorder:   BorderThin,
 		CellSpacing:  SpacingPx(3),
-		Radius:       SomeF(4),
-		RadiusBorder: SomeF(4),
+		Radius:       RadiusSmall,
+		RadiusBorder: RadiusSmall,
 		TextStyle:    DefaultTextStyle,
 		Color:        RGB(30, 30, 30),
 	}
 	applyInputDateDefaults(&cfg)
-	if cfg.SizeBorder.Get(0) != 1 {
-		t.Errorf("SizeBorder overwritten = %f", cfg.SizeBorder.Get(0))
+	if cfg.SizeBorder.Or(0) != 1 {
+		t.Errorf("SizeBorder overwritten = %f", cfg.SizeBorder.Or(0))
 	}
 	if cfg.CellSpacing.Or(0) != 3 {
 		t.Errorf("CellSpacing overwritten = %f", cfg.CellSpacing.Or(0))

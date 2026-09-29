@@ -221,7 +221,7 @@ func TestRadioButtonGroupBorderFollowsTheme(t *testing.T) {
 
 	v = RadioButtonGroupColumn(RadioButtonGroupCfg{
 		ID:         "radio-group-theme-border-override",
-		SizeBorder: SomeF(3),
+		SizeBorder: BorderPx(3),
 		Options: []RadioOption{
 			{Label: "A", Value: "a"},
 		},

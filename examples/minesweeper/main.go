@@ -293,7 +293,7 @@ func diffButton(w *gui.Window, title, subtitle string, diff Difficulty, color gu
 		MinWidth:   130,
 		Color:      color.WithOpacity(0.15),
 		Colors:     gui.ColorSet{Hover: color.WithOpacity(0.3), Click: color.WithOpacity(0.5), Border: color},
-		SizeBorder: gui.SomeF(2),
+		SizeBorder: gui.BorderPx(2), // ergonomics-audit:spacing — emphasis border, heavier than the theme hairline
 		Padding:    gui.NewPadding(gui.PadMedium, gui.PadLarge, gui.PadMedium, gui.PadLarge),
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
@@ -570,9 +570,9 @@ func headerView(app *App, theme gui.Theme, boardW float32) gui.View {
 						ID:         "mine_reset",
 						Color:      gui.RGB(40, 44, 52),
 						Colors:     gui.ColorSet{Hover: gui.RGB(55, 60, 68), Click: gui.RGB(30, 34, 40), Border: gui.RGB(100, 105, 110)},
-						SizeBorder: gui.SomeF(2),
+						SizeBorder: gui.BorderPx(2), // ergonomics-audit:spacing — emphasis border, heavier than the theme hairline
 						Padding:    gui.PaddingXSmall,
-						Radius:     gui.SomeF(6),
+						Radius:     gui.RadiusMedium,
 						Content: []gui.View{
 							gui.Text(gui.TextCfg{
 								Text:      smileyIcon,
@@ -596,8 +596,8 @@ func ledDisplay(x, y float32, text string, theme gui.Theme) gui.View {
 		X: x, Y: y, Width: 80, Height: 40,
 		Sizing:      gui.FixedFixed,
 		Color:       gui.RGB(20, 0, 0),
-		Radius:      gui.SomeF(4),
-		SizeBorder:  gui.SomeF(1),
+		Radius:      gui.RadiusSmall,
+		SizeBorder:  gui.BorderThin,
 		ColorBorder: gui.RGB(60, 60, 60),
 		HAlign:      gui.HAlignCenter,
 		VAlign:      gui.VAlignMiddle,
@@ -650,7 +650,7 @@ func boardView(app *App, g *Game, theme gui.Theme,
 		Padding:     gui.NoPadding,
 		Color:       canvasBg,
 		ColorBorder: gui.RGB(60, 65, 70),
-		SizeBorder:  gui.SomeF(2),
+		SizeBorder:  gui.BorderPx(2), // ergonomics-audit:spacing — emphasis border, heavier than the theme hairline
 		Content:     cells,
 	})
 }
@@ -729,7 +729,7 @@ func cellView(row, col int, g *Game, app *App, cellPx float32,
 		Width: cellPx - 2, Height: cellPx - 2,
 		Sizing:      gui.FixedFixed,
 		Color:       bgColor,
-		SizeBorder:  gui.SomeF(1),
+		SizeBorder:  gui.BorderThin,
 		ColorBorder: borderColor,
 		Padding:     gui.NoPadding,
 		HAlign:      gui.HAlignCenter,
@@ -925,7 +925,7 @@ func smallButton(label string, action func(*gui.Window)) gui.View {
 		ID:         gui.ScopeID("minesweeper_small_button", label),
 		Color:      gui.RGB(45, 50, 58),
 		Colors:     gui.ColorSet{Hover: gui.RGB(60, 66, 74), Click: gui.RGB(35, 40, 48), Border: gui.RGB(90, 95, 100)},
-		SizeBorder: gui.SomeF(1),
+		SizeBorder: gui.BorderThin,
 		Padding:    gui.NewPadding(gui.PadSmall, gui.PadMedium, gui.PadSmall, gui.PadMedium),
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{

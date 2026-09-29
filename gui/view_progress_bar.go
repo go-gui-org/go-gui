@@ -18,7 +18,7 @@ type ProgressBarCfg struct {
 	// (visual-refresh §8). Zero takes the theme default.
 	// exportaudit:keep — caller-facing config (issue #372)
 	TextPadding Padding
-	Radius      Opt[float32]
+	Radius      Radius
 	Percent     float32 // 0.0 to 1.0
 	Width       float32
 	Height      float32
@@ -65,7 +65,7 @@ func ProgressBar(cfg ProgressBarCfg) View {
 	if !cfg.TextPadding.IsSet() {
 		cfg.TextPadding = guiTheme.progressBarStyle.textPadding
 	}
-	radius := cfg.Radius.Get(guiTheme.progressBarStyle.Radius)
+	radius := cfg.Radius.Or(guiTheme.progressBarStyle.Radius)
 
 	size := guiTheme.progressBarStyle.Size
 	w := cfg.Width
@@ -97,7 +97,7 @@ func ProgressBar(cfg ProgressBarCfg) View {
 		Sizing:     FillFit,
 		Padding:    NoPadding,
 		SizeBorder: NoBorder,
-		Radius:     SomeF(radius),
+		Radius:     RadiusPx(radius),
 		Color:      cfg.Color,
 		Width:      w,
 		Height:     h,
@@ -109,7 +109,7 @@ func ProgressBar(cfg ProgressBarCfg) View {
 			Row(ContainerCfg{
 				Padding:    NoPadding,
 				SizeBorder: NoBorder,
-				Radius:     SomeF(radius),
+				Radius:     RadiusPx(radius),
 				Color:      cfg.ColorBar,
 			}),
 		},

@@ -52,8 +52,8 @@ type ComboboxCfg struct {
 	Options     []SelectOption
 	FloatZIndex int
 	Padding     Padding
-	SizeBorder  Opt[float32]
-	Radius      Opt[float32]
+	SizeBorder  Border
+	Radius      Radius
 	MinWidth    float32
 	MaxWidth    float32
 	// MaxDropdownHeight caps the dropdown list's height. Zero takes
@@ -108,8 +108,8 @@ func Combobox(cfg ComboboxCfg) View {
 func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 	cfg := &cv.cfg
 	dn := &defaultComboboxStyle
-	sizeBorder := cfg.SizeBorder.Get(dn.SizeBorder)
-	radius := cfg.Radius.Get(dn.Radius)
+	sizeBorder := cfg.SizeBorder.Or(dn.SizeBorder)
+	radius := cfg.Radius.Or(dn.Radius)
 	// Per-widget state is keyed by the widget's *effective* ID, so two
 	// comboboxes written with the same leaf under different ID-bearing
 	// panels keep separate open/query/highlight state. Handlers close
@@ -244,8 +244,8 @@ func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 		content = append(content, Column(ContainerCfg{
 			ID:           "dropdown",
 			Shadow:       dn.Shadow,
-			SizeBorder:   Some(sizeBorder),
-			Radius:       Some(radius),
+			SizeBorder:   BorderPx(sizeBorder),
+			Radius:       RadiusPx(radius),
 			ColorBorder:  cfg.Colors.Border,
 			Color:        cfg.Colors.Base,
 			MinHeight:    50,
@@ -306,8 +306,8 @@ func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 		},
 		Color:       colors.Base,
 		ColorBorder: colors.Border,
-		SizeBorder:  Some(sizeBorder),
-		Radius:      Some(radius),
+		SizeBorder:  BorderPx(sizeBorder),
+		Radius:      RadiusPx(radius),
 		Padding:     cfg.Padding,
 		Sizing:      cfg.Sizing,
 		MinWidth:    cfg.MinWidth,

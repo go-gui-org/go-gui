@@ -106,7 +106,7 @@ func View(app *App) gui.View {
 			group("xp", gui.ContainerCfg{
 				Color:       xpPanel,
 				ColorBorder: xpPanelEdge,
-				SizeBorder:  gui.SomeF(1),
+				SizeBorder:  gui.BorderThin,
 				Padding:     gui.PaddingMedium,
 			},
 				fieldLabel("Single-line"),
@@ -153,9 +153,9 @@ func valuesPanel(app *App) gui.View {
 		ID:          "values",
 		Sizing:      gui.FillFit,
 		Color:       white,
-		Radius:      gui.SomeF(4),
+		Radius:      gui.RadiusSmall,
 		ColorBorder: gui.RGBA(0, 0, 0, 20),
-		SizeBorder:  gui.SomeF(1),
+		SizeBorder:  gui.BorderThin,
 		Padding:     gui.PaddingMedium,
 		Spacing:     gui.SpacingSmall,
 		Content: []gui.View{
@@ -182,7 +182,7 @@ func plainInput(app *App, key string, multiline bool) gui.View {
 		// border colors.
 		Colors:     gui.Flat(gui.ColorTransparent),
 		SizeBorder: gui.NoBorder,
-		Radius:     gui.SomeF(0),
+		Radius:     gui.NoRadius,
 		Padding:    gui.PaddingNone,
 	}
 	if multiline {
@@ -238,9 +238,9 @@ func materialField(app *App, id string, multiline bool, accent gui.Color) gui.Vi
 			ID:          id,
 			Sizing:      gui.FillFit,
 			Color:       white,
-			Radius:      gui.SomeF(4),
+			Radius:      gui.RadiusSmall,
 			ColorBorder: border,
-			SizeBorder:  gui.SomeF(1),
+			SizeBorder:  gui.BorderThin,
 			Padding:     gui.NewPadding(gui.PadSmall, gui.PadSmall, 0, gui.PadSmall),
 			Spacing:     gui.SpacingSmall,
 			Clip:        true,
@@ -286,9 +286,9 @@ func xpField(app *App, id string, multiline bool) gui.View {
 			ID:          id,
 			Sizing:      gui.FillFit,
 			Color:       white,
-			Radius:      gui.SomeF(0),
+			Radius:      gui.NoRadius,
 			ColorBorder: border,
-			SizeBorder:  gui.SomeF(1),
+			SizeBorder:  gui.BorderThin,
 			Padding:     gui.PaddingNone,
 			Spacing:     gui.NoSpacing,
 			Clip:        true,

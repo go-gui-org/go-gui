@@ -43,7 +43,7 @@ func Rectangle(cfg RectangleCfg) View {
 		BlurRadius:     cfg.BlurRadius,
 		Shader:         cfg.Shader,
 		Padding:        NoPadding,
-		Radius:         Some(cfg.Radius),
-		SizeBorder:     Some(cfg.SizeBorder),
+		Radius:         RadiusPx(cfg.Radius),
+		SizeBorder:     BorderPx(cfg.SizeBorder),
 	})
 }

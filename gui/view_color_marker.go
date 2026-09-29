@@ -22,7 +22,7 @@ func colorMarker(
 		Sizing:      FixedFixed,
 		Color:       fill,
 		ColorBorder: White,
-		SizeBorder:  SomeF(colorMarkerRing),
+		SizeBorder:  BorderPx(colorMarkerRing),
 		Padding:     NoPadding,
 		// Float with a z-index above the imagery: a channel slider
 		// floats its track to centre it in a control the thumb makes

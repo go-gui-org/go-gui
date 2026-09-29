@@ -181,7 +181,7 @@ func TestNumericInputBorderFollowsTheme(t *testing.T) {
 	v = NumericInput(NumericInputCfg{
 		ID:         "ni-theme-border-override",
 		StepCfg:    NumericStepCfg{ShowButtons: true, Step: 1},
-		SizeBorder: SomeF(3),
+		SizeBorder: BorderPx(3),
 	})
 	layout = generateViewLayout(v, w)
 	if layout.Shape.SizeBorder != 3 {

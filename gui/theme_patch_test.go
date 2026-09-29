@@ -11,7 +11,7 @@ import (
 
 func TestThemeWithButtonRadius(t *testing.T) {
 	base := ThemeMaker(themeDarkCfg)
-	patched := base.With(ButtonPatch{Radius: SomeF(2)})
+	patched := base.With(ButtonPatch{Radius: RadiusPx(2)})
 
 	if patched.id == base.id {
 		t.Error("With reused the parent theme id")
@@ -30,7 +30,7 @@ func TestThemeWithButtonRadius(t *testing.T) {
 
 func TestThemeWithIsolation(t *testing.T) {
 	base := ThemeMaker(themeDarkCfg)
-	patched := base.With(ButtonPatch{Radius: SomeF(2)})
+	patched := base.With(ButtonPatch{Radius: RadiusPx(2)})
 
 	if patched.inputStyle != base.inputStyle {
 		t.Error("ButtonPatch moved inputStyle")
@@ -101,8 +101,8 @@ func TestThemeWithSanitizesLengths(t *testing.T) {
 	inf := float32(math.Inf(1))
 	patched := ThemeMaker(themeDarkCfg).With(InputPatch{
 		Padding:    NewPadding(nan, -4, inf, 5),
-		SizeBorder: SomeF(-1),
-		Radius:     SomeF(nan),
+		SizeBorder: BorderPx(-1),
+		Radius:     RadiusPx(nan),
 	})
 	want := NewPadding(0, 0, 0, 5)
 	for name, theme := range map[string]Theme{
@@ -124,15 +124,15 @@ func TestThemeWithSanitizesLengths(t *testing.T) {
 	if !ok {
 		t.Fatal("InputPatch not stored")
 	}
-	if r, _ := stored.Radius.Value(); r != 0 {
+	if r := stored.Radius.Or(-1); r != 0 {
 		t.Errorf("stored radius = %v, want 0", r)
 	}
 }
 
 func TestThemeWithOverwriteSameType(t *testing.T) {
 	base := ThemeMaker(themeDarkCfg)
-	first := base.With(ButtonPatch{Radius: SomeF(2)})
-	second := first.With(ButtonPatch{Radius: SomeF(5)})
+	first := base.With(ButtonPatch{Radius: RadiusPx(2)})
+	second := first.With(ButtonPatch{Radius: RadiusPx(5)})
 
 	if second.buttonStyle.Radius != 5 {
 		t.Errorf("second radius = %v, want 5", second.buttonStyle.Radius)
@@ -143,8 +143,8 @@ func TestThemeWithOverwriteSameType(t *testing.T) {
 }
 
 func TestThemeWithCoexistingTypes(t *testing.T) {
-	patched := ThemeMaker(themeDarkCfg).With(ButtonPatch{Radius: SomeF(2)}).
-		With(InputPatch{Radius: SomeF(7)})
+	patched := ThemeMaker(themeDarkCfg).With(ButtonPatch{Radius: RadiusPx(2)}).
+		With(InputPatch{Radius: RadiusPx(7)})
 
 	if patched.buttonStyle.Radius != 2 {
 		t.Errorf("button radius = %v, want 2", patched.buttonStyle.Radius)
@@ -155,7 +155,7 @@ func TestThemeWithCoexistingTypes(t *testing.T) {
 }
 
 func TestThemeWithSurvivesRebuilds(t *testing.T) {
-	base := ThemeMaker(themeDarkCfg).With(ButtonPatch{Radius: SomeF(2)})
+	base := ThemeMaker(themeDarkCfg).With(ButtonPatch{Radius: RadiusPx(2)})
 
 	sized, err := base.AdjustFontSize(1, 1, 100)
 	if err != nil {
@@ -183,7 +183,7 @@ func TestThemeWithSurvivesRebuilds(t *testing.T) {
 }
 
 func TestThemeWithSurvivesPaddingRestore(t *testing.T) {
-	base := ThemeMaker(themeDarkCfg).With(ButtonPatch{Radius: SomeF(2)})
+	base := ThemeMaker(themeDarkCfg).With(ButtonPatch{Radius: RadiusPx(2)})
 	restored := base.WithPadding(false).WithPadding(true)
 
 	if restored.buttonStyle.Radius != 2 {
@@ -197,7 +197,7 @@ func TestThemeWithContainerPatch(t *testing.T) {
 	patched := base.With(ContainerPatch{
 		Padding:    PadAll(3),
 		SizeBorder: NoBorder,
-		Radius:     SomeF(9),
+		Radius:     RadiusPx(9),
 	})
 
 	if patched.containerStyle.Padding != PadAll(3) {
@@ -221,7 +221,7 @@ func TestThemeWithOtherPatches(t *testing.T) {
 	patchedInput := base.With(InputPatch{
 		Padding:    PadAll(3),
 		SizeBorder: NoBorder,
-		Radius:     SomeF(7),
+		Radius:     RadiusPx(7),
 	})
 	if patchedInput.inputStyle.Padding != PadAll(3) {
 		t.Errorf("input padding = %v, want %v",
@@ -237,7 +237,7 @@ func TestThemeWithOtherPatches(t *testing.T) {
 		t.Error("InputPatch moved buttonStyle")
 	}
 
-	patchedSelect := base.With(SelectPatch{Radius: SomeF(4)})
+	patchedSelect := base.With(SelectPatch{Radius: RadiusSmall})
 	if patchedSelect.selectStyle.Radius != 4 {
 		t.Errorf("select radius = %v, want 4", patchedSelect.selectStyle.Radius)
 	}
@@ -245,7 +245,7 @@ func TestThemeWithOtherPatches(t *testing.T) {
 		t.Error("SelectPatch moved inputStyle")
 	}
 
-	patchedDialog := base.With(DialogPatch{Radius: SomeF(6)})
+	patchedDialog := base.With(DialogPatch{Radius: RadiusMedium})
 	if patchedDialog.dialogStyle.Radius != 6 {
 		t.Errorf("dialog radius = %v, want 6", patchedDialog.dialogStyle.Radius)
 	}
@@ -271,7 +271,7 @@ func TestGoldenWidgetPatch(t *testing.T) {
 	}
 	c := goldenCase{name: "button_patch", build: build}
 	for _, th := range goldenThemes() {
-		patched := th.theme.With(ButtonPatch{Radius: SomeF(2)})
+		patched := th.theme.With(ButtonPatch{Radius: RadiusPx(2)})
 		name := c.name + "." + th.name
 		t.Run(name, func(t *testing.T) {
 			got := renderGolden(t, patched, c)

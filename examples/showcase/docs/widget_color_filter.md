@@ -94,7 +94,7 @@ gui.Column(gui.ContainerCfg{
     BlurRadius:  15,
     ColorFilter: gui.ColorFilterBrightness(1.3),
     Color:       gui.RGBA(0, 255, 128, 255),
-    Radius:      gui.SomeF(50),
+    Radius:      gui.RadiusPx(50),
 })
 ```
 

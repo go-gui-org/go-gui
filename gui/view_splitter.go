@@ -142,11 +142,11 @@ type SplitterCfg struct {
 	DragStep Opt[float32]
 	// exportaudit:keep — caller-facing config (issue #372)
 	DragStepLarge Opt[float32]
-	SizeBorder    Opt[float32]
-	Radius        Opt[float32]
+	SizeBorder    Border
+	Radius        Radius
 	// RadiusBorder rounds the handle. Unset takes the theme default.
 	// exportaudit:keep — caller-facing config (issue #372)
-	RadiusBorder Opt[float32]
+	RadiusBorder Radius
 	Focusable    bool
 	// ColorsHandle sets the handle's per-state colors; ColorHandle
 	// below is the shorthand for ColorsHandle.Base and wins over
@@ -265,13 +265,13 @@ func applySplitterDefaults(cfg *SplitterCfg) {
 	// splitter's own values were dead. Seed them here so the style is
 	// what renders.
 	if !cfg.SizeBorder.IsSet() {
-		cfg.SizeBorder = SomeF(s.SizeBorder)
+		cfg.SizeBorder = BorderPx(s.SizeBorder)
 	}
 	if !cfg.Radius.IsSet() {
-		cfg.Radius = SomeF(s.Radius)
+		cfg.Radius = RadiusPx(s.Radius)
 	}
 	if !cfg.RadiusBorder.IsSet() {
-		cfg.RadiusBorder = SomeF(s.radiusBorder)
+		cfg.RadiusBorder = RadiusPx(s.radiusBorder)
 	}
 	cfg.ColorsHandle = cfg.ColorsHandle.resolved(cfg.ColorHandle, s.ColorsHandle)
 	cfg.ColorsButton = cfg.ColorsButton.resolved(cfg.ColorButton, s.ColorsButton)

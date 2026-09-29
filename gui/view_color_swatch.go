@@ -27,7 +27,7 @@ type ColorSwatchCfg struct {
 
 	Width  float32
 	Height float32
-	Radius Opt[float32]
+	Radius Radius
 
 	// Sound overrides the theme's selection cue for this instance.
 	// SoundNone (the zero value) takes the theme's cue for that role,
@@ -61,7 +61,7 @@ func applyColorSwatchDefaults(cfg *ColorSwatchCfg) {
 		cfg.Height = defaultSwatchHeight
 	}
 	if !cfg.Radius.IsSet() {
-		cfg.Radius = Some(d.Radius)
+		cfg.Radius = RadiusPx(d.Radius)
 	}
 }
 
@@ -121,7 +121,7 @@ func (sv *colorSwatchView) GenerateLayout(w *Window) Layout {
 		// vanishes exactly when the color is hardest to
 		// read off the hex string.
 		ColorBorder: colorSwatchEdge(),
-		SizeBorder:  SomeF(colorSwatchBorder),
+		SizeBorder:  BorderPx(colorSwatchBorder),
 		Padding:     NoPadding,
 	}
 	if cfg.Focusable {

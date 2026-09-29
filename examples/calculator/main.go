@@ -242,8 +242,8 @@ func calculatorShell(w *gui.Window) gui.View {
 		Sizing:      gui.FixedFixed,
 		Color:       colorShell,
 		ColorBorder: colorShellBorder,
-		SizeBorder:  gui.SomeF(2),
-		Radius:      gui.SomeF(22),
+		SizeBorder:  gui.BorderPx(2),  // ergonomics-audit:spacing — emphasis border, heavier than the theme hairline
+		Radius:      gui.RadiusPx(22), // ergonomics-audit:spacing — decorative radius, not a control corner
 		Padding:     gui.PaddingMedium,
 		Spacing:     gui.SpacingMedium,
 		Content: []gui.View{
@@ -381,11 +381,11 @@ func calcKey(_ *gui.Window, button calcButton, n int) gui.View {
 		ID:         gui.ScopeIDN("calc", "key", n),
 		Color:      button.Background,
 		Colors:     gui.ColorSet{Hover: lighten(button.Background, 12), Click: lighten(button.Background, 24), Focus: lighten(button.Background, 12), Border: lighten(button.Background, 18), BorderFocus: lighten(button.Background, 28)},
-		SizeBorder: gui.SomeF(2),
+		SizeBorder: gui.BorderPx(2), // ergonomics-audit:spacing — emphasis border, heavier than the theme hairline
 		Width:      buttonSize,
 		Height:     buttonSize,
 		Sizing:     gui.FixedFixed,
-		Radius:     gui.Some(buttonSize / 2),
+		Radius:     gui.RadiusPx(buttonSize / 2),
 		Padding:    gui.NoPadding,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{

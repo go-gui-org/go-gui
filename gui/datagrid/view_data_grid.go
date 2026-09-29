@@ -279,8 +279,8 @@ type DataGridCfg struct {
 	PaddingCell         gg.Padding
 	PaddingHeader       gg.Padding
 	PaddingFilter       gg.Padding
-	Radius              gg.Opt[float32]
-	SizeBorder          gg.Opt[float32]
+	Radius              gg.Radius
+	SizeBorder          gg.Border
 	// exportaudit:keep — caller-facing config (issue #372)
 	RowHeight       float32
 	HeaderHeight    float32
@@ -440,10 +440,10 @@ func applyDataGridDefaults(cfg *DataGridCfg) {
 		cfg.PaddingFilter = s.PaddingFilter
 	}
 	if !cfg.Radius.IsSet() {
-		cfg.Radius = gg.SomeF(s.Radius)
+		cfg.Radius = gg.RadiusPx(s.Radius)
 	}
 	if !cfg.SizeBorder.IsSet() {
-		cfg.SizeBorder = gg.SomeF(s.SizeBorder)
+		cfg.SizeBorder = gg.BorderPx(s.SizeBorder)
 	}
 	for i := range cfg.Columns {
 		gridColumnCfgDefaults(&cfg.Columns[i])

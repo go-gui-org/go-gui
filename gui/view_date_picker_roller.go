@@ -39,8 +39,8 @@ type DatePickerRollerCfg struct {
 	// exportaudit:keep — caller-facing config (issue #372)
 	VisibleItems int
 	Padding      Padding
-	SizeBorder   Opt[float32]
-	Radius       Opt[float32]
+	SizeBorder   Border
+	Radius       Radius
 	Focusable    bool
 	// ItemHeight is one drum row's height. Zero takes 24.
 	// exportaudit:keep — caller-facing config (issue #372)
@@ -505,10 +505,10 @@ func applyRollerDefaults(cfg *DatePickerRollerCfg) {
 		cfg.ColorBorderFocus = d.Colors.BorderFocus
 	}
 	if !cfg.SizeBorder.IsSet() {
-		cfg.SizeBorder = Some(d.SizeBorder)
+		cfg.SizeBorder = BorderPx(d.SizeBorder)
 	}
 	if !cfg.Radius.IsSet() {
-		cfg.Radius = Some(d.radiusBorder)
+		cfg.Radius = RadiusPx(d.radiusBorder)
 	}
 	if !cfg.Padding.IsSet() {
 		cfg.Padding = PaddingSmall

@@ -161,7 +161,7 @@ func (sv *colorChannelSliderView) GenerateLayout(w *Window) Layout {
 				Height:       trackH,
 				Padding:      NoPadding,
 				SizeBorder:   NoBorder,
-				Radius:       SomeF(cfg.TrackHeight / 2),
+				Radius:       RadiusPx(cfg.TrackHeight / 2),
 				Clip:         true,
 				Content: []View{
 					Image(ImageCfg{

@@ -329,7 +329,7 @@ func tableView(cfg TableCfg, w *Window) View {
 		Color:     ColorTransparent,
 		Padding:   NoPadding,
 		Spacing:   SpacingPx(rowSpacing),
-		Radius:    SomeF(0),
+		Radius:    NoRadius,
 		Sizing:    cfg.Sizing,
 		Width:     cfg.Width,
 		Height:    cfg.Height,

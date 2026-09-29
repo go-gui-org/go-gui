@@ -179,8 +179,8 @@ func demoMenus(w *gui.Window) gui.View {
 								gui.CurrentTheme().PaddingField.Right,
 								2,
 								gui.CurrentTheme().PaddingField.Left),
-							Radius:           gui.Some[float32](0),
-							SizeBorder:       gui.Some[float32](0),
+							Radius:           gui.NoRadius,
+							SizeBorder:       gui.NoBorder,
 							TextStyle:        gui.CurrentTheme().TextStyleDef,
 							PlaceholderStyle: gui.CurrentTheme().TextStyleDef,
 							OnTextChanged: func(s string, ctx gui.EventCtx) {

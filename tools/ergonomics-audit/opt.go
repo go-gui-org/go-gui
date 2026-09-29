@@ -285,10 +285,10 @@ func optName(expr ast.Expr) bool {
 	return false
 }
 
-// selfFlaggingTyped reports whether a field type is Padding or Spacing —
-// bare ident or qualified (gg.Padding). Both self-flag (#243, #866), so a
-// plain field of either type is exempt from the Opt rule the same way
-// Color is.
+// selfFlaggingTyped reports whether a field type is Padding, Spacing,
+// Radius or Border — bare ident or qualified (gg.Padding). All four
+// self-flag (#243, #866, #867), so a plain field of any of them is exempt
+// from the Opt rule the same way Color is.
 func selfFlaggingTyped(typ ast.Expr) bool {
 	var name string
 	switch t := typ.(type) {
@@ -297,7 +297,11 @@ func selfFlaggingTyped(typ ast.Expr) bool {
 	case *ast.SelectorExpr:
 		name = t.Sel.Name
 	}
-	return name == "Padding" || name == "Spacing"
+	switch name {
+	case "Padding", "Spacing", "Radius", "Border":
+		return true
+	}
+	return false
 }
 
 // nilableType reports whether a field type's zero is nil, which

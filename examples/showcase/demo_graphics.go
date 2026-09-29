@@ -30,7 +30,7 @@ func demoRectangle(_ *gui.Window) gui.View {
 				Height:  60,
 				Sizing:  gui.FixedFixed,
 				Color:   t.ColorSelect,
-				Radius:  gui.SomeF(8),
+				Radius:  gui.RadiusMedium,
 				HAlign:  gui.HAlignCenter,
 				VAlign:  gui.VAlignMiddle,
 				Content: []gui.View{gui.Text(gui.TextCfg{Text: "Rounded", TextStyle: t.TextStyleBodyLarge})},
@@ -41,8 +41,8 @@ func demoRectangle(_ *gui.Window) gui.View {
 				Sizing:      gui.FixedFixed,
 				Color:       gui.ColorTransparent,
 				ColorBorder: t.ColorActive,
-				SizeBorder:  gui.SomeF(2),
-				Radius:      gui.SomeF(4),
+				SizeBorder:  gui.BorderPx(2), // ergonomics-audit:spacing — emphasis border, heavier than the theme hairline
+				Radius:      gui.RadiusSmall,
 				HAlign:      gui.HAlignCenter,
 				VAlign:      gui.VAlignMiddle,
 				Content:     []gui.View{gui.Text(gui.TextCfg{Text: "Border", TextStyle: t.TextStyleBodyLarge})},
@@ -52,7 +52,7 @@ func demoRectangle(_ *gui.Window) gui.View {
 				Height: 60,
 				Sizing: gui.FixedFixed,
 				Color:  t.ColorHover,
-				Radius: gui.SomeF(30),
+				Radius: gui.RadiusPx(30), // ergonomics-audit:spacing — decorative radius, not a control corner
 				HAlign: gui.HAlignCenter,
 				VAlign: gui.VAlignMiddle,
 				Content: []gui.View{
@@ -155,7 +155,7 @@ func demoGradient(_ *gui.Window) gui.View {
 								{Pos: 1, Color: gui.ColorFromString("#8b5cf6")},
 							},
 						},
-						Radius: gui.SomeF(8),
+						Radius: gui.RadiusMedium,
 						HAlign: gui.HAlignCenter,
 						VAlign: gui.VAlignMiddle,
 						Content: []gui.View{
@@ -176,7 +176,7 @@ func demoGradient(_ *gui.Window) gui.View {
 								{Pos: 1, Color: gui.ColorFromString("#ef4444")},
 							},
 						},
-						Radius: gui.SomeF(8),
+						Radius: gui.RadiusMedium,
 						HAlign: gui.HAlignCenter,
 						VAlign: gui.VAlignMiddle,
 						Content: []gui.View{
@@ -198,7 +198,7 @@ func demoGradient(_ *gui.Window) gui.View {
 								{Pos: 1, Color: gui.ColorFromString("#8b5cf6")},
 							},
 						},
-						Radius: gui.SomeF(8),
+						Radius: gui.RadiusMedium,
 						HAlign: gui.HAlignCenter,
 						VAlign: gui.VAlignMiddle,
 						Content: []gui.View{
@@ -227,7 +227,7 @@ func demoGradient(_ *gui.Window) gui.View {
 								{Pos: 1, Color: gui.ColorFromString("#f97316")},
 							},
 						},
-						Radius: gui.SomeF(8),
+						Radius: gui.RadiusMedium,
 						HAlign: gui.HAlignCenter,
 						VAlign: gui.VAlignMiddle,
 						Content: []gui.View{
@@ -249,7 +249,7 @@ func demoGradient(_ *gui.Window) gui.View {
 								{Pos: 1, Color: gui.ColorFromString("#7c3aed")},
 							},
 						},
-						Radius: gui.SomeF(8),
+						Radius: gui.RadiusMedium,
 						HAlign: gui.HAlignCenter,
 						VAlign: gui.VAlignMiddle,
 						Content: []gui.View{
@@ -271,7 +271,7 @@ func demoGradient(_ *gui.Window) gui.View {
 						Width:      120,
 						Height:     80,
 						Sizing:     gui.FixedFixed,
-						SizeBorder: gui.SomeF(2),
+						SizeBorder: gui.BorderPx(2), // ergonomics-audit:spacing — emphasis border, heavier than the theme hairline
 						BorderGradient: &gui.GradientDef{
 							Direction: gui.GradientToRight,
 							Stops: []gui.GradientStop{
@@ -279,7 +279,7 @@ func demoGradient(_ *gui.Window) gui.View {
 								{Pos: 1, Color: gui.ColorFromString("#8b5cf6")},
 							},
 						},
-						Radius: gui.SomeF(8),
+						Radius: gui.RadiusMedium,
 						HAlign: gui.HAlignCenter,
 						VAlign: gui.VAlignMiddle,
 						Content: []gui.View{
@@ -293,7 +293,7 @@ func demoGradient(_ *gui.Window) gui.View {
 						Width:      120,
 						Height:     80,
 						Sizing:     gui.FixedFixed,
-						SizeBorder: gui.SomeF(2),
+						SizeBorder: gui.BorderPx(2), // ergonomics-audit:spacing — emphasis border, heavier than the theme hairline
 						BorderGradient: &gui.GradientDef{
 							Direction: gui.GradientToBottom,
 							Stops: []gui.GradientStop{
@@ -301,7 +301,7 @@ func demoGradient(_ *gui.Window) gui.View {
 								{Pos: 1, Color: gui.ColorFromString("#ef4444")},
 							},
 						},
-						Radius: gui.SomeF(8),
+						Radius: gui.RadiusMedium,
 						HAlign: gui.HAlignCenter,
 						VAlign: gui.VAlignMiddle,
 						Content: []gui.View{
@@ -315,7 +315,7 @@ func demoGradient(_ *gui.Window) gui.View {
 						Width:      120,
 						Height:     80,
 						Sizing:     gui.FixedFixed,
-						SizeBorder: gui.SomeF(2),
+						SizeBorder: gui.BorderPx(2), // ergonomics-audit:spacing — emphasis border, heavier than the theme hairline
 						BorderGradient: &gui.GradientDef{
 							Direction: gui.GradientToTopRight,
 							Stops: []gui.GradientStop{
@@ -324,7 +324,7 @@ func demoGradient(_ *gui.Window) gui.View {
 								{Pos: 1, Color: gui.ColorFromString("#8b5cf6")},
 							},
 						},
-						Radius: gui.SomeF(8),
+						Radius: gui.RadiusMedium,
 						HAlign: gui.HAlignCenter,
 						VAlign: gui.VAlignMiddle,
 						Content: []gui.View{
@@ -392,10 +392,10 @@ func showcaseShadowCard(title, note string, bg, shadowColor gui.Color, shadowOff
 		Sizing:      gui.FixedFixed,
 		Padding:     gui.PaddingMedium,
 		Spacing:     gui.SpacingTight,
-		Radius:      gui.SomeF(10),
+		Radius:      gui.RadiusLarge,
 		Color:       bg,
 		ColorBorder: t.ColorBorder,
-		SizeBorder:  gui.SomeF(1),
+		SizeBorder:  gui.BorderThin,
 		Shadow: &gui.BoxShadow{
 			Color:      shadowColor,
 			OffsetX:    shadowOffsetX,
@@ -671,7 +671,7 @@ func demoImage(_ *gui.Window) gui.View {
 							gui.Text(gui.TextCfg{Text: "Rounded (radius: 10)", TextStyle: t.TextStyleBodySmall.Bold()}),
 							gui.Column(gui.ContainerCfg{
 								Clip:       true,
-								Radius:     gui.SomeF(10),
+								Radius:     gui.RadiusLarge,
 								Width:      120,
 								Height:     120,
 								Sizing:     gui.FixedFixed,
@@ -1020,7 +1020,7 @@ func demoBlur(_ *gui.Window) gui.View {
 						Width:      150,
 						Height:     150,
 						Sizing:     gui.FixedFixed,
-						Radius:     gui.SomeF(75),
+						Radius:     gui.RadiusPx(75), // ergonomics-audit:spacing — decorative radius, not a control corner
 						Color:      gui.RGBA(0, 255, 0, 150),
 						BlurRadius: 20,
 						HAlign:     gui.HAlignCenter,
@@ -1033,7 +1033,7 @@ func demoBlur(_ *gui.Window) gui.View {
 						Width:      150,
 						Height:     150,
 						Sizing:     gui.FixedFixed,
-						Radius:     gui.SomeF(20),
+						Radius:     gui.RadiusPx(20), // ergonomics-audit:spacing — decorative radius, not a control corner
 						Color:      gui.RGBA(255, 100, 100, 200),
 						BlurRadius: 10,
 						HAlign:     gui.HAlignCenter,
@@ -1046,7 +1046,7 @@ func demoBlur(_ *gui.Window) gui.View {
 						Width:      200,
 						Height:     100,
 						Sizing:     gui.FixedFixed,
-						Radius:     gui.SomeF(10),
+						Radius:     gui.RadiusLarge,
 						Color:      gui.RGBA(60, 120, 255, 255),
 						BlurRadius: 50,
 						HAlign:     gui.HAlignCenter,
@@ -1097,7 +1097,7 @@ func demoShader(w *gui.Window) gui.View {
 						Width:  200,
 						Height: 200,
 						Sizing: gui.FixedFixed,
-						Radius: gui.SomeF(16),
+						Radius: gui.RadiusPx(16), // ergonomics-audit:spacing — decorative radius, not a control corner
 						HAlign: gui.HAlignCenter,
 						VAlign: gui.VAlignMiddle,
 						Shader: &gui.Shader{
@@ -1121,7 +1121,7 @@ func demoShader(w *gui.Window) gui.View {
 						Width:  200,
 						Height: 200,
 						Sizing: gui.FixedFixed,
-						Radius: gui.SomeF(16),
+						Radius: gui.RadiusPx(16), // ergonomics-audit:spacing — decorative radius, not a control corner
 						HAlign: gui.HAlignCenter,
 						VAlign: gui.VAlignMiddle,
 						Shader: &gui.Shader{
@@ -1174,21 +1174,21 @@ func demoColorFilter(_ *gui.Window) gui.View {
 				Height:     20,
 				Color:      gui.RGBA(200, 130, 100, 255),
 				SizeBorder: gui.NoBorder,
-				Radius:     gui.SomeF(4),
+				Radius:     gui.RadiusSmall,
 			}),
 			gui.Column(gui.ContainerCfg{
 				Sizing:     gui.FillFit,
 				Height:     20,
 				Color:      gui.RGBA(100, 180, 140, 255),
 				SizeBorder: gui.NoBorder,
-				Radius:     gui.SomeF(4),
+				Radius:     gui.RadiusSmall,
 			}),
 			gui.Column(gui.ContainerCfg{
 				Sizing:     gui.FillFit,
 				Height:     20,
 				Color:      gui.RGBA(120, 130, 200, 255),
 				SizeBorder: gui.NoBorder,
-				Radius:     gui.SomeF(4),
+				Radius:     gui.RadiusSmall,
 			}),
 			gui.Text(gui.TextCfg{Text: label, TextStyle: t.TextStyleBodySmall}),
 		}
@@ -1218,7 +1218,7 @@ func demoColorFilter(_ *gui.Window) gui.View {
 						Width:       120,
 						Sizing:      gui.FixedFit,
 						Padding:     gui.PaddingSmall,
-						Radius:      gui.SomeF(6),
+						Radius:      gui.RadiusMedium,
 						Color:       t.ColorPanel,
 						ColorFilter: gui.ColorFilterGrayscale(),
 						Content:     colorContent("Grayscale"),
@@ -1227,7 +1227,7 @@ func demoColorFilter(_ *gui.Window) gui.View {
 						Width:       120,
 						Sizing:      gui.FixedFit,
 						Padding:     gui.PaddingSmall,
-						Radius:      gui.SomeF(6),
+						Radius:      gui.RadiusMedium,
 						Color:       t.ColorPanel,
 						ColorFilter: gui.ColorFilterSepia(),
 						Content:     colorContent("Sepia"),
@@ -1236,7 +1236,7 @@ func demoColorFilter(_ *gui.Window) gui.View {
 						Width:       120,
 						Sizing:      gui.FixedFit,
 						Padding:     gui.PaddingSmall,
-						Radius:      gui.SomeF(6),
+						Radius:      gui.RadiusMedium,
 						Color:       t.ColorPanel,
 						ColorFilter: gui.ColorFilterContrast(1.5),
 						Content:     colorContent("Contrast"),
@@ -1245,7 +1245,7 @@ func demoColorFilter(_ *gui.Window) gui.View {
 						Width:       120,
 						Sizing:      gui.FixedFit,
 						Padding:     gui.PaddingSmall,
-						Radius:      gui.SomeF(6),
+						Radius:      gui.RadiusMedium,
 						Color:       t.ColorPanel,
 						ColorFilter: gui.ColorFilterSaturate(2.0),
 						Content:     colorContent("Saturate"),
@@ -1268,7 +1268,7 @@ func demoColorFilter(_ *gui.Window) gui.View {
 						Width:   120,
 						Sizing:  gui.FixedFit,
 						Padding: gui.PaddingSmall,
-						Radius:  gui.SomeF(6),
+						Radius:  gui.RadiusMedium,
 						Color:   t.ColorPanel,
 						Content: colorContent("Original"),
 					}),
@@ -1276,7 +1276,7 @@ func demoColorFilter(_ *gui.Window) gui.View {
 						Width:       120,
 						Sizing:      gui.FixedFit,
 						Padding:     gui.PaddingSmall,
-						Radius:      gui.SomeF(6),
+						Radius:      gui.RadiusMedium,
 						Color:       t.ColorPanel,
 						BlurRadius:  4,
 						ColorFilter: gui.ColorFilterGrayscale(),
@@ -1286,7 +1286,7 @@ func demoColorFilter(_ *gui.Window) gui.View {
 						Width:       120,
 						Sizing:      gui.FixedFit,
 						Padding:     gui.PaddingSmall,
-						Radius:      gui.SomeF(6),
+						Radius:      gui.RadiusMedium,
 						Color:       t.ColorPanel,
 						BlurRadius:  4,
 						ColorFilter: gui.ColorFilterSepia(),
@@ -1296,7 +1296,7 @@ func demoColorFilter(_ *gui.Window) gui.View {
 						Width:       120,
 						Sizing:      gui.FixedFit,
 						Padding:     gui.PaddingSmall,
-						Radius:      gui.SomeF(6),
+						Radius:      gui.RadiusMedium,
 						Color:       t.ColorPanel,
 						BlurRadius:  4,
 						ColorFilter: gui.ColorFilterHueRotate(90),
@@ -1323,7 +1323,7 @@ func demoColorFilter(_ *gui.Window) gui.View {
 						Color:       gui.RGBA(0, 255, 128, 255),
 						BlurRadius:  15,
 						ColorFilter: gui.ColorFilterBrightness(1.3),
-						Radius:      gui.SomeF(50),
+						Radius:      gui.RadiusPx(50), // ergonomics-audit:spacing — decorative radius, not a control corner
 						HAlign:      gui.HAlignCenter,
 						VAlign:      gui.VAlignMiddle,
 						Content: []gui.View{
@@ -1337,7 +1337,7 @@ func demoColorFilter(_ *gui.Window) gui.View {
 						Color:       gui.RGBA(255, 50, 200, 255),
 						BlurRadius:  15,
 						ColorFilter: gui.ColorFilterBrightness(1.3),
-						Radius:      gui.SomeF(50),
+						Radius:      gui.RadiusPx(50), // ergonomics-audit:spacing — decorative radius, not a control corner
 						HAlign:      gui.HAlignCenter,
 						VAlign:      gui.VAlignMiddle,
 						Content: []gui.View{
@@ -1351,7 +1351,7 @@ func demoColorFilter(_ *gui.Window) gui.View {
 						Color:       gui.RGBA(50, 150, 255, 255),
 						BlurRadius:  15,
 						ColorFilter: gui.ColorFilterBrightness(1.3),
-						Radius:      gui.SomeF(50),
+						Radius:      gui.RadiusPx(50), // ergonomics-audit:spacing — decorative radius, not a control corner
 						HAlign:      gui.HAlignCenter,
 						VAlign:      gui.VAlignMiddle,
 						Content: []gui.View{

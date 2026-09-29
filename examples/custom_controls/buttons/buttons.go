@@ -191,7 +191,7 @@ func flatButton(id, label string, accent gui.Color, disabled bool, onClick func(
 		ID:         id,
 		Disabled:   disabled,
 		OnClick:    onClick,
-		Radius:     gui.SomeF(4),
+		Radius:     gui.RadiusSmall,
 		SizeBorder: gui.NoBorder,
 		Padding:    gui.NewPadding(gui.PadSmall, gui.PadMedium, gui.PadSmall, gui.PadMedium),
 		Colors: gui.ColorSet{
@@ -227,8 +227,8 @@ func outlineLook(id, label string, accent gui.Color, s gui.InteractionState, onC
 		ID:          id,
 		Color:       bg,
 		ColorBorder: accent,
-		SizeBorder:  gui.SomeF(1.5),
-		Radius:      gui.SomeF(4),
+		SizeBorder:  gui.BorderPx(1.5), // ergonomics-audit:spacing — emphasis border, heavier than the theme hairline
+		Radius:      gui.RadiusSmall,
 		Padding:     gui.NewPadding(7, 15, 7, 15), // ergonomics-audit:spacing — skin metrics: imitates a platform button
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{Text: label, TextStyle: look.Light.Text(text, 13)}),
@@ -281,7 +281,7 @@ func win98Look(id, label string, disabled bool, s gui.InteractionState, onClick 
 	cfg := buttonShell(gui.ContainerCfg{
 		ID:         id,
 		Color:      win98Frame,
-		Radius:     gui.SomeF(0),
+		Radius:     gui.NoRadius,
 		Padding:    gui.PadAll(1), // ergonomics-audit:spacing — 1px bevel frame, not an inset
 		SizeBorder: gui.NoBorder,
 		Content: []gui.View{
@@ -289,7 +289,7 @@ func win98Look(id, label string, disabled bool, s gui.InteractionState, onClick 
 				look.Bevel(light, gui.NewPadding(1, 0, 0, 1), // ergonomics-audit:spacing — 1px bevel edge, not an inset
 					gui.Row(gui.ContainerCfg{
 						Color:      face,
-						Radius:     gui.SomeF(0),
+						Radius:     gui.NoRadius,
 						Padding:    gui.NewPadding(top, right, bottom, left),
 						SizeBorder: gui.NoBorder,
 						Content: []gui.View{
@@ -366,11 +366,11 @@ func xpLook(id, label string, disabled bool, s gui.InteractionState, onClick fun
 	cfg := buttonShell(gui.ContainerCfg{
 		ID:          id,
 		MinWidth:    75,
-		Radius:      gui.SomeF(3),
+		Radius:      gui.RadiusSmall,
 		Color:       faceColor,
 		Gradient:    grad,
 		ColorBorder: border,
-		SizeBorder:  gui.SomeF(1),
+		SizeBorder:  gui.BorderThin,
 		Padding:     gui.PaddingNone,
 		Content: []gui.View{rim(rimOuter, gui.NewPadding(0, 3, 3, 0), // ergonomics-audit:spacing — 3px rim edge, not an inset
 			rim(rimInner, gui.NewPadding(3, 0, 0, 3), // ergonomics-audit:spacing — 3px rim edge, not an inset
@@ -378,7 +378,7 @@ func xpLook(id, label string, disabled bool, s gui.InteractionState, onClick fun
 					Sizing:     gui.FillFill,
 					Color:      faceFill,
 					Gradient:   faceGrad,
-					Radius:     gui.SomeF(2),
+					Radius:     gui.RadiusSmall,
 					Padding:    gui.NewPadding(top, right, bottom, left),
 					SizeBorder: gui.NoBorder,
 					HAlign:     gui.HAlignCenter,
@@ -394,7 +394,7 @@ func rim(c gui.Color, pad gui.Padding, content gui.View) gui.View {
 	return gui.Column(gui.ContainerCfg{
 		Sizing:     gui.FillFill,
 		Color:      c,
-		Radius:     gui.SomeF(2),
+		Radius:     gui.RadiusSmall,
 		Padding:    pad,
 		SizeBorder: gui.NoBorder,
 		Content:    []gui.View{content},

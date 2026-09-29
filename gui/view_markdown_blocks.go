@@ -16,7 +16,7 @@ func renderMdMath(
 	codeFallback := Column(ContainerCfg{
 		Color:      cfg.Style.CodeBlockBG,
 		Padding:    cfg.Style.codeBlockPadding,
-		Radius:     Some(cfg.Style.codeBlockRadius),
+		Radius:     RadiusPx(cfg.Style.codeBlockRadius),
 		SizeBorder: NoBorder,
 		Sizing:     FillFit,
 		Content: []View{
@@ -76,7 +76,7 @@ func renderMdMermaid(
 	codeFallback := Column(ContainerCfg{
 		Color:      cfg.Style.CodeBlockBG,
 		Padding:    cfg.Style.codeBlockPadding,
-		Radius:     Some(cfg.Style.codeBlockRadius),
+		Radius:     RadiusPx(cfg.Style.codeBlockRadius),
 		SizeBorder: NoBorder,
 		Sizing:     FillFit,
 		Content: []View{
@@ -174,9 +174,9 @@ func mdCopyButton(
 		FloatTieOff:  FloatTopRight,
 		FloatOffsetX: -4,
 		FloatOffsetY: 4,
-		Radius:       SomeF(4),
+		Radius:       RadiusSmall,
 		Color:        ColorTransparent,
-		SizeBorder:   SomeF(0),
+		SizeBorder:   NoBorder,
 		Padding:      NewPadding(2, 4, 2, 4), // ergonomics-audit:spacing — icon-sized floating button
 		Content:      btnContent,
 		OnClick:      onClick,
@@ -206,7 +206,7 @@ func renderMdCode(
 	return Column(ContainerCfg{
 		Color:      cfg.Style.CodeBlockBG,
 		Padding:    cfg.Style.codeBlockPadding,
-		Radius:     Some(cfg.Style.codeBlockRadius),
+		Radius:     RadiusPx(cfg.Style.codeBlockRadius),
 		SizeBorder: NoBorder,
 		Sizing:     FillFit,
 		Clip:       true,
@@ -529,8 +529,10 @@ func mdTaskCheckbox(checked bool, boxSize float32, cfg MarkdownCfg) View {
 		// is reused as the neutral, low-emphasis border color other
 		// MarkdownStyle divider/border colors already use.
 		ColorBorder: cfg.Style.hRColor,
-		SizeBorder:  Some(float32(1)),
-		Radius:      Some(float32(2)),
+		// Fixed px, not BorderThin: the outline is the checkbox, so
+		// it must survive WithBorders(false) (#867).
+		SizeBorder:  BorderPx(sizeBorderDef),
+		Radius:      RadiusSmall,
 		Padding:     NoPadding,
 		HAlign:      HAlignCenter,
 		VAlign:      VAlignMiddle,

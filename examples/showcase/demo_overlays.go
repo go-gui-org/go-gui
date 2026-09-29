@@ -304,7 +304,7 @@ func demoContextMenu(w *gui.Window) gui.View {
 						Sizing:  gui.FillFit,
 						Color:   t.ColorPanel,
 						Padding: gui.PaddingLarge,
-						Radius:  gui.SomeF(8),
+						Radius:  gui.RadiusMedium,
 						Content: []gui.View{
 							gui.Text(gui.TextCfg{
 								Text:      "Right-click here for a basic menu",
@@ -341,7 +341,7 @@ func demoContextMenu(w *gui.Window) gui.View {
 						Sizing:  gui.FillFit,
 						Color:   t.ColorPanel,
 						Padding: gui.PaddingLarge,
-						Radius:  gui.SomeF(8),
+						Radius:  gui.RadiusMedium,
 						Content: []gui.View{
 							gui.Text(gui.TextCfg{
 								Text:      "Right-click here for submenus",

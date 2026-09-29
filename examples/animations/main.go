@@ -108,7 +108,7 @@ func mainView(w *gui.Window) gui.View {
 						Width:   s.SidebarWidth,
 						Sizing:  gui.FixedFill,
 						Color:   gui.Purple,
-						Radius:  gui.Some[float32](8),
+						Radius:  gui.RadiusMedium,
 						Padding: gui.PaddingMedium,
 						Content: []gui.View{
 							gui.Text(gui.TextCfg{Text: "Sidebar"}),
@@ -124,7 +124,7 @@ func mainView(w *gui.Window) gui.View {
 						Width:    s.SidebarWidth,
 						Sizing:   gui.FixedFill,
 						Color:    gui.CornflowerBlue,
-						Radius:   gui.Some[float32](8),
+						Radius:   gui.RadiusMedium,
 						Padding:  gui.PaddingMedium,
 						Content: []gui.View{
 							gui.Text(gui.TextCfg{Text: "Snap size"}),
@@ -145,7 +145,7 @@ func mainView(w *gui.Window) gui.View {
 								Height:  80,
 								Sizing:  gui.FixedFixed,
 								Color:   gui.Orange,
-								Radius:  gui.Some[float32](12),
+								Radius:  gui.RadiusLarge,
 								Padding: gui.PaddingMedium,
 								VAlign:  gui.VAlignMiddle,
 								HAlign:  gui.HAlignCenter,
@@ -165,7 +165,7 @@ func mainView(w *gui.Window) gui.View {
 								Height: 80,
 								Sizing: gui.FixedFixed,
 								Color:  gui.Blue,
-								Radius: gui.Some[float32](8),
+								Radius: gui.RadiusMedium,
 							}),
 							// Spring/bounce circle
 							gui.Column(gui.ContainerCfg{
@@ -176,7 +176,7 @@ func mainView(w *gui.Window) gui.View {
 								Height: 40,
 								Sizing: gui.FixedFixed,
 								Color:  gui.Green,
-								Radius: gui.Some[float32](20),
+								Radius: gui.RadiusPx(20), // ergonomics-audit:spacing — decorative radius, not a control corner
 							}),
 						},
 					}),
@@ -265,7 +265,7 @@ func detailView(w *gui.Window) gui.View {
 				Hero:    true,
 				Sizing:  gui.FillFill,
 				Color:   gui.Orange,
-				Radius:  gui.Some[float32](16),
+				Radius:  gui.RadiusPx(16), // ergonomics-audit:spacing — decorative radius, not a control corner
 				Padding: gui.PaddingLarge,
 				Content: []gui.View{
 					gui.Text(gui.TextCfg{

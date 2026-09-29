@@ -93,6 +93,22 @@ var e = gui.SpacingMedium
 	}
 }
 
+func TestLiteralsFlagsRawRadiusAndBorder(t *testing.T) {
+	t.Parallel()
+	const src = `package p
+
+var a = Radius{px: 4, set: true}
+var b = gui.Border{}
+var c = RadiusPx(4)
+var d = gui.BorderThin
+`
+	findings := scanLitSrc(t, "x.go", src)
+	want := "Radius:Radius{...} Border:gui.Border{...}"
+	if len(findings) != 2 || (findings[0]+" "+findings[1]) != want {
+		t.Fatalf("findings = %q, want %q", findings, want)
+	}
+}
+
 func TestLiteralsExemptsEmptyColor(t *testing.T) {
 	t.Parallel()
 	const src = `package p

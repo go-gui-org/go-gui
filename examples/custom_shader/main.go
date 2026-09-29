@@ -88,7 +88,7 @@ func mainView(w *gui.Window) gui.View {
 						Width:  200,
 						Height: 200,
 						Sizing: gui.FixedFixed,
-						Radius: gui.Some[float32](16),
+						Radius: gui.RadiusPx(16), // ergonomics-audit:spacing — decorative radius, not a control corner
 						HAlign: gui.HAlignCenter,
 						VAlign: gui.VAlignMiddle,
 						Shader: &gui.Shader{
@@ -113,7 +113,7 @@ func mainView(w *gui.Window) gui.View {
 						Width:  200,
 						Height: 200,
 						Sizing: gui.FixedFixed,
-						Radius: gui.Some[float32](16),
+						Radius: gui.RadiusPx(16), // ergonomics-audit:spacing — decorative radius, not a control corner
 						HAlign: gui.HAlignCenter,
 						VAlign: gui.VAlignMiddle,
 						Shader: &gui.Shader{

@@ -135,3 +135,52 @@ not touch the spacing steps.
 - **Keep the float constants exported next to the roles.** Two spellings of one
   step lead back to the fixed copy. Code that needs arithmetic reads
   `w.Theme().SpacingLarge`.
+
+## Follow-up: radius and border follow the theme (#867)
+
+- **Status:** landed in go-gui. Siblings migrate after the release (about 18
+  sites, mechanical).
+- **Breaking:** yes. Every Cfg radius and border-width field changes type.
+
+The radius ladder (`Theme.RadiusSmall/Medium/Large`) changes per platform, but
+about 170 call sites wrote the radius as a number (`gui.SomeF(4)`), and only 4
+named a step. A border had the same flaw: `gui.SomeF(1)` kept drawing under
+`Theme.WithBorders(false)`, which only zeroes the theme's `SizeBorder`.
+
+| Design                                                        | Surface added                                  | Misuse failure                                 | Migration                       |
+| ------------------------------------------------------------- | ---------------------------------------------- | ---------------------------------------------- | ------------------------------- |
+| **A. Two types, `gui.Radius` and `gui.Border`, like Spacing** | 2 types, `RadiusPx`, `BorderPx`, 4 role values | a radius in a border field does not compile    | ~100 fields, ~465 in-repo sites |
+| B. One shared `gui.Metric` for spacing, radius and border     | 1 type, all role values                        | `SpacingLarge` in a `Radius` field compiles    | same as A, and redoes #866      |
+| C. Radius only; border stays `Opt`                            | 1 type                                         | `SomeF(1)` borders keep ignoring `WithBorders` | radius sites only               |
+
+A was picked. `Radius` holds a fixed px value, a role and a set flag, and
+resolves like `Spacing`. `Border` has one role, `BorderThin`, which reads the
+theme's `SizeBorder`. `NoBorder` and `NoRadius` keep their names, so the ~400
+`SizeBorder: gui.NoBorder` sites did not change.
+
+A theme patch (`ButtonPatch` and the others) resolves a role against the theme
+it patches, not `guiTheme`: `Theme.With` builds a theme that is not installed
+yet, and `WithBorders` and `AdjustFontSize` re-apply the patch to a rebuilt
+ladder. Only a fixed px is sanitized; a role cannot be NaN or negative.
+
+Two borders inside `gui/` stay fixed on purpose: the group-box frame of a titled
+container and the markdown task checkbox. With `BorderThin`,
+`WithBorders(false)` would remove the only outline each one has.
+
+The script mapped a number equal to a default step (4/6/12, border 1) to the
+role, so no default widget moved. Examples then snapped control corners to the
+nearest step (2/3 → small, 8 → medium, 10/14 → large). Circles, decorative radii
+(16–75) and emphasis borders (2, 1.5) keep a fixed px and carry the
+`ergonomics-audit:spacing` marker.
+
+### Rejected Approaches (radius and border)
+
+- **B, one shared type.** Steps from different ladders would mix with no error.
+- **A generic `Role[T]`.** Type parameters on every Cfg read, no gain over two
+  concrete types.
+- **C, radius only.** It leaves `SomeF(1)` borders ignoring `WithBorders(false)`
+  and keeps two spellings alive.
+- **A pill role (`h / 2`).** The height is not known at build time; those sites
+  keep `RadiusPx(h / 2)`.
+- **Typed theme `Radius*` / `SizeBorder` fields.** They are the ladder's inputs
+  and stay `float32`.

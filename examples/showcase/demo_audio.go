@@ -642,7 +642,7 @@ func synthPadView(t gui.Theme, i int, p synthPadDef) gui.View {
 		Sizing:      gui.FixedFixed,
 		Color:       t.ColorPanel,
 		ColorBorder: t.ColorBorder,
-		Radius:      gui.SomeF(10),
+		Radius:      gui.RadiusLarge,
 		// Fixed-size pad: theme container padding would fill the
 		// box and push both lines to its bottom edge.
 		Padding: gui.NoPadding,
