@@ -221,15 +221,13 @@ func controls(app *App) gui.View {
 	if app.JumpErr == "" {
 		return row
 	}
-	errStyle := theme.TextStyleBodySmall
-	errStyle.Color = theme.Cfg.ColorError
 	return gui.Column(gui.ContainerCfg{
 		Sizing:     gui.FillFit,
 		Spacing:    gui.Some(theme.SpacingSmall),
 		SizeBorder: gui.NoBorder,
 		Content: []gui.View{
 			row,
-			gui.Text(gui.TextCfg{Text: app.JumpErr, TextStyle: errStyle}),
+			gui.Text(gui.TextCfg{Text: app.JumpErr, TextStyle: theme.TextStyleError}),
 		},
 	})
 }

@@ -73,6 +73,7 @@ Theme.TextStyleCodeTiny gui.TextStyle
 Theme.TextStyleDef gui.TextStyle
 Theme.TextStyleDisabled gui.TextStyle
 Theme.TextStyleDisplay gui.TextStyle
+Theme.TextStyleError gui.TextStyle
 Theme.TextStyleIconLarge gui.TextStyle
 Theme.TextStyleIconMedium gui.TextStyle
 Theme.TextStyleIconSmall gui.TextStyle
@@ -82,8 +83,10 @@ Theme.TextStyleIconXSmall gui.TextStyle
 Theme.TextStyleLabel gui.TextStyle
 Theme.TextStylePlaceholder gui.TextStyle
 Theme.TextStyleSecondary gui.TextStyle
+Theme.TextStyleSuccess gui.TextStyle
 Theme.TextStyleTitle gui.TextStyle
 Theme.TextStyleTitleSmall gui.TextStyle
+Theme.TextStyleWarning gui.TextStyle
 Theme.TitlebarDark bool
 ThemeCfg.ColorAccent gui.Color
 ThemeCfg.ColorAccentHover gui.Color

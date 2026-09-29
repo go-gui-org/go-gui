@@ -612,11 +612,9 @@ func showcaseFormFieldIssues(w *gui.Window, fieldID string) gui.View {
 	for i, issue := range issues {
 		msgs[i] = issue.Msg
 	}
-	style := gui.CurrentTheme().TextStyleBody
-	style.Color = gui.CurrentTheme().Cfg.ColorError
 	return gui.Text(gui.TextCfg{
 		Text:      fieldID + ": " + strings.Join(msgs, "; "),
-		TextStyle: style,
+		TextStyle: gui.CurrentTheme().TextStyleError,
 	})
 }
 

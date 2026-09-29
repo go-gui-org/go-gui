@@ -28,6 +28,13 @@ Read the role's style directly where the text color is the theme's
 hue is caller-supplied. The channel label on a user-picked color keeps its hue
 and takes only the role's amount of quiet.
 
+Status text is not de-emphasis, so it is not in this table. A validation message
+reads `TextStyleError`, a saved notice `TextStyleSuccess`, a caution line
+`TextStyleWarning`: body size and face, in the status hue at a lightness that
+reads at 4.5:1. Do not copy `Cfg.ColorError` (or success, warning) onto a body
+style by hand. The raw status color is a fill color and is too faint as text on
+light themes.
+
 Never spell an alpha. An opaque color (`alpha 255`) is not de-emphasis and does
 not need a role. A fade, a ramp, or a fill is not text and is covered by the
 marker (§ Deviating), not by a role.
