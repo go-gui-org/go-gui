@@ -43,15 +43,16 @@ func TestRichLinkForcesThemeColor(t *testing.T) {
 		t.Fatal("Theme.TextStyleBody carries no color; the test proves nothing")
 	}
 	r := RichLink("click", "https://example.com", themed)
-	if r.Style.Color != guiTheme.ColorSelect {
-		t.Fatalf("theme style: color = %v, want ColorSelect %v",
-			r.Style.Color, guiTheme.ColorSelect)
+	link := guiTheme.TextStyleLink.Color
+	if r.Style.Color != link {
+		t.Fatalf("theme style: color = %v, want TextStyleLink %v",
+			r.Style.Color, link)
 	}
 	explicit := TextStyle{Size: 14, Color: RGB(10, 20, 30)}
 	e := RichLink("click", "https://example.com", explicit)
-	if e.Style.Color != guiTheme.ColorSelect {
-		t.Fatalf("explicit style: color = %v, want ColorSelect %v",
-			e.Style.Color, guiTheme.ColorSelect)
+	if e.Style.Color != link {
+		t.Fatalf("explicit style: color = %v, want TextStyleLink %v",
+			e.Style.Color, link)
 	}
 	// The escape hatch the doc comment names.
 	lit := RichTextRun{

@@ -103,7 +103,7 @@ func DefaultMarkdownStyle() MarkdownStyle {
 		codeFunctionColor: RGB(160, 100, 170),
 		codeBuiltinColor:  RGB(78, 140, 178),
 		hRColor:           guiTheme.ColorBorder,
-		linkColor:         guiTheme.ColorSelect,
+		linkColor:         guiTheme.TextStyleLink.Color,
 		blockquoteBorder:  guiTheme.ColorBorder,
 		blockquoteBG:      RGBA(128, 128, 128, 20), // ergonomics-audit:visual
 		// Markdown blocks are paragraphs of one flowing document, not

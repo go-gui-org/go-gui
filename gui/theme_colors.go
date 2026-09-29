@@ -179,6 +179,10 @@ func (t Theme) WithColors(o ColorOverrides) Theme {
 	oldCfg := t.Cfg
 	newCfg := oldCfg
 	newCfg.ColorBackground = bg
+	// The rungs are raised to their contrast floor against these
+	// (issue #863), so a recolor of either moves them too.
+	newCfg.ColorPanel = panel
+	newCfg.ColorInterior = interior
 	oldSecondary, oldLabel, oldDisabled, oldPlaceholder :=
 		themeTextRoles(oldCfg, t.TextStyleDef, t.SizeTextXSmall)
 	newSecondary, newLabel, newDisabled, newPlaceholder :=
@@ -242,15 +246,15 @@ func (t Theme) WithColors(o ColorOverrides) Theme {
 	t.ColorSuccessSubtle = successSubtle
 	t.ColorWarningSubtle = warningSubtle
 	t.ColorErrorSubtle = errorSubtle
-	// The status text roles follow their status color, and the
-	// surfaces their readable lightness is solved against, while they
-	// still sit on their derivation (issue #861). No override slot: a
-	// role the app forked by hand keeps its color even when the status
-	// color is stated.
+	// The status and link text roles follow their source color, and
+	// the surfaces their readable lightness is solved against, while
+	// they still sit on their derivation (issues #861, #863). No
+	// override slot: a role the app forked by hand keeps its color even
+	// when the source color is stated.
 	trackStatus := func(cur, oldC, newC Color) Color {
 		return track(cur, Color{},
-			statusTextColor(oldC, oldBg, oldPanel),
-			statusTextColor(newC, bg, panel))
+			readableOnPage(oldC, oldBg, oldPanel),
+			readableOnPage(newC, bg, panel))
 	}
 	t.TextStyleError.Color = trackStatus(
 		t.TextStyleError.Color, oldError, colorError)
@@ -258,6 +262,8 @@ func (t Theme) WithColors(o ColorOverrides) Theme {
 		t.TextStyleSuccess.Color, oldSuccess, colorSuccess)
 	t.TextStyleWarning.Color = trackStatus(
 		t.TextStyleWarning.Color, oldWarning, colorWarning)
+	t.TextStyleLink.Color = trackStatus(
+		t.TextStyleLink.Color, oldSel, sel)
 
 	t.buttonStyle.Colors.Base = interior
 	t.buttonStyle.Colors.Hover = hover

@@ -32,7 +32,8 @@ func RichRun(text string, style TextStyle) RichTextRun {
 }
 
 // RichLink creates a hyperlink run with underline styling. Color and
-// underline are both the link role, not caller data: a style passed
+// underline are both the link role (Theme.TextStyleLink, whose color
+// is readable on the page surfaces), not caller data: a style passed
 // here is for family, size and typeface. Every theme style carries a
 // color (Theme.TextStyleBody and its siblings come from TextStyleDef), so
 // honouring a caller color would silently draw the documented
@@ -46,7 +47,7 @@ func RichLink(
 	text, url string, style TextStyle,
 ) RichTextRun {
 	s := style
-	s.Color = guiTheme.ColorSelect
+	s.Color = guiTheme.TextStyleLink.Color
 	s.Underline = true
 	return RichTextRun{Text: text, Link: url, Style: s}
 }

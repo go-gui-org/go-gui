@@ -81,6 +81,7 @@ Theme.TextStyleIconTiny gui.TextStyle
 Theme.TextStyleIconXLarge gui.TextStyle
 Theme.TextStyleIconXSmall gui.TextStyle
 Theme.TextStyleLabel gui.TextStyle
+Theme.TextStyleLink gui.TextStyle
 Theme.TextStylePlaceholder gui.TextStyle
 Theme.TextStyleSecondary gui.TextStyle
 Theme.TextStyleSuccess gui.TextStyle

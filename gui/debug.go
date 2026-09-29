@@ -252,6 +252,19 @@ const (
 	// exportaudit:keep — dev-diagnostic API for app authors
 	DebugLayoutInvariants
 
+	// DebugLowContrast reports a text role of the window's theme drawn
+	// below its contrast floor: 4.5:1 for body text on ColorBackground
+	// and ColorPanel, 3:1 for a placeholder on ColorInterior (issue
+	// #863).
+	//
+	// ThemeMaker corrects the colors it derives — the quiet roles, the
+	// status and link roles — so a derived role reports only when the
+	// floor is out of reach. A color the app stated (the body text
+	// color, a ThemeCfg.ColorText* field, a role set by hand) is the
+	// app's decision and is never moved; this is how it hears about it.
+	// exportaudit:keep — dev-diagnostic API for app authors
+	DebugLowContrast
+
 	// DebugAll is every category [Debug] turns on. [DebugUnscopedIDs]
 	// and [DebugLayoutInvariants] are deliberately absent: each reports
 	// a property with correct-by-design exceptions, and fires on widgets
@@ -261,7 +274,7 @@ const (
 		DebugListBoxNoHeight | DebugGradientResampled | DebugWrapOverflow |
 		DebugCallbacks | DebugWindowDegraded | DebugUnresolvedKeys |
 		DebugUnknownFocus | DebugStampDrift | DebugUnknownLookup |
-		DebugGlyphLayoutFallback | DebugSizing
+		DebugGlyphLayoutFallback | DebugSizing | DebugLowContrast
 )
 
 func init() {
@@ -316,6 +329,7 @@ func envTruthy(name string) bool {
 //   - an ID lookup that found nothing while the frame stamped the same
 //     leaf under a scope (a leaf spelled where an effective ID fits)
 //   - a window-level feature the platform could not deliver
+//   - a theme text role below its contrast floor
 //
 // It also reports, from dispatch rather than from the frame audit, a
 // callback that acted on an event without consuming it while an
@@ -419,6 +433,8 @@ type debugState struct {
 // Called from updateLayoutLocked after composeLayout, so it sees the
 // same tree the renderer does, including floating and overlay layers.
 func (w *Window) debugAudit(root *Layout) {
+	// Reads the theme, not the tree, so it runs ahead of the walk gate.
+	w.debugCheckContrast()
 	const walkCategories = DebugDuplicates | DebugMissingIDs |
 		DebugUnscopedIDs | DebugUnresolvedKeys | DebugUnknownFocus
 	if DebugCategory(debugMask.Load())&walkCategories == 0 {
@@ -754,28 +770,6 @@ func (w *Window) debugWarn(check debugCheck, subject, format string, args ...any
 	// Diagnostics are best-effort; a failed write to stderr is not
 	// something a GUI frame can act on.
 	_, _ = fmt.Fprintf(debugOut, "gui: "+format+"\n", args...)
-}
-
-// DebugGradientResampled reports a fill gradient whose stops exceeded
-// the GPU shader uniform limit and were resampled down to it, which
-// costs some fidelity even with error-driven placement. Called by the
-// GPU backends' draw pass; x, y is the gradient rect origin, used as
-// the warn-once discriminator.
-func (w *Window) DebugGradientResampled(x, y float32, kept, total int) {
-	// NaN never equals itself, so a NaN map key could never match and
-	// the warn-once memory would grow a key every frame. Fold NaN in
-	// the discriminator only; the message keeps the true position.
-	foldX, foldY := x, y
-	if foldX != foldX {
-		foldX = 0
-	}
-	if foldY != foldY {
-		foldY = 0
-	}
-	w.debugWarn(debugCheckGradientResampled,
-		fmt.Sprintf("gradient %g,%g", foldX, foldY),
-		"gradient at (%g, %g) has %d stops; resampled to %d "+
-			"(GPU shader uniform limit)", x, y, total, kept)
 }
 
 // debugPath renders a tree path as "0/3/1". The root is "root".
