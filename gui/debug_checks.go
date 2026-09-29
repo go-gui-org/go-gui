@@ -101,6 +101,9 @@ const (
 	// has OnClick but lacks Focusable, ClickOnSpace or ClickOnEnter, so
 	// the custom button does nothing from the keyboard (issue #658).
 	debugCheckInteractiveKeyboard
+	// debugCheckLowContrast fires from the frame audit when a text role
+	// of the window's theme is below its contrast floor (issue #863).
+	debugCheckLowContrast
 )
 
 // checkCategory maps an internal check to the public category that
@@ -141,6 +144,8 @@ func checkCategory(check debugCheck) DebugCategory {
 		return DebugLayoutInvariants
 	case debugCheckFixedSizing:
 		return DebugSizing
+	case debugCheckLowContrast:
+		return DebugLowContrast
 	default:
 		panic("gui: checkCategory has no category for debugCheck " +
 			strconv.Itoa(int(check)))

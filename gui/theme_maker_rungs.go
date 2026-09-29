@@ -42,13 +42,18 @@ func (theme *Theme) fillTextRungs(
 	// Status text is Body with only the color changed (issue #861).
 	// The status colors are read off the toast style, the single place
 	// ThemeMaker resolves them (Cfg.ColorError and friends may be
-	// unset), and the same source WithColors tracks them from.
-	theme.TextStyleError = statusTextStyle(theme.TextStyleBody,
+	// unset), and the same source WithColors tracks them from. Link
+	// text is the same rule on ColorSelect, plus the underline that
+	// marks it as a link (issue #863).
+	theme.TextStyleError = textStyleOnPage(theme.TextStyleBody,
 		theme.toastStyle.ColorError, theme.ColorBackground, theme.ColorPanel)
-	theme.TextStyleSuccess = statusTextStyle(theme.TextStyleBody,
+	theme.TextStyleSuccess = textStyleOnPage(theme.TextStyleBody,
 		theme.toastStyle.ColorSuccess, theme.ColorBackground, theme.ColorPanel)
-	theme.TextStyleWarning = statusTextStyle(theme.TextStyleBody,
+	theme.TextStyleWarning = textStyleOnPage(theme.TextStyleBody,
 		theme.toastStyle.ColorWarning, theme.ColorBackground, theme.ColorPanel)
+	theme.TextStyleLink = textStyleOnPage(theme.TextStyleBody,
+		theme.ColorSelect, theme.ColorBackground, theme.ColorPanel)
+	theme.TextStyleLink.Underline = true
 	theme.tableStyle.TextStyleHead = theme.TextStyleTitleSmall
 	theme.badgeStyle.TextStyle = theme.TextStyleCaption.Bold()
 	// The fill and the text on it are one decision (issue #373).
@@ -108,20 +113,10 @@ func (theme *Theme) fillTextRungs(
 		textOnFill(ts, true, theme.ColorTextOnSelect)
 }
 
-// statusTextAA is the contrast floor for the status text roles: WCAG AA
-// for body-size text.
-const statusTextAA = 4.5
-
-// statusTextColor is the color a status text role draws in: the status
-// color c, moved on lightness until it reads on both surfaces text sits
-// on. One spelling, so ThemeMaker and WithColors cannot drift apart.
-func statusTextColor(c, background, panel Color) Color {
-	return readableOn(c, statusTextAA, background, panel)
-}
-
-// statusTextStyle is body with its color swapped for the status color
-// at a readable lightness.
-func statusTextStyle(body TextStyle, c, background, panel Color) TextStyle {
-	body.Color = statusTextColor(c, background, panel)
+// textStyleOnPage is body with its color swapped for c at a lightness
+// that reads on the page surfaces. One spelling, so ThemeMaker and
+// WithColors cannot drift apart.
+func textStyleOnPage(body TextStyle, c, background, panel Color) TextStyle {
+	body.Color = readableOnPage(c, background, panel)
 	return body
 }

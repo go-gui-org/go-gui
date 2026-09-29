@@ -505,7 +505,9 @@ func mdTaskCheckbox(checked bool, boxSize float32, cfg MarkdownCfg) View {
 	var content []View
 	var amend func(EventCtx)
 	if checked {
-		boxColor = cfg.Style.linkColor
+		// A fill under a white check, so the fill color. linkColor is
+		// tuned to read as text on the page (issue #863).
+		boxColor = guiTheme.ColorSelect
 		checkStyle := guiTheme.TextStyleIconXSmall
 		checkStyle.Size = boxSize * 1.1
 		checkStyle.Color = White

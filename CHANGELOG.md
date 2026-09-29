@@ -10,6 +10,23 @@ and this project adheres to
 
 ### Added
 
+- **Contrast floors for every text role, and `Theme.TextStyleLink` (#863)** —
+  each text role now has a minimum contrast in one table: 4.5:1 (WCAG AA) on
+  `ColorBackground` and `ColorPanel`, and 3:1 for a placeholder on
+  `ColorInterior`. Disabled text has no floor. `ThemeMaker` and `WithColors`
+  raise a derived color that falls short: the quiet roles (secondary, label,
+  placeholder) by alpha, the status and link roles by lightness, with the hue
+  kept. The presets already meet every floor except link text. A theme with a
+  lighter body color or a custom background now gets readable quiet text instead
+  of text under AA. A color the app states (`TextStyleDef.Color`, a
+  `ThemeCfg.ColorText*` field, a role set by hand) is never moved; the new
+  `DebugLowContrast` category (in `DebugAll`) reports it, and
+  `w.TestFindings(gui.DebugLowContrast)` asserts it. Link text was drawn in the
+  `ColorSelect` fill color, at 3.4 to 4.4 on six of the eight presets.
+  `RichLink` and markdown links now draw in `TextStyleLink.Color`, which reads
+  at 4.5:1; `ColorSelect` itself is unchanged. `TextStyleLink` is Body text,
+  underlined, for a standalone link label.
+
 - **Status text roles: `Theme.TextStyleError`, `TextStyleSuccess`,
   `TextStyleWarning` (#861)** — body text in the theme's error, success or
   warning hue, for a validation message, a saved notice or a caution line. Same

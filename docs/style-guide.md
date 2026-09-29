@@ -33,7 +33,8 @@ reads `TextStyleError`, a saved notice `TextStyleSuccess`, a caution line
 `TextStyleWarning`: body size and face, in the status hue at a lightness that
 reads at 4.5:1. Do not copy `Cfg.ColorError` (or success, warning) onto a body
 style by hand. The raw status color is a fill color and is too faint as text on
-light themes.
+light themes. Link text is the same: use `TextStyleLink` (or `RichLink`), not
+`ColorSelect`.
 
 Never spell an alpha. An opaque color (`alpha 255`) is not de-emphasis and does
 not need a role. A fade, a ramp, or a fill is not text and is covered by the

@@ -178,6 +178,13 @@ type Theme struct {
 	TextStyleSuccess TextStyle
 	// exportaudit:keep — status text roles (issue #861).
 	TextStyleWarning TextStyle
+	// TextStyleLink is body text for a link: underlined, in ColorSelect
+	// moved on lightness until it reads on ColorBackground and
+	// ColorPanel (issue #863). ColorSelect is a fill color and sits
+	// near 3:1 on most presets. RichLink and markdown take only its
+	// color, so a link inside a heading keeps the heading's size.
+	// exportaudit:keep — link text role (issue #863).
+	TextStyleLink TextStyle
 
 	// Per-widget styles. Private and derived only (issue #735): a
 	// style is customized through ThemeCfg tokens, never by field

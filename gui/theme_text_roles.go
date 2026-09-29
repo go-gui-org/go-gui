@@ -226,31 +226,44 @@ func themeTextRoles(cfg ThemeCfg, base TextStyle, labelSize float32) (
 
 	// Unset Color reads as "not specified" (Color carries its own set
 	// flag), so an explicit fully-transparent role stays honorable.
-	roleColor := func(explicit Color, alpha uint8) Color {
+	//
+	// A derived role is raised to its contrast floor (issue #863): the
+	// ladder is contrast-matched for the preset grounds, and a custom
+	// ground or a lighter body color can push a rung under it. An
+	// explicit color is the app's and stays; DebugLowContrast reports
+	// it. Disabled has no floor: no surfaces reads as met.
+	page, nPage := contrastSurfaceColors(onPage,
+		cfg.ColorBackground, cfg.ColorPanel, cfg.ColorInterior)
+	field, nField := contrastSurfaceColors(onField,
+		cfg.ColorBackground, cfg.ColorPanel, cfg.ColorInterior)
+	roleColor := func(explicit Color, alpha uint8, floor float64, on []Color) Color {
 		if explicit.IsSet() {
 			return explicit
 		}
-		return RGBA(base.Color.R, base.Color.G, base.Color.B, alpha)
+		return readableAlpha(RGBA(base.Color.R, base.Color.G, base.Color.B, alpha),
+			floor, on...)
 	}
 
 	secondary = base
-	secondary.Color = roleColor(cfg.ColorTextSecondary, roles.secondary)
+	secondary.Color = roleColor(cfg.ColorTextSecondary, roles.secondary,
+		contrastText, page[:nPage])
 
 	label = base
-	label.Color = roleColor(cfg.ColorTextLabel, roles.label)
+	label.Color = roleColor(cfg.ColorTextLabel, roles.label,
+		contrastText, page[:nPage])
 	if labelSize > 0 {
 		label.Size = labelSize
 	}
 
 	disabled = base
-	disabled.Color = roleColor(cfg.ColorTextDisabled, roles.disabled)
+	disabled.Color = roleColor(cfg.ColorTextDisabled, roles.disabled, 0, nil)
 	// This style already says "disabled"; renderText must not halve
 	// it a second time. See TextStyle.disabledRole.
 	disabled.disabledRole = true
 
 	placeholder = base
-	placeholder.Color = roleColor(
-		cfg.ColorTextPlaceholder, roles.placeholder)
+	placeholder.Color = roleColor(cfg.ColorTextPlaceholder,
+		roles.placeholder, contrastPlaceholder, field[:nField])
 
 	return secondary, label, disabled, placeholder
 }

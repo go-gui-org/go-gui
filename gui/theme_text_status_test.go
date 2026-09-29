@@ -39,23 +39,8 @@ var statusRoles = []statusRole{
 		func(t Theme) Color { return t.toastStyle.ColorWarning }},
 }
 
-// TestStatusTextReadable is the reason the roles derive their color
-// instead of copying the fill color: the fills sit near 3:1 on light
-// themes, fine for a toast accent, too faint for body text. Every
-// preset, every role, against both surfaces text sits on.
-func TestStatusTextReadable(t *testing.T) {
-	for _, th := range statusPresets() {
-		for _, r := range statusRoles {
-			c := r.role(th).Color
-			for _, bg := range []Color{th.ColorBackground, th.ColorPanel} {
-				if got := contrastRatio(c, bg); got < wantStatusTextAA {
-					t.Errorf("%s %s: %v on %v contrast %.2f, want >= %.1f",
-						th.Name, r.name, c, bg, got, wantStatusTextAA)
-				}
-			}
-		}
-	}
-}
+// Readability of the status roles is held by TestContrastFloorsPresets,
+// with every other text role (issue #863).
 
 // TestStatusTextIsBody pins everything but the color: body size,
 // family and face, so a status line sits in running text without a

@@ -145,6 +145,19 @@ The status colors are tuned as fills and are too faint as text on light themes.
 | `TextStyleError`   | Validation message, failure text | regular | Medium | Unrel. |
 | `TextStyleSuccess` | Saved or completed notice        | regular | Medium | Unrel. |
 | `TextStyleWarning` | Caution text                     | regular | Medium | Unrel. |
+| `TextStyleLink`    | Link text, underlined            | regular | Medium | Unrel. |
+
+`TextStyleLink` is the same rule applied to `ColorSelect` (issue #863).
+`ColorSelect` stays as it is for fills. `RichLink` and markdown links take only
+the link color, so a link keeps the size of the text around it.
+
+Contrast floors (issue #863). Every text role has a minimum contrast, listed in
+`contrastFloors` (`gui/theme_contrast.go`): 4.5:1 on `ColorBackground` and
+`ColorPanel`, and 3:1 for `TextStylePlaceholder` on `ColorInterior`.
+`TextStyleDisabled` has no floor. `ThemeMaker` and `WithColors` raise a derived
+color to its floor: the quiet roles by alpha, the status and link roles by
+lightness. A color the app states (`TextStyleDef.Color`, a `ColorText*` field, a
+role set by hand) is never moved. `DebugLowContrast` reports it instead.
 
 Rules:
 

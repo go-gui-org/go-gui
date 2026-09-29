@@ -270,11 +270,15 @@ func TestMarkdownTaskListRendersCheckbox(t *testing.T) {
 		t.Fatalf("len(list.Children) = %d, want 2 task rows", len(list.Children))
 	}
 
-	style := DefaultMarkdownStyle()
-
+	// The box is a fill, so it takes the fill color, not the link text
+	// color: TextStyleLink is shifted in lightness to read as text, which
+	// on a dark theme lightens it under the white check (issue #863).
+	if guiTheme.TextStyleLink.Color == guiTheme.ColorSelect {
+		t.Fatal("link text equals ColorSelect on this theme; the case proves nothing")
+	}
 	checkedBox := list.Children[0].Children[0].Children[0]
-	if got, want := checkedBox.Shape.Color, style.linkColor; got != want {
-		t.Errorf("checked box Color = %v, want %v (LinkColor)", got, want)
+	if got, want := checkedBox.Shape.Color, guiTheme.ColorSelect; got != want {
+		t.Errorf("checked box Color = %v, want %v (ColorSelect)", got, want)
 	}
 	if len(checkedBox.Children) != 1 {
 		t.Errorf("len(checked box Children) = %d, want 1 (checkmark)", len(checkedBox.Children))
