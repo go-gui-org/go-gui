@@ -1,3 +1,4 @@
+# go-gui-golden v1
 Text xy=27.00,25.00 wh=0.00,0.00 color=#1a1d21ff text="Home" size=14.00
 Text xy=71.60,25.00 wh=0.00,0.00 color=#1a1d21ae text="/" size=14.00
 Text xy=91.00,25.00 wh=0.00,0.00 color=#1a1d2195 text="Docs" size=14.00

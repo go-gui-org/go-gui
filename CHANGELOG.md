@@ -10,6 +10,21 @@ and this project adheres to
 
 ### Added
 
+- **Public command-golden helpers for apps and siblings (#847)** —
+  `(*Window).TestGolden` with `GoldenCfg` pins a window's appearance as text
+  from any package: one frame under `ThemeDark` and one under `ThemeLight`,
+  serialized from the emitted `[]RenderCmd` with floats rounded to two decimals,
+  diffed against `testdata/<name>.dark.golden` and
+  `testdata/<name>.light.golden`. Before, the serializer lived in a `_test.go`
+  file, so only `gui/` itself could pin appearance; a visual regression in a
+  sibling was caught only by a person looking at a screen. Re-record with
+  `GOGUI_UPDATE_GOLDEN=1` (an env var, since a flag in a library package
+  collides with the consumer's own flags); a mismatch writes the recording under
+  `testdata/failures/` for review. Files carry a `# go-gui-golden v1` header, so
+  a future format change fails with a re-record hint instead of a wall of diffs.
+  The clock is pinned and the window's theme and pointer state are restored
+  afterwards. See `docs/dx-cheat-sheet.md`.
+
 - **Theme text roles are a stable contract, with a gate (#846)** —
   `docs/theme-tokens.md` now lists the 4 de-emphasis roles and 16 purpose roles
   on `Theme`, the release that added each, and the rules: adding a role is free;

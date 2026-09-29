@@ -1,3 +1,4 @@
+# go-gui-golden v1
 Clip xy=15.00,15.00 wh=48.00,32.00
 Image xy=15.00,15.00 wh=48.00,32.00 res="mem:gui/checker/96-64-" cradius=6.00
 Clip xy=0.00,0.00 wh=320.00,240.00

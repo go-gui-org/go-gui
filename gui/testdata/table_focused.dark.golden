@@ -1,3 +1,4 @@
+# go-gui-golden v1
 Shadow xy=15.00,15.00 wh=290.00,72.80 color=#4d82f03f blur=2.00 offset=0.00,0.00
 StrokeRect xy=15.00,15.00 wh=290.00,72.80 color=#4d82f0ff thickness=1.00
 Clip xy=16.00,16.00 wh=277.00,70.80

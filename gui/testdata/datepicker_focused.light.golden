@@ -1,3 +1,4 @@
+# go-gui-golden v1
 Rect xy=15.00,15.00 wh=278.00,262.80 color=#ffffffff radius=6.00 fill
 StrokeRect xy=15.00,15.00 wh=278.00,262.80 color=#d8dde4ff radius=6.00 thickness=1.00
 Shadow xy=22.00,22.00 wh=118.40,31.60 color=#2f6fe03f radius=6.00 blur=2.00 offset=0.00,0.00

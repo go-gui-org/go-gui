@@ -40,5 +40,7 @@ func TestThemeSurface(t *testing.T) {
 		}
 	}
 	sort.Strings(lines)
-	checkGolden(t, "theme_surface", strings.Join(lines, "\n")+"\n")
+	// A field listing, not render commands, so no golden header.
+	checkGoldenText(t, "testdata", "theme_surface",
+		strings.Join(lines, "\n")+"\n")
 }

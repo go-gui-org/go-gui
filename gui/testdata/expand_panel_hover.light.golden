@@ -1,3 +1,4 @@
+# go-gui-golden v1
 Rect xy=15.00,15.00 wh=290.00,73.20 color=#ffffffff radius=6.00 fill
 StrokeRect xy=15.00,15.00 wh=290.00,73.20 color=#d8dde4ff radius=6.00 thickness=1.00
 Rect xy=30.00,30.00 wh=260.00,21.60 color=#edf0f4ff radius=6.00 fill

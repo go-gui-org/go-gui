@@ -1,3 +1,4 @@
+# go-gui-golden v1
 Clip xy=15.00,15.00 wh=20.00,20.00
 Svg xy=15.00,15.00 wh=0.00,0.00 color=#9c9c9c73 tris=24 bbox=11.27,10.68..11.87,11.28 centroid=11.57,10.98 digest=30306d31
 Svg xy=15.00,15.00 wh=0.00,0.00 color=#9b9b9b73 tris=24 bbox=7.60,10.74..8.20,11.34 centroid=7.90,11.04 digest=8e22f5b5

@@ -533,6 +533,44 @@ func save(w *gui.Window) {
   app overwrites a hand edit. A file the user edits stays a file the app owns.
 - **Not secrets.** The data is plain JSON.
 
+## Golden appearance tests
+
+`(*Window).TestGolden` pins what a window looks like as text. It runs one frame
+under `ThemeDark` and one under `ThemeLight`, serializes the emitted render
+commands with floats rounded to two decimals, and diffs each against
+`testdata/<name>.dark.golden` and `testdata/<name>.light.golden`. Interact
+first, then assert:
+
+```go
+func TestGoldenExample(t *testing.T) {
+	w := gui.NewTestWindow(t, gui.WindowCfg{Width: 320, Height: 240})
+	w.TestRender(func(win *gui.Window) gui.View {
+		return gui.Column(gui.ContainerCfg{
+			Sizing: gui.FillFill,
+			Content: []gui.View{
+				gui.Button(gui.ButtonCfg{ID: "save", Label: "Save"}),
+			},
+		})
+	})
+	w.TestGolden(t, gui.GoldenCfg{Name: "save_button"})
+}
+```
+
+- A styling change shows up as a diff; a backend rasterizer bug does not. These
+  pin commands, not pixels.
+- Re-record with `GOGUI_UPDATE_GOLDEN=1`, after reading the diff. The trigger is
+  an env var because a flag in a library package collides with the app's own
+  flags.
+- Files carry a `# go-gui-golden v1` header. A format change bumps the version
+  and fails with a re-record hint, not a wall of diffs.
+- The clock is pinned, so a view reading `w.Now()` records the same output every
+  day. The window's theme and pointer state are restored afterwards.
+- A mismatch writes the recording under `testdata/failures/` for review.
+  Git-ignore that directory.
+- `GoldenCfg` also carries `FocusID`, `KeyPressID`, `HoverX`/`HoverY` and
+  `MousePressed` for appearances `TestClick` cannot reach: a held Space, a hover
+  with no click.
+
 ## Find it early
 
 `gui.Debug(true)`, or `GOGUI_DEBUG=1`, checks the layout every frame. It reports
