@@ -18,7 +18,7 @@ func demoTextAnim(w *gui.Window) gui.View {
 
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.Some(t.SpacingSmall),
+		Spacing: gui.SpacingSmall,
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
@@ -58,7 +58,7 @@ func textAnimEntranceCard(t gui.Theme, app *ShowcaseApp) gui.View {
 	return textDemoCard("", "Entrances (play once per identity)", 0, []gui.View{
 		gui.Row(gui.ContainerCfg{
 			Sizing:  gui.FillFit,
-			Spacing: gui.Some(t.SpacingMedium),
+			Spacing: gui.SpacingMedium,
 			Padding: gui.NoPadding,
 			VAlign:  gui.VAlignMiddle,
 			Content: []gui.View{
@@ -95,7 +95,7 @@ func textAnimLoopCard(t gui.Theme) gui.View {
 	return textDemoCard("", "Loops", 0, []gui.View{
 		gui.Row(gui.ContainerCfg{
 			Sizing:  gui.FillFit,
-			Spacing: gui.Some(t.SpacingMedium),
+			Spacing: gui.SpacingMedium,
 			Padding: gui.NoPadding,
 			VAlign:  gui.VAlignMiddle,
 			Content: []gui.View{

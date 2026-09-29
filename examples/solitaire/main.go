@@ -190,7 +190,7 @@ func landingView(w *gui.Window, ww, wh float32) gui.View {
 		Color:      colorBG,
 		HAlign:     gui.HAlignCenter,
 		VAlign:     gui.VAlignMiddle,
-		Spacing:    gui.SomeF(gui.SpacingMedium),
+		Spacing:    gui.SpacingMedium,
 		SizeBorder: gui.NoBorder,
 		Padding:    gui.PaddingLarge,
 		Content: []gui.View{
@@ -219,7 +219,7 @@ func landingView(w *gui.Window, ww, wh float32) gui.View {
 			// Mode buttons
 			gui.Row(gui.ContainerCfg{
 				HAlign:     gui.HAlignCenter,
-				Spacing:    gui.SomeF(gui.SpacingMedium),
+				Spacing:    gui.SpacingMedium,
 				SizeBorder: gui.NoBorder,
 				Content: []gui.View{
 					modeButton(w, "DRAW 1", DrawOne, colorNeonGreen),
@@ -230,7 +230,7 @@ func landingView(w *gui.Window, ww, wh float32) gui.View {
 			// Decorative card fan
 			gui.Row(gui.ContainerCfg{
 				HAlign:     gui.HAlignCenter,
-				Spacing:    gui.SomeF(gui.SpacingSmall),
+				Spacing:    gui.SpacingSmall,
 				SizeBorder: gui.NoBorder,
 				Content: []gui.View{
 					miniCard("A", "♠", colorCardBlack),
@@ -791,7 +791,7 @@ func winOverlay(theme gui.Theme, ww, wh float32) gui.View {
 		Color:      gui.RGBA(0, 0, 0, 180),
 		HAlign:     gui.HAlignCenter,
 		VAlign:     gui.VAlignMiddle,
-		Spacing:    gui.SomeF(gui.SpacingMedium),
+		Spacing:    gui.SpacingMedium,
 		SizeBorder: gui.NoBorder,
 		OverDraw:   true,
 		Content: []gui.View{

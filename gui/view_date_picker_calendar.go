@@ -87,12 +87,12 @@ func datePickerCalendar(
 	cfg *DatePickerCfg, state datePickerState, w *Window,
 ) View {
 	dn := &defaultDatePickerStyle
-	cellSpacing := cfg.CellSpacing.Get(dn.cellSpacing)
+	cellSpacing := cfg.CellSpacing.Or(dn.cellSpacing)
 	content := make([]View, 0, 7)
 	content = append(content, datePickerWeekdays(cfg))
 	content = append(content, datePickerMonth(cfg, state, w)...)
 	return Column(ContainerCfg{
-		Spacing:    Some(cellSpacing),
+		Spacing:    SpacingPx(cellSpacing),
 		Padding:    NoPadding,
 		SizeBorder: NoBorder,
 		Content:    content,
@@ -102,7 +102,7 @@ func datePickerCalendar(
 // datePickerWeekdays builds the weekday header row (e.g., "Mon", "Tue").
 func datePickerWeekdays(cfg *DatePickerCfg) View {
 	dn := &defaultDatePickerStyle
-	cellSpacing := cfg.CellSpacing.Get(dn.cellSpacing)
+	cellSpacing := cfg.CellSpacing.Or(dn.cellSpacing)
 	cellSize := datePickerCellSize(cfg)
 	// A weekday header names the column; the dates are what is read.
 	wdTS := withRoleAlpha(cfg.TextStyle, guiTheme.TextStyleSecondary)
@@ -120,7 +120,7 @@ func datePickerWeekdays(cfg *DatePickerCfg) View {
 		}))
 	}
 	return Row(ContainerCfg{
-		Spacing:    Some(cellSpacing),
+		Spacing:    SpacingPx(cellSpacing),
 		Padding:    NoPadding,
 		SizeBorder: NoBorder,
 		Content:    labels,
@@ -134,7 +134,7 @@ func datePickerMonth(
 
 	dn := &defaultDatePickerStyle
 	radius := cfg.Radius.Get(dn.Radius)
-	cellSpacing := cfg.CellSpacing.Get(dn.cellSpacing)
+	cellSpacing := cfg.CellSpacing.Or(dn.cellSpacing)
 	cellSize := datePickerCellSize(cfg)
 	viewTime := datePickerViewTime(state)
 	year, month := viewTime.Year(), viewTime.Month()
@@ -285,7 +285,7 @@ func datePickerMonth(
 			}))
 		}
 		rows = append(rows, Row(ContainerCfg{
-			Spacing:    Some(cellSpacing),
+			Spacing:    SpacingPx(cellSpacing),
 			Padding:    NoPadding,
 			SizeBorder: NoBorder,
 			Content:    cells,

@@ -159,7 +159,7 @@ func ProgressBar(cfg ProgressBarCfg) View {
 		},
 		Disabled:   cfg.Disabled,
 		Invisible:  cfg.Invisible,
-		Spacing:    SomeF(guiTheme.SpacingSmall),
+		Spacing:    SpacingSmall,
 		SizeBorder: NoBorder,
 		Sizing:     cfg.Sizing,
 		Padding:    NoPadding,

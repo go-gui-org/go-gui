@@ -144,7 +144,7 @@ func inspectorFloatingPanel(w *Window) View {
 		ScrollbarCfgX: scrollbarCfgX,
 		ScrollbarCfgY: scrollbarCfgY,
 		Padding:       NewPadding(0, scrollbarPad, 0, 0),
-		Spacing:       SomeF(0),
+		Spacing:       NoSpacing,
 		// The inspector panel overlays the app being inspected; clicks
 		// on it must not reach through and mutate what is under study.
 		OnClick: func(ctx EventCtx) {
@@ -247,7 +247,7 @@ func inspectorApplyScrollTo(panelHeight float32, w *Window) {
 	}
 	rowHeight := treeEstimateRowHeight(TreeCfg{
 		Nodes:   w.inspectorTreeCache,
-		Spacing: SomeF(1),
+		Spacing: SpacingPx(1),
 	}, w)
 	targetY := float32(rowIdx) * rowHeight
 	newScroll := -(targetY - rowHeight*2)

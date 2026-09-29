@@ -12,7 +12,7 @@ func demoAnimations(w *gui.Window) gui.View {
 
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.SomeF(gui.SpacingMedium),
+		Spacing: gui.SpacingMedium,
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			animTweenDemo(t, app),
@@ -27,7 +27,7 @@ func demoAnimations(w *gui.Window) gui.View {
 func animTweenDemo(t gui.Theme, app *ShowcaseApp) gui.View {
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.SomeF(gui.SpacingMedium),
+		Spacing: gui.SpacingMedium,
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{Text: "Tween Animation", TextStyle: t.TextStyleBodySmall.Bold()}),
@@ -55,7 +55,7 @@ func animTweenDemo(t gui.Theme, app *ShowcaseApp) gui.View {
 			}),
 			gui.Row(gui.ContainerCfg{
 				Sizing:  gui.FillFit,
-				Spacing: gui.SomeF(gui.SpacingMedium),
+				Spacing: gui.SpacingMedium,
 				Padding: gui.NoPadding,
 				Content: []gui.View{
 					gui.Button(gui.ButtonCfg{
@@ -83,7 +83,7 @@ func animTweenDemo(t gui.Theme, app *ShowcaseApp) gui.View {
 func animSpringDemo(t gui.Theme, app *ShowcaseApp) gui.View {
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.SomeF(gui.SpacingMedium),
+		Spacing: gui.SpacingMedium,
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{Text: "Spring Animation", TextStyle: t.TextStyleBodySmall.Bold()}),
@@ -111,7 +111,7 @@ func animSpringDemo(t gui.Theme, app *ShowcaseApp) gui.View {
 			}),
 			gui.Row(gui.ContainerCfg{
 				Sizing:  gui.FillFit,
-				Spacing: gui.SomeF(gui.SpacingMedium),
+				Spacing: gui.SpacingMedium,
 				Padding: gui.NoPadding,
 				Content: []gui.View{
 					gui.Button(gui.ButtonCfg{
@@ -140,7 +140,7 @@ func animSpringDemo(t gui.Theme, app *ShowcaseApp) gui.View {
 func animKeyframeDemo(t gui.Theme, app *ShowcaseApp) gui.View {
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.SomeF(gui.SpacingMedium),
+		Spacing: gui.SpacingMedium,
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{Text: "Keyframe Animation", TextStyle: t.TextStyleBodySmall.Bold()}),
@@ -168,7 +168,7 @@ func animKeyframeDemo(t gui.Theme, app *ShowcaseApp) gui.View {
 			}),
 			gui.Row(gui.ContainerCfg{
 				Sizing:  gui.FillFit,
-				Spacing: gui.SomeF(gui.SpacingMedium),
+				Spacing: gui.SpacingMedium,
 				Padding: gui.NoPadding,
 				Content: []gui.View{
 					gui.Button(gui.ButtonCfg{

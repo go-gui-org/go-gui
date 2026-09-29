@@ -505,7 +505,7 @@ func selectSubHeaderView(cfg *SelectCfg, label string) View {
 			Row(ContainerCfg{
 				Padding: NoPadding,
 				Sizing:  FillFit,
-				Spacing: SomeF(PadXSmall),
+				Spacing: SpacingPx(PadXSmall),
 				Content: []View{
 					Text(TextCfg{
 						Text: "✓",

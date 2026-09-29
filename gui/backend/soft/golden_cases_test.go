@@ -724,13 +724,13 @@ func pixelCases() []pixelCase {
 				return gui.Column(gui.ContainerCfg{
 					Sizing:     gui.FillFill,
 					SizeBorder: gui.NoBorder,
-					Spacing:    gui.SomeF(gui.SpacingMedium),
+					Spacing:    gui.SpacingMedium,
 					HAlign:     gui.HAlignCenter,
 					VAlign:     gui.VAlignMiddle,
 					Content: []gui.View{
 						gui.Row(gui.ContainerCfg{
 							Sizing:     gui.FillFit,
-							Spacing:    gui.SomeF(gui.SpacingSmall),
+							Spacing:    gui.SpacingSmall,
 							SizeBorder: gui.NoBorder,
 							Content: []gui.View{
 								gui.Input(gui.InputCfg{ID: "fn"}),
@@ -740,7 +740,7 @@ func pixelCases() []pixelCase {
 						}),
 						gui.Row(gui.ContainerCfg{
 							Sizing:     gui.FillFit,
-							Spacing:    gui.SomeF(gui.SpacingSmall),
+							Spacing:    gui.SpacingSmall,
 							SizeBorder: gui.NoBorder,
 							Content: []gui.View{
 								gui.Button(gui.ButtonCfg{ID: "cancel"}),

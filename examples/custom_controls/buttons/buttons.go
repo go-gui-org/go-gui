@@ -131,7 +131,7 @@ func row(id string, bg gui.Color, content ...gui.View) gui.View {
 		ID:         id,
 		Color:      bg,
 		Padding:    gui.PaddingMedium,
-		Spacing:    gui.SomeF(gui.SpacingMedium),
+		Spacing:    gui.SpacingMedium,
 		SizeBorder: gui.NoBorder,
 		Content:    content,
 	})
@@ -141,7 +141,7 @@ func toggleRow(id, label string, selected bool, onClick func(gui.EventCtx), targ
 	return gui.Row(gui.ContainerCfg{
 		ID:         id,
 		Padding:    gui.NewPadding(0, gui.PadMedium, 0, gui.PadMedium),
-		Spacing:    gui.SomeF(gui.SpacingMedium),
+		Spacing:    gui.SpacingMedium,
 		SizeBorder: gui.NoBorder,
 		Content: []gui.View{
 			gui.Toggle(gui.ToggleCfg{ID: "disable", Label: label, Selected: selected, OnClick: onClick}),

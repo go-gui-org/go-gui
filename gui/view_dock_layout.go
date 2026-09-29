@@ -115,7 +115,7 @@ func DockLayout(cfg DockLayoutCfg) View {
 			A11YRole: AccessRoleGroup,
 			Sizing:   cfg.Sizing,
 			Padding:  NoPadding,
-			Spacing:  SomeF(0),
+			Spacing:  NoSpacing,
 			Clip:     true,
 			AmendLayout: func(ctx EventCtx) {
 				dockLayoutAmend(dockID, colorZone, ctx.Layout, ctx.Window)

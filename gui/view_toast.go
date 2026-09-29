@@ -145,7 +145,7 @@ func toastContainerView(w *Window) View {
 		Sizing:       FitFit,
 		Padding:      NoPadding,
 		SizeBorder:   NoBorder,
-		Spacing:      Some(style.Spacing),
+		Spacing:      SpacingPx(style.Spacing),
 		Color:        ColorTransparent,
 		Content:      items,
 	})
@@ -226,7 +226,7 @@ func toastItemView(toast *toastNotification, style ToastStyle) View {
 		Shadow:      style.Shadow,
 		Clip:        true,
 		Opacity:     SomeF(frac),
-		Spacing:     Some(SpacingSmall),
+		Spacing:     SpacingSmall,
 		A11YRole:    AccessRoleGroup,
 		A11YState:   AccessStateLive,
 		A11YCfg:     A11YCfg{A11YLabel: toastA11YLabel(toast)},

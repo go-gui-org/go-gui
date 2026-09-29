@@ -45,7 +45,7 @@ type ContextMenuCfg struct {
 	// SpacingSubmenu gaps submenu items. Unset takes the theme
 	// default.
 	// exportaudit:keep — caller-facing config (issue #372)
-	SpacingSubmenu Opt[float32]
+	SpacingSubmenu Spacing
 	// WidthSubmenuMin/Max bound submenu panes. Unset takes the
 	// theme defaults.
 	// exportaudit:keep — caller-facing config (issue #372)

@@ -68,7 +68,7 @@ func mainView(w *gui.Window) gui.View {
 	return gui.Column(gui.ContainerCfg{
 		HAlign:  gui.HAlignCenter,
 		Sizing:  gui.FillFill,
-		Spacing: gui.Some(theme.SpacingSmall),
+		Spacing: gui.SpacingSmall,
 		Padding: gui.PaddingSmall,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{

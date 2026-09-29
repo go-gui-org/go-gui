@@ -901,7 +901,7 @@ func TestFillWidthGridStaysInsideNarrowPanel(t *testing.T) {
 					Sizing:     gg.FillFit,
 					Padding:    gg.NoPadding,
 					SizeBorder: gg.NoBorder,
-					Spacing:    gg.SomeF(10),
+					Spacing:    gg.SpacingPx(10),
 					Content: []gg.View{
 						gg.Text(gg.TextCfg{Text: "loading=false"}),
 						New(w, cfg),

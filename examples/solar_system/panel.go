@@ -24,7 +24,7 @@ func zoomControls(theme gui.Theme) gui.View {
 		FloatTieOff: gui.FloatTopRight,
 		Padding:     theme.PaddingMedium,
 		SizeBorder:  gui.NoBorder,
-		Spacing:     gui.SomeF(theme.SpacingSmall),
+		Spacing:     gui.SpacingSmall,
 		Content: []gui.View{
 			zoomButton("solar_zoom_in", "+", "Zoom in", keyZoomStep),
 			zoomButton("solar_zoom_out", "-", "Zoom out", 1/keyZoomStep),
@@ -64,7 +64,7 @@ func infoPanel(a *App, theme gui.Theme) gui.View {
 		HAlign:      gui.HAlignCenter,
 		Padding:     theme.PaddingMedium,
 		SizeBorder:  gui.NoBorder,
-		Spacing:     gui.SomeF(theme.SpacingSmall),
+		Spacing:     gui.SpacingSmall,
 		Content:     content,
 	})
 }
@@ -91,7 +91,7 @@ func factSheet(p *Planet, theme gui.Theme) gui.View {
 		// needs a definite width to resolve against.
 		Width:   panelWidth,
 		HAlign:  gui.HAlignCenter,
-		Spacing: gui.SomeF(theme.SpacingSmall),
+		Spacing: gui.SpacingSmall,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      p.Name,
@@ -100,7 +100,7 @@ func factSheet(p *Planet, theme gui.Theme) gui.View {
 			gui.Row(gui.ContainerCfg{
 				Padding:    gui.NoPadding,
 				SizeBorder: gui.NoBorder,
-				Spacing:    gui.SomeF(theme.SpacingSmall),
+				Spacing:    gui.SpacingSmall,
 				Content: []gui.View{
 					statCard("Diameter", p.Diameter, theme),
 					statCard("Mass", p.Mass, theme),
@@ -129,7 +129,7 @@ func statCard(label, value string, theme gui.Theme) gui.View {
 		Padding:    theme.PaddingSmall,
 		SizeBorder: gui.NoBorder,
 		Sizing:     gui.FillFit,
-		Spacing:    gui.SomeF(gui.SpacingTight),
+		Spacing:    gui.SpacingTight,
 		HAlign:     gui.HAlignCenter,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
@@ -162,7 +162,7 @@ func navDots(a *App, theme gui.Theme) gui.View {
 	return gui.Row(gui.ContainerCfg{
 		Padding:    theme.PaddingSmall,
 		SizeBorder: gui.NoBorder,
-		Spacing:    gui.SomeF(theme.SpacingSmall),
+		Spacing:    gui.SpacingSmall,
 		Content:    dots,
 	})
 }

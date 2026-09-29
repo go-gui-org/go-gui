@@ -14,7 +14,7 @@ func inspectorTreeView(w *Window) View {
 	return Tree(TreeCfg{
 		ID:       inspectorTreeID,
 		Indent:   16,
-		Spacing:  SomeF(1),
+		Spacing:  SpacingPx(1),
 		Nodes:    nodes,
 		OnSelect: func(id string, ctx EventCtx) { inspectorSelect(id, ctx.Window) },
 	})

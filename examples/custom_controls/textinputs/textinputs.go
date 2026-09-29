@@ -136,7 +136,7 @@ func note(s string) gui.View {
 func group(id string, cfg gui.ContainerCfg, content ...gui.View) gui.View {
 	cfg.ID = id
 	cfg.Sizing = gui.FillFit
-	cfg.Spacing = gui.SomeF(8)
+	cfg.Spacing = gui.SpacingMedium
 	if !cfg.Padding.IsSet() {
 		cfg.Padding = gui.PaddingNone
 	}
@@ -157,7 +157,7 @@ func valuesPanel(app *App) gui.View {
 		ColorBorder: gui.RGBA(0, 0, 0, 20),
 		SizeBorder:  gui.SomeF(1),
 		Padding:     gui.PaddingMedium,
-		Spacing:     gui.SomeF(gui.SpacingSmall),
+		Spacing:     gui.SpacingSmall,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{Text: "Live values", TextStyle: look.Light.Label}),
 			gui.Text(gui.TextCfg{ID: "default-values", TextStyle: look.Light.Body,
@@ -242,7 +242,7 @@ func materialField(app *App, id string, multiline bool, accent gui.Color) gui.Vi
 			ColorBorder: border,
 			SizeBorder:  gui.SomeF(1),
 			Padding:     gui.NewPadding(gui.PadSmall, gui.PadSmall, 0, gui.PadSmall),
-			Spacing:     gui.SomeF(gui.SpacingSmall),
+			Spacing:     gui.SpacingSmall,
 			Clip:        true,
 			OnMouseDown: focusField,
 			Content: []gui.View{
@@ -290,7 +290,7 @@ func xpField(app *App, id string, multiline bool) gui.View {
 			ColorBorder: border,
 			SizeBorder:  gui.SomeF(1),
 			Padding:     gui.PaddingNone,
-			Spacing:     gui.SomeF(0),
+			Spacing:     gui.NoSpacing,
 			Clip:        true,
 			OnMouseDown: focusField,
 			Content: []gui.View{

@@ -254,7 +254,7 @@ func TestButtonVariantFills(t *testing.T) {
 	w.TestRender(func(win *Window) View {
 		return Column(ContainerCfg{
 			Sizing:  FillFill,
-			Spacing: SomeF(8),
+			Spacing: SpacingPx(8),
 			Content: []View{
 				Button(ButtonCfg{ID: "sec", OnClick: noop}),
 				Button(ButtonCfg{ID: "pri", Variant: ButtonPrimary, OnClick: noop}),
@@ -308,7 +308,7 @@ func TestButtonVariantLabelPath(t *testing.T) {
 	w.TestRender(func(win *Window) View {
 		return Column(ContainerCfg{
 			Sizing:  FillFill,
-			Spacing: SomeF(8),
+			Spacing: SpacingPx(8),
 			Content: []View{
 				Button(ButtonCfg{ID: "pri", Variant: ButtonPrimary, Label: "Save", OnClick: noop}),
 				Button(ButtonCfg{ID: "gho", Variant: ButtonGhost, Label: "Discard", OnClick: noop}),
@@ -336,7 +336,7 @@ func TestButtonVariantRecolorsDefaultedLabel(t *testing.T) {
 	w.TestRender(func(win *Window) View {
 		return Column(ContainerCfg{
 			Sizing:  FillFill,
-			Spacing: SomeF(8),
+			Spacing: SpacingPx(8),
 			Content: []View{
 				Button(ButtonCfg{ID: "pri", Variant: ButtonPrimary, OnClick: noop, Content: []View{
 					Text(TextCfg{Text: "defaulted"}),

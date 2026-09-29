@@ -89,33 +89,6 @@ func setTextLadder(cfg *ThemeCfg, body float32) {
 	cfg.SizeTextXLarge = ladder.xLarge
 }
 
-// Spacing constants. Each tier names a gap between things, and the
-// rungs differ in how closely related the things are (audit §4,
-// issue #344):
-//
-//	SpacingTight   (2)  — inside one composite control, between parts
-//	                       that read as a single unit: calendar cells,
-//	                       the tab strip, submenu items.
-//	SpacingSmall   (6)  — members of one visual group that share a
-//	                       container: a control and its readout, the
-//	                       ColorFields channel row.
-//	SpacingMedium (14)  — sibling controls in a stack or row: dialog
-//	                       rows, the toasts in a stack.
-//	SpacingLarge  (28)  — unrelated sections of a surface: distinct
-//	                       groups, panels stacked on one page.
-//
-// The tiers size gaps between things. Theme.PaddingField and the
-// padding tiers answer a different question — how much inset a control
-// puts around its own content — and are not rungs of this ladder.
-const (
-	// exportaudit:keep — new rung, consumed inside gui/ only.
-	SpacingTight float32 = 2
-	// exportaudit:keep — const name collides with the spacingSmall helper
-	SpacingSmall  float32 = 6
-	SpacingMedium float32 = 14
-	SpacingLarge  float32 = 28
-)
-
 // TextStyle defines text rendering properties.
 type TextStyle struct {
 	AffineTransform *glyph.AffineTransform

@@ -95,3 +95,43 @@ Every site was read, not rewritten by a script from its number.
   This rule must also scan whole sibling repos, so it is its own mode.
 - **Theme-following steps (`t.SpacingMedium`) in the examples.** The padding
   steps go to zero under `WithPadding(false)`, which four examples use.
+
+## Follow-up: steps follow the theme (#866)
+
+- **Status:** landed in go-gui. Siblings migrate after the release (about 48
+  sites, mechanical).
+- **Breaking:** yes. Every Cfg spacing field changes type.
+
+After #851 the examples wrote `gui.SomeF(gui.SpacingLarge)`. That is awkward to
+read, and it has a real defect: the float constant is copied into the Cfg, so a
+`ThemeCfg` that changes `SpacingLarge` does not move the gap.
+`ThemeCfg.Spacing*` could be set, but no call site that named a step used it.
+
+| Design                                                                | Allocs | Surface added                      | Migration                     | Misuse failure                         |
+| --------------------------------------------------------------------- | ------ | ---------------------------------- | ----------------------------- | -------------------------------------- |
+| A. Pre-wrapped `Opt` values (`GapLarge = SomeF(SpacingLarge)`)        | 0      | 4 vars                             | none                          | still ignores a custom theme, silently |
+| **B. Self-flagging `Spacing` type with roles resolved at build time** | 0      | 1 type, `SpacingPx`, 4 role values | 15 fields, ~470 in-repo sites | a raw float does not compile           |
+| C. `t.Gap(gui.Large)` method that returns an `Opt`                    | 0      | 1 method, 1 enum                   | none                          | needs the theme at every site; wordier |
+
+B was picked. It fixes the theme bypass, not only the spelling. It also matches
+`Padding`, `Color` and `Sizing`, which self-flag. `Spacing` holds a fixed px
+value, a role and a set flag. `Or(def)` resolves a role against `guiTheme`,
+which is the theme installed for the window being generated (the same read that
+the `default*Style` mirrors use). So `Themed` scopes work too. The seeds are the
+unexported `gapTight/Small/Medium/Large`.
+
+This does not undo the rejection of theme-following steps above. That rejection
+was about padding: `WithPadding(false)` sets the padding steps to zero. It does
+not touch the spacing steps.
+
+### Rejected Approaches (follow-up)
+
+- **A, pre-wrapped `Opt` values.** It fixes the spelling and hides the theme
+  bypass.
+- **C, a theme method.** It is not shorter than `SomeF`, and it needs the theme
+  in hand at every call site.
+- **A role marker inside `Opt[float32]`, such as a negative value.** `Get(def)`
+  would return the marker to any code that reads the value directly.
+- **Keep the float constants exported next to the roles.** Two spellings of one
+  step lead back to the fixed copy. Code that needs arithmetic reads
+  `w.Theme().SpacingLarge`.

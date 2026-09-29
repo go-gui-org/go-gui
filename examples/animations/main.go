@@ -78,7 +78,7 @@ func mainView(w *gui.Window) gui.View {
 
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFill,
-		Spacing: gui.SomeF(gui.SpacingLarge),
+		Spacing: gui.SpacingLarge,
 		Padding: gui.PaddingLarge,
 		Content: []gui.View{
 			// Control buttons
@@ -87,7 +87,7 @@ func mainView(w *gui.Window) gui.View {
 				// its label, so the effective IDs are
 				// "animations_toolbar:Tween" and friends.
 				ID:      "animations_toolbar",
-				Spacing: gui.SomeF(gui.SpacingMedium),
+				Spacing: gui.SpacingMedium,
 				Content: []gui.View{
 					animButton("Tween", tweenBox),
 					animButton("Spring", springSidebar),
@@ -202,7 +202,7 @@ func textAnimPanel() gui.View {
 	return gui.Row(gui.ContainerCfg{
 		ID:      "text_anim_row",
 		Sizing:  gui.FillFit,
-		Spacing: gui.SomeF(gui.SpacingLarge),
+		Spacing: gui.SpacingLarge,
 		Content: []gui.View{
 			animatedLabel("pulse", "Pulse", gui.TextAnimCfg{
 				Kind:   gui.TextAnimPulse,
@@ -251,7 +251,7 @@ func detailView(w *gui.Window) gui.View {
 
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFill,
-		Spacing: gui.SomeF(gui.SpacingLarge),
+		Spacing: gui.SpacingLarge,
 		Padding: gui.PaddingLarge,
 		Content: []gui.View{
 			gui.Row(gui.ContainerCfg{

@@ -36,21 +36,26 @@ func TestSpacingFlagsGapLiterals(t *testing.T) {
 	const src = `package main
 
 func gaps(t gui.Theme) {
-	_ = gui.Column(gui.ContainerCfg{Spacing: gui.SomeF(8)})
-	_ = gui.Row(gui.ContainerCfg{Spacing: gui.Some[float32](12)})
-	_ = gui.Row(gui.ContainerCfg{Spacing: gui.SomeF(2.5)})
+	_ = gui.Column(gui.ContainerCfg{Spacing: gui.SpacingPx(8)})
+	_ = gui.Row(gui.ContainerCfg{Spacing: gui.SpacingPx(2.5)})
+	// Every spacing field, not only Spacing.
+	_ = gui.DatePicker(gui.DatePickerCfg{CellSpacing: gui.SpacingPx(3)})
+	// Outside a Cfg literal: SpacingPx builds nothing but a gap.
+	gap := gui.SpacingPx(12)
 	// Zero is a real choice, not an off-ladder gap.
-	_ = gui.Row(gui.ContainerCfg{Spacing: gui.SomeF(0)})
-	// A role passes.
-	_ = gui.Row(gui.ContainerCfg{Spacing: gui.SomeF(t.SpacingMedium)})
-	_ = gui.Row(gui.ContainerCfg{Spacing: gui.NoSpacing})
+	_ = gui.Row(gui.ContainerCfg{Spacing: gui.SpacingPx(0)})
+	// A role passes, and so does a gap computed from one.
+	_ = gui.Row(gui.ContainerCfg{Spacing: gui.SpacingMedium})
+	_ = gui.Row(gui.ContainerCfg{Spacing: gui.SpacingPx(2 * t.SpacingLarge)})
+	_ = gui.Row(gui.ContainerCfg{Spacing: gui.NoSpacing, Content: gap})
 }
 `
 	got := scanSpacingSrc(t, src)
 	want := []string{
-		"gaps:" + verbGap + ":gui.SomeF(8)",
-		"gaps:" + verbGap + ":gui.Some[float32](12)",
-		"gaps:" + verbGap + ":gui.SomeF(2.5)",
+		"gaps:" + verbGap + ":gui.SpacingPx(8)",
+		"gaps:" + verbGap + ":gui.SpacingPx(2.5)",
+		"gaps:" + verbGap + ":gui.SpacingPx(3)",
+		"gaps:" + verbGap + ":gui.SpacingPx(12)",
 	}
 	if strings.Join(got, "|") != strings.Join(want, "|") {
 		t.Errorf("findings = %v, want %v", got, want)
@@ -131,11 +136,11 @@ func TestSpacingMarkerDefersFinding(t *testing.T) {
 	const src = `package gui
 
 func hairline() {
-	_ = ContainerCfg{Spacing: SomeF(1)} // ergonomics-audit:spacing — 1px rule
+	_ = ContainerCfg{Spacing: SpacingPx(1)} // ergonomics-audit:spacing — 1px rule
 }
 `
 	got := scanSpacingSrc(t, src)
-	want := []string{"hairline:" + verbGap + ":SomeF(1) [deferred]"}
+	want := []string{"hairline:" + verbGap + ":SpacingPx(1) [deferred]"}
 	if strings.Join(got, "|") != strings.Join(want, "|") {
 		t.Errorf("findings = %v, want %v", got, want)
 	}

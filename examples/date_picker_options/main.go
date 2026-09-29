@@ -95,12 +95,12 @@ func mainView(w *gui.Window) gui.View {
 		Sizing:  gui.FillFill,
 		HAlign:  gui.HAlignCenter,
 		VAlign:  gui.VAlignMiddle,
-		Spacing: gui.Some(gui.SpacingLarge),
+		Spacing: gui.SpacingLarge,
 		Content: []gui.View{
 			borderedGroup("Calendar", []gui.View{datePicker(app, w)}),
 			gui.Row(gui.ContainerCfg{
 				Padding: gui.NoPadding,
-				Spacing: gui.Some(gui.SpacingLarge * 2),
+				Spacing: gui.SpacingPx(2 * w.Theme().SpacingLarge),
 				Content: []gui.View{
 					optionsGroup(app),
 					weekdaysGroup(app),

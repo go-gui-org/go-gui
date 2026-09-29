@@ -328,7 +328,7 @@ func tableView(cfg TableCfg, w *Window) View {
 		A11YCfg:   A11YCfg{A11YLabel: cfg.A11YLabel, A11YDescription: cfg.A11YDescription},
 		Color:     ColorTransparent,
 		Padding:   NoPadding,
-		Spacing:   Some(rowSpacing),
+		Spacing:   SpacingPx(rowSpacing),
 		Radius:    SomeF(0),
 		Sizing:    cfg.Sizing,
 		Width:     cfg.Width,

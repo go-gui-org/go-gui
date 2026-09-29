@@ -17,7 +17,7 @@ func demoGesture(w *gui.Window) gui.View {
 
 	return gui.Column(gui.ContainerCfg{
 		Sizing:     gui.FillFit,
-		Spacing:    gui.SomeF(gui.SpacingMedium),
+		Spacing:    gui.SpacingMedium,
 		Padding:    gui.NoPadding,
 		SizeBorder: gui.NoBorder,
 		Content: []gui.View{

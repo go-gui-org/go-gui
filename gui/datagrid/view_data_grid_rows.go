@@ -25,7 +25,7 @@ func dataGridGroupHeaderRowView(cfg *DataGridCfg, entry dataGridDisplayRow, rowH
 		ColorBorder: cfg.ColorsRow.Border,
 		SizeBorder:  gg.SomeF(0),
 		Padding:     gg.NewPadding(pc.Top, pc.Right, pc.Bottom, pc.Left+depthPad),
-		Spacing:     gg.Some(-cfg.SizeBorder.Get(0)),
+		Spacing:     gg.SpacingPx(-cfg.SizeBorder.Get(0)),
 		Content: []gg.View{
 			gg.Text(gg.TextCfg{
 				Text:      label,
@@ -57,7 +57,7 @@ func dataGridDetailRowView(dctx dataGridCtx, rowData GridRow, rowIdx int) gg.Vie
 		ColorBorder: cfg.ColorsRow.Border,
 		SizeBorder:  gg.SomeF(0),
 		Padding:     gg.NewPadding(pc.Top, pc.Right, pc.Bottom, pc.Left+dataGridDetailIndent()),
-		Spacing:     gg.Some(-cfg.SizeBorder.Get(0)),
+		Spacing:     gg.SpacingPx(-cfg.SizeBorder.Get(0)),
 		Content: []gg.View{
 			gg.Row(gg.ContainerCfg{
 				Width:       dataGridColumnsTotalWidth(dctx.columns, dctx.columnWidths),
@@ -116,7 +116,7 @@ func dataGridRowView(dctx dataGridCtx, rowData GridRow, rowIdx int, showDeleteAc
 		ColorBorder: cfg.ColorsRow.Border,
 		SizeBorder:  gg.SomeF(0),
 		Padding:     gg.NoPadding,
-		Spacing:     gg.Some(-cfg.SizeBorder.Get(0)),
+		Spacing:     gg.SpacingPx(-cfg.SizeBorder.Get(0)),
 		// Clicking a row selects it, which is the same activation a
 		// button makes — the grid's own click role (issue #467).
 		Sound: cfg.sounds.click,
@@ -212,7 +212,7 @@ func dataGridBuildRowCells(dctx dataGridCtx, rowData GridRow, rowIdx int, isEdit
 			SizeBorder:  cfg.SizeBorder,
 			HAlign:      cellHAlign,
 			VAlign:      gg.VAlignMiddle,
-			Spacing:     gg.Some(cellSpacing),
+			Spacing:     gg.SpacingPx(cellSpacing),
 			Content:     cellContent,
 		}))
 	}
@@ -493,7 +493,7 @@ func dataGridFrozenTopZone(cfg *DataGridCfg, rowViews []gg.View, zoneHeight, tot
 		ColorBorder: cfg.ColorsRow.Border,
 		SizeBorder:  gg.SomeF(0),
 		Padding:     dataGridScrollPadding(cfg),
-		Spacing:     gg.SomeF(0),
+		Spacing:     gg.NoSpacing,
 		Content: []gg.View{
 			gg.Column(gg.ContainerCfg{
 				X:           scrollX,
@@ -503,7 +503,7 @@ func dataGridFrozenTopZone(cfg *DataGridCfg, rowViews []gg.View, zoneHeight, tot
 				ColorBorder: gg.ColorTransparent,
 				SizeBorder:  gg.SomeF(0),
 				Padding:     gg.NoPadding,
-				Spacing:     gg.SomeF(0),
+				Spacing:     gg.NoSpacing,
 				Content:     rowViews,
 			}),
 		},

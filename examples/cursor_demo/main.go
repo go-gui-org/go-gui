@@ -104,7 +104,7 @@ func mainView(w *gui.Window) gui.View {
 			Sizing:     gui.FitFit,
 			SizeBorder: gui.NoBorder,
 			Padding:    gui.NoPadding,
-			Spacing:    gui.SomeF(gui.SpacingMedium),
+			Spacing:    gui.SpacingMedium,
 			Content:    views,
 		})
 	}
@@ -120,7 +120,7 @@ func mainView(w *gui.Window) gui.View {
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFill,
 		Padding: gui.PaddingMedium,
-		Spacing: gui.SomeF(gui.SpacingMedium),
+		Spacing: gui.SpacingMedium,
 		OnHover: func(ctx gui.EventCtx) {
 			ctx.Window.SetMouseCursorArrow()
 			app := gui.State[App](ctx.Window)

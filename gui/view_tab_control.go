@@ -69,11 +69,11 @@ type TabControlCfg struct {
 	// RadiusTab rounds each tab. Unset takes the theme default.
 	// exportaudit:keep — caller-facing config (issue #372)
 	RadiusTab Opt[float32]
-	Spacing   Opt[float32]
+	Spacing   Spacing
 	// SpacingHeader gaps the header tabs. Unset takes the theme
 	// default.
 	// exportaudit:keep — caller-facing config (issue #372)
-	SpacingHeader Opt[float32]
+	SpacingHeader Spacing
 	Focusable     bool
 	Color         Color
 	ColorBorder   Color
@@ -239,8 +239,8 @@ func (tv *tabControlView) GenerateLayout(w *Window) Layout {
 	radiusHeader := cfg.RadiusHeader.Get(s.radiusHeader)
 	radiusContent := cfg.RadiusContent.Get(s.radiusContent)
 	radiusTab := cfg.RadiusTab.Get(s.radiusTab)
-	spacing := cfg.Spacing.Get(s.Spacing)
-	spacingHeader := cfg.SpacingHeader.Get(s.spacingHeader)
+	spacing := cfg.Spacing.Or(s.Spacing)
+	spacingHeader := cfg.SpacingHeader.Or(s.spacingHeader)
 
 	// Build tab navigation arrays.
 	tabNavIDs := make([]string, len(cfg.Items))
@@ -411,7 +411,7 @@ func (tv *tabControlView) GenerateLayout(w *Window) Layout {
 		SizeBorder:  SomeF(sizeBorder),
 		Radius:      SomeF(radius),
 		Padding:     cfg.Padding,
-		Spacing:     SomeF(spacing),
+		Spacing:     SpacingPx(spacing),
 		Disabled:    cfg.Disabled,
 		Invisible:   cfg.Invisible,
 		OnKeyDown: func(ctx EventCtx) {
@@ -445,7 +445,7 @@ func (tv *tabControlView) GenerateLayout(w *Window) Layout {
 				SizeBorder:  SomeF(sizeHeaderBorder),
 				Radius:      SomeF(radiusHeader),
 				Padding:     cfg.PaddingHeader,
-				Spacing:     SomeF(spacingHeader),
+				Spacing:     SpacingPx(spacingHeader),
 				Sizing:      FillFit,
 				Content:     headerItems,
 			}),

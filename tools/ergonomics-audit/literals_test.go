@@ -76,6 +76,23 @@ var e = gg.FillFill
 	}
 }
 
+func TestLiteralsFlagsRawSpacing(t *testing.T) {
+	t.Parallel()
+	const src = `package p
+
+var a = Spacing{px: 4, set: true}
+var b = gui.Spacing{}
+var c = Spacing{}
+var d = SpacingPx(4)
+var e = gui.SpacingMedium
+`
+	findings := scanLitSrc(t, "x.go", src)
+	want := "Spacing:Spacing{...} Spacing:gui.Spacing{...} Spacing:Spacing{...}"
+	if len(findings) != 3 || (findings[0]+" "+findings[1]+" "+findings[2]) != want {
+		t.Fatalf("findings = %q, want %q", findings, want)
+	}
+}
+
 func TestLiteralsExemptsEmptyColor(t *testing.T) {
 	t.Parallel()
 	const src = `package p

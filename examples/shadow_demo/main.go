@@ -57,7 +57,7 @@ func mainView(w *gui.Window) gui.View {
 
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFill,
-		Spacing: gui.SomeF(gui.SpacingLarge),
+		Spacing: gui.SpacingLarge,
 		Padding: gui.NewPadding(gui.PadMedium, gui.PadLarge, gui.PadLarge, gui.PadLarge),
 		HAlign:  gui.HAlignCenter,
 		Content: []gui.View{
@@ -76,7 +76,7 @@ func mainView(w *gui.Window) gui.View {
 				},
 			}),
 			gui.Row(gui.ContainerCfg{
-				Spacing:    gui.SomeF(gui.SpacingLarge),
+				Spacing:    gui.SpacingLarge,
 				SizeBorder: gui.NoBorder,
 				Content: []gui.View{
 					shadowCard("Soft Shadow\n(Blur: 10, OffsetY: 4)", gui.Color{}, &gui.BoxShadow{
@@ -92,7 +92,7 @@ func mainView(w *gui.Window) gui.View {
 				},
 			}),
 			gui.Row(gui.ContainerCfg{
-				Spacing:    gui.SomeF(gui.SpacingLarge),
+				Spacing:    gui.SpacingLarge,
 				SizeBorder: gui.NoBorder,
 				Content: []gui.View{
 					shadowCard("Blue Glow\n(Blur: 30, Color: Blue)", gui.Color{}, &gui.BoxShadow{
@@ -107,7 +107,7 @@ func mainView(w *gui.Window) gui.View {
 				},
 			}),
 			gui.Row(gui.ContainerCfg{
-				Spacing:    gui.SomeF(gui.SpacingLarge),
+				Spacing:    gui.SpacingLarge,
 				SizeBorder: gui.NoBorder,
 				Content: []gui.View{
 					shadowCard("Focus Ring\n(Spread: 2, Blur: 3)", gui.Color{}, &gui.BoxShadow{
@@ -158,7 +158,7 @@ func toggleTheme(app *App) gui.View {
 		HAlign:  gui.HAlignEnd,
 		Sizing:  gui.FillFit,
 		Padding: gui.NoPadding,
-		Spacing: gui.SomeF(gui.SpacingSmall),
+		Spacing: gui.SpacingSmall,
 		VAlign:  gui.VAlignMiddle,
 		Content: []gui.View{
 			gui.Toggle(gui.ToggleCfg{

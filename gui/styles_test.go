@@ -11,10 +11,10 @@ func TestSpacingTierValues(t *testing.T) {
 		name  string
 		value float32
 	}{
-		{"SpacingTight", SpacingTight},
-		{"SpacingSmall", SpacingSmall},
-		{"SpacingMedium", SpacingMedium},
-		{"SpacingLarge", SpacingLarge},
+		{"gapTight", gapTight},
+		{"gapSmall", gapSmall},
+		{"gapMedium", gapMedium},
+		{"gapLarge", gapLarge},
 	}
 	want := []float32{2, 6, 14, 28}
 	for i, tier := range tiers {

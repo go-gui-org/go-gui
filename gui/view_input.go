@@ -348,7 +348,7 @@ func Input(cfg InputCfg) View {
 		Radius:      Some(radius),
 		Sizing:      cfg.Sizing,
 		Scrollable:  cfg.Scrollable,
-		Spacing:     SomeF(0),
+		Spacing:     NoSpacing,
 		OnChar:      makeInputOnChar(hcfg),
 		OnKeyDown:   makeInputOnKeyDown(hcfg),
 		OnKeyUp:     makeInputOnKeyUp(hcfg),

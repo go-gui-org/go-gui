@@ -60,7 +60,7 @@ func labelledField(
 		SizeBorder: NoBorder,
 		Sizing:     fitHeight(sizing),
 		HAlign:     align,
-		Spacing:    SomeF(guiTheme.SpacingSmall),
+		Spacing:    SpacingSmall,
 		Content: []View{
 			Text(TextCfg{
 				Text:      label,

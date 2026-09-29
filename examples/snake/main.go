@@ -146,7 +146,7 @@ func mainView(w *gui.Window) gui.View {
 		Sizing:     gui.FillFill,
 		HAlign:     gui.HAlignCenter,
 		VAlign:     gui.VAlignMiddle,
-		Spacing:    gui.SomeF(gui.SpacingMedium),
+		Spacing:    gui.SpacingMedium,
 		Padding:    gui.NewPadding(paddingOuter, paddingOuter, paddingOuter, paddingOuter),
 		SizeBorder: gui.NoBorder,
 		Content: []gui.View{
@@ -181,7 +181,7 @@ func landingView(w *gui.Window, ww, wh float32) gui.View {
 				Sizing:  gui.FixedFixed,
 				HAlign:  gui.HAlignCenter,
 				VAlign:  gui.VAlignMiddle,
-				Spacing: gui.SomeF(gui.SpacingMedium),
+				Spacing: gui.SpacingMedium,
 				Padding: gui.PaddingLarge,
 				Content: []gui.View{
 					gui.Column(gui.ContainerCfg{
@@ -190,7 +190,7 @@ func landingView(w *gui.Window, ww, wh float32) gui.View {
 						Sizing:  gui.FixedFixed,
 						HAlign:  gui.HAlignCenter,
 						VAlign:  gui.VAlignMiddle,
-						Spacing: gui.SomeF(gui.SpacingMedium),
+						Spacing: gui.SpacingMedium,
 						Padding: gui.PaddingLarge,
 						Radius:  gui.Some[float32](14),
 						Content: []gui.View{
@@ -372,12 +372,12 @@ func renderControls(g *Game) gui.View {
 
 	return gui.Column(gui.ContainerCfg{
 		HAlign:  gui.HAlignCenter,
-		Spacing: gui.SomeF(gui.SpacingSmall),
+		Spacing: gui.SpacingSmall,
 		Content: []gui.View{
 			controlButton("Up", "snake_up", func(g *Game) { g.SetDirection(DirUp) }),
 			gui.Row(gui.ContainerCfg{
 				HAlign:  gui.HAlignCenter,
-				Spacing: gui.SomeF(gui.SpacingSmall),
+				Spacing: gui.SpacingSmall,
 				Content: []gui.View{
 					controlButton("Left", "snake_left", func(g *Game) { g.SetDirection(DirLeft) }),
 					controlButton("Down", "snake_down", func(g *Game) { g.SetDirection(DirDown) }),
@@ -386,7 +386,7 @@ func renderControls(g *Game) gui.View {
 			}),
 			gui.Row(gui.ContainerCfg{
 				HAlign:  gui.HAlignCenter,
-				Spacing: gui.SomeF(gui.SpacingSmall),
+				Spacing: gui.SpacingSmall,
 				Content: []gui.View{
 					controlButton(pauseLabel, "snake_pause", func(g *Game) { g.TogglePause() }),
 					controlButton("Restart", "snake_restart", func(g *Game) { g.Reset() }),

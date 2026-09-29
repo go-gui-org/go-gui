@@ -77,11 +77,11 @@ func mainView(w *gui.Window) gui.View {
 		Sizing:  gui.FillFill,
 		HAlign:  gui.HAlignCenter,
 		VAlign:  gui.VAlignMiddle,
-		Spacing: gui.SomeF(gui.SpacingLarge),
+		Spacing: gui.SpacingLarge,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{Text: "Custom Fragment Shader Demo"}),
 			gui.Row(gui.ContainerCfg{
-				Spacing: gui.SomeF(gui.SpacingLarge),
+				Spacing: gui.SpacingLarge,
 				Content: []gui.View{
 					// Animated rainbow
 					gui.Column(gui.ContainerCfg{

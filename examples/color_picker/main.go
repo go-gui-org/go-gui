@@ -80,13 +80,13 @@ func mainView(w *gui.Window) gui.View {
 		Scrollable: true,
 		Sizing:     gui.FillFill,
 		Padding:    t.PaddingMedium,
-		Spacing:    gui.Some(t.SpacingMedium),
+		Spacing:    gui.SpacingMedium,
 		Content: []gui.View{
 			gui.Row(gui.ContainerCfg{
 				VAlign:  gui.VAlignMiddle,
 				Sizing:  gui.FitFit,
 				Padding: gui.NoPadding,
-				Spacing: gui.Some(t.SpacingMedium),
+				Spacing: gui.SpacingMedium,
 				Content: []gui.View{
 					toggleTheme(app),
 					togglePacked(app),
@@ -100,7 +100,7 @@ func mainView(w *gui.Window) gui.View {
 			gui.Wrap(gui.ContainerCfg{
 				Sizing:  gui.FillFit,
 				Padding: gui.NoPadding,
-				Spacing: gui.Some(t.SpacingMedium),
+				Spacing: gui.SpacingMedium,
 				Content: panels,
 			}),
 			previewBar(app),
@@ -121,11 +121,11 @@ func card(title, sub string, body gui.View) gui.View {
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FitFit,
 		Padding: t.PaddingMedium,
-		Spacing: gui.Some(t.SpacingMedium),
+		Spacing: gui.SpacingMedium,
 		Content: []gui.View{
 			gui.Column(gui.ContainerCfg{
 				Padding: gui.NoPadding,
-				Spacing: gui.SomeF(gui.SpacingTight),
+				Spacing: gui.SpacingTight,
 				Content: []gui.View{
 					gui.Text(gui.TextCfg{Text: title, TextStyle: t.TextStyleBodyLarge}),
 					gui.Text(gui.TextCfg{Text: sub, TextStyle: t.TextStyleBodySmall}),
@@ -141,7 +141,7 @@ const sliderWidth = 240
 func slidersPanel(app *App) gui.View {
 	return gui.Column(gui.ContainerCfg{
 		Padding: gui.NoPadding,
-		Spacing: gui.SomeF(gui.SpacingMedium),
+		Spacing: gui.SpacingMedium,
 		Content: []gui.View{
 			channelRow(app, "hue", "Hue", gui.ChannelHue),
 			channelRow(app, "sat", "Saturation", gui.ChannelSaturation),
@@ -161,7 +161,7 @@ func channelRow(
 	t := gui.CurrentTheme()
 	return gui.Column(gui.ContainerCfg{
 		Padding: gui.NoPadding,
-		Spacing: gui.SomeF(gui.SpacingTight),
+		Spacing: gui.SpacingTight,
 		Content: []gui.View{
 			gui.Row(gui.ContainerCfg{
 				Sizing:  gui.FillFit,
@@ -259,7 +259,7 @@ func previewBar(app *App) gui.View {
 		Sizing:  gui.FitFit,
 		VAlign:  gui.VAlignMiddle,
 		Padding: t.PaddingMedium,
-		Spacing: gui.Some(t.SpacingMedium),
+		Spacing: gui.SpacingMedium,
 		Content: []gui.View{
 			gui.ColorSwatch(gui.ColorSwatchCfg{
 				ID:     "preview",
@@ -269,7 +269,7 @@ func previewBar(app *App) gui.View {
 			}),
 			gui.Column(gui.ContainerCfg{
 				Padding: gui.NoPadding,
-				Spacing: gui.SomeF(gui.SpacingSmall),
+				Spacing: gui.SpacingSmall,
 				Content: []gui.View{
 					gui.Text(gui.TextCfg{
 						Text:      app.Color.String(),

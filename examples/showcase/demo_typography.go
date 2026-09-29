@@ -32,7 +32,7 @@ func demoTypography(_ *gui.Window) gui.View {
 
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.Some(t.SpacingSmall),
+		Spacing: gui.SpacingSmall,
 		Padding: gui.NoPadding,
 		Content: content,
 	})
@@ -61,7 +61,7 @@ func typographyScaleExtraRows(t gui.Theme) []gui.View {
 		rows = append(rows, gui.Row(gui.ContainerCfg{
 			ID:         gui.ScopeIDN("typo-scale", "row", i),
 			Sizing:     gui.FillFit,
-			Spacing:    gui.Some(t.SpacingMedium),
+			Spacing:    gui.SpacingMedium,
 			Padding:    gui.NoPadding,
 			VAlign:     gui.VAlignMiddle,
 			SizeBorder: gui.NoBorder,

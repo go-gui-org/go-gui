@@ -41,7 +41,7 @@ type InputDateCfg struct {
 	SizeBorder      Opt[float32]
 	// CellSpacing gaps the day cells. Unset takes the theme default.
 	// exportaudit:keep — caller-facing config (issue #372)
-	CellSpacing Opt[float32]
+	CellSpacing Spacing
 	Radius      Opt[float32]
 	// RadiusBorder rounds the calendar frame. Unset takes the theme
 	// default.
@@ -155,7 +155,7 @@ func (idv *inputDateView) GenerateLayout(w *Window) Layout {
 			Sizing:     FillFit,
 			Padding:    NoPadding,
 			SizeBorder: NoBorder,
-			Spacing:    Some(SpacingSmall),
+			Spacing:    SpacingSmall,
 			VAlign:     VAlignMiddle,
 			Content: []View{
 				inputDateTextField(cfg, cfgID, format, isOpen, editText),
@@ -428,11 +428,11 @@ func applyInputDateDefaults(cfg *InputDateCfg) {
 		cfg.Padding = guiTheme.PaddingField
 	}
 	sizeBorder := cfg.SizeBorder.Get(d.SizeBorder)
-	cellSpacing := cfg.CellSpacing.Get(d.cellSpacing)
+	cellSpacing := cfg.CellSpacing.Or(d.cellSpacing)
 	radius := cfg.Radius.Get(d.Radius)
 	radiusBorder := cfg.RadiusBorder.Get(d.radiusBorder)
 	cfg.SizeBorder = Some(sizeBorder)
-	cfg.CellSpacing = Some(cellSpacing)
+	cfg.CellSpacing = SpacingPx(cellSpacing)
 	cfg.Radius = Some(radius)
 	cfg.RadiusBorder = Some(radiusBorder)
 	if cfg.TextStyle == (TextStyle{}) {

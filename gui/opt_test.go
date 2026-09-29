@@ -80,15 +80,6 @@ func TestOptNoBorder(t *testing.T) {
 	}
 }
 
-func TestOptNoSpacing(t *testing.T) {
-	if !NoSpacing.IsSet() {
-		t.Error("NoSpacing should be set")
-	}
-	if got := NoSpacing.Get(5); got != 0 {
-		t.Errorf("Get = %f, want 0", got)
-	}
-}
-
 func TestOptNoRadius(t *testing.T) {
 	if !NoRadius.IsSet() {
 		t.Error("NoRadius should be set")

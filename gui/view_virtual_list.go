@@ -198,7 +198,7 @@ func (lv *virtualListView) GenerateLayout(w *Window) Layout {
 			// Fixed at 0: a gap between rows is height the model does
 			// not know about, and every row position would drift by
 			// one gap per row. Space rows from inside ItemView.
-			Spacing:   SomeF(0),
+			Spacing:   NoSpacing,
 			Disabled:  cfg.Disabled,
 			Invisible: cfg.Invisible,
 		}, w))}

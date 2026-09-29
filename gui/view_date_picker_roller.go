@@ -49,7 +49,7 @@ type DatePickerRollerCfg struct {
 	// default container spacing; NoSpacing stacks the rows edge to
 	// edge, which is what the date picker's overlay card wants.
 	// exportaudit:keep — caller-facing config
-	RowSpacing Opt[float32]
+	RowSpacing Spacing
 	MinWidth   float32
 	MaxWidth   float32
 	// WidthDay/WidthMonth/WidthYear size the three drums. Zero
@@ -124,7 +124,7 @@ func (rv *datePickerRollerView) GenerateLayout(w *Window) Layout {
 		MinWidth:    cfg.MinWidth,
 		MaxWidth:    cfg.MaxWidth,
 		Padding:     cfg.Padding,
-		Spacing:     Some(SpacingSmall),
+		Spacing:     SpacingSmall,
 		HAlign:      HAlignCenter,
 		VAlign:      VAlignMiddle,
 		axis:        axisLeftToRight,

@@ -53,7 +53,7 @@ func mainView(w *gui.Window) gui.View {
 		Sizing:  gui.FillFill,
 		HAlign:  gui.HAlignCenter,
 		VAlign:  gui.VAlignMiddle,
-		Spacing: gui.SomeF(gui.SpacingMedium),
+		Spacing: gui.SpacingMedium,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text: "Press any keys to see key down/up events!",

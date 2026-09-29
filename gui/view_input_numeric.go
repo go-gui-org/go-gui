@@ -177,7 +177,7 @@ func (v *numericInputView) GenerateLayout(w *Window) Layout {
 		Invisible:   cfg.Invisible,
 		Disabled:    cfg.Disabled,
 		VAlign:      VAlignMiddle,
-		Spacing:     SomeF(0),
+		Spacing:     NoSpacing,
 		OnClick: func(ctx EventCtx) {
 			if !cfg.FocusDisabled && fieldID != "" {
 				ctx.Window.SetFocus(fieldID)
@@ -374,7 +374,7 @@ func numericInputStepButtons(
 	stepDisabled := cfg.Disabled || cfg.ReadOnly
 
 	return Column(ContainerCfg{
-		Spacing:   SomeF(0),
+		Spacing:   NoSpacing,
 		Sizing:    FitFill,
 		Disabled:  stepDisabled,
 		Invisible: cfg.Invisible,

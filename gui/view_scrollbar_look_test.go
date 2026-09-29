@@ -20,7 +20,7 @@ func lookList(rows int, thumb, track *ScrollbarState) func(*Window) View {
 			Scrollable: true,
 			Padding:    NoPadding,
 			SizeBorder: NoBorder,
-			Spacing:    SomeF(0),
+			Spacing:    NoSpacing,
 			ScrollbarCfgY: &ScrollbarCfg{
 				Thumb: func(s ScrollbarState) View {
 					*thumb = s

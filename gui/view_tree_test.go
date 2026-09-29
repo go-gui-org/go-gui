@@ -622,7 +622,7 @@ func TestTreeBuildRowsVirtualizedSpacers(t *testing.T) {
 	for i := range rows {
 		rows[i] = treeFlatRow{ID: string(rune('a' + i))}
 	}
-	cfg := &TreeCfg{ID: "tree", Spacing: Some(float32(0))}
+	cfg := &TreeCfg{ID: "tree", Spacing: NoSpacing}
 	views, ghost := treeBuildRows(
 		cfg, rows, "", 16,
 		nil, nil, nil, nil, nil, "",
@@ -654,7 +654,7 @@ func TestTreeBuildRowsDragGapAndGhost(t *testing.T) {
 		{ID: "b", ParentID: ""},
 		{ID: "c", ParentID: ""},
 	}
-	cfg := &TreeCfg{ID: "tree", Spacing: Some(float32(0))}
+	cfg := &TreeCfg{ID: "tree", Spacing: NoSpacing}
 	drag := dragReorderState{
 		itemID:       "a",
 		sourceIndex:  0,

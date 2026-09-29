@@ -109,7 +109,7 @@ func DefaultMarkdownStyle() MarkdownStyle {
 		// Markdown blocks are paragraphs of one flowing document, not
 		// unrelated sections of a surface: Medium is the sibling gap.
 		// Large (28) reads as a hole between paragraphs at body 14.
-		blockSpacing:     SpacingMedium,
+		blockSpacing:     guiTheme.SpacingMedium,
 		nestIndent:       16, // structural indent, not a sibling gap — off the ladder
 		prefixCharWidth:  4,
 		codeBlockPadding: PadAll(10), // ergonomics-audit:spacing — fixed style default, theme-invariant
@@ -382,7 +382,7 @@ func (mv *markdownView) GenerateLayout(w *Window) Layout {
 		SizeBorder:  cfg.SizeBorder,
 		Radius:      cfg.Radius,
 		Padding:     cfg.Padding,
-		Spacing:     Some(cfg.Style.blockSpacing),
+		Spacing:     SpacingPx(cfg.Style.blockSpacing),
 		Sizing:      sizing,
 		Content:     content,
 	}

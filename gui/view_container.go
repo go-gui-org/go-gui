@@ -108,7 +108,7 @@ type ContainerCfg struct {
 	Padding Padding
 
 	// Layout
-	Spacing    Opt[float32]
+	Spacing    Spacing
 	SizeBorder Opt[float32]
 	Radius     Opt[float32]
 	Opacity    Opt[float32]
@@ -224,7 +224,7 @@ type ContainerCfg struct {
 
 func applyContainerDefaults(cfg *ContainerCfg) (spacing, sizeBorder, radius float32, padding Padding) {
 	d := &defaultContainerStyle
-	return cfg.Spacing.Get(d.Spacing),
+	return cfg.Spacing.Or(d.Spacing),
 		cfg.SizeBorder.Get(d.SizeBorder),
 		cfg.Radius.Get(d.Radius),
 		cfg.Padding.Or(d.Padding)

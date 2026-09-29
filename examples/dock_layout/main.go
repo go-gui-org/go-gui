@@ -86,7 +86,7 @@ func toolbar() gui.View {
 	return gui.Row(gui.ContainerCfg{
 		Sizing:     gui.FillFit,
 		Padding:    gui.NewPadding(gui.PadXSmall, gui.PadSmall, gui.PadXSmall, gui.PadSmall),
-		Spacing:    gui.SomeF(gui.SpacingMedium),
+		Spacing:    gui.SpacingMedium,
 		SizeBorder: gui.NoBorder,
 		Content: []gui.View{
 			gui.Button(gui.ButtonCfg{

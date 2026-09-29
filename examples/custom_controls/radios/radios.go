@@ -282,7 +282,7 @@ func radioGroup(app *App, g group, bg gui.Color, spacing float32, lk lookFunc) g
 		SizeBorder:  border,
 		Radius:      gui.SomeF(0),
 		Padding:     pad,
-		Spacing:     gui.SomeF(spacing),
+		Spacing:     gui.SpacingPx(spacing),
 		Content:     content,
 	})
 }
@@ -306,7 +306,7 @@ func lockRow(id, label string, locked bool, onClick func(gui.EventCtx), target g
 	return gui.Row(gui.ContainerCfg{
 		ID:         id,
 		Padding:    gui.PaddingNone,
-		Spacing:    gui.SomeF(gui.SpacingMedium),
+		Spacing:    gui.SpacingMedium,
 		SizeBorder: gui.NoBorder,
 		VAlign:     gui.VAlignMiddle,
 		Content: []gui.View{
@@ -384,7 +384,7 @@ func materialLook(accent gui.Color) lookFunc {
 			center = []gui.View{circle(dot, dotColor, nil)}
 		}
 		return gui.Row(radioShell(gui.ContainerCfg{
-			Spacing: gui.SomeF(gui.SpacingSmall),
+			Spacing: gui.SpacingSmall,
 			Content: []gui.View{
 				gui.Row(gui.ContainerCfg{
 					Width:       size,
@@ -500,7 +500,7 @@ func xpLook(o optionState, s gui.InteractionState) gui.View {
 		})},
 	})
 	return gui.Row(radioShell(gui.ContainerCfg{
-		Spacing: gui.SomeF(gui.SpacingSmall),
+		Spacing: gui.SpacingSmall,
 		Content: []gui.View{
 			well,
 			gui.Text(gui.TextCfg{Text: o.label, TextStyle: look.Light.Text(text, 12)}),

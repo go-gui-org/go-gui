@@ -589,7 +589,7 @@ func goldenCases() []goldenCase {
 			build: func(_ *Window) View {
 				return Row(ContainerCfg{
 					Sizing:  FillFit,
-					Spacing: SomeF(SpacingSmall),
+					Spacing: SpacingSmall,
 					Content: []View{
 						Input(InputCfg{
 							ID:       "fn",
@@ -1519,7 +1519,7 @@ func goldenCases() []goldenCase {
 				return Wrap(ContainerCfg{
 					ID:      "chips",
 					Sizing:  FitFit,
-					Spacing: SomeF(4),
+					Spacing: SpacingPx(4),
 					Content: chips,
 				})
 			},
@@ -2079,7 +2079,7 @@ func buildCanvasGradientRings(_ *Window) View {
 func buildButtonVariants(_ *Window) View {
 	return Row(ContainerCfg{
 		Sizing:  FitFit,
-		Spacing: SomeF(8),
+		Spacing: SpacingPx(8),
 		Content: []View{
 			TextButtonVariant("bv_sec", "Sec", ButtonSecondary,
 				func(EventCtx) {}),
@@ -2257,7 +2257,7 @@ func buildContainerFillBorder(_ *Window) View {
 	return Row(ContainerCfg{
 		SizeBorder: NoBorder,
 		Padding:    PaddingNone,
-		Spacing:    SomeF(8),
+		Spacing:    SpacingPx(8),
 		Content: []View{
 			Column(ContainerCfg{
 				Width: 120, Height: 40, Sizing: FixedFixed,

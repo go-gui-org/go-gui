@@ -28,7 +28,7 @@ func mainView(w *gui.Window) gui.View {
 		Sizing:     gui.FillFill,
 		Padding:    gui.NoPadding,
 		SizeBorder: gui.NoBorder,
-		Spacing:    gui.SomeF(0),
+		Spacing:    gui.NoSpacing,
 		Color:      colorSpace,
 		Content: []gui.View{
 			solarCanvas(a),

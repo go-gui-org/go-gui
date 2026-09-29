@@ -6,7 +6,7 @@ ContainerCfg with Wrap set automatically by the factory function.
 
 ```go
 gui.Wrap(gui.ContainerCfg{
-    Spacing: gui.SomeF(4),
+    Spacing: gui.SpacingPx(4),
     Sizing:  gui.FillFit,
     Content: items,
 })
@@ -16,7 +16,7 @@ gui.Wrap(gui.ContainerCfg{
 
 ```go
 gui.Wrap(gui.ContainerCfg{
-    Spacing: gui.SomeF(8),
+    Spacing: gui.SpacingPx(8),
     HAlign:  gui.HAlignCenter,
     VAlign:  gui.VAlignMiddle,
     Content: tags,

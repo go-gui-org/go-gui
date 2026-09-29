@@ -11,9 +11,10 @@ package main
 //
 // Three rules:
 //
-//  1. Gap literal — Spacing: SomeF(n) or Some[float32](n) with a literal
-//     n > 0. Zero is a real choice and passes. A role (t.SpacingMedium)
-//     passes.
+//  1. Gap literal — SpacingPx(n) with a literal n > 0, wherever it appears.
+//     SpacingPx builds only a gap, so no field key is needed. Zero is a real
+//     choice and passes. A role (gui.SpacingMedium) passes, and so does a
+//     gap computed from a theme step (SpacingPx(2 * t.SpacingLarge)).
 //  2. Inset literal — PadAll, NewPadding or PadVH whose arguments are all
 //     numeric literals, at least one > 0. A call that mixes in a role
 //     (NewPadding(0, t.SpacingSmall, 0, t.SpacingSmall)) already names its
@@ -33,7 +34,7 @@ package main
 // A deliberate exception (a 1px hairline, an indent) carries a same-line
 // marker and prints as deferred rather than gating:
 //
-//	Spacing: SomeF(1), // ergonomics-audit:spacing — 1px hairline, not a gap
+//	Spacing: SpacingPx(1), // ergonomics-audit:spacing — 1px hairline, not a gap
 import (
 	"fmt"
 	"go/ast"
@@ -234,7 +235,7 @@ func spacingVerb(call *ast.CallExpr, stack []ast.Node) (string, bool) {
 		return "", false
 	}
 	switch {
-	case key == "Spacing" && gapLiteralCall(call):
+	case gapLiteralCall(call):
 		return verbGap, true
 	case insetLiteralCall(call):
 		if key == "Padding" && lit != nil && structName(lit) == "ButtonCfg" {
@@ -271,21 +272,10 @@ func nearestLit(stack []ast.Node) *ast.CompositeLit {
 	return nil
 }
 
-// gapLiteralCall reports SomeF(n) or Some[float32](n) with a literal n > 0.
+// gapLiteralCall reports SpacingPx(n) with a literal n > 0.
 func gapLiteralCall(call *ast.CallExpr) bool {
-	if len(call.Args) != 1 {
+	if len(call.Args) != 1 || callName(call) != "SpacingPx" {
 		return false
-	}
-	switch fun := call.Fun.(type) {
-	case *ast.IndexExpr:
-		// Some[float32](n): the generic spelling of SomeF.
-		if exprName(fun.X) != "Some" {
-			return false
-		}
-	default:
-		if callName(call) != "SomeF" {
-			return false
-		}
 	}
 	v, ok := floatLiteral(call.Args[0])
 	return ok && v > 0
@@ -308,16 +298,4 @@ func insetLiteralCall(call *ast.CallExpr) bool {
 		}
 	}
 	return nonZero
-}
-
-// exprName returns the bare name of an identifier or selector: Some,
-// gui.Some.
-func exprName(e ast.Expr) string {
-	switch x := e.(type) {
-	case *ast.Ident:
-		return x.Name
-	case *ast.SelectorExpr:
-		return x.Sel.Name
-	}
-	return ""
 }

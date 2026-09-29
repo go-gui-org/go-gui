@@ -156,7 +156,7 @@ func demoSvgSpinner(w *gui.Window) gui.View {
 
 			SizeBorder: gui.NoBorder,
 			HAlign:     gui.HAlignCenter,
-			Spacing:    gui.SomeF(gui.SpacingSmall),
+			Spacing:    gui.SpacingSmall,
 			Content: []gui.View{
 				gui.SvgSpinner(gui.SvgSpinnerCfg{
 					ID:     gui.ScopeID("svg-spinner", gui.SvgSpinnerName(k)),
@@ -176,13 +176,13 @@ func demoSvgSpinner(w *gui.Window) gui.View {
 		Sizing:     gui.FillFit,
 		Padding:    gui.NoPadding,
 		SizeBorder: gui.NoBorder,
-		Spacing:    gui.SomeF(gui.SpacingMedium),
+		Spacing:    gui.SpacingMedium,
 		Content: []gui.View{
 			gui.Row(gui.ContainerCfg{
 				Sizing:     gui.FillFit,
 				Padding:    gui.NoPadding,
 				SizeBorder: gui.NoBorder,
-				Spacing:    gui.SomeF(gui.SpacingSmall),
+				Spacing:    gui.SpacingSmall,
 				VAlign:     gui.VAlignMiddle,
 				Content: []gui.View{
 					gui.Text(gui.TextCfg{
@@ -203,7 +203,7 @@ func demoSvgSpinner(w *gui.Window) gui.View {
 			}),
 			gui.Wrap(gui.ContainerCfg{
 				Sizing:     gui.FillFit,
-				Spacing:    gui.SomeF(gui.SpacingMedium),
+				Spacing:    gui.SpacingMedium,
 				Padding:    gui.NoPadding,
 				SizeBorder: gui.NoBorder,
 				Content:    cells,

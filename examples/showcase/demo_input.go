@@ -14,7 +14,7 @@ func demoInput(w *gui.Window) gui.View {
 
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.SomeF(gui.SpacingMedium),
+		Spacing: gui.SpacingMedium,
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
@@ -93,7 +93,7 @@ func demoNumericInput(w *gui.Window) gui.View {
 
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.SomeF(gui.SpacingMedium),
+		Spacing: gui.SpacingMedium,
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{Text: "Default (en_US)", TextStyle: titleStyle}),
@@ -216,7 +216,7 @@ func demoColorPicker(w *gui.Window) gui.View {
 	c := app.ColorPickerColor
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.SomeF(gui.SpacingMedium),
+		Spacing: gui.SpacingMedium,
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			gui.Switch(gui.SwitchCfg{
@@ -258,7 +258,7 @@ func demoColorComponents(app *ShowcaseApp) gui.View {
 	}
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.SomeF(gui.SpacingMedium),
+		Spacing: gui.SpacingMedium,
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
@@ -268,7 +268,7 @@ func demoColorComponents(app *ShowcaseApp) gui.View {
 			gui.Row(gui.ContainerCfg{
 				Sizing:  gui.FitFit,
 				Padding: gui.NoPadding,
-				Spacing: gui.SomeF(gui.SpacingMedium),
+				Spacing: gui.SpacingMedium,
 				Content: []gui.View{
 					gui.ColorPlane(gui.ColorPlaneCfg{
 						ID:       "color-parts-plane",
@@ -325,7 +325,7 @@ func demoDatePicker(w *gui.Window) gui.View {
 
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.SomeF(gui.SpacingMedium),
+		Spacing: gui.SpacingMedium,
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			gui.Column(gui.ContainerCfg{
@@ -355,7 +355,7 @@ func demoDatePickerRoller(w *gui.Window) gui.View {
 	app := appState(w)
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.SomeF(gui.SpacingMedium),
+		Spacing: gui.SpacingMedium,
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			gui.DatePickerRoller(gui.DatePickerRollerCfg{
@@ -378,7 +378,7 @@ func demoInputDate(w *gui.Window) gui.View {
 	app := appState(w)
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FitFit,
-		Spacing: gui.SomeF(gui.SpacingMedium),
+		Spacing: gui.SpacingMedium,
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			gui.InputDate(gui.InputDateCfg{
@@ -436,7 +436,7 @@ func demoForms(w *gui.Window) gui.View {
 	return gui.Form(gui.FormCfg{
 		ID:      showcaseFormID,
 		Sizing:  gui.FillFit,
-		Spacing: gui.SomeF(gui.SpacingMedium),
+		Spacing: gui.SpacingMedium,
 		Padding: gui.NoPadding,
 		OnSubmit: func(e gui.FormSubmitEvent, ctx gui.EventCtx) {
 			app := appState(ctx.Window)
@@ -516,7 +516,7 @@ func demoForms(w *gui.Window) gui.View {
 			gui.Row(gui.ContainerCfg{
 				Sizing:  gui.FillFit,
 				Padding: gui.NoPadding,
-				Spacing: gui.SomeF(gui.SpacingMedium),
+				Spacing: gui.SpacingMedium,
 				Content: []gui.View{
 					gui.Button(gui.ButtonCfg{
 						ID:      "showcase-form-submit",
@@ -555,7 +555,7 @@ func demoForms(w *gui.Window) gui.View {
 func labeledRow(t gui.Theme, label string, content gui.View) gui.View {
 	return gui.Row(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.SomeF(gui.SpacingSmall),
+		Spacing: gui.SpacingSmall,
 		Padding: gui.NoPadding,
 		VAlign:  gui.VAlignMiddle,
 		Content: []gui.View{
@@ -574,7 +574,7 @@ func showcaseFormRow(label string, field gui.View) gui.View {
 	return gui.Row(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
 		Padding: gui.NoPadding,
-		Spacing: gui.SomeF(gui.SpacingSmall),
+		Spacing: gui.SpacingSmall,
 		VAlign:  gui.VAlignMiddle,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{

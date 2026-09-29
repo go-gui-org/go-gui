@@ -41,7 +41,7 @@ func catalogPanel(w *gui.Window) gui.View {
 		Sizing:  gui.FixedFill,
 		Color:   t.ColorPanel,
 		Padding: gui.PaddingMedium,
-		Spacing: gui.SomeF(gui.SpacingMedium),
+		Spacing: gui.SpacingMedium,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{Text: "Component Catalog", TextStyle: t.TextStyleTitleSmall}),
 			searchInput(app),
@@ -52,13 +52,13 @@ func catalogPanel(w *gui.Window) gui.View {
 				Scrollable: true,
 				Sizing:     gui.FillFill,
 				Padding:    gui.NewPadding(0, t.ScrollbarStyle.Size+4, 0, 0),
-				Spacing:    gui.SomeF(gui.SpacingTight),
+				Spacing:    gui.SpacingTight,
 				Content:    catalogRows(entries, app),
 			}),
 			gui.Row(gui.ContainerCfg{
 				Sizing:  gui.FillFit,
 				Padding: gui.NoPadding,
-				Spacing: gui.SomeF(gui.SpacingMedium),
+				Spacing: gui.SpacingMedium,
 				HAlign:  gui.HAlignRight,
 				VAlign:  gui.VAlignMiddle,
 				Content: []gui.View{
@@ -98,7 +98,7 @@ func groupPicker(app *ShowcaseApp) gui.View {
 	return gui.Wrap(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
 		Padding: gui.NoPadding,
-		Spacing: gui.SomeF(gui.SpacingTight),
+		Spacing: gui.SpacingTight,
 		Content: []gui.View{
 			groupPickerItem("Welcome", groupWelcome, app),
 			groupPickerItem("All", groupAll, app),

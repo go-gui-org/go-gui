@@ -88,7 +88,7 @@ func mainView(w *gui.Window) gui.View {
 		Sizing:  gui.FillFill,
 		Padding: theme.PaddingSmall,
 
-		Spacing: gui.Some(theme.SpacingSmall),
+		Spacing: gui.SpacingSmall,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      "Data Source Demo (50k rows)",
@@ -97,7 +97,7 @@ func mainView(w *gui.Window) gui.View {
 			gui.Row(gui.ContainerCfg{
 				VAlign:  gui.VAlignMiddle,
 				Sizing:  gui.FillFit,
-				Spacing: gui.Some(theme.SpacingSmall),
+				Spacing: gui.SpacingSmall,
 				Content: []gui.View{
 					gui.Switch(gui.SwitchCfg{
 						ID:       "dgds_use_offset",

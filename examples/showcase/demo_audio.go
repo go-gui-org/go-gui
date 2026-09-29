@@ -19,13 +19,13 @@ func demoAudio(w *gui.Window) gui.View {
 
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.SomeF(gui.SpacingMedium),
+		Spacing: gui.SpacingMedium,
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			sectionLabel(t, "Live Synthesis"),
 			gui.Column(gui.ContainerCfg{
 				Sizing:  gui.FillFit,
-				Spacing: gui.SomeF(gui.SpacingMedium),
+				Spacing: gui.SpacingMedium,
 				Padding: gui.NoPadding,
 				Content: []gui.View{
 					synthPadGrid(t),
@@ -58,7 +58,7 @@ func demoAudio(w *gui.Window) gui.View {
 			sectionLabel(t, "Music"),
 			gui.Row(gui.ContainerCfg{
 				Sizing:  gui.FillFit,
-				Spacing: gui.SomeF(gui.SpacingMedium),
+				Spacing: gui.SpacingMedium,
 				Padding: gui.NoPadding,
 				Content: []gui.View{
 					gui.Button(gui.ButtonCfg{
@@ -131,7 +131,7 @@ func demoAudio(w *gui.Window) gui.View {
 			sectionLabel(t, "Volume"),
 			gui.Row(gui.ContainerCfg{
 				Sizing:  gui.FillFit,
-				Spacing: gui.SomeF(gui.SpacingMedium),
+				Spacing: gui.SpacingMedium,
 				Padding: gui.NoPadding,
 				VAlign:  gui.VAlignMiddle,
 				Content: []gui.View{
@@ -189,7 +189,7 @@ func widgetSoundControls(w *gui.Window) gui.View {
 func widgetSoundPanel(t gui.Theme, app *ShowcaseApp) gui.View {
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.SomeF(gui.SpacingMedium),
+		Spacing: gui.SpacingMedium,
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
@@ -237,7 +237,7 @@ func widgetSoundPanel(t gui.Theme, app *ShowcaseApp) gui.View {
 			}),
 			gui.Row(gui.ContainerCfg{
 				Sizing:  gui.FillFit,
-				Spacing: gui.SomeF(gui.SpacingMedium),
+				Spacing: gui.SpacingMedium,
 				Padding: gui.NoPadding,
 				VAlign:  gui.VAlignMiddle,
 				Content: []gui.View{
@@ -277,7 +277,7 @@ func widgetSoundPanel(t gui.Theme, app *ShowcaseApp) gui.View {
 			}),
 			gui.Row(gui.ContainerCfg{
 				Sizing:  gui.FillFit,
-				Spacing: gui.SomeF(gui.SpacingMedium),
+				Spacing: gui.SpacingMedium,
 				Padding: gui.NoPadding,
 				VAlign:  gui.VAlignMiddle,
 				Content: []gui.View{
@@ -322,7 +322,7 @@ func widgetSoundPanel(t gui.Theme, app *ShowcaseApp) gui.View {
 func widgetSoundNonClickRow() gui.View {
 	return gui.Row(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.SomeF(gui.SpacingMedium),
+		Spacing: gui.SpacingMedium,
 		Padding: gui.NoPadding,
 		VAlign:  gui.VAlignMiddle,
 		Content: []gui.View{
@@ -682,14 +682,14 @@ func synthPadGrid(t gui.Theme) gui.View {
 		}
 		rows = append(rows, gui.Row(gui.ContainerCfg{
 			Sizing:  gui.FillFit,
-			Spacing: gui.SomeF(gui.SpacingSmall),
+			Spacing: gui.SpacingSmall,
 			Padding: gui.NoPadding,
 			Content: pads,
 		}))
 	}
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.SomeF(gui.SpacingSmall),
+		Spacing: gui.SpacingSmall,
 		Padding: gui.NoPadding,
 		Content: rows,
 	})

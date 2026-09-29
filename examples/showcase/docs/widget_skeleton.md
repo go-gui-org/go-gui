@@ -28,7 +28,7 @@ gui.Skeleton(gui.SkeletonCfg{
 ```go
 gui.Row(gui.ContainerCfg{
     Sizing:  gui.FillFit,
-    Spacing: gui.SomeF(12),
+    Spacing: gui.SpacingPx(12),
     Content: []gui.View{
         gui.Skeleton(gui.SkeletonCfg{
             ID: "avatar", Variant: gui.SkeletonCircle,
@@ -36,7 +36,7 @@ gui.Row(gui.ContainerCfg{
         }),
         gui.Column(gui.ContainerCfg{
             Sizing:  gui.FillFit,
-            Spacing: gui.SomeF(6),
+            Spacing: gui.SpacingPx(6),
             Content: []gui.View{
                 gui.Skeleton(gui.SkeletonCfg{ID: "l1", Sizing: gui.FillFixed, Height: 14}),
                 gui.Skeleton(gui.SkeletonCfg{ID: "l2", Width: 200, Height: 14}),

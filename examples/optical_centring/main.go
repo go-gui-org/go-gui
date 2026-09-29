@@ -90,7 +90,7 @@ func mainView(w *gui.Window) gui.View {
 		gui.Label("select — cap band, whatever the label says",
 			th.TextStyleLabel),
 		gui.Row(gui.ContainerCfg{
-			Spacing:    gui.Some(gui.SpacingMedium),
+			Spacing:    gui.SpacingMedium,
 			VAlign:     gui.VAlignMiddle,
 			SizeBorder: gui.NoBorder,
 			Padding:    gui.NoPadding,
@@ -136,7 +136,7 @@ func mainView(w *gui.Window) gui.View {
 		gui.Label("masked fields — corrected, and still may not move",
 			th.TextStyleLabel),
 		gui.Row(gui.ContainerCfg{
-			Spacing:    gui.Some(gui.SpacingMedium),
+			Spacing:    gui.SpacingMedium,
 			VAlign:     gui.VAlignMiddle,
 			SizeBorder: gui.NoBorder,
 			Padding:    gui.NoPadding,
@@ -174,7 +174,7 @@ func mainView(w *gui.Window) gui.View {
 		Scrollable: true,
 		ID:         "probe_scroll",
 		SizeBorder: gui.NoBorder,
-		Spacing:    gui.Some(gui.SpacingMedium),
+		Spacing:    gui.SpacingMedium,
 		Content:    rows,
 	})
 }
@@ -189,7 +189,7 @@ func sizeRow(size float32, text string) gui.View {
 
 	return gui.Row(gui.ContainerCfg{
 		VAlign:  gui.VAlignMiddle,
-		Spacing: gui.Some(gui.SpacingMedium),
+		Spacing: gui.SpacingMedium,
 		Content: []gui.View{
 			gui.Badge(gui.BadgeCfg{Label: text, TextStyle: ts}),
 			gui.Button(gui.ButtonCfg{

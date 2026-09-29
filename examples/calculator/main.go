@@ -245,7 +245,7 @@ func calculatorShell(w *gui.Window) gui.View {
 		SizeBorder:  gui.SomeF(2),
 		Radius:      gui.SomeF(22),
 		Padding:     gui.PaddingMedium,
-		Spacing:     gui.SomeF(gui.SpacingMedium),
+		Spacing:     gui.SpacingMedium,
 		Content: []gui.View{
 			topChrome(),
 			displayView(w),
@@ -262,7 +262,7 @@ func topChrome() gui.View {
 		Content: []gui.View{
 			gui.Row(gui.ContainerCfg{
 				Sizing:  gui.FitFit,
-				Spacing: gui.SomeF(gui.SpacingSmall),
+				Spacing: gui.SpacingSmall,
 				Padding: gui.NoPadding,
 				Content: []gui.View{
 					chromeDot(gui.RGB(255, 95, 87)),
@@ -342,7 +342,7 @@ func keypadView(w *gui.Window) gui.View {
 		Width:   shellWidth - 20,
 		Height:  234,
 		Sizing:  gui.FixedFixed,
-		Spacing: gui.Some(buttonGap),
+		Spacing: gui.SpacingPx(buttonGap),
 		Padding: gui.NoPadding,
 		Content: content,
 	})
@@ -358,7 +358,7 @@ func keypadRow(w *gui.Window, buttons []calcButton, ri int) gui.View {
 		Width:   shellWidth - 20,
 		Height:  buttonSize,
 		Sizing:  gui.FixedFixed,
-		Spacing: gui.Some(buttonGap),
+		Spacing: gui.SpacingPx(buttonGap),
 		Padding: gui.NoPadding,
 		Content: content,
 	})

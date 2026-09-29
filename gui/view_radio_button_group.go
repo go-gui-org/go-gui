@@ -33,7 +33,7 @@ type RadioButtonGroupCfg struct {
 	Options    []RadioOption
 	ID         string `gui:"required,focus"`
 	Padding    Padding
-	Spacing    Opt[float32]
+	Spacing    Spacing
 	SizeBorder Opt[float32]
 	MinWidth   float32
 	MinHeight  float32
@@ -150,6 +150,6 @@ func applyRadioGroupDefaults(cfg *RadioButtonGroupCfg) {
 		// issue #344), not the Small one — Small is for members of one
 		// visual group, and the options in a radio group are separate
 		// siblings stacked under the group box.
-		cfg.Spacing = Some(SpacingMedium)
+		cfg.Spacing = SpacingMedium
 	}
 }

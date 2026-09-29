@@ -126,6 +126,30 @@ and this project adheres to
 
 ### Changed
 
+- **BREAKING: spacing fields take a `gui.Spacing`, and the steps follow the
+  theme (#866)** — every Cfg spacing field (`Spacing`, `SpacingHeader`,
+  `SpacingTrail`, `SpacingSubmenu`, `CellSpacing`, `RowSpacing`) changes from
+  `Opt[float32]` to the new self-flagging `gui.Spacing` type. The four steps
+  `SpacingTight/Small/Medium/Large` are now `gui.Spacing` roles, not `float32`
+  constants. A role reads its value from the active theme when the widget is
+  built. Before, `gui.SomeF(gui.SpacingLarge)` copied the fixed 28 into the Cfg,
+  so a `ThemeCfg` that changed `SpacingLarge` did not move that gap. Now
+  `Spacing: gui.SpacingLarge` follows it. Widgets in `gui/` that named a step
+  follow the theme the same way. The default themes keep 2/6/14/28, so no
+  default layout moves. Migration:
+  - `gui.SomeF(gui.SpacingMedium)` or `gui.Some(gui.SpacingMedium)` →
+    `gui.SpacingMedium`
+  - `gui.SomeF(n)` or `gui.Some[float32](n)` → `gui.SpacingPx(n)` (a fixed gap
+    that does not follow the theme)
+  - `gui.SomeF(0)` → `gui.NoSpacing` (still an explicit zero)
+  - `cfg.Spacing.Get(def)` → `cfg.Spacing.Or(def)`
+  - arithmetic on a step, such as `gui.SpacingLarge * 2` →
+    `gui.SpacingPx(2 * w.Theme().SpacingLarge)`
+
+  `ergonomics-audit -mode spacing` now flags `SpacingPx(n)` with a number n > 0
+  anywhere, not only in a `Spacing:` field. Mode `literals` flags a raw
+  `Spacing{...}` literal, and mode `opt` accepts a plain `Spacing` field.
+
 - **Examples use the spacing and padding steps (#851)** — about 450 gap and
   inset numbers in `examples/` now name a theme step. Before, 8, 12 and 16 were
   the usual gaps, and none of them is a step. Each site took the step that fits

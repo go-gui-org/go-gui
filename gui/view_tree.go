@@ -33,7 +33,7 @@ type TreeCfg struct {
 	// theme default.
 	// exportaudit:keep — caller-facing config (issue #372)
 	Indent  float32
-	Spacing Opt[float32] // 0 is a real choice (dense rows); unset falls back to the theme
+	Spacing Spacing // 0 is a real choice (dense rows); unset falls back to the theme
 
 	// FocusDisabled opts out of the default-on focus. Focus also
 	// requires a non-empty ID; without one the control is inert.
@@ -482,7 +482,7 @@ func applyTreeDefaults(cfg *TreeCfg) {
 		cfg.Indent = d.indent
 	}
 	if !cfg.Spacing.IsSet() {
-		cfg.Spacing = Some(d.Spacing)
+		cfg.Spacing = SpacingPx(d.Spacing)
 	}
 	cfg.Colors = cfg.Colors.resolved(cfg.Color, d.Colors)
 	if !cfg.Padding.IsSet() {

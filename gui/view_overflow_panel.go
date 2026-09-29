@@ -16,7 +16,7 @@ type OverflowPanelCfg struct {
 	Trigger      []View
 	FloatZIndex  int
 	Padding      Padding
-	Spacing      Opt[float32]
+	Spacing      Spacing
 	Focusable    bool
 	FloatOffsetX float32
 	FloatOffsetY float32
@@ -157,6 +157,6 @@ func applyOverflowDefaults(cfg *OverflowPanelCfg) {
 		cfg.FloatTieOff = FloatTopRight
 	}
 	if !cfg.Spacing.IsSet() {
-		cfg.Spacing = SomeF(guiTheme.SpacingSmall)
+		cfg.Spacing = SpacingSmall
 	}
 }
