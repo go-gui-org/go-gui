@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **`Test*` helpers run `QueueCommand` callbacks (#829)** — `TestClick`,
+  `TestKey`, `TestType` and `TestScroll` now run the commands a handler queued
+  before they return, and rebuild the frame after them. Before, only the
+  backend's frame loop ran queued commands, so a test that clicked a button
+  whose `OnClick` queued `SetFocus` or `SetView` saw the state from before the
+  command. That is the pattern the frame-lock rule requires, so those flows
+  could not be tested. Each helper also rebuilds again when a deferred callback
+  (such as a blur commit) ran, and repeats until the window is quiet, up to 8
+  passes. A command that queues itself again stops at that bound. Animation time
+  does not advance: a `Test*` call is not a way to run an animation to its end.
+
 ## [v0.81.0] - 2026-09-28
 
 ### Added

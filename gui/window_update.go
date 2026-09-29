@@ -86,13 +86,15 @@ func (w *Window) reclaimCommandScratch() {
 	}
 }
 
-// flushCommands executes all pending commands. Called by the main
-// loop at frame start.
-func (w *Window) flushCommands() {
+// flushCommands executes all pending commands and reports whether any
+// ran. Called by the main loop at frame start, and by the Test* helpers'
+// settle, which needs the report: a command such as SetFocus changes
+// what the frame shows without setting a refresh flag.
+func (w *Window) flushCommands() bool {
 	w.commandsMu.Lock()
 	if len(w.commands) == 0 {
 		w.commandsMu.Unlock()
-		return
+		return false
 	}
 	// Swap to avoid holding lock during execution. toRun's backing
 	// array must NOT be recycled into commandScratch yet: writers
@@ -128,6 +130,7 @@ func (w *Window) flushCommands() {
 		w.commandScratch = toRun[:0]
 	}
 	w.commandsMu.Unlock()
+	return true
 }
 
 // markLayoutRefresh requests a full layout rebuild next frame.

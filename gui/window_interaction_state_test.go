@@ -351,13 +351,10 @@ func TestInteractionStateBuildTimeReadSettles(t *testing.T) {
 	if got := mustShape(t, w, "panel:a").Padding.Top; got != 2 {
 		t.Fatalf("unhovered padding = %v, want 2", got)
 	}
+	// The first pass records the new target and asks for a second.
+	// settle runs passes until the window is quiet (#829), so both
+	// passes run inside hoverOver.
 	hoverOver(t, w, "panel:a")
-	// hoverOver settled one pass, which recorded the new target and
-	// asked for a second.
-	if !w.refreshLayout.Load() {
-		t.Fatal("target change did not ask for another pass")
-	}
-	w.settle()
 	if got := mustShape(t, w, "panel:a").Padding.Top; got != 6 {
 		t.Fatalf("hovered padding = %v, want 6", got)
 	}

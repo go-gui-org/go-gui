@@ -151,6 +151,16 @@ func NewTestWindow(tb Cleanuper, cfg WindowCfg) *Window {
 // action below settles a frame when the event dirtied the window, which
 // rebuilds the tree in place, so a *Layout captured before an action
 // must not be read after it. Call TestRender(nil) again instead.
+//
+// When a Test* action returns, this has run, in order and repeated
+// until the window is quiet: the commands handlers queued with
+// [Window.QueueCommand], the frame rebuild, and the deferred callbacks
+// that rebuild raised (a blur commit, for example). The repeat stops
+// after 8 passes, so a command that queues itself again cannot hang a
+// test. Animation time does not advance. Animation ticks come from a
+// goroutine on the wall clock; a tick already queued when the action
+// settles is applied, as in a real frame, but no Test* call waits for
+// an animation to end.
 func (w *Window) TestRender(view func(*Window) View) *Layout {
 	if view != nil {
 		w.SetView(view)
@@ -167,22 +177,59 @@ func (w *Window) TestRender(view func(*Window) View) *Layout {
 	return &w.layout
 }
 
-// settle rebuilds the frame if the event just dispatched dirtied the
-// window. EventFn always ends with InvalidateLayout, and the backend would
-// pick that up on the next FrameFn; with no backend running, nothing
-// would. Without this the caller observes pre-event geometry, and —
-// more subtly — scroll offsets stay unclamped, because the clamp lives
-// in layoutAdjustScrollOffsets during arrange, not in the scroll
-// handler.
+// settle does the work FrameFn would do after the event just
+// dispatched, until the window is quiet. With no backend running,
+// nothing else would. Without it the caller observes pre-event
+// geometry, and — more subtly — scroll offsets stay unclamped, because
+// the clamp lives in layoutAdjustScrollOffsets during arrange, not in
+// the scroll handler.
+//
+// Each pass runs the queued commands first, then rebuilds (#829). A
+// handler that must not call SetFocus or SetView under the frame lock
+// queues it with QueueCommand, and those are the flows a test most
+// wants to check. A pass rebuilds with a full Update when:
+//
+//   - a command ran. SetFocus sets no refresh flag, so the flag alone
+//     cannot tell that the frame is stale.
+//   - the previous Update ran deferred callbacks (window_deferred.go).
+//     They run after the renderers were built, so their changes are
+//     absent from that frame. FrameFn re-runs on the same report.
+//   - the layout flag is set.
+//
+// Otherwise a render-only flag gets a render-only pass, and no flag
+// ends the loop. A command, view or callback that queues more work
+// lands in the next pass. The loop is bounded, so a command that
+// queues itself again cannot hang a test.
 func (w *Window) settle() {
-	if w.refreshLayout.Load() {
-		w.Update()
+	stale := false // the previous pass's deferred-callback report
+	for range maxSettlePasses {
+		ran := w.flushCommands()
+		switch {
+		case ran || stale || w.refreshLayout.Load():
+			stale = w.Update()
+		case w.refreshRenderOnly.Load():
+			stale = w.updateRenderOnly()
+		default:
+			return
+		}
+	}
+	// A chain that needs exactly maxSettlePasses passes ends quiet.
+	// Warn only when work is still left, or the warning is false.
+	if !stale && !w.refreshLayout.Load() && !w.refreshRenderOnly.Load() &&
+		w.pendingCommandCount() == 0 {
 		return
 	}
-	if w.refreshRenderOnly.Load() {
-		w.updateRenderOnly()
-	}
+	w.debugWarn(debugCheckDeferredLoop, "settle",
+		"window still dirty after %d settle passes; "+
+			"a queued command or callback is re-queueing itself",
+		maxSettlePasses)
 }
+
+// maxSettlePasses bounds settle. The legitimate chains are short: a
+// command that moves focus, whose blur defers a callback, whose change
+// needs one more rebuild. Pinned to the deferred-callback bound so the
+// two loops cannot drift apart.
+const maxSettlePasses = maxDeferredCallbackBatches
 
 // testTarget resolves effectiveID to a layout and rejects the two
 // states in which dispatching any event is meaningless.
