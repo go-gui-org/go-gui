@@ -29,8 +29,9 @@ go run ./cmd/buildapp [flags] <binary>
 ## Usage
 
 ```
-buildapp [-platform darwin|windows|linux] [-o outdir] [-name Name] [-id bundle.id]
-         [-icon icon.png|.icns|.ico] [-version 1.0] [-sign identity] <binary>
+buildapp [-platform darwin|windows|linux] [-o outdir] [-manifest appinfo.toml]
+         [-name Name] [-id bundle.id] [-icon icon.png|.icns|.ico]
+         [-version 1.0] [-build n] [-sign identity] <binary>
 ```
 
 Positional arg: path to the compiled executable. It must match `-platform`:
@@ -41,16 +42,71 @@ line on Linux, the file inside the `.zip` on Windows, `Contents/MacOS/<name>` on
 macOS). Stage it under a clean name before packaging; `showcase-linux` in,
 `Exec=showcase-linux` out.
 
-| Flag           | Default                        | Purpose                                                    |
-| -------------- | ------------------------------ | ---------------------------------------------------------- |
-| `-platform`    | host `GOOS`                    | Target packager: `darwin`, `windows` or `linux`            |
-| `-o`           | `.`                            | Output directory                                           |
-| `-name`        | binary basename, capped        | Bundle display name                                        |
-| `-id`          | `local.gogui.<name>`           | `CFBundleIdentifier`                                       |
-| `-icon`        | none                           | `.png` everywhere; also `.icns` (macOS), `.ico` (Windows)  |
-| `-version`     | `1.0`                          | `CFBundleVersion` / short version                          |
-| `-bundle-deps` | `false`                        | macOS: bundle non-system dylibs into `Contents/Frameworks` |
-| `-sign`        | `$BUILDAPP_SIGN_IDENTITY`, `-` | macOS: `codesign` identity. `-` is ad-hoc                  |
+| Flag           | Default                           | Purpose                                                    |
+| -------------- | --------------------------------- | ---------------------------------------------------------- |
+| `-platform`    | host `GOOS`                       | Target packager: `darwin`, `windows` or `linux`            |
+| `-o`           | `.`                               | Output directory                                           |
+| `-manifest`    | `./appinfo.toml` when it is there | App manifest; see [App manifest](#app-manifest)            |
+| `-name`        | binary basename, capped           | Bundle display name                                        |
+| `-id`          | `local.gogui.<name>`              | `CFBundleIdentifier`                                       |
+| `-icon`        | none                              | `.png` everywhere; also `.icns` (macOS), `.ico` (Windows)  |
+| `-version`     | `1.0`                             | `CFBundleShortVersionString`; also the file name version   |
+| `-build`       | the version                       | macOS: `CFBundleVersion`                                   |
+| `-bundle-deps` | `false`                           | macOS: bundle non-system dylibs into `Contents/Frameworks` |
+| `-sign`        | `$BUILDAPP_SIGN_IDENTITY`, `-`    | macOS: `codesign` identity. `-` is ad-hoc                  |
+
+## App manifest
+
+An app keeps its identity in `appinfo.toml` beside its `main.go`. buildapp reads
+the file, and the app reads the same bytes at run time through `//go:embed` and
+`gui.WindowCfg.AppInfo`. Thus the bundle ID and the ID the app uses for
+preferences and file-access bookmarks are the same. If the two IDs differ, macOS
+keeps the preferences and permission grants under two identities and reports no
+error.
+
+```toml
+# appinfo.toml
+id      = "org.go-gui.falcon"
+name    = "Falcon"
+version = "1.4.0"
+build   = "42"                 # optional; default is the version
+icon    = "assets/icon.png"    # relative to this file
+
+[darwin]
+category = "public.app-category.developer-tools"  # LSApplicationCategoryType
+
+[linux]
+categories = "Development;"    # .desktop Categories; default "Utility;"
+```
+
+buildapp finds the file like this:
+
+1. If you give `-manifest path`, buildapp reads that file. If the file is
+   missing, buildapp stops with an error.
+2. If you do not give `-manifest`, buildapp reads `appinfo.toml` from the
+   working directory, if that file exists.
+3. If there is no file, buildapp uses only the flags, as before.
+
+A flag that you give on the command line wins over the file. A flag that you do
+not give does not win, so the `-version` default `1.0` does not hide the file's
+version.
+
+The format is a strict subset of TOML. Every file that buildapp accepts is also
+valid TOML:
+
+- Each line is `key = "value"`. Values are always double-quoted strings. The
+  only escapes are `\"` and `\\`.
+- A `[section]` header starts a platform block. Sections do not nest.
+- `#` starts a comment.
+- There are no arrays, numbers or multi-line values.
+- An unknown key or section is an error. The error gives the file and line.
+
+### Version from a git tag
+
+A release script can keep `-version "$(git describe --tags)"`. The flag wins in
+the package. But the running app reads the embedded file, so it shows the file's
+version, not the flag. If the app shows its version, bump the file too, or set
+the version at build time with `-ldflags -X`.
 
 ## macOS
 
@@ -235,6 +291,17 @@ needed), or `./install.sh /usr/local` with `sudo` for a system-wide install.
 is what stops a terminal emulator opening beside the app.
 
 ## Example
+
+`examples/app_manifest` has an `appinfo.toml`, so it needs no identity flags:
+
+```
+go build -o /tmp/app_manifest ./examples/app_manifest
+cd examples/app_manifest
+buildapp -o /tmp /tmp/app_manifest
+open "/tmp/App Manifest Demo.app"
+```
+
+Without a manifest, give the identity as flags:
 
 ```
 go build -o /tmp/getstarted ./examples/get_started

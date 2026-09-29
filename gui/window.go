@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/go-gui-org/go-glyph"
+	"github.com/go-gui-org/go-gui/gui/appinfo"
 )
 
 // TextMeasurer measures text dimensions. Set by the backend
@@ -610,6 +611,12 @@ func (w *Window) Timings() FrameTimings { return w.frameTimings }
 // MouseCursorState returns the current mouse cursor shape.
 func (w *Window) MouseCursorState() MouseCursor {
 	return w.viewState.mouseCursor
+}
+
+// AppInfo returns the app manifest given in WindowCfg.AppInfo. It is
+// the zero Info when the window was created without one.
+func (w *Window) AppInfo() appinfo.Info {
+	return w.Config.AppInfo
 }
 
 // App returns the parent App, or nil for single-window mode.

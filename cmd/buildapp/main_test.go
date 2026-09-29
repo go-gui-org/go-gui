@@ -3,6 +3,9 @@
 package main
 
 import (
+	"bytes"
+	"encoding/xml"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -369,7 +372,7 @@ func TestBuildUnknownIdentityErrors(t *testing.T) {
 
 func TestWritePlistOmitsEmptyIcon(t *testing.T) {
 	p := filepath.Join(t.TempDir(), "Info.plist")
-	if err := writePlist(p, "stub", "id", "Stub", "1.0", ""); err != nil {
+	if err := writePlist(p, plistFields{Exec: "stub", ID: "id", Name: "Stub", Version: "1.0"}); err != nil {
 		t.Fatal(err)
 	}
 	b, err := os.ReadFile(p)
@@ -378,5 +381,88 @@ func TestWritePlistOmitsEmptyIcon(t *testing.T) {
 	}
 	if strings.Contains(string(b), "CFBundleIconFile") {
 		t.Error("should omit CFBundleIconFile when empty")
+	}
+}
+
+func TestWritePlistBuildAndCategory(t *testing.T) {
+	p := filepath.Join(t.TempDir(), "Info.plist")
+	err := writePlist(p, plistFields{
+		Exec: "stub", ID: "id", Name: "Stub", Version: "1.4.0", Build: "42",
+		Category: "public.app-category.developer-tools",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, err := os.ReadFile(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+	for _, want := range []string{
+		"<key>CFBundleVersion</key><string>42</string>",
+		"<key>CFBundleShortVersionString</key><string>1.4.0</string>",
+		"<key>LSApplicationCategoryType</key><string>public.app-category.developer-tools</string>",
+	} {
+		if !strings.Contains(s, want) {
+			t.Errorf("plist missing %q", want)
+		}
+	}
+}
+
+// An empty Build repeats Version, which is what the plist held before
+// the manifest existed; an empty Category writes no key.
+func TestWritePlistBuildDefaultsToVersion(t *testing.T) {
+	p := filepath.Join(t.TempDir(), "Info.plist")
+	if err := writePlist(p, plistFields{Exec: "stub", ID: "id", Name: "Stub", Version: "1.0"}); err != nil {
+		t.Fatal(err)
+	}
+	b, err := os.ReadFile(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+	if !strings.Contains(s, "<key>CFBundleVersion</key><string>1.0</string>") {
+		t.Error("CFBundleVersion should fall back to Version")
+	}
+	if strings.Contains(s, "LSApplicationCategoryType") {
+		t.Error("should omit LSApplicationCategoryType when empty")
+	}
+}
+
+// Values are XML-escaped: a display name such as "Tom & Jerry" must
+// leave Info.plist well-formed, or the bundle neither signs nor starts.
+func TestWritePlistEscapesValues(t *testing.T) {
+	p := filepath.Join(t.TempDir(), "Info.plist")
+	name := `Tom & "Jerry" <a>`
+	err := writePlist(p, plistFields{
+		Exec: "stub", ID: "id", Name: name, Version: "1<2", Build: "a&b",
+		Category: "x>y",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, err := os.ReadFile(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	d := xml.NewDecoder(bytes.NewReader(b))
+	var texts []string
+	for {
+		tok, terr := d.Token()
+		if terr == io.EOF {
+			break
+		}
+		if terr != nil {
+			t.Fatalf("Info.plist is not well-formed XML: %v\n%s", terr, b)
+		}
+		if cd, ok := tok.(xml.CharData); ok {
+			texts = append(texts, string(cd))
+		}
+	}
+	all := strings.Join(texts, "\n")
+	for _, want := range []string{name, "1<2", "a&b", "x>y"} {
+		if !strings.Contains(all, want) {
+			t.Errorf("decoded plist lacks %q", want)
+		}
 	}
 }

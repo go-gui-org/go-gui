@@ -6,8 +6,13 @@
 //
 // Usage:
 //
-//	buildapp [-platform darwin|windows|linux] [-o outdir] [-name Name]
-//	         [-id bundle.id] [-icon icon.png] [-sign identity] <binary>
+//	buildapp [-platform darwin|windows|linux] [-o outdir] [-manifest appinfo.toml]
+//	         [-name Name] [-id bundle.id] [-version v] [-build n]
+//	         [-icon icon.png] [-sign identity] <binary>
+//
+// Without -manifest, buildapp reads appinfo.toml from the working
+// directory when one is there. A flag given on the command line wins
+// over the file.
 package main
 
 import (
@@ -35,6 +40,15 @@ type bundleOpts struct {
 	// SignID is the codesign identity ("-" = ad-hoc).  Empty is treated
 	// as "-" so a zero-valued bundleOpts keeps the historical behaviour.
 	SignID string
+	// Build is the build number (macOS CFBundleVersion). Empty means
+	// Version, which is what the plist held before the manifest.
+	Build string
+	// Category is the macOS LSApplicationCategoryType, from the
+	// manifest's [darwin] section. Empty writes no key.
+	Category string
+	// Categories is the Linux .desktop Categories value, from the
+	// manifest's [linux] section. Empty means defaultCategories.
+	Categories string
 }
 
 // envSignIdentity supplies the -sign default, so a developer with a
@@ -53,6 +67,8 @@ func main() {
 
 func run() error {
 	var o bundleOpts
+	manifest := flag.String("manifest", "",
+		"app manifest (default: ./"+defaultManifest+" when present)")
 	flag.StringVar(&o.Platform, "platform", runtime.GOOS,
 		"target platform: darwin, windows or linux")
 	flag.StringVar(&o.OutDir, "o", ".", "output directory")
@@ -60,6 +76,7 @@ func run() error {
 	flag.StringVar(&o.ID, "id", "", "bundle identifier (default: local.gogui.<name>)")
 	flag.StringVar(&o.Icon, "icon", "", "icon file (.png or .icns)")
 	flag.StringVar(&o.Version, "version", "1.0", "bundle version")
+	flag.StringVar(&o.Build, "build", "", "build number (default: the version)")
 	flag.BoolVar(&o.BundleDeps, "bundle-deps", false,
 		"copy non-system dylibs into Contents/Frameworks and rewrite paths")
 	flag.StringVar(&o.SignID, "sign", defaultSignIdentity(),
@@ -74,6 +91,15 @@ func run() error {
 		return errors.New("expected exactly one binary argument")
 	}
 	o.Binary = flag.Arg(0)
+	info, dir, err := loadManifest(*manifest)
+	if err != nil {
+		return err
+	}
+	// flag.Visit walks only the flags given on the command line, which
+	// is what tells an explicit -version apart from its default.
+	set := map[string]bool{}
+	flag.Visit(func(f *flag.Flag) { set[f.Name] = true })
+	applyManifest(&o, info, dir, set)
 	return build(o)
 }
 

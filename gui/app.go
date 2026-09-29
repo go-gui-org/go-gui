@@ -6,6 +6,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/go-gui-org/go-gui/gui/appinfo"
 )
 
 // pendingCap bounds queued window-creation requests. OpenWindow
@@ -201,6 +203,13 @@ func (a *App) OpenWindow(cfg WindowCfg) {
 	if a == nil {
 		return
 	}
+	// Every window of one app shares one identity, so a window opened
+	// without a manifest takes the main window's.
+	if cfg.AppInfo == (appinfo.Info{}) {
+		if mainW := a.mainWindow(); mainW != nil {
+			cfg.AppInfo = mainW.Config.AppInfo
+		}
+	}
 	select {
 	case a.pending <- cfg:
 	default:
@@ -289,6 +298,9 @@ func (a *App) SetNativeMenubar(cfg NativeMenubarCfg) {
 	np := mainW.NativePlatformBackend()
 	if np == nil {
 		return
+	}
+	if cfg.AppName == "" {
+		cfg.AppName = mainW.Config.AppInfo.Name
 	}
 	actionCb := func(id string) {
 		cur := a.mainWindow()

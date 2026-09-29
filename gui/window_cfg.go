@@ -1,6 +1,10 @@
 package gui
 
-import "context"
+import (
+	"context"
+
+	"github.com/go-gui-org/go-gui/gui/appinfo"
+)
 
 // WindowCfg configures a new Window.
 type WindowCfg struct {
@@ -20,7 +24,15 @@ type WindowCfg struct {
 	// Re-clicking the close control is required to retry after a veto
 	// since the original close event is already drained.
 	OnCloseRequest func(*Window)
-	Title          string
+	// AppInfo is the app manifest, usually appinfo.toml embedded with
+	// //go:embed and read with appinfo.MustParse. It is the source of
+	// the app's identity at run time, and buildapp reads the same
+	// file, so the bundle ID and the runtime ID cannot differ.
+	// NewWindow fills only fields left empty: Title from Name, WMClass
+	// and the file-access app ID from ID. The native menubar AppName
+	// also defaults to Name. A zero AppInfo changes nothing.
+	AppInfo appinfo.Info
+	Title   string
 	// AllowedSvgRoots restricts file-based SVG loads to these paths.
 	// Empty means allow any local SVG path.
 	// exportaudit:keep — caller-facing config (issue #372)
@@ -150,6 +162,16 @@ func SimpleWindow(title string, w, h int, state any, onInit func(*Window)) *Wind
 
 // NewWindow creates a Window from the given configuration.
 func NewWindow(cfg WindowCfg) *Window {
+	// The manifest fills only what the caller left empty, so an app
+	// can still title a window "Document 1 - Falcon".
+	if cfg.Title == "" {
+		cfg.Title = cfg.AppInfo.Name
+	}
+	// WM_CLASS matches the .desktop file buildapp names after the ID,
+	// so the window groups under the installed launcher.
+	if cfg.WMClass == "" {
+		cfg.WMClass = cfg.AppInfo.ID
+	}
 	ctx, cancel := context.WithCancel(context.Background())
 	w := &Window{
 		state:         cfg.State,
@@ -175,6 +197,8 @@ func NewWindow(cfg WindowCfg) *Window {
 	// A new window paints on its first frame. Seeded here, not in the
 	// literal above: atomic.Bool takes no bool literal (see window.go).
 	w.refreshLayout.Store(true)
+	// No lock: w is not shared yet. SetFileAccessAppID still replaces it.
+	w.fileAccess.appID = cfg.AppInfo.ID
 	if cfg.DebugTimeTravel {
 		w.enableHistory(cfg.HistoryBytes)
 	}

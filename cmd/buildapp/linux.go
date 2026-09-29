@@ -99,9 +99,13 @@ func buildLinux(o bundleOpts) error {
 		})
 	}
 
+	categories := o.Categories
+	if categories == "" {
+		categories = defaultCategories
+	}
 	desktop, err := renderTmpl(desktopTmpl, map[string]string{
 		"Name": o.Name, "Exec": execName, "Icon": o.ID,
-		"Categories": defaultCategories,
+		"Categories": categories,
 	})
 	if err != nil {
 		return err
