@@ -353,9 +353,15 @@ changelog-check:
 changelog-entry-check:
 	@scripts/changelog-entry-check.sh
 
+# Theme surface: removing, renaming or retyping an exported field of Theme,
+# ThemeCfg or TextStyle needs a BREAKING entry under Unreleased (issue #846).
+# No-op on the default branch, where there is no delta to judge.
+theme-surface-check:
+	@scripts/theme-surface-check.sh
+
 # Run non-duplicated validation steps for CI gate.
 # test and lint run as separate CI jobs with OS matrices.
-check: vet deps-doc-check large-files generate-check tidy-check fmt-md-check changelog-check changelog-entry-check ergo-ids
+check: vet deps-doc-check large-files generate-check tidy-check fmt-md-check changelog-check changelog-entry-check theme-surface-check ergo-ids
 
 # Run all validation steps: test, vet, lint, and gate checks.
 check-all: test lint check

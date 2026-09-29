@@ -10,6 +10,18 @@ and this project adheres to
 
 ### Added
 
+- **Theme text roles are a stable contract, with a gate (#846)** —
+  `docs/theme-tokens.md` now lists the 4 de-emphasis roles and 16 purpose roles
+  on `Theme`, the release that added each, and the rules: adding a role is free;
+  removing, renaming or changing the purpose of one is breaking; a rename keeps
+  the old field one release as `// Deprecated:`. The new
+  `make theme-surface-check` (in `make check` and CI) enforces the breaking
+  part. `gui/testdata/theme_surface.golden` lists every exported field of
+  `Theme`, `ThemeCfg` and `TextStyle`; a branch that removes a line from it
+  fails unless it adds a `**BREAKING:` entry under Unreleased. Before, #734 and
+  #764 renamed roles that apps and custom themes use, and no gate saw it.
+  `docs/style-guide.md` no longer names the removed `N1`..`N6` grid.
+
 - **App settings store: `gui.LoadSettings` / `gui.SaveSettings` (#848)** — an
   app can now save one typed struct of settings, JSON-encoded, without choosing
   a file location itself. Before, each sibling picked its own rule (go-edit,
