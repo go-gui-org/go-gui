@@ -40,7 +40,9 @@ const (
 	// sets both Wrap and Overflow; wrap wins and overflow is ignored.
 	debugCheckWrapOverflow
 	// debugCheckDeferredLoop fires from flushDeferredCallbacks when
-	// deferred app callbacks keep re-queueing past the batch bound.
+	// deferred app callbacks keep re-queueing past the batch bound,
+	// and from the Test* helpers' settle when queued commands or
+	// callbacks keep the window dirty past maxSettlePasses.
 	debugCheckDeferredLoop
 	// debugCheckLinkNotOpened fires from rtfOpenLink when a link the
 	// user activated does nothing: an unresolved anchor, a relative

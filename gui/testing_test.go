@@ -629,3 +629,117 @@ func mustShape(t *testing.T, w *Window, id string) *Shape {
 	}
 	return ly.Shape
 }
+
+// queuedState backs the #829 tests: a click handler that queues work
+// instead of doing it, the pattern the frame-lock rule requires for
+// SetFocus and SetView.
+type queuedState struct {
+	value    int // written by the queued command
+	seen     int // copied from value by the view, to prove a rebuild ran
+	requeues int // times the self-requeuing command has run
+}
+
+// newQueuedWindow builds a button whose OnClick queues onQueue, plus a
+// focusable input the command can move focus to.
+func newQueuedWindow(t *testing.T, onQueue func(*Window)) *Window {
+	t.Helper()
+	w := NewTestWindow(t, WindowCfg{State: &queuedState{}})
+	w.TestRender(func(w *Window) View {
+		app := State[queuedState](w)
+		// The view reads value on every rebuild. seen therefore lags
+		// value until a frame runs after the command.
+		app.seen = app.value
+		return Column(ContainerCfg{
+			Sizing: FillFill,
+			Content: []View{
+				Button(ButtonCfg{
+					ID:      "btn",
+					Content: []View{Text(TextCfg{Text: "Go"})},
+					OnClick: func(ctx EventCtx) {
+						ctx.Window.QueueCommand(onQueue)
+						ctx.Consume()
+					},
+				}),
+				Input(InputCfg{ID: "field"}),
+			},
+		})
+	})
+	return w
+}
+
+// A command queued by a click must run before TestClick returns. It
+// calls SetFocus, which sets no refresh flag, so this also checks that
+// settle does not depend on one (#829).
+func TestTestClickRunsQueuedCommand(t *testing.T) {
+	w := newQueuedWindow(t, func(w *Window) { w.SetFocus("field") })
+	if err := w.TestClick("btn"); err != nil {
+		t.Fatalf("TestClick(btn) = %v, want nil", err)
+	}
+	if got := w.FocusID(); got != "field" {
+		t.Fatalf("FocusID = %q after queued SetFocus, want %q", got, "field")
+	}
+}
+
+// The frame after the command must be rebuilt, so the tree shows the
+// state the command wrote (#829).
+func TestTestClickRebuildsAfterQueuedCommand(t *testing.T) {
+	w := newQueuedWindow(t, func(w *Window) { State[queuedState](w).value = 7 })
+	if err := w.TestClick("btn"); err != nil {
+		t.Fatalf("TestClick(btn) = %v, want nil", err)
+	}
+	app := State[queuedState](w)
+	if app.value != 7 {
+		t.Fatalf("value = %d, want 7: queued command did not run", app.value)
+	}
+	if app.seen != 7 {
+		t.Fatalf("seen = %d, want 7: no frame rebuilt after the command", app.seen)
+	}
+}
+
+// A command that queues itself again must not hang the test. settle
+// stops after maxSettlePasses.
+func TestTestClickBoundsSelfRequeuingCommand(t *testing.T) {
+	var requeue func(*Window)
+	requeue = func(w *Window) {
+		State[queuedState](w).requeues++
+		w.QueueCommand(requeue)
+	}
+	w := newQueuedWindow(t, requeue)
+	buf := captureDebugMask(t, DebugCallbacks)
+	if err := w.TestClick("btn"); err != nil {
+		t.Fatalf("TestClick(btn) = %v, want nil", err)
+	}
+	if !strings.Contains(buf.String(), "settle passes") {
+		t.Fatalf("no settle-bound warning; debug output:\n%s", buf.String())
+	}
+	// The click's press and release each settle; the command is queued
+	// on press, so the press settle runs it maxSettlePasses times and
+	// the release settle runs it maxSettlePasses more.
+	if got, want := State[queuedState](w).requeues, 2*maxSettlePasses; got != want {
+		t.Fatalf("requeues = %d, want %d", got, want)
+	}
+}
+
+// A chain of commands that needs exactly maxSettlePasses passes ends
+// quiet, so settle must not report it as a loop.
+func TestTestClickFullChainDoesNotWarn(t *testing.T) {
+	var step func(*Window)
+	step = func(w *Window) {
+		app := State[queuedState](w)
+		app.requeues++
+		if app.requeues < maxSettlePasses {
+			w.QueueCommand(step)
+		}
+	}
+	w := newQueuedWindow(t, step)
+	buf := captureDebugMask(t, DebugCallbacks)
+	if err := w.TestClick("btn"); err != nil {
+		t.Fatalf("TestClick(btn) = %v, want nil", err)
+	}
+	if got := State[queuedState](w).requeues; got != maxSettlePasses {
+		t.Fatalf("requeues = %d, want %d", got, maxSettlePasses)
+	}
+	if strings.Contains(buf.String(), "settle passes") {
+		t.Fatalf("false settle-bound warning:\n%s", buf.String())
+	}
+}
