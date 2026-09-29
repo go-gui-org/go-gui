@@ -102,3 +102,68 @@ func TestWebKeyboardAttrs(t *testing.T) {
 		}
 	}
 }
+
+// --- settings (localStorage) ---
+
+// fakeStorage builds a JS object with the Storage getItem/setItem
+// methods over a plain JS map, since Node has no localStorage.
+func fakeStorage(t *testing.T) js.Value {
+	t.Helper()
+	newFn := js.Global().Get("Function")
+	obj := js.Global().Get("Object").New()
+	obj.Set("m", js.Global().Get("Object").New())
+	obj.Set("getItem", newFn.New("k", "return (k in this.m) ? this.m[k] : null;"))
+	obj.Set("setItem", newFn.New("k", "v", "this.m[k] = String(v);"))
+	return obj
+}
+
+func TestStorageRoundTrip(t *testing.T) {
+	s := fakeStorage(t)
+	get := func() js.Value { return s }
+	data, err := storageLoad(get, "org.example.app")
+	if err != nil || data != nil {
+		t.Fatalf("empty load = (%q, %v), want (nil, nil)", data, err)
+	}
+	if err = storageSave(get, "org.example.app", []byte(`{"A":1}`)); err != nil {
+		t.Fatal(err)
+	}
+	if got := s.Get("m").Get(settingsKeyPrefix + "org.example.app").String(); got != `{"A":1}` {
+		t.Fatalf("stored %q under the prefixed key", got)
+	}
+	data, err = storageLoad(get, "org.example.app")
+	if err != nil || string(data) != `{"A":1}` {
+		t.Fatalf("load = (%q, %v)", data, err)
+	}
+}
+
+func TestStorageThrowIsError(t *testing.T) {
+	s := fakeStorage(t)
+	thrower := js.Global().Get("Function").New("throw new Error('QuotaExceededError');")
+	s.Set("setItem", thrower)
+	s.Set("getItem", thrower)
+	get := func() js.Value { return s }
+	if err := storageSave(get, "a", []byte("x")); err == nil {
+		t.Fatal("save: want an error when setItem throws")
+	}
+	if _, err := storageLoad(get, "a"); err == nil {
+		t.Fatal("load: want an error when getItem throws")
+	}
+}
+
+func TestStorageUnavailableIsError(t *testing.T) {
+	get := js.Undefined
+	if _, err := storageLoad(get, "a"); err == nil {
+		t.Fatal("load: want an error with no localStorage")
+	}
+	if err := storageSave(get, "a", nil); err == nil {
+		t.Fatal("save: want an error with no localStorage")
+	}
+}
+
+// The settings hook in gui is unexported and found by a type assertion,
+// so a changed method set here would silently drop web back to the file
+// store, which fails on js. This assertion makes that a compile error.
+var _ interface {
+	SettingsLoad(appID string) ([]byte, error)
+	SettingsSave(appID string, data []byte) error
+} = (*nativePlatform)(nil)

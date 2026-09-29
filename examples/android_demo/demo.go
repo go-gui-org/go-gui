@@ -36,6 +36,10 @@ func Init() {
 	android.SetWindow(w)
 }
 
+// SetFilesDir passes Context.getFilesDir() to the backend, where
+// gui.SaveSettings keeps the app's settings. Call it before Start.
+func SetFilesDir(dir string) { android.SetFilesDir(dir) }
+
 // Start initializes the GLES backend.
 func Start(width, height int, scale float32) {
 	android.Start(width, height, scale)

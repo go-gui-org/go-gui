@@ -78,6 +78,26 @@ func (n *nativePlatform) ShowPrintDialog(cfg gui.NativePrintParams) gui.PrintRun
 	return printdialog.ShowPrintDialog(cfg)
 }
 
+// SettingsLoad and SettingsSave implement gui's optional settings hook.
+// Without them gui would use os.UserConfigDir, which fails on Android
+// because an app process has no HOME.
+func (n *nativePlatform) SettingsLoad(appID string) ([]byte, error) {
+	return settingsStore.Load(appID)
+}
+
+func (n *nativePlatform) SettingsSave(appID string, data []byte) error {
+	return settingsStore.Save(appID, data)
+}
+
+// The settings hook in gui is unexported and found by a type assertion,
+// so a changed method set here would silently drop Android back to the
+// file store, which fails there. This assertion makes that a compile
+// error.
+var _ interface {
+	SettingsLoad(appID string) ([]byte, error)
+	SettingsSave(appID string, data []byte) error
+} = (*nativePlatform)(nil)
+
 func (n *nativePlatform) BookmarkLoadAll(_ string) []gui.BookmarkEntry { return nil }
 func (n *nativePlatform) BookmarkPersist(_, _ string, _ []byte)        {}
 func (n *nativePlatform) BookmarkStopAccess(_ []byte)                  {}

@@ -10,6 +10,23 @@ and this project adheres to
 
 ### Added
 
+- **App settings store: `gui.LoadSettings` / `gui.SaveSettings` (#848)** — an
+  app can now save one typed struct of settings, JSON-encoded, without choosing
+  a file location itself. Before, each sibling picked its own rule (go-edit,
+  go-term and go-kite used three), and none worked on web or Android. The key is
+  the app ID from `WindowCfg.AppInfo`, so every window of the app shares the
+  data; with no ID both return the new `gui.ErrNoAppID`. `LoadSettings` decodes
+  into a struct the caller has already filled with defaults, so a field that the
+  saved data does not have keeps its default and adding a field needs no
+  migration. Desktop and iOS write `os.UserConfigDir()/<app ID>/settings.json`
+  (XDG on Linux), replaced atomically so a crash cannot leave a partial file.
+  Web uses `localStorage`. Android uses the app's files directory, which the
+  host passes to the new `android.SetFilesDir` before `Start`. A window from
+  `gui.NewTestWindow` uses an in-memory store, so tests never touch disk. Loads
+  and saves over 1 MiB fail. The store is for state the app writes, not for
+  hand-edited config or secrets. See `examples/settings` and
+  `docs/dx-cheat-sheet.md`.
+
 - **App manifest `appinfo.toml` (#849)** — an app can now keep its ID, name,
   version, build number and icon in one `appinfo.toml` beside `main.go`.
   `buildapp` reads it from the working directory (or `-manifest path`), so a

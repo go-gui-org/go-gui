@@ -468,6 +468,71 @@ Delivery is per item in channel order with no coalescing, so bound the cadence
 at the producer. The goroutine exits when the channel closes or the window
 closes, and the returned channel reports it.
 
+## App settings
+
+`gui.LoadSettings` and `gui.SaveSettings` store one typed struct per app,
+JSON-encoded (issue #848). The key is `WindowCfg.AppInfo.ID`, usually from an
+embedded `appinfo.toml`; with no ID both return `gui.ErrNoAppID`. Fill the
+defaults first, then load: a field the saved data does not have keeps its
+default, so adding a field needs no migration code.
+
+```go
+// Settings is what the app saves. Adding a field later is the whole
+// migration: a file saved by an older version leaves the new field at
+// the default set before LoadSettings.
+type Settings struct {
+	Launches int  `json:"launches"`
+	Dark     bool `json:"dark"`
+}
+
+// App is the window state. It holds the settings the view shows.
+type App struct {
+	Settings Settings
+	Err      string // last load or save error, shown in the view
+}
+
+func windowCfg() gui.WindowCfg {
+	return gui.WindowCfg{
+		AppInfo: info,                                 // the store keys the saved data by info.ID
+		State:   &App{Settings: Settings{Dark: true}}, // defaults
+		Width:   360,
+		Height:  180,
+		OnInit: func(w *gui.Window) {
+			app := gui.State[App](w)
+			// A first run finds nothing and keeps the defaults. A
+			// corrupt file returns an error and also keeps them.
+			if err := gui.LoadSettings(w, &app.Settings); err != nil {
+				app.Err = err.Error()
+			}
+			app.Settings.Launches++
+			save(w)
+			applyTheme(w)
+			w.SetView(mainView)
+		},
+	}
+}
+
+// save writes the whole struct. Call it after each change: settings are
+// small, and the file is replaced atomically.
+func save(w *gui.Window) {
+	app := gui.State[App](w)
+	if err := gui.SaveSettings(w, app.Settings); err != nil {
+		app.Err = err.Error()
+	}
+}
+```
+
+- **Where it goes.** Desktop and iOS:
+  `os.UserConfigDir()/<app ID>/settings.json`, replaced atomically. Web:
+  `localStorage`. Android: the files directory the host passes to
+  `android.SetFilesDir`.
+- **Tests.** `gui.NewTestWindow` gives the window an in-memory store, so a test
+  never touches the real file. A plain `NewWindow` with no backend uses the file
+  store: a real app that saves before `backend.Run` still reaches disk.
+- **Not user config.** The file is state the app writes for itself. A running
+  app overwrites a hand edit. A file the user edits stays a file the app owns.
+- **Not secrets.** The data is plain JSON.
+
 ## Find it early
 
 `gui.Debug(true)`, or `GOGUI_DEBUG=1`, checks the layout every frame. It reports
