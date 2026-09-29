@@ -125,7 +125,7 @@ func card(title, sub string, body gui.View) gui.View {
 		Content: []gui.View{
 			gui.Column(gui.ContainerCfg{
 				Padding: gui.NoPadding,
-				Spacing: gui.SomeF(2),
+				Spacing: gui.SomeF(gui.SpacingTight),
 				Content: []gui.View{
 					gui.Text(gui.TextCfg{Text: title, TextStyle: t.TextStyleBodyLarge}),
 					gui.Text(gui.TextCfg{Text: sub, TextStyle: t.TextStyleBodySmall}),
@@ -141,7 +141,7 @@ const sliderWidth = 240
 func slidersPanel(app *App) gui.View {
 	return gui.Column(gui.ContainerCfg{
 		Padding: gui.NoPadding,
-		Spacing: gui.SomeF(10),
+		Spacing: gui.SomeF(gui.SpacingMedium),
 		Content: []gui.View{
 			channelRow(app, "hue", "Hue", gui.ChannelHue),
 			channelRow(app, "sat", "Saturation", gui.ChannelSaturation),
@@ -161,7 +161,7 @@ func channelRow(
 	t := gui.CurrentTheme()
 	return gui.Column(gui.ContainerCfg{
 		Padding: gui.NoPadding,
-		Spacing: gui.SomeF(3),
+		Spacing: gui.SomeF(gui.SpacingTight),
 		Content: []gui.View{
 			gui.Row(gui.ContainerCfg{
 				Sizing:  gui.FillFit,
@@ -269,7 +269,7 @@ func previewBar(app *App) gui.View {
 			}),
 			gui.Column(gui.ContainerCfg{
 				Padding: gui.NoPadding,
-				Spacing: gui.SomeF(4),
+				Spacing: gui.SomeF(gui.SpacingSmall),
 				Content: []gui.View{
 					gui.Text(gui.TextCfg{
 						Text:      app.Color.String(),

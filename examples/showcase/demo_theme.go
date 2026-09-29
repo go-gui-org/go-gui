@@ -33,7 +33,7 @@ func demoThemeGen(w *gui.Window) gui.View {
 			ID:       "strat-" + sv,
 			Color:    color,
 			Disabled: pickText,
-			Padding:  gui.NewPadding(4, 10, 4, 10),
+			Padding:  gui.NewPadding(gui.PadXSmall, gui.PadMedium, gui.PadXSmall, gui.PadMedium),
 			Radius:   gui.SomeF(12),
 			Content:  []gui.View{gui.Text(gui.TextCfg{Text: strategyLabel(sv), TextStyle: textStyle})},
 			OnClick: func(ctx gui.EventCtx) {
@@ -50,19 +50,19 @@ func demoThemeGen(w *gui.Window) gui.View {
 
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.SomeF(12),
+		Spacing: gui.SomeF(gui.SpacingMedium),
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{Text: title, TextStyle: t.TextStyleBody}),
 			gui.Row(gui.ContainerCfg{
 				Sizing:  gui.FillFit,
-				Spacing: gui.SomeF(16),
+				Spacing: gui.SomeF(gui.SpacingMedium),
 				Padding: gui.NoPadding,
 				VAlign:  gui.VAlignTop,
 				Content: []gui.View{
 					gui.Column(gui.ContainerCfg{
 						Sizing:  gui.FitFit,
-						Spacing: gui.SomeF(10),
+						Spacing: gui.SomeF(gui.SpacingMedium),
 						Padding: gui.NoPadding,
 						Content: []gui.View{
 							gui.ColorPicker(gui.ColorPickerCfg{
@@ -80,7 +80,7 @@ func demoThemeGen(w *gui.Window) gui.View {
 							}),
 							gui.Row(gui.ContainerCfg{
 								Sizing:  gui.FillFit,
-								Spacing: gui.SomeF(12),
+								Spacing: gui.SomeF(gui.SpacingMedium),
 								Padding: gui.NoPadding,
 								Content: []gui.View{
 									themeGenNumField(t, themeGenField{
@@ -111,7 +111,7 @@ func demoThemeGen(w *gui.Window) gui.View {
 							// and five fields on one line overflow the column.
 							gui.Row(gui.ContainerCfg{
 								Sizing:  gui.FillFit,
-								Spacing: gui.SomeF(12),
+								Spacing: gui.SomeF(gui.SpacingMedium),
 								Padding: gui.NoPadding,
 								Content: []gui.View{
 									themeGenNumField(t, themeGenField{
@@ -134,13 +134,13 @@ func demoThemeGen(w *gui.Window) gui.View {
 					}),
 					gui.Column(gui.ContainerCfg{
 						Sizing:  gui.FillFit,
-						Spacing: gui.SomeF(10),
+						Spacing: gui.SomeF(gui.SpacingMedium),
 						Padding: gui.NoPadding,
 						Content: []gui.View{
 							gui.Text(gui.TextCfg{Text: "Palette", TextStyle: t.TextStyleTitleSmall}),
 							gui.Wrap(gui.ContainerCfg{
 								Sizing:  gui.FillFit,
-								Spacing: gui.SomeF(4),
+								Spacing: gui.SomeF(gui.SpacingSmall),
 								Padding: gui.NoPadding,
 								Content: strategyViews,
 							}),
@@ -154,12 +154,11 @@ func demoThemeGen(w *gui.Window) gui.View {
 							}),
 							gui.Row(gui.ContainerCfg{
 								Sizing:  gui.FillFit,
-								Spacing: gui.SomeF(8),
+								Spacing: gui.SomeF(gui.SpacingMedium),
 								Padding: gui.NoPadding,
 								Content: []gui.View{
 									gui.Button(gui.ButtonCfg{
 										ID:      "btn-reset-dark",
-										Padding: gui.NewPadding(6, 12, 6, 12),
 										Content: []gui.View{gui.Text(gui.TextCfg{Text: "Reset Dark", TextStyle: t.TextStyleBody})},
 										OnClick: func(ctx gui.EventCtx) {
 											ctx.Window.SetTheme(gui.ThemeDark)
@@ -168,7 +167,6 @@ func demoThemeGen(w *gui.Window) gui.View {
 									}),
 									gui.Button(gui.ButtonCfg{
 										ID:      "btn-reset-light",
-										Padding: gui.NewPadding(6, 12, 6, 12),
 										Content: []gui.View{gui.Text(gui.TextCfg{Text: "Reset Light", TextStyle: t.TextStyleBody})},
 										OnClick: func(ctx gui.EventCtx) {
 											ctx.Window.SetTheme(gui.ThemeLight)
@@ -179,12 +177,11 @@ func demoThemeGen(w *gui.Window) gui.View {
 							}),
 							gui.Row(gui.ContainerCfg{
 								Sizing:  gui.FillFit,
-								Spacing: gui.SomeF(8),
+								Spacing: gui.SomeF(gui.SpacingMedium),
 								Padding: gui.NoPadding,
 								Content: []gui.View{
 									gui.Button(gui.ButtonCfg{
 										ID:      "btn-theme-save",
-										Padding: gui.NewPadding(6, 12, 6, 12),
 										Content: []gui.View{gui.Text(gui.TextCfg{Text: "Save Theme", TextStyle: t.TextStyleBody})},
 										OnClick: func(ctx gui.EventCtx) {
 											ctx.Window.NativeSaveDialog(gui.NativeSaveDialogCfg{
@@ -220,7 +217,6 @@ func demoThemeGen(w *gui.Window) gui.View {
 									}),
 									gui.Button(gui.ButtonCfg{
 										ID:      "btn-theme-load",
-										Padding: gui.NewPadding(6, 12, 6, 12),
 										Content: []gui.View{gui.Text(gui.TextCfg{Text: "Load Theme", TextStyle: t.TextStyleBody})},
 										OnClick: func(ctx gui.EventCtx) {
 											ctx.Window.NativeOpenDialog(gui.NativeOpenDialogCfg{
@@ -295,7 +291,7 @@ type themeGenField struct {
 func themeGenNumField(t gui.Theme, f themeGenField) gui.View {
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FitFit,
-		Spacing: gui.SomeF(6),
+		Spacing: gui.SomeF(gui.SpacingSmall),
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{Text: f.Label, TextStyle: t.TextStyleBody}),
@@ -367,8 +363,8 @@ func themeContrastPreview() gui.View {
 		return gui.Column(gui.ContainerCfg{
 			ID:      "theme-preview",
 			Sizing:  gui.FillFit,
-			Spacing: gui.SomeF(8),
-			Padding: gui.PadAll(12),
+			Spacing: gui.SomeF(gui.SpacingMedium),
+			Padding: gui.PaddingMedium,
 			Color:   lt.ColorPanel,
 			Radius:  gui.SomeF(8),
 			Content: []gui.View{
@@ -378,7 +374,7 @@ func themeContrastPreview() gui.View {
 				}),
 				gui.Row(gui.ContainerCfg{
 					Sizing:  gui.FillFit,
-					Spacing: gui.SomeF(8),
+					Spacing: gui.SomeF(gui.SpacingMedium),
 					Padding: gui.NoPadding,
 					Content: []gui.View{
 						gui.Button(gui.ButtonCfg{

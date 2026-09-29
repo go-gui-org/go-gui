@@ -142,7 +142,7 @@ func docButton(showDocs bool) gui.View {
 		A11YCfg:    gui.A11YCfg{A11YLabel: "Toggle docs"},
 		Color:      color,
 		SizeBorder: gui.NoBorder,
-		Padding:    gui.NewPadding(4, 8, 4, 8),
+		Padding:    gui.NewPadding(gui.PadXSmall, gui.PadSmall, gui.PadXSmall, gui.PadSmall),
 		Radius:     gui.SomeF(3),
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{Text: gui.IconBook, TextStyle: gui.CurrentTheme().TextStyleIconSmall}),
@@ -241,7 +241,7 @@ func componentDemo(w *gui.Window, id string) gui.View {
 		return gui.Column(gui.ContainerCfg{
 			ID:         "sound-page",
 			Sizing:     gui.FillFill,
-			Spacing:    gui.SomeF(16),
+			Spacing:    gui.SomeF(gui.SpacingMedium),
 			Padding:    gui.NoPadding,
 			SizeBorder: gui.NoBorder,
 			Content: []gui.View{
@@ -261,7 +261,7 @@ func demoPlaceholder(t gui.Theme, text string) gui.View {
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
 		Color:   t.ColorPanel,
-		Padding: gui.NewPadding(24, 24, 24, 24),
+		Padding: gui.PaddingLarge,
 		Radius:  gui.SomeF(8),
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{Text: text, TextStyle: t.TextStyleBody, Mode: gui.TextModeWrap}),

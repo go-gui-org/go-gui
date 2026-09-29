@@ -10,7 +10,7 @@ func demoToggle(w *gui.Window) gui.View {
 	app := appState(w)
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.SomeF(12),
+		Spacing: gui.SomeF(gui.SpacingMedium),
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			gui.Toggle(gui.ToggleCfg{
@@ -39,7 +39,7 @@ func demoSwitch(w *gui.Window) gui.View {
 	app := appState(w)
 	return gui.Row(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.SomeF(12),
+		Spacing: gui.SomeF(gui.SpacingMedium),
 		Padding: gui.NoPadding,
 		VAlign:  gui.VAlignMiddle,
 		Content: []gui.View{
@@ -77,7 +77,7 @@ func demoRadio(w *gui.Window) gui.View {
 	}
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.SomeF(8),
+		Spacing: gui.SomeF(gui.SpacingMedium),
 		Padding: gui.NoPadding,
 		Content: views,
 	})
@@ -88,7 +88,7 @@ func demoRadioGroup(w *gui.Window) gui.View {
 	t := gui.CurrentTheme()
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.SomeF(16),
+		Spacing: gui.SomeF(gui.SpacingMedium),
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{Text: "Column layout", TextStyle: t.TextStyleTitleSmall}),
@@ -140,7 +140,7 @@ func demoSegmentedControl(w *gui.Window) gui.View {
 	}
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.SomeF(16),
+		Spacing: gui.SomeF(gui.SpacingMedium),
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{Text: "Fit to content", TextStyle: t.TextStyleTitleSmall}),
@@ -205,7 +205,7 @@ func demoSelect(w *gui.Window) gui.View {
 	t := gui.CurrentTheme()
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.SomeF(12),
+		Spacing: gui.SomeF(gui.SpacingMedium),
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
@@ -242,7 +242,7 @@ func demoListBox(w *gui.Window) gui.View {
 	t := gui.CurrentTheme()
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.SomeF(12),
+		Spacing: gui.SomeF(gui.SpacingMedium),
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
@@ -285,7 +285,7 @@ func demoCombobox(w *gui.Window) gui.View {
 	t := gui.CurrentTheme()
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.SomeF(12),
+		Spacing: gui.SomeF(gui.SpacingMedium),
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
@@ -316,7 +316,7 @@ func demoDragReorder(w *gui.Window) gui.View {
 		tabItems[i] = gui.NewTabItem(tab.ID, tab.Label, []gui.View{
 			gui.Column(gui.ContainerCfg{
 				Sizing:  gui.FillFit,
-				Padding: gui.NewPadding(12, 12, 12, 12),
+				Padding: gui.PaddingMedium,
 				Content: []gui.View{
 					gui.Text(gui.TextCfg{
 						Text:      tab.Label + " content",
@@ -330,7 +330,7 @@ func demoDragReorder(w *gui.Window) gui.View {
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
 		Padding: gui.NoPadding,
-		Spacing: gui.SomeF(16),
+		Spacing: gui.SomeF(gui.SpacingMedium),
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      "Drag items to reorder, or use Alt+Arrow keys. Escape cancels.",
@@ -445,7 +445,7 @@ func demoSlider(w *gui.Window) gui.View {
 	t := gui.CurrentTheme()
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.SomeF(12),
+		Spacing: gui.SomeF(gui.SpacingMedium),
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{

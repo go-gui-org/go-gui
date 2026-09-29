@@ -78,7 +78,7 @@ func menuItem(menubarCfg MenubarCfg, itemCfg MenuItemCfg, extra ...View) View {
 	if itemCfg.Separator {
 		return Separator(SeparatorCfg{
 			Color: menubarCfg.Colors.Border,
-			Inset: NewPadding(2, 0, 2, 0),
+			Inset: NewPadding(2, 0, 2, 0), // ergonomics-audit:spacing — separator rule inset
 		})
 	}
 

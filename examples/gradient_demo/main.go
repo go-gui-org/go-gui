@@ -182,12 +182,12 @@ func mainView(w *gui.Window) gui.View {
 		ScrollbarCfgY: &gui.ScrollbarCfg{
 			Overflow: gui.ScrollbarAuto,
 		},
-		Spacing: gui.Some[float32](40),
-		Padding: gui.NewPadding(40, 40, 40, 40),
+		Spacing: gui.SomeF(gui.SpacingLarge),
+		Padding: gui.PaddingLarge,
 		Content: []gui.View{
 			// Direction radio group
 			gui.Column(gui.ContainerCfg{
-				Spacing:    gui.Some[float32](10),
+				Spacing:    gui.SomeF(gui.SpacingMedium),
 				SizeBorder: gui.NoBorder,
 				Content: []gui.View{
 					gui.Text(gui.TextCfg{
@@ -213,7 +213,7 @@ func mainView(w *gui.Window) gui.View {
 
 			// Linear gradients
 			gui.Column(gui.ContainerCfg{
-				Spacing:    gui.Some[float32](20),
+				Spacing:    gui.SomeF(gui.SpacingLarge),
 				HAlign:     gui.HAlignCenter,
 				SizeBorder: gui.NoBorder,
 				Content: []gui.View{
@@ -247,7 +247,7 @@ func mainView(w *gui.Window) gui.View {
 
 			// Radial gradients
 			gui.Column(gui.ContainerCfg{
-				Spacing:    gui.Some[float32](40),
+				Spacing:    gui.SomeF(gui.SpacingLarge),
 				HAlign:     gui.HAlignCenter,
 				SizeBorder: gui.NoBorder,
 				Content: []gui.View{
@@ -256,7 +256,7 @@ func mainView(w *gui.Window) gui.View {
 						TextStyle: theme.TextStyleTitle,
 					}),
 					gui.Row(gui.ContainerCfg{
-						Spacing: gui.Some[float32](30),
+						Spacing: gui.SomeF(gui.SpacingLarge),
 						Content: []gui.View{
 							gradientBox(100, 300, 0,
 								radialTall,
@@ -267,7 +267,7 @@ func mainView(w *gui.Window) gui.View {
 						},
 					}),
 					gui.Row(gui.ContainerCfg{
-						Spacing: gui.Some[float32](40),
+						Spacing: gui.SomeF(gui.SpacingLarge),
 						Content: []gui.View{
 							gradientBox(300, 100, 0,
 								radialWide,

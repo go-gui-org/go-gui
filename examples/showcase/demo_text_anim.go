@@ -69,8 +69,7 @@ func textAnimEntranceCard(t gui.Theme, app *ShowcaseApp) gui.View {
 			},
 		}),
 		gui.Button(gui.ButtonCfg{
-			ID:      "text-anim-replay",
-			Padding: gui.NewPadding(6, 16, 6, 16),
+			ID: "text-anim-replay",
 			Content: []gui.View{
 				gui.Text(gui.TextCfg{Text: "Replay", TextStyle: t.TextStyleBody}),
 			},

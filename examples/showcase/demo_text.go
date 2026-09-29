@@ -311,7 +311,7 @@ func demoRtf(_ *gui.Window) gui.View {
 	t := gui.CurrentTheme()
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.SomeF(16),
+		Spacing: gui.SomeF(gui.SpacingMedium),
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{

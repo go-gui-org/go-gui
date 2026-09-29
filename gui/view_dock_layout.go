@@ -297,7 +297,7 @@ func dockGroupView(
 	if !cfg.HideSingleTab || len(group.PanelIDs) > 1 {
 		groupContent = append(groupContent, Row(ContainerCfg{
 			Sizing:     FillFit,
-			Padding:    NewPadding(2, 4, 0, 4),
+			Padding:    NewPadding(2, 4, 0, 4), // ergonomics-audit:spacing — tab-strip edge, not a surface inset
 			Spacing:    NoSpacing,
 			SizeBorder: NoBorder,
 			Color:      cfg.ColorTabBar,
@@ -399,7 +399,7 @@ func dockTabButton(
 		ID:         ScopeID(dockID, "tab", groupID, panelID),
 		Sizing:     FillFit,
 		HAlign:     Some(HAlignLeft),
-		Padding:    NewPadding(4, 8, 4, 8),
+		Padding:    NewPadding(4, 8, 4, 8), // ergonomics-audit:spacing — a dock tab, denser than a push button
 		Radius:     NoRadius,
 		SizeBorder: NoBorder,
 		Color:      colorTab,

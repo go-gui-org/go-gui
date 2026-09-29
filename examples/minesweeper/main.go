@@ -210,8 +210,8 @@ func landingView(w *gui.Window) gui.View {
 		Color:   colorBG,
 		HAlign:  gui.HAlignCenter,
 		VAlign:  gui.VAlignMiddle,
-		Spacing: gui.SomeF(14),
-		Padding: gui.NewPadding(24, 24, 24, 24),
+		Spacing: gui.SomeF(gui.SpacingMedium),
+		Padding: gui.PaddingLarge,
 		Content: landingContent(w, app, theme),
 	})
 }
@@ -228,7 +228,7 @@ func landingContent(w *gui.Window, app *App, theme gui.Theme) []gui.View {
 			TextStyle: ts(theme.TextStyleCode, 16, colorNeonCyan),
 		}),
 		gui.Row(gui.ContainerCfg{
-			HAlign: gui.HAlignCenter, Spacing: gui.SomeF(10),
+			HAlign: gui.HAlignCenter, Spacing: gui.SomeF(gui.SpacingMedium),
 			SizeBorder: gui.NoBorder,
 			Content: []gui.View{
 				diffButton(w, "BEGINNER", "9\u00d79", DiffBeginner, colorNeonGreen),
@@ -237,7 +237,7 @@ func landingContent(w *gui.Window, app *App, theme gui.Theme) []gui.View {
 			},
 		}),
 		gui.Row(gui.ContainerCfg{
-			HAlign: gui.HAlignCenter, Spacing: gui.SomeF(20),
+			HAlign: gui.HAlignCenter, Spacing: gui.SomeF(gui.SpacingMedium),
 			SizeBorder: gui.NoBorder,
 			Content: []gui.View{
 				gui.Switch(gui.SwitchCfg{
@@ -294,7 +294,7 @@ func diffButton(w *gui.Window, title, subtitle string, diff Difficulty, color gu
 		Color:      color.WithOpacity(0.15),
 		Colors:     gui.ColorSet{Hover: color.WithOpacity(0.3), Click: color.WithOpacity(0.5), Border: color},
 		SizeBorder: gui.SomeF(2),
-		Padding:    gui.NewPadding(12, 18, 12, 18),
+		Padding:    gui.NewPadding(gui.PadMedium, gui.PadLarge, gui.PadMedium, gui.PadLarge),
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      title,
@@ -528,8 +528,8 @@ func gameView(w *gui.Window) gui.View {
 	return gui.Column(gui.ContainerCfg{
 		Sizing: gui.FillFill,
 		HAlign: gui.HAlignCenter, VAlign: gui.VAlignMiddle,
-		Spacing: gui.SomeF(8), SizeBorder: gui.NoBorder,
-		Padding: gui.NewPadding(12, 16, 12, 16),
+		Spacing: gui.SomeF(gui.SpacingMedium), SizeBorder: gui.NoBorder,
+		Padding: gui.PaddingMedium,
 		Content: []gui.View{
 			headerView(app, theme, boardW),
 			boardView(app, g, theme, cellPx, boardW, boardH, training),
@@ -571,7 +571,7 @@ func headerView(app *App, theme gui.Theme, boardW float32) gui.View {
 						Color:      gui.RGB(40, 44, 52),
 						Colors:     gui.ColorSet{Hover: gui.RGB(55, 60, 68), Click: gui.RGB(30, 34, 40), Border: gui.RGB(100, 105, 110)},
 						SizeBorder: gui.SomeF(2),
-						Padding:    gui.NewPadding(4, 4, 4, 4),
+						Padding:    gui.PaddingXSmall,
 						Radius:     gui.SomeF(6),
 						Content: []gui.View{
 							gui.Text(gui.TextCfg{
@@ -601,7 +601,7 @@ func ledDisplay(x, y float32, text string, theme gui.Theme) gui.View {
 		ColorBorder: gui.RGB(60, 60, 60),
 		HAlign:      gui.HAlignCenter,
 		VAlign:      gui.VAlignMiddle,
-		Padding:     gui.NewPadding(4, 8, 4, 8),
+		Padding:     gui.NewPadding(gui.PadXSmall, gui.PadSmall, gui.PadXSmall, gui.PadSmall),
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      text,
@@ -909,12 +909,12 @@ func footerView(app *App, g *Game, theme gui.Theme) gui.View {
 	}
 
 	items = append(items, gui.Row(gui.ContainerCfg{
-		HAlign: gui.HAlignCenter, Spacing: gui.SomeF(8),
+		HAlign: gui.HAlignCenter, Spacing: gui.SomeF(gui.SpacingMedium),
 		SizeBorder: gui.NoBorder, Content: buttons,
 	}))
 
 	return gui.Column(gui.ContainerCfg{
-		HAlign: gui.HAlignCenter, Spacing: gui.SomeF(6),
+		HAlign: gui.HAlignCenter, Spacing: gui.SomeF(gui.SpacingSmall),
 		SizeBorder: gui.NoBorder, Content: items,
 	})
 }
@@ -926,7 +926,7 @@ func smallButton(label string, action func(*gui.Window)) gui.View {
 		Color:      gui.RGB(45, 50, 58),
 		Colors:     gui.ColorSet{Hover: gui.RGB(60, 66, 74), Click: gui.RGB(35, 40, 48), Border: gui.RGB(90, 95, 100)},
 		SizeBorder: gui.SomeF(1),
-		Padding:    gui.NewPadding(6, 12, 6, 12),
+		Padding:    gui.NewPadding(gui.PadSmall, gui.PadMedium, gui.PadSmall, gui.PadMedium),
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text: label,

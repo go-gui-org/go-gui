@@ -226,7 +226,7 @@ func mainView(w *gui.Window) gui.View {
 				Sizing:  gui.FixedFixed,
 				HAlign:  gui.HAlignCenter,
 				VAlign:  gui.VAlignMiddle,
-				Padding: gui.NewPadding(28, 28, 28, 28),
+				Padding: gui.PaddingLarge,
 				Content: []gui.View{
 					calculatorShell(w),
 				},
@@ -244,8 +244,8 @@ func calculatorShell(w *gui.Window) gui.View {
 		ColorBorder: colorShellBorder,
 		SizeBorder:  gui.SomeF(2),
 		Radius:      gui.SomeF(22),
-		Padding:     gui.NewPadding(10, 10, 10, 10),
-		Spacing:     gui.SomeF(8),
+		Padding:     gui.PaddingMedium,
+		Spacing:     gui.SomeF(gui.SpacingMedium),
 		Content: []gui.View{
 			topChrome(),
 			displayView(w),
@@ -262,7 +262,7 @@ func topChrome() gui.View {
 		Content: []gui.View{
 			gui.Row(gui.ContainerCfg{
 				Sizing:  gui.FitFit,
-				Spacing: gui.SomeF(8),
+				Spacing: gui.SomeF(gui.SpacingSmall),
 				Padding: gui.NoPadding,
 				Content: []gui.View{
 					chromeDot(gui.RGB(255, 95, 87)),
@@ -320,7 +320,7 @@ func displayView(w *gui.Window) gui.View {
 		Sizing:  gui.FixedFixed,
 		HAlign:  gui.HAlignEnd,
 		VAlign:  gui.VAlignBottom,
-		Padding: gui.NewPadding(2, 4, 2, 4),
+		Padding: gui.NewPadding(2, 4, 2, 4), // ergonomics-audit:spacing — display readout fine inset, not a ladder step
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				ID:        displayFocus,

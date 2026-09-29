@@ -160,7 +160,7 @@ func headerView(app *App) gui.View {
 		Sizing:  gui.FillFit,
 		Padding: gui.NoPadding,
 		VAlign:  gui.VAlignMiddle,
-		Spacing: gui.SomeF(12),
+		Spacing: gui.SomeF(gui.SpacingMedium),
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{Text: "Process Monitor", TextStyle: theme.TextStyleTitle}),
 			spacer(),
@@ -197,7 +197,7 @@ func headerView(app *App) gui.View {
 		Sizing:  gui.FillFit,
 		Padding: gui.NoPadding,
 		VAlign:  gui.VAlignMiddle,
-		Spacing: gui.SomeF(12),
+		Spacing: gui.SomeF(gui.SpacingMedium),
 		Content: status,
 	})
 
@@ -206,7 +206,7 @@ func headerView(app *App) gui.View {
 		Sizing:  gui.FillFit,
 		Padding: gui.NoPadding,
 		VAlign:  gui.VAlignMiddle,
-		Spacing: gui.SomeF(12),
+		Spacing: gui.SomeF(gui.SpacingMedium),
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{Text: "View", TextStyle: theme.TextStyleCaption.Bold()}),
 			viewModeRadio(app),
@@ -218,8 +218,8 @@ func headerView(app *App) gui.View {
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
 		Color:   theme.ColorPanel,
-		Padding: gui.NewPadding(12, 16, 12, 16),
-		Spacing: gui.SomeF(8),
+		Padding: gui.PaddingMedium,
+		Spacing: gui.SomeF(gui.SpacingMedium),
 		Content: []gui.View{top, middle, bottom},
 	})
 }
@@ -242,7 +242,7 @@ func statItems(app *App) []gui.View {
 			Sizing:  gui.FitFit,
 			Padding: gui.NoPadding,
 			VAlign:  gui.VAlignMiddle,
-			Spacing: gui.SomeF(8),
+			Spacing: gui.SomeF(gui.SpacingSmall),
 			Content: []gui.View{
 				gui.Text(gui.TextCfg{Text: "Memory", TextStyle: theme.TextStyleCaptionSmall}),
 				usageBar(ratio, 160, 10, accentMem),
@@ -263,8 +263,8 @@ func statPill(label, value string) gui.View {
 		Sizing:  gui.FitFit,
 		Color:   theme.ColorInterior,
 		Radius:  gui.SomeF(theme.RadiusSmall),
-		Padding: gui.NewPadding(5, 9, 5, 9),
-		Spacing: gui.SomeF(6),
+		Padding: gui.NewPadding(gui.PadXSmall, gui.PadSmall, gui.PadXSmall, gui.PadSmall),
+		Spacing: gui.SomeF(gui.SpacingSmall),
 		VAlign:  gui.VAlignMiddle,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{Text: label, TextStyle: theme.TextStyleCaptionSmall}),
@@ -388,7 +388,7 @@ func headerCell(col column, idx int, app *App) gui.View {
 	cfg := gui.ContainerCfg{
 		VAlign:  gui.VAlignMiddle,
 		Clip:    true,
-		Padding: gui.NewPadding(0, 6, 0, 6),
+		Padding: gui.NewPadding(0, gui.PadSmall, 0, gui.PadSmall),
 		Content: []gui.View{gui.Text(gui.TextCfg{Text: label, TextStyle: theme.TextStyleCaptionSmall.Bold(), Clip: true})},
 		OnClick: func(ctx gui.EventCtx) {
 			a := state(ctx.Window)
@@ -453,7 +453,7 @@ func detailView(app *App) gui.View {
 		return gui.Column(gui.ContainerCfg{
 			Sizing:  gui.FillFit,
 			Color:   theme.ColorPanel,
-			Padding: gui.NewPadding(10, 16, 12, 16),
+			Padding: gui.PaddingMedium,
 			Content: []gui.View{gui.Text(gui.TextCfg{Text: "Select a process", TextStyle: theme.TextStyleCaption})},
 		})
 	}
@@ -485,14 +485,14 @@ func detailView(app *App) gui.View {
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
 		Color:   theme.ColorPanel,
-		Padding: gui.NewPadding(10, 16, 12, 16),
-		Spacing: gui.SomeF(6),
+		Padding: gui.PaddingMedium,
+		Spacing: gui.SomeF(gui.SpacingSmall),
 		Content: []gui.View{
 			gui.Row(gui.ContainerCfg{
 				Sizing:  gui.FillFit,
 				Padding: gui.NoPadding,
 				VAlign:  gui.VAlignMiddle,
-				Spacing: gui.SomeF(12),
+				Spacing: gui.SomeF(gui.SpacingMedium),
 				Content: facts,
 			}),
 			gui.Text(gui.TextCfg{Text: truncate(cmd, 160), TextStyle: theme.TextStyleCaptionSmall, Clip: true}),
@@ -505,7 +505,7 @@ func historyCharts(p *Process) gui.View {
 	return gui.Row(gui.ContainerCfg{
 		Sizing:  gui.FitFit,
 		Padding: gui.NoPadding,
-		Spacing: gui.SomeF(12),
+		Spacing: gui.SomeF(gui.SpacingMedium),
 		Content: []gui.View{
 			usageChart(p, "CPU", 100, accentCPU,
 				func(pt ProcessPoint) float64 { return pt.CPUPercent },
@@ -526,7 +526,7 @@ func textCell(width float32, s string, style gui.TextStyle) gui.View {
 		Sizing:  gui.FixedFill,
 		VAlign:  gui.VAlignMiddle,
 		Clip:    true,
-		Padding: gui.NewPadding(0, 6, 0, 6),
+		Padding: gui.NewPadding(0, gui.PadSmall, 0, gui.PadSmall),
 		Content: []gui.View{gui.Text(gui.TextCfg{Text: s, TextStyle: style, Clip: true})},
 	})
 }
@@ -543,8 +543,8 @@ func cpuCell(p *Process, _ *App) gui.View {
 		Sizing:  gui.FixedFill,
 		VAlign:  gui.VAlignMiddle,
 		Clip:    true,
-		Padding: gui.NewPadding(0, 6, 0, 6),
-		Spacing: gui.SomeF(6),
+		Padding: gui.NewPadding(0, gui.PadSmall, 0, gui.PadSmall),
+		Spacing: gui.SomeF(gui.SpacingSmall),
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{Text: p.CPUText(), TextStyle: theme.TextStyleCaption}),
 			usageBar(ratio, 48, 8, accentCPU),
@@ -597,8 +597,8 @@ func nameCell(p *Process, app *App) gui.View {
 		Sizing:  gui.FillFill,
 		VAlign:  gui.VAlignMiddle,
 		Clip:    true,
-		Padding: gui.NewPadding(0, 6, 0, 6),
-		Spacing: gui.SomeF(2),
+		Padding: gui.NewPadding(0, gui.PadSmall, 0, gui.PadSmall),
+		Spacing: gui.SomeF(gui.SpacingTight),
 		Content: kids,
 	})
 }

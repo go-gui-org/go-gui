@@ -30,7 +30,7 @@ func demoThinkingOrb(w *gui.Window) gui.View {
 
 			SizeBorder: gui.NoBorder,
 			HAlign:     gui.HAlignCenter,
-			Spacing:    gui.SomeF(6),
+			Spacing:    gui.SomeF(gui.SpacingSmall),
 			Content: []gui.View{
 				gui.ThinkingOrb(gui.ThinkingOrbCfg{
 					ID:     gui.ScopeIDN("thinking-orb", "hero", i),
@@ -64,7 +64,7 @@ func demoThinkingOrb(w *gui.Window) gui.View {
 		Sizing:     gui.FillFit,
 		Padding:    gui.NoPadding,
 		SizeBorder: gui.NoBorder,
-		Spacing:    gui.SomeF(12),
+		Spacing:    gui.SomeF(gui.SpacingMedium),
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      "Nine semantic states, regular and small",
@@ -72,7 +72,7 @@ func demoThinkingOrb(w *gui.Window) gui.View {
 			}),
 			gui.Wrap(gui.ContainerCfg{
 				Sizing:     gui.FillFit,
-				Spacing:    gui.SomeF(8),
+				Spacing:    gui.SomeF(gui.SpacingMedium),
 				Padding:    gui.NoPadding,
 				SizeBorder: gui.NoBorder,
 				Content:    cells,
@@ -83,7 +83,7 @@ func demoThinkingOrb(w *gui.Window) gui.View {
 			}),
 			gui.Column(gui.ContainerCfg{
 				Sizing:     gui.FillFit,
-				Spacing:    gui.SomeF(8),
+				Spacing:    gui.SomeF(gui.SpacingMedium),
 				Padding:    gui.NoPadding,
 				SizeBorder: gui.NoBorder,
 				Content:    labels,

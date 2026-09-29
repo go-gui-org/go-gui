@@ -107,7 +107,7 @@ func View(app *App) gui.View {
 				Color:       xpPanel,
 				ColorBorder: xpPanelEdge,
 				SizeBorder:  gui.SomeF(1),
-				Padding:     gui.PadAll(14),
+				Padding:     gui.PaddingMedium,
 			},
 				fieldLabel("Single-line"),
 				xpField(app, "user", false),
@@ -156,8 +156,8 @@ func valuesPanel(app *App) gui.View {
 		Radius:      gui.SomeF(4),
 		ColorBorder: gui.RGBA(0, 0, 0, 20),
 		SizeBorder:  gui.SomeF(1),
-		Padding:     gui.NewPadding(10, 14, 10, 14),
-		Spacing:     gui.SomeF(4),
+		Padding:     gui.PaddingMedium,
+		Spacing:     gui.SomeF(gui.SpacingSmall),
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{Text: "Live values", TextStyle: look.Light.Label}),
 			gui.Text(gui.TextCfg{ID: "default-values", TextStyle: look.Light.Body,
@@ -241,8 +241,8 @@ func materialField(app *App, id string, multiline bool, accent gui.Color) gui.Vi
 			Radius:      gui.SomeF(4),
 			ColorBorder: border,
 			SizeBorder:  gui.SomeF(1),
-			Padding:     gui.NewPadding(8, 8, 0, 8),
-			Spacing:     gui.SomeF(6),
+			Padding:     gui.NewPadding(gui.PadSmall, gui.PadSmall, 0, gui.PadSmall),
+			Spacing:     gui.SomeF(gui.SpacingSmall),
 			Clip:        true,
 			OnMouseDown: focusField,
 			Content: []gui.View{
@@ -297,7 +297,7 @@ func xpField(app *App, id string, multiline bool) gui.View {
 				gui.Rectangle(gui.RectangleCfg{Height: 1, Sizing: gui.FillFixed, Color: xpInset}),
 				gui.Column(gui.ContainerCfg{
 					Sizing:     gui.FillFit,
-					Padding:    gui.NewPadding(5, 7, 6, 7),
+					Padding:    gui.NewPadding(5, 7, 6, 7), // ergonomics-audit:spacing — skin metrics: imitates a platform text field
 					SizeBorder: gui.NoBorder,
 					Content:    []gui.View{plainInput(app, id, multiline)},
 				}),

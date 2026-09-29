@@ -12,7 +12,7 @@ func demoRectangle(_ *gui.Window) gui.View {
 	t := gui.CurrentTheme()
 	return gui.Row(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.SomeF(12),
+		Spacing: gui.SomeF(gui.SpacingMedium),
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			gui.Column(gui.ContainerCfg{
@@ -134,13 +134,13 @@ func demoIcons(w *gui.Window) gui.View {
 func demoGradient(_ *gui.Window) gui.View {
 	return gui.Column(gui.ContainerCfg{
 		Sizing:     gui.FillFit,
-		Spacing:    gui.SomeF(12),
+		Spacing:    gui.SomeF(gui.SpacingMedium),
 		Padding:    gui.NoPadding,
 		SizeBorder: gui.NoBorder,
 		Content: []gui.View{
 			gui.Row(gui.ContainerCfg{
 				Sizing:     gui.FillFit,
-				Spacing:    gui.SomeF(12),
+				Spacing:    gui.SomeF(gui.SpacingMedium),
 				Padding:    gui.NoPadding,
 				SizeBorder: gui.NoBorder,
 				Content: []gui.View{
@@ -212,7 +212,7 @@ func demoGradient(_ *gui.Window) gui.View {
 			}),
 			gui.Row(gui.ContainerCfg{
 				Sizing:     gui.FillFit,
-				Spacing:    gui.SomeF(12),
+				Spacing:    gui.SomeF(gui.SpacingMedium),
 				Padding:    gui.NoPadding,
 				SizeBorder: gui.NoBorder,
 				Content: []gui.View{
@@ -263,7 +263,7 @@ func demoGradient(_ *gui.Window) gui.View {
 			}),
 			gui.Row(gui.ContainerCfg{
 				Sizing:     gui.FillFit,
-				Spacing:    gui.SomeF(12),
+				Spacing:    gui.SomeF(gui.SpacingMedium),
 				Padding:    gui.NoPadding,
 				SizeBorder: gui.NoBorder,
 				Content: []gui.View{
@@ -355,7 +355,7 @@ func demoBoxShadows(_ *gui.Window) gui.View {
 			}),
 			gui.Row(gui.ContainerCfg{
 				Sizing:  gui.FillFit,
-				Spacing: gui.SomeF(40),
+				Spacing: gui.SomeF(gui.SpacingLarge),
 				Padding: gui.NoPadding,
 				Content: []gui.View{
 					showcaseShadowCard("Soft depth", "Blur 12, Y 3", cardColor, gui.RGBA(0, 0, 0, 40), 0, 3, 12, 0),
@@ -364,7 +364,7 @@ func demoBoxShadows(_ *gui.Window) gui.View {
 			}),
 			gui.Row(gui.ContainerCfg{
 				Sizing:  gui.FillFit,
-				Spacing: gui.SomeF(40),
+				Spacing: gui.SomeF(gui.SpacingLarge),
 				Padding: gui.NoPadding,
 				Content: []gui.View{
 					showcaseShadowCard("Directional", "Blur 10, X 8, Y 8", cardColor, gui.RGBA(0, 0, 0, 65), 8, 8, 10, 0),
@@ -373,7 +373,7 @@ func demoBoxShadows(_ *gui.Window) gui.View {
 			}),
 			gui.Row(gui.ContainerCfg{
 				Sizing:  gui.FillFit,
-				Spacing: gui.SomeF(40),
+				Spacing: gui.SomeF(gui.SpacingLarge),
 				Padding: gui.NoPadding,
 				Content: []gui.View{
 					showcaseShadowCard("Spread ring", "Spread 6, no blur", cardColor, gui.RGBA(0, 0, 0, 55), 0, 0, 0, 6),
@@ -390,8 +390,8 @@ func showcaseShadowCard(title, note string, bg, shadowColor gui.Color, shadowOff
 		Width:       170,
 		Height:      96,
 		Sizing:      gui.FixedFixed,
-		Padding:     gui.NewPadding(10, 10, 10, 10),
-		Spacing:     gui.SomeF(2),
+		Padding:     gui.PaddingMedium,
+		Spacing:     gui.SomeF(gui.SpacingTight),
 		Radius:      gui.SomeF(10),
 		Color:       bg,
 		ColorBorder: t.ColorBorder,
@@ -418,12 +418,12 @@ func demoSvg(_ *gui.Window) gui.View {
 	t := gui.CurrentTheme()
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.SomeF(16),
+		Spacing: gui.SomeF(gui.SpacingMedium),
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			gui.Row(gui.ContainerCfg{
 				Sizing:  gui.FillFit,
-				Spacing: gui.SomeF(16),
+				Spacing: gui.SomeF(gui.SpacingMedium),
 				Padding: gui.NoPadding,
 				Content: []gui.View{
 					gui.Svg(gui.SvgCfg{
@@ -492,7 +492,7 @@ func demoSvg(_ *gui.Window) gui.View {
 			gui.Text(gui.TextCfg{Text: "Gradient spread methods (linearGradient + spreadMethod)", TextStyle: t.TextStyleBodySmall.Bold()}),
 			gui.Row(gui.ContainerCfg{
 				Sizing:  gui.FillFit,
-				Spacing: gui.SomeF(16),
+				Spacing: gui.SomeF(gui.SpacingMedium),
 				Padding: gui.NoPadding,
 				Content: []gui.View{
 					svgSpreadSample(t, "svg-spread-pad", "pad", "pad"),
@@ -503,7 +503,7 @@ func demoSvg(_ *gui.Window) gui.View {
 			gui.Text(gui.TextCfg{Text: "Radial gradients (centered + focal offset)", TextStyle: t.TextStyleBodySmall.Bold()}),
 			gui.Row(gui.ContainerCfg{
 				Sizing:  gui.FillFit,
-				Spacing: gui.SomeF(16),
+				Spacing: gui.SomeF(gui.SpacingMedium),
 				Padding: gui.NoPadding,
 				Content: []gui.View{
 					svgRadialSample(t, "svg-radial-center", "center",
@@ -541,7 +541,7 @@ func demoSvg(_ *gui.Window) gui.View {
 			gui.Text(gui.TextCfg{Text: "CSS selectors (class, attribute, sibling, :not, var, calc)", TextStyle: t.TextStyleBodySmall.Bold()}),
 			gui.Row(gui.ContainerCfg{
 				Sizing:  gui.FillFit,
-				Spacing: gui.SomeF(16),
+				Spacing: gui.SomeF(gui.SpacingMedium),
 				Padding: gui.NoPadding,
 				Content: []gui.View{
 					svgRadialSample(t, "svg-css-class", "class",
@@ -612,7 +612,7 @@ func svgSpreadSample(t gui.Theme, id, label, spread string) gui.View {
 </svg>`
 	return gui.Column(gui.ContainerCfg{
 		Sizing:     gui.FitFit,
-		Spacing:    gui.SomeF(4),
+		Spacing:    gui.SomeF(gui.SpacingSmall),
 		Padding:    gui.NoPadding,
 		SizeBorder: gui.NoBorder,
 		Content: []gui.View{
@@ -625,7 +625,7 @@ func svgSpreadSample(t gui.Theme, id, label, spread string) gui.View {
 func svgRadialSample(t gui.Theme, id, label, data string) gui.View {
 	return gui.Column(gui.ContainerCfg{
 		Sizing:     gui.FitFit,
-		Spacing:    gui.SomeF(4),
+		Spacing:    gui.SomeF(gui.SpacingSmall),
 		Padding:    gui.NoPadding,
 		SizeBorder: gui.NoBorder,
 		Content: []gui.View{
@@ -640,17 +640,17 @@ func demoImage(_ *gui.Window) gui.View {
 	imgPath := embeddedAssetPath("assets/image_clip_face.jpg")
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.SomeF(12),
+		Spacing: gui.SomeF(gui.SpacingMedium),
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			gui.Row(gui.ContainerCfg{
 				Sizing:  gui.FillFit,
-				Spacing: gui.SomeF(24),
+				Spacing: gui.SomeF(gui.SpacingLarge),
 				Padding: gui.NoPadding,
 				Content: []gui.View{
 					gui.Column(gui.ContainerCfg{
 						Sizing:     gui.FitFit,
-						Spacing:    gui.SomeF(8),
+						Spacing:    gui.SomeF(gui.SpacingSmall),
 						Padding:    gui.NoPadding,
 						SizeBorder: gui.NoBorder,
 						Content: []gui.View{
@@ -664,7 +664,7 @@ func demoImage(_ *gui.Window) gui.View {
 					}),
 					gui.Column(gui.ContainerCfg{
 						Sizing:     gui.FitFit,
-						Spacing:    gui.SomeF(8),
+						Spacing:    gui.SomeF(gui.SpacingSmall),
 						Padding:    gui.NoPadding,
 						SizeBorder: gui.NoBorder,
 						Content: []gui.View{
@@ -689,7 +689,7 @@ func demoImage(_ *gui.Window) gui.View {
 					}),
 					gui.Column(gui.ContainerCfg{
 						Sizing:     gui.FitFit,
-						Spacing:    gui.SomeF(8),
+						Spacing:    gui.SomeF(gui.SpacingSmall),
 						Padding:    gui.NoPadding,
 						SizeBorder: gui.NoBorder,
 						Content: []gui.View{
@@ -729,7 +729,7 @@ func demoDrawCanvas(w *gui.Window) gui.View {
 
 	return gui.Column(gui.ContainerCfg{
 		Sizing:     gui.FillFit,
-		Spacing:    gui.SomeF(8),
+		Spacing:    gui.SomeF(gui.SpacingMedium),
 		Padding:    gui.NoPadding,
 		SizeBorder: gui.NoBorder,
 		Content: []gui.View{
@@ -1001,7 +1001,7 @@ func demoBlur(_ *gui.Window) gui.View {
 	t := gui.CurrentTheme()
 	return gui.Column(gui.ContainerCfg{
 		Sizing:     gui.FillFit,
-		Spacing:    gui.SomeF(12),
+		Spacing:    gui.SomeF(gui.SpacingMedium),
 		Padding:    gui.NoPadding,
 		SizeBorder: gui.NoBorder,
 		Content: []gui.View{
@@ -1012,7 +1012,7 @@ func demoBlur(_ *gui.Window) gui.View {
 			}),
 			gui.Row(gui.ContainerCfg{
 				Sizing:     gui.FillFit,
-				Spacing:    gui.SomeF(40),
+				Spacing:    gui.SomeF(gui.SpacingLarge),
 				Padding:    gui.NoPadding,
 				SizeBorder: gui.NoBorder,
 				Content: []gui.View{
@@ -1081,7 +1081,7 @@ func demoShader(w *gui.Window) gui.View {
 
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.SomeF(12),
+		Spacing: gui.SomeF(gui.SpacingMedium),
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
@@ -1090,7 +1090,7 @@ func demoShader(w *gui.Window) gui.View {
 			}),
 			gui.Row(gui.ContainerCfg{
 				Sizing:  gui.FillFit,
-				Spacing: gui.SomeF(20),
+				Spacing: gui.SomeF(gui.SpacingLarge),
 				Padding: gui.NoPadding,
 				Content: []gui.View{
 					gui.Column(gui.ContainerCfg{
@@ -1196,7 +1196,7 @@ func demoColorFilter(_ *gui.Window) gui.View {
 
 	return gui.Column(gui.ContainerCfg{
 		Sizing:     gui.FillFit,
-		Spacing:    gui.SomeF(16),
+		Spacing:    gui.SomeF(gui.SpacingMedium),
 		Padding:    gui.NoPadding,
 		SizeBorder: gui.NoBorder,
 		Content: []gui.View{
@@ -1210,14 +1210,14 @@ func demoColorFilter(_ *gui.Window) gui.View {
 			}),
 			gui.Row(gui.ContainerCfg{
 				Sizing:     gui.FillFit,
-				Spacing:    gui.SomeF(12),
+				Spacing:    gui.SomeF(gui.SpacingMedium),
 				Padding:    gui.NoPadding,
 				SizeBorder: gui.NoBorder,
 				Content: []gui.View{
 					gui.Column(gui.ContainerCfg{
 						Width:       120,
 						Sizing:      gui.FixedFit,
-						Padding:     gui.NewPadding(8, 8, 8, 8),
+						Padding:     gui.PaddingSmall,
 						Radius:      gui.SomeF(6),
 						Color:       t.ColorPanel,
 						ColorFilter: gui.ColorFilterGrayscale(),
@@ -1226,7 +1226,7 @@ func demoColorFilter(_ *gui.Window) gui.View {
 					gui.Column(gui.ContainerCfg{
 						Width:       120,
 						Sizing:      gui.FixedFit,
-						Padding:     gui.NewPadding(8, 8, 8, 8),
+						Padding:     gui.PaddingSmall,
 						Radius:      gui.SomeF(6),
 						Color:       t.ColorPanel,
 						ColorFilter: gui.ColorFilterSepia(),
@@ -1235,7 +1235,7 @@ func demoColorFilter(_ *gui.Window) gui.View {
 					gui.Column(gui.ContainerCfg{
 						Width:       120,
 						Sizing:      gui.FixedFit,
-						Padding:     gui.NewPadding(8, 8, 8, 8),
+						Padding:     gui.PaddingSmall,
 						Radius:      gui.SomeF(6),
 						Color:       t.ColorPanel,
 						ColorFilter: gui.ColorFilterContrast(1.5),
@@ -1244,7 +1244,7 @@ func demoColorFilter(_ *gui.Window) gui.View {
 					gui.Column(gui.ContainerCfg{
 						Width:       120,
 						Sizing:      gui.FixedFit,
-						Padding:     gui.NewPadding(8, 8, 8, 8),
+						Padding:     gui.PaddingSmall,
 						Radius:      gui.SomeF(6),
 						Color:       t.ColorPanel,
 						ColorFilter: gui.ColorFilterSaturate(2.0),
@@ -1260,14 +1260,14 @@ func demoColorFilter(_ *gui.Window) gui.View {
 			}),
 			gui.Row(gui.ContainerCfg{
 				Sizing:     gui.FillFit,
-				Spacing:    gui.SomeF(12),
+				Spacing:    gui.SomeF(gui.SpacingMedium),
 				Padding:    gui.NoPadding,
 				SizeBorder: gui.NoBorder,
 				Content: []gui.View{
 					gui.Column(gui.ContainerCfg{
 						Width:   120,
 						Sizing:  gui.FixedFit,
-						Padding: gui.NewPadding(8, 8, 8, 8),
+						Padding: gui.PaddingSmall,
 						Radius:  gui.SomeF(6),
 						Color:   t.ColorPanel,
 						Content: colorContent("Original"),
@@ -1275,7 +1275,7 @@ func demoColorFilter(_ *gui.Window) gui.View {
 					gui.Column(gui.ContainerCfg{
 						Width:       120,
 						Sizing:      gui.FixedFit,
-						Padding:     gui.NewPadding(8, 8, 8, 8),
+						Padding:     gui.PaddingSmall,
 						Radius:      gui.SomeF(6),
 						Color:       t.ColorPanel,
 						BlurRadius:  4,
@@ -1285,7 +1285,7 @@ func demoColorFilter(_ *gui.Window) gui.View {
 					gui.Column(gui.ContainerCfg{
 						Width:       120,
 						Sizing:      gui.FixedFit,
-						Padding:     gui.NewPadding(8, 8, 8, 8),
+						Padding:     gui.PaddingSmall,
 						Radius:      gui.SomeF(6),
 						Color:       t.ColorPanel,
 						BlurRadius:  4,
@@ -1295,7 +1295,7 @@ func demoColorFilter(_ *gui.Window) gui.View {
 					gui.Column(gui.ContainerCfg{
 						Width:       120,
 						Sizing:      gui.FixedFit,
-						Padding:     gui.NewPadding(8, 8, 8, 8),
+						Padding:     gui.PaddingSmall,
 						Radius:      gui.SomeF(6),
 						Color:       t.ColorPanel,
 						BlurRadius:  4,
@@ -1312,7 +1312,7 @@ func demoColorFilter(_ *gui.Window) gui.View {
 			}),
 			gui.Row(gui.ContainerCfg{
 				Sizing:     gui.FillFit,
-				Spacing:    gui.SomeF(24),
+				Spacing:    gui.SomeF(gui.SpacingLarge),
 				Padding:    gui.NoPadding,
 				SizeBorder: gui.NoBorder,
 				Content: []gui.View{

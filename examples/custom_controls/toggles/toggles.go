@@ -92,7 +92,7 @@ func View(app *App) gui.View {
 			sectionTitle("Material (colored knob)"),
 			gui.Column(gui.ContainerCfg{
 				ID:         "material",
-				Spacing:    gui.SomeF(12),
+				Spacing:    gui.SomeF(gui.SpacingMedium),
 				Padding:    gui.PaddingNone,
 				SizeBorder: gui.NoBorder,
 				Content: []gui.View{
@@ -386,7 +386,7 @@ func labelToggle(id, label string, on bool, onClick func(gui.EventCtx)) gui.View
 				SizeBorder: gui.NoBorder,
 				// Inset from the rounded end, so the text stays out of
 				// the half under the knob.
-				Padding: gui.NewPadding(0, 10, 0, 10),
+				Padding: gui.NewPadding(0, 10, 0, 10), // ergonomics-audit:spacing — clears the knob's rounded end, not an inset
 				HAlign:  textAlign,
 				VAlign:  gui.VAlignMiddle,
 				Content: []gui.View{gui.Text(gui.TextCfg{Text: word, TextStyle: ts})},

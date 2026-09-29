@@ -50,8 +50,8 @@ func mainView(w *gui.Window) gui.View {
 
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFill,
-		Spacing: gui.SomeF(30),
-		Padding: gui.NewPadding(30, 30, 30, 30),
+		Spacing: gui.SomeF(gui.SpacingLarge),
+		Padding: gui.PaddingLarge,
 		HAlign:  gui.HAlignCenter,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
@@ -62,7 +62,7 @@ func mainView(w *gui.Window) gui.View {
 			// All four rotations side by side.
 			gui.Row(gui.ContainerCfg{
 				Sizing:     gui.FitFit,
-				Spacing:    gui.SomeF(20),
+				Spacing:    gui.SomeF(gui.SpacingLarge),
 				SizeBorder: gui.NoBorder,
 				VAlign:     gui.VAlignMiddle,
 				Content: []gui.View{
@@ -76,7 +76,7 @@ func mainView(w *gui.Window) gui.View {
 			// Interactive: rotated button.
 			gui.Row(gui.ContainerCfg{
 				Sizing:     gui.FitFit,
-				Spacing:    gui.SomeF(20),
+				Spacing:    gui.SomeF(gui.SpacingLarge),
 				SizeBorder: gui.NoBorder,
 				VAlign:     gui.VAlignMiddle,
 				Content: []gui.View{
@@ -87,7 +87,7 @@ func mainView(w *gui.Window) gui.View {
 						QuarterTurns: 1,
 						Content: gui.Row(gui.ContainerCfg{
 							Sizing:     gui.FitFit,
-							Padding:    gui.NewPadding(8, 16, 8, 16),
+							Padding:    gui.NewPadding(gui.PadSmall, gui.PadMedium, gui.PadSmall, gui.PadMedium),
 							Color:      gui.RGB(80, 120, 200),
 							Radius:     gui.SomeF(6),
 							SizeBorder: gui.NoBorder,
@@ -114,7 +114,7 @@ func mainView(w *gui.Window) gui.View {
 			// Nested rotation: 90° + 90° = 180° visual.
 			gui.Row(gui.ContainerCfg{
 				Sizing:     gui.FitFit,
-				Spacing:    gui.SomeF(20),
+				Spacing:    gui.SomeF(gui.SpacingLarge),
 				SizeBorder: gui.NoBorder,
 				VAlign:     gui.VAlignMiddle,
 				Content: []gui.View{
@@ -127,7 +127,7 @@ func mainView(w *gui.Window) gui.View {
 							QuarterTurns: 1,
 							Content: gui.Row(gui.ContainerCfg{
 								Sizing:     gui.FitFit,
-								Padding:    gui.NewPadding(6, 12, 6, 12),
+								Padding:    gui.NewPadding(gui.PadSmall, gui.PadMedium, gui.PadSmall, gui.PadMedium),
 								Color:      gui.RGB(200, 100, 200),
 								SizeBorder: gui.NoBorder,
 								Content: []gui.View{
@@ -152,7 +152,7 @@ func rotatedLabel(turns int, label string, bg gui.Color, theme gui.Theme) gui.Vi
 		QuarterTurns: turns,
 		Content: gui.Row(gui.ContainerCfg{
 			Sizing:     gui.FitFit,
-			Padding:    gui.NewPadding(8, 16, 8, 16),
+			Padding:    gui.NewPadding(gui.PadSmall, gui.PadMedium, gui.PadSmall, gui.PadMedium),
 			Color:      bg,
 			Radius:     gui.SomeF(4),
 			SizeBorder: gui.NoBorder,

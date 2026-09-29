@@ -205,8 +205,8 @@ func leftPane(w *gui.Window, app *ExplorerApp) gui.View {
 		Width:   340,
 		Sizing:  gui.FixedFill,
 		Color:   t.ColorPanel,
-		Padding: gui.NewPadding(12, 12, 12, 12),
-		Spacing: gui.SomeF(8),
+		Padding: gui.PaddingMedium,
+		Spacing: gui.SomeF(gui.SpacingMedium),
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{Text: "Examples", TextStyle: t.TextStyleTitleSmall}),
 			gui.Text(gui.TextCfg{
@@ -228,14 +228,14 @@ func leftPane(w *gui.Window, app *ExplorerApp) gui.View {
 				Scrollable:    true,
 				Sizing:        gui.FillFill,
 				Padding:       gui.NewPadding(0, t.ScrollbarStyle.Size+4, 0, 0),
-				Spacing:       gui.SomeF(2),
+				Spacing:       gui.SomeF(gui.SpacingTight),
 				ScrollbarCfgY: &gui.ScrollbarCfg{GapEdge: gui.SomeF(3)},
 				Content:       exampleRows(filtered, app),
 			}),
 			gui.Row(gui.ContainerCfg{
 				Sizing:  gui.FillFit,
 				HAlign:  gui.HAlignRight,
-				Spacing: gui.SomeF(8),
+				Spacing: gui.SomeF(gui.SpacingMedium),
 				Content: []gui.View{
 					gui.TextButton("explorer-refresh", "Refresh", func(ctx gui.EventCtx) {
 						a := gui.State[ExplorerApp](ctx.Window)
@@ -298,7 +298,7 @@ func tagChips(tags []string, app *ExplorerApp) gui.View {
 	}
 	return gui.Wrap(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.SomeF(6),
+		Spacing: gui.SomeF(gui.SpacingSmall),
 		Content: chips,
 	})
 }
@@ -333,7 +333,7 @@ func exampleRows(examples []ExampleMeta, app *ExplorerApp) []gui.View {
 			ID:      gui.ScopeID("explorer", "row", ex.Name),
 			Sizing:  gui.FillFit,
 			HAlign:  gui.Some(gui.HAlignLeft),
-			Padding: gui.NewPadding(6, 8, 6, 8),
+			Padding: gui.PaddingSmall,
 			Color:   bg,
 			Radius:  gui.SomeF(6),
 			OnClick: func(ctx gui.EventCtx) {
@@ -347,7 +347,7 @@ func exampleRows(examples []ExampleMeta, app *ExplorerApp) []gui.View {
 			Content: []gui.View{
 				gui.Column(gui.ContainerCfg{
 					Sizing:  gui.FillFit,
-					Spacing: gui.SomeF(2),
+					Spacing: gui.SomeF(gui.SpacingTight),
 					Content: []gui.View{
 						gui.Text(gui.TextCfg{
 							Text:      label + suffix,
@@ -380,7 +380,7 @@ func rightPane(w *gui.Window, app *ExplorerApp) gui.View {
 		return gui.Column(gui.ContainerCfg{
 			ID:      "explorer-detail",
 			Sizing:  gui.FillFill,
-			Padding: gui.NewPadding(16, 16, 16, 16),
+			Padding: gui.PaddingMedium,
 			HAlign:  gui.HAlignCenter,
 			VAlign:  gui.VAlignMiddle,
 			Content: []gui.View{
@@ -443,7 +443,7 @@ func rightPane(w *gui.Window, app *ExplorerApp) gui.View {
 				Sizing:  gui.FillFit,
 				HAlign:  gui.HAlignRight,
 				VAlign:  gui.VAlignMiddle,
-				Spacing: gui.SomeF(8),
+				Spacing: gui.SomeF(gui.SpacingMedium),
 				Content: runRow,
 			}),
 		},
@@ -468,8 +468,8 @@ func rightPane(w *gui.Window, app *ExplorerApp) gui.View {
 		ID:            "explorer-detail",
 		Scrollable:    true,
 		Sizing:        gui.FillFill,
-		Padding:       gui.NewPadding(16, 16, 20, 16),
-		Spacing:       gui.SomeF(4),
+		Padding:       gui.PaddingMedium,
+		Spacing:       gui.SomeF(gui.SpacingSmall),
 		ScrollbarCfgY: &gui.ScrollbarCfg{GapEdge: gui.SomeF(3)},
 		Content:       detailContent,
 	})
@@ -526,7 +526,7 @@ func screenshotView(meta *ExampleMeta) gui.View {
 		SizeBorder: gui.SomeF(1),
 		HAlign:     gui.HAlignCenter,
 		VAlign:     gui.VAlignMiddle,
-		Padding:    gui.NewPadding(12, 12, 12, 12),
+		Padding:    gui.PaddingMedium,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      "No preview yet",

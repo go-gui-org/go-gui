@@ -17,7 +17,7 @@ func demoWindowOpacity(w *gui.Window) gui.View {
 
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.SomeF(12),
+		Spacing: gui.SomeF(gui.SpacingMedium),
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
@@ -31,7 +31,7 @@ func demoWindowOpacity(w *gui.Window) gui.View {
 			gui.Row(gui.ContainerCfg{
 				Sizing:  gui.FillFit,
 				Padding: gui.NoPadding,
-				Spacing: gui.SomeF(12),
+				Spacing: gui.SomeF(gui.SpacingMedium),
 				VAlign:  gui.VAlignMiddle,
 				Content: []gui.View{
 					gui.Slider(gui.SliderCfg{

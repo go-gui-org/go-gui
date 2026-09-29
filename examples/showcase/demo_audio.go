@@ -19,19 +19,18 @@ func demoAudio(w *gui.Window) gui.View {
 
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.SomeF(16),
+		Spacing: gui.SomeF(gui.SpacingMedium),
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			sectionLabel(t, "Live Synthesis"),
 			gui.Column(gui.ContainerCfg{
 				Sizing:  gui.FillFit,
-				Spacing: gui.SomeF(8),
+				Spacing: gui.SomeF(gui.SpacingMedium),
 				Padding: gui.NoPadding,
 				Content: []gui.View{
 					synthPadGrid(t),
 					gui.Button(gui.ButtonCfg{
-						ID:      "btn-halt-all",
-						Padding: gui.NewPadding(8, 16, 8, 16),
+						ID: "btn-halt-all",
 						Content: []gui.View{
 							gui.Text(gui.TextCfg{
 								Text:      gui.IconStop,
@@ -59,12 +58,11 @@ func demoAudio(w *gui.Window) gui.View {
 			sectionLabel(t, "Music"),
 			gui.Row(gui.ContainerCfg{
 				Sizing:  gui.FillFit,
-				Spacing: gui.SomeF(8),
+				Spacing: gui.SomeF(gui.SpacingMedium),
 				Padding: gui.NoPadding,
 				Content: []gui.View{
 					gui.Button(gui.ButtonCfg{
-						ID:      "btn-load-music",
-						Padding: gui.NewPadding(8, 16, 8, 16),
+						ID: "btn-load-music",
 						Content: []gui.View{
 							gui.Text(gui.TextCfg{
 								Text:      gui.IconFolder,
@@ -80,8 +78,7 @@ func demoAudio(w *gui.Window) gui.View {
 						},
 					}),
 					gui.Button(gui.ButtonCfg{
-						ID:      "btn-play-music",
-						Padding: gui.NewPadding(8, 16, 8, 16),
+						ID: "btn-play-music",
 						Content: []gui.View{
 							gui.Text(gui.TextCfg{
 								Text:      gui.IconPlay,
@@ -97,8 +94,7 @@ func demoAudio(w *gui.Window) gui.View {
 						},
 					}),
 					gui.Button(gui.ButtonCfg{
-						ID:      "btn-fadeout-music",
-						Padding: gui.NewPadding(8, 16, 8, 16),
+						ID: "btn-fadeout-music",
 						Content: []gui.View{
 							gui.Text(gui.TextCfg{
 								Text:      gui.IconStop,
@@ -114,8 +110,7 @@ func demoAudio(w *gui.Window) gui.View {
 						},
 					}),
 					gui.Button(gui.ButtonCfg{
-						ID:      "btn-halt-music",
-						Padding: gui.NewPadding(8, 16, 8, 16),
+						ID: "btn-halt-music",
 						Content: []gui.View{
 							gui.Text(gui.TextCfg{
 								Text:      gui.IconStop,
@@ -136,7 +131,7 @@ func demoAudio(w *gui.Window) gui.View {
 			sectionLabel(t, "Volume"),
 			gui.Row(gui.ContainerCfg{
 				Sizing:  gui.FillFit,
-				Spacing: gui.SomeF(8),
+				Spacing: gui.SomeF(gui.SpacingMedium),
 				Padding: gui.NoPadding,
 				VAlign:  gui.VAlignMiddle,
 				Content: []gui.View{
@@ -194,7 +189,7 @@ func widgetSoundControls(w *gui.Window) gui.View {
 func widgetSoundPanel(t gui.Theme, app *ShowcaseApp) gui.View {
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.SomeF(8),
+		Spacing: gui.SomeF(gui.SpacingMedium),
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
@@ -242,7 +237,7 @@ func widgetSoundPanel(t gui.Theme, app *ShowcaseApp) gui.View {
 			}),
 			gui.Row(gui.ContainerCfg{
 				Sizing:  gui.FillFit,
-				Spacing: gui.SomeF(8),
+				Spacing: gui.SomeF(gui.SpacingMedium),
 				Padding: gui.NoPadding,
 				VAlign:  gui.VAlignMiddle,
 				Content: []gui.View{
@@ -282,14 +277,13 @@ func widgetSoundPanel(t gui.Theme, app *ShowcaseApp) gui.View {
 			}),
 			gui.Row(gui.ContainerCfg{
 				Sizing:  gui.FillFit,
-				Spacing: gui.SomeF(12),
+				Spacing: gui.SomeF(gui.SpacingMedium),
 				Padding: gui.NoPadding,
 				VAlign:  gui.VAlignMiddle,
 				Content: []gui.View{
 					gui.Button(gui.ButtonCfg{
-						ID:      "widget-sound-click",
-						Label:   "Click me",
-						Padding: gui.NewPadding(8, 16, 8, 16),
+						ID:    "widget-sound-click",
+						Label: "Click me",
 						OnClick: func(ctx gui.EventCtx) {
 							ctx.Consume()
 						},
@@ -309,7 +303,6 @@ func widgetSoundPanel(t gui.Theme, app *ShowcaseApp) gui.View {
 					gui.Button(gui.ButtonCfg{
 						ID:            "widget-sound-muted",
 						Label:         "Silent button",
-						Padding:       gui.NewPadding(8, 16, 8, 16),
 						SoundDisabled: true,
 						OnClick: func(ctx gui.EventCtx) {
 							ctx.Consume()
@@ -329,14 +322,13 @@ func widgetSoundPanel(t gui.Theme, app *ShowcaseApp) gui.View {
 func widgetSoundNonClickRow() gui.View {
 	return gui.Row(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.SomeF(12),
+		Spacing: gui.SomeF(gui.SpacingMedium),
 		Padding: gui.NoPadding,
 		VAlign:  gui.VAlignMiddle,
 		Content: []gui.View{
 			gui.Button(gui.ButtonCfg{
-				ID:      "widget-sound-toast",
-				Label:   "Toast",
-				Padding: gui.NewPadding(8, 16, 8, 16),
+				ID:    "widget-sound-toast",
+				Label: "Toast",
 				OnClick: func(ctx gui.EventCtx) {
 					ctx.Window.Toast(gui.ToastCfg{
 						Title: "Notify",
@@ -346,9 +338,8 @@ func widgetSoundNonClickRow() gui.View {
 				},
 			}),
 			gui.Button(gui.ButtonCfg{
-				ID:      "widget-sound-toast-error",
-				Label:   "Error toast",
-				Padding: gui.NewPadding(8, 16, 8, 16),
+				ID:    "widget-sound-toast-error",
+				Label: "Error toast",
 				OnClick: func(ctx gui.EventCtx) {
 					ctx.Window.Toast(gui.ToastCfg{
 						Title:    "Error",
@@ -359,9 +350,8 @@ func widgetSoundNonClickRow() gui.View {
 				},
 			}),
 			gui.Button(gui.ButtonCfg{
-				ID:      "widget-sound-dialog",
-				Label:   "Dialog",
-				Padding: gui.NewPadding(8, 16, 8, 16),
+				ID:    "widget-sound-dialog",
+				Label: "Dialog",
 				OnClick: func(ctx gui.EventCtx) {
 					ctx.Window.Dialog(gui.DialogCfg{
 						Title: "Open",
@@ -692,14 +682,14 @@ func synthPadGrid(t gui.Theme) gui.View {
 		}
 		rows = append(rows, gui.Row(gui.ContainerCfg{
 			Sizing:  gui.FillFit,
-			Spacing: gui.SomeF(8),
+			Spacing: gui.SomeF(gui.SpacingSmall),
 			Padding: gui.NoPadding,
 			Content: pads,
 		}))
 	}
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.SomeF(8),
+		Spacing: gui.SomeF(gui.SpacingSmall),
 		Padding: gui.NoPadding,
 		Content: rows,
 	})

@@ -123,6 +123,27 @@ basis as a dimming alpha. A structural indent (a nested blockquote, a list
 depth) is not a gap between siblings and stays off the ladder. A comment must
 say so.
 
+Which gap to use:
+
+| Step            | Value | Use it between                                 | Example                              |
+| --------------- | ----- | ---------------------------------------------- | ------------------------------------ |
+| `SpacingTight`  | 2     | parts of one composite control                 | calendar cells, tab strip            |
+| `SpacingSmall`  | 6     | a tight pair: a label and its value or control | "Count:" and its number, a D-pad     |
+| `SpacingMedium` | 14    | sibling controls in a row or stack             | a row of buttons, the rows of a form |
+| `SpacingLarge`  | 28    | unrelated sections of one surface              | demo cards, panels on one page       |
+
+Pick the step by meaning, not by the nearest number. A gap of 8 between two
+buttons is `SpacingMedium`; a gap of 8 between a caption and its image is
+`SpacingSmall`. Insets follow the same idea: `PaddingSmall` (6) for a compact
+box, `PaddingMedium` (14) for a panel, `PaddingLarge` (22) for the outer edge of
+a window or card. The `Pad*` constants build an uneven inset from the same
+steps: `NewPadding(gui.PadSmall, gui.PadMedium, gui.PadSmall, gui.PadMedium)`.
+
+`ergonomics-audit -mode spacing` enforces this (#851). A number that is not a
+gap or inset (a 1px hairline, a bevel edge, a skin that imitates another
+platform) carries `// ergonomics-audit:spacing` and a reason on the same line. A
+`DrawCanvasCfg` padding is a plot margin and is not checked.
+
 A form control's text inset is `Theme.PaddingField`, and a button's label inset
 is `Theme.PaddingButton`. Together they make controls in one row share a height.
 A custom button reads `Theme.PaddingButton` rather than writing a literal inset.

@@ -202,12 +202,12 @@ func benchView(w *gui.Window) gui.View {
 
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFill,
-		Padding: gui.NewPadding(8, 8, 8, 8),
+		Padding: gui.PaddingSmall,
 		Content: []gui.View{
 			// Controls row.
 			gui.Row(gui.ContainerCfg{
 				Sizing:  gui.FillFit,
-				Spacing: gui.Some[float32](8),
+				Spacing: gui.SomeF(gui.SpacingSmall),
 				VAlign:  gui.VAlignMiddle,
 				Content: []gui.View{
 					gui.Text(gui.TextCfg{
@@ -279,7 +279,7 @@ func benchView(w *gui.Window) gui.View {
 				Content: []gui.View{
 					gui.Wrap(gui.ContainerCfg{
 						Sizing:  gui.FillFit,
-						Spacing: gui.Some[float32](4),
+						Spacing: gui.SomeF(gui.SpacingSmall),
 						Content: widgets,
 					}),
 				},

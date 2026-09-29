@@ -10,6 +10,20 @@ and this project adheres to
 
 ### Added
 
+- **`ergonomics-audit -mode spacing` flags gap and inset numbers (#851)** — a
+  `Spacing: SomeF(n)` with n > 0, or a `PadAll` / `NewPadding` / `PadVH` built
+  only from numbers, is now a finding. Use a theme step instead:
+  `SpacingTight/Small/Medium/Large` (2/6/14/28) for a gap, and
+  `PaddingSmall/Medium/Large` (6/14/22) or the `Pad*` constants for an inset. A
+  `ButtonCfg.Padding` number is a finding with its own message: delete the
+  field, and `Theme.PaddingButton` applies. `DrawCanvasCfg` padding is a plot
+  margin and passes. A number that is not a gap (a 1px hairline, a bevel edge)
+  takes the same-line marker `// ergonomics-audit:spacing` with a reason. In
+  go-gui the mode scans `gui/view_*.go` and `examples/`. In any other repo it
+  scans every non-test file, so a sibling can gate on it with
+  `go run github.com/go-gui-org/go-gui/tools/ergonomics-audit@<tag> -mode spacing .`.
+  `make ergonomics-audit` runs it.
+
 - **Contrast floors for every text role, and `Theme.TextStyleLink` (#863)** —
   each text role now has a minimum contrast in one table: 4.5:1 (WCAG AA) on
   `ColorBackground` and `ColorPanel`, and 3:1 for a placeholder on
@@ -111,6 +125,17 @@ and this project adheres to
   `docs/deployment.md`.
 
 ### Changed
+
+- **Examples use the spacing and padding steps (#851)** — about 450 gap and
+  inset numbers in `examples/` now name a theme step. Before, 8, 12 and 16 were
+  the usual gaps, and none of them is a step. Each site took the step that fits
+  its meaning, not the nearest number: a label and its value take
+  `SpacingSmall`, sibling controls take `SpacingMedium`, sections take
+  `SpacingLarge`. Gaps and insets in the examples move by a few pixels. Plain
+  example buttons no longer set their own inset, so they now match the height of
+  an input in the same row. Styled buttons in the games keep a larger inset,
+  built from the `Pad*` steps. The scale itself (2/6/14/28) does not change, and
+  no `gui/` widget moves.
 
 - **`TextButton` uses the theme button inset (#850)** — `TextButton` hardcoded
   an 8/16 inset, which made it taller than an `Input` or `Select` in the same

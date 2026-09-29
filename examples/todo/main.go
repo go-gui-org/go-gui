@@ -89,7 +89,7 @@ func mainView(w *gui.Window) gui.View {
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFill,
 		Color:   colorPageBG,
-		Padding: gui.NewPadding(12, 12, 12, 12),
+		Padding: gui.PaddingMedium,
 		Content: []gui.View{
 			cardView(w),
 		},
@@ -103,8 +103,8 @@ func cardView(w *gui.Window) gui.View {
 		Sizing:      gui.FillFill,
 		Color:       colorCardBG,
 		Radius:      gui.SomeF(18),
-		Padding:     gui.NewPadding(34, 34, 34, 34),
-		Spacing:     gui.SomeF(22),
+		Padding:     gui.PaddingLarge,
+		Spacing:     gui.SomeF(gui.SpacingLarge),
 		ColorBorder: colorCardBG,
 		Content: []gui.View{
 			headerView(),
@@ -122,7 +122,7 @@ func headerView() gui.View {
 	return gui.Row(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
 		Padding: gui.NoPadding,
-		Spacing: gui.SomeF(10),
+		Spacing: gui.SomeF(gui.SpacingMedium),
 		VAlign:  gui.VAlignMiddle,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
@@ -160,7 +160,7 @@ func composerView(w *gui.Window) gui.View {
 				Color:            colorInputBG,
 				Colors:           gui.ColorSet{Hover: colorInputBG, Border: colorInputBG, BorderFocus: colorAccent},
 				Radius:           gui.SomeF(20),
-				Padding:          gui.NewPadding(18, 20, 18, 20),
+				Padding:          gui.PaddingLarge,
 				TextStyle:        inputStyle,
 				PlaceholderStyle: placeholderStyle,
 				OnTextChanged: func(text string, ctx gui.EventCtx) {
@@ -187,7 +187,7 @@ func composerView(w *gui.Window) gui.View {
 				// press and focus; Flat says that in a line.
 				Colors:   gui.Flat(colorAccent),
 				Radius:   gui.SomeF(20),
-				Padding:  gui.NewPadding(18, 28, 18, 28),
+				Padding:  gui.PaddingLarge,
 				MinWidth: 140,
 				Content: []gui.View{
 					gui.Text(gui.TextCfg{
@@ -213,7 +213,7 @@ func listView(w *gui.Window) gui.View {
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFill,
 		Padding: gui.NoPadding,
-		Spacing: gui.SomeF(14),
+		Spacing: gui.SomeF(gui.SpacingMedium),
 		Content: content,
 	})
 }
@@ -222,7 +222,7 @@ func todoRowView(item todoItem) gui.View {
 	return gui.Row(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
 		Padding: gui.NoPadding,
-		Spacing: gui.SomeF(12),
+		Spacing: gui.SomeF(gui.SpacingMedium),
 		VAlign:  gui.VAlignMiddle,
 		Content: []gui.View{
 			completeButton(item),

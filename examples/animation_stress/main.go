@@ -88,7 +88,7 @@ func mainView(w *gui.Window) gui.View {
 		Sizing: gui.FillFill,
 		Content: []gui.View{
 			gui.Row(gui.ContainerCfg{
-				Spacing:    gui.SomeF(20),
+				Spacing:    gui.SomeF(gui.SpacingMedium),
 				VAlign:     gui.VAlignMiddle,
 				SizeBorder: gui.NoBorder,
 				Content: []gui.View{

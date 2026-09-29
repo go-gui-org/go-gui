@@ -104,7 +104,7 @@ func mainView(w *gui.Window) gui.View {
 			Sizing:     gui.FitFit,
 			SizeBorder: gui.NoBorder,
 			Padding:    gui.NoPadding,
-			Spacing:    gui.SomeF(12),
+			Spacing:    gui.SomeF(gui.SpacingMedium),
 			Content:    views,
 		})
 	}
@@ -119,8 +119,8 @@ func mainView(w *gui.Window) gui.View {
 	// clean leave semantics for the cursor reset.
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFill,
-		Padding: gui.NewPadding(16, 16, 16, 16),
-		Spacing: gui.SomeF(12),
+		Padding: gui.PaddingMedium,
+		Spacing: gui.SomeF(gui.SpacingMedium),
 		OnHover: func(ctx gui.EventCtx) {
 			ctx.Window.SetMouseCursorArrow()
 			app := gui.State[App](ctx.Window)

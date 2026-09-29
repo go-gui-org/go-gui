@@ -177,7 +177,7 @@ func mdCopyButton(
 		Radius:       SomeF(4),
 		Color:        ColorTransparent,
 		SizeBorder:   SomeF(0),
-		Padding:      NewPadding(2, 4, 2, 4),
+		Padding:      NewPadding(2, 4, 2, 4), // ergonomics-audit:spacing — icon-sized floating button
 		Content:      btnContent,
 		OnClick:      onClick,
 	})

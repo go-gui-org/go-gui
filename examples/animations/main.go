@@ -78,8 +78,8 @@ func mainView(w *gui.Window) gui.View {
 
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFill,
-		Spacing: gui.Some[float32](20),
-		Padding: gui.NewPadding(20, 20, 20, 20),
+		Spacing: gui.SomeF(gui.SpacingLarge),
+		Padding: gui.PaddingLarge,
 		Content: []gui.View{
 			// Control buttons
 			gui.Row(gui.ContainerCfg{
@@ -87,7 +87,7 @@ func mainView(w *gui.Window) gui.View {
 				// its label, so the effective IDs are
 				// "animations_toolbar:Tween" and friends.
 				ID:      "animations_toolbar",
-				Spacing: gui.Some[float32](10),
+				Spacing: gui.SomeF(gui.SpacingMedium),
 				Content: []gui.View{
 					animButton("Tween", tweenBox),
 					animButton("Spring", springSidebar),
@@ -109,7 +109,7 @@ func mainView(w *gui.Window) gui.View {
 						Sizing:  gui.FixedFill,
 						Color:   gui.Purple,
 						Radius:  gui.Some[float32](8),
-						Padding: gui.NewPadding(10, 10, 10, 10),
+						Padding: gui.PaddingMedium,
 						Content: []gui.View{
 							gui.Text(gui.TextCfg{Text: "Sidebar"}),
 						},
@@ -125,7 +125,7 @@ func mainView(w *gui.Window) gui.View {
 						Sizing:   gui.FixedFill,
 						Color:    gui.CornflowerBlue,
 						Radius:   gui.Some[float32](8),
-						Padding:  gui.NewPadding(10, 10, 10, 10),
+						Padding:  gui.PaddingMedium,
 						Content: []gui.View{
 							gui.Text(gui.TextCfg{Text: "Snap size"}),
 						},
@@ -146,7 +146,7 @@ func mainView(w *gui.Window) gui.View {
 								Sizing:  gui.FixedFixed,
 								Color:   gui.Orange,
 								Radius:  gui.Some[float32](12),
-								Padding: gui.NewPadding(10, 10, 10, 10),
+								Padding: gui.PaddingMedium,
 								VAlign:  gui.VAlignMiddle,
 								HAlign:  gui.HAlignCenter,
 								Content: []gui.View{
@@ -202,7 +202,7 @@ func textAnimPanel() gui.View {
 	return gui.Row(gui.ContainerCfg{
 		ID:      "text_anim_row",
 		Sizing:  gui.FillFit,
-		Spacing: gui.Some[float32](24),
+		Spacing: gui.SomeF(gui.SpacingLarge),
 		Content: []gui.View{
 			animatedLabel("pulse", "Pulse", gui.TextAnimCfg{
 				Kind:   gui.TextAnimPulse,
@@ -251,8 +251,8 @@ func detailView(w *gui.Window) gui.View {
 
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFill,
-		Spacing: gui.Some[float32](20),
-		Padding: gui.NewPadding(20, 20, 20, 20),
+		Spacing: gui.SomeF(gui.SpacingLarge),
+		Padding: gui.PaddingLarge,
 		Content: []gui.View{
 			gui.Row(gui.ContainerCfg{
 				Content: []gui.View{
@@ -266,7 +266,7 @@ func detailView(w *gui.Window) gui.View {
 				Sizing:  gui.FillFill,
 				Color:   gui.Orange,
 				Radius:  gui.Some[float32](16),
-				Padding: gui.NewPadding(20, 20, 20, 20),
+				Padding: gui.PaddingLarge,
 				Content: []gui.View{
 					gui.Text(gui.TextCfg{
 						ID:   "detail-title",

@@ -129,7 +129,7 @@ func group(id string, bg gui.Color, spacing float32, content ...gui.View) gui.Vi
 	pad, border := gui.PaddingNone, gui.NoBorder
 	if bg != gui.ColorTransparent {
 		// The XP group is a dialog surface with a thin frame.
-		pad, border = gui.PadAll(14), gui.SomeF(1)
+		pad, border = gui.PaddingMedium, gui.SomeF(1)
 	}
 	return gui.Column(gui.ContainerCfg{
 		ID:          id,
@@ -149,7 +149,7 @@ func toggleRow(id, label, key string, app *App, target gui.View) gui.View {
 	return gui.Row(gui.ContainerCfg{
 		ID:         id,
 		Padding:    gui.PaddingNone,
-		Spacing:    gui.SomeF(16),
+		Spacing:    gui.SomeF(gui.SpacingMedium),
 		SizeBorder: gui.NoBorder,
 		VAlign:     gui.VAlignMiddle,
 		Content: []gui.View{
@@ -241,7 +241,7 @@ func materialCheck(id, key string, app *App, accent gui.Color, disabled bool) gu
 		}
 		return gui.Row(checkShell(gui.ContainerCfg{
 			ID:      id,
-			Spacing: gui.SomeF(10),
+			Spacing: gui.SomeF(gui.SpacingSmall),
 			Content: []gui.View{
 				gui.Row(gui.ContainerCfg{
 					Width:       size,
@@ -322,7 +322,7 @@ func xpCheck(id, key string, app *App, disabled bool) gui.View {
 			// The frame is a 1px pad of border color around the well.
 			Color:      border,
 			Radius:     gui.SomeF(0),
-			Padding:    gui.PadAll(1),
+			Padding:    gui.PadAll(1), // ergonomics-audit:spacing — 1px frame, not an inset
 			SizeBorder: gui.NoBorder,
 			Content: []gui.View{gui.Column(gui.ContainerCfg{
 				Color:      faceColor,
@@ -331,8 +331,8 @@ func xpCheck(id, key string, app *App, disabled bool) gui.View {
 				Padding:    gui.PaddingNone,
 				SizeBorder: gui.NoBorder,
 				Content: []gui.View{
-					look.Bevel(rimLo, gui.NewPadding(0, 1, 1, 0),
-						look.Bevel(rimHi, gui.NewPadding(1, 0, 0, 1),
+					look.Bevel(rimLo, gui.NewPadding(0, 1, 1, 0), // ergonomics-audit:spacing — 1px bevel edge, not an inset
+						look.Bevel(rimHi, gui.NewPadding(1, 0, 0, 1), // ergonomics-audit:spacing — 1px bevel edge, not an inset
 							gui.Row(gui.ContainerCfg{
 								Width:      11,
 								Height:     11,
@@ -350,7 +350,7 @@ func xpCheck(id, key string, app *App, disabled bool) gui.View {
 
 		return gui.Row(checkShell(gui.ContainerCfg{
 			ID:      id,
-			Spacing: gui.SomeF(6),
+			Spacing: gui.SomeF(gui.SpacingSmall),
 			Content: []gui.View{
 				box,
 				gui.Text(gui.TextCfg{Text: label, TextStyle: look.Light.Text(text, 12)}),

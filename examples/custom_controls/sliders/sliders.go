@@ -146,7 +146,7 @@ func section(title, sub string) gui.View {
 	return gui.Column(gui.ContainerCfg{
 		Padding:    gui.PaddingNone,
 		SizeBorder: gui.NoBorder,
-		Spacing:    gui.SomeF(4),
+		Spacing:    gui.SomeF(gui.SpacingSmall),
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{Text: title, TextStyle: look.Light.Heading}),
 			gui.Text(gui.TextCfg{Text: sub, TextStyle: look.Light.Secondary}),
@@ -164,7 +164,7 @@ func valueRowStyled(app *App, name string, slider gui.View, style gui.TextStyle)
 	return gui.Row(gui.ContainerCfg{
 		Padding:    gui.PaddingNone,
 		SizeBorder: gui.NoBorder,
-		Spacing:    gui.SomeF(12),
+		Spacing:    gui.SomeF(gui.SpacingMedium),
 		VAlign:     gui.VAlignMiddle,
 		Content: []gui.View{
 			slider,
@@ -214,9 +214,9 @@ func appleCard(app *App) gui.View {
 		ID:         "apple",
 		Color:      appleCardBG,
 		Radius:     gui.SomeF(12),
-		Padding:    gui.PadAll(14),
+		Padding:    gui.PaddingMedium,
 		SizeBorder: gui.NoBorder,
-		Spacing:    gui.SomeF(10),
+		Spacing:    gui.SomeF(gui.SpacingMedium),
 		Content: append(row("Display", gui.IconSunnyO, displayTrack),
 			row("Sound", gui.IconSpeaker, soundTrack)...),
 	})
@@ -293,12 +293,12 @@ func materialCard(app *App) gui.View {
 		return gui.Column(gui.ContainerCfg{
 			Padding:    gui.PaddingNone,
 			SizeBorder: gui.NoBorder,
-			Spacing:    gui.SomeF(8),
+			Spacing:    gui.SomeF(gui.SpacingMedium),
 			Content: []gui.View{
 				gui.Row(gui.ContainerCfg{
 					Padding:    gui.PaddingNone,
 					SizeBorder: gui.NoBorder,
-					Spacing:    gui.SomeF(10),
+					Spacing:    gui.SomeF(gui.SpacingSmall),
 					VAlign:     gui.VAlignMiddle,
 					Content: []gui.View{
 						gui.Text(gui.TextCfg{Text: icon, TextStyle: iconStyle}),
@@ -313,9 +313,9 @@ func materialCard(app *App) gui.View {
 		ID:         "material",
 		Color:      materialCardBG,
 		Radius:     gui.SomeF(8),
-		Padding:    gui.PadAll(16),
+		Padding:    gui.PaddingMedium,
 		SizeBorder: gui.NoBorder,
-		Spacing:    gui.SomeF(16),
+		Spacing:    gui.SomeF(gui.SpacingMedium),
 		Content: []gui.View{
 			row("Call volume", gui.IconPhone, callTrack),
 			row("Media volume", gui.IconSpeaker, mediaTrack),
@@ -412,7 +412,7 @@ func xpSlider(app *App, t track) gui.View {
 				Radius:     gui.SomeF(3),
 				Color:      xpOutline,
 				SizeBorder: gui.NoBorder,
-				Padding:    gui.PadAll(1),
+				Padding:    gui.PadAll(1), // ergonomics-audit:spacing — 1px outline frame, not an inset
 				Spacing:    gui.SomeF(0),
 				Content: []gui.View{
 					strip(capH, caps),

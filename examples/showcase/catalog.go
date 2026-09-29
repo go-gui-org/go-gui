@@ -40,8 +40,8 @@ func catalogPanel(w *gui.Window) gui.View {
 		Width:   catalogWidth,
 		Sizing:  gui.FixedFill,
 		Color:   t.ColorPanel,
-		Padding: gui.NewPadding(12, 12, 12, 12),
-		Spacing: gui.SomeF(8),
+		Padding: gui.PaddingMedium,
+		Spacing: gui.SomeF(gui.SpacingMedium),
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{Text: "Component Catalog", TextStyle: t.TextStyleTitleSmall}),
 			searchInput(app),
@@ -52,13 +52,13 @@ func catalogPanel(w *gui.Window) gui.View {
 				Scrollable: true,
 				Sizing:     gui.FillFill,
 				Padding:    gui.NewPadding(0, t.ScrollbarStyle.Size+4, 0, 0),
-				Spacing:    gui.SomeF(2),
+				Spacing:    gui.SomeF(gui.SpacingTight),
 				Content:    catalogRows(entries, app),
 			}),
 			gui.Row(gui.ContainerCfg{
 				Sizing:  gui.FillFit,
 				Padding: gui.NoPadding,
-				Spacing: gui.SomeF(8),
+				Spacing: gui.SomeF(gui.SpacingMedium),
 				HAlign:  gui.HAlignRight,
 				VAlign:  gui.VAlignMiddle,
 				Content: []gui.View{
@@ -98,7 +98,7 @@ func groupPicker(app *ShowcaseApp) gui.View {
 	return gui.Wrap(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
 		Padding: gui.NoPadding,
-		Spacing: gui.SomeF(3),
+		Spacing: gui.SomeF(gui.SpacingTight),
 		Content: []gui.View{
 			groupPickerItem("Welcome", groupWelcome, app),
 			groupPickerItem("All", groupAll, app),
@@ -130,7 +130,7 @@ func groupPickerItem(label, key string, app *ShowcaseApp) gui.View {
 		Color:   color,
 		Colors:  gui.ColorSet{Border: color},
 		Radius:  gui.SomeF(3),
-		Padding: gui.NewPadding(3, 6, 3, 6),
+		Padding: gui.PaddingTwoFive,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{Text: label, TextStyle: t.TextStyleCaption}),
 		},
@@ -203,7 +203,7 @@ func catalogRow(entry DemoEntry, app *ShowcaseApp) gui.View {
 		Color:   color,
 		Colors:  gui.ColorSet{Hover: t.ColorHover, Click: t.ColorActive, Focus: color, Border: gui.ColorTransparent, BorderFocus: gui.ColorTransparent},
 		Radius:  gui.SomeF(4),
-		Padding: gui.NewPadding(3, 6, 3, 6),
+		Padding: gui.PaddingTwoFive,
 		HAlign:  gui.Some(gui.HAlignLeft),
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{Text: entry.Label, TextStyle: t.TextStyleBodySmall}),
@@ -224,7 +224,7 @@ func toggleLocale(app *ShowcaseApp) gui.View {
 		ID:      "showcase-locale",
 		Color:   gui.ColorTransparent,
 		Colors:  gui.ColorSet{Border: gui.ColorTransparent, BorderFocus: gui.CurrentTheme().ColorActive},
-		Padding: gui.NewPadding(6, 8, 6, 8),
+		Padding: gui.PaddingSmall,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      label,

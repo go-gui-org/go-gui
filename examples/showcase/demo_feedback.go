@@ -13,7 +13,7 @@ func demoButton(w *gui.Window) gui.View {
 	app := appState(w)
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.SomeF(8),
+		Spacing: gui.SomeF(gui.SpacingMedium),
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
@@ -22,7 +22,7 @@ func demoButton(w *gui.Window) gui.View {
 			}),
 			gui.Column(gui.ContainerCfg{
 				Sizing:  gui.FillFit,
-				Spacing: gui.SomeF(8),
+				Spacing: gui.SomeF(gui.SpacingMedium),
 				Padding: gui.NoPadding,
 				Content: buttonFeatureRows(w),
 			}),
@@ -91,7 +91,7 @@ func buttonFeatureRows(w *gui.Window) []gui.View {
 		})),
 		buttonFeatureRow("Variants", gui.Row(gui.ContainerCfg{
 			Sizing:  gui.FitFit,
-			Spacing: gui.SomeF(8),
+			Spacing: gui.SomeF(gui.SpacingMedium),
 			Content: []gui.View{
 				gui.TextButtonVariant("showcase-button-secondary", "Secondary", gui.ButtonSecondary, showcaseButtonClick),
 				gui.TextButtonVariant("showcase-button-primary", "Primary", gui.ButtonPrimary, showcaseButtonClick),
@@ -149,7 +149,7 @@ func showcaseButtonClick(ctx gui.EventCtx) {
 func demoProgressBar(_ *gui.Window) gui.View {
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.SomeF(12),
+		Spacing: gui.SomeF(gui.SpacingMedium),
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			gui.ProgressBar(gui.ProgressBarCfg{ID: "showcase-pb-25", Percent: 0.25, TextShow: true, Sizing: gui.FillFit}),
@@ -164,7 +164,7 @@ func demoPulsar(w *gui.Window) gui.View {
 	return gui.Row(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
 		Padding: gui.NoPadding,
-		Spacing: gui.SomeF(8),
+		Spacing: gui.SomeF(gui.SpacingSmall),
 		VAlign:  gui.VAlignMiddle,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{Text: "Loading", TextStyle: gui.CurrentTheme().TextStyleBody}),
@@ -226,7 +226,7 @@ func demoCommandButton(w *gui.Window) gui.View {
 	t := gui.CurrentTheme()
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.SomeF(12),
+		Spacing: gui.SomeF(gui.SpacingMedium),
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
@@ -236,7 +236,7 @@ func demoCommandButton(w *gui.Window) gui.View {
 			sectionLabel(t, "Auto-labeled with shortcut hint"),
 			gui.Row(gui.ContainerCfg{
 				Sizing:  gui.FillFit,
-				Spacing: gui.SomeF(8),
+				Spacing: gui.SomeF(gui.SpacingMedium),
 				Padding: gui.NoPadding,
 				Content: []gui.View{
 					gui.CommandButton("sc.greet", gui.ButtonCfg{ID: "cb-greet"}),
@@ -258,7 +258,7 @@ func demoThemePicker(w *gui.Window) gui.View {
 	}
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.SomeF(12),
+		Spacing: gui.SomeF(gui.SpacingMedium),
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
@@ -317,7 +317,7 @@ func demoSkeleton(_ *gui.Window) gui.View {
 			sectionLabel(t, "Text Lines"),
 			gui.Column(gui.ContainerCfg{
 				Sizing:     gui.FillFit,
-				Spacing:    gui.SomeF(6),
+				Spacing:    gui.SomeF(gui.SpacingSmall),
 				Padding:    gui.NoPadding,
 				SizeBorder: gui.NoBorder,
 				Content: []gui.View{
@@ -340,7 +340,7 @@ func demoSkeleton(_ *gui.Window) gui.View {
 			sectionLabel(t, "Card Layout"),
 			gui.Row(gui.ContainerCfg{
 				Sizing:     gui.FillFit,
-				Spacing:    gui.SomeF(12),
+				Spacing:    gui.SomeF(gui.SpacingMedium),
 				Padding:    gui.NoPadding,
 				SizeBorder: gui.NoBorder,
 				VAlign:     gui.VAlignTop,
@@ -353,7 +353,7 @@ func demoSkeleton(_ *gui.Window) gui.View {
 					}),
 					gui.Column(gui.ContainerCfg{
 						Sizing:     gui.FillFit,
-						Spacing:    gui.SomeF(6),
+						Spacing:    gui.SomeF(gui.SpacingSmall),
 						Padding:    gui.NoPadding,
 						SizeBorder: gui.NoBorder,
 						Content: []gui.View{
@@ -382,12 +382,11 @@ func demoToast(_ *gui.Window) gui.View {
 	t := gui.CurrentTheme()
 	return gui.Row(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
-		Spacing: gui.SomeF(8),
+		Spacing: gui.SomeF(gui.SpacingMedium),
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			gui.Button(gui.ButtonCfg{
-				ID:      "btn-toast",
-				Padding: gui.NewPadding(8, 16, 8, 16),
+				ID: "btn-toast",
 				Content: []gui.View{
 					gui.Text(gui.TextCfg{Text: "Show Toast", TextStyle: t.TextStyleBody}),
 				},
@@ -396,8 +395,7 @@ func demoToast(_ *gui.Window) gui.View {
 				},
 			}),
 			gui.Button(gui.ButtonCfg{
-				ID:      "btn-toast-dismiss",
-				Padding: gui.NewPadding(8, 16, 8, 16),
+				ID: "btn-toast-dismiss",
 				Content: []gui.View{
 					gui.Text(gui.TextCfg{Text: "Dismiss All", TextStyle: t.TextStyleBody}),
 				},
