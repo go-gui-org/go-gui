@@ -9,6 +9,7 @@ package main
 
 import (
 	"debug/macho"
+	"encoding/xml"
 	"errors"
 	"fmt"
 	"os"
@@ -23,16 +24,19 @@ const infoPlistTmpl = `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>CFBundleExecutable</key><string>{{.Exec}}</string>
-	<key>CFBundleIdentifier</key><string>{{.ID}}</string>
-	<key>CFBundleName</key><string>{{.Name}}</string>
+	<key>CFBundleExecutable</key><string>{{xml .Exec}}</string>
+	<key>CFBundleIdentifier</key><string>{{xml .ID}}</string>
+	<key>CFBundleName</key><string>{{xml .Name}}</string>
 	<key>CFBundlePackageType</key><string>APPL</string>
-	<key>CFBundleVersion</key><string>{{.Version}}</string>
-	<key>CFBundleShortVersionString</key><string>{{.Version}}</string>
+	<key>CFBundleVersion</key><string>{{xml .Build}}</string>
+	<key>CFBundleShortVersionString</key><string>{{xml .Version}}</string>
 	<key>LSMinimumSystemVersion</key><string>11.0</string>
 	<key>NSHighResolutionCapable</key><true/>
 {{- if .Icon}}
-	<key>CFBundleIconFile</key><string>{{.Icon}}</string>
+	<key>CFBundleIconFile</key><string>{{xml .Icon}}</string>
+{{- end}}
+{{- if .Category}}
+	<key>LSApplicationCategoryType</key><string>{{xml .Category}}</string>
 {{- end}}
 </dict>
 </plist>
@@ -59,17 +63,36 @@ func validateMachO(path string) error {
 	return nil
 }
 
+// plistFields are the values infoPlistTmpl substitutes. Icon is the
+// .icns basename in Resources; empty omits the key, as does an empty
+// Category. An empty Build repeats Version.
+type plistFields struct {
+	Exec, ID, Name, Version, Build, Icon, Category string
+}
+
 // #nosec G304 — path is developer-controlled CLI flag
-func writePlist(path, execName, id, name, version, icon string) error {
-	t := template.Must(template.New("plist").Parse(infoPlistTmpl))
+func writePlist(path string, pf plistFields) error {
+	if pf.Build == "" {
+		pf.Build = pf.Version
+	}
+	// text/template does not escape, and a display name such as
+	// "Tom & Jerry" would make the plist malformed XML, which codesign
+	// rejects. Every value goes through xmlEscape.
+	t := template.Must(template.New("plist").
+		Funcs(template.FuncMap{"xml": xmlEscape}).Parse(infoPlistTmpl))
 	f, err := os.Create(path)
 	if err != nil {
 		return err
 	}
 	defer func() { _ = f.Close() }()
-	return t.Execute(f, map[string]string{
-		"Exec": execName, "ID": id, "Name": name, "Version": version, "Icon": icon,
-	})
+	return t.Execute(f, pf)
+}
+
+// xmlEscape returns s escaped for XML character data.
+func xmlEscape(s string) string {
+	var b strings.Builder
+	_ = xml.EscapeText(&b, []byte(s)) // a strings.Builder write never fails
+	return b.String()
 }
 
 // installIcon places an .icns file in resDir and returns its basename.
@@ -321,7 +344,10 @@ func buildMacOS(o bundleOpts) error {
 		iconField = icnsName
 	}
 
-	if err = writePlist(filepath.Join(contents, "Info.plist"), execName, o.ID, o.Name, o.Version, iconField); err != nil {
+	if err = writePlist(filepath.Join(contents, "Info.plist"), plistFields{
+		Exec: execName, ID: o.ID, Name: o.Name, Version: o.Version,
+		Build: o.Build, Icon: iconField, Category: o.Category,
+	}); err != nil {
 		return err
 	}
 	stagedBin := filepath.Join(macosDir, execName)

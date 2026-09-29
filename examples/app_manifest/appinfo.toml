@@ -1,0 +1,16 @@
+# appinfo.toml: the one place this app's identity is written.
+#
+# buildapp reads this file when it packages the app (run it from this
+# directory, or pass -manifest). The app reads the same bytes at run
+# time through //go:embed, so the bundle ID and the runtime ID match.
+id      = "org.go-gui.app-manifest"
+name    = "App Manifest Demo"
+version = "1.0.0"
+build   = "1"
+icon    = "../../gui/default_icon.png" # relative to this file
+
+[darwin]
+category = "public.app-category.developer-tools"
+
+[linux]
+categories = "Development;"

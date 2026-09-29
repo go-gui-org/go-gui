@@ -8,6 +8,24 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- **App manifest `appinfo.toml` (#849)** — an app can now keep its ID, name,
+  version, build number and icon in one `appinfo.toml` beside `main.go`.
+  `buildapp` reads it from the working directory (or `-manifest path`), so a
+  Makefile no longer repeats `-name`, `-id`, `-version` and `-icon` for each
+  platform. A flag given on the command line still wins over the file, and with
+  no file buildapp behaves as before. The app embeds the same file and passes
+  `appinfo.MustParse(manifest)` to the new `gui.WindowCfg.AppInfo`. The window
+  then takes its title, and the app its file-access ID, X11 `WM_CLASS` and
+  native menubar name, from the file; a value set in Go still wins. This matters
+  on macOS: when the bundle ID and the runtime app ID differ, preferences and
+  permission grants split across two identities with no error. Also new:
+  `(*Window).AppInfo()`, buildapp's `-build` flag (`CFBundleVersion`), and the
+  `[darwin] category` and `[linux] categories` keys. The format is a strict
+  subset of TOML with no new dependency. See `examples/app_manifest` and
+  `docs/deployment.md`.
+
 ### Fixed
 
 - **`Test*` helpers run `QueueCommand` callbacks (#829)** — `TestClick`,

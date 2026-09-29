@@ -45,7 +45,61 @@ manager at runtime — without one the window renders black, which `gui.Debug`
 reports. Either depend on one in the package or document it for the user. See
 `docs/specs/transparent-windows.md`.
 
-## Step 2: package with buildapp
+## Step 2: write the app manifest
+
+Keep the app's identity in one file, `appinfo.toml`, beside `main.go`. Then the
+name, ID and version are not typed again in each Makefile target, CI workflow
+and Go file.
+
+```toml
+id      = "com.example.myapp"
+name    = "My App"
+version = "1.0.0"
+icon    = "icon.png"
+```
+
+buildapp reads this file (step 3). The app reads the same bytes at run time, so
+the bundle ID and the runtime ID are the same. If they differ, macOS keeps
+preferences and permission grants under two identities and reports no error.
+
+## Reading the manifest at run time
+
+Embed the file and give it to `gui.WindowCfg.AppInfo`. The window takes its
+title from `name`. The app takes its file-access ID, X11 `WM_CLASS` and native
+menubar name from the file. A value that you set in Go wins over the file.
+
+```go
+//go:embed appinfo.toml
+var manifest []byte
+
+// info is parsed once at start-up. MustParse panics on a bad file: the
+// file is compiled into the program, so a bad one is a build mistake.
+var info = appinfo.MustParse(manifest)
+
+func newWindow() *gui.Window {
+	// AppInfo gives the window its title, and the app its file-access
+	// ID, X11 WM_CLASS and menubar name. No other place spells them.
+	return gui.NewWindow(gui.WindowCfg{
+		AppInfo: info,
+		State:   &App{},
+		Width:   480,
+		Height:  320,
+		OnInit: func(w *gui.Window) {
+			w.SetView(mainView)
+		},
+	})
+}
+```
+
+This code is from `examples/app_manifest/main.go`. The format and the flag
+precedence are in
+[`cmd/buildapp/README.md`](../cmd/buildapp/README.md#app-manifest).
+
+## Step 3: package with buildapp
+
+Run buildapp from the directory that holds `appinfo.toml`, or pass
+`-manifest path`. A flag that you give wins over the file. Without a manifest,
+give the identity as flags (`-name`, `-id`, `-version`, `-icon`), as below.
 
 A `.png` icon works on every platform. macOS also accepts `.icns`, Windows also
 accepts `.ico`.
@@ -118,11 +172,21 @@ Mobile targets build through the standard Go mobile tooling rather than buildapp
 and `make build-android` (`gomobile bind` to an `.aar` for
 `examples/android_demo`) in the `Makefile`.
 
+On mobile, the app still reads the embedded `appinfo.toml` at run time, so the
+per-app storage ID is the manifest ID. But the package ID comes from the host
+project: the Xcode project's `Info.plist` on iOS and the Gradle `applicationId`
+on Android. The Go tools build a library (`c-archive` or `.aar`) and do not
+write those files, so buildapp cannot set them. Copy the manifest `id` into the
+host project by hand.
+
 ## Worked example
 
+`examples/app_manifest` has an `appinfo.toml`, so buildapp needs no identity
+flags:
+
 ```bash
-go build -o /tmp/getstarted ./examples/get_started/
-go run ./cmd/buildapp -o /tmp -name GetStarted \
-  -icon gui/default_icon.png /tmp/getstarted
-open /tmp/GetStarted.app  # macOS; on Linux/Windows add -platform
+go build -o /tmp/app_manifest ./examples/app_manifest/
+cd examples/app_manifest
+go run ../../cmd/buildapp -o /tmp /tmp/app_manifest
+open "/tmp/App Manifest Demo.app"  # macOS; on Linux/Windows add -platform
 ```

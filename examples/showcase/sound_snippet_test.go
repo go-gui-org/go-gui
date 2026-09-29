@@ -63,6 +63,16 @@ var snippetEntries = []snippetEntry{
 			"../../docs/typography.md",
 		},
 	},
+	{
+		sourceFile: "../app_manifest/main.go",
+		beginMark:  "// doc:snippet-begin appinfo-embed",
+		endMark:    "// doc:snippet-end appinfo-embed",
+		anchor:     "AppInfo: info,",
+		heading:    "## Reading the manifest at run time",
+		guides: []string{
+			"../../docs/deployment.md",
+		},
+	},
 }
 
 // markedRegion returns the source between the snippet markers, minus

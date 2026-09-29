@@ -174,3 +174,22 @@ func keys(m map[string]string) []string {
 	}
 	return out
 }
+
+// Categories from the manifest replace the Utility; default.
+func TestBuildLinuxManifestCategories(t *testing.T) {
+	bin := crossStub(t, "linux", "amd64", "showcase")
+	out := t.TempDir()
+	err := build(bundleOpts{
+		Platform: "linux", Binary: bin, OutDir: out,
+		Name: "Showcase", ID: "org.gogui.showcase", Version: "9",
+		Categories: "Development;",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	body, _ := readTarGz(t, filepath.Join(out, "showcase-9-linux-amd64.tar.gz"))
+	desktop := body["showcase-9-linux-amd64/share/applications/org.gogui.showcase.desktop"]
+	if !strings.Contains(desktop, "Categories=Development;\n") {
+		t.Errorf("desktop entry lacks the manifest categories:\n%s", desktop)
+	}
+}
