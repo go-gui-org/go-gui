@@ -86,6 +86,9 @@ type Window struct {
 	// File access / security-scoped bookmarks.
 	fileAccess fileAccessState
 
+	// App settings store (settings.go).
+	settings settingsState
+
 	// User state — accessed via State[T](w).
 	state any
 

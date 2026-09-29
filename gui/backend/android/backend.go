@@ -24,6 +24,7 @@ import (
 	"github.com/go-gui-org/go-gui/gui"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/framestate"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/imgpath"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/settingsdir"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/tempfont"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/texcache"
 	"github.com/go-gui-org/go-gui/gui/svg"
@@ -85,6 +86,16 @@ type Backend struct {
 // SetWindow sets the gui.Window for the Android backend.
 // Must be called before Start.
 func SetWindow(w *gui.Window) { androidWindow = w }
+
+// settingsStore holds the app settings (gui.LoadSettings and
+// gui.SaveSettings) under the directory SetFilesDir gives.
+var settingsStore settingsdir.Store
+
+// SetFilesDir gives the backend the app's private files directory,
+// Context.getFilesDir().absolutePath in Kotlin, where gui.SaveSettings
+// keeps the app's settings (issue #848). Call it before Start. Until it
+// is called, LoadSettings and SaveSettings return an error.
+func SetFilesDir(dir string) { settingsStore.SetDir(dir) }
 
 // Start initializes the backend. If already initialized,
 // handles resize (idempotent for onSurfaceChanged).

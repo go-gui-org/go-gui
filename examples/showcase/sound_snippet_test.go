@@ -78,6 +78,16 @@ var snippetEntries = []snippetEntry{
 		},
 	},
 	{
+		sourceFile: "../settings/main.go",
+		beginMark:  "// doc:snippet-begin settings-store",
+		endMark:    "// doc:snippet-end settings-store",
+		anchor:     "gui.LoadSettings(w, &app.Settings)",
+		heading:    "## App settings",
+		guides: []string{
+			"../../docs/dx-cheat-sheet.md",
+		},
+	},
+	{
 		sourceFile: "../get_started/main.go",
 		anchor:     "func mainView(",
 		heading:    "## It's just Go",

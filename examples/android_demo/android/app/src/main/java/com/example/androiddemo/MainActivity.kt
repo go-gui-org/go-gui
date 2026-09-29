@@ -24,6 +24,8 @@ class MainActivity : Activity() {
         super.onCreate(savedInstanceState)
         createNotificationChannel()
         Androidapp.init()
+        // Where gui.SaveSettings keeps the app's settings (go-gui #848).
+        Androidapp.setFilesDir(filesDir.absolutePath)
         glSurfaceView = GoGuiGLSurfaceView(this)
         setContentView(glSurfaceView)
         pushAppearance(resources.configuration)

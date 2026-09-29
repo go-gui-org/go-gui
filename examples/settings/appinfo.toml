@@ -1,0 +1,5 @@
+# appinfo.toml: the app's identity. The settings store keys the saved
+# data by id, so every window of this app reads the same settings.
+id      = "org.go-gui.settings-demo"
+name    = "Settings Demo"
+version = "1.0.0"

@@ -3,6 +3,7 @@
 package web
 
 import (
+	"errors"
 	"fmt"
 	"net/url"
 	"strings"
@@ -445,6 +446,71 @@ func canvasDataURL(canvas js.Value) (url string, err error) {
 		}
 	}()
 	return canvas.Call("toDataURL", "image/png").String(), nil
+}
+
+// --- Settings (localStorage) ---
+
+// settingsKeyPrefix namespaces the settings blob in localStorage. The
+// page origin may host other code, so the key carries the app ID under
+// a go-gui prefix.
+const settingsKeyPrefix = "gogui.settings."
+
+// errNoLocalStorage is returned when window.localStorage is missing.
+var errNoLocalStorage = errors.New("localStorage is not available")
+
+// SettingsLoad implements gui's optional settings hook: the app's JSON
+// blob is one localStorage entry (issue #848). There is no file system
+// on web, so without this hook LoadSettings would fail.
+func (n *nativePlatform) SettingsLoad(appID string) ([]byte, error) {
+	return storageLoad(browserLocalStorage, appID)
+}
+
+// SettingsSave implements gui's optional settings hook.
+func (n *nativePlatform) SettingsSave(appID string, data []byte) error {
+	return storageSave(browserLocalStorage, appID, data)
+}
+
+// browserLocalStorage returns window.localStorage. Reading the property
+// itself throws a SecurityError when site data is blocked (some private
+// modes, sandboxed iframes), so callers run it under recover.
+func browserLocalStorage() js.Value { return js.Global().Get("localStorage") }
+
+// storageLoad reads the blob for appID from the Storage object that
+// storage returns. A missing entry is (nil, nil). A JS exception becomes
+// an error, not a panic. storage is a parameter so tests can pass a fake
+// Storage: Node has no localStorage.
+func storageLoad(storage func() js.Value, appID string) (data []byte, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			data, err = nil, fmt.Errorf("localStorage read failed: %v", r)
+		}
+	}()
+	s := storage()
+	if s.IsUndefined() || s.IsNull() {
+		return nil, errNoLocalStorage
+	}
+	v := s.Call("getItem", settingsKeyPrefix+appID)
+	if v.IsNull() || v.IsUndefined() {
+		return nil, nil
+	}
+	return []byte(v.String()), nil
+}
+
+// storageSave writes the blob for appID. setItem throws a
+// QuotaExceededError when the origin is over its quota; that becomes an
+// error, and the old entry stays.
+func storageSave(storage func() js.Value, appID string, data []byte) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("localStorage write failed: %v", r)
+		}
+	}()
+	s := storage()
+	if s.IsUndefined() || s.IsNull() {
+		return errNoLocalStorage
+	}
+	s.Call("setItem", settingsKeyPrefix+appID, string(data))
+	return nil
 }
 
 // --- Bookmarks (no-op on web) ---

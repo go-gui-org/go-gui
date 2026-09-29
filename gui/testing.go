@@ -131,6 +131,9 @@ func NewTestWindow(tb Cleanuper, cfg WindowCfg) *Window {
 		cfg.Height = testWindowSize
 	}
 	w := NewWindow(cfg)
+	// LoadSettings and SaveSettings use an in-memory store, so a test
+	// never reads or writes the real settings file (issue #848).
+	w.settings.memory = true
 	tb.Cleanup(w.WindowCleanup)
 	if cfg.OnInit != nil {
 		cfg.OnInit(w)
