@@ -275,7 +275,7 @@ func TestGoldenWidgetPatch(t *testing.T) {
 		name := c.name + "." + th.name
 		t.Run(name, func(t *testing.T) {
 			got := renderGolden(t, patched, c)
-			checkGolden(t, name, got)
+			checkGoldenFile(t, "testdata", name, got)
 		})
 	}
 }

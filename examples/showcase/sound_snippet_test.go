@@ -47,6 +47,16 @@ var snippetEntries = []snippetEntry{
 		},
 	},
 	{
+		sourceFile: "../../gui/golden_example_test.go",
+		beginMark:  "// doc:snippet-begin golden",
+		endMark:    "// doc:snippet-end golden",
+		anchor:     "w.TestGolden(t, gui.GoldenCfg{Name: ",
+		heading:    "## Golden appearance tests",
+		guides: []string{
+			"../../docs/dx-cheat-sheet.md",
+		},
+	},
+	{
 		sourceFile: "../../gui/window_stream_example_test.go",
 		beginMark:  "// doc:snippet-begin stream",
 		endMark:    "// doc:snippet-end stream",

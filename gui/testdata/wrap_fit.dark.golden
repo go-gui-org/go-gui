@@ -1,3 +1,4 @@
+# go-gui-golden v1
 Rect xy=30.00,30.00 wh=80.00,40.00 color=#b4bec8ff radius=6.00 fill
 Rect xy=114.00,30.00 wh=80.00,40.00 color=#b4bec8ff radius=6.00 fill
 Rect xy=198.00,30.00 wh=80.00,40.00 color=#b4bec8ff radius=6.00 fill

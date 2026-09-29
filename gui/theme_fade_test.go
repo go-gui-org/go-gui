@@ -406,7 +406,8 @@ func TestGoldenThemeFade(t *testing.T) {
 			w.themeFadeStep(w.themeFade.gen, 0.5)
 			w.refreshLayout.Store(true)
 			w.FrameFn()
-			checkGolden(t, "theme_fade_mid."+d.name, serializeCmds(w.renderers))
+			checkGoldenFile(t, "testdata", "theme_fade_mid."+d.name,
+				goldenHeader+serializeCmds(w.renderers))
 		})
 	}
 }

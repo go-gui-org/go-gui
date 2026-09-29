@@ -1,3 +1,4 @@
+# go-gui-golden v1
 Clip xy=16.00,16.00 wh=86.00,51.20
 Rect xy=16.00,16.00 wh=86.00,25.60 color=#edf0f4ff radius=6.00 fill
 Text xy=22.00,19.00 wh=0.00,0.00 color=#1a1d21ff text="  " size=12.00
