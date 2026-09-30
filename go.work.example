@@ -1,0 +1,18 @@
+// Copy to go.work (gitignored) for local development with sibling repos.
+// go.work is not checked in — each developer opts in.
+//
+//	cp go.work.example go.work
+//
+// Requires go-glyph checked out alongside go-gui:
+//
+//	../go-glyph
+//
+// Comments must use `//`: the go.work parser rejects `#` as an unknown
+// directive, so a copied-verbatim file with shell-style comments will not load.
+
+go 1.26.0
+
+use (
+	.
+	../go-glyph
+)
