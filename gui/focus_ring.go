@@ -123,7 +123,14 @@ func focusRingAmend(colorFill, colorBorder Color) func(EventCtx) {
 	// Captured at generation, which is the only correct time to read a
 	// theme: the bare guiTheme honours a surrounding Themed scope, while
 	// w.Theme() at amend time would ignore it.
-	ring := guiTheme.focusRing
+	return focusRingAmendRing(colorFill, colorBorder, guiTheme.focusRing)
+}
+
+// focusRingAmendRing is focusRingAmend with the ring passed in. A nil
+// ring gives the fill and border change with no glow.
+func focusRingAmendRing(
+	colorFill, colorBorder Color, ring *BoxShadow,
+) func(EventCtx) {
 	if !colorFill.IsSet() && !colorBorder.IsSet() && ring == nil {
 		return nil
 	}

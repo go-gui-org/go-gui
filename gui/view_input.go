@@ -171,6 +171,11 @@ type InputCfg struct {
 	// wrapping widget rather than a caller-facing field.
 	onMouseScroll func(EventCtx)
 
+	// noFocusRing drops the theme's focus glow from the field. Set only
+	// by InputGroup: the group draws focus on its own frame, and a
+	// child's glow would spill onto the segments beside it (#820).
+	noFocusRing bool
+
 	// SpellCheck enables platform spell checking. Mac only.
 	SpellCheck bool
 
@@ -376,7 +381,7 @@ func Input(cfg InputCfg) View {
 				})
 		},
 		AmendLayout: inputAmendLayout(hcfg, colors, spellChk,
-			onBlur, cfg.onMouseScroll),
+			onBlur, cfg.onMouseScroll, cfg.noFocusRing),
 		Content: []View{inner},
 	})
 	return labelledField(cfg.Label, cfg.TextStyle, HAlignLeft, cfg.Sizing, field)
@@ -677,10 +682,13 @@ func inputOnClick(leafID, leafScrollID string, canFocus bool) func(EventCtx) {
 
 func inputAmendLayout(
 	hcfg inputHandlerCfg, colors ColorSet, spellChk bool,
-	onBlur func(EventCtx), onMouseScroll func(EventCtx),
+	onBlur func(EventCtx), onMouseScroll func(EventCtx), noFocusRing bool,
 ) func(EventCtx) {
 	// Captured at generation; see focusRingAmend.
 	ring := guiTheme.focusRing
+	if noFocusRing {
+		ring = nil
+	}
 	return func(ctx EventCtx) {
 		// Attached ahead of the focus gate below: the wheel does not
 		// need focus, and a FocusDisabled numeric field should still

@@ -8,7 +8,25 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- **`InputGroup` joins form controls into one shape (#820)** — a Bootstrap-style
+  input group: an `Input`, `Select`, `Button` or text addon segment side by
+  side, with one rounded border around the group and a 1px divider at each seam.
+  Build segments with `InputGroupText`, `InputGroupInput`, `InputGroupSelect`
+  and `InputGroupButton`; each takes the widget's ordinary Cfg and removes its
+  border, radius and focus glow, so a doubled seam cannot be built by mistake.
+  Segments keep their own tab stops, and the group shows the focus border and
+  ring while any segment holds focus. The group ID scopes the segment IDs
+  (`price:amount`). Showcase page: Input Group.
+
 ### Changed
+
+- **`ClipContents` clips to the area inside the border (#820)** — the stencil
+  mask of a `ClipContents` container is now inset by its `SizeBorder`, with the
+  radius less the border. Before, the mask used the outer edge, so a child's
+  fill could paint over the container's border at the rounded corners. A
+  container with no border is not affected.
 
 - **GL backend reports a missing GPU context instead of panicking (#828)** —
   when EGL (Linux) or WGL (Windows) cannot create a context, as on Windows under

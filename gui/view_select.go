@@ -170,6 +170,10 @@ type SelectCfg struct {
 	// and of Sound above.
 	// exportaudit:keep — caller-facing config (issue #467)
 	SoundDisabled bool
+
+	// noFocusRing drops the theme's focus glow from the field. Set only
+	// by InputGroup, which draws focus on its own frame (#820).
+	noFocusRing bool
 }
 
 // selectView implements View for select (dropdown).
@@ -352,7 +356,7 @@ func (sv *selectView) GenerateLayout(w *Window) Layout {
 		// so the field itself only draws the focus ring.
 		// The field has no hover pass, so the focus fill it paints is
 		// exactly pick({focused}) plus the ring.
-		AmendLayout: focusRingAmend(colors.Focus, colors.BorderFocus),
+		AmendLayout: selectFocusAmend(colors, cfg.noFocusRing),
 		Sound:       fieldSound,
 		OnKeyDown:   makeSelectOnKeyDown(&sv.cfg, id, dropdownScrollID),
 		OnClick: func(ctx EventCtx) {
@@ -685,4 +689,13 @@ func applySelectDefaults(cfg *SelectCfg) {
 	if cfg.PlaceholderStyle == (TextStyle{}) {
 		cfg.PlaceholderStyle = d.PlaceholderStyle
 	}
+}
+
+// selectFocusAmend is the field's focus appearance: the focus fill and
+// border, plus the theme's ring unless noFocusRing drops it.
+func selectFocusAmend(colors ColorSet, noFocusRing bool) func(EventCtx) {
+	if noFocusRing {
+		return focusRingAmendRing(colors.Focus, colors.BorderFocus, nil)
+	}
+	return focusRingAmend(colors.Focus, colors.BorderFocus)
 }
