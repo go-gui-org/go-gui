@@ -63,10 +63,10 @@ func New(w *gui.Window) (*Backend, error) {
 	setup := xproto.Setup(conn)
 	screen := setup.DefaultScreen(conn)
 
-	dpy, cands, err := eglInitDisplayN()
+	dpy, cands, err := eglInitDisplayNFunc()
 	if err != nil {
 		conn.Close()
-		return nil, fmt.Errorf("gl: %w", err)
+		return nil, newGPUContextError("init EGL display", err)
 	}
 
 	cfg := w.Config
@@ -170,10 +170,10 @@ func New(w *gui.Window) (*Backend, error) {
 	// the window before EGL (on its own X connection) wraps it.
 	conn.Sync()
 
-	surface, context, err := eglCreateSurfaceContext(dpy, config, uint32(wid))
+	surface, context, err := eglCreateSurfaceContextFunc(dpy, config, uint32(wid))
 	if err != nil {
 		b.plat.destroy()
-		return nil, fmt.Errorf("gl: %w", err)
+		return nil, newGPUContextError("create EGL surface/context", err)
 	}
 	b.plat.eglSurface = surface
 	b.plat.eglContext = context

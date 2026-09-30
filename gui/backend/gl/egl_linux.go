@@ -110,6 +110,14 @@ type eglConfigVisual struct {
 // pickVisual would reject anyway.
 const eglMaxConfigs = 32
 
+// eglInitDisplayNFunc and eglCreateSurfaceContextFunc are the
+// seam the GPU-context error test overrides: assigning a failing
+// func exercises New's wrap path with no display and no GL.
+var (
+	eglInitDisplayNFunc         = eglInitDisplayN
+	eglCreateSurfaceContextFunc = eglCreateSurfaceContext
+)
+
 // eglInitDisplayN initializes EGL, binds the desktop-OpenGL API, and
 // returns every matching framebuffer config in the driver's own
 // preference order, each paired with the X visual id a window using it
