@@ -763,7 +763,7 @@ func makeA11YInfo(label, desc string) *accessInfo {
 
 // a11yLabel returns label if set, otherwise falls back to text.
 //
-// The fallback is often a widget's ID, and an ID may be a scoped path
+// The fallback is a widget's ID, and an ID may be a scoped path
 // ("settings:name") once its widget resolves its identity. A screen
 // reader must announce a name, not a path, so only the last segment
 // survives the fallback. An explicit A11YLabel is returned untouched —
@@ -777,6 +777,17 @@ func a11yLabel(label, text string) string {
 	if i := strings.LastIndex(text, IDSep); i >= 0 &&
 		i+len(IDSep) < len(text) {
 		return text[i+len(IDSep):]
+	}
+	return text
+}
+
+// a11yProseLabel returns label if set, otherwise falls back to text
+// unchanged. The fallback is display prose (a Label, Placeholder, or
+// other text the user reads), not an ID path, so a colon in it
+// ("Price: USD") is part of the name and must survive.
+func a11yProseLabel(label, text string) string {
+	if label != "" {
+		return label
 	}
 	return text
 }

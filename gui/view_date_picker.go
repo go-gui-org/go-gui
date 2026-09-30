@@ -131,7 +131,7 @@ type datePickerView struct {
 func DatePicker(cfg DatePickerCfg) View {
 	RequireID("DatePicker", cfg.ID)
 	applyDatePickerDefaults(&cfg)
-	cfg.A11YLabel = a11yLabel(cfg.A11YLabel, cfg.Label)
+	cfg.A11YLabel = a11yProseLabel(cfg.A11YLabel, cfg.Label)
 	// FitFit, not a caller sizing: DatePickerCfg has no Sizing field,
 	// and the calendar grid sizes itself from its own cell metrics.
 	return labelledField(

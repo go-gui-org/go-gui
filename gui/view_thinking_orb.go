@@ -180,7 +180,7 @@ func (v *thinkingOrbView) GenerateLayout(w *Window) Layout {
 		state = AccessStateNone
 	} else {
 		access = &accessInfo{
-			Label:       a11yLabel(cfg.A11YLabel, cfg.Design.A11YLabel()),
+			Label:       a11yProseLabel(cfg.A11YLabel, cfg.Design.A11YLabel()),
 			Description: cfg.A11YDescription,
 		}
 	}
@@ -425,7 +425,7 @@ func (v *thinkingOrbLabelView) GenerateLayout(w *Window) Layout {
 		a11Y: &accessInfo{
 			// The inner orb has no node of its own, so empty Text
 			// falls back to the design name, as a bare orb reads.
-			Label: a11yLabel(cfg.A11YLabel,
+			Label: a11yProseLabel(cfg.A11YLabel,
 				cmp.Or(cfg.Text, cfg.Design.A11YLabel())),
 			Description: cfg.A11YDescription,
 		},

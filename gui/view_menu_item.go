@@ -204,7 +204,7 @@ func menuItem(menubarCfg MenubarCfg, itemCfg MenuItemCfg, extra ...View) View {
 	return Column(ContainerCfg{
 		ID:       itemCfg.ID,
 		A11YRole: AccessRoleMenuItem,
-		A11YCfg:  A11YCfg{A11YLabel: a11yLabel("", itemCfg.Text)},
+		A11YCfg:  A11YCfg{A11YLabel: a11yProseLabel("", itemCfg.Text)},
 		Color:    itemColor,
 		Sizing:   itemCfg.sizing,
 		Padding:  itemCfg.Padding,
