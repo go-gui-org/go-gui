@@ -10,6 +10,14 @@ and this project adheres to
 
 ### Fixed
 
+- **Icon-only buttons no longer load a system fallback font (#872)** — optical
+  centring of an icon-font label no longer measures the cap probe "H" in the
+  icon face. The face has no "H", so the text stack loaded a system fallback
+  font to measure it and kept it in memory: on Fedora that is Noto Sans CJK, and
+  the live heap went from about 15 MB to 44 MB on the first frame. An icon glyph
+  now centres on its own ink with no cap-band limit, which is also the correct
+  position for a glyph.
+
 - **Linux windows follow the desktop scale (`Xft.dpi`) (#871)** — the gl backend
   now takes its UI scale from `Xft.dpi` when the desktop sets it, and uses RandR
   physical DPI only when `Xft.dpi` is not set. Before, RandR came first. Under
