@@ -9,7 +9,7 @@ import "testing"
 
 func TestTextButtonStructure(t *testing.T) {
 	w := newTestWindow()
-	v := TextButton("tb", "Click Me", noop)
+	v := TextButton("Click Me", noop)
 	layout := generateViewLayout(v, w)
 
 	if len(layout.Children) != 1 {
@@ -33,14 +33,18 @@ func TestTextButtonClickFires(t *testing.T) {
 		return Column(ContainerCfg{
 			Sizing: FillFill,
 			Content: []View{
-				TextButton("tb", "Click Me", func(ctx EventCtx) {
+				TextButton("Click Me", func(ctx EventCtx) {
 					State[state](ctx.Window).clicks++
 				}),
 			},
 		})
 	})
 
-	if err := w.TestClick("tb"); err != nil {
+	ids := w.ResolveID("~button0")
+	if len(ids) != 1 {
+		t.Fatalf("ResolveID(~button0) = %q, want one ID", ids)
+	}
+	if err := w.TestClick(ids[0]); err != nil {
 		t.Fatalf("TestClick: %v", err)
 	}
 	if got := State[state](w).clicks; got != 1 {

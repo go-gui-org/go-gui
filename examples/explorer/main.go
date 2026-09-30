@@ -237,7 +237,7 @@ func leftPane(w *gui.Window, app *ExplorerApp) gui.View {
 				HAlign:  gui.HAlignRight,
 				Spacing: gui.SpacingMedium,
 				Content: []gui.View{
-					gui.TextButton("explorer-refresh", "Refresh", func(ctx gui.EventCtx) {
+					gui.TextButton("Refresh", func(ctx gui.EventCtx) {
 						a := gui.State[ExplorerApp](ctx.Window)
 						metas, err := Discover(a.Root)
 						if err != nil {
@@ -308,7 +308,14 @@ func chipView(id, label string, selected bool, onClick func(gui.EventCtx)) gui.V
 	if selected {
 		variant = gui.ButtonPrimary
 	}
-	return gui.TextButtonVariant(id, label, variant, onClick)
+	// Chips keep explicit IDs: tags form a same-kind list where an
+	// insert would shift generated keys.
+	return gui.Button(gui.ButtonCfg{
+		ID:      id,
+		Variant: variant,
+		Label:   label,
+		OnClick: onClick,
+	})
 }
 
 func exampleRows(examples []ExampleMeta, app *ExplorerApp) []gui.View {

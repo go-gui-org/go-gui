@@ -31,7 +31,7 @@ func mainView(w *gui.Window) gui.View {
 		Content: []gui.View{
 			gui.Label("Hello GUI!", gui.CurrentTheme().TextStyleDisplay),
 			gui.Label(fmt.Sprintf("%d Clicks", app.Clicks), gui.TextStyle{}),
-			gui.TextButton("counter", "Click Me", func(ctx gui.EventCtx) {
+			gui.TextButton("Click Me", func(ctx gui.EventCtx) {
 				// Change the state. The next frame shows the new count.
 				gui.State[App](ctx.Window).Clicks++
 			}),
