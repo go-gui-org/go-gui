@@ -501,6 +501,38 @@ jobs:
             echo "Showcase started successfully (no DLL failures)"
           fi
 
+  windows-race:
+    # Diagnostic job for #886: Test (windows-latest) crashes intermittently
+    # in GC (unknown caller pc / pointer to free object) running the gui
+    # suite *without* -race. Re-run the same suite *with* -race (mingw gcc
+    # from msys2, cgo enabled like the failing job) to convert the silent
+    # corruption into a named race/culprit. Temporary: remove once #886 is
+    # root-caused.
+    name: Test Windows race (diagnostic #886)
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: false
+          release: false
+          path-type: inherit
+          install: >-
+            mingw-w64-x86_64-gcc
+
+      - uses: actions/checkout@v6
+
+      - uses: ./.github/actions/setup-go-glyph
+
+      - name: Test gui with race
+        run: |
+          export PATH="/mingw64/bin:$PATH"
+          gcc --version
+          go test -race -count=2 -timeout=10m ./gui/
+
   android:
     name: Android
     runs-on: ubuntu-latest
