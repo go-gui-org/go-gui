@@ -109,7 +109,7 @@ func Radio(cfg RadioCfg) View {
 		A11YRole:  AccessRoleRadioButton,
 		A11YState: a11yState,
 		A11YCfg: A11YCfg{
-			A11YLabel:       a11yLabel(cfg.A11YLabel, cfg.Label),
+			A11YLabel:       a11yProseLabel(cfg.A11YLabel, cfg.Label),
 			A11YDescription: cfg.A11YDescription,
 		},
 		OnClick:      cfg.OnClick,

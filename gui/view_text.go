@@ -140,7 +140,7 @@ func (tv *textView) GenerateLayout(w *Window) Layout {
 			focusOwner: c.focusOwner,
 			Focusable:  c.Focusable,
 			A11YRole:   AccessRoleStaticText,
-			a11Y:       c.a11yInfo(c.Text),
+			a11Y:       c.a11yInfoProse(c.Text),
 			Clip:       c.Clip,
 			FocusSkip:  c.FocusSkip,
 			Disabled:   c.Disabled,

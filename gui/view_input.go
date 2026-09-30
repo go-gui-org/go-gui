@@ -327,14 +327,14 @@ func Input(cfg InputCfg) View {
 		inner = Row(innerCfg)
 	}
 
-	cfg.A11YLabel = a11yLabel(cfg.A11YLabel, cfg.Label)
+	cfg.A11YLabel = a11yProseLabel(cfg.A11YLabel, cfg.Label)
 	field := Column(ContainerCfg{
 		ID:        cfg.ID,
 		Focusable: !cfg.FocusDisabled,
 		A11YRole:  a11yRole,
 		A11YState: a11yState,
 		A11YCfg: A11YCfg{
-			A11YLabel:       a11yLabel(cfg.A11YLabel, cfg.Placeholder),
+			A11YLabel:       a11yProseLabel(cfg.A11YLabel, cfg.Placeholder),
 			A11YDescription: cfg.A11YDescription,
 		},
 		Width:       cfg.Width,

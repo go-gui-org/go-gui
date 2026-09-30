@@ -151,14 +151,14 @@ func (v *numericInputView) GenerateLayout(w *Window) Layout {
 		numericInputStepButtons(cfg, cfgID, locale, stepCfg),
 	}
 
-	cfg.A11YLabel = a11yLabel(cfg.A11YLabel, cfg.Label)
+	cfg.A11YLabel = a11yProseLabel(cfg.A11YLabel, cfg.Label)
 	control := Row(ContainerCfg{
 		ID:        cfg.ID,
 		Focusable: false,
 		A11YRole:  AccessRoleTextField,
 		A11YState: a11yReadOnlyState(cfg.ReadOnly),
 		A11YCfg: A11YCfg{
-			A11YLabel:       a11yLabel(cfg.A11YLabel, cfg.Placeholder),
+			A11YLabel:       a11yProseLabel(cfg.A11YLabel, cfg.Placeholder),
 			A11YDescription: cfg.A11YDescription,
 		},
 		Width:       cfg.Width,

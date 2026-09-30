@@ -151,7 +151,7 @@ func ProgressBar(cfg ProgressBarCfg) View {
 		A11YRole:  AccessRoleProgressBar,
 		A11YState: a11yState,
 		a11Y: &accessInfo{
-			Label:       a11yLabel(cfg.A11YLabel, cfg.Text),
+			Label:       a11yProseLabel(cfg.A11YLabel, cfg.Text),
 			Description: cfg.A11YDescription,
 			ValueNum:    cfg.Percent,
 			ValueMin:    0,

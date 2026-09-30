@@ -183,7 +183,7 @@ func Slider(cfg SliderCfg) View {
 		wrapperAxis = axisTopToBottom
 	}
 
-	cfg.A11YLabel = a11yLabel(cfg.A11YLabel, cfg.Label)
+	cfg.A11YLabel = a11yProseLabel(cfg.A11YLabel, cfg.Label)
 	if cfg.Look != nil {
 		look := sliderLookView{
 			cfg: cfg, width: wrapperWidth, height: wrapperHeight,

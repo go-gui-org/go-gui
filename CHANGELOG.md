@@ -38,6 +38,13 @@ and this project adheres to
 
 ### Fixed
 
+- **Accessible names keep a colon in `Label` and display text (#876)** — a
+  `Label`, `Placeholder`, menu item text, progress text, badge label or shown
+  `Text` with a colon (`Price: USD`) no longer loses everything up to the last
+  colon in the screen reader name. The fallback helper treated prose as an ID
+  path and kept only the last scope segment; prose now falls back unchanged,
+  while `cfg.ID` fallbacks still strip the scope.
+
 - **Icon-only buttons no longer load a system fallback font (#872)** — optical
   centring of an icon-font label no longer measures the cap probe "H" in the
   icon face. The face has no "H", so the text stack loaded a system fallback

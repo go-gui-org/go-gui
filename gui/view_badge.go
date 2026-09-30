@@ -96,7 +96,7 @@ func Badge(cfg BadgeCfg) View {
 	return Row(ContainerCfg{
 		A11YRole: AccessRoleStaticText,
 		A11YCfg: A11YCfg{
-			A11YLabel:       a11yLabel(cfg.A11YLabel, label),
+			A11YLabel:       a11yProseLabel(cfg.A11YLabel, label),
 			A11YDescription: cfg.A11YDescription,
 		},
 		Color:      bg,

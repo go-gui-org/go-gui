@@ -96,7 +96,7 @@ func InputDate(cfg InputDateCfg) View {
 	applyInputDateDefaults(&cfg)
 	requireFocusID("InputDate", cfg.FocusDisabled, cfg.ID)
 	requireDateFormat("InputDate", cfg.DateFormat)
-	cfg.A11YLabel = a11yLabel(cfg.A11YLabel, cfg.Label)
+	cfg.A11YLabel = a11yProseLabel(cfg.A11YLabel, cfg.Label)
 	return labelledField(
 		cfg.Label, cfg.TextStyle, HAlignLeft, cfg.Sizing,
 		&inputDateView{cfg: cfg})

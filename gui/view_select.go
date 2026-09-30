@@ -192,7 +192,7 @@ func Select(cfg SelectCfg) View {
 	}
 	applySelectDefaults(&cfg)
 	requireFocusID("Select", cfg.FocusDisabled, cfg.ID)
-	cfg.A11YLabel = a11yLabel(cfg.A11YLabel, cfg.Label)
+	cfg.A11YLabel = a11yProseLabel(cfg.A11YLabel, cfg.Label)
 	return labelledField(
 		cfg.Label, cfg.TextStyle, HAlignLeft, cfg.Sizing,
 		&selectView{cfg: cfg})
@@ -335,7 +335,7 @@ func (sv *selectView) GenerateLayout(w *Window) Layout {
 		Clip:      clip,
 		A11YRole:  AccessRoleComboBox,
 		A11YCfg: A11YCfg{
-			A11YLabel:       a11yLabel(cfg.A11YLabel, cfg.Placeholder),
+			A11YLabel:       a11yProseLabel(cfg.A11YLabel, cfg.Placeholder),
 			A11YDescription: cfg.A11YDescription,
 		},
 		Color:       colors.Base,

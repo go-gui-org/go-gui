@@ -25,8 +25,18 @@ type A11YCfg struct {
 // name when A11YLabel is empty. Nil when neither name nor description
 // resolves to anything, which is the signal to emit no a11y node.
 //
-// Pass "" for fallback where the widget has nothing of its own to derive
-// a name from; a11yLabel then returns A11YLabel unchanged.
+// The fallback is an ID path; a11yLabel strips its scope. Pass "" for
+// fallback where the widget has nothing of its own to derive a name
+// from; a11yLabel then returns A11YLabel unchanged.
 func (a A11YCfg) a11yInfo(fallback string) *accessInfo {
 	return makeA11YInfo(a11yLabel(a.A11YLabel, fallback), a.A11YDescription)
+}
+
+// a11yInfoProse builds the shape's accessInfo from display prose. The
+// fallback is a Label, Placeholder, or other text the user reads, so
+// it reaches the accessible name unchanged; a colon in it is part of
+// the name, not an ID scope.
+func (a A11YCfg) a11yInfoProse(fallback string) *accessInfo {
+	return makeA11YInfo(a11yProseLabel(a.A11YLabel, fallback),
+		a.A11YDescription)
 }
