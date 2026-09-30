@@ -45,9 +45,9 @@ gui.Button(gui.ButtonCfg{
 
 | Property   | Type         | Description                                                      |
 | ---------- | ------------ | ---------------------------------------------------------------- |
-| Padding    | Opt[Padding] | Inner padding                                                    |
-| Radius     | Opt[float32] | Corner radius                                                    |
-| SizeBorder | Opt[float32] | Border width                                                     |
+| Padding    | Padding      | Inner padding                                                    |
+| Radius     | Radius       | Corner radius                                                    |
+| SizeBorder | Border       | Border width                                                     |
 | Color      | Color        | Resting background (shorthand for `Colors.Base`)                 |
 | Colors     | ColorSet     | Per-state colors: Base, Hover, Click, Focus, Border, BorderFocus |
 | BlurRadius | float32      | Background blur radius                                           |

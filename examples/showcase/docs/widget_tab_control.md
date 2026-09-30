@@ -53,36 +53,36 @@ gui.TabControl(gui.TabControlCfg{
 | Reorderable   | bool         | Enable drag-reorder of tabs             |
 | Disabled      | bool         | Disable interaction                     |
 | Invisible     | bool         | Hide without removing from layout       |
-| Spacing       | Opt[float32] | Gap between header and content          |
-| SpacingHeader | Opt[float32] | Gap between tab buttons                 |
+| Spacing       | Spacing      | Gap between header and content          |
+| SpacingHeader | Spacing      | Gap between tab buttons                 |
 
 ## Appearance
 
-| Property           | Type         | Description                                                                              |
-| ------------------ | ------------ | ---------------------------------------------------------------------------------------- |
-| Color              | Color        | Outer background                                                                         |
-| ColorBorder        | Color        | Outer border color                                                                       |
-| ColorHeader        | Color        | Header row background                                                                    |
-| ColorHeaderBorder  | Color        | Header row border                                                                        |
-| ColorContent       | Color        | Content panel background                                                                 |
-| ColorContentBorder | Color        | Content panel border                                                                     |
-| ColorTab           | Color        | Tab button background (shorthand for ColorsTab.Base)                                     |
-| ColorsTab          | ColorSet     | Tab per-state colors: Base, Hover, Click, Focus, Border, BorderFocus, Selected, Disabled |
-| Padding            | Opt[Padding] | Outer padding                                                                            |
-| PaddingHeader      | Opt[Padding] | Header row padding                                                                       |
-| PaddingContent     | Opt[Padding] | Content panel padding                                                                    |
-| PaddingTab         | Opt[Padding] | Individual tab padding                                                                   |
-| SizeBorder         | Opt[float32] | Outer border width                                                                       |
-| SizeHeaderBorder   | Opt[float32] | Header border width                                                                      |
-| SizeContentBorder  | Opt[float32] | Content border width                                                                     |
-| SizeTabBorder      | Opt[float32] | Tab button border width                                                                  |
-| Radius             | Opt[float32] | Outer corner radius                                                                      |
-| RadiusHeader       | Opt[float32] | Header corner radius                                                                     |
-| RadiusContent      | Opt[float32] | Content corner radius                                                                    |
-| RadiusTab          | Opt[float32] | Tab button corner radius                                                                 |
-| TextStyle          | TextStyle    | Default tab text style                                                                   |
-| TextStyleSelected  | TextStyle    | Selected tab text style                                                                  |
-| TextStyleDisabled  | TextStyle    | Disabled tab text style                                                                  |
+| Property           | Type      | Description                                                                              |
+| ------------------ | --------- | ---------------------------------------------------------------------------------------- |
+| Color              | Color     | Outer background                                                                         |
+| ColorBorder        | Color     | Outer border color                                                                       |
+| ColorHeader        | Color     | Header row background                                                                    |
+| ColorHeaderBorder  | Color     | Header row border                                                                        |
+| ColorContent       | Color     | Content panel background                                                                 |
+| ColorContentBorder | Color     | Content panel border                                                                     |
+| ColorTab           | Color     | Tab button background (shorthand for ColorsTab.Base)                                     |
+| ColorsTab          | ColorSet  | Tab per-state colors: Base, Hover, Click, Focus, Border, BorderFocus, Selected, Disabled |
+| Padding            | Padding   | Outer padding                                                                            |
+| PaddingHeader      | Padding   | Header row padding                                                                       |
+| PaddingContent     | Padding   | Content panel padding                                                                    |
+| PaddingTab         | Padding   | Individual tab padding                                                                   |
+| SizeBorder         | Border    | Outer border width                                                                       |
+| SizeHeaderBorder   | Border    | Header border width                                                                      |
+| SizeContentBorder  | Border    | Content border width                                                                     |
+| SizeTabBorder      | Border    | Tab button border width                                                                  |
+| Radius             | Radius    | Outer corner radius                                                                      |
+| RadiusHeader       | Radius    | Header corner radius                                                                     |
+| RadiusContent      | Radius    | Content corner radius                                                                    |
+| RadiusTab          | Radius    | Tab button corner radius                                                                 |
+| TextStyle          | TextStyle | Default tab text style                                                                   |
+| TextStyleSelected  | TextStyle | Selected tab text style                                                                  |
+| TextStyleDisabled  | TextStyle | Disabled tab text style                                                                  |
 
 ## Events
 

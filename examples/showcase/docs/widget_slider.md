@@ -46,19 +46,19 @@ gui.Slider(gui.SliderCfg{
 
 ## Appearance
 
-| Property     | Type         | Description            |
-| ------------ | ------------ | ---------------------- |
-| Padding      | Opt[Padding] | Inner padding          |
-| Radius       | Opt[float32] | Track corner radius    |
-| RadiusBorder | Opt[float32] | Border corner radius   |
-| SizeBorder   | Opt[float32] | Border width           |
-| Color        | Color        | Track background color |
-| ColorLeft    | Color        | Filled portion color   |
-| ColorThumb   | Color        | Thumb color            |
-| ColorHover   | Color        | Thumb on hover         |
-| ColorFocus   | Color        | Thumb when focused     |
-| ColorClick   | Color        | Thumb on click         |
-| ColorBorder  | Color        | Border color           |
+| Property     | Type    | Description            |
+| ------------ | ------- | ---------------------- |
+| Padding      | Padding | Inner padding          |
+| Radius       | Radius  | Track corner radius    |
+| RadiusBorder | Radius  | Border corner radius   |
+| SizeBorder   | Border  | Border width           |
+| Color        | Color   | Track background color |
+| ColorLeft    | Color   | Filled portion color   |
+| ColorThumb   | Color   | Thumb color            |
+| ColorHover   | Color   | Thumb on hover         |
+| ColorFocus   | Color   | Thumb when focused     |
+| ColorClick   | Color   | Thumb on click         |
+| ColorBorder  | Color   | Border color           |
 
 ## Events
 

@@ -5,8 +5,8 @@ field to its group. The struct stays flat. The groups below are the map.
 
 `ThemeCfg` is the input to `ThemeMaker`. Zero means default, except where the
 field doc names zero as a valid choice (`SizeBorder`, `SizeScrollbarGap`,
-`SizeScrollbarGapEnd`). `Color`, `Padding`, and `Sizing` flag themselves. Use
-the constructors for them.
+`SizeScrollbarGapEnd`). `Color`, `Padding`, `Sizing`, `Spacing`, `Radius` and
+`Border` flag themselves. Use the constructors or roles for them.
 
 ## Type
 
@@ -26,7 +26,9 @@ Border width and the corner radius ladder.
 
 - `SizeBorder` — border width. Zero is a valid choice (no border).
 - `Radius`, `RadiusSmall`, `RadiusMedium`, `RadiusLarge` — radius ladder.
-  `RadiusLarge` is reserved. No widget reads it yet.
+  `RadiusLarge` is the top tier for floating surfaces (dialogs, dropdowns,
+  popovers). Cfg fields take it as the `RadiusLarge` role, which resolves to the
+  active theme's step at build time.
 
 ## Spacing
 

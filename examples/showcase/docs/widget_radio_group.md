@@ -62,12 +62,12 @@ When `Items` is set, `Options` is ignored.
 
 ## Appearance
 
-| Property    | Type         | Description               |
-| ----------- | ------------ | ------------------------- |
-| Padding     | Opt[Padding] | Inner padding             |
-| Spacing     | Opt[float32] | Gap between radio buttons |
-| SizeBorder  | Opt[float32] | Group border width        |
-| ColorBorder | Color        | Group border color        |
+| Property    | Type    | Description               |
+| ----------- | ------- | ------------------------- |
+| Padding     | Padding | Inner padding             |
+| Spacing     | Spacing | Gap between radio buttons |
+| SizeBorder  | Border  | Group border width        |
+| ColorBorder | Color   | Group border color        |
 
 ## Factories
 

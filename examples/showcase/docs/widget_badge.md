@@ -35,8 +35,8 @@ gui.Badge(gui.BadgeCfg{Label: "150", Max: 99})
 | --------- | ------------ | ---------------------------- |
 | Color     | Color        | Custom background color      |
 | DotSize   | Opt[float32] | Dot diameter (dot mode only) |
-| Padding   | Opt[Padding] | Inner padding                |
-| Radius    | Opt[float32] | Corner radius                |
+| Padding   | Padding      | Inner padding                |
+| Radius    | Radius       | Corner radius                |
 | TextStyle | TextStyle    | Label text styling           |
 
 ## Variants

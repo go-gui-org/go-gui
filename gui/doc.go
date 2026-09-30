@@ -39,13 +39,12 @@
 //			HAlign: gui.HAlignCenter, VAlign: gui.VAlignMiddle,
 //			Content: []gui.View{
 //				gui.Button(gui.ButtonCfg{
-//					ID:        "clicks",
-//					Focusable: true,
+//					ID: "clicks",
 //					Content: []gui.View{gui.Text(gui.TextCfg{
 //						Text: fmt.Sprintf("%d clicks", app.Clicks),
 //					})},
-//					OnClick: func(_ *gui.Layout, _ *gui.Event, w *gui.Window) {
-//						gui.State[App](w).Clicks++
+//					OnClick: func(ctx gui.EventCtx) {
+//						gui.State[App](ctx.Window).Clicks++
 //					},
 //				}),
 //			},
@@ -62,8 +61,10 @@
 //   - Zero-initializable: all fields have usable zero values. Create
 //     with ButtonCfg{Text: "Click"} — omit fields you don't need.
 //   - Opt[T] fields: optional overrides that distinguish "not set"
-//     from an explicit zero. Use cfg.Radius.Or(default) or
-//     cfg.Radius.Set(5).
+//     from an explicit zero, for primitives only. Owned types
+//     (Color, Padding, Sizing, Spacing, Radius, Border) self-flag
+//     instead: build them with their constructors or roles and read
+//     them with Or.
 //   - required tags: fields tagged `gui:"required"` (e.g.
 //     InputGroupCfg.ID) must be non-empty. Enforced by the requiredid
 //     vet analyzer.
@@ -73,9 +74,10 @@
 //     it from code (SetFocus, FindByID, tests), or when a widget of
 //     the same kind can appear before it at run time.
 //   - Focusable: true opts the widget into keyboard focus (click or
-//     Tab). Requires a non-empty ID. Tab order follows layout-tree
-//     (depth-first) order.
-//   - Common fields: Sizing, Float, FloatAnchor, FloatTieOff,
+//     Tab). An opt-in Focusable without an ID is a silent no-op; a
+//     focusable-by-default control with an empty auto ID still joins
+//     the tab order. Tab order follows layout-tree (depth-first) order.
+//   - Common fields: Sizing, Spacing, Float, FloatAnchor, FloatTieOff,
 //     Disabled, Invisible, Padding, Radius, SizeBorder appear on
 //     most Cfg types with identical semantics.
 //

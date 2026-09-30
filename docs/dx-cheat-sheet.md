@@ -8,8 +8,9 @@ the tooling at the bottom finds most of them in your app.
 
 ## Focus
 
-A shape is a focus target when it has `Focusable: true` and an `ID`. Tab order
-also needs `!FocusSkip` and `!Disabled`.
+A shape is a focus target when it has `Focusable: true` and an `ID` (an empty
+auto `ID` already counts: the factory fills a generated leaf before the frame
+stamps identity). Tab order also needs `!FocusSkip` and `!Disabled`.
 
 ```go
 // No ID: takes a generated ID and joins the tab order (#881).

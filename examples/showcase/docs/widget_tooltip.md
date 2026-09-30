@@ -49,11 +49,11 @@ gui.WithTooltip(w, gui.WithTooltipCfg{
 
 ## Appearance
 
-| Property    | Type         | Description              |
-| ----------- | ------------ | ------------------------ |
-| Color       | Color        | Tooltip background color |
-| ColorBorder | Color        | Border color             |
-| Padding     | Opt[Padding] | Inner padding            |
-| TextStyle   | TextStyle    | Tooltip text styling     |
-| Radius      | Opt[float32] | Corner radius            |
-| SizeBorder  | Opt[float32] | Border width             |
+| Property    | Type      | Description              |
+| ----------- | --------- | ------------------------ |
+| Color       | Color     | Tooltip background color |
+| ColorBorder | Color     | Border color             |
+| Padding     | Padding   | Inner padding            |
+| TextStyle   | TextStyle | Tooltip text styling     |
+| Radius      | Radius    | Corner radius            |
+| SizeBorder  | Border    | Border width             |

@@ -35,8 +35,8 @@ gui.Wrap(gui.ContainerCfg{
 | MaxWidth  | float32         | Maximum width                        |
 | MinHeight | float32         | Minimum height                       |
 | MaxHeight | float32         | Maximum height                       |
-| Spacing   | Opt[float32]    | Gap between items (horizontal & row) |
-| Padding   | Opt[Padding]    | Inner padding                        |
+| Spacing   | Spacing         | Gap between items (horizontal & row) |
+| Padding   | Padding         | Inner padding                        |
 | HAlign    | HorizontalAlign | Horizontal alignment per row         |
 | VAlign    | VerticalAlign   | Cross-axis alignment per row         |
 | TextDir   | TextDirection   | Text/layout direction (LTR/RTL)      |
@@ -50,8 +50,8 @@ gui.Wrap(gui.ContainerCfg{
 | ----------- | ------------ | ------------------- |
 | Color       | Color        | Background color    |
 | ColorBorder | Color        | Border color        |
-| SizeBorder  | Opt[float32] | Border width        |
-| Radius      | Opt[float32] | Corner radius       |
+| SizeBorder  | Border       | Border width        |
+| Radius      | Radius       | Corner radius       |
 | Opacity     | float32      | Opacity (0..1)      |
 | Shadow      | *BoxShadow   | Drop shadow         |
 | Gradient    | *GradientDef | Background gradient |

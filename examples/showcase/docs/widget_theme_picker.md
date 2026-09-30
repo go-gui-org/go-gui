@@ -32,7 +32,7 @@ gui.ThemePicker(gui.ThemePickerCfg{
 
 | Property     | Type                   | Description                         |
 | ------------ | ---------------------- | ----------------------------------- |
-| ID           | string                 | Unique identifier (required)        |
+| ID           | string                 | Unique identifier                   |
 | Sizing       | Sizing                 | Combined axis sizing mode           |
 | OnSelect     | func(string, EventCtx) | Called with theme name on selection |
 | FloatAnchor  | FloatAttach            | Dropdown anchor point on parent     |

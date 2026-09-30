@@ -41,17 +41,17 @@ control.
 
 ## Appearance
 
-| Property             | Type         | Description                 |
-| -------------------- | ------------ | --------------------------- |
-| Color                | Color        | Card background color       |
-| ColorBorder          | Color        | Card border color           |
-| ColorHighlight       | Color        | Highlighted item color      |
-| ColorHighlightSubtle | Color        | Tint behind highlighted row |
-| BackdropColor        | Color        | Semi-transparent backdrop   |
-| SizeBorder           | Opt[float32] | Border width                |
-| Radius               | Opt[float32] | Corner radius               |
-| TextStyle            | TextStyle    | Item label text styling     |
-| DetailStyle          | TextStyle    | Item detail text styling    |
+| Property             | Type      | Description                 |
+| -------------------- | --------- | --------------------------- |
+| Color                | Color     | Card background color       |
+| ColorBorder          | Color     | Card border color           |
+| ColorHighlight       | Color     | Highlighted item color      |
+| ColorHighlightSubtle | Color     | Tint behind highlighted row |
+| BackdropColor        | Color     | Semi-transparent backdrop   |
+| SizeBorder           | Border    | Border width                |
+| Radius               | Radius    | Corner radius               |
+| TextStyle            | TextStyle | Item label text styling     |
+| DetailStyle          | TextStyle | Item detail text styling    |
 
 ## CommandPaletteItem
 

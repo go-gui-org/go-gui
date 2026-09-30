@@ -55,14 +55,14 @@ gui.DatePickerRoller(gui.DatePickerRollerCfg{
 
 ## Appearance
 
-| Property    | Type         | Description      |
-| ----------- | ------------ | ---------------- |
-| Color       | Color        | Background color |
-| ColorBorder | Color        | Border color     |
-| SizeBorder  | Opt[float32] | Border width     |
-| Radius      | Opt[float32] | Corner radius    |
-| Padding     | Opt[Padding] | Inner padding    |
-| TextStyle   | TextStyle    | Text styling     |
+| Property    | Type      | Description      |
+| ----------- | --------- | ---------------- |
+| Color       | Color     | Background color |
+| ColorBorder | Color     | Border color     |
+| SizeBorder  | Border    | Border width     |
+| Radius      | Radius    | Corner radius    |
+| Padding     | Padding   | Inner padding    |
+| TextStyle   | TextStyle | Text styling     |
 
 ## Events
 

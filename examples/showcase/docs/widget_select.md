@@ -69,19 +69,19 @@ gui.Select(gui.SelectCfg{
 
 ## Appearance
 
-| Property         | Type         | Description               |
-| ---------------- | ------------ | ------------------------- |
-| Padding          | Opt[Padding] | Inner padding             |
-| Radius           | Opt[float32] | Corner radius             |
-| SizeBorder       | Opt[float32] | Border width              |
-| Color            | Color        | Background color          |
-| ColorBorder      | Color        | Border color              |
-| ColorBorderFocus | Color        | Border color when focused |
-| ColorFocus       | Color        | Background when focused   |
-| ColorSelect      | Color        | Selected item highlight   |
-| TextStyle        | TextStyle    | Option text styling       |
-| SubheadingStyle  | TextStyle    | Subheading text styling   |
-| PlaceholderStyle | TextStyle    | Placeholder text styling  |
+| Property         | Type      | Description               |
+| ---------------- | --------- | ------------------------- |
+| Padding          | Padding   | Inner padding             |
+| Radius           | Radius    | Corner radius             |
+| SizeBorder       | Border    | Border width              |
+| Color            | Color     | Background color          |
+| ColorBorder      | Color     | Border color              |
+| ColorBorderFocus | Color     | Border color when focused |
+| ColorFocus       | Color     | Background when focused   |
+| ColorSelect      | Color     | Selected item highlight   |
+| TextStyle        | TextStyle | Option text styling       |
+| SubheadingStyle  | TextStyle | Subheading text styling   |
+| PlaceholderStyle | TextStyle | Placeholder text styling  |
 
 ## Events
 

@@ -343,19 +343,25 @@ policy from code that drifts.
   `DatePicker`, `ExpandPanel`, `Input`, `InputDate`, `ListBox`, `NumericInput`,
   `RadioButtonGroup`, `Radio`, `SegmentedControl`, `Select`, `Slider`, `Switch`,
   `Toggle`, `Tree`, `VirtualList`. Opt out with `FocusDisabled`, never
-  `Focusable: false`. `Focusable` without a non-empty `ID` is a silent no-op —
-  the widget renders and clicks but never joins the tab order. Spec:
-  `docs/specs/focusable-default-input.md`.
+  `Focusable: false`. A focusable-by-default control with an empty `ID` takes a
+  generated one and still joins the tab order; an opt-in `Focusable` without an
+  `ID` is a silent no-op — the widget renders and clicks but never joins the tab
+  order. Spec: `docs/specs/focusable-default-input.md`,
+  `docs/specs/auto-widget-identity.md`.
 - **A11y fields:** `A11YLabel`/`A11YDescription` live on the embedded `A11YCfg`.
   Never redeclare them on a Cfg. Construction names the embed:
   `gui.ButtonCfg{ID: "save", A11YCfg: gui.A11YCfg{A11YLabel: "Save"}}`.
 - **`Opt[T]` vs plain fields:** only primitives get `Opt` (when zero is a
   legitimate user choice that must be distinguishable from unset, for example
-  `SizeBorder`). Owned types self-flag instead: `Color`, `Padding`, and `Sizing`
-  carry a `set` field, so they are plain fields with `IsSet()`/`Or()`. Build
-  them with constructors — `RGBA`/`RGB`/`Hex`, `NewPadding`/`PadAll`, the
-  predefined `Sizing` vars — never raw `Color{...}`/`Padding{...}`/`Sizing{...}`
-  literals (they read as unset).
+  `SizeBorder`). Owned types self-flag instead: `Color`, `Padding`, `Sizing`,
+  `Spacing`, `Radius` and `Border` carry a `set` field, so they are plain fields
+  with `IsSet()`/`Or()`. Build them with constructors or roles —
+  `RGBA`/`RGB`/`Hex`, `NewPadding`/`PadAll`, the predefined `Sizing` vars,
+  `SpacingMedium`/`SpacingPx`, `RadiusMedium`/`RadiusPx`,
+  `BorderThin`/`BorderPx` — never raw `Color{...}`/`Padding{...}`/`Sizing{...}`
+  literals (they read as unset). A `Spacing`/`Radius`/`Border` role resolves
+  against the active theme at build time, so a `ThemeCfg` step moves every call
+  site that names it.
 - **Where to change:** any widget factory or Cfg struct.
 - **Catches:** `make vet` (`requiredid`) and `make ergonomics-audit` modes
   `focus`, `a11y`, `opt`, and `literals`. `gui.Debug` reports focusable shapes

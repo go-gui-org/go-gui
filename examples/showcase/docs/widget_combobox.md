@@ -72,19 +72,19 @@ gui.Combobox(gui.ComboboxCfg{
 
 ## Appearance
 
-| Property         | Type         | Description               |
-| ---------------- | ------------ | ------------------------- |
-| Padding          | Opt[Padding] | Inner padding             |
-| Radius           | Opt[float32] | Corner radius             |
-| SizeBorder       | Opt[float32] | Border width              |
-| Color            | Color        | Background color          |
-| ColorBorder      | Color        | Border color              |
-| ColorBorderFocus | Color        | Border color when focused |
-| ColorFocus       | Color        | Background when focused   |
-| ColorHighlight   | Color        | Highlighted option color  |
-| ColorHover       | Color        | Option hover color        |
-| TextStyle        | TextStyle    | Option text styling       |
-| PlaceholderStyle | TextStyle    | Placeholder text styling  |
+| Property         | Type      | Description               |
+| ---------------- | --------- | ------------------------- |
+| Padding          | Padding   | Inner padding             |
+| Radius           | Radius    | Corner radius             |
+| SizeBorder       | Border    | Border width              |
+| Color            | Color     | Background color          |
+| ColorBorder      | Color     | Border color              |
+| ColorBorderFocus | Color     | Border color when focused |
+| ColorFocus       | Color     | Background when focused   |
+| ColorHighlight   | Color     | Highlighted option color  |
+| ColorHover       | Color     | Option hover color        |
+| TextStyle        | TextStyle | Option text styling       |
+| PlaceholderStyle | TextStyle | Placeholder text styling  |
 
 ## Events
 

@@ -27,15 +27,15 @@ gui.Switch(gui.SwitchCfg{
 
 ## Appearance
 
-| Property      | Type         | Description                                                      |
-| ------------- | ------------ | ---------------------------------------------------------------- |
-| Padding       | Opt[Padding] | Inner padding                                                    |
-| SizeBorder    | Opt[float32] | Border width                                                     |
-| Color         | Color        | Track color (shorthand for `Colors.Base`)                        |
-| Colors        | ColorSet     | Per-state colors: Base, Hover, Click, Focus, Border, BorderFocus |
-| ColorSelect   | Color        | Thumb color when on                                              |
-| ColorUnselect | Color        | Thumb color when off                                             |
-| TextStyle     | TextStyle    | Label text styling                                               |
+| Property      | Type      | Description                                                      |
+| ------------- | --------- | ---------------------------------------------------------------- |
+| Padding       | Padding   | Inner padding                                                    |
+| SizeBorder    | Border    | Border width                                                     |
+| Color         | Color     | Track color (shorthand for `Colors.Base`)                        |
+| Colors        | ColorSet  | Per-state colors: Base, Hover, Click, Focus, Border, BorderFocus |
+| ColorSelect   | Color     | Thumb color when on                                              |
+| ColorUnselect | Color     | Thumb color when off                                             |
+| TextStyle     | TextStyle | Label text styling                                               |
 
 ## Events
 

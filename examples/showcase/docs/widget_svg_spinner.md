@@ -52,13 +52,13 @@ for i := range gui.SvgSpinnerCount() {
 
 | Property  | Type           | Description                            |
 | --------- | -------------- | -------------------------------------- |
-| ID        | string         | Unique identifier (required)           |
+| ID        | string         | Unique identifier                      |
 | Kind      | SvgSpinnerKind | One of 106 built-in spinners           |
 | Color     | Color          | Recolor monochrome assets              |
 | Width     | float32        | Explicit width (default 48 if both 0)  |
 | Height    | float32        | Explicit height (default 48 if both 0) |
 | Sizing    | Sizing         | Combined axis sizing mode              |
-| Padding   | Opt[Padding]   | Outer padding                          |
+| Padding   | Padding        | Outer padding                          |
 | MinWidth  | float32        | Minimum width                          |
 | MaxWidth  | float32        | Maximum width                          |
 | MinHeight | float32        | Minimum height                         |

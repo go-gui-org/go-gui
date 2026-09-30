@@ -65,20 +65,20 @@ gui.Splitter(gui.SplitterCfg{
 
 ## Appearance
 
-| Property          | Type         | Description                      |
-| ----------------- | ------------ | -------------------------------- |
-| ColorHandle       | Color        | Handle background                |
-| ColorHandleHover  | Color        | Handle background on hover       |
-| ColorHandleActive | Color        | Handle background while dragging |
-| ColorHandleBorder | Color        | Handle border color              |
-| ColorGrip         | Color        | Grip indicator color             |
-| ColorButton       | Color        | Collapse button background       |
-| ColorButtonHover  | Color        | Collapse button hover            |
-| ColorButtonActive | Color        | Collapse button active           |
-| ColorButtonIcon   | Color        | Collapse button icon color       |
-| SizeBorder        | Opt[float32] | Handle border width              |
-| Radius            | Opt[float32] | Handle corner radius             |
-| RadiusBorder      | Opt[float32] | Button/grip corner radius        |
+| Property          | Type   | Description                      |
+| ----------------- | ------ | -------------------------------- |
+| ColorHandle       | Color  | Handle background                |
+| ColorHandleHover  | Color  | Handle background on hover       |
+| ColorHandleActive | Color  | Handle background while dragging |
+| ColorHandleBorder | Color  | Handle border color              |
+| ColorGrip         | Color  | Grip indicator color             |
+| ColorButton       | Color  | Collapse button background       |
+| ColorButtonHover  | Color  | Collapse button hover            |
+| ColorButtonActive | Color  | Collapse button active           |
+| ColorButtonIcon   | Color  | Collapse button icon color       |
+| SizeBorder        | Border | Handle border width              |
+| Radius            | Radius | Handle corner radius             |
+| RadiusBorder      | Radius | Button/grip corner radius        |
 
 ## Events
 
