@@ -70,7 +70,7 @@ func mainView(w *gui.Window) gui.View {
 		Content: []gui.View{
 			gui.Label("Hello GUI!", gui.CurrentTheme().TextStyleDisplay),
 			gui.Label(fmt.Sprintf("%d Clicks", app.Clicks), gui.TextStyle{}),
-			gui.TextButton("counter", "Click Me", func(ctx gui.EventCtx) {
+			gui.TextButton("Click Me", func(ctx gui.EventCtx) {
 				// Change the state. The next frame shows the new count.
 				gui.State[App](ctx.Window).Clicks++
 			}),
@@ -80,8 +80,9 @@ func mainView(w *gui.Window) gui.View {
 ```
 
 `gui.Label(text, style)` uses the default theme style with `TextStyle{}`.
-`gui.TextButton(id, label, onClick)` and `gui.SimpleWindow` are thin convenience
-forms. The `ID` argument stays explicit because identity is caller-owned.
+`gui.TextButton(label, onClick)` and `gui.SimpleWindow` are thin convenience
+forms. A `TextButton` takes a generated ID; a caller that names the button
+(`SetFocus`, `FindByID`, tests) uses `gui.Button` with an explicit `ID`.
 
 This is [`examples/get_started/main.go`](examples/get_started/main.go). See
 [`examples/web_demo/`](examples/web_demo/) for the browser build.

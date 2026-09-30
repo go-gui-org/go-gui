@@ -186,7 +186,7 @@ func controls(app *App) gui.View {
 					st.JumpErr = ""
 				},
 			}),
-			gui.TextButton("jump", "Jump", func(ctx gui.EventCtx) {
+			gui.TextButton("Jump", func(ctx gui.EventCtx) {
 				a := gui.State[App](ctx.Window)
 				n, err := strconv.Atoi(a.JumpText)
 				if err != nil {
@@ -198,10 +198,10 @@ func controls(app *App) gui.View {
 				// so there is no ID to resolve and no view to find.
 				ctx.Window.ScrollToIndexAt(listID, n, 0.5)
 			}),
-			gui.TextButton("top", "Top", func(ctx gui.EventCtx) {
+			gui.TextButton("Top", func(ctx gui.EventCtx) {
 				ctx.Window.ScrollToIndex(listID, 0)
 			}),
-			gui.TextButton("end", "End", func(ctx gui.EventCtx) {
+			gui.TextButton("End", func(ctx gui.EventCtx) {
 				ctx.Window.ScrollToEnd(listID)
 			}),
 			gui.Toggle(gui.ToggleCfg{

@@ -1563,7 +1563,7 @@ func goldenCases() []goldenCase {
 			// The same row focused on the primary: the ring over the
 			// accent fill is a state no other case records.
 			name:    "button_variants_focused",
-			focusID: "bv_primary",
+			focusID: "~button1",
 			build:   buildButtonVariants,
 		},
 		{
@@ -2104,13 +2104,13 @@ func buildButtonVariants(_ *Window) View {
 		Sizing:  FitFit,
 		Spacing: SpacingPx(8),
 		Content: []View{
-			TextButtonVariant("bv_sec", "Sec", ButtonSecondary,
+			TextButtonVariant("Sec", ButtonSecondary,
 				func(EventCtx) {}),
-			TextButtonVariant("bv_primary", "Pri", ButtonPrimary,
+			TextButtonVariant("Pri", ButtonPrimary,
 				func(EventCtx) {}),
-			TextButtonVariant("bv_ghost", "Ghost", ButtonGhost,
+			TextButtonVariant("Ghost", ButtonGhost,
 				func(EventCtx) {}),
-			TextButtonVariant("bv_danger", "Danger", ButtonDanger,
+			TextButtonVariant("Danger", ButtonDanger,
 				func(EventCtx) {}),
 		},
 	})

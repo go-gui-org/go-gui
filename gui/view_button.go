@@ -240,10 +240,11 @@ func buttonOnHover(ctx EventCtx) {
 // label on a clickable button. It sets no padding, so the button takes
 // the theme's button inset (Theme.PaddingButton) and shares a row
 // height with an Input (issue #850). A caller that wants a custom
-// inset uses Button directly.
-func TextButton(id, label string, onClick func(EventCtx)) View {
+// inset uses Button directly. The button takes a generated ID; a caller
+// that names the button (SetFocus, FindByID, tests) uses Button with an
+// explicit ID.
+func TextButton(label string, onClick func(EventCtx)) View {
 	return Button(ButtonCfg{
-		ID:      id,
 		OnClick: onClick,
 		Content: []View{
 			Text(TextCfg{Text: label}),
@@ -254,10 +255,11 @@ func TextButton(id, label string, onClick func(EventCtx)) View {
 // TextButtonVariant is TextButton with a variant (visual-refresh §6).
 // It takes the Label path, so the button builds the text and applies
 // the variant's label color itself — the one way a filled variant's
-// label can be recolored (see ButtonCfg.Label).
-func TextButtonVariant(id, label string, v ButtonVariant, onClick func(EventCtx)) View {
+// label can be recolored (see ButtonCfg.Label). The button takes a
+// generated ID; a caller that names the button uses Button with an
+// explicit ID.
+func TextButtonVariant(label string, v ButtonVariant, onClick func(EventCtx)) View {
 	return Button(ButtonCfg{
-		ID:      id,
 		Variant: v,
 		Label:   label,
 		OnClick: onClick,

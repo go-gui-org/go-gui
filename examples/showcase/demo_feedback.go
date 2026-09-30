@@ -93,10 +93,10 @@ func buttonFeatureRows(w *gui.Window) []gui.View {
 			Sizing:  gui.FitFit,
 			Spacing: gui.SpacingMedium,
 			Content: []gui.View{
-				gui.TextButtonVariant("showcase-button-secondary", "Secondary", gui.ButtonSecondary, showcaseButtonClick),
-				gui.TextButtonVariant("showcase-button-primary", "Primary", gui.ButtonPrimary, showcaseButtonClick),
-				gui.TextButtonVariant("showcase-button-ghost", "Ghost", gui.ButtonGhost, showcaseButtonClick),
-				gui.TextButtonVariant("showcase-button-danger", "Danger", gui.ButtonDanger, showcaseButtonClick),
+				gui.TextButtonVariant("Secondary", gui.ButtonSecondary, showcaseButtonClick),
+				gui.TextButtonVariant("Primary", gui.ButtonPrimary, showcaseButtonClick),
+				gui.TextButtonVariant("Ghost", gui.ButtonGhost, showcaseButtonClick),
+				gui.TextButtonVariant("Danger", gui.ButtonDanger, showcaseButtonClick),
 			},
 		})),
 		buttonFeatureRow("Copy feedback", gui.Button(gui.ButtonCfg{

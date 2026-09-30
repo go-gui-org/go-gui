@@ -39,6 +39,14 @@ and this project adheres to
 
 ### Changed
 
+- **BREAKING: `TextButton` drops its `ID` parameter (#881)** —
+  `TextButton(label, onClick)` and `TextButtonVariant(label, variant, onClick)`
+  no longer take an `ID`; the button takes a generated ID like `Button` with an
+  empty `ID` does. A button nobody names needs no identity. Migrate by deleting
+  the first argument; a button named by code (`SetFocus`, `FindByID`, tests)
+  becomes `Button(ButtonCfg{ID: id, Label: label, OnClick: onClick})` (or
+  `Content` with a `Text` child for the plain form).
+
 - **An empty widget `ID` no longer panics (#881)** — the factories that panicked
   with "requires a non-empty Cfg.ID" (and "with Scrollable:true" or "with
   Overflow:true") now give the widget a generated ID. Code that sets IDs does
