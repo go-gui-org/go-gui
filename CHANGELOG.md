@@ -8,6 +8,8 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [v0.82.0] - 2026-09-29
+
 ### Added
 
 - **`ergonomics-audit -mode spacing` flags gap and inset numbers (#851)** — a
@@ -82,12 +84,12 @@ and this project adheres to
 - **Theme text roles are a stable contract, with a gate (#846)** —
   `docs/theme-tokens.md` now lists the 4 de-emphasis roles and 16 purpose roles
   on `Theme`, the release that added each, and the rules: adding a role is free;
-  removing, renaming or changing the purpose of one is breaking; a rename keeps
-  the old field one release as `// Deprecated:`. The new
-  `make theme-surface-check` (in `make check` and CI) enforces the breaking
-  part. `gui/testdata/theme_surface.golden` lists every exported field of
-  `Theme`, `ThemeCfg` and `TextStyle`; a branch that removes a line from it
-  fails unless it adds a `**BREAKING:` entry under Unreleased. Before, #734 and
+  removing, renaming or changing the purpose of one is an incompatible change; a
+  rename keeps the old field one release as `// Deprecated:`. The new
+  `make theme-surface-check` (in `make check` and CI) enforces the removal part.
+  `gui/testdata/theme_surface.golden` lists every exported field of `Theme`,
+  `ThemeCfg` and `TextStyle`; a branch that removes a line from it fails unless
+  it adds a migration entry under `### Changed` in Unreleased. Before, #734 and
   #764 renamed roles that apps and custom themes use, and no gate saw it.
   `docs/style-guide.md` no longer names the removed `N1`..`N6` grid.
 
