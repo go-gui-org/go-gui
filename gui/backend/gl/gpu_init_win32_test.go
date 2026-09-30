@@ -4,6 +4,7 @@ package gl
 
 import (
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/go-gui-org/go-gui/gui"
@@ -29,6 +30,14 @@ func TestNewWrapsGPUContextError(t *testing.T) {
 	if err == nil {
 		b.Destroy()
 		t.Fatal("New with failing WGL context returned nil error")
+	}
+	// Headless runners cannot create a window at all (observed on
+	// MSYS2: CreateWindowExW finds no window class), so the injected
+	// seam is never reached — skip, like the X11 test without a
+	// display.
+	if strings.Contains(err.Error(), "CreateWindowExW") ||
+		strings.Contains(err.Error(), "GetDC") {
+		t.Skipf("no window, seam not reached: %v", err)
 	}
 	if !errors.Is(err, ErrNoGPUContext) {
 		t.Fatalf("New error = %v, want ErrNoGPUContext", err)
