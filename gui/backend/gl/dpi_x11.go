@@ -10,36 +10,66 @@ import (
 	"github.com/jezek/xgb/xproto"
 )
 
-// readDPIScale derives a UI scale from the Xft.dpi entry in the root
-// RESOURCE_MANAGER property, falling back to 1.0.
-func readDPIScale(conn *xgb.Conn, root xproto.Window) float32 {
-	dpi, err := strconv.Atoi(readXResource(conn, root, "Xft.dpi"))
-	if err == nil && dpi > 0 {
-		return float32(dpi) / 96.0
+// Accepted Xft.dpi range: scale 0.5 to 8. Any client can write
+// RESOURCE_MANAGER, and Xft.dpi now wins over RandR, so a value such as
+// 100000 would otherwise give a scale of about 1000. The window size in
+// physical pixels would then overflow the 16-bit X window size. A value
+// outside the range counts as unset, so RandR decides.
+const (
+	minXftDPI = 48
+	maxXftDPI = 768
+)
+
+// parseXftDPIScale turns the Xft.dpi value from the root RESOURCE_MANAGER
+// property into a UI scale. ok is false when the value is unset, not an
+// integer, or outside [minXftDPI, maxXftDPI].
+func parseXftDPIScale(s string) (float32, bool) {
+	dpi, err := strconv.Atoi(s)
+	if err != nil || dpi < minXftDPI || dpi > maxXftDPI {
+		return 0, false
 	}
-	return 1
+	return float32(dpi) / 96.0, true
+}
+
+// pickDPIScale chooses the UI scale source. Xft.dpi comes first because it
+// is the scale the user chose: GNOME, KDE, Xfce and xrdb publish it, and GTK
+// and Qt follow it. RandR physical DPI is not that choice. Under XWayland
+// fractional scaling it is also wrong: the CRTC is the ceil-scaled virtual
+// size (3072x1728 for a 1920x1080 panel at 125%) while the millimetres are
+// the real panel, so it gives 2.62 where the desktop asks for 2.0 (#871).
+// rr runs only when Xft.dpi is unset and RandR is present, so a desktop
+// that sets Xft.dpi costs no RandR round trips. The fallback is 1.0.
+func pickDPIScale(xft float32, xftOK, haveRandr bool, rr func() (float32, randr.Crtc, bool)) (float32, randr.Crtc) {
+	if xftOK {
+		return xft, 0
+	}
+	if haveRandr {
+		if s, crtc, ok := rr(); ok {
+			return s, crtc
+		}
+	}
+	return 1, 0
 }
 
 // Plausible bounds for a physical display DPI. Values outside this range
 // usually mean a bogus EDID physical size, so the RandR path is rejected
-// in favor of the Xft.dpi fallback.
+// in favor of the 1.0 fallback.
 const (
 	minPlausibleDPI = 50
 	maxPlausibleDPI = 400
 )
 
-// dpiScaleForWindow computes the UI scale for the monitor containing the
-// root-relative point (x,y), using that monitor's RandR-reported physical
-// size. It falls back to the global Xft.dpi scale when RandR is
-// unavailable or reports no usable physical size. Returns the scale and
-// the CRTC the point lands on (0 when none was resolved).
+// dpiScaleForWindow computes the UI scale for the window at the
+// root-relative point (x,y). The global Xft.dpi scale wins when it is set.
+// Otherwise the scale comes from the RandR physical size of the monitor
+// containing (x,y), and falls back to 1.0 when RandR is unavailable or
+// reports no usable physical size. See pickDPIScale for the order. Returns
+// the scale and the CRTC the point lands on (0 when none was resolved).
 func dpiScaleForWindow(conn *xgb.Conn, root xproto.Window, haveRandr bool, x, y int32) (float32, randr.Crtc) {
-	if haveRandr {
-		if s, crtc, ok := randrDPIScale(conn, root, x, y); ok {
-			return s, crtc
-		}
-	}
-	return readDPIScale(conn, root), 0
+	xft, xftOK := parseXftDPIScale(readXResource(conn, root, "Xft.dpi"))
+	return pickDPIScale(xft, xftOK, haveRandr, func() (float32, randr.Crtc, bool) {
+		return randrDPIScale(conn, root, x, y)
+	})
 }
 
 // randrDPIScale finds the CRTC covering (x,y) and derives a UI scale from
@@ -111,7 +141,9 @@ func crtcDPI(info *randr.GetCrtcInfoReply, out *randr.GetOutputInfoReply) (float
 // reparenting WM, so the true root position is queried explicitly and a
 // RandR rescan runs only when that position changed. Cursors are not
 // reloaded: the Xcursor size X clients see is already in device pixels
-// and does not track the per-monitor scale.
+// and does not track the per-monitor scale. When Xft.dpi is set, the
+// scale is the same on every monitor (the same as GTK on X11), so a move
+// never changes it.
 func (b *Backend) maybeRescaleDPI() bool {
 	if !b.plat.haveRandr {
 		return false

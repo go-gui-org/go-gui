@@ -8,6 +8,21 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Fixed
+
+- **Linux windows follow the desktop scale (`Xft.dpi`) (#871)** — the gl backend
+  now takes its UI scale from `Xft.dpi` when the desktop sets it, and uses RandR
+  physical DPI only when `Xft.dpi` is not set. Before, RandR came first. Under
+  GNOME Wayland with fractional scaling, XWayland reports a 2x virtual screen
+  with the real panel size, so RandR gave 2.62 where the desktop asked for 2.0,
+  and go-gui windows were about 31% larger than GTK and Qt apps and than their
+  own title bar. With `Xft.dpi` set, the scale is the same on every monitor, as
+  in GTK on X11. Per-monitor rescaling now applies only to sessions without
+  `Xft.dpi` (bare X). A HiDPI panel whose desktop leaves `Xft.dpi: 96` now draws
+  at 1.0, where RandR gave about 2.0 before. This matches GTK and Qt on the same
+  session. To get 2.0, set `Xft.dpi: 192` (the desktop's scale setting, or
+  `xrdb`). An `Xft.dpi` outside 48–768 (scale 0.5–8) counts as unset.
+
 ## [v0.82.0] - 2026-09-29
 
 ### Added
