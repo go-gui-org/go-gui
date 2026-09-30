@@ -78,17 +78,31 @@ func renderLayoutDepth(layout *Layout, bgColor Color, clip drawClip, w *Window, 
 		// corner, not the clip. maxEventDepth (256) allows one level
 		// past the cap, which is how this became reachable at all.
 		stencilled := w.stencilDepth < 255
+		// The mask is the area inside the border, with the inner radius
+		// (outer radius less the border). Children sit inside the border,
+		// and a mask with the outer rect lets a child's fill cover the
+		// border at each rounded corner (issue #820). Begin and End use
+		// the same quad: End decrements what Begin incremented.
+		// A non-finite border draws nothing (renderContainer skips it), so
+		// it insets nothing. max(0, NaN) is NaN, which would make every
+		// stencil field NaN and the render guard would drop the mask.
+		sb := layout.Shape.SizeBorder
+		if !f32IsFinite(sb) {
+			sb = 0
+		}
+		sb = max(0, sb)
+		stencil := RenderCmd{
+			X:      layout.Shape.X + sb,
+			Y:      layout.Shape.Y + sb,
+			W:      max(0, layout.Shape.Width-2*sb),
+			H:      max(0, layout.Shape.Height-2*sb),
+			Radius: max(0, layout.Shape.Radius-sb),
+		}
 		if stencilled {
 			w.stencilDepth++
-			emitRenderer(RenderCmd{
-				Kind:         RenderStencilBegin,
-				X:            layout.Shape.X,
-				Y:            layout.Shape.Y,
-				W:            layout.Shape.Width,
-				H:            layout.Shape.Height,
-				Radius:       layout.Shape.Radius,
-				StencilDepth: w.stencilDepth,
-			}, w)
+			stencil.Kind = RenderStencilBegin
+			stencil.StencilDepth = w.stencilDepth
+			emitRenderer(stencil, w)
 		}
 		// Also apply scissor clip as optimization (avoids
 		// rasterizing fragments outside bounding rect).
@@ -104,15 +118,9 @@ func renderLayoutDepth(layout *Layout, bgColor Color, clip drawClip, w *Window, 
 				emitClipCmd(clip, w)
 			}
 			if stencilled {
-				emitRenderer(RenderCmd{
-					Kind:         RenderStencilEnd,
-					X:            layout.Shape.X,
-					Y:            layout.Shape.Y,
-					W:            layout.Shape.Width,
-					H:            layout.Shape.Height,
-					Radius:       layout.Shape.Radius,
-					StencilDepth: w.stencilDepth,
-				}, w)
+				stencil.Kind = RenderStencilEnd
+				stencil.StencilDepth = w.stencilDepth
+				emitRenderer(stencil, w)
 				w.stencilDepth--
 			}
 		}()

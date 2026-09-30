@@ -1,0 +1,23 @@
+# go-gui-golden v1
+Rect xy=15.00,15.00 wh=230.20,31.60 color=#262a2f7f radius=6.00 fill
+StrokeRect xy=15.00,15.00 wh=230.20,31.60 color=#ffffff0e radius=6.00 thickness=1.00
+StencilBegin xy=16.00,16.00 wh=228.20,29.60 radius=5.00 sdepth=1
+Clip xy=15.00,15.00 wh=230.20,31.60
+Rect xy=16.00,16.00 wh=28.40,29.60 color=#17191c7f fill
+Text xy=26.00,22.24 wh=0.00,0.00 color=#e6e8eb80 text="@" size=14.00
+Rect xy=44.40,16.00 wh=1.00,29.60 color=#ffffff0e fill
+Rect xy=45.40,16.00 wh=70.00,29.60 color=#262a2f7f fill
+Clip xy=55.40,21.00 wh=50.00,19.60
+Text xy=55.40,21.00 wh=0.00,0.00 color=#e6e8eb80 text="name" size=14.00
+Clip xy=15.00,15.00 wh=230.20,31.60
+Rect xy=115.40,16.00 wh=1.00,29.60 color=#ffffff0e fill
+Rect xy=116.40,16.00 wh=90.00,29.60 color=#262a2f7f fill
+Clip xy=126.40,21.00 wh=48.96,20.84
+Text xy=126.40,22.24 wh=0.00,0.00 color=#e6e8eb80 text="site.org" size=14.00
+Clip xy=15.00,15.00 wh=230.20,31.60
+Text xy=190.36,25.76 wh=0.00,0.00 color=#e6e8eb80 text="▼" size=8.40
+Rect xy=206.40,16.00 wh=1.00,29.60 color=#ffffff0e fill
+Rect xy=207.40,16.00 wh=36.80,29.60 color=#262a2f7f fill
+Text xy=217.40,22.24 wh=0.00,0.00 color=#e6e8eb80 text="Go" size=14.00
+Clip xy=0.00,0.00 wh=320.00,240.00
+StencilEnd xy=16.00,16.00 wh=228.20,29.60 radius=5.00 sdepth=1

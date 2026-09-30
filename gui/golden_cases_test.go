@@ -461,6 +461,29 @@ func goldenCases() []goldenCase {
 			focusID: "tabs:tab:a",
 		},
 		{
+			// Input group (issue #820): one outer border, dividers at
+			// the seams, segments with no border or radius, the addon
+			// on the panel fill, the stencil clip inset by the border.
+			name:  "input_group",
+			build: goldenInputGroup,
+		},
+		{
+			// Focus on a segment lights the group: focus border and
+			// ring on the group, no ring on the segment.
+			name:    "input_group_focused",
+			build:   goldenInputGroup,
+			focusID: "grp:user",
+		},
+		{
+			name: "input_group_disabled",
+			build: func(_ *Window) View {
+				return InputGroup(InputGroupCfg{
+					ID: "grp", Disabled: true,
+					Segments: goldenInputGroupSegments(),
+				})
+			},
+		},
+		{
 			// The inset pill (issue #600): sunken track, raised pill
 			// on the selected segment, a divider only between two
 			// unselected segments, a disabled segment in the
@@ -2301,4 +2324,29 @@ func goldenSegmented(_ *Window) View {
 			{Label: "Year", Value: "year", Disabled: true},
 		},
 	})
+}
+
+func goldenInputGroup(_ *Window) View {
+	return InputGroup(InputGroupCfg{
+		ID: "grp", Segments: goldenInputGroupSegments(),
+	})
+}
+
+func goldenInputGroupSegments() []InputGroupSegment {
+	return []InputGroupSegment{
+		InputGroupText(InputGroupTextCfg{Text: "@"}),
+		// Fixed widths keep the whole group inside the 320px golden
+		// window; the theme floor would make each field 160px.
+		InputGroupInput(InputCfg{
+			ID: "user", Text: "name", Width: 70, Sizing: FixedFit,
+		}),
+		InputGroupSelect(SelectCfg{
+			ID: "dom", Selected: []string{"a"}, MinWidth: 90,
+			MaxWidth: 90, Sizing: FixedFit,
+			Options: []SelectOption{NewSelectOption("site.org", "a")},
+		}),
+		InputGroupButton(ButtonCfg{
+			ID: "go", Content: []View{Text(TextCfg{Text: "Go"})},
+		}),
+	}
 }

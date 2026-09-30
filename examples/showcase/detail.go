@@ -189,6 +189,7 @@ var componentDemos = map[string]func(*gui.Window) gui.View{
 	"date_picker":         demoDatePicker,
 	"input_date":          demoInputDate,
 	"numeric_input":       demoNumericInput,
+	"input_group":         demoInputGroup,
 	"forms":               demoForms,
 	"date_picker_roller":  demoDatePickerRoller,
 	"svg":                 demoSvg,

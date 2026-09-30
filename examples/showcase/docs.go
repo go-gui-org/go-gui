@@ -59,6 +59,7 @@ var widgetDocFiles = map[string]string{
 	"window_opacity":     "docs/widget_window_opacity.md",
 	"notification":       "docs/widget_notification.md",
 	"numeric_input":      "docs/widget_numeric_input.md",
+	"input_group":        "docs/widget_input_group.md",
 	"overflow_panel":     "docs/widget_overflow_panel.md",
 	"printing":           "docs/widget_printing.md",
 	"progress_bar":       "docs/widget_progress_bar.md",

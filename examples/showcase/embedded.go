@@ -136,6 +136,7 @@ var relatedExampleMap = map[string][]string{
 	"data_grid":           {"examples/showcase/demo_data.go", "examples/data_grid_data_source/main.go"},
 	"data_source":         {"examples/showcase/demo_data.go", "examples/data_grid_data_source/main.go"},
 	"numeric_input":       {"examples/showcase/demo_input.go"},
+	"input_group":         {"examples/showcase/demo_input_group.go"},
 	"forms":               {"examples/showcase/demo_input.go"},
 	"date_picker":         {"examples/showcase/demo_input.go", "examples/date_picker_options/main.go"},
 	"input_date":          {"examples/showcase/demo_input.go", "examples/date_picker_options/main.go"},

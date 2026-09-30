@@ -247,6 +247,7 @@ type containerView struct {
 	userAmendLayout func(EventCtx)
 	opticalDigits   bool
 	selected        bool
+	noFocusRing     bool
 	// colors is the button's resolved ColorSet, carried whole rather
 	// than fanned into flat fields and packed back into a set at the
 	// shape (#690).
@@ -286,13 +287,17 @@ func (cv *containerView) GenerateLayout(w *Window) Layout {
 		Shape: w.allocShape(buildContainerShape(&cfg, w)),
 	}
 	if cv.isButton && layout.Shape.events != nil {
+		ring := guiTheme.focusRing
+		if cv.noFocusRing {
+			ring = nil
+		}
 		bc := shapeButtonColors{
 			colors:        cv.colors,
 			OnHover:       cv.userOnHover,
 			OnAmend:       cv.userAmendLayout,
 			opticalDigits: cv.opticalDigits,
 			selected:      cv.selected,
-			focusRing:     guiTheme.focusRing,
+			focusRing:     ring,
 			labelColor:    cv.labelColor,
 		}
 		if w != nil {

@@ -818,6 +818,86 @@ func TestClipContentsNestedIncrementsDepth(t *testing.T) {
 	}
 }
 
+// A bordered clipping container clips its children to the area inside
+// its border, not to its outer edge. With the outer rect a child's fill
+// covers the border at each rounded corner, because the inner arc of the
+// border lies inside the outer arc (issue #820).
+func TestClipContentsStencilInsetByBorder(t *testing.T) {
+	w := makeWindow()
+	root := &Layout{
+		Shape: &Shape{
+			clipContents: true,
+			Radius:       6,
+			SizeBorder:   2,
+			X:            10,
+			Y:            20,
+			Width:        100,
+			Height:       40,
+			shapeClip:    makeClip(10, 20, 100, 40),
+		},
+	}
+
+	renderLayout(root, RGB(0, 0, 0), makeClip(0, 0, 400, 400), w)
+
+	n := 0
+	for _, r := range w.renderers {
+		if r.Kind != RenderStencilBegin && r.Kind != RenderStencilEnd {
+			continue
+		}
+		n++
+		// Begin and End draw the same quad: End decrements what
+		// Begin incremented, so the two must cover the same pixels.
+		if r.X != 12 || r.Y != 22 || r.W != 96 || r.H != 36 {
+			t.Errorf("kind %d rect: got (%v,%v,%v,%v), want (12,22,96,36)",
+				r.Kind, r.X, r.Y, r.W, r.H)
+		}
+		if r.Radius != 4 {
+			t.Errorf("kind %d radius: got %v, want 4", r.Kind, r.Radius)
+		}
+	}
+	if n != 2 {
+		t.Fatalf("expected StencilBegin and StencilEnd, got %d", n)
+	}
+}
+
+// A NaN or infinite SizeBorder draws no border, so the stencil must not
+// be inset by it: the mask falls back to the outer rect and radius. A
+// NaN inset would make every stencil field NaN.
+func TestClipContentsStencilNonFiniteBorder(t *testing.T) {
+	for _, sb := range []float32{float32(math.NaN()), float32(math.Inf(1))} {
+		w := makeWindow()
+		root := &Layout{
+			Shape: &Shape{
+				clipContents: true,
+				Radius:       6,
+				SizeBorder:   sb,
+				X:            10,
+				Y:            20,
+				Width:        100,
+				Height:       40,
+				shapeClip:    makeClip(10, 20, 100, 40),
+			},
+		}
+
+		renderLayout(root, RGB(0, 0, 0), makeClip(0, 0, 400, 400), w)
+
+		n := 0
+		for _, r := range w.renderers {
+			if r.Kind != RenderStencilBegin && r.Kind != RenderStencilEnd {
+				continue
+			}
+			n++
+			if r.X != 10 || r.Y != 20 || r.W != 100 || r.H != 40 || r.Radius != 6 {
+				t.Errorf("border %v, kind %d: got (%v,%v,%v,%v) r %v, want (10,20,100,40) r 6",
+					sb, r.Kind, r.X, r.Y, r.W, r.H, r.Radius)
+			}
+		}
+		if n != 2 {
+			t.Fatalf("border %v: expected StencilBegin and StencilEnd, got %d", sb, n)
+		}
+	}
+}
+
 func TestClipContentsCoexistsWithClip(t *testing.T) {
 	w := makeWindow()
 	root := &Layout{

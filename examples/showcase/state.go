@@ -77,6 +77,11 @@ type ShowcaseApp struct {
 	NumericPercentText  string
 	NumericPlainText    string
 
+	InputGroupUser   string
+	InputGroupDomain string
+	InputGroupAmount string
+	InputGroupSearch string
+
 	BCSelected  string
 	TabSelected string
 
@@ -238,6 +243,7 @@ func newShowcaseApp() *ShowcaseApp {
 		SegmentView:           "list",
 		RangeValue:            50,
 		NumericENText:         "1,234.50",
+		InputGroupDomain:      "example.com",
 		NumericENValue:        gui.Some(1234.5),
 		NumericDEText:         "1.234,50",
 		NumericDEValue:        gui.Some(1234.5),
@@ -356,6 +362,7 @@ var demoEntries = []DemoEntry{
 	{ID: "date_picker_roller", Label: "Date Picker Roller", Group: groupSelection, Summary: "Roll wheel-style month/day/year controls.", Tags: []string{"date", "roller", "time"}},
 	{ID: "input", Label: "Input", Group: groupInput, Summary: "Single-line, password, and multiline text input.", Tags: []string{"text", "textarea", "password"}},
 	{ID: "input_date", Label: "Input Date", Group: groupInput, Summary: "Text input with date picker dropdown.", Tags: []string{"date", "input", "calendar"}},
+	{ID: "input_group", Label: "Input Group", Group: groupInput, Summary: "Join inputs, selects, buttons and text addons into one control.", Tags: []string{"addon", "prefix", "suffix", "group", "form"}},
 	{ID: "numeric_input", Label: "Numeric Input", Group: groupInput, Summary: "Locale-aware number input with step controls.", Tags: []string{"number", "decimal", "locale", "spinner"}},
 	{ID: "forms", Label: "Forms", Group: groupInput, Summary: "Form runtime with sync and async validation states recreated in example code.", Tags: []string{"form", "validation", "async", "touched", "dirty"}},
 

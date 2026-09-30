@@ -127,6 +127,9 @@ type ButtonCfg struct {
 	// of the widget that owns the button (a tab control's current tab),
 	// not something an app's own button states.
 	selected bool
+	// noFocusRing drops the theme's focus glow from the button. Set
+	// only by InputGroup, which draws focus on its own frame (#820).
+	noFocusRing bool
 
 	// Accessibility
 	A11YRole AccessRole
@@ -386,6 +389,7 @@ func Button(cfg ButtonCfg) View {
 	cv.isButton = true
 	cv.colors = cfg.Colors
 	cv.selected = cfg.selected
+	cv.noFocusRing = cfg.noFocusRing
 	cv.labelColor = labelColor
 	cv.userOnHover = cfg.OnHover
 	cv.userAmendLayout = cfg.AmendLayout
