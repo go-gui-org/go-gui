@@ -35,6 +35,7 @@ func TestA11YLabelKeepsColonPerWidget(t *testing.T) {
 		{"Combobox", Combobox(ComboboxCfg{ID: "cb", Label: want}), "cb"},
 		{"NumericInput", NumericInput(NumericInputCfg{ID: "ni", Label: want,
 			StepCfg: NumericStepCfg{ShowButtons: true, Step: 1}}), "ni"},
+		{"NumericInputNoSteppers", NumericInput(NumericInputCfg{ID: "ni", Label: want}), "ni"},
 		{"InputDate", InputDate(InputDateCfg{ID: "id", Label: want}), "id"},
 		{"DatePicker", DatePicker(DatePickerCfg{ID: "dp", Label: want}), "dp"},
 		{"ColorPicker", ColorPicker(ColorPickerCfg{ID: "cp", Label: want}), "cp"},
