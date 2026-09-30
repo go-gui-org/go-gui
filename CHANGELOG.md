@@ -8,6 +8,16 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Changed
+
+- **GL backend reports a missing GPU context instead of panicking (#828)** —
+  when EGL (Linux) or WGL (Windows) cannot create a context, as on Windows under
+  RDP or in a VM with no GPU driver, `Run`/`RunApp` now print one line naming
+  the failed step and what to try (update the GPU driver, leave RDP/VM, or
+  install Mesa on Linux) and exit non-zero, instead of dumping a Go stack trace.
+  The failure is typed as `gl.ErrNoGPUContext` (matched with `errors.Is`;
+  `errors.Unwrap` gives the EGL/WGL cause). Other init failures still panic.
+
 ### Fixed
 
 - **Icon-only buttons no longer load a system fallback font (#872)** — optical

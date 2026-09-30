@@ -544,10 +544,10 @@ func New(w *gui.Window) (*Backend, error) {
 	}
 	b.plat.hdc = hdc
 
-	hglrc, err := createContext(hdc)
+	hglrc, err := createContextFunc(hdc)
 	if err != nil {
 		b.plat.destroy()
-		return nil, fmt.Errorf("gl: createContext: %w", err)
+		return nil, newGPUContextError("create WGL context", err)
 	}
 	b.plat.hglrc = hglrc
 
@@ -645,10 +645,11 @@ func (b *Backend) Run(w *gui.Window) {
 }
 
 // Run initializes the backend, runs the event loop, and cleans up on
-// exit. Panics on error; call RunE for the error-returning variant.
+// exit. A GPU-context failure prints advice and exits non-zero; any
+// other error panics. Call runE for the error-returning variant.
 func Run(w *gui.Window) {
 	if err := runE(w); err != nil {
-		panic(fmt.Sprintf("gl: %v", err))
+		exitNoGPUOrPanic(err)
 	}
 }
 
@@ -664,11 +665,12 @@ func runE(w *gui.Window) error {
 	return nil
 }
 
-// RunApp starts a multi-window event loop. Panics on error; call
-// RunAppE for the error-returning variant.
+// RunApp starts a multi-window event loop. A GPU-context failure
+// prints advice and exits non-zero; any other error panics. Call
+// runAppE for the error-returning variant.
 func RunApp(app *gui.App, initialWindows ...*gui.Window) {
 	if err := runAppE(app, initialWindows...); err != nil {
-		panic(fmt.Sprintf("gl: %v", err))
+		exitNoGPUOrPanic(err)
 	}
 }
 

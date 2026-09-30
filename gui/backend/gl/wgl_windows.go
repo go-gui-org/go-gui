@@ -110,6 +110,11 @@ func basePixelFormat() pixelFormatDescriptor {
 	return pfd
 }
 
+// createContextFunc is the seam the GPU-context error test
+// overrides: assigning a failing func exercises New's wrap path
+// with no GPU driver and no GL.
+var createContextFunc = createContext
+
 // createContext sets a pixel format on hdc and creates an OpenGL 3.3
 // core-profile context via wglCreateContextAttribsARB, falling back to
 // a legacy context if the ARB extension is unavailable. On success the
