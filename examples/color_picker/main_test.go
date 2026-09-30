@@ -7,7 +7,9 @@ import (
 )
 
 func TestMainViewNoPanic(t *testing.T) {
-	t.Parallel()
+	// Not t.Parallel: SetTheme mutates process-global theme state
+	// (applyTheme writes the default*Style mirrors), which is documented
+	// frame-thread-only and races any other test touching theme state.
 	gui.SetTheme(gui.ThemeDark)
 	w := gui.NewWindow(gui.WindowCfg{
 		State: &App{
@@ -25,7 +27,7 @@ func TestMainViewNoPanic(t *testing.T) {
 // right edge (X ~1000 in a 900-wide window): space opens up but the
 // picker itself is off-screen.
 func TestPackedPickerStaysOnScreen(t *testing.T) {
-	t.Parallel()
+	// Not t.Parallel: see TestMainViewNoPanic (SetTheme is not race-safe).
 	gui.SetTheme(gui.ThemeDark)
 	w := gui.NewTestWindow(t, gui.WindowCfg{
 		State: &App{
