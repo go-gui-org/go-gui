@@ -43,7 +43,7 @@ gui.OverflowPanel(w, gui.OverflowPanelCfg{
 | ID           | string         | Unique identifier              |
 | Items        | []OverflowItem | Ordered toolbar items          |
 | Trigger      | []View         | Custom overflow button content |
-| Padding      | Opt[Padding]   | Inner padding                  |
+| Padding      | Padding        | Inner padding                  |
 | Spacing      | float32        | Gap between items              |
 | Disabled     | bool           | Disable interaction            |
 | FloatAnchor  | FloatAttach    | Dropdown anchor point          |

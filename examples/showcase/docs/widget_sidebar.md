@@ -39,12 +39,12 @@ w.Sidebar(gui.SidebarCfg{
 
 ## Appearance
 
-| Property | Type         | Description      |
-| -------- | ------------ | ---------------- |
-| Color    | Color        | Background color |
-| Shadow   | *BoxShadow   | Drop shadow      |
-| Radius   | float32      | Corner radius    |
-| Padding  | Opt[Padding] | Inner padding    |
+| Property | Type       | Description      |
+| -------- | ---------- | ---------------- |
+| Color    | Color      | Background color |
+| Shadow   | *BoxShadow | Drop shadow      |
+| Radius   | float32    | Corner radius    |
+| Padding  | Padding    | Inner padding    |
 
 ## Animation
 

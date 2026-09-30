@@ -75,17 +75,17 @@ token definitions).
 
 ## Appearance
 
-| Property         | Type         | Description               |
-| ---------------- | ------------ | ------------------------- |
-| Padding          | Opt[Padding] | Inner padding             |
-| Radius           | Opt[float32] | Corner radius             |
-| SizeBorder       | Opt[float32] | Border width              |
-| Color            | Color        | Background color          |
-| ColorHover       | Color        | Background on hover       |
-| ColorBorder      | Color        | Border color              |
-| ColorBorderFocus | Color        | Border color when focused |
-| TextStyle        | TextStyle    | Text styling              |
-| PlaceholderStyle | TextStyle    | Placeholder text styling  |
+| Property         | Type      | Description               |
+| ---------------- | --------- | ------------------------- |
+| Padding          | Padding   | Inner padding             |
+| Radius           | Radius    | Corner radius             |
+| SizeBorder       | Border    | Border width              |
+| Color            | Color     | Background color          |
+| ColorHover       | Color     | Background on hover       |
+| ColorBorder      | Color     | Border color              |
+| ColorBorderFocus | Color     | Border color when focused |
+| TextStyle        | TextStyle | Text styling              |
+| PlaceholderStyle | TextStyle | Placeholder text styling  |
 
 ## Events
 

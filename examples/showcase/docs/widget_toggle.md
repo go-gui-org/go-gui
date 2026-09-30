@@ -39,16 +39,16 @@ gui.Toggle(gui.ToggleCfg{
 
 ## Appearance
 
-| Property       | Type         | Description                                                      |
-| -------------- | ------------ | ---------------------------------------------------------------- |
-| Padding        | Opt[Padding] | Inner padding                                                    |
-| Radius         | Opt[float32] | Corner radius                                                    |
-| SizeBorder     | Opt[float32] | Border width                                                     |
-| Color          | Color        | Background color (shorthand for `Colors.Base`)                   |
-| Colors         | ColorSet     | Per-state colors: Base, Hover, Click, Focus, Border, BorderFocus |
-| ColorSelect    | Color        | Background when selected                                         |
-| TextStyle      | TextStyle    | Check mark text styling                                          |
-| TextStyleLabel | TextStyle    | Label text styling                                               |
+| Property       | Type      | Description                                                      |
+| -------------- | --------- | ---------------------------------------------------------------- |
+| Padding        | Padding   | Inner padding                                                    |
+| Radius         | Radius    | Corner radius                                                    |
+| SizeBorder     | Border    | Border width                                                     |
+| Color          | Color     | Background color (shorthand for `Colors.Base`)                   |
+| Colors         | ColorSet  | Per-state colors: Base, Hover, Click, Focus, Border, BorderFocus |
+| ColorSelect    | Color     | Background when selected                                         |
+| TextStyle      | TextStyle | Check mark text styling                                          |
+| TextStyleLabel | TextStyle | Label text styling                                               |
 
 ## Events
 

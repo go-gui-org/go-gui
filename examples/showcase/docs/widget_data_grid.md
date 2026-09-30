@@ -141,8 +141,8 @@ datagrid.New(w, datagrid.DataGridCfg{
 | TextStyle        | TextStyle         | Body cell text style                |
 | TextStyleHeader  | TextStyle         | Header text style                   |
 | TextStyleFilter  | TextStyle         | Filter text style                   |
-| Radius           | Opt[float32]      | Corner radius                       |
-| SizeBorder       | Opt[float32]      | Border width                        |
+| Radius           | Radius            | Corner radius                       |
+| SizeBorder       | Border            | Border width                        |
 | Scrollbar        | ScrollbarOverflow | Scrollbar overflow mode             |
 
 ## Events

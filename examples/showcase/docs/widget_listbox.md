@@ -86,17 +86,17 @@ When `Items` is set, `Data` is ignored.
 
 ## Appearance
 
-| Property        | Type         | Description             |
-| --------------- | ------------ | ----------------------- |
-| Padding         | Padding      | Inner padding           |
-| Radius          | Opt[float32] | Corner radius           |
-| SizeBorder      | Opt[float32] | Border width            |
-| Color           | Color        | Background color        |
-| ColorHover      | Color        | Item hover highlight    |
-| ColorBorder     | Color        | Border color            |
-| ColorSelect     | Color        | Selected item highlight |
-| TextStyle       | TextStyle    | Item text styling       |
-| SubheadingStyle | TextStyle    | Subheading text styling |
+| Property        | Type      | Description             |
+| --------------- | --------- | ----------------------- |
+| Padding         | Padding   | Inner padding           |
+| Radius          | Radius    | Corner radius           |
+| SizeBorder      | Border    | Border width            |
+| Color           | Color     | Background color        |
+| ColorHover      | Color     | Item hover highlight    |
+| ColorBorder     | Color     | Border color            |
+| ColorSelect     | Color     | Selected item highlight |
+| TextStyle       | TextStyle | Item text styling       |
+| SubheadingStyle | TextStyle | Subheading text styling |
 
 ## Events
 

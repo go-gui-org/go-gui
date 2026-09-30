@@ -53,13 +53,13 @@ w.Markdown(gui.MarkdownCfg{
 
 ## Appearance
 
-| Property    | Type         | Description      |
-| ----------- | ------------ | ---------------- |
-| Color       | Color        | Background color |
-| ColorBorder | Color        | Border color     |
-| SizeBorder  | float32      | Border width     |
-| Radius      | float32      | Corner radius    |
-| Padding     | Opt[Padding] | Inner padding    |
+| Property    | Type    | Description      |
+| ----------- | ------- | ---------------- |
+| Color       | Color   | Background color |
+| ColorBorder | Color   | Border color     |
+| SizeBorder  | float32 | Border width     |
+| Radius      | float32 | Corner radius    |
+| Padding     | Padding | Inner padding    |
 
 ## MarkdownStyle
 
@@ -73,7 +73,7 @@ w.Markdown(gui.MarkdownCfg{
 | Code             | TextStyle        | Inline code style             |
 | CodeBlockText    | TextStyle        | Code block text style         |
 | CodeBlockBG      | Color            | Code block background         |
-| CodeBlockPadding | Opt[Padding]     | Code block padding            |
+| CodeBlockPadding | Padding          | Code block padding            |
 | CodeBlockRadius  | float32          | Code block corner radius      |
 | LinkColor        | Color            | Hyperlink color               |
 | HRColor          | Color            | Horizontal rule color         |

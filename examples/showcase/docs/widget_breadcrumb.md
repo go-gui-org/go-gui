@@ -55,30 +55,30 @@ gui.Breadcrumb(gui.BreadcrumbCfg{
 
 ## Appearance
 
-| Property           | Type         | Description                                                    |
-| ------------------ | ------------ | -------------------------------------------------------------- |
-| Color              | Color        | Outer background                                               |
-| ColorBorder        | Color        | Outer border color                                             |
-| ColorTrail         | Color        | Trail row background                                           |
-| ColorCrumb         | Color        | Crumb background (shorthand for ColorsCrumb.Base)              |
-| ColorsCrumb        | ColorSet     | Crumb per-state colors: Base, Hover, Click, Selected, Disabled |
-| ColorContent       | Color        | Content panel background                                       |
-| ColorContentBorder | Color        | Content panel border                                           |
-| Padding            | Opt[Padding] | Outer padding                                                  |
-| PaddingTrail       | Opt[Padding] | Trail row padding                                              |
-| PaddingCrumb       | Opt[Padding] | Individual crumb padding                                       |
-| PaddingContent     | Opt[Padding] | Content panel padding                                          |
-| Radius             | Opt[float32] | Outer corner radius                                            |
-| RadiusCrumb        | Opt[float32] | Crumb corner radius                                            |
-| RadiusContent      | Opt[float32] | Content panel corner radius                                    |
-| Spacing            | Opt[float32] | Outer spacing                                                  |
-| SpacingTrail       | Opt[float32] | Trail item spacing                                             |
-| SizeBorder         | Opt[float32] | Outer border width                                             |
-| SizeContentBorder  | Opt[float32] | Content panel border width                                     |
-| TextStyle          | TextStyle    | Default crumb text style                                       |
-| TextStyleSelected  | TextStyle    | Selected crumb text style                                      |
-| TextStyleDisabled  | TextStyle    | Disabled crumb text style                                      |
-| TextStyleSeparator | TextStyle    | Separator text style                                           |
+| Property           | Type      | Description                                                    |
+| ------------------ | --------- | -------------------------------------------------------------- |
+| Color              | Color     | Outer background                                               |
+| ColorBorder        | Color     | Outer border color                                             |
+| ColorTrail         | Color     | Trail row background                                           |
+| ColorCrumb         | Color     | Crumb background (shorthand for ColorsCrumb.Base)              |
+| ColorsCrumb        | ColorSet  | Crumb per-state colors: Base, Hover, Click, Selected, Disabled |
+| ColorContent       | Color     | Content panel background                                       |
+| ColorContentBorder | Color     | Content panel border                                           |
+| Padding            | Padding   | Outer padding                                                  |
+| PaddingTrail       | Padding   | Trail row padding                                              |
+| PaddingCrumb       | Padding   | Individual crumb padding                                       |
+| PaddingContent     | Padding   | Content panel padding                                          |
+| Radius             | Radius    | Outer corner radius                                            |
+| RadiusCrumb        | Radius    | Crumb corner radius                                            |
+| RadiusContent      | Radius    | Content panel corner radius                                    |
+| Spacing            | Spacing   | Outer spacing                                                  |
+| SpacingTrail       | Spacing   | Trail item spacing                                             |
+| SizeBorder         | Border    | Outer border width                                             |
+| SizeContentBorder  | Border    | Content panel border width                                     |
+| TextStyle          | TextStyle | Default crumb text style                                       |
+| TextStyleSelected  | TextStyle | Selected crumb text style                                      |
+| TextStyleDisabled  | TextStyle | Disabled crumb text style                                      |
+| TextStyleSeparator | TextStyle | Separator text style                                           |
 
 ## Events
 

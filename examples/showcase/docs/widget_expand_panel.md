@@ -33,15 +33,15 @@ gui.ExpandPanel(gui.ExpandPanelCfg{
 
 ## Appearance
 
-| Property    | Type         | Description                |
-| ----------- | ------------ | -------------------------- |
-| Color       | Color        | Background color           |
-| ColorHover  | Color        | Header background on hover |
-| ColorClick  | Color        | Header background on click |
-| ColorBorder | Color        | Border color               |
-| Padding     | Opt[Padding] | Inner padding              |
-| SizeBorder  | Opt[float32] | Border width               |
-| Radius      | Opt[float32] | Corner radius              |
+| Property    | Type    | Description                |
+| ----------- | ------- | -------------------------- |
+| Color       | Color   | Background color           |
+| ColorHover  | Color   | Header background on hover |
+| ColorClick  | Color   | Header background on click |
+| ColorBorder | Color   | Border color               |
+| Padding     | Padding | Inner padding              |
+| SizeBorder  | Border  | Border width               |
+| Radius      | Radius  | Corner radius              |
 
 ## Events
 

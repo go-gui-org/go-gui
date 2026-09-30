@@ -64,17 +64,17 @@ gui.DatePicker(gui.DatePickerCfg{
 
 ## Appearance
 
-| Property     | Type         | Description                                                      |
-| ------------ | ------------ | ---------------------------------------------------------------- |
-| Padding      | Opt[Padding] | Inner padding                                                    |
-| SizeBorder   | Opt[float32] | Border width                                                     |
-| CellSpacing  | Opt[float32] | Gap between day cells                                            |
-| Radius       | Opt[float32] | Corner radius                                                    |
-| RadiusBorder | Opt[float32] | Outer border radius                                              |
-| Color        | Color        | Background color (shorthand for `Colors.Base`)                   |
-| Colors       | ColorSet     | Per-state colors: Base, Hover, Click, Focus, Border, BorderFocus |
-| ColorSelect  | Color        | Selected date highlight                                          |
-| TextStyle    | TextStyle    | Text styling                                                     |
+| Property     | Type      | Description                                                      |
+| ------------ | --------- | ---------------------------------------------------------------- |
+| Padding      | Padding   | Inner padding                                                    |
+| SizeBorder   | Border    | Border width                                                     |
+| CellSpacing  | Spacing   | Gap between day cells                                            |
+| Radius       | Radius    | Corner radius                                                    |
+| RadiusBorder | Radius    | Outer border radius                                              |
+| Color        | Color     | Background color (shorthand for `Colors.Base`)                   |
+| Colors       | ColorSet  | Per-state colors: Base, Hover, Click, Focus, Border, BorderFocus |
+| ColorSelect  | Color     | Selected date highlight                                          |
+| TextStyle    | TextStyle | Text styling                                                     |
 
 ## Events
 

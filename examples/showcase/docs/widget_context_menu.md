@@ -58,7 +58,7 @@ gui.ContextMenu(w, gui.ContextMenuCfg{
 | Height      | float32         | Container height                    |
 | HAlign      | HorizontalAlign | Horizontal content alignment        |
 | VAlign      | VerticalAlign   | Vertical content alignment          |
-| Padding     | Opt[Padding]    | Inner padding                       |
+| Padding     | Padding         | Inner padding                       |
 
 ## Appearance
 
@@ -67,14 +67,14 @@ gui.ContextMenu(w, gui.ContextMenuCfg{
 | Color             | Color        | Menu background color  |
 | ColorBorder       | Color        | Menu border color      |
 | ColorSelect       | Color        | Highlighted item color |
-| SizeBorder        | Opt[float32] | Border width           |
-| Radius            | Opt[float32] | Menu corner radius     |
-| RadiusMenuItem    | Opt[float32] | Item corner radius     |
+| SizeBorder        | Border       | Border width           |
+| Radius            | Radius       | Menu corner radius     |
+| RadiusMenuItem    | Radius       | Item corner radius     |
 | TextStyle         | TextStyle    | Menu item text styling |
 | TextStyleSubtitle | TextStyle    | Subtitle text styling  |
-| PaddingMenuItem   | Opt[Padding] | Menu item padding      |
-| PaddingSubmenu    | Opt[Padding] | Submenu padding        |
-| SpacingSubmenu    | Opt[float32] | Submenu item spacing   |
+| PaddingMenuItem   | Padding      | Menu item padding      |
+| PaddingSubmenu    | Padding      | Submenu padding        |
+| SpacingSubmenu    | Spacing      | Submenu item spacing   |
 | WidthSubmenuMin   | Opt[float32] | Minimum submenu width  |
 | WidthSubmenuMax   | Opt[float32] | Maximum submenu width  |
 

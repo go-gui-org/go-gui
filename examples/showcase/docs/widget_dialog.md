@@ -84,16 +84,16 @@ w.Dialog(gui.DialogCfg{
 
 ## Appearance
 
-| Property       | Type         | Description          |
-| -------------- | ------------ | -------------------- |
-| Color          | Color        | Background color     |
-| ColorBorder    | Color        | Border color         |
-| Padding        | Opt[Padding] | Inner padding        |
-| SizeBorder     | Opt[float32] | Border width         |
-| Radius         | Opt[float32] | Corner radius        |
-| RadiusBorder   | Opt[float32] | Border corner radius |
-| TitleTextStyle | TextStyle    | Title text styling   |
-| TextStyle      | TextStyle    | Body text styling    |
+| Property       | Type      | Description          |
+| -------------- | --------- | -------------------- |
+| Color          | Color     | Background color     |
+| ColorBorder    | Color     | Border color         |
+| Padding        | Padding   | Inner padding        |
+| SizeBorder     | Border    | Border width         |
+| Radius         | Radius    | Corner radius        |
+| RadiusBorder   | Radius    | Border corner radius |
+| TitleTextStyle | TextStyle | Title text styling   |
+| TextStyle      | TextStyle | Body text styling    |
 
 ## Events
 

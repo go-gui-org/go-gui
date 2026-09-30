@@ -81,15 +81,15 @@ The selection wraps at the ends. The keys skip disabled segments.
 
 ## Appearance
 
-| Property      | Type         | Description                                  |
-| ------------- | ------------ | -------------------------------------------- |
-| TextStyle     | TextStyle    | Label style                                  |
-| TextStyleIcon | TextStyle    | Icon style                                   |
-| Padding       | Padding      | Text inset of one segment                    |
-| SizeBorder    | Opt[float32] | Track border width                           |
-| Radius        | Opt[float32] | Track corner radius                          |
-| Colors        | ColorSet     | Track: Base, Border, BorderFocus             |
-| ColorsSegment | ColorSet     | Segment: Base, Hover, Click, Selected (pill) |
+| Property      | Type      | Description                                  |
+| ------------- | --------- | -------------------------------------------- |
+| TextStyle     | TextStyle | Label style                                  |
+| TextStyleIcon | TextStyle | Icon style                                   |
+| Padding       | Padding   | Text inset of one segment                    |
+| SizeBorder    | Border    | Track border width                           |
+| Radius        | Radius    | Track corner radius                          |
+| Colors        | ColorSet  | Track: Base, Border, BorderFocus             |
+| ColorsSegment | ColorSet  | Segment: Base, Hover, Click, Selected (pill) |
 
 ## Events
 

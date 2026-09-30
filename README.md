@@ -249,8 +249,9 @@ work.
 ## Debugging
 
 Set `GOGUI_DEBUG=1` (or `gui.Debug(true)`) to audit every frame for duplicate
-widget IDs and focusable widgets without IDs. `gui.DebugCategories` enables each
-class of finding — duplicates, missing IDs, unconsumed events, listbox
+widget IDs and opt-in focusable shapes without IDs (focusable-by-default
+controls take a generated ID when `ID` is empty). `gui.DebugCategories` enables
+each class of finding — duplicates, missing IDs, unconsumed events, listbox
 virtualization, over-stop gradients, unresolved state keys, unclaimed focus IDs,
 stamp drift, dropped callbacks and links, refused window features —
 independently. See the

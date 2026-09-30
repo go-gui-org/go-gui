@@ -46,7 +46,7 @@ gui.Menu(w, gui.MenubarCfg{
 | Submenu    | []MenuItemCfg                | Nested submenu items       |
 | CustomView | View                         | Custom rendered content    |
 | Separator  | bool                         | Render as separator line   |
-| Padding    | Opt[Padding]                 | Item padding override      |
+| Padding    | Padding                      | Item padding override      |
 | Action     | func(*MenuItemCfg, EventCtx) | Item-level action callback |
 
 Helper constructors: MenuItemText, MenuSeparator, MenuSubtitle, MenuSubmenu.
@@ -70,17 +70,17 @@ Helper constructors: MenuItemText, MenuSeparator, MenuSubtitle, MenuSubmenu.
 | ColorSelect       | Color        | Selected item highlight     |
 | TextStyle         | TextStyle    | Item text style             |
 | TextStyleSubtitle | TextStyle    | Subtitle text style         |
-| Padding           | Opt[Padding] | Outer padding               |
-| PaddingMenuItem   | Opt[Padding] | Menu item padding           |
-| PaddingSubmenu    | Opt[Padding] | Submenu panel padding       |
-| PaddingSubtitle   | Opt[Padding] | Subtitle item padding       |
-| SizeBorder        | Opt[float32] | Border width                |
-| Radius            | Opt[float32] | Outer corner radius         |
-| RadiusBorder      | Opt[float32] | Border corner radius        |
-| RadiusSubmenu     | Opt[float32] | Submenu panel corner radius |
-| RadiusMenuItem    | Opt[float32] | Menu item corner radius     |
-| Spacing           | Opt[float32] | Top-level item spacing      |
-| SpacingSubmenu    | Opt[float32] | Submenu item spacing        |
+| Padding           | Padding      | Outer padding               |
+| PaddingMenuItem   | Padding      | Menu item padding           |
+| PaddingSubmenu    | Padding      | Submenu panel padding       |
+| PaddingSubtitle   | Padding      | Subtitle item padding       |
+| SizeBorder        | Border       | Border width                |
+| Radius            | Radius       | Outer corner radius         |
+| RadiusBorder      | Radius       | Border corner radius        |
+| RadiusSubmenu     | Radius       | Submenu panel corner radius |
+| RadiusMenuItem    | Radius       | Menu item corner radius     |
+| Spacing           | Spacing      | Top-level item spacing      |
+| SpacingSubmenu    | Spacing      | Submenu item spacing        |
 | WidthSubmenuMin   | Opt[float32] | Minimum submenu width       |
 | WidthSubmenuMax   | Opt[float32] | Maximum submenu width       |
 

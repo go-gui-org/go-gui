@@ -12,21 +12,24 @@ Every widget has a `*Cfg` struct. Conventions:
   they do not need: `ToggleCfg{Label: "Accept"}`
 - **Opt[T] for optional overrides** — `Opt[float32]` distinguishes "not set"
   from an explicit zero for primitives. Owned structs self-flag instead.
-  `Padding` and `Color` carry a `set` field, so they are plain fields.
-  `Padding{}` is unset (theme default applies). Build values with
-  `NewPadding`/`PadAll`/`PaddingNone`. Read them with `cfg.Radius.Or(default)` /
+  `Padding`, `Color`, `Sizing`, `Spacing`, `Radius` and `Border` carry a `set`
+  field, so they are plain fields. `Padding{}` is unset (theme default applies).
+  Build values with `NewPadding`/`PadAll`/`PaddingNone`,
+  `SpacingMedium`/`SpacingPx`, `RadiusMedium`/`RadiusPx`,
+  `BorderThin`/`BorderPx`. Read them with `cfg.Radius.Or(default)` /
   `cfg.Padding.Or(default)` in the factory.
 - **Common fields** — every interactive widget includes `ID string`,
   `Disabled bool`, `Invisible bool`, and a focus field. The focus field is
   either `Focusable bool` (opt-in, for example Table) or `FocusDisabled bool`
   (opt-out, for controls focusable by default, for example Input, Toggle,
-  Slider, Select). Focus always requires a non-empty `ID`. A stateful widget
-  tags its `ID` with `gui:"auto"` and gives an empty one a generated leaf (see
-  step 2), so the control still joins the tab order. Container-like widgets add
-  `Sizing Sizing`, `Float bool`, `FloatAnchor FloatAttach`,
-  `FloatTieOff FloatAttach`, `Padding Padding`, `Radius Opt[float32]`,
-  `SizeBorder Opt[float32]` (`Table` is the exception: its `SizeBorder` is a
-  plain `float32` applied as-is).
+  Slider, Select). Focus needs `Focusable` and an `ID`; a stateful widget tags
+  its `ID` with `gui:"auto"` and gives an empty one a generated leaf (see step
+  2), so the control still joins the tab order. An opt-in `Focusable` without an
+  `ID` is still a silent no-op. Container-like widgets add `Sizing Sizing`,
+  `Float bool`, `FloatAnchor FloatAttach`, `FloatTieOff FloatAttach`,
+  `Padding Padding`, `Spacing Spacing`, `Radius Radius`, `SizeBorder Border`
+  (`Table` is the exception: its `SizeBorder` is a plain `float32` applied
+  as-is).
 - **Callbacks** — one func field per event. Sig: `func(EventCtx)`. One rule for
   all of them: call `ctx.Consume()` on any path that acts on the event. On any
   path that means "not mine", call nothing. Nothing is marked handled for you. A
@@ -60,8 +63,8 @@ type ToggleCfg struct {
     Padding Padding
     // Size overrides the square edge length of the check box.
     Size       Opt[float32]
-    SizeBorder Opt[float32]
-    Radius     Opt[float32]
+    SizeBorder Border
+    Radius     Radius
     MinWidth   float32
     // FocusDisabled opts out of the default-on focus. An empty ID
     // takes a generated one, so the control still joins focus.
@@ -82,9 +85,12 @@ type ToggleCfg struct {
 Sig: `func WidgetName(cfg WidgetCfg) View`. The function:
 
 1. **Takes a generated ID when `ID` is empty** — returns a `ViewFunc` that sets
-   `cfg.ID = vw.autoLeaf("<kind>")` and calls the factory again. Build inner IDs
-   with `ScopeID(w.EffID(cfg.ID), part)`, never a relative leaf, and add the
-   widget to `TestAutoIDEveryWidgetTwiceHasNoDuplicates`.
+   `cfg.ID = vw.autoLeaf("<kind>")` and calls the factory again. The
+   `!cfg.FocusDisabled` guard stays only where focus is the one thing the ID is
+   for; a widget that also keys scroll, state or inner IDs from it takes the
+   leaf unconditionally. Build inner IDs with `ScopeID(w.EffID(cfg.ID), part)`,
+   never a relative leaf, and add the widget to
+   `TestAutoIDEveryWidgetTwiceHasNoDuplicates`.
 2. **Calls applyDefaults** — provides theme colors, sizes, and text styles for
    any field the user did not set
 3. **Reads Opt[T] values** via `.Get(fallback)` to resolve "not set"
@@ -126,9 +132,9 @@ func Toggle(cfg ToggleCfg) View {
     content = append(content, Row(ContainerCfg{
         Color:       boxColor,
         ColorBorder: cfg.Colors.Border,
-        SizeBorder:  Some(sizeBorder),
+        SizeBorder:  BorderPx(sizeBorder),
         Padding:     cfg.Padding,
-        Radius:      Some(radius),
+        Radius:      RadiusPx(radius),
         Disabled:    cfg.Disabled,
         Invisible:   cfg.Invisible,
         HAlign:      HAlignCenter,
@@ -188,7 +194,8 @@ click semantics without per-frame closures:
 OnClick:     cfg.OnClick,
 ClickButton: MouseLeft,
 
-// Space/Enter keyboard activation (Focusable + non-empty ID required).
+// Space/Enter keyboard activation (Focusable + ID required; an empty
+// auto ID already fills the ID for focusable-by-default controls).
 ClickOnSpace: true,
 ```
 
@@ -323,7 +330,7 @@ In `examples/showcase/`, create a demo function and register it:
 func demoToggle(_ *gui.Window) gui.View {
     return gui.Column(gui.ContainerCfg{
         Padding: gui.PadAll(8),
-        Spacing: gui.SpacingPx(8),
+        Spacing: gui.SpacingSmall,
         Content: []gui.View{
             gui.Toggle(gui.ToggleCfg{
                 Label:    "Basic toggle",

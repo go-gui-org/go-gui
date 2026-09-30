@@ -48,8 +48,8 @@ gui.Row(gui.ContainerCfg{
 | MaxWidth   | float32         | Maximum width                                  |
 | MinHeight  | float32         | Minimum height                                 |
 | MaxHeight  | float32         | Maximum height                                 |
-| Spacing    | Opt[float32]    | Gap between children                           |
-| Padding    | Opt[Padding]    | Inner padding                                  |
+| Spacing    | Spacing         | Gap between children                           |
+| Padding    | Padding         | Inner padding                                  |
 | HAlign     | HorizontalAlign | Horizontal content alignment                   |
 | VAlign     | VerticalAlign   | Vertical content alignment                     |
 | TextDir    | TextDirection   | Text/layout direction (LTR/RTL)                |
@@ -67,8 +67,8 @@ gui.Row(gui.ContainerCfg{
 | -------------- | ------------ | ----------------------------- |
 | Color          | Color        | Background color              |
 | ColorBorder    | Color        | Border color                  |
-| SizeBorder     | Opt[float32] | Border width                  |
-| Radius         | Opt[float32] | Corner radius                 |
+| SizeBorder     | Border       | Border width                  |
+| Radius         | Radius       | Corner radius                 |
 | Opacity        | float32      | Opacity (0..1)                |
 | BlurRadius     | float32      | Background blur radius        |
 | Shadow         | *BoxShadow   | Drop shadow                   |

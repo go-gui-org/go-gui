@@ -26,15 +26,15 @@ gui.Radio(gui.RadioCfg{
 
 ## Appearance
 
-| Property      | Type         | Description                                                      |
-| ------------- | ------------ | ---------------------------------------------------------------- |
-| Padding       | Opt[Padding] | Inner padding                                                    |
-| SizeBorder    | Opt[float32] | Border width                                                     |
-| Color         | Color        | Circle color (shorthand for `Colors.Base`)                       |
-| Colors        | ColorSet     | Per-state colors: Base, Hover, Click, Focus, Border, BorderFocus |
-| ColorSelect   | Color        | Fill color when selected                                         |
-| ColorUnselect | Color        | Fill color when unselected                                       |
-| TextStyle     | TextStyle    | Label text styling                                               |
+| Property      | Type      | Description                                                      |
+| ------------- | --------- | ---------------------------------------------------------------- |
+| Padding       | Padding   | Inner padding                                                    |
+| SizeBorder    | Border    | Border width                                                     |
+| Color         | Color     | Circle color (shorthand for `Colors.Base`)                       |
+| Colors        | ColorSet  | Per-state colors: Base, Hover, Click, Focus, Border, BorderFocus |
+| ColorSelect   | Color     | Fill color when selected                                         |
+| ColorUnselect | Color     | Fill color when unselected                                       |
+| TextStyle     | TextStyle | Label text styling                                               |
 
 ## Events
 

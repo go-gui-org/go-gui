@@ -48,13 +48,13 @@ gui.CommandButton(w, "edit.delete", gui.ButtonCfg{ID: "btn-del"})
 
 CommandButton accepts a standard ButtonCfg. The most relevant fields:
 
-| Property | Type      | Description                               |
-| -------- | --------- | ----------------------------------------- |
-| ID       | string    | Unique identifier (required)              |
-| Content  | []View    | Custom content (overrides auto-label)     |
-| OnClick  | func(...) | Custom handler (overrides command wiring) |
-| Disabled | bool      | Force disable (also set by CanExecute)    |
-| Sizing   | Sizing    | Combined axis sizing mode                 |
+| Property | Type      | Description                                         |
+| -------- | --------- | --------------------------------------------------- |
+| ID       | string    | Unique identifier (takes a generated ID when empty) |
+| Content  | []View    | Custom content (overrides auto-label)               |
+| OnClick  | func(...) | Custom handler (overrides command wiring)           |
+| Disabled | bool      | Force disable (also set by CanExecute)              |
+| Sizing   | Sizing    | Combined axis sizing mode                           |
 
 ## Appearance
 

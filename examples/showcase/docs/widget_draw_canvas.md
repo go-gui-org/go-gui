@@ -163,18 +163,18 @@ gui.DrawCanvas(gui.DrawCanvasCfg{
 
 ## Key Properties
 
-| Property  | Type               | Description                                         |
-| --------- | ------------------ | --------------------------------------------------- |
-| ID        | string             | Cache key (required)                                |
-| Version   | uint64             | Bump to invalidate cache                            |
-| Width     | float32            | Canvas width                                        |
-| Height    | float32            | Canvas height                                       |
-| Color     | Color              | Background fill                                     |
-| Radius    | float32            | Corner radius                                       |
-| Padding   | Opt[Padding]       | Inner padding (shrinks draw area)                   |
-| Clip      | bool               | Clip drawing to bounds                              |
-| Focusable | bool               | Keyboard focus and tab order (needs a non-empty ID) |
-| OnDraw    | func(*DrawContext) | Drawing callback                                    |
+| Property  | Type               | Description                                                     |
+| --------- | ------------------ | --------------------------------------------------------------- |
+| ID        | string             | Cache key (an empty ID skips the cache and redraws every frame) |
+| Version   | uint64             | Bump to invalidate cache                                        |
+| Width     | float32            | Canvas width                                                    |
+| Height    | float32            | Canvas height                                                   |
+| Color     | Color              | Background fill                                                 |
+| Radius    | float32            | Corner radius                                                   |
+| Padding   | Padding            | Inner padding (shrinks draw area)                               |
+| Clip      | bool               | Clip drawing to bounds                                          |
+| Focusable | bool               | Keyboard focus and tab order (needs a non-empty ID)             |
+| OnDraw    | func(*DrawContext) | Drawing callback                                                |
 
 ## Events
 

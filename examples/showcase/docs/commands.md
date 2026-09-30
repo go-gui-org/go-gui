@@ -246,8 +246,8 @@ the first item on each keystroke.
 | `Color`          | `Color`                  | Panel background              |
 | `ColorBorder`    | `Color`                  | Panel border                  |
 | `ColorHighlight` | `Color`                  | Highlight/hover color         |
-| `SizeBorder`     | `Opt[float32]`           | Border thickness              |
-| `Radius`         | `Opt[float32]`           | Corner radius                 |
+| `SizeBorder`     | `Border`                 | Border thickness              |
+| `Radius`         | `Radius`                 | Corner radius                 |
 | `Width`          | `float32`                | Panel width (default 500)     |
 | `MaxHeight`      | `float32`                | Max list height (default 400) |
 | `BackdropColor`  | `Color`                  | Semi-transparent overlay      |

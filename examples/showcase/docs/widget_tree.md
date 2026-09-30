@@ -75,7 +75,7 @@ When `ItemPaths` is set, `Nodes` is ignored.
 | ItemPaths     | []string      | Flat slash-separated paths (alt.) |
 | Nodes         | []TreeNodeCfg | Root-level tree nodes             |
 | Indent        | float32       | Indent per nesting level          |
-| Spacing       | Opt[float32]  | Vertical spacing between rows     |
+| Spacing       | Spacing       | Vertical spacing between rows     |
 | Reorderable   | bool          | Enable drag-reorder of siblings   |
 | Disabled      | bool          | Disable interaction               |
 | Invisible     | bool          | Hide without removing from layout |
@@ -104,15 +104,15 @@ When `ItemPaths` is set, `Nodes` is ignored.
 
 ## Appearance
 
-| Property    | Type         | Description             |
-| ----------- | ------------ | ----------------------- |
-| Color       | Color        | Background color        |
-| ColorHover  | Color        | Hover background        |
-| ColorFocus  | Color        | Focused node background |
-| ColorBorder | Color        | Border color            |
-| Padding     | Padding      | Inner padding           |
-| SizeBorder  | Opt[float32] | Border width            |
-| Radius      | Opt[float32] | Corner radius           |
+| Property    | Type    | Description             |
+| ----------- | ------- | ----------------------- |
+| Color       | Color   | Background color        |
+| ColorHover  | Color   | Hover background        |
+| ColorFocus  | Color   | Focused node background |
+| ColorBorder | Color   | Border color            |
+| Padding     | Padding | Inner padding           |
+| SizeBorder  | Border  | Border width            |
+| Radius      | Radius  | Corner radius           |
 
 ## Events
 

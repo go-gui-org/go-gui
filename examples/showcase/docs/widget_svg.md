@@ -77,16 +77,16 @@ first frame or are ignored.
 
 ## Key Properties
 
-| Property  | Type         | Description                          |
-| --------- | ------------ | ------------------------------------ |
-| FileName  | string       | SVG file path                        |
-| SvgData   | string       | Inline SVG string                    |
-| Width     | float32      | Display width (0 = native)           |
-| Height    | float32      | Display height (0 = native)          |
-| Color     | Color        | Override fill (for monochrome icons) |
-| NoAnimate | bool         | Disable SMIL + CSS animation         |
-| Sizing    | Sizing       | Combined axis sizing mode            |
-| Padding   | Opt[Padding] | Inner padding                        |
+| Property  | Type    | Description                          |
+| --------- | ------- | ------------------------------------ |
+| FileName  | string  | SVG file path                        |
+| SvgData   | string  | Inline SVG string                    |
+| Width     | float32 | Display width (0 = native)           |
+| Height    | float32 | Display height (0 = native)          |
+| Color     | Color   | Override fill (for monochrome icons) |
+| NoAnimate | bool    | Disable SMIL + CSS animation         |
+| Sizing    | Sizing  | Combined axis sizing mode            |
+| Padding   | Padding | Inner padding                        |
 
 ## Events
 

@@ -81,11 +81,11 @@ slab.
 
 ## Appearance
 
-| Property       | Type         | Description             |
-| -------------- | ------------ | ----------------------- |
-| Color          | Color        | Base skeleton color     |
-| ColorHighlight | Color        | Shimmer highlight color |
-| Radius         | Opt[float32] | Corner radius           |
+| Property       | Type   | Description             |
+| -------------- | ------ | ----------------------- |
+| Color          | Color  | Base skeleton color     |
+| ColorHighlight | Color  | Shimmer highlight color |
+| Radius         | Radius | Corner radius           |
 
 ## Variants
 
