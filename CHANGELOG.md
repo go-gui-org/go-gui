@@ -8,6 +8,8 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [v0.83.0] - 2026-09-30
+
 ### Added
 
 - **`InputGroup` joins form controls into one shape (#820)** — a Bootstrap-style
