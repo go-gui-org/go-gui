@@ -181,7 +181,8 @@ func (w *Window) opticalDigitOffset(style TextStyle) float32 {
 }
 
 // opticalTextOffset returns the shift that centres this run's own ink,
-// bounded below by zero and above by the cap-band shift.
+// bounded below by zero and above by the cap-band shift. A glyph-role
+// run has no upper bound: its face has no cap band to take one from.
 //
 // The lower bound is the descender case: "gypsy" already sits below the
 // box's centre, so the correction for it is none. Moving text up is not
@@ -200,6 +201,13 @@ func (w *Window) opticalTextOffset(style TextStyle, text string) float32 {
 		return 0
 	}
 	off := w.opticalOffset(style, text, false, fallbackCapOffsetRatio)
+	// An icon face has no cap band. Probing it for "H" measures a missing
+	// glyph, and the text stack answers that by loading a system fallback
+	// font (about 30 MB on Fedora) only to take the bound (issue #872). The
+	// run's own ink is the answer for a glyph (see opticalCenterChildren).
+	if style.glyphRole {
+		return off
+	}
 	return f32Min(off, w.opticalCapOffset(style))
 }
 

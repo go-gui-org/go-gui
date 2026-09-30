@@ -2,6 +2,7 @@ package gui
 
 import (
 	"math"
+	"slices"
 	"testing"
 
 	"github.com/go-gui-org/go-glyph"
@@ -261,5 +262,57 @@ func TestOpticalMemoHoldsManyLabels(t *testing.T) {
 	if m.calls != before {
 		t.Errorf("second frame measured %d labels again, want 0",
 			m.calls-before)
+	}
+}
+
+// probeLogMeasurer is runInkMeasurer that records every run it is asked
+// to measure, so a test can assert which probes a hook reached for.
+type probeLogMeasurer struct {
+	runInkMeasurer
+	probed []string
+}
+
+func (m *probeLogMeasurer) TextInkBounds(text string, style TextStyle) (
+	InkBounds, bool,
+) {
+	m.probed = append(m.probed, text)
+	return m.runInkMeasurer.TextInkBounds(text, style)
+}
+
+// A glyph run must not be clamped by the face's cap band. An icon face
+// has no "H", so measuring it makes the text stack load a system
+// fallback font — about 30 MB on Fedora — for a bound that means nothing
+// for an icon (issue #872). The glyph here sits high (own offset 6 vs
+// cap offset 2), so the test also pins that the run keeps its full
+// offset rather than the clamped one.
+func TestOpticalGlyphRunSkipsCapProbe(t *testing.T) {
+	w := newTestWindow()
+	m := &probeLogMeasurer{runInkMeasurer: runInkMeasurer{
+		stubTextMeasurer: stubTextMeasurer{charWidth: 10, fontHeight: 20},
+		ink: map[string]InkBounds{
+			opticalProbe:  {Y: 2, Height: 12, Width: 10},
+			"Save":        {Y: 0, Height: 8, Width: 40},
+			iconProbeRune: {Y: 0, Height: 8, Width: 10},
+		},
+	}}
+	w.SetTextMeasurer(m)
+
+	iconStyle := TextStyle{Size: 16, glyphRole: true}
+	frame := bandTestFrame(iconProbeRune, iconStyle)
+	opticalCenterChildren(EventCtx{&frame, nil, w}, opticalBandRun)
+	if slices.Contains(m.probed, opticalProbe) {
+		t.Fatalf("glyph run probed %q in the icon face", opticalProbe)
+	}
+	if got := frame.Children[0].Shape.Y; got != 6 {
+		t.Errorf("glyph moved by %v, want its own ink offset 6", got)
+	}
+
+	// Control: a text label on the same band still takes the cap clamp,
+	// or the test above would pass with the clamp removed for everyone.
+	m.probed = nil
+	labelFrame := bandTestFrame("Save", TextStyle{Size: 16})
+	opticalCenterChildren(EventCtx{&labelFrame, nil, w}, opticalBandRun)
+	if got := labelFrame.Children[0].Shape.Y; got != 2 {
+		t.Errorf("label moved by %v, want the cap clamp 2", got)
 	}
 }
