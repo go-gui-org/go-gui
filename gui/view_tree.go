@@ -14,7 +14,7 @@ type TreeCfg struct {
 
 	OnReorder func(string, string, EventCtx)
 
-	ID string `gui:"required"`
+	ID string `gui:"auto"`
 
 	A11YCfg
 
@@ -35,8 +35,7 @@ type TreeCfg struct {
 	Indent  float32
 	Spacing Spacing // 0 is a real choice (dense rows); unset falls back to the theme
 
-	// FocusDisabled opts out of the default-on focus. Focus also
-	// requires a non-empty ID; without one the control is inert.
+	// FocusDisabled opts out of the default-on focus.
 	FocusDisabled bool
 
 	Width     float32
@@ -166,7 +165,14 @@ func itemPathsToNodes(paths []string) []TreeNodeCfg {
 
 // Tree creates a tree view with optional virtualization and lazy loading.
 func Tree(cfg TreeCfg) View {
-	RequireID("Tree", cfg.ID)
+	// No ID: take a generated leaf at generation time (#881); see
+	// id_auto.go.
+	if cfg.ID == "" {
+		return ViewFunc(func(vw *Window) View {
+			cfg.ID = vw.autoLeaf("tree")
+			return Tree(cfg)
+		})
+	}
 	applyTreeDefaults(&cfg)
 	if len(cfg.ItemPaths) > 0 {
 		cfg.Nodes = itemPathsToNodes(cfg.ItemPaths)

@@ -3,6 +3,9 @@
 Status: implemented. Written 2026-08-09 after a `GOGUI_DEBUG=1` run of the
 showcase reported 39 duplicate IDs. Decided and implemented the same day.
 
+Superseded in part: Decision 1 (no implicit IDs) is revised by
+[`auto-widget-identity.md`](auto-widget-identity.md) (#881).
+
 ## Problem
 
 `Shape.ID` is the identity key for focus, scroll offsets, per-widget state,

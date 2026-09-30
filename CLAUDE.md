@@ -59,6 +59,10 @@ before you change a widget, identity, theme, event or layout-hook code.
 - **Focus.** Focus needs `Focusable` **and** a non-empty `ID`. Input controls
   are focusable by default. To opt out, set `FocusDisabled`. Never set
   `Focusable: false`.
+- **Auto IDs.** An `ID` tagged `gui:"auto"` may be empty: the widget takes a
+  generated leaf (`~input3`) from scope, kind and count (#881). Use an explicit
+  ID when code names the widget, or when a same-kind widget can appear before
+  it. Never write a `~` ID by hand.
 - **Identity.** Public APIs (`SetFocus`, `FindByID`, `Test*`) take the
   **effective** ID: the leaf joined to its ID-bearing ancestors. Compose IDs
   with `gui.ScopeID` / `gui.ScopeIDN`, never by hand. Read an effective ID back

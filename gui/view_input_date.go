@@ -18,7 +18,7 @@ type InputDateCfg struct {
 	PlaceholderStyle TextStyle
 	Date             time.Time
 	OnSelect         func([]time.Time, EventCtx)
-	ID               string `gui:"required,focus"`
+	ID               string `gui:"auto"`
 	Placeholder      string
 	// DateFormat spells the date the field shows, masks and parses,
 	// in the locale token language: YYYY, MM, M, DD, D and literal
@@ -47,8 +47,7 @@ type InputDateCfg struct {
 	// default.
 	// exportaudit:keep — caller-facing config (issue #372)
 	RadiusBorder Radius
-	// FocusDisabled opts out of the default-on focus. Focus also
-	// requires a non-empty ID; without one the control is inert.
+	// FocusDisabled opts out of the default-on focus.
 	FocusDisabled bool
 	Width         float32
 	Height        float32
@@ -93,8 +92,17 @@ type inputDateView struct {
 
 // InputDate creates a date input field with a dropdown calendar.
 func InputDate(cfg InputDateCfg) View {
+	// No ID: take a generated leaf at generation time (#881); see
+	// id_auto.go. Also with FocusDisabled: the inner field and the
+	// calendar button take IDs scoped by this one, so two ID-less
+	// copies would otherwise both claim "input" and "calendar".
+	if cfg.ID == "" {
+		return ViewFunc(func(vw *Window) View {
+			cfg.ID = vw.autoLeaf("inputdate")
+			return InputDate(cfg)
+		})
+	}
 	applyInputDateDefaults(&cfg)
-	requireFocusID("InputDate", cfg.FocusDisabled, cfg.ID)
 	requireDateFormat("InputDate", cfg.DateFormat)
 	cfg.A11YLabel = a11yProseLabel(cfg.A11YLabel, cfg.Label)
 	return labelledField(
@@ -162,10 +170,13 @@ func (idv *inputDateView) GenerateLayout(w *Window) Layout {
 				Button(ButtonCfg{
 					// Namespaced by the field's ID: a form can hold
 					// several date inputs.
-					ID:         ScopeID(cfgID, "calendar"),
-					Disabled:   cfg.Disabled || cfg.ReadOnly,
-					Padding:    NoPadding,
-					SizeBorder: NoBorder,
+					ID:       ScopeID(cfgID, "calendar"),
+					Disabled: cfg.Disabled || cfg.ReadOnly,
+					// The opt-out covers the whole control, not
+					// only the text field.
+					FocusDisabled: cfg.FocusDisabled,
+					Padding:       NoPadding,
+					SizeBorder:    NoBorder,
 					Content: []View{Row(ContainerCfg{
 						// Scaffolding, not a box: it keeps the
 						// calendar glyph out of the button

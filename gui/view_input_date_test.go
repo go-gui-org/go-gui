@@ -470,3 +470,18 @@ func findTextByContent(l *Layout, text string) *Shape {
 	}
 	return nil
 }
+
+// FocusDisabled takes the calendar button out of the tab order too.
+// Before, only the text field opted out, and Tab still stopped on the
+// button of a field the app had marked as not focusable.
+func TestInputDateFocusDisabledCalendarNotFocusable(t *testing.T) {
+	w := NewTestWindow(t, WindowCfg{})
+	ly := w.TestRender(func(_ *Window) View {
+		return Column(ContainerCfg{Sizing: FillFill, Content: []View{
+			InputDate(InputDateCfg{ID: "due", FocusDisabled: true}),
+		}})
+	})
+	if got := autoFocusables(ly); len(got) != 0 {
+		t.Fatalf("FocusDisabled InputDate has tab stop %q", got[0].idKey())
+	}
+}

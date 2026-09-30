@@ -54,7 +54,7 @@ type InputCfg struct {
 	// exportaudit:keep — caller-facing config (issue #372)
 	PostCommitNormalize func(text string, reason InputCommitReason) string
 
-	ID          string `gui:"required,focus"`
+	ID          string `gui:"auto"`
 	Text        string
 	Placeholder string
 
@@ -84,8 +84,8 @@ type InputCfg struct {
 
 	// FocusDisabled opts the field out of the focus system. Inputs
 	// are focusable by default; set this to exclude the field from
-	// Tab order and focus. Note focus also requires a non-empty ID —
-	// an ID-less input renders but is inert (never a tab stop).
+	// Tab order and focus. An input without an ID takes a generated
+	// one (#881), so it is a tab stop unless this is set.
 	FocusDisabled bool
 
 	// ReadOnly blocks text edits while the field stays focusable and
@@ -194,8 +194,15 @@ func a11yReadOnlyState(readOnly bool) AccessState {
 
 // Input creates a text input field view.
 func Input(cfg InputCfg) View {
+	// No ID: take a generated leaf at generation time (#881); see
+	// id_auto.go.
+	if cfg.ID == "" && !cfg.FocusDisabled {
+		return ViewFunc(func(vw *Window) View {
+			cfg.ID = vw.autoLeaf("input")
+			return Input(cfg)
+		})
+	}
 	applyInputDefaults(&cfg)
-	requireFocusID("Input", cfg.FocusDisabled, cfg.ID)
 
 	d := &defaultInputStyle
 	sizeBorder := cfg.SizeBorder.Or(d.SizeBorder)

@@ -9,7 +9,7 @@ import (
 // ProgressBarCfg configures a progress bar view.
 type ProgressBarCfg struct {
 	TextStyle TextStyle
-	ID        string `gui:"required"`
+	ID        string `gui:"auto"`
 	Text      string
 
 	// Accessibility
@@ -49,7 +49,14 @@ type ProgressBarCfg struct {
 
 // ProgressBar creates a progress bar view.
 func ProgressBar(cfg ProgressBarCfg) View {
-	RequireID("ProgressBar", cfg.ID)
+	// No ID: take a generated leaf at generation time (#881); see
+	// id_auto.go.
+	if cfg.ID == "" {
+		return ViewFunc(func(vw *Window) View {
+			cfg.ID = vw.autoLeaf("progressbar")
+			return ProgressBar(cfg)
+		})
+	}
 	if cfg.TextStyle == (TextStyle{}) {
 		cfg.TextStyle = guiTheme.progressBarStyle.TextStyle
 	}

@@ -24,7 +24,7 @@ const orbStillT = 0.6
 // monochrome ink that follows the theme; pick the design that
 // says what the agent is doing.
 type ThinkingOrbCfg struct {
-	ID        string `gui:"required"`
+	ID        string `gui:"auto"`
 	Design    ThinkingOrbDesign
 	Size      ThinkingOrbSize // ergonomics-audit:opt-plain — zero is Regular, the tuned default, not "unset"
 	Speed     float32
@@ -45,7 +45,7 @@ type ThinkingOrbCfg struct {
 // ThinkingOrbLabelCfg configures an orb beside a shimmering
 // status line. It reads as one accessibility element: its title.
 type ThinkingOrbLabelCfg struct {
-	ID        string `gui:"required"`
+	ID        string `gui:"auto"`
 	Text      string
 	Design    ThinkingOrbDesign
 	Size      ThinkingOrbSize // ergonomics-audit:opt-plain — zero is Regular, the tuned default, not "unset"
@@ -63,7 +63,14 @@ type ThinkingOrbLabelCfg struct {
 // zero or invalid Speed means 1. Speed, Paused, and Design apply
 // live: a change continues from the current frame, with no jump.
 func ThinkingOrb(cfg ThinkingOrbCfg) View {
-	RequireID("ThinkingOrb", cfg.ID)
+	// No ID: take a generated leaf at generation time (#881); see
+	// id_auto.go.
+	if cfg.ID == "" {
+		return ViewFunc(func(vw *Window) View {
+			cfg.ID = vw.autoLeaf("thinkingorb")
+			return ThinkingOrb(cfg)
+		})
+	}
 	return &thinkingOrbView{cfg: cfg}
 }
 
@@ -71,7 +78,14 @@ func ThinkingOrb(cfg ThinkingOrbCfg) View {
 // shimmers while live and holds still at full strength when
 // Paused and under Reduce Motion.
 func ThinkingOrbLabel(cfg ThinkingOrbLabelCfg) View {
-	RequireID("ThinkingOrbLabel", cfg.ID)
+	// No ID: take a generated leaf at generation time (#881); see
+	// id_auto.go.
+	if cfg.ID == "" {
+		return ViewFunc(func(vw *Window) View {
+			cfg.ID = vw.autoLeaf("thinkingorblabel")
+			return ThinkingOrbLabel(cfg)
+		})
+	}
 	return &thinkingOrbLabelView{cfg: cfg}
 }
 
@@ -212,7 +226,10 @@ func (v *thinkingOrbView) GenerateLayout(w *Window) Layout {
 		},
 		Content: []View{
 			DrawCanvas(DrawCanvasCfg{
-				ID:     "cv",
+				// Composed from the resolved ID, not a relative leaf: an
+				// auto-ID orb opens no scope (#881), so "cv" alone would
+				// collide between two ID-less orbs.
+				ID:     ScopeID(eid, "cv"),
 				Sizing: FillFill,
 				Clip:   true,
 				// The canvas redraws only when Version changes, so
@@ -407,8 +424,12 @@ func (v *thinkingOrbLabelView) GenerateLayout(w *Window) Layout {
 	if cfg.Paused || w.prefersReducedMotion() || w.HeadlessRender() {
 		anim = TextAnimCfg{}
 	}
+	// Inner IDs compose from the resolved ID: an auto-ID label opens no
+	// scope (#881), so relative leaves would collide between two
+	// ID-less labels.
+	eid := w.EffID(cfg.ID)
 	orbCfg := ThinkingOrbCfg{
-		ID:     "orb",
+		ID:     ScopeID(eid, "orb"),
 		Design: cfg.Design,
 		Size:   cfg.Size,
 		Speed:  cfg.Speed,
@@ -438,7 +459,7 @@ func (v *thinkingOrbLabelView) GenerateLayout(w *Window) Layout {
 		Content: []View{
 			inner,
 			Text(TextCfg{
-				ID:        "text",
+				ID:        ScopeID(eid, "text"),
 				Text:      cfg.Text,
 				TextStyle: style,
 				Anim:      anim,

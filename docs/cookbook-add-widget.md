@@ -20,18 +20,23 @@ Every widget has a `*Cfg` struct. Conventions:
   `Disabled bool`, `Invisible bool`, and a focus field. The focus field is
   either `Focusable bool` (opt-in, for example Table) or `FocusDisabled bool`
   (opt-out, for controls focusable by default, for example Input, Toggle,
-  Slider, Select). Focus always requires a non-empty `ID`. Without one, the
-  control never joins the tab order. Container-like widgets add `Sizing Sizing`,
-  `Float bool`, `FloatAnchor FloatAttach`, `FloatTieOff FloatAttach`,
-  `Padding Padding`, `Radius Opt[float32]`, `SizeBorder Opt[float32]` (`Table`
-  is the exception: its `SizeBorder` is a plain `float32` applied as-is).
+  Slider, Select). Focus always requires a non-empty `ID`. A stateful widget
+  tags its `ID` with `gui:"auto"` and gives an empty one a generated leaf (see
+  step 2), so the control still joins the tab order. Container-like widgets add
+  `Sizing Sizing`, `Float bool`, `FloatAnchor FloatAttach`,
+  `FloatTieOff FloatAttach`, `Padding Padding`, `Radius Opt[float32]`,
+  `SizeBorder Opt[float32]` (`Table` is the exception: its `SizeBorder` is a
+  plain `float32` applied as-is).
 - **Callbacks** — one func field per event. Sig: `func(EventCtx)`. One rule for
   all of them: call `ctx.Consume()` on any path that acts on the event. On any
   path that means "not mine", call nothing. Nothing is marked handled for you. A
   widget that means to absorb a click must say so.
+- **`gui:"auto"` tag** — an `ID` that the factory fills with a generated leaf
+  when it is empty (#881). This is the default for a stateful widget.
 - **`gui:"required"` tag** — fields that must be non-empty get the tag. The
   `requiredid` vet analyzer enforces this at `go vet` time. Use the tag only
-  when the widget cannot function without the value (for example `FormCfg.ID`).
+  when the widget cannot function without the value and cannot take a generated
+  one (for example `InputGroupCfg.ID`, which is the scope for its segments).
 
 Minimal example:
 
@@ -43,7 +48,7 @@ type ToggleCfg struct {
     TextStyle      TextStyle
     TextStyleLabel TextStyle
     OnClick        func(EventCtx)
-    ID             string `gui:"required,focus"`
+    ID             string `gui:"auto"`
     Label          string
     TextSelect     string
     TextUnselect   string
@@ -58,8 +63,8 @@ type ToggleCfg struct {
     SizeBorder Opt[float32]
     Radius     Opt[float32]
     MinWidth   float32
-    // FocusDisabled opts out of the default-on focus. Focus also
-    // requires a non-empty ID; without one the control is inert.
+    // FocusDisabled opts out of the default-on focus. An empty ID
+    // takes a generated one, so the control still joins focus.
     FocusDisabled bool
     Color         Color
     // Colors sets the per-state colors. Color above is the
@@ -76,18 +81,27 @@ type ToggleCfg struct {
 
 Sig: `func WidgetName(cfg WidgetCfg) View`. The function:
 
-1. **Calls applyDefaults** — provides theme colors, sizes, and text styles for
+1. **Takes a generated ID when `ID` is empty** — returns a `ViewFunc` that sets
+   `cfg.ID = vw.autoLeaf("<kind>")` and calls the factory again. Build inner IDs
+   with `ScopeID(w.EffID(cfg.ID), part)`, never a relative leaf, and add the
+   widget to `TestAutoIDEveryWidgetTwiceHasNoDuplicates`.
+2. **Calls applyDefaults** — provides theme colors, sizes, and text styles for
    any field the user did not set
-2. **Reads Opt[T] values** via `.Get(fallback)` to resolve "not set"
-3. **Builds a Layout tree** — returns a `ContainerCfg`-based layout (usually
+3. **Reads Opt[T] values** via `.Get(fallback)` to resolve "not set"
+4. **Builds a Layout tree** — returns a `ContainerCfg`-based layout (usually
    `Row`, `Column`, or `Canvas`)
-4. **Sets a11y** — role, state, label on the root shape
-5. **Wires events** — OnClick, OnHover, OnChar, AmendLayout
+5. **Sets a11y** — role, state, label on the root shape
+6. **Wires events** — OnClick, OnHover, OnChar, AmendLayout
 
 ```go
 func Toggle(cfg ToggleCfg) View {
+    if cfg.ID == "" && !cfg.FocusDisabled {
+        return ViewFunc(func(vw *Window) View {
+            cfg.ID = vw.autoLeaf("toggle")
+            return Toggle(cfg)
+        })
+    }
     applyToggleDefaults(&cfg)
-    requireFocusID("Toggle", cfg.FocusDisabled, cfg.ID)
 
     d := &DefaultToggleStyle
     sizeBorder := cfg.SizeBorder.Or(d.SizeBorder)
@@ -353,7 +367,8 @@ go run ./examples/showcase/ # visual check
 
 - [ ] `gui/view_<name>.go` — Cfg struct + factory function
 - [ ] Cfg zero-initializable, Opt[T] for optional fields
-- [ ] `gui:"required"` tag on mandatory fields (if any)
+- [ ] `gui:"auto"` on a stateful `ID`, with the generated-leaf branch in the
+      factory; `gui:"required"` only where a generated value cannot work
 - [ ] a11y role, state, label set on the root shape
 - [ ] Keyboard/click semantics via `ClickOnSpace` / `ClickButton` /
       `ClickOnEnter` where appropriate

@@ -14,9 +14,10 @@ below: `docs/dx-cheat-sheet.md`.
 
 Focus requires **both** `Focusable` **and** a non-empty `ID` (`isFocusedTarget`,
 `gui/event_traversal.go`); tab order additionally needs
-`!FocusSkip && !Disabled` (`layout_query.go`). `Focusable` without an `ID` is a
-silent no-op — the `requiredid` analyzer flags it, `gui.Debug` reports it at
-runtime.
+`!FocusSkip && !Disabled` (`layout_query.go`). An input control with an empty
+`ID` takes a generated one (see Auto IDs below). An opt-in `Focusable` without
+an `ID` is still a silent no-op — the `requiredid` analyzer flags it,
+`gui.Debug` reports it at runtime.
 
 **Input controls are focusable by default; opt out with `FocusDisabled`, never
 with `Focusable: false`.** Twenty-one Cfgs default on (Button, Input, Select,
@@ -32,10 +33,11 @@ stamps `Shape.effID` = the leaf joined to its **ID-bearing ancestors**:
 parent before pushing that parent's scope (`gui/view.go`, `stampEffID` in
 `gui/id_resolve.go`). Nothing re-derives identity afterwards, so there is
 nothing to drift against; an unstamped shape is reported by `DebugStampDrift`.
-Read `shape.idKey()`, never `shape.ID`, at a keying site. Only explicit IDs join
-— never position, never child index; an ID-less container adds no scope. A leaf
-already containing `:` is **absolute**. Effective IDs are unique per window,
-strictly, including within one widget.
+Read `shape.idKey()`, never `shape.ID`, at a keying site. Only explicit IDs open
+a scope — never position, never child index; an ID-less container adds no scope,
+and neither does one with a generated ID (Auto IDs below). A leaf already
+containing `:` is **absolute**. Effective IDs are unique per window, strictly,
+including within one widget.
 
 Public APIs (`SetFocus`, `FindByID`, `IsFocus`, `ScrollVerticalTo`, `Test*`)
 take the **effective** ID. Two seams for widget code: `w.EffID(cfg.ID)` for
@@ -57,6 +59,31 @@ loop-derived identity. A **part** (a row key, a heading slug — a leaf fed _int
 a composition) must not contain `:` and keeps its own spelling; never rebuild an
 ID at a lookup site. `ergonomics-audit -mode ids` fails on hand-rolled
 composition; see `docs/specs/widget-id-scoping.md`.
+
+### Auto IDs
+
+**A Cfg whose `ID` is tagged `gui:"auto"` accepts an empty ID; the factory gives
+the widget a generated leaf (#881, `gui/id_auto.go`).** The leaf is
+`~<kind><count>`: the count of earlier widgets of that kind under the nearest
+explicit-ID scope, in pre-order. Counters reset once per frame (`resetAutoIDs`);
+injected overlays continue the root counters.
+
+- **The pattern.** A factory whose ID is empty returns
+  `ViewFunc(func(vw) { cfg.ID = vw.autoLeaf("kind"); return Factory(cfg) })`.
+  The leaf must exist before anything reads `cfg.ID` — scrollbars and handlers
+  capture it at build time. Keep the condition identical to the old requirement
+  (`&& !cfg.FocusDisabled` for focus-only IDs).
+- **An auto leaf opens no scope** (`childScopeID`, `resolveFocusOwnersWalk`,
+  `ctx.EffID`). A composite with an auto ID must build inner IDs with
+  `ScopeID(w.EffID(cfg.ID), part)`, never a relative leaf: two ID-less instances
+  in one scope would collide. `TestAutoIDEveryWidgetTwiceHasNoDuplicates` is the
+  gate — add every new auto-ID widget to it.
+- **A registry keyed window-wide by the bare ID** (Form) uses `autoLeafWindow`,
+  which counts across the whole window.
+- **Kept `required`:** `InputGroupCfg.ID` (its ID is the scope that names its
+  segments) and `datagrid` (a subpackage cannot reach `autoLeaf`).
+- `DebugAutoIDs` reports a focused auto key that moved to another widget
+  (fingerprint: role + a11y label), and an app ID with the `~` prefix.
 
 A composite widget's inner shape that needs the owning widget's focus or
 spell-check state sets `Shape.focusOwner` (a reference) instead of repeating its

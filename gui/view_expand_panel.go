@@ -6,7 +6,7 @@ type ExpandPanelCfg struct {
 	Head     View
 	Content  View
 	OnToggle func(EventCtx)
-	ID       string
+	ID       string `gui:"auto"`
 
 	// Accessibility
 	A11YCfg
@@ -43,6 +43,24 @@ type ExpandPanelCfg struct {
 
 // ExpandPanel creates an expandable panel view.
 func ExpandPanel(cfg ExpandPanelCfg) View {
+	// No ID: take a generated leaf at generation time (#881); see
+	// id_auto.go. Also with FocusDisabled: the header ID is scoped by
+	// this one, so every ID-less panel would claim "head". The header
+	// ID is built from the effective ID, not the leaf: an auto leaf
+	// opens no scope, and "~expandpanel0:head" holds IDSep, so it would
+	// resolve as absolute and collide across panels. The explicit-ID
+	// path defers for the same reason: the leaf-built absolute would
+	// ignore the enclosing scope.
+	return ViewFunc(func(vw *Window) View {
+		if cfg.ID == "" {
+			cfg.ID = vw.autoLeaf("expandpanel")
+		}
+		return expandPanel(cfg, ScopeID(vw.EffID(cfg.ID), "head"))
+	})
+}
+
+// expandPanel builds the panel. headID is the header row's ID.
+func expandPanel(cfg ExpandPanelCfg, headID string) View {
 	applyExpandPanelDefaults(&cfg)
 	sizeBorder := cfg.SizeBorder.Or(guiTheme.expandPanelStyle.SizeBorder)
 	radius := cfg.Radius.Or(guiTheme.expandPanelStyle.Radius)
@@ -118,7 +136,6 @@ func ExpandPanel(cfg ExpandPanelCfg) View {
 	// The header row joins the tab order: Space/Enter toggle the
 	// panel (issue #345). The body's own focusables sit after it in
 	// tab order because the header row precedes them in the Column.
-	headID := ScopeID(cfg.ID, "head")
 
 	return Column(ContainerCfg{
 		ID:          cfg.ID,

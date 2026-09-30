@@ -64,8 +64,14 @@
 //   - Opt[T] fields: optional overrides that distinguish "not set"
 //     from an explicit zero. Use cfg.Radius.Or(default) or
 //     cfg.Radius.Set(5).
-//   - required tags: fields tagged `gui:"required"` (e.g. FormCfg.ID)
-//     must be non-empty. Enforced by the requiredid vet analyzer.
+//   - required tags: fields tagged `gui:"required"` (e.g.
+//     InputGroupCfg.ID) must be non-empty. Enforced by the requiredid
+//     vet analyzer.
+//   - auto tags: an ID tagged `gui:"auto"` may be left empty. The
+//     widget then takes a generated ID from its kind and position, and
+//     still joins focus, scroll and state. Set an explicit ID to name
+//     it from code (SetFocus, FindByID, tests), or when a widget of
+//     the same kind can appear before it at run time.
 //   - Focusable: true opts the widget into keyboard focus (click or
 //     Tab). Requires a non-empty ID. Tab order follows layout-tree
 //     (depth-first) order.

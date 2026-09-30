@@ -69,7 +69,7 @@ type VirtualListCfg struct {
 	// arrows/pages/Home/End handling, which consumes the keys it acts on.
 	OnKeyDown func(EventCtx)
 
-	ID string `gui:"required"`
+	ID string `gui:"auto"`
 
 	Padding    Padding
 	Radius     Radius
@@ -103,8 +103,7 @@ type VirtualListCfg struct {
 
 	Sizing Sizing
 
-	// FocusDisabled opts out of the default-on focus. Focus also
-	// requires a non-empty ID; without one the control is inert.
+	// FocusDisabled opts out of the default-on focus.
 	FocusDisabled bool
 	Disabled      bool
 	Invisible     bool
@@ -118,7 +117,14 @@ type virtualListView struct {
 // height. It requires an ID (scroll state, the height model and the
 // focused index are all keyed by it) and an ItemView.
 func VirtualList(cfg VirtualListCfg) View {
-	RequireID("VirtualList", cfg.ID)
+	// No ID: take a generated leaf at generation time (#881); see
+	// id_auto.go.
+	if cfg.ID == "" {
+		return ViewFunc(func(vw *Window) View {
+			cfg.ID = vw.autoLeaf("virtuallist")
+			return VirtualList(cfg)
+		})
+	}
 	applyVirtualListDefaults(&cfg)
 	return &virtualListView{cfg: cfg}
 }

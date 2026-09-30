@@ -287,6 +287,8 @@ func TestCheckCategoryMapping(t *testing.T) {
 		{debugCheckLayoutInvariant, DebugLayoutInvariants},
 		{debugCheckFixedSizing, DebugSizing},
 		{debugCheckLowContrast, DebugLowContrast},
+		{debugCheckAutoIDShift, DebugAutoIDs},
+		{debugCheckAutoIDReserved, DebugAutoIDs},
 	}
 	for _, tc := range tests {
 		if got := checkCategory(tc.check); got != tc.want {
@@ -296,7 +298,7 @@ func TestCheckCategoryMapping(t *testing.T) {
 	// DebugAll covers every category Debug(true) turns on.
 	// DebugUnscopedIDs is opt-in and deliberately outside it: it reports
 	// a design property, not a defect.
-	if DebugAll != DebugDuplicates|DebugMissingIDs|DebugUnconsumed|DebugListBoxNoHeight|DebugGradientResampled|DebugWrapOverflow|DebugCallbacks|DebugWindowDegraded|DebugUnresolvedKeys|DebugStampDrift|DebugUnknownFocus|DebugUnknownLookup|DebugGlyphLayoutFallback|DebugSizing|DebugLowContrast {
+	if DebugAll != DebugDuplicates|DebugMissingIDs|DebugUnconsumed|DebugListBoxNoHeight|DebugGradientResampled|DebugWrapOverflow|DebugCallbacks|DebugWindowDegraded|DebugUnresolvedKeys|DebugStampDrift|DebugUnknownFocus|DebugUnknownLookup|DebugGlyphLayoutFallback|DebugSizing|DebugLowContrast|DebugAutoIDs {
 		t.Fatal("DebugAll must cover every category Debug(true) enables")
 	}
 	if DebugAll&DebugUnscopedIDs != 0 {
@@ -454,8 +456,7 @@ func TestDebugAuditMouseLeaveWithoutID(t *testing.T) {
 
 // The decorative opt-out covers focus, not leave tracking. A
 // FocusDisabled control with an OnMouseLeave is still broken, and this
-// is the case neither the focus check nor the requireFocusID guard
-// catches.
+// is the case the focus check does not catch.
 func TestDebugAuditMouseLeaveOnFocusDisabledShape(t *testing.T) {
 	buf := captureDebug(t)
 	w := &Window{}

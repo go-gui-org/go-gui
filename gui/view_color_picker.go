@@ -26,11 +26,10 @@ type ColorPickerCfg struct {
 	Label         string
 	Style         ColorPickerStyle
 	OnColorChange func(Color, EventCtx)
-	ID            string `gui:"required"`
+	ID            string `gui:"auto"`
 
 	A11YCfg
-	// FocusDisabled opts out of the default-on focus. Focus also
-	// requires a non-empty ID; without one the control is inert.
+	// FocusDisabled opts out of the default-on focus.
 	FocusDisabled bool
 	Width         float32
 	Height        float32
@@ -63,7 +62,14 @@ type colorPickerView struct {
 // same controls out differently, add a ColorWheel, or drive several
 // controls from one HSLA value in app state.
 func ColorPicker(cfg ColorPickerCfg) View {
-	RequireID("ColorPicker", cfg.ID)
+	// No ID: take a generated leaf at generation time (#881); see
+	// id_auto.go.
+	if cfg.ID == "" {
+		return ViewFunc(func(vw *Window) View {
+			cfg.ID = vw.autoLeaf("colorpicker")
+			return ColorPicker(cfg)
+		})
+	}
 	applyColorPickerDefaults(&cfg)
 	cfg.A11YLabel = a11yProseLabel(cfg.A11YLabel, cfg.Label)
 	return labelledField(

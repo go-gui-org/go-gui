@@ -64,7 +64,7 @@ type DatePickerCfg struct {
 	Label     string
 	TextStyle TextStyle
 	OnSelect  func([]time.Time, EventCtx)
-	ID        string `gui:"required"`
+	ID        string `gui:"auto"`
 	A11YCfg
 	Dates           []time.Time
 	AllowedWeekdays []DatePickerWeekdays
@@ -81,8 +81,7 @@ type DatePickerCfg struct {
 	// default.
 	// exportaudit:keep — caller-facing config (issue #372)
 	RadiusBorder Radius
-	// FocusDisabled opts out of the default-on focus. Focus also
-	// requires a non-empty ID; without one the control is inert.
+	// FocusDisabled opts out of the default-on focus.
 	FocusDisabled bool
 	Color         Color
 	// Colors sets the per-state colors. Color above is the
@@ -129,7 +128,14 @@ type datePickerView struct {
 
 // DatePicker creates a calendar date picker view.
 func DatePicker(cfg DatePickerCfg) View {
-	RequireID("DatePicker", cfg.ID)
+	// No ID: take a generated leaf at generation time (#881); see
+	// id_auto.go.
+	if cfg.ID == "" {
+		return ViewFunc(func(vw *Window) View {
+			cfg.ID = vw.autoLeaf("datepicker")
+			return DatePicker(cfg)
+		})
+	}
 	applyDatePickerDefaults(&cfg)
 	cfg.A11YLabel = a11yProseLabel(cfg.A11YLabel, cfg.Label)
 	// FitFit, not a caller sizing: DatePickerCfg has no Sizing field,

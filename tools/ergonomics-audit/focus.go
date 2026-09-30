@@ -27,7 +27,7 @@ type cfgFocus struct {
 	defaultOn  bool // has a FocusDisabled field: focusable unless opted out
 	optIn      bool // has a Focusable field: inert unless opted in
 	scrollable bool // has a Scrollable field: scroll offsets keyed by ID
-	idRequired bool // ID carries the gui:"required" tag
+	idRequired bool // ID carries the gui:"required" or gui:"auto" tag
 	hasID      bool
 }
 
@@ -91,11 +91,14 @@ func readCfgFocus(name string, st *ast.StructType) (cfgFocus, bool) {
 	return c, true
 }
 
-// tagRequires reports whether a struct tag literal marks the field
-// required. The tag takes options — `gui:"required,focus"` scopes the
-// rule to widgets that join focus traversal — so this parses the value
-// rather than matching the bare `gui:"required"` string, which would
-// read every tagged-with-options field as unguarded.
+// tagRequires reports whether a struct tag literal guards the ID: it
+// is either required, or `gui:"auto"`, which means the factory gives
+// an empty ID a generated one (#881). Both leave no ID-less literal
+// that silently drops out of focus. The tag takes options —
+// `gui:"required,focus"` scopes the rule to widgets that join focus
+// traversal — so this parses the value rather than matching the bare
+// string, which would read every tagged-with-options field as
+// unguarded.
 //
 // raw includes the surrounding backquotes, as it comes from the AST.
 func tagRequires(raw string) bool {
@@ -103,8 +106,8 @@ func tagRequires(raw string) bool {
 	if err != nil {
 		return false
 	}
-	opts := reflect.StructTag(tag).Get("gui")
-	return slices.Contains(strings.Split(opts, ","), "required")
+	opts := strings.Split(reflect.StructTag(tag).Get("gui"), ",")
+	return slices.Contains(opts, "required") || slices.Contains(opts, "auto")
 }
 
 // runFocus derives the unguarded Cfg set, then counts its call sites.
@@ -126,16 +129,10 @@ func runFocus(guiRoot string, repos []string, fix, dry bool, only, skip *regexp.
 		case c.optIn:
 			optIn = append(optIn, name)
 		}
-		// Scroll offsets are keyed by Shape.ID (gui/layout_position.go),
-		// so every ID-less scrollable shares the key "" and they scroll
-		// in lockstep.
-		//
-		// A tag cannot express this contract: most containers have no
-		// ID and need none, so `gui:"required"` on ContainerCfg.ID
-		// would flag the common case. It is enforced instead by
-		// requiredid's checkScrollableID, which keys on Scrollable in
-		// the literal — so every Cfg here is covered whether or not its
-		// ID carries a tag, and the list is inventory, not a gap.
+		// Scroll offsets are keyed by Shape.ID (gui/layout_position.go).
+		// An ID-less scrollable takes a generated ID (#881), so every
+		// Cfg here is covered whether or not its ID carries a tag, and
+		// the list is inventory, not a gap.
 		if c.scrollable && c.hasID {
 			scrollCovered = append(scrollCovered, name)
 		}
@@ -149,7 +146,7 @@ func runFocus(guiRoot string, repos []string, fix, dry bool, only, skip *regexp.
 	fmt.Printf("  opt-in (Focusable bool):            %d\n", len(optIn))
 	fmt.Printf("  default-on, ID required:            %d  %s\n", len(guarded), strings.Join(guarded, " "))
 	fmt.Printf("  default-on, ID NOT required:        %d  %s\n", len(unguarded), strings.Join(unguarded, " "))
-	fmt.Printf("  scrollable, ID enforced statically: %d  %s\n\n", len(scrollCovered), strings.Join(scrollCovered, " "))
+	fmt.Printf("  scrollable, ID generated if empty:  %d  %s\n\n", len(scrollCovered), strings.Join(scrollCovered, " "))
 
 	if len(unguarded) == 0 {
 		fmt.Println("no unguarded Cfgs: nothing to audit")

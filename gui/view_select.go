@@ -117,7 +117,7 @@ type SelectCfg struct {
 	SubheadingStyle  TextStyle
 	PlaceholderStyle TextStyle
 	OnSelect         func([]string, EventCtx)
-	ID               string `gui:"required,focus"`
+	ID               string `gui:"auto"`
 	Placeholder      string
 
 	A11YCfg
@@ -136,8 +136,7 @@ type SelectCfg struct {
 	Radius      Radius
 	MinWidth    float32
 	MaxWidth    float32
-	// FocusDisabled opts out of the default-on focus. Focus also
-	// requires a non-empty ID; without one the control is inert.
+	// FocusDisabled opts out of the default-on focus.
 	FocusDisabled bool
 	Color         Color
 	// Colors sets the per-state colors. Color above is the
@@ -190,8 +189,17 @@ func Select(cfg SelectCfg) View {
 	if cfg.Invisible {
 		return invisibleContainerView()
 	}
+	// No ID: take a generated leaf at generation time (#881); see
+	// id_auto.go. Also with FocusDisabled: the dropdown takes an ID
+	// scoped by this one, so two ID-less copies would otherwise both
+	// claim "dropdown".
+	if cfg.ID == "" {
+		return ViewFunc(func(vw *Window) View {
+			cfg.ID = vw.autoLeaf("select")
+			return Select(cfg)
+		})
+	}
 	applySelectDefaults(&cfg)
-	requireFocusID("Select", cfg.FocusDisabled, cfg.ID)
 	cfg.A11YLabel = a11yProseLabel(cfg.A11YLabel, cfg.Label)
 	return labelledField(
 		cfg.Label, cfg.TextStyle, HAlignLeft, cfg.Sizing,
@@ -294,7 +302,11 @@ func (sv *selectView) GenerateLayout(w *Window) Layout {
 			}
 		}
 		content = append(content, Column(ContainerCfg{
-			ID:            "dropdown",
+			// Composed from the resolved ID, not a relative leaf: an
+			// auto-ID select opens no scope (#881), so "dropdown"
+			// alone would collide between two ID-less selects and
+			// miss the scroll key above.
+			ID:            dropdownScrollID,
 			Shadow:        dn.Shadow,
 			SizeBorder:    BorderPx(sizeBorder),
 			Radius:        RadiusPx(radius),

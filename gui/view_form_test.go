@@ -7,17 +7,32 @@ import (
 	"time"
 )
 
-func TestFormEmptyIDPanics(t *testing.T) {
-	defer func() {
-		if r := recover(); r == nil {
-			t.Fatal("expected panic for empty Form.ID")
-		}
-	}()
-	Form(FormCfg{ //requiredid:ignore
-		Content: []View{
-			Text(TextCfg{Text: "hello"}),
-		},
+// An ID-less Form counts window-wide, not per scope (#881). Its
+// registry and FormSummary key on the bare ID, and its layout ID is the
+// absolute "form:<id>", so two ID-less forms in two panels must still
+// get two different leaves.
+func TestFormWithoutIDCountsWindowWide(t *testing.T) {
+	w := NewTestWindow(t, WindowCfg{})
+	form := func() View {
+		return Form(FormCfg{Content: []View{Text(TextCfg{Text: "hello"})}})
+	}
+	w.TestRender(func(_ *Window) View {
+		return Column(ContainerCfg{
+			Sizing: FillFill,
+			Content: []View{
+				Column(ContainerCfg{ID: "p1", Content: []View{form()}}),
+				Column(ContainerCfg{ID: "p2", Content: []View{form()}}),
+			},
+		})
 	})
+	for _, id := range []string{"form:~form0", "form:~form1"} {
+		if _, ok := w.layout.findByID(id); !ok {
+			t.Errorf("no form layout %q in the frame", id)
+		}
+	}
+	if dups := w.TestDuplicateIDs(); len(dups) != 0 {
+		t.Fatalf("ID-less forms collide: %v", dups)
+	}
 }
 
 func TestFormValidateInheritPanics(t *testing.T) {

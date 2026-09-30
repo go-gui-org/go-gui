@@ -194,27 +194,24 @@ func TestRotatedChildClipIntersectsAncestorClip(t *testing.T) {
 }
 
 // An OverflowPanel keys its overflow count and menu state by ID, so an
-// empty ID must fail at construction.
-func TestOverflowPanelRequiresID(t *testing.T) {
-	defer func() {
-		if recover() == nil {
-			t.Error("OverflowPanel without ID should panic")
-		}
-	}()
-	OverflowPanel(&Window{}, OverflowPanelCfg{ // requiredid:ignore
+// ID-less one takes a generated leaf (#881).
+func TestOverflowPanelWithoutIDTakesAutoLeaf(t *testing.T) {
+	w := &Window{}
+	ly := generateViewLayout(OverflowPanel(w, OverflowPanelCfg{
 		Items: []OverflowItem{{View: Text(TextCfg{Text: "a"})}},
-	})
+	}), w)
+	if !isAutoID(ly.Shape.ID) {
+		t.Fatalf("ID = %q, want a generated leaf", ly.Shape.ID)
+	}
 }
 
-// A raw Overflow container keys the same state, so it needs an ID too.
-func TestOverflowContainerRequiresID(t *testing.T) {
-	defer func() {
-		if recover() == nil {
-			t.Error("Overflow container without ID should panic")
-		}
-	}()
+// A raw Overflow container keys the same state, so it takes one too.
+func TestOverflowContainerWithoutIDTakesAutoLeaf(t *testing.T) {
 	w := &Window{}
-	generateViewLayout(Row(ContainerCfg{Overflow: true}), w)
+	ly := generateViewLayout(Row(ContainerCfg{Overflow: true}), w)
+	if ly.Shape.ID != "~overflow0" {
+		t.Fatalf("ID = %q, want %q", ly.Shape.ID, "~overflow0")
+	}
 }
 
 // The rotation re-fit of a Fit axisNone container encloses children at

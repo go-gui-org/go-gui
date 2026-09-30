@@ -13,7 +13,7 @@ type SliderCfg struct {
 	// See gui/field_label.go for the convention and why it is one.
 	Label    string
 	OnChange func(float32, EventCtx)
-	ID       string `gui:"required"`
+	ID       string `gui:"auto"`
 
 	// Accessibility
 	A11YCfg
@@ -32,8 +32,7 @@ type SliderCfg struct {
 	Height       float32
 	Size         float32 // ergonomics-audit:opt-plain — a zero-size slider is meaningless; 0 falls back to the theme
 	ThumbSize    float32
-	// FocusDisabled opts out of the default-on focus. Focus also
-	// requires a non-empty ID; without one the control is inert.
+	// FocusDisabled opts out of the default-on focus.
 	FocusDisabled bool
 
 	// SoundDisabled suppresses the slider's sound regardless of the
@@ -107,7 +106,14 @@ type SliderParts struct {
 
 // Slider creates a slider view.
 func Slider(cfg SliderCfg) View {
-	RequireID("Slider", cfg.ID)
+	// No ID: take a generated leaf at generation time (#881); see
+	// id_auto.go.
+	if cfg.ID == "" {
+		return ViewFunc(func(vw *Window) View {
+			cfg.ID = vw.autoLeaf("slider")
+			return Slider(cfg)
+		})
+	}
 	applySliderDefaults(&cfg)
 	sizeBorder := cfg.SizeBorder.Or(guiTheme.sliderStyle.SizeBorder)
 	if cfg.Size == 0 {

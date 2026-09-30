@@ -12,7 +12,7 @@ A shape is a focus target when it has `Focusable: true` and an `ID`. Tab order
 also needs `!FocusSkip` and `!Disabled`.
 
 ```go
-// No ID: renders and clicks, but never joins the tab order.
+// No ID: takes a generated ID and joins the tab order (#881).
 Button{Label: "Save", OnClick: save}
 
 // Inputs are focusable by default. FocusDisabled opts out.
@@ -23,9 +23,10 @@ Most input controls are focusable by default. They are `Button`,
 `ColorChannelSlider`, `ColorPicker`, `ColorPlane`, `ColorWheel`, `Combobox`,
 `DatePicker`, `ExpandPanel`, `Input`, `InputDate`, `ListBox`, `NumericInput`,
 `RadioButtonGroup`, `Radio`, `Select`, `Slider`, `Switch`, `Toggle`, `Tree`,
-`VirtualList`. Everything else opts in with `Focusable: true`. If a control
-never answers the keyboard, the usual cause is a missing `ID`. The `requiredid`
-analyzer and the `DebugMissingIDs` gate report it. See
+`VirtualList`. All of them take a generated ID when `ID` is empty (see "Auto
+IDs" below). Everything else opts in with `Focusable: true`, and an opt-in shape
+still needs an explicit `ID`. The `requiredid` analyzer and the
+`DebugMissingIDs` gate report one without it. See
 `docs/specs/focusable-default-input.md`.
 
 ## Soft keyboard
@@ -96,6 +97,45 @@ Two accessors read the identity, and they answer different questions:
 Duplicates are loud: `gui.Debug` reports them, and `(*Window).TestDuplicateIDs`
 asserts a clean window. See `docs/specs/widget-id-scoping.md` and
 `docs/specs/widget-id-per-scope-uniqueness.md`.
+
+## Auto IDs
+
+A widget whose `ID` is tagged `gui:"auto"` can leave it empty. It then gets a
+generated leaf, such as `~input3`, made from three parts:
+
+1. The nearest ancestor with an explicit ID (the scope).
+2. The widget kind.
+3. The count of earlier widgets of that kind in the scope.
+
+A scrolling or overflowing container without an ID gets one the same way.
+
+```go
+// A static form needs no IDs. Tab, click, cursor and scroll all work.
+Column(ContainerCfg{Content: []View{
+	Input(InputCfg{Label: "Name"}),
+	Input(InputCfg{Label: "Email"}),
+	Button(ButtonCfg{Label: "Send", OnClick: send}),
+}})
+```
+
+Set an explicit ID in these cases:
+
+- When code names the widget: `SetFocus`, `FindByID`, `ScrollVerticalTo`, or
+  `Test*`. A generated ID is not an address.
+- When a widget of the same kind can appear before it at run time: a row
+  inserted in a list, or an optional field above a form. The insert moves the
+  count, and the key with it. An explicit ID on a container stops this: the
+  count restarts inside it.
+
+A widget of another kind does not move the count. An error `Text` shown above
+two inputs leaves their keys as they were. An auto ID opens no scope, so an
+explicit `ID` inside an ID-less scroll container resolves as if the container
+were absent. `Form` counts across the whole window, because its registry keys on
+the bare form ID.
+
+`gui.Debug` reports a focused widget whose generated key moved to another widget
+(`DebugAutoIDs`), and an app ID that starts with the reserved `~`. See
+`docs/specs/auto-widget-identity.md`.
 
 ## `Opt[T]` vs plain fields
 

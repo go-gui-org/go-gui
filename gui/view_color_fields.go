@@ -11,7 +11,7 @@ import "strconv"
 // instead of jumping to black.
 type ColorFieldsCfg struct {
 	OnChange func(HSLA, EventCtx)
-	ID       string `gui:"required"`
+	ID       string `gui:"auto"`
 
 	A11YCfg
 
@@ -51,7 +51,14 @@ type colorFieldsView struct {
 
 // ColorFields creates the hex and channel inputs for a color.
 func ColorFields(cfg ColorFieldsCfg) View {
-	RequireID("ColorFields", cfg.ID)
+	// No ID: take a generated leaf at generation time (#881); see
+	// id_auto.go.
+	if cfg.ID == "" {
+		return ViewFunc(func(vw *Window) View {
+			cfg.ID = vw.autoLeaf("colorfields")
+			return ColorFields(cfg)
+		})
+	}
 	if cfg.TextStyle == (TextStyle{}) {
 		cfg.TextStyle = defaultColorPickerStyle.TextStyle
 	}

@@ -265,6 +265,12 @@ const (
 	// exportaudit:keep — dev-diagnostic API for app authors
 	DebugLowContrast
 
+	// DebugAutoIDs reports a focused generated ID that moved to another
+	// widget, which sends keystrokes into the wrong field, and an app ID
+	// with the reserved "~" prefix (#881).
+	// exportaudit:keep — dev-diagnostic API for app authors
+	DebugAutoIDs
+
 	// DebugAll is every category [Debug] turns on. [DebugUnscopedIDs]
 	// and [DebugLayoutInvariants] are deliberately absent: each reports
 	// a property with correct-by-design exceptions, and fires on widgets
@@ -274,7 +280,8 @@ const (
 		DebugListBoxNoHeight | DebugGradientResampled | DebugWrapOverflow |
 		DebugCallbacks | DebugWindowDegraded | DebugUnresolvedKeys |
 		DebugUnknownFocus | DebugStampDrift | DebugUnknownLookup |
-		DebugGlyphLayoutFallback | DebugSizing | DebugLowContrast
+		DebugGlyphLayoutFallback | DebugSizing | DebugLowContrast |
+		DebugAutoIDs
 )
 
 func init() {
@@ -420,6 +427,7 @@ type debugState struct {
 	// rather than as text on stderr.
 	collect *[]string
 	gen     uint64
+	auto    debugAutoState // see debugCheckAutoIDShift
 }
 
 // debugAudit runs the dev-mode checks over one frame's composed
@@ -436,7 +444,8 @@ func (w *Window) debugAudit(root *Layout) {
 	// Reads the theme, not the tree, so it runs ahead of the walk gate.
 	w.debugCheckContrast()
 	const walkCategories = DebugDuplicates | DebugMissingIDs |
-		DebugUnscopedIDs | DebugUnresolvedKeys | DebugUnknownFocus
+		DebugUnscopedIDs | DebugUnresolvedKeys | DebugUnknownFocus |
+		DebugAutoIDs
 	if DebugCategory(debugMask.Load())&walkCategories == 0 {
 		return
 	}
@@ -450,6 +459,7 @@ func (w *Window) debugAudit(root *Layout) {
 	w.debugCheckStateKeys(ids)
 	// Reads the identities the walk collected, so it runs after it.
 	w.debugCheckFocusTarget(ids)
+	w.debugCheckAutoIDShift(root)
 }
 
 // focusableByLeaf returns the identities of the focusable shapes this
@@ -621,13 +631,15 @@ func (w *Window) debugCheckShape(s *Shape, path []int, ids *debugIDs) {
 		// widget cannot be dropped into a second panel as it stands.
 		// Only state-keyed shapes are worth reporting: an ID on a plain
 		// container is documentation, not a key.
-		if key == s.ID && (s.Focusable || s.Scrollable) {
+		// A generated leaf has no name an app could scope.
+		if key == s.ID && (s.Focusable || s.Scrollable) && !isAutoID(s.ID) {
 			w.debugWarn(debugCheckUnscopedID, key,
 				"ID %q at %s has no ID-bearing ancestor, so it is a "+
 					"window-global name; give an ancestor an ID to scope "+
 					"it and the leaf becomes reusable elsewhere",
 				key, debugPath(path))
 		}
+		w.debugCheckAutoIDReserved(s, key, path)
 		return
 	}
 	// An ID-less shape is ordinary unless it claims a feature that is

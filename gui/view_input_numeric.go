@@ -20,7 +20,7 @@ type NumericInputCfg struct {
 	OnTextChanged func(string, EventCtx)
 	OnValueCommit func(Opt[float64], string, EventCtx)
 
-	ID          string `gui:"required,focus"`
+	ID          string `gui:"auto"`
 	Text        string
 	Placeholder string
 
@@ -40,8 +40,7 @@ type NumericInputCfg struct {
 	Padding    Padding
 	Radius     Radius
 	SizeBorder Border
-	// FocusDisabled opts out of the default-on focus. Focus also
-	// requires a non-empty ID; without one the control is inert.
+	// FocusDisabled opts out of the default-on focus.
 	FocusDisabled bool
 	Width         float32
 	Height        float32
@@ -85,8 +84,15 @@ type numericInputView struct {
 
 // NumericInput creates a locale-aware numeric input.
 func NumericInput(cfg NumericInputCfg) View {
+	// No ID: take a generated leaf at generation time (#881); see
+	// id_auto.go.
+	if cfg.ID == "" && !cfg.FocusDisabled {
+		return ViewFunc(func(vw *Window) View {
+			cfg.ID = vw.autoLeaf("numericinput")
+			return NumericInput(cfg)
+		})
+	}
 	applyNumericInputDefaults(&cfg)
-	requireFocusID("NumericInput", cfg.FocusDisabled, cfg.ID)
 	requireNumericBounds("NumericInput", cfg.Min, cfg.Max)
 	return &numericInputView{cfg: cfg}
 }
@@ -392,10 +398,10 @@ func numericInputStepButtons(
 				Sizing:   FillFill,
 				Padding:  NoPadding,
 				Color:    baseColor,
-				// An ID-less control is FocusDisabled by
-				// construction (requireFocusID), so the buttons
-				// inherit it rather than panicking on their
-				// empty IDs.
+				// An ID-less control that reaches here is
+				// FocusDisabled (the factory gives any other
+				// one a generated leaf), so the buttons inherit
+				// it rather than join focus with empty IDs.
 				FocusDisabled: cfg.FocusDisabled,
 				Colors:        ColorSet{Hover: cfg.Colors.Hover, Click: cfg.Colors.Click, Focus: cfg.Colors.Hover, Border: ColorTransparent},
 				SizeBorder:    NoBorder,

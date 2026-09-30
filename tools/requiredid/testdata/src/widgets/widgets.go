@@ -43,8 +43,8 @@ type UnscopedCfg struct {
 	FocusDisabled bool
 }
 
-// ScrollCfg mirrors ContainerCfg: no tag on ID, because most
-// containers need none. The rule keys on Scrollable in the literal.
+// ScrollCfg mirrors ContainerCfg: no tag on ID. A scrollable container
+// without an ID takes a generated one (#881), so no literal is flagged.
 type ScrollCfg struct {
 	ID         string
 	Scrollable bool
@@ -182,20 +182,21 @@ func flippedCfgSilent() {
 
 // --- Scrollable ---
 
+// A scrollable container without an ID takes a generated one (#881):
+// stay quiet.
 func scrollableNoID() {
-	Scroll(ScrollCfg{Scrollable: true}) // want `ScrollCfg sets Scrollable: true without an ID`
+	Scroll(ScrollCfg{Scrollable: true})
 }
 
 func scrollableEmptyID() {
-	Scroll(ScrollCfg{ID: "", Scrollable: true}) // want `ScrollCfg sets Scrollable: true without an ID`
+	Scroll(ScrollCfg{ID: "", Scrollable: true})
 }
 
 func scrollableWithID() {
 	Scroll(ScrollCfg{ID: "ok", Scrollable: true})
 }
 
-// A non-scrollable container needs no ID: the common case, and the
-// reason this rule keys on the literal rather than a tag.
+// A non-scrollable container needs no ID: the common case.
 func notScrollableNoID() {
 	Scroll(ScrollCfg{})
 }
@@ -209,4 +210,23 @@ func scrollableComputedFlag() {
 // No ID field to set: an unfixable diagnostic would be noise.
 func scrollableNoIDField() {
 	ScrollNoID(ScrollNoIDCfg{Scrollable: true})
+}
+
+// --- auto ---
+
+// AutoCfg mirrors a widget whose factory gives an empty ID a generated
+// one (#881). The tag documents that; the analyzer must not flag it.
+type AutoCfg struct {
+	ID            string `gui:"auto"`
+	FocusDisabled bool
+}
+
+func Auto(_ AutoCfg) {}
+
+func autoNoID() {
+	Auto(AutoCfg{})
+}
+
+func autoEmptyID() {
+	Auto(AutoCfg{ID: ""})
 }

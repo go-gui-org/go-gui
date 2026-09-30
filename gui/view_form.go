@@ -173,7 +173,7 @@ type FormCfg struct {
 	PendingSlot func(FormPendingState) View
 
 	// Identity — required for validation runtime.
-	ID string `gui:"required"`
+	ID string `gui:"auto"`
 
 	Content    []View
 	Padding    Padding
@@ -230,7 +230,14 @@ type formView struct {
 // Form creates a form container with runtime validation and
 // submit/reset semantics.
 func Form(cfg FormCfg) View {
-	RequireID("Form", cfg.ID)
+	// No ID: take a generated leaf at generation time (#881); see
+	// id_auto.go.
+	if cfg.ID == "" {
+		return ViewFunc(func(vw *Window) View {
+			cfg.ID = vw.autoLeafWindow("form")
+			return Form(cfg)
+		})
+	}
 	// A form is a full-width block whose height follows its fields;
 	// the zero Sizing (FitFit) shrink-wraps it to its widest label
 	// row, which no caller has meant so far.

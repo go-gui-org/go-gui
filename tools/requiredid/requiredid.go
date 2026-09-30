@@ -8,8 +8,12 @@
 //
 // It also flags Cfg literals that set Focusable: true without an ID,
 // which focus traversal skips, leaving the widget silently unreachable
-// by keyboard; and literals that set Scrollable: true without an ID,
-// which share one scroll offset with every other ID-less scrollable.
+// by keyboard.
+//
+// An ID tagged `gui:"auto"` is not checked: the widget takes a
+// generated ID when the literal leaves it empty (#881). The same holds
+// for Scrollable: true, which used to need an ID and now takes a
+// generated one.
 //
 // Coverage is a floor, not a proof. Only a literal handed directly to
 // its factory is inspected (see isFactoryArg): a Cfg held in a
@@ -73,7 +77,6 @@ func run(pass *analysis.Pass) (any, error) {
 			}
 			checkRequired(pass, lit, named, st)
 			checkFocusableID(pass, lit, named, st)
-			checkScrollableID(pass, lit, named, st)
 			return true
 		})
 	}
@@ -124,35 +127,6 @@ func checkFocusableID(
 	pass.Reportf(lit.Pos(),
 		"%s sets Focusable: true without an ID; focus traversal is keyed "+
 			"by ID, so the widget is not keyboard-reachable",
-		named.Obj().Name())
-}
-
-// checkScrollableID reports literals that set Scrollable: true but
-// leave ID unset or empty. Scroll offsets are keyed by Shape.ID, so
-// every ID-less scrollable in a window shares the key "" and they
-// scroll in lockstep — visibly wrong, but only once a second one
-// exists, which is why it survives review.
-//
-// Mirrors checkFocusableID: keyed on the field in the literal rather
-// than a tag, because a scrollable container is the exception. Most
-// containers have no ID and need none, so a gui:"required" tag on
-// ContainerCfg.ID would invert the default and flag the common case.
-func checkScrollableID(
-	pass *analysis.Pass, lit *ast.CompositeLit,
-	named *types.Named, st *types.Struct,
-) {
-	if !hasTrueField(lit, "Scrollable") {
-		return
-	}
-	if !hasField(st, "ID") {
-		return
-	}
-	if hasNonEmptyField(lit, "ID") {
-		return
-	}
-	pass.Reportf(lit.Pos(),
-		"%s sets Scrollable: true without an ID; scroll offsets are keyed "+
-			"by ID, so it shares one offset with every other ID-less scrollable",
 		named.Obj().Name())
 }
 

@@ -187,11 +187,20 @@ func stampEffID(w *Window, s *Shape, scope string) string {
 // much later, can no longer affect that. An *injected* overlay (toast,
 // dialog, inspector) is generated outside the tree and so starts from
 // an empty scope.
+//
+// An auto-ID shape is stamped but opens no scope (#881). Its ID is a
+// position key, and joining it into the children's IDs would make an
+// explicit ID below it position-dependent too: SetFocus("name") would
+// stop reaching an input inside an ID-less scroll container.
 func childScopeID(w *Window, scope string, s *Shape) string {
 	if s == nil || s.ID == "" {
 		return scope
 	}
-	return stampEffID(w, s, scope)
+	eff := stampEffID(w, s, scope)
+	if isAutoID(s.ID) {
+		return scope
+	}
+	return eff
 }
 
 // idFrame is one ID-bearing ancestor on the resolve stack, holding the
@@ -293,6 +302,12 @@ func resolveFocusOwnersWalk(
 		// focusOwner beneath it rather than merely misplace it.
 		frames = append(frames, idFrame{leaf: s.ID, eff: childScope})
 		pushed = true
+		// An auto-ID shape stays on the frame stack, because an inner
+		// shape names it as its focusOwner, but its children resolve
+		// in the enclosing scope, as childScopeID generated them.
+		if isAutoID(s.ID) {
+			childScope = scope
+		}
 	}
 	for i := range layout.Children {
 		frames = resolveFocusOwnersWalk(

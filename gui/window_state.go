@@ -146,6 +146,11 @@ type ViewState struct {
 	// read by (*Window).EffID; empty outside the view phase.
 	idScope string
 
+	// autoCounts and autoLeaves back the generated leaves of widgets
+	// with an empty ID; see id_auto.go.
+	autoCounts map[autoCountKey]uint32
+	autoLeaves map[autoLeafKey]string
+
 	// genDepth counts the generateViewLayout frames currently on the
 	// stack, so EffID can tell an empty scope at the top of the tree
 	// from an empty scope because no tree is being generated. The two

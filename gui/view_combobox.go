@@ -34,7 +34,7 @@ type ComboboxCfg struct {
 	PlaceholderStyle TextStyle
 	// OnSelect receives the Value of the picked option.
 	OnSelect func(string, EventCtx)
-	ID       string `gui:"required"`
+	ID       string `gui:"auto"`
 	// Value is the Value of the current option. The closed field shows
 	// that option's Label, or Value itself when no option holds it.
 	Value       string
@@ -60,8 +60,7 @@ type ComboboxCfg struct {
 	// the theme default.
 	// exportaudit:keep — caller-facing config (issue #372)
 	MaxDropdownHeight float32
-	// FocusDisabled opts out of the default-on focus. Focus also
-	// requires a non-empty ID; without one the control is inert.
+	// FocusDisabled opts out of the default-on focus.
 	FocusDisabled bool
 
 	Color Color
@@ -97,7 +96,14 @@ type comboboxView struct {
 
 // Combobox creates a combobox view.
 func Combobox(cfg ComboboxCfg) View {
-	RequireID("Combobox", cfg.ID)
+	// No ID: take a generated leaf at generation time (#881); see
+	// id_auto.go.
+	if cfg.ID == "" {
+		return ViewFunc(func(vw *Window) View {
+			cfg.ID = vw.autoLeaf("combobox")
+			return Combobox(cfg)
+		})
+	}
 	applyComboboxDefaults(&cfg)
 	cfg.A11YLabel = a11yProseLabel(cfg.A11YLabel, cfg.Label)
 	return labelledField(
@@ -242,7 +248,11 @@ func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 			cache.viewKey = viewKey
 		}
 		content = append(content, Column(ContainerCfg{
-			ID:           "dropdown",
+			// Composed from the resolved ID, not a relative leaf: an
+			// auto-ID combobox opens no scope (#881), so "dropdown"
+			// alone would collide between two ID-less comboboxes and
+			// miss the scroll key above.
+			ID:           dropdownScrollID,
 			Shadow:       dn.Shadow,
 			SizeBorder:   BorderPx(sizeBorder),
 			Radius:       RadiusPx(radius),

@@ -45,7 +45,7 @@ type ListBoxCfg struct {
 	OnSelect        func([]string, EventCtx)
 	OnReorder       func(string, string, EventCtx)
 
-	ID string `gui:"required"`
+	ID string `gui:"auto"`
 
 	A11YCfg
 	SelectedIDs []string
@@ -69,8 +69,7 @@ type ListBoxCfg struct {
 	// MaxHeight caps the list's height. Like Height, it resolves the
 	// height virtualization needs.
 	MaxHeight float32
-	// FocusDisabled opts out of the default-on focus. Focus also
-	// requires a non-empty ID; without one the control is inert.
+	// FocusDisabled opts out of the default-on focus.
 	FocusDisabled bool
 	Color         Color
 	// Colors sets the per-state colors. Color above is the
@@ -112,7 +111,14 @@ func NewListBoxSubheading(id, title string) ListBoxOption {
 
 // ListBox creates a list box view.
 func ListBox(cfg ListBoxCfg) View {
-	RequireID("ListBox", cfg.ID)
+	// No ID: take a generated leaf at generation time (#881); see
+	// id_auto.go.
+	if cfg.ID == "" {
+		return ViewFunc(func(vw *Window) View {
+			cfg.ID = vw.autoLeaf("listbox")
+			return ListBox(cfg)
+		})
+	}
 	applyListBoxDefaults(&cfg)
 	if len(cfg.Items) > 0 {
 		n := min(len(cfg.Items), maxDataConvLen)
