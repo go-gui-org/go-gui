@@ -70,7 +70,7 @@ type ButtonCfg struct {
 	// overlays or adjust layout post-arrange.
 	AmendLayout func(EventCtx)
 
-	ID string `gui:"required,focus"`
+	ID string `gui:"auto"`
 	A11YCfg
 	Content    []View
 	Padding    Padding
@@ -82,8 +82,7 @@ type ButtonCfg struct {
 
 	FloatOffsetX float32
 	FloatOffsetY float32
-	// FocusDisabled opts out of the default-on focus. Focus also
-	// requires a non-empty ID; without one the control is inert.
+	// FocusDisabled opts out of the default-on focus.
 	FocusDisabled bool
 	Width         float32
 	Height        float32
@@ -270,6 +269,14 @@ func TextButtonVariant(id, label string, v ButtonVariant, onClick func(EventCtx)
 // for cursor/color state changes. Colors are stored in a pooled
 // shapeButtonColors to avoid per-frame closure allocations.
 func Button(cfg ButtonCfg) View {
+	// No ID: take a generated leaf at generation time (#881); see
+	// id_auto.go.
+	if cfg.ID == "" && !cfg.FocusDisabled {
+		return ViewFunc(func(vw *Window) View {
+			cfg.ID = vw.autoLeaf("button")
+			return Button(cfg)
+		})
+	}
 	if cfg.Invisible {
 		return invisibleContainerView()
 	}
@@ -294,7 +301,6 @@ func Button(cfg ButtonCfg) View {
 	}
 
 	applyButtonDefaults(&cfg, d)
-	requireFocusID("Button", cfg.FocusDisabled, cfg.ID)
 
 	sizeBorder := cfg.SizeBorder.Or(d.SizeBorder)
 	radius := cfg.Radius.Or(d.Radius)

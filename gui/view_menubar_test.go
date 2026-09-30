@@ -231,17 +231,15 @@ func TestMenubarUnderPanelIsQuiet(t *testing.T) {
 	}
 }
 
-// The build is deferred, but validation is not: a missing ID or a
-// duplicate item ID must still fail where the app wrote the call, not a
-// frame later inside generation. Asserted by never generating.
+// The build is deferred, but validation is not: a duplicate item ID
+// must still fail where the app wrote the call, not a frame later
+// inside generation. Asserted by never generating. A missing ID is no
+// longer an error: the bar takes a generated leaf (#881).
 func TestMenubarValidatesAtCallSite(t *testing.T) {
 	cases := []struct {
 		name string
 		cfg  MenubarCfg
 	}{
-		{"missing ID", MenubarCfg{
-			Items: []MenuItemCfg{MenuItemText("file", "File")},
-		}},
 		{"duplicate item ID", MenubarCfg{
 			ID: "bar",
 			Items: []MenuItemCfg{

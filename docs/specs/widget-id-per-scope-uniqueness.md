@@ -6,6 +6,10 @@ migration-list gaps). Implemented 2026-08-09. Source: "Remaining work" in
 [`widget-id-scoping.md`](widget-id-scoping.md). Target: major version (semantic
 break, signatures unchanged).
 
+Superseded in part: the "tree position" row of "Why raw IDs and tree position
+both fail" is revised by [`auto-widget-identity.md`](auto-widget-identity.md)
+(#881).
+
 ## What shipped, and where it differs from this spec
 
 Read this section first: three decisions below were changed during

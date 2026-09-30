@@ -10,7 +10,7 @@ type SwitchCfg struct {
 	// exportaudit:keep — caller-facing config (issue #372)
 	TextStyleLabel TextStyle
 	OnClick        func(EventCtx)
-	ID             string `gui:"required,focus"`
+	ID             string `gui:"auto"`
 	Label          string
 
 	A11YCfg
@@ -18,8 +18,7 @@ type SwitchCfg struct {
 	SizeBorder Border
 	Width      Opt[float32]
 	Height     Opt[float32]
-	// FocusDisabled opts out of the default-on focus. Focus also
-	// requires a non-empty ID; without one the control is inert.
+	// FocusDisabled opts out of the default-on focus.
 	FocusDisabled bool
 	Color         Color
 	// Colors sets the per-state colors. Color above is the
@@ -62,8 +61,15 @@ func LabeledSwitch(id, label string, selected bool, onClick func(EventCtx)) View
 
 // Switch creates a pill-shaped toggle switch.
 func Switch(cfg SwitchCfg) View {
+	// No ID: take a generated leaf at generation time (#881); see
+	// id_auto.go.
+	if cfg.ID == "" && !cfg.FocusDisabled {
+		return ViewFunc(func(vw *Window) View {
+			cfg.ID = vw.autoLeaf("switch")
+			return Switch(cfg)
+		})
+	}
 	applySwitchDefaults(&cfg)
-	requireFocusID("Switch", cfg.FocusDisabled, cfg.ID)
 
 	d := &defaultSwitchStyle
 	width := cfg.Width.Get(d.sizeWidth)

@@ -49,7 +49,7 @@ type TableCfg struct {
 	AlignHead *HorizontalAlign
 	Selected  map[int]bool
 	OnSelect  func(map[int]bool, int, EventCtx)
-	ID        string `gui:"required"`
+	ID        string `gui:"auto"`
 	A11YCfg
 	// ColumnAlignments per-column horizontal alignment, in display
 	// order. Shorter than the column count leaves the tail at the
@@ -167,7 +167,14 @@ type tableColWidthCache struct {
 // Table generates a table from the given TableCfg. Column widths
 // are auto-sized when a Window is available during layout.
 func Table(cfg TableCfg) View {
-	RequireID("Table", cfg.ID)
+	// No ID: take a generated leaf at generation time (#881); see
+	// id_auto.go.
+	if cfg.ID == "" {
+		return ViewFunc(func(vw *Window) View {
+			cfg.ID = vw.autoLeaf("table")
+			return Table(cfg)
+		})
+	}
 	return ViewFunc(func(w *Window) View {
 		return tableView(cfg, w)
 	})
@@ -346,11 +353,10 @@ func tableView(cfg TableCfg, w *Window) View {
 
 	// The table always scrolls now that #504 removed the Scrollable
 	// opt-in -- but scroll state is keyed by ID, so an ID-less table has
-	// nothing to key and must not join the scroll system. Cfg.ID is
-	// gui:"required", so this is the un-vetted path (and the library's
-	// own tableCfgFromCSV / tableCfgError build one); gui.Debug reports
-	// it under the scrollable-without-ID check. Declining here beats
-	// requireScrollID panicking on a decision the caller did not make.
+	// nothing to key and must not join the scroll system. Table gives an
+	// ID-less call a generated leaf (#881), so only a table built past
+	// the factory reaches here without one. Declining here beats a
+	// scroll slot shared by every such table.
 	outerCfg.Scrollable = cfg.ID != ""
 	outerCfg.Padding = NewPadding(0, DefaultScrollbarStyle.Size+PadXSmall, 0, 0)
 	outerCfg.ScrollbarCfgX = &ScrollbarCfg{

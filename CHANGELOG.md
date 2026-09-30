@@ -20,7 +20,31 @@ and this project adheres to
   ring while any segment holds focus. The group ID scopes the segment IDs
   (`price:amount`). Showcase page: Input Group.
 
+- **Widgets work without an `ID` (#881)** — a widget whose `ID` is empty now
+  takes a generated ID, such as `~input3`, from three parts: the nearest
+  ancestor with an explicit ID, the widget kind, and the count of earlier
+  widgets of that kind there. It joins Tab order, keeps its cursor, scroll
+  offset and state, and needs no ID for a view whose structure does not change.
+  This covers every input control, the composites (Table, Tree, VirtualList,
+  Form, Combobox, DatePicker, ListBox, ColorPicker, Menubar, ContextMenu,
+  CommandPalette, OverflowPanel, ExpandPanel), and a scrolling or overflowing
+  container. These `ID` fields are now tagged `gui:"auto"`. A widget of another
+  kind that appears does not move the key, and an explicit ID on a container
+  keeps the count inside it from moving. Set an explicit ID when code names the
+  widget (`SetFocus`, `FindByID`, tests), or when a widget of the same kind can
+  appear before it. The new debug category `DebugAutoIDs`, in `DebugAll`,
+  reports a focused widget whose generated key moved to another widget, and an
+  app ID that starts with the reserved `~`. `InputGroupCfg.ID` and
+  `DataGridCfg.ID` are still required. See `docs/specs/auto-widget-identity.md`.
+
 ### Changed
+
+- **An empty widget `ID` no longer panics (#881)** — the factories that panicked
+  with "requires a non-empty Cfg.ID" (and "with Scrollable:true" or "with
+  Overflow:true") now give the widget a generated ID. Code that sets IDs does
+  not change. The `requiredid` analyzer no longer reports a `Scrollable: true`
+  literal without an ID. `RequireID` is still exported for widgets outside
+  `gui`.
 
 - **`ClipContents` clips to the area inside the border (#820)** — the stencil
   mask of a `ClipContents` container is now inset by its `SizeBorder`, with the
@@ -37,6 +61,18 @@ and this project adheres to
   `errors.Unwrap` gives the EGL/WGL cause). Other init failures still panic.
 
 ### Fixed
+
+- **Two `ExpandPanel`s or `InputDate`s without an `ID` no longer share IDs
+  (#881)** — both widgets name inner parts from their own ID. With the `ID`
+  empty, every copy took the same bare inner ID: `"head"` for an `ExpandPanel`
+  header, and `"input"` and `"calendar"` for an `InputDate` with
+  `FocusDisabled`. The copies shared one tab stop and one state slot, and a key
+  press reached only the first. Both widgets now take a generated ID when `ID`
+  is empty, also with `FocusDisabled`.
+
+- **`InputDate` with `FocusDisabled` keeps its calendar button out of Tab order
+  (#881)** — before, only the text field opted out, and Tab still stopped on the
+  calendar button. `FocusDisabled` now covers the whole control.
 
 - **`NumericInput` without steppers keeps `Label` (#878)** — a `NumericInput`
   with the default `StepCfg` (no step buttons) no longer drops `Label`: it now

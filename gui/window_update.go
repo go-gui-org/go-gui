@@ -354,6 +354,10 @@ func (w *Window) updateLocked() {
 
 	w.scratch.resetViewPools()
 	w.viewPass++
+	// Auto-ID counters restart with each frame so one widget gets one
+	// leaf every frame. Overlays generated later in arrange continue
+	// the same counters; see resetAutoIDs.
+	w.resetAutoIDs()
 
 	// Release w.mu during View generation so the animation goroutine
 	// (which holds w.animMu, not w.mu) can tick. View functions

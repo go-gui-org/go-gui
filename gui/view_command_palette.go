@@ -40,7 +40,7 @@ type CommandPaletteCfg struct {
 	DetailStyle TextStyle
 	OnAction    func(string, EventCtx)
 	OnDismiss   func(*Window)
-	ID          string `gui:"required"`
+	ID          string `gui:"auto"`
 	Placeholder string
 	Items       []CommandPaletteItem
 	FloatZIndex int
@@ -85,7 +85,14 @@ type commandPaletteView struct {
 // CommandPalette creates the palette view. Include in view tree;
 // hidden until shown with CommandPaletteToggle.
 func CommandPalette(cfg CommandPaletteCfg) View {
-	RequireID("CommandPalette", cfg.ID)
+	// No ID: take a generated leaf at generation time (#881); see
+	// id_auto.go.
+	if cfg.ID == "" {
+		return ViewFunc(func(vw *Window) View {
+			cfg.ID = vw.autoLeaf("commandpalette")
+			return CommandPalette(cfg)
+		})
+	}
 	applyCommandPaletteDefaults(&cfg)
 	return &commandPaletteView{cfg: cfg}
 }

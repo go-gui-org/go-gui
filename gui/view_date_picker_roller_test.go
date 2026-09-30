@@ -553,13 +553,3 @@ func TestWrapRange(t *testing.T) {
 		t.Errorf("wrapRange(6,1,12) = %d, want 6", v)
 	}
 }
-
-// The factory keys focus and state on cfg.ID, so an empty one is a
-// programmer error caught at build time by the `gui:"required"` tag and
-// at runtime here. The literal omits the ID on purpose, so it carries
-// the directive that suppresses the analyzer for that one literal.
-func TestDatePickerRollerRequiresID(t *testing.T) {
-	assertPanicsRequiringID(t, "DatePickerRoller", func() {
-		_ = DatePickerRoller(DatePickerRollerCfg{}) // requiredid:ignore
-	})
-}

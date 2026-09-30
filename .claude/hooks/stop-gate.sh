@@ -27,11 +27,15 @@ cd "${CLAUDE_PROJECT_DIR:-.}" || exit 0
 gitdir=$(git rev-parse --absolute-git-dir 2>/dev/null) || exit 0
 
 # Changed .go files that still exist (a deleted file has no package to check).
+# testdata/ is left out: the go tool ignores it for ./..., and an analyzer
+# fixture holds code that fails lint on purpose (uncalled functions that only
+# carry `// want` findings). make prepush skips it the same way.
 files=$(
 	{
 		git diff --name-only HEAD -- '*.go'
 		git ls-files --others --exclude-standard -- '*.go'
-	} | sort -u | while read -r f; do [ -f "$f" ] && echo "$f"; done
+	} | sort -u | grep -v -e '^testdata/' -e '/testdata/' |
+		while read -r f; do [ -f "$f" ] && echo "$f"; done
 )
 [ -n "$files" ] || exit 0
 

@@ -10,15 +10,14 @@ type RadioCfg struct {
 	// exportaudit:keep — caller-facing config (issue #372)
 	TextStyleLabel TextStyle
 	OnClick        func(EventCtx)
-	ID             string `gui:"required,focus"`
+	ID             string `gui:"auto"`
 	Label          string
 
 	A11YCfg
 	Padding    Padding
 	Size       Opt[float32]
 	SizeBorder Border
-	// FocusDisabled opts out of the default-on focus. Focus also
-	// requires a non-empty ID; without one the control is inert.
+	// FocusDisabled opts out of the default-on focus.
 	FocusDisabled bool
 	Color         Color
 	// Colors sets the per-state colors. Color above is the
@@ -47,8 +46,15 @@ type RadioCfg struct {
 
 // Radio creates a radio button view.
 func Radio(cfg RadioCfg) View {
+	// No ID: take a generated leaf at generation time (#881); see
+	// id_auto.go.
+	if cfg.ID == "" && !cfg.FocusDisabled {
+		return ViewFunc(func(vw *Window) View {
+			cfg.ID = vw.autoLeaf("radio")
+			return Radio(cfg)
+		})
+	}
 	applyRadioDefaults(&cfg)
-	requireFocusID("Radio", cfg.FocusDisabled, cfg.ID)
 
 	dr := &defaultRadioStyle
 	size := cfg.Size.Get(dr.Size)

@@ -31,14 +31,13 @@ type RadioButtonGroupCfg struct {
 	// Items takes precedence over Options.
 	Items      []string
 	Options    []RadioOption
-	ID         string `gui:"required,focus"`
+	ID         string `gui:"auto"`
 	Padding    Padding
 	Spacing    Spacing
 	SizeBorder Border
 	MinWidth   float32
 	MinHeight  float32
-	// FocusDisabled opts out of the default-on focus. Focus also
-	// requires a non-empty ID; without one the control is inert.
+	// FocusDisabled opts out of the default-on focus.
 	FocusDisabled bool
 	ColorBorder   Color
 	TitleBG       Color
@@ -70,38 +69,50 @@ func RadioButtonGroupRow(cfg RadioButtonGroupCfg) View {
 }
 
 func radioGroup(cfg RadioButtonGroupCfg, axis func(ContainerCfg) View) View {
-	applyRadioGroupDefaults(&cfg)
-	requireFocusID("RadioButtonGroup", cfg.FocusDisabled, cfg.ID)
-	if len(cfg.Items) > 0 {
-		n := min(len(cfg.Items), maxDataConvLen)
-		cfg.Options = make([]RadioOption, n)
-		for i := range n {
-			cfg.Options[i] = RadioOption{
-				Label: cfg.Items[i], Value: cfg.Items[i]}
+	// No ID: take a generated leaf at generation time (#881); see
+	// id_auto.go. Also with FocusDisabled: the option IDs are scoped
+	// by this one, so every ID-less group would claim "opt:0".
+	// Inner option IDs compose from the resolved ID, not the leaf: an
+	// auto leaf opens no scope, and a leaf-built absolute would collide
+	// across panels. EffID needs the generation-time scope, so the whole
+	// build defers.
+	return ViewFunc(func(vw *Window) View {
+		if cfg.ID == "" {
+			cfg.ID = vw.autoLeaf("radiogroup")
 		}
-	}
-	// The group's border is the group box's, so pass the Opt through
-	// unresolved and let Container fall back to the themed container
-	// style. Resolving it here against a private literal was how this
-	// widget stayed at a 1.5px border under every theme (issue #300).
-	return axis(ContainerCfg{
-		A11YRole:    AccessRoleRadioGroup,
-		A11YCfg:     cfg.A11YCfg,
-		ColorBorder: cfg.ColorBorder,
-		SizeBorder:  cfg.SizeBorder,
-		Title:       cfg.Title,
-		TitleBG:     cfg.TitleBG,
-		Spacing:     cfg.Spacing,
-		Padding:     cfg.Padding,
-		MinWidth:    cfg.MinWidth,
-		MinHeight:   cfg.MinHeight,
-		Sizing:      cfg.Sizing,
-		Disabled:    cfg.Disabled,
-		Content:     buildRadioOptions(cfg),
+		owner := vw.EffID(cfg.ID)
+		applyRadioGroupDefaults(&cfg)
+		if len(cfg.Items) > 0 {
+			n := min(len(cfg.Items), maxDataConvLen)
+			cfg.Options = make([]RadioOption, n)
+			for i := range n {
+				cfg.Options[i] = RadioOption{
+					Label: cfg.Items[i], Value: cfg.Items[i]}
+			}
+		}
+		// The group's border is the group box's, so pass the Opt through
+		// unresolved and let Container fall back to the themed container
+		// style. Resolving it here against a private literal was how this
+		// widget stayed at a 1.5px border under every theme (issue #300).
+		return axis(ContainerCfg{
+			A11YRole:    AccessRoleRadioGroup,
+			A11YCfg:     cfg.A11YCfg,
+			ColorBorder: cfg.ColorBorder,
+			SizeBorder:  cfg.SizeBorder,
+			Title:       cfg.Title,
+			TitleBG:     cfg.TitleBG,
+			Spacing:     cfg.Spacing,
+			Padding:     cfg.Padding,
+			MinWidth:    cfg.MinWidth,
+			MinHeight:   cfg.MinHeight,
+			Sizing:      cfg.Sizing,
+			Disabled:    cfg.Disabled,
+			Content:     buildRadioOptions(cfg, owner),
+		})
 	})
 }
 
-func buildRadioOptions(cfg RadioButtonGroupCfg) []View {
+func buildRadioOptions(cfg RadioButtonGroupCfg, owner string) []View {
 	content := make([]View, 0, len(cfg.Options))
 	onSelect := cfg.OnSelect
 	// The group renamed its label style alongside Radio: an explicit
@@ -114,7 +125,7 @@ func buildRadioOptions(cfg RadioButtonGroupCfg) []View {
 	for i, opt := range cfg.Options {
 		optValue := opt.Value
 		content = append(content, Radio(RadioCfg{
-			ID:             ScopeIDN(cfg.ID, "opt", i),
+			ID:             ScopeIDN(owner, "opt", i),
 			Label:          opt.Label,
 			FocusDisabled:  cfg.FocusDisabled,
 			Selected:       cfg.Value == opt.Value,

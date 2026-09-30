@@ -19,7 +19,7 @@ type ContextMenuCfg struct {
 	// User click handler — fires before context menu logic.
 	OnAnyClick func(EventCtx)
 
-	ID    string `gui:"required"`
+	ID    string `gui:"auto"`
 	Items []MenuItemCfg
 
 	Content []View
@@ -85,9 +85,17 @@ type ContextMenuCfg struct {
 // an ID-bearing panel would key its state on the bare leaf. See issue
 // #520.
 func ContextMenu(w *Window, cfg ContextMenuCfg) View {
-	// Eager, so a missing ID or a duplicate item ID fails at the call
-	// site rather than a frame later.
-	RequireID("ContextMenu", cfg.ID)
+	// No ID: take a generated leaf at generation time (#881); see
+	// id_auto.go.
+	if cfg.ID == "" {
+		return ViewFunc(func(vw *Window) View {
+			cfg.ID = vw.autoLeaf("contextmenu")
+			return ContextMenu(vw, cfg)
+		})
+	}
+	// Eager, so a duplicate item ID fails at the call site rather than
+	// a frame later. An ID-less call reaches here a frame step later,
+	// from the generated-leaf branch above.
 	checkForDuplicateMenuIDs(cfg.Items)
 	return ViewFunc(func(vw *Window) View {
 		return contextMenuBuild(vw, cfg)

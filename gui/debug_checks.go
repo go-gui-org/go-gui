@@ -104,6 +104,12 @@ const (
 	// debugCheckLowContrast fires from the frame audit when a text role
 	// of the window's theme is below its contrast floor (issue #863).
 	debugCheckLowContrast
+	// debugCheckAutoIDShift fires from the frame audit when the focused
+	// auto key is claimed by a different widget than last frame (#881).
+	debugCheckAutoIDShift
+	// debugCheckAutoIDReserved fires from the frame audit when an app
+	// ID starts with the prefix reserved for generated leaves.
+	debugCheckAutoIDReserved
 )
 
 // checkCategory maps an internal check to the public category that
@@ -146,6 +152,8 @@ func checkCategory(check debugCheck) DebugCategory {
 		return DebugSizing
 	case debugCheckLowContrast:
 		return DebugLowContrast
+	case debugCheckAutoIDShift, debugCheckAutoIDReserved:
+		return DebugAutoIDs
 	default:
 		panic("gui: checkCategory has no category for debugCheck " +
 			strconv.Itoa(int(check)))

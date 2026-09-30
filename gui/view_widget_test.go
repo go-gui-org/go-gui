@@ -836,81 +836,84 @@ func TestPhase2WidgetsFocusableByDefault(t *testing.T) {
 	}
 }
 
-// Every focusable-by-default factory rejects an empty ID, and accepts
-// one when the caller opts the control out of focus entirely. The two
-// halves are the runtime counterpart of the `gui:"required,focus"`
-// tag: required, except for a decorative control.
-//
-// The build funcs omit the ID on purpose, so each carries the
-// requiredid:ignore directive that suppresses the analyzer for one
-// literal — without it the pass would flag the very configs this test
-// exists to reject.
-func TestFocusWidgetsRequireID(t *testing.T) {
+// Every focusable-by-default factory accepts an empty ID (#881): the
+// control takes a generated leaf and joins the tab order. With
+// FocusDisabled it stays ID-less, as before: nothing in it gets a
+// generated key.
+func TestFocusWidgetsWithoutIDTakeAutoLeaf(t *testing.T) {
 	cases := []struct {
 		name     string
-		build    func()
-		optedOut func()
+		build    func() View
+		optedOut func() View
 	}{
 		{"Button",
-			func() { _ = Button(ButtonCfg{}) }, // requiredid:ignore
-			func() { _ = Button(ButtonCfg{FocusDisabled: true}) }},
+			func() View { return Button(ButtonCfg{}) },
+			func() View { return Button(ButtonCfg{FocusDisabled: true}) }},
 		{"Input",
-			func() { _ = Input(InputCfg{}) }, // requiredid:ignore
-			func() { _ = Input(InputCfg{FocusDisabled: true}) }},
+			func() View { return Input(InputCfg{}) },
+			func() View { return Input(InputCfg{FocusDisabled: true}) }},
 		{"InputDate",
-			func() { _ = InputDate(InputDateCfg{}) }, // requiredid:ignore
-			func() { _ = InputDate(InputDateCfg{FocusDisabled: true}) }},
+			func() View { return InputDate(InputDateCfg{}) },
+			func() View { return InputDate(InputDateCfg{FocusDisabled: true}) }},
 		{"NumericInput",
-			func() { _ = NumericInput(NumericInputCfg{}) }, // requiredid:ignore
-			func() { _ = NumericInput(NumericInputCfg{FocusDisabled: true}) }},
+			func() View { return NumericInput(NumericInputCfg{}) },
+			func() View { return NumericInput(NumericInputCfg{FocusDisabled: true}) }},
 		{"RadioButtonGroup",
-			func() { _ = RadioButtonGroupColumn(RadioButtonGroupCfg{}) },
-			func() {
-				_ = RadioButtonGroupColumn(RadioButtonGroupCfg{FocusDisabled: true})
+			func() View {
+				return RadioButtonGroupColumn(RadioButtonGroupCfg{Items: []string{"a"}})
+			},
+			func() View {
+				return RadioButtonGroupColumn(RadioButtonGroupCfg{
+					Items: []string{"a"}, FocusDisabled: true,
+				})
 			}},
 		{"SegmentedControl",
-			func() { _ = SegmentedControl(SegmentedControlCfg{}) }, // requiredid:ignore
-			func() {
-				_ = SegmentedControl(SegmentedControlCfg{FocusDisabled: true})
+			func() View { return SegmentedControl(SegmentedControlCfg{}) },
+			func() View {
+				return SegmentedControl(SegmentedControlCfg{FocusDisabled: true})
 			}},
 		{"Radio",
-			func() { _ = Radio(RadioCfg{}) }, // requiredid:ignore
-			func() { _ = Radio(RadioCfg{FocusDisabled: true}) }},
+			func() View { return Radio(RadioCfg{}) },
+			func() View { return Radio(RadioCfg{FocusDisabled: true}) }},
 		{"Select",
-			func() { _ = Select(SelectCfg{Items: []string{"a"}}) }, // requiredid:ignore
-			func() {
-				_ = Select(SelectCfg{Items: []string{"a"}, FocusDisabled: true})
+			func() View { return Select(SelectCfg{Items: []string{"a"}}) },
+			func() View {
+				return Select(SelectCfg{Items: []string{"a"}, FocusDisabled: true})
 			}},
 		{"Switch",
-			func() { _ = Switch(SwitchCfg{}) }, // requiredid:ignore
-			func() { _ = Switch(SwitchCfg{FocusDisabled: true}) }},
+			func() View { return Switch(SwitchCfg{}) },
+			func() View { return Switch(SwitchCfg{FocusDisabled: true}) }},
 		{"Toggle",
-			func() { _ = Toggle(ToggleCfg{}) }, // requiredid:ignore
-			func() { _ = Toggle(ToggleCfg{FocusDisabled: true}) }},
+			func() View { return Toggle(ToggleCfg{}) },
+			func() View { return Toggle(ToggleCfg{FocusDisabled: true}) }},
+	}
+	render := func(t *testing.T, v func() View) []*Shape {
+		t.Helper()
+		w := NewTestWindow(t, WindowCfg{})
+		return autoFocusables(w.TestRender(func(_ *Window) View {
+			return Column(ContainerCfg{Sizing: FillFill, Content: []View{v()}})
+		}))
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			assertPanicsRequiringID(t, tc.name, tc.build)
-			// FocusDisabled: the control never joins the tab order, so
-			// it has no identity to name and must be accepted as is.
-			tc.optedOut()
+			got := render(t, tc.build)
+			if len(got) == 0 {
+				t.Fatalf("ID-less %s has no focusable shape", tc.name)
+			}
+			for _, s := range got {
+				if !hasAutoSegment(s.idKey()) {
+					t.Fatalf("ID-less %s focus key %q is not generated",
+						tc.name, s.idKey())
+				}
+			}
+			// The opt-out takes the whole widget out of the tab order,
+			// inner parts too (InputDate's calendar button).
+			for _, s := range render(t, tc.optedOut) {
+				if hasAutoSegment(s.idKey()) {
+					t.Fatalf("FocusDisabled %s is a tab stop %q",
+						tc.name, s.idKey())
+				}
+			}
 		})
 	}
-}
-
-// assertPanicsRequiringID runs build and fails unless it panics with
-// the RequireID message naming widget.
-func assertPanicsRequiringID(t *testing.T, widget string, build func()) {
-	t.Helper()
-	defer func() {
-		r := recover()
-		if r == nil {
-			t.Fatalf("%s without an ID must panic", widget)
-		}
-		want := "gui: " + widget + " requires a non-empty Cfg.ID"
-		if msg, ok := r.(string); !ok || msg != want {
-			t.Fatalf("panic = %v, want %q", r, want)
-		}
-	}()
-	build()
 }

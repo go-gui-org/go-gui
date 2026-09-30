@@ -39,7 +39,7 @@ type SegmentedControlCfg struct {
 	// Items takes precedence over Options.
 	Items   []string
 	Options []SegmentOption
-	ID      string `gui:"required,focus"`
+	ID      string `gui:"auto"`
 	// Padding is the text inset of one segment. Unset takes the
 	// theme's field inset, so the control shares a row height with an
 	// Input or a Select.
@@ -58,8 +58,7 @@ type SegmentedControlCfg struct {
 	// segment the same width when there is room. A segment never
 	// shrinks below its content, so a long label can stay wider.
 	Sizing Sizing
-	// FocusDisabled opts out of the default-on focus. Focus also
-	// requires a non-empty ID; without one the control is inert.
+	// FocusDisabled opts out of the default-on focus.
 	FocusDisabled bool
 	Disabled      bool
 
@@ -83,7 +82,16 @@ type segmentedControlView struct {
 
 // SegmentedControl creates a segmented control.
 func SegmentedControl(cfg SegmentedControlCfg) View {
-	requireFocusID("SegmentedControl", cfg.FocusDisabled, cfg.ID)
+	// No ID: take a generated leaf at generation time (#881); see
+	// id_auto.go. Also with FocusDisabled: the segment buttons take
+	// IDs scoped by this one, so two ID-less copies would otherwise
+	// both claim "opt:0".
+	if cfg.ID == "" {
+		return ViewFunc(func(vw *Window) View {
+			cfg.ID = vw.autoLeaf("segmentedcontrol")
+			return SegmentedControl(cfg)
+		})
+	}
 	ownDisabledColor := cfg.ColorsSegment.Disabled.IsSet()
 	applySegmentedControlDefaults(&cfg)
 	if len(cfg.Items) > 0 {

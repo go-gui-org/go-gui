@@ -11,7 +11,7 @@ type OverflowItem struct {
 // OverflowPanelCfg configures an overflow panel that hides
 // items that don't fit and shows them in a dropdown menu.
 type OverflowPanelCfg struct {
-	ID           string `gui:"required"`
+	ID           string `gui:"auto"`
 	Items        []OverflowItem
 	Trigger      []View
 	FloatZIndex  int
@@ -41,10 +41,17 @@ type OverflowPanelCfg struct {
 // The window argument is unused; it stays in the signature so existing
 // call sites keep compiling.
 func OverflowPanel(_ *Window, base OverflowPanelCfg) View {
-	// The overflow count and the menu-open flag are keyed by ID. Two
-	// panels without one would share a slot, overwrite each other's
-	// count every frame and relayout forever.
-	RequireID("OverflowPanel", base.ID)
+	// No ID: take a generated leaf at generation time (#881); see
+	// id_auto.go.
+	if base.ID == "" {
+		return ViewFunc(func(vw *Window) View {
+			base.ID = vw.autoLeaf("overflowpanel")
+			return OverflowPanel(vw, base)
+		})
+	}
+	// The overflow count and the menu-open flag are keyed by ID. An
+	// ID-less panel took a generated leaf above, so two panels never
+	// share a slot and overwrite each other's count every frame.
 	return ViewFunc(func(w *Window) View {
 		// Defaults resolve per generation, off a fresh copy, so they
 		// read the theme installed for the window being generated —

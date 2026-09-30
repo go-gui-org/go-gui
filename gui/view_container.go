@@ -495,11 +495,20 @@ func deriveContainerA11YRole(c *ContainerCfg) AccessRole {
 // buildContainerShape constructs a Shape from a ContainerCfg.
 // Uses pooled allocs for effects and events via w.
 func buildContainerShape(cfg *ContainerCfg, w *Window) Shape {
-	requireScrollID("container", cfg.Scrollable || cfg.DragScroll, cfg.ID)
 	if cfg.DragScroll && !cfg.Scrollable {
 		panic("gui: container with DragScroll:true requires Scrollable:true")
 	}
-	requireOverflowID("container", cfg.Overflow, cfg.ID)
+	// A containerView built past container() — a widget that makes one
+	// directly — still reaches here ID-less. The factory path above is
+	// the main one; this keeps such a view off a shared scroll slot.
+	if cfg.ID == "" {
+		switch {
+		case cfg.Scrollable:
+			cfg.ID = w.autoLeaf("scroll")
+		case cfg.Overflow:
+			cfg.ID = w.autoLeaf("overflow")
+		}
+	}
 	spacing, sizeBorder, radius, padding := applyContainerDefaults(cfg)
 	shapeType := cfg.shapeType
 	if shapeType == shapeNone {
@@ -570,6 +579,20 @@ func buildContainerShape(cfg *ContainerCfg, w *Window) Shape {
 func container(cfg ContainerCfg) View {
 	if cfg.Invisible {
 		return invisibleContainerView()
+	}
+	// Scroll offsets and the overflow count are keyed by ID, and the
+	// scrollbars built below capture it now. An ID-less scrolling or
+	// overflowing container therefore takes its generated leaf here, at
+	// generation time, before anything reads cfg.ID (#881).
+	if cfg.ID == "" && (cfg.Scrollable || cfg.Overflow) {
+		kind := "scroll"
+		if !cfg.Scrollable {
+			kind = "overflow"
+		}
+		return ViewFunc(func(vw *Window) View {
+			cfg.ID = vw.autoLeaf(kind)
+			return container(cfg)
+		})
 	}
 	// Resolve click handler.
 	if cfg.OnAnyClick != nil {

@@ -97,9 +97,17 @@ type MenubarCfg struct {
 // here would leave those keys as the bare leaf while the bar's own
 // shape resolved under the panel it sits in. See issue #528.
 func Menubar(_ *Window, cfg MenubarCfg) View {
-	// Eager, so a missing ID or a duplicate item ID fails at the call
-	// site rather than a frame later.
-	RequireID("Menubar", cfg.ID)
+	// No ID: take a generated leaf at generation time (#881); see
+	// id_auto.go.
+	if cfg.ID == "" {
+		return ViewFunc(func(vw *Window) View {
+			cfg.ID = vw.autoLeaf("menubar")
+			return Menubar(vw, cfg)
+		})
+	}
+	// Eager, so a duplicate item ID fails at the call site rather than
+	// a frame later. An ID-less call reaches here a frame step later,
+	// from the generated-leaf branch above.
 	checkForDuplicateMenuIDs(cfg.Items)
 	return ViewFunc(func(vw *Window) View {
 		return menubarBuild(vw, cfg)

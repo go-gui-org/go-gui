@@ -153,43 +153,12 @@ func (w *Window) clearHotMaps() {
 }
 
 // RequireID panics if id is empty. Use in stateful widget factories
-// whose internal state is keyed by cfg.ID in StateMap.
+// whose internal state is keyed by cfg.ID in StateMap and that cannot
+// take a generated leaf. The gui widgets no longer call it for their
+// own Cfg.ID: an empty ID gets an auto leaf instead (#881).
 func RequireID(widget, id string) {
 	if id == "" {
 		panic("gui: " + widget + " requires a non-empty Cfg.ID")
-	}
-}
-
-// requireFocusID panics when a widget that will join focus traversal
-// has no ID. It is the runtime half of the `gui:"required,focus"` tag
-// read by tools/requiredid, and honours the same opt-out: a control
-// marked FocusDisabled never reaches the tab order, so it has no
-// identity to name and is exempt.
-//
-// Widgets using the opposite convention (an opt-in Focusable field)
-// are not covered here; requiredid's checkFocusableID reports those
-// statically.
-func requireFocusID(widget string, focusDisabled bool, id string) {
-	if !focusDisabled {
-		RequireID(widget, id)
-	}
-}
-
-// RequireScrollID panics if a Scrollable widget has an empty ID.
-// Scroll identity and offset state are keyed by Cfg.ID, so a
-// scrollable widget must supply one.
-func requireScrollID(widget string, scrollable bool, id string) {
-	if scrollable && id == "" {
-		panic("gui: " + widget + " with Scrollable:true requires a non-empty Cfg.ID")
-	}
-}
-
-// requireOverflowID panics if an Overflow container has an empty ID.
-// layoutOverflow stores the visible-item count keyed by the ID, so
-// containers without one would share a single slot.
-func requireOverflowID(widget string, overflow bool, id string) {
-	if overflow && id == "" {
-		panic("gui: " + widget + " with Overflow:true requires a non-empty Cfg.ID")
 	}
 }
 

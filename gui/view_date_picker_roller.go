@@ -26,7 +26,7 @@ type DatePickerRollerCfg struct {
 	TextStyle    TextStyle
 	SelectedDate time.Time
 	OnChange     func(time.Time, EventCtx)
-	ID           string `gui:"required"`
+	ID           string `gui:"auto"`
 	A11YCfg
 	// MinYear clamps the year drum's lower bound. Zero takes 1900.
 	// exportaudit:keep — caller-facing config (issue #372)
@@ -81,7 +81,14 @@ type datePickerRollerView struct {
 
 // DatePickerRoller creates a roller-style date picker view.
 func DatePickerRoller(cfg DatePickerRollerCfg) View {
-	RequireID("DatePickerRoller", cfg.ID)
+	// No ID: take a generated leaf at generation time (#881); see
+	// id_auto.go.
+	if cfg.ID == "" {
+		return ViewFunc(func(vw *Window) View {
+			cfg.ID = vw.autoLeaf("datepickerroller")
+			return DatePickerRoller(cfg)
+		})
+	}
 	applyRollerDefaults(&cfg)
 	return &datePickerRollerView{cfg: cfg}
 }

@@ -8,7 +8,7 @@ type ToggleCfg struct {
 	// exportaudit:keep — caller-facing config (issue #372)
 	TextStyleLabel TextStyle
 	OnClick        func(EventCtx)
-	ID             string `gui:"required,focus"`
+	ID             string `gui:"auto"`
 	Label          string
 	TextSelect     string
 	TextUnselect   string
@@ -20,8 +20,7 @@ type ToggleCfg struct {
 	SizeBorder Border
 	Radius     Radius
 	MinWidth   float32
-	// FocusDisabled opts out of the default-on focus. Focus also
-	// requires a non-empty ID; without one the control is inert.
+	// FocusDisabled opts out of the default-on focus.
 	FocusDisabled bool
 	Color         Color
 	// Colors sets the per-state colors. Color above is the
@@ -66,8 +65,15 @@ func Checkbox(cfg ToggleCfg) View { return Toggle(cfg) }
 
 // Toggle creates a toggle/checkbox view.
 func Toggle(cfg ToggleCfg) View {
+	// No ID: take a generated leaf at generation time (#881); see
+	// id_auto.go.
+	if cfg.ID == "" && !cfg.FocusDisabled {
+		return ViewFunc(func(vw *Window) View {
+			cfg.ID = vw.autoLeaf("toggle")
+			return Toggle(cfg)
+		})
+	}
 	applyToggleDefaults(&cfg)
-	requireFocusID("Toggle", cfg.FocusDisabled, cfg.ID)
 
 	d := &defaultToggleStyle
 	sizeBorder := cfg.SizeBorder.Or(d.SizeBorder)

@@ -74,9 +74,11 @@ func (c EventCtx) EffID(leaf string) string {
 		if s.ID == leaf {
 			return s.idKey()
 		}
-		if scope == "" {
+		if scope == "" && !isAutoID(s.ID) {
 			// Nearest ID-bearing ancestor: the scope a leaf in this
-			// position would join to, kept for the fallback below.
+			// position would join to, kept for the fallback below. An
+			// auto-ID ancestor opens no scope (childScopeID), so it is
+			// passed over.
 			scope = s.idKey()
 		}
 	}

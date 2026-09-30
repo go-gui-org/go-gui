@@ -12,11 +12,10 @@ package gui
 // the in-memory image registry exists; see gui/color_buffers.go.
 type ColorWheelCfg struct {
 	OnChange func(HSLA, EventCtx)
-	ID       string `gui:"required"`
+	ID       string `gui:"auto"`
 
 	A11YCfg
-	// FocusDisabled opts out of the default-on focus. Focus also
-	// requires a non-empty ID; without one the control is inert.
+	// FocusDisabled opts out of the default-on focus.
 	FocusDisabled bool
 
 	Value HSLA
@@ -34,7 +33,14 @@ type colorWheelView struct {
 
 // ColorWheel creates a hue × saturation wheel at Value's lightness.
 func ColorWheel(cfg ColorWheelCfg) View {
-	requireFocusID("ColorWheel", cfg.FocusDisabled, cfg.ID)
+	// No ID: take a generated leaf at generation time (#881); see
+	// id_auto.go.
+	if cfg.ID == "" && !cfg.FocusDisabled {
+		return ViewFunc(func(vw *Window) View {
+			cfg.ID = vw.autoLeaf("colorwheel")
+			return ColorWheel(cfg)
+		})
+	}
 	applyColorWheelDefaults(&cfg)
 	return &colorWheelView{cfg: cfg}
 }

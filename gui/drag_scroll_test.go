@@ -267,15 +267,15 @@ func TestDragScrollRequiresScrollableID(t *testing.T) {
 	buildContainerShape(&ContainerCfg{DragScroll: true, ID: "x"}, w)
 }
 
-func TestDragScrollRequiresID(t *testing.T) {
+// An ID-less drag-scroll container takes a generated leaf, so its
+// offset has a key of its own (#881).
+func TestDragScrollWithoutIDTakesAutoLeaf(t *testing.T) {
 	w := &Window{}
-	defer func() {
-		if recover() == nil {
-			t.Error("DragScroll without ID did not panic")
-		}
-	}()
-	buildContainerShape(
+	shape := buildContainerShape(
 		&ContainerCfg{DragScroll: true, Scrollable: true}, w)
+	if !isAutoID(shape.ID) {
+		t.Fatalf("ID = %q, want a generated leaf", shape.ID)
+	}
 }
 
 func TestDragScrollHoverGrabOnlyOnOverflow(t *testing.T) {

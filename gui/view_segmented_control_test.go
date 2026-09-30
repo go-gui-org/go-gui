@@ -271,15 +271,6 @@ func TestSegmentedControlDividerHiddenBesideSelection(t *testing.T) {
 	}
 }
 
-func TestSegmentedControlRequiresID(t *testing.T) {
-	defer func() {
-		if recover() == nil {
-			t.Error("no panic for an empty ID")
-		}
-	}()
-	_ = SegmentedControl(SegmentedControlCfg{}) // requiredid:ignore
-}
-
 // TestSegmentedControlNoDebugFindings runs the dev-mode checks over a
 // rendered control after a click and a key: no duplicate or drifted
 // IDs, no unknown focus, no event acted on without Consume.
