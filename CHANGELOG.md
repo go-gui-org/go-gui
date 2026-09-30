@@ -38,6 +38,13 @@ and this project adheres to
 
 ### Fixed
 
+- **`NumericInput` without steppers keeps `Label` (#878)** — a `NumericInput`
+  with the default `StepCfg` (no step buttons) no longer drops `Label`: it now
+  stacks the visible label above the field and uses it as the accessible name,
+  the same as the stepper path fixed in #876. Before, the early-return path
+  rendered the inner field directly, so there was no label shape and no a11y
+  node from `Label`.
+
 - **Accessible names keep a colon in `Label` and display text (#876)** — a
   `Label`, `Placeholder`, menu item text, progress text, badge label or shown
   `Text` with a colon (`Price: USD`) no longer loses everything up to the last

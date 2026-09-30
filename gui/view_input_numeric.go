@@ -132,10 +132,14 @@ func (v *numericInputView) GenerateLayout(w *Window) Layout {
 	locale := numericLocaleNormalize(cfg.Locale)
 	stepCfg := numericStepCfgNormalize(cfg.StepCfg)
 
-	field := numericInputField(cfg, cfgID, locale, stepCfg, stepCfg.ShowButtons)
 	if !stepCfg.ShowButtons {
-		return generateViewLayout(field, w)
+		cfg.A11YLabel = a11yProseLabel(cfg.A11YLabel, cfg.Label)
+		field := numericInputField(cfg, cfgID, locale, stepCfg, false)
+		return generateViewLayout(
+			labelledField(cfg.Label, cfg.TextStyle, HAlignLeft, cfg.Sizing, field),
+			w)
 	}
+	field := numericInputField(cfg, cfgID, locale, stepCfg, stepCfg.ShowButtons)
 
 	colors := cfg.Colors
 	// The wrapper is structural, not a tab stop: the inner field

@@ -619,3 +619,40 @@ func TestNumericInputFocusDisabledIDLessRenders(t *testing.T) {
 		t.Error("outer wrapper must not be a tab stop")
 	}
 }
+
+// TestNumericInputLabelWithoutSteppers covers issue #878: a
+// NumericInput without step buttons dropped Label entirely — no
+// visible label above the field and no accessible name from it.
+// The stepper path already wrapped and named correctly (#876).
+func TestNumericInputLabelWithoutSteppers(t *testing.T) {
+	const want = "Price: USD"
+	w := newTestWindow()
+	layout := generateViewLayout(NumericInput(NumericInputCfg{
+		ID:    "ni-label-plain",
+		Label: want,
+	}), w)
+	found, ok := layout.FindByID("ni-label-plain")
+	if !ok {
+		t.Fatal("field ni-label-plain not found")
+	}
+	if found.Shape.a11Y == nil {
+		t.Fatal("field has no a11y node")
+	}
+	if found.Shape.a11Y.Label != want {
+		t.Errorf("a11y label = %q, want %q", found.Shape.a11Y.Label, want)
+	}
+	var seen bool
+	var walk func(l Layout)
+	walk = func(l Layout) {
+		if l.Shape != nil && l.Shape.TC != nil && l.Shape.TC.Text == want {
+			seen = true
+		}
+		for _, c := range l.Children {
+			walk(c)
+		}
+	}
+	walk(layout)
+	if !seen {
+		t.Errorf("no visible label %q rendered", want)
+	}
+}
