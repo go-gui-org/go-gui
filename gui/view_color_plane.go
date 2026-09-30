@@ -23,7 +23,7 @@ type ColorPlaneCfg struct {
 	// Size is the plane's width and height in points. Zero takes the
 	// theme default.
 	Size   float32 // ergonomics-audit:opt-plain — a zero-sized plane is meaningless; 0 falls back to the theme
-	Radius Opt[float32]
+	Radius Radius
 	// MarkerSize is the diameter of the position marker. Zero takes
 	// the theme default.
 	MarkerSize float32
@@ -49,7 +49,7 @@ func applyColorPlaneDefaults(cfg *ColorPlaneCfg) {
 		cfg.MarkerSize = d.indicatorSize
 	}
 	if !cfg.Radius.IsSet() {
-		cfg.Radius = Some(d.Radius)
+		cfg.Radius = RadiusPx(d.Radius)
 	}
 }
 

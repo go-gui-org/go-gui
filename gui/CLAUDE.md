@@ -83,13 +83,15 @@ fields — only `ButtonCfg` and `ContainerCfg` carry them.
 
 **Types the repo owns self-flag; only primitives get `Opt`.** `Opt[T]` is for a
 primitive whose zero value is a legitimate choice that must be distinguishable
-from "unset" — `SizeBorder` is the canonical case. Where zero is not meaningful
-(most widths, heights, counts, indices) `Opt` buys nothing. Decide when
-authoring the field, not by copying the nearest neighbor.
+from "unset" — `ScrollbarCfg.GapEdge` is the canonical case. Where zero is not
+meaningful (most widths, heights, counts, indices) `Opt` buys nothing. Decide
+when authoring the field, not by copying the nearest neighbor.
 
-`Color` (`gui/color.go`), `Padding` (`gui/padding.go`) and `Sizing`
-(`gui/sizing.go`) carry a `set` field, so they are plain fields with
-`IsSet()`/`Or()`. Build them with the constructors — `FitFit`…`FillFixed`,
+`Color` (`gui/color.go`), `Padding` (`gui/padding.go`), `Sizing`
+(`gui/sizing.go`), `Spacing` (`gui/spacing.go`), `Radius` (`gui/radius.go`) and
+`Border` (`gui/border.go`) carry a `set` field, so they are plain fields with
+`IsSet()`/`Or()`. The last three hold a theme role that resolves at build time
+(#866, #867). Build them with the constructors — `FitFit`…`FillFixed`,
 `NewPadding`/`PadAll`/`PaddingNone`, `RGBA`/`RGB`/`Hex`. A raw `Sizing{...}` /
 `Padding{...}` / `Color{...}` literal reads as unset
 (`ergonomics-audit -mode literals`; the empty `Color{}` sentinel is exempt).

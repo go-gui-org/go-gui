@@ -50,7 +50,7 @@ type DialogCfg struct {
 	CustomView func(*Window) View
 
 	Padding    Padding
-	SizeBorder Opt[float32]
+	SizeBorder Border
 
 	// MinWidth and MaxWidth default to the theme's DialogStyle bounds.
 	// A MinWidth above the theme MaxWidth raises the max to match when
@@ -58,7 +58,7 @@ type DialogCfg struct {
 	MinWidth Opt[float32]
 	MaxWidth Opt[float32]
 
-	Radius Opt[float32]
+	Radius Radius
 
 	// Width, when positive, fixes the dialog width. Zero sizes the
 	// width to the content, within MinWidth and MaxWidth.
@@ -110,8 +110,8 @@ type DialogCfg struct {
 func dialogViewGenerator(cfg DialogCfg) View {
 	applyDialogDefaults(&cfg)
 	dn := &DefaultDialogStyle
-	sizeBorder := cfg.SizeBorder.Get(dn.SizeBorder)
-	radius := cfg.Radius.Get(dn.Radius)
+	sizeBorder := cfg.SizeBorder.Or(dn.SizeBorder)
+	radius := cfg.Radius.Or(dn.Radius)
 	minWidth, maxWidth, sizing := dialogSizing(&cfg, dn)
 
 	var content []View
@@ -154,8 +154,8 @@ func dialogViewGenerator(cfg DialogCfg) View {
 		ID:          reservedDialogID,
 		Color:       cfg.Color,
 		ColorBorder: cfg.ColorBorder,
-		SizeBorder:  Some(sizeBorder),
-		Radius:      Some(radius),
+		SizeBorder:  BorderPx(sizeBorder),
+		Radius:      RadiusPx(radius),
 		BlurRadius:  dn.BlurRadius,
 		Shadow:      dn.Shadow,
 		Padding:     cfg.Padding,

@@ -222,3 +222,30 @@ var pad = PadAll(12) // ergonomics-audit:spacing
 		t.Fatalf("runSpacing failed with a marked literal: %v", err)
 	}
 }
+
+// RadiusPx and BorderPx with a literal > 0 spell a value the theme names
+// as a role (issue #867). Zero, a role and a computed value pass.
+func TestSpacingFlagsRadiusAndBorderLiterals(t *testing.T) {
+	t.Parallel()
+	const src = `package main
+
+func shapes(t gui.Theme, h float32) {
+	_ = gui.Column(gui.ContainerCfg{Radius: gui.RadiusPx(8), SizeBorder: gui.BorderPx(2)})
+	_ = gui.TabControl(gui.TabControlCfg{RadiusTab: gui.RadiusPx(3)})
+	_ = gui.Column(gui.ContainerCfg{Radius: gui.RadiusPx(0), SizeBorder: gui.BorderPx(0)})
+	_ = gui.Column(gui.ContainerCfg{Radius: gui.RadiusMedium, SizeBorder: gui.BorderThin})
+	_ = gui.Column(gui.ContainerCfg{Radius: gui.RadiusPx(h / 2), SizeBorder: gui.NoBorder})
+	_ = gui.Column(gui.ContainerCfg{Radius: gui.RadiusPx(50)}) // ergonomics-audit:spacing — circle
+}
+`
+	got := scanSpacingSrc(t, src)
+	want := []string{
+		"shapes:" + verbRadius + ":gui.RadiusPx(8)",
+		"shapes:" + verbBorder + ":gui.BorderPx(2)",
+		"shapes:" + verbRadius + ":gui.RadiusPx(3)",
+		"shapes:" + verbRadius + ":gui.RadiusPx(50) [deferred]",
+	}
+	if strings.Join(got, "|") != strings.Join(want, "|") {
+		t.Errorf("findings = %v, want %v", got, want)
+	}
+}

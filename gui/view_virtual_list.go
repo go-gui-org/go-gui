@@ -72,8 +72,8 @@ type VirtualListCfg struct {
 	ID string `gui:"required"`
 
 	Padding    Padding
-	Radius     Opt[float32]
-	SizeBorder Opt[float32]
+	Radius     Radius
+	SizeBorder Border
 
 	// ItemCount is the number of rows. Rows outside the viewport are
 	// not built; their space is held by two spacer rectangles.
@@ -191,8 +191,8 @@ func (lv *virtualListView) GenerateLayout(w *Window) Layout {
 			MaxHeight:   cfg.MaxHeight,
 			Color:       cfg.Colors.Base,
 			ColorBorder: cfg.Colors.Border,
-			SizeBorder:  Some(cfg.SizeBorder.Get(dn.SizeBorder)),
-			Radius:      Some(cfg.Radius.Get(dn.Radius)),
+			SizeBorder:  BorderPx(cfg.SizeBorder.Or(dn.SizeBorder)),
+			Radius:      RadiusPx(cfg.Radius.Or(dn.Radius)),
 			Padding:     cfg.Padding,
 			Sizing:      cfg.Sizing,
 			// Fixed at 0: a gap between rows is height the model does

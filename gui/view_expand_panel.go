@@ -11,8 +11,8 @@ type ExpandPanelCfg struct {
 	// Accessibility
 	A11YCfg
 	Padding    Padding
-	SizeBorder Opt[float32]
-	Radius     Opt[float32]
+	SizeBorder Border
+	Radius     Radius
 	MinWidth   float32
 	MaxWidth   float32
 	MinHeight  float32
@@ -44,8 +44,8 @@ type ExpandPanelCfg struct {
 // ExpandPanel creates an expandable panel view.
 func ExpandPanel(cfg ExpandPanelCfg) View {
 	applyExpandPanelDefaults(&cfg)
-	sizeBorder := cfg.SizeBorder.Get(guiTheme.expandPanelStyle.SizeBorder)
-	radius := cfg.Radius.Get(guiTheme.expandPanelStyle.Radius)
+	sizeBorder := cfg.SizeBorder.Or(guiTheme.expandPanelStyle.SizeBorder)
+	radius := cfg.Radius.Or(guiTheme.expandPanelStyle.Radius)
 
 	// A header that cannot take focus never draws a focus ring, so
 	// skip the amend closure rather than install a dead one.
@@ -127,9 +127,9 @@ func ExpandPanel(cfg ExpandPanelCfg) View {
 		A11YCfg:     cfg.A11YCfg,
 		Color:       colors.Base,
 		ColorBorder: colors.Border,
-		SizeBorder:  Some(sizeBorder),
+		SizeBorder:  BorderPx(sizeBorder),
 		Padding:     cfg.Padding,
-		Radius:      Some(radius),
+		Radius:      RadiusPx(radius),
 		Sizing:      cfg.Sizing,
 		MinWidth:    cfg.MinWidth,
 		MaxWidth:    cfg.MaxWidth,

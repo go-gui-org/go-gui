@@ -85,7 +85,7 @@ func factSheet(p *Planet, theme gui.Theme) gui.View {
 		ID:          "solar_facts",
 		Color:       gui.RGBA(14, 18, 32, 235),
 		ColorBorder: theme.ColorBorder,
-		Radius:      gui.SomeF(10),
+		Radius:      gui.RadiusLarge,
 		Padding:     theme.PaddingLarge,
 		// Fixed rather than max width: the fun fact wraps, and wrapping
 		// needs a definite width to resolve against.
@@ -125,7 +125,7 @@ func factSheet(p *Planet, theme gui.Theme) gui.View {
 func statCard(label, value string, theme gui.Theme) gui.View {
 	return gui.Column(gui.ContainerCfg{
 		Color:      theme.ColorInterior,
-		Radius:     gui.SomeF(6),
+		Radius:     gui.RadiusMedium,
 		Padding:    theme.PaddingSmall,
 		SizeBorder: gui.NoBorder,
 		Sizing:     gui.FillFit,
@@ -181,7 +181,7 @@ func navDot(a *App, id string, sel int, name string, size float32,
 		ID:      id,
 		Width:   size,
 		Height:  size,
-		Radius:  gui.SomeF(size / 2),
+		Radius:  gui.RadiusPx(size / 2),
 		Padding: gui.NoPadding,
 		Colors:  gui.Flat(color),
 		A11YCfg: gui.A11YCfg{A11YLabel: name},

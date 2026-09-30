@@ -170,6 +170,18 @@ taking `RadiusLarge` is a finding on the same basis as a magic alpha. The toggle
 pill (`radiusLarge * 2`, clamped to a capsule) is the deliberate exception.
 Rounding is never spelled at a call site.
 
+A Cfg radius field takes a `gui.Radius`. The roles `gui.RadiusSmall`,
+`gui.RadiusMedium` and `gui.RadiusLarge` read the active theme's step when the
+widget is built, so a platform theme or a custom `ThemeCfg` moves every site
+that names one (#867). `gui.RadiusPx(n)` is a fixed radius for geometry that
+must not follow the theme (a circle, a pill computed as `RadiusPx(h / 2)`), and
+`gui.NoRadius` is a square corner. A border width field takes a `gui.Border`:
+`gui.BorderThin` is the theme's `SizeBorder`, so it disappears under
+`Theme.WithBorders(false)`; `gui.BorderPx(n)` is a fixed stroke that is part of
+the widget's meaning (a selection or "today" ring), and `gui.NoBorder` is an
+explicit zero. `ergonomics-audit -mode spacing` flags `RadiusPx` and `BorderPx`
+with a literal above 0.
+
 Elevation has exactly two tiers (visual-refresh § 5.3): `ShadowPopover` (menus,
 dropdowns, tooltips, toasts) and `ShadowDialog` (dialogs, the command palette),
 both resolved in `ThemeMaker` from `ThemeCfg`. **Elevation goes on floating

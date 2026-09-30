@@ -27,12 +27,6 @@ func (o Opt[T]) Value() (T, bool) { return o.val, o.set }
 // SomeF is shorthand for Some(float32(v)).
 func SomeF(v float32) Opt[float32] { return Opt[float32]{val: v, set: true} }
 
-// Named zero-override constants for common Opt[float32] fields.
-var (
-	NoBorder = SomeF(0)
-	NoRadius = SomeF(0)
-)
-
 // NoPadding is shorthand for PaddingNone, the explicitly-set zero
 // padding. It exists so call sites read "no padding" instead of
 // reasoning about the flag. There is no SomeP any more: Padding

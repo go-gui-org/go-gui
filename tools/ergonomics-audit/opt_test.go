@@ -90,6 +90,11 @@ type WidgetCfg struct {
 type OtherCfg struct {
 	Spacing gg.Spacing
 }
+
+type ShapeCfg struct {
+	Radius     Radius
+	SizeBorder gg.Border
+}
 `
 	findings, _ := scanOptSrc(t, src)
 	if len(findings) != 0 {

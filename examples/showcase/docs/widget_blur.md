@@ -10,7 +10,7 @@ gui.Column(gui.ContainerCfg{
     Width:      150,
     Height:     150,
     Sizing:     gui.FixedFixed,
-    Radius:     gui.SomeF(75),
+    Radius:     gui.RadiusPx(75),
     Color:      gui.RGBA(0, 255, 0, 150),
     BlurRadius: 20,
 })
@@ -23,7 +23,7 @@ gui.Column(gui.ContainerCfg{
     Width:      150,
     Height:     150,
     Sizing:     gui.FixedFixed,
-    Radius:     gui.SomeF(20),
+    Radius:     gui.RadiusPx(20),
     Color:      gui.RGBA(255, 100, 100, 200),
     BlurRadius: 10,
 })
@@ -38,7 +38,7 @@ gui.Column(gui.ContainerCfg{
     Width:      200,
     Height:     100,
     Sizing:     gui.FixedFixed,
-    Radius:     gui.SomeF(10),
+    Radius:     gui.RadiusLarge,
     Color:      gui.RGBA(60, 120, 255, 255),
     BlurRadius: 50,
 })

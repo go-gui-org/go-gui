@@ -34,7 +34,7 @@ gui.Column(gui.ContainerCfg{
 
 ```go
 gui.Column(gui.ContainerCfg{
-    SizeBorder: gui.SomeF(2),
+    SizeBorder: gui.BorderPx(2),
     BorderGradient: &gui.GradientDef{
         Direction: gui.GradientToRight,
         Stops: []gui.GradientStop{

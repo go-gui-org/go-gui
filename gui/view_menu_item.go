@@ -208,7 +208,7 @@ func menuItem(menubarCfg MenubarCfg, itemCfg MenuItemCfg, extra ...View) View {
 		Color:    itemColor,
 		Sizing:   itemCfg.sizing,
 		Padding:  itemCfg.Padding,
-		Radius:   Some(itemCfg.radius),
+		Radius:   RadiusPx(itemCfg.radius),
 		Disabled: itemCfg.disabled,
 		Sound:    itemSound,
 		OnClick:  menuItemClick(menubarCfg, itemCfg),

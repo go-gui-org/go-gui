@@ -15,7 +15,7 @@ const (
 type SkeletonCfg struct {
 	ID string
 	A11YCfg
-	Radius         Opt[float32]
+	Radius         Radius
 	Width          float32
 	Height         float32
 	MinWidth       float32
@@ -38,7 +38,7 @@ func Skeleton(cfg SkeletonCfg) View {
 	if !cfg.ColorHighlight.IsSet() {
 		cfg.ColorHighlight = guiTheme.skeletonStyle.ColorHighlight
 	}
-	radius := cfg.Radius.Get(guiTheme.skeletonStyle.Radius)
+	radius := cfg.Radius.Or(guiTheme.skeletonStyle.Radius)
 
 	label := cfg.A11YLabel
 	if label == "" {
@@ -65,7 +65,7 @@ func Skeleton(cfg SkeletonCfg) View {
 		Disabled:   cfg.Disabled,
 		Invisible:  cfg.Invisible,
 		Color:      cfg.Color,
-		Radius:     SomeF(radius),
+		Radius:     RadiusPx(radius),
 		SizeBorder: NoBorder,
 		Sizing:     cfg.Sizing,
 		Padding:    NoPadding,

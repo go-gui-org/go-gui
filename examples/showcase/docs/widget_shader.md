@@ -8,7 +8,7 @@ round-rect clipping, and pipeline caching via `BuildGLSLFragment`.
 gui.Column(gui.ContainerCfg{
     Width: 200, Height: 200,
     Sizing: gui.FixedFixed,
-    Radius: gui.SomeF(8),
+    Radius: gui.RadiusMedium,
     Shader: &gui.Shader{
         Metal: `
             float2 st = in.uv * 0.5 + 0.5;
@@ -33,7 +33,7 @@ elapsed := float32(time.Since(startTime).Milliseconds()) / 1000.0
 gui.Column(gui.ContainerCfg{
     Width: 200, Height: 200,
     Sizing: gui.FixedFixed,
-    Radius: gui.SomeF(16),
+    Radius: gui.RadiusPx(16),
     Shader: &gui.Shader{
         Metal: `
             float t = in.p0.x;

@@ -113,9 +113,9 @@ func panel(id, title, sub string, bar *gui.ScrollbarCfg) gui.View {
 				Scrollable:    true,
 				ScrollbarCfgY: bar,
 				Color:         panelBG,
-				Radius:        gui.SomeF(6),
+				Radius:        gui.RadiusMedium,
 				ColorBorder:   gui.RGBA(0, 0, 0, 26),
-				SizeBorder:    gui.SomeF(1),
+				SizeBorder:    gui.BorderThin,
 				Padding:       gui.NewPadding(12, 12+barSize, 12, 12),
 				Spacing:       gui.SpacingSmall,
 				Content:       rows,
@@ -134,7 +134,7 @@ func row(i int) gui.View {
 	return gui.Row(gui.ContainerCfg{
 		Sizing:     gui.FillFit,
 		Color:      rowShades[i%len(rowShades)],
-		Radius:     gui.SomeF(3),
+		Radius:     gui.RadiusSmall,
 		SizeBorder: gui.NoBorder,
 		Padding:    gui.PaddingSmall,
 		Content:    []gui.View{gui.Text(gui.TextCfg{Text: rowLabels[i], TextStyle: rowStyle})},
@@ -148,7 +148,7 @@ func fill(c gui.Color, pad gui.Padding, radius float32, content ...gui.View) gui
 		Sizing:     gui.FillFill,
 		Color:      c,
 		Padding:    pad,
-		Radius:     gui.SomeF(radius),
+		Radius:     gui.RadiusPx(radius),
 		SizeBorder: gui.NoBorder,
 		Spacing:    gui.NoSpacing,
 		HAlign:     gui.HAlignCenter,
@@ -206,7 +206,7 @@ func classicBar() *gui.ScrollbarCfg {
 		}
 		pill := fill(face, gui.PaddingNone, s.Width/2, ticks(s, 0.4, 1, gui.RGBA(255, 255, 255, 170)))
 		pill.ColorBorder = classicEdge
-		pill.SizeBorder = gui.SomeF(1)
+		pill.SizeBorder = gui.BorderThin
 		// One pixel of track shows around the pill.
 		return gui.Column(fill(gui.ColorTransparent, gui.PadAll(1), 0, gui.Column(pill))) // ergonomics-audit:spacing — 1px track ring, not an inset
 	}

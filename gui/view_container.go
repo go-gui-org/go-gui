@@ -109,8 +109,8 @@ type ContainerCfg struct {
 
 	// Layout
 	Spacing    Spacing
-	SizeBorder Opt[float32]
-	Radius     Opt[float32]
+	SizeBorder Border
+	Radius     Radius
 	Opacity    Opt[float32]
 	Width      float32
 	Height     float32
@@ -225,8 +225,8 @@ type ContainerCfg struct {
 func applyContainerDefaults(cfg *ContainerCfg) (spacing, sizeBorder, radius float32, padding Padding) {
 	d := &defaultContainerStyle
 	return cfg.Spacing.Or(d.Spacing),
-		cfg.SizeBorder.Get(d.SizeBorder),
-		cfg.Radius.Get(d.Radius),
+		cfg.SizeBorder.Or(d.SizeBorder),
+		cfg.Radius.Or(d.Radius),
 		cfg.Padding.Or(d.Padding)
 }
 
@@ -276,8 +276,10 @@ func (cv *containerView) GenerateLayout(w *Window) Layout {
 			// would leave the group box edge-less; a titled container
 			// wants at least the hairline. A theme that states a
 			// border keeps it (applyContainerDefaults resolves it);
-			// NoBorder (SomeF(0)) is explicit and wins.
-			cfg.SizeBorder = SomeF(sizeBorderDef)
+			// NoBorder is explicit and wins. Fixed px, not
+			// BorderThin: WithBorders(false) zeroes the theme width,
+			// and the group box would lose its only edge (#867).
+			cfg.SizeBorder = BorderPx(sizeBorderDef)
 		}
 	}
 	layout := Layout{

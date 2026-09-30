@@ -73,7 +73,7 @@ func virtualListRange(
 // or not it paints one; the recorded one is already inner.
 func virtualListViewportH(cfg *VirtualListCfg, m *listHeightModel) float32 {
 	inset := cfg.Padding.Height() +
-		2*cfg.SizeBorder.Get(defaultListBoxStyle.SizeBorder)
+		2*cfg.SizeBorder.Or(defaultListBoxStyle.SizeBorder)
 	if h := cfg.Height; h > 0 {
 		return h - inset
 	}

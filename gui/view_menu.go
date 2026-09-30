@@ -182,7 +182,7 @@ func menuBuild(cfg MenubarCfg, level int, items []MenuItemCfg, w *Window) []View
 		configured.Padding = pad
 		configured.selected = (selectedID == item.ID)
 		configured.sizing = sizing
-		configured.radius = cfg.RadiusMenuItem.Get(defaultMenubarStyle.radiusMenuItem)
+		configured.radius = cfg.RadiusMenuItem.Or(defaultMenubarStyle.radiusMenuItem)
 		configured.spacing = cfg.SpacingSubmenu.Or(defaultMenubarStyle.spacingSubmenu)
 		configured.level = level
 		configured.textStyle = ts

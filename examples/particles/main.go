@@ -257,7 +257,7 @@ func landingView(w *gui.Window, ww, wh float32) gui.View {
 				MinWidth:   180,
 				Color:      colorNeonGreen.WithOpacity(0.12),
 				Colors:     gui.ColorSet{Hover: colorNeonGreen.WithOpacity(0.3), Click: colorNeonGreen.WithOpacity(0.5), Border: colorNeonGreen},
-				SizeBorder: gui.SomeF(2),
+				SizeBorder: gui.BorderPx(2), // ergonomics-audit:spacing — emphasis border, heavier than the theme hairline
 				Padding:    gui.NewPadding(gui.PadMedium, gui.PadLarge, gui.PadMedium, gui.PadLarge),
 				OnClick: func(ctx gui.EventCtx) {
 					a := state(ctx.Window)
@@ -359,7 +359,7 @@ func sidebarView(w *gui.Window, wh float32) gui.View {
 				TitleBG:     colorPanel,
 				Spacing:     sectionSpacing,
 				Padding:     sectionPadding,
-				SizeBorder:  gui.SomeF(1),
+				SizeBorder:  gui.BorderThin,
 				ColorBorder: colorNeonCyan.WithOpacity(0.5),
 				Content: []gui.View{
 					gui.Select(gui.SelectCfg{
@@ -395,7 +395,7 @@ func sidebarView(w *gui.Window, wh float32) gui.View {
 				TitleBG:     colorPanel,
 				Spacing:     sectionSpacing,
 				Padding:     sectionPadding,
-				SizeBorder:  gui.SomeF(1),
+				SizeBorder:  gui.BorderThin,
 				ColorBorder: colorNeonCyan.WithOpacity(0.4),
 				Content: []gui.View{
 					sliderRow("Gravity", gui.ScopeID("particles", "gravity"), app.GravityY, -300, 300, 5,
@@ -418,7 +418,7 @@ func sidebarView(w *gui.Window, wh float32) gui.View {
 				TitleBG:     colorPanel,
 				Spacing:     sectionSpacing,
 				Padding:     sectionPadding,
-				SizeBorder:  gui.SomeF(1),
+				SizeBorder:  gui.BorderThin,
 				ColorBorder: colorNeonCyan.WithOpacity(0.5),
 				Content: []gui.View{
 					gui.Rectangle(gui.RectangleCfg{Height: 0}),
@@ -449,7 +449,7 @@ func sidebarView(w *gui.Window, wh float32) gui.View {
 				TitleBG:     colorPanel,
 				Spacing:     gui.NoSpacing,
 				Padding:     gui.NoPadding,
-				SizeBorder:  gui.SomeF(1),
+				SizeBorder:  gui.BorderThin,
 				ColorBorder: colorNeonCyan.WithOpacity(0.5),
 				Content: []gui.View{
 					gui.Row(gui.ContainerCfg{
@@ -697,9 +697,9 @@ func presetBtn(_ *gui.Window, label string, color gui.Color,
 		ID:         gui.ScopeID("particles_preset_btn", label),
 		Color:      color.WithOpacity(0.1),
 		Colors:     gui.ColorSet{Hover: color.WithOpacity(0.25), Click: color.WithOpacity(0.4), Border: color.WithOpacity(0.6)},
-		SizeBorder: gui.SomeF(1),
+		SizeBorder: gui.BorderThin,
 		Padding:    gui.NewPadding(gui.PadSmall, gui.PadMedium, gui.PadSmall, gui.PadMedium),
-		Radius:     gui.SomeF(4),
+		Radius:     gui.RadiusSmall,
 		OnClick: func(ctx gui.EventCtx) {
 			a := state(ctx.Window)
 			apply(a)

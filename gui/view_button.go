@@ -74,8 +74,8 @@ type ButtonCfg struct {
 	A11YCfg
 	Content    []View
 	Padding    Padding
-	SizeBorder Opt[float32]
-	Radius     Opt[float32]
+	SizeBorder Border
+	Radius     Radius
 
 	// BlurRadius controls the shadow blur. 0 = no shadow.
 	BlurRadius float32
@@ -293,8 +293,8 @@ func Button(cfg ButtonCfg) View {
 	applyButtonDefaults(&cfg, d)
 	requireFocusID("Button", cfg.FocusDisabled, cfg.ID)
 
-	sizeBorder := cfg.SizeBorder.Get(d.SizeBorder)
-	radius := cfg.Radius.Get(d.Radius)
+	sizeBorder := cfg.SizeBorder.Or(d.SizeBorder)
+	radius := cfg.Radius.Or(d.Radius)
 	hAlign := cfg.HAlign.Get(HAlignCenter)
 	vAlign := cfg.VAlign.Get(VAlignMiddle)
 
@@ -341,12 +341,12 @@ func Button(cfg ButtonCfg) View {
 		Color:         restFill,
 		colorDisabled: cfg.Colors.Disabled,
 		ColorBorder:   cfg.Colors.Border,
-		SizeBorder:    Some(sizeBorder),
+		SizeBorder:    BorderPx(sizeBorder),
 		BlurRadius:    cfg.BlurRadius,
 		Shadow:        cfg.Shadow,
 		Gradient:      cfg.Gradient,
 		Padding:       cfg.Padding,
-		Radius:        Some(radius),
+		Radius:        RadiusPx(radius),
 		Width:         cfg.Width,
 		Height:        cfg.Height,
 		MinWidth:      cfg.MinWidth,

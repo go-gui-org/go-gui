@@ -13,10 +13,9 @@ import (
 // the middle case: it lives in the theme, like every other override.
 //
 // A patch holds geometry only (padding, border, radius). Colors stay
-// with WithColors. Each field is unset by default: Opt for the two
-// floats (zero is a valid choice there), plain Padding elsewhere
-// (it flags itself). The patch applies once, at build time, to the
-// private styles ThemeMaker owns. Frames read the styles, never the
+// with WithColors. Each field is unset by default: Border, Radius and
+// Padding all flag themselves, so unset is their zero value. The patch
+// applies once, at build time, to the private styles ThemeMaker owns. Frames read the styles, never the
 // patch, so the steady state costs nothing.
 //
 // Patches ride the ext slot, so every rebuild path carries them with
@@ -32,8 +31,8 @@ import (
 // exportaudit:keep — per-widget override surface (issue #754).
 type ButtonPatch struct {
 	Padding    Padding
-	SizeBorder Opt[float32]
-	Radius     Opt[float32]
+	SizeBorder Border
+	Radius     Radius
 }
 
 // InputPatch overrides the geometry of text inputs.
@@ -41,8 +40,8 @@ type ButtonPatch struct {
 // exportaudit:keep — per-widget override surface (issue #754).
 type InputPatch struct {
 	Padding    Padding
-	SizeBorder Opt[float32]
-	Radius     Opt[float32]
+	SizeBorder Border
+	Radius     Radius
 }
 
 // SelectPatch overrides the geometry of select dropdowns.
@@ -50,8 +49,8 @@ type InputPatch struct {
 // exportaudit:keep — per-widget override surface (issue #754).
 type SelectPatch struct {
 	Padding    Padding
-	SizeBorder Opt[float32]
-	Radius     Opt[float32]
+	SizeBorder Border
+	Radius     Radius
 }
 
 // DialogPatch overrides the geometry of dialogs.
@@ -59,8 +58,8 @@ type SelectPatch struct {
 // exportaudit:keep — per-widget override surface (issue #754).
 type DialogPatch struct {
 	Padding    Padding
-	SizeBorder Opt[float32]
-	Radius     Opt[float32]
+	SizeBorder Border
+	Radius     Radius
 }
 
 // ContainerPatch overrides the geometry of containers.
@@ -68,8 +67,8 @@ type DialogPatch struct {
 // exportaudit:keep — per-widget override surface (issue #754).
 type ContainerPatch struct {
 	Padding    Padding
-	SizeBorder Opt[float32]
-	Radius     Opt[float32]
+	SizeBorder Border
+	Radius     Radius
 }
 
 // With returns t carrying patch for one widget class. The result has
@@ -165,8 +164,8 @@ func applyWidgetPatches(t *Theme) {
 // time, which is the wanted failure.
 type patchGeometry struct {
 	Padding    Padding
-	SizeBorder Opt[float32]
-	Radius     Opt[float32]
+	SizeBorder Border
+	Radius     Radius
 }
 
 // sanitized returns g with every set length made finite and
@@ -177,11 +176,13 @@ func (g patchGeometry) sanitized() patchGeometry {
 			patchLength(g.Padding.Right), patchLength(g.Padding.Bottom),
 			patchLength(g.Padding.Left))
 	}
-	if v, ok := g.SizeBorder.Value(); ok {
-		g.SizeBorder = SomeF(patchLength(v))
+	// Only a fixed px can be bad. A role (BorderThin, RadiusSmall, …)
+	// resolves against the patched theme's own ladder in apply.
+	if g.SizeBorder.IsSet() && !g.SizeBorder.thin {
+		g.SizeBorder = BorderPx(patchLength(g.SizeBorder.px))
 	}
-	if v, ok := g.Radius.Value(); ok {
-		g.Radius = SomeF(patchLength(v))
+	if g.Radius.IsSet() && g.Radius.role == radiusRoleNone {
+		g.Radius = RadiusPx(patchLength(g.Radius.px))
 	}
 	return g
 }
@@ -195,15 +196,18 @@ func patchLength(v float32) float32 {
 }
 
 // apply writes each set field of g into the style fields it points at.
-func (g patchGeometry) apply(padding *Padding, sizeBorder, radius *float32) {
+// A role resolves against t, the theme being patched, not guiTheme:
+// With builds a theme that is not installed yet, and the rebuild paths
+// (WithBorders, AdjustFontSize) re-apply the patch to a fresh ladder.
+func (g patchGeometry) apply(t *Theme, padding *Padding, sizeBorder, radius *float32) {
 	if g.Padding.IsSet() {
 		*padding = g.Padding
 	}
-	if v, ok := g.SizeBorder.Value(); ok {
-		*sizeBorder = v
+	if g.SizeBorder.IsSet() {
+		*sizeBorder = g.SizeBorder.resolve(t)
 	}
-	if v, ok := g.Radius.Value(); ok {
-		*radius = v
+	if g.Radius.IsSet() {
+		*radius = g.Radius.resolve(t)
 	}
 }
 
@@ -211,31 +215,31 @@ func (g patchGeometry) apply(padding *Padding, sizeBorder, radius *float32) {
 // one geometry.
 func applyButtonPatch(t *Theme, p ButtonPatch) {
 	g := patchGeometry(p)
-	g.apply(&t.buttonStyle.Padding, &t.buttonStyle.SizeBorder, &t.buttonStyle.Radius)
-	g.apply(&t.buttonStylePrimary.Padding, &t.buttonStylePrimary.SizeBorder,
+	g.apply(t, &t.buttonStyle.Padding, &t.buttonStyle.SizeBorder, &t.buttonStyle.Radius)
+	g.apply(t, &t.buttonStylePrimary.Padding, &t.buttonStylePrimary.SizeBorder,
 		&t.buttonStylePrimary.Radius)
-	g.apply(&t.buttonStyleGhost.Padding, &t.buttonStyleGhost.SizeBorder,
+	g.apply(t, &t.buttonStyleGhost.Padding, &t.buttonStyleGhost.SizeBorder,
 		&t.buttonStyleGhost.Radius)
-	g.apply(&t.buttonStyleDanger.Padding, &t.buttonStyleDanger.SizeBorder,
+	g.apply(t, &t.buttonStyleDanger.Padding, &t.buttonStyleDanger.SizeBorder,
 		&t.buttonStyleDanger.Radius)
 }
 
 func applyInputPatch(t *Theme, p InputPatch) {
-	patchGeometry(p).apply(&t.inputStyle.Padding, &t.inputStyle.SizeBorder,
+	patchGeometry(p).apply(t, &t.inputStyle.Padding, &t.inputStyle.SizeBorder,
 		&t.inputStyle.Radius)
 }
 
 func applySelectPatch(t *Theme, p SelectPatch) {
-	patchGeometry(p).apply(&t.selectStyle.Padding, &t.selectStyle.SizeBorder,
+	patchGeometry(p).apply(t, &t.selectStyle.Padding, &t.selectStyle.SizeBorder,
 		&t.selectStyle.Radius)
 }
 
 func applyDialogPatch(t *Theme, p DialogPatch) {
-	patchGeometry(p).apply(&t.dialogStyle.Padding, &t.dialogStyle.SizeBorder,
+	patchGeometry(p).apply(t, &t.dialogStyle.Padding, &t.dialogStyle.SizeBorder,
 		&t.dialogStyle.Radius)
 }
 
 func applyContainerPatch(t *Theme, p ContainerPatch) {
-	patchGeometry(p).apply(&t.containerStyle.Padding, &t.containerStyle.SizeBorder,
+	patchGeometry(p).apply(t, &t.containerStyle.Padding, &t.containerStyle.SizeBorder,
 		&t.containerStyle.Radius)
 }

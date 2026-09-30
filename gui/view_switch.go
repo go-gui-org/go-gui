@@ -15,7 +15,7 @@ type SwitchCfg struct {
 
 	A11YCfg
 	Padding    Padding
-	SizeBorder Opt[float32]
+	SizeBorder Border
 	Width      Opt[float32]
 	Height     Opt[float32]
 	// FocusDisabled opts out of the default-on focus. Focus also
@@ -69,7 +69,7 @@ func Switch(cfg SwitchCfg) View {
 	width := cfg.Width.Get(d.sizeWidth)
 	height := cfg.Height.Get(d.sizeHeight)
 	radius := height / 2
-	sizeBorder := cfg.SizeBorder.Get(d.SizeBorder)
+	sizeBorder := cfg.SizeBorder.Or(d.SizeBorder)
 
 	thumbColor := cfg.ColorUnselect
 	if cfg.Selected {
@@ -96,8 +96,8 @@ func Switch(cfg SwitchCfg) View {
 		Sizing:      FixedFit,
 		Color:       cfg.Colors.Base,
 		ColorBorder: cfg.Colors.Border,
-		SizeBorder:  Some(sizeBorder),
-		Radius:      Some(radius),
+		SizeBorder:  BorderPx(sizeBorder),
+		Radius:      RadiusPx(radius),
 		Disabled:    cfg.Disabled,
 		Invisible:   cfg.Invisible,
 		Padding:     cfg.Padding,

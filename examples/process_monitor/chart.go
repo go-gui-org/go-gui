@@ -79,7 +79,7 @@ func usageChart(
 				Height:  chartBarsH,
 				Sizing:  gui.FixedFixed,
 				Clip:    true,
-				Radius:  gui.SomeF(theme.RadiusSmall),
+				Radius:  gui.RadiusSmall,
 				Color:   theme.ColorInterior,
 				Padding: gui.PaddingXSmall,
 				Spacing: gui.SpacingPx(1), // ergonomics-audit:spacing — 1px seam between chart bars, not a gap

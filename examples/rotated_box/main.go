@@ -89,7 +89,7 @@ func mainView(w *gui.Window) gui.View {
 							Sizing:     gui.FitFit,
 							Padding:    gui.NewPadding(gui.PadSmall, gui.PadMedium, gui.PadSmall, gui.PadMedium),
 							Color:      gui.RGB(80, 120, 200),
-							Radius:     gui.SomeF(6),
+							Radius:     gui.RadiusMedium,
 							SizeBorder: gui.NoBorder,
 							OnClick: func(ctx gui.EventCtx) {
 								s := gui.State[app](ctx.Window)
@@ -154,7 +154,7 @@ func rotatedLabel(turns int, label string, bg gui.Color, theme gui.Theme) gui.Vi
 			Sizing:     gui.FitFit,
 			Padding:    gui.NewPadding(gui.PadSmall, gui.PadMedium, gui.PadSmall, gui.PadMedium),
 			Color:      bg,
-			Radius:     gui.SomeF(4),
+			Radius:     gui.RadiusSmall,
 			SizeBorder: gui.NoBorder,
 			Content: []gui.View{
 				gui.Text(gui.TextCfg{

@@ -213,7 +213,7 @@ func appleCard(app *App) gui.View {
 	return gui.Column(gui.ContainerCfg{
 		ID:         "apple",
 		Color:      appleCardBG,
-		Radius:     gui.SomeF(12),
+		Radius:     gui.RadiusLarge,
 		Padding:    gui.PaddingMedium,
 		SizeBorder: gui.NoBorder,
 		Spacing:    gui.SpacingMedium,
@@ -243,7 +243,7 @@ func appleSlider(app *App, t track, icon string) gui.View {
 				ID:         "fill",
 				Height:     appleH,
 				Sizing:     gui.FixedFixed,
-				Radius:     gui.SomeF(appleH / 2),
+				Radius:     gui.RadiusPx(appleH / 2),
 				Color:      white,
 				SizeBorder: gui.NoBorder,
 				Padding:    gui.PaddingNone,
@@ -268,7 +268,7 @@ func appleSlider(app *App, t track, icon string) gui.View {
 				// A hairline keeps the white knob apart from the white fill
 				// where a renderer draws no shadow.
 				ColorBorder: appleKnobEdge,
-				SizeBorder:  gui.SomeF(1),
+				SizeBorder:  gui.BorderThin,
 				Padding:     gui.PaddingNone,
 			}),
 		}
@@ -312,7 +312,7 @@ func materialCard(app *App) gui.View {
 	return gui.Column(gui.ContainerCfg{
 		ID:         "material",
 		Color:      materialCardBG,
-		Radius:     gui.SomeF(8),
+		Radius:     gui.RadiusMedium,
 		Padding:    gui.PaddingMedium,
 		SizeBorder: gui.NoBorder,
 		Spacing:    gui.SpacingMedium,
@@ -360,7 +360,7 @@ func bar(sizing gui.Sizing, w, h, radius float32, c gui.Color) gui.View {
 		Width:      w,
 		Height:     h,
 		Sizing:     sizing,
-		Radius:     gui.SomeF(radius),
+		Radius:     gui.RadiusPx(radius),
 		Color:      c,
 		SizeBorder: gui.NoBorder,
 		Padding:    gui.PaddingNone,
@@ -393,7 +393,7 @@ func xpSlider(app *App, t track) gui.View {
 			Track: gui.Column(gui.ContainerCfg{
 				Height:     troughH,
 				Sizing:     gui.FillFixed,
-				Radius:     gui.SomeF(troughH / 2),
+				Radius:     gui.RadiusPx(troughH / 2),
 				Color:      xpTrough,
 				SizeBorder: gui.NoBorder,
 				Padding:    gui.PaddingNone,
@@ -409,7 +409,7 @@ func xpSlider(app *App, t track) gui.View {
 				Width:      xpHandleW,
 				Height:     xpH,
 				Sizing:     gui.FixedFixed,
-				Radius:     gui.SomeF(3),
+				Radius:     gui.RadiusSmall,
 				Color:      xpOutline,
 				SizeBorder: gui.NoBorder,
 				Padding:    gui.PadAll(1), // ergonomics-audit:spacing — 1px outline frame, not an inset

@@ -93,7 +93,7 @@ func mixChannel(x, y uint8, f float32) uint8 {
 func Bevel(c gui.Color, pad gui.Padding, content gui.View) gui.View {
 	return gui.Column(gui.ContainerCfg{
 		Color:      c,
-		Radius:     gui.SomeF(0),
+		Radius:     gui.NoRadius,
 		Padding:    pad,
 		SizeBorder: gui.NoBorder,
 		Content:    []gui.View{content},

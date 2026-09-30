@@ -27,26 +27,26 @@ type MenubarCfg struct {
 	// default.
 	// exportaudit:keep — caller-facing config (issue #372)
 	PaddingSubtitle Padding
-	SizeBorder      Opt[float32]
+	SizeBorder      Border
 	// WidthSubmenuMin/Max bound submenu panes. Unset takes the
 	// theme defaults.
 	// exportaudit:keep — caller-facing config (issue #372)
 	WidthSubmenuMin Opt[float32]
 	// exportaudit:keep — caller-facing config (issue #372)
 	WidthSubmenuMax Opt[float32]
-	Radius          Opt[float32]
+	Radius          Radius
 	// RadiusBorder rounds the bar frame. Unset takes the theme
 	// default.
 	// exportaudit:keep — caller-facing config (issue #372)
-	RadiusBorder Opt[float32]
+	RadiusBorder Radius
 	// RadiusSubmenu rounds submenu panes. Unset takes the theme
 	// default.
 	// exportaudit:keep — caller-facing config (issue #372)
-	RadiusSubmenu Opt[float32]
+	RadiusSubmenu Radius
 	// RadiusMenuItem rounds each item. Unset takes the theme
 	// default.
 	// exportaudit:keep — caller-facing config (issue #372)
-	RadiusMenuItem Opt[float32]
+	RadiusMenuItem Radius
 	Spacing        Spacing
 	// SpacingSubmenu gaps submenu items. Unset takes the theme
 	// default.

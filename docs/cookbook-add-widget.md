@@ -14,8 +14,8 @@ Every widget has a `*Cfg` struct. Conventions:
   from an explicit zero for primitives. Owned structs self-flag instead.
   `Padding` and `Color` carry a `set` field, so they are plain fields.
   `Padding{}` is unset (theme default applies). Build values with
-  `NewPadding`/`PadAll`/`PaddingNone`. Read them with `cfg.Radius.Get(default)`
-  / `cfg.Padding.Or(default)` in the factory.
+  `NewPadding`/`PadAll`/`PaddingNone`. Read them with `cfg.Radius.Or(default)` /
+  `cfg.Padding.Or(default)` in the factory.
 - **Common fields** — every interactive widget includes `ID string`,
   `Disabled bool`, `Invisible bool`, and a focus field. The focus field is
   either `Focusable bool` (opt-in, for example Table) or `FocusDisabled bool`
@@ -90,8 +90,8 @@ func Toggle(cfg ToggleCfg) View {
     requireFocusID("Toggle", cfg.FocusDisabled, cfg.ID)
 
     d := &DefaultToggleStyle
-    sizeBorder := cfg.SizeBorder.Get(d.SizeBorder)
-    radius := cfg.Radius.Get(d.Radius)
+    sizeBorder := cfg.SizeBorder.Or(d.SizeBorder)
+    radius := cfg.Radius.Or(d.Radius)
 
     boxColor := cfg.Colors.Base
     if cfg.Selected {

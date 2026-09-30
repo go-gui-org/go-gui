@@ -19,7 +19,7 @@ gui.Column(gui.ContainerCfg{
 
 ```go
 gui.Column(gui.ContainerCfg{
-    Radius: gui.SomeF(8),
+    Radius: gui.RadiusMedium,
     Shadow: &gui.BoxShadow{
         OffsetX:      0,
         OffsetY:      2,

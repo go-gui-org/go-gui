@@ -192,7 +192,7 @@ func landingView(w *gui.Window, ww, wh float32) gui.View {
 						VAlign:  gui.VAlignMiddle,
 						Spacing: gui.SpacingMedium,
 						Padding: gui.PaddingLarge,
-						Radius:  gui.Some[float32](14),
+						Radius:  gui.RadiusLarge,
 						Content: []gui.View{
 							tileTitleView(frame),
 							gui.Text(gui.TextCfg{
@@ -216,7 +216,7 @@ func landingView(w *gui.Window, ww, wh float32) gui.View {
 								MinWidth:   230,
 								Color:      gui.RGB(255, 110, 61),
 								Colors:     gui.ColorSet{Hover: gui.RGB(255, 135, 90), Click: gui.RGB(230, 90, 42), Focus: gui.RGB(255, 135, 90), Border: gui.RGB(255, 211, 92)},
-								SizeBorder: gui.Some[float32](2),
+								SizeBorder: gui.BorderPx(2), // ergonomics-audit:spacing — emphasis border, heavier than the theme hairline
 								Padding:    gui.NewPadding(gui.PadMedium, gui.PadLarge, gui.PadMedium, gui.PadLarge),
 								Content: []gui.View{
 									gui.Text(gui.TextCfg{
@@ -324,7 +324,7 @@ func renderGrid(g *Game) gui.View {
 		Padding:     gui.NoPadding,
 		Color:       gui.RGB(20, 24, 28),
 		ColorBorder: gui.RGB(75, 80, 85),
-		SizeBorder:  gui.Some[float32](1),
+		SizeBorder:  gui.BorderThin,
 		Content:     gridCells(g),
 	})
 }

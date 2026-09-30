@@ -799,7 +799,7 @@ func TestGroupHeaderRowView(t *testing.T) {
 	trueVal := true
 	cfg := &DataGridCfg{
 		ColorsRow:       gg.ColorSet{Border: gg.RGBA(180, 180, 180, 255)},
-		SizeBorder:      gg.SomeF(1),
+		SizeBorder:      gg.BorderThin,
 		PaddingCell:     gg.NewPadding(2, 4, 2, 4),
 		TextStyleHeader: gg.DefaultTextStyle,
 		ColorFilter:     gg.RGBA(240, 240, 240, 255),
@@ -821,7 +821,7 @@ func TestGroupHeaderRowView(t *testing.T) {
 func TestGroupHeaderRowViewWithAggregate(t *testing.T) {
 	cfg := &DataGridCfg{
 		ColorsRow:       gg.ColorSet{Border: gg.RGBA(180, 180, 180, 255)},
-		SizeBorder:      gg.SomeF(1),
+		SizeBorder:      gg.BorderThin,
 		PaddingCell:     gg.NewPadding(2, 4, 2, 4),
 		TextStyleHeader: gg.DefaultTextStyle,
 		ColorFilter:     gg.RGBA(240, 240, 240, 255),

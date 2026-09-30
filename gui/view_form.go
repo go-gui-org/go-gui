@@ -178,8 +178,8 @@ type FormCfg struct {
 	Content    []View
 	Padding    Padding
 	Spacing    Spacing
-	SizeBorder Opt[float32]
-	Radius     Opt[float32]
+	SizeBorder Border
+	Radius     Radius
 
 	Width, Height, MinWidth, MaxWidth, MinHeight, MaxHeight float32
 	Color                                                   Color

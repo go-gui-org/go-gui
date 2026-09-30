@@ -55,8 +55,8 @@ type ListBoxCfg struct {
 	Items      []string
 	Data       []ListBoxOption
 	Padding    Padding
-	Radius     Opt[float32]
-	SizeBorder Opt[float32]
+	Radius     Radius
+	SizeBorder Border
 	// Height sets the list's height directly. Row virtualization
 	// needs a resolved height: with Height or MaxHeight the list
 	// virtualizes from the first frame; under Fill sizing the
@@ -137,8 +137,8 @@ func (lv *listBoxView) GenerateLayout(w *Window) Layout {
 	cfg.ID = w.EffID(cfg.ID)
 
 	dn := &defaultListBoxStyle
-	sizeBorder := cfg.SizeBorder.Get(dn.SizeBorder)
-	radius := cfg.Radius.Get(dn.Radius)
+	sizeBorder := cfg.SizeBorder.Or(dn.SizeBorder)
+	radius := cfg.Radius.Or(dn.Radius)
 
 	cache := listBoxEnsureCache(cfg, w)
 	selectedSet := listCoreSelectedSet(cfg.SelectedIDs)
@@ -244,8 +244,8 @@ func (lv *listBoxView) GenerateLayout(w *Window) Layout {
 		MaxHeight:   cfg.MaxHeight,
 		Color:       cfg.Colors.Base,
 		ColorBorder: cfg.Colors.Border,
-		SizeBorder:  Some(sizeBorder),
-		Radius:      Some(radius),
+		SizeBorder:  BorderPx(sizeBorder),
+		Radius:      RadiusPx(radius),
 		Padding:     cfg.Padding,
 		Sizing:      cfg.Sizing,
 		Spacing:     NoSpacing,

@@ -36,7 +36,7 @@ func demoBoxSized(label string, color gui.Color, w, h float32) gui.View {
 		Height: h,
 		Sizing: gui.FixedFixed,
 		Color:  color,
-		Radius: gui.SomeF(4),
+		Radius: gui.RadiusSmall,
 		// Fixed-size box: theme container padding would fill
 		// the whole box and pin the label to its bottom edge.
 		Padding: gui.NoPadding,

@@ -137,7 +137,7 @@ func inspectorFloatingPanel(w *Window) View {
 		Width:         panelWidth,
 		Height:        panelHeight,
 		Color:         guiTheme.inspectorStyle.ColorPanel,
-		Radius:        SomeF(8),
+		Radius:        RadiusPx(8),
 		Clip:          true,
 		ID:            inspectorScrollPanel,
 		Scrollable:    true,

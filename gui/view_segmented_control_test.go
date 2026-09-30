@@ -359,7 +359,7 @@ func TestSegmentedControlRadiusOverrideConcentric(t *testing.T) {
 	value := "day"
 	w := segTestWindow(t, &value, SegmentedControlCfg{
 		Options: segTestOptions(),
-		Radius:  SomeF(12),
+		Radius:  RadiusLarge,
 	})
 	if got := segFind(t, w, "seg").Shape.Radius; got != 12 {
 		t.Errorf("track radius = %v, want 12", got)

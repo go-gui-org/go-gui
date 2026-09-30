@@ -294,7 +294,7 @@ func textDemoCard(
 		Sizing:      gui.FillFit,
 		Color:       t.ColorPanel,
 		ColorBorder: t.ColorBorder,
-		SizeBorder:  gui.SomeF(1),
+		SizeBorder:  gui.BorderThin,
 		Padding:     t.PaddingSmall,
 
 		Spacing: gui.SpacingSmall,
@@ -487,7 +487,7 @@ func renderMarkdownCallout(
 			// an unset SizeBorder would inherit the theme's and add
 			// height for a line this design does not draw.
 			SizeBorder: gui.NoBorder,
-			Radius:     gui.SomeF(6),
+			Radius:     gui.RadiusMedium,
 			Color:      c.color(t),
 			A11YRole:   gui.AccessRoleGroup,
 			A11YCfg:    gui.A11YCfg{A11YLabel: c.label},

@@ -371,7 +371,7 @@ func dockTabButton(
 			SizeBorder: NoBorder,
 			Color:      colorTab,
 			Colors:     ColorSet{Hover: guiTheme.ColorHover}.resolved(colorTab, defaultButtonStyle.Colors),
-			Radius:     SomeF(2),
+			Radius:     RadiusSmall,
 			// SoundDisabled as well as Sound: a resolved SoundNone
 			// reads as "unset" inside ButtonCfg (issue #467).
 			Sound:         closeSound,

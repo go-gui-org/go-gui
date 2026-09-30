@@ -71,24 +71,6 @@ func TestOptSomeF(t *testing.T) {
 	}
 }
 
-func TestOptNoBorder(t *testing.T) {
-	if !NoBorder.IsSet() {
-		t.Error("NoBorder should be set")
-	}
-	if got := NoBorder.Get(5); got != 0 {
-		t.Errorf("Get = %f, want 0", got)
-	}
-}
-
-func TestOptNoRadius(t *testing.T) {
-	if !NoRadius.IsSet() {
-		t.Error("NoRadius should be set")
-	}
-	if got := NoRadius.Get(5); got != 0 {
-		t.Errorf("Get = %f, want 0", got)
-	}
-}
-
 func TestOptNoPadding(t *testing.T) {
 	if !NoPadding.IsSet() {
 		t.Error("NoPadding should be set")

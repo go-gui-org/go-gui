@@ -102,7 +102,7 @@ func cardView(w *gui.Window) gui.View {
 	return gui.Column(gui.ContainerCfg{
 		Sizing:      gui.FillFill,
 		Color:       colorCardBG,
-		Radius:      gui.SomeF(18),
+		Radius:      gui.RadiusPx(18), // ergonomics-audit:spacing — decorative radius, not a control corner
 		Padding:     gui.PaddingLarge,
 		Spacing:     gui.SpacingLarge,
 		ColorBorder: colorCardBG,
@@ -159,7 +159,7 @@ func composerView(w *gui.Window) gui.View {
 				Placeholder:      "Add your task",
 				Color:            colorInputBG,
 				Colors:           gui.ColorSet{Hover: colorInputBG, Border: colorInputBG, BorderFocus: colorAccent},
-				Radius:           gui.SomeF(20),
+				Radius:           gui.RadiusPx(20), // ergonomics-audit:spacing — decorative radius, not a control corner
 				Padding:          gui.PaddingLarge,
 				TextStyle:        inputStyle,
 				PlaceholderStyle: placeholderStyle,
@@ -186,7 +186,7 @@ func composerView(w *gui.Window) gui.View {
 				// The button keeps one appearance through hover,
 				// press and focus; Flat says that in a line.
 				Colors:   gui.Flat(colorAccent),
-				Radius:   gui.SomeF(20),
+				Radius:   gui.RadiusPx(20), // ergonomics-audit:spacing — decorative radius, not a control corner
 				Padding:  gui.PaddingLarge,
 				MinWidth: 140,
 				Content: []gui.View{
@@ -244,7 +244,7 @@ func completeButton(item todoItem) gui.View {
 		Width:   32,
 		Height:  32,
 		Sizing:  gui.FixedFixed,
-		Radius:  gui.SomeF(16),
+		Radius:  gui.RadiusPx(16), // ergonomics-audit:spacing — decorative radius, not a control corner
 		Padding: gui.NoPadding,
 		OnClick: func(ctx gui.EventCtx) {
 			toggleTodo(ctx.Window, item.ID)
@@ -269,7 +269,7 @@ func completeButton(item todoItem) gui.View {
 		Border:      colorBorder,
 		BorderFocus: colorAccent,
 	}
-	cfg.SizeBorder = gui.SomeF(2)
+	cfg.SizeBorder = gui.BorderPx(2) // ergonomics-audit:spacing — emphasis border, heavier than the theme hairline
 	cfg.Content = []gui.View{gui.Text(gui.TextCfg{Text: ""})}
 	return gui.Button(cfg)
 }
@@ -284,7 +284,7 @@ func deleteButton(id int) gui.View {
 		Sizing:  gui.FixedFixed,
 		Color:   gui.ColorTransparent,
 		Colors:  gui.ColorSet{Hover: colorDeleteHover, Click: colorDeleteHover, Focus: colorDeleteHover, Border: gui.ColorTransparent, BorderFocus: gui.ColorTransparent},
-		Radius:  gui.SomeF(14),
+		Radius:  gui.RadiusLarge,
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{

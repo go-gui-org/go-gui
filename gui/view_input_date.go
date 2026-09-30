@@ -38,15 +38,15 @@ type InputDateCfg struct {
 	AllowedYears    []int
 	AllowedDates    []time.Time
 	Padding         Padding
-	SizeBorder      Opt[float32]
+	SizeBorder      Border
 	// CellSpacing gaps the day cells. Unset takes the theme default.
 	// exportaudit:keep — caller-facing config (issue #372)
 	CellSpacing Spacing
-	Radius      Opt[float32]
+	Radius      Radius
 	// RadiusBorder rounds the calendar frame. Unset takes the theme
 	// default.
 	// exportaudit:keep — caller-facing config (issue #372)
-	RadiusBorder Opt[float32]
+	RadiusBorder Radius
 	// FocusDisabled opts out of the default-on focus. Focus also
 	// requires a non-empty ID; without one the control is inert.
 	FocusDisabled bool
@@ -214,8 +214,8 @@ func (idv *inputDateView) GenerateLayout(w *Window) Layout {
 			// place the distinction is already made. Radius matches the
 			// picker's so the shadow follows its corners.
 			Shadow:       defaultDatePickerStyle.Shadow,
-			Radius:       SomeF(defaultDatePickerStyle.Radius),
-			FloatOffsetY: -cfg.SizeBorder.Get(0),
+			Radius:       RadiusPx(defaultDatePickerStyle.Radius),
+			FloatOffsetY: -cfg.SizeBorder.Or(0),
 			// The popup floats over the form; a click inside it is the
 			// popup's, not that of the field it is covering.
 			OnClick: func(ctx EventCtx) {
@@ -427,14 +427,14 @@ func applyInputDateDefaults(cfg *InputDateCfg) {
 	if !cfg.Padding.IsSet() {
 		cfg.Padding = guiTheme.PaddingField
 	}
-	sizeBorder := cfg.SizeBorder.Get(d.SizeBorder)
+	sizeBorder := cfg.SizeBorder.Or(d.SizeBorder)
 	cellSpacing := cfg.CellSpacing.Or(d.cellSpacing)
-	radius := cfg.Radius.Get(d.Radius)
-	radiusBorder := cfg.RadiusBorder.Get(d.radiusBorder)
-	cfg.SizeBorder = Some(sizeBorder)
+	radius := cfg.Radius.Or(d.Radius)
+	radiusBorder := cfg.RadiusBorder.Or(d.radiusBorder)
+	cfg.SizeBorder = BorderPx(sizeBorder)
 	cfg.CellSpacing = SpacingPx(cellSpacing)
-	cfg.Radius = Some(radius)
-	cfg.RadiusBorder = Some(radiusBorder)
+	cfg.Radius = RadiusPx(radius)
+	cfg.RadiusBorder = RadiusPx(radiusBorder)
 	if cfg.TextStyle == (TextStyle{}) {
 		cfg.TextStyle = d.TextStyle
 	}

@@ -21,9 +21,9 @@ func dataGridHeaderRow(cfg *DataGridCfg, columns []GridColumnCfg, columnWidths m
 		Sizing:      gg.FillFixed,
 		Color:       gg.ColorTransparent,
 		ColorBorder: cfg.ColorsRow.Border,
-		SizeBorder:  gg.SomeF(0),
+		SizeBorder:  gg.NoBorder,
 		Padding:     gg.NoPadding,
-		Spacing:     gg.SpacingPx(-cfg.SizeBorder.Get(0)),
+		Spacing:     gg.SpacingPx(-cfg.SizeBorder.Or(0)),
 		Content:     cells,
 	})
 }
@@ -264,8 +264,8 @@ func dataGridIndicatorButton(id, label string, baseStyle gg.TextStyle, hoverColo
 		Width:      width,
 		Sizing:     sizing,
 		Padding:    gg.NoPadding,
-		SizeBorder: gg.SomeF(0),
-		Radius:     gg.SomeF(0),
+		SizeBorder: gg.NoBorder,
+		Radius:     gg.NoRadius,
 		Color:      gg.ColorTransparent,
 		Colors:     gg.ColorSet{Base: gg.ColorTransparent, Hover: hoverColor, Click: hoverColor, Focus: gg.ColorTransparent, Border: gg.ColorTransparent, BorderFocus: gg.ColorTransparent},
 		Disabled:   disabled,
@@ -329,9 +329,9 @@ func dataGridFilterRow(cfg *DataGridCfg, columns []GridColumnCfg, columnWidths m
 		Sizing:      gg.FillFixed,
 		Color:       cfg.ColorFilter,
 		ColorBorder: cfg.ColorsRow.Border,
-		SizeBorder:  gg.SomeF(0),
+		SizeBorder:  gg.NoBorder,
 		Padding:     cfg.PaddingFilter,
-		Spacing:     gg.SpacingPx(-cfg.SizeBorder.Get(0)),
+		Spacing:     gg.SpacingPx(-cfg.SizeBorder.Or(0)),
 		Content:     cells,
 	})
 }
@@ -370,8 +370,8 @@ func dataGridFilterCell(cfg *DataGridCfg, col GridColumnCfg, width float32) gg.V
 				// column (issue #640).
 				NoMinWidthFloor: true,
 				Padding:         gg.NoPadding,
-				SizeBorder:      gg.SomeF(0),
-				Radius:          gg.SomeF(0),
+				SizeBorder:      gg.NoBorder,
+				Radius:          gg.NoRadius,
 				Color:           cfg.ColorFilter,
 				Colors:          gg.ColorSet{Hover: cfg.ColorFilter, Border: cfg.ColorsRow.Border},
 				TextStyle:       cfg.TextStyleFilter,

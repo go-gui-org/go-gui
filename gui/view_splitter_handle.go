@@ -82,7 +82,7 @@ func splitterGrip(cfg *SplitterCfg) View {
 		Width:  w,
 		Height: h,
 		Color:  cfg.ColorGrip,
-		Radius: cfg.RadiusBorder.Get(s.radiusBorder),
+		Radius: cfg.RadiusBorder.Or(s.radiusBorder),
 		Sizing: FixedFixed,
 	})
 }

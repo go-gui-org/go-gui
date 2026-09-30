@@ -18,12 +18,12 @@ type SliderCfg struct {
 	// Accessibility
 	A11YCfg
 	Padding    Padding
-	SizeBorder Opt[float32]
-	Radius     Opt[float32]
+	SizeBorder Border
+	Radius     Radius
 	// RadiusBorder overrides the track border radius. Unset falls
 	// back to the theme.
 	// exportaudit:keep — caller-facing config (issue #372)
-	RadiusBorder Opt[float32]
+	RadiusBorder Radius
 	Value        float32
 	Min          float32
 	Max          float32
@@ -109,15 +109,15 @@ type SliderParts struct {
 func Slider(cfg SliderCfg) View {
 	RequireID("Slider", cfg.ID)
 	applySliderDefaults(&cfg)
-	sizeBorder := cfg.SizeBorder.Get(guiTheme.sliderStyle.SizeBorder)
+	sizeBorder := cfg.SizeBorder.Or(guiTheme.sliderStyle.SizeBorder)
 	if cfg.Size == 0 {
 		cfg.Size = guiTheme.sliderStyle.Size
 	}
 	if cfg.ThumbSize == 0 {
 		cfg.ThumbSize = guiTheme.sliderStyle.ThumbSize
 	}
-	radius := cfg.Radius.Get(guiTheme.sliderStyle.Radius)
-	radiusBorder := cfg.RadiusBorder.Get(radius)
+	radius := cfg.Radius.Or(guiTheme.sliderStyle.Radius)
+	radiusBorder := cfg.RadiusBorder.Or(radius)
 	if cfg.Max == 0 && cfg.Min == 0 {
 		cfg.Max = 100
 	}
@@ -243,8 +243,8 @@ func Slider(cfg SliderCfg) View {
 				Sizing:      trackSizing,
 				Color:       colors.Base,
 				ColorBorder: colors.Border,
-				SizeBorder:  Some(sizeBorder),
-				Radius:      Some(radiusBorder),
+				SizeBorder:  BorderPx(sizeBorder),
+				Radius:      RadiusPx(radiusBorder),
 				Padding:     NoPadding,
 				axis:        trackAxis,
 				Content: []View{
@@ -259,7 +259,7 @@ func Slider(cfg SliderCfg) View {
 						Height:      cfg.ThumbSize,
 						Color:       cfg.ColorThumb,
 						ColorBorder: colors.Border,
-						SizeBorder:  Some(sizeBorder),
+						SizeBorder:  BorderPx(sizeBorder),
 						Padding:     NoPadding,
 						AmendLayout: func(ctx EventCtx) {
 							sliderAmendLayoutThumb(

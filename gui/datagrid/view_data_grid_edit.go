@@ -52,7 +52,7 @@ func dataGridCellEditorView(cfg *DataGridCfg, rowID string, rowIdx int, col Grid
 			Sizing:     gg.FillFill,
 			Padding:    gg.NoPadding,
 			SizeBorder: gg.NoBorder,
-			Radius:     gg.SomeF(0),
+			Radius:     gg.NoRadius,
 			OnSelect: func(selected []string, ctx gg.EventCtx) {
 				nextValue := ""
 				if len(selected) > 0 {
@@ -103,7 +103,7 @@ func dataGridCellEditorView(cfg *DataGridCfg, rowID string, rowIdx int, col Grid
 			Sizing:     gg.FillFill,
 			Padding:    gg.NoPadding,
 			SizeBorder: gg.NoBorder,
-			Radius:     gg.SomeF(0),
+			Radius:     gg.NoRadius,
 			OnTextChanged: func(text string, ctx gg.EventCtx) {
 				e := &gg.Event{}
 				dataGridCommitCellEdit(gridID, crudEnabled, onCellEdit, rowID, rowIdx, colID, text, e, ctx.Window)

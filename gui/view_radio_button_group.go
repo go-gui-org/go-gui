@@ -34,7 +34,7 @@ type RadioButtonGroupCfg struct {
 	ID         string `gui:"required,focus"`
 	Padding    Padding
 	Spacing    Spacing
-	SizeBorder Opt[float32]
+	SizeBorder Border
 	MinWidth   float32
 	MinHeight  float32
 	// FocusDisabled opts out of the default-on focus. Focus also

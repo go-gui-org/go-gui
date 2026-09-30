@@ -72,15 +72,15 @@ type DatePickerCfg struct {
 	AllowedYears    []int
 	AllowedDates    []time.Time
 	Padding         Padding
-	SizeBorder      Opt[float32]
+	SizeBorder      Border
 	// CellSpacing gaps the day cells. Unset takes the theme default.
 	// exportaudit:keep — caller-facing config (issue #372)
 	CellSpacing Spacing
-	Radius      Opt[float32]
+	Radius      Radius
 	// RadiusBorder rounds the calendar frame. Unset takes the theme
 	// default.
 	// exportaudit:keep — caller-facing config (issue #372)
-	RadiusBorder Opt[float32]
+	RadiusBorder Radius
 	// FocusDisabled opts out of the default-on focus. Focus also
 	// requires a non-empty ID; without one the control is inert.
 	FocusDisabled bool
@@ -146,7 +146,7 @@ func (dv *datePickerView) GenerateLayout(w *Window) Layout {
 	cfg.ID = w.EffID(cfg.ID)
 	dn := &defaultDatePickerStyle
 	cellSpacing := cfg.CellSpacing.Or(dn.cellSpacing)
-	radiusBorder := cfg.RadiusBorder.Get(dn.radiusBorder)
+	radiusBorder := cfg.RadiusBorder.Or(dn.radiusBorder)
 
 	// Get/init state.
 	state := datePickerGetState(w, cfg)
@@ -170,7 +170,7 @@ func (dv *datePickerView) GenerateLayout(w *Window) Layout {
 	// natural height is already stable month to month.
 	cellSize := datePickerCellSize(cfg)
 	pad := cfg.Padding.Or(dn.Padding)
-	sizeBorder := cfg.SizeBorder.Get(dn.SizeBorder)
+	sizeBorder := cfg.SizeBorder.Or(dn.SizeBorder)
 	padW := float32(pad.Left+pad.Right) + 2*sizeBorder
 	minWidth := 7*cellSize + 6*cellSpacing + padW
 
@@ -186,7 +186,7 @@ func (dv *datePickerView) GenerateLayout(w *Window) Layout {
 		Color:       cfg.Colors.Base,
 		ColorBorder: cfg.Colors.Border,
 		SizeBorder:  cfg.SizeBorder,
-		Radius:      Some(radiusBorder),
+		Radius:      RadiusPx(radiusBorder),
 		Padding:     cfg.Padding,
 		Spacing:     SpacingPx(cellSpacing),
 		MinWidth:    minWidth,
@@ -491,6 +491,6 @@ func applyDatePickerDefaults(cfg *DatePickerCfg) {
 		cfg.CellSpacing = SpacingPx(d.cellSpacing)
 	}
 	if !cfg.Radius.IsSet() {
-		cfg.Radius = Some(d.Radius)
+		cfg.Radius = RadiusPx(d.Radius)
 	}
 }

@@ -20,7 +20,7 @@ type ScrollbarCfg struct {
 	// takes the theme default.
 	// exportaudit:keep — caller-facing config (issue #372)
 	MinThumbSize float32
-	Radius       Opt[float32] // 0 is a real choice (square thumb); unset falls back to the theme
+	Radius       Radius // 0 is a real choice (square thumb); unset falls back to the theme
 	// RadiusThumb rounds the thumb. Zero takes the theme default.
 	// exportaudit:keep — caller-facing config (issue #372)
 	RadiusThumb float32
@@ -93,7 +93,7 @@ func applyScrollbarDefaults(cfg *ScrollbarCfg) {
 		cfg.MinThumbSize = DefaultScrollbarStyle.minThumbSize
 	}
 	if !cfg.Radius.IsSet() {
-		cfg.Radius = Some(DefaultScrollbarStyle.Radius)
+		cfg.Radius = RadiusPx(DefaultScrollbarStyle.Radius)
 	}
 	if cfg.RadiusThumb == 0 {
 		cfg.RadiusThumb = DefaultScrollbarStyle.radiusThumb
@@ -146,7 +146,7 @@ func scrollbar(cfg ScrollbarCfg) View {
 func scrollbarThumb(cfg ScrollbarCfg) View {
 	return Column(ContainerCfg{
 		Color:   cfg.ColorThumb,
-		Radius:  Some(cfg.RadiusThumb),
+		Radius:  RadiusPx(cfg.RadiusThumb),
 		Padding: NoPadding,
 		OnClick: makeScrollbarOnMouseDown(cfg),
 	})

@@ -262,7 +262,7 @@ func statPill(label, value string) gui.View {
 	return gui.Row(gui.ContainerCfg{
 		Sizing:  gui.FitFit,
 		Color:   theme.ColorInterior,
-		Radius:  gui.SomeF(theme.RadiusSmall),
+		Radius:  gui.RadiusSmall,
 		Padding: gui.NewPadding(gui.PadXSmall, gui.PadSmall, gui.PadXSmall, gui.PadSmall),
 		Spacing: gui.SpacingSmall,
 		VAlign:  gui.VAlignMiddle,
@@ -617,7 +617,7 @@ func usageBar(ratio, width, height float32, fill gui.Color) gui.View {
 		Height:  height,
 		Sizing:  gui.FixedFixed,
 		Color:   theme.ColorBorder,
-		Radius:  gui.SomeF(2),
+		Radius:  gui.RadiusSmall,
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			gui.Rectangle(gui.RectangleCfg{

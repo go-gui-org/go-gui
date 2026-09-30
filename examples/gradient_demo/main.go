@@ -110,7 +110,7 @@ func gradientBox(w, h, radius float32, grad *gui.GradientDef,
 	return gui.Column(gui.ContainerCfg{
 		Width:    w,
 		Height:   h,
-		Radius:   gui.Some(radius),
+		Radius:   gui.RadiusPx(radius),
 		Gradient: grad,
 		Shadow:   shadow,
 		HAlign:   gui.HAlignCenter,
@@ -198,7 +198,7 @@ func mainView(w *gui.Window) gui.View {
 						ID:          "gradient_demo_main_view",
 						Value:       dirName,
 						Options:     dirOptions,
-						SizeBorder:  gui.Some[float32](1),
+						SizeBorder:  gui.BorderThin,
 						ColorBorder: theme.ColorBorder,
 						OnSelect: func(value string, ctx gui.EventCtx) {
 							parsed, ok := parseDirection(value)

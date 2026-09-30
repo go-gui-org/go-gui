@@ -126,7 +126,7 @@ func dragReorderGhostView(state dragReorderState, content View) View {
 		Sizing:       FixedFixed,
 		Clip:         true,
 		Padding:      NoPadding,
-		SizeBorder:   SomeF(0),
+		SizeBorder:   NoBorder,
 		VAlign:       VAlignMiddle,
 		Color:        guiTheme.ColorBackground,
 		Shadow: &BoxShadow{

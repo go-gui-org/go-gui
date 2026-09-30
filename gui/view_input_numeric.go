@@ -38,8 +38,8 @@ type NumericInputCfg struct {
 
 	// Appearance
 	Padding    Padding
-	Radius     Opt[float32]
-	SizeBorder Opt[float32]
+	Radius     Radius
+	SizeBorder Border
 	// FocusDisabled opts out of the default-on focus. Focus also
 	// requires a non-empty ID; without one the control is inert.
 	FocusDisabled bool
@@ -127,8 +127,8 @@ func (v *numericInputView) GenerateLayout(w *Window) Layout {
 	// and radius from the theme's input style rather than a private copy
 	// that no theme could reach (issue #300).
 	dn := &defaultInputStyle
-	sizeBorder := cfg.SizeBorder.Get(dn.SizeBorder)
-	radius := cfg.Radius.Get(dn.Radius)
+	sizeBorder := cfg.SizeBorder.Or(dn.SizeBorder)
+	radius := cfg.Radius.Or(dn.Radius)
 	locale := numericLocaleNormalize(cfg.Locale)
 	stepCfg := numericStepCfgNormalize(cfg.StepCfg)
 
@@ -171,8 +171,8 @@ func (v *numericInputView) GenerateLayout(w *Window) Layout {
 		Clip:        true,
 		Color:       colors.Base,
 		ColorBorder: colors.Border,
-		SizeBorder:  Some(sizeBorder),
-		Radius:      Some(radius),
+		SizeBorder:  BorderPx(sizeBorder),
+		Radius:      RadiusPx(radius),
 		Padding:     NoPadding,
 		Invisible:   cfg.Invisible,
 		Disabled:    cfg.Disabled,
@@ -258,13 +258,15 @@ func numericInputField(
 	// Colors carries the whole appearance; cfg.Color is already folded
 	// into Colors.Base by applyNumericInputDefaults, so there is no
 	// second spelling to pass along.
-	colors := cfg.Colors
-	sizeBorder := cfg.SizeBorder
-	radius := cfg.Radius
-	if fillParent {
-		colors = Flat(ColorTransparent)
-		sizeBorder = Opt[float32]{}
-		radius = Opt[float32]{}
+	// Under fillParent the border and radius stay unset (the zero
+	// values), so the inner Input takes its theme defaults.
+	colors := Flat(ColorTransparent)
+	var sizeBorder Border
+	var radius Radius
+	if !fillParent {
+		colors = cfg.Colors
+		sizeBorder = cfg.SizeBorder
+		radius = cfg.Radius
 	}
 
 	modeCfg := numericModeCfgFromInput(cfg)
@@ -392,8 +394,8 @@ func numericInputStepButtons(
 				// empty IDs.
 				FocusDisabled: cfg.FocusDisabled,
 				Colors:        ColorSet{Hover: cfg.Colors.Hover, Click: cfg.Colors.Click, Focus: cfg.Colors.Hover, Border: ColorTransparent},
-				SizeBorder:    SomeF(0),
-				Radius:        SomeF(0),
+				SizeBorder:    NoBorder,
+				Radius:        NoRadius,
 				OnClick: func(ctx EventCtx) {
 					numericInputApplyStep(
 						ctx.Layout, cfg, locale, stepCfg,
@@ -415,8 +417,8 @@ func numericInputStepButtons(
 				Color:         baseColor,
 				FocusDisabled: cfg.FocusDisabled,
 				Colors:        ColorSet{Hover: cfg.Colors.Hover, Click: cfg.Colors.Click, Focus: cfg.Colors.Hover, Border: ColorTransparent},
-				SizeBorder:    SomeF(0),
-				Radius:        SomeF(0),
+				SizeBorder:    NoBorder,
+				Radius:        NoRadius,
 				OnClick: func(ctx EventCtx) {
 					numericInputApplyStep(
 						ctx.Layout, cfg, locale, stepCfg,

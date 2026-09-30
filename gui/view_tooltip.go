@@ -41,8 +41,8 @@ type TooltipCfg struct {
 	Delay       time.Duration
 	FloatZIndex int
 	Padding     Padding
-	Radius      Opt[float32]
-	SizeBorder  Opt[float32]
+	Radius      Radius
+	SizeBorder  Border
 	OffsetX     Opt[float32]
 	OffsetY     Opt[float32]
 	Color       Color
@@ -68,8 +68,8 @@ func Tooltip(cfg TooltipCfg) View {
 		Shadow:        d.Shadow,
 		Color:         cfg.Color,
 		ColorBorder:   cfg.ColorBorder,
-		SizeBorder:    SomeF(cfg.SizeBorder.Get(d.SizeBorder)),
-		Radius:        SomeF(cfg.Radius.Get(d.Radius)),
+		SizeBorder:    BorderPx(cfg.SizeBorder.Or(d.SizeBorder)),
+		Radius:        RadiusPx(cfg.Radius.Or(d.Radius)),
 		Padding:       cfg.Padding,
 		MaxWidth:      300,
 		Content:       cfg.Content,

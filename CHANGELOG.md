@@ -126,6 +126,33 @@ and this project adheres to
 
 ### Changed
 
+- **BREAKING: radius and border-width fields take `gui.Radius` and `gui.Border`,
+  and follow the theme (#867)** — every Cfg `Radius*` field (`Radius`,
+  `RadiusBorder`, `RadiusTab`, `RadiusHeader`, `RadiusContent`, `RadiusCrumb`,
+  `RadiusMenuItem`, `RadiusSubmenu`) and every `Size*Border` field
+  (`SizeBorder`, `SizeHeaderBorder`, `SizeContentBorder`, `SizeTabBorder`)
+  changes from `Opt[float32]` to a self-flagging type, and so do the
+  `Radius`/`SizeBorder` fields of the theme patches (`ButtonPatch` and the
+  others) and `DataGridCfg`. The roles `gui.RadiusSmall/Medium/Large` read the
+  active theme's radius ladder when the widget is built, and `gui.BorderThin`
+  reads the theme's `SizeBorder`. Before, a call site wrote `gui.SomeF(4)`, so a
+  platform theme or a custom `ThemeCfg` radius never reached it, and a
+  `gui.SomeF(1)` border kept drawing under `Theme.WithBorders(false)`. A role in
+  a theme patch resolves against the patched theme. The default themes keep
+  their values, so no default widget moves. Examples snap control corners to the
+  ladder (2/3 → small, 8 → medium, 10/14 → large); circles, decorative radii and
+  heavier emphasis borders keep a fixed width. Migration:
+  - `gui.NoBorder` / `gui.NoRadius` → unchanged (now typed values)
+  - `gui.SomeF(1)` on a border → `gui.BorderThin`; `gui.SomeF(n)` →
+    `gui.BorderPx(n)` for a stroke that must not follow the theme
+  - `gui.SomeF(n)` on a radius → a role (`gui.RadiusMedium`), or
+    `gui.RadiusPx(n)` for fixed geometry such as a circle or `RadiusPx(h / 2)`
+  - `cfg.Radius.Get(def)` / `cfg.SizeBorder.Get(def)` → `.Or(def)`
+
+  `ergonomics-audit -mode spacing` now flags `RadiusPx(n)` and `BorderPx(n)`
+  with a number n > 0; mode `literals` flags a raw `gui.Radius{}` or
+  `gui.Border{}`.
+
 - **BREAKING: spacing fields take a `gui.Spacing`, and the steps follow the
   theme (#866)** — every Cfg spacing field (`Spacing`, `SpacingHeader`,
   `SpacingTrail`, `SpacingSubmenu`, `CellSpacing`, `RowSpacing`) changes from

@@ -44,31 +44,31 @@ type TabControlCfg struct {
 	// PaddingTab insets each tab. Unset takes the theme default.
 	// exportaudit:keep — caller-facing config (issue #372)
 	PaddingTab Padding
-	SizeBorder Opt[float32]
+	SizeBorder Border
 	// SizeHeaderBorder widths the header strip border. Unset takes
 	// the theme default.
 	// exportaudit:keep — caller-facing config (issue #372)
-	SizeHeaderBorder Opt[float32]
+	SizeHeaderBorder Border
 	// SizeContentBorder widths the content area border. Unset takes
 	// the theme default.
 	// exportaudit:keep — caller-facing config (issue #372)
-	SizeContentBorder Opt[float32]
+	SizeContentBorder Border
 	// SizeTabBorder widths each tab's border. Unset takes the
 	// theme default.
 	// exportaudit:keep — caller-facing config (issue #372)
-	SizeTabBorder Opt[float32]
-	Radius        Opt[float32]
+	SizeTabBorder Border
+	Radius        Radius
 	// RadiusHeader rounds the header strip. Unset takes the theme
 	// default.
 	// exportaudit:keep — caller-facing config (issue #372)
-	RadiusHeader Opt[float32]
+	RadiusHeader Radius
 	// RadiusContent rounds the content area. Unset takes the theme
 	// default.
 	// exportaudit:keep — caller-facing config (issue #372)
-	RadiusContent Opt[float32]
+	RadiusContent Radius
 	// RadiusTab rounds each tab. Unset takes the theme default.
 	// exportaudit:keep — caller-facing config (issue #372)
-	RadiusTab Opt[float32]
+	RadiusTab Radius
 	Spacing   Spacing
 	// SpacingHeader gaps the header tabs. Unset takes the theme
 	// default.
@@ -231,14 +231,14 @@ func (tv *tabControlView) GenerateLayout(w *Window) Layout {
 	s := &defaultTabControlStyle
 
 	// Resolve Opt fields.
-	sizeBorder := cfg.SizeBorder.Get(s.SizeBorder)
-	sizeHeaderBorder := cfg.SizeHeaderBorder.Get(s.sizeHeaderBorder)
-	sizeContentBorder := cfg.SizeContentBorder.Get(s.sizeContentBorder)
-	sizeTabBorder := cfg.SizeTabBorder.Get(s.sizeTabBorder)
-	radius := cfg.Radius.Get(s.Radius)
-	radiusHeader := cfg.RadiusHeader.Get(s.radiusHeader)
-	radiusContent := cfg.RadiusContent.Get(s.radiusContent)
-	radiusTab := cfg.RadiusTab.Get(s.radiusTab)
+	sizeBorder := cfg.SizeBorder.Or(s.SizeBorder)
+	sizeHeaderBorder := cfg.SizeHeaderBorder.Or(s.sizeHeaderBorder)
+	sizeContentBorder := cfg.SizeContentBorder.Or(s.sizeContentBorder)
+	sizeTabBorder := cfg.SizeTabBorder.Or(s.sizeTabBorder)
+	radius := cfg.Radius.Or(s.Radius)
+	radiusHeader := cfg.RadiusHeader.Or(s.radiusHeader)
+	radiusContent := cfg.RadiusContent.Or(s.radiusContent)
+	radiusTab := cfg.RadiusTab.Or(s.radiusTab)
 	spacing := cfg.Spacing.Or(s.Spacing)
 	spacingHeader := cfg.SpacingHeader.Or(s.spacingHeader)
 
@@ -342,8 +342,8 @@ func (tv *tabControlView) GenerateLayout(w *Window) Layout {
 			Colors:     cfg.ColorsTab,
 			selected:   isSelected,
 			Padding:    cfg.PaddingTab,
-			SizeBorder: SomeF(sizeTabBorder),
-			Radius:     SomeF(radiusTab),
+			SizeBorder: BorderPx(sizeTabBorder),
+			Radius:     RadiusPx(radiusTab),
 			Disabled:   isDisabled,
 			OnClick:    onClick,
 			// SoundDisabled as well as Sound: ButtonCfg resolves its
@@ -408,8 +408,8 @@ func (tv *tabControlView) GenerateLayout(w *Window) Layout {
 		Sizing:      cfg.Sizing,
 		Color:       cfg.Color,
 		ColorBorder: cfg.ColorBorder,
-		SizeBorder:  SomeF(sizeBorder),
-		Radius:      SomeF(radius),
+		SizeBorder:  BorderPx(sizeBorder),
+		Radius:      RadiusPx(radius),
 		Padding:     cfg.Padding,
 		Spacing:     SpacingPx(spacing),
 		Disabled:    cfg.Disabled,
@@ -442,8 +442,8 @@ func (tv *tabControlView) GenerateLayout(w *Window) Layout {
 			Row(ContainerCfg{
 				Color:       cfg.ColorHeader,
 				ColorBorder: cfg.ColorHeaderBorder,
-				SizeBorder:  SomeF(sizeHeaderBorder),
-				Radius:      SomeF(radiusHeader),
+				SizeBorder:  BorderPx(sizeHeaderBorder),
+				Radius:      RadiusPx(radiusHeader),
 				Padding:     cfg.PaddingHeader,
 				Spacing:     SpacingPx(spacingHeader),
 				Sizing:      FillFit,
@@ -452,8 +452,8 @@ func (tv *tabControlView) GenerateLayout(w *Window) Layout {
 			Column(ContainerCfg{
 				Color:       cfg.ColorContent,
 				ColorBorder: cfg.ColorContentBorder,
-				SizeBorder:  SomeF(sizeContentBorder),
-				Radius:      SomeF(radiusContent),
+				SizeBorder:  BorderPx(sizeContentBorder),
+				Radius:      RadiusPx(radiusContent),
 				Padding:     cfg.PaddingContent,
 				Sizing:      FillFill,
 				Content:     activeContent,
