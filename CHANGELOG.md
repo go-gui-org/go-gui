@@ -22,6 +22,17 @@ and this project adheres to
   slug-version name form as the `.zip` and `.tar.gz`. Windows Authenticode
   signing stays out of scope in its own issue.
 
+### Fixed
+
+- **Linux frame rate no longer drops on pages with SVGs (#892)** — since v0.79.0
+  the GL backend ran `gsettings get` for the reduce-motion setting on every
+  call, and the render pass asks once per visible SVG per frame. The process
+  spawns held the frame lock: the showcase SVG Spinner page fell from 60 to ~20
+  fps and the Thinking Orb page to ~5 fps. The reading is now cached, read once
+  up front and refreshed in the background at most every 2 s. A frame never
+  waits on `gsettings` again, and a change to the desktop animation setting
+  still takes effect within about 2 s.
+
 ## [v0.83.0] - 2026-09-30
 
 ### Added
