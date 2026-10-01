@@ -10,6 +10,7 @@ import (
 
 	"github.com/go-gui-org/go-gui/gui"
 	"github.com/go-gui-org/go-gui/gui/backend/ibus"
+	"github.com/jezek/xgb/xproto"
 )
 
 func TestIMEEventsPreedit(t *testing.T) {
@@ -111,6 +112,60 @@ func TestIMEEventsForwardKey(t *testing.T) {
 	}
 	if got[1].Type != gui.EventChar || got[1].CharCode != 'a' {
 		t.Errorf("second event is %+v", got[1])
+	}
+}
+
+// A forwarded shortcut chord (Ctrl+C after the engine declined it) is a
+// key down only: a character with it would insert the letter after the
+// KeyDown handler copied, pasted or selected all (#896).
+func TestIMEEventsForwardKeyShortcutChord(t *testing.T) {
+	got := imeEvents([]ibus.Event{
+		{Kind: ibus.KindForwardKey, Keyval: 'c', Keycode: 54, State: xproto.ModMaskControl},
+	}, nil)
+	if len(got) != 1 || got[0].Type != gui.EventKeyDown {
+		t.Fatalf("got %+v, want one EventKeyDown", got)
+	}
+	if !got[0].Modifiers.Has(gui.ModCtrl) {
+		t.Errorf("key down modifiers = %v, want ModCtrl", got[0].Modifiers)
+	}
+}
+
+// Ctrl+Alt is AltGr emulation on some layouts, so a forwarded Ctrl+Alt
+// key still types: the shortcut gate must not swallow it.
+func TestIMEEventsForwardKeyCtrlAltTypes(t *testing.T) {
+	got := imeEvents([]ibus.Event{
+		{Kind: ibus.KindForwardKey, Keyval: 'q', Keycode: 24, State: xproto.ModMaskControl | xproto.ModMask1},
+	}, nil)
+	if len(got) != 2 || got[1].Type != gui.EventChar || got[1].CharCode != 'q' {
+		t.Fatalf("got %+v, want EventKeyDown then EventChar 'q'", got)
+	}
+}
+
+// shortcutChord separates shortcuts from typing. Ctrl+Alt stays text:
+// AltGr emulation types characters with it on some layouts.
+func TestShortcutChord(t *testing.T) {
+	cases := []struct {
+		name  string
+		state uint16
+		want  bool
+	}{
+		{"none", 0, false},
+		{"shift", xproto.ModMaskShift, false},
+		{"alt", xproto.ModMask1, false},
+		{"button held", xproto.KeyButMaskButton1, false},
+		{"ctrl", xproto.ModMaskControl, true},
+		{"ctrl+shift", xproto.ModMaskControl | xproto.ModMaskShift, true},
+		{"super", xproto.ModMask4, true},
+		{"super+shift", xproto.ModMask4 | xproto.ModMaskShift, true},
+		{"ctrl+alt", xproto.ModMaskControl | xproto.ModMask1, false},
+		{"super+alt", xproto.ModMask4 | xproto.ModMask1, true},
+		{"ctrl+super+alt", xproto.ModMaskControl | xproto.ModMask4 | xproto.ModMask1, true},
+	}
+	for _, c := range cases {
+		if got := shortcutChord(c.state); got != c.want {
+			t.Errorf("%s: shortcutChord(%#x) = %v, want %v",
+				c.name, c.state, got, c.want)
+		}
 	}
 }
 
