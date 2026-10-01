@@ -85,6 +85,7 @@ func edgeCoverage(t *testing.T, b *Backend) int {
 	gogl.Clear(gogl.COLOR_BUFFER_BIT | gogl.STENCIL_BUFFER_BIT)
 
 	b.drawSvg(probeTriangle(b))
+	b.flushSvg()
 	b.endMainPass(readFBO)
 
 	return countPartial(b, readFBO)
@@ -192,6 +193,7 @@ func filterCoverage(t *testing.T, b *Backend) int {
 	b.drawClip(&gui.RenderCmd{Kind: gui.RenderClip,
 		W: float32(b.physW) / s, H: float32(b.physH) / s})
 	b.drawSvg(probeTriangle(b))
+	b.flushSvg()
 	far := float32(probeSize+8) / s
 	b.drawClip(&gui.RenderCmd{Kind: gui.RenderClip,
 		X: far, Y: far, W: 4 / s, H: 4 / s})

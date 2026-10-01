@@ -32,6 +32,17 @@ and this project adheres to
   up front and refreshed in the background at most every 2 s. A frame never
   waits on `gsettings` again, and a change to the desktop animation setting
   still takes effect within about 2 s.
+- **GL backend draws a run of SVG meshes in one call (#895)** — on Linux and
+  Windows every `RenderSvg` command paid its own pipeline bind, vertex upload
+  and draw call through purego. A ThinkingOrb draws each dot as its own small
+  mesh in its own color, so the showcase Thinking Orb page issued ~1,900 draws a
+  frame and ran at ~40 fps on an Intel UHD 620. Consecutive SVG meshes now queue
+  into one vertex buffer and draw together; any other command draws the queued
+  run first, so paint order, clips, stencils, filters and rotations are
+  unchanged. That page now issues 18 SVG draws a frame, and its backend draw
+  time on the same GPU fell from ~18 ms to ~3 ms. Any SVG-heavy view (icons,
+  charts, `DrawCanvas`) benefits the same way. A run is capped at the largest
+  single command, so peak memory does not grow.
 
 ## [v0.83.0] - 2026-09-30
 
