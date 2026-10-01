@@ -1,0 +1,31 @@
+# Configuration for GitHub's automatically generated release notes
+# (the list appended below the CHANGELOG entry by the release
+# workflow, issue #893). Groups PRs by the type/* labels this repo
+# already uses; anything without one falls under Other changes.
+changelog:
+  categories:
+    - title: Features
+      labels:
+        - type/feat
+        - enhancement
+    - title: Bug fixes
+      labels:
+        - type/bug
+        - bug
+    - title: Performance
+      labels:
+        - type/perf
+    - title: Documentation
+      labels:
+        - type/docs
+        - documentation
+    - title: Refactoring
+      labels:
+        - type/refactor
+    - title: Maintenance
+      labels:
+        - type/chore
+        - dependencies
+    - title: Other changes
+      labels:
+        - '*'

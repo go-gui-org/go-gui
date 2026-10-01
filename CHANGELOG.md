@@ -53,6 +53,12 @@ and this project adheres to
   time on the same GPU fell from ~18 ms to ~3 ms. Any SVG-heavy view (icons,
   charts, `DrawCanvas`) benefits the same way. A run is capped at the largest
   single command, so peak memory does not grow.
+- **GitHub releases now ship with release notes (#893)** — publishing a tag
+  extracts that version's `CHANGELOG.md` section as the release body and appends
+  GitHub's auto-generated commit/PR list below it, so the release page shows
+  highlights, fixes, breaking changes and migration steps instead of an empty
+  body. The generated list is grouped by the `type/*` labels via
+  `.github/release.yml`.
 
 ## [v0.83.0] - 2026-09-30
 

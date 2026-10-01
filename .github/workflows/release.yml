@@ -257,11 +257,39 @@ jobs:
     needs: [linux, macos, windows, ios, android]
     runs-on: ubuntu-latest
     steps:
+      # CHANGELOG.md is the release-notes source, so the tag's commit
+      # must be present. Full history also lets GitHub generate the
+      # commit/PR list appended below the changelog entry.
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
       - uses: actions/download-artifact@v8
         with:
           pattern: '*-asset'
           merge-multiple: true
           path: assets
+
+      # The CHANGELOG section for this tag becomes the release body.
+      # When the tag has no section (e.g. a manual workflow_dispatch
+      # run), a pointer is written instead, so the release never ships
+      # with an empty body the way every tag up to v0.83.0 did (#893).
+      - name: Extract CHANGELOG entry
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          awk -v tag="$TAG" '
+            index($0, "## [" tag "]") == 1 { f = 1; next }
+            /^## \[/ { f = 0 }
+            f
+          ' CHANGELOG.md > release-notes.md
+          if [ ! -s release-notes.md ]; then
+            printf '%s\n' \
+              "See CHANGELOG.md on main for what changed in $TAG." \
+              "" \
+              "https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md" \
+              > release-notes.md
+          fi
 
       # Pinned to a commit rather than the v3 tag: a tag can be moved to
       # point at different code, a commit cannot.  This commit is release
@@ -271,3 +299,5 @@ jobs:
         uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64
         with:
           files: assets/*
+          body_path: release-notes.md
+          generate_release_notes: true
