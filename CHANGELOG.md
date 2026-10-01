@@ -8,6 +8,8 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [v0.84.0] - 2026-10-01
+
 ### Added
 
 - **`buildapp` compiles, images and signs for distribution (#852)** — four new
