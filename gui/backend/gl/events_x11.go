@@ -68,9 +68,7 @@ func (b *Backend) handleXEvent(ev xgb.Event) {
 			KeyCode:   x11key.MapKeySym(b.plat.keysym(e.Detail, 0)),
 			Modifiers: x11key.MapModifiers(e.State),
 		})
-		// Dead keys and Multi_key compose here; the machine returns
-		// the rune to emit (or 0 when the key must produce nothing).
-		if r := b.plat.compose.feed(b.plat.keysym(e.Detail, col)); r != 0 {
+		if r := keyPressChar(&b.plat.compose, b.plat.keysym(e.Detail, col), e.State); r != 0 {
 			b.emitChar(r, e.State)
 		}
 
@@ -250,6 +248,34 @@ func (b *Backend) emitScroll(sx, sy float32, px, py int16, state uint16) {
 	})
 }
 
+// shortcutChord reports whether a key pressed with this X11 state mask is
+// a shortcut (Ctrl+C, Super+V, ...) rather than typing. X11 resolves the
+// keysym to the plain letter even with Ctrl held, unlike Win32 whose
+// WM_CHAR delivers 0x03 for Ctrl+C — and Input only drops chars below 0x20,
+// so the letter would be inserted after OnKeyDown already ran the shortcut
+// (#896). GTK and Qt produce no text for these chords either. Ctrl+Alt
+// stays text: some layouts type characters with it (AltGr emulation).
+// The exemption is Ctrl's alone — no layout types with Super+Alt, so any
+// Super chord is a shortcut.
+func shortcutChord(state uint16) bool {
+	m := x11key.MapModifiers(state)
+	return m.Has(gui.ModSuper) || (m.Has(gui.ModCtrl) && !m.Has(gui.ModAlt))
+}
+
+// keyPressChar returns the rune a key press types, or 0 when it types
+// nothing. Dead keys and Multi_key compose here. A shortcut chord is
+// gated before the compose machine, not after: Ctrl+dead_acute must not
+// leave an accent pending for the next plain key, and Ctrl+C pressed
+// while an accent is pending must not use that accent up — GTK and Qt
+// leave the compose state alone for shortcuts too. Split out of the
+// KeyPress case so the path is testable without an X connection.
+func keyPressChar(c *compose, sym uint32, state uint16) rune {
+	if shortcutChord(state) {
+		return 0
+	}
+	return c.feed(sym)
+}
+
 func (b *Backend) emitChar(r rune, state uint16) {
 	if r == 0xFFFD {
 		return
@@ -412,7 +438,9 @@ func imeEvents(in []ibus.Event, dst []gui.Event) []gui.Event {
 				KeyCode:   x11key.MapKeySym(ev.Keyval),
 				Modifiers: x11key.MapModifiers(state),
 			})
-			if r := x11key.KeysymToRune(ev.Keyval); r >= 0x20 && r != 0x7f {
+			// A shortcut chord is a key down only, as in keyPressChar.
+			if r := x11key.KeysymToRune(ev.Keyval); r >= 0x20 && r != 0x7f &&
+				!shortcutChord(state) {
 				dst = append(dst, gui.Event{
 					Type:      gui.EventChar,
 					CharCode:  uint32(r),

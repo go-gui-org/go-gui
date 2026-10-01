@@ -24,6 +24,16 @@ and this project adheres to
 
 ### Fixed
 
+- **Ctrl+C / Ctrl+V / Ctrl+A no longer type their letter on Linux (#896)** — the
+  X11 backend sent a character event with the plain letter after every key
+  press, Ctrl and Super chords included, while `Input` drops only control
+  characters (what Win32 delivers for them). The shortcut ran on key down and
+  the letter was then inserted: copy looked like a cut leaving `c`, paste
+  appended `v`, select all replaced the text with `a`. Ctrl and Super chords now
+  produce a key down only, on the direct path and on keys an IBus engine
+  forwards. Ctrl+Alt still types, for layouts that use it as AltGr. A chord also
+  leaves a pending dead key alone: Ctrl+C after a dead acute used to type `ć`,
+  and now the accent waits for the next plain key.
 - **Linux frame rate no longer drops on pages with SVGs (#892)** — since v0.79.0
   the GL backend ran `gsettings get` for the reduce-motion setting on every
   call, and the render pass asks once per visible SVG per frame. The process

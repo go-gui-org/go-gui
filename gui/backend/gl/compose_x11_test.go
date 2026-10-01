@@ -5,6 +5,8 @@ package gl
 import (
 	"slices"
 	"testing"
+
+	"github.com/jezek/xgb/xproto"
 )
 
 // Keysyms used in the tests (keysymdef.h subset; the constants live in
@@ -330,5 +332,52 @@ func TestComposeTable3Sanity(t *testing.T) {
 	// A pair that has no three-key sequence must not be in the table.
 	if _, ok := composeTable3[[3]uint32{xkDeadAcute, xkDeadDiaer, 'q'}]; ok {
 		t.Error("composeTable3 has a dead_acute dead_diaeresis q entry")
+	}
+}
+
+// The direct KeyPress path from #896: a Ctrl or Super chord types
+// nothing, so Ctrl+C after a copy does not insert a "c". Plain, Shift
+// and Ctrl+Alt (AltGr emulation) keys still type.
+func TestKeyPressCharShortcutChord(t *testing.T) {
+	cases := []struct {
+		name  string
+		sym   uint32
+		state uint16
+		want  rune
+	}{
+		{"plain", 'c', 0, 'c'},
+		{"shift", 'C', xproto.ModMaskShift, 'C'},
+		{"ctrl", 'c', xproto.ModMaskControl, 0},
+		{"ctrl+shift", 'V', xproto.ModMaskControl | xproto.ModMaskShift, 0},
+		{"super", 'v', xproto.ModMask4, 0},
+		{"ctrl+alt", 'q', xproto.ModMaskControl | xproto.ModMask1, 'q'},
+	}
+	for _, c := range cases {
+		var m compose
+		if got := keyPressChar(&m, c.sym, c.state); got != c.want {
+			t.Errorf("%s: keyPressChar(%#x, %#x) = %q, want %q",
+				c.name, c.sym, c.state, got, c.want)
+		}
+	}
+}
+
+// A chord must leave the compose machine alone. Ctrl+dead_acute must not
+// open a sequence that turns the next plain e into é, and Ctrl+C with an
+// accent pending must not use that accent up.
+func TestKeyPressCharChordKeepsComposeState(t *testing.T) {
+
+	var m compose
+	keyPressChar(&m, xkDeadAcute, xproto.ModMaskControl)
+	if got := keyPressChar(&m, 'e', 0); got != 'e' {
+		t.Errorf("after Ctrl+dead_acute, e = %q, want 'e'", got)
+	}
+
+	m = compose{}
+	keyPressChar(&m, xkDeadAcute, 0)
+	if got := keyPressChar(&m, 'c', xproto.ModMaskControl); got != 0 {
+		t.Errorf("Ctrl+c with accent pending = %q, want 0", got)
+	}
+	if got := keyPressChar(&m, 'e', 0); got != 'é' {
+		t.Errorf("accent after Ctrl+c, e = %q, want 'é'", got)
 	}
 }
