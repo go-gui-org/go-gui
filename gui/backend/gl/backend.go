@@ -50,12 +50,16 @@ type Backend struct {
 	mvpStack [][16]float32
 
 	textPathPlacements []glyph.GlyphPlacement
-	svgVerts           []gpu.Vertex
-	normBuf            []gui.GradientStop
-	sampledBuf         []gui.GradientStop
+	// svgVerts is the queued SVG run (#895): drawSvg appends,
+	// flushSvg draws and empties it. svgFlushes counts those draws
+	// for the batching tests.
+	svgVerts   []gpu.Vertex
+	normBuf    []gui.GradientStop
+	sampledBuf []gui.GradientStop
 
 	allowedImageRoots []string
 	svgCap            int
+	svgFlushes        int
 	filterLayer       int
 	maxImageBytes     int64
 	maxImagePixels    int64

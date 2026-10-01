@@ -33,6 +33,9 @@ func (b *Backend) renderersDraw(w *gui.Window) {
 		if b.glyphBack != nil {
 			b.glyphBack.discard()
 		}
+		// Same for a queued SVG run (#895): a balanced stream drew it
+		// after the loop, a truncated one drops it.
+		b.svgVerts = b.svgVerts[:0]
 		b.mvp = savedMVP
 		b.mvpStack = b.mvpStack[:savedStackLen]
 		b.usePipeline(&b.pipelines.solid)
@@ -43,62 +46,74 @@ func (b *Backend) renderersDraw(w *gui.Window) {
 	}()
 	cmds := w.Renderers()
 	for i := range cmds {
-		r := &cmds[i]
-		switch r.Kind {
-		case gui.RenderClip:
-			b.drawClip(r)
-		case gui.RenderRect:
-			b.drawRect(r)
-		case gui.RenderStrokeRect:
-			b.drawStrokeRect(r)
-		case gui.RenderText:
-			b.drawText(r)
-		case gui.RenderCircle:
-			b.drawCircle(r)
-		case gui.RenderLine:
-			b.drawLine(r)
-		case gui.RenderShadow:
-			b.drawShadow(r)
-		case gui.RenderBlur:
-			b.drawBlur(r)
-		case gui.RenderGradient:
-			b.drawGradient(w, r)
-		case gui.RenderGradientBorder:
-			b.drawGradientBorder(r)
-		case gui.RenderImage:
-			b.drawImage(r)
-		case gui.RenderSvg:
-			b.drawSvg(r)
-		case gui.RenderLayout:
-			b.drawLayout(r)
-		case gui.RenderLayoutTransformed:
-			b.drawLayoutTransformed(r)
-		case gui.RenderTextPath:
-			b.drawTextPath(r)
-		case gui.RenderRTF:
-			b.drawRtf(r)
-		case gui.RenderCustomShader:
-			b.drawCustomShader(r)
-		case gui.RenderFilterBegin:
-			b.beginFilter(r)
-		case gui.RenderFilterEnd:
-			b.endFilter()
+		b.drawCmd(w, &cmds[i])
+	}
+	// The stream may end on an SVG run; nothing after it would draw it.
+	b.flushSvg()
+}
 
-		case gui.RenderStencilBegin:
-			b.beginStencilClip(r)
-		case gui.RenderStencilEnd:
-			b.endStencilClip(r)
+// drawCmd draws one render command. RenderSvg only queues its
+// triangles (#895); every other kind first draws the queued run, so
+// the run paints under the same scissor, stencil, framebuffer and MVP
+// it was queued under, and before anything later in the stream.
+func (b *Backend) drawCmd(w *gui.Window, r *gui.RenderCmd) {
+	if r.Kind != gui.RenderSvg {
+		b.flushSvg()
+	}
+	switch r.Kind {
+	case gui.RenderClip:
+		b.drawClip(r)
+	case gui.RenderRect:
+		b.drawRect(r)
+	case gui.RenderStrokeRect:
+		b.drawStrokeRect(r)
+	case gui.RenderText:
+		b.drawText(r)
+	case gui.RenderCircle:
+		b.drawCircle(r)
+	case gui.RenderLine:
+		b.drawLine(r)
+	case gui.RenderShadow:
+		b.drawShadow(r)
+	case gui.RenderBlur:
+		b.drawBlur(r)
+	case gui.RenderGradient:
+		b.drawGradient(w, r)
+	case gui.RenderGradientBorder:
+		b.drawGradientBorder(r)
+	case gui.RenderImage:
+		b.drawImage(r)
+	case gui.RenderSvg:
+		b.drawSvg(r)
+	case gui.RenderLayout:
+		b.drawLayout(r)
+	case gui.RenderLayoutTransformed:
+		b.drawLayoutTransformed(r)
+	case gui.RenderTextPath:
+		b.drawTextPath(r)
+	case gui.RenderRTF:
+		b.drawRtf(r)
+	case gui.RenderCustomShader:
+		b.drawCustomShader(r)
+	case gui.RenderFilterBegin:
+		b.beginFilter(r)
+	case gui.RenderFilterEnd:
+		b.endFilter()
 
-		case gui.RenderRotateBegin:
-			b.beginRotation(r)
-		case gui.RenderRotateEnd:
-			b.endRotation()
+	case gui.RenderStencilBegin:
+		b.beginStencilClip(r)
+	case gui.RenderStencilEnd:
+		b.endStencilClip(r)
 
-		// Not emitted by the GL backend render path.
-		case gui.RenderNone,
-			gui.RenderFilterComposite,
-			gui.RenderLayoutPlaced:
-		}
+	case gui.RenderRotateBegin:
+		b.beginRotation(r)
+	case gui.RenderRotateEnd:
+		b.endRotation()
+
+	// Not emitted by the GL backend render path.
+	case gui.RenderNone,
+		gui.RenderFilterComposite,
+		gui.RenderLayoutPlaced:
 	}
 }
 
@@ -357,87 +372,6 @@ func (b *Backend) resolveImageTexture(res string) (glTexture, bool) {
 		b.textures.Set(path, tex)
 	}
 	return tex, true
-}
-
-// maxSvgTriangleFloats caps a RenderSvg triangle list in floats,
-// mirroring the gui package's emit-side cap. It bounds the
-// per-frame vertex allocation an oversized command would force.
-const maxSvgTriangleFloats = 1_200_000
-
-func (b *Backend) drawSvg(r *gui.RenderCmd) {
-	if r.IsClipMask {
-		return // clip masks not yet supported in render pipeline
-	}
-	if len(r.Triangles) == 0 || len(r.Triangles)%6 != 0 ||
-		len(r.Triangles) > maxSvgTriangleFloats {
-		return
-	}
-	s := b.dpiScale
-	numVerts := len(r.Triangles) / 2
-	hasVCols := len(r.VertexColors) == numVerts
-	vAlpha := float32(1)
-	if r.HasVertexAlpha {
-		vAlpha = max(0, min(r.VertexAlphaScale, 1))
-	}
-
-	hasXform := r.HasXform
-	var sx, sy, tx, ty float32
-	if hasXform {
-		sx, sy, tx, ty = r.ScaleX, r.ScaleY, r.TransX, r.TransY
-	}
-	hasRot := r.RotAngle != 0
-	var sinA, cosA, rcx, rcy float32
-	if hasRot {
-		rad := float64(r.RotAngle) * math.Pi / 180
-		sinA = float32(math.Sin(rad))
-		cosA = float32(math.Cos(rad))
-		rcx, rcy = r.RotCX, r.RotCY
-	}
-
-	if cap(b.svgVerts) < numVerts {
-		b.svgVerts = make([]gpu.Vertex, numVerts)
-	}
-	verts := b.svgVerts[:numVerts]
-	for i := range numVerts {
-		vx := r.Triangles[i*2]
-		vy := r.Triangles[i*2+1]
-		if hasXform {
-			vx = vx*sx + tx
-			vy = vy*sy + ty
-		}
-		if hasRot {
-			dx := vx - rcx
-			dy := vy - rcy
-			vx = rcx + dx*cosA - dy*sinA
-			vy = rcy + dx*sinA + dy*cosA
-		}
-		v := &verts[i]
-		v.X = (r.X + vx*r.Scale) * s
-		v.Y = (r.Y + vy*r.Scale) * s
-		v.U = 0
-		v.V = 0
-		if hasVCols {
-			vc := r.VertexColors[i]
-			alpha := vc.A
-			if r.HasVertexAlpha {
-				alpha = uint8(float32(alpha) * vAlpha)
-			}
-			cr, cg, cb, ca := gpu.NormColor(vc.R, vc.G, vc.B, alpha)
-			v.R = cr
-			v.G = cg
-			v.B = cb
-			v.A = ca
-		} else {
-			cr, cg, cb, ca := gpu.NormColor(r.Color.R, r.Color.G, r.Color.B, r.Color.A)
-			v.R = cr
-			v.G = cg
-			v.B = cb
-			v.A = ca
-		}
-	}
-
-	b.usePipeline(&b.pipelines.solid)
-	b.uploadSvgVerts(verts)
 }
 
 func (b *Backend) drawText(r *gui.RenderCmd) {

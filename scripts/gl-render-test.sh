@@ -43,7 +43,8 @@ tests="TestTriangleEdgesAntialiased TestProbeSeesAliasedEdges
   TestGlyphBatchFlushCounts TestGlyphBatchFlushesBeforeUpload
   TestGlyphBatchFlushesBeforeDelete TestGlyphBatchFlushesBeforeFilledRect
   TestGlyphBatchMatchesUnbatched
-  TestGlyphFillIgnoresBoundTexture TestGlyphFillsShareABatch TestGlyphFillTransformed"
+  TestGlyphFillIgnoresBoundTexture TestGlyphFillsShareABatch TestGlyphFillTransformed
+  TestSvgBatchFlushCounts TestSvgBatchMatchesUnbatched"
 # The thread-release tests (#827) are X11-only: on Windows they do not exist,
 # and a name that matches nothing reports no verdict, which counts as a crash.
 [ "${OS:-}" = Windows_NT ] || tests="$tests TestNewErrorReleasesThread TestDestroyReleasesThread"
