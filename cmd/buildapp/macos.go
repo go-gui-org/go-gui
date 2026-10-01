@@ -13,7 +13,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -107,10 +106,10 @@ func installIcon(icon, resDir, execName string) (string, error) {
 			return "", err
 		}
 	case ".png":
-		if _, err := exec.LookPath("sips"); err != nil {
+		if err := execLookPath("sips"); err != nil {
 			return "", errors.New("sips not found (needed for .png icon)")
 		}
-		if _, err := exec.LookPath("iconutil"); err != nil {
+		if err := execLookPath("iconutil"); err != nil {
 			return "", errors.New("iconutil not found (needed for .png icon)")
 		}
 		if err := pngToIcns(icon, dst); err != nil {
@@ -145,13 +144,13 @@ func pngToIcns(png, outIcns string) error {
 	}
 	for _, s := range sizes {
 		out := filepath.Join(iconset, s.name)
-		cmd := exec.Command("sips", "-z", strconv.Itoa(s.px), strconv.Itoa(s.px), png, "--out", out)
-		if b, cerr := cmd.CombinedOutput(); cerr != nil {
+		b, cerr := runTool("sips", "-z", strconv.Itoa(s.px), strconv.Itoa(s.px), png, "--out", out)
+		if cerr != nil {
 			return fmt.Errorf("sips: %v: %s", cerr, b)
 		}
 	}
-	cmd := exec.Command("iconutil", "-c", "icns", iconset, "-o", outIcns)
-	if b, err := cmd.CombinedOutput(); err != nil {
+	b, err := runTool("iconutil", "-c", "icns", iconset, "-o", outIcns)
+	if err != nil {
 		return fmt.Errorf("iconutil: %v: %s", err, b)
 	}
 	return nil
@@ -164,7 +163,7 @@ func pngToIcns(png, outIcns string) error {
 // #nosec G204,G301 — build tool, args from otool output on own binaries
 func bundleDeps(binary, contents, signID string) error {
 	for _, tool := range []string{"otool", "install_name_tool", "codesign"} {
-		if _, err := exec.LookPath(tool); err != nil {
+		if err := execLookPath(tool); err != nil {
 			return fmt.Errorf("%s not found", tool)
 		}
 	}
@@ -197,23 +196,23 @@ func bundleDeps(binary, contents, signID string) error {
 					return fmt.Errorf("copy %s: %w", dep, err)
 				}
 				copied[dep] = base
-				if err = exec.Command("install_name_tool",
-					"-id", "@rpath/"+base, dst).Run(); err != nil {
-					return fmt.Errorf("install_name_tool -id %s: %w", dst, err)
+				if out, err := runTool("install_name_tool",
+					"-id", "@rpath/"+base, dst); err != nil {
+					return fmt.Errorf("install_name_tool -id %s: %v: %s", dst, err, out)
 				}
 				queue = append(queue, dst)
 			}
-			if err = exec.Command("install_name_tool",
-				"-change", dep, "@rpath/"+base, cur).Run(); err != nil {
-				return fmt.Errorf("install_name_tool -change %s: %w", cur, err)
+			if out, err := runTool("install_name_tool",
+				"-change", dep, "@rpath/"+base, cur); err != nil {
+				return fmt.Errorf("install_name_tool -change %s: %v: %s", cur, err, out)
 			}
 		}
 	}
 
 	// rpath only on the executable; dylibs resolve via the same loader
-	if err := exec.Command("install_name_tool",
-		"-add_rpath", "@executable_path/../Frameworks", binary).Run(); err != nil {
-		return fmt.Errorf("add_rpath: %w", err)
+	if out, err := runTool("install_name_tool",
+		"-add_rpath", "@executable_path/../Frameworks", binary); err != nil {
+		return fmt.Errorf("add_rpath: %v: %s", err, out)
 	}
 
 	// re-sign everything we touched: install_name_tool invalidates the
@@ -226,8 +225,7 @@ func bundleDeps(binary, contents, signID string) error {
 		signTargets = append(signTargets, filepath.Join(fw, base))
 	}
 	for _, t := range signTargets {
-		cmd := exec.Command("codesign", "-s", signID, "--force", t)
-		if out, err := cmd.CombinedOutput(); err != nil {
+		if out, err := runTool("codesign", "-s", signID, "--force", t); err != nil {
 			return fmt.Errorf("codesign %s: %v: %s", t, err, out)
 		}
 	}
@@ -236,11 +234,10 @@ func bundleDeps(binary, contents, signID string) error {
 
 // otoolDeps returns the LC_LOAD_DYLIB paths recorded in path. The
 // binary's own LC_ID_DYLIB (first line) is dropped.
-// #nosec G204 — build tool, path from own binary
 func otoolDeps(path string) ([]string, error) {
-	out, err := exec.Command("otool", "-L", path).Output()
+	out, err := runTool("otool", "-L", path)
 	if err != nil {
-		return nil, fmt.Errorf("otool -L %s: %w", path, err)
+		return nil, fmt.Errorf("otool -L %s: %v: %s", path, err, out)
 	}
 	lines := strings.Split(string(out), "\n")
 	if len(lines) < 2 {
@@ -281,18 +278,29 @@ func otoolDeps(path string) ([]string, error) {
 // and friends — see README, "Signing".  Pass a real identity to keep
 // grants across rebuilds.
 //
-// --deep re-signs the nested code under Contents/Frameworks that
-// bundleDeps already signed.  Apple deprecates it for distribution
-// signing; it is kept here because the bundle carries no entitlements
-// and no nested code beyond those dylibs, so a same-identity re-sign
-// costs nothing.
-// #nosec G204 — build tool, appDir from temp dir
-func signBundle(appDir, signID string) error {
-	if _, err := exec.LookPath("codesign"); err != nil {
+// Without entitlements the signature uses --deep over the nested code
+// under Contents/Frameworks that bundleDeps already signed.  Apple
+// deprecates --deep for distribution signing; it is kept here because
+// the bundle carries no entitlements and no nested code beyond those
+// dylibs, so a same-identity re-sign costs nothing.
+//
+// With an entitlements file the signature switches to distribution
+// form: --options runtime (the hardened runtime) with --entitlements
+// and --timestamp, and no --deep.  That is the form notarization
+// requires.
+func signBundle(appDir, signID, entitlements string) error {
+	if err := execLookPath("codesign"); err != nil {
 		return errors.New("codesign not found")
 	}
-	cmd := exec.Command("codesign", "-s", signID, "--force", "--deep", appDir)
-	if out, err := cmd.CombinedOutput(); err != nil {
+	args := []string{"-s", signID, "--force"}
+	if entitlements != "" {
+		args = append(args, "--options", "runtime",
+			"--entitlements", entitlements, "--timestamp")
+	} else {
+		args = append(args, "--deep")
+	}
+	args = append(args, appDir)
+	if out, err := runTool("codesign", args...); err != nil {
 		return fmt.Errorf("%v: %s", err, out)
 	}
 	return nil
@@ -312,6 +320,20 @@ func isSystemLib(path string) bool {
 
 // #nosec G301 — standard macOS .app bundle permissions
 func buildMacOS(o bundleOpts) error {
+	if o.Notarize && o.Entitlements == "" {
+		return errors.New("-notarize needs -entitlements: notarization requires the hardened runtime")
+	}
+	if o.NotaryProfile != "" && !o.Notarize {
+		return errors.New("-notary-profile needs -notarize")
+	}
+	if o.Notarize && o.NotaryProfile == "" {
+		return errors.New("-notarize needs -notary-profile: the notarytool keychain profile to submit with")
+	}
+	if o.Entitlements != "" {
+		if fi, err := os.Stat(o.Entitlements); err != nil || fi.IsDir() {
+			return fmt.Errorf("entitlements file %q not found", o.Entitlements)
+		}
+	}
 	if err := validateMachO(o.Binary); err != nil {
 		return err
 	}
@@ -364,7 +386,7 @@ func buildMacOS(o bundleOpts) error {
 	// Sign the entire .app bundle.  Without a bundle-level signature
 	// macOS Gatekeeper reports the app as damaged even when individual
 	// binaries inside are signed.
-	if err = signBundle(appDir, o.SignID); err != nil {
+	if err = signBundle(appDir, o.SignID, o.Entitlements); err != nil {
 		return fmt.Errorf("sign bundle: %w", err)
 	}
 
@@ -379,5 +401,60 @@ func buildMacOS(o bundleOpts) error {
 		return err
 	}
 	fmt.Println(dst)
+
+	artifact := dst
+	if o.Dmg {
+		artifact, err = makeDmg(dst, o)
+		if err != nil {
+			return err
+		}
+	}
+	if o.Notarize {
+		if err = notarize(artifact, o.NotaryProfile); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// makeDmg wraps appDir in a UDZO disk image named
+// <slug>-<version>.dmg, the same slug-version form the Windows and
+// Linux archives use. The volume shows as "<Name> <Version>" in
+// Finder. The .app inside carries the signature; the image itself is
+// left unsigned, which Gatekeeper accepts.
+func makeDmg(appDir string, o bundleOpts) (string, error) {
+	if err := execLookPath("hdiutil"); err != nil {
+		return "", errors.New("hdiutil not found")
+	}
+	dst := filepath.Join(o.OutDir, fmt.Sprintf("%s-%s.dmg", slug(o.Name), o.Version))
+	if err := os.RemoveAll(dst); err != nil {
+		return "", err
+	}
+	args := []string{"create", "-srcfolder", appDir,
+		"-volname", o.Name + " " + o.Version,
+		"-format", "UDZO", dst}
+	if out, err := runTool("hdiutil", args...); err != nil {
+		return "", fmt.Errorf("hdiutil: %v: %s", err, out)
+	}
+	fmt.Println(dst)
+	return dst, nil
+}
+
+// notarize submits artifact (the .dmg when -dmg is set, else the .app)
+// to Apple and staples the ticket, so a downloaded app launches
+// without a Gatekeeper warning. Credentials stay in the keychain under
+// profile; they never travel as flags.
+func notarize(artifact, profile string) error {
+	if err := execLookPath("xcrun"); err != nil {
+		return errors.New("xcrun not found (needed for notarytool)")
+	}
+	args := []string{"notarytool", "submit", artifact,
+		"--keychain-profile", profile, "--wait"}
+	if out, err := runTool("xcrun", args...); err != nil {
+		return fmt.Errorf("notarytool submit: %v: %s", err, out)
+	}
+	if out, err := runTool("xcrun", "stapler", "staple", artifact); err != nil {
+		return fmt.Errorf("stapler staple: %v: %s", err, out)
+	}
 	return nil
 }

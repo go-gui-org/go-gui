@@ -165,17 +165,16 @@ package-windows: build-windows
 # fat Mach-O, so passing it aborts the whole target the moment the
 # binary goes universal.  Nothing is lost: the showcase links only
 # /System and /usr/lib, which every macOS already has.
+# -dmg writes the UDZO image next to the .app, so no hand-run hdiutil
+# step remains; the image itself is left unsigned (the .app inside
+# carries the signature, which is what Gatekeeper checks).
 package-macos: build-macos
 	@mkdir -p build/pkg-macos $(DIST)
 	cp build/showcase-macos build/pkg-macos/showcase
 	rm -rf "build/Go-Gui Showcase.app"
-	go run ./cmd/buildapp -o build -version $(BUNDLE_VER) \
+	go run ./cmd/buildapp -o build -dmg -version $(BUNDLE_VER) \
 	  -name "Go-Gui Showcase" build/pkg-macos/showcase
-	rm -f "$(DIST)/Go-Gui-Showcase-$(VERSION).dmg"
-	hdiutil create -srcfolder "build/Go-Gui Showcase.app" \
-	  -volname "Go-Gui Showcase $(VERSION)" \
-	  -format UDZO "$(DIST)/Go-Gui-Showcase-$(VERSION).dmg"
-	codesign -s - --force "$(DIST)/Go-Gui-Showcase-$(VERSION).dmg"
+	mv "build/go-gui-showcase-$(BUNDLE_VER).dmg" "$(DIST)/"
 
 # Every desktop artifact the release workflow attaches.  package-macos
 # needs a Mac; on Linux run package-linux and package-windows only.
