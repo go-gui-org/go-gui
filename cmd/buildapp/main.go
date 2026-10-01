@@ -6,9 +6,17 @@
 //
 // Usage:
 //
-//	buildapp [-platform darwin|windows|linux] [-o outdir] [-manifest appinfo.toml]
+//	buildapp [-platform darwin|windows|linux] [-arch amd64|arm64]
+//	         [-o outdir] [-manifest appinfo.toml]
 //	         [-name Name] [-id bundle.id] [-version v] [-build n]
-//	         [-icon icon.png] [-sign identity] <binary>
+//	         [-icon icon.png] [-sign identity]
+//	         [-build-pkg importpath] [-ldflags flags]
+//	         [-dmg] [-entitlements file.entitlements]
+//	         [-notarize -notary-profile profile] <binary>
+//
+// -build-pkg compiles the package first and packages the result; without
+// it the positional <binary> is packaged as before. -dmg, -entitlements
+// and -notarize are macOS only.
 //
 // Without -manifest, buildapp reads appinfo.toml from the working
 // directory when one is there. A flag given on the command line wins
@@ -49,6 +57,30 @@ type bundleOpts struct {
 	// Categories is the Linux .desktop Categories value, from the
 	// manifest's [linux] section. Empty means defaultCategories.
 	Categories string
+	// BuildPkg is a package path to compile before packaging
+	// (for example ./examples/showcase). Empty means the positional
+	// <binary> is packaged as before; the two are mutually exclusive.
+	BuildPkg string
+	// Arch is the GOARCH to compile for with -build-pkg. Empty means
+	// the host arch.
+	Arch string
+	// Ldflags are extra linker flags for -build-pkg. On Windows,
+	// "-H windowsgui" is appended when missing, which stops the
+	// loader opening a console window behind the app.
+	Ldflags string
+	// Dmg wraps the macOS .app in a UDZO .dmg. macOS only.
+	Dmg bool
+	// Entitlements is an entitlements file for distribution signing.
+	// It switches codesign to the hardened runtime form. macOS only.
+	Entitlements string
+	// Notarize submits the artefact to Apple with notarytool and
+	// staples the ticket. It needs -entitlements (the hardened
+	// runtime) and -notary-profile. macOS only.
+	Notarize bool
+	// NotaryProfile is the notarytool keychain profile to submit
+	// with. Secrets never travel as flags; the profile in the
+	// keychain holds them.
+	NotaryProfile string
 }
 
 // envSignIdentity supplies the -sign default, so a developer with a
@@ -81,16 +113,33 @@ func run() error {
 		"copy non-system dylibs into Contents/Frameworks and rewrite paths")
 	flag.StringVar(&o.SignID, "sign", defaultSignIdentity(),
 		"codesign identity; \"-\" is ad-hoc, which drops TCC grants on every rebuild (see README)")
+	flag.StringVar(&o.BuildPkg, "build-pkg", "",
+		"compile this package for -platform/-arch first, then package the result")
+	flag.StringVar(&o.Arch, "arch", runtime.GOARCH,
+		"target architecture for -build-pkg: amd64 or arm64")
+	flag.StringVar(&o.Ldflags, "ldflags", "",
+		"extra linker flags for -build-pkg")
+	flag.BoolVar(&o.Dmg, "dmg", false,
+		"macOS: wrap the .app in a UDZO .dmg")
+	flag.StringVar(&o.Entitlements, "entitlements", "",
+		"macOS: entitlements file for distribution signing (hardened runtime)")
+	flag.BoolVar(&o.Notarize, "notarize", false,
+		"macOS: submit to Apple with notarytool and staple (needs -entitlements and -notary-profile)")
+	flag.StringVar(&o.NotaryProfile, "notary-profile", "",
+		"macOS: notarytool keychain profile to submit with")
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "usage: buildapp [flags] <binary>\n")
+		fmt.Fprintf(os.Stderr, "usage: buildapp [flags] <binary>  (or -build-pkg <pkg> with no binary)\n")
 		flag.PrintDefaults()
 	}
 	flag.Parse()
-	if flag.NArg() != 1 {
+	bin, err := resolveBinary(o.BuildPkg, flag.Args())
+	if err != nil {
 		flag.Usage()
-		return errors.New("expected exactly one binary argument")
+		return err
 	}
-	o.Binary = flag.Arg(0)
+	o.Binary = bin
+	// Manifest first: a bad -manifest must fail before any compile
+	// starts, not after a wasted build.
 	info, dir, err := loadManifest(*manifest)
 	if err != nil {
 		return err
@@ -100,6 +149,17 @@ func run() error {
 	set := map[string]bool{}
 	flag.Visit(func(f *flag.Flag) { set[f.Name] = true })
 	applyManifest(&o, info, dir, set)
+	if o.BuildPkg != "" {
+		compiled, cerr := compileInTempDir(o)
+		if cerr != nil {
+			return cerr
+		}
+		// The staging directory goes away when run returns; the
+		// artefacts stay valid because build writes them under -o,
+		// not under staging.
+		defer func() { _ = os.RemoveAll(filepath.Dir(compiled)) }()
+		o.Binary = compiled
+	}
 	return build(o)
 }
 
@@ -128,6 +188,10 @@ func build(o bundleOpts) error {
 	}
 	if o.Binary == "" {
 		return errors.New("no binary given")
+	}
+	if o.Platform != "darwin" && (o.Dmg || o.Entitlements != "" ||
+		o.Notarize || o.NotaryProfile != "") {
+		return fmt.Errorf("-dmg, -entitlements, -notarize and -notary-profile are macOS only (platform is %q)", o.Platform)
 	}
 	execName := filepath.Base(o.Binary)
 	if o.Name == "" {

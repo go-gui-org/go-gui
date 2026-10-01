@@ -8,6 +8,20 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- **`buildapp` compiles, images and signs for distribution (#852)** — four new
+  steps on the one tool, so release scripts stop hand-running them: `-build-pkg`
+  compiles the package for `-platform`/`-arch` first (`-H windowsgui` is added
+  on Windows automatically, `CGO_ENABLED=0` on Linux/Windows); `-dmg` wraps the
+  macOS `.app` in a UDZO disk image; `-entitlements` switches `codesign` to the
+  hardened-runtime form; `-notarize` submits the artefact with `notarytool` from
+  a keychain profile (`-notary-profile`, never flags) and staples the ticket.
+  `-notarize` without `-entitlements` is an error. `make release` uses `-dmg` in
+  place of the hand-run `hdiutil` step, and the `.dmg` takes the same
+  slug-version name form as the `.zip` and `.tar.gz`. Windows Authenticode
+  signing stays out of scope in its own issue.
+
 ## [v0.83.0] - 2026-09-30
 
 ### Added

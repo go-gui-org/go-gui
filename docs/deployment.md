@@ -5,11 +5,11 @@ can hand to a user: a signed `.app` on macOS, an icon-embedded `.exe` in a
 `.zip` on Windows, a menu-installable tarball on Linux. One binary in, one
 artefact out.
 
-| Platform | Output                                 | What packaging adds                        |
-| -------- | -------------------------------------- | ------------------------------------------ |
-| macOS    | signed `.app` (+ `.dmg` via `hdiutil`) | `Info.plist`, `.icns` icon, code signature |
-| Windows  | `.zip` holding the `.exe`              | icon resource embedded in the PE image     |
-| Linux    | `.tar.gz`                              | `.desktop` entry, icon, `install.sh`       |
+| Platform | Output                               | What packaging adds                        |
+| -------- | ------------------------------------ | ------------------------------------------ |
+| macOS    | signed `.app` (+ `.dmg` with `-dmg`) | `Info.plist`, `.icns` icon, code signature |
+| Windows  | `.zip` holding the `.exe`            | icon resource embedded in the PE image     |
+| Linux    | `.tar.gz`                            | `.desktop` entry, icon, `install.sh`       |
 
 The full flag reference lives in
 [`cmd/buildapp/README.md`](../cmd/buildapp/README.md). This page covers the
@@ -34,6 +34,18 @@ CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
 # macOS (host toolchain, Apple Silicon or Intel)
 go build -o build/myapp ./myapp/
 ```
+
+Or let buildapp compile for you with `-build-pkg` (same flags, one step —
+`-H windowsgui` is added on Windows automatically). It takes no positional
+binary then:
+
+```bash
+go run ./cmd/buildapp -platform windows -arch amd64 -build-pkg ./myapp/ \
+  -o build -name "My App" -icon icon.png
+```
+
+Cross-compiling to macOS from another OS still needs the macOS SDK, so build the
+macOS binary on a Mac.
 
 Stage the binary under a clean name before packaging: the executable's basename
 becomes the installed program name (the `Exec=` line on Linux, the file inside
@@ -113,13 +125,10 @@ go run ./cmd/buildapp -platform windows -o build -version 1.0.0 \
 go run ./cmd/buildapp -platform linux -o build -version 1.0.0 \
   -name "My App" -icon icon.png build/myapp
 
-# macOS → "My App.app" (run on a Mac: needs sips, iconutil, codesign)
-go run ./cmd/buildapp -o build -version 1.0.0 \
+# macOS → "My App.app" plus my-app-1.0.0.dmg (run on a Mac:
+# needs sips, iconutil, codesign, hdiutil for -dmg)
+go run ./cmd/buildapp -o build -dmg -version 1.0.0 \
   -name "My App" -icon icon.png build/myapp
-
-# macOS disk image for distribution
-hdiutil create -srcfolder "build/My App.app" -volname "My App 1.0.0" \
-  -format UDZO "build/My-App-1.0.0.dmg"
 ```
 
 `-platform` defaults to the host `GOOS`, so the macOS invocation above omits it.
@@ -161,9 +170,12 @@ their load paths — needed only if the app links libraries outside `/usr/lib` a
 `/System`.
 
 Distribution signing (hardened runtime, entitlements, notarization with
-`notarytool`) is out of scope: run `codesign` and `notarytool` separately.
-Likewise, the Windows `.exe` is not Authenticode signed — run `signtool`
-separately if needed.
+`notarytool`) is built in: pass `-entitlements` for the hardened-runtime
+signature and add `-notarize -notary-profile <profile>` to submit and staple.
+Without `-entitlements`, `-notarize` is an error. See
+[`cmd/buildapp/README.md`](../cmd/buildapp/README.md#distribution-signing-and-notarization).
+The Windows `.exe` is not Authenticode signed — that is a separate issue; run
+`signtool` separately if needed.
 
 ## Mobile
 
