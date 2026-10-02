@@ -97,6 +97,12 @@ type DialogCfg struct {
 	// exportaudit:keep — caller-facing config (issue #467)
 	SoundDisabled bool
 
+	// EscapeDisabled stops the Escape key from closing the dialog.
+	// Set it for progress dialogs that close only with
+	// DialogDismiss (issue #909).
+	// exportaudit:keep — caller-facing config (issue #909)
+	EscapeDisabled bool
+
 	// unexported
 	visible bool
 	// interactionCut is set once fixupInteractionLocked has ended the
@@ -330,11 +336,17 @@ func promptView(cfg DialogCfg) []View {
 	return views
 }
 
-// dialogKeyDown handles Escape to dismiss dialog.
+// dialogKeyDown closes the dialog on Escape, unless EscapeDisabled
+// is set. A disabled Escape key stays unhandled, so content in the
+// dialog can still use it.
 func dialogKeyDown(cfg DialogCfg) func(EventCtx) {
 	onCancelNo := cfg.OnCancelNo
+	escapeDisabled := cfg.EscapeDisabled
 	return func(ctx EventCtx) {
 		if ctx.Event.KeyCode == KeyEscape {
+			if escapeDisabled {
+				return
+			}
 			ctx.Window.DialogDismiss()
 			if onCancelNo != nil {
 				onCancelNo(ctx.Window)

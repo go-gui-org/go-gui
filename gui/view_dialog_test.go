@@ -467,6 +467,107 @@ func TestDialogCustomEscapeDismisses(t *testing.T) {
 	}
 }
 
+// TestDialogEscapeDisabledKeepsDialog is the regression test for
+// issue #909: a progress dialog sets EscapeDisabled so Escape
+// neither dismisses it nor fires OnCancelNo. Programmatic
+// DialogDismiss still closes it.
+func TestDialogEscapeDisabledKeepsDialog(t *testing.T) {
+	w := newTestWindow()
+	cancelled := false
+	w.Dialog(DialogCfg{
+		DialogType:     DialogCustom,
+		EscapeDisabled: true,
+		CustomView: func(*Window) View {
+			return Text(TextCfg{Text: "working"})
+		},
+		OnCancelNo: func(_ *Window) { cancelled = true },
+	})
+	if !w.DialogIsVisible() {
+		t.Fatal("dialog should be visible")
+	}
+
+	v := dialogViewGenerator(w.dialogCfg)
+	layout := generateViewLayout(v, w)
+	e := &Event{Type: EventKeyDown, KeyCode: KeyEscape}
+	keydownHandler(&layout, e, w)
+
+	if e.IsHandled {
+		t.Error("Escape must stay unhandled when EscapeDisabled is set")
+	}
+	if cancelled {
+		t.Error("OnCancelNo must not fire when EscapeDisabled is set")
+	}
+	if !w.DialogIsVisible() {
+		t.Fatal("dialog dismissed despite EscapeDisabled")
+	}
+
+	w.DialogDismiss()
+	if w.DialogIsVisible() {
+		t.Error("DialogDismiss must still close an EscapeDisabled dialog")
+	}
+}
+
+// TestDialogEscapeDisabledFullDispatch drives Escape through full
+// dispatch: the dialog root must decline it, so the dialog stays
+// open and OnCancelNo stays silent.
+func TestDialogEscapeDisabledFullDispatch(t *testing.T) {
+	w := NewTestWindow(t, WindowCfg{})
+	w.TestRender(func(*Window) View {
+		return Column(ContainerCfg{ID: "root"})
+	})
+	cancelled := false
+	w.Dialog(DialogCfg{
+		DialogType:     DialogCustom,
+		EscapeDisabled: true,
+		FocusID:        "keys",
+		OnCancelNo:     func(_ *Window) { cancelled = true },
+		CustomView: func(*Window) View {
+			return Column(ContainerCfg{
+				ID:        "keys",
+				Focusable: true,
+			})
+		},
+	})
+	w.TestRender(nil)
+	if !w.DialogIsVisible() {
+		t.Fatal("dialog did not open")
+	}
+	down := Event{Type: EventKeyDown, KeyCode: KeyEscape}
+	w.EventFn(&down)
+	w.TestRender(nil)
+	if !w.DialogIsVisible() {
+		t.Error("dialog dismissed despite EscapeDisabled")
+	}
+	if cancelled {
+		t.Error("OnCancelNo fired despite EscapeDisabled")
+	}
+	if down.IsHandled {
+		t.Error("Escape must stay unhandled when EscapeDisabled is set")
+	}
+}
+
+// TestDialogEscapeDisabledCtrlCStillCopies pins the guard's scope:
+// EscapeDisabled blocks only the Escape branch, so Ctrl+C still
+// copies the body text (issue #909).
+func TestDialogEscapeDisabledCtrlCStillCopies(t *testing.T) {
+	w := newTestWindow()
+	var clipped string
+	w.SetClipboardFn(func(s string) { clipped = s })
+
+	cfg := DialogCfg{Body: "progress log", EscapeDisabled: true}
+	handler := dialogKeyDown(cfg)
+	e := &Event{KeyCode: KeyC, Modifiers: ModCtrl}
+	handler(EventCtx{nil, e, w})
+
+	if clipped != "progress log" {
+		t.Fatalf("expected clipboard=%q got %q",
+			"progress log", clipped)
+	}
+	if !e.IsHandled {
+		t.Fatal("expected IsHandled=true")
+	}
+}
+
 func TestDialogAlignButtonsLeft(t *testing.T) {
 	cfg := DialogCfg{AlignButtons: HAlignLeft}
 	applyDialogDefaults(&cfg)
