@@ -529,6 +529,15 @@ func createWindowState(w *gui.Window) (*windowState, error) {
 		C.metalWindowSetTransparent(win, 1)
 	}
 
+	// CAMetalLayer.displaySyncEnabled = NO was tried and measured (issue
+	// #907): nextDrawable still blocks until the window compositor
+	// returns a drawable, once per display refresh, in a window and in
+	// full screen alike. FPS stayed at 240 on a 240 Hz display, so the
+	// flag is reported as not honored rather than set to no effect.
+	if cfg.VSyncOff {
+		w.DebugWindowVSync("macOS paces frames with the window compositor")
+	}
+
 	// Replay a SetWindowOpacity made before the native platform was
 	// attached (in OnInit, or before backend.Run). Same reason as
 	// above: apply it before the first frame is composited.

@@ -135,6 +135,31 @@ type WindowCfg struct {
 	// needs Window.StartWindowDrag to stay movable. Honored by the
 	// macOS, Windows and X11 backends; ignored elsewhere.
 	Decorations WindowDecoration
+	// VSyncOff presents frames without waiting for the display's
+	// vertical refresh. The zero value keeps vsync on, which is right
+	// for almost every app: frames never outrun the display and the
+	// GPU stays quiet.
+	//
+	// It exists for renderer benchmarks. With vsync on, a benchmark
+	// that redraws every frame reads the display refresh rate (60,
+	// 120, 240 Hz) until a frame takes longer than one refresh, so it
+	// cannot report raw throughput.
+	//
+	// It does not make an idle window draw. The loop still sleeps
+	// while no refresh is pending, and animations still tick every
+	// 16 ms. Frame rate climbs past the refresh rate only when the
+	// app asks for a new frame every frame (InvalidateLayout in the
+	// view function). Such an app then uses a full CPU core.
+	//
+	// Creation-time only. Honored by the Windows (WGL) and X11 (EGL)
+	// backends; on X11 a driver setting such as vblank_mode or
+	// __GL_SYNC_TO_VBLANK can still force vsync on. macOS, iOS,
+	// Android and web pace frames with the display and ignore it:
+	// on macOS the window compositor hands back a drawable once per
+	// refresh, whatever the layer's display sync says. gui.Debug
+	// reports when the flag was not honored.
+	// exportaudit:keep — caller-facing config (issue #907)
+	VSyncOff bool
 	// Timings enables per-frame pipeline timing instrumentation.
 	Timings bool
 	// DebugTimeTravel enables time-travel snapshot capture and

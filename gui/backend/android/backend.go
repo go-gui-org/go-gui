@@ -260,6 +260,12 @@ func initBackend(w, h int32, scale float32) {
 	}
 	androidWindow.EventFn(&evt)
 
+	// The host GLSurfaceView owns the EGL swap, and SurfaceFlinger paces
+	// it to the display, so VSyncOff cannot be honored.
+	if androidWindow.Config.VSyncOff {
+		androidWindow.DebugWindowVSync("Android paces frames with GLSurfaceView")
+	}
+
 	if androidWindow.Config.OnInit != nil {
 		androidWindow.Config.OnInit(androidWindow)
 	}

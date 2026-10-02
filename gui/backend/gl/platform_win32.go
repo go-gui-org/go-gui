@@ -550,6 +550,10 @@ func New(w *gui.Window) (*Backend, error) {
 		return nil, newGPUContextError("create WGL context", err)
 	}
 	b.plat.hglrc = hglrc
+	// createContext leaves the context current on hdc, which is what
+	// wglSwapIntervalEXT applies to.
+	applyVSyncOff(cfg.VSyncOff, wglSetSwapInterval, w.DebugWindowVSync,
+		"wglSwapIntervalEXT")
 
 	if err := gogl.InitWithProcAddrFunc(glProc); err != nil {
 		b.plat.destroy()

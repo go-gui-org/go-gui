@@ -54,6 +54,9 @@ const (
 	// debugCheckWindowOpacity fires from a backend when
 	// Window.SetWindowOpacity could not be honoured.
 	debugCheckWindowOpacity
+	// debugCheckWindowVSync fires from a backend's window creation
+	// when WindowCfg.VSyncOff could not be honoured.
+	debugCheckWindowVSync
 	// debugCheckUnresolvedKey fires from the state-key audit when a
 	// StateMap key is a bare leaf that the resolve pass scoped; see
 	// debug_state_keys.go.
@@ -136,7 +139,8 @@ func checkCategory(check debugCheck) DebugCategory {
 		return DebugWrapOverflow
 	case debugCheckDeferredLoop, debugCheckLinkNotOpened:
 		return DebugCallbacks
-	case debugCheckWindowTransparency, debugCheckWindowOpacity:
+	case debugCheckWindowTransparency, debugCheckWindowOpacity,
+		debugCheckWindowVSync:
 		return DebugWindowDegraded
 	case debugCheckUnresolvedKey, debugCheckEffIDPhase:
 		return DebugUnresolvedKeys

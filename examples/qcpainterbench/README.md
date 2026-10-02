@@ -54,6 +54,9 @@ Flags:
 - `-count` is the render count for an interactive run. Render counts are capped
   at 4096.
 - `-sweep`, `-seconds` and `-warmup` set up a scripted run.
+- `-novsync` presents without vsync (`WindowCfg.VSyncOff`), as Qt runs this
+  benchmark. FPS is then not capped at the display refresh rate. Honored on
+  Windows and X11; macOS stays at the display refresh rate.
 - `-screenshot` writes a PNG through the software renderer and exits.
 
 ## What it demonstrates
@@ -65,8 +68,9 @@ Flags:
 
 ## How to read the numbers
 
-Every go-gui backend presents with vsync. FPS therefore stops at the display
-refresh rate. Look at two things:
+By default go-gui presents with vsync, so FPS stops at the display refresh rate.
+With `-novsync`, FPS is raw throughput and compares directly with Qt's number.
+With vsync on, look at two things:
 
 - **Saturation count**: the largest render count that still holds the refresh
   rate.
@@ -88,7 +92,6 @@ equivalent yet. The example emulates them (search `Emulated:` in
 - Curve strokes use miter joins, not round joins.
 - Text uses the theme font, not Roboto. The icon is generated, not Qt's
   `circle.png`.
-- There is no vsync-off mode.
 
 `docs/specs/qcpainterbench.md` has the full workload description and the list of
 renderer gaps.

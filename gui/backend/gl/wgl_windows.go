@@ -174,6 +174,18 @@ func createContext(hdc uintptr) (uintptr, error) {
 	return core, nil
 }
 
+// wglSetSwapInterval sets the swap interval of the current context. It
+// reports false when the driver lacks WGL_EXT_swap_control or refuses
+// the value.
+func wglSetSwapInterval(n int32) bool {
+	fn := wglProc("wglSwapIntervalEXT")
+	if fn == 0 {
+		return false
+	}
+	r, _, _ := syscall.SyscallN(fn, uintptr(n))
+	return r != 0
+}
+
 // wglProc resolves a WGL extension entry point. A context must be
 // current. Returns 0 if unavailable.
 func wglProc(name string) uintptr {

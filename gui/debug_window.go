@@ -41,6 +41,20 @@ func (w *Window) DebugWindowOpacity(reason string) {
 		"window: opacity requested but %s", reason)
 }
 
+// DebugWindowVSync reports that WindowCfg.VSyncOff did not take effect,
+// and why. Called by a backend at window creation, where the platform
+// answer is known and the app author's only clue would otherwise be a
+// benchmark that still reads the display refresh rate. reason is the
+// warn-once discriminator, so each distinct cause is reported once.
+// exportaudit:keep — dev-diagnostic API called from gui/backend
+func (w *Window) DebugWindowVSync(reason string) {
+	if w == nil {
+		return
+	}
+	w.debugWarn(debugCheckWindowVSync, reason,
+		"window: VSyncOff requested but %s", reason)
+}
+
 // DebugGradientResampled reports a fill gradient whose stops exceeded
 // the GPU shader uniform limit and were resampled down to it, which
 // costs some fidelity even with error-driven placement. Called by the
