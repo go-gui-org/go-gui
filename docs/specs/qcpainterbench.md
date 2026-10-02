@@ -141,29 +141,26 @@ used.
 
 ## Mapping to go-gui
 
-| Qt operation                  | go-gui                                                             | Fidelity                |
-| ----------------------------- | ------------------------------------------------------------------ | ----------------------- |
-| Ruler tick path, one stroke   | `Line` per tick                                                    | Same batch, same result |
-| `fillText` centered           | `TextWidth` + `FontHeight` + `Text`                                | Theme font, not Roboto  |
-| `circle` stroke               | `Circle`                                                           | Exact                   |
-| `arc` stroke, round caps      | `ArcStyled` with round caps                                        | Exact since #905        |
-| Cubic path, gradient fill     | Flatten in the example, strip to baseline, `FillTrianglesGradient` | Emulated path fill      |
-| Cubic path, round-join stroke | `PolylineJoinedStyled` with round joins                            | Exact since #905        |
-| Dot circles, fill + stroke    | `FilledCircle` + `Circle`                                          | Exact                   |
-| Bar rects, fill + stroke      | `FilledRect` + `Rect`; `Line` for a zero-height bar                | Exact                   |
-| `drawImage`                   | `Image` with a `mem:` source                                       | Generated image         |
-| Rotated quadratic path        | Flatten once, `Save`/`Translate`/`Rotate` about the center         | Exact since #904        |
-| Quadratic path, radial fill   | Triangle fan from the center, `FillTrianglesGradient`              | Emulated path fill      |
-| Quadratic path stroke         | `PolylineJoined`                                                   | Exact join type         |
-
-The fan from the center is valid for the flower because the outline's angle
-around the center only turns one way. `TestFanCoversFlower` checks this.
+| Qt operation                  | go-gui                                                         | Fidelity                |
+| ----------------------------- | -------------------------------------------------------------- | ----------------------- |
+| Ruler tick path, one stroke   | `Line` per tick                                                | Same batch, same result |
+| `fillText` centered           | `TextWidth` + `FontHeight` + `Text`                            | Theme font, not Roboto  |
+| `circle` stroke               | `Circle`                                                       | Exact                   |
+| `arc` stroke, round caps      | `ArcStyled` with round caps                                    | Exact since #905        |
+| Cubic path, gradient fill     | `CanvasPath` cubics closed to the baseline, `FillPathGradient` | Exact since #906        |
+| Cubic path, round-join stroke | `PolylineJoinedStyled` with round joins                        | Exact since #905        |
+| Dot circles, fill + stroke    | `FilledCircle` + `Circle`                                      | Exact                   |
+| Bar rects, fill + stroke      | `FilledRect` + `Rect`; `Line` for a zero-height bar            | Exact                   |
+| `drawImage`                   | `Image` with a `mem:` source                                   | Generated image         |
+| Rotated quadratic path        | Flatten once, `Save`/`Translate`/`Rotate` about the center     | Exact since #904        |
+| Quadratic path, radial fill   | `CanvasPath` from the cached outline, `FillPathGradient`       | Exact since #906        |
+| Quadratic path stroke         | `StrokePath` on the same path, default `StrokeStyle`           | Exact join type         |
 
 ## Gaps
 
-These are the go-gui features the port has to emulate. Each one has its own
-issue. Each new API needs its own design under the design-before-code rule. This
-port adds no API.
+These are the go-gui features the port needed. Each one has its own issue. Each
+new API needs its own design under the design-before-code rule. This port adds
+no API.
 
 1. **Rotation in the canvas transform (#904, done).** `DrawContext.Rotate` turns
    drawing about the current origin, so the flower draws its cached outline
@@ -174,12 +171,11 @@ port adds no API.
    through the `*Styled` methods, on top of the one stroker `gui/svg` shares.
    The example draws the arcs and curves with round caps and joins and keeps no
    half-disc fills.
-3. **A path builder with fill rules (#906).** There is no
-   `moveTo`/`lineTo`/`quadTo`/`cubicTo`/`close`. `FilledPolygon` is a fan from
-   the first point, so it is correct only for convex shapes. The example builds
-   triangles by hand. That works only because both filled shapes here have a
-   simple structure. `gui/svg/tessellate_scanline.go` already fills with the
-   nonzero and even-odd rules, but only for SVG.
+3. **A path builder with fill rules (#906, done).** `CanvasPath` records
+   `MoveTo`/`LineTo`/`QuadTo`/`CubicTo`/`ArcTo`/`Close` and draws through
+   `FillPath`, `FillPathGradient` and `StrokePath`, on top of the one
+   tessellator `gui/svg` shares. The Lines area is path cubics closed to the
+   baseline; the flower is the cached outline as one closed contour.
 4. **A vsync-off mode (#907).** Every backend presents with vsync, and there is
    no setting to turn it off. FPS is therefore capped at the display refresh
    rate (see Measuring).

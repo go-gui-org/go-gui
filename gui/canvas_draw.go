@@ -1,6 +1,10 @@
 package gui
 
-import "math"
+import (
+	"math"
+
+	"github.com/go-gui-org/go-gui/gui/internal/pathfill"
+)
 
 // DrawContext is passed to the OnDraw callback. Drawing methods
 // append tessellated triangle batches which are later emitted as
@@ -29,18 +33,26 @@ type DrawContext struct {
 	// strokeScratch is reused workspace for the shared stroker's
 	// segment normals. Styled strokes re-derive it at the same
 	// length every redraw, like the join buffers below.
-	strokeScratch   []float32
-	joinNormalBuf   []strokeVec
-	joinOffsetBuf   []strokeOffset
-	gradTriBuf      []float32
-	gradSplitBuf    []float32
-	gradRadialBuf   []float32
-	gradIsolineBuf  []float32
-	gradOffsetBuf   []float32
-	gradStopBuf     []GradientStop
-	gradSampleBuf   []GradientStop
-	gradRampBuf     []gradRampSegment
-	gradRingBuf     []gradRing
+	strokeScratch  []float32
+	joinNormalBuf  []strokeVec
+	joinOffsetBuf  []strokeOffset
+	gradTriBuf     []float32
+	gradSplitBuf   []float32
+	gradRadialBuf  []float32
+	gradIsolineBuf []float32
+	gradOffsetBuf  []float32
+	gradStopBuf    []GradientStop
+	gradSampleBuf  []GradientStop
+	gradRampBuf    []gradRampSegment
+	gradRingBuf    []gradRing
+	// pathFlatBuf holds the flattened contours of the path being
+	// drawn, pathContourBuf their headers into it, and pathScratch
+	// the tessellator workspace. All three are reused across
+	// redraws, like the arc and bezier buffers above: a path drawn
+	// every frame stops allocating after the first one.
+	pathFlatBuf     []float32
+	pathContourBuf  [][]float32
+	pathScratch     pathfill.Scratch
 	lineBuf         [4]float32
 	currentBatchIdx int
 	Width           float32
@@ -78,24 +90,6 @@ type DrawContext struct {
 // SetRecorder attaches a DrawRecorder that receives high-level
 // draw commands in addition to normal tessellation.
 func (dc *DrawContext) SetRecorder(r DrawRecorder) { dc.recorder = r }
-
-func (dc *DrawContext) getBatch(color Color) *DrawCanvasTriBatch {
-	// The transform joins the run-length merge key: a batch carries
-	// one matrix for all its triangles, so a transform change must
-	// start a new batch. Compared against the live batch rather than
-	// a mirror field so there is one source of truth.
-	xf, hasXf := dc.activeXform()
-	if len(dc.batches) > 0 && !dc.batchIsGradient &&
-		dc.lastColor == color &&
-		dc.batches[dc.currentBatchIdx].hasXform == hasXf &&
-		dc.batches[dc.currentBatchIdx].xf == xf {
-		return &dc.batches[dc.currentBatchIdx]
-	}
-	b := dc.takeBatch(color, false, defaultBatchVerts)
-	dc.lastColor = color
-	dc.batchIsGradient = false
-	return b
-}
 
 // FilledRect draws a filled rectangle as two triangles.
 func (dc *DrawContext) FilledRect(x, y, w, h float32, color Color) {

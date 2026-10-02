@@ -250,6 +250,28 @@ type DrawVertexColorRecorder interface {
 	FillTrianglesColors(tris []float32, colors []Color)
 }
 
+// DrawPathRecorder is an optional extension to DrawRecorder: a
+// recorder implementing it receives path fills and strokes with the
+// caller's CanvasPath intact.
+//
+// It is a separate interface rather than more methods on DrawRecorder
+// for the same reason DrawGradientRecorder is separate from
+// DrawRecorder — DrawRecorder is exported and implemented outside
+// this repo, so widening it would break every existing implementer.
+// A recorder that does not implement this still receives the path:
+// a fill as one flat polygon per tessellated triangle, a stroke as
+// one joined polyline per contour, so an export path never breaks
+// and never silently drops a path. A gradient path fill reaches a
+// gradient-capable recorder as tessellated triangles plus the
+// gradient; without one it degrades to the flat path at the ramp's
+// midpoint.
+// exportaudit:keep — reachable from an exported signature
+type DrawPathRecorder interface {
+	FillPath(p *CanvasPath, color Color, rule FillRule)
+	StrokePath(p *CanvasPath, color Color, width float32,
+		style StrokeStyle)
+}
+
 // DrawStrokeRecorder is an optional extension to DrawRecorder: a
 // recorder implementing it receives styled strokes with the caller's
 // StrokeStyle intact.
