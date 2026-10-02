@@ -56,9 +56,30 @@ and this project adheres to
   shows FPS and go-gui's CPU time per frame. `-sweep 1,2,4,…,512` prints one CSV
   row per render count. No Qt code is copied: the workloads follow the behavior
   written in `docs/specs/qcpainterbench.md`. Vsync stays on, so FPS stops at the
-  display refresh rate; round caps and concave path fill are emulated in the
-  example and tracked in #905, #906 and #907 (rotation since #904 rides
-  `DrawContext.Rotate`).
+  display refresh rate; round caps ride `StrokeStyle` since #905, and concave
+  path fill is emulated in the example and tracked in #906 (rotation since #904
+  rides `DrawContext.Rotate`).
+
+- **Canvas strokes take caps and joins through `StrokeStyle` (#905)** — `Line`,
+  `Polyline`, `PolylineJoined`, `Arc` and the beziers (plus `Circle` and
+  `RoundedRect`) each gain a `*Styled` twin that draws round and square caps and
+  round joins on top of the one stroker `gui/svg` shares. The zero style draws
+  exactly what the unstyled call draws, so existing code sees no change in
+  pixels, triangle counts or recorder output. A recorder that wants the style
+  implements the optional `DrawStrokeRecorder` extension; all others still get
+  the stroke as the equivalent unstyled primitive. The qcpainterbench Circles
+  port drops its 34 half-disc fills per pass, and the curves draw with round
+  joins like Qt.
+
+### Fixed
+
+- **SVG round joins and square caps draw on the correct side (#905)** — the
+  round-join fan swept the long way around the vertex, painting the inner disc
+  the segment quads already cover and leaving the outer corner open, and the
+  square cap extended sideways along the normal instead of along the path.
+  Moving the stroker into `gui` exposed both, confirmed with coverage probes
+  before the fix. Round caps, miter joins and bevel joins were already correct
+  and draw byte-identical output.
 
 ## [v0.84.0] - 2026-10-01
 

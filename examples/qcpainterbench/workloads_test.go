@@ -22,6 +22,11 @@ type opCounter struct {
 	filledArcs, arcs                         int
 	filledPolys, texts, gradientFills, other int
 	joinedPoints                             int
+	// Styled strokes arrive here instead of the buckets above: the
+	// counter speaks the stroke extension, so nothing falls back.
+	styledArcs, styledJoined int
+	arcCap                   gui.StrokeCap
+	curveJoin                gui.StrokeJoin
 }
 
 func (c *opCounter) Line(_, _, _, _ float32, _ gui.Color, _ float32) { c.lines++ }
@@ -57,6 +62,51 @@ func (c *opCounter) DashedPolyline(_ []float32, _ gui.Color, _, _, _ float32) {
 func (c *opCounter) PolylineJoined(p []float32, _ gui.Color, _ float32) {
 	c.joined++
 	c.joinedPoints += len(p) / 2
+}
+
+// The rest of the stroke extension lands in other: no workload uses
+// a styled line, polyline, circle, rounded rect or bezier.
+func (c *opCounter) LineStyled(_, _, _, _ float32, _ gui.Color, _ float32,
+	_ gui.StrokeStyle) {
+	c.other++
+}
+
+func (c *opCounter) PolylineStyled(_ []float32, _ gui.Color, _ float32,
+	_ gui.StrokeStyle) {
+	c.other++
+}
+
+func (c *opCounter) CircleStyled(_, _, _ float32, _ gui.Color, _ float32,
+	_ gui.StrokeStyle) {
+	c.other++
+}
+
+func (c *opCounter) RoundedRectStyled(_, _, _, _, _ float32, _ gui.Color,
+	_ float32, _ gui.StrokeStyle) {
+	c.other++
+}
+
+func (c *opCounter) QuadBezierStyled(_, _, _, _, _, _ float32, _ gui.Color,
+	_ float32, _ gui.StrokeStyle) {
+	c.other++
+}
+
+func (c *opCounter) CubicBezierStyled(_, _, _, _, _, _, _, _ float32,
+	_ gui.Color, _ float32, _ gui.StrokeStyle) {
+	c.other++
+}
+
+func (c *opCounter) ArcStyled(_, _, _, _, _, _ float32, _ gui.Color,
+	_ float32, s gui.StrokeStyle) {
+	c.styledArcs++
+	c.arcCap = s.Cap
+}
+
+func (c *opCounter) PolylineJoinedStyled(p []float32, _ gui.Color, _ float32,
+	s gui.StrokeStyle) {
+	c.styledJoined++
+	c.joinedPoints += len(p) / 2
+	c.curveJoin = s.Join
 }
 
 func (c *opCounter) QuadBezier(_, _, _, _, _, _ float32, _ gui.Color, _ float32) {
@@ -109,15 +159,20 @@ func TestRulerHidesHalfLabels(t *testing.T) {
 }
 
 // TestCirclesOps checks the three gauges: 8+6+3 = 17 rings. Each ring is one
-// background circle and one arc, and each arc gets two half-disc caps.
+// background circle and one arc, and each arc carries round caps natively:
+// no half-disc fills remain.
 func TestCirclesOps(t *testing.T) {
 	t.Parallel()
 	c := countOps(t, testCircles, 1, 0)
-	if c.circles != 17 || c.arcs != 17 {
-		t.Errorf("circles, arcs = %d, %d, want 17, 17", c.circles, c.arcs)
+	if c.circles != 17 || c.styledArcs != 17 {
+		t.Errorf("circles, styled arcs = %d, %d, want 17, 17",
+			c.circles, c.styledArcs)
 	}
-	if c.filledArcs != 34 {
-		t.Errorf("caps = %d, want 34", c.filledArcs)
+	if c.filledArcs != 0 {
+		t.Errorf("fake caps = %d, want 0", c.filledArcs)
+	}
+	if c.arcCap != gui.StrokeRoundCap {
+		t.Errorf("arc cap = %d, want round", c.arcCap)
 	}
 }
 
@@ -127,8 +182,12 @@ func TestCirclesOps(t *testing.T) {
 func TestLinesOps(t *testing.T) {
 	t.Parallel()
 	c := countOps(t, testLines, 1, 0)
-	if c.gradientFills != 3 || c.joined != 3 {
-		t.Errorf("fills, strokes = %d, %d, want 3, 3", c.gradientFills, c.joined)
+	if c.gradientFills != 3 || c.styledJoined != 3 {
+		t.Errorf("fills, strokes = %d, %d, want 3, 3",
+			c.gradientFills, c.styledJoined)
+	}
+	if c.curveJoin != gui.StrokeRoundJoin {
+		t.Errorf("curve join = %d, want round", c.curveJoin)
 	}
 	if c.filledCircles != 22 || c.circles != 22 {
 		t.Errorf("dots = %d filled, %d stroked, want 22, 22",
@@ -192,13 +251,13 @@ func TestRenderCountScales(t *testing.T) {
 		one := countOps(t, testAll, 1, float32(i)*passStep)
 		want.lines += one.lines
 		want.texts += one.texts
-		want.arcs += one.arcs
+		want.styledArcs += one.styledArcs
 		want.rects += one.rects
 		want.gradientFills += one.gradientFills
 		want.filledCircles += one.filledCircles
 	}
 	if got.lines != want.lines || got.texts != want.texts ||
-		got.arcs != want.arcs || got.rects != want.rects ||
+		got.styledArcs != want.styledArcs || got.rects != want.rects ||
 		got.gradientFills != want.gradientFills ||
 		got.filledCircles != want.filledCircles {
 		t.Errorf("count %d: got %+v, want sums %+v", n, *got, *want)
