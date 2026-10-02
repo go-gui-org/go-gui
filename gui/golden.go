@@ -581,10 +581,18 @@ func serializeCmd(c RenderCmd) string {
 		// A canvas transform rides on the command rather than on the
 		// vertices, so the fingerprint below is identical with and
 		// without it. Record the matrix or a transform golden proves
-		// nothing.
+		// nothing. A rotated transform prints all six terms; the
+		// translate+scale form keeps its four-term shape so existing
+		// goldens do not move.
 		if c.HasXform {
-			fmt.Fprintf(&b, " xform=[%s,%s,%s,%s]",
-				f2(c.ScaleX), f2(c.ScaleY), f2(c.TransX), f2(c.TransY))
+			if c.XformXY != 0 || c.XformYX != 0 {
+				fmt.Fprintf(&b, " xform=[%s,%s,%s,%s,%s,%s]",
+					f2(c.ScaleX), f2(c.XformXY), f2(c.XformYX),
+					f2(c.ScaleY), f2(c.TransX), f2(c.TransY))
+			} else {
+				fmt.Fprintf(&b, " xform=[%s,%s,%s,%s]",
+					f2(c.ScaleX), f2(c.ScaleY), f2(c.TransX), f2(c.TransY))
+			}
 		}
 		// Counts and endpoint colors say how much was emitted and how
 		// it was shaded; the fingerprint says where the vertices are.

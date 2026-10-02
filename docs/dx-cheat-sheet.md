@@ -422,8 +422,8 @@ overlapping them. With per-vertex color, an overlap paints twice and shows.
 ## Canvas transforms
 
 A `DrawContext` carries a transform stack: `Translate(dx, dy)`,
-`ScaleBy(sx, sy)`, `Save()` and `Restore()`. The matrix is batch-stamped, so a
-transform between two fills does not merge them. See
+`ScaleBy(sx, sy)`, `Rotate(rad)`, `Save()` and `Restore()`. The matrix is
+batch-stamped, so a transform between two fills does not merge them. See
 `docs/specs/draw-canvas-transform.md`.
 
 ## The one-event rule

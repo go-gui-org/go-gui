@@ -2012,6 +2012,15 @@ func buildCanvasTransform(_ *Window) View {
 				},
 			})
 			dc.Restore()
+
+			// Rotation rides the batch as a full six-float affine, and
+			// turns the text with its anchor.
+			dc.Save()
+			dc.Translate(60, 60)
+			dc.Rotate(0.5)
+			dc.FilledRect(0, 0, 20, 10, red)
+			dc.Text(0, 14, "R", TextStyle{Size: 8, Color: RGB(0, 0, 0)})
+			dc.Restore()
 		},
 	})
 }

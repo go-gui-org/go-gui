@@ -3,6 +3,7 @@ package gui
 import (
 	"fmt"
 	"math"
+	"slices"
 	"testing"
 )
 
@@ -1018,6 +1019,135 @@ func TestRenderDrawCanvasOnDrawPanicIsolated(t *testing.T) {
 	for _, r := range w.renderers {
 		if r.Kind == RenderSvg {
 			t.Error("panicked canvas emitted a partial batch")
+		}
+	}
+}
+
+// A rotated batch rides the full affine on the command: the
+// off-diagonals travel with the scales, and the vertices stay local.
+func TestRenderDrawCanvasRotateEmitsAffine(t *testing.T) {
+	w := makeWindowWithScratch()
+	shape := &Shape{
+		shapeType: shapeDrawCanvas,
+		ID:        "rotaffine",
+		X:         10, Y: 20,
+		Width: 100, Height: 100,
+		Color: RGB(100, 100, 100),
+		events: &eventHandlers{
+			OnDraw: func(dc *DrawContext) {
+				dc.Rotate(float32(math.Pi / 2))
+				dc.FilledRect(0, 0, 4, 4, Blue)
+			},
+		},
+	}
+	renderDrawCanvas(shape, makeClip(0, 0, 200, 200), w)
+
+	var svg []RenderCmd
+	for _, r := range w.renderers {
+		if r.Kind == RenderSvg {
+			svg = append(svg, r)
+		}
+	}
+	if len(svg) != 1 {
+		t.Fatalf("RenderSvg commands = %d, want 1", len(svg))
+	}
+	got := svg[0]
+	if !got.HasXform {
+		t.Fatal("rotated batch lost its transform")
+	}
+	if !approxEq32(got.ScaleX, 0, 1e-5) || !approxEq32(got.ScaleY, 0, 1e-5) ||
+		!approxEq32(got.XformXY, -1, 1e-5) || !approxEq32(got.XformYX, 1, 1e-5) ||
+		got.TransX != 0 || got.TransY != 0 {
+		t.Errorf("affine = [%v %v %v %v %v %v], want [0 -1 1 0 0 0]",
+			got.ScaleX, got.XformXY, got.XformYX,
+			got.ScaleY, got.TransX, got.TransY)
+	}
+	if got.Triangles[0] != 0 || got.Triangles[2] != 4 {
+		t.Errorf("triangles were baked: %v", got.Triangles[:4])
+	}
+}
+
+// A rotated image emits a rotation bracket about its mapped corner
+// around the axis-aligned blit.
+func TestRenderDrawCanvasRotatedImageBracket(t *testing.T) {
+	w := makeWindowWithScratch()
+	shape := &Shape{
+		shapeType: shapeDrawCanvas,
+		ID:        "rotimg",
+		X:         10, Y: 20,
+		Width: 100, Height: 100,
+		Color: RGB(100, 100, 100),
+		events: &eventHandlers{
+			OnDraw: func(dc *DrawContext) {
+				dc.Rotate(float32(math.Pi / 2))
+				dc.Image(1, 0, 4, 2, "a.png", Opt[float32]{}, Color{})
+			},
+		},
+	}
+	renderDrawCanvas(shape, makeClip(0, 0, 200, 200), w)
+
+	var kinds []renderKind
+	var begin RenderCmd
+	var img RenderCmd
+	for _, r := range w.renderers {
+		switch r.Kind {
+		case RenderRotateBegin:
+			begin = r
+			kinds = append(kinds, r.Kind)
+		case RenderImage:
+			img = r
+			kinds = append(kinds, r.Kind)
+		case RenderRotateEnd:
+			kinds = append(kinds, r.Kind)
+		}
+	}
+	want := []renderKind{RenderRotateBegin, RenderImage, RenderRotateEnd}
+	if !slices.Equal(kinds, want) {
+		t.Fatalf("image commands = %v, want %v", kinds, want)
+	}
+	// Mapped corner (1,0) -> (0,1), plus the shape origin (10,20).
+	if !approxEq32(begin.RotCX, 10, 1e-5) || !approxEq32(begin.RotCY, 21, 1e-5) {
+		t.Errorf("bracket center = %v,%v, want 10,21", begin.RotCX, begin.RotCY)
+	}
+	if !approxEq32(begin.RotAngle, 90, 1e-4) {
+		t.Errorf("bracket angle = %v, want 90", begin.RotAngle)
+	}
+	if !approxEq32(img.X, 10, 1e-5) || !approxEq32(img.Y, 21, 1e-5) ||
+		!approxEq32(img.W, 4, 1e-5) || !approxEq32(img.H, 2, 1e-5) {
+		t.Errorf("blit rect = %v,%v %vx%v, want 10,21 4x2",
+			img.X, img.Y, img.W, img.H)
+	}
+}
+
+// The off-diagonal terms a canvas Rotate stamps on a RenderSvg must
+// reach the PDF vertex path: dropping them prints rotated geometry
+// unrotated.
+func TestSvgCmdVertexAppliesOffDiagonal(t *testing.T) {
+	cmd := RenderCmd{Kind: RenderSvg, X: 100, Y: 200, Scale: 1,
+		HasXform: true, ScaleX: 0, ScaleY: 0, XformXY: -1, XformYX: 1,
+		TransX: 10, TransY: 20}
+	// 90° turn: (5,7) -> (-7,5), then +T and the origin.
+	if x, y := svgCmdVertex(cmd, 1, 5, 7); x != 103 || y != 225 {
+		t.Errorf("got %v,%v want 103,225", x, y)
+	}
+}
+
+// A NaN off-diagonal term poisons every vertex in every backend, so
+// the validator must drop the command just as it does for a NaN scale.
+func TestValidSvgCmdRejectsNonFiniteOffDiagonal(t *testing.T) {
+	base := RenderCmd{Kind: RenderSvg, Scale: 1, HasXform: true,
+		ScaleX: 1, ScaleY: 1, Triangles: []float32{0, 0, 1, 0, 0, 1}}
+	if !validSvgCmd(base) {
+		t.Fatal("finite base command rejected")
+	}
+	nan := float32(math.NaN())
+	for _, c := range []RenderCmd{
+		func() RenderCmd { c := base; c.XformXY = nan; return c }(),
+		func() RenderCmd { c := base; c.XformYX = float32(math.Inf(1)); return c }(),
+	} {
+		if validSvgCmd(c) {
+			t.Errorf("accepted non-finite off-diagonal: xy=%v yx=%v",
+				c.XformXY, c.XformYX)
 		}
 	}
 }

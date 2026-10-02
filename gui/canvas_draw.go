@@ -290,6 +290,8 @@ const arcTolerance = 0.25
 // arcDeviceScale is how many device pixels one local unit covers along x and y:
 // the backing scale times the canvas transform. A zero or broken Scale (a
 // DrawContext built by NewDrawContext) counts as 1×, as Scale's doc says.
+// Under rotation the column lengths are the axis scales: rotation
+// preserves lengths, so the count is unaffected by it.
 func (dc *DrawContext) arcDeviceScale() (sx, sy float64) {
 	s := float64(dc.Scale)
 	if !(s > 0) || math.IsInf(s, 0) {
@@ -297,8 +299,8 @@ func (dc *DrawContext) arcDeviceScale() (sx, sy float64) {
 	}
 	sx, sy = s, s
 	if dc.xfActive {
-		sx *= math.Abs(float64(dc.xf.sx))
-		sy *= math.Abs(float64(dc.xf.sy))
+		sx *= float64(dc.xf.colScaleX())
+		sy *= float64(dc.xf.colScaleY())
 	}
 	return sx, sy
 }
@@ -636,16 +638,11 @@ func (dc *DrawContext) Text(x, y float32, text string, style TextStyle) {
 	// shaper's cache and rasterizer. A large-but-finite scale is enough
 	// to get there — 12 * 1e38 overflows without the transform itself
 	// ever being non-finite — and so is a non-finite argument passed
-	// with no transform in force. Every px-valued field
-	// scaleTextStyle touches is checked, including the cell and
-	// emoji-box widths the shaper reads through glyphconv.
-	if _, ok := dc.activeXform(); ok {
-		x, y = dc.xf.apply(x, y)
-		style = dc.xf.scaleTextStyle(style)
-	}
-	if !f32AllFinite9(x, y, style.Size, style.LineSpacing,
-		style.StrokeWidth, style.LetterSpacing,
-		style.CellWidth, style.CellHeight, style.EmojiBoxWidth) {
+	// with no transform in force. Every px-valued field xfTextStyle
+	// touches is checked, including the cell and emoji-box widths the
+	// shaper reads through glyphconv.
+	x, y, style, ok := dc.xfText(x, y, style)
+	if !ok {
 		return
 	}
 	dc.texts = append(dc.texts, DrawCanvasTextEntry{
@@ -712,6 +709,9 @@ func (dc *DrawContext) ImageWithFetcher(
 	// guard in emitDrawCanvasImages drops it. Image content is never
 	// mirrored. The finite guards above deliberately ran on the
 	// caller's values.
+	if dc.bakeRotatedImage(x, y, w, h, src, bgOpacity, bgColor, fetcher) {
+		return
+	}
 	x, y, w, h = dc.xfRect(x, y, w, h)
 	dc.images = append(dc.images, DrawCanvasImageEntry{
 		X: x, Y: y, W: w, H: h,
@@ -749,7 +749,7 @@ func (dc *DrawContext) ImageClipped(
 	e := &dc.images[len(dc.images)-1]
 	// The image rect was baked by ImageWithFetcher; the clip rect is
 	// in the same local space and bakes here.
-	e.ClipX, e.ClipY, e.ClipW, e.ClipH = dc.xfRect(clipX, clipY, clipW, clipH)
+	e.ClipX, e.ClipY, e.ClipW, e.ClipH = dc.xfClipRect(clipX, clipY, clipW, clipH)
 	e.Clipped = true
 }
 

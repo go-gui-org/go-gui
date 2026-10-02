@@ -106,9 +106,10 @@ func (m *triMesh) upload() {
 // used.
 func transformTris(dst []float32, r *gui.RenderCmd) []float32 {
 	hasXform := r.HasXform
-	var sx, sy, tx, ty float32
+	var sx, sy, tx, ty, sxy, syx float32
 	if hasXform {
 		sx, sy, tx, ty = r.ScaleX, r.ScaleY, r.TransX, r.TransY
+		sxy, syx = r.XformXY, r.XformYX
 	}
 	hasRot := r.RotAngle != 0
 	var sinA, cosA, rcx, rcy float32
@@ -122,8 +123,9 @@ func transformTris(dst []float32, r *gui.RenderCmd) []float32 {
 		vx := r.Triangles[i]
 		vy := r.Triangles[i+1]
 		if hasXform {
-			vx = vx*sx + tx
-			vy = vy*sy + ty
+			ox, oy := vx, vy
+			vx = ox*sx + oy*sxy + tx
+			vy = ox*syx + oy*sy + ty
 		}
 		if hasRot {
 			dx := vx - rcx

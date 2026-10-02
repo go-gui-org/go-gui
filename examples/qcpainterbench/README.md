@@ -87,8 +87,6 @@ equivalent yet. The example emulates them (search `Emulated:` in
 
 - Round caps on the gauge arcs are half discs.
 - Filled curve paths are triangle meshes built in the example.
-- The flower is rotated on the CPU each frame. The canvas transform has no
-  rotation.
 - Curve strokes use miter joins, not round joins.
 - Text uses the theme font, not Roboto. The icon is generated, not Qt's
   `circle.png`.

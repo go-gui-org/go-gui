@@ -197,9 +197,10 @@ func (r *renderer) svgVertices(cmd *gui.RenderCmd, numVerts int) []float32 {
 	}
 	verts := r.svgBatch[:numVerts*2]
 
-	var sx, sy, tx, ty float32
+	var sx, sy, tx, ty, sxy, syx float32
 	if cmd.HasXform {
 		sx, sy, tx, ty = cmd.ScaleX, cmd.ScaleY, cmd.TransX, cmd.TransY
+		sxy, syx = cmd.XformXY, cmd.XformYX
 	}
 	hasRot := cmd.RotAngle != 0
 	var sinA, cosA float32
@@ -214,8 +215,9 @@ func (r *renderer) svgVertices(cmd *gui.RenderCmd, numVerts int) []float32 {
 		vx := cmd.Triangles[i*2]
 		vy := cmd.Triangles[i*2+1]
 		if cmd.HasXform {
-			vx = vx*sx + tx
-			vy = vy*sy + ty
+			ox, oy := vx, vy
+			vx = ox*sx + oy*sxy + tx
+			vy = ox*syx + oy*sy + ty
 		}
 		if hasRot {
 			dx := vx - cmd.RotCX

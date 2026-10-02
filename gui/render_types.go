@@ -103,13 +103,20 @@ type RenderCmd struct {
 	RotCX    float32
 	RotCY    float32
 
-	// SVG animateTransform translate + scale. Applied to each
-	// vertex as v' = (vx*ScaleX + TransX, vy*ScaleY + TransY)
+	// SVG animateTransform translate + scale, and the canvas
+	// Translate/ScaleBy/Rotate matrix. Applied to each vertex as
+	// x' = x*ScaleX + y*XformXY + TransX,
+	// y' = x*XformYX + y*ScaleY + TransY,
 	// before rotation. Only honored when HasXform is true.
-	TransX float32
-	TransY float32
-	ScaleX float32
-	ScaleY float32
+	// XformXY/XformYX are the off-diagonal terms: zero for an SVG
+	// animateTransform and for a translate+scale canvas, nonzero once
+	// a canvas Rotate turns the axes (#904).
+	TransX  float32
+	TransY  float32
+	ScaleX  float32
+	ScaleY  float32
+	XformXY float32
+	XformYX float32
 	// Optional multiplier for SVG vertex alpha (0..1) to avoid
 	// per-frame vertex color copies when animating opacity.
 	VertexAlphaScale float32

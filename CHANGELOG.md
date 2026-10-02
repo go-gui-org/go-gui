@@ -10,6 +10,27 @@ and this project adheres to
 
 ### Added
 
+- **`DrawContext.Rotate` turns canvas drawing by an angle (#904)** — the canvas
+  transform stack (`Translate` / `ScaleBy` / `Save` / `Restore`) was scale and
+  translate only, so a rotated shape, text or image could not be drawn; the
+  qcpainterbench Flower port now draws its cached outline under a
+  rotate-about-center instead of rotating 193 points on the CPU every frame. The
+  transform is now the full 2×3 affine, composed in call order (positive angles
+  turn clockwise, as in `TextStyle.RotationRadians`), and geometry still rides
+  unbaked: batches and `RenderCmd` carry all six floats (`XformXY` / `XformYX`
+  join the existing fields) for every backend to apply per vertex. Text maps its
+  anchor through the matrix and gains the angle on `RotationRadians` (or a
+  composed `AffineTransform`, which keeps precedence); images record their
+  rotated frame for a backend rotation bracket; the lowered radial-quad path
+  survives rotation (a circle stays a circle) and still falls back to the ring
+  mesh under a non-uniform scale. `DrawRecorder` exporters see baked coordinates
+  with no interface change: rotated rects arrive as outline polygons, rotated
+  ellipses flatten at the arc tolerance. `DrawCanvasTriBatch.Transform` keeps
+  its shape but returns `ok=false` for a rotated batch, whose vertices are still
+  in local space; a caller that reads `ok=false` as "already in canvas space"
+  misplaces rotated geometry. Move `Transform` callers to the new
+  `TransformAffine`, whose `ok=false` means untransformed only.
+
 - **`WindowCfg.VSyncOff` presents without waiting for vsync (#907)** — a
   renderer benchmark that redraws every frame read the display refresh rate
   until a frame took longer than one refresh, so it could not report raw
@@ -28,8 +49,9 @@ and this project adheres to
   shows FPS and go-gui's CPU time per frame. `-sweep 1,2,4,…,512` prints one CSV
   row per render count. No Qt code is copied: the workloads follow the behavior
   written in `docs/specs/qcpainterbench.md`. Vsync stays on, so FPS stops at the
-  display refresh rate; rotation, round caps and concave path fill are emulated
-  in the example and tracked in #904, #905, #906 and #907.
+  display refresh rate; round caps and concave path fill are emulated in the
+  example and tracked in #905, #906 and #907 (rotation since #904 rides
+  `DrawContext.Rotate`).
 
 ## [v0.84.0] - 2026-10-01
 

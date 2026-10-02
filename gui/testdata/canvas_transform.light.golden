@@ -4,4 +4,8 @@ Svg xy=15.00,15.00 wh=0.00,0.00 color=#ff0000ff tris=12 xform=[2.00,2.00,40.00,1
 Svg xy=15.00,15.00 wh=0.00,0.00 color=#0000ffff tris=48 xform=[2.00,2.00,40.00,10.00] bbox=-1.00,-1.00..21.00,21.00 centroid=10.00,10.00 digest=086c9525
 Svg xy=15.00,15.00 wh=0.00,0.00 color=#00ff00ff tris=12 bbox=4.00,40.00..24.00,60.00 centroid=14.00,50.00 digest=e4e34eb2
 Svg xy=15.00,15.00 wh=0.00,0.00 color=#ffffff80 tris=984 vcols=492 first=#fffffffe last=#ffffff80 xform=[1.00,2.00,0.00,0.00] bbox=105.12,5.03..135.00,34.97 centroid=117.38,20.00 digest=976764d0
+Svg xy=15.00,15.00 wh=0.00,0.00 color=#ff0000ff tris=12 xform=[0.88,-0.48,0.48,0.88,60.00,60.00] bbox=0.00,0.00..20.00,10.00 centroid=10.00,5.00 digest=79c8bd75
 Text xy=59.00,73.00 wh=0.00,0.00 color=#000000ff text="T" size=16.00
+RotateBegin xy=0.00,0.00 wh=0.00,0.00 rot=28.65@68.29,87.29
+Text xy=68.29,87.29 wh=0.00,0.00 color=#000000ff text="R" size=8.00
+RotateEnd xy=0.00,0.00 wh=0.00,0.00
