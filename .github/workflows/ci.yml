@@ -11,12 +11,28 @@ permissions:
 
 jobs:
   test:
-    name: Test (${{ matrix.os }})
+    # The asyncpreemptoff leg gets its own name; the plain legs keep
+    # their old names so check history and branch rules still match.
+    name: Test (${{ matrix.os }}${{ matrix.preempt == 'off' && ', asyncpreemptoff' || '' }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
+        preempt: [on]
+        # Diagnostic for #886: on Windows the gui suite sometimes dies in
+        # the GC with a clobbered return PC in a goroutine parked in
+        # t.Parallel. Windows async preemption (SuspendThread plus an
+        # injected call) writes into goroutine stacks and is the main
+        # runtime suspect. This extra leg runs the same suite with async
+        # preemption off. If the plain leg keeps crashing and this leg
+        # stays green over ~10 runs, preemption is the cause. Remove the
+        # leg when #886 is resolved. The preempt key must differ from
+        # "on": an include that only adds a new key would merge into the
+        # existing windows job and not make a second one.
+        include:
+          - os: windows-latest
+            preempt: 'off'
     steps:
       - uses: actions/checkout@v6
 
@@ -33,6 +49,8 @@ jobs:
         # Windows runs the suite un-raced (the suite only reached Windows
         # CI with #235); race coverage stays on Linux/macOS.
         shell: bash
+        env:
+          GODEBUG: ${{ matrix.preempt == 'off' && 'asyncpreemptoff=1' || '' }}
         run: |
           if [ "$RUNNER_OS" = "Windows" ]; then
             go test -count=2 -timeout=10m ./gui/...
@@ -49,7 +67,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: pixel-golden-failures-${{ matrix.os }}
+          name: pixel-golden-failures-${{ matrix.os }}-preempt-${{ matrix.preempt }}
           path: gui/backend/soft/testdata/failures
           if-no-files-found: ignore
           retention-days: 14
