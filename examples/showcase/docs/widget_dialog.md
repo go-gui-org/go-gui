@@ -1,5 +1,6 @@
 Modal dialog overlay with message, confirm, prompt, and custom variants. Traps
-focus, dismisses on Escape, and supports Ctrl+C to copy body text.
+focus, closes on Escape unless `EscapeDisabled` is set, and supports Ctrl+C to
+copy body text.
 
 ## Usage
 
@@ -65,22 +66,23 @@ w.Dialog(gui.DialogCfg{
 
 ## Key Properties
 
-| Property     | Type               | Description                                    |
-| ------------ | ------------------ | ---------------------------------------------- |
-| Title        | string             | Dialog heading                                 |
-| Body         | string             | Message text                                   |
-| Reply        | string             | Pre-filled text (DialogPrompt)                 |
-| ID           | string             | Unique identifier                              |
-| DialogType   | DialogType         | Button configuration                           |
-| CustomView   | func(*Window) View | Custom body, rebuilt each frame (DialogCustom) |
-| FocusID      | string             | Initial focus target                           |
-| AlignButtons | HorizontalAlign    | Button alignment                               |
-| Width        | float32            | Dialog width                                   |
-| Height       | float32            | Dialog height                                  |
-| MinWidth     | float32            | Minimum width                                  |
-| MinHeight    | float32            | Minimum height                                 |
-| MaxWidth     | float32            | Maximum width                                  |
-| MaxHeight    | float32            | Maximum height                                 |
+| Property       | Type               | Description                                    |
+| -------------- | ------------------ | ---------------------------------------------- |
+| Title          | string             | Dialog heading                                 |
+| Body           | string             | Message text                                   |
+| Reply          | string             | Pre-filled text (DialogPrompt)                 |
+| ID             | string             | Unique identifier                              |
+| DialogType     | DialogType         | Button configuration                           |
+| CustomView     | func(*Window) View | Custom body, rebuilt each frame (DialogCustom) |
+| FocusID        | string             | Initial focus target                           |
+| AlignButtons   | HorizontalAlign    | Button alignment                               |
+| Width          | float32            | Dialog width                                   |
+| Height         | float32            | Dialog height                                  |
+| MinWidth       | float32            | Minimum width                                  |
+| MinHeight      | float32            | Minimum height                                 |
+| MaxWidth       | float32            | Maximum width                                  |
+| MaxHeight      | float32            | Maximum height                                 |
+| EscapeDisabled | bool               | Block Escape close (progress dialogs)          |
 
 ## Appearance
 
@@ -97,8 +99,8 @@ w.Dialog(gui.DialogCfg{
 
 ## Events
 
-| Callback   | Signature             | Fired when                    |
-| ---------- | --------------------- | ----------------------------- |
-| OnOkYes    | func(*Window)         | OK or Yes clicked             |
-| OnCancelNo | func(*Window)         | Cancel, No, or Escape pressed |
-| OnReply    | func(string, *Window) | Prompt submitted              |
+| Callback   | Signature             | Fired when                                    |
+| ---------- | --------------------- | --------------------------------------------- |
+| OnOkYes    | func(*Window)         | OK or Yes clicked                             |
+| OnCancelNo | func(*Window)         | Cancel, No, or Escape (unless EscapeDisabled) |
+| OnReply    | func(string, *Window) | Prompt submitted                              |

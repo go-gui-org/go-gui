@@ -10,6 +10,13 @@ and this project adheres to
 
 ### Added
 
+- **`DialogCfg.EscapeDisabled` stops Escape from closing a dialog (#909)** — a
+  progress dialog had no way to block the Escape path, so the user could close
+  it before the work finished. Set `EscapeDisabled` to keep the dialog open. A
+  blocked Escape stays unhandled, so content in the dialog can still use the
+  key. `DialogDismiss()` still closes the dialog, and `OnCancelNo` does not fire
+  for a blocked Escape.
+
 - **`DrawContext.Rotate` turns canvas drawing by an angle (#904)** — the canvas
   transform stack (`Translate` / `ScaleBy` / `Save` / `Restore`) was scale and
   translate only, so a rotated shape, text or image could not be drawn; the
