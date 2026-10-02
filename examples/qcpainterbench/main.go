@@ -73,6 +73,8 @@ func main() {
 		"comma-separated render counts to run in turn, printing CSV, then exit")
 	seconds := flag.Float64("seconds", 5, "sweep: measured seconds per render count")
 	warmup := flag.Float64("warmup", 2, "sweep: unmeasured seconds per render count")
+	novsync := flag.Bool("novsync", false,
+		"present without vsync, so FPS is not capped at the display refresh rate")
 	flag.Parse()
 
 	app := &App{Tests: *tests & testAll, Count: min(max(*count, 1), maxCount), Start: time.Now()}
@@ -93,6 +95,8 @@ func main() {
 		Width:   winW,
 		Height:  winH,
 		Timings: true,
+		// Qt runs this benchmark with vsync off and reports raw FPS.
+		VSyncOff: *novsync,
 		OnInit: func(w *gui.Window) {
 			w.SetView(mainView)
 		},

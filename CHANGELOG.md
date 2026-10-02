@@ -10,6 +10,18 @@ and this project adheres to
 
 ### Added
 
+- **`WindowCfg.VSyncOff` presents without waiting for vsync (#907)** — a
+  renderer benchmark that redraws every frame read the display refresh rate
+  until a frame took longer than one refresh, so it could not report raw
+  throughput. The flag is opt-in and fixed when the window is made; the default
+  keeps vsync on. X11 sets EGL swap interval 0 and Windows sets WGL swap
+  interval 0. macOS, iOS, Android and web ignore the flag: on macOS the window
+  compositor hands back a Metal drawable once per refresh even with the layer's
+  display sync off, in a window and in full screen. An idle window still sleeps,
+  and animations still tick every 16 ms: frames run past the refresh rate only
+  when the app invalidates every frame. `gui.Debug` reports a refused or ignored
+  flag under `DebugWindowDegraded`, through the new `Window.DebugWindowVSync`.
+  `examples/qcpainterbench` takes `-novsync`.
 - **`examples/qcpainterbench`, a canvas benchmark ported from Qt (#723)** — it
   draws the six workloads of Qt's qcpainterbench (ruler, circles, bezier lines,
   bars, icons and text, flower) through `DrawCanvas`, N times per frame. It

@@ -97,11 +97,10 @@ const (
 	DebugCallbacks
 
 	// DebugWindowDegraded reports a window-level feature the platform
-	// could not deliver, so the window opened without it: a
-	// WindowCfg.Transparent window that found no ARGB visual, or one
-	// running with no compositing manager to blend it against; or a
-	// Window.SetWindowOpacity the platform refused, which on Windows
-	// is what a Transparent window gets.
+	// could not deliver: a WindowCfg.Transparent window with no ARGB
+	// visual or no compositing manager; a Window.SetWindowOpacity the
+	// platform refused (a Transparent window on Windows); or a
+	// WindowCfg.VSyncOff the backend could not honor.
 	// exportaudit:keep — dev-diagnostic API for app authors
 	DebugWindowDegraded
 

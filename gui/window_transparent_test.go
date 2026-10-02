@@ -109,3 +109,55 @@ func TestDebugWindowTransparencyCategoryGate(t *testing.T) {
 		t.Fatalf("category off must be silent, got %q", got)
 	}
 }
+
+// VSyncOff defaults to false, so every existing window keeps vsync.
+func TestWindowCfgVSyncOffDefault(t *testing.T) {
+	w := NewWindow(WindowCfg{})
+	defer w.WindowCleanup()
+	if w.Config.VSyncOff {
+		t.Error("WindowCfg.VSyncOff defaults to true")
+	}
+}
+
+// A refused VSyncOff is reported once per cause, through
+// DebugWindowDegraded, and stays silent while that category is off.
+func TestDebugWindowVSyncWarnOnce(t *testing.T) {
+	buf := captureDebugMask(t, DebugWindowDegraded)
+	w := &Window{}
+
+	w.DebugWindowVSync("iOS paces frames with CADisplayLink")
+	w.DebugWindowVSync("iOS paces frames with CADisplayLink")
+	got := buf.String()
+	if !strings.Contains(got, "VSyncOff requested but iOS paces frames") {
+		t.Fatalf("want the degrade finding, got %q", got)
+	}
+	if n := strings.Count(got, "VSyncOff requested"); n != 1 {
+		t.Fatalf("warn-once: want 1 finding, got %d", n)
+	}
+
+	w.DebugWindowVSync("eglSwapInterval(0) was refused by the driver")
+	if n := strings.Count(buf.String(), "VSyncOff requested"); n != 2 {
+		t.Fatalf("a second cause must report separately, got %d", n)
+	}
+}
+
+func TestDebugWindowVSyncCategoryGate(t *testing.T) {
+	buf := captureDebug(t)
+	DebugCategories(DebugMissingIDs)
+	w := &Window{}
+
+	w.DebugWindowVSync("eglSwapInterval(0) was refused by the driver")
+	if got := buf.String(); got != "" {
+		t.Fatalf("category off must be silent, got %q", got)
+	}
+}
+
+// A backend may report before a window exists; a nil receiver is a no-op.
+func TestDebugWindowVSyncNilWindow(t *testing.T) {
+	buf := captureDebugMask(t, DebugWindowDegraded)
+	var w *Window
+	w.DebugWindowVSync("iOS paces frames with CADisplayLink")
+	if got := buf.String(); got != "" {
+		t.Fatalf("nil window must be silent, got %q", got)
+	}
+}

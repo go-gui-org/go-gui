@@ -180,6 +180,12 @@ func initBackend(layerPtr unsafe.Pointer,
 	}
 	iosWindow.EventFn(&evt)
 
+	// CADisplayLink paces every frame to the display, and iOS has no
+	// CAMetalLayer.displaySyncEnabled, so VSyncOff cannot be honored.
+	if iosWindow.Config.VSyncOff {
+		iosWindow.DebugWindowVSync("iOS paces frames with CADisplayLink")
+	}
+
 	if iosWindow.Config.OnInit != nil {
 		iosWindow.Config.OnInit(iosWindow)
 	}
