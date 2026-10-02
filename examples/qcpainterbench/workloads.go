@@ -4,11 +4,9 @@ package main
 //
 // This is a port from behavior, not from code. The constants and formulas come
 // from the written description in docs/specs/qcpainterbench.md. The Qt sources are
-// GPL-3.0-only, so no Qt code is copied here.
-//
-// Where go-gui has no direct equivalent of a QCanvasPainter operation, the
-// workload emulates it. Each emulation has a comment that starts "Emulated:" so
-// it is easy to find, and the README lists them all.
+// GPL-3.0-only, so no Qt code is copied here. Every Qt operation the workloads
+// use has a go-gui equivalent: round caps and joins ride StrokeStyle, concave
+// fills ride CanvasPath, rotation rides the canvas transform.
 
 import (
 	"math"
@@ -79,7 +77,10 @@ var labels = func() [maxLabel]string {
 // steady-state frame does not allocate.
 type scene struct {
 	curve []float32 // flattened line graph points
-	tris  []float32 // triangle list for gradient fills
+	area  gui.CanvasPath
+	// flowerPath is the flower outline as a path, rebuilt from the
+	// cached points every frame without allocating.
+	flowerPath gui.CanvasPath
 
 	// flower is the unrotated flower outline. Qt builds its path once and
 	// rebuilds it only on resize. flowerKey is the box the outline was built
@@ -209,27 +210,23 @@ func (s *scene) lineGraph(dc *gui.DrawContext, x, y, w, h float32, items int,
 	dot := 4 + w*0.005
 
 	// Flatten the cubic segments. Qt's control points sit dx/2 to each side of
-	// the samples, at the samples' own heights.
+	// the samples, at the samples' own heights. The stroke draws the
+	// flattened points; the area fill draws the same curve as path
+	// segments closed down to the baseline.
 	s.curve = s.curve[:0]
+	s.area.Reset()
 	px, py := x, y+h*sample(0, t)
 	s.curve = append(s.curve, px, py)
+	s.area.MoveTo(px, py)
 	for i := 1; i < items; i++ {
 		nx, ny := x+float32(i)*dx, y+h*sample(i, t)
 		s.curve = appendCubic(s.curve, px, py, px+dx/2, py, nx-dx/2, ny, nx, ny)
+		s.area.CubicTo(px+dx/2, py, nx-dx/2, ny, nx, ny)
 		px, py = nx, ny
 	}
-
-	// Emulated: filled path. go-gui has no general path fill, so the area is
-	// built as triangles. Its x coordinate only increases along the curve, so the
-	// area is a strip of quads from each curve segment down to the baseline.
-	s.tris = s.tris[:0]
-	for i := 0; i+3 < len(s.curve); i += 2 {
-		x0, y0 := s.curve[i], s.curve[i+1]
-		x1, y1 := s.curve[i+2], s.curve[i+3]
-		s.tris = append(s.tris,
-			x0, y0, x1, y1, x1, y,
-			x0, y0, x1, y, x0, y)
-	}
+	s.area.LineTo(px, y)
+	s.area.LineTo(x, y)
+	s.area.Close()
 	s.stops = [2]gui.GradientStop{
 		{Color: colAreaLow, Pos: 0},
 		{Color: colAreaHigh, Pos: 1},
@@ -239,7 +236,7 @@ func (s *scene) lineGraph(dc *gui.DrawContext, x, y, w, h float32, items int,
 		X1:    x, Y1: y,
 		X2: x, Y2: y + h,
 	}
-	dc.FillTrianglesGradient(s.tris, &s.grad)
+	dc.FillPathGradient(&s.area, &s.grad, gui.FillNonzero)
 
 	// Qt strokes this with round joins (the Circles test sets them and nothing
 	// resets them).
@@ -308,14 +305,13 @@ func (s *scene) flowerDraw(dc *gui.DrawContext, x, y, size, t float32) {
 	cx, cy := x+size/2, y+size/2
 	outline := s.flowerOutline(x, y, size)
 
-	// Filled path. The outline's angle around the center only turns
-	// one way (TestFanCoversFlower), so a triangle fan from the center covers
-	// each petal exactly once.
-	s.tris = s.tris[:0]
-	for i := 0; i+3 < len(outline); i += 2 {
-		s.tris = append(s.tris, cx, cy,
-			outline[i], outline[i+1], outline[i+2], outline[i+3])
+	// Filled path: the cached outline as one closed contour.
+	s.flowerPath.Reset()
+	s.flowerPath.MoveTo(outline[0], outline[1])
+	for i := 2; i+1 < len(outline); i += 2 {
+		s.flowerPath.LineTo(outline[i], outline[i+1])
 	}
+	s.flowerPath.Close()
 	start := gui.RGBA(uint8((0.5+sin(t*2)*0.5)*255), 0,
 		uint8((0.5+sin(t+math.Pi)*0.5)*255), 255)
 	s.stops = [2]gui.GradientStop{
@@ -334,8 +330,8 @@ func (s *scene) flowerDraw(dc *gui.DrawContext, x, y, size, t float32) {
 	dc.Translate(cx, cy)
 	dc.Rotate(a)
 	dc.Translate(-cx, -cy)
-	dc.FillTrianglesGradient(s.tris, &s.grad)
-	dc.PolylineJoined(outline, colPetalLine, 4)
+	dc.FillPathGradient(&s.flowerPath, &s.grad, gui.FillNonzero)
+	dc.StrokePath(&s.flowerPath, colPetalLine, 4, gui.StrokeStyle{})
 	dc.Restore()
 
 	// Qt draws the center dot after resetting the transform: it does not rotate.

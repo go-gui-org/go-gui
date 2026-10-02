@@ -63,8 +63,8 @@ Flags:
 
 - `DrawCanvas` with `AlwaysRedraw` for a canvas that changes every frame.
 - An uncapped frame loop: the view calls `w.InvalidateLayout()` each frame.
-- Lines, circles, arcs, rects, text, images and gradient-filled triangle meshes.
-- Building filled shapes from flattened curves with `FillTrianglesGradient`.
+- Lines, circles, arcs, rects, text, images, gradient-filled paths and styled
+  strokes.
 
 ## How to read the numbers
 
@@ -81,15 +81,10 @@ Run each sweep 3 times and use the median. A single run is noisy.
 
 ## Not 1:1 with Qt
 
-The workloads use the same formulas as Qt, but some Qt operations have no go-gui
-equivalent yet. The example emulates them (search `Emulated:` in
-`workloads.go`):
-
-- Round caps on the gauge arcs are half discs.
-- Filled curve paths are triangle meshes built in the example.
-- Curve strokes use miter joins, not round joins.
-- Text uses the theme font, not Roboto. The icon is generated, not Qt's
-  `circle.png`.
+The workloads use the same formulas as Qt. Two assets differ: text uses the
+theme font, not Roboto, and the icon is generated, not Qt's `circle.png`. Round
+caps and joins ride `StrokeStyle` since #905, concave path fills ride
+`CanvasPath` since #906, and rotation rides `DrawContext.Rotate` since #904.
 
 `docs/specs/qcpainterbench.md` has the full workload description and the list of
 renderer gaps.

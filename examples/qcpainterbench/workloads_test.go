@@ -264,8 +264,8 @@ func TestRenderCountScales(t *testing.T) {
 	}
 }
 
-// flowerCapture keeps the baked flower geometry: the gradient fan and the
-// outline stroke. It embeds gui.DrawRecorder for the methods the flower
+// flowerCapture keeps the baked flower geometry: the tessellated fill and
+// the outline stroke. It embeds gui.DrawRecorder for the methods the flower
 // never calls.
 type flowerCapture struct {
 	gui.DrawRecorder
@@ -323,10 +323,45 @@ func TestFlowerUsesCanvasRotation(t *testing.T) {
 	if absf(rec.line[2]-outline[2]) < 1 {
 		t.Errorf("recorded outline matches the unrotated one; rotation missing")
 	}
-	// The fan references the same rotated points as the stroke.
-	if len(rec.tris) < 6 || rec.tris[2] != rec.line[0] || rec.tris[3] != rec.line[1] {
-		t.Errorf("fan does not open on the recorded outline")
+	// The fill tessellates the same rotated outline: every fill
+	// vertex is one of the recorded outline points (the flower is a
+	// single contour, so the ear-clip fast path reuses its vertices
+	// verbatim).
+	if len(rec.tris) == 0 || len(rec.tris)%6 != 0 {
+		t.Fatalf("fill tris = %d floats, want a non-empty triangle list",
+			len(rec.tris))
 	}
+	onOutline := make(map[[2]float32]bool, len(rec.line)/2)
+	for i := 0; i+1 < len(rec.line); i += 2 {
+		onOutline[[2]float32{rec.line[i], rec.line[i+1]}] = true
+	}
+	for i := 0; i+1 < len(rec.tris); i += 2 {
+		if !onOutline[[2]float32{rec.tris[i], rec.tris[i+1]}] {
+			t.Fatalf("fill vertex (%v,%v) is not on the recorded outline",
+				rec.tris[i], rec.tris[i+1])
+		}
+	}
+	// The fill covers the center it fans around.
+	if !trisCover(rec.tris, cx, cy) {
+		t.Errorf("fill must cover the flower center (%v,%v)", cx, cy)
+	}
+}
+
+// trisCover reports whether (px,py) lies inside any triangle of tris.
+func trisCover(tris []float32, px, py float32) bool {
+	for i := 0; i+5 < len(tris); i += 6 {
+		ax, ay := tris[i]-px, tris[i+1]-py
+		bx, by := tris[i+2]-px, tris[i+3]-py
+		cx, cy := tris[i+4]-px, tris[i+5]-py
+		d1 := ax*by - ay*bx
+		d2 := bx*cy - by*cx
+		d3 := cx*ay - cy*ax
+		if (d1 >= 0 && d2 >= 0 && d3 >= 0) ||
+			(d1 <= 0 && d2 <= 0 && d3 <= 0) {
+			return true
+		}
+	}
+	return false
 }
 
 func absf(v float32) float32 {
@@ -336,27 +371,53 @@ func absf(v float32) float32 {
 	return v
 }
 
-// TestFanCoversFlower checks the flower fill's triangle fan. The fan from the
-// center is valid only if the outline's angle around the center turns one way.
-// Each fan triangle must then have the same winding sign.
-func TestFanCoversFlower(t *testing.T) {
+// TestFlowerPathFillCoversFlower checks the flower fill now that the
+// hand-built triangle fan is gone. The outline is concave, so a fan
+// from the first vertex would be wrong; the path fill must cover the
+// center it winds around and stop at the box edge.
+func TestFlowerPathFillCoversFlower(t *testing.T) {
 	t.Parallel()
 	var s scene
-	pts := s.flowerOutline(0, 0, 200)
-	cx, cy := float32(100), float32(100)
-	var pos, neg int
-	for i := 0; i+3 < len(pts); i += 2 {
-		ax, ay := pts[i]-cx, pts[i+1]-cy
-		bx, by := pts[i+2]-cx, pts[i+3]-cy
-		switch cross := ax*by - ay*bx; {
-		case cross > 1e-3:
-			pos++
-		case cross < -1e-3:
-			neg++
-		}
+	outline := s.flowerOutline(0, 0, 200)
+	var p gui.CanvasPath
+	p.MoveTo(outline[0], outline[1])
+	for i := 2; i+1 < len(outline); i += 2 {
+		p.LineTo(outline[i], outline[i+1])
 	}
-	if pos != 0 && neg != 0 {
-		t.Errorf("fan winding mixed: %d positive, %d negative", pos, neg)
+	p.Close()
+	dc := gui.NewDrawContext(200, 200, nil)
+	dc.FillPath(&p, gui.RGBA(255, 0, 0, 255), gui.FillNonzero)
+	var tris []float32
+	for _, b := range dc.Batches() {
+		tris = append(tris, b.Triangles...)
+	}
+	if len(tris) == 0 {
+		t.Fatal("flower fill must produce triangles")
+	}
+	if !trisCover(tris, 100, 100) {
+		t.Error("flower fill must cover the center (100,100)")
+	}
+	if trisCover(tris, 2, 2) {
+		t.Error("flower fill must not reach the box corner (2,2)")
+	}
+	// The outline touches the center once per petal, so it is not a
+	// simple polygon. Covering the center proves one petal at most;
+	// matching the outline's area proves every petal filled once,
+	// with no gap and no overlap.
+	var want float32
+	n := len(outline) / 2
+	for i, j := 0, n-1; i < n; j, i = i, i+1 {
+		want += (outline[j*2] + outline[i*2]) *
+			(outline[j*2+1] - outline[i*2+1])
+	}
+	want = absf(want / 2)
+	var got float32
+	for i := 0; i+5 < len(tris); i += 6 {
+		got += absf((tris[i+2]-tris[i])*(tris[i+5]-tris[i+1])-
+			(tris[i+4]-tris[i])*(tris[i+3]-tris[i+1])) / 2
+	}
+	if absf(got-want) > want*1e-3 {
+		t.Errorf("fill area = %v, want the outline area %v", got, want)
 	}
 }
 

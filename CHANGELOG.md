@@ -71,6 +71,21 @@ and this project adheres to
   port drops its 34 half-disc fills per pass, and the curves draw with round
   joins like Qt.
 
+- **Canvas paths fill concave shapes through `CanvasPath` (#906)** — a reusable
+  path value built with `MoveTo` / `LineTo` / `QuadTo` / `CubicTo` / `ArcTo` /
+  `Close`, drawn with `FillPath` (solid color), `FillPathGradient` (gradient)
+  and `StrokePath` (color, width, `StrokeStyle`). Fills honor `FillNonzero` (the
+  zero value, as in SVG) and `FillEvenOdd`, so holes carve and overlaps follow
+  the rule instead of fanning from the first point the way `FilledPolygon` does.
+  The tessellator is the one `gui/svg` shares, moved to `gui/internal/pathfill`;
+  SVG output is unchanged. `Reset` rebuilds a path without allocating, and a
+  redrawn canvas fills its paths with zero allocations. A recorder that wants
+  the path implements the optional `DrawPathRecorder` extension; all others
+  still get the fill as one flat polygon per triangle and the stroke as one
+  joined polyline per contour. The qcpainterbench Lines port fills path cubics
+  closed to the baseline and the Flower port fills its cached outline as one
+  closed contour, dropping both hand-built triangulations.
+
 ### Fixed
 
 - **SVG round joins and square caps draw on the correct side (#905)** — the

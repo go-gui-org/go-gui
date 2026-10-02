@@ -15,7 +15,6 @@ const (
 	maxAttrLen      = 1048576 // 1MB
 	maxCoordinate   = float32(1000000)
 	maxAnimations   = 100
-	maxFlattenDepth = 16
 	// maxKeyframes caps the number of keyframes (values) and
 	// syncbase begin entries parsed from a single <animate> /
 	// <animateTransform>. Real assets use <20; this guards
@@ -34,7 +33,6 @@ const (
 	strokeCrossTolerance = float32(0.001)
 	strokeMiterLimit     = float32(4.0)
 	strokeRoundCapSegs   = 8
-	curveDegenThreshold  = float32(0.0001)
 	closedPathEpsilon    = float32(0.0001)
 )
 

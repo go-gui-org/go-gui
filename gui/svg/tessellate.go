@@ -4,6 +4,7 @@ import (
 	"math"
 
 	"github.com/go-gui-org/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui/internal/pathfill"
 )
 
 // getTriangles tessellates all paths in the graphic into GPU-ready
@@ -576,63 +577,10 @@ func flattenPathWithBake(path *vectorPath, tolerance float32, bakeXform bool) []
 }
 
 func flattenQuad(x0, y0, cx, cy, x1, y1, tolerance float32, points *[]float32) {
-	flattenQuadRec(x0, y0, cx, cy, x1, y1, tolerance, 0, points)
-}
-
-func flattenQuadRec(x0, y0, cx, cy, x1, y1, tolerance float32, depth int, points *[]float32) {
-	mx := (x0 + x1) / 2
-	my := (y0 + y1) / 2
-	dx := cx - mx
-	dy := cy - my
-	d := float32(math.Sqrt(float64(dx*dx + dy*dy)))
-
-	if d <= tolerance || depth >= maxFlattenDepth {
-		*points = append(*points, x1, y1)
-	} else {
-		ax := (x0 + cx) / 2
-		ay := (y0 + cy) / 2
-		bx := (cx + x1) / 2
-		by := (cy + y1) / 2
-		abx := (ax + bx) / 2
-		aby := (ay + by) / 2
-		flattenQuadRec(x0, y0, ax, ay, abx, aby, tolerance, depth+1, points)
-		flattenQuadRec(abx, aby, bx, by, x1, y1, tolerance, depth+1, points)
-	}
+	pathfill.FlattenQuad(x0, y0, cx, cy, x1, y1, tolerance, points)
 }
 
 func flattenCubic(x0, y0, c1x, c1y, c2x, c2y, x1, y1, tolerance float32, points *[]float32) {
-	flattenCubicRec(x0, y0, c1x, c1y, c2x, c2y, x1, y1, tolerance, 0, points)
-}
-
-func flattenCubicRec(x0, y0, c1x, c1y, c2x, c2y, x1, y1, tolerance float32, depth int, points *[]float32) {
-	dx := x1 - x0
-	dy := y1 - y0
-	d := float32(math.Sqrt(float64(dx*dx + dy*dy)))
-
-	if d < curveDegenThreshold {
-		*points = append(*points, x1, y1)
-		return
-	}
-
-	d1 := f32Abs((c1x-x0)*dy-(c1y-y0)*dx) / d
-	d2 := f32Abs((c2x-x0)*dy-(c2y-y0)*dx) / d
-
-	if d1+d2 <= tolerance || depth >= maxFlattenDepth {
-		*points = append(*points, x1, y1)
-	} else {
-		ax := (x0 + c1x) / 2
-		ay := (y0 + c1y) / 2
-		bx := (c1x + c2x) / 2
-		by := (c1y + c2y) / 2
-		cx := (c2x + x1) / 2
-		cy := (c2y + y1) / 2
-		abx := (ax + bx) / 2
-		aby := (ay + by) / 2
-		bcx := (bx + cx) / 2
-		bcy := (by + cy) / 2
-		mx := (abx + bcx) / 2
-		my := (aby + bcy) / 2
-		flattenCubicRec(x0, y0, ax, ay, abx, aby, mx, my, tolerance, depth+1, points)
-		flattenCubicRec(mx, my, bcx, bcy, cx, cy, x1, y1, tolerance, depth+1, points)
-	}
+	pathfill.FlattenCubic(x0, y0, c1x, c1y, c2x, c2y, x1, y1,
+		tolerance, points)
 }

@@ -13,6 +13,27 @@ package gui
 // matching the cap 128 the pre-pool code allocated.
 const defaultBatchVerts = 64
 
+// getBatch returns the open batch when the run-length merge key
+// still holds — same color and same transform — and opens a fresh
+// one otherwise.
+func (dc *DrawContext) getBatch(color Color) *DrawCanvasTriBatch {
+	// The transform joins the run-length merge key: a batch carries
+	// one matrix for all its triangles, so a transform change must
+	// start a new batch. Compared against the live batch rather than
+	// a mirror field so there is one source of truth.
+	xf, hasXf := dc.activeXform()
+	if len(dc.batches) > 0 && !dc.batchIsGradient &&
+		dc.lastColor == color &&
+		dc.batches[dc.currentBatchIdx].hasXform == hasXf &&
+		dc.batches[dc.currentBatchIdx].xf == xf {
+		return &dc.batches[dc.currentBatchIdx]
+	}
+	b := dc.takeBatch(color, false, defaultBatchVerts)
+	dc.lastColor = color
+	dc.batchIsGradient = false
+	return b
+}
+
 // takeBatch appends a batch and gives it the buffers the previous
 // redraw's batch at the same index left behind.
 //
@@ -151,4 +172,10 @@ func (dc *DrawContext) resetFor(w, h, scale float32, tm TextMeasurer,
 	dc.gradSampleBuf = keepScratch(dc.gradSampleBuf)
 	dc.gradRampBuf = keepScratch(dc.gradRampBuf)
 	dc.gradRingBuf = keepScratch(dc.gradRingBuf)
+	dc.pathFlatBuf = keepScratch(dc.pathFlatBuf)
+	dc.pathContourBuf = keepScratch(dc.pathContourBuf)
+	dc.pathScratch.Edges = keepScratch(dc.pathScratch.Edges)
+	dc.pathScratch.Ys = keepScratch(dc.pathScratch.Ys)
+	dc.pathScratch.Active = keepScratch(dc.pathScratch.Active)
+	dc.pathScratch.Indices = keepScratch(dc.pathScratch.Indices)
 }
