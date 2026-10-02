@@ -80,7 +80,6 @@ var labels = func() [maxLabel]string {
 type scene struct {
 	curve []float32 // flattened line graph points
 	tris  []float32 // triangle list for gradient fills
-	rot   []float32 // flower outline after rotation
 
 	// flower is the unrotated flower outline. Qt builds its path once and
 	// rebuilds it only on resize. flowerKey is the box the outline was built
@@ -316,23 +315,13 @@ func (s *scene) flowerDraw(dc *gui.DrawContext, x, y, size, t float32) {
 	cx, cy := x+size/2, y+size/2
 	outline := s.flowerOutline(x, y, size)
 
-	// Emulated: rotation. go-gui transforms are scale and translate only, so the
-	// cached outline is rotated on the CPU every frame.
-	a := sin(t) * 20 * math.Pi / 180
-	ca, sa := cos(a), sin(a)
-	s.rot = s.rot[:0]
-	for i := 0; i+1 < len(outline); i += 2 {
-		dx, dy := outline[i]-cx, outline[i+1]-cy
-		s.rot = append(s.rot, cx+dx*ca-dy*sa, cy+dx*sa+dy*ca)
-	}
-
-	// Emulated: filled path. The outline's angle around the center only turns
+	// Filled path. The outline's angle around the center only turns
 	// one way (TestFanCoversFlower), so a triangle fan from the center covers
 	// each petal exactly once.
 	s.tris = s.tris[:0]
-	for i := 0; i+3 < len(s.rot); i += 2 {
+	for i := 0; i+3 < len(outline); i += 2 {
 		s.tris = append(s.tris, cx, cy,
-			s.rot[i], s.rot[i+1], s.rot[i+2], s.rot[i+3])
+			outline[i], outline[i+1], outline[i+2], outline[i+3])
 	}
 	start := gui.RGBA(uint8((0.5+sin(t*2)*0.5)*255), 0,
 		uint8((0.5+sin(t+math.Pi)*0.5)*255), 255)
@@ -345,8 +334,16 @@ func (s *scene) flowerDraw(dc *gui.DrawContext, x, y, size, t float32) {
 		Radial: true,
 		CX:     cx, CY: cy, R: size / 2,
 	}
+	// Rotation rides the canvas transform: the cached unrotated
+	// outline draws as-is and the backend turns it about the center.
+	a := sin(t) * 20 * math.Pi / 180
+	dc.Save()
+	dc.Translate(cx, cy)
+	dc.Rotate(a)
+	dc.Translate(-cx, -cy)
 	dc.FillTrianglesGradient(s.tris, &s.grad)
-	dc.PolylineJoined(s.rot, colPetalLine, 4)
+	dc.PolylineJoined(outline, colPetalLine, 4)
+	dc.Restore()
 
 	// Qt draws the center dot after resetting the transform: it does not rotate.
 	dc.FilledCircle(cx, cy, 0.1*size, colWhite)

@@ -257,10 +257,10 @@ func emitDrawCanvasGeometry(cached *drawCanvasCache,
 		}
 		batch := &cached.Batches[bi]
 		// The canvas transform rides on the command, not on the
-		// vertices: every backend applies v*S+T before the X/Y
-		// origin and Scale below, so the triangles stay in the local
-		// coordinates the caller drew in. Scale stays 1 — it is the
-		// SVG path's own factor, and the two compose correctly.
+		// vertices: every backend applies the 2x3 affine before the
+		// X/Y origin and Scale below, so the triangles stay in the
+		// local coordinates the caller drew in. Scale stays 1 — it is
+		// the SVG path's own factor, and the two compose correctly.
 		emitRenderer(RenderCmd{
 			Kind:      RenderSvg,
 			Triangles: batch.Triangles,
@@ -272,10 +272,12 @@ func emitDrawCanvasGeometry(cached *drawCanvasCache,
 			Y:        oy,
 			Scale:    1.0,
 			HasXform: batch.hasXform,
-			ScaleX:   batch.xf.sx,
-			ScaleY:   batch.xf.sy,
+			ScaleX:   batch.xf.xx,
+			ScaleY:   batch.xf.yy,
 			TransX:   batch.xf.tx,
 			TransY:   batch.xf.ty,
+			XformXY:  batch.xf.xy,
+			XformYX:  batch.xf.yx,
 		}, w)
 	}
 	for ; gi < len(cached.Gradients); gi++ {
@@ -363,6 +365,19 @@ func emitDrawCanvasImages(
 			emitClipCmd(clip, w)
 			narrowed = false
 		}
+		// A rotated image cannot ride an axis rect: the entry holds
+		// the mapped corner and size, and a rotation bracket about
+		// that corner turns the backend's own blit. Exact whenever
+		// the CTM columns stand perpendicular (see rotRad); the
+		// bracket nests with the clip scissor above.
+		if im.rotRad != 0 {
+			emitRenderer(RenderCmd{
+				Kind:     RenderRotateBegin,
+				RotAngle: im.rotRad * (180 / math.Pi),
+				RotCX:    ox + im.X,
+				RotCY:    oy + im.Y,
+			}, w)
+		}
 		emitRenderer(RenderCmd{
 			Kind:     RenderImage,
 			X:        ox + im.X,
@@ -375,6 +390,11 @@ func emitDrawCanvasImages(
 			// the texels take the widget's opacity.
 			Opacity: imageAlpha(shape.Opacity, shape.Disabled),
 		}, w)
+		if im.rotRad != 0 {
+			emitRenderer(RenderCmd{
+				Kind: RenderRotateEnd,
+			}, w)
+		}
 	}
 	if narrowed {
 		emitClipCmd(clip, w)

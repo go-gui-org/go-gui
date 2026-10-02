@@ -98,17 +98,41 @@ type DrawCanvasTriBatch struct {
 
 // Transform reports the translate+scale in force when the batch was
 // recorded, mapping a stored vertex to canvas space as
-// (x*sx+tx, y*sy+ty). ok is false for an untransformed batch, whose
-// vertices are already in canvas space.
+// (x*sx+tx, y*sy+ty).
+//
+// ok is false in two different cases, which this method cannot tell
+// apart: an untransformed batch, whose vertices are already in canvas
+// space, and a rotated one, whose vertices are still in LOCAL space
+// because the four floats cannot express a rotation. Treating ok=false
+// as "already in canvas space" misplaces every rotated batch. New code
+// should call TransformAffine, whose ok=false means untransformed
+// only.
 //
 // It exists because Batches() hands out geometry that is no longer
 // self-describing without it.
 // exportaudit:keep — paired with Batches for out-of-package consumers
 func (b DrawCanvasTriBatch) Transform() (sx, sy, tx, ty float32, ok bool) {
-	if !b.hasXform {
+	if !b.hasXform || b.xf.rotated() {
 		return 1, 1, 0, 0, false
 	}
-	return b.xf.sx, b.xf.sy, b.xf.tx, b.xf.ty, true
+	return b.xf.xx, b.xf.yy, b.xf.tx, b.xf.ty, true
+}
+
+// TransformAffine reports the full 2x3 affine in force when the batch
+// was recorded, mapping a stored vertex to canvas space as
+// (xx*x+xy*y+tx, yx*x+yy*y+ty). ok is false for an untransformed
+// batch, whose vertices are already in canvas space.
+//
+// It exists alongside Transform because that method's four-float
+// shape predates rotation (#904): changing its signature would break
+// every reader, while rotated batches are new and need six floats.
+// exportaudit:keep — paired with Batches for out-of-package consumers
+func (b DrawCanvasTriBatch) TransformAffine() (
+	xx, xy, yx, yy, tx, ty float32, ok bool) {
+	if !b.hasXform {
+		return 1, 0, 0, 1, 0, 0, false
+	}
+	return b.xf.xx, b.xf.xy, b.xf.yx, b.xf.yy, b.xf.tx, b.xf.ty, true
 }
 
 // DrawCanvasImageEntry stores a deferred image drawing command.
@@ -134,6 +158,16 @@ func (b DrawCanvasTriBatch) Transform() (sx, sy, tx, ty float32, ok bool) {
 // be indistinguishable from "no clip"). Use it to show part of an
 // image without cropping the file: the texture still maps to the
 // full X/Y/W/H rect, the scissor decides what is visible.
+//
+// rotRad carries a canvas Rotate the entry was recorded under, in
+// radians. X/Y is then the mapped top-left corner (under a mirror,
+// the mapped corner the drawn rect grows away from, so the
+// unmirrored blit still covers the mapped rect) and W/H the mapped
+// size, and the emit path wraps the image in a rotation bracket about
+// that corner. Zero means unrotated. It is exact whenever the CTM's
+// columns stand perpendicular — every Translate/ScaleBy/Rotate chain
+// except a non-uniform scale sandwiched between two rotations — and
+// draws un-sheared otherwise.
 // exportaudit:keep — reachable from an exported signature
 type DrawCanvasImageEntry struct {
 	fetcher                    ImageFetcher
@@ -142,6 +176,7 @@ type DrawCanvasImageEntry struct {
 	X, Y, W, H                 float32
 	ClipX, ClipY, ClipW, ClipH float32
 	BgColor                    Color
+	rotRad                     float32
 	Clipped                    bool
 }
 

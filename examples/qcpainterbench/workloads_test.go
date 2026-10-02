@@ -205,6 +205,78 @@ func TestRenderCountScales(t *testing.T) {
 	}
 }
 
+// flowerCapture keeps the baked flower geometry: the gradient fan and the
+// outline stroke. It embeds gui.DrawRecorder for the methods the flower
+// never calls.
+type flowerCapture struct {
+	gui.DrawRecorder
+	tris []float32
+	line []float32
+}
+
+func (f *flowerCapture) FillTrianglesGradient(tris []float32, _ *gui.CanvasGradient) {
+	f.tris = append(f.tris[:0], tris...)
+}
+
+func (f *flowerCapture) PolylineJoined(p []float32, _ gui.Color, _ float32) {
+	f.line = append(f.line[:0], p...)
+}
+
+func (f *flowerCapture) FilledCircle(_, _, _ float32, _ gui.Color) {}
+
+// TestFlowerUsesCanvasRotation checks the flower draws its cached outline
+// under a canvas Rotate instead of rotating points on the CPU: at t=pi/2 the
+// recorded geometry is the unrotated outline turned 20 degrees about the
+// center.
+func TestFlowerUsesCanvasRotation(t *testing.T) {
+	t.Parallel()
+	sz := float32(min(testW, testH))
+	fs := 80 + sz*0.6
+	fx, fy := float32(testW)/2-fs/2, float32(testH)-fs
+	cx, cy := fx+fs/2, fy+fs/2
+
+	var s scene
+	rec := &flowerCapture{}
+	dc := gui.NewDrawContext(testW, testH, nil)
+	dc.SetRecorder(rec)
+	s.paint(dc, testW, testH, float32(math.Pi/2), testFlower, 1)
+
+	outline := s.flowerOutline(fx, fy, fs)
+	if len(rec.line) != len(outline) {
+		t.Fatalf("recorded outline points = %d, want %d",
+			len(rec.line)/2, len(outline)/2)
+	}
+	// sin(pi/2) is 1, so the angle is exactly 20 degrees.
+	rad := 20 * math.Pi / 180
+	ca, sa := math.Cos(rad), math.Sin(rad)
+	for i := 0; i+1 < len(outline); i += 2 {
+		dx, dy := float64(outline[i]-cx), float64(outline[i+1]-cy)
+		ex, ey := float32(cx+float32(dx*ca-dy*sa)), float32(cy+float32(dx*sa+dy*ca))
+		if d := absf(rec.line[i] - ex); d > 1e-2 {
+			t.Fatalf("point %d x = %v, want rotated %v", i/2, rec.line[i], ex)
+		}
+		if d := absf(rec.line[i+1] - ey); d > 1e-2 {
+			t.Fatalf("point %d y = %v, want rotated %v", i/2, rec.line[i+1], ey)
+		}
+	}
+	// The rotation must actually move the rim: guards a test that
+	// passes because both sides stayed unrotated.
+	if absf(rec.line[2]-outline[2]) < 1 {
+		t.Errorf("recorded outline matches the unrotated one; rotation missing")
+	}
+	// The fan references the same rotated points as the stroke.
+	if len(rec.tris) < 6 || rec.tris[2] != rec.line[0] || rec.tris[3] != rec.line[1] {
+		t.Errorf("fan does not open on the recorded outline")
+	}
+}
+
+func absf(v float32) float32 {
+	if v < 0 {
+		return -v
+	}
+	return v
+}
+
 // TestFanCoversFlower checks the flower fill's triangle fan. The fan from the
 // center is valid only if the outline's angle around the center turns one way.
 // Each fan triangle must then have the same winding sign.

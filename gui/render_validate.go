@@ -194,9 +194,10 @@ func validSvgCmd(r RenderCmd) bool {
 		return false
 	}
 	// The xform is applied per vertex in every backend, so a NaN
-	// scale would poison every triangle rather than drop one command.
+	// term would poison every triangle rather than drop one command.
 	if r.HasXform &&
-		!f32AllFinite4(r.ScaleX, r.ScaleY, r.TransX, r.TransY) {
+		!f32AllFinite6(r.ScaleX, r.ScaleY, r.TransX, r.TransY,
+			r.XformXY, r.XformYX) {
 		return false
 	}
 	if r.HasVertexAlpha &&

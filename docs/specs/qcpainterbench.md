@@ -152,7 +152,7 @@ used.
 | Dot circles, fill + stroke    | `FilledCircle` + `Circle`                                          | Exact                        |
 | Bar rects, fill + stroke      | `FilledRect` + `Rect`; `Line` for a zero-height bar                | Exact                        |
 | `drawImage`                   | `Image` with a `mem:` source                                       | Generated image              |
-| Rotated quadratic path        | Flatten once, rotate points on the CPU each frame                  | Emulated rotation            |
+| Rotated quadratic path        | Flatten once, `Save`/`Translate`/`Rotate` about the center         | Exact since #904             |
 | Quadratic path, radial fill   | Triangle fan from the center, `FillTrianglesGradient`              | Emulated path fill           |
 | Quadratic path stroke         | `PolylineJoined`                                                   | Exact join type              |
 
@@ -165,9 +165,10 @@ These are the go-gui features the port has to emulate. Each one has its own
 issue. Each new API needs its own design under the design-before-code rule. This
 port adds no API.
 
-1. **Rotation in the canvas transform (#904).** The transform is scale and
-   translate only. The example rotates 193 points on the CPU per pass. Text and
-   images cannot be rotated at all.
+1. **Rotation in the canvas transform (#904, done).** `DrawContext.Rotate` turns
+   drawing about the current origin, so the flower draws its cached outline
+   under `Save`/`Translate`/`Rotate`/`Translate`/`Restore` instead of rotating
+   193 points on the CPU per pass.
 2. **Line caps and round joins (#905).** Canvas strokes have no caps, and joins
    are miter or bevel only. The example draws half discs for the arc caps.
    `gui/svg/stroke.go` already makes butt, round and square caps and miter,

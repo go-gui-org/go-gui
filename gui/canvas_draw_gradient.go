@@ -245,7 +245,9 @@ func (dc *DrawContext) concentricRadial(cx, cy, r float32,
 	// ellipse, and the shader quad below cannot express one: its ramp
 	// is always centered with radius max(W,H)/2. Decline, and the
 	// caller falls back to the ring mesh, which lands in a normal
-	// batch and so is transformed exactly, ellipse included.
+	// batch and so is transformed exactly, ellipse included. Rotation
+	// alone keeps the quad: a rotated circle is still a circle, and
+	// the bake below maps its center through the full matrix.
 	if xf, ok := dc.activeXform(); ok && !xf.uniform() {
 		return false
 	}
@@ -328,10 +330,17 @@ func (dc *DrawContext) emitRadialGradient(cx, cy, r float32,
 	e.Def.Type = GradientRadial
 	// Baked: RenderGradient has no xform fields to ride on. The scale
 	// is uniform here (concentricRadial declined otherwise), so the
-	// circle stays a circle and |sx| is the whole story.
-	// xfRect normalizes, so a negative (mirroring) scale still yields
-	// the bounding square's top-left corner rather than its far one.
-	e.X, e.Y, e.W, e.H = dc.xfRect(cx-r, cy-r, 2*r, 2*r)
+	// circle stays a circle under rotation too: map the center
+	// through the full matrix and scale the radius by the column
+	// length. xfRect's normalize step is folded in — a negative
+	// (mirroring) scale still yields the bounding square's top-left
+	// corner rather than its far one, because the radius takes the
+	// absolute column length.
+	if xf, ok := dc.activeXform(); ok {
+		cx, cy = xf.apply(cx, cy)
+		r *= xf.colScaleX()
+	}
+	e.X, e.Y, e.W, e.H = cx-r, cy-r, 2*r, 2*r
 	e.afterBatch = len(dc.batches)
 	// The fill sits between batch afterBatch-1 and batch afterBatch in
 	// the emit walk, so the batch open right now must be closed to it:
