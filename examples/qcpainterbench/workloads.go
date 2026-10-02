@@ -194,16 +194,8 @@ func (s *scene) gauge(dc *gui.DrawContext, x, y, size float32, items int, t floa
 		sweep := 2 * math.Pi * frac * prog
 		f := float32(i) / float32(items)
 		c := gui.RGBA(uint8(200-150*f), uint8(200-50*f), uint8(100+50*f), alpha)
-		dc.Arc(cx, cy, r, r, start, sweep, c, lw)
-		// Emulated: round caps. go-gui strokes have no caps, so each end gets a
-		// half disc. The half disc starts at the end's own radial angle, so it
-		// meets the stroke along one diameter and does not overlap it (an
-		// overlap would show at alpha < 255).
-		end := start + sweep
-		sx, sy := cx+r*cos(start), cy+r*sin(start)
-		ex, ey := cx+r*cos(end), cy+r*sin(end)
-		dc.FilledArc(sx, sy, lw/2, lw/2, start, -math.Pi, c)
-		dc.FilledArc(ex, ey, lw/2, lw/2, end, math.Pi, c)
+		dc.ArcStyled(cx, cy, r, r, start, sweep, c, lw,
+			gui.StrokeStyle{Cap: gui.StrokeRoundCap})
 		r -= lw + margin
 	}
 }
@@ -250,8 +242,9 @@ func (s *scene) lineGraph(dc *gui.DrawContext, x, y, w, h float32, items int,
 	dc.FillTrianglesGradient(s.tris, &s.grad)
 
 	// Qt strokes this with round joins (the Circles test sets them and nothing
-	// resets them). go-gui joins are miter, falling back to bevel.
-	dc.PolylineJoined(s.curve, colGray, 1+dot*0.2)
+	// resets them).
+	dc.PolylineJoinedStyled(s.curve, colGray, 1+dot*0.2,
+		gui.StrokeStyle{Join: gui.StrokeRoundJoin})
 
 	for i := range items {
 		cx, cy := x+float32(i)*dx, y+h*sample(i, t)

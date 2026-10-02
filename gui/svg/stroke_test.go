@@ -186,3 +186,18 @@ func TestTessellateStroke_ClosedEmitsExtraSegment(t *testing.T) {
 			"closed=%d open=%d", len(closedTris), len(openTris))
 	}
 }
+
+// The capacity estimate covers what tessellation emits, so the
+// result never regrows. A miter join emits two triangles.
+func TestEstimateStrokeResultCapCoversMiter(t *testing.T) {
+	polys := [][]float32{{0, 0, 10, 0, 10, 10, 20, 10, 20, 20}}
+	for _, join := range []gui.SvgStrokeJoin{gui.SvgMiterJoin,
+		gui.SvgBevelJoin, gui.SvgRoundJoin} {
+		got := len(tessellateStroke(polys, 2, gui.SvgRoundCap, join))
+		est := estimateStrokeResultCap(polys, gui.SvgRoundCap, join)
+		if got > est {
+			t.Errorf("join %d: emitted %d floats, estimate %d",
+				join, got, est)
+		}
+	}
+}

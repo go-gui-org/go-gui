@@ -141,20 +141,20 @@ used.
 
 ## Mapping to go-gui
 
-| Qt operation                  | go-gui                                                             | Fidelity                     |
-| ----------------------------- | ------------------------------------------------------------------ | ---------------------------- |
-| Ruler tick path, one stroke   | `Line` per tick                                                    | Same batch, same result      |
-| `fillText` centered           | `TextWidth` + `FontHeight` + `Text`                                | Theme font, not Roboto       |
-| `circle` stroke               | `Circle`                                                           | Exact                        |
-| `arc` stroke, round caps      | `Arc` + two half-disc `FilledArc` caps                             | Emulated caps                |
-| Cubic path, gradient fill     | Flatten in the example, strip to baseline, `FillTrianglesGradient` | Emulated path fill           |
-| Cubic path, round-join stroke | `PolylineJoined` on the flattened points                           | Miter/bevel joins, not round |
-| Dot circles, fill + stroke    | `FilledCircle` + `Circle`                                          | Exact                        |
-| Bar rects, fill + stroke      | `FilledRect` + `Rect`; `Line` for a zero-height bar                | Exact                        |
-| `drawImage`                   | `Image` with a `mem:` source                                       | Generated image              |
-| Rotated quadratic path        | Flatten once, `Save`/`Translate`/`Rotate` about the center         | Exact since #904             |
-| Quadratic path, radial fill   | Triangle fan from the center, `FillTrianglesGradient`              | Emulated path fill           |
-| Quadratic path stroke         | `PolylineJoined`                                                   | Exact join type              |
+| Qt operation                  | go-gui                                                             | Fidelity                |
+| ----------------------------- | ------------------------------------------------------------------ | ----------------------- |
+| Ruler tick path, one stroke   | `Line` per tick                                                    | Same batch, same result |
+| `fillText` centered           | `TextWidth` + `FontHeight` + `Text`                                | Theme font, not Roboto  |
+| `circle` stroke               | `Circle`                                                           | Exact                   |
+| `arc` stroke, round caps      | `ArcStyled` with round caps                                        | Exact since #905        |
+| Cubic path, gradient fill     | Flatten in the example, strip to baseline, `FillTrianglesGradient` | Emulated path fill      |
+| Cubic path, round-join stroke | `PolylineJoinedStyled` with round joins                            | Exact since #905        |
+| Dot circles, fill + stroke    | `FilledCircle` + `Circle`                                          | Exact                   |
+| Bar rects, fill + stroke      | `FilledRect` + `Rect`; `Line` for a zero-height bar                | Exact                   |
+| `drawImage`                   | `Image` with a `mem:` source                                       | Generated image         |
+| Rotated quadratic path        | Flatten once, `Save`/`Translate`/`Rotate` about the center         | Exact since #904        |
+| Quadratic path, radial fill   | Triangle fan from the center, `FillTrianglesGradient`              | Emulated path fill      |
+| Quadratic path stroke         | `PolylineJoined`                                                   | Exact join type         |
 
 The fan from the center is valid for the flower because the outline's angle
 around the center only turns one way. `TestFanCoversFlower` checks this.
@@ -169,11 +169,11 @@ port adds no API.
    drawing about the current origin, so the flower draws its cached outline
    under `Save`/`Translate`/`Rotate`/`Translate`/`Restore` instead of rotating
    193 points on the CPU per pass.
-2. **Line caps and round joins (#905).** Canvas strokes have no caps, and joins
-   are miter or bevel only. The example draws half discs for the arc caps.
-   `gui/svg/stroke.go` already makes butt, round and square caps and miter,
-   round and bevel joins, but only for SVG. `gui/svg` imports `gui`, so
-   `DrawContext` cannot call it as it is.
+2. **Line caps and round joins (#905, done).** `StrokeStyle` selects the caps
+   and joins on `Line`, `Polyline`, `PolylineJoined`, `Arc` and the beziers
+   through the `*Styled` methods, on top of the one stroker `gui/svg` shares.
+   The example draws the arcs and curves with round caps and joins and keeps no
+   half-disc fills.
 3. **A path builder with fill rules (#906).** There is no
    `moveTo`/`lineTo`/`quadTo`/`cubicTo`/`close`. `FilledPolygon` is a fan from
    the first point, so it is correct only for convex shapes. The example builds

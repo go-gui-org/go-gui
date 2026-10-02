@@ -249,3 +249,35 @@ type DrawGradientRecorder interface {
 type DrawVertexColorRecorder interface {
 	FillTrianglesColors(tris []float32, colors []Color)
 }
+
+// DrawStrokeRecorder is an optional extension to DrawRecorder: a
+// recorder implementing it receives styled strokes with the caller's
+// StrokeStyle intact.
+//
+// It is a separate interface rather than more methods on DrawRecorder
+// for the same reason DrawGradientRecorder is separate from
+// DrawRecorder — DrawRecorder is exported and implemented outside
+// this repo, so widening it would break every existing implementer.
+// A recorder that does not implement this still receives the stroke,
+// as the equivalent unstyled primitive, so an export path never
+// breaks and never silently drops a stroke. Caps and joins past the
+// default do not survive that fallback.
+// exportaudit:keep — styled strokes reach it through exported signatures
+type DrawStrokeRecorder interface {
+	LineStyled(x0, y0, x1, y1 float32, color Color, width float32,
+		style StrokeStyle)
+	PolylineStyled(points []float32, color Color, width float32,
+		style StrokeStyle)
+	PolylineJoinedStyled(points []float32, color Color, width float32,
+		style StrokeStyle)
+	ArcStyled(cx, cy, rx, ry, start, sweep float32, color Color,
+		width float32, style StrokeStyle)
+	CircleStyled(cx, cy, radius float32, color Color, width float32,
+		style StrokeStyle)
+	RoundedRectStyled(x, y, w, h, radius float32, color Color,
+		width float32, style StrokeStyle)
+	QuadBezierStyled(x0, y0, cx, cy, x1, y1 float32, color Color,
+		width float32, style StrokeStyle)
+	CubicBezierStyled(x0, y0, c1x, c1y, c2x, c2y, x1, y1 float32,
+		color Color, width float32, style StrokeStyle)
+}

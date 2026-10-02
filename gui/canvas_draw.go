@@ -19,13 +19,17 @@ type DrawContext struct {
 	// gradients holds radial fills lowered to a shader quad, and
 	// gradientPool is the previous redraw's list, handed in for its
 	// stop buffers exactly as batchPool is for its triangles.
-	gradients       []DrawCanvasGradientEntry
-	gradientPool    []DrawCanvasGradientEntry
-	texts           []DrawCanvasTextEntry
-	images          []DrawCanvasImageEntry
-	arcBuf          []float32
-	bezierBuf       []float32
-	roundRectBuf    []float32
+	gradients    []DrawCanvasGradientEntry
+	gradientPool []DrawCanvasGradientEntry
+	texts        []DrawCanvasTextEntry
+	images       []DrawCanvasImageEntry
+	arcBuf       []float32
+	bezierBuf    []float32
+	roundRectBuf []float32
+	// strokeScratch is reused workspace for the shared stroker's
+	// segment normals. Styled strokes re-derive it at the same
+	// length every redraw, like the join buffers below.
+	strokeScratch   []float32
 	joinNormalBuf   []strokeVec
 	joinOffsetBuf   []strokeOffset
 	gradTriBuf      []float32
@@ -409,14 +413,19 @@ func (dc *DrawContext) RoundedRect(x, y, w, h, radius float32, color Color, widt
 		dc.Rect(x, y, w, h, color, width)
 		return
 	}
-	r := radius
-	// Build polyline: top → TR arc → right → BR arc → bottom →
-	// BL arc → left → TL arc → close.
-	//
-	// Into a pooled buffer, not a fresh slice: this runs once per
-	// rounded rect per frame on an animated canvas, and the length is
-	// the same every time.
+	dc.Polyline(dc.roundedRectLoop(x, y, w, h, radius), color, width)
+}
+
+// roundedRectLoop builds the closed outline of a stroked rounded
+// rect: top → TR arc → right → BR arc → bottom → BL arc → left → TL
+// arc → close. Radius is already clamped and positive.
+//
+// Into a pooled buffer, not a fresh slice: this runs once per
+// rounded rect per frame on an animated canvas, and the length is
+// the same every time.
+func (dc *DrawContext) roundedRectLoop(x, y, w, h, radius float32) []float32 {
 	const segs = 8
+	r := radius
 	pts := dc.roundRectBuf[:0]
 	// Top-left corner arc.
 	pts = appendArcPoints(pts, x+r, y+r, r, math.Pi, segs)
@@ -429,7 +438,7 @@ func (dc *DrawContext) RoundedRect(x, y, w, h, radius float32, color Color, widt
 	// Close the shape.
 	pts = append(pts, pts[0], pts[1])
 	dc.roundRectBuf = pts
-	dc.Polyline(pts, color, width)
+	return pts
 }
 
 // strokeVec is a segment normal and strokeOffset the left/right pair
