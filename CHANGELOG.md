@@ -8,6 +8,17 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- **`examples/qcpainterbench`, a canvas benchmark ported from Qt (#723)** — it
+  draws the six workloads of Qt's qcpainterbench (ruler, circles, bezier lines,
+  bars, icons and text, flower) through `DrawCanvas`, N times per frame. It
+  shows FPS and go-gui's CPU time per frame. `-sweep 1,2,4,…,512` prints one CSV
+  row per render count. No Qt code is copied: the workloads follow the behavior
+  written in `docs/specs/qcpainterbench.md`. Vsync stays on, so FPS stops at the
+  display refresh rate; rotation, round caps and concave path fill are emulated
+  in the example and tracked in #904, #905, #906 and #907.
+
 ## [v0.84.0] - 2026-10-01
 
 ### Added
