@@ -1,6 +1,7 @@
 // metal_window.m — Native NSWindow + CAMetalLayer window manager.
 // Owns window creation, the event loop, clipboard, cursors, and IME.
 
+#include <malloc/malloc.h>
 #import "metal_window.h"
 #import <Cocoa/Cocoa.h>
 #import <Metal/Metal.h>
@@ -1119,7 +1120,7 @@ static void storeEvent(NSEvent *event, uint32_t wid) {
     }
 }
 
-int metalPollEvent(int timeoutMs) {
+static int metalPollEventImpl(int timeoutMs) {
     // Drain queued events first (non-blocking), then wait if empty.
     NSEvent *event = nil;
 
@@ -1246,6 +1247,21 @@ int metalPollEvent(int timeoutMs) {
     }
 
     return 1;
+}
+
+// metalPollEvent wraps the poll in an autorelease pool. The Go event
+// loop runs with no Cocoa run loop, so nothing else drains a pool on
+// this thread. nextEventMatchingMask: returns an autoreleased NSEvent,
+// and the main-queue block metalPostEmptyEvent schedules (it runs
+// inside the dequeue) autoreleases the wake event it builds. Without
+// this pool each one lives forever: under a repeating animation that
+// is one wake event per frame, ~60 NSEvents a second. storeEvent
+// copies everything Go reads into C globals, so no event needs to
+// outlive the pool.
+int metalPollEvent(int timeoutMs) {
+    @autoreleasepool {
+        return metalPollEventImpl(timeoutMs);
+    }
 }
 
 // ─── Event accessors ───────────────────────────────────────────
@@ -2265,6 +2281,35 @@ int metalTestPollIdleWake(void) {
         return 2;
     }
     return 0;
+}
+
+// Verify metalPollEvent drains the autorelease pool its dequeue fills.
+// The Go event loop has no Cocoa run loop to drain a pool, so any
+// object autoreleased inside the poll (the dequeued NSEvent, the wake
+// event metalPostEmptyEvent builds) lives forever without one. A
+// repeating animation posts one wake per frame, so the leak was ~60
+// NSEvents a second (solar_system example).
+// Runs the production wake path many times and returns the bytes the
+// malloc zones grew by; a leak shows as several hundred KB.
+// Returns -1 if a wake is not delivered within 1 s. Without that
+// check a dead wake path would allocate nothing, measure ~0 growth and
+// pass, after up to cycles seconds of timeouts.
+long metalTestPollWakeGrowth(int cycles) {
+    while (metalPollEvent(0)) {}
+    // Warm up one cycle so lazy AppKit state is not counted.
+    metalPostEmptyEvent();
+    if (!metalPollEvent(1000)) return -1;
+    while (metalPollEvent(0)) {}
+
+    malloc_statistics_t before, after;
+    malloc_zone_statistics(NULL, &before);
+    for (int i = 0; i < cycles; i++) {
+        metalPostEmptyEvent();
+        if (!metalPollEvent(1000)) return -1;
+        while (metalPollEvent(0)) {}
+    }
+    malloc_zone_statistics(NULL, &after);
+    return (long)after.size_in_use - (long)before.size_in_use;
 }
 
 // Delegates to the shared metalCursorInContentBounds helper so the
