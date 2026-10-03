@@ -233,4 +233,22 @@ func runMainThreadTests() {
 		panic(fmt.Sprintf("metalPollEvent(-1): idle wait did not wake "+
 			"on posted event (rc %d)", rc))
 	}
+
+	// 13. The poll must free what it autoreleases. The Go loop has no
+	//     Cocoa run loop to drain a pool, so without one in the poll
+	//     every wake NSEvent leaked: ~60 a second (~600 B each) under
+	//     a repeating animation. 2000 cycles leaked ~1.2 MB; allow
+	//     well under that for allocator noise.
+	//     A negative result means a wake never arrived, so nothing
+	//     was measured.
+	grew := testPollWakeGrowth(2000)
+	if grew < 0 {
+		panic("metalPollEvent: wake event not delivered within 1s; " +
+			"growth not measured")
+	}
+	if grew > 256<<10 {
+		panic(fmt.Sprintf("metalPollEvent: malloc grew %d bytes over "+
+			"2000 wake cycles; poll is not draining its autoreleases",
+			grew))
+	}
 }

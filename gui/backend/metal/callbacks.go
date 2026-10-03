@@ -21,6 +21,7 @@ int metalTestQuitActionSetsQuitEvent(void);
 int metalTestAppShouldTerminateCorrect(void);
 int metalTestPollReturnsOnQuitRequested(void);
 int metalTestPollIdleWake(void);
+long metalTestPollWakeGrowth(int cycles);
 int metalTestCursorBoundsCheck(float mouseX, float mouseY,
                                float width, float height);
 int metalTestMenuAboutExists(void);
@@ -333,6 +334,13 @@ func testPollReturnsOnQuitRequested() bool {
 // Main-thread only: it runs the real blocking poll.
 func testPollIdleWake() int {
 	return int(C.metalTestPollIdleWake())
+}
+
+// testPollWakeGrowth runs cycles of post-wake + poll and returns how
+// many bytes the malloc zones grew by. Main-thread only: it runs the
+// real poll.
+func testPollWakeGrowth(cycles int) int {
+	return int(C.metalTestPollWakeGrowth(C.int(cycles)))
 }
 
 func testCursorBoundsCheck(mouseX, mouseY, width, height float32) bool {

@@ -88,6 +88,13 @@ and this project adheres to
 
 ### Fixed
 
+- **macOS: event loop no longer leaks one `NSEvent` per frame** — the Metal
+  backend polled AppKit events with no autorelease pool, and the Go event loop
+  has no Cocoa run loop to drain one. Every dequeued event and every wake event
+  stayed in memory, so an app with a repeating animation (the `solar_system`
+  example) grew by about 60 events, ~40 KB, a second for as long as it ran. The
+  poll now drains its own pool, and memory stays flat.
+
 - **SVG round joins and square caps draw on the correct side (#905)** — the
   round-join fan swept the long way around the vertex, painting the inner disc
   the segment quads already cover and leaving the outer corner open, and the
