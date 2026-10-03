@@ -1,8 +1,9 @@
 # Native Wayland backend
 
 Status: in progress, experimental. Issue #919. Phases 2 (test harness), 3
-(protocol bindings) and 4 (window) of 9 have landed. With `GOGUI_WAYLAND=1` an
-app opens a native Wayland window and renders, but takes no input yet.
+(protocol bindings), 4 (window) and 5 (input) of 9 have landed. With
+`GOGUI_WAYLAND=1` an app opens a native Wayland window, renders, and takes
+pointer, keyboard, scroll and touch input.
 
 ## Problem
 
@@ -87,9 +88,39 @@ and `destroy` frees Wayland objects.
   `wl_surface.preferred_buffer_scale` (wl_surface v6). The whole surface is
   marked opaque unless `WindowCfg.Transparent` is set, so the alpha channel of
   the EGL config does not show.
-- **Not yet.** Input is phase 5. Decorations, the system clipboard (copy and
-  paste work inside the process only), fractional scale and cursors are phase 6.
-  Show/hide and opacity are no-ops on Wayland.
+- **Not yet.** Decorations, the system clipboard (copy and paste work inside the
+  process only), fractional scale, cursors, IME and window move/resize are
+  phase 6. Show/hide and opacity are no-ops on Wayland.
+
+### Input goes through one seat and the X11 key path
+
+- **One seat for every window.** `wlDisplay` binds the first `wl_seat` and gets
+  its pointer, keyboard and touch as the seat's capabilities come and go. Each
+  device sends events to the surface its enter event named, so the seat keeps
+  the focused window per device and finds it by surface in `wlDisplay.wins`. A
+  destroyed window is removed from both.
+- **Keys become X11 keysyms.** Wayland sends evdev key codes and a keymap in XKB
+  text form. libxkbcommon (package `internal/xkb`, through purego) compiles the
+  keymap, tracks the modifier state, and gives the keysym and an X11 modifier
+  mask. From there it is the X11 path: `x11key` maps keys and modifiers, and the
+  X11 compose machine handles dead keys and Multi_key. libxkbcommon's character
+  table is the fallback, so a Cyrillic or Greek layout types text. libxkbcommon
+  is loaded before the first window; without it the app uses X11.
+- **The client repeats keys.** The compositor sends only press and release. The
+  loop fires repeats at the rate and delay of `wl_keyboard.repeat_info` (25/s
+  after 600 ms until it arrives) and ends its wait in time for the next one.
+  Repeats are key downs with `KeyRepeat` set, plus the character.
+- **Scroll is grouped by `wl_pointer.frame`.** A frame whose axes all clicked is
+  a wheel: `x11ScrollLines` lines per click, from `axis_value120` (v8) or
+  `axis_discrete` (v5–7). Any other frame is a touchpad: `ScrollPrecise`, in
+  points. Wayland's positive axis scrolls down, so the sign flips.
+- **Touch is grouped by `wl_touch.frame`.** One frame gives, in order, a began,
+  a moved and an ended event, like the web backend. All fingers belong to the
+  window the first finger touched; a finger on another window at the same time
+  is ignored. gui turns a single finger into mouse events.
+- **The keymap fd is checked.** The size the compositor gives must fit the file
+  (fstat) before it is mapped, because reading a mapping past the end of a file
+  raises SIGBUS.
 
 ### Decorations
 
@@ -113,7 +144,7 @@ clipboard with other apps) needs a Linux machine.
 | 2   | Headless test harness (`scripts/wayland/`, `make wayland-selftest`)                     | done    |
 | 3   | Protocol code generation + purego libwayland-client core                                | done    |
 | 4   | Window: xdg-shell, `wl_egl_window`, EGL Wayland display, frame callbacks, resize, close | done    |
-| 5   | Input: pointer, keyboard through xkbcommon, scroll, touch                               | pending |
+| 5   | Input: pointer, keyboard through xkbcommon, scroll, touch                               | done    |
 | 6   | Decorations, clipboard, fractional scale, cursor-shape, text-input-v3                   | pending |
 | 7   | Hardware pass on Linux Mint (Intel/AMD): Cinnamon Wayland, nested sway/weston/KWin      | pending |
 | 8   | Ship as experimental                                                                    | pending |
@@ -138,5 +169,12 @@ clipboard with other apps) needs a Linux machine.
 - **Blocking vsync in `eglSwapBuffers` (swap interval 1).** Mesa then waits for
   the frame callback inside the swap, and a hidden window blocks the loop, and
   with it every other window, forever.
+- **libxkbcommon's compose tables instead of the X11 compose machine.** They
+  would also read `~/.XCompose`, but the two backends would then compose
+  differently. One machine keeps X11 and Wayland the same; libxkbcommon compose
+  can replace both later.
+- **Mapping evdev codes to keys without libxkbcommon.** It works only for a US
+  layout. The keymap the compositor sends is the user's layout, and only
+  libxkbcommon reads it.
 - **Only fixing XWayland with an OpenGL ES path.** Devices with no X11 EGL
   platform (libhybris, #916) still fail.

@@ -14,6 +14,7 @@ import (
 	"github.com/go-gui-org/go-gui/gui"
 	gogl "github.com/go-gui-org/go-gui/gui/backend/internal/glbind"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/wl"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/xkb"
 )
 
 // The experimental native Wayland backend (#919, docs/specs/wayland-backend.md).
@@ -45,6 +46,13 @@ type wlDisplay struct {
 	wmBase     wl.XdgWmBase
 	eglDpy     uintptr
 	eglConfig  uintptr
+	// seat is the input seat, nil when the compositor offers none.
+	// seatName is its registry global name, to notice its removal.
+	seat     *wlSeat
+	seatName uint32
+	// wins maps a wl_surface pointer to its window, so input events,
+	// which name the surface, reach the right Backend.
+	wins map[uintptr]*Backend
 	// refs counts the windows (and a running RunApp loop) using the
 	// display. The last release disconnects.
 	refs int
@@ -76,7 +84,7 @@ func openWaylandDisplay() (d *wlDisplay, err error) {
 	if err != nil {
 		return nil, err
 	}
-	d = &wlDisplay{conn: conn, refs: 1}
+	d = &wlDisplay{conn: conn, refs: 1, wins: map[uintptr]*Backend{}}
 	defer func() {
 		if err != nil {
 			d.release()
@@ -93,8 +101,11 @@ func openWaylandDisplay() (d *wlDisplay, err error) {
 				compName, compVer = name, version
 			case "xdg_wm_base":
 				wmName, wmVer = name, version
+			case "wl_seat":
+				d.addSeat(name, version)
 			}
 		},
+		GlobalRemove: d.removeGlobal,
 	})
 	if err = conn.Roundtrip(); err != nil {
 		return d, err
@@ -109,8 +120,12 @@ func openWaylandDisplay() (d *wlDisplay, err error) {
 	// A client that misses pings is marked unresponsive by the compositor.
 	d.wmBase.SetHandlers(wl.XdgWmBaseHandlers{Ping: d.wmBase.Pong})
 
-	// libwayland-egl is checked here, not at the first window, so a
-	// system without it falls back to X11 instead of failing New.
+	// libwayland-egl and libxkbcommon are checked here, not at the first
+	// window, so a system without them falls back to X11 instead of
+	// failing New, or running with a dead keyboard.
+	if err = xkb.Load(); err != nil {
+		return d, err
+	}
 	if err = wl.LoadEGL(); err != nil {
 		return d, err
 	}
@@ -138,6 +153,27 @@ func openWaylandDisplay() (d *wlDisplay, err error) {
 	return d, nil
 }
 
+// addSeat binds a wl_seat global unless a seat is bound already. The
+// registry handlers stay installed, so a seat that appears later (the
+// first one, or one replacing a removed seat) is bound then.
+func (d *wlDisplay) addSeat(name, version uint32) {
+	if d.seat != nil {
+		return
+	}
+	d.seat = newWlSeat(d, name, version)
+	d.seatName = name
+}
+
+// removeGlobal handles wl_registry.global_remove. Only the seat matters:
+// its devices are released and a later wl_seat global can take its place.
+func (d *wlDisplay) removeGlobal(name uint32) {
+	if d.seat == nil || name != d.seatName {
+		return
+	}
+	d.seat.destroy()
+	d.seat, d.seatName = nil, 0
+}
+
 // release drops one reference. The last one tears the connection down.
 func (d *wlDisplay) release() {
 	d.refs--
@@ -147,6 +183,10 @@ func (d *wlDisplay) release() {
 	if d.eglDpy != 0 {
 		eglTerminate(d.eglDpy)
 		d.eglDpy = 0
+	}
+	if d.seat != nil {
+		d.seat.destroy()
+		d.seat = nil
 	}
 	if d.wmBase.Valid() {
 		d.wmBase.Destroy()
@@ -370,6 +410,7 @@ func newWaylandBackend(w *gui.Window) (*Backend, error) {
 		return wlClipboard.text
 	})
 
+	d.wins[ww.surface.Ptr()] = b
 	b.plat.lockedTid = syscall.Gettid()
 	handedOff = true
 	return b, nil
@@ -506,6 +547,10 @@ func (ww *wlWindow) requestFrame(now time.Time) {
 func (p *platformState) destroyWayland() {
 	ww := p.wl
 	p.wl = nil
+	delete(ww.d.wins, ww.surface.Ptr())
+	if ww.d.seat != nil {
+		ww.d.seat.forget(ww.b)
+	}
 	if p.eglDpy != 0 {
 		eglMakeCurrent(p.eglDpy, 0, 0, 0)
 		if p.eglContext != 0 {

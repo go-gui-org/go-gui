@@ -118,8 +118,8 @@ func (l *wlLoop) closeAll() {
 // Each pass: take the events already waiting, open queued windows, close
 // windows that asked to, then give every window not waiting on a frame
 // callback a frame. When nothing rendered, it blocks in Dispatch until an
-// event, a Wake (gui redraw requests, OpenWindow, titles) or the nearest
-// frame timeout. A window that rendered waits for its frame callback, so
+// event, a Wake (gui redraw requests, OpenWindow, titles), the nearest
+// frame timeout or the next key repeat. A window that rendered waits for its frame callback, so
 // the loop runs at the compositor's pace, not flat out.
 //
 //nolint:gocyclo // event loop
@@ -150,6 +150,11 @@ func (l *wlLoop) run() error {
 
 		now := time.Now()
 		wait := time.Duration(-1)
+		if l.d.seat != nil {
+			// Key repeats fire here; the wait below ends in time for
+			// the next one.
+			wait = l.d.seat.tickRepeat(now)
+		}
 		rendered := false
 		for _, b := range l.wins {
 			ww := b.plat.wl

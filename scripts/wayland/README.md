@@ -58,6 +58,17 @@ Type text and move the pointer one second after the client starts (sway only):
 scripts/wayland/run.sh -t 5 -a 'wtype hello; wlrctl pointer move 100 100' -- build/wayland/showcase
 ```
 
+Things to know about injected input:
+
+- Each `wtype` and `wlrctl` run makes its own virtual device and removes it on
+  exit. The client gets its `wl_keyboard` or `wl_pointer` only after the device
+  appears, so the first events can be lost. Start `wtype` with a pause
+  (`wtype -s 300 ...`). `wlrctl` has no pause, so its pointer events are not
+  reliable; the pointer tests call the seat handlers directly.
+- `wtype` joins its text arguments with a space: `wtype a B` types `a B`.
+- Text outside ASCII needs a UTF-8 locale:
+  `-a 'export LC_ALL=C.UTF-8; wtype привет'`.
+
 Run a package's tests under sway, weston and mutter. `GOGUI_REQUIRE_WAYLAND=1`
 is set, so a test that cannot reach the compositor fails instead of skipping:
 
