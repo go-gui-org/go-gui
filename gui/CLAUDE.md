@@ -20,10 +20,10 @@ an `ID` is still a silent no-op — the `requiredid` analyzer flags it,
 `gui.Debug` reports it at runtime.
 
 **Input controls are focusable by default; opt out with `FocusDisabled`, never
-with `Focusable: false`.** Twenty-one Cfgs default on (Button, Input, Select,
-Slider, Tree, Combobox, DatePicker, ListBox, …); everything else is opt-in. Full
-list in `docs/architecture.md`, current inventory from
-`ergonomics-audit -mode focus`. See `docs/specs/focusable-default-input.md`.
+with `Focusable: false`.** Input Cfgs default on (Button, Input, Select, Slider,
+Tree, Combobox, DatePicker, ListBox, …); everything else is opt-in. Full list in
+`docs/architecture.md`, current inventory from `ergonomics-audit -mode focus`.
+See `docs/specs/focusable-default-input.md`.
 
 ### Identity
 

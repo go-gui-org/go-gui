@@ -28,10 +28,11 @@ package gui
 
 // <Name>Cfg configures the <Name> widget.
 type <Name>Cfg struct {
-    // ID keys focus, scroll, and widget state. Focus requires a
-    // non-empty ID — without one the widget is inert (never a tab
-    // stop).
-    ID string
+    // ID keys focus, scroll, and widget state. Empty takes a generated
+    // leaf (`gui:"auto"`, #881); set it when code names the widget.
+    ID string `gui:"auto"`
+
+    A11YCfg
 
     // Focusable opts into the focus system (with a non-empty ID).
     // Input controls are focusable by default and expose FocusDisabled
@@ -64,6 +65,9 @@ func <Name>(cfg <Name>Cfg) View {
 - Focus needs both `Focusable` (or default-on with no `FocusDisabled`) **and** a
   non-empty `ID`. The `requiredid` analyzer flags `Focusable: true` without an
   `ID`
+- An auto-ID widget gets its leaf from `vw.autoLeaf("<kind>")` inside a
+  `ViewFunc` and goes into `TestAutoIDEveryWidgetTwiceHasNoDuplicates`
+  (`gui/CLAUDE.md`, Auto IDs)
 - No variable shadowing (use `=` not `:=` for outer-scope vars)
 - Read existing widgets (for example, `view_button.go` and `view_slider.go`) for
   patterns
