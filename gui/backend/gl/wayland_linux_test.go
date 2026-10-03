@@ -365,7 +365,7 @@ func TestWaylandFrameAllocs(t *testing.T) {
 	defer b.Destroy()
 	ww := b.plat.wl
 	b.plat.makeCurrent()
-	allocs := testing.AllocsPerRun(20, func() {
+	frame := func() {
 		ww.requestFrame(time.Now())
 		b.plat.swap()
 		deadline := time.Now().Add(3 * time.Second)
@@ -377,7 +377,18 @@ func TestWaylandFrameAllocs(t *testing.T) {
 				t.Fatal(err)
 			}
 		}
-	})
+	}
+	// AllocsPerRun counts every goroutine's mallocs, and New starts
+	// go-glyph's background fallback-coverage warm, which cmap-parses the
+	// system fonts. A desktop with hundreds of fonts (Linux Mint: 647) is
+	// still warming when the first rounds run and measured over 1,300
+	// allocs per frame; the font-poor harness image finishes first. That
+	// work is transient and a frame's own cost is steady, so the best of a
+	// few rounds is the frame's cost.
+	allocs := testing.AllocsPerRun(20, frame)
+	for round := 1; round < wlFrameAllocRounds && allocs > wlFrameAllocs; round++ {
+		allocs = min(allocs, testing.AllocsPerRun(20, frame))
+	}
 	t.Logf("allocs per paced frame: %.1f", allocs)
 	if allocs > wlFrameAllocs {
 		t.Errorf("a paced frame allocates %.1f times, want at most %d", allocs, wlFrameAllocs)
@@ -389,3 +400,8 @@ func TestWaylandFrameAllocs(t *testing.T) {
 // eglSwapBuffers' purego wrapper. A decoder closure built per frame cost 2
 // more (measured with a bare commit in place of the swap).
 const wlFrameAllocs = 19
+
+// wlFrameAllocRounds bounds the rounds TestWaylandFrameAllocs measures while
+// background work settles. One round of 20 paced frames takes about 0.35 s
+// on a 60 Hz output, so this waits at most about 3.5 s.
+const wlFrameAllocRounds = 10

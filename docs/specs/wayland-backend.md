@@ -134,6 +134,14 @@ The backend uses xdg-decoration when the compositor offers it (KDE, wlroots).
 Otherwise it uses libdecor when it is installed (GNOME, Cinnamon, weston). If
 libdecor is missing, the window has no frame, and a warning is printed once.
 
+libdecor without a plugin is the same case in practice: `libdecor_new` succeeds,
+and a built-in fallback draws nothing. A desktop can have libdecor without a
+plugin. Linux Mint 22 ships `libdecor-0-0` but not `libdecor-0-plugin-1-gtk`.
+libdecor has no API to ask whether it found a plugin, so `decor.HasPlugin` looks
+where libdecor looks (`$LIBDECOR_PLUGIN_DIR`, else `libdecor/plugins-1` beside
+the loaded library) and the backend warns once, naming the package. The window
+still goes through libdecor, so a wrong guess costs only the warning.
+
 - libdecor is bound through purego in `internal/decor`, like libxkbcommon. It
   makes the xdg_surface and xdg_toplevel itself, so a libdecor window takes its
   configure, close, title, limits, move and resize through the frame, not the
@@ -179,6 +187,55 @@ a pointer and play an input method on their own connection through
 those two protocols are used only by tests. Only the hardware pass (real GPU,
 HiDPI, IME, clipboard with other apps) needs a Linux machine.
 
+### Hardware pass (phase 7)
+
+Linux Mint 22.3, Intel UHD 620 (Mesa 25.2 iris), libwayland 1.22. sway 1.9,
+weston 13 and KWin 5.27 run nested in the Cinnamon X11 session. The GL context
+on the Wayland EGL platform is the Intel GPU, not llvmpipe.
+
+| Check                                               | sway                | weston                   | KWin                |
+| --------------------------------------------------- | ------------------- | ------------------------ | ------------------- |
+| `gui/backend/gl` tests (`GOGUI_REQUIRE_WAYLAND=1`)  | 160 pass            | 154 pass                 | 154 pass            |
+| Showcase renders                                    | yes                 | yes                      | yes                 |
+| Frame                                               | compositor (border) | none: no libdecor plugin | compositor (Breeze) |
+| Typing, Ctrl+V from `wl-copy`, Ctrl+C to `wl-paste` | yes                 | –                        | –                   |
+| Output scale 2 and 1.5, floating resize, close      | yes                 | –                        | –                   |
+| Idle CPU over 5 s (X11: 0 ms)                       | 0 ms                | 0 ms                     | –                   |
+
+Found and fixed:
+
+- `TestWaylandFrameAllocs` measured over 1,300 allocs per frame on its first
+  rounds. The allocations were go-glyph's background fallback-coverage warm,
+  which parses every system font (647 here, few in the harness image).
+  `AllocsPerRun` counts every goroutine. The test now takes the best of up to
+  ten rounds. A frame costs 19 allocs, the same as in the harness.
+- libdecor with no plugin left windows with no frame and no go-gui warning (see
+  Decorations).
+
+Not go-gui:
+
+- sway ignores `resize set` sent right after `output * scale` (no delay). `foot`
+  behaves the same way.
+- `examples/benchmark` reports a higher FPS under Wayland (431) than under X11
+  (112). Its FPS figure is an average of view-to-view rates. Under Wayland the
+  loop runs `FrameFn` and presents 61 times a second, paced by frame callbacks.
+  Per-frame view, layout and render times match X11. Under load the process uses
+  45% of a core on Wayland and 34% on X11.
+
+Cinnamon 6.6 Wayland session (Muffin 6.6.3), checked by hand on the same
+machine:
+
+- Without `libdecor-0-plugin-1-gtk`, the window has no frame and the warning
+  prints. With the plugin, the window has a GTK frame and moves and resizes.
+- IBus input through text-input-v3 works, and so do copy and paste with other
+  apps.
+- `wl` and `gl` tests: 19 and 154 pass, 0 fail.
+- Muffin 6.6 offers neither `wp_fractional_scale_v1` nor `wl_compositor` v6
+  (`preferred_buffer_scale`). Its display settings do not change scaling in the
+  Wayland session, so HiDPI on Muffin is untested. A nested weston at scale 2
+  (also `wl_compositor` v5) showed that go-gui then renders at 1× under a 2×
+  libdecor frame. See "Scale on older compositors".
+
 ## Phases
 
 | #   | Phase                                                                                   | State   |
@@ -189,7 +246,7 @@ HiDPI, IME, clipboard with other apps) needs a Linux machine.
 | 4   | Window: xdg-shell, `wl_egl_window`, EGL Wayland display, frame callbacks, resize, close | done    |
 | 5   | Input: pointer, keyboard through xkbcommon, scroll, touch                               | done    |
 | 6   | Decorations, clipboard, fractional scale, cursor-shape, text-input-v3                   | done    |
-| 7   | Hardware pass on Linux Mint (Intel/AMD): Cinnamon Wayland, nested sway/weston/KWin      | pending |
+| 7   | Hardware pass on Linux Mint (Intel/AMD): Cinnamon Wayland, nested sway/weston/KWin      | partial |
 | 8   | Ship as experimental                                                                    | pending |
 | 9   | OpenGL ES renderer path for GLES-only devices (separate issue)                          | pending |
 

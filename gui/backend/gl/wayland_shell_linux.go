@@ -22,6 +22,8 @@ import (
 //  2. No xdg-decoration (GNOME, weston) and libdecor installed: libdecor
 //     makes the xdg_toplevel and draws a frame around the surface with its
 //     plugin (GTK on GNOME). Configure events then come through libdecor.
+//     libdecor with no plugin installed falls back to drawing nothing, and
+//     says so only on stderr; a warning names the missing package once.
 //  3. Neither: a plain xdg_toplevel with no frame. A warning says so once.
 //     DecorationNone takes this path on purpose, with no warning.
 //
@@ -39,6 +41,16 @@ func (ww *wlWindow) makeToplevel(cfg gui.WindowCfg) error {
 	frame := cfg.Decorations != gui.DecorationNone
 	if frame && !d.decoMgr.Valid() {
 		if ctx := d.libdecor(); ctx != nil {
+			// Still go through libdecor with no plugin: its fallback
+			// handles configure like a plain toplevel, and a wrong guess
+			// about the plugin directory then costs only the warning.
+			if !decor.HasPlugin() {
+				wlNoFrameOnce.Do(func() {
+					log.Printf("gl: wayland: the compositor draws no window frames and libdecor " +
+						"has no decoration plugin; windows have no frame " +
+						"(install libdecor-0-plugin-1-gtk, or the cairo plugin)")
+				})
+			}
 			return ww.makeDecorFrame(ctx, cfg)
 		}
 		wlNoFrameOnce.Do(func() {
