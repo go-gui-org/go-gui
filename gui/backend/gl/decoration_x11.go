@@ -100,6 +100,10 @@ func (n *nativePlatform) HideWindow() {
 // The press left an implicit pointer grab on the app, so the grab is
 // released first or the window manager never sees the drag.
 func (p *platformState) startMoveResize(direction uint32) {
+	if p.wl != nil {
+		p.wl.moveResize(direction)
+		return
+	}
 	if p.conn == nil || !p.havePress {
 		return
 	}

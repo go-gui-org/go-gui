@@ -3,7 +3,8 @@
 # It holds three compositors that can run with no GPU and no screen, so the
 # backend can be built and run on a Mac (colima) or a CI runner:
 #
-#   sway   (wlroots)  screenshots with grim, input injected with wtype/wlrctl
+#   sway   (wlroots)  screenshots with grim, input injected with wtype/wlrctl,
+#                     clipboard checked with wl-copy/wl-paste
 #   weston (reference) screenshots with weston-screenshooter
 #   mutter (GNOME)    no server-side decorations, so it tests the libdecor path
 #
@@ -16,7 +17,7 @@ FROM debian:trixie-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
       ca-certificates dbus dbus-user-session procps \
-      sway grim wtype wlrctl \
+      sway grim wtype wlrctl wl-clipboard \
       weston \
       mutter gnome-settings-daemon-common gsettings-desktop-schemas \
       libwayland-client0 libwayland-egl1 libwayland-cursor0 \

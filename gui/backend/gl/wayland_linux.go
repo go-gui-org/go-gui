@@ -7,11 +7,13 @@ import (
 	"errors"
 	"fmt"
 	"runtime"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
 
 	"github.com/go-gui-org/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/decor"
 	gogl "github.com/go-gui-org/go-gui/gui/backend/internal/glbind"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/wl"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/xkb"
@@ -44,6 +46,22 @@ type wlDisplay struct {
 	registry   wl.Registry
 	compositor wl.Compositor
 	wmBase     wl.XdgWmBase
+	// Optional globals (phase 6). Each is the zero value when the
+	// compositor does not offer it, and the feature degrades: see the
+	// file that uses it.
+	shm          wl.Shm                                // fallback cursor images
+	cursorShape  wl.WpCursorShapeManagerV1             // cursors by name
+	dataMgr      wl.DataDeviceManager                  // clipboard
+	primaryMgr   wl.ZwpPrimarySelectionDeviceManagerV1 // primary selection
+	decoMgr      wl.ZxdgDecorationManagerV1            // server-side frames
+	viewporter   wl.WpViewporter                       // fractional scale
+	fracMgr      wl.WpFractionalScaleManagerV1         // fractional scale
+	textInputMgr wl.ZwpTextInputManagerV3              // input methods
+	// decor is the libdecor instance, made by the first window that
+	// needs a frame drawn (wayland_shell_linux.go); decorTried records
+	// that it was tried, so a failure is not retried per window.
+	decor      *decor.Context
+	decorTried bool
 	eglDpy     uintptr
 	eglConfig  uintptr
 	// seat is the input seat, nil when the compositor offers none.
@@ -53,6 +71,13 @@ type wlDisplay struct {
 	// wins maps a wl_surface pointer to its window, so input events,
 	// which name the surface, reach the right Backend.
 	wins map[uintptr]*Backend
+	// localSel is the clipboard and primary text when the compositor
+	// offers no selection device (or no seat): copy and paste then work
+	// inside the process only. Main thread.
+	localSel [2]string
+	// calls holds work other goroutines handed to the loop (post).
+	callsMu sync.Mutex
+	calls   []func()
 	// refs counts the windows (and a running RunApp loop) using the
 	// display. The last release disconnects.
 	refs int
@@ -91,18 +116,25 @@ func openWaylandDisplay() (d *wlDisplay, err error) {
 		}
 	}()
 
-	var compName, compVer, wmName, wmVer uint32
+	// globals holds what the first round trip announced, by interface.
+	// Only the seat is followed after that: the other globals are
+	// bound once, and one appearing later is not used.
+	globals := map[string]wlGlobal{}
 	d.registry = conn.Display.GetRegistry()
 	d.registry.SetHandlers(wl.RegistryHandlers{
-		// iface is only valid during the call, so only numbers are kept.
+		// iface is only valid during the call; a kept one is cloned.
 		Global: func(name uint32, iface string, version uint32) {
 			switch iface {
-			case "wl_compositor":
-				compName, compVer = name, version
-			case "xdg_wm_base":
-				wmName, wmVer = name, version
 			case "wl_seat":
 				d.addSeat(name, version)
+			case "wl_compositor", "xdg_wm_base", "wl_shm",
+				"wp_cursor_shape_manager_v1", "wl_data_device_manager",
+				"zwp_primary_selection_device_manager_v1",
+				"zxdg_decoration_manager_v1", "wp_viewporter",
+				"wp_fractional_scale_manager_v1", "zwp_text_input_manager_v3":
+				if _, seen := globals[iface]; !seen {
+					globals[strings.Clone(iface)] = wlGlobal{name, version}
+				}
 			}
 		},
 		GlobalRemove: d.removeGlobal,
@@ -110,13 +142,39 @@ func openWaylandDisplay() (d *wlDisplay, err error) {
 	if err = conn.Roundtrip(); err != nil {
 		return d, err
 	}
-	if compName == 0 || wmName == 0 {
+	bind := func(iface *wl.Interface, key string) wl.Proxy {
+		g, ok := globals[key]
+		if !ok {
+			return wl.Proxy{}
+		}
+		return d.registry.Bind(g.name, iface, min(g.version, iface.Version()))
+	}
+	d.compositor = wl.Compositor{Proxy: bind(&wl.CompositorInterface, "wl_compositor")}
+	d.wmBase = wl.XdgWmBase{Proxy: bind(&wl.XdgWmBaseInterface, "xdg_wm_base")}
+	if !d.compositor.Valid() || !d.wmBase.Valid() {
 		return d, errors.New("compositor offers no wl_compositor or xdg_wm_base")
 	}
-	d.compositor = wl.Compositor{Proxy: d.registry.Bind(compName,
-		&wl.CompositorInterface, min(compVer, wl.CompositorInterface.Version()))}
-	d.wmBase = wl.XdgWmBase{Proxy: d.registry.Bind(wmName,
-		&wl.XdgWmBaseInterface, min(wmVer, wl.XdgWmBaseInterface.Version()))}
+	d.shm = wl.Shm{Proxy: bind(&wl.ShmInterface, "wl_shm")}
+	d.cursorShape = wl.WpCursorShapeManagerV1{Proxy: bind(
+		&wl.WpCursorShapeManagerV1Interface, "wp_cursor_shape_manager_v1")}
+	d.dataMgr = wl.DataDeviceManager{Proxy: bind(
+		&wl.DataDeviceManagerInterface, "wl_data_device_manager")}
+	d.primaryMgr = wl.ZwpPrimarySelectionDeviceManagerV1{Proxy: bind(
+		&wl.ZwpPrimarySelectionDeviceManagerV1Interface,
+		"zwp_primary_selection_device_manager_v1")}
+	d.decoMgr = wl.ZxdgDecorationManagerV1{Proxy: bind(
+		&wl.ZxdgDecorationManagerV1Interface, "zxdg_decoration_manager_v1")}
+	d.viewporter = wl.WpViewporter{Proxy: bind(&wl.WpViewporterInterface, "wp_viewporter")}
+	d.fracMgr = wl.WpFractionalScaleManagerV1{Proxy: bind(
+		&wl.WpFractionalScaleManagerV1Interface, "wp_fractional_scale_manager_v1")}
+	d.textInputMgr = wl.ZwpTextInputManagerV3{Proxy: bind(
+		&wl.ZwpTextInputManagerV3Interface, "zwp_text_input_manager_v3")}
+	if d.seat != nil {
+		// The seat was bound during the round trip, before the managers
+		// its selection devices come from.
+		d.seat.attachSelection()
+		d.seat.attachTextInput()
+	}
 	// A client that misses pings is marked unresponsive by the compositor.
 	d.wmBase.SetHandlers(wl.XdgWmBaseHandlers{Ping: d.wmBase.Pong})
 
@@ -153,6 +211,36 @@ func openWaylandDisplay() (d *wlDisplay, err error) {
 	return d, nil
 }
 
+// dispatch is Conn.Dispatch for the backend: it also raises a panic a
+// libdecor callback recovered during the dispatch.
+func (d *wlDisplay) dispatch(timeout time.Duration) error {
+	err := d.conn.Dispatch(timeout)
+	decor.Rethrow()
+	return err
+}
+
+// post runs fn on the loop's thread, on its next pass. Any goroutine.
+func (d *wlDisplay) post(fn func()) {
+	d.callsMu.Lock()
+	d.calls = append(d.calls, fn)
+	d.callsMu.Unlock()
+	d.conn.Wake()
+}
+
+// runPosted runs the work post queued. Main thread.
+func (d *wlDisplay) runPosted() {
+	d.callsMu.Lock()
+	calls := d.calls
+	d.calls = nil
+	d.callsMu.Unlock()
+	for _, fn := range calls {
+		fn()
+	}
+}
+
+// wlGlobal is a registry global's name and version.
+type wlGlobal struct{ name, version uint32 }
+
 // addSeat binds a wl_seat global unless a seat is bound already. The
 // registry handlers stay installed, so a seat that appears later (the
 // first one, or one replacing a removed seat) is bound then.
@@ -162,6 +250,8 @@ func (d *wlDisplay) addSeat(name, version uint32) {
 	}
 	d.seat = newWlSeat(d, name, version)
 	d.seatName = name
+	d.seat.attachSelection()
+	d.seat.attachTextInput()
 }
 
 // removeGlobal handles wl_registry.global_remove. Only the seat matters:
@@ -188,6 +278,9 @@ func (d *wlDisplay) release() {
 		d.seat.destroy()
 		d.seat = nil
 	}
+	// After the windows, whose frames it made.
+	d.decor.Unref()
+	d.destroyOptionalGlobals()
 	if d.wmBase.Valid() {
 		d.wmBase.Destroy()
 	}
@@ -203,6 +296,39 @@ func (d *wlDisplay) release() {
 	}
 }
 
+// destroyOptionalGlobals frees the phase 6 globals, with the destructor
+// request each has, so the compositor frees its side too.
+func (d *wlDisplay) destroyOptionalGlobals() {
+	if d.shm.Valid() {
+		if d.shm.Version() >= 2 {
+			d.shm.Release()
+		} else {
+			d.shm.DestroyProxy()
+		}
+	}
+	if d.cursorShape.Valid() {
+		d.cursorShape.Destroy()
+	}
+	if d.dataMgr.Valid() {
+		d.dataMgr.DestroyProxy() // the interface has no destructor
+	}
+	if d.primaryMgr.Valid() {
+		d.primaryMgr.Destroy()
+	}
+	if d.decoMgr.Valid() {
+		d.decoMgr.Destroy()
+	}
+	if d.viewporter.Valid() {
+		d.viewporter.Destroy()
+	}
+	if d.fracMgr.Valid() {
+		d.fracMgr.Destroy()
+	}
+	if d.textInputMgr.Valid() {
+		d.textInputMgr.Destroy()
+	}
+}
+
 // wlWindow is the Wayland state of one window: the surface, its xdg-shell
 // roles, the EGL native window and the configure and frame bookkeeping.
 type wlWindow struct {
@@ -212,6 +338,12 @@ type wlWindow struct {
 	xdgSurface wl.XdgSurface
 	toplevel   wl.XdgToplevel
 	eglWin     wl.EGLWindow
+	// deco is the xdg-decoration object, when the compositor draws the
+	// frame. frame is the libdecor frame, when libdecor draws it; it
+	// then owns the xdg_surface and xdg_toplevel, and the two fields
+	// above stay zero. See wayland_shell_linux.go.
+	deco  wl.ZxdgToplevelDecorationV1
+	frame *decor.Frame
 
 	// pendW, pendH and pendActive hold what the last
 	// xdg_toplevel.configure asked for. A size of 0 leaves the choice to
@@ -220,10 +352,18 @@ type wlWindow struct {
 	pendW, pendH int32
 	pendActive   bool
 
-	// logW, logH are the window size in logical pixels; scale is the
-	// integer buffer scale. The buffer is logW*scale × logH*scale.
+	// logW, logH are the window size in logical pixels; scale120 is the
+	// scale in 120ths (fractional-scale-v1's unit, so 180 is 1.5). The
+	// buffer is logW×logH scaled by it, rounded (wlScaled).
 	logW, logH int32
-	scale      int32
+	scale120   int32
+
+	// fracScale and viewport are set when the compositor offers
+	// fractional scaling: the buffer then keeps scale 1 and the viewport
+	// shows it at the logical size. Without them, the scale is the
+	// integer wl_surface buffer scale.
+	fracScale wl.WpFractionalScaleV1
+	viewport  wl.WpViewport
 
 	configured  bool // the first configure arrived
 	active      bool // last focus state sent to gui
@@ -242,18 +382,17 @@ type wlWindow struct {
 	frameAt   time.Time
 	frameDone wl.CallbackDispatcher
 
+	// imeOn is gui's IMEStart (an editable text has focus); imeRect is
+	// the caret it last reported, in logical pixels.
+	imeOn       bool
+	imeRect     [4]int32
+	imeHaveRect bool
+
 	// title is a title set from another goroutine, applied by the loop.
 	// The wl package is single-threaded, so SetTitle cannot send it.
 	titleMu    sync.Mutex
 	title      string
 	titleDirty bool
-}
-
-// wlClipboard stands in for the system clipboard until wl_data_device
-// lands (phase 6): copy and paste work inside the process only.
-var wlClipboard struct {
-	mu   sync.Mutex
-	text string
 }
 
 // configureSize resolves a configure's suggested size against the current
@@ -300,7 +439,7 @@ func newWaylandBackend(w *gui.Window) (*Backend, error) {
 	}
 	cfg := w.Config
 	b := &Backend{}
-	ww := &wlWindow{d: d, b: b, scale: 1, throttle: !cfg.VSyncOff,
+	ww := &wlWindow{d: d, b: b, scale120: 120, throttle: !cfg.VSyncOff,
 		transparent: cfg.Transparent}
 	b.plat.wl = ww
 	b.plat.w = w
@@ -326,44 +465,25 @@ func newWaylandBackend(w *gui.Window) (*Backend, error) {
 
 	ww.surface = d.compositor.CreateSurface()
 	ww.surface.SetHandlers(wl.SurfaceHandlers{PreferredBufferScale: ww.setScale})
-	ww.xdgSurface = d.wmBase.GetXdgSurface(ww.surface)
-	ww.xdgSurface.SetHandlers(wl.XdgSurfaceHandlers{Configure: ww.applyConfigure})
-	ww.toplevel = ww.xdgSurface.GetToplevel()
-	ww.toplevel.SetHandlers(wl.XdgToplevelHandlers{
-		Configure: func(width, height int32, states []byte) {
-			ww.pendW, ww.pendH = width, height
-			ww.pendActive = statesHave(states, wl.XdgToplevelStateActivated)
-		},
-		Close: func() { gui.DispatchCloseRequest(w) },
-	})
-	title := cfg.Title
-	if title == "" {
-		title = "go-gui"
+	if d.fracMgr.Valid() && d.viewporter.Valid() {
+		ww.viewport = d.viewporter.GetViewport(ww.surface)
+		ww.viewport.SetDestination(ww.logW, ww.logH)
+		ww.fracScale = d.fracMgr.GetFractionalScale(ww.surface)
+		ww.fracScale.SetHandlers(wl.WpFractionalScaleV1Handlers{PreferredScale: ww.setFracScale})
 	}
-	ww.toplevel.SetTitle(title)
-	if cfg.WMClass != "" {
-		ww.toplevel.SetAppId(cfg.WMClass)
+	// The window's role: an xdg_toplevel, made by libdecor when it draws
+	// the frame. Its first commit carries no buffer; it asks for the
+	// initial configure. No buffer may be attached before that configure
+	// is acknowledged, so EGL is set up only after it.
+	if err := ww.makeToplevel(cfg); err != nil {
+		return fail(err)
 	}
-	// Limits are in logical pixels, the unit xdg_toplevel uses. A zero
-	// axis means "no limit" in both requests.
-	limits := gui.WindowSizeLimits(cfg)
-	if limits.MinW > 0 || limits.MinH > 0 {
-		ww.toplevel.SetMinSize(int32(limits.MinW), int32(limits.MinH))
-	}
-	if limits.MaxW > 0 || limits.MaxH > 0 {
-		ww.toplevel.SetMaxSize(int32(limits.MaxW), int32(limits.MaxH))
-	}
-
-	// The first commit carries no buffer; it asks for the initial
-	// configure. No buffer may be attached before that configure is
-	// acknowledged, so EGL is set up only after it.
-	ww.surface.Commit()
 	deadline := time.Now().Add(wlConfigureTimeout)
 	for !ww.configured {
 		if time.Now().After(deadline) {
 			return fail(errors.New("wayland: no configure from the compositor"))
 		}
-		if err := d.conn.Dispatch(100 * time.Millisecond); err != nil {
+		if err := d.dispatch(100 * time.Millisecond); err != nil {
 			return fail(fmt.Errorf("wayland: wait for configure: %w", err))
 		}
 	}
@@ -399,16 +519,10 @@ func newWaylandBackend(w *gui.Window) (*Backend, error) {
 	ww.dirty = true
 
 	w.SetTitleFn(ww.setTitle)
-	w.SetClipboardFn(func(s string) {
-		wlClipboard.mu.Lock()
-		wlClipboard.text = s
-		wlClipboard.mu.Unlock()
-	})
-	w.SetClipboardGetFn(func() string {
-		wlClipboard.mu.Lock()
-		defer wlClipboard.mu.Unlock()
-		return wlClipboard.text
-	})
+	w.SetClipboardFn(func(s string) { d.setSelection(b, wlSelClipboard, s) })
+	w.SetClipboardGetFn(func() string { return d.getSelection(b, wlSelClipboard) })
+	w.SetPrimaryFn(func(s string) { d.setSelection(b, wlSelPrimary, s) })
+	w.SetPrimaryGetFn(func() string { return d.getSelection(b, wlSelPrimary) })
 
 	d.wins[ww.surface.Ptr()] = b
 	b.plat.lockedTid = syscall.Gettid()
@@ -426,31 +540,60 @@ func (ww *wlWindow) applyConfigure(serial uint32) {
 	ww.xdgSurface.AckConfigure(serial)
 	ww.configured = true
 	w, h := configureSize(ww.pendW, ww.pendH, ww.logW, ww.logH)
-	ww.resize(w, h, ww.scale)
+	ww.resize(w, h, ww.scale120)
 	ww.syncFocus()
 	ww.dirty = true
 }
 
-// setScale handles wl_surface.preferred_buffer_scale (wl_surface v6).
+// wlMaxScale120 bounds the scale a compositor can ask for (8×). A broken
+// one must not make the buffer, sized logical × scale, huge.
+const wlMaxScale120 = 8 * 120
+
+// setScale handles wl_surface.preferred_buffer_scale (wl_surface v6), the
+// integer scale. A window with fractional scaling ignores it: the
+// fractional event says the same more precisely.
 func (ww *wlWindow) setScale(factor int32) {
-	ww.resize(ww.logW, ww.logH, max(factor, 1))
+	if ww.fracScale.Valid() {
+		return
+	}
+	ww.resize(ww.logW, ww.logH, min(max(factor, 1), wlMaxScale120/120)*120)
 	ww.dirty = true
 }
 
-// resize adopts a new logical size and buffer scale. Before the window is
-// ready it only records them; New sizes the EGL window from the result.
-func (ww *wlWindow) resize(w, h, scale int32) {
-	if w == ww.logW && h == ww.logH && scale == ww.scale {
+// setFracScale handles wp_fractional_scale_v1.preferred_scale, in 120ths.
+func (ww *wlWindow) setFracScale(scale uint32) {
+	ww.resize(ww.logW, ww.logH, int32(min(max(scale, 120), wlMaxScale120)))
+	ww.dirty = true
+}
+
+// wlScaled is a logical length in buffer pixels at scale120, rounded half
+// up as fractional-scale-v1 asks.
+func wlScaled(v, scale120 int32) int32 {
+	return int32((int64(v)*int64(scale120) + 60) / 120)
+}
+
+// resize adopts a new logical size and scale. Before the window is ready
+// it only records them; New sizes the EGL window from the result.
+func (ww *wlWindow) resize(w, h, scale120 int32) {
+	if w == ww.logW && h == ww.logH && scale120 == ww.scale120 {
 		return
 	}
-	if scale != ww.scale && ww.surface.Version() >= 3 {
-		// Applies with the next commit, which is the eglSwapBuffers of a
-		// buffer already at the new size.
-		ww.surface.SetBufferScale(scale)
+	// Both apply with the next commit, which is the eglSwapBuffers of a
+	// buffer already at the new size.
+	switch {
+	case ww.viewport.Valid():
+		// The buffer stays at scale 1; the viewport maps it onto the
+		// logical size.
+		if w != ww.logW || h != ww.logH {
+			ww.viewport.SetDestination(w, h)
+		}
+	case scale120 != ww.scale120 && ww.surface.Version() >= 3:
+		ww.surface.SetBufferScale(scale120 / 120)
 	}
-	ww.logW, ww.logH, ww.scale = w, h, scale
+	ww.logW, ww.logH, ww.scale120 = w, h, scale120
 	b := ww.b
-	b.plat.physW, b.plat.physH, b.plat.scale = w*scale, h*scale, float32(scale)
+	b.plat.physW, b.plat.physH = wlScaled(w, scale120), wlScaled(h, scale120)
+	b.plat.scale = float32(scale120) / 120
 	if !ww.ready {
 		return
 	}
@@ -511,7 +654,7 @@ func (ww *wlWindow) flushTitle() {
 	ww.titleDirty = false
 	ww.titleMu.Unlock()
 	if dirty {
-		ww.toplevel.SetTitle(t)
+		ww.setRoleTitle(t)
 	}
 }
 
@@ -567,12 +710,13 @@ func (p *platformState) destroyWayland() {
 	if ww.frameCb.Valid() {
 		ww.frameCb.DestroyProxy()
 	}
-	if ww.toplevel.Valid() {
-		ww.toplevel.Destroy()
+	if ww.fracScale.Valid() {
+		ww.fracScale.Destroy()
 	}
-	if ww.xdgSurface.Valid() {
-		ww.xdgSurface.Destroy()
+	if ww.viewport.Valid() {
+		ww.viewport.Destroy()
 	}
+	ww.destroyRole()
 	if ww.surface.Valid() {
 		ww.surface.Destroy()
 	}

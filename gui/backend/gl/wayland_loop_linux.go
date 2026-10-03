@@ -125,9 +125,19 @@ func (l *wlLoop) closeAll() {
 //nolint:gocyclo // event loop
 func (l *wlLoop) run() error {
 	for len(l.wins) > 0 {
-		if err := l.d.conn.Dispatch(0); err != nil {
+		if err := l.d.dispatch(0); err != nil {
 			l.closeOnError()
 			return err
+		}
+		// Copies and pastes from other goroutines.
+		l.d.runPosted()
+		if l.d.decor != nil {
+			// libdecor's plugin has work of its own (the GTK plugin's
+			// main context); 0 never blocks.
+			if err := l.d.decor.Dispatch(0); err != nil {
+				l.closeOnError()
+				return err
+			}
 		}
 		if l.app != nil {
 			l.openPending()
@@ -160,6 +170,11 @@ func (l *wlLoop) run() error {
 			ww := b.plat.wl
 			ww.flushTitle()
 			ww.syncFocus()
+			if seat := l.d.seat; seat != nil && seat.ptrFocus == b {
+				// The shape the last frame asked for; sends nothing
+				// when it did not change.
+				seat.setCursor(b.plat.w.MouseCursorState())
+			}
 			if pending, left := ww.framePending(now); pending {
 				if wait < 0 || left < wait {
 					wait = left
@@ -179,7 +194,7 @@ func (l *wlLoop) run() error {
 		if rendered {
 			continue
 		}
-		if err := l.d.conn.Dispatch(wait); err != nil {
+		if err := l.d.dispatch(wait); err != nil {
 			l.closeOnError()
 			return err
 		}

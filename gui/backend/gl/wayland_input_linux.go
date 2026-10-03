@@ -86,6 +86,20 @@ type wlSeat struct {
 	mods    uint16
 	repeat  wlRepeat
 
+	// Serials of the input events requests must name. enterSerial is
+	// the pointer enter, which wl_pointer.set_cursor and the cursor
+	// shape take. pressSerial is the last button press, which starts a
+	// move or resize. serial is the last press, key or keyboard enter,
+	// which a selection (clipboard) request names.
+	enterSerial, pressSerial, serial uint32
+
+	// Cursor state (wayland_cursor_linux.go).
+	cursor wlCursor
+	// Clipboard and primary selection (wayland_clipboard_linux.go).
+	clip wlClip
+	// Text input for input methods (wayland_ime_linux.go).
+	ime wlIME
+
 	touches wlTouches
 	// touchOut holds the events one touch frame produces, kept here so a
 	// frame allocates nothing.
@@ -158,6 +172,8 @@ func (s *wlSeat) capabilities(caps uint32) {
 // release{Pointer,Keyboard,Touch} use the release request where the bound
 // version has it (3), so the compositor frees its side too.
 func (s *wlSeat) releasePointer() {
+	// The cursor shape device belongs to the pointer: it goes first.
+	s.cursor.dropDevice()
 	if s.pointer.Version() >= 3 {
 		s.pointer.Release()
 	} else {
@@ -212,6 +228,9 @@ func (s *wlSeat) destroy() {
 	if s.touch.Valid() {
 		s.releaseTouch()
 	}
+	s.cursor.destroy()
+	s.destroyClip()
+	s.destroyIME()
 	if s.seat.Version() >= 5 {
 		s.seat.Release()
 	} else {
@@ -233,13 +252,19 @@ func (s *wlSeat) forget(b *Backend) {
 	if s.touches.target == b {
 		s.touches = wlTouches{}
 	}
+	s.ime.forget(b)
 }
 
 // --- pointer ---
 
-func (s *wlSeat) pointerEnter(_ uint32, surface wl.Surface, x, y wl.Fixed) {
+func (s *wlSeat) pointerEnter(serial uint32, surface wl.Surface, x, y wl.Fixed) {
 	s.ptrFocus = s.d.wins[surface.Ptr()]
 	s.buttons = 0
+	s.enterSerial = serial
+	// The cursor over the surface is undefined until set. The run loop
+	// sets the window's cursor; forcing it here covers a window whose
+	// cursor did not change since the pointer last left.
+	s.cursor.invalidate()
 	s.pointerMotion(0, x, y)
 }
 
@@ -267,7 +292,7 @@ func (s *wlSeat) pointerMotion(_ uint32, x, y wl.Fixed) {
 	})
 }
 
-func (s *wlSeat) pointerButton(_, _ uint32, button, state uint32) {
+func (s *wlSeat) pointerButton(serial, _ uint32, button, state uint32) {
 	btn, bit, ok := wlButton(button)
 	b := s.ptrFocus
 	if !ok || b == nil {
@@ -283,6 +308,7 @@ func (s *wlSeat) pointerButton(_, _ uint32, button, state uint32) {
 		Modifiers:   x11key.MapModifiers(s.mods | s.buttons),
 	}
 	if state == wl.PointerButtonStatePressed {
+		s.pressSerial, s.serial = serial, serial
 		s.buttons |= bit
 		e.Type = gui.EventMouseDown
 	} else {
@@ -405,8 +431,9 @@ func (s *wlSeat) keyboardKeymap(format uint32, fd int, size uint32) {
 	s.mods = 0
 }
 
-func (s *wlSeat) keyboardEnter(_ uint32, surface wl.Surface, _ []byte) {
+func (s *wlSeat) keyboardEnter(serial uint32, surface wl.Surface, _ []byte) {
 	s.kbFocus = s.d.wins[surface.Ptr()]
+	s.serial = serial
 }
 
 func (s *wlSeat) keyboardLeave(uint32, wl.Surface) {
@@ -427,12 +454,13 @@ func (s *wlSeat) keyboardModifiers(_, depressed, latched, locked, group uint32) 
 	s.mods = s.keymap.State()
 }
 
-func (s *wlSeat) keyboardKey(_, _ uint32, key, state uint32) {
+func (s *wlSeat) keyboardKey(serial, _ uint32, key, state uint32) {
 	if s.keymap == nil || s.kbFocus == nil {
 		return
 	}
 	code := key + 8 // evdev → XKB keycode
 	if state == wl.KeyboardKeyStatePressed {
+		s.serial = serial
 		s.keyPress(code, false)
 		if s.keymap.Repeats(code) {
 			s.repeat.start(code, time.Now())

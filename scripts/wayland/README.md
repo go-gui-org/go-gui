@@ -20,11 +20,11 @@ Docker (on macOS, colima works).
 
 ## Compositors
 
-| Name     | Use                                                      | Screenshot             | Input injection   |
-| -------- | -------------------------------------------------------- | ---------------------- | ----------------- |
-| `sway`   | Default. wlroots, tiles the window to fill the output    | `grim`                 | `wtype`, `wlrctl` |
-| `weston` | Reference compositor. Has no seat, so no input devices   | `weston-screenshooter` | none              |
-| `mutter` | GNOME. Offers no server-side decorations (libdecor path) | none                   | none              |
+| Name     | Use                                                      | Screenshot             | Input injection                          |
+| -------- | -------------------------------------------------------- | ---------------------- | ---------------------------------------- |
+| `sway`   | Default. wlroots, tiles the window to fill the output    | `grim`                 | `wtype`, `wlrctl`, `wl-copy`, `wl-paste` |
+| `weston` | Reference compositor. Has no seat, so no input devices   | `weston-screenshooter` | none                                     |
+| `mutter` | GNOME. Offers no server-side decorations (libdecor path) | none                   | none                                     |
 
 The output is 1280×800 in every compositor.
 
@@ -64,7 +64,17 @@ Things to know about injected input:
   exit. The client gets its `wl_keyboard` or `wl_pointer` only after the device
   appears, so the first events can be lost. Start `wtype` with a pause
   (`wtype -s 300 ...`). `wlrctl` has no pause, so its pointer events are not
-  reliable; the pointer tests call the seat handlers directly.
+  reliable. Tests drive a pointer on their own connection instead
+  (`wlr-virtual-pointer`, see `virtualPointer` in
+  `gui/backend/gl/wayland_cursor_linux_test.go`); wait for the `wl_pointer`
+  before moving it, and move it somewhere new, or sway sends no enter.
+- sway places a tiled window only after a frame at the size it configured, so a
+  test that points at a window renders it for a moment first (`settleWindow`).
+- `wl-copy` forks a child that serves the selection and keeps stdout open: run
+  it with no output captured, or the caller waits forever.
+- A copy names the serial of an input event, and sway refuses a serial older
+  than the current selection's. Type a key after another client copied, then
+  copy.
 - `wtype` joins its text arguments with a space: `wtype a B` types `a B`.
 - Text outside ASCII needs a UTF-8 locale:
   `-a 'export LC_ALL=C.UTF-8; wtype привет'`.

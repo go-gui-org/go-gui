@@ -1,9 +1,11 @@
 # Native Wayland backend
 
 Status: in progress, experimental. Issue #919. Phases 2 (test harness), 3
-(protocol bindings), 4 (window) and 5 (input) of 9 have landed. With
-`GOGUI_WAYLAND=1` an app opens a native Wayland window, renders, and takes
-pointer, keyboard, scroll and touch input.
+(protocol bindings), 4 (window), 5 (input) and 6 (desktop parity) of 9 have
+landed. With `GOGUI_WAYLAND=1` an app opens a native Wayland window with a
+frame, renders at fractional scales, takes pointer, keyboard, scroll, touch and
+input method input, shares the clipboard and primary selection with other apps,
+sets cursors, and moves and resizes.
 
 ## Problem
 
@@ -88,9 +90,13 @@ and `destroy` frees Wayland objects.
   `wl_surface.preferred_buffer_scale` (wl_surface v6). The whole surface is
   marked opaque unless `WindowCfg.Transparent` is set, so the alpha channel of
   the EGL config does not show.
-- **Not yet.** Decorations, the system clipboard (copy and paste work inside the
-  process only), fractional scale, cursors, IME and window move/resize are
-  phase 6. Show/hide and opacity are no-ops on Wayland.
+- **Size and scale, fractional.** With `wp_fractional_scale_v1` and
+  `wp_viewporter` (sway, mutter, KWin), the scale comes in 120ths: the buffer is
+  the logical size times the scale, rounded, at buffer scale 1, and the viewport
+  shows it at the logical size. Without them the integer buffer scale is used. A
+  scale above 8 is clamped.
+- **Not yet.** Show/hide, opacity, the window icon and drag and drop are no-ops
+  on Wayland.
 
 ### Input goes through one seat and the X11 key path
 
@@ -125,16 +131,53 @@ and `destroy` frees Wayland objects.
 ### Decorations
 
 The backend uses xdg-decoration when the compositor offers it (KDE, wlroots).
-Otherwise it uses libdecor when it is installed (GNOME, Cinnamon). If libdecor
-is missing, the window has no frame, and a warning is printed once.
+Otherwise it uses libdecor when it is installed (GNOME, Cinnamon, weston). If
+libdecor is missing, the window has no frame, and a warning is printed once.
+
+- libdecor is bound through purego in `internal/decor`, like libxkbcommon. It
+  makes the xdg_surface and xdg_toplevel itself, so a libdecor window takes its
+  configure, close, title, limits, move and resize through the frame, not the
+  toplevel. Its callbacks are made once and route to the window by an id.
+- `DecorationNone` asks xdg-decoration for client-side decorations, which here
+  means none, and never loads libdecor. `DecorationHiddenTitlebar` gets the
+  normal frame, as on X11.
+- The loop calls `libdecor_dispatch(0)` each pass, so the GTK plugin's own work
+  runs.
+
+### Desktop integration
+
+- **Clipboard and primary selection.** `wl_data_device` and
+  `primary-selection-v1`. Copy offers UTF-8 text under the usual MIME types and
+  serves pastes from a goroutine with a 5 s write deadline. Paste reads the best
+  text type through a pipe, bounded by the X11 limits (1 s, 16 MiB). Text the
+  app copied is read back from memory. A copy or paste from another goroutine is
+  handed to the loop. A copy names the serial of the last key or button press;
+  the compositor refuses an older serial than the current selection's. Without a
+  data device (no seat), text stays in the process.
+- **Cursors.** `cursor-shape-v1` names the shape and the compositor draws it.
+  Without it, the image comes from the Xcursor theme (the X11 code in
+  `xcursor.go`), copied into a `wl_shm` buffer; the theme is `XCURSOR_THEME` /
+  `XCURSOR_SIZE`, then the GTK settings files. The cursor is set again on every
+  pointer enter.
+- **Move and resize.** `StartWindowDrag` and `StartWindowResize` send
+  `xdg_toplevel.move` and `.resize` (or the libdecor calls) with the serial of
+  the button press that is still held.
+- **Input methods.** `text-input-v3`. While gui has an editable text focused
+  (`IMEStart`) and the text input is on the window, it is enabled with the caret
+  rectangle. Preedit and commit, applied at `done`, become the events the IBus
+  path emits: `EventIMEComposition` and one `EventChar` with the whole commit.
+  The IBus D-Bus client stays off on Wayland.
 
 ### Development happens mostly in a headless harness
 
 `scripts/wayland/` runs clients under headless sway, weston and mutter in
-Docker, with Mesa llvmpipe. sway supports screenshots (`grim`) and injected
-input (`wtype`, `wlrctl`), weston supports screenshots, and mutter covers the
-no-server-side-decorations path. Only the hardware pass (real GPU, HiDPI, IME,
-clipboard with other apps) needs a Linux machine.
+Docker, with Mesa llvmpipe. sway supports screenshots (`grim`), injected input
+(`wtype`, `wlrctl`) and clipboard tools (`wl-copy`, `wl-paste`), weston supports
+screenshots, and mutter covers the no-server-side-decorations path. Tests drive
+a pointer and play an input method on their own connection through
+`wlr-virtual-pointer` and `input-method-v2`, which sway offers; the bindings for
+those two protocols are used only by tests. Only the hardware pass (real GPU,
+HiDPI, IME, clipboard with other apps) needs a Linux machine.
 
 ## Phases
 
@@ -145,7 +188,7 @@ clipboard with other apps) needs a Linux machine.
 | 3   | Protocol code generation + purego libwayland-client core                                | done    |
 | 4   | Window: xdg-shell, `wl_egl_window`, EGL Wayland display, frame callbacks, resize, close | done    |
 | 5   | Input: pointer, keyboard through xkbcommon, scroll, touch                               | done    |
-| 6   | Decorations, clipboard, fractional scale, cursor-shape, text-input-v3                   | pending |
+| 6   | Decorations, clipboard, fractional scale, cursor-shape, text-input-v3                   | done    |
 | 7   | Hardware pass on Linux Mint (Intel/AMD): Cinnamon Wayland, nested sway/weston/KWin      | pending |
 | 8   | Ship as experimental                                                                    | pending |
 | 9   | OpenGL ES renderer path for GLES-only devices (separate issue)                          | pending |
@@ -176,5 +219,15 @@ clipboard with other apps) needs a Linux machine.
 - **Mapping evdev codes to keys without libxkbcommon.** It works only for a US
   layout. The keymap the compositor sends is the user's layout, and only
   libxkbcommon reads it.
+- **libwayland-cursor for the fallback cursor.** A third library to load, while
+  `xcursor.go` already reads Xcursor themes for X11. Only the `wl_shm` upload is
+  new.
+- **The IBus D-Bus client on Wayland.** It works on GNOME, but the compositor
+  does not know about it: the candidate window cannot be placed, and fcitx5 and
+  KDE's input method are left out. text-input-v3 serves every input method the
+  compositor runs.
+- **Reading our own selection through a pipe.** The source is served on the
+  loop's thread, which would be blocked in the read until the timeout. Text the
+  app copied is returned from memory.
 - **Only fixing XWayland with an OpenGL ES path.** Devices with no X11 EGL
   platform (libhybris, #916) still fail.

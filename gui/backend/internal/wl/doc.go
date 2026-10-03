@@ -26,8 +26,12 @@
 // handler, runs on the goroutine that drives the Conn, which must be locked
 // to its OS thread like the rest of the GL backend. One Conn at a time.
 //
+// wlr-virtual-pointer and input-method-v2 are bound only by tests: they let
+// a test drive a pointer, and act as an input method, on its own connection
+// under sway, which has neither when headless.
+//
 // It builds only for little-endian 64-bit Linux (amd64, arm64): a
 // wl_argument is read as one 8-byte slot holding its value in the low bytes.
 package wl
 
-//go:generate go run ./internal/wlgen . protocols/wayland.xml protocols/xdg-shell.xml
+//go:generate go run ./internal/wlgen . protocols/wayland.xml protocols/xdg-shell.xml protocols/xdg-decoration-unstable-v1.xml protocols/viewporter.xml protocols/fractional-scale-v1.xml protocols/cursor-shape-v1.xml protocols/text-input-unstable-v3.xml protocols/primary-selection-unstable-v1.xml protocols/wlr-virtual-pointer-unstable-v1.xml protocols/input-method-unstable-v2.xml

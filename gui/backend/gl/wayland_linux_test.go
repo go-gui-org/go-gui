@@ -125,8 +125,8 @@ func TestWaylandWindow(t *testing.T) {
 	if !ww.configured || !ww.ready || ww.id() == 0 {
 		t.Fatalf("window not set up: %+v", ww)
 	}
-	if b.physW != ww.logW*ww.scale || b.physH != ww.logH*ww.scale || b.physW <= 0 {
-		t.Errorf("phys %dx%d, logical %dx%d at scale %d", b.physW, b.physH, ww.logW, ww.logH, ww.scale)
+	if b.physW != wlScaled(ww.logW, ww.scale120) || b.physH != wlScaled(ww.logH, ww.scale120) || b.physW <= 0 {
+		t.Errorf("phys %dx%d, logical %dx%d at scale %d/120", b.physW, b.physH, ww.logW, ww.logH, ww.scale120)
 	}
 
 	b.plat.makeCurrent()
@@ -193,7 +193,7 @@ func TestWaylandResize(t *testing.T) {
 	b := newWaylandTestBackend(t, gui.WindowCfg{Width: 300, Height: 200})
 	defer b.Destroy()
 	ww := b.plat.wl
-	ww.resize(400, 250, 2)
+	ww.resize(400, 250, 240) // 2× in 120ths
 	if b.physW != 800 || b.physH != 500 || b.dpiScale != 2 {
 		t.Errorf("after resize: phys %dx%d scale %v", b.physW, b.physH, b.dpiScale)
 	}

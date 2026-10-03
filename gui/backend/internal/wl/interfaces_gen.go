@@ -8,6 +8,14 @@ package wl
 func defineInterfaces() {
 	defineWayland()
 	defineXdgShell()
+	defineXdgDecorationUnstableV1()
+	defineViewporter()
+	defineFractionalScaleV1()
+	defineCursorShapeV1()
+	defineTextInputUnstableV3()
+	defineWpPrimarySelectionUnstableV1()
+	defineWlrVirtualPointerUnstableV1()
+	defineInputMethodUnstableV2()
 }
 
 // allInterfaces lists every generated table, for tests.
@@ -39,4 +47,24 @@ var allInterfaces = []*Interface{
 	&XdgSurfaceInterface,
 	&XdgToplevelInterface,
 	&XdgPopupInterface,
+	&ZxdgDecorationManagerV1Interface,
+	&ZxdgToplevelDecorationV1Interface,
+	&WpViewporterInterface,
+	&WpViewportInterface,
+	&WpFractionalScaleManagerV1Interface,
+	&WpFractionalScaleV1Interface,
+	&WpCursorShapeManagerV1Interface,
+	&WpCursorShapeDeviceV1Interface,
+	&ZwpTextInputV3Interface,
+	&ZwpTextInputManagerV3Interface,
+	&ZwpPrimarySelectionDeviceManagerV1Interface,
+	&ZwpPrimarySelectionDeviceV1Interface,
+	&ZwpPrimarySelectionOfferV1Interface,
+	&ZwpPrimarySelectionSourceV1Interface,
+	&ZwlrVirtualPointerV1Interface,
+	&ZwlrVirtualPointerManagerV1Interface,
+	&ZwpInputMethodV2Interface,
+	&ZwpInputPopupSurfaceV2Interface,
+	&ZwpInputMethodKeyboardGrabV2Interface,
+	&ZwpInputMethodManagerV2Interface,
 }

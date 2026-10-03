@@ -35,3 +35,10 @@ func runAppWayland(*gui.App, []*gui.Window) (bool, error) {
 func (b *Backend) runWayland(*gui.Window) {}
 
 func (p *platformState) destroyWayland() {}
+
+// The X11 entry points branch to these when p.wl is set, which never
+// happens here.
+func (*wlWindow) moveResize(uint32)           {}
+func (*wlWindow) imeStart()                   {}
+func (*wlWindow) imeStop()                    {}
+func (*wlWindow) imeSetRect(_, _, _, _ int32) {}

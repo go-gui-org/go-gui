@@ -5,6 +5,10 @@
 # then runs it under sway, weston and mutter with GOGUI_REQUIRE_WAYLAND=1, so
 # a test that cannot reach the compositor fails instead of skipping.
 #
+# GOGUI_WAYLAND is off: a Wayland test sets it itself, and an X11 test that
+# calls New must not get a Wayland window it never destroys, which would
+# leave the shared connection open for every test after it.
+#
 # Usage: scripts/wayland/test.sh <package> [go test flags...]
 # Example: scripts/wayland/test.sh ./gui/backend/internal/wl -test.run Registry
 # COMPOSITORS="sway weston" limits the compositors.
@@ -29,7 +33,7 @@ CGO_ENABLED=0 GOOS=linux GOARCH=$arch go test -c -o "$bin" "$pkg" || exit 1
 status=0
 for comp in ${COMPOSITORS:-sway weston mutter}; do
   echo "== $comp"
-  if ! GOGUI_REQUIRE_WAYLAND=1 SHOW_COMPOSITOR_LOG=1 \
+  if ! GOGUI_WAYLAND=0 GOGUI_REQUIRE_WAYLAND=1 SHOW_COMPOSITOR_LOG=1 \
     scripts/wayland/run.sh -c "$comp" -- env GOGUI_REQUIRE_WAYLAND=1 "$bin" "$@"; then
     echo "FAIL under $comp"
     status=1
