@@ -141,6 +141,8 @@ pipeline and event system.
 ### Example applications
 
 - **go-kite** — Desktop Bluesky client. https://github.com/go-gui-org/go-kite
+- **go-speedtest** — Network speed test with a live dashboard.
+  https://github.com/go-gui-org/go-speedtest
 
 ---
 
