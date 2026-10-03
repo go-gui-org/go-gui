@@ -88,6 +88,17 @@ and this project adheres to
 
 ### Fixed
 
+- **Linux: GL starts when the default EGL driver has OpenGL ES only (#916)** —
+  on a libhybris phone (FuriLabs, Phosh on Wayland) the default EGL display is
+  the Android GPU driver, which has no desktop-OpenGL config, so every app
+  failed with `eglChooseConfig: no matching config (egl error 0x3000)`. When the
+  default display has no desktop-GL config, the backend now tries the Mesa X11
+  platform display (`eglGetPlatformDisplay`). On that phone Mesa renders in
+  software (llvmpipe), so the app runs but is slow. When no display has desktop
+  GL, the error now says the driver offers OpenGL ES only, in place of only the
+  old "update the GPU driver" hint. Desktop systems are not affected: their
+  default display succeeds and the fallback never runs.
+
 - **macOS: event loop no longer leaks one `NSEvent` per frame** — the Metal
   backend polled AppKit events with no autorelease pool, and the Go event loop
   has no Cocoa run loop to drain one. Every dequeued event and every wake event
