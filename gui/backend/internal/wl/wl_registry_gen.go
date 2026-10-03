@@ -36,8 +36,20 @@ type RegistryHandlers struct {
 }
 
 // SetHandlers routes the events of px to h, replacing any earlier handlers.
-func (px Registry) SetHandlers(h RegistryHandlers) {
-	px.setDispatch(func(opcode uint32, a *argSlots) {
+func (px Registry) SetHandlers(h RegistryHandlers) { px.SetDispatcher(h.Dispatcher()) }
+
+// RegistryDispatcher is the decoder for RegistryHandlers, built once by Dispatcher
+// and installed on any number of proxies without allocating.
+type RegistryDispatcher struct {
+	f func(opcode uint32, a *argSlots)
+}
+
+// SetDispatcher routes the events of px to d, replacing any earlier handlers.
+func (px Registry) SetDispatcher(d RegistryDispatcher) { px.setDispatch(d.f) }
+
+// Dispatcher builds the event decoder for h.
+func (h RegistryHandlers) Dispatcher() RegistryDispatcher {
+	return RegistryDispatcher{func(opcode uint32, a *argSlots) {
 		switch opcode {
 		case 0:
 			if h.Global != nil {
@@ -48,5 +60,5 @@ func (px Registry) SetHandlers(h RegistryHandlers) {
 				h.GlobalRemove(uint32(a[0]))
 			}
 		}
-	})
+	}}
 }

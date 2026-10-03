@@ -126,8 +126,20 @@ type ShellSurfaceHandlers struct {
 }
 
 // SetHandlers routes the events of px to h, replacing any earlier handlers.
-func (px ShellSurface) SetHandlers(h ShellSurfaceHandlers) {
-	px.setDispatch(func(opcode uint32, a *argSlots) {
+func (px ShellSurface) SetHandlers(h ShellSurfaceHandlers) { px.SetDispatcher(h.Dispatcher()) }
+
+// ShellSurfaceDispatcher is the decoder for ShellSurfaceHandlers, built once by Dispatcher
+// and installed on any number of proxies without allocating.
+type ShellSurfaceDispatcher struct {
+	f func(opcode uint32, a *argSlots)
+}
+
+// SetDispatcher routes the events of px to d, replacing any earlier handlers.
+func (px ShellSurface) SetDispatcher(d ShellSurfaceDispatcher) { px.setDispatch(d.f) }
+
+// Dispatcher builds the event decoder for h.
+func (h ShellSurfaceHandlers) Dispatcher() ShellSurfaceDispatcher {
+	return ShellSurfaceDispatcher{func(opcode uint32, a *argSlots) {
 		switch opcode {
 		case 0:
 			if h.Ping != nil {
@@ -142,5 +154,5 @@ func (px ShellSurface) SetHandlers(h ShellSurfaceHandlers) {
 				h.PopupDone()
 			}
 		}
-	})
+	}}
 }

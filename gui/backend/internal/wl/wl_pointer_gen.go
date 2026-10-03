@@ -102,8 +102,20 @@ type PointerHandlers struct {
 }
 
 // SetHandlers routes the events of px to h, replacing any earlier handlers.
-func (px Pointer) SetHandlers(h PointerHandlers) {
-	px.setDispatch(func(opcode uint32, a *argSlots) {
+func (px Pointer) SetHandlers(h PointerHandlers) { px.SetDispatcher(h.Dispatcher()) }
+
+// PointerDispatcher is the decoder for PointerHandlers, built once by Dispatcher
+// and installed on any number of proxies without allocating.
+type PointerDispatcher struct {
+	f func(opcode uint32, a *argSlots)
+}
+
+// SetDispatcher routes the events of px to d, replacing any earlier handlers.
+func (px Pointer) SetDispatcher(d PointerDispatcher) { px.setDispatch(d.f) }
+
+// Dispatcher builds the event decoder for h.
+func (h PointerHandlers) Dispatcher() PointerDispatcher {
+	return PointerDispatcher{func(opcode uint32, a *argSlots) {
 		switch opcode {
 		case 0:
 			if h.Enter != nil {
@@ -150,5 +162,5 @@ func (px Pointer) SetHandlers(h PointerHandlers) {
 				h.AxisRelativeDirection(uint32(a[0]), uint32(a[1]))
 			}
 		}
-	})
+	}}
 }

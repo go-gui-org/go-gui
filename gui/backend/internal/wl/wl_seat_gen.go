@@ -74,8 +74,20 @@ type SeatHandlers struct {
 }
 
 // SetHandlers routes the events of px to h, replacing any earlier handlers.
-func (px Seat) SetHandlers(h SeatHandlers) {
-	px.setDispatch(func(opcode uint32, a *argSlots) {
+func (px Seat) SetHandlers(h SeatHandlers) { px.SetDispatcher(h.Dispatcher()) }
+
+// SeatDispatcher is the decoder for SeatHandlers, built once by Dispatcher
+// and installed on any number of proxies without allocating.
+type SeatDispatcher struct {
+	f func(opcode uint32, a *argSlots)
+}
+
+// SetDispatcher routes the events of px to d, replacing any earlier handlers.
+func (px Seat) SetDispatcher(d SeatDispatcher) { px.setDispatch(d.f) }
+
+// Dispatcher builds the event decoder for h.
+func (h SeatHandlers) Dispatcher() SeatDispatcher {
+	return SeatDispatcher{func(opcode uint32, a *argSlots) {
 		switch opcode {
 		case 0:
 			if h.Capabilities != nil {
@@ -86,5 +98,5 @@ func (px Seat) SetHandlers(h SeatHandlers) {
 				h.Name(goString(a[0]))
 			}
 		}
-	})
+	}}
 }

@@ -55,8 +55,20 @@ type XdgPopupHandlers struct {
 }
 
 // SetHandlers routes the events of px to h, replacing any earlier handlers.
-func (px XdgPopup) SetHandlers(h XdgPopupHandlers) {
-	px.setDispatch(func(opcode uint32, a *argSlots) {
+func (px XdgPopup) SetHandlers(h XdgPopupHandlers) { px.SetDispatcher(h.Dispatcher()) }
+
+// XdgPopupDispatcher is the decoder for XdgPopupHandlers, built once by Dispatcher
+// and installed on any number of proxies without allocating.
+type XdgPopupDispatcher struct {
+	f func(opcode uint32, a *argSlots)
+}
+
+// SetDispatcher routes the events of px to d, replacing any earlier handlers.
+func (px XdgPopup) SetDispatcher(d XdgPopupDispatcher) { px.setDispatch(d.f) }
+
+// Dispatcher builds the event decoder for h.
+func (h XdgPopupHandlers) Dispatcher() XdgPopupDispatcher {
+	return XdgPopupDispatcher{func(opcode uint32, a *argSlots) {
 		switch opcode {
 		case 0:
 			if h.Configure != nil {
@@ -71,5 +83,5 @@ func (px XdgPopup) SetHandlers(h XdgPopupHandlers) {
 				h.Repositioned(uint32(a[0]))
 			}
 		}
-	})
+	}}
 }

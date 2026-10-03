@@ -34,13 +34,25 @@ type BufferHandlers struct {
 }
 
 // SetHandlers routes the events of px to h, replacing any earlier handlers.
-func (px Buffer) SetHandlers(h BufferHandlers) {
-	px.setDispatch(func(opcode uint32, a *argSlots) {
+func (px Buffer) SetHandlers(h BufferHandlers) { px.SetDispatcher(h.Dispatcher()) }
+
+// BufferDispatcher is the decoder for BufferHandlers, built once by Dispatcher
+// and installed on any number of proxies without allocating.
+type BufferDispatcher struct {
+	f func(opcode uint32, a *argSlots)
+}
+
+// SetDispatcher routes the events of px to d, replacing any earlier handlers.
+func (px Buffer) SetDispatcher(d BufferDispatcher) { px.setDispatch(d.f) }
+
+// Dispatcher builds the event decoder for h.
+func (h BufferHandlers) Dispatcher() BufferDispatcher {
+	return BufferDispatcher{func(opcode uint32, a *argSlots) {
 		switch opcode {
 		case 0:
 			if h.Release != nil {
 				h.Release()
 			}
 		}
-	})
+	}}
 }

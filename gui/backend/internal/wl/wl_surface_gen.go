@@ -110,8 +110,20 @@ type SurfaceHandlers struct {
 }
 
 // SetHandlers routes the events of px to h, replacing any earlier handlers.
-func (px Surface) SetHandlers(h SurfaceHandlers) {
-	px.setDispatch(func(opcode uint32, a *argSlots) {
+func (px Surface) SetHandlers(h SurfaceHandlers) { px.SetDispatcher(h.Dispatcher()) }
+
+// SurfaceDispatcher is the decoder for SurfaceHandlers, built once by Dispatcher
+// and installed on any number of proxies without allocating.
+type SurfaceDispatcher struct {
+	f func(opcode uint32, a *argSlots)
+}
+
+// SetDispatcher routes the events of px to d, replacing any earlier handlers.
+func (px Surface) SetDispatcher(d SurfaceDispatcher) { px.setDispatch(d.f) }
+
+// Dispatcher builds the event decoder for h.
+func (h SurfaceHandlers) Dispatcher() SurfaceDispatcher {
+	return SurfaceDispatcher{func(opcode uint32, a *argSlots) {
 		switch opcode {
 		case 0:
 			if h.Enter != nil {
@@ -130,5 +142,5 @@ func (px Surface) SetHandlers(h SurfaceHandlers) {
 				h.PreferredBufferTransform(uint32(a[0]))
 			}
 		}
-	})
+	}}
 }

@@ -28,13 +28,25 @@ type CallbackHandlers struct {
 }
 
 // SetHandlers routes the events of px to h, replacing any earlier handlers.
-func (px Callback) SetHandlers(h CallbackHandlers) {
-	px.setDispatch(func(opcode uint32, a *argSlots) {
+func (px Callback) SetHandlers(h CallbackHandlers) { px.SetDispatcher(h.Dispatcher()) }
+
+// CallbackDispatcher is the decoder for CallbackHandlers, built once by Dispatcher
+// and installed on any number of proxies without allocating.
+type CallbackDispatcher struct {
+	f func(opcode uint32, a *argSlots)
+}
+
+// SetDispatcher routes the events of px to d, replacing any earlier handlers.
+func (px Callback) SetDispatcher(d CallbackDispatcher) { px.setDispatch(d.f) }
+
+// Dispatcher builds the event decoder for h.
+func (h CallbackHandlers) Dispatcher() CallbackDispatcher {
+	return CallbackDispatcher{func(opcode uint32, a *argSlots) {
 		switch opcode {
 		case 0:
 			if h.Done != nil {
 				h.Done(uint32(a[0]))
 			}
 		}
-	})
+	}}
 }

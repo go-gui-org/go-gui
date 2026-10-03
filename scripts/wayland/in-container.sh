@@ -65,6 +65,12 @@ if [ -z "$sock" ]; then
   exit 125
 fi
 export WAYLAND_DISPLAY=${sock##*/}
+if [ "$COMPOSITOR" = sway ]; then
+  # swaymsg in AFTER finds sway through its IPC socket, which sway names
+  # after its pid and does not export to processes it did not start.
+  SWAYSOCK=$(find "$XDG_RUNTIME_DIR" -maxdepth 1 -type s -name 'sway-ipc.*' 2>/dev/null | head -1)
+  export SWAYSOCK
+fi
 # Make sure no X11 fallback can hide a Wayland failure.
 unset DISPLAY
 

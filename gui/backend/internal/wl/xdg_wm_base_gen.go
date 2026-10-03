@@ -71,13 +71,25 @@ type XdgWmBaseHandlers struct {
 }
 
 // SetHandlers routes the events of px to h, replacing any earlier handlers.
-func (px XdgWmBase) SetHandlers(h XdgWmBaseHandlers) {
-	px.setDispatch(func(opcode uint32, a *argSlots) {
+func (px XdgWmBase) SetHandlers(h XdgWmBaseHandlers) { px.SetDispatcher(h.Dispatcher()) }
+
+// XdgWmBaseDispatcher is the decoder for XdgWmBaseHandlers, built once by Dispatcher
+// and installed on any number of proxies without allocating.
+type XdgWmBaseDispatcher struct {
+	f func(opcode uint32, a *argSlots)
+}
+
+// SetDispatcher routes the events of px to d, replacing any earlier handlers.
+func (px XdgWmBase) SetDispatcher(d XdgWmBaseDispatcher) { px.setDispatch(d.f) }
+
+// Dispatcher builds the event decoder for h.
+func (h XdgWmBaseHandlers) Dispatcher() XdgWmBaseDispatcher {
+	return XdgWmBaseDispatcher{func(opcode uint32, a *argSlots) {
 		switch opcode {
 		case 0:
 			if h.Ping != nil {
 				h.Ping(uint32(a[0]))
 			}
 		}
-	})
+	}}
 }

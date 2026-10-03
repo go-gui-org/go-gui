@@ -65,8 +65,20 @@ type DataSourceHandlers struct {
 }
 
 // SetHandlers routes the events of px to h, replacing any earlier handlers.
-func (px DataSource) SetHandlers(h DataSourceHandlers) {
-	px.setDispatch(func(opcode uint32, a *argSlots) {
+func (px DataSource) SetHandlers(h DataSourceHandlers) { px.SetDispatcher(h.Dispatcher()) }
+
+// DataSourceDispatcher is the decoder for DataSourceHandlers, built once by Dispatcher
+// and installed on any number of proxies without allocating.
+type DataSourceDispatcher struct {
+	f func(opcode uint32, a *argSlots)
+}
+
+// SetDispatcher routes the events of px to d, replacing any earlier handlers.
+func (px DataSource) SetDispatcher(d DataSourceDispatcher) { px.setDispatch(d.f) }
+
+// Dispatcher builds the event decoder for h.
+func (h DataSourceHandlers) Dispatcher() DataSourceDispatcher {
+	return DataSourceDispatcher{func(opcode uint32, a *argSlots) {
 		switch opcode {
 		case 0:
 			if h.Target != nil {
@@ -93,5 +105,5 @@ func (px DataSource) SetHandlers(h DataSourceHandlers) {
 				h.Action(uint32(a[0]))
 			}
 		}
-	})
+	}}
 }

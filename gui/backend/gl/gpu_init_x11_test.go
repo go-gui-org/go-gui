@@ -50,7 +50,7 @@ func TestNewWrapsGPUDisplayError(t *testing.T) {
 func TestNewWrapsGPUSurfaceError(t *testing.T) {
 	cause := errors.New("eglCreateWindowSurface failed (egl error 0x3001)")
 	old := eglCreateSurfaceContextFunc
-	eglCreateSurfaceContextFunc = func(dpy, config uintptr, win uint32) (uintptr, uintptr, error) {
+	eglCreateSurfaceContextFunc = func(dpy, config, win uintptr) (uintptr, uintptr, error) {
 		return 0, 0, cause
 	}
 	defer func() { eglCreateSurfaceContextFunc = old }()

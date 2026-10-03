@@ -290,13 +290,25 @@ type ShmHandlers struct {
 }
 
 // SetHandlers routes the events of px to h, replacing any earlier handlers.
-func (px Shm) SetHandlers(h ShmHandlers) {
-	px.setDispatch(func(opcode uint32, a *argSlots) {
+func (px Shm) SetHandlers(h ShmHandlers) { px.SetDispatcher(h.Dispatcher()) }
+
+// ShmDispatcher is the decoder for ShmHandlers, built once by Dispatcher
+// and installed on any number of proxies without allocating.
+type ShmDispatcher struct {
+	f func(opcode uint32, a *argSlots)
+}
+
+// SetDispatcher routes the events of px to d, replacing any earlier handlers.
+func (px Shm) SetDispatcher(d ShmDispatcher) { px.setDispatch(d.f) }
+
+// Dispatcher builds the event decoder for h.
+func (h ShmHandlers) Dispatcher() ShmDispatcher {
+	return ShmDispatcher{func(opcode uint32, a *argSlots) {
 		switch opcode {
 		case 0:
 			if h.Format != nil {
 				h.Format(uint32(a[0]))
 			}
 		}
-	})
+	}}
 }

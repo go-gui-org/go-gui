@@ -89,8 +89,20 @@ type OutputHandlers struct {
 }
 
 // SetHandlers routes the events of px to h, replacing any earlier handlers.
-func (px Output) SetHandlers(h OutputHandlers) {
-	px.setDispatch(func(opcode uint32, a *argSlots) {
+func (px Output) SetHandlers(h OutputHandlers) { px.SetDispatcher(h.Dispatcher()) }
+
+// OutputDispatcher is the decoder for OutputHandlers, built once by Dispatcher
+// and installed on any number of proxies without allocating.
+type OutputDispatcher struct {
+	f func(opcode uint32, a *argSlots)
+}
+
+// SetDispatcher routes the events of px to d, replacing any earlier handlers.
+func (px Output) SetDispatcher(d OutputDispatcher) { px.setDispatch(d.f) }
+
+// Dispatcher builds the event decoder for h.
+func (h OutputHandlers) Dispatcher() OutputDispatcher {
+	return OutputDispatcher{func(opcode uint32, a *argSlots) {
 		switch opcode {
 		case 0:
 			if h.Geometry != nil {
@@ -117,5 +129,5 @@ func (px Output) SetHandlers(h OutputHandlers) {
 				h.Description(goString(a[0]))
 			}
 		}
-	})
+	}}
 }

@@ -76,8 +76,20 @@ type DataOfferHandlers struct {
 }
 
 // SetHandlers routes the events of px to h, replacing any earlier handlers.
-func (px DataOffer) SetHandlers(h DataOfferHandlers) {
-	px.setDispatch(func(opcode uint32, a *argSlots) {
+func (px DataOffer) SetHandlers(h DataOfferHandlers) { px.SetDispatcher(h.Dispatcher()) }
+
+// DataOfferDispatcher is the decoder for DataOfferHandlers, built once by Dispatcher
+// and installed on any number of proxies without allocating.
+type DataOfferDispatcher struct {
+	f func(opcode uint32, a *argSlots)
+}
+
+// SetDispatcher routes the events of px to d, replacing any earlier handlers.
+func (px DataOffer) SetDispatcher(d DataOfferDispatcher) { px.setDispatch(d.f) }
+
+// Dispatcher builds the event decoder for h.
+func (h DataOfferHandlers) Dispatcher() DataOfferDispatcher {
+	return DataOfferDispatcher{func(opcode uint32, a *argSlots) {
 		switch opcode {
 		case 0:
 			if h.Offer != nil {
@@ -92,5 +104,5 @@ func (px DataOffer) SetHandlers(h DataOfferHandlers) {
 				h.Action(uint32(a[0]))
 			}
 		}
-	})
+	}}
 }

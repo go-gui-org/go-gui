@@ -258,7 +258,7 @@ func genEnum(b *bytes.Buffer, t string, e xEnum) {
 // genRequest writes one request method. The opcode is the request's index.
 func genRequest(b *bytes.Buffer, it xInterface, t string, op int, m xMessage, known map[string]bool) error {
 	method := camel(m.Name)
-	if method == "Ptr" || method == "ID" || method == "Version" || method == "DestroyProxy" || method == "SetHandlers" {
+	if method == "Ptr" || method == "ID" || method == "Version" || method == "DestroyProxy" || method == "SetHandlers" || method == "SetDispatcher" {
 		return fmt.Errorf("request name %q collides with a Proxy method", m.Name)
 	}
 	var params, pre, args, post []string
@@ -381,9 +381,19 @@ func genHandlers(b *bytes.Buffer, it xInterface, t string, known map[string]bool
 	}
 	b.WriteString("}\n\n")
 
+	// SetHandlers builds a decoder closure on every call. A proxy made
+	// every frame (wl_callback) instead takes a Dispatcher built once, so
+	// the frame path allocates no closure.
 	fmt.Fprintf(b, "// SetHandlers routes the events of px to h, replacing any earlier handlers.\n")
-	fmt.Fprintf(b, "func (px %s) SetHandlers(h %sHandlers) {\n", t, t)
-	b.WriteString("\tpx.setDispatch(func(opcode uint32, a *argSlots) {\n\t\tswitch opcode {\n")
+	fmt.Fprintf(b, "func (px %s) SetHandlers(h %sHandlers) { px.SetDispatcher(h.Dispatcher()) }\n\n", t, t)
+	fmt.Fprintf(b, "// %sDispatcher is the decoder for %sHandlers, built once by Dispatcher\n", t, t)
+	fmt.Fprintf(b, "// and installed on any number of proxies without allocating.\n")
+	fmt.Fprintf(b, "type %sDispatcher struct{ f func(opcode uint32, a *argSlots) }\n\n", t)
+	fmt.Fprintf(b, "// SetDispatcher routes the events of px to d, replacing any earlier handlers.\n")
+	fmt.Fprintf(b, "func (px %s) SetDispatcher(d %sDispatcher) { px.setDispatch(d.f) }\n\n", t, t)
+	fmt.Fprintf(b, "// Dispatcher builds the event decoder for h.\n")
+	fmt.Fprintf(b, "func (h %sHandlers) Dispatcher() %sDispatcher {\n", t, t)
+	fmt.Fprintf(b, "\treturn %sDispatcher{func(opcode uint32, a *argSlots) {\n\t\tswitch opcode {\n", t)
 	for op, e := range it.Events {
 		fmt.Fprintf(b, "\t\tcase %d:\n\t\t\tif h.%s != nil {\n", op, camel(e.Name))
 		var vals []string
@@ -392,7 +402,7 @@ func genHandlers(b *bytes.Buffer, it xInterface, t string, known map[string]bool
 		}
 		fmt.Fprintf(b, "\t\t\t\th.%s(%s)\n\t\t\t}\n", camel(e.Name), strings.Join(vals, ", "))
 	}
-	b.WriteString("\t\t}\n\t})\n}\n\n")
+	b.WriteString("\t\t}\n\t}}\n}\n\n")
 }
 
 func eventArgType(a xArg, known map[string]bool) string {

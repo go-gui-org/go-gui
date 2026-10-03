@@ -165,8 +165,20 @@ type XdgToplevelHandlers struct {
 }
 
 // SetHandlers routes the events of px to h, replacing any earlier handlers.
-func (px XdgToplevel) SetHandlers(h XdgToplevelHandlers) {
-	px.setDispatch(func(opcode uint32, a *argSlots) {
+func (px XdgToplevel) SetHandlers(h XdgToplevelHandlers) { px.SetDispatcher(h.Dispatcher()) }
+
+// XdgToplevelDispatcher is the decoder for XdgToplevelHandlers, built once by Dispatcher
+// and installed on any number of proxies without allocating.
+type XdgToplevelDispatcher struct {
+	f func(opcode uint32, a *argSlots)
+}
+
+// SetDispatcher routes the events of px to d, replacing any earlier handlers.
+func (px XdgToplevel) SetDispatcher(d XdgToplevelDispatcher) { px.setDispatch(d.f) }
+
+// Dispatcher builds the event decoder for h.
+func (h XdgToplevelHandlers) Dispatcher() XdgToplevelDispatcher {
+	return XdgToplevelDispatcher{func(opcode uint32, a *argSlots) {
 		switch opcode {
 		case 0:
 			if h.Configure != nil {
@@ -185,5 +197,5 @@ func (px XdgToplevel) SetHandlers(h XdgToplevelHandlers) {
 				h.WmCapabilities(arrayBytes(a[0]))
 			}
 		}
-	})
+	}}
 }

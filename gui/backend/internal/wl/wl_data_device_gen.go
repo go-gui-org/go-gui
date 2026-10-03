@@ -63,8 +63,20 @@ type DataDeviceHandlers struct {
 }
 
 // SetHandlers routes the events of px to h, replacing any earlier handlers.
-func (px DataDevice) SetHandlers(h DataDeviceHandlers) {
-	px.setDispatch(func(opcode uint32, a *argSlots) {
+func (px DataDevice) SetHandlers(h DataDeviceHandlers) { px.SetDispatcher(h.Dispatcher()) }
+
+// DataDeviceDispatcher is the decoder for DataDeviceHandlers, built once by Dispatcher
+// and installed on any number of proxies without allocating.
+type DataDeviceDispatcher struct {
+	f func(opcode uint32, a *argSlots)
+}
+
+// SetDispatcher routes the events of px to d, replacing any earlier handlers.
+func (px DataDevice) SetDispatcher(d DataDeviceDispatcher) { px.setDispatch(d.f) }
+
+// Dispatcher builds the event decoder for h.
+func (h DataDeviceHandlers) Dispatcher() DataDeviceDispatcher {
+	return DataDeviceDispatcher{func(opcode uint32, a *argSlots) {
 		switch opcode {
 		case 0:
 			if h.DataOffer != nil {
@@ -91,5 +103,5 @@ func (px DataDevice) SetHandlers(h DataDeviceHandlers) {
 				h.Selection(DataOffer{Proxy{ptr: a[0]}})
 			}
 		}
-	})
+	}}
 }

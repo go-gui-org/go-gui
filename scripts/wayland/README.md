@@ -37,6 +37,21 @@ scripts/wayland/build.sh ./examples/showcase build/wayland/showcase
 scripts/wayland/run.sh -t 5 -s build/wayland/showcase.png -- build/wayland/showcase
 ```
 
+Run the Wayland window tests of the GL backend:
+
+```sh
+scripts/wayland/test.sh ./gui/backend/gl -test.run Wayland -test.v
+```
+
+Close the window, or float and resize it, through sway (`SWAYSOCK` is set for
+`-a` commands):
+
+```sh
+scripts/wayland/run.sh -t 10 -a 'swaymsg kill' -- build/wayland/showcase
+scripts/wayland/run.sh -t 4 -a 'swaymsg "floating enable, resize set 500 360"' -s build/wayland/resized.png -- build/wayland/showcase
+scripts/wayland/run.sh -t 4 -a 'swaymsg "output * scale 2"' -s build/wayland/hidpi.png -- build/wayland/showcase
+```
+
 Type text and move the pointer one second after the client starts (sway only):
 
 ```sh

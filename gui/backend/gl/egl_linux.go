@@ -34,6 +34,9 @@ const (
 	// eglPlatformX11KHR selects the X11 platform in eglGetPlatformDisplay
 	// (EGL_KHR_platform_x11 / EGL 1.5).
 	eglPlatformX11KHR = 0x31D5
+	// eglPlatformWaylandKHR selects the Wayland platform
+	// (EGL_KHR_platform_wayland); the native display is a wl_display*.
+	eglPlatformWaylandKHR = 0x31D8
 
 	eglContextMajorVersion         = 0x3098
 	eglContextMinorVersion         = 0x30FB
@@ -265,11 +268,11 @@ func eglOpenDisplay(dpy uintptr, getter string) (uintptr, []eglConfigVisual, err
 	return dpy, cands, nil
 }
 
-// eglCreateSurfaceContext creates a window surface for an
-// already-realized X window and an OpenGL 3.3 core context, then makes
-// them current.
-func eglCreateSurfaceContext(dpy, config uintptr, win uint32) (surface, context uintptr, err error) {
-	surface = eglCreateWindowSurface(dpy, config, uintptr(win), nil)
+// eglCreateSurfaceContext creates a window surface and an OpenGL 3.3
+// core context, then makes them current. win is the native window: an
+// already-realized X window id, or a wl_egl_window pointer on Wayland.
+func eglCreateSurfaceContext(dpy, config, win uintptr) (surface, context uintptr, err error) {
+	surface = eglCreateWindowSurface(dpy, config, win, nil)
 	if surface == 0 {
 		err = fmt.Errorf("eglCreateWindowSurface failed (egl error 0x%x)", eglGetError())
 		return

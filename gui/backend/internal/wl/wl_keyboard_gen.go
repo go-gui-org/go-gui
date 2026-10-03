@@ -61,8 +61,20 @@ type KeyboardHandlers struct {
 }
 
 // SetHandlers routes the events of px to h, replacing any earlier handlers.
-func (px Keyboard) SetHandlers(h KeyboardHandlers) {
-	px.setDispatch(func(opcode uint32, a *argSlots) {
+func (px Keyboard) SetHandlers(h KeyboardHandlers) { px.SetDispatcher(h.Dispatcher()) }
+
+// KeyboardDispatcher is the decoder for KeyboardHandlers, built once by Dispatcher
+// and installed on any number of proxies without allocating.
+type KeyboardDispatcher struct {
+	f func(opcode uint32, a *argSlots)
+}
+
+// SetDispatcher routes the events of px to d, replacing any earlier handlers.
+func (px Keyboard) SetDispatcher(d KeyboardDispatcher) { px.setDispatch(d.f) }
+
+// Dispatcher builds the event decoder for h.
+func (h KeyboardHandlers) Dispatcher() KeyboardDispatcher {
+	return KeyboardDispatcher{func(opcode uint32, a *argSlots) {
 		switch opcode {
 		case 0:
 			if h.Keymap != nil {
@@ -89,5 +101,5 @@ func (px Keyboard) SetHandlers(h KeyboardHandlers) {
 				h.RepeatInfo(int32(uint32(a[0])), int32(uint32(a[1])))
 			}
 		}
-	})
+	}}
 }

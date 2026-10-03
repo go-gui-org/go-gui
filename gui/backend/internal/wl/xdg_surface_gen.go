@@ -74,13 +74,25 @@ type XdgSurfaceHandlers struct {
 }
 
 // SetHandlers routes the events of px to h, replacing any earlier handlers.
-func (px XdgSurface) SetHandlers(h XdgSurfaceHandlers) {
-	px.setDispatch(func(opcode uint32, a *argSlots) {
+func (px XdgSurface) SetHandlers(h XdgSurfaceHandlers) { px.SetDispatcher(h.Dispatcher()) }
+
+// XdgSurfaceDispatcher is the decoder for XdgSurfaceHandlers, built once by Dispatcher
+// and installed on any number of proxies without allocating.
+type XdgSurfaceDispatcher struct {
+	f func(opcode uint32, a *argSlots)
+}
+
+// SetDispatcher routes the events of px to d, replacing any earlier handlers.
+func (px XdgSurface) SetDispatcher(d XdgSurfaceDispatcher) { px.setDispatch(d.f) }
+
+// Dispatcher builds the event decoder for h.
+func (h XdgSurfaceHandlers) Dispatcher() XdgSurfaceDispatcher {
+	return XdgSurfaceDispatcher{func(opcode uint32, a *argSlots) {
 		switch opcode {
 		case 0:
 			if h.Configure != nil {
 				h.Configure(uint32(a[0]))
 			}
 		}
-	})
+	}}
 }

@@ -236,3 +236,62 @@ func TestConnectNoCompositor(t *testing.T) {
 		t.Fatal("Connect to a missing socket succeeded")
 	}
 }
+
+// TestWake: a Wake from another goroutine ends a Dispatch that would wait
+// much longer, and the wake is consumed, so the next Dispatch waits again.
+func TestWake(t *testing.T) {
+	c := connect(t)
+	go func() {
+		time.Sleep(50 * time.Millisecond)
+		c.Wake()
+	}()
+	start := time.Now()
+	if err := c.Dispatch(10 * time.Second); err != nil {
+		t.Fatal(err)
+	}
+	if d := time.Since(start); d > 5*time.Second {
+		t.Fatalf("Wake did not end Dispatch (took %v)", d)
+	}
+	start = time.Now()
+	if err := c.Dispatch(100 * time.Millisecond); err != nil {
+		t.Fatal(err)
+	}
+	if d := time.Since(start); d < 80*time.Millisecond {
+		t.Errorf("a consumed wake still cut the next wait short (%v)", d)
+	}
+}
+
+// TestWakeAfterClose: Wake on a closed connection does nothing. The app
+// can wake from a goroutine that outlives the window.
+func TestWakeAfterClose(t *testing.T) {
+	c := connect(t)
+	c.Close()
+	c.Wake()
+}
+
+// TestEGLWindow covers libwayland-egl: create, resize and destroy.
+func TestEGLWindow(t *testing.T) {
+	c := connect(t)
+	reg, gs := globals(t, c)
+	comp := Compositor{bind(t, reg, gs, &CompositorInterface, 4)}
+	s := comp.CreateSurface()
+	defer s.Destroy()
+	if _, err := NewEGLWindow(s, 0, 10); err == nil {
+		t.Error("a zero-width EGL window was created")
+	}
+	e, err := NewEGLWindow(s, 64, 48)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !e.Valid() || e.Ptr() == 0 {
+		t.Fatal("EGL window not valid")
+	}
+	e.Resize(128, 96)
+	e.Resize(0, 0) // raised to 1x1, not ignored
+	e.Destroy()
+	if e.Valid() {
+		t.Error("Destroy left the window valid")
+	}
+	e.Destroy() // a second Destroy is a no-op
+	e.Resize(1, 1)
+}

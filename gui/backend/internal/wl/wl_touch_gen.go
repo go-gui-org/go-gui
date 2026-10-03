@@ -47,8 +47,20 @@ type TouchHandlers struct {
 }
 
 // SetHandlers routes the events of px to h, replacing any earlier handlers.
-func (px Touch) SetHandlers(h TouchHandlers) {
-	px.setDispatch(func(opcode uint32, a *argSlots) {
+func (px Touch) SetHandlers(h TouchHandlers) { px.SetDispatcher(h.Dispatcher()) }
+
+// TouchDispatcher is the decoder for TouchHandlers, built once by Dispatcher
+// and installed on any number of proxies without allocating.
+type TouchDispatcher struct {
+	f func(opcode uint32, a *argSlots)
+}
+
+// SetDispatcher routes the events of px to d, replacing any earlier handlers.
+func (px Touch) SetDispatcher(d TouchDispatcher) { px.setDispatch(d.f) }
+
+// Dispatcher builds the event decoder for h.
+func (h TouchHandlers) Dispatcher() TouchDispatcher {
+	return TouchDispatcher{func(opcode uint32, a *argSlots) {
 		switch opcode {
 		case 0:
 			if h.Down != nil {
@@ -79,5 +91,5 @@ func (px Touch) SetHandlers(h TouchHandlers) {
 				h.Orientation(int32(uint32(a[0])), Fixed(int32(uint32(a[1]))))
 			}
 		}
-	})
+	}}
 }
