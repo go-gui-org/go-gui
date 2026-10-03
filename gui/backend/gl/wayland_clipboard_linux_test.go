@@ -238,3 +238,58 @@ func TestWaylandClipboardLocal(t *testing.T) {
 		t.Errorf("GetPrimary = %q", got)
 	}
 }
+
+// TestWaylandClipboardStaleWindow checks a copy and a paste posted for a
+// window that was destroyed before the loop ran them. Its thread id is
+// gone, so work that checked the thread again re-posted itself on every
+// pass (a spin), and a paste stalled the loop for 2×clipReadTimeout.
+func TestWaylandClipboardStaleWindow(t *testing.T) {
+	requireWayland(t)
+	b := newWaylandTestBackend(t, gui.WindowCfg{})
+	defer b.Destroy()
+	d := b.plat.wl.d
+	seat := d.seat
+	d.seat = nil // the in-process fallback, so no compositor is involved
+	defer func() { d.seat = seat }()
+	stale := &Backend{} // lockedTid 0, as after Destroy
+	queued := func() int {
+		d.callsMu.Lock()
+		defer d.callsMu.Unlock()
+		return len(d.calls)
+	}
+
+	d.setSelection(stale, wlSelClipboard, "copied")
+	d.runPosted()
+	if n := queued(); n != 0 {
+		t.Fatalf("copy re-posted itself: %d calls queued", n)
+	}
+	if got := d.localSel[wlSelClipboard]; got != "copied" {
+		t.Fatalf("copy not applied: %q", got)
+	}
+
+	got := make(chan string, 1)
+	go func() { got <- d.getSelection(stale, wlSelClipboard) }()
+	deadline := time.Now().Add(clipReadTimeout)
+	for {
+		start := time.Now()
+		d.runPosted()
+		if time.Since(start) > clipReadTimeout/2 {
+			t.Fatal("paste blocked the loop")
+		}
+		select {
+		case s := <-got:
+			if s != "copied" {
+				t.Fatalf("paste = %q", s)
+			}
+			if n := queued(); n != 0 {
+				t.Fatalf("paste re-posted itself: %d calls queued", n)
+			}
+			return
+		default:
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("paste never answered")
+		}
+		time.Sleep(time.Millisecond)
+	}
+}

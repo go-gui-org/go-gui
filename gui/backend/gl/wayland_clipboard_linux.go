@@ -348,11 +348,20 @@ func wlOnMainThread(b *Backend) bool {
 }
 
 // setSelection is the copy hook. Any goroutine.
+//
+// The posted work calls writeSel, not setSelection: a window destroyed
+// before the loop runs it has no thread any more (lockedTid 0), and
+// setSelection would post itself again on every pass, forever.
 func (d *wlDisplay) setSelection(b *Backend, kind wlSelKind, text string) {
 	if !wlOnMainThread(b) {
-		d.post(func() { d.setSelection(b, kind, text) })
+		d.post(func() { d.writeSel(kind, text) })
 		return
 	}
+	d.writeSel(kind, text)
+}
+
+// writeSel copies text into the selection. Main thread.
+func (d *wlDisplay) writeSel(kind wlSelKind, text string) {
 	if s := d.seat; s != nil && s.hasSelection(kind) {
 		s.writeSelection(kind, text)
 		return
@@ -362,11 +371,12 @@ func (d *wlDisplay) setSelection(b *Backend, kind wlSelKind, text string) {
 
 // getSelection is the paste hook. Any goroutine; another one waits for
 // the loop to read it, bounded so a loop that is not running cannot hang
-// the caller.
+// the caller. The posted work calls readSel, for the reason setSelection
+// gives.
 func (d *wlDisplay) getSelection(b *Backend, kind wlSelKind) string {
 	if !wlOnMainThread(b) {
 		out := make(chan string, 1)
-		d.post(func() { out <- d.getSelection(b, kind) })
+		d.post(func() { out <- d.readSel(kind) })
 		select {
 		case t := <-out:
 			return t
@@ -374,6 +384,11 @@ func (d *wlDisplay) getSelection(b *Backend, kind wlSelKind) string {
 			return ""
 		}
 	}
+	return d.readSel(kind)
+}
+
+// readSel returns the selection's text. Main thread.
+func (d *wlDisplay) readSel(kind wlSelKind) string {
 	if s := d.seat; s != nil && s.hasSelection(kind) {
 		return s.readSelection(kind)
 	}

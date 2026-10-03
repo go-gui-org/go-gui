@@ -24,6 +24,21 @@ func TestWlDecorEdges(t *testing.T) {
 	}
 }
 
+// TestWlMoveResizeGuards checks that moveResize sends nothing without a
+// button held on the window, or for an unknown edge. The window has no
+// toplevel, so a request that got through would crash.
+func TestWlMoveResizeGuards(t *testing.T) {
+	b := &Backend{}
+	ww := &wlWindow{d: &wlDisplay{}, b: b}
+	ww.moveResize(netMoveResizeMove) // no seat
+	ww.d.seat = &wlSeat{}
+	ww.moveResize(netMoveResizeMove) // pointer elsewhere
+	ww.d.seat.ptrFocus = b
+	ww.moveResize(netMoveResizeMove) // no button held
+	ww.d.seat.buttons = x11MaskButton1
+	ww.moveResize(netMoveResizeMove + 1) // unknown edge (0-7 are edges, 8 is move)
+}
+
 // TestWaylandDecorations checks which frame a window gets: the
 // compositor's (sway), libdecor's (weston, mutter), or none when asked.
 func TestWaylandDecorations(t *testing.T) {

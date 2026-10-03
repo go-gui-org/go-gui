@@ -70,16 +70,54 @@ func waitFor(t *testing.T, d *wlDisplay, what string, cond func() bool) {
 
 func TestConfigureSize(t *testing.T) {
 	for _, c := range []struct{ pw, ph, cw, ch, ww, wh int32 }{
-		{800, 600, 640, 480, 800, 600}, // compositor picks
-		{0, 0, 640, 480, 640, 480},     // client picks: keep
-		{0, 300, 640, 480, 640, 300},   // one axis each
-		{-5, -5, 640, 480, 640, 480},   // broken compositor
-		{0, 0, 0, 0, 1, 1},             // never a zero buffer
+		{800, 600, 640, 480, 800, 600},                                 // compositor picks
+		{0, 0, 640, 480, 640, 480},                                     // client picks: keep
+		{0, 300, 640, 480, 640, 300},                                   // one axis each
+		{-5, -5, 640, 480, 640, 480},                                   // broken compositor
+		{0, 0, 0, 0, 1, 1},                                             // never a zero buffer
+		{1 << 30, 1 << 30, 640, 480, wlMaxWindowSize, wlMaxWindowSize}, // huge
 	} {
 		w, h := configureSize(c.pw, c.ph, c.cw, c.ch)
 		if w != c.ww || h != c.wh {
 			t.Errorf("configureSize(%d,%d,%d,%d) = %d,%d, want %d,%d",
 				c.pw, c.ph, c.cw, c.ch, w, h, c.ww, c.wh)
+		}
+	}
+}
+
+func TestWlInitialSize(t *testing.T) {
+	for _, c := range []struct {
+		w, h   int
+		ww, wh int32
+	}{
+		{800, 600, 800, 600},
+		{0, 0, 640, 480},    // unset
+		{-5, 300, 640, 300}, // negative
+		{1 << 40, 1 << 40, wlMaxWindowSize, wlMaxWindowSize},
+		// Wraps to +640 as an int32: must still read as negative.
+		{-(1 << 32) + 640, -(1 << 32) + 480, 640, 480},
+	} {
+		w, h := wlInitialSize(c.w, c.h)
+		if w != c.ww || h != c.wh {
+			t.Errorf("wlInitialSize(%d,%d) = %d,%d, want %d,%d", c.w, c.h, w, h, c.ww, c.wh)
+		}
+	}
+}
+
+func TestWlBoundSize(t *testing.T) {
+	for _, c := range []struct{ w, h, s, ww, wh int32 }{
+		{800, 600, 120, 800, 600},
+		{16384, 16384, 120, 16384, 16384},
+		{16384, 100, 240, 8192, 100},              // 2×: buffer 16384
+		{16384, 16384, wlMaxScale120, 2048, 2048}, // 8×
+		{16384, 16384, 0, 16384, 16384},           // broken scale: as 1×
+	} {
+		w, h := wlBoundSize(c.w, c.h, c.s)
+		if w != c.ww || h != c.wh {
+			t.Errorf("wlBoundSize(%d,%d,%d) = %d,%d, want %d,%d", c.w, c.h, c.s, w, h, c.ww, c.wh)
+		}
+		if wlScaled(w, max(c.s, 120)) > wlMaxWindowSize || wlScaled(h, max(c.s, 120)) > wlMaxWindowSize {
+			t.Errorf("wlBoundSize(%d,%d,%d): buffer over the bound", c.w, c.h, c.s)
 		}
 	}
 }

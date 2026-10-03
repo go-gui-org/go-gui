@@ -39,12 +39,11 @@ type wlIME struct {
 	// Pending state from preedit_string and commit_string, applied at
 	// done. The protocol resets it after every done: a done with no
 	// preedit_string means no preedit.
-	preedit      string
-	begin, end   int32
-	commit       string
-	showPreedit  bool // a preedit is showing in focus
-	events       []gui.Event
-	commitSerial uint32 // commit requests sent, for done's serial
+	preedit     string
+	begin, end  int32
+	commit      string
+	showPreedit bool // a preedit is showing in focus
+	events      []gui.Event
 }
 
 // attachTextInput gets the seat's text input once the manager is bound
@@ -73,7 +72,9 @@ func (s *wlSeat) attachTextInput() {
 			m.preedit, m.begin, m.end = strings.Clone(text), begin, end
 		},
 		CommitString: func(text string) { m.commit = strings.Clone(text) },
-		// No surrounding text is sent, so there is none to delete.
+		// No surrounding text is sent, so there is none to delete, and
+		// no state a stale done (serial behind our commits) could undo:
+		// every done is applied.
 		Done: func(uint32) {
 			b := m.focus
 			m.events = m.done(m.events[:0])
@@ -105,12 +106,6 @@ func (m *wlIME) forget(b *Backend) {
 
 func (m *wlIME) reset() { m.preedit, m.begin, m.end, m.commit = "", 0, 0, "" }
 
-// sendCommit ends a batch of requests; done events count them.
-func (m *wlIME) sendCommit() {
-	m.ti.Commit()
-	m.commitSerial++
-}
-
 // enable turns the text input on for ww, which it is on.
 func (m *wlIME) enable(ww *wlWindow) {
 	m.ti.Enable()
@@ -119,7 +114,7 @@ func (m *wlIME) enable(ww *wlWindow) {
 		r := ww.imeRect
 		m.ti.SetCursorRectangle(r[0], r[1], r[2], r[3])
 	}
-	m.sendCommit()
+	m.ti.Commit()
 	m.enabled = true
 }
 
@@ -128,7 +123,7 @@ func (m *wlIME) enable(ww *wlWindow) {
 func (m *wlIME) disable() {
 	if m.enabled {
 		m.ti.Disable()
-		m.sendCommit()
+		m.ti.Commit()
 	}
 	m.enabled, m.showPreedit = false, false
 	m.reset()
@@ -225,6 +220,6 @@ func (ww *wlWindow) imeSetRect(x, y, w, h int32) {
 	ww.imeRect, ww.imeHaveRect = r, true
 	if s := ww.d.seat; s != nil && s.ime.enabled && s.ime.focus == ww.b {
 		s.ime.ti.SetCursorRectangle(r[0], r[1], r[2], r[3])
-		s.ime.sendCommit()
+		s.ime.ti.Commit()
 	}
 }

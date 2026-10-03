@@ -171,6 +171,25 @@ func TestWlRepeat(t *testing.T) {
 	}
 }
 
+// TestWlTickRepeat covers the paths that end a repeat without a key
+// event: no key held, focus gone, keymap gone.
+func TestWlTickRepeat(t *testing.T) {
+	now := time.Unix(1000, 0)
+	s := &wlSeat{repeat: wlRepeat{rate: 10, delay: 500}}
+	if got := s.tickRepeat(now); got != -1 {
+		t.Errorf("no key held: wait %v, want -1", got)
+	}
+	s.repeat.start(38, now)
+	if got := s.tickRepeat(now); got != -1 || s.repeat.key != 0 {
+		t.Errorf("no focus: wait %v, key %d; want -1 and stopped", got, s.repeat.key)
+	}
+	s.kbFocus = &Backend{}
+	s.repeat.start(38, now)
+	if got := s.tickRepeat(now); got != -1 || s.repeat.key != 0 {
+		t.Errorf("no keymap: wait %v, key %d; want -1 and stopped", got, s.repeat.key)
+	}
+}
+
 func TestWlTouches(t *testing.T) {
 	b1, b2 := &Backend{}, &Backend{}
 	var tc wlTouches

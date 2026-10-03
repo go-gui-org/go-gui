@@ -395,6 +395,27 @@ type wlWindow struct {
 	titleDirty bool
 }
 
+// wlMaxWindowSize bounds a window side, in logical pixels here and in
+// buffer pixels in resize, which also scales the logical bound down so
+// logical × scale stays under it. A broken compositor (or a huge
+// WindowCfg size) must not make the buffer overflow or ask EGL for
+// gigabytes: 16384² at 4 bytes is 1 GiB, the most it can ask for.
+const wlMaxWindowSize = 16384
+
+// wlInitialSize is the logical size a window starts at: cfg's, or
+// 640×480 for an unset or negative side, bounded by wlMaxWindowSize.
+// Clamped as ints, before the conversion: a size outside int32 would
+// wrap, and a wrapped negative one could turn positive.
+func wlInitialSize(w, h int) (int32, int32) {
+	side := func(v, def int) int32 {
+		if v <= 0 {
+			return int32(def)
+		}
+		return int32(min(v, wlMaxWindowSize))
+	}
+	return side(w, 640), side(h, 480)
+}
+
 // configureSize resolves a configure's suggested size against the current
 // one. Zero (or a negative value from a broken compositor) means the
 // client picks, and the client keeps what it has.
@@ -405,7 +426,7 @@ func configureSize(pendW, pendH, curW, curH int32) (int32, int32) {
 	if pendH <= 0 {
 		pendH = curH
 	}
-	return max(pendW, 1), max(pendH, 1)
+	return min(max(pendW, 1), wlMaxWindowSize), min(max(pendH, 1), wlMaxWindowSize)
 }
 
 // statesHave reports whether an xdg_toplevel states array, a packed list
@@ -454,13 +475,7 @@ func newWaylandBackend(w *gui.Window) (*Backend, error) {
 		return nil, err
 	}
 
-	ww.logW, ww.logH = int32(cfg.Width), int32(cfg.Height)
-	if ww.logW <= 0 {
-		ww.logW = 640
-	}
-	if ww.logH <= 0 {
-		ww.logH = 480
-	}
+	ww.logW, ww.logH = wlInitialSize(cfg.Width, cfg.Height)
 	b.plat.physW, b.plat.physH, b.plat.scale = ww.logW, ww.logH, 1
 
 	ww.surface = d.compositor.CreateSurface()
@@ -572,9 +587,17 @@ func wlScaled(v, scale120 int32) int32 {
 	return int32((int64(v)*int64(scale120) + 60) / 120)
 }
 
+// wlBoundSize caps a logical size so its buffer, logical × scale, stays
+// within wlMaxWindowSize on each side. scale120 is at least 120.
+func wlBoundSize(w, h, scale120 int32) (int32, int32) {
+	limit := wlMaxWindowSize * 120 / max(scale120, 120)
+	return min(w, limit), min(h, limit)
+}
+
 // resize adopts a new logical size and scale. Before the window is ready
 // it only records them; New sizes the EGL window from the result.
 func (ww *wlWindow) resize(w, h, scale120 int32) {
+	w, h = wlBoundSize(w, h, scale120)
 	if w == ww.logW && h == ww.logH && scale120 == ww.scale120 {
 		return
 	}
