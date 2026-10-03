@@ -1,7 +1,7 @@
 # Native Wayland backend
 
-Status: in progress, experimental. Issue #919. Phase 2 of 9 (test harness) has
-landed.
+Status: in progress, experimental. Issue #919. Phases 2 (test harness) and 3
+(protocol bindings) of 9 have landed.
 
 ## Problem
 
@@ -32,9 +32,26 @@ issue.
 EGL needs a real libwayland `wl_display*` and `wl_surface*`
 (`eglGetPlatformDisplay(EGL_PLATFORM_WAYLAND_KHR)` and `wl_egl_window_create`).
 So go-gui calls libwayland-client through purego. This keeps the build cgo-free.
-Requests use `wl_proxy_marshal_array_flags`. It is not variadic and needs
-libwayland 1.22 or later (Debian 13 ships 1.23). A `go generate` tool builds the
-`wl_interface` tables and Go wrappers from the protocol XML.
+The bindings live in `gui/backend/internal/wl`:
+
+- Requests use `wl_proxy_marshal_array_flags`. It is not variadic and needs
+  libwayland 1.20 or later (Debian 13 ships 1.23). `Load` fails by name on an
+  older library.
+- Events arrive through one purego callback, installed on each proxy with
+  `wl_proxy_add_dispatcher`. libwayland passes it the opcode and the decoded
+  argument array. One callback serves every proxy, so purego's fixed callback
+  limit never applies.
+- `internal/wlgen` (`go generate`) builds the `wl_interface` tables and the Go
+  types, request methods and `SetHandlers` decoders from the XML in
+  `protocols/`. The tables live in Go memory as package globals and are filled
+  on the first `Load`.
+- Calls use `purego.SyscallN` on raw addresses, not `purego.RegisterFunc`, which
+  allocates several times per call. An idle `Dispatch` (called every frame)
+  allocates 4 times, all inside purego; `TestDispatchIdleAllocs` pins it.
+- A handler's panic is recovered before it can unwind through libwayland's C
+  frames, and raised again from the Go call that ran the dispatch.
+- The package builds for linux/amd64 and linux/arm64 only: a `wl_argument` is
+  read as one 8-byte little-endian slot.
 
 ### Decorations
 
@@ -56,7 +73,7 @@ clipboard with other apps) needs a Linux machine.
 | --- | --------------------------------------------------------------------------------------- | ------- |
 | 1   | Issue #919                                                                              | done    |
 | 2   | Headless test harness (`scripts/wayland/`, `make wayland-selftest`)                     | done    |
-| 3   | Protocol code generation + purego libwayland-client core                                | pending |
+| 3   | Protocol code generation + purego libwayland-client core                                | done    |
 | 4   | Window: xdg-shell, `wl_egl_window`, EGL Wayland display, frame callbacks, resize, close | pending |
 | 5   | Input: pointer, keyboard through xkbcommon, scroll, touch                               | pending |
 | 6   | Decorations, clipboard, fractional scale, cursor-shape, text-input-v3                   | pending |

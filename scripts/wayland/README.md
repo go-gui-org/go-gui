@@ -12,6 +12,7 @@ Docker (on macOS, colima works).
 | `run.sh`          | Runs one command under one compositor, with optional screenshot/input  |
 | `build.sh`        | Builds a Go package for the container (linux, no cgo, Docker host CPU) |
 | `selftest.sh`     | Checks the harness with `weston-simple-egl`; `make wayland-selftest`   |
+| `test.sh`         | Runs a package's tests under each compositor, compositor required      |
 | `in-container.sh` | Starts the compositor inside the container; called by `run.sh`         |
 
 `run.sh` builds the image the first time it runs and again whenever the
@@ -40,6 +41,14 @@ Type text and move the pointer one second after the client starts (sway only):
 
 ```sh
 scripts/wayland/run.sh -t 5 -a 'wtype hello; wlrctl pointer move 100 100' -- build/wayland/showcase
+```
+
+Run a package's tests under sway, weston and mutter. `GOGUI_REQUIRE_WAYLAND=1`
+is set, so a test that cannot reach the compositor fails instead of skipping:
+
+```sh
+scripts/wayland/test.sh ./gui/backend/internal/wl
+COMPOSITORS=sway scripts/wayland/test.sh ./gui/backend/internal/wl -test.run Registry -test.v
 ```
 
 Check which GL the Wayland EGL platform offers:
