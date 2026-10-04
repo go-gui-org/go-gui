@@ -10,6 +10,22 @@ and this project adheres to
 
 ### Added
 
+- **Experimental native Wayland backend behind `GOGUI_WAYLAND=1` (#919)** — on a
+  Wayland desktop go-gui ran only through XWayland, which blurs at fractional
+  scales and is unavailable on devices with no X11 EGL platform (#916). With
+  `GOGUI_WAYLAND=1` a Linux app (amd64 or arm64) opens native Wayland windows.
+  They render with the same GL renderer at fractional and integer scales, take
+  pointer, keyboard, scroll, touch and input method (text-input-v3) input, share
+  the clipboard and primary selection, set cursors, and move and resize. The
+  frame comes from the compositor (KDE, wlroots) or from libdecor (GNOME,
+  Cinnamon, weston), and a warning names the missing package when neither can
+  draw one. Without the variable nothing changes. If Wayland setup fails (no
+  compositor, or no libwayland-client, libwayland-egl or libxkbcommon), go-gui
+  prints a warning and uses X11. The build stays cgo-free: the libraries are
+  opened at run time. Tested under sway, weston, KWin and Cinnamon 6.6; reports
+  from other desktops and GPUs are wanted on #919. See
+  `docs/specs/wayland-backend.md`.
+
 - **`DialogCfg.EscapeDisabled` stops Escape from closing a dialog (#909)** — a
   progress dialog had no way to block the Escape path, so the user could close
   it before the work finished. Set `EscapeDisabled` to keep the dialog open. A

@@ -1,11 +1,12 @@
 # Native Wayland backend
 
-Status: in progress, experimental. Issue #919. Phases 2 (test harness), 3
-(protocol bindings), 4 (window), 5 (input) and 6 (desktop parity) of 9 have
-landed. With `GOGUI_WAYLAND=1` an app opens a native Wayland window with a
-frame, renders at fractional scales, takes pointer, keyboard, scroll, touch and
-input method input, shares the clipboard and primary selection with other apps,
-sets cursors, and moves and resizes.
+Status: experimental. Issue #919. Phases 2 (test harness), 3 (protocol
+bindings), 4 (window), 5 (input) and 6 (desktop parity) of 9 have landed, phase
+7 (hardware pass) is done but for HiDPI on Muffin, and phase 8 ships it. With
+`GOGUI_WAYLAND=1` an app opens a native Wayland window with a frame, renders at
+fractional scales, takes pointer, keyboard, scroll, touch and input method
+input, shares the clipboard and primary selection with other apps, sets cursors,
+and moves and resizes.
 
 ## Problem
 
@@ -261,16 +262,17 @@ machine:
 | 5   | Input: pointer, keyboard through xkbcommon, scroll, touch                               | done    |
 | 6   | Decorations, clipboard, fractional scale, cursor-shape, text-input-v3                   | done    |
 | 7   | Hardware pass on Linux Mint (Intel/AMD): Cinnamon Wayland, nested sway/weston/KWin      | partial |
-| 8   | Ship as experimental                                                                    | pending |
+| 8   | Ship as experimental                                                                    | started |
 | 9   | OpenGL ES renderer path for GLES-only devices (separate issue)                          | pending |
 
-Open for phase 8:
+Phase 8 notes:
 
-- CPU under load: `examples/benchmark` uses 45% of a core on Wayland and 34% on
-  X11, with the same per-frame view, layout and render times (see Hardware
-  pass). Not profiled. Candidates: the frame-callback loop running more passes
-  per presented frame, and EGL swap cost on the Wayland platform. Profile with
-  `pprof` on both before the call for testers.
+- CPU under load is no worse than XWayland. The 45% against 34% in the hardware
+  pass compared a client inside a nested sway with one on the X11 desktop, so it
+  measured the set-up. On one compositor (Cinnamon 6.6 Wayland session),
+  `examples/benchmark` used 3.7 s of CPU per 10 s natively and 3.9–4.0 s through
+  XWayland. The two 10 s `pprof` profiles match: GL calls through purego take
+  about a third of the samples in both, then go-glyph layout and drawing.
 
 ## Rejected Approaches
 
