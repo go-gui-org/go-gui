@@ -18,9 +18,10 @@ var showcaseLocaleIDs = []string{"en-US", "de-DE", "ar-SA", "ja-JP"}
 var showcaseLocaleLabels = []string{"EN", "DE", "AR", "JA"}
 
 var docPageFiles = map[string]string{
-	"welcome":  "docs/welcome.md",
-	"commands": "docs/commands.md",
-	"sound":    "docs/widget_sound.md",
+	"welcome":        "docs/welcome.md",
+	"commands":       "docs/commands.md",
+	"sound":          "docs/widget_sound.md",
+	"dx_cheat_sheet": "docs/dx_cheat_sheet.md",
 }
 
 func loadEmbeddedLocales() {

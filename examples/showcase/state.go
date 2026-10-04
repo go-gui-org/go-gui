@@ -356,6 +356,7 @@ var demoEntries = []DemoEntry{
 	{ID: "welcome", Label: "Welcome", Group: groupWelcome, Summary: "Start here for a quick introduction to Go-Gui and this showcase.", Tags: []string{"start", "intro", "overview"}},
 	{ID: "commands", Label: "Commands & Hotkeys", Group: groupWelcome, Summary: "Centralized command registry with keyboard shortcuts, menu integration, and command palette.", Tags: []string{"command", "hotkey", "shortcut", "keyboard", "palette"}},
 	{ID: "sound", Label: "Sound Feedback", Group: groupWelcome, Summary: "Opt-in interaction sounds: semantic cues, an injected player, per-widget override.", Tags: []string{"sound", "audio", "cue", "feedback", "click", "beep", "volume"}},
+	{ID: "dx_cheat_sheet", Label: "DX Cheat Sheet", Group: groupWelcome, Summary: "The few places where the obvious reading of the API is wrong, and how to find them.", Tags: []string{"tips", "gotchas", "focus", "id", "hover", "pitfalls", "help"}},
 
 	{ID: "color_picker", Label: "Color Picker", Group: groupSelection, Summary: "Pick RGBA and optional HSV values.", Tags: []string{"color", "hsv", "rgba"}},
 	{ID: "date_picker", Label: "Date Picker", Group: groupSelection, Summary: "Select one or many dates from a calendar.", Tags: []string{"calendar", "dates", "selection"}},

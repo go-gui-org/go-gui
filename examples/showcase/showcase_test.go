@@ -90,9 +90,10 @@ func TestRelatedExamplesMap(t *testing.T) {
 // from widgetDocFiles. Everything else must have a doc, which is what
 // keeps a new demo from shipping with an empty Docs panel.
 var docPageExempt = map[string]bool{
-	"welcome":  true,
-	"commands": true,
-	"sound":    true,
+	"welcome":        true,
+	"commands":       true,
+	"sound":          true,
+	"dx_cheat_sheet": true,
 }
 
 func TestComponentDocsExist(t *testing.T) {
@@ -116,7 +117,7 @@ func TestDocPagesExist(t *testing.T) {
 			t.Errorf("expected doc page for %s", id)
 		}
 	}
-	for _, id := range []string{"welcome", "commands", "sound"} {
+	for _, id := range []string{"welcome", "commands", "sound", "dx_cheat_sheet"} {
 		if doc := docPageSource(id); doc == "" {
 			t.Errorf("expected doc page for %s", id)
 		}

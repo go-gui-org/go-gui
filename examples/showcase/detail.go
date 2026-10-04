@@ -235,6 +235,9 @@ func componentDemo(w *gui.Window, id string) gui.View {
 	if id == "commands" {
 		return showcaseMarkdownPanel(w, "showcase-commands", docPageSource("commands"))
 	}
+	if id == "dx_cheat_sheet" {
+		return showcaseMarkdownPanel(w, "showcase-dx-cheat-sheet", docPageSource("dx_cheat_sheet"))
+	}
 	if id == "sound" {
 		// The controls go above the guide: a doc-only page cannot turn
 		// the feature on, and the Audio page is the wrong place to look
