@@ -53,8 +53,8 @@ the file store without an error.
 
 - App state only. A file the user edits by hand (go-term's `config`) stays a
   file the app owns. A running app overwrites a hand edit of `settings.json`.
-- No secrets. The data is plain JSON; go-kite's `0o600` token file stays in
-  go-kite.
+- No secrets. The data is plain JSON. Secrets go to `LoadSecret` / `SaveSecret`
+  (#920, `docs/specs/secure-storage.md`).
 
 ## Rejected Approaches
 

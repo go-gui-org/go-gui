@@ -5,6 +5,7 @@ package gl
 import (
 	"github.com/go-gui-org/go-gui/gui"
 	"github.com/go-gui-org/go-gui/gui/backend/atspi"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/keyring"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/nativehost"
 )
 
@@ -16,7 +17,12 @@ import (
 // a11y is the window's own AT-SPI2 bridge (Linux only; nil elsewhere).
 // Owned per window — never shared — so a second window's actions and
 // tree cannot reach the first window's callbacks.
+//
+// keyring.Platform supplies SecretLoad, SecretSave and SecretDelete,
+// gui's optional secret-store hook: Credential Manager on Windows, the
+// Secret Service on Linux (issue #920).
 type nativePlatform struct {
+	keyring.Platform
 	b    *Backend
 	a11y *atspi.Bridge
 }
