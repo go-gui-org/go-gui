@@ -22,7 +22,7 @@ LINT_BIN = $(LINT_DIR)/golangci-lint
 LINT_ARGS ?=
 
 .PHONY: build-linux build-windows build-macos build-wasm build-ios build-android build-examples \
-	package-linux package-windows package-macos release clean test test-race vet lint lint-bin lint-cross lint-windows lint-js cross-compile coverage-gate test-race-cover prepush check bench bench-gate deps-doc deps-doc-check security gosec govulncheck large-files deadcode generate-check tidy-check workflow-audit cov-report license-check ergonomics-audit ergo-ids ergonomics-audit-fix ergonomics-audit-fix-dry fmt-md fmt-md-check
+	package-linux package-windows package-macos release clean test test-race vet lint lint-bin lint-cross lint-windows lint-js cross-compile coverage-gate test-race-cover prepush check bench bench-gate deps-doc deps-doc-check security gosec govulncheck large-files deadcode generate-check tidy-check workflow-audit cov-report license-check ergonomics-audit ergo-ids ergonomics-audit-fix ergonomics-audit-fix-dry fmt-md fmt-md-check wayland-selftest
 
 # Desktop builds are cgo-free since the purego GL bindings (#155): the
 # backend/gl uses X11/xgb + purego EGL on Linux and Win32 syscalls on
@@ -364,6 +364,12 @@ check: vet deps-doc-check large-files generate-check tidy-check fmt-md-check cha
 
 # Run all validation steps: test, vet, lint, and gate checks.
 check-all: test lint check
+
+# Check the headless Wayland harness for the experimental Wayland backend
+# (#919): sway, weston and mutter in Docker. Needs a running Docker daemon,
+# so it is not part of check or prepush. See scripts/wayland/README.md.
+wayland-selftest:
+	scripts/wayland/selftest.sh
 
 # Recommended full local validation before pushing (issue #292):
 # approximates the CI matrix from one host — race tests, linux + cross-

@@ -470,6 +470,10 @@ func (b *Backend) rootOrigin() (int16, int16) {
 }
 
 func (n *nativePlatform) IMEStart() {
+	if ww := n.b.plat.wl; ww != nil {
+		ww.imeStart()
+		return
+	}
 	if n.b.plat.ime == nil {
 		return
 	}
@@ -481,6 +485,10 @@ func (n *nativePlatform) IMEStart() {
 // change (Window.setFocusID), and re-entering EventFn from inside an
 // event handler would clobber the event being dispatched.
 func (n *nativePlatform) IMEStop() {
+	if ww := n.b.plat.wl; ww != nil {
+		ww.imeStop()
+		return
+	}
 	n.b.plat.imeHaveRect = false
 	if n.b.plat.ime == nil {
 		return
@@ -493,6 +501,10 @@ func (n *nativePlatform) IMEStop() {
 // IBus wants physical pixels relative to the root.
 func (n *nativePlatform) IMESetRect(x, y, w, h int32) {
 	b := n.b
+	if ww := b.plat.wl; ww != nil {
+		ww.imeSetRect(x, y, w, h)
+		return
+	}
 	if b.plat.ime == nil {
 		return
 	}

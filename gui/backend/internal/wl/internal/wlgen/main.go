@@ -1,0 +1,579 @@
+// Command wlgen turns Wayland protocol XML into Go bindings for package wl
+// (#919). Run it through `go generate ./gui/backend/internal/wl/`.
+//
+// For each XML file it writes, into the output directory, one
+// <interface>_gen.go per interface and one <protocol>_tables_gen.go, holding:
+//
+//   - one Go type per interface (wl_surface → Surface, xdg_toplevel →
+//     XdgToplevel) that embeds Proxy,
+//   - one method per request, which marshals through libwayland,
+//   - a <Type>Handlers struct with one func field per event, and a
+//     SetHandlers method that decodes the event arguments for it,
+//   - untyped constants for each enum entry,
+//   - the wl_interface / wl_message tables libwayland reads, built by a
+//     define<Protocol> function.
+//
+// It also writes interfaces_gen.go with defineInterfaces, which calls every
+// define<Protocol> function once. Load runs it, so no table is built unless
+// the Wayland backend is used.
+//
+// Usage: wlgen <dir for output> <protocol.xml>...
+package main
+
+import (
+	"bytes"
+	"encoding/xml"
+	"errors"
+	"fmt"
+	"go/format"
+	"log"
+	"os"
+	"path/filepath"
+	"strings"
+)
+
+// XML schema: only the parts the bindings need.
+type xProtocol struct {
+	Name       string       `xml:"name,attr"`
+	Interfaces []xInterface `xml:"interface"`
+}
+
+type xInterface struct {
+	Name     string     `xml:"name,attr"`
+	Version  int        `xml:"version,attr"`
+	Desc     xDesc      `xml:"description"`
+	Requests []xMessage `xml:"request"`
+	Events   []xMessage `xml:"event"`
+	Enums    []xEnum    `xml:"enum"`
+}
+
+type xMessage struct {
+	Name  string `xml:"name,attr"`
+	Type  string `xml:"type,attr"`
+	Since int    `xml:"since,attr"`
+	Desc  xDesc  `xml:"description"`
+	Args  []xArg `xml:"arg"`
+}
+
+type xArg struct {
+	Name      string `xml:"name,attr"`
+	Type      string `xml:"type,attr"`
+	Interface string `xml:"interface,attr"`
+	AllowNull string `xml:"allow-null,attr"`
+	Summary   string `xml:"summary,attr"`
+}
+
+type xEnum struct {
+	Name    string   `xml:"name,attr"`
+	Entries []xEntry `xml:"entry"`
+}
+
+type xEntry struct {
+	Name    string `xml:"name,attr"`
+	Value   string `xml:"value,attr"`
+	Summary string `xml:"summary,attr"`
+}
+
+type xDesc struct {
+	Summary string `xml:"summary,attr"`
+}
+
+func main() {
+	if len(os.Args) < 3 {
+		log.Fatal("usage: wlgen <out dir> <protocol.xml>...")
+	}
+	outDir := os.Args[1]
+	var protos []xProtocol
+	for _, path := range os.Args[2:] {
+		p, err := parseFile(path)
+		if err != nil {
+			log.Fatal(err)
+		}
+		protos = append(protos, p)
+	}
+	known := knownInterfaces(protos)
+	// Every *_gen.go here is wlgen's own output. Remove the old set first so
+	// an interface dropped from the XML does not leave a stale file behind.
+	old, err := filepath.Glob(filepath.Join(outDir, "*_gen.go"))
+	if err != nil {
+		log.Fatal(err)
+	}
+	for _, f := range old {
+		if err := os.Remove(f); err != nil {
+			log.Fatal(err)
+		}
+	}
+	var defines, ifaces []string
+	for _, p := range protos {
+		for _, it := range p.Interfaces {
+			ifaces = append(ifaces, typeName(it.Name))
+		}
+		files, err := generate(p, known)
+		if err != nil {
+			log.Fatalf("%s: %v", p.Name, err)
+		}
+		for name, src := range files {
+			// #nosec G306 — standard 0644 for generated Go source
+			if err := os.WriteFile(filepath.Join(outDir, name), src, 0o644); err != nil {
+				log.Fatal(err)
+			}
+		}
+		defines = append(defines, defineFunc(p.Name))
+	}
+	src, err := generateDefineAll(defines, ifaces)
+	if err != nil {
+		log.Fatal(err)
+	}
+	// #nosec G306 — standard 0644 for generated Go source
+	if err := os.WriteFile(filepath.Join(outDir, "interfaces_gen.go"), src, 0o644); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func parseFile(path string) (xProtocol, error) {
+	// #nosec G304 — path is a protocol XML named by go:generate in this repo,
+	// read by a developer tool that never sees untrusted input.
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return xProtocol{}, err
+	}
+	return parse(data)
+}
+
+func parse(data []byte) (xProtocol, error) {
+	var p xProtocol
+	if err := xml.Unmarshal(data, &p); err != nil {
+		return p, err
+	}
+	if p.Name == "" {
+		return p, errors.New("protocol has no name")
+	}
+	return p, nil
+}
+
+// knownInterfaces lists every interface defined across all input files. An
+// arg naming an interface outside this set is typed as a plain Proxy, so a
+// protocol can refer to one that is not generated without breaking the build.
+func knownInterfaces(protos []xProtocol) map[string]bool {
+	known := map[string]bool{}
+	for _, p := range protos {
+		for _, it := range p.Interfaces {
+			known[it.Name] = true
+		}
+	}
+	return known
+}
+
+// Build constraint shared by every generated file. It matches the runtime in
+// package wl: little-endian 64-bit Linux, where purego callbacks work and a
+// wl_argument is one 8-byte slot.
+const buildTag = "//go:build linux && !android && (amd64 || arm64)"
+
+const header = "// Code generated by wlgen from %s. DO NOT EDIT.\n\n" + buildTag + "\n\npackage wl\n\n"
+
+func generateDefineAll(defines, ifaces []string) ([]byte, error) {
+	var b bytes.Buffer
+	fmt.Fprintf(&b, header, "the protocol XML files")
+	b.WriteString("// defineInterfaces fills every generated wl_interface table. Load calls it once.\n")
+	b.WriteString("func defineInterfaces() {\n")
+	for _, d := range defines {
+		fmt.Fprintf(&b, "\t%s()\n", d)
+	}
+	b.WriteString("}\n\n")
+	b.WriteString("// allInterfaces lists every generated table, for tests.\n")
+	b.WriteString("var allInterfaces = []*Interface{\n")
+	for _, t := range ifaces {
+		fmt.Fprintf(&b, "\t&%sInterface,\n", t)
+	}
+	b.WriteString("}\n")
+	return format.Source(b.Bytes())
+}
+
+func defineFunc(protocol string) string {
+	return "define" + camel(strings.ReplaceAll(protocol, "-", "_"))
+}
+
+// generate writes the bindings for one protocol: one file per interface
+// (wl_surface → wl_surface_gen.go) and one for its tables
+// (wayland → wayland_tables_gen.go). One file per interface keeps each under
+// the repo's 800-line limit for gui/ and makes a binding easy to find.
+func generate(p xProtocol, known map[string]bool) (map[string][]byte, error) {
+	files := map[string][]byte{}
+	for _, it := range p.Interfaces {
+		var b bytes.Buffer
+		fmt.Fprintf(&b, header, p.Name+".xml")
+		// Not every interface has a string, array or new_id request, so keep
+		// the imports used in every file.
+		b.WriteString("import (\n\t\"runtime\"\n\t\"unsafe\"\n)\n\n")
+		b.WriteString("var (\n\t_ = runtime.KeepAlive\n\t_ unsafe.Pointer\n)\n\n")
+		if err := genInterface(&b, it, known); err != nil {
+			return nil, fmt.Errorf("%s: %w", it.Name, err)
+		}
+		src, err := format.Source(b.Bytes())
+		if err != nil {
+			return nil, fmt.Errorf("format %s: %w\n%s", it.Name, err, b.Bytes())
+		}
+		files[it.Name+"_gen.go"] = src
+	}
+
+	var b bytes.Buffer
+	fmt.Fprintf(&b, header, p.Name+".xml")
+	genTables(&b, p, known)
+	src, err := format.Source(b.Bytes())
+	if err != nil {
+		return nil, fmt.Errorf("format tables: %w\n%s", err, b.Bytes())
+	}
+	files[strings.ReplaceAll(p.Name, "-", "_")+"_tables_gen.go"] = src
+	return files, nil
+}
+
+func genInterface(b *bytes.Buffer, it xInterface, known map[string]bool) error {
+	t := typeName(it.Name)
+	fmt.Fprintf(b, "// %s is %s: %s.\ntype %s struct{ Proxy }\n\n", t, it.Name, oneLine(it.Desc.Summary), t)
+	fmt.Fprintf(b, "// %sInterface is the wl_interface table for %s.\nvar %sInterface Interface\n\n", t, it.Name, t)
+
+	for _, e := range it.Enums {
+		genEnum(b, t, e)
+	}
+	for op, m := range it.Requests {
+		if err := genRequest(b, it, t, op, m, known); err != nil {
+			return fmt.Errorf("request %s: %w", m.Name, err)
+		}
+	}
+	// libwayland handles wl_display events itself (error, delete_id); a
+	// dispatcher on the display proxy would take them away from it.
+	if it.Name != "wl_display" && len(it.Events) > 0 {
+		genHandlers(b, it, t, known)
+	}
+	return nil
+}
+
+func genEnum(b *bytes.Buffer, t string, e xEnum) {
+	fmt.Fprintf(b, "// %s.%s enum.\nconst (\n", t, e.Name)
+	for _, en := range e.Entries {
+		if en.Summary != "" {
+			fmt.Fprintf(b, "\t// %s\n", oneLine(en.Summary))
+		}
+		fmt.Fprintf(b, "\t%s%s%s = %s\n", t, camel(e.Name), camel(en.Name), en.Value)
+	}
+	b.WriteString(")\n\n")
+}
+
+// genRequest writes one request method. The opcode is the request's index.
+func genRequest(b *bytes.Buffer, it xInterface, t string, op int, m xMessage, known map[string]bool) error {
+	method := camel(m.Name)
+	if method == "Ptr" || method == "ID" || method == "Version" || method == "DestroyProxy" || method == "SetHandlers" || method == "SetDispatcher" {
+		return fmt.Errorf("request name %q collides with a Proxy method", m.Name)
+	}
+	var params, pre, args, post []string
+	ret, retType, iface, version := "", "", "nil", "0"
+	for _, a := range m.Args {
+		name := paramName(a.Name)
+		nullable := a.AllowNull == "true"
+		switch a.Type {
+		case "int":
+			params = append(params, name+" int32")
+			args = append(args, "uintptr(uint32("+name+"))")
+		case "uint":
+			params = append(params, name+" uint32")
+			args = append(args, "uintptr("+name+")")
+		case "fixed":
+			params = append(params, name+" Fixed")
+			args = append(args, "uintptr(uint32("+name+"))")
+		case "fd":
+			params = append(params, name+" int")
+			args = append(args, "uintptr("+name+")")
+		case "string":
+			params = append(params, name+" string")
+			// A NUL-terminated copy. libwayland serializes it before the
+			// call returns, so KeepAlive after the call is enough.
+			pre = append(pre, fmt.Sprintf("%sC := cString(%s, %v)", name, name, nullable))
+			args = append(args, "cStringPtr("+name+"C)")
+			post = append(post, "runtime.KeepAlive("+name+"C)")
+		case "array":
+			params = append(params, name+" []byte")
+			pre = append(pre, fmt.Sprintf("%sA := newArray(%s)", name, name))
+			args = append(args, "uintptr(unsafe.Pointer("+name+"A))")
+			post = append(post, "runtime.KeepAlive("+name+"A)")
+		case "object":
+			params = append(params, name+" "+objType(a.Interface, known))
+			args = append(args, name+".ptr")
+		case "new_id":
+			if ret != "" {
+				return errors.New("more than one new_id")
+			}
+			if a.Interface == "" {
+				// Generic new_id (wl_registry.bind): the caller names the
+				// interface and version; libwayland sends both on the wire.
+				params = append(params, "iface *Interface", "version uint32")
+				args = append(args, "uintptr(unsafe.Pointer(iface.name))", "uintptr(version)", "0")
+				ret, retType, iface, version = "Proxy{ptr: r, ver: version}", "Proxy", "iface", "version"
+			} else {
+				rt := objType(a.Interface, known)
+				args = append(args, "0")
+				iface = "&" + rt + "Interface"
+				if rt == "Proxy" {
+					return fmt.Errorf("new_id of unknown interface %s", a.Interface)
+				}
+				ret, retType, version = rt+"{Proxy{ptr: r, ver: ver}}", rt, "ver"
+			}
+		default:
+			return fmt.Errorf("arg %s: unknown type %q", a.Name, a.Type)
+		}
+	}
+
+	if m.Desc.Summary != "" {
+		fmt.Fprintf(b, "// %s sends %s.%s: %s.\n", method, it.Name, m.Name, oneLine(m.Desc.Summary))
+	} else {
+		fmt.Fprintf(b, "// %s sends %s.%s.\n", method, it.Name, m.Name)
+	}
+	if m.Since > 1 {
+		fmt.Fprintf(b, "// Needs version %d of the bound object.\n", m.Since)
+	}
+	destroy := m.Type == "destructor"
+	if destroy {
+		b.WriteString("// It destroys the proxy; do not use it afterwards.\n")
+	}
+	sig := fmt.Sprintf("func (px %s) %s(%s)", t, method, strings.Join(params, ", "))
+	if retType != "" {
+		sig += " " + retType
+	}
+	b.WriteString(sig + " {\n")
+	for _, s := range pre {
+		b.WriteString("\t" + s + "\n")
+	}
+	if version == "ver" {
+		b.WriteString("\tver := px.Version()\n")
+	}
+	flags := "0"
+	if destroy {
+		flags = "marshalFlagDestroy"
+	}
+	call := fmt.Sprintf("px.marshal(%d, %s, %s, %s", op, iface, version, flags)
+	if len(args) > 0 {
+		call += ", " + strings.Join(args, ", ")
+	}
+	call += ")"
+	if retType != "" {
+		b.WriteString("\tr := " + call + "\n")
+	} else {
+		b.WriteString("\t" + call + "\n")
+	}
+	for _, s := range post {
+		b.WriteString("\t" + s + "\n")
+	}
+	if retType != "" {
+		b.WriteString("\treturn " + ret + "\n")
+	}
+	b.WriteString("}\n\n")
+	return nil
+}
+
+func genHandlers(b *bytes.Buffer, it xInterface, t string, known map[string]bool) {
+	fmt.Fprintf(b, "// %sHandlers holds one func per %s event. A nil func ignores the event.\n", t, it.Name)
+	fmt.Fprintf(b, "// Strings and arrays are only valid until the func returns.\n")
+	fmt.Fprintf(b, "type %sHandlers struct {\n", t)
+	for _, e := range it.Events {
+		if e.Desc.Summary != "" {
+			fmt.Fprintf(b, "\t// %s is %s.%s: %s.\n", camel(e.Name), it.Name, e.Name, oneLine(e.Desc.Summary))
+		}
+		var ps []string
+		for _, a := range e.Args {
+			ps = append(ps, paramName(a.Name)+" "+eventArgType(a, known))
+		}
+		fmt.Fprintf(b, "\t%s func(%s)\n", camel(e.Name), strings.Join(ps, ", "))
+	}
+	b.WriteString("}\n\n")
+
+	// SetHandlers builds a decoder closure on every call. A proxy made
+	// every frame (wl_callback) instead takes a Dispatcher built once, so
+	// the frame path allocates no closure.
+	fmt.Fprintf(b, "// SetHandlers routes the events of px to h, replacing any earlier handlers.\n")
+	fmt.Fprintf(b, "func (px %s) SetHandlers(h %sHandlers) { px.SetDispatcher(h.Dispatcher()) }\n\n", t, t)
+	fmt.Fprintf(b, "// %sDispatcher is the decoder for %sHandlers, built once by Dispatcher\n", t, t)
+	fmt.Fprintf(b, "// and installed on any number of proxies without allocating.\n")
+	fmt.Fprintf(b, "type %sDispatcher struct{ f func(opcode uint32, a *argSlots) }\n\n", t)
+	fmt.Fprintf(b, "// SetDispatcher routes the events of px to d, replacing any earlier handlers.\n")
+	fmt.Fprintf(b, "func (px %s) SetDispatcher(d %sDispatcher) { px.setDispatch(d.f) }\n\n", t, t)
+	fmt.Fprintf(b, "// Dispatcher builds the event decoder for h.\n")
+	fmt.Fprintf(b, "func (h %sHandlers) Dispatcher() %sDispatcher {\n", t, t)
+	fmt.Fprintf(b, "\treturn %sDispatcher{func(opcode uint32, a *argSlots) {\n\t\tswitch opcode {\n", t)
+	for op, e := range it.Events {
+		fmt.Fprintf(b, "\t\tcase %d:\n\t\t\tif h.%s != nil {\n", op, camel(e.Name))
+		var vals []string
+		for i, a := range e.Args {
+			vals = append(vals, decodeArg(a, i, known))
+		}
+		fmt.Fprintf(b, "\t\t\t\th.%s(%s)\n\t\t\t}\n", camel(e.Name), strings.Join(vals, ", "))
+	}
+	b.WriteString("\t\t}\n\t}}\n}\n\n")
+}
+
+func eventArgType(a xArg, known map[string]bool) string {
+	switch a.Type {
+	case "int":
+		return "int32"
+	case "uint":
+		return "uint32"
+	case "fixed":
+		return "Fixed"
+	case "fd":
+		return "int"
+	case "string":
+		return "string"
+	case "array":
+		return "[]byte"
+	default: // object, new_id
+		return objType(a.Interface, known)
+	}
+}
+
+func decodeArg(a xArg, i int, known map[string]bool) string {
+	slot := fmt.Sprintf("a[%d]", i)
+	switch a.Type {
+	case "int":
+		return "int32(uint32(" + slot + "))"
+	case "uint":
+		return "uint32(" + slot + ")"
+	case "fixed":
+		return "Fixed(int32(uint32(" + slot + ")))"
+	case "fd":
+		return "int(int32(uint32(" + slot + ")))"
+	case "string":
+		return "goString(" + slot + ")"
+	case "array":
+		return "arrayBytes(" + slot + ")"
+	default: // object, new_id
+		t := objType(a.Interface, known)
+		if t == "Proxy" {
+			return "Proxy{ptr: " + slot + "}"
+		}
+		return t + "{Proxy{ptr: " + slot + "}}"
+	}
+}
+
+// genTables writes define<Protocol>, which fills the C-layout tables.
+func genTables(b *bytes.Buffer, p xProtocol, known map[string]bool) {
+	fmt.Fprintf(b, "func %s() {\n", defineFunc(p.Name))
+	for _, it := range p.Interfaces {
+		t := typeName(it.Name)
+		fmt.Fprintf(b, "\tdefineInterface(&%sInterface, %q, %d,\n", t, it.Name, it.Version)
+		genMessages(b, it.Requests, known)
+		genMessages(b, it.Events, known)
+		b.WriteString("\t)\n")
+	}
+	b.WriteString("}\n")
+}
+
+func genMessages(b *bytes.Buffer, ms []xMessage, known map[string]bool) {
+	if len(ms) == 0 {
+		b.WriteString("\t\tnil,\n")
+		return
+	}
+	b.WriteString("\t\t[]message{\n")
+	for _, m := range ms {
+		sig, types := signature(m, known)
+		ts := "nil"
+		if len(types) > 0 {
+			ts = "[]*Interface{" + strings.Join(types, ", ") + "}"
+		}
+		fmt.Fprintf(b, "\t\t\tnewMessage(%q, %q, %s),\n", m.Name, sig, ts)
+	}
+	b.WriteString("\t\t},\n")
+}
+
+// signature builds the libwayland signature string ("2?oii") and the types
+// entry for each argument it lists, in the same order.
+func signature(m xMessage, known map[string]bool) (string, []string) {
+	var sb strings.Builder
+	var types []string
+	if m.Since > 1 {
+		fmt.Fprintf(&sb, "%d", m.Since)
+	}
+	for _, a := range m.Args {
+		if a.AllowNull == "true" {
+			sb.WriteByte('?')
+		}
+		switch a.Type {
+		case "int":
+			sb.WriteByte('i')
+		case "uint":
+			sb.WriteByte('u')
+		case "fixed":
+			sb.WriteByte('f')
+		case "string":
+			sb.WriteByte('s')
+		case "object":
+			sb.WriteByte('o')
+		case "new_id":
+			if a.Interface == "" {
+				// Generic new_id: interface name, version, then the id.
+				sb.WriteString("sun")
+				types = append(types, "nil", "nil", "nil")
+				continue
+			}
+			sb.WriteByte('n')
+		case "array":
+			sb.WriteByte('a')
+		case "fd":
+			sb.WriteByte('h')
+		}
+		if (a.Type == "object" || a.Type == "new_id") && known[a.Interface] {
+			types = append(types, "&"+typeName(a.Interface)+"Interface")
+		} else {
+			types = append(types, "nil")
+		}
+	}
+	return sb.String(), types
+}
+
+func objType(iface string, known map[string]bool) string {
+	if iface == "" || !known[iface] {
+		return "Proxy"
+	}
+	return typeName(iface)
+}
+
+// typeName maps a protocol interface name to its Go type: the core "wl_"
+// prefix is dropped (wl_surface → Surface), others keep theirs
+// (xdg_toplevel → XdgToplevel).
+func typeName(iface string) string {
+	return camel(strings.TrimPrefix(iface, "wl_"))
+}
+
+func camel(s string) string {
+	var b strings.Builder
+	for part := range strings.SplitSeq(s, "_") {
+		if part == "" {
+			continue
+		}
+		b.WriteString(strings.ToUpper(part[:1]) + part[1:])
+	}
+	return b.String()
+}
+
+var goKeywords = map[string]bool{
+	"break": true, "case": true, "chan": true, "const": true, "continue": true,
+	"default": true, "defer": true, "else": true, "fallthrough": true, "for": true,
+	"func": true, "go": true, "goto": true, "if": true, "import": true,
+	"interface": true, "map": true, "package": true, "range": true, "return": true,
+	"select": true, "struct": true, "switch": true, "type": true, "var": true,
+	// Names the generated bodies use themselves.
+	"px": true, "r": true, "ver": true, "h": true, "a": true, "opcode": true,
+	"iface": true, "version": true,
+}
+
+// paramName is the lowerCamel arg name, with a trailing underscore when it
+// would clash with a keyword or a name the generated code uses.
+func paramName(s string) string {
+	c := camel(s)
+	n := strings.ToLower(c[:1]) + c[1:]
+	if goKeywords[n] {
+		n += "_"
+	}
+	return n
+}
+
+func oneLine(s string) string {
+	return strings.Join(strings.Fields(s), " ")
+}

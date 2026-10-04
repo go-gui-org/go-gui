@@ -25,6 +25,7 @@
 
 !Makefile
 !LICENSE
+!scripts/wayland/Dockerfile
 !.githooks/pre-commit
 !.githooks/pre-push
 

@@ -197,7 +197,8 @@ Requires **Go 1.26+**. A **C toolchain** (CGo) is needed only on **macOS** — t
 Metal backend is Objective-C. Linux and Windows build fully cgo-free
 (`CGO_ENABLED=0 go build ./...`). The desktop backends are native: Metal on
 macOS, X11 + EGL on Linux, Win32 + WGL on Windows. Text shaping and
-rasterization are pure Go via go-glyph.
+rasterization are pure Go via go-glyph. A native Wayland backend is
+experimental: run with `GOGUI_WAYLAND=1` (see `docs/deployment.md`).
 
 ```bash
 go get github.com/go-gui-org/go-gui

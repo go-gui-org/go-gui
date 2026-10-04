@@ -5,6 +5,7 @@ package gl
 import (
 	"fmt"
 	"log"
+	"os"
 	"runtime"
 
 	"github.com/jezek/xgb"
@@ -21,6 +22,10 @@ func (b *Backend) Destroy() {
 
 // Run starts the event loop. Blocks until the window is closed.
 func (b *Backend) Run(w *gui.Window) {
+	if b.plat.wl != nil {
+		b.runWayland(w)
+		return
+	}
 	defer w.WindowCleanup()
 	b.plat.w = w
 	if w.Config.OnInit != nil {
@@ -103,6 +108,10 @@ func RunApp(app *gui.App, initialWindows ...*gui.Window) {
 	}
 }
 
+// waylandRequested reports whether the user asked for the experimental
+// Wayland backend (#919). Any other value, or none, keeps X11.
+func waylandRequested() bool { return os.Getenv("GOGUI_WAYLAND") == "1" }
+
 // taggedEvent carries an X event alongside the backend it belongs to so
 // a single channel can multiplex several windows' event pumps.
 type taggedEvent struct {
@@ -132,11 +141,17 @@ func runAppE(app *gui.App, initialWindows ...*gui.Window) error {
 	// goroutine returns after RunApp must not exit with its thread locked.
 	defer runtime.UnlockOSThread()
 
+	if waylandRequested() {
+		if handled, err := runAppWayland(app, initialWindows); handled {
+			return err
+		}
+	}
+
 	backends := make(map[uint32]*Backend) // window XID → backend
 	events := make(chan taggedEvent, 128)
 
 	open := func(w *gui.Window) error {
-		b, err := New(w)
+		b, err := newX11(w)
 		if err != nil {
 			return err
 		}

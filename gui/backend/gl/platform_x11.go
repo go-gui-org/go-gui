@@ -44,6 +44,17 @@ const (
 // EGL context. Pure Go via xgb + purego — no cgo.
 // exportaudit:keep — lowercase new shadows the Go builtin
 func New(w *gui.Window) (*Backend, error) {
+	// GOGUI_WAYLAND=1 tries the experimental Wayland backend first (#919).
+	if b, ok := tryWayland(w); ok {
+		return b, nil
+	}
+	return newX11(w)
+}
+
+// newX11 is New without the Wayland branch. The X11 RunApp loop calls it
+// directly: once it runs, Wayland was already declined, and a Wayland
+// window must never reach the X11 event pump.
+func newX11(w *gui.Window) (*Backend, error) {
 	runtime.LockOSThread()
 	// Every error return below releases the lock again, so a caller whose
 	// goroutine then exits does not take its OS thread down with it (#827,
@@ -170,7 +181,7 @@ func New(w *gui.Window) (*Backend, error) {
 	// the window before EGL (on its own X connection) wraps it.
 	conn.Sync()
 
-	surface, context, err := eglCreateSurfaceContextFunc(dpy, config, uint32(wid))
+	surface, context, err := eglCreateSurfaceContextFunc(dpy, config, uintptr(wid))
 	if err != nil {
 		b.plat.destroy()
 		return nil, newGPUContextError("create EGL surface/context", err)

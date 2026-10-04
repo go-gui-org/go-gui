@@ -57,6 +57,20 @@ manager at runtime — without one the window renders black, which `gui.Debug`
 reports. Either depend on one in the package or document it for the user. See
 `docs/specs/transparent-windows.md`.
 
+On a Wayland desktop the app runs through XWayland unless `GOGUI_WAYLAND=1` is
+set, which selects the experimental native Wayland backend (amd64 and arm64). It
+opens these libraries at run time, so the binary does not link them:
+
+| Library                        | Debian / Ubuntu package   | Without it                                 |
+| ------------------------------ | ------------------------- | ------------------------------------------ |
+| `libwayland-client.so.0`       | `libwayland-client0`      | warning, falls back to X11                 |
+| `libwayland-egl.so.1`          | `libwayland-egl1`         | warning, falls back to X11                 |
+| `libxkbcommon.so.0`            | `libxkbcommon0`           | warning, falls back to X11                 |
+| `libdecor-0.so.0` and a plugin | `libdecor-0-plugin-1-gtk` | no window frame on GNOME, Cinnamon, weston |
+
+KDE and wlroots compositors (sway) draw the frame themselves and need no
+libdecor. See `docs/specs/wayland-backend.md`.
+
 ## Step 2: write the app manifest
 
 Keep the app's identity in one file, `appinfo.toml`, beside `main.go`. Then the
