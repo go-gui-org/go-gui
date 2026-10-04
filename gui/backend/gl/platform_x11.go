@@ -95,9 +95,10 @@ func newX11(w *gui.Window) (*Backend, error) {
 	}
 
 	haveRandr := randr.Init(conn) == nil
+	xwayland := detectXWayland(conn, screen.Root, haveRandr)
 	// The window is created at 0,0, so its initial monitor is whichever
 	// CRTC covers the origin.
-	scale, crtc := dpiScaleForWindow(conn, screen.Root, haveRandr, 0, 0)
+	scale, crtc := dpiScaleForWindow(conn, screen.Root, haveRandr, xwayland, 0, 0)
 	physW := int32(float32(width) * scale)
 	physH := int32(float32(height) * scale)
 
@@ -144,6 +145,7 @@ func newX11(w *gui.Window) (*Backend, error) {
 	b.plat.physH = physH
 	b.plat.root = screen.Root
 	b.plat.haveRandr = haveRandr
+	b.plat.xwayland = xwayland
 	b.plat.curCrtc = crtc
 
 	// Title atoms first: setWindowTitle needs them to write the UTF-8

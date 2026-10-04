@@ -87,12 +87,17 @@ func TestParseXftDPIScale(t *testing.T) {
 // Wayland fractional scaling, XWayland reports a 2x virtual CRTC with the
 // real panel millimetres, so RandR gives 2.62 while the desktop set
 // Xft.dpi: 192 (2.0). Xft.dpi must win, and RandR must not even be queried.
+// Issue #918: under XWayland with no Xft.dpi (Phosh), the compositor already
+// scales the X11 buffer by the output scale. RandR physical DPI (1.81 on the
+// FLX1s panel) would apply the scale a second time, so the scale is 1.0 and
+// RandR is not queried.
 func TestPickDPIScale(t *testing.T) {
 	cases := []struct {
 		name      string
 		xft       float32
 		xftOK     bool
 		haveRandr bool
+		xwayland  bool
 		rrScale   float32
 		rrCrtc    randr.Crtc
 		rrOK      bool
@@ -100,15 +105,17 @@ func TestPickDPIScale(t *testing.T) {
 		wantCrtc  randr.Crtc
 		wantRRUse bool
 	}{
-		{"xft-wins-over-randr", 2, true, true, 2.62, 7, true, 2, 0, false},
+		{"xft-wins-over-randr", 2, true, true, false, 2.62, 7, true, 2, 0, false},
 		// Xft.dpi: 96 on a 2x panel is kept on purpose. GNOME publishes 96 when
 		// the user picks 100%, and GTK/Qt then draw at 1.0, so reading 96 as
 		// "unset" and asking RandR would bring back the #871 mismatch.
-		{"xft-96-hidpi-randr", 1, true, true, 2, 7, true, 1, 0, false},
-		{"randr-when-xft-unset", 0, false, true, 1.5, 7, true, 1.5, 7, true},
-		{"one-when-nothing", 0, false, true, 0, 0, false, 1, 0, true},
-		{"no-randr-extension", 0, false, false, 1.5, 7, true, 1, 0, false},
-		{"xft-without-randr", 1.25, true, false, 0, 0, false, 1.25, 0, false},
+		{"xft-96-hidpi-randr", 1, true, true, false, 2, 7, true, 1, 0, false},
+		{"randr-when-xft-unset", 0, false, true, false, 1.5, 7, true, 1.5, 7, true},
+		{"one-when-nothing", 0, false, true, false, 0, 0, false, 1, 0, true},
+		{"no-randr-extension", 0, false, false, false, 1.5, 7, true, 1, 0, false},
+		{"xft-without-randr", 1.25, true, false, false, 0, 0, false, 1.25, 0, false},
+		{"xwayland-no-xft-skips-randr", 0, false, true, true, 1.81, 7, true, 1, 0, false},
+		{"xwayland-xft-wins", 1.5, true, true, true, 1.81, 7, true, 1.5, 0, false},
 	}
 	for _, c := range cases {
 		called := false
@@ -116,7 +123,7 @@ func TestPickDPIScale(t *testing.T) {
 			called = true
 			return c.rrScale, c.rrCrtc, c.rrOK
 		}
-		scale, crtc := pickDPIScale(c.xft, c.xftOK, c.haveRandr, rr)
+		scale, crtc := pickDPIScale(c.xft, c.xftOK, c.haveRandr, c.xwayland, rr)
 		if scale != c.wantScale || crtc != c.wantCrtc {
 			t.Errorf("%s: got (%v, %d), want (%v, %d)",
 				c.name, scale, crtc, c.wantScale, c.wantCrtc)
@@ -146,12 +153,56 @@ func TestDPIScaleForWindowLive(t *testing.T) {
 
 	root := xproto.Setup(conn).DefaultScreen(conn).Root
 	haveRandr := randr.Init(conn) == nil
-	scale, crtc := dpiScaleForWindow(conn, root, haveRandr, 0, 0)
-	t.Logf("dpiScaleForWindow(0,0) = %.4f crtc=%d haveRandr=%v", scale, crtc, haveRandr)
+	xwayland := detectXWayland(conn, root, haveRandr)
+	scale, crtc := dpiScaleForWindow(conn, root, haveRandr, xwayland, 0, 0)
+	t.Logf("dpiScaleForWindow(0,0) = %.4f crtc=%d haveRandr=%v xwayland=%v",
+		scale, crtc, haveRandr, xwayland)
 	if scale <= 0 {
 		t.Fatalf("scale = %v, want > 0", scale)
 	}
 	if scale < 0.5 || scale > 4.5 {
 		t.Errorf("scale = %.4f outside plausible range [0.5,4.5]", scale)
+	}
+}
+
+// TestIsXWaylandOutputName pins the fallback XWayland check for servers
+// older than Xwayland 23.1, which do not advertise the XWAYLAND extension
+// but name every RandR output XWAYLAND<n>.
+func TestIsXWaylandOutputName(t *testing.T) {
+	cases := []struct {
+		name string
+		want bool
+	}{
+		{"XWAYLAND0", true},
+		{"XWAYLAND12", true},
+		{"eDP-1", false},
+		{"HDMI-A-1", false},
+		{"", false},
+		{"XWAY", false},
+	}
+	for _, c := range cases {
+		if got := isXWaylandOutputName([]byte(c.name)); got != c.want {
+			t.Errorf("isXWaylandOutputName(%q) = %v, want %v", c.name, got, c.want)
+		}
+	}
+}
+
+// TestPerMonitorDPI pins the gate for per-monitor RandR rescans: they need
+// RandR and are off under Xwayland, where the compositor owns the scale (#918).
+func TestPerMonitorDPI(t *testing.T) {
+	cases := []struct {
+		haveRandr, xwayland, want bool
+	}{
+		{true, false, true},
+		{true, true, false},
+		{false, false, false},
+		{false, true, false},
+	}
+	for _, c := range cases {
+		p := platformState{haveRandr: c.haveRandr, xwayland: c.xwayland}
+		if got := p.perMonitorDPI(); got != c.want {
+			t.Errorf("perMonitorDPI(haveRandr=%v, xwayland=%v) = %v, want %v",
+				c.haveRandr, c.xwayland, got, c.want)
+		}
 	}
 }

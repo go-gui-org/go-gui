@@ -3,6 +3,7 @@
 package gl
 
 import (
+	"bytes"
 	"strconv"
 
 	"github.com/jezek/xgb"
@@ -39,11 +40,17 @@ func parseXftDPIScale(s string) (float32, bool) {
 // the real panel, so it gives 2.62 where the desktop asks for 2.0 (#871).
 // rr runs only when Xft.dpi is unset and RandR is present, so a desktop
 // that sets Xft.dpi costs no RandR round trips. The fallback is 1.0.
-func pickDPIScale(xft float32, xftOK, haveRandr bool, rr func() (float32, randr.Crtc, bool)) (float32, randr.Crtc) {
+//
+// Under XWayland with no Xft.dpi, RandR is skipped and the scale is 1.0.
+// The compositor already scales X11 buffers by the output scale, so a
+// RandR physical DPI scale is applied a second time: on Phosh at 174% the
+// app drew at 1.81 and phoc enlarged that by 1.74 (#918). GTK and Qt also
+// draw at 1.0 on XWayland unless Xft.dpi or their own variable says else.
+func pickDPIScale(xft float32, xftOK, haveRandr, xwayland bool, rr func() (float32, randr.Crtc, bool)) (float32, randr.Crtc) {
 	if xftOK {
 		return xft, 0
 	}
-	if haveRandr {
+	if haveRandr && !xwayland {
 		if s, crtc, ok := rr(); ok {
 			return s, crtc
 		}
@@ -65,11 +72,43 @@ const (
 // containing (x,y), and falls back to 1.0 when RandR is unavailable or
 // reports no usable physical size. See pickDPIScale for the order. Returns
 // the scale and the CRTC the point lands on (0 when none was resolved).
-func dpiScaleForWindow(conn *xgb.Conn, root xproto.Window, haveRandr bool, x, y int32) (float32, randr.Crtc) {
+func dpiScaleForWindow(conn *xgb.Conn, root xproto.Window, haveRandr, xwayland bool, x, y int32) (float32, randr.Crtc) {
 	xft, xftOK := parseXftDPIScale(readXResource(conn, root, "Xft.dpi"))
-	return pickDPIScale(xft, xftOK, haveRandr, func() (float32, randr.Crtc, bool) {
+	return pickDPIScale(xft, xftOK, haveRandr, xwayland, func() (float32, randr.Crtc, bool) {
 		return randrDPIScale(conn, root, x, y)
 	})
+}
+
+// xwaylandExt is the extension name Xwayland 23.1 and later advertise.
+const xwaylandExt = "XWAYLAND"
+
+// detectXWayland reports whether the X server is Xwayland. It runs once at
+// startup. The XWAYLAND extension is the direct check. Older Xwayland
+// servers do not have it, but they name every RandR output XWAYLAND<n>
+// (the same check SDL uses), so that is the fallback when RandR is present.
+func detectXWayland(conn *xgb.Conn, root xproto.Window, haveRandr bool) bool {
+	ext, err := xproto.QueryExtension(conn, uint16(len(xwaylandExt)), xwaylandExt).Reply()
+	if err == nil && ext != nil && ext.Present {
+		return true
+	}
+	if !haveRandr {
+		return false
+	}
+	res, err := randr.GetScreenResourcesCurrent(conn, root).Reply()
+	if err != nil || res == nil || len(res.Outputs) == 0 {
+		return false
+	}
+	// Xwayland names every output XWAYLAND<n>, so the first output decides.
+	// One query, not one per output: the server sets the output count, and
+	// each query is a blocking round trip.
+	out, err := randr.GetOutputInfo(conn, res.Outputs[0], res.ConfigTimestamp).Reply()
+	return err == nil && out != nil && isXWaylandOutputName(out.Name)
+}
+
+// isXWaylandOutputName reports whether a RandR output name is one Xwayland
+// gives its outputs (XWAYLAND0, XWAYLAND1, ...).
+func isXWaylandOutputName(name []byte) bool {
+	return bytes.HasPrefix(name, []byte(xwaylandExt))
 }
 
 // randrDPIScale finds the CRTC covering (x,y) and derives a UI scale from
@@ -137,7 +176,8 @@ func crtcDPI(info *randr.GetCrtcInfoReply, out *randr.GetOutputInfoReply) (float
 // maybeRescaleDPI re-evaluates the per-monitor scale when the window has
 // moved to a CRTC with a different DPI, updating plat.scale and the text
 // stack. It reports whether the scale changed so the caller can trigger
-// a relayout. ConfigureNotify coordinates are frame-relative under a
+// a relayout. It does nothing unless perMonitorDPI is true.
+// ConfigureNotify coordinates are frame-relative under a
 // reparenting WM, so the true root position is queried explicitly and a
 // RandR rescan runs only when that position changed. Cursors are not
 // reloaded: the Xcursor size X clients see is already in device pixels
@@ -145,7 +185,7 @@ func crtcDPI(info *randr.GetCrtcInfoReply, out *randr.GetOutputInfoReply) (float
 // scale is the same on every monitor (the same as GTK on X11), so a move
 // never changes it.
 func (b *Backend) maybeRescaleDPI() bool {
-	if !b.plat.haveRandr {
+	if !b.plat.perMonitorDPI() {
 		return false
 	}
 	t, err := xproto.TranslateCoordinates(b.plat.conn, b.plat.window,
@@ -160,7 +200,7 @@ func (b *Backend) maybeRescaleDPI() bool {
 	b.plat.lastRootX, b.plat.lastRootY = t.DstX, t.DstY
 	b.plat.haveLastPos = true
 
-	scale, crtc := dpiScaleForWindow(b.plat.conn, b.plat.root, true,
+	scale, crtc := dpiScaleForWindow(b.plat.conn, b.plat.root, true, false,
 		int32(t.DstX), int32(t.DstY))
 	b.plat.curCrtc = crtc
 	if scale == b.plat.scale {
