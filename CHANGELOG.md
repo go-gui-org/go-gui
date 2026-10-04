@@ -10,6 +10,14 @@ and this project adheres to
 
 ### Added
 
+- **Showcase has a DX Cheat Sheet page** — the cheat sheet in
+  `docs/dx-cheat-sheet.md` lists the places where the obvious reading of the API
+  is wrong, but people who use the showcase did not see it. It is now under
+  **Welcome → DX Cheat Sheet**. The showcase embeds a copy, because `go:embed`
+  cannot read outside its package. `TestDocMirrors` fails when the copy and
+  `docs/` differ; to update the copy, run
+  `go test ./examples/showcase/ -run TestDocMirrors -update`.
+
 - **`LoadSecret` / `SaveSecret` / `DeleteSecret` keep secrets in the OS
   credential store (#920)** — `SaveSettings` writes plain JSON, so an app that
   kept an access token had to write its own store. The new functions use the
