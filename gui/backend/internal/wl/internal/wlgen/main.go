@@ -113,6 +113,7 @@ func main() {
 			log.Fatalf("%s: %v", p.Name, err)
 		}
 		for name, src := range files {
+			// #nosec G306 — standard 0644 for generated Go source
 			if err := os.WriteFile(filepath.Join(outDir, name), src, 0o644); err != nil {
 				log.Fatal(err)
 			}
@@ -123,12 +124,15 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	// #nosec G306 — standard 0644 for generated Go source
 	if err := os.WriteFile(filepath.Join(outDir, "interfaces_gen.go"), src, 0o644); err != nil {
 		log.Fatal(err)
 	}
 }
 
 func parseFile(path string) (xProtocol, error) {
+	// #nosec G304 — path is a protocol XML named by go:generate in this repo,
+	// read by a developer tool that never sees untrusted input.
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return xProtocol{}, err
