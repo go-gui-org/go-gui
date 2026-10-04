@@ -29,9 +29,14 @@ type windowRender struct {
 
 // windowAnimation holds animation lifecycle state.
 type windowAnimation struct {
-	animMu sync.Mutex // guards animations, animViewBound
+	animMu sync.Mutex // guards animations, animViewBound, caretBlinkParked
 	// Active animations keyed by ID.
 	animations map[string]Animation
+	// caretBlinkParked is set when the caret blink hit its idle timeout
+	// (blinkCursorIdleTimeout, issue #929). While set, applyBlinkCursor
+	// leaves the animation unregistered and the caret draws solid.
+	// Caret activity, a focus change and window refocus clear it.
+	caretBlinkParked bool
 	// View-bound animation heartbeats: animID → last-seen time.
 	// time.Time (not UnixNano) so the monotonic reading survives wall
 	// clock steps; see viewBoundNow. Nil until first view-bound

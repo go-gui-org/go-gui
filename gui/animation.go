@@ -129,12 +129,25 @@ type Animation interface {
 // BlinkCursorAnimation toggles cursor visibility on a timer.
 // exportaudit:keep — reachable from an exported signature
 type BlinkCursorAnimation struct {
-	start   time.Time
-	stopped bool
+	start time.Time
+	// activity is the last caret activity: registration or a
+	// resetBlinkCursorVisible, both through SetStart. Unlike start it
+	// does not advance with each toggle, so it measures how long the
+	// caret has sat untouched (blinkCursorIdleTimeout, issue #929).
+	activity time.Time
+	stopped  bool
 }
 
 const blinkCursorAnimationID = "___blinky_cursor_animation___"
 const blinkCursorAnimationDelay = 600 * time.Millisecond
+
+// blinkCursorIdleTimeout is how long a caret blinks with no caret
+// activity before it parks solid and the animation retires (issue
+// #929). Each blink presents a full frame; on a software renderer on
+// a slow device that alone costs a large share of a core, for an app
+// the user has walked away from. 10 s matches GTK's default
+// gtk-cursor-blink-timeout.
+const blinkCursorIdleTimeout = 10 * time.Second
 
 // NewBlinkCursorAnimation creates a cursor blink animation.
 func newBlinkCursorAnimation() *BlinkCursorAnimation {
@@ -153,7 +166,11 @@ func (a *BlinkCursorAnimation) RefreshKind() AnimationRefreshKind { return anima
 func (a *BlinkCursorAnimation) IsStopped() bool { return a.stopped }
 
 // SetStart implements Animation.
-func (a *BlinkCursorAnimation) SetStart(t time.Time) { a.start = t }
+// It also restarts the idle period: every caller is caret activity.
+func (a *BlinkCursorAnimation) SetStart(t time.Time) {
+	a.start = t
+	a.activity = t
+}
 
 // Update implements Animation.
 func (a *BlinkCursorAnimation) Update(w *Window, _ float32, ac *AnimationCommands) bool {

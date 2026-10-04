@@ -123,6 +123,16 @@ and this project adheres to
 
 ### Fixed
 
+- **An idle window with a focused input stops rendering after 10 s (#929)** —
+  the caret blinked for as long as an input held focus, and each blink presents
+  a full frame. With software GL on a slow device, such as a phone running
+  Phosh, that cost 30–80% of a core while the app sat untouched. The caret now
+  stops blinking after 10 s with no caret activity, the same default as GTK's
+  `gtk-cursor-blink-timeout`. It stays solid, the blink animation retires, and
+  the window renders nothing until something happens. Typing, clicking or
+  dragging in the field, moving focus, or refocusing the window starts the blink
+  again. A `Pulsar` keeps blinking.
+
 - **Linux: no double scale under XWayland when `Xft.dpi` is unset (#918)** — on
   a Wayland desktop that does not publish `Xft.dpi` (Phosh), the X11 path took
   its scale from the monitor's physical DPI. The compositor also scales XWayland

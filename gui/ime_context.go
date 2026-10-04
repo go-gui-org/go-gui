@@ -212,6 +212,10 @@ func (w *Window) applyBlinkCursor(caret bool) {
 	caret = caret && w.hasFocus()
 	w.animMu.Lock()
 	defer w.animMu.Unlock()
+	// A caret parked by the idle timeout stays solid with no animation
+	// until caret activity clears the flag (issue #929). The removal
+	// branch below still runs for a caret that went away meanwhile.
+	caret = caret && !w.caretBlinkParked
 	_, present := w.animations[blinkCursorAnimationID]
 	if caret && !present {
 		w.animationAddLocked(newBlinkCursorAnimation())
@@ -220,6 +224,14 @@ func (w *Window) applyBlinkCursor(caret bool) {
 	if !caret && present && !w.hasAnimationLocked(pulsarAnimationID) {
 		delete(w.animations, blinkCursorAnimationID)
 		delete(w.animViewBound, blinkCursorAnimationID)
+		// A parked caret promised to draw solid, but a Pulsar mounted
+		// since then re-registered the animation and toggled the shared
+		// inputCursorOn. Nothing will toggle it again once the animation
+		// is gone, so restore the solid phase here. This runs before
+		// renderLayout in the same frame, so the caret paints visible.
+		if w.caretBlinkParked {
+			w.viewState.inputCursorOn.Store(true)
+		}
 	}
 }
 

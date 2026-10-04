@@ -293,6 +293,23 @@ func updateBlinkCursor(b *BlinkCursorAnimation, w *Window, ac *AnimationCommands
 		return false
 	}
 	now := time.Now()
+	// Park after the idle timeout (issue #929): caret solid, animation
+	// stopped so animationLoop drops it and, with nothing else
+	// running, parks its ticker. caretBlinkParked keeps applyBlinkCursor
+	// from re-registering it on the next frame; caret activity clears
+	// it. A zero activity means SetStart never ran (a bare animation in
+	// a unit test), so there is no idle period to measure. A Pulsar
+	// borrows this animation as its clock and is no caret: it is spared.
+	// The caller holds animMu, which guards both fields read here.
+	if !b.activity.IsZero() && now.Sub(b.activity) >= blinkCursorIdleTimeout &&
+		!w.hasAnimationLocked(pulsarAnimationID) {
+		w.viewState.inputCursorOn.Store(true)
+		// Patch the caret back in should the last toggle have hidden it.
+		ac.appendOnDone(commandToggleCaretBlink)
+		b.stopped = true
+		w.caretBlinkParked = true
+		return true
+	}
 	if now.Sub(b.start) > blinkCursorAnimationDelay {
 		// Store(!Load()) is safe because all writers hold animMu:
 		// this (via animation goroutine) and resetBlinkCursorVisible

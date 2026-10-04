@@ -65,6 +65,17 @@ func (w *Window) setFocusLocked(effectiveID string) {
 		// key up now goes to another widget, so cancel the press
 		// without a click (#658).
 		w.clearKeyPress()
+		// A newly focused widget starts its own blink idle period
+		// (issue #929), so a parked caret must not stay parked. A blink
+		// still running carries the previous caret's last activity;
+		// restart it too, or the new caret parks early on time the user
+		// spent in the old field.
+		w.animMu.Lock()
+		w.caretBlinkParked = false
+		if a, ok := w.animations[blinkCursorAnimationID]; ok {
+			a.SetStart(time.Now())
+		}
+		w.animMu.Unlock()
 	}
 	w.viewState.focusID.Store(effectiveID)
 	w.viewState.focusSetCount++
@@ -129,6 +140,9 @@ func resetBlinkCursorVisible(w *Window) {
 	w.animMu.Lock()
 	defer w.animMu.Unlock()
 	w.viewState.inputCursorOn.Store(true)
+	// Caret activity ends an idle park (issue #929); the next frame's
+	// applyBlinkCursor registers the animation with a fresh phase.
+	w.caretBlinkParked = false
 	if a, ok := w.animations[blinkCursorAnimationID]; ok {
 		a.SetStart(time.Now())
 	}
