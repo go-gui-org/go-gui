@@ -511,18 +511,30 @@ func TestApplyDasharray_InfDasharrayReturnsSolid(t *testing.T) {
 
 // Pathological micro-cycle (just above minDashCycleLen) over a long
 // segment must terminate via maxDashIterPerPoly cap, not stall.
+// Assert the cap itself (output size), not wall-clock time: an
+// uncapped loop over a 1e6 segment with a 3e-3 cycle would emit
+// ~3.3e8 dashes, so a bounded result proves the cap engaged.
+// The 30s guard is a hang detector only, generous enough to never
+// flake under -race plus a loaded CPU.
 func TestApplyDasharray_PathologicalCycleCapsIters(t *testing.T) {
 	poly := []float32{0, 0, 1e6, 0}
 	dash := []float32{1.5e-3, 1.5e-3} // cycle ≈ 3e-3, > minDashCycleLen
-	done := make(chan struct{})
+	done := make(chan [][]float32, 1)
 	go func() {
-		applyDasharray([][]float32{poly}, dash, 0)
-		close(done)
+		done <- applyDasharray([][]float32{poly}, dash, 0)
 	}()
 	select {
-	case <-done:
-	case <-time.After(time.Second):
-		t.Fatal("applyDasharray did not terminate within 1s")
+	case result := <-done:
+		if len(result) > maxDashIterPerPoly+1 {
+			t.Fatalf("cap not engaged: got %d dashes, want <= %d",
+				len(result), maxDashIterPerPoly+1)
+		}
+		if len(result) <= 1 {
+			t.Fatalf("expected capped dash output, got %d (solid passthrough)",
+				len(result))
+		}
+	case <-time.After(30 * time.Second):
+		t.Fatal("applyDasharray did not terminate (cap regression?)")
 	}
 }
 
