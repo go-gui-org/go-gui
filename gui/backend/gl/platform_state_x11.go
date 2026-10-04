@@ -70,8 +70,11 @@ type platformState struct {
 	// Per-monitor DPI (RandR). root anchors monitor queries; curCrtc is
 	// the CRTC the window currently sits on; lastRootXY caches the last
 	// root-relative position so ConfigureNotify only rescans on a move.
+	// xwayland is true when the server is Xwayland: the compositor then
+	// owns the scale, so per-monitor RandR DPI is not used (#918).
 	root        xproto.Window
 	haveRandr   bool
+	xwayland    bool
 	curCrtc     randr.Crtc
 	lastRootX   int16
 	lastRootY   int16
@@ -121,6 +124,11 @@ func (p *platformState) makeCurrent() {
 func (p *platformState) swap() { eglSwapBuffers(p.eglDpy, p.eglSurface) }
 
 func (p *platformState) drawableSize() (int32, int32) { return p.physW, p.physH }
+
+// perMonitorDPI reports whether the scale follows the RandR DPI of the
+// monitor the window is on. That needs RandR, and is off under Xwayland,
+// where the compositor scales the buffer (#918).
+func (p *platformState) perMonitorDPI() bool { return p.haveRandr && !p.xwayland }
 
 func (p *platformState) dpiScale() float32 {
 	if p.scale <= 0 {

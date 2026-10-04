@@ -104,6 +104,15 @@ and this project adheres to
 
 ### Fixed
 
+- **Linux: no double scale under XWayland when `Xft.dpi` is unset (#918)** — on
+  a Wayland desktop that does not publish `Xft.dpi` (Phosh), the X11 path took
+  its scale from the monitor's physical DPI. The compositor also scales XWayland
+  windows by the output scale, so the scale was applied twice: on a FuriLabs
+  FLX1s at 174%, go-gui drew at 1.81 and the compositor enlarged that by 1.74,
+  and at 100% go-gui was still about twice the size of other apps. Under
+  XWayland with no `Xft.dpi`, the scale is now 1.0, the same as GTK and Qt, and
+  the compositor applies the desktop scale. `Xft.dpi`, when set, still wins.
+  Bare X11 sessions keep the per-monitor RandR scale.
 - **Closing one window no longer blanks the others' GL resources (#921)** — each
   window owns an unshared GL context, and object names repeat across them, so
   destroying a window freed the surviving windows' same-numbered textures,

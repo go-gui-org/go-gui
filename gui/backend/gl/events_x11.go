@@ -152,10 +152,10 @@ func (b *Backend) handleXEvent(ev xgb.Event) {
 
 	case xproto.ConfigureNotifyEvent:
 		scaleChanged := b.maybeRescaleDPI()
-		if !b.plat.haveRandr {
+		if !b.plat.perMonitorDPI() {
 			// maybeRescaleDPI refreshes the cached root position only
-			// when RandR is present. Without it, invalidate here so the
-			// IME caret rect is recomputed against the new position.
+			// when it tracks per-monitor DPI. Otherwise invalidate here so
+			// the IME caret rect is recomputed against the new position.
 			b.plat.haveLastPos = false
 		}
 		nw, nh := int32(e.Width), int32(e.Height)
