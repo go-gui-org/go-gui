@@ -13,12 +13,16 @@ import (
 	"unsafe"
 
 	"github.com/go-gui-org/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/keyring"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/nativehost"
 	"github.com/go-gui-org/go-gui/gui/backend/nativemenu"
 )
 
 // nativePlatform implements gui.NativePlatform for the Metal backend.
 type nativePlatform struct {
+	// keyring.Platform supplies SecretLoad, SecretSave and SecretDelete,
+	// gui's optional secret-store hook (issue #920).
+	keyring.Platform
 	window C.GoGuiNSWindow
 }
 

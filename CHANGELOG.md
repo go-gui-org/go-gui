@@ -10,6 +10,17 @@ and this project adheres to
 
 ### Added
 
+- **`LoadSecret` / `SaveSecret` / `DeleteSecret` keep secrets in the OS
+  credential store (#920)** — `SaveSettings` writes plain JSON, so an app that
+  kept an access token had to write its own store. The new functions use the
+  Keychain on macOS and iOS, Credential Manager on Windows, and the Secret
+  Service (GNOME Keyring, KWallet) on Linux, with the app ID as the service
+  name. A value is 1 to 2560 bytes on every platform. Where no store exists
+  (web, Android, a Linux session with no Secret Service daemon) they return
+  `ErrSecretsUnsupported` and never fall back to a plain file. A missing key
+  returns `ErrSecretNotFound`. `NewTestWindow` uses a memory store. See
+  `docs/specs/secure-storage.md`.
+
 - **Experimental native Wayland backend behind `GOGUI_WAYLAND=1` (#919)** — on a
   Wayland desktop go-gui ran only through XWayland, which blurs at fractional
   scales and is unavailable on devices with no X11 EGL platform (#916). With

@@ -575,7 +575,28 @@ func save(w *gui.Window) {
   store: a real app that saves before `backend.Run` still reaches disk.
 - **Not user config.** The file is state the app writes for itself. A running
   app overwrites a hand edit. A file the user edits stays a file the app owns.
-- **Not secrets.** The data is plain JSON.
+- **Not secrets.** The data is plain JSON. Use the secret store below.
+
+## Secrets
+
+`gui.SaveSecret(w, key, value)`, `gui.LoadSecret(w, key)` and
+`gui.DeleteSecret(w, key)` keep an access token or a password in the OS
+credential store (issue #920). The service name is `WindowCfg.AppInfo.ID`; with
+no ID all three return `gui.ErrNoAppID`.
+
+- **Where it goes.** macOS and iOS: the Keychain. Windows: Credential Manager.
+  Linux: the Secret Service (GNOME Keyring, KWallet).
+- **No store, no fallback.** Web, Android and a Linux session with no Secret
+  Service daemon return `gui.ErrSecretsUnsupported`. go-gui never writes the
+  secret to a plain file. The app decides what to do instead.
+- **Errors.** A missing key returns `gui.ErrSecretNotFound`. `DeleteSecret` of a
+  missing key returns nil.
+- **Limits.** A key holds letters, digits, `.`, `-` and `_`. A value is 1 to
+  2560 bytes on every platform (the Windows limit).
+- **Blocking.** The OS can ask the user to unlock the store, and the call waits
+  for the answer. Call from a goroutine and post the result with
+  `w.QueueCommand`, not from a view function or an event callback.
+- **Tests.** `gui.NewTestWindow` gives the window an in-memory store.
 
 ## Golden appearance tests
 

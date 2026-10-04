@@ -46,6 +46,9 @@ type settingsState struct {
 	memory bool
 	// blob is the memory store's contents; nil means nothing saved.
 	blob []byte
+	// secrets is the memory store for LoadSecret and SaveSecret
+	// (secrets.go), keyed by secret key. Used only when memory is set.
+	secrets map[string][]byte
 }
 
 // LoadSettings reads the app's saved settings into dst. dst holds the

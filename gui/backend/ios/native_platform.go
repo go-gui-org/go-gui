@@ -12,6 +12,7 @@ import (
 
 	"github.com/go-gui-org/go-gui/gui"
 	"github.com/go-gui-org/go-gui/gui/backend/filedialog"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/keyring"
 	"github.com/go-gui-org/go-gui/gui/backend/printdialog"
 	"github.com/go-gui-org/go-gui/gui/backend/spellcheck"
 )
@@ -21,7 +22,11 @@ import (
 var iosTrayIDs atomic.Int64
 
 // nativePlatform implements gui.NativePlatform for iOS.
-type nativePlatform struct{}
+type nativePlatform struct {
+	// keyring.Platform supplies SecretLoad, SecretSave and SecretDelete,
+	// gui's optional secret-store hook (issue #920).
+	keyring.Platform
+}
 
 // maxOpenURILen caps the raw URI length, mirroring nativehost's
 // limit for the desktop backends.
