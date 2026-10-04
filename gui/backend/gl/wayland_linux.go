@@ -68,6 +68,9 @@ type wlDisplay struct {
 	// seatName is its registry global name, to notice its removal.
 	seat     *wlSeat
 	seatName uint32
+	// outputs are the bound wl_outputs by registry global name, for the
+	// scale on a compositor that sends none (wayland_output_linux.go).
+	outputs map[uint32]*wlOutput
 	// wins maps a wl_surface pointer to its window, so input events,
 	// which name the surface, reach the right Backend.
 	wins map[uintptr]*Backend
@@ -109,7 +112,8 @@ func openWaylandDisplay() (d *wlDisplay, err error) {
 	if err != nil {
 		return nil, err
 	}
-	d = &wlDisplay{conn: conn, refs: 1, wins: map[uintptr]*Backend{}}
+	d = &wlDisplay{conn: conn, refs: 1, wins: map[uintptr]*Backend{},
+		outputs: map[uint32]*wlOutput{}}
 	defer func() {
 		if err != nil {
 			d.release()
@@ -117,8 +121,8 @@ func openWaylandDisplay() (d *wlDisplay, err error) {
 	}()
 
 	// globals holds what the first round trip announced, by interface.
-	// Only the seat is followed after that: the other globals are
-	// bound once, and one appearing later is not used.
+	// Only the seat and the outputs are followed after that: the other
+	// globals are bound once, and one appearing later is not used.
 	globals := map[string]wlGlobal{}
 	d.registry = conn.Display.GetRegistry()
 	d.registry.SetHandlers(wl.RegistryHandlers{
@@ -127,6 +131,8 @@ func openWaylandDisplay() (d *wlDisplay, err error) {
 			switch iface {
 			case "wl_seat":
 				d.addSeat(name, version)
+			case "wl_output":
+				d.addOutput(name, version)
 			case "wl_compositor", "xdg_wm_base", "wl_shm",
 				"wp_cursor_shape_manager_v1", "wl_data_device_manager",
 				"zwp_primary_selection_device_manager_v1",
@@ -254,9 +260,14 @@ func (d *wlDisplay) addSeat(name, version uint32) {
 	d.seat.attachTextInput()
 }
 
-// removeGlobal handles wl_registry.global_remove. Only the seat matters:
-// its devices are released and a later wl_seat global can take its place.
+// removeGlobal handles wl_registry.global_remove. Only the seat and the
+// outputs matter: the seat's devices are released and a later wl_seat
+// global can take its place; an output leaves every window on it.
 func (d *wlDisplay) removeGlobal(name uint32) {
+	if o, ok := d.outputs[name]; ok {
+		d.removeOutput(o)
+		return
+	}
 	if d.seat == nil || name != d.seatName {
 		return
 	}
@@ -277,6 +288,9 @@ func (d *wlDisplay) release() {
 	if d.seat != nil {
 		d.seat.destroy()
 		d.seat = nil
+	}
+	for _, o := range d.outputs {
+		o.destroy()
 	}
 	// After the windows, whose frames it made.
 	d.decor.Unref()
@@ -364,6 +378,12 @@ type wlWindow struct {
 	// integer wl_surface buffer scale.
 	fracScale wl.WpFractionalScaleV1
 	viewport  wl.WpViewport
+	// outputs are the outputs the surface is on (wl_surface.enter and
+	// .leave). outputScale is set when the compositor sends no scale of
+	// its own (no fractional scale, wl_surface before v6): the scale then
+	// comes from these outputs (wayland_output_linux.go).
+	outputs     []*wlOutput
+	outputScale bool
 
 	configured  bool // the first configure arrived
 	active      bool // last focus state sent to gui
@@ -479,8 +499,24 @@ func newWaylandBackend(w *gui.Window) (*Backend, error) {
 	b.plat.physW, b.plat.physH, b.plat.scale = ww.logW, ww.logH, 1
 
 	ww.surface = d.compositor.CreateSurface()
-	ww.surface.SetHandlers(wl.SurfaceHandlers{PreferredBufferScale: ww.setScale})
+	// Enter and leave matter only where the compositor sends no scale of
+	// its own (outputScale, set below); they are tracked regardless.
+	ww.surface.SetHandlers(wl.SurfaceHandlers{
+		PreferredBufferScale: ww.setScale,
+		Enter: func(px wl.Output) {
+			if o := d.outputFor(px); o != nil {
+				ww.enterOutput(o)
+			}
+		},
+		Leave: func(px wl.Output) {
+			if o := d.outputFor(px); o != nil {
+				ww.leaveOutput(o)
+			}
+		},
+	})
+	ww.outputScale = ww.surface.Version() < 6
 	if d.fracMgr.Valid() && d.viewporter.Valid() {
+		ww.outputScale = false
 		ww.viewport = d.viewporter.GetViewport(ww.surface)
 		ww.viewport.SetDestination(ww.logW, ww.logH)
 		ww.fracScale = d.fracMgr.GetFractionalScale(ww.surface)
@@ -610,7 +646,7 @@ func (ww *wlWindow) resize(w, h, scale120 int32) {
 		if w != ww.logW || h != ww.logH {
 			ww.viewport.SetDestination(w, h)
 		}
-	case scale120 != ww.scale120 && ww.surface.Version() >= 3:
+	case scale120 != ww.scale120 && ww.surface.Valid() && ww.surface.Version() >= 3:
 		ww.surface.SetBufferScale(scale120 / 120)
 	}
 	ww.logW, ww.logH, ww.scale120 = w, h, scale120

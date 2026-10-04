@@ -95,6 +95,19 @@ and `destroy` frees Wayland objects.
   the logical size times the scale, rounded, at buffer scale 1, and the viewport
   shows it at the logical size. Without them the integer buffer scale is used. A
   scale above 8 is clamped.
+- **Scale on older compositors.** Muffin 6.6 (Cinnamon) and weston 13 offer
+  neither fractional scale nor `wl_compositor` v6, so the compositor never says
+  what scale it wants. There every `wl_output` is bound, including one plugged
+  in later, and its integer scale is recorded (applied on `done` from v2).
+  `wl_surface.enter` and `.leave` track the outputs the window is on. The window
+  takes the highest of their scales, as GTK and SDL do. A window on no output
+  keeps its scale, and an unplugged output leaves every window, because the
+  compositor sends no leave for it. Without this, a 2× output showed a 1× buffer
+  stretched inside a sharp libdecor frame. Rejected alternatives: the highest
+  scale of all outputs, which oversizes the buffer on a 1× output of a mixed-DPI
+  setup, and the desktop's scale setting (`GDK_SCALE`, Cinnamon's
+  `scaling-factor`), which is specific to one desktop and does not follow the
+  window between outputs.
 - **Not yet.** Show/hide, opacity, the window icon and drag and drop are no-ops
   on Wayland.
 
@@ -234,7 +247,8 @@ machine:
   (`preferred_buffer_scale`). Its display settings do not change scaling in the
   Wayland session, so HiDPI on Muffin is untested. A nested weston at scale 2
   (also `wl_compositor` v5) showed that go-gui then renders at 1× under a 2×
-  libdecor frame. See "Scale on older compositors".
+  libdecor frame. Fixed (see "Scale on older compositors"): weston at scale 2
+  now gets `set_buffer_scale(2)` and a 1900×1400 buffer for a 950×700 window.
 
 ## Phases
 
@@ -249,6 +263,14 @@ machine:
 | 7   | Hardware pass on Linux Mint (Intel/AMD): Cinnamon Wayland, nested sway/weston/KWin      | partial |
 | 8   | Ship as experimental                                                                    | pending |
 | 9   | OpenGL ES renderer path for GLES-only devices (separate issue)                          | pending |
+
+Open for phase 8:
+
+- CPU under load: `examples/benchmark` uses 45% of a core on Wayland and 34% on
+  X11, with the same per-frame view, layout and render times (see Hardware
+  pass). Not profiled. Candidates: the frame-callback loop running more passes
+  per presented frame, and EGL swap cost on the Wayland platform. Profile with
+  `pprof` on both before the call for testers.
 
 ## Rejected Approaches
 
