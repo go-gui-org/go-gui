@@ -104,6 +104,12 @@ and this project adheres to
 
 ### Fixed
 
+- **Closing one window no longer blanks the others' GL resources (#921)** — each
+  window owns an unshared GL context, and object names repeat across them, so
+  destroying a window freed the surviving windows' same-numbered textures,
+  buffers, VAOs and shader programs instead of its own. The window now makes its
+  own context current before deleting its objects. Single-window apps were never
+  affected.
 - **Linux: GL starts when the default EGL driver has OpenGL ES only (#916)** —
   on a libhybris phone (FuriLabs, Phosh on Wayland) the default EGL display is
   the Android GPU driver, which has no desktop-OpenGL config, so every app
