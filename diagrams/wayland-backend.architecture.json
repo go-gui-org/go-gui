@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "go-gui Wayland Backend",
+    "quality_profile": "showcase",
+    "views": [
+      { "id": "render-path", "label": "Render path", "focus": ["app", "wlbackend", "glrender", "egl", "compositor"], "note": "Frame pacing drives the reused GL renderer." },
+      { "id": "input-path", "label": "Input path", "focus": ["seat", "xkb", "wlbackend", "app"], "note": "One seat feeds evdev input through xkbcommon." },
+      { "id": "desktop", "label": "Frame and desktop", "focus": ["decor", "desktop", "compositor", "wlbackend"], "note": "Decorations, clipboard, cursor and IME." }
+    ]
+  },
+  "components": [
+    { "id": "app", "type": "frontend", "label": "go-gui App", "sublabel": "View, layout, render", "pos": [40, 300], "size": [130, 60] },
+    { "id": "wlbackend", "type": "backend", "label": "Wayland Backend", "sublabel": "platformState.wl : gl/", "pos": [250, 300], "size": [130, 60] },
+    { "id": "glrender", "type": "backend", "label": "GL 3.3 Renderer", "sublabel": "reused, no branch", "pos": [460, 300], "size": [130, 60] },
+    { "id": "egl", "type": "backend", "label": "EGL Wayland Display", "sublabel": "Mesa OpenGL core", "pos": [670, 300], "size": [130, 60] },
+    { "id": "compositor", "type": "external", "label": "Compositor", "sublabel": "sway mutter KWin", "pos": [880, 300], "size": [130, 60] },
+    { "id": "seat", "type": "backend", "label": "Seat Input", "sublabel": "pointer kbd touch", "pos": [250, 110], "size": [130, 60] },
+    { "id": "xkb", "type": "backend", "label": "internal/xkb", "sublabel": "xkbcommon to keysym", "pos": [460, 110], "size": [130, 60] },
+    { "id": "decor", "type": "backend", "label": "Decorations", "sublabel": "xdg / libdecor", "pos": [670, 110], "size": [130, 60] },
+    { "id": "desktop", "type": "external", "label": "Desktop Integration", "sublabel": "clipboard cursor IME", "pos": [880, 110], "size": [130, 60] },
+    { "id": "wlbinding", "type": "backend", "label": "internal/wl", "sublabel": "purego libwayland", "pos": [250, 440], "size": [130, 60] },
+    { "id": "fallback", "type": "backend", "label": "X11 Fallback", "sublabel": "GOGUI_WAYLAND=1", "pos": [40, 440], "size": [130, 60] }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "go-gui process: cgo-free, purego at runtime", "wraps": ["app", "wlbackend", "glrender", "egl", "seat", "xkb", "decor", "wlbinding", "fallback"] }
+  ],
+  "connections": [
+    { "id": "app-to-wlbackend", "from": "app", "to": "wlbackend" },
+    { "id": "wlbackend-to-glrender", "from": "wlbackend", "to": "glrender" },
+    { "id": "glrender-to-egl", "from": "glrender", "to": "egl" },
+    { "id": "egl-to-compositor", "from": "egl", "to": "compositor" },
+    { "id": "wlbackend-to-wlbinding", "from": "wlbackend", "to": "wlbinding", "label": "marshal array flags", "labelAt": [315, 402] },
+    { "id": "seat-to-xkb", "from": "seat", "to": "xkb" },
+    { "id": "seat-to-wlbackend", "from": "seat", "to": "wlbackend" },
+    { "id": "xkb-to-wlbackend", "from": "xkb", "to": "wlbackend", "label": "keysym, modifiers" },
+    { "id": "decor-to-compositor", "from": "decor", "to": "compositor" },
+    { "id": "desktop-to-compositor", "from": "desktop", "to": "compositor" },
+    { "id": "app-to-fallback", "from": "app", "to": "fallback", "label": "setup fails", "variant": "dashed", "labelAt": [105, 402] }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "Render", "items": ["GL 3.3 renderer reused on Wayland EGL, no branch", "Swap interval 0, paced by wl_surface.frame callbacks", "Wake via eventfd; EGL handles, size, scale feed renderer"] },
+    { "dot": "emerald", "title": "Input", "items": ["One seat routes pointer, keyboard, touch by surface", "xkbcommon maps keymap to X11 keysyms and modifiers", "Client-side key repeat, scroll and touch grouped by frame"] },
+    { "dot": "amber", "title": "Desktop", "items": ["xdg-decoration, else libdecor frame with plugin check", "Clipboard, cursor-shape, text-input-v3 via backend", "Fails back to X11 when setup fails; harness in scripts/wayland"] }
+  ]
+}
