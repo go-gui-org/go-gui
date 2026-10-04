@@ -176,8 +176,14 @@ func (b *Backend) initGLResources(w *gui.Window) error {
 }
 
 // destroyGLResources releases all GL and glyph resources. Safe to
-// call with partially-initialized state.
+// call with partially-initialized state. Makes this window's GL
+// context current first: each window owns an unshared context, and
+// the deletes below would otherwise land on whichever context was
+// current last — usually another window's, whose same-numbered
+// objects would be freed instead (#921). plat.destroy then releases
+// the context, as before.
 func (b *Backend) destroyGLResources() {
+	b.plat.makeCurrent()
 	b.textures.DestroyAll()
 	b.destroyPipelines()
 	if b.quadVAO != 0 {
