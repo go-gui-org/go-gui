@@ -110,6 +110,10 @@ type DialogCfg struct {
 	// cfg, so each dialog shown gets its own cut, and state started
 	// inside the dialog is left alone after that (issue #810).
 	interactionCut bool
+	// fileBrowser marks the in-window file browser's dialog (#831), so
+	// showFileBrowser can tell whether it still holds the slot after
+	// Dialog has run a replaced browser's OnDone.
+	fileBrowser bool
 }
 
 // dialogViewGenerator builds the dialog overlay view from cfg.
@@ -412,6 +416,13 @@ func dialogFocusID(cfg DialogCfg) string {
 
 // Dialog shows a modal dialog.
 func (w *Window) Dialog(cfg DialogCfg) {
+	// The new dialog takes the one slot. An in-window file browser in
+	// it reports DialogCancel, or its OnDone would never run (#831). It
+	// is detached now and reports last, once this dialog holds the slot:
+	// an OnDone that opens its own dialog then replaces this one, rather
+	// than being overwritten by it.
+	replaced := w.fileBrowser
+	w.fileBrowser = nil
 	applyDialogDefaults(&cfg)
 	cfg.visible = true
 	// A new dialog always gets its own interaction cut, even when cfg
@@ -436,6 +447,7 @@ func (w *Window) Dialog(cfg DialogCfg) {
 	w.markLayoutRefresh()
 	w.wakeMain()
 	w.SetFocus(dialogFocusID(cfg))
+	fileBrowserReport(w, replaced, DialogCancel, nil)
 }
 
 // DialogDismiss closes the current dialog.
@@ -448,6 +460,9 @@ func (w *Window) DialogDismiss() {
 	w.markLayoutRefresh()
 	w.wakeMain()
 	w.SetFocus(oldFocus)
+	// A file browser closed by Escape, its Cancel button or the app
+	// reports DialogCancel. Last, so OnDone sees the dialog gone.
+	fileBrowserCancel(w)
 }
 
 // DialogIsVisible returns true if a dialog is showing — either the

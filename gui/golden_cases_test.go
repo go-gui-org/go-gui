@@ -13,8 +13,10 @@ package gui
 // catch a change to the role it uses.
 
 import (
+	"path/filepath"
 	"strings"
 	"testing"
+	"testing/fstest"
 	"time"
 )
 
@@ -1831,6 +1833,36 @@ func goldenCases() []goldenCase {
 			name:  "thinking_orb_connecting_color",
 			build: goldenThinkingOrbConnectingColor,
 		},
+		// The in-window file browser body (#831), without the dialog
+		// around it: the dialog frame is the DialogCustom golden's,
+		// and at 480 wide it would not fit the golden window. The
+		// fake folder holds a subfolder and two files.
+		{
+			// Open: ".." under the cursor with the focus ring on it.
+			name:    "file_browser_open",
+			build:   goldenFileBrowser(fileBrowserCfg{mode: fileBrowserOpen}),
+			focusID: fileBrowserListID,
+		},
+		{
+			// Save: the filter select (two filters), the name field and
+			// the overwrite question.
+			name: "file_browser_save_overwrite",
+			build: goldenFileBrowser(fileBrowserCfg{
+				mode:             fileBrowserSave,
+				defaultName:      "a.txt",
+				confirmOverwrite: true,
+				filters: []NativeFileFilter{
+					{Name: "Text", Extensions: []string{"txt"}},
+					{Name: "Markdown", Extensions: []string{"md"}},
+				},
+			}),
+			focusID: fileBrowserNameID,
+		},
+		{
+			// Folder: folders only, and no selected fill.
+			name:  "file_browser_folder",
+			build: goldenFileBrowser(fileBrowserCfg{mode: fileBrowserFolder}),
+		},
 	}
 }
 
@@ -2357,5 +2389,29 @@ func goldenInputGroupSegments() []InputGroupSegment {
 		InputGroupButton(ButtonCfg{
 			ID: "go", Content: []View{Text(TextCfg{Text: "Go"})},
 		}),
+	}
+}
+
+// goldenFileBrowser returns a build that opens the browser state once,
+// on a fake folder, and records its body. A save case with
+// confirmOverwrite shows the overwrite question for its default name.
+func goldenFileBrowser(cfg fileBrowserCfg) func(*Window) View {
+	return func(w *Window) View {
+		if w.fileBrowser == nil {
+			w.fileBrowserFS = mapDirFS{fstest.MapFS{
+				"proj/a.txt":     {},
+				"proj/b.md":      {},
+				"proj/sub/c.txt": {},
+			}}
+			cfg.startDir = fbRoot
+			fileBrowserInit(w, cfg)
+			if cfg.confirmOverwrite {
+				w.fileBrowser.confirmPath = filepath.Join(fbRoot, cfg.defaultName)
+			}
+			// fbRoot is C:\proj (or another drive) on Windows. Pin the
+			// path bar text so the recording is the same on every OS.
+			w.fileBrowser.pathText = "/proj"
+		}
+		return fileBrowserView(w)
 	}
 }
