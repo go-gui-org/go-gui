@@ -8,6 +8,8 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [v0.85.0] - 2026-10-05
+
 ### Added
 
 - **`RenderCmd.VertexColorsFlat` marks vertex colors that are not a gradient
