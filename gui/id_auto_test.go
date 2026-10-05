@@ -294,6 +294,7 @@ func TestAutoIDEveryWidgetTwiceHasNoDuplicates(t *testing.T) {
 		"NumericInput":       func(_ *Window) View { return NumericInput(NumericInputCfg{}) },
 		"Input":              func(_ *Window) View { return Input(InputCfg{}) },
 		"ListBox":            func(_ *Window) View { return ListBox(ListBoxCfg{}) },
+		"MathSpinner":        func(w *Window) View { return MathSpinner(MathSpinnerCfg{}, w) },
 		"Menubar":            func(w *Window) View { return Menubar(w, MenubarCfg{}) },
 		"OverflowPanel":      func(w *Window) View { return OverflowPanel(w, OverflowPanelCfg{}) },
 		"ProgressBar":        func(_ *Window) View { return ProgressBar(ProgressBarCfg{}) },

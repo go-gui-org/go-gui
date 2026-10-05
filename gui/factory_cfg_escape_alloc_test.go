@@ -48,6 +48,7 @@ func TestFactoryCfgDoesNotEscape(t *testing.T) {
 		{"ColorPicker", 1, func() View { return ColorPicker(ColorPickerCfg{ID: "c"}) }},
 		{"Form", 1, func() View { return Form(FormCfg{ID: "f"}) }},
 		{"ThinkingOrb", 1, func() View { return ThinkingOrb(ThinkingOrbCfg{ID: "o"}) }},
+		{"MathSpinner", 1, func() View { return MathSpinner(MathSpinnerCfg{ID: "m"}, nil) }},
 		{"VirtualList", 1, func() View { return VirtualList(VirtualListCfg{ID: "v"}) }},
 		// Factories that always defer hold cfg in a cfgDeferView: one
 		// allocation, not a closure plus the cfg it captures.
