@@ -1151,3 +1151,99 @@ func TestValidSvgCmdRejectsNonFiniteOffDiagonal(t *testing.T) {
 		}
 	}
 }
+
+// TestDrawCanvasRedrawKeepsUnclaimedBatches covers a canvas whose batch
+// count moves between redraws, the way ThinkingOrb's does as its ink
+// alpha changes (#940). A redraw that emits fewer batches than the one
+// before leaves the extra pooled buffers unclaimed. They must be carried
+// forward, not dropped: otherwise the next redraw that emits the full
+// count again allocates those buffers new, and an oscillating canvas
+// allocates on every second frame.
+//
+// Written by pointer identity for the reason given on
+// TestDrawCanvasRedrawReusesBuffers.
+func TestDrawCanvasRedrawKeepsUnclaimedBatches(t *testing.T) {
+	frame := oscBatchCanvas(t)
+	// Settle both ping-pong arrays at the full count.
+	for range 3 {
+		frame(3)
+	}
+	full := frame(3)
+	frame(1)
+	frame(1)
+	assertBatchesReused(t, full, frame(3))
+}
+
+// TestDrawCanvasRedrawKeepsUnclaimedBatchesPastNewPeak covers the dip
+// that follows a new peak. The peak redraw outgrows the header array it
+// writes into, and the dip after it carries more headers than the other
+// array can hold, so carryUnclaimed's append moves them to a new array.
+// The buffers must survive the move.
+func TestDrawCanvasRedrawKeepsUnclaimedBatchesPastNewPeak(t *testing.T) {
+	frame := oscBatchCanvas(t)
+	for range 3 {
+		frame(3)
+	}
+	peak := frame(5)
+	frame(1)
+	frame(1)
+	assertBatchesReused(t, peak, frame(5))
+}
+
+// oscBatchCanvas returns a frame func that redraws one canvas emitting
+// the given number of batches, at most 5, and reports each batch's
+// triangle buffer by pointer.
+func oscBatchCanvas(t *testing.T) func(batches int) []*float32 {
+	t.Helper()
+	w := makeWindowWithScratch()
+	colors := []Color{RGB(255, 0, 0), RGB(0, 255, 0), RGB(0, 0, 255),
+		RGB(255, 255, 0), RGB(0, 255, 255)}
+	n := 0
+	shape := &Shape{
+		shapeType: shapeDrawCanvas,
+		ID:        "osc-canvas",
+		Width:     100, Height: 100,
+		Color: ColorTransparent,
+		events: &eventHandlers{
+			OnDraw: func(dc *DrawContext) {
+				// One batch per color: the merge key changes each time.
+				for i := range n {
+					dc.FilledRect(float32(i*10), 0, 8, 8, colors[i])
+				}
+			},
+		},
+	}
+	clip := makeClip(0, 0, 100, 100)
+	sm := StateMap[string, drawCanvasCache](w, nsDrawCanvas, capModerate)
+	var version uint64
+	return func(batches int) []*float32 {
+		n = batches
+		version++
+		shape.Version = version
+		w.renderers = w.renderers[:0]
+		w.renderPass++
+		renderDrawCanvas(shape, clip, w)
+		got, ok := sm.Get("osc-canvas")
+		if !ok || len(got.Batches) != batches {
+			t.Fatalf("cache holds %d batches, want %d",
+				len(got.Batches), batches)
+		}
+		return batchDataPtrs(got.Batches)
+	}
+}
+
+// assertBatchesReused fails unless every buffer in again is one of the
+// buffers in full, in any order.
+func assertBatchesReused(t *testing.T, full, again []*float32) {
+	t.Helper()
+	owned := make(map[*float32]bool, len(full))
+	for _, p := range full {
+		owned[p] = true
+	}
+	for i, p := range again {
+		if !owned[p] {
+			t.Errorf("batch %d re-allocated its triangles after the "+
+				"batch count dipped; unclaimed buffers were dropped", i)
+		}
+	}
+}

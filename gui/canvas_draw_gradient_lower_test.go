@@ -290,3 +290,62 @@ func TestDrawCanvasGradientRedrawReusesStops(t *testing.T) {
 		t.Error("stop buffer re-allocated; the redraw is not recycling")
 	}
 }
+
+// TestDrawCanvasGradientRedrawKeepsUnclaimedStops is the gradient twin
+// of TestDrawCanvasRedrawKeepsUnclaimedBatches: a redraw that lowers
+// fewer radial fills than the one before must carry the unclaimed stop
+// buffers forward, so a later redraw with the full count reuses them.
+func TestDrawCanvasGradientRedrawKeepsUnclaimedStops(t *testing.T) {
+	w := makeWindowWithScratch()
+	n := 2
+	shape := &Shape{
+		ID:        "grad-osc",
+		shapeType: shapeDrawCanvas,
+		Width:     200, Height: 200,
+		Color: ColorTransparent,
+		events: &eventHandlers{
+			OnDraw: func(dc *DrawContext) {
+				for i := range n {
+					dc.FilledCircleGradient(float32(30+i*60), 60, 20,
+						&CanvasGradient{Radial: true, Stops: lowerStops()})
+				}
+			},
+		},
+	}
+	clip := makeClip(0, 0, 300, 300)
+	sm := StateMap[string, drawCanvasCache](w, nsDrawCanvas, capModerate)
+	var version uint64
+	frame := func(fills int) []*GradientStop {
+		n = fills
+		version++
+		shape.Version = version
+		w.renderers = w.renderers[:0]
+		w.renderPass++
+		renderDrawCanvas(shape, clip, w)
+		got, ok := sm.Get("grad-osc")
+		if !ok || len(got.Gradients) != fills {
+			t.Fatalf("cache holds %d gradients, want %d",
+				len(got.Gradients), fills)
+		}
+		out := make([]*GradientStop, len(got.Gradients))
+		for i := range got.Gradients {
+			out[i] = &got.Gradients[i].Def.Stops[0]
+		}
+		return out
+	}
+	for range 3 {
+		frame(2)
+	}
+	full := frame(2)
+	frame(0)
+	frame(0)
+	again := frame(2)
+
+	owned := map[*GradientStop]bool{full[0]: true, full[1]: true}
+	for i, p := range again {
+		if !owned[p] {
+			t.Errorf("gradient %d re-allocated its stops after the "+
+				"fill count dipped; unclaimed buffers were dropped", i)
+		}
+	}
+}

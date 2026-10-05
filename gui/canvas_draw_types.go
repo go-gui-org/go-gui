@@ -10,14 +10,22 @@ type drawCanvasCache struct {
 	// header array itself off the per-frame allocation path, and the
 	// stale headers left in spare past its new length are never read —
 	// takeBatch only ever indexes below len(pool).
-	spare  []DrawCanvasTriBatch
-	Texts  []DrawCanvasTextEntry
-	Images []DrawCanvasImageEntry
+	spare []DrawCanvasTriBatch
+	// batchHigh counts the headers in Batches' backing array that own a
+	// buffer: the emitted ones, then the ones carried past len(Batches)
+	// by carryUnclaimed. Headers in [len, batchHigh) hold buffers no
+	// emitted command points at; headers past batchHigh are stale and
+	// never read. Zero means "none carried", read as len(Batches).
+	batchHigh int
+	Texts     []DrawCanvasTextEntry
+	Images    []DrawCanvasImageEntry
 	// Gradients holds the radial fills that were lowered to a shader
 	// quad instead of a ring mesh, and gradSpare is their pool. The
-	// two ping-pong exactly as Batches and spare do.
+	// two ping-pong exactly as Batches and spare do, and gradHigh is
+	// their batchHigh.
 	Gradients []DrawCanvasGradientEntry
 	gradSpare []DrawCanvasGradientEntry
+	gradHigh  int
 	Version   uint64
 	// pass is the Window.renderPass that last wrote this entry. A
 	// redraw recycles the entry's buffers only when it belongs to an
