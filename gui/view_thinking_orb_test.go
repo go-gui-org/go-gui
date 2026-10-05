@@ -2,6 +2,7 @@ package gui
 
 import (
 	"math"
+	"slices"
 	"testing"
 	"time"
 )
@@ -429,5 +430,49 @@ func TestThinkingOrbStillAmendNoAlloc(t *testing.T) {
 	})
 	if allocs != 0 {
 		t.Errorf("still AmendLayout allocates %v times", allocs)
+	}
+}
+
+// The orb draws every mark into one vertex-colored batch (#945). Before
+// that each mark opened its own batch, so a frame sent hundreds of draw
+// commands for one small widget. The merged batch must hold the same
+// triangles, in the same order, each in the color its own flat batch
+// had: then the blend order and every pixel are unchanged.
+func TestThinkingOrbDrawOneBatch(t *testing.T) {
+	for design := ThinkingOrbWorking; design <= ThinkingOrbShaping; design++ {
+		for _, tt := range []float64{0, 0.37, 1.9} {
+			frame := orbFrame(design, ThinkingOrbRegular, tt)
+			length := float64(ThinkingOrbRegular.Length())
+
+			ref := NewDrawContext(64, 64, nil)
+			thinkingOrbMarks(ref, frame, length, false, false, Color{})
+			var wantTris []float32
+			var wantCols []Color
+			for _, b := range ref.Batches() {
+				wantTris = append(wantTris, b.Triangles...)
+				for range len(b.Triangles) / 2 {
+					wantCols = append(wantCols, b.Color)
+				}
+			}
+			if len(wantTris) == 0 {
+				continue
+			}
+
+			got := NewDrawContext(64, 64, nil)
+			thinkingOrbDraw(got, frame, length, false, false, Color{})
+			bs := got.Batches()
+			if len(bs) != 1 {
+				t.Fatalf("design %d t=%v: batches = %d, want 1 (flat path: %d)",
+					design, tt, len(bs), len(ref.Batches()))
+			}
+			if !slices.Equal(bs[0].Triangles, wantTris) {
+				t.Fatalf("design %d t=%v: triangles differ from flat path",
+					design, tt)
+			}
+			if !slices.Equal(bs[0].VertexColors, wantCols) {
+				t.Fatalf("design %d t=%v: vertex colors differ from flat path",
+					design, tt)
+			}
+		}
 	}
 }

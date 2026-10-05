@@ -22,6 +22,9 @@ func (dc *DrawContext) getBatch(color Color) *DrawCanvasTriBatch {
 	// start a new batch. Compared against the live batch rather than
 	// a mirror field so there is one source of truth.
 	xf, hasXf := dc.activeXform()
+	if dc.mixColors {
+		return dc.getMixedBatch(color, xf, hasXf)
+	}
 	if len(dc.batches) > 0 && !dc.batchIsGradient &&
 		dc.lastColor == color &&
 		dc.batches[dc.currentBatchIdx].hasXform == hasXf &&
@@ -32,6 +35,64 @@ func (dc *DrawContext) getBatch(color Color) *DrawCanvasTriBatch {
 	dc.lastColor = color
 	dc.batchIsGradient = false
 	return b
+}
+
+// getMixedBatch is getBatch with mixColors on (#945): the merge key is
+// the transform alone, and color moves into the per-vertex channel.
+//
+// The primitive appends its triangles after this returns, so their
+// colors cannot be written here. The previous primitive's vertices
+// are padded now, from lastColor, and this one's color becomes the
+// new lastColor for the next settle. The draw order is kept exactly:
+// marks land in the batch in the order they were drawn, and a GPU
+// blends the triangles of one draw call in submit order, so the frame
+// matches the one a batch per color would have drawn.
+//
+// The mode is off by default and resetFor turns it off before every
+// redraw. An out-of-package reader of Batches() that only looks at
+// Color (go-charts' PNG export) would paint a merged batch in one
+// color, so only a widget that owns its canvas turns it on.
+//
+// A merged batch's VertexColors lag its Triangles: the vertices the
+// last primitive appended have no colors until settleMixed pads them.
+func (dc *DrawContext) getMixedBatch(color Color, xf canvasXform,
+	hasXf bool) *DrawCanvasTriBatch {
+	if len(dc.batches) > 0 && dc.batchIsMixed &&
+		dc.batches[dc.currentBatchIdx].hasXform == hasXf &&
+		dc.batches[dc.currentBatchIdx].xf == xf {
+		dc.settleMixed()
+		dc.lastColor = color
+		return &dc.batches[dc.currentBatchIdx]
+	}
+	// takeBatch settles the batch being closed. The gradient flag is
+	// what claims a VertexColors buffer from the pool; the batch is
+	// not a gradient batch to the merge key, batchIsMixed is.
+	b := dc.takeBatch(color, true, defaultBatchVerts)
+	b.flatColors = true
+	dc.lastColor = color
+	dc.batchIsGradient = false
+	dc.batchIsMixed = true
+	return b
+}
+
+// settleMixed pads the open merged batch's VertexColors up to its
+// vertex count with lastColor, the color of the primitive that
+// appended those vertices. It is a no-op when the open batch is not a
+// merged one, and when it is already settled.
+//
+// Every path that leaves the open batch must call it first: opening
+// another batch (takeBatch), breaking the run (breakBatchRun), and
+// handing the batches out (Batches, and renderDrawCanvas after
+// OnDraw). A batch left unsettled has fewer colors than vertices, and
+// validSvgCmd drops it whole.
+func (dc *DrawContext) settleMixed() {
+	if !dc.batchIsMixed || len(dc.batches) == 0 {
+		return
+	}
+	b := &dc.batches[dc.currentBatchIdx]
+	for n := len(b.Triangles) / 2; len(b.VertexColors) < n; {
+		b.VertexColors = append(b.VertexColors, dc.lastColor)
+	}
 }
 
 // takeBatch appends a batch and gives it the buffers the previous
@@ -55,6 +116,10 @@ func (dc *DrawContext) takeBatch(color Color, gradient bool,
 	// primitives append local coordinates and the matrix travels with
 	// the command. getBatch keeps a transform change from merging two
 	// matrices into one batch.
+	// Settled while it is still the open batch: after the append below
+	// currentBatchIdx names the new one.
+	dc.settleMixed()
+	dc.batchIsMixed = false
 	nb := DrawCanvasTriBatch{Color: color}
 	nb.xf, nb.hasXform = dc.activeXform()
 	if i := len(dc.batches); i < len(dc.batchPool) {
@@ -90,6 +155,10 @@ func (dc *DrawContext) takeBatch(color Color, gradient bool,
 // drawn in between, and geometry recorded after the fill lands in a
 // batch emitted before it.
 func (dc *DrawContext) breakBatchRun() {
+	// Before lastColor is cleared: it is the color the open merged
+	// batch's last vertices are owed.
+	dc.settleMixed()
+	dc.batchIsMixed = false
 	dc.lastColor = Color{}
 	// A gradient batch never merges, so this alone stops the next
 	// primitive reaching the batch that is open now.
@@ -185,6 +254,8 @@ func (dc *DrawContext) resetFor(w, h, scale float32, tm TextMeasurer,
 
 	dc.lastColor = Color{}
 	dc.batchIsGradient = false
+	dc.mixColors = false
+	dc.batchIsMixed = false
 	dc.currentBatchIdx = 0
 	// The single reset point for the transform. It runs immediately
 	// before every OnDraw, so an unbalanced Save cannot survive into

@@ -85,6 +85,11 @@ type DrawContext struct {
 	// lowered gradient, which records no batch but does take a position
 	// in the emit order.
 	batchIsGradient bool
+	// mixColors lets flat primitives of different colors share one
+	// batch, and batchIsMixed marks the open batch as such a merged
+	// one (#945). See getMixedBatch for why the mode is opt-in.
+	mixColors    bool
+	batchIsMixed bool
 }
 
 // SetRecorder attaches a DrawRecorder that receives high-level
@@ -771,6 +776,9 @@ func (dc *DrawContext) Images() []DrawCanvasImageEntry {
 // Batches returns accumulated triangle batches. Useful for
 // testing DrawCanvas output.
 func (dc *DrawContext) Batches() []DrawCanvasTriBatch {
+	// The last merged batch is owed its tail colors until something
+	// settles it; a reader must never see the two lengths disagree.
+	dc.settleMixed()
 	return dc.batches
 }
 

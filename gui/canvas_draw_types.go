@@ -102,6 +102,10 @@ type DrawCanvasTriBatch struct {
 	Color        Color
 	xf           canvasXform
 	hasXform     bool
+	// flatColors marks a merged batch (#945): its VertexColors hold
+	// one color per triangle, drawn in order, not a gradient. It
+	// becomes RenderCmd.VertexColorsFlat.
+	flatColors bool
 }
 
 // Transform reports the translate+scale in force when the batch was

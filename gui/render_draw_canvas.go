@@ -126,6 +126,8 @@ func renderDrawCanvas(shape *Shape, clip drawClip, w *Window) {
 			Scale:      scale,
 		}
 		if callOnDrawSafe(dc, shape, w) {
+			// A merged batch's last primitive has no colors yet (#945).
+			dc.settleMixed()
 			cached.batchHigh, cached.gradHigh = dc.carryUnclaimed()
 			cached.Batches = dc.batches
 			cached.spare = dc.batchPool
@@ -292,6 +294,7 @@ func emitDrawCanvasGeometry(cached *drawCanvasCache,
 			Triangles: batch.Triangles,
 			VertexColors: dimmedVColors(batch.VertexColors,
 				shape.Opacity, shape.Disabled, w),
+			VertexColorsFlat: batch.flatColors,
 			Color: dimColor(batch.Color,
 				shape.Opacity, shape.Disabled),
 			X:        ox,

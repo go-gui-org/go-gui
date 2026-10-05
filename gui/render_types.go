@@ -133,6 +133,14 @@ type RenderCmd struct {
 	HasXform   bool
 
 	HasVertexAlpha bool
+	// VertexColorsFlat says the VertexColors are not a gradient mesh:
+	// every triangle has one color, and the triangles must blend over
+	// each other in order, as separate flat commands would (#945). A
+	// merged canvas batch sets it, so marks of different colors share
+	// one command. A backend that blends every triangle in submit
+	// order already draws it right and can ignore the flag; a backend
+	// that draws vertex colors as one seamless mesh must not.
+	VertexColorsFlat bool
 }
 
 // TextPathData holds pre-computed path data for RenderTextPath.

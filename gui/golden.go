@@ -517,6 +517,25 @@ func matrixStr(m *[16]float32) string {
 	return b.String()
 }
 
+// writeVertexColors records a vertex-colored batch. Usually that is a
+// gradient fill: the count pins the tessellation the subdivision pass
+// chose, and the endpoint colors pin the shading, which is the part a
+// reader would otherwise have to take on trust.
+func writeVertexColors(b *strings.Builder, c *RenderCmd) {
+	if len(c.VertexColors) == 0 {
+		return
+	}
+	fmt.Fprintf(b, " vcols=%d first=%s last=%s",
+		len(c.VertexColors),
+		colorStr(c.VertexColors[0]),
+		colorStr(c.VertexColors[len(c.VertexColors)-1]))
+	// A merged canvas batch is drawn as ordered flat runs, not as a
+	// mesh, so the flag changes the pixels (#945).
+	if c.VertexColorsFlat {
+		b.WriteString(" flat")
+	}
+}
+
 // serializeCmd renders one command as a single line. Only fields
 // meaningful for the kind are emitted, so a golden stays readable and
 // a diff points at what actually changed.
@@ -567,17 +586,7 @@ func serializeCmd(c RenderCmd) string {
 		}
 	case RenderSvg:
 		fmt.Fprintf(&b, " tris=%d", len(c.Triangles))
-		// A vertex-colored batch is a gradient fill. Record the count
-		// and both ends of the ramp: the count pins the tessellation
-		// the subdivision pass chose, and the endpoint colors pin the
-		// shading, which is the part a reader would otherwise have to
-		// take on trust.
-		if len(c.VertexColors) > 0 {
-			fmt.Fprintf(&b, " vcols=%d first=%s last=%s",
-				len(c.VertexColors),
-				colorStr(c.VertexColors[0]),
-				colorStr(c.VertexColors[len(c.VertexColors)-1]))
-		}
+		writeVertexColors(&b, &c)
 		// A canvas transform rides on the command rather than on the
 		// vertices, so the fingerprint below is identical with and
 		// without it. Record the matrix or a transform golden proves

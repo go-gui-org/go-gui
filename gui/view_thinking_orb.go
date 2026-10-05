@@ -355,11 +355,22 @@ func thinkingOrbAmendLayout(layout *Layout, w *Window,
 	})
 }
 
-// thinkingOrbDraw paints lines first, then dots far to near (the
+// thinkingOrbDraw draws the frame into one batch (#945). Each mark
+// has its own ink, so on the flat path almost every mark opened a new
+// batch, about 400 draw commands per frame for one small widget.
+// mixColors moves the ink into per-vertex colors and keeps the draw
+// order, so the pixels are the same.
+func thinkingOrbDraw(dc *DrawContext, frame orbFrameResult,
+	boxLen float64, dark bool, custom bool, base Color) {
+	dc.mixColors = true
+	thinkingOrbMarks(dc, frame, boxLen, dark, custom, base)
+}
+
+// thinkingOrbMarks paints lines first, then dots far to near (the
 // frame order). Box units map onto the canvas with independent
 // axis scales; radii and widths take the smaller one. Ink comes
 // from orbInk for lines and dots alike.
-func thinkingOrbDraw(dc *DrawContext, frame orbFrameResult,
+func thinkingOrbMarks(dc *DrawContext, frame orbFrameResult,
 	boxLen float64, dark bool, custom bool, base Color) {
 	if !(boxLen > 0) || !(dc.Width > 0) || !(dc.Height > 0) {
 		return

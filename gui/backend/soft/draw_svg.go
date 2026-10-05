@@ -64,7 +64,31 @@ func (r *renderer) drawSvg(cmd *gui.RenderCmd) {
 			vAlpha = min(cmd.VertexAlphaScale, 1)
 		}
 	}
+	if cmd.VertexColorsFlat {
+		r.fillFlatColorRuns(verts, cmd.VertexColors, numTris, vAlpha)
+		return
+	}
 	r.fillTriangleMesh(verts, cmd.VertexColors, numTris, vAlpha)
+}
+
+// fillFlatColorRuns draws a merged canvas batch (#945): one color per
+// triangle, read from its first vertex. Each run of same-color
+// triangles is filled as one path, then the next run blends over it.
+// That is exactly what the separate flat commands the batch replaced
+// would have drawn, because a run boundary is where one of them
+// ended. The mesh path cannot be used here: it writes one color per
+// pixel, so a translucent mark would hide the marks under it.
+func (r *renderer) fillFlatColorRuns(verts []float32, cols []gui.Color,
+	numTris int, vAlpha float32) {
+	start := 0
+	for t := 1; t <= numTris; t++ {
+		if t < numTris && cols[t*3] == cols[start*3] {
+			continue
+		}
+		r.fillTriangleRun(verts[start*6:t*6],
+			scaleAlpha(cols[start*3], vAlpha))
+		start = t
+	}
 }
 
 // fillTriangleMesh draws a vertex-colored triangle mesh with no interior
