@@ -4,6 +4,7 @@ package gl
 
 import (
 	"strings"
+	"unicode"
 	"unicode/utf8"
 
 	"github.com/jezek/xgb"
@@ -33,6 +34,14 @@ func (b *Backend) logicalXY(px, py int32) (float32, float32) {
 }
 
 // keysym looks up the keysym for a keycode at the given shift column.
+//
+// An empty (NoSymbol) shifted column falls back to the unshifted one,
+// as the core protocol specifies: servers list arrows, Home/End and
+// most other non-printing keys as "Left NoSymbol Left". Without the
+// fallback Shift+Left looked up as keysym 0, and IBus swallowed that
+// key whole, so Shift+Arrow never reached the widget (#948). The same
+// rule makes a lone letter ("a NoSymbol") shift to its uppercase form,
+// and a one-column keymap read as "K1 NoSymbol".
 func (p *platformState) keysym(code xproto.Keycode, col int) uint32 {
 	if p.keymap == nil {
 		return 0
@@ -41,11 +50,59 @@ func (p *platformState) keysym(code xproto.Keycode, col int) uint32 {
 	if per == 0 {
 		return 0
 	}
-	idx := (int(code)-int(p.minKeycode))*per + col
-	if idx < 0 || idx >= len(p.keymap.Keysyms) {
+	base := (int(code) - int(p.minKeycode)) * per
+	if base < 0 || base >= len(p.keymap.Keysyms) {
 		return 0
 	}
-	return uint32(p.keymap.Keysyms[idx])
+	// A column past the keymap's width is absent, i.e. NoSymbol. It must
+	// not be read: base+col would land on the next keycode's entry.
+	var sym uint32
+	if idx := base + col; col < per && idx < len(p.keymap.Keysyms) {
+		sym = uint32(p.keymap.Keysyms[idx])
+	}
+	if sym == 0 && col == 1 {
+		// Empty shifted column: derive it from the unshifted one.
+		sym = shiftedKeysym(uint32(p.keymap.Keysyms[base]))
+	}
+	return sym
+}
+
+// shiftedKeysym returns the keysym Shift produces for a key whose only
+// listed keysym is sym: the uppercase form for a letter, sym itself
+// otherwise (arrows, digits, punctuation). It covers Latin-1 and
+// Unicode keysyms, the ranges Xlib's XConvertCase also converts; the
+// per-character results are not guaranteed to match it. The legacy non-Latin-1 ranges
+// (Latin-2, Cyrillic, …) pass through unchanged — every keymap a modern
+// server sends lists both cases for those explicitly.
+func shiftedKeysym(sym uint32) uint32 {
+	const unicodeKeysym = 0x01000000
+	var r rune
+	switch {
+	case sym < 0x100:
+		r = rune(sym)
+	case sym&0xff000000 == unicodeKeysym:
+		r = rune(sym & 0x00ffffff)
+	default:
+		return sym
+	}
+	u := unicode.ToUpper(r)
+	if u == r {
+		return sym
+	}
+	// A Latin-1 result keeps the legacy keysym, which equals the code
+	// point; anything wider (ÿ → Ÿ, U+0178) needs the Unicode form.
+	if u < 0x100 {
+		return uint32(u)
+	}
+	// Of the Latin-1 keysyms whose capital lies outside Latin-1, only ÿ
+	// is converted (to the Unicode keysym for Ÿ, the same character as
+	// legacy Ydiaeresis 0x13be). µ is left alone on purpose: Unicode maps
+	// the micro sign to Greek Μ, which Shift on a "µ NoSymbol" key should
+	// not type. No xkeyboard-config keymap lists µ alone.
+	if sym < 0x100 && r != 0xff {
+		return sym
+	}
+	return unicodeKeysym | uint32(u)
 }
 
 // handleXEvent translates an X event to a gui.Event and dispatches it.

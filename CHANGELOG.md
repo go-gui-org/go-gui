@@ -203,6 +203,14 @@ and this project adheres to
 
 ### Fixed
 
+- **Shift+Arrow and Shift+Home/End select text on X11 again (#948)** — X servers
+  list arrows, Home and End with an empty shifted keysym column, and the X11
+  backend handed that empty `NoSymbol` (0) to the input method as the key. IBus,
+  the default on GNOME and Fedora, swallowed it, so a Shift+motion key never
+  reached `Input` and no selection grew. The lookup now falls back to the
+  unshifted keysym, as the core protocol specifies, and the key arrives with
+  `ModShift` intact.
+
 - **Two `MathSpinner`s no longer share one animation (#941)** — a spinner keyed
   its tick and progress by the bare `ID`, so two spinners with the same `ID`
   under different ID-bearing parents, or two with no `ID`, drew the same frame.
