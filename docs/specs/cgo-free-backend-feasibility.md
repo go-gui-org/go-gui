@@ -251,6 +251,44 @@ Reopening conditions (any one, evidenced, not speculative):
   service-by-service rather than all-or-nothing, with the retain/release
   management plan written down.
 
+**Re-check (2026-10-05): the cost went down; the benefit did not change. The
+decision stands.**
+
+`github.com/egoist/mygo` (checked at `2cf4327`) has a macOS backend with no cgo.
+It uses `purego` and `purego/objc` for AppKit, Metal, CoreText, dialogs, menus,
+the tray and accessibility. What it shows:
+
+- `objc.RegisterClass` works with `CGO_ENABLED=0` on darwin/arm64. mygo
+  registers 11 classes this way (`internal/darwin/objc.go`), among them an
+  `NSWindow` subclass, an `NSView` that is a text input client, and an
+  accessibility element. A `CGO_ENABLED=0` build of `examples/native` opened a
+  window and ran.
+- It needs no `CAMetalLayer` subclass. It adds a plain `CAMetalLayer` to the
+  view's layer (`internal/gpu/metal/metal.go`).
+- Retain, release and autorelease pools are a few small helpers. They are not a
+  rewrite of the whole object graph.
+
+Most of go-gui's macOS classes (`GUIWindow`, `MetalContentView`,
+`GUIAccessibilityElement`, the delegates and the action handlers) have a working
+match in mygo. So a port service by service looks possible. The class
+registration half of the second reopening condition is met. The third condition
+is not met yet: it needs that proof in go-gui's own classes, not in another
+project's.
+
+The reasons for the decision were about benefit, and they still hold. Xcode CLT
+is still on every Mac. No consumer has a build blocker. go-term, the main macOS
+consumer, gains nothing. iOS and Android stay cgo in any case, so the module
+never becomes fully cgo-free. One reason is weaker than it was written:
+`rcodesign` is said to sign and notarize from Linux, so "a GUI app must be
+signed on a Mac" may not be true. This was not checked.
+
+If a benefit trigger shows up (for example, building macOS release binaries on
+Linux CI), start with a spike that is not merged: a window, a Metal clear and
+one key event in go-gui, and a count of the heap allocations per frame from the
+`objc_msgSend` calls made through purego. Use mygo as the reference. Do not
+start with a second backend behind a `!cgo` tag: two macOS backends would have
+to be kept in step.
+
 ### Out of scope
 
 wgpu-native, GLFW/SDL2, WGSL shaders, goffi.
