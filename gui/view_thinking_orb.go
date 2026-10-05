@@ -171,16 +171,7 @@ func (v *thinkingOrbView) GenerateLayout(w *Window) Layout {
 	height := mathSpinnerPositive(cfg.Height, length)
 
 	eid := w.EffID(cfg.ID)
-	clk := StateReadOr(w, nsThinkingOrb, eid, orbClock{})
-	geomT := clk.t
-	// Reduce Motion and headless captures show the representative
-	// frame. A paused orb holds the frame it reached; one paused
-	// before its first tick has no frame yet and shows the
-	// representative one too.
-	if w.prefersReducedMotion() || w.HeadlessRender() ||
-		(cfg.Paused && clk.t == 0) {
-		geomT = orbStillT
-	}
+	paused := cfg.Paused
 
 	custom := cfg.Color.IsSet()
 	baseColor := cfg.Color
@@ -221,6 +212,10 @@ func (v *thinkingOrbView) GenerateLayout(w *Window) Layout {
 		MinHeight:  cfg.MinHeight,
 		MaxHeight:  cfg.MaxHeight,
 		OnClick:    cfg.OnClick,
+		// The tick only moves the orb clock, which the canvas reads
+		// through VersionFn and OnDraw, so a render-only frame re-runs
+		// this hook (the tick's heartbeat) instead of a layout.
+		amendOnRender: true,
 		AmendLayout: func(ctx EventCtx) {
 			thinkingOrbAmendLayout(ctx.Layout, ctx.Window,
 				amendDesign, amendSize, amendSpeed, amendPaused,
@@ -234,23 +229,41 @@ func (v *thinkingOrbView) GenerateLayout(w *Window) Layout {
 				ID:     ScopeID(eid, "cv"),
 				Sizing: FillFill,
 				Clip:   true,
-				// The canvas redraws only when Version changes, so
-				// it folds in every input OnDraw reads.
-				Version: thinkingOrbVersion(geomT, design, size,
-					dark, custom, baseColor),
+				// The canvas redraws only when the version changes,
+				// so it folds in every input OnDraw reads. Both read
+				// the clock live: a render-only frame reuses these
+				// closures with a newer clock.
+				VersionFn: func() uint64 {
+					return thinkingOrbVersion(
+						thinkingOrbGeomT(w, eid, paused),
+						design, size, dark, custom, baseColor)
+				},
 				OnDraw: func(dc *DrawContext) {
 					// Built here, not in GenerateLayout, so a cache
 					// hit skips the geometry. The frame aliases the
 					// window's scratch buffers and is used up before
 					// this returns.
 					frame := orbFrameInto(&w.scratch.orb,
-						design, size, geomT)
+						design, size, thinkingOrbGeomT(w, eid, paused))
 					thinkingOrbDraw(dc, frame, float64(length),
 						dark, custom, baseColor)
 				},
 			}),
 		},
 	}), w)
+}
+
+// thinkingOrbGeomT returns the orb's geometry time. Reduce Motion and
+// headless captures show the representative frame. A paused orb holds
+// the frame it reached; one paused before its first tick has no frame
+// yet and shows the representative one too.
+func thinkingOrbGeomT(w *Window, eid string, paused bool) float64 {
+	clk := StateReadOr(w, nsThinkingOrb, eid, orbClock{})
+	if w.prefersReducedMotion() || w.HeadlessRender() ||
+		(paused && clk.t == 0) {
+		return orbStillT
+	}
+	return clk.t
 }
 
 // thinkingOrbVersion folds every input of the orb drawing into
@@ -305,10 +318,10 @@ func thinkingOrbAmendLayout(layout *Layout, w *Window,
 		sm.Set(id, clk)
 		// A view-bound tick left alone runs on for up to
 		// animViewBoundStale and keeps moving the frame.
-		w.AnimationRemove(ScopeID(id, "orb"))
+		w.AnimationRemove(cachedAnimID(w, animIDOrb, id, id, "orb"))
 		return
 	}
-	animID := ScopeID(id, "orb")
+	animID := cachedAnimID(w, animIDOrb, id, id, "orb")
 	if w.touchViewBoundAnimation(animID) && clk.speed == speed {
 		return
 	}
@@ -324,6 +337,7 @@ func thinkingOrbAmendLayout(layout *Layout, w *Window,
 		AnimID:   animID,
 		Duration: thinkingOrbDuration(speed),
 		Repeat:   true,
+		refresh:  AnimationRefreshRenderOnly,
 		Keyframes: []Keyframe{
 			{At: 0, Value: 0},
 			{At: 1, Value: 1},

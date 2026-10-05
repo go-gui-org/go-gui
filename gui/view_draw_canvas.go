@@ -14,7 +14,27 @@ type DrawCanvasCfg struct {
 	OnKeyDown     func(EventCtx)
 	ID            string
 	A11YCfg
-	Version   uint64
+	Version uint64
+	// VersionFn, when set, replaces Version. The render pass calls it
+	// each time it draws the canvas, and runs OnDraw again only when the
+	// value differs from the one it drew last.
+	//
+	// It is what lets a canvas whose content changes between frames
+	// repaint under a render-only refresh (InvalidateRender,
+	// AnimationRefreshRenderOnly). Version is written during view
+	// generation, which such a frame skips, so a Version bump made
+	// between frames would not reach the cache. AlwaysRedraw also
+	// works there but runs OnDraw on every pass, changed or not.
+	//
+	// Two rules. OnDraw must read the same live state VersionFn does:
+	// values the view captured into the OnDraw closure are as stale as
+	// Version. And VersionFn runs under the window lock, as AmendLayout
+	// does, so it must be cheap and must not call window APIs; an atomic
+	// load is the intended shape. A panic in it falls back to Version.
+	//
+	// exportaudit:keep — the canvas half of a render-only refresh; go-term,
+	// go-map and go-charts repaint canvases from live state
+	VersionFn func() uint64
 	Padding   Padding
 	Width     float32
 	Height    float32
@@ -31,8 +51,9 @@ type DrawCanvasCfg struct {
 	// AlwaysRedraw re-runs OnDraw on every render pass, ignoring
 	// Version.
 	//
-	// It is what makes an animated canvas work under
-	// AnimationRefreshRenderOnly. That refresh kind rebuilds the
+	// It is one way to make an animated canvas work under
+	// AnimationRefreshRenderOnly; VersionFn is the other, and redraws
+	// only when the value moves. That refresh kind rebuilds the
 	// renderers from the layout already in hand and never re-runs the
 	// view function — which is the point, since a canvas animating off
 	// its own state has no reason to rebuild the widgets around it —
@@ -84,6 +105,7 @@ func (dv *drawCanvasView) GenerateLayout(w *Window) Layout {
 			OnFileDrop:    c.OnFileDrop,
 			OnKeyDown:     c.OnKeyDown,
 			OnDraw:        c.OnDraw,
+			versionFn:     c.VersionFn,
 		})
 	}
 

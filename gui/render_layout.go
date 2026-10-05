@@ -16,6 +16,16 @@ func renderLayoutDepth(layout *Layout, bgColor Color, clip drawClip, w *Window, 
 	if overMaxDepth(depth) {
 		return
 	}
+	// A render-only frame reuses the last layout, so an animated widget
+	// that paints from AmendLayout re-runs its hook here, before it and
+	// its children are drawn. Gated on the pass: in a full frame
+	// layoutAmend has just run it.
+	if w.renderOnlyPass {
+		if ev := layout.Shape.events; ev != nil && ev.amendOnRender &&
+			ev.AmendLayout != nil {
+			ev.AmendLayout(EventCtx{layout, nil, w})
+		}
+	}
 	// Emit filter bracket when ColorFilter is set (containers only).
 	fx := layout.Shape.fx
 	hasColorFilter := fx != nil && fx.ColorFilter != nil && !w.inFilter

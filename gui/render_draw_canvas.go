@@ -25,6 +25,30 @@ func callOnDrawSafe(dc *DrawContext, shape *Shape, w *Window) (ok bool) {
 	return true
 }
 
+// drawCanvasVersion returns the version the canvas cache compares:
+// VersionFn's value when the canvas has one, else the Version stamped
+// at view time. VersionFn is app code running inside the render walk,
+// so a panic in it is isolated like one in OnDraw, and the stamped
+// Version stands in.
+func drawCanvasVersion(shape *Shape, w *Window) (v uint64) {
+	v = shape.Version
+	if shape.events == nil || shape.events.versionFn == nil {
+		return v
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			v = shape.Version
+			if !w.versionFnPanicWarned {
+				w.versionFnPanicWarned = true
+				log.Printf("gui: DrawCanvas VersionFn panicked "+
+					"(id %q) — using Version: %v",
+					shape.idKey(), r)
+			}
+		}
+	}()
+	return shape.events.versionFn()
+}
+
 // renderDrawCanvas renders cached draw-canvas triangle batches.
 //
 //nolint:gocyclo // cache states x deferred text/image/gradient emit
@@ -48,6 +72,7 @@ func renderDrawCanvas(shape *Shape, clip drawClip, w *Window) {
 
 	var cached drawCanvasCache
 	needsDraw := true
+	version := drawCanvasVersion(shape, w)
 
 	// Skip cache when ID is empty to avoid collisions between
 	// multiple ID-less DrawCanvas widgets.
@@ -58,7 +83,7 @@ func renderDrawCanvas(shape *Shape, clip drawClip, w *Window) {
 		// The entry is still claimed for its buffers when
 		// alwaysRedraw skips the version test — that is the half of
 		// the cache an animated canvas actually uses.
-		if ok && !shape.alwaysRedraw && cached.Version == shape.Version &&
+		if ok && !shape.alwaysRedraw && cached.Version == version &&
 			cached.tessWidth == cw && cached.tessHeight == ch &&
 			cached.Scale == scale {
 			needsDraw = false
@@ -94,7 +119,7 @@ func renderDrawCanvas(shape *Shape, clip drawClip, w *Window) {
 		// draws nothing and the frame continues. Only a Version bump
 		// (or alwaysRedraw) retries.
 		cached = drawCanvasCache{
-			Version:    shape.Version,
+			Version:    version,
 			pass:       w.renderPass,
 			tessWidth:  cw,
 			tessHeight: ch,

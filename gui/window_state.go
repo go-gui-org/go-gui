@@ -18,6 +18,10 @@ type windowRender struct {
 	stencilDepth uint8
 	// Nesting guard for filter brackets.
 	inFilter bool
+	// renderOnlyPass is set while a render-only frame rebuilds the
+	// renderers from the last layout. renderLayoutDepth then re-runs
+	// the AmendLayout hooks that asked for it (amendOnRender).
+	renderOnlyPass bool
 	// Render guard — invalid kinds recorded once per kind
 	// (bitmask over RenderKind). Diagnostic only; nothing is
 	// logged on the render path.
@@ -25,6 +29,9 @@ type windowRender struct {
 	// OnDraw panic warning, emitted once. A panicking canvas would
 	// otherwise log on every frame.
 	drawPanicWarned bool
+	// VersionFn panic warning, emitted once. Its own flag, so a
+	// panicking VersionFn cannot silence a later OnDraw panic.
+	versionFnPanicWarned bool
 }
 
 // windowAnimation holds animation lifecycle state.

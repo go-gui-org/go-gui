@@ -10,6 +10,17 @@ and this project adheres to
 
 ### Added
 
+- **`DrawCanvasCfg.VersionFn` reads a canvas version at render time (#939)** — a
+  canvas whose content changes between frames could not repaint under a
+  render-only refresh (`InvalidateRender`, `AnimationRefreshRenderOnly`):
+  `Version` is read only while the view is built, which such a frame skips. The
+  choices were a full frame (`InvalidateLayout`) or `AlwaysRedraw`, which runs
+  `OnDraw` on every pass. `VersionFn` is called when the canvas is drawn, and
+  `OnDraw` runs again only when its value changes. `OnDraw` must read the same
+  live state, and `VersionFn` runs under the window lock, so it must be cheap
+  and must not call window APIs; an atomic load is the intended use. A panic in
+  it falls back to `Version`.
+
 - **`InWindowOpenDialog`, `InWindowSaveDialog` and `InWindowFolderDialog`
   (#831)** — open the in-window file browser on purpose, on any OS, without
   trying the native picker first. They take the same `Native*DialogCfg` types
@@ -131,6 +142,15 @@ and this project adheres to
   closed contour, dropping both hand-built triangulations.
 
 ### Changed
+
+- **Looping loading widgets repaint without a layout (#939)** — an indefinite
+  `ProgressBar`, a `Skeleton`, a `MathSpinner` and a `ThinkingOrb` used to run
+  the view function and layout for the whole window on every animation tick, 60
+  times a second. Their ticks now ask for a render-only frame, which redraws
+  from the layout already built. On a 200-button window a ProgressBar tick drops
+  from about 142 µs and 1600 allocations to about 7 µs and none. What they draw
+  is unchanged: a test checks that a render-only frame emits the same commands
+  as a full frame. `Pulsar` and animated text still use full frames.
 
 - **Widget factories no longer copy their Cfg to the heap on every call (#937)**
   — a factory with an auto-ID branch built a `ViewFunc` closure that captured

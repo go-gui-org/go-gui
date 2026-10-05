@@ -147,3 +147,33 @@ func scopeIDWrite(b *strings.Builder, seg string) {
 	}
 	b.WriteString(seg)
 }
+
+// animIDSlot names one widget kind's slot in the animation-ID cache.
+type animIDSlot uint8
+
+const (
+	animIDProgress animIDSlot = iota
+	animIDSkeleton
+	animIDOrb
+	animIDSlots
+)
+
+// cachedAnimID returns ScopeID(owner, part) for the widget whose
+// effective ID is id, built once and then read back from the window.
+//
+// It is for the looping widgets whose AmendLayout hook also runs on
+// every render-only frame (ContainerCfg.amendOnRender). That hook runs
+// once per animation tick, and building the ID there would cost an
+// allocation per tick, which is the cost the render-only frame exists to
+// remove. Each kind has its own slot, so a progress bar and a skeleton
+// that share an effective ID (already a reported identity error) still
+// get their own animation IDs.
+func cachedAnimID(w *Window, slot animIDSlot, id, owner, part string) string {
+	sm := StateMap[string, [animIDSlots]string](w, nsAnimIDs, capMany)
+	ids, _ := sm.Get(id)
+	if ids[slot] == "" {
+		ids[slot] = ScopeID(owner, part)
+		sm.Set(id, ids)
+	}
+	return ids[slot]
+}

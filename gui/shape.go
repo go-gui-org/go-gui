@@ -552,12 +552,16 @@ type eventHandlers struct {
 	AmendLayout func(EventCtx)
 
 	OnDraw func(*DrawContext)
+	// versionFn is DrawCanvasCfg.VersionFn (here, not on Shape, to keep Shape small).
+	versionFn func() uint64
 
 	// Click filters — set by widget factories to avoid the per-frame
 	// closure allocation a wrapper callback would cost.
 	clickButton  clickFilter // limits which mouse button fires OnClick
 	clickOnSpace bool        // fire OnClick on spacebar via OnChar dispatch
 	clickOnEnter bool        // fire OnClick on Enter key via OnKeyDown dispatch
+
+	amendOnRender bool // ContainerCfg.amendOnRender
 
 	// soundCue is the cue dispatch emits when this shape's OnClick
 	// fires. Resolved at generation time from the theme and the

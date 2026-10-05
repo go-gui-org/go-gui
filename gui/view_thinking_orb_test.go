@@ -309,8 +309,10 @@ func TestThinkingOrbStillVersionTracksInputs(t *testing.T) {
 		cfg.ID = "orb-v"
 		cfg.Paused = true
 		w := &Window{}
-		return generateViewLayout(ThinkingOrb(cfg), w).
-			Children[0].Shape.Version
+		// The version the canvas cache compares: the orb reads it
+		// through VersionFn at render time.
+		cv := generateViewLayout(ThinkingOrb(cfg), w).Children[0].Shape
+		return drawCanvasVersion(cv, w)
 	}
 	base := version(ThinkingOrbCfg{})
 	if version(ThinkingOrbCfg{Color: RGB(200, 0, 0)}) == base {
