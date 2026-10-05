@@ -71,10 +71,10 @@ const (
 	// frame changes only what a widget paints — a canvas, a spinner —
 	// rather than what the widget tree contains.
 	//
-	// A DrawCanvas driven this way must set
-	// DrawCanvasCfg.AlwaysRedraw, because its Version never reaches
-	// the cache without a view pass. Anything that does change the
-	// tree still needs a layout refresh from its own event handler.
+	// A DrawCanvas driven this way must set DrawCanvasCfg.VersionFn
+	// (or AlwaysRedraw), because its Version never reaches the cache
+	// without a view pass. Anything that does change the tree still
+	// needs a layout refresh from its own event handler.
 	//
 	// exportaudit:keep — the refresh kind an app sets on Animate
 	AnimationRefreshRenderOnly

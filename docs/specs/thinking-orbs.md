@@ -171,7 +171,11 @@ of cells + names).
   `AnimationRefreshRenderOnly` skips layout rebuilds and is the better long-term
   shape. It is the wrong first shape because wall-clock `OnDraw` breaks
   deterministic goldens and its offscreen semantics are unproven. It returns as
-  a perf follow-up behind the same Cfg.
+  a perf follow-up behind the same Cfg. **Update (#939):** the follow-up landed
+  without wall-clock time. The keyframe asks for render-only frames, the Row's
+  `AmendLayout` re-runs on them, and the canvas reads its geometry phase from
+  animation state through `DrawCanvasCfg.VersionFn`. Goldens stay deterministic.
+  Remaining tick allocations are tracked in #940.
 - **Public shimmer modifier.** The issue scopes shimmer to what the label helper
   needs. A public text modifier grows API surface with no caller yet.
 - **Arbitrary diameter knob.** Upstream supports it, but the two tuned sizes

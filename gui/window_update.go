@@ -447,6 +447,8 @@ func (w *Window) renderOnlyLocked() {
 	defer w.inFramePass.Store(false)
 	defer w.mu.Unlock()
 	w.refreshRenderOnly.Store(false)
+	w.renderOnlyPass = true
+	defer func() { w.renderOnlyPass = false }()
 	w.buildRenderers(w.Config.BgColor, w.windowRect())
 }
 

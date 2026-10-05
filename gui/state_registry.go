@@ -242,6 +242,7 @@ const (
 	nsTextAnim            = "gui.text_anim"
 	nsMathSpinner         = "gui.math_spinner"
 	nsThinkingOrb         = "gui.thinking_orb"
+	nsAnimIDs             = "gui.anim_ids"
 	nsHoverInside         = "gui.hover.inside"
 	nsMdSel               = "gui.markdown.sel"
 	nsMdBlocks            = "gui.markdown.blocks"

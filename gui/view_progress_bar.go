@@ -173,6 +173,11 @@ func ProgressBar(cfg ProgressBarCfg) View {
 		Padding:    NoPadding,
 		HAlign:     HAlignCenter,
 		VAlign:     VAlignMiddle,
+		// The indefinite sweep only moves the fill inside its clipping
+		// track, which nothing else is sized or placed from, so a
+		// render-only frame re-runs the hook instead of a layout. A
+		// determinate bar never ticks, so the flag costs it nothing.
+		amendOnRender: indefinite,
 		AmendLayout: func(ctx EventCtx) {
 			// Keyed by the effective ID: the indefinite animation and
 			// its progress slot belong to this bar, not to every bar
@@ -208,12 +213,13 @@ func progressBarAmendLayout(
 	// ID to apply new parameters.
 	if indefinite {
 		percent = 0.3
-		animID := ScopeID(id, "indefinite")
+		animID := cachedAnimID(w, animIDProgress, id, id, "indefinite")
 		if !w.touchViewBoundAnimation(animID) {
 			kf := &KeyframeAnimation{
 				AnimID:   animID,
 				Repeat:   true,
 				Duration: 1500 * time.Millisecond,
+				refresh:  AnimationRefreshRenderOnly,
 				Keyframes: []Keyframe{
 					{At: 0, Value: 0},
 					{At: 0.5, Value: 1, Easing: EaseInOutCSS},

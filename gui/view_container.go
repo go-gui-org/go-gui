@@ -33,6 +33,16 @@ type ContainerCfg struct {
 	// Set to clickLeftOnly for left-click-only widgets; avoids the
 	// per-frame closure allocation a wrapper callback would cost.
 	clickButton clickFilter
+	// amendOnRender re-runs AmendLayout before the container is drawn in
+	// a render-only frame, which skips view generation and layout. It is
+	// for the looping built-in widgets whose animation changes only how
+	// they are drawn: their hook reads the animation value, rewrites
+	// paint (a child's position inside a clipping track, gradient stops,
+	// a canvas Version) and refreshes the animation's view-bound
+	// heartbeat. A hook that sets this must be idempotent on the
+	// arranged tree and must not move anything another shape is sized
+	// or placed from.
+	amendOnRender bool
 	// colorDisabled is the explicit disabled fill a widget built on a
 	// container passes down from its ColorSet.Disabled (#741). See
 	// Shape.colorDisabled.
@@ -456,6 +466,7 @@ func makeContainerEvents(c *ContainerCfg) (eventHandlers, bool) {
 		OnMouseScroll: c.OnMouseScroll,
 		AmendLayout:   c.AmendLayout,
 		clickButton:   c.clickButton,
+		amendOnRender: c.amendOnRender,
 		clickOnSpace:  c.ClickOnSpace,
 		clickOnEnter:  c.ClickOnEnter,
 		soundCue:      c.Sound,

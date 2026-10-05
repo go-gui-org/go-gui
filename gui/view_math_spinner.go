@@ -205,6 +205,59 @@ type MathSpinnerCfg struct {
 	MaxHeight   float32
 }
 
+// mathSpinnerSyncAnims registers the spinner's ticks on its first
+// frame and refreshes their view-bound heartbeat on every later one,
+// full or render-only.
+//
+// Speed, Rotate and the curve params are sampled when a tick is
+// registered. Changing them after the widget is visible has no effect.
+// Use a different widget ID to apply new parameters.
+func mathSpinnerSyncAnims(w *Window, id, rotKey, animID, rotAnimID string,
+	dur time.Duration, rotate bool) {
+	if !w.touchViewBoundAnimation(animID) {
+		w.animationAddViewBound(&KeyframeAnimation{
+			AnimID:   animID,
+			Duration: dur,
+			Repeat:   true,
+			refresh:  AnimationRefreshRenderOnly,
+			Keyframes: []Keyframe{
+				{At: 0, Value: 0},
+				{At: 1, Value: 1},
+			},
+			OnValue: func(v float32, w *Window) {
+				StateMap[string, float32](w, nsMathSpinner, capModerate).Set(id, v)
+			},
+		})
+	}
+	if !rotate {
+		return
+	}
+	// Optional slow rotation.
+	if !w.touchViewBoundAnimation(rotAnimID) {
+		w.animationAddViewBound(&KeyframeAnimation{
+			AnimID:   rotAnimID,
+			Duration: 30 * time.Second,
+			Repeat:   true,
+			refresh:  AnimationRefreshRenderOnly,
+			Keyframes: []Keyframe{
+				{At: 0, Value: 0},
+				{At: 1, Value: 1},
+			},
+			OnValue: func(v float32, w *Window) {
+				StateMap[string, float32](
+					w, nsMathSpinner, capModerate).Set(rotKey, v)
+			},
+		})
+	}
+}
+
+// mathSpinnerPhase reads the spinner's current curve progress and
+// rotation, both 0..1.
+func mathSpinnerPhase(w *Window, id, rotKey string) (progress, rotation float32) {
+	return StateReadOr(w, nsMathSpinner, id, float32(0)),
+		StateReadOr(w, nsMathSpinner, rotKey, float32(0))
+}
+
 // MathSpinner creates an animated mathematical curve loading indicator.
 func MathSpinner(cfg MathSpinnerCfg, w *Window) View {
 	if !cfg.Color.IsSet() {
@@ -248,52 +301,18 @@ func MathSpinner(cfg MathSpinnerCfg, w *Window) View {
 	width := mathSpinnerPositive(cfg.Width, cfg.Size)
 	height := mathSpinnerPositive(cfg.Height, cfg.Size)
 
-	// Note: Speed, Rotate, and curve params are sampled once on
-	// first render via touchViewBoundAnimation. Changing them
-	// after the widget is visible has no effect. Use a different
-	// widget ID to apply new parameters.
 	id := cfg.ID
-	animID := ScopeID("math_spinner", id)
 	dur := mathSpinnerDuration(cfg.Speed)
-
-	if !w.touchViewBoundAnimation(animID) {
-		w.animationAddViewBound(&KeyframeAnimation{
-			AnimID:   animID,
-			Duration: dur,
-			Repeat:   true,
-			Keyframes: []Keyframe{
-				{At: 0, Value: 0},
-				{At: 1, Value: 1},
-			},
-			OnValue: func(v float32, w *Window) {
-				StateMap[string, float32](w, nsMathSpinner, capModerate).Set(id, v)
-			},
-		})
-	}
-
-	progress := StateReadOr(w, nsMathSpinner, id, float32(0))
-
-	// Optional slow rotation.
+	rotate := cfg.Rotate
 	rotKey := ScopeID(id, "rot")
+	// Built here, once per full frame, and captured by the hook below,
+	// so a render-only tick builds no strings.
+	animID := ScopeID("math_spinner", id)
 	rotAnimID := ScopeID("math_spinner", id, "rot")
-	if cfg.Rotate {
-		if !w.touchViewBoundAnimation(rotAnimID) {
-			w.animationAddViewBound(&KeyframeAnimation{
-				AnimID:   rotAnimID,
-				Duration: 30 * time.Second,
-				Repeat:   true,
-				Keyframes: []Keyframe{
-					{At: 0, Value: 0},
-					{At: 1, Value: 1},
-				},
-				OnValue: func(v float32, w *Window) {
-					StateMap[string, float32](
-						w, nsMathSpinner, capModerate).Set(rotKey, v)
-				},
-			})
-		}
-	}
-	rotation := StateReadOr(w, nsMathSpinner, rotKey, float32(0))
+	// Registered here, at view time, so the ticks exist from the first
+	// frame; the AmendLayout hook below repeats the call on frames that
+	// skip the view.
+	mathSpinnerSyncAnims(w, id, rotKey, animID, rotAnimID, dur, rotate)
 
 	family := defs.family
 	particles := cfg.Particles
@@ -304,7 +323,15 @@ func MathSpinner(cfg MathSpinnerCfg, w *Window) View {
 	sizing := cfg.Sizing.Or(FixedFixed)
 
 	return Row(ContainerCfg{
-		ID:         cfg.ID,
+		ID: cfg.ID,
+		// The ticks only change what the canvas draws: the canvas
+		// reads them through VersionFn and OnDraw, and this hook keeps
+		// the ticks alive, so a render-only frame is enough.
+		amendOnRender: true,
+		AmendLayout: func(ctx EventCtx) {
+			mathSpinnerSyncAnims(ctx.Window, id, rotKey, animID, rotAnimID,
+				dur, rotate)
+		},
 		Sizing:     sizing,
 		Padding:    NoPadding,
 		SizeBorder: NoBorder,
@@ -316,11 +343,17 @@ func MathSpinner(cfg MathSpinnerCfg, w *Window) View {
 		MaxHeight:  cfg.MaxHeight,
 		Content: []View{
 			DrawCanvas(DrawCanvasCfg{
-				ID:      ScopeID(id, "cv"),
-				Sizing:  FillFill,
-				Clip:    true,
-				Version: uint64(math.Float32bits(progress + rotation)),
+				ID:     ScopeID(id, "cv"),
+				Sizing: FillFill,
+				Clip:   true,
+				// Read live, not captured at view time: a render-only
+				// frame reuses this closure with newer tick values.
+				VersionFn: func() uint64 {
+					progress, rotation := mathSpinnerPhase(w, id, rotKey)
+					return uint64(math.Float32bits(progress + rotation))
+				},
 				OnDraw: func(dc *DrawContext) {
+					progress, rotation := mathSpinnerPhase(w, id, rotKey)
 					mathSpinnerDraw(dc, family, progress, rotation,
 						particles, trailSpan, strokeWidth,
 						paramA, paramB, paramD, color)

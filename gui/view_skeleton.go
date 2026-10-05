@@ -69,6 +69,9 @@ func Skeleton(cfg SkeletonCfg) View {
 		SizeBorder: NoBorder,
 		Sizing:     cfg.Sizing,
 		Padding:    NoPadding,
+		// The shimmer only moves gradient stops, so a render-only
+		// frame re-runs the hook instead of a layout.
+		amendOnRender: true,
 		AmendLayout: func(ctx EventCtx) {
 			// The shimmer's animation and state are keyed by this
 			// shape's effective ID, so two skeletons written with the
@@ -91,12 +94,13 @@ func skeletonAmendLayout(
 ) {
 	// Note: animation duration is sampled once on first render.
 	// Use a different widget ID to apply new parameters.
-	animID := ScopeID("skeleton", id)
+	animID := cachedAnimID(w, animIDSkeleton, id, "skeleton", id)
 	if !w.touchViewBoundAnimation(animID) {
 		kf := &KeyframeAnimation{
 			AnimID:   animID,
 			Repeat:   true,
 			Duration: 1500 * time.Millisecond,
+			refresh:  AnimationRefreshRenderOnly,
 			Keyframes: []Keyframe{
 				{At: 0, Value: 0},
 				{At: 1, Value: 1, Easing: EaseInOutCSS},
@@ -115,7 +119,7 @@ func skeletonAmendLayout(
 	// Map t to position range [-0.3, 1.3].
 	pos := -0.3 + float64(t)*1.6
 
-	stops := []GradientStop{
+	stops := [skeletonStops]GradientStop{
 		{Color: colorBase, Pos: 0},
 		{Color: colorBase, Pos: float32(f64Clamp(pos-0.15, 0, 1))},
 		{Color: colorHL, Pos: float32(f64Clamp(pos, 0, 1))},
@@ -126,9 +130,20 @@ func skeletonAmendLayout(
 	if layout.Shape.fx == nil {
 		layout.Shape.fx = &shapeEffects{}
 	}
+	// A render-only frame runs this hook again on the shape the last
+	// layout built, whose gradient this hook already owns: rewrite its
+	// stops in place, so a shimmer tick allocates nothing. The renderers
+	// that pointed at the old stops are rebuilt by the same pass.
+	if g := layout.Shape.fx.Gradient; g != nil && len(g.Stops) == skeletonStops {
+		copy(g.Stops, stops[:])
+		return
+	}
 	layout.Shape.fx.Gradient = &GradientDef{
-		Stops:     stops,
+		Stops:     append([]GradientStop(nil), stops[:]...),
 		Type:      GradientLinear,
 		Direction: GradientToRight,
 	}
 }
+
+// skeletonStops is the shimmer gradient's stop count.
+const skeletonStops = 5
