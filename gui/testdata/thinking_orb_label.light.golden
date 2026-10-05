@@ -1,55 +1,6 @@
 # go-gui-golden v1
 Clip xy=15.00,15.00 wh=20.00,20.00
-Svg xy=15.00,15.00 wh=0.00,0.00 color=#9c9c9c73 tris=24 bbox=11.27,10.68..11.87,11.28 centroid=11.57,10.98 digest=30306d31
-Svg xy=15.00,15.00 wh=0.00,0.00 color=#9b9b9b73 tris=24 bbox=7.60,10.74..8.20,11.34 centroid=7.90,11.04 digest=8e22f5b5
-Svg xy=15.00,15.00 wh=0.00,0.00 color=#98989873 tris=24 bbox=9.08,6.42..9.68,7.02 centroid=9.38,6.72 digest=3eee7f81
-Svg xy=15.00,15.00 wh=0.00,0.00 color=#94949473 tris=24 bbox=12.69,6.64..13.29,7.24 centroid=12.99,6.94 digest=9d94d4ad
-Svg xy=15.00,15.00 wh=0.00,0.00 color=#90909073 tris=24 bbox=5.59,6.85..6.19,7.45 centroid=5.89,7.15 digest=a297c7cd
-Svg xy=15.00,15.00 wh=0.00,0.00 color=#8f8f8f73 tris=48 bbox=11.19,11.37..15.13,15.28 centroid=13.16,13.32 digest=8ddc26e5
-Svg xy=15.00,15.00 wh=0.00,0.00 color=#8c8c8c73 tris=48 bbox=4.49,11.52..8.25,15.38 centroid=6.37,13.45 digest=bf3ee831
-Svg xy=15.00,15.00 wh=0.00,0.00 color=#84848473 tris=24 bbox=15.69,7.44..16.32,8.08 centroid=16.01,7.76 digest=3c1c92d9
-Svg xy=15.00,15.00 wh=0.00,0.00 color=#81818173 tris=24 bbox=11.24,3.14..11.91,3.80 centroid=11.57,3.47 digest=2ca83ce1
-Svg xy=15.00,15.00 wh=0.00,0.00 color=#80808073 tris=24 bbox=7.56,3.19..8.24,3.86 centroid=7.90,3.52 digest=84587b09
-Svg xy=15.00,15.00 wh=0.00,0.00 color=#7d7d7d73 tris=24 bbox=2.87,7.80..3.57,8.50 centroid=3.22,8.15 digest=1bd1d0c9
-Svg xy=15.00,15.00 wh=0.00,0.00 color=#7a7a7a73 tris=24 bbox=13.56,15.66..14.28,16.38 centroid=13.92,16.02 digest=8cd78ea9
-Svg xy=15.00,15.00 wh=0.00,0.00 color=#77777773 tris=24 bbox=16.41,12.54..17.16,13.29 centroid=16.78,12.91 digest=15696e4d
-Svg xy=15.00,15.00 wh=0.00,0.00 color=#76767673 tris=24 bbox=5.57,15.88..6.32,16.64 centroid=5.95,16.26 digest=4df13b7d
-Svg xy=15.00,15.00 wh=0.00,0.00 color=#75757573 tris=24 bbox=9.62,17.13..10.38,17.89 centroid=10.00,17.51 digest=ec8e5021
-Svg xy=15.00,15.00 wh=0.00,0.00 color=#74747473 tris=24 bbox=14.44,3.77..15.21,4.54 centroid=14.83,4.16 digest=30327d99
-Svg xy=15.00,15.00 wh=0.00,0.00 color=#73737373 tris=24 bbox=2.69,12.74..3.46,13.51 centroid=3.08,13.12 digest=0a7f630d
-Svg xy=15.00,15.00 wh=0.00,0.00 color=#71717173 tris=24 bbox=4.39,3.91..5.19,4.71 centroid=4.79,4.31 digest=ad948409
-Svg xy=15.00,15.00 wh=0.00,0.00 color=#6c6c6c73 tris=24 bbox=17.41,8.61..18.25,9.45 centroid=17.83,9.03 digest=9ae8b32d
-Svg xy=15.00,15.00 wh=0.00,0.00 color=#63636373 tris=24 bbox=1.43,9.05..2.35,9.97 centroid=1.89,9.51 digest=969f7c25
-Svg xy=15.00,15.00 wh=0.00,0.00 color=#5f5f5f73 tris=48 bbox=11.02,1.49..13.86,17.90 centroid=12.44,9.70 digest=654cf85d
-Svg xy=15.00,15.00 wh=0.00,0.00 color=#5d5d5d73 tris=24 bbox=7.46,1.59..8.43,2.56 centroid=7.95,2.07 digest=51f58675
-Svg xy=15.00,15.00 wh=0.00,0.00 color=#5c5c5c73 tris=48 bbox=6.51,4.91..17.27,18.11 centroid=11.89,11.51 digest=4b412185
-Svg xy=15.00,15.00 wh=0.00,0.00 color=#5b5b5b73 tris=24 bbox=16.43,13.89..17.42,14.88 centroid=16.92,14.39 digest=48c2d2b1
-Svg xy=15.00,15.00 wh=0.00,0.00 color=#58585873 tris=24 bbox=2.57,5.10..3.58,6.12 centroid=3.08,5.61 digest=1ab418e1
-Svg xy=15.00,15.00 wh=0.00,0.00 color=#57575778 tris=24 bbox=2.70,14.08..3.73,15.11 centroid=3.22,14.60 digest=7981f33d
-Svg xy=15.00,15.00 wh=0.00,0.00 color=#52525273 tris=24 bbox=9.78,17.61..10.84,18.68 centroid=10.31,18.14 digest=a4955f8d
-Svg xy=15.00,15.00 wh=0.00,0.00 color=#50505073 tris=24 bbox=17.57,9.95..18.65,11.03 centroid=18.11,10.49 digest=5201d91d
-Svg xy=15.00,15.00 wh=0.00,0.00 color=#4b4b4b73 tris=24 bbox=13.36,2.45..14.48,3.57 centroid=13.92,3.01 digest=23c872a1
-Svg xy=15.00,15.00 wh=0.00,0.00 color=#47474799 tris=24 bbox=1.53,10.34..2.80,11.60 centroid=2.17,10.97 digest=86b915f9
-Svg xy=15.00,15.00 wh=0.00,0.00 color=#4646467e tris=24 bbox=5.35,2.65..6.54,3.85 centroid=5.95,3.25 digest=fb2c65cd
-Svg xy=15.00,15.00 wh=0.00,0.00 color=#42424273 tris=24 bbox=14.61,15.09..15.81,16.29 centroid=15.21,15.69 digest=4de10285
-Svg xy=15.00,15.00 wh=0.00,0.00 color=#3f3f3f73 tris=24 bbox=16.31,6.27..17.53,7.49 centroid=16.92,6.88 digest=6ba3a26d
-Svg xy=15.00,15.00 wh=0.00,0.00 color=#3f3f3f80 tris=24 bbox=4.54,15.21..5.80,16.47 centroid=5.17,15.84 digest=2ebf7289
-Svg xy=15.00,15.00 wh=0.00,0.00 color=#3e3e3e73 tris=24 bbox=9.38,1.87..10.62,3.11 centroid=10.00,2.49 digest=d664c6ed
-Svg xy=15.00,15.00 wh=0.00,0.00 color=#3b3b3bb0 tris=24 bbox=2.50,6.37..3.93,7.80 centroid=3.22,7.09 digest=78e132dd
-Svg xy=15.00,15.00 wh=0.00,0.00 color=#36363673 tris=24 bbox=16.13,11.20..17.43,12.50 centroid=16.78,11.85 digest=585e673d
-Svg xy=15.00,15.00 wh=0.00,0.00 color=#33333373 tris=24 bbox=11.44,15.81..12.76,17.14 centroid=12.10,16.48 digest=18815001
-Svg xy=15.00,15.00 wh=0.00,0.00 color=#32323273 tris=24 bbox=7.76,15.86..9.09,17.20 centroid=8.43,16.53 digest=e0b63e05
-Svg xy=15.00,15.00 wh=0.00,0.00 color=#30303073 tris=24 bbox=12.71,3.74..14.07,5.10 centroid=13.39,4.42 digest=a99328ad
-Svg xy=15.00,15.00 wh=0.00,0.00 color=#2e2e2e92 tris=24 bbox=3.27,11.51..4.72,12.96 centroid=3.99,12.24 digest=dd1b851d
-Svg xy=15.00,15.00 wh=0.00,0.00 color=#2c2c2c94 tris=24 bbox=6.26,3.87..7.74,5.35 centroid=7.00,4.61 digest=0796655d
-Svg xy=15.00,15.00 wh=0.00,0.00 color=#26262673 tris=24 bbox=14.49,7.46..15.93,8.90 centroid=15.21,8.18 digest=a4b528fd
-Svg xy=15.00,15.00 wh=0.00,0.00 color=#2323238e tris=24 bbox=4.41,7.57..5.94,9.10 centroid=5.17,8.33 digest=9f75243d
-Svg xy=15.00,15.00 wh=0.00,0.00 color=#23232373 tris=24 bbox=13.37,12.11..14.84,13.58 centroid=14.11,12.85 digest=07b8771d
-Svg xy=15.00,15.00 wh=0.00,0.00 color=#22222273 tris=24 bbox=9.57,4.40..11.04,5.87 centroid=10.31,5.13 digest=416f49cd
-Svg xy=15.00,15.00 wh=0.00,0.00 color=#1f1f1f74 tris=24 bbox=6.26,12.31..7.76,13.81 centroid=7.01,13.06 digest=d455cc45
-Svg xy=15.00,15.00 wh=0.00,0.00 color=#1a1a1a73 tris=24 bbox=9.85,12.51..11.39,14.05 centroid=10.62,13.28 digest=07b10061
-Svg xy=15.00,15.00 wh=0.00,0.00 color=#17171773 tris=24 bbox=11.32,8.18..12.88,9.74 centroid=12.10,8.96 digest=82cbdc39
-Svg xy=15.00,15.00 wh=0.00,0.00 color=#16161673 tris=24 bbox=7.64,8.23..9.21,9.81 centroid=8.43,9.02 digest=0566460d
+Svg xy=15.00,15.00 wh=0.00,0.00 color=#9c9c9c73 tris=1296 vcols=648 first=#9c9c9c73 last=#16161673 flat bbox=1.43,1.49..18.65,18.68 centroid=10.00,10.00 digest=99111d89
 Clip xy=0.00,0.00 wh=320.00,240.00
 Clip xy=15.00,15.00 wh=20.00,20.00
 Clip xy=0.00,0.00 wh=320.00,240.00

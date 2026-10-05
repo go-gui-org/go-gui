@@ -1,6 +1,7 @@
 package soft
 
 import (
+	"bytes"
 	"image"
 	"math"
 	"testing"
@@ -707,5 +708,39 @@ func TestFinishBracketsClosesEveryKind(t *testing.T) {
 	}
 	if _, g, _, _ := at(r.buf.img, 20, 20); g != 255 {
 		t.Errorf("content green = %d, want 255", g)
+	}
+}
+
+// A merged canvas batch (#945) carries one color per triangle so that
+// marks of different colors share one draw command. It must paint
+// exactly what the separate flat commands painted: each mark blends
+// over the ones drawn before it. The mesh path writes one color per
+// pixel instead, so a translucent mark over another would lose the one
+// below.
+func TestDrawSvgFlatVertexColorsMatchSeparateCommands(t *testing.T) {
+	red := gui.RGBA(255, 0, 0, 128)
+	blue := gui.RGBA(0, 0, 255, 128)
+	a := square(5, 5, 20)
+	b := square(15, 15, 20)
+
+	sep := newRenderer(40, 40, 1)
+	sep.drawAll([]gui.RenderCmd{tri(a, red), tri(b, blue)})
+
+	merged := newRenderer(40, 40, 1)
+	cmd := tri(append(append([]float32{}, a...), b...), red)
+	for range len(a) / 2 {
+		cmd.VertexColors = append(cmd.VertexColors, red)
+	}
+	for range len(b) / 2 {
+		cmd.VertexColors = append(cmd.VertexColors, blue)
+	}
+	cmd.VertexColorsFlat = true
+	merged.drawAll([]gui.RenderCmd{cmd})
+
+	if !bytes.Equal(sep.buf.img.Pix, merged.buf.img.Pix) {
+		r1, g1, b1, _ := at(sep.buf.img, 20, 20)
+		r2, g2, b2, _ := at(merged.buf.img, 20, 20)
+		t.Fatalf("overlap pixel: separate = %d,%d,%d, merged = %d,%d,%d",
+			r1, g1, b1, r2, g2, b2)
 	}
 }

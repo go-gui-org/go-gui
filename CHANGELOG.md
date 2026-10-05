@@ -10,6 +10,14 @@ and this project adheres to
 
 ### Added
 
+- **`RenderCmd.VertexColorsFlat` marks vertex colors that are not a gradient
+  (#945)** — a `RenderSvg` command can now carry triangles of different flat
+  colors that must blend over each other in order, as separate commands would. A
+  backend that blends every triangle in submit order (Metal, GL, web, iOS,
+  Android) needs no change. A backend that draws vertex colors as one seamless
+  mesh must draw a flagged command as ordered same-color runs instead; the soft
+  backend now does, so its screenshots of a `ThinkingOrb` are unchanged.
+
 - **`DrawCanvasCfg.VersionFn` reads a canvas version at render time (#939)** — a
   canvas whose content changes between frames could not repaint under a
   render-only refresh (`InvalidateRender`, `AnimationRefreshRenderOnly`):
@@ -142,6 +150,14 @@ and this project adheres to
   closed contour, dropping both hand-built triangulations.
 
 ### Changed
+
+- **A `ThinkingOrb` frame is one draw command, not hundreds (#945)** — each line
+  and dot of the orb has its own color, and a canvas batch held only one color,
+  so a frame sent between 1 and 534 triangle batches to the backend for one
+  small widget. The orb now draws every mark into one batch with a color per
+  vertex, in the same order, so the pixels do not change. Other canvases keep
+  one color per batch: a reader of `DrawContext.Batches()` that looks only at
+  `Color`, such as go-charts' PNG export, stays correct.
 
 - **Looping loading widgets repaint without a layout (#939)** — an indefinite
   `ProgressBar`, a `Skeleton`, a `MathSpinner` and a `ThinkingOrb` used to run
