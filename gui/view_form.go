@@ -233,9 +233,10 @@ func Form(cfg FormCfg) View {
 	// No ID: take a generated leaf at generation time (#881); see
 	// id_auto.go.
 	if cfg.ID == "" {
+		autoCfg := cfg
 		return ViewFunc(func(vw *Window) View {
-			cfg.ID = vw.autoLeafWindow("form")
-			return Form(cfg)
+			autoCfg.ID = vw.autoLeafWindow("form")
+			return Form(autoCfg)
 		})
 	}
 	// A form is a full-width block whose height follows its fields;

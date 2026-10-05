@@ -189,6 +189,9 @@ func treeRowView(
 	rootFocusID := cfg.ID
 	onSelect := cfg.OnSelect
 	onLazyLoad := cfg.OnLazyLoad
+	// The closures below read locals, never cfg: capturing cfg would
+	// move the whole TreeCfg to the heap for every row.
+	hoverColor := cfg.Colors.Hover
 	rowSound := treeRowSound(&cfg, row)
 
 	return Row(ContainerCfg{
@@ -207,13 +210,13 @@ func treeRowView(
 		Content: treeRowContentViews(row, iconWidth),
 		OnClick: func(ctx EventCtx) {
 			treeRowClick(
-				cfg.ID, row, rootFocusID, onSelect, onLazyLoad, ctx.Event, ctx.Window)
+				rootFocusID, row, rootFocusID, onSelect, onLazyLoad, ctx.Event, ctx.Window)
 		},
 		OnHover: func(ctx EventCtx) {
 			ctx.Window.SetMouseCursorPointingHand()
 			// The fill follows the pointer even on the focused row,
 			// matching ColorSet.pick's rule (#690).
-			ctx.Layout.Shape.Color = cfg.Colors.Hover
+			ctx.Layout.Shape.Color = hoverColor
 		},
 	})
 }
@@ -246,6 +249,9 @@ func treeDragRowView(
 	rootFocusID := cfg.ID
 	onSelect := cfg.OnSelect
 	onLazyLoad := cfg.OnLazyLoad
+	// The closures below read locals, never cfg: capturing cfg would
+	// move the whole TreeCfg to the heap for every row.
+	hoverColor := cfg.Colors.Hover
 	onReorder := cfg.OnReorder
 	treeID := cfg.ID
 	layoutID := treeRowID(cfg.ID, row.ID)
@@ -290,7 +296,7 @@ func treeDragRowView(
 			ctx.Window.SetMouseCursorPointingHand()
 			// The fill follows the pointer even on the focused row,
 			// matching ColorSet.pick's rule (#690).
-			ctx.Layout.Shape.Color = cfg.Colors.Hover
+			ctx.Layout.Shape.Color = hoverColor
 		},
 	})
 }

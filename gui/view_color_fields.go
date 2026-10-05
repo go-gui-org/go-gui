@@ -54,9 +54,10 @@ func ColorFields(cfg ColorFieldsCfg) View {
 	// No ID: take a generated leaf at generation time (#881); see
 	// id_auto.go.
 	if cfg.ID == "" {
+		autoCfg := cfg
 		return ViewFunc(func(vw *Window) View {
-			cfg.ID = vw.autoLeaf("colorfields")
-			return ColorFields(cfg)
+			autoCfg.ID = vw.autoLeaf("colorfields")
+			return ColorFields(autoCfg)
 		})
 	}
 	if cfg.TextStyle == (TextStyle{}) {

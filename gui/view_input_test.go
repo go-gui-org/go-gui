@@ -1283,7 +1283,7 @@ func TestMakeInputOnKeyUp_FocusCheck(t *testing.T) {
 		},
 	}
 
-	handler := makeInputOnKeyUp(hcfg)
+	handler := makeInputOnKeyUp(&hcfg)
 	layout := &Layout{}
 	w := &Window{}
 	e := &Event{KeyCode: KeyEnter}
@@ -1314,7 +1314,7 @@ func TestMakeInputOnKeyUp_ZeroIDFocusNoCall(t *testing.T) {
 		},
 	}
 
-	handler := makeInputOnKeyUp(hcfg)
+	handler := makeInputOnKeyUp(&hcfg)
 	layout := &Layout{}
 	w := &Window{}
 	w.ClearFocus() // Even with focus set to 0
@@ -1334,7 +1334,7 @@ func TestMakeInputOnKeyUp_NilHandler(t *testing.T) {
 		OnKeyUp: nil, // Nil handler
 	}
 
-	handler := makeInputOnKeyUp(hcfg)
+	handler := makeInputOnKeyUp(&hcfg)
 	layout := &Layout{}
 	w := &Window{}
 	w.SetFocus("f123")

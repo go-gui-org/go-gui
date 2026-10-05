@@ -322,6 +322,28 @@ func TestViewFuncNilReturn(t *testing.T) {
 	}
 }
 
+// --- deferCfg tests ---
+
+func TestDeferCfgPassesCfgToBuild(t *testing.T) {
+	v := deferCfg("inner", func(_ *Window, id string) View {
+		return &stubView{id: id}
+	})
+	layout := v.GenerateLayout(&Window{})
+	if layout.Shape.ID != "inner" {
+		t.Errorf("ID: got %q, want inner", layout.Shape.ID)
+	}
+}
+
+func TestDeferCfgNilReturn(t *testing.T) {
+	v := deferCfg(0, func(*Window, int) View { return nil })
+	layout := v.GenerateLayout(&Window{})
+	// Same contract as ViewFunc: a nil build yields an empty node, not
+	// a panic.
+	if layout.Shape != nil && layout.Shape.shapeType != shapeNone {
+		t.Errorf("shape type: got %v, want shapeNone or nil", layout.Shape.shapeType)
+	}
+}
+
 func TestViewFuncInContentSlice(t *testing.T) {
 	v := Column(ContainerCfg{
 		ID: "root",

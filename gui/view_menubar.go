@@ -100,9 +100,10 @@ func Menubar(_ *Window, cfg MenubarCfg) View {
 	// No ID: take a generated leaf at generation time (#881); see
 	// id_auto.go.
 	if cfg.ID == "" {
+		autoCfg := cfg
 		return ViewFunc(func(vw *Window) View {
-			cfg.ID = vw.autoLeaf("menubar")
-			return Menubar(vw, cfg)
+			autoCfg.ID = vw.autoLeaf("menubar")
+			return Menubar(vw, autoCfg)
 		})
 	}
 	// Eager, so a duplicate item ID fails at the call site rather than

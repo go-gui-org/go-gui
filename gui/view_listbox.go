@@ -114,9 +114,10 @@ func ListBox(cfg ListBoxCfg) View {
 	// No ID: take a generated leaf at generation time (#881); see
 	// id_auto.go.
 	if cfg.ID == "" {
+		autoCfg := cfg
 		return ViewFunc(func(vw *Window) View {
-			cfg.ID = vw.autoLeaf("listbox")
-			return ListBox(cfg)
+			autoCfg.ID = vw.autoLeaf("listbox")
+			return ListBox(autoCfg)
 		})
 	}
 	applyListBoxDefaults(&cfg)

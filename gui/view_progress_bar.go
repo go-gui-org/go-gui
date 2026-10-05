@@ -52,9 +52,10 @@ func ProgressBar(cfg ProgressBarCfg) View {
 	// No ID: take a generated leaf at generation time (#881); see
 	// id_auto.go.
 	if cfg.ID == "" {
+		autoCfg := cfg
 		return ViewFunc(func(vw *Window) View {
-			cfg.ID = vw.autoLeaf("progressbar")
-			return ProgressBar(cfg)
+			autoCfg.ID = vw.autoLeaf("progressbar")
+			return ProgressBar(autoCfg)
 		})
 	}
 	if cfg.TextStyle == (TextStyle{}) {

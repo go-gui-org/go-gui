@@ -99,9 +99,10 @@ func Combobox(cfg ComboboxCfg) View {
 	// No ID: take a generated leaf at generation time (#881); see
 	// id_auto.go.
 	if cfg.ID == "" {
+		autoCfg := cfg
 		return ViewFunc(func(vw *Window) View {
-			cfg.ID = vw.autoLeaf("combobox")
-			return Combobox(cfg)
+			autoCfg.ID = vw.autoLeaf("combobox")
+			return Combobox(autoCfg)
 		})
 	}
 	applyComboboxDefaults(&cfg)

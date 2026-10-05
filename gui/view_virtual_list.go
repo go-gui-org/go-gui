@@ -120,9 +120,10 @@ func VirtualList(cfg VirtualListCfg) View {
 	// No ID: take a generated leaf at generation time (#881); see
 	// id_auto.go.
 	if cfg.ID == "" {
+		autoCfg := cfg
 		return ViewFunc(func(vw *Window) View {
-			cfg.ID = vw.autoLeaf("virtuallist")
-			return VirtualList(cfg)
+			autoCfg.ID = vw.autoLeaf("virtuallist")
+			return VirtualList(autoCfg)
 		})
 	}
 	applyVirtualListDefaults(&cfg)

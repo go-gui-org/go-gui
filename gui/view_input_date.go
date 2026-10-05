@@ -97,9 +97,10 @@ func InputDate(cfg InputDateCfg) View {
 	// calendar button take IDs scoped by this one, so two ID-less
 	// copies would otherwise both claim "input" and "calendar".
 	if cfg.ID == "" {
+		autoCfg := cfg
 		return ViewFunc(func(vw *Window) View {
-			cfg.ID = vw.autoLeaf("inputdate")
-			return InputDate(cfg)
+			autoCfg.ID = vw.autoLeaf("inputdate")
+			return InputDate(autoCfg)
 		})
 	}
 	applyInputDateDefaults(&cfg)

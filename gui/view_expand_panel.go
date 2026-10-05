@@ -51,11 +51,11 @@ func ExpandPanel(cfg ExpandPanelCfg) View {
 	// resolve as absolute and collide across panels. The explicit-ID
 	// path defers for the same reason: the leaf-built absolute would
 	// ignore the enclosing scope.
-	return ViewFunc(func(vw *Window) View {
-		if cfg.ID == "" {
-			cfg.ID = vw.autoLeaf("expandpanel")
+	return deferCfg(cfg, func(vw *Window, c ExpandPanelCfg) View {
+		if c.ID == "" {
+			c.ID = vw.autoLeaf("expandpanel")
 		}
-		return expandPanel(cfg, ScopeID(vw.EffID(cfg.ID), "head"))
+		return expandPanel(c, ScopeID(vw.EffID(c.ID), "head"))
 	})
 }
 

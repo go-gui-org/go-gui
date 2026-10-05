@@ -17,17 +17,17 @@ func nilEventCtx(w *Window) EventCtx {
 
 func TestInputOnCharNilEventDeclines(t *testing.T) {
 	w := newTestWindow()
-	makeInputOnChar(inputHandlerCfg{})(nilEventCtx(w))
+	makeInputOnChar(&inputHandlerCfg{})(nilEventCtx(w))
 }
 
 func TestInputOnKeyDownNilEventDeclines(t *testing.T) {
 	w := newTestWindow()
-	makeInputOnKeyDown(inputHandlerCfg{})(nilEventCtx(w))
+	makeInputOnKeyDown(&inputHandlerCfg{})(nilEventCtx(w))
 }
 
 func TestInputOnKeyUpNilEventDeclines(t *testing.T) {
 	w := newTestWindow()
-	makeInputOnKeyUp(inputHandlerCfg{})(nilEventCtx(w))
+	makeInputOnKeyUp(&inputHandlerCfg{})(nilEventCtx(w))
 }
 
 func TestInputOnClickNilEventDeclines(t *testing.T) {

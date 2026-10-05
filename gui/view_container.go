@@ -589,9 +589,10 @@ func container(cfg ContainerCfg) View {
 		if !cfg.Scrollable {
 			kind = "overflow"
 		}
+		autoCfg := cfg
 		return ViewFunc(func(vw *Window) View {
-			cfg.ID = vw.autoLeaf(kind)
-			return container(cfg)
+			autoCfg.ID = vw.autoLeaf(kind)
+			return container(autoCfg)
 		})
 	}
 	// Resolve click handler.

@@ -194,9 +194,10 @@ func Select(cfg SelectCfg) View {
 	// scoped by this one, so two ID-less copies would otherwise both
 	// claim "dropdown".
 	if cfg.ID == "" {
+		autoCfg := cfg
 		return ViewFunc(func(vw *Window) View {
-			cfg.ID = vw.autoLeaf("select")
-			return Select(cfg)
+			autoCfg.ID = vw.autoLeaf("select")
+			return Select(autoCfg)
 		})
 	}
 	applySelectDefaults(&cfg)

@@ -68,9 +68,10 @@ func Toggle(cfg ToggleCfg) View {
 	// No ID: take a generated leaf at generation time (#881); see
 	// id_auto.go.
 	if cfg.ID == "" && !cfg.FocusDisabled {
+		autoCfg := cfg
 		return ViewFunc(func(vw *Window) View {
-			cfg.ID = vw.autoLeaf("toggle")
-			return Toggle(cfg)
+			autoCfg.ID = vw.autoLeaf("toggle")
+			return Toggle(autoCfg)
 		})
 	}
 	applyToggleDefaults(&cfg)

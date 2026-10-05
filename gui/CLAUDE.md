@@ -68,9 +68,12 @@ the widget a generated leaf (#881, `gui/id_auto.go`).** The leaf is
 explicit-ID scope, in pre-order. Counters reset once per frame (`resetAutoIDs`);
 injected overlays continue the root counters.
 
-- **The pattern.** A factory whose ID is empty returns
-  `ViewFunc(func(vw) { cfg.ID = vw.autoLeaf("kind"); return Factory(cfg) })`.
-  The leaf must exist before anything reads `cfg.ID` — scrollbars and handlers
+- **The pattern.** A factory whose ID is empty copies `autoCfg := cfg`, then
+  returns
+  `ViewFunc(func(vw) { autoCfg.ID = vw.autoLeaf("kind"); return Factory(autoCfg) })`.
+  Capture the copy, never the `cfg` parameter: a captured parameter moves to the
+  heap on every call, taken branch or not (`TestFactoryCfgDoesNotEscape`). The
+  leaf must exist before anything reads `cfg.ID` — scrollbars and handlers
   capture it at build time. Keep the condition identical to the old requirement
   (`&& !cfg.FocusDisabled` for focus-only IDs).
 - **An auto leaf opens no scope** (`childScopeID`, `resolveFocusOwnersWalk`,

@@ -87,9 +87,10 @@ func NumericInput(cfg NumericInputCfg) View {
 	// No ID: take a generated leaf at generation time (#881); see
 	// id_auto.go.
 	if cfg.ID == "" && !cfg.FocusDisabled {
+		autoCfg := cfg
 		return ViewFunc(func(vw *Window) View {
-			cfg.ID = vw.autoLeaf("numericinput")
-			return NumericInput(cfg)
+			autoCfg.ID = vw.autoLeaf("numericinput")
+			return NumericInput(autoCfg)
 		})
 	}
 	applyNumericInputDefaults(&cfg)
@@ -155,6 +156,9 @@ func (v *numericInputView) GenerateLayout(w *Window) Layout {
 	if cfgID != "" {
 		fieldID = ScopeID(cfgID, "field")
 	}
+	// The click handler reads this local, not cfg: capturing cfg would
+	// move the whole NumericInputCfg to the heap each frame.
+	focusDisabled := cfg.FocusDisabled
 
 	content := []View{
 		field,
@@ -189,7 +193,7 @@ func (v *numericInputView) GenerateLayout(w *Window) Layout {
 		VAlign:      VAlignMiddle,
 		Spacing:     NoSpacing,
 		OnClick: func(ctx EventCtx) {
-			if !cfg.FocusDisabled && fieldID != "" {
+			if !focusDisabled && fieldID != "" {
 				ctx.Window.SetFocus(fieldID)
 			}
 		},
@@ -313,8 +317,11 @@ func numericInputField(
 		Disabled:           cfg.Disabled,
 		Invisible:          cfg.Invisible,
 		OnTextChanged:      cfg.OnTextChanged,
-		OnKeyDown:          numericInputOnKeyDown(cfg, locale, stepCfg),
-		onMouseScroll:      numericInputOnWheel(cfg, locale, stepCfg),
+		// &cfg: the closures in this function already hold cfg on the
+		// heap, so the two handlers share that copy instead of each
+		// moving one of their own there.
+		OnKeyDown:     numericInputOnKeyDown(&cfg, locale, stepCfg),
+		onMouseScroll: numericInputOnWheel(&cfg, locale, stepCfg),
 		PreTextChange: func(current, proposed string) (string, bool) {
 			return numericInputPreCommitTransformMode(
 				current, proposed, cfg.Decimals, locale, modeCfg)
@@ -451,7 +458,7 @@ func numericInputStepButtons(
 // are the spinbox convention (issue #503); before this the field
 // carried a Keyboard flag that nothing read.
 func numericInputOnKeyDown(
-	cfg NumericInputCfg, locale NumericLocaleCfg, stepCfg NumericStepCfg,
+	cfg *NumericInputCfg, locale NumericLocaleCfg, stepCfg NumericStepCfg,
 ) func(EventCtx) {
 	if stepCfg.KeyboardDisabled {
 		return nil
@@ -475,7 +482,7 @@ func numericInputOnKeyDown(
 		if cfg.ReadOnly {
 			return
 		}
-		numericInputApplyStep(ctx.Layout, cfg, locale, stepCfg,
+		numericInputApplyStep(ctx.Layout, *cfg, locale, stepCfg,
 			dir, ctx.Event, ctx.Window)
 		ctx.Consume()
 	}
@@ -485,7 +492,7 @@ func numericInputOnKeyDown(
 // the caller opted in. Opt-in by design: a field that eats the wheel
 // stops the form under the pointer from scrolling.
 func numericInputOnWheel(
-	cfg NumericInputCfg, locale NumericLocaleCfg, stepCfg NumericStepCfg,
+	cfg *NumericInputCfg, locale NumericLocaleCfg, stepCfg NumericStepCfg,
 ) func(EventCtx) {
 	if !stepCfg.MouseWheel || cfg.ReadOnly {
 		return nil
@@ -507,7 +514,7 @@ func numericInputOnWheel(
 		default:
 			return
 		}
-		numericInputApplyStep(ctx.Layout, cfg, locale, stepCfg,
+		numericInputApplyStep(ctx.Layout, *cfg, locale, stepCfg,
 			dir, ctx.Event, ctx.Window)
 		ctx.Consume()
 	}
