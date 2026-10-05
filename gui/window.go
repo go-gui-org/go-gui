@@ -197,6 +197,14 @@ type Window struct {
 	// goroutine around the blocking platform call (see native_dialog.go).
 	nativeDialogVisible bool
 
+	// fileBrowser is the in-window file browser shown when the platform
+	// has no file picker (#831); nil while none is open. The window has
+	// one dialog slot, so it has at most one browser.
+	fileBrowser *fileBrowserState
+	// fileBrowserFS is the file system the browser reads. Nil means the
+	// real one (osFileBrowserFS); tests put a fake here.
+	fileBrowserFS fileBrowserFS
+
 	windowAnimation
 
 	// Window dimensions (logical pixels).

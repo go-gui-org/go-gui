@@ -10,6 +10,15 @@ and this project adheres to
 
 ### Added
 
+- **`InWindowOpenDialog`, `InWindowSaveDialog` and `InWindowFolderDialog`
+  (#831)** — open the in-window file browser on purpose, on any OS, without
+  trying the native picker first. They take the same `Native*DialogCfg` types
+  and report through the same `OnDone`, so moving a call between the two is a
+  rename. Use them when an app wants one look on every OS, or to show the
+  browser in a demo. Paths have a zero `Grant`: on macOS a sandboxed app gets no
+  security-scoped access this way and should keep `Native*Dialog`. The showcase
+  shows all three under **Overlays → Dialog → In-Window File Browser**.
+
 - **Showcase has a DX Cheat Sheet page** — the cheat sheet in
   `docs/dx-cheat-sheet.md` lists the places where the obvious reading of the API
   is wrong, but people who use the showcase did not see it. It is now under
@@ -122,6 +131,20 @@ and this project adheres to
   closed contour, dropping both hand-built triangulations.
 
 ### Changed
+
+- **File dialogs fall back to an in-window file browser (#831)** — when there is
+  no native file picker, `NativeOpenDialog`, `NativeSaveDialog` and
+  `NativeFolderDialog` used to call `OnDone` at once with a `DialogError`
+  (`"unsupported"`, or `"no_dialog_tool"` on Linux without zenity or kdialog).
+  The user saw nothing. They now open a file browser inside the window: a path
+  bar, a folder list, a filter select when there is more than one filter, and a
+  name field for save. Enter accepts, Escape cancels, and focus stays in the
+  dialog. `OnDone` gets `DialogOK` with the chosen paths, or `DialogCancel`.
+  This also applies to a nil native platform, so `NewTestWindow` tests now see
+  the browser, and can drive it with `TestKey` and `TestClick`. A test that
+  expected the `"unsupported"` error must change. A bad `Cfg` and a real
+  platform error still report `DialogError`. Paths from the browser have no
+  macOS security-scoped grant. See `docs/specs/in-window-file-browser.md`.
 
 - **`gui` no longer carries a MinGW `__ms_vsscanf` shim on Windows (#886)** —
   `gui/compat_mingw.go` defined a weak `__ms_vsscanf` for the SDL2 static

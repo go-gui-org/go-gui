@@ -1,6 +1,8 @@
 package main
 
 import (
+	"strings"
+
 	"github.com/go-gui-org/go-gui/gui"
 	"github.com/go-gui-org/go-gui/gui/highlight"
 )
@@ -183,12 +185,94 @@ func demoDialog(w *gui.Window) gui.View {
 					}),
 				},
 			}),
+			line(),
+			sectionLabel(t, "In-Window File Browser"),
+			gui.Text(gui.TextCfg{
+				Text: "The same browser Native*Dialog shows when the OS has no picker. " +
+					"These buttons force it on every OS.",
+				TextStyle: t.TextStyleBody,
+				Mode:      gui.TextModeWrap,
+			}),
+			gui.Row(gui.ContainerCfg{
+				Sizing:  gui.FillFit,
+				Spacing: gui.SpacingMedium,
+				Padding: gui.NoPadding,
+				Content: []gui.View{
+					gui.Button(gui.ButtonCfg{
+						ID: "btn-inwindow-open",
+						Content: []gui.View{
+							gui.Text(gui.TextCfg{Text: gui.IconFolder, TextStyle: t.TextStyleBody}),
+							gui.Text(gui.TextCfg{Text: "Open", TextStyle: t.TextStyleBody}),
+						},
+						OnClick: func(ctx gui.EventCtx) {
+							ctx.Window.InWindowOpenDialog(gui.NativeOpenDialogCfg{
+								Title:         "Open File",
+								AllowMultiple: true,
+								Filters: []gui.NativeFileFilter{
+									{Name: "Go", Extensions: []string{"go"}},
+									{Name: "Markdown", Extensions: []string{"md"}},
+								},
+								OnDone: inWindowDialogDone("Opened"),
+							})
+							ctx.Consume()
+						},
+					}),
+					gui.Button(gui.ButtonCfg{
+						ID: "btn-inwindow-save",
+						Content: []gui.View{
+							gui.Text(gui.TextCfg{Text: gui.IconDownload, TextStyle: t.TextStyleBody}),
+							gui.Text(gui.TextCfg{Text: "Save", TextStyle: t.TextStyleBody}),
+						},
+						OnClick: func(ctx gui.EventCtx) {
+							// Only reports the path. The demo writes nothing.
+							ctx.Window.InWindowSaveDialog(gui.NativeSaveDialogCfg{
+								Title:            "Save File",
+								DefaultName:      "untitled",
+								DefaultExtension: "txt",
+								ConfirmOverwrite: true,
+								OnDone:           inWindowDialogDone("Save"),
+							})
+							ctx.Consume()
+						},
+					}),
+					gui.Button(gui.ButtonCfg{
+						ID: "btn-inwindow-folder",
+						Content: []gui.View{
+							gui.Text(gui.TextCfg{Text: gui.IconFolder, TextStyle: t.TextStyleBody}),
+							gui.Text(gui.TextCfg{Text: "Folder", TextStyle: t.TextStyleBody}),
+						},
+						OnClick: func(ctx gui.EventCtx) {
+							ctx.Window.InWindowFolderDialog(gui.NativeFolderDialogCfg{
+								Title:  "Select Folder",
+								OnDone: inWindowDialogDone("Folder"),
+							})
+							ctx.Consume()
+						},
+					}),
+				},
+			}),
 			gui.Text(gui.TextCfg{
 				Text:      "Result: " + app.DialogResult,
 				TextStyle: t.TextStyleBody,
 			}),
 		},
 	})
+}
+
+// inWindowDialogDone writes an in-window file dialog result to the
+// shared result line. verb names the action ("Opened", "Save", ...).
+func inWindowDialogDone(verb string) func(gui.NativeDialogResult, *gui.Window) {
+	return func(r gui.NativeDialogResult, w *gui.Window) {
+		a := appState(w)
+		switch r.Status {
+		case gui.DialogOK:
+			a.DialogResult = verb + ": " + strings.Join(r.PathStrings(), ", ")
+		case gui.DialogCancel:
+			a.DialogResult = verb + " cancelled"
+		default:
+			a.DialogResult = "Error: " + r.ErrorMessage
+		}
+	}
 }
 
 func demoNotification(w *gui.Window) gui.View {

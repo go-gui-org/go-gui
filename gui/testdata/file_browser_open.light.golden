@@ -1,0 +1,21 @@
+# go-gui-golden v1
+Rect xy=15.00,15.00 wh=290.00,31.60 color=#ffffffff radius=6.00 fill
+StrokeRect xy=15.00,15.00 wh=290.00,31.60 color=#d8dde4ff radius=6.00 thickness=1.00
+Clip xy=26.00,21.00 wh=268.00,19.60
+Text xy=26.00,21.00 wh=0.00,0.00 color=#1a1d21ff text="/proj" size=14.00
+Clip xy=0.00,0.00 wh=320.00,240.00
+Shadow xy=15.00,60.60 wh=290.00,220.00 color=#2f6fe03f radius=6.00 blur=2.00 offset=0.00,0.00
+Rect xy=15.00,60.60 wh=290.00,220.00 color=#ffffffff radius=6.00 fill
+StrokeRect xy=15.00,60.60 wh=290.00,220.00 color=#2f6fe0ff radius=6.00 thickness=1.00
+Clip xy=16.00,61.60 wh=288.00,178.40
+Rect xy=16.00,61.60 wh=288.00,23.60 color=#2f6fe01e radius=6.00 fill
+StrokeRect xy=16.00,61.60 wh=288.00,23.60 color=#2f6fe0ff radius=6.00 thickness=1.00
+Text xy=21.00,63.60 wh=0.00,0.00 color=#1a1d21ff text=".." size=14.00
+Text xy=21.00,87.20 wh=0.00,0.00 color=#1a1d21ff text="sub/" size=14.00
+Text xy=21.00,110.80 wh=0.00,0.00 color=#1a1d21ff text="a.txt" size=14.00
+Text xy=21.00,134.40 wh=0.00,0.00 color=#1a1d21ff text="b.md" size=14.00
+Clip xy=16.00,0.00 wh=288.00,0.00
+Clip xy=16.00,61.60 wh=288.00,178.40
+Clip xy=295.00,61.60 wh=7.00,178.40
+Clip xy=16.00,61.60 wh=288.00,178.40
+Clip xy=0.00,0.00 wh=320.00,240.00

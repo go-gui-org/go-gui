@@ -137,31 +137,33 @@ func TestNativeDialogResultPathStringsEmpty(t *testing.T) {
 	}
 }
 
+// A nil platform has no file picker, so the three file dialogs open
+// the in-window browser instead of reporting "unsupported" (#831).
+// OnDone waits for the user. file_browser_test.go drives the browser.
 func TestNativeOpenDialogNoPlatform(t *testing.T) {
 	w := &Window{}
-	var result NativeDialogResult
+	called := false
 	cfg := NativeOpenDialogCfg{
-		OnDone: func(r NativeDialogResult, _ *Window) { result = r },
+		OnDone: func(NativeDialogResult, *Window) { called = true },
 	}
 	// Call impl directly (bypasses queue).
-	nativeOpenDialogImpl(w, cfg)
-	if result.Status != DialogError {
-		t.Errorf("expected error status, got %d", result.Status)
-	}
-	if result.ErrorCode != "unsupported" {
-		t.Errorf("expected 'unsupported', got %q", result.ErrorCode)
+	nativeOpenDialogImpl(w, cfg, false)
+	if called || !w.DialogIsVisible() || w.fileBrowser == nil {
+		t.Errorf("called %v, visible %v: want the in-window browser",
+			called, w.DialogIsVisible())
 	}
 }
 
 func TestNativeSaveDialogNoPlatform(t *testing.T) {
 	w := &Window{}
-	var result NativeDialogResult
+	called := false
 	cfg := NativeSaveDialogCfg{
-		OnDone: func(r NativeDialogResult, _ *Window) { result = r },
+		OnDone: func(NativeDialogResult, *Window) { called = true },
 	}
-	nativeSaveDialogImpl(w, cfg)
-	if result.Status != DialogError {
-		t.Errorf("expected error, got %d", result.Status)
+	nativeSaveDialogImpl(w, cfg, false)
+	if called || !w.DialogIsVisible() || w.fileBrowser == nil {
+		t.Errorf("called %v, visible %v: want the in-window browser",
+			called, w.DialogIsVisible())
 	}
 }
 
@@ -193,22 +195,23 @@ func TestNativeConfirmDialogNoPlatform(t *testing.T) {
 
 func TestNativeFolderDialogNoPlatform(t *testing.T) {
 	w := &Window{}
-	var result NativeDialogResult
+	called := false
 	cfg := NativeFolderDialogCfg{
-		OnDone: func(r NativeDialogResult, _ *Window) { result = r },
+		OnDone: func(NativeDialogResult, *Window) { called = true },
 	}
-	nativeFolderDialogImpl(w, cfg)
-	if result.Status != DialogError {
-		t.Errorf("expected error, got %d", result.Status)
+	nativeFolderDialogImpl(w, cfg, false)
+	if called || !w.DialogIsVisible() || w.fileBrowser == nil {
+		t.Errorf("called %v, visible %v: want the in-window browser",
+			called, w.DialogIsVisible())
 	}
 }
 
 func TestNativeDialogNilOnDone(_ *testing.T) {
 	w := &Window{}
 	// Nil OnDone must not panic.
-	nativeOpenDialogImpl(w, NativeOpenDialogCfg{})
-	nativeSaveDialogImpl(w, NativeSaveDialogCfg{})
-	nativeFolderDialogImpl(w, NativeFolderDialogCfg{})
+	nativeOpenDialogImpl(w, NativeOpenDialogCfg{}, false)
+	nativeSaveDialogImpl(w, NativeSaveDialogCfg{}, false)
+	nativeFolderDialogImpl(w, NativeFolderDialogCfg{}, false)
 }
 
 func TestNativeAlertNilOnDone(_ *testing.T) {
@@ -293,7 +296,7 @@ func TestNativeOpenDialogBadExtension(t *testing.T) {
 		Filters: []NativeFileFilter{{Extensions: []string{"a*b"}}},
 		OnDone:  func(r NativeDialogResult, _ *Window) { result = r },
 	}
-	nativeOpenDialogImpl(w, cfg)
+	nativeOpenDialogImpl(w, cfg, false)
 	if result.Status != DialogError || result.ErrorCode != "invalid_cfg" {
 		t.Errorf("expected invalid_cfg error, got %+v", result)
 	}
@@ -339,7 +342,7 @@ func TestNativeOpenDialogSuccess(t *testing.T) {
 	cfg := NativeOpenDialogCfg{
 		OnDone: func(r NativeDialogResult, _ *Window) { result = r },
 	}
-	nativeOpenDialogImpl(w, cfg)
+	nativeOpenDialogImpl(w, cfg, false)
 	if result.Status != DialogOK {
 		t.Errorf("Status: got %d, want %d", result.Status, DialogOK)
 	}
@@ -360,7 +363,7 @@ func TestNativeSaveDialogSuccess(t *testing.T) {
 	cfg := NativeSaveDialogCfg{
 		OnDone: func(r NativeDialogResult, _ *Window) { result = r },
 	}
-	nativeSaveDialogImpl(w, cfg)
+	nativeSaveDialogImpl(w, cfg, false)
 	if result.Status != DialogOK {
 		t.Errorf("Status: got %d, want %d", result.Status, DialogOK)
 	}
@@ -378,7 +381,7 @@ func TestNativeFolderDialogSuccess(t *testing.T) {
 	cfg := NativeFolderDialogCfg{
 		OnDone: func(r NativeDialogResult, _ *Window) { result = r },
 	}
-	nativeFolderDialogImpl(w, cfg)
+	nativeFolderDialogImpl(w, cfg, false)
 	if result.Status != DialogOK {
 		t.Errorf("Status: got %d, want %d", result.Status, DialogOK)
 	}
@@ -455,7 +458,7 @@ func TestNativeOpenDialogMarksVisible(t *testing.T) {
 			visibleDuring = w.DialogIsVisible()
 		},
 	}
-	nativeOpenDialogImpl(w, cfg)
+	nativeOpenDialogImpl(w, cfg, false)
 	if !visibleDuring {
 		t.Fatal("DialogIsVisible must be true while native dialog shows")
 	}
@@ -522,7 +525,7 @@ func TestNativeOpenDialogCancelled(t *testing.T) {
 	cfg := NativeOpenDialogCfg{
 		OnDone: func(r NativeDialogResult, _ *Window) { result = r },
 	}
-	nativeOpenDialogImpl(w, cfg)
+	nativeOpenDialogImpl(w, cfg, false)
 	if result.Status != DialogCancel {
 		t.Errorf("Status: got %d, want %d", result.Status, DialogCancel)
 	}
@@ -552,7 +555,7 @@ func TestNativeOpenDialogPlatformError(t *testing.T) {
 	cfg := NativeOpenDialogCfg{
 		OnDone: func(r NativeDialogResult, _ *Window) { result = r },
 	}
-	nativeOpenDialogImpl(w, cfg)
+	nativeOpenDialogImpl(w, cfg, false)
 	if result.Status != DialogError {
 		t.Errorf("Status: got %d, want %d", result.Status, DialogError)
 	}
@@ -598,13 +601,13 @@ func TestNativeDialogStartDirReachesPlatform(t *testing.T) {
 		show func(w *Window)
 	}{
 		{"open", func(w *Window) {
-			nativeOpenDialogImpl(w, NativeOpenDialogCfg{StartDir: want})
+			nativeOpenDialogImpl(w, NativeOpenDialogCfg{StartDir: want}, false)
 		}},
 		{"save", func(w *Window) {
-			nativeSaveDialogImpl(w, NativeSaveDialogCfg{StartDir: want, DefaultName: "n.txt"})
+			nativeSaveDialogImpl(w, NativeSaveDialogCfg{StartDir: want, DefaultName: "n.txt"}, false)
 		}},
 		{"folder", func(w *Window) {
-			nativeFolderDialogImpl(w, NativeFolderDialogCfg{StartDir: want})
+			nativeFolderDialogImpl(w, NativeFolderDialogCfg{StartDir: want}, false)
 		}},
 	}
 	for _, tt := range tests {
@@ -627,7 +630,7 @@ func TestNativeDialogStartDirEmptyByDefault(t *testing.T) {
 	rec := &startDirRecorder{}
 	w := &Window{}
 	w.nativePlatform = rec
-	nativeOpenDialogImpl(w, NativeOpenDialogCfg{})
+	nativeOpenDialogImpl(w, NativeOpenDialogCfg{}, false)
 	if rec.got != "" {
 		t.Fatalf("startDir = %q, want empty", rec.got)
 	}
@@ -670,13 +673,13 @@ func TestNativeDialogStartDirScreenedAtEveryEntryPoint(t *testing.T) {
 		show func(w *Window)
 	}{
 		{"open", func(w *Window) {
-			nativeOpenDialogImpl(w, NativeOpenDialogCfg{StartDir: hostile})
+			nativeOpenDialogImpl(w, NativeOpenDialogCfg{StartDir: hostile}, false)
 		}},
 		{"save", func(w *Window) {
-			nativeSaveDialogImpl(w, NativeSaveDialogCfg{StartDir: hostile, DefaultName: "n.txt"})
+			nativeSaveDialogImpl(w, NativeSaveDialogCfg{StartDir: hostile, DefaultName: "n.txt"}, false)
 		}},
 		{"folder", func(w *Window) {
-			nativeFolderDialogImpl(w, NativeFolderDialogCfg{StartDir: hostile})
+			nativeFolderDialogImpl(w, NativeFolderDialogCfg{StartDir: hostile}, false)
 		}},
 	}
 	for _, tt := range tests {

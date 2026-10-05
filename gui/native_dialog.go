@@ -128,21 +128,51 @@ type NativeSaveDiscardDialogCfg struct {
 // NativeOpenDialog opens a native open-file dialog.
 func (w *Window) NativeOpenDialog(cfg NativeOpenDialogCfg) {
 	w.QueueCommand(func(w *Window) {
-		nativeOpenDialogImpl(w, cfg)
+		nativeOpenDialogImpl(w, cfg, false)
 	})
 }
 
 // NativeSaveDialog opens a native save-file dialog.
 func (w *Window) NativeSaveDialog(cfg NativeSaveDialogCfg) {
 	w.QueueCommand(func(w *Window) {
-		nativeSaveDialogImpl(w, cfg)
+		nativeSaveDialogImpl(w, cfg, false)
 	})
 }
 
 // NativeFolderDialog opens a native folder picker dialog.
 func (w *Window) NativeFolderDialog(cfg NativeFolderDialogCfg) {
 	w.QueueCommand(func(w *Window) {
-		nativeFolderDialogImpl(w, cfg)
+		nativeFolderDialogImpl(w, cfg, false)
+	})
+}
+
+// InWindowOpenDialog opens the in-window file browser in open mode. It
+// never calls the native picker, so it looks and acts the same on every
+// OS. NativeOpenDialog shows this browser on its own when there is no
+// native picker; call this method only to force it.
+//
+// Result.Paths carry a zero Grant. On macOS a sandboxed app gets no
+// security-scoped access to the chosen file this way; use
+// NativeOpenDialog there.
+func (w *Window) InWindowOpenDialog(cfg NativeOpenDialogCfg) {
+	w.QueueCommand(func(w *Window) {
+		nativeOpenDialogImpl(w, cfg, true)
+	})
+}
+
+// InWindowSaveDialog opens the in-window file browser in save mode.
+// See InWindowOpenDialog for when to use it and the macOS sandbox limit.
+func (w *Window) InWindowSaveDialog(cfg NativeSaveDialogCfg) {
+	w.QueueCommand(func(w *Window) {
+		nativeSaveDialogImpl(w, cfg, true)
+	})
+}
+
+// InWindowFolderDialog opens the in-window file browser in folder mode.
+// See InWindowOpenDialog for when to use it and the macOS sandbox limit.
+func (w *Window) InWindowFolderDialog(cfg NativeFolderDialogCfg) {
+	w.QueueCommand(func(w *Window) {
+		nativeFolderDialogImpl(w, cfg, true)
 	})
 }
 
@@ -180,22 +210,31 @@ func markNativeDialogVisible(w *Window) func() {
 	return func() { w.nativeDialogVisible = false }
 }
 
-func nativeOpenDialogImpl(w *Window, cfg NativeOpenDialogCfg) {
+// The three file dialog impls check the Cfg, then hand the platform
+// call to nativeFileDialog, which falls back to the in-window file
+// browser (file_browser.go) when there is no native picker (#831). A
+// bad Cfg is an error on both the native and the in-window path.
+
+func nativeOpenDialogImpl(w *Window, cfg NativeOpenDialogCfg, inWindow bool) {
 	extensions, err := nativeExtensionsFromFilters(cfg.Filters)
 	if err != nil {
 		dispatchDialogDone(w, cfg.OnDone, nativeDialogErrorResult("invalid_cfg", err.Error()))
 		return
 	}
-	if w.nativePlatform == nil {
-		dispatchDialogDone(w, cfg.OnDone, nativeDialogErrorResult("unsupported", "no native platform"))
-		return
+	browser := fileBrowserCfg{
+		mode:          fileBrowserOpen,
+		onDone:        cfg.OnDone,
+		title:         cfg.Title,
+		startDir:      safeStartDir(cfg.StartDir),
+		filters:       cfg.Filters,
+		allowMultiple: cfg.AllowMultiple,
 	}
-	defer markNativeDialogVisible(w)()
-	pr := w.nativePlatform.ShowOpenDialog(cfg.Title, safeStartDir(cfg.StartDir), extensions, cfg.AllowMultiple)
-	dispatchDialogDone(w, cfg.OnDone, nativeResultFromPlatform(pr, w))
+	nativeFileDialog(w, browser, inWindow, func(p NativePlatform) PlatformDialogResult {
+		return p.ShowOpenDialog(cfg.Title, browser.startDir, extensions, cfg.AllowMultiple)
+	})
 }
 
-func nativeSaveDialogImpl(w *Window, cfg NativeSaveDialogCfg) {
+func nativeSaveDialogImpl(w *Window, cfg NativeSaveDialogCfg, inWindow bool) {
 	extensions, err := nativeSaveExtensions(cfg.Filters, cfg.DefaultExtension)
 	if err != nil {
 		dispatchDialogDone(w, cfg.OnDone, nativeDialogErrorResult("invalid_cfg", err.Error()))
@@ -206,23 +245,56 @@ func nativeSaveDialogImpl(w *Window, cfg NativeSaveDialogCfg) {
 		dispatchDialogDone(w, cfg.OnDone, nativeDialogErrorResult("invalid_cfg", err.Error()))
 		return
 	}
-	if w.nativePlatform == nil {
-		dispatchDialogDone(w, cfg.OnDone, nativeDialogErrorResult("unsupported", "no native platform"))
-		return
+	browser := fileBrowserCfg{
+		mode:             fileBrowserSave,
+		onDone:           cfg.OnDone,
+		title:            cfg.Title,
+		startDir:         safeStartDir(cfg.StartDir),
+		defaultName:      cfg.DefaultName,
+		defaultExt:       defaultExt,
+		filters:          cfg.Filters,
+		confirmOverwrite: cfg.ConfirmOverwrite,
 	}
-	defer markNativeDialogVisible(w)()
-	pr := w.nativePlatform.ShowSaveDialog(cfg.Title, safeStartDir(cfg.StartDir), cfg.DefaultName, defaultExt, extensions, cfg.ConfirmOverwrite)
-	dispatchDialogDone(w, cfg.OnDone, nativeResultFromPlatform(pr, w))
+	nativeFileDialog(w, browser, inWindow, func(p NativePlatform) PlatformDialogResult {
+		return p.ShowSaveDialog(cfg.Title, browser.startDir, cfg.DefaultName, defaultExt, extensions, cfg.ConfirmOverwrite)
+	})
 }
 
-func nativeFolderDialogImpl(w *Window, cfg NativeFolderDialogCfg) {
-	if w.nativePlatform == nil {
-		dispatchDialogDone(w, cfg.OnDone, nativeDialogErrorResult("unsupported", "no native platform"))
+func nativeFolderDialogImpl(w *Window, cfg NativeFolderDialogCfg, inWindow bool) {
+	browser := fileBrowserCfg{
+		mode:     fileBrowserFolder,
+		onDone:   cfg.OnDone,
+		title:    cfg.Title,
+		startDir: safeStartDir(cfg.StartDir),
+	}
+	nativeFileDialog(w, browser, inWindow, func(p NativePlatform) PlatformDialogResult {
+		return p.ShowFolderDialog(cfg.Title, browser.startDir)
+	})
+}
+
+// nativeFileDialog runs a checked file dialog. It opens the in-window
+// browser when inWindow is set (the InWindow*Dialog methods), when the
+// platform is nil, or when show reports no picker
+// (nativeFileDialogUnavailable). Any other result, a real error
+// included, goes to OnDone.
+//
+// The native-dialog flag is cleared before the browser opens, so the
+// browser counts as an in-app dialog, not a native one. On the native
+// path OnDone runs while the flag is still set, as before.
+func nativeFileDialog(w *Window, browser fileBrowserCfg, inWindow bool, show func(NativePlatform) PlatformDialogResult) {
+	if inWindow || w.nativePlatform == nil {
+		showFileBrowser(w, browser)
 		return
 	}
-	defer markNativeDialogVisible(w)()
-	pr := w.nativePlatform.ShowFolderDialog(cfg.Title, safeStartDir(cfg.StartDir))
-	dispatchDialogDone(w, cfg.OnDone, nativeResultFromPlatform(pr, w))
+	done := markNativeDialogVisible(w)
+	pr := show(w.nativePlatform)
+	if nativeFileDialogUnavailable(pr) {
+		done()
+		showFileBrowser(w, browser)
+		return
+	}
+	defer done()
+	dispatchDialogDone(w, browser.onDone, nativeResultFromPlatform(pr, w))
 }
 
 func nativeMessageDialogImpl(w *Window, cfg NativeMessageDialogCfg) {
