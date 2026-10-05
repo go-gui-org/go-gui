@@ -10,5 +10,11 @@ import (
 // as RunTestsCheckingLeaks (#840) so consumers' test packages get the
 // same gate; see its doc comment for why a leak matters.
 func TestMain(m *testing.M) {
+	// CI only: log the module load bases so a Windows crash in the same job
+	// can be mapped to a DLL (#886). go test shows this output only when the
+	// package fails, so passing runs stay quiet.
+	if os.Getenv("GITHUB_ACTIONS") == "true" {
+		logLoadedModules(os.Stderr)
+	}
 	os.Exit(RunTestsCheckingLeaks(m))
 }

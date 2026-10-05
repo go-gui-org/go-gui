@@ -121,6 +121,15 @@ and this project adheres to
   closed to the baseline and the Flower port fills its cached outline as one
   closed contour, dropping both hand-built triangulations.
 
+### Changed
+
+- **`gui` no longer carries a MinGW `__ms_vsscanf` shim on Windows (#886)** —
+  `gui/compat_mingw.go` defined a weak `__ms_vsscanf` for the SDL2 static
+  libraries, which were removed in #60. It was the only cgo file in `gui` on
+  Windows, so a cgo-enabled Windows build of `gui` now compiles no C. An app
+  that links its own MinGW static library that needs `__ms_vsscanf` must now
+  supply the symbol.
+
 ### Fixed
 
 - **An idle window with a focused input stops rendering after 10 s (#929)** —
