@@ -126,6 +126,7 @@ func renderDrawCanvas(shape *Shape, clip drawClip, w *Window) {
 			Scale:      scale,
 		}
 		if callOnDrawSafe(dc, shape, w) {
+			cached.batchHigh, cached.gradHigh = dc.carryUnclaimed()
 			cached.Batches = dc.batches
 			cached.spare = dc.batchPool
 			cached.Gradients = dc.gradients

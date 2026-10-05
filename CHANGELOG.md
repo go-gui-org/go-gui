@@ -187,6 +187,14 @@ and this project adheres to
 
 ### Fixed
 
+- **A canvas whose batch count changes per redraw no longer allocates (#940)** —
+  a redraw that emitted fewer triangle batches or lowered gradients than the one
+  before dropped the spare pooled buffers, so the next larger redraw allocated
+  them again. A `ThinkingOrb` tick, whose batch count moves every frame,
+  allocated about 7 times; it now allocates nothing once the animation has run a
+  full cycle. A canvas now keeps the buffers of its largest redraw for as long
+  as its cache entry lives.
+
 - **An idle window with a focused input stops rendering after 10 s (#929)** —
   the caret blinked for as long as an input held focus, and each blink presents
   a full frame. With software GL on a slow device, such as a phone running

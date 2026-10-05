@@ -109,6 +109,38 @@ func (dc *DrawContext) takeGradient() *DrawCanvasGradientEntry {
 	return &dc.gradients[len(dc.gradients)-1]
 }
 
+// carryUnclaimed moves the pooled buffers this redraw did not claim
+// into the backing arrays past the emitted lengths, and reports how far
+// each array's owned headers now reach (#940).
+//
+// Without it a redraw that emits fewer batches than the one before
+// drops the rest of the pool: it is the array the next redraw writes
+// headers over. A canvas whose batch count moves every frame — the
+// ThinkingOrb, whose ink alpha changes the color run-lengths — then
+// allocates the dropped buffers new each time the count goes back up.
+//
+// The carried buffers are disjoint from the emitted ones, since each
+// pool entry is claimed at most once, so ownership stays single. The
+// cost is that a canvas keeps the buffers of its largest redraw for as
+// long as its cache entry lives, the same retention takeBatch already
+// accepts for a single large buffer.
+//
+// append grows the header array only when the peak count grows, so the
+// steady state is allocation-free.
+func (dc *DrawContext) carryUnclaimed() (batchHigh, gradHigh int) {
+	if n := len(dc.batches); n < len(dc.batchPool) {
+		dc.batches = append(dc.batches, dc.batchPool[n:]...)
+		batchHigh = len(dc.batches)
+		dc.batches = dc.batches[:n]
+	}
+	if n := len(dc.gradients); n < len(dc.gradientPool) {
+		dc.gradients = append(dc.gradients, dc.gradientPool[n:]...)
+		gradHigh = len(dc.gradients)
+		dc.gradients = dc.gradients[:n]
+	}
+	return batchHigh, gradHigh
+}
+
 // resetFor rebinds this context to one canvas's redraw, reusing
 // everything the previous redraw left behind so an animated canvas
 // tessellates without allocating.
@@ -133,9 +165,11 @@ func (dc *DrawContext) resetFor(w, h, scale float32, tm TextMeasurer,
 	dc.textMeasure = tm
 	dc.recorder = nil
 
-	dc.batchPool = prev.Batches
+	// The pool runs past len(prev.Batches) to the headers the last
+	// redraw carried forward unclaimed; see carryUnclaimed.
+	dc.batchPool = prev.Batches[:max(len(prev.Batches), prev.batchHigh)]
 	dc.batches = prev.spare[:0]
-	dc.gradientPool = prev.Gradients
+	dc.gradientPool = prev.Gradients[:max(len(prev.Gradients), prev.gradHigh)]
 	dc.gradients = prev.gradSpare[:0]
 	// Cleared, not just truncated. Both entry types hold pointer-shaped
 	// fields — a Text string, an Image Src and its ImageFetcher, which

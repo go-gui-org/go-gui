@@ -268,13 +268,11 @@ func TestDrawCanvasVersionFnPanicFallsBackToVersion(t *testing.T) {
 // view function and layout for the whole window: about 1600 allocations
 // on a 200-button screen.
 //
-// The orb is the one case above zero, and the allocations are its canvas
-// redraw, not the frame: its ink alpha changes every frame, so the
-// number of color batches changes, and DrawContext.takeBatch allocates
-// whenever a redraw needs more batches than the last one left in the
-// pool. A full frame paid the same redraw cost before this change.
+// The orb's canvas redraw is included and allocates nothing either. Its
+// ink alpha changes every frame, so its batch count moves; the pooled
+// buffers a smaller redraw leaves unclaimed are carried forward, not
+// dropped (#940).
 func TestRenderOnlyAnimTickAllocs(t *testing.T) {
-	budget := map[string]float64{"thinking_orb": 10}
 	for _, c := range renderOnlyAnimCases() {
 		t.Run(c.name, func(t *testing.T) {
 			w := newRenderOnlyAnimWindow(t, c.build)
@@ -290,12 +288,15 @@ func TestRenderOnlyAnimTickAllocs(t *testing.T) {
 				}
 				w.renderOnlyLocked()
 			}
-			// Warm the canvas buffer pool and the state maps.
-			for range 4 {
+			// Warm the canvas buffer pool and the state maps. Two full
+			// cycles of v: the orb's batch count reaches a new peak now
+			// and then within a cycle, and each new peak allocates the
+			// buffers it adds. After that the pool holds the peak.
+			for range 200 {
 				tick()
 			}
-			if got, want := testing.AllocsPerRun(50, tick), budget[c.name]; got > want {
-				t.Errorf("tick allocs = %v, want <= %v", got, want)
+			if got := testing.AllocsPerRun(50, tick); got > 0 {
+				t.Errorf("tick allocs = %v, want 0", got)
 			}
 		})
 	}
