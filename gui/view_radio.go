@@ -49,9 +49,10 @@ func Radio(cfg RadioCfg) View {
 	// No ID: take a generated leaf at generation time (#881); see
 	// id_auto.go.
 	if cfg.ID == "" && !cfg.FocusDisabled {
+		autoCfg := cfg
 		return ViewFunc(func(vw *Window) View {
-			cfg.ID = vw.autoLeaf("radio")
-			return Radio(cfg)
+			autoCfg.ID = vw.autoLeaf("radio")
+			return Radio(autoCfg)
 		})
 	}
 	applyRadioDefaults(&cfg)

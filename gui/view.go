@@ -33,6 +33,37 @@ func (f ViewFunc) GenerateLayout(w *Window) Layout {
 	return generateViewLayout(v, w)
 }
 
+// cfgDeferView defers a build to layout generation, as ViewFunc does,
+// but keeps the cfg by value in the view. A ViewFunc closure that reads
+// cfg captures it by reference, because Cfg structs are larger than the
+// 128 bytes Go copies into a closure. Go then moves cfg to the heap, so
+// the deferral costs two allocations: the closure and the cfg. This
+// view costs one.
+//
+// build must capture nothing: a top-level func, or a func literal that
+// reads only its parameters. A capturing literal is a closure, which
+// costs the allocation this view exists to save. It gets a copy of cfg
+// on each call: what it writes to cfg (an auto leaf, for example) does
+// not stay for the next frame.
+type cfgDeferView[C any] struct {
+	cfg   C
+	build func(*Window, C) View
+}
+
+// deferCfg returns a view that calls build(w, cfg) at generation time.
+func deferCfg[C any](cfg C, build func(*Window, C) View) View {
+	return &cfgDeferView[C]{cfg: cfg, build: build}
+}
+
+// GenerateLayout calls build and builds the Layout tree of its view.
+func (v *cfgDeferView[C]) GenerateLayout(w *Window) Layout {
+	built := v.build(w, v.cfg)
+	if built == nil {
+		return Layout{}
+	}
+	return generateViewLayout(built, w)
+}
+
 // ensureLayoutShape normalizes layout nodes so pipeline passes can
 // safely dereference Shape fields.
 func ensureLayoutShape(layout *Layout) {

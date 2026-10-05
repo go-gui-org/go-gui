@@ -255,8 +255,8 @@ func numericStepProbe(
 	w = &Window{}
 	layout := generateViewLayout(NumericInput(cfg), w)
 	ly = &layout
-	return numericInputOnKeyDown(cfg, locale, stepCfg),
-		numericInputOnWheel(cfg, locale, stepCfg), got, w, ly
+	return numericInputOnKeyDown(&cfg, locale, stepCfg),
+		numericInputOnWheel(&cfg, locale, stepCfg), got, w, ly
 }
 
 func TestNumericInputArrowKeysStepByDefault(t *testing.T) {

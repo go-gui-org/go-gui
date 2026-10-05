@@ -47,7 +47,7 @@ func inputTextChange(hcfg inputHandlerCfg, layout *Layout, text, ins string, id 
 	return text, false
 }
 
-func makeInputOnChar(hcfg inputHandlerCfg) func(EventCtx) {
+func makeInputOnChar(hcfg *inputHandlerCfg) func(EventCtx) {
 	return func(ctx EventCtx) {
 		// No originating event (a synthetic dispatch): there is no
 		// character to insert, so decline and let it travel on.
@@ -81,7 +81,7 @@ func makeInputOnChar(hcfg inputHandlerCfg) func(EventCtx) {
 		if len(ins) == 0 {
 			ins = string(rune(ch))
 		}
-		text, changed := inputTextChange(hcfg, ctx.Layout, text, ins, id, ctx.Window)
+		text, changed := inputTextChange(*hcfg, ctx.Layout, text, ins, id, ctx.Window)
 
 		if changed {
 			resetBlinkCursorVisible(ctx.Window)
@@ -115,7 +115,7 @@ func inputKeyMutatesText(e *Event, mode inputMode) bool {
 	return false
 }
 
-func makeInputOnKeyDown(hcfg inputHandlerCfg) func(EventCtx) {
+func makeInputOnKeyDown(hcfg *inputHandlerCfg) func(EventCtx) {
 	mask := hcfg.CompiledMask
 	return func(ctx EventCtx) {
 		// No originating event: no key to act on, so decline.
@@ -171,7 +171,7 @@ func makeInputOnKeyDown(hcfg inputHandlerCfg) func(EventCtx) {
 				isShift, savedOffset, false, hcfg.Mode, gl, glOK)
 		case KeyEnter:
 			text, textChanged = inputKeyEnter(
-				hcfg, ctx.Layout, text, id, ctx.Event, ctx.Window)
+				*hcfg, ctx.Layout, text, id, ctx.Event, ctx.Window)
 		case KeyEscape:
 			inputKeyEscape(imap, id, is)
 			handled = false
@@ -188,7 +188,7 @@ func makeInputOnKeyDown(hcfg inputHandlerCfg) func(EventCtx) {
 			if ctx.Event.Modifiers.HasAny(ModCtrl, ModSuper) {
 				text, textChanged = inputKeyPaste(
 					text, ctx.Window.GetClipboard(), id,
-					mask, hcfg, ctx.Window)
+					mask, *hcfg, ctx.Window)
 			} else {
 				handled = false
 			}
@@ -223,7 +223,7 @@ func makeInputOnKeyDown(hcfg inputHandlerCfg) func(EventCtx) {
 	}
 }
 
-func makeInputOnKeyUp(hcfg inputHandlerCfg) func(EventCtx) {
+func makeInputOnKeyUp(hcfg *inputHandlerCfg) func(EventCtx) {
 	return func(ctx EventCtx) {
 		// No originating event: nothing to forward, so decline.
 		if ctx.Event == nil {

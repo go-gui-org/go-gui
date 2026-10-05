@@ -259,6 +259,10 @@ func Breadcrumb(cfg BreadcrumbCfg) View {
 		}))
 	}
 
+	// The key handler reads locals, not cfg: capturing cfg would move
+	// the whole BreadcrumbCfg to the heap on every call.
+	disabled, items, selected := cfg.Disabled, cfg.Items, cfg.Selected
+	onSelect, bcID := cfg.OnSelect, cfg.ID
 	return Column(ContainerCfg{
 		ID:        cfg.ID,
 		Focusable: cfg.Focusable,
@@ -277,8 +281,8 @@ func Breadcrumb(cfg BreadcrumbCfg) View {
 		Disabled:    cfg.Disabled,
 		Invisible:   cfg.Invisible,
 		OnKeyDown: func(ctx EventCtx) {
-			bcOnKeydown(cfg.Disabled, cfg.Items, cfg.Selected,
-				cfg.OnSelect, cfg.ID, ctx.Event, ctx.Window)
+			bcOnKeydown(disabled, items, selected,
+				onSelect, bcID, ctx.Event, ctx.Window)
 		},
 		Content: outerContent,
 	})

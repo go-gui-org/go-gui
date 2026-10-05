@@ -60,9 +60,10 @@ func ColorChannelSlider(cfg ColorChannelSliderCfg) View {
 	// No ID: take a generated leaf at generation time (#881); see
 	// id_auto.go.
 	if cfg.ID == "" && !cfg.FocusDisabled {
+		autoCfg := cfg
 		return ViewFunc(func(vw *Window) View {
-			cfg.ID = vw.autoLeaf("colorchannelslider")
-			return ColorChannelSlider(cfg)
+			autoCfg.ID = vw.autoLeaf("colorchannelslider")
+			return ColorChannelSlider(autoCfg)
 		})
 	}
 	applyColorChannelSliderDefaults(&cfg)

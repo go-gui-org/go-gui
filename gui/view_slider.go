@@ -109,9 +109,10 @@ func Slider(cfg SliderCfg) View {
 	// No ID: take a generated leaf at generation time (#881); see
 	// id_auto.go.
 	if cfg.ID == "" {
+		autoCfg := cfg
 		return ViewFunc(func(vw *Window) View {
-			cfg.ID = vw.autoLeaf("slider")
-			return Slider(cfg)
+			autoCfg.ID = vw.autoLeaf("slider")
+			return Slider(autoCfg)
 		})
 	}
 	applySliderDefaults(&cfg)
@@ -173,6 +174,9 @@ func Slider(cfg SliderCfg) View {
 	thumbSize := cfg.ThumbSize
 	colors := cfg.Colors
 	disabled := cfg.Disabled
+	// A local, not cfg.ColorLeft, in the AmendLayout closure: capturing
+	// cfg moves the whole SliderCfg to the heap on every call.
+	colorLeft := cfg.ColorLeft
 
 	trackSizing := FillFixed
 	if cfg.Vertical {
@@ -223,7 +227,7 @@ func Slider(cfg SliderCfg) View {
 			func(ctx EventCtx) {
 				sliderAmendLayoutSlide(ctx.Layout, ctx.Window,
 					onChange, value, minVal, maxVal, step, size, szBorder,
-					vertical, colors.Focus, cfg.ColorLeft, disabled,
+					vertical, colors.Focus, colorLeft, disabled,
 					ctx.Layout.Shape.idKey(), roundValue)
 			},
 			// Ring shadow on the focusable wrapper; the track keeps its

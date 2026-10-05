@@ -66,9 +66,10 @@ func ThinkingOrb(cfg ThinkingOrbCfg) View {
 	// No ID: take a generated leaf at generation time (#881); see
 	// id_auto.go.
 	if cfg.ID == "" {
+		autoCfg := cfg
 		return ViewFunc(func(vw *Window) View {
-			cfg.ID = vw.autoLeaf("thinkingorb")
-			return ThinkingOrb(cfg)
+			autoCfg.ID = vw.autoLeaf("thinkingorb")
+			return ThinkingOrb(autoCfg)
 		})
 	}
 	return &thinkingOrbView{cfg: cfg}
@@ -81,9 +82,10 @@ func ThinkingOrbLabel(cfg ThinkingOrbLabelCfg) View {
 	// No ID: take a generated leaf at generation time (#881); see
 	// id_auto.go.
 	if cfg.ID == "" {
+		autoCfg := cfg
 		return ViewFunc(func(vw *Window) View {
-			cfg.ID = vw.autoLeaf("thinkingorblabel")
-			return ThinkingOrbLabel(cfg)
+			autoCfg.ID = vw.autoLeaf("thinkingorblabel")
+			return ThinkingOrbLabel(autoCfg)
 		})
 	}
 	return &thinkingOrbLabelView{cfg: cfg}

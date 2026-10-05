@@ -59,16 +59,22 @@ type RadioButtonGroupCfg struct {
 // RadioButtonGroupColumn creates a vertically stacked radio
 // button group.
 func RadioButtonGroupColumn(cfg RadioButtonGroupCfg) View {
-	return radioGroup(cfg, Column)
+	return deferCfg(cfg, func(vw *Window, c RadioButtonGroupCfg) View {
+		return radioGroup(vw, c, Column)
+	})
 }
 
 // RadioButtonGroupRow creates a horizontally stacked radio
 // button group.
 func RadioButtonGroupRow(cfg RadioButtonGroupCfg) View {
-	return radioGroup(cfg, Row)
+	return deferCfg(cfg, func(vw *Window, c RadioButtonGroupCfg) View {
+		return radioGroup(vw, c, Row)
+	})
 }
 
-func radioGroup(cfg RadioButtonGroupCfg, axis func(ContainerCfg) View) View {
+// radioGroup builds the group at generation time; its callers defer
+// it with deferCfg.
+func radioGroup(vw *Window, cfg RadioButtonGroupCfg, axis func(ContainerCfg) View) View {
 	// No ID: take a generated leaf at generation time (#881); see
 	// id_auto.go. Also with FocusDisabled: the option IDs are scoped
 	// by this one, so every ID-less group would claim "opt:0".
@@ -76,39 +82,37 @@ func radioGroup(cfg RadioButtonGroupCfg, axis func(ContainerCfg) View) View {
 	// auto leaf opens no scope, and a leaf-built absolute would collide
 	// across panels. EffID needs the generation-time scope, so the whole
 	// build defers.
-	return ViewFunc(func(vw *Window) View {
-		if cfg.ID == "" {
-			cfg.ID = vw.autoLeaf("radiogroup")
+	if cfg.ID == "" {
+		cfg.ID = vw.autoLeaf("radiogroup")
+	}
+	owner := vw.EffID(cfg.ID)
+	applyRadioGroupDefaults(&cfg)
+	if len(cfg.Items) > 0 {
+		n := min(len(cfg.Items), maxDataConvLen)
+		cfg.Options = make([]RadioOption, n)
+		for i := range n {
+			cfg.Options[i] = RadioOption{
+				Label: cfg.Items[i], Value: cfg.Items[i]}
 		}
-		owner := vw.EffID(cfg.ID)
-		applyRadioGroupDefaults(&cfg)
-		if len(cfg.Items) > 0 {
-			n := min(len(cfg.Items), maxDataConvLen)
-			cfg.Options = make([]RadioOption, n)
-			for i := range n {
-				cfg.Options[i] = RadioOption{
-					Label: cfg.Items[i], Value: cfg.Items[i]}
-			}
-		}
-		// The group's border is the group box's, so pass the Opt through
-		// unresolved and let Container fall back to the themed container
-		// style. Resolving it here against a private literal was how this
-		// widget stayed at a 1.5px border under every theme (issue #300).
-		return axis(ContainerCfg{
-			A11YRole:    AccessRoleRadioGroup,
-			A11YCfg:     cfg.A11YCfg,
-			ColorBorder: cfg.ColorBorder,
-			SizeBorder:  cfg.SizeBorder,
-			Title:       cfg.Title,
-			TitleBG:     cfg.TitleBG,
-			Spacing:     cfg.Spacing,
-			Padding:     cfg.Padding,
-			MinWidth:    cfg.MinWidth,
-			MinHeight:   cfg.MinHeight,
-			Sizing:      cfg.Sizing,
-			Disabled:    cfg.Disabled,
-			Content:     buildRadioOptions(cfg, owner),
-		})
+	}
+	// The group's border is the group box's, so pass the Opt through
+	// unresolved and let Container fall back to the themed container
+	// style. Resolving it here against a private literal was how this
+	// widget stayed at a 1.5px border under every theme (issue #300).
+	return axis(ContainerCfg{
+		A11YRole:    AccessRoleRadioGroup,
+		A11YCfg:     cfg.A11YCfg,
+		ColorBorder: cfg.ColorBorder,
+		SizeBorder:  cfg.SizeBorder,
+		Title:       cfg.Title,
+		TitleBG:     cfg.TitleBG,
+		Spacing:     cfg.Spacing,
+		Padding:     cfg.Padding,
+		MinWidth:    cfg.MinWidth,
+		MinHeight:   cfg.MinHeight,
+		Sizing:      cfg.Sizing,
+		Disabled:    cfg.Disabled,
+		Content:     buildRadioOptions(cfg, owner),
 	})
 }
 

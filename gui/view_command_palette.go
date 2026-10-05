@@ -88,9 +88,10 @@ func CommandPalette(cfg CommandPaletteCfg) View {
 	// No ID: take a generated leaf at generation time (#881); see
 	// id_auto.go.
 	if cfg.ID == "" {
+		autoCfg := cfg
 		return ViewFunc(func(vw *Window) View {
-			cfg.ID = vw.autoLeaf("commandpalette")
-			return CommandPalette(cfg)
+			autoCfg.ID = vw.autoLeaf("commandpalette")
+			return CommandPalette(autoCfg)
 		})
 	}
 	applyCommandPaletteDefaults(&cfg)

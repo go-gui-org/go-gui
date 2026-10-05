@@ -84,9 +84,10 @@ func DatePickerRoller(cfg DatePickerRollerCfg) View {
 	// No ID: take a generated leaf at generation time (#881); see
 	// id_auto.go.
 	if cfg.ID == "" {
+		autoCfg := cfg
 		return ViewFunc(func(vw *Window) View {
-			cfg.ID = vw.autoLeaf("datepickerroller")
-			return DatePickerRoller(cfg)
+			autoCfg.ID = vw.autoLeaf("datepickerroller")
+			return DatePickerRoller(autoCfg)
 		})
 	}
 	applyRollerDefaults(&cfg)

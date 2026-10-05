@@ -170,15 +170,17 @@ func Table(cfg TableCfg) View {
 	// No ID: take a generated leaf at generation time (#881); see
 	// id_auto.go.
 	if cfg.ID == "" {
+		autoCfg := cfg
 		return ViewFunc(func(vw *Window) View {
-			cfg.ID = vw.autoLeaf("table")
-			return Table(cfg)
+			autoCfg.ID = vw.autoLeaf("table")
+			return Table(autoCfg)
 		})
 	}
-	return ViewFunc(func(w *Window) View {
-		return tableView(cfg, w)
-	})
+	return deferCfg(cfg, tableBuild)
 }
+
+// tableBuild is tableView in the argument order deferCfg calls.
+func tableBuild(w *Window, cfg TableCfg) View { return tableView(cfg, w) }
 
 // Table generates a table with text measurement, column width
 // caching, and optional virtualization.
@@ -192,9 +194,7 @@ func Table(cfg TableCfg) View {
 // an ID-bearing panel would key its state on the bare leaf. See issue
 // #518.
 func (*Window) Table(cfg TableCfg) View {
-	return ViewFunc(func(w *Window) View {
-		return tableView(cfg, w)
-	})
+	return deferCfg(cfg, tableBuild)
 }
 
 // tableScrollID returns the scroll key for a table. The freeze path

@@ -211,7 +211,7 @@ func menuItem(menubarCfg MenubarCfg, itemCfg MenuItemCfg, extra ...View) View {
 		Radius:   RadiusPx(itemCfg.radius),
 		Disabled: itemCfg.disabled,
 		Sound:    itemSound,
-		OnClick:  menuItemClick(menubarCfg, itemCfg),
+		OnClick:  menuItemClick(menubarCfg.ID, menubarCfg.Action, itemCfg),
 		OnHover:  onHover,
 		// Reaches the label only: an attached submenu is a container,
 		// not a text shape, so the hook passes over it.
@@ -220,10 +220,14 @@ func menuItem(menubarCfg MenubarCfg, itemCfg MenuItemCfg, extra ...View) View {
 	})
 }
 
-// menuItemClick returns the OnClick handler for a menu item.
-func menuItemClick(cfg MenubarCfg, itemCfg MenuItemCfg) func(EventCtx) {
+// menuItemClick returns the OnClick handler for a menu item. It takes
+// the two MenubarCfg fields it reads, not the whole cfg: the handler is
+// built for every item on every frame, and capturing a MenubarCfg would
+// copy it to the heap each time.
+func menuItemClick(menuID string, menuAction func(string, EventCtx),
+	itemCfg MenuItemCfg) func(EventCtx) {
 	return func(ctx EventCtx) {
-		ctx.Window.SetFocus(cfg.ID)
+		ctx.Window.SetFocus(menuID)
 
 		if !isSelectableMenuID(itemCfg.ID) {
 			return
@@ -231,14 +235,14 @@ func menuItemClick(cfg MenubarCfg, itemCfg MenuItemCfg) func(EventCtx) {
 
 		sm := StateMap[string, string](
 			ctx.Window, nsMenu, capModerate)
-		sm.Set(cfg.ID, itemCfg.ID)
+		sm.Set(menuID, itemCfg.ID)
 
 		if itemCfg.Action != nil {
 			itemCfg.Action(&itemCfg, EventCtx{nil, ctx.Event, ctx.Window})
 		}
 		focusBeforeAction := ctx.Window.FocusID()
-		if cfg.Action != nil {
-			cfg.Action(itemCfg.ID, EventCtx{nil, ctx.Event, ctx.Window})
+		if menuAction != nil {
+			menuAction(itemCfg.ID, EventCtx{nil, ctx.Event, ctx.Window})
 		}
 
 		// Close menu if leaf item (no submenu). Only reset focus to
@@ -248,7 +252,7 @@ func menuItemClick(cfg MenubarCfg, itemCfg MenuItemCfg) func(EventCtx) {
 			if ctx.Window.FocusID() == focusBeforeAction {
 				ctx.Window.ClearFocus()
 			}
-			sm.Delete(cfg.ID)
+			sm.Delete(menuID)
 		}
 
 		ctx.Consume()

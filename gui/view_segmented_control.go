@@ -87,9 +87,10 @@ func SegmentedControl(cfg SegmentedControlCfg) View {
 	// IDs scoped by this one, so two ID-less copies would otherwise
 	// both claim "opt:0".
 	if cfg.ID == "" {
+		autoCfg := cfg
 		return ViewFunc(func(vw *Window) View {
-			cfg.ID = vw.autoLeaf("segmentedcontrol")
-			return SegmentedControl(cfg)
+			autoCfg.ID = vw.autoLeaf("segmentedcontrol")
+			return SegmentedControl(autoCfg)
 		})
 	}
 	ownDisabledColor := cfg.ColorsSegment.Disabled.IsSet()

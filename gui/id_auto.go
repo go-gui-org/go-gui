@@ -62,11 +62,19 @@ const capAutoLeaves = 4096
 // branch of a factory whose cfg.ID is empty:
 //
 //	if cfg.ID == "" {
+//		autoCfg := cfg
 //		return ViewFunc(func(w *Window) View {
-//			cfg.ID = w.autoLeaf("slider")
-//			return Slider(cfg)
+//			autoCfg.ID = w.autoLeaf("slider")
+//			return Slider(autoCfg)
 //		})
 //	}
+//
+// The closure captures autoCfg, a copy local to the branch, never the
+// cfg parameter. A Cfg is larger than the 128 bytes Go copies into a
+// closure, so the capture is by reference. Captured, the parameter
+// moves to the heap when the call starts, and every call pays for it,
+// also when ID is set. The local moves only when the branch runs.
+// TestFactoryCfgDoesNotEscape pins this.
 //
 // kind must be a constant. Its string is part of the counter key and
 // the leaf-cache key, so a constant keeps both free of allocation.

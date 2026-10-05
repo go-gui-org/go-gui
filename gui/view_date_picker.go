@@ -131,9 +131,10 @@ func DatePicker(cfg DatePickerCfg) View {
 	// No ID: take a generated leaf at generation time (#881); see
 	// id_auto.go.
 	if cfg.ID == "" {
+		autoCfg := cfg
 		return ViewFunc(func(vw *Window) View {
-			cfg.ID = vw.autoLeaf("datepicker")
-			return DatePicker(cfg)
+			autoCfg.ID = vw.autoLeaf("datepicker")
+			return DatePicker(autoCfg)
 		})
 	}
 	applyDatePickerDefaults(&cfg)

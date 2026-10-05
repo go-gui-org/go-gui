@@ -197,9 +197,10 @@ func Input(cfg InputCfg) View {
 	// No ID: take a generated leaf at generation time (#881); see
 	// id_auto.go.
 	if cfg.ID == "" && !cfg.FocusDisabled {
+		autoCfg := cfg
 		return ViewFunc(func(vw *Window) View {
-			cfg.ID = vw.autoLeaf("input")
-			return Input(cfg)
+			autoCfg.ID = vw.autoLeaf("input")
+			return Input(autoCfg)
 		})
 	}
 	applyInputDefaults(&cfg)
@@ -226,7 +227,9 @@ func Input(cfg InputCfg) View {
 	spellChk := cfg.SpellCheck && !cfg.IsPassword
 	onBlur := cfg.OnBlur
 
-	hcfg := inputHandlerCfg{
+	// One heap copy shared by the four handlers below. Passed by value,
+	// each handler's closure would move its own copy to the heap.
+	hcfg := &inputHandlerCfg{
 		FocusID:             cfg.ID,
 		scrollID:            inputScrollIDFor(&cfg),
 		IsPassword:          cfg.IsPassword,
@@ -688,7 +691,7 @@ func inputOnClick(leafID, leafScrollID string, canFocus bool) func(EventCtx) {
 }
 
 func inputAmendLayout(
-	hcfg inputHandlerCfg, colors ColorSet, spellChk bool,
+	hcfg *inputHandlerCfg, colors ColorSet, spellChk bool,
 	onBlur func(EventCtx), onMouseScroll func(EventCtx), noFocusRing bool,
 ) func(EventCtx) {
 	// Captured at generation; see focusRingAmend.
@@ -706,7 +709,7 @@ func inputAmendLayout(
 			}
 			ctx.Layout.Shape.events.OnMouseScroll = onMouseScroll
 		}
-		inputApplyScrollX(hcfg, ctx.Layout, ctx.Window)
+		inputApplyScrollX(*hcfg, ctx.Layout, ctx.Window)
 		if !ctx.Layout.Shape.Focusable || ctx.Layout.Shape.ID == "" {
 			return
 		}

@@ -132,6 +132,18 @@ and this project adheres to
 
 ### Changed
 
+- **Widget factories no longer copy their Cfg to the heap on every call (#937)**
+  — a factory with an auto-ID branch built a `ViewFunc` closure that captured
+  the `cfg` parameter. A Cfg is larger than the 128 bytes Go copies into a
+  closure, so Go moved the whole Cfg to the heap at the start of each call, also
+  when `ID` was set and the closure was never built. The branch now captures a
+  copy of its own, and handlers that read a few Cfg fields capture those fields.
+  A frame of 50 rows (`BenchmarkViewFrame/rows_50`) drops from 353 to 202
+  allocations, from 158 KiB to 87 KiB, and builds 30% faster. A frame of 50
+  buttons drops from 453 to 352 allocations. `Column`, `Row`, `Button` and most
+  input factories now allocate once per call, the view itself.
+  `TestFactoryCfgDoesNotEscape` holds each factory to its count. No API changes.
+
 - **File dialogs fall back to an in-window file browser (#831)** — when there is
   no native file picker, `NativeOpenDialog`, `NativeSaveDialog` and
   `NativeFolderDialog` used to call `OnDone` at once with a `DialogError`
