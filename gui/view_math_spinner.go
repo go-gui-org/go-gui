@@ -176,7 +176,7 @@ var mathSpinnerCurveDefaults = [...]mathSpinnerDefaults{
 
 // MathSpinnerCfg configures a mathematical curve spinner.
 type MathSpinnerCfg struct {
-	ID          string
+	ID          string `gui:"auto"`
 	CurveType   CurveType
 	Color       Color
 	StrokeWidth float32
@@ -259,7 +259,30 @@ func mathSpinnerPhase(w *Window, id, rotKey string) (progress, rotation float32)
 }
 
 // MathSpinner creates an animated mathematical curve loading indicator.
-func MathSpinner(cfg MathSpinnerCfg, w *Window) View {
+//
+// The window argument is unused. The spinner keys its animation by its
+// effective ID, which exists only while the layout is generated, so the
+// work moved to GenerateLayout (#941). The parameter stays so callers
+// keep compiling.
+func MathSpinner(cfg MathSpinnerCfg, _ *Window) View {
+	// No ID: take a generated leaf at generation time (#881); see
+	// id_auto.go.
+	if cfg.ID == "" {
+		autoCfg := cfg
+		return ViewFunc(func(vw *Window) View {
+			autoCfg.ID = vw.autoLeaf("mathspinner")
+			return MathSpinner(autoCfg, vw)
+		})
+	}
+	return &mathSpinnerView{cfg: cfg}
+}
+
+type mathSpinnerView struct {
+	cfg MathSpinnerCfg
+}
+
+func (v *mathSpinnerView) GenerateLayout(w *Window) Layout {
+	cfg := v.cfg
 	if !cfg.Color.IsSet() {
 		cfg.Color = guiTheme.ColorActive
 	}
@@ -301,18 +324,19 @@ func MathSpinner(cfg MathSpinnerCfg, w *Window) View {
 	width := mathSpinnerPositive(cfg.Width, cfg.Size)
 	height := mathSpinnerPositive(cfg.Height, cfg.Size)
 
-	id := cfg.ID
+	// Every key is built from the effective ID, not cfg.ID (#941): two
+	// spinners with one leaf under different ID-bearing parents, or two
+	// with generated leaves, otherwise share one tick and one progress
+	// slot. An auto leaf opens no scope, so the canvas ID is composed
+	// from the resolved ID too.
+	eid := w.EffID(cfg.ID)
 	dur := mathSpinnerDuration(cfg.Speed)
 	rotate := cfg.Rotate
-	rotKey := ScopeID(id, "rot")
+	rotKey := ScopeID(eid, "rot")
 	// Built here, once per full frame, and captured by the hook below,
 	// so a render-only tick builds no strings.
-	animID := ScopeID("math_spinner", id)
-	rotAnimID := ScopeID("math_spinner", id, "rot")
-	// Registered here, at view time, so the ticks exist from the first
-	// frame; the AmendLayout hook below repeats the call on frames that
-	// skip the view.
-	mathSpinnerSyncAnims(w, id, rotKey, animID, rotAnimID, dur, rotate)
+	animID := ScopeID("math_spinner", eid)
+	rotAnimID := ScopeID("math_spinner", eid, "rot")
 
 	family := defs.family
 	particles := cfg.Particles
@@ -322,14 +346,16 @@ func MathSpinner(cfg MathSpinnerCfg, w *Window) View {
 
 	sizing := cfg.Sizing.Or(FixedFixed)
 
-	return Row(ContainerCfg{
+	return generateViewLayout(Row(ContainerCfg{
 		ID: cfg.ID,
 		// The ticks only change what the canvas draws: the canvas
 		// reads them through VersionFn and OnDraw, and this hook keeps
-		// the ticks alive, so a render-only frame is enough.
+		// the ticks alive, so a render-only frame is enough. It runs
+		// before the first render, so the ticks exist from the first
+		// frame.
 		amendOnRender: true,
 		AmendLayout: func(ctx EventCtx) {
-			mathSpinnerSyncAnims(ctx.Window, id, rotKey, animID, rotAnimID,
+			mathSpinnerSyncAnims(ctx.Window, eid, rotKey, animID, rotAnimID,
 				dur, rotate)
 		},
 		Sizing:     sizing,
@@ -343,24 +369,24 @@ func MathSpinner(cfg MathSpinnerCfg, w *Window) View {
 		MaxHeight:  cfg.MaxHeight,
 		Content: []View{
 			DrawCanvas(DrawCanvasCfg{
-				ID:     ScopeID(id, "cv"),
+				ID:     ScopeID(eid, "cv"),
 				Sizing: FillFill,
 				Clip:   true,
 				// Read live, not captured at view time: a render-only
 				// frame reuses this closure with newer tick values.
 				VersionFn: func() uint64 {
-					progress, rotation := mathSpinnerPhase(w, id, rotKey)
+					progress, rotation := mathSpinnerPhase(w, eid, rotKey)
 					return uint64(math.Float32bits(progress + rotation))
 				},
 				OnDraw: func(dc *DrawContext) {
-					progress, rotation := mathSpinnerPhase(w, id, rotKey)
+					progress, rotation := mathSpinnerPhase(w, eid, rotKey)
 					mathSpinnerDraw(dc, family, progress, rotation,
 						particles, trailSpan, strokeWidth,
 						paramA, paramB, paramD, color)
 				},
 			}),
 		},
-	})
+	}), w)
 }
 
 func mathSpinnerDraw(

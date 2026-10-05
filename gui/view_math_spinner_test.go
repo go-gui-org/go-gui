@@ -2,6 +2,7 @@ package gui
 
 import (
 	"math"
+	"strings"
 	"testing"
 	"time"
 )
@@ -249,9 +250,11 @@ func TestMathSpinnerParticlesClamped(t *testing.T) {
 	}
 }
 
+// The ticks register in the AmendLayout hook, so a frame has to run.
 func TestMathSpinnerAnimationIsViewBound(t *testing.T) {
-	w := &Window{}
-	MathSpinner(MathSpinnerCfg{ID: "sp1"}, w)
+	w := newRenderOnlyAnimWindow(t, func(w *Window) View {
+		return MathSpinner(MathSpinnerCfg{ID: "sp1"}, w)
+	})
 	if w.animViewBound == nil {
 		t.Fatal("animViewBound nil after MathSpinner — animation not view-bound")
 	}
@@ -307,13 +310,13 @@ func TestMathSpinnerDuration(t *testing.T) {
 func TestMathSpinnerBadSpeedStillAnimates(t *testing.T) {
 	for _, speed := range []float32{0, -2,
 		float32(math.NaN()), float32(math.Inf(1))} {
-		w := &Window{}
-		v := MathSpinner(MathSpinnerCfg{ID: "bad", Speed: speed}, w)
-		layout := generateViewLayout(v, w)
+		v := MathSpinner(MathSpinnerCfg{ID: "bad", Speed: speed}, nil)
+		layout := generateViewLayout(v, &Window{})
 		if layout.Shape.Width != 48 {
 			t.Errorf("speed %v: width = %f, want 48",
 				speed, layout.Shape.Width)
 		}
+		w := newRenderOnlyAnimWindow(t, func(*Window) View { return v })
 		if _, ok := w.animViewBound["math_spinner:bad"]; !ok {
 			t.Errorf("speed %v: animation not registered", speed)
 		}
@@ -485,5 +488,74 @@ func TestMathSpinnerGhostCacheEviction(t *testing.T) {
 		t.Errorf("cache holds %d entries, want <= %d",
 			len(mathSpinnerGhostCache.pts),
 			mathSpinnerGhostCacheSize)
+	}
+}
+
+// mathSpinnerTicks returns the window's MathSpinner ticks, one per
+// spinner: the rotation ticks when rot is set, the progress ticks
+// otherwise.
+func mathSpinnerTicks(w *Window, rot bool) []*KeyframeAnimation {
+	var out []*KeyframeAnimation
+	for _, kf := range renderOnlyAnimKeyframes(w) {
+		if strings.HasPrefix(kf.AnimID, "math_spinner") &&
+			strings.HasSuffix(kf.AnimID, IDSep+"rot") == rot {
+			out = append(out, kf)
+		}
+	}
+	return out
+}
+
+// Two spinners must each own a tick and a progress slot (#941). Before,
+// the keys came from the bare cfg.ID, so a shared leaf under two
+// ID-bearing panels, or two spinners with no ID at all, shared one tick
+// and drew the same frame.
+func TestMathSpinnerTwoSpinnersAnimateIndependently(t *testing.T) {
+	cases := map[string]func(*Window) View{
+		"same leaf, two scopes": func(w *Window) View {
+			return Row(ContainerCfg{Content: []View{
+				Column(ContainerCfg{ID: "a", Content: []View{
+					MathSpinner(MathSpinnerCfg{ID: "ms", Rotate: true}, w),
+				}}),
+				Column(ContainerCfg{ID: "b", Content: []View{
+					MathSpinner(MathSpinnerCfg{ID: "ms", Rotate: true}, w),
+				}}),
+			}})
+		},
+		"no IDs": func(w *Window) View {
+			return Row(ContainerCfg{Content: []View{
+				MathSpinner(MathSpinnerCfg{Rotate: true}, w),
+				MathSpinner(MathSpinnerCfg{Rotate: true}, w),
+			}})
+		},
+	}
+	for name, build := range cases {
+		t.Run(name, func(t *testing.T) {
+			w := newRenderOnlyAnimWindow(t, build)
+			// The rotation tick is keyed like the progress tick, so it
+			// must split the same way.
+			for _, rot := range []bool{false, true} {
+				if ticks := mathSpinnerTicks(w, rot); len(ticks) != 2 {
+					ids := make([]string, len(ticks))
+					for i, kf := range ticks {
+						ids[i] = kf.AnimID
+					}
+					t.Fatalf("rot=%v ticks = %q, want 2", rot, ids)
+				}
+			}
+			ticks := mathSpinnerTicks(w, false)
+			// One tick moves; the other spinner's progress must not. The
+			// rotation slots stay at 0, so only progress can read 0.5.
+			ticks[0].OnValue(0.5, w)
+			moved := 0
+			sm := StateMap[string, float32](w, nsMathSpinner, capModerate)
+			for _, k := range sm.Keys() {
+				if v, _ := sm.Get(k); v == 0.5 {
+					moved++
+				}
+			}
+			if moved != 1 {
+				t.Errorf("progress slots at 0.5 = %d, want 1", moved)
+			}
+		})
 	}
 }

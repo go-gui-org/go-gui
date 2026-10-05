@@ -203,6 +203,13 @@ and this project adheres to
 
 ### Fixed
 
+- **Two `MathSpinner`s no longer share one animation (#941)** — a spinner keyed
+  its tick and progress by the bare `ID`, so two spinners with the same `ID`
+  under different ID-bearing parents, or two with no `ID`, drew the same frame.
+  It now keys them by its effective ID, like `ThinkingOrb`, and `ID` may be
+  empty: the spinner takes a generated leaf. The `*Window` argument is now
+  unused and kept so callers still compile.
+
 - **A canvas whose batch count changes per redraw no longer allocates (#940)** —
   a redraw that emitted fewer triangle batches or lowered gradients than the one
   before dropped the spare pooled buffers, so the next larger redraw allocated
