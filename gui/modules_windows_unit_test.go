@@ -19,6 +19,12 @@ func TestLoadedModulesIncludesNtdll(t *testing.T) {
 			if m.base == 0 {
 				t.Fatal("ntdll.dll has a zero base")
 			}
+			// TimeDateStamp and SizeOfImage are the symbol-server key that
+			// names the exact ntdll build. Neither is zero in a real image.
+			if m.timeDateStamp == 0 || m.sizeOfImage == 0 {
+				t.Fatalf("ntdll.dll PE key missing: stamp %#x size %#x",
+					m.timeDateStamp, m.sizeOfImage)
+			}
 			return
 		}
 	}
