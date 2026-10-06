@@ -1381,6 +1381,15 @@ int metalCompileShadersProbe(const char* mslSrc) {
     }
 }
 
+// ─── Null Context (test hook) ─────────────────────────────────
+
+// metalTestNullCtx returns a zeroed context: no device, no encoder.
+// Draw calls return at their `!ctx->enc` guard, so Go tests can
+// count the allocations of a draw path without a GPU.
+MetalCtx metalTestNullCtx(void) {
+    return calloc(1, sizeof(MetalContext));
+}
+
 // ─── Edge Coverage Probe (test hook) ──────────────────────────
 
 // metalEdgeCoverageProbe draws one white right triangle, legs along

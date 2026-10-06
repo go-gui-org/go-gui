@@ -23,6 +23,13 @@ type metalGlyphBackend struct {
 	textures map[glyph.TextureID]metalTexInfo
 	nextID   glyph.TextureID
 	dpiScale float32
+
+	// quad is the vertex scratch every draw hands to C. cgo moves any
+	// array whose address goes to C onto the heap, so a local verts
+	// array cost one 128-byte allocation per glyph — the largest
+	// source of garbage while a terminal repaints. Main thread only;
+	// each draw overwrites it.
+	quad [4][8]float32
 }
 
 type metalTexInfo struct {
@@ -114,7 +121,7 @@ func (gb *metalGlyphBackend) DrawTexturedQuad(
 	x1 := (dst.X + dst.Width) * s
 	y1 := (dst.Y + dst.Height) * s
 
-	verts := [4][8]float32{
+	gb.quad = [4][8]float32{
 		{x0, y0, u0, v0, cr, cg, cb, ca},
 		{x1, y0, u1, v0, cr, cg, cb, ca},
 		{x1, y1, u1, v1, cr, cg, cb, ca},
@@ -124,7 +131,7 @@ func (gb *metalGlyphBackend) DrawTexturedQuad(
 	C.metalSetPipeline(gb.ctx, C.int(pipeGlyphTex))
 	C.metalBindTexture(gb.ctx, C.int(t.cID))
 	C.metalDrawGlyphQuad(gb.ctx,
-		(*C.float)(unsafe.Pointer(&verts[0])))
+		(*C.float)(unsafe.Pointer(&gb.quad[0])))
 }
 
 func (gb *metalGlyphBackend) DrawFilledRect(
@@ -137,7 +144,7 @@ func (gb *metalGlyphBackend) DrawFilledRect(
 	x1 := (dst.X + dst.Width) * s
 	y1 := (dst.Y + dst.Height) * s
 
-	verts := [4][8]float32{
+	gb.quad = [4][8]float32{
 		{x0, y0, 0, 0, cr, cg, cb, ca},
 		{x1, y0, 0, 0, cr, cg, cb, ca},
 		{x1, y1, 0, 0, cr, cg, cb, ca},
@@ -146,7 +153,7 @@ func (gb *metalGlyphBackend) DrawFilledRect(
 
 	C.metalSetPipeline(gb.ctx, C.int(pipeGlyphColor))
 	C.metalDrawGlyphQuad(gb.ctx,
-		(*C.float)(unsafe.Pointer(&verts[0])))
+		(*C.float)(unsafe.Pointer(&gb.quad[0])))
 }
 
 // DrawFilledRectTransformed implements glyph.TransformedFillBackend: the
@@ -165,18 +172,17 @@ func (gb *metalGlyphBackend) DrawFilledRectTransformed(
 	}
 
 	s := gb.dpiScale
-	var verts [4][8]float32
 	for i := range 4 {
 		px := corners[i][0]
 		py := corners[i][1]
 		tx := (tr.XX*px + tr.XY*py + tr.X0) * s
 		ty := (tr.YX*px + tr.YY*py + tr.Y0) * s
-		verts[i] = [8]float32{tx, ty, 0, 0, cr, cg, cb, ca}
+		gb.quad[i] = [8]float32{tx, ty, 0, 0, cr, cg, cb, ca}
 	}
 
 	C.metalSetPipeline(gb.ctx, C.int(pipeGlyphColor))
 	C.metalDrawGlyphQuad(gb.ctx,
-		(*C.float)(unsafe.Pointer(&verts[0])))
+		(*C.float)(unsafe.Pointer(&gb.quad[0])))
 }
 
 // Asserted, not merely implemented: the interface is optional, so a
@@ -211,13 +217,12 @@ func (gb *metalGlyphBackend) DrawTexturedQuadTransformed(
 	}
 
 	s := gb.dpiScale
-	var verts [4][8]float32
 	for i := range 4 {
 		px := corners[i][0]
 		py := corners[i][1]
 		tx := (tr.XX*px + tr.XY*py + tr.X0) * s
 		ty := (tr.YX*px + tr.YY*py + tr.Y0) * s
-		verts[i] = [8]float32{
+		gb.quad[i] = [8]float32{
 			tx, ty, uvs[i][0], uvs[i][1],
 			cr, cg, cb, ca,
 		}
@@ -226,7 +231,7 @@ func (gb *metalGlyphBackend) DrawTexturedQuadTransformed(
 	C.metalSetPipeline(gb.ctx, C.int(pipeGlyphTex))
 	C.metalBindTexture(gb.ctx, C.int(t.cID))
 	C.metalDrawGlyphQuad(gb.ctx,
-		(*C.float)(unsafe.Pointer(&verts[0])))
+		(*C.float)(unsafe.Pointer(&gb.quad[0])))
 }
 
 func (gb *metalGlyphBackend) DPIScale() float32 {

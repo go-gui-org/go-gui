@@ -95,4 +95,9 @@ int metalCompileShadersProbe(const char* mslSrc);
 //   >= 0 = count, -1 = no Metal device, -2 = setup failed.
 int metalEdgeCoverageProbe(const char* mslSrc);
 
+// Test hook: a zeroed context with no device and no encoder. Every
+// draw call stops at its `!ctx->enc` guard, so a test can run the Go
+// side of a draw path with no GPU. Free it with metalCtxDestroy.
+MetalCtx metalTestNullCtx(void);
+
 #endif

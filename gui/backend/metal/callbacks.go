@@ -478,3 +478,18 @@ func goMetalFileDrop(wid C.uint, cpath *C.char) {
 	// promptly (issue #405).
 	C.metalPostEmptyEvent()
 }
+
+// testNullBackends returns a windowState and a glyph backend over a
+// zeroed C context (see metalTestNullCtx). Every C draw call returns
+// at its encoder guard, so a test sees only the Go side of a draw
+// path — what TestDrawPathsDoNotAllocate needs to count heap
+// allocations without a GPU. The texture registered under glyph id 1
+// lets the textured-quad paths get past their lookup. Call the
+// returned func to free the context.
+func testNullBackends() (*windowState, *metalGlyphBackend, func()) {
+	ctx := C.metalTestNullCtx()
+	ws := &windowState{ctx: ctx, dpiScale: 2}
+	gb := newMetalGlyphBackend(ctx, 2)
+	gb.textures[1] = metalTexInfo{cID: 1, w: 256, h: 256}
+	return ws, gb, func() { C.metalCtxDestroy(ctx) }
+}

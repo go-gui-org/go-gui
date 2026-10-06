@@ -463,6 +463,12 @@ type windowState struct {
 	physH    int32
 	mvp      [16]float32
 
+	// Per-draw scratch handed to C by pointer: see drawQuad. Locals
+	// would escape to the heap on every draw.
+	quad [4]vertex
+	tm   [16]float32
+	tm2  [16]float32
+
 	mvpStack [][16]float32
 
 	svgVerts           []gpu.Vertex
