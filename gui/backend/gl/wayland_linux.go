@@ -34,9 +34,8 @@ import (
 const wlConfigureTimeout = 5 * time.Second
 
 // wlFrameTimeout bounds the wait for a frame callback. A compositor sends
-// none while the window is hidden or on no output. After the timeout the
-// window renders anyway, at most once per timeout, so queued commands and
-// animations still advance slowly instead of stalling forever.
+// none while the window is hidden, covered or on no output. Past it the
+// window counts as occluded (checkStall) until the callback's done.
 const wlFrameTimeout = time.Second
 
 // wlDisplay is the one compositor connection every Wayland window shares,
@@ -398,7 +397,9 @@ type wlWindow struct {
 	// frameCb is the outstanding callback, frameAt when it was asked for.
 	// frameDone is its event decoder, built once so a frame allocates no
 	// closure for it.
+	// stalled: frameCb outlived wlFrameTimeout (wayland_occlusion_linux.go).
 	throttle  bool
+	stalled   bool
 	frameCb   wl.Callback
 	frameAt   time.Time
 	frameDone wl.CallbackDispatcher
@@ -490,6 +491,7 @@ func newWaylandBackend(w *gui.Window) (*Backend, error) {
 	ww.frameDone = wl.CallbackHandlers{Done: func(uint32) {
 		ww.frameCb.DestroyProxy()
 		ww.frameCb = wl.Callback{}
+		ww.setStalled(false) // the compositor paints the window again
 	}}.Dispatcher()
 	fail := func(err error) (*Backend, error) {
 		b.plat.destroy()
@@ -742,8 +744,7 @@ func (ww *wlWindow) framePending(now time.Time) (bool, time.Duration) {
 
 // requestFrame asks for a frame callback before the frame is committed.
 // One callback is outstanding at most. When one timed out (a hidden
-// window), it stays outstanding and frameAt restarts the timeout, which
-// limits a hidden window to one frame per wlFrameTimeout.
+// window), it stays outstanding, and its done is what ends the stall.
 func (ww *wlWindow) requestFrame(now time.Time) {
 	if !ww.throttle {
 		return

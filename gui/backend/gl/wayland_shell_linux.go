@@ -103,17 +103,6 @@ func (ww *wlWindow) toplevelConfigure(width, height int32, states []byte) {
 	ww.pendSuspended = statesHave(states, wl.XdgToplevelStateSuspended)
 }
 
-// syncOccluded tells gui whether the compositor shows the window at all.
-// While suspended, running animations stop waking the main loop every
-// 16 ms (issue #953), as a minimize does on macOS, Windows and X11. The
-// configure that drops suspended marks a full refresh and wakes the loop
-// once. DispatchWindowOccluded ignores a repeat of the current state, so
-// this needs no last-sent copy, and unlike focus it needs no ready gate:
-// it only flips a flag on the gui window.
-func (ww *wlWindow) syncOccluded() {
-	gui.DispatchWindowOccluded(ww.b.plat.w, ww.pendSuspended)
-}
-
 // makeDecorFrame is makeToplevel through libdecor.
 func (ww *wlWindow) makeDecorFrame(ctx *decor.Context, cfg gui.WindowCfg) error {
 	f, err := ctx.Decorate(ww.surface.Ptr(), wlFrameEvents{ww})
