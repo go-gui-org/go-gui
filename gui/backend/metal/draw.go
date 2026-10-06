@@ -98,6 +98,23 @@ func (b *windowState) renderersDraw(w *gui.Window) {
 
 // --- Individual draw commands ---
 
+// drawQuad draws one SDF quad from b.quad. cgo moves any array whose
+// address goes to C onto the heap, so a local verts array cost one
+// allocation per rect, border and shadow. Copying into the window's
+// scratch field keeps the draw path allocation-free. Main thread only,
+// like every draw call: the field is reused by the next draw.
+func (b *windowState) drawQuad(v [4]vertex) {
+	b.quad = v
+	C.metalDrawQuad(b.ctx, (*C.float)(unsafe.Pointer(&b.quad[0])))
+}
+
+// setTM uploads a per-draw uniform matrix from b.tm, for the same
+// reason drawQuad goes through b.quad.
+func (b *windowState) setTM(tm [16]float32) {
+	b.tm = tm
+	C.metalSetTM(b.ctx, (*C.float)(&b.tm[0]))
+}
+
 func (b *windowState) drawClip(r *gui.RenderCmd) {
 	// Rounds outward: floor the near edge, ceil the far one, so a
 	// fractional DPI scale never shaves the right or bottom pixel.
@@ -115,7 +132,7 @@ func (b *windowState) drawRect(r *gui.RenderCmd) {
 	C.metalSetMVP(b.ctx, (*C.float)(&b.mvp[0]))
 	verts := gpu.BuildQuad(r.X*s, r.Y*s, r.W*s, r.H*s,
 		r.Color, r.Radius*s, 0)
-	C.metalDrawQuad(b.ctx, (*C.float)(unsafe.Pointer(&verts[0])))
+	b.drawQuad(verts)
 }
 
 func (b *windowState) drawStrokeRect(r *gui.RenderCmd) {
@@ -124,7 +141,7 @@ func (b *windowState) drawStrokeRect(r *gui.RenderCmd) {
 	C.metalSetMVP(b.ctx, (*C.float)(&b.mvp[0]))
 	verts := gpu.BuildQuad(r.X*s, r.Y*s, r.W*s, r.H*s,
 		r.Color, r.Radius*s, r.Thickness*s)
-	C.metalDrawQuad(b.ctx, (*C.float)(unsafe.Pointer(&verts[0])))
+	b.drawQuad(verts)
 }
 
 func (b *windowState) drawCircle(r *gui.RenderCmd) {
@@ -140,7 +157,7 @@ func (b *windowState) drawCircle(r *gui.RenderCmd) {
 		(r.Y-r.Radius)*s,
 		2*rad, 2*rad,
 		r.Color, rad, 0)
-	C.metalDrawQuad(b.ctx, (*C.float)(unsafe.Pointer(&verts[0])))
+	b.drawQuad(verts)
 }
 
 func (b *windowState) drawLine(r *gui.RenderCmd) {
@@ -171,7 +188,7 @@ func (b *windowState) drawLine(r *gui.RenderCmd) {
 
 	C.metalSetPipeline(b.ctx, C.int(pipeSolid))
 	C.metalSetMVP(b.ctx, (*C.float)(&b.mvp[0]))
-	C.metalDrawQuad(b.ctx, (*C.float)(unsafe.Pointer(&verts[0])))
+	b.drawQuad(verts)
 }
 
 func (b *windowState) drawShadow(r *gui.RenderCmd) {
@@ -200,10 +217,10 @@ func (b *windowState) drawShadow(r *gui.RenderCmd) {
 	tm[12] = r.OffsetX * s
 	tm[13] = r.OffsetY * s
 	tm[14] = spread
-	C.metalSetTM(b.ctx, (*C.float)(&tm[0]))
+	b.setTM(tm)
 
 	verts := gpu.BuildQuad(qx, qy, qw, qh, r.Color, rad+spread, blur)
-	C.metalDrawQuad(b.ctx, (*C.float)(unsafe.Pointer(&verts[0])))
+	b.drawQuad(verts)
 }
 
 func (b *windowState) drawBlur(r *gui.RenderCmd) {
@@ -215,13 +232,13 @@ func (b *windowState) drawBlur(r *gui.RenderCmd) {
 	C.metalSetPipeline(b.ctx, C.int(pipeBlur))
 	C.metalSetMVP(b.ctx, (*C.float)(&b.mvp[0]))
 	tm := gpu.IdentityTM()
-	C.metalSetTM(b.ctx, (*C.float)(&tm[0]))
+	b.setTM(tm)
 
 	verts := gpu.BuildQuad(
 		r.X*s-expand, r.Y*s-expand,
 		r.W*s+2*expand, r.H*s+2*expand,
 		r.Color, rad+expand, blur)
-	C.metalDrawQuad(b.ctx, (*C.float)(unsafe.Pointer(&verts[0])))
+	b.drawQuad(verts)
 }
 
 func (b *windowState) drawGradient(w *gui.Window, r *gui.RenderCmd) {
@@ -249,11 +266,12 @@ func (b *windowState) drawGradient(w *gui.Window, r *gui.RenderCmd) {
 
 	C.metalSetPipeline(b.ctx, C.int(pipeGradient))
 	C.metalSetMVP(b.ctx, (*C.float)(&b.mvp[0]))
-	C.metalSetTM(b.ctx, (*C.float)(&tm[0]))
-	C.metalSetGradientTM2(b.ctx, (*C.float)(&tm2[0]))
+	b.setTM(tm)
+	b.tm2 = tm2
+	C.metalSetGradientTM2(b.ctx, (*C.float)(&b.tm2[0]))
 
 	verts := gpu.BuildQuad(x, y, width, h, gui.White, rad, 0)
-	C.metalDrawQuad(b.ctx, (*C.float)(unsafe.Pointer(&verts[0])))
+	b.drawQuad(verts)
 }
 
 func (b *windowState) drawGradientBorder(r *gui.RenderCmd) {
@@ -268,7 +286,7 @@ func (b *windowState) drawGradientBorder(r *gui.RenderCmd) {
 		rc := &rects[i]
 		verts := gpu.BuildQuad(rc.X*s, rc.Y*s, rc.W*s, rc.H*s,
 			rc.Color, 0, 0)
-		C.metalDrawQuad(b.ctx, (*C.float)(unsafe.Pointer(&verts[0])))
+		b.drawQuad(verts)
 	}
 }
 
@@ -289,7 +307,7 @@ func (b *windowState) drawImage(r *gui.RenderCmd) {
 		C.metalSetPipeline(b.ctx, C.int(pipeSolid))
 		C.metalSetMVP(b.ctx, (*C.float)(&b.mvp[0]))
 		verts := gpu.BuildQuad(x, y, w, h, r.Color, 0, 0)
-		C.metalDrawQuad(b.ctx, (*C.float)(unsafe.Pointer(&verts[0])))
+		b.drawQuad(verts)
 	}
 
 	C.metalSetPipeline(b.ctx, C.int(pipeImageClip))
@@ -307,7 +325,7 @@ func (b *windowState) drawImage(r *gui.RenderCmd) {
 		{X: x + w, Y: y + h, Z: z, U: 1, V: 1, R: cr, G: cg, B: cb, A: ca},
 		{X: x, Y: y + h, Z: z, U: -1, V: 1, R: cr, G: cg, B: cb, A: ca},
 	}
-	C.metalDrawQuad(b.ctx, (*C.float)(unsafe.Pointer(&verts[0])))
+	b.drawQuad(verts)
 }
 
 // resolveImageTexture returns the uploaded texture for a render
@@ -569,11 +587,11 @@ func (b *windowState) drawCustomShader(r *gui.RenderCmd) {
 	for i := range min(len(r.Shader.Params), 16) {
 		tm[i] = r.Shader.Params[i]
 	}
-	C.metalSetTM(b.ctx, (*C.float)(&tm[0]))
+	b.setTM(tm)
 
 	verts := gpu.BuildQuad(r.X*s, r.Y*s, r.W*s, r.H*s,
 		r.Color, r.Radius*s, 0)
-	C.metalDrawQuad(b.ctx, (*C.float)(unsafe.Pointer(&verts[0])))
+	b.drawQuad(verts)
 }
 
 // --- Stencil clip ---
@@ -584,8 +602,9 @@ func (b *windowState) beginStencilClip(r *gui.RenderCmd) {
 	C.metalSetMVP(b.ctx, (*C.float)(&b.mvp[0]))
 	verts := gpu.BuildQuad(r.X*s, r.Y*s, r.W*s, r.H*s,
 		gui.White, r.Radius*s, 0)
+	b.quad = verts
 	C.metalBeginStencilClip(b.ctx,
-		(*C.float)(unsafe.Pointer(&verts[0])),
+		(*C.float)(unsafe.Pointer(&b.quad[0])),
 		C.int(r.StencilDepth))
 	// Restore solid pipeline for children.
 	C.metalSetPipeline(b.ctx, C.int(pipeSolid))
@@ -596,8 +615,9 @@ func (b *windowState) endStencilClip(r *gui.RenderCmd) {
 	s := b.dpiScale
 	verts := gpu.BuildQuad(r.X*s, r.Y*s, r.W*s, r.H*s,
 		gui.White, r.Radius*s, 0)
+	b.quad = verts
 	C.metalEndStencilClip(b.ctx,
-		(*C.float)(unsafe.Pointer(&verts[0])),
+		(*C.float)(unsafe.Pointer(&b.quad[0])),
 		C.int(r.StencilDepth))
 	// Restore solid pipeline.
 	C.metalSetPipeline(b.ctx, C.int(pipeSolid))
