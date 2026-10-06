@@ -181,6 +181,9 @@ func (l *wlLoop) run() error {
 				}
 				continue
 			}
+			// Past the timeout the window counts as occluded: FrameFn
+			// below then drains commands but draws nothing until done.
+			ww.checkStall(now)
 			w := b.plat.w
 			// FrameFn runs every pass, as on X11: it also drains queued
 			// commands. A configure needs a frame even when it has none.

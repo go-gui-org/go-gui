@@ -24,6 +24,15 @@ and this project adheres to
   frame at the animations' current phase. Both the plain `xdg_toplevel` path and
   the libdecor path (libdecor 0.2 or later) report it. A compositor before v6
   never sends the state, so its windows draw as before.
+- **A covered Wayland window draws no animation frames (#959).** Compositors
+  stop answering frame callbacks for a surface they do not paint. A callback
+  still outstanding after one second now marks the window occluded, so a window
+  that others cover completely stops waking the main thread every 16 ms and
+  stops the once-a-second fallback render it used to get. The callback's `done`,
+  which the compositor sends when it paints the window again, draws one full
+  frame at the animations' current phase. This also covers compositors without
+  xdg-shell v6 `suspended`, such as muffin 6.6. It applies with
+  `GOGUI_WAYLAND=1`; X11 has no reliable signal for a covered window.
 
 ## [v0.86.0] - 2026-10-06
 
