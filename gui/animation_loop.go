@@ -150,9 +150,11 @@ func (w *Window) animationLoop() {
 		defer close(w.animationDone)
 	}
 
-	dt := float32(animationCycle) / float32(time.Second)
 	deferred := make([]queuedCommand, 0, 8)
 	stoppedIDs := make([]string, 0, 4)
+	// Built once: Update takes &ac through the Animation interface, so a
+	// per-tick ac would move to the heap every tick.
+	ac := newAnimationCommands(&deferred)
 
 	var ticker *time.Ticker
 	var tickCh <-chan time.Time
@@ -173,58 +175,111 @@ func (w *Window) animationLoop() {
 			return
 		}
 
-		refreshKind := animationRefreshNone
-		deferred = deferred[:0]
-		stoppedIDs = stoppedIDs[:0]
-
-		w.animMu.Lock()
-		ac := newAnimationCommands(&deferred)
-		for _, a := range w.animations {
-			updated := a.Update(w, dt, &ac)
-			if updated {
-				refreshKind = maxAnimationRefreshKind(
-					refreshKind, a.RefreshKind())
-			}
-			if a.IsStopped() {
-				stoppedIDs = append(stoppedIDs, a.ID())
-			}
-		}
-		// Auto-cancel view-bound animations whose widget left the view tree.
-		now := viewBoundNow()
-		for id, seen := range w.animViewBound {
-			if now.Sub(seen) > animViewBoundStale {
-				stoppedIDs = append(stoppedIDs, id)
-			}
-		}
-		for _, id := range stoppedIDs {
-			delete(w.animations, id)
-			delete(w.animViewBound, id)
-		}
-		idle := len(w.animations) == 0
-		w.animMu.Unlock()
-
+		idle := w.animationTick(&ac, &stoppedIDs)
 		if idle && ticker != nil {
 			ticker.Stop()
 			ticker = nil
 			tickCh = nil
 		}
+	}
+}
 
-		switch refreshKind {
-		case AnimationRefreshRenderOnly:
-			deferred = append(deferred, queuedCommand{
-				kind:     queuedCommandWindowFn,
-				windowFn: commandMarkRenderOnlyRefresh,
-			})
-		case AnimationRefreshLayout:
-			deferred = append(deferred, queuedCommand{
-				kind:     queuedCommandWindowFn,
-				windowFn: commandMarkLayoutRefresh,
-			})
+// animationTick runs one tick of the animation loop: it updates every
+// animation, retires the stopped and stale ones, then queues the tick's
+// callbacks and refresh request and wakes the main thread. ac (wrapping
+// the deferred-command slice) and stoppedIDs are the loop's reusable
+// scratch, passed by pointer so a tick allocates nothing and the slices
+// keep the capacity they grow to; both are truncated here.
+// It reports whether no animation is left, so the loop can park.
+//
+// While the window is hidden (issue #943), the tick still runs Update,
+// so animation clocks advance and the window shows the right phase on
+// show. It does not ask for a frame: nobody sees one. Callbacks are
+// still queued and the main thread still wakes for them, because app
+// callbacks keep their timing and an unwoken queue would grow without
+// bound for as long as the window stays hidden. FrameFn runs them and
+// draws nothing.
+func (w *Window) animationTick(ac *AnimationCommands, stoppedIDs *[]string) bool {
+	deferred := ac.inner
+	dt := float32(animationCycle) / float32(time.Second)
+	occluded := w.occluded.Load()
+	refreshKind := animationRefreshNone
+	*deferred = (*deferred)[:0]
+	*stoppedIDs = (*stoppedIDs)[:0]
+
+	w.animMu.Lock()
+	for _, a := range w.animations {
+		updated := a.Update(w, dt, ac)
+		if updated {
+			refreshKind = maxAnimationRefreshKind(
+				refreshKind, a.RefreshKind())
 		}
-		w.queueCommandsBatch(deferred)
-		if len(deferred) > 0 {
-			w.wakeMain()
+		if a.IsStopped() {
+			*stoppedIDs = append(*stoppedIDs, a.ID())
 		}
+	}
+	// Auto-cancel view-bound animations whose widget left the view tree.
+	// A hidden window builds no view, so no widget touches its heartbeat.
+	// Renew the heartbeats instead of checking them: otherwise every
+	// spinner is cancelled after animViewBoundStale and restarts at phase
+	// 0 on show. Renewing (not skipping) also covers the ticks between
+	// show and the first frame, which would read a heartbeat as old as
+	// the hide.
+	now := viewBoundNow()
+	for id, seen := range w.animViewBound {
+		if occluded {
+			w.animViewBound[id] = now
+		} else if now.Sub(seen) > animViewBoundStale {
+			*stoppedIDs = append(*stoppedIDs, id)
+		}
+	}
+	for _, id := range *stoppedIDs {
+		delete(w.animations, id)
+		delete(w.animViewBound, id)
+	}
+	idle := len(w.animations) == 0
+	w.animMu.Unlock()
+
+	if occluded {
+		// Show marks a full refresh (DispatchWindowOccluded), which covers
+		// every refresh a hidden tick would have asked for.
+		refreshKind = animationRefreshNone
+	}
+	switch refreshKind {
+	case AnimationRefreshRenderOnly:
+		*deferred = append(*deferred, queuedCommand{
+			kind:     queuedCommandWindowFn,
+			windowFn: commandMarkRenderOnlyRefresh,
+		})
+	case AnimationRefreshLayout:
+		*deferred = append(*deferred, queuedCommand{
+			kind:     queuedCommandWindowFn,
+			windowFn: commandMarkLayoutRefresh,
+		})
+	}
+	w.queueCommandsBatch(*deferred)
+	if len(*deferred) > 0 {
+		w.wakeMain()
+	}
+	return idle
+}
+
+// DispatchWindowOccluded reports that the OS hid the window (minimized or
+// fully covered) or showed it again (issue #943). While hidden, running
+// animations keep their clocks but ask for no frames, and FrameFn runs
+// queued commands without building or presenting a frame. On show the
+// window asks for one full frame and wakes the main thread, so the
+// first visible frame shows every animation at its current phase.
+// Repeated reports of the same state are no-ops.
+//
+// Intended for backend use. Safe for a nil window (no-op).
+func DispatchWindowOccluded(w *Window, occluded bool) {
+	if w == nil || w.occluded.Swap(occluded) == occluded {
+		return
+	}
+	if !occluded {
+		w.markLayoutRefresh()
+		w.wakeMain()
 	}
 }
 

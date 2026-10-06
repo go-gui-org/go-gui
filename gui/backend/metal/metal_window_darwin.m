@@ -636,6 +636,14 @@ static uint32_t _nextWindowID = 1;
     goMetalWindowFocusChanged(_windowID, 0);
 }
 
+// Minimized, fully covered by other windows, on another Space, or the
+// screen is locked: AppKit clears NSWindowOcclusionStateVisible. Go stops
+// asking for animation frames while it is clear (issue #943).
+- (void)windowDidChangeOcclusionState:(NSNotification *)notification {
+    BOOL visible = (self.occlusionState & NSWindowOcclusionStateVisible) != 0;
+    goMetalWindowOccluded(_windowID, visible ? 0 : 1);
+}
+
 // ─── NSDraggingDestination (file drop) ─────────────────────────
 
 - (NSDragOperation)draggingEntered:(id<NSDraggingInfo>)sender {
@@ -989,6 +997,8 @@ __attribute__((weak)) void goMetalWindowResized(unsigned int wid,
 __attribute__((weak)) void goMetalWindowShouldClose(unsigned int wid) {}
 __attribute__((weak)) void goMetalWindowFocusChanged(unsigned int wid,
                                                      int focused) {}
+__attribute__((weak)) void goMetalWindowOccluded(unsigned int wid,
+                                                 int occluded) {}
 __attribute__((weak)) void goMetalFileDrop(unsigned int wid, char *path) {}
 __attribute__((weak)) void goMetalPumpFrames(void) {}
 
