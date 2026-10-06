@@ -63,11 +63,8 @@ func (ww *wlWindow) makeToplevel(cfg gui.WindowCfg) error {
 	ww.xdgSurface.SetHandlers(wl.XdgSurfaceHandlers{Configure: ww.applyConfigure})
 	ww.toplevel = ww.xdgSurface.GetToplevel()
 	ww.toplevel.SetHandlers(wl.XdgToplevelHandlers{
-		Configure: func(width, height int32, states []byte) {
-			ww.pendW, ww.pendH = width, height
-			ww.pendActive = statesHave(states, wl.XdgToplevelStateActivated)
-		},
-		Close: func() { gui.DispatchCloseRequest(ww.b.plat.w) },
+		Configure: ww.toplevelConfigure,
+		Close:     func() { gui.DispatchCloseRequest(ww.b.plat.w) },
 	})
 	if d.decoMgr.Valid() {
 		// Made before the first commit, as the protocol requires.
@@ -93,6 +90,28 @@ func (ww *wlWindow) makeToplevel(cfg gui.WindowCfg) error {
 	}
 	ww.surface.Commit()
 	return nil
+}
+
+// toplevelConfigure handles xdg_toplevel.configure: record the size and
+// states it carries. They apply with the xdg_surface.configure that closes
+// the sequence (applyConfigure).
+func (ww *wlWindow) toplevelConfigure(width, height int32, states []byte) {
+	ww.pendW, ww.pendH = width, height
+	ww.pendActive = statesHave(states, wl.XdgToplevelStateActivated)
+	// suspended is xdg_toplevel v6. A compositor before v6 never sends it,
+	// so there the window always counts as shown, as before (issue #953).
+	ww.pendSuspended = statesHave(states, wl.XdgToplevelStateSuspended)
+}
+
+// syncOccluded tells gui whether the compositor shows the window at all.
+// While suspended, running animations stop waking the main loop every
+// 16 ms (issue #953), as a minimize does on macOS, Windows and X11. The
+// configure that drops suspended marks a full refresh and wakes the loop
+// once. DispatchWindowOccluded ignores a repeat of the current state, so
+// this needs no last-sent copy, and unlike focus it needs no ready gate:
+// it only flips a flag on the gui window.
+func (ww *wlWindow) syncOccluded() {
+	gui.DispatchWindowOccluded(ww.b.plat.w, ww.pendSuspended)
 }
 
 // makeDecorFrame is makeToplevel through libdecor.
@@ -164,13 +183,19 @@ func (e wlFrameEvents) Configure(c decor.Configuration) {
 	w, h, _ := c.ContentSize() // 0 when the client picks
 	w, h = configureSize(w, h, ww.logW, ww.logH)
 	if st, ok := c.WindowState(); ok {
-		ww.pendActive = st&decor.StateActive != 0
+		ww.decorStates(st)
 	}
 	ww.frame.Commit(w, h, &c)
-	ww.configured = true
-	ww.resize(w, h, ww.scale120)
-	ww.syncFocus()
-	ww.dirty = true
+	ww.applyPending(w, h)
+}
+
+// decorStates records a libdecor window state (decor.State* bits) as the
+// pending focus and visibility, the libdecor form of toplevelConfigure's
+// states array. libdecor before 0.2, or a compositor before xdg_toplevel
+// v6, never sets StateSuspended: the window stays shown (issue #953).
+func (ww *wlWindow) decorStates(st uint32) {
+	ww.pendActive = st&decor.StateActive != 0
+	ww.pendSuspended = st&decor.StateSuspended != 0
 }
 
 func (e wlFrameEvents) Close() { gui.DispatchCloseRequest(e.ww.b.plat.w) }

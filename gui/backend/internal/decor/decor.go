@@ -36,9 +36,14 @@ var (
 	loadErr  error
 )
 
-// StateActive is the window state bit for a focused window (enum
-// libdecor_window_state), the only state the backend reads.
-const StateActive = 1 << 0
+// Window state bits the backend reads (enum libdecor_window_state).
+// StateActive marks a focused window. StateSuspended (libdecor 0.2, over
+// xdg_toplevel v6) marks one the compositor shows nowhere: minimized, on
+// another workspace, or behind a locked screen.
+const (
+	StateActive    = 1 << 0
+	StateSuspended = 1 << 7
+)
 
 // Resize edges (enum libdecor_resize_edge). Not the xdg_toplevel values.
 const (

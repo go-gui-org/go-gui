@@ -15,8 +15,15 @@ and this project adheres to
   animation frames the way a minimize already does on macOS and Windows (#943).
   `MapNotify` on restore draws one full frame at the animations' current phase.
   Only minimize counts; a window covered by others still draws, because
-  compositing window managers report every window as visible. Wayland does not
-  report occlusion yet.
+  compositing window managers report every window as visible.
+- **A hidden Wayland window draws no animation frames (#953).** The Wayland
+  backend reads the `suspended` state of xdg-shell v6, which a compositor sets
+  on a window it shows nowhere: minimized, on another workspace, or behind a
+  locked screen. A suspended window stops waking the main thread every 16 ms
+  while an animation runs; the configure that drops `suspended` draws one full
+  frame at the animations' current phase. Both the plain `xdg_toplevel` path and
+  the libdecor path (libdecor 0.2 or later) report it. A compositor before v6
+  never sends the state, so its windows draw as before.
 
 ## [v0.86.0] - 2026-10-06
 

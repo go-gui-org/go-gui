@@ -359,12 +359,13 @@ type wlWindow struct {
 	deco  wl.ZxdgToplevelDecorationV1
 	frame *decor.Frame
 
-	// pendW, pendH and pendActive hold what the last
+	// pendW, pendH, pendActive and pendSuspended hold what the last
 	// xdg_toplevel.configure asked for. A size of 0 leaves the choice to
 	// the client. They take effect on the xdg_surface.configure that
 	// closes the sequence.
-	pendW, pendH int32
-	pendActive   bool
+	pendW, pendH  int32
+	pendActive    bool
+	pendSuspended bool
 
 	// logW, logH are the window size in logical pixels; scale120 is the
 	// scale in 120ths (fractional-scale-v1's unit, so 180 is 1.5). The
@@ -585,14 +586,26 @@ func newWaylandBackend(w *gui.Window) (*Backend, error) {
 func (ww *wlWindow) id() uint32 { return ww.surface.ID() }
 
 // applyConfigure handles xdg_surface.configure: acknowledge it, then apply
-// the size and focus the toplevel configure before it carried. The
-// compositor expects a new buffer in reply, so the window is marked dirty.
+// the size, focus and visibility the toplevel configure before it carried.
+// The compositor expects a new buffer in reply, so the window is marked
+// dirty. A suspending configure still draws that one frame; after it,
+// FrameFn reports nothing to draw while suspended, so the loop no longer
+// renders the one frame per wlFrameTimeout a hidden window used to get.
 func (ww *wlWindow) applyConfigure(serial uint32) {
 	ww.xdgSurface.AckConfigure(serial)
+	ww.applyPending(configureSize(ww.pendW, ww.pendH, ww.logW, ww.logH))
+}
+
+// applyPending is the part of a configure both paths share, after their
+// own acknowledgement (ack_configure, or libdecor's frame commit): adopt
+// the size, then send gui the pending focus and visibility. One function,
+// so a state added to one path cannot be forgotten in the other, and so
+// tests can drive it without a live xdg_surface.
+func (ww *wlWindow) applyPending(w, h int32) {
 	ww.configured = true
-	w, h := configureSize(ww.pendW, ww.pendH, ww.logW, ww.logH)
 	ww.resize(w, h, ww.scale120)
 	ww.syncFocus()
+	ww.syncOccluded()
 	ww.dirty = true
 }
 
