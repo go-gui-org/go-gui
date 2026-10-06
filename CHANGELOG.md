@@ -8,8 +8,16 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [v0.86.0] - 2026-10-06
+
 ### Changed
 
+- **Metal draws reuse their vertex scratch (#955).** Each quad, glyph, and
+  transform passed to C was a local array that escaped to the heap on every
+  draw. They now live on the window and backend, so the draw paths allocate
+  nothing per call.
+- **go-glyph v1.26.2 (#956).** Draw and measure calls cache layouts without
+  hit-test data, about half the bytes a layout build allocated.
 - **A minimized or covered window draws no animation frames (#943)** — while any
   animation ran, the window built and presented a frame every 16 ms even when
   nobody could see it. Now, while macOS reports the window occluded (minimized,
