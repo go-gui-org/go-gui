@@ -227,6 +227,12 @@ func (w *Window) FrameFn() bool {
 	// read, which happens right after FrameFn on the same thread.
 	w.installTheme()
 	w.flushCommands()
+	// An occluded window (issue #943) runs its commands so app callbacks
+	// keep their timing, but builds and presents nothing. The refresh
+	// flags stay set; show marks a full refresh anyway.
+	if w.occluded.Load() {
+		return false
+	}
 	var rebuilt bool
 	// Two passes, not one: Update ends by running the callbacks the
 	// frame pass deferred (window_deferred.go). A blur commit that

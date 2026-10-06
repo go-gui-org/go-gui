@@ -8,6 +8,18 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Changed
+
+- **A minimized or covered window draws no animation frames (#943)** — while any
+  animation ran, the window built and presented a frame every 16 ms even when
+  nobody could see it. Now, while macOS reports the window occluded (minimized,
+  fully covered, on another Space, or the screen locked) or Windows reports it
+  minimized, animations keep their clocks but ask for no frames. App callbacks
+  queued by animations still run on time. On show the window draws one full
+  frame, so spinners continue at their current phase: they are not cancelled and
+  do not restart. A backend reports the state with `gui.DispatchWindowOccluded`.
+  Wayland and X11 do not report it yet.
+
 ## [v0.85.0] - 2026-10-05
 
 ### Added

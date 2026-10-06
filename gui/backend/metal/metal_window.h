@@ -80,6 +80,10 @@ extern void goMetalWindowShouldClose(unsigned int windowID);
 extern void goMetalWindowFocusChanged(unsigned int windowID,
                                       int focused);
 
+// Called when the window becomes occluded (minimized or fully covered)
+// or visible again.
+extern void goMetalWindowOccluded(unsigned int windowID, int occluded);
+
 // Called when files are dropped on the window.
 extern void goMetalFileDrop(unsigned int windowID, char *path);
 

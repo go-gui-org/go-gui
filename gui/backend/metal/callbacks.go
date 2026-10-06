@@ -448,6 +448,18 @@ func goMetalWindowFocusChanged(wid C.uint, focused C.int) {
 	C.metalPostEmptyEvent()
 }
 
+//export goMetalWindowOccluded
+func goMetalWindowOccluded(wid C.uint, occluded C.int) {
+	ws := lookupWindow(uint32(wid))
+	if ws == nil || ws.attachedWindow == nil {
+		return
+	}
+	// On show, DispatchWindowOccluded marks a full refresh and wakes the
+	// idle loop through the window's wake function, so the first visible
+	// frame does not wait for the next real event.
+	gui.DispatchWindowOccluded(ws.attachedWindow, occluded != 0)
+}
+
 //export goMetalFileDrop
 func goMetalFileDrop(wid C.uint, cpath *C.char) {
 	// cpath is [NSString UTF8String] — internal autoreleased

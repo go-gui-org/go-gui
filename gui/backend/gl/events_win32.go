@@ -214,9 +214,16 @@ func (b *Backend) handleMessage(msg, wparam, lparam uintptr) (uintptr, bool) {
 		return b.imeMessage(msg, wparam, lparam)
 
 	case wmSize:
+		// Minimized: stop asking for animation frames until restore
+		// (issue #943). True occlusion by other windows has no cheap
+		// Win32 signal, so only minimize counts.
 		if wparam == sizeMinimized {
+			gui.DispatchWindowOccluded(w, true)
 			return 0, true
 		}
+		// Restored or maximized. Before the FrameFn below, so that frame
+		// is the full refresh the show asks for.
+		gui.DispatchWindowOccluded(w, false)
 		// Refresh physical size + DPI, then derive the logical size
 		// from the authoritative client rect rather than lParam's
 		// 16-bit words (which sign-extend past 32767).

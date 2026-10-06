@@ -56,6 +56,10 @@ type windowAnimation struct {
 	animationStopOnce  sync.Once
 	animationStartOnce sync.Once
 	animationStarted   bool
+	// occluded is set by the backend while the window is minimized or fully
+	// covered (DispatchWindowOccluded, issue #943). The animation loop reads
+	// it from its own goroutine, so it is atomic, not guarded by animMu.
+	occluded atomic.Bool
 	// Per-frame pipeline timings.
 	frameTimings FrameTimings
 }
