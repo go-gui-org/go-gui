@@ -231,6 +231,26 @@ func (b *Backend) handleXEvent(ev xgb.Event) {
 		w.FrameFn()
 		b.renderFrame(w)
 
+	case xproto.UnmapNotifyEvent:
+		// ICCCM iconify unmaps the top-level window: stop asking for
+		// animation frames until it is mapped again (issue #954). Only
+		// minimize counts; VisibilityNotify is unreliable under a
+		// compositing WM, which reports every window unobscured. The
+		// window check guards against a child's unmap, should one ever
+		// select SubstructureNotify.
+		if e.Window == b.plat.window {
+			gui.DispatchWindowOccluded(w, true)
+		}
+
+	case xproto.MapNotifyEvent:
+		// Restore. The show marks a full refresh and wakes the loop, so
+		// the next FrameFn draws every animation at its current phase.
+		// The first map at startup finds the window already shown and is
+		// a no-op.
+		if e.Window == b.plat.window {
+			gui.DispatchWindowOccluded(w, false)
+		}
+
 	case xproto.ClientMessageEvent:
 		if e.Format == 32 && len(e.Data.Data32) > 0 &&
 			xproto.Atom(e.Data.Data32[0]) == b.plat.wmDelete {

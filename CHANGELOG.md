@@ -8,6 +8,16 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Changed
+
+- **A minimized X11 window draws no animation frames (#954).** The X11 backend
+  now reports occlusion: iconify unmaps the window, and its `UnmapNotify` stops
+  animation frames the way a minimize already does on macOS and Windows (#943).
+  `MapNotify` on restore draws one full frame at the animations' current phase.
+  Only minimize counts; a window covered by others still draws, because
+  compositing window managers report every window as visible. Wayland does not
+  report occlusion yet.
+
 ## [v0.86.0] - 2026-10-06
 
 ### Changed
