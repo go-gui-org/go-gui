@@ -68,7 +68,6 @@ var themeStylePattern = regexp.MustCompile(`^[Dd]efault[A-Za-z]*Style$`)
 // scanned at all — see the mode comment for why the boundary cannot be
 // computed from syntax.
 func themeScanned(rel string) bool {
-	rel = filepath.ToSlash(rel)
 	if !strings.HasPrefix(rel, "gui/") {
 		return false
 	}
@@ -180,7 +179,6 @@ func scanTheme(repo string) ([]themeFinding, error) {
 // generation-time code and stays out; inspectThemeHandlers only looks
 // inside nested func literals that take the event context.
 func themeHandlerScanned(rel string) bool {
-	rel = filepath.ToSlash(rel)
 	if filepath.Dir(rel) != "gui" {
 		return false
 	}

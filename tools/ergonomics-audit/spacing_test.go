@@ -181,7 +181,7 @@ func TestSpacingGoGuiScope(t *testing.T) {
 	}
 	var paths []string
 	for _, f := range found {
-		paths = append(paths, filepath.ToSlash(f.path))
+		paths = append(paths, f.path)
 	}
 	want := "examples/demo/main.go|gui/view_row.go"
 	if strings.Join(paths, "|") != want {

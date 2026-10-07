@@ -154,7 +154,7 @@ func scanSpacing(repo string) ([]spacingFinding, error) {
 		if strings.HasSuffix(path, "_test.go") {
 			return
 		}
-		rel := filepath.ToSlash(relPath(repo, path))
+		rel := relPath(repo, path)
 		if isGoGui && !goGuiCallSite(rel) {
 			return
 		}
