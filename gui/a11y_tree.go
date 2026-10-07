@@ -319,33 +319,45 @@ func a11yActionCallback(w *Window, action, index int) {
 	if l.Shape.Disabled {
 		return
 	}
+	ran := false
 	switch action {
 	case A11yActionPress:
 		if ev.OnClick != nil {
 			e := &Event{Type: EventMouseDown}
 			playShapeSound(l, w)
 			ev.OnClick(EventCtx{l, e, w})
+			ran = true
 		}
 	case A11yActionIncrement:
 		if ev.OnKeyDown != nil {
 			e := &Event{Type: EventKeyDown, KeyCode: KeyUp}
 			ev.OnKeyDown(EventCtx{l, e, w})
+			ran = true
 		}
 	case A11yActionDecrement:
 		if ev.OnKeyDown != nil {
 			e := &Event{Type: EventKeyDown, KeyCode: KeyDown}
 			ev.OnKeyDown(EventCtx{l, e, w})
+			ran = true
 		}
 	case A11yActionConfirm:
 		if ev.OnKeyDown != nil {
 			e := &Event{Type: EventKeyDown, KeyCode: KeyEnter}
 			ev.OnKeyDown(EventCtx{l, e, w})
+			ran = true
 		}
 	case A11yActionCancel:
 		if ev.OnKeyDown != nil {
 			e := &Event{Type: EventKeyDown, KeyCode: KeyEscape}
 			ev.OnKeyDown(EventCtx{l, e, w})
+			ran = true
 		}
+	}
+	// The handler ran from the command queue, which requests no refresh.
+	// Ask for one as EventFn does for input, or the state the handler
+	// changed waits for whatever frame comes next.
+	if ran {
+		w.markLayoutRefresh()
 	}
 }
 

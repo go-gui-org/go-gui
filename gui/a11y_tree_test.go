@@ -557,6 +557,42 @@ func TestA11yActionRoutesThroughQueueCommand(t *testing.T) {
 	}
 }
 
+// A platform action runs an app handler from the command queue, which
+// marks nothing for refresh: the handler's state change must still
+// reach the next frame, as a mouse click's does through EventFn.
+func TestA11yActionRefreshesLayout(t *testing.T) {
+	layout := Layout{
+		Shape: &Shape{
+			A11YRole: AccessRoleButton,
+			events: &eventHandlers{
+				OnClick: func(EventCtx) {},
+			},
+		},
+	}
+	w := newTestWindow()
+	w.layout = layout
+	w.a11y.nodes = w.a11y.nodes[:0]
+	var live []liveNode
+	a11yCollect(&w.layout, -1, &w.a11y.nodes, "", &live)
+
+	p := &mockA11yActionPlatform{}
+	w.nativePlatform = p
+	w.initA11y()
+	w.refreshLayout.Store(false)
+	p.actionCb(A11yActionPress, 0)
+	w.flushCommands()
+	if !w.refreshLayout.Load() {
+		t.Fatal("platform action ran a handler without requesting a layout refresh")
+	}
+
+	// An action that reaches no handler requests nothing.
+	w.refreshLayout.Store(false)
+	a11yActionCallback(w, A11yActionIncrement, 0)
+	if w.refreshLayout.Load() {
+		t.Fatal("action with no handler requested a refresh")
+	}
+}
+
 func TestA11yActionCallbackOutOfBounds(_ *testing.T) {
 	w := newTestWindow()
 	w.a11y.nodes = nil

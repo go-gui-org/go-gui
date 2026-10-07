@@ -8,6 +8,35 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- **Screen readers work on Windows (#944).** The OpenGL backend now has a UI
+  Automation provider, so Narrator and NVDA read a go-gui window instead of an
+  empty one. Each accessible node becomes a UIA element with its control type,
+  name, description, state and screen bounds. Focus changes, value changes and
+  check, selection and expand state changes are raised as UIA events. Buttons,
+  links and menu items take Invoke. Checkboxes and switches take Toggle. Radio
+  buttons, tab items, list items and tree items take SelectionItem, in the
+  Selection of their list, tree, tab list or radio group. Sliders take
+  RangeValue; `SetValue` moves one step toward the requested value. Text fields,
+  combo boxes and date fields take Value, read-only, because text arrives as
+  keys. Combo boxes, disclosures and tree items take ExpandCollapse. A button
+  whose label is a child text node takes that text as its name. `A11yAnnounce`
+  and live regions raise a UIA notification (Windows 10 1709 and later). The
+  provider is pure Go with no cgo. Two assembly thunks, for amd64 and arm64,
+  cover the two methods that take doubles. Other Windows architectures still
+  have no accessibility. Adapted from mygo's MIT provider; the notice is in
+  `THIRD_PARTY_NOTICES`.
+
+### Fixed
+
+- **An accessibility action redraws the window (#944).** A screen reader's
+  press, increment or decrement ran the widget's handler from the command queue,
+  which requested no layout refresh. The app state changed, but the window
+  showed the old view until some later input arrived. The action now requests a
+  refresh, as a mouse click does. This affects every platform: a VoiceOver or
+  Orca press now updates the window at once.
+
 ### Changed
 
 - **A minimized X11 window draws no animation frames (#954).** The X11 backend
