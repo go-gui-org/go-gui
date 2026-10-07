@@ -254,6 +254,10 @@ type platformState struct {
 	imeAttr     []byte
 	imeRect     rectW
 	imeHaveRect bool
+
+	// uia is the UI Automation provider, set by A11yInit; nil answers
+	// WM_GETOBJECT with the default.
+	uia *uiaProvider
 }
 
 func (p *platformState) wake() {

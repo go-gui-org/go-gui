@@ -312,6 +312,12 @@ func (b *Backend) handleMessage(msg, wparam, lparam uintptr) (uintptr, bool) {
 		}
 		return 0, handled
 
+	case wmGetObject:
+		if b.plat.uia != nil {
+			return b.plat.uia.getObject(wparam, lparam)
+		}
+		return 0, false
+
 	case wmClose:
 		gui.DispatchCloseRequest(w)
 		return 0, true

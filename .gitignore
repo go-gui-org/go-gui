@@ -25,6 +25,7 @@
 
 !Makefile
 !LICENSE
+!THIRD_PARTY_NOTICES
 !scripts/wayland/Dockerfile
 !.githooks/pre-commit
 !.githooks/pre-push
