@@ -174,7 +174,7 @@ func dataGridNextPageIndexForKey(pageIndex, pageCount int, e *gg.Event) (int, bo
 		}
 		return 0, false
 	}
-	if !e.Modifiers.HasAny(gg.ModCtrl, gg.ModSuper) || e.Modifiers.Has(gg.ModAlt) {
+	if !e.Modifiers.Has(gg.ShortcutModifier()) || e.Modifiers.Has(gg.ModAlt) {
 		return 0, false
 	}
 	switch e.KeyCode {

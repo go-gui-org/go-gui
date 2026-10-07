@@ -278,9 +278,17 @@ func TestCharIsCopy(t *testing.T) {
 		t.Fatal("Ctrl+C should be copy")
 	}
 	e2 := &gg.Event{CharCode: 3, Modifiers: gg.ModSuper}
-	if !dataGridCharIsCopy(e2) {
-		t.Fatal("Cmd+C should be copy")
+	if dataGridCharIsCopy(e2) {
+		t.Fatal("Super+C should not be copy off macOS")
 	}
+	setKeyBindingForTest(t, gg.KeyBindingCommand)
+	if !dataGridCharIsCopy(e2) {
+		t.Fatal("Cmd+C should be copy on macOS")
+	}
+	if dataGridCharIsCopy(e) {
+		t.Fatal("Ctrl+C should not be copy on macOS")
+	}
+	setKeyBindingForTest(t, gg.KeyBindingControl)
 	e3 := &gg.Event{CharCode: 3}
 	if dataGridCharIsCopy(e3) {
 		t.Fatal("bare charCode=3 should not be copy")
@@ -293,9 +301,17 @@ func TestIsSelectAllShortcut(t *testing.T) {
 		t.Fatal("Ctrl+A should be select-all")
 	}
 	e2 := &gg.Event{KeyCode: gg.KeyA, Modifiers: gg.ModSuper}
-	if !dataGridIsSelectAllShortcut(e2) {
-		t.Fatal("Cmd+A should be select-all")
+	if dataGridIsSelectAllShortcut(e2) {
+		t.Fatal("Super+A should not be select-all off macOS")
 	}
+	setKeyBindingForTest(t, gg.KeyBindingCommand)
+	if !dataGridIsSelectAllShortcut(e2) {
+		t.Fatal("Cmd+A should be select-all on macOS")
+	}
+	if dataGridIsSelectAllShortcut(e) {
+		t.Fatal("Ctrl+A should not be select-all on macOS")
+	}
+	setKeyBindingForTest(t, gg.KeyBindingControl)
 	e3 := &gg.Event{KeyCode: gg.KeyA}
 	if dataGridIsSelectAllShortcut(e3) {
 		t.Fatal("bare 'A' should not be select-all")
@@ -368,6 +384,7 @@ func TestNextPageIndexForKeyAltUnrecognized(t *testing.T) {
 }
 
 func TestNextPageIndexForKeySuperPageDown(t *testing.T) {
+	setKeyBindingForTest(t, gg.KeyBindingCommand)
 	e := &gg.Event{KeyCode: gg.KeyPageDown, Modifiers: gg.ModSuper}
 	got, ok := dataGridNextPageIndexForKey(0, 3, e)
 	if !ok || got != 1 {

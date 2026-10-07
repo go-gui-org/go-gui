@@ -359,7 +359,7 @@ func dialogKeyDown(cfg DialogCfg) func(EventCtx) {
 			return
 		}
 		if ctx.Event.KeyCode == KeyC &&
-			ctx.Event.Modifiers.HasAny(ModCtrl, ModSuper) &&
+			isShortcut(ctx.Event.Modifiers) &&
 			cfg.Body != "" {
 			ctx.Window.SetClipboard(cfg.Body)
 			ctx.Consume()

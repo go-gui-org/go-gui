@@ -1,6 +1,6 @@
 Modal dialog overlay with message, confirm, prompt, and custom variants. Traps
-focus, closes on Escape unless `EscapeDisabled` is set, and supports Ctrl+C to
-copy body text.
+focus, closes on Escape unless `EscapeDisabled` is set, and supports Ctrl+C
+(Cmd+C on macOS) to copy body text.
 
 ## Usage
 

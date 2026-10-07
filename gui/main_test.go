@@ -16,5 +16,9 @@ func TestMain(m *testing.M) {
 	if os.Getenv("GITHUB_ACTIONS") == "true" {
 		logLoadedModules(os.Stderr)
 	}
+	// Tests send Ctrl for shortcuts. Pin the Control mode so they mean
+	// the same thing on a macOS dev box as on Linux CI (#969). Tests of
+	// the macOS bindings switch with setKeyBindingForTest.
+	keyBinding.Store(uint32(KeyBindingControl))
 	os.Exit(RunTestsCheckingLeaks(m))
 }
