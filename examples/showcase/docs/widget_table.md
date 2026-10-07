@@ -1,5 +1,5 @@
-Sortable data table from string arrays with row selection, alternating row
-colors, virtualized scrolling, and configurable borders.
+Data table from string arrays with row selection, alternating row colors,
+virtualized scrolling, and configurable borders.
 
 ## Usage
 
@@ -15,11 +15,12 @@ w.Table(cfg)
 
 ## From CSV
 
+Parse with `encoding/csv` and pass the records as `RawData`:
+
 ```go
-cfg, err := gui.TableCfgFromCSV("Name,Age\nAlice,30\nBob,25")
+records, err := csv.NewReader(strings.NewReader("Name,Age\nAlice,30\nBob,25")).ReadAll()
 if err != nil { log.Fatal(err) }
-cfg.ID = "csv-table"
-w.Table(cfg)
+w.Table(gui.TableCfg{ID: "csv-table", RawData: records})
 ```
 
 ## Custom Rows
@@ -107,17 +108,16 @@ When `RawData` is set, `Data` is ignored.
 
 ## Appearance
 
-| Property         | Type      | Description                |
-| ---------------- | --------- | -------------------------- |
-| ColorBorder      | Color     | Border/grid line color     |
-| ColorSelect      | Color     | Selected row background    |
-| ColorHover       | Color     | Hovered row background     |
-| ColorRowAlt      | *Color    | Alternating row background |
-| CellPadding      | Padding   | Padding inside each cell   |
-| TextStyle        | TextStyle | Body cell text style       |
-| TextStyleHead    | TextStyle | Header cell text style     |
-| SizeBorder       | float32   | Border line width          |
-| SizeBorderHeader | float32   | Header border line width   |
+| Property         | Type      | Description                 |
+| ---------------- | --------- | --------------------------- |
+| Colors           | ColorSet  | Hover, Selected, Border     |
+| ColorSelect      | Color     | Deprecated: Colors.Selected |
+| ColorRowAlt      | *Color    | Alternating row background  |
+| CellPadding      | Padding   | Padding inside each cell    |
+| TextStyle        | TextStyle | Body cell text style        |
+| TextStyleHead    | TextStyle | Header cell text style      |
+| SizeBorder       | float32   | Border line width           |
+| SizeBorderHeader | float32   | Header border line width    |
 
 ## Events
 
