@@ -117,8 +117,11 @@ func TestInputKeypressAllocBudget(t *testing.T) {
 	best := math.Inf(1)
 	for range 20 {
 		best = min(best, testing.AllocsPerRun(1, keypress))
+		if best <= 370 {
+			break
+		}
 	}
-	if best > 400 {
-		t.Fatalf("keypress allocs = %v, want <= 400", best)
+	if best > 370 {
+		t.Fatalf("keypress allocs = %v, want <= 370", best)
 	}
 }
