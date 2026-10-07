@@ -313,7 +313,12 @@ func (cv *containerView) GenerateLayout(w *Window) Layout {
 		if w != nil {
 			layout.Shape.bc = w.scratch.buttonColors.alloc(bc)
 		} else {
-			layout.Shape.bc = &bc
+			// A separate copy for the nil-window (test) path. Taking
+			// &bc itself moved bc to the heap on every call, so the
+			// pooled path above paid one allocation per button per
+			// frame as well.
+			heapBC := bc
+			layout.Shape.bc = &heapBC
 		}
 		layout.Shape.events.AmendLayout = buttonAmendLayout
 		layout.Shape.events.OnHover = buttonOnHover

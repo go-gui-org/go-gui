@@ -33,6 +33,11 @@ and this project adheres to
   frame at the animations' current phase. This also covers compositors without
   xdg-shell v6 `suspended`, such as muffin 6.6. It applies with
   `GOGUI_WAYLAND=1`; X11 has no reliable signal for a covered window.
+- **A button's per-frame colors no longer allocate.** Every Button, and every
+  widget built on it (tabs, segmented controls, date pickers, dialogs, toasts),
+  put its state colors on the heap once per frame, although they come from a
+  frame pool. A nil-window fallback took their address, and that moved them to
+  the heap on every call. Now generating a built button allocates nothing.
 
 ## [v0.86.0] - 2026-10-06
 
