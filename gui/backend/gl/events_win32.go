@@ -7,6 +7,7 @@ import (
 	"unsafe"
 
 	"github.com/go-gui-org/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/devscale"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/winkey"
 )
 
@@ -248,6 +249,13 @@ func (b *Backend) handleMessage(msg, wparam, lparam uintptr) (uintptr, bool) {
 		// refreshes the client size and the DPI scale. Skipping this
 		// message leaves text and geometry pinned to the DPI the
 		// window was created at (issue #490).
+		//
+		// GOGUI_DEVICE_SCALE pins the scale, so the window keeps its size.
+		// The suggested rect is scaled by the real DPI ratio and would
+		// change the logical size (#971).
+		if _, pinned := devscale.Override(); pinned {
+			return 0, true
+		}
 		if x, y, cx, cy, ok := dpiChangedBounds(lparam); ok {
 			pSetWindowPos.Call(b.plat.hwnd, 0,
 				uintptr(x), uintptr(y), uintptr(cx), uintptr(cy),

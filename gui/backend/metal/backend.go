@@ -583,13 +583,10 @@ func createWindowState(w *gui.Window) (*windowState, error) {
 
 	// Compute DPI scale from framebuffer vs logical size.
 	var fbW, fbH C.int
-	C.metalWindowGetFramebufferSize(win, &fbW, &fbH)
+	C.metalWindowGetFramebufferSize(win, C.float(scaleOverride()), &fbW, &fbH)
 	var logW, logH C.int
 	C.metalWindowGetSize(win, &logW, &logH)
-	dpiScale := float32(1.0)
-	if logW > 0 {
-		dpiScale = float32(fbW) / float32(logW)
-	}
+	dpiScale := drawableScale(int32(fbW), int32(logW), 1)
 	C.metalResize(ctx, fbW, fbH)
 
 	ws := &windowState{
@@ -719,7 +716,7 @@ func (ws *windowState) renderFrame(w *gui.Window) {
 
 func (ws *windowState) handleResize() {
 	var fbW, fbH C.int
-	C.metalWindowGetFramebufferSize(ws.window, &fbW, &fbH)
+	C.metalWindowGetFramebufferSize(ws.window, C.float(scaleOverride()), &fbW, &fbH)
 	var logW, logH C.int
 	C.metalWindowGetSize(ws.window, &logW, &logH)
 
@@ -732,9 +729,7 @@ func (ws *windowState) handleResize() {
 
 	ws.physW = int32(fbW)
 	ws.physH = int32(fbH)
-	if logW > 0 {
-		ws.applyDPIScale(float32(fbW) / float32(logW))
-	}
+	ws.applyDPIScale(drawableScale(int32(fbW), int32(logW), ws.dpiScale))
 	C.metalResize(ws.ctx, fbW, fbH)
 	ws.updateProjection()
 }

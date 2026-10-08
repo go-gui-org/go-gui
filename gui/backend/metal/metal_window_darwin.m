@@ -864,7 +864,8 @@ void metalWindowGetSize(GoGuiNSWindow w, int *width, int *height) {
     if (height) *height = (int)bounds.size.height;
 }
 
-void metalWindowGetFramebufferSize(GoGuiNSWindow w, int *width, int *height) {
+void metalWindowGetFramebufferSize(GoGuiNSWindow w, float scaleOverride,
+                                   int *width, int *height) {
     if (width) *width = 0;
     if (height) *height = 0;
     if (!w) return;
@@ -879,6 +880,11 @@ void metalWindowGetFramebufferSize(GoGuiNSWindow w, int *width, int *height) {
     // with the Go-side DPI-scale derivation.
     NSRect bounds = gw->contentView.bounds;
     CGFloat scale = gw->nsWindow.backingScaleFactor;
+    // The developer override sizes the drawable at the requested density.
+    // The layer keeps its bounds, so Core Animation resamples the drawable
+    // to the screen: the window keeps its size and renders like a display
+    // of that scale.
+    if (scaleOverride > 0) scale = scaleOverride;
     if (scale <= 0) scale = 1.0;
 
     CGSize drawableSize = CGSizeMake(bounds.size.width * scale,

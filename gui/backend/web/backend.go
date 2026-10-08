@@ -14,6 +14,7 @@ import (
 	glyphweb "github.com/go-gui-org/go-glyph/backend/web"
 
 	"github.com/go-gui-org/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/devscale"
 	"github.com/go-gui-org/go-gui/gui/svg"
 )
 
@@ -130,6 +131,10 @@ func newBackend(w *gui.Window) (*Backend, error) {
 	if !dpr.IsUndefined() && !dpr.IsNull() {
 		dpiScale = float32(dpr.Float())
 	}
+	// GOGUI_DEVICE_SCALE replaces devicePixelRatio (#971). The canvas
+	// keeps its CSS size, so the browser resamples it like a display of
+	// that density.
+	dpiScale = devscale.Apply(dpiScale)
 
 	// Size canvas to fill the browser viewport. Config Width/Height
 	// are ignored — the browser window IS the application window.
@@ -402,6 +407,7 @@ func (b *Backend) resizeCanvas(cssW, cssH int) {
 	if !dpr.IsUndefined() && !dpr.IsNull() {
 		b.dpiScale = float32(dpr.Float())
 	}
+	b.dpiScale = devscale.Apply(b.dpiScale)
 	b.width = cssW
 	b.height = cssH
 	b.canvas.Get("style").Set("width", itoa(cssW)+"px")

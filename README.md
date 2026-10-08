@@ -258,7 +258,13 @@ each class of finding — duplicates, missing IDs, unconsumed events, listbox
 virtualization, over-stop gradients, unresolved state keys, unclaimed focus IDs,
 stamp drift, dropped callbacks and links, refused window features —
 independently. Set `GOGUI_DEBUG_REBUILDS=1` to log why each frame rebuilds;
-`GOGUI_DEBUG=1` does not turn this on, because it logs normal operation. See the
+`GOGUI_DEBUG=1` does not turn this on, because it logs normal operation.
+
+Two more variables help with tests and manual runs. `GOGUI_DEVICE_SCALE=2` uses
+that device scale in place of the monitor's, so 2x layout and text bugs show on
+a 1x monitor. `GOGUI_EMULATE_CLIPBOARD=1` keeps the clipboard and the PRIMARY
+selection inside each window, so the system clipboard does not change;
+`GOGUI_CLIPBOARD_TEXT` sets the text it holds at the start. See the
 [Debugging](https://github.com/go-gui-org/go-gui/wiki/Debugging) wiki page.
 
 ## License

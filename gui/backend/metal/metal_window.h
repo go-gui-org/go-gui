@@ -56,8 +56,11 @@ void metalWindowSetTitle(GoGuiNSWindow w, const char *title);
 // Get the window size in logical pixels.
 void metalWindowGetSize(GoGuiNSWindow w, int *width, int *height);
 
-// Get the framebuffer (drawable) size in physical pixels.
-void metalWindowGetFramebufferSize(GoGuiNSWindow w, int *width, int *height);
+// Get the framebuffer (drawable) size in physical pixels. A
+// scaleOverride above 0 replaces the screen's backing scale
+// (GOGUI_DEVICE_SCALE, #971); 0 uses the screen's.
+void metalWindowGetFramebufferSize(GoGuiNSWindow w, float scaleOverride,
+                                   int *width, int *height);
 
 // Get the CAMetalLayer pointer for the Metal rendering context.
 void *metalWindowGetLayer(GoGuiNSWindow w);

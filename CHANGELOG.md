@@ -10,6 +10,22 @@ and this project adheres to
 
 ### Added
 
+- **`GOGUI_DEVICE_SCALE` and `GOGUI_EMULATE_CLIPBOARD` for testing (#971).**
+  `GOGUI_DEVICE_SCALE=2` makes the backend use that device scale in place of the
+  monitor's: a number from 0.25 to 8. The window keeps its logical size and
+  renders with that many pixels per point, so 2x layout and text bugs show on a
+  1x monitor. On macOS and the web the system resamples the result into the same
+  window area. On X11, Wayland and Windows the window gets the matching number
+  of physical pixels. A Wayland compositor with no viewport takes only whole
+  scales, so there the value is rounded to a whole number. A value that is not a
+  number in that range is ignored. iOS and Android are not covered.
+  `GOGUI_EMULATE_CLIPBOARD=1` keeps the clipboard and the PRIMARY selection in
+  each window: `SetClipboard`, `GetClipboard`, `SetPrimary` and `GetPrimary` use
+  them, and the backend's clipboard is never called, so tests and manual runs do
+  not change the system clipboard. `GOGUI_CLIPBOARD_TEXT` sets the text the
+  emulated clipboard holds at the start. Both variables are read at startup and
+  add no exported API.
+
 - **`GOGUI_DEBUG_REBUILDS=1` turns on `DebugRebuilds` (#975).** The variable is
   read at startup, so an existing app logs why its frames rebuild with no code
   change. Before, `DebugRebuilds` needed a `gui.DebugCategories` call in `main`,

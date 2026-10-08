@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"unsafe"
 
+	"github.com/go-gui-org/go-gui/gui/backend/internal/devscale"
 	gogl "github.com/go-gui-org/go-gui/gui/backend/internal/glbind"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/hicon"
 	"golang.org/x/sys/windows"
@@ -292,7 +293,13 @@ func (p *platformState) drawableSize() (int32, int32) {
 }
 
 func (p *platformState) dpiScale() float32 {
-	return float32(dpiForWindow(p.hwnd)) / 96.0
+	return windowScale(p.hwnd)
+}
+
+// windowScale is the window's DPI as a scale, or GOGUI_DEVICE_SCALE when
+// that is set (#971).
+func windowScale(hwnd uintptr) float32 {
+	return devscale.Apply(float32(dpiForWindow(hwnd)) / 96.0)
 }
 
 func (p *platformState) setCursor(mc gui.MouseCursor) {
@@ -493,7 +500,9 @@ func New(w *gui.Window) (*Backend, error) {
 	// Size the window so its client area matches the requested
 	// logical size at the current system DPI.
 	dpi := dpiForSystem()
-	scale := float64(dpi) / 96.0
+	// GOGUI_DEVICE_SCALE sizes the client area for the override, so the
+	// window keeps its logical size (#971).
+	scale := float64(devscale.Apply(float32(dpi) / 96.0))
 	rc := rectW{0, 0, int32(float64(width) * scale), int32(float64(height) * scale)}
 	pAdjustRectDpi.Call(uintptr(unsafe.Pointer(&rc)), style, 0, 0, uintptr(dpi))
 	winW := rc.right - rc.left
@@ -564,7 +573,7 @@ func New(w *gui.Window) (*Backend, error) {
 		return nil, fmt.Errorf("gl: glbind init: %w", err)
 	}
 
-	b.dpiScale = float32(dpiForWindow(hwnd)) / 96.0
+	b.dpiScale = windowScale(hwnd)
 	b.physW, b.physH = clientSize(hwnd)
 	b.initCaches(cfg)
 

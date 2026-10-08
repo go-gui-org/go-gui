@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"strconv"
 
+	"github.com/go-gui-org/go-gui/gui/backend/internal/devscale"
 	"github.com/jezek/xgb"
 	"github.com/jezek/xgb/randr"
 	"github.com/jezek/xgb/xproto"
@@ -74,9 +75,13 @@ const (
 // the scale and the CRTC the point lands on (0 when none was resolved).
 func dpiScaleForWindow(conn *xgb.Conn, root xproto.Window, haveRandr, xwayland bool, x, y int32) (float32, randr.Crtc) {
 	xft, xftOK := parseXftDPIScale(readXResource(conn, root, "Xft.dpi"))
-	return pickDPIScale(xft, xftOK, haveRandr, xwayland, func() (float32, randr.Crtc, bool) {
+	scale, crtc := pickDPIScale(xft, xftOK, haveRandr, xwayland, func() (float32, randr.Crtc, bool) {
 		return randrDPIScale(conn, root, x, y)
 	})
+	// GOGUI_DEVICE_SCALE replaces the monitor's scale here, so window
+	// creation and monitor moves both use it (#971). The window keeps its
+	// logical size and gets more physical pixels.
+	return devscale.Apply(scale), crtc
 }
 
 // xwaylandExt is the extension name Xwayland 23.1 and later advertise.

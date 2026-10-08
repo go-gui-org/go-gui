@@ -14,6 +14,7 @@ import (
 
 	"github.com/go-gui-org/go-gui/gui"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/decor"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/devscale"
 	gogl "github.com/go-gui-org/go-gui/gui/backend/internal/glbind"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/wl"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/xkb"
@@ -648,6 +649,8 @@ func wlBoundSize(w, h, scale120 int32) (int32, int32) {
 // resize adopts a new logical size and scale. Before the window is ready
 // it only records them; New sizes the EGL window from the result.
 func (ww *wlWindow) resize(w, h, scale120 int32) {
+	// Every scale passes here, so GOGUI_DEVICE_SCALE replaces it here (#971).
+	scale120 = min(devscale.Apply120(scale120, !ww.viewport.Valid()), wlMaxScale120)
 	w, h = wlBoundSize(w, h, scale120)
 	if w == ww.logW && h == ww.logH && scale120 == ww.scale120 {
 		return
