@@ -275,11 +275,17 @@ func layoutSetShapeClipsDepth(layout *Layout, clip drawClip, depth int) {
 		// The unrotated frame still sits inside every ancestor clip,
 		// and inside the content box when this container clips. Without
 		// the intersection, children scrolled out of a viewport stay
-		// hit-testable there.
+		// hit-testable there. The bound lives in the screen frame,
+		// so it is carried into the unrotated frame before the
+		// intersection: a quarter turn about the box center swaps
+		// the rectangle's width and height around that same center
+		// (issue #976). Intersecting across frames kept only the
+		// square where the two frames overlap.
 		bound := clip
 		if layout.Shape.Clip {
 			bound = childClip
 		}
+		bound = rotateClipToUnrotated(bound, layout.Shape)
 		if r, ok := rectIntersection(rotated, bound); ok {
 			childClip = r
 		} else {
@@ -294,6 +300,38 @@ func layoutSetShapeClipsDepth(layout *Layout, clip drawClip, depth int) {
 			cc = overClip
 		}
 		layoutSetShapeClipsDepth(&layout.Children[i], cc, depth+1)
+	}
+}
+
+// rotateClipToUnrotated maps a screen-frame clip rect into the
+// unrotated frame of a quarter-turned shape, rotating about the
+// shape center. It mirrors rotateCoordsInverse applied to the
+// rect's center: the dimensions swap and the center moves by the
+// inverse turn.
+func rotateClipToUnrotated(bound drawClip, shape *Shape) drawClip {
+	if shape == nil {
+		return bound
+	}
+	if bound.Width <= 0 || bound.Height <= 0 {
+		return drawClip{}
+	}
+	cx := shape.X + shape.Width/2
+	cy := shape.Y + shape.Height/2
+	switch shape.QuarterTurns {
+	case 1: // Inverse of 90° CW.
+		return drawClip{
+			X:     cx + bound.Y - cy,
+			Y:     cy + cx - bound.X - bound.Width,
+			Width: bound.Height, Height: bound.Width,
+		}
+	case 3: // Inverse of 270° CW.
+		return drawClip{
+			X:     cx + cy - bound.Y - bound.Height,
+			Y:     cy + bound.X - cx,
+			Width: bound.Height, Height: bound.Width,
+		}
+	default:
+		return bound
 	}
 }
 
