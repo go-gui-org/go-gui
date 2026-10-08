@@ -299,7 +299,8 @@ func mdHitAbsRune(
 }
 
 // markdownContainerOnKeyDown handles keyboard events for the markdown container.
-// Supports Ctrl+A (select all) and Ctrl+C (copy).
+// Supports select all and copy with the platform shortcut modifier:
+// Cmd+A/C on macOS, Ctrl+A/C elsewhere (#969).
 func markdownContainerOnKeyDown(ctx EventCtx) {
 	mdID := ctx.Layout.Shape.idKey()
 	if mdID == "" || !ctx.Window.IsFocus(mdID) {
@@ -315,7 +316,7 @@ func markdownContainerOnKeyDown(ctx EventCtx) {
 	handled := true
 	switch ctx.Event.KeyCode {
 	case KeyA:
-		if ctx.Event.Modifiers.HasAny(ModCtrl, ModSuper) {
+		if isShortcut(ctx.Event.Modifiers) {
 			totalRunes := uint32(0)
 			for _, b := range blocks {
 				totalRunes += b.RuneLen
@@ -331,7 +332,7 @@ func markdownContainerOnKeyDown(ctx EventCtx) {
 			handled = false
 		}
 	case KeyC:
-		if ctx.Event.Modifiers.HasAny(ModCtrl, ModSuper) {
+		if isShortcut(ctx.Event.Modifiers) {
 			imap := StateMap[string, mdSelState](ctx.Window, nsMdSel, capMany)
 			// Default mdSelState{}: zero value means no prior
 			// selection to copy.

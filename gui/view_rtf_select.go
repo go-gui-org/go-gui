@@ -316,11 +316,18 @@ func rtfSelectOnKeyDown(ctx EventCtx) {
 	is.cursorTrailing = false
 	runeLen := utf8RuneCount(flatText)
 	pos := min(is.CursorPos, runeLen)
-	isShift := ctx.Event.Modifiers.Has(ModShift)
-	isWordMod := ctx.Event.Modifiers.HasAny(ModCtrl, ModAlt, ModSuper)
+	// The key binding mode decides what the modifiers mean (#969).
+	tk := resolveTextKey(ctx.Event)
+	isShift, isWordMod := tk.isShift, tk.isWord
 	handled := true
 
-	switch ctx.Event.KeyCode {
+	if textKeyBoundMove(imap, id, is, flatText, pos, tk) {
+		tk.key = KeyInvalid
+	}
+
+	switch tk.key {
+	case KeyInvalid:
+		// Handled by textKeyBoundMove above.
 	case KeyLeft:
 		inputKeyLeft(imap, id, is, flatText, pos,
 			isShift, isWordMod, gl, true)
@@ -329,10 +336,10 @@ func rtfSelectOnKeyDown(ctx EventCtx) {
 			isShift, isWordMod, gl, true)
 	case KeyHome:
 		inputKeyHome(imap, id, is, flatText, pos,
-			isShift, savedTrailing, gl, true)
+			isShift, savedTrailing, !tk.lineEdge, gl, true)
 	case KeyEnd:
 		inputKeyEnd(imap, id, is, flatText, pos,
-			isShift, savedTrailing, gl, true)
+			isShift, savedTrailing, !tk.lineEdge, gl, true)
 	case KeyUp:
 		handled = textKeyVertical(imap, id, is, flatText,
 			pos, isShift, savedOffset, true,
@@ -345,7 +352,7 @@ func rtfSelectOnKeyDown(ctx EventCtx) {
 		inputKeyEscape(imap, id, is)
 		handled = false
 	case KeyA:
-		if ctx.Event.Modifiers.HasAny(ModCtrl, ModSuper) {
+		if isShortcut(ctx.Event.Modifiers) {
 			inputSelectAll(flatText, id, ctx.Window)
 		} else {
 			handled = false

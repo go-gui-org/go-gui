@@ -97,9 +97,16 @@ func makeInputOnChar(hcfg *inputHandlerCfg) func(EventCtx) {
 // inputKeyMutatesText reports whether a key event would change the
 // input's text. Read-only fields swallow these while navigation
 // (arrows/Home/End), selection (Shift, Ctrl+A), and copy (Ctrl+C) stay
-// live. Cut/undo/redo only mutate with a Ctrl/Super modifier; without
-// one their handlers decline the key, so it must not be swallowed here.
+// live. Cut/undo/redo only mutate with the shortcut modifier; without
+// it their handlers decline the key, so it must not be swallowed here.
+// On macOS the Cocoa Emacs keys Ctrl+D/H/K/Y also edit (#969).
 func inputKeyMutatesText(e *Event, mode inputMode) bool {
+	if isCocoaEmacs(e.Modifiers) {
+		switch e.KeyCode {
+		case KeyD, KeyH, KeyK, KeyY:
+			return true
+		}
+	}
 	switch e.KeyCode {
 	case KeyBackspace, KeyDelete:
 		return true
@@ -110,7 +117,7 @@ func inputKeyMutatesText(e *Event, mode inputMode) bool {
 		// skips when read-only.
 		return mode == InputMultiline
 	case KeyV, KeyX, KeyZ:
-		return e.Modifiers.HasAny(ModCtrl, ModSuper)
+		return isShortcut(e.Modifiers)
 	}
 	return false
 }
@@ -142,15 +149,27 @@ func makeInputOnKeyDown(hcfg *inputHandlerCfg) func(EventCtx) {
 		runeLen := utf8RuneCount(text)
 		pos := is.CursorPos
 		pos = min(pos, runeLen)
-		isShift := ctx.Event.Modifiers.Has(ModShift)
-		isWordMod := ctx.Event.Modifiers.HasAny(ModCtrl, ModAlt, ModSuper)
+		// The key binding mode decides what the modifiers mean: Cmd or
+		// Ctrl for shortcuts, Option or Ctrl for word moves, and on
+		// macOS the Cocoa Emacs keys (#969).
+		tk := resolveTextKey(ctx.Event)
+		isShift, isWordMod := tk.isShift, tk.isWord
 		handled := true
 		textChanged := false
 
 		// Use glyph layout for cursor navigation when available.
 		gl, glOK := inputGlyphLayoutWithText(text, ctx.Layout, ctx.Window)
 
-		switch ctx.Event.KeyCode {
+		if nt, changed, ok := inputKeyBound(
+			hcfg, ctx.Layout, imap, id, is, text, pos, tk, ctx.Window,
+		); ok {
+			text, textChanged = nt, changed
+			tk.key = KeyInvalid
+		}
+
+		switch tk.key {
+		case KeyInvalid:
+			// Handled by a key-binding case above.
 		case KeyLeft:
 			inputKeyLeft(imap, id, is, text, pos,
 				isShift, isWordMod, gl, glOK)
@@ -159,10 +178,10 @@ func makeInputOnKeyDown(hcfg *inputHandlerCfg) func(EventCtx) {
 				isShift, isWordMod, gl, glOK)
 		case KeyHome:
 			inputKeyHome(imap, id, is, text, pos,
-				isShift, savedTrailing, gl, glOK)
+				isShift, savedTrailing, !tk.lineEdge, gl, glOK)
 		case KeyEnd:
 			inputKeyEnd(imap, id, is, text, pos,
-				isShift, savedTrailing, gl, glOK)
+				isShift, savedTrailing, !tk.lineEdge, gl, glOK)
 		case KeyUp:
 			handled = inputKeyVertical(imap, id, is, text, pos,
 				isShift, savedOffset, true, hcfg.Mode, gl, glOK)
@@ -176,7 +195,7 @@ func makeInputOnKeyDown(hcfg *inputHandlerCfg) func(EventCtx) {
 			inputKeyEscape(imap, id, is)
 			handled = false
 		case KeyA:
-			if ctx.Event.Modifiers.HasAny(ModCtrl, ModSuper) {
+			if isShortcut(ctx.Event.Modifiers) {
 				inputSelectAll(text, id, ctx.Window)
 			} else {
 				handled = false
@@ -185,7 +204,7 @@ func makeInputOnKeyDown(hcfg *inputHandlerCfg) func(EventCtx) {
 			handled = inputKeyCopy(
 				text, id, hcfg.IsPassword, ctx.Event, ctx.Window)
 		case KeyV:
-			if ctx.Event.Modifiers.HasAny(ModCtrl, ModSuper) {
+			if isShortcut(ctx.Event.Modifiers) {
 				text, textChanged = inputKeyPaste(
 					text, ctx.Window.GetClipboard(), id,
 					mask, *hcfg, ctx.Window)
@@ -221,6 +240,33 @@ func makeInputOnKeyDown(hcfg *inputHandlerCfg) func(EventCtx) {
 			hcfg.OnKeyDown(ctx)
 		}
 	}
+}
+
+// inputKeyBound handles the keys that exist only under a key binding
+// mode and have no plain-key twin: macOS Cmd+Up/Down and the Cocoa
+// Emacs keys Ctrl+A/E/K/Y (#969). It returns ok=false for any other
+// key, which the caller's main switch then handles.
+func inputKeyBound(
+	hcfg *inputHandlerCfg, layout *Layout,
+	imap *BoundedMap[string, inputState], id string, is inputState,
+	text string, pos int, tk textKey, w *Window,
+) (string, bool, bool) {
+	if textKeyBoundMove(imap, id, is, text, pos, tk) {
+		return text, false, true
+	}
+	if !tk.emacs {
+		return text, false, false
+	}
+	switch tk.key {
+	case KeyK:
+		nt, changed := inputKeyKill(*hcfg, layout, text, id, pos, w)
+		return nt, changed, true
+	case KeyY:
+		nt, changed := inputKeyPaste(
+			text, w.killBuffer, id, hcfg.CompiledMask, *hcfg, w)
+		return nt, changed, true
+	}
+	return text, false, false
 }
 
 func makeInputOnKeyUp(hcfg *inputHandlerCfg) func(EventCtx) {
@@ -265,7 +311,7 @@ func inputKeyEscape(
 func inputKeyCopy(
 	text string, id string, isPassword bool, e *Event, w *Window,
 ) bool {
-	if !e.Modifiers.HasAny(ModCtrl, ModSuper) {
+	if !isShortcut(e.Modifiers) {
 		return false
 	}
 	// Consumed even with nothing to copy: while the field holds
@@ -280,7 +326,7 @@ func inputKeyCopy(
 func inputKeyCut(
 	text string, id string, isPassword bool, e *Event, w *Window,
 ) (string, bool, bool) {
-	if !e.Modifiers.HasAny(ModCtrl, ModSuper) {
+	if !isShortcut(e.Modifiers) {
 		return text, false, false
 	}
 	// Consumed even with nothing to cut, like copy above: the
@@ -296,7 +342,7 @@ func inputKeyCut(
 func inputKeyUndoRedo(
 	text string, id string, e *Event, w *Window,
 ) (string, bool, bool) {
-	if !e.Modifiers.HasAny(ModCtrl, ModSuper) {
+	if !isShortcut(e.Modifiers) {
 		return text, false, false
 	}
 	// Consumed even on an empty stack, like copy and cut: the

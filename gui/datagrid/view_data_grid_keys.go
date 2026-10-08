@@ -42,13 +42,15 @@ func dataGridMakeOnChar(cfg *DataGridCfg, columns []GridColumnCfg) func(gg.Event
 	}
 }
 
+// dataGridCharIsCopy and dataGridIsSelectAllShortcut match the
+// platform shortcut modifier (Cmd on macOS, Ctrl elsewhere), the same
+// one the text widgets use (#969).
 func dataGridCharIsCopy(e *gg.Event) bool {
-	return (e.Modifiers.Has(gg.ModCtrl) && e.CharCode == 3) ||
-		(e.Modifiers.Has(gg.ModSuper) && e.CharCode == 3)
+	return e.Modifiers.Has(gg.ShortcutModifier()) && e.CharCode == 3
 }
 
 func dataGridIsSelectAllShortcut(e *gg.Event) bool {
-	return (e.Modifiers.Has(gg.ModCtrl) || e.Modifiers.Has(gg.ModSuper)) && e.KeyCode == gg.KeyA
+	return e.Modifiers.Has(gg.ShortcutModifier()) && e.KeyCode == gg.KeyA
 }
 
 // --- Mouse move tracker ---

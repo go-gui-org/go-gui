@@ -202,7 +202,7 @@ func fileBrowserRowClick(ctx EventCtx, i int) {
 		return
 	}
 	now := w.Now().UnixNano()
-	toggle := ctx.Event != nil && ctx.Event.Modifiers.HasAny(ModCtrl, ModSuper)
+	toggle := ctx.Event != nil && isShortcut(ctx.Event.Modifiers)
 	// A Ctrl/Cmd-click marks or unmarks; two quick ones on the same file
 	// are an unmark, not a double-click that would drop the other marks.
 	if !toggle && st.lastClickAt != 0 && st.lastClickRow == i &&

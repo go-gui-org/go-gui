@@ -293,7 +293,9 @@ func TestDialogKeyDownCtrlCCopiesBody(t *testing.T) {
 	}
 }
 
+// TestDialogKeyDownSuperCCopiesBody: Cmd+C copies on macOS (#969).
 func TestDialogKeyDownSuperCCopiesBody(t *testing.T) {
+	setKeyBindingForTest(t, KeyBindingCommand)
 	w := newTestWindow()
 	var clipped string
 	w.SetClipboardFn(func(s string) { clipped = s })

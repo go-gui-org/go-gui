@@ -87,6 +87,11 @@ type windowBackend struct {
 	soundMu        sync.RWMutex
 	clipboardSetFn func(string)
 	clipboardGetFn func() string
+	// killBuffer holds the text the last macOS Ctrl+K cut, for Ctrl+Y
+	// to paste back. Cocoa keeps it apart from the clipboard, so a
+	// kill never overwrites what the user copied (#969). Read and
+	// written only by key dispatch, which is serialized.
+	killBuffer string
 	// primarySetFn/primaryGetFn drive the X11 PRIMARY selection — the
 	// implicit, select-to-copy / middle-click-to-paste buffer that is
 	// independent of CLIPBOARD. Only the X11 backend wires these; every
