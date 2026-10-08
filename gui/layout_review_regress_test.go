@@ -172,6 +172,9 @@ func TestFloatInheritsDisabledFromHost(t *testing.T) {
 }
 
 // Children of a rotated container stay inside the ancestor clip.
+// The ancestor bound is carried into the unrotated frame before the
+// intersection (#976), so the assertion reads the clip in that frame:
+// a screen-space bottom edge clips the unrotated width, not its height.
 func TestRotatedChildClipIntersectsAncestorClip(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{X: 0, Y: 0, Width: 100, Height: 100, Clip: true},
@@ -187,9 +190,91 @@ func TestRotatedChildClipIntersectsAncestorClip(t *testing.T) {
 	}
 	layoutSetShapeClips(root, drawClip{Width: 500, Height: 500})
 	c := root.Children[0].Children[0].Shape.shapeClip
-	if c.Y+c.Height > 100+f32Tolerance {
-		t.Errorf("rotated child clip reaches y=%f, want <= 100 (%+v)",
-			c.Y+c.Height, c)
+	// The screen-space ancestor 0,0,100,100 maps to -50,50,100,100 in
+	// the unrotated frame, so the 60-wide frame is cut to 30 from the
+	// right while the full 20 height survives.
+	want := drawClip{X: 20, Y: 90, Width: 30, Height: 20}
+	if !f32AreClose(c.X, want.X) || !f32AreClose(c.Y, want.Y) ||
+		!f32AreClose(c.Width, want.Width) || !f32AreClose(c.Height, want.Height) {
+		t.Fatalf("rotated child clip = %+v, want %+v", c, want)
+	}
+	// Carried back to the screen, the clip sits fully inside the
+	// root: the forward turn maps it to 40,70,20,30.
+	cx, cy := float32(50), float32(100)
+	screen := drawClip{
+		X:     cx + cy - c.Y - c.Height,
+		Y:     cy + c.X - cx,
+		Width: c.Height, Height: c.Width,
+	}
+	if screen.X < 0-f32Tolerance || screen.Y < 0-f32Tolerance ||
+		screen.X+screen.Width > 100+f32Tolerance ||
+		screen.Y+screen.Height > 100+f32Tolerance {
+		t.Errorf("screen-mapped clip escapes the ancestor: %+v", screen)
+	}
+}
+
+// A RotatedBox child stays hoverable along its full length (#976).
+// The clipping bound used to be intersected in the screen frame, so
+// only the center square where the frames overlap responded.
+func TestRotatedBoxChildHoverableAtBothEnds(t *testing.T) {
+	for _, turns := range []uint8{1, 3} {
+		hovered := false
+		root := &Layout{
+			Shape: &Shape{X: 0, Y: 0, Width: 500, Height: 500},
+			Children: []Layout{{
+				Shape: &Shape{
+					X: 15, Y: 15, Width: 40, Height: 200,
+					QuarterTurns: turns, Clip: true,
+				},
+				Children: []Layout{{
+					Shape: &Shape{
+						X: -65, Y: 95, Width: 200, Height: 40,
+						events: &eventHandlers{
+							OnHover: func(EventCtx) { hovered = true },
+						},
+					},
+				}},
+			}},
+		}
+		layoutSetShapeClips(root, drawClip{Width: 500, Height: 500})
+		child := root.Children[0].Children[0].Shape
+		if !f32AreClose(child.shapeClip.Width, 200) ||
+			!f32AreClose(child.shapeClip.Height, 40) {
+			t.Fatalf("turns=%d: child clip = %+v, want full 200x40",
+				turns, child.shapeClip)
+		}
+		// The child spans x -65..135 at y 95..135 unrotated. Its
+		// ends map to the top and bottom of the screen box.
+		w := &Window{}
+		for _, pt := range [][2]float32{{35, 25}, {35, 205}} {
+			hovered = false
+			w.viewState.mousePosX, w.viewState.mousePosY = pt[0], pt[1]
+			layoutHover(root, w)
+			if !hovered {
+				t.Errorf("turns=%d: no hover at screen (%v,%v)",
+					turns, pt[0], pt[1])
+			}
+		}
+	}
+}
+
+// rotateClipToUnrotated passes through what it cannot rotate and
+// empties what holds nothing: nil shape and turns 0/2 keep the bound,
+// an empty bound stays empty.
+func TestRotateClipToUnrotatedEdgeCases(t *testing.T) {
+	bound := drawClip{X: 1, Y: 2, Width: 3, Height: 4}
+	if got := rotateClipToUnrotated(bound, nil); got != bound {
+		t.Errorf("nil shape: got %+v, want %+v", got, bound)
+	}
+	for _, turns := range []uint8{0, 2} {
+		s := &Shape{X: 10, Y: 20, Width: 40, Height: 100, QuarterTurns: turns}
+		if got := rotateClipToUnrotated(bound, s); got != bound {
+			t.Errorf("turns=%d: got %+v, want %+v", turns, got, bound)
+		}
+	}
+	s := &Shape{X: 10, Y: 20, Width: 40, Height: 100, QuarterTurns: 1}
+	if got := rotateClipToUnrotated(drawClip{}, s); got.Width != 0 || got.Height != 0 {
+		t.Errorf("empty bound: got %+v, want empty", got)
 	}
 }
 

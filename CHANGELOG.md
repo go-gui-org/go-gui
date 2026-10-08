@@ -46,6 +46,12 @@ and this project adheres to
 
 ### Fixed
 
+- **A `RotatedBox` child stays hoverable along its full length (#976).** Inside
+  a 90° or 270° box, the clipping bound was intersected in the screen frame
+  while the child lives in the unrotated frame, so only the center square where
+  the frames overlap took hover and clicks. The bound is now carried into the
+  unrotated frame before the intersection.
+
 - **`OnMouseLeave` no longer misses a leave after frames that arrange nothing
   (#973).** The hover record counted frames. A frame that ran no arrange pass,
   such as a caret blink, made a real hover look stale, so moving out of the
