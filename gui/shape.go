@@ -562,6 +562,8 @@ type eventHandlers struct {
 	clickOnEnter bool        // fire OnClick on Enter key via OnKeyDown dispatch
 
 	amendOnRender bool // ContainerCfg.amendOnRender
+	hoverStatic   bool // ContainerCfg.hoverStatic
+	pointerAmend  bool // ContainerCfg.pointerAmend
 
 	// soundCue is the cue dispatch emits when this shape's OnClick
 	// fires. Resolved at generation time from the theme and the

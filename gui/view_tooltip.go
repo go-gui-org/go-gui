@@ -195,6 +195,9 @@ func withTooltipBuild(w *Window, cfg WithTooltipCfg) View {
 		SizeBorder:  NoBorder,
 		Content:     content,
 		AmendLayout: withTooltipAmend(tipID, delay),
+		// The hook tests the pointer against the wrapper's bounds, so
+		// a move into them must rebuild (#973).
+		pointerAmend: true,
 	})
 }
 

@@ -496,6 +496,8 @@ func selectOptionView(
 			}
 			onSelect(s, EventCtx{nil, ctx.Event, ctx.Window})
 		},
+		// Paints and records the option, never the position (#973).
+		hoverStatic: true,
 		OnHover: func(ctx EventCtx) {
 			ctx.Window.setMouseCursor(CursorPointingHand)
 			// Hover paints the same subtle wash as the keyboard

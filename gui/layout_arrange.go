@@ -11,6 +11,19 @@ import (
 // layer order.
 func layoutArrange(layout *Layout, w *Window) []Layout {
 	ensureLayoutShape(layout)
+	w.arrangePass++
+	// Record the cursor a real move would end with: the one this pass
+	// chose, or the arrow a move resets to when it chose none
+	// (window_idle_move.go). Deferred: it must see every hook.
+	w.viewState.inArrange = true
+	w.viewState.arrangeSetCursor = false
+	defer func() {
+		w.viewState.inArrange = false
+		w.viewState.arrangedCursor = CursorArrow
+		if w.viewState.arrangeSetCursor {
+			w.viewState.arrangedCursor = w.viewState.mouseCursor
+		}
+	}()
 
 	// Set parent pointers.
 	layoutParents(layout, nil)
@@ -97,6 +110,11 @@ func layoutArrange(layout *Layout, w *Window) []Layout {
 		func(a, b Layout) int {
 			return cmp.Compare(a.Shape.FloatZIndex, b.Shape.FloatZIndex)
 		})
+
+	// Where the hover and mouse-leave passes below see the pointer. An
+	// idle move compares against it (window_idle_move.go).
+	w.viewState.arrangedMouseX = w.viewState.mousePosX
+	w.viewState.arrangedMouseY = w.viewState.mousePosY
 
 	// Hover processing: topmost first. Only a handled OnHover stops the
 	// walk, so OnHover still fires under a floating layer that handles

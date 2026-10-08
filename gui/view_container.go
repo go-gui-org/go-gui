@@ -43,6 +43,16 @@ type ContainerCfg struct {
 	// arranged tree and must not move anything another shape is sized
 	// or placed from.
 	amendOnRender bool
+	// hoverStatic marks OnHover as depending only on whether the
+	// pointer is over the shape, never on where inside it. A pointer
+	// move that stays inside the shape then needs no rebuild
+	// (window_idle_move.go, #973). Set only for a built-in hover whose
+	// callback reads no position and calls no app code.
+	hoverStatic bool
+	// pointerAmend marks an AmendLayout that reads the pointer position
+	// (WithTooltip's enter and leave test). A move into or out of the
+	// shape then rebuilds, so the hook sees it.
+	pointerAmend bool
 	// colorDisabled is the explicit disabled fill a widget built on a
 	// container passes down from its ColorSet.Disabled (#741). See
 	// Shape.colorDisabled.
@@ -322,6 +332,9 @@ func (cv *containerView) GenerateLayout(w *Window) Layout {
 		}
 		layout.Shape.events.AmendLayout = buttonAmendLayout
 		layout.Shape.events.OnHover = buttonOnHover
+		// buttonOnHover reads no pointer position. An app OnHover may,
+		// so only a button without one skips moves inside it (#973).
+		layout.Shape.events.hoverStatic = cv.userOnHover == nil
 	}
 	addGroupBoxTitle(cfg.Title, cfg.TitleBG, cfg.ColorBorder,
 		cfg.Disabled, w, &layout)
@@ -472,6 +485,8 @@ func makeContainerEvents(c *ContainerCfg) (eventHandlers, bool) {
 		AmendLayout:   c.AmendLayout,
 		clickButton:   c.clickButton,
 		amendOnRender: c.amendOnRender,
+		hoverStatic:   c.hoverStatic,
+		pointerAmend:  c.pointerAmend,
 		clickOnSpace:  c.ClickOnSpace,
 		clickOnEnter:  c.ClickOnEnter,
 		soundCue:      c.Sound,

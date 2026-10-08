@@ -212,6 +212,8 @@ func treeRowView(
 			treeRowClick(
 				rootFocusID, row, rootFocusID, onSelect, onLazyLoad, ctx.Event, ctx.Window)
 		},
+		// Hover paints by row only, never by position (#973).
+		hoverStatic: true,
 		OnHover: func(ctx EventCtx) {
 			ctx.Window.SetMouseCursorPointingHand()
 			// The fill follows the pointer even on the focused row,
@@ -292,6 +294,8 @@ func treeDragRowView(
 			treeRowClick(
 				treeID, row, rootFocusID, onSelect, onLazyLoad, ctx.Event, ctx.Window)
 		},
+		// Hover paints by row only, never by position (#973).
+		hoverStatic: true,
 		OnHover: func(ctx EventCtx) {
 			ctx.Window.SetMouseCursorPointingHand()
 			// The fill follows the pointer even on the focused row,

@@ -465,6 +465,8 @@ func listCoreItemView(item listCoreItem, index int, isHighlighted, isSelected bo
 				onItemClick(itemID, index, ctx)
 			}
 		},
+		// Reads no pointer position; an OnItemHover is app code (#973).
+		hoverStatic: !hasHover,
 		OnHover: func(ctx EventCtx) {
 			// A disabled row is inert: no cursor, no hover paint
 			// and no hover callback, matching the OnClick gate.

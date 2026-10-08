@@ -12,6 +12,9 @@ package gui
 // setMouseCursor sets the mouse cursor shape.
 func (w *Window) setMouseCursor(cursor MouseCursor) {
 	w.viewState.mouseCursor = cursor
+	if w.viewState.inArrange {
+		w.viewState.arrangeSetCursor = true
+	}
 }
 
 // SetMouseCursorArrow sets the cursor to the default arrow.

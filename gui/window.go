@@ -149,8 +149,8 @@ type Window struct {
 	// on per-shape calls in the layout pipeline. Nil until first use;
 	// lazily allocated by accessor methods. See §5 in
 	// docs/specs/perf-optimizations.md.
-	// hoverInsideMap holds, per shape, the frame its bounds last
-	// contained the pointer. A frame stamp rather than a flag so an
+	// hoverInsideMap holds, per shape, the arrange pass its bounds last
+	// contained the pointer. A pass stamp rather than a flag so an
 	// entry left by a shape that stopped being walked goes stale on its
 	// own — see layoutMouseLeaveDepth.
 	hoverInsideMap *BoundedMap[string, uint64]
@@ -318,6 +318,21 @@ type Window struct {
 	// lastRefreshGen is the debug gate generation noteRefresh last logged
 	// under, so a re-enabled DebugRebuilds reports the pass in front of it.
 	lastRefreshGen uint64
+	// idleMovesSkipped counts pointer moves that asked for no rebuild
+	// because they changed nothing the arranged frame encodes
+	// (window_idle_move.go, #973). idleMovesPending counts the ones since
+	// the last pass, so DebugRebuilds can report them in front of it.
+	// Main-thread only.
+	idleMovesSkipped uint64
+	idleMovesPending uint64
+	// idleMove marks the event being dispatched as an idle move, so
+	// EventFn asks for no rebuild. Set by skipIdleMove, cleared by
+	// takeIdleMove.
+	idleMove bool
+	// arrangePass counts layoutArrange runs. OnMouseLeave compares
+	// against it, not frameCount: a frame that runs no arrange pass (a
+	// caret blink, an idle move) must not age the hover record.
+	arrangePass uint64
 
 	// caretCmd records the focused caret's RenderCmd position so a
 	// blink tick can toggle its color in place instead of rebuilding

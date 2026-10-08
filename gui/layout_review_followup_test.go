@@ -20,17 +20,17 @@ func TestMouseLeaveIgnoresStaleHoverEntry(t *testing.T) {
 	}
 	layout := Layout{Shape: shape}
 
-	// Frame 1: the pointer is inside.
-	w.frameCount = 1
+	// Pass 1: the pointer is inside.
+	w.arrangePass = 1
 	w.viewState.mousePosX, w.viewState.mousePosY = 15, 15
 	layoutMouseLeave(&layout, w)
 
-	// Frames 2 and 3: the shape is not walked at all. Only the frame
+	// Passes 2 and 3: the shape is not walked at all. Only the pass
 	// counter moves.
-	w.frameCount = 4
+	w.arrangePass = 4
 
-	// Frame 4: it is back, and the pointer is elsewhere. The hover it
-	// recorded ended three frames ago, so there is no leave to fire.
+	// Pass 4: it is back, and the pointer is elsewhere. The hover it
+	// recorded ended three passes ago, so there is no leave to fire.
 	w.viewState.mousePosX, w.viewState.mousePosY = 100, 100
 	layoutMouseLeave(&layout, w)
 
@@ -39,7 +39,7 @@ func TestMouseLeaveIgnoresStaleHoverEntry(t *testing.T) {
 	}
 }
 
-// The frame stamp must not break the ordinary case: inside on one frame,
+// The pass stamp must not break the ordinary case: inside on one pass,
 // outside on the next, fires exactly once.
 func TestMouseLeaveFiresAcrossConsecutiveFrames(t *testing.T) {
 	w := &Window{}
@@ -50,11 +50,11 @@ func TestMouseLeaveFiresAcrossConsecutiveFrames(t *testing.T) {
 	}
 	layout := Layout{Shape: shape}
 
-	w.frameCount = 7
+	w.arrangePass = 7
 	w.viewState.mousePosX, w.viewState.mousePosY = 15, 15
 	layoutMouseLeave(&layout, w)
 
-	w.frameCount = 8
+	w.arrangePass = 8
 	w.viewState.mousePosX, w.viewState.mousePosY = 100, 100
 	layoutMouseLeave(&layout, w)
 
