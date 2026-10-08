@@ -91,6 +91,13 @@ and this project adheres to
 
 ### Fixed
 
+- **`GOGUI_DEVICE_SCALE`: Win32 size limits and large X11 windows (#984).** On
+  Windows, `MinWidth`/`MaxWidth` and the other size limits were scaled by the
+  monitor DPI, not by the override, so the resize bounds did not match the
+  logical limits. They now use the same scale as the content. On X11, a large
+  `Width` at a high scale (9000 at scale 8) wrapped in the 16-bit window size to
+  a small or zero window. The physical size is now clamped to 1–32767.
+
 - **A `RotatedBox` child stays hoverable along its full length (#976).** Inside
   a 90° or 270° box, the clipping bound was intersected in the screen frame
   while the child lives in the unrotated frame, so only the center square where

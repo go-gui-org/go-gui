@@ -99,8 +99,8 @@ func newX11(w *gui.Window) (*Backend, error) {
 	// The window is created at 0,0, so its initial monitor is whichever
 	// CRTC covers the origin.
 	scale, crtc := dpiScaleForWindow(conn, screen.Root, haveRandr, xwayland, 0, 0)
-	physW := int32(float32(width) * scale)
-	physH := int32(float32(height) * scale)
+	physW := x11Extent(width, scale)
+	physH := x11Extent(height, scale)
 
 	// A transparent window needs an ARGB (depth-32) visual, which the
 	// driver does not offer first, so the config is chosen against this
@@ -244,6 +244,29 @@ func (n *nativePlatform) SetWindowOpacity(opacity float32) {
 }
 
 // --- helpers ---
+
+// x11MaxExtent is the largest window side x11Extent returns. CreateWindow
+// takes a CARD16, but window coordinates are INT16, so a side past 32767
+// cannot be placed or drawn anyway.
+const x11MaxExtent = 32767
+
+// x11Extent converts a logical window side to physical pixels for
+// CreateWindow. A large Width at a high scale (9000 at
+// GOGUI_DEVICE_SCALE=8) would wrap in the uint16 conversion to a small
+// or zero size, so the result is clamped to [1, x11MaxExtent] (#984).
+// The clamp is done in float, before the int32 conversion, because that
+// conversion is undefined for values out of range. NaN fails the first
+// test and gives 1.
+func x11Extent(logical int32, scale float32) int32 {
+	v := float32(logical) * scale
+	if !(v >= 1) {
+		return 1
+	}
+	if v > x11MaxExtent {
+		return x11MaxExtent
+	}
+	return int32(v)
+}
 
 func internAtom(conn *xgb.Conn, name string) xproto.Atom {
 	reply, err := xproto.InternAtom(conn, false, uint16(len(name)), name).Reply()

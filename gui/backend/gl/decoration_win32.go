@@ -110,6 +110,29 @@ func wmszFor(edge gui.WindowEdge) uintptr {
 	return 0
 }
 
+// win32MaxExtent caps a client side, matching the cap SizeLimits.Scaled
+// puts on a limit.
+const win32MaxExtent = 32767
+
+// clientExtent converts a logical client side to physical pixels for the
+// initial window size. It must do the same math as SizeLimits.Scaled: a
+// float32 product, truncated, kept in [1, win32MaxExtent]. With a scale
+// that is not exact in binary, such as GOGUI_DEVICE_SCALE=1.3, a float64
+// product truncates 10 to 12 while the float32 one gives 13. Under
+// FixedSize the floor would then sit 1px above the created size, and the
+// window would grow by that pixel when it opens (#984). The clamp is done
+// in float, because the int32 conversion is undefined out of range.
+func clientExtent(logical int, scale float32) int32 {
+	v := float32(logical) * scale
+	if !(v >= 1) {
+		return 1
+	}
+	if v > win32MaxExtent {
+		return win32MaxExtent
+	}
+	return int32(v)
+}
+
 // trackSizeFor converts logical content-size limits into the outer
 // frame track sizes WM_GETMINMAXINFO reports. Windows sizes a window by
 // its whole frame, but WindowCfg speaks in client area, so the same
@@ -117,11 +140,16 @@ func wmszFor(edge gui.WindowEdge) uintptr {
 // applied here — otherwise a MinWidth would mean a smaller client area
 // on Windows than on the other platforms.
 //
+// dpi is the monitor DPI and sizes the frame, which Windows draws at the
+// real DPI. scale converts the client bounds and is the effective scale
+// (GOGUI_DEVICE_SCALE when set), so a limit means the same client area
+// as the content laid out at that scale (#984).
+//
 // Returns zeroed points for the axes with no limit; the caller leaves
 // those fields of MINMAXINFO alone so Windows keeps its defaults. Split
 // out of the message handler so the conversion is unit testable without
 // a window, and so the handler itself stays allocation-free.
-func trackSizeFor(limits gui.SizeLimits, style uintptr, dpi uint32) (minTrack, maxTrack pointL) {
+func trackSizeFor(limits gui.SizeLimits, style uintptr, dpi uint32, scale float32) (minTrack, maxTrack pointL) {
 	if limits.None() {
 		// Nothing to measure, and no reason to pay for the syscall on
 		// the ordinary window that sets no bounds at all.
@@ -137,7 +165,7 @@ func trackSizeFor(limits gui.SizeLimits, style uintptr, dpi uint32) (minTrack, m
 	// SizeLimits.Scaled owns the logical -> physical conversion for
 	// every backend, so a MinWidth resolves to the same client size
 	// here as it does on X11.
-	phys := limits.Scaled(float32(dpi) / 96.0)
+	phys := limits.Scaled(scale)
 	if phys.MinW > 0 {
 		minTrack.x = int32(phys.MinW) + frameW
 	}

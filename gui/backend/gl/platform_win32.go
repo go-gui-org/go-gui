@@ -502,16 +502,16 @@ func New(w *gui.Window) (*Backend, error) {
 	dpi := dpiForSystem()
 	// GOGUI_DEVICE_SCALE sizes the client area for the override, so the
 	// window keeps its logical size (#971).
-	scale := float64(devscale.Apply(float32(dpi) / 96.0))
-	rc := rectW{0, 0, int32(float64(width) * scale), int32(float64(height) * scale)}
+	scale := devscale.Apply(float32(dpi) / 96.0)
+	rc := rectW{0, 0, clientExtent(width, scale), clientExtent(height, scale)}
 	pAdjustRectDpi.Call(uintptr(unsafe.Pointer(&rc)), style, 0, 0, uintptr(dpi))
 	winW := rc.right - rc.left
 	winH := rc.bottom - rc.top
 
-	// Resize bounds share the style and DPI used for the initial size,
-	// so the floor means the same client area as Width/Height does.
+	// Resize bounds share the style, DPI and scale used for the initial
+	// size, so the floor means the same client area as Width/Height does.
 	limits := gui.WindowSizeLimits(cfg)
-	minTrack, maxTrack := trackSizeFor(limits, style, dpi)
+	minTrack, maxTrack := trackSizeFor(limits, style, dpi, scale)
 
 	hwnd, _, err := pCreateWindowExW.Call(
 		0,
