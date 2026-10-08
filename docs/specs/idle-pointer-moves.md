@@ -56,8 +56,29 @@ An unexported `ContainerCfg` and `eventHandlers` flag. It marks an `OnHover`
 whose result depends only on whether the pointer is over the shape, never on
 where. Set for Button (without an app `OnHover`), list rows (without
 `OnItemHover`), listbox rows, tree rows, select options and menu items. Each was
-checked to read no pointer position and to call no app code. The datagrid rows
-are in a subpackage and cannot set the flag; they stay conservative.
+checked to read no pointer position and to call no app code.
+
+### `ContainerCfg.Hover` (#977)
+
+Code outside package `gui` cannot set `hoverStatic`. It uses the exported
+`ContainerCfg.Hover` (`HoverStyle{Color, Cursor}`) instead: gui paints the fill
+and the cursor during arrange, before any `OnHover`. A shape whose only hover is
+a `HoverStyle` is static by construction, because no app code runs. A shape with
+both is not static. The datagrid rows and sortable header cells use it.
+
+The datagrid also had an `OnMouseMove` on the grid root. It hit-tested the
+header cells on every move to record the hovered column, so rule 5 rebuilt every
+move over the grid, rows included. It is gone. The grid now reads the hovered
+column at generation time with `IsHovered` on each header cell. A new hover
+target asks for one more layout pass in the same frame, so the answer is never a
+frame behind. The header controls (resize, pin, reorder) have absolute IDs, so a
+pointer over one does not make its cell hovered. The grid also checks the
+control IDs of the columns that can show controls: the one hovered last frame,
+the focused one and the one being resized. Without this check the controls hide
+under the pointer and show again on the next frame.
+
+The resize handle keeps its `OnHover`: it picks the pressed color from the held
+mouse button, which `HoverStyle` does not express.
 
 ### `OnMouseLeave` counts arrange passes
 
@@ -74,6 +95,21 @@ counts the ones since the last pass; `noteRefresh` prints
 `gui: skipped N idle moves` in front of that pass when `DebugRebuilds` is on.
 
 ## Rejected Approaches
+
+- **An exported `HoverStatic bool` flag on `ContainerCfg`** (#977). Rejected:
+  setting it on an `OnHover` that reads the position fails silently as a stale
+  frame. `HoverStyle` cannot be set wrong, and it also removes the per-frame
+  hover closure.
+- **A second callback, `OnHoverStatic`** (#977). Rejected: the same capability
+  as the flag, plus a precedence rule when both callbacks are set.
+- **An internal seam only `gui/datagrid` can reach** (#977). Rejected: it covers
+  only the datagrid, and needs an `any`-typed hook to avoid an import cycle.
+- **`ColorHover` on `ContainerCfg`** (#977). Rejected: `gui/CLAUDE.md` makes
+  `Colors` the only spelling for per-state colors (#721).
+- **Datagrid header hover from an `OnMouseMove` on the header row only, with an
+  `OnMouseLeave` to clear it** (#977). Rejected: the leave runs during arrange,
+  after generation, so the controls could stay one frame too long. `IsHovered`
+  was built for reads at generation time (#587).
 
 - **Handlers ask for a refresh** (like `ctx.Consume()`): a move rebuilds only if
   a handler requested it. Rejected: about 50 handlers in the sibling repos must

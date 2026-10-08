@@ -146,13 +146,15 @@ func idleMoveShape(s *Shape, p idleMovePoints) bool {
 	// OnHover and OnMouseLeave run during arrange, never on a disabled
 	// shape (layoutHoverDepth, layoutMouseLeaveDepth).
 	if !s.Disabled {
-		if ev.OnHover != nil {
+		if ev.OnHover != nil || ev.hover.isSet() {
 			was := s.PointInShape(p.oldX, p.oldY)
 			now := s.PointInShape(p.mouseX, p.mouseY)
 			// Entering or leaving changes which OnHover fires. Staying
 			// inside matters too, unless the hover only depends on being
-			// inside: an app OnHover may read the pointer position.
-			if was != now || (now && !ev.hoverStatic) {
+			// inside: an app OnHover may read the pointer position. A
+			// HoverStyle alone runs no app code, so it is static (#977).
+			static := ev.OnHover == nil || ev.hoverStatic
+			if was != now || (now && !static) {
 				return false
 			}
 		}

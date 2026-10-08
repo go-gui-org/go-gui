@@ -10,6 +10,23 @@ and this project adheres to
 
 ### Added
 
+- **`ContainerCfg.Hover` paints a hover fill and cursor with no `OnHover`
+  (#977).** Set
+  `Hover: gui.HoverStyle{Color: c, Cursor: gui.CursorPointingHand}` in place of
+  an `OnHover` that only sets the shape's color or the cursor. gui paints the
+  style while the pointer is over the shape, so no app code runs and a pointer
+  move inside the shape needs no layout rebuild. The container also allocates no
+  hover closure per frame. With an `OnHover` set as well, the style paints first
+  and `OnHover` runs after it; that shape still rebuilds on every move inside
+  it, because `OnHover` can read the pointer position. Data grid rows and
+  sortable header cells now use it. The grid also dropped its own `OnMouseMove`:
+  it reads which header column is hovered with `IsHovered` while it builds. A
+  pointer moving over a data grid no longer rebuilds the frame unless the
+  hovered row or column changes. One side effect: a non-sortable header cell has
+  no hover look, so it no longer takes the hover. An `OnHover` on a container
+  around the grid now fires while the pointer is over such a cell, as it already
+  did over the grid's other parts that have no hover.
+
 - **`GOGUI_DEVICE_SCALE` and `GOGUI_EMULATE_CLIPBOARD` for testing (#971).**
   `GOGUI_DEVICE_SCALE=2` makes the backend use that device scale in place of the
   monitor's: a number from 0.25 to 8. The window keeps its logical size and

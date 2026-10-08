@@ -53,22 +53,6 @@ func dataGridIsSelectAllShortcut(e *gg.Event) bool {
 	return e.Modifiers.Has(gg.ShortcutModifier()) && e.KeyCode == gg.KeyA
 }
 
-// --- Mouse move tracker ---
-
-func dataGridMakeOnMouseMove(gridID string) func(gg.EventCtx) {
-	return func(ctx gg.EventCtx) {
-		mouseX := ctx.Layout.Shape.X + ctx.Event.MouseX
-		mouseY := ctx.Layout.Shape.Y + ctx.Event.MouseY
-		colID := dataGridHeaderColUnderCursor(ctx.Layout, gridID, mouseX, mouseY)
-		dgHH := gg.StateMap[string, string](ctx.Window, nsDgHeaderHover, capModerate)
-		if colID == "" {
-			dgHH.Delete(gridID)
-			return
-		}
-		dgHH.Set(gridID, colID)
-	}
-}
-
 // --- Header keyboard handler ---
 
 // --- Main grid keyboard handler ---

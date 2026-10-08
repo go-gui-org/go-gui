@@ -1671,6 +1671,22 @@ func goldenCases() []goldenCase {
 			build: buildStateButton,
 		},
 		{
+			// ContainerCfg.Hover (#977): gui paints the fill with no
+			// OnHover. The box starts at (15,15) like the button.
+			name:   "container_hover_style",
+			hoverX: 40, hoverY: 30,
+			build: func(*Window) View {
+				return Row(ContainerCfg{
+					ID: "box", Sizing: FixedFixed, Width: 80, Height: 30,
+					Color: RGB(60, 60, 60),
+					Hover: HoverStyle{
+						Color:  RGB(200, 40, 40),
+						Cursor: CursorPointingHand,
+					},
+				})
+			},
+		},
+		{
 			// Hover with the left button held: the pressed color wins
 			// over the hover color.
 			name:   "button_hover_pressed",

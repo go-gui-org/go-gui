@@ -43,6 +43,9 @@ func inspectorEventsString(events *eventHandlers) string {
 	if events.OnHover != nil {
 		names = append(names, "hover")
 	}
+	if events.hover.isSet() {
+		names = append(names, "hover_style")
+	}
 	if events.OnMouseLeave != nil {
 		names = append(names, "mouse_leave")
 	}

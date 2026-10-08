@@ -18,6 +18,8 @@ func (layout *Layout) findShape(predicate func(Layout) bool) (*Shape, bool) {
 // the Shape, but the walk still descends into its children. A hand-built
 // mid-tree node with no Shape then cannot hide a valid match below it.
 // A nil receiver matches nothing.
+// exportaudit:keep — public query for app and test code; the datagrid,
+// its last outside caller, reads the hover target instead since #977.
 func (layout *Layout) FindLayout(predicate func(Layout) bool) (*Layout, bool) {
 	return layout.findLayoutDepth(predicate, 0)
 }
