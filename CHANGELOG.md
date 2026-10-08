@@ -77,6 +77,12 @@ and this project adheres to
   showed the old view until some later input arrived. The action now requests a
   refresh, as a mouse click does. This affects every platform: a VoiceOver or
   Orca press now updates the window at once.
+- **A screen reader Increment on a slider raises its value (#964).** Increment
+  synthesized `KeyUp` and Decrement `KeyDown`, but the slider read Up as
+  decrease, so a raise moved the value down: UIA `RangeValue.SetValue(max)` on a
+  slider at 50 moved it to 49, and VoiceOver and AT-SPI share the path. The
+  slider now follows the WAI-ARIA pattern, like `InputNumeric`: Up and Right
+  increase, Down and Left decrease.
 
 ### Changed
 
@@ -128,6 +134,12 @@ and this project adheres to
   from a frame pool. A nil-window fallback took their address, and that moved
   them to the heap on every call. Now generating a built button allocates
   nothing.
+- **BREAKING: Up and Right raise a slider; Down and Left lower it (#964).** Up
+  used to decrease the value and Down used to increase it. Up now increases,
+  matching `InputNumeric` and the WAI-ARIA slider pattern. Horizontal sliders
+  need no code change: only the key directions swap. On a vertical slider, Down
+  now lowers the value although dragging down still raises it, because the
+  vertical track runs from the minimum at the top.
 
 ## [v0.86.0] - 2026-10-06
 

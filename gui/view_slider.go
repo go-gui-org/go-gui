@@ -684,9 +684,9 @@ func sliderOnKeyDown(
 		v = minVal
 	case KeyEnd:
 		v = maxVal
-	case KeyLeft, KeyUp:
+	case KeyLeft, KeyDown:
 		v = f32Clamp(v-step, minVal, maxVal)
-	case KeyRight, KeyDown:
+	case KeyRight, KeyUp:
 		v = f32Clamp(v+step, minVal, maxVal)
 	default:
 		return

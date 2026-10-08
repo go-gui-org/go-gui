@@ -428,6 +428,47 @@ func TestA11yActionCallbackPress(t *testing.T) {
 	}
 }
 
+// A screen reader Increment on a slider raises its value and
+// Decrement lowers it (#964). End to end through
+// a11yActionCallback into the slider's key handler: the action
+// synthesizes KeyUp/KeyDown, which the slider maps per the ARIA
+// pattern (Up/Right increase, Down/Left decrease).
+func TestA11yActionSliderIncrementDecrementValue(t *testing.T) {
+	t.Parallel()
+	build := func() (*Window, *float32) {
+		got := new(float32)
+		*got = -1
+		w := newTestWindow()
+		v := Slider(SliderCfg{
+			ID:    "a11y-slider",
+			Value: 50,
+			Min:   0,
+			Max:   100,
+			Step:  1,
+			OnChange: func(v float32, _ EventCtx) {
+				*got = v
+			},
+		})
+		w.layout = generateViewLayout(v, w)
+		w.a11y.nodes = w.a11y.nodes[:0]
+		var live []liveNode
+		a11yCollect(&w.layout, -1, &w.a11y.nodes, "", &live)
+		return w, got
+	}
+
+	w, got := build()
+	a11yActionCallback(w, A11yActionIncrement, 0)
+	if *got != 51 {
+		t.Errorf("Increment: value = %v, want 51", *got)
+	}
+
+	w, got = build()
+	a11yActionCallback(w, A11yActionDecrement, 0)
+	if *got != 49 {
+		t.Errorf("Decrement: value = %v, want 49", *got)
+	}
+}
+
 func TestA11yActionCallbackIncrement(t *testing.T) {
 	var gotKey KeyCode
 	layout := Layout{
