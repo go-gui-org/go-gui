@@ -654,9 +654,6 @@ func dataGridBuild(w *gg.Window, cfg DataGridCfg) gg.View {
 	rowDeleteEnabled := dataGridCrudRowDeleteEnabled(&resolvedCfg, hasSource, sourceCaps)
 	focusID := dataGridFocusID(&resolvedCfg)
 	scrollID := dataGridScrollID(&resolvedCfg)
-	dgHH := gg.StateMap[string, string](w, nsDgHeaderHover, capModerate)
-	// Default "": absent entry means no column is hovered.
-	hoveredColID := dgHH.GetOr(resolvedCfg.ID, "")
 	resizingColID := dataGridActiveResizeColID(resolvedCfg.ID, w)
 	dgCO := gg.StateMap[string, bool](w, nsDgChooserOpen, capModerate)
 	// Default false: absent entry means column chooser is closed.
@@ -703,6 +700,8 @@ func dataGridBuild(w *gg.Window, cfg DataGridCfg) gg.View {
 		editingRowID = ""
 	}
 	focusedColID := dataGridHeaderFocusedColID(&resolvedCfg, columns, w.FocusID())
+	hoveredColID := dataGridHoveredColID(w, resolvedCfg.ID, columns,
+		focusedColID, resizingColID)
 
 	// Column widths and header.
 	columnWidths := dataGridColumnWidths(resolvedCfg.ID, resolvedCfg.Columns, w)
@@ -768,7 +767,6 @@ func dataGridBuild(w *gg.Window, cfg DataGridCfg) gg.View {
 		OnKeyDown: dataGridMakeOnKeydown(&resolvedCfg, columns, rowHeight,
 			staticTop, gridHeight, scrollID, pageIndices, frozenTopIDs, presentation.DataToDisplay),
 		OnChar:      dataGridMakeOnChar(&resolvedCfg, columns),
-		OnMouseMove: dataGridMakeOnMouseMove(resolvedCfg.ID),
 		Color:       resolvedCfg.ColorBackground,
 		ColorBorder: resolvedCfg.ColorsRow.Border,
 		SizeBorder:  resolvedCfg.SizeBorder,

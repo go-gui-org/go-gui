@@ -165,13 +165,16 @@ over it.
 
 ## Which hover API
 
-Three APIs see the pointer. Pick by what the code needs.
+Four APIs see the pointer. Pick by what the code needs. Prefer
+`ContainerCfg.Hover` to an `OnHover` that only sets a fill or a cursor: gui
+paints it, so a pointer move inside the shape needs no rebuild (#977).
 
 | The code needs to…                                 | Use                                         |
 | -------------------------------------------------- | ------------------------------------------- |
 | pick a look (padding, colors, children) from hover | `gui.Interactive`                           |
 | pick a look from a held press                      | `gui.Interactive`                           |
 | read hover or press inside an own `GenerateLayout` | `w.IsHovered(effID)` / `w.IsPressed(effID)` |
+| set a hover fill or cursor on a container          | `ContainerCfg.Hover` (`gui.HoverStyle`)     |
 | read the pointer position, set a cursor, hit-test  | `OnHover`                                   |
 | react once when the pointer leaves a shape         | `OnMouseLeave`                              |
 

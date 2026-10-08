@@ -135,6 +135,12 @@ case. **`Colors` is the only spelling for per-state colors; no Cfg has
 `Colors.Border` alone also pins `BorderFocus` to it (`ColorSet.resolve`); spell
 `BorderFocus` too when the theme's focus border should stay.
 
+`ContainerCfg.Hover` (`HoverStyle`, #977) is not an exception to this rule. It
+is a fill and a cursor that gui paints in place of an `OnHover`, so a move
+inside the shape needs no rebuild. A container has no pressed, focused or
+selected state, so it takes no `ColorSet`. Do not add other states to
+`HoverStyle`.
+
 ### Visual roles and tiers
 
 **Never spell a de-emphasis alpha, a label's size step, or a form control's text
@@ -267,10 +273,11 @@ Five categories worth knowing by name:
   `refreshReasonNames`, for a new kind of cause. It also prints
   `gui: skipped N idle moves`: pointer moves that asked for no rebuild (#973,
   `gui/window_idle_move.go`). A new built-in `OnHover` that reads no pointer
-  position and calls no app code sets `ContainerCfg.hoverStatic`; an
-  `AmendLayout` that reads the pointer sets `pointerAmend`. See
-  `docs/specs/idle-pointer-moves.md`. `GOGUI_DEBUG_REBUILDS=1` turns it on at
-  startup with no code change; it combines with `GOGUI_DEBUG=1` (#975).
+  position and calls no app code sets `ContainerCfg.hoverStatic` (code outside
+  `gui/` uses the exported `ContainerCfg.Hover` instead); an `AmendLayout` that
+  reads the pointer sets `pointerAmend`. See `docs/specs/idle-pointer-moves.md`.
+  `GOGUI_DEBUG_REBUILDS=1` turns it on at startup with no code change; it
+  combines with `GOGUI_DEBUG=1` (#975).
 - **`DebugUnknownLookup`.** `FindByID`/`ScrollVerticalTo`/`ScrollVerticalToPct`
   found nothing while the frame stamped that leaf under a scope. Only a **near
   miss** reports, so a probe stays silent; library code that probes on purpose

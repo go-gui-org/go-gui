@@ -98,7 +98,11 @@ type ContainerCfg struct {
 	// indicators. Coordinates are absolute.
 	AmendLayout func(EventCtx)
 
-	OnHover    func(EventCtx)
+	OnHover func(EventCtx)
+	// Hover is a hover fill and cursor that gui paints itself. Prefer
+	// it to an OnHover that only sets those: a pointer move inside the
+	// shape then needs no rebuild (#977). See [HoverStyle].
+	Hover      HoverStyle
 	OnGesture  func(EventCtx)
 	OnFileDrop func(EventCtx)
 	// OnIMECommit fires when an IME composition commits. Requires
@@ -461,7 +465,7 @@ func makeContainerEvents(c *ContainerCfg) (eventHandlers, bool) {
 		c.OnKeyDown == nil && c.OnKeyUp == nil &&
 		c.OnMouseMove == nil && c.OnMouseUp == nil &&
 		c.OnMouseDown == nil &&
-		c.OnHover == nil && c.OnGesture == nil &&
+		c.OnHover == nil && !c.Hover.isSet() && c.OnGesture == nil &&
 		c.OnFileDrop == nil && c.OnIMECommit == nil &&
 		c.OnScroll == nil && c.OnMouseScroll == nil &&
 		c.AmendLayout == nil &&
@@ -477,6 +481,7 @@ func makeContainerEvents(c *ContainerCfg) (eventHandlers, bool) {
 		OnMouseDown:   c.OnMouseDown,
 		OnMouseUp:     c.OnMouseUp,
 		OnHover:       c.OnHover,
+		hover:         c.Hover,
 		OnGesture:     c.OnGesture,
 		OnFileDrop:    c.OnFileDrop,
 		onIMECommit:   c.OnIMECommit,

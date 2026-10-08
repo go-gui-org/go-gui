@@ -426,10 +426,11 @@ func TestInspectorEventsStringCoversAllHandlers(t *testing.T) {
 		OnGesture:    func(ctx EventCtx) {},
 		OnFileDrop:   func(ctx EventCtx) {},
 		OnDraw:       func(*DrawContext) {},
+		hover:        HoverStyle{Cursor: CursorPointingHand},
 	}
 	got := inspectorEventsString(events)
 	for _, want := range []string{
-		"keyup", "mouse_leave", "gesture", "filedrop", "draw",
+		"keyup", "mouse_leave", "gesture", "filedrop", "draw", "hover_style",
 	} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("inspectorEventsString() = %q, missing %q", got, want)

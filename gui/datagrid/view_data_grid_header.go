@@ -82,7 +82,13 @@ func dataGridHeaderCell(cfg *DataGridCfg, col GridColumnCfg, colIdx, colCount in
 	multiSort := boolDefault(cfg.MultiSort, true)
 	colSortable := col.Sortable
 	colID := col.ID
-	colorHeaderHover := cfg.ColorsHeader.Hover
+	var headerHover gg.HoverStyle
+	if colSortable {
+		headerHover = gg.HoverStyle{
+			Color:  cfg.ColorsHeader.Hover,
+			Cursor: gg.CursorPointingHand,
+		}
+	}
 	headerSorted := dataGridSortIndex(query.Sorts, colID) >= 0
 	headerA11YState := gg.AccessStateNone
 	if headerSorted {
@@ -124,15 +130,10 @@ func dataGridHeaderCell(cfg *DataGridCfg, col GridColumnCfg, colIdx, colCount in
 				ctx.Window.SetFocus(focusID)
 			}
 		},
-		OnHover: func(ctx gg.EventCtx) {
-			if cfg.Disabled {
-				return
-			}
-			if colSortable {
-				ctx.Window.SetMouseCursorPointingHand()
-				ctx.Layout.Shape.Color = colorHeaderHover
-			}
-		},
+		// Painted by gui, not an OnHover closure: a pointer move inside
+		// the cell then needs no rebuild (#977). A disabled grid
+		// disables the cell too, and gui skips hover on it.
+		Hover:     headerHover,
 		Focusable: true,
 		Content:   content,
 	})
@@ -161,7 +162,7 @@ func dataGridResizeHandle(cfg *DataGridCfg, col GridColumnCfg, focusID string, r
 	}
 
 	return gg.Row(gg.ContainerCfg{
-		ID:      gg.ScopeID(gridID, "resize", col.ID),
+		ID:      gg.ScopeID(gridID, dataGridResizeScope, col.ID),
 		Width:   dataGridResizeHandleWidth,
 		Sizing:  gg.FixedFill,
 		Padding: gg.NoPadding,
@@ -232,8 +233,8 @@ func dataGridReorderControls(cfg *DataGridCfg, col GridColumnCfg) gg.View {
 		Width:   dataGridHeaderControlsWidth(true, false, false),
 		Sizing:  gg.FixedFill,
 		Content: []gg.View{
-			dataGridOrderButton(gg.ScopeID(cfg.ID, "reorder_left", colID), leftArrow, cfg.TextStyleHeader, cfg.ColorsHeader.Hover, cfg.sounds.selection, reorderCB(-1)),
-			dataGridOrderButton(gg.ScopeID(cfg.ID, "reorder_right", colID), rightArrow, cfg.TextStyleHeader, cfg.ColorsHeader.Hover, cfg.sounds.selection, reorderCB(1)),
+			dataGridOrderButton(gg.ScopeID(cfg.ID, dataGridReorderLeftScope, colID), leftArrow, cfg.TextStyleHeader, cfg.ColorsHeader.Hover, cfg.sounds.selection, reorderCB(-1)),
+			dataGridOrderButton(gg.ScopeID(cfg.ID, dataGridReorderRightScope, colID), rightArrow, cfg.TextStyleHeader, cfg.ColorsHeader.Hover, cfg.sounds.selection, reorderCB(1)),
 		},
 	})
 }
@@ -308,7 +309,7 @@ func dataGridPinControl(cfg *DataGridCfg, col GridColumnCfg) gg.View {
 	colID := col.ID
 	colPin := col.Pin
 
-	return dataGridIndicatorButton(gg.ScopeID(cfg.ID, "pin", col.ID), label, cfg.TextStyleHeader, cfg.ColorsHeader.Hover,
+	return dataGridIndicatorButton(gg.ScopeID(cfg.ID, dataGridPinScope, col.ID), label, cfg.TextStyleHeader, cfg.ColorsHeader.Hover,
 		false, dataGridHeaderControlWidth, cfg.sounds.selection, func(ctx gg.EventCtx) {
 			if onColumnPinChange == nil {
 				return
@@ -547,17 +548,83 @@ func dataGridHeaderPrefix(gridID string) string {
 	return gg.ScopeID(gridID, dataGridHeaderScope) + gg.IDSep
 }
 
-func dataGridHeaderColUnderCursor(layout *gg.Layout, gridID string, mouseX, mouseY float32) string {
-	prefix := dataGridHeaderPrefix(gridID)
-	cell, ok := layout.FindLayout(func(n gg.Layout) bool {
-		return len(n.Shape.ID) > len(prefix) &&
-			n.Shape.ID[:len(prefix)] == prefix &&
-			n.Shape.PointInShape(mouseX, mouseY)
-	})
-	if ok {
-		return dataGridHeaderColIDFromLayoutID(gridID, cell.Shape.ID)
+// dataGridHoveredColID returns the column whose header the pointer is
+// over, or "". It reads the hover target the last arrange recorded
+// (gg.Window.IsHovered) instead of hit-testing the pointer in an
+// OnMouseMove: a position handler on the grid made every pointer move
+// over it rebuild the layout (#977). A change of hover target asks
+// for one more layout pass in the same frame, so the answer is never
+// a frame behind.
+//
+// The header controls (resize, pin, reorder) have absolute IDs, so a
+// pointer over one does not make the cell hovered. Their column is
+// found from the control IDs instead; otherwise the controls would
+// hide under the pointer and show again on the next frame. Only the
+// columns that can show controls are checked: the one hovered last
+// frame, the focused one and the one being resized.
+//
+// Each check composes an ID, so the walk is gated on the grid being
+// hovered and the cells on the header scope being hovered: a frame
+// with the pointer elsewhere composes nothing.
+func dataGridHoveredColID(w *gg.Window, gridID string, columns []GridColumnCfg,
+	focusedColID, resizingColID string) string {
+	dgHH := gg.StateMap[string, string](w, nsDgHeaderHover, capModerate)
+	if !w.IsHovered(gridID) {
+		dgHH.Delete(gridID)
+		return ""
 	}
-	return ""
+	// Default "": absent entry means no column was hovered.
+	prev := dgHH.GetOr(gridID, "")
+	colID := ""
+	if w.IsHovered(gg.ScopeID(gridID, dataGridHeaderScope)) {
+		for i := range columns {
+			if w.IsHovered(dataGridHeaderCellID(gridID, columns[i].ID)) {
+				colID = columns[i].ID
+				break
+			}
+		}
+	}
+	if colID == "" {
+		for _, c := range [...]string{prev, focusedColID, resizingColID} {
+			if c != "" && dataGridHeaderControlHovered(w, gridID, c) {
+				colID = c
+				break
+			}
+		}
+	}
+	if colID == "" {
+		dgHH.Delete(gridID)
+	} else {
+		dgHH.Set(gridID, colID)
+	}
+	return colID
+}
+
+// Scopes of the header controls, whose IDs are gridID:<scope>:<colID>.
+// dataGridResizeHandle, dataGridPinControl and dataGridReorderControls
+// compose with them, and dataGridHeaderControlHovered matches with
+// them, so the two cannot drift.
+const (
+	dataGridResizeScope       = "resize"
+	dataGridPinScope          = "pin"
+	dataGridReorderLeftScope  = "reorder_left"
+	dataGridReorderRightScope = "reorder_right"
+)
+
+var dataGridHeaderControlScopes = [...]string{
+	dataGridResizeScope, dataGridPinScope,
+	dataGridReorderLeftScope, dataGridReorderRightScope,
+}
+
+// dataGridHeaderControlHovered reports whether the pointer is over one
+// of column colID's header controls.
+func dataGridHeaderControlHovered(w *gg.Window, gridID, colID string) bool {
+	for _, scope := range dataGridHeaderControlScopes {
+		if w.IsHovered(gg.ScopeID(gridID, scope, colID)) {
+			return true
+		}
+	}
+	return false
 }
 
 func dataGridHeaderColIDFromLayoutID(gridID, layoutID string) string {

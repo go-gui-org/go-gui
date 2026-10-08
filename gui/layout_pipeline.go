@@ -113,7 +113,8 @@ func layoutHoverDepth(layout *Layout, w *Window, depth int) bool {
 	if shape.Disabled {
 		return false
 	}
-	if !shape.hasEvents() || shape.events.OnHover == nil {
+	if !shape.hasEvents() ||
+		(shape.events.OnHover == nil && !shape.events.hover.isSet()) {
 		return false
 	}
 	if !shape.PointInShape(w.viewState.mousePosX,
@@ -123,6 +124,12 @@ func layoutHoverDepth(layout *Layout, w *Window, depth int) bool {
 	if w.dialogCfg.visible &&
 		!layoutInDialogLayout(layout) {
 		return false
+	}
+	// The style paints first, so an OnHover on the same shape sees the
+	// hover fill and can still override it.
+	shape.events.hover.apply(shape, w)
+	if shape.events.OnHover == nil {
+		return true
 	}
 	w.scratch.hoverEvent = Event{
 		MouseX:      w.viewState.mousePosX,
