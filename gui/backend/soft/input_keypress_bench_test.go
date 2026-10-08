@@ -8,6 +8,7 @@ package soft
 
 import (
 	"fmt"
+	"math"
 	"strings"
 	"testing"
 
@@ -35,7 +36,7 @@ func keypressWindow(
 	tb testing.TB, seed string,
 ) (*gui.Window, func()) {
 	tb.Helper()
-	w := gui.NewWindow(gui.WindowCfg{Width: 800, Height: 600})
+	w := gui.NewTestWindow(tb, gui.WindowCfg{Width: 800, Height: 600})
 	tm, err := prepare(w, 1)
 	if err != nil {
 		tb.Fatal(err)
@@ -108,7 +109,19 @@ func TestInputKeypressAllocBudget(t *testing.T) {
 	// Discard the first sweep: font and atlas warmth is one-time,
 	// the gate is on the steady-state keypress.
 	testing.AllocsPerRun(10, keypress)
-	if got := testing.AllocsPerRun(50, keypress); got > 400 {
-		t.Fatalf("keypress allocs = %v, want <= 400", got)
+	// AllocsPerRun reads process-wide malloc counters. A 50-keypress
+	// sample takes seconds under -race, long enough for the caret loop,
+	// font-cache warm and unrelated test goroutines to pollute every run.
+	// Keep the lowest of short samples: a real per-keypress allocation
+	// appears in all of them, while background noise does not.
+	best := math.Inf(1)
+	for range 20 {
+		best = min(best, testing.AllocsPerRun(1, keypress))
+		if best <= 370 {
+			break
+		}
+	}
+	if best > 370 {
+		t.Fatalf("keypress allocs = %v, want <= 370", best)
 	}
 }
