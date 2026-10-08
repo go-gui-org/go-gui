@@ -98,6 +98,9 @@ type windowBackend struct {
 	// other platform leaves them nil, so GetPrimary yields "" there.
 	primarySetFn func(string)
 	primaryGetFn func() string
+	// clipEmu, when non-nil, replaces all four clipboard functions above
+	// (GOGUI_EMULATE_CLIPBOARD, #971). Set once in NewWindow.
+	clipEmu *emulatedClipboard
 	// setTitleFn updates the OS window title. Set by backend; nil-safe.
 	setTitleFn func(string)
 	// wakeMainFn wakes the main thread from WaitEventTimeout.

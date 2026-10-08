@@ -224,6 +224,7 @@ func NewWindow(cfg WindowCfg) *Window {
 	w.markLayoutRefresh(refreshInitial)
 	// No lock: w is not shared yet. SetFileAccessAppID still replaces it.
 	w.fileAccess.appID = cfg.AppInfo.ID
+	w.clipEmu = emulatedClipboardFromEnv()
 	if cfg.DebugTimeTravel {
 		w.enableHistory(cfg.HistoryBytes)
 	}
