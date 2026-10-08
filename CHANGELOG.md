@@ -10,6 +10,18 @@ and this project adheres to
 
 ### Added
 
+- **`ergonomics-audit -mode pointeramend` flags `AmendLayout` hooks that read
+  the pointer without `pointerAmend` (#978).** Idle moves skip the rebuild when
+  the last arranged frame proves nothing reacts to them (#973). A hook that
+  tests the pointer position against its bounds must mark its container
+  `pointerAmend`, or a move across its bounds is skipped and the hook never sees
+  it. The mode scans `gui/` for hooks that read `mousePosX`, `mousePosY`,
+  `pointerX` or `pointerY`, directly or through a same-package wrapper, and
+  fails when the install sets no `pointerAmend` and the read carries no
+  `// ergonomics-audit:pointeramend` marker with a reason. `rtfAmendTooltip`
+  carries the marker: it reads only while tooltip text is set, and set tooltip
+  state forces a rebuild on every move. `make check` runs it.
+
 - **`ContainerCfg.Hover` paints a hover fill and cursor with no `OnHover`
   (#977).** Set
   `Hover: gui.HoverStyle{Color: c, Cursor: gui.CursorPointingHand}` in place of

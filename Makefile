@@ -360,7 +360,7 @@ theme-surface-check:
 
 # Run non-duplicated validation steps for CI gate.
 # test and lint run as separate CI jobs with OS matrices.
-check: vet deps-doc-check large-files generate-check tidy-check fmt-md-check changelog-check changelog-entry-check theme-surface-check ergo-ids
+check: vet deps-doc-check large-files generate-check tidy-check fmt-md-check changelog-check changelog-entry-check theme-surface-check ergo-ids ergo-pointeramend
 
 # Run all validation steps: test, vet, lint, and gate checks.
 check-all: test lint check
@@ -494,6 +494,7 @@ ergonomics-audit:
 	go run ./tools/ergonomics-audit/ -mode visual .
 	go run ./tools/ergonomics-audit/ -mode spacing .
 	go run ./tools/ergonomics-audit/ -mode deadcfg .
+	go run ./tools/ergonomics-audit/ -mode pointeramend .
 
 # The one pass/fail mode of ergonomics-audit, alone, for `check`: it
 # gates hand-rolled `:` composition of widget IDs. Mirror of CI's
@@ -502,6 +503,13 @@ ergonomics-audit:
 # Under 1s, so `check` stays fast.
 ergo-ids:
 	go run ./tools/ergonomics-audit/ -mode ids .
+
+# Gate AmendLayout hooks that read the pointer without pointerAmend
+# (#978): a move across such a hook's bounds would skip the rebuild and
+# freeze its enter and leave logic. Mirror of CI's "Ergo-audit
+# pointerAmend" step. Gui-only AST scan, under 1s like ergo-ids.
+ergo-pointeramend:
+	go run ./tools/ergonomics-audit/ -mode pointeramend .
 
 # Insert a generated ID into every broken literal in this repo's tests
 # and examples. Scoped away from gui/ deliberately: go-gui's own widget

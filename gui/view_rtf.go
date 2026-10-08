@@ -418,6 +418,11 @@ func rtfTooltipAnimation(tipID string) *Animate {
 // rtfAmendTooltip clears RTF tooltip state when the mouse
 // leaves the stored bounds, and dismisses the link context
 // menu when focus is lost.
+//
+// ergonomics-audit:pointeramend — safe without pointerAmend: the
+// position read below runs only while tooltip text is set, and any
+// set or pending tooltip forces a rebuild on every move
+// (window_idle_move.go), so the hook never misses a leave.
 func rtfAmendTooltip(ctx EventCtx) {
 	ts := &ctx.Window.viewState.tooltip
 	if ts.text != "" {
