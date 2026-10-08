@@ -1,6 +1,8 @@
 package gui
 
 import (
+	"strings"
+
 	"github.com/go-gui-org/go-glyph"
 )
 
@@ -76,9 +78,13 @@ func inputKeyRight(
 	}
 }
 
+// inputKeyHome moves the caret to the line start. With cycle set (the
+// Home key), a press already at the line start steps on to the
+// paragraph start, then the text start. macOS Cmd+Left passes
+// cycle=false and stays at the line edge, as Cocoa does (#969).
 func inputKeyHome(
 	imap *BoundedMap[string, inputState], id string, is inputState,
-	text string, pos int, isShift, savedTrailing bool,
+	text string, pos int, isShift, savedTrailing, cycle bool,
 	gl glyph.Layout, glOK bool,
 ) {
 	var newPos int
@@ -90,7 +96,7 @@ func inputKeyHome(
 				gl.Lines, byteIdx, startByte)
 		}
 		lineStart := byteToRuneIndex(text, startByte)
-		if pos != lineStart {
+		if pos != lineStart || !cycle {
 			newPos = lineStart
 		} else {
 			paraStart := cursorStartOfParagraph(text, pos)
@@ -102,7 +108,7 @@ func inputKeyHome(
 		}
 	} else {
 		lineStart := moveCursorLineStart(text, pos)
-		if pos != lineStart {
+		if pos != lineStart || !cycle {
 			newPos = lineStart
 		} else {
 			newPos = cursorHome()
@@ -112,9 +118,10 @@ func inputKeyHome(
 		newPos, isShift, utf8RuneCount(text))
 }
 
+// inputKeyEnd is inputKeyHome for the line end; cycle works the same.
 func inputKeyEnd(
 	imap *BoundedMap[string, inputState], id string, is inputState,
-	text string, pos int, isShift, savedTrailing bool,
+	text string, pos int, isShift, savedTrailing, cycle bool,
 	gl glyph.Layout, glOK bool,
 ) {
 	var newPos int
@@ -127,7 +134,7 @@ func inputKeyEnd(
 				gl.Lines, byteIdx, endByte)
 		}
 		lineEnd := byteToRuneIndex(text, endByte)
-		if pos != lineEnd {
+		if pos != lineEnd || !cycle {
 			newPos = lineEnd
 			trailing = true
 		} else {
@@ -140,7 +147,7 @@ func inputKeyEnd(
 		}
 	} else {
 		lineEnd := moveCursorLineEnd(text, pos)
-		if pos != lineEnd {
+		if pos != lineEnd || !cycle {
 			newPos = lineEnd
 			trailing = true
 		} else {
@@ -241,6 +248,65 @@ func inputKeyPaste(
 		return adjusted, true
 	}
 	return inputInsert(text, clip, id, w), true
+}
+
+// inputKeyKill handles macOS Ctrl+K (#969): cut from the caret to the
+// end of its paragraph into the window's kill buffer, as Cocoa does.
+// At the paragraph end it cuts the line break, joining the next line.
+// The cut goes through inputHandleDelete as a selection delete, so the
+// mask and the undo stack see it like any other delete. A password
+// field still deletes but keeps nothing, so Ctrl+Y cannot reveal it;
+// a masked field does the same (see below).
+func inputKeyKill(
+	hcfg inputHandlerCfg, layout *Layout,
+	text string, id string, pos int, w *Window,
+) (string, bool) {
+	end := cursorEndOfParagraph(text, pos)
+	if end == pos {
+		if pos >= utf8RuneCount(text) {
+			return text, false
+		}
+		end = pos + 1
+	}
+	prev := inputStateOrDefault(id, w)
+	is := prev
+	is.CursorPos = pos
+	is.selectBeg = uint32(pos)
+	is.selectEnd = uint32(end)
+	inputStoreState(id, w, is)
+	newText, ok := inputHandleDelete(
+		text, id, true, hcfg.CompiledMask, layout, w)
+	if !ok {
+		// Nothing deleted (a mask with only literals there): put the
+		// old state back, so the range Ctrl+K chose does not stay
+		// highlighted as a selection the user never made.
+		inputStoreState(id, w, prev)
+		return text, false
+	}
+	// The delete pushed an undo step from the state above, which holds
+	// the kill range as a selection. Give that step the caret and
+	// selection the user had, so undo does not highlight a range the
+	// user never chose. A selection always forces a push
+	// (inputPushUndo), so the top entry is this kill's.
+	if undo := inputStateOrDefault(id, w).Undo; undo != nil {
+		if m, ok := undo.Pop(); ok {
+			m.CursorPos = prev.CursorPos
+			m.selectBeg, m.selectEnd = prev.selectBeg, prev.selectEnd
+			undo.Push(m)
+		}
+	}
+	// A masked delete keeps the literals, so the slice is not what was
+	// removed. Keep nothing rather than a wrong kill. Clear the buffer
+	// instead of leaving it, so Ctrl+Y does not paste an older kill.
+	if hcfg.CompiledMask != nil || hcfg.IsPassword {
+		w.killBuffer = ""
+		return newText, true
+	}
+	// Clone: a substring would pin the whole old text in memory for as
+	// long as the kill buffer holds it.
+	w.killBuffer = strings.Clone(
+		text[runeToByteIndex(text, pos):runeToByteIndex(text, end)])
+	return newText, true
 }
 
 // inputCommitEnter handles single-line Enter: normalize, commit,

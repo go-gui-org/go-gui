@@ -343,17 +343,22 @@ func textOnKeyDown(ctx EventCtx) {
 	runeLen := utf8RuneCount(text)
 	pos := is.CursorPos
 	pos = min(pos, runeLen)
-	isShift := ctx.Event.Modifiers.Has(ModShift)
-	isWordMod := ctx.Event.Modifiers.HasAny(
-		ModCtrl, ModAlt, ModSuper,
-	)
+	// The key binding mode decides what the modifiers mean (#969).
+	tk := resolveTextKey(ctx.Event)
+	isShift, isWordMod := tk.isShift, tk.isWord
 	handled := true
 
 	gl, glOK := inputGlyphLayout(
 		text, shape, textStyleOrDefault(shape), ctx.Window,
 	)
 
-	switch ctx.Event.KeyCode {
+	if textKeyBoundMove(imap, id, is, text, pos, tk) {
+		tk.key = KeyInvalid
+	}
+
+	switch tk.key {
+	case KeyInvalid:
+		// Handled by textKeyBoundMove above.
 	case KeyLeft:
 		inputKeyLeft(imap, id, is, text, pos,
 			isShift, isWordMod, gl, glOK)
@@ -362,10 +367,10 @@ func textOnKeyDown(ctx EventCtx) {
 			isShift, isWordMod, gl, glOK)
 	case KeyHome:
 		inputKeyHome(imap, id, is, text, pos,
-			isShift, savedTrailing, gl, glOK)
+			isShift, savedTrailing, !tk.lineEdge, gl, glOK)
 	case KeyEnd:
 		inputKeyEnd(imap, id, is, text, pos,
-			isShift, savedTrailing, gl, glOK)
+			isShift, savedTrailing, !tk.lineEdge, gl, glOK)
 	case KeyUp:
 		handled = textKeyVertical(imap, id, is, text,
 			pos, isShift, savedOffset, true,
@@ -378,7 +383,7 @@ func textOnKeyDown(ctx EventCtx) {
 		inputKeyEscape(imap, id, is)
 		handled = false
 	case KeyA:
-		if ctx.Event.Modifiers.HasAny(ModCtrl, ModSuper) {
+		if isShortcut(ctx.Event.Modifiers) {
 			inputSelectAll(text, id, ctx.Window)
 		} else {
 			handled = false

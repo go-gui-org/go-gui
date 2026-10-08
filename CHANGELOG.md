@@ -30,6 +30,25 @@ and this project adheres to
 
 ### Fixed
 
+- **Text shortcuts use Cmd on macOS and Ctrl elsewhere; macOS gets the Cocoa
+  Emacs keys (#969).** Text widgets used to accept Ctrl or Cmd for select all,
+  copy, cut, paste and undo on every platform. On macOS, Ctrl+A selected all
+  text, but every native text field moves the caret to the start of the line. On
+  Linux and Windows, the Super key also triggered shortcuts. The modifier now
+  comes from the platform. On macOS and iOS, Cmd triggers shortcuts,
+  Option+Arrow moves by word, and Cmd+Arrow moves to the line or document edge.
+  Input, Text and RichText selection also take the Cocoa Emacs keys: Ctrl+A/E
+  (paragraph start/end), Ctrl+F/B/N/P (caret moves), and in Input Ctrl+D/H
+  (delete), Ctrl+K (cut to the paragraph end into a kill buffer, not the
+  clipboard) and Ctrl+Y (paste the kill buffer). On every other platform, only
+  Ctrl triggers shortcuts, and Ctrl or Alt with an arrow moves by word.
+  Markdown, Dialog, FileBrowser and DataGrid follow the same rule. The new
+  `KeyBindingMode` (`KeyBindingCommand`, `KeyBindingControl`) and
+  `ShortcutModifier()` expose the mode. The web backend reads the browser's OS,
+  so a Mac browser gets Cmd. Set `GOGUI_KEY_BINDING_MODE=command` or `control`
+  to try the other platform's keys. Tests that send `ModCtrl` as the shortcut on
+  a macOS machine must pin the mode with
+  `gui.SetKeyBindingMode(gui.KeyBindingControl)` in `TestMain`.
 - **An accessibility action redraws the window (#944).** A screen reader's
   press, increment or decrement ran the widget's handler from the command queue,
   which requested no layout refresh. The app state changed, but the window

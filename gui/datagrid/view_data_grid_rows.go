@@ -308,7 +308,7 @@ func dataGridSelectionIsSingleRow(selectedRowIDs map[string]bool, rowID string) 
 
 func dataGridComputeRowSelection(rows []GridRow, selection GridSelection, gridID string, multiSelect, rangeSelect bool, rowID string, e *gg.Event, w *gg.Window) GridSelection {
 	isShift := e.Modifiers.Has(gg.ModShift)
-	isToggle := e.Modifiers.Has(gg.ModCtrl) || e.Modifiers.Has(gg.ModSuper)
+	isToggle := e.Modifiers.Has(gg.ShortcutModifier())
 
 	if multiSelect && rangeSelect && isShift {
 		anchor := dataGridAnchorRowIDEx(selection, gridID, rows, w, rowID)

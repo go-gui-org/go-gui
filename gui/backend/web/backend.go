@@ -194,6 +194,9 @@ func newBackend(w *gui.Window) (*Backend, error) {
 
 	b.updateCanvasRect()
 
+	// Cmd or Ctrl shortcuts, from the OS the browser runs on (#969).
+	setKeyBinding()
+
 	// Inject interfaces into Window.
 	w.SetTextMeasurer(&textMeasurer{textSys: textSys})
 	w.SetSvgParser(svg.New())
