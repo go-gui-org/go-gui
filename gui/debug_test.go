@@ -1131,3 +1131,32 @@ func TestDebugWarnBoundsMemory(t *testing.T) {
 		t.Fatalf("memory must stay bounded at %d, got %d", maxDebugWarned, n)
 	}
 }
+
+// TestDebugMaskFromEnv pins the startup env read (#975): GOGUI_DEBUG
+// turns on DebugAll, GOGUI_DEBUG_REBUILDS adds DebugRebuilds, and the
+// two combine.
+func TestDebugMaskFromEnv(t *testing.T) {
+	tests := []struct {
+		debug, focus, rebuilds string
+		want                   DebugCategory
+	}{
+		{want: 0},
+		{debug: "1", want: DebugAll},
+		{rebuilds: "1", want: DebugRebuilds},
+		{debug: "1", rebuilds: "1", want: DebugAll | DebugRebuilds},
+		{rebuilds: "0", want: 0},
+		// GOGUI_FOCUS_DEBUG is the older spelling of GOGUI_DEBUG and
+		// combines with GOGUI_DEBUG_REBUILDS the same way.
+		{focus: "1", want: DebugAll},
+		{focus: "1", rebuilds: "1", want: DebugAll | DebugRebuilds},
+	}
+	for _, tc := range tests {
+		t.Setenv("GOGUI_DEBUG", tc.debug)
+		t.Setenv("GOGUI_FOCUS_DEBUG", tc.focus)
+		t.Setenv("GOGUI_DEBUG_REBUILDS", tc.rebuilds)
+		if got := debugMaskFromEnv(); got != tc.want {
+			t.Errorf("GOGUI_DEBUG=%q GOGUI_FOCUS_DEBUG=%q GOGUI_DEBUG_REBUILDS=%q: "+
+				"mask %#x, want %#x", tc.debug, tc.focus, tc.rebuilds, got, tc.want)
+		}
+	}
+}

@@ -257,7 +257,8 @@ controls take a generated ID when `ID` is empty). `gui.DebugCategories` enables
 each class of finding — duplicates, missing IDs, unconsumed events, listbox
 virtualization, over-stop gradients, unresolved state keys, unclaimed focus IDs,
 stamp drift, dropped callbacks and links, refused window features —
-independently. See the
+independently. Set `GOGUI_DEBUG_REBUILDS=1` to log why each frame rebuilds;
+`GOGUI_DEBUG=1` does not turn this on, because it logs normal operation. See the
 [Debugging](https://github.com/go-gui-org/go-gui/wiki/Debugging) wiki page.
 
 ## License

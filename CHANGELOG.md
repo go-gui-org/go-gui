@@ -10,6 +10,12 @@ and this project adheres to
 
 ### Added
 
+- **`GOGUI_DEBUG_REBUILDS=1` turns on `DebugRebuilds` (#975).** The variable is
+  read at startup, so an existing app logs why its frames rebuild with no code
+  change. Before, `DebugRebuilds` needed a `gui.DebugCategories` call in `main`,
+  because `GOGUI_DEBUG=1` leaves it out of `DebugAll`. The two variables
+  combine: `GOGUI_DEBUG=1 GOGUI_DEBUG_REBUILDS=1` turns on both.
+
 - **Screen readers work on Windows (#944).** The OpenGL backend now has a UI
   Automation provider, so Narrator and NVDA read a go-gui window instead of an
   empty one. Each accessible node becomes a UIA element with its control type,
