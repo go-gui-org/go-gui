@@ -181,6 +181,8 @@ func listBoxItemView(
 				onSelect(ids, EventCtx{nil, ctx.Event, ctx.Window})
 			}
 		},
+		// Hover paints by row only, never by position (#973).
+		hoverStatic: true,
 		OnHover: func(ctx EventCtx) {
 			if hasOnSelect && !isSub {
 				ctx.Window.setMouseCursor(CursorPointingHand)
@@ -281,6 +283,8 @@ func listBoxReorderItemView(
 				onSelect(ids, EventCtx{nil, ctx.Event, ctx.Window})
 			}
 		},
+		// Hover paints by row only, never by position (#973).
+		hoverStatic: true,
 		OnHover: func(ctx EventCtx) {
 			// Matches the plain row: a list with no OnSelect
 			// answers nothing, so the row stays silent.

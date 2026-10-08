@@ -212,7 +212,9 @@ func menuItem(menubarCfg MenubarCfg, itemCfg MenuItemCfg, extra ...View) View {
 		Disabled: itemCfg.disabled,
 		Sound:    itemSound,
 		OnClick:  menuItemClick(menubarCfg.ID, menubarCfg.Action, itemCfg),
-		OnHover:  onHover,
+		// Records the item, never the position (#973).
+		hoverStatic: true,
+		OnHover:     onHover,
 		// Reaches the label only: an attached submenu is a container,
 		// not a text shape, so the hook passes over it.
 		AmendLayout: opticalAmend,

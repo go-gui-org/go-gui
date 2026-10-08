@@ -221,6 +221,18 @@ type ViewState struct {
 	// touches do not move, so a held finger hovers without changing
 	// OnHover dispatch.
 	pointerX, pointerY float32
+	// arrangedMouseX/Y is mousePosX/Y as the last arrange pass saw it:
+	// where OnHover and OnMouseLeave last ran. An idle move compares the
+	// new position against it (window_idle_move.go, #973).
+	arrangedMouseX, arrangedMouseY float32
+	// inArrange is true while layoutArrange runs. arrangeSetCursor
+	// records whether that pass set the cursor (OnHover, AmendLayout).
+	// arrangedCursor is the cursor a real move would end with: the one
+	// the last pass set, or the arrow. An idle move keeps the cursor
+	// only when it is that one (window_idle_move.go, #973).
+	inArrange        bool
+	arrangeSetCursor bool
+	arrangedCursor   MouseCursor
 }
 
 // State returns a typed pointer to the user-supplied state.

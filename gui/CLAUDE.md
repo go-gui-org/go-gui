@@ -264,7 +264,12 @@ Five categories worth knowing by name:
   (`input`, `invalidate`, `set-view`, `animation`, …) when the causes change,
   from the `refreshReason` bits in `gui/refresh_reason.go` (#970). Pass a reason
   to `markLayoutRefresh` / `markRenderOnlyRefresh`; add a bit, and its name in
-  `refreshReasonNames`, for a new kind of cause.
+  `refreshReasonNames`, for a new kind of cause. It also prints
+  `gui: skipped N idle moves`: pointer moves that asked for no rebuild (#973,
+  `gui/window_idle_move.go`). A new built-in `OnHover` that reads no pointer
+  position and calls no app code sets `ContainerCfg.hoverStatic`; an
+  `AmendLayout` that reads the pointer sets `pointerAmend`. See
+  `docs/specs/idle-pointer-moves.md`.
 - **`DebugUnknownLookup`.** `FindByID`/`ScrollVerticalTo`/`ScrollVerticalToPct`
   found nothing while the frame stamped that leaf under a scope. Only a **near
   miss** reports, so a probe stays silent; library code that probes on purpose

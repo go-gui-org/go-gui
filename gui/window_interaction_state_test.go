@@ -250,11 +250,13 @@ func TestInteractionStateTargetChangeInvalidatesOnce(t *testing.T) {
 		t.Fatalf("hover change: %d generations in one FrameFn, want 2", gens)
 	}
 
+	// Same target and no pointer handlers: an idle move, which asks
+	// for no rebuild at all (#973).
 	gens = 0
 	w.EventFn(&Event{Type: EventMouseMove, MouseX: x + 1, MouseY: y})
 	w.FrameFn()
-	if gens != 1 {
-		t.Fatalf("same target: %d generations in one FrameFn, want 1", gens)
+	if gens != 0 {
+		t.Fatalf("same target: %d generations in one FrameFn, want 0", gens)
 	}
 	if w.layoutPending() {
 		t.Fatal("refreshLayout still set with an unchanged target")

@@ -226,6 +226,11 @@ func handleTouchMoved(
 				emitGesture(gs, GesturePan, gesturePhaseBegan,
 					t.x, t.y, layout, w)
 				return
+			} else if w.idleMoveAt(w.viewState.mousePosX,
+				w.viewState.mousePosY, t.x, t.y, false) {
+				// Below threshold, and nothing reacts to the move
+				// (window_idle_move.go): record the finger only.
+				w.skipIdleMove(t.x, t.y, false)
 			} else {
 				// Below threshold: synthesize mouse move.
 				synthMouse(EventMouseMove, t.x, t.y, MouseLeft,

@@ -70,6 +70,11 @@ func (w *Window) EventFn(e *Event) {
 		w.OnEvent(e, w)
 	}
 	w.captureSnapshot(e)
+	// An idle pointer move changed nothing the arranged frame encodes
+	// (window_idle_move.go, #973): no rebuild, and no wake to run one.
+	if w.takeIdleMove() {
+		return
+	}
 	w.markLayoutRefresh(refreshInput)
 	w.wakeMain()
 }
@@ -287,6 +292,10 @@ func (w *Window) blurUnlessPressInFocused(layout *Layout, e *Event) {
 }
 
 func (w *Window) handleMouseMoveEvent(layout *Layout, e *Event) {
+	if w.idleMoveAt(e.MouseX, e.MouseY, e.MouseX, e.MouseY, true) {
+		w.skipIdleMove(e.MouseX, e.MouseY, true)
+		return
+	}
 	w.setMouseCursor(CursorArrow)
 	w.viewState.menuKeyNav = false
 	w.viewState.mousePosX = e.MouseX

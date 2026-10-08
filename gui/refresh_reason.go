@@ -142,6 +142,9 @@ func (w *Window) takeRenderRefresh() refreshReason {
 //	gui: rebuild layout: input
 //	gui: rebuild render: svg
 //
+// A pass that follows idle pointer moves also prints how many it skipped
+// (gui: skipped 12 idle moves), whether its reasons changed or not.
+//
 // The view phase allocates on every full rebuild, so an app that rebuilds
 // with nothing new to show pays for it on every frame; the log names the
 // cause. DebugRebuilds is out of DebugAll because it reports normal
@@ -153,8 +156,17 @@ func (w *Window) noteRefresh(r refreshReason, full bool) {
 	changed := r != w.lastRefresh || full != w.lastRefreshFull
 	w.lastRefresh = r
 	w.lastRefreshFull = full
+	skipped := w.idleMovesPending
+	w.idleMovesPending = 0
 	if DebugCategory(debugMask.Load())&DebugRebuilds == 0 {
 		return
+	}
+	// Pointer moves that asked for no rebuild since the last pass
+	// (window_idle_move.go, #973). Reported in front of the pass that
+	// ends the run, so a pointer crossing an idle window shows as a
+	// count, not as silence.
+	if skipped > 0 {
+		_, _ = fmt.Fprintf(debugOut, "gui: skipped %d idle moves\n", skipped)
 	}
 	// A gate turned on again reports the pass in front of it, even when
 	// the reasons did not change while it was off.

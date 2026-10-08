@@ -40,6 +40,12 @@ and this project adheres to
 
 ### Fixed
 
+- **`OnMouseLeave` no longer misses a leave after frames that arrange nothing
+  (#973).** The hover record counted frames. A frame that ran no arrange pass,
+  such as a caret blink, made a real hover look stale, so moving out of the
+  shape after a few such frames fired no leave. The record now counts arrange
+  passes, so only a pass that ran can age it.
+
 - **Text shortcuts use Cmd on macOS and Ctrl elsewhere; macOS gets the Cocoa
   Emacs keys (#969).** Text widgets used to accept Ctrl or Cmd for select all,
   copy, cut, paste and undo on every platform. On macOS, Ctrl+A selected all
@@ -67,6 +73,25 @@ and this project adheres to
   Orca press now updates the window at once.
 
 ### Changed
+
+- **BREAKING: a pointer move that changes nothing no longer rebuilds the frame
+  (#973).** Before, every input event asked for a full layout rebuild, so a
+  pointer crossing an idle window ran the view phase, and its allocations, on
+  every frame. Now a mouse move, or a one-finger touch drag under the pan
+  threshold, asks for no rebuild when the last arranged frame proves nothing
+  reacts to it: the `IsHovered` target is the same, no `OnMouseMove` shape is
+  under the pointer, no drag holds the mouse, no `OnHover` or `OnMouseLeave`
+  shape is entered or left, and no tooltip is pending. Moving inside a Button, a
+  list, listbox, tree, select or menu row skips the rebuild too; their hover
+  look depends only on being hovered. An app `OnHover` may read the pointer
+  position, so moving inside a shape that has one still rebuilds, and so does
+  every move while a `Window.OnEvent` handler is set. The pointer position is
+  still recorded, so the next rebuild hit-tests where the pointer is now. What
+  this changes for an app: a view that reads changing state without asking for a
+  refresh (a clock, data from another goroutine) no longer catches up when the
+  mouse moves. Call `InvalidateLayout` when the state changes, or run an
+  animation. `DebugRebuilds` reports the moves it skipped, as
+  `gui: skipped N idle moves`, in front of the next pass.
 
 - **A minimized X11 window draws no animation frames (#954).** The X11 backend
   now reports occlusion: iconify unmaps the window, and its `UnmapNotify` stops

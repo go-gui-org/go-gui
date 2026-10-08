@@ -170,15 +170,20 @@ func layoutMouseLeaveDepth(layout *Layout, w *Window, depth int) {
 	sm := w.hoverInside()
 	key := shape.idKey()
 	inside := shape.PointInShape(w.viewState.mousePosX, w.viewState.mousePosY)
-	// The entry records the frame the pointer was last inside this shape,
-	// and only this frame or the one before counts as still hovered. A
-	// shape the walk stopped reaching — disabled, or not generated at all
-	// — leaves its entry behind, and reading that as "was inside" fired a
-	// leave for a hover that had ended frames earlier, as soon as the
-	// shape came back with the pointer somewhere else. An absent entry
-	// means the pointer was never in the shape.
+	// The entry records the arrange pass the pointer was last inside this
+	// shape, and only this pass or the one before counts as still
+	// hovered. A shape the walk stopped reaching — disabled, or not
+	// generated at all — leaves its entry behind, and reading that as
+	// "was inside" fired a leave for a hover that had ended passes
+	// earlier, as soon as the shape came back with the pointer somewhere
+	// else. An absent entry means the pointer was never in the shape.
+	//
+	// Passes, not frames: a frame that arranges nothing (a caret blink,
+	// an idle pointer move) does not age the record. Counted in frames,
+	// a few such frames made a real hover look stale and the leave was
+	// lost (#973).
 	prev, ok := sm.Get(key)
-	wasInside := ok && w.frameCount-prev <= 1
+	wasInside := ok && w.arrangePass-prev <= 1
 	if wasInside && !inside {
 		w.scratch.hoverEvent = Event{
 			MouseX:      w.viewState.mousePosX,
@@ -189,7 +194,7 @@ func layoutMouseLeaveDepth(layout *Layout, w *Window, depth int) {
 		shape.events.OnMouseLeave(EventCtx{layout, &w.scratch.hoverEvent, w})
 	}
 	if inside {
-		sm.Set(key, w.frameCount)
+		sm.Set(key, w.arrangePass)
 	} else if ok {
 		sm.Delete(key)
 	}
