@@ -14,6 +14,7 @@
 //	go run ./tools/ergonomics-audit/ -mode visual [repo...]
 //	go run ./tools/ergonomics-audit/ -mode spacing [repo...]
 //	go run ./tools/ergonomics-audit/ -mode deadcfg [repo...]
+//	go run ./tools/ergonomics-audit/ -mode pointeramend [repo...]
 //
 // With no repo arguments both modes audit the current directory.
 //
@@ -80,6 +81,10 @@
 // unmarked finding, so it gates. See deadcfg.go for the name-keyed
 // limitation.
 //
+// Mode pointeramend answers: does an AmendLayout hook read the pointer
+// position without opting into pointer moves (issue #978)? It exits
+// non-zero on any unmarked finding, so it gates. See pointeramend.go.
+//
 // All modes parse with go/ast: composite literals and func literals
 // span lines, and regex cannot bracket-match them.
 package main
@@ -99,7 +104,7 @@ import (
 var listShape *string
 
 func main() {
-	mode := flag.String("mode", "focus", "audit to run: focus | callbacks | ids | opt | literals | theme | a11y | visual | spacing | deadcfg")
+	mode := flag.String("mode", "focus", "audit to run: focus | callbacks | ids | opt | literals | theme | a11y | visual | spacing | deadcfg | pointeramend")
 	guiRoot := flag.String("gui", ".", "path to the go-gui repo (source of truth for mode=focus)")
 	listShape = flag.String("list", "", "mode=callbacks: also list distinct signatures of this shape, or \"all\"")
 	fix := flag.Bool("fix", false, "mode=focus: rewrite broken literals in place, adding a generated ID")
@@ -147,8 +152,10 @@ func main() {
 		err = runSpacing(repos)
 	case "deadcfg":
 		err = runDeadCfg(repos)
+	case "pointeramend":
+		err = runPointerAmend(repos)
 	default:
-		err = fmt.Errorf("unknown -mode %q (want focus, callbacks, ids, opt, literals, theme, a11y, visual, spacing or deadcfg)", *mode)
+		err = fmt.Errorf("unknown -mode %q (want focus, callbacks, ids, opt, literals, theme, a11y, visual, spacing, deadcfg or pointeramend)", *mode)
 	}
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "ergonomics-audit:", err)

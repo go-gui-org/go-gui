@@ -164,6 +164,12 @@ jobs:
       - name: Ergo-audit IDs
         run: go run ./tools/ergonomics-audit/ -mode ids .
 
+      # Gates on AmendLayout hooks that read the pointer without
+      # pointerAmend (#978): a move across such a hook's bounds would skip
+      # the rebuild and freeze its enter and leave logic.
+      - name: Ergo-audit pointerAmend
+        run: go run ./tools/ergonomics-audit/ -mode pointeramend .
+
   # Guards the CGo-free desktop build. The whole module must keep
   # cross-compiling with no C toolchain on the host; a new cgo import
   # anywhere reds this job. gui/audio's default Linux output is the
