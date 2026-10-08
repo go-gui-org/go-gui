@@ -78,6 +78,8 @@ func TestSliderKeyDown(t *testing.T) {
 		{"end", KeyEnd, 100},
 		{"right", KeyRight, 51},
 		{"left", KeyLeft, 49},
+		{"up", KeyUp, 51},
+		{"down", KeyDown, 49},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

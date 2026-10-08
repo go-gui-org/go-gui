@@ -97,7 +97,7 @@ func TestPressAndDrag(t *testing.T) {
 }
 
 // Arrow keys step the value; Home and End jump to the ends. As on gui.Slider,
-// Right and Down increase it.
+// Right and Up increase it.
 func TestKeys(t *testing.T) {
 	app, w := newTestApp(t)
 	const id = "page:xp"
@@ -107,12 +107,13 @@ func TestKeys(t *testing.T) {
 		want float32
 	}{
 		{gui.KeyRight, start + keyStep},
-		{gui.KeyDown, start + 2*keyStep},
+		{gui.KeyUp, start + 2*keyStep},
 		{gui.KeyLeft, start + keyStep},
+		{gui.KeyDown, start},
 		{gui.KeyEnd, valueMax},
 		{gui.KeyRight, valueMax},
 		{gui.KeyHome, 0},
-		{gui.KeyUp, 0},
+		{gui.KeyDown, 0},
 	}
 	for _, st := range steps {
 		if err := w.TestKey(id, st.key, gui.ModNone); err != nil {
