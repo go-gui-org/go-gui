@@ -126,7 +126,7 @@ func TestFrameFnOccludedSkipsRender(t *testing.T) {
 	w := &Window{}
 	ran := false
 	w.QueueCommand(func(*Window) { ran = true })
-	w.markLayoutRefresh()
+	w.markLayoutRefresh(refreshTest)
 	DispatchWindowOccluded(w, true)
 
 	if w.FrameFn() {
@@ -135,7 +135,7 @@ func TestFrameFnOccludedSkipsRender(t *testing.T) {
 	if !ran {
 		t.Error("queued command did not run while hidden")
 	}
-	if !w.refreshLayout.Load() {
+	if !w.layoutPending() {
 		t.Error("layout refresh flag cleared while hidden")
 	}
 }
@@ -148,13 +148,13 @@ func TestDispatchWindowOccludedShowRefreshes(t *testing.T) {
 	wakes := 0
 	w.SetWakeMainFn(func() { wakes++ })
 	DispatchWindowOccluded(w, true)
-	if w.refreshLayout.Load() {
+	if w.layoutPending() {
 		t.Fatal("hide marked a layout refresh")
 	}
 
 	DispatchWindowOccluded(w, false)
 
-	if !w.refreshLayout.Load() {
+	if !w.layoutPending() {
 		t.Error("show did not mark a layout refresh")
 	}
 	if wakes != 1 {
@@ -162,9 +162,9 @@ func TestDispatchWindowOccludedShowRefreshes(t *testing.T) {
 	}
 	// A repeated show is a no-op: backends may report the same state
 	// twice (minimize + occlusion on macOS).
-	w.refreshLayout.Store(false)
+	w.clearLayoutRefresh()
 	DispatchWindowOccluded(w, false)
-	if w.refreshLayout.Load() || wakes != 1 {
+	if w.layoutPending() || wakes != 1 {
 		t.Error("repeated show refreshed again")
 	}
 }

@@ -444,7 +444,7 @@ func (w *Window) Dialog(cfg DialogCfg) {
 	// layout tree — the dialog would stay invisible until an unrelated event
 	// forced a rebuild. wakeMain pairs with the flag for the same reason:
 	// without it a sleeping backend never learns the flag was set.
-	w.markLayoutRefresh()
+	w.markLayoutRefresh(refreshDialog)
 	w.wakeMain()
 	w.SetFocus(dialogFocusID(cfg))
 	fileBrowserReport(w, replaced, DialogCancel, nil)
@@ -457,7 +457,7 @@ func (w *Window) DialogDismiss() {
 	// Same reasoning as Dialog: without a rebuild the overlay stays on screen
 	// after a programmatic dismiss, and without the wake a sleeping backend
 	// never learns the flag was set.
-	w.markLayoutRefresh()
+	w.markLayoutRefresh(refreshDialog)
 	w.wakeMain()
 	w.SetFocus(oldFocus)
 	// A file browser closed by Escape, its Cancel button or the app

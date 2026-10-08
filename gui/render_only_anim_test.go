@@ -69,7 +69,7 @@ func newRenderOnlyAnimWindow(t *testing.T, build func(*Window) View) *Window {
 		Height: goldenHeight,
 	})
 	w.SetView(wrapGoldenRoot(build))
-	w.refreshLayout.Store(true)
+	w.markLayoutRefresh(refreshTest)
 	w.FrameFn()
 	w.stopAnimationLoop()
 	return w
@@ -125,7 +125,7 @@ func TestRenderOnlyAnimFrameMatchesFullFrame(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			w := newRenderOnlyAnimWindow(t, c.build)
 			setRenderOnlyAnimValue(t, w, 0.2)
-			w.refreshLayout.Store(true)
+			w.markLayoutRefresh(refreshTest)
 			w.FrameFn()
 			before := serializeCmds(w.renderers)
 
@@ -133,7 +133,7 @@ func TestRenderOnlyAnimFrameMatchesFullFrame(t *testing.T) {
 			w.renderOnlyLocked()
 			got := serializeCmds(w.renderers)
 
-			w.refreshLayout.Store(true)
+			w.markLayoutRefresh(refreshTest)
 			w.FrameFn()
 			want := serializeCmds(w.renderers)
 
@@ -192,7 +192,7 @@ func TestRenderOnlyAnimHeartbeatNeedsTheWidget(t *testing.T) {
 	w.SetView(func(*Window) View {
 		return Column(ContainerCfg{Sizing: FillFill})
 	})
-	w.refreshLayout.Store(true)
+	w.markLayoutRefresh(refreshTest)
 	w.FrameFn()
 	stale := viewBoundNow().Add(-time.Second)
 	w.animMu.Lock()
@@ -319,7 +319,7 @@ func BenchmarkRenderOnlyAnimTick(b *testing.B) {
 		}
 		return Column(ContainerCfg{Sizing: FillFill, Content: content})
 	})
-	w.refreshLayout.Store(true)
+	w.markLayoutRefresh(refreshTest)
 	w.FrameFn()
 	w.stopAnimationLoop()
 	kfs := renderOnlyAnimKeyframes(w)

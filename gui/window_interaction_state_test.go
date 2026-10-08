@@ -256,7 +256,7 @@ func TestInteractionStateTargetChangeInvalidatesOnce(t *testing.T) {
 	if gens != 1 {
 		t.Fatalf("same target: %d generations in one FrameFn, want 1", gens)
 	}
-	if w.refreshLayout.Load() {
+	if w.layoutPending() {
 		t.Fatal("refreshLayout still set with an unchanged target")
 	}
 }
@@ -358,7 +358,7 @@ func TestInteractionStateBuildTimeReadSettles(t *testing.T) {
 	if got := mustShape(t, w, "panel:a").Padding.Top; got != 6 {
 		t.Fatalf("hovered padding = %v, want 6", got)
 	}
-	if w.refreshLayout.Load() {
+	if w.layoutPending() {
 		t.Fatal("inner-padding look did not settle: refreshLayout still set")
 	}
 }

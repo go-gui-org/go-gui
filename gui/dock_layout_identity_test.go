@@ -54,7 +54,7 @@ func newDockIdentityFixture(t *testing.T) *dockIdentityFixture {
 			}),
 		}})
 	}
-	fix.w.refreshLayout.Store(true)
+	fix.w.markLayoutRefresh(refreshTest)
 	fix.w.FrameFn()
 	return fix
 }
@@ -63,7 +63,7 @@ func newDockIdentityFixture(t *testing.T) *dockIdentityFixture {
 // edit a completed drag performs — and re-renders.
 func (f *dockIdentityFixture) rearrange() {
 	f.root = dockTreeMovePanel(f.root, "b", "g1", dockDropBottom)
-	f.w.refreshLayout.Store(true)
+	f.w.markLayoutRefresh(refreshTest)
 	f.w.FrameFn()
 }
 

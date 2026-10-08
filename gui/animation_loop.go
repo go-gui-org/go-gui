@@ -278,7 +278,7 @@ func DispatchWindowOccluded(w *Window, occluded bool) {
 		return
 	}
 	if !occluded {
-		w.markLayoutRefresh()
+		w.markLayoutRefresh(refreshShown)
 		w.wakeMain()
 	}
 }

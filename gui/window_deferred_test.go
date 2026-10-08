@@ -156,7 +156,7 @@ func TestFrameFnRerunsPassAfterDeferredCallbacks(t *testing.T) {
 		return Text(TextCfg{ID: "label", Text: label})
 	})
 	w.deferCallback(func(*Window) { label = "after" })
-	w.markLayoutRefresh()
+	w.markLayoutRefresh(refreshTest)
 
 	if !w.FrameFn() {
 		t.Fatal("FrameFn did not report a rebuild")
@@ -180,7 +180,7 @@ func TestFrameFnSinglePassWithoutDeferredCallbacks(t *testing.T) {
 		gens++
 		return Text(TextCfg{ID: "t"})
 	})
-	w.markLayoutRefresh()
+	w.markLayoutRefresh(refreshTest)
 	w.FrameFn()
 	if gens != 1 {
 		t.Fatalf("view generated %d times, want 1", gens)
@@ -199,7 +199,7 @@ func TestFrameFnStopsAfterTwoPasses(t *testing.T) {
 		w.InvalidateLayout() // dirty the window from inside the pass
 		return Text(TextCfg{ID: "t"})
 	})
-	w.markLayoutRefresh()
+	w.markLayoutRefresh(refreshTest)
 
 	done := make(chan struct{})
 	go func() {

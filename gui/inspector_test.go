@@ -294,7 +294,7 @@ func TestUpdateCachesInspectorTreeFromPreviousLayout(t *testing.T) {
 		},
 	}
 	// atomic.Bool takes no bool literal (see window.go); seed after.
-	w.refreshLayout.Store(true)
+	w.markLayoutRefresh(refreshTest)
 	w.layout = Layout{
 		Shape: &Shape{},
 		Children: []Layout{{

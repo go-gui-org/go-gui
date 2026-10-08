@@ -448,7 +448,7 @@ func buildDragZoneDock(t *testing.T) (*Window, *DockNode) {
 			}}),
 		}})
 	}
-	w.refreshLayout.Store(true)
+	w.markLayoutRefresh(refreshTest)
 	w.FrameFn()
 	return w, root
 }
@@ -509,7 +509,7 @@ func TestDockDragAmendOverlayScopedGroup(t *testing.T) {
 		hoverGroupID: "g2",
 		hoverZone:    dockDropRight,
 	})
-	w.refreshLayout.Store(true)
+	w.markLayoutRefresh(refreshTest)
 	w.FrameFn()
 
 	overlay, ok := w.layout.FindByID(ScopeID("dock", "dock_zone_overlay"))

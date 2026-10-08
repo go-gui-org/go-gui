@@ -304,11 +304,20 @@ type Window struct {
 
 	frozen atomic.Bool
 
-	// Refresh flags. Atomic: InvalidateLayout and InvalidateRender
-	// promise any-goroutine use while the frame loop reads and
-	// clears them (see window_update.go).
-	refreshLayout     atomic.Bool
-	refreshRenderOnly atomic.Bool
+	// refresh holds the pending rebuild requests as refreshReason bits
+	// (refresh_reason.go). Atomic: InvalidateLayout and InvalidateRender
+	// promise any-goroutine use while the frame loop reads and clears
+	// it (see window_update.go). One word holds both the request and its
+	// cause, so the frame loop takes both with one Swap.
+	refresh atomic.Uint32
+	// lastRefresh and lastRefreshFull record the reasons and kind of the
+	// last pass that ran. Main-thread only. Read by noteRefresh to log
+	// changes only, and by tests to check what caused a rebuild.
+	lastRefresh     refreshReason
+	lastRefreshFull bool
+	// lastRefreshGen is the debug gate generation noteRefresh last logged
+	// under, so a re-enabled DebugRebuilds reports the pass in front of it.
+	lastRefreshGen uint64
 
 	// caretCmd records the focused caret's RenderCmd position so a
 	// blink tick can toggle its color in place instead of rebuilding

@@ -735,7 +735,7 @@ func renderTextAnimCmds(
 			})},
 		})
 	}
-	w.refreshLayout.Store(true)
+	w.markLayoutRefresh(refreshTest)
 	w.FrameFn()
 	return w.renderers
 }

@@ -562,7 +562,7 @@ func TestDatePickerRollerOverlayStableSize(t *testing.T) {
 		}
 		n := time.Date(2025, 6, 15, 12, 0, 0, 0, time.UTC)
 		w.setVirtualNow(&n)
-		w.refreshLayout.Store(true)
+		w.markLayoutRefresh(refreshTest)
 		w.FrameFn()
 		if open {
 			sm := StateMap[string, datePickerState](w, nsDatePicker, capModerate)
@@ -572,7 +572,7 @@ func TestDatePickerRollerOverlayStableSize(t *testing.T) {
 			}
 			s.ShowYearMonthPicker = true
 			sm.Set("dp", s)
-			w.refreshLayout.Store(true)
+			w.markLayoutRefresh(refreshTest)
 			w.FrameFn()
 		}
 		l, ok := w.layout.FindByID("dp")
@@ -644,7 +644,7 @@ func TestDatePickerRollerGridClickDismiss(t *testing.T) {
 	}
 	n := time.Date(2025, 6, 15, 12, 0, 0, 0, time.UTC)
 	w.setVirtualNow(&n)
-	w.refreshLayout.Store(true)
+	w.markLayoutRefresh(refreshTest)
 	w.FrameFn()
 	sm := StateMap[string, datePickerState](w, nsDatePicker, capModerate)
 	s, ok := sm.Get("dp-gridclick")
@@ -653,7 +653,7 @@ func TestDatePickerRollerGridClickDismiss(t *testing.T) {
 	}
 	s.ShowYearMonthPicker = true
 	sm.Set("dp-gridclick", s)
-	w.refreshLayout.Store(true)
+	w.markLayoutRefresh(refreshTest)
 	w.FrameFn()
 
 	// June 2025 opens on a Sunday, so day 1 sits in the grid's top

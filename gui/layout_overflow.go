@@ -140,7 +140,7 @@ func layoutOverflowDepth(layout *Layout, w *Window, depth int) {
 		om.Set(id, visibleCount)
 		ss := StateMap[string, bool](w, nsSelect, capModerate)
 		ss.Delete(id)
-		w.refreshLayout.Store(true)
+		w.markLayoutRefresh(refreshOverflow)
 	}
 }
 

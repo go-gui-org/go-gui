@@ -133,25 +133,24 @@ func (w *Window) flushCommands() bool {
 	return true
 }
 
-// markLayoutRefresh requests a full layout rebuild next frame.
-// Overrides any pending render-only refresh.
+// markLayoutRefresh requests a full layout rebuild next frame and records
+// why (refresh_reason.go). Overrides any pending render-only refresh: the
+// full pass clears the render bits with the rest.
 //
 // Setting the flag is not the whole request: a public entry point must also
 // call wakeMain, because backends block indefinitely when FrameFn reports
 // nothing to draw and a flag alone is only read the next time something else
 // wakes the loop. Frame-thread sites (svg, command queue, testing hooks)
 // correctly do not wake — the loop is already running.
-func (w *Window) markLayoutRefresh() {
-	w.refreshLayout.Store(true)
-	w.refreshRenderOnly.Store(false)
+func (w *Window) markLayoutRefresh(r refreshReason) {
+	w.refresh.Or(uint32(r & refreshLayoutMask))
 }
 
 // markRenderOnlyRefresh requests a renderer-only rebuild from the
-// existing layout tree. No-op if a full layout refresh is pending.
-func (w *Window) markRenderOnlyRefresh() {
-	if !w.refreshLayout.Load() {
-		w.refreshRenderOnly.Store(true)
-	}
+// existing layout tree and records why. A pending full layout refresh
+// wins: the bit stays set and the full pass clears it.
+func (w *Window) markRenderOnlyRefresh(r refreshReason) {
+	w.refresh.Or(uint32(r & refreshRenderMask))
 }
 
 // InvalidateLayout marks the window's layout as stale, so the next frame
@@ -163,7 +162,7 @@ func (w *Window) markRenderOnlyRefresh() {
 // state alongside it still need the window lock; this only schedules the
 // frame.
 func (w *Window) InvalidateLayout() {
-	w.markLayoutRefresh()
+	w.markLayoutRefresh(refreshInvalidate)
 	w.wakeMain()
 }
 
@@ -174,7 +173,7 @@ func (w *Window) InvalidateLayout() {
 // Safe to call from OnHover/OnMouseLeave callbacks, and from any goroutine —
 // like InvalidateLayout it wakes the backend's idle loop.
 func (w *Window) InvalidateRender() {
-	w.markRenderOnlyRefresh()
+	w.markRenderOnlyRefresh(refreshRender)
 	w.wakeMain()
 }
 
@@ -202,7 +201,7 @@ func (w *Window) SetView(gen func(*Window) View) {
 	w.viewState.pressTargetID = ""
 	w.viewState.keyPressTargetID = ""
 	w.viewGenerator = gen
-	w.markLayoutRefresh()
+	w.markLayoutRefresh(refreshView)
 	// Under w.mu, which is deliberate: a wake only posts to the platform's
 	// event queue and takes no window lock, so it cannot re-enter.
 	w.wakeMain()
@@ -248,8 +247,11 @@ func (w *Window) FrameFn() bool {
 	// picks it up anyway.
 	ran := false
 	for pass := 0; pass < 2 &&
-		(ran || w.refreshLayout.Load() || w.refreshRenderOnly.Load()); pass++ {
-		if w.refreshLayout.Load() || ran {
+		(ran || w.refreshPending()); pass++ {
+		if w.layoutPending() || ran {
+			if ran {
+				w.markLayoutRefresh(refreshDeferred)
+			}
 			ran = w.Update()
 		} else {
 			ran = w.updateRenderOnly()
@@ -325,8 +327,7 @@ func (w *Window) updateLocked() {
 	w.mu.Lock()
 	w.inFramePass.Store(true)
 	defer w.inFramePass.Store(false)
-	w.refreshLayout.Store(false)
-	w.refreshRenderOnly.Store(false)
+	w.noteRefresh(w.takeLayoutRefresh(), true)
 	// Every full layout rebuild may have changed a11y-visible state
 	// (labels, geometry, roles, live values). Mark the tree dirty so
 	// syncA11y pushes once the throttle allows (issue #407).
@@ -452,7 +453,7 @@ func (w *Window) renderOnlyLocked() {
 	w.inFramePass.Store(true)
 	defer w.inFramePass.Store(false)
 	defer w.mu.Unlock()
-	w.refreshRenderOnly.Store(false)
+	w.noteRefresh(w.takeRenderRefresh(), false)
 	w.renderOnlyPass = true
 	defer func() { w.renderOnlyPass = false }()
 	w.buildRenderers(w.Config.BgColor, w.windowRect())

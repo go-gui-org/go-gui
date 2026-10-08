@@ -116,7 +116,7 @@ func fadeTestWindow(t *testing.T, d time.Duration) *Window {
 	}
 	w.SetTheme(ThemeDark)
 	w.SetThemeTransition(d)
-	w.refreshLayout.Store(true)
+	w.markLayoutRefresh(refreshTest)
 	w.FrameFn()
 	return w
 }
@@ -399,12 +399,12 @@ func TestGoldenThemeFade(t *testing.T) {
 			}
 			w.SetTheme(d.from)
 			w.SetThemeTransition(200 * time.Millisecond)
-			w.refreshLayout.Store(true)
+			w.markLayoutRefresh(refreshTest)
 			w.FrameFn()
 
 			w.SetTheme(d.to)
 			w.themeFadeStep(w.themeFade.gen, 0.5)
-			w.refreshLayout.Store(true)
+			w.markLayoutRefresh(refreshTest)
 			w.FrameFn()
 			checkGoldenFile(t, "testdata", "theme_fade_mid."+d.name,
 				goldenHeader+serializeCmds(w.renderers))

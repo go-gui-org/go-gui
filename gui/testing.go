@@ -168,13 +168,13 @@ func (w *Window) TestRender(view func(*Window) View) *Layout {
 	if view != nil {
 		w.SetView(view)
 	}
-	w.markLayoutRefresh()
+	w.markLayoutRefresh(refreshTest)
 	w.Update()
 	// FrameFn runs one more pass when the arrange pass asked for it (a
 	// new hover target, a scrollbar hook part that changed size), so a
 	// frame on screen shows the settled tree. Do the same, or a one-shot
 	// capture shows the first pass.
-	if w.refreshLayout.Load() {
+	if w.layoutPending() {
 		w.Update()
 	}
 	return &w.layout
@@ -208,9 +208,15 @@ func (w *Window) settle() {
 	for range maxSettlePasses {
 		ran := w.flushCommands()
 		switch {
-		case ran || stale || w.refreshLayout.Load():
+		case ran || stale || w.layoutPending():
+			if ran {
+				w.markLayoutRefresh(refreshCommand)
+			}
+			if stale {
+				w.markLayoutRefresh(refreshDeferred)
+			}
 			stale = w.Update()
-		case w.refreshRenderOnly.Load():
+		case w.renderPending():
 			stale = w.updateRenderOnly()
 		default:
 			return
@@ -218,7 +224,7 @@ func (w *Window) settle() {
 	}
 	// A chain that needs exactly maxSettlePasses passes ends quiet.
 	// Warn only when work is still left, or the warning is false.
-	if !stale && !w.refreshLayout.Load() && !w.refreshRenderOnly.Load() &&
+	if !stale && !w.refreshPending() &&
 		w.pendingCommandCount() == 0 {
 		return
 	}

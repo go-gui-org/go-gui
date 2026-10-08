@@ -244,12 +244,12 @@ that disagrees with its scope (`DebugStampDrift` — a hand-built `Layout` in a
 generated tree); a callback that acted without `ctx.Consume()` while an ancestor
 also handles; a link that opened nothing.
 
-Four categories worth knowing by name:
+Five categories worth knowing by name:
 
-- **`DebugUnscopedIDs` — the only one _not_ in `DebugAll`.** Reports an `ID`
-  with no ID-bearing ancestor: a window-global name, so the widget cannot be
-  dropped into a second panel as it stands. A design property rather than a bug,
-  so ask for it explicitly when auditing a screen for reusability.
+- **`DebugUnscopedIDs` — _not_ in `DebugAll`.** Reports an `ID` with no
+  ID-bearing ancestor: a window-global name, so the widget cannot be dropped
+  into a second panel as it stands. A design property rather than a bug, so ask
+  for it explicitly when auditing a screen for reusability.
 - **`DebugUnresolvedKeys`.** A resolve that answered with the bare leaf while
   that shape landed under a scope, or a `StateMap` key left a bare leaf while an
   ancestor join rewrote the shape — the widget's state key and its identity are
@@ -260,6 +260,11 @@ Four categories worth knowing by name:
 - **`DebugUnknownFocus`.** A frame ended holding a focus ID no focusable shape
   claims — `SetFocus` on a misspelled or unscoped ID. Names the spelling the
   frame did stamp (#521).
+- **`DebugRebuilds` — not in `DebugAll`.** Logs why each frame rebuilds
+  (`input`, `invalidate`, `set-view`, `animation`, …) when the causes change,
+  from the `refreshReason` bits in `gui/refresh_reason.go` (#970). Pass a reason
+  to `markLayoutRefresh` / `markRenderOnlyRefresh`; add a bit, and its name in
+  `refreshReasonNames`, for a new kind of cause.
 - **`DebugUnknownLookup`.** `FindByID`/`ScrollVerticalTo`/`ScrollVerticalToPct`
   found nothing while the frame stamped that leaf under a scope. Only a **near
   miss** reports, so a probe stays silent; library code that probes on purpose

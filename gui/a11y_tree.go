@@ -357,7 +357,7 @@ func a11yActionCallback(w *Window, action, index int) {
 	// Ask for one as EventFn does for input, or the state the handler
 	// changed waits for whatever frame comes next.
 	if ran {
-		w.markLayoutRefresh()
+		w.markLayoutRefresh(refreshA11y)
 	}
 }
 

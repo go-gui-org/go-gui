@@ -28,6 +28,16 @@ and this project adheres to
   have no accessibility. Adapted from mygo's MIT provider; the notice is in
   `THIRD_PARTY_NOTICES`.
 
+- **`DebugRebuilds` logs why a frame rebuilds (#970).** A new debug category
+  prints the cause of each rebuild, such as `gui: rebuild layout: input` or
+  `gui: rebuild render: svg`. A line prints only when the causes or the kind of
+  pass change, so a steady stream prints once. The view phase allocates on every
+  full rebuild; this shows which request causes it. It is not in `DebugAll`.
+  Turn it on with `gui.DebugCategories(gui.DebugAll | gui.DebugRebuilds)`. The
+  cause is a kind, not a call site: every `InvalidateLayout` caller reports
+  `invalidate`. Recording the cause costs no allocation while the category is
+  off.
+
 ### Fixed
 
 - **Text shortcuts use Cmd on macOS and Ctrl elsewhere; macOS gets the Cocoa

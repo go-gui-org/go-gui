@@ -59,7 +59,7 @@ func appUpdateWindows() {
 		if w.themePinned() {
 			continue
 		}
-		w.QueueCommand(func(win *Window) { win.markLayoutRefresh() })
+		w.QueueCommand(func(win *Window) { win.markLayoutRefresh(refreshTheme) })
 	}
 }
 
