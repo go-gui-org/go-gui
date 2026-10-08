@@ -70,7 +70,8 @@ func (w *Window) EventFn(e *Event) {
 		w.OnEvent(e, w)
 	}
 	w.captureSnapshot(e)
-	w.InvalidateLayout()
+	w.markLayoutRefresh(refreshInput)
+	w.wakeMain()
 }
 
 func (w *Window) inspectorKeyHook(e *Event) bool {

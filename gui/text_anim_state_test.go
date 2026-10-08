@@ -48,7 +48,7 @@ func renderAnimFrame(
 	w := NewWindow(WindowCfg{State: new(int), Width: width, Height: height})
 	w.textMeasurer = m
 	w.viewGenerator = view
-	w.refreshLayout.Store(true)
+	w.markLayoutRefresh(refreshTest)
 	w.FrameFn()
 	return w
 }

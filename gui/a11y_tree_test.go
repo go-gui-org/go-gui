@@ -578,17 +578,17 @@ func TestA11yActionRefreshesLayout(t *testing.T) {
 	p := &mockA11yActionPlatform{}
 	w.nativePlatform = p
 	w.initA11y()
-	w.refreshLayout.Store(false)
+	w.clearLayoutRefresh()
 	p.actionCb(A11yActionPress, 0)
 	w.flushCommands()
-	if !w.refreshLayout.Load() {
+	if !w.layoutPending() {
 		t.Fatal("platform action ran a handler without requesting a layout refresh")
 	}
 
 	// An action that reaches no handler requests nothing.
-	w.refreshLayout.Store(false)
+	w.clearLayoutRefresh()
 	a11yActionCallback(w, A11yActionIncrement, 0)
-	if w.refreshLayout.Load() {
+	if w.layoutPending() {
 		t.Fatal("action with no handler requested a refresh")
 	}
 }

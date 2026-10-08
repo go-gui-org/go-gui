@@ -102,9 +102,9 @@ func (ac *AnimationCommands) appendAnimate(cb func(*Animate, *Window), a *Animat
 }
 
 func commandMarkLayoutRefresh(w *Window) {
-	w.markLayoutRefresh()
+	w.markLayoutRefresh(refreshAnimation)
 }
 
 func commandMarkRenderOnlyRefresh(w *Window) {
-	w.markRenderOnlyRefresh()
+	w.markRenderOnlyRefresh(refreshRenderAnimation)
 }

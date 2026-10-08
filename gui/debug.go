@@ -270,10 +270,17 @@ const (
 	// exportaudit:keep — dev-diagnostic API for app authors
 	DebugAutoIDs
 
+	// DebugRebuilds logs why a frame rebuilds, when the causes change
+	// (#970). Not in [DebugAll]: it logs normal operation. Stderr only.
+	// See gui/refresh_reason.go.
+	// exportaudit:keep — dev-diagnostic API for app authors
+	DebugRebuilds
+
 	// DebugAll is every category [Debug] turns on. [DebugUnscopedIDs]
 	// and [DebugLayoutInvariants] are deliberately absent: each reports
 	// a property with correct-by-design exceptions, and fires on widgets
 	// that are right as written, so each is asked for by name.
+	// [DebugRebuilds] logs normal operation, so it is absent too.
 	// exportaudit:keep — dev-diagnostic API for app authors
 	DebugAll = DebugDuplicates | DebugMissingIDs | DebugUnconsumed |
 		DebugListBoxNoHeight | DebugGradientResampled | DebugWrapOverflow |
@@ -369,8 +376,8 @@ func Debug(on bool) {
 // the unconsumed-event noise.
 //
 // A zero mask is everything off; [DebugAll] is every category [Debug]
-// turns on, which excludes [DebugUnscopedIDs] and
-// [DebugLayoutInvariants]. Turning the gate on
+// turns on, which excludes [DebugUnscopedIDs],
+// [DebugLayoutInvariants] and [DebugRebuilds]. Turning the gate on
 // after it was off moves a generation that discards warn-once memory,
 // so a re-enabled gate reports the frame in front of it. Enabling one
 // more category while others stay on needs no clearing: a finding is
@@ -781,19 +788,4 @@ func (w *Window) debugWarn(check debugCheck, subject, format string, args ...any
 	// Diagnostics are best-effort; a failed write to stderr is not
 	// something a GUI frame can act on.
 	_, _ = fmt.Fprintf(debugOut, "gui: "+format+"\n", args...)
-}
-
-// debugPath renders a tree path as "0/3/1". The root is "root".
-func debugPath(path []int) string {
-	if len(path) == 0 {
-		return "root"
-	}
-	var b strings.Builder
-	for i, n := range path {
-		if i > 0 {
-			b.WriteByte('/')
-		}
-		b.WriteString(strconv.Itoa(n))
-	}
-	return b.String()
 }

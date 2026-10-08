@@ -33,7 +33,7 @@ func TestDatePickerHeightStableAcrossMonths(t *testing.T) {
 					}
 					n := time.Date(y, time.Month(m), 1, 12, 0, 0, 0, time.UTC)
 					w.setVirtualNow(&n)
-					w.refreshLayout.Store(true)
+					w.markLayoutRefresh(refreshTest)
 					w.FrameFn()
 					l, ok := w.layout.FindByID("dp")
 					if !ok {

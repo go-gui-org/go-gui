@@ -217,7 +217,7 @@ func goldenFrame(
 	// what makes the theme argument mean anything, and the second
 	// pass a deferred callback's state change needs.
 	w.SetTheme(theme)
-	w.refreshLayout.Store(true)
+	w.markLayoutRefresh(refreshTest)
 	w.FrameFn()
 
 	if len(w.renderers) == 0 {

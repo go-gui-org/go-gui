@@ -24,7 +24,7 @@ func TestNewWindowSetsFields(t *testing.T) {
 	if !w.focused {
 		t.Error("want focused=true")
 	}
-	if !w.refreshLayout.Load() {
+	if !w.layoutPending() {
 		t.Error("want refreshLayout=true")
 	}
 	if State[S](w).X != 42 {
@@ -45,7 +45,7 @@ func TestSetViewSetsGenerator(t *testing.T) {
 	if w.viewGenerator == nil {
 		t.Fatal("viewGenerator nil after SetView")
 	}
-	if !w.refreshLayout.Load() {
+	if !w.layoutPending() {
 		t.Error("want refreshLayout=true after SetView")
 	}
 	// Call generator to verify it works.
@@ -66,12 +66,12 @@ func TestFrameFnCallsUpdate(t *testing.T) {
 		updated = true
 		return Text(TextCfg{Text: "x"})
 	}
-	w.refreshLayout.Store(true)
+	w.markLayoutRefresh(refreshTest)
 	got := w.FrameFn()
 	if !updated {
 		t.Error("FrameFn did not call Update")
 	}
-	if w.refreshLayout.Load() {
+	if w.layoutPending() {
 		t.Error("refreshLayout should be cleared")
 	}
 	if !got {
@@ -90,8 +90,8 @@ func TestFrameFnNoopWhenNoRefresh(t *testing.T) {
 		called = true
 		return Text(TextCfg{Text: "x"})
 	}
-	w.refreshLayout.Store(false)
-	w.refreshRenderOnly.Store(false)
+	w.clearLayoutRefresh()
+	w.clearRenderRefresh()
 	got := w.FrameFn()
 	if called {
 		t.Error("FrameFn should not call generator when no refresh")
@@ -111,15 +111,15 @@ func TestFrameFnReturnsTrueOnRenderOnly(t *testing.T) {
 	w.viewGenerator = func(_ *Window) View {
 		return Text(TextCfg{Text: "x"})
 	}
-	w.refreshLayout.Store(true)
+	w.markLayoutRefresh(refreshTest)
 	w.FrameFn()
 
-	w.refreshRenderOnly.Store(true)
+	w.markRenderOnlyRefresh(refreshRender)
 	got := w.FrameFn()
 	if !got {
 		t.Error("FrameFn should return true on render-only refresh")
 	}
-	if w.refreshRenderOnly.Load() {
+	if w.renderPending() {
 		t.Error("refreshRenderOnly should be cleared")
 	}
 }
@@ -139,7 +139,7 @@ func TestRenderTextEmitsCommand(t *testing.T) {
 			},
 		})
 	}
-	w.refreshLayout.Store(true)
+	w.markLayoutRefresh(refreshTest)
 	w.FrameFn()
 
 	found := false
@@ -441,21 +441,21 @@ func TestRefreshRequestsWakeMain(t *testing.T) {
 			w := NewWindow(WindowCfg{})
 			// markRenderOnlyRefresh defers to a pending full rebuild, so
 			// start from a clean slate rather than whatever NewWindow left.
-			w.refreshLayout.Store(false)
-			w.refreshRenderOnly.Store(false)
+			w.clearLayoutRefresh()
+			w.clearRenderRefresh()
 			wakes := 0
 			w.wakeMainFn = func() { wakes++ }
 			tt.call(w)
 			if wakes != 1 {
 				t.Errorf("wakeMain called %d times, want 1", wakes)
 			}
-			if w.refreshLayout.Load() != tt.wantLayout {
+			if w.layoutPending() != tt.wantLayout {
 				t.Errorf("refreshLayout = %v, want %v",
-					w.refreshLayout.Load(), tt.wantLayout)
+					w.layoutPending(), tt.wantLayout)
 			}
-			if w.refreshRenderOnly.Load() != tt.wantRenderOnly {
+			if w.renderPending() != tt.wantRenderOnly {
 				t.Errorf("refreshRenderOnly = %v, want %v",
-					w.refreshRenderOnly.Load(), tt.wantRenderOnly)
+					w.renderPending(), tt.wantRenderOnly)
 			}
 		})
 	}
@@ -668,10 +668,10 @@ func TestUpdateProducesRenderers(t *testing.T) {
 	w.viewGenerator = func(_ *Window) View {
 		return Text(TextCfg{Text: "render me"})
 	}
-	w.refreshLayout.Store(true)
+	w.markLayoutRefresh(refreshTest)
 	w.FrameFn()
 
-	if w.refreshLayout.Load() {
+	if w.layoutPending() {
 		t.Error("refreshLayout should be cleared")
 	}
 	if len(w.renderers) == 0 {
@@ -689,12 +689,12 @@ func TestUpdateRenderOnlyClearsFlag(t *testing.T) {
 		return Text(TextCfg{Text: "x"})
 	}
 	// Build initial layout.
-	w.refreshLayout.Store(true)
+	w.markLayoutRefresh(refreshTest)
 	w.FrameFn()
 
-	w.refreshRenderOnly.Store(true)
+	w.markRenderOnlyRefresh(refreshRender)
 	got := w.FrameFn()
-	if w.refreshRenderOnly.Load() {
+	if w.renderPending() {
 		t.Error("refreshRenderOnly should be cleared")
 	}
 	if !got {

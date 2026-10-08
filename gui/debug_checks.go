@@ -1,6 +1,9 @@
 package gui
 
-import "strconv"
+import (
+	"strconv"
+	"strings"
+)
 
 // The internal check identifiers and their mapping to the public
 // categories that gate them. Split from debug.go, which holds the
@@ -162,4 +165,19 @@ func checkCategory(check debugCheck) DebugCategory {
 		panic("gui: checkCategory has no category for debugCheck " +
 			strconv.Itoa(int(check)))
 	}
+}
+
+// debugPath renders a tree path as "0/3/1". The root is "root".
+func debugPath(path []int) string {
+	if len(path) == 0 {
+		return "root"
+	}
+	var b strings.Builder
+	for i, n := range path {
+		if i > 0 {
+			b.WriteByte('/')
+		}
+		b.WriteString(strconv.Itoa(n))
+	}
+	return b.String()
 }

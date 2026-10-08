@@ -220,8 +220,8 @@ func NewWindow(cfg WindowCfg) *Window {
 		},
 	}
 	// A new window paints on its first frame. Seeded here, not in the
-	// literal above: atomic.Bool takes no bool literal (see window.go).
-	w.refreshLayout.Store(true)
+	// literal above: an atomic takes no literal (see window.go).
+	w.markLayoutRefresh(refreshInitial)
 	// No lock: w is not shared yet. SetFileAccessAppID still replaces it.
 	w.fileAccess.appID = cfg.AppInfo.ID
 	if cfg.DebugTimeTravel {

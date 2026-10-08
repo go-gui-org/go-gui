@@ -48,7 +48,7 @@ func newSoftKeyboardWindow(t *testing.T, content ...View) (*Window, *softKeyboar
 
 // frame runs one full frame after marking the layout stale.
 func frame(w *Window) {
-	w.refreshLayout.Store(true)
+	w.markLayoutRefresh(refreshTest)
 	w.FrameFn()
 }
 
