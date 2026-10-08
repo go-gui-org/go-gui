@@ -359,3 +359,15 @@ import (
 		}
 	}
 }
+
+// TestRelPathNested pins forward-slash output for a nested path. Exempt
+// lists and findings key on "gui/sub/file.go"; filepath.Rel alone returned
+// backslashes on Windows, so no exemption matched there.
+func TestRelPathNested(t *testing.T) {
+	t.Parallel()
+	root := filepath.Join(t.TempDir(), "repo")
+	path := filepath.Join(root, "gui", "datagrid", "grid.go")
+	if got, want := relPath(root, path), "gui/datagrid/grid.go"; got != want {
+		t.Errorf("relPath(%q, %q) = %q, want %q", root, path, got, want)
+	}
+}

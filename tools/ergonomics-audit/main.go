@@ -234,7 +234,7 @@ func isTrue(expr ast.Expr) bool {
 // relPath trims root from path for readable output.
 func relPath(root, path string) string {
 	if r, err := filepath.Rel(root, path); err == nil {
-		return r
+		return filepath.ToSlash(r)
 	}
-	return path
+	return filepath.ToSlash(path)
 }
