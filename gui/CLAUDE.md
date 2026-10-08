@@ -269,7 +269,8 @@ Five categories worth knowing by name:
   `gui/window_idle_move.go`). A new built-in `OnHover` that reads no pointer
   position and calls no app code sets `ContainerCfg.hoverStatic`; an
   `AmendLayout` that reads the pointer sets `pointerAmend`. See
-  `docs/specs/idle-pointer-moves.md`.
+  `docs/specs/idle-pointer-moves.md`. `GOGUI_DEBUG_REBUILDS=1` turns it on at
+  startup with no code change; it combines with `GOGUI_DEBUG=1` (#975).
 - **`DebugUnknownLookup`.** `FindByID`/`ScrollVerticalTo`/`ScrollVerticalToPct`
   found nothing while the frame stamped that leaf under a scope. Only a **near
   miss** reports, so a probe stays silent; library code that probes on purpose

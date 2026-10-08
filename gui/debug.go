@@ -5,8 +5,6 @@ import (
 	"io"
 	"os"
 	"slices"
-	"strconv"
-	"strings"
 	"sync/atomic"
 )
 
@@ -290,27 +288,6 @@ const (
 		DebugAutoIDs
 )
 
-func init() {
-	// GOGUI_DEBUG is the general gate. GOGUI_FOCUS_DEBUG is the
-	// original focus-only spelling, still honoured so existing
-	// workflows keep working. Either enables every category.
-	if envTruthy("GOGUI_DEBUG") || envTruthy("GOGUI_FOCUS_DEBUG") {
-		debugMask.Store(uint32(DebugAll))
-		debugGen.Store(1)
-	}
-}
-
-// envTruthy reports whether an environment variable is set to
-// something a developer would read as "on".
-func envTruthy(name string) bool {
-	v, ok := os.LookupEnv(name)
-	if !ok {
-		return false
-	}
-	b, err := strconv.ParseBool(strings.TrimSpace(v))
-	return err == nil && b
-}
-
 // Debug turns dev-mode diagnostics on or off. When on, every category
 // of finding is checked:
 //
@@ -358,6 +335,7 @@ func envTruthy(name string) bool {
 // reports the state of the frame in front of it.
 //
 // The gate is also set at startup by GOGUI_DEBUG=1.
+// GOGUI_DEBUG_REBUILDS=1 adds [DebugRebuilds] at startup (#975).
 //
 // Not for production: the checks walk the whole layout tree every
 // frame and allocate while doing it.
