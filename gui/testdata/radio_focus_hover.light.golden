@@ -1,5 +1,5 @@
 # go-gui-golden v1
 Shadow xy=15.00,15.00 wh=101.80,29.60 color=#2f6fe03f radius=6.00 blur=2.00 offset=0.00,0.00
-Circle xy=27.50,29.80 wh=0.00,0.00 color=#e0e5ecff radius=7.50 fill
+Circle xy=27.50,29.80 wh=0.00,0.00 color=#ffffffff radius=7.50 fill
 StrokeRect xy=20.00,22.30 wh=15.00,15.00 color=#edf0f4ff radius=7.50 thickness=1.00
 Text xy=49.00,20.00 wh=0.00,0.00 color=#1a1d21ff text="Enabled" size=14.00

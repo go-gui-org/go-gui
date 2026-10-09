@@ -44,6 +44,8 @@ type RadioStyle struct {
 	Colors          ColorSet
 	ColorSelect     Color
 	colorUnselect   Color
+	// colorDot paints the selected radio's center dot over ColorSelect.
+	colorDot Color
 }
 
 // SwitchStyle defines switch toggle visual properties.

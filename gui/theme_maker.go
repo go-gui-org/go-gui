@@ -290,8 +290,16 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 				Border:      cfg.ColorBorder,
 				BorderFocus: borderFocus,
 			},
-			ColorSelect:     colorSelect,
-			colorUnselect:   cfg.ColorActive,
+			ColorSelect: colorSelect,
+			// Panel fill, like Checkbox: the off state is an empty well.
+			// ColorActive there read as a filled grey dot. A borderless
+			// theme keeps ColorActive: with no ring, a panel-colored well
+			// on a panel draws nothing.
+			colorUnselect: radioUnselect(
+				cfg.SizeBorder, cfg.ColorPanel, cfg.ColorActive),
+			// The dot sits on the ColorSelect disc, so it takes the role
+			// already contrast-matched to that fill.
+			colorDot:        colorTextOnSelect,
 			Padding:         PadAll(4),
 			SizeBorder:      cfg.SizeBorder,
 			textStyleNormal: ts,

@@ -82,6 +82,16 @@ func textOnFor(c Color) Color {
 	return RGB(0, 0, 0)
 }
 
+// radioUnselect is the off-state fill of a radio. With a border the
+// well takes the panel color, like Checkbox. With no border it takes
+// the active color, so the radio stays visible on a panel.
+func radioUnselect(sizeBorder float32, panel, active Color) Color {
+	if sizeBorder > 0 {
+		return panel
+	}
+	return active
+}
+
 // WithColors returns a new Theme with the specified colors updated
 // across all widget styles.
 //
@@ -287,7 +297,9 @@ func (t Theme) WithColors(o ColorOverrides) Theme {
 	t.radioStyle.Colors.Border = border
 	t.radioStyle.Colors.BorderFocus = borderFocus
 	t.radioStyle.ColorSelect = sel
-	t.radioStyle.colorUnselect = active
+	t.radioStyle.colorUnselect = radioUnselect(
+		t.radioStyle.SizeBorder, panel, active)
+	t.radioStyle.colorDot = selText
 
 	t.switchStyle.Colors.Base = panel
 	t.switchStyle.Colors.Hover = hover

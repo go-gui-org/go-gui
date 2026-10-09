@@ -1800,6 +1800,12 @@ func goldenCases() []goldenCase {
 			build: buildStateRadio,
 		},
 		{
+			// The selected dot is the only thing that tells a radio from
+			// a status light, so its geometry and color are recorded.
+			name:  "radio_selected",
+			build: buildStateRadioSelected,
+		},
+		{
 			// Radio paints every interaction state onto its border,
 			// never its fill, so its recordings are the ones that would
 			// catch a picker wired to the wrong channel.
@@ -1976,6 +1982,11 @@ func buildStateSwitchDisabled(_ *Window) View {
 
 func buildStateRadio(_ *Window) View {
 	return Radio(RadioCfg{ID: "rd", Label: "Enabled",
+		OnClick: func(EventCtx) {}})
+}
+
+func buildStateRadioSelected(_ *Window) View {
+	return Radio(RadioCfg{ID: "rd", Label: "Enabled", Selected: true,
 		OnClick: func(EventCtx) {}})
 }
 

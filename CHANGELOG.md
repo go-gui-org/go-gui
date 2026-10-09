@@ -144,6 +144,18 @@ and this project adheres to
 
 ### Changed
 
+- **Selected `Radio` draws a center dot; unselected `Radio` is an empty well.**
+  A selected radio was a solid accent disc. It looked like a status light, not a
+  radio. It now has a dot in the center, 40% of the diameter, in
+  `ColorTextOnSelect`, so it looks like the macOS and Fluent radios. An
+  unselected radio now uses the `ColorPanel` fill, the same as `Checkbox`, and
+  not `ColorActive`. Before, it looked like a filled grey dot. A borderless
+  theme (`WithBorders(false)`) keeps `ColorActive`, because a panel-colored well
+  with no border cannot be seen on a panel. When you set your own
+  `RadioCfg.ColorSelect`, the dot is black or white, whichever contrasts with
+  that color. A NaN, infinite or negative `RadioCfg.Size` now uses the theme
+  size. The size and layout do not change. This also changes `RadioButtonGroup`.
+
 - **BREAKING: a pointer move that changes nothing no longer rebuilds the frame
   (#973).** Before, every input event asked for a full layout rebuild, so a
   pointer crossing an idle window ran the view phase, and its allocations, on
