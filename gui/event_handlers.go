@@ -585,10 +585,16 @@ func mouseScrollFallbackHandlerDepth(layout *Layout, e *Event, w *Window, depth 
 		if layout.Shape.PointInShape(e.MouseX, e.MouseY) {
 			switch e.Modifiers & modKeyboard {
 			case ModShift:
+				// macOS and browsers turn Shift+wheel into ScrollX; Win32
+				// and X11 leave it in ScrollY. Take whichever is set.
+				dx := e.ScrollX
+				if dx == 0 {
+					dx = e.ScrollY
+				}
 				if e.ScrollPrecise {
-					e.IsHandled = scrollHorizontal(layout, e.ScrollX, w)
+					e.IsHandled = scrollHorizontal(layout, dx, w)
 				} else {
-					e.IsHandled = scrollSmoothBy(w, layout, scrollAxisX, e.ScrollX)
+					e.IsHandled = scrollSmoothBy(w, layout, scrollAxisX, dx)
 				}
 			case ModNone:
 				if e.ScrollPrecise {
@@ -609,7 +615,18 @@ func mouseScrollFallbackHandlerDepth(layout *Layout, e *Event, w *Window, depth 
 					}
 					e.IsHandled = movedX || movedY
 				} else {
-					e.IsHandled = scrollSmoothBy(w, layout, scrollAxisY, e.ScrollY)
+					// Win32 WM_MOUSEHWHEEL (a touchpad's sideways swipe or
+					// a tilt wheel) and X11 buttons 6/7 arrive as discrete
+					// ScrollX with no modifier, so ease every axis the delta
+					// names, as the precise branch does.
+					var movedX, movedY bool
+					if e.ScrollX != 0 {
+						movedX = scrollSmoothBy(w, layout, scrollAxisX, e.ScrollX)
+					}
+					if e.ScrollY != 0 {
+						movedY = scrollSmoothBy(w, layout, scrollAxisY, e.ScrollY)
+					}
+					e.IsHandled = movedX || movedY
 				}
 			}
 		}

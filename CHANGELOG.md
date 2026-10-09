@@ -91,6 +91,19 @@ and this project adheres to
 
 ### Fixed
 
+- **A sideways touchpad swipe or tilt wheel scrolls horizontally on Windows and
+  X11 (#TBD).** Win32 delivers both as `WM_MOUSEHWHEEL`, and X11 delivers tilt
+  as buttons 6/7. Each arrives as a discrete scroll with `ScrollX` and no
+  modifier. The scroll container eased only `ScrollY` for such an event, so a
+  wide container ignored the gesture and moved only with the scrollbar. Each
+  axis the event names now eases, as far as the container's `ScrollMode`
+  allows, the same rule #585 set for precise scrolls. Shift+wheel also scrolls
+  sideways there now: Win32 and X11 report it as `ScrollY` with Shift held,
+  while the container read only `ScrollX`, so Shift+wheel did nothing. With
+  Shift held, a `ScrollY` delta now scrolls horizontally when `ScrollX` is 0.
+  macOS and browsers already move the delta to `ScrollX`, so they are
+  unchanged.
+
 - **`GOGUI_DEVICE_SCALE`: Win32 size limits and large X11 windows (#984).** On
   Windows, `MinWidth`/`MaxWidth` and the other size limits were scaled by the
   monitor DPI, not by the override, so the resize bounds did not match the
