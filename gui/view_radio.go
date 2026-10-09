@@ -44,6 +44,11 @@ type RadioCfg struct {
 	SoundDisabled bool
 }
 
+// radioDotRatio sizes the selected dot against the radio's diameter.
+// 0.4 matches the macOS and Fluent radios: big enough to read at the
+// 15px default, small enough to leave a clear accent ring around it.
+const radioDotRatio = 0.4
+
 // Radio creates a radio button view.
 func Radio(cfg RadioCfg) View {
 	// No ID: take a generated leaf at generation time (#881); see
@@ -59,6 +64,11 @@ func Radio(cfg RadioCfg) View {
 
 	dr := &defaultRadioStyle
 	size := cfg.Size.Get(dr.Size)
+	// A NaN, infinite or negative size would give the disc and its dot
+	// a bad rect, and a NaN rect poisons every later f32Max in arrange.
+	if !f32IsFinite(size) || size < 0 {
+		size = dr.Size
+	}
 	sizeBorder := cfg.SizeBorder.Or(dr.SizeBorder)
 
 	// Radio paints every interaction state onto the circle's BORDER,
@@ -77,6 +87,32 @@ func Radio(cfg RadioCfg) View {
 		circleColor = cfg.ColorSelect
 	}
 
+	// A selected radio draws a dot inside the accent disc. Without it
+	// the disc is a flat blob that reads as a status light, not a
+	// radio. Built only when selected, so an unselected radio pays no
+	// extra allocation.
+	var dot []View
+	if cfg.Selected {
+		dotSize := size * radioDotRatio
+		// The theme's dot color is matched to the theme's ColorSelect.
+		// A caller's own ColorSelect may be light, so the dot follows
+		// that fill instead, or it vanishes into the disc.
+		dotColor := dr.colorDot
+		if cfg.ColorSelect != dr.ColorSelect {
+			dotColor = textOnFor(cfg.ColorSelect)
+		}
+		dot = []View{Circle(ContainerCfg{
+			Width:      dotSize,
+			Height:     dotSize,
+			Color:      dotColor,
+			SizeBorder: NoBorder,
+			Padding:    NoPadding,
+			Disabled:   cfg.Disabled,
+			Invisible:  cfg.Invisible,
+			Sizing:     FixedFixed,
+		})}
+	}
+
 	content := make([]View, 0, 2)
 	content = append(content, Circle(ContainerCfg{
 		Width:       size,
@@ -84,11 +120,13 @@ func Radio(cfg RadioCfg) View {
 		Color:       circleColor,
 		ColorBorder: cfg.Colors.Border,
 		SizeBorder:  BorderPx(sizeBorder),
+		Padding:     NoPadding,
 		Disabled:    cfg.Disabled,
 		Invisible:   cfg.Invisible,
 		Sizing:      FixedFixed,
 		HAlign:      HAlignCenter,
 		VAlign:      VAlignMiddle,
+		Content:     dot,
 	}))
 
 	if len(cfg.Label) > 0 {
