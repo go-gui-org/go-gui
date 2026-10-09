@@ -25,7 +25,7 @@ Go toolchain pin: `go 1.26.0`.
 | `golang.org/x/image` | v0.46.0 | Antialiased vector rasterization for the headless software renderer (`gui/backend/soft`). Also pulled in by go-glyph. |
 | `golang.org/x/mod` | v0.41.0 | Module version parsing; imported by `requiredid` analyzer. |
 | `golang.org/x/sys` | v0.48.0 | Win32 + WGL syscalls for the native Windows backend (`gui/backend/gl`, `winkey`). |
-| `golang.org/x/tools` | v0.49.0 | `go/analysis` framework for the `requiredid` analyzer (`tools/`). |
+| `golang.org/x/tools` | v0.50.0 | `go/analysis` framework for the `requiredid` analyzer (`tools/`). |
 
 ## Indirect Dependencies
 
