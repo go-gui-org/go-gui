@@ -705,7 +705,11 @@ jobs:
       - name: Install scanners
         run: |
           go install golang.org/x/vuln/cmd/govulncheck@latest
-          go install github.com/securego/gosec/v2/cmd/gosec@latest
+          # Pinned to a master commit: release v2.29.0 bundles
+          # golang.org/x/tools v0.49.0, which cannot read go1.27.2 export
+          # data and fails type-checking every package. Return to @latest
+          # once a release ships x/tools >= v0.50.0.
+          go install github.com/securego/gosec/v2/cmd/gosec@7b1b5cebe007d62fb58eacb90fc571112939ec30
 
       - name: Run security scans
         run: make gosec govulncheck
