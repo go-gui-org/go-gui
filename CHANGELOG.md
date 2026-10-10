@@ -97,11 +97,16 @@ and this project adheres to
   modifier. The scroll container eased only `ScrollY` for such an event, so a
   wide container ignored the gesture and moved only with the scrollbar. Each
   axis the event names now eases, as far as the container's `ScrollMode` allows,
-  the same rule #585 set for precise scrolls. Shift+wheel also scrolls sideways
-  there now: Win32 and X11 report it as `ScrollY` with Shift held, while the
-  container read only `ScrollX`, so Shift+wheel did nothing. With Shift held, a
-  `ScrollY` delta now scrolls horizontally when `ScrollX` is 0. macOS and
-  browsers already move the delta to `ScrollX`, so they are unchanged.
+  the same rule #585 set for precise scrolls. Windows also had the sign of the
+  sideways delta reversed, so a swipe to the right scrolled left; it now matches
+  X11 and the browser. Shift+wheel also scrolls sideways there now: Win32, X11
+  and Wayland report it as `ScrollY` with Shift held, while the container read
+  only `ScrollX`, so Shift+wheel did nothing. With Shift held, a discrete-wheel
+  `ScrollY` delta now scrolls horizontally when `ScrollX` is 0. In a container
+  whose `ScrollMode` is `ScrollVerticalOnly`, a discrete Shift+wheel now scrolls
+  vertically on every platform. A precise (trackpad) `ScrollY` keeps its axis,
+  so Shift plus a vertical swipe does not scroll sideways. macOS and browsers
+  already move the wheel's delta to `ScrollX`, so they are unchanged.
 
 - **`GOGUI_DEVICE_SCALE`: Win32 size limits and large X11 windows (#984).** On
   Windows, `MinWidth`/`MaxWidth` and the other size limits were scaled by the

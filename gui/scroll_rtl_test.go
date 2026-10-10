@@ -66,6 +66,53 @@ func TestRTLRowScrollHorizontalMirrorsDelta(t *testing.T) {
 	}
 }
 
+// A discrete sideways wheel (Win32 WM_MOUSEHWHEEL, X11 button 7) eases
+// through scrollSmoothBy, not scrollHorizontal. It must mirror in an RTL
+// row the same way as the instant path: from the start edge a negative
+// ScrollX moves nothing, and a positive one reveals the overflow.
+func TestRTLRowDiscreteWheelMirrorsDelta(t *testing.T) {
+	w := NewTestWindow(t, WindowCfg{Width: 400, Height: 300})
+	w.TestRender(func(_ *Window) View {
+		return Row(ContainerCfg{
+			ID:         "sc",
+			Scrollable: true,
+			ScrollMode: ScrollHorizontalOnly,
+			TextDir:    TextDirRTL,
+			Sizing:     FixedFixed,
+			Width:      100,
+			Height:     40,
+			Padding:    PaddingNone,
+			SizeBorder: NoBorder,
+			Content: []View{
+				Column(ContainerCfg{Sizing: FixedFixed, Width: 300, Height: 40,
+					SizeBorder: NoBorder}),
+			},
+		})
+	})
+	ly, ok := w.layout.FindByID("sc")
+	if !ok {
+		t.Fatal("scroll container not found")
+	}
+	wheel := func(dx float32) bool {
+		e := Event{Type: EventMouseScroll, MouseX: ly.Shape.X + 10,
+			MouseY: ly.Shape.Y + 10, ScrollX: dx}
+		w.EventFn(&e)
+		if w.scrollSmooth != nil {
+			driveScrollSmooth(w, 200)
+		}
+		return e.IsHandled
+	}
+	if wheel(-3) {
+		t.Error("a negative ScrollX at the start edge must not move an RTL row")
+	}
+	if !wheel(3) {
+		t.Fatal("a positive ScrollX must move an RTL row toward its overflow")
+	}
+	if x, _, _ := w.TestScrollOffset("sc"); x >= 0 {
+		t.Errorf("offset after positive ScrollX: got %v, want < 0", x)
+	}
+}
+
 // Thumb drag: the bar runs left to right in both directions, but in RTL its
 // right end is the start, so a drag toward the left travels toward the
 // overflow.
