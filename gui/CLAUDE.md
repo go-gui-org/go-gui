@@ -233,6 +233,22 @@ both `EventCtx` methods are nil-safe.
 - `Children []Layout` = values, parents = pointers. Avoids cycles.
 - `StateMap` (keyed by namespace consts like `nsOverflow`, `nsSvgCache`) is the
   per-window typed kv store for widget internal state.
+- Build layout wrappers with `Column` or `Row`, not the unexported
+  `container()`. A bare `container()` has `AxisNone`, which the fill pass does
+  not distribute, so `Fill` children stay 0×0 and get no mouse events.
+- **View functions hold `w.mu` but not `w.animMu`.** Call the public
+  `HasAnimation` / `AnimationAdd` from a view: they take `animMu`, and the
+  animation goroutine writes `w.animations` under it. The `*Locked` variants are
+  for code that already holds `animMu`; from a view they race.
+- **A `Shape` geometry field holds what the last pass wrote, not what the Cfg
+  asked for.** `Text` keeps its measured extent in `MinWidth` and sets
+  `Width = MinWidth`; a `Fill` parent then stretches `Width`. Grep the field's
+  assignments before reading it mid-pipeline. To force a geometry state in a
+  test, arrange first, then mutate the `Shape`.
+- Benchmarks that call `generateViewLayout` in a loop call
+  `w.scratch.resetViewPools()` each iteration. The view-phase arenas are
+  frame-scoped and grow without bound otherwise. Single-buffer arenas are safe
+  because events run on the main goroutine, serialized with generation.
 
 ## Dev-mode diagnostics
 
