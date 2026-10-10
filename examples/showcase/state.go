@@ -350,6 +350,12 @@ type DemoEntry struct {
 type DemoGroup struct {
 	Key   string
 	Label string
+
+	// The catalog list's row keys for this group's header, populated
+	// by init(). The first header in the list has no gap above it, so
+	// its height differs and it needs its own key.
+	headerKey      string
+	firstHeaderKey string
 }
 
 var demoEntries = []DemoEntry{
@@ -446,6 +452,12 @@ func init() {
 	for i := range demoEntries {
 		demoEntries[i].idLower = strings.ToLower(demoEntries[i].ID)
 		demoEntries[i].labelLower = strings.ToLower(demoEntries[i].Label)
+	}
+	// A ':' cannot appear in an entry ID, so these keys never collide
+	// with an entry's key.
+	for i := range demoGroups {
+		demoGroups[i].headerKey = gui.ScopeID("header", demoGroups[i].Key)
+		demoGroups[i].firstHeaderKey = gui.ScopeID("header-first", demoGroups[i].Key)
 	}
 }
 

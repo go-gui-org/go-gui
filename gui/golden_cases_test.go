@@ -1885,7 +1885,48 @@ func goldenCases() []goldenCase {
 			name:  "file_browser_folder",
 			build: goldenFileBrowser(fileBrowserCfg{mode: fileBrowserFolder}),
 		},
+		{
+			// The stock scrollbars: the vertical bar's gutter and
+			// thumb, and the horizontal bar hidden with nothing to
+			// scroll that way.
+			name:  "scroll_column",
+			build: goldenScrollColumn,
+		},
+		{
+			// A bar that shows its thumb only under the pointer, with
+			// the pointer over it: the thumb is painted in the thumb
+			// color by the bar's OnHover.
+			name: "scroll_column_hover",
+			build: func(w *Window) View {
+				return goldenScrollColumnBar(&ScrollbarCfg{Overflow: scrollbarOnHover})
+			},
+			hoverX: 128, hoverY: 40,
+		},
 	}
+}
+
+// goldenScrollColumn is a fixed-size column with more rows than fit,
+// so the stock vertical scrollbar shows a thumb.
+func goldenScrollColumn(*Window) View {
+	return goldenScrollColumnBar(nil)
+}
+
+// goldenScrollColumnBar is goldenScrollColumn with a vertical scrollbar
+// override.
+func goldenScrollColumnBar(barY *ScrollbarCfg) View {
+	rows := make([]View, 12)
+	for i := range rows {
+		rows[i] = Column(ContainerCfg{Sizing: FillFixed, Height: 20})
+	}
+	return Column(ContainerCfg{
+		ID:            "scroll",
+		Sizing:        FixedFixed,
+		Width:         120,
+		Height:        100,
+		Scrollable:    true,
+		ScrollbarCfgY: barY,
+		Content:       rows,
+	})
 }
 
 // goldenThinkingOrbSearching pins the searching still frame.

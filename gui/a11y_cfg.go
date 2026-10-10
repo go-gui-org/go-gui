@@ -31,12 +31,3 @@ type A11YCfg struct {
 func (a A11YCfg) a11yInfo(fallback string) *accessInfo {
 	return makeA11YInfo(a11yLabel(a.A11YLabel, fallback), a.A11YDescription)
 }
-
-// a11yInfoProse builds the shape's accessInfo from display prose. The
-// fallback is a Label, Placeholder, or other text the user reads, so
-// it reaches the accessible name unchanged; a colon in it is part of
-// the name, not an ID scope.
-func (a A11YCfg) a11yInfoProse(fallback string) *accessInfo {
-	return makeA11YInfo(a11yProseLabel(a.A11YLabel, fallback),
-		a.A11YDescription)
-}

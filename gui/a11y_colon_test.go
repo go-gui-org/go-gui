@@ -119,8 +119,10 @@ func TestA11YProseLabelFallback(t *testing.T) {
 	if got := a11yProseLabel("explicit", "Price: USD"); got != "explicit" {
 		t.Errorf("explicit = %q, want explicit", got)
 	}
-	if info := (A11YCfg{}).a11yInfoProse("Price: USD"); info == nil ||
-		info.Label != "Price: USD" {
-		t.Errorf("a11yInfoProse = %+v, want label %q", info, "Price: USD")
+	w := newTestWindow()
+	w.viewState.genDepth = 1
+	s := Text(TextCfg{Text: "Price: USD"}).GenerateLayout(w).Shape
+	if info := s.a11Y; info == nil || info.Label != "Price: USD" {
+		t.Errorf("Text a11Y = %+v, want label %q", info, "Price: USD")
 	}
 }

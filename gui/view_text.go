@@ -85,6 +85,11 @@ type textView struct {
 	// outlives generation and render, which a local would not. Keep
 	// it small: every Text carries it.
 	anim textAnimRender
+
+	// a11y is the shape's accessible name and description. Like tc and
+	// anim, it lives on the view so the shape can point at it without a
+	// separate heap allocation per Text per frame.
+	a11y accessInfo
 }
 
 // textEventHandlers is a shared handler set for focused text
@@ -133,6 +138,16 @@ func (tv *textView) GenerateLayout(w *Window) Layout {
 		wrapSizingDefault: c.wrapSizingDefault,
 	}
 
+	// The accessible name comes from the display prose, so a colon in
+	// it is part of the name, not an ID scope. Stored on the view; nil
+	// when there is no name or description, which means no a11y node.
+	var a11y *accessInfo
+	if label := a11yProseLabel(c.A11YLabel, c.Text); label != "" ||
+		c.A11YDescription != "" {
+		tv.a11y = accessInfo{Label: label, Description: c.A11YDescription}
+		a11y = &tv.a11y
+	}
+
 	layout := Layout{
 		Shape: w.allocShape(Shape{
 			shapeType:  shapeText,
@@ -140,7 +155,7 @@ func (tv *textView) GenerateLayout(w *Window) Layout {
 			focusOwner: c.focusOwner,
 			Focusable:  c.Focusable,
 			A11YRole:   AccessRoleStaticText,
-			a11Y:       c.a11yInfoProse(c.Text),
+			a11Y:       a11y,
 			Clip:       c.Clip,
 			FocusSkip:  c.FocusSkip,
 			Disabled:   c.Disabled,

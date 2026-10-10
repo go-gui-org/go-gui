@@ -112,35 +112,89 @@ func scrollbar(cfg ScrollbarCfg) View {
 	if cfg.Thumb != nil || cfg.Track != nil {
 		return scrollbarLookView{cfg: cfg}
 	}
+	return &scrollbarView{cfg: cfg}
+}
 
-	thumbView := scrollbarThumb(cfg)
+// scrollbarView is the stock scrollbar: a gutter with the thumb as its
+// one child. Every scrollable container builds two of them, one per
+// axis, every frame, so it builds its two shapes directly and wires
+// shared handler funcs that read cfg back through
+// eventHandlers.scrollbar. Built from Row/Column with closures holding
+// a copy of cfg, a bar cost seven allocations per frame; this costs one,
+// the view itself.
+//
+// Like textView, the view lives as long as the layout built from it, so
+// the shapes can point at its cfg.
+type scrollbarView struct {
+	cfg ScrollbarCfg
+}
 
+func (v *scrollbarView) GenerateLayout(w *Window) Layout {
+	cfg := &v.cfg
+	axis := axisTopToBottom
 	if cfg.Orientation == scrollbarHorizontal {
-		return Row(ContainerCfg{
-			ID:                   cfg.ID,
-			A11YRole:             AccessRoleScrollBar,
-			Color:                cfg.ColorBackground,
-			OverDraw:             true,
-			Padding:              NoPadding,
-			scrollbarOrientation: scrollbarHorizontal,
-			AmendLayout:          makeScrollbarAmendLayout(cfg),
-			OnHover:              makeScrollbarOnHover(cfg, thumbIndex),
-			OnClick:              makeScrollbarGutterClick(cfg),
-			Content:              []View{thumbView},
-		})
+		axis = axisLeftToRight
 	}
-	return Column(ContainerCfg{
+	// The same ContainerCfg the Row or Column factory would get. container()
+	// adds only clickButton for these: neither scrolls, so neither takes an
+	// auto ID.
+	bar := ContainerCfg{
 		ID:                   cfg.ID,
 		A11YRole:             AccessRoleScrollBar,
 		Color:                cfg.ColorBackground,
 		OverDraw:             true,
 		Padding:              NoPadding,
-		scrollbarOrientation: scrollbarVertical,
-		AmendLayout:          makeScrollbarAmendLayout(cfg),
-		OnHover:              makeScrollbarOnHover(cfg, thumbIndex),
-		OnClick:              makeScrollbarGutterClick(cfg),
-		Content:              []View{thumbView},
-	})
+		scrollbarOrientation: cfg.Orientation,
+		axis:                 axis,
+		clickButton:          clickLeftOnly,
+		AmendLayout:          scrollbarStockAmend,
+		OnHover:              scrollbarStockHover,
+		OnClick:              scrollbarStockGutterClick,
+	}
+	thumb := ContainerCfg{
+		Color:       cfg.ColorThumb,
+		Radius:      RadiusPx(cfg.RadiusThumb),
+		Padding:     NoPadding,
+		axis:        axisTopToBottom,
+		clickButton: clickLeftOnly,
+		OnClick:     scrollbarStockThumbPress,
+	}
+	layout := Layout{Shape: w.allocShape(buildContainerShape(&bar, w))}
+	layout.Shape.events.scrollbar = cfg
+	thumbShape := w.allocShape(buildContainerShape(&thumb, w))
+	thumbShape.events.scrollbar = cfg
+
+	// The thumb has no ID, so it needs neither the ID scope nor the stamp
+	// appendChildViews would give a generated child. The children come
+	// from the frame arena, as appendChildViews takes them.
+	if w != nil {
+		layout.Children = w.scratch.takeLayoutChildren(1)
+	} else {
+		layout.Children = make([]Layout, 0, 1)
+	}
+	layout.Children = append(layout.Children, Layout{Shape: thumbShape})
+	return layout
+}
+
+// The stock scrollbar's handlers. Each reads the settings off the shape
+// it is called for: the bar for the first three, the thumb for the last.
+func scrollbarStockAmend(ctx EventCtx) {
+	scrollbarAmendLayout(*ctx.Layout.Shape.events.scrollbar, ctx,
+		ctx.Layout, ctx.Window, thumbIndex)
+}
+
+func scrollbarStockHover(ctx EventCtx) {
+	scrollbarHover(ctx.Layout.Shape.events.scrollbar, ctx, thumbIndex)
+}
+
+func scrollbarStockGutterClick(ctx EventCtx) {
+	cfg := ctx.Layout.Shape.events.scrollbar
+	scrollbarGutterPress(ctx, cfg.Orientation, cfg.MinThumbSize, cfg.scrollID)
+}
+
+func scrollbarStockThumbPress(ctx EventCtx) {
+	cfg := ctx.Layout.Shape.events.scrollbar
+	scrollbarThumbPress(ctx, cfg.Orientation, cfg.MinThumbSize, cfg.scrollID)
 }
 
 func scrollbarThumb(cfg ScrollbarCfg) View {
@@ -152,29 +206,29 @@ func scrollbarThumb(cfg ScrollbarCfg) View {
 	})
 }
 
-func makeScrollbarAmendLayout(cfg ScrollbarCfg) func(EventCtx) {
-	return func(ctx EventCtx) {
-		scrollbarAmendLayout(cfg, ctx, ctx.Layout, ctx.Window, thumbIndex)
-	}
-}
-
 // makeScrollbarOnHover shows the stock thumb in its color under the
 // pointer. thumbAt is the thumb's child index. A Thumb hook draws its own
 // hover look from ScrollbarState, so its color is left alone.
 func makeScrollbarOnHover(cfg ScrollbarCfg, thumbAt int) func(EventCtx) {
 	return func(ctx EventCtx) {
-		if len(ctx.Layout.Children) <= thumbAt {
-			return
-		}
-		if cfg.Thumb != nil {
-			ctx.Window.setMouseCursor(CursorArrow)
-			return
-		}
-		if ctx.Layout.Children[thumbAt].Shape.Color != ColorTransparent ||
-			cfg.Overflow == scrollbarOnHover {
-			ctx.Layout.Children[thumbAt].Shape.Color = cfg.ColorThumb
-			ctx.Window.setMouseCursor(CursorArrow)
-		}
+		scrollbarHover(&cfg, ctx, thumbAt)
+	}
+}
+
+// scrollbarHover is the body of the OnHover handler; see
+// makeScrollbarOnHover.
+func scrollbarHover(cfg *ScrollbarCfg, ctx EventCtx, thumbAt int) {
+	if len(ctx.Layout.Children) <= thumbAt {
+		return
+	}
+	if cfg.Thumb != nil {
+		ctx.Window.setMouseCursor(CursorArrow)
+		return
+	}
+	if ctx.Layout.Children[thumbAt].Shape.Color != ColorTransparent ||
+		cfg.Overflow == scrollbarOnHover {
+		ctx.Layout.Children[thumbAt].Shape.Color = cfg.ColorThumb
+		ctx.Window.setMouseCursor(CursorArrow)
 	}
 }
 
@@ -304,17 +358,18 @@ func makeScrollbarOnMouseDown(cfg ScrollbarCfg) func(EventCtx) {
 	minThumb := cfg.MinThumbSize
 	leafScrollID := cfg.scrollID
 	return func(ctx EventCtx) {
-		scrollID := ctx.EffID(leafScrollID)
-		ctx.Window.MouseLock(MouseLockCfg{
-			MouseMove: func(ctx EventCtx) {
-				scrollbarMouseMove(orientation, scrollID, ctx.Layout, ctx.Event, ctx.Window, minThumb)
-			},
-			MouseUp: func(ctx EventCtx) {
-				ctx.Window.MouseUnlock()
-			},
-		})
-		ctx.Consume()
+		scrollbarThumbPress(ctx, orientation, minThumb, leafScrollID)
 	}
+}
+
+// scrollbarThumbPress is the body of the thumb OnClick handler; see
+// makeScrollbarOnMouseDown.
+func scrollbarThumbPress(
+	ctx EventCtx, orientation ScrollbarOrientation, minThumb float32, leafScrollID string,
+) {
+	scrollID := ctx.EffID(leafScrollID)
+	scrollbarLockDrag(ctx.Window, orientation, scrollID, minThumb)
+	ctx.Consume()
 }
 
 // makeScrollbarGutterClick creates the scrollbar container
@@ -325,30 +380,47 @@ func makeScrollbarGutterClick(cfg ScrollbarCfg) func(EventCtx) {
 	minThumb := cfg.MinThumbSize
 	leafScrollID := cfg.scrollID
 	return func(ctx EventCtx) {
-		scrollID := ctx.EffID(leafScrollID)
-		if ctx.Window.mouseIsLocked() {
-			// A drag already owns the pointer, so this click is not the
-			// gutter's to act on — but it is still not the enclosing
-			// scroll container's either. Consume so the early return
-			// keeps swallowing it once the pre-mark is gone.
-			ctx.Consume()
-			return
-		}
-		if orientation == scrollbarHorizontal {
-			offsetFromMouseX(&ctx.Window.layout, ctx.Event.MouseX, scrollID, ctx.Window)
-		} else {
-			offsetFromMouseY(&ctx.Window.layout, ctx.Event.MouseY, scrollID, ctx.Window)
-		}
-		ctx.Window.MouseLock(MouseLockCfg{
-			MouseMove: func(ctx EventCtx) {
-				scrollbarMouseMove(orientation, scrollID, ctx.Layout, ctx.Event, ctx.Window, minThumb)
-			},
-			MouseUp: func(ctx EventCtx) {
-				ctx.Window.MouseUnlock()
-			},
-		})
-		ctx.Consume()
+		scrollbarGutterPress(ctx, orientation, minThumb, leafScrollID)
 	}
+}
+
+// scrollbarGutterPress is the body of the gutter OnClick handler; see
+// makeScrollbarGutterClick.
+func scrollbarGutterPress(
+	ctx EventCtx, orientation ScrollbarOrientation, minThumb float32, leafScrollID string,
+) {
+	scrollID := ctx.EffID(leafScrollID)
+	if ctx.Window.mouseIsLocked() {
+		// A drag already owns the pointer, so this click is not the
+		// gutter's to act on — but it is still not the enclosing
+		// scroll container's either. Consume so the early return
+		// keeps swallowing it once the pre-mark is gone.
+		ctx.Consume()
+		return
+	}
+	if orientation == scrollbarHorizontal {
+		offsetFromMouseX(&ctx.Window.layout, ctx.Event.MouseX, scrollID, ctx.Window)
+	} else {
+		offsetFromMouseY(&ctx.Window.layout, ctx.Event.MouseY, scrollID, ctx.Window)
+	}
+	scrollbarLockDrag(ctx.Window, orientation, scrollID, minThumb)
+	ctx.Consume()
+}
+
+// scrollbarLockDrag locks the mouse to a thumb drag on the scrollable
+// scrollID until the button is released. It runs once per press, so the
+// closures it allocates are not a per-frame cost.
+func scrollbarLockDrag(
+	w *Window, orientation ScrollbarOrientation, scrollID string, minThumb float32,
+) {
+	w.MouseLock(MouseLockCfg{
+		MouseMove: func(ctx EventCtx) {
+			scrollbarMouseMove(orientation, scrollID, ctx.Layout, ctx.Event, ctx.Window, minThumb)
+		},
+		MouseUp: func(ctx EventCtx) {
+			ctx.Window.MouseUnlock()
+		},
+	})
 }
 
 // scrollbarMouseMove handles mouse movement during thumb drag.

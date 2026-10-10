@@ -221,6 +221,16 @@ and this project adheres to
   from a frame pool. A nil-window fallback took their address, and that moved
   them to the heap on every call. Now generating a built button allocates
   nothing.
+- **A scrollable container's scrollbars cost 2 allocations per frame, not 14.**
+  Every scrollable container builds two stock scrollbars, one per axis, on every
+  frame, even when nothing overflows. Each bar was a Row or Column with a thumb
+  child and four closures, and each closure held its own copy of the scrollbar
+  settings: 7 allocations per bar. A stock bar is now one view that builds both
+  shapes itself, and its handlers are shared functions that read the settings
+  from the shape. `ListBox`, `VirtualList`, `Combobox`, `CommandPalette` and
+  every other scrolling widget save 12 allocations per frame. What the bars draw
+  and how they respond does not change. A bar with a `Thumb` or `Track` hook is
+  built as before.
 - **BREAKING: Up and Right raise a slider; Down and Left lower it (#964).** Up
   used to decrease the value and Down used to increase it. Up now increases,
   matching `InputNumeric` and the WAI-ARIA slider pattern. Horizontal sliders

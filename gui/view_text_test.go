@@ -73,3 +73,32 @@ func TestTextA11Y(t *testing.T) {
 		t.Errorf("a11y role: got %d", layout.Shape.A11YRole)
 	}
 }
+
+// A Text's accessible name comes from its own prose. Building that name
+// must not cost a heap allocation per frame: every label in an app is a
+// Text, so the cost scales with the screen. The empty text builds no
+// accessInfo at all, so it is the baseline.
+func TestTextA11YInfoNoAlloc(t *testing.T) {
+	w := newTestWindow()
+	w.viewState.genDepth = 1
+	empty := TextCfg{Text: ""}
+	prose := TextCfg{Text: "Save changes", A11YCfg: A11YCfg{A11YDescription: "Writes the file"}}
+
+	base := testing.AllocsPerRun(50, func() {
+		_ = Text(empty).GenerateLayout(w)
+	})
+	got := testing.AllocsPerRun(50, func() {
+		_ = Text(prose).GenerateLayout(w)
+	})
+	if got > base {
+		t.Errorf("allocs = %v, want no more than the empty text's %v",
+			got, base)
+	}
+
+	// The name and description still reach the shape.
+	s := Text(prose).GenerateLayout(w).Shape
+	if s.a11Y == nil || s.a11Y.Label != "Save changes" ||
+		s.a11Y.Description != "Writes the file" {
+		t.Fatalf("a11Y = %+v, want label and description from cfg", s.a11Y)
+	}
+}
