@@ -161,6 +161,9 @@ and this project adheres to
 
 ### Changed
 
+- **go-glyph v1.26.3.** Two fewer heap allocations per text layout and per glyph
+  load. `golang.org/x/image`, `x/sys`, `x/text` and `x/tools` move to the
+  versions go-glyph builds with.
 - **Selected `Radio` draws a center dot; unselected `Radio` is an empty well.**
   A selected radio was a solid accent disc. It looked like a status light, not a
   radio. It now has a dot in the center, 40% of the diameter, in
