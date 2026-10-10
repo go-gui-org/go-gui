@@ -178,7 +178,7 @@ func (b *Backend) handleMessage(msg, wparam, lparam uintptr) (uintptr, bool) {
 	case wmMouseWheel:
 		return b.mouseWheel(0, notchesToLines(hiWordS(wparam)), lparam)
 	case wmMouseHWheel:
-		return b.mouseWheel(notchesToChars(hiWordS(wparam)), 0, lparam)
+		return b.mouseWheel(hwheelScrollX(hiWordS(wparam)), 0, lparam)
 
 	case wmKeyDown, wmSysKeyDown:
 		// VK_PROCESSKEY means the input method consumed the keystroke:
@@ -379,6 +379,14 @@ func notchesToLines(delta int32) float32 {
 func notchesToChars(delta int32) float32 {
 	return float32(delta) / wheelDelta * float32(wheelScrollChars())
 }
+
+// hwheelScrollX converts a WM_MOUSEHWHEEL delta to gui.Event.ScrollX.
+// The two use opposite signs. Win32 sends a positive delta for a tilt or
+// swipe to the right. In gui a positive ScrollX moves the view left: X11
+// sends +x11ScrollLines for button 6 (left), and the web backend negates
+// deltaX. So the delta is negated here, or every sideways gesture on
+// Windows scrolls the wrong way.
+func hwheelScrollX(delta int32) float32 { return notchesToChars(-delta) }
 
 // wheelScrollLines reads SPI_GETWHEELSCROLLLINES, falling back to the
 // Windows default when the call fails.

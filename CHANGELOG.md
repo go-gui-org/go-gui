@@ -92,7 +92,7 @@ and this project adheres to
 ### Fixed
 
 - **A sideways touchpad swipe or tilt wheel scrolls horizontally on Windows and
-  X11 (#TBD).** Win32 delivers both as `WM_MOUSEHWHEEL`, and X11 delivers tilt
+  X11 (#990).** Win32 delivers both as `WM_MOUSEHWHEEL`, and X11 delivers tilt
   as buttons 6/7. Each arrives as a discrete scroll with `ScrollX` and no
   modifier. The scroll container eased only `ScrollY` for such an event, so a
   wide container ignored the gesture and moved only with the scrollbar. Each
