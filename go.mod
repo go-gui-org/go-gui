@@ -5,7 +5,7 @@ go 1.26.0
 require (
 	github.com/alecthomas/chroma/v2 v2.27.0
 	github.com/ebitengine/purego v0.11.1
-	github.com/go-gui-org/go-glyph v1.26.2
+	github.com/go-gui-org/go-glyph v1.26.3
 	github.com/go-pdf/fpdf v0.9.0
 	github.com/godbus/dbus/v5 v5.2.2
 	github.com/gopxl/beep/v2 v2.1.1
@@ -15,10 +15,10 @@ require (
 	github.com/tdewolff/parse/v2 v2.8.16
 	github.com/yuin/goldmark v1.8.5
 	github.com/yuin/goldmark-emoji v1.0.6
-	golang.org/x/image v0.46.0
+	golang.org/x/image v0.47.0
 	golang.org/x/mod v0.41.0
-	golang.org/x/sys v0.48.0
-	golang.org/x/tools v0.50.0
+	golang.org/x/sys v0.49.0
+	golang.org/x/tools v0.51.0
 )
 
 require (
@@ -33,8 +33,8 @@ require (
 	github.com/mewkiz/pkg v0.0.0-20230226050401-4010bf0fec14 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	golang.org/x/mobile v0.0.0-20260602190626-68735029466e // indirect
-	golang.org/x/sync v0.23.0 // indirect
-	golang.org/x/text v0.42.0 // indirect
+	golang.org/x/sync v0.24.0 // indirect
+	golang.org/x/text v0.43.0 // indirect
 )
 
 tool golang.org/x/mobile/cmd/gobind
