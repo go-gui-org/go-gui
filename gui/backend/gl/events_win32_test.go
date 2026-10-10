@@ -135,6 +135,26 @@ func TestNotchesToLines_HonoursSystemSetting(t *testing.T) {
 	}
 }
 
+// TestHWheelScrollX_SignMatchesOtherBackends pins the sideways sign. Win32
+// sends a positive WM_MOUSEHWHEEL delta for a tilt or swipe to the right.
+// gui expects a negative ScrollX for that, as X11 button 7 and the web
+// backend send. Passing the Win32 sign through made every sideways gesture
+// on Windows scroll the wrong way (#990).
+func TestHWheelScrollX_SignMatchesOtherBackends(t *testing.T) {
+	chars := float32(wheelScrollChars())
+	if chars == 0 {
+		t.Fatal("wheelScrollChars returned 0; fallback did not apply")
+	}
+	// One notch right moves the view right: negative ScrollX.
+	if got, want := hwheelScrollX(wheelDelta), -chars; got != want {
+		t.Errorf("one notch right = %v, want %v", got, want)
+	}
+	// One notch left moves the view left: positive ScrollX.
+	if got, want := hwheelScrollX(-wheelDelta), chars; got != want {
+		t.Errorf("one notch left = %v, want %v", got, want)
+	}
+}
+
 // TestSysParamUint_FallsBackOnBogusAction verifies the fallback path: an
 // unknown SystemParametersInfo action must yield the documented default
 // rather than zero, which would make the wheel completely dead.

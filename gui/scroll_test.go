@@ -668,23 +668,135 @@ func TestScrollPreciseVerticalOnlyIgnoresX(t *testing.T) {
 	}
 }
 
-// A discrete mouse wheel with no modifier keeps its vertical-only meaning;
-// Shift stays the way to scroll sideways with a wheel.
-func TestScrollDiscreteNoModifierStaysVertical(t *testing.T) {
+// A discrete ScrollX with no modifier is what Win32 sends for a touchpad's
+// sideways swipe or a tilt wheel (WM_MOUSEHWHEEL), and X11 for buttons 6/7.
+// It must move the horizontal axis; it used to be dropped because only the
+// precise path read ScrollX without Shift. A vertical-only container still
+// ignores it.
+func TestScrollDiscreteNoModifierScrollsHorizontal(t *testing.T) {
+	tests := []struct {
+		name   string
+		mode   scrollMode
+		dx, dy float32
+		movesX bool
+		movesY bool
+	}{
+		{name: "sideways", mode: scrollBoth, dx: -3, movesX: true},
+		{name: "diagonal", mode: scrollBoth, dx: -3, dy: -2, movesX: true, movesY: true},
+		{name: "vertical only", mode: ScrollVerticalOnly, dx: -3},
+		{name: "horizontal only ignores y", mode: ScrollHorizontalOnly, dy: -3},
+		{name: "horizontal only diagonal", mode: ScrollHorizontalOnly, dx: -3, dy: -2, movesX: true},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			w := preciseScrollWindow(t, tc.mode)
+			ly, ok := w.layout.FindByID("s")
+			if !ok {
+				t.Fatal("scroll container not found")
+			}
+			e := Event{
+				Type:   EventMouseScroll,
+				MouseX: ly.Shape.X + 10, MouseY: ly.Shape.Y + 10,
+				ScrollX: tc.dx,
+				ScrollY: tc.dy,
+			}
+			w.EventFn(&e)
+			if w.scrollSmooth != nil {
+				driveScrollSmooth(w, 200)
+			}
+			x, y, err := w.TestScrollOffset("s")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if (x < 0) != tc.movesX || (y < 0) != tc.movesY {
+				t.Errorf("offset = (%v, %v), want x moved %v, y moved %v",
+					x, y, tc.movesX, tc.movesY)
+			}
+			if e.IsHandled != (tc.movesX || tc.movesY) {
+				t.Errorf("IsHandled = %v, want %v", e.IsHandled, tc.movesX || tc.movesY)
+			}
+		})
+	}
+}
+
+// Win32, X11 and Wayland report Shift+wheel as ScrollY with Shift held;
+// macOS and browsers move the delta to ScrollX themselves. Either shape of
+// a discrete wheel must scroll sideways. A precise (trackpad) ScrollY keeps
+// its axis: Shift plus a vertical swipe on macOS must not scroll sideways,
+// and it moves nothing, as before #990. A vertical-only container has no
+// sideways axis, so a discrete Shift+wheel scrolls it vertically, whether
+// the platform put the delta in ScrollY (Win32, X11) or ScrollX (macOS).
+func TestScrollShiftWheelScrollsHorizontal(t *testing.T) {
+	tests := []struct {
+		name    string
+		mode    scrollMode
+		dx, dy  float32
+		precise bool
+		movesX  bool
+		movesY  bool
+	}{
+		{name: "discrete ScrollY", dy: -3, movesX: true},
+		{name: "discrete ScrollX", dx: -3, movesX: true},
+		{name: "precise ScrollY keeps its axis", dy: -30, precise: true},
+		{name: "precise ScrollX", dx: -30, precise: true, movesX: true},
+		{name: "vertical only discrete ScrollY", mode: ScrollVerticalOnly, dy: -3, movesY: true},
+		{name: "vertical only precise ScrollY", mode: ScrollVerticalOnly, dy: -30, precise: true},
+		{name: "vertical only discrete ScrollX", mode: ScrollVerticalOnly, dx: -3, movesY: true},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			w := preciseScrollWindow(t, tc.mode)
+			ly, ok := w.layout.FindByID("s")
+			if !ok {
+				t.Fatal("scroll container not found")
+			}
+			e := Event{
+				Type:   EventMouseScroll,
+				MouseX: ly.Shape.X + 10, MouseY: ly.Shape.Y + 10,
+				ScrollX:       tc.dx,
+				ScrollY:       tc.dy,
+				ScrollPrecise: tc.precise,
+				Modifiers:     ModShift,
+			}
+			w.EventFn(&e)
+			if w.scrollSmooth != nil {
+				driveScrollSmooth(w, 200)
+			}
+			x, y, err := w.TestScrollOffset("s")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if (x < 0) != tc.movesX || (y < 0) != tc.movesY {
+				t.Errorf("offset = (%v, %v), want x moved %v, y moved %v",
+					x, y, tc.movesX, tc.movesY)
+			}
+			if e.IsHandled != (tc.movesX || tc.movesY) {
+				t.Errorf("IsHandled = %v, want %v", e.IsHandled, tc.movesX || tc.movesY)
+			}
+		})
+	}
+}
+
+// scrollAxisBy drops a non-finite delta before it reaches either path. The
+// smoother would otherwise create an entry for the axis before it rejects
+// the target.
+func TestScrollAxisByDropsNonFinite(t *testing.T) {
 	w := preciseScrollWindow(t, scrollBoth)
 	ly, ok := w.layout.FindByID("s")
 	if !ok {
 		t.Fatal("scroll container not found")
 	}
-	e := Event{
-		Type:   EventMouseScroll,
-		MouseX: ly.Shape.X + 10, MouseY: ly.Shape.Y + 10,
-		ScrollX: -3,
+	nan := float32(math.NaN())
+	inf := float32(math.Inf(-1))
+	for _, d := range []float32{nan, inf} {
+		for _, precise := range []bool{false, true} {
+			if scrollAxisBy(w, ly, scrollAxisX, d, precise) {
+				t.Errorf("delta %v precise %v: moved, want dropped", d, precise)
+			}
+		}
 	}
-	w.EventFn(&e)
-	w.settle()
-	if x, _, _ := w.TestScrollOffset("s"); x != 0 {
-		t.Errorf("x offset = %v, want 0 for a discrete wheel without Shift", x)
+	if w.scrollSmooth != nil && len(w.scrollSmooth.entries) != 0 {
+		t.Errorf("smoother has %d entries, want 0", len(w.scrollSmooth.entries))
 	}
 }
 

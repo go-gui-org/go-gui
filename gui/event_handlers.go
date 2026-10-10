@@ -585,35 +585,64 @@ func mouseScrollFallbackHandlerDepth(layout *Layout, e *Event, w *Window, depth 
 		if layout.Shape.PointInShape(e.MouseX, e.MouseY) {
 			switch e.Modifiers & modKeyboard {
 			case ModShift:
-				if e.ScrollPrecise {
-					e.IsHandled = scrollHorizontal(layout, e.ScrollX, w)
-				} else {
-					e.IsHandled = scrollSmoothBy(w, layout, scrollAxisX, e.ScrollX)
+				// macOS and browsers turn Shift+wheel into ScrollX; Win32,
+				// X11 and Wayland (wl_pointer v5+) leave a wheel's delta in
+				// ScrollY. Take ScrollY only for a discrete wheel: a precise
+				// (trackpad) swipe carries its own axis, and taking its
+				// ScrollY would turn Shift plus a vertical swipe into a
+				// sideways scroll. A compositor older than wl_pointer v5
+				// sends no wheel clicks, so its wheel arrives precise and
+				// Shift+wheel stays vertical-only there.
+				axis, dx := scrollAxisX, e.ScrollX
+				if dx == 0 && !e.ScrollPrecise {
+					dx = e.ScrollY
 				}
+				// A vertical-only container has no sideways axis, so a
+				// discrete wheel keeps its vertical meaning there, whichever
+				// field the platform put the delta in. Without this, holding
+				// Shift to extend a list selection would stop the wheel from
+				// scrolling the list. AppKit moves the wheel's ScrollY into
+				// ScrollX unchanged, so the sign still means up or down.
+				if !e.ScrollPrecise && layout.Shape.ScrollMode == ScrollVerticalOnly {
+					axis = scrollAxisY
+				}
+				e.IsHandled = scrollAxisBy(w, layout, axis, dx, e.ScrollPrecise)
 			case ModNone:
-				if e.ScrollPrecise {
-					// A trackpad reports a sideways or diagonal swipe as
-					// ScrollX with no modifier (issue #585), so move every
-					// axis the delta names. Each helper refuses an axis its
-					// ScrollMode excludes and returns false at a boundary,
-					// so a vertical-only list ignores the X part. Both run
-					// even when the first moves: neither short-circuits.
-					// A non-finite delta is dropped: f32Clamp passes NaN
-					// through, and a NaN offset would stick in the scroll map.
-					var movedX, movedY bool
-					if e.ScrollX != 0 && f32IsFinite(e.ScrollX) {
-						movedX = scrollHorizontal(layout, e.ScrollX, w)
-					}
-					if e.ScrollY != 0 && f32IsFinite(e.ScrollY) {
-						movedY = scrollVertical(layout, e.ScrollY, w)
-					}
-					e.IsHandled = movedX || movedY
-				} else {
-					e.IsHandled = scrollSmoothBy(w, layout, scrollAxisY, e.ScrollY)
-				}
+				// Move every axis the delta names. A trackpad reports a
+				// sideways or diagonal swipe as ScrollX with no modifier
+				// (issue #585). Win32 WM_MOUSEHWHEEL (a touchpad's sideways
+				// swipe or a tilt wheel) and X11 buttons 6/7 arrive as
+				// discrete ScrollX with no modifier (#990). Each helper
+				// refuses an axis its ScrollMode excludes and returns false
+				// at a boundary, so a vertical-only list ignores the X
+				// part. Both calls run even when the first moves: neither
+				// short-circuits.
+				movedX := scrollAxisBy(w, layout, scrollAxisX, e.ScrollX, e.ScrollPrecise)
+				movedY := scrollAxisBy(w, layout, scrollAxisY, e.ScrollY, e.ScrollPrecise)
+				e.IsHandled = movedX || movedY
 			}
 		}
 	}
+}
+
+// scrollAxisBy moves a scroll container along one axis by a wheel or
+// trackpad delta. A precise (trackpad) delta already carries OS momentum,
+// so it moves at once. A discrete wheel delta eases toward its target
+// through scrollSmoothBy. A zero or non-finite delta is dropped here, for
+// both paths: f32Clamp passes NaN through, and the smoother would create
+// an entry for the axis before it rejects the target. Returns true if the
+// offset moved or an ease started.
+func scrollAxisBy(w *Window, layout *Layout, axis scrollAxis, delta float32, precise bool) bool {
+	if delta == 0 || !f32IsFinite(delta) {
+		return false
+	}
+	if !precise {
+		return scrollSmoothBy(w, layout, axis, delta)
+	}
+	if axis == scrollAxisX {
+		return scrollHorizontal(layout, delta, w)
+	}
+	return scrollVertical(layout, delta, w)
 }
 
 // fileDropHandler handles file-drop events. Does not change focus.
