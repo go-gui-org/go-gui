@@ -2,6 +2,9 @@
 
 Guidance for Claude Code (claude.ai/code) in this repo.
 
+The project name is **Go-Gui** in prose, docs and UI text. Lowercase `go-gui` is
+for import paths, module names and URLs.
+
 ## Commands
 
 ```
@@ -16,6 +19,18 @@ make ergonomics-audit           # focus/callbacks/opt/ids/literals/theme/a11y/vi
 make export-audit               # exported surface (advisory in-repo)
 git config core.hooksPath .githooks  # enable tracked hooks
 ```
+
+Gate failures that are environment state, not code:
+
+- `Error: parallel golangci-lint is running` — an interrupted `make prepush`
+  left a lock. Re-run before reading the diff. `make prepush` outlives a
+  foreground tool timeout, so run it in the background.
+- `export data version N is greater than maximum supported` from the
+  `.claude/hooks/` scripts — they call `golangci-lint` from `PATH`, not the
+  pinned `.bin/` copy. Install the version in `tools/lint/go.mod`. Rebuilding
+  the old version with a newer Go does not fix it.
+- `make deps-doc` warns on a new indirect dependency until it is added to
+  `indirectPulledBy` in `tools/depsdoc/main.go`.
 
 ## Architecture
 
@@ -45,7 +60,10 @@ View fn → generateViewLayout() → Layout tree
   titlebar).
 - **`glyph`** (text shaping) is a versioned module; a `go.work`
   (`use (. ../go-glyph)`) points local builds at `~/Documents/github/go-glyph`.
-  No `replace` directive. For text work check glyph first.
+  No `replace` directive. For text work check glyph first. The glyph root
+  package is pure Go (`go-text/typesetting` HarfBuzz port, `x/image/vector`); do
+  not describe go-gui text as "HarfBuzz + FreeType" or a native text engine. cgo
+  in a go-gui binary comes from the macOS backend, not from text.
 
 ## Widget and API rules (short form)
 
@@ -88,6 +106,14 @@ before you change a widget, identity, theme, event or layout-hook code.
   `Theme.Name`. Never add an initializer to a `default*Style` var.
 - **Debug first.** Before you audit a layout by hand, run with `GOGUI_DEBUG=1`.
   In tests, assert `w.TestFindings(mask)`.
+- **Mouse coordinates.** In `OnClick`/`OnHover`, `e.MouseX`/`e.MouseY` are
+  shape-local. In `MouseLock` callbacks they are window-absolute: subtract the
+  shape's `X`/`Y` captured at lock time.
+- **`examples/get_started` stays minimal.** A new feature gets its own
+  `examples/<feature>/` (`main.go`, `main_test.go`, `README.md`). Its `OnClick`
+  and the README snippet that quotes it omit `ctx.Consume()` on purpose — a
+  first-impression choice, harmless there because the focusable button already
+  marks the press handled. Do not add it back or flag it.
 
 ## Design before code
 
@@ -146,6 +172,11 @@ the two drift either way. **A new snippet needs its own test, or that test
 generalized to take a table of (source, marker, guides).** Markers alone check
 nothing.
 
+**A plan lists its doc updates as deliverables, beside the tests.** For a
+feature: the example directory and its README, the top-level `README.md` entry,
+the `CHANGELOG.md` entry, and status rows in feature docs such as
+`docs/svg-support.md`. Docs left to a later polish pass go stale.
+
 ## Coding Conventions
 
 - **No variable shadowing.** Never `:=` redeclare a var from an outer scope. Use
@@ -155,6 +186,21 @@ nothing.
 - **Minimal scoped diffs.** Touch only what the request needs. No cosmetic
   comment/formatting churn, no drive-by edits. Rename/regex passes must not
   alter comment prose (for example, apostrophes in possessives).
+- **Sweep the defect class, not the one site.** When a review flags a wrong
+  helper call, an unbounded map, a missing guard or a similar defect, grep every
+  construct of the same shape in the package before calling it fixed. In #534
+  the wrong-helper fix landed at one of three call sites.
+- **Search the repo's own spelling before calling something un-idiomatic.** An
+  absent `math.IsNaN` proves nothing: layout and scroll code guard with
+  `f32IsFinite` (`gui/math.go`). Grep the repo helper and the files in question.
+- **Exported API.** Keep app-facing exports even with zero internal callers —
+  apps call them. Internal-authoring scaffolding with no callers in go-gui or
+  the siblings may go. Pre-1.0 a removal is a compile error in a sibling's CI,
+  not a silent break.
+- **Deprecation marks entry points only:** the constructor and its `Cfg`, plus a
+  file-header note. Marking payload types (`RenderCmd` data, flags) makes
+  staticcheck SA1019 fire across every backend that must keep working until
+  removal. Run `golangci-lint` right after adding the markers.
 
 ## Verification
 
@@ -202,6 +248,17 @@ and changes nothing. And a `go.work` build resolves siblings from local working
 trees, so a trace run without `GOWORK=off` can name a module version CI never
 compiles — see the `sync-siblings` skill.
 
+**go-gui CI builds against go-glyph main, not the `go.mod` pin.**
+`.github/actions/setup-go-glyph` checks out go-glyph's default branch and adds a
+`replace` onto it. When go-glyph main gains a dependency, every go-gui PR fails
+with `updates to go.mod needed`. Reproduce with `GOWORK=off`
+`go test -mod=readonly ./gui/...`. The fix is not per-PR: tag go-glyph, then
+bump go-gui to the tag
+(`GOWORK=off go get …@vX && go mod tidy && make deps-doc`). go-charts is the
+reverse: its workflows pin go-gui and go-glyph by `ref:` tag, so a `go get`-only
+bump stays green while CI still compiles the old tag. Bump those `ref:` pins in
+the same PR.
+
 ## Rejected Approaches
 
 - **WebGPU backend** — explored and rejected. Do not re-propose.
@@ -213,6 +270,23 @@ compiles — see the `sync-siblings` skill.
 
 Full history and rationale in `docs/specs/cgo-free-backend-feasibility.md`.
 
-## Specs
+- **Deferred (typed) views and an auto-ID sweep for allocation** — spiked on
+  Button 2026-10-06, dropped. Gain was 1–2 allocs per widget; splitting work
+  between factory and generation caused two bugs on Button alone (a label frozen
+  to the factory-time theme, a cached view rebuilt on theme flips). For
+  allocation work, profile a real frame (`examples/benchmark -memprofile`) and
+  fix the top allocators.
+- **Vanity import paths (`go-gui.com/<repo>`)** — evaluated 2026-10-10, skipped.
+  Payoff comes only on a move off GitHub; cost is breaking every importer across
+  the siblings. Re-open only if a host move is planned.
 
-Specs go in `docs/specs/`; issue first, spec after.
+## Planning and specs
+
+- Planning is GitHub issues plus labels (`type/*`, per-repo `area/*`). No
+  Project board (deleted 2026-08-26) and no `ROADMAP.md` in go-gui or go-glyph.
+  go-edit and go-term keep theirs: there it is the only live phase plan.
+- Issue first, spec after. `docs/specs/` records why a landed decision was made.
+  Each spec opens with `Issue #N. Status: **…**`.
+- Exception: a large multi-phase effort may be checked in as a spec while
+  unbuilt (`Status: **planned**`) with a phasing table updated in each phase's
+  PR — `docs/specs/visual-refresh.md` is the model.
