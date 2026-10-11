@@ -250,8 +250,7 @@ func (v *rtfView) GenerateLayout(w *Window) Layout {
 		MinWidth:  v.MinWidth,
 		Sizing:    v.sizing,
 		events:    events,
-		TC: &shapeTextConfig{
-			TextMode:           v.Mode,
+		TC: newRTFShapeText(v.Mode, shapeRichText{
 			hangingIndent:      v.HangingIndent,
 			rTFBaseStyle:       baseStyle,
 			rTFLineSpacing:     lineSpacing,
@@ -263,10 +262,10 @@ func (v *rtfView) GenerateLayout(w *Window) Layout {
 			markdownRuneLen:    uint32(flatRunes),
 			rtfGlyphRT:         &vgRT,
 			rtfMathHashes:      mathHashes,
-		},
+		}),
 	})
 	l := Layout{Shape: shape}
-	blockKey := rtfRunsKey(shape.TC.rTFRuns)
+	blockKey := rtfRunsKey(shape.TC.rtf.rTFRuns)
 	if ts := &w.viewState.tooltip; ts.id != "" &&
 		ts.text != "" && ts.blockKey != 0 &&
 		blockKey == ts.blockKey {
@@ -319,19 +318,19 @@ func rtfFindRunAtIndex(
 	l *Layout, startIndex int, cache *BoundedDiagramCache,
 ) RichTextRun {
 	if l == nil || l.Shape == nil || l.Shape.TC == nil ||
-		l.Shape.TC.rTFRuns == nil {
+		l.Shape.TC.rtf == nil || l.Shape.TC.rtf.rTFRuns == nil {
 		return RichTextRun{}
 	}
 	idx := 0
-	for i := range l.Shape.TC.rTFRuns.Runs {
+	for i := range l.Shape.TC.rtf.rTFRuns.Runs {
 		// Shaped lengths: glyph StartIndex counts the object
 		// placeholder or LaTeX fallback for math runs, not the
 		// (usually empty) source text.
 		runLen := len(rtfShapedRunText(
-			&l.Shape.TC.rTFRuns.Runs[i], cache))
+			&l.Shape.TC.rtf.rTFRuns.Runs[i], cache))
 		if startIndex >= idx &&
 			startIndex < idx+runLen {
-			return l.Shape.TC.rTFRuns.Runs[i]
+			return l.Shape.TC.rtf.rTFRuns.Runs[i]
 		}
 		idx += runLen
 	}
@@ -345,7 +344,7 @@ func rtfMouseMove(ctx EventCtx) {
 		return
 	}
 	ts := &ctx.Window.viewState.tooltip
-	layout := ctx.Layout.Shape.TC.rTFLayout
+	layout := ctx.Layout.Shape.TC.rtf.rTFLayout
 	cache := ctx.Window.viewState.diagramCache
 	for _, run := range layout.Items {
 		if run.IsObject {
@@ -371,7 +370,7 @@ func rtfMouseMove(ctx EventCtx) {
 				ts.floatOffsetX = r.X + r.Width/2
 				ts.floatOffsetY = r.Y - 3
 				ts.blockKey = rtfRunsKey(
-					ctx.Layout.Shape.TC.rTFRuns)
+					ctx.Layout.Shape.TC.rtf.rTFRuns)
 				ts.hoverStart = time.Now()
 				ctx.Window.AnimationAdd(rtfTooltipAnimation(tipID))
 				ctx.Consume()
@@ -557,7 +556,7 @@ func rtfClickLink(ctx EventCtx) bool {
 	if !ctx.Layout.Shape.hasRtfLayout() {
 		return false
 	}
-	layout := ctx.Layout.Shape.TC.rTFLayout
+	layout := ctx.Layout.Shape.TC.rtf.rTFLayout
 	for _, run := range layout.Items {
 		if run.IsObject {
 			continue
@@ -575,13 +574,13 @@ func rtfClickLink(ctx EventCtx) bool {
 			showLinkContextMenu(ctx.Window, found.Link,
 				ctx.Event.MouseX,
 				ctx.Event.MouseY,
-				rtfRunsKey(ctx.Layout.Shape.TC.rTFRuns),
-				ctx.Layout.Shape.TC.markdownID)
+				rtfRunsKey(ctx.Layout.Shape.TC.rtf.rTFRuns),
+				ctx.Layout.Shape.TC.rtf.markdownID)
 			ctx.Consume()
 			return true
 		}
 		rtfOpenLink(ctx.Window, found.Link,
-			ctx.Layout.Shape.TC.markdownID)
+			ctx.Layout.Shape.TC.rtf.markdownID)
 		ctx.Consume()
 		return true
 	}

@@ -49,14 +49,14 @@ type mdBlockCtx struct {
 // block is covered by the markdown selection and writes TextSelBeg/TextSelEnd.
 func markdownBlockAmendSel(l *Layout, w *Window) {
 	tc := l.Shape.TC
-	if tc == nil || tc.markdownID == "" {
+	if tc == nil || tc.rtf == nil || tc.rtf.markdownID == "" {
 		return
 	}
-	mdID := tc.markdownID
+	mdID := tc.rtf.markdownID
 	st := StateReadOr(w, nsMdSel, mdID, mdSelState{})
 	beg, end := u32Sort(st.SelBeg, st.SelEnd)
-	blockStart := tc.markdownBlockStart
-	blockEnd := blockStart + tc.markdownRuneLen
+	blockStart := tc.rtf.markdownBlockStart
+	blockEnd := blockStart + tc.rtf.markdownRuneLen
 	if end <= blockStart || beg >= blockEnd {
 		tc.textSelBeg = 0
 		tc.textSelEnd = 0
@@ -131,16 +131,15 @@ func mdBlocksSignature(blocks []mdBlockInfo) uint64 {
 // mdWalkBlocks recursively walks the layout tree to collect RTF blocks
 // belonging to the given markdown widget.
 func mdWalkBlocks(l *Layout, mdID string, out *[]mdBlockInfo) {
-	if l.Shape != nil && l.Shape.TC != nil &&
-		l.Shape.TC.markdownID == mdID &&
-		l.Shape.hasRtfLayout() {
+	if l.Shape != nil && l.Shape.hasRtfLayout() &&
+		l.Shape.TC.rtf.markdownID == mdID {
 		tc := l.Shape.TC
 		*out = append(*out, mdBlockInfo{
 			H:         l.Shape.Height,
-			StartRune: tc.markdownBlockStart,
-			RuneLen:   tc.markdownRuneLen,
-			Layout:    *tc.rTFLayout, // shallow copy — safe for Items slice from cache
-			FlatText:  tc.rTFFlatText,
+			StartRune: tc.rtf.markdownBlockStart,
+			RuneLen:   tc.rtf.markdownRuneLen,
+			Layout:    *tc.rtf.rTFLayout, // shallow copy — safe for Items slice from cache
+			FlatText:  tc.rtf.rTFFlatText,
 			ShapeX:    l.Shape.X,
 			ShapeY:    l.Shape.Y,
 		})
@@ -165,7 +164,7 @@ func markdownBlockOnClick(ctx EventCtx) {
 	if shape.TC == nil || !shape.hasRtfLayout() {
 		return
 	}
-	mdID := shape.TC.markdownID
+	mdID := shape.TC.rtf.markdownID
 	if mdID == "" {
 		return
 	}
@@ -178,11 +177,11 @@ func markdownBlockOnClick(ctx EventCtx) {
 	// accounting) is needed here. The drag path differs: MouseLock
 	// callbacks receive window coordinates, which is why mdHitAbsRune
 	// subtracts the block's ShapeX/ShapeY.
-	gl := shape.TC.rTFLayout
-	flatText := shape.TC.rTFFlatText
+	gl := shape.TC.rtf.rTFLayout
+	flatText := shape.TC.rtf.rTFFlatText
 	byteIdx := gl.GetClosestOffset(ctx.Event.MouseX, ctx.Event.MouseY)
 	localRune := byteToRuneIndex(flatText, byteIdx)
-	absRune := uint32(localRune) + shape.TC.markdownBlockStart
+	absRune := uint32(localRune) + shape.TC.rtf.markdownBlockStart
 
 	imap := StateMap[string, mdSelState](ctx.Window, nsMdSel, capMany)
 	// Default mdSelState{}: zero value means no prior selection.
@@ -195,8 +194,8 @@ func markdownBlockOnClick(ctx EventCtx) {
 
 	if doubleClick {
 		bBeg, bEnd := gl.GetWordAtIndex(byteIdx)
-		wb := uint32(byteToRuneIndex(flatText, bBeg)) + shape.TC.markdownBlockStart
-		we := uint32(byteToRuneIndex(flatText, bEnd)) + shape.TC.markdownBlockStart
+		wb := uint32(byteToRuneIndex(flatText, bBeg)) + shape.TC.rtf.markdownBlockStart
+		we := uint32(byteToRuneIndex(flatText, bEnd)) + shape.TC.rtf.markdownBlockStart
 		st.SelBeg = wb
 		st.SelEnd = we
 	} else {
@@ -223,7 +222,7 @@ func markdownBlockOnClick(ctx EventCtx) {
 	isDouble := doubleClick
 	dragGl := *gl
 	dragFlatText := flatText
-	dragBlockStart := shape.TC.markdownBlockStart
+	dragBlockStart := shape.TC.rtf.markdownBlockStart
 
 	ctx.Window.MouseLock(MouseLockCfg{
 		MouseMove: func(ctx EventCtx) {

@@ -45,8 +45,9 @@ func mdCollectText(l Layout) []string {
 			if n.Shape.TC.Text != "" {
 				out = append(out, n.Shape.TC.Text)
 			}
-			if rt := n.Shape.TC.rTFRuns; rt != nil && len(rt.Runs) > 0 {
-				out = append(out, richTextPlain(*rt))
+			if rtf := n.Shape.TC.rtf; rtf != nil && rtf.rTFRuns != nil &&
+				len(rtf.rTFRuns.Runs) > 0 {
+				out = append(out, richTextPlain(*rtf.rTFRuns))
 			}
 		}
 		for _, c := range n.Children {
@@ -68,8 +69,8 @@ func mdBlockStarts(l Layout) []uint32 {
 	var out []uint32
 	var walk func(Layout)
 	walk = func(n Layout) {
-		if tc := n.Shape.TC; tc != nil && tc.markdownID != "" {
-			out = append(out, tc.markdownBlockStart)
+		if tc := n.Shape.TC; tc != nil && tc.rtf != nil && tc.rtf.markdownID != "" {
+			out = append(out, tc.rtf.markdownBlockStart)
 		}
 		for _, c := range n.Children {
 			walk(c)

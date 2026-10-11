@@ -711,8 +711,8 @@ func TestRtfSelectClickAtOffsetSelectsExactRune(t *testing.T) {
 	}
 
 	// Click the middle of local rune 6 ('w').
-	gl := ly.Shape.TC.rTFLayout
-	bi := runeToByteIndex(ly.Shape.TC.rTFFlatText, 6)
+	gl := ly.Shape.TC.rtf.rTFLayout
+	bi := runeToByteIndex(ly.Shape.TC.rtf.rTFFlatText, 6)
 	x := ly.Shape.X + float32(bi)*10 + 5
 	y := ly.Shape.Y + 10
 	e := Event{
@@ -1224,9 +1224,9 @@ func (h *mdSelectHarness) findBlockShape(t *testing.T, startRune uint32) *Layout
 		if found != nil {
 			return
 		}
-		if l.Shape != nil && l.Shape.TC != nil &&
-			l.Shape.TC.markdownID == h.id &&
-			l.Shape.TC.markdownBlockStart == startRune {
+		if l.Shape != nil && l.Shape.TC != nil && l.Shape.TC.rtf != nil &&
+			l.Shape.TC.rtf.markdownID == h.id &&
+			l.Shape.TC.rtf.markdownBlockStart == startRune {
 			found = l
 			return
 		}

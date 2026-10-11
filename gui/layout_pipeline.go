@@ -403,12 +403,12 @@ func rtfLayoutCacheStore(
 }
 
 func layoutWrapRTF(shape *Shape, tc *shapeTextConfig, w *Window) {
-	if tc.rTFRuns == nil {
+	if tc.rtf == nil || tc.rtf.rTFRuns == nil {
 		return
 	}
 	if tc.wrapCacheValid &&
 		f32AreClose(tc.wrapCacheWidth, shape.Width) &&
-		tc.rTFLayout != nil {
+		tc.rtf.rTFLayout != nil {
 		shape.Height = tc.wrapCacheHeight
 		return
 	}
@@ -417,22 +417,22 @@ func layoutWrapRTF(shape *Shape, tc *shapeTextConfig, w *Window) {
 	// rtfLayoutCacheKey): content, base style, math cache state,
 	// wrap width, hanging indent and line spacing all move the key.
 	cacheKey := rtfLayoutCacheKey(
-		rtfRunsKey(tc.rTFRuns),
-		rtfStyleKey(tc.rTFBaseStyle),
-		rtfMathStateKey(tc.rTFRuns, w.viewState.diagramCache),
+		rtfRunsKey(tc.rtf.rTFRuns),
+		rtfStyleKey(tc.rtf.rTFBaseStyle),
+		rtfMathStateKey(tc.rtf.rTFRuns, w.viewState.diagramCache),
 		uint32(normFloat32Bits(shape.Width)),
-		-tc.hangingIndent, tc.rTFLineSpacing)
+		-tc.rtf.hangingIndent, tc.rtf.rTFLineSpacing)
 
 	// Check cross-frame cache.
 	if cached, ok := rtfLayoutCacheFetch(w, cacheKey); ok {
-		tc.rTFLayout = cached
+		tc.rtf.rTFLayout = cached
 		shape.Height = cached.Height
 		tc.wrapCacheWidth = shape.Width
 		tc.wrapCacheHeight = cached.Height
 		tc.wrapCacheValid = true
-		if tc.rTFFlatText == "" {
-			tc.rTFFlatText, _ = rtfFlatTextFromRuns(
-				tc.rTFRuns, w.viewState.diagramCache)
+		if tc.rtf.rTFFlatText == "" {
+			tc.rtf.rTFFlatText, _ = rtfFlatTextFromRuns(
+				tc.rtf.rTFRuns, w.viewState.diagramCache)
 		}
 		return
 	}
@@ -444,21 +444,21 @@ func layoutWrapRTF(shape *Shape, tc *shapeTextConfig, w *Window) {
 		return
 	}
 	var vgRT glyph.RichText
-	if tc.rtfGlyphRT != nil {
-		vgRT = *tc.rtfGlyphRT
+	if tc.rtf.rtfGlyphRT != nil {
+		vgRT = *tc.rtf.rtfGlyphRT
 	} else {
 		var mh []int64
-		vgRT, mh = tc.rTFRuns.toGlyphRichTextWithMath(
+		vgRT, mh = tc.rtf.rTFRuns.toGlyphRichTextWithMath(
 			w.viewState.diagramCache)
-		tc.rtfMathHashes = mh
+		tc.rtf.rtfMathHashes = mh
 	}
 	cfg := glyph.TextConfig{
-		Style: tc.rTFBaseStyle,
+		Style: tc.rtf.rTFBaseStyle,
 		Block: glyph.BlockStyle{
 			Wrap:        glyph.WrapWord,
 			Width:       shape.Width,
-			Indent:      -tc.hangingIndent,
-			LineSpacing: tc.rTFLineSpacing,
+			Indent:      -tc.rtf.hangingIndent,
+			LineSpacing: tc.rtf.rTFLineSpacing,
 		},
 	}
 	l, err := tm.LayoutRichText(vgRT, cfg)
@@ -466,19 +466,19 @@ func layoutWrapRTF(shape *Shape, tc *shapeTextConfig, w *Window) {
 		return
 	}
 	rtfSuppressInlineObjectGlyphs(&l)
-	tc.rTFLayout = &l
+	tc.rtf.rTFLayout = &l
 	shape.Height = l.Height
 	tc.wrapCacheWidth = shape.Width
 	tc.wrapCacheHeight = l.Height
 	tc.wrapCacheValid = true
-	if tc.rTFFlatText == "" {
-		tc.rTFFlatText, _ = rtfFlatTextFromRuns(
-			tc.rTFRuns, w.viewState.diagramCache)
+	if tc.rtf.rTFFlatText == "" {
+		tc.rtf.rTFFlatText, _ = rtfFlatTextFromRuns(
+			tc.rtf.rTFRuns, w.viewState.diagramCache)
 	}
 
-	// Shares the pointer tc.rTFLayout already holds: the shape and the
+	// Shares the pointer tc.rtf.rTFLayout already holds: the shape and the
 	// cache name one layout, so the entry costs no second copy.
-	rtfLayoutCacheStore(w, cacheKey, tc.rTFLayout)
+	rtfLayoutCacheStore(w, cacheKey, tc.rtf.rTFLayout)
 }
 
 // wrapParentHAlign reports the physical alignment the parent would give

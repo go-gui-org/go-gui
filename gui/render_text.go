@@ -604,12 +604,12 @@ func renderRtf(shape *Shape, clip drawClip, w *Window) {
 		Kind:      RenderRTF,
 		X:         baseX,
 		Y:         baseY,
-		LayoutPtr: shape.TC.rTFLayout,
+		LayoutPtr: shape.TC.rtf.rTFLayout,
 	}, w)
 
-	if shape.TC.rTFFlatText != "" {
-		renderInputSelection(shape, shape.TC.rTFFlatText,
-			baseX, baseY, *shape.TC.rTFLayout, true, w)
+	if shape.TC.rtf.rTFFlatText != "" {
+		renderInputSelection(shape, shape.TC.rtf.rTFFlatText,
+			baseX, baseY, *shape.TC.rtf.rTFLayout, true, w)
 	}
 
 	// Emit RenderImage for inline math objects.
@@ -618,13 +618,13 @@ func renderRtf(shape *Shape, clip drawClip, w *Window) {
 	// Pango's shape attribute data pointer lacking null
 	// termination on round-trip through C.GoString.
 	cache := w.viewState.diagramCache
-	hashes := shape.TC.rtfMathHashes
+	hashes := shape.TC.rtf.rtfMathHashes
 	if cache == nil || len(hashes) == 0 {
 		return
 	}
 	objIdx := 0
-	for i := range shape.TC.rTFLayout.Items {
-		item := &shape.TC.rTFLayout.Items[i]
+	for i := range shape.TC.rtf.rTFLayout.Items {
+		item := &shape.TC.rtf.rTFLayout.Items[i]
 		if !item.IsObject {
 			continue
 		}

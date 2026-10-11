@@ -98,9 +98,11 @@ func rtfTestShape(width float32) (*Shape, *shapeTextConfig) {
 		{Text: "shared", Style: TextStyle{Size: 12}},
 	}}
 	tc := &shapeTextConfig{
-		TextMode:     TextModeWrap,
-		rTFRuns:      rt,
-		rTFBaseStyle: glyph.TextStyle{Size: 12},
+		TextMode: TextModeWrap,
+		rtf: &shapeRichText{
+			rTFRuns:      rt,
+			rTFBaseStyle: glyph.TextStyle{Size: 12},
+		},
 	}
 	return &Shape{shapeType: shapeRTF, Width: width, TC: tc}, tc
 }
@@ -114,17 +116,17 @@ func TestRTFLayoutCacheHitSharesOneLayout(t *testing.T) {
 
 	s1, tc1 := rtfTestShape(80)
 	layoutWrapRTF(s1, tc1, w)
-	if tc1.rTFLayout == nil {
+	if tc1.rtf.rTFLayout == nil {
 		t.Fatal("first pass stored no layout")
 	}
 
 	s2, tc2 := rtfTestShape(80)
 	layoutWrapRTF(s2, tc2, w)
-	if tc2.rTFLayout == nil {
+	if tc2.rtf.rTFLayout == nil {
 		t.Fatal("second pass stored no layout")
 	}
 
-	if tc1.rTFLayout != tc2.rTFLayout {
+	if tc1.rtf.rTFLayout != tc2.rtf.rTFLayout {
 		t.Error("a cache hit copied the layout instead of sharing it")
 	}
 	if s2.Height != 24 {

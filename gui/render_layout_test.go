@@ -702,11 +702,13 @@ func TestRenderRtf_SelectionHighlight_Emitted(t *testing.T) {
 		Width:     float32(len(text)) * 10, Height: 20,
 		Opacity: 1.0,
 		TC: &shapeTextConfig{
-			rTFLayout:   &gl,
-			rTFFlatText: text,
-			textSelBeg:  2,
-			textSelEnd:  7,
-			TextStyle:   &style,
+			textSelBeg: 2,
+			textSelEnd: 7,
+			TextStyle:  &style,
+			rtf: &shapeRichText{
+				rTFLayout:   &gl,
+				rTFFlatText: text,
+			},
 		},
 	}
 	clip := makeClip(0, 0, 200, 200)
@@ -733,11 +735,13 @@ func TestRenderRtf_EmptyRtfFlatText_NoSelectionHighlight(t *testing.T) {
 		Width:     float32(len(text)) * 10, Height: 20,
 		Opacity: 1.0,
 		TC: &shapeTextConfig{
-			rTFLayout:   &gl,
-			rTFFlatText: "", // empty → renderInputSelection not called
-			textSelBeg:  2,
-			textSelEnd:  7,
-			TextStyle:   &style,
+			textSelBeg: 2,
+			textSelEnd: 7,
+			TextStyle:  &style,
+			rtf: &shapeRichText{
+				rTFLayout:   &gl,
+				rTFFlatText: "", // empty → renderInputSelection not called
+			},
 		},
 	}
 	clip := makeClip(0, 0, 200, 200)

@@ -118,7 +118,7 @@ func TestRtfOpenLinkUnknownAnchorIsReported(t *testing.T) {
 
 // TestShowLinkContextMenuCarriesMarkdownID asserts the document scope
 // travels into the menu state: the Action callback runs with no RTF
-// layout in reach, so it cannot read TC.markdownID back.
+// layout in reach, so it cannot read TC.rtf.markdownID back.
 func TestShowLinkContextMenuCarriesMarkdownID(t *testing.T) {
 	w := newTestWindow()
 	showLinkContextMenu(w, "#heading", 10, 20, 7, "panel:md")

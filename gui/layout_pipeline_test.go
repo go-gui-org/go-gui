@@ -806,16 +806,18 @@ func TestLayoutWrapRTF_RtfFlatText_SetOnCacheMiss(t *testing.T) {
 		shapeType: shapeRTF,
 		Width:     200,
 		TC: &shapeTextConfig{
-			TextMode:     TextModeWrap,
-			rTFRuns:      &rt,
-			rTFBaseStyle: glyph.TextStyle{Size: 12},
+			TextMode: TextModeWrap,
+			rtf: &shapeRichText{
+				rTFRuns:      &rt,
+				rTFBaseStyle: glyph.TextStyle{Size: 12},
+			},
 		},
 	}
 	layoutWrapRTF(shape, shape.TC, w)
 
 	want := "hello world"
-	if shape.TC.rTFFlatText != want {
-		t.Errorf("RTFFlatText = %q, want %q", shape.TC.rTFFlatText, want)
+	if shape.TC.rtf.rTFFlatText != want {
+		t.Errorf("RTFFlatText = %q, want %q", shape.TC.rtf.rTFFlatText, want)
 	}
 }
 
@@ -830,23 +832,25 @@ func TestLayoutWrapRTF_RtfFlatText_NotOverwrittenOnCacheHit(t *testing.T) {
 		shapeType: shapeRTF,
 		Width:     200,
 		TC: &shapeTextConfig{
-			TextMode:     TextModeWrap,
-			rTFRuns:      &rt,
-			rTFBaseStyle: glyph.TextStyle{Size: 12},
+			TextMode: TextModeWrap,
+			rtf: &shapeRichText{
+				rTFRuns:      &rt,
+				rTFBaseStyle: glyph.TextStyle{Size: 12},
+			},
 		},
 	}
 	// First call: cache miss, RTFFlatText gets populated.
 	layoutWrapRTF(shape, shape.TC, w)
-	if shape.TC.rTFFlatText == "" {
+	if shape.TC.rtf.rTFFlatText == "" {
 		t.Fatal("RTFFlatText should be set after first call")
 	}
 	// Overwrite to verify the cache-hit path respects the if-empty guard.
-	shape.TC.rTFFlatText = "already-set"
+	shape.TC.rtf.rTFFlatText = "already-set"
 	// Second call: cache hit (same shape.Width), should not overwrite.
 	layoutWrapRTF(shape, shape.TC, w)
-	if shape.TC.rTFFlatText != "already-set" {
+	if shape.TC.rtf.rTFFlatText != "already-set" {
 		t.Errorf("RTFFlatText overwritten on cache hit, got %q",
-			shape.TC.rTFFlatText)
+			shape.TC.rtf.rTFFlatText)
 	}
 }
 
@@ -1138,6 +1142,24 @@ func TestWrapTextShrinkRefreshesScrollableContentW(t *testing.T) {
 	}
 }
 
+// An RTF-typed shape whose TC has no rich-text part (TC.rtf is nil)
+// must be skipped, not dereferenced. Only newRTFShapeText sets the part.
+func TestLayoutWrapRTFSkipsNilRichText(t *testing.T) {
+	w := &Window{}
+	w.textMeasurer = &rtfStubTextMeasurer{
+		layout: glyph.Layout{Width: 120, Height: 20},
+	}
+	shape := &Shape{
+		shapeType: shapeRTF,
+		Width:     200,
+		TC:        &shapeTextConfig{TextMode: TextModeWrap},
+	}
+	layoutWrapRTF(shape, shape.TC, w)
+	if shape.TC.wrapCacheValid || shape.Height != 0 {
+		t.Error("a shape without rich text must not be laid out")
+	}
+}
+
 // TestLayoutWrapRTFSkipsNonFiniteWidth pins the wrap-walk guard: a
 // NaN width must never reach the shared RTF layout cache.
 // normFloat32Bits folds NaN to zero bits, which is exactly the key
@@ -1154,7 +1176,9 @@ func TestLayoutWrapRTFSkipsNonFiniteWidth(t *testing.T) {
 		Width:     float32(math.NaN()),
 		TC: &shapeTextConfig{
 			TextMode: TextModeWrap,
-			rTFRuns:  &rt,
+			rtf: &shapeRichText{
+				rTFRuns: &rt,
+			},
 		},
 	}
 	layout := Layout{Shape: shape}
@@ -1166,7 +1190,7 @@ func TestLayoutWrapRTFSkipsNonFiniteWidth(t *testing.T) {
 	if w.viewState.rtfLayoutCache != nil {
 		if _, ok := w.viewState.rtfLayoutCache.Get(
 			rtfLayoutCacheKey(
-				rtfRunsKey(&rt), rtfStyleKey(shape.TC.rTFBaseStyle),
+				rtfRunsKey(&rt), rtfStyleKey(shape.TC.rtf.rTFBaseStyle),
 				rtfMathStateKey(&rt, nil), 0, 0, 0)); ok {
 			t.Error("a NaN width poisoned the zero-width cache key")
 		}

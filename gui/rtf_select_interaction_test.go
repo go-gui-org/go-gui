@@ -309,7 +309,7 @@ func (h *rtfSelectHarness) key(t *testing.T, k KeyCode, mods Modifier) {
 // on the first line of ly: char rects start at the shape origin, so
 // byte*10+5 is the rune's center and y=10 the line's middle.
 func rtfRunePoint(ly *Layout, localRune int) (float32, float32) {
-	byteIdx := runeToByteIndex(ly.Shape.TC.rTFFlatText, localRune)
+	byteIdx := runeToByteIndex(ly.Shape.TC.rtf.rTFFlatText, localRune)
 	return ly.Shape.X + float32(byteIdx)*10 + 5, ly.Shape.Y + 10
 }
 

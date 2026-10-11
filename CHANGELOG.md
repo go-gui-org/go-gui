@@ -161,6 +161,14 @@ and this project adheres to
 
 ### Changed
 
+- **A plain `Text` allocates 25% fewer bytes.** Each `Text` view carried 176
+  bytes of rich-text fields it never used, which put it in the 768-byte size
+  class. Those fields now sit behind a pointer that only rich text sets, so a
+  plain `Text` view is 576 bytes. Text-heavy frames allocate 7–10% fewer bytes:
+  a 200-button frame drops from 274 KB to 249 KB, a tree frame from 722 KB to
+  647 KB. Allocation counts do not change, and rich text and markdown allocate
+  the same as before.
+
 - **A virtualized `DataGrid` frame no longer allocates per row of data.** The
   scroll body sized its views slice for every row, though it builds only the
   visible ones, and the grid built a fresh list of every row index each frame.

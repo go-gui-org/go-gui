@@ -104,13 +104,13 @@ func TestMdRenderDefTerm(t *testing.T) {
 	layout := generateViewLayout(
 		mdRenderDefTerm(term, TextModeSingleLine, nil), &Window{})
 	tc := layout.Shape.TC
-	if tc == nil {
-		t.Fatal("expected text config on term shape")
+	if tc == nil || tc.rtf == nil {
+		t.Fatal("expected rich-text config on term shape")
 	}
-	if tc.rTFFlatText != "Term" {
-		t.Errorf("term text = %q, want %q", tc.rTFFlatText, "Term")
+	if tc.rtf.rTFFlatText != "Term" {
+		t.Errorf("term text = %q, want %q", tc.rtf.rTFFlatText, "Term")
 	}
-	if tc.markdownID != "" {
+	if tc.rtf.markdownID != "" {
 		t.Error("term without mdBlockCtx claimed a markdown ID")
 	}
 	if term.baseStyle.Typeface != glyphBoldTypeface(style) {
@@ -122,16 +122,16 @@ func TestMdRenderDefTerm(t *testing.T) {
 	layout = generateViewLayout(mdRenderDefTerm(term,
 		TextModeSingleLine, &mdBlockCtx{ID: "md", Start: 42}), &Window{})
 	tc = layout.Shape.TC
-	if tc.markdownID != "md" {
-		t.Errorf("markdownID = %q, want %q", tc.markdownID, "md")
+	if tc.rtf.markdownID != "md" {
+		t.Errorf("markdownID = %q, want %q", tc.rtf.markdownID, "md")
 	}
-	if tc.markdownBlockStart != 42 {
+	if tc.rtf.markdownBlockStart != 42 {
 		t.Errorf("markdownBlockStart = %d, want 42",
-			tc.markdownBlockStart)
+			tc.rtf.markdownBlockStart)
 	}
-	if tc.markdownRuneLen != uint32(utf8RuneCount("Term")) {
+	if tc.rtf.markdownRuneLen != uint32(utf8RuneCount("Term")) {
 		t.Errorf("markdownRuneLen = %d, want %d",
-			tc.markdownRuneLen, utf8RuneCount("Term"))
+			tc.rtf.markdownRuneLen, utf8RuneCount("Term"))
 	}
 }
 
@@ -165,13 +165,16 @@ func TestMdRenderDefValue(t *testing.T) {
 			len(layout.Children))
 	}
 	tc := layout.Children[0].Shape.TC
-	if tc == nil || tc.rTFFlatText != "Definition text" {
-		t.Errorf("value text = %q, want %q",
-			tc.rTFFlatText, "Definition text")
+	if tc == nil || tc.rtf == nil {
+		t.Fatal("expected rich-text config on value shape")
 	}
-	if tc.markdownID != "md" || tc.markdownBlockStart != 4 {
+	if tc.rtf.rTFFlatText != "Definition text" {
+		t.Errorf("value text = %q, want %q",
+			tc.rtf.rTFFlatText, "Definition text")
+	}
+	if tc.rtf.markdownID != "md" || tc.rtf.markdownBlockStart != 4 {
 		t.Errorf("value block ctx = %q@%d, want md@4",
-			tc.markdownID, tc.markdownBlockStart)
+			tc.rtf.markdownID, tc.rtf.markdownBlockStart)
 	}
 	if value.baseStyle.Typeface != glyphBoldTypeface(style) &&
 		value.baseStyle.Typeface != style.Text.Typeface {

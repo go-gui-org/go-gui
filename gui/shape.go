@@ -460,32 +460,25 @@ type shapeTextConfig struct {
 	// and motion. Nil for a text with nothing to apply. See
 	// textAnimRender.
 	anim *textAnimRender
+	// rtf holds the rich-text fields. Only an RTF shape sets it; a plain
+	// text leaves it nil, so a plain textView does not carry ~176 bytes
+	// it never uses. See shapeRichText.
+	rtf *shapeRichText
 
-	textLayoutStyle    TextStyle
-	TextStyle          *TextStyle
-	textLayout         *glyph.Layout
-	rTFRuns            *RichText
-	rTFLayout          *glyph.Layout
-	rtfGlyphRT         *glyph.RichText // cached conversion
-	Text               string
-	rTFFlatText        string // concatenation of all run texts; rune↔byte conversion for selection
-	textLayoutText     string
-	rtfMathHashes      []int64 // cache keys per inline math object
-	rTFBaseStyle       glyph.TextStyle
-	rTFLineSpacing     float32 // gui LineSpacing; glyph.TextStyle drops it, so carried separately for BlockStyle
-	textSelBeg         uint32
-	textSelEnd         uint32
-	TextTabSize        uint32
-	hangingIndent      float32
-	markdownID         string // non-empty when this RTF block belongs to a markdown widget
-	markdownBlockStart uint32 // rune offset of this block within the markdown flat text
-	markdownRuneLen    uint32 // rune count of this block's flat text
-	wrapCacheWidth     float32
-	wrapCacheHeight    float32
-	textLayoutWidth    float32
-	TextMode           textMode
-	textIsPassword     bool
-	textIsPlaceholder  bool
+	textLayoutStyle   TextStyle
+	TextStyle         *TextStyle
+	textLayout        *glyph.Layout
+	Text              string
+	textLayoutText    string
+	textSelBeg        uint32
+	textSelEnd        uint32
+	TextTabSize       uint32
+	wrapCacheWidth    float32
+	wrapCacheHeight   float32
+	textLayoutWidth   float32
+	TextMode          textMode
+	textIsPassword    bool
+	textIsPlaceholder bool
 	// TextReadOnly suppresses IME preedit rendering for read-only
 	// fields, which stay Focusable (for selection/cursor) but can
 	// never commit a composition. See render_text.go.
@@ -506,9 +499,43 @@ type shapeTextConfig struct {
 	wrapSizingDefault bool
 }
 
+// shapeRichText is the part of shapeTextConfig only an RTF shape uses.
+// It lives behind shapeTextConfig.rtf so plain text does not pay for it.
+type shapeRichText struct {
+	rTFRuns            *RichText
+	rTFLayout          *glyph.Layout
+	rtfGlyphRT         *glyph.RichText // cached conversion
+	rTFFlatText        string          // concatenation of all run texts; rune↔byte conversion for selection
+	rtfMathHashes      []int64         // cache keys per inline math object
+	rTFBaseStyle       glyph.TextStyle
+	rTFLineSpacing     float32 // gui LineSpacing; glyph.TextStyle drops it, so carried separately for BlockStyle
+	hangingIndent      float32
+	markdownID         string // non-empty when this RTF block belongs to a markdown widget
+	markdownBlockStart uint32 // rune offset of this block within the markdown flat text
+	markdownRuneLen    uint32 // rune count of this block's flat text
+}
+
+// rtfShapeText allocates an RTF shape's shapeTextConfig and its
+// shapeRichText together, so the split costs no extra allocation.
+type rtfShapeText struct {
+	tc  shapeTextConfig
+	rtf shapeRichText
+}
+
+// newRTFShapeText returns an RTF shape's text config with rich linked
+// in, both from one allocation.
+func newRTFShapeText(mode textMode, rich shapeRichText) *shapeTextConfig {
+	both := &rtfShapeText{
+		tc:  shapeTextConfig{TextMode: mode},
+		rtf: rich,
+	}
+	both.tc.rtf = &both.rtf
+	return &both.tc
+}
+
 // hasRtfLayout returns true if the shape has an RTF layout.
 func (s *Shape) hasRtfLayout() bool {
-	return s.TC != nil && s.TC.rTFLayout != nil
+	return s.TC != nil && s.TC.rtf != nil && s.TC.rtf.rTFLayout != nil
 }
 
 // TextMode controls how a text view renders text.

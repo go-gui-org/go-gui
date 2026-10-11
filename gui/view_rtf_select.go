@@ -68,11 +68,10 @@ func (snap rtfDragFrame) resolve(
 	// briefly out of the tree mid-drag), and the public form would
 	// report it as a misspelling through the DebugUnknownLookup gate.
 	if found, ok := root.findByID(focusID); ok &&
-		found.Shape != nil && found.Shape.TC != nil &&
-		found.Shape.TC.rTFLayout != nil {
+		found.Shape != nil && found.Shape.hasRtfLayout() {
 		node = found
-		f.gl = found.Shape.TC.rTFLayout
-		f.flat = found.Shape.TC.rTFFlatText
+		f.gl = found.Shape.TC.rtf.rTFLayout
+		f.flat = found.Shape.TC.rtf.rTFFlatText
 		f.shX, f.shY = found.Shape.X, found.Shape.Y
 		f.top, f.bot = glyphTextBand(f.gl)
 		if scrollID != "" {
@@ -108,8 +107,8 @@ func rtfSelectOnClick(ctx EventCtx) {
 	}
 	ctx.Window.SetFocus(shape.idKey())
 
-	gl := shape.TC.rTFLayout
-	flatText := shape.TC.rTFFlatText
+	gl := shape.TC.rtf.rTFLayout
+	flatText := shape.TC.rtf.rTFFlatText
 
 	// The glyph layout's char rects are in the same space as the click
 	// coordinates: OnClick arrives through callRelative, which already
@@ -299,13 +298,13 @@ func rtfSelectOnClick(ctx EventCtx) {
 // rtfSelectOnKeyDown handles keyboard navigation and copy for selectable RTF.
 func rtfSelectOnKeyDown(ctx EventCtx) {
 	shape := ctx.Layout.Shape
-	if shape.TC == nil || shape.ID == "" || !shape.Focusable ||
+	if !shape.hasRtfLayout() || shape.ID == "" || !shape.Focusable ||
 		!ctx.Window.IsFocus(shape.idKey()) {
 		return
 	}
 	id := shape.idKey()
-	flatText := shape.TC.rTFFlatText
-	gl := *shape.TC.rTFLayout
+	flatText := shape.TC.rtf.rTFFlatText
+	gl := *shape.TC.rtf.rTFLayout
 
 	imap := StateMap[string, inputState](ctx.Window, nsInput, capMany)
 	// Default InputState{}: zero value seeds initial keyboard-nav state.

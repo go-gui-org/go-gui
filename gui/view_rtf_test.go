@@ -71,10 +71,12 @@ func TestLayoutWrapRTFLineSpacing(t *testing.T) {
 		shapeType: shapeRTF,
 		Width:     100,
 		TC: &shapeTextConfig{
-			TextMode:       TextModeWrap,
-			rTFBaseStyle:   glyph.TextStyle{Size: 12},
-			rTFLineSpacing: 3,
-			rTFRuns:        &rt,
+			TextMode: TextModeWrap,
+			rtf: &shapeRichText{
+				rTFBaseStyle:   glyph.TextStyle{Size: 12},
+				rTFLineSpacing: 3,
+				rTFRuns:        &rt,
+			},
 		},
 	}
 
@@ -141,8 +143,10 @@ func makeRtfTooltipLayout() (*Layout, *Window) {
 			Width:     100,
 			Height:    20,
 			TC: &shapeTextConfig{
-				rTFLayout: &glyphLayout,
-				rTFRuns:   &rt,
+				rtf: &shapeRichText{
+					rTFLayout: &glyphLayout,
+					rTFRuns:   &rt,
+				},
 			},
 		},
 	}
@@ -205,8 +209,10 @@ func TestRtfMouseMoveClearsOnNonTooltipRun(t *testing.T) {
 			Width:     100,
 			Height:    20,
 			TC: &shapeTextConfig{
-				rTFLayout: &glyphLayout,
-				rTFRuns:   &rt,
+				rtf: &shapeRichText{
+					rTFLayout: &glyphLayout,
+					rTFRuns:   &rt,
+				},
 			},
 		},
 	}
@@ -247,8 +253,10 @@ func TestRtfMouseMoveUnderlineWithoutLinkDoesNotSetPointingHand(t *testing.T) {
 			Width:     100,
 			Height:    20,
 			TC: &shapeTextConfig{
-				rTFLayout: &glyphLayout,
-				rTFRuns:   &rt,
+				rtf: &shapeRichText{
+					rTFLayout: &glyphLayout,
+					rTFRuns:   &rt,
+				},
 			},
 		},
 	}
@@ -293,8 +301,10 @@ func TestRtfMouseMoveLinkSetsPointingHand(t *testing.T) {
 			Width:     100,
 			Height:    20,
 			TC: &shapeTextConfig{
-				rTFLayout: &glyphLayout,
-				rTFRuns:   &rt,
+				rtf: &shapeRichText{
+					rTFLayout: &glyphLayout,
+					rTFRuns:   &rt,
+				},
 			},
 		},
 	}
@@ -342,8 +352,10 @@ func TestRtfMouseMoveUnsafeLinkNoPointingHand(t *testing.T) {
 			Width:     100,
 			Height:    20,
 			TC: &shapeTextConfig{
-				rTFLayout: &glyphLayout,
-				rTFRuns:   &rt,
+				rtf: &shapeRichText{
+					rTFLayout: &glyphLayout,
+					rTFRuns:   &rt,
+				},
 			},
 		},
 	}
@@ -383,7 +395,7 @@ func TestRtfGenerateLayoutSuppressesInlineObjectGlyphs(t *testing.T) {
 		},
 	}), w)
 
-	items := layout.Shape.TC.rTFLayout.Items
+	items := layout.Shape.TC.rtf.rTFLayout.Items
 	if got := items[0].GlyphCount; got != 0 {
 		t.Fatalf("object GlyphCount = %d, want 0", got)
 	}
@@ -417,18 +429,20 @@ func TestLayoutWrapRTFSuppressesInlineObjectGlyphs(t *testing.T) {
 		shapeType: shapeRTF,
 		Width:     100,
 		TC: &shapeTextConfig{
-			TextMode:     TextModeWrap,
-			rTFBaseStyle: baseStyle,
-			rTFRuns:      &rt,
+			TextMode: TextModeWrap,
+			rtf: &shapeRichText{
+				rTFBaseStyle: baseStyle,
+				rTFRuns:      &rt,
+			},
 		},
 	}
 
 	layoutWrapRTF(shape, shape.TC, w)
 
-	if shape.TC.rTFLayout == nil {
+	if shape.TC.rtf.rTFLayout == nil {
 		t.Fatal("expected wrapped RTF layout")
 	}
-	if got := shape.TC.rTFLayout.Items[0].GlyphCount; got != 0 {
+	if got := shape.TC.rtf.rTFLayout.Items[0].GlyphCount; got != 0 {
 		t.Fatalf("wrapped object GlyphCount = %d, want 0", got)
 	}
 }
@@ -686,9 +700,11 @@ func TestLayoutWrapRTF_MathReadyInvalidatesLoadingLayout(t *testing.T) {
 			shapeType: shapeRTF,
 			Width:     200,
 			TC: &shapeTextConfig{
-				TextMode:     TextModeWrap,
-				rTFBaseStyle: baseStyle,
-				rTFRuns:      &rt,
+				TextMode: TextModeWrap,
+				rtf: &shapeRichText{
+					rTFBaseStyle: baseStyle,
+					rTFRuns:      &rt,
+				},
 			},
 		}
 	}
@@ -787,8 +803,10 @@ func TestRtfOnClickRightClickShowsMenu(t *testing.T) {
 			X:         100, Y: 200,
 			Width: 100, Height: 20,
 			TC: &shapeTextConfig{
-				rTFLayout: &glyphLayout,
-				rTFRuns:   &rt,
+				rtf: &shapeRichText{
+					rTFLayout: &glyphLayout,
+					rTFRuns:   &rt,
+				},
 			},
 		},
 	}
@@ -939,8 +957,8 @@ func TestRtfGenerateLayoutNonWrapCachesAcrossFrames(t *testing.T) {
 		t.Fatalf("cached size = %gx%g, want 120x20",
 			second.Shape.Width, second.Shape.Height)
 	}
-	if first.Shape.TC.rTFFlatText != "hello" ||
-		second.Shape.TC.rTFFlatText != "hello" {
+	if first.Shape.TC.rtf.rTFFlatText != "hello" ||
+		second.Shape.TC.rtf.rTFFlatText != "hello" {
 		t.Error("flat text lost across the cache hit")
 	}
 }
@@ -964,7 +982,7 @@ func TestRtfGenerateLayoutNonWrapMathReadyReshapes(t *testing.T) {
 		})
 	}
 	first := generateViewLayout(mkView(), w)
-	if got := first.Shape.TC.rTFFlatText; got != "a+b" {
+	if got := first.Shape.TC.rtf.rTFFlatText; got != "a+b" {
 		t.Fatalf("loading flat text = %q, want the fallback", got)
 	}
 	w.viewState.diagramCache.Set(diagramCacheHash("m"),
@@ -978,7 +996,7 @@ func TestRtfGenerateLayoutNonWrapMathReadyReshapes(t *testing.T) {
 	if m.calls != 2 {
 		t.Fatalf("shaping calls = %d, want a reshape", m.calls)
 	}
-	if got := second.Shape.TC.rTFFlatText; got != "\uFFFC" {
+	if got := second.Shape.TC.rtf.rTFFlatText; got != "\uFFFC" {
 		t.Fatalf("ready flat text = %q, want the placeholder", got)
 	}
 }
@@ -1005,8 +1023,10 @@ func TestRtfOnClickIgnoresUnsafeLink(t *testing.T) {
 			shapeType: shapeRTF,
 			Width:     100, Height: 20,
 			TC: &shapeTextConfig{
-				rTFLayout: &glyphLayout,
-				rTFRuns:   &rt,
+				rtf: &shapeRichText{
+					rTFLayout: &glyphLayout,
+					rTFRuns:   &rt,
+				},
 			},
 		},
 	}

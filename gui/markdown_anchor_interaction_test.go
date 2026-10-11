@@ -26,8 +26,9 @@ const mdAnchorSource = "# Heading\n\n[jump](#heading)"
 // documents, so anchor tests resolve blocks from the tree directly.
 func mdAnchorFindBlock(layout *Layout, mdID, text string) (*Layout, bool) {
 	if layout.Shape != nil && layout.Shape.TC != nil &&
-		layout.Shape.TC.markdownID == mdID &&
-		layout.Shape.TC.rTFFlatText == text {
+		layout.Shape.TC.rtf != nil &&
+		layout.Shape.TC.rtf.markdownID == mdID &&
+		layout.Shape.TC.rtf.rTFFlatText == text {
 		return layout, true
 	}
 	for i := range layout.Children {
@@ -113,7 +114,7 @@ func mdAnchorClick(t *testing.T, w *Window, docID string) {
 // markdown document scrolls the owning scroll container to the
 // linked heading. The heading ID is scoped to the document's
 // effective ID (md:h:slug, or panel:md:h:slug nested), so the click
-// path must resolve the anchor against TC.markdownID rather than the
+// path must resolve the anchor against TC.rtf.markdownID rather than the
 // bare slug. Runs flat and nested, focusable and not: identity
 // stamping must not depend on selection being enabled.
 func TestMarkdownAnchorLinkScrollsToView(t *testing.T) {

@@ -299,7 +299,7 @@ func (w *Window) Markdown(cfg MarkdownCfg) View {
 // markdownView is the widget node for a Markdown document. It is a
 // struct view (like the splitter, issue #264) because the document has
 // several identities that must agree: the container claims cfg.ID, and
-// every block references the widget through TC.markdownID — both keyed
+// every block references the widget through TC.rtf.markdownID — both keyed
 // by the *effective* ID, which only exists during generation. The
 // factory runs before generation (no ancestor scope yet), so the
 // resolution happens here, in GenerateLayout, where w.EffID can see
@@ -311,7 +311,7 @@ type markdownView struct {
 func (mv *markdownView) GenerateLayout(w *Window) Layout {
 	cfg := &mv.cfg
 	// The document's identity is the effective ID: the container claims
-	// it, the blocks stamp it into TC.markdownID, and every state slot
+	// it, the blocks stamp it into TC.rtf.markdownID, and every state slot
 	// (nsMdSel, nsMdBlocks) and focus move keys on it. Under an
 	// ID-bearing ancestor this resolves to "outer:md", so two documents
 	// written with the same leaf under different panels keep separate
