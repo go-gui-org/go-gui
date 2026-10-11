@@ -161,6 +161,15 @@ and this project adheres to
 
 ### Changed
 
+- **`ListBox` and `Tree` rows allocate less per frame.** A row built two
+  closures and a slice on every frame: an `OnHover` that set the hover fill and
+  cursor, an `OnClick` that held the row's selection data, and a one-item
+  `Content` slice. Both widgets now set `ContainerCfg.Hover` (#977), and gui
+  paints the same fill and cursor. A plain `ListBox` row now shares one click
+  handler that finds its row through the shape, and takes its `Content` slice
+  from the frame arena. A `ListBox` row now makes 3 allocations per frame, down
+  from 6. The `ListBox` benchmark that builds 64 rows makes 211 allocations,
+  down from 401. The hover look and click behavior do not change.
 - **go-glyph v1.26.3.** Two fewer heap allocations per text layout and per glyph
   load. `golang.org/x/image`, `x/sys`, `x/text` and `x/tools` move to the
   versions go-glyph builds with.

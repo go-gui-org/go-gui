@@ -53,6 +53,9 @@ type ContainerCfg struct {
 	// (WithTooltip's enter and leave test). A move into or out of the
 	// shape then rebuilds, so the hook sees it.
 	pointerAmend bool
+	// listBoxRow is the click target of a plain ListBox row, read by
+	// the shared listBoxRowOnClick (view_listbox_items.go).
+	listBoxRow *listBoxRowClick
 	// colorDisabled is the explicit disabled fill a widget built on a
 	// container passes down from its ColorSet.Disabled (#741). See
 	// Shape.colorDisabled.
@@ -495,6 +498,7 @@ func makeContainerEvents(c *ContainerCfg) (eventHandlers, bool) {
 		clickOnSpace:  c.ClickOnSpace,
 		clickOnEnter:  c.ClickOnEnter,
 		soundCue:      c.Sound,
+		listBoxRow:    c.listBoxRow,
 	}, true
 }
 

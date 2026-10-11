@@ -33,6 +33,7 @@ func listBoxItemLayoutIDs(
 // model registered for ScrollToIndex are one arithmetic, and
 // recomputing it here is how the three drift apart.
 func listBoxBuildItems(
+	w *Window,
 	cfg *ListBoxCfg,
 	selectedSet map[string]struct{},
 	focusedID string,
@@ -52,6 +53,26 @@ func listBoxBuildItems(
 		listCap += 3
 	}
 	list := make([]View, 0, listCap)
+
+	// The plain rows' click targets, one slice for the whole list: a
+	// row's OnClick is the shared listBoxRowOnClick, which finds its
+	// row through the shape. A closure per row cost one allocation per
+	// visible row per frame; this costs two per list. The slice never
+	// grows past listCap, so the pointers taken into it stay valid. A
+	// list with no OnSelect answers no click and needs none of it.
+	var clicks []listBoxRowClick
+	var shared *listBoxClick
+	if cfg.OnSelect != nil {
+		clicks = make([]listBoxRowClick, 0, listCap)
+		shared = &listBoxClick{
+			listBoxID:     cfg.ID,
+			focusDisabled: cfg.FocusDisabled,
+			isMultiple:    cfg.Multiple,
+			onSelect:      cfg.OnSelect,
+			selectedIDs:   cfg.SelectedIDs,
+			itemIDs:       itemIDs,
+		}
+	}
 
 	if virtualize && first > 0 {
 		list = append(list, Rectangle(RectangleCfg{
@@ -88,10 +109,16 @@ func listBoxBuildItems(
 				cfg.Data[idx], *cfg, selectedSet, focusedID, di,
 				itemIDs, itemLayoutIDs, midsOffset, scrollID))
 		} else {
+			var click *listBoxRowClick
+			if shared != nil && !cfg.Data[idx].isSubheading {
+				clicks = append(clicks, listBoxRowClick{
+					list: shared, datID: cfg.Data[idx].ID})
+				click = &clicks[len(clicks)-1]
+			}
 			list = append(list,
-				listBoxItemView(
+				listBoxItemView(w,
 					cfg.Data[idx], *cfg, selectedSet,
-					focusedID, itemIDs))
+					focusedID, click))
 		}
 	}
 
@@ -107,12 +134,51 @@ func listBoxBuildItems(
 	return list, ghostContent
 }
 
+// listBoxClick is the click state every plain row of one ListBox
+// shares. It holds what the per-row OnClick closure used to capture.
+type listBoxClick struct {
+	listBoxID     string
+	focusDisabled bool
+	isMultiple    bool
+	onSelect      func([]string, EventCtx)
+	selectedIDs   []string
+	itemIDs       []string
+}
+
+// listBoxRowClick is the click target of one plain row. The row's
+// shape points at it through eventHandlers.listBoxRow.
+type listBoxRowClick struct {
+	list  *listBoxClick
+	datID string
+}
+
+// listBoxRowOnClick is the OnClick of every plain ListBox row. It is
+// a plain func, not a closure, so a row allocates no handler; it reads
+// its row back through the shape.
+func listBoxRowOnClick(ctx EventCtx) {
+	rc := ctx.Layout.Shape.events.listBoxRow
+	if rc == nil {
+		return
+	}
+	l := rc.list
+	// Keyboard focus follows the click, so the focus ring and the
+	// selection agree.
+	listBoxFocusOnClick(l.listBoxID, l.focusDisabled,
+		l.itemIDs, rc.datID, ctx.Window)
+	ids := listBoxNextSelectedIDs(l.selectedIDs, rc.datID, l.isMultiple)
+	l.onSelect(ids, EventCtx{nil, ctx.Event, ctx.Window})
+}
+
+// listBoxItemView builds one plain row. click is nil for a row that
+// answers no click: a subheading, or any row of a list with no
+// OnSelect.
 func listBoxItemView(
+	w *Window,
 	dat ListBoxOption,
 	cfg ListBoxCfg,
 	selectedSet map[string]struct{},
 	focusedID string,
-	itemIDs []string,
+	click *listBoxRowClick,
 ) View {
 	isFocusRow := listBoxIsFocusRow(dat, focusedID)
 	selected := listCoreContainsSelected(selectedSet, cfg.SelectedIDs, dat.ID)
@@ -123,32 +189,46 @@ func listBoxItemView(
 	// cursors were indistinguishable (visual-refresh §4.3).
 	bg, bgHover := rowFill(cfg.Colors, ColorTransparent, selected,
 		false)
-	isSub := dat.isSubheading
 	content := listBoxItemContent(dat, cfg)
 
-	datID := dat.ID
-	isMultiple := cfg.Multiple
-	onSelect := cfg.OnSelect
-	hasOnSelect := onSelect != nil
-	selectedIDs := cfg.SelectedIDs
-	// Scalars, not cfg: the OnClick closure below would otherwise
-	// capture the whole ListBoxCfg and heap-allocate it per row.
-	listBoxID := cfg.ID
-	focusDisabled := cfg.FocusDisabled
+	// A row answers a click only when it has a click target: a
+	// subheading is a caption, not a choice, and a list with no
+	// OnSelect answers nothing (see listBoxBuildItems).
+	answers := click != nil
 
 	a11yState := AccessStateNone
 	if selected {
 		a11yState = AccessStateSelected
 	}
 
-	// A subheading is a caption, not a choice, and a list with no
-	// OnSelect answers nothing — both stay silent. Otherwise the row
-	// picks one of several, which is the selection role (issue #467).
+	// A row that answers nothing stays silent. Otherwise the row picks
+	// one of several, which is the selection role (issue #467).
 	rowSound := SoundNone
-	if hasOnSelect && !isSub {
+	if answers {
 		rowSound = resolveSoundCue(
 			guiTheme.Sounds.Selection, cfg.Sound, cfg.SoundDisabled)
 	}
+
+	// The same rule decides the hover look. A HoverStyle, not an
+	// OnHover closure: the look depends only on the row, so gui paints
+	// it and no closure is allocated per row per frame (#977).
+	var hover HoverStyle
+	var onClick func(EventCtx)
+	if answers {
+		hover = HoverStyle{Color: bgHover, Cursor: CursorPointingHand}
+		onClick = listBoxRowOnClick
+	}
+
+	// The one-child Content slice comes from the frame's view arena,
+	// not the heap: the row's container reads it during this frame's
+	// generation and keeps nothing.
+	var rowContent []View
+	if w != nil {
+		rowContent = w.scratch.takeViews(1)
+	} else {
+		rowContent = make([]View, 0, 1)
+	}
+	rowContent = append(rowContent, content)
 
 	return Row(ContainerCfg{
 		A11YRole:  AccessRoleListItem,
@@ -163,32 +243,16 @@ func listBoxItemView(
 		SizeBorder: NoBorder,
 		Sizing:     FillFit,
 		Sound:      rowSound,
-		Content:    []View{content},
+		Content:    rowContent,
 		// The ring paints only while the list itself holds window
 		// focus. Focus is resolved after layout, so it cannot be
 		// decided at generation; the row carries no ID of its own,
 		// so the hook tests the list's effective ID.
 		AmendLayout: listBoxItemRingAmend(
 			isFocusRow, cfg.ID, cfg.Colors.BorderFocus),
-		OnClick: func(ctx EventCtx) {
-			if hasOnSelect && !isSub {
-				// Keyboard focus follows the click, so the
-				// focus ring and the selection agree.
-				listBoxFocusOnClick(listBoxID, focusDisabled,
-					itemIDs, datID, ctx.Window)
-				ids := listBoxNextSelectedIDs(
-					selectedIDs, datID, isMultiple)
-				onSelect(ids, EventCtx{nil, ctx.Event, ctx.Window})
-			}
-		},
-		// Hover paints by row only, never by position (#973).
-		hoverStatic: true,
-		OnHover: func(ctx EventCtx) {
-			if hasOnSelect && !isSub {
-				ctx.Window.setMouseCursor(CursorPointingHand)
-				ctx.Layout.Shape.Color = bgHover
-			}
-		},
+		OnClick:    onClick,
+		listBoxRow: click,
+		Hover:      hover,
 	})
 }
 
@@ -237,9 +301,15 @@ func listBoxReorderItemView(
 		guiTheme.Sounds.Selection, cfg.Sound, cfg.SoundDisabled)
 
 	rowSound := SoundNone
+	// Matches the plain row: a list with no OnSelect answers nothing,
+	// so the row stays silent and takes no hover look. Subheadings
+	// never reach this view — without a drag index they build as
+	// plain rows.
+	var hover HoverStyle
 	if hasOnSelect {
 		rowSound = resolveSoundCue(
 			guiTheme.Sounds.Selection, cfg.Sound, cfg.SoundDisabled)
+		hover = HoverStyle{Color: bgHover, Cursor: CursorPointingHand}
 	}
 
 	return Row(ContainerCfg{
@@ -283,19 +353,7 @@ func listBoxReorderItemView(
 				onSelect(ids, EventCtx{nil, ctx.Event, ctx.Window})
 			}
 		},
-		// Hover paints by row only, never by position (#973).
-		hoverStatic: true,
-		OnHover: func(ctx EventCtx) {
-			// Matches the plain row: a list with no OnSelect
-			// answers nothing, so the row stays silent.
-			// Subheadings never reach this view — without a drag
-			// index they build as plain rows.
-			if !hasOnSelect {
-				return
-			}
-			ctx.Window.setMouseCursor(CursorPointingHand)
-			ctx.Layout.Shape.Color = bgHover
-		},
+		Hover: hover,
 	})
 }
 

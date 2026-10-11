@@ -58,10 +58,10 @@ func TestListBoxSelectedRowHovers(t *testing.T) {
 	}
 	row := &rows[1]
 	resting := row.Shape.Color
-	if row.Shape.events == nil || row.Shape.events.OnHover == nil {
-		t.Fatal("selected row has no hover handler")
+	if row.Shape.events == nil || !row.Shape.events.hover.isSet() {
+		t.Fatal("selected row has no hover style")
 	}
-	row.Shape.events.OnHover(EventCtx{row, &Event{}, w})
+	row.Shape.events.hover.apply(row.Shape, w)
 	got := row.Shape.Color
 	if got == resting {
 		t.Fatalf("selected hovered fill = %v, the resting wash, want a lightness step",
@@ -91,10 +91,10 @@ func TestListBoxReorderSelectedRowHovers(t *testing.T) {
 	}
 	row := &rows[1]
 	resting := row.Shape.Color
-	if row.Shape.events == nil || row.Shape.events.OnHover == nil {
-		t.Fatal("selected reorder row has no hover handler")
+	if row.Shape.events == nil || !row.Shape.events.hover.isSet() {
+		t.Fatal("selected reorder row has no hover style")
 	}
-	row.Shape.events.OnHover(EventCtx{row, &Event{}, w})
+	row.Shape.events.hover.apply(row.Shape, w)
 	got := row.Shape.Color
 	if got == resting {
 		t.Fatalf("selected hovered fill = %v, the resting wash, want a lightness step",

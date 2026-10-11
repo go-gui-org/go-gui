@@ -212,14 +212,10 @@ func treeRowView(
 			treeRowClick(
 				rootFocusID, row, rootFocusID, onSelect, onLazyLoad, ctx.Event, ctx.Window)
 		},
-		// Hover paints by row only, never by position (#973).
-		hoverStatic: true,
-		OnHover: func(ctx EventCtx) {
-			ctx.Window.SetMouseCursorPointingHand()
-			// The fill follows the pointer even on the focused row,
-			// matching ColorSet.pick's rule (#690).
-			ctx.Layout.Shape.Color = hoverColor
-		},
+		// The fill follows the pointer even on the focused row,
+		// matching ColorSet.pick's rule (#690). gui paints the style, so
+		// no OnHover closure is allocated per row per frame (#977).
+		Hover: HoverStyle{Color: hoverColor, Cursor: CursorPointingHand},
 	})
 }
 
@@ -294,14 +290,10 @@ func treeDragRowView(
 			treeRowClick(
 				treeID, row, rootFocusID, onSelect, onLazyLoad, ctx.Event, ctx.Window)
 		},
-		// Hover paints by row only, never by position (#973).
-		hoverStatic: true,
-		OnHover: func(ctx EventCtx) {
-			ctx.Window.SetMouseCursorPointingHand()
-			// The fill follows the pointer even on the focused row,
-			// matching ColorSet.pick's rule (#690).
-			ctx.Layout.Shape.Color = hoverColor
-		},
+		// The fill follows the pointer even on the focused row,
+		// matching ColorSet.pick's rule (#690). gui paints the style, so
+		// no OnHover closure is allocated per row per frame (#977).
+		Hover: HoverStyle{Color: hoverColor, Cursor: CursorPointingHand},
 	})
 }
 

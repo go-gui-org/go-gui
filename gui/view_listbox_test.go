@@ -205,11 +205,14 @@ func TestListBoxReorderHoverNeedsOnSelect(t *testing.T) {
 		t.Fatal("expected rows")
 	}
 	row := &rows[0]
-	if row.Shape.events == nil || row.Shape.events.OnHover == nil {
-		t.Fatal("row has no hover handler")
+	if row.Shape.events == nil {
+		t.Fatal("row has no event handlers")
+	}
+	if row.Shape.events.hover.isSet() {
+		t.Error("row without OnSelect has a hover style")
 	}
 	before := w.viewState.mouseCursor
-	row.Shape.events.OnHover(EventCtx{row, &Event{}, w})
+	row.Shape.events.hover.apply(row.Shape, w)
 	if w.viewState.mouseCursor != before {
 		t.Error("row without OnSelect changed the mouse cursor")
 	}
@@ -848,7 +851,7 @@ func TestListBoxItemViewIDLessRowsTakeNoRing(t *testing.T) {
 	applyListBoxDefaults(&cfg)
 	w := newTestWindow()
 	for _, dat := range []ListBoxOption{{Name: "one"}, {Name: "two"}} {
-		view := listBoxItemView(dat, cfg, nil, "", nil)
+		view := listBoxItemView(w, dat, cfg, nil, "", nil)
 		layout := generateViewLayout(view, w)
 		if e := layout.Shape.events; e != nil && e.AmendLayout != nil {
 			t.Fatalf("ID-less row %q took a focus ring", dat.Name)

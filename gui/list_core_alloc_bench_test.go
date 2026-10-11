@@ -277,3 +277,41 @@ func TestVirtualListAllocsAreFlat(t *testing.T) {
 			small, big)
 	}
 }
+
+// A plain ListBox row allocates only what its own shapes need. The
+// hover look is a HoverStyle (#977), the click is the shared
+// listBoxRowOnClick that reads its row through the shape, and the
+// one-child Content slice comes from the frame arena. A closure or
+// heap slice per row would raise the per-row count measured here,
+// as the difference between a list of 16 rows and one of 8.
+func TestListBoxRowAllocsPerRow(t *testing.T) {
+	const small, large = 8, 16
+	measure := func(n int) float64 {
+		data := make([]ListBoxOption, n)
+		for i := range n {
+			s := strconv.Itoa(i)
+			data[i] = NewListBoxOption("id-"+s, "Name "+s, "")
+		}
+		w := newTestWindow()
+		v := ListBox(ListBoxCfg{
+			ID:       "lb-allocs",
+			Data:     data,
+			OnSelect: func([]string, EventCtx) {},
+		})
+		if got := len(listBoxRows(new(generateViewLayout(v, w)))); got != n {
+			t.Fatalf("rows built = %d, want %d", got, n)
+		}
+		return testing.AllocsPerRun(50, func() {
+			w.scratch.resetViewPools()
+			_ = generateViewLayout(v, w)
+		})
+	}
+	perRow := (measure(large) - measure(small)) / (large - small)
+	t.Logf("allocs per row = %.2f", perRow)
+	// Measured 3: the row's a11y payload, its text view and the text
+	// shape's payload. With a closure per row for click and hover and
+	// a heap Content slice it was 6.
+	if perRow > 3 {
+		t.Errorf("allocs per row = %.2f, want <= 3", perRow)
+	}
+}

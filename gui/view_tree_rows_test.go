@@ -135,3 +135,38 @@ func TestTreeScrollTo(t *testing.T) {
 		t.Fatalf("zero row height wrote %v", got)
 	}
 }
+
+// Both row paths paint hover through a HoverStyle, not an OnHover
+// closure: the look depends only on the row, so a closure per row per
+// frame is waste (#977). The style carries the theme's hover fill and
+// the pointing-hand cursor.
+func TestTreeRowHoverIsStyleNotClosure(t *testing.T) {
+	cfg := TreeCfg{ID: "tree", Spacing: NoSpacing}
+	cfg.Colors = cfg.Colors.resolved(cfg.Color, defaultTreeStyle.Colors)
+	row := treeFlatRow{ID: "a", Text: "A"}
+	views := map[string]View{
+		"plain": treeRowView(cfg, row, 16, ""),
+		"drag": treeDragRowView(cfg, row, 16, "",
+			0, []string{"a"}, []string{"tree:row:a"}, 0, ""),
+	}
+	for name, view := range views {
+		w := newTestWindow()
+		w.layout = Layout{Shape: &Shape{ID: "root"}}
+		layout := generateViewLayout(view, w)
+		ev := layout.Shape.events
+		if ev == nil {
+			t.Fatalf("%s row has no event handlers", name)
+		}
+		if ev.OnHover != nil {
+			t.Errorf("%s row allocates an OnHover closure", name)
+		}
+		if ev.hover.Color != cfg.Colors.Hover {
+			t.Errorf("%s row hover fill = %v, want %v",
+				name, ev.hover.Color, cfg.Colors.Hover)
+		}
+		if ev.hover.Cursor != CursorPointingHand {
+			t.Errorf("%s row hover cursor = %v, want pointing hand",
+				name, ev.hover.Cursor)
+		}
+	}
+}

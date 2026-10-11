@@ -191,7 +191,7 @@ func (lv *listBoxView) GenerateLayout(w *Window) Layout {
 		dragReorderIDsMetaSet(w, cfg.ID, itemIDs)
 	}
 
-	list, ghostContent := listBoxBuildItems(
+	list, ghostContent := listBoxBuildItems(w,
 		cfg, selectedSet, focusedID, dragIdxByRow,
 		itemIDs, itemLayoutIDs, midsOffset, scrollID,
 		canReorder, dragging, drag,

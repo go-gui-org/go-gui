@@ -52,4 +52,11 @@ type eventHandlers struct {
 	// which cost four allocations per bar per frame. It points into the
 	// scrollbarView, which lives as long as the layout built from it.
 	scrollbar *ScrollbarCfg
+
+	// listBoxRow is the click target of a plain ListBox row, nil
+	// otherwise. The rows share one OnClick func that reads it here,
+	// for the same reason as scrollbar: a closure per row cost one
+	// allocation per visible row per frame. It points into a slice
+	// listBoxBuildItems makes per list per frame.
+	listBoxRow *listBoxRowClick
 }
