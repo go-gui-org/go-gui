@@ -161,6 +161,17 @@ and this project adheres to
 
 ### Changed
 
+- **A virtualized `DataGrid` frame no longer allocates per row of data.** The
+  scroll body sized its views slice for every row, though it builds only the
+  visible ones, and the grid built a fresh list of every row index each frame.
+  On a 100,000-row grid showing 30 rows that was 2.3 MB of garbage per frame.
+  The views slice now follows the visible window, and the row index list is cut
+  from one list the window keeps. A frame now allocates the same 439 KB at
+  100,000 rows as at 2,000. The cache check that hashes every row index now
+  mixes each index in one step, not eight, which cuts frame time at 100,000 rows
+  by 39% (1.57 ms to 0.96 ms). Rendering, selection and keyboard navigation do
+  not change.
+
 - **`DataGrid` rows allocate 42% less.** Each cell built its own `Content` slice
   and its own ID string, and each row built the editor focus ID twice and a
   click closure that copied a dozen grid values. Now a row shares one `Content`

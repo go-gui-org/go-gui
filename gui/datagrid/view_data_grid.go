@@ -668,7 +668,7 @@ func dataGridBuild(w *gg.Window, cfg DataGridCfg) gg.View {
 	staticTop := dataGridStaticTopHeight(&resolvedCfg, rowHeight, chooserOpen, headerInScrollBody)
 	pageStart, pageEnd, pageIndex, pageCount := dataGridPageBounds(len(resolvedCfg.Rows),
 		resolvedCfg.PageSize, resolvedCfg.PageIndex)
-	pageIndices := dataGridPageRowIndices(pageStart, pageEnd)
+	pageIndices := dataGridPageRowIndicesShared(pageStart, pageEnd, w)
 	frozenTopIndices, bodyPageIndices := dataGridSplitFrozenTopIndices(&resolvedCfg, pageIndices)
 	frozenTopIDs := dataGridFrozenTopIDSet(&resolvedCfg)
 	pagerEnabled := dataGridPagerEnabled(&resolvedCfg, pageCount)

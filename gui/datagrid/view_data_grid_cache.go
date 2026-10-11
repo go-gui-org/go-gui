@@ -11,16 +11,13 @@ import (
 
 // --- FNV-1a helpers (64-bit, presentation cache) ---
 
+// dataGridFnv64U64 mixes val into h as one 64-bit word: one xor and one
+// multiply, not eight byte steps. The presentation signature calls it once
+// per visible row, so at 100k rows the byte-wise form was about a third of
+// the frame. The digest only keys an in-memory cache, so it does not need to
+// match byte-wise FNV-1a; it only needs to change when the index changes.
 func dataGridFnv64U64(h, val uint64) uint64 {
-	h = (h ^ (val & 0xff)) * gg.Fnv64Prime
-	h = (h ^ ((val >> 8) & 0xff)) * gg.Fnv64Prime
-	h = (h ^ ((val >> 16) & 0xff)) * gg.Fnv64Prime
-	h = (h ^ ((val >> 24) & 0xff)) * gg.Fnv64Prime
-	h = (h ^ ((val >> 32) & 0xff)) * gg.Fnv64Prime
-	h = (h ^ ((val >> 40) & 0xff)) * gg.Fnv64Prime
-	h = (h ^ ((val >> 48) & 0xff)) * gg.Fnv64Prime
-	h = (h ^ ((val >> 56) & 0xff)) * gg.Fnv64Prime
-	return h
+	return (h ^ val) * gg.Fnv64Prime
 }
 
 // --- Presentation building ---
@@ -443,7 +440,13 @@ func dataGridScrollBodyRows(
 	firstVisible, lastVisible int,
 ) []gg.View {
 	cfg := dctx.cfg
-	rows := make([]gg.View, 0, len(presentation.Rows)+8)
+	// Size by the rows this frame builds, not by every row: a
+	// virtualized grid of 100,000 rows builds about 30, and a slice
+	// sized for all of them was 1.5 MB per frame. The 8 extra slots
+	// hold the chooser, header, filter, status rows and two spacers.
+	// An empty window (lastVisible < firstVisible) makes built <= 0.
+	built := min(lastVisible, len(presentation.Rows)-1) - max(firstVisible, 0) + 1
+	rows := make([]gg.View, 0, max(built, 0)+8)
 	if cfg.ShowColumnChooser {
 		rows = append(rows,
 			dataGridColumnChooserRow(cfg, chooserOpen, dctx.focusID))

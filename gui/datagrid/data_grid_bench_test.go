@@ -1,21 +1,22 @@
 package datagrid
 
 import (
+	"runtime"
 	"strconv"
 	"testing"
 
 	gg "github.com/go-gui-org/go-gui/gui"
 )
 
-// dataGridFrameCfg is a grid of 2000 rows by 8 columns whose scroll
-// body shows about visibleRows rows. Virtualization builds only those,
-// so the frame cost follows visibleRows, not the row count.
-func dataGridFrameCfg(visibleRows int) DataGridCfg {
+// dataGridFrameCfg is a grid of rowCount rows by 8 columns whose
+// scroll body shows about visibleRows rows. Virtualization builds only
+// those, so the frame cost should follow visibleRows, not rowCount.
+func dataGridFrameCfg(rowCount, visibleRows int) DataGridCfg {
 	cols := make([]GridColumnCfg, 8)
 	for i := range cols {
 		cols[i] = GridColumnCfg{ID: "c" + strconv.Itoa(i), Title: "C" + strconv.Itoa(i)}
 	}
-	rows := make([]GridRow, 2000)
+	rows := make([]GridRow, rowCount)
 	for r := range rows {
 		cells := make(map[string]string, len(cols))
 		for _, c := range cols {
@@ -39,7 +40,7 @@ func dataGridFrameCfg(visibleRows int) DataGridCfg {
 func dataGridFrameAllocs(visibleRows int) float64 {
 	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
-	cfg := dataGridFrameCfg(visibleRows)
+	cfg := dataGridFrameCfg(2000, visibleRows)
 	view := func(w *gg.Window) gg.View { return New(w, cfg) }
 	w.TestRender(view)
 	return testing.AllocsPerRun(20, func() { w.TestRender(nil) })
@@ -59,16 +60,53 @@ func TestDataGridRowAllocsPerRow(t *testing.T) {
 	}
 }
 
-// BenchmarkDataGridFrame is one full frame of a 2000 x 8 grid showing
-// about 30 rows.
-func BenchmarkDataGridFrame(b *testing.B) {
+// dataGridFrameBytes is the heap bytes one frame of a rowCount-row grid
+// showing 30 rows allocates, averaged over a few frames.
+func dataGridFrameBytes(rowCount int) uint64 {
 	w := gg.NewWindow(gg.WindowCfg{})
 	defer w.Close()
-	cfg := dataGridFrameCfg(30)
+	cfg := dataGridFrameCfg(rowCount, 30)
 	w.TestRender(func(w *gg.Window) gg.View { return New(w, cfg) })
-	b.ReportAllocs()
-	for b.Loop() {
+	const frames = 4
+	var before, after runtime.MemStats
+	runtime.ReadMemStats(&before)
+	for range frames {
 		w.TestRender(nil)
+	}
+	runtime.ReadMemStats(&after)
+	return (after.TotalAlloc - before.TotalAlloc) / frames
+}
+
+// TestDataGridFrameBytesFollowWindow: a virtualized grid builds only
+// its visible rows, so a frame must not allocate more for 100,000 rows
+// than for 2,000. Before the fix it did: the scroll body sized its
+// views slice for every row, and the page row list was rebuilt every
+// frame, 2.3 MB more per frame at 100,000 rows.
+func TestDataGridFrameBytesFollowWindow(t *testing.T) {
+	small := dataGridFrameBytes(2_000)
+	large := dataGridFrameBytes(100_000)
+	t.Logf("bytes per frame: 2,000 rows %d, 100,000 rows %d", small, large)
+	// Slack for runtime noise; the defect is megabytes.
+	if large > small+64<<10 {
+		t.Errorf("100,000-row frame allocated %d bytes, 2,000-row frame %d: "+
+			"frame cost grows with the row count", large, small)
+	}
+}
+
+// BenchmarkDataGridFrame is one full frame of an 8-column grid showing
+// about 30 rows, at two row counts. Both should cost the same.
+func BenchmarkDataGridFrame(b *testing.B) {
+	for _, n := range []int{2_000, 100_000} {
+		b.Run(strconv.Itoa(n), func(b *testing.B) {
+			w := gg.NewWindow(gg.WindowCfg{})
+			defer w.Close()
+			cfg := dataGridFrameCfg(n, 30)
+			w.TestRender(func(w *gg.Window) gg.View { return New(w, cfg) })
+			b.ReportAllocs()
+			for b.Loop() {
+				w.TestRender(nil)
+			}
+		})
 	}
 }
 

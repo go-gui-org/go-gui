@@ -391,6 +391,19 @@ func TestFnv64U64(t *testing.T) {
 	if a == gg.Fnv64Offset {
 		t.Fatal("should differ from offset")
 	}
+	// The signature relies on a different index giving a different hash,
+	// in low and high bits alike, and on the order of indices mattering.
+	if a == dataGridFnv64U64(gg.Fnv64Offset, 43) {
+		t.Fatal("different low bits should produce different hash")
+	}
+	if a == dataGridFnv64U64(gg.Fnv64Offset, 42|1<<40) {
+		t.Fatal("different high bits should produce different hash")
+	}
+	ab := dataGridFnv64U64(dataGridFnv64U64(gg.Fnv64Offset, 1), 2)
+	ba := dataGridFnv64U64(dataGridFnv64U64(gg.Fnv64Offset, 2), 1)
+	if ab == ba {
+		t.Fatal("index order should change the hash")
+	}
 }
 
 // testIdxRange lists start..end inclusive; empty when end < start.

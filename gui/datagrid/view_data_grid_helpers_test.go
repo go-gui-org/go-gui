@@ -1,6 +1,7 @@
 package datagrid
 
 import (
+	"slices"
 	"testing"
 	"unicode/utf8"
 
@@ -607,4 +608,46 @@ func TestFrozenTopDisplayRowCountIncludesDetailRows(t *testing.T) {
 	if want != 3 {
 		t.Fatalf("dataGridFrozenTopViews rows: got %d, want 3", want)
 	}
+}
+
+// The shared page row list holds start..end-1, caps at end so an
+// append cannot write into the shared array, and is never changed under
+// a slice handed out earlier, even after a longer list replaces it.
+func TestDataGridPageRowIndicesShared(t *testing.T) {
+	w := gg.NewWindow(gg.WindowCfg{})
+	defer w.Close()
+
+	if got := dataGridPageRowIndicesShared(5, 5, w); got != nil {
+		t.Errorf("empty range = %v, want nil", got)
+	}
+	if got := dataGridPageRowIndicesShared(-1, 3, w); got != nil {
+		t.Errorf("negative start = %v, want nil", got)
+	}
+	page := dataGridPageRowIndicesShared(2, 5, w)
+	if want := []int{2, 3, 4}; !slices.Equal(page, want) {
+		t.Fatalf("page = %v, want %v", page, want)
+	}
+	if cap(page) != len(page) {
+		t.Errorf("cap = %d, want %d: an append would write the shared list", cap(page), len(page))
+	}
+	_ = append(page, 99)
+	if got := dataGridPageRowIndicesShared(0, 6, w); !slices.Equal(got, []int{0, 1, 2, 3, 4, 5}) {
+		t.Errorf("after append and regrow = %v", got)
+	}
+	if !slices.Equal(page, []int{2, 3, 4}) {
+		t.Errorf("earlier page changed to %v", page)
+	}
+	if got := dataGridPageRowIndicesShared(1, 3, w); !slices.Equal(got, dataGridPageRowIndices(1, 3)) {
+		t.Errorf("shared = %v, fresh = %v", got, dataGridPageRowIndices(1, 3))
+	}
+}
+
+// A grid with no rows has no page list and no visible window. Its frame
+// must still build: the scroll body sizes its slice from that window.
+func TestDataGridFrameNoRows(t *testing.T) {
+	w := gg.NewWindow(gg.WindowCfg{})
+	defer w.Close()
+	cfg := dataGridFrameCfg(0, 30)
+	w.TestRender(func(w *gg.Window) gg.View { return New(w, cfg) })
+	w.TestRender(nil)
 }

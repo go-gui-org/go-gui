@@ -768,6 +768,7 @@ func TestNamespaceValuesPinned(t *testing.T) {
 		"nsDgQuickDraft":   nsDgQuickDraft,
 		"nsDgQuickPending": nsDgQuickPending,
 		"nsDgSource":       nsDgSource,
+		"nsDgRowIndices":   nsDgRowIndices,
 	}
 	want := map[string]string{
 		"nsDgColWidths":    "gui.dg.col_widths",
@@ -783,6 +784,7 @@ func TestNamespaceValuesPinned(t *testing.T) {
 		"nsDgQuickDraft":   "gui.dg.quick_draft",
 		"nsDgQuickPending": "gui.dg.quick_pending",
 		"nsDgSource":       "gui.dg.source",
+		"nsDgRowIndices":   "gui.dg.row_indices",
 	}
 	for name, got := range pinned {
 		if got != want[name] {

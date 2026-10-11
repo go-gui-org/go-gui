@@ -21,6 +21,7 @@ const (
 	nsDgQuickDraft   = "gui.dg.quick_draft"
 	nsDgQuickPending = "gui.dg.quick_pending"
 	nsDgSource       = "gui.dg.source"
+	nsDgRowIndices   = "gui.dg.row_indices"
 
 	// capModerate mirrors gui's capacity tier of the same name.
 	// Local sizing for grid maps; safe to tune here.

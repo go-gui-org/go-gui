@@ -221,6 +221,32 @@ func dataGridPageRowIndices(start, end int) []int {
 	return indices
 }
 
+// dataGridPageRowIndicesShared returns the same list as
+// dataGridPageRowIndices, cut from one 0..n-1 list the window keeps.
+// Building the list fresh cost 8 bytes per row per frame, 800 KB on a
+// 100,000-row grid that shows 30 of them.
+//
+// The list is never written once made: a longer one replaces it, and
+// a slice handed out earlier keeps the old array. So callers may hold
+// the result past the frame (the key handler does). The result's
+// capacity ends at end, so an append copies rather than writing into
+// the shared array.
+func dataGridPageRowIndicesShared(start, end int, w *gg.Window) []int {
+	if end <= start || start < 0 {
+		return nil
+	}
+	sm := gg.StateMap[string, []int](w, nsDgRowIndices, 1)
+	all, _ := sm.Get("")
+	if len(all) < end {
+		all = make([]int, end)
+		for i := range all {
+			all[i] = i
+		}
+		sm.Set("", all)
+	}
+	return all[start:end:end]
+}
+
 // dataGridVisibleRowIndices returns pageIndices, or every row when
 // pageIndices is nil. Only nil means "no page list": an empty,
 // non-nil slice is a real empty list, for example the scroll body
