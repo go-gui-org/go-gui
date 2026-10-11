@@ -875,3 +875,42 @@ func TestTrackRowEditClickDisabled(t *testing.T) {
 		t.Fatalf("edit disabled: editing=%q, want empty", got)
 	}
 }
+
+// --- dataGridCellIDs ---
+
+// Every cell ID handed out for a row is the string gg.ScopeID builds,
+// including the empty-part cases ScopeID drops a segment for.
+func TestDataGridCellIDsMatchScopeID(t *testing.T) {
+	tests := []struct {
+		name   string
+		gridID string
+		rowID  string
+		colIDs []string
+	}{
+		{"normal", "grid", "r1", []string{"name", "age", "city"}},
+		{"scoped grid ID", "panel:grid", "r1", []string{"name", "age"}},
+		{"empty column ID", "grid", "r1", []string{"name", "", "age"}},
+		{"empty row ID", "grid", "", []string{"name", "age"}},
+		{"empty grid ID", "", "r1", []string{"name"}},
+		{"single column", "grid", "r7", []string{"only"}},
+		{"no columns", "grid", "r1", nil},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			columns := make([]GridColumnCfg, len(tc.colIDs))
+			for i, id := range tc.colIDs {
+				columns[i] = GridColumnCfg{ID: id}
+			}
+			ids := newDataGridCellIDs(tc.gridID, tc.rowID, columns)
+			for _, col := range columns {
+				want := gg.ScopeID(tc.gridID, "cell", tc.rowID, col.ID)
+				if got := ids.next(col.ID); got != want {
+					t.Errorf("cell %q: id = %q, want %q", col.ID, got, want)
+				}
+			}
+			if ids.off != len(ids.all) {
+				t.Errorf("used %d of %d bytes", ids.off, len(ids.all))
+			}
+		})
+	}
+}

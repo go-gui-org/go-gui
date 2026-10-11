@@ -161,6 +161,15 @@ and this project adheres to
 
 ### Changed
 
+- **`DataGrid` rows allocate 42% less.** Each cell built its own `Content` slice
+  and its own ID string, and each row built the editor focus ID twice and a
+  click closure that copied a dozen grid values. Now a row shares one `Content`
+  backing array and one ID string across its cells, and the grid builds the
+  click state and the editor focus ID once per frame. On 8 columns a visible row
+  costs 22 allocations per frame instead of 38. A frame of a grid showing 30
+  rows drops from 1,441 to 884 allocations and runs 4% faster. Cell IDs,
+  selection, editing and rendering do not change.
+
 - **`ListBox`, `Tree`, `Combobox` and `CommandPalette` rows allocate less.**
   Each row built closures and a slice: an `OnHover` that set the hover fill and
   cursor, an `OnClick` that held the row's data, and a `Content` slice. Rows now

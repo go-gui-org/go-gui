@@ -78,22 +78,49 @@ func dataGridDetailRowView(dctx dataGridCtx, rowData GridRow, rowIdx int) gg.Vie
 	})
 }
 
+// dataGridRowClickCtx is the part of a row's OnClick that is the same
+// for every row of a frame. dataGridBuild makes it once, so a row's
+// closure captures one pointer, the row index and the row ID instead of
+// a dozen values, and the editor focus base ID is built once per frame
+// instead of once per row.
+type dataGridRowClickCtx struct {
+	rows              []GridRow
+	selection         GridSelection
+	gridID            string
+	onSelectionChange func(GridSelection, gg.EventCtx)
+	editorFocusBase   string
+	focusID           string
+	columns           []GridColumnCfg
+	multiSelect       bool
+	rangeSelect       bool
+	editEnabled       bool
+}
+
+func newDataGridRowClickCtx(dctx dataGridCtx) *dataGridRowClickCtx {
+	cfg := dctx.cfg
+	return &dataGridRowClickCtx{
+		rows:              cfg.Rows,
+		selection:         cfg.Selection,
+		gridID:            cfg.ID,
+		onSelectionChange: cfg.OnSelectionChange,
+		editorFocusBase:   dataGridCellEditorFocusBaseID(cfg, len(dctx.columns)),
+		focusID:           dctx.focusID,
+		columns:           dctx.columns,
+		multiSelect:       boolDefault(cfg.MultiSelect, true),
+		rangeSelect:       boolDefault(cfg.RangeSelect, true),
+		editEnabled:       dataGridEditingEnabled(cfg),
+	}
+}
+
 func dataGridRowView(dctx dataGridCtx, rowData GridRow, rowIdx int, showDeleteAction bool) gg.View {
 	cfg := dctx.cfg
-	columns := dctx.columns
-	focusID := dctx.focusID
+	rc := dctx.rowClick
+	if rc == nil {
+		rc = newDataGridRowClickCtx(dctx)
+	}
 	rowID := dataGridRowID(rowData, rowIdx)
 	isSelected := cfg.Selection.SelectedRowIDs[rowID]
-	gridID := cfg.ID
-	selection := cfg.Selection
-	onSelectionChange := cfg.OnSelectionChange
-	rows := cfg.Rows
-	multiSelect := boolDefault(cfg.MultiSelect, true)
-	rangeSelect := boolDefault(cfg.RangeSelect, true)
-	editEnabled := dataGridEditingEnabled(cfg)
-	editorFocusBase := dataGridCellEditorFocusBaseID(cfg, len(columns))
-	colCount := len(columns)
-	isEditingRow := dctx.editingRowID == rowID && editEnabled
+	isEditingRow := dctx.editingRowID == rowID && rc.editEnabled
 
 	cells := dataGridBuildRowCells(dctx, rowData, rowIdx, isEditingRow)
 	if showDeleteAction {
@@ -118,9 +145,10 @@ func dataGridRowView(dctx dataGridCtx, rowData GridRow, rowIdx int, showDeleteAc
 		// button makes — the grid's own click role (issue #467).
 		Sound: cfg.sounds.click,
 		OnClick: func(ctx gg.EventCtx) {
-			dataGridRowClick(rows, selection, gridID, multiSelect, rangeSelect,
-				onSelectionChange, editEnabled, editorFocusBase, colCount,
-				rowIdx, rowID, focusID, columns, ctx.Event, ctx.Window)
+			dataGridRowClick(rc.rows, rc.selection, rc.gridID, rc.multiSelect,
+				rc.rangeSelect, rc.onSelectionChange, rc.editEnabled,
+				rc.editorFocusBase, len(rc.columns), rowIdx, rowID, rc.focusID,
+				rc.columns, ctx.Event, ctx.Window)
 			ctx.Consume()
 		},
 		// Painted by gui, not an OnHover closure: a pointer move inside
@@ -150,6 +178,11 @@ func dataGridBuildRowCells(dctx dataGridCtx, rowData GridRow, rowIdx int, isEdit
 	detailExpanded := dataGridDetailRowExpanded(cfg, rowID)
 
 	cells := make([]gg.View, 0, len(columns)+1)
+	// One backing array holds every cell's content (at most a detail
+	// toggle and the value), and one string holds every cell's ID, so
+	// a row pays two allocations for these instead of two per cell.
+	content := make([]gg.View, 2*len(columns))
+	cellIDs := newDataGridCellIDs(cfg.ID, rowID, columns)
 	for colIdx, col := range columns {
 		value := rowData.Cells[col.ID]
 		baseTextStyle := cfg.TextStyle
@@ -163,8 +196,9 @@ func dataGridBuildRowCells(dctx dataGridCtx, rowData GridRow, rowIdx int, isEdit
 			textStyle, cellColor = dataGridResolveCellFormat(baseTextStyle, cellFormat)
 		}
 		isEditingCell := isEditingRow && col.Editable
-		var cellBuf [2]gg.View
-		cellContent := cellBuf[:0]
+		// The full slice expression caps the cell at its own two
+		// slots, so an append can never reach the next cell's.
+		cellContent := content[2*colIdx : 2*colIdx : 2*colIdx+2]
 		if colIdx == 0 && detailEnabled {
 			cellContent = append(cellContent, dataGridDetailToggleControl(cfg, rowID, detailExpanded, detailToggleEnabled, focusID))
 		}
@@ -191,7 +225,7 @@ func dataGridBuildRowCells(dctx dataGridCtx, rowData GridRow, rowIdx int, isEdit
 		}
 
 		cells = append(cells, gg.Row(gg.ContainerCfg{
-			ID:       gg.ScopeID(cfg.ID, "cell", rowID, col.ID),
+			ID:       cellIDs.next(col.ID),
 			A11YRole: gg.AccessRoleGridCell,
 			Width:    dataGridColumnWidthFor(col, columnWidths),
 			Sizing:   gg.FixedFill,
@@ -214,6 +248,66 @@ func dataGridBuildRowCells(dctx dataGridCtx, rowData GridRow, rowIdx int, isEdit
 		}))
 	}
 	return cells
+}
+
+// dataGridCellIDs hands out the ID of each cell in a row, in column
+// order. Each is the string gg.ScopeID(gridID, "cell", rowID, col.ID)
+// returns, but all of them are substrings of one string built for the
+// row: one allocation per row for the IDs instead of one per cell. The
+// substrings keep that string alive only as long as the row's shapes.
+type dataGridCellIDs struct {
+	all       string
+	prefixLen int
+	off       int
+}
+
+func newDataGridCellIDs(gridID, rowID string, columns []GridColumnCfg) dataGridCellIDs {
+	// The prefix is gridID:cell:rowID with ScopeID's rule that an
+	// empty part is dropped. It holds at least "cell", so it is never
+	// empty, and an empty column ID leaves the cell ID equal to it.
+	prefixLen := len("cell")
+	for _, part := range [2]string{gridID, rowID} {
+		if part != "" {
+			prefixLen += len(gg.IDSep) + len(part)
+		}
+	}
+	size := 0
+	for _, col := range columns {
+		size += prefixLen
+		if col.ID != "" {
+			size += len(gg.IDSep) + len(col.ID)
+		}
+	}
+	var b strings.Builder
+	b.Grow(size)
+	for _, col := range columns {
+		if gridID != "" {
+			b.WriteString(gridID)
+			b.WriteString(gg.IDSep)
+		}
+		b.WriteString("cell")
+		if rowID != "" {
+			b.WriteString(gg.IDSep)
+			b.WriteString(rowID)
+		}
+		if col.ID != "" {
+			b.WriteString(gg.IDSep)
+			b.WriteString(col.ID)
+		}
+	}
+	return dataGridCellIDs{all: b.String(), prefixLen: prefixLen}
+}
+
+// next returns the ID of the next cell, whose column ID is colID. The
+// caller asks for every column of the row, in order.
+func (c *dataGridCellIDs) next(colID string) string {
+	n := c.prefixLen
+	if colID != "" {
+		n += len(gg.IDSep) + len(colID)
+	}
+	id := c.all[c.off : c.off+n]
+	c.off += n
+	return id
 }
 
 // dataGridRowDeleteButton builds the CRUD row-delete button.

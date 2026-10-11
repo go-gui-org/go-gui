@@ -3,7 +3,74 @@ package datagrid
 import (
 	"strconv"
 	"testing"
+
+	gg "github.com/go-gui-org/go-gui/gui"
 )
+
+// dataGridFrameCfg is a grid of 2000 rows by 8 columns whose scroll
+// body shows about visibleRows rows. Virtualization builds only those,
+// so the frame cost follows visibleRows, not the row count.
+func dataGridFrameCfg(visibleRows int) DataGridCfg {
+	cols := make([]GridColumnCfg, 8)
+	for i := range cols {
+		cols[i] = GridColumnCfg{ID: "c" + strconv.Itoa(i), Title: "C" + strconv.Itoa(i)}
+	}
+	rows := make([]GridRow, 2000)
+	for r := range rows {
+		cells := make(map[string]string, len(cols))
+		for _, c := range cols {
+			cells[c.ID] = c.ID + "-" + strconv.Itoa(r)
+		}
+		rows[r] = GridRow{ID: "r" + strconv.Itoa(r), Cells: cells}
+	}
+	return DataGridCfg{
+		ID:      "grid",
+		Columns: cols,
+		Rows:    rows,
+		Height:  dataGridDefaultHeaderHeight + float32(visibleRows)*dataGridDefaultRowHeight,
+		// A selection handler makes the rows clickable, as in an app.
+		OnSelectionChange: func(GridSelection, gg.EventCtx) {},
+	}
+}
+
+// dataGridFrameAllocs is the allocation count of one full frame of a
+// grid showing visibleRows rows. TestRender runs a real frame, which
+// resets gui's view arenas, so the count is the steady-state cost.
+func dataGridFrameAllocs(visibleRows int) float64 {
+	w := gg.NewWindow(gg.WindowCfg{})
+	defer w.Close()
+	cfg := dataGridFrameCfg(visibleRows)
+	view := func(w *gg.Window) gg.View { return New(w, cfg) }
+	w.TestRender(view)
+	return testing.AllocsPerRun(20, func() { w.TestRender(nil) })
+}
+
+// TestDataGridRowAllocsPerRow gates the cost of one visible row: a
+// grid 16 rows tall minus one 8 rows tall, over 8. Everything a frame
+// pays once (header, scroll body, scrollbars) cancels out.
+//
+// On 8 columns a row cost 38 allocations before the content backing,
+// cell IDs and editor focus base were shared per row.
+func TestDataGridRowAllocsPerRow(t *testing.T) {
+	perRow := (dataGridFrameAllocs(16) - dataGridFrameAllocs(8)) / 8
+	t.Logf("allocs per row = %.2f", perRow)
+	if perRow > 22 {
+		t.Errorf("allocs per row = %.2f, want <= 22", perRow)
+	}
+}
+
+// BenchmarkDataGridFrame is one full frame of a 2000 x 8 grid showing
+// about 30 rows.
+func BenchmarkDataGridFrame(b *testing.B) {
+	w := gg.NewWindow(gg.WindowCfg{})
+	defer w.Close()
+	cfg := dataGridFrameCfg(30)
+	w.TestRender(func(w *gg.Window) gg.View { return New(w, cfg) })
+	b.ReportAllocs()
+	for b.Loop() {
+		w.TestRender(nil)
+	}
+}
 
 // BenchmarkDataGridPresentationRows benchmarks the row-preparation hot
 // path that maps visible indices to display rows for virtual scrolling.

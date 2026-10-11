@@ -552,6 +552,9 @@ type dataGridCtx struct {
 	RowHeight float32
 	focusID   string
 	scrollID  string
+	// rowClick is what every row's OnClick shares this frame. Nil
+	// in a hand-built dctx (tests); dataGridRowView then makes one.
+	rowClick *dataGridRowClickCtx
 }
 
 // dataGridView defers the grid build to layout generation.
@@ -715,6 +718,7 @@ func dataGridBuild(w *gg.Window, cfg DataGridCfg) gg.View {
 		editingRowID: editingRowID,
 		w:            w,
 	}
+	dctx.rowClick = newDataGridRowClickCtx(dctx)
 	totalWidth := dataGridColumnsTotalWidth(columns, columnWidths)
 	headerView := dataGridHeaderRow(&resolvedCfg, columns, columnWidths, focusID,
 		hoveredColID, resizingColID, focusedColID)
