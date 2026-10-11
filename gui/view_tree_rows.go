@@ -126,17 +126,21 @@ func treeIconWidth(cfg *TreeCfg, w *Window) float32 {
 	return style.Size + 4
 }
 
+// treeArrowIcon is the row's expand arrow, with the trailing space
+// that separates it from the icon. The space is part of each constant,
+// not appended per row: a concatenation allocated a string per
+// expandable row per frame.
 func treeArrowIcon(row treeFlatRow) string {
 	if !row.HasChildren {
-		return " "
+		return "  "
 	}
 	if row.IsExpanded {
-		return IconDropDown
+		return IconDropDown + " "
 	}
 	if activeLocaleShared().TextDir == TextDirRTL {
-		return IconDropLeft
+		return IconDropLeft + " "
 	}
-	return IconDropRight
+	return IconDropRight + " "
 }
 
 // treeRowSound resolves the cue one row's activation emits. A row with
@@ -154,11 +158,78 @@ func treeRowSound(cfg *TreeCfg, row treeFlatRow) SoundCue {
 	return resolveSoundCue(themeCue, cfg.Sound, cfg.SoundDisabled)
 }
 
+// treeClick is the click state every plain row of one Tree shares:
+// what the per-row OnClick closure used to capture.
+type treeClick struct {
+	treeID     string
+	onSelect   func(string, EventCtx)
+	onLazyLoad func(string, string, *Window)
+}
+
+// newTreeClick builds the click state of one tree. cfg.ID is the
+// tree's effective ID.
+func newTreeClick(cfg *TreeCfg) *treeClick {
+	return &treeClick{
+		treeID:     cfg.ID,
+		onSelect:   cfg.OnSelect,
+		onLazyLoad: cfg.OnLazyLoad,
+	}
+}
+
+// rowClick focuses the row, toggles it if it has children, and
+// reports the selection.
+func (t *treeClick) rowClick(rc *rowClick, ctx EventCtx) {
+	treeRowClick(t.treeID, *rc.tree, t.treeID, t.onSelect,
+		t.onLazyLoad, ctx.Event, ctx.Window)
+}
+
+// treeDragClick is the click state every reorderable row of one Tree
+// shares. A row's drag data depends on its parent, so the per-parent
+// maps live here and are read at click time. treeBuild makes them
+// fresh each frame and changes nothing after the rows are built, so a
+// click reads what the row was built with. rowClick.index is the
+// row's sibling index; rowClick.cue its drop cue.
+type treeDragClick struct {
+	sel              treeClick
+	onReorder        func(string, string, EventCtx)
+	parentOf         map[string]string
+	siblingsByParent map[string][]string
+	parentLayoutIDs  map[string][]string
+	parentMidsOff    map[string]int
+	scrollID         string
+}
+
+// rowClick arms the drag among the row's siblings, then does what a
+// plain row's click does.
+func (t *treeDragClick) rowClick(rc *rowClick, ctx EventCtx) {
+	parent := t.parentOf[rc.id]
+	dragReorderStart(dragReorderStartCfg{
+		DragKey:       t.sel.treeID,
+		DropCue:       rc.cue,
+		Index:         rc.index,
+		ItemID:        rc.id,
+		Axis:          dragReorderVertical,
+		ItemIDs:       t.siblingsByParent[parent],
+		OnReorder:     t.onReorder,
+		ItemLayoutIDs: t.parentLayoutIDs[parent],
+		MidsOffset:    t.parentMidsOff[parent],
+		ScrollID:      t.scrollID,
+		Layout:        ctx.Layout,
+		Event:         ctx.Event,
+	}, ctx.Window)
+	t.sel.rowClick(rc, ctx)
+}
+
+// treeRowView builds one plain row. click is the row's target in the
+// tree's treeClick; nil only for a loading placeholder, which answers
+// no click.
 func treeRowView(
+	w *Window,
 	cfg TreeCfg,
 	row treeFlatRow,
 	iconWidth float32,
 	focusedID string,
+	click *rowClick,
 ) View {
 	if row.IsLoading {
 		return Row(ContainerCfg{
@@ -176,8 +247,7 @@ func treeRowView(
 		})
 	}
 
-	rowID := row.ID
-	isFocused := focusedID == rowID
+	isFocused := focusedID == row.ID
 	rowColor := ColorTransparent
 	if isFocused {
 		rowColor = cfg.Colors.Focus
@@ -186,13 +256,6 @@ func treeRowView(
 	if row.IsExpanded && row.HasChildren {
 		a11yState = AccessStateExpanded
 	}
-	rootFocusID := cfg.ID
-	onSelect := cfg.OnSelect
-	onLazyLoad := cfg.OnLazyLoad
-	// The closures below read locals, never cfg: capturing cfg would
-	// move the whole TreeCfg to the heap for every row.
-	hoverColor := cfg.Colors.Hover
-	rowSound := treeRowSound(&cfg, row)
 
 	return Row(ContainerCfg{
 		A11YRole:  AccessRoleTreeItem,
@@ -206,36 +269,37 @@ func treeRowView(
 		),
 		Sizing:  FillFit,
 		Spacing: NoSpacing,
-		Sound:   rowSound,
-		Content: treeRowContentViews(row, iconWidth),
-		OnClick: func(ctx EventCtx) {
-			treeRowClick(
-				rootFocusID, row, rootFocusID, onSelect, onLazyLoad, ctx.Event, ctx.Window)
-		},
+		Sound:   treeRowSound(&cfg, row),
+		Content: treeRowContentViews(w, row, iconWidth),
+		// The shared handler reads the row back through click
+		// (treeClick.rowClick).
+		OnClick:  rowOnClick,
+		rowClick: click,
 		// The fill follows the pointer even on the focused row,
 		// matching ColorSet.pick's rule (#690). gui paints the style, so
 		// no OnHover closure is allocated per row per frame (#977).
-		Hover: HoverStyle{Color: hoverColor, Cursor: CursorPointingHand},
+		Hover: HoverStyle{Color: cfg.Colors.Hover, Cursor: CursorPointingHand},
 	})
 }
 
+// treeDragRowView builds one reorderable row. click is the row's
+// target in the tree's treeDragClick; a loading placeholder builds as
+// a plain one and ignores it. layoutID is the row's layout ID
+// (treeDragLayoutID).
 func treeDragRowView(
+	w *Window,
 	cfg TreeCfg,
 	row treeFlatRow,
 	iconWidth float32,
 	focusedID string,
-	sibIdx int,
-	siblingIDs []string,
-	itemLayoutIDs []string,
-	midsOffset int,
-	scrollID string,
+	click *rowClick,
+	layoutID string,
 ) View {
 	if row.IsLoading {
-		return treeRowView(cfg, row, iconWidth, focusedID)
+		return treeRowView(w, cfg, row, iconWidth, focusedID, nil)
 	}
 
-	rowID := row.ID
-	isFocused := focusedID == rowID
+	isFocused := focusedID == row.ID
 	rowColor := ColorTransparent
 	if isFocused {
 		rowColor = cfg.Colors.Focus
@@ -244,18 +308,6 @@ func treeDragRowView(
 	if row.IsExpanded && row.HasChildren {
 		a11yState = AccessStateExpanded
 	}
-	rootFocusID := cfg.ID
-	onSelect := cfg.OnSelect
-	onLazyLoad := cfg.OnLazyLoad
-	// The closures below read locals, never cfg: capturing cfg would
-	// move the whole TreeCfg to the heap for every row.
-	hoverColor := cfg.Colors.Hover
-	onReorder := cfg.OnReorder
-	treeID := cfg.ID
-	layoutID := treeRowID(cfg.ID, row.ID)
-	// Same cue as the plain row: the drag this handler also starts has
-	// no activation moment to sound at (issue #467).
-	rowSound := treeRowSound(&cfg, row)
 
 	return Row(ContainerCfg{
 		ID:        layoutID,
@@ -270,36 +322,26 @@ func treeDragRowView(
 		),
 		Sizing:  FillFit,
 		Spacing: NoSpacing,
-		Sound:   rowSound,
-		Content: treeRowContentViews(row, iconWidth),
-		OnClick: func(ctx EventCtx) {
-			dragReorderStart(dragReorderStartCfg{
-				DragKey:       treeID,
-				DropCue:       rowSound,
-				Index:         sibIdx,
-				ItemID:        rowID,
-				Axis:          dragReorderVertical,
-				ItemIDs:       siblingIDs,
-				OnReorder:     onReorder,
-				ItemLayoutIDs: itemLayoutIDs,
-				MidsOffset:    midsOffset,
-				ScrollID:      scrollID,
-				Layout:        ctx.Layout,
-				Event:         ctx.Event,
-			}, ctx.Window)
-			treeRowClick(
-				treeID, row, rootFocusID, onSelect, onLazyLoad, ctx.Event, ctx.Window)
-		},
+		// Same cue as the plain row: the drag this click also starts
+		// has no activation moment to sound at (issue #467). The drop
+		// cue is the same sound, carried on click.
+		Sound:   click.cue,
+		Content: treeRowContentViews(w, row, iconWidth),
+		// Arms the drag, then acts as a plain row
+		// (treeDragClick.rowClick).
+		OnClick:  rowOnClick,
+		rowClick: click,
 		// The fill follows the pointer even on the focused row,
 		// matching ColorSet.pick's rule (#690). gui paints the style, so
 		// no OnHover closure is allocated per row per frame (#977).
-		Hover: HoverStyle{Color: hoverColor, Cursor: CursorPointingHand},
+		Hover: HoverStyle{Color: cfg.Colors.Hover, Cursor: CursorPointingHand},
 	})
 }
 
 // treeRowContent returns the inner content of a tree row without
 // the Row container — used for the drag ghost.
 func treeRowContent(
+	w *Window,
 	cfg TreeCfg,
 	row treeFlatRow,
 	iconWidth float32,
@@ -318,14 +360,16 @@ func treeRowContent(
 		),
 		Sizing:  FillFit,
 		Spacing: NoSpacing,
-		Content: treeRowContentViews(row, iconWidth),
+		Content: treeRowContentViews(w, row, iconWidth),
 	})
 }
 
-func treeRowContentViews(row treeFlatRow, iconWidth float32) []View {
-	return []View{
+// treeRowContentViews is a row's arrow, icon and label. The slice comes
+// from the frame arena (rowContent).
+func treeRowContentViews(w *Window, row treeFlatRow, iconWidth float32) []View {
+	return append(rowContent(w, 3),
 		Text(TextCfg{
-			Text:      treeArrowIcon(row) + " ",
+			Text:      treeArrowIcon(row),
 			MinWidth:  iconWidth,
 			TextStyle: row.textStyleIcon,
 		}),
@@ -338,7 +382,7 @@ func treeRowContentViews(row treeFlatRow, iconWidth float32) []View {
 			Text:      row.Text,
 			TextStyle: row.TextStyle,
 		}),
-	}
+	)
 }
 
 func treeSiblingIndex(siblings []string, id string) int {
@@ -389,7 +433,7 @@ func treeRowClick(
 func treeOnKeyDown(
 	treeID string,
 	visibleIDs []string,
-	rowByID map[string]treeFlatRow,
+	rowByID map[string]*treeFlatRow,
 	onSelect func(string, EventCtx),
 	onLazyLoad func(string, string, *Window),
 	scrollID string,

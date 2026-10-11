@@ -174,17 +174,17 @@ func TestListCoreItemViewTextOnSelectFill(t *testing.T) {
 		PaddingItem: PaddingSmall,
 	}
 
-	plain := firstTextColor(t, listCoreItemView(item, 0, false, false, cfg))
+	plain := firstTextColor(t, listCoreItemView(item, 0, false, false, cfg, nil))
 	if !plain.eq(DefaultTextStyle.Color) {
 		t.Errorf("plain row color = %v, want body %v",
 			plain, DefaultTextStyle.Color)
 	}
-	highlighted := firstTextColor(t, listCoreItemView(item, 0, true, false, cfg))
+	highlighted := firstTextColor(t, listCoreItemView(item, 0, true, false, cfg, nil))
 	if !highlighted.eq(DefaultTextStyle.Color) {
 		t.Errorf("highlighted row color = %v, want body %v",
 			highlighted, DefaultTextStyle.Color)
 	}
-	selected := firstTextColor(t, listCoreItemView(item, 0, false, true, cfg))
+	selected := firstTextColor(t, listCoreItemView(item, 0, false, true, cfg, nil))
 	if !selected.eq(DefaultTextStyle.Color) {
 		t.Errorf("selected row color = %v, want body %v",
 			selected, DefaultTextStyle.Color)
@@ -203,7 +203,7 @@ func TestListCoreDisabledRowHoverSilent(t *testing.T) {
 	}
 	item := listCoreItem{ID: "a", Label: "Alpha", Disabled: true}
 	w := &Window{}
-	layout := generateViewLayout(listCoreItemView(item, 0, false, false, cfg), w)
+	layout := generateViewLayout(listCoreItemView(item, 0, false, false, cfg, nil), w)
 	if layout.Shape.events == nil || layout.Shape.events.OnHover == nil {
 		t.Fatal("row has no hover handler")
 	}
@@ -251,9 +251,9 @@ func TestListCoreItemFillOrder(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			w := &Window{}
 			layout := generateViewLayout(
-				listCoreItemView(item, 0, tc.highlighted, tc.selected, cfg), w)
+				listCoreItemView(item, 0, tc.highlighted, tc.selected, cfg, nil), w)
 			if tc.hover {
-				layout.Shape.events.OnHover(EventCtx{&layout, &Event{}, w})
+				layout.Shape.events.hover.apply(layout.Shape, w)
 			}
 			if layout.Shape.Color != tc.want {
 				t.Errorf("fill = %v, want %v", layout.Shape.Color, tc.want)

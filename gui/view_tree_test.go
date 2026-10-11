@@ -271,7 +271,7 @@ func TestTreeRowClickCollapseClearsLoading(t *testing.T) {
 func TestTreeOnKeyDownNavigation(t *testing.T) {
 	w := newTestWindow()
 	visibleIDs := []string{"a", "b", "c"}
-	rowByID := map[string]treeFlatRow{
+	rowByID := map[string]*treeFlatRow{
 		"a": {ID: "a"},
 		"b": {ID: "b"},
 		"c": {ID: "c"},
@@ -326,7 +326,7 @@ func TestTreeOnKeyDownLeftCollapses(t *testing.T) {
 	treeOnKeyDown(
 		"tree",
 		[]string{"root"},
-		map[string]treeFlatRow{
+		map[string]*treeFlatRow{
 			"root": {
 				ID:          "root",
 				HasChildren: true,
@@ -353,7 +353,7 @@ func TestTreeOnKeyDownRightTriggersLazyLoad(t *testing.T) {
 	w := newTestWindow()
 	treeFocusedSet(w, "tree", "remote")
 	visibleIDs := []string{"remote"}
-	rowByID := map[string]treeFlatRow{
+	rowByID := map[string]*treeFlatRow{
 		"remote": {
 			ID:          "remote",
 			HasChildren: true,
@@ -623,7 +623,7 @@ func TestTreeBuildRowsVirtualizedSpacers(t *testing.T) {
 		rows[i] = treeFlatRow{ID: string(rune('a' + i))}
 	}
 	cfg := &TreeCfg{ID: "tree", Spacing: NoSpacing}
-	views, ghost := treeBuildRows(
+	views, ghost := treeBuildRows(nil,
 		cfg, rows, "", 16,
 		nil, nil, nil, nil, nil, "",
 		false, false, dragReorderState{}, "",
@@ -662,7 +662,7 @@ func TestTreeBuildRowsDragGapAndGhost(t *testing.T) {
 		active:       true,
 		itemHeight:   20,
 	}
-	views, ghost := treeBuildRows(
+	views, ghost := treeBuildRows(nil,
 		cfg, rows, "", 16,
 		map[string]string{"a": "", "b": "", "c": ""},
 		map[string][]string{"": {"a", "b", "c"}},

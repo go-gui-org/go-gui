@@ -161,15 +161,29 @@ and this project adheres to
 
 ### Changed
 
-- **`ListBox` and `Tree` rows allocate less per frame.** A row built two
-  closures and a slice on every frame: an `OnHover` that set the hover fill and
-  cursor, an `OnClick` that held the row's selection data, and a one-item
-  `Content` slice. Both widgets now set `ContainerCfg.Hover` (#977), and gui
-  paints the same fill and cursor. A plain `ListBox` row now shares one click
-  handler that finds its row through the shape, and takes its `Content` slice
-  from the frame arena. A `ListBox` row now makes 3 allocations per frame, down
-  from 6. The `ListBox` benchmark that builds 64 rows makes 211 allocations,
-  down from 401. The hover look and click behavior do not change.
+- **`ListBox`, `Tree`, `Combobox` and `CommandPalette` rows allocate less.**
+  Each row built closures and a slice: an `OnHover` that set the hover fill and
+  cursor, an `OnClick` that held the row's data, and a `Content` slice. Rows now
+  set `ContainerCfg.Hover` (#977), and gui paints the same fill and cursor.
+  Every row now uses one shared click handler, which finds its row through the
+  shape. `ListBox` and `Tree` rows take their `Content` slice from the frame
+  arena. A `Tree` row also stopped copying itself into a map and into its click
+  closure. Allocations per row per frame:
+
+  | Row               | Before | After |
+  | ----------------- | ------ | ----- |
+  | `ListBox`         | 6      | 3     |
+  | `ListBox` reorder | 8      | 4     |
+  | `Tree`            | 11.25  | 5.25  |
+  | `Tree` reorder    | 14.75  | 7.38  |
+
+  A 200-node `Tree` builds a frame in half the allocations and 13–20% less time.
+  `Combobox` and `CommandPalette` rows drop from 5 to 3, paid when the query or
+  scroll changes; those widgets cache their rows between frames. A virtualized
+  `Tree` also sized its row list by every expanded row, about 16 bytes per row
+  of data each frame; it now follows the visible window. Hover, click, drag and
+  focus behavior do not change.
+
 - **go-glyph v1.26.3.** Two fewer heap allocations per text layout and per glyph
   load. `golang.org/x/image`, `x/sys`, `x/text` and `x/tools` move to the
   versions go-glyph builds with.

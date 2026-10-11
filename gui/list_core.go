@@ -352,6 +352,17 @@ func listCoreViews(items []listCoreItem, cfg listCoreCfg, first, last, highlight
 		}))
 	}
 
+	// The rows' click targets (row_click.go), one slice for the whole
+	// list; capacity bounds the rows, so it never grows. Heap, not the
+	// frame arena: Combobox and CommandPalette cache these views across
+	// frames, and the shapes built from them point at the targets.
+	var clicks []rowClick
+	var owner *listCoreClick
+	if cfg.OnItemClick != nil {
+		clicks = rowClicks(capacity)
+		owner = &listCoreClick{onItemClick: cfg.OnItemClick}
+	}
+
 	selectedSet := listCoreSelectedSet(selectedIDs)
 	for idx := first; idx <= last; idx++ {
 		if idx < 0 || idx >= total {
@@ -359,8 +370,15 @@ func listCoreViews(items []listCoreItem, cfg listCoreCfg, first, last, highlight
 		}
 		isHL := idx == highlighted
 		isSel := listCoreContainsSelected(selectedSet, selectedIDs, items[idx].ID)
+		// A disabled row is inert and a subheading is a caption: no
+		// click target for either.
+		var click *rowClick
+		if owner != nil && !items[idx].Disabled && !items[idx].isSubheading {
+			click = addRowClick(&clicks, rowClick{
+				owner: owner, id: items[idx].ID, index: idx})
+		}
 		views = append(views,
-			listCoreItemView(items[idx], idx, isHL, isSel, cfg))
+			listCoreItemView(items[idx], idx, isHL, isSel, cfg, click))
 	}
 
 	if last < total-1 && rowHeight > 0 {
@@ -405,7 +423,7 @@ func rowFill(colors ColorSet, base Color, selected, focused bool) (
 // accent/text pairing (issue #373) applies only where the full
 // accent fill still happens, which is menus and the focused
 // widget's own chrome.
-func listCoreItemView(item listCoreItem, index int, isHighlighted, isSelected bool, cfg listCoreCfg) View {
+func listCoreItemView(item listCoreItem, index int, isHighlighted, isSelected bool, cfg listCoreCfg, click *rowClick) View {
 	// The row fill goes through pick, so the order is the one every
 	// widget uses and is not written here by hand (#741). The
 	// keyboard highlight is the focus state: the pointer wins over it,
@@ -447,12 +465,33 @@ func listCoreItemView(item listCoreItem, index int, isHighlighted, isSelected bo
 		)
 	}
 
-	onItemClick := cfg.OnItemClick
-	onItemHover := cfg.OnItemHover
-	hasClick := onItemClick != nil
-	hasHover := onItemHover != nil
+	// The click is the shared rowOnClick (listCoreClick.rowClick);
+	// click is nil for a row that answers none.
+	var onClick func(EventCtx)
+	if click != nil {
+		onClick = rowOnClick
+	}
+
+	// A disabled row is inert: no cursor, no hover paint and no hover
+	// callback, matching the click gate. With no OnItemHover the look is
+	// a HoverStyle, which gui paints with no closure (#977). An
+	// OnItemHover is app code, so it keeps a closure and the row
+	// rebuilds on pointer moves inside it (#973).
+	var hover HoverStyle
+	var onHover func(EventCtx)
 	isDisabled := item.Disabled
-	itemID := item.ID
+	if onItemHover := cfg.OnItemHover; onItemHover != nil {
+		onHover = func(ctx EventCtx) {
+			if isDisabled {
+				return
+			}
+			ctx.Window.setMouseCursor(CursorPointingHand)
+			ctx.Layout.Shape.Color = bgHover
+			onItemHover(index, EventCtx{nil, ctx.Event, ctx.Window})
+		}
+	} else if !isDisabled {
+		hover = HoverStyle{Color: bgHover, Cursor: CursorPointingHand}
+	}
 
 	return Row(ContainerCfg{
 		Color:      bg,
@@ -460,26 +499,22 @@ func listCoreItemView(item listCoreItem, index int, isHighlighted, isSelected bo
 		SizeBorder: NoBorder,
 		Sizing:     FillFit,
 		Content:    content,
-		OnClick: func(ctx EventCtx) {
-			if hasClick && !isDisabled {
-				onItemClick(itemID, index, ctx)
-			}
-		},
-		// Reads no pointer position; an OnItemHover is app code (#973).
-		hoverStatic: !hasHover,
-		OnHover: func(ctx EventCtx) {
-			// A disabled row is inert: no cursor, no hover paint
-			// and no hover callback, matching the OnClick gate.
-			if isDisabled {
-				return
-			}
-			ctx.Window.setMouseCursor(CursorPointingHand)
-			ctx.Layout.Shape.Color = bgHover
-			if hasHover {
-				onItemHover(index, EventCtx{nil, ctx.Event, ctx.Window})
-			}
-		},
+		OnClick:    onClick,
+		rowClick:   click,
+		Hover:      hover,
+		OnHover:    onHover,
 	})
+}
+
+// listCoreClick is the click state every row of one listCore list
+// shares. rowClick.index is the row's index in the filtered items.
+type listCoreClick struct {
+	onItemClick func(string, int, EventCtx)
+}
+
+// rowClick reports the clicked row.
+func (l *listCoreClick) rowClick(rc *rowClick, ctx EventCtx) {
+	l.onItemClick(rc.id, rc.index, ctx)
 }
 
 // listCoreSubheadingView renders a subheading row.

@@ -54,24 +54,23 @@ func listBoxBuildItems(
 	}
 	list := make([]View, 0, listCap)
 
-	// The plain rows' click targets, one slice for the whole list: a
-	// row's OnClick is the shared listBoxRowOnClick, which finds its
-	// row through the shape. A closure per row cost one allocation per
-	// visible row per frame; this costs two per list. The slice never
-	// grows past listCap, so the pointers taken into it stay valid. A
-	// list with no OnSelect answers no click and needs none of it.
-	var clicks []listBoxRowClick
-	var shared *listBoxClick
+	// The rows' click targets (row_click.go), one slice for the whole
+	// list. listCap bounds the rows, so the slice never grows. A plain
+	// row answers a click only when the list has an OnSelect; a
+	// reorderable row always does, because the click also starts the
+	// drag.
+	var clicks []rowClick
+	var plain *listBoxClick
+	var reorder *listBoxReorderClick
+	if cfg.OnSelect != nil || canReorder {
+		clicks = rowClicks(listCap)
+	}
 	if cfg.OnSelect != nil {
-		clicks = make([]listBoxRowClick, 0, listCap)
-		shared = &listBoxClick{
-			listBoxID:     cfg.ID,
-			focusDisabled: cfg.FocusDisabled,
-			isMultiple:    cfg.Multiple,
-			onSelect:      cfg.OnSelect,
-			selectedIDs:   cfg.SelectedIDs,
-			itemIDs:       itemIDs,
-		}
+		plain = newListBoxClick(cfg, itemIDs)
+	}
+	if canReorder {
+		reorder = newListBoxReorderClick(cfg, itemIDs, itemLayoutIDs,
+			midsOffset, scrollID)
 	}
 
 	if virtualize && first > 0 {
@@ -105,15 +104,17 @@ func listBoxBuildItems(
 		}
 
 		if canReorder && isDraggable {
-			list = append(list, listBoxReorderItemView(
-				cfg.Data[idx], *cfg, selectedSet, focusedID, di,
-				itemIDs, itemLayoutIDs, midsOffset, scrollID))
+			click := addRowClick(&clicks, rowClick{
+				owner: reorder, id: cfg.Data[idx].ID, index: di})
+			list = append(list, listBoxReorderItemView(w,
+				cfg.Data[idx], *cfg, selectedSet, focusedID, click,
+				listBoxReorderLayoutID(cfg, itemLayoutIDs, midsOffset,
+					di, cfg.Data[idx].ID)))
 		} else {
-			var click *listBoxRowClick
-			if shared != nil && !cfg.Data[idx].isSubheading {
-				clicks = append(clicks, listBoxRowClick{
-					list: shared, datID: cfg.Data[idx].ID})
-				click = &clicks[len(clicks)-1]
+			var click *rowClick
+			if plain != nil && !cfg.Data[idx].isSubheading {
+				click = addRowClick(&clicks, rowClick{
+					owner: plain, id: cfg.Data[idx].ID})
 			}
 			list = append(list,
 				listBoxItemView(w,
@@ -135,7 +136,7 @@ func listBoxBuildItems(
 }
 
 // listBoxClick is the click state every plain row of one ListBox
-// shares. It holds what the per-row OnClick closure used to capture.
+// shares: what the per-row OnClick closure used to capture.
 type listBoxClick struct {
 	listBoxID     string
 	focusDisabled bool
@@ -145,28 +146,79 @@ type listBoxClick struct {
 	itemIDs       []string
 }
 
-// listBoxRowClick is the click target of one plain row. The row's
-// shape points at it through eventHandlers.listBoxRow.
-type listBoxRowClick struct {
-	list  *listBoxClick
-	datID string
+// newListBoxClick builds the select state of one list. itemIDs are the
+// list's selectable IDs, in order.
+func newListBoxClick(cfg *ListBoxCfg, itemIDs []string) *listBoxClick {
+	return &listBoxClick{
+		listBoxID:     cfg.ID,
+		focusDisabled: cfg.FocusDisabled,
+		isMultiple:    cfg.Multiple,
+		onSelect:      cfg.OnSelect,
+		selectedIDs:   cfg.SelectedIDs,
+		itemIDs:       itemIDs,
+	}
 }
 
-// listBoxRowOnClick is the OnClick of every plain ListBox row. It is
-// a plain func, not a closure, so a row allocates no handler; it reads
-// its row back through the shape.
-func listBoxRowOnClick(ctx EventCtx) {
-	rc := ctx.Layout.Shape.events.listBoxRow
-	if rc == nil {
-		return
-	}
-	l := rc.list
-	// Keyboard focus follows the click, so the focus ring and the
-	// selection agree.
+// rowClick selects the row. Keyboard focus follows the click, so the
+// focus ring and the selection agree.
+func (l *listBoxClick) rowClick(rc *rowClick, ctx EventCtx) {
 	listBoxFocusOnClick(l.listBoxID, l.focusDisabled,
-		l.itemIDs, rc.datID, ctx.Window)
-	ids := listBoxNextSelectedIDs(l.selectedIDs, rc.datID, l.isMultiple)
+		l.itemIDs, rc.id, ctx.Window)
+	ids := listBoxNextSelectedIDs(l.selectedIDs, rc.id, l.isMultiple)
 	l.onSelect(ids, EventCtx{nil, ctx.Event, ctx.Window})
+}
+
+// listBoxReorderClick is the click state every reorderable row of one
+// ListBox shares. A row's rowClick.index is its drag index.
+type listBoxReorderClick struct {
+	sel           listBoxClick
+	dropCue       SoundCue
+	onReorder     func(string, string, EventCtx)
+	itemLayoutIDs []string
+	midsOffset    int
+	scrollID      string
+}
+
+// newListBoxReorderClick builds the drag and select state of one
+// reorderable list.
+func newListBoxReorderClick(
+	cfg *ListBoxCfg, itemIDs, itemLayoutIDs []string,
+	midsOffset int, scrollID string,
+) *listBoxReorderClick {
+	return &listBoxReorderClick{
+		sel: *newListBoxClick(cfg, itemIDs),
+		// The drop cue is resolved unconditionally: a reorder is a
+		// change whether or not the list also reports selection
+		// (issue #468).
+		dropCue: resolveSoundCue(
+			guiTheme.Sounds.Selection, cfg.Sound, cfg.SoundDisabled),
+		onReorder:     cfg.OnReorder,
+		itemLayoutIDs: itemLayoutIDs,
+		midsOffset:    midsOffset,
+		scrollID:      scrollID,
+	}
+}
+
+// rowClick arms the drag, then selects the row when the list has an
+// OnSelect.
+func (l *listBoxReorderClick) rowClick(rc *rowClick, ctx EventCtx) {
+	dragReorderStart(dragReorderStartCfg{
+		DragKey:       l.sel.listBoxID,
+		DropCue:       l.dropCue,
+		Index:         rc.index,
+		ItemID:        rc.id,
+		Axis:          dragReorderVertical,
+		ItemIDs:       l.sel.itemIDs,
+		OnReorder:     l.onReorder,
+		ItemLayoutIDs: l.itemLayoutIDs,
+		MidsOffset:    l.midsOffset,
+		ScrollID:      l.scrollID,
+		Layout:        ctx.Layout,
+		Event:         ctx.Event,
+	}, ctx.Window)
+	if l.sel.onSelect != nil {
+		l.sel.rowClick(rc, ctx)
+	}
 }
 
 // listBoxItemView builds one plain row. click is nil for a row that
@@ -178,7 +230,7 @@ func listBoxItemView(
 	cfg ListBoxCfg,
 	selectedSet map[string]struct{},
 	focusedID string,
-	click *listBoxRowClick,
+	click *rowClick,
 ) View {
 	isFocusRow := listBoxIsFocusRow(dat, focusedID)
 	selected := listCoreContainsSelected(selectedSet, cfg.SelectedIDs, dat.ID)
@@ -216,19 +268,8 @@ func listBoxItemView(
 	var onClick func(EventCtx)
 	if answers {
 		hover = HoverStyle{Color: bgHover, Cursor: CursorPointingHand}
-		onClick = listBoxRowOnClick
+		onClick = rowOnClick
 	}
-
-	// The one-child Content slice comes from the frame's view arena,
-	// not the heap: the row's container reads it during this frame's
-	// generation and keeps nothing.
-	var rowContent []View
-	if w != nil {
-		rowContent = w.scratch.takeViews(1)
-	} else {
-		rowContent = make([]View, 0, 1)
-	}
-	rowContent = append(rowContent, content)
 
 	return Row(ContainerCfg{
 		A11YRole:  AccessRoleListItem,
@@ -243,29 +284,46 @@ func listBoxItemView(
 		SizeBorder: NoBorder,
 		Sizing:     FillFit,
 		Sound:      rowSound,
-		Content:    rowContent,
+		Content:    append(rowContent(w, 1), content),
 		// The ring paints only while the list itself holds window
 		// focus. Focus is resolved after layout, so it cannot be
 		// decided at generation; the row carries no ID of its own,
 		// so the hook tests the list's effective ID.
 		AmendLayout: listBoxItemRingAmend(
 			isFocusRow, cfg.ID, cfg.Colors.BorderFocus),
-		OnClick:    onClick,
-		listBoxRow: click,
-		Hover:      hover,
+		OnClick:  onClick,
+		rowClick: click,
+		Hover:    hover,
 	})
 }
 
+// listBoxReorderLayoutID is the layout ID of the reorderable row with
+// drag index di. listBoxItemLayoutIDs already composed it for drag
+// tracking: entry k is the k-th draggable row of the window, and
+// midsOffset counts the draggable rows above the window, so the row's
+// entry is di - midsOffset. Reusing it saves a ScopeID string per row
+// per frame. Out of range falls back to composing it.
+func listBoxReorderLayoutID(
+	cfg *ListBoxCfg, itemLayoutIDs []string, midsOffset, di int,
+	id string,
+) string {
+	if k := di - midsOffset; k >= 0 && k < len(itemLayoutIDs) {
+		return itemLayoutIDs[k]
+	}
+	return listBoxItemID(cfg.ID, id)
+}
+
+// listBoxReorderItemView builds one reorderable row. click is its
+// target in the list's listBoxReorderClick; never nil. layoutID is
+// the row's layout ID (listBoxReorderLayoutID).
 func listBoxReorderItemView(
+	w *Window,
 	dat ListBoxOption,
 	cfg ListBoxCfg,
 	selectedSet map[string]struct{},
 	focusedID string,
-	dragIdx int,
-	itemIDs []string,
-	itemLayoutIDs []string,
-	midsOffset int,
-	scrollID string,
+	click *rowClick,
+	layoutID string,
 ) View {
 	// A reorderable row takes the same keyboard-focus ring as a plain
 	// one, by the same rule.
@@ -276,16 +334,6 @@ func listBoxReorderItemView(
 	bg, bgHover := rowFill(cfg.Colors, ColorTransparent, selected,
 		false)
 	content := listBoxItemContent(dat, cfg)
-	layoutID := listBoxItemID(cfg.ID, dat.ID)
-
-	datID := dat.ID
-	isMultiple := cfg.Multiple
-	onSelect := cfg.OnSelect
-	hasOnSelect := onSelect != nil
-	selectedIDs := cfg.SelectedIDs
-	listBoxID := cfg.ID
-	focusDisabled := cfg.FocusDisabled
-	onReorder := cfg.OnReorder
 
 	a11yState := AccessStateNone
 	if selected {
@@ -295,18 +343,13 @@ func listBoxReorderItemView(
 	// The cue marks the selection the click makes, not the drag it
 	// also starts: a drag has no activation moment to sound at, and
 	// dragging is phase 3's question (issue #467).
-	// The drop cue is resolved unconditionally: a reorder is a change
-	// whether or not the list also reports selection (issue #468).
-	dropCue := resolveSoundCue(
-		guiTheme.Sounds.Selection, cfg.Sound, cfg.SoundDisabled)
-
 	rowSound := SoundNone
 	// Matches the plain row: a list with no OnSelect answers nothing,
 	// so the row stays silent and takes no hover look. Subheadings
 	// never reach this view — without a drag index they build as
 	// plain rows.
 	var hover HoverStyle
-	if hasOnSelect {
+	if cfg.OnSelect != nil {
 		rowSound = resolveSoundCue(
 			guiTheme.Sounds.Selection, cfg.Sound, cfg.SoundDisabled)
 		hover = HoverStyle{Color: bgHover, Cursor: CursorPointingHand}
@@ -325,35 +368,13 @@ func listBoxReorderItemView(
 		SizeBorder: NoBorder,
 		Sizing:     FillFit,
 		Sound:      rowSound,
-		Content:    []View{content},
+		Content:    append(rowContent(w, 1), content),
 		AmendLayout: listBoxItemRingAmend(
 			isFocusRow, cfg.ID, cfg.Colors.BorderFocus),
-		OnClick: func(ctx EventCtx) {
-			dragReorderStart(dragReorderStartCfg{
-				DragKey:       listBoxID,
-				DropCue:       dropCue,
-				Index:         dragIdx,
-				ItemID:        datID,
-				Axis:          dragReorderVertical,
-				ItemIDs:       itemIDs,
-				OnReorder:     onReorder,
-				ItemLayoutIDs: itemLayoutIDs,
-				MidsOffset:    midsOffset,
-				ScrollID:      scrollID,
-				Layout:        ctx.Layout,
-				Event:         ctx.Event,
-			}, ctx.Window)
-			if hasOnSelect {
-				// Keyboard focus follows the click, so the
-				// focus ring and the selection agree.
-				listBoxFocusOnClick(listBoxID, focusDisabled,
-					itemIDs, datID, ctx.Window)
-				ids := listBoxNextSelectedIDs(
-					selectedIDs, datID, isMultiple)
-				onSelect(ids, EventCtx{nil, ctx.Event, ctx.Window})
-			}
-		},
-		Hover: hover,
+		// Arms the drag, then selects (listBoxReorderClick.rowClick).
+		OnClick:  rowOnClick,
+		rowClick: click,
+		Hover:    hover,
 	})
 }
 

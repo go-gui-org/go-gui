@@ -235,7 +235,7 @@ func (tv *treeView) GenerateLayout(w *Window) Layout {
 		}
 	}
 
-	rows, ghostContent := treeBuildRows(
+	rows, ghostContent := treeBuildRows(w,
 		cfg, flatRows, focusedID, iconWidth,
 		parentOf, siblingsByParent, siblingIdx,
 		parentLayoutIDs, parentMidsOff, scrollID,
@@ -324,11 +324,16 @@ func (tv *treeView) GenerateLayout(w *Window) Layout {
 // from flat rows, skipping loading placeholders.
 func treeFlatRowIndex(
 	flatRows []treeFlatRow,
-) ([]string, map[string]treeFlatRow) {
+) ([]string, map[string]*treeFlatRow) {
 	visibleIDs := make([]string, 0, len(flatRows))
-	rowByID := make(map[string]treeFlatRow, len(flatRows))
+	// Pointers into flatRows, not row values: treeFlatRow is too large
+	// for a map to store in its buckets, so a value map allocated
+	// every entry, each frame. flatRows is made fresh each frame and
+	// not changed after this, so the pointers stay valid for the
+	// key handler that holds the map.
+	rowByID := make(map[string]*treeFlatRow, len(flatRows))
 	for i := range flatRows {
-		row := flatRows[i]
+		row := &flatRows[i]
 		if row.IsLoading {
 			continue
 		}
@@ -370,7 +375,7 @@ func treeBuildSiblingInfo(
 	if !canReorder {
 		return nil, nil, nil
 	}
-	siblingIdx := make(map[string]int)
+	siblingIdx := make(map[string]int, len(flatRows))
 	parentLayoutIDs := make(map[string][]string)
 	parentMidsOff := make(map[string]int)
 
@@ -405,6 +410,7 @@ func treeBuildSiblingInfo(
 // treeBuildRows builds the list of row views, including
 // virtualization spacers and drag-reorder gap/ghost handling.
 func treeBuildRows(
+	w *Window,
 	cfg *TreeCfg,
 	flatRows []treeFlatRow,
 	focusedID string, iconWidth float32,
@@ -419,11 +425,41 @@ func treeBuildRows(
 	virtualize bool, rowHeight float32,
 	first, last int,
 ) ([]View, View) {
+	// Rows plus the two spacers. A virtualized tree builds rows only
+	// for first..last, so its cap follows the window, as ListBox's
+	// does; sizing it by every expanded row allocated in proportion
+	// to the data each frame.
 	rowsCap := len(flatRows) + 2
+	if virtualize && last >= first {
+		rowsCap = last - first + 3
+	}
 	if dragging {
 		rowsCap += 3
 	}
 	rows := make([]View, 0, rowsCap)
+
+	// The rows' click targets (row_click.go), one slice for the whole
+	// tree. Sized by the visible window, not rowsCap: a virtualized
+	// tree builds rows only for first..last, and sizing by every
+	// expanded row would allocate in proportion to the data each
+	// frame. The loop adds at most one target per row in the window,
+	// so the slice never grows.
+	clicks := rowClicks(max(0, min(last, len(flatRows)-1)-max(first, 0)+1))
+	var owner rowClickOwner
+	if canReorder {
+		owner = &treeDragClick{
+			sel:              *newTreeClick(cfg),
+			onReorder:        cfg.OnReorder,
+			parentOf:         parentOf,
+			siblingsByParent: siblingsByParent,
+			parentLayoutIDs:  parentLayoutIDs,
+			parentMidsOff:    parentMidsOff,
+			scrollID:         scrollID,
+		}
+	} else {
+		owner = newTreeClick(cfg)
+	}
+
 	if virtualize && first > 0 {
 		rows = append(rows, Rectangle(RectangleCfg{
 			Color:  ColorTransparent,
@@ -437,7 +473,7 @@ func treeBuildRows(
 		if i < 0 || i >= len(flatRows) {
 			continue
 		}
-		row := flatRows[i]
+		row := &flatRows[i]
 		var rowParent string
 		if canReorder {
 			rowParent = parentOf[row.ID]
@@ -451,23 +487,30 @@ func treeBuildRows(
 					dragReorderGapView(drag, dragReorderVertical))
 			}
 			if si == drag.sourceIndex {
-				ghostContent = treeRowContent(
-					*cfg, row, iconWidth, focusedID)
+				ghostContent = treeRowContent(w,
+					*cfg, *row, iconWidth, focusedID)
 				continue
 			}
 		}
 
+		var click *rowClick
+		if !row.IsLoading {
+			click = addRowClick(&clicks, rowClick{
+				owner: owner,
+				id:    row.ID,
+				index: siblingIdx[row.ID],
+				tree:  row,
+				cue:   treeRowSound(cfg, *row),
+			})
+		}
 		if canReorder {
-			rows = append(rows, treeDragRowView(
-				*cfg, row, iconWidth, focusedID,
-				siblingIdx[row.ID],
-				siblingsByParent[rowParent],
-				parentLayoutIDs[rowParent],
-				parentMidsOff[rowParent],
-				scrollID))
+			rows = append(rows, treeDragRowView(w,
+				*cfg, *row, iconWidth, focusedID, click,
+				treeDragLayoutID(cfg.ID, parentLayoutIDs[rowParent],
+					parentMidsOff[rowParent], siblingIdx[row.ID], row.ID)))
 		} else {
-			rows = append(rows, treeRowView(
-				*cfg, row, iconWidth, focusedID))
+			rows = append(rows, treeRowView(w,
+				*cfg, *row, iconWidth, focusedID, click))
 		}
 	}
 
@@ -499,6 +542,22 @@ func applyTreeDefaults(cfg *TreeCfg) {
 
 // treeRowID is the layout ID of one tree row. The row builder and the
 // scroll-into-view lookup both compose it, so they share this helper.
+// treeDragLayoutID is the layout ID of the reorderable row with
+// sibling index si. treeBuildSiblingInfo already composed it for drag
+// tracking: a parent's siblings are its non-loading rows in flat
+// order, lids holds those inside the window and midsOff counts those
+// above it, so the row's entry is si - midsOff. Reusing it saves a
+// ScopeID string per row per frame. Out of range falls back to
+// composing it.
+func treeDragLayoutID(
+	treeID string, lids []string, midsOff, si int, rowID string,
+) string {
+	if k := si - midsOff; k >= 0 && k < len(lids) {
+		return lids[k]
+	}
+	return treeRowID(treeID, rowID)
+}
+
 func treeRowID(treeID, rowID string) string {
 	return ScopeID(treeID, "row", rowID)
 }

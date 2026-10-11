@@ -1,6 +1,10 @@
 package gui
 
-import "testing"
+import (
+	"runtime"
+	"strconv"
+	"testing"
+)
 
 func TestTreeEstimateRowHeightNilWindow(t *testing.T) {
 	// Without a text measurer the estimate falls back to the style
@@ -42,11 +46,10 @@ func TestTreeDragRowViewLoadingDelegates(t *testing.T) {
 	// A loading placeholder row must render through treeRowView with
 	// no drag arm, so no layout ID is attached.
 	cfg := TreeCfg{ID: "tree", Spacing: NoSpacing}
-	view := treeDragRowView(
+	view := treeDragRowView(nil,
 		cfg,
 		treeFlatRow{ID: "load", IsLoading: true, Text: "Loading..."},
-		16, "",
-		0, nil, nil, 0, "",
+		16, "", nil, "",
 	)
 	w := newTestWindow()
 	layout := generateViewLayout(view, w)
@@ -64,11 +67,12 @@ func TestTreeDragRowViewArmsDrag(t *testing.T) {
 	// A reorderable row must carry its layout ID and arm the
 	// drag-reorder state when clicked.
 	cfg := TreeCfg{ID: "tree", Spacing: NoSpacing}
-	view := treeDragRowView(
-		cfg,
-		treeFlatRow{ID: "a", Text: "A"},
-		16, "",
-		0, []string{"a"}, []string{"tree:row:a"}, 0, "",
+	row := treeFlatRow{ID: "a", Text: "A"}
+	view := treeDragRowView(nil,
+		cfg, row, 16, "",
+		treeTestDragClick(&cfg, &row, 0,
+			[]string{"a"}, []string{"tree:row:a"}),
+		"tree:row:a",
 	)
 	w := newTestWindow()
 	w.layout = Layout{Shape: &Shape{ID: "root"}}
@@ -94,7 +98,7 @@ func TestTreeRowContent(t *testing.T) {
 	// treeRowContent builds the ghost content for a drag — a row
 	// container with the tree's icon + text children.
 	cfg := TreeCfg{ID: "tree", Spacing: NoSpacing}
-	view := treeRowContent(
+	view := treeRowContent(nil,
 		cfg,
 		treeFlatRow{ID: "a", Text: "Alpha", HasChildren: true},
 		16, "a",
@@ -145,9 +149,12 @@ func TestTreeRowHoverIsStyleNotClosure(t *testing.T) {
 	cfg.Colors = cfg.Colors.resolved(cfg.Color, defaultTreeStyle.Colors)
 	row := treeFlatRow{ID: "a", Text: "A"}
 	views := map[string]View{
-		"plain": treeRowView(cfg, row, 16, ""),
-		"drag": treeDragRowView(cfg, row, 16, "",
-			0, []string{"a"}, []string{"tree:row:a"}, 0, ""),
+		"plain": treeRowView(nil, cfg, row, 16, "",
+			&rowClick{owner: newTreeClick(&cfg), id: "a", tree: &row}),
+		"drag": treeDragRowView(nil, cfg, row, 16, "",
+			treeTestDragClick(&cfg, &row, 0,
+				[]string{"a"}, []string{"tree:row:a"}),
+			"tree:row:a"),
 	}
 	for name, view := range views {
 		w := newTestWindow()
@@ -168,5 +175,122 @@ func TestTreeRowHoverIsStyleNotClosure(t *testing.T) {
 			t.Errorf("%s row hover cursor = %v, want pointing hand",
 				name, ev.hover.Cursor)
 		}
+	}
+}
+
+// treeTestDragClick is the click target treeBuildRows gives a
+// reorderable root row: siblings and layoutIDs are the root's children.
+func treeTestDragClick(
+	cfg *TreeCfg, row *treeFlatRow, sibIdx int,
+	siblings, layoutIDs []string,
+) *rowClick {
+	parentOf := make(map[string]string, len(siblings))
+	for _, id := range siblings {
+		parentOf[id] = ""
+	}
+	return &rowClick{
+		owner: &treeDragClick{
+			sel:              *newTreeClick(cfg),
+			onReorder:        cfg.OnReorder,
+			parentOf:         parentOf,
+			siblingsByParent: map[string][]string{"": siblings},
+			parentLayoutIDs:  map[string][]string{"": layoutIDs},
+			parentMidsOff:    map[string]int{"": 0},
+		},
+		id:    row.ID,
+		index: sibIdx,
+		tree:  row,
+		cue:   treeRowSound(cfg, *row),
+	}
+}
+
+// Every reorderable tree row carries the layout ID treeRowID composes
+// for it, with nested expanded nodes and with the list scrolled so the
+// window starts mid-tree. The rows reuse the IDs treeBuildSiblingInfo
+// already composed for drag tracking, indexed by sibling index minus
+// the parent's midsOffset; this pins that the two agree.
+func TestTreeReorderRowLayoutIDs(t *testing.T) {
+	nodes := make([]TreeNodeCfg, 0, 20)
+	for i := range 20 {
+		s := strconv.Itoa(i)
+		kids := make([]TreeNodeCfg, 0, 4)
+		for j := range 4 {
+			k := s + "-" + strconv.Itoa(j)
+			kids = append(kids, TreeNodeCfg{ID: "n-" + k, Text: "Node " + k})
+		}
+		nodes = append(nodes, TreeNodeCfg{
+			ID: "n-" + s, Text: "Node " + s, Nodes: kids})
+	}
+	for _, scroll := range []float32{0, -900} {
+		w := newTestWindow()
+		for i := range 20 {
+			if i%2 == 0 {
+				treeExpandedSet(w, "tree-ids", "n-"+strconv.Itoa(i), true)
+			}
+		}
+		w.scrollY().Set("tree-ids", scroll)
+		layout := generateViewLayout(Tree(TreeCfg{
+			ID:          "tree-ids",
+			MaxHeight:   220,
+			Nodes:       nodes,
+			Reorderable: true,
+			OnReorder:   func(string, string, EventCtx) {},
+		}), w)
+		got := 0
+		firstName := ""
+		for _, row := range treeRows(&layout) {
+			if row.Shape.A11YRole != AccessRoleTreeItem {
+				continue
+			}
+			name := row.Shape.a11Y.Label
+			if firstName == "" {
+				firstName = name
+			}
+			// The label "Node 3-1" belongs to ID "n-3-1".
+			want := treeRowID("tree-ids", "n-"+name[len("Node "):])
+			if row.Shape.ID != want {
+				t.Errorf("scroll %v: row %q ID = %q, want %q",
+					scroll, name, row.Shape.ID, want)
+			}
+			got++
+		}
+		if got == 0 {
+			t.Fatalf("scroll %v: no reorderable rows built", scroll)
+		}
+		// The scrolled window must start past the first rows, or the
+		// midsOffset path goes untested.
+		if scroll != 0 && firstName == "Node 0" {
+			t.Fatalf("scroll %v: window starts at the top", scroll)
+		}
+	}
+}
+
+// A virtualized tree builds rows only for its visible window, so the
+// memory one frame's row build takes must follow the window, not the
+// number of expanded rows. Sizing the views or click-target slices by
+// every row allocated about 90 bytes per row of data per frame.
+func TestTreeBuildRowsMemoryFollowsWindow(t *testing.T) {
+	const n = 20000
+	flatRows := make([]treeFlatRow, n)
+	for i := range flatRows {
+		flatRows[i] = treeFlatRow{ID: "n" + strconv.Itoa(i), Text: "x"}
+	}
+	cfg := &TreeCfg{ID: "tree-mem", Colors: defaultTreeStyle.Colors}
+	build := func() {
+		_, _ = treeBuildRows(nil, cfg, flatRows, "", 16,
+			nil, nil, nil, nil, nil, "",
+			false, false, dragReorderState{}, "",
+			true, 20, 100, 109)
+	}
+	build() // warm up lazily built state
+	var before, after runtime.MemStats
+	runtime.ReadMemStats(&before)
+	build()
+	runtime.ReadMemStats(&after)
+	// A 10-row window needs a few KB. 8 bytes per row of data is far
+	// below what a slice sized by the data costs (16 per View alone).
+	if got := after.TotalAlloc - before.TotalAlloc; got > n*8 {
+		t.Errorf("row build allocated %d bytes for a 10-row window "+
+			"over %d rows, want <= %d", got, n, n*8)
 	}
 }

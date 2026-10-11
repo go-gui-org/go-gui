@@ -278,40 +278,179 @@ func TestVirtualListAllocsAreFlat(t *testing.T) {
 	}
 }
 
-// A plain ListBox row allocates only what its own shapes need. The
-// hover look is a HoverStyle (#977), the click is the shared
-// listBoxRowOnClick that reads its row through the shape, and the
-// one-child Content slice comes from the frame arena. A closure or
-// heap slice per row would raise the per-row count measured here,
-// as the difference between a list of 16 rows and one of 8.
-func TestListBoxRowAllocsPerRow(t *testing.T) {
+// rowAllocsPerRow is the per-row allocation cost of a list-like
+// widget: the allocations of one frame with 16 rows minus those with
+// 8, over 8. List-level costs cancel out, so the number is what each
+// visible row adds. build makes the test data for n rows and returns
+// the factory call, which runs inside the measured func as it does in
+// a real frame; rows counts the rows it built.
+func rowAllocsPerRow(
+	t *testing.T, build func(n int) func() View, rows func(*Layout) int,
+) float64 {
+	t.Helper()
 	const small, large = 8, 16
 	measure := func(n int) float64 {
-		data := make([]ListBoxOption, n)
-		for i := range n {
-			s := strconv.Itoa(i)
-			data[i] = NewListBoxOption("id-"+s, "Name "+s, "")
-		}
 		w := newTestWindow()
-		v := ListBox(ListBoxCfg{
-			ID:       "lb-allocs",
-			Data:     data,
-			OnSelect: func([]string, EventCtx) {},
-		})
-		if got := len(listBoxRows(new(generateViewLayout(v, w)))); got != n {
+		view := build(n)
+		if got := rows(new(generateViewLayout(view(), w))); got != n {
 			t.Fatalf("rows built = %d, want %d", got, n)
 		}
 		return testing.AllocsPerRun(50, func() {
 			w.scratch.resetViewPools()
-			_ = generateViewLayout(v, w)
+			_ = generateViewLayout(view(), w)
 		})
 	}
 	perRow := (measure(large) - measure(small)) / (large - small)
 	t.Logf("allocs per row = %.2f", perRow)
+	return perRow
+}
+
+// rowAllocsListBoxData is n plain ListBox options.
+func rowAllocsListBoxData(n int) []ListBoxOption {
+	data := make([]ListBoxOption, n)
+	for i := range n {
+		s := strconv.Itoa(i)
+		data[i] = NewListBoxOption("id-"+s, "Name "+s, "")
+	}
+	return data
+}
+
+// rowAllocsTreeNodes is n leaf nodes at the root.
+func rowAllocsTreeNodes(n int) []TreeNodeCfg {
+	nodes := make([]TreeNodeCfg, n)
+	for i := range n {
+		s := strconv.Itoa(i)
+		nodes[i] = TreeNodeCfg{ID: "n-" + s, Text: "Node " + s}
+	}
+	return nodes
+}
+
+// The per-row gates below hold each list-like row to what its own
+// shapes need. The hover look is a HoverStyle (#977), the click is the
+// shared rowOnClick that reads its row through the shape, and the
+// Content slice comes from the frame arena. A closure or a heap slice
+// per row raises the count.
+
+func TestListBoxRowAllocsPerRow(t *testing.T) {
+	perRow := rowAllocsPerRow(t, func(n int) func() View {
+		cfg := ListBoxCfg{
+			ID:       "lb-allocs",
+			Data:     rowAllocsListBoxData(n),
+			OnSelect: func([]string, EventCtx) {},
+		}
+		return func() View { return ListBox(cfg) }
+	}, func(l *Layout) int { return len(listBoxRows(l)) })
 	// Measured 3: the row's a11y payload, its text view and the text
 	// shape's payload. With a closure per row for click and hover and
 	// a heap Content slice it was 6.
 	if perRow > 3 {
 		t.Errorf("allocs per row = %.2f, want <= 3", perRow)
+	}
+}
+
+func TestListBoxReorderRowAllocsPerRow(t *testing.T) {
+	perRow := rowAllocsPerRow(t, func(n int) func() View {
+		cfg := ListBoxCfg{
+			ID:          "lb-reorder-allocs",
+			Data:        rowAllocsListBoxData(n),
+			Reorderable: true,
+			OnSelect:    func([]string, EventCtx) {},
+			OnReorder:   func(string, string, EventCtx) {},
+		}
+		return func() View { return ListBox(cfg) }
+	}, func(l *Layout) int { return len(listBoxRows(l)) })
+	// Measured 4: the plain row's 3 and the row's layout ID, which
+	// drag tracking needs. With a click closure and a heap Content
+	// slice, a hover closure and the layout ID composed twice, it was 8.
+	if perRow > 4 {
+		t.Errorf("allocs per row = %.2f, want <= 4", perRow)
+	}
+}
+
+func TestTreeRowAllocsPerRow(t *testing.T) {
+	perRow := rowAllocsPerRow(t, func(n int) func() View {
+		cfg := TreeCfg{
+			ID:       "tree-allocs",
+			Nodes:    rowAllocsTreeNodes(n),
+			OnSelect: func(string, EventCtx) {},
+		}
+		return func() View { return Tree(cfg) }
+	}, func(l *Layout) int { return len(treeRows(l)) })
+	// Measured 5.25: the row's container, its a11y payload and its 3
+	// text views, plus map growth. With a click closure that copied
+	// the row, a hover closure, a heap Content slice and a map holding
+	// row values it was 11.25.
+	if perRow > 5.5 {
+		t.Errorf("allocs per row = %.2f, want <= 5.5", perRow)
+	}
+}
+
+func TestTreeReorderRowAllocsPerRow(t *testing.T) {
+	perRow := rowAllocsPerRow(t, func(n int) func() View {
+		cfg := TreeCfg{
+			ID:          "tree-reorder-allocs",
+			Nodes:       rowAllocsTreeNodes(n),
+			Reorderable: true,
+			OnSelect:    func(string, EventCtx) {},
+			OnReorder:   func(string, string, EventCtx) {},
+		}
+		return func() View { return Tree(cfg) }
+	}, func(l *Layout) int { return len(treeRows(l)) })
+	// Measured 7.38: the plain row's cost, the row's layout ID, and
+	// the growth of the per-parent drag maps. With a click closure
+	// that copied the row, a hover closure and the layout ID composed
+	// twice it was 14.75.
+	if perRow > 7.5 {
+		t.Errorf("allocs per row = %.2f, want <= 7.5", perRow)
+	}
+}
+
+// listCoreViews builds the rows of Combobox and CommandPalette.
+func TestListCoreRowAllocsPerRow(t *testing.T) {
+	cfg := listCoreCfg{
+		Colors:      defaultComboboxStyle.Colors,
+		OnItemClick: func(string, int, EventCtx) {},
+	}
+	perRow := rowAllocsPerRow(t, func(n int) func() View {
+		items := benchmarklistCoreItems(n)
+		return func() View {
+			return Column(ContainerCfg{
+				Content: listCoreViews(items, cfg, 0, n-1, -1, nil, 0),
+			})
+		}
+	}, func(l *Layout) int { return len(l.Children) })
+	// Measured 3. With a click closure and a hover closure per row it
+	// was 5. The Content slice stays on the heap: Combobox and
+	// CommandPalette cache these views across frames.
+	if perRow > 3 {
+		t.Errorf("allocs per row = %.2f, want <= 3", perRow)
+	}
+}
+
+// BenchmarkTreeGenerateLayout builds a 200-node tree, every row
+// visible, as a frame does: the factory runs inside the loop.
+func BenchmarkTreeGenerateLayout(b *testing.B) {
+	nodes := rowAllocsTreeNodes(200)
+	for _, reorder := range []bool{false, true} {
+		name := "plain"
+		if reorder {
+			name = "reorderable"
+		}
+		b.Run(name, func(b *testing.B) {
+			w := newTestWindow()
+			cfg := TreeCfg{
+				ID:          "bench-tree",
+				Nodes:       nodes,
+				Reorderable: reorder,
+				OnSelect:    func(string, EventCtx) {},
+				OnReorder:   func(string, string, EventCtx) {},
+			}
+			b.ReportAllocs()
+			b.ResetTimer()
+			for b.Loop() {
+				w.scratch.resetViewPools()
+				_ = generateViewLayout(Tree(cfg), w)
+			}
+		})
 	}
 }
