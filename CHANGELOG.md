@@ -8,6 +8,8 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [v0.87.0] - 2026-10-11
+
 ### Added
 
 - **`ergonomics-audit -mode pointeramend` flags `AmendLayout` hooks that read
