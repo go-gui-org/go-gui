@@ -344,13 +344,13 @@ test-race-cover:
 
 # Keep-a-Changelog shape: breaking API changes must be under ### Changed with BREAKING label.
 changelog-check:
-	@scripts/changelog-check.sh
+	@go run ./tools/changelogcheck/
 
 # Keep-a-Changelog presence: a user-facing branch must carry its Unreleased
 # entry, rather than have it reconstructed in the release PR. No-op on the
 # default branch, where there is no delta to judge.
 changelog-entry-check:
-	@scripts/changelog-entry-check.sh
+	@go run ./tools/changelogentrycheck/
 
 # Theme surface: removing, renaming or retyping an exported field of Theme,
 # ThemeCfg or TextStyle needs a BREAKING entry under Unreleased (issue #846).
@@ -395,13 +395,18 @@ prepush: check
 # The wrap width and prose-wrap mode live in .prettierrc, so they are not
 # retyped per invocation -- CHANGELOG.md drifted for exactly that reason.
 # Uses npx, so no repo-local node_modules is required.
+#
+# xargs batches the file list: on Windows npx is npx.cmd, and cmd.exe caps a
+# command line at 8191 characters, which the full list exceeds.
+MD_XARGS = git ls-files -z '*.md' | xargs -0 -s 6000
+
 fmt-md:
-	@npx --yes prettier --write $(shell git ls-files '*.md')
+	@$(MD_XARGS) npx --yes prettier --write
 
 # Gate: fail if any tracked Markdown file is unformatted. Part of `check`,
 # so the convention is enforced rather than remembered.
 fmt-md-check:
-	@npx --yes prettier --check $(shell git ls-files '*.md')
+	@$(MD_XARGS) npx --yes prettier --check
 
 # Regenerate docs/dependencies.md from go.mod.
 deps-doc:

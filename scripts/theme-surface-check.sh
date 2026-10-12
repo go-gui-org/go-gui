@@ -31,7 +31,7 @@ GOLDEN="gui/testdata/theme_surface.golden"
 FILE="CHANGELOG.md"
 
 # --- Resolve the base to diff against -------------------------------------
-# Same resolution as changelog-entry-check.sh: the fork point from the
+# Same resolution as tools/changelogentrycheck: the fork point from the
 # default branch.
 BASE_REF="${THEME_SURFACE_BASE:-}"
 [ -n "$BASE_REF" ] || \
@@ -73,8 +73,8 @@ ADDED_BREAKING="$(git diff "$BASE" -- "$FILE" \
 FOUND=0
 if [ -n "$ADDED_BREAKING" ]; then
   while IFS= read -r line; do
-    # No -q, same reason as changelog-entry-check.sh: an early close of the
-    # pipe kills printf with SIGPIPE on a large Unreleased block.
+    # No -q: an early close of the pipe kills printf with SIGPIPE on a
+    # large Unreleased block.
     if printf '%s\n' "$UNRELEASED" | grep -xF -- "$line" >/dev/null; then
       FOUND=1
     fi
