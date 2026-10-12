@@ -10,6 +10,14 @@ and this project adheres to
 
 ### Fixed
 
+- **Markdown documents with the same source but different styles no longer share
+  styled blocks (#1000).** The per-window block cache was keyed only on the
+  source hash, while the cached blocks hold resolved run styles. A second
+  document with the same source drew with the first one's faces, sizes and
+  colors, and restyling a document with an unchanged source kept the old blocks.
+  The key now carries a fingerprint of the full `MarkdownStyle` (plus the code
+  highlighter's identity), so each source-and-style pair parses separately and
+  identical pairs still share.
 - **Select: hovering an option highlights only that option (#1004).** Since
   v0.87.0, moving the pointer from one dropdown option to another left the old
   option washed beside the new one. Hover moves the keyboard highlight during

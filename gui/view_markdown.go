@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/go-gui-org/go-gui/gui/highlight"
-	"github.com/go-gui-org/go-gui/gui/markdown"
 )
 
 // MarkdownStyle controls rendered markdown appearance.
@@ -362,18 +361,32 @@ func (mv *markdownView) GenerateLayout(w *Window) Layout {
 	mode := cfg.Mode.Get(TextModeWrap)
 
 	// Cache lookup; invalidate on theme change.
-	hash := int64(markdown.MathHash(cfg.Source))
+	//
+	// The key names the source and the style that styled it. The
+	// blocks hold resolved run styles, so the same source under two
+	// styles shares nothing, and restyling a document with an
+	// unchanged source rebuilds its blocks (issue #1000). The key
+	// carries the highlighter's type; the entry carries the
+	// highlighter, so two of one type with different token tables
+	// compare apart.
+	key := newMarkdownCacheKey(cfg.Source, &cfg.Style)
 	themeID := guiTheme.id
 	if w.viewState.markdownCache == nil ||
 		w.viewState.markdownTheme != themeID {
 		w.viewState.markdownCache =
-			NewBoundedMap[int64, []markdownBlock](100)
+			NewBoundedMap[markdownCacheKey, markdownCacheEntry](100)
 		w.viewState.markdownTheme = themeID
 	}
-	blocks, ok := w.viewState.markdownCache.Get(hash)
-	if !ok {
+	entry, ok := w.viewState.markdownCache.Get(key)
+	blocks := entry.blocks
+	if !ok || !sameMarkdownHighlighter(
+		entry.highlighter, cfg.Style.CodeHighlighter,
+	) {
 		blocks = markdownToBlocks(cfg.Source, cfg.Style)
-		w.viewState.markdownCache.Set(hash, blocks)
+		w.viewState.markdownCache.Set(key, markdownCacheEntry{
+			highlighter: cfg.Style.CodeHighlighter,
+			blocks:      blocks,
+		})
 	}
 
 	allowExternalAPIs := markdownExternalAPIsEnabled &&

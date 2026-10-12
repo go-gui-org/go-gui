@@ -129,7 +129,7 @@ type ViewState struct {
 	mouseLock     MouseLockCfg
 	dragPan       dragPanState
 	registry      stateRegistry
-	markdownCache *BoundedMap[int64, []markdownBlock]
+	markdownCache *BoundedMap[markdownCacheKey, markdownCacheEntry]
 	diagramCache  *BoundedDiagramCache
 
 	// RTF layout cache — avoids re-shaping unchanged content.
