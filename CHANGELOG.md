@@ -8,6 +8,8 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [v0.88.1] - 2026-10-12
+
 ### Fixed
 
 - **macOS: the IME candidate window opens at the caret again (#1005).** The
