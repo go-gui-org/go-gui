@@ -190,7 +190,7 @@ func resolveBaseRef() string {
 }
 
 func git(args ...string) (string, error) {
-	out, err := exec.Command("git", args...).Output()
+	out, err := exec.Command("git", args...).Output() // #nosec G204 -- fixed binary, no shell; args are flags, refs and git-listed paths
 	if err != nil {
 		return "", fmt.Errorf("git %s: %w", strings.Join(args, " "), err)
 	}
