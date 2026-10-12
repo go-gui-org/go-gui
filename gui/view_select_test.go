@@ -636,3 +636,78 @@ func TestSelectOptionRowFillOrder(t *testing.T) {
 		})
 	}
 }
+
+// selectOptionRows collects the dropdown option rows of an arranged tree:
+// the shapes that carry the option's static OnHover.
+func selectOptionRows(layout *Layout, rows []*Layout) []*Layout {
+	if s := layout.Shape; s != nil && s.hasEvents() && s.events.OnHover != nil && s.events.hoverStatic {
+		rows = append(rows, layout)
+	}
+	for i := range layout.Children {
+		rows = selectOptionRows(&layout.Children[i], rows)
+	}
+	return rows
+}
+
+// Hovering an option moves the keyboard highlight to it. Generation paints
+// the highlight, so the frame must rebuild then; otherwise the option the
+// pointer left keeps its wash beside the hovered one, and a move inside
+// the option is idle and never clears it (#1004).
+func TestSelectHoverMovesHighlightInSameFrame(t *testing.T) {
+	subtle := RGB(10, 20, 30)
+	gens := 0
+	view := countingView(&gens, func(*Window) View {
+		return Column(ContainerCfg{
+			Sizing: FillFill, Padding: PaddingNone, SizeBorder: NoBorder,
+			Content: []View{Select(SelectCfg{
+				ID:                "s",
+				Items:             []string{"50", "100", "150", "151"},
+				Selected:          []string{"151"},
+				ColorSelectSubtle: subtle,
+				OnSelect:          func([]string, EventCtx) {},
+			})},
+		})
+	})
+	w := NewTestWindow(t, WindowCfg{})
+	w.TestRender(view)
+	// Open after SetView, which clears per-view state.
+	StateMap[string, bool](w, nsSelect, capModerate).Set("s", true)
+	w.TestRender(nil)
+
+	washed := func() []int {
+		var idx []int
+		for i, r := range selectOptionRows(&w.layout, nil) {
+			if r.Shape.Color == subtle {
+				idx = append(idx, i)
+			}
+		}
+		return idx
+	}
+	center := func(i int) (float32, float32) {
+		rows := selectOptionRows(&w.layout, nil)
+		if len(rows) != 4 {
+			t.Fatalf("%d option rows, want 4", len(rows))
+		}
+		s := rows[i].Shape
+		return s.X + s.Width/2, s.Y + s.Height/2
+	}
+
+	x, y := center(1)
+	moveAndFrame(w, &gens, x, y)
+	if got := washed(); len(got) != 1 || got[0] != 1 {
+		t.Fatalf("after hovering 100: washed rows %v, want [1]", got)
+	}
+	x, y = center(2)
+	moveAndFrame(w, &gens, x, y)
+	if got := washed(); len(got) != 1 || got[0] != 2 {
+		t.Fatalf("after hovering 150: washed rows %v, want [2]", got)
+	}
+	// A move inside the hovered option stays idle and keeps one wash.
+	moveAndFrame(w, &gens, x+1, y)
+	if got := washed(); len(got) != 1 || got[0] != 2 {
+		t.Fatalf("after a move inside 150: washed rows %v, want [2]", got)
+	}
+	if n := moveAndFrame(w, &gens, x+2, y); n != 0 {
+		t.Fatalf("move inside the hovered option: %d generations, want 0", n)
+	}
+}

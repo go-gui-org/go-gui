@@ -510,6 +510,10 @@ func selectOptionView(
 			cur := sh.GetOr(id, 0)
 			if cur != index {
 				sh.Set(id, index)
+				// Generation painted the old highlight, and option rows
+				// carry no ID, so no hover-target change rebuilds. Without
+				// this the old row keeps its wash beside this one (#1004).
+				ctx.Window.InvalidateLayout()
 			}
 		},
 	})

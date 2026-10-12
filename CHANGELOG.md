@@ -8,6 +8,16 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Fixed
+
+- **Select: hovering an option highlights only that option (#1004).** Since
+  v0.87.0, moving the pointer from one dropdown option to another left the old
+  option washed beside the new one. Hover moves the keyboard highlight during
+  arrange, after generation had painted the old one, and the idle-move skip
+  (#973) meant no later move inside the option rebuilt the frame. The option now
+  asks for a rebuild when its hover moves the highlight, so the frame on screen
+  shows one highlighted option.
+
 ## [v0.88.1] - 2026-10-12
 
 ### Fixed
