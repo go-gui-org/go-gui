@@ -76,6 +76,23 @@ type ContainerCfg struct {
 	// exportaudit:keep — caller-facing config (issue #372)
 	ClickOnEnter bool
 
+	// AcceptsTextInput marks a focusable container as an editable text
+	// area for the platform input method (IME). Set it on the focus
+	// holder of a custom-painted editor, such as a code editor or a
+	// terminal drawn on a DrawCanvas. While the container holds focus,
+	// the input method is active: CJK composition works, and preedit
+	// text arrives through Window.IMECompText and commits through
+	// OnChar.
+	//
+	// Leave it false for anything that does not take typed text. An
+	// active input method claims keys for composition: on macOS,
+	// Option+I turns into a dead key instead of a shortcut (#393). Set
+	// it false while the editor is read-only, too. Input and the other
+	// text fields need no flag; they enable the input method on their
+	// own.
+	// exportaudit:keep — caller-facing config (issue #999)
+	AcceptsTextInput bool
+
 	// Sound is the cue emitted when OnClick fires. SoundNone (the
 	// zero value) is silent. Widget factories resolve this from the
 	// theme's SoundSet before building the container, so a caller
@@ -472,6 +489,7 @@ func makeContainerEvents(c *ContainerCfg) (eventHandlers, bool) {
 		c.OnFileDrop == nil && c.OnIMECommit == nil &&
 		c.OnScroll == nil && c.OnMouseScroll == nil &&
 		c.AmendLayout == nil &&
+		!c.AcceptsTextInput &&
 		c.Sound == SoundNone {
 		return eventHandlers{}, false
 	}
@@ -499,6 +517,8 @@ func makeContainerEvents(c *ContainerCfg) (eventHandlers, bool) {
 		clickOnEnter:  c.ClickOnEnter,
 		soundCue:      c.Sound,
 		rowClick:      c.rowClick,
+
+		acceptsTextInput: c.AcceptsTextInput,
 	}, true
 }
 

@@ -33,11 +33,20 @@ package gui
 // read-only input is excluded too: it stays focusable for its caret
 // and selection but can never commit a composition, which is the same
 // rule render_text.go applies to preedit rendering.
+//
+// A custom-painted editor (go-edit, go-term) has no TextChunk at all:
+// it draws its text on a DrawCanvas and holds focus on a container.
+// Such a container opts in with ContainerCfg.AcceptsTextInput (#999).
+// Before that flag, the TC test above locked these editors out of the
+// input method on every platform, and CJK input could not be typed.
 func shapeIsIMEEditTarget(s *Shape) bool {
 	if s == nil {
 		return false
 	}
-	return s.TC != nil && s.focusOwner != "" && !s.TC.textReadOnly
+	if s.TC != nil {
+		return s.focusOwner != "" && !s.TC.textReadOnly
+	}
+	return s.events != nil && s.events.acceptsTextInput
 }
 
 // shapeDrawsCaret reports whether shape can render the framework's
@@ -144,8 +153,12 @@ func (w *Window) applyIMEEditContext(edit *Shape) {
 	var secure bool
 	if editing {
 		id = focusID
-		kind = edit.TC.textKeyboard
-		secure = edit.TC.textIsPassword
+		// An AcceptsTextInput container has no TC (#999). It gets the
+		// default soft keyboard and is never a password field.
+		if edit.TC != nil {
+			kind = edit.TC.textKeyboard
+			secure = edit.TC.textIsPassword
+		}
 	}
 	if editing == w.viewState.imeEditContext &&
 		id == w.viewState.imeEditFocusID {

@@ -57,6 +57,24 @@ func TestShapeIsIMEEditTarget(t *testing.T) {
 			false,
 		},
 		{"button", &Shape{Focusable: true, ID: "b"}, false},
+		{
+			"custom editor container that accepts text input (#999)",
+			&Shape{
+				Focusable: true,
+				ID:        "ed",
+				events:    &eventHandlers{acceptsTextInput: true},
+			},
+			true,
+		},
+		{
+			"container with handlers but no text input",
+			&Shape{
+				Focusable: true,
+				ID:        "ed",
+				events:    &eventHandlers{OnChar: func(EventCtx) {}},
+			},
+			false,
+		},
 	}
 	for _, c := range cases {
 		if got := shapeIsIMEEditTarget(c.shape); got != c.want {
@@ -138,6 +156,33 @@ func TestIMEEditContextThroughRealFrame(t *testing.T) {
 			"button",
 			func() View { return Button(ButtonCfg{ID: "btn", Label: "go"}) },
 			"btn",
+			false,
+		},
+		{
+			// A custom-painted editor (go-edit, go-term) holds focus on
+			// a container with no TextChunk. It opts in to the input
+			// method with AcceptsTextInput (#999).
+			"container that accepts text input",
+			func() View {
+				return Column(ContainerCfg{
+					ID:               "editor",
+					Focusable:        true,
+					AcceptsTextInput: true,
+				})
+			},
+			"editor",
+			true,
+		},
+		{
+			"container that does not accept text input",
+			func() View {
+				return Column(ContainerCfg{
+					ID:        "editor",
+					Focusable: true,
+					OnChar:    func(EventCtx) {},
+				})
+			},
+			"editor",
 			false,
 		},
 	}

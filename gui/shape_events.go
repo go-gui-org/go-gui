@@ -40,6 +40,13 @@ type eventHandlers struct {
 	hover         HoverStyle // ContainerCfg.Hover, painted before OnHover
 	pointerAmend  bool       // ContainerCfg.pointerAmend
 
+	// acceptsTextInput is ContainerCfg.AcceptsTextInput: the shape is
+	// an editable text area with no TextChunk, so the IME gate
+	// (shapeIsIMEEditTarget) cannot see that from TC. It lives here,
+	// not on Shape, to keep Shape small; a container that takes text
+	// has an OnChar anyway, so its events are already allocated.
+	acceptsTextInput bool
+
 	// soundCue is the cue dispatch emits when this shape's OnClick
 	// fires. Resolved at generation time from the theme and the
 	// widget's Cfg, and stored here rather than in a closure for the
