@@ -127,6 +127,39 @@ func TestMapMacKeyCode_KnownKeys(t *testing.T) {
 	}
 }
 
+// The modifier block of macKeyCodeTable was shifted by one or two slots, so
+// left Option arrived as KeyRightAlt, left Shift as KeyLeftAlt, and right
+// Option not at all. Apps that tell the two Option keys apart (go-term: left
+// Option is Meta, right Option types layout characters) got the wrong one.
+// Values from Carbon/HIToolbox/Events.h.
+func TestMapMacKeyCode_ModifiersAndKeypad(t *testing.T) {
+	tests := []struct {
+		kc   uint16
+		want gui.KeyCode
+	}{
+		{0x36, gui.KeyRightSuper},   // kVK_RightCommand
+		{0x37, gui.KeyLeftSuper},    // kVK_Command
+		{0x38, gui.KeyLeftShift},    // kVK_Shift
+		{0x39, gui.KeyCapsLock},     // kVK_CapsLock
+		{0x3A, gui.KeyLeftAlt},      // kVK_Option
+		{0x3B, gui.KeyLeftControl},  // kVK_Control
+		{0x3C, gui.KeyRightShift},   // kVK_RightShift
+		{0x3D, gui.KeyRightAlt},     // kVK_RightOption
+		{0x3E, gui.KeyRightControl}, // kVK_RightControl
+		{0x3F, gui.KeyInvalid},      // kVK_Function
+		{0x40, gui.KeyF17},          // kVK_F17
+		{0x41, gui.KeyKPDecimal},    // kVK_ANSI_KeypadDecimal
+		{0x43, gui.KeyKPMultiply},   // kVK_ANSI_KeypadMultiply
+		{0x45, gui.KeyKPAdd},        // kVK_ANSI_KeypadPlus
+		{0x4F, gui.KeyF18},          // kVK_F18
+	}
+	for _, tt := range tests {
+		if got := mapMacKeyCode(tt.kc); got != tt.want {
+			t.Errorf("keyCode 0x%x: got %v, want %v", tt.kc, got, tt.want)
+		}
+	}
+}
+
 func TestMapMacKeyCode_OutOfBounds(t *testing.T) {
 	// Table is 128 entries; anything >= 128 returns KeyInvalid.
 	if got := mapMacKeyCode(128); got != gui.KeyInvalid {
@@ -535,5 +568,77 @@ func TestMapMetalEvent_MenuKeyEquivalent_StaleClearedOnNone(t *testing.T) {
 	if evt.Type != gui.EventKeyDown || evt.KeyCode != gui.KeyA {
 		t.Fatalf("key after stale NONE: got %v/%v, want EventKeyDown/KeyA",
 			evt.Type, evt.KeyCode)
+	}
+}
+
+// ─── flagsChangedEvent ────────────────────────────────────────
+
+// Raw NSEventModifierFlags bits for the tests: the shared
+// device-independent flag plus the per-side NX_DEVICE* bit.
+const (
+	rawShift  = 1 << 17
+	rawAlt    = 1 << 19
+	rawLShift = 0x02
+	rawLAlt   = 0x20
+	rawRAlt   = 0x40
+)
+
+func TestFlagsChangedEvent_ModifierDownUp(t *testing.T) {
+	// Shift down: the left Shift device bit is set in the new state.
+	e, ok := flagsChangedEvent(0x38, rawShift|rawLShift)
+	if !ok || e.Type != gui.EventKeyDown || e.KeyCode != gui.KeyLeftShift ||
+		e.Modifiers != gui.ModShift {
+		t.Fatalf("shift down: got %+v ok=%v", e, ok)
+	}
+	// Shift up: the bit is clear.
+	e, ok = flagsChangedEvent(0x38, 0)
+	if !ok || e.Type != gui.EventKeyUp || e.KeyCode != gui.KeyLeftShift {
+		t.Fatalf("shift up: got %+v ok=%v", e, ok)
+	}
+}
+
+func TestFlagsChangedEvent_OtherSideHeld(t *testing.T) {
+	// Hold right Option, then press and release left Option. The shared
+	// Option flag stays set the whole time, so only the per-side bit can
+	// tell that left Option went up.
+	e, ok := flagsChangedEvent(0x3A, rawAlt|rawLAlt|rawRAlt)
+	if !ok || e.Type != gui.EventKeyDown || e.KeyCode != gui.KeyLeftAlt {
+		t.Fatalf("left alt down: got %+v ok=%v", e, ok)
+	}
+	e, ok = flagsChangedEvent(0x3A, rawAlt|rawRAlt)
+	if !ok || e.Type != gui.EventKeyUp || e.KeyCode != gui.KeyLeftAlt ||
+		e.Modifiers != gui.ModAlt {
+		t.Fatalf("left alt up with right held: got %+v ok=%v", e, ok)
+	}
+	// Then right Option goes up too.
+	e, ok = flagsChangedEvent(0x3D, 0)
+	if !ok || e.Type != gui.EventKeyUp || e.KeyCode != gui.KeyRightAlt {
+		t.Fatalf("right alt up: got %+v ok=%v", e, ok)
+	}
+}
+
+func TestFlagsChangedEvent_NoDeviceBits(t *testing.T) {
+	// A synthesized event can carry only the shared flag. Fall back to it
+	// so the key still reports down rather than a false up.
+	e, ok := flagsChangedEvent(0x3A, rawAlt)
+	if !ok || e.Type != gui.EventKeyDown || e.KeyCode != gui.KeyLeftAlt {
+		t.Fatalf("shared-flag-only down: got %+v ok=%v", e, ok)
+	}
+}
+
+func TestFlagsChangedEvent_CapsLockDropped(t *testing.T) {
+	// CapsLock has no gui modifier flag, so down/up cannot be told
+	// apart. It must be dropped, not sent as a lone KeyUp.
+	for _, raw := range []uint32{0, 1 << 16, rawShift | rawLShift} {
+		if _, ok := flagsChangedEvent(0x39, raw); ok {
+			t.Fatalf("CapsLock (raw=%#x) emitted an event", raw)
+		}
+	}
+}
+
+func TestFlagsChangedEvent_FnDropped(t *testing.T) {
+	// Fn (0x3F) maps to KeyInvalid and must stay dropped.
+	if _, ok := flagsChangedEvent(0x3F, 0); ok {
+		t.Fatal("Fn emitted an event")
 	}
 }

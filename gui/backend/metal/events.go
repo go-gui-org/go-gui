@@ -122,25 +122,13 @@ func mapMetalEvent() (gui.Event, bool) {
 	case C.METAL_EVENT_FLAGS_CHANGED:
 		// Modifier-only key change (Shift, Ctrl, Alt, Cmd).
 		// Emit as a key event so Go can track modifier state.
-		kc := mapMacKeyCode(uint16(C.metalEventKeyCode()))
-		mods := mapMetalModifiers(uint32(C.metalEventModifiers()))
-		// Determine if the key went down or up by checking
-		// whether its modifier flag is set.
-		down := (mods & keyCodeModFlag(kc)) != 0
-		et2 := gui.EventKeyUp
-		if down {
-			et2 = gui.EventKeyDown
-		}
-		// Suppress spurious events with no modifier flag
-		// change (e.g., caps lock state changes).
-		if kc == gui.KeyInvalid {
+		e, ok := flagsChangedEvent(
+			uint16(C.metalEventKeyCode()),
+			uint32(C.metalEventModifiers()))
+		if !ok {
 			return gui.Event{}, true
 		}
-		return gui.Event{
-			Type:      et2,
-			KeyCode:   kc,
-			Modifiers: mods,
-		}, true
+		return e, true
 
 	case C.METAL_EVENT_CHAR:
 		text := C.GoString(C.metalEventText())
@@ -220,8 +208,80 @@ func mapMetalModifiers(flags uint32) gui.Modifier {
 	return m
 }
 
+// Device-dependent modifier bits in the low word of NSEventModifierFlags
+// (NX_DEVICE*KEYMASK, IOKit hidsystem/IOLLEvent.h). One bit per side.
+const (
+	nxDeviceLCtl   = 0x0001
+	nxDeviceLShift = 0x0002
+	nxDeviceRShift = 0x0004
+	nxDeviceLCmd   = 0x0008
+	nxDeviceRCmd   = 0x0010
+	nxDeviceLAlt   = 0x0020
+	nxDeviceRAlt   = 0x0040
+	nxDeviceRCtl   = 0x2000
+	nxDeviceAll    = nxDeviceLCtl | nxDeviceLShift | nxDeviceRShift |
+		nxDeviceLCmd | nxDeviceRCmd | nxDeviceLAlt | nxDeviceRAlt | nxDeviceRCtl
+)
+
+// flagsChangedEvent turns a FLAGS_CHANGED event into a key event. raw is
+// the event's NSEventModifierFlags.
+//
+// Down/up comes from the key's own per-side device bit. The shared flag
+// (ModAlt etc.) cannot be used: with right Option held, a left Option
+// release leaves ModAlt set, and would read as a second KeyDown. A
+// synthesized event may carry no device bits at all; only then the
+// shared flag is the fallback.
+//
+// ok is false for a key with no gui modifier flag: CapsLock and Fn. For
+// those keys down and up cannot be told apart, so sending either would
+// leave a lone KeyUp or KeyDown with no partner.
+func flagsChangedEvent(macKey uint16, raw uint32) (gui.Event, bool) {
+	kc := mapMacKeyCode(macKey)
+	flag := keyCodeModFlag(kc)
+	if flag == 0 {
+		return gui.Event{}, false
+	}
+	mods := mapMetalModifiers(raw)
+	var down bool
+	if raw&nxDeviceAll != 0 {
+		down = raw&keyCodeDeviceMask(kc) != 0
+	} else {
+		down = mods&flag != 0
+	}
+	et := gui.EventKeyUp
+	if down {
+		et = gui.EventKeyDown
+	}
+	return gui.Event{Type: et, KeyCode: kc, Modifiers: mods}, true
+}
+
+// keyCodeDeviceMask returns the per-side NX_DEVICE* bit for a modifier
+// key, or 0 for any other key.
+func keyCodeDeviceMask(kc gui.KeyCode) uint32 {
+	switch kc {
+	case gui.KeyLeftShift:
+		return nxDeviceLShift
+	case gui.KeyRightShift:
+		return nxDeviceRShift
+	case gui.KeyLeftControl:
+		return nxDeviceLCtl
+	case gui.KeyRightControl:
+		return nxDeviceRCtl
+	case gui.KeyLeftAlt:
+		return nxDeviceLAlt
+	case gui.KeyRightAlt:
+		return nxDeviceRAlt
+	case gui.KeyLeftSuper:
+		return nxDeviceLCmd
+	case gui.KeyRightSuper:
+		return nxDeviceRCmd
+	}
+	return 0
+}
+
 // keyCodeModFlag returns the modifier flag bit for a given
-// modifier key, used by flagsChanged to determine key up/down.
+// modifier key, used by flagsChangedEvent to filter and as the
+// down/up fallback.
 func keyCodeModFlag(kc gui.KeyCode) gui.Modifier {
 	switch kc {
 	case gui.KeyLeftShift, gui.KeyRightShift:
@@ -297,25 +357,29 @@ var macKeyCodeTable = [128]gui.KeyCode{
 	0x35: gui.KeyEscape,
 	0x36: gui.KeyRightSuper, // Right Cmd
 	0x37: gui.KeyLeftSuper,  // Left Cmd
-	0x38: gui.KeyLeftAlt,    // Left Option
-	0x39: gui.KeyLeftControl,
-	0x3A: gui.KeyRightAlt, // Right Option
-	0x3B: gui.KeyRightControl,
-	0x3C: gui.KeyRightShift,
-	0x3E: gui.KeyLeftShift,
-	0x3F: gui.KeyF17,
-	0x40: gui.KeyF18,
-	0x41: gui.KeyKPAdd,     // Keypad .
-	0x43: gui.KeyKPDecimal, // Keypad *
-	0x45: gui.KeyKPAdd,     // Keypad +
-	0x47: gui.KeyNumLock,   // Clear (keypad num lock)
-	0x48: gui.KeyInvalid,   // VolumeUp (no gui constant yet)
-	0x49: gui.KeyInvalid,   // VolumeDown
-	0x4A: gui.KeyInvalid,   // Mute
-	0x4B: gui.KeyKPDivide,  // Keypad /
+	// The modifier block follows Events.h exactly: left keys are the bare
+	// kVK_Shift/Option/Control, right keys are kVK_Right*. It was once
+	// shifted by a slot, which reported left Option as right Option.
+	0x38: gui.KeyLeftShift,    // kVK_Shift
+	0x39: gui.KeyCapsLock,     // kVK_CapsLock
+	0x3A: gui.KeyLeftAlt,      // kVK_Option (left)
+	0x3B: gui.KeyLeftControl,  // kVK_Control (left)
+	0x3C: gui.KeyRightShift,   // kVK_RightShift
+	0x3D: gui.KeyRightAlt,     // kVK_RightOption
+	0x3E: gui.KeyRightControl, // kVK_RightControl
+	0x3F: gui.KeyInvalid,      // kVK_Function (Fn): no gui constant
+	0x40: gui.KeyF17,
+	0x41: gui.KeyKPDecimal,  // Keypad .
+	0x43: gui.KeyKPMultiply, // Keypad *
+	0x45: gui.KeyKPAdd,      // Keypad +
+	0x47: gui.KeyNumLock,    // Clear (keypad num lock)
+	0x48: gui.KeyInvalid,    // VolumeUp (no gui constant yet)
+	0x49: gui.KeyInvalid,    // VolumeDown
+	0x4A: gui.KeyInvalid,    // Mute
+	0x4B: gui.KeyKPDivide,   // Keypad /
 	0x4C: gui.KeyKPEnter,
 	0x4E: gui.KeyKPSubtract, // Keypad -
-	0x4F: gui.KeyF18,        // (clashes, rare)
+	0x4F: gui.KeyF18,
 	0x50: gui.KeyF19,
 	0x51: gui.KeyKPEqual, // Keypad =
 	0x52: gui.KeyKP0,

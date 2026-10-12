@@ -203,6 +203,10 @@ void metalWindowIMESetCursorRect(GoGuiNSWindow win,
 // Enable or disable IME for the window.
 void metalWindowIMESetActive(GoGuiNSWindow w, int active);
 
+// Convert the y of a top-left-origin rect (what the framework reports)
+// to the bottom-left origin of an unflipped NSView of height viewH.
+float metalIMERectViewY(float y, float height, float viewH);
+
 // ─── Wake ─────────────────────────────────────────────────────
 
 // Post an empty event to break the event loop out of a wait.

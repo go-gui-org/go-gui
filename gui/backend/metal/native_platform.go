@@ -134,6 +134,12 @@ func (n *nativePlatform) IMESetRect(x, y, w, h int32) {
 		C.float(x), C.float(y), C.float(w), C.float(h))
 }
 
+// imeRectViewY wraps the y flip firstRectForCharacterRange applies to the
+// IME rect, so a test can check the math without a window.
+func imeRectViewY(y, h, viewH float32) float32 {
+	return float32(C.metalIMERectViewY(C.float(y), C.float(h), C.float(viewH)))
+}
+
 // macOS has no soft keyboard to ask for (issue #770).
 func (n *nativePlatform) ShowSoftKeyboard(_ gui.KeyboardKind, _ bool) {}
 func (n *nativePlatform) HideSoftKeyboard()                           {}

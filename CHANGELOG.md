@@ -8,6 +8,21 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Fixed
+
+- **macOS: the IME candidate window opens at the caret again.** The Metal
+  backend gave AppKit the caret rect with a top-left origin, but AppKit reads it
+  from the bottom. The candidate window was mirrored top to bottom: a caret on
+  the first line put it at the bottom of the window.
+- **macOS: modifier keys report the right side.** The Metal backend's key table
+  was out of step with Apple's key codes. Left Option arrived as `KeyRightAlt`,
+  left Shift as `KeyLeftAlt`, left Control as `KeyRightControl`, and right
+  Option did not arrive at all. Apps that treat the two Option keys differently
+  got the wrong one. A modifier released while its other side is held now sends
+  a key-up; it used to send a second key-down. F17, keypad `.` and keypad `*`
+  are also fixed. Caps Lock no longer sends a false left Control key-up, and Fn
+  no longer reports as F17.
+
 ## [v0.88.0] - 2026-10-12
 
 ### Added

@@ -491,8 +491,16 @@ static uint32_t _nextWindowID = 1;
     NSWindow *window = self.window;
     if (!window) return NSZeroRect;
 
-    NSRect screenRect = [window convertRectToScreen:_imeCursorRect];
-    return screenRect;
+    // _imeCursorRect has the framework's top-left origin. This view is not
+    // flipped, so AppKit reads y from the bottom. Without the flip the
+    // candidate window is mirrored top to bottom: a caret on the first line
+    // puts it at the bottom of the window. Flipped here, at query time, so a
+    // resize between IMESetRect and this call still uses the current height.
+    NSRect r = _imeCursorRect;
+    r.origin.y = metalIMERectViewY((float)r.origin.y, (float)r.size.height,
+                                   (float)self.bounds.size.height);
+    NSRect winRect = [self convertRect:r toView:nil];
+    return [window convertRectToScreen:winRect];
 }
 
 - (NSUInteger)characterIndexForPoint:(NSPoint)point {
@@ -1382,6 +1390,10 @@ void metalWindowIMESetCursorRect(GoGuiNSWindow win,
     GoGuiWindow *gw = (GoGuiWindow *)win;
     gw->contentView.imeCursorRect = NSMakeRect((CGFloat)x, (CGFloat)y,
                                                 (CGFloat)width, (CGFloat)height);
+}
+
+float metalIMERectViewY(float y, float height, float viewH) {
+    return viewH - y - height;
 }
 
 void metalWindowIMESetActive(GoGuiNSWindow w, int active) {
