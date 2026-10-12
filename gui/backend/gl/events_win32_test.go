@@ -209,3 +209,92 @@ func TestDPIChangedBoundsDegenerate(t *testing.T) {
 		})
 	}
 }
+
+// newKeyTestBackend returns a Backend over a headless window whose
+// OnEvent records every key event the wndproc emits.
+func newKeyTestBackend(t *testing.T) (*Backend, *[]gui.Event) {
+	t.Helper()
+	var got []gui.Event
+	w := gui.NewWindow(gui.WindowCfg{
+		State: new(int), Width: 100, Height: 100,
+		OnEvent: func(e *gui.Event, _ *gui.Window) {
+			if e.Type == gui.EventKeyDown || e.Type == gui.EventKeyUp {
+				got = append(got, *e)
+			}
+		},
+	})
+	w.SetView(func(_ *gui.Window) gui.View {
+		return gui.Column(gui.ContainerCfg{})
+	})
+	w.FrameFn()
+	b := &Backend{}
+	b.plat.w = w
+	return b, &got
+}
+
+const (
+	lpLShift = 0x2A<<16 | 1
+	lpRShift = 0x36<<16 | 1
+	vkShiftT = 0x10
+)
+
+// TestBothShiftsReleaseOnOneKeyUp pins the GLFW workaround: Windows sends
+// one key-up after both Shift keys are released, and it must release both.
+func TestBothShiftsReleaseOnOneKeyUp(t *testing.T) {
+	b, got := newKeyTestBackend(t)
+	b.handleMessage(wmKeyDown, vkShiftT, lpLShift)
+	b.handleMessage(wmKeyDown, vkShiftT, lpRShift)
+	b.handleMessage(wmKeyUp, vkShiftT, lpRShift|0xC0000000)
+
+	want := []struct {
+		typ gui.EventType
+		key gui.KeyCode
+	}{
+		{gui.EventKeyDown, gui.KeyLeftShift},
+		{gui.EventKeyDown, gui.KeyRightShift},
+		{gui.EventKeyUp, gui.KeyRightShift},
+		{gui.EventKeyUp, gui.KeyLeftShift},
+	}
+	if len(*got) != len(want) {
+		t.Fatalf("got %d key events, want %d: %+v", len(*got), len(want), *got)
+	}
+	for i, w := range want {
+		if e := (*got)[i]; e.Type != w.typ || e.KeyCode != w.key {
+			t.Errorf("event %d = {%v, %v}, want {%v, %v}",
+				i, e.Type, e.KeyCode, w.typ, w.key)
+		}
+	}
+	if b.plat.held.Held() {
+		t.Error("Shift still recorded down after key-up")
+	}
+}
+
+// TestKillFocusReleasesHeldShift: a Shift released after focus moves
+// away sends its key-up to the other window, so focus loss releases it.
+func TestKillFocusReleasesHeldShift(t *testing.T) {
+	b, got := newKeyTestBackend(t)
+	b.handleMessage(wmKeyDown, vkShiftT, lpRShift)
+	b.handleMessage(wmKillFocus, 0, 0)
+	if n := len(*got); n != 2 || (*got)[1].Type != gui.EventKeyUp ||
+		(*got)[1].KeyCode != gui.KeyRightShift {
+		t.Fatalf("events = %+v, want key-down then key-up of KeyRightShift", *got)
+	}
+	if b.plat.held.Held() {
+		t.Error("Shift still recorded down after focus loss")
+	}
+}
+
+// TestStaleWinKeyReleased: after Win+V, Windows sends no key-up for the
+// Win key. The message loop finds it physically up and sends one.
+func TestStaleWinKeyReleased(t *testing.T) {
+	b, got := newKeyTestBackend(t)
+	b.handleMessage(wmKeyDown, 0x5B, 0x15B<<16|1) // VK_LWIN, extended
+	b.releaseStaleKeys()                          // the test holds no key down
+	if n := len(*got); n != 2 || (*got)[1].Type != gui.EventKeyUp ||
+		(*got)[1].KeyCode != gui.KeyLeftSuper {
+		t.Fatalf("events = %+v, want key-down then key-up of KeyLeftSuper", *got)
+	}
+	if b.plat.held.Held() {
+		t.Error("Win key still recorded down after stale release")
+	}
+}

@@ -82,6 +82,43 @@ func (b *Backend) emit(e gui.Event) {
 	b.plat.w.EventFn(&b.plat.evt)
 }
 
+// emitKeyUps sends a key-up for each of the first n keys.
+func (b *Backend) emitKeyUps(keys [4]gui.KeyCode, n int) {
+	for _, k := range keys[:n] {
+		b.emit(gui.Event{
+			Type:      gui.EventKeyUp,
+			KeyCode:   k,
+			Modifiers: winkey.ModState(),
+		})
+	}
+}
+
+// releaseStaleKeys sends the key-ups Windows dropped: the first of two
+// held Shift keys, and the Win key after Win+V (see winkey.HeldKeys). It
+// runs after each message drain, so the key-up arrives with the next
+// message of any kind.
+func (b *Backend) releaseStaleKeys() {
+	if b.plat.w == nil || !b.plat.held.Held() {
+		return
+	}
+	b.emitKeyUps(b.plat.held.ReleaseStale())
+}
+
+// altGrCtrl reports whether this left Ctrl key message is the fake one
+// Windows sends ahead of AltGr. The message after it is peeked, not
+// removed. GLFW drops the same message.
+func (b *Backend) altGrCtrl(wparam, lparam uintptr) bool {
+	t, _, _ := pGetMessageTime.Call()
+	next := &b.plat.peekMsg
+	r, _, _ := pPeekMessageW.Call(
+		uintptr(unsafe.Pointer(next)), 0, 0, 0, pmNoRemove)
+	if r == 0 {
+		return false
+	}
+	return winkey.IsAltGrCtrl(wparam, lparam, uint32(t),
+		next.message, next.wParam, next.lParam, next.time)
+}
+
 // logicalXY converts physical client-pixel coordinates to logical
 // points using the current DPI scale.
 func (b *Backend) logicalXY(px, py int32) (float32, float32) {
@@ -189,9 +226,14 @@ func (b *Backend) handleMessage(msg, wparam, lparam uintptr) (uintptr, bool) {
 		if wparam == vkProcessKey {
 			return 0, true
 		}
+		key := winkey.MapKey(wparam, lparam)
+		if key == gui.KeyLeftControl && b.altGrCtrl(wparam, lparam) {
+			return 0, true
+		}
+		b.plat.held.Press(key)
 		b.emit(gui.Event{
 			Type:      gui.EventKeyDown,
-			KeyCode:   winkey.MapVKey(wparam),
+			KeyCode:   key,
 			Modifiers: winkey.ModState(),
 			KeyRepeat: lparam&keyRepeatBit != 0,
 		})
@@ -200,11 +242,11 @@ func (b *Backend) handleMessage(msg, wparam, lparam uintptr) (uintptr, bool) {
 		if wparam == vkProcessKey {
 			return 0, true
 		}
-		b.emit(gui.Event{
-			Type:      gui.EventKeyUp,
-			KeyCode:   winkey.MapVKey(wparam),
-			Modifiers: winkey.ModState(),
-		})
+		key := winkey.MapKey(wparam, lparam)
+		if key == gui.KeyLeftControl && b.altGrCtrl(wparam, lparam) {
+			return 0, true
+		}
+		b.emitKeyUps(b.plat.held.Release(key))
 		return 0, true
 
 	case wmChar:
@@ -281,6 +323,9 @@ func (b *Backend) handleMessage(msg, wparam, lparam uintptr) (uintptr, bool) {
 		b.emit(gui.Event{Type: gui.EventFocused})
 		return 0, true
 	case wmKillFocus:
+		// Key-ups for a held Shift or Win key go to the window that has
+		// focus next.
+		b.emitKeyUps(b.plat.held.ReleaseAll())
 		b.emit(gui.Event{Type: gui.EventUnfocused})
 		return 0, true
 

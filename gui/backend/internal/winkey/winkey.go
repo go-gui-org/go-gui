@@ -156,6 +156,159 @@ func MapVKey(vk uintptr) gui.KeyCode {
 	}
 }
 
+// Key-message lParam fields.
+const (
+	lpScancodeShift = 16
+	lpScancodeMask  = 0xFF
+	lpExtendedBit   = 1 << 24
+
+	scRShift = 0x36 // right Shift scancode; left is 0x2A
+)
+
+// MapKey maps a WM_KEYDOWN / WM_KEYUP message to a gui.KeyCode.
+// Key messages carry the generic VK_SHIFT, VK_CONTROL and VK_MENU in
+// wparam, never the sided VK_L*/VK_R* codes, so the side comes from
+// lparam: the extended-key bit marks right Ctrl and right Alt, and
+// the scancode tells the two Shift keys apart (#1007).
+func MapKey(wparam, lparam uintptr) gui.KeyCode {
+	switch wparam {
+	case vkShift:
+		if lparam>>lpScancodeShift&lpScancodeMask == scRShift {
+			return gui.KeyRightShift
+		}
+		return gui.KeyLeftShift
+	case vkControl:
+		if lparam&lpExtendedBit != 0 {
+			return gui.KeyRightControl
+		}
+		return gui.KeyLeftControl
+	case vkMenu:
+		if lparam&lpExtendedBit != 0 {
+			return gui.KeyRightAlt
+		}
+		return gui.KeyLeftAlt
+	}
+	return MapVKey(wparam)
+}
+
+// Win32 key messages.
+const (
+	wmKeyDown    = 0x0100
+	wmKeyUp      = 0x0101
+	wmSysKeyDown = 0x0104
+	wmSysKeyUp   = 0x0105
+)
+
+// IsAltGrCtrl reports whether a key message is the fake left Ctrl that
+// Windows sends ahead of AltGr (right Alt) on both press and release.
+// next* describe the message queued after it. The fake one has the same
+// message time as a right Alt message that follows it. This matches GLFW.
+func IsAltGrCtrl(wparam, lparam uintptr, time uint32,
+	nextMsg uint32, nextW, nextL uintptr, nextTime uint32) bool {
+	if wparam != vkControl || lparam&lpExtendedBit != 0 {
+		return false
+	}
+	switch nextMsg {
+	case wmKeyDown, wmSysKeyDown, wmKeyUp, wmSysKeyUp:
+	default:
+		return false
+	}
+	return nextW == vkMenu && nextL&lpExtendedBit != 0 && nextTime == time
+}
+
+// heldKeys lists the keys HeldKeys tracks, with the sided virtual-key
+// code GetKeyState reads each one by. Index i is bit i of HeldKeys.down.
+var heldKeys = [...]struct {
+	key gui.KeyCode
+	vk  uintptr
+}{
+	{gui.KeyLeftShift, vkLShift},
+	{gui.KeyRightShift, vkRShift},
+	{gui.KeyLeftSuper, vkLWin},
+	{gui.KeyRightSuper, vkRWin},
+}
+
+// HeldKeys tracks the keys whose key-up Windows can drop, by which of
+// them the app has been told are down. GLFW tracks the same ones.
+//
+//   - With both Shift keys held, Windows sends no key-up for the first
+//     release; one key-up arrives when the second key is released.
+//     Release answers it with a key-up for both sides.
+//   - After the Win+V hotkey, Windows sends no key-up for the Win key.
+//
+// ReleaseStale sends a dropped key-up once the message loop finds the
+// key physically up.
+type HeldKeys struct{ down uint8 }
+
+// heldIndex is k's index in heldKeys, or -1 when k is not tracked.
+func heldIndex(k gui.KeyCode) int {
+	for i := range heldKeys {
+		if heldKeys[i].key == k {
+			return i
+		}
+	}
+	return -1
+}
+
+// Press records a key-down. Untracked keys are ignored.
+func (h *HeldKeys) Press(k gui.KeyCode) {
+	if i := heldIndex(k); i >= 0 {
+		h.down |= 1 << i
+	}
+}
+
+// Held reports whether any tracked key is recorded as down.
+func (h *HeldKeys) Held() bool { return h.down != 0 }
+
+// Release answers a key-up for key k. It returns k, then for a Shift
+// key the other Shift if held, and clears what it returns. k is
+// returned even when it was not recorded down, so a key-up whose
+// key-down went elsewhere still arrives as it did before.
+func (h *HeldKeys) Release(k gui.KeyCode) (keys [len(heldKeys)]gui.KeyCode, n int) {
+	keys[0], n = k, 1
+	if i := heldIndex(k); i >= 0 {
+		h.down &^= 1 << i
+	}
+	var other gui.KeyCode
+	switch k {
+	case gui.KeyLeftShift:
+		other = gui.KeyRightShift
+	case gui.KeyRightShift:
+		other = gui.KeyLeftShift
+	default:
+		return keys, n
+	}
+	if i := heldIndex(other); h.down&(1<<i) != 0 {
+		h.down &^= 1 << i
+		keys[1], n = other, 2
+	}
+	return keys, n
+}
+
+// ReleaseAll returns every held key and clears them, for focus loss.
+func (h *HeldKeys) ReleaseAll() (keys [len(heldKeys)]gui.KeyCode, n int) {
+	return h.releaseStale(func(uintptr) bool { return false })
+}
+
+// ReleaseStale returns each held key that is physically up and clears it.
+func (h *HeldKeys) ReleaseStale() (keys [len(heldKeys)]gui.KeyCode, n int) {
+	return h.releaseStale(keyDown)
+}
+
+func (h *HeldKeys) releaseStale(
+	isDown func(vk uintptr) bool,
+) (keys [len(heldKeys)]gui.KeyCode, n int) {
+	for i, hk := range heldKeys {
+		if h.down&(1<<i) == 0 || isDown(hk.vk) {
+			continue
+		}
+		h.down &^= 1 << i
+		keys[n] = hk.key
+		n++
+	}
+	return keys, n
+}
+
 func keyDown(vk uintptr) bool {
 	r, _, _ := pGetKeyState.Call(vk)
 	return uint16(r)&0x8000 != 0

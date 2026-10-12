@@ -14,6 +14,7 @@ import (
 	"github.com/go-gui-org/go-gui/gui/backend/internal/devscale"
 	gogl "github.com/go-gui-org/go-gui/gui/backend/internal/glbind"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/hicon"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/winkey"
 	"golang.org/x/sys/windows"
 
 	"github.com/go-gui-org/go-gui/gui"
@@ -39,6 +40,7 @@ var (
 	pShowWindow          = user32.NewProc("ShowWindow")
 	pUpdateWindow        = user32.NewProc("UpdateWindow")
 	pPeekMessageW        = user32.NewProc("PeekMessageW")
+	pGetMessageTime      = user32.NewProc("GetMessageTime")
 	pTranslateMessage    = user32.NewProc("TranslateMessage")
 	pDispatchMessageW    = user32.NewProc("DispatchMessageW")
 	pPostMessageW        = user32.NewProc("PostMessageW")
@@ -82,6 +84,7 @@ const (
 	swShow       = 5
 	swRestore    = 9
 	swHide       = 0
+	pmNoRemove   = 0x0000
 	pmRemove     = 0x0001
 	cwUseDefault = 0x80000000
 
@@ -239,6 +242,8 @@ type platformState struct {
 	w              *gui.Window
 	evt            gui.Event // reused per message to avoid per-event allocation
 	highSurr       uint16    // pending UTF-16 high surrogate for WM_CHAR
+	held           winkey.HeldKeys
+	peekMsg        msgW // altGrCtrl's peek target, reused: Proc.Call escapes it
 
 	// capturing tracks whether this window holds mouse capture, so
 	// WM_CAPTURECHANGED can tell our own ReleaseCapture from a
@@ -645,6 +650,7 @@ func (b *Backend) Run(w *gui.Window) {
 	var msg msgW
 	for {
 		pumpMessages(&msg)
+		b.releaseStaleKeys()
 		if w.CloseRequested() {
 			break
 		}
@@ -752,6 +758,9 @@ func runAppE(app *gui.App, initialWindows ...*gui.Window) error {
 		}
 
 		pumpMessages(&msg)
+		for _, b := range backends {
+			b.releaseStaleKeys()
+		}
 
 		// Close windows whose close was requested.
 		for hwnd, b := range backends {
