@@ -8,6 +8,20 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [v0.88.0] - 2026-10-12
+
+### Added
+
+- **Custom-painted editors can use the input method again (#999).** New
+  `ContainerCfg.AcceptsTextInput` marks a focusable container as an editable
+  text area. While it holds focus, Go-Gui starts the platform input method
+  (IME), the same as it does for `Input`. Since v0.65.0 (#393) the input method
+  started only for widgets with a built-in text shape. Editors that draw their
+  text on a `DrawCanvas`, such as go-edit and go-term, hold focus on a container
+  instead, so they never got it. On every platform, CJK and other composing
+  input methods could not type into them. Set the field on the editor's focus
+  container, and set it to false while the editor is read-only.
+
 ### Changed
 
 - **Markdown paragraph text uses the body size (#998).**
@@ -33,15 +47,6 @@ and this project adheres to
   otherwise empty style is kept; any other field set on a style with a zero
   `Text.Size` is ignored, so start from `DefaultMarkdownStyle()` to change a
   few.
-- **Custom-painted editors can use the input method again (#999).** New
-  `ContainerCfg.AcceptsTextInput` marks a focusable container as an editable
-  text area. While it holds focus, Go-Gui starts the platform input method
-  (IME), the same as it does for `Input`. Since v0.65.0 (#393) the input method
-  started only for widgets with a built-in text shape. Editors that draw their
-  text on a `DrawCanvas`, such as go-edit and go-term, hold focus on a container
-  instead, so they never got it. On every platform, CJK and other composing
-  input methods could not type into them. Set the field on the editor's focus
-  container, and set it to false while the editor is read-only.
 
 ## [v0.87.0] - 2026-10-11
 
