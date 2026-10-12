@@ -8,6 +8,18 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [v0.88.3] - 2026-10-12
+
+### Fixed
+
+- **go-glyph v1.26.4.** Color emoji take the emoji font's own width, size and
+  baseline, as in a browser (upstream #156). An emoji used to advance one
+  text-font line height (1.18 em with SF) with its bitmap stretched over the
+  text font's line box, leaving a gap after each emoji and drawing it too low.
+  The advance now comes from the color font (1 em for Apple Color Emoji), the
+  bitmap is scaled to the em and placed by the font's bearings, and Apple Color
+  Emoji drops 0.125 em, where CoreText draws it.
+
 ## [v0.88.2] - 2026-10-12
 
 ### Fixed
