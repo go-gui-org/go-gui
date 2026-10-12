@@ -8,6 +8,8 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [v0.88.2] - 2026-10-12
+
 ### Fixed
 
 - **Markdown documents with the same source but different styles no longer share
