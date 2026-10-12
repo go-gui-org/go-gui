@@ -24,11 +24,11 @@ and this project adheres to
   now reads the side from the message's scancode and extended-key bit, so apps
   that treat the two sides differently get the key that was pressed, on key-down
   and key-up. Two Win32 quirks are handled the way GLFW handles them. With both
-  Shift keys held, Windows sends no key-up for the first release; both sides
-  are now released, and a key that is physically up gets its key-up with the
-  next message. The Win key, whose key-up Windows drops after the Win+V hotkey,
-  gets the same check. AltGr no longer sends a fake left Ctrl key-down and
-  key-up ahead of right Alt. Losing focus releases a held Shift or Win key.
+  Shift keys held, Windows sends no key-up for the first release; both sides are
+  now released, and a key that is physically up gets its key-up with the next
+  message. The Win key, whose key-up Windows drops after the Win+V hotkey, gets
+  the same check. AltGr no longer sends a fake left Ctrl key-down and key-up
+  ahead of right Alt. Losing focus releases a held Shift or Win key.
 
 ## [v0.88.1] - 2026-10-12
 
