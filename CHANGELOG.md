@@ -8,6 +8,32 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Changed
+
+- **Markdown paragraph text uses the body size (#998).**
+  `DefaultMarkdownStyle()` now sets paragraphs, emphasis and table cells to
+  `TextStyleBody` (14 in the dark and light themes), not `TextStyleBodySmall`
+  (12). Markdown is document text, and at 12 it looked like secondary text next
+  to the rest of the UI. Nobody chose the smaller size: it was left over from
+  the old numbered type scale. The headings move with it: H4 is body bold, H5 is
+  `TextStyleBodySmall` bold, H6 is `TextStyleCaption` bold. H3 and H4 are now
+  the same size, because the ladder has only two sizes above body. Inline code
+  uses `TextStyleCode` (body + 1 for the mono face). Fenced code blocks stay on
+  `TextStyleCodeSmall`, so fewer long lines wrap. To keep the old size, set the
+  fields on the style you pass in `MarkdownCfg.Style`.
+
+### Fixed
+
+- **A `MarkdownCfg` with no `Style` renders with the default style (#998).**
+  Before, the zero style went to the renderer as it was. Text runs had size 0,
+  so go-glyph guessed a size. List bullets drew at a different size from their
+  text. Blocks had no spacing between them. Blockquotes had no bar and code
+  blocks had no background. An unset `Style` (zero `Text.Size`) now resolves to
+  `DefaultMarkdownStyle()` for the active theme. A `CodeHighlighter` set on an
+  otherwise empty style is kept; any other field set on a style with a zero
+  `Text.Size` is ignored, so start from `DefaultMarkdownStyle()` to change a
+  few.
+
 ## [v0.87.0] - 2026-10-11
 
 ### Added

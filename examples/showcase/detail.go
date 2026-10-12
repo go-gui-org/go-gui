@@ -63,7 +63,6 @@ func detailPanel(w *gui.Window) gui.View {
 		content = demoPlaceholder(gui.CurrentTheme(), "No demo configured")
 	case app.ShowDocs && entry.Group != groupWelcome:
 		style := gui.DefaultMarkdownStyle()
-		style.H2 = gui.CurrentTheme().TextStyleTitleSmall
 		style.CodeHighlighter = highlight.Default()
 		content = w.Markdown(gui.MarkdownCfg{
 			ID:      "doc-" + entry.ID,

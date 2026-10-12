@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/go-gui-org/go-glyph"
+	"github.com/go-gui-org/go-gui/gui/highlight"
 	"github.com/go-gui-org/go-gui/gui/markdown"
 )
 
@@ -203,5 +204,169 @@ func TestMdWithScriptFeatureNilAndExistingTag(t *testing.T) {
 	}
 	if base.OpenTypeFeatures[0].Value != 0 {
 		t.Error("base Features mutated")
+	}
+}
+
+// Markdown is document prose, so paragraph text reads at the theme's
+// body role, not one rung below it (#998). The headings shift with it:
+// H4 takes body bold, H5 and H6 the two rungs under body. Inline code
+// keeps the mono +1 step over the text it sits in; fenced blocks stay
+// on the small code role so long lines wrap less.
+func TestDefaultMarkdownStyleUsesBodyRoles(t *testing.T) {
+	restoreTheme(t)
+	SetTheme(ThemeDark)
+	th := CurrentTheme()
+	style := DefaultMarkdownStyle()
+
+	cases := []struct {
+		name      string
+		got, want float32
+	}{
+		{"Text", style.Text.Size, th.TextStyleBody.Size},
+		{"Bold", style.Bold.Size, th.TextStyleBody.Size},
+		{"Italic", style.Italic.Size, th.TextStyleBody.Size},
+		{"BoldItalic", style.BoldItalic.Size, th.TextStyleBody.Size},
+		{"H3", style.H3.Size, th.TextStyleTitleSmall.Size},
+		{"H4", style.H4.Size, th.TextStyleBody.Size},
+		{"H5", style.H5.Size, th.TextStyleBodySmall.Size},
+		{"H6", style.H6.Size, th.TextStyleCaption.Size},
+		{"Code", style.Code.Size, th.TextStyleCode.Size},
+		{"codeBlockText", style.codeBlockText.Size, th.TextStyleCodeSmall.Size},
+		{"tableCellStyle", style.tableCellStyle.Size, th.TextStyleBody.Size},
+		{"tableHeadStyle", style.tableHeadStyle.Size, th.TextStyleBody.Size},
+	}
+	for _, c := range cases {
+		if c.got != c.want {
+			t.Errorf("%s size = %v, want %v", c.name, c.got, c.want)
+		}
+	}
+}
+
+// A MarkdownCfg with no Style must render like one given
+// DefaultMarkdownStyle(): every Cfg is zero-initializable. Before #998
+// the zero style reached the renderer as-is, so every run had size 0
+// (go-glyph then guessed a size) while list bullets, plain Text with
+// a zero style, drew at the 14 fallback.
+func TestMarkdownUnsetStyleUsesDefault(t *testing.T) {
+	restoreTheme(t)
+	SetTheme(ThemeDark)
+	want := DefaultMarkdownStyle().Text.Size
+
+	w := &Window{}
+	layout := generateViewLayout(w.Markdown(MarkdownCfg{
+		Source: "Plain **bold** text.\n\n- item\n",
+	}), w)
+
+	var runs, bullets int
+	var walk func(l *Layout)
+	walk = func(l *Layout) {
+		if tc := l.Shape.TC; tc != nil {
+			if tc.rtf != nil && tc.rtf.rTFRuns != nil {
+				for _, r := range tc.rtf.rTFRuns.Runs {
+					runs++
+					if r.Style.Size != want {
+						t.Errorf("run %q size = %v, want %v",
+							r.Text, r.Style.Size, want)
+					}
+				}
+			}
+			if tc.Text == "• " && tc.TextStyle != nil {
+				bullets++
+				if tc.TextStyle.Size != want {
+					t.Errorf("bullet size = %v, want %v",
+						tc.TextStyle.Size, want)
+				}
+			}
+		}
+		for i := range l.Children {
+			walk(&l.Children[i])
+		}
+	}
+	walk(&layout)
+	if runs == 0 || bullets == 0 {
+		t.Fatalf("walk found %d runs, %d bullets; want both > 0",
+			runs, bullets)
+	}
+}
+
+// The unset-style fallback resolves per generation, never into the
+// view's own cfg. Written back, the second generation of one view would
+// see a set style, skip the fallback and keep the first theme's faces
+// after a theme flip. The second theme states a different body size so
+// a stale style shows as a wrong run size.
+func TestMarkdownUnsetStyleFollowsThemeFlip(t *testing.T) {
+	restoreTheme(t)
+	SetTheme(ThemeDark)
+
+	bigCfg := themeDarkCfg
+	bigCfg.TextStyleDef.Size = 18
+	bigCfg.SizeTextMedium = 18
+	big := ThemeMaker(bigCfg)
+
+	w := &Window{}
+	v := w.Markdown(MarkdownCfg{Source: "Plain **bold** text."})
+
+	sizes := func() []float32 {
+		layout := generateViewLayout(v, w)
+		var out []float32
+		var walk func(l *Layout)
+		walk = func(l *Layout) {
+			if tc := l.Shape.TC; tc != nil && tc.rtf != nil &&
+				tc.rtf.rTFRuns != nil {
+				for _, r := range tc.rtf.rTFRuns.Runs {
+					out = append(out, r.Style.Size)
+				}
+			}
+			for i := range l.Children {
+				walk(&l.Children[i])
+			}
+		}
+		walk(&layout)
+		return out
+	}
+
+	for _, s := range sizes() {
+		if s != ThemeDark.TextStyleBody.Size {
+			t.Fatalf("dark run size = %v, want %v",
+				s, ThemeDark.TextStyleBody.Size)
+		}
+	}
+	SetTheme(big)
+	got := sizes()
+	if len(got) == 0 {
+		t.Fatal("no runs after theme flip")
+	}
+	for _, s := range got {
+		if s != big.TextStyleBody.Size {
+			t.Errorf("run size after flip = %v, want %v",
+				s, big.TextStyleBody.Size)
+		}
+	}
+}
+
+// countingHighlighter records Tokenize calls so a test can see whether
+// the style that reached block building still carried it.
+type countingHighlighter struct{ calls int }
+
+func (c *countingHighlighter) Tokenize(_, _ string) []highlight.Token {
+	c.calls++
+	return nil
+}
+
+// The unset-style fallback swaps in DefaultMarkdownStyle(), which has no
+// highlighter. A caller who set only CodeHighlighter on an otherwise
+// empty style must keep it, or fenced code silently loses its colors.
+func TestMarkdownUnsetStyleKeepsCodeHighlighter(t *testing.T) {
+	restoreTheme(t)
+	SetTheme(ThemeDark)
+
+	hl := &countingHighlighter{}
+	w := &Window{}
+	generateViewLayout(w.Markdown(MarkdownCfg{
+		Source: "```go\npackage main\n```\n",
+		Style:  MarkdownStyle{CodeHighlighter: hl},
+	}), w)
+	if hl.calls == 0 {
+		t.Error("CodeHighlighter on an unset style was dropped")
 	}
 }

@@ -74,23 +74,31 @@ type MarkdownStyle struct {
 func DefaultMarkdownStyle() MarkdownStyle {
 	// Line spacing comes from go-glyph's recommended line height (font
 	// leading, floored to a minimum em ratio); no manual LineSpacing needed.
-	text := guiTheme.TextStyleBodySmall
-	bold := guiTheme.TextStyleBodySmall.Bold()
-	italic := guiTheme.TextStyleBodySmall.Italic()
-	bi := guiTheme.TextStyleBodySmall.Italic().Bold()
+	//
+	// Markdown is document prose, so paragraphs take the body role
+	// (#998). The heading ladder has only two rungs above body, so H3
+	// (title-small) and H4 (body bold) share a size and differ by
+	// nothing but order; H5 and H6 take the two rungs under body.
+	text := guiTheme.TextStyleBody
+	bold := guiTheme.TextStyleBody.Bold()
+	italic := guiTheme.TextStyleBody.Italic()
+	bi := guiTheme.TextStyleBody.Italic().Bold()
 
 	return MarkdownStyle{
-		Text:          text,
-		H1:            guiTheme.TextStyleDisplay,
-		H2:            guiTheme.TextStyleTitle,
-		H3:            guiTheme.TextStyleTitleSmall,
-		H4:            bold,
-		H5:            guiTheme.TextStyleCaption.Bold(),
-		H6:            guiTheme.TextStyleCaptionSmall.Bold(),
-		Bold:          bold,
-		Italic:        italic,
-		BoldItalic:    bi,
-		Code:          guiTheme.TextStyleCodeSmall,
+		Text:       text,
+		H1:         guiTheme.TextStyleDisplay,
+		H2:         guiTheme.TextStyleTitle,
+		H3:         guiTheme.TextStyleTitleSmall,
+		H4:         bold,
+		H5:         guiTheme.TextStyleBodySmall.Bold(),
+		H6:         guiTheme.TextStyleCaption.Bold(),
+		Bold:       bold,
+		Italic:     italic,
+		BoldItalic: bi,
+		// Inline code sits in body text and keeps the mono +1 step over
+		// it. Fenced blocks stay on the small code role: they hold long
+		// lines, and the smaller face wraps fewer of them.
+		Code:          guiTheme.TextStyleCode,
 		codeBlockText: guiTheme.TextStyleCodeSmall,
 		// Non-text fills, exempt from the dimming roles (audit §1.2).
 		CodeBlockBG:       RGBA(0, 0, 0, 50), // ergonomics-audit:visual
@@ -131,7 +139,11 @@ func DefaultMarkdownStyle() MarkdownStyle {
 type MarkdownCfg struct {
 	ID     string
 	Source string
-	Style  MarkdownStyle
+	// Style sets the document's faces and block geometry. Leave it unset
+	// (zero Text.Size) for DefaultMarkdownStyle() under the active theme.
+	// A zero Text.Size discards every other field except CodeHighlighter.
+	// To change a few fields, start from DefaultMarkdownStyle() and edit it.
+	Style MarkdownStyle
 	// MermaidWidth is the max pixel width for mermaid diagrams
 	// (0 = 600).
 	// exportaudit:keep — caller-facing config (issue #372)
@@ -324,6 +336,28 @@ func (mv *markdownView) GenerateLayout(w *Window) Layout {
 	// subtree from cfg every frame, and an app that re-roots a document
 	// creates a fresh MarkdownCfg).
 	cfg.ID = w.EffID(cfg.ID)
+
+	// An unset Style takes the theme default, so a zero MarkdownCfg
+	// renders like every other zero Cfg (#998). Text.Size is the sentinel:
+	// no usable style has a zero body size, and before this fallback a
+	// zero size reached the renderer and go-glyph guessed one. The style
+	// is resolved here, not in the factory, so a Themed ancestor applies.
+	// A caller who set only CodeHighlighter on an otherwise empty style
+	// keeps it.
+	//
+	// The resolved style goes into a per-call copy, never into mv.cfg.
+	// Written back, it would no longer read as unset: a later generation
+	// of the same view after a theme flip, or under another Themed
+	// ancestor, would skip this branch and rebuild with the old theme's
+	// faces. Only the ID write above persists. The copy stays on the
+	// stack: nothing below captures cfg in a closure.
+	rc := *cfg
+	if rc.Style.Text.Size == 0 {
+		highlighter := rc.Style.CodeHighlighter
+		rc.Style = DefaultMarkdownStyle()
+		rc.Style.CodeHighlighter = highlighter
+	}
+	cfg = &rc
 
 	mode := cfg.Mode.Get(TextModeWrap)
 

@@ -62,10 +62,13 @@ Naming a step's _floor_ does not resolve the step.
 The named role only bounds the result. The gate reports it either way — it keys
 on the arithmetic, not on how the bound is spelled.
 
-The code roles sit +1 above the body roles at the same rung
-(`TextStyleCodeSmall` is 13 where `TextStyleBodySmall` is 12). This is an
-optical compensation for the mono face, uniform because it is the same face at
-every size. Expect the step when you mix code roles with body roles.
+The code roles sit +1 above the rung they are built on: `TextStyleCode` is 15
+over the 14 body rung, `TextStyleCodeSmall` is 12 over the 11 caption rung, and
+`TextStyleCodeTiny` is 11 over the 10 caption-small rung. So
+`TextStyleCodeSmall` is the same size as `TextStyleBodySmall`, not one step
+above it. This is an optical compensation for the mono face, uniform because it
+is the same face at every size. Expect the step when you mix code roles with
+body roles.
 
 The ladder is derived, not stated: each theme states a **body size** and the six
 rungs come from it (`textSizes`, visual-refresh §2.1). The dark/light body
