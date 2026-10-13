@@ -57,6 +57,10 @@ func renderCmdKindName(k renderKind) string {
 		return "RenderStencilBegin"
 	case RenderStencilEnd:
 		return "RenderStencilEnd"
+	case RenderTransformBegin:
+		return "RenderTransformBegin"
+	case RenderTransformEnd:
+		return "RenderTransformEnd"
 	default:
 		return "Unknown"
 	}
@@ -93,6 +97,8 @@ func TestRenderCmdKindNameExhaustive(t *testing.T) {
 		{RenderRotateEnd, "RenderRotateEnd"},
 		{RenderStencilBegin, "RenderStencilBegin"},
 		{RenderStencilEnd, "RenderStencilEnd"},
+		{RenderTransformBegin, "RenderTransformBegin"},
+		{RenderTransformEnd, "RenderTransformEnd"},
 		{renderKind(255), "Unknown"},
 	}
 	for _, tt := range tests {

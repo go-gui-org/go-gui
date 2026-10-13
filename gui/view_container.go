@@ -156,8 +156,20 @@ type ContainerCfg struct {
 	SizeBorder Border
 	Radius     Radius
 	Opacity    Opt[float32]
-	Width      float32
-	Height     float32
+	// Transform moves, turns, scales or skews how the container and
+	// everything in it is drawn. Layout
+	// ignores it: the container keeps its place, and so do its
+	// neighbours. The zero value changes nothing. See [Transform].
+	Transform Transform
+	// TransformFn, when set, is read each time the container is drawn
+	// and wins over Transform. Use it to animate: return a spring's or
+	// tween's current value, and the view moves in render-only frames
+	// with no rebuild. It runs under the frame lock, so it must only
+	// read state and return. Do not change the window from it.
+	// exportaudit:keep — caller-facing config (#1019)
+	TransformFn func() Transform
+	Width       float32
+	Height      float32
 	// MinWidth floors the arranged width, except on a Fixed-width
 	// axis with a positive Width, where it is overwritten with
 	// Width and never takes effect (issue #635). Zero means unset.
@@ -628,6 +640,14 @@ func buildContainerShape(cfg *ContainerCfg, w *Window) Shape {
 	}
 	if ev, ok := makeContainerEvents(cfg); ok {
 		shape.events = w.allocEventHandlers(ev)
+	}
+	// An identity transform with no TransformFn draws and hits like no
+	// transform, so it costs no pointer.
+	if cfg.TransformFn != nil || !cfg.Transform.IsIdentity() {
+		shape.xf = w.allocTransform(shapeTransform{
+			static: cfg.Transform,
+			fn:     cfg.TransformFn,
+		})
 	}
 	warnFixedSizingConflict(w, &shape)
 	applyFixedSizingConstraints(&shape)

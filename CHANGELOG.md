@@ -10,6 +10,22 @@ and this project adheres to
 
 ### Added
 
+- **Containers can be moved, turned, scaled, skewed and turned in 3D (#1019).**
+  `ContainerCfg.Transform` takes a `gui.Transform` built by chaining, for
+  example `gui.Rotate(8).Scale(1.05)` or `gui.RotateY(40).Perspective(800)`. The
+  container and everything in it is drawn through the transform on the GPU, and
+  layout ignores it, so neighbours do not move. The parts apply in a fixed order
+  (translate, perspective, rotateX, rotateY, rotate, skew, scale) about an
+  origin, by default the center of the box. `Transform.Lerp` blends two
+  transforms. To animate, set `ContainerCfg.TransformFn`: it is read each time
+  the container is drawn, so a spring with `AnimationRefreshRenderOnly` moves
+  the view without a rebuild. A clip inside a turned or skewed container stays
+  exact. `BackfaceHidden` makes the container draw nothing while its back faces
+  the viewer. For now, two gaps remain. The pointer still hits the box where it
+  would be without the transform, and a hidden back face still takes it. The
+  soft and web backends and PDF output draw without the transform. Later phases
+  of #1019 close these gaps.
+
 - **Springs, tweens and keyframes can ask for render-only frames (#1016).**
   `SpringAnimation`, `TweenAnimation` and `KeyframeAnimation` have a new
   `Refresh` field. Set it to `AnimationRefreshRenderOnly` and each tick repaints

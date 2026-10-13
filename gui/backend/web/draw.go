@@ -104,7 +104,11 @@ func (b *Backend) drawCmds(cmds []gui.RenderCmd) {
 
 		case gui.RenderNone,
 			gui.RenderFilterComposite,
-			gui.RenderLayoutPlaced:
+			gui.RenderLayoutPlaced,
+			// View transforms draw untransformed here until #1019
+			// phase 6 maps them onto setTransform.
+			gui.RenderTransformBegin,
+			gui.RenderTransformEnd:
 			// Unsupported in Canvas2D backend.
 		}
 	}

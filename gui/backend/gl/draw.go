@@ -109,6 +109,10 @@ func (b *Backend) drawCmd(w *gui.Window, r *gui.RenderCmd) {
 		b.beginRotation(r)
 	case gui.RenderRotateEnd:
 		b.endRotation()
+	case gui.RenderTransformBegin:
+		b.beginTransform(r)
+	case gui.RenderTransformEnd:
+		b.endRotation()
 
 	// Not emitted by the GL backend render path.
 	case gui.RenderNone,

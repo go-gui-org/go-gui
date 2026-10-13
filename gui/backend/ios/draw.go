@@ -75,6 +75,10 @@ func (b *Backend) renderersDraw(w *gui.Window) {
 			b.beginRotation(r)
 		case gui.RenderRotateEnd:
 			b.endRotation()
+		case gui.RenderTransformBegin:
+			b.beginTransform(r)
+		case gui.RenderTransformEnd:
+			b.endRotation()
 
 		case gui.RenderNone,
 			gui.RenderFilterComposite,
@@ -587,6 +591,10 @@ func (b *Backend) beginRotation(r *gui.RenderCmd) {
 
 func (b *Backend) endRotation() {
 	b.EndRotation()
+}
+
+func (b *Backend) beginTransform(r *gui.RenderCmd) {
+	b.BeginTransform(r.Homography)
 }
 
 // --- Filter (glow) ---

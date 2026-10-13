@@ -18,6 +18,18 @@ func (b *Backend) beginRotation(r *gui.RenderCmd) {
 	b.usePipeline(&b.pipelines.solid)
 }
 
+// beginTransform saves the MVP and multiplies in a view transform
+// (ContainerCfg.Transform). RenderTransformEnd pops it through
+// endRotation: both brackets share the MVP stack.
+func (b *Backend) beginTransform(r *gui.RenderCmd) {
+	b.mvpStack = append(b.mvpStack, b.mvp)
+	if r.Homography == nil {
+		return
+	}
+	gpu.ApplyHomography(&b.mvp, r.Homography, b.dpiScale)
+	b.usePipeline(&b.pipelines.solid)
+}
+
 // endRotation restores the pre-rotation MVP.
 func (b *Backend) endRotation() {
 	n := len(b.mvpStack)

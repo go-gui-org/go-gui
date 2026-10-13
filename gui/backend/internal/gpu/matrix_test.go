@@ -114,3 +114,44 @@ func TestOrtho_DegenerateViewport_ReturnsIdentity(t *testing.T) {
 		})
 	}
 }
+
+// applyMVP maps a 2D point through a column-major MVP, with the
+// perspective divide the GPU does.
+func applyMVP(m *[16]float32, x, y float32) (float32, float32) {
+	cx := m[0]*x + m[4]*y + m[12]
+	cy := m[1]*x + m[5]*y + m[13]
+	cw := m[3]*x + m[7]*y + m[15]
+	return cx / cw, cy / cw
+}
+
+func TestApplyHomographyIdentity(t *testing.T) {
+	mvp := IdentityTM()
+	h := [9]float32{1, 0, 0, 0, 1, 0, 0, 0, 1}
+	ApplyHomography(&mvp, &h, 2)
+	if mvp != IdentityTM() {
+		t.Fatalf("identity changed the MVP: %v", mvp)
+	}
+}
+
+func TestApplyHomographyScalesToPhysicalPixels(t *testing.T) {
+	// A move of (5, 7) logical pixels is (10, 14) physical at 2x.
+	mvp := IdentityTM()
+	h := [9]float32{1, 0, 5, 0, 1, 7, 0, 0, 1}
+	ApplyHomography(&mvp, &h, 2)
+	x, y := applyMVP(&mvp, 20, 30)
+	if x != 30 || y != 44 {
+		t.Fatalf("got (%v,%v), want (30,44)", x, y)
+	}
+}
+
+func TestApplyHomographyPerspectiveDivide(t *testing.T) {
+	// w = 0.01*x + 1 in logical pixels. At x = 100 logical (200
+	// physical at 2x) w is 2, so the point lands at half its distance.
+	mvp := IdentityTM()
+	h := [9]float32{1, 0, 0, 0, 1, 0, 0.01, 0, 1}
+	ApplyHomography(&mvp, &h, 2)
+	x, y := applyMVP(&mvp, 200, 40)
+	if math.Abs(float64(x-100)) > 1e-4 || math.Abs(float64(y-20)) > 1e-4 {
+		t.Fatalf("got (%v,%v), want (100,20)", x, y)
+	}
+}

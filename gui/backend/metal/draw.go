@@ -88,6 +88,10 @@ func (b *windowState) renderersDraw(w *gui.Window) {
 			b.beginRotation(r)
 		case gui.RenderRotateEnd:
 			b.endRotation()
+		case gui.RenderTransformBegin:
+			b.beginTransform(r)
+		case gui.RenderTransformEnd:
+			b.endRotation()
 
 		case gui.RenderNone,
 			gui.RenderFilterComposite,

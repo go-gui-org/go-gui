@@ -1902,6 +1902,48 @@ func goldenCases() []goldenCase {
 			},
 			hoverX: 128, hoverY: 40,
 		},
+		// View transforms (#1019). Each pins the TransformBegin matrix
+		// for one component, resolved about the card's center, and the
+		// card drawn inside the bracket.
+		{name: "transform_translate", build: goldenTransformCard(Translate(12, -6))},
+		{name: "transform_scale", build: goldenTransformCard(ScaleXY(1.25, 0.8))},
+		{
+			// A turn also pins the clip fallback: the clipping card's
+			// scissor becomes its bounding box, and a stencil cuts
+			// exactly.
+			name:  "transform_rotate",
+			build: goldenTransformCard(Rotate(15)),
+		},
+		{name: "transform_skew", build: goldenTransformCard(Skew(10, 0))},
+		{
+			// Perspective pins the w row, printed at five decimals.
+			name:  "transform_rotate_y_perspective",
+			build: goldenTransformCard(RotateY(40).Perspective(400)),
+		},
+	}
+}
+
+// goldenTransformCard returns a build for a fixed-size clipping card
+// with a label, drawn with tr.
+func goldenTransformCard(tr Transform) func(*Window) View {
+	return func(*Window) View {
+		return Column(ContainerCfg{
+			Padding: PadAll(24),
+			Content: []View{
+				Column(ContainerCfg{
+					Sizing:    FixedFixed,
+					Width:     120,
+					Height:    60,
+					Clip:      true,
+					Color:     RGB(60, 120, 200),
+					Radius:    RadiusMedium,
+					Transform: tr,
+					Content: []View{
+						Text(TextCfg{Text: "Card"}),
+					},
+				}),
+			},
+		})
 	}
 }
 

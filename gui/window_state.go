@@ -32,6 +32,12 @@ type windowRender struct {
 	// VersionFn panic warning, emitted once. Its own flag, so a
 	// panicking VersionFn cannot silence a later OnDraw panic.
 	versionFnPanicWarned bool
+	// TransformFn panic warning, emitted once.
+	transformFnPanicWarned bool
+	// xfStack holds the transform brackets open in the render walk,
+	// innermost last. emitClipCmd maps each scissor out through the top
+	// one. Reused across frames; every Begin pops itself in a defer.
+	xfStack []xfFrame
 }
 
 // windowAnimation holds animation lifecycle state.

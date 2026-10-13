@@ -35,12 +35,14 @@ const (
 	RenderRotateEnd
 	RenderStencilBegin
 	RenderStencilEnd
+	RenderTransformBegin
+	RenderTransformEnd
 )
 
 // renderGuardWarned is a 32-bit per-kind mask: the kind count
 // must fit in it. Appending a kind past 31 fails the build here
 // instead of silently sharing no warn-once slot.
-const _ uint = 32 - uint(RenderStencilEnd) - 1
+const _ uint = 32 - uint(RenderTransformEnd) - 1
 
 // RenderCmd is a flat discriminated struct holding all draw
 // command variants. Kind selects which fields are meaningful.
@@ -48,6 +50,12 @@ const _ uint = 32 - uint(RenderStencilEnd) - 1
 // frame to minimize heap allocations.
 type RenderCmd struct {
 	ColorMatrix *[16]float32 // FilterBegin: color transform
+	// Homography is the view transform a TransformBegin opens: a
+	// row-major 3x3 matrix in logical pixels, mapping a point in the
+	// view's own frame to its parent's frame. A backend multiplies it
+	// into its MVP, after scaling it to physical pixels. It points into
+	// the shape, so it is valid until the next view rebuild.
+	Homography *[9]float32
 
 	// Pointer fields.
 	Shader       *Shader

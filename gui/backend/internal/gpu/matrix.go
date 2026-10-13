@@ -71,3 +71,33 @@ func Mat4Mul(out, a, b *[16]float32) {
 		}
 	}
 }
+
+// ApplyHomography multiplies mvp by a view transform: h is a row-major
+// 3x3 matrix in logical pixels that maps (x, y, 1) to (x', y', w), and
+// s is the DPI scale. Vertices are in physical pixels, so h is first
+// conjugated by the scale: S·h·S⁻¹. The z axis passes through, so the
+// depth of every vertex is unchanged. The w row carries perspective,
+// and the GPU's divide by w finishes it, so the shaders need no change.
+func ApplyHomography(mvp *[16]float32, h *[9]float32, s float32) {
+	if s <= 0 {
+		s = 1
+	}
+	var x [16]float32
+	// Column 0: the x input.
+	x[0] = h[0]
+	x[1] = h[3]
+	x[3] = h[6] / s
+	// Column 1: the y input.
+	x[4] = h[1]
+	x[5] = h[4]
+	x[7] = h[7] / s
+	// Column 2: z passes through.
+	x[10] = 1
+	// Column 3: the constant input.
+	x[12] = h[2] * s
+	x[13] = h[5] * s
+	x[15] = h[8]
+	var out [16]float32
+	Mat4Mul(&out, mvp, &x)
+	*mvp = out
+}

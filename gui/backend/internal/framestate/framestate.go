@@ -160,6 +160,21 @@ func (fs *FrameState) BeginRotation(angleDeg, cx, cy float32) {
 	fs.SetPipeline(fs.SolidPipe)
 }
 
+// BeginTransform pushes the current MVP and multiplies in a view
+// transform: h is row-major 3x3 in logical pixels (see
+// gpu.ApplyHomography). EndRotation pops it, as both brackets share the
+// MVP stack. A nil h pushes an unchanged MVP, so the stack stays
+// balanced.
+func (fs *FrameState) BeginTransform(h *[9]float32) {
+	fs.MVPStack = append(fs.MVPStack, fs.MVP)
+	if h == nil {
+		return
+	}
+	gpu.ApplyHomography(&fs.MVP, h, fs.DPIScale)
+	fs.MVPDirty = true
+	fs.SetPipeline(fs.SolidPipe)
+}
+
 // EndRotation pops the MVP stack, restoring the matrix in effect
 // before the matching BeginRotation. A no-op on an empty stack.
 func (fs *FrameState) EndRotation() {

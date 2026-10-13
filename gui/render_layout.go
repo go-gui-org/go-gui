@@ -26,6 +26,21 @@ func renderLayoutDepth(layout *Layout, bgColor Color, clip drawClip, w *Window, 
 			ev.AmendLayout(EventCtx{layout, nil, w})
 		}
 	}
+	// The transform bracket opens first, so the view's own fill, its
+	// filter and all its children are drawn through it. Inside, the clip
+	// the parent passed is in the wrong frame, so drawing culls against
+	// nothing (xfUnboundedClip). The scissor still cuts in the window.
+	//
+	// A view turned to show its hidden back face draws nothing, nor do
+	// its children.
+	if xf := layout.Shape.xf; xf != nil {
+		if renderTransformBegin(layout.Shape, clip, w) {
+			clip = xfUnboundedClip
+			defer renderTransformEnd(w)
+		} else if xf.hidden {
+			return
+		}
+	}
 	// Emit filter bracket when ColorFilter is set (containers only).
 	fx := layout.Shape.fx
 	hasColorFilter := fx != nil && fx.ColorFilter != nil && !w.inFilter
@@ -55,7 +70,7 @@ func renderLayoutDepth(layout *Layout, bgColor Color, clip drawClip, w *Window, 
 
 	shapeClip := clip
 	if layout.Shape.OverDraw {
-		shapeClip = layout.Shape.shapeClip
+		shapeClip = renderShapeClip(layout.Shape, clip, w)
 		if layout.Shape.scrollbarOrientation == scrollbarVertical {
 			shapeClip.Y = clip.Y
 			shapeClip.Height = clip.Height
@@ -69,9 +84,14 @@ func renderLayoutDepth(layout *Layout, bgColor Color, clip drawClip, w *Window, 
 			emitClipCmd(clip, w)
 		}()
 	} else if layout.Shape.Clip {
-		shapeClip = clipContentBox(layout.Shape)
+		shapeClip = clipContentBoxIn(layout.Shape,
+			renderShapeClip(layout.Shape, clip, w))
 		emitClipCmd(shapeClip, w)
+		stencil, stencilled := xfClipStencilBegin(shapeClip, w)
 		defer func() {
+			if stencilled {
+				xfClipStencilEnd(stencil, w)
+			}
 			emitClipCmd(clip, w)
 		}()
 	}
@@ -118,7 +138,7 @@ func renderLayoutDepth(layout *Layout, bgColor Color, clip drawClip, w *Window, 
 		// rasterizing fragments outside bounding rect).
 		scissored := false
 		if !layout.Shape.Clip && !layout.Shape.OverDraw {
-			shapeClip = layout.Shape.shapeClip
+			shapeClip = renderShapeClip(layout.Shape, clip, w)
 			emitClipCmd(shapeClip, w)
 			scissored = true
 		}

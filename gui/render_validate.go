@@ -91,15 +91,25 @@ func rendererValidForDraw(r RenderCmd) bool {
 		return validCustomShaderCmd(r)
 	case RenderRotateBegin:
 		return validRotateBeginCmd(r)
+	case RenderTransformBegin:
+		return validTransformBeginCmd(r)
 	// Bracket ends and markers carry no validatable payload beyond
 	// the kind itself. Listed explicitly so a new kind is a
 	// compile-visible decision rather than a silent default-true.
 	case RenderNone, RenderFilterEnd, RenderRotateEnd,
-		RenderLayoutPlaced:
+		RenderTransformEnd, RenderLayoutPlaced:
 		return true
 	default:
 		return true
 	}
+}
+
+// validTransformBeginCmd needs a finite matrix. A NaN or Inf entry would
+// poison the MVP of every draw in the bracket.
+func validTransformBeginCmd(r RenderCmd) bool {
+	h := r.Homography
+	return h != nil &&
+		f32AllFinite9(h[0], h[1], h[2], h[3], h[4], h[5], h[6], h[7], h[8])
 }
 
 func validClipCmd(r RenderCmd) bool {

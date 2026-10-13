@@ -25,6 +25,19 @@ func (b *windowState) beginRotation(r *gui.RenderCmd) {
 	C.metalSetMVP(b.ctx, (*C.float)(&b.mvp[0]))
 }
 
+// beginTransform saves the MVP and multiplies in a view transform
+// (ContainerCfg.Transform). RenderTransformEnd pops it through
+// endRotation: both brackets share the MVP stack.
+func (b *windowState) beginTransform(r *gui.RenderCmd) {
+	b.mvpStack = append(b.mvpStack, b.mvp)
+	if r.Homography == nil {
+		return
+	}
+	gpu.ApplyHomography(&b.mvp, r.Homography, b.dpiScale)
+	C.metalSetPipeline(b.ctx, C.int(pipeSolid))
+	C.metalSetMVP(b.ctx, (*C.float)(&b.mvp[0]))
+}
+
 func (b *windowState) endRotation() {
 	n := len(b.mvpStack)
 	if n == 0 {

@@ -206,6 +206,12 @@ func shapeBounds(shape *Shape) drawClip {
 // Deriving the box from the bounds and intersecting once is the only
 // form that stays correct under partial clipping.
 func clipContentBox(shape *Shape) drawClip {
+	return clipContentBoxIn(shape, shape.shapeClip)
+}
+
+// clipContentBoxIn is clipContentBox with the shape's own clip given as
+// bound, for the render walk inside a transform (renderShapeClip).
+func clipContentBoxIn(shape *Shape, bound drawClip) drawClip {
 	var padX float32
 	if effectiveTextDir(shape) == TextDirRTL {
 		padX = shape.Padding.Right + shape.SizeBorder
@@ -218,7 +224,7 @@ func clipContentBox(shape *Shape) drawClip {
 		Width:  f32Max(0, shape.Width-shape.paddingWidth()),
 		Height: f32Max(0, shape.Height-shape.paddingHeight()),
 	}
-	r, ok := rectIntersection(content, shape.shapeClip)
+	r, ok := rectIntersection(content, bound)
 	if !ok {
 		return drawClip{}
 	}
@@ -226,7 +232,14 @@ func clipContentBox(shape *Shape) drawClip {
 }
 
 // emitClipCmd emits a RenderClip command for the given clip rect.
+//
+// Inside a transform the rect is in the view's own frame, but a backend
+// sets it as a window scissor. So it is mapped out through the open
+// brackets first (xfFrame.toWindow).
 func emitClipCmd(clip drawClip, w *Window) {
+	if n := len(w.xfStack); n > 0 {
+		clip = w.xfStack[n-1].toWindow(clip)
+	}
 	emitRenderer(RenderCmd{
 		Kind: RenderClip,
 		X:    clip.X,

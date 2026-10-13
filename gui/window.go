@@ -586,6 +586,15 @@ func (w *Window) allocEffects(src shapeEffects) *shapeEffects {
 	return w.scratch.viewEffects.alloc(src)
 }
 
+// allocTransform returns a pooled copy of src, like allocEffects.
+func (w *Window) allocTransform(src shapeTransform) *shapeTransform {
+	if w == nil {
+		cp := src
+		return &cp
+	}
+	return w.scratch.viewXforms.alloc(src)
+}
+
 // SetTitleFn sets the function used to update the OS window title.
 // Called by the backend at init.
 func (w *Window) SetTitleFn(fn func(string)) {

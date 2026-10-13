@@ -125,10 +125,15 @@ func (r *renderer) drawAll(cmds []gui.RenderCmd) {
 		// compile. RenderFilterComposite is not emitted by the render
 		// path — endFilter reads the layer count from the bracket's
 		// RenderFilterBegin, as the GPU backends do.
+		//
+		// View transforms draw untransformed here until #1019 phase 6
+		// adds a homography blit.
 		case gui.RenderNone,
 			gui.RenderCustomShader,
 			gui.RenderFilterComposite,
-			gui.RenderLayoutPlaced:
+			gui.RenderLayoutPlaced,
+			gui.RenderTransformBegin,
+			gui.RenderTransformEnd:
 		}
 	}
 }

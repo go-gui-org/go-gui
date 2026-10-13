@@ -391,6 +391,8 @@ var renderKindNames = map[renderKind]string{
 	RenderRotateEnd:         "RotateEnd",
 	RenderStencilBegin:      "StencilBegin",
 	RenderStencilEnd:        "StencilEnd",
+	RenderTransformBegin:    "TransformBegin",
+	RenderTransformEnd:      "TransformEnd",
 }
 
 func renderKindName(k renderKind) string {
@@ -407,6 +409,26 @@ func f2(v float32) string {
 		v = 0
 	}
 	return fmt.Sprintf("%.2f", v)
+}
+
+// homographyStr prints a TransformBegin matrix row by row, or nothing
+// when the command carries none.
+func homographyStr(h *[9]float32) string {
+	if h == nil {
+		return ""
+	}
+	return fmt.Sprintf(" h=[%s,%s,%s;%s,%s,%s;%s,%s,%s]",
+		f2(h[0]), f2(h[1]), f2(h[2]), f2(h[3]), f2(h[4]),
+		f2(h[5]), f5(h[6]), f5(h[7]), f2(h[8]))
+}
+
+// f5 is f2 at five decimals, for a perspective term of a transform
+// matrix: it is about 1/d, so two decimals would print it as zero.
+func f5(v float32) string {
+	if v == 0 {
+		v = 0
+	}
+	return fmt.Sprintf("%.5f", v)
 }
 
 // roundF2 rounds to the precision f2 prints, normalizing negative zero
@@ -618,6 +640,8 @@ func serializeCmd(c RenderCmd) string {
 			f2(c.RotAngle), f2(c.RotCX), f2(c.RotCY))
 	case RenderStencilBegin, RenderStencilEnd:
 		fmt.Fprintf(&b, " sdepth=%d", c.StencilDepth)
+	case RenderTransformBegin:
+		b.WriteString(homographyStr(c.Homography))
 	case RenderFilterBegin, RenderFilterComposite:
 		fmt.Fprintf(&b, " layers=%d", c.Layers)
 		if c.ColorMatrix != nil {
