@@ -3,7 +3,6 @@
 ![Go version](https://img.shields.io/badge/go-1.26%2B-blue)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 ![CI](https://github.com/go-gui-org/go-gui/actions/workflows/ci.yml/badge.svg)
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/go-gui-org/go-gui)
 [![Wiki](https://img.shields.io/badge/docs-wiki-blue)](https://github.com/go-gui-org/go-gui/wiki)
 
 **A modern GUI framework for Go.**

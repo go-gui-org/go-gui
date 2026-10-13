@@ -176,6 +176,7 @@ var componentDemos = map[string]func(*gui.Window) gui.View{
 	"menus":               demoMenus,
 	"dialog":              demoDialog,
 	"tree":                demoTree,
+	"virtual_list":        demoVirtualList,
 	"drag_reorder":        demoDragReorder,
 	"printing":            demoPrinting,
 	"text":                demoText,

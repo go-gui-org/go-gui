@@ -8,6 +8,18 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- **Showcase page for `VirtualList` (#1027).** The Data group now has a "Virtual
+  List" demo of 5,000 cards with different heights. It jumps to a row by index
+  (`ScrollToIndexAt`, `ScrollIndexIntoView`, `ScrollToIndex`), follows appended
+  rows with `ScrollToEnd` while pinned, and inserts rows at the top with
+  `ItemKey` so measured heights stay with their rows. The new docs page explains
+  when to use `VirtualList` instead of `ListBox`, `Table` or `Tree`, how
+  heights, identity and index scrolling work, and why `ItemView`'s `width` must
+  not be a minimum width. Before, the widget was in no showcase page, so a
+  reader of the showcase could not find it.
+
 ## [v0.88.3] - 2026-10-12
 
 ### Fixed

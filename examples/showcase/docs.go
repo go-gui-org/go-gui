@@ -52,6 +52,7 @@ var widgetDocFiles = map[string]string{
 	"input":              "docs/widget_input.md",
 	"input_date":         "docs/widget_input_date.md",
 	"listbox":            "docs/widget_listbox.md",
+	"virtual_list":       "docs/widget_virtual_list.md",
 	"locale":             "docs/widget_locale.md",
 	"markdown":           "docs/widget_markdown.md",
 	"menus":              "docs/widget_menus.md",

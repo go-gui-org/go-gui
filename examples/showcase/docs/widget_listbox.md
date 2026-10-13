@@ -47,6 +47,10 @@ gui.ListBox(gui.ListBoxCfg{
 })
 ```
 
+All rows of a `ListBox` have one height. For rows that your app builds, with
+heights that differ (cards, messages, log lines), use `VirtualList`. See the
+Virtual List page.
+
 ## Stdlib Data Binding
 
 Use `Items []string` instead of `Data` for simple lists:

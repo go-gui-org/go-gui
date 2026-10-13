@@ -119,6 +119,14 @@ type ShowcaseApp struct {
 	SelectValue     []string
 	ListBoxSelected []string
 
+	// VirtualList demo. VLSeqs holds one sequence number per row; the
+	// row text derives from it, so 5,000 rows cost 5,000 ints.
+	VLSeqs    []int
+	VLNextSeq int
+	VLJump    string
+	VLJumpErr string
+	VLPinned  bool
+
 	DatePickerDates []time.Time
 	BCPath          []gui.BreadcrumbItemCfg
 
@@ -288,6 +296,8 @@ func newShowcaseApp() *ShowcaseApp {
 		DrawCanvasMarkerY: 140,
 		DrawCanvasVersion: 1,
 		TreeLazyNodes:     make(map[string][]gui.TreeNodeCfg),
+		VLSeqs:            virtualListDemoSeqs(virtualListDemoRows),
+		VLNextSeq:         virtualListDemoRows,
 		DragListItems: []gui.ListBoxOption{
 			gui.NewListBoxOption("apple", "Apple", ""),
 			gui.NewListBoxOption("banana", "Banana", ""),
@@ -409,6 +419,7 @@ var demoEntries = []DemoEntry{
 	{ID: "data_grid", Label: "Data Grid", Group: groupData, Summary: "Controlled virtualized grid for interactive tabular data.", Tags: []string{"grid", "virtualized", "data"}},
 	{ID: "data_source", Label: "Data Source", Group: groupData, Summary: "Async data-source backed grid with CRUD.", Tags: []string{"async", "pagination", "crud", "source"}},
 	{ID: "tree", Label: "Tree View", Group: groupData, Summary: "Hierarchical expandable node display.", Tags: []string{"nodes", "hierarchy", "outline"}},
+	{ID: "virtual_list", Label: "Virtual List", Group: groupData, Summary: "Virtualized list of app-built rows whose heights differ.", Tags: []string{"virtualized", "feed", "chat", "log", "scroll", "variable height"}},
 
 	{ID: "breadcrumb", Label: "Breadcrumb", Group: groupNav, Summary: "Trail navigation with optional content panels.", Tags: []string{"breadcrumb", "navigation", "trail", "path"}},
 	{ID: "menus", Label: "Menus + Menubar", Group: groupNav, Summary: "Nested menus, separators, and custom menu items.", Tags: []string{"menu", "menubar", "submenu"}},
