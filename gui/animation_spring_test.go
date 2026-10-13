@@ -322,3 +322,167 @@ func TestAnimationAddSameSpringRestartsFromRest(t *testing.T) {
 			sp.state.position, sp.state.velocity)
 	}
 }
+
+// stepSpringBy advances sp through the given tick sizes (seconds) and
+// returns its position.
+func stepSpringBy(sp *SpringAnimation, dts ...float32) float32 {
+	deferred := make([]queuedCommand, 0, 4)
+	ac := newAnimationCommands(&deferred)
+	for _, dt := range dts {
+		deferred = deferred[:0]
+		updateSpring(sp, dt, &ac)
+	}
+	return sp.state.position
+}
+
+// repeatDt returns n copies of dt.
+func repeatDt(dt float32, n int) []float32 {
+	out := make([]float32, n)
+	for i := range out {
+		out[i] = dt
+	}
+	return out
+}
+
+// The value at time t must not depend on how the time was cut into ticks
+// (#1017). Before, each tick took one explicit Euler step, so 4 ms ticks,
+// 16 ms ticks and a dropped tick each gave a different value at the same t.
+func TestSpringValueIndependentOfTickRate(t *testing.T) {
+	newSpring := func() *SpringAnimation {
+		sp := NewSpringAnimation("s", func(float32, *Window) {})
+		sp.Config = SpringBouncy
+		sp.SpringTo(0, 100)
+		return sp
+	}
+	// 0.192 s in three shapes: 12 ticks of 16 ms, 48 ticks of 4 ms, and
+	// 16 ms ticks with two dropped (one 48 ms tick in their place).
+	at16 := stepSpringBy(newSpring(), repeatDt(0.016, 12)...)
+	at4 := stepSpringBy(newSpring(), repeatDt(0.004, 48)...)
+	dropped := append(repeatDt(0.016, 5), 0.048)
+	dropped = append(dropped, repeatDt(0.016, 4)...)
+	atDropped := stepSpringBy(newSpring(), dropped...)
+
+	if f32Abs(at16-at4) > 0.01 {
+		t.Errorf("16 ms ticks = %f, 4 ms ticks = %f, want equal", at16, at4)
+	}
+	if f32Abs(at16-atDropped) > 0.01 {
+		t.Errorf("16 ms ticks = %f, dropped ticks = %f, want equal", at16, atDropped)
+	}
+}
+
+// Update moves the spring by the time that really passed since the last
+// sample, not by the fixed tick the loop passes in (#1017). A late tick
+// must not leave the spring behind.
+func TestSpringUpdateUsesElapsedTime(t *testing.T) {
+	late := NewSpringAnimation("s", func(float32, *Window) {})
+	late.SpringTo(0, 100)
+	late.SetStart(time.Now().Add(-100 * time.Millisecond))
+	before := late.sampled
+	deferred := make([]queuedCommand, 0, 4)
+	ac := newAnimationCommands(&deferred)
+	late.Update(nil, 0.016, &ac)
+	// Wall time passes between SetStart and the clock read in Update, more
+	// under -race or on a loaded runner. Bracket the step instead of
+	// guessing it: at least 100 ms, at most the time measured now. The
+	// spring still rises over this range (its first peak is at ~0.36 s).
+	elapsed := float32(time.Since(before).Seconds())
+
+	stepFor := func(dt float32) float32 {
+		ref := NewSpringAnimation("s", func(float32, *Window) {})
+		ref.SpringTo(0, 100)
+		return stepSpringBy(ref, dt)
+	}
+	lo, hi := stepFor(0.1), stepFor(elapsed)
+	got := late.state.position
+	if got < lo-1e-3 || got > hi+1e-3 {
+		t.Errorf("position = %f, want in [%f, %f] (100 ms of motion or more)",
+			got, lo, hi)
+	}
+}
+
+// A spring driven by Update without SetStart has no sample time. Its
+// first step must use the given dt, not the time since the zero
+// time.Time, which would snap it to the target.
+func TestSpringUpdateWithoutSetStartUsesDt(t *testing.T) {
+	sp := NewSpringAnimation("s", func(float32, *Window) {})
+	sp.SpringTo(0, 100)
+	deferred := make([]queuedCommand, 0, 4)
+	ac := newAnimationCommands(&deferred)
+	sp.Update(nil, 0.016, &ac)
+	if sp.stopped {
+		t.Fatal("spring snapped to its target on the first Update")
+	}
+	ref := NewSpringAnimation("s", func(float32, *Window) {})
+	ref.SpringTo(0, 100)
+	if want := stepSpringBy(ref, 0.016); f32Abs(sp.state.position-want) > 1e-4 {
+		t.Errorf("position = %f, want %f (one 16 ms step)", sp.state.position, want)
+	}
+}
+
+// The step is exact, so the preset springs follow the true spring motion.
+// A fine Euler integration is the reference: at a 0.1 ms step its error is
+// far below the tolerance.
+func TestSpringPresetsMatchFineEuler(t *testing.T) {
+	presets := map[string]SpringCfg{
+		"default": SpringDefault, "gentle": SpringGentle,
+		"bouncy": SpringBouncy, "stiff": SpringStiff,
+	}
+	for name, cfg := range presets {
+		t.Run(name, func(t *testing.T) {
+			// Semi-implicit Euler, as the old code did, in float64.
+			pos, vel := 0.0, 0.0
+			k, c, m := float64(cfg.Stiffness), float64(cfg.Damping), float64(cfg.Mass)
+			const fine = 1e-4
+			for range 3200 { // 0.32 s
+				vel += (-k*(pos-1) - c*vel) / m * fine
+				pos += vel * fine
+			}
+			sp := NewSpringAnimation("s", func(float32, *Window) {})
+			sp.Config = cfg
+			sp.SpringTo(0, 1)
+			got := stepSpringBy(sp, repeatDt(0.016, 20)...)
+			if math.Abs(float64(got)-pos) > 2e-3 {
+				t.Errorf("position at 0.32 s = %f, want %f", got, pos)
+			}
+		})
+	}
+}
+
+// Each spring regime (under, critically and overdamped, and no stiffness)
+// starts at its origin with its velocity, and settles at the target.
+func TestSpringStepRegimes(t *testing.T) {
+	cases := map[string]SpringCfg{
+		"underdamped": {Stiffness: 100, Damping: 4, Mass: 1},
+		"critical":    {Stiffness: 100, Damping: 20, Mass: 1},
+		"overdamped":  {Stiffness: 100, Damping: 60, Mass: 1},
+	}
+	for name, cfg := range cases {
+		t.Run(name, func(t *testing.T) {
+			k, c, m := float64(cfg.Stiffness), float64(cfg.Damping), float64(cfg.Mass)
+			d, v := springStep(2, -3, k, c, m, 0)
+			if math.Abs(d-2) > 1e-9 || math.Abs(v+3) > 1e-9 {
+				t.Errorf("t=0: d/v = %f/%f, want 2/-3", d, v)
+			}
+			// The velocity is the derivative of the displacement.
+			const h = 1e-6
+			d1, v1 := springStep(2, -3, k, c, m, 0.1)
+			d2, _ := springStep(2, -3, k, c, m, 0.1+h)
+			if slope := (d2 - d1) / h; math.Abs(slope-v1) > 1e-3 {
+				t.Errorf("velocity = %f, slope = %f", v1, slope)
+			}
+			d, v = springStep(2, -3, k, c, m, 10)
+			if math.Abs(d) > 1e-6 || math.Abs(v) > 1e-6 {
+				t.Errorf("t=10: d/v = %g/%g, want 0/0", d, v)
+			}
+		})
+	}
+	// No stiffness: damping alone slows the velocity, nothing pulls back.
+	d, v := springStep(0, 2, 0, 1, 1, 1)
+	if math.Abs(v-2*math.Exp(-1)) > 1e-9 || math.Abs(d-2*(1-math.Exp(-1))) > 1e-9 {
+		t.Errorf("k=0: d/v = %f/%f", d, v)
+	}
+	d, v = springStep(1, 2, 0, 0, 1, 1)
+	if d != 3 || v != 2 {
+		t.Errorf("k=0, c=0: d/v = %f/%f, want 3/2", d, v)
+	}
+}

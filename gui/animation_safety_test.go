@@ -1,6 +1,9 @@
 package gui
 
-import "testing"
+import (
+	"math"
+	"testing"
+)
 
 func TestUpdateAnimateNilCallbackStops(t *testing.T) {
 	a := &Animate{AnimID: "a"}
@@ -55,13 +58,10 @@ func TestUpdateSpringNilOnValueStops(t *testing.T) {
 	}
 }
 
-// TestUpdateSpringDivergenceStops guards the fixed-timestep divergence
-// path: a stiffness the 16ms step cannot integrate drives velocity to
-// +Inf and position to NaN. NaN fails every threshold comparison, so
-// without an explicit finite check the animation never retires — it
-// pushes NaN through OnValue and forces a layout refresh every tick,
-// forever.
-func TestUpdateSpringDivergenceStops(t *testing.T) {
+// A stiffness of 20000 with Mass 1 is too stiff for a 16 ms Euler step:
+// before #1017 it diverged and snapped to its target. The exact step
+// cannot diverge, so the spring rings around the target and settles there.
+func TestUpdateSpringHighStiffnessSettles(t *testing.T) {
 	var last float32
 	sp := NewSpringAnimation("s", func(v float32, _ *Window) { last = v })
 	sp.Config = SpringCfg{Stiffness: 20000, Damping: 10, Mass: 1, Threshold: 0.01}
@@ -69,26 +69,55 @@ func TestUpdateSpringDivergenceStops(t *testing.T) {
 
 	deferred := make([]queuedCommand, 0, 4)
 	ac := newAnimationCommands(&deferred)
-	// Divergence is reached in ~72 ticks; 500 leaves ample margin
-	// without letting a non-retiring spring run the test forever.
+	// Damping 10 settles in about 2 s (125 ticks); 500 leaves margin
+	// without letting a spring that never settles run the test forever.
+	ticks := 0
 	for range 500 {
+		deferred = deferred[:0]
 		if !updateSpring(sp, 0.016, &ac) {
 			break
 		}
+		runQueuedCommands(deferred)
+		ticks++
+		// The swing never goes past the start: 0 to 1, so at most 2.
+		if f32Abs(sp.state.position) > 2 {
+			t.Fatalf("tick %d: position = %v, want |x| <= 2",
+				ticks, sp.state.position)
+		}
 	}
-	if !sp.stopped {
-		t.Fatalf("diverged spring never stopped: pos=%v vel=%v",
-			sp.state.position, sp.state.velocity)
+	if ticks < 10 {
+		t.Errorf("settled after %d ticks, want a motion, not a snap", ticks)
 	}
-	if !f32IsFinite(sp.state.position) || !f32IsFinite(sp.state.velocity) {
-		t.Fatalf("state left non-finite: pos=%v vel=%v",
-			sp.state.position, sp.state.velocity)
+	if !sp.stopped || sp.state.position != sp.state.target {
+		t.Fatalf("stopped=%v pos=%v, want settled at target",
+			sp.stopped, sp.state.position)
 	}
-	if sp.state.position != sp.state.target {
-		t.Errorf("position = %v, want target %v",
-			sp.state.position, sp.state.target)
+	if last != 1 {
+		t.Errorf("last value = %v, want 1", last)
 	}
-	if !f32IsFinite(last) {
-		t.Errorf("OnValue received non-finite value %v", last)
+}
+
+// A NaN start gives a NaN step. NaN fails every rest comparison, so
+// without the finite check the spring would never retire and would send
+// NaN to OnValue every tick. It must snap to its target and retire.
+func TestUpdateSpringNaNStartSnapsToTarget(t *testing.T) {
+	var got []float32
+	sp := NewSpringAnimation("s", func(v float32, _ *Window) { got = append(got, v) })
+	done := false
+	sp.OnDone = func(*Window) { done = true }
+	sp.SpringTo(float32(math.NaN()), 1)
+
+	deferred := make([]queuedCommand, 0, 4)
+	ac := newAnimationCommands(&deferred)
+	updateSpring(sp, 0.016, &ac)
+	runQueuedCommands(deferred)
+	if !sp.stopped || !done {
+		t.Fatalf("stopped=%v done=%v, want retired", sp.stopped, done)
+	}
+	if sp.state.position != 1 {
+		t.Errorf("position = %v, want target 1", sp.state.position)
+	}
+	if len(got) != 1 || got[0] != 1 {
+		t.Errorf("OnValue got %v, want [1]", got)
 	}
 }

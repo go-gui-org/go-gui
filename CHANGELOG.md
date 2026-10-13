@@ -10,6 +10,13 @@ and this project adheres to
 
 ### Fixed
 
+- **Springs keep their speed when the animation loop is late (#1017).** A
+  `SpringAnimation` now uses the exact (closed-form) spring solution and moves
+  by the time that really passed since its last update. Before, each tick moved
+  the spring by a fixed 16 ms, so a busy main thread that made the loop drop
+  ticks played springs in slow motion. A high stiffness (about 15600 or more
+  with `Mass` 1) also diverged and then snapped to its target. Now any stiffness
+  moves smoothly to its target, and the motion is the same at any tick rate.
 - **A spring that gets a new target keeps its velocity (#1015).** When
   `AnimationAdd` replaces a moving `SpringAnimation` with a new spring that has
   the same ID, the new spring now starts at the position and velocity of the
