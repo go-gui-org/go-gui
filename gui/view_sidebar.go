@@ -21,12 +21,15 @@ type SidebarCfg struct {
 	// Accessibility
 	A11YCfg
 	Content []View
-	// TweenDuration > 0 uses tween animation; 0 uses spring.
+	// TweenDuration > 0 uses tween animation; 0 uses spring. A toggle
+	// while the sidebar is still sliding uses the spring in both modes,
+	// so the slide turns without stopping (#1015).
 	// exportaudit:keep — caller-facing config (issue #372)
 	TweenDuration time.Duration
 	Padding       Padding
 	// Spring tunes the spring animation (used when TweenDuration
-	// is zero). Zero takes the stiff default.
+	// is zero, and for a toggle during a slide). Zero takes the stiff
+	// default.
 	// exportaudit:keep — caller-facing config (issue #372)
 	Spring    SpringCfg
 	Width     float32
@@ -173,22 +176,27 @@ func sidebarStartAnimation(
 		rt.animFrac = v
 		sm.Set(sidebarID, rt)
 	}
-	if tweenDur > 0 {
-		w.AnimationAdd(&TweenAnimation{
-			AnimID:   animID,
-			From:     from,
-			To:       to,
-			Duration: tweenDur,
-			Easing:   tweenEasing,
-			OnValue:  onValue,
-		})
-	} else {
-		sp := &SpringAnimation{
-			AnimID:  animID,
-			Config:  spring,
-			OnValue: onValue,
-		}
-		sp.SpringTo(from, to)
-		w.AnimationAdd(sp)
+	sp := &SpringAnimation{
+		AnimID:  animID,
+		Config:  spring,
+		OnValue: onValue,
 	}
+	sp.SpringTo(from, to)
+	if tweenDur <= 0 {
+		w.AnimationAdd(sp)
+		return
+	}
+	// A tween always starts from rest, so a toggle during the slide would
+	// stop dead and restart. While the running animation still moves, hand
+	// the motion to the spring instead (#1015). A toggle from rest keeps
+	// the configured tween. The spring is built either way: one small
+	// allocation per toggle, a user action, not a per-frame cost.
+	w.animationAddMoving(sp, &TweenAnimation{
+		AnimID:   animID,
+		From:     from,
+		To:       to,
+		Duration: tweenDur,
+		Easing:   tweenEasing,
+		OnValue:  onValue,
+	})
 }

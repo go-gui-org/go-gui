@@ -79,7 +79,12 @@ func NewSpringAnimation(id string, onValue func(float32, *Window)) *SpringAnimat
 	}
 }
 
-// SpringTo sets the spring to start at from targeting to.
+// SpringTo sets the spring to start at from targeting to. When this
+// spring is a new object and AnimationAdd uses it to replace a moving
+// spring with the same ID, the moving spring's position and velocity take
+// the place of from. Do not call SpringTo on a spring that is still
+// registered: the animation loop reads its state, so the call races a
+// tick. Build a new spring instead.
 func (s *SpringAnimation) SpringTo(from, to float32) {
 	s.state.position = from
 	s.state.velocity = 0

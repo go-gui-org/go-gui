@@ -3,6 +3,7 @@ package gui
 import (
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestSidebarOpenWidth(t *testing.T) {
@@ -390,5 +391,173 @@ func TestSidebarNoUnresolvedKeyFinding(t *testing.T) {
 
 	if got := buf.String(); strings.Contains(got, nsSidebar) {
 		t.Fatalf("want no sidebar finding, got %q", got)
+	}
+}
+
+// Toggling a sidebar during its slide keeps the spring's motion (#1015):
+// the width does not jump, and the velocity at the toggle is the velocity
+// of the slide, so the reversal is smooth instead of a stop and restart.
+func TestSidebarToggleMidSlideKeepsVelocity(t *testing.T) {
+	w := &Window{}
+	sidebar := func(open bool) {
+		v := w.Sidebar(SidebarCfg{
+			ID:    "sb",
+			Open:  open,
+			Width: 200,
+			// An easing with no duration selects spring mode; the
+			// zero Cfg defaults to a 300ms tween.
+			TweenEasing: EaseInOutCubic,
+			Content:     []View{Text(TextCfg{Text: "nav"})},
+		})
+		_ = generateViewLayout(v, w)
+	}
+	animID := ScopeID("sidebar", "sb")
+	spring := func() *SpringAnimation {
+		sp, ok := w.animations[animID].(*SpringAnimation)
+		if !ok {
+			t.Fatalf("no spring under %q", animID)
+		}
+		return sp
+	}
+	// tick runs the spring's queued OnValue against w, so the sidebar's
+	// state sees the frames the animation loop would deliver.
+	tick := func(sp *SpringAnimation, n int) {
+		for range n {
+			deferred := make([]queuedCommand, 0, 4)
+			ac := newAnimationCommands(&deferred)
+			updateSpring(sp, 0.016, &ac)
+			for i := range deferred {
+				if deferred[i].kind == queuedCommandValueFn {
+					deferred[i].valueFn(deferred[i].value, w)
+				}
+			}
+		}
+	}
+
+	sidebar(false)
+	sidebar(true) // start opening
+	opening := spring()
+	tick(opening, 5)
+	vel := opening.state.velocity
+	if vel <= 0 {
+		t.Fatalf("setup: opening velocity = %f, want > 0", vel)
+	}
+	sm := StateMap[string, sidebarRuntimeState](w, nsSidebar, capFew)
+	rt, _ := sm.Get("sb")
+	frac := rt.animFrac
+
+	sidebar(false) // toggle mid-slide
+	closing := spring()
+	if closing.state.position != frac {
+		t.Errorf("position = %f, want %f (no jump)", closing.state.position, frac)
+	}
+	if closing.state.velocity != vel {
+		t.Errorf("velocity = %f, want %f (kept)", closing.state.velocity, vel)
+	}
+	// The opening momentum brakes the first closing step. A spring that
+	// restarts from rest at the same point (the bug) jumps further toward
+	// closed in one frame: that jerk is what the carried velocity removes.
+	fromRest := &SpringAnimation{AnimID: "ref", Config: SpringStiff,
+		OnValue: func(float32, *Window) {}}
+	fromRest.SpringTo(frac, 0)
+	tick(fromRest, 1)
+	tick(closing, 1)
+	rt, _ = sm.Get("sb")
+	gotStep := frac - rt.animFrac
+	restStep := frac - fromRest.state.position
+	if gotStep >= restStep {
+		t.Errorf("first closing step = %f, want < %f (from-rest step)",
+			gotStep, restStep)
+	}
+}
+
+// The default sidebar slides with a tween. Toggling it during the tween
+// hands the motion to a spring that starts at the tween's value and
+// velocity (#1015), so the width does not jump and the slide does not stop
+// dead. A toggle from rest still uses the tween.
+func TestSidebarDefaultToggleMidTweenKeepsVelocity(t *testing.T) {
+	w := &Window{}
+	sidebar := func(open bool) {
+		v := w.Sidebar(SidebarCfg{
+			ID:      "sb",
+			Open:    open,
+			Width:   200,
+			Content: []View{Text(TextCfg{Text: "nav"})},
+		})
+		_ = generateViewLayout(v, w)
+	}
+	animID := ScopeID("sidebar", "sb")
+
+	sidebar(false)
+	sidebar(true) // start opening from rest: a tween
+	tw, ok := w.animations[animID].(*TweenAnimation)
+	if !ok {
+		t.Fatalf("toggle from rest: got %T, want *TweenAnimation",
+			w.animations[animID])
+	}
+	// Halfway through EaseInOutCubic: the fastest point of the slide. A
+	// long duration makes the wall time between this sample and the
+	// hand-off too small to move the value, so the check below is exact
+	// to float precision even on a loaded runner.
+	tw.Duration = time.Hour
+	tw.start = time.Now().Add(-tw.Duration / 2)
+	deferred := make([]queuedCommand, 0, 4)
+	ac := newAnimationCommands(&deferred)
+	updateTween(tw, &ac)
+	for i := range deferred {
+		if deferred[i].kind == queuedCommandValueFn {
+			deferred[i].valueFn(deferred[i].value, w)
+		}
+	}
+	sm := StateMap[string, sidebarRuntimeState](w, nsSidebar, capFew)
+	rt, _ := sm.Get("sb")
+	frac := rt.animFrac
+
+	sidebar(false) // toggle mid-tween
+	sp, ok := w.animations[animID].(*SpringAnimation)
+	if !ok {
+		t.Fatalf("toggle mid-tween: got %T, want *SpringAnimation",
+			w.animations[animID])
+	}
+	if f32Abs(sp.state.position-frac) > 1e-4 {
+		t.Errorf("position = %f, want ~%f (no jump)", sp.state.position, frac)
+	}
+	// Still moving open: the spring inherits the tween's direction.
+	if sp.state.velocity <= 0 {
+		t.Errorf("velocity = %f, want > 0 (kept)", sp.state.velocity)
+	}
+	if sp.state.target != 0 {
+		t.Errorf("target = %f, want 0", sp.state.target)
+	}
+}
+
+// A tween that has run its course but is still registered (the loop
+// retires it on its next tick) has no motion to hand over. A toggle then
+// gets the configured tween, not a spring at rest.
+func TestSidebarToggleAfterTweenEndsUsesTween(t *testing.T) {
+	w := &Window{}
+	sidebar := func(open bool) {
+		v := w.Sidebar(SidebarCfg{
+			ID:      "sb",
+			Open:    open,
+			Width:   200,
+			Content: []View{Text(TextCfg{Text: "nav"})},
+		})
+		_ = generateViewLayout(v, w)
+	}
+	animID := ScopeID("sidebar", "sb")
+
+	sidebar(false)
+	sidebar(true)
+	tw, ok := w.animations[animID].(*TweenAnimation)
+	if !ok {
+		t.Fatalf("setup: got %T, want *TweenAnimation", w.animations[animID])
+	}
+	tw.start = time.Now().Add(-2 * tw.Duration) // elapsed, not yet retired
+
+	sidebar(false)
+	if _, ok = w.animations[animID].(*TweenAnimation); !ok {
+		t.Errorf("toggle after tween end: got %T, want *TweenAnimation",
+			w.animations[animID])
 	}
 }

@@ -25,6 +25,20 @@ func viewBoundNow() time.Time { return time.Now() }
 // AnimationAdd registers a new animation. If an animation with the
 // same ID exists, it is replaced.
 //
+// A new *SpringAnimation object that replaces a moving spring keeps that
+// spring's position and velocity; only the target and config change. The
+// from given to SpringTo is ignored in that case, so a new target in the
+// middle of a motion turns smoothly instead of restarting from rest.
+// A new spring that replaces a running *TweenAnimation starts at the
+// tween's current value and velocity in the same way. To restart from
+// from, call AnimationRemove first.
+//
+// The carry needs a new object. Adding the same spring again after
+// SpringTo restarts from rest: SpringTo has already reset its velocity,
+// and there is no other spring to copy from. Do not call SpringTo on a
+// spring that is still registered either: the animation loop reads its
+// state, so the call races a tick.
+//
 // The ID must be non-empty: animations are keyed by ID, so every
 // unnamed animation would collide on "" and replace the previous one.
 // Empty IDs panic, matching State[T]'s treatment of programmer error.
@@ -57,11 +71,76 @@ func (w *Window) animationAddLocked(a Animation) {
 		w.animations = make(map[string]Animation)
 	}
 	wasEmpty := len(w.animations) == 0
+	if sp, ok := a.(*SpringAnimation); ok {
+		springCarryMotion(sp, w.animations[a.ID()])
+	}
 	w.animations[a.ID()] = a
 	if wasEmpty {
 		w.ensureAnimationLoop()
 		w.animationResume()
 	}
+}
+
+// springCarryMotion hands the position and velocity of a running spring
+// to the spring that replaces it under the same ID (#1015). Without it a
+// new target resets the velocity to zero (SpringTo), so a toggle during
+// the motion stops dead and starts again from rest.
+//
+// Runs under animMu, where the loop goroutine also reads and writes this
+// state, so the copy does not race a tick. When next is the spring
+// already registered, the copy writes its own state back to it: a no-op,
+// so no identity check.
+func springCarryMotion(next *SpringAnimation, prev Animation) {
+	if pos, vel, ok := animationMotion(prev); ok {
+		next.state.position = pos
+		next.state.velocity = vel
+	}
+}
+
+// animationMotion reports the value and velocity a running animation can
+// hand to a spring that replaces it. A moving spring gives its state; a
+// running tween gives its sampled value and velocity (tweenMotion), so the
+// sidebar can turn a toggle during its tween into a smooth spring. A
+// settled spring, a finished tween or any other kind has no motion to
+// give (ok is false), so the new spring's own from is the better start.
+// Callers hold animMu.
+func animationMotion(prev Animation) (pos, vel float32, ok bool) {
+	switch running := prev.(type) {
+	case *SpringAnimation:
+		// A non-finite state (SpringTo(NaN, …) before its first tick) has
+		// no motion worth keeping: the replacement starts from its own from.
+		if running.stopped || running.state.atRest ||
+			!f32AllFinite2(running.state.position, running.state.velocity) {
+			return 0, 0, false
+		}
+		return running.state.position, running.state.velocity, true
+	case *TweenAnimation:
+		return tweenMotion(running)
+	}
+	return 0, 0, false
+}
+
+// animationAddMoving adds spring when the animation registered under its
+// ID still has motion to hand over, and fallback otherwise. The check and
+// the add share one animMu hold, so the loop cannot finish or retire the
+// running animation between them: a separate HasAnimation check would see
+// a tween in its last frame as running and start a spring at rest.
+//
+// The sample that made the decision also seeds spring. animationAddLocked
+// samples again, and a tween that finished in the microseconds between
+// the two then carries nothing, which would otherwise leave the spring
+// at rest.
+func (w *Window) animationAddMoving(spring *SpringAnimation, fallback Animation) {
+	w.animMu.Lock()
+	defer w.animMu.Unlock()
+	pos, vel, ok := animationMotion(w.animations[spring.ID()])
+	if !ok {
+		w.animationAddLocked(fallback)
+		return
+	}
+	spring.state.position = pos
+	spring.state.velocity = vel
+	w.animationAddLocked(spring)
 }
 
 // ensureAnimationLoop starts the animation goroutine on first use.

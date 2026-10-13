@@ -86,3 +86,37 @@ func updateTween(tw *TweenAnimation, ac *AnimationCommands) bool {
 	ac.appendOnValue(tw.OnValue, v)
 	return true
 }
+
+// tweenMotionStep is the half-width, in progress units, of the slope
+// sample tweenMotion takes. EasingFn is a plain function with no
+// derivative, so the velocity is a central difference across the
+// current progress.
+const tweenMotionStep = 1e-3
+
+// tweenMotion samples a running tween's value and velocity (units per
+// second) at the current wall time, so a spring that replaces it can
+// continue the motion (#1015). ok is false when there is no motion to
+// hand over: the tween stopped or finished, or a value is not finite.
+func tweenMotion(tw *TweenAnimation) (pos, vel float32, ok bool) {
+	if tw.stopped {
+		return 0, 0, false
+	}
+	progress, done := durationProgress(tw.start, tw.Duration)
+	if done {
+		return 0, 0, false
+	}
+	easing := tw.Easing
+	if easing == nil {
+		easing = EaseOutCubic
+	}
+	// Clamp the sample to [0, 1]: easing hooks are defined only there.
+	lo := f32Max(0, progress-tweenMotionStep)
+	hi := f32Min(1, progress+tweenMotionStep)
+	slope := (easing(hi) - easing(lo)) / (hi - lo)
+	pos = lerp(tw.From, tw.To, easing(progress))
+	vel = (tw.To - tw.From) * slope / float32(tw.Duration.Seconds())
+	if !f32AllFinite2(pos, vel) {
+		return 0, 0, false
+	}
+	return pos, vel, true
+}

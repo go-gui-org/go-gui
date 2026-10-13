@@ -8,6 +8,23 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Fixed
+
+- **A spring that gets a new target keeps its velocity (#1015).** When
+  `AnimationAdd` replaces a moving `SpringAnimation` with a new spring that has
+  the same ID, the new spring now starts at the position and velocity of the
+  moving one. A spring that replaces a running `TweenAnimation` starts at the
+  tween's current value and velocity. The `from` given to `SpringTo` is ignored
+  in both cases. Before, `SpringTo` set the velocity to zero, so a new target
+  during the motion stopped dead and then started again from rest. To restart
+  from `from`, call `AnimationRemove` before `AnimationAdd`. A settled spring or
+  a finished tween carries nothing over.
+- **A sidebar toggled during its slide turns smoothly (#1015).** Before, the
+  sidebar stopped and then slid the other way from rest. Now a toggle while the
+  sidebar is still sliding hands the motion to a spring (`SidebarCfg.Spring`)
+  that starts at the current width and speed. This applies to the default tween
+  mode too. A toggle from rest still uses the configured tween.
+
 ## [v0.88.4] - 2026-10-13
 
 ### Added
