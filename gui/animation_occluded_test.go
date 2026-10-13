@@ -21,7 +21,7 @@ func animationTickOnce(w *Window) {
 	deferred := make([]queuedCommand, 0, 8)
 	stoppedIDs := make([]string, 0, 4)
 	ac := newAnimationCommands(&deferred)
-	w.animationTick(&ac, &stoppedIDs)
+	w.animationTick(&ac, &stoppedIDs, float32(animationCycle.Seconds()))
 }
 
 // TestAnimationTickZeroAlloc: a tick reuses the loop's scratch. Taking
@@ -34,7 +34,7 @@ func TestAnimationTickZeroAlloc(t *testing.T) {
 	stoppedIDs := make([]string, 0, 4)
 	ac := newAnimationCommands(&deferred)
 	tick := func() {
-		w.animationTick(&ac, &stoppedIDs)
+		w.animationTick(&ac, &stoppedIDs, float32(animationCycle.Seconds()))
 		w.flushCommands()
 	}
 	tick() // grow the command queue once

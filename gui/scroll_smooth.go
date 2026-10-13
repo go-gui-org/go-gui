@@ -1,17 +1,21 @@
 package gui
 
-import "time"
+import (
+	"math"
+	"time"
+)
 
 // Discrete mouse-wheel scrolling eases toward a target offset instead
 // of jumping instantly. This is a cheap exponential lerp — not a
-// spring or momentum simulation. Each tick moves the displayed offset
-// a fixed fraction of the remaining distance, so it decelerates
-// naturally and settles in ~100ms. Trackpad/precise scrolling already
+// spring or momentum simulation. Each 16 ms of time moves the displayed
+// offset a fixed fraction of the remaining distance, so it decelerates
+// naturally and settles in ~100ms. A tick moves by the time it covers
+// (scrollSmoothStep), so the ease takes the same time at any tick rate. Trackpad/precise scrolling already
 // carries OS momentum and is NOT routed here (see scrollVertical).
 const (
 	scrollSmoothAnimationID = "___scroll_smooth___"
 	// scrollSmoothFactor is the fraction of remaining distance moved
-	// per 16ms tick (~87% closed in ~7 frames / ~112ms).
+	// per 16 ms of time (~87% closed in ~112ms).
 	scrollSmoothFactor = float32(0.25)
 	// scrollSmoothSnap: within this many px of target, snap and stop.
 	scrollSmoothSnap = float32(0.5)
@@ -74,9 +78,23 @@ func (s *scrollSmoothAnimation) IsStopped() bool { return s.stopped }
 // SetStart implements Animation.
 func (s *scrollSmoothAnimation) SetStart(t time.Time) { s.start = t }
 
+// scrollSmoothStep is the fraction of the remaining distance to move in
+// a tick of dt seconds. The loop ticks at the display rate (#1018), so dt
+// changes. Compounding scrollSmoothFactor over dt/16ms keeps the ease
+// the same in time: four 4 ms ticks move as far as one 16 ms tick. A dt
+// that is not positive and finite takes the nominal 16 ms step.
+func scrollSmoothStep(dt float32) float32 {
+	if !f32IsFinite(dt) || dt <= 0 {
+		return scrollSmoothFactor
+	}
+	periods := float64(dt) / animationCycle.Seconds()
+	return float32(1 - math.Pow(1-float64(scrollSmoothFactor), periods))
+}
+
 // Update implements Animation. Runs on the animation goroutine while
 // w.animMu is held (see animationLoop).
-func (s *scrollSmoothAnimation) Update(_ *Window, _ float32, ac *AnimationCommands) bool {
+func (s *scrollSmoothAnimation) Update(_ *Window, dt float32, ac *AnimationCommands) bool {
+	step := scrollSmoothStep(dt)
 	anyActive := false
 	anyDirty := false
 	for i := range s.entries {
@@ -103,7 +121,7 @@ func (s *scrollSmoothAnimation) Update(_ *Window, _ float32, ac *AnimationComman
 			e.current = e.target
 			e.settled = true
 		} else {
-			e.current += diff * scrollSmoothFactor
+			e.current += diff * step
 		}
 		e.dirty = true
 		anyActive = true

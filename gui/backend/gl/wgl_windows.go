@@ -167,10 +167,8 @@ func createContext(hdc uintptr) (uintptr, error) {
 		pWglDeleteContext.Call(core)
 		return 0, fmt.Errorf("wglMakeCurrent(core): %w", e)
 	}
-
-	if swapInterval := wglProc("wglSwapIntervalEXT"); swapInterval != 0 {
-		syscall.SyscallN(swapInterval, 1) // enable vsync
-	}
+	// The swap interval is set by the caller (applyVSync), which can
+	// report a refusal to the window.
 	return core, nil
 }
 

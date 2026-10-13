@@ -292,6 +292,7 @@ func eglCreateSurfaceContext(dpy, config, win uintptr) (surface, context uintptr
 		err = fmt.Errorf("eglMakeCurrent failed (egl error 0x%x)", eglGetError())
 		return
 	}
-	eglSwapInterval(dpy, 1)
+	// The swap interval is the caller's: X11 sets it through applyVSync,
+	// and Wayland sets 0 and paces with the frame callback.
 	return
 }

@@ -235,7 +235,7 @@ func (b *Backend) run(w *gui.Window) {
 	// requestAnimationFrame runs at the display rate, and the browser
 	// composites the canvas no faster, so VSyncOff cannot be honored.
 	if w.Config.VSyncOff {
-		w.DebugWindowVSync("the web backend paces frames with requestAnimationFrame")
+		w.DebugWindowVSync("VSyncOff requested but the web backend paces frames with requestAnimationFrame")
 	}
 
 	if w.Config.OnInit != nil {

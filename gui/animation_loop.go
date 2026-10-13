@@ -2,7 +2,16 @@ package gui
 
 import "time"
 
+// animationCycle is the watchdog period of the animation loop. The loop
+// ticks on frame pulses, at the refresh rate of the display (#1018). When
+// no pulse comes for this long (hidden window, no frames), the watchdog
+// ticks instead, so clocks and callbacks keep their timing.
 const animationCycle = 16 * time.Millisecond
+
+// animationMinTick is the shortest time between two ticks. A backend that
+// presents without vsync sends a pulse for each frame it can draw; the
+// floor caps the loop there at 500 ticks each second.
+const animationMinTick = 2 * time.Millisecond
 
 // animViewBoundStale is the heartbeat threshold for view-bound animations.
 // An animation not touched for this duration is cancelled automatically.
@@ -215,8 +224,24 @@ func (w *Window) HasAnimation(id string) bool {
 
 // animationLoop runs in a goroutine, updating all animations each
 // tick and dispatching deferred callbacks via the command queue.
-// The ticker starts paused and resumes when animationAdd signals
-// via animationResumeCh. It pauses again when all animations stop.
+// The loop starts parked and resumes when animationAdd signals via
+// animationResumeCh. It parks again when all animations stop.
+//
+// A tick comes from one of two sources (#1018):
+//
+//   - A frame pulse. FrameFn sends one after each presented frame. The
+//     backends present at the refresh rate of the display (Metal blocks
+//     in nextDrawable, GL swaps with interval 1, Wayland waits for the
+//     frame callback, web uses requestAnimationFrame), so the pulses do
+//     too. Each tick asks for a frame, and that frame sends the next
+//     pulse: the loop runs at the display rate with no clock of its own.
+//   - The watchdog timer. It fires animationCycle after the last tick
+//     when no pulse came: a hidden window (#943), the first tick after a
+//     resume, or a backend loop that blocked. The 16 ms clock stays as
+//     the fallback, never as the pace.
+//
+// A pulse sooner than animationMinTick after the last tick does not tick
+// at once: the timer is set to the end of the floor instead.
 //
 // Update calls run with animMu held so a tick's retire decisions and
 // heartbeat evictions apply atomically: nothing is added or removed
@@ -235,31 +260,91 @@ func (w *Window) animationLoop() {
 	// per-tick ac would move to the heap every tick.
 	ac := newAnimationCommands(&deferred)
 
-	var ticker *time.Ticker
-	var tickCh <-chan time.Time
+	var pacer animationPacer
+	// One timer for the life of the loop, reset rather than replaced, so
+	// a tick allocates nothing. timerCh and pulseCh are nil while parked:
+	// a nil channel never fires, and pulses from frames drawn for other
+	// reasons do not wake a parked loop.
+	var timer *time.Timer
+	var timerCh <-chan time.Time
+	var pulseCh <-chan struct{}
 
 	for {
 		select {
-		case <-tickCh:
+		case <-pulseCh:
+			if wait := pacer.pulse(time.Now()); wait > 0 {
+				timer.Reset(wait)
+				continue
+			}
+		case <-timerCh:
 		case <-w.animationResumeCh:
-			if ticker == nil {
-				ticker = time.NewTicker(animationCycle)
-				tickCh = ticker.C
+			if timerCh == nil {
+				if timer == nil {
+					timer = time.NewTimer(animationCycle)
+				} else {
+					timer.Reset(animationCycle)
+				}
+				timerCh = timer.C
+				pulseCh = w.animationPulseCh
+				// FrameFn kept pulsing while the loop was parked, so a
+				// stale pulse may wait in the buffer. Measuring from the
+				// resume makes it wait out the floor and gives the first
+				// tick the real time since the resume as dt.
+				pacer.resume(time.Now())
 			}
 			continue
 		case <-w.animationStop:
-			if ticker != nil {
-				ticker.Stop()
+			if timer != nil {
+				timer.Stop()
 			}
 			return
 		}
 
-		idle := w.animationTick(&ac, &stoppedIDs)
-		if idle && ticker != nil {
-			ticker.Stop()
-			ticker = nil
-			tickCh = nil
+		dt := pacer.tick(time.Now())
+		if w.animationTick(&ac, &stoppedIDs, dt) {
+			timer.Stop()
+			timerCh = nil
+			pulseCh = nil
+			continue
 		}
+		timer.Reset(animationCycle)
+	}
+}
+
+// animationPacer measures the time between ticks of the animation loop.
+// Kept apart from the loop so the timing rules test with a fake clock.
+type animationPacer struct {
+	last time.Time // time of the last tick, or of the resume before it
+}
+
+// resume starts the measure at now when the loop leaves its park, so the
+// time spent parked never becomes a dt.
+func (p *animationPacer) resume(now time.Time) { p.last = now }
+
+// pulse reports how long a frame pulse at now must wait before it may
+// tick: zero when animationMinTick has passed since the last tick.
+func (p *animationPacer) pulse(now time.Time) time.Duration {
+	if elapsed := now.Sub(p.last); elapsed < animationMinTick {
+		return animationMinTick - elapsed
+	}
+	return 0
+}
+
+// tick records a tick at now and returns the seconds since the last tick
+// (or the resume), the dt that Update gets.
+func (p *animationPacer) tick(now time.Time) float32 {
+	dt := now.Sub(p.last)
+	p.last = now
+	return float32(dt.Seconds())
+}
+
+// pulseAnimationFrame tells the animation loop that a frame was
+// presented. It never blocks: a pulse already waiting in the buffer
+// covers this one. Nil-safe for windows without a loop (unit-test stubs).
+func (w *Window) pulseAnimationFrame() {
+	select {
+	case w.animationPulseCh <- struct{}{}:
+	default:
 	}
 }
 
@@ -268,7 +353,8 @@ func (w *Window) animationLoop() {
 // callbacks and refresh request and wakes the main thread. ac (wrapping
 // the deferred-command slice) and stoppedIDs are the loop's reusable
 // scratch, passed by pointer so a tick allocates nothing and the slices
-// keep the capacity they grow to; both are truncated here.
+// keep the capacity they grow to; both are truncated here. dt is the
+// time since the last tick in seconds, passed on to every Update.
 // It reports whether no animation is left, so the loop can park.
 //
 // While the window is hidden (issue #943), the tick still runs Update,
@@ -278,9 +364,8 @@ func (w *Window) animationLoop() {
 // callbacks keep their timing and an unwoken queue would grow without
 // bound for as long as the window stays hidden. FrameFn runs them and
 // draws nothing.
-func (w *Window) animationTick(ac *AnimationCommands, stoppedIDs *[]string) bool {
+func (w *Window) animationTick(ac *AnimationCommands, stoppedIDs *[]string, dt float32) bool {
 	deferred := ac.inner
-	dt := float32(animationCycle) / float32(time.Second)
 	occluded := w.occluded.Load()
 	refreshKind := animationRefreshNone
 	*deferred = (*deferred)[:0]

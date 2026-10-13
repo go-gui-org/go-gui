@@ -217,6 +217,7 @@ func NewWindow(cfg WindowCfg) *Window {
 			animationStop:     make(chan struct{}),
 			animationDone:     make(chan struct{}),
 			animationResumeCh: make(chan struct{}, 1),
+			animationPulseCh:  make(chan struct{}, 1),
 		},
 	}
 	// A new window paints on its first frame. Seeded here, not in the

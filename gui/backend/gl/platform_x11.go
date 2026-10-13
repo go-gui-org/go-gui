@@ -192,7 +192,7 @@ func newX11(w *gui.Window) (*Backend, error) {
 	b.plat.eglContext = context
 	// The context is current on this surface, which is what
 	// eglSwapInterval applies to.
-	applyVSyncOff(cfg.VSyncOff, func(n int32) bool {
+	applyVSync(cfg.VSyncOff, func(n int32) bool {
 		return eglSwapInterval(dpy, n) != 0
 	}, w.DebugWindowVSync, "eglSwapInterval")
 

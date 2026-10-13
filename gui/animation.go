@@ -97,12 +97,14 @@ func maxAnimationRefreshKind(current, incoming AnimationRefreshKind) AnimationRe
 // safe kind is a full rebuild every tick that emits.
 
 // Animation is the interface for all animation types. Update is
-// called each tick with the nominal timestep in seconds (the fixed
-// 16 ms animation cycle), not a measured elapsed time — a late tick
-// still reports the nominal step. Duration-based animations re-derive
-// progress from the wall clock (see durationProgress); only the
-// spring integrator steps by dt, which is what its stability bound
-// is derived for. An AnimationCommands batch is supplied into which
+// called each tick with dt, the measured time in seconds since the
+// previous tick. The loop ticks once for each frame the display shows
+// (#1018), so dt changes with the refresh rate: about 0.004 at 240 Hz,
+// 0.016 when the 16 ms watchdog ticks. An Update that moves a fixed
+// amount per call runs faster on a faster display; scale the step by
+// dt. Duration-based animations re-derive progress from the wall clock
+// (see durationProgress), and springs measure their own step (#1017).
+// An AnimationCommands batch is supplied into which
 // the animation may enqueue deferred callbacks (OnDone / OnValue) —
 // those run after Update returns so callback bodies cannot reenter
 // the animation loop mutex.

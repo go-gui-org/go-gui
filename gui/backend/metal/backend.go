@@ -541,7 +541,7 @@ func createWindowState(w *gui.Window) (*windowState, error) {
 	// full screen alike. FPS stayed at 240 on a 240 Hz display, so the
 	// flag is reported as not honored rather than set to no effect.
 	if cfg.VSyncOff {
-		w.DebugWindowVSync("macOS paces frames with the window compositor")
+		w.DebugWindowVSync("VSyncOff requested but macOS paces frames with the window compositor")
 	}
 
 	// Replay a SetWindowOpacity made before the native platform was

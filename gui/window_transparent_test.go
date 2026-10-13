@@ -119,25 +119,32 @@ func TestWindowCfgVSyncOffDefault(t *testing.T) {
 	}
 }
 
-// A refused VSyncOff is reported once per cause, through
-// DebugWindowDegraded, and stays silent while that category is off.
+// A vsync request the platform did not honor is reported once per cause,
+// through DebugWindowDegraded, and stays silent while that category is
+// off. The reason is the whole cause: the method adds only the prefix.
 func TestDebugWindowVSyncWarnOnce(t *testing.T) {
 	buf := captureDebugMask(t, DebugWindowDegraded)
 	w := &Window{}
 
-	w.DebugWindowVSync("iOS paces frames with CADisplayLink")
-	w.DebugWindowVSync("iOS paces frames with CADisplayLink")
+	iosReason := "VSyncOff requested but iOS paces frames with CADisplayLink"
+	w.DebugWindowVSync(iosReason)
+	w.DebugWindowVSync(iosReason)
 	got := buf.String()
-	if !strings.Contains(got, "VSyncOff requested but iOS paces frames") {
+	if !strings.Contains(got, "window: vsync: "+iosReason) {
 		t.Fatalf("want the degrade finding, got %q", got)
 	}
-	if n := strings.Count(got, "VSyncOff requested"); n != 1 {
+	if n := strings.Count(got, "window: vsync:"); n != 1 {
 		t.Fatalf("warn-once: want 1 finding, got %d", n)
 	}
 
-	w.DebugWindowVSync("eglSwapInterval(0) was refused by the driver")
-	if n := strings.Count(buf.String(), "VSyncOff requested"); n != 2 {
+	w.DebugWindowVSync("wglSwapIntervalEXT(1) was refused by the driver; " +
+		"frames are not paced to the display")
+	got = buf.String()
+	if n := strings.Count(got, "window: vsync:"); n != 2 {
 		t.Fatalf("a second cause must report separately, got %d", n)
+	}
+	if strings.Contains(got, "VSyncOff requested but wglSwapIntervalEXT(1)") {
+		t.Fatalf("a refused vsync-on must not read as a VSyncOff request: %q", got)
 	}
 }
 

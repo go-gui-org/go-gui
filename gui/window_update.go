@@ -221,6 +221,13 @@ func (w *Window) UpdateView(gen func(*Window) View) { w.SetView(gen) }
 // place by the caret blink — and the backend should call renderFrame.
 func (w *Window) FrameFn() bool {
 	w.frameCount++
+	// The backend presented the previous frame before calling again, and
+	// its present waits for the display (#1018). Pulse the animation loop
+	// now, so it ticks once for each frame the display shows.
+	if w.presentedLast {
+		w.presentedLast = false
+		w.pulseAnimationFrame()
+	}
 	// Before anything reads theme state this frame: make this window's
 	// theme the installed one. Also covers the backend's clear-color
 	// read, which happens right after FrameFn on the same thread.
@@ -265,6 +272,7 @@ func (w *Window) FrameFn() bool {
 	w.renderersDirty = false
 	w.initA11y()
 	w.syncA11y()
+	w.presentedLast = rebuilt
 	return rebuilt
 }
 

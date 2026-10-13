@@ -8,8 +8,31 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Changed
+
+- **Animations tick at the refresh rate of the display (#1018).** Before, the
+  animation loop ticked on a fixed 16 ms clock, so an animated value changed at
+  most 62.5 times each second. On a 120 Hz or 240 Hz display the same value
+  showed for 2 to 4 frames. Now each presented frame starts the next tick, and
+  the backends present at the display rate, so a tween or spring gets a new
+  value on every frame the display shows. No backend or API change is needed.
+  The 16 ms clock stays as a fallback when no frames come (a hidden window keeps
+  its clocks, as in #943). A backend that presents without vsync is capped at
+  500 ticks each second. A custom `Animation` now gets the real time since the
+  last tick as `dt`, not a fixed 0.016. An `Update` that moves a fixed amount
+  per call now runs faster on a fast display, so scale the step by `dt`. The
+  mouse-wheel scroll ease does this, so it takes the same ~110 ms at any rate.
+
 ### Fixed
 
+- **A driver that refuses vsync is reported (#1018).** The GL backends on
+  Windows and X11 asked for swap interval 1 and ignored the answer. Now a
+  refusal is reported under `gui.Debug` (`DebugWindowDegraded`). Since the
+  animation loop ticks once for each presented frame, a present that does not
+  wait for the display ticks up to 500 times each second and spends CPU on
+  frames the display drops. `DebugWindowVSync` now reports any vsync request the
+  platform did not honor. Its message reads `window: vsync: <reason>`, and the
+  reason holds the whole cause.
 - **Springs keep their speed when the animation loop is late (#1017).** A
   `SpringAnimation` now uses the exact (closed-form) spring solution and moves
   by the time that really passed since its last update. Before, each tick moved

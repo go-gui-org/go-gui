@@ -481,3 +481,24 @@ func TestScrollVerticalToSmoothRejectsNaN(t *testing.T) {
 		}
 	}
 }
+
+// The ease covers the same distance in the same time at any tick rate
+// (#1018): 28 ticks at 240 Hz land where 7 ticks at 62.5 Hz do.
+func TestScrollSmoothSameDistanceAtAnyTickRate(t *testing.T) {
+	after := func(dt float32, ticks int) float32 {
+		layout, w := makeScrollLayout("r", 100, 100, 100, 1000)
+		scrollSmoothBy(w, layout, scrollAxisY, -500)
+		ss := w.scrollSmooth
+		for range ticks {
+			deferred := make([]queuedCommand, 0, 2)
+			ac := newAnimationCommands(&deferred)
+			ss.Update(w, dt, &ac)
+		}
+		return ss.findEntry("r", scrollAxisY).current
+	}
+	slow := after(0.016, 7)
+	fast := after(0.004, 28)
+	if math.Abs(float64(slow-fast)) > 0.01 {
+		t.Fatalf("after 112 ms: %v at 62.5 Hz, %v at 250 Hz", slow, fast)
+	}
+}

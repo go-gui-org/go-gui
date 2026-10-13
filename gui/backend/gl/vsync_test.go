@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestApplyVSyncOff(t *testing.T) {
+func TestApplyVSync(t *testing.T) {
 	tests := []struct {
 		name       string
 		vsyncOff   bool
@@ -13,17 +13,22 @@ func TestApplyVSyncOff(t *testing.T) {
 		wantSet    []int32
 		wantReport []string
 	}{
-		// The default leaves the interval 1 from context creation alone.
-		{"default keeps vsync", false, true, nil, nil},
+		{"default sets interval 1", false, true, []int32{1}, nil},
+		// The animation loop ticks on presented frames (#1018), so an
+		// unpaced present is worth a report even when nobody asked for it.
+		{"refused 1 is reported", false, false, []int32{1},
+			[]string{"eglSwapInterval(1) was refused by the driver; " +
+				"frames are not paced to the display"}},
 		{"off sets interval 0", true, true, []int32{0}, nil},
-		{"refused is reported", true, false, []int32{0},
-			[]string{"eglSwapInterval(0) was refused by the driver"}},
+		{"refused 0 is reported", true, false, []int32{0},
+			[]string{"VSyncOff requested but eglSwapInterval(0) " +
+				"was refused by the driver"}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var set []int32
 			var reported []string
-			applyVSyncOff(tt.vsyncOff,
+			applyVSync(tt.vsyncOff,
 				func(n int32) bool {
 					set = append(set, n)
 					return tt.accept

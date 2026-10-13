@@ -50,9 +50,16 @@ type windowAnimation struct {
 	// animation is registered.
 	animViewBound map[string]time.Time
 	// Animation loop lifecycle.
-	animationStop      chan struct{}
-	animationDone      chan struct{}
-	animationResumeCh  chan struct{} // buffered(1), resumes ticker
+	animationStop     chan struct{}
+	animationDone     chan struct{}
+	animationResumeCh chan struct{} // buffered(1), resumes ticker
+	// animationPulseCh carries one frame pulse per presented frame
+	// (#1018). Buffered(1): FrameFn sends without blocking, and a pulse
+	// the loop has not taken yet already covers the next one.
+	animationPulseCh chan struct{}
+	// presentedLast records that the previous FrameFn asked the backend
+	// to present. Main thread only.
+	presentedLast      bool
 	animationStopOnce  sync.Once
 	animationStartOnce sync.Once
 	animationStarted   bool
