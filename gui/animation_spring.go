@@ -55,6 +55,11 @@ type SpringAnimation struct {
 	OnDone  func(*Window)
 	AnimID  string
 	Config  SpringCfg
+	// Refresh is the frame each tick asks for. Zero means a full layout.
+	// AnimationRefreshRenderOnly skips the view function and layout; set
+	// it only when OnValue changes what is drawn, not the widget tree
+	// (#1016).
+	Refresh AnimationRefreshKind
 	state   springState
 	stopped bool
 }
@@ -63,7 +68,9 @@ type SpringAnimation struct {
 func (s *SpringAnimation) ID() string { return s.AnimID }
 
 // RefreshKind implements Animation.
-func (s *SpringAnimation) RefreshKind() AnimationRefreshKind { return AnimationRefreshLayout }
+func (s *SpringAnimation) RefreshKind() AnimationRefreshKind {
+	return valueAnimRefreshKind(s.Refresh)
+}
 
 // IsStopped implements Animation.
 func (s *SpringAnimation) IsStopped() bool { return s.stopped }

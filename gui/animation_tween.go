@@ -15,7 +15,12 @@ type TweenAnimation struct {
 	Duration time.Duration
 	From     float32
 	To       float32
-	stopped  bool
+	// Refresh is the frame each tick asks for. Zero means a full layout.
+	// AnimationRefreshRenderOnly skips the view function and layout; set
+	// it only when OnValue changes what is drawn, not the widget tree
+	// (#1016).
+	Refresh AnimationRefreshKind
+	stopped bool
 }
 
 const tweenDefaultDuration = 300 * time.Millisecond
@@ -24,7 +29,9 @@ const tweenDefaultDuration = 300 * time.Millisecond
 func (t *TweenAnimation) ID() string { return t.AnimID }
 
 // RefreshKind implements Animation.
-func (t *TweenAnimation) RefreshKind() AnimationRefreshKind { return AnimationRefreshLayout }
+func (t *TweenAnimation) RefreshKind() AnimationRefreshKind {
+	return valueAnimRefreshKind(t.Refresh)
+}
 
 // IsStopped implements Animation.
 func (t *TweenAnimation) IsStopped() bool { return t.stopped }

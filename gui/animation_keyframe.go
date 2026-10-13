@@ -25,12 +25,13 @@ type KeyframeAnimation struct {
 	Duration  time.Duration
 	Repeat    bool
 	stopped   bool
-	// refresh is the frame a tick asks for. Zero means a full layout,
-	// the exported behaviour. Built-in widgets whose animation only
-	// changes paint set AnimationRefreshRenderOnly, and pair it with a
+	// Refresh is the frame each tick asks for. Zero means a full layout.
+	// AnimationRefreshRenderOnly skips the view function and layout; set
+	// it only when OnValue changes what is drawn, not the widget tree
+	// (#1016). Built-in looping widgets set it, and pair it with a
 	// render-time hook (ContainerCfg.amendOnRender or
 	// DrawCanvasCfg.VersionFn) that applies the value without a layout.
-	refresh AnimationRefreshKind
+	Refresh AnimationRefreshKind
 }
 
 const keyframeDefaultDuration = 500 * time.Millisecond
@@ -40,10 +41,7 @@ func (k *KeyframeAnimation) ID() string { return k.AnimID }
 
 // RefreshKind implements Animation.
 func (k *KeyframeAnimation) RefreshKind() AnimationRefreshKind {
-	if k.refresh == AnimationRefreshRenderOnly {
-		return AnimationRefreshRenderOnly
-	}
-	return AnimationRefreshLayout
+	return valueAnimRefreshKind(k.Refresh)
 }
 
 // IsStopped implements Animation.

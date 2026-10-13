@@ -100,7 +100,7 @@ func skeletonAmendLayout(
 			AnimID:   animID,
 			Repeat:   true,
 			Duration: 1500 * time.Millisecond,
-			refresh:  AnimationRefreshRenderOnly,
+			Refresh:  AnimationRefreshRenderOnly,
 			Keyframes: []Keyframe{
 				{At: 0, Value: 0},
 				{At: 1, Value: 1, Easing: EaseInOutCSS},

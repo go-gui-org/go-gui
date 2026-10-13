@@ -337,7 +337,7 @@ func thinkingOrbAmendLayout(layout *Layout, w *Window,
 		AnimID:   animID,
 		Duration: thinkingOrbDuration(speed),
 		Repeat:   true,
-		refresh:  AnimationRefreshRenderOnly,
+		Refresh:  AnimationRefreshRenderOnly,
 		Keyframes: []Keyframe{
 			{At: 0, Value: 0},
 			{At: 1, Value: 1},

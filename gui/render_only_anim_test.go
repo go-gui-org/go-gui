@@ -396,3 +396,77 @@ func TestAmendOnRenderRunsOnlyOnRenderOnlyFrames(t *testing.T) {
 		}
 	}
 }
+
+// valueAnimRefreshCases builds one of each value animation (spring, tween,
+// keyframe) with the given Refresh. Each is mid-motion when added, so its
+// first tick emits a value and asks for a frame (#1016).
+func valueAnimRefreshCases(refresh AnimationRefreshKind) []Animation {
+	onValue := func(float32, *Window) {}
+	sp := NewSpringAnimation("spring", onValue)
+	sp.SpringTo(0, 100)
+	sp.Refresh = refresh
+	tw := NewTweenAnimation("tween", 0, 100, onValue)
+	tw.Duration = time.Second
+	tw.Refresh = refresh
+	kf := NewKeyframeAnimation("keyframe", []Keyframe{
+		{At: 0, Value: 0}, {At: 1, Value: 100},
+	}, onValue)
+	kf.Duration = time.Second
+	kf.Refresh = refresh
+	return []Animation{sp, tw, kf}
+}
+
+// An app sets Refresh on a spring, tween or keyframe to choose the frame
+// each tick asks for. The zero value keeps the full layout.
+func TestValueAnimRefreshKind(t *testing.T) {
+	for _, tc := range []struct {
+		set, want AnimationRefreshKind
+	}{
+		{0, AnimationRefreshLayout},
+		{AnimationRefreshLayout, AnimationRefreshLayout},
+		{AnimationRefreshRenderOnly, AnimationRefreshRenderOnly},
+	} {
+		for _, a := range valueAnimRefreshCases(tc.set) {
+			if got := a.RefreshKind(); got != tc.want {
+				t.Errorf("%s with Refresh %d: RefreshKind = %d, want %d",
+					a.ID(), tc.set, got, tc.want)
+			}
+		}
+	}
+}
+
+// A tick of a value animation with Refresh: AnimationRefreshRenderOnly
+// queues a render-only frame and no layout; with the zero value it
+// queues a layout.
+func TestValueAnimTickRefresh(t *testing.T) {
+	for _, tc := range []struct {
+		name       string
+		set        AnimationRefreshKind
+		wantLayout bool
+	}{
+		{"zero", 0, true},
+		{"render_only", AnimationRefreshRenderOnly, false},
+	} {
+		for _, a := range valueAnimRefreshCases(tc.set) {
+			t.Run(tc.name+"/"+a.ID(), func(t *testing.T) {
+				w := &Window{}
+				w.AnimationAdd(a)
+				// Drive the tick by hand: a live loop tick would race it.
+				w.stopAnimationLoop()
+				w.clearLayoutRefresh()
+				w.clearRenderRefresh()
+
+				animationTickOnce(w)
+				w.flushCommands()
+
+				if got := w.layoutPending(); got != tc.wantLayout {
+					t.Errorf("layout pending = %v, want %v", got, tc.wantLayout)
+				}
+				if got := w.renderPending(); got == tc.wantLayout {
+					t.Errorf("render-only pending = %v, want %v",
+						got, !tc.wantLayout)
+				}
+			})
+		}
+	}
+}

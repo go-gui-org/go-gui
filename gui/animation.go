@@ -76,7 +76,8 @@ const (
 	// without a view pass. Anything that does change the tree still
 	// needs a layout refresh from its own event handler.
 	//
-	// exportaudit:keep — the refresh kind an app sets on Animate
+	// exportaudit:keep — the refresh kind an app sets on Animate and
+	// the value animations
 	AnimationRefreshRenderOnly
 	AnimationRefreshLayout // full layout rebuild
 )
@@ -89,12 +90,17 @@ func maxAnimationRefreshKind(current, incoming AnimationRefreshKind) AnimationRe
 	return current
 }
 
-// Only Animate carries a configurable Refresh: its callback runs once per
-// interval and declares whether it repaints or rebuilds. The value
-// animations (tween, spring, keyframe) and the transitions fix
-// AnimationRefreshLayout because their per-tick OnValue is arbitrary
-// caller code — it may change tree contents, not just paint — so the
-// safe kind is a full rebuild every tick that emits.
+// valueAnimRefreshKind maps the Refresh field of a value animation
+// (tween, spring, keyframe) to the frame a tick asks for. Their OnValue
+// is arbitrary caller code that may change the tree, so anything but an
+// explicit AnimationRefreshRenderOnly gets a full layout (#1016). The
+// transitions fix AnimationRefreshLayout: they move geometry.
+func valueAnimRefreshKind(k AnimationRefreshKind) AnimationRefreshKind {
+	if k == AnimationRefreshRenderOnly {
+		return AnimationRefreshRenderOnly
+	}
+	return AnimationRefreshLayout
+}
 
 // Animation is the interface for all animation types. Update is
 // called each tick with dt, the measured time in seconds since the

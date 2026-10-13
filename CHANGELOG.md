@@ -8,6 +8,17 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- **Springs, tweens and keyframes can ask for render-only frames (#1016).**
+  `SpringAnimation`, `TweenAnimation` and `KeyframeAnimation` have a new
+  `Refresh` field. Set it to `AnimationRefreshRenderOnly` and each tick repaints
+  from the last layout: the view function and layout do not run. Use it when
+  `OnValue` changes only what is drawn, for example a value that a `DrawCanvas`
+  with `VersionFn` reads. The zero value keeps the full layout on each tick, as
+  before. Before, only `Animate` and the built-in loading widgets could skip the
+  layout.
+
 ### Changed
 
 - **Animations tick at the refresh rate of the display (#1018).** Before, the
