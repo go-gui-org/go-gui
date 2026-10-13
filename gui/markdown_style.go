@@ -118,11 +118,14 @@ func styleMdBlock(
 		Content:         styleMdRuns(block.Runs, baseStyle, style),
 	}
 
-	// Code blocks use a smaller font than inline code.
+	// Code blocks use a smaller font than inline code. Their runs drop
+	// the inline-code fill: the block already paints CodeBlockBG, and a
+	// per-run fill would draw darker strips over it.
 	if block.IsCode {
 		sz := style.codeBlockText.Size
 		for i := range mb.Content.Runs {
 			mb.Content.Runs[i].Style.Size = sz
+			mb.Content.Runs[i].Style.BgColor = Color{}
 		}
 	}
 
@@ -251,9 +254,23 @@ func mdFormatToStyle(
 		mdInheritBaseGeometry(&s, base, style)
 		return s
 	case markdown.FormatCode:
+		// The Code style's own face, not bold: a bold mono run reads
+		// louder than the prose around it.
 		s := style.Code
-		s.Typeface = glyph.TypefaceBold
 		mdInheritBaseGeometry(&s, base, style)
+		// H4 and a definition term are bold at body size, so the size
+		// check above takes them for body text. Code there matches the
+		// size and weight of the words around it, as in a heading.
+		if base.Size != 0 && base.Typeface != style.Text.Typeface {
+			s.Size = base.Size
+			s.Typeface = base.Typeface
+		}
+		// Inline code sits on the fenced-block fill, so both read as
+		// code. A Code style with its own fill keeps it. styleMdBlock
+		// clears this for fenced runs: the block paints the fill.
+		if !s.BgColor.IsSet() {
+			s.BgColor = style.CodeBlockBG
+		}
 		return s
 	default:
 		return base

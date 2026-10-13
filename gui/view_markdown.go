@@ -82,6 +82,13 @@ func DefaultMarkdownStyle() MarkdownStyle {
 	bold := guiTheme.TextStyleBody.Bold()
 	italic := guiTheme.TextStyleBody.Italic()
 	bi := guiTheme.TextStyleBody.Italic().Bold()
+	// Inline code sits two points under the body size (about the 85%
+	// GitHub uses). The mono face alone sets it apart. Menlo (the macOS
+	// mono) has a taller x-height than the system sans, so at the body
+	// size, and more so at the code role's +1, each identifier in a
+	// paragraph looked larger than the words around it.
+	code := guiTheme.TextStyleCode
+	code.Size = text.Size - 2 // ergonomics-audit:visual — mono x-height match, see above
 
 	return MarkdownStyle{
 		Text:       text,
@@ -94,10 +101,9 @@ func DefaultMarkdownStyle() MarkdownStyle {
 		Bold:       bold,
 		Italic:     italic,
 		BoldItalic: bi,
-		// Inline code sits in body text and keeps the mono +1 step over
-		// it. Fenced blocks stay on the small code role: they hold long
+		// Fenced blocks stay on the small code role: they hold long
 		// lines, and the smaller face wraps fewer of them.
-		Code:          guiTheme.TextStyleCode,
+		Code:          code,
 		codeBlockText: guiTheme.TextStyleCodeSmall,
 		// Non-text fills, exempt from the dimming roles (audit §1.2).
 		CodeBlockBG:       RGBA(0, 0, 0, 50), // ergonomics-audit:visual

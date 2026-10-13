@@ -22,6 +22,19 @@ and this project adheres to
 
 ### Changed
 
+- **Markdown inline code is smaller, regular weight, on the code fill.**
+  `DefaultMarkdownStyle().Code` is now the theme's mono face two points under
+  the body text size, and code runs are no longer forced to bold. Before, inline
+  code was one point larger than body text and bold. The macOS mono face (Menlo)
+  also has taller lowercase letters than the system sans, so a paragraph with
+  many identifiers (the DX Cheat Sheet, for example) looked louder than the
+  prose around it. Fenced code blocks also use the same run style, so they are
+  now regular weight too. Code inside a heading or a definition term still takes
+  that text's size and weight. Code wrapped in bold (``**`x`**``) in body text
+  is regular, because the parser treats it as plain code. Inline code now sits
+  on the same `CodeBlockBG` fill as fenced blocks, so both read as code. A
+  `Style.Code` with its own `BgColor` keeps it. To get the old look, set
+  `Style.Code` to `Theme.TextStyleCode.Bold()`.
 - **Showcase catalog groups follow one rule (#1025).** Each demo is now in the
   group of the job it does for the user: Start, Actions, Choices, Entry, Text,
   Data, Layout, Navigation, Messages, Progress, Motion, Drawing, and App &
