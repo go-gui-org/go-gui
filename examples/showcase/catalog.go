@@ -87,26 +87,20 @@ func searchInput(app *ShowcaseApp) gui.View {
 	})
 }
 
+// groupPicker shows "All", then one item per catalog group. It reads
+// demoGroups, the same list the catalog headers read, so the two
+// cannot drift apart in order or label (#1025).
 func groupPicker(app *ShowcaseApp) gui.View {
+	items := make([]gui.View, 0, len(demoGroups)+1)
+	items = append(items, groupPickerItem("All", groupAll, app))
+	for i := range demoGroups {
+		items = append(items, groupPickerItem(demoGroups[i].Label, demoGroups[i].Key, app))
+	}
 	return gui.Wrap(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
 		Padding: gui.NoPadding,
 		Spacing: gui.SpacingTight,
-		Content: []gui.View{
-			groupPickerItem("Welcome", groupWelcome, app),
-			groupPickerItem("All", groupAll, app),
-			groupPickerItem("Text", groupText, app),
-			groupPickerItem("Buttons", groupButtons, app),
-			groupPickerItem("Input", groupInput, app),
-			groupPickerItem("Selection", groupSelection, app),
-			groupPickerItem("Data", groupData, app),
-			groupPickerItem("Graphics", groupGraphics, app),
-			groupPickerItem("Nav", groupNav, app),
-			groupPickerItem("Layout", groupLayout, app),
-			groupPickerItem("Feedback", groupFeedback, app),
-			groupPickerItem("Spinners", groupSpinners, app),
-			groupPickerItem("Overlays", groupOverlays, app),
-		},
+		Content: items,
 	})
 }
 

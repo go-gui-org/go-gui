@@ -20,6 +20,19 @@ and this project adheres to
   not be a minimum width. Before, the widget was in no showcase page, so a
   reader of the showcase could not find it.
 
+### Changed
+
+- **Showcase catalog groups follow one rule (#1025).** Each demo is now in the
+  group of the job it does for the user: Start, Actions, Choices, Entry, Text,
+  Data, Layout, Navigation, Messages, Progress, Motion, Drawing, and App &
+  Window. Before, related demos were split across groups: date controls in Input
+  and Selection, menus in Nav and Overlays, sound in Feedback and Welcome.
+  Choice controls such as Radio and Switch were in Buttons. The group picker and
+  the catalog headers now read one list, so their order and labels agree. "All"
+  is now the first item in the picker. The Docs toggle now keys on doc pages,
+  not on a group, so Sound Feedback still shows its own page after it moved to
+  App & Window.
+
 ## [v0.88.3] - 2026-10-12
 
 ### Fixed

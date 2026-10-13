@@ -15,7 +15,7 @@ func TestEntryMatchesQuery(t *testing.T) {
 	entry := DemoEntry{
 		ID:         "numeric_input",
 		Label:      "Numeric Input",
-		Group:      groupInput,
+		Group:      groupEntry,
 		Summary:    "Locale-aware number input with step controls.",
 		Tags:       []string{"number", "decimal"},
 		idLower:    "numeric_input",
@@ -139,7 +139,7 @@ func (s *soundWiringSpy) SoundAvailable() bool { return true }
 // button. Without this the wiring is only observable by ear.
 func TestShowcaseWidgetSoundWiring(t *testing.T) {
 	app := newShowcaseApp()
-	app.SelectedGroup = groupFeedback
+	app.SelectedGroup = groupApp
 	app.SelectedComponent = "audio"
 	w := gui.NewTestWindow(t, gui.WindowCfg{State: app})
 	w.SetView(mainView)
@@ -258,7 +258,7 @@ func TestDetailPanelSummaryWraps(t *testing.T) {
 
 func TestDetailPanelWelcomeWrappersHaveNoBorder(t *testing.T) {
 	app := newShowcaseApp()
-	app.SelectedGroup = groupWelcome
+	app.SelectedGroup = groupStart
 	app.SelectedComponent = "welcome"
 	w := gui.NewWindow(gui.WindowCfg{State: app})
 
@@ -626,7 +626,7 @@ func TestDetailPanel_BumpsAbortCounterWhenNavigatingAwayFromTree(t *testing.T) {
 	// Navigate to "button" — abort counter increments and lazy nodes
 	// are discarded.
 	app.SelectedComponent = "button"
-	app.SelectedGroup = groupButtons
+	app.SelectedGroup = groupActions
 	_ = gui.GenerateViewLayout(detailPanel(w), w)
 	if app.TreeLazyLoadAbort != abortBefore+1 {
 		t.Fatalf("TreeLazyLoadAbort = %d, want %d",

@@ -63,6 +63,13 @@ func localeCount() int {
 	return len(showcaseLocaleIDs)
 }
 
+// isDocPage reports whether id is a catalog entry whose demo is a doc
+// page from docPageFiles.
+func isDocPage(id string) bool {
+	_, ok := docPageFiles[id]
+	return ok
+}
+
 func docPageSource(id string) string {
 	file, ok := docPageFiles[id]
 	if !ok {

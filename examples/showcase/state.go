@@ -9,20 +9,26 @@ import (
 	datagrid "github.com/go-gui-org/go-gui/gui/datagrid"
 )
 
+// Catalog groups. An entry goes in the group of the job it does for
+// the user (#1025): start here, act, choose, enter a value, show text,
+// show data, arrange, navigate, give a message, show progress, move,
+// draw, or control the app and window. A new entry takes the group of
+// its job, not the group of the widget it looks like.
 const (
-	groupWelcome   = "welcome"
-	groupAll       = "all"
-	groupText      = "text"
-	groupButtons   = "buttons"
-	groupInput     = "input"
-	groupSelection = "selection"
-	groupData      = "data"
-	groupGraphics  = "graphics"
-	groupNav       = "navigation"
-	groupLayout    = "layout"
-	groupFeedback  = "feedback"
-	groupSpinners  = "spinners"
-	groupOverlays  = "overlays"
+	groupStart    = "start"
+	groupAll      = "all"
+	groupActions  = "actions"
+	groupChoices  = "choices"
+	groupEntry    = "entry"
+	groupText     = "text"
+	groupData     = "data"
+	groupLayout   = "layout"
+	groupNav      = "navigation"
+	groupMessages = "messages"
+	groupProgress = "progress"
+	groupMotion   = "motion"
+	groupDrawing  = "drawing"
+	groupApp      = "app"
 )
 
 var showcaseBreadcrumbPath = []gui.BreadcrumbItemCfg{
@@ -329,19 +335,22 @@ func newShowcaseApp() *ShowcaseApp {
 	}
 }
 
+// demoGroups is the one list of catalog groups. The group picker and
+// the catalog headers both read it, in this order.
 var demoGroups = []DemoGroup{
-	{Key: groupWelcome, Label: "Welcome"},
-	{Key: groupInput, Label: "Input"},
-	{Key: groupSelection, Label: "Selection"},
-	{Key: groupData, Label: "Data Display"},
+	{Key: groupStart, Label: "Start"},
+	{Key: groupActions, Label: "Actions"},
+	{Key: groupChoices, Label: "Choices"},
+	{Key: groupEntry, Label: "Entry"},
+	{Key: groupText, Label: "Text"},
+	{Key: groupData, Label: "Data"},
 	{Key: groupLayout, Label: "Layout"},
 	{Key: groupNav, Label: "Navigation"},
-	{Key: groupFeedback, Label: "Feedback"},
-	{Key: groupSpinners, Label: "Spinners"},
-	{Key: groupOverlays, Label: "Overlays"},
-	{Key: groupText, Label: "Text"},
-	{Key: groupButtons, Label: "Buttons"},
-	{Key: groupGraphics, Label: "Graphics"},
+	{Key: groupMessages, Label: "Messages"},
+	{Key: groupProgress, Label: "Progress"},
+	{Key: groupMotion, Label: "Motion"},
+	{Key: groupDrawing, Label: "Drawing"},
+	{Key: groupApp, Label: "App & Window"},
 }
 
 // DemoEntry describes a single showcase destination.
@@ -369,50 +378,50 @@ type DemoGroup struct {
 }
 
 var demoEntries = []DemoEntry{
-	{ID: "welcome", Label: "Welcome", Group: groupWelcome, Summary: "Start here for a quick introduction to Go-Gui and this showcase.", Tags: []string{"start", "intro", "overview"}},
-	{ID: "commands", Label: "Commands & Hotkeys", Group: groupWelcome, Summary: "Centralized command registry with keyboard shortcuts, menu integration, and command palette.", Tags: []string{"command", "hotkey", "shortcut", "keyboard", "palette"}},
-	{ID: "sound", Label: "Sound Feedback", Group: groupWelcome, Summary: "Opt-in interaction sounds: semantic cues, an injected player, per-widget override.", Tags: []string{"sound", "audio", "cue", "feedback", "click", "beep", "volume"}},
-	{ID: "dx_cheat_sheet", Label: "DX Cheat Sheet", Group: groupWelcome, Summary: "The few places where the obvious reading of the API is wrong, and how to find them.", Tags: []string{"tips", "gotchas", "focus", "id", "hover", "pitfalls", "help"}},
+	{ID: "welcome", Label: "Welcome", Group: groupStart, Summary: "Start here for a quick introduction to Go-Gui and this showcase.", Tags: []string{"start", "intro", "overview"}},
+	{ID: "commands", Label: "Commands & Hotkeys", Group: groupStart, Summary: "Centralized command registry with keyboard shortcuts, menu integration, and command palette.", Tags: []string{"command", "hotkey", "shortcut", "keyboard", "palette"}},
+	{ID: "sound", Label: "Sound Feedback", Group: groupApp, Summary: "Opt-in interaction sounds: semantic cues, an injected player, per-widget override.", Tags: []string{"sound", "audio", "cue", "feedback", "click", "beep", "volume"}},
+	{ID: "dx_cheat_sheet", Label: "DX Cheat Sheet", Group: groupStart, Summary: "The few places where the obvious reading of the API is wrong, and how to find them.", Tags: []string{"tips", "gotchas", "focus", "id", "hover", "pitfalls", "help"}},
 
-	{ID: "color_picker", Label: "Color Picker", Group: groupSelection, Summary: "Pick RGBA and optional HSV values.", Tags: []string{"color", "hsv", "rgba"}},
-	{ID: "date_picker", Label: "Date Picker", Group: groupSelection, Summary: "Select one or many dates from a calendar.", Tags: []string{"calendar", "dates", "selection"}},
-	{ID: "date_picker_roller", Label: "Date Picker Roller", Group: groupSelection, Summary: "Roll wheel-style month/day/year controls.", Tags: []string{"date", "roller", "time"}},
-	{ID: "input", Label: "Input", Group: groupInput, Summary: "Single-line, password, and multiline text input.", Tags: []string{"text", "textarea", "password"}},
-	{ID: "input_date", Label: "Input Date", Group: groupInput, Summary: "Text input with date picker dropdown.", Tags: []string{"date", "input", "calendar"}},
-	{ID: "input_group", Label: "Input Group", Group: groupInput, Summary: "Join inputs, selects, buttons and text addons into one control.", Tags: []string{"addon", "prefix", "suffix", "group", "form"}},
-	{ID: "numeric_input", Label: "Numeric Input", Group: groupInput, Summary: "Locale-aware number input with step controls.", Tags: []string{"number", "decimal", "locale", "spinner"}},
-	{ID: "forms", Label: "Forms", Group: groupInput, Summary: "Form runtime with sync and async validation states recreated in example code.", Tags: []string{"form", "validation", "async", "touched", "dirty"}},
+	{ID: "color_picker", Label: "Color Picker", Group: groupEntry, Summary: "Pick RGBA and optional HSV values.", Tags: []string{"color", "hsv", "rgba"}},
+	{ID: "date_picker", Label: "Date Picker", Group: groupEntry, Summary: "Select one or many dates from a calendar.", Tags: []string{"calendar", "dates", "selection"}},
+	{ID: "date_picker_roller", Label: "Date Picker Roller", Group: groupEntry, Summary: "Roll wheel-style month/day/year controls.", Tags: []string{"date", "roller", "time"}},
+	{ID: "input", Label: "Input", Group: groupEntry, Summary: "Single-line, password, and multiline text input.", Tags: []string{"text", "textarea", "password"}},
+	{ID: "input_date", Label: "Input Date", Group: groupEntry, Summary: "Text input with date picker dropdown.", Tags: []string{"date", "input", "calendar"}},
+	{ID: "input_group", Label: "Input Group", Group: groupEntry, Summary: "Join inputs, selects, buttons and text addons into one control.", Tags: []string{"addon", "prefix", "suffix", "group", "form"}},
+	{ID: "numeric_input", Label: "Numeric Input", Group: groupEntry, Summary: "Locale-aware number input with step controls.", Tags: []string{"number", "decimal", "locale", "spinner"}},
+	{ID: "forms", Label: "Forms", Group: groupEntry, Summary: "Form runtime with sync and async validation states recreated in example code.", Tags: []string{"form", "validation", "async", "touched", "dirty"}},
 
-	{ID: "listbox", Label: "List Box", Group: groupSelection, Summary: "Single and multi-select list options.", Tags: []string{"list", "multi", "select"}},
-	{ID: "radio", Label: "Radio", Group: groupButtons, Summary: "Single radio control.", Tags: []string{"option", "boolean", "choice"}},
-	{ID: "radio_group", Label: "Radio Button Group", Group: groupButtons, Summary: "Mutually exclusive options in row or column.", Tags: []string{"group", "options", "select"}},
-	{ID: "segmented_control", Label: "Segmented Control", Group: groupButtons, Summary: "Compact single choice in one shared track.", Tags: []string{"segment", "options", "select", "toggle"}},
-	{ID: "slider", Label: "Slider", Group: groupInput, Summary: "Drag horizontal or vertical value controls.", Tags: []string{"slider", "value"}},
-	{ID: "gesture", Label: "Gestures", Group: groupInput, Summary: "Touch gesture recognition: tap, pan, pinch, rotate, swipe.", Tags: []string{"touch", "gesture", "pinch", "swipe", "pan", "rotate", "tap", "mobile"}},
-	{ID: "drag_reorder", Label: "Drag Reorder", Group: groupLayout, Summary: "Drag-to-reorder items in lists, tabs, and trees.", Tags: []string{"drag", "reorder", "list", "tabs", "tree", "keyboard"}},
-	{ID: "combobox", Label: "Combobox", Group: groupSelection, Summary: "Single-select with typeahead filtering.", Tags: []string{"dropdown", "filter", "typeahead", "autocomplete"}},
-	{ID: "select", Label: "Select", Group: groupSelection, Summary: "Dropdown with optional multi-select.", Tags: []string{"dropdown", "pick", "options"}},
-	{ID: "switch", Label: "Switch", Group: groupButtons, Summary: "On/off switch control.", Tags: []string{"toggle", "boolean", "control"}},
-	{ID: "toggle", Label: "Toggle", Group: groupButtons, Summary: "Checkbox-style and icon toggles.", Tags: []string{"checkbox", "boolean", "control"}},
+	{ID: "listbox", Label: "List Box", Group: groupChoices, Summary: "Single and multi-select list options.", Tags: []string{"list", "multi", "select"}},
+	{ID: "radio", Label: "Radio", Group: groupChoices, Summary: "Single radio control.", Tags: []string{"option", "boolean", "choice"}},
+	{ID: "radio_group", Label: "Radio Button Group", Group: groupChoices, Summary: "Mutually exclusive options in row or column.", Tags: []string{"group", "options", "select"}},
+	{ID: "segmented_control", Label: "Segmented Control", Group: groupChoices, Summary: "Compact single choice in one shared track.", Tags: []string{"segment", "options", "select", "toggle"}},
+	{ID: "slider", Label: "Slider", Group: groupEntry, Summary: "Drag horizontal or vertical value controls.", Tags: []string{"slider", "value"}},
+	{ID: "gesture", Label: "Gestures", Group: groupMotion, Summary: "Touch gesture recognition: tap, pan, pinch, rotate, swipe.", Tags: []string{"touch", "gesture", "pinch", "swipe", "pan", "rotate", "tap", "mobile"}},
+	{ID: "drag_reorder", Label: "Drag Reorder", Group: groupMotion, Summary: "Drag-to-reorder items in lists, tabs, and trees.", Tags: []string{"drag", "reorder", "list", "tabs", "tree", "keyboard"}},
+	{ID: "combobox", Label: "Combobox", Group: groupChoices, Summary: "Single-select with typeahead filtering.", Tags: []string{"dropdown", "filter", "typeahead", "autocomplete"}},
+	{ID: "select", Label: "Select", Group: groupChoices, Summary: "Dropdown with optional multi-select.", Tags: []string{"dropdown", "pick", "options"}},
+	{ID: "switch", Label: "Switch", Group: groupChoices, Summary: "On/off switch control.", Tags: []string{"toggle", "boolean", "control"}},
+	{ID: "toggle", Label: "Toggle", Group: groupChoices, Summary: "Checkbox-style and icon toggles.", Tags: []string{"checkbox", "boolean", "control"}},
 
-	{ID: "image", Label: "Image", Group: groupGraphics, Summary: "Render local image assets.", Tags: []string{"photo", "asset", "media"}},
-	{ID: "rectangle", Label: "Rectangle", Group: groupGraphics, Summary: "Draw colored shapes with border and radius.", Tags: []string{"shape", "primitive", "box"}},
-	{ID: "svg", Label: "SVG", Group: groupGraphics, Summary: "Render vector graphics from SVG strings.", Tags: []string{"vector", "icon", "path"}},
-	{ID: "printing", Label: "Printing", Group: groupGraphics, Summary: "Export current view to PDF and open native print dialog.", Tags: []string{"print", "pdf", "export"}},
-	{ID: "animations", Label: "Animations", Group: groupGraphics, Summary: "Tween, spring, and layout transition samples.", Tags: []string{"motion", "tween", "spring"}},
-	{ID: "gradient", Label: "Gradients", Group: groupGraphics, Summary: "Linear and radial gradient fills.", Tags: []string{"gradient", "linear", "radial", "fill"}},
-	{ID: "blur", Label: "Blur", Group: groupGraphics, Summary: "Gaussian blur effect on shapes and containers.", Tags: []string{"blur", "gaussian", "glow", "soft"}},
-	{ID: "box_shadows", Label: "Box Shadows", Group: groupGraphics, Summary: "Shadow presets with spread behavior notes.", Tags: []string{"shadow", "depth", "blur"}},
-	{ID: "shader", Label: "Custom Shaders", Group: groupGraphics, Summary: "Custom fragment shaders for dynamic fills.", Tags: []string{"shader", "glsl", "metal"}},
-	{ID: "color_filter", Label: "Color Filters", Group: groupGraphics, Summary: "Color matrix transforms: grayscale, sepia, saturate, contrast, brightness.", Tags: []string{"filter", "color", "grayscale", "sepia", "saturate", "matrix"}},
-	{ID: "draw_canvas", Label: "Draw Canvas", Group: groupGraphics, Summary: "Procedural 2D drawing with cached tessellation.", Tags: []string{"canvas", "draw", "chart", "line", "polygon", "circle"}},
-	{ID: "theme_gen", Label: "Theme", Group: groupGraphics, Summary: "Generate a theme from a seed color, tint level, and palette strategy.", Tags: []string{"theme", "color", "palette", "generator"}},
+	{ID: "image", Label: "Image", Group: groupDrawing, Summary: "Render local image assets.", Tags: []string{"photo", "asset", "media"}},
+	{ID: "rectangle", Label: "Rectangle", Group: groupDrawing, Summary: "Draw colored shapes with border and radius.", Tags: []string{"shape", "primitive", "box"}},
+	{ID: "svg", Label: "SVG", Group: groupDrawing, Summary: "Render vector graphics from SVG strings.", Tags: []string{"vector", "icon", "path"}},
+	{ID: "printing", Label: "Printing", Group: groupApp, Summary: "Export current view to PDF and open native print dialog.", Tags: []string{"print", "pdf", "export"}},
+	{ID: "animations", Label: "Animations", Group: groupMotion, Summary: "Tween, spring, and layout transition samples.", Tags: []string{"motion", "tween", "spring"}},
+	{ID: "gradient", Label: "Gradients", Group: groupDrawing, Summary: "Linear and radial gradient fills.", Tags: []string{"gradient", "linear", "radial", "fill"}},
+	{ID: "blur", Label: "Blur", Group: groupDrawing, Summary: "Gaussian blur effect on shapes and containers.", Tags: []string{"blur", "gaussian", "glow", "soft"}},
+	{ID: "box_shadows", Label: "Box Shadows", Group: groupDrawing, Summary: "Shadow presets with spread behavior notes.", Tags: []string{"shadow", "depth", "blur"}},
+	{ID: "shader", Label: "Custom Shaders", Group: groupDrawing, Summary: "Custom fragment shaders for dynamic fills.", Tags: []string{"shader", "glsl", "metal"}},
+	{ID: "color_filter", Label: "Color Filters", Group: groupDrawing, Summary: "Color matrix transforms: grayscale, sepia, saturate, contrast, brightness.", Tags: []string{"filter", "color", "grayscale", "sepia", "saturate", "matrix"}},
+	{ID: "draw_canvas", Label: "Draw Canvas", Group: groupDrawing, Summary: "Procedural 2D drawing with cached tessellation.", Tags: []string{"canvas", "draw", "chart", "line", "polygon", "circle"}},
+	{ID: "theme_gen", Label: "Theme", Group: groupApp, Summary: "Generate a theme from a seed color, tint level, and palette strategy.", Tags: []string{"theme", "color", "palette", "generator"}},
 
 	{ID: "markdown", Label: "Markdown", Group: groupText, Summary: "Render markdown into styled rich content.", Tags: []string{"docs", "text", "rich"}},
 	{ID: "rtf", Label: "Rich Text Format", Group: groupText, Summary: "Mixed styles, links, and inline rich runs.", Tags: []string{"rich text", "link", "style"}},
 	{ID: "text", Label: "Text", Group: groupText, Summary: "Typography, gradients, outlines, and curved text.", Tags: []string{"font", "type", "styles", "gradient", "outline", "stroke", "curve"}},
 	{ID: "typography", Label: "Typography", Group: groupText, Summary: "Type scale, roles, and modifiers.", Tags: []string{"font", "type", "scale", "roles", "style"}},
-	{ID: "text_anim", Label: "Text Animation", Group: groupText, Summary: "Canned text animations from TextCfg.Anim, plus the Custom hook.", Tags: []string{"animation", "fade", "slide", "pulse", "shimmer", "typewriter", "shake", "motion"}},
+	{ID: "text_anim", Label: "Text Animation", Group: groupMotion, Summary: "Canned text animations from TextCfg.Anim, plus the Custom hook.", Tags: []string{"animation", "fade", "slide", "pulse", "shimmer", "typewriter", "shake", "motion"}},
 	{ID: "icons", Label: "Icons", Group: groupText, Summary: "Icon font catalog and glyph references.", Tags: []string{"icon", "font", "glyph"}},
 
 	{ID: "table", Label: "Table", Group: groupData, Summary: "Declarative and sortable table data.", Tags: []string{"rows", "columns", "csv"}},
@@ -422,29 +431,29 @@ var demoEntries = []DemoEntry{
 	{ID: "virtual_list", Label: "Virtual List", Group: groupData, Summary: "Virtualized list of app-built rows whose heights differ.", Tags: []string{"virtualized", "feed", "chat", "log", "scroll", "variable height"}},
 
 	{ID: "breadcrumb", Label: "Breadcrumb", Group: groupNav, Summary: "Trail navigation with optional content panels.", Tags: []string{"breadcrumb", "navigation", "trail", "path"}},
-	{ID: "menus", Label: "Menus + Menubar", Group: groupNav, Summary: "Nested menus, separators, and custom menu items.", Tags: []string{"menu", "menubar", "submenu"}},
+	{ID: "menus", Label: "Menus + Menubar", Group: groupActions, Summary: "Nested menus, separators, and custom menu items.", Tags: []string{"menu", "menubar", "submenu"}},
 	{ID: "tab_control", Label: "Tab Control", Group: groupNav, Summary: "Switch content panels with keyboard-friendly tabs.", Tags: []string{"tabs", "navigation", "panes"}},
 
-	{ID: "button", Label: "Button", Group: groupButtons, Summary: "Trigger actions with click and keyboard focus.", Tags: []string{"action", "press", "click"}},
-	{ID: "command_button", Label: "Command Button", Group: groupButtons, Summary: "Button wired to a registered command with auto-label, shortcut hint, and CanExecute.", Tags: []string{"command", "button", "shortcut", "action"}},
-	{ID: "theme_picker", Label: "Theme Picker", Group: groupSelection, Summary: "Palette icon dropdown for switching registered themes.", Tags: []string{"theme", "picker", "palette", "dark", "light"}},
-	{ID: "progress_bar", Label: "Progress Bar", Group: groupFeedback, Summary: "Determinate and indeterminate progress indicators.", Tags: []string{"progress", "loader", "status"}},
-	{ID: "pulsar", Label: "Pulsar", Group: groupSpinners, Summary: "Animated pulse indicator with optional icons.", Tags: []string{"pulse", "loading", "indicator"}},
-	{ID: "toast", Label: "Toast", Group: groupFeedback, Summary: "Non-blocking notifications with auto-dismiss and actions.", Tags: []string{"notification", "alert", "severity", "stack"}},
-	{ID: "badge", Label: "Badge", Group: groupFeedback, Summary: "Numeric and colored pill labels for counts and status.", Tags: []string{"badge", "count", "status", "pill", "label"}},
-	{ID: "skeleton", Label: "Skeleton", Group: groupFeedback, Summary: "Shimmer placeholder for loading states.", Tags: []string{"skeleton", "shimmer", "loading", "placeholder"}},
-	{ID: "spinner", Label: "Math Spinner", Group: groupSpinners, Summary: "Animated mathematical curves as loading indicators.", Tags: []string{"math spinner", "loading", "curve", "animation", "rose", "lissajous", "butterfly", "cardioid", "spiral"}},
-	{ID: "svg_spinner", Label: "SVG Spinner", Group: groupSpinners, Summary: "One hundred six built-in animated SVG spinners grouped by visual family.", Tags: []string{"svg", "spinner", "loading", "animation", "dots", "bars", "ring", "loader", "blocks"}},
-	{ID: "thinking_orb", Label: "Thinking Orb", Group: groupSpinners, Summary: "Nine semantic dotted-3D spinners for AI and agent states.", Tags: []string{"thinking", "orb", "spinner", "loading", "ai", "agent", "searching", "composing"}},
-	{ID: "native_notification", Label: "Native Notification", Group: groupFeedback, Summary: "OS-level notifications on macOS, Windows, and Linux.", Tags: []string{"notification", "native", "os", "alert", "push"}},
-	{ID: "audio", Label: "Audio", Group: groupFeedback, Summary: "Sound effects and music playback via beep.", Tags: []string{"audio", "sound", "music", "sfx", "beep", "mixer"}},
+	{ID: "button", Label: "Button", Group: groupActions, Summary: "Trigger actions with click and keyboard focus.", Tags: []string{"action", "press", "click"}},
+	{ID: "command_button", Label: "Command Button", Group: groupActions, Summary: "Button wired to a registered command with auto-label, shortcut hint, and CanExecute.", Tags: []string{"command", "button", "shortcut", "action"}},
+	{ID: "theme_picker", Label: "Theme Picker", Group: groupApp, Summary: "Palette icon dropdown for switching registered themes.", Tags: []string{"theme", "picker", "palette", "dark", "light"}},
+	{ID: "progress_bar", Label: "Progress Bar", Group: groupProgress, Summary: "Determinate and indeterminate progress indicators.", Tags: []string{"progress", "loader", "status"}},
+	{ID: "pulsar", Label: "Pulsar", Group: groupProgress, Summary: "Animated pulse indicator with optional icons.", Tags: []string{"pulse", "loading", "indicator"}},
+	{ID: "toast", Label: "Toast", Group: groupMessages, Summary: "Non-blocking notifications with auto-dismiss and actions.", Tags: []string{"notification", "alert", "severity", "stack"}},
+	{ID: "badge", Label: "Badge", Group: groupMessages, Summary: "Numeric and colored pill labels for counts and status.", Tags: []string{"badge", "count", "status", "pill", "label"}},
+	{ID: "skeleton", Label: "Skeleton", Group: groupProgress, Summary: "Shimmer placeholder for loading states.", Tags: []string{"skeleton", "shimmer", "loading", "placeholder"}},
+	{ID: "spinner", Label: "Math Spinner", Group: groupProgress, Summary: "Animated mathematical curves as loading indicators.", Tags: []string{"math spinner", "loading", "curve", "animation", "rose", "lissajous", "butterfly", "cardioid", "spiral"}},
+	{ID: "svg_spinner", Label: "SVG Spinner", Group: groupProgress, Summary: "One hundred six built-in animated SVG spinners grouped by visual family.", Tags: []string{"svg", "spinner", "loading", "animation", "dots", "bars", "ring", "loader", "blocks"}},
+	{ID: "thinking_orb", Label: "Thinking Orb", Group: groupProgress, Summary: "Nine semantic dotted-3D spinners for AI and agent states.", Tags: []string{"thinking", "orb", "spinner", "loading", "ai", "agent", "searching", "composing"}},
+	{ID: "native_notification", Label: "Native Notification", Group: groupMessages, Summary: "OS-level notifications on macOS, Windows, and Linux.", Tags: []string{"notification", "native", "os", "alert", "push"}},
+	{ID: "audio", Label: "Audio", Group: groupApp, Summary: "Sound effects and music playback via beep.", Tags: []string{"audio", "sound", "music", "sfx", "beep", "mixer"}},
 
-	{ID: "dialog", Label: "Dialog", Group: groupOverlays, Summary: "Message, confirm, prompt, and custom dialogs.", Tags: []string{"modal", "confirm", "prompt"}},
+	{ID: "dialog", Label: "Dialog", Group: groupMessages, Summary: "Message, confirm, prompt, and custom dialogs.", Tags: []string{"modal", "confirm", "prompt"}},
 	{ID: "expand_panel", Label: "Expand Panel", Group: groupLayout, Summary: "Collapsible region with custom header and content.", Tags: []string{"accordion", "collapse", "panel"}},
-	{ID: "command_palette", Label: "Command Palette", Group: groupOverlays, Summary: "Keyboard-first searchable action list.", Tags: []string{"command", "search", "palette", "keyboard"}},
-	{ID: "context_menu", Label: "Context Menu", Group: groupOverlays, Summary: "Right-click floating menu with submenus and keyboard navigation.", Tags: []string{"context", "menu", "right-click", "popup", "floating"}},
-	{ID: "tooltip", Label: "Tooltip", Group: groupOverlays, Summary: "Hover hints with custom placement and content.", Tags: []string{"hover", "hint", "floating"}},
-	{ID: "inspector", Label: "Inspector", Group: groupOverlays, Summary: "Dev-mode layout tree and property inspector.", Tags: []string{"inspector", "debug", "devtools", "layout", "tree"}},
+	{ID: "command_palette", Label: "Command Palette", Group: groupActions, Summary: "Keyboard-first searchable action list.", Tags: []string{"command", "search", "palette", "keyboard"}},
+	{ID: "context_menu", Label: "Context Menu", Group: groupActions, Summary: "Right-click floating menu with submenus and keyboard navigation.", Tags: []string{"context", "menu", "right-click", "popup", "floating"}},
+	{ID: "tooltip", Label: "Tooltip", Group: groupMessages, Summary: "Hover hints with custom placement and content.", Tags: []string{"hover", "hint", "floating"}},
+	{ID: "inspector", Label: "Inspector", Group: groupApp, Summary: "Dev-mode layout tree and property inspector.", Tags: []string{"inspector", "debug", "devtools", "layout", "tree"}},
 
 	{ID: "rotated_box", Label: "Rotated Box", Group: groupLayout, Summary: "Rotate child content by quarter turns.", Tags: []string{"rotate", "transform", "layout"}},
 	{ID: "row", Label: "Row", Group: groupLayout, Summary: "Horizontal container arranging children left-to-right.", Tags: []string{"row", "horizontal", "container", "layout"}},
@@ -455,8 +464,8 @@ var demoEntries = []DemoEntry{
 	{ID: "scrollbar", Label: "Scrollable Containers", Group: groupLayout, Summary: "Bind scrollable layouts to shared scroll ids.", Tags: []string{"scrollbar", "scroll", "container", "layout"}},
 	{ID: "splitter", Label: "Splitter", Group: groupLayout, Summary: "Resizable panes with drag, keyboard, and collapse.", Tags: []string{"split", "pane", "resize", "layout"}},
 	{ID: "dock_layout", Label: "Dock Layout", Group: groupLayout, Summary: "IDE-style docking panels with splits, tabs, and drag-and-drop.", Tags: []string{"dock", "split", "tabs", "drag", "ide", "layout"}},
-	{ID: "window_opacity", Label: "Window Opacity", Group: groupLayout, Summary: "Fade the whole window, content included, with a runtime setter.", Tags: []string{"window", "opacity", "fade", "alpha", "transparent", "compositor"}},
-	{ID: "multi_window", Label: "Multi-Window", Group: groupLayout, Summary: "Open and manage additional windows with cross-window communication.", Tags: []string{"window", "multi", "app", "broadcast", "layout"}},
+	{ID: "window_opacity", Label: "Window Opacity", Group: groupApp, Summary: "Fade the whole window, content included, with a runtime setter.", Tags: []string{"window", "opacity", "fade", "alpha", "transparent", "compositor"}},
+	{ID: "multi_window", Label: "Multi-Window", Group: groupApp, Summary: "Open and manage additional windows with cross-window communication.", Tags: []string{"window", "multi", "app", "broadcast", "layout"}},
 }
 
 func init() {

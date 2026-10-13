@@ -61,7 +61,9 @@ func detailPanel(w *gui.Window) gui.View {
 	switch {
 	case entry.ID == "":
 		content = demoPlaceholder(gui.CurrentTheme(), "No demo configured")
-	case app.ShowDocs && entry.Group != groupWelcome:
+	// A doc page is its own doc, so the Docs toggle leaves it alone. This
+	// keys on the page, not its catalog group: groups move (#1025).
+	case app.ShowDocs && !isDocPage(entry.ID):
 		style := gui.DefaultMarkdownStyle()
 		style.CodeHighlighter = highlight.Default()
 		content = w.Markdown(gui.MarkdownCfg{
