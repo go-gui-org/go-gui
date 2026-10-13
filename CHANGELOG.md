@@ -8,6 +8,8 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [v0.88.4] - 2026-10-13
+
 ### Added
 
 - **Showcase page for `VirtualList` (#1027).** The Data group now has a "Virtual
