@@ -15,6 +15,7 @@ import (
 
 	"github.com/go-gui-org/go-gui/gui"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/devscale"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/homography"
 	"github.com/go-gui-org/go-gui/gui/svg"
 )
 
@@ -48,6 +49,18 @@ type Backend struct {
 	brackets   []stateBracket
 	stateDepth int
 	lastCursor gui.MouseCursor
+
+	// xfCur is the canvas transform the open rotation and view
+	// transform brackets compose to. xfView composes the view
+	// transforms alone, and xfH the true matrices they stand in for.
+	// xfPersp is set while a bracket with perspective is open, so
+	// xfView matches xfH only near one point. xfStack holds the state
+	// from before each bracket (draw_transform.go).
+	xfCur   affine
+	xfView  affine
+	xfH     homography.Mat
+	xfPersp bool
+	xfStack []xfSaved
 
 	textPathPlacements []glyph.GlyphPlacement
 
@@ -98,6 +111,14 @@ type clipRegion struct {
 	// level is len(brackets) when a stencil clip began: it is replayed
 	// under the brackets that were open then.
 	level int
+	// xf is the canvas transform the clip path is drawn with. A rect
+	// clip is a window rect, as a GPU scissor is, so it is the
+	// identity. A stencil clip goes through the transform in effect
+	// when it opened, as a GPU stencil quad goes through the MVP.
+	// Under perspective a rect clip is drawn in the view's frame too
+	// (rectClip). win is a rect clip's window rect, as gui sent it.
+	xf  affine
+	win [4]float32
 }
 
 // stateBracket is an open rotation or filter bracket.
@@ -327,6 +348,8 @@ func (b *Backend) renderFrame(w *gui.Window) {
 			float64(b.dpiScale), 0, 0,
 			float64(b.dpiScale), 0, 0)
 	}
+
+	b.resetTransforms()
 
 	// Reset clip depth.
 	for b.stateDepth > 0 {

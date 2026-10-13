@@ -5,6 +5,8 @@ import (
 	"image/draw"
 
 	"golang.org/x/image/vector"
+
+	"github.com/go-gui-org/go-gui/gui/backend/internal/homography"
 )
 
 // maxLayerDepth caps how deep begin/end brackets may nest before the
@@ -20,6 +22,7 @@ const (
 	bracketFilter bracketKind = iota
 	bracketStencil
 	bracketRotate
+	bracketTransform
 )
 
 // bracket is one open begin/end pair.
@@ -43,6 +46,14 @@ type bracket struct {
 
 	blur   float32 // filter: blur std dev, device px
 	layers int     // filter: composite count
+
+	// View transform, device px: m maps the layer to the parent target,
+	// acc maps it to the window (every open transform bracket composed)
+	// and accInv maps back. entry is the parent's clip when the bracket
+	// opened. Only a bracketTransform sets them.
+	m, acc, accInv homography.Mat
+	accInvOK       bool
+	entry          image.Rectangle
 
 	kind bracketKind
 }
@@ -312,6 +323,8 @@ func (r *renderer) finishBrackets() {
 			r.endStencil()
 		case bracketRotate:
 			r.endRotation()
+		case bracketTransform:
+			r.endTransform()
 		}
 	}
 }

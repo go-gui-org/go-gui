@@ -81,6 +81,9 @@ func renderTransformBegin(shape *Shape, clip drawClip, w *Window) bool {
 	if !emitRendererIfValid(RenderCmd{
 		Kind:       RenderTransformBegin,
 		Homography: (*[9]float32)(&xf.m),
+		// The box, in the view's own frame. A backend with no
+		// perspective (web) fits its flat stand-in to the view here.
+		X: shape.X, Y: shape.Y, W: shape.Width, H: shape.Height,
 	}, w) {
 		// Nothing was drawn through this matrix, so input must not map
 		// the pointer through it either.

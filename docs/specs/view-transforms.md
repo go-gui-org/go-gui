@@ -1,6 +1,6 @@
 # Visual transforms on views
 
-Issue #1019. Status: **planned** — phases 1 and 2 landed.
+Issue #1019. Status: **planned** — phases 1, 2 and 6 landed.
 
 ## Problem
 
@@ -73,8 +73,25 @@ that lifts on hover, a tilted badge and tumbling confetti cannot be built.
   phase 3 hit testing is untransformed. Each scissor is mapped out through the
   open brackets (`emitClipCmd`) and cut to the scissor in effect when the
   bracket opened, so nothing draws outside an ancestor's clip.
-- **Not yet transformed.** Soft, web and PDF list the new kinds as no-ops until
-  phase 6. A `ColorFilter` layer inside a transform is not checked.
+- **Soft.** The bracket draws into a layer in the view's own frame, and the
+  layer is mapped into the parent through the inverse matrix, pixel by pixel.
+  This is exact for perspective. A `RenderClip` is a window rect, so inside a
+  bracket it is mapped back into the view's frame. The layer is the size of the
+  window, so content that lies outside the window before the transform is lost.
+- **Web.** Canvas2D has only affine transforms. A matrix with perspective is
+  drawn with the affine that matches it at the center of the view's box
+  (`homography.AffineAt`). `TransformBegin` carries that box in X, Y, W and H.
+  Rotation and transform brackets keep the canvas transform in Go, not on the
+  canvas save stack, because a clip rebuild restores that stack. A rect clip is
+  a window rect, drawn with no transform. Under perspective, gui maps it to the
+  window through the true matrix, but the canvas draws through the flat
+  stand-in, so the rect would cut off the far side of the view. There the rect
+  is mapped back into the view's frame through the true matrix and drawn under
+  the stand-in. Each stencil is drawn with the transform it opened under.
+- **Not yet transformed.** PDF draws the subtree without the transform, and its
+  clips inside a transform cut in the wrong place. Its clips and rotations share
+  the fpdf `q`/`Q` stack, which has the same restore problem web had. A
+  `ColorFilter` layer inside a transform is not checked.
 - **Input.** `rotateMouseInverse` becomes a general inverse mapping. Every
   pointer walk keeps its map/recurse/restore shape.
 - **Bounds.** `LocalToWindow` and `WindowToLocal` map points. The IME rect, a11y
@@ -90,7 +107,7 @@ that lifts on hover, a tilted badge and tumbling confetti cannot be built.
 | 3     | Pointer input through the inverse, in every walk                               | pending |
 | 4     | Backface culling for drawing and input                                         | pending |
 | 5     | `LocalToWindow` / `WindowToLocal`, IME, a11y, tooltips, drag, float anchors    | pending |
-| 6     | Soft backend (homography blit) and web (Canvas2D `setTransform`)               | pending |
+| 6     | Soft backend (homography blit) and web (Canvas2D `setTransform`)               | landed  |
 | 7     | QuarterTurns input goes through the general mapping; special cases are deleted | pending |
 | 8     | `examples/transforms/`, README, cheat-sheet snippet                            | pending |
 
@@ -118,5 +135,8 @@ that lifts on hover, a tilted badge and tumbling confetti cannot be built.
   code mutate layout under the frame lock.
 - **Binding a transform to an animation ID.** It couples the transform to one
   animation kind. `TransformFn` reads any state.
+- **Dropping the perspective terms on web.** It is not the same as dropping
+  perspective before the origin is applied, so the view drifts away from where
+  the GPU draws it. The affine at the box center keeps the center in place.
 - **A D3D backend path.** go-gui has no D3D backend. Windows uses GL through
   WGL.

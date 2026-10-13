@@ -99,16 +99,16 @@ func (b *Backend) drawCmds(cmds []gui.RenderCmd) {
 			b.beginRotation(r)
 		case gui.RenderRotateEnd:
 			b.endRotation()
+		case gui.RenderTransformBegin:
+			b.beginTransform(r)
+		case gui.RenderTransformEnd:
+			b.endTransform()
 		case gui.RenderCustomShader:
 			b.drawCustomShader(r)
 
 		case gui.RenderNone,
 			gui.RenderFilterComposite,
-			gui.RenderLayoutPlaced,
-			// View transforms draw untransformed here until #1019
-			// phase 6 maps them onto setTransform.
-			gui.RenderTransformBegin,
-			gui.RenderTransformEnd:
+			gui.RenderLayoutPlaced:
 			// Unsupported in Canvas2D backend.
 		}
 	}
@@ -117,13 +117,7 @@ func (b *Backend) drawCmds(cmds []gui.RenderCmd) {
 // --- Individual draw commands ---
 
 func (b *Backend) drawClip(r *gui.RenderCmd) {
-	next := clipRegion{
-		kind: clipKindRect,
-		x:    r.X,
-		y:    r.Y,
-		w:    r.W,
-		h:    r.H,
-	}
+	next := b.rectClip([4]float32{r.X, r.Y, r.W, r.H})
 	if replaced := false; len(b.clipStack) > 0 {
 		for i := range slices.Backward(b.clipStack) {
 			if b.clipStack[i].kind == clipKindRect {
@@ -150,6 +144,7 @@ func (b *Backend) beginStencilClip(r *gui.RenderCmd) {
 		h:      r.H,
 		radius: r.Radius,
 		level:  len(b.brackets),
+		xf:     b.xfCur,
 	})
 	b.rebuildClipStack()
 }
@@ -197,12 +192,16 @@ func (b *Backend) rebuildClipStack() {
 			b.pushBracket(b.brackets[lvl])
 		}
 	}
+	// Restoring the clip saves also reset the canvas transform, and
+	// each clip set its own. Draw on with the brackets' transform.
+	b.setCanvasTransform(b.xfCur)
 }
 
 // pushClip saves the 2D state and intersects its clip with c.
 func (b *Backend) pushClip(c clipRegion) {
 	b.ctx2d.Call("save")
 	b.stateDepth++
+	b.setCanvasTransform(c.xf)
 	b.ctx2d.Call("beginPath")
 	if c.kind == clipKindStencil && c.radius > 0 {
 		b.roundedRectPath(

@@ -395,6 +395,53 @@ func pixelCases() []pixelCase {
 			},
 		},
 		{
+			// View transforms (#1019): a card turned in 3D with
+			// perspective, and a clipping card turned flat, whose
+			// over-wide child is cut by the stencil gui adds under a
+			// turn. The homography blit and its resampling are
+			// pixel-only claims.
+			name: "transform",
+			build: func(_ *gui.Window) gui.View {
+				return gui.Row(gui.ContainerCfg{
+					Sizing:     gui.FillFill,
+					SizeBorder: gui.NoBorder,
+					HAlign:     gui.HAlignCenter,
+					VAlign:     gui.VAlignMiddle,
+					Spacing:    gui.SpacingLarge,
+					Content: []gui.View{
+						gui.Column(gui.ContainerCfg{
+							Width:      100,
+							Height:     70,
+							Sizing:     gui.FixedFixed,
+							Radius:     gui.RadiusMedium,
+							Color:      gui.RGB(60, 120, 200),
+							SizeBorder: gui.NoBorder,
+							Transform:  gui.RotateY(45).Perspective(200),
+						}),
+						gui.Column(gui.ContainerCfg{
+							Width:      90,
+							Height:     60,
+							Sizing:     gui.FixedFixed,
+							Clip:       true,
+							Color:      gui.RGB(220, 120, 60),
+							SizeBorder: gui.NoBorder,
+							Padding:    gui.PaddingNone,
+							Transform:  gui.Rotate(20),
+							Content: []gui.View{
+								gui.Column(gui.ContainerCfg{
+									Width:      140,
+									Height:     20,
+									Sizing:     gui.FixedFixed,
+									Color:      gui.RGB(240, 230, 90),
+									SizeBorder: gui.NoBorder,
+								}),
+							},
+						}),
+					},
+				})
+			},
+		},
+		{
 			// An inline SVG: tessellation, the vertex-coloured mesh
 			// pass and the gradient fill over a shared coverage mask.
 			// The data is a literal, so no file I/O and no asset

@@ -35,16 +35,6 @@ func (b *Backend) cssColorCached(c gui.Color) string {
 	return s
 }
 
-func (b *Backend) beginRotation(r *gui.RenderCmd) {
-	b.beginBracket(stateBracket{
-		rotate: true, angle: r.RotAngle, cx: r.RotCX, cy: r.RotCY,
-	})
-}
-
-func (b *Backend) endRotation() {
-	b.endBracket()
-}
-
 func (b *Backend) fillRoundedRect(
 	x, y, w, h, radius float32) {
 	b.ctx2d.Call("beginPath")

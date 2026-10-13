@@ -42,10 +42,18 @@ type renderer struct {
 	// shapes, gradients and images rasterize exactly once.
 	warm bool
 
-	// brackets holds the open begin/end pairs — filter, stencil and
-	// rotate all scope later drawing by pushing an offscreen layer.
-	brackets  []bracket
-	layerPool []*buffer
+	// brackets holds the open begin/end pairs — filter, stencil,
+	// rotate and transform all scope later drawing by pushing an
+	// offscreen layer.
+	brackets []bracket
+
+	// winClip is the last RenderClip, in window device px, and
+	// winClipSet whether one came this frame. Inside a transform the
+	// clip is mapped into the layer's frame, so the window rect is kept
+	// to map it again into the parent's frame when the bracket closes.
+	winClip    [4]float32
+	winClipSet bool
+	layerPool  []*buffer
 
 	// Scratch buffers reused across commands.
 	placements []glyph.GlyphPlacement
@@ -73,7 +81,7 @@ func (r *renderer) drawAll(cmds []gui.RenderCmd) {
 		}
 		switch cmd.Kind {
 		case gui.RenderClip:
-			r.buf.setClip(cmd.X*r.scale, cmd.Y*r.scale,
+			r.setWindowClip(cmd.X*r.scale, cmd.Y*r.scale,
 				cmd.W*r.scale, cmd.H*r.scale)
 		case gui.RenderRect:
 			r.drawRect(cmd)
@@ -115,6 +123,10 @@ func (r *renderer) drawAll(cmds []gui.RenderCmd) {
 			r.beginRotation(cmd)
 		case gui.RenderRotateEnd:
 			r.endRotation()
+		case gui.RenderTransformBegin:
+			r.beginTransform(cmd)
+		case gui.RenderTransformEnd:
+			r.endTransform()
 
 		// Unsupported by design, or never emitted by the render path.
 		// Listed explicitly rather than caught by a default so a new
@@ -125,15 +137,10 @@ func (r *renderer) drawAll(cmds []gui.RenderCmd) {
 		// compile. RenderFilterComposite is not emitted by the render
 		// path — endFilter reads the layer count from the bracket's
 		// RenderFilterBegin, as the GPU backends do.
-		//
-		// View transforms draw untransformed here until #1019 phase 6
-		// adds a homography blit.
 		case gui.RenderNone,
 			gui.RenderCustomShader,
 			gui.RenderFilterComposite,
-			gui.RenderLayoutPlaced,
-			gui.RenderTransformBegin,
-			gui.RenderTransformEnd:
+			gui.RenderLayoutPlaced:
 		}
 	}
 }

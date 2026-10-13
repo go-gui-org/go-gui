@@ -54,7 +54,8 @@ type RenderCmd struct {
 	// row-major 3x3 matrix in logical pixels, mapping a point in the
 	// view's own frame to its parent's frame. A backend multiplies it
 	// into its MVP, after scaling it to physical pixels. It points into
-	// the shape, so it is valid until the next view rebuild.
+	// the shape, so it is valid until the next view rebuild. X, Y, W
+	// and H carry the view's box in its own frame.
 	Homography *[9]float32
 
 	// Pointer fields.
