@@ -127,24 +127,42 @@ func hasShapeID(l gui.Layout, id string) bool {
 	return false
 }
 
-// A doc page (Welcome, Sound Feedback, ...) is its own doc, so the
-// Docs toggle must not swap it for an empty widget doc. This used to
-// key on the Welcome group; Sound Feedback left that group in #1025.
-func TestDocPagesIgnoreDocsToggle(t *testing.T) {
-	showsDocsView := func(id string) bool {
+// A widget page shows its docs under the demo, with no toggle to find.
+// A doc page (Welcome, Sound Feedback, ...) is its own doc, so it gets
+// no second copy. This keys on the page, not its catalog group: Sound
+// Feedback left the Welcome group in #1025.
+func TestDocsAppendOnlyToWidgetPages(t *testing.T) {
+	appendsDocs := func(id string) bool {
 		app := newShowcaseApp()
 		app.SelectedComponent = id
-		app.ShowDocs = true
 		w := gui.NewWindow(gui.WindowCfg{State: app})
-		return hasShapeID(gui.GenerateViewLayout(detailPanel(w), w), "doc-"+id)
+		return hasShapeID(gui.GenerateViewLayout(detailPanel(w), w), docsSectionID)
 	}
-	// Control: a widget does switch to its doc, so the probe works.
-	if !showsDocsView("button") {
-		t.Fatal("button does not show the widget-doc view with Docs on")
+	// Control: a widget page does append its doc, so the probe works.
+	if !appendsDocs("button") {
+		t.Fatal("button page does not append its docs")
 	}
 	for id := range docPageFiles {
-		if showsDocsView(id) {
-			t.Errorf("doc page %q shows the widget-doc view with Docs on", id)
+		if appendsDocs(id) {
+			t.Errorf("doc page %q appends a widget-docs section", id)
+		}
+	}
+}
+
+// The docs link scrolls so the section's top meets the viewport's
+// content top. The offset is negative, as ScrollVerticalTo takes it.
+func TestDocsScrollOffset(t *testing.T) {
+	for _, tc := range []struct {
+		name                    string
+		viewTop, docsY, current float32
+		want                    float32
+	}{
+		{"from top", 100, 700, 0, -600},
+		{"already scrolled", 100, 300, -400, -600},
+		{"already there", 100, 100, -600, -600},
+	} {
+		if got := docsScrollOffset(tc.viewTop, tc.docsY, tc.current); got != tc.want {
+			t.Errorf("%s: got %v, want %v", tc.name, got, tc.want)
 		}
 	}
 }

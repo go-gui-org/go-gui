@@ -186,14 +186,26 @@ func TestSoundPlayerKindRoundTrip(t *testing.T) {
 	}
 }
 
-func TestTreeTitleBarShowsDocToggle(t *testing.T) {
-	layout := gui.GenerateViewLayout(viewTitleBar(DemoEntry{
-		ID:    "tree",
-		Label: "Tree View",
-	}, false), &gui.Window{})
+// The title bar link to the docs is the one visible sign, above the
+// fold, that a page has docs further down. A page with no docs gets no
+// link: it would scroll to nothing.
+func TestTitleBarDocsLinkFollowsDocs(t *testing.T) {
+	for _, tc := range []struct {
+		hasDocs bool
+		want    bool
+	}{
+		{hasDocs: true, want: true},
+		{hasDocs: false, want: false},
+	} {
+		layout := gui.GenerateViewLayout(viewTitleBar(DemoEntry{
+			ID:    "tree",
+			Label: "Tree View",
+		}, tc.hasDocs), &gui.Window{})
 
-	if _, ok := layout.FindByID("btn-doc-toggle"); !ok {
-		t.Fatal("expected tree title bar to include btn-doc-toggle")
+		if _, got := layout.FindByID(docsLinkID); got != tc.want {
+			t.Errorf("hasDocs=%v: has %s = %v, want %v",
+				tc.hasDocs, docsLinkID, got, tc.want)
+		}
 	}
 }
 
@@ -201,7 +213,7 @@ func TestTreeTitleBarSpacerHasNoBorder(t *testing.T) {
 	layout := gui.GenerateViewLayout(viewTitleBar(DemoEntry{
 		ID:    "tree",
 		Label: "Tree View",
-	}, false), &gui.Window{})
+	}, true), &gui.Window{})
 	if len(layout.Children) == 0 {
 		t.Fatal("len(layout.Children) = 0, want title row")
 	}
@@ -654,17 +666,11 @@ func TestDemoPagesHaveNoIDDefects(t *testing.T) {
 	for _, entry := range demoEntries {
 		app.SelectedGroup = entry.Group
 		app.SelectedComponent = entry.ID
-		app.ShowDocs = false
+		// The docs sit under the demo in one tree, so this also
+		// catches a demo ID that collides with a doc's.
 		if found := w.TestDuplicateIDs(); len(found) > 0 {
 			t.Errorf("demo %q: %v", entry.ID, found)
 		}
-
-		// The docs view of a page is a separate tree.
-		app.ShowDocs = true
-		if found := w.TestDuplicateIDs(); len(found) > 0 {
-			t.Errorf("demo %q docs: %v", entry.ID, found)
-		}
-		app.ShowDocs = false
 	}
 }
 

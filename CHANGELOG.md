@@ -35,6 +35,12 @@ and this project adheres to
   on the same `CodeBlockBG` fill as fenced blocks, so both read as code. A
   `Style.Code` with its own `BgColor` keeps it. To get the old look, set
   `Style.Code` to `Theme.TextStyleCode.Bold()`.
+- **Showcase docs show under each demo.** A widget page now shows its demo, then
+  a "Documentation" section with the widget's guide. A labeled "Docs" button in
+  the title bar scrolls to that section. Before, the docs were behind an
+  unlabeled book icon that replaced the demo, so few readers found them, and a
+  reader who did could not see the demo and its docs together. Doc pages such as
+  Welcome do not get a second copy.
 - **Showcase catalog groups follow one rule (#1025).** Each demo is now in the
   group of the job it does for the user: Start, Actions, Choices, Entry, Text,
   Data, Layout, Navigation, Messages, Progress, Motion, Drawing, and App &

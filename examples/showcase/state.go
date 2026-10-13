@@ -213,7 +213,6 @@ type ShowcaseApp struct {
 
 	ThemeGenSeed gui.Color
 	ThemeGenText gui.Color
-	ShowDocs     bool
 
 	InputSpellCheck bool
 

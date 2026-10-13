@@ -16,6 +16,11 @@ import (
 const (
 	scrollCatalog = "catalog"
 	scrollDetail  = "detail"
+
+	// docsSectionID wraps a page's appended widget doc; docsLinkID is
+	// the title bar button that scrolls to it.
+	docsSectionID = "docs"
+	docsLinkID    = "btn-docs"
 )
 
 const catalogWidth float32 = 300

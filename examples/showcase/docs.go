@@ -1,5 +1,10 @@
 package main
 
+import "sync"
+
+// componentDoc returns the widget doc for a catalog entry, or "" when it
+// has none. The detail panel calls it every frame, so the text is read
+// from the embed once and kept: embed.FS.ReadFile copies on each call.
 func componentDoc(id string) string {
 	key := id
 	switch key {
@@ -8,16 +13,22 @@ func componentDoc(id string) string {
 	case "column_demo":
 		key = "column"
 	}
-	file, ok := widgetDocFiles[key]
-	if !ok {
-		return ""
-	}
-	data, err := showcaseFS.ReadFile(file)
-	if err != nil {
-		return ""
-	}
-	return string(data)
+	return widgetDocs()[key]
 }
+
+// widgetDocs loads every widget doc on first use. A file that does not
+// read is left out, so its page shows no docs section.
+var widgetDocs = sync.OnceValue(func() map[string]string {
+	docs := make(map[string]string, len(widgetDocFiles))
+	for key, file := range widgetDocFiles {
+		data, err := showcaseFS.ReadFile(file)
+		if err != nil {
+			continue
+		}
+		docs[key] = string(data)
+	}
+	return docs
+})
 
 var widgetDocFiles = map[string]string{
 	"animations":         "docs/widget_animations.md",

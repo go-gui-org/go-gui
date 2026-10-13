@@ -15,7 +15,7 @@ func catalogPanel(w *gui.Window) gui.View {
 	// selection repair goes through QueueCommand (see detail.go): this
 	// frame renders the stale selection and the fix lands next frame.
 	fixSelection := len(entries) > 0 && !hasEntry(entries, app.SelectedComponent)
-	clearSelection := len(entries) == 0 && (app.SelectedComponent != "" || app.ShowDocs)
+	clearSelection := len(entries) == 0 && app.SelectedComponent != ""
 	if fixSelection || clearSelection {
 		w.QueueCommand(func(w *gui.Window) {
 			fixed := appState(w)
@@ -23,10 +23,8 @@ func catalogPanel(w *gui.Window) gui.View {
 			switch {
 			case len(latest) == 0:
 				fixed.SelectedComponent = ""
-				fixed.ShowDocs = false
 			case !hasEntry(latest, fixed.SelectedComponent):
 				fixed.SelectedComponent = preferredComponentForGroup(latest)
-				fixed.ShowDocs = false
 			default:
 				return
 			}
@@ -124,7 +122,6 @@ func groupPickerItem(label, key string, app *ShowcaseApp) gui.View {
 		OnClick: func(ctx gui.EventCtx) {
 			showcaseApp := appState(ctx.Window)
 			showcaseApp.SelectedGroup = key
-			showcaseApp.ShowDocs = false
 			showcaseApp.NavQuery = ""
 			entries := filteredEntries(showcaseApp)
 			showcaseApp.SelectedComponent = preferredComponentForGroup(entries)
@@ -280,7 +277,6 @@ func catalogButton(entry DemoEntry, color gui.Color) gui.View {
 		OnClick: func(ctx gui.EventCtx) {
 			showcaseApp := appState(ctx.Window)
 			showcaseApp.SelectedComponent = entry.ID
-			showcaseApp.ShowDocs = false
 			ctx.Window.ScrollVerticalTo(scrollDetail, 0)
 			ctx.Window.ScrollHorizontalTo(scrollDetail, 0)
 		},

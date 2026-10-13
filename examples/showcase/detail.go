@@ -58,23 +58,30 @@ func detailPanel(w *gui.Window) gui.View {
 	}
 
 	var content gui.View
-	switch {
-	case entry.ID == "":
+	if entry.ID == "" {
 		content = demoPlaceholder(gui.CurrentTheme(), "No demo configured")
-	// A doc page is its own doc, so the Docs toggle leaves it alone. This
-	// keys on the page, not its catalog group: groups move (#1025).
-	case app.ShowDocs && !isDocPage(entry.ID):
-		style := gui.DefaultMarkdownStyle()
-		style.CodeHighlighter = highlight.Default()
-		content = w.Markdown(gui.MarkdownCfg{
-			ID:      "doc-" + entry.ID,
-			Source:  componentDoc(entry.ID),
-			Padding: gui.NoPadding,
-			Style:   style,
-		})
-	default:
+	} else {
 		content = componentDemo(w, entry.ID)
 	}
+
+	// A doc page is its own doc, so it gets no second copy. This keys
+	// on the page, not its catalog group: groups move (#1025).
+	doc := ""
+	if !isDocPage(entry.ID) {
+		doc = componentDoc(entry.ID)
+	}
+
+	body := []gui.View{
+		viewTitleBar(entry, doc != ""),
+		gui.Text(gui.TextCfg{Text: entry.Summary, TextStyle: gui.CurrentTheme().TextStyleBody, Mode: gui.TextModeWrap}),
+		content,
+	}
+	// The docs go under the demo, not behind a toggle: a reader who
+	// scrolls finds them, and the demo stays in view while they read.
+	if doc != "" {
+		body = append(body, docsSection(w, entry.ID, doc))
+	}
+	body = append(body, line(), relatedExamplesFooter(entry.ID))
 
 	return gui.Column(gui.ContainerCfg{
 		ID:         scrollDetail,
@@ -85,12 +92,30 @@ func detailPanel(w *gui.Window) gui.View {
 		Padding:    detailPanelPadding(),
 
 		Spacing: gui.SpacingPx(gui.CurrentTheme().SpacingLarge),
+		Content: body,
+	})
+}
+
+// docsSection is the "Documentation" heading and the page's widget
+// doc. Its ID is the target of the title bar's docs link.
+func docsSection(w *gui.Window, id, doc string) gui.View {
+	style := gui.DefaultMarkdownStyle()
+	style.CodeHighlighter = highlight.Default()
+	return gui.Column(gui.ContainerCfg{
+		ID:         docsSectionID,
+		Sizing:     gui.FillFit,
+		Padding:    gui.NoPadding,
+		SizeBorder: gui.NoBorder,
+		Spacing:    gui.SpacingMedium,
 		Content: []gui.View{
-			viewTitleBar(entry, app.ShowDocs),
-			gui.Text(gui.TextCfg{Text: entry.Summary, TextStyle: gui.CurrentTheme().TextStyleBody, Mode: gui.TextModeWrap}),
-			content,
 			line(),
-			relatedExamplesFooter(entry.ID),
+			gui.Text(gui.TextCfg{Text: "Documentation", TextStyle: gui.CurrentTheme().TextStyleTitle}),
+			w.Markdown(gui.MarkdownCfg{
+				ID:      "doc-" + id,
+				Source:  doc,
+				Padding: gui.NoPadding,
+				Style:   style,
+			}),
 		},
 	})
 }
@@ -101,18 +126,18 @@ func detailPanelPadding() gui.Padding {
 	return base
 }
 
-func viewTitleBar(entry DemoEntry, showDocs bool) gui.View {
+func viewTitleBar(entry DemoEntry, hasDocs bool) gui.View {
 	titleContent := []gui.View{
 		gui.Text(gui.TextCfg{Text: entry.Label, TextStyle: gui.CurrentTheme().TextStyleDisplay}),
 	}
-	if entry.ID != "welcome" {
+	if hasDocs {
 		titleContent = append(titleContent,
 			gui.Row(gui.ContainerCfg{
 				Sizing:     gui.FillFit,
 				Padding:    gui.NoPadding,
 				SizeBorder: gui.NoBorder,
 			}),
-			docButton(showDocs),
+			docsLink(),
 		)
 	}
 	return gui.Column(gui.ContainerCfg{
@@ -133,25 +158,67 @@ func viewTitleBar(entry DemoEntry, showDocs bool) gui.View {
 	})
 }
 
-func docButton(showDocs bool) gui.View {
-	color := gui.ColorTransparent
-	if showDocs {
-		color = gui.CurrentTheme().ColorActive
-	}
+// docsLink is a labeled button that scrolls to the docs section. The
+// docs sit below the demo, so on a tall demo the reader cannot see
+// them; the label says they exist without a scroll.
+func docsLink() gui.View {
 	return gui.Button(gui.ButtonCfg{
-		ID:         "btn-doc-toggle",
-		A11YCfg:    gui.A11YCfg{A11YLabel: "Toggle docs"},
-		Color:      color,
+		ID:         docsLinkID,
+		A11YCfg:    gui.A11YCfg{A11YLabel: "Scroll to documentation"},
+		Color:      gui.ColorTransparent,
 		SizeBorder: gui.NoBorder,
 		Padding:    gui.NewPadding(gui.PadXSmall, gui.PadSmall, gui.PadXSmall, gui.PadSmall),
 		Radius:     gui.RadiusSmall,
 		Content: []gui.View{
-			gui.Text(gui.TextCfg{Text: gui.IconBook, TextStyle: gui.CurrentTheme().TextStyleIconSmall}),
+			gui.Row(gui.ContainerCfg{
+				Padding:    gui.NoPadding,
+				SizeBorder: gui.NoBorder,
+				Spacing:    gui.SpacingSmall,
+				VAlign:     gui.VAlignMiddle,
+				Content: []gui.View{
+					gui.Text(gui.TextCfg{Text: gui.IconBook, TextStyle: gui.CurrentTheme().TextStyleIconSmall}),
+					gui.Text(gui.TextCfg{Text: "Docs", TextStyle: gui.CurrentTheme().TextStyleBodySmall}),
+				},
+			}),
 		},
 		OnClick: func(ctx gui.EventCtx) {
-			appState(ctx.Window).ShowDocs = !appState(ctx.Window).ShowDocs
+			scrollToDocs(ctx)
+			ctx.Consume()
 		},
 	})
+}
+
+// scrollToDocs eases the detail panel so the docs section's top meets
+// the top of the panel's content. Positions come from the last
+// arranged frame, reached through the clicked button's parents; the
+// window has no exported "scroll this view into place" call.
+func scrollToDocs(ctx gui.EventCtx) {
+	if ctx.Layout == nil {
+		return
+	}
+	root := ctx.Layout
+	for root.Parent != nil {
+		root = root.Parent
+	}
+	view, ok := root.FindByID(scrollDetail)
+	if !ok {
+		return
+	}
+	docs, ok := root.FindByID(gui.ScopeID(scrollDetail, docsSectionID))
+	if !ok {
+		return
+	}
+	viewTop := view.Shape.Y + view.Shape.Padding.Top
+	current := ctx.Window.ScrollVerticalOffset(scrollDetail)
+	ctx.Window.ScrollVerticalToSmooth(scrollDetail,
+		docsScrollOffset(viewTop, docs.Shape.Y, current))
+}
+
+// docsScrollOffset is the scroll offset (<= 0, as ScrollVerticalTo
+// takes it) that puts a view now drawn at docsY at viewTop. The view's
+// unscrolled position is docsY - current; scroll by that, less viewTop.
+func docsScrollOffset(viewTop, docsY, current float32) float32 {
+	return viewTop - docsY + current
 }
 
 var componentDemos = map[string]func(*gui.Window) gui.View{
