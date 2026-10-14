@@ -22,11 +22,11 @@ and this project adheres to
   the view without a rebuild. A clip inside a turned or skewed container stays
   exact. `BackfaceHidden` makes the container draw nothing while its back faces
   the viewer. The soft backend draws the transform exactly, perspective
-  included. The web backend has no perspective, so it draws a view with the flat
-  transform that matches it at the center of the view. For now, three gaps
-  remain. The pointer still hits the box where it would be without the
-  transform, and a hidden back face still takes it. PDF output draws without the
-  transform. Later phases of #1019 close these gaps.
+  included. The web backend and PDF output have no perspective, so they draw a
+  view with the flat transform that matches it at the center of the view. For
+  now, two gaps remain. The pointer still hits the box where it would be without
+  the transform, and a hidden back face still takes it. Later phases of #1019
+  close these gaps.
 
 - **Springs, tweens and keyframes can ask for render-only frames (#1016).**
   `SpringAnimation`, `TweenAnimation` and `KeyframeAnimation` have a new
@@ -82,10 +82,12 @@ and this project adheres to
   which are reused. A screen-reader activation after the next sync called a
   released function. Each element now keeps one callback, attached while the
   node is actionable.
-- **On the web backend, a clip inside a turned view no longer undoes the turn
-  (#1019).** A `RotatedBox` saved its turn on the canvas state stack, and the
-  next clip change restored the stack, so the content after it drew unturned.
-  The backend now keeps the turn itself and sets it again after each clip.
+- **On the web backend and in PDF output, a clip inside a turned view no longer
+  undoes the turn (#1019).** A `RotatedBox` saved its turn on the canvas or PDF
+  state stack, and the next clip change restored that stack, so the content
+  after it drew unturned. In PDF, a clip change inside a rounded clip also ended
+  the rounded clip. Both now keep their turns and clips themselves and set them
+  again after each change.
 
 - **A driver that refuses vsync is reported (#1018).** The GL backends on
   Windows and X11 asked for swap interval 1 and ignored the answer. Now a

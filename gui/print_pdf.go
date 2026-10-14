@@ -112,9 +112,8 @@ func renderToPDF(renderers []RenderCmd, job PrintJob,
 		renderHeaderFooter(pdf, tr, job.Footer, job, pageW, m, false)
 	}
 
-	var clipStack []clipEntry
-	var stencilClipDepth int
-	var rotateDepth int
+	_, pageHMM := pdf.GetPageSize()
+	gs := newPDFGState(pdf, &ctx, pdf.GetConversionRatio(), pageHMM)
 
 	for _, cmd := range renderers {
 		switch cmd.Kind {
@@ -131,7 +130,7 @@ func renderToPDF(renderers []RenderCmd, job PrintJob,
 		case RenderImage:
 			pdfRenderImage(&ctx, cmd)
 		case RenderClip:
-			pdfRenderClip(&ctx, cmd, &clipStack)
+			gs.setClip(&cmd)
 		case RenderGradient:
 			pdfRenderGradient(&ctx, cmd)
 		case RenderGradientBorder:
@@ -143,21 +142,16 @@ func renderToPDF(renderers []RenderCmd, job PrintJob,
 		case RenderTextPath:
 			pdfRenderTextPath(&ctx, cmd)
 		case RenderStencilBegin:
-			pdfRenderStencilBegin(&ctx, cmd, &stencilClipDepth)
+			// A rounded-rect stencil is drawn as a rect clip.
+			gs.beginStencil(&cmd)
 		case RenderStencilEnd:
-			pdfRenderStencilEnd(&ctx, &stencilClipDepth)
+			gs.endStencil()
 		case RenderRotateBegin:
-			pdf.TransformBegin()
-			// Screen turns are clockwise (RotatedBoxCfg);
-			// fpdf measures counter-clockwise.
-			pdf.TransformRotate(-float64(cmd.RotAngle),
-				ctx.px(cmd.RotCX), ctx.py(cmd.RotCY))
-			rotateDepth++
-		case RenderRotateEnd:
-			if rotateDepth > 0 {
-				rotateDepth--
-				pdf.TransformEnd()
-			}
+			gs.beginRotate(&cmd)
+		case RenderTransformBegin:
+			gs.beginTransform(&cmd)
+		case RenderRotateEnd, RenderTransformEnd:
+			gs.pop()
 		case RenderNone:
 			// Marker only.
 			continue
@@ -172,16 +166,8 @@ func renderToPDF(renderers []RenderCmd, job PrintJob,
 		}
 	}
 
-	// Close any remaining clip regions.
-	for range stencilClipDepth {
-		pdf.ClipEnd()
-	}
-	for range clipStack {
-		pdf.ClipEnd()
-	}
-	for range rotateDepth {
-		pdf.TransformEnd()
-	}
+	// Close any remaining clips and transforms.
+	gs.unwind()
 
 	if pdf.Err() {
 		return fmt.Errorf("pdf generation: %w", pdf.Error())
@@ -347,23 +333,6 @@ func pdfRenderMemImage(ctx *pdfCtx, cmd RenderCmd) {
 	opts := fpdf.ImageOptions{ImageType: "PNG"}
 	ctx.pdf.ImageOptions(cmd.Resource, ctx.px(cmd.X), ctx.py(cmd.Y),
 		ctx.pw(cmd.W), ctx.ph(cmd.H), false, opts, 0, "")
-}
-
-type clipEntry struct{}
-
-func pdfRenderClip(ctx *pdfCtx, cmd RenderCmd,
-	clipStack *[]clipEntry) {
-	// Each RenderClip replaces the current clip (not
-	// nested). Close previous before opening a new one.
-	if len(*clipStack) > 0 {
-		ctx.pdf.ClipEnd()
-		*clipStack = (*clipStack)[:len(*clipStack)-1]
-	}
-	if cmd.W > 0 && cmd.H > 0 {
-		ctx.pdf.ClipRect(ctx.px(cmd.X), ctx.py(cmd.Y),
-			ctx.pw(cmd.W), ctx.ph(cmd.H), false)
-		*clipStack = append(*clipStack, clipEntry{})
-	}
 }
 
 func pdfRenderGradient(ctx *pdfCtx, cmd RenderCmd) {
@@ -537,23 +506,6 @@ func pdfRenderLayout(ctx *pdfCtx, cmd RenderCmd) {
 		if itemAlpha {
 			resetAlpha(ctx.pdf)
 		}
-	}
-}
-
-func pdfRenderStencilBegin(ctx *pdfCtx, cmd RenderCmd,
-	depth *int) {
-	// Approximate rounded-rect stencil with rect clip.
-	if cmd.W > 0 && cmd.H > 0 {
-		ctx.pdf.ClipRect(ctx.px(cmd.X), ctx.py(cmd.Y),
-			ctx.pw(cmd.W), ctx.ph(cmd.H), false)
-		*depth++
-	}
-}
-
-func pdfRenderStencilEnd(ctx *pdfCtx, depth *int) {
-	if *depth > 0 {
-		ctx.pdf.ClipEnd()
-		*depth--
 	}
 }
 

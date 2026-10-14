@@ -88,10 +88,13 @@ that lifts on hover, a tilted badge and tumbling confetti cannot be built.
   stand-in, so the rect would cut off the far side of the view. There the rect
   is mapped back into the view's frame through the true matrix and drawn under
   the stand-in. Each stencil is drawn with the transform it opened under.
-- **Not yet transformed.** PDF draws the subtree without the transform, and its
-  clips inside a transform cut in the wrong place. Its clips and rotations share
-  the fpdf `q`/`Q` stack, which has the same restore problem web had. A
-  `ColorFilter` layer inside a transform is not checked.
+- **PDF.** PDF has only affine transforms too, and draws a view as web does
+  (`pdfAffineAt`). fpdf ends every clip and transform with a `Q`, which restores
+  the newest `q` of either kind, so `pdfGState` keeps the clips and transforms
+  in Go. On each change it ends all its `q`s and opens them again: each clip
+  under its own matrix, then the matrix the content draws with. A rounded
+  stencil is still drawn as a rect clip.
+- **Not yet checked.** A `ColorFilter` layer inside a transform.
 - **Input.** `rotateMouseInverse` becomes a general inverse mapping. Every
   pointer walk keeps its map/recurse/restore shape.
 - **Bounds.** `LocalToWindow` and `WindowToLocal` map points. The IME rect, a11y
@@ -107,7 +110,7 @@ that lifts on hover, a tilted badge and tumbling confetti cannot be built.
 | 3     | Pointer input through the inverse, in every walk                               | pending |
 | 4     | Backface culling for drawing and input                                         | pending |
 | 5     | `LocalToWindow` / `WindowToLocal`, IME, a11y, tooltips, drag, float anchors    | pending |
-| 6     | Soft backend (homography blit) and web (Canvas2D `setTransform`)               | landed  |
+| 6     | Soft backend (homography blit), web (Canvas2D `setTransform`) and PDF          | landed  |
 | 7     | QuarterTurns input goes through the general mapping; special cases are deleted | pending |
 | 8     | `examples/transforms/`, README, cheat-sheet snippet                            | pending |
 
