@@ -22,12 +22,15 @@ import (
 // Meshes are uploaded once, keyed like the Path2D cache. Each frame Go
 // writes one record per draw into a shared Float32Array and calls the
 // JS draw loop once per batch.
+//
+// A frame takes two passes (prepassSvgGL). The first renders every
+// batch into the WebGL canvas, each at its own place, and copies the
+// canvas once into a 2D staging canvas; the second draws the frame and
+// composites each batch from the copy. Firefox snapshots a WebGL canvas
+// for every drawImage from it, which made a frame of many small batches
+// slow there; from a 2D canvas, drawImage is cheap.
 
 const glRecStride = 17 // must match recStride in gogui.js
-
-// svgGLMinTrisDefault is minTris unless the page sets
-// goGuiSvgGLMinTris (the bench does, to tune it).
-const svgGLMinTrisDefault = 2000
 
 // glBatchClip is the rect clip a queued command was drawn under.
 type glBatchClip struct {
@@ -43,11 +46,29 @@ type glMesh struct {
 	minX, minY, maxX, maxY float32
 }
 
+// glPrepared is a batch as the pre-pass placed it.
+type glPrepared struct {
+	n int // records
+	// Device-pixel rect on the 2D canvas; w == 0: nothing to draw.
+	x0, y0, w, h int
+	// The batch is rendered at (x0+ox, y0+oy) of the WebGL canvas.
+	ox, oy int
+	// fill: drawn with Canvas2D (an off-buffer batch under a transform).
+	// direct: rendered and composited on its own in the second pass,
+	// having found no free place in the first.
+	fill, direct bool
+}
+
 type glSvg struct {
-	api    js.Value // goGuiSvgGL
-	state  js.Value
-	canvas js.Value
-	w, h   int // drawing buffer size in device pixels
+	api     js.Value // goGuiSvgGL
+	state   js.Value
+	canvas  js.Value
+	nullCtx js.Value // goGuiSvgGL.nullContext
+	w, h    int      // 2D canvas size in device pixels
+	// The drawing buffer is w × h, or w × 2h with overflow: a batch
+	// whose own place another batch took this frame is rendered in the
+	// lower half. It grows when a frame first needs it.
+	overflow, wantOverflow bool
 
 	meshes map[meshKey]*glMesh
 	vars   meshVariants // mesh_cache.go
@@ -72,30 +93,32 @@ type glSvg struct {
 
 	lost bool
 
-	// composites counts drawImage calls this frame (bench_hook.go).
-	composites int
+	// composites counts drawImage calls this frame, filled the batches
+	// drawn with Canvas2D, and direct those composited straight from
+	// the WebGL canvas (bench_hook.go).
+	composites, filled, direct int
 
-	// minTris is the batch size, in triangles, from which a batch is
-	// drawn with WebGL; a lighter one is filled with Canvas2D instead.
-	// Firefox pays a large cost per composite outside the measured
-	// calls (the WebGL canvas is snapshotted for drawImage), so a
-	// light batch costs more composited than filled directly.
-	minTris int
-	// The current batch's commands, the rect clip each was queued
-	// under, and its triangle count, for the Canvas2D path.
-	cmds      []*gui.RenderCmd
-	clips     []glBatchClip
-	batchTris int
+	// The current batch's commands and the rect clip each was queued
+	// under, for the Canvas2D fallback.
+	cmds  []*gui.RenderCmd
+	clips []glBatchClip
 	// batchXf: the batch was queued under a view transform or
 	// rotation. Its clips were applied eagerly (svgGLLazyClips), so it
 	// has no scissors and composites under the canvas clip.
 	batchXf bool
-	// batchGradient: a mesh in the batch interpolates vertex colors.
-	// Canvas2D would draw it flat, so the batch stays on WebGL however
-	// light it is.
-	batchGradient bool
-	// filled counts light batches drawn with Canvas2D (bench_hook.go).
-	filled int
+
+	// preparing: the pre-pass is running. prepared holds its batches in
+	// order, and next the one the drawing pass composites next.
+	preparing bool
+	prepared  []glPrepared
+	next      int
+	// placed holds the device-pixel rects (x0, y0, x1, y1) batches took
+	// at their own places, and shelfX, shelfY, shelfH the shelf packing
+	// cursor of the overflow half.
+	placed                 [][4]int
+	shelfX, shelfY, shelfH int
+	// The WebGL canvas area the pre-pass drew, which is staged.
+	usedX0, usedY0, usedX1, usedY1 int
 }
 
 // initSvgGL sets up the WebGL2 path. It reports false when WebGL2 or
@@ -117,10 +140,11 @@ func (b *Backend) initSvgGL() (ok bool) {
 		return false
 	}
 	b.gl = glSvg{
-		api:    api,
-		state:  state,
-		canvas: canvas,
-		meshes: map[meshKey]*glMesh{},
+		api:     api,
+		state:   state,
+		canvas:  canvas,
+		nullCtx: api.Get("nullContext"),
+		meshes:  map[meshKey]*glMesh{},
 	}
 	lostFn := js.FuncOf(func(_ js.Value, args []js.Value) any {
 		// preventDefault asks the browser to restore the context
@@ -167,20 +191,34 @@ func (b *Backend) onSvgGLRestored() {
 	g.api.Call("restore", g.state)
 	b.resetGLMeshes()
 	// The canvas keeps its width and height, and the restored drawing
-	// buffer takes them, so g.w and g.h still hold.
+	// buffer takes them, so g.w, g.h and g.overflow still hold.
 	g.lost = false
 	b.requestRedraw()
 }
 
-// beginFrameSvgGL matches the drawing buffer to the 2D canvas.
+// beginFrameSvgGL matches the drawing buffer to the 2D canvas, with
+// the overflow half once a frame has asked for it. A new canvas size
+// drops the overflow half until it is needed again.
 func (b *Backend) beginFrameSvgGL() {
 	g := &b.gl
 	w := b.canvas.Get("width").Int()
 	h := b.canvas.Get("height").Int()
-	if w != g.w || h != g.h {
-		g.api.Call("resize", g.state, w, h)
-		g.w, g.h = w, h
+	resized := w != g.w || h != g.h
+	if resized {
+		g.wantOverflow = false
 	}
+	if !resized && g.overflow == g.wantOverflow {
+		return
+	}
+	g.w, g.h = w, h
+	bh := h
+	if g.wantOverflow {
+		bh = 2 * h
+	}
+	ok := g.api.Call("resize", g.state, w, bh).Truthy()
+	// A browser may give a smaller buffer than asked, which would cut
+	// the overflow half; such batches go direct instead.
+	g.overflow = g.wantOverflow && ok
 }
 
 // endFrameSvgGL evicts meshes not drawn for pathCacheIdleFrames.
@@ -312,10 +350,6 @@ func (b *Backend) queueSvgGL(r *gui.RenderCmd) {
 	rc, rcOK := b.stackRectClip()
 	g.cmds = append(g.cmds, r)
 	g.clips = append(g.clips, glBatchClip{rc, rcOK})
-	g.batchTris += len(r.Triangles) / 6
-	if len(r.VertexColors) == len(r.Triangles)/2 && !r.VertexColorsFlat {
-		g.batchGradient = true
-	}
 	if len(g.recs) == 0 {
 		g.bMinX, g.bMinY, g.bMaxX, g.bMaxY = minX, minY, maxX, maxY
 	} else {
@@ -337,7 +371,7 @@ func (b *Backend) queueSvgGL(r *gui.RenderCmd) {
 		alpha, useV, sx, sy, sw, sh)
 }
 
-// fillSvgBatch draws a light batch with Canvas2D, each command under
+// fillSvgBatch draws the batch with Canvas2D, each command under
 // the rect clip it was queued under (rect clips are applied lazily, see
 // drawClip). A clip change replays the 2D state, so consecutive
 // commands under the same clip share one replay.
@@ -384,9 +418,109 @@ func (b *Backend) stackRectClip() (clipRegion, bool) {
 	return clipRegion{}, false
 }
 
-// flushSvgGL draws the queued batch and composites it. Called before
-// any non-SVG command and at the end of the frame, so the batch draws
-// under the clip and transform it was queued under.
+// prepassSvgGL is the first pass of a frame in WebGL mode. It runs the
+// frame's clip, transform, filter and SVG commands through the same
+// batching as the drawing pass, with the 2D context swapped for a
+// stand-in that ignores every call, so the batches come out the same.
+// Each batch is rendered into the WebGL canvas where placeSvgGL puts
+// it, and the drawn area is copied once into the staging canvas. The
+// drawing pass then composites each batch from the copy.
+func (b *Backend) prepassSvgGL(cmds []gui.RenderCmd) {
+	g := &b.gl
+	g.prepared = g.prepared[:0]
+	g.next = 0
+	g.placed = g.placed[:0]
+	g.shelfX, g.shelfY, g.shelfH = 0, 0, 0
+	g.usedX0, g.usedY0, g.usedX1, g.usedY1 = math.MaxInt, math.MaxInt, 0, 0
+	if g.lost {
+		return
+	}
+	ctx := b.ctx2d
+	b.ctx2d = g.nullCtx
+	g.preparing = true
+	for i := range cmds {
+		r := &cmds[i]
+		b.beforeCmdSvgGL(r)
+		switch r.Kind {
+		case gui.RenderClip:
+			b.drawClip(r)
+		case gui.RenderSvg:
+			b.drawSvg(r)
+		case gui.RenderFilterBegin:
+			b.beginFilter(r)
+		case gui.RenderFilterEnd:
+			b.endFilter()
+		case gui.RenderStencilBegin:
+			b.beginStencilClip(r)
+		case gui.RenderStencilEnd:
+			b.endStencilClip()
+		case gui.RenderRotateBegin:
+			b.beginRotation(r)
+		case gui.RenderRotateEnd:
+			b.endRotation()
+		case gui.RenderTransformBegin:
+			b.beginTransform(r)
+		case gui.RenderTransformEnd:
+			b.endTransform()
+		default:
+		}
+	}
+	b.settleSvgGL()
+	g.preparing = false
+	b.ctx2d = ctx
+	// Back to the frame's start, as renderFrame left it. The saves were
+	// made on the stand-in, so none is restored.
+	b.resetTransforms()
+	b.stateDepth = 0
+	b.clipStack = b.clipStack[:0]
+	b.brackets = b.brackets[:0]
+	b.clipDirty = false
+	if g.usedX1 > g.usedX0 {
+		g.api.Call("stage", g.state, g.usedX0, g.usedY0,
+			g.usedX1-g.usedX0, g.usedY1-g.usedY0)
+	}
+}
+
+// placeSvgGL picks where in the WebGL canvas the pre-pass renders p: at
+// its own place unless a batch took part of it, else on the next shelf
+// of the overflow half, else nowhere (direct).
+func (g *glSvg) placeSvgGL(p *glPrepared) {
+	r := [4]int{p.x0, p.y0, p.x0 + p.w, p.y0 + p.h}
+	free := true
+	for _, q := range g.placed {
+		if r[0] < q[2] && q[0] < r[2] && r[1] < q[3] && q[1] < r[3] {
+			free = false
+			break
+		}
+	}
+	switch {
+	case free:
+		g.placed = append(g.placed, r)
+	case !g.overflow:
+		g.wantOverflow = true
+		p.direct = true
+		return
+	default:
+		if g.shelfX+p.w > g.w {
+			g.shelfX, g.shelfY, g.shelfH = 0, g.shelfY+g.shelfH, 0
+		}
+		if g.shelfY+p.h > g.h {
+			p.direct = true
+			return
+		}
+		p.ox, p.oy = g.shelfX-p.x0, g.h+g.shelfY-p.y0
+		g.shelfX += p.w
+		g.shelfH = max(g.shelfH, p.h)
+	}
+	g.usedX0, g.usedY0 = min(g.usedX0, p.x0+p.ox), min(g.usedY0, p.y0+p.oy)
+	g.usedX1 = max(g.usedX1, p.x0+p.ox+p.w)
+	g.usedY1 = max(g.usedY1, p.y0+p.oy+p.h)
+}
+
+// flushSvgGL ends the queued batch. Called before any non-SVG command
+// and at the end of the frame, so the batch draws under the clip and
+// transform it was queued under. The pre-pass places and renders it;
+// the drawing pass composites it.
 func (b *Backend) flushSvgGL() {
 	g := &b.gl
 	n := len(g.recs) / glRecStride
@@ -398,38 +532,61 @@ func (b *Backend) flushSvgGL() {
 		clear(g.cmds) // drop the frame's command pointers
 		g.cmds = g.cmds[:0]
 		g.clips = g.clips[:0]
-		g.batchTris = 0
 		g.batchXf = false
-		g.batchGradient = false
 	}()
-	// A light batch, or one queued before the context was lost this
-	// frame, is filled with Canvas2D rather than composited.
-	if g.lost || (g.batchTris < g.minTris && !g.batchGradient) {
-		b.fillSvgBatch()
+	// A batch queued before the context was lost this frame is filled
+	// with Canvas2D.
+	if g.lost {
+		if !g.preparing {
+			b.fillSvgBatch()
+		}
 		return
 	}
+	p := b.svgGLBatch(n)
+	if g.preparing {
+		if p.w > 0 && !p.fill {
+			g.placeSvgGL(&p)
+			if !p.direct {
+				b.renderSvgGL(&p)
+			}
+		}
+		g.prepared = append(g.prepared, p)
+		return
+	}
+	b.compositeSvgGL(&p)
+}
 
+// svgGLBatch returns the queued batch's device-pixel rect, or marks it
+// for Canvas2D.
+func (b *Backend) svgGLBatch(n int) glPrepared {
+	g := &b.gl
+	p := glPrepared{n: n}
 	s := b.dpiScale
 	// Under a transform the batch is drawn in the view's frame, which
-	// can lie outside the drawing buffer (the window's size), even
-	// wholly, though the transform maps it on screen. Fill such a
-	// batch with Canvas2D rather than cut or drop it.
+	// can lie outside the 2D canvas's area, even wholly, though the
+	// transform maps it on screen. Fill such a batch with Canvas2D
+	// rather than cut or drop it.
 	if g.batchXf && (g.bMinX*s < 0 || g.bMinY*s < 0 ||
 		g.bMaxX*s > float32(g.w) || g.bMaxY*s > float32(g.h)) {
-		b.fillSvgBatch()
-		return
+		p.fill = true
+		return p
 	}
-
 	// Device-pixel rect, padded a pixel for antialiasing and clamped
-	// to the drawing buffer.
+	// to the 2D canvas.
 	x0 := max(0, int(math.Floor(float64(g.bMinX*s)))-1)
 	y0 := max(0, int(math.Floor(float64(g.bMinY*s)))-1)
 	x1 := min(g.w, int(math.Ceil(float64(g.bMaxX*s)))+1)
 	y1 := min(g.h, int(math.Ceil(float64(g.bMaxY*s)))+1)
-	if x1 <= x0 || y1 <= y0 {
-		return
+	if x1 > x0 && y1 > y0 {
+		p.x0, p.y0, p.w, p.h = x0, y0, x1-x0, y1-y0
 	}
+	return p
+}
 
+// renderSvgGL renders the queued records into p's place in the WebGL
+// canvas.
+func (b *Backend) renderSvgGL(p *glPrepared) {
+	g := &b.gl
 	if len(g.recs) > g.recsCap {
 		g.recsCap = max(len(g.recs), 2*g.recsCap)
 		buf := js.Global().Get("ArrayBuffer").New(g.recsCap * 4)
@@ -438,16 +595,50 @@ func (b *Backend) flushSvgGL() {
 	}
 	js.CopyBytesToJS(g.recsU8,
 		unsafe.Slice((*byte)(unsafe.Pointer(&g.recs[0])), len(g.recs)*4))
-	w, h := x1-x0, y1-y0
-	g.api.Call("draw", g.state, g.recsF32, n, float64(s), x0, y0, w, h)
-	g.composites++
+	g.api.Call("draw", g.state, g.recsF32, p.n, float64(b.dpiScale),
+		p.x0, p.y0, p.w, p.h, p.ox, p.oy)
+}
+
+// compositeSvgGL draws batch p onto the 2D canvas in the drawing pass:
+// from the staging canvas where the pre-pass rendered it, or, for a
+// batch the pre-pass did not render or rendered differently, rendered
+// now and composited straight from the WebGL canvas.
+func (b *Backend) compositeSvgGL(p *glPrepared) {
+	g := &b.gl
+	var q glPrepared
+	if g.next < len(g.prepared) {
+		q = g.prepared[g.next]
+		g.next++
+	} else {
+		q.direct = true
+	}
+	if p.fill {
+		b.fillSvgBatch()
+		return
+	}
+	if p.w == 0 {
+		return
+	}
+	direct := q.direct || q.fill || q.n != p.n || q.x0 != p.x0 ||
+		q.y0 != p.y0 || q.w != p.w || q.h != p.h
+	if direct {
+		b.renderSvgGL(p)
+		g.direct++
+	}
 	// Each draw is already scissored to its rect clip, and the batch
 	// spans several; only the other clips may apply to the composite.
 	// The full stack is restored before the next non-SVG command.
 	if _, ok := b.stackRectClip(); ok && !g.batchXf {
 		b.rebuildState(nil, true)
 	}
-	g.api.Call("composite", g.state, b.ctx2d, float64(s), x0, y0, w, h)
+	s := float64(b.dpiScale)
+	if direct {
+		g.api.Call("compositeDirect", g.state, b.ctx2d, s, p.x0, p.y0, p.w, p.h)
+	} else {
+		g.api.Call("composite", g.state, b.ctx2d, s,
+			q.x0+q.ox, q.y0+q.oy, p.w, p.h, p.x0, p.y0)
+	}
+	g.composites++
 }
 
 // beforeCmdSvgGL runs before each render command. A batch draws under

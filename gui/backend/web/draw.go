@@ -52,6 +52,7 @@ func (b *Backend) renderersDraw(w *gui.Window) {
 // drawCmds draws one frame's render commands.
 func (b *Backend) drawCmds(cmds []gui.RenderCmd) {
 	if b.svgMode == svgModeWebGL {
+		b.prepassSvgGL(cmds)
 		defer b.settleSvgGL()
 	}
 	for i := range cmds {

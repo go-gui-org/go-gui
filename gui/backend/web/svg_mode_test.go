@@ -88,10 +88,8 @@ func TestInitSvgModeSelection(t *testing.T) {
 			if got := js.Global().Get(svgModeGlobal).String(); got != tc.want.String() {
 				t.Errorf("%s = %q, want %q", svgModeGlobal, got, tc.want)
 			}
-			if tc.want == svgModeWebGL && b.gl.minTris != svgGLMinTrisDefault {
-				t.Errorf("minTris = %d, want %d", b.gl.minTris, svgGLMinTrisDefault)
-			}
-			// Light WebGL batches need the Path2D cache when it exists.
+			// WebGL batches that fall back to Canvas2D use the Path2D
+			// cache when it exists.
 			if tc.path2d && tc.want != svgModeCanvas2D && b.paths.entries == nil {
 				t.Error("Path2D cache not set up")
 			}

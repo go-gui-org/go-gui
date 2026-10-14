@@ -31,10 +31,22 @@ text, images, clips, filters and transforms are unchanged.
   lanes; `hash/maphash` takes a software fallback on wasm that was a third of
   the frame.
 - **Batches.** Consecutive `RenderSvg` commands render in one GL pass into an
-  MSAA canvas, then one `drawImage` composites the batch. Go writes one record
+  MSAA canvas, and one `drawImage` composites the batch. Go writes one record
   per draw into a shared `Float32Array` and calls the JS loop (`goGuiSvgGL` in
-  `gogui.js`) once per batch. Any other command flushes the batch first, so a
-  batch draws under the 2D state it was queued under.
+  `gogui.js`) once per batch. Any other command ends the batch, so a batch draws
+  under the 2D state it was queued under.
+- **Two passes, one staging copy** (`prepassSvgGL`). Firefox snapshots a WebGL
+  canvas for every `drawImage` from it, even unchanged, so a frame of many small
+  batches paid one snapshot each. A frame now runs twice. The pre-pass runs the
+  clip, transform, filter and SVG commands through the same batching with the 2D
+  context swapped for a no-op stand-in (`goGuiSvgGL.nullContext`), renders every
+  batch into the WebGL canvas, and copies the drawn area once into a 2D staging
+  canvas. The drawing pass composites each batch from the copy; `drawImage` from
+  a 2D canvas is cheap. A batch renders at its own place unless an earlier batch
+  of the frame took part of it; then it goes on a shelf in an overflow half
+  below, which the drawing buffer grows into the first time a frame needs it. A
+  batch with no place, or one the drawing pass sees differently from the
+  pre-pass, is rendered and composited on its own.
 - **Rect clips.** Each SVG sits between two `Clip` commands, so flushing on
   every clip would give one composite per SVG. With no view transform open, a
   rect clip is applied lazily: it goes into the draw's record as a GL scissor,
@@ -49,13 +61,6 @@ text, images, clips, filters and transforms are unchanged.
   flushes the batch, and the batch draws without scissors and composites under
   the canvas clip and transform. A batch whose bounds in the view's frame leave
   the drawing buffer is filled with Canvas2D instead.
-- **Light batches.** A batch under 2,000 triangles is filled with Canvas2D, from
-  a cached `Path2D` per same-color run (`draw_path2d.go`). Firefox pays a cost
-  for each composite after the frame callback returns (the WebGL canvas is
-  snapshotted for `drawImage`); without the threshold a light, text-heavy page
-  ran at a third of its Canvas2D frame rate there. A batch holding a gradient
-  mesh (vertex colors not marked `VertexColorsFlat`) stays on WebGL however
-  light: Canvas2D draws it flat, so its look would depend on its neighbors.
 - **Context loss.** `webglcontextlost` (with `preventDefault`) switches SVGs to
   Canvas2D and forgets the uploaded meshes; `webglcontextrestored` rebuilds the
   program and resumes. A batch queued when the context goes is filled instead.
@@ -75,30 +80,32 @@ Firefox on Windows 11 (Intel Iris Xe), Safari on macOS (Apple M3 Pro):
 | Browser     | Canvas2D | Path2D cache | WebGL2 |
 | ----------- | -------- | ------------ | ------ |
 | Chrome 150  | 3.4      | 17.3         | 59.6   |
-| Firefox 157 | 9.2      | 9.7          | 42     |
+| Firefox 157 | 9.2      | 9.7          | 59.6   |
 | Safari 26.6 | 13.6     | 16.4         | 59.7   |
 
-A light page (icons) runs at the same rate in Canvas2D and WebGL2 in all three.
-Firefox's remaining gap is the per-composite cost.
+Firefox with the staging copy, against one composite per batch from the WebGL
+canvas: mixed grid 42 → 59.6, gradient logos 15.7 → 51, icons 54.8 (then on
+Canvas2D under a light-batch threshold) → 59.5. Chrome stays at 60 on the mixed
+grid and the logos. Safari was measured before the staging copy.
 
 ## Verification
 
 - `draw_webgl_test.go` runs the draw loop against the shared fake 2D context
   (`draw_state_test.go`) and a fake `goGuiSvgGL`: batching across clips, the
-  end-of-frame clip, brackets and view transforms, light batches (gradients stay
-  on WebGL), the mesh cache (color variants coexist, the variant cap, id reuse;
-  the fake flags a draw of a deleted id), context loss and restore.
-  `svg_mode_test.go` covers the selection, `mesh_hash_test.go` that any single
-  changed float or color moves the hash.
+  end-of-frame clip, brackets and view transforms, one staging copy per frame,
+  overflow placement and shelf packing, the direct fallback, the mesh cache
+  (color variants coexist, the variant cap, id reuse; the fake flags a draw of a
+  deleted id), context loss and restore. `svg_mode_test.go` covers the
+  selection, `mesh_hash_test.go` that any single changed float or color moves
+  the hash.
 - `examples/web_svg_bench` reproduces the numbers in a browser: `svg=canvas2d`
   for the baseline, `asset=`, `xf=` (cells in view transforms), `lose=1` (drives
   `WEBGL_lose_context`), `shot=1` for screenshots.
 
 ## Out of scope
 
-- Drawing everything with WebGL. It would remove the composite cost, but web
-  text is drawn by go-glyph with `fillText`, so it needs a glyph atlas there
-  first.
+- Drawing everything with WebGL. It would remove the composites, but web text is
+  drawn by go-glyph with `fillText`, so it needs a glyph atlas there first.
 - Culling inside view transforms. gui culls against nothing inside a transform
   (#1043), so every transformed SVG is drawn each frame, visible or not; that is
   a gui change for every backend.
@@ -119,8 +126,18 @@ Firefox's remaining gap is the per-composite cost.
   re-raster at every scale.
 - **The Path2D cache as the fix.** Helps simple meshes in Chrome, but the
   browser still rasterizes every path each frame, and Firefox gains nothing.
-  Kept only as the light-batch and no-WebGL2 path.
+  Kept only as the no-WebGL2 and fallback path.
 - **A stable mesh key on `RenderCmd`** to skip the content hash. New exported
   surface for under 1 ms per frame once the hash is word-wise.
 - **One composite per SVG.** The original cut: 24 composites a frame on the
   bench, and each costs Firefox a snapshot. Lazy rect clips made it one per run.
+- **Fill light batches with Canvas2D** (a triangle-count threshold). Shipped in
+  the first cut against the Firefox snapshot cost. Canvas2D has no per-vertex
+  color, so a gradient drew flat or differently depending on which batch it fell
+  in. Every Canvas2D approximation tried (mean color, exact sub-triangles, seam
+  strokes, merged runs) showed seams or stripes. The staging copy removes the
+  cost the threshold avoided.
+- **Render each batch, then composite it** (what the staging copy replaced).
+  Simple, but it is one WebGL snapshot per batch in Firefox. Rendering all
+  batches first and compositing from the unchanged WebGL canvas measured no
+  better there (32 fps against 60 with the staging copy).

@@ -26,8 +26,6 @@
   // svg=canvas2d opts out of WebGL2; the backend overwrites the global
   // with the mode in effect (webgl, path2d or canvas2d).
   if (params.get("svg") !== null) globalThis.goGuiSvgMode = params.get("svg");
-  // glmin: batches below this many triangles skip WebGL (svg=webgl).
-  if (params.get("glmin") !== null) globalThis.goGuiSvgGLMinTris = +params.get("glmin");
 
   const deltas = [];
   const layoutMs = [];
@@ -39,6 +37,7 @@
   const svgTriCounts = [];
   const compositeCounts = [];
   const filledCounts = [];
+  const directCounts = [];
   // lose=1: lose the SVG WebGL context 2 s into the measurement and
   // restore it 2 s later, counting WebGL composites per phase.
   const lossTest =
@@ -59,7 +58,7 @@
 
   globalThis.goGuiOnFrame = (
     layout, draw, painted, cmds, svgCmds, svgTris, composites,
-    layoutAllocB, drawAllocB, layoutGC, drawGC, gcCPU, filled,
+    layoutAllocB, drawAllocB, layoutGC, drawGC, gcCPU, filled, direct,
   ) => {
     // The helper's counters cover this frame; reset them either way.
     const glStats = globalThis.goGuiSvgGL?.stats;
@@ -87,6 +86,7 @@
     svgTriCounts.push(svgTris);
     compositeCounts.push(composites || 0);
     filledCounts.push(filled || 0);
+    directCounts.push(direct || 0);
     if (lossTest) {
       const p = lossTest.phase;
       lossTest.frames[p] = (lossTest.frames[p] || 0) + 1;
@@ -184,8 +184,8 @@
         svgTris: Math.round(mean(svgTriCounts)),
         composites: Math.round(mean(compositeCounts)),
         filledBatches: Math.round(mean(filledCounts)),
+        directBatches: Math.round(mean(directCounts)),
       },
-      glMinTris: globalThis.goGuiSvgGLMinTris ?? "default",
       lossTest: lossTest && {
         frames: lossTest.frames,
         composites: lossTest.composites,
@@ -217,7 +217,7 @@
       `frame ms  p50 ${result.frameMs.p50}  p95 ${result.frameMs.p95}  p99 ${result.frameMs.p99}  max ${result.frameMs.max}\n` +
       `go layout mean ${result.goLayoutMs.mean}  p95 ${result.goLayoutMs.p95}\n` +
       `go draw   mean ${result.goDrawMs.mean}  p95 ${result.goDrawMs.p95}\n` +
-      `per frame ${result.perFrame.cmds} cmds, ${result.perFrame.svgCmds} svg, ${result.perFrame.svgTris} tris, ${result.perFrame.composites} composites, ${result.perFrame.filledBatches} filled
+      `per frame ${result.perFrame.cmds} cmds, ${result.perFrame.svgCmds} svg, ${result.perFrame.svgTris} tris, ${result.perFrame.composites} composites (${result.perFrame.directBatches} direct), ${result.perFrame.filledBatches} filled
 ` +
       `draw split js ${result.drawSplitMs.jsDraw} + composite ${result.drawSplitMs.jsComposite} + go ${result.drawSplitMs.goOnly} ms
 ` +

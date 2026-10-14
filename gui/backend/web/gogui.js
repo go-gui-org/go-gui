@@ -63,6 +63,7 @@ layout(location = 1) in vec4 aCol;
 uniform vec3 uRow0;
 uniform vec3 uRow1;
 uniform vec2 uView;
+uniform vec2 uOff;
 uniform vec4 uColor;
 uniform float uAlpha;
 uniform float uUseV;
@@ -70,7 +71,7 @@ out vec4 vCol;
 void main() {
   vec3 p = vec3(aPos, 1.0);
   vec2 q = vec2(dot(uRow0, p), dot(uRow1, p));
-  gl_Position = vec4(q.x * uView.x - 1.0, 1.0 - q.y * uView.y, 0.0, 1.0);
+  gl_Position = vec4(q.x * uView.x + uOff.x - 1.0, 1.0 - q.y * uView.y - uOff.y, 0.0, 1.0);
   vec4 v = vec4(aCol.rgb, aCol.a * uAlpha);
   vCol = mix(uColor, v, uUseV);
 }`;
@@ -105,6 +106,7 @@ void main() { o = vec4(vCol.rgb * vCol.a, vCol.a); }`;
     s.uRow0 = u("uRow0");
     s.uRow1 = u("uRow1");
     s.uView = u("uView");
+    s.uOff = u("uOff");
     s.uColor = u("uColor");
     s.uAlpha = u("uAlpha");
     s.uUseV = u("uUseV");
@@ -118,15 +120,42 @@ void main() { o = vec4(vCol.rgb * vCol.a, vCol.a); }`;
   // their contexts (the bench's lose=1 drives WEBGL_lose_context).
   const states = [];
 
+  const noop = () => {};
+
   return {
     recStride,
     stats,
     states,
 
-    // composite draws the device-pixel rect (x, y, w, h) of the WebGL
-    // canvas onto ctx at the same place in logical pixels; ctx's own
-    // transform, clip and filter apply.
-    composite(s, ctx, dpi, x, y, w, h) {
+    // nullContext stands in for the 2D context while the backend's
+    // pre-pass replays a frame's clips and transforms to batch its
+    // SVGs: every method is a no-op and every write is dropped.
+    nullContext: new Proxy({}, { get: () => noop, set: () => true }),
+
+    // stage copies the device-pixel rect (x, y, w, h) of the WebGL
+    // canvas into the 2D staging canvas, once per frame after every
+    // batch is rendered. Firefox pays for each drawImage from a WebGL
+    // canvas, changed or not; drawImage from a 2D canvas is cheap, so
+    // batches are composited from the copy (#1045).
+    stage(s, x, y, w, h) {
+      const t0 = performance.now();
+      s.sctx.clearRect(x, y, w, h);
+      s.sctx.drawImage(s.canvas, x, y, w, h, x, y, w, h);
+      stats.compositeMs += performance.now() - t0;
+    },
+
+    // composite draws the staging canvas's device-pixel rect (ax, ay,
+    // w, h) onto ctx at device position (x, y), in logical pixels;
+    // ctx's own transform, clip and filter apply.
+    composite(s, ctx, dpi, ax, ay, w, h, x, y) {
+      const t0 = performance.now();
+      ctx.drawImage(s.stage, ax, ay, w, h, x / dpi, y / dpi, w / dpi, h / dpi);
+      stats.compositeMs += performance.now() - t0;
+    },
+
+    // compositeDirect is composite straight from the WebGL canvas, for
+    // a batch the frame's single render pass did not hold.
+    compositeDirect(s, ctx, dpi, x, y, w, h) {
       const t0 = performance.now();
       ctx.drawImage(s.canvas, x, y, w, h, x / dpi, y / dpi, w / dpi, h / dpi);
       stats.compositeMs += performance.now() - t0;
@@ -144,7 +173,8 @@ void main() { o = vec4(vCol.rgb * vCol.a, vCol.a); }`;
         preserveDrawingBuffer: false,
       });
       if (!gl) return null;
-      const s = { gl, canvas, meshes: new Map() };
+      const stage = document.createElement("canvas");
+      const s = { gl, canvas, stage, sctx: stage.getContext("2d"), meshes: new Map() };
       setup(s);
       states.push(s);
       return s;
@@ -191,18 +221,23 @@ void main() { o = vec4(vCol.rgb * vCol.a, vCol.a); }`;
       s.meshes.delete(id);
     },
 
-    // resize matches the drawing buffer to the 2D canvas in device
+    // resize sets the drawing buffer and the staging canvas, in device
     // pixels. Changing it reallocates, so the backend calls it only
-    // when the size changed.
+    // when the size changed. It reports whether the drawing buffer got
+    // the size: a browser may give a smaller one than asked.
     resize(s, w, h) {
       s.canvas.width = w;
       s.canvas.height = h;
+      s.stage.width = w;
+      s.stage.height = h;
+      return s.gl.drawingBufferWidth === w && s.gl.drawingBufferHeight === h;
     },
 
-    // draw renders n records into the device-pixel rect (x, y, w, h),
-    // top-left origin, after clearing it. dpi maps logical to device
-    // pixels.
-    draw(s, recs, n, dpi, x, y, w, h) {
+    // draw renders n records whose device-pixel rect is (x, y, w, h),
+    // top-left origin, at (x+ox, y+oy) of the canvas, after clearing
+    // that area: the batch's place in this frame's atlas. dpi maps
+    // logical to device pixels.
+    draw(s, recs, n, dpi, x, y, w, h, ox, oy) {
       const t0 = performance.now();
       stats.records += n;
       const gl = s.gl;
@@ -210,13 +245,14 @@ void main() { o = vec4(vCol.rgb * vCol.a, vCol.a); }`;
       const ch = s.canvas.height;
       gl.viewport(0, 0, cw, ch);
       gl.enable(gl.SCISSOR_TEST);
-      gl.scissor(x, ch - y - h, w, h);
+      gl.scissor(x + ox, ch - (y + oy) - h, w, h);
       gl.clearColor(0, 0, 0, 0);
       gl.clear(gl.COLOR_BUFFER_BIT);
       gl.enable(gl.BLEND);
       gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
       gl.useProgram(s.prog);
       gl.uniform2f(s.uView, (2 * dpi) / cw, (2 * dpi) / ch);
+      gl.uniform2f(s.uOff, (2 * ox) / cw, (2 * oy) / ch);
       for (let i = 0; i < n; i++) {
         const o = i * recStride;
         const m = s.meshes.get(recs[o]);
@@ -234,7 +270,7 @@ void main() { o = vec4(vCol.rgb * vCol.a, vCol.a); }`;
           sb = Math.min(sb, recs[o + 14] + recs[o + 16]);
           if (sr <= sx || sb <= sy) continue;
         }
-        gl.scissor(sx, ch - sb, sr - sx, sb - sy);
+        gl.scissor(sx + ox, ch - (sb + oy), sr - sx, sb - sy);
         gl.bindVertexArray(m.vao);
         gl.uniform3f(s.uRow0, recs[o + 1], recs[o + 3], recs[o + 5]);
         gl.uniform3f(s.uRow1, recs[o + 2], recs[o + 4], recs[o + 6]);

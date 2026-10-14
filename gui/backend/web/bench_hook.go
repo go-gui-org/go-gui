@@ -71,7 +71,9 @@ func (g *gcSampler) read() gcSample {
 //	layoutAllocB, drawAllocB   bytes allocated in each phase
 //	layoutGC, drawGC           GC cycles completed in each phase
 //	gcCPUMs           estimated GC CPU time over the frame
-//	filled            light WebGL batches drawn with Canvas2D instead
+//	filled            WebGL batches drawn with Canvas2D instead
+//	direct            WebGL batches composited from the WebGL canvas,
+//	                  not the staging copy (draw_webgl.go)
 //
 // Canvas2D rasterizes after this returns, so the draw time is only the
 // Go and JS call cost; the page measures what the browser adds from
@@ -82,6 +84,7 @@ func (b *Backend) timedFrame(w *gui.Window, hook js.Value) {
 	}
 	b.gl.composites = 0
 	b.gl.filled = 0
+	b.gl.direct = 0
 	g0 := b.gcs.read()
 	t0 := time.Now()
 	changed := w.FrameFn()
@@ -112,5 +115,5 @@ func (b *Backend) timedFrame(w *gui.Window, hook js.Value) {
 		float64(g1.cycles-g0.cycles),
 		float64(g2.cycles-g1.cycles),
 		(g2.gcCPUSec-g0.gcCPUSec)*1000,
-		b.gl.filled)
+		b.gl.filled, b.gl.direct)
 }

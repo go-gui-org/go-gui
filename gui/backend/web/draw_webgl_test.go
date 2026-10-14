@@ -20,6 +20,9 @@ type fakeGL struct {
 	draws      []string
 	composites []string
 	restores   int
+	// ops lists draw, stage, composite and direct (compositeDirect)
+	// calls in order, with their rects.
+	ops []string
 	// live is the JS side's mesh table; drawIDs the ids each draw used,
 	// and missing the records whose id was not in the table (gogui.js
 	// skips those silently).
@@ -42,6 +45,23 @@ func newFakeGL(t *testing.T, ctx *stateCtx) *fakeGL {
 			f.Release()
 		}
 	})
+	// nullContext: a Proxy whose every method is a no-op.
+	noop := js.FuncOf(func(js.Value, []js.Value) any { return nil })
+	get := js.FuncOf(func(js.Value, []js.Value) any { return noop })
+	set := js.FuncOf(func(js.Value, []js.Value) any { return true })
+	funcs = append(funcs, noop, get, set)
+	handler := js.Global().Get("Object").New()
+	handler.Set("get", get)
+	handler.Set("set", set)
+	g.api.Set("nullContext",
+		js.Global().Get("Proxy").New(js.Global().Get("Object").New(), handler))
+	ints := func(a []js.Value) []int {
+		v := make([]int, len(a))
+		for i := range a {
+			v[i] = a[i].Int()
+		}
+		return v
+	}
 	on("upload", func(a []js.Value) {
 		g.uploads = append(g.uploads, a[1].Int())
 		g.live[a[1].Int()] = true
@@ -71,18 +91,34 @@ func newFakeGL(t *testing.T, ctx *stateCtx) *fakeGL {
 			}
 		}
 		g.draws = append(g.draws, fmt.Sprintf("n=%d scissors=%v", n, sc))
+		v := ints(a[4:])
+		g.ops = append(g.ops, fmt.Sprintf("draw %d,%d %dx%d +%d,%d", v[0], v[1], v[2], v[3], v[4], v[5]))
 	})
-	on("composite", func([]js.Value) {
+	on("stage", func(a []js.Value) {
+		v := ints(a[1:])
+		g.ops = append(g.ops, fmt.Sprintf("stage %d,%d %dx%d", v[0], v[1], v[2], v[3]))
+	})
+	composite := func() {
 		s := ctx.cur
 		s.filter = ctx.filterNow()
 		g.composites = append(g.composites, s.String())
+	}
+	on("composite", func(a []js.Value) {
+		composite()
+		v := ints(a[3:])
+		g.ops = append(g.ops, fmt.Sprintf("composite %d,%d %dx%d -> %d,%d", v[0], v[1], v[2], v[3], v[4], v[5]))
+	})
+	on("compositeDirect", func(a []js.Value) {
+		composite()
+		v := ints(a[3:])
+		g.ops = append(g.ops, fmt.Sprintf("direct %d,%d %dx%d", v[0], v[1], v[2], v[3]))
 	})
 	return g
 }
 
 // newGLTestBackend is a backend in svg=webgl mode over the fakes, at
-// dpi 1 on a 1000×1000 canvas. minTris sets the light-batch threshold.
-func newGLTestBackend(t *testing.T, minTris int) (*Backend, *stateCtx, *fakeGL) {
+// dpi 1 on a 1000×1000 canvas.
+func newGLTestBackend(t *testing.T) (*Backend, *stateCtx, *fakeGL) {
 	t.Helper()
 	ctx := newStateCtx(t)
 	gl := newFakeGL(t, ctx)
@@ -94,8 +130,8 @@ func newGLTestBackend(t *testing.T, minTris int) (*Backend, *stateCtx, *fakeGL) 
 		canvas:  js.Global().Get("Object").New(),
 		w:       1000,
 		h:       1000,
+		nullCtx: gl.api.Get("nullContext"),
 		meshes:  map[meshKey]*glMesh{},
-		minTris: minTris,
 	}
 	return b, ctx, gl
 }
@@ -103,7 +139,7 @@ func newGLTestBackend(t *testing.T, minTris int) (*Backend, *stateCtx, *fakeGL) 
 // Rect clips between SVGs do not split the batch: one composite, each
 // draw scissored to its own clip, composited under no rect clip.
 func TestSvgGLBatchesAcrossRectClips(t *testing.T) {
-	b, ctx, gl := newGLTestBackend(t, 1)
+	b, ctx, gl := newGLTestBackend(t)
 	b.drawCmds([]gui.RenderCmd{
 		clipCmd(0, 0, 500, 500), svgCmd(10, 10),
 		clipCmd(100, 100, 50, 50), svgCmd(110, 110),
@@ -121,7 +157,7 @@ func TestSvgGLBatchesAcrossRectClips(t *testing.T) {
 // frame clears under it. A stale rect clip left the rest of the canvas
 // to accumulate, frame over frame.
 func TestSvgGLFrameEndsUnderLastClip(t *testing.T) {
-	b, ctx, _ := newGLTestBackend(t, 1)
+	b, ctx, _ := newGLTestBackend(t)
 	b.drawCmds([]gui.RenderCmd{
 		clipCmd(0, 0, 500, 500), svgCmd(10, 10),
 		clipCmd(100, 100, 50, 50), svgCmd(110, 110),
@@ -139,7 +175,7 @@ func TestSvgGLFrameEndsUnderLastClip(t *testing.T) {
 // A non-SVG command after a batch draws under the full clip stack
 // again, not the rect-less one the composite ran under.
 func TestSvgGLRestoresClipBeforeOtherCommands(t *testing.T) {
-	b, ctx, gl := newGLTestBackend(t, 1)
+	b, ctx, gl := newGLTestBackend(t)
 	b.drawCmds([]gui.RenderCmd{
 		clipCmd(100, 100, 50, 50), svgCmd(110, 110),
 		{Kind: gui.RenderRect, Fill: true, X: 100, Y: 100, W: 5, H: 5, Color: gui.RGB(0, 0, 255)},
@@ -159,7 +195,7 @@ func TestSvgGLRestoresClipBeforeOtherCommands(t *testing.T) {
 // and each batch, drawn without scissors, is composited under its own
 // canvas clip and the rotation.
 func TestSvgGLRotationBracketKeepsTransform(t *testing.T) {
-	b, ctx, gl := newGLTestBackend(t, 1)
+	b, ctx, gl := newGLTestBackend(t)
 	b.drawCmds([]gui.RenderCmd{
 		clipCmd(0, 0, 1000, 1000),
 		{Kind: gui.RenderRotateBegin, RotAngle: 90, RotCX: 50, RotCY: 50},
@@ -193,7 +229,7 @@ func TestSvgGLRotationBracketKeepsTransform(t *testing.T) {
 // view's frame leave the drawing buffer is filled with Canvas2D rather
 // than cut.
 func TestSvgGLViewTransform(t *testing.T) {
-	b, ctx, gl := newGLTestBackend(t, 1)
+	b, ctx, gl := newGLTestBackend(t)
 	shift := &[9]float32{1, 0, 100, 0, 1, 50, 0, 0, 1}
 	b.drawCmds([]gui.RenderCmd{
 		{Kind: gui.RenderTransformBegin, Homography: shift, W: 200, H: 200},
@@ -223,7 +259,7 @@ func TestSvgGLViewTransform(t *testing.T) {
 // A filter bracket's filter must still be set when its batch is
 // composited.
 func TestSvgGLFilterBracketKeepsFilter(t *testing.T) {
-	b, ctx, gl := newGLTestBackend(t, 1)
+	b, ctx, gl := newGLTestBackend(t)
 	b.drawCmds([]gui.RenderCmd{
 		clipCmd(0, 0, 1000, 1000),
 		{Kind: gui.RenderFilterBegin, BlurRadius: 4},
@@ -236,33 +272,11 @@ func TestSvgGLFilterBracketKeepsFilter(t *testing.T) {
 	checkNoErrs(t, ctx)
 }
 
-// A batch below minTris is filled with Canvas2D, each command under the
-// rect clip it was queued under, and costs no WebGL draw or composite.
-func TestSvgGLLightBatchFillsWithClips(t *testing.T) {
-	b, ctx, gl := newGLTestBackend(t, 1000)
-	b.drawCmds([]gui.RenderCmd{
-		clipCmd(0, 0, 500, 500), svgCmd(10, 10),
-		clipCmd(100, 100, 50, 50), svgCmd(110, 110),
-	})
-	if len(gl.draws)+len(gl.composites) != 0 {
-		t.Errorf("light batch used WebGL: draws %v composites %v", gl.draws, gl.composites)
-	}
-	if len(ctx.fills) != 2 {
-		t.Fatalf("fills = %v, want 2", ctx.fills)
-	}
-	for i, wantClip := range []string{"[0,0 500x500]", "[100,100 50x50]"} {
-		if !strings.Contains(ctx.fills[i], "clips="+wantClip) {
-			t.Errorf("fill %d = %s, want clips=%s", i, ctx.fills[i], wantClip)
-		}
-	}
-	checkNoErrs(t, ctx)
-}
-
 // After a context loss SVGs draw with Canvas2D and a repaint is asked
 // for; after the restore the program is rebuilt and meshes upload
 // again into the new context.
 func TestSvgGLContextLossAndRestore(t *testing.T) {
-	b, ctx, gl := newGLTestBackend(t, 1)
+	b, ctx, gl := newGLTestBackend(t)
 	cmds := []gui.RenderCmd{clipCmd(0, 0, 500, 500), svgCmd(10, 10)}
 	b.drawCmds(cmds)
 	if len(gl.composites) != 1 || len(gl.uploads) != 1 {
@@ -301,7 +315,7 @@ func TestSvgGLContextLossAndRestore(t *testing.T) {
 // A batch already queued when the context goes is filled with Canvas2D
 // rather than composited from the dead context.
 func TestSvgGLLossMidBatchFills(t *testing.T) {
-	b, ctx, gl := newGLTestBackend(t, 1)
+	b, ctx, gl := newGLTestBackend(t)
 	b.drawSvg(func() *gui.RenderCmd { c := svgCmd(10, 10); return &c }())
 	b.onSvgGLLost()
 	b.flushSvgGL()
@@ -315,7 +329,7 @@ func TestSvgGLLossMidBatchFills(t *testing.T) {
 // The mesh cache uploads a mesh once and uploads again when its buffer
 // is rewritten in place; the old variant stays until it idles out.
 func TestSvgGLMeshCache(t *testing.T) {
-	b, ctx, gl := newGLTestBackend(t, 1)
+	b, ctx, gl := newGLTestBackend(t)
 	cmd := svgCmd(10, 10)
 	frame := func() {
 		b.drawCmds([]gui.RenderCmd{cmd})
@@ -354,7 +368,7 @@ func gradSvgCmd(x, y float32, tris []float32, c gui.Color) gui.RenderCmd {
 // both are drawn from live meshes in one batch, neither replaces the
 // other, and the next frame uploads nothing.
 func TestSvgGLColorVariantsCoexist(t *testing.T) {
-	b, ctx, gl := newGLTestBackend(t, 1)
+	b, ctx, gl := newGLTestBackend(t)
 	tris := []float32{0, 0, 10, 0, 0, 10}
 	cmds := []gui.RenderCmd{
 		gradSvgCmd(10, 10, tris, gui.RGB(255, 0, 0)),
@@ -379,7 +393,7 @@ func TestSvgGLColorVariantsCoexist(t *testing.T) {
 // A buffer rewritten every frame keeps at most maxMeshVariants meshes,
 // and a variant drawn in the current frame is never the one dropped.
 func TestSvgGLVariantCap(t *testing.T) {
-	b, ctx, gl := newGLTestBackend(t, 1)
+	b, ctx, gl := newGLTestBackend(t)
 	cmd := svgCmd(10, 10)
 	for i := range 3 * maxMeshVariants {
 		cmd.Triangles[2] = float32(20 + i)
@@ -401,7 +415,7 @@ func TestSvgGLVariantCap(t *testing.T) {
 // Freed mesh ids are reused, so the ids sent through the Float32Array
 // stay small however many meshes come and go.
 func TestSvgGLIDsRecycled(t *testing.T) {
-	b, ctx, gl := newGLTestBackend(t, 1)
+	b, ctx, gl := newGLTestBackend(t)
 	cmd := svgCmd(10, 10)
 	for i := range 1000 {
 		cmd.Triangles[2] = float32(20 + i)
@@ -422,22 +436,109 @@ func TestSvgGLIDsRecycled(t *testing.T) {
 	checkNoErrs(t, ctx)
 }
 
-// A light batch with an interpolated gradient stays on WebGL: Canvas2D
-// would draw it flat, so how it looks would depend on its neighbors.
-// A light batch of flat per-triangle colors is still filled.
-func TestSvgGLGradientStaysOnWebGL(t *testing.T) {
-	b, ctx, gl := newGLTestBackend(t, 1000)
-	tris := []float32{0, 0, 10, 0, 0, 10}
-	b.drawCmds([]gui.RenderCmd{gradSvgCmd(10, 10, tris, gui.RGB(255, 0, 0))})
-	if len(gl.draws) != 1 || len(ctx.fills) != 0 {
-		t.Errorf("gradient: draws %v fills %v, want WebGL", gl.draws, ctx.fills)
+// rectCmd is a filled rect, a non-SVG command that ends a batch.
+func rectCmd(x, y float32) gui.RenderCmd {
+	return gui.RenderCmd{Kind: gui.RenderRect, Fill: true, X: x, Y: y, W: 5, H: 5,
+		Color: gui.RGB(0, 0, 255)}
+}
+
+// Every batch is rendered before the first composite, the WebGL canvas
+// is staged once, and each batch is composited from its place in the
+// copy, under its own 2D state.
+func TestSvgGLStagesOncePerFrame(t *testing.T) {
+	b, ctx, gl := newGLTestBackend(t)
+	b.drawCmds([]gui.RenderCmd{
+		svgCmd(10, 10), rectCmd(0, 0),
+		clipCmd(0, 0, 500, 500),
+		{Kind: gui.RenderFilterBegin, BlurRadius: 4},
+		svgCmd(100, 10),
+		{Kind: gui.RenderFilterEnd},
+	})
+	want := []string{
+		"draw 9,9 12x12 +0,0",
+		"draw 99,9 12x12 +0,0",
+		"stage 9,9 102x12",
+		"composite 9,9 12x12 -> 9,9",
+		"composite 99,9 12x12 -> 99,9",
 	}
-	flat := gradSvgCmd(40, 10, []float32{0, 0, 10, 0, 0, 10}, gui.RGB(255, 0, 0))
-	flat.VertexColors = []gui.Color{gui.RGB(1, 2, 3), gui.RGB(1, 2, 3), gui.RGB(1, 2, 3)}
-	flat.VertexColorsFlat = true
-	b.drawCmds([]gui.RenderCmd{flat})
-	if len(gl.draws) != 1 || len(ctx.fills) != 1 {
-		t.Errorf("flat colors: draws %v fills %v, want Canvas2D", gl.draws, ctx.fills)
+	if fmt.Sprint(gl.ops) != fmt.Sprint(want) {
+		t.Errorf("ops = %v, want %v", gl.ops, want)
+	}
+	if len(gl.composites) != 2 || strings.Contains(gl.composites[0], "blur") ||
+		!strings.Contains(gl.composites[1], `filter="blur(4px)"`) {
+		t.Errorf("composites = %v, want the second alone under blur(4px)", gl.composites)
+	}
+	checkNoErrs(t, ctx)
+}
+
+// A batch whose place another batch took this frame goes direct and
+// asks for the overflow half; with it, the batch is rendered on a
+// shelf there and composited from the copy.
+func TestSvgGLOverlapUsesOverflow(t *testing.T) {
+	b, ctx, gl := newGLTestBackend(t)
+	cmds := []gui.RenderCmd{svgCmd(10, 10), rectCmd(0, 0), svgCmd(15, 15)}
+	b.drawCmds(cmds)
+	want := []string{
+		"draw 9,9 12x12 +0,0",
+		"stage 9,9 12x12",
+		"composite 9,9 12x12 -> 9,9",
+		"draw 14,14 12x12 +0,0",
+		"direct 14,14 12x12",
+	}
+	if fmt.Sprint(gl.ops) != fmt.Sprint(want) {
+		t.Errorf("without overflow: ops = %v, want %v", gl.ops, want)
+	}
+	if !b.gl.wantOverflow || b.gl.direct != 1 {
+		t.Errorf("wantOverflow %v direct %d, want the overflow half asked for and 1 direct",
+			b.gl.wantOverflow, b.gl.direct)
+	}
+
+	gl.ops = nil
+	b.gl.overflow = true
+	b.drawCmds(cmds)
+	want = []string{
+		"draw 9,9 12x12 +0,0",
+		"draw 14,14 12x12 +-14,986", // to (0, 1000), the overflow half
+		"stage 0,9 21x1003",
+		"composite 9,9 12x12 -> 9,9",
+		"composite 0,1000 12x12 -> 14,14",
+	}
+	if fmt.Sprint(gl.ops) != fmt.Sprint(want) {
+		t.Errorf("with overflow: ops = %v, want %v", gl.ops, want)
+	}
+	checkNoErrs(t, ctx)
+}
+
+// The overflow half packs batches in shelves and sends a batch that
+// fits nowhere direct.
+func TestSvgGLOverflowShelves(t *testing.T) {
+	g := &glSvg{w: 100, h: 100, overflow: true,
+		placed: [][4]int{{0, 0, 100, 100}}} // the whole canvas taken
+	var got []string
+	for _, wh := range [][2]int{{60, 30}, {30, 40}, {50, 20}, {90, 60}} {
+		p := glPrepared{x0: 0, y0: 0, w: wh[0], h: wh[1]}
+		g.placeSvgGL(&p)
+		if p.direct {
+			got = append(got, "direct")
+		} else {
+			got = append(got, fmt.Sprintf("%d,%d", p.ox, p.oy))
+		}
+	}
+	want := []string{"0,100", "60,100", "0,140", "direct"}
+	if fmt.Sprint(got) != fmt.Sprint(want) {
+		t.Errorf("placements = %v, want %v", got, want)
+	}
+}
+
+// A batch flushed outside a frame has no pre-pass place: it is
+// rendered and composited straight from the WebGL canvas.
+func TestSvgGLUnpreparedBatchGoesDirect(t *testing.T) {
+	b, ctx, gl := newGLTestBackend(t)
+	b.drawSvg(func() *gui.RenderCmd { c := svgCmd(10, 10); return &c }())
+	b.flushSvgGL()
+	want := []string{"draw 9,9 12x12 +0,0", "direct 9,9 12x12"}
+	if fmt.Sprint(gl.ops) != fmt.Sprint(want) {
+		t.Errorf("ops = %v, want %v", gl.ops, want)
 	}
 	checkNoErrs(t, ctx)
 }

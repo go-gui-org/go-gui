@@ -64,7 +64,8 @@ type pathCache struct {
 // initSvgMode picks how SVG meshes are drawn: WebGL2 when available
 // (draw_webgl.go), else the Path2D cache, else plain Canvas2D paths.
 // A page that sets goGuiSvgMode = "canvas2d" before Go starts gets
-// plain Canvas2D. The light WebGL batches use the Path2D cache too.
+// plain Canvas2D. WebGL batches that fall back to Canvas2D use the
+// Path2D cache too.
 func (b *Backend) initSvgMode() {
 	g := js.Global()
 	v := g.Get(svgModeGlobal)
@@ -77,11 +78,6 @@ func (b *Backend) initSvgMode() {
 		}
 		if b.initSvgGL() {
 			b.svgMode = svgModeWebGL
-			b.gl.minTris = svgGLMinTrisDefault
-			// The bench (examples/web_svg_bench) tunes the threshold.
-			if n := g.Get("goGuiSvgGLMinTris"); n.Type() == js.TypeNumber {
-				b.gl.minTris = n.Int()
-			}
 		}
 	}
 	g.Set(svgModeGlobal, b.svgMode.String())
