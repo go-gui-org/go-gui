@@ -27,8 +27,8 @@ func TestMainViewNoFindings(t *testing.T) {
 	}
 }
 
-// The card under the pointer moves up, and the row that takes the hover
-// stays put, so the pointer stays on it.
+// The card under the pointer lifts through an animation, and the row
+// that takes the hover stays put, so the pointer stays on it.
 func TestLiftOnHover(t *testing.T) {
 	w := newWindow(t)
 	cardID := gui.ScopeID("lift", "card")
@@ -39,15 +39,21 @@ func TestLiftOnHover(t *testing.T) {
 	mx, my, _ := w.LocalToWindow("lift", cardW/2, cardH-2)
 	w.EventFn(&gui.Event{Type: gui.EventMouseMove, MouseX: mx, MouseY: my})
 	w.TestRender(nil)
+	if !w.IsHovered("lift") {
+		t.Error("lift row not hovered at its bottom edge")
+	}
+	if !w.HasAnimation("lift") {
+		t.Fatal("hover did not start the lift animation")
+	}
+	// Animation time does not advance in a test: jump to the end.
+	gui.State[app](w).lift = 1
+	w.TestRender(nil)
 	_, y1, ok := w.LocalToWindow(cardID, 0, 0)
 	if !ok {
 		t.Fatal("card not on screen after hover")
 	}
 	if y1 >= y0-4 {
 		t.Errorf("card top = %v after hover, want above %v", y1, y0-4)
-	}
-	if !w.IsHovered("lift") {
-		t.Error("lift row not hovered at its bottom edge")
 	}
 }
 

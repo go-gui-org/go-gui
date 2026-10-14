@@ -245,6 +245,7 @@ const (
 	nsThinkingOrb         = "gui.thinking_orb"
 	nsAnimIDs             = "gui.anim_ids"
 	nsHoverInside         = "gui.hover.inside"
+	nsHoverLift           = "gui.hover_lift"
 	nsMdSel               = "gui.markdown.sel"
 	nsMdBlocks            = "gui.markdown.blocks"
 	nsMdSelSig            = "gui.markdown.sel_sig"

@@ -17,9 +17,11 @@ go run ./examples/transforms/
 
 ## What it demonstrates
 
-- **Hover lift.** `gui.Translate(0, -6).Scale(1.05)` while the pointer is over
-  the card. The hover test is on an outer row that does not move, so the lifted
-  card does not slide out from under the pointer.
+- **Hover lift.** `gui.HoverLift` eases the card between the identity and
+  `gui.Translate(0, -6).Scale(1.05)` while the pointer is over it. The amount is
+  read through `ContainerCfg.TransformFn`, so the card moves in render-only
+  frames, with no rebuild. The hover test is on an outer row that does not move,
+  so the lifted card does not slide out from under the pointer.
 - **Tilted badge.** `gui.Rotate(-12)`. Layout ignores a transform, so nothing
   around the badge moves. A click on the badge reaches it where it is drawn, and
   `Window.LocalToWindow` maps the click point out to the window.

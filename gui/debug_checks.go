@@ -98,9 +98,9 @@ const (
 	// axis also states Min or Max, which applyFixedSizingConstraints
 	// overwrites with the size (issue #635).
 	debugCheckFixedSizing
-	// debugCheckInteractiveIDMismatch fires from Interactive when the
-	// view its builder returns has a root ID that is not the ID
-	// Interactive reads state for, so the state never turns true
+	// debugCheckInteractiveIDMismatch fires from Interactive and HoverLift
+	// when the view the builder returns has a root ID that is not the ID
+	// the helper reads state for, so the state never turns true
 	// (issue #650).
 	debugCheckInteractiveIDMismatch
 	// debugCheckInteractiveKeyboard fires from Interactive when the root

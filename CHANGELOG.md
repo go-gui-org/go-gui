@@ -10,6 +10,12 @@ and this project adheres to
 
 ### Added
 
+- **`gui.HoverLift` animates a hover lift (#1019).** It watches hover for its
+  ID, eases a caller-owned float toward 0 or 1 in render-only frames, and hands
+  the builder a `TransformFn` that lerps the identity transform to the lifted
+  one, so the view moves without a rebuild. Duration and easing are fixed. The
+  transforms example's lift card uses it.
+
 - **Containers can be moved, turned, scaled, skewed and turned in 3D (#1019).**
   `ContainerCfg.Transform` takes a `gui.Transform` built by chaining, for
   example `gui.Rotate(8).Scale(1.05)` or `gui.RotateY(40).Perspective(800)`. The

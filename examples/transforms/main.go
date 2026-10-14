@@ -50,6 +50,9 @@ type app struct {
 	// angle is the flip card's turn around its vertical axis, in
 	// degrees. The flip animation moves it from 0 to 180 and back.
 	angle float32
+	// lift is the hover card's lift amount, from 0 (rest) to 1
+	// (raised). HoverLift moves it toward 0 or 1.
+	lift float32
 	// badgeHit tells where in the window the last click on the badge
 	// was.
 	badgeHit string
@@ -73,7 +76,7 @@ func mainView(w *gui.Window) gui.View {
 				SizeBorder: gui.NoBorder,
 				VAlign:     gui.VAlignTop,
 				Content: []gui.View{
-					liftCard(theme),
+					liftCard(w, theme),
 					badgeCard(w, theme),
 					flipCard(w, theme),
 				},
@@ -85,22 +88,24 @@ func mainView(w *gui.Window) gui.View {
 // liftCard moves up and grows a little while the pointer is over it.
 // The ID and the hover test are on an outer row that does not move, so
 // the lifted card cannot slide out from under a still pointer.
-func liftCard(theme gui.Theme) gui.View {
-	return gui.Interactive("lift", func(s gui.InteractionState) gui.View {
-		var lift gui.Transform
-		if s.Hovered {
-			lift = gui.Translate(0, -6).Scale(1.05)
-		}
-		return gui.Row(gui.ContainerCfg{
-			ID:         "lift",
-			Sizing:     gui.FitFit,
-			Padding:    gui.PaddingNone,
-			SizeBorder: gui.NoBorder,
-			Content: []gui.View{
-				card(theme, "card", "Hover me", theme.ColorPanel, lift),
-			},
+//
+// HoverLift runs the lift tween and hands the card a TransformFn, so
+// the animation moves the card in render-only frames, with no rebuild,
+// like the flip card below.
+func liftCard(w *gui.Window, theme gui.Theme) gui.View {
+	st := gui.State[app](w)
+	return gui.HoverLift("lift", gui.Translate(0, -6).Scale(1.05), &st.lift,
+		func(xf func() gui.Transform) gui.View {
+			return gui.Row(gui.ContainerCfg{
+				ID:         "lift",
+				Sizing:     gui.FitFit,
+				Padding:    gui.PaddingNone,
+				SizeBorder: gui.NoBorder,
+				Content: []gui.View{
+					cardFn(theme, "card", "Hover me", theme.ColorPanel, xf),
+				},
+			})
 		})
-	})
 }
 
 // doc:snippet-begin transforms-badge
@@ -216,10 +221,6 @@ func flip(ctx gui.EventCtx) {
 	tw.Refresh = gui.AnimationRefreshRenderOnly
 	ctx.Window.AnimationAdd(tw)
 	ctx.Consume()
-}
-
-func card(theme gui.Theme, id, label string, color gui.Color, xf gui.Transform) gui.View {
-	return gui.Column(cardCfg(theme, id, label, color, xf, nil))
 }
 
 func cardFn(theme gui.Theme, id, label string, color gui.Color, fn func() gui.Transform) gui.View {
