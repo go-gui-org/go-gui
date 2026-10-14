@@ -4,6 +4,7 @@ package web
 
 import (
 	"fmt"
+	"math"
 	"strings"
 	"syscall/js"
 	"testing"
@@ -114,7 +115,9 @@ func (c *stateCtx) filterNow() string {
 func newStateBackend(t *testing.T) (*Backend, *stateCtx) {
 	t.Helper()
 	ctx := newStateCtx(t)
-	return &Backend{ctx2d: ctx.obj, dpiScale: 1}, ctx
+	b := &Backend{ctx2d: ctx.obj, dpiScale: 1}
+	b.resetTransforms()
+	return b, ctx
 }
 
 func clipCmd(x, y, w, h float32) gui.RenderCmd {
@@ -139,10 +142,50 @@ func checkNoErrs(t *testing.T, ctx *stateCtx) {
 	}
 }
 
+// lastXf returns the last canvas transform op recorded on a fill.
+// Rotation brackets keep their matrix in Go and apply it with
+// setTransform (draw_transform.go), not on the canvas save stack, so
+// the current transform is the last setTransform before the fill.
+func lastXf(fill string) string {
+	_, after, found := strings.Cut(fill, "xf=[")
+	if !found {
+		return ""
+	}
+	before, _, found := strings.Cut(after, "] filter=")
+	if !found {
+		return ""
+	}
+	ops := strings.Fields(before)
+	if len(ops) == 0 {
+		return ""
+	}
+	return ops[len(ops)-1]
+}
+
+const xfIdentity = "setTransform(1,0,0,1,0,0)"
+
+// xfOp formats an affine as the fake 2D context records setTransform:
+// one %g per component, comma-separated.
+func xfOp(m affine) string {
+	return fmt.Sprintf("setTransform(%g,%g,%g,%g,%g,%g)",
+		m[0], m[1], m[2], m[3], m[4], m[5])
+}
+
+// rot90about5050 is the canvas transform of a 90° rotation about
+// (50,50), computed the same way beginRotation does so the float
+// formatting (cos(90°) is 6e-17, not 0) matches exactly.
+func rot90about5050() affine {
+	const cx, cy = 50.0, 50.0
+	sin, cos := math.Sincos(90 * math.Pi / 180)
+	return affine{cos, sin, -sin, cos,
+		cx - cos*cx + sin*cy,
+		cy - sin*cx - cos*cy}
+}
+
 // A clip inside a rotation bracket must not undo the rotation. The
-// clip stack used to be replayed by restore(), and the bracket's save
-// sat above the clip saves, so the first restore popped the bracket
-// and the rest of it drew unrotated.
+// rotation is kept in Go and reapplied with setTransform after every
+// clip rebuild, so it is not on the canvas save stack for a clip
+// restore to pop.
 func TestClipInsideRotationKeepsTransform(t *testing.T) {
 	b, ctx := newStateBackend(t)
 	b.drawCmds([]gui.RenderCmd{
@@ -155,11 +198,11 @@ func TestClipInsideRotationKeepsTransform(t *testing.T) {
 	if len(ctx.fills) != 2 {
 		t.Fatalf("fills = %v, want 2", ctx.fills)
 	}
-	if f := ctx.fills[0]; !strings.Contains(f, "rotate(") || !strings.Contains(f, "clips=[0,0 500x500]") {
-		t.Errorf("fill inside the bracket = %s, want rotated under clip 0,0 500x500", f)
+	if f := ctx.fills[0]; !strings.Contains(f, "clips=[0,0 500x500]") || lastXf(f) != xfOp(rot90about5050()) {
+		t.Errorf("fill inside the bracket = %s, want clip 0,0 500x500 drawn under %s", f, xfOp(rot90about5050()))
 	}
-	if f := ctx.fills[1]; strings.Contains(f, "rotate(") {
-		t.Errorf("fill after the bracket = %s, want unrotated", f)
+	if f := ctx.fills[1]; lastXf(f) != xfIdentity {
+		t.Errorf("fill after the bracket = %s, want it drawn under %s", f, xfIdentity)
 	}
 	checkNoErrs(t, ctx)
 }
@@ -187,7 +230,8 @@ func TestClipInsideFilterKeepsFilter(t *testing.T) {
 }
 
 // A stencil clip begun inside a rotation is replayed under that
-// rotation when a later rect clip forces a replay.
+// rotation when a later rect clip forces a replay: the stencil keeps
+// the canvas transform from when it opened.
 func TestStencilClipReplaysUnderItsBracket(t *testing.T) {
 	b, ctx := newStateBackend(t)
 	b.drawCmds([]gui.RenderCmd{
@@ -200,14 +244,14 @@ func TestStencilClipReplaysUnderItsBracket(t *testing.T) {
 	if len(ctx.fills) != 1 {
 		t.Fatalf("fills = %v, want 1", ctx.fills)
 	}
-	if f := ctx.fills[0]; !strings.Contains(f, "clips=[0,0 500x500 5,5 20x20]") || !strings.Contains(f, "rotate(") {
-		t.Errorf("fill = %s, want the rect clip, then the stencil under the rotation", f)
+	if f := ctx.fills[0]; !strings.Contains(f, "clips=[0,0 500x500 5,5 20x20]") || lastXf(f) != xfOp(rot90about5050()) {
+		t.Errorf("fill = %s, want the rect clip, then the stencil under %s", f, xfOp(rot90about5050()))
 	}
 	checkNoErrs(t, ctx)
 }
 
 // Nested brackets close in order: after the inner one the outer
-// rotation is still in force, after both none is.
+// rotation is still in force, after both the transform is identity.
 func TestNestedBracketsClose(t *testing.T) {
 	b, ctx := newStateBackend(t)
 	b.drawCmds([]gui.RenderCmd{
@@ -222,14 +266,16 @@ func TestNestedBracketsClose(t *testing.T) {
 	if len(ctx.fills) != 3 {
 		t.Fatalf("fills = %v, want 3", ctx.fills)
 	}
-	if n := strings.Count(ctx.fills[0], "rotate("); n != 2 {
-		t.Errorf("fill in the inner bracket = %s, want both rotations", ctx.fills[0])
+	// The inner fill composes both rotations, so its transform is
+	// neither identity nor the outer rotation alone.
+	if got := lastXf(ctx.fills[0]); got == xfIdentity || got == xfOp(rot90about5050()) {
+		t.Errorf("fill in the inner bracket = %s, want the composed transform, got %q", ctx.fills[0], got)
 	}
-	if n := strings.Count(ctx.fills[1], "rotate("); n != 1 {
-		t.Errorf("fill in the outer bracket = %s, want one rotation", ctx.fills[1])
+	if got := lastXf(ctx.fills[1]); got != xfOp(rot90about5050()) {
+		t.Errorf("fill in the outer bracket = %s, want %s", ctx.fills[1], xfOp(rot90about5050()))
 	}
-	if strings.Contains(ctx.fills[2], "rotate(") {
-		t.Errorf("fill after both = %s, want unrotated", ctx.fills[2])
+	if got := lastXf(ctx.fills[2]); got != xfIdentity {
+		t.Errorf("fill after both = %s, want %s", ctx.fills[2], xfIdentity)
 	}
 	checkNoErrs(t, ctx)
 }
