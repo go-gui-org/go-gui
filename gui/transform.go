@@ -262,6 +262,10 @@ func (m *xfMat) apply(x, y float32) (float32, float32, bool) {
 
 // inverse returns the inverse of m. ok is false when m collapses the plane
 // (a zero scale, or a view turned exactly edge-on).
+// backend/internal/homography has its own Inverse for the CPU backends:
+// this one stays separate because the pointer mapping needs the float64
+// working precision and the epsilon gate below, and package gui cannot
+// import a backend-internal package.
 func (m *xfMat) inverse() (xfMat, bool) {
 	// Work in float64: a near-edge-on turn makes the determinant small,
 	// and float32 loses the digits the pointer mapping needs.

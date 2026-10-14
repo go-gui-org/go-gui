@@ -71,6 +71,20 @@ func xfMouseInverse(s *Shape, e *Event) (origX, origY float32) {
 	return
 }
 
+// xfMouseFrame maps the pointer of e into the own frame of layout's
+// shape, so the shape and its children are hit tested where they are
+// drawn. It reports the saved coordinates and ok true; the caller keeps
+// them with defer restoreMouse. With no transform on the shape it maps
+// nothing and reports ok false.
+func xfMouseFrame(layout *Layout, e *Event) (px, py float32, ok bool) {
+	s := layout.Shape
+	if s == nil || s.xf == nil {
+		return 0, 0, false
+	}
+	px, py = xfMouseInverse(s, e)
+	return px, py, true
+}
+
 // lockMouseMap maps the pointer of a locked mouse event into the frame
 // of the view the lock started in (see Window.MouseLock). It returns the
 // original coordinates for restoration. A point whose ray meets the

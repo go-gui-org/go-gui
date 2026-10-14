@@ -168,8 +168,10 @@ that lifts on hover, a tilted badge and tumbling confetti cannot be built.
     that `TransformFn` moves in render-only frames leaves its float behind until
     the next layout. Re-placing floats at render time was not done: it would
     move hit clips and layers after layout.
-  - Drag-reorder needs no change: the press that arms it and the locked moves
-    are in one frame (see mouse lock).
+  - Drag-reorder needs no index change: the press that arms it and the locked
+    moves are in one frame (see mouse lock). The ghost's offset is in the list's
+    frame, so it is mapped through the transform with the anchor
+    (`offsetThroughTransform`): the ghost tracks the pointer and stays upright.
 
 - **Quarter turns (phase 7).** The render walk opens an `xfStack` frame for a
   quarter turn, as for a view transform, so a clip inside a `RotatedBox` is

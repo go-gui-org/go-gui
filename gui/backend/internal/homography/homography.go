@@ -53,6 +53,9 @@ func Apply(h *Mat, x, y float32) (px, py float32, ok bool) {
 // Inverse returns the exact inverse of h, so for a point p = h(q) with
 // w > 0, the w of Inverse(h)(p) is 1/w and also positive. ok is false
 // when h has no inverse.
+// gui.xfMat has its own inverse for the pointer mapping: that one works
+// in float64 with an epsilon gate, and package gui cannot import a
+// backend-internal package, so the two stay separate on purpose.
 func Inverse(h *Mat) (Mat, bool) {
 	a, b, c := h[0], h[1], h[2]
 	d, e, f := h[3], h[4], h[5]

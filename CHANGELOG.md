@@ -112,6 +112,12 @@ and this project adheres to
   it; it now draws whole. The IME candidate window of an input in a `RotatedBox`
   now also sits by the turned caret.
 
+- **A drag ghost in a moved view follows the pointer (#1019).** The ghost of a
+  reorder drag inside a translated, turned or scaled container was placed by its
+  offset in the list's frame, so it sat where the list sits in layout instead of
+  where it is drawn. The offset is now mapped through the transform with the
+  anchor, as the anchor already was. The ghost itself stays upright.
+
 - **A driver that refuses vsync is reported (#1018).** The GL backends on
   Windows and X11 asked for swap interval 1 and ignored the answer. Now a
   refusal is reported under `gui.Debug` (`DebugWindowDegraded`). Since the

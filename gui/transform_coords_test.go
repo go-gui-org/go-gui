@@ -314,6 +314,112 @@ func TestTransformDragReorderInMovedList(t *testing.T) {
 	}
 }
 
+// A drag ghost for a list inside a moved view tracks the pointer: the
+// float offset is in the list's frame, so it is mapped through the
+// transform with the anchor. Under a translation the ghost moves with
+// the pointer; under a quarter turn it moves across it (#1019).
+// The translate case also passes before the fix (a translation leaves
+// offsets alone); it pins the common path. The rotate case fails
+// before it: the ghost moved with the pointer instead of across it.
+func TestTransformDragGhostFollowsPointer(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		tr   Transform
+		// dx, dy is the window pointer delta per phase.
+		dx, dy float32
+	}{
+		{"translate", Translate(120, 60), 0, 6},
+		{"rotate", Rotate(90), 6, 0},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			w := NewTestWindow(t, WindowCfg{Width: 600, Height: 600})
+			w.TestRender(func(*Window) View {
+				return Column(ContainerCfg{
+					Sizing:  FillFill,
+					Padding: PaddingNone,
+					Content: []View{
+						Column(ContainerCfg{
+							ID:         "card",
+							Padding:    PaddingNone,
+							SizeBorder: NoBorder,
+							Transform:  tc.tr,
+							Content: []View{
+								ListBox(ListBoxCfg{
+									ID:          "lb",
+									Data:        listBoxTestData(4),
+									Reorderable: true,
+									OnReorder: func(_, _ string, _ EventCtx) {
+									},
+								}),
+							},
+						}),
+					},
+				})
+			})
+			var rows []*Layout
+			xfCollectRows(&w.layout, &rows)
+			if len(rows) < 4 {
+				t.Fatalf("found %d rows, want 4", len(rows))
+			}
+			// The middle row: room to move either way without
+			// leaving it, which would start a FLIP animation and
+			// freeze the ghost mid-flight.
+			sx, sy, ok := shapeHitPoint(rows[1])
+			if !ok {
+				t.Fatal("row 1 has no hit point")
+			}
+			ghostPos := func() (float32, float32, bool) {
+				ly, found := w.layout.findLayoutDepth(func(l Layout) bool {
+					return l.Shape != nil && l.Shape.ID == "drag_reorder_ghost"
+				}, 0)
+				if !found {
+					return 0, 0, false
+				}
+				return ly.Shape.X, ly.Shape.Y, true
+			}
+			// Interpolated steps, as a real pointer moves: a single
+			// jump can outrun the drop-target tracking.
+			dragTo := func(x, y float32) {
+				const steps = 8
+				for i := 1; i <= steps; i++ {
+					f := float32(i) / steps
+					w.EventFn(&Event{Type: EventMouseMove,
+						MouseX: sx + (x-sx)*f, MouseY: sy + (y-sy)*f})
+					w.settle()
+				}
+			}
+			w.EventFn(&Event{Type: EventMouseDown, MouseButton: MouseLeft, MouseX: sx, MouseY: sy})
+			w.settle()
+			// Past the drag threshold: the ghost is drawn from here on.
+			// Both reads stay in the row, so no FLIP starts.
+			dragTo(sx+tc.dx, sy+tc.dy)
+			_, _, ok = ghostPos()
+			if !ok {
+				t.Fatal("no drag ghost after the threshold move")
+			}
+			dragTo(sx+2*tc.dx, sy+2*tc.dy)
+			gx, gy, ok := ghostPos()
+			if !ok {
+				t.Fatal("drag ghost lost mid-drag")
+			}
+			// The ghost sits a grab offset behind the pointer. The
+			// grab is in the list's frame, so it is turned with the
+			// linear part of the card's matrix; the translation
+			// cancels out.
+			card := mustShape(t, w, "card")
+			m, _ := tc.tr.resolve(card.X, card.Y, card.Width, card.Height)
+			st := dragReorderGet(w, ScopeID("card", "lb"))
+			grabX := st.startMouseX - rows[1].Shape.X
+			grabY := st.startMouseY - rows[1].Shape.Y
+			wantX := (sx + 2*tc.dx) - (m[0]*grabX + m[1]*grabY)
+			wantY := (sy + 2*tc.dy) - (m[3]*grabX + m[4]*grabY)
+			if !xfNear(gx, wantX) || !xfNear(gy, wantY) {
+				t.Fatalf("ghost at (%v, %v), want (%v, %v)", gx, gy, wantX, wantY)
+			}
+		})
+	}
+}
+
 // xfCollectRows appends, in order, the list rows: the layouts whose
 // identity names a list item.
 func xfCollectRows(ly *Layout, out *[]*Layout) {

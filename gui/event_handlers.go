@@ -457,8 +457,7 @@ func mouseMoveHandlerDepth(layout *Layout, e *Event, w *Window, depth int) {
 	}
 	// A view transform moves the shape's own fill too, so the shape and
 	// its children are hit tested in its own frame.
-	if s := layout.Shape; s != nil && s.xf != nil {
-		px, py := xfMouseInverse(s, e)
+	if px, py, ok := xfMouseFrame(layout, e); ok {
 		defer restoreMouse(e, px, py)
 	}
 	if pointerMissesSubtree(layout.Shape, e.MouseX, e.MouseY) {
@@ -509,8 +508,7 @@ func mouseUpHandlerDepth(layout *Layout, e *Event, w *Window, depth int) {
 	}
 	// A view transform moves the shape's own fill too, so the shape and
 	// its children are hit tested in its own frame.
-	if s := layout.Shape; s != nil && s.xf != nil {
-		px, py := xfMouseInverse(s, e)
+	if px, py, ok := xfMouseFrame(layout, e); ok {
 		defer restoreMouse(e, px, py)
 	}
 	if pointerMissesSubtree(layout.Shape, e.MouseX, e.MouseY) {
@@ -602,8 +600,7 @@ func mouseScrollFallbackHandlerDepth(layout *Layout, e *Event, w *Window, depth 
 	}
 	// A view transform moves the shape's own fill too, so the shape and
 	// its children are hit tested in its own frame.
-	if s := layout.Shape; s != nil && s.xf != nil {
-		px, py := xfMouseInverse(s, e)
+	if px, py, ok := xfMouseFrame(layout, e); ok {
 		defer restoreMouse(e, px, py)
 	}
 	if pointerMissesSubtree(layout.Shape, e.MouseX, e.MouseY) {
@@ -724,8 +721,7 @@ func fileDropHandlerDepth(layout *Layout, e *Event, w *Window, depth int) {
 	}
 	// A view transform moves the shape's own fill too, so the shape and
 	// its children are hit tested in its own frame.
-	if s := layout.Shape; s != nil && s.xf != nil {
-		px, py := xfMouseInverse(s, e)
+	if px, py, ok := xfMouseFrame(layout, e); ok {
 		defer restoreMouse(e, px, py)
 	}
 	ox, oy := rotateMouseInverse(layout.Shape, e)

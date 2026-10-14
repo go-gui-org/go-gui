@@ -120,8 +120,7 @@ func floatAttachLayout(
 	shape := layout.Shape
 	ax, ay := floatAnchorPoint(layout, anchor)
 	tx, ty := attachOffset(tieOff, shape.Width, shape.Height)
-	x := ax - tx + offsetX
-	y := ay - ty + offsetY
+	x, y := offsetThroughTransform(layout, anchor, offsetX, offsetY, ax, ay, tx, ty)
 
 	if !shape.floatAutoFlip {
 		return x, y
@@ -200,6 +199,28 @@ func floatAnchorPoint(layout *Layout, a floatAttach) (float32, float32) {
 		return wx, wy
 	}
 	return x, y
+}
+
+// offsetThroughTransform places a float from its mapped anchor (ax, ay,
+// in window coordinates) and its tie-off (tx, ty). The offset is in the
+// parent's layout frame, so under a view transform or a quarter turn the
+// offset point is mapped out to where it is drawn, and the tie-off taken
+// off there: a drag ghost inside a moved view tracks the pointer (#1019).
+// With no transform on the path the map is the identity, as before.
+func offsetThroughTransform(
+	layout *Layout,
+	anchor floatAttach,
+	offsetX, offsetY float32,
+	ax, ay, tx, ty float32,
+) (float32, float32) {
+	parent := layout.Parent.Shape
+	pax, pay := attachOffset(anchor, parent.Width, parent.Height)
+	if mx, my, ok := xfLocalToWindowClip(
+		layout.Parent, parent.X+pax+offsetX, parent.Y+pay+offsetY, false,
+	); ok {
+		return mx - tx, my - ty
+	}
+	return ax - tx + offsetX, ay - ty + offsetY
 }
 
 // liftOverlayFloats extracts the floats declared inside an injected
