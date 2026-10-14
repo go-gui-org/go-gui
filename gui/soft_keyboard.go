@@ -158,7 +158,7 @@ func (w *Window) reshowSoftKeyboardOnPress(layout *Layout, e *Event, focusBefore
 	// keeps focus on the field too, and must not pop the OS keyboard
 	// over the keypad.
 	ly, ok := findLayoutByFocusID(layout, focusBefore)
-	if !ok || !ly.Shape.PointInShape(e.MouseX, e.MouseY) {
+	if !ok || !layoutHitsWindowPoint(ly, e.MouseX, e.MouseY) {
 		return
 	}
 	w.showSoftKeyboard()

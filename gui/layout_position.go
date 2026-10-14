@@ -240,6 +240,17 @@ func layoutSetShapeClipsDepth(layout *Layout, clip drawClip, depth int) {
 		}
 		return
 	}
+	// A transformed view is drawn, and hit tested, in its own frame.
+	// The clip its ancestors pass is in the parent's frame, and under a
+	// turn, a skew or perspective no rect in the view's frame holds it.
+	// So the view keeps it (xf.outer), the pointer is tested against it
+	// before it is mapped in (xfCoordsInverse), and inside the view the
+	// clips start unbounded. They also then do not depend on the
+	// matrix, which a render-only frame can change.
+	if xf := layout.Shape.xf; xf != nil {
+		xf.outer = clip
+		clip = xfUnboundedClip
+	}
 	shapeClip := shapeBounds(layout.Shape)
 	if r, ok := rectIntersection(shapeClip, clip); ok {
 		layout.Shape.shapeClip = r

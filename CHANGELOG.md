@@ -23,10 +23,18 @@ and this project adheres to
   exact. `BackfaceHidden` makes the container draw nothing while its back faces
   the viewer. The soft backend draws the transform exactly, perspective
   included. The web backend and PDF output have no perspective, so they draw a
-  view with the flat transform that matches it at the center of the view. For
-  now, two gaps remain. The pointer still hits the box where it would be without
-  the transform, and a hidden back face still takes it. Later phases of #1019
-  close these gaps.
+  view with the flat transform that matches it at the center of the view. The
+  pointer hits the container and its children where they are drawn, through the
+  matrix the last frame drew with, perspective included, and a hidden back face
+  takes no pointer. `TestClick` aims at the drawn position too. A drag that
+  locks the mouse (a slider, a splitter, drag to scroll) from a press inside a
+  transformed container gets its moves in that container's own frame, so it
+  tracks the pointer as drawn. Tooltips, blur on a press outside the focused
+  widget and the soft keyboard test the pointer where the widget is drawn. For
+  now, some gaps remain. The IME rect, accessibility bounds and where a float is
+  placed (a tooltip popup included) use the box without the transform. A part
+  drawn outside a parent that does not clip takes no pointer, as for any child
+  that overflows its parent. Later phases of #1019 close these gaps.
 
 - **Springs, tweens and keyframes can ask for render-only frames (#1016).**
   `SpringAnimation`, `TweenAnimation` and `KeyframeAnimation` have a new

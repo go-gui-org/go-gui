@@ -38,10 +38,14 @@ func layoutPipeline(layout *Layout, w *Window) {
 	// For the main tree Parent is nil and this is false.
 	layoutDisables(layout, ancestorDisabled(layout))
 
-	// Post-position passes.
+	// Post-position passes. Transforms resolve before the AmendLayout
+	// hooks, which may map the pointer through them (tooltips), and
+	// again after the transitions below move boxes.
+	layoutResolveTransforms(layout, w)
 	layoutAmend(layout, w)
 	applyLayoutTransition(layout, w)
 	applyHeroTransition(layout, w)
+	layoutResolveTransforms(layout, w)
 	layoutSetShapeClips(layout, w.windowRect())
 
 	// The invariant check runs here, not from debugAudit, because this is
@@ -51,6 +55,29 @@ func layoutPipeline(layout *Layout, w *Window) {
 	// escaping. Same reason debugCheckStamp hooks resolveFocusOwners.
 	if w.debugLayoutInvariantsChecked() {
 		w.debugCheckLayoutInvariants(layout)
+	}
+}
+
+// layoutResolveTransforms resolves each view transform against its
+// arranged box (#1019), so the hit clips and the pointer walks have a
+// matrix before the frame is drawn. A frame with no transforms built
+// none from the pool, and skips the walk.
+func layoutResolveTransforms(layout *Layout, w *Window) {
+	if w.scratch.viewXforms.used == 0 {
+		return
+	}
+	layoutResolveTransformsDepth(layout, w, 0)
+}
+
+func layoutResolveTransformsDepth(layout *Layout, w *Window, depth int) {
+	if layout == nil || overMaxDepth(depth) {
+		return
+	}
+	if s := layout.Shape; s != nil && s.xf != nil {
+		s.xf.update(s, w)
+	}
+	for i := range layout.Children {
+		layoutResolveTransformsDepth(&layout.Children[i], w, depth+1)
 	}
 }
 
@@ -95,6 +122,12 @@ func layoutHoverDepth(layout *Layout, w *Window, depth int) bool {
 	// layout_query.go.
 	if layout == nil || layout.Shape == nil || overMaxDepth(depth) {
 		return false
+	}
+	// A transformed shape and its children are tested in its own frame.
+	if s := layout.Shape; s.xf != nil {
+		px, py := w.viewState.mousePosX, w.viewState.mousePosY
+		w.viewState.mousePosX, w.viewState.mousePosY = xfCoordsInverse(s, px, py)
+		defer func() { w.viewState.mousePosX, w.viewState.mousePosY = px, py }()
 	}
 	// Apply inverse rotation for children of rotated containers.
 	savedX, savedY := w.viewState.mousePosX, w.viewState.mousePosY
@@ -158,6 +191,12 @@ func layoutMouseLeaveDepth(layout *Layout, w *Window, depth int) {
 	// find walks in layout_query.go.
 	if overMaxDepth(depth) || layout == nil || layout.Shape == nil {
 		return
+	}
+	// A transformed shape and its children are tested in its own frame.
+	if s := layout.Shape; s.xf != nil {
+		px, py := w.viewState.mousePosX, w.viewState.mousePosY
+		w.viewState.mousePosX, w.viewState.mousePosY = xfCoordsInverse(s, px, py)
+		defer func() { w.viewState.mousePosX, w.viewState.mousePosY = px, py }()
 	}
 	savedX, savedY := w.viewState.mousePosX, w.viewState.mousePosY
 	if layout.Shape.QuarterTurns > 0 {

@@ -65,7 +65,7 @@ func debugUnconsumed(
 		"%s on %s did not consume the event and %s above it %s, so both "+
 			"will run. Call ctx.Consume() in the %s handler if it means "+
 			"to act on the event; ignore this if it means to pass it on",
-		class.name(), self, other, class.ancestorReason(anc, e, w), self)
+		class.name(), self, other, class.ancestorReason(layout, anc, e, w), self)
 }
 
 // ancestorHandler returns the nearest ancestor of layout that would
@@ -78,7 +78,10 @@ func debugUnconsumed(
 // are back in the enclosing space by the time this runs — callRelative
 // restores them before calling.
 func (c evClass) ancestorHandler(layout *Layout, e *Event, w *Window) *Layout {
+	gesture := c == evGesture
+	wx, wy := eventToWindow(layout, e, gesture)
 	for anc := layout.Parent; anc != nil; anc = anc.Parent {
+		ae := eventAtAncestor(e, anc, wx, wy, gesture)
 		s := anc.Shape
 		// Dispatch skips disabled subtrees (isChildEnabled), so a
 		// disabled ancestor is not a second handler.
@@ -91,13 +94,13 @@ func (c evClass) ancestorHandler(layout *Layout, e *Event, w *Window) *Layout {
 		// on a non-focusable child would move focus to the ancestor —
 		// a behaviour change with no OnClick anywhere in sight. Checked
 		// before hasEvents(), which such an ancestor need not have.
-		if c == evClick && s.stealsFocusOn(e) {
+		if c == evClick && s.stealsFocusOn(&ae) {
 			return anc
 		}
 		if !s.hasEvents() {
 			continue
 		}
-		if c.wouldReach(anc, e, w) {
+		if c.wouldReach(anc, &ae, w) {
 			return anc
 		}
 	}
@@ -108,12 +111,45 @@ func (c evClass) ancestorHandler(layout *Layout, e *Event, w *Window) *Layout {
 // would do with the event. Distinguishing the two matters: "also
 // handles OnClick" sends the reader looking for a callback that, in the
 // focus case, does not exist.
-func (c evClass) ancestorReason(anc *Layout, e *Event, w *Window) string {
+func (c evClass) ancestorReason(layout, anc *Layout, e *Event, w *Window) string {
 	s := anc.Shape
-	if s.hasEvents() && c.wouldReach(anc, e, w) {
+	wx, wy := eventToWindow(layout, e, c == evGesture)
+	ae := eventAtAncestor(e, anc, wx, wy, c == evGesture)
+	if s.hasEvents() && c.wouldReach(anc, &ae, w) {
 		return "also handles " + c.name()
 	}
 	return "would take focus on " + c.name()
+}
+
+// eventToWindow returns the window position of e's pointer, which is in
+// layout's own frame here (callRelative has restored it). For a gesture
+// it is the centroid.
+func eventToWindow(layout *Layout, e *Event, gesture bool) (float32, float32) {
+	x, y := e.MouseX, e.MouseY
+	if gesture {
+		x, y = e.CentroidX, e.CentroidY
+	}
+	if wx, wy, ok := xfLocalToWindowClip(layout, x, y, false); ok {
+		return wx, wy
+	}
+	return xfNowhere, xfNowhere
+}
+
+// eventAtAncestor returns a copy of e with its pointer at the window
+// position (wx, wy) moved into anc's own frame, where dispatch tests anc.
+// Above a view transform, layout's frame is not anc's.
+func eventAtAncestor(e *Event, anc *Layout, wx, wy float32, gesture bool) Event {
+	ae := *e
+	x, y, ok := xfWindowToLocal(anc, wx, wy, true)
+	if !ok {
+		x, y = xfNowhere, xfNowhere
+	}
+	if gesture {
+		ae.CentroidX, ae.CentroidY = x, y
+	} else {
+		ae.MouseX, ae.MouseY = x, y
+	}
+	return ae
 }
 
 // stealsFocusOn reports whether mouseDownHandler would take focus for
@@ -260,8 +296,12 @@ func (w *Window) sweepUnconsumed(root *Layout) {
 func (w *Window) sweepShape(root, l *Layout) {
 	s := l.Shape
 	ev := s.events
-	cx := s.shapeClip.X + s.shapeClip.Width/2
-	cy := s.shapeClip.Y + s.shapeClip.Height/2
+	// Aimed where the shape is drawn, through any view transforms above
+	// it. A shape no point hits gets no pointer probes.
+	cx, cy, hit := shapeHitPoint(l)
+	if !hit {
+		cx, cy = xfNowhere, xfNowhere
+	}
 	if ev.OnClick != nil {
 		mouseDownHandler(root, false,
 			&Event{MouseX: cx, MouseY: cy, MouseButton: ev.clickButton.button()}, w)

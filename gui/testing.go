@@ -262,12 +262,16 @@ func (w *Window) testTarget(effectiveID string) (*Layout, error) {
 // The center of shapeClip, not of the shape: PointInShape tests the
 // clip rectangle, so a widget partly scrolled out of its container has
 // a shape center that misses and a clip center that does not.
+//
+// The center is in the widget's own frame. Under a view transform on the
+// widget or an ancestor, it is drawn somewhere else, so it is mapped out
+// to the window through those transforms (shapeHitPoint).
 func testHitPoint(ly *Layout, effectiveID string) (x, y float32, err error) {
-	c := ly.Shape.shapeClip
-	if c.Width <= 0 || c.Height <= 0 {
+	x, y, ok := shapeHitPoint(ly)
+	if !ok {
 		return 0, 0, fmt.Errorf("%w: %q", errTestNotVisible, effectiveID)
 	}
-	return c.X + c.Width/2, c.Y + c.Height/2, nil
+	return x, y, nil
 }
 
 // TestClick synthesizes a left-button press and release at the center of

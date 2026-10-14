@@ -18,6 +18,16 @@ type shapeTransform struct {
 	inv    xfMat // parent frame -> own frame; valid when invOK
 	invOK  bool
 	hidden bool // back face toward the viewer, and BackfaceHidden set
+	// resolved is set once update has run for the current box. Until
+	// then m and inv are zero, and input treats the shape as having no
+	// transform.
+	resolved bool
+	// outer is the clip the ancestors pass, in the parent's frame. Layout
+	// sets it. The pointer is tested against it before it is mapped into
+	// the view's frame, where no rect holds that clip (xfCoordsInverse).
+	// It does not depend on the matrix, so it stays right when a
+	// render-only frame changes the transform.
+	outer drawClip
 }
 
 // xfFrame is one open transform bracket in the render walk.
@@ -25,6 +35,12 @@ type xfFrame struct {
 	acc  xfMat    // own frame -> window: every open bracket, composed
 	clip drawClip // the window scissor in effect when the bracket opened
 	axis bool     // acc only moves and scales: a scissor stays exact
+	// flat is a frame for a view whose transform is the identity in
+	// this frame. No TransformBegin was emitted for it, so none is
+	// closed. It is pushed so the subtree still takes its clips from
+	// the render walk, not from the layout clips: those were cut through
+	// the transform that was in effect when layout ran (see update).
+	flat bool
 }
 
 // xfFar is half the side of xfUnboundedClip, in logical pixels.
@@ -59,36 +75,38 @@ func (xf *shapeTransform) current(shape *Shape, w *Window) (t Transform) {
 	return xf.fn()
 }
 
+// update resolves the shape's transform against its box and stores the
+// matrix, its inverse and the back face test. It returns the transform
+// it resolved. Layout runs it so hit testing has a matrix before the
+// first frame is drawn. The render walk runs it again, so the pointer is
+// mapped through the matrix the frame was drawn with, even when
+// TransformFn changed it in a render-only frame.
+func (xf *shapeTransform) update(shape *Shape, w *Window) Transform {
+	t := xf.current(shape, w)
+	xf.m, xf.hidden = t.resolve(shape.X, shape.Y, shape.Width, shape.Height)
+	xf.inv, xf.invOK = xf.m.inverse()
+	xf.resolved = true
+	return t
+}
+
 // renderTransformBegin resolves the shape's transform against its box,
-// stores the matrix for input, and opens a TransformBegin bracket. It
-// reports whether the bracket opened. It does not open when the back
-// face is toward the viewer and hidden (xf.hidden): the caller then draws
-// nothing of the subtree. When it did open, the caller closes it
-// with renderTransformEnd after the subtree, and draws the subtree with
-// xfUnboundedClip.
+// stores the matrix for input, and opens a transform bracket. It reports
+// whether a bracket opened, and whether the subtree must be drawn with
+// xfUnboundedClip. It opens none when the back face is toward the viewer
+// and hidden (xf.hidden): the caller then draws nothing of the subtree.
+// When one opened, the caller closes it with renderTransformEnd after
+// the subtree.
+//
+// An identity transform emits no TransformBegin, but still opens a flat
+// frame (see xfFrame.flat), and the subtree keeps the parent's clip.
 //
 // clip is the clip the parent passed, in the parent's frame. It is the
 // scissor in effect here, so it becomes the frame's entry scissor.
-func renderTransformBegin(shape *Shape, clip drawClip, w *Window) bool {
+func renderTransformBegin(shape *Shape, clip drawClip, w *Window) (opened, unbounded bool) {
 	xf := shape.xf
-	t := xf.current(shape, w)
-	m, hidden := t.resolve(shape.X, shape.Y, shape.Width, shape.Height)
-	xf.m, xf.hidden = m, hidden
-	xf.inv, xf.invOK = m.inverse()
-	if hidden || t.IsIdentity() {
-		return false
-	}
-	if !emitRendererIfValid(RenderCmd{
-		Kind:       RenderTransformBegin,
-		Homography: (*[9]float32)(&xf.m),
-		// The box, in the view's own frame. A backend with no
-		// perspective (web) fits its flat stand-in to the view here.
-		X: shape.X, Y: shape.Y, W: shape.Width, H: shape.Height,
-	}, w) {
-		// Nothing was drawn through this matrix, so input must not map
-		// the pointer through it either.
-		xf.m, xf.inv, xf.invOK, xf.hidden = xfIdentity, xfIdentity, true, false
-		return false
+	t := xf.update(shape, w)
+	if xf.hidden {
+		return false, false
 	}
 	parent := xfIdentity
 	entry := clip
@@ -97,15 +115,33 @@ func renderTransformBegin(shape *Shape, clip drawClip, w *Window) bool {
 		parent = top.acc
 		entry = top.toWindow(clip)
 	}
+	flat := t.IsIdentity() || !emitRendererIfValid(RenderCmd{
+		Kind:       RenderTransformBegin,
+		Homography: (*[9]float32)(&xf.m),
+		// The box, in the view's own frame. A backend with no
+		// perspective (web) fits its flat stand-in to the view here.
+		X: shape.X, Y: shape.Y, W: shape.Width, H: shape.Height,
+	}, w)
+	if flat {
+		// Nothing is drawn through this matrix, so input must not map
+		// the pointer through it either.
+		xf.m, xf.inv, xf.invOK = xfIdentity, xfIdentity, true
+		w.xfStack = append(w.xfStack, xfFrame{acc: parent, clip: entry,
+			axis: parent.axisAligned(), flat: true})
+		return true, false
+	}
 	acc := parent.mul(&xf.m)
 	w.xfStack = append(w.xfStack, xfFrame{acc: acc, clip: entry, axis: acc.axisAligned()})
-	return true
+	return true, true
 }
 
 // renderTransformEnd closes the bracket renderTransformBegin opened.
 func renderTransformEnd(w *Window) {
-	emitRenderer(RenderCmd{Kind: RenderTransformEnd}, w)
-	w.xfStack = w.xfStack[:len(w.xfStack)-1]
+	n := len(w.xfStack) - 1
+	if !w.xfStack[n].flat {
+		emitRenderer(RenderCmd{Kind: RenderTransformEnd}, w)
+	}
+	w.xfStack = w.xfStack[:n]
 }
 
 // renderShapeClip returns the clip the render walk uses as the shape's

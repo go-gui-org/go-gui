@@ -310,6 +310,11 @@ func keydownScrollHandler(layout *Layout, e *Event, w *Window) {
 // the rotated rectangle, which can extend outside the container's own shape
 // clip. A nil shape passes the ancestor clip through unchanged.
 func pointerMissesSubtree(shape *Shape, x, y float32) bool {
+	// A pointer on no part of a transformed view (xfNowhere) misses all
+	// of it, a quarter turned child too.
+	if !f32IsFinite(x) || !f32IsFinite(y) {
+		return true
+	}
 	if shape == nil ||
 		(!shape.Clip && (shape.QuarterTurns == 1 || shape.QuarterTurns == 3)) {
 		return false
@@ -326,6 +331,15 @@ func mouseDownHandler(
 	if layout == nil {
 		return
 	}
+	// A panic that unwound an earlier walk can leave entries behind.
+	w.viewState.xfPress = w.viewState.xfPress[:0]
+	w.viewState.pressRawX, w.viewState.pressRawY = e.MouseX, e.MouseY
+	// A press replayed from a locked callback (drag to scroll's tap) is
+	// a walk of its own: a lock taken in it uses this walk's frame.
+	if w.viewState.lockCallback {
+		w.viewState.lockCallback = false
+		defer func() { w.viewState.lockCallback = true }()
+	}
 	mouseDownHandlerDepth(layout, inHandler, e, w, 0)
 }
 
@@ -338,9 +352,21 @@ func mouseDownHandlerDepth(
 	// Check mouse lock (only at top level).
 	if !inHandler {
 		if locked := w.viewState.mouseLock.lockedMouseDown(); locked != nil {
-			locked(EventCtx{layout, e, w})
+			w.callLocked(locked, EventCtx{layout, e, w})
 			return
 		}
+	}
+	// A view transform moves the shape's own fill too, so the shape and
+	// its children are hit tested in its own frame. The press path keeps
+	// the transforms it is inside, for a mouse lock taken below.
+	if s := layout.Shape; s != nil && s.xf != nil {
+		px, py := xfMouseInverse(s, e)
+		vs := &w.viewState
+		vs.xfPress = append(vs.xfPress, s.xf.inv)
+		defer func() {
+			vs.xfPress = vs.xfPress[:len(vs.xfPress)-1]
+			restoreMouse(e, px, py)
+		}()
 	}
 	if pointerMissesSubtree(layout.Shape, e.MouseX, e.MouseY) {
 		return
@@ -354,17 +380,30 @@ func mouseDownHandlerDepth(
 	}
 	// Traverse children in reverse (topmost/last child first).
 	ox, oy := rotateMouseInverse(layout.Shape, e)
+	// The children see the pointer turned, so a lock taken below gets
+	// the turn too.
+	turned := layout.Shape != nil && layout.Shape.QuarterTurns > 0
+	handled := false
+	if turned {
+		w.viewState.xfPress = append(w.viewState.xfPress, quarterTurnInverse(layout.Shape))
+	}
 	for i := range slices.Backward(layout.Children) {
 		if !isChildEnabled(&layout.Children[i]) {
 			continue
 		}
 		mouseDownHandlerDepth(&layout.Children[i], true, e, w, depth+1)
 		if e.IsHandled {
-			e.MouseX, e.MouseY = ox, oy
-			return
+			handled = true
+			break
 		}
 	}
+	if turned {
+		w.viewState.xfPress = w.viewState.xfPress[:len(w.viewState.xfPress)-1]
+	}
 	e.MouseX, e.MouseY = ox, oy
+	if handled {
+		return
+	}
 	if layout.Shape == nil {
 		return
 	}
@@ -403,7 +442,7 @@ func mouseMoveHandler(layout *Layout, e *Event, w *Window) {
 		return
 	}
 	if w.viewState.mouseLock.MouseMove != nil {
-		w.viewState.mouseLock.MouseMove(EventCtx{layout, e, w})
+		w.callLocked(w.viewState.mouseLock.MouseMove, EventCtx{layout, e, w})
 		return
 	}
 	mouseMoveHandlerDepth(layout, e, w, 0)
@@ -415,6 +454,12 @@ func mouseMoveHandlerDepth(layout *Layout, e *Event, w *Window, depth int) {
 	}
 	if !w.pointerOverApp(e) {
 		return
+	}
+	// A view transform moves the shape's own fill too, so the shape and
+	// its children are hit tested in its own frame.
+	if s := layout.Shape; s != nil && s.xf != nil {
+		px, py := xfMouseInverse(s, e)
+		defer restoreMouse(e, px, py)
 	}
 	if pointerMissesSubtree(layout.Shape, e.MouseX, e.MouseY) {
 		return
@@ -452,7 +497,7 @@ func mouseUpHandler(layout *Layout, e *Event, w *Window) {
 		return
 	}
 	if w.viewState.mouseLock.MouseUp != nil {
-		w.viewState.mouseLock.MouseUp(EventCtx{layout, e, w})
+		w.callLocked(w.viewState.mouseLock.MouseUp, EventCtx{layout, e, w})
 		return
 	}
 	mouseUpHandlerDepth(layout, e, w, 0)
@@ -461,6 +506,12 @@ func mouseUpHandler(layout *Layout, e *Event, w *Window) {
 func mouseUpHandlerDepth(layout *Layout, e *Event, w *Window, depth int) {
 	if overMaxDepth(depth) {
 		return
+	}
+	// A view transform moves the shape's own fill too, so the shape and
+	// its children are hit tested in its own frame.
+	if s := layout.Shape; s != nil && s.xf != nil {
+		px, py := xfMouseInverse(s, e)
+		defer restoreMouse(e, px, py)
 	}
 	if pointerMissesSubtree(layout.Shape, e.MouseX, e.MouseY) {
 		return
@@ -518,7 +569,15 @@ func mouseScrollHandler(layout *Layout, e *Event, w *Window) {
 		// Cascade-on-unhandled is the designed contract, so there
 		// is no pre-mark here: an unhandled scroll falls through to
 		// the container below.
-		if callRelative(ly, e, w, ly.Shape.events.OnMouseScroll, evNotify) {
+		// The fallback walk below hands the callback the pointer in the
+		// shape's own frame, so this path maps it there too.
+		ox, oy := e.MouseX, e.MouseY
+		if lx, lyy, ok := xfWindowToLocal(ly, ox, oy, false); ok {
+			e.MouseX, e.MouseY = lx, lyy
+		}
+		handled := callRelative(ly, e, w, ly.Shape.events.OnMouseScroll, evNotify)
+		e.MouseX, e.MouseY = ox, oy
+		if handled {
 			return
 		}
 		// The focused target already ran once above. The
@@ -540,6 +599,12 @@ func mouseScrollFallbackHandler(layout *Layout, e *Event, w *Window) {
 func mouseScrollFallbackHandlerDepth(layout *Layout, e *Event, w *Window, depth int, skip *Layout) {
 	if overMaxDepth(depth) {
 		return
+	}
+	// A view transform moves the shape's own fill too, so the shape and
+	// its children are hit tested in its own frame.
+	if s := layout.Shape; s != nil && s.xf != nil {
+		px, py := xfMouseInverse(s, e)
+		defer restoreMouse(e, px, py)
 	}
 	if pointerMissesSubtree(layout.Shape, e.MouseX, e.MouseY) {
 		return
@@ -656,6 +721,12 @@ func fileDropHandler(layout *Layout, e *Event, w *Window) {
 func fileDropHandlerDepth(layout *Layout, e *Event, w *Window, depth int) {
 	if overMaxDepth(depth) {
 		return
+	}
+	// A view transform moves the shape's own fill too, so the shape and
+	// its children are hit tested in its own frame.
+	if s := layout.Shape; s != nil && s.xf != nil {
+		px, py := xfMouseInverse(s, e)
+		defer restoreMouse(e, px, py)
 	}
 	ox, oy := rotateMouseInverse(layout.Shape, e)
 	for i := range slices.Backward(layout.Children) {

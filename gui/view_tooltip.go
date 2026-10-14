@@ -209,9 +209,14 @@ func withTooltipAmend(
 	popupID := ScopeID(tipID, "popup")
 	return func(ctx EventCtx) {
 		ts := &ctx.Window.viewState.tooltip
-		mx := ctx.Window.viewState.mousePosX
-		my := ctx.Window.viewState.mousePosY
-		inside := mx >= ctx.Layout.Shape.X && my >= ctx.Layout.Shape.Y &&
+		// The pointer is a window position; the shape's box is in its own
+		// frame, which a view transform moves. No clip test: layout sets
+		// the clips after the AmendLayout hooks, and the box test here
+		// never took the ancestors' clips.
+		mx, my, onView := xfWindowToLocal(ctx.Layout,
+			ctx.Window.viewState.mousePosX, ctx.Window.viewState.mousePosY, false)
+		inside := onView &&
+			mx >= ctx.Layout.Shape.X && my >= ctx.Layout.Shape.Y &&
 			mx < ctx.Layout.Shape.X+ctx.Layout.Shape.Width &&
 			my < ctx.Layout.Shape.Y+ctx.Layout.Shape.Height
 

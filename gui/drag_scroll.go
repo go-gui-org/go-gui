@@ -21,13 +21,16 @@ type dragPanState struct {
 	scrollID string
 	// start is where the press landed; last is the previous move.
 	// Deltas come from last, not from the event's MouseDX/DY:
-	// touch-synthesized moves carry no per-event delta. A tap
-	// replays from start, so no second copy of the press point.
+	// touch-synthesized moves carry no per-event delta.
 	startX, startY float32
 	lastX, lastY   float32
 	modifiers      Modifier
 	active         bool
 	panned         bool
+	// rawStartX/Y is the press in window coordinates, for the replay
+	// from the root. startX/Y is in the frame the press reached the
+	// container in, as the locked moves are.
+	rawStartX, rawStartY float32
 }
 
 // dragPanIntercept claims a left press on a DragScroll scrollable
@@ -78,8 +81,16 @@ func dragPanIntercept(layout *Layout, e *Event, w *Window) bool {
 		startY:    e.MouseY,
 		lastX:     e.MouseX,
 		lastY:     e.MouseY,
+		rawStartX: e.MouseX,
+		rawStartY: e.MouseY,
 		modifiers: e.Modifiers,
 		active:    true,
+	}
+	// Inside a view transform the press reached here mapped, and the
+	// replay needs where it was in the window.
+	if len(w.viewState.xfPress) > 0 {
+		w.viewState.dragPan.rawStartX = w.viewState.pressRawX
+		w.viewState.dragPan.rawStartY = w.viewState.pressRawY
 	}
 	w.MouseLock(MouseLockCfg{
 		MouseMove: dragPanOnMouseMove,
@@ -102,10 +113,14 @@ func dragPanNestedClaim(layout *Layout, x, y float32, depth int) bool {
 	if s == nil {
 		return false
 	}
+	// A nested view transform moves the shape and its children.
+	x, y = xfCoordsInverse(s, x, y)
 	if s.DragScroll && s.Scrollable && !s.Disabled &&
 		s.PointInShape(x, y) {
 		return true
 	}
+	// The children of a quarter turned shape are in its unrotated frame.
+	x, y = rotateCoordsInverse(s, x, y)
 	for i := range layout.Children {
 		if dragPanNestedClaim(&layout.Children[i], x, y, depth+1) {
 			return true
@@ -133,12 +148,17 @@ func dragPanScrollbarAt(layout *Layout, x, y float32, depth int) bool {
 		return false
 	}
 	s := layout.Shape
-	if s == nil || !s.PointInShape(x, y) {
+	if s == nil {
+		return false
+	}
+	x, y = xfCoordsInverse(s, x, y)
+	if !s.PointInShape(x, y) {
 		return false
 	}
 	if s.scrollbarOrientation != scrollbarNone {
 		return true
 	}
+	x, y = rotateCoordsInverse(s, x, y)
 	for i := range layout.Children {
 		if dragPanScrollbarAt(&layout.Children[i], x, y, depth+1) {
 			return true
@@ -222,6 +242,8 @@ func dragPanOnMouseUp(ctx EventCtx) {
 		return
 	}
 	st := w.viewState.dragPan
+	// Read before the unlock clears it: the release came mapped.
+	framed := w.viewState.mouseLockXfOn
 	w.viewState.dragPan = dragPanState{}
 	w.viewState.mouseButtonHeld = MouseInvalid
 	w.viewState.pressTargetID = ""
@@ -243,8 +265,11 @@ func dragPanOnMouseUp(ctx EventCtx) {
 	}
 	down := *e
 	down.Type = EventMouseDown
-	down.MouseX = st.startX
-	down.MouseY = st.startY
+	// The replay goes from the root, which maps the pointer through
+	// every view transform again, so it takes window positions: the
+	// press's, and the release's from before the lock mapped it.
+	down.MouseX = st.rawStartX
+	down.MouseY = st.rawStartY
 	down.MouseButton = MouseLeft
 	down.Modifiers = st.modifiers
 	down.FrameCount = w.frameCount
@@ -256,6 +281,9 @@ func dragPanOnMouseUp(ctx EventCtx) {
 	// press, where the widget under the tap has answered: a keypad
 	// key keeps focus, empty space blurs (issue #770).
 	w.pressWalk(root, &down)
+	if framed {
+		e.MouseX, e.MouseY = w.viewState.lockRawX, w.viewState.lockRawY
+	}
 	mouseUpHandler(root, e, w)
 	w.InvalidateLayout()
 }

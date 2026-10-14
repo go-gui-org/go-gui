@@ -1,6 +1,6 @@
 # Visual transforms on views
 
-Issue #1019. Status: **planned** — phases 1, 2 and 6 landed.
+Issue #1019. Status: **planned** — phases 1, 2, 3, 4 and 6 landed.
 
 ## Problem
 
@@ -95,8 +95,61 @@ that lifts on hover, a tilted badge and tumbling confetti cannot be built.
   under its own matrix, then the matrix the content draws with. A rounded
   stencil is still drawn as a rect clip.
 - **Not yet checked.** A `ColorFilter` layer inside a transform.
-- **Input.** `rotateMouseInverse` becomes a general inverse mapping. Every
-  pointer walk keeps its map/recurse/restore shape.
+- **Input.** Every pointer walk (press, move, release, wheel, file drop, hover,
+  mouse leave, gesture, the interaction target and the idle move check) maps the
+  pointer with `xfCoordsInverse` when it enters a transformed shape, before it
+  tests that shape, and restores it on the way out. The shape's own fill is
+  drawn through the transform, so the map comes first, not only for the
+  children, unlike a quarter turn. The walks keep their map/recurse/restore
+  shape.
+  - The matrix comes from two places. Layout resolves every transform after
+    arrange (`layoutResolveTransforms`), so hover and the first click have a
+    matrix before the first frame. The render walk resolves it again, so input
+    follows a `TransformFn` that changed in a render-only frame.
+  - A point on no part of the view maps to NaN (`xfNowhere`), which every hit
+    test misses: a hidden back face, a view flattened to a line, or a ray that
+    meets the view's plane behind the viewer. `pointerMissesSubtree` treats NaN
+    as a miss, so a quarter turned child under it is skipped too.
+  - Hit clips. Under a turn, a skew or perspective, no rect in the view's frame
+    holds the clip its ancestors pass. So `layoutSetShapeClips` keeps that clip
+    on the transform (`xf.outer`, in the parent's frame), and the clips inside
+    the view start unbounded. `xfCoordsInverse` tests the pointer against
+    `xf.outer` before it maps it in. Every walk gets the exact ancestor clip
+    this way, also the hover, target and idle move walks, which test no ancestor
+    on the way down. The clips do not depend on the matrix, so a render-only
+    frame that changes it leaves none stale.
+  - Rejected: cutting the ancestor clip into the view's frame as the bounding
+    box of its mapped corners. The box is bigger than the clip, so the walks
+    that test no ancestor hit cut-off corners, and the box goes stale when a
+    render-only frame changes the matrix.
+  - When a view's transform is the identity at render time, the render walk
+    still opens a flat frame with no bracket (`xfFrame.flat`). Its subtree then
+    takes its scissors from the render walk, not from the unbounded layout
+    clips.
+  - Mouse lock. The press walk keeps the inverse maps it applies, outer first
+    (`viewState.xfPress`): each view transform, and each quarter turn around the
+    children. `MouseLock` composes them (`mouseLockXf`), and the locked press,
+    move and release are mapped through it (`lockMouseMap`). So a lock taken
+    inside a view gets its events in the frame the press reached the widget in,
+    and its saved shape position matches. A lock taken outside a press walk (a
+    queued command) keeps window coordinates.
+  - `xfLocalToWindow` maps a point out through the quarter turns and view
+    transforms above it, and fails for a point outside a view's `xf.outer`.
+    `shapeHitPoint` tries the clip center, then a 5x5 grid across the clip, so a
+    widget that is partly cut off is still found. `TestClick` and the
+    unconsumed-event sweep aim with it.
+  - Code that tests a window point against a shape outside the walks maps it
+    with `xfWindowToLocal` (`layoutHitsWindowPoint`): blur on press, the soft
+    keyboard, the tooltip hook, the focused-scroll path and the unconsumed-event
+    sweep's ancestor test. The RTF tooltip keeps its bounds in the window
+    (`xfBoxToWindow`). Transforms resolve once before the `AmendLayout` hooks
+    too, for the tooltip hook.
+  - Drag to scroll replays a tap from the root, so it keeps the press and
+    release in window coordinates for that. Its claim walks map through nested
+    transforms. A `MouseLock` from inside a locked callback keeps the drag's
+    frame (`lockCallback`).
+  - Not yet mapped: a part drawn outside a parent that does not clip, which the
+    parent's own test prunes, as for any overflowing child.
 - **Bounds.** `LocalToWindow` and `WindowToLocal` map points. The IME rect, a11y
   bounds, tooltips, drag start and float anchors use the internal form of these.
   A float stays upright at its transformed anchor.
@@ -107,8 +160,8 @@ that lifts on hover, a tilted badge and tumbling confetti cannot be built.
 | ----- | ------------------------------------------------------------------------------ | ------- |
 | 1     | `Transform` type, chain methods, `Lerp`, the homography, its inverse, backface | landed  |
 | 2     | `ContainerCfg.Transform`, render bracket, Metal + GL + mobile, clips, goldens  | landed  |
-| 3     | Pointer input through the inverse, in every walk                               | pending |
-| 4     | Backface culling for drawing and input                                         | pending |
+| 3     | Pointer input through the inverse, in every walk                               | landed  |
+| 4     | Backface culling for drawing (with 2) and input (with 3)                       | landed  |
 | 5     | `LocalToWindow` / `WindowToLocal`, IME, a11y, tooltips, drag, float anchors    | pending |
 | 6     | Soft backend (homography blit), web (Canvas2D `setTransform`) and PDF          | landed  |
 | 7     | QuarterTurns input goes through the general mapping; special cases are deleted | pending |

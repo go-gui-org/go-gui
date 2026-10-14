@@ -232,10 +232,10 @@ func TestRenderTransformStackBalanced(t *testing.T) {
 }
 
 func TestLayoutShapeClipTransformedStillCutByAncestor(t *testing.T) {
-	// Until the pointer is mapped through the transform, a transformed
-	// shape is hit tested as if untransformed. Its hit clip must still be
-	// cut by its clipping ancestors, or a card scrolled out of a viewport
-	// would take clicks over the header above it.
+	// A transformed shape keeps the clip its ancestors pass, in the
+	// parent's frame, and the pointer is tested against it before it is
+	// mapped in. Without that, a card scrolled out of a viewport would
+	// take clicks over the header above it.
 	parent := &Shape{
 		shapeType: shapeRectangle, Opacity: 1, Clip: true,
 		X: 0, Y: 0, Width: 200, Height: 100,
@@ -244,9 +244,10 @@ func TestLayoutShapeClipTransformedStillCutByAncestor(t *testing.T) {
 		Shape:    parent,
 		Children: []Layout{{Shape: xfShape(0, 150, 100, 100, Rotate(20))}},
 	}
-	layoutSetShapeClips(layout, makeClip(0, 0, 400, 400))
 	child := layout.Children[0].Shape
-	if child.PointInShape(50, 200) {
+	child.xf.update(child, makeWindow())
+	layoutSetShapeClips(layout, makeClip(0, 0, 400, 400))
+	if x, y := xfCoordsInverse(child, 50, 200); child.PointInShape(x, y) {
 		t.Fatal("transformed child outside its clipping parent took the pointer")
 	}
 }

@@ -144,6 +144,13 @@ func gestureHandlerDepth(
 	if overMaxDepth(depth) {
 		return
 	}
+	// A transformed shape and its children are hit tested in its own
+	// frame.
+	if s := layout.Shape; s != nil && s.xf != nil {
+		px, py := e.CentroidX, e.CentroidY
+		e.CentroidX, e.CentroidY = xfCoordsInverse(s, px, py)
+		defer func() { e.CentroidX, e.CentroidY = px, py }()
+	}
 	ox, oy := rotateCentroidInverse(layout.Shape, e)
 	for i := range slices.Backward(layout.Children) {
 		if !isChildEnabled(&layout.Children[i]) {

@@ -284,8 +284,9 @@ func (w *Window) blurUnlessPressInFocused(layout *Layout, e *Event) {
 	if focusID == "" || layout == nil {
 		return
 	}
+	// Tested where the widget is drawn, through any view transforms.
 	if ly, ok := findLayoutByFocusID(layout, focusID); ok &&
-		ly.Shape.PointInShape(e.MouseX, e.MouseY) {
+		layoutHitsWindowPoint(ly, e.MouseX, e.MouseY) {
 		return
 	}
 	w.ClearFocus()

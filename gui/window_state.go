@@ -139,7 +139,25 @@ type windowInspector struct {
 type ViewState struct {
 	gesture gestureState
 
-	mouseLock     MouseLockCfg
+	mouseLock MouseLockCfg
+	// xfPress holds the inverse maps the press walk has applied to the
+	// pointer, outer first: view transforms and quarter turns. MouseLock
+	// composes them into mouseLockXf, so the lock's events arrive in the
+	// frame the press was dispatched in.
+	xfPress        []xfMat
+	mouseLockXf    xfMat
+	mouseLockXfOn  bool
+	mouseLockLastX float32
+	mouseLockLastY float32
+	// lockRawX/Y is the window position of the locked event being
+	// dispatched, before lockMouseMap; pressRawX/Y that of the press
+	// being dispatched. Drag to scroll replays a tap from the root with
+	// them.
+	lockRawX, lockRawY   float32
+	pressRawX, pressRawY float32
+	// lockCallback is set while a locked callback runs. A MouseLock from
+	// there replaces the lock mid drag, so it keeps the drag's frame.
+	lockCallback  bool
 	dragPan       dragPanState
 	registry      stateRegistry
 	markdownCache *BoundedMap[markdownCacheKey, markdownCacheEntry]

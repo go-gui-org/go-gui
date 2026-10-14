@@ -206,6 +206,9 @@ func interactionTargetDepth(layout *Layout, x, y float32, depth int) (string, bo
 	if shape == nil {
 		return "", false
 	}
+	// A transformed shape and its children are hit tested in its own
+	// frame.
+	x, y = xfCoordsInverse(shape, x, y)
 	// Children of a rotated container are hit-tested in its unrotated
 	// frame, as layoutHoverDepth does.
 	cx, cy := x, y

@@ -34,8 +34,10 @@ func renderLayoutDepth(layout *Layout, bgColor Color, clip drawClip, w *Window, 
 	// A view turned to show its hidden back face draws nothing, nor do
 	// its children.
 	if xf := layout.Shape.xf; xf != nil {
-		if renderTransformBegin(layout.Shape, clip, w) {
-			clip = xfUnboundedClip
+		if opened, unbounded := renderTransformBegin(layout.Shape, clip, w); opened {
+			if unbounded {
+				clip = xfUnboundedClip
+			}
 			defer renderTransformEnd(w)
 		} else if xf.hidden {
 			return

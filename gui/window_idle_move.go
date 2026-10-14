@@ -114,6 +114,13 @@ func idleMoveWalk(layout *Layout, p idleMovePoints, depth int) bool {
 	if s == nil {
 		return true
 	}
+	// A transformed shape and its children are tested in its own frame.
+	if s.xf != nil {
+		p.oldX, p.oldY = xfCoordsInverse(s, p.oldX, p.oldY)
+		p.mouseX, p.mouseY = xfCoordsInverse(s, p.mouseX, p.mouseY)
+		p.moveX, p.moveY = xfCoordsInverse(s, p.moveX, p.moveY)
+		p.prevMoveX, p.prevMoveY = xfCoordsInverse(s, p.prevMoveX, p.prevMoveY)
+	}
 	if s.hasEvents() && !idleMoveShape(s, p) {
 		return false
 	}

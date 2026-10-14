@@ -379,7 +379,10 @@ type MouseLockCfg struct {
 	// No auto-consume: mouse lock already bypasses hit-testing and
 	// normal propagation, so handled-marking is moot here. Note the
 	// coordinates stay window-absolute, unlike the shape-relative
-	// coords everywhere else.
+	// coords everywhere else. A lock taken while a press is dispatched
+	// inside a view transform (ContainerCfg.Transform) gets them in that
+	// view's own frame instead, the frame the press reached the widget
+	// in, so a drag there tracks the pointer as drawn.
 	//
 	// When both MouseDown and mouseDown are set, MouseDown runs
 	// and mouseDown is ignored. mouseDown stays for internal
@@ -475,11 +478,31 @@ func (cfg MouseLockCfg) lockedMouseDown() func(EventCtx) {
 // handlers in MouseLockCfg.
 func (w *Window) MouseLock(cfg MouseLockCfg) {
 	w.viewState.mouseLock = cfg
+	// A lock taken while a press is dispatched inside view transforms
+	// gets its events in the frame the press was in: the inverse maps
+	// the walk applied, outer one first.
+	vs := &w.viewState
+	if vs.lockCallback {
+		// A lock replaced from a locked callback: that callback got its
+		// event in the drag's frame, so the new lock keeps it.
+		return
+	}
+	vs.mouseLockXfOn = len(vs.xfPress) > 0
+	if vs.mouseLockXfOn {
+		inv := xfIdentity
+		for i := range vs.xfPress {
+			inv = vs.xfPress[i].mul(&inv)
+		}
+		vs.mouseLockXf = inv
+		// No point has mapped yet (see lockMouseMap).
+		vs.mouseLockLastX, vs.mouseLockLastY = xfNowhere, xfNowhere
+	}
 }
 
 // MouseUnlock returns mouse handling events to normal behavior.
 func (w *Window) MouseUnlock() {
 	w.viewState.mouseLock = MouseLockCfg{}
+	w.viewState.mouseLockXfOn = false
 }
 
 // MouseCancel aborts an in-flight drag: it unlocks the mouse and
