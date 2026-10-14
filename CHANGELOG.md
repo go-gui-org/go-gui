@@ -33,9 +33,22 @@ and this project adheres to
   last tick as `dt`, not a fixed 0.016. An `Update` that moves a fixed amount
   per call now runs faster on a fast display, so scale the step by `dt`. The
   mouse-wheel scroll ease does this, so it takes the same ~110 ms at any rate.
+- **The web backend updates its accessibility tree in place (#1038).** The
+  hidden ARIA DOM that mirrors the accessibility tree was cleared and rebuilt on
+  every sync (every 100 ms), with every attribute of every node written again. A
+  page of 240 images made 4,098 DOM calls per sync, an ~8 ms stall every sixth
+  frame. Now each element keeps what it wrote: a sync writes only the attributes
+  that changed, and moves elements only when a node's parent changes. An
+  unchanged tree makes no DOM calls. No API change.
 
 ### Fixed
 
+- **Screen-reader clicks on the web keep working after the tree updates
+  (#1038).** Each accessibility sync released the click callbacks of buttons,
+  links and other actionable nodes, but left them attached to the DOM elements,
+  which are reused. A screen-reader activation after the next sync called a
+  released function. Each element now keeps one callback, attached while the
+  node is actionable.
 - **A driver that refuses vsync is reported (#1018).** The GL backends on
   Windows and X11 asked for swap interval 1 and ignored the answer. Now a
   refusal is reported under `gui.Debug` (`DebugWindowDegraded`). Since the

@@ -11,13 +11,41 @@ import (
 
 // a11yState holds the hidden ARIA DOM tree that mirrors the
 // framework's A11yNode flat array for screen reader access.
+//
+// sync is incremental: each pooled element remembers what it last
+// wrote, so an unchanged tree costs Go-side comparisons and no DOM
+// calls, and the tree is re-linked only when its shape changes. A
+// full rewrite every sync was ~1.4 ms per frame on an SVG-heavy page,
+// paid as an ~8 ms burst every a11ySyncInterval.
 type a11yState struct {
 	doc        js.Value
 	root       js.Value
 	liveRegion js.Value
-	elems      []js.Value
+	elems      []a11yElem
 	actionCb   func(action, index int)
-	clickCbs   []js.Func
+
+	// linked is the node count the DOM tree was last built for, and
+	// focused the index aria-activedescendant names (-1 = none).
+	linked  int
+	focused int
+}
+
+// a11yElem is one pooled element and the attributes it last wrote.
+type a11yElem struct {
+	el js.Value
+	// click is created once per element; it depends only on the
+	// index. listening says it is attached.
+	click     js.Func
+	listening bool
+
+	written     bool // attributes below were applied at least once
+	role        string
+	label, desc string
+	hasValue    bool
+	vNow, vMin  float32
+	vMax        float32
+	state       gui.AccessState
+	parent      int
 }
 
 // ariaRole maps AccessRole to ARIA role strings.
@@ -62,6 +90,7 @@ var ariaRole = [...]string{
 func (a *a11yState) init(doc js.Value, callback func(action, index int)) {
 	a.doc = doc
 	a.actionCb = callback
+	a.focused = -1
 
 	// Visually-hidden root for the ARIA tree.
 	root := doc.Call("createElement", "div")
@@ -87,126 +116,181 @@ func (a *a11yState) sync(nodes []gui.A11yNode, count, focusedIdx int) {
 		return
 	}
 
-	// Release previous click callbacks.
-	for _, cb := range a.clickCbs {
-		cb.Release()
-	}
-	a.clickCbs = a.clickCbs[:0]
-
-	// Grow element pool as needed.
+	// Grow the element pool as needed. The id names the index, so it
+	// is set once.
 	for len(a.elems) < count {
 		el := a.doc.Call("createElement", "div")
 		el.Set("tabIndex", -1)
-		a.elems = append(a.elems, el)
+		el.Set("id", "a11y-"+itoa(len(a.elems)))
+		a.elems = append(a.elems, a11yElem{el: el, parent: -1})
 	}
 
-	// Detach everything so the tree can be rebuilt.
-	a.root.Set("innerHTML", "")
+	// Children are appended in index order, which is the reading order.
+	// A node already linked under an unchanged parent keeps its place;
+	// a changed parent re-links the whole tree.
+	relinkAll := false
 	for i := range count {
-		a.elems[i].Set("innerHTML", "")
-	}
-
-	// Update each element and rebuild the DOM tree.
-	for i := range count {
+		e := &a.elems[i]
 		node := &nodes[i]
-		el := a.elems[i]
-
-		// Role.
-		role := ""
-		if int(node.Role) < len(ariaRole) {
-			role = ariaRole[node.Role]
+		parent := node.ParentIdx
+		if parent < 0 || parent >= count {
+			parent = -1
 		}
-		if role != "" && role != "none" {
-			el.Call("setAttribute", "role", role)
+		if i < a.linked && e.parent != parent {
+			relinkAll = true
+		}
+		a.applyAttrs(i, e, node)
+		e.parent = parent
+	}
+
+	// Detach what the previous tree used beyond count.
+	for i := count; i < a.linked; i++ {
+		a.elems[i].el.Call("remove")
+	}
+	// Append in index order: everything after a parent change, else
+	// only the nodes new to the tree. New indices follow every linked
+	// one, so appending keeps each parent's children in index order.
+	from := min(a.linked, count)
+	if relinkAll {
+		from = 0
+	}
+	for i := from; i < count; i++ {
+		e := &a.elems[i]
+		if e.parent < 0 {
+			a.root.Call("appendChild", e.el)
 		} else {
-			el.Call("removeAttribute", "role")
+			a.elems[e.parent].el.Call("appendChild", e.el)
 		}
+	}
+	a.linked = count
 
-		// ID for aria-activedescendant.
-		el.Set("id", "a11y-"+itoa(i))
+	// Focus tracking.
+	if focusedIdx < 0 || focusedIdx >= count {
+		focusedIdx = -1
+	}
+	if focusedIdx != a.focused {
+		if focusedIdx >= 0 {
+			a.root.Call("setAttribute", "aria-activedescendant",
+				"a11y-"+itoa(focusedIdx))
+		} else {
+			a.root.Call("removeAttribute", "aria-activedescendant")
+		}
+		a.focused = focusedIdx
+	}
+}
 
-		// Label / description.
+// applyAttrs writes the attributes of node that differ from what e
+// last wrote, and attaches or detaches the click listener when
+// actionability changes.
+func (a *a11yState) applyAttrs(i int, e *a11yElem, node *gui.A11yNode) {
+	el := e.el
+	first := !e.written
+
+	role := ""
+	if int(node.Role) < len(ariaRole) {
+		role = ariaRole[node.Role]
+	}
+	if role == "none" {
+		role = ""
+	}
+	if first || role != e.role {
+		setOrRemoveAttr(el, "role", role)
+		e.role = role
+	}
+
+	if first || node.Label != e.label {
 		setOrRemoveAttr(el, "aria-label", node.Label)
+		e.label = node.Label
+	}
+	if first || node.Description != e.desc {
 		setOrRemoveAttr(el, "aria-description", node.Description)
+		e.desc = node.Description
+	}
 
-		// Numeric value (sliders, progress bars).
-		if node.ValueMin != 0 || node.ValueMax != 0 ||
-			node.ValueNum != 0 {
+	// Numeric value (sliders, progress bars).
+	hasValue := node.ValueMin != 0 || node.ValueMax != 0 || node.ValueNum != 0
+	if first || hasValue != e.hasValue || (hasValue &&
+		(node.ValueNum != e.vNow || node.ValueMin != e.vMin ||
+			node.ValueMax != e.vMax)) {
+		if hasValue {
 			el.Call("setAttribute", "aria-valuenow",
-				strconv.FormatFloat(
-					float64(node.ValueNum), 'g', -1, 32))
+				strconv.FormatFloat(float64(node.ValueNum), 'g', -1, 32))
 			el.Call("setAttribute", "aria-valuemin",
-				strconv.FormatFloat(
-					float64(node.ValueMin), 'g', -1, 32))
+				strconv.FormatFloat(float64(node.ValueMin), 'g', -1, 32))
 			el.Call("setAttribute", "aria-valuemax",
-				strconv.FormatFloat(
-					float64(node.ValueMax), 'g', -1, 32))
+				strconv.FormatFloat(float64(node.ValueMax), 'g', -1, 32))
 		} else {
 			el.Call("removeAttribute", "aria-valuenow")
 			el.Call("removeAttribute", "aria-valuemin")
 			el.Call("removeAttribute", "aria-valuemax")
 		}
+		e.hasValue = hasValue
+		e.vNow, e.vMin, e.vMax = node.ValueNum, node.ValueMin, node.ValueMax
+	}
 
-		// State flags.
-		setBoolAttr(el, "aria-expanded",
-			node.State.Has(gui.AccessStateExpanded))
-		setBoolAttr(el, "aria-selected",
-			node.State.Has(gui.AccessStateSelected))
-		setBoolAttr(el, "aria-checked",
-			node.State.Has(gui.AccessStateChecked))
-		setBoolAttr(el, "aria-required",
-			node.State.Has(gui.AccessStateRequired))
-		setBoolAttr(el, "aria-invalid",
-			node.State.Has(gui.AccessStateInvalid))
-		setBoolAttr(el, "aria-busy",
-			node.State.Has(gui.AccessStateBusy))
-		setBoolAttr(el, "aria-readonly",
-			node.State.Has(gui.AccessStateReadOnly))
-		setBoolAttr(el, "aria-modal",
-			node.State.Has(gui.AccessStateModal))
-		setBoolAttr(el, "aria-disabled",
-			node.State.Has(gui.AccessStateDisabled))
-
-		if node.State.Has(gui.AccessStateLive) {
-			el.Call("setAttribute", "aria-live", "polite")
-		} else {
-			el.Call("removeAttribute", "aria-live")
+	// State flags: only the bits that changed.
+	if changed := node.State ^ e.state; first || changed != 0 {
+		for _, f := range a11yStateAttrs {
+			if first || changed.Has(f.state) {
+				setBoolAttr(el, f.attr, node.State.Has(f.state))
+			}
 		}
+		if first || changed.Has(gui.AccessStateLive) {
+			if node.State.Has(gui.AccessStateLive) {
+				el.Call("setAttribute", "aria-live", "polite")
+			} else {
+				el.Call("removeAttribute", "aria-live")
+			}
+		}
+		e.state = node.State
+	}
 
-		// Click handler for actionable roles.
-		if a.actionCb != nil && isActionable(node.Role) {
-			idx := i
-			cb := js.FuncOf(
-				func(_ js.Value, _ []js.Value) any {
+	// Click handler for actionable roles.
+	want := a.actionCb != nil && isActionable(node.Role)
+	if want != e.listening {
+		if want {
+			if e.click.IsUndefined() {
+				idx := i
+				e.click = js.FuncOf(func(_ js.Value, _ []js.Value) any {
 					a.actionCb(gui.A11yActionPress, idx)
 					return nil
 				})
-			el.Call("addEventListener", "click", cb)
-			a.clickCbs = append(a.clickCbs, cb)
-		}
-
-		// Attach to parent.
-		if node.ParentIdx < 0 || node.ParentIdx >= count {
-			a.root.Call("appendChild", el)
+			}
+			el.Call("addEventListener", "click", e.click)
 		} else {
-			a.elems[node.ParentIdx].Call("appendChild", el)
+			el.Call("removeEventListener", "click", e.click)
 		}
+		e.listening = want
 	}
+	e.written = true
+}
 
-	// Focus tracking.
-	if focusedIdx >= 0 && focusedIdx < count {
-		a.root.Call("setAttribute", "aria-activedescendant",
-			"a11y-"+itoa(focusedIdx))
-	} else {
-		a.root.Call("removeAttribute", "aria-activedescendant")
-	}
+// a11yStateAttrs maps the boolean state flags to their ARIA attribute.
+var a11yStateAttrs = [...]struct {
+	state gui.AccessState
+	attr  string
+}{
+	{gui.AccessStateExpanded, "aria-expanded"},
+	{gui.AccessStateSelected, "aria-selected"},
+	{gui.AccessStateChecked, "aria-checked"},
+	{gui.AccessStateRequired, "aria-required"},
+	{gui.AccessStateInvalid, "aria-invalid"},
+	{gui.AccessStateBusy, "aria-busy"},
+	{gui.AccessStateReadOnly, "aria-readonly"},
+	{gui.AccessStateModal, "aria-modal"},
+	{gui.AccessStateDisabled, "aria-disabled"},
 }
 
 func (a *a11yState) destroy() {
-	for _, cb := range a.clickCbs {
-		cb.Release()
+	for i := range a.elems {
+		if e := &a.elems[i]; !e.click.IsUndefined() {
+			if e.listening {
+				e.el.Call("removeEventListener", "click", e.click)
+			}
+			e.click.Release()
+		}
 	}
-	a.clickCbs = nil
+	a.elems = nil
 	if a.root.Truthy() {
 		a.root.Call("remove")
 	}
