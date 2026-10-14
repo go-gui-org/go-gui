@@ -205,6 +205,19 @@ type ShowcaseApp struct {
 	DrawCanvasMarkerX float32
 	DrawCanvasMarkerY float32
 
+	// Transform playground sliders (demo_transform.go). TransformScale
+	// is seeded to 1 in newShowcaseApp; the zero value would collapse
+	// the preview to its origin.
+	TransformRotate float32
+	TransformScale  float32
+	TransformTX     float32
+	TransformTY     float32
+	// TransformLift is the hover card's lift amount, 0 at rest to 1
+	// raised; TransformAngle/TransformFlipped drive the flip card.
+	TransformLift    float32
+	TransformAngle   float32
+	TransformFlipped bool
+
 	ColorPickerColor gui.Color
 
 	// ColorHSLA drives the composable color components. It is an HSLA
@@ -297,6 +310,7 @@ func newShowcaseApp() *ShowcaseApp {
 			SelectedRowIDs: map[string]bool{},
 		},
 		GesturePadScale:   1,
+		TransformScale:    1,
 		DrawCanvasMarkerX: 240,
 		DrawCanvasMarkerY: 140,
 		DrawCanvasVersion: 1,
@@ -414,6 +428,7 @@ var demoEntries = []DemoEntry{
 	{ID: "shader", Label: "Custom Shaders", Group: groupDrawing, Summary: "Custom fragment shaders for dynamic fills.", Tags: []string{"shader", "glsl", "metal"}},
 	{ID: "color_filter", Label: "Color Filters", Group: groupDrawing, Summary: "Color matrix transforms: grayscale, sepia, saturate, contrast, brightness.", Tags: []string{"filter", "color", "grayscale", "sepia", "saturate", "matrix"}},
 	{ID: "draw_canvas", Label: "Draw Canvas", Group: groupDrawing, Summary: "Procedural 2D drawing with cached tessellation.", Tags: []string{"canvas", "draw", "chart", "line", "polygon", "circle"}},
+	{ID: "transform", Label: "Transforms", Group: groupDrawing, Summary: "Move, turn, scale and skew containers with visual transforms.", Tags: []string{"transform", "rotate", "scale", "translate", "skew", "perspective", "flip", "hover", "3d"}},
 	{ID: "theme_gen", Label: "Theme", Group: groupApp, Summary: "Generate a theme from a seed color, tint level, and palette strategy.", Tags: []string{"theme", "color", "palette", "generator"}},
 
 	{ID: "markdown", Label: "Markdown", Group: groupText, Summary: "Render markdown into styled rich content.", Tags: []string{"docs", "text", "rich"}},

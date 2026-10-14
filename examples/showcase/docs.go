@@ -105,6 +105,7 @@ var widgetDocFiles = map[string]string{
 	"toast":              "docs/widget_toast.md",
 	"toggle":             "docs/widget_toggle.md",
 	"tooltip":            "docs/widget_tooltip.md",
+	"transform":          "docs/widget_transform.md",
 	"tree":               "docs/widget_tree.md",
 	"wrap_panel":         "docs/widget_wrap_panel.md",
 }
