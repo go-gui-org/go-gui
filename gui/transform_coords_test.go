@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"math"
 	"strings"
 	"testing"
 )
@@ -22,6 +23,33 @@ func TestLocalToWindowTranslated(t *testing.T) {
 	lx, ly, ok := w.WindowToLocal(ScopeID("card", "b"), x, y)
 	if !ok || !xfNear(lx, 10) || !xfNear(ly, 5) {
 		t.Fatalf("WindowToLocal = (%v, %v, %v), want (10, 5, true)", lx, ly, ok)
+	}
+}
+
+// A non-finite point has no place in the window or in a box, even with
+// no transform on the path to map it through.
+func TestLocalToWindowNonFiniteFails(t *testing.T) {
+	w := NewTestWindow(t, WindowCfg{Width: 400, Height: 300})
+	w.TestRender(func(*Window) View {
+		return Column(ContainerCfg{
+			Sizing:  FillFill,
+			Content: []View{Button(ButtonCfg{ID: "b", Width: 100, Height: 40})},
+		})
+	})
+	id := "b"
+	nan := float32(math.NaN())
+	inf := float32(math.Inf(1))
+	if _, _, ok := w.LocalToWindow(id, nan, 0); ok {
+		t.Error("LocalToWindow(NaN) ok, want false")
+	}
+	if _, _, ok := w.LocalToWindow(id, 0, inf); ok {
+		t.Error("LocalToWindow(Inf) ok, want false")
+	}
+	if _, _, ok := w.WindowToLocal(id, nan, 0); ok {
+		t.Error("WindowToLocal(NaN) ok, want false")
+	}
+	if _, _, ok := w.WindowToLocal(id, 0, inf); ok {
+		t.Error("WindowToLocal(Inf) ok, want false")
 	}
 }
 

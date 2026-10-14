@@ -110,13 +110,7 @@ func renderTransformBegin(shape *Shape, clip drawClip, w *Window) (opened, unbou
 	if xf.hidden {
 		return false, false
 	}
-	parent := xfIdentity
-	entry := clip
-	if n := len(w.xfStack); n > 0 {
-		top := &w.xfStack[n-1]
-		parent = top.acc
-		entry = top.toWindow(clip)
-	}
+	parent, entry := xfParentFrame(clip, w)
 	flat := t.IsIdentity() || !emitRendererIfValid(RenderCmd{
 		Kind:       RenderTransformBegin,
 		Homography: (*[9]float32)(&xf.m),
@@ -135,6 +129,19 @@ func renderTransformBegin(shape *Shape, clip drawClip, w *Window) (opened, unbou
 	acc := parent.mul(&xf.m)
 	w.xfStack = append(w.xfStack, xfFrame{acc: acc, clip: entry, axis: acc.axisAligned()})
 	return true, true
+}
+
+// xfParentFrame returns what a new frame on w.xfStack builds on: the map
+// from the parent's frame to the window, and clip (in the parent's frame)
+// as a window scissor, the new frame's entry scissor. With no frame open
+// both are as given.
+func xfParentFrame(clip drawClip, w *Window) (xfMat, drawClip) {
+	n := len(w.xfStack)
+	if n == 0 {
+		return xfIdentity, clip
+	}
+	top := &w.xfStack[n-1]
+	return top.acc, top.toWindow(clip)
 }
 
 // renderTransformEnd closes the bracket renderTransformBegin opened.
@@ -163,13 +170,7 @@ func renderQuarterTurnBegin(shape *Shape, clip drawClip, w *Window) drawClip {
 		RotCX:    shape.X + shape.Width/2,
 		RotCY:    shape.Y + shape.Height/2,
 	}, w)
-	parent := xfIdentity
-	entry := clip
-	if n := len(w.xfStack); n > 0 {
-		top := &w.xfStack[n-1]
-		parent = top.acc
-		entry = top.toWindow(clip)
-	}
+	parent, entry := xfParentFrame(clip, w)
 	turn := quarterTurnForward(shape)
 	acc := parent.mul(&turn)
 	w.xfStack = append(w.xfStack, xfFrame{acc: acc, clip: entry, axis: acc.axisAligned()})

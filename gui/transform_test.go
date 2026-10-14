@@ -237,6 +237,16 @@ func TestTransformNonFiniteIsIgnored(t *testing.T) {
 	}
 }
 
+func TestTransformLerpNonFiniteFractionKeepsStart(t *testing.T) {
+	a := Translate(4, 2).Rotate(10)
+	b := Rotate(90).Scale(2)
+	for _, f := range []float32{float32(math.NaN()), float32(math.Inf(1))} {
+		if got := a.Lerp(b, f); got != a {
+			t.Errorf("Lerp(f=%v) = %+v, want the start %+v", f, got, a)
+		}
+	}
+}
+
 func TestTransformResolveNoAlloc(t *testing.T) {
 	tr := RotateY(30).Perspective(400).Rotate(10).Scale(1.1)
 	n := testing.AllocsPerRun(100, func() {

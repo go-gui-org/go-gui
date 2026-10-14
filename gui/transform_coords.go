@@ -8,9 +8,9 @@ package gui
 // turned view.
 //
 // effectiveID is the widget's effective ID, as FindByID takes it. ok is
-// false when the last laid-out frame has no widget with that ID, or when
-// the point has no place on screen: a hidden back face, or a perspective
-// ray behind the viewer. The ancestors' clips are not tested: a point a
+// false when the last laid-out frame has no widget with that ID, when x
+// or y is not finite, or when the point has no place on screen: a hidden
+// back face, or a perspective ray behind the viewer. The ancestors' clips are not tested: a point a
 // clip cuts away still maps.
 //
 // It reads the last laid-out frame. A transform that TransformFn changed
@@ -18,7 +18,7 @@ package gui
 // exportaudit:keep — app API for placing overlays by transformed views (#1019)
 func (w *Window) LocalToWindow(effectiveID string, x, y float32) (wx, wy float32, ok bool) {
 	ly, found := w.coordsLayout("LocalToWindow", effectiveID)
-	if !found {
+	if !found || !f32IsFinite(x) || !f32IsFinite(y) {
 		return 0, 0, false
 	}
 	return xfLocalToWindowClip(ly, ly.Shape.X+x, ly.Shape.Y+y, false)
@@ -26,13 +26,14 @@ func (w *Window) LocalToWindow(effectiveID string, x, y float32) (wx, wy float32
 
 // WindowToLocal is the inverse of LocalToWindow: it maps a window point
 // into a widget's own box, relative to the box's top-left corner. ok is
-// false when there is no widget with that ID, or when the point is on no
-// drawn part of the views above it (a hidden back face, a view flattened
-// to a line, a ray that meets the view's plane behind the viewer).
+// false when there is no widget with that ID, when x or y is not finite,
+// or when the point is on no drawn part of the views above it (a hidden
+// back face, a view flattened to a line, a ray that meets the view's
+// plane behind the viewer).
 // exportaudit:keep — app API for placing overlays by transformed views (#1019)
 func (w *Window) WindowToLocal(effectiveID string, x, y float32) (lx, ly float32, ok bool) {
 	l, found := w.coordsLayout("WindowToLocal", effectiveID)
-	if !found {
+	if !found || !f32IsFinite(x) || !f32IsFinite(y) {
 		return 0, 0, false
 	}
 	fx, fy, mapped := xfWindowToLocal(l, x, y, false)

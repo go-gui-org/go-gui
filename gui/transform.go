@@ -174,8 +174,9 @@ func (t Transform) Origin(fx, fy float32) Transform {
 }
 
 // BackfaceHidden marks the view so that it draws nothing while its back
-// faces the viewer, as CSS backface-visibility: hidden. Use it for the two faces of a card flip.
-// A mirror (a negative scale) does not show the back face.
+// faces the viewer, as CSS backface-visibility: hidden. Use it for the
+// two faces of a card flip. A mirror (a negative scale) does not show
+// the back face.
 // exportaudit:keep — caller-facing API (#1019)
 func (t Transform) BackfaceHidden() Transform {
 	t.backHidden = true
@@ -197,9 +198,13 @@ func (t Transform) IsIdentity() bool {
 // Lerp returns the transform at fraction f of the way from t to to. Each
 // component is interpolated on its own, so Lerp is defined for any two
 // transforms; f outside [0, 1] extrapolates, which is what a spring that
-// overshoots needs. The backface flag switches at f = 0.5.
+// overshoots needs. The backface flag switches at f = 0.5. A non-finite
+// f returns t unchanged.
 // exportaudit:keep — caller-facing API (#1019)
 func (t Transform) Lerp(to Transform, f float32) Transform {
+	if !f32IsFinite(f) {
+		return t
+	}
 	// a*(1-f) + b*f gives exactly a at f=0 and exactly b at f=1.
 	l := func(a, b float32) float32 { return a*(1-f) + b*f }
 	out := Transform{
@@ -296,8 +301,9 @@ func (a *xfMat) mul(b *xfMat) xfMat {
 }
 
 // axisAligned reports whether m only moves and scales (a mirror counts),
-// or does that after a quarter turn: a rect then maps to a rect. The off-axis terms are compared against the
-// scale, so float trig noise from a turn of 360° does not count as a turn.
+// or does that after a quarter turn: a rect then maps to a rect. The
+// off-axis terms are compared against the scale, so float trig noise
+// from a turn of 360° does not count as a turn.
 func (m *xfMat) axisAligned() bool {
 	if m[6] != 0 || m[7] != 0 {
 		return false
@@ -413,9 +419,9 @@ func (t Transform) resolve(x, y, w, h float32) (m xfMat, backHidden bool) {
 		// test is a sign comparison, and a mirror (det(M) < 0 with
 		// det(m) < 0) stays a front face.
 		detM := (1 - kx*ky) * sx * sy
-		detH := float64(acc[0])*(acc[5]*acc[15]-acc[7]*acc[13]) -
-			float64(acc[1])*(acc[4]*acc[15]-acc[7]*acc[12]) +
-			float64(acc[3])*(acc[4]*acc[13]-acc[5]*acc[12])
+		detH := acc[0]*(acc[5]*acc[15]-acc[7]*acc[13]) -
+			acc[1]*(acc[4]*acc[15]-acc[7]*acc[12]) +
+			acc[3]*(acc[4]*acc[13]-acc[5]*acc[12])
 		// An edge-on view (rotateY(90)) has detH ≈ 0, and the sign of that
 		// residue depends on trig rounding. Treat it as a front face so the
 		// result does not flip between platforms. detH scales with detM
