@@ -222,10 +222,18 @@ type ShowcaseApp struct {
 	// field, so it accepts input.
 	TransformPlaygroundText string
 	// TransformLift is the hover card's lift amount, 0 at rest to 1
-	// raised; TransformAngle/TransformFlipped drive the flip card.
-	TransformLift    float32
-	TransformAngle   float32
-	TransformFlipped bool
+	// raised.
+	TransformLift float32
+
+	// Flip panel page (demo_flip_panel.go). Each bool chooses the face
+	// one FlipPanel shows; FlipPanelLikes counts presses of the button
+	// on the back of the details panel.
+	FlipPanelY         bool
+	FlipPanelX         bool
+	FlipPanelDetails   bool
+	FlipPanelBouncy    bool
+	FlipPanelClickOnly bool
+	FlipPanelLikes     int
 
 	ColorPickerColor gui.Color
 
@@ -475,6 +483,7 @@ var demoEntries = []DemoEntry{
 	{ID: "audio", Label: "Audio", Group: groupApp, Summary: "Sound effects and music playback via beep.", Tags: []string{"audio", "sound", "music", "sfx", "beep", "mixer"}},
 
 	{ID: "dialog", Label: "Dialog", Group: groupMessages, Summary: "Message, confirm, prompt, and custom dialogs.", Tags: []string{"modal", "confirm", "prompt"}},
+	{ID: "flip_panel", Label: "Flip Panel", Group: groupLayout, Summary: "Card that turns over in 3D to show its back face.", Tags: []string{"flip", "card", "panel", "3d", "rotate", "turn"}},
 	{ID: "expand_panel", Label: "Expand Panel", Group: groupLayout, Summary: "Collapsible region with custom header and content.", Tags: []string{"accordion", "collapse", "panel"}},
 	{ID: "command_palette", Label: "Command Palette", Group: groupActions, Summary: "Keyboard-first searchable action list.", Tags: []string{"command", "search", "palette", "keyboard"}},
 	{ID: "context_menu", Label: "Context Menu", Group: groupActions, Summary: "Right-click floating menu with submenus and keyboard navigation.", Tags: []string{"context", "menu", "right-click", "popup", "floating"}},

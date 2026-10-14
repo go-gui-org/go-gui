@@ -17,6 +17,11 @@ type shapeTransform struct {
 	inv    xfMat // parent frame -> own frame; valid when invOK
 	invOK  bool
 	hidden bool // back face toward the viewer, and BackfaceHidden set
+	// inert is ContainerCfg.inert. It lives here, not on Shape, so the
+	// flag costs no Shape bytes: every hit test of a shape with a
+	// transform already goes through xfCoordsInverse, which refuses an
+	// inert one, and the tab and a11y walks read it through isInert.
+	inert bool
 	// resolved is set once update has run for the current box. Until
 	// then m and inv are zero, and input treats the shape as having no
 	// transform.
@@ -277,4 +282,10 @@ func renderBoxToWindow(r drawClip, w *Window) drawClip {
 		return box
 	}
 	return r
+}
+
+// isInert reports whether s is inert (ContainerCfg.inert): it and its
+// subtree take no pointer, no tab stop and no accessibility node.
+func (s *Shape) isInert() bool {
+	return s != nil && s.xf != nil && s.xf.inert
 }

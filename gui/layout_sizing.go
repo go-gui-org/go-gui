@@ -489,6 +489,7 @@ func layoutFillWidthsImplDepth(layout *Layout, fb *fillBuffers, depth int) {
 		if remainingWidth < -f32Tolerance && !layout.Shape.Wrap && !layout.Shape.Overflow {
 			distributeSpace(layout, remainingWidth, distributeShrink, distributeHorizontal, fb)
 		}
+		fillOutOfFlowMain(layout, distributeHorizontal)
 	case axisTopToBottom:
 		layoutFillCrossAxis(layout, distributeHorizontal, fb)
 	}
@@ -551,6 +552,7 @@ func layoutFillHeightsImplDepth(layout *Layout, fb *fillBuffers, depth int) {
 		if remainingHeight < -f32Tolerance {
 			distributeSpace(layout, remainingHeight, distributeShrink, distributeVertical, fb)
 		}
+		fillOutOfFlowMain(layout, distributeVertical)
 	case axisLeftToRight:
 		layoutFillCrossAxis(layout, distributeVertical, fb)
 	}

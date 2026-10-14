@@ -251,3 +251,27 @@ func distributeSpace(layout *Layout, remainingIn float32, mode distributeMode, a
 	}
 	return remaining
 }
+
+// fillOutOfFlowMain gives each out-of-flow Fill child of layout that
+// sets fillOutOfFlow the whole content box on the main axis. Such a
+// child takes no slot in the row, so the distribution above skips it
+// and it would keep its fit size. On the cross axis layoutFillCrossAxis
+// already gives it the content box; this makes the main axis agree, so
+// the child covers its parent's content box. FlipPanel stacks its back
+// face on its front face this way.
+//
+// Only a shape with both outOfFlow and fillOutOfFlow counts. A Float
+// lives in its own layer and is sized against its anchor, OverDraw
+// children (scrollbars) size themselves, and a slider Look's parts keep
+// their fit size, so none of them changes here.
+func fillOutOfFlowMain(layout *Layout, axis distributeAxis) {
+	content := f32Max(0, getSize(layout.Shape, axis)-getPadding(layout.Shape, axis))
+	for i := range layout.Children {
+		c := layout.Children[i].Shape
+		if c == nil || !c.outOfFlow || !c.fillOutOfFlow || getSizing(c, axis) != sizingFill {
+			continue
+		}
+		setSize(c, axis, content)
+		clampMinMax(c, axis)
+	}
+}

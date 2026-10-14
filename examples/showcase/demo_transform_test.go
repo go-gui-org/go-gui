@@ -65,7 +65,7 @@ func TestNewShowcaseAppSeedsTransformScale(t *testing.T) {
 }
 
 // transformTestWindow renders the showcase at the transform page in
-// a window tall enough that the flip card and reset button are laid
+// a window tall enough that the playground controls and reset button are laid
 // out in view: TestClick aims at the visible clip center and misses
 // a scrolled-out target.
 func transformTestWindow(t *testing.T, app *ShowcaseApp) *gui.Window {
@@ -112,30 +112,6 @@ func TestTransformPlaygroundButtonsClearText(t *testing.T) {
 				t.Fatalf("TransformPlaygroundText = %q after %s, want empty", app.TransformPlaygroundText, tc.name)
 			}
 		})
-	}
-}
-
-// Clicking the flip card toggles the face and starts the flip tween
-// toward the other side.
-func TestTransformFlipClickStartsAnimation(t *testing.T) {
-	app := newShowcaseApp()
-	w := transformTestWindow(t, app)
-
-	if err := w.TestClick("detail:transform-flip"); err != nil {
-		t.Fatalf("TestClick: %v", err)
-	}
-	if !app.TransformFlipped {
-		t.Fatal("TransformFlipped = false, want true")
-	}
-	if !w.HasAnimation("transform-flip") {
-		t.Fatal("no transform-flip animation after click")
-	}
-
-	if err := w.TestClick("detail:transform-flip"); err != nil {
-		t.Fatalf("second TestClick: %v", err)
-	}
-	if app.TransformFlipped {
-		t.Fatal("TransformFlipped = true after second click, want false")
 	}
 }
 

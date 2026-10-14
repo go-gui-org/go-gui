@@ -2,14 +2,13 @@ package main
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/go-gui-org/go-gui/gui"
 )
 
 const (
-	transformFlipW float32 = 160
-	transformFlipH float32 = 100
+	transformCardW float32 = 160
+	transformCardH float32 = 100
 	// playgroundSliderInset is the symmetric side inset of the
 	// playground slider block: ~10% of the default detail width per
 	// side, so the tracks read ~20% shorter and stay centered. The
@@ -173,7 +172,7 @@ func demoTransform(w *gui.Window) gui.View {
 			}),
 			sectionLabel(t, "Animated"),
 			gui.Text(gui.TextCfg{
-				Text:      "TransformFn is read on every draw and wins over Transform: a tween moves the view in render-only frames with no rebuild. HoverLift owns that tween for a hover lift; the flip card runs its own.",
+				Text:      "TransformFn is read on every draw and wins over Transform: a tween moves the view in render-only frames with no rebuild. HoverLift owns that tween for a hover lift. For a card that turns over, see the Flip Panel page.",
 				TextStyle: t.TextStyleCaption,
 				Mode:      gui.TextModeWrap,
 			}),
@@ -184,7 +183,6 @@ func demoTransform(w *gui.Window) gui.View {
 				HAlign:  gui.HAlignCenter,
 				Content: []gui.View{
 					transformLiftCard(t, app),
-					transformFlipCard(w, t),
 				},
 			}),
 		},
@@ -336,8 +334,8 @@ func transformLiftCard(t gui.Theme, app *ShowcaseApp) gui.View {
 				func(xf func() gui.Transform) gui.View {
 					return gui.Column(gui.ContainerCfg{
 						ID:          "transform-lift",
-						Width:       transformFlipW,
-						Height:      transformFlipH,
+						Width:       transformCardW,
+						Height:      transformCardH,
 						Sizing:      gui.FixedFixed,
 						Padding:     gui.PaddingMedium,
 						Radius:      gui.RadiusMedium,
@@ -354,80 +352,4 @@ func transformLiftCard(t gui.Theme, app *ShowcaseApp) gui.View {
 				}),
 		},
 	})
-}
-
-// transformFlipCard turns over in 3D on a click. Both faces sit on
-// the same spot: the back face is moved left by one card width onto
-// the front. Each face hides while its back is toward the viewer, so
-// only one shows at a time.
-func transformFlipCard(w *gui.Window, t gui.Theme) gui.View {
-	angle := func() float32 { return appState(w).TransformAngle }
-	front := func() gui.Transform {
-		return gui.Perspective(600).RotateY(angle()).BackfaceHidden()
-	}
-	back := func() gui.Transform {
-		return gui.Translate(-transformFlipW, 0).Perspective(600).
-			RotateY(angle() + 180).BackfaceHidden()
-	}
-	face := func(id, label string, color gui.Color, fn func() gui.Transform) gui.View {
-		return gui.Column(gui.ContainerCfg{
-			ID:          id,
-			Width:       transformFlipW,
-			Height:      transformFlipH,
-			Sizing:      gui.FixedFixed,
-			Padding:     gui.PaddingMedium,
-			Radius:      gui.RadiusMedium,
-			Color:       color,
-			HAlign:      gui.HAlignCenter,
-			VAlign:      gui.VAlignMiddle,
-			TransformFn: fn,
-			Content: []gui.View{
-				gui.Text(gui.TextCfg{Text: label, TextStyle: t.TextStyleTitleSmall}),
-			},
-		})
-	}
-	return gui.Column(gui.ContainerCfg{
-		Sizing:     gui.FitFit,
-		Spacing:    gui.SpacingSmall,
-		Padding:    gui.NoPadding,
-		SizeBorder: gui.NoBorder,
-		HAlign:     gui.HAlignCenter,
-		Content: []gui.View{
-			gui.Text(gui.TextCfg{Text: "Click to flip", TextStyle: t.TextStyleCaption.Bold()}),
-			gui.Row(gui.ContainerCfg{
-				ID:         "transform-flip",
-				Width:      transformFlipW,
-				Height:     transformFlipH,
-				Sizing:     gui.FixedFixed,
-				Padding:    gui.PaddingNone,
-				Spacing:    gui.NoSpacing,
-				SizeBorder: gui.NoBorder,
-				OnClick:    transformFlip,
-				Content: []gui.View{
-					face("transform-flip-front", "Front", t.ColorPanel, front),
-					face("transform-flip-back", "Back", t.ColorActive, back),
-				},
-			}),
-		},
-	})
-}
-
-// transformFlip starts the flip animation toward the other face. The
-// angle is read through TransformFn when the card is drawn, so the
-// tween moves the card in render-only frames with no rebuild.
-func transformFlip(ctx gui.EventCtx) {
-	s := appState(ctx.Window)
-	s.TransformFlipped = !s.TransformFlipped
-	var to float32
-	if s.TransformFlipped {
-		to = 180
-	}
-	tw := gui.NewTweenAnimation("transform-flip", s.TransformAngle, to, func(v float32, w *gui.Window) {
-		appState(w).TransformAngle = v
-	})
-	tw.Duration = 500 * time.Millisecond
-	tw.Easing = gui.EaseInOutCubic
-	tw.Refresh = gui.AnimationRefreshRenderOnly
-	ctx.Window.AnimationAdd(tw)
-	ctx.Consume()
 }

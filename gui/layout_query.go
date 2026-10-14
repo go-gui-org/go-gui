@@ -166,6 +166,11 @@ func collectFocusCandidatesDepth(layout *Layout, candidates *[]focusCandidate, s
 		return
 	}
 	s := layout.Shape
+	// An inert subtree (the turned-away face of a FlipPanel) has no
+	// tab stops.
+	if s.isInert() {
+		return
+	}
 	if s != nil && s.canTakeFocus() && !s.FocusSkip {
 		// Candidates carry the effective ID: it is what the focus store
 		// holds, so it is what focusFindNext/Previous compare against.

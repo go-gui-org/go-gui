@@ -53,6 +53,12 @@ type ContainerCfg struct {
 	// (WithTooltip's enter and leave test). A move into or out of the
 	// shape then rebuilds, so the hook sees it.
 	pointerAmend bool
+	// inert takes the container and everything in it out of input, the
+	// way the HTML inert attribute does: no hit tests, no tab stops, no
+	// accessibility nodes. It still draws. FlipPanel sets it on the face
+	// that is turned away. It rides on the transform record, so setting
+	// it gives the container one (see shapeTransform.inert).
+	inert bool
 	// rowClick is the click target of a list-like row, read by the
 	// shared rowOnClick (row_click.go).
 	rowClick *rowClick
@@ -643,10 +649,11 @@ func buildContainerShape(cfg *ContainerCfg, w *Window) Shape {
 	}
 	// An identity transform with no TransformFn draws and hits like no
 	// transform, so it costs no pointer.
-	if cfg.TransformFn != nil || !cfg.Transform.IsIdentity() {
+	if cfg.TransformFn != nil || !cfg.Transform.IsIdentity() || cfg.inert {
 		shape.xf = w.allocTransform(shapeTransform{
 			static: cfg.Transform,
 			fn:     cfg.TransformFn,
+			inert:  cfg.inert,
 		})
 	}
 	warnFixedSizingConflict(w, &shape)

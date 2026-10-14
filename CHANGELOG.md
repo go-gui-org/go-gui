@@ -10,6 +10,16 @@ and this project adheres to
 
 ### Added
 
+- **`gui.FlipPanel` turns over to show a back face (#1020).** Give it `Front`
+  and `Back` views and a `Flipped` value that the app owns, and invert `Flipped`
+  in `OnFlip`. The panel turns about `FlipAxisY` (the default) or `FlipAxisX` on
+  a spring in render-only frames. A second toggle during a turn turns it back
+  from its current angle and velocity, with no jump. A click, Enter or Space
+  flips it. The face that is turned away takes no pointer, has no tab stops and
+  is not in the accessibility tree. When the system asks for reduced motion, the
+  faces cross-fade and do not turn. The showcase has a Flip Panel page, and
+  `examples/flip_panel/` builds a deck of flash cards with it.
+
 - **`gui.HoverLift` animates a hover lift (#1019).** It watches hover for its
   ID, eases a caller-owned float toward 0 or 1 in render-only frames, and hands
   the builder a `TransformFn` that lerps the identity transform to the lifted

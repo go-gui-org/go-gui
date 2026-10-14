@@ -265,6 +265,7 @@ var componentDemos = map[string]func(*gui.Window) gui.View{
 	"svg":                 demoSvg,
 	"image":               demoImage,
 	"expand_panel":        demoExpandPanel,
+	"flip_panel":          demoFlipPanel,
 	"icons":               demoIcons,
 	"blur":                demoBlur,
 	"color_filter":        demoColorFilter,

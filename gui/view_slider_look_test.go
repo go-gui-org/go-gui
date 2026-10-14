@@ -201,3 +201,37 @@ func TestSliderLookNilParts(t *testing.T) {
 		t.Fatalf("findings: %v", found)
 	}
 }
+
+// A Look Handle sized Fill along the track keeps its fit size: it leaves
+// the flow, so nothing hands it the track's length. Only a FlipPanel back
+// face (Shape.fillOutOfFlow) fills its parent on the main axis.
+func TestSliderLookFillHandleKeepsFitSize(t *testing.T) {
+	w := NewTestWindow(t, WindowCfg{})
+	w.TestRender(func(*Window) View {
+		return Column(ContainerCfg{
+			SizeBorder: NoBorder,
+			Padding:    PadAll(10),
+			Content: []View{Slider(SliderCfg{
+				ID:     "vol",
+				Value:  25,
+				Min:    0,
+				Max:    100,
+				Width:  200,
+				Height: 20,
+				Look: func(SliderLookState) SliderParts {
+					return SliderParts{
+						Track: Row(ContainerCfg{ID: "track", Height: 6, Sizing: FillFixed,
+							SizeBorder: NoBorder, Padding: NoPadding}),
+						Handle: Column(ContainerCfg{ID: "handle", Height: 20,
+							Sizing: FillFixed, SizeBorder: NoBorder, Padding: NoPadding,
+							Content: []View{Rectangle(RectangleCfg{ID: "grip",
+								Width: 10, Height: 10, Sizing: FixedFixed})}}),
+					}
+				},
+			})},
+		})
+	})
+	if handle := lookShape(t, w, "vol:handle"); handle.Width != 10 {
+		t.Fatalf("handle width %v, want its fit width 10", handle.Width)
+	}
+}

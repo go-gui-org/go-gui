@@ -54,6 +54,7 @@ var widgetDocFiles = map[string]string{
 	"drag_reorder":       "docs/widget_drag_reorder.md",
 	"draw_canvas":        "docs/widget_draw_canvas.md",
 	"expand_panel":       "docs/widget_expand_panel.md",
+	"flip_panel":         "docs/widget_flip_panel.md",
 	"forms":              "docs/widget_forms.md",
 	"gesture":            "docs/widget_gesture.md",
 	"gradient":           "docs/widget_gradient.md",

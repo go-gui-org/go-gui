@@ -246,6 +246,7 @@ const (
 	nsAnimIDs             = "gui.anim_ids"
 	nsHoverInside         = "gui.hover.inside"
 	nsHoverLift           = "gui.hover_lift"
+	nsFlipPanel           = "gui.flip_panel"
 	nsMdSel               = "gui.markdown.sel"
 	nsMdBlocks            = "gui.markdown.blocks"
 	nsMdSelSig            = "gui.markdown.sel_sig"

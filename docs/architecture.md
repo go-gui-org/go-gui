@@ -338,15 +338,15 @@ policy from code that drifts.
 
 ### Widget Cfg invariants
 
-- **Focusable defaults:** 21 Cfgs are focusable by default. They are `Button`,
+- **Focusable defaults:** 22 Cfgs are focusable by default. They are `Button`,
   `ColorChannelSlider`, `ColorPicker`, `ColorPlane`, `ColorWheel`, `Combobox`,
-  `DatePicker`, `ExpandPanel`, `Input`, `InputDate`, `ListBox`, `NumericInput`,
-  `RadioButtonGroup`, `Radio`, `SegmentedControl`, `Select`, `Slider`, `Switch`,
-  `Toggle`, `Tree`, `VirtualList`. Opt out with `FocusDisabled`, never
-  `Focusable: false`. A focusable-by-default control with an empty `ID` takes a
-  generated one and still joins the tab order; an opt-in `Focusable` without an
-  `ID` is a silent no-op — the widget renders and clicks but never joins the tab
-  order. Spec: `docs/specs/focusable-default-input.md`,
+  `DatePicker`, `ExpandPanel`, `FlipPanel`, `Input`, `InputDate`, `ListBox`,
+  `NumericInput`, `RadioButtonGroup`, `Radio`, `SegmentedControl`, `Select`,
+  `Slider`, `Switch`, `Toggle`, `Tree`, `VirtualList`. Opt out with
+  `FocusDisabled`, never `Focusable: false`. A focusable-by-default control with
+  an empty `ID` takes a generated one and still joins the tab order; an opt-in
+  `Focusable` without an `ID` is a silent no-op — the widget renders and clicks
+  but never joins the tab order. Spec: `docs/specs/focusable-default-input.md`,
   `docs/specs/auto-widget-identity.md`.
 - **A11y fields:** `A11YLabel`/`A11YDescription` live on the embedded `A11YCfg`.
   Never redeclare them on a Cfg. Construction names the embed:

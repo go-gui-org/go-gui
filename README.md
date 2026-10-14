@@ -115,7 +115,9 @@ Go-Gui is also an ecosystem of composable libraries. **go-glyph** handles text,
   transitions, gestures, scrolling, focus management, color filters, box
   shadows, and blur effects
 - **View transforms** — move, scale, rotate, skew or flip any container in 3D
-  with `ContainerCfg.Transform`. Clicks and typing follow the drawn view
+  with `ContainerCfg.Transform`. Clicks and typing follow the drawn view.
+  `FlipPanel` is a card that turns over to show its back face
+  ([`examples/flip_panel/`](examples/flip_panel/))
 - **Professional text & accessibility** — text shaping, rendering, bidirectional
   layout, font fallback, IME, soft-keyboard hints for touch devices, spell
   checking, and full accessibility support

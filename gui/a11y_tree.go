@@ -196,6 +196,11 @@ func a11yCollectDepth(
 		return focusedIdx
 	}
 	s := layout.Shape
+	// An inert subtree (the turned-away face of a FlipPanel) is not in
+	// the accessibility tree.
+	if s.isInert() {
+		return focusedIdx
+	}
 	// turned is set below a view transform or a quarter turn: only there
 	// does a node's box differ from where it is drawn, so only there is
 	// the ancestor walk of xfBoxToWindow paid.
@@ -391,6 +396,11 @@ func a11yFindLayoutWalk(layout *Layout, target int, counter *int, depth int) *La
 		return nil
 	}
 	if layout.Shape == nil {
+		return nil
+	}
+	// An inert subtree has no nodes; a11yCollect skips it the same way,
+	// so the indices of the two walks agree.
+	if layout.Shape.isInert() {
 		return nil
 	}
 	// Skip shapes without a11y role but recurse children

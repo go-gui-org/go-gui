@@ -1,0 +1,4 @@
+# go-gui-golden v1
+TransformBegin xy=40.00,40.00 wh=120.00,60.00 h=[1.00,0.09,-6.19;0.00,0.77,16.17;0.00000,0.00088,0.94]
+Rect xy=40.00,40.00 wh=120.00,60.00 color=#c85a3cff radius=6.00 fill
+TransformEnd xy=0.00,0.00 wh=0.00,0.00

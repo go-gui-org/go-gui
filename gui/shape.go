@@ -209,6 +209,11 @@ type Shape struct {
 	// The owner places it in AmendLayout. Set by a slider Look for its
 	// Fill and Handle parts (#664).
 	outOfFlow bool
+	// fillOutOfFlow, with outOfFlow, gives a Fill shape its parent's
+	// whole content box on the main axis too, so it covers the parent
+	// (fillOutOfFlowMain). Set by FlipPanel on its back face (#1020).
+	// A slider Look part does not set it: it keeps its fit size.
+	fillOutOfFlow bool
 
 	// Hero marks this element for hero transition animations. A hero
 	// present both when NewHeroTransition is registered and after the

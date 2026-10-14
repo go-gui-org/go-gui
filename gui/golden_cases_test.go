@@ -13,6 +13,7 @@ package gui
 // catch a change to the role it uses.
 
 import (
+	"fmt"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -25,7 +26,7 @@ import (
 var goldenHSLA = HSLA{H: 210, S: 0.6, L: 0.5, A: 1}
 
 func goldenCases() []goldenCase {
-	return []goldenCase{
+	cases := []goldenCase{
 		// The text animations, each pinned at one point in its cycle.
 		// build seeds the progress so the recording is deterministic:
 		// a live animation would record whatever frame the clock
@@ -1920,6 +1921,50 @@ func goldenCases() []goldenCase {
 			name:  "transform_rotate_y_perspective",
 			build: goldenTransformCard(RotateY(40).Perspective(400)),
 		},
+	}
+	return append(cases, goldenFlipPanelCases()...)
+}
+
+// goldenFlipPanelCases pins FlipPanel (#1020) at five points of a turn
+// on each axis. Up to 90° the front face draws and the back face is
+// culled; past 90° it is the other way round, and at 90° both are edge
+// on. Each build seeds the angle, so no animation runs.
+func goldenFlipPanelCases() []goldenCase {
+	var out []goldenCase
+	for _, axis := range []struct {
+		name string
+		axis FlipAxis
+	}{{"y", FlipAxisY}, {"x", FlipAxisX}} {
+		for _, deg := range []float32{0, 45, 90, 135, 180} {
+			out = append(out, goldenCase{
+				name:  fmt.Sprintf("flip_panel_%s_%03.0f", axis.name, deg),
+				build: goldenFlipPanel(axis.axis, deg),
+			})
+		}
+	}
+	return out
+}
+
+// goldenFlipPanel returns a build for a FlipPanel held at deg.
+func goldenFlipPanel(axis FlipAxis, deg float32) func(*Window) View {
+	return func(w *Window) View {
+		StateMap[string, *flipPanelState](w, nsFlipPanel, capMany).
+			Set("flip", &flipPanelState{angle: deg})
+		face := func(c Color) View {
+			return Column(ContainerCfg{
+				Sizing: FixedFixed, Width: 120, Height: 60,
+				Color: c, Radius: RadiusMedium,
+			})
+		}
+		return Column(ContainerCfg{
+			Padding: PadAll(24),
+			Content: []View{FlipPanel(FlipPanelCfg{
+				ID:    "flip",
+				Axis:  axis,
+				Front: face(RGB(60, 120, 200)),
+				Back:  face(RGB(200, 90, 60)),
+			})},
+		})
 	}
 }
 

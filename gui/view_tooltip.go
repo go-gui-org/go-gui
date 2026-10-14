@@ -215,7 +215,10 @@ func withTooltipAmend(
 		// never took the ancestors' clips.
 		mx, my, onView := xfWindowToLocal(ctx.Layout,
 			ctx.Window.viewState.mousePosX, ctx.Window.viewState.mousePosY, false)
-		inside := onView &&
+		// With no clip test the mapping does not refuse an inert view
+		// (the turned-away face of a FlipPanel), so check it here: a
+		// view that takes no pointer opens no tooltip.
+		inside := onView && !layoutInert(ctx.Layout) &&
 			mx >= ctx.Layout.Shape.X && my >= ctx.Layout.Shape.Y &&
 			mx < ctx.Layout.Shape.X+ctx.Layout.Shape.Width &&
 			my < ctx.Layout.Shape.Y+ctx.Layout.Shape.Height

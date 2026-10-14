@@ -1543,3 +1543,47 @@ func TestScrollableScrollModeExclusionKeepsFloor(t *testing.T) {
 	nearF(t, "horizontal-only min width", horizOnly.Shape.MinWidth, 0, 0.01)
 	nearF(t, "horizontal-only min height", horizOnly.Shape.MinHeight, 200, 0.01)
 }
+
+// An out-of-flow Fill child covers the parent's content box on the main
+// axis, the way it already does on the cross axis, and leaves the
+// in-flow Fill sibling its full share. A Float Fill child is untouched.
+// FlipPanel stacks its back face this way (#1020).
+func TestLayoutFillOutOfFlowMainAxis(t *testing.T) {
+	for _, axis := range []Axis{axisLeftToRight, axisTopToBottom} {
+		root := &Layout{
+			Shape: &Shape{
+				Axis:      axis,
+				shapeType: shapeRectangle,
+				Sizing:    FixedFixed,
+				Width:     90,
+				Height:    60,
+				Padding:   PadAll(5),
+			},
+			Children: []Layout{
+				{Shape: &Shape{shapeType: shapeRectangle, Sizing: FillFill, outOfFlow: true, fillOutOfFlow: true}},
+				{Shape: &Shape{shapeType: shapeRectangle, Sizing: FillFill}},
+				{Shape: &Shape{shapeType: shapeRectangle, Sizing: FillFill, Float: true}},
+			},
+		}
+		layoutWidths(root)
+		layoutFillWidths(root, &scratchPools{})
+		layoutHeights(root)
+		layoutFillHeights(root, &scratchPools{})
+		for i, want := range [][2]float32{{80, 50}, {80, 50}} {
+			s := root.Children[i].Shape
+			if !f32AreClose(s.Width, want[0]) || !f32AreClose(s.Height, want[1]) {
+				t.Errorf("axis %v child %d: %vx%v, want %vx%v",
+					axis, i, s.Width, s.Height, want[0], want[1])
+			}
+		}
+		// The Float takes the cross-axis fill only, as before.
+		f := root.Children[2].Shape
+		mainSize := f.Width
+		if axis == axisTopToBottom {
+			mainSize = f.Height
+		}
+		if mainSize != 0 {
+			t.Errorf("axis %v: Float main size %v, want 0", axis, mainSize)
+		}
+	}
+}

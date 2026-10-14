@@ -153,6 +153,7 @@ var relatedExampleMap = map[string][]string{
 	"svg":                 {"examples/showcase/demo_graphics.go", "examples/svg/main.go"},
 	"image":               {"examples/showcase/demo_graphics.go"},
 	"expand_panel":        {"examples/showcase/demo_layout.go"},
+	"flip_panel":          {"examples/showcase/demo_flip_panel.go", "examples/flip_panel/main.go"},
 	"icons":               {"examples/showcase/demo_graphics.go"},
 	"gradient":            {"examples/showcase/demo_graphics.go", "examples/gradient_demo/main.go"},
 	"box_shadows":         {"examples/showcase/demo_graphics.go", "examples/shadow_demo/main.go"},

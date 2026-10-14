@@ -41,14 +41,22 @@ func rotateCoordsInverse(s *Shape, mx, my float32) (float32, float32) {
 // itself is hit tested with, not only its children. A point that is on
 // no part of the view comes back as NaN, which every hit test misses:
 // the point is outside the clip of the view's ancestors (xf.outer), the
-// back face is toward the viewer and hidden, the transform flattens the
-// view to a line, or under perspective the point's ray meets the view's
-// plane behind the viewer.
+// back face is toward the viewer and hidden, the view is inert, the
+// transform flattens the view to a line, or under perspective the
+// point's ray meets the view's plane behind the viewer.
 func xfCoordsInverse(s *Shape, x, y float32) (float32, float32) {
-	if s == nil || s.xf == nil || !s.xf.resolved {
+	if s == nil || s.xf == nil {
 		return x, y
 	}
 	xf := s.xf
+	// An inert view (ContainerCfg.inert) takes no pointer, resolved or
+	// not, so it is checked before the resolved test.
+	if xf.inert {
+		return xfNowhere, xfNowhere
+	}
+	if !xf.resolved {
+		return x, y
+	}
 	if xf.hidden || !xf.invOK || !xfInOuter(xf, x, y) {
 		return xfNowhere, xfNowhere
 	}
@@ -154,6 +162,12 @@ func xfLocalToWindowClip(ly *Layout, x, y float32, clip bool) (float32, float32,
 		if p != ly && s.QuarterTurns > 0 {
 			x, y = rotateCoordsForward(s, x, y)
 		}
+		// An inert view (ContainerCfg.inert) is drawn but takes no
+		// hit, so a hit test (clip set) refuses it, resolved or not.
+		// A frame mapping (clip false) still maps through it.
+		if clip && s.isInert() {
+			return 0, 0, false
+		}
 		if xf := s.xf; xf != nil && xf.resolved {
 			if xf.hidden {
 				return 0, 0, false
@@ -186,9 +200,9 @@ func xfInOuter(xf *shapeTransform, x, y float32) bool {
 // above ly and ly's own view transform. ok is false when the point is on
 // no part of a view on the way: a hidden back face, a flattened view, a
 // ray that meets the plane behind the viewer, or with clip set, a point
-// outside a view's xf.outer. Code that tests a window point against a
-// shape (blur on press, the soft keyboard, tooltips) maps with it, so it
-// agrees with the pointer walks.
+// outside a view's xf.outer or an inert view. Code that tests a window
+// point against a shape (blur on press, the soft keyboard, tooltips)
+// maps with it, so it agrees with the pointer walks.
 func xfWindowToLocal(ly *Layout, x, y float32, clip bool) (float32, float32, bool) {
 	return xfWindowToLocalDepth(ly, ly, x, y, clip, 0)
 }
@@ -205,6 +219,11 @@ func xfWindowToLocalDepth(ly, p *Layout, x, y float32, clip bool, depth int) (fl
 		if x, y, ok = xfWindowToLocalDepth(ly, p.Parent, x, y, clip, depth+1); !ok {
 			return 0, 0, false
 		}
+	}
+	// An inert view takes no hit: refused for a hit test (clip set), as
+	// in xfLocalToWindowClip.
+	if clip && s.isInert() {
+		return 0, 0, false
 	}
 	if xf := s.xf; xf != nil && xf.resolved {
 		if xf.hidden || !xf.invOK || (clip && !xfInOuter(xf, x, y)) {
@@ -310,4 +329,22 @@ func shapeHitPoint(ly *Layout) (float32, float32, bool) {
 		}
 	}
 	return 0, 0, false
+}
+
+// layoutInert reports whether ly or one of its ancestors is inert
+// (ContainerCfg.inert), so it takes no pointer. A float is drawn
+// outside its parent's subtree, so the walk stops at one, as in
+// xfLocalToWindowClip.
+func layoutInert(ly *Layout) bool {
+	depth := 0
+	for p := ly; p != nil && !overMaxDepth(depth); p = p.Parent {
+		if p.Shape.isInert() {
+			return true
+		}
+		if p.Shape == nil || p.Shape.Float {
+			break
+		}
+		depth++
+	}
+	return false
 }
