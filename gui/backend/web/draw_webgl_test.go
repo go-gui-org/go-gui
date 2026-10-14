@@ -542,3 +542,20 @@ func TestSvgGLUnpreparedBatchGoesDirect(t *testing.T) {
 	}
 	checkNoErrs(t, ctx)
 }
+
+// The drawing pass only counts a staged batch's commands. A batch that
+// counts differently from the pre-pass's has no records to render, so
+// it is filled with Canvas2D rather than composited from a stale place.
+func TestSvgGLStagedCountMismatchFills(t *testing.T) {
+	b, ctx, gl := newGLTestBackend(t)
+	one, two := svgCmd(10, 10), svgCmd(30, 10)
+	b.prepassSvgGL([]gui.RenderCmd{one})
+	b.drawSvg(&one)
+	b.drawSvg(&two) // not in the pre-pass's batch
+	b.flushSvgGL()
+	if len(gl.composites) != 0 || len(ctx.fills) != 2 {
+		t.Errorf("composites %v fills %v, want both SVGs filled with Canvas2D",
+			gl.composites, ctx.fills)
+	}
+	checkNoErrs(t, ctx)
+}

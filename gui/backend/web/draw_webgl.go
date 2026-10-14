@@ -48,7 +48,9 @@ type glMesh struct {
 
 // glPrepared is a batch as the pre-pass placed it.
 type glPrepared struct {
-	n int // records
+	n    int  // records
+	seen int  // SVG commands queued, clipped away or not
+	xf   bool // batchXf
 	// Device-pixel rect on the 2D canvas; w == 0: nothing to draw.
 	x0, y0, w, h int
 	// The batch is rendered at (x0+ox, y0+oy) of the WebGL canvas.
@@ -106,6 +108,10 @@ type glSvg struct {
 	// rotation. Its clips were applied eagerly (svgGLLazyClips), so it
 	// has no scissors and composites under the canvas clip.
 	batchXf bool
+	// seen counts the batch's SVG commands. fast: the drawing pass
+	// composites this batch from the copy, so it only counts them.
+	seen int
+	fast bool
 
 	// preparing: the pre-pass is running. prepared holds its batches in
 	// order, and next the one the drawing pass composites next.
@@ -313,6 +319,24 @@ func (b *Backend) glMeshFor(r *gui.RenderCmd) *glMesh {
 // as drawSvg does.
 func (b *Backend) queueSvgGL(r *gui.RenderCmd) {
 	g := &b.gl
+	if g.seen == 0 {
+		g.batchXf = !b.svgGLLazyClips()
+		// The pre-pass rendered this batch already: the drawing pass
+		// needs no mesh, bounds or record, only the count to check
+		// the batch against the pre-pass's.
+		g.fast = false
+		if !g.preparing && g.next < len(g.prepared) {
+			q := &g.prepared[g.next]
+			g.fast = !q.direct && !q.fill
+		}
+	}
+	g.seen++
+	rc, rcOK := b.stackRectClip()
+	g.cmds = append(g.cmds, r)
+	g.clips = append(g.clips, glBatchClip{rc, rcOK})
+	if g.fast {
+		return
+	}
 	m := b.glMeshFor(r)
 	a, bb, c, d, e, f := svgAffine(r)
 
@@ -327,9 +351,6 @@ func (b *Backend) queueSvgGL(r *gui.RenderCmd) {
 		y := float32(bb*float64(p[0]) + d*float64(p[1]) + f)
 		minX, maxX = min(minX, x), max(maxX, x)
 		minY, maxY = min(minY, y), max(maxY, y)
-	}
-	if len(g.recs) == 0 {
-		g.batchXf = !b.svgGLLazyClips()
 	}
 	sx, sy, sw, sh := float32(0), float32(0), float32(-1), float32(-1)
 	if clip, ok := b.stackRectClip(); ok && !g.batchXf {
@@ -347,9 +368,6 @@ func (b *Backend) queueSvgGL(r *gui.RenderCmd) {
 	if maxX <= minX || maxY <= minY {
 		return // clipped away
 	}
-	rc, rcOK := b.stackRectClip()
-	g.cmds = append(g.cmds, r)
-	g.clips = append(g.clips, glBatchClip{rc, rcOK})
 	if len(g.recs) == 0 {
 		g.bMinX, g.bMinY, g.bMaxX, g.bMaxY = minX, minY, maxX, maxY
 	} else {
@@ -523,16 +541,18 @@ func (g *glSvg) placeSvgGL(p *glPrepared) {
 // the drawing pass composites it.
 func (b *Backend) flushSvgGL() {
 	g := &b.gl
-	n := len(g.recs) / glRecStride
-	if n == 0 {
+	if g.seen == 0 {
 		return
 	}
+	n := len(g.recs) / glRecStride
 	defer func() {
 		g.recs = g.recs[:0]
 		clear(g.cmds) // drop the frame's command pointers
 		g.cmds = g.cmds[:0]
 		g.clips = g.clips[:0]
 		g.batchXf = false
+		g.seen = 0
+		g.fast = false
 	}()
 	// A batch queued before the context was lost this frame is filled
 	// with Canvas2D.
@@ -542,7 +562,12 @@ func (b *Backend) flushSvgGL() {
 		}
 		return
 	}
+	if g.fast {
+		b.compositeStagedSvgGL()
+		return
+	}
 	p := b.svgGLBatch(n)
+	p.seen, p.xf = g.seen, g.batchXf
 	if g.preparing {
 		if p.w > 0 && !p.fill {
 			g.placeSvgGL(&p)
@@ -561,6 +586,9 @@ func (b *Backend) flushSvgGL() {
 func (b *Backend) svgGLBatch(n int) glPrepared {
 	g := &b.gl
 	p := glPrepared{n: n}
+	if n == 0 {
+		return p // every command clipped away
+	}
 	s := b.dpiScale
 	// Under a transform the batch is drawn in the view's frame, which
 	// can lie outside the 2D canvas's area, even wholly, though the
@@ -625,6 +653,30 @@ func (b *Backend) compositeSvgGL(p *glPrepared) {
 		b.renderSvgGL(p)
 		g.direct++
 	}
+	b.compositeAtSvgGL(&q, p, direct)
+}
+
+// compositeStagedSvgGL composites a fast batch (queueSvgGL) from the
+// copy, at the place and rect the pre-pass gave it. A batch that does
+// not match the pre-pass's has no records to render, so it is filled
+// with Canvas2D; the passes see the same commands, so that is a guard.
+func (b *Backend) compositeStagedSvgGL() {
+	g := &b.gl
+	q := g.prepared[g.next]
+	g.next++
+	if q.seen != g.seen || q.xf != g.batchXf {
+		b.fillSvgBatch()
+		return
+	}
+	if q.w > 0 {
+		b.compositeAtSvgGL(&q, &q, false)
+	}
+}
+
+// compositeAtSvgGL draws batch p onto the 2D canvas: from the copy at
+// q's place, or with direct from the WebGL canvas at p's own.
+func (b *Backend) compositeAtSvgGL(q, p *glPrepared, direct bool) {
+	g := &b.gl
 	// Each draw is already scissored to its rect clip, and the batch
 	// spans several; only the other clips may apply to the composite.
 	// The full stack is restored before the next non-SVG command.
