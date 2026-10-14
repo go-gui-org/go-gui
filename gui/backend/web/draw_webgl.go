@@ -38,7 +38,6 @@ type glBatchClip struct {
 type glMesh struct {
 	id       int
 	tris     []float32 // pinned, see meshKey
-	hash     uint64
 	lastUsed uint64
 	// Mesh-space bounds, for the batch rect.
 	minX, minY, maxX, maxY float32
@@ -51,8 +50,12 @@ type glSvg struct {
 	w, h   int // drawing buffer size in device pixels
 
 	meshes map[meshKey]*glMesh
-	nextID int
-	frame  uint64
+	vars   meshVariants // mesh_cache.go
+	// Mesh ids travel to JS in a Float32Array, exact only up to 2^24.
+	// Freed ids are reused, so ids stay below the live mesh count.
+	nextID  int
+	freeIDs []int
+	frame   uint64
 
 	// staging carries mesh uploads (float32 positions, then RGBA8
 	// colors) into JS.
@@ -87,6 +90,10 @@ type glSvg struct {
 	// rotation. Its clips were applied eagerly (svgGLLazyClips), so it
 	// has no scissors and composites under the canvas clip.
 	batchXf bool
+	// batchGradient: a mesh in the batch interpolates vertex colors.
+	// Canvas2D would draw it flat, so the batch stays on WebGL however
+	// light it is.
+	batchGradient bool
 	// filled counts light batches drawn with Canvas2D (bench_hook.go).
 	filled int
 }
@@ -143,7 +150,7 @@ func (b *Backend) onSvgGLLost() {
 	g.lost = true
 	// The uploaded meshes are gone; forget them so a restore
 	// uploads afresh rather than drawing ids the new context lacks.
-	clear(g.meshes)
+	b.resetGLMeshes()
 	b.requestRedraw()
 }
 
@@ -158,7 +165,7 @@ func (b *Backend) onSvgGLRestored() {
 		}
 	}()
 	g.api.Call("restore", g.state)
-	clear(g.meshes)
+	b.resetGLMeshes()
 	// The canvas keeps its width and height, and the restored drawing
 	// buffer takes them, so g.w and g.h still hold.
 	g.lost = false
@@ -185,26 +192,47 @@ func (b *Backend) endFrameSvgGL() {
 	}
 	for k, m := range g.meshes {
 		if g.frame-m.lastUsed > pathCacheIdleFrames {
-			g.api.Call("remove", g.state, m.id)
-			delete(g.meshes, k)
+			b.dropGLMesh(k, m)
 		}
 	}
+}
+
+// dropGLMesh frees mesh m and its id. Callers drop only meshes not
+// used this frame, so no queued record still refers to the id.
+func (b *Backend) dropGLMesh(k meshKey, m *glMesh) {
+	g := &b.gl
+	g.api.Call("remove", g.state, m.id)
+	delete(g.meshes, k)
+	g.vars.remove(k)
+	g.freeIDs = append(g.freeIDs, m.id)
+}
+
+// resetGLMeshes forgets every mesh and id, after a context loss or
+// restore: the GL objects went with the context.
+func (b *Backend) resetGLMeshes() {
+	g := &b.gl
+	clear(g.meshes)
+	clear(g.vars)
+	g.freeIDs = g.freeIDs[:0]
+	g.nextID = 0
 }
 
 // meshFor returns r's uploaded mesh, uploading it when new or changed.
 func (b *Backend) glMeshFor(r *gui.RenderCmd) *glMesh {
 	g := &b.gl
-	key := meshKey{uintptr(unsafe.Pointer(&r.Triangles[0])), len(r.Triangles)}
-	hash := meshHash(r)
+	key := meshKeyFor(r)
 	if m, ok := g.meshes[key]; ok {
-		if m.hash == hash {
-			m.lastUsed = g.frame
-			return m
-		}
-		g.api.Call("remove", g.state, m.id)
+		m.lastUsed = g.frame
+		return m
 	}
-	g.nextID++
-	m := &glMesh{id: g.nextID, tris: r.Triangles, hash: hash, lastUsed: g.frame}
+	var id int
+	if n := len(g.freeIDs); n > 0 {
+		id, g.freeIDs = g.freeIDs[n-1], g.freeIDs[:n-1]
+	} else {
+		g.nextID++
+		id = g.nextID
+	}
+	m := &glMesh{id: id, tris: r.Triangles, lastUsed: g.frame}
 	m.minX, m.minY = float32(math.Inf(1)), float32(math.Inf(1))
 	m.maxX, m.maxY = float32(math.Inf(-1)), float32(math.Inf(-1))
 	for i := 0; i+1 < len(r.Triangles); i += 2 {
@@ -233,6 +261,13 @@ func (b *Backend) glMeshFor(r *gui.RenderCmd) *glMesh {
 	js.CopyBytesToJS(g.stagingJS, g.staging)
 	g.api.Call("upload", g.state, m.id, g.stagingJS, posLen, colLen, numVerts)
 	g.meshes[key] = m
+	if g.vars == nil {
+		g.vars = meshVariants{}
+	}
+	g.vars.add(key)
+	trimMeshVariants(g.meshes, g.vars, key.base(), g.frame,
+		func(m *glMesh) uint64 { return m.lastUsed },
+		func(k meshKey, m *glMesh) { b.dropGLMesh(k, m) })
 	return m
 }
 
@@ -278,6 +313,9 @@ func (b *Backend) queueSvgGL(r *gui.RenderCmd) {
 	g.cmds = append(g.cmds, r)
 	g.clips = append(g.clips, glBatchClip{rc, rcOK})
 	g.batchTris += len(r.Triangles) / 6
+	if len(r.VertexColors) == len(r.Triangles)/2 && !r.VertexColorsFlat {
+		g.batchGradient = true
+	}
 	if len(g.recs) == 0 {
 		g.bMinX, g.bMinY, g.bMaxX, g.bMaxY = minX, minY, maxX, maxY
 	} else {
@@ -362,10 +400,11 @@ func (b *Backend) flushSvgGL() {
 		g.clips = g.clips[:0]
 		g.batchTris = 0
 		g.batchXf = false
+		g.batchGradient = false
 	}()
 	// A light batch, or one queued before the context was lost this
 	// frame, is filled with Canvas2D rather than composited.
-	if g.batchTris < g.minTris || g.lost {
+	if g.lost || (g.batchTris < g.minTris && !g.batchGradient) {
 		b.fillSvgBatch()
 		return
 	}
@@ -409,4 +448,26 @@ func (b *Backend) flushSvgGL() {
 		b.rebuildState(nil, true)
 	}
 	g.api.Call("composite", g.state, b.ctx2d, float64(s), x0, y0, w, h)
+}
+
+// beforeCmdSvgGL runs before each render command. A batch draws under
+// the 2D state it was queued under, so it is flushed, and a lazy rect
+// clip replayed, before any command other than an SVG or a clip can
+// change that state.
+func (b *Backend) beforeCmdSvgGL(r *gui.RenderCmd) {
+	if b.svgMode != svgModeWebGL || r.Kind == gui.RenderSvg || r.Kind == gui.RenderClip {
+		return
+	}
+	b.settleSvgGL()
+}
+
+// settleSvgGL flushes the batch and replays a lazy rect clip. drawCmds
+// also runs it at the end of the frame: the next frame's clear runs
+// under the clip in force, and a stale rect clip would leave the rest
+// of the canvas to accumulate.
+func (b *Backend) settleSvgGL() {
+	b.flushSvgGL()
+	if b.clipDirty {
+		b.rebuildClipStack()
+	}
 }

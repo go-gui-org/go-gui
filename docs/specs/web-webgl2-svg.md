@@ -17,12 +17,19 @@ SVG meshes are drawn with WebGL2 into an offscreen canvas and composited onto
 the 2D canvas with `drawImage`. Everything else keeps its Canvas2D path, so
 text, images, clips, filters and transforms are unchanged.
 
-- **Mesh cache** (`draw_webgl.go`). A mesh is uploaded once and drawn by id. It
-  is keyed by its backing array (the entry pins the slice, so the address cannot
-  be reused) and checked by a content hash each frame, because DrawCanvas
-  rewrites buffers in place. The hash (`mesh_hash.go`) folds 8 bytes per step
-  with a 64-bit xor and multiply in four lanes; `hash/maphash` takes a software
-  fallback on wasm that was a third of the frame. Idle meshes are evicted.
+- **Mesh cache** (`draw_webgl.go`, `mesh_cache.go`). A mesh is uploaded once and
+  drawn by id. It is keyed by its backing array and its content hash (triangles
+  and vertex colors), computed each frame because DrawCanvas rewrites buffers in
+  place; the entry pins the slice, so the address cannot be reused. Commands
+  that share triangles but differ in colors (a tint, an opacity, a disabled
+  state) are separate variants and coexist, so one never deletes a mesh another
+  command has queued. A buffer rewritten in place becomes a new variant; one
+  backing array keeps at most 8, dropping the least recently used that the
+  current frame has not drawn. Idle meshes are evicted. Freed ids are reused:
+  ids travel to JS in a `Float32Array`, exact only up to 2^24. The hash
+  (`mesh_hash.go`) folds 8 bytes per step with a 64-bit xor and multiply in four
+  lanes; `hash/maphash` takes a software fallback on wasm that was a third of
+  the frame.
 - **Batches.** Consecutive `RenderSvg` commands render in one GL pass into an
   MSAA canvas, then one `drawImage` composites the batch. Go writes one record
   per draw into a shared `Float32Array` and calls the JS loop (`goGuiSvgGL` in
@@ -46,7 +53,9 @@ text, images, clips, filters and transforms are unchanged.
   a cached `Path2D` per same-color run (`draw_path2d.go`). Firefox pays a cost
   for each composite after the frame callback returns (the WebGL canvas is
   snapshotted for `drawImage`); without the threshold a light, text-heavy page
-  ran at a third of its Canvas2D frame rate there.
+  ran at a third of its Canvas2D frame rate there. A batch holding a gradient
+  mesh (vertex colors not marked `VertexColorsFlat`) stays on WebGL however
+  light: Canvas2D draws it flat, so its look would depend on its neighbors.
 - **Context loss.** `webglcontextlost` (with `preventDefault`) switches SVGs to
   Canvas2D and forgets the uploaded meshes; `webglcontextrestored` rebuilds the
   program and resumes. A batch queued when the context goes is filled instead.
@@ -76,9 +85,11 @@ Firefox's remaining gap is the per-composite cost.
 
 - `draw_webgl_test.go` runs the draw loop against the shared fake 2D context
   (`draw_state_test.go`) and a fake `goGuiSvgGL`: batching across clips, the
-  end-of-frame clip, brackets and view transforms, light batches, the mesh
-  cache, context loss and restore. `svg_mode_test.go` covers the selection,
-  `mesh_hash_test.go` that any single changed float or color moves the hash.
+  end-of-frame clip, brackets and view transforms, light batches (gradients stay
+  on WebGL), the mesh cache (color variants coexist, the variant cap, id reuse;
+  the fake flags a draw of a deleted id), context loss and restore.
+  `svg_mode_test.go` covers the selection, `mesh_hash_test.go` that any single
+  changed float or color moves the hash.
 - `examples/web_svg_bench` reproduces the numbers in a browser: `svg=canvas2d`
   for the baseline, `asset=`, `xf=` (cells in view transforms), `lose=1` (drives
   `WEBGL_lose_context`), `shot=1` for screenshots.

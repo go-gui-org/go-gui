@@ -7,8 +7,9 @@ import (
 	"github.com/go-gui-org/go-gui/gui"
 )
 
+// Not parallel: SetTheme writes global theme state that building a
+// layout reads, and the layout tests below share it.
 func TestMainViewNoPanic(t *testing.T) {
-	t.Parallel()
 	gui.SetTheme(gui.ThemeDark)
 	app := newBenchApp(func(string) string { return "" })
 	app.Rows = 3
@@ -26,8 +27,8 @@ func TestNewBenchAppParams(t *testing.T) {
 	}
 }
 
+// Not parallel: it builds a layout, which reads the global theme.
 func TestBenchTransformParam(t *testing.T) {
-	t.Parallel()
 	for _, name := range []string{"rotate", "tilt", "persp", "lift"} {
 		if benchTransform(name).IsIdentity() {
 			t.Errorf("xf=%s gave the identity", name)

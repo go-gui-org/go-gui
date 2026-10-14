@@ -20,11 +20,17 @@ type fakeGL struct {
 	draws      []string
 	composites []string
 	restores   int
+	// live is the JS side's mesh table; drawIDs the ids each draw used,
+	// and missing the records whose id was not in the table (gogui.js
+	// skips those silently).
+	live    map[int]bool
+	drawIDs []int
+	missing int
 }
 
 func newFakeGL(t *testing.T, ctx *stateCtx) *fakeGL {
 	t.Helper()
-	g := &fakeGL{api: js.Global().Get("Object").New()}
+	g := &fakeGL{api: js.Global().Get("Object").New(), live: map[int]bool{}}
 	var funcs []js.Func
 	on := func(name string, fn func(a []js.Value)) {
 		f := js.FuncOf(func(_ js.Value, a []js.Value) any { fn(a); return nil })
@@ -36,8 +42,14 @@ func newFakeGL(t *testing.T, ctx *stateCtx) *fakeGL {
 			f.Release()
 		}
 	})
-	on("upload", func(a []js.Value) { g.uploads = append(g.uploads, a[1].Int()) })
-	on("remove", func(a []js.Value) { g.removes = append(g.removes, a[1].Int()) })
+	on("upload", func(a []js.Value) {
+		g.uploads = append(g.uploads, a[1].Int())
+		g.live[a[1].Int()] = true
+	})
+	on("remove", func(a []js.Value) {
+		g.removes = append(g.removes, a[1].Int())
+		delete(g.live, a[1].Int())
+	})
 	on("resize", func([]js.Value) {})
 	on("restore", func([]js.Value) { g.restores++ })
 	on("draw", func(a []js.Value) {
@@ -45,6 +57,11 @@ func newFakeGL(t *testing.T, ctx *stateCtx) *fakeGL {
 		var sc []string
 		for i := range n {
 			o := i * glRecStride
+			id := recs.Index(o).Int()
+			g.drawIDs = append(g.drawIDs, id)
+			if !g.live[id] {
+				g.missing++
+			}
 			if w := recs.Index(o + 15).Float(); w >= 0 {
 				sc = append(sc, fmt.Sprintf("%g,%g %gx%g",
 					recs.Index(o+13).Float(), recs.Index(o+14).Float(),
@@ -295,8 +312,8 @@ func TestSvgGLLossMidBatchFills(t *testing.T) {
 	checkNoErrs(t, ctx)
 }
 
-// The mesh cache uploads a mesh once, uploads again when its buffer is
-// rewritten in place, and drops a mesh left undrawn.
+// The mesh cache uploads a mesh once and uploads again when its buffer
+// is rewritten in place; the old variant stays until it idles out.
 func TestSvgGLMeshCache(t *testing.T) {
 	b, ctx, gl := newGLTestBackend(t, 1)
 	cmd := svgCmd(10, 10)
@@ -311,16 +328,116 @@ func TestSvgGLMeshCache(t *testing.T) {
 	}
 	cmd.Triangles[2] = 20 // same backing array, new content
 	frame()
-	if len(gl.uploads) != 2 || fmt.Sprint(gl.removes) != fmt.Sprint(gl.uploads[:1]) {
-		t.Fatalf("after an in-place rewrite: uploads %v removes %v, want a re-upload replacing the first",
-			gl.uploads, gl.removes)
+	if len(gl.uploads) != 2 || len(gl.removes) != 0 || gl.missing != 0 {
+		t.Fatalf("after an in-place rewrite: uploads %v removes %v missing %d, want a second variant",
+			gl.uploads, gl.removes, gl.missing)
 	}
 	for range pathCacheIdleFrames + 60 {
 		b.endFrameSvgGL()
 	}
-	if len(b.gl.meshes) != 0 || len(gl.removes) != 2 {
-		t.Errorf("after idling: %d meshes cached, removes %v; want the mesh evicted",
-			len(b.gl.meshes), gl.removes)
+	if len(b.gl.meshes) != 0 || len(gl.removes) != 2 || len(b.gl.vars) != 0 {
+		t.Errorf("after idling: %d meshes, %d variant lists, removes %v; want all evicted",
+			len(b.gl.meshes), len(b.gl.vars), gl.removes)
+	}
+	checkNoErrs(t, ctx)
+}
+
+// gradSvgCmd is svgCmd with per-vertex colors: a gradient mesh.
+func gradSvgCmd(x, y float32, tris []float32, c gui.Color) gui.RenderCmd {
+	r := svgCmd(x, y)
+	r.Triangles = tris
+	r.VertexColors = []gui.Color{c, gui.RGB(0, 0, 255), c}
+	return r
+}
+
+// Commands that share triangles but differ in colors are two variants:
+// both are drawn from live meshes in one batch, neither replaces the
+// other, and the next frame uploads nothing.
+func TestSvgGLColorVariantsCoexist(t *testing.T) {
+	b, ctx, gl := newGLTestBackend(t, 1)
+	tris := []float32{0, 0, 10, 0, 0, 10}
+	cmds := []gui.RenderCmd{
+		gradSvgCmd(10, 10, tris, gui.RGB(255, 0, 0)),
+		gradSvgCmd(40, 10, tris, gui.RGB(0, 255, 0)), // same slice, other tint
+	}
+	b.drawCmds(cmds)
+	b.endFrameSvgGL()
+	if len(gl.uploads) != 2 || len(gl.removes) != 0 || gl.missing != 0 {
+		t.Fatalf("uploads %v removes %v missing %d, want two live variants",
+			gl.uploads, gl.removes, gl.missing)
+	}
+	if fmt.Sprint(gl.drawIDs) != fmt.Sprint(gl.uploads) {
+		t.Errorf("drawn ids %v, want both variants %v", gl.drawIDs, gl.uploads)
+	}
+	b.drawCmds(cmds)
+	if len(gl.uploads) != 2 || gl.missing != 0 {
+		t.Errorf("second frame: uploads %v missing %d, want no re-upload", gl.uploads, gl.missing)
+	}
+	checkNoErrs(t, ctx)
+}
+
+// A buffer rewritten every frame keeps at most maxMeshVariants meshes,
+// and a variant drawn in the current frame is never the one dropped.
+func TestSvgGLVariantCap(t *testing.T) {
+	b, ctx, gl := newGLTestBackend(t, 1)
+	cmd := svgCmd(10, 10)
+	for i := range 3 * maxMeshVariants {
+		cmd.Triangles[2] = float32(20 + i)
+		b.drawCmds([]gui.RenderCmd{cmd})
+		b.endFrameSvgGL()
+		if n := len(b.gl.vars[meshBase{ptr: meshKeyFor(&cmd).ptr, n: len(cmd.Triangles)}]); n > maxMeshVariants {
+			t.Fatalf("frame %d: %d variants, want at most %d", i, n, maxMeshVariants)
+		}
+	}
+	if gl.missing != 0 {
+		t.Errorf("%d draws used a dropped mesh", gl.missing)
+	}
+	if len(b.gl.meshes) != maxMeshVariants {
+		t.Errorf("%d meshes cached, want %d", len(b.gl.meshes), maxMeshVariants)
+	}
+	checkNoErrs(t, ctx)
+}
+
+// Freed mesh ids are reused, so the ids sent through the Float32Array
+// stay small however many meshes come and go.
+func TestSvgGLIDsRecycled(t *testing.T) {
+	b, ctx, gl := newGLTestBackend(t, 1)
+	cmd := svgCmd(10, 10)
+	for i := range 1000 {
+		cmd.Triangles[2] = float32(20 + i)
+		b.drawCmds([]gui.RenderCmd{cmd})
+		b.endFrameSvgGL()
+	}
+	maxID := 0
+	for _, id := range gl.uploads {
+		maxID = max(maxID, id)
+	}
+	if maxID > maxMeshVariants+1 {
+		t.Errorf("highest mesh id after 1000 rewrites = %d, want ids recycled (<= %d)",
+			maxID, maxMeshVariants+1)
+	}
+	if gl.missing != 0 {
+		t.Errorf("%d draws used a dropped mesh", gl.missing)
+	}
+	checkNoErrs(t, ctx)
+}
+
+// A light batch with an interpolated gradient stays on WebGL: Canvas2D
+// would draw it flat, so how it looks would depend on its neighbors.
+// A light batch of flat per-triangle colors is still filled.
+func TestSvgGLGradientStaysOnWebGL(t *testing.T) {
+	b, ctx, gl := newGLTestBackend(t, 1000)
+	tris := []float32{0, 0, 10, 0, 0, 10}
+	b.drawCmds([]gui.RenderCmd{gradSvgCmd(10, 10, tris, gui.RGB(255, 0, 0))})
+	if len(gl.draws) != 1 || len(ctx.fills) != 0 {
+		t.Errorf("gradient: draws %v fills %v, want WebGL", gl.draws, ctx.fills)
+	}
+	flat := gradSvgCmd(40, 10, []float32{0, 0, 10, 0, 0, 10}, gui.RGB(255, 0, 0))
+	flat.VertexColors = []gui.Color{gui.RGB(1, 2, 3), gui.RGB(1, 2, 3), gui.RGB(1, 2, 3)}
+	flat.VertexColorsFlat = true
+	b.drawCmds([]gui.RenderCmd{flat})
+	if len(gl.draws) != 1 || len(ctx.fills) != 1 {
+		t.Errorf("flat colors: draws %v fills %v, want Canvas2D", gl.draws, ctx.fills)
 	}
 	checkNoErrs(t, ctx)
 }

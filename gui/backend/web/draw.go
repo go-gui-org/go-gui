@@ -51,28 +51,12 @@ func (b *Backend) renderersDraw(w *gui.Window) {
 
 // drawCmds draws one frame's render commands.
 func (b *Backend) drawCmds(cmds []gui.RenderCmd) {
-	glBatch := b.svgMode == svgModeWebGL
-	if glBatch {
-		// A batch draws under the 2D state it was queued under, so it
-		// is flushed before any other command can change that state.
-		// The frame's last clip must reach the 2D context too: the
-		// next frame's clear runs under it, and a stale rect clip
-		// would leave the rest of the canvas to accumulate.
-		defer func() {
-			b.flushSvgGL()
-			if b.clipDirty {
-				b.rebuildClipStack()
-			}
-		}()
+	if b.svgMode == svgModeWebGL {
+		defer b.settleSvgGL()
 	}
 	for i := range cmds {
 		r := &cmds[i]
-		if glBatch && r.Kind != gui.RenderSvg && r.Kind != gui.RenderClip {
-			b.flushSvgGL()
-			if b.clipDirty {
-				b.rebuildClipStack()
-			}
-		}
+		b.beforeCmdSvgGL(r)
 		switch r.Kind {
 		case gui.RenderClip:
 			b.drawClip(r)

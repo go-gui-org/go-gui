@@ -5,7 +5,6 @@ package web
 import (
 	"math"
 	"syscall/js"
-	"unsafe"
 
 	"github.com/go-gui-org/go-gui/gui"
 )
@@ -44,14 +43,6 @@ func (m svgMode) String() string {
 // pathCacheIdleFrames is how many frames an unused mesh is kept.
 const pathCacheIdleFrames = 120
 
-// meshKey identifies a mesh by its backing array. The entry pins the
-// slice, so the address cannot be reused by another allocation while
-// the entry lives; contentHash catches a buffer rewritten in place.
-type meshKey struct {
-	ptr uintptr
-	n   int
-}
-
 type pathRun struct {
 	vert int // first vertex of the run, indexes VertexColors
 	path js.Value
@@ -59,7 +50,6 @@ type pathRun struct {
 
 type pathEntry struct {
 	tris     []float32 // pinned, see meshKey
-	hash     uint64
 	runs     []pathRun
 	lastUsed uint64
 }
@@ -67,6 +57,7 @@ type pathEntry struct {
 type pathCache struct {
 	build   js.Value // goGuiBuildTrisPath
 	entries map[meshKey]*pathEntry
+	vars    meshVariants // mesh_cache.go
 	frame   uint64
 }
 
@@ -105,22 +96,26 @@ func (b *Backend) endFramePaths() {
 	}
 	for k, e := range c.entries {
 		if c.frame-e.lastUsed > pathCacheIdleFrames {
-			delete(c.entries, k)
+			c.drop(k)
 		}
 	}
+}
+
+func (c *pathCache) drop(k meshKey) {
+	delete(c.entries, k)
+	c.vars.remove(k)
 }
 
 // pathEntryFor returns the cached runs of r's mesh, building them when
 // the mesh is new or its content changed.
 func (b *Backend) pathEntryFor(r *gui.RenderCmd) *pathEntry {
 	c := &b.paths
-	key := meshKey{uintptr(unsafe.Pointer(&r.Triangles[0])), len(r.Triangles)}
-	hash := meshHash(r)
-	if e, ok := c.entries[key]; ok && e.hash == hash {
+	key := meshKeyFor(r)
+	if e, ok := c.entries[key]; ok {
 		e.lastUsed = c.frame
 		return e
 	}
-	e := &pathEntry{tris: r.Triangles, hash: hash, lastUsed: c.frame}
+	e := &pathEntry{tris: r.Triangles, lastUsed: c.frame}
 	b.tris.floats = append(b.tris.floats[:0], r.Triangles...)
 	b.tris.upload()
 	numVerts := len(r.Triangles) / 2
@@ -145,6 +140,13 @@ func (b *Backend) pathEntryFor(r *gui.RenderCmd) *pathEntry {
 		addRun(start, numVerts)
 	}
 	c.entries[key] = e
+	if c.vars == nil {
+		c.vars = meshVariants{}
+	}
+	c.vars.add(key)
+	trimMeshVariants(c.entries, c.vars, key.base(), c.frame,
+		func(e *pathEntry) uint64 { return e.lastUsed },
+		func(k meshKey, _ *pathEntry) { c.drop(k) })
 	return e
 }
 
