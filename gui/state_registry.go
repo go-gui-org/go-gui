@@ -224,6 +224,7 @@ const (
 	nsImageWarned         = "gui.image.warned"
 	nsSvgCache            = "gui.svg_cache"
 	nsSvgDimCache         = "gui.svg_dim_cache"
+	nsSvgSrcHash          = "gui.svg_src_hash"
 	nsSvgAnimSeen         = "gui.svg_anim_seen"
 	nsSvgErrWarned        = "gui.svg.err_warned"
 	nsOpticalOffset       = "gui.optical_offset"

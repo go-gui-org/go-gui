@@ -40,6 +40,15 @@ and this project adheres to
   frame. Now each element keeps what it wrote: a sync writes only the attributes
   that changed, and moves elements only when a node's parent changes. An
   unchanged tree makes no DOM calls. No API change.
+- **Pages with many large inline SVGs lay out much faster (#1037).** Every `Svg`
+  view looks up its parsed document each frame, once while the view is built and
+  once while it renders, and that lookup hashed the whole source string byte by
+  byte. With a large document in many views (240 views of a 68 KB illustration,
+  off-screen ones included) this was ~90% of a scrolled frame. A source of 256
+  bytes or more is now hashed once and then found by the identity of its string.
+  A cache hit on a 68 KB document takes ~76 ns instead of ~68 µs, and a scrolled
+  frame of that page ~0.9 ms instead of ~17 ms. No API change; file paths and
+  short sources behave as before.
 
 ### Fixed
 
