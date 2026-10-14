@@ -41,9 +41,13 @@ type Backend struct {
 	normBuf      []gui.GradientStop
 	imgCache     map[string]js.Value
 	failedImages map[string]struct{}
-	clipDepth    int
 	clipStack    []clipRegion
-	lastCursor   gui.MouseCursor
+	// brackets are the open rotation and filter brackets, and
+	// stateDepth the save() calls rebuildClipStack made: the clip
+	// stack and the brackets are replayed together.
+	brackets   []stateBracket
+	stateDepth int
+	lastCursor gui.MouseCursor
 
 	textPathPlacements []glyph.GlyphPlacement
 
@@ -91,6 +95,17 @@ type clipRegion struct {
 	x, y   float32
 	w, h   float32
 	radius float32
+	// level is len(brackets) when a stencil clip began: it is replayed
+	// under the brackets that were open then.
+	level int
+}
+
+// stateBracket is an open rotation or filter bracket.
+type stateBracket struct {
+	rotate     bool
+	angle      float32 // degrees
+	cx, cy     float32
+	blurRadius float32 // filter bracket
 }
 
 // Run initializes the web backend and runs the event/render
@@ -314,11 +329,12 @@ func (b *Backend) renderFrame(w *gui.Window) {
 	}
 
 	// Reset clip depth.
-	for b.clipDepth > 0 {
+	for b.stateDepth > 0 {
 		b.ctx2d.Call("restore")
-		b.clipDepth--
+		b.stateDepth--
 	}
 	b.clipStack = nil
+	b.brackets = b.brackets[:0]
 
 	w.Lock()
 	w.BackingScale = b.dpiScale

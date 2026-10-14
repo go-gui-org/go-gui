@@ -46,7 +46,11 @@ func init() {
 
 // renderersDraw iterates render commands and draws them.
 func (b *Backend) renderersDraw(w *gui.Window) {
-	cmds := w.Renderers()
+	b.drawCmds(w.Renderers())
+}
+
+// drawCmds draws one frame's render commands.
+func (b *Backend) drawCmds(cmds []gui.RenderCmd) {
 	for i := range cmds {
 		r := &cmds[i]
 		switch r.Kind {
@@ -141,6 +145,7 @@ func (b *Backend) beginStencilClip(r *gui.RenderCmd) {
 		w:      r.W,
 		h:      r.H,
 		radius: r.Radius,
+		level:  len(b.brackets),
 	})
 	b.rebuildClipStack()
 }
@@ -156,27 +161,89 @@ func (b *Backend) endStencilClip() {
 	b.rebuildClipStack()
 }
 
+// rebuildClipStack reapplies the clip stack and the open brackets to
+// the 2D context. A save() cannot be undone out of order, and a
+// bracket's save sits above the clips set before it: replaying the
+// clips by restore() used to pop the bracket instead, and the rest of
+// the bracket drew unrotated, or its rotation or filter outlived it.
+// So every change unwinds all of this function's saves and replays,
+// in order:
+//
+//  1. the rect clip, untransformed: it is screen-space like the GL
+//     backend's scissor, also inside a rotation;
+//  2. for each bracket level, the stencil clips begun at that level,
+//     then the bracket's transform or filter.
 func (b *Backend) rebuildClipStack() {
-	for b.clipDepth > 0 {
+	for b.stateDepth > 0 {
 		b.ctx2d.Call("restore")
-		b.clipDepth--
+		b.stateDepth--
 	}
-	for _, clip := range b.clipStack {
-		b.ctx2d.Call("save")
-		b.clipDepth++
-		b.ctx2d.Call("beginPath")
-		if clip.kind == clipKindStencil && clip.radius > 0 {
-			b.roundedRectPath(
-				float64(clip.x), float64(clip.y),
-				float64(clip.w), float64(clip.h),
-				float64(clip.radius))
-		} else {
-			b.ctx2d.Call("rect",
-				float64(clip.x), float64(clip.y),
-				float64(clip.w), float64(clip.h))
+	for _, c := range b.clipStack {
+		if c.kind == clipKindRect {
+			b.pushClip(c)
 		}
-		b.ctx2d.Call("clip")
 	}
+	for lvl := 0; lvl <= len(b.brackets); lvl++ {
+		for _, c := range b.clipStack {
+			if c.kind == clipKindStencil && min(c.level, len(b.brackets)) == lvl {
+				b.pushClip(c)
+			}
+		}
+		if lvl < len(b.brackets) {
+			b.pushBracket(b.brackets[lvl])
+		}
+	}
+}
+
+// pushClip saves the 2D state and intersects its clip with c.
+func (b *Backend) pushClip(c clipRegion) {
+	b.ctx2d.Call("save")
+	b.stateDepth++
+	b.ctx2d.Call("beginPath")
+	if c.kind == clipKindStencil && c.radius > 0 {
+		b.roundedRectPath(
+			float64(c.x), float64(c.y),
+			float64(c.w), float64(c.h),
+			float64(c.radius))
+	} else {
+		b.ctx2d.Call("rect",
+			float64(c.x), float64(c.y),
+			float64(c.w), float64(c.h))
+	}
+	b.ctx2d.Call("clip")
+}
+
+// pushBracket saves the 2D state and applies br's rotation or filter.
+func (b *Backend) pushBracket(br stateBracket) {
+	b.ctx2d.Call("save")
+	b.stateDepth++
+	if br.rotate {
+		cx, cy := float64(br.cx), float64(br.cy)
+		b.ctx2d.Call("translate", cx, cy)
+		b.ctx2d.Call("rotate", float64(br.angle)*math.Pi/180)
+		b.ctx2d.Call("translate", -cx, -cy)
+		return
+	}
+	if br.blurRadius > 0 {
+		b.ctx2d.Set("filter",
+			"blur("+ftoaGeneral(float64(br.blurRadius))+"px)")
+	}
+}
+
+// beginBracket opens br. It goes on top of the current state, which is
+// where rebuildClipStack's replay puts it.
+func (b *Backend) beginBracket(br stateBracket) {
+	b.brackets = append(b.brackets, br)
+	b.pushBracket(br)
+}
+
+// endBracket closes the innermost bracket and replays what remains.
+func (b *Backend) endBracket() {
+	if len(b.brackets) == 0 {
+		return
+	}
+	b.brackets = b.brackets[:len(b.brackets)-1]
+	b.rebuildClipStack()
 }
 
 func (b *Backend) drawRect(r *gui.RenderCmd) {
@@ -661,13 +728,9 @@ func (b *Backend) drawRtf(r *gui.RenderCmd) {
 }
 
 func (b *Backend) beginFilter(r *gui.RenderCmd) {
-	b.ctx2d.Call("save")
-	if r.BlurRadius > 0 {
-		b.ctx2d.Set("filter",
-			"blur("+ftoaGeneral(float64(r.BlurRadius))+"px)")
-	}
+	b.beginBracket(stateBracket{blurRadius: r.BlurRadius})
 }
 
 func (b *Backend) endFilter() {
-	b.ctx2d.Call("restore")
+	b.endBracket()
 }

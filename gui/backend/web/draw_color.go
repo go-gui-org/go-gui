@@ -36,17 +36,13 @@ func (b *Backend) cssColorCached(c gui.Color) string {
 }
 
 func (b *Backend) beginRotation(r *gui.RenderCmd) {
-	b.ctx2d.Call("save")
-	cx := float64(r.RotCX)
-	cy := float64(r.RotCY)
-	rad := float64(r.RotAngle) * math.Pi / 180
-	b.ctx2d.Call("translate", cx, cy)
-	b.ctx2d.Call("rotate", rad)
-	b.ctx2d.Call("translate", -cx, -cy)
+	b.beginBracket(stateBracket{
+		rotate: true, angle: r.RotAngle, cx: r.RotCX, cy: r.RotCY,
+	})
 }
 
 func (b *Backend) endRotation() {
-	b.ctx2d.Call("restore")
+	b.endBracket()
 }
 
 func (b *Backend) fillRoundedRect(

@@ -36,6 +36,12 @@ and this project adheres to
 
 ### Fixed
 
+- **A clip inside a rotation or blur no longer breaks it on the web (#1041).**
+  In the web backend, a clip inside a rotated or blurred element made the rest
+  of that element draw unrotated, and could leave the rotation or blur in force
+  after the element ended, so the rest of the frame drew rotated or blurred. The
+  clip replay undid the bracket instead of its own saves. Clips and brackets are
+  now replayed together, in order, so each keeps its place.
 - **A driver that refuses vsync is reported (#1018).** The GL backends on
   Windows and X11 asked for swap interval 1 and ignored the answer. Now a
   refusal is reported under `gui.Debug` (`DebugWindowDegraded`). Since the
