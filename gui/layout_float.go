@@ -118,10 +118,10 @@ func floatAttachLayout(
 	}
 
 	shape := layout.Shape
-	ax, ay := attachOffset(anchor, parent.Width, parent.Height)
+	ax, ay := floatAnchorPoint(layout, anchor)
 	tx, ty := attachOffset(tieOff, shape.Width, shape.Height)
-	x := parent.X + ax - tx + offsetX
-	y := parent.Y + ay - ty + offsetY
+	x := ax - tx + offsetX
+	y := ay - ty + offsetY
 
 	if !shape.floatAutoFlip {
 		return x, y
@@ -135,7 +135,7 @@ func floatAttachLayout(
 	if curOverY > 0 {
 		fa := flipVerticalAttach(anchor)
 		ft := flipVerticalAttach(tieOff)
-		_, fay := attachOffset(fa, parent.Width, parent.Height)
+		_, fay := floatAnchorPoint(layout, fa)
 		_, fty := attachOffset(ft, fw, fh)
 		// The offset is a gap from the anchor side. On the opposite
 		// side it must point the other way, or a gap becomes an overlap.
@@ -143,7 +143,7 @@ func floatAttachLayout(
 		if fa != anchor || ft != tieOff {
 			flipOffsetY = -offsetY
 		}
-		newY := parent.Y + fay - fty + flipOffsetY
+		newY := fay - fty + flipOffsetY
 		if overflowAxis(newY, fh, 0, winH) < curOverY {
 			y = newY
 			anchor = fa
@@ -156,14 +156,14 @@ func floatAttachLayout(
 	if curOverX > 0 {
 		fa := mirrorFloatAttach(anchor)
 		ft := mirrorFloatAttach(tieOff)
-		fax, _ := attachOffset(fa, parent.Width, parent.Height)
+		fax, _ := floatAnchorPoint(layout, fa)
 		ftx, _ := attachOffset(ft, fw, fh)
 		// See the vertical flip: the gap changes sign with the side.
 		flipOffsetX := offsetX
 		if fa != anchor || ft != tieOff {
 			flipOffsetX = -offsetX
 		}
-		newX := parent.X + fax - ftx + flipOffsetX
+		newX := fax - ftx + flipOffsetX
 		if overflowAxis(newX, fw, 0, winW) < curOverX {
 			x = newX
 		}
@@ -179,6 +179,26 @@ func floatAttachLayout(
 	x = max(x, 0)
 	y = max(y, 0)
 
+	return x, y
+}
+
+// floatAnchorPoint returns the window point a float with anchor a ties
+// to on its parent's box. Under a view transform or a quarter turn the
+// point is mapped out to where the parent is drawn (#1019). The float
+// itself is drawn in its own layer, outside those transforms, so it
+// stays upright beside the turned parent. A parent whose back face is
+// hidden has no drawn point, and the box point stands in.
+//
+// Floats are placed in layout. A transform that TransformFn moves in a
+// render-only frame moves the parent but not the float, until the next
+// layout.
+func floatAnchorPoint(layout *Layout, a floatAttach) (float32, float32) {
+	p := layout.Parent
+	ax, ay := attachOffset(a, p.Shape.Width, p.Shape.Height)
+	x, y := p.Shape.X+ax, p.Shape.Y+ay
+	if wx, wy, ok := xfLocalToWindowClip(p, x, y, false); ok {
+		return wx, wy
+	}
 	return x, y
 }
 

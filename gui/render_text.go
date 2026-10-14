@@ -520,12 +520,23 @@ func renderIMEPreeditUnderline(
 	caretByte := runeToByteIndex(compositeText,
 		min(insertPos+compCursor, insertPos+compRuneLen))
 	if cp, ok := gl.GetCursorPos(caretByte); ok {
-		w.IMESetRect(baseX+cp.X, baseY+cp.Y,
-			inputCaretW, cp.Height)
+		imeSetRectDrawn(drawClip{X: baseX + cp.X, Y: baseY + cp.Y,
+			Width: inputCaretW, Height: cp.Height}, w)
 	} else if len(rects) > 0 {
 		r := rects[0]
-		w.IMESetRect(baseX+r.X, baseY+r.Y, r.Width, r.Height)
+		imeSetRectDrawn(drawClip{X: baseX + r.X, Y: baseY + r.Y,
+			Width: r.Width, Height: r.Height}, w)
 	}
+}
+
+// imeSetRectDrawn reports a caret rect, in the frame the text is drawn
+// in, to the platform. Inside a view transform (#1019) it is mapped out
+// to where the caret is drawn, so the candidate window sits by it. A
+// quarter turn opens no frame on w.xfStack, so its turn is not applied
+// yet; #1019 phase 7 moves quarter turns onto the general mapping.
+func imeSetRectDrawn(r drawClip, w *Window) {
+	r = renderBoxToWindow(r, w)
+	w.IMESetRect(r.X, r.Y, r.Width, r.Height)
 }
 
 // inputGlyphLayout creates a glyph layout for the input text,

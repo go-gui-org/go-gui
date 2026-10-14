@@ -204,6 +204,22 @@ func xfClipStencilEnd(stencil RenderCmd, w *Window) {
 // effect when the bracket opened. A corner at or behind the viewer has no
 // place on screen, so the rect falls back to that entry scissor.
 func (f *xfFrame) toWindow(r drawClip) drawClip {
+	box, ok := f.box(r)
+	if !ok {
+		return f.clip
+	}
+	out, ok := rectIntersection(box, f.clip)
+	if !ok {
+		// An empty scissor at the entry corner: it clips everything.
+		return drawClip{X: f.clip.X, Y: f.clip.Y}
+	}
+	return out
+}
+
+// box maps a rect in the frame's own coordinates to the window: the
+// bounding box of its four mapped corners, not cut to any scissor. ok is
+// false when a corner is at or behind the viewer.
+func (f *xfFrame) box(r drawClip) (drawClip, bool) {
 	minX, minY := float32(math.Inf(1)), float32(math.Inf(1))
 	maxX, maxY := float32(math.Inf(-1)), float32(math.Inf(-1))
 	for i := range 4 {
@@ -216,17 +232,26 @@ func (f *xfFrame) toWindow(r drawClip) drawClip {
 		}
 		px, py, ok := f.acc.apply(cx, cy)
 		if !ok {
-			return f.clip
+			return drawClip{}, false
 		}
 		minX, maxX = min(minX, px), max(maxX, px)
 		minY, maxY = min(minY, py), max(maxY, py)
 	}
-	out, ok := rectIntersection(drawClip{
-		X: minX, Y: minY, Width: maxX - minX, Height: maxY - minY,
-	}, f.clip)
-	if !ok {
-		// An empty scissor at the entry corner: it clips everything.
-		return drawClip{X: f.clip.X, Y: f.clip.Y}
+	return drawClip{X: minX, Y: minY, Width: maxX - minX, Height: maxY - minY}, true
+}
+
+// renderBoxToWindow maps a rect drawn at this point of the render walk
+// out to the window, through the open transform brackets. With none open,
+// or with a corner off screen, it returns r. The IME caret rect goes
+// through it: the platform places its candidate window in window
+// coordinates.
+func renderBoxToWindow(r drawClip, w *Window) drawClip {
+	n := len(w.xfStack)
+	if n == 0 {
+		return r
 	}
-	return out
+	if box, ok := w.xfStack[n-1].box(r); ok {
+		return box
+	}
+	return r
 }

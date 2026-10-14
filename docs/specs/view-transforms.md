@@ -1,6 +1,6 @@
 # Visual transforms on views
 
-Issue #1019. Status: **planned** — phases 1, 2, 3, 4 and 6 landed.
+Issue #1019. Status: **planned** — phases 1 to 6 landed.
 
 ## Problem
 
@@ -150,9 +150,26 @@ that lifts on hover, a tilted badge and tumbling confetti cannot be built.
     frame (`lockCallback`).
   - Not yet mapped: a part drawn outside a parent that does not clip, which the
     parent's own test prunes, as for any overflowing child.
-- **Bounds.** `LocalToWindow` and `WindowToLocal` map points. The IME rect, a11y
-  bounds, tooltips, drag start and float anchors use the internal form of these.
-  A float stays upright at its transformed anchor.
+- **Bounds.** `Window.LocalToWindow` and `Window.WindowToLocal` map a point
+  between a widget's box (relative to its top-left corner, as `e.MouseX` is in
+  `OnClick`) and the window, through `xfLocalToWindowClip` and `xfWindowToLocal`
+  with no clip test. They read the last laid-out frame.
+  - The IME caret rect is mapped at render time through the open brackets
+    (`renderBoxToWindow`, `xfFrame.box`). A quarter turn opens no frame there,
+    so the IME rect of an input under a `RotatedBox` is still unturned. Phase 7
+    closes it.
+  - An a11y node under a view transform or a quarter turn reports the box of its
+    four mapped corners (`xfBoxToWindowOK`). A node that is not drawn (a hidden
+    back face) reports an empty box. The ancestor walk runs only below a
+    transform or a turn.
+  - A float's anchor point on its parent is mapped out to where the parent is
+    drawn (`floatAnchorPoint`), auto-flip included. The float is drawn in its
+    own layer, so it stays upright. Floats are placed in layout, so a transform
+    that `TransformFn` moves in render-only frames leaves its float behind until
+    the next layout. Re-placing floats at render time was not done: it would
+    move hit clips and layers after layout.
+  - Drag-reorder needs no change: the press that arms it and the locked moves
+    are in one frame (see mouse lock).
 
 ## Phasing
 
@@ -162,7 +179,7 @@ that lifts on hover, a tilted badge and tumbling confetti cannot be built.
 | 2     | `ContainerCfg.Transform`, render bracket, Metal + GL + mobile, clips, goldens  | landed  |
 | 3     | Pointer input through the inverse, in every walk                               | landed  |
 | 4     | Backface culling for drawing (with 2) and input (with 3)                       | landed  |
-| 5     | `LocalToWindow` / `WindowToLocal`, IME, a11y, tooltips, drag, float anchors    | pending |
+| 5     | `LocalToWindow` / `WindowToLocal`, IME, a11y, tooltips, drag, float anchors    | landed  |
 | 6     | Soft backend (homography blit), web (Canvas2D `setTransform`) and PDF          | landed  |
 | 7     | QuarterTurns input goes through the general mapping; special cases are deleted | pending |
 | 8     | `examples/transforms/`, README, cheat-sheet snippet                            | pending |

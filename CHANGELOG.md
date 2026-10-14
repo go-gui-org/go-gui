@@ -30,11 +30,16 @@ and this project adheres to
   locks the mouse (a slider, a splitter, drag to scroll) from a press inside a
   transformed container gets its moves in that container's own frame, so it
   tracks the pointer as drawn. Tooltips, blur on a press outside the focused
-  widget and the soft keyboard test the pointer where the widget is drawn. For
-  now, some gaps remain. The IME rect, accessibility bounds and where a float is
-  placed (a tooltip popup included) use the box without the transform. A part
-  drawn outside a parent that does not clip takes no pointer, as for any child
-  that overflows its parent. Later phases of #1019 close these gaps.
+  widget and the soft keyboard test the pointer where the widget is drawn. The
+  IME candidate window and the accessibility bounds follow the drawn position,
+  and so do the bounds of a child of a `RotatedBox`. A float (a tooltip, a menu,
+  a dropdown) opens by where its parent is drawn and stays upright. Floats are
+  placed in layout, so while `TransformFn` moves a view in render-only frames,
+  its float stays put until the next layout. New `Window.LocalToWindow` and
+  `Window.WindowToLocal` map a point between a widget's own box and the window,
+  so an app can place an overlay by a moved view. A part drawn outside a parent
+  that does not clip takes no pointer, as for any child that overflows its
+  parent.
 
 - **Springs, tweens and keyframes can ask for render-only frames (#1016).**
   `SpringAnimation`, `TweenAnimation` and `KeyframeAnimation` have a new

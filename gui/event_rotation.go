@@ -211,6 +211,16 @@ func xfWindowToLocalDepth(ly, p *Layout, x, y float32, clip bool, depth int) (fl
 // box of its four corners. With no view transform on the path it returns
 // r. A corner that is not on screen leaves r as it is.
 func xfBoxToWindow(ly *Layout, r drawClip) drawClip {
+	if box, ok := xfBoxToWindowOK(ly, r); ok {
+		return box
+	}
+	return r
+}
+
+// xfBoxToWindowOK is xfBoxToWindow, but it reports a corner that has no
+// place on screen (a hidden back face, a ray behind the viewer) with ok
+// false instead of falling back to r.
+func xfBoxToWindowOK(ly *Layout, r drawClip) (drawClip, bool) {
 	minX, minY := float32(math.Inf(1)), float32(math.Inf(1))
 	maxX, maxY := float32(math.Inf(-1)), float32(math.Inf(-1))
 	for i := range 4 {
@@ -223,12 +233,12 @@ func xfBoxToWindow(ly *Layout, r drawClip) drawClip {
 		}
 		px, py, ok := xfLocalToWindowClip(ly, cx, cy, false)
 		if !ok {
-			return r
+			return drawClip{}, false
 		}
 		minX, maxX = min(minX, px), max(maxX, px)
 		minY, maxY = min(minY, py), max(maxY, py)
 	}
-	return drawClip{X: minX, Y: minY, Width: maxX - minX, Height: maxY - minY}
+	return drawClip{X: minX, Y: minY, Width: maxX - minX, Height: maxY - minY}, true
 }
 
 // layoutHitsWindowPoint reports whether a window point hits ly where it

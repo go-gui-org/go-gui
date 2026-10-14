@@ -172,7 +172,7 @@ func a11yCollect(
 	focusID string,
 	live *[]liveNode,
 ) int {
-	return a11yCollectDepth(layout, parentIdx, nodes, focusID, live, 0)
+	return a11yCollectDepth(layout, parentIdx, nodes, focusID, live, false, 0)
 }
 
 func a11yCollectDepth(
@@ -181,6 +181,7 @@ func a11yCollectDepth(
 	nodes *[]A11yNode,
 	focusID string,
 	live *[]liveNode,
+	turned bool,
 	depth int,
 ) int {
 	focusedIdx := -1
@@ -195,11 +196,15 @@ func a11yCollectDepth(
 		return focusedIdx
 	}
 	s := layout.Shape
+	// turned is set below a view transform or a quarter turn: only there
+	// does a node's box differ from where it is drawn, so only there is
+	// the ancestor walk of xfBoxToWindow paid.
+	turned = turned || s.xf != nil || s.QuarterTurns > 0
 
 	// Skip shapes without a11y role but recurse children.
 	if s.A11YRole == AccessRoleNone {
 		for i := range layout.Children {
-			if fi := a11yCollectDepth(&layout.Children[i], parentIdx, nodes, focusID, live, depth+1); fi >= 0 {
+			if fi := a11yCollectDepth(&layout.Children[i], parentIdx, nodes, focusID, live, turned, depth+1); fi >= 0 {
 				focusedIdx = fi
 			}
 		}
@@ -232,16 +237,29 @@ func a11yCollectDepth(
 		state |= AccessStateDisabled
 	}
 
+	// The platform reads the bounds in window coordinates, so a node
+	// under a transform reports the box of where it is drawn (#1019). A
+	// node that is not drawn (a hidden back face) reports an empty box:
+	// its layout box is where other content is drawn, and a screen
+	// reader's hit test or focus ring must not land there.
+	box := drawClip{X: s.X, Y: s.Y, Width: s.Width, Height: s.Height}
+	if turned {
+		var drawn bool
+		if box, drawn = xfBoxToWindowOK(layout, box); !drawn {
+			box = drawClip{}
+		}
+	}
+
 	*nodes = append(*nodes, A11yNode{
 		Role:        s.A11YRole,
 		State:       state,
 		Label:       label,
 		Value:       value,
 		Description: description,
-		X:           s.X,
-		Y:           s.Y,
-		W:           s.Width,
-		H:           s.Height,
+		X:           box.X,
+		Y:           box.Y,
+		W:           box.Width,
+		H:           box.Height,
 		ValueNum:    valueNum,
 		ValueMin:    valueMin,
 		ValueMax:    valueMax,
@@ -265,7 +283,7 @@ func a11yCollectDepth(
 	// Process children.
 	childrenStart := len(*nodes)
 	for i := range layout.Children {
-		if fi := a11yCollectDepth(&layout.Children[i], nodeIdx, nodes, focusID, live, depth+1); fi >= 0 {
+		if fi := a11yCollectDepth(&layout.Children[i], nodeIdx, nodes, focusID, live, turned, depth+1); fi >= 0 {
 			focusedIdx = fi
 		}
 	}
