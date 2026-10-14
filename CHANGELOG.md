@@ -33,6 +33,15 @@ and this project adheres to
   last tick as `dt`, not a fixed 0.016. An `Update` that moves a fixed amount
   per call now runs faster on a fast display, so scale the step by `dt`. The
   mouse-wheel scroll ease does this, so it takes the same ~110 ms at any rate.
+- **Pages with many large inline SVGs lay out much faster (#1037).** Every `Svg`
+  view looks up its parsed document each frame, once while the view is built and
+  once while it renders, and that lookup hashed the whole source string byte by
+  byte. With a large document in many views (240 views of a 68 KB illustration,
+  off-screen ones included) this was ~90% of a scrolled frame. A source of 256
+  bytes or more is now hashed once and then found by the identity of its string.
+  A cache hit on a 68 KB document takes ~76 ns instead of ~68 µs, and a scrolled
+  frame of that page ~0.9 ms instead of ~17 ms. No API change; file paths and
+  short sources behave as before.
 
 ### Fixed
 
