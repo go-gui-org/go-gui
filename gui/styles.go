@@ -14,7 +14,7 @@ var (
 	colorFocusDark      = RGB(56, 62, 69) // #383E45
 	colorActiveDark     = RGB(66, 73, 81) // #424951
 	colorBorderDark     = RGBA(255, 255, 255, 28)
-	colorSeparatorDark  = RGBA(255, 255, 255, 20)
+	colorSeparatorDark  = RGBA(255, 255, 255, 60)
 	colorSelectDark     = RGB(65, 105, 225)
 	// colorAccentDark is the single accent decision; the rest of the
 	// ramp derives from it in ThemeMaker (visual-refresh §4.3).

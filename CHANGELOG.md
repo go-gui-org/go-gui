@@ -87,6 +87,16 @@ and this project adheres to
   A cache hit on a 68 KB document takes ~76 ns instead of ~68 µs, and a scrolled
   frame of that page ~0.9 ms instead of ~17 ms. No API change; file paths and
   short sources behave as before.
+- **Markdown body text renders at the secondary intensity.**
+  `DefaultMarkdownStyle` paragraphs, emphasis, table cells and list bullets now
+  use `TextStyleSecondary`: the same sizes at a dimmer color with its contrast
+  floor, so headings stay brighter than the body. `H4` and table heads stay
+  bright body bold. To restore full-intensity prose, set `Style.Text` (and
+  `Bold`/`Italic`/`BoldItalic`) back to the body styles.
+- **Separators are visible in both themes.** The divider color sat near the
+  surface it drew on (about 1.4:1 in the dark theme, near-invisible in the light
+  one). Both presets now land near 2:1 against their panel, so a 1 px rule reads
+  as a hairline without becoming a slab. Thickness is unchanged.
 
 ### Fixed
 

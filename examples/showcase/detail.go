@@ -73,7 +73,7 @@ func detailPanel(w *gui.Window) gui.View {
 
 	body := []gui.View{
 		viewTitleBar(entry, doc != ""),
-		gui.Text(gui.TextCfg{Text: entry.Summary, TextStyle: gui.CurrentTheme().TextStyleBody, Mode: gui.TextModeWrap}),
+		gui.Text(gui.TextCfg{Text: entry.Summary, TextStyle: gui.CurrentTheme().TextStyleSecondary, Mode: gui.TextModeWrap}),
 		content,
 	}
 	// The docs go under the demo, not behind a toggle: a reader who
@@ -108,6 +108,7 @@ func docsSection(w *gui.Window, id, doc string) gui.View {
 		SizeBorder: gui.NoBorder,
 		Spacing:    gui.SpacingMedium,
 		Content: []gui.View{
+			line(),
 			line(),
 			gui.Text(gui.TextCfg{Text: "Documentation", TextStyle: gui.CurrentTheme().TextStyleTitle}),
 			w.Markdown(gui.MarkdownCfg{
@@ -338,15 +339,18 @@ func demoPlaceholder(t gui.Theme, text string) gui.View {
 		Padding: gui.PaddingLarge,
 		Radius:  gui.RadiusMedium,
 		Content: []gui.View{
-			gui.Text(gui.TextCfg{Text: text, TextStyle: t.TextStyleBody, Mode: gui.TextModeWrap}),
+			gui.Text(gui.TextCfg{Text: text, TextStyle: t.TextStyleSecondary, Mode: gui.TextModeWrap}),
 		},
 	})
 }
 
 func relatedExamplesFooter(id string) gui.View {
+	t := gui.CurrentTheme()
+	style := t.TextStyleCaption
+	style.Color = t.TextStyleSecondary.Color
 	return gui.Text(gui.TextCfg{
 		Text:      "Related examples: " + relatedExamples(id),
-		TextStyle: gui.CurrentTheme().TextStyleCaption,
+		TextStyle: style,
 		Mode:      gui.TextModeWrap,
 	})
 }

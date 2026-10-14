@@ -12,7 +12,7 @@ var (
 	colorFocusLight      = RGB(231, 235, 241) // #E7EBF1
 	colorActiveLight     = RGB(224, 229, 236) // #E0E5EC
 	colorBorderLight     = RGB(216, 221, 228) // #D8DDE4
-	colorSeparatorLight  = RGB(230, 234, 239) // #E6EAEF
+	colorSeparatorLight  = RGB(176, 184, 197) // 2:1 vs white
 	// colorAccentLight is the single accent decision; the rest of the
 	// ramp derives from it in ThemeMaker (visual-refresh §4.3).
 	colorAccentLight = RGB(47, 111, 224) // #2F6FE0

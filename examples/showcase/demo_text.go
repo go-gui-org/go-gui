@@ -20,7 +20,7 @@ func demoText(_ *gui.Window) gui.View {
 		gui.Text(gui.TextCfg{
 			ID:        "text-intro",
 			Text:      "Text supports style variants, alignment, wrapping modes, tabs, and selection/copy.",
-			TextStyle: t.TextStyleCaption,
+			TextStyle: t.TextStyleBodySmall,
 			Mode:      gui.TextModeWrap,
 		}),
 		gui.Row(gui.ContainerCfg{
@@ -44,16 +44,16 @@ func demoText(_ *gui.Window) gui.View {
 				gui.Text(gui.TextCfg{
 					Text: "Underlined",
 					TextStyle: gui.TextStyle{
-						Color:     t.TextStyleBodySmall.Color,
-						Size:      t.TextStyleBodySmall.Size,
+						Color:     t.TextStyleBody.Color,
+						Size:      t.TextStyleBody.Size,
 						Underline: true,
 					},
 				}),
 				gui.Text(gui.TextCfg{
 					Text: "Strikethrough",
 					TextStyle: gui.TextStyle{
-						Color:         t.TextStyleBodySmall.Color,
-						Size:          t.TextStyleBodySmall.Size,
+						Color:         t.TextStyleBody.Color,
+						Size:          t.TextStyleBody.Size,
 						Strikethrough: true,
 					},
 				}),
@@ -61,23 +61,23 @@ func demoText(_ *gui.Window) gui.View {
 					Text: "Background color",
 					TextStyle: gui.TextStyle{
 						Color:   gui.White,
-						Size:    t.TextStyleBodySmall.Size,
+						Size:    t.TextStyleBody.Size,
 						BgColor: gui.RGB(27, 54, 93),
 					},
 				}),
 			},
 		}),
 		textDemoCard("", "Emoji, Multi-grapheme, and i18n", 0, []gui.View{
-			gui.Text(gui.TextCfg{Text: emojiSample, TextStyle: t.TextStyleBodySmall, Mode: gui.TextModeWrap}),
-			gui.Text(gui.TextCfg{Text: graphemeSample, TextStyle: t.TextStyleBodySmall, Mode: gui.TextModeWrap}),
-			gui.Text(gui.TextCfg{Text: i18nSample, TextStyle: t.TextStyleBodySmall, Mode: gui.TextModeWrap}),
+			gui.Text(gui.TextCfg{Text: emojiSample, TextStyle: t.TextStyleBody, Mode: gui.TextModeWrap}),
+			gui.Text(gui.TextCfg{Text: graphemeSample, TextStyle: t.TextStyleBody, Mode: gui.TextModeWrap}),
+			gui.Text(gui.TextCfg{Text: i18nSample, TextStyle: t.TextStyleBody, Mode: gui.TextModeWrap}),
 			gui.Text(gui.TextCfg{
 				Text:   "RTL sample: العربية עברית",
 				Mode:   gui.TextModeWrap,
 				Sizing: gui.FillFit,
 				TextStyle: gui.TextStyle{
-					Color: t.TextStyleBodySmall.Color,
-					Size:  t.TextStyleBodySmall.Size,
+					Color: t.TextStyleBody.Color,
+					Size:  t.TextStyleBody.Size,
 					Align: gui.TextAlignRight,
 				},
 			}),
@@ -94,19 +94,19 @@ func demoText(_ *gui.Window) gui.View {
 						Text:      wrapSample,
 						Mode:      gui.TextModeWrap,
 						Sizing:    gui.FillFit,
-						TextStyle: gui.TextStyle{Color: t.TextStyleCaption.Color, Size: t.TextStyleCaption.Size, Align: gui.TextAlignLeft},
+						TextStyle: gui.TextStyle{Color: t.TextStyleBodySmall.Color, Size: t.TextStyleBodySmall.Size, Align: gui.TextAlignLeft},
 					}),
 					gui.Text(gui.TextCfg{
 						Text:      "Center aligned text",
 						Mode:      gui.TextModeWrap,
 						Sizing:    gui.FillFit,
-						TextStyle: gui.TextStyle{Color: t.TextStyleCaption.Color, Size: t.TextStyleCaption.Size, Align: gui.TextAlignCenter},
+						TextStyle: gui.TextStyle{Color: t.TextStyleBodySmall.Color, Size: t.TextStyleBodySmall.Size, Align: gui.TextAlignCenter},
 					}),
 					gui.Text(gui.TextCfg{
 						Text:      "Right aligned text",
 						Mode:      gui.TextModeWrap,
 						Sizing:    gui.FillFit,
-						TextStyle: gui.TextStyle{Color: t.TextStyleCaption.Color, Size: t.TextStyleCaption.Size, Align: gui.TextAlignRight},
+						TextStyle: gui.TextStyle{Color: t.TextStyleBodySmall.Color, Size: t.TextStyleBodySmall.Size, Align: gui.TextAlignRight},
 					}),
 				}),
 				textDemoCard("", "mode: .wrap_keep_spaces", 260, []gui.View{
@@ -116,7 +116,7 @@ func demoText(_ *gui.Window) gui.View {
 						Mode:      gui.TextModeWrapKeepSpaces,
 						Sizing:    gui.FillFit,
 						TabSize:   8,
-						TextStyle: t.TextStyleCodeSmall,
+						TextStyle: t.TextStyleCode,
 					}),
 				}),
 			},
@@ -124,7 +124,7 @@ func demoText(_ *gui.Window) gui.View {
 		textDemoCard("", "", 0, []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      "Focus/select/copy: click inside block, drag selection, then Cmd/Ctrl+C.",
-				TextStyle: t.TextStyleCaption,
+				TextStyle: t.TextStyleBodySmall,
 				Mode:      gui.TextModeWrap,
 			}),
 			gui.Text(gui.TextCfg{
@@ -135,8 +135,8 @@ func demoText(_ *gui.Window) gui.View {
 				Sizing:    gui.FillFit,
 				Text:      "Selectable text block\n- Click to focus\n- Drag to select range\n- Copy with Cmd/Ctrl+C",
 				TextStyle: gui.TextStyle{
-					Color:   t.TextStyleBodySmall.Color,
-					Size:    t.TextStyleBodySmall.Size,
+					Color:   t.TextStyleBody.Color,
+					Size:    t.TextStyleBody.Size,
 					BgColor: t.ColorPanel,
 				},
 			}),
@@ -147,7 +147,7 @@ func demoText(_ *gui.Window) gui.View {
 		textDemoCard("", "Transforms", 0, []gui.View{
 			gui.Row(gui.ContainerCfg{
 				Sizing:  gui.FillFixed,
-				Height:  t.TextStyleBodySmall.Bold().Size * 4,
+				Height:  t.TextStyleBody.Bold().Size * 4,
 				Padding: gui.NoPadding,
 				VAlign:  gui.VAlignTop,
 				Content: []gui.View{
@@ -155,9 +155,9 @@ func demoText(_ *gui.Window) gui.View {
 						ID:   "text-transform-rotation",
 						Text: "Rotated text via TextStyle.RotationRadians",
 						TextStyle: gui.TextStyle{
-							Color:           t.TextStyleBodySmall.Bold().Color,
-							Size:            t.TextStyleBodySmall.Bold().Size,
-							Typeface:        t.TextStyleBodySmall.Bold().Typeface,
+							Color:           t.TextStyleBody.Bold().Color,
+							Size:            t.TextStyleBody.Bold().Size,
+							Typeface:        t.TextStyleBody.Bold().Typeface,
 							RotationRadians: 0.35,
 						},
 					}),
@@ -165,7 +165,7 @@ func demoText(_ *gui.Window) gui.View {
 			}),
 			gui.Row(gui.ContainerCfg{
 				Sizing:  gui.FillFixed,
-				Height:  t.TextStyleBodySmall.Bold().Size * 4,
+				Height:  t.TextStyleBody.Bold().Size * 4,
 				Padding: gui.NoPadding,
 				VAlign:  gui.VAlignTop,
 				Content: []gui.View{
@@ -173,9 +173,9 @@ func demoText(_ *gui.Window) gui.View {
 						ID:   "text-transform-affine",
 						Text: "Affine text: skew + translate",
 						TextStyle: gui.TextStyle{
-							Color:    t.TextStyleBodySmall.Bold().Color,
-							Size:     t.TextStyleBodySmall.Bold().Size,
-							Typeface: t.TextStyleBodySmall.Bold().Typeface,
+							Color:    t.TextStyleBody.Bold().Color,
+							Size:     t.TextStyleBody.Bold().Size,
+							Typeface: t.TextStyleBody.Bold().Typeface,
 							AffineTransform: &glyph.AffineTransform{
 								XX: 1.0,
 								XY: -0.35,
@@ -286,7 +286,7 @@ func textDemoCard(
 	items := content
 	if title != "" {
 		items = append([]gui.View{
-			gui.Text(gui.TextCfg{Text: title, TextStyle: t.TextStyleCaption.Bold()}),
+			gui.Text(gui.TextCfg{Text: title, TextStyle: t.TextStyleBodySmall.Bold()}),
 		}, content...)
 	}
 	cfg := gui.ContainerCfg{

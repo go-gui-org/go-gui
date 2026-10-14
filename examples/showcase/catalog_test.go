@@ -59,17 +59,29 @@ func TestCatalogRowClickSelects(t *testing.T) {
 	}
 }
 
-// firstText returns the text of the first text shape in a layout tree.
-func firstText(l gui.Layout) string {
-	if l.Shape != nil && l.Shape.TC != nil {
-		return l.Shape.TC.Text
-	}
-	for i := range l.Children {
-		if s := firstText(l.Children[i]); s != "" {
-			return s
+// The sidebar pins Start first and renders the rest in
+// alphabetical order by label, regardless of demoGroups order.
+func TestCatalogGroupsAlphabetical(t *testing.T) {
+	app := newShowcaseApp()
+	app.SelectedGroup = groupAll
+	items := catalogItems(filteredEntries(app))
+	var got []string
+	for _, it := range items {
+		if it.entry == nil {
+			got = append(got, it.group.Label)
 		}
 	}
-	return ""
+	if len(got) == 0 {
+		t.Fatal("catalog has no group headers")
+	}
+	if got[0] != "Start" {
+		t.Fatalf("first group = %q, want %q (full order %q)", got[0], "Start", got)
+	}
+	for i := 2; i < len(got); i++ {
+		if strings.Compare(got[i-1], got[i]) >= 0 {
+			t.Fatalf("group headers after Start not alphabetical: %q", got)
+		}
+	}
 }
 
 // Every entry names a group that exists. An entry with an unknown
@@ -85,30 +97,6 @@ func TestDemoEntryGroupsAreKnown(t *testing.T) {
 	for _, e := range demoEntries {
 		if !keys[e.Group] {
 			t.Errorf("entry %q has group %q, which is not in demoGroups", e.ID, e.Group)
-		}
-	}
-}
-
-// The group picker and the catalog headers come from one list
-// (#1025): "All" first, then demoGroups with the same keys, order and
-// labels.
-func TestGroupPickerMatchesDemoGroups(t *testing.T) {
-	app := newShowcaseApp()
-	w := gui.NewWindow(gui.WindowCfg{State: app})
-	layout := groupPicker(app).GenerateLayout(w)
-
-	type item struct{ id, label string }
-	want := []item{{gui.ScopeID("showcase", "grp", groupAll), "All"}}
-	for _, g := range demoGroups {
-		want = append(want, item{gui.ScopeID("showcase", "grp", g.Key), g.Label})
-	}
-	if len(layout.Children) != len(want) {
-		t.Fatalf("picker has %d items, want %d", len(layout.Children), len(want))
-	}
-	for i, c := range layout.Children {
-		got := item{c.Shape.ID, firstText(c)}
-		if got != want[i] {
-			t.Errorf("picker item %d = %+v, want %+v", i, got, want[i])
 		}
 	}
 }

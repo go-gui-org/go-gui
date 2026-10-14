@@ -74,14 +74,17 @@ func DefaultMarkdownStyle() MarkdownStyle {
 	// Line spacing comes from go-glyph's recommended line height (font
 	// leading, floored to a minimum em ratio); no manual LineSpacing needed.
 	//
-	// Markdown is document prose, so paragraphs take the body role
-	// (#998). The heading ladder has only two rungs above body, so H3
-	// (title-small) and H4 (body bold) share a size and differ by
+	// Markdown is document prose under headings, so paragraphs take
+	// the secondary role: headings stay bright while body reads
+	// quieter. The heading ladder has only two rungs above body, so
+	// H3 (title-small) and H4 (body bold) share a size and differ by
 	// nothing but order; H5 and H6 take the two rungs under body.
-	text := guiTheme.TextStyleBody
-	bold := guiTheme.TextStyleBody.Bold()
-	italic := guiTheme.TextStyleBody.Italic()
-	bi := guiTheme.TextStyleBody.Italic().Bold()
+	text := guiTheme.TextStyleSecondary
+	bold := text.Bold()
+	italic := text.Italic()
+	bi := text.Italic().Bold()
+	// H4 and table heads stay bright: they name sections, not body.
+	headBold := guiTheme.TextStyleBody.Bold()
 	// Inline code sits two points under the body size (about the 85%
 	// GitHub uses). The mono face alone sets it apart. Menlo (the macOS
 	// mono) has a taller x-height than the system sans, so at the body
@@ -95,7 +98,7 @@ func DefaultMarkdownStyle() MarkdownStyle {
 		H1:         guiTheme.TextStyleDisplay,
 		H2:         guiTheme.TextStyleTitle,
 		H3:         guiTheme.TextStyleTitleSmall,
-		H4:         bold,
+		H4:         headBold,
 		H5:         guiTheme.TextStyleBodySmall.Bold(),
 		H6:         guiTheme.TextStyleCaption.Bold(),
 		Bold:       bold,
@@ -130,7 +133,7 @@ func DefaultMarkdownStyle() MarkdownStyle {
 		TableBorderStyle: TableBorderHeaderOnly,
 		tableBorderColor: guiTheme.ColorBorder,
 		tableBorderSize:  1,
-		tableHeadStyle:   bold,
+		tableHeadStyle:   headBold,
 		tableCellStyle:   text,
 		tableCellPadding: NewPadding(5, 10, 5, 10), // ergonomics-audit:spacing — fixed style default, theme-invariant
 		highlightBG:      RGB(199, 142, 18),

@@ -2,6 +2,7 @@ package main
 
 import (
 	"slices"
+	"strings"
 
 	"github.com/go-gui-org/go-gui/gui"
 )
@@ -41,9 +42,8 @@ func catalogPanel(w *gui.Window) gui.View {
 		Padding: gui.PaddingMedium,
 		Spacing: gui.SpacingMedium,
 		Content: []gui.View{
-			gui.Text(gui.TextCfg{Text: "Component Catalog", TextStyle: t.TextStyleTitleSmall}),
+			gui.Text(gui.TextCfg{Text: "Component Catalog", TextStyle: t.TextStyleTitle}),
 			searchInput(app),
-			groupPicker(app),
 			line(),
 			catalogList(entries, app),
 			gui.Row(gui.ContainerCfg{
@@ -85,53 +85,6 @@ func searchInput(app *ShowcaseApp) gui.View {
 	})
 }
 
-// groupPicker shows "All", then one item per catalog group. It reads
-// demoGroups, the same list the catalog headers read, so the two
-// cannot drift apart in order or label (#1025).
-func groupPicker(app *ShowcaseApp) gui.View {
-	items := make([]gui.View, 0, len(demoGroups)+1)
-	items = append(items, groupPickerItem("All", groupAll, app))
-	for i := range demoGroups {
-		items = append(items, groupPickerItem(demoGroups[i].Label, demoGroups[i].Key, app))
-	}
-	return gui.Wrap(gui.ContainerCfg{
-		Sizing:  gui.FillFit,
-		Padding: gui.NoPadding,
-		Spacing: gui.SpacingTight,
-		Content: items,
-	})
-}
-
-func groupPickerItem(label, key string, app *ShowcaseApp) gui.View {
-	t := gui.CurrentTheme()
-	selected := app.SelectedGroup == key
-	color := t.ColorBackground
-	if selected {
-		color = t.ColorActive
-	}
-
-	return gui.Button(gui.ButtonCfg{
-		ID:      gui.ScopeID("showcase", "grp", key),
-		Color:   color,
-		Colors:  gui.ColorSet{Border: color},
-		Radius:  gui.RadiusSmall,
-		Padding: gui.PaddingTwoFive,
-		Content: []gui.View{
-			gui.Text(gui.TextCfg{Text: label, TextStyle: t.TextStyleCaption}),
-		},
-		OnClick: func(ctx gui.EventCtx) {
-			showcaseApp := appState(ctx.Window)
-			showcaseApp.SelectedGroup = key
-			showcaseApp.NavQuery = ""
-			entries := filteredEntries(showcaseApp)
-			showcaseApp.SelectedComponent = preferredComponentForGroup(entries)
-			ctx.Window.ScrollToIndex(scrollCatalog, 0)
-			ctx.Window.ScrollVerticalTo(scrollDetail, 0)
-			ctx.Window.ScrollHorizontalTo(scrollDetail, 0)
-		},
-	})
-}
-
 // catalogItem is one row of the catalog list: a group header when
 // entry is nil, otherwise a demo entry.
 type catalogItem struct {
@@ -142,11 +95,24 @@ type catalogItem struct {
 }
 
 // catalogItems flattens the filtered entries into list rows: each
-// non-empty group's header, then its entries sorted by label.
+// non-empty group's header, then its entries sorted by label. Start
+// stays first; the rest render in alphabetical order by label.
 func catalogItems(entries []DemoEntry) []catalogItem {
 	items := make([]catalogItem, 0, len(entries)+len(demoGroups))
+	ordered := make([]*DemoGroup, 0, len(demoGroups))
 	for gi := range demoGroups {
-		group := &demoGroups[gi]
+		ordered = append(ordered, &demoGroups[gi])
+	}
+	slices.SortFunc(ordered, func(a, b *DemoGroup) int {
+		if a.Key == groupStart {
+			return -1
+		}
+		if b.Key == groupStart {
+			return 1
+		}
+		return strings.Compare(a.Label, b.Label)
+	})
+	for _, group := range ordered {
 		start := len(items) + 1
 		for ei := range entries {
 			if entries[ei].Group == group.Key {
@@ -178,7 +144,7 @@ func catalogList(entries []DemoEntry, app *ShowcaseApp) gui.View {
 			Content: []gui.View{
 				gui.Text(gui.TextCfg{
 					Text:      "No matching components",
-					TextStyle: t.TextStyleBodySmall,
+					TextStyle: t.TextStyleSecondary,
 				}),
 			},
 		})
@@ -220,9 +186,10 @@ func catalogList(entries []DemoEntry, app *ShowcaseApp) gui.View {
 	})
 }
 
-// catalogHeader is a group's label. VirtualList puts no gap between
-// rows, so the row carries its own: a group gap above it unless it is
-// the first, and the tight gap below.
+// catalogHeader is a group's label. Headings and rows both stay at
+// full intensity, differing by size and weight. VirtualList puts no
+// gap between rows, so the row carries its own: a group gap above it
+// unless it is the first, and the tight gap below.
 func catalogHeader(group *DemoGroup, first bool) gui.View {
 	t := gui.CurrentTheme()
 	var top float32
@@ -236,7 +203,7 @@ func catalogHeader(group *DemoGroup, first bool) gui.View {
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      group.Label,
-				TextStyle: t.TextStyleCaption.Bold(),
+				TextStyle: t.TextStyleBodySmall.Bold(),
 			}),
 		},
 	})
@@ -260,7 +227,8 @@ func catalogRow(entry DemoEntry, app *ShowcaseApp) gui.View {
 	})
 }
 
-// catalogButton is the clickable part of a catalog row.
+// catalogButton is the clickable part of a catalog row. Row text
+// stays at full intensity for readability.
 func catalogButton(entry DemoEntry, color gui.Color) gui.View {
 	t := gui.CurrentTheme()
 	return gui.Button(gui.ButtonCfg{
@@ -269,10 +237,10 @@ func catalogButton(entry DemoEntry, color gui.Color) gui.View {
 		Color:   color,
 		Colors:  gui.ColorSet{Hover: t.ColorHover, Click: t.ColorActive, Focus: color, Border: gui.ColorTransparent, BorderFocus: gui.ColorTransparent},
 		Radius:  gui.RadiusSmall,
-		Padding: gui.PaddingTwoFive,
+		Padding: gui.PaddingSmall,
 		HAlign:  gui.Some(gui.HAlignLeft),
 		Content: []gui.View{
-			gui.Text(gui.TextCfg{Text: entry.Label, TextStyle: t.TextStyleBodySmall}),
+			gui.Text(gui.TextCfg{Text: entry.Label, TextStyle: t.TextStyleBody}),
 		},
 		OnClick: func(ctx gui.EventCtx) {
 			showcaseApp := appState(ctx.Window)
@@ -293,7 +261,7 @@ func toggleLocale(app *ShowcaseApp) gui.View {
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
 				Text:      label,
-				TextStyle: gui.CurrentTheme().TextStyleBodySmall.Bold(),
+				TextStyle: gui.CurrentTheme().TextStyleBody.Bold(),
 			}),
 		},
 		OnClick: func(ctx gui.EventCtx) {

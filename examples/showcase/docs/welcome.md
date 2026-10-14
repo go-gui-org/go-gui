@@ -24,6 +24,6 @@ without UI boilerplate.
 
 ## 🧭 About Showcase
 
-This program is an interactive component catalog. Use the left panel to filter
-categories and components, then inspect live demos on the right. Each demo
-includes related example files for deeper reference.
+This program is an interactive component catalog. Use the left panel to search
+and browse components, then inspect live demos on the right. Each demo includes
+related example files for deeper reference.

@@ -8,9 +8,9 @@ Rect xy=30.00,147.60 wh=260.00,20.00 color=#00000032 radius=3.50 fill
 Clip xy=0.00,0.00 wh=0.00,0.00
 Clip xy=0.00,0.00 wh=320.00,240.00
 Rect xy=30.00,181.60 wh=260.00,1.00 color=#d8dde4ff fill
-Text xy=30.00,196.60 wh=0.00,0.00 color=#1a1d21ff text="• " size=14.00
+Text xy=30.00,196.60 wh=0.00,0.00 color=#1a1d21ae text="• " size=14.00
 RTF xy=60.80,196.60 wh=0.00,0.00 text="" +glyphlayout glyphs=0 items=0
-Text xy=30.00,223.20 wh=0.00,0.00 color=#1a1d21ff text="• " size=14.00
+Text xy=30.00,223.20 wh=0.00,0.00 color=#1a1d21ae text="• " size=14.00
 RTF xy=60.80,223.20 wh=0.00,0.00 text="" +glyphlayout glyphs=0 items=0
 Text xy=275.40,154.57 wh=0.00,0.00 color=#808080ff text="\uf1b1" size=11.00
 Text xy=290.40,21.97 wh=0.00,0.00 color=#808080ff text="\uf1b1" size=11.00

@@ -207,11 +207,20 @@ type ShowcaseApp struct {
 
 	// Transform playground sliders (demo_transform.go). TransformScale
 	// is seeded to 1 in newShowcaseApp; the zero value would collapse
-	// the preview to its origin.
-	TransformRotate float32
-	TransformScale  float32
-	TransformTX     float32
-	TransformTY     float32
+	// the preview to its origin. TransformMirrorX is the X-axis mirror
+	// factor (1 normal, -1 flipped); TransformPersp is the viewing
+	// distance for the RotateX/RotateY sliders.
+	TransformRotate  float32
+	TransformScale   float32
+	TransformTX      float32
+	TransformTY      float32
+	TransformMirrorX float32
+	TransformRotX    float32
+	TransformRotY    float32
+	TransformPersp   float32
+	// TransformPlaygroundText backs the playground dialog's text
+	// field, so it accepts input.
+	TransformPlaygroundText string
 	// TransformLift is the hover card's lift amount, 0 at rest to 1
 	// raised; TransformAngle/TransformFlipped drive the flip card.
 	TransformLift    float32
@@ -311,6 +320,8 @@ func newShowcaseApp() *ShowcaseApp {
 		},
 		GesturePadScale:   1,
 		TransformScale:    1,
+		TransformMirrorX:  1,
+		TransformPersp:    500,
 		DrawCanvasMarkerX: 240,
 		DrawCanvasMarkerY: 140,
 		DrawCanvasVersion: 1,
@@ -348,8 +359,9 @@ func newShowcaseApp() *ShowcaseApp {
 	}
 }
 
-// demoGroups is the one list of catalog groups. The group picker and
-// the catalog headers both read it, in this order.
+// demoGroups is the one list of catalog groups. The sidebar pins
+// Start first and renders the rest in alphabetical order by label,
+// so declaration order carries no display meaning.
 var demoGroups = []DemoGroup{
 	{Key: groupStart, Label: "Start"},
 	{Key: groupActions, Label: "Actions"},

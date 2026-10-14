@@ -10,6 +10,12 @@ import (
 const (
 	transformFlipW float32 = 160
 	transformFlipH float32 = 100
+	// playgroundSliderInset is the symmetric side inset of the
+	// playground slider block: ~10% of the default detail width per
+	// side, so the tracks read ~20% shorter and stay centered. The
+	// layout engine has no fractional widths, so this stays a fixed
+	// inset rather than a proportion.
+	playgroundSliderInset float32 = 60
 )
 
 func demoTransform(w *gui.Window) gui.View {
@@ -74,6 +80,13 @@ func demoTransform(w *gui.Window) gui.View {
 				ty := safeFloat(app.TransformTY, 0)
 				rot := safeFloat(app.TransformRotate, 0)
 				scl := max(safeFloat(app.TransformScale, 1), 0.01)
+				mx := safeFloat(app.TransformMirrorX, 1)
+				rx := safeFloat(app.TransformRotX, 0)
+				ry := safeFloat(app.TransformRotY, 0)
+				persp := safeFloat(app.TransformPersp, 500)
+				if persp <= 0 {
+					persp = 500
+				}
 				return gui.Column(gui.ContainerCfg{
 					Sizing:     gui.FillFit,
 					Spacing:    gui.SpacingMedium,
@@ -82,34 +95,63 @@ func demoTransform(w *gui.Window) gui.View {
 					Content: []gui.View{
 						gui.Text(gui.TextCfg{
 							ID:        "transform-readout",
-							Text:      fmt.Sprintf("Translate(%.0f, %.0f).Rotate(%.0f).Scale(%.2f)", tx, ty, rot, scl),
+							Text:      fmt.Sprintf("Translate(%.0f, %.0f).Rotate(%.0f).Scale(%.2f).MirrorX(%.2f).RotateX(%.0f).RotateY(%.0f).Perspective(%.0f)", tx, ty, rot, scl, mx, rx, ry, persp),
 							TextStyle: t.TextStyleBody,
 						}),
-						gui.Column(gui.ContainerCfg{
-							Width:       240,
-							Height:      150,
-							Sizing:      gui.FixedFixed,
-							ColorBorder: t.ColorBorder,
-							SizeBorder:  gui.BorderThin,
-							Radius:      gui.RadiusSmall,
-							HAlign:      gui.HAlignCenter,
-							VAlign:      gui.VAlignMiddle,
-							Padding:     gui.NoPadding,
+						gui.Row(gui.ContainerCfg{
+							Sizing:     gui.FillFit,
+							Padding:    gui.NoPadding,
+							SizeBorder: gui.NoBorder,
+							Spacing:    gui.NoSpacing,
+							HAlign:     gui.HAlignCenter,
 							Content: []gui.View{
-								transformBox(t, "Abc", t.ColorActive, gui.Translate(tx, ty).Rotate(rot).Scale(scl)),
+								gui.Column(gui.ContainerCfg{
+									Width:       240,
+									Height:      150,
+									Sizing:      gui.FixedFixed,
+									ColorBorder: t.ColorBorder,
+									SizeBorder:  gui.BorderThin,
+									Radius:      gui.RadiusSmall,
+									HAlign:      gui.HAlignCenter,
+									VAlign:      gui.VAlignMiddle,
+									Padding:     gui.NoPadding,
+									Content: []gui.View{
+										transformPlaygroundBox(t, app.TransformPlaygroundText, gui.Translate(tx, ty).Perspective(persp).RotateX(rx).RotateY(ry).Rotate(rot).ScaleXY(scl*mx, scl)),
+									},
+								}),
 							},
 						}),
-						transformSlider(t, "transform-rotate", "Rotate", rot, -180, 180, func(v float32, ctx gui.EventCtx) {
-							appState(ctx.Window).TransformRotate = v
-						}),
-						transformSlider(t, "transform-scale", "Scale", scl, 0.2, 2, func(v float32, ctx gui.EventCtx) {
-							appState(ctx.Window).TransformScale = v
-						}),
-						transformSlider(t, "transform-tx", "Translate X", tx, -40, 40, func(v float32, ctx gui.EventCtx) {
-							appState(ctx.Window).TransformTX = v
-						}),
-						transformSlider(t, "transform-ty", "Translate Y", ty, -40, 40, func(v float32, ctx gui.EventCtx) {
-							appState(ctx.Window).TransformTY = v
+						gui.Column(gui.ContainerCfg{
+							Sizing:     gui.FillFit,
+							Spacing:    gui.SpacingMedium,
+							Padding:    gui.NewPadding(0, playgroundSliderInset, 0, playgroundSliderInset),
+							SizeBorder: gui.NoBorder,
+							Content: []gui.View{
+								transformSlider(t, "transform-rotate", "Rotate", rot, -180, 180, func(v float32, ctx gui.EventCtx) {
+									appState(ctx.Window).TransformRotate = v
+								}),
+								transformSlider(t, "transform-scale", "Scale", scl, 0.2, 2, func(v float32, ctx gui.EventCtx) {
+									appState(ctx.Window).TransformScale = v
+								}),
+								transformSlider(t, "transform-tx", "Translate X", tx, -40, 40, func(v float32, ctx gui.EventCtx) {
+									appState(ctx.Window).TransformTX = v
+								}),
+								transformSlider(t, "transform-ty", "Translate Y", ty, -40, 40, func(v float32, ctx gui.EventCtx) {
+									appState(ctx.Window).TransformTY = v
+								}),
+								transformSlider(t, "transform-mirror", "Mirror X", mx, -1, 1, func(v float32, ctx gui.EventCtx) {
+									appState(ctx.Window).TransformMirrorX = v
+								}),
+								transformSlider(t, "transform-rotx", "Rotate X", rx, -60, 60, func(v float32, ctx gui.EventCtx) {
+									appState(ctx.Window).TransformRotX = v
+								}),
+								transformSlider(t, "transform-roty", "Rotate Y", ry, -60, 60, func(v float32, ctx gui.EventCtx) {
+									appState(ctx.Window).TransformRotY = v
+								}),
+								transformSlider(t, "transform-persp", "Perspective", persp, 200, 1200, func(v float32, ctx gui.EventCtx) {
+									appState(ctx.Window).TransformPersp = v
+								}),
+							},
 						}),
 					},
 				})
@@ -123,6 +165,10 @@ func demoTransform(w *gui.Window) gui.View {
 					a.TransformScale = 1
 					a.TransformTX = 0
 					a.TransformTY = 0
+					a.TransformMirrorX = 1
+					a.TransformRotX = 0
+					a.TransformRotY = 0
+					a.TransformPersp = 500
 				},
 			}),
 			sectionLabel(t, "Animated"),
@@ -190,6 +236,65 @@ func transformBox(t gui.Theme, label string, color gui.Color, xf gui.Transform) 
 		Transform: xf,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{Text: label, TextStyle: t.TextStyleBody}),
+		},
+	})
+}
+
+// transformPlaygroundBox is the playground's sample: a small dialog
+// box with a text field and Cancel/OK buttons, drawn through the
+// playground transform. A realistic control mix shows what a
+// transform does to everyday content better than a bare box.
+func transformPlaygroundBox(t gui.Theme, text string, xf gui.Transform) gui.View {
+	return gui.Column(gui.ContainerCfg{
+		Width:       180,
+		Sizing:      gui.FixedFit,
+		Color:       t.ColorPanel,
+		ColorBorder: t.ColorBorder,
+		SizeBorder:  gui.BorderThin,
+		Radius:      gui.RadiusSmall,
+		Padding:     gui.PaddingSmall,
+		Spacing:     gui.SpacingSmall,
+		HAlign:      gui.HAlignCenter,
+		VAlign:      gui.VAlignMiddle,
+		Transform:   xf,
+		Content: []gui.View{
+			gui.Input(gui.InputCfg{
+				ID:          "transform-playground-input",
+				Sizing:      gui.FillFit,
+				Text:        text,
+				Placeholder: "Type here...",
+				OnTextChanged: func(s string, ctx gui.EventCtx) {
+					appState(ctx.Window).TransformPlaygroundText = s
+				},
+			}),
+			gui.Row(gui.ContainerCfg{
+				Sizing:  gui.FillFit,
+				Padding: gui.NoPadding,
+				Spacing: gui.SpacingSmall,
+				HAlign:  gui.HAlignRight,
+				Content: []gui.View{
+					// Both buttons clear the field: a click that lands
+					// through a mirror or a perspective turn proves the
+					// pointer follows the drawn view (hit testing). The
+					// buttons take explicit IDs so tests can click them.
+					gui.Button(gui.ButtonCfg{
+						ID:      "transform-playground-cancel",
+						Variant: gui.ButtonSecondary,
+						Label:   "Cancel",
+						OnClick: func(ctx gui.EventCtx) {
+							appState(ctx.Window).TransformPlaygroundText = ""
+						},
+					}),
+					gui.Button(gui.ButtonCfg{
+						ID:      "transform-playground-ok",
+						Variant: gui.ButtonPrimary,
+						Label:   "OK",
+						OnClick: func(ctx gui.EventCtx) {
+							appState(ctx.Window).TransformPlaygroundText = ""
+						},
+					}),
+				},
+			}),
 		},
 	})
 }
