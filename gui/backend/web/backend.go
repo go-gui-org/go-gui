@@ -48,6 +48,9 @@ type Backend struct {
 	// stack and the brackets are replayed together.
 	brackets   []stateBracket
 	stateDepth int
+	// clipDirty: the 2D context's clip lags clipStack (the WebGL path
+	// applies rect clips lazily, see drawClip).
+	clipDirty  bool
 	lastCursor gui.MouseCursor
 
 	// xfCur is the canvas transform the open rotation and view
@@ -68,6 +71,15 @@ type Backend struct {
 	// tris is the shared vertex buffer and JS path helper for
 	// triangle meshes (draw_tris.go).
 	tris triMesh
+
+	// svgMode, paths and gl: how SVG meshes are drawn, the Path2D
+	// cache and the WebGL2 path (draw_path2d.go, draw_webgl.go).
+	svgMode svgMode
+	paths   pathCache
+	gl      glSvg
+
+	// gcs samples runtime metrics for the bench hook (bench_hook.go).
+	gcs *gcSampler
 
 	// redrawPending asks the next animation frame to paint even when
 	// FrameFn reports no change. The loop skips idle frames, so any
@@ -228,6 +240,7 @@ func newBackend(w *gui.Window) (*Backend, error) {
 	}
 	b.shaders = newCustomShaderRenderer(doc, &b.callbacks, b.requestRedraw)
 	b.tris.fill = newTriPathFn()
+	b.initSvgMode()
 	b.watchRedrawSources(doc, canvas)
 
 	// Load embedded icon font via JS FontFace API. Text drawn before
@@ -291,6 +304,8 @@ func (b *Backend) run(w *gui.Window) {
 		WindowHeight: b.height,
 	})
 
+	hook := benchHook()
+
 	// requestAnimationFrame render loop.
 	var renderFunc js.Func
 	renderFunc = js.FuncOf(func(_ js.Value, _ []js.Value) any {
@@ -310,7 +325,11 @@ func (b *Backend) run(w *gui.Window) {
 		// pixels between frames, so an idle frame costs nothing
 		// instead of a full Canvas2D redraw. Native backends gate
 		// renderFrame on FrameFn the same way.
-		b.paintIfNeeded(w.FrameFn(), func() { b.renderFrame(w) })
+		if hook.Type() == js.TypeFunction {
+			b.timedFrame(w, hook)
+		} else {
+			b.paintIfNeeded(w.FrameFn(), func() { b.renderFrame(w) })
+		}
 
 		// Update cursor.
 		mc := w.MouseCursorState()
@@ -359,6 +378,11 @@ func (b *Backend) renderFrame(w *gui.Window) {
 	}
 	b.clipStack = nil
 	b.brackets = b.brackets[:0]
+	b.clipDirty = false
+
+	if b.svgMode == svgModeWebGL {
+		b.beginFrameSvgGL()
+	}
 
 	w.Lock()
 	w.BackingScale = b.dpiScale
@@ -367,6 +391,15 @@ func (b *Backend) renderFrame(w *gui.Window) {
 
 	b.textSys.Commit()
 	b.glyphBack.EndFrame()
+	switch b.svgMode {
+	case svgModePath2D:
+		b.endFramePaths()
+	case svgModeWebGL:
+		b.endFrameSvgGL()
+		if b.paths.entries != nil {
+			b.endFramePaths()
+		}
+	}
 }
 
 // watchRedrawSources hooks the browser events that change what the

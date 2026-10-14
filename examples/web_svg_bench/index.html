@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>go-gui SVG scroll bench</title>
+  <style>
+    * { margin: 0; padding: 0; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #1a1a2e; }
+    canvas { display: block; }
+    #bench {
+      position: fixed; top: 8px; right: 8px; z-index: 10;
+      max-width: 420px; padding: 8px 10px;
+      font: 12px/1.4 ui-monospace, Menlo, Consolas, monospace;
+      color: #e8e8f0; background: rgba(0, 0, 0, 0.75);
+      border-radius: 6px; white-space: pre; pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="go-gui-canvas"></canvas>
+  <div id="bench">calibrating…</div>
+  <script src="gogui.js"></script>
+  <script src="wasm_exec.js"></script>
+  <script src="bench.js"></script>
+</body>
+</html>

@@ -131,3 +131,7 @@ deep-dive/
 
 # Pinned linter binary, built by `make lint` from tools/lint.
 /.bin/
+
+# web_svg_bench results recorded by serve.go.
+/examples/web_svg_bench/results.jsonl
+/examples/web_svg_bench/shots/

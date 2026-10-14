@@ -1,0 +1,115 @@
+# Web backend: SVG meshes with WebGL2
+
+Issue #1045. Status: **implemented**.
+
+## Problem
+
+The web backend drew every SVG mesh as Canvas2D paths on every frame. Go
+transformed each vertex and copied the mesh into JS, and the browser rebuilt and
+rasterized one path per same-color run. A gradient mesh has per-vertex colors,
+so it became up to one `fill` per triangle, and drew as flat triangles because
+Canvas2D has no per-vertex color. A grid of SVG illustrations (~150k visible
+triangles) scrolled at 3–14 fps; a page of gradient logos took ~2 s per frame.
+
+## Design
+
+SVG meshes are drawn with WebGL2 into an offscreen canvas and composited onto
+the 2D canvas with `drawImage`. Everything else keeps its Canvas2D path, so
+text, images, clips, filters and transforms are unchanged.
+
+- **Mesh cache** (`draw_webgl.go`). A mesh is uploaded once and drawn by id. It
+  is keyed by its backing array (the entry pins the slice, so the address cannot
+  be reused) and checked by a content hash each frame, because DrawCanvas
+  rewrites buffers in place. The hash (`mesh_hash.go`) folds 8 bytes per step
+  with a 64-bit xor and multiply in four lanes; `hash/maphash` takes a software
+  fallback on wasm that was a third of the frame. Idle meshes are evicted.
+- **Batches.** Consecutive `RenderSvg` commands render in one GL pass into an
+  MSAA canvas, then one `drawImage` composites the batch. Go writes one record
+  per draw into a shared `Float32Array` and calls the JS loop (`goGuiSvgGL` in
+  `gogui.js`) once per batch. Any other command flushes the batch first, so a
+  batch draws under the 2D state it was queued under.
+- **Rect clips.** Each SVG sits between two `Clip` commands, so flushing on
+  every clip would give one composite per SVG. With no view transform open, a
+  rect clip is applied lazily: it goes into the draw's record as a GL scissor,
+  the composite runs under the non-rect clips only, and the full clip stack is
+  replayed before the next non-SVG command and at the end of the frame (the next
+  frame clears under the last clip; a stale one let the canvas accumulate).
+  `rebuildState` is `rebuildClipStack` with the rect-override and skip-rect
+  parameters this needs.
+- **View transforms and rotations.** A rect clip is a window rect, while the
+  geometry inside a transform is in the view's frame, so a scissor there would
+  cut in the wrong place. Inside a transform, clips apply eagerly: a clip change
+  flushes the batch, and the batch draws without scissors and composites under
+  the canvas clip and transform. A batch whose bounds in the view's frame leave
+  the drawing buffer is filled with Canvas2D instead.
+- **Light batches.** A batch under 2,000 triangles is filled with Canvas2D, from
+  a cached `Path2D` per same-color run (`draw_path2d.go`). Firefox pays a cost
+  for each composite after the frame callback returns (the WebGL canvas is
+  snapshotted for `drawImage`); without the threshold a light, text-heavy page
+  ran at a third of its Canvas2D frame rate there.
+- **Context loss.** `webglcontextlost` (with `preventDefault`) switches SVGs to
+  Canvas2D and forgets the uploaded meshes; `webglcontextrestored` rebuilds the
+  program and resumes. A batch queued when the context goes is filled instead.
+- **Selection** (`initSvgMode`). WebGL2 when available, else the Path2D cache,
+  else plain Canvas2D paths. A page opts out with
+  `globalThis.goGuiSvgMode = "canvas2d"` before Go starts; the backend writes
+  the mode in effect back to that global. No Go API change.
+
+Gradient meshes now render with interpolated vertex colors, which is what the
+SVG describes.
+
+## Measured
+
+`examples/web_svg_bench`, mixed grid, same window per browser. Chrome and
+Firefox on Windows 11 (Intel Iris Xe), Safari on macOS (Apple M3 Pro):
+
+| Browser     | Canvas2D | Path2D cache | WebGL2 |
+| ----------- | -------- | ------------ | ------ |
+| Chrome 150  | 3.4      | 17.3         | 59.6   |
+| Firefox 157 | 9.2      | 9.7          | 42     |
+| Safari 26.6 | 13.6     | 16.4         | 59.7   |
+
+A light page (icons) runs at the same rate in Canvas2D and WebGL2 in all three.
+Firefox's remaining gap is the per-composite cost.
+
+## Verification
+
+- `draw_webgl_test.go` runs the draw loop against the shared fake 2D context
+  (`draw_state_test.go`) and a fake `goGuiSvgGL`: batching across clips, the
+  end-of-frame clip, brackets and view transforms, light batches, the mesh
+  cache, context loss and restore. `svg_mode_test.go` covers the selection,
+  `mesh_hash_test.go` that any single changed float or color moves the hash.
+- `examples/web_svg_bench` reproduces the numbers in a browser: `svg=canvas2d`
+  for the baseline, `asset=`, `xf=` (cells in view transforms), `lose=1` (drives
+  `WEBGL_lose_context`), `shot=1` for screenshots.
+
+## Out of scope
+
+- Drawing everything with WebGL. It would remove the composite cost, but web
+  text is drawn by go-glyph with `fillText`, so it needs a glyph atlas there
+  first.
+- Culling inside view transforms. gui culls against nothing inside a transform
+  (#1043), so every transformed SVG is drawn each frame, visible or not; that is
+  a gui change for every backend.
+
+## Rejected Approaches
+
+- **Draw everything with WebGL now.** Needs a go-glyph glyph atlas first; a
+  follow-up, not a prerequisite.
+- **Port the desktop GL backend through a `syscall/js` glbind.** Each GL call
+  becomes a JS call, and the desktop path makes about five per quad; it also
+  needs the glyph atlas.
+- **Stack a WebGL canvas under or over the 2D canvas.** SVG draws between rects
+  and text; two layers cannot keep that order.
+- **WebGPU.** Not in every browser, and rejected for the backends (`CLAUDE.md`).
+- **OffscreenCanvas in a worker.** Go's wasm runtime is single-threaded; the
+  command stream would cross `postMessage` every frame.
+- **Cache whole SVGs as ImageBitmaps.** Breaks on animation and needs a
+  re-raster at every scale.
+- **The Path2D cache as the fix.** Helps simple meshes in Chrome, but the
+  browser still rasterizes every path each frame, and Firefox gains nothing.
+  Kept only as the light-batch and no-WebGL2 path.
+- **A stable mesh key on `RenderCmd`** to skip the content hash. New exported
+  surface for under 1 ms per frame once the hash is word-wise.
+- **One composite per SVG.** The original cut: 24 composites a frame on the
+  bench, and each costs Firefox a snapshot. Lazy rect clips made it one per run.

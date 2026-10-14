@@ -69,6 +69,17 @@ and this project adheres to
 
 ### Changed
 
+- **The web backend draws SVGs with WebGL2 (#1045).** Pages with many SVGs
+  scrolled at a few frames per second, because every SVG mesh was redrawn as
+  Canvas2D paths each frame. Meshes are now uploaded to the GPU once and drawn
+  in batches, composited onto the canvas; text, clips, filters and view
+  transforms keep their Canvas2D path. On a grid of SVG illustrations: Chrome
+  3.4 → 60 fps, Safari 14 → 60, Firefox 9 → 42. Light batches stay on Canvas2D,
+  a lost WebGL context falls back and recovers, and browsers without WebGL2 use
+  a cached Path2D path. Gradient meshes now show their interpolated colors
+  instead of flat triangles. A page can opt out by setting
+  `globalThis.goGuiSvgMode = "canvas2d"` before Go starts. No Go API change.
+  `examples/web_svg_bench` measures it.
 - **Animations tick at the refresh rate of the display (#1018).** Before, the
   animation loop ticked on a fixed 16 ms clock, so an animated value changed at
   most 62.5 times each second. On a 120 Hz or 240 Hz display the same value

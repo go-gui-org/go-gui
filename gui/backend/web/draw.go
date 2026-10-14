@@ -51,8 +51,28 @@ func (b *Backend) renderersDraw(w *gui.Window) {
 
 // drawCmds draws one frame's render commands.
 func (b *Backend) drawCmds(cmds []gui.RenderCmd) {
+	glBatch := b.svgMode == svgModeWebGL
+	if glBatch {
+		// A batch draws under the 2D state it was queued under, so it
+		// is flushed before any other command can change that state.
+		// The frame's last clip must reach the 2D context too: the
+		// next frame's clear runs under it, and a stale rect clip
+		// would leave the rest of the canvas to accumulate.
+		defer func() {
+			b.flushSvgGL()
+			if b.clipDirty {
+				b.rebuildClipStack()
+			}
+		}()
+	}
 	for i := range cmds {
 		r := &cmds[i]
+		if glBatch && r.Kind != gui.RenderSvg && r.Kind != gui.RenderClip {
+			b.flushSvgGL()
+			if b.clipDirty {
+				b.rebuildClipStack()
+			}
+		}
 		switch r.Kind {
 		case gui.RenderClip:
 			b.drawClip(r)
@@ -117,6 +137,12 @@ func (b *Backend) drawCmds(cmds []gui.RenderCmd) {
 // --- Individual draw commands ---
 
 func (b *Backend) drawClip(r *gui.RenderCmd) {
+	lazy := b.svgGLLazyClips()
+	if b.svgMode == svgModeWebGL && !lazy {
+		// The batch was queued under the clip now in force and is
+		// composited under it (draw_webgl.go), so it goes first.
+		b.flushSvgGL()
+	}
 	next := b.rectClip([4]float32{r.X, r.Y, r.W, r.H})
 	if replaced := false; len(b.clipStack) > 0 {
 		for i := range slices.Backward(b.clipStack) {
@@ -131,6 +157,13 @@ func (b *Backend) drawClip(r *gui.RenderCmd) {
 		}
 	} else {
 		b.clipStack = append(b.clipStack, next)
+	}
+	if lazy {
+		// Applied lazily: SVG batches scissor to the rect clip in GL,
+		// and drawCmds replays the 2D state before anything else draws
+		// (draw_webgl.go).
+		b.clipDirty = true
+		return
 	}
 	b.rebuildClipStack()
 }
@@ -173,13 +206,29 @@ func (b *Backend) endStencilClip() {
 //  2. for each bracket level, the stencil clips begun at that level,
 //     then the bracket's transform or filter.
 func (b *Backend) rebuildClipStack() {
+	b.rebuildState(nil, false)
+}
+
+// rebuildState is rebuildClipStack with two overrides for the WebGL
+// SVG path (draw_webgl.go). rect, when set, replaces the stack's rect
+// clip for this replay (a light batch draws each command under its own
+// clip). skipRect leaves the rect clip out (a WebGL batch has already
+// scissored each mesh to its own). Either leaves the context out of
+// step with the stack, so it sets clipDirty for drawCmds to replay in
+// full before the next non-SVG command.
+func (b *Backend) rebuildState(rect *clipRegion, skipRect bool) {
+	b.clipDirty = skipRect || rect != nil
 	for b.stateDepth > 0 {
 		b.ctx2d.Call("restore")
 		b.stateDepth--
 	}
-	for _, c := range b.clipStack {
-		if c.kind == clipKindRect {
-			b.pushClip(c)
+	if !skipRect {
+		r, ok := b.stackRectClip()
+		if rect != nil {
+			r, ok = *rect, true
+		}
+		if ok {
+			b.pushClip(r)
 		}
 	}
 	for lvl := 0; lvl <= len(b.brackets); lvl++ {
@@ -630,49 +679,20 @@ func (b *Backend) drawSvg(r *gui.RenderCmd) {
 		len(r.Triangles) > maxSvgTriangleFloats {
 		return
 	}
-	numVerts := len(r.Triangles) / 2
-	hasVCols := len(r.VertexColors) == numVerts
-	vAlpha := float32(1)
-	if r.HasVertexAlpha {
-		vAlpha = max(0, min(r.VertexAlphaScale, 1))
-	}
-
-	// Transform once in Go, cross into JS once, then fill each
-	// same-color run with one helper call (see draw_tris.go).
-	b.tris.floats = transformTris(b.tris.floats[:0], r)
-	b.tris.upload()
-
-	if !hasVCols {
-		// All triangles share the same color — single path.
-		b.setFillColor(r.Color)
-		b.fillTris(0, len(b.tris.floats))
+	switch {
+	case b.svgMode == svgModePath2D:
+		b.drawSvgPath2D(r)
+		return
+	case b.svgMode == svgModeWebGL && !b.gl.lost:
+		b.queueSvgGL(r)
 		return
 	}
-
-	// Batch consecutive same-color triangles into one path. A run
-	// covers floats [runStart, i*2) of the uploaded mesh.
-	var batchColor gui.Color
-	runStart := -1
-	for i := 0; i < numVerts; i += 3 {
-		vc := r.VertexColors[i]
-		alpha := vc.A
-		if r.HasVertexAlpha {
-			alpha = uint8(float32(alpha) * vAlpha)
-		}
-		c := gui.RGBA(vc.R, vc.G, vc.B, alpha)
-		if runStart >= 0 && c == batchColor {
-			continue
-		}
-		if runStart >= 0 {
-			b.fillTris(runStart, i*2)
-		}
-		batchColor = c
-		b.setFillColor(c)
-		runStart = i * 2
+	// In WebGL mode rect clips are applied lazily (drawClip), also
+	// while the context is lost; a direct fill needs them in force.
+	if b.clipDirty {
+		b.rebuildClipStack()
 	}
-	if runStart >= 0 {
-		b.fillTris(runStart, numVerts*2)
-	}
+	b.drawSvgCanvas(r)
 }
 
 func (b *Backend) drawLayout(r *gui.RenderCmd) {

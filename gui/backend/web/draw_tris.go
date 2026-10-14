@@ -156,3 +156,51 @@ func (b *Backend) fillTris(s, e int) {
 	}
 	b.ctx2d.Call("fill")
 }
+
+// drawSvgCanvas fills r's triangles as Canvas2D paths. The caller has
+// validated r as drawSvg does.
+func (b *Backend) drawSvgCanvas(r *gui.RenderCmd) {
+	numVerts := len(r.Triangles) / 2
+	hasVCols := len(r.VertexColors) == numVerts
+	vAlpha := float32(1)
+	if r.HasVertexAlpha {
+		vAlpha = max(0, min(r.VertexAlphaScale, 1))
+	}
+
+	// Transform once in Go, cross into JS once, then fill each
+	// same-color run with one helper call (see draw_tris.go).
+	b.tris.floats = transformTris(b.tris.floats[:0], r)
+	b.tris.upload()
+
+	if !hasVCols {
+		// All triangles share the same color — single path.
+		b.setFillColor(r.Color)
+		b.fillTris(0, len(b.tris.floats))
+		return
+	}
+
+	// Batch consecutive same-color triangles into one path. A run
+	// covers floats [runStart, i*2) of the uploaded mesh.
+	var batchColor gui.Color
+	runStart := -1
+	for i := 0; i < numVerts; i += 3 {
+		vc := r.VertexColors[i]
+		alpha := vc.A
+		if r.HasVertexAlpha {
+			alpha = uint8(float32(alpha) * vAlpha)
+		}
+		c := gui.RGBA(vc.R, vc.G, vc.B, alpha)
+		if runStart >= 0 && c == batchColor {
+			continue
+		}
+		if runStart >= 0 {
+			b.fillTris(runStart, i*2)
+		}
+		batchColor = c
+		b.setFillColor(c)
+		runStart = i * 2
+	}
+	if runStart >= 0 {
+		b.fillTris(runStart, numVerts*2)
+	}
+}
