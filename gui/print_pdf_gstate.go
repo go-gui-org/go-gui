@@ -54,21 +54,15 @@ func (m pdfAffine) inverse() (pdfAffine, bool) {
 // maps (x, y) where h does, and stretches and turns the area around it
 // as h does there. PDF has no perspective, so a view with perspective
 // is drawn with this, as on the web backend. ok is false when (x, y)
-// lands at or behind the viewer.
+// lands at or behind the viewer. It wraps xfMat.affineAt, widened to
+// float64 for the PDF matrix.
 func pdfAffineAt(h *xfMat, x, y float32) (pdfAffine, bool) {
-	w := h[6]*x + h[7]*y + h[8]
-	if !(w > 0) {
+	a, b, c, d, e, f, ok := h.affineAt(x, y)
+	if !ok {
 		return pdfAffine{}, false
 	}
-	px := (h[0]*x + h[1]*y + h[2]) / w
-	py := (h[3]*x + h[4]*y + h[5]) / w
-	// The derivative of (u/w, v/w): (du - p·dw) / w.
-	a := (h[0] - px*h[6]) / w
-	c := (h[1] - px*h[7]) / w
-	b := (h[3] - py*h[6]) / w
-	d := (h[4] - py*h[7]) / w
 	return pdfAffine{float64(a), float64(b), float64(c), float64(d),
-		float64(px - a*x - c*y), float64(py - b*x - d*y)}, true
+		float64(e), float64(f)}, true
 }
 
 // pdfGOps is the part of *fpdf.Fpdf that pdfGState drives. Tests pass a

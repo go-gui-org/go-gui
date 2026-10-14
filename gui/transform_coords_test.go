@@ -242,6 +242,203 @@ func TestTransformFloatAnchorAtDrawnPosition(t *testing.T) {
 	}
 }
 
+// A float anchored to a view that TransformFn moves in a render-only
+// frame moves with it: the render-only pass re-places floats from the
+// refreshed matrices, and the result is what a full frame lays out
+// (#1019). Its hit clip moves too, so the pointer follows what is drawn.
+func TestTransformFloatFollowsRenderOnlyFrame(t *testing.T) {
+	tr := Translate(0, 0)
+	w := NewTestWindow(t, WindowCfg{Width: 400, Height: 300})
+	w.TestRender(func(*Window) View {
+		return Column(ContainerCfg{
+			Sizing:  FillFill,
+			Padding: PaddingNone,
+			Content: []View{
+				Column(ContainerCfg{
+					ID:          "card",
+					Width:       100,
+					Height:      40,
+					Sizing:      FixedFixed,
+					Padding:     PaddingNone,
+					SizeBorder:  NoBorder,
+					TransformFn: func() Transform { return tr },
+					Content: []View{
+						Column(ContainerCfg{
+							ID:          "pop",
+							Float:       true,
+							FloatAnchor: FloatBottomLeft,
+							FloatTieOff: FloatTopLeft,
+							Width:       30,
+							Height:      20,
+							Sizing:      FixedFixed,
+						}),
+					},
+				}),
+			},
+		})
+	})
+	popID := ScopeID("card", "pop")
+	before := mustShape(t, w, popID)
+	bx, by, bclip := before.X, before.Y, before.shapeClip
+
+	tr = Translate(120, 40)
+	w.markRenderOnlyRefresh(refreshAnimation)
+	w.updateRenderOnly()
+
+	moved := mustShape(t, w, popID)
+	if !xfNear(moved.X, bx+120) || !xfNear(moved.Y, by+40) {
+		t.Fatalf("float at (%v, %v), want (%v, %v)",
+			moved.X, moved.Y, bx+120, by+40)
+	}
+	if !xfNear(moved.shapeClip.X, bclip.X+120) ||
+		!xfNear(moved.shapeClip.Y, bclip.Y+40) {
+		t.Fatalf("float clip at (%v, %v), want (%v, %v)",
+			moved.shapeClip.X, moved.shapeClip.Y, bclip.X+120, bclip.Y+40)
+	}
+
+	// A full frame at the same value lays out the same position: the
+	// render-only frame draws what the full frame would.
+	w.markLayoutRefresh(refreshTest)
+	w.FrameFn()
+	full := mustShape(t, w, popID)
+	if !xfNear(moved.X, full.X) || !xfNear(moved.Y, full.Y) {
+		t.Fatalf("render-only float at (%v, %v), full frame at (%v, %v)",
+			moved.X, moved.Y, full.X, full.Y)
+	}
+}
+
+// A float nested inside a float follows a render-only move of the host's
+// host: the reattach pass repeats until no float moves, so the inner
+// float reads its host's new position on the next pass (#1019).
+func TestTransformFloatNestedFollowsRenderOnlyFrame(t *testing.T) {
+	tr := Translate(0, 0)
+	w := NewTestWindow(t, WindowCfg{Width: 400, Height: 300})
+	w.TestRender(func(*Window) View {
+		return Column(ContainerCfg{
+			Sizing:  FillFill,
+			Padding: PaddingNone,
+			Content: []View{
+				Column(ContainerCfg{
+					ID:          "card",
+					Width:       100,
+					Height:      40,
+					Sizing:      FixedFixed,
+					Padding:     PaddingNone,
+					SizeBorder:  NoBorder,
+					TransformFn: func() Transform { return tr },
+					Content: []View{
+						Column(ContainerCfg{
+							ID:          "pop",
+							Float:       true,
+							FloatAnchor: FloatBottomLeft,
+							FloatTieOff: FloatTopLeft,
+							Width:       60,
+							Height:      40,
+							Sizing:      FixedFixed,
+							Padding:     PaddingNone,
+							SizeBorder:  NoBorder,
+							Content: []View{
+								Column(ContainerCfg{
+									ID:          "tip",
+									Float:       true,
+									FloatAnchor: FloatBottomLeft,
+									FloatTieOff: FloatTopLeft,
+									Width:       20,
+									Height:      10,
+									Sizing:      FixedFixed,
+								}),
+							},
+						}),
+					},
+				}),
+			},
+		})
+	})
+	popID := ScopeID("card", "pop")
+	tipID := ScopeID("card", "pop", "tip")
+	popBefore := mustShape(t, w, popID)
+	tipBefore := mustShape(t, w, tipID)
+	px, py := popBefore.X, popBefore.Y
+	tx, ty := tipBefore.X, tipBefore.Y
+
+	tr = Translate(120, 40)
+	w.markRenderOnlyRefresh(refreshAnimation)
+	w.updateRenderOnly()
+
+	movedPop := mustShape(t, w, popID)
+	movedTip := mustShape(t, w, tipID)
+	if !xfNear(movedPop.X, px+120) || !xfNear(movedPop.Y, py+40) {
+		t.Fatalf("outer float at (%v, %v), want (%v, %v)",
+			movedPop.X, movedPop.Y, px+120, py+40)
+	}
+	if !xfNear(movedTip.X, tx+120) || !xfNear(movedTip.Y, ty+40) {
+		t.Fatalf("nested float at (%v, %v), want (%v, %v)",
+			movedTip.X, movedTip.Y, tx+120, ty+40)
+	}
+
+	// A full frame at the same value lays out the same positions.
+	w.markLayoutRefresh(refreshTest)
+	w.FrameFn()
+	fullPop := mustShape(t, w, popID)
+	fullTip := mustShape(t, w, tipID)
+	if !xfNear(movedPop.X, fullPop.X) || !xfNear(movedPop.Y, fullPop.Y) {
+		t.Fatalf("render-only outer float at (%v, %v), full frame at (%v, %v)",
+			movedPop.X, movedPop.Y, fullPop.X, fullPop.Y)
+	}
+	if !xfNear(movedTip.X, fullTip.X) || !xfNear(movedTip.Y, fullTip.Y) {
+		t.Fatalf("render-only nested float at (%v, %v), full frame at (%v, %v)",
+			movedTip.X, movedTip.Y, fullTip.X, fullTip.Y)
+	}
+}
+
+// A render-only frame that moves nothing leaves floats where layout put
+// them, and repeating it does not drift them (#1019).
+func TestTransformFloatRenderOnlyWithoutMoveIsStable(t *testing.T) {
+	tr := Translate(30, 10)
+	w := NewTestWindow(t, WindowCfg{Width: 400, Height: 300})
+	w.TestRender(func(*Window) View {
+		return Column(ContainerCfg{
+			Sizing:  FillFill,
+			Padding: PaddingNone,
+			Content: []View{
+				Column(ContainerCfg{
+					ID:          "card",
+					Width:       100,
+					Height:      40,
+					Sizing:      FixedFixed,
+					Padding:     PaddingNone,
+					SizeBorder:  NoBorder,
+					TransformFn: func() Transform { return tr },
+					Content: []View{
+						Column(ContainerCfg{
+							ID:          "pop",
+							Float:       true,
+							FloatAnchor: FloatBottomLeft,
+							FloatTieOff: FloatTopLeft,
+							Width:       30,
+							Height:      20,
+							Sizing:      FixedFixed,
+						}),
+					},
+				}),
+			},
+		})
+	})
+	popID := ScopeID("card", "pop")
+	before := mustShape(t, w, popID)
+	bx, by := before.X, before.Y
+
+	w.markRenderOnlyRefresh(refreshAnimation)
+	w.updateRenderOnly()
+	w.updateRenderOnly()
+
+	after := mustShape(t, w, popID)
+	if !xfNear(after.X, bx) || !xfNear(after.Y, by) {
+		t.Fatalf("float at (%v, %v), want stable (%v, %v)",
+			after.X, after.Y, bx, by)
+	}
+}
+
 // A drag that reorders a list inside a moved view: the press that arms
 // the drag and the locked moves that follow are in one frame, so the
 // row lands where the pointer drops it.

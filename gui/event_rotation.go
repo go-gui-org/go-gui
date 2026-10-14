@@ -235,24 +235,9 @@ func xfBoxToWindow(ly *Layout, r drawClip) drawClip {
 // place on screen (a hidden back face, a ray behind the viewer) with ok
 // false instead of falling back to r.
 func xfBoxToWindowOK(ly *Layout, r drawClip) (drawClip, bool) {
-	minX, minY := float32(math.Inf(1)), float32(math.Inf(1))
-	maxX, maxY := float32(math.Inf(-1)), float32(math.Inf(-1))
-	for i := range 4 {
-		cx, cy := r.X, r.Y
-		if i&1 != 0 {
-			cx += r.Width
-		}
-		if i&2 != 0 {
-			cy += r.Height
-		}
-		px, py, ok := xfLocalToWindowClip(ly, cx, cy, false)
-		if !ok {
-			return drawClip{}, false
-		}
-		minX, maxX = min(minX, px), max(maxX, px)
-		minY, maxY = min(minY, py), max(maxY, py)
-	}
-	return drawClip{X: minX, Y: minY, Width: maxX - minX, Height: maxY - minY}, true
+	return mapRectBox(r, func(x, y float32) (float32, float32, bool) {
+		return xfLocalToWindowClip(ly, x, y, false)
+	})
 }
 
 // layoutHitsWindowPoint reports whether a window point hits ly where it
@@ -318,8 +303,8 @@ func shapeHitPoint(ly *Layout) (float32, float32, bool) {
 	for i := range n {
 		for j := range n {
 			lx := c.X + c.Width*(float32(i)+0.5)/n
-			ly2 := c.Y + c.Height*(float32(j)+0.5)/n
-			if x, y, ok := xfLocalToWindow(ly, lx, ly2); ok {
+			lyy := c.Y + c.Height*(float32(j)+0.5)/n
+			if x, y, ok := xfLocalToWindow(ly, lx, lyy); ok {
 				return x, y, true
 			}
 		}

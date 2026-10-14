@@ -419,12 +419,12 @@ func homographyStr(h *[9]float32) string {
 	}
 	return fmt.Sprintf(" h=[%s,%s,%s;%s,%s,%s;%s,%s,%s]",
 		f2(h[0]), f2(h[1]), f2(h[2]), f2(h[3]), f2(h[4]),
-		f2(h[5]), f5(h[6]), f5(h[7]), f2(h[8]))
+		f2(h[5]), fPersp(h[6]), fPersp(h[7]), f2(h[8]))
 }
 
-// f5 is f2 at five decimals, for a perspective term of a transform
+// fPersp is f2 at five decimals, for a perspective term of a transform
 // matrix: it is about 1/d, so two decimals would print it as zero.
-func f5(v float32) string {
+func fPersp(v float32) string {
 	if v == 0 {
 		v = 0
 	}

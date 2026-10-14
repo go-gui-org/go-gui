@@ -77,7 +77,9 @@ func Inverse(h *Mat) (Mat, bool) {
 
 // Bounds returns the bounding box of the rect (x, y, w, h) mapped
 // through m. ok is false when a corner lands at or behind the viewer:
-// the mapped shape then has no finite box.
+// the mapped shape then has no finite box. It is the same four-corner
+// shape as gui.mapRectBox, kept separate because package gui cannot
+// import a backend-internal package.
 func Bounds(m *Mat, x, y, w, h float32) (bx, by, bw, bh float32, ok bool) {
 	var minX, minY, maxX, maxY float32
 	for i := range 4 {
@@ -107,7 +109,8 @@ func Bounds(m *Mat, x, y, w, h float32) (bx, by, bw, bh float32, ok bool) {
 // area around that point the way h does there. A backend with no
 // perspective draws with it in place of h. The result is in Canvas2D
 // order: x' = a·x + c·y + e, y' = b·x + d·y + f. ok is false when (x, y)
-// lands at or behind the viewer.
+// lands at or behind the viewer. It repeats gui.xfMat.affineAt, kept
+// separate because package gui cannot import a backend-internal package.
 func AffineAt(h *Mat, x, y float32) (a, b, c, d, e, f float32, ok bool) {
 	w := h[6]*x + h[7]*y + h[8]
 	if !(w > 0) {

@@ -164,10 +164,13 @@ that lifts on hover, a tilted badge and tumbling confetti cannot be built.
     transform or a turn.
   - A float's anchor point on its parent is mapped out to where the parent is
     drawn (`floatAnchorPoint`), auto-flip included. The float is drawn in its
-    own layer, so it stays upright. Floats are placed in layout, so a transform
-    that `TransformFn` moves in render-only frames leaves its float behind until
-    the next layout. Re-placing floats at render time was not done: it would
-    move hit clips and layers after layout.
+    own layer, so it stays upright. A transform that `TransformFn` moves in a
+    render-only frame carries its floats with it: the render-only pass refreshes
+    the matrices and re-places each anchored float from them
+    (`layoutReattachFloats`), shifting its subtree and its hit clips, so hit
+    testing follows what is drawn. Rejected: leaving floats frozen until the
+    next layout, which lags exactly the animation the render-only frame exists
+    for.
   - Drag-reorder needs no index change: the press that arms it and the locked
     moves are in one frame (see mouse lock). The ghost's offset is in the list's
     frame, so it is mapped through the transform with the anchor

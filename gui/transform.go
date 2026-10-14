@@ -304,6 +304,59 @@ func (a *xfMat) mul(b *xfMat) xfMat {
 	return out
 }
 
+// mapRectBox returns the bounding box of r mapped through mapPt: the box
+// of its four mapped corners. ok is false when a corner has no place on
+// screen. It is the shared shape behind xfFrame.box and xfBoxToWindowOK,
+// which differ only in the map (a render-walk frame vs a layout path).
+// backend/internal/homography.Bounds is the same shape for the CPU
+// backends; it stays separate because package gui cannot import a
+// backend-internal package.
+func mapRectBox(r drawClip, mapPt func(float32, float32) (float32, float32, bool)) (drawClip, bool) {
+	minX, minY := float32(math.Inf(1)), float32(math.Inf(1))
+	maxX, maxY := float32(math.Inf(-1)), float32(math.Inf(-1))
+	for i := range 4 {
+		cx, cy := r.X, r.Y
+		if i&1 != 0 {
+			cx += r.Width
+		}
+		if i&2 != 0 {
+			cy += r.Height
+		}
+		px, py, ok := mapPt(cx, cy)
+		if !ok {
+			return drawClip{}, false
+		}
+		minX, maxX = min(minX, px), max(maxX, px)
+		minY, maxY = min(minY, py), max(maxY, py)
+	}
+	return drawClip{X: minX, Y: minY, Width: maxX - minX, Height: maxY - minY}, true
+}
+
+// affineAt returns the flat (affine) map that best matches m near
+// (x, y): it maps (x, y) where m does, and it stretches and turns the
+// area around that point the way m does there. The result is in Canvas2D
+// order: x' = a·x + c·y + e, y' = b·x + d·y + f. ok is false when (x, y)
+// lands at or behind the viewer. This is the canonical form of the
+// derivative of (u/w, v/w); pdfAffineAt wraps it, and
+// backend/internal/homography.AffineAt repeats it for the CPU backends,
+// which cannot import package gui.
+func (m *xfMat) affineAt(x, y float32) (a, b, c, d, e, f float32, ok bool) {
+	w := m[6]*x + m[7]*y + m[8]
+	if !(w > xfMinW) {
+		return 0, 0, 0, 0, 0, 0, false
+	}
+	px := (m[0]*x + m[1]*y + m[2]) / w
+	py := (m[3]*x + m[4]*y + m[5]) / w
+	// The derivative of (u/w, v/w): (du - p·dw) / w.
+	a = (m[0] - px*m[6]) / w // d px / d x
+	c = (m[1] - px*m[7]) / w // d px / d y
+	b = (m[3] - py*m[6]) / w // d py / d x
+	d = (m[4] - py*m[7]) / w // d py / d y
+	e = px - a*x - c*y
+	f = py - b*x - d*y
+	return a, b, c, d, e, f, true
+}
+
 // axisAligned reports whether m only moves and scales (a mirror counts),
 // or does that after a quarter turn: a rect then maps to a rect. The
 // off-axis terms are compared against the scale, so float trig noise

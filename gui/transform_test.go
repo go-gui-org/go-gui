@@ -258,3 +258,49 @@ func TestTransformResolveNoAlloc(t *testing.T) {
 		t.Fatalf("resolve/inverse/apply allocated %v times", n)
 	}
 }
+
+// affineAt is the flat stand-in both flat backends draw with: it maps the
+// fit point where the homography does, and its slopes match the
+// homography's there. pdfAffineAt must wrap it exactly.
+func TestXfMatAffineAt(t *testing.T) {
+	h, _ := RotateY(30).Perspective(400).resolve(0, 0, 100, 100)
+	const x, y = float32(50), float32(50)
+	a, b, c, d, e, f, ok := h.affineAt(x, y)
+	if !ok {
+		t.Fatal("affineAt failed on a visible point")
+	}
+	px, py, _ := h.apply(x, y)
+	if got := a*x + c*y + e; !xfNear(got, px) {
+		t.Errorf("affine x at fit point = %v, want %v", got, px)
+	}
+	if got := b*x + d*y + f; !xfNear(got, py) {
+		t.Errorf("affine y at fit point = %v, want %v", got, py)
+	}
+	// Slopes match the homography: a nearby point maps near both.
+	const eps = 0.5
+	for _, dx := range []float32{-eps, eps} {
+		for _, dy := range []float32{-eps, eps} {
+			wx, wy, _ := h.apply(x+dx, y+dy)
+			if got := a*(x+dx) + c*(y+dy) + e; !xfNear(got, wx) {
+				t.Errorf("affine x at (%v,%v) = %v, want %v", x+dx, y+dy, got, wx)
+			}
+			if got := b*(x+dx) + d*(y+dy) + f; !xfNear(got, wy) {
+				t.Errorf("affine y at (%v,%v) = %v, want %v", x+dx, y+dy, got, wy)
+			}
+		}
+	}
+	pa, ok := pdfAffineAt(&h, x, y)
+	if !ok {
+		t.Fatal("pdfAffineAt failed where affineAt succeeded")
+	}
+	want := pdfAffine{float64(a), float64(b), float64(c), float64(d), float64(e), float64(f)}
+	if pa != want {
+		t.Errorf("pdfAffineAt = %v, want %v", pa, want)
+	}
+	// Identity stays the identity.
+	ia, ib, ic, id, ie, ig, ok := xfIdentity.affineAt(3, 7)
+	if !ok || ia != 1 || ib != 0 || ic != 0 || id != 1 || ie != 0 || ig != 0 {
+		t.Errorf("identity affineAt = (%v,%v,%v,%v,%v,%v,%v), want (1,0,0,1,0,0,true)",
+			ia, ib, ic, id, ie, ig, ok)
+	}
+}

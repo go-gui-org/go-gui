@@ -188,9 +188,9 @@ func floatAttachLayout(
 // stays upright beside the turned parent. A parent whose back face is
 // hidden has no drawn point, and the box point stands in.
 //
-// Floats are placed in layout. A transform that TransformFn moves in a
-// render-only frame moves the parent but not the float, until the next
-// layout.
+// Floats are placed in layout, and a render-only frame re-places them
+// from the refreshed matrices (layoutReattachFloats), so a transform
+// that TransformFn moves carries its floats with it.
 func floatAnchorPoint(layout *Layout, a floatAttach) (float32, float32) {
 	p := layout.Parent
 	ax, ay := attachOffset(a, p.Shape.Width, p.Shape.Height)
@@ -221,6 +221,85 @@ func offsetThroughTransform(
 		return mx - tx, my - ty
 	}
 	return ax - tx + offsetX, ay - ty + offsetY
+}
+
+// layoutReattachFloats recomputes the position of every float in the
+// composed tree (w.layout) from its host's current box and transform,
+// shifting the float's subtree and refreshing its clips. It runs in a
+// render-only frame, where the boxes are frozen but TransformFn may have
+// moved a host (#1019). The matrices are refreshed first, so the anchors
+// map through the transforms the frame draws with, as the float pipelines
+// in layoutArrange see the main pipeline's fresh matrices. Hit clips move
+// with the floats, so hit testing follows what is drawn.
+//
+// Only anchored floats (Parent != nil) move; top-level floats against the
+// window rect are untouched. Nested floats live in their own top-level
+// layers, so the pass repeats until no float moves: a nested float reads
+// its host float's new position on the next pass.
+func layoutReattachFloats(w *Window) {
+	if w == nil || w.layout.Shape == nil {
+		return
+	}
+	if w.scratch.viewXforms.used == 0 {
+		return
+	}
+	layoutResolveTransforms(&w.layout, w)
+	win := w.windowRect()
+	for range 10 {
+		moved := false
+		for i := range w.layout.Children {
+			top := &w.layout.Children[i]
+			if top.Shape == nil || !top.Shape.Float {
+				continue
+			}
+			if reattachFloatSubtree(top, win, 0) {
+				layoutSetShapeClips(top, win)
+				moved = true
+			}
+		}
+		if !moved {
+			return
+		}
+	}
+}
+
+// reattachFloatSubtree walks ly pre-order, re-placing every anchored
+// float with floatAttachLayout and shifting its subtree by the delta.
+// A parent moves before its children, so a nested float reads its host's
+// new position. It reports whether anything moved.
+func reattachFloatSubtree(ly *Layout, win drawClip, depth int) bool {
+	if ly == nil || overMaxDepth(depth) {
+		return false
+	}
+	moved := false
+	if s := ly.Shape; s != nil && s.Float && ly.Parent != nil {
+		if nx, ny := floatAttachLayout(ly, win); nx != s.X || ny != s.Y {
+			shiftLayoutXY(ly, nx-s.X, ny-s.Y, 0)
+			moved = true
+		}
+	}
+	for i := range ly.Children {
+		if reattachFloatSubtree(&ly.Children[i], win, depth+1) {
+			moved = true
+		}
+	}
+	return moved
+}
+
+// shiftLayoutXY moves ly and all its descendants by (dx, dy). Clips are
+// refreshed by the caller (layoutSetShapeClips), since a float crossing
+// the window edge changes its clip size, not just its position.
+func shiftLayoutXY(ly *Layout, dx, dy float32, depth int) {
+	if ly == nil || overMaxDepth(depth) {
+		return
+	}
+	if s := ly.Shape; s != nil {
+		s.X += dx
+		s.Y += dy
+	}
+	for i := range ly.Children {
+		shiftLayoutXY(&ly.Children[i], dx, dy, depth+1)
+	}
 }
 
 // liftOverlayFloats extracts the floats declared inside an injected

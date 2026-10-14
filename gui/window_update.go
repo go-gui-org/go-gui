@@ -464,6 +464,9 @@ func (w *Window) renderOnlyLocked() {
 	w.noteRefresh(w.takeRenderRefresh(), false)
 	w.renderOnlyPass = true
 	defer func() { w.renderOnlyPass = false }()
+	// A TransformFn may have moved a host: re-place the floats from the
+	// refreshed matrices before drawing, so they track it with no layout.
+	layoutReattachFloats(w)
 	w.buildRenderers(w.Config.BgColor, w.windowRect())
 }
 

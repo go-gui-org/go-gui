@@ -118,6 +118,12 @@ and this project adheres to
   where it is drawn. The offset is now mapped through the transform with the
   anchor, as the anchor already was. The ghost itself stays upright.
 
+- **A float tracks a view animated without a layout (#1019).** A popover or
+  tooltip anchored to a container that `TransformFn` moves in render-only frames
+  stayed where layout put it while its host moved on. The render-only pass now
+  re-places anchored floats from the refreshed matrices, with their hit clips,
+  so they move with the host and match the next full frame.
+
 - **A driver that refuses vsync is reported (#1018).** The GL backends on
   Windows and X11 asked for swap interval 1 and ignored the answer. Now a
   refusal is reported under `gui.Debug` (`DebugWindowDegraded`). Since the

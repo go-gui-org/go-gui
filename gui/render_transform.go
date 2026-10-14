@@ -2,7 +2,6 @@ package gui
 
 import (
 	"log"
-	"math"
 )
 
 // shapeTransform is the transform a container carries
@@ -259,24 +258,9 @@ func (f *xfFrame) toWindow(r drawClip) drawClip {
 // bounding box of its four mapped corners, not cut to any scissor. ok is
 // false when a corner is at or behind the viewer.
 func (f *xfFrame) box(r drawClip) (drawClip, bool) {
-	minX, minY := float32(math.Inf(1)), float32(math.Inf(1))
-	maxX, maxY := float32(math.Inf(-1)), float32(math.Inf(-1))
-	for i := range 4 {
-		cx, cy := r.X, r.Y
-		if i&1 != 0 {
-			cx += r.Width
-		}
-		if i&2 != 0 {
-			cy += r.Height
-		}
-		px, py, ok := f.acc.apply(cx, cy)
-		if !ok {
-			return drawClip{}, false
-		}
-		minX, maxX = min(minX, px), max(maxX, px)
-		minY, maxY = min(minY, py), max(maxY, py)
-	}
-	return drawClip{X: minX, Y: minY, Width: maxX - minX, Height: maxY - minY}, true
+	return mapRectBox(r, func(x, y float32) (float32, float32, bool) {
+		return f.acc.apply(x, y)
+	})
 }
 
 // renderBoxToWindow maps a rect drawn at this point of the render walk
