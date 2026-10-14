@@ -102,6 +102,15 @@ and this project adheres to
   the rounded clip. Both now keep their turns and clips themselves and set them
   again after each change.
 
+- **A clipping container inside a `RotatedBox` is cut where it is drawn
+  (#1019).** Its clip was set in the unturned frame, so under a 90° turn a
+  scroll view or other clipping child was cut to a strip across the turned box.
+  Under a half turn, a parent clip that hid one end of the box hid the wrong end
+  of the content, so the part shown took no pointer and the hidden part did. On
+  the soft backend, a 90° `RotatedBox` was cut to a square by the clip around
+  it; it now draws whole. The IME candidate window of an input in a `RotatedBox`
+  now also sits by the turned caret.
+
 - **A driver that refuses vsync is reported (#1018).** The GL backends on
   Windows and X11 asked for swap interval 1 and ignored the answer. Now a
   refusal is reported under `gui.Debug` (`DebugWindowDegraded`). Since the

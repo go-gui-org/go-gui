@@ -60,10 +60,11 @@ func (b *Backend) pushTransform(m affine) {
 	b.setCanvasTransform(b.xfCur)
 }
 
-// pushViewTransform is pushTransform for a view transform bracket. h is
-// the true matrix m stands in for. gui maps clips out to the window
-// through view transforms only, not through rotations, so h and m are
-// also composed on their own (xfH, xfView) to map those clips back.
+// pushViewTransform is pushTransform for a view transform or rotation
+// bracket. h is the true matrix m stands in for. gui maps clips out to
+// the window through both, so h and m are also composed on their own
+// (xfH, xfView) to map those clips back. A DrawCanvas rotation opens
+// no clip inside, so composing it too changes nothing.
 func (b *Backend) pushViewTransform(m affine, h *homography.Mat) {
 	b.pushTransform(m)
 	b.xfView = b.xfView.mul(m)
@@ -104,8 +105,8 @@ func (b *Backend) popTransform() {
 // rect is mapped back into the view's frame through the true matrix,
 // and drawn there under the stand-in, as the content is. The box of the
 // mapped rect is bigger than the clip; gui adds a stencil there, which
-// cuts exactly. Rotations are left out on both sides, as gui leaves
-// them out.
+// cuts exactly. Rotations are in the map on both sides, as gui puts
+// quarter turns in it.
 func (b *Backend) rectClip(win [4]float32) clipRegion {
 	c := clipRegion{kind: clipKindRect, win: win, xf: affineIdentity,
 		x: win[0], y: win[1], w: win[2], h: win[3]}
@@ -140,11 +141,17 @@ func (b *Backend) beginRotation(r *gui.RenderCmd) {
 	sin, cos := math.Sincos(rad)
 	cx, cy := float64(r.RotCX), float64(r.RotCY)
 	// Turn about (cx, cy): move it to the origin, turn, move it back.
-	b.pushTransform(affine{
+	m := affine{
 		cos, sin, -sin, cos,
 		cx - cos*cx + sin*cy,
 		cy - sin*cx - cos*cy,
-	})
+	}
+	// gui maps a clip inside a quarter turn out to the window through
+	// the turn (#1019), so the turn joins the clip map too. A turn has
+	// no perspective, so its flat map is its true matrix.
+	h := homography.Mat{float32(m[0]), float32(m[2]), float32(m[4]),
+		float32(m[1]), float32(m[3]), float32(m[5]), 0, 0, 1}
+	b.pushViewTransform(m, &h)
 }
 
 func (b *Backend) endRotation() {

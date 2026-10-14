@@ -120,14 +120,14 @@ type pdfGState struct {
 	phi, phiInv pdfAffine
 
 	// cur is the matrix the content draws with: every open rotation
-	// and view transform. view composes the view transforms alone, and
-	// h the true matrices they stand in for. gui maps clips out to the
-	// window through view transforms only, so these map them back.
+	// and view transform. view composes them too, and h the true
+	// matrices they stand in for. gui maps clips out to the window
+	// through view transforms and quarter turns, so these map them back.
 	// persp is set while a view transform with perspective is open.
 	cur, view pdfAffine
 	h         xfMat
 	persp     bool
-	views     int // open view transforms
+	views     int // open view transforms and rotations
 	stack     []pdfXfSaved
 
 	clips []pdfClip
@@ -249,14 +249,25 @@ func (g *pdfGState) pop() {
 
 // beginRotate turns about (RotCX, RotCY). Screen turns are clockwise
 // (RotatedBoxCfg); in y-down logical space that is a positive angle.
+//
+// gui maps a clip inside a quarter turn out to the window through the
+// turn (#1019), as it does through a view transform. So the turn is
+// composed into view and h too, which rectClip maps a clip back with,
+// and it counts as a view: an empty clip inside it clips everything.
 func (g *pdfGState) beginRotate(cmd *RenderCmd) {
 	sin, cos := math.Sincos(float64(cmd.RotAngle) * math.Pi / 180)
 	cx, cy := float64(cmd.RotCX), float64(cmd.RotCY)
-	g.push(pdfAffine{
+	m := pdfAffine{
 		cos, sin, -sin, cos,
 		cx - cos*cx + sin*cy,
 		cy - sin*cx - cos*cy,
-	})
+	}
+	g.push(m)
+	g.view = g.view.mul(m)
+	h := xfMat{float32(m[0]), float32(m[2]), float32(m[4]),
+		float32(m[1]), float32(m[3]), float32(m[5]), 0, 0, 1}
+	g.h = g.h.mul(&h)
+	g.views++
 	g.rebuild()
 }
 

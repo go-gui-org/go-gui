@@ -5,6 +5,7 @@ import (
 	"math"
 
 	"github.com/go-gui-org/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/homography"
 )
 
 // beginStencil opens a rounded-rect clip. The GPU path increments a
@@ -47,17 +48,50 @@ func (r *renderer) endStencil() {
 // and rotates the finished layer on the way back — so text, gradients
 // and images rotate exactly as rectangles do, and no phase 1 draw path
 // has to know a transform is in effect.
+//
+// gui maps a clip inside a quarter turn out to the window through the
+// turn (#1019), as it does inside a view transform. So the bracket keeps
+// the turn as a matrix too (acc, accInv), and setWindowClip maps a
+// window clip back into the unturned layer. The layer draws unclipped
+// and the blit cuts to the clip in effect when the bracket opened.
 func (r *renderer) beginRotation(cmd *gui.RenderCmd) {
 	s := r.scale
+	cx, cy := cmd.RotCX*s, cmd.RotCY*s
+	sin64, cos64 := math.Sincos(float64(cmd.RotAngle) * math.Pi / 180)
+	sin, cos := float32(sin64), float32(cos64)
+	// Turn about (cx, cy), clockwise on the y-down screen, the same map
+	// rotatedBounds and blitTransformed use.
+	m := homography.Mat{cos, -sin, cx - cos*cx + sin*cy,
+		sin, cos, cy - sin*cx - cos*cy, 0, 0, 1}
+	acc := m
+	if outer := r.innerTransform(); outer != nil {
+		acc = homography.Mul(&outer.acc, &m)
+	}
+	entry := r.buf.clip
 	br := r.pushLayer(bracketRotate)
 	br.angle = cmd.RotAngle
-	br.cx, br.cy = cmd.RotCX*s, cmd.RotCY*s
+	br.cx, br.cy = cx, cy
+	br.m, br.acc, br.entry = m, acc, entry
+	br.accInv, br.accInvOK = homography.Inverse(&acc)
+	if br.layer != nil {
+		br.layer.clip = br.layer.img.Bounds()
+	}
 }
 
 // endRotation closes the bracket and blits the layer back rotated.
 func (r *renderer) endRotation() {
 	br, ok := r.popLayer(bracketRotate)
-	if !ok || br.layer == nil {
+	if !ok {
+		return
+	}
+	// As in endTransform: the clip popLayer handed the parent is in the
+	// unturned frame, so the window clip is mapped again.
+	if r.winClipSet {
+		r.setWindowClip(r.winClip[0], r.winClip[1], r.winClip[2], r.winClip[3])
+	} else {
+		r.buf.clip = br.entry
+	}
+	if br.layer == nil {
 		return
 	}
 	defer r.releaseLayer(br.layer)
@@ -75,7 +109,7 @@ func (r *renderer) endRotation() {
 	cos := float32(math.Cos(rad))
 
 	dst := rotatedBounds(src, sin, cos, br.cx, br.cy).
-		Intersect(r.buf.clip)
+		Intersect(br.entry)
 	blitTransformed(r.buf, br.layer, dst, sin, cos, br.cx, br.cy)
 }
 

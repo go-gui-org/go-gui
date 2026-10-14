@@ -169,19 +169,11 @@ func renderLayoutDepth(layout *Layout, bgColor Color, clip drawClip, w *Window, 
 		}()
 	}
 
-	// Emit rotation bracket before children.
-	if turns := layout.Shape.QuarterTurns; turns > 0 {
-		cx := layout.Shape.X + layout.Shape.Width/2
-		cy := layout.Shape.Y + layout.Shape.Height/2
-		emitRenderer(RenderCmd{
-			Kind:     RenderRotateBegin,
-			RotAngle: float32(turns) * 90,
-			RotCX:    cx,
-			RotCY:    cy,
-		}, w)
-		defer func() {
-			emitRenderer(RenderCmd{Kind: RenderRotateEnd}, w)
-		}()
+	// Emit rotation bracket before children. The children are drawn in
+	// their unturned frame, so their clip is turned back into it.
+	if layout.Shape.QuarterTurns > 0 {
+		shapeClip = renderQuarterTurnBegin(layout.Shape, shapeClip, w)
+		defer renderQuarterTurnEnd(w)
 	}
 
 	color := bgColor

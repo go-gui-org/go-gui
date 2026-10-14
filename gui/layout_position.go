@@ -273,16 +273,10 @@ func layoutSetShapeClipsDepth(layout *Layout, clip drawClip, depth int) {
 	}
 	// For rotated containers, children live in the internal
 	// (unrotated) coordinate space which may be larger than
-	// the display rect in the swapped dimension.
-	if turns := layout.Shape.QuarterTurns; turns == 1 || turns == 3 {
-		dw := layout.Shape.Width
-		dh := layout.Shape.Height
-		cx := layout.Shape.X + dw/2
-		cy := layout.Shape.Y + dh/2
-		rotated := drawClip{
-			X: cx - dh/2, Y: cy - dw/2,
-			Width: dh, Height: dw,
-		}
+	// the display rect in the swapped dimension. Under a half turn
+	// the frame is the same box, but the clip is mirrored.
+	if layout.Shape.QuarterTurns > 0 {
+		rotated := rotateClipToUnrotated(shapeBounds(layout.Shape), layout.Shape)
 		// The unrotated frame still sits inside every ancestor clip,
 		// and inside the content box when this container clips. Without
 		// the intersection, children scrolled out of a viewport stay
@@ -316,33 +310,23 @@ func layoutSetShapeClipsDepth(layout *Layout, clip drawClip, depth int) {
 
 // rotateClipToUnrotated maps a screen-frame clip rect into the
 // unrotated frame of a quarter-turned shape, rotating about the
-// shape center. It mirrors rotateCoordsInverse applied to the
-// rect's center: the dimensions swap and the center moves by the
-// inverse turn.
+// shape center: rotateCoordsInverse applied to two opposite corners.
+// A quarter turn maps a rect to a rect, so the result is exact. Under
+// 90° and 270° the dimensions swap; under 180° the rect is mirrored
+// about the center, so a clip that cuts off one end of the drawn box
+// cuts off the other end of the unturned frame.
 func rotateClipToUnrotated(bound drawClip, shape *Shape) drawClip {
-	if shape == nil {
+	if shape == nil || shape.QuarterTurns == 0 {
 		return bound
 	}
 	if bound.Width <= 0 || bound.Height <= 0 {
 		return drawClip{}
 	}
-	cx := shape.X + shape.Width/2
-	cy := shape.Y + shape.Height/2
-	switch shape.QuarterTurns {
-	case 1: // Inverse of 90° CW.
-		return drawClip{
-			X:     cx + bound.Y - cy,
-			Y:     cy + cx - bound.X - bound.Width,
-			Width: bound.Height, Height: bound.Width,
-		}
-	case 3: // Inverse of 270° CW.
-		return drawClip{
-			X:     cx + cy - bound.Y - bound.Height,
-			Y:     cy + bound.X - cx,
-			Width: bound.Height, Height: bound.Width,
-		}
-	default:
-		return bound
+	ax, ay := rotateCoordsInverse(shape, bound.X, bound.Y)
+	bx, by := rotateCoordsInverse(shape, bound.X+bound.Width, bound.Y+bound.Height)
+	return drawClip{
+		X: min(ax, bx), Y: min(ay, by),
+		Width: f32Abs(bx - ax), Height: f32Abs(by - ay),
 	}
 }
 

@@ -76,10 +76,11 @@ func (r *renderer) endTransform() {
 	blitHomography(r.buf, br.layer, dst, &inv)
 }
 
-// innerTransform returns the innermost open transform bracket, or nil.
+// innerTransform returns the innermost open transform or rotation
+// bracket, or nil. Both keep the map from their layer to the window.
 func (r *renderer) innerTransform() *bracket {
 	for i := len(r.brackets) - 1; i >= 0; i-- {
-		if r.brackets[i].kind == bracketTransform {
+		if k := r.brackets[i].kind; k == bracketTransform || k == bracketRotate {
 			return &r.brackets[i]
 		}
 	}
@@ -87,8 +88,8 @@ func (r *renderer) innerTransform() *bracket {
 }
 
 // setWindowClip applies a RenderClip. The rect is in the window, as a
-// GPU scissor is: gui maps a clip inside a transform out to the window
-// before it emits it. Inside a transform the target is a layer in the
+// GPU scissor is: gui maps a clip inside a transform or a quarter turn
+// out to the window before it emits it. Inside one the target is a layer in the
 // view's own frame, so the rect is mapped back into that frame. Under a
 // turn, skew or perspective, the box of the mapped rect is bigger than
 // the clip; gui adds a stencil there, which cuts exactly.

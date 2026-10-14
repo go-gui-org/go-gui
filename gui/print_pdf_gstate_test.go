@@ -203,6 +203,27 @@ func TestPDFClipUnderPerspective(t *testing.T) {
 	}
 }
 
+// A perspective view inside a quarter turn: gui maps the clip out
+// through the turn and the view's matrix (#1019), so the clip is mapped
+// back through both and starts at the view's corner.
+func TestPDFClipUnderPerspectiveInTurn(t *testing.T) {
+	g, _ := newTestPDFGState(t)
+	g.beginRotate(&RenderCmd{RotAngle: 90, RotCX: 50, RotCY: 20})
+	h := xfMat{1, 0, 0, 0, 1, 0, 0.01, 0, 1}
+	hp := [9]float32(h)
+	g.beginTransform(&RenderCmd{Homography: &hp, W: 100, H: 40})
+	turn := quarterTurnForward(&Shape{Width: 100, Height: 40, QuarterTurns: 1})
+	f := xfFrame{acc: turn.mul(&h), clip: xfUnboundedClip}
+	win := f.toWindow(drawClip{Width: 100, Height: 40})
+	g.setClip(&RenderCmd{X: win.X, Y: win.Y, W: win.Width, H: win.Height})
+	c := g.clips[len(g.clips)-1]
+	// Without the turn in h, the rect maps back to x 42..233, y -100..67.
+	if c.xf != g.view || c.x < -0.01 || c.x > 0.01 || c.y < -0.01 ||
+		c.y > 0.01 || c.x+c.w < 99.99 || c.y+c.h < 39.99 {
+		t.Fatalf("clip %+v does not hold the view under its flat map", c)
+	}
+}
+
 // A view whose center is behind the viewer draws nothing: an empty clip
 // stands in, and the state still balances.
 func TestPDFTransformBehindViewer(t *testing.T) {

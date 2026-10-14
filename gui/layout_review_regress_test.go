@@ -259,18 +259,23 @@ func TestRotatedBoxChildHoverableAtBothEnds(t *testing.T) {
 }
 
 // rotateClipToUnrotated passes through what it cannot rotate and
-// empties what holds nothing: nil shape and turns 0/2 keep the bound,
-// an empty bound stays empty.
+// empties what holds nothing: nil shape and turns 0 keep the bound,
+// an empty bound stays empty. A half turn mirrors the bound about the
+// shape center.
 func TestRotateClipToUnrotatedEdgeCases(t *testing.T) {
 	bound := drawClip{X: 1, Y: 2, Width: 3, Height: 4}
 	if got := rotateClipToUnrotated(bound, nil); got != bound {
 		t.Errorf("nil shape: got %+v, want %+v", got, bound)
 	}
-	for _, turns := range []uint8{0, 2} {
-		s := &Shape{X: 10, Y: 20, Width: 40, Height: 100, QuarterTurns: turns}
-		if got := rotateClipToUnrotated(bound, s); got != bound {
-			t.Errorf("turns=%d: got %+v, want %+v", turns, got, bound)
-		}
+	s0 := &Shape{X: 10, Y: 20, Width: 40, Height: 100}
+	if got := rotateClipToUnrotated(bound, s0); got != bound {
+		t.Errorf("turns=0: got %+v, want %+v", got, bound)
+	}
+	// Center (30, 70): x 1..4 mirrors to 56..59, y 2..6 to 134..138.
+	s2 := &Shape{X: 10, Y: 20, Width: 40, Height: 100, QuarterTurns: 2}
+	if got, want := rotateClipToUnrotated(bound, s2),
+		(drawClip{X: 56, Y: 134, Width: 3, Height: 4}); got != want {
+		t.Errorf("turns=2: got %+v, want %+v", got, want)
 	}
 	s := &Shape{X: 10, Y: 20, Width: 40, Height: 100, QuarterTurns: 1}
 	if got := rotateClipToUnrotated(drawClip{}, s); got.Width != 0 || got.Height != 0 {

@@ -212,17 +212,39 @@ func TestWebClipAfterPerspectiveEndIsWindowRect(t *testing.T) {
 	}
 }
 
-// A rotation inside a perspective view is left out of the clip map, as
-// gui leaves it out when it maps the clip to the window.
-func TestWebClipUnderPerspectiveIgnoresRotation(t *testing.T) {
+// A rotation inside a perspective view is part of the clip map: gui
+// maps a clip out through quarter turns too (#1019).
+func TestWebClipUnderPerspectiveKeepsRotation(t *testing.T) {
 	var log []string
 	b := newXfBackend(t, &log)
 	h := [9]float32{1, 0, 0, 0, 1, 0, 0.01, 0, 1}
 	b.beginTransform(&gui.RenderCmd{Homography: &h, W: 100, H: 40})
-	view := b.xfCur
 	b.beginRotation(&gui.RenderCmd{RotAngle: 90})
 	b.drawClip(&gui.RenderCmd{X: 0, Y: 0, W: 50, H: 20})
-	if clip := b.clipStack[len(b.clipStack)-1]; clip.xf != view {
-		t.Fatalf("clip xf = %v, want the view map %v", clip.xf, view)
+	if clip := b.clipStack[len(b.clipStack)-1]; clip.xf != b.xfCur {
+		t.Fatalf("clip xf = %v, want the turned view map %v", clip.xf, b.xfCur)
+	}
+}
+
+// A perspective view inside a quarter turn: the clip gui mapped out
+// through the turn and the view's matrix maps back through both, so in
+// the view's frame it starts at the view's corner.
+func TestWebClipUnderPerspectiveInRotation(t *testing.T) {
+	var log []string
+	b := newXfBackend(t, &log)
+	b.dpiScale = 1
+	b.beginRotation(&gui.RenderCmd{RotAngle: 90, RotCX: 50, RotCY: 20})
+	h := [9]float32{1, 0, 0, 0, 1, 0, 0.01, 0, 1}
+	b.beginTransform(&gui.RenderCmd{Homography: &h, W: 100, H: 40})
+	// Turn 90° about (50, 20): (x, y) -> (70 - y, x - 30).
+	turn := homography.Mat{0, -1, 70, 1, 0, -30, 0, 0, 1}
+	acc := homography.Mul(&turn, &h)
+	wx, wy, ww, wh, _ := homography.Bounds(&acc, 0, 0, 100, 40)
+	b.drawClip(&gui.RenderCmd{X: wx, Y: wy, W: ww, H: wh})
+	clip := b.clipStack[len(b.clipStack)-1]
+	if clip.xf != b.xfCur || clip.x < -0.01 || clip.x > 0.01 ||
+		clip.y < -0.01 || clip.y > 0.01 || clip.x+clip.w < 99.99 ||
+		clip.y+clip.h < 39.99 {
+		t.Fatalf("clip %+v does not hold the view under its flat map", clip)
 	}
 }

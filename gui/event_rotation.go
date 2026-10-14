@@ -265,6 +265,16 @@ func rotateCoordsForward(s *Shape, x, y float32) (float32, float32) {
 	return x, y
 }
 
+// quarterTurnForward returns rotateCoordsForward for s as a matrix, for
+// the render walk's frame stack. The map is affine, so the images of
+// three points fix it.
+func quarterTurnForward(s *Shape) xfMat {
+	ox, oy := rotateCoordsForward(s, 0, 0)
+	ax, ay := rotateCoordsForward(s, 1, 0)
+	bx, by := rotateCoordsForward(s, 0, 1)
+	return xfMat{ax - ox, bx - ox, ox, ay - oy, by - oy, oy, 0, 0, 1}
+}
+
 // quarterTurnInverse returns rotateCoordsInverse for s as a matrix, for
 // the mouse lock's press path. The map is affine, so the images of
 // three points fix it.

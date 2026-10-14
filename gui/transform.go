@@ -295,13 +295,20 @@ func (a *xfMat) mul(b *xfMat) xfMat {
 	return out
 }
 
-// axisAligned reports whether m only moves and scales (a mirror counts):
-// a rect then maps to a rect. The off-axis terms are compared against the
+// axisAligned reports whether m only moves and scales (a mirror counts),
+// or does that after a quarter turn: a rect then maps to a rect. The off-axis terms are compared against the
 // scale, so float trig noise from a turn of 360° does not count as a turn.
 func (m *xfMat) axisAligned() bool {
+	if m[6] != 0 || m[7] != 0 {
+		return false
+	}
+	// Moves and scales only, or a quarter turn (the axes swap).
 	tol := 1e-6 * (f32Abs(m[0]) + f32Abs(m[4]))
-	return f32Abs(m[1]) <= tol && f32Abs(m[3]) <= tol &&
-		m[6] == 0 && m[7] == 0
+	if f32Abs(m[1]) <= tol && f32Abs(m[3]) <= tol {
+		return true
+	}
+	tol = 1e-6 * (f32Abs(m[1]) + f32Abs(m[3]))
+	return f32Abs(m[0]) <= tol && f32Abs(m[4]) <= tol
 }
 
 // mat4 is a row-major 4x4 matrix in float64, used only while resolve

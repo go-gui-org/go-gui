@@ -34,7 +34,9 @@ type shapeTransform struct {
 type xfFrame struct {
 	acc  xfMat    // own frame -> window: every open bracket, composed
 	clip drawClip // the window scissor in effect when the bracket opened
-	axis bool     // acc only moves and scales: a scissor stays exact
+	// axis: acc only moves, scales and turns by quarter turns. A rect
+	// maps to a rect, so a scissor stays exact.
+	axis bool
 	// flat is a frame for a view whose transform is the identity in
 	// this frame. No TransformBegin was emitted for it, so none is
 	// closed. It is pushed so the subtree still takes its clips from
@@ -142,6 +144,42 @@ func renderTransformEnd(w *Window) {
 		emitRenderer(RenderCmd{Kind: RenderTransformEnd}, w)
 	}
 	w.xfStack = w.xfStack[:n]
+}
+
+// renderQuarterTurnBegin opens the bracket of a quarter turn
+// (Shape.QuarterTurns): it emits RotateBegin and opens a frame on
+// w.xfStack, so the clips and boxes drawn inside map out through the
+// turn like those inside a view transform (#1019). It returns the clip
+// for the children, in their unturned frame. clip is the clip in effect
+// here, in the shape's frame. The caller closes the bracket with
+// renderQuarterTurnEnd after the children.
+//
+// A quarter turn moves only the children, so the shape's own fill is
+// drawn before this.
+func renderQuarterTurnBegin(shape *Shape, clip drawClip, w *Window) drawClip {
+	emitRenderer(RenderCmd{
+		Kind:     RenderRotateBegin,
+		RotAngle: float32(shape.QuarterTurns) * 90,
+		RotCX:    shape.X + shape.Width/2,
+		RotCY:    shape.Y + shape.Height/2,
+	}, w)
+	parent := xfIdentity
+	entry := clip
+	if n := len(w.xfStack); n > 0 {
+		top := &w.xfStack[n-1]
+		parent = top.acc
+		entry = top.toWindow(clip)
+	}
+	turn := quarterTurnForward(shape)
+	acc := parent.mul(&turn)
+	w.xfStack = append(w.xfStack, xfFrame{acc: acc, clip: entry, axis: acc.axisAligned()})
+	return rotateClipToUnrotated(clip, shape)
+}
+
+// renderQuarterTurnEnd closes the bracket renderQuarterTurnBegin opened.
+func renderQuarterTurnEnd(w *Window) {
+	emitRenderer(RenderCmd{Kind: RenderRotateEnd}, w)
+	w.xfStack = w.xfStack[:len(w.xfStack)-1]
 }
 
 // renderShapeClip returns the clip the render walk uses as the shape's

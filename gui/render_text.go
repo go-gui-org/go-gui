@@ -532,8 +532,7 @@ func renderIMEPreeditUnderline(
 // imeSetRectDrawn reports a caret rect, in the frame the text is drawn
 // in, to the platform. Inside a view transform (#1019) it is mapped out
 // to where the caret is drawn, so the candidate window sits by it. A
-// quarter turn opens no frame on w.xfStack, so its turn is not applied
-// yet; #1019 phase 7 moves quarter turns onto the general mapping.
+// quarter turn opens a frame on w.xfStack too (renderQuarterTurnBegin).
 func imeSetRectDrawn(r drawClip, w *Window) {
 	r = renderBoxToWindow(r, w)
 	w.IMESetRect(r.X, r.Y, r.Width, r.Height)

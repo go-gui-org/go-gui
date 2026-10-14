@@ -1,6 +1,6 @@
 # Visual transforms on views
 
-Issue #1019. Status: **planned** — phases 1 to 6 landed.
+Issue #1019. Status: **planned** — phases 1 to 7 landed.
 
 ## Problem
 
@@ -155,9 +155,9 @@ that lifts on hover, a tilted badge and tumbling confetti cannot be built.
   `OnClick`) and the window, through `xfLocalToWindowClip` and `xfWindowToLocal`
   with no clip test. They read the last laid-out frame.
   - The IME caret rect is mapped at render time through the open brackets
-    (`renderBoxToWindow`, `xfFrame.box`). A quarter turn opens no frame there,
-    so the IME rect of an input under a `RotatedBox` is still unturned. Phase 7
-    closes it.
+    (`renderBoxToWindow`, `xfFrame.box`). A quarter turn opens a frame there too
+    (`renderQuarterTurnBegin`), so the rect of an input under a `RotatedBox` is
+    turned.
   - An a11y node under a view transform or a quarter turn reports the box of its
     four mapped corners (`xfBoxToWindowOK`). A node that is not drawn (a hidden
     back face) reports an empty box. The ancestor walk runs only below a
@@ -171,6 +171,30 @@ that lifts on hover, a tilted badge and tumbling confetti cannot be built.
   - Drag-reorder needs no change: the press that arms it and the locked moves
     are in one frame (see mouse lock).
 
+- **Quarter turns (phase 7).** The render walk opens an `xfStack` frame for a
+  quarter turn, as for a view transform, so a clip inside a `RotatedBox` is
+  mapped out to the window like any other. It used to be emitted in the unturned
+  frame, which cut a 90° turned clipping child to the wrong strip. A quarter
+  turn maps a rect to a rect, so `xfMat.axisAligned` counts it as axis aligned
+  and the scissor stays exact, with no stencil. A `Transform` with `Rotate(90)`
+  gets the same exact scissor.
+  - `rotateClipToUnrotated` maps two corners through `rotateCoordsInverse`, so a
+    half turn mirrors the clip too. Layout used to pass a half turn the clip
+    unturned: a parent clip that hid one end of the box hid the wrong end of the
+    children for hit testing.
+  - A `RenderClip` inside a `RotateBegin` is now a window rect, so each backend
+    that draws a turn on its own maps it back. Soft keeps the turn as a matrix
+    on its rotation bracket and maps the clip into the unturned layer; the layer
+    draws unclipped and the blit cuts to the clip at the bracket's start. Web
+    and PDF compose the turn into the map they use to bring a clip back under
+    perspective (`xfView`/`xfH`, `view`/`h`). The GPU backends need nothing: a
+    scissor is a window rect there already.
+  - The input walks keep their map, recurse and restore shape. A quarter turn
+    maps only the children, and the view transform maps the shape itself, so the
+    two stay separate steps, both through one helper each
+    (`rotateCoordsInverse`, `xfCoordsInverse`). The gesture walk's copy of the
+    turn math (`rotateCentroidInverse`) is gone.
+
 ## Phasing
 
 | Phase | Content                                                                        | Status  |
@@ -181,7 +205,7 @@ that lifts on hover, a tilted badge and tumbling confetti cannot be built.
 | 4     | Backface culling for drawing (with 2) and input (with 3)                       | landed  |
 | 5     | `LocalToWindow` / `WindowToLocal`, IME, a11y, tooltips, drag, float anchors    | landed  |
 | 6     | Soft backend (homography blit), web (Canvas2D `setTransform`) and PDF          | landed  |
-| 7     | QuarterTurns input goes through the general mapping; special cases are deleted | pending |
+| 7     | QuarterTurns input goes through the general mapping; special cases are deleted | landed  |
 | 8     | `examples/transforms/`, README, cheat-sheet snippet                            | pending |
 
 ## Rejected Approaches

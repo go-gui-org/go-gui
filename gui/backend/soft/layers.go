@@ -50,7 +50,7 @@ type bracket struct {
 	// View transform, device px: m maps the layer to the parent target,
 	// acc maps it to the window (every open transform bracket composed)
 	// and accInv maps back. entry is the parent's clip when the bracket
-	// opened. Only a bracketTransform sets them.
+	// opened. A bracketTransform and a bracketRotate set them.
 	m, acc, accInv homography.Mat
 	accInvOK       bool
 	entry          image.Rectangle

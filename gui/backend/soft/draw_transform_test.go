@@ -178,3 +178,43 @@ func TestTransformEmptyClipCutsAll(t *testing.T) {
 		t.Errorf("green = %d, want 0", g)
 	}
 }
+
+// A clip inside a quarter turn is a window rect: gui maps it out through
+// the turn (#1019). The layer under the turn is in the unturned frame,
+// so the rect is mapped back into it. A vertical strip in the window
+// must stay vertical after the layer is turned back out.
+func TestRotationClipIsInWindowSpace(t *testing.T) {
+	r := newRenderer(40, 40, 1)
+	r.drawAll([]gui.RenderCmd{
+		{Kind: gui.RenderRotateBegin, RotAngle: 90, RotCX: 20, RotCY: 20},
+		clipCmd(16, 0, 8, 40),
+		rectCmd(0, 0, 40, 40, green),
+		{Kind: gui.RenderRotateEnd},
+	})
+	if _, g, _, _ := at(r.buf.img, 20, 5); g < 200 {
+		t.Errorf("inside clip green = %d, want near 255", g)
+	}
+	if _, g, _, _ := at(r.buf.img, 5, 20); g > 40 {
+		t.Errorf("outside clip green = %d, want ~0", g)
+	}
+}
+
+// A view transform inside a quarter turn maps its clip back through
+// both: the turn is part of the frame the window rect came from.
+func TestTransformInRotationClip(t *testing.T) {
+	r := newRenderer(40, 40, 1)
+	r.drawAll([]gui.RenderCmd{
+		{Kind: gui.RenderRotateBegin, RotAngle: 90, RotCX: 20, RotCY: 20},
+		xfBegin([9]float32{1, 0, 0, 0, 1, 0, 0, 0, 1}),
+		clipCmd(16, 0, 8, 40),
+		rectCmd(0, 0, 40, 40, green),
+		{Kind: gui.RenderTransformEnd},
+		{Kind: gui.RenderRotateEnd},
+	})
+	if _, g, _, _ := at(r.buf.img, 20, 5); g < 200 {
+		t.Errorf("inside clip green = %d, want near 255", g)
+	}
+	if _, g, _, _ := at(r.buf.img, 5, 20); g > 40 {
+		t.Errorf("outside clip green = %d, want ~0", g)
+	}
+}

@@ -52,7 +52,8 @@ type Backend struct {
 
 	// xfCur is the canvas transform the open rotation and view
 	// transform brackets compose to. xfView composes the view
-	// transforms alone, and xfH the true matrices they stand in for.
+	// transforms and rotations, and xfH the true matrices they stand
+	// in for.
 	// xfPersp is set while a bracket with perspective is open, so
 	// xfView matches xfH only near one point. xfStack holds the state
 	// from before each bracket (draw_transform.go).
