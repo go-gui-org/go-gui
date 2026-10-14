@@ -2,6 +2,7 @@ package gui
 
 import (
 	"strconv"
+	"strings"
 	"testing"
 )
 
@@ -81,6 +82,24 @@ func BenchmarkSvgLoadCacheHit(b *testing.B) {
 	b.ResetTimer()
 	for b.Loop() {
 		_, _ = w.LoadSvg("<svg/>", 100, 100)
+	}
+}
+
+// BenchmarkSvgLoadCacheHitLarge is the cache hit for a large inline
+// document, the size of a detailed illustration (68 KB). Every Svg
+// view looks its source up each frame, in generation and in render, so
+// this lookup runs twice per view per frame.
+func BenchmarkSvgLoadCacheHitLarge(b *testing.B) {
+	w := NewWindow(WindowCfg{Width: 200, Height: 200})
+	w.SetSvgParser(benchSvgParser{})
+	src := "<svg>" + strings.Repeat("<path d='M0 0L1 1'/>", 68*1024/20) + "</svg>"
+	if _, err := w.LoadSvg(src, 100, 100); err != nil {
+		b.Fatal(err)
+	}
+	b.ReportAllocs()
+	b.ResetTimer()
+	for b.Loop() {
+		_, _ = w.LoadSvg(src, 100, 100)
 	}
 }
 

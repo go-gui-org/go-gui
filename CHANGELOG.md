@@ -33,6 +33,22 @@ and this project adheres to
   last tick as `dt`, not a fixed 0.016. An `Update` that moves a fixed amount
   per call now runs faster on a fast display, so scale the step by `dt`. The
   mouse-wheel scroll ease does this, so it takes the same ~110 ms at any rate.
+- **The web backend updates its accessibility tree in place (#1038).** The
+  hidden ARIA DOM that mirrors the accessibility tree was cleared and rebuilt on
+  every sync (every 100 ms), with every attribute of every node written again. A
+  page of 240 images made 4,098 DOM calls per sync, an ~8 ms stall every sixth
+  frame. Now each element keeps what it wrote: a sync writes only the attributes
+  that changed, and moves elements only when a node's parent changes. An
+  unchanged tree makes no DOM calls. No API change.
+- **Pages with many large inline SVGs lay out much faster (#1037).** Every `Svg`
+  view looks up its parsed document each frame, once while the view is built and
+  once while it renders, and that lookup hashed the whole source string byte by
+  byte. With a large document in many views (240 views of a 68 KB illustration,
+  off-screen ones included) this was ~90% of a scrolled frame. A source of 256
+  bytes or more is now hashed once and then found by the identity of its string.
+  A cache hit on a 68 KB document takes ~76 ns instead of ~68 µs, and a scrolled
+  frame of that page ~0.9 ms instead of ~17 ms. No API change; file paths and
+  short sources behave as before.
 
 ### Fixed
 
@@ -42,6 +58,12 @@ and this project adheres to
   after the element ended, so the rest of the frame drew rotated or blurred. The
   clip replay undid the bracket instead of its own saves. Clips and brackets are
   now replayed together, in order, so each keeps its place.
+- **Screen-reader clicks on the web keep working after the tree updates
+  (#1038).** Each accessibility sync released the click callbacks of buttons,
+  links and other actionable nodes, but left them attached to the DOM elements,
+  which are reused. A screen-reader activation after the next sync called a
+  released function. Each element now keeps one callback, attached while the
+  node is actionable.
 - **A driver that refuses vsync is reported (#1018).** The GL backends on
   Windows and X11 asked for swap interval 1 and ignored the answer. Now a
   refusal is reported under `gui.Debug` (`DebugWindowDegraded`). Since the

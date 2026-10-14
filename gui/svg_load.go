@@ -491,7 +491,7 @@ func (w *Window) loadSvgWithOpts(svgSrc string, width, height float32,
 	// confirmed within svgFileRecheckInterval keeps its recorded
 	// fingerprint, so neither touches the file system on a hit.
 	inline := strings.HasPrefix(svgSrc, "<")
-	srcHash := hashString(svgSrc)
+	srcHash := w.svgSrcHash(svgSrc)
 	now := time.Now()
 	var contentHash uint64
 	known := inline
@@ -657,7 +657,7 @@ func (w *Window) getSvgDimensions(svgSrc string) (float32, float32, error) {
 	// Fast path, as in loadSvgWithOpts: svgView asks every frame,
 	// so a recently confirmed file makes no file system call.
 	inline := strings.HasPrefix(svgSrc, "<")
-	srcHash := hashString(svgSrc)
+	srcHash := w.svgSrcHash(svgSrc)
 	now := time.Now()
 	dimCache := StateMapRead[uint64, svgDimEntry](w, nsSvgDimCache)
 	if inline {
@@ -719,6 +719,8 @@ func (w *Window) getSvgDimensions(svgSrc string) (float32, float32, error) {
 
 // RemoveSvgFromCache removes all cached variants of an SVG.
 func (w *Window) removeSvgFromCache(svgSrc string) {
+	// Delete is cold: hash directly so a miss does not insert
+	// into the svgSrcHash memo and evict a hot entry.
 	srcHash := hashString(svgSrc)
 
 	svgCache := StateMapRead[svgCacheKey, *CachedSvg](w, nsSvgCache)
@@ -752,6 +754,11 @@ func (w *Window) clearSvgCache() {
 	dimCache := StateMapRead[uint64, svgDimEntry](w, nsSvgDimCache)
 	if dimCache != nil {
 		dimCache.Clear()
+	}
+	// The hash memo pins each source's bytes alive by design,
+	// so drop it with the cache it fronts.
+	if memo := StateMapRead[svgSrcKey, uint64](w, nsSvgSrcHash); memo != nil {
+		memo.Clear()
 	}
 	if inv, ok := w.svgParser.(svgParserCacheInvalidator); ok {
 		inv.ClearSvgParserCache()
