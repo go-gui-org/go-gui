@@ -85,8 +85,10 @@ Firefox on Windows 11 (Intel Iris Xe), Safari on macOS (Apple M3 Pro):
 
 Firefox with the staging copy, against one composite per batch from the WebGL
 canvas: mixed grid 42 → 59.6, gradient logos 15.7 → 51, icons 54.8 (then on
-Canvas2D under a light-batch threshold) → 59.5. Chrome stays at 60 on the mixed
-grid and the logos. Safari was measured before the staging copy.
+Canvas2D under a light-batch threshold) → 59.5. Safari pays the same cost: its
+gradient logos went 18.2 → 59.9 (composite time 41 ms → 0.05 ms a frame), and
+the mixed grid, icons and tiger run at 60. Chrome stays at 60 on the mixed grid,
+logos and tiger.
 
 ## Verification
 
