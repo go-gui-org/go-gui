@@ -39,7 +39,8 @@ and this project adheres to
   `Window.WindowToLocal` map a point between a widget's own box and the window,
   so an app can place an overlay by a moved view. A part drawn outside a parent
   that does not clip takes no pointer, as for any child that overflows its
-  parent.
+  parent. `examples/transforms/` shows a hover lift, a tilted badge and a card
+  flip.
 
 - **Springs, tweens and keyframes can ask for render-only frames (#1016).**
   `SpringAnimation`, `TweenAnimation` and `KeyframeAnimation` have a new

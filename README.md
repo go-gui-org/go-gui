@@ -114,6 +114,8 @@ Go-Gui is also an ecosystem of composable libraries. **go-glyph** handles text,
 - **Rich interaction** — keyframe, spring, and tween animation, hero
   transitions, gestures, scrolling, focus management, color filters, box
   shadows, and blur effects
+- **View transforms** — move, scale, rotate, skew or flip any container in 3D
+  with `ContainerCfg.Transform`. Clicks and typing follow the drawn view
 - **Professional text & accessibility** — text shaping, rendering, bidirectional
   layout, font fallback, IME, soft-keyboard hints for touch devices, spell
   checking, and full accessibility support

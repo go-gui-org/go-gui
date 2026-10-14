@@ -1,6 +1,6 @@
 # Visual transforms on views
 
-Issue #1019. Status: **planned** — phases 1 to 7 landed.
+Issue #1019. Status: **implemented**.
 
 ## Problem
 
@@ -197,16 +197,16 @@ that lifts on hover, a tilted badge and tumbling confetti cannot be built.
 
 ## Phasing
 
-| Phase | Content                                                                        | Status  |
-| ----- | ------------------------------------------------------------------------------ | ------- |
-| 1     | `Transform` type, chain methods, `Lerp`, the homography, its inverse, backface | landed  |
-| 2     | `ContainerCfg.Transform`, render bracket, Metal + GL + mobile, clips, goldens  | landed  |
-| 3     | Pointer input through the inverse, in every walk                               | landed  |
-| 4     | Backface culling for drawing (with 2) and input (with 3)                       | landed  |
-| 5     | `LocalToWindow` / `WindowToLocal`, IME, a11y, tooltips, drag, float anchors    | landed  |
-| 6     | Soft backend (homography blit), web (Canvas2D `setTransform`) and PDF          | landed  |
-| 7     | QuarterTurns input goes through the general mapping; special cases are deleted | landed  |
-| 8     | `examples/transforms/`, README, cheat-sheet snippet                            | pending |
+| Phase | Content                                                                        | Status |
+| ----- | ------------------------------------------------------------------------------ | ------ |
+| 1     | `Transform` type, chain methods, `Lerp`, the homography, its inverse, backface | landed |
+| 2     | `ContainerCfg.Transform`, render bracket, Metal + GL + mobile, clips, goldens  | landed |
+| 3     | Pointer input through the inverse, in every walk                               | landed |
+| 4     | Backface culling for drawing (with 2) and input (with 3)                       | landed |
+| 5     | `LocalToWindow` / `WindowToLocal`, IME, a11y, tooltips, drag, float anchors    | landed |
+| 6     | Soft backend (homography blit), web (Canvas2D `setTransform`) and PDF          | landed |
+| 7     | QuarterTurns input goes through the general mapping; special cases are deleted | landed |
+| 8     | `examples/transforms/`, README, cheat-sheet snippet                            | landed |
 
 ## Rejected Approaches
 

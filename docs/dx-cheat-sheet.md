@@ -429,6 +429,41 @@ A `DrawContext` carries a transform stack: `Translate(dx, dy)`,
 batch-stamped, so a transform between two fills does not merge them. See
 `docs/specs/draw-canvas-transform.md`.
 
+## View transforms
+
+`ContainerCfg.Transform` moves, scales, rotates, skews or turns a container and
+everything in it in 3D. Layout ignores it: the container keeps its place, and so
+do its neighbors. Pointer input and the IME caret follow the drawn view. To
+animate, set `TransformFn` and return the tween's current value; the view then
+moves in render-only frames. `examples/transforms/` has a hover lift and a card
+flip; `docs/specs/view-transforms.md` has the design.
+
+```go
+func badge(theme gui.Theme) gui.View {
+	return gui.Row(gui.ContainerCfg{
+		ID:         "badge",
+		Padding:    gui.PaddingSmall,
+		Radius:     gui.RadiusSmall,
+		Color:      theme.ColorSelect,
+		SizeBorder: gui.NoBorder,
+		Transform:  gui.Rotate(-12),
+		OnClick:    badgeClick,
+		Content: []gui.View{
+			gui.Text(gui.TextCfg{
+				Text:      "NEW",
+				TextStyle: gui.TextStyle{Color: theme.ColorTextOnAccent},
+			}),
+		},
+	})
+}
+```
+
+The parts apply in one fixed order (translate, perspective, rotate, skew, scale)
+about `Origin`, the center by default, whatever order the methods are chained
+in. `BackfaceHidden` hides a view while its back is toward the viewer.
+`Window.LocalToWindow` and `WindowToLocal` map a point between a widget's box
+and the window.
+
 ## The one-event rule
 
 Nothing is marked handled for you. A callback that acts on an event calls

@@ -98,6 +98,16 @@ var snippetEntries = []snippetEntry{
 		},
 	},
 	{
+		sourceFile: "../transforms/main.go",
+		beginMark:  "// doc:snippet-begin transforms-badge",
+		endMark:    "// doc:snippet-end transforms-badge",
+		anchor:     "Transform:  gui.Rotate(-12),",
+		heading:    "## View transforms",
+		guides: []string{
+			"../../docs/dx-cheat-sheet.md",
+		},
+	},
+	{
 		sourceFile: "../get_started/main.go",
 		anchor:     "func mainView(",
 		heading:    "## It's just Go",
