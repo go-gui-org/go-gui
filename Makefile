@@ -110,7 +110,7 @@ build-examples:
 	for dir in examples/*/; do \
 		name=$$(basename "$$dir"); \
 		case "$$name" in \
-			ios_demo|android_demo|bin) continue ;; \
+			ios_demo|android_demo|bin|internal) continue ;; \
 		esac; \
 		if ! CGO_LDFLAGS="$$EXTRA_FLAGS" go build -o "examples/bin/$$name" "./$$dir"; then \
 			failed="$$failed $$name"; \

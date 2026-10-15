@@ -32,7 +32,7 @@ func main() {
 	var ok, failed, skipped int
 	for _, e := range entries {
 		name := e.Name()
-		if !e.IsDir() || name == "" || name == "bin" || name[0] == '.' {
+		if !e.IsDir() || name == "" || name == "bin" || name == "internal" || name[0] == '.' {
 			continue
 		}
 		if strings.Contains(name, "..") || strings.ContainsAny(name, `/\`) || strings.HasPrefix(name, "-") {

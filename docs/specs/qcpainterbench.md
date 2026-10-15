@@ -187,11 +187,27 @@ render with 4× MSAA where the device supports it (#823).
 
 The example has two modes:
 
-- Interactive: a readout in Qt's format (`Ø 6 s average | 2 s window fps`) plus
-  go-gui's mean render-build CPU time per frame.
+- Interactive: a readout in Qt's format (`Ø 6 s average | 2 s window fps`), then
+  go-gui's mean render-build CPU time per frame and the p99 frame time of the
+  last 2 s window.
 - `-sweep 1,2,4,…`: each render count runs `-warmup` seconds unmeasured, then
   `-seconds` measured, and prints one CSV row. Columns: `count`, `tests`,
-  `frames`, `seconds`, `fps`, `frame_ms`, `view_us`, `layout_us`, `render_us`.
+  `frames`, `seconds`, `fps`, `frame_ms`, `view_us`, `layout_us`, `render_us`,
+  `p50_ms`, `p99_ms`, `max_ms`.
+
+`fps` is frames divided by the measured time, and `frame_ms` is `1000 / fps`, so
+both are means. A mean hides stutter: one 30 ms stall each second hardly moves
+it. So the example also keeps the time of each frame
+(`examples/internal/framestats`, #1024) and reports the median (`p50_ms`), the
+99th percentile (`p99_ms`) and the longest frame (`max_ms`). The percentile
+columns are at the end of the row, so scripts that read the older columns still
+work. The ring keeps the last 4096 frames: a 5 s measurement keeps every frame
+up to about 800 FPS. Above that the percentiles cover only the last 4096 frames:
+the sweep writes a note to stderr, and the interactive readout adds
+`(last 4096 frames)`.
+
+The readout does not show a frame budget (for example `4.2 ms at 240 Hz`),
+because the backends do not report the display refresh rate to the app.
 
 Frames are counted in the view function. The example calls
 `w.InvalidateLayout()` there every frame, because go-gui's animation ticker runs
