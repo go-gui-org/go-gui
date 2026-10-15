@@ -15,7 +15,7 @@ import (
 // Glyph quad batching (#816). A batch collects the quads glyph emits during
 // one text command and draws them with one DrawElements per run of quads
 // from the same atlas page. These tests need a real GL context: they run in
-// CI through scripts/gl-render-test.sh and skip elsewhere without a display.
+// CI through go run ./tools/glrendertest and skip elsewhere without a display.
 
 // newBatchProbeBackend opens a real backend with MSAA off, so frames draw
 // straight into the readback framebuffer and pixel values are exact.

@@ -474,7 +474,7 @@ jobs:
         run: |
           Xvfb :99 -screen 0 800x600x24 &
           sleep 1
-          ./scripts/gl-render-test.sh "$RUNNER_TEMP"
+          go run ./tools/glrendertest "$RUNNER_TEMP"
 
   windows:
     name: Windows
@@ -515,7 +515,7 @@ jobs:
         run: |
           mkdir -p build
           cp /mingw64/bin/opengl32.dll build/
-          GALLIUM_DRIVER=llvmpipe ./scripts/gl-render-test.sh build
+          GALLIUM_DRIVER=llvmpipe go run ./tools/glrendertest build
 
       - name: Build showcase
         run: |

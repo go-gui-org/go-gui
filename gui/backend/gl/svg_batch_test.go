@@ -12,8 +12,8 @@ import (
 // SVG triangle batching (#895). Consecutive RenderSvg commands share one
 // vertex upload and one draw; any other command kind draws the queued run
 // first. Like the glyph batch tests, these need a real GL context: CI runs
-// them through scripts/gl-render-test.sh and they skip elsewhere without a
-// display.
+// them through go run ./tools/glrendertest and they skip elsewhere without
+// a display.
 
 // svgSquare is a RenderSvg command covering the physical-pixel square at
 // (x, y) with side n, in color c. Scale undoes the backend's DPI multiply,

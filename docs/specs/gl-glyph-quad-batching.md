@@ -68,7 +68,7 @@ is 12 calls, down from 285.
 Golden tests (`gui/golden_test.go`) record `[]RenderCmd` before the backend
 runs, so they cannot see this change. The verification is done with real-GL
 tests in `gui/backend/gl/glyph_batch_test.go`. CI runs them under Mesa llvmpipe
-on Linux and Windows through `scripts/gl-render-test.sh`:
+on Linux and Windows through `go run ./tools/glrendertest`:
 
 - `TestGlyphBatchFlushCounts`: 40 same-page quads take 1 draw. Pages A,A,B,A
   take 3. An empty command takes 0. 1025 quads take 2.
