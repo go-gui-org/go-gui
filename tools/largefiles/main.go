@@ -93,6 +93,8 @@ func collect(root string) ([]entry, error) {
 // line-scanner would report; Go files in this repo end in a newline, so
 // the two agree here.
 func countLines(path string) (int, error) {
+	// #nosec G304 — path comes from walking the fixed gui dir in collect,
+	// not from external input.
 	b, err := os.ReadFile(path)
 	if err != nil {
 		return 0, err
