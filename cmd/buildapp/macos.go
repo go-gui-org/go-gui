@@ -12,6 +12,7 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -430,14 +431,47 @@ func makeDmg(appDir string, o bundleOpts) (string, error) {
 	if err := os.RemoveAll(dst); err != nil {
 		return "", err
 	}
+	// Size the image by hand. hdiutil's own estimate from -srcfolder can
+	// fall short (v0.89.0 failed on a GitHub macOS runner with "No space
+	// left on device"). UDZO compresses the free space away, so the
+	// headroom costs almost nothing in the final .dmg.
+	kb, err := dirSizeKB(appDir)
+	if err != nil {
+		return "", err
+	}
+	kb += kb/10 + dmgHeadroomKB
 	args := []string{"create", "-srcfolder", appDir,
+		"-size", strconv.FormatInt(kb, 10) + "k",
 		"-volname", o.Name + " " + o.Version,
 		"-format", "UDZO", dst}
-	if out, err := runTool("hdiutil", args...); err != nil {
-		return "", fmt.Errorf("hdiutil: %v: %s", err, out)
+	if out, runErr := runTool("hdiutil", args...); runErr != nil {
+		return "", fmt.Errorf("hdiutil: %v: %s", runErr, out)
 	}
 	fmt.Println(dst)
 	return dst, nil
+}
+
+// dmgHeadroomKB is the fixed free space added to a .dmg over the app's
+// own size: room for filesystem metadata and the block rounding of
+// many small files, which a percentage alone misses on a small app.
+const dmgHeadroomKB = 20 * 1024
+
+// dirSizeKB returns the total size of the regular files under dir, in
+// KiB, rounded up per file to a 4 KiB block.
+func dirSizeKB(dir string) (int64, error) {
+	var total int64
+	err := filepath.WalkDir(dir, func(_ string, d fs.DirEntry, err error) error {
+		if err != nil || !d.Type().IsRegular() {
+			return err
+		}
+		fi, infoErr := d.Info()
+		if infoErr != nil {
+			return infoErr
+		}
+		total += (fi.Size() + 4095) / 4096 * 4
+		return nil
+	})
+	return total, err
 }
 
 // notarize submits artifact (the .dmg when -dmg is set, else the .app)

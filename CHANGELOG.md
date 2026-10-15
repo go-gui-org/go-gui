@@ -16,6 +16,16 @@ and this project adheres to
   nothing, only to learn where batches start and end. It now tracks that state
   in Go and makes no browser call, which took a page of rotated cells from 16%
   to 10% of CPU in that pass. Nothing draws differently.
+## [v0.89.1] - 2026-10-15
+
+### Fixed
+
+- **`buildapp -dmg` sizes the disk image itself (#1055).** hdiutil's own size
+  estimate from `-srcfolder` can be too small. The v0.89.0 release job failed on
+  a GitHub macOS runner with "No space left on device" while it copied the
+  showcase binary into the image. `buildapp` now passes `-size`: the app's size
+  plus 10% plus 20 MiB. UDZO compresses the free space, so the `.dmg` does not
+  get larger.
 
 ## [v0.89.0] - 2026-10-15
 
