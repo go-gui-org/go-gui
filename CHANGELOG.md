@@ -8,6 +8,8 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [v0.89.0] - 2026-10-15
+
 ### Added
 
 - **`gui.FlipPanel` turns over to show a back face (#1020).** Give it `Front`
