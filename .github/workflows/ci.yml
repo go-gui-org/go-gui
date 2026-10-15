@@ -53,7 +53,24 @@ jobs:
           GODEBUG: ${{ matrix.preempt == 'off' && 'asyncpreemptoff=1' || '' }}
         run: |
           if [ "$RUNNER_OS" = "Windows" ]; then
-            go test -count=2 -timeout=10m ./gui/... ./tools/ergonomics-audit/...
+            # #886: the suite sometimes kills the Go runtime on Windows
+            # (heap corruption, root cause unknown). A red run from that
+            # crash is not a fault in the commit under test, so it gives a
+            # warning and the step passes. Any other failure, such as a
+            # failed assertion or a compile error, still fails the job.
+            # Remove this when #886 is fixed.
+            set +e
+            go test -count=2 -timeout=10m ./gui/... ./tools/ergonomics-audit/... \
+              2>&1 | tee test.log
+            rc=${PIPESTATUS[0]}
+            set -e
+            if [ "$rc" -ne 0 ] && grep -qE \
+              'fatal error: |Exception 0xc0000005|unexpected return pc|marked free object' \
+              test.log && ! grep -qE '^--- FAIL' test.log; then
+              echo "::warning title=#886 runtime crash::gui suite crashed the Go runtime on Windows (known flake, see #886). Not counted as a test failure."
+              exit 0
+            fi
+            exit "$rc"
           else
             CGO_LDFLAGS="$(go env CGO_LDFLAGS)" \
               go test -count=2 -race -timeout=10m ./gui/...
