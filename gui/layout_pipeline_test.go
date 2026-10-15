@@ -1196,3 +1196,54 @@ func TestLayoutWrapRTFSkipsNonFiniteWidth(t *testing.T) {
 		}
 	}
 }
+
+// rtfCachePass runs one view pass over RTF layout keys [from, to):
+// each is fetched, and shaped (stored) on a miss. It returns the hits.
+func rtfCachePass(w *Window, from, to uint64) int {
+	w.viewPass++
+	hits := 0
+	for k := from; k < to; k++ {
+		if _, ok := rtfLayoutCacheFetch(w, k); ok {
+			hits++
+			continue
+		}
+		rtfLayoutCacheStore(w, k, &glyph.Layout{})
+	}
+	return hits
+}
+
+// A view pass that shapes more RTF pieces than the cache holds (a
+// markdown table of 303 cells) grows the cache, so the next pass finds
+// every piece. At a fixed 200 entries the cache evicted each piece
+// before the next pass asked for it, and every piece was shaped again
+// on every regenerated frame.
+func TestRtfLayoutCacheGrowsToTheViewPass(t *testing.T) {
+	w := &Window{}
+	rtfCachePass(w, 0, 303)
+	if hits := rtfCachePass(w, 0, 303); hits != 303 {
+		t.Errorf("second pass hits = %d, want all 303", hits)
+	}
+	if got := w.viewState.rtfLayoutCache.maxSize; got != 2*rtfLayoutCacheMin {
+		t.Errorf("cache size = %d, want %d", got, 2*rtfLayoutCacheMin)
+	}
+}
+
+// Passes that each fit leave the cache at its minimum, however many
+// distinct pieces they shape over time; a pass past the maximum grows
+// it no further than that.
+func TestRtfLayoutCacheGrowthBounds(t *testing.T) {
+	w := &Window{}
+	for i := range uint64(5) {
+		rtfCachePass(w, i*150, (i+1)*150)
+	}
+	if got := w.viewState.rtfLayoutCache.maxSize; got != rtfLayoutCacheMin {
+		t.Errorf("after passes that fit: cache size = %d, want %d", got, rtfLayoutCacheMin)
+	}
+	rtfCachePass(w, 10_000, 15_000)
+	if got := w.viewState.rtfLayoutCache.maxSize; got != rtfLayoutCacheMax {
+		t.Errorf("after a 5000-piece pass: cache size = %d, want %d", got, rtfLayoutCacheMax)
+	}
+	if got := w.viewState.rtfLayoutCache.Len(); got != rtfLayoutCacheMax {
+		t.Errorf("cached layouts = %d, want %d", got, rtfLayoutCacheMax)
+	}
+}

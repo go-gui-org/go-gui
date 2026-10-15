@@ -164,8 +164,12 @@ type ViewState struct {
 	diagramCache  *BoundedDiagramCache
 
 	// RTF layout cache — avoids re-shaping unchanged content.
-	rtfLayoutCache *BoundedMap[uint64, rtfLayoutEntry]
-	tooltip        tooltipState
+	// rtfLayoutStores counts the layouts stored in view pass
+	// rtfLayoutPass, to size the cache (rtfLayoutCacheStore).
+	rtfLayoutCache  *BoundedMap[uint64, rtfLayoutEntry]
+	rtfLayoutPass   uint64
+	rtfLayoutStores int
+	tooltip         tooltipState
 
 	// Markdown caches (lazy-init: nil until first use). Keyed on
 	// Theme.id, not Theme.Name: a derived or scoped theme can carry the

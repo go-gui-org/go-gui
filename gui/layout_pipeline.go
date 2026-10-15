@@ -380,6 +380,13 @@ type rtfLayoutEntry struct {
 	Layout *glyph.Layout
 }
 
+// rtfLayoutCacheMin and rtfLayoutCacheMax bound the RTF layout cache
+// (rtfLayoutCacheStore).
+const (
+	rtfLayoutCacheMin = 200
+	rtfLayoutCacheMax = 1000
+)
+
 // rtfLayoutCacheKey chains content, base style, math cache state,
 // wrap width, hanging indent and line spacing through FNV-1a so
 // every layout input moves the digest. Math cache state is mixed in
@@ -430,13 +437,28 @@ func rtfLayoutCacheFetch(w *Window, key uint64) (*glyph.Layout, bool) {
 // costs no second copy. Layouts are never mutated once shaped —
 // rtfSuppressInlineObjectGlyphs runs before the store — so sharing
 // is safe for every reader.
+//
+// The cache starts at rtfLayoutCacheMin entries and doubles, up to
+// rtfLayoutCacheMax, when one view pass stores more layouts than it
+// holds. It evicts in insertion order, so a pass that shapes more
+// pieces than it holds (a markdown table of a few hundred cells) has
+// evicted each before the next pass asks for it, and every piece was
+// shaped again on every frame that regenerated the view (#1049).
 func rtfLayoutCacheStore(
 	w *Window, key uint64, layout *glyph.Layout,
 ) {
 	vs := &w.viewState
 	if vs.rtfLayoutCache == nil {
-		vs.rtfLayoutCache = NewBoundedMap[uint64, rtfLayoutEntry](200)
+		vs.rtfLayoutCache = NewBoundedMap[uint64, rtfLayoutEntry](
+			rtfLayoutCacheMin)
 		vs.rtfLayoutTheme = guiTheme.id
+	}
+	if vs.rtfLayoutPass != w.viewPass {
+		vs.rtfLayoutPass, vs.rtfLayoutStores = w.viewPass, 0
+	}
+	vs.rtfLayoutStores++
+	if c := vs.rtfLayoutCache; vs.rtfLayoutStores > c.maxSize {
+		c.grow(min(2*c.maxSize, rtfLayoutCacheMax))
 	}
 	vs.rtfLayoutCache.Set(key, rtfLayoutEntry{Layout: layout})
 }

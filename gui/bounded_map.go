@@ -89,6 +89,14 @@ func (m *BoundedMap[K, V]) Set(key K, value V) {
 	}
 }
 
+// grow raises the bound to maxSize; a smaller or unbounded value
+// leaves it as is. Entries already stored stay.
+func (m *BoundedMap[K, V]) grow(maxSize int) {
+	if m.maxSize > 0 && maxSize > m.maxSize {
+		m.maxSize = maxSize
+	}
+}
+
 // Get returns value for key. Second return is false if not found.
 func (m *BoundedMap[K, V]) Get(key K) (V, bool) {
 	v, ok := m.data[key]

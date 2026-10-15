@@ -110,6 +110,15 @@ and this project adheres to
 
 ### Fixed
 
+- **Views with more than 200 rich-text pieces no longer re-shape all of them
+  every frame (#1049).** The shaped-layout cache held 200 pieces and dropped the
+  oldest first, so a view with more, such as a markdown table of a few hundred
+  cells, dropped each piece before the next frame asked for it. Every frame that
+  rebuilt the view shaped all of them again. On the web, where shaping goes
+  through the browser, scrolling the showcase's SVG Spinner page ran at about 10
+  fps; it now holds 60. The cache now grows, up to 1,000 pieces, when one frame
+  needs more than it holds. Native backends did the same wasted work, only fast
+  enough not to show.
 - **A clip inside a rotation or blur no longer breaks it on the web (#1041).**
   In the web backend, a clip inside a rotated or blurred element made the rest
   of that element draw unrotated, and could leave the rotation or blur in force
