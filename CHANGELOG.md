@@ -16,6 +16,7 @@ and this project adheres to
   nothing, only to learn where batches start and end. It now tracks that state
   in Go and makes no browser call, which took a page of rotated cells from 16%
   to 10% of CPU in that pass. Nothing draws differently.
+
 ## [v0.89.1] - 2026-10-15
 
 ### Fixed
