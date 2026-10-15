@@ -385,11 +385,11 @@ wayland-selftest:
 #
 # `check` runs first and alone: it is fast (~6s), and generate-check and
 # tidy-check rewrite files that the other steps read. The rest run at the
-# same time through scripts/run-parallel.sh, which prints the output of
+# same time through tools/runparallel, which prints the output of
 # each step as one block when all are done. The darwin lint pass of
 # lint-cross is left out: on macOS it is the same analysis as `lint`.
 prepush: check
-	@MAKE="$(MAKE)" scripts/run-parallel.sh \
+	@MAKE="$(MAKE)" go run ./tools/runparallel \
 	  test-race-cover lint lint-windows lint-js cross-compile export-audit
 
 # Format every tracked Markdown file with Prettier.

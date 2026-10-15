@@ -13,10 +13,10 @@ vet, lint (linux + the cross-GOOS `//go:build` files via `make lint-cross`),
 cgo-free cross-compiles of the whole module (`make cross-compile`), the coverage
 gate (`make coverage-gate`: 70% total + per-package floors), and the export
 audit. CI and the Makefile share the coverage thresholds via `tools/coverage`.
-After `make check`, the other steps run at the same time
-(`scripts/run-parallel.sh`). The output of each step prints as one block when
-all steps are done, followed by a pass/fail summary. The race tests and the
-coverage gate share one test run (`make test-race-cover`).
+After `make check`, the other steps run at the same time (`tools/runparallel`).
+The output of each step prints as one block when all steps are done, followed by
+a pass/fail summary. The race tests and the coverage gate share one test run
+(`make test-race-cover`).
 
 When only the fast gate checks are wanted, `make check` (vet, deps-doc,
 large-files, generate-check, tidy-check, the widget-ID audit) is the quick
