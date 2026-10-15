@@ -9,82 +9,106 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"strconv"
+	"strings"
 	"time"
 
 	"log"
 	"os"
 
+	"github.com/go-gui-org/go-gui/examples/internal/framestats"
 	"github.com/go-gui-org/go-gui/gui"
 	"github.com/go-gui-org/go-gui/gui/backend"
 	"github.com/go-gui-org/go-gui/gui/backend/soft"
 )
 
 const (
-	bufSize    = 500
 	typeButton = "Button"
 	typeText   = "Text"
 	typeToggle = "Toggle"
 	typeMixed  = "Mixed"
 )
 
-type RollingAvg struct {
-	buf  [bufSize]float64
-	pos  int
-	full bool
-}
+// warmupFrames is how many frame times the readout waits for before it shows
+// numbers. A p99 of a few frames is noise.
+const warmupFrames = 500
 
-func (r *RollingAvg) Add(v float64) {
-	r.buf[r.pos] = v
-	r.pos++
-	if r.pos >= bufSize {
-		r.pos = 0
-		r.full = true
-	}
-}
-
-func (r *RollingAvg) Avg() float64 {
-	n := r.pos
-	if r.full {
-		n = bufSize
-	}
-	if n == 0 {
-		return 0
-	}
-	var sum float64
-	for i := range n {
-		sum += r.buf[i]
-	}
-	return sum / float64(n)
-}
-
-func (r *RollingAvg) Full() bool { return r.full }
-
-func (r *RollingAvg) Reset() {
-	r.pos = 0
-	r.full = false
-}
+// readoutEvery is how often the readout text is rebuilt. Summary sorts up to
+// framestats.Size values, so it does not run on each frame.
+const readoutEvery = 500 * time.Millisecond
 
 type App struct {
-	LastFrame   time.Time
-	WidgetType  string
-	FPS         RollingAvg
-	ViewAvg     RollingAvg
-	LayoutAvg   RollingAvg
-	RenderAvg   RollingAvg
+	LastFrame  time.Time
+	WidgetType string
+	// Frames keeps the wall time between view rebuilds. View, Layout and
+	// Render keep go-gui's CPU phase times of the same frames.
+	Frames      framestats.Stats
+	View        framestats.Stats
+	Layout      framestats.Stats
+	Render      framestats.Stats
 	WidgetCount int
 	Running     bool
 	// Labels prebuilds per-widget text on count/type change so the
 	// frame path measures layout, not formatting.
 	Labels     []string
 	LabelsType string
+	// Readout is the metrics text, rebuilt every readoutEvery.
+	Readout   [2]string
+	ReadoutAt time.Time
 }
 
 func (a *App) ResetAvgs() {
-	a.FPS.Reset()
-	a.ViewAvg.Reset()
-	a.LayoutAvg.Reset()
-	a.RenderAvg.Reset()
+	a.Frames.Reset()
+	a.View.Reset()
+	a.Layout.Reset()
+	a.Render.Reset()
 	a.LastFrame = time.Time{}
+	a.Readout = [2]string{}
+	a.ReadoutAt = time.Time{}
+}
+
+// sample records one frame that ends at now. t is go-gui's timing of the
+// previous frame. The phase times are kept only with a frame time, so all four
+// rings hold the same frames.
+//
+// Every frame is kept, however short. An older filter dropped frames of 1 ms or
+// less to guard 1e9/dt; with frames over total time it would drop fast frames
+// from the sum and, above 1000 FPS, keep the readout in warmup forever.
+func (a *App) sample(now time.Time, t gui.FrameTimings) {
+	last := a.LastFrame
+	a.LastFrame = now
+	if last.IsZero() {
+		return
+	}
+	// Keep the frame time, not 1/dt. The mean of per-frame FPS values is
+	// too high when frame times vary (#1024).
+	a.Frames.Add(now.Sub(last))
+	a.View.Add(t.ViewGen)
+	a.Layout.Add(t.LayoutArrange)
+	a.Render.Add(t.RenderBuild)
+}
+
+// readout returns the two metrics lines. It rebuilds them at most every
+// readoutEvery.
+func (a *App) readout(now time.Time) [2]string {
+	if a.Frames.Len() < warmupFrames {
+		return [2]string{"warming up…", ""}
+	}
+	if !a.ReadoutAt.IsZero() && now.Sub(a.ReadoutAt) < readoutEvery {
+		return a.Readout
+	}
+	a.ReadoutAt = now
+	f := a.Frames.Summary()
+	v, l, r := a.View.Summary(), a.Layout.Summary(), a.Render.Summary()
+	a.Readout = [2]string{
+		fmt.Sprintf("FPS: %5.0f   p50: %5.2f ms   p99: %5.2f ms   max: %6.2f ms   Widgets: %5s",
+			f.FPS, framestats.Ms(f.P50), framestats.Ms(f.P99), framestats.Ms(f.Max),
+			commaInt(a.WidgetCount)),
+		fmt.Sprintf("View: %9s us (p99 %9s)   Layout: %9s us (p99 %9s)   Render: %9s us (p99 %9s)",
+			commaFloat(us(v.Mean)), commaFloat(us(v.P99)),
+			commaFloat(us(l.Mean)), commaFloat(us(l.P99)),
+			commaFloat(us(r.Mean)), commaFloat(us(r.P99))),
+	}
+	return a.Readout
 }
 
 func main() {
@@ -141,22 +165,11 @@ func benchView(w *gui.Window) gui.View {
 		// What FPS actually reports is view-to-view wall time on a
 		// pump-forced loop (see InvalidateLayout below): it includes
 		// the pump overhead itself, not just widget cost.
-		now := time.Now()
-		if !app.LastFrame.IsZero() {
-			dt := now.Sub(app.LastFrame)
-			if dt > time.Millisecond {
-				app.FPS.Add(1e9 / float64(dt))
-			}
-		}
-		app.LastFrame = now
-
+		//
 		// w.Timings() reports the previous frame's phases: the view
 		// runs at the start of the next frame's rebuild, after the
 		// last frame's Update stored them.
-		t := w.Timings()
-		app.ViewAvg.Add(float64(t.ViewGen.Microseconds()))
-		app.LayoutAvg.Add(float64(t.LayoutArrange.Microseconds()))
-		app.RenderAvg.Add(float64(t.RenderBuild.Microseconds()))
+		app.sample(time.Now(), w.Timings())
 
 		// Re-arm the next frame: the backend loop sleeps while no
 		// refresh is pending, so an uncapped pump must request a
@@ -191,14 +204,7 @@ func benchView(w *gui.Window) gui.View {
 		widgets[i] = makeWidget(app.WidgetType, i, app.Labels[i])
 	}
 
-	// The rolling averages read zero until the 500-frame buffer
-	// fills, so report warming up instead of zeros.
-	metricsText := "warming up…"
-	if app.FPS.Full() {
-		metricsText = fmt.Sprintf("FPS: %5.0f   View: %9s us   Layout: %9s us   Render: %9s us   Widgets: %5s",
-			fmtAvg(&app.FPS), commaFloat(fmtAvg(&app.ViewAvg)), commaFloat(fmtAvg(&app.LayoutAvg)),
-			commaFloat(fmtAvg(&app.RenderAvg)), commaInt(app.WidgetCount))
-	}
+	metrics := app.readout(time.Now())
 
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFill,
@@ -257,7 +263,7 @@ func benchView(w *gui.Window) gui.View {
 							app.Running = !app.Running
 							if app.Running {
 								// First sample must start fresh, or the
-								// idle pause skews one rolling average.
+								// idle pause shows as one long frame.
 								app.LastFrame = time.Time{}
 							} else {
 								app.ResetAvgs()
@@ -266,9 +272,13 @@ func benchView(w *gui.Window) gui.View {
 					}),
 				},
 			}),
-			// Metrics row.
+			// Metrics rows.
 			gui.Text(gui.TextCfg{
-				Text:      metricsText,
+				Text:      metrics[0],
+				TextStyle: theme.Mono(theme.TextStyleBodySmall),
+			}),
+			gui.Text(gui.TextCfg{
+				Text:      metrics[1],
 				TextStyle: theme.Mono(theme.TextStyleBodySmall),
 			}),
 			// Widget area.
@@ -363,11 +373,9 @@ func benchLabel(typ string, i int) string {
 	return ""
 }
 
-func fmtAvg(r *RollingAvg) float64 {
-	if !r.Full() {
-		return 0
-	}
-	return r.Avg()
+// us converts d to microseconds.
+func us(d time.Duration) float64 {
+	return float64(d) / float64(time.Microsecond)
 }
 
 func commaInt(n int) string {
@@ -385,8 +393,16 @@ func commaFloat(f float64) string {
 	if f < 0 {
 		return "-" + commaFloat(-f)
 	}
-	whole := int(f)
-	frac := fmt.Sprintf("%.1f", f-float64(whole))
-	// frac is "0.X" — take from the decimal point
-	return commaInt(whole) + frac[1:]
+	// Round the whole value first, so a fraction that rounds up to 1.0
+	// carries into the integer part (12.97 is "13.0", not "12.0").
+	s := strconv.FormatFloat(f, 'f', 1, 64)
+	dot := strings.IndexByte(s, '.')
+	if dot < 0 {
+		return s // NaN or Inf: no decimal point to split at
+	}
+	whole, err := strconv.Atoi(s[:dot])
+	if err != nil {
+		return s // too large for int; leave it without commas
+	}
+	return commaInt(whole) + s[dot:]
 }

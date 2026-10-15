@@ -110,6 +110,16 @@ and this project adheres to
 
 ### Fixed
 
+- **The benchmark examples report the true frame rate and the p99 frame time
+  (#1024).** `examples/benchmark` took the mean of per-frame FPS values, which
+  reads too high when frame times vary: one 2 ms and one 30 ms frame read 266
+  FPS, not 62.5. It now divides frames by their total time, and shows p50, p99
+  and the longest frame, plus the p99 of the view, layout and render times. The
+  `examples/qcpainterbench` readout adds the p99 frame time after Qt's format,
+  and its `-sweep` CSV adds `p50_ms`, `p99_ms` and `max_ms` as the last columns,
+  so scripts that read the older columns still work. A mean hides a stall that
+  the user sees; the p99 shows it.
+
 - **Views with more than 200 rich-text pieces no longer re-shape all of them
   every frame (#1049).** The shaped-layout cache held 200 pieces and dropped the
   oldest first, so a view with more, such as a markdown table of a few hundred

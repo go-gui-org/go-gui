@@ -24,7 +24,8 @@ type ExampleMeta struct {
 }
 
 // Discover scans root (e.g. "examples") and returns sorted ExampleMeta.
-// It skips "bin" and any non-directory entry.
+// It skips "bin", "internal" (shared packages, not examples) and any
+// non-directory entry.
 func Discover(root string) ([]ExampleMeta, error) {
 	entries, err := os.ReadDir(root)
 	if err != nil {
@@ -36,7 +37,7 @@ func Discover(root string) ([]ExampleMeta, error) {
 			continue
 		}
 		name := e.Name()
-		if name == "bin" || name == "explorer" || strings.HasPrefix(name, ".") {
+		if name == "bin" || name == "explorer" || name == "internal" || strings.HasPrefix(name, ".") {
 			continue
 		}
 		dir := filepath.Join(root, name)

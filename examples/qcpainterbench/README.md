@@ -77,6 +77,11 @@ With vsync on, look at two things:
 - **`render_us` per pass**: go-gui's CPU time to build the frame, divided by the
   render count. This is the cost of tessellation and command building.
 
+FPS is a mean, and a mean hides stutter. The readout also shows the p99 frame
+time of the last 2 s window, and the CSV ends with `p50_ms`, `p99_ms` and
+`max_ms`. These columns are after the older ones, so scripts that read the older
+columns still work. When p99 is much larger than `frame_ms`, some frames stall.
+
 Run each sweep 3 times and use the median. A single run is noisy.
 
 ## Not 1:1 with Qt

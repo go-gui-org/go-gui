@@ -34,9 +34,11 @@ func TestDiscover(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(tmp, "alpha", "screenshot.png"), []byte("png"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	// bin should be ignored
-	if err := os.MkdirAll(filepath.Join(tmp, "bin"), 0o750); err != nil {
-		t.Fatal(err)
+	// bin and internal (shared packages, #1024) should be ignored
+	for _, name := range []string{"bin", "internal"} {
+		if err := os.MkdirAll(filepath.Join(tmp, name), 0o750); err != nil {
+			t.Fatal(err)
+		}
 	}
 
 	metas, err := Discover(tmp)
