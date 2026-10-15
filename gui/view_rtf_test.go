@@ -731,10 +731,7 @@ func TestLayoutWrapRTF_MathReadyInvalidatesLoadingLayout(t *testing.T) {
 }
 
 func rtfLayoutCacheLen(w *Window) int {
-	if w.viewState.rtfLayoutCache == nil {
-		return 0
-	}
-	return w.viewState.rtfLayoutCache.Len()
+	return len(w.viewState.rtfLayoutCache)
 }
 
 // --- RTF link context menu tests ---

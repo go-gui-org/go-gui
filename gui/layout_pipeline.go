@@ -376,12 +376,28 @@ func propagateInkOverflow(node *Layout) {
 // once shaped: rtfSuppressInlineObjectGlyphs runs before the entry is
 // stored, and the readers (render_text.go, view_rtf_select.go,
 // markdown_select.go) only read or take their own copy.
+//
+// seen is the last view pass that fetched or stored the entry. The
+// cache drops entries by it (rtfLayoutCacheSync).
 type rtfLayoutEntry struct {
 	Layout *glyph.Layout
+	seen   uint64
 }
 
-// rtfLayoutCacheMin and rtfLayoutCacheMax bound the RTF layout cache
-// (rtfLayoutCacheStore).
+// The RTF layout cache keeps the pieces the last two view passes used.
+// It evicts by use, not by insertion order: a fixed 200 entries dropped
+// in insertion order evicted each piece of a larger view (a markdown
+// table of a few hundred cells) before the next pass asked for it, so
+// every frame that regenerated the view shaped every piece again
+// (#1049).
+//
+// rtfLayoutCacheMin is the size at or below which the cache keeps
+// pieces no recent pass used. A small cache then costs no walk per
+// pass, and a view that comes back soon (a tab shown again) still finds
+// its pieces. rtfLayoutCacheMax caps the entries a window holds. A view
+// with more pieces keeps the first rtfLayoutCacheMax it stored and
+// shapes only the rest again each pass; it does not evict pieces in use
+// to make room, which would leave no piece cached at all.
 const (
 	rtfLayoutCacheMin = 200
 	rtfLayoutCacheMax = 1000
@@ -413,23 +429,52 @@ func rtfLayoutCacheKey(
 	return key
 }
 
-// rtfLayoutCacheFetch returns the cached shaped layout for key,
-// clearing the cache first when the theme moved on: a layout
-// shaped under another theme has the wrong metrics.
-func rtfLayoutCacheFetch(w *Window, key uint64) (*glyph.Layout, bool) {
+// rtfLayoutCacheSync brings the cache up to the current theme and view
+// pass. A layout shaped under another theme has the wrong metrics, so a
+// theme change clears the cache. The first call of a new pass drops,
+// once the cache is above rtfLayoutCacheMin, the entries neither this
+// pass nor the one before used: they belong to views that have gone.
+// The walk runs at most once per pass, and only on a cache that large.
+//
+// Two passes, not one, so an entry survives a pass that skips it (an
+// overlay generated on alternate passes) and so a new pass does not drop
+// entries before it has reached them.
+func rtfLayoutCacheSync(w *Window) {
 	vs := &w.viewState
-	if vs.rtfLayoutCache != nil && vs.rtfLayoutTheme != guiTheme.id {
-		vs.rtfLayoutCache.Clear()
+	if vs.rtfLayoutTheme != guiTheme.id {
+		clear(vs.rtfLayoutCache)
 		vs.rtfLayoutTheme = guiTheme.id
 	}
-	if vs.rtfLayoutCache == nil {
+	if vs.rtfLayoutPass == w.viewPass {
+		return
+	}
+	vs.rtfLayoutPass = w.viewPass
+	if len(vs.rtfLayoutCache) <= rtfLayoutCacheMin {
+		return
+	}
+	for k, e := range vs.rtfLayoutCache {
+		if e.seen+1 < w.viewPass {
+			delete(vs.rtfLayoutCache, k)
+		}
+	}
+}
+
+// rtfLayoutCacheFetch returns the cached shaped layout for key and
+// marks it used in this view pass.
+func rtfLayoutCacheFetch(w *Window, key uint64) (*glyph.Layout, bool) {
+	rtfLayoutCacheSync(w)
+	cache := w.viewState.rtfLayoutCache
+	entry, ok := cache[key]
+	if !ok || entry.Layout == nil {
 		return nil, false
 	}
-	if entry, ok := vs.rtfLayoutCache.Get(key); ok &&
-		entry.Layout != nil {
-		return entry.Layout, true
+	// Write back only on the first hit of a pass. The key exists, so the
+	// write allocates nothing.
+	if entry.seen != w.viewPass {
+		entry.seen = w.viewPass
+		cache[key] = entry
 	}
-	return nil, false
+	return entry.Layout, true
 }
 
 // rtfLayoutCacheStore shares layout under key with later frames.
@@ -438,29 +483,21 @@ func rtfLayoutCacheFetch(w *Window, key uint64) (*glyph.Layout, bool) {
 // rtfSuppressInlineObjectGlyphs runs before the store — so sharing
 // is safe for every reader.
 //
-// The cache starts at rtfLayoutCacheMin entries and doubles, up to
-// rtfLayoutCacheMax, when one view pass stores more layouts than it
-// holds. It evicts in insertion order, so a pass that shapes more
-// pieces than it holds (a markdown table of a few hundred cells) has
-// evicted each before the next pass asks for it, and every piece was
-// shaped again on every frame that regenerated the view (#1049).
+// A full cache refuses a new key and keeps what it holds; see
+// rtfLayoutCacheMax.
 func rtfLayoutCacheStore(
 	w *Window, key uint64, layout *glyph.Layout,
 ) {
+	rtfLayoutCacheSync(w)
 	vs := &w.viewState
 	if vs.rtfLayoutCache == nil {
-		vs.rtfLayoutCache = NewBoundedMap[uint64, rtfLayoutEntry](
-			rtfLayoutCacheMin)
-		vs.rtfLayoutTheme = guiTheme.id
+		vs.rtfLayoutCache = make(map[uint64]rtfLayoutEntry)
 	}
-	if vs.rtfLayoutPass != w.viewPass {
-		vs.rtfLayoutPass, vs.rtfLayoutStores = w.viewPass, 0
+	if _, ok := vs.rtfLayoutCache[key]; !ok &&
+		len(vs.rtfLayoutCache) >= rtfLayoutCacheMax {
+		return
 	}
-	vs.rtfLayoutStores++
-	if c := vs.rtfLayoutCache; vs.rtfLayoutStores > c.maxSize {
-		c.grow(min(2*c.maxSize, rtfLayoutCacheMax))
-	}
-	vs.rtfLayoutCache.Set(key, rtfLayoutEntry{Layout: layout})
+	vs.rtfLayoutCache[key] = rtfLayoutEntry{Layout: layout, seen: w.viewPass}
 }
 
 func layoutWrapRTF(shape *Shape, tc *shapeTextConfig, w *Window) {
