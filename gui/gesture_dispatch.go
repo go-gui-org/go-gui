@@ -4,7 +4,7 @@ import "slices"
 
 // gesture_dispatch.go — gesture event construction and dispatch,
 // split out of gesture.go to hold the large-files gate
-// (see scripts/large-files.sh).
+// (see tools/largefiles).
 
 func gestureEvent(
 	gs *gestureState, gt GestureType, phase gesturePhase,

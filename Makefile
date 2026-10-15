@@ -356,7 +356,7 @@ changelog-entry-check:
 # ThemeCfg or TextStyle needs a BREAKING entry under Unreleased (issue #846).
 # No-op on the default branch, where there is no delta to judge.
 theme-surface-check:
-	@scripts/theme-surface-check.sh
+	@go run ./tools/themesurfacecheck/
 
 # Run non-duplicated validation steps for CI gate.
 # test and lint run as separate CI jobs with OS matrices.
@@ -419,15 +419,11 @@ deps-doc-check:
 	  { echo "::error::docs/dependencies.md is out of date. Run 'make deps-doc'." >&2; exit 1; }
 	rm -f /tmp/deps-generated.md
 
-# Report Go source files exceeding 800 lines in gui/. Exit non-zero if any exist.
+# Report non-test Go source files in gui/ over 800 lines, and fail if any
+# exist. The threshold and the report live in tools/largefiles, shared with
+# CI through this target (issue #1026).
 large-files:
-	@scripts/large-files.sh
-	@count=$$(find gui -name '*.go' -not -name '*_test.go' \
-	  -exec wc -l {} \; | awk '$$1 > 800' | wc -l); \
-	if [ "$$count" -gt 0 ]; then \
-	  echo "::error::$$count Go source files exceed 800 lines"; \
-	  exit 1; \
-	fi
+	@go run ./tools/largefiles/
 
 # Check that go generate produces no changes to generated files.
 generate-check:

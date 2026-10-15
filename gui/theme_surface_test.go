@@ -14,11 +14,11 @@ import (
 // callers outside this repo.
 //
 // The golden is the contract in list form. The test only keeps it in
-// step with the code; scripts/theme-surface-check.sh is the gate. It
+// step with the code; tools/themesurfacecheck is the gate. It
 // fails a branch whose golden diff removes a line unless CHANGELOG.md
 // carries a **BREAKING: entry under Unreleased. So re-recording with
 // -update does not hide a rename: the removed line is still in the
-// diff the script reads.
+// diff the gate reads.
 //
 // Lines are sorted, not in declaration order, so moving a field inside
 // a struct is not seen as a removal. Adding a field only adds lines,

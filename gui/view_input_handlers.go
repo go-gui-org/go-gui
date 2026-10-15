@@ -3,7 +3,7 @@ package gui
 // Input event handlers: the OnChar/OnKeyDown/OnKeyUp closures Input
 // installs, the text-mutation helper they share, and the per-key
 // helpers they dispatch to. Split from view_input.go to keep that file
-// under the 800-line gate (scripts/large-files.sh).
+// under the 800-line gate (tools/largefiles).
 
 func inputTextChange(hcfg inputHandlerCfg, layout *Layout, text, ins string, id string, w *Window) (string, bool) {
 	mask := hcfg.CompiledMask

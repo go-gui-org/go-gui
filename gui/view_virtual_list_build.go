@@ -3,7 +3,7 @@ package gui
 // view_virtual_list_build.go — the range arithmetic, the spacers, the
 // measurement write-back and the keyboard handling for VirtualList.
 // Split from view_virtual_list.go to keep both files inside the
-// 800-line gate (./scripts/large-files.sh).
+// 800-line gate (tools/largefiles).
 
 const (
 	// virtualListProbeRows bounds the first frame under Fill sizing,

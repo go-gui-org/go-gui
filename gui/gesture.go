@@ -600,8 +600,8 @@ func cancelLongPress(w *Window) {
 //
 // Construction, dispatch, dialog routing and mouse synthesis live
 // in gesture_dispatch.go, split out to hold the large-files gate
-// (see scripts/large-files.sh).
+// (see tools/largefiles).
 
 // Touch tracking (the tracked-touch set, span, angle) lives in
 // gesture_touch.go, split out to hold the large-files gate
-// (see scripts/large-files.sh).
+// (see tools/largefiles).
