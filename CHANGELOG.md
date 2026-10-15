@@ -8,6 +8,15 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Changed
+
+- **Less work per frame for WebGL SVGs on the web (#1051).** Each frame in WebGL
+  mode makes a first pass to place the SVG batches. That pass replayed every
+  clip, filter, rotation and transform into a JavaScript stand-in that did
+  nothing, only to learn where batches start and end. It now tracks that state
+  in Go and makes no browser call, which took a page of rotated cells from 16%
+  to 10% of CPU in that pass. Nothing draws differently.
+
 ## [v0.89.0] - 2026-10-15
 
 ### Added

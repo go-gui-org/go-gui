@@ -43,21 +43,24 @@ text, images, clips, filters and transforms are unchanged.
 - **Two passes, one staging copy** (`prepassSvgGL`). Firefox snapshots a WebGL
   canvas for every `drawImage` from it, even unchanged, so a frame of many small
   batches paid one snapshot each. A frame now runs twice. The pre-pass runs the
-  clip, transform, filter and SVG commands through the same batching with the 2D
-  context swapped for a no-op stand-in (`goGuiSvgGL.nullContext`), renders every
-  batch into the WebGL canvas, and copies the drawn area once into a 2D staging
-  canvas. The drawing pass composites each batch from the copy; `drawImage` from
-  a 2D canvas is cheap. A batch renders at its own place unless an earlier batch
-  of the frame took part of it; then it goes on a shelf in an overflow half
-  below, which the drawing buffer grows into the first time a frame needs it and
-  drops after 300 display frames that do not, including while the page needs no
-  repaint. A browser that cannot give the doubled buffer scales a smaller one,
-  which would misplace every draw, so the buffer goes back to the canvas size
-  and is not grown again until the canvas size changes. A batch with no place,
-  or one the drawing pass sees differently from the pre-pass, is rendered and
-  composited on its own. The pre-pass restores the 2D context and the frame
-  state however it ends, and the frame releases the window lock: a panic left on
-  the stand-in, or holding the lock, would leave every later frame blank.
+  clip, transform, filter and SVG commands through the same batching, renders
+  every batch into the WebGL canvas, and copies the drawn area once into a 2D
+  staging canvas. The drawing pass composites each batch from the copy;
+  `drawImage` from a 2D canvas is cheap. A batch renders at its own place unless
+  an earlier batch of the frame took part of it; then it goes on a shelf in an
+  overflow half below, which the drawing buffer grows into the first time a
+  frame needs it and drops after 300 display frames that do not, including while
+  the page needs no repaint. A browser that cannot give the doubled buffer
+  scales a smaller one, which would misplace every draw, so the buffer goes back
+  to the canvas size and is not grown again until the canvas size changes. A
+  batch with no place, or one the drawing pass sees differently from the
+  pre-pass, is rendered and composited on its own. The batch split depends only
+  on the clip, transform and bracket stacks, so while preparing, the helpers
+  that replay them into the 2D context keep the stacks in Go and make no JS call
+  (#1051); a first version replayed them into a no-op JS stand-in, which was 6%
+  of the CPU on a page of rotated cells. The pre-pass restores the frame state
+  however it ends, and the frame releases the window lock: a panic left marked
+  preparing, or holding the lock, would leave every later frame blank.
 - **Rect clips.** Each SVG sits between two `Clip` commands, so flushing on
   every clip would give one composite per SVG. With no view transform open, a
   rect clip is applied lazily: it goes into the draw's record as a GL scissor,

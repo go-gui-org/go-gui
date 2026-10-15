@@ -50,16 +50,6 @@ func newFakeGL(t *testing.T, ctx *stateCtx) *fakeGL {
 			f.Release()
 		}
 	})
-	// nullContext: a Proxy whose every method is a no-op.
-	noop := js.FuncOf(func(js.Value, []js.Value) any { return nil })
-	get := js.FuncOf(func(js.Value, []js.Value) any { return noop })
-	set := js.FuncOf(func(js.Value, []js.Value) any { return true })
-	funcs = append(funcs, noop, get, set)
-	handler := js.Global().Get("Object").New()
-	handler.Set("get", get)
-	handler.Set("set", set)
-	g.api.Set("nullContext",
-		js.Global().Get("Proxy").New(js.Global().Get("Object").New(), handler))
 	ints := func(a []js.Value) []int {
 		v := make([]int, len(a))
 		for i := range a {
@@ -135,12 +125,11 @@ func newGLTestBackend(t *testing.T) (*Backend, *stateCtx, *fakeGL) {
 	b := &Backend{ctx2d: ctx.obj, dpiScale: 1, svgMode: svgModeWebGL}
 	b.resetTransforms()
 	b.gl = glSvg{
-		api:     gl.api,
-		state:   js.Global().Get("Object").New(),
-		canvas:  js.Global().Get("Object").New(),
-		w:       1000,
-		h:       1000,
-		nullCtx: gl.api.Get("nullContext"),
+		api:    gl.api,
+		state:  js.Global().Get("Object").New(),
+		canvas: js.Global().Get("Object").New(),
+		w:      1000,
+		h:      1000,
 	}
 	b.gl.cache = newMeshCache(b.releaseGLMesh)
 	return b, ctx, gl
@@ -746,6 +735,40 @@ func TestSvgGLLostUsesPath2D(t *testing.T) {
 	if len(gl.draws) != 0 || len(ctx.fills) != 3 || len(b.paths.cache.entries) != 1 || builds != 2 {
 		t.Errorf("draws %v, fills %d, %d cached paths, %d builds; want Path2D fills, cached on the second frame",
 			gl.draws, len(ctx.fills), len(b.paths.cache.entries), builds)
+	}
+	checkNoErrs(t, ctx)
+}
+
+// The pre-pass replays clips, stencils, filters, rotations and view
+// transforms in Go only: it renders the batches but makes no call on
+// the 2D context, so nothing it does can reach the canvas (#1051).
+func TestSvgGLPrepassLeavesContextAlone(t *testing.T) {
+	b, ctx, gl := newGLTestBackend(t)
+	shift := &[9]float32{1, 0, 100, 0, 1, 50, 0, 0, 1}
+	b.prepassSvgGL([]gui.RenderCmd{
+		clipCmd(0, 0, 500, 500), svgCmd(10, 10),
+		{Kind: gui.RenderStencilBegin, X: 0, Y: 0, W: 400, H: 400, Radius: 8},
+		{Kind: gui.RenderFilterBegin, BlurRadius: 4},
+		{Kind: gui.RenderRotateBegin, RotAngle: 90, RotCX: 50, RotCY: 50},
+		clipCmd(0, 0, 300, 300), svgCmd(20, 20),
+		{Kind: gui.RenderRotateEnd},
+		{Kind: gui.RenderTransformBegin, Homography: shift, W: 200, H: 200},
+		clipCmd(100, 50, 200, 200), svgCmd(30, 30),
+		{Kind: gui.RenderTransformEnd},
+		{Kind: gui.RenderFilterEnd},
+		{Kind: gui.RenderStencilEnd},
+		rectCmd(0, 0), svgCmd(40, 40),
+	})
+	if len(gl.draws) == 0 {
+		t.Fatal("pre-pass rendered no batch")
+	}
+	if ctx.calls != 0 || ctx.filterNow() != "" {
+		t.Errorf("pre-pass made %d calls on the 2D context, filter %q; want none",
+			ctx.calls, ctx.filterNow())
+	}
+	if b.gl.preparing || b.stateDepth != 0 || len(b.clipStack) != 0 || len(b.brackets) != 0 {
+		t.Errorf("after the pre-pass: preparing %v, depth %d, %d clips, %d brackets; want the frame's start",
+			b.gl.preparing, b.stateDepth, len(b.clipStack), len(b.brackets))
 	}
 	checkNoErrs(t, ctx)
 }

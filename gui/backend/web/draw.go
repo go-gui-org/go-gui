@@ -203,6 +203,9 @@ func (b *Backend) rebuildClipStack() {
 // full before the next non-SVG command.
 func (b *Backend) rebuildState(rect *clipRegion, skipRect bool) {
 	b.clipDirty = skipRect || rect != nil
+	if b.gl.preparing {
+		return // the WebGL pre-pass tracks the stacks in Go only (#1051)
+	}
 	for b.stateDepth > 0 {
 		b.ctx2d.Call("restore")
 		b.stateDepth--
@@ -252,6 +255,9 @@ func (b *Backend) pushClip(c clipRegion) {
 
 // pushBracket saves the 2D state and applies br's rotation or filter.
 func (b *Backend) pushBracket(br stateBracket) {
+	if b.gl.preparing {
+		return // the WebGL pre-pass tracks the stacks in Go only (#1051)
+	}
 	b.ctx2d.Call("save")
 	b.stateDepth++
 	if br.rotate {

@@ -12,8 +12,11 @@ import (
 
 // prepassSvgGL is the first pass of a frame in WebGL mode. It runs the
 // frame's clip, transform, filter and SVG commands through the same
-// batching as the drawing pass, with the 2D context swapped for a
-// stand-in that ignores every call, so the batches come out the same.
+// batching as the drawing pass, so the batches come out the same. The
+// batch split depends only on the clip, transform and bracket stacks,
+// so while preparing the helpers that replay them into the 2D context
+// (rebuildState, pushBracket, setCanvasTransform) keep the stacks and
+// skip the JS calls (#1051).
 // Each batch is rendered into the WebGL canvas where placeSvgGL puts
 // it, and the drawn area is copied once into the staging canvas. The
 // drawing pass then composites each batch from the copy.
@@ -35,21 +38,18 @@ func (b *Backend) prepassSvgGL(cmds []gui.RenderCmd) {
 	}
 }
 
-// prepareSvgGL runs the pre-pass's commands against the stand-in 2D
-// context. However it ends, a panic included, the real context and the
-// frame's starting state come back: a panic is recovered by the render
-// loop, and a frame drawn on the stand-in would draw nothing.
+// prepareSvgGL runs the pre-pass's commands with the 2D context left
+// alone. However it ends, a panic included, the frame's starting state
+// comes back: a panic is recovered by the render loop, and a later
+// frame still marked preparing would draw nothing.
 func (b *Backend) prepareSvgGL(cmds []gui.RenderCmd) {
 	g := &b.gl
-	ctx := b.ctx2d
-	b.ctx2d = g.nullCtx
 	g.preparing = true
 	defer func() {
 		g.preparing = false
-		b.ctx2d = ctx
 		g.resetBatch()
-		// Back to the frame's start, as renderFrame left it. The saves
-		// were made on the stand-in, so none is restored.
+		// Back to the frame's start, as renderFrame left it. No save
+		// reached the context, so none is restored.
 		b.resetTransforms()
 		b.stateDepth = 0
 		b.clipStack = b.clipStack[:0]

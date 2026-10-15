@@ -66,11 +66,10 @@ type glPrepared struct {
 const overflowIdleFrames = 300
 
 type glSvg struct {
-	api     js.Value // goGuiSvgGL
-	state   js.Value
-	canvas  js.Value
-	nullCtx js.Value // goGuiSvgGL.nullContext
-	w, h    int      // 2D canvas size in device pixels
+	api    js.Value // goGuiSvgGL
+	state  js.Value
+	canvas js.Value
+	w, h   int // 2D canvas size in device pixels
 	// The drawing buffer is w × h, or w × 2h with overflow: a batch
 	// whose own place another batch took this frame, or that has none
 	// (away), is rendered in the lower half. It grows when a frame first
@@ -159,10 +158,9 @@ func (b *Backend) initSvgGL() (ok bool) {
 		return false
 	}
 	b.gl = glSvg{
-		api:     api,
-		state:   state,
-		canvas:  canvas,
-		nullCtx: api.Get("nullContext"),
+		api:    api,
+		state:  state,
+		canvas: canvas,
 	}
 	b.gl.cache = newMeshCache(b.releaseGLMesh)
 	lostFn := js.FuncOf(func(_ js.Value, args []js.Value) any {

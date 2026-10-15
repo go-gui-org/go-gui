@@ -37,6 +37,9 @@ func (m affine) mul(n affine) affine {
 // setCanvasTransform sets the canvas to m, in logical pixels, on top of
 // the DPI scale.
 func (b *Backend) setCanvasTransform(m affine) {
+	if b.gl.preparing {
+		return // the WebGL pre-pass tracks the stacks in Go only (#1051)
+	}
 	s := float64(b.dpiScale)
 	if s <= 0 {
 		s = 1

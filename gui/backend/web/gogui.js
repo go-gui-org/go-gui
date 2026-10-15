@@ -120,17 +120,10 @@ void main() { o = vec4(vCol.rgb * vCol.a, vCol.a); }`;
   // their contexts (the bench's lose=1 drives WEBGL_lose_context).
   const states = [];
 
-  const noop = () => {};
-
   return {
     recStride,
     stats,
     states,
-
-    // nullContext stands in for the 2D context while the backend's
-    // pre-pass replays a frame's clips and transforms to batch its
-    // SVGs: every method is a no-op and every write is dropped.
-    nullContext: new Proxy({}, { get: () => noop, set: () => true }),
 
     // stage copies the device-pixel rect (x, y, w, h) of the WebGL
     // canvas into the 2D staging canvas, once per frame after every
