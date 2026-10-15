@@ -303,12 +303,14 @@ cross-compile:
 	go build -tags otoaudio ./gui/audio/...
 
 # Enforce CI's coverage gates locally: 70% total over gui/ plus the
-# per-package floors. The thresholds live in scripts/coverage-gate.sh,
-# shared with the CI coverage job (issue #292). Scope matches CI's
-# ./gui/..., unlike cov-report's ./... report.
+# per-package floors. The thresholds live in tools/coverage, shared
+# with the CI coverage job (issue #292). Scope matches CI's
+# ./gui/..., unlike cov-report's ./... report. The profile lands in
+# build/, not /tmp: a default Windows install has no /tmp.
 coverage-gate:
-	go test -count=1 -coverprofile=/tmp/go-gui-coverage-gate.out ./gui/...
-	scripts/coverage-gate.sh /tmp/go-gui-coverage-gate.out
+	@mkdir -p build
+	go test -count=1 -coverprofile=build/coverage-gate.out ./gui/...
+	go run ./tools/coverage gate build/coverage-gate.out
 
 # test-race and coverage-gate in one test run, for prepush. Running them
 # separately compiles and runs the gui/ tests two times (~36s + ~13s);
@@ -340,7 +342,7 @@ test-race-cover:
 	@{ echo 'mode: atomic'; \
 	  grep -h '^github.com/go-gui-org/go-gui/gui/' $(COV_DIR)/race.out \
 	    $(COV_DIR)/gl.out $(COV_DIR)/audio.out; } > $(COV_DIR)/merged.out
-	scripts/coverage-gate.sh $(COV_DIR)/merged.out
+	go run ./tools/coverage gate $(COV_DIR)/merged.out
 
 # Keep-a-Changelog shape: breaking API changes must be under ### Changed with BREAKING label.
 changelog-check:

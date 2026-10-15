@@ -12,10 +12,10 @@ make prepush
 vet, lint (linux + the cross-GOOS `//go:build` files via `make lint-cross`),
 cgo-free cross-compiles of the whole module (`make cross-compile`), the coverage
 gate (`make coverage-gate`: 70% total + per-package floors), and the export
-audit. CI and the Makefile share the coverage thresholds via
-`scripts/coverage-gate.sh`. After `make check`, the other steps run at the same
-time (`scripts/run-parallel.sh`). The output of each step prints as one block
-when all steps are done, followed by a pass/fail summary. The race tests and the
+audit. CI and the Makefile share the coverage thresholds via `tools/coverage`.
+After `make check`, the other steps run at the same time
+(`scripts/run-parallel.sh`). The output of each step prints as one block when
+all steps are done, followed by a pass/fail summary. The race tests and the
 coverage gate share one test run (`make test-race-cover`).
 
 When only the fast gate checks are wanted, `make check` (vet, deps-doc,
@@ -65,7 +65,7 @@ OS runner or a baseline from `main` that only CI can supply:
 - OS-matrix test runs on Windows and macOS runners. Windows also runs the
   showcase smoke test with Mesa's software GL
 - Coverage diff on PRs — compares against a baseline cached from `main`
-  (`scripts/cov-diff.sh` can run it locally if you supply two profiles)
+  (`go run ./tools/coverage diff` can run it locally if you supply two profiles)
 - Benchmark regression gate — runs `make bench-gate` on the PR base and on the
   PR head in the same job, then compares them with `benchstat`. To do the same
   locally, run `make bench-gate` on both commits on one machine

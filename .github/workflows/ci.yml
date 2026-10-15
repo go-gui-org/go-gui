@@ -104,10 +104,10 @@ jobs:
       - name: Test with coverage
         run: go test -count=1 -coverprofile=coverage.out ./gui/...
 
-      # Thresholds and floors live in scripts/coverage-gate.sh, shared
+      # Thresholds and floors live in tools/coverage, shared
       # with `make coverage-gate` (issue #292).
       - name: Check coverage gates
-        run: scripts/coverage-gate.sh coverage.out
+        run: go run ./tools/coverage gate coverage.out
 
       - name: Save baseline coverage
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -128,7 +128,7 @@ jobs:
 
       - name: Coverage diff on PR
         if: github.event_name == 'pull_request'
-        run: scripts/cov-diff.sh --github-summary coverage-baseline.out coverage.out
+        run: go run ./tools/coverage diff --github-summary coverage-baseline.out coverage.out
 
       - name: Upload coverage
         if: always()
