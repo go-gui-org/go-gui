@@ -51,7 +51,7 @@ func main() {
 			return
 		}
 		var line bytes.Buffer
-		if err := json.Compact(&line, body); err != nil {
+		if err = json.Compact(&line, body); err != nil {
 			http.Error(w, "bad result", http.StatusBadRequest)
 			return
 		}
@@ -62,7 +62,7 @@ func main() {
 			return
 		}
 		defer f.Close()
-		if _, err := f.Write(line.Bytes()); err != nil {
+		if _, err = f.Write(line.Bytes()); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -79,12 +79,12 @@ func main() {
 			return
 		}
 		shots := filepath.Join(dir, "shots")
-		if err := os.MkdirAll(shots, 0o755); err != nil {
+		if err = os.MkdirAll(shots, 0o755); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		out := filepath.Join(shots, safeName(r.URL.Query().Get("name"))+".png")
-		if err := os.WriteFile(out, png, 0o644); err != nil {
+		if err = os.WriteFile(out, png, 0o644); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -116,11 +116,11 @@ func build(dir string) error {
 		{filepath.Join(dir, "..", "..", "gui", "backend", "web", "gogui.js"), "gogui.js"},
 	}
 	for _, c := range copies {
-		data, err := os.ReadFile(c[0])
-		if err != nil {
-			return err
+		data, readErr := os.ReadFile(c[0])
+		if readErr != nil {
+			return readErr
 		}
-		if err := os.WriteFile(filepath.Join(dir, c[1]), data, 0o644); err != nil {
+		if err = os.WriteFile(filepath.Join(dir, c[1]), data, 0o644); err != nil {
 			return err
 		}
 	}

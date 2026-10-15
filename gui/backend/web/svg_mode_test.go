@@ -90,7 +90,7 @@ func TestInitSvgModeSelection(t *testing.T) {
 			}
 			// WebGL batches that fall back to Canvas2D use the Path2D
 			// cache when it exists.
-			if tc.path2d && tc.want != svgModeCanvas2D && b.paths.entries == nil {
+			if tc.path2d && tc.want != svgModeCanvas2D && !b.paths.ok() {
 				t.Error("Path2D cache not set up")
 			}
 		})

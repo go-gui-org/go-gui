@@ -25,11 +25,16 @@ text, images, clips, filters and transforms are unchanged.
   state) are separate variants and coexist, so one never deletes a mesh another
   command has queued. A buffer rewritten in place becomes a new variant; one
   backing array keeps at most 8, dropping the least recently used that the
-  current frame has not drawn. Idle meshes are evicted. Freed ids are reused:
-  ids travel to JS in a `Float32Array`, exact only up to 2^24. The hash
-  (`mesh_hash.go`) folds 8 bytes per step with a 64-bit xor and multiply in four
-  lanes; `hash/maphash` takes a software fallback on wasm that was a third of
-  the frame.
+  current frame has not drawn. Idle meshes are evicted. A mesh is cached only
+  once it is drawn in a second frame: an animated SVG path is tessellated into a
+  new slice every frame, so its meshes never repeat, and cached on first sight
+  each frame would add one per path, uploaded and pinned until it idled out.
+  Meshes not cached are drawn from transient slots whose GPU buffers the next
+  frame refills; slots a frame does not use are freed. The Path2D cache shares
+  this policy (`meshCache`). Freed ids are reused: ids travel to JS in a
+  `Float32Array`, exact only up to 2^24. The hash (`mesh_hash.go`) folds 8 bytes
+  per step with a 64-bit xor and multiply in four lanes; `hash/maphash` takes a
+  software fallback on wasm that was a third of the frame.
 - **Batches.** Consecutive `RenderSvg` commands render in one GL pass into an
   MSAA canvas, and one `drawImage` composites the batch. Go writes one record
   per draw into a shared `Float32Array` and calls the JS loop (`goGuiSvgGL` in
@@ -44,9 +49,15 @@ text, images, clips, filters and transforms are unchanged.
   canvas. The drawing pass composites each batch from the copy; `drawImage` from
   a 2D canvas is cheap. A batch renders at its own place unless an earlier batch
   of the frame took part of it; then it goes on a shelf in an overflow half
-  below, which the drawing buffer grows into the first time a frame needs it. A
-  batch with no place, or one the drawing pass sees differently from the
-  pre-pass, is rendered and composited on its own.
+  below, which the drawing buffer grows into the first time a frame needs it and
+  drops after 300 display frames that do not, including while the page needs no
+  repaint. A browser that cannot give the doubled buffer scales a smaller one,
+  which would misplace every draw, so the buffer goes back to the canvas size
+  and is not grown again until the canvas size changes. A batch with no place,
+  or one the drawing pass sees differently from the pre-pass, is rendered and
+  composited on its own. The pre-pass restores the 2D context and the frame
+  state however it ends, and the frame releases the window lock: a panic left on
+  the stand-in, or holding the lock, would leave every later frame blank.
 - **Rect clips.** Each SVG sits between two `Clip` commands, so flushing on
   every clip would give one composite per SVG. With no view transform open, a
   rect clip is applied lazily: it goes into the draw's record as a GL scissor,
@@ -60,17 +71,22 @@ text, images, clips, filters and transforms are unchanged.
   cut in the wrong place. Inside a transform, clips apply eagerly: a clip change
   flushes the batch, and the batch draws without scissors and composites under
   the canvas clip and transform. A batch whose bounds in the view's frame leave
-  the drawing buffer is filled with Canvas2D instead.
+  the canvas is rendered elsewhere in the WebGL canvas (on an overflow shelf, or
+  at its origin when direct) and composited at its own place; only one larger
+  than the canvas is filled with Canvas2D.
 - **Context loss.** `webglcontextlost` (with `preventDefault`) switches SVGs to
   Canvas2D and forgets the uploaded meshes; `webglcontextrestored` rebuilds the
   program and resumes. A batch queued when the context goes is filled instead.
+  While the context is lost, SVGs draw from the Path2D cache.
 - **Selection** (`initSvgMode`). WebGL2 when available, else the Path2D cache,
   else plain Canvas2D paths. A page opts out with
   `globalThis.goGuiSvgMode = "canvas2d"` before Go starts; the backend writes
   the mode in effect back to that global. No Go API change.
 
 Gradient meshes now render with interpolated vertex colors, which is what the
-SVG describes.
+SVG describes. Canvas2D has no per-vertex color, so where SVGs still fall back
+to it they draw flat: while the WebGL context is lost, and for a batch under a
+transform that is larger than the canvas.
 
 ## Measured
 

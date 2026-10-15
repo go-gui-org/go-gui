@@ -164,7 +164,7 @@
       label: params.get("label") || "",
       mode: globalThis.goGuiSvgMode || "canvas2d",
       workload: Object.fromEntries(
-        ["rows", "cols", "cell", "asset", "period"].map((k) => [k, params.get(k) || "default"]),
+        ["rows", "cols", "cell", "asset", "period", "xf"].map((k) => [k, params.get(k) || "default"]),
       ),
       userAgent: navigator.userAgent,
       gpu: gpuRenderer(),

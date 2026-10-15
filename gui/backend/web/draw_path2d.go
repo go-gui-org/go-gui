@@ -13,8 +13,8 @@ import (
 // built once in mesh coordinates, and fills it under a canvas transform
 // each frame. It saves the Go-side vertex transform, the copy into JS
 // and the path rebuild of drawSvgCanvas; the browser still rasterizes
-// the path. It draws the light WebGL batches (draw_webgl.go) and every
-// SVG when WebGL2 is unavailable (#1045).
+// the path. It draws every SVG when WebGL2 is unavailable, and WebGL
+// batches that fall back to Canvas2D (draw_webgl.go, #1045).
 
 // svgModeGlobal is the global a page may set before Go starts to opt
 // out of WebGL2 for SVG ("canvas2d"). The backend overwrites it with
@@ -40,26 +40,24 @@ func (m svgMode) String() string {
 	}
 }
 
-// pathCacheIdleFrames is how many frames an unused mesh is kept.
-const pathCacheIdleFrames = 120
-
 type pathRun struct {
 	vert int // first vertex of the run, indexes VertexColors
 	path js.Value
 }
 
 type pathEntry struct {
-	tris     []float32 // pinned, see meshKey
-	runs     []pathRun
-	lastUsed uint64
+	runs []pathRun
 }
 
 type pathCache struct {
-	build   js.Value // goGuiBuildTrisPath
-	entries map[meshKey]*pathEntry
-	vars    meshVariants // mesh_cache.go
-	frame   uint64
+	build js.Value // goGuiBuildTrisPath
+	cache meshCache[*pathEntry]
+	// scratch holds the runs of a mesh drawn uncached (meshCache.admit).
+	scratch pathEntry
 }
+
+// ok reports whether the Path2D cache is set up.
+func (c *pathCache) ok() bool { return c.cache.entries != nil }
 
 // initSvgMode picks how SVG meshes are drawn: WebGL2 when available
 // (draw_webgl.go), else the Path2D cache, else plain Canvas2D paths.
@@ -74,7 +72,7 @@ func (b *Backend) initSvgMode() {
 		if fn := g.Get("goGuiBuildTrisPath"); fn.Type() == js.TypeFunction {
 			b.svgMode = svgModePath2D
 			b.paths.build = fn
-			b.paths.entries = map[meshKey]*pathEntry{}
+			b.paths.cache = newMeshCache[*pathEntry](nil)
 		}
 		if b.initSvgGL() {
 			b.svgMode = svgModeWebGL
@@ -83,35 +81,26 @@ func (b *Backend) initSvgMode() {
 	g.Set(svgModeGlobal, b.svgMode.String())
 }
 
-// endFramePaths evicts meshes not drawn for pathCacheIdleFrames.
+// endFramePaths ends the frame for the Path2D cache (meshCache).
 func (b *Backend) endFramePaths() {
-	c := &b.paths
-	c.frame++
-	if c.frame%60 != 0 {
-		return
-	}
-	for k, e := range c.entries {
-		if c.frame-e.lastUsed > pathCacheIdleFrames {
-			c.drop(k)
-		}
-	}
+	b.paths.cache.endFrame()
 }
 
-func (c *pathCache) drop(k meshKey) {
-	delete(c.entries, k)
-	c.vars.remove(k)
-}
-
-// pathEntryFor returns the cached runs of r's mesh, building them when
-// the mesh is new or its content changed.
+// pathEntryFor returns the runs of r's mesh: cached, or built, and
+// cached when the cache admits the mesh (meshCache.admit).
 func (b *Backend) pathEntryFor(r *gui.RenderCmd) *pathEntry {
 	c := &b.paths
 	key := meshKeyFor(r)
-	if e, ok := c.entries[key]; ok {
-		e.lastUsed = c.frame
+	if e, ok := c.cache.get(key); ok {
 		return e
 	}
-	e := &pathEntry{tris: r.Triangles, lastUsed: c.frame}
+	e := &c.scratch
+	keep := c.cache.admit(key)
+	if keep {
+		e = &pathEntry{}
+	}
+	clear(e.runs) // drop the last uncached mesh's paths
+	e.runs = e.runs[:0]
 	b.tris.floats = append(b.tris.floats[:0], r.Triangles...)
 	b.tris.upload()
 	numVerts := len(r.Triangles) / 2
@@ -135,14 +124,9 @@ func (b *Backend) pathEntryFor(r *gui.RenderCmd) *pathEntry {
 		}
 		addRun(start, numVerts)
 	}
-	c.entries[key] = e
-	if c.vars == nil {
-		c.vars = meshVariants{}
+	if keep {
+		c.cache.put(key, r.Triangles, e)
 	}
-	c.vars.add(key)
-	trimMeshVariants(c.entries, c.vars, key.base(), c.frame,
-		func(e *pathEntry) uint64 { return e.lastUsed },
-		func(k meshKey, _ *pathEntry) { c.drop(k) })
 	return e
 }
 
@@ -153,22 +137,8 @@ func (b *Backend) drawSvgPath2D(r *gui.RenderCmd) {
 	a, bb, cc, d, ee, f := svgAffine(r)
 	b.ctx2d.Call("save")
 	b.ctx2d.Call("transform", a, bb, cc, d, ee, f)
-	hasVCols := len(r.VertexColors) == len(r.Triangles)/2
-	vAlpha := float32(1)
-	if r.HasVertexAlpha {
-		vAlpha = max(0, min(r.VertexAlphaScale, 1))
-	}
 	for _, run := range e.runs {
-		col := r.Color
-		if hasVCols {
-			vc := r.VertexColors[run.vert]
-			alpha := vc.A
-			if r.HasVertexAlpha {
-				alpha = uint8(float32(alpha) * vAlpha)
-			}
-			col = gui.RGBA(vc.R, vc.G, vc.B, alpha)
-		}
-		b.setFillColor(col)
+		b.setFillColor(svgRunColor(r, run.vert))
 		b.ctx2d.Call("fill", run.path)
 	}
 	b.ctx2d.Call("restore")

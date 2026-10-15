@@ -677,6 +677,12 @@ func (b *Backend) drawSvg(r *gui.RenderCmd) {
 	if b.clipDirty {
 		b.rebuildClipStack()
 	}
+	// While the WebGL context is lost, the Path2D cache WebGL mode also
+	// keeps saves rebuilding every mesh each frame.
+	if b.paths.ok() {
+		b.drawSvgPath2D(r)
+		return
+	}
 	b.drawSvgCanvas(r)
 }
 

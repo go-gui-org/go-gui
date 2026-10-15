@@ -153,11 +153,12 @@ void main() { o = vec4(vCol.rgb * vCol.a, vCol.a); }`;
       stats.compositeMs += performance.now() - t0;
     },
 
-    // compositeDirect is composite straight from the WebGL canvas, for
-    // a batch the frame's single render pass did not hold.
-    compositeDirect(s, ctx, dpi, x, y, w, h) {
+    // compositeDirect is composite straight from the WebGL canvas's
+    // rect (sx, sy, w, h), for a batch the frame's single render pass
+    // did not hold.
+    compositeDirect(s, ctx, dpi, sx, sy, w, h, x, y) {
       const t0 = performance.now();
-      ctx.drawImage(s.canvas, x, y, w, h, x / dpi, y / dpi, w / dpi, h / dpi);
+      ctx.drawImage(s.canvas, sx, sy, w, h, x / dpi, y / dpi, w / dpi, h / dpi);
       stats.compositeMs += performance.now() - t0;
     },
 
@@ -189,26 +190,33 @@ void main() { o = vec4(vCol.rgb * vCol.a, vCol.a); }`;
     },
 
     // upload stores mesh id from bytes: posLen bytes of float32 x,y
-    // pairs, then colLen bytes of RGBA8 vertex colors (0 = none).
+    // pairs, then colLen bytes of RGBA8 vertex colors (0 = none). An id
+    // already stored keeps its buffers and takes the new data: the
+    // backend refills transient meshes every frame (draw_webgl.go).
     upload(s, id, bytes, posLen, colLen, count) {
       const gl = s.gl;
-      const vao = gl.createVertexArray();
-      gl.bindVertexArray(vao);
-      const pos = gl.createBuffer();
-      gl.bindBuffer(gl.ARRAY_BUFFER, pos);
+      let m = s.meshes.get(id);
+      if (!m) {
+        m = { vao: gl.createVertexArray(), pos: gl.createBuffer(), col: null, count };
+        s.meshes.set(id, m);
+      }
+      m.count = count;
+      gl.bindVertexArray(m.vao);
+      gl.bindBuffer(gl.ARRAY_BUFFER, m.pos);
       gl.bufferData(gl.ARRAY_BUFFER, bytes, gl.STATIC_DRAW, 0, posLen);
       gl.enableVertexAttribArray(0);
       gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
-      let col = null;
       if (colLen > 0) {
-        col = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, col);
+        if (!m.col) m.col = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, m.col);
         gl.bufferData(gl.ARRAY_BUFFER, bytes, gl.STATIC_DRAW, posLen, colLen);
         gl.enableVertexAttribArray(1);
         gl.vertexAttribPointer(1, 4, gl.UNSIGNED_BYTE, true, 0, 0);
+      } else {
+        // The shader then mixes in the uniform color (uUseV = 0).
+        gl.disableVertexAttribArray(1);
       }
       gl.bindVertexArray(null);
-      s.meshes.set(id, { vao, pos, col, count });
     },
 
     remove(s, id) {

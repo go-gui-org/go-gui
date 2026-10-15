@@ -5,6 +5,7 @@ package web
 import (
 	"fmt"
 	"strings"
+	"sync"
 	"syscall/js"
 	"testing"
 
@@ -29,6 +30,10 @@ type fakeGL struct {
 	live    map[int]bool
 	drawIDs []int
 	missing int
+	// resizes lists resize calls as "wxh"; maxH, when set, is the
+	// tallest drawing buffer resize reports it got.
+	resizes []string
+	maxH    int
 }
 
 func newFakeGL(t *testing.T, ctx *stateCtx) *fakeGL {
@@ -70,7 +75,12 @@ func newFakeGL(t *testing.T, ctx *stateCtx) *fakeGL {
 		g.removes = append(g.removes, a[1].Int())
 		delete(g.live, a[1].Int())
 	})
-	on("resize", func([]js.Value) {})
+	resize := js.FuncOf(func(_ js.Value, a []js.Value) any {
+		g.resizes = append(g.resizes, fmt.Sprintf("%dx%d", a[1].Int(), a[2].Int()))
+		return g.maxH == 0 || a[2].Int() <= g.maxH
+	})
+	funcs = append(funcs, resize)
+	g.api.Set("resize", resize)
 	on("restore", func([]js.Value) { g.restores++ })
 	on("draw", func(a []js.Value) {
 		recs, n := a[1], a[2].Int()
@@ -111,7 +121,7 @@ func newFakeGL(t *testing.T, ctx *stateCtx) *fakeGL {
 	on("compositeDirect", func(a []js.Value) {
 		composite()
 		v := ints(a[3:])
-		g.ops = append(g.ops, fmt.Sprintf("direct %d,%d %dx%d", v[0], v[1], v[2], v[3]))
+		g.ops = append(g.ops, fmt.Sprintf("direct %d,%d %dx%d -> %d,%d", v[0], v[1], v[2], v[3], v[4], v[5]))
 	})
 	return g
 }
@@ -131,8 +141,8 @@ func newGLTestBackend(t *testing.T) (*Backend, *stateCtx, *fakeGL) {
 		w:       1000,
 		h:       1000,
 		nullCtx: gl.api.Get("nullContext"),
-		meshes:  map[meshKey]*glMesh{},
 	}
+	b.gl.cache = newMeshCache(b.releaseGLMesh)
 	return b, ctx, gl
 }
 
@@ -225,9 +235,10 @@ func TestSvgGLRotationBracketKeepsTransform(t *testing.T) {
 	checkNoErrs(t, ctx)
 }
 
-// A view transform works the same way, and a batch whose bounds in the
-// view's frame leave the drawing buffer is filled with Canvas2D rather
-// than cut.
+// A view transform works the same way. A batch whose bounds in the
+// view's frame leave the canvas is rendered elsewhere in the WebGL
+// canvas and composited at its own place, so gradients stay smooth;
+// only one larger than the canvas is filled with Canvas2D.
 func TestSvgGLViewTransform(t *testing.T) {
 	b, ctx, gl := newGLTestBackend(t)
 	shift := &[9]float32{1, 0, 100, 0, 1, 50, 0, 0, 1}
@@ -244,14 +255,37 @@ func TestSvgGLViewTransform(t *testing.T) {
 		t.Fatalf("composites = %v, want one under the clip and the shift", gl.composites)
 	}
 
+	away := []gui.RenderCmd{
+		{Kind: gui.RenderTransformBegin, Homography: shift, W: 200, H: 200},
+		svgCmd(-50, 10), // left of the canvas in the view's frame
+		{Kind: gui.RenderTransformEnd},
+	}
+	gl.ops = nil
+	b.drawCmds(away)
+	want := []string{"draw -51,9 12x12 +51,-9", "direct 0,0 12x12 -> -51,9"}
+	if fmt.Sprint(gl.ops) != fmt.Sprint(want) || !b.gl.wantOverflow {
+		t.Errorf("without overflow: ops = %v, wantOverflow %v; want %v, true", gl.ops, b.gl.wantOverflow, want)
+	}
+	gl.ops = nil
+	b.gl.overflow = true
+	b.drawCmds(away)
+	want = []string{"draw -51,9 12x12 +51,991", "stage 0,1000 12x12", "composite 0,1000 12x12 -> -51,9"}
+	if fmt.Sprint(gl.ops) != fmt.Sprint(want) {
+		t.Errorf("with overflow: ops = %v, want %v", gl.ops, want)
+	}
+	if len(ctx.fills) != 0 {
+		t.Errorf("fills = %v, want none", ctx.fills)
+	}
+
+	huge := svgCmd(-50, 10)
+	huge.Triangles = []float32{0, 0, 2000, 0, 0, 10} // wider than the canvas
 	b.drawCmds([]gui.RenderCmd{
 		{Kind: gui.RenderTransformBegin, Homography: shift, W: 200, H: 200},
-		svgCmd(-50, 10), // left of the buffer in the view's frame
+		huge,
 		{Kind: gui.RenderTransformEnd},
 	})
-	if len(gl.composites) != 1 || len(ctx.fills) != 1 {
-		t.Errorf("composites %v fills %v, want the off-buffer batch filled with Canvas2D",
-			gl.composites, ctx.fills)
+	if len(ctx.fills) != 1 {
+		t.Errorf("fills = %v, want the batch wider than the canvas filled with Canvas2D", ctx.fills)
 	}
 	checkNoErrs(t, ctx)
 }
@@ -326,8 +360,9 @@ func TestSvgGLLossMidBatchFills(t *testing.T) {
 	checkNoErrs(t, ctx)
 }
 
-// The mesh cache uploads a mesh once and uploads again when its buffer
-// is rewritten in place; the old variant stays until it idles out.
+// A mesh is cached on its second frame; on its first it is drawn from
+// a transient slot. A buffer rewritten in place is a new mesh, cached
+// on its own second frame beside the old variant until that idles out.
 func TestSvgGLMeshCache(t *testing.T) {
 	b, ctx, gl := newGLTestBackend(t)
 	cmd := svgCmd(10, 10)
@@ -336,22 +371,54 @@ func TestSvgGLMeshCache(t *testing.T) {
 		b.endFrameSvgGL()
 	}
 	frame()
+	if len(b.gl.cache.entries) != 0 || len(gl.uploads) != 1 {
+		t.Fatalf("first frame: %d cached, uploads %v; want a transient upload", len(b.gl.cache.entries), gl.uploads)
+	}
 	frame()
-	if len(gl.uploads) != 1 {
-		t.Fatalf("uploads after two frames = %v, want 1", gl.uploads)
+	frame()
+	if len(b.gl.cache.entries) != 1 || len(gl.uploads) != 2 {
+		t.Fatalf("after three frames: %d cached, uploads %v; want one mesh, cached on the second frame",
+			len(b.gl.cache.entries), gl.uploads)
 	}
 	cmd.Triangles[2] = 20 // same backing array, new content
 	frame()
-	if len(gl.uploads) != 2 || len(gl.removes) != 0 || gl.missing != 0 {
-		t.Fatalf("after an in-place rewrite: uploads %v removes %v missing %d, want a second variant",
-			gl.uploads, gl.removes, gl.missing)
+	frame()
+	if len(b.gl.cache.entries) != 2 || gl.missing != 0 {
+		t.Fatalf("after an in-place rewrite: %d cached, missing %d; want a second variant",
+			len(b.gl.cache.entries), gl.missing)
 	}
-	for range pathCacheIdleFrames + 60 {
+	for range meshCacheIdleFrames + 60 {
 		b.endFrameSvgGL()
 	}
-	if len(b.gl.meshes) != 0 || len(gl.removes) != 2 || len(b.gl.vars) != 0 {
-		t.Errorf("after idling: %d meshes, %d variant lists, removes %v; want all evicted",
-			len(b.gl.meshes), len(b.gl.vars), gl.removes)
+	// Two transient slots released at the end of the frames that did
+	// not use them, and two cached meshes that idled out.
+	if len(b.gl.cache.entries) != 0 || len(b.gl.cache.vars) != 0 || len(gl.removes) != 4 {
+		t.Errorf("after idling: %d meshes, %d variant lists, removes %v; want all released",
+			len(b.gl.cache.entries), len(b.gl.cache.vars), gl.removes)
+	}
+	checkNoErrs(t, ctx)
+}
+
+// An animated SVG path is tessellated into a new slice every frame, so
+// its meshes never repeat. They are never cached: each frame refills
+// one transient slot, and nothing is kept or freed per frame.
+func TestSvgGLAnimatedMeshNotCached(t *testing.T) {
+	b, ctx, gl := newGLTestBackend(t)
+	for i := range 300 {
+		cmd := svgCmd(10, 10)
+		cmd.Triangles = []float32{0, 0, 10 + float32(i), 0, 0, 10} // a new slice
+		b.drawCmds([]gui.RenderCmd{cmd})
+		b.endFrameSvgGL()
+	}
+	ids := map[int]bool{}
+	for _, id := range gl.uploads {
+		ids[id] = true
+	}
+	if len(b.gl.cache.entries) != 0 || len(b.gl.transient) != 1 || len(ids) != 1 ||
+		len(gl.removes) != 0 || gl.missing != 0 {
+		t.Errorf("%d cached, %d transient slots, upload ids %v, removes %v, missing %d; "+
+			"want one slot refilled every frame", len(b.gl.cache.entries), len(b.gl.transient),
+			ids, gl.removes, gl.missing)
 	}
 	checkNoErrs(t, ctx)
 }
@@ -365,8 +432,8 @@ func gradSvgCmd(x, y float32, tris []float32, c gui.Color) gui.RenderCmd {
 }
 
 // Commands that share triangles but differ in colors are two variants:
-// both are drawn from live meshes in one batch, neither replaces the
-// other, and the next frame uploads nothing.
+// both are cached and drawn from live meshes in one batch, neither
+// replaces the other, and later frames upload nothing.
 func TestSvgGLColorVariantsCoexist(t *testing.T) {
 	b, ctx, gl := newGLTestBackend(t)
 	tris := []float32{0, 0, 10, 0, 0, 10}
@@ -374,40 +441,45 @@ func TestSvgGLColorVariantsCoexist(t *testing.T) {
 		gradSvgCmd(10, 10, tris, gui.RGB(255, 0, 0)),
 		gradSvgCmd(40, 10, tris, gui.RGB(0, 255, 0)), // same slice, other tint
 	}
-	b.drawCmds(cmds)
-	b.endFrameSvgGL()
-	if len(gl.uploads) != 2 || len(gl.removes) != 0 || gl.missing != 0 {
-		t.Fatalf("uploads %v removes %v missing %d, want two live variants",
-			gl.uploads, gl.removes, gl.missing)
+	for range 2 {
+		b.drawCmds(cmds)
+		b.endFrameSvgGL()
 	}
-	if fmt.Sprint(gl.drawIDs) != fmt.Sprint(gl.uploads) {
-		t.Errorf("drawn ids %v, want both variants %v", gl.drawIDs, gl.uploads)
+	if len(b.gl.cache.entries) != 2 || gl.missing != 0 {
+		t.Fatalf("%d cached, missing %d; want two live variants", len(b.gl.cache.entries), gl.missing)
 	}
+	uploads := len(gl.uploads)
+	gl.drawIDs = nil
 	b.drawCmds(cmds)
-	if len(gl.uploads) != 2 || gl.missing != 0 {
-		t.Errorf("second frame: uploads %v missing %d, want no re-upload", gl.uploads, gl.missing)
+	cached := gl.uploads[uploads-2:]
+	if len(gl.uploads) != uploads || gl.missing != 0 || fmt.Sprint(gl.drawIDs) != fmt.Sprint(cached) {
+		t.Errorf("third frame: uploads %v, drawn ids %v, missing %d; want both cached variants %v drawn, no upload",
+			gl.uploads[uploads:], gl.drawIDs, gl.missing, cached)
 	}
 	checkNoErrs(t, ctx)
 }
 
-// A buffer rewritten every frame keeps at most maxMeshVariants meshes,
-// and a variant drawn in the current frame is never the one dropped.
+// One backing array keeps at most maxMeshVariants cached meshes, and a
+// variant drawn in the current frame is never the one dropped.
 func TestSvgGLVariantCap(t *testing.T) {
 	b, ctx, gl := newGLTestBackend(t)
 	cmd := svgCmd(10, 10)
+	base := meshBase{ptr: meshKeyFor(&cmd).ptr, n: len(cmd.Triangles)}
 	for i := range 3 * maxMeshVariants {
 		cmd.Triangles[2] = float32(20 + i)
-		b.drawCmds([]gui.RenderCmd{cmd})
-		b.endFrameSvgGL()
-		if n := len(b.gl.vars[meshBase{ptr: meshKeyFor(&cmd).ptr, n: len(cmd.Triangles)}]); n > maxMeshVariants {
-			t.Fatalf("frame %d: %d variants, want at most %d", i, n, maxMeshVariants)
+		for range 2 { // cached on its second frame
+			b.drawCmds([]gui.RenderCmd{cmd})
+			b.endFrameSvgGL()
+		}
+		if n := len(b.gl.cache.vars[base]); n > maxMeshVariants {
+			t.Fatalf("variant %d: %d variants, want at most %d", i, n, maxMeshVariants)
 		}
 	}
 	if gl.missing != 0 {
 		t.Errorf("%d draws used a dropped mesh", gl.missing)
 	}
-	if len(b.gl.meshes) != maxMeshVariants {
-		t.Errorf("%d meshes cached, want %d", len(b.gl.meshes), maxMeshVariants)
+	if len(b.gl.cache.entries) != maxMeshVariants {
+		t.Errorf("%d meshes cached, want %d", len(b.gl.cache.entries), maxMeshVariants)
 	}
 	checkNoErrs(t, ctx)
 }
@@ -419,16 +491,18 @@ func TestSvgGLIDsRecycled(t *testing.T) {
 	cmd := svgCmd(10, 10)
 	for i := range 1000 {
 		cmd.Triangles[2] = float32(20 + i)
-		b.drawCmds([]gui.RenderCmd{cmd})
-		b.endFrameSvgGL()
+		for range 2 {
+			b.drawCmds([]gui.RenderCmd{cmd})
+			b.endFrameSvgGL()
+		}
 	}
 	maxID := 0
 	for _, id := range gl.uploads {
 		maxID = max(maxID, id)
 	}
-	if maxID > maxMeshVariants+1 {
+	if maxID > maxMeshVariants+2 {
 		t.Errorf("highest mesh id after 1000 rewrites = %d, want ids recycled (<= %d)",
-			maxID, maxMeshVariants+1)
+			maxID, maxMeshVariants+2)
 	}
 	if gl.missing != 0 {
 		t.Errorf("%d draws used a dropped mesh", gl.missing)
@@ -483,7 +557,7 @@ func TestSvgGLOverlapUsesOverflow(t *testing.T) {
 		"stage 9,9 12x12",
 		"composite 9,9 12x12 -> 9,9",
 		"draw 14,14 12x12 +0,0",
-		"direct 14,14 12x12",
+		"direct 14,14 12x12 -> 14,14",
 	}
 	if fmt.Sprint(gl.ops) != fmt.Sprint(want) {
 		t.Errorf("without overflow: ops = %v, want %v", gl.ops, want)
@@ -536,7 +610,7 @@ func TestSvgGLUnpreparedBatchGoesDirect(t *testing.T) {
 	b, ctx, gl := newGLTestBackend(t)
 	b.drawSvg(func() *gui.RenderCmd { c := svgCmd(10, 10); return &c }())
 	b.flushSvgGL()
-	want := []string{"draw 9,9 12x12 +0,0", "direct 9,9 12x12"}
+	want := []string{"draw 9,9 12x12 +0,0", "direct 9,9 12x12 -> 9,9"}
 	if fmt.Sprint(gl.ops) != fmt.Sprint(want) {
 		t.Errorf("ops = %v, want %v", gl.ops, want)
 	}
@@ -556,6 +630,122 @@ func TestSvgGLStagedCountMismatchFills(t *testing.T) {
 	if len(gl.composites) != 0 || len(ctx.fills) != 2 {
 		t.Errorf("composites %v fills %v, want both SVGs filled with Canvas2D",
 			gl.composites, ctx.fills)
+	}
+	checkNoErrs(t, ctx)
+}
+
+// A browser that cannot give the doubled drawing buffer is not asked
+// again: the buffer goes back to the canvas size, overlapping batches
+// go direct, and later frames neither resize nor ask.
+func TestSvgGLOverflowResizeFailure(t *testing.T) {
+	b, ctx, gl := newGLTestBackend(t)
+	canvas := js.Global().Get("Object").New()
+	canvas.Set("width", 1000)
+	canvas.Set("height", 1000)
+	b.canvas = canvas
+	gl.maxH = 1000
+	b.gl.wantOverflow = true
+	b.beginFrameSvgGL()
+	if b.gl.overflow || b.gl.wantOverflow || !b.gl.overflowDenied ||
+		fmt.Sprint(gl.resizes) != "[1000x2000 1000x1000]" {
+		t.Fatalf("overflow %v want %v denied %v resizes %v; want back to 1000x1000 and denied",
+			b.gl.overflow, b.gl.wantOverflow, b.gl.overflowDenied, gl.resizes)
+	}
+	cmds := []gui.RenderCmd{svgCmd(10, 10), rectCmd(0, 0), svgCmd(15, 15)}
+	for range 3 {
+		b.beginFrameSvgGL()
+		b.drawCmds(cmds)
+		b.endFrameSvgGL()
+	}
+	if len(gl.resizes) != 2 || b.gl.wantOverflow {
+		t.Errorf("resizes %v, wantOverflow %v; want no further resize and no ask", gl.resizes, b.gl.wantOverflow)
+	}
+	checkNoErrs(t, ctx)
+}
+
+// The overflow half goes after overflowIdleFrames animation frames that
+// did not need a repaint, including on an otherwise idle page, and is
+// resized immediately instead of waiting for a later painted frame.
+func TestSvgGLOverflowReleased(t *testing.T) {
+	b, ctx, gl := newGLTestBackend(t)
+	b.gl.wantOverflow, b.gl.overflow = true, true
+	overlap := []gui.RenderCmd{svgCmd(10, 10), rectCmd(0, 0), svgCmd(15, 15)}
+	for range 2 * overflowIdleFrames {
+		b.drawCmds(overlap)
+		b.endFrameSvgGL()
+	}
+	if !b.gl.wantOverflow {
+		t.Fatal("overflow half dropped while frames needed it")
+	}
+	for range overflowIdleFrames {
+		b.idleFrameSvgGL()
+	}
+	if b.gl.wantOverflow || b.gl.overflow || b.gl.overflowIdle != 0 ||
+		fmt.Sprint(gl.resizes) != "[1000x1000]" {
+		t.Errorf("wantOverflow %v overflow %v idle %d resizes %v; want released and resized now",
+			b.gl.wantOverflow, b.gl.overflow, b.gl.overflowIdle, gl.resizes)
+	}
+	checkNoErrs(t, ctx)
+}
+
+// A panic in the pre-pass (a JS exception through syscall/js) leaves
+// the real 2D context, frame state and window lock in place, so the
+// next frame, after the render loop recovers, draws again.
+func TestSvgGLPrepassPanicRecovers(t *testing.T) {
+	b, ctx, gl := newGLTestBackend(t)
+	var w sync.Mutex // stands in for the *gui.Window
+	cmds := []gui.RenderCmd{clipCmd(0, 0, 500, 500), svgCmd(10, 10)}
+	// A draw that throws in JS, which syscall/js raises as a panic in
+	// the calling goroutine. A Go panic inside a js.FuncOf fake would
+	// instead unwind the runtime's callback handling and deadlock the
+	// test binary.
+	fake := gl.api.Get("draw")
+	gl.api.Set("draw", js.Global().Get("Function").New(`throw new Error("draw failed")`))
+	func() {
+		defer func() {
+			if recover() == nil {
+				t.Fatal("pre-pass did not panic")
+			}
+		}()
+		withWindowRenderLock(&w, func() { b.drawCmds(cmds) })
+	}()
+	if !b.ctx2d.Equal(ctx.obj) || b.gl.preparing || len(b.gl.recs) != 0 || len(b.clipStack) != 0 {
+		t.Fatalf("after the panic: real ctx %v, preparing %v, %d queued records, %d clips; want all reset",
+			b.ctx2d.Equal(ctx.obj), b.gl.preparing, len(b.gl.recs)/glRecStride, len(b.clipStack))
+	}
+	gl.api.Set("draw", fake)
+	if !w.TryLock() {
+		t.Fatal("window remained locked after render panic")
+	}
+	w.Unlock()
+	withWindowRenderLock(&w, func() { b.drawCmds(cmds) })
+	if len(gl.composites) != 1 {
+		t.Errorf("composites after recovery = %v, want 1", gl.composites)
+	}
+	checkNoErrs(t, ctx)
+}
+
+// While the WebGL context is lost, SVGs draw from the Path2D cache when
+// it is set up, not as paths rebuilt every frame.
+func TestSvgGLLostUsesPath2D(t *testing.T) {
+	b, ctx, gl := newGLTestBackend(t)
+	builds := 0
+	build := js.FuncOf(func(js.Value, []js.Value) any {
+		builds++
+		return js.Global().Get("Object").New()
+	})
+	t.Cleanup(build.Release)
+	b.paths.build = build.Value
+	b.paths.cache = newMeshCache[*pathEntry](nil)
+	b.onSvgGLLost()
+	cmd := svgCmd(10, 10)
+	for range 3 {
+		b.drawCmds([]gui.RenderCmd{cmd})
+		b.endFramePaths()
+	}
+	if len(gl.draws) != 0 || len(ctx.fills) != 3 || len(b.paths.cache.entries) != 1 || builds != 2 {
+		t.Errorf("draws %v, fills %d, %d cached paths, %d builds; want Path2D fills, cached on the second frame",
+			gl.draws, len(ctx.fills), len(b.paths.cache.entries), builds)
 	}
 	checkNoErrs(t, ctx)
 }

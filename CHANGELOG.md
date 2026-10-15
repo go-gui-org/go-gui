@@ -76,7 +76,9 @@ and this project adheres to
   transforms keep their Canvas2D path. On a grid of SVG illustrations: Chrome
   3.4 → 60 fps, Safari 14 → 60, Firefox 9 → 60. A lost WebGL context falls back
   and recovers, and browsers without WebGL2 use a cached Path2D path. Gradient
-  meshes now show their interpolated colors instead of flat triangles. A page
+  meshes now show their interpolated colors instead of flat triangles, except
+  where SVGs still fall back to Canvas2D: while the WebGL context is lost, and
+  for a run of SVGs inside a transform that is larger than the canvas. A page
   can opt out by setting `globalThis.goGuiSvgMode = "canvas2d"` before Go
   starts. No Go API change. `examples/web_svg_bench` measures it.
 - **Animations tick at the refresh rate of the display (#1018).** Before, the

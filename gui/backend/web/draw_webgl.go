@@ -39,9 +39,7 @@ type glBatchClip struct {
 }
 
 type glMesh struct {
-	id       int
-	tris     []float32 // pinned, see meshKey
-	lastUsed uint64
+	id int
 	// Mesh-space bounds, for the batch rect.
 	minX, minY, maxX, maxY float32
 }
@@ -55,11 +53,17 @@ type glPrepared struct {
 	x0, y0, w, h int
 	// The batch is rendered at (x0+ox, y0+oy) of the WebGL canvas.
 	ox, oy int
-	// fill: drawn with Canvas2D (an off-buffer batch under a transform).
-	// direct: rendered and composited on its own in the second pass,
-	// having found no free place in the first.
-	fill, direct bool
+	// fill: drawn with Canvas2D (under a transform, larger than the
+	// canvas). direct: rendered and composited on its own in the second
+	// pass, having found no free place in the first. away: under a
+	// transform, it reaches past the canvas, so its own place is not in
+	// the WebGL canvas and it is rendered elsewhere.
+	fill, direct, away bool
 }
+
+// overflowIdleFrames is how many animation frames, painted or not, the
+// overflow half is kept without a frame needing it.
+const overflowIdleFrames = 300
 
 type glSvg struct {
 	api     js.Value // goGuiSvgGL
@@ -68,17 +72,26 @@ type glSvg struct {
 	nullCtx js.Value // goGuiSvgGL.nullContext
 	w, h    int      // 2D canvas size in device pixels
 	// The drawing buffer is w × h, or w × 2h with overflow: a batch
-	// whose own place another batch took this frame is rendered in the
-	// lower half. It grows when a frame first needs it.
-	overflow, wantOverflow bool
+	// whose own place another batch took this frame, or that has none
+	// (away), is rendered in the lower half. It grows when a frame first
+	// needs it, and goes after overflowIdleFrames frames that did not
+	// (overflowUsed, overflowIdle). overflowDenied: the browser could
+	// not give the doubled buffer, so it is not asked for again until
+	// the canvas size changes.
+	overflow, wantOverflow       bool
+	overflowUsed, overflowDenied bool
+	overflowIdle                 int
 
-	meshes map[meshKey]*glMesh
-	vars   meshVariants // mesh_cache.go
+	cache meshCache[*glMesh] // mesh_cache.go
+	// transient holds the slots of meshes the cache did not admit; a
+	// frame uses transientN of them, and the next frame refills their
+	// buffers.
+	transient  []*glMesh
+	transientN int
 	// Mesh ids travel to JS in a Float32Array, exact only up to 2^24.
 	// Freed ids are reused, so ids stay below the live mesh count.
 	nextID  int
 	freeIDs []int
-	frame   uint64
 
 	// staging carries mesh uploads (float32 positions, then RGBA8
 	// colors) into JS.
@@ -150,8 +163,8 @@ func (b *Backend) initSvgGL() (ok bool) {
 		state:   state,
 		canvas:  canvas,
 		nullCtx: api.Get("nullContext"),
-		meshes:  map[meshKey]*glMesh{},
 	}
+	b.gl.cache = newMeshCache(b.releaseGLMesh)
 	lostFn := js.FuncOf(func(_ js.Value, args []js.Value) any {
 		// preventDefault asks the browser to restore the context
 		// later; without it webglcontextrestored never fires.
@@ -211,7 +224,7 @@ func (b *Backend) beginFrameSvgGL() {
 	h := b.canvas.Get("height").Int()
 	resized := w != g.w || h != g.h
 	if resized {
-		g.wantOverflow = false
+		g.wantOverflow, g.overflowDenied = false, false
 	}
 	if !resized && g.overflow == g.wantOverflow {
 		return
@@ -222,32 +235,68 @@ func (b *Backend) beginFrameSvgGL() {
 		bh = 2 * h
 	}
 	ok := g.api.Call("resize", g.state, w, bh).Truthy()
-	// A browser may give a smaller buffer than asked, which would cut
-	// the overflow half; such batches go direct instead.
+	if g.wantOverflow && !ok {
+		// A browser that cannot give the doubled buffer gives a smaller
+		// one and scales it, which would misplace every draw. Go back to
+		// w × h and do not ask again until the canvas size changes;
+		// batches that need the overflow half go direct.
+		g.api.Call("resize", g.state, w, h)
+		g.wantOverflow, g.overflowDenied = false, true
+	}
 	g.overflow = g.wantOverflow && ok
 }
 
-// endFrameSvgGL evicts meshes not drawn for pathCacheIdleFrames.
+// endFrameSvgGL ends the frame for the mesh cache, frees the transient
+// slots the frame did not use, and ages an unused overflow half.
 func (b *Backend) endFrameSvgGL() {
 	g := &b.gl
-	g.frame++
-	if g.frame%60 != 0 {
-		return
+	g.cache.endFrame()
+	for _, m := range g.transient[g.transientN:] {
+		b.releaseGLMesh(m)
 	}
-	for k, m := range g.meshes {
-		if g.frame-m.lastUsed > pathCacheIdleFrames {
-			b.dropGLMesh(k, m)
-		}
+	clear(g.transient[g.transientN:])
+	g.transient = g.transient[:g.transientN]
+	switch {
+	case g.overflowUsed:
+		g.overflowIdle = 0
+	case g.wantOverflow:
+		b.ageOverflowSvgGL()
+	}
+	g.overflowUsed = false
+}
+
+// idleFrameSvgGL ages the overflow half on an animation frame that did
+// not repaint. The web loop skips renderFrame while a page is idle, so
+// doing this only from endFrameSvgGL would retain the doubled WebGL and
+// staging canvases indefinitely on a static page.
+func (b *Backend) idleFrameSvgGL() {
+	if b.gl.wantOverflow {
+		b.ageOverflowSvgGL()
 	}
 }
 
-// dropGLMesh frees mesh m and its id. Callers drop only meshes not
-// used this frame, so no queued record still refers to the id.
-func (b *Backend) dropGLMesh(k meshKey, m *glMesh) {
+// ageOverflowSvgGL drops the overflow half after it has gone unused.
+// Resize immediately: clearing wantOverflow alone would leave both
+// doubled canvases allocated until some later painted frame.
+func (b *Backend) ageOverflowSvgGL() {
+	g := &b.gl
+	g.overflowIdle++
+	if g.overflowIdle < overflowIdleFrames {
+		return
+	}
+	if g.overflow {
+		g.api.Call("resize", g.state, g.w, g.h)
+	}
+	g.overflow, g.wantOverflow = false, false
+	g.overflowIdle = 0
+}
+
+// releaseGLMesh frees mesh m on the GPU and its id. Callers release
+// only meshes not used this frame, so no queued record still refers to
+// the id.
+func (b *Backend) releaseGLMesh(m *glMesh) {
 	g := &b.gl
 	g.api.Call("remove", g.state, m.id)
-	delete(g.meshes, k)
-	g.vars.remove(k)
 	g.freeIDs = append(g.freeIDs, m.id)
 }
 
@@ -255,28 +304,45 @@ func (b *Backend) dropGLMesh(k meshKey, m *glMesh) {
 // restore: the GL objects went with the context.
 func (b *Backend) resetGLMeshes() {
 	g := &b.gl
-	clear(g.meshes)
-	clear(g.vars)
+	g.cache.reset()
+	clear(g.transient)
+	g.transient = g.transient[:0]
+	g.transientN = 0
 	g.freeIDs = g.freeIDs[:0]
 	g.nextID = 0
 }
 
-// meshFor returns r's uploaded mesh, uploading it when new or changed.
+// newGLMeshID returns a free mesh id.
+func (g *glSvg) newGLMeshID() int {
+	if n := len(g.freeIDs); n > 0 {
+		id := g.freeIDs[n-1]
+		g.freeIDs = g.freeIDs[:n-1]
+		return id
+	}
+	g.nextID++
+	return g.nextID
+}
+
+// glMeshFor returns r's mesh on the GPU: cached, or uploaded, and kept
+// when the cache admits it (meshCache.admit). A mesh not admitted goes
+// into a transient slot, whose buffers a later upload refills.
 func (b *Backend) glMeshFor(r *gui.RenderCmd) *glMesh {
 	g := &b.gl
 	key := meshKeyFor(r)
-	if m, ok := g.meshes[key]; ok {
-		m.lastUsed = g.frame
+	if m, ok := g.cache.get(key); ok {
 		return m
 	}
-	var id int
-	if n := len(g.freeIDs); n > 0 {
-		id, g.freeIDs = g.freeIDs[n-1], g.freeIDs[:n-1]
+	keep := g.cache.admit(key)
+	var m *glMesh
+	if keep {
+		m = &glMesh{id: g.newGLMeshID()}
 	} else {
-		g.nextID++
-		id = g.nextID
+		if g.transientN == len(g.transient) {
+			g.transient = append(g.transient, &glMesh{id: g.newGLMeshID()})
+		}
+		m = g.transient[g.transientN]
+		g.transientN++
 	}
-	m := &glMesh{id: id, tris: r.Triangles, lastUsed: g.frame}
 	m.minX, m.minY = float32(math.Inf(1)), float32(math.Inf(1))
 	m.maxX, m.maxY = float32(math.Inf(-1)), float32(math.Inf(-1))
 	for i := 0; i+1 < len(r.Triangles); i += 2 {
@@ -304,14 +370,9 @@ func (b *Backend) glMeshFor(r *gui.RenderCmd) *glMesh {
 	}
 	js.CopyBytesToJS(g.stagingJS, g.staging)
 	g.api.Call("upload", g.state, m.id, g.stagingJS, posLen, colLen, numVerts)
-	g.meshes[key] = m
-	if g.vars == nil {
-		g.vars = meshVariants{}
+	if keep {
+		g.cache.put(key, r.Triangles, m)
 	}
-	g.vars.add(key)
-	trimMeshVariants(g.meshes, g.vars, key.base(), g.frame,
-		func(m *glMesh) uint64 { return m.lastUsed },
-		func(k meshKey, m *glMesh) { b.dropGLMesh(k, m) })
 	return m
 }
 
@@ -353,7 +414,7 @@ func (b *Backend) queueSvgGL(r *gui.RenderCmd) {
 		minY, maxY = min(minY, y), max(maxY, y)
 	}
 	sx, sy, sw, sh := float32(0), float32(0), float32(-1), float32(-1)
-	if clip, ok := b.stackRectClip(); ok && !g.batchXf {
+	if clip := rc; rcOK && !g.batchXf {
 		minX, minY = max(minX, clip.x), max(minY, clip.y)
 		maxX, maxY = min(maxX, clip.x+clip.w), min(maxY, clip.y+clip.h)
 		s := b.dpiScale
@@ -378,9 +439,7 @@ func (b *Backend) queueSvgGL(r *gui.RenderCmd) {
 	useV, alpha := float32(0), float32(1)
 	if len(r.VertexColors) == len(r.Triangles)/2 {
 		useV = 1
-		if r.HasVertexAlpha {
-			alpha = max(0, min(r.VertexAlphaScale, 1))
-		}
+		alpha = svgVertexAlpha(r)
 	}
 	col := r.Color
 	g.recs = append(g.recs, float32(m.id),
@@ -408,7 +467,7 @@ func (b *Backend) fillSvgBatch() {
 			}
 			last = c
 		}
-		if b.paths.entries != nil {
+		if b.paths.ok() {
 			b.drawSvgPath2D(r)
 		} else {
 			b.drawSvgCanvas(r)
@@ -436,105 +495,6 @@ func (b *Backend) stackRectClip() (clipRegion, bool) {
 	return clipRegion{}, false
 }
 
-// prepassSvgGL is the first pass of a frame in WebGL mode. It runs the
-// frame's clip, transform, filter and SVG commands through the same
-// batching as the drawing pass, with the 2D context swapped for a
-// stand-in that ignores every call, so the batches come out the same.
-// Each batch is rendered into the WebGL canvas where placeSvgGL puts
-// it, and the drawn area is copied once into the staging canvas. The
-// drawing pass then composites each batch from the copy.
-func (b *Backend) prepassSvgGL(cmds []gui.RenderCmd) {
-	g := &b.gl
-	g.prepared = g.prepared[:0]
-	g.next = 0
-	g.placed = g.placed[:0]
-	g.shelfX, g.shelfY, g.shelfH = 0, 0, 0
-	g.usedX0, g.usedY0, g.usedX1, g.usedY1 = math.MaxInt, math.MaxInt, 0, 0
-	if g.lost {
-		return
-	}
-	ctx := b.ctx2d
-	b.ctx2d = g.nullCtx
-	g.preparing = true
-	for i := range cmds {
-		r := &cmds[i]
-		b.beforeCmdSvgGL(r)
-		switch r.Kind {
-		case gui.RenderClip:
-			b.drawClip(r)
-		case gui.RenderSvg:
-			b.drawSvg(r)
-		case gui.RenderFilterBegin:
-			b.beginFilter(r)
-		case gui.RenderFilterEnd:
-			b.endFilter()
-		case gui.RenderStencilBegin:
-			b.beginStencilClip(r)
-		case gui.RenderStencilEnd:
-			b.endStencilClip()
-		case gui.RenderRotateBegin:
-			b.beginRotation(r)
-		case gui.RenderRotateEnd:
-			b.endRotation()
-		case gui.RenderTransformBegin:
-			b.beginTransform(r)
-		case gui.RenderTransformEnd:
-			b.endTransform()
-		default:
-		}
-	}
-	b.settleSvgGL()
-	g.preparing = false
-	b.ctx2d = ctx
-	// Back to the frame's start, as renderFrame left it. The saves were
-	// made on the stand-in, so none is restored.
-	b.resetTransforms()
-	b.stateDepth = 0
-	b.clipStack = b.clipStack[:0]
-	b.brackets = b.brackets[:0]
-	b.clipDirty = false
-	if g.usedX1 > g.usedX0 {
-		g.api.Call("stage", g.state, g.usedX0, g.usedY0,
-			g.usedX1-g.usedX0, g.usedY1-g.usedY0)
-	}
-}
-
-// placeSvgGL picks where in the WebGL canvas the pre-pass renders p: at
-// its own place unless a batch took part of it, else on the next shelf
-// of the overflow half, else nowhere (direct).
-func (g *glSvg) placeSvgGL(p *glPrepared) {
-	r := [4]int{p.x0, p.y0, p.x0 + p.w, p.y0 + p.h}
-	free := true
-	for _, q := range g.placed {
-		if r[0] < q[2] && q[0] < r[2] && r[1] < q[3] && q[1] < r[3] {
-			free = false
-			break
-		}
-	}
-	switch {
-	case free:
-		g.placed = append(g.placed, r)
-	case !g.overflow:
-		g.wantOverflow = true
-		p.direct = true
-		return
-	default:
-		if g.shelfX+p.w > g.w {
-			g.shelfX, g.shelfY, g.shelfH = 0, g.shelfY+g.shelfH, 0
-		}
-		if g.shelfY+p.h > g.h {
-			p.direct = true
-			return
-		}
-		p.ox, p.oy = g.shelfX-p.x0, g.h+g.shelfY-p.y0
-		g.shelfX += p.w
-		g.shelfH = max(g.shelfH, p.h)
-	}
-	g.usedX0, g.usedY0 = min(g.usedX0, p.x0+p.ox), min(g.usedY0, p.y0+p.oy)
-	g.usedX1 = max(g.usedX1, p.x0+p.ox+p.w)
-	g.usedY1 = max(g.usedY1, p.y0+p.oy+p.h)
-}
-
 // flushSvgGL ends the queued batch. Called before any non-SVG command
 // and at the end of the frame, so the batch draws under the clip and
 // transform it was queued under. The pre-pass places and renders it;
@@ -545,15 +505,7 @@ func (b *Backend) flushSvgGL() {
 		return
 	}
 	n := len(g.recs) / glRecStride
-	defer func() {
-		g.recs = g.recs[:0]
-		clear(g.cmds) // drop the frame's command pointers
-		g.cmds = g.cmds[:0]
-		g.clips = g.clips[:0]
-		g.batchXf = false
-		g.seen = 0
-		g.fast = false
-	}()
+	defer g.resetBatch()
 	// A batch queued before the context was lost this frame is filled
 	// with Canvas2D.
 	if g.lost {
@@ -581,6 +533,17 @@ func (b *Backend) flushSvgGL() {
 	b.compositeSvgGL(&p)
 }
 
+// resetBatch empties the queued batch.
+func (g *glSvg) resetBatch() {
+	g.recs = g.recs[:0]
+	clear(g.cmds) // drop the frame's command pointers
+	g.cmds = g.cmds[:0]
+	g.clips = g.clips[:0]
+	g.batchXf = false
+	g.seen = 0
+	g.fast = false
+}
+
 // svgGLBatch returns the queued batch's device-pixel rect, or marks it
 // for Canvas2D.
 func (b *Backend) svgGLBatch(n int) glPrepared {
@@ -590,21 +553,30 @@ func (b *Backend) svgGLBatch(n int) glPrepared {
 		return p // every command clipped away
 	}
 	s := b.dpiScale
+	// Device-pixel rect, padded a pixel for antialiasing.
+	x0 := int(math.Floor(float64(g.bMinX*s))) - 1
+	y0 := int(math.Floor(float64(g.bMinY*s))) - 1
+	x1 := int(math.Ceil(float64(g.bMaxX*s))) + 1
+	y1 := int(math.Ceil(float64(g.bMaxY*s))) + 1
 	// Under a transform the batch is drawn in the view's frame, which
 	// can lie outside the 2D canvas's area, even wholly, though the
-	// transform maps it on screen. Fill such a batch with Canvas2D
-	// rather than cut or drop it.
+	// transform maps it on screen. It is rendered elsewhere in the
+	// WebGL canvas (away); one larger than the canvas is filled with
+	// Canvas2D, which draws gradients flat.
 	if g.batchXf && (g.bMinX*s < 0 || g.bMinY*s < 0 ||
 		g.bMaxX*s > float32(g.w) || g.bMaxY*s > float32(g.h)) {
-		p.fill = true
+		if x1-x0 > g.w || y1-y0 > g.h {
+			p.fill = true
+			return p
+		}
+		p.x0, p.y0, p.w, p.h = x0, y0, x1-x0, y1-y0
+		// Rendered at the canvas origin unless placed on a shelf.
+		p.away, p.ox, p.oy = true, -x0, -y0
 		return p
 	}
-	// Device-pixel rect, padded a pixel for antialiasing and clamped
-	// to the 2D canvas.
-	x0 := max(0, int(math.Floor(float64(g.bMinX*s)))-1)
-	y0 := max(0, int(math.Floor(float64(g.bMinY*s)))-1)
-	x1 := min(g.w, int(math.Ceil(float64(g.bMaxX*s)))+1)
-	y1 := min(g.h, int(math.Ceil(float64(g.bMaxY*s)))+1)
+	// Clamped to the 2D canvas.
+	x0, y0 = max(0, x0), max(0, y0)
+	x1, y1 = min(g.w, x1), min(g.h, y1)
 	if x1 > x0 && y1 > y0 {
 		p.x0, p.y0, p.w, p.h = x0, y0, x1-x0, y1-y0
 	}
@@ -685,7 +657,8 @@ func (b *Backend) compositeAtSvgGL(q, p *glPrepared, direct bool) {
 	}
 	s := float64(b.dpiScale)
 	if direct {
-		g.api.Call("compositeDirect", g.state, b.ctx2d, s, p.x0, p.y0, p.w, p.h)
+		g.api.Call("compositeDirect", g.state, b.ctx2d, s,
+			p.x0+p.ox, p.y0+p.oy, p.w, p.h, p.x0, p.y0)
 	} else {
 		g.api.Call("composite", g.state, b.ctx2d, s,
 			q.x0+q.ox, q.y0+q.oy, p.w, p.h, p.x0, p.y0)

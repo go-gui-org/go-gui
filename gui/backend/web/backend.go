@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"log"
+	"sync"
 	"syscall/js"
 
 	"github.com/go-gui-org/go-glyph"
@@ -325,10 +326,14 @@ func (b *Backend) run(w *gui.Window) {
 		// pixels between frames, so an idle frame costs nothing
 		// instead of a full Canvas2D redraw. Native backends gate
 		// renderFrame on FrameFn the same way.
+		var painted bool
 		if hook.Type() == js.TypeFunction {
-			b.timedFrame(w, hook)
+			painted = b.timedFrame(w, hook)
 		} else {
-			b.paintIfNeeded(w.FrameFn(), func() { b.renderFrame(w) })
+			painted = b.paintIfNeeded(w.FrameFn(), func() { b.renderFrame(w) })
+		}
+		if !painted && b.svgMode == svgModeWebGL {
+			b.idleFrameSvgGL()
 		}
 
 		// Update cursor.
@@ -384,10 +389,10 @@ func (b *Backend) renderFrame(w *gui.Window) {
 		b.beginFrameSvgGL()
 	}
 
-	w.Lock()
-	w.BackingScale = b.dpiScale
-	b.renderersDraw(w)
-	w.Unlock()
+	withWindowRenderLock(w, func() {
+		w.BackingScale = b.dpiScale
+		b.renderersDraw(w)
+	})
 
 	b.textSys.Commit()
 	b.glyphBack.EndFrame()
@@ -396,10 +401,20 @@ func (b *Backend) renderFrame(w *gui.Window) {
 		b.endFramePaths()
 	case svgModeWebGL:
 		b.endFrameSvgGL()
-		if b.paths.entries != nil {
+		if b.paths.ok() {
 			b.endFramePaths()
 		}
 	}
+}
+
+// withWindowRenderLock keeps the renderer list stable while a backend
+// consumes it; w is the *gui.Window. Rendering may panic on a browser
+// exception; the outer animation-frame recovery can only repaint if
+// the window lock is released while the panic unwinds.
+func withWindowRenderLock(w sync.Locker, draw func()) {
+	w.Lock()
+	defer w.Unlock()
+	draw()
 }
 
 // watchRedrawSources hooks the browser events that change what the

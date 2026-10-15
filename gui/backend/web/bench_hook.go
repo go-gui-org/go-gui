@@ -78,7 +78,7 @@ func (g *gcSampler) read() gcSample {
 // Canvas2D rasterizes after this returns, so the draw time is only the
 // Go and JS call cost; the page measures what the browser adds from
 // requestAnimationFrame deltas.
-func (b *Backend) timedFrame(w *gui.Window, hook js.Value) {
+func (b *Backend) timedFrame(w *gui.Window, hook js.Value) bool {
 	if b.gcs == nil {
 		b.gcs = newGCSampler()
 	}
@@ -116,4 +116,5 @@ func (b *Backend) timedFrame(w *gui.Window, hook js.Value) {
 		float64(g2.cycles-g1.cycles),
 		(g2.gcCPUSec-g0.gcCPUSec)*1000,
 		b.gl.filled, b.gl.direct)
+	return painted
 }
