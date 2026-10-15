@@ -739,13 +739,12 @@ func TestSvgGLLostUsesPath2D(t *testing.T) {
 	checkNoErrs(t, ctx)
 }
 
-// The pre-pass replays clips, stencils, filters, rotations and view
-// transforms in Go only: it renders the batches but makes no call on
-// the 2D context, so nothing it does can reach the canvas (#1051).
-func TestSvgGLPrepassLeavesContextAlone(t *testing.T) {
-	b, ctx, gl := newGLTestBackend(t)
+// prepassTestCmds has an SVG under each kind of 2D state the pre-pass
+// tracks: a rect clip, a stencil, a filter, a rotation and a view
+// transform.
+func prepassTestCmds() []gui.RenderCmd {
 	shift := &[9]float32{1, 0, 100, 0, 1, 50, 0, 0, 1}
-	b.prepassSvgGL([]gui.RenderCmd{
+	return []gui.RenderCmd{
 		clipCmd(0, 0, 500, 500), svgCmd(10, 10),
 		{Kind: gui.RenderStencilBegin, X: 0, Y: 0, W: 400, H: 400, Radius: 8},
 		{Kind: gui.RenderFilterBegin, BlurRadius: 4},
@@ -758,17 +757,52 @@ func TestSvgGLPrepassLeavesContextAlone(t *testing.T) {
 		{Kind: gui.RenderFilterEnd},
 		{Kind: gui.RenderStencilEnd},
 		rectCmd(0, 0), svgCmd(40, 40),
-	})
-	if len(gl.draws) == 0 {
-		t.Fatal("pre-pass rendered no batch")
 	}
-	if ctx.calls != 0 || ctx.filterNow() != "" {
-		t.Errorf("pre-pass made %d calls on the 2D context, filter %q; want none",
-			ctx.calls, ctx.filterNow())
+}
+
+// checkPrepassEnd checks that the pre-pass gave back the real 2D context
+// and left the frame's starting state.
+func checkPrepassEnd(t *testing.T, b *Backend, ctx *stateCtx) {
+	t.Helper()
+	if !b.ctx2d.Equal(ctx.obj) {
+		t.Error("after the pre-pass: the 2D context was not given back")
 	}
 	if b.gl.preparing || b.stateDepth != 0 || len(b.clipStack) != 0 || len(b.brackets) != 0 {
 		t.Errorf("after the pre-pass: preparing %v, depth %d, %d clips, %d brackets; want the frame's start",
 			b.gl.preparing, b.stateDepth, len(b.clipStack), len(b.brackets))
 	}
+}
+
+// The pre-pass replays clips, stencils, filters, rotations and view
+// transforms in Go only: it renders the batches with the 2D context set
+// to null. A method call or a property write on that context panics, so
+// nothing the pre-pass does can reach the canvas (#1051).
+func TestSvgGLPrepassLeavesContextAlone(t *testing.T) {
+	b, ctx, gl := newGLTestBackend(t)
+	b.prepassSvgGL(prepassTestCmds())
+	if len(gl.draws) == 0 {
+		t.Fatal("pre-pass rendered no batch")
+	}
+	if len(ctx.fills) != 0 || ctx.filterNow() != "" {
+		t.Errorf("pre-pass reached the 2D context: fills %v, filter %q; want none",
+			ctx.fills, ctx.filterNow())
+	}
+	checkPrepassEnd(t, b, ctx)
+	checkNoErrs(t, ctx)
+}
+
+// A context lost during the pre-pass, after its check at the start,
+// leaves the rest of the pre-pass's SVGs to the drawing pass. The
+// pre-pass must not fill them with Canvas2D as well: that drew each one
+// twice, the first time with no clip or rotation (#1051).
+func TestSvgGLPrepassLostLeavesContextAlone(t *testing.T) {
+	b, ctx, gl := newGLTestBackend(t)
+	b.gl.lost = true
+	b.prepareSvgGL(prepassTestCmds())
+	if len(gl.draws) != 0 || len(ctx.fills) != 0 {
+		t.Errorf("lost during the pre-pass: draws %v fills %v; want none",
+			gl.draws, ctx.fills)
+	}
+	checkPrepassEnd(t, b, ctx)
 	checkNoErrs(t, ctx)
 }

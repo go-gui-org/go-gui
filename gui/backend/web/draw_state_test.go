@@ -35,7 +35,6 @@ type stateCtx struct {
 	path  string // last rect() since beginPath
 	fills []string
 	errs  []string
-	calls int // method calls on the context
 }
 
 func newStateCtx(t *testing.T) *stateCtx {
@@ -43,7 +42,7 @@ func newStateCtx(t *testing.T) *stateCtx {
 	c := &stateCtx{t: t, obj: js.Global().Get("Object").New()}
 	var funcs []js.Func
 	on := func(name string, fn func(a []js.Value)) {
-		f := js.FuncOf(func(_ js.Value, a []js.Value) any { c.calls++; fn(a); return nil })
+		f := js.FuncOf(func(_ js.Value, a []js.Value) any { fn(a); return nil })
 		funcs = append(funcs, f)
 		c.obj.Set(name, f)
 	}

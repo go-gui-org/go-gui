@@ -4,6 +4,7 @@ package web
 
 import (
 	"math"
+	"syscall/js"
 
 	"github.com/go-gui-org/go-gui/gui"
 )
@@ -16,7 +17,9 @@ import (
 // batch split depends only on the clip, transform and bracket stacks,
 // so while preparing the helpers that replay them into the 2D context
 // (rebuildState, pushBracket, setCanvasTransform) keep the stacks and
-// skip the JS calls (#1051).
+// skip the JS calls (#1051). prepareSvgGL also sets the 2D context to
+// null, so a 2D call that a later change adds to the pre-pass panics in
+// the tests and does not draw on the visible canvas.
 // Each batch is rendered into the WebGL canvas where placeSvgGL puts
 // it, and the drawn area is copied once into the staging canvas. The
 // drawing pass then composites each batch from the copy.
@@ -38,20 +41,23 @@ func (b *Backend) prepassSvgGL(cmds []gui.RenderCmd) {
 	}
 }
 
-// prepareSvgGL runs the pre-pass's commands with the 2D context left
-// alone. However it ends, a panic included, the frame's starting state
-// comes back: a panic is recovered by the render loop, and a later
-// frame still marked preparing would draw nothing.
+// prepareSvgGL runs the pre-pass's commands with the 2D context set to
+// null. However it ends, a panic included, the real context and the
+// frame's starting state come back: a panic is recovered by the render
+// loop. A later frame still marked preparing would skip every clip,
+// rotation and filter, and would composite no SVG batch.
 func (b *Backend) prepareSvgGL(cmds []gui.RenderCmd) {
 	g := &b.gl
+	ctx := b.ctx2d
+	b.ctx2d = js.Null()
 	g.preparing = true
 	defer func() {
 		g.preparing = false
+		b.ctx2d = ctx
 		g.resetBatch()
 		// Back to the frame's start, as renderFrame left it. No save
-		// reached the context, so none is restored.
+		// reached the context, so stateDepth did not move.
 		b.resetTransforms()
-		b.stateDepth = 0
 		b.clipStack = b.clipStack[:0]
 		b.brackets = b.brackets[:0]
 		b.clipDirty = false

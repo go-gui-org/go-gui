@@ -678,6 +678,13 @@ func (b *Backend) drawSvg(r *gui.RenderCmd) {
 		b.queueSvgGL(r)
 		return
 	}
+	// The context was lost during the pre-pass, which checks only at
+	// its start. The drawing pass fills these SVGs with Canvas2D; a
+	// fill here would draw each one twice, the first time with no
+	// clip or rotation (#1051).
+	if b.gl.preparing {
+		return
+	}
 	// In WebGL mode rect clips are applied lazily (drawClip), also
 	// while the context is lost; a direct fill needs them in force.
 	if b.clipDirty {
