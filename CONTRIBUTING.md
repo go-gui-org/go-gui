@@ -28,11 +28,11 @@ the `tools/lint` module, which is where the version lives. CI runs the same
 
 For a tight edit → rebuild → relaunch loop while iterating on an example app,
 see [docs/dev-loop.md](docs/dev-loop.md)
-(`./scripts/dev-loop.sh ./examples/get_started/`).
+(`go run ./tools/devloop ./examples/get_started/`).
 
 Build artifacts never land in the repo root: `make build-examples` writes each
 example to `examples/bin/`. `make build-macos`, `make build-windows`, and the
-other build targets write to `build/`. `scripts/dev-loop.sh` writes to
+other build targets write to `build/`. `tools/devloop` writes to
 `build/dev-loop/`. A bare `go build ./examples/<name>/` or
 `go build ./tools/<name>/` drops a binary in the repo root, so always pass `-o`
 with an explicit output path (for example, `-o build/<name>`).

@@ -1,6 +1,6 @@
 # Dev loop: rebuild-and-relaunch
 
-`scripts/dev-loop.sh` runs a Go GUI app and relaunches it whenever the module
+`go run ./tools/devloop` runs a Go GUI app and relaunches it whenever the module
 changes. The edit → recompile → relaunch cycle is one save away.
 
 This is a convenience wrapper, not in-process reload. Rebuilding and relaunching
@@ -10,30 +10,30 @@ its whole dependency tree (including `gui/`).
 ## Usage
 
 ```bash
-./scripts/dev-loop.sh <app path> [args...]
+go run ./tools/devloop <app path> [args...]
 ```
 
 - `<app path>` is a Go package, for example `./examples/get_started/`.
 - Extra args are preserved and passed to every relaunched instance.
 
-The script is bash, but you can call it directly from Fish or any other shell:
+The tool is Go, but you can call it directly from Fish or any other shell:
 
 ```fish
-./scripts/dev-loop.sh ./examples/get_started/
+go run ./tools/devloop ./examples/get_started/
 ```
 
 ## Behavior
 
-1. **Initial build.** The script builds the app into `build/dev-loop/`
-   (gitignored) and launches it. If the initial build fails, the script prints
-   the error and exits. There is no previous binary to keep running.
-2. **Watch.** Every 0.5 s (override with `DEV_LOOP_POLL_SECONDS`), the script
+1. **Initial build.** The tool builds the app into `build/dev-loop/`
+   (gitignored) and launches it. If the initial build fails, the tool prints the
+   error and exits. There is no previous binary to keep running.
+2. **Watch.** Every 0.5 s (override with `DEV_LOOP_POLL_SECONDS`), the tool
    scans the module for changes to `*.go`, `go.mod`, or `go.sum` files. It
    ignores `build/`, `.git/`, docs, and scripts.
-3. **On save.** The script rebuilds the app. Success: it kills the old process
-   and launches the new binary with the original args. Failure: it prints the
-   error, the watcher keeps running, and the last good binary keeps running. The
-   next save retries the build.
+3. **On save.** The tool rebuilds the app. Success: it kills the old process and
+   launches the new binary with the original args. Failure: it prints the error,
+   the watcher keeps running, and the last good binary keeps running. The next
+   save retries the build.
 4. **Ctrl-C** kills the running app and removes the temp artifacts.
 
 ## Limits
