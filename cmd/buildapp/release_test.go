@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -322,6 +323,43 @@ func TestDmgArgs(t *testing.T) {
 		if !slices.Contains(args, w) {
 			t.Errorf("hdiutil args lack %q: %q", w, args)
 		}
+	}
+}
+
+// TestDmgSizedWithHeadroom pins an explicit -size on the image. Left to
+// itself, hdiutil estimates the size from -srcfolder and can come up
+// short on GitHub macOS runners: the v0.89.0 release failed with
+// "No space left on device" while it copied the binary in.
+func TestDmgSizedWithHeadroom(t *testing.T) {
+	stub := stubTools(t)
+	bin := darwinStub(t)
+	o := bundleOpts{
+		Platform: "darwin", Binary: bin, OutDir: t.TempDir(),
+		Name: "My App", Version: "2.0", Dmg: true,
+	}
+	if err := build(o); err != nil {
+		t.Fatal(err)
+	}
+	dmgs := callsFor(stub.calls, "hdiutil")
+	if len(dmgs) != 1 {
+		t.Fatalf("want 1 hdiutil call, got %d", len(dmgs))
+	}
+	args := dmgs[0]
+	i := slices.Index(args, "-size")
+	if i < 0 || i+1 >= len(args) {
+		t.Fatalf("hdiutil args lack -size: %q", args)
+	}
+	kb, err := strconv.ParseInt(strings.TrimSuffix(args[i+1], "k"), 10, 64)
+	if err != nil {
+		t.Fatalf("-size %q not in k units: %v", args[i+1], err)
+	}
+	fi, err := os.Stat(bin)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// The image must hold the binary plus the fixed headroom.
+	if want := fi.Size()/1024 + dmgHeadroomKB; kb < want {
+		t.Errorf("-size %dk smaller than binary + headroom %dk", kb, want)
 	}
 }
 

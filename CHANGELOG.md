@@ -8,6 +8,15 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Fixed
+
+- **`buildapp -dmg` sizes the disk image itself.** hdiutil's own size estimate
+  from `-srcfolder` can be too small. The v0.89.0 release job failed on a GitHub
+  macOS runner with "No space left on device" while it copied the showcase
+  binary into the image. `buildapp` now passes `-size`: the app's size plus 10%
+  plus 20 MiB. UDZO compresses the free space, so the `.dmg` does not get
+  larger.
+
 ## [v0.89.0] - 2026-10-15
 
 ### Added
