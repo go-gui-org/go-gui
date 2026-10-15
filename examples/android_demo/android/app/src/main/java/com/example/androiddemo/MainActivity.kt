@@ -1,13 +1,12 @@
 package com.example.androiddemo
 
 import android.app.Activity
+import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
-import androidx.core.app.NotificationCompat
-import androidx.core.app.NotificationManagerCompat
 import androidapp.Androidapp
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -26,6 +25,7 @@ class MainActivity : Activity() {
         Androidapp.init()
         // Where gui.SaveSettings keeps the app's settings (go-gui #848).
         Androidapp.setFilesDir(filesDir.absolutePath)
+        Androidapp.setSecretStore(AndroidSecretStore(applicationContext))
         glSurfaceView = GoGuiGLSurfaceView(this)
         setContentView(glSurfaceView)
         pushAppearance(resources.configuration)
@@ -79,13 +79,19 @@ class MainActivity : Activity() {
 
     fun postNotification(title: String, body: String) {
         try {
-            val builder = NotificationCompat.Builder(this, CHANNEL_ID)
+            val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                Notification.Builder(this, CHANNEL_ID)
+            } else {
+                @Suppress("DEPRECATION")
+                Notification.Builder(this)
+            }
+            builder
                 .setSmallIcon(android.R.drawable.ic_dialog_info)
                 .setContentTitle(title)
                 .setContentText(body)
-                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                .setPriority(Notification.PRIORITY_DEFAULT)
 
-            val manager = NotificationManagerCompat.from(this)
+            val manager = getSystemService(NotificationManager::class.java)
             manager.notify(notifId.getAndIncrement(), builder.build())
 
             glSurfaceView.queueEvent {

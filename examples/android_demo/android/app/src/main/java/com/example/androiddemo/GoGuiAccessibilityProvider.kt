@@ -73,18 +73,18 @@ class GoGuiAccessibilityProvider(
         if (virtualViewId < 0 || virtualViewId >= count) return null
 
         val node = AccessibilityNodeInfo.obtain(hostView, virtualViewId)
-        val role = Androidapp.a11yNodeRole(virtualViewId.toLong())
-        val label = Androidapp.a11yNodeLabel(virtualViewId.toLong())
-        val value = Androidapp.a11yNodeValue(virtualViewId.toLong())
-        val desc = Androidapp.a11yNodeDescription(virtualViewId.toLong())
-        val state = Androidapp.a11yNodeState(virtualViewId.toLong())
-        val parentIdx = Androidapp.a11yNodeParent(virtualViewId.toLong())
+        val role = Androidapp.a11yNodeRole(virtualViewId)
+        val label = Androidapp.a11yNodeLabel(virtualViewId)
+        val value = Androidapp.a11yNodeValue(virtualViewId)
+        val desc = Androidapp.a11yNodeDescription(virtualViewId)
+        val state = Androidapp.a11yNodeState(virtualViewId)
+        val parentIdx = Androidapp.a11yNodeParent(virtualViewId)
 
         // Bounds (logical -> physical pixels).
-        val x = (Androidapp.a11yNodeBoundsX(virtualViewId.toLong()) * density).toInt()
-        val y = (Androidapp.a11yNodeBoundsY(virtualViewId.toLong()) * density).toInt()
-        val w = (Androidapp.a11yNodeBoundsW(virtualViewId.toLong()) * density).toInt()
-        val h = (Androidapp.a11yNodeBoundsH(virtualViewId.toLong()) * density).toInt()
+        val x = (Androidapp.a11yNodeBoundsX(virtualViewId) * density).toInt()
+        val y = (Androidapp.a11yNodeBoundsY(virtualViewId) * density).toInt()
+        val w = (Androidapp.a11yNodeBoundsW(virtualViewId) * density).toInt()
+        val h = (Androidapp.a11yNodeBoundsH(virtualViewId) * density).toInt()
         node.setBoundsInParent(Rect(x, y, x + w, y + h))
 
         // Parent.
@@ -95,8 +95,8 @@ class GoGuiAccessibilityProvider(
         }
 
         // Children.
-        val childStart = Androidapp.a11yNodeChildStart(virtualViewId.toLong()).toInt()
-        val childCount = Androidapp.a11yNodeChildCount(virtualViewId.toLong()).toInt()
+        val childStart = Androidapp.a11yNodeChildStart(virtualViewId).toInt()
+        val childCount = Androidapp.a11yNodeChildCount(virtualViewId).toInt()
         for (i in childStart until childStart + childCount) {
             node.addChild(hostView, i)
         }
@@ -116,9 +116,9 @@ class GoGuiAccessibilityProvider(
 
         // Range info for sliders/progress.
         if (role.toInt() == ROLE_SLIDER || role.toInt() == ROLE_PROGRESS_BAR) {
-            val vMin = Androidapp.a11yNodeValueMin(virtualViewId.toLong())
-            val vMax = Androidapp.a11yNodeValueMax(virtualViewId.toLong())
-            val vNum = Androidapp.a11yNodeValueNum(virtualViewId.toLong())
+            val vMin = Androidapp.a11yNodeValueMin(virtualViewId)
+            val vMax = Androidapp.a11yNodeValueMax(virtualViewId)
+            val vNum = Androidapp.a11yNodeValueNum(virtualViewId)
             node.rangeInfo = AccessibilityNodeInfo.RangeInfo.obtain(
                 AccessibilityNodeInfo.RangeInfo.RANGE_TYPE_FLOAT,
                 vMin, vMax, vNum
@@ -143,15 +143,15 @@ class GoGuiAccessibilityProvider(
         }
         when (action) {
             AccessibilityNodeInfo.ACTION_CLICK -> {
-                Androidapp.a11yPerformAction(virtualViewId.toLong(), 0) // Press
+                Androidapp.a11yPerformAction(virtualViewId, 0) // Press
                 return true
             }
             AccessibilityNodeInfo.ACTION_SCROLL_FORWARD -> {
-                Androidapp.a11yPerformAction(virtualViewId.toLong(), 1) // Increment
+                Androidapp.a11yPerformAction(virtualViewId, 1) // Increment
                 return true
             }
             AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD -> {
-                Androidapp.a11yPerformAction(virtualViewId.toLong(), 2) // Decrement
+                Androidapp.a11yPerformAction(virtualViewId, 2) // Decrement
                 return true
             }
         }
@@ -167,7 +167,7 @@ class GoGuiAccessibilityProvider(
         val count = Androidapp.a11yNodeCount()
         // Add top-level children (nodes with parentIdx < 0).
         for (i in 0 until count) {
-            val parent = Androidapp.a11yNodeParent(i.toLong())
+            val parent = Androidapp.a11yNodeParent(i)
             if (parent < 0) {
                 node.addChild(hostView, i)
             }

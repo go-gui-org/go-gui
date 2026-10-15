@@ -1,6 +1,6 @@
 # Spec: secure secret storage
 
-Issue: #920. Status: **implemented** (unreleased).
+Issues: #920, #930. Status: **implemented** (unreleased).
 
 ## Problem
 
@@ -46,12 +46,13 @@ The hook is an optional interface found by type assertion, as for settings.
 backends embed `keyring.Platform` in their `nativePlatform`, and the package
 asserts the method set at compile time.
 
-| Platform    | Store                                                                                                   |
-| ----------- | ------------------------------------------------------------------------------------------------------- |
-| macOS, iOS  | Keychain generic password, service = app ID, account = key (cgo, Security.framework)                    |
-| Windows     | Credential Manager generic credential, target `<app ID>/<key>`, persist local machine (syscall, no cgo) |
-| Linux       | Secret Service over D-Bus (godbus), default collection, attributes `application` and `key`              |
-| Web/Android | none: `ErrSecretsUnsupported`                                                                           |
+| Platform   | Store                                                                                                   |
+| ---------- | ------------------------------------------------------------------------------------------------------- |
+| macOS, iOS | Keychain generic password, service = app ID, account = key (cgo, Security.framework)                    |
+| Windows    | Credential Manager generic credential, target `<app ID>/<key>`, persist local machine (syscall, no cgo) |
+| Linux      | Secret Service over D-Bus (godbus), default collection, attributes `application` and `key`              |
+| Android    | app-bound callback plus app-supplied Kotlin; the demo uses Android Keystore AES-GCM                     |
+| Web        | none: `ErrSecretsUnsupported`                                                                           |
 
 ### Platform notes
 
@@ -68,6 +69,30 @@ asserts the method set at compile time.
   `ErrSecretsUnsupported`. A missing default collection does too.
 - **Windows**: `ERROR_NO_SUCH_LOGON_SESSION` (a service account, some remote
   sessions) maps to `ErrSecretsUnsupported`.
+- **Android** applications own the Activity and Kotlin/Java host; the go-gui
+  backend cannot package that application code. The application therefore
+  exports a structurally matching Go interface and forwarding setter from the
+  package passed to `gomobile bind`. Gomobile exposes that app interface to
+  Kotlin (as `androidapp.SecretStore` in the demo), and the Activity registers
+  its implementation before `android.Start`. The callback stays specific to
+  secure storage instead of creating a general platform message channel.
+  `examples/android_demo` supplies the complete host implementation. It uses a
+  256-bit AES-GCM key generated in Android Keystore and atomically stores only
+  versioned ciphertext under `noBackupFilesDir`. Its `AppInfo.ID` matches the
+  Gradle `applicationId`, so the service namespace follows the installed app.
+- **Android errors.** With no registered callback the backend returns
+  `ErrSecretsUnsupported`. Exceptions raised by a registered Java/Kotlin host
+  cross gomobile as ordinary Go errors and cannot retain an `errors.Is`
+  relationship to that sentinel. A host that fails to initialize therefore
+  reports an operational error rather than `ErrSecretsUnsupported`.
+- **Android key loss.** If Android Keystore loses the key while ciphertext
+  remains, load reports the authentication error and preserves the file. Save
+  replaces it using the new key, and delete removes it. The demo does not
+  silently discard data because the same failure can indicate corruption or
+  tampering.
+- **Android copies.** Gomobile copies byte arrays across the language boundary.
+  The demo clears Kotlin's Java-owned save input in `finally`; a load result
+  cannot be cleared before gomobile copies it back to Go.
 
 ### Blocking
 
@@ -86,6 +111,9 @@ rules follow:
 
 - `gui/secrets_test.go`: memory store, copies, key and size checks, no-hook
   error with no file written, the hook path.
+- `gui/backend/internal/hostsecret`: normal host tests cover missing-store,
+  forwarding, host errors and the empty-load to `ErrSecretNotFound` mapping. CI
+  cross-compiles the Android-specific registration and native hook wiring.
 - `gui/backend/internal/keyring`: `GOGUI_SECRET_IT=1` runs a round trip against
   the real store. Run on macOS (Keychain) and on Linux in Docker with
   `gnome-keyring` under `dbus-run-session`; without a daemon the test skips on
@@ -107,5 +135,7 @@ rules follow:
   unseen. Secrets are opaque bytes.
 - **Chunking large values across Windows credentials.** More failure modes (a
   partial write) for tokens that fit in 2560 bytes.
-- **Android Keystore in this change.** The Android backend has no Go-to-Java
-  call path; the Keystore needs Java host code. A follow-up issue tracks it.
+- **A general Go-to-Java message channel for Android.** It would expose an
+  Android-only platform surface with no iOS counterpart. The narrow
+  `SecretStore` callback fills the secure-storage gap; apps that need further
+  Java APIs can bind their own typed gomobile interfaces.

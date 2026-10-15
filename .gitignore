@@ -31,7 +31,7 @@
 !.githooks/pre-push
 
 # Binaries
-main
+/main
 *.exe
 *.exe~
 *.dll

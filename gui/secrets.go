@@ -12,9 +12,10 @@ var ErrSecretNotFound = errors.New("gui: secret not found")
 
 // ErrSecretsUnsupported is returned by LoadSecret, SaveSecret and
 // DeleteSecret when the platform has no OS credential store go-gui can
-// use: web, Android, a Linux session with no Secret Service daemon, or
-// a window with no platform attached yet. The secret is never written
-// to a plain file in its place; the app decides what to do instead.
+// use: web, Android without a registered host SecretStore, a Linux
+// session with no Secret Service daemon, or a window with no platform
+// attached yet. The secret is never written to a plain file in its
+// place; the app decides what to do instead.
 // exportaudit:keep — caller-facing errors.Is target (issue #920)
 var ErrSecretsUnsupported = errors.New("gui: no secure credential store on this platform")
 
@@ -45,9 +46,10 @@ type secretPlatform interface {
 
 // LoadSecret returns the secret the app saved under key, read from the
 // OS credential store: the Keychain on macOS and iOS, Credential
-// Manager on Windows, and the Secret Service (GNOME Keyring, KWallet)
-// on Linux. The service name is the app ID (WindowCfg.AppInfo.ID), so
-// every window of the app sees the same secrets.
+// Manager on Windows, the Secret Service (GNOME Keyring, KWallet) on
+// Linux, and a host SecretStore (normally backed by Android Keystore)
+// on Android. The service name is the app ID (WindowCfg.AppInfo.ID),
+// so every window of the app sees the same secrets.
 //
 // It returns ErrSecretNotFound when nothing is saved under key, and
 // ErrSecretsUnsupported when the platform has no store. The returned

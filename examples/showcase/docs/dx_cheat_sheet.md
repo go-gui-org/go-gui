@@ -623,10 +623,14 @@ credential store (issue #920). The service name is `WindowCfg.AppInfo.ID`; with
 no ID all three return `gui.ErrNoAppID`.
 
 - **Where it goes.** macOS and iOS: the Keychain. Windows: Credential Manager.
-  Linux: the Secret Service (GNOME Keyring, KWallet).
-- **No store, no fallback.** Web, Android and a Linux session with no Secret
-  Service daemon return `gui.ErrSecretsUnsupported`. go-gui never writes the
-  secret to a plain file. The app decides what to do instead.
+  Linux: the Secret Service (GNOME Keyring, KWallet). On Android the app binds a
+  small Go forwarding interface, supplies the Kotlin/Java implementation, and
+  registers it before the window starts. See `examples/android_demo` for the
+  complete Android Keystore host code.
+- **No store, no fallback.** Web, Android without a registered host store, and a
+  Linux session with no Secret Service daemon return
+  `gui.ErrSecretsUnsupported`. go-gui never writes the secret to a plain file.
+  The app decides what to do instead.
 - **Errors.** A missing key returns `gui.ErrSecretNotFound`. `DeleteSecret` of a
   missing key returns nil.
 - **Limits.** A key holds letters, digits, `.`, `-` and `_`. A value is 1 to

@@ -4,7 +4,7 @@ export ANDROID_HOME
 .PHONY: bind build install clean
 
 bind:
-	gomobile bind -target=android/arm64 -androidapi 24 \
+	gomobile bind -target=android/arm64,android/amd64 -androidapi 24 \
 	  -o android/app/libs/gogui.aar ./
 
 build: bind

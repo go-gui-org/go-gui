@@ -36,12 +36,13 @@ token is saved and shows its length, never the token.
 
 ## Where the data goes
 
-| Platform     | Store                                                          |
-| ------------ | -------------------------------------------------------------- |
-| macOS, iOS   | Keychain, service `org.go-gui.secrets-demo`                    |
-| Windows      | Credential Manager, target `org.go-gui.secrets-demo/api-token` |
-| Linux        | Secret Service (GNOME Keyring, KWallet), default collection    |
-| web, Android | none: `gui.ErrSecretsUnsupported`                              |
+| Platform   | Store                                                           |
+| ---------- | --------------------------------------------------------------- |
+| macOS, iOS | Keychain, service `org.go-gui.secrets-demo`                     |
+| Windows    | Credential Manager, target `org.go-gui.secrets-demo/api-token`  |
+| Linux      | Secret Service (GNOME Keyring, KWallet), default collection     |
+| Android    | app-bound callback plus app-supplied Kotlin; see `android_demo` |
+| web        | none: `gui.ErrSecretsUnsupported`                               |
 
 On macOS an unsigned binary changes at every build, so the Keychain asks again
 for access after a rebuild.
