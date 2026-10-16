@@ -118,6 +118,9 @@ func pdfRegisterPNG(pdf *fpdf.Fpdf, key string, img image.Image) bool {
 // fully decoded.
 func pdfNearestFileImage(ctx *pdfCtx, cmd RenderCmd,
 	path string) (key string, ok bool) {
+	// #nosec G304 — path is the RenderCmd's image resource, the same file
+	// fpdf opens on the fallback path; pdfRenderFileImage has already
+	// checked it is a regular file within maxPDFImageBytes.
 	f, err := os.Open(path)
 	if err != nil {
 		return "", false
