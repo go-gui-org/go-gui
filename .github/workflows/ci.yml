@@ -559,7 +559,7 @@ jobs:
       - name: Build AAR
         working-directory: examples/android_demo
         run: |
-          gomobile bind -target=android/arm64 -androidapi 24 \
+          gomobile bind -target=android/arm64,android/amd64 -androidapi 24 \
             -o /tmp/gogui.aar .
 
       - name: Vet backend

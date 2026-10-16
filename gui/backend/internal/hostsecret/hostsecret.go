@@ -18,21 +18,22 @@ type Store interface {
 // Registry holds the currently registered host store. It does not hold its
 // lock across host calls, which may block.
 type Registry struct {
-	sync.RWMutex
+	// mu is unexported so callers cannot take the lock from outside.
+	mu    sync.RWMutex
 	store Store
 }
 
 // Set replaces the registered store. A nil store unregisters it.
 func (r *Registry) Set(store Store) {
-	r.Lock()
+	r.mu.Lock()
 	r.store = store
-	r.Unlock()
+	r.mu.Unlock()
 }
 
 func (r *Registry) current() Store {
-	r.RLock()
+	r.mu.RLock()
 	store := r.store
-	r.RUnlock()
+	r.mu.RUnlock()
 	return store
 }
 

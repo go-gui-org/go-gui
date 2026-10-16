@@ -100,7 +100,7 @@ build-android:
 	go install golang.org/x/mobile/cmd/gomobile@latest
 	gomobile init
 	cd examples/android_demo && \
-	gomobile bind -target=android/arm64 -androidapi 24 -o gogui.aar .
+	gomobile bind -target=android/arm64,android/amd64 -androidapi 24 -o gogui.aar .
 
 build-examples:
 	@mkdir -p examples/bin; \

@@ -234,7 +234,7 @@ jobs:
       - name: Build AAR
         working-directory: go-gui/examples/android_demo
         run: |
-          gomobile bind -target=android/arm64 -androidapi 24 \
+          gomobile bind -target=android/arm64,android/amd64 -androidapi 24 \
             -o gogui.aar .
 
       - name: Package

@@ -17,6 +17,9 @@ and this project adheres to
   non-exportable 256-bit Android Keystore key and AES-GCM ciphertext stored
   atomically in `noBackupFilesDir`. An app that does not register the callback
   still receives `ErrSecretsUnsupported`.
+- **The Android AAR now includes x86_64 (#930).** CI, the release workflow and
+  `make build-android` bind `android/arm64,android/amd64`, so the released AAR
+  runs on an x86_64 emulator as well as on arm64 devices.
 
 ### Changed
 
