@@ -176,6 +176,11 @@ type ShowcaseApp struct {
 	AudioMusicLoaded  bool
 	AudioMusicPlaying bool
 	AudioMusicPaused  bool
+	// CatalogCollapsed hides the inline catalog on a wide window;
+	// CatalogDrawerOpen shows it as a drawer on a narrow one. Both are
+	// false at start, so the catalog opens inline and the drawer shut.
+	CatalogCollapsed  bool
+	CatalogDrawerOpen bool
 
 	AnimTweenX    float32
 	AnimSpringX   float32

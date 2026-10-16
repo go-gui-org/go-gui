@@ -66,6 +66,7 @@ func main() {
 					ID: "sc.disabled", Label: "Delete", Icon: gui.IconTrash,
 					CanExecute: func(_ *gui.Window) bool { return false },
 				},
+				closeCatalogCommand(),
 			)
 			w.SetView(mainView)
 		},
@@ -79,13 +80,4 @@ func main() {
 	}
 	defer cleanupEmbeddedAssets()
 	backend.RunApp(app, w)
-}
-
-func mainView(w *gui.Window) gui.View {
-	return gui.Row(gui.ContainerCfg{
-		Sizing:  gui.FillFill,
-		Padding: gui.NoPadding,
-		Spacing: gui.NoSpacing,
-		Content: []gui.View{catalogPanel(w), detailPanel(w)},
-	})
 }

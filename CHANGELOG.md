@@ -66,6 +66,14 @@ and this project adheres to
 
 ### Changed
 
+- **The showcase catalog adapts to narrow windows and phones (#1072).** The
+  catalog used to be a fixed 300 px column at any width, so on a phone the page
+  beside it was squeezed to about 90 px. Below 780 px the page now takes the
+  full width under a top bar, and its ☰ button opens the catalog as a drawer
+  over a dimmed page. Picking an entry, tapping the dimmed strip, ☰ or Esc
+  closes it. On a wider window the catalog stays inline as before, and a ☰ in
+  its header slides it shut so a wide demo gets the whole window.
+
 - **Less work per frame for WebGL SVGs on the web (#1051).** Each frame in WebGL
   mode makes a first pass to place the SVG batches. That pass replayed every
   clip, filter, rotation and transform into a JavaScript stand-in that did

@@ -7,7 +7,24 @@ import (
 	"github.com/go-gui-org/go-gui/gui"
 )
 
+// catalogPanel is the inline catalog of a wide window. It slides shut
+// when the reader collapses it; the content keeps its full width and
+// is clipped while it slides, so the rows do not reflow.
 func catalogPanel(w *gui.Window) gui.View {
+	app := appState(w)
+	return w.Sidebar(gui.SidebarCfg{
+		ID:      catalogScopeID,
+		Width:   catalogWidth,
+		Open:    !app.CatalogCollapsed,
+		Padding: gui.NoPadding,
+		Color:   gui.CurrentTheme().ColorPanel,
+		Content: []gui.View{catalogContent(w, catalogWidth)},
+	})
+}
+
+// catalogContent is the catalog itself, at a fixed width: inline in
+// the sidebar on a wide window, or inside the drawer on a narrow one.
+func catalogContent(w *gui.Window, width float32) gui.View {
 	t := gui.CurrentTheme()
 	app := appState(w)
 	entries := filteredEntries(app)
@@ -36,13 +53,23 @@ func catalogPanel(w *gui.Window) gui.View {
 	}
 
 	return gui.Column(gui.ContainerCfg{
-		Width:   catalogWidth,
+		Width:   width,
 		Sizing:  gui.FixedFill,
 		Color:   t.ColorPanel,
 		Padding: gui.PaddingMedium,
 		Spacing: gui.SpacingMedium,
 		Content: []gui.View{
-			gui.Text(gui.TextCfg{Text: "Component Catalog", TextStyle: t.TextStyleTitle}),
+			gui.Row(gui.ContainerCfg{
+				Sizing:     gui.FillFit,
+				Padding:    gui.NoPadding,
+				SizeBorder: gui.NoBorder,
+				Spacing:    gui.SpacingSmall,
+				VAlign:     gui.VAlignMiddle,
+				Content: []gui.View{
+					navToggleButton(navToggleID, "Hide component catalog"),
+					gui.Text(gui.TextCfg{Text: "Component Catalog", TextStyle: t.TextStyleTitle}),
+				},
+			}),
 			searchInput(app),
 			line(),
 			catalogList(entries, app),
@@ -247,6 +274,11 @@ func catalogButton(entry DemoEntry, color gui.Color) gui.View {
 			showcaseApp.SelectedComponent = entry.ID
 			ctx.Window.ScrollVerticalTo(scrollDetail, 0)
 			ctx.Window.ScrollHorizontalTo(scrollDetail, 0)
+			// A pick in the drawer is the reader done choosing: show
+			// the page they picked.
+			if showcaseApp.CatalogDrawerOpen {
+				closeCatalogDrawer(ctx.Window)
+			}
 		},
 	})
 }
