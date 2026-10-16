@@ -34,6 +34,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -170,8 +171,15 @@ type loop struct {
 	cmd *exec.Cmd
 }
 
+// bin is the installed binary. On Windows it needs the .exe suffix:
+// exec looks a path up by its PATHEXT extensions, so a bare name is
+// "not found" even though the file is there.
 func (l *loop) bin() string {
-	return filepath.Join(l.cfg.work, filepath.Base(filepath.Clean(l.cfg.app)))
+	name := filepath.Base(filepath.Clean(l.cfg.app))
+	if runtime.GOOS == "windows" {
+		name += ".exe"
+	}
+	return filepath.Join(l.cfg.work, name)
 }
 
 func (l *loop) stamp() string {
