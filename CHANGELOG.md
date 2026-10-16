@@ -10,13 +10,24 @@ and this project adheres to
 
 ### Added
 
+- **PDF print keeps nearest-neighbor images sharp (#1069).** An `Image` widget
+  with `Filter: gui.ImageFilterNearest`, or a canvas image drawn after
+  `SetImageFilter(gui.ImageFilterNearest)`, now prints with hard pixel edges.
+  Setting the PDF `/Interpolate` flag would not help: it is already off by
+  default, and most viewers smooth a scaled image anyway. So the export repeats
+  each source pixel enough times to reach 300 dpi at the drawn size, capped at
+  4096 pixels per side, and embeds that larger image. Mem images and PNG, JPEG
+  and GIF files are covered. A file that cannot be decoded is embedded as
+  before. Linear images are unchanged. The PDF file grows, though repeated
+  pixels compress well as PNG.
+
 - **`ImageCfg.Filter` draws a scaled `Image` widget with sharp pixels (#1066).**
   Set `Filter: gui.ImageFilterNearest` and the widget samples the nearest texel,
   as `DrawContext.SetImageFilter` does on a canvas. A sprite or pixel-art icon
   shown through `gui.Image` no longer turns blurred when it is drawn larger than
   its own size. The zero value is `ImageFilterLinear`, so existing images draw
-  as before. A remote SVG ignores the field, and SVG and PDF export do not
-  record it yet. `examples/pixel_art/` now shows both the canvas and the widget.
+  as before. A remote SVG ignores the field. `examples/pixel_art/` now shows
+  both the canvas and the widget.
 
 - **`DrawContext.SetImageFilter` draws scaled images with sharp pixels
   (#1065).** `dc.SetImageFilter(gui.ImageFilterNearest)` makes the `Image`,
@@ -26,7 +37,7 @@ and this project adheres to
   of the state `Save` and `Restore` keep, and each `OnDraw` starts with
   `ImageFilterLinear`, so nothing changes for code that does not set it. All
   backends support it: Metal (macOS, iOS), OpenGL (Linux, Windows), Android, web
-  and the software renderer. SVG and PDF export do not record it yet. The
+  and the software renderer. A `DrawRecorder` (SVG export) does not get it. The
   `Image` widget gets the same option in #1066. `examples/pixel_art/` shows both
   filters side by side.
 

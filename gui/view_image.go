@@ -32,7 +32,8 @@ type ImageCfg struct {
 	// at a size other than its own. The zero value, ImageFilterLinear,
 	// gives a smooth result. ImageFilterNearest keeps hard pixel edges
 	// for pixel art and small sprites. A remote SVG ignores it, because
-	// vector output has no texels. SVG and PDF export do not get it.
+	// vector output has no texels. PDF print keeps the hard edges by
+	// repeating each pixel before it embeds the image (#1069).
 	Filter ImageFilter
 
 	Invisible bool

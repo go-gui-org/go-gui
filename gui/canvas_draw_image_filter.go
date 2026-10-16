@@ -42,8 +42,9 @@ func (f ImageFilter) known() ImageFilter {
 //	dc.Restore()
 //
 // Each OnDraw starts with ImageFilterLinear. A value that is not one of
-// the ImageFilter constants draws as ImageFilterLinear. Recorders (SVG
-// and PDF export) do not get the filter.
+// the ImageFilter constants draws as ImageFilterLinear. PDF print keeps
+// the hard edges (#1069). A DrawRecorder, such as an SVG exporter, does
+// not get the filter.
 func (dc *DrawContext) SetImageFilter(f ImageFilter) {
 	dc.imageFilter = f
 }

@@ -1,11 +1,9 @@
 package gui
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"image"
-	"image/png"
 	"os"
 	"path/filepath"
 	"strings"
@@ -302,36 +300,50 @@ func pdfRenderFileImage(ctx *pdfCtx, cmd RenderCmd, path string) {
 		info.Size() > maxPDFImageBytes {
 		return
 	}
-	opts := fpdf.ImageOptions{ReadDpi: true}
-	ctx.pdf.ImageOptions(path, ctx.px(cmd.X), ctx.py(cmd.Y),
+	key, opts := path, fpdf.ImageOptions{ReadDpi: true}
+	if cmd.ImageFilter == ImageFilterNearest {
+		// On failure the file is embedded as it is (pdfNearestFileImage).
+		if nk, ok := pdfNearestFileImage(ctx, cmd, path); ok {
+			key, opts = nk, fpdf.ImageOptions{ImageType: "PNG"}
+		}
+	}
+	ctx.pdf.ImageOptions(key, ctx.px(cmd.X), ctx.py(cmd.Y),
 		ctx.pw(cmd.W), ctx.ph(cmd.H), false, opts, 0, "")
 }
 
 // pdfRenderMemImage embeds a registered in-memory buffer. fpdf reads
 // encoded image files, not raw pixels, so the buffer is PNG-encoded
 // once and registered under its Resource name — repeat draws of the
-// same key reuse the embedded image rather than re-encoding.
+// same key reuse the embedded image rather than re-encoding. A nearest
+// draw registers the pixel-repeated form under its own key instead
+// (print_pdf_nearest.go).
 func pdfRenderMemImage(ctx *pdfCtx, cmd RenderCmd) {
 	w, h, pix, ok := LookupImage(cmd.Resource)
 	if !ok || w <= 0 || h <= 0 || len(pix) == 0 {
 		return
 	}
-	if info := ctx.pdf.GetImageInfo(cmd.Resource); info == nil {
+	key, k := cmd.Resource, 1
+	if cmd.ImageFilter == ImageFilterNearest {
+		k = pdfNearestFactor(w, h, ctx.pw(cmd.W), ctx.ph(cmd.H))
+		if k > 1 {
+			key = pdfNearestKey(cmd.Resource, k)
+		}
+	}
+	if info := ctx.pdf.GetImageInfo(key); info == nil {
 		img := &image.NRGBA{
 			Pix:    pix,
 			Stride: w * 4,
 			Rect:   image.Rect(0, 0, w, h),
 		}
-		var buf bytes.Buffer
-		if err := png.Encode(&buf, img); err != nil {
+		if k > 1 {
+			img = pdfUpscaleNearest(img, k)
+		}
+		if !pdfRegisterPNG(ctx.pdf, key, img) {
 			return
 		}
-		opts := fpdf.ImageOptions{ImageType: "PNG"}
-		ctx.pdf.RegisterImageOptionsReader(
-			cmd.Resource, opts, &buf)
 	}
 	opts := fpdf.ImageOptions{ImageType: "PNG"}
-	ctx.pdf.ImageOptions(cmd.Resource, ctx.px(cmd.X), ctx.py(cmd.Y),
+	ctx.pdf.ImageOptions(key, ctx.px(cmd.X), ctx.py(cmd.Y),
 		ctx.pw(cmd.W), ctx.ph(cmd.H), false, opts, 0, "")
 }
 
