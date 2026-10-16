@@ -1931,6 +1931,15 @@ func goldenCases() []goldenCase {
 			build: goldenScrollColumn,
 		},
 		{
+			// The same column right to left: the vertical bar sits on
+			// the left edge, where RTL puts the Padding.Right a
+			// container keeps for it.
+			name: "scroll_column_rtl",
+			build: func(w *Window) View {
+				return goldenScrollColumnDir(nil, TextDirRTL)
+			},
+		},
+		{
 			// A bar that shows its thumb only under the pointer, with
 			// the pointer over it: the thumb is painted in the thumb
 			// color by the bar's OnHover.
@@ -2038,6 +2047,12 @@ func goldenScrollColumn(*Window) View {
 // goldenScrollColumnBar is goldenScrollColumn with a vertical scrollbar
 // override.
 func goldenScrollColumnBar(barY *ScrollbarCfg) View {
+	return goldenScrollColumnDir(barY, textDirAuto)
+}
+
+// goldenScrollColumnDir is goldenScrollColumnBar in a given text
+// direction.
+func goldenScrollColumnDir(barY *ScrollbarCfg, dir TextDirection) View {
 	rows := make([]View, 12)
 	for i := range rows {
 		rows[i] = Column(ContainerCfg{Sizing: FillFixed, Height: 20})
@@ -2049,6 +2064,7 @@ func goldenScrollColumnBar(barY *ScrollbarCfg) View {
 		Height:        100,
 		Scrollable:    true,
 		ScrollbarCfgY: barY,
+		TextDir:       dir,
 		Content:       rows,
 	})
 }

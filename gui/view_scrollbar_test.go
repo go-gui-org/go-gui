@@ -368,6 +368,14 @@ func TestGutterClickSetsOffsetAndLocks(t *testing.T) {
 // scrollbar override and returns the resolved track X.
 func scrollbarTrackX(t *testing.T, override *ScrollbarCfg) float32 {
 	t.Helper()
+	track, _ := scrollbarTrackV(t, override, textDirAuto)
+	return track.Shape.X
+}
+
+// scrollbarTrackV arranges a vertically scrolling column in the given
+// text direction and returns the vertical bar's track and its thumb.
+func scrollbarTrackV(t *testing.T, override *ScrollbarCfg, dir TextDirection) (track, thumb *Layout) {
+	t.Helper()
 
 	w := NewWindow(WindowCfg{State: new(int), Width: 300, Height: 200})
 	w.viewGenerator = func(*Window) View {
@@ -381,6 +389,7 @@ func scrollbarTrackX(t *testing.T, override *ScrollbarCfg) float32 {
 			Scrollable:    true,
 			ScrollMode:    ScrollVerticalOnly,
 			ScrollbarCfgY: override,
+			TextDir:       dir,
 			Content:       rows,
 		})
 	}
@@ -392,7 +401,42 @@ func scrollbarTrackX(t *testing.T, override *ScrollbarCfg) float32 {
 		t.Fatal("scroller not found")
 	}
 	// The bar is appended after the content, so it is the last child.
-	return sc.Children[len(sc.Children)-1].Shape.X
+	track = &sc.Children[len(sc.Children)-1]
+	if len(track.Children) == 0 {
+		t.Fatal("scrollbar track has no thumb")
+	}
+	return track, &track.Children[len(track.Children)-1]
+}
+
+// TestScrollbarVerticalSitsOnEndEdge pins the vertical bar to the end
+// edge: the right in LTR, the left in RTL. RTL mirrors padding, so a
+// container's Padding.Right, the usual room kept for the bar, is on
+// the left there. A bar left on the right covered the content.
+func TestScrollbarVerticalSitsOnEndEdge(t *testing.T) {
+	const winW = 300
+	size := DefaultScrollbarStyle.Size
+	gap := DefaultScrollbarStyle.GapEdge
+
+	ltr, ltrThumb := scrollbarTrackV(t, nil, TextDirLTR)
+	if got, want := ltr.Shape.X, winW-size-gap; got != want {
+		t.Errorf("LTR track X = %v, want %v (right edge, inset by GapEdge)", got, want)
+	}
+	if ltrThumb.Shape.X != ltr.Shape.X {
+		t.Errorf("LTR thumb X = %v, want the track's %v", ltrThumb.Shape.X, ltr.Shape.X)
+	}
+
+	rtl, rtlThumb := scrollbarTrackV(t, nil, TextDirRTL)
+	if got, want := rtl.Shape.X, gap; got != want {
+		t.Errorf("RTL track X = %v, want %v (left edge, inset by GapEdge)", got, want)
+	}
+	if rtlThumb.Shape.X != rtl.Shape.X {
+		t.Errorf("RTL thumb X = %v, want the track's %v", rtlThumb.Shape.X, rtl.Shape.X)
+	}
+
+	flush, _ := scrollbarTrackV(t, &ScrollbarCfg{GapEdge: SomeF(0)}, TextDirRTL)
+	if flush.Shape.X != 0 {
+		t.Errorf("RTL track X with zero GapEdge = %v, want 0 (flush left)", flush.Shape.X)
+	}
 }
 
 // TestScrollbarGapEdgeExplicitZero is why ScrollbarCfg.GapEdge is an

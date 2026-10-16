@@ -299,7 +299,16 @@ func scrollbarAmendLayout(
 			layout.Children[thumbAt].Shape.Color = ColorTransparent
 		}
 	} else {
-		layout.Shape.X = parent.Shape.X + parent.Shape.Width - cfg.Size
+		// The bar sits on the end edge: the right in LTR, the left in
+		// RTL. RTL mirrors padding (layoutChildStartPos), so the room a
+		// container keeps for the bar with Padding.Right is on the left
+		// there; a bar left on the right covered the content instead.
+		rtl := effectiveTextDir(parent.Shape) == TextDirRTL
+		if rtl {
+			layout.Shape.X = parent.Shape.X
+		} else {
+			layout.Shape.X = parent.Shape.X + parent.Shape.Width - cfg.Size
+		}
 		layout.Shape.Y = parent.Shape.Y + parent.Shape.Padding.Top
 		layout.Shape.Width = cfg.Size
 		layout.Shape.Height = parent.Shape.Height - parent.Shape.Padding.Height()
@@ -319,7 +328,12 @@ func scrollbarAmendLayout(
 			scrollOffset = -v
 		}
 
-		layout.Shape.X -= gapEdge
+		// GapEdge insets the bar from the edge it sits on.
+		if rtl {
+			layout.Shape.X += gapEdge
+		} else {
+			layout.Shape.X -= gapEdge
+		}
 		layout.Shape.Y += gapEnd
 		layout.Shape.Height -= gapEnd + gapEnd
 
