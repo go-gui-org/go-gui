@@ -55,6 +55,7 @@ void metalUpdateTexture(int id, int x, int y, int w, int h,
                         const void* data);
 void metalDeleteTexture(int id);
 void metalBindTexture(int id);
+void metalSetImageFilter(int nearest);
 
 // Custom shader pipelines
 int  metalBuildCustomPipeline(const char* mslSrc);

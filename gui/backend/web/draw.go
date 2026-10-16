@@ -539,9 +539,18 @@ func (b *Backend) drawImage(r *gui.RenderCmd) {
 		b.ctx2d.Set("globalAlpha", float64(op))
 		alphaSet = true
 	}
+	// imageSmoothingEnabled is context state like globalAlpha: turn
+	// it off for this one draw and back on, so other draws stay smooth.
+	nearest := r.ImageFilter == gui.ImageFilterNearest
+	if nearest {
+		b.ctx2d.Set("imageSmoothingEnabled", false)
+	}
 	b.ctx2d.Call("drawImage", img,
 		float64(r.X), float64(r.Y),
 		float64(r.W), float64(r.H))
+	if nearest {
+		b.ctx2d.Set("imageSmoothingEnabled", true)
+	}
 	if alphaSet {
 		b.ctx2d.Set("globalAlpha", 1)
 	}

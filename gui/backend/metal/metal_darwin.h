@@ -64,6 +64,7 @@ void metalUpdateTexture(MetalCtx ctx,
                         const void* data);
 void metalDeleteTexture(MetalCtx ctx, int id);
 void metalBindTexture(MetalCtx ctx, int id);
+void metalSetImageFilter(MetalCtx ctx, int nearest);
 
 // Custom shader pipelines
 int  metalBuildCustomPipeline(MetalCtx ctx,

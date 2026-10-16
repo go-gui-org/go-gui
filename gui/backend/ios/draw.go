@@ -332,7 +332,16 @@ func (b *Backend) drawImageTex(
 		{X: x + w, Y: y + h, Z: z, U: 1, V: 1, R: cr, G: cg, B: cb, A: ca},
 		{X: x, Y: y + h, Z: z, U: -1, V: 1, R: cr, G: cg, B: cb, A: ca},
 	}
+	// The encoder draws at once, so the nearest sampler only has to
+	// stay bound for this one quad.
+	nearest := r.ImageFilter == gui.ImageFilterNearest
+	if nearest {
+		C.metalSetImageFilter(1)
+	}
 	C.metalDrawQuad((*C.float)(unsafe.Pointer(&verts[0])))
+	if nearest {
+		C.metalSetImageFilter(0)
+	}
 }
 
 // maxSvgTriangleFloats caps a RenderSvg triangle list in floats,

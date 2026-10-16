@@ -64,6 +64,7 @@ typedef ptrdiff_t GLsizeiptr;
 #define GL_TEXTURE_WRAP_T 0x2803
 #define GL_CLAMP_TO_EDGE 0x812F
 #define GL_LINEAR 0x2601
+#define GL_NEAREST 0x2600
 #define GL_RGBA 0x1908
 #define GL_RGBA8 0x8058
 

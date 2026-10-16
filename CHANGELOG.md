@@ -10,6 +10,18 @@ and this project adheres to
 
 ### Added
 
+- **`DrawContext.SetImageFilter` draws scaled images with sharp pixels
+  (#1065).** `dc.SetImageFilter(gui.ImageFilterNearest)` makes the `Image`,
+  `ImageWithFetcher` and `ImageClipped` calls that follow sample the nearest
+  texel instead of blending four. Pixel art, retro UIs and small sprites drawn
+  at 2x or more keep hard edges instead of turning blurred. The filter is part
+  of the state `Save` and `Restore` keep, and each `OnDraw` starts with
+  `ImageFilterLinear`, so nothing changes for code that does not set it. All
+  backends support it: Metal (macOS, iOS), OpenGL (Linux, Windows), Android, web
+  and the software renderer. SVG and PDF export do not record it yet. The
+  `Image` widget gets the same option in #1066. `examples/pixel_art/` shows both
+  filters side by side.
+
 - **`CanvasPath.TrimTo` draws part of a path's length (#1023).**
   `p.TrimTo(&dst, from, to)` writes into `dst` the part of `p` between the
   fractions `from` and `to` of its length. Animate `to` from 0 to 1 and a stroke

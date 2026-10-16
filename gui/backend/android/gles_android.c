@@ -939,6 +939,16 @@ void glesBindTexture(int id) {
     }
 }
 
+// glesSetImageFilter sets the bound texture's min and mag filter:
+// nearest when nearest is 1, linear otherwise. The filter lives on
+// the texture, which every draw of the same source shares, so a draw
+// that sets nearest sets it back to 0 after its quad.
+void glesSetImageFilter(int nearest) {
+    GLint f = nearest ? GL_NEAREST : GL_LINEAR;
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, f);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, f);
+}
+
 // ─── Custom Shader Pipelines ─────────────────────────────────
 
 // MAX_CUSTOM_PIPELINES, _customMVPLocs and _customTMLocs are declared above

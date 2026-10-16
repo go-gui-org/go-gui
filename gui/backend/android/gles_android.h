@@ -53,6 +53,7 @@ void glesUpdateTexture(int id, int x, int y, int w, int h,
                        const void* data);
 void glesDeleteTexture(int id);
 void glesBindTexture(int id);
+void glesSetImageFilter(int nearest);
 
 // Custom shader pipelines
 int  glesBuildCustomPipeline(const char* fragSrc);

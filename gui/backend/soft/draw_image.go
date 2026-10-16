@@ -13,7 +13,8 @@ import (
 )
 
 // imageSrc scales a decoded source into a destination rect, sampling
-// bilinearly in straight-alpha space at absolute device coordinates.
+// bilinearly (or nearest, see nearest) in straight-alpha space at
+// absolute device coordinates.
 //
 // nr is the scratch color each At returns: vector.Draw consumes the
 // sample immediately, so one instance can be re-pointed (the same
@@ -26,6 +27,9 @@ type imageSrc struct {
 	minX, minY     int     // source Rect.Min: texel offsets are relative to it
 	alpha          float32 // texel alpha multiplier 0..1 from RenderCmd.Opacity
 	nr             color.NRGBA
+	// nearest takes the one texel under the pixel centre instead of
+	// blending four (RenderCmd.ImageFilter == ImageFilterNearest).
+	nearest bool
 }
 
 func newImageSrc(
@@ -83,6 +87,17 @@ func (s *imageSrc) At(x, y int) color.Color {
 	// Pixel centre → continuous source coordinate → texel centre.
 	fx := (float32(x)+0.5-s.dstX)*s.scaleX - 0.5
 	fy := (float32(y)+0.5-s.dstY)*s.scaleY - 0.5
+	if s.nearest {
+		// The texel whose centre is closest: floor(f + 0.5) undoes the
+		// -0.5 above, so this is the texel the pixel centre falls in.
+		c := s.texel(int(math.Floor(float64(fx)+0.5)),
+			int(math.Floor(float64(fy)+0.5)))
+		s.nr = color.NRGBA{
+			R: c[0], G: c[1], B: c[2],
+			A: uint8(float32(c[3])*s.alpha + 0.5),
+		}
+		return &s.nr
+	}
 	x0 := int(math.Floor(float64(fx)))
 	y0 := int(math.Floor(float64(fy)))
 	tx := fx - float32(x0)
@@ -155,7 +170,9 @@ func (r *renderer) drawImage(cmd *gui.RenderCmd) {
 		return
 	}
 	rad := cmd.ClipRadius * s
-	r.buf.fillPath(region, newImageSrc(src, x, y, w, h, cmd.Opacity),
+	is := newImageSrc(src, x, y, w, h, cmd.Opacity)
+	is.nearest = cmd.ImageFilter == gui.ImageFilterNearest
+	r.buf.fillPath(region, is,
 		func(z *vector.Rasterizer, ox, oy float32) {
 			pathRoundRect(z, ox, oy, x, y, w, h, rad, false)
 		})

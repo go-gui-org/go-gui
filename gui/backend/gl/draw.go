@@ -328,9 +328,25 @@ func (b *Backend) drawImage(r *gui.RenderCmd) {
 	// Opacity rides the vertex color: the imageClip shader
 	// multiplies texel alpha by it, so faded and disabled
 	// images blend instead of painting opaque.
+	// The filter lives on the texture, which the cache shares between
+	// every draw of this source. A nearest draw switches it for its own
+	// quad and switches it back, so the next linear draw is unchanged.
+	nearest := r.ImageFilter == gui.ImageFilterNearest
+	if nearest {
+		setTextureFilter(gogl.NEAREST)
+	}
 	b.drawQuadUV(x, y, w, h,
 		gui.White.WithOpacity(r.Opacity), r.ClipRadius*s)
+	if nearest {
+		setTextureFilter(gogl.LINEAR)
+	}
 	gogl.BindTexture(gogl.TEXTURE_2D, 0)
+}
+
+// setTextureFilter sets the min and mag filter of the bound 2D texture.
+func setTextureFilter(f int32) {
+	gogl.TexParameteri(gogl.TEXTURE_2D, gogl.TEXTURE_MIN_FILTER, f)
+	gogl.TexParameteri(gogl.TEXTURE_2D, gogl.TEXTURE_MAG_FILTER, f)
 }
 
 // resolveImageTexture returns the uploaded texture for a render

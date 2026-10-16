@@ -113,8 +113,9 @@ Go-Gui is also an ecosystem of composable libraries. **go-glyph** handles text,
   WebGL/WASM in the browser, and Metal/UIKit on iOS
 - **Rich interaction** — keyframe, spring, and tween animation, hero
   transitions, gestures, scrolling, focus management, color filters, box
-  shadows, blur effects, and canvas paths that draw themselves in
-  ([`examples/path_trim/`](examples/path_trim/))
+  shadows, blur effects, canvas paths that draw themselves in
+  ([`examples/path_trim/`](examples/path_trim/)), and sharp-edged pixel art with
+  nearest-neighbor image sampling ([`examples/pixel_art/`](examples/pixel_art/))
 - **View transforms** — move, scale, rotate, skew or flip any container in 3D
   with `ContainerCfg.Transform`. Clicks and typing follow the drawn view.
   `FlipPanel` is a card that turns over to show its back face

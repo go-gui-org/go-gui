@@ -408,13 +408,14 @@ func emitDrawCanvasImages(
 			}, w)
 		}
 		emitRenderer(RenderCmd{
-			Kind:     RenderImage,
-			X:        ox + im.X,
-			Y:        oy + im.Y,
-			W:        im.W,
-			H:        im.H,
-			Color:    bg,
-			Resource: resource,
+			Kind:        RenderImage,
+			X:           ox + im.X,
+			Y:           oy + im.Y,
+			W:           im.W,
+			H:           im.H,
+			Color:       bg,
+			Resource:    resource,
+			ImageFilter: im.filter,
 			// bgOpacity tints the fill behind the image only;
 			// the texels take the widget's opacity.
 			Opacity: imageAlpha(shape.Opacity, shape.Disabled),

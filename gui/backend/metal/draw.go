@@ -329,7 +329,16 @@ func (b *windowState) drawImage(r *gui.RenderCmd) {
 		{X: x + w, Y: y + h, Z: z, U: 1, V: 1, R: cr, G: cg, B: cb, A: ca},
 		{X: x, Y: y + h, Z: z, U: -1, V: 1, R: cr, G: cg, B: cb, A: ca},
 	}
+	// The encoder draws at once, so the nearest sampler only has to
+	// stay bound for this one quad.
+	nearest := r.ImageFilter == gui.ImageFilterNearest
+	if nearest {
+		C.metalSetImageFilter(b.ctx, 1)
+	}
 	b.drawQuad(verts)
+	if nearest {
+		C.metalSetImageFilter(b.ctx, 0)
+	}
 }
 
 // resolveImageTexture returns the uploaded texture for a render

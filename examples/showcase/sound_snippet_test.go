@@ -118,6 +118,16 @@ var snippetEntries = []snippetEntry{
 		},
 	},
 	{
+		sourceFile: "../pixel_art/main.go",
+		beginMark:  "// doc:snippet-begin pixel-art-draw",
+		endMark:    "// doc:snippet-end pixel-art-draw",
+		anchor:     "dc.SetImageFilter(gui.ImageFilterNearest)",
+		heading:    "## How it works",
+		guides: []string{
+			"../pixel_art/README.md",
+		},
+	},
+	{
 		sourceFile: "../get_started/main.go",
 		anchor:     "func mainView(",
 		heading:    "## It's just Go",

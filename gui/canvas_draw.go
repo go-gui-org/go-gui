@@ -63,19 +63,24 @@ type DrawContext struct {
 	Scale float32
 
 	// xf is the active translate+scale, xfStack the Save/Restore
-	// stack, and xfActive the gate that keeps a zero-value
-	// DrawContext behaving as an untransformed one. xfDropped counts
-	// the Saves past maxXformDepth that were not stored, so their
-	// Restores can be no-ops instead of popping an ancestor.
+	// stack (which also holds imageFilter), and xfActive the gate that
+	// keeps a zero-value DrawContext behaving as an untransformed one.
+	// xfDropped counts the Saves past maxXformDepth that were not
+	// stored, so their Restores can be no-ops instead of popping an
+	// ancestor.
 	// xfPtBuf holds a transformed copy of a caller's point slice on
 	// the recorder path, and xfRec is the lazily built recorder
 	// decorator. See canvas_draw_transform.go.
 	xf        canvasXform
-	xfStack   []canvasXform
+	xfStack   []canvasSaved
 	xfPtBuf   []float32
 	xfRec     *xformRecorder
 	xfDropped int
 	xfActive  bool
+	// imageFilter is the sampling the next Image call stamps on its
+	// entry. Save/Restore scope it with the transform; resetFor
+	// clears it before every OnDraw.
+	imageFilter ImageFilter
 
 	lastColor Color
 	// batchIsGradient closes the current batch to the run-length merge.
@@ -702,7 +707,7 @@ func (dc *DrawContext) ImageWithFetcher(
 	dc.images = append(dc.images, DrawCanvasImageEntry{
 		X: x, Y: y, W: w, H: h,
 		Src: src, bgOpacity: bgOpacity, BgColor: bgColor,
-		fetcher: fetcher,
+		fetcher: fetcher, filter: dc.imageFilter.known(),
 	})
 }
 

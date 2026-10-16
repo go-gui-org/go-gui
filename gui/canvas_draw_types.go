@@ -189,7 +189,10 @@ type DrawCanvasImageEntry struct {
 	ClipX, ClipY, ClipW, ClipH float32
 	BgColor                    Color
 	rotRad                     float32
-	Clipped                    bool
+	// filter is the sampling SetImageFilter had in force when the
+	// entry was drawn, already narrowed to a known value.
+	filter  ImageFilter
+	Clipped bool
 }
 
 // DrawRecorder receives high-level draw commands before

@@ -331,7 +331,16 @@ func (b *Backend) drawImageTex(
 		{X: x + w, Y: y + h, Z: z, U: 1, V: 1, R: cr, G: cg, B: cb, A: ca},
 		{X: x, Y: y + h, Z: z, U: -1, V: 1, R: cr, G: cg, B: cb, A: ca},
 	}
+	// The filter lives on the texture, which the cache shares between
+	// every draw of this source, so a nearest draw switches it back.
+	nearest := r.ImageFilter == gui.ImageFilterNearest
+	if nearest {
+		C.glesSetImageFilter(1)
+	}
 	C.glesDrawQuad((*C.float)(unsafe.Pointer(&verts[0])))
+	if nearest {
+		C.glesSetImageFilter(0)
+	}
 }
 
 // maxSvgTriangleFloats caps a RenderSvg triangle list in floats,

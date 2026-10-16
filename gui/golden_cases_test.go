@@ -1625,6 +1625,14 @@ func goldenCases() []goldenCase {
 			build: buildCanvasTransform,
 		},
 		{
+			// Canvas image filter (issue #1065). The first and last
+			// images draw linear, the middle one nearest inside a
+			// Save/Restore, so the case pins both the filter token
+			// and that Restore puts linear back.
+			name:  "canvas_image_filter",
+			build: buildCanvasImageFilter,
+		},
+		{
 			// The markdown block loop (issue #484). The render switch
 			// in markdownBuildContent carries cross-block state --
 			// pending list items, the blockquote closing spacer, and
@@ -2152,6 +2160,30 @@ func buildMarkdownBlocks(w *Window) View {
 		ID:        "md",
 		Focusable: true,
 		Source:    goldenMarkdownSource,
+	})
+}
+
+// buildCanvasImageFilter draws one 2x2 in-memory image three times:
+// linear, nearest inside Save/Restore, then linear again.
+func buildCanvasImageFilter(_ *Window) View {
+	src := UseImage("golden-image-filter", 2, 2, []byte{
+		255, 0, 0, 255, 0, 255, 0, 255,
+		0, 0, 255, 255, 255, 255, 255, 255,
+	})
+	return DrawCanvas(DrawCanvasCfg{
+		ID:      "canvas_image_filter",
+		Sizing:  FixedFixed,
+		Width:   120,
+		Height:  40,
+		Version: 1,
+		OnDraw: func(dc *DrawContext) {
+			dc.Image(0, 0, 32, 32, src, Opt[float32]{}, Color{})
+			dc.Save()
+			dc.SetImageFilter(ImageFilterNearest)
+			dc.Image(40, 0, 32, 32, src, Opt[float32]{}, Color{})
+			dc.Restore()
+			dc.Image(80, 0, 32, 32, src, Opt[float32]{}, Color{})
+		},
 	})
 }
 

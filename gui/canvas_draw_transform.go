@@ -222,8 +222,8 @@ func (dc *DrawContext) Rotate(rad float32) {
 	dc.xf.xx, dc.xf.xy, dc.xf.yx, dc.xf.yy = nxx, nxy, nyx, nyy
 }
 
-// Save pushes the current transform so a later Restore can return to
-// it. Pushes past maxXformDepth are not stored, but they are COUNTED:
+// Save pushes the current transform and image filter so a later
+// Restore can return to them. Pushes past maxXformDepth are not stored, but they are COUNTED:
 // dropping a push silently would make the matching Restore pop an
 // ancestor instead, so every Restore after the cap was hit would
 // rewind one level too far and the rest of the nest would draw at the
@@ -234,10 +234,11 @@ func (dc *DrawContext) Save() {
 		dc.xfDropped++
 		return
 	}
-	dc.xfStack = append(dc.xfStack, dc.xf)
+	dc.xfStack = append(dc.xfStack,
+		canvasSaved{xf: dc.xf, imageFilter: dc.imageFilter})
 }
 
-// Restore pops the transform Save pushed. Restoring with an empty
+// Restore pops the transform and image filter Save pushed. Restoring with an empty
 // stack is a no-op: OnDraw runs inside the frame, so a panic here
 // would take the whole window down over a caller's bookkeeping slip.
 //
@@ -254,7 +255,8 @@ func (dc *DrawContext) Restore() {
 	if n == 0 {
 		return
 	}
-	dc.xf = dc.xfStack[n-1]
+	dc.xf = dc.xfStack[n-1].xf
+	dc.imageFilter = dc.xfStack[n-1].imageFilter
 	dc.xfStack = dc.xfStack[:n-1]
 }
 
@@ -271,12 +273,14 @@ func (dc *DrawContext) ensureXform() {
 // resetXform returns the context to "no transform" for the next
 // redraw. Called from resetFor, which runs immediately before every
 // OnDraw, so an unbalanced Save cannot leak into the next frame or
-// into another canvas sharing the window's scratch context.
+// into another canvas sharing the window's scratch context. The image
+// filter rides the same Save stack, so it resets here too.
 func (dc *DrawContext) resetXform() {
 	dc.xf = canvasXform{}
 	dc.xfActive = false
 	dc.xfStack = dc.xfStack[:0]
 	dc.xfDropped = 0
+	dc.imageFilter = ImageFilterLinear
 }
 
 // activeXform is the transform a batch should carry, and whether it
@@ -557,6 +561,7 @@ func (dc *DrawContext) bakeRotatedImage(x, y, w, h float32, src string,
 		W: w * xf.colScaleX(), H: h * xf.colScaleY(),
 		Src: src, bgOpacity: bgOpacity, BgColor: bgColor,
 		fetcher: fetcher, rotRad: xf.angle(),
+		filter: dc.imageFilter.known(),
 	})
 	return true
 }

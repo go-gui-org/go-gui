@@ -22,6 +22,9 @@ struct MetalContext {
     id<MTLCommandQueue> queue;
     CAMetalLayer        *layer;
     id<MTLSamplerState> sampler;
+    // samplerNearest is bound only for the length of one image draw
+    // that asks for ImageFilterNearest; sampler is bound otherwise.
+    id<MTLSamplerState> samplerNearest;
     id<MTLBuffer>       quadIdx;
     id<MTLRenderPipelineState> pipelines[PIPE_COUNT];
     // Per-frame
@@ -606,6 +609,11 @@ MetalCtx metalCtxCreate(void* layerPtr, const char* mslSrc) {
     sd.tAddressMode = MTLSamplerAddressModeClampToEdge;
     ctx->sampler =
         [ctx->device newSamplerStateWithDescriptor:sd];
+    // Same clamp, nearest texel: pixel art keeps hard edges.
+    sd.minFilter = MTLSamplerMinMagFilterNearest;
+    sd.magFilter = MTLSamplerMinMagFilterNearest;
+    ctx->samplerNearest =
+        [ctx->device newSamplerStateWithDescriptor:sd];
 
     return ctx;
 }
@@ -743,6 +751,7 @@ void metalCtxDestroy(MetalCtx ctx_) {
     ctx->freeCustomPipelineCount = 0;
     ctx->quadIdx = nil;
     ctx->sampler = nil;
+    ctx->samplerNearest = nil;
     ctx->queue   = nil;
     ctx->device  = nil;
     ctx->layer   = nil;
@@ -1002,6 +1011,16 @@ void metalBindTexture(MetalCtx ctx_, int id) {
         [ctx->enc setFragmentTexture:ctx->textures[id]
                              atIndex:0];
     }
+}
+
+// metalSetImageFilter binds the nearest sampler when nearest is 1 and
+// the shared linear one otherwise. A draw that sets nearest sets it
+// back to 0 after its quad, so every other draw keeps linear.
+void metalSetImageFilter(MetalCtx ctx_, int nearest) {
+    MetalContext* ctx = MC(ctx_);
+    if (!ctx->enc) return;
+    [ctx->enc setFragmentSamplerState:
+        (nearest ? ctx->samplerNearest : ctx->sampler) atIndex:0];
 }
 
 // ─── Filter System ────────────────────────────────────────────

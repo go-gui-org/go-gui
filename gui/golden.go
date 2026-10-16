@@ -558,6 +558,21 @@ func writeVertexColors(b *strings.Builder, c *RenderCmd) {
 	}
 }
 
+// writeImageFields writes the RenderImage tokens. It is split out of
+// serializeCmd only to keep that switch under the gocyclo limit.
+func writeImageFields(b *strings.Builder, c *RenderCmd) {
+	fmt.Fprintf(b, " res=%q", c.Resource)
+	if c.ClipRadius != 0 {
+		b.WriteString(" cradius=" + f2(c.ClipRadius))
+	}
+	if c.Opacity != 1 {
+		b.WriteString(" opa=" + f2(c.Opacity))
+	}
+	if c.ImageFilter == ImageFilterNearest {
+		b.WriteString(" filter=nearest")
+	}
+}
+
 // serializeCmd renders one command as a single line. Only fields
 // meaningful for the kind are emitted, so a golden stays readable and
 // a diff points at what actually changed.
@@ -599,13 +614,7 @@ func serializeCmd(c RenderCmd) string {
 				f2(t.X0), f2(t.Y0))
 		}
 	case RenderImage:
-		fmt.Fprintf(&b, " res=%q", c.Resource)
-		if c.ClipRadius != 0 {
-			b.WriteString(" cradius=" + f2(c.ClipRadius))
-		}
-		if c.Opacity != 1 {
-			b.WriteString(" opa=" + f2(c.Opacity))
-		}
+		writeImageFields(&b, &c)
 	case RenderSvg:
 		fmt.Fprintf(&b, " tris=%d", len(c.Triangles))
 		writeVertexColors(&b, &c)

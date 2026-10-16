@@ -135,6 +135,9 @@ type RenderCmd struct {
 	Kind  renderKind
 
 	StencilDepth uint8 // StencilBegin/End
+	// ImageFilter is the texel sampling for an Image. The zero value
+	// is linear; a backend tests only for ImageFilterNearest.
+	ImageFilter ImageFilter
 
 	// Flags.
 	Fill       bool // Rect fill, Circle fill
