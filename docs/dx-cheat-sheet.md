@@ -204,6 +204,21 @@ hovered shape can pull it out from under a still pointer, and it then flickers
 every frame. `examples/custom_controls/buttons` shows the pattern;
 `docs/specs/build-time-interaction-state.md` has the rules.
 
+## Layers: Stack or Float
+
+`gui.Stack` puts its children one over the other. Every child starts at the
+content origin; the last child is drawn on top and gets the pointer first. A
+`Fill` child takes the whole content box, so a background image or canvas goes
+first with `FillFill`. The Stack's `HAlign` and `VAlign` place every layer. To
+place one layer on its own, wrap it in a `FillFill` Column with its own
+alignment. A Fit Stack is as large as its largest layer. `Spacing` has no
+effect. `examples/stack/` builds a game HUD this way.
+
+Layers stay in the tree, so they scroll and clip with the Stack. A `Float` does
+the opposite: it leaves its container and draws over everything. Use a Float for
+a dropdown, a menu or a toast, and a Stack for layers that belong inside the
+container.
+
 ## `AmendLayout` and floats
 
 `AmendLayout` runs after sizing with absolute coordinates. Moving a parent there

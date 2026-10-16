@@ -92,6 +92,7 @@ var widgetDocFiles = map[string]string{
 	"slider":             "docs/widget_slider.md",
 	"spinner":            "docs/widget_spinner.md",
 	"splitter":           "docs/widget_splitter.md",
+	"stack":              "docs/widget_stack.md",
 	"svg":                "docs/widget_svg.md",
 	"svg_spinner":        "docs/widget_svg_spinner.md",
 	"switch":             "docs/widget_switch.md",

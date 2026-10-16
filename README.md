@@ -116,6 +116,9 @@ Go-Gui is also an ecosystem of composable libraries. **go-glyph** handles text,
   shadows, blur effects, canvas paths that draw themselves in
   ([`examples/path_trim/`](examples/path_trim/)), and sharp-edged pixel art with
   nearest-neighbor image sampling ([`examples/pixel_art/`](examples/pixel_art/))
+- **Layered layout** — `Stack` puts children one over the other: controls over a
+  background image or canvas, a badge on an avatar, a game HUD
+  ([`examples/stack/`](examples/stack/))
 - **View transforms** — move, scale, rotate, skew or flip any container in 3D
   with `ContainerCfg.Transform`. Clicks and typing follow the drawn view.
   `FlipPanel` is a card that turns over to show its back face

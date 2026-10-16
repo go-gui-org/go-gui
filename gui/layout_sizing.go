@@ -188,7 +188,9 @@ func layoutFillCrossAxis(layout *Layout, axis distributeAxis, fb *fillBuffers) {
 		// That is safe only because a parent writes one of the two per
 		// frame: this branch runs when the parent's axis is
 		// mainAxisOf(axis), and a parent has a single axis. A parent that
-		// filled on both axes would read the other axis's stale sum.
+		// filled on both axes would read the other axis's stale sum. A
+		// Stack fills on both axes but never takes this branch: its axis
+		// is never mainAxisOf(axis).
 		parentShape := layout.Parent.Shape
 		sum := siblingSumPtr(parentShape, axis)
 		var totalChild float32
@@ -296,7 +298,9 @@ func layoutWidthsDepth(layout *Layout, depth int) {
 			layout.Shape.Width = clampSize(layout.Shape.Width, layout.Shape.MinWidth, layout.Shape.MaxWidth)
 			scrollFillResetMin(layout.Shape, distributeHorizontal)
 		}
-	} else if layout.Shape.Axis == axisTopToBottom {
+	} else if layout.Shape.Axis == axisTopToBottom || layout.Shape.Axis == axisStack {
+		// A Stack sizes width the way a column does: the widest child.
+		//
 		// Fixed cross-axis with a 0 size degrades to content sizing
 		// (see the AxisLeftToRight note above / issue #94). Captured
 		// before the loop mutates Width, so it stays stable per child.
@@ -410,7 +414,9 @@ func layoutHeightsDepth(layout *Layout, depth int) {
 			layout.Shape.Height = clampSize(layout.Shape.Height, layout.Shape.MinHeight, layout.Shape.MaxHeight)
 			scrollFillResetMin(layout.Shape, distributeVertical)
 		}
-	} else if layout.Shape.Axis == axisLeftToRight {
+	} else if layout.Shape.Axis == axisLeftToRight || layout.Shape.Axis == axisStack {
+		// A Stack sizes height the way a row does: the tallest child.
+		//
 		// Fixed cross-axis with a 0 height degrades to content sizing
 		// (see issue #94). Captured before the loop mutates Height.
 		fitHeight := layout.Shape.Sizing.Height != sizingFixed || layout.Shape.Height == 0
@@ -490,7 +496,8 @@ func layoutFillWidthsImplDepth(layout *Layout, fb *fillBuffers, depth int) {
 			distributeSpace(layout, remainingWidth, distributeShrink, distributeHorizontal, fb)
 		}
 		fillOutOfFlowMain(layout, distributeHorizontal)
-	case axisTopToBottom:
+	case axisTopToBottom, axisStack:
+		// A Stack has no main axis: each Fill child takes the content box.
 		layoutFillCrossAxis(layout, distributeHorizontal, fb)
 	}
 
@@ -553,7 +560,7 @@ func layoutFillHeightsImplDepth(layout *Layout, fb *fillBuffers, depth int) {
 			distributeSpace(layout, remainingHeight, distributeShrink, distributeVertical, fb)
 		}
 		fillOutOfFlowMain(layout, distributeVertical)
-	case axisLeftToRight:
+	case axisLeftToRight, axisStack:
 		layoutFillCrossAxis(layout, distributeVertical, fb)
 	}
 

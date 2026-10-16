@@ -10,6 +10,17 @@ and this project adheres to
 
 ### Added
 
+- **`Stack` lays children in layers (#1071).** `gui.Stack(cfg)` takes a
+  `ContainerCfg` and puts its children one over the other. The first child is
+  the bottom layer and the last child is the top layer: it is drawn last and
+  gets the pointer first. Every child starts at the content origin. A `Fill`
+  child takes the whole content box, and a Fit Stack is as large as its largest
+  child. `HAlign` and `VAlign` place each child on both axes; `Spacing` has no
+  effect. Before this, controls over a background image or canvas needed
+  `Float`, which takes the layer out of its container: it did not scroll or clip
+  with it and did not size it. Stack layers stay in the tree. `examples/stack/`
+  and the showcase's Stack page show it.
+
 - **PDF print keeps nearest-neighbor images sharp (#1069).** An `Image` widget
   with `Filter: gui.ImageFilterNearest`, or a canvas image drawn after
   `SetImageFilter(gui.ImageFilterNearest)`, now prints with hard pixel edges.

@@ -10,6 +10,10 @@ const (
 	axisNone        Axis = iota
 	axisTopToBottom      // vertical
 	axisLeftToRight      // horizontal
+	// axisStack lays every child over the others at the content origin
+	// (Stack). Sizing treats both axes as a cross axis: a Fit size is the
+	// largest child, and a Fill child takes the content box.
+	axisStack
 )
 
 // HorizontalAlign specifies horizontal alignment.

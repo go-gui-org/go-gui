@@ -248,6 +248,8 @@ func inspectorTypeName(shape *Shape) string {
 			return "column"
 		case axisLeftToRight:
 			return "row"
+		case axisStack:
+			return "stack"
 		default:
 			return "canvas"
 		}

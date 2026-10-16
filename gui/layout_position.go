@@ -29,9 +29,15 @@ func layoutPositionsDepth(layout *Layout, offsetX, offsetY float32, w *Window, d
 	for i := range layout.Children {
 		child := &layout.Children[i]
 		var xAlign, yAlign float32
-		if axis == axisLeftToRight {
+		switch axis {
+		case axisLeftToRight:
 			yAlign = childCrossAxisVAlign(child, layout.Shape, layoutH)
-		} else {
+		case axisStack:
+			// Both axes are a cross axis in a Stack, so each child is
+			// aligned on both.
+			xAlign = childCrossAxisHAlign(child, layout.Shape, hAlign, layoutW)
+			yAlign = childCrossAxisVAlign(child, layout.Shape, layoutH)
+		default:
 			xAlign = childCrossAxisHAlign(child, layout.Shape, hAlign, layoutW)
 		}
 
@@ -43,7 +49,8 @@ func layoutPositionsDepth(layout *Layout, offsetX, offsetY float32, w *Window, d
 
 		// Advance past in-flow children only, the set sizing counted
 		// (skipLayoutChild). A Float left in the tree must not push its
-		// siblings along.
+		// siblings along. A Stack does not advance: every child starts at
+		// the same origin, so Spacing has no effect.
 		if !skipLayoutChild(child.Shape) {
 			switch axis {
 			case axisLeftToRight:

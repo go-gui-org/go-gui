@@ -174,6 +174,7 @@ var relatedExampleMap = map[string][]string{
 	"rotated_box":         {"examples/showcase/demo_layout.go"},
 	"row":                 {"examples/showcase/demo_layout.go"},
 	"column_demo":         {"examples/showcase/demo_layout.go"},
+	"stack":               {"examples/showcase/demo_stack.go", "examples/stack/main.go"},
 	"wrap_panel":          {"examples/showcase/demo_layout.go"},
 	"overflow_panel":      {"examples/showcase/demo_layout.go"},
 	"sidebar":             {"examples/showcase/demo_layout.go"},

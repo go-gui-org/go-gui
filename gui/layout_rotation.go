@@ -83,7 +83,9 @@ func recomputeFitWidth(layout *Layout) float32 {
 			w += layout.Children[i].Shape.Width
 		}
 		w += padding + sp
-	case axisTopToBottom:
+	case axisTopToBottom, axisStack:
+		// A Stack fits width as a column does: the widest child
+		// (layoutWidthsDepth).
 		for i := range layout.Children {
 			if skipLayoutChild(layout.Children[i].Shape) {
 				continue
@@ -121,7 +123,9 @@ func recomputeFitHeight(layout *Layout) float32 {
 			h += layout.Children[i].Shape.Height
 		}
 		h += padding + sp
-	case axisLeftToRight:
+	case axisLeftToRight, axisStack:
+		// A Stack fits height as a row does: the tallest child
+		// (layoutHeightsDepth).
 		for i := range layout.Children {
 			if skipLayoutChild(layout.Children[i].Shape) {
 				continue

@@ -138,6 +138,16 @@ var snippetEntries = []snippetEntry{
 		},
 	},
 	{
+		sourceFile: "../stack/main.go",
+		beginMark:  "// doc:snippet-begin stack-layers",
+		endMark:    "// doc:snippet-end stack-layers",
+		anchor:     "return gui.Stack(gui.ContainerCfg{",
+		heading:    "## How it works",
+		guides: []string{
+			"../stack/README.md",
+		},
+	},
+	{
 		sourceFile: "../get_started/main.go",
 		anchor:     "func mainView(",
 		heading:    "## It's just Go",

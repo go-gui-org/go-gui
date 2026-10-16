@@ -247,6 +247,11 @@ type ShowcaseApp struct {
 	FlipPanelClickOnly bool
 	FlipPanelLikes     int
 
+	// StackOrder is the layer order of the Stack page's cards
+	// (demo_stack.go): StackOrder[0] is the bottom card, the last entry
+	// the top card.
+	StackOrder [3]int
+
 	ColorPickerColor gui.Color
 
 	// ColorHSLA drives the composable color components. It is an HSLA
@@ -293,6 +298,7 @@ func newShowcaseApp() *ShowcaseApp {
 		WindowOpacity:         1,
 		PathTrimProgress:      1,
 		SelectedComponent:     "welcome",
+		StackOrder:            [3]int{0, 1, 2},
 		InputMultiline:        "Now is the time for all good men to come to the aid of their country",
 		RadioValue:            "go",
 		SegmentValue:          "week",
@@ -505,6 +511,7 @@ var demoEntries = []DemoEntry{
 
 	{ID: "rotated_box", Label: "Rotated Box", Group: groupLayout, Summary: "Rotate child content by quarter turns.", Tags: []string{"rotate", "transform", "layout"}},
 	{ID: "row", Label: "Row", Group: groupLayout, Summary: "Horizontal container arranging children left-to-right.", Tags: []string{"row", "horizontal", "container", "layout"}},
+	{ID: "stack", Label: "Stack", Group: groupLayout, Summary: "Container that lays children in layers, one over the other.", Tags: []string{"stack", "layer", "overlay", "z-order", "background", "container", "layout"}},
 	{ID: "column_demo", Label: "Column", Group: groupLayout, Summary: "Vertical container arranging children top-to-bottom.", Tags: []string{"column", "vertical", "container", "layout"}},
 	{ID: "wrap_panel", Label: "Wrap Panel", Group: groupLayout, Summary: "Flow layout that wraps children to the next line.", Tags: []string{"wrap", "flow", "reflow", "layout"}},
 	{ID: "overflow_panel", Label: "Overflow Panel", Group: groupLayout, Summary: "Row that hides non-fitting children in a dropdown.", Tags: []string{"overflow", "toolbar", "responsive", "layout"}},

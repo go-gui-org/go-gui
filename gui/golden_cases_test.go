@@ -1091,6 +1091,28 @@ func goldenCases() []goldenCase {
 			},
 		},
 		{
+			// Stack (#1071): a Fill background layer under a centered
+			// button. Pins the draw order (background first) and that the
+			// top layer is centered over the content box, not placed after
+			// the background.
+			name: "stack",
+			build: func(_ *Window) View {
+				return Stack(ContainerCfg{
+					Sizing: FixedFixed, Width: 200, Height: 120,
+					HAlign: HAlignCenter, VAlign: VAlignMiddle,
+					Content: []View{
+						Column(ContainerCfg{
+							Sizing: FillFill, Color: RGB(40, 90, 160),
+							SizeBorder: NoBorder,
+						}),
+						Button(ButtonCfg{
+							ID: "play", Content: []View{Text(TextCfg{Text: "Play"})},
+						}),
+					},
+				})
+			},
+		},
+		{
 			// Enabled and disabled buttons must take the same
 			// correction: buttonAmendLayout returns early for a
 			// disabled button, so the label would otherwise sit a

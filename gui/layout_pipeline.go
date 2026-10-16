@@ -583,13 +583,14 @@ func layoutWrapRTF(shape *Shape, tc *shapeTextConfig, w *Window) {
 // this child across a column's cross axis, or HAlignLeft when there is
 // none to inherit.
 //
-// Only a column (axisTopToBottom) answers. In a row HAlign is the main
-// axis: it places the children as a group, so narrowing one of them
-// there would open a gap rather than move the text.
+// Only a column (axisTopToBottom) or a Stack answers: both align each
+// child across the width. In a row HAlign is the main axis: it places the
+// children as a group, so narrowing one of them there would open a gap
+// rather than move the text.
 func wrapParentHAlign(layout *Layout) HorizontalAlign {
 	parent := layout.Parent
 	if parent == nil || parent.Shape == nil ||
-		parent.Shape.Axis != axisTopToBottom {
+		(parent.Shape.Axis != axisTopToBottom && parent.Shape.Axis != axisStack) {
 		return HAlignLeft
 	}
 	isRTL := effectiveTextDir(parent.Shape) == TextDirRTL

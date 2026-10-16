@@ -290,6 +290,7 @@ var componentDemos = map[string]func(*gui.Window) gui.View{
 	"rotated_box":         demoRotatedBox,
 	"row":                 demoRow,
 	"column_demo":         demoColumn,
+	"stack":               demoStack,
 	"wrap_panel":          demoWrapPanel,
 	"overflow_panel":      demoOverflowPanel,
 	"sidebar":             demoSidebar,
