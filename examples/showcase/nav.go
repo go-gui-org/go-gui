@@ -26,6 +26,10 @@ const (
 	// catalog header. Both can be on screen while the drawer is open.
 	navOpenID   = "showcase-nav-open"
 	navToggleID = "showcase-nav-toggle"
+
+	// catalogA11YLabel names the catalog for assistive technology,
+	// inline and in the drawer alike, so one region has one name.
+	catalogA11YLabel = "Component catalog"
 )
 
 // isNarrow reports whether the window is too narrow to keep the
@@ -45,11 +49,27 @@ func mainView(w *gui.Window) gui.View {
 	var content []gui.View
 	switch {
 	case isNarrow(w):
-		content = []gui.View{navTopBar(w), detailPanel(w)}
+		// The drawer is modal. Disabling the page behind it takes the
+		// page's widgets out of tab order, so Tab cycles inside the
+		// drawer and never lands on a widget the backdrop hides.
+		content = []gui.View{gui.Column(gui.ContainerCfg{
+			Sizing:     gui.FillFill,
+			Padding:    gui.NoPadding,
+			Spacing:    gui.NoSpacing,
+			SizeBorder: gui.NoBorder,
+			Disabled:   app.CatalogDrawerOpen,
+			Content:    []gui.View{navTopBar(w), detailPanel(w)},
+		})}
 		if app.CatalogDrawerOpen {
 			content = append(content, catalogDrawer(w))
 		}
 	default:
+		// The drawer exists only on a narrow window. Clear its flag
+		// once the window is wide, or the stale value sends focus to
+		// the wrong menu button and brings the drawer back on the
+		// next shrink. Done here, not on EventResized, because every
+		// size change (resize, web viewport, restore) reaches the view.
+		app.CatalogDrawerOpen = false
 		// The sidebar stays in the row while collapsed, so it slides
 		// shut instead of vanishing; the top bar takes over its menu
 		// button.
@@ -98,7 +118,7 @@ func navTopBar(w *gui.Window) gui.View {
 // The backdrop dims the page and closes the drawer on a tap.
 func catalogDrawer(w *gui.Window) gui.View {
 	width, height := w.WindowSize()
-	drawerW := min(catalogWidth, float32(width)-navDrawerGap)
+	drawerW := drawerWidth(float32(width))
 	return gui.Column(gui.ContainerCfg{
 		Float:      true,
 		Sizing:     gui.FillFill,
@@ -124,7 +144,7 @@ func catalogDrawer(w *gui.Window) gui.View {
 				Padding:    gui.NoPadding,
 				SizeBorder: gui.NoBorder,
 				A11YRole:   gui.AccessRoleDialog,
-				A11YCfg:    gui.A11YCfg{A11YLabel: "Component catalog"},
+				A11YCfg:    gui.A11YCfg{A11YLabel: catalogA11YLabel},
 				OnClick: func(ctx gui.EventCtx) {
 					// Keep a tap on the drawer's own background from
 					// reaching the backdrop, which would close it.
@@ -134,6 +154,19 @@ func catalogDrawer(w *gui.Window) gui.View {
 			}),
 		},
 	})
+}
+
+// drawerWidth is the drawer's width in a window of the given width. It
+// leaves the strip of page while the drawer stays wider than the strip;
+// below that the strip is not worth a sliver of catalog, so the drawer
+// takes the whole window. It never returns 0 or less: a Fixed width of
+// 0 falls back to content sizing (#94).
+func drawerWidth(window float32) float32 {
+	drawerW := min(catalogWidth, window-navDrawerGap)
+	if drawerW < navDrawerGap {
+		drawerW = min(catalogWidth, window)
+	}
+	return max(drawerW, 1)
 }
 
 // navToggleButton shows or hides the catalog: inline on a wide window,

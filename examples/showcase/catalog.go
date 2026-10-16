@@ -14,6 +14,7 @@ func catalogPanel(w *gui.Window) gui.View {
 	app := appState(w)
 	return w.Sidebar(gui.SidebarCfg{
 		ID:      catalogScopeID,
+		A11YCfg: gui.A11YCfg{A11YLabel: catalogA11YLabel},
 		Width:   catalogWidth,
 		Open:    !app.CatalogCollapsed,
 		Padding: gui.NoPadding,
