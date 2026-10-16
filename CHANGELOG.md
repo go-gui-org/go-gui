@@ -8,6 +8,8 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [v0.90.0] - 2026-10-16
+
 ### Added
 
 - **`Stack` lays children in layers (#1071).** `gui.Stack(cfg)` takes a
