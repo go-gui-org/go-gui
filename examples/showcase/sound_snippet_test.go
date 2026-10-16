@@ -108,6 +108,16 @@ var snippetEntries = []snippetEntry{
 		},
 	},
 	{
+		sourceFile: "../path_trim/main.go",
+		beginMark:  "// doc:snippet-begin path-trim-draw",
+		endMark:    "// doc:snippet-end path-trim-draw",
+		anchor:     "s.mark.TrimTo(&s.trimmed, 0, s.progress)",
+		heading:    "## How it works",
+		guides: []string{
+			"../path_trim/README.md",
+		},
+	},
+	{
 		sourceFile: "../get_started/main.go",
 		anchor:     "func mainView(",
 		heading:    "## It's just Go",

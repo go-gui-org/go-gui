@@ -50,6 +50,20 @@ gui.DrawCanvas(gui.DrawCanvasCfg{
 | DashedLine     | (x0, y0, x1, y1 float32, color Color, width, dashLen, gapLen float32) | Dashed line segment                   |
 | DashedPolyline | (points []float32, color Color, width, dashLen, gapLen float32)       | Polyline with continuous dash pattern |
 
+### Paths
+
+Build a `CanvasPath` with `MoveTo`, `LineTo`, `QuadTo`, `CubicTo`, `ArcTo` and
+`Close`, then fill or stroke it.
+
+| Method            | Signature                                                       | Description                                   |
+| ----------------- | --------------------------------------------------------------- | --------------------------------------------- |
+| FillPath          | (p \*CanvasPath, color Color, rule FillRule)                    | Fill a path with the nonzero or evenodd rule  |
+| StrokePath        | (p \*CanvasPath, color Color, width float32, style StrokeStyle) | Stroke a path with caps and joins             |
+| CanvasPath.TrimTo | (dst \*CanvasPath, from, to float32)                            | Copy the part between two fractions of length |
+
+`TrimTo` with `from` 0 and a `to` that a tween moves from 0 to 1 draws a stroke
+in along its length. Reuse one `dst`: it stops allocating after the first frame.
+
 ### Text
 
 | Method     | Signature                                    | Description                             |

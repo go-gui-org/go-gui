@@ -158,7 +158,7 @@ var relatedExampleMap = map[string][]string{
 	"gradient":            {"examples/showcase/demo_graphics.go", "examples/gradient_demo/main.go"},
 	"box_shadows":         {"examples/showcase/demo_graphics.go", "examples/shadow_demo/main.go"},
 	"shader":              {"examples/showcase/demo_graphics.go", "examples/custom_shader/main.go"},
-	"draw_canvas":         {"examples/showcase/demo_graphics.go", "examples/draw_canvas/main.go"},
+	"draw_canvas":         {"examples/showcase/demo_graphics.go", "examples/showcase/demo_path_trim.go", "examples/draw_canvas/main.go", "examples/path_trim/main.go"},
 	"transform":           {"examples/showcase/demo_transform.go", "examples/transforms/main.go"},
 	"animations":          {"examples/showcase/demo_animations.go", "examples/animations/main.go"},
 	"color_picker":        {"examples/showcase/demo_input.go", "examples/color_picker/main.go"},

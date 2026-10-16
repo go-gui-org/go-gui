@@ -205,6 +205,18 @@ type ShowcaseApp struct {
 	DrawCanvasMarkerX float32
 	DrawCanvasMarkerY float32
 
+	// Path trim panel on the Draw Canvas page (demo_path_trim.go).
+	// PathTrimProgress is how much of each path is drawn, 0 to 1; it
+	// starts at 1 so the page opens with the paths whole.
+	// PathTrimVersion changes with it, so the canvas repaints on a
+	// render-only frame. The mark and ring are built once; the trimmed
+	// copy is reused every frame.
+	PathTrimProgress float32
+	PathTrimVersion  uint64
+	PathTrimMark     gui.CanvasPath
+	PathTrimRing     gui.CanvasPath
+	PathTrimOut      gui.CanvasPath
+
 	// Transform playground sliders (demo_transform.go). TransformScale
 	// is seeded to 1 in newShowcaseApp; the zero value would collapse
 	// the preview to its origin. TransformMirrorX is the X-axis mirror
@@ -279,6 +291,7 @@ func newShowcaseApp() *ShowcaseApp {
 		ShaderStartTime:       time.Now(),
 		SelectedGroup:         groupAll,
 		WindowOpacity:         1,
+		PathTrimProgress:      1,
 		SelectedComponent:     "welcome",
 		InputMultiline:        "Now is the time for all good men to come to the aid of their country",
 		RadioValue:            "go",
@@ -447,7 +460,7 @@ var demoEntries = []DemoEntry{
 	{ID: "box_shadows", Label: "Box Shadows", Group: groupDrawing, Summary: "Shadow presets with spread behavior notes.", Tags: []string{"shadow", "depth", "blur"}},
 	{ID: "shader", Label: "Custom Shaders", Group: groupDrawing, Summary: "Custom fragment shaders for dynamic fills.", Tags: []string{"shader", "glsl", "metal"}},
 	{ID: "color_filter", Label: "Color Filters", Group: groupDrawing, Summary: "Color matrix transforms: grayscale, sepia, saturate, contrast, brightness.", Tags: []string{"filter", "color", "grayscale", "sepia", "saturate", "matrix"}},
-	{ID: "draw_canvas", Label: "Draw Canvas", Group: groupDrawing, Summary: "Procedural 2D drawing with cached tessellation.", Tags: []string{"canvas", "draw", "chart", "line", "polygon", "circle"}},
+	{ID: "draw_canvas", Label: "Draw Canvas", Group: groupDrawing, Summary: "Procedural 2D drawing with cached tessellation.", Tags: []string{"canvas", "draw", "chart", "line", "polygon", "circle", "path", "trim"}},
 	{ID: "transform", Label: "Transforms", Group: groupDrawing, Summary: "Move, turn, scale and skew containers with visual transforms.", Tags: []string{"transform", "rotate", "scale", "translate", "skew", "perspective", "flip", "hover", "3d"}},
 	{ID: "theme_gen", Label: "Theme", Group: groupApp, Summary: "Generate a theme from a seed color, tint level, and palette strategy.", Tags: []string{"theme", "color", "palette", "generator"}},
 

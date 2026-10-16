@@ -429,6 +429,16 @@ A `DrawContext` carries a transform stack: `Translate(dx, dy)`,
 batch-stamped, so a transform between two fills does not merge them. See
 `docs/specs/draw-canvas-transform.md`.
 
+## Trimming a path
+
+`(*CanvasPath).TrimTo(dst, from, to)` copies into `dst` the part of a path
+between two fractions of its length. Animate `to` from 0 to 1 and a stroke draws
+itself in: a check mark, a progress ring along a custom outline. Length is
+measured over the flattened path, over all subpaths together; curves and arcs
+stay curves and arcs. Keep `dst` in your state and reuse it: a trim redone every
+frame stops allocating after the first one. `examples/path_trim/` animates both
+with a render-only tween.
+
 ## View transforms
 
 `ContainerCfg.Transform` moves, scales, rotates, skews or turns a container and

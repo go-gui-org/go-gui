@@ -10,6 +10,18 @@ and this project adheres to
 
 ### Added
 
+- **`CanvasPath.TrimTo` draws part of a path's length (#1023).**
+  `p.TrimTo(&dst, from, to)` writes into `dst` the part of `p` between the
+  fractions `from` and `to` of its length. Animate `to` from 0 to 1 and a stroke
+  draws itself in, as `stroke-dasharray` animation does in SVG: a check mark, a
+  progress ring along a custom outline. The length is the flattened length at
+  the stroke tolerance, over all subpaths together. Lines, curves and arcs are
+  cut exactly and stay what they were, so SVG and PDF export still get curves. A
+  closed subpath cut short comes back open, with end caps. Out-of-range values
+  clamp; NaN, `from >= to` or an empty path give an empty `dst`. `dst` keeps its
+  buffers, so a trim redone every frame does not allocate. `examples/path_trim/`
+  shows it, and so does the showcase's Draw Canvas page.
+
 - **Android apps can provide secure secret storage (#930).** The Android backend
   accepts a narrow gomobile `SecretStore` callback for `LoadSecret`,
   `SaveSecret` and `DeleteSecret`. Android applications supply and register the

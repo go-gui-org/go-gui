@@ -339,31 +339,9 @@ func (dc *DrawContext) arcPointsMin(cx, cy, rx, ry, start, sweep float32,
 	// pixels. Clamp the sweep rather than only the segment count: the count alone
 	// would leave step = sweep/n at whatever the caller passed (an unwrapped
 	// rotation accumulator reaches 1e6 rad), which draws bounded garbage.
-	if f32Abs(sweep) > 2*math.Pi {
-		sweep = float32(math.Copysign(2*math.Pi, float64(sweep)))
-	}
-	// Count segments from the radius on screen, in device pixels. A chord that
-	// spans angle θ strays r·(1-cos(θ/2)) from the arc at its middle; solving for
-	// arcTolerance gives the largest θ that still looks round. An ellipse is
-	// counted by its larger device radius, which is where its chords stray most.
-	//
-	// All in float64: a finite r can be 3.4e38, and times the scale that is past
-	// float32. With sweep clamped, the count reaches the cap only near r = 850,000
-	// device px — far past any visible improvement. The cap also bounds the
-	// retained dc.arcBuf at ~32 KB, so it needs no shrink. An out-of-range
-	// float-to-int conversion is undefined in Go, so the clamp comes first.
+	sweep = arcClampSweep(sweep)
 	dsx, dsy := dc.arcDeviceScale()
-	out := float64(max(outset, 0))
-	devR := max((float64(f32Abs(rx))+out)*dsx, (float64(f32Abs(ry))+out)*dsy)
-	// Below half the tolerance the cosine term passes -1; clamp it so a tiny
-	// circle gets θ = 2π and falls to the 4-segment floor.
-	theta := 2 * math.Acos(max(1-arcTolerance/devR, -1))
-	segs := float64(maxArcSegments)
-	if theta > 0 {
-		// theta is 0 only when devR is so large that 1-tol/devR rounds to 1.
-		segs = min(math.Ceil(float64(f32Abs(sweep))/theta), maxArcSegments)
-	}
-	n := max(int(segs), min(minSegs, maxArcSegments))
+	n := arcSegmentCount(rx, ry, sweep, dsx, dsy, minSegs, outset)
 	need := (n + 1) * 2
 	if cap(dc.arcBuf) < need {
 		dc.arcBuf = make([]float32, 0, need)

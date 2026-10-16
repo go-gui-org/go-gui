@@ -754,6 +754,13 @@ func demoDrawCanvas(w *gui.Window) gui.View {
 				Mode:      gui.TextModeWrap,
 			}),
 			demoDrawCanvasInteractive(app),
+			gui.Text(gui.TextCfg{
+				Text: "Paths trimmed with CanvasPath.TrimTo: each stroke" +
+					" draws in along its length. Replay draws them again.",
+				TextStyle: t.TextStyleBody,
+				Mode:      gui.TextModeWrap,
+			}),
+			demoDrawCanvasPathTrim(app),
 		},
 	})
 }

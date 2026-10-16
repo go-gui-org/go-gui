@@ -151,3 +151,40 @@ func appendPolygonFanTris(dst *[]float32, points []float32) {
 			points[(i+1)*2], points[(i+1)*2+1])
 	}
 }
+
+// arcClampSweep clamps a sweep to one full turn, keeping its sign.
+func arcClampSweep(sweep float32) float32 {
+	if f32Abs(sweep) > 2*math.Pi {
+		return float32(math.Copysign(2*math.Pi, float64(sweep)))
+	}
+	return sweep
+}
+
+// arcSegmentCount is the chord count arcPointsMin uses for an arc of
+// radii (rx,ry) and an already clamped sweep, at device scale
+// (dsx,dsy). CanvasPath.TrimTo calls it at scale 1 to measure an arc
+// with the same chords a draw at scale 1 makes.
+func arcSegmentCount(rx, ry, sweep float32, dsx, dsy float64,
+	minSegs int, outset float32) int {
+	// Count segments from the radius on screen, in device pixels. A chord that
+	// spans angle θ strays r·(1-cos(θ/2)) from the arc at its middle; solving for
+	// arcTolerance gives the largest θ that still looks round. An ellipse is
+	// counted by its larger device radius, which is where its chords stray most.
+	//
+	// All in float64: a finite r can be 3.4e38, and times the scale that is past
+	// float32. With sweep clamped, the count reaches the cap only near r = 850,000
+	// device px — far past any visible improvement. The cap also bounds the
+	// retained dc.arcBuf at ~32 KB, so it needs no shrink. An out-of-range
+	// float-to-int conversion is undefined in Go, so the clamp comes first.
+	out := float64(max(outset, 0))
+	devR := max((float64(f32Abs(rx))+out)*dsx, (float64(f32Abs(ry))+out)*dsy)
+	// Below half the tolerance the cosine term passes -1; clamp it so a tiny
+	// circle gets θ = 2π and falls to the 4-segment floor.
+	theta := 2 * math.Acos(max(1-arcTolerance/devR, -1))
+	segs := float64(maxArcSegments)
+	if theta > 0 {
+		// theta is 0 only when devR is so large that 1-tol/devR rounds to 1.
+		segs = min(math.Ceil(float64(f32Abs(sweep))/theta), maxArcSegments)
+	}
+	return max(int(segs), min(minSegs, maxArcSegments))
+}
