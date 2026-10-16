@@ -64,7 +64,7 @@ func stage(s *app, theme gui.Theme) gui.View {
 					Color:       cards[c].color,
 					ColorBorder: gui.White,
 					Radius:      gui.RadiusMedium,
-					Padding:     gui.PadAll(10),
+					Padding:     gui.PaddingMedium,
 					Spacing:     gui.SpacingSmall,
 					OnClick: func(ctx gui.EventCtx) {
 						raise(gui.State[app](ctx.Window), c)

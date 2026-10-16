@@ -88,7 +88,7 @@ func demoStackCards(app *ShowcaseApp, t gui.Theme) gui.View {
 					Color:       stackDemoCards[c].color,
 					ColorBorder: gui.White,
 					Radius:      gui.RadiusMedium,
-					Padding:     gui.PadAll(10),
+					Padding:     gui.PaddingMedium,
 					Spacing:     gui.SpacingSmall,
 					OnClick: func(ctx gui.EventCtx) {
 						stackDemoRaise(appState(ctx.Window), c)
@@ -142,7 +142,7 @@ func demoStackAvatar() gui.View {
 		Content: []gui.View{
 			gui.Column(gui.ContainerCfg{
 				Sizing:     gui.FitFit,
-				Padding:    gui.NewPadding(8, 8, 0, 0),
+				Padding:    gui.NewPadding(8, 8, 0, 0), // ergonomics-audit:spacing — room for the badge to overhang the avatar's corner, not an inset
 				SizeBorder: gui.NoBorder,
 				Content: []gui.View{
 					gui.Column(gui.ContainerCfg{
@@ -150,7 +150,7 @@ func demoStackAvatar() gui.View {
 						Height:     64,
 						Sizing:     gui.FixedFixed,
 						Color:      gui.Hex(0x7a4bc2),
-						Radius:     gui.RadiusPx(32),
+						Radius:     gui.RadiusPx(32), // ergonomics-audit:spacing — half the 64px avatar: a circle, not a control corner
 						SizeBorder: gui.NoBorder,
 						HAlign:     gui.HAlignCenter,
 						VAlign:     gui.VAlignMiddle,
@@ -202,7 +202,7 @@ func demoStackCaption() gui.View {
 						Color:      gui.RGBA(0, 0, 0, 150),
 						Radius:     gui.NoRadius,
 						SizeBorder: gui.NoBorder,
-						Padding:    gui.PadVH(6, 10),
+						Padding:    gui.PadVH(gui.PadSmall, gui.PadMedium),
 						Content: []gui.View{
 							gui.Text(gui.TextCfg{Text: "Caption over a photo", TextStyle: caption}),
 						},

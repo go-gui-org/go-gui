@@ -118,6 +118,16 @@ var snippetEntries = []snippetEntry{
 		},
 	},
 	{
+		sourceFile: "../stack/main.go",
+		beginMark:  "// doc:snippet-begin stack-layers",
+		endMark:    "// doc:snippet-end stack-layers",
+		anchor:     "func stage(s *app, theme gui.Theme) gui.View",
+		heading:    "## How it works",
+		guides: []string{
+			"../stack/README.md",
+		},
+	},
+	{
 		sourceFile: "../pixel_art/main.go",
 		beginMark:  "// doc:snippet-begin pixel-art-draw",
 		endMark:    "// doc:snippet-end pixel-art-draw",
