@@ -7,7 +7,7 @@ import (
 )
 
 func TestMainViewNoFindings(t *testing.T) {
-	w := gui.NewTestWindow(t, gui.WindowCfg{Width: 360, Height: 260})
+	w := gui.NewTestWindow(t, gui.WindowCfg{Width: 360, Height: 500})
 	w.TestRender(mainView)
 	if found := w.TestFindings(gui.DebugAll); len(found) > 0 {
 		t.Fatalf("findings:\n%v", found)

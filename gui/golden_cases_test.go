@@ -1633,6 +1633,13 @@ func goldenCases() []goldenCase {
 			build: buildCanvasImageFilter,
 		},
 		{
+			// Image widget filter (issue #1066). The left image keeps
+			// the zero Filter and the right sets nearest, so the case
+			// pins that only the right command carries filter=nearest.
+			name:  "image_filter",
+			build: buildImageFilter,
+		},
+		{
 			// The markdown block loop (issue #484). The render switch
 			// in markdownBuildContent carries cross-block state --
 			// pending list items, the blockquote closing spacer, and
@@ -2183,6 +2190,25 @@ func buildCanvasImageFilter(_ *Window) View {
 			dc.Image(40, 0, 32, 32, src, Opt[float32]{}, Color{})
 			dc.Restore()
 			dc.Image(80, 0, 32, 32, src, Opt[float32]{}, Color{})
+		},
+	})
+}
+
+// buildImageFilter draws one 2x2 in-memory image with two Image
+// widgets: the zero Filter, then ImageFilterNearest.
+func buildImageFilter(_ *Window) View {
+	src := UseImage("golden-image-widget-filter", 2, 2, []byte{
+		255, 0, 0, 255, 0, 255, 0, 255,
+		0, 0, 255, 255, 255, 255, 255, 255,
+	})
+	return Row(ContainerCfg{
+		ID: "image_filter",
+		Content: []View{
+			Image(ImageCfg{Src: src, Width: 32, Height: 32}),
+			Image(ImageCfg{
+				Src: src, Width: 32, Height: 32,
+				Filter: ImageFilterNearest,
+			}),
 		},
 	})
 }

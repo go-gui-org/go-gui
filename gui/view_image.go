@@ -28,6 +28,13 @@ type ImageCfg struct {
 	MaxHeight float32
 	BgColor   Color // opaque fill drawn behind image (e.g. white for mermaid PNGs)
 
+	// Filter sets how the image's texels are sampled when it is drawn
+	// at a size other than its own. The zero value, ImageFilterLinear,
+	// gives a smooth result. ImageFilterNearest keeps hard pixel edges
+	// for pixel art and small sprites. A remote SVG ignores it, because
+	// vector output has no texels. SVG and PDF export do not get it.
+	Filter ImageFilter
+
 	Invisible bool
 
 	// Sound overrides the theme's click cue for this instance.
@@ -138,6 +145,9 @@ func (iv *imageView) GenerateLayout(w *Window) Layout {
 			MinHeight: c.MinHeight,
 			MaxHeight: c.MaxHeight,
 			events:    events,
+			// imageFilter holds Filter until renderImage puts it on the
+			// RenderCmd.
+			imageFilter: c.Filter,
 		}),
 	}
 	applyFixedSizingConstraints(layout.Shape)

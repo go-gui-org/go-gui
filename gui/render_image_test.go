@@ -161,3 +161,43 @@ func TestRenderImageIntegration(t *testing.T) {
 		t.Fatal("no RenderImage emitted")
 	}
 }
+
+// TestImageFilterReachesRenderCmd drives ImageCfg.Filter through the
+// widget and the emit site (issue #1066): nearest rides the command,
+// the zero value stays linear, and a value no backend knows falls back
+// to linear so a backend only has to test for nearest.
+func TestImageFilterReachesRenderCmd(t *testing.T) {
+	src := UseImage("test-image-filter", 1, 1, []byte{255, 0, 0, 255})
+	tests := []struct {
+		name   string
+		filter ImageFilter
+		want   ImageFilter
+	}{
+		{"zero is linear", ImageFilter(0), ImageFilterLinear},
+		{"nearest", ImageFilterNearest, ImageFilterNearest},
+		{"unknown is linear", ImageFilter(200), ImageFilterLinear},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			w := &Window{windowWidth: 800, windowHeight: 600}
+			layout := Image(ImageCfg{
+				Src: src, Width: 32, Height: 32, Filter: tt.filter,
+			}).GenerateLayout(w)
+			renderImage(layout.Shape, w.windowRect(), w)
+			n := 0
+			for _, r := range w.renderers {
+				if r.Kind != RenderImage {
+					continue
+				}
+				n++
+				if r.ImageFilter != tt.want {
+					t.Fatalf("ImageFilter = %d, want %d",
+						r.ImageFilter, tt.want)
+				}
+			}
+			if n != 1 {
+				t.Fatalf("got %d RenderImage commands, want 1", n)
+			}
+		})
+	}
+}

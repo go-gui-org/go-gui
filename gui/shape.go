@@ -248,6 +248,13 @@ type Shape struct {
 	// why it is safe on every shape that never sets it.
 	AnimSnap AnimFlags
 
+	// imageFilter is ImageCfg.Filter for an image shape: renderImage
+	// copies it to RenderCmd.ImageFilter. A byte here, not a field on
+	// the fx side struct, so a nearest image costs no allocation. It
+	// moves Shape from 304 to 312 bytes on 64-bit, still in the 320-byte
+	// class (TestShapeFitsSizeClass).
+	imageFilter ImageFilter
+
 	// fillGen matches scratchPools.fillGen when contentW and
 	// contentH are valid for the current frame. Set during the
 	// fill-height pass; read during position and scroll-offset

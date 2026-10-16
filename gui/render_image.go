@@ -37,6 +37,9 @@ func renderImage(shape *Shape, clip drawClip, w *Window) {
 		Resource:   shape.Resource,
 		ClipRadius: w.clipRadius,
 		Opacity:    imageAlpha(shape.Opacity, shape.Disabled),
+		// known() maps a value no backend knows to linear, as
+		// DrawContext does, so a backend only tests for nearest.
+		ImageFilter: shape.imageFilter.known(),
 	}, w)
 }
 

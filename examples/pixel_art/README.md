@@ -1,7 +1,8 @@
 # Pixel Art
 
 > **Framework:** graphics **Description:** One small sprite drawn at 12x, smooth
-> with the linear image filter and sharp with the nearest filter.
+> with the linear image filter and sharp with the nearest filter, on a canvas
+> and with the Image widget.
 
 ![Preview](screenshot.png)
 
@@ -25,6 +26,8 @@ texel stays a sharp square. Use it for pixel art, retro UIs and small sprites.
 - The sprite is an 8x8 in-memory image registered with `gui.UseImage`.
 - The filter is saved and restored by `Save`/`Restore`, with the transform.
 - Each `OnDraw` starts with the linear filter.
+- The `Image` widget takes the same filter in `ImageCfg.Filter`. The zero value
+  is linear.
 
 ## How it works
 
@@ -44,3 +47,30 @@ func drawSprites(dc *gui.DrawContext, src string) {
 ```
 
 See `main.go` for the implementation.
+
+## The Image widget
+
+The second row draws the sprite with two `Image` widgets. `ImageCfg.Filter`
+takes the same `ImageFilter` values as `SetImageFilter`:
+
+```go
+// imageRow draws the same sprite with two Image widgets. The left one
+// keeps the zero Filter, which is linear. The right one sets
+// ImageFilterNearest, so each texel stays a sharp square.
+func imageRow(src string) gui.View {
+	return gui.Row(gui.ContainerCfg{
+		Spacing:    gui.SpacingPx(gap),
+		Padding:    gui.PaddingNone,
+		SizeBorder: gui.NoBorder,
+		Content: []gui.View{
+			gui.Image(gui.ImageCfg{Src: src, Width: drawn, Height: drawn}),
+			gui.Image(gui.ImageCfg{
+				Src:    src,
+				Width:  drawn,
+				Height: drawn,
+				Filter: gui.ImageFilterNearest,
+			}),
+		},
+	})
+}
+```

@@ -10,6 +10,14 @@ and this project adheres to
 
 ### Added
 
+- **`ImageCfg.Filter` draws a scaled `Image` widget with sharp pixels (#1066).**
+  Set `Filter: gui.ImageFilterNearest` and the widget samples the nearest texel,
+  as `DrawContext.SetImageFilter` does on a canvas. A sprite or pixel-art icon
+  shown through `gui.Image` no longer turns blurred when it is drawn larger than
+  its own size. The zero value is `ImageFilterLinear`, so existing images draw
+  as before. A remote SVG ignores the field, and SVG and PDF export do not
+  record it yet. `examples/pixel_art/` now shows both the canvas and the widget.
+
 - **`DrawContext.SetImageFilter` draws scaled images with sharp pixels
   (#1065).** `dc.SetImageFilter(gui.ImageFilterNearest)` makes the `Image`,
   `ImageWithFetcher` and `ImageClipped` calls that follow sample the nearest

@@ -1,6 +1,7 @@
 // The pixel_art example draws one small sprite at 12x scale twice:
 // smooth with ImageFilterLinear, and with hard pixel edges with
-// ImageFilterNearest (#1065).
+// ImageFilterNearest. The first row uses a DrawCanvas (#1065), the
+// second row the Image widget's Filter field (#1066).
 package main
 
 import (
@@ -46,7 +47,7 @@ func main() {
 	w := gui.NewWindow(gui.WindowCfg{
 		Title:  "Pixel Art",
 		Width:  360,
-		Height: 260,
+		Height: 500,
 		OnInit: func(w *gui.Window) {
 			w.SetView(mainView)
 		},
@@ -74,6 +75,7 @@ func mainView(w *gui.Window) gui.View {
 				Text:      "Pixel Art",
 				TextStyle: theme.TextStyleTitle,
 			}),
+			rowTitle("DrawCanvas + SetImageFilter", theme),
 			gui.DrawCanvas(gui.DrawCanvasCfg{
 				ID:      "sprites",
 				Width:   canvasW,
@@ -86,16 +88,58 @@ func mainView(w *gui.Window) gui.View {
 			}),
 			// The captions line up under the two sprites: the same
 			// widths and the same gap as the canvas draws them with.
-			gui.Row(gui.ContainerCfg{
-				Spacing:    gui.SpacingPx(gap),
-				Padding:    gui.PaddingNone,
-				SizeBorder: gui.NoBorder,
-				Content: []gui.View{
-					label("Linear", theme),
-					label("Nearest", theme),
-				},
+			captions(theme),
+			rowTitle("Image widget + ImageCfg.Filter", theme),
+			imageRow(src),
+			captions(theme),
+		},
+	})
+}
+
+// captions lines up under the two sprites: the same widths and the
+// same gap as the canvas and the image row draw them with.
+func captions(theme gui.Theme) gui.View {
+	return gui.Row(gui.ContainerCfg{
+		Spacing:    gui.SpacingPx(gap),
+		Padding:    gui.PaddingNone,
+		SizeBorder: gui.NoBorder,
+		Content: []gui.View{
+			label("Linear", theme),
+			label("Nearest", theme),
+		},
+	})
+}
+
+// doc:snippet-begin pixel-art-widget
+
+// imageRow draws the same sprite with two Image widgets. The left one
+// keeps the zero Filter, which is linear. The right one sets
+// ImageFilterNearest, so each texel stays a sharp square.
+func imageRow(src string) gui.View {
+	return gui.Row(gui.ContainerCfg{
+		Spacing:    gui.SpacingPx(gap),
+		Padding:    gui.PaddingNone,
+		SizeBorder: gui.NoBorder,
+		Content: []gui.View{
+			gui.Image(gui.ImageCfg{Src: src, Width: drawn, Height: drawn}),
+			gui.Image(gui.ImageCfg{
+				Src:    src,
+				Width:  drawn,
+				Height: drawn,
+				Filter: gui.ImageFilterNearest,
 			}),
 		},
+	})
+}
+
+// doc:snippet-end pixel-art-widget
+
+// rowTitle names the API that draws the row below it, so the canvas
+// row and the Image widget row can be told apart.
+func rowTitle(text string, theme gui.Theme) gui.View {
+	return gui.Text(gui.TextCfg{
+		Text:      text,
+		TextStyle: theme.TextStyleLabel,
 	})
 }
 

@@ -128,6 +128,16 @@ var snippetEntries = []snippetEntry{
 		},
 	},
 	{
+		sourceFile: "../pixel_art/main.go",
+		beginMark:  "// doc:snippet-begin pixel-art-widget",
+		endMark:    "// doc:snippet-end pixel-art-widget",
+		anchor:     "Filter: gui.ImageFilterNearest,",
+		heading:    "## The Image widget",
+		guides: []string{
+			"../pixel_art/README.md",
+		},
+	},
+	{
 		sourceFile: "../get_started/main.go",
 		anchor:     "func mainView(",
 		heading:    "## It's just Go",

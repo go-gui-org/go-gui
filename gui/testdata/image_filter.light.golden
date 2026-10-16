@@ -1,0 +1,3 @@
+# go-gui-golden v1
+Image xy=30.00,30.00 wh=32.00,32.00 res="mem:golden-image-widget-filter"
+Image xy=76.00,30.00 wh=32.00,32.00 res="mem:golden-image-widget-filter" filter=nearest
