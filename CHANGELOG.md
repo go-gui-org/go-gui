@@ -44,6 +44,12 @@ and this project adheres to
 
 ### Fixed
 
+- **Data grid cells draw clean grid lines.** Header, filter and data cells left
+  their corner radius unset, so each took the theme's control radius. The cell
+  borders overlap into shared grid lines, and the rounded corners cut a notch at
+  every intersection: the grid looked like a sheet of separate boxes. Cells are
+  now square. The grid's outer frame still takes `DataGridCfg.Radius`.
+
 - **Markdown syntax colors are readable on every theme.** Keywords, strings,
   numbers, types and function names used fixed mid-tone colors that measured
   2.5 to 4.4 against the code fill, below the 4.5:1 that body text needs, on

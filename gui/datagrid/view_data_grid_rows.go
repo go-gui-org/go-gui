@@ -241,6 +241,7 @@ func dataGridBuildRowCells(dctx dataGridCtx, rowData GridRow, rowIdx int, isEdit
 			Color:       cellColor,
 			ColorBorder: cfg.ColorsRow.Border,
 			SizeBorder:  cfg.SizeBorder,
+			Radius:      gg.NoRadius, // square: borders collapse into grid lines; a round corner notches them
 			HAlign:      cellHAlign,
 			VAlign:      gg.VAlignMiddle,
 			Spacing:     gg.SpacingPx(cellSpacing),

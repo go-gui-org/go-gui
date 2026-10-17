@@ -112,6 +112,7 @@ func dataGridHeaderCell(cfg *DataGridCfg, col GridColumnCfg, colIdx, colCount in
 		Color:       cfg.ColorsHeader.Base,
 		ColorBorder: cfg.ColorsRow.Border,
 		SizeBorder:  cfg.SizeBorder,
+		Radius:      gg.NoRadius, // square: borders collapse into grid lines; a round corner notches them
 		Spacing:     gg.NoSpacing,
 		// Sorting picks one of the column's orders, so the selection
 		// role. A non-sortable column has nothing to pick and stays
@@ -356,6 +357,7 @@ func dataGridFilterCell(cfg *DataGridCfg, col GridColumnCfg, width float32) gg.V
 		Color:       gg.ColorTransparent,
 		ColorBorder: cfg.ColorsRow.Border,
 		SizeBorder:  cfg.SizeBorder,
+		Radius:      gg.NoRadius, // square: borders collapse into grid lines; a round corner notches them
 		Spacing:     gg.NoSpacing,
 		Content: []gg.View{
 			gg.Input(gg.InputCfg{
