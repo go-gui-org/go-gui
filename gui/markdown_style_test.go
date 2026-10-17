@@ -513,3 +513,31 @@ func TestMarkdownUnsetStyleKeepsCodeHighlighter(t *testing.T) {
 		t.Error("CodeHighlighter on an unset style was dropped")
 	}
 }
+
+// TestMarkdownCodeFillIsWash bounds the code fill against the page it
+// sits on, in every preset. Too faint and a code block does not read
+// as a block; too strong and it reads as a gray slab, which is what a
+// fixed black wash did on the light themes (contrast 1.5 against the
+// page, where GitHub's code fill is about 1.05).
+func TestMarkdownCodeFillIsWash(t *testing.T) {
+	const minRatio, maxRatio = 1.05, 1.3
+	restore := CurrentTheme()
+	defer applyTheme(&restore)
+
+	for _, name := range ThemeRegisteredNames() {
+		theme, ok := ThemeGet(name)
+		if !ok {
+			t.Fatalf("theme %q registered but not retrievable", name)
+		}
+		applyTheme(&theme)
+		style := DefaultMarkdownStyle()
+		page := theme.ColorBackground
+		fill := style.CodeBlockBG.Over(page)
+		got := contrastRatio(fill, page)
+		t.Logf("%s: fill %v on page %v ratio %.3f", name, fill, page, got)
+		if got < minRatio || got > maxRatio {
+			t.Errorf("%s: code fill %v on page %v has contrast %.2f, "+
+				"want %.2f..%.2f", name, fill, page, got, minRatio, maxRatio)
+		}
+	}
+}

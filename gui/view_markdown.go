@@ -109,7 +109,7 @@ func DefaultMarkdownStyle() MarkdownStyle {
 		Code:          code,
 		codeBlockText: guiTheme.TextStyleCodeSmall,
 		// Non-text fills, exempt from the dimming roles (audit §1.2).
-		CodeBlockBG:       RGBA(0, 0, 0, 50), // ergonomics-audit:visual
+		CodeBlockBG:       markdownCodeWash(),
 		codeKeywordColor:  guiTheme.ColorSelect,
 		codeStringColor:   RGB(75, 125, 75),
 		codeNumberColor:   RGB(169, 114, 62),
@@ -141,6 +141,21 @@ func DefaultMarkdownStyle() MarkdownStyle {
 		mathDPIInline:    200,
 		mermaidBG:        RGBA(248, 248, 255, 255),
 	}
+}
+
+// markdownCodeWash is the fill under code: a fenced block and inline
+// code. It follows the theme's polarity, the same comparison
+// textRolesFor makes. A light theme takes a faint dark wash and a dark
+// theme a faint light one, so code lifts off the page by about the same
+// small step on both (contrast near 1.1 against the page). One black
+// wash for both read as a gray slab on light pages (1.58) and was near
+// invisible on dark ones (1.05).
+func markdownCodeWash() Color {
+	if srgbLuminance(guiTheme.TextStyleBody.Color) <
+		srgbLuminance(guiTheme.ColorBackground) {
+		return RGBA(0, 0, 0, 12) // ergonomics-audit:visual
+	}
+	return RGBA(255, 255, 255, 10) // ergonomics-audit:visual
 }
 
 // MarkdownCfg configures a Markdown View. Mode defaults to wrapped text.

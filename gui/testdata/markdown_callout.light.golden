@@ -4,7 +4,7 @@ RTF xy=30.00,61.00 wh=0.00,0.00 text="" +glyphlayout glyphs=0 items=0
 Rect xy=30.00,75.00 wh=260.00,37.60 color=#2f6fe01e radius=6.00 fill
 StrokeRect xy=30.00,75.00 wh=260.00,37.60 color=#2f6fe0ff radius=6.00 thickness=1.00
 Text xy=39.00,84.00 wh=0.00,0.00 color=#1a1d21ff text="A quoted line." size=14.00
-Rect xy=30.00,147.60 wh=260.00,20.00 color=#00000032 radius=3.50 fill
+Rect xy=30.00,147.60 wh=260.00,20.00 color=#0000000c radius=3.50 fill
 Clip xy=0.00,0.00 wh=0.00,0.00
 Clip xy=0.00,0.00 wh=320.00,240.00
 Rect xy=30.00,181.60 wh=260.00,1.00 color=#d8dde4ff fill

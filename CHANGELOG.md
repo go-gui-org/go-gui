@@ -44,6 +44,14 @@ and this project adheres to
 
 ### Fixed
 
+- **Markdown code on light themes is a light wash, not a gray slab.** Fenced
+  blocks and inline code painted one black fill at 20% on every theme. On a
+  light page that gave a mid-gray block (contrast 1.58 against the page), and on
+  a dark page it was close to invisible (1.05). The fill now follows the theme's
+  polarity: a faint dark wash on light themes and a faint light wash on dark
+  themes, both near 1.1 against the page. A `MarkdownStyle.CodeBlockBG` set by
+  the app is unchanged.
+
 - **The Markdown copy button no longer covers the first line of text.** The
   document copy button floats over the top-right corner. A first paragraph or
   code block that used the full width ran under the icon, so a word was hidden.
