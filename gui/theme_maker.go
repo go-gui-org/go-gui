@@ -140,6 +140,10 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 		errorSubtle = subtleFor(colorError, ts.Color, cfg.ColorBackground)
 	}
 
+	// Off checkbox, radio and switch: see controlEdgeFor.
+	controlEdge := controlEdgeFor(cfg.ColorBorder, cfg.ColorBackground, cfg.ColorPanel)
+	radioRingActive := radioRingActiveFor(controlEdge, cfg.ColorBackground, cfg.ColorPanel)
+
 	borderFocus := cfg.ColorBorderFocus
 	// Unset means "not specified" (Color carries its own set flag),
 	// so an explicit fully-transparent focus border stays honorable
@@ -284,10 +288,10 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			Size: cfg.SizeRadio,
 			Colors: ColorSet{
 				Base:        cfg.ColorPanel,
-				Hover:       cfg.ColorHover,
-				Click:       cfg.ColorActive,
+				Hover:       radioRingActive,
+				Click:       radioRingActive,
 				Focus:       colorSelect,
-				Border:      cfg.ColorBorder,
+				Border:      controlEdge,
 				BorderFocus: borderFocus,
 			},
 			ColorSelect: colorSelect,
@@ -313,11 +317,11 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 				Hover:       cfg.ColorHover,
 				Click:       cfg.ColorInterior,
 				Focus:       cfg.ColorInterior,
-				Border:      cfg.ColorBorder,
+				Border:      controlEdge,
 				BorderFocus: borderFocus,
 			},
 			ColorSelect:     colorSelect,
-			colorUnselect:   cfg.ColorActive,
+			colorUnselect:   controlEdge,
 			Padding:         paddingThree,
 			SizeBorder:      cfg.SizeBorder,
 			Radius:          radiusLarge * 2,
@@ -330,7 +334,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 				Hover:       cfg.ColorHover,
 				Click:       cfg.ColorInterior,
 				Focus:       cfg.ColorInterior,
-				Border:      cfg.ColorBorder,
+				Border:      controlEdge,
 				BorderFocus: borderFocus,
 			},
 			ColorSelect: cfg.ColorInterior,

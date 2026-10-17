@@ -32,6 +32,10 @@ const (
 	// for a value not entered yet and must not read as one. 3:1 keeps
 	// it legible without promoting it.
 	contrastPlaceholder = 3.0
+	// contrastNonText is WCAG 1.4.11 for the parts of a control that
+	// show where it is or what state it is in: a checkbox's edge, a
+	// switch's thumb.
+	contrastNonText = 3.0
 )
 
 // contrastSurfaces names the surfaces a role is drawn on.

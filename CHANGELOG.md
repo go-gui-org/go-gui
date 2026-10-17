@@ -44,6 +44,15 @@ and this project adheres to
 
 ### Fixed
 
+- **Unchecked checkboxes, radios and switches are visible on every theme.** An
+  off control drew its edge in the shared hairline border color, which measured
+  1.1 to 1.4 against the page on the light presets, so an unchecked box nearly
+  disappeared. The off switch's thumb was fainter still. These controls now take
+  an edge color that reaches 3:1 on the page and on a panel, the WCAG 1.4.11
+  floor for the parts of a control that show where it is. The switch's off thumb
+  takes the same color. A radio under the pointer or pressed no longer fades its
+  ring: the ring gets stronger instead. Other borders keep the hairline.
+
 - **List box and select subheadings read as group labels.** A subheading used
   the same text style as the rows under it, so nothing set it apart, and the
   rule under it was drawn in the full text color: a heavy line across the list.
@@ -64,11 +73,11 @@ and this project adheres to
   now square. The grid's outer frame still takes `DataGridCfg.Radius`.
 
 - **Markdown syntax colors are readable on every theme.** Keywords, strings,
-  numbers, types and function names used fixed mid-tone colors that measured
-  2.5 to 4.4 against the code fill, below the 4.5:1 that body text needs, on
-  both light and dark presets. Each color now keeps its hue and moves on
-  lightness until it reads at 4.5:1 over the code fill. The colors are derived
-  once per theme, so `DefaultMarkdownStyle` costs no more per frame than before.
+  numbers, types and function names used fixed mid-tone colors that measured 2.5
+  to 4.4 against the code fill, below the 4.5:1 that body text needs, on both
+  light and dark presets. Each color now keeps its hue and moves on lightness
+  until it reads at 4.5:1 over the code fill. The colors are derived once per
+  theme, so `DefaultMarkdownStyle` costs no more per frame than before.
 
 - **Markdown code on light themes is a light wash, not a gray slab.** Fenced
   blocks and inline code painted one black fill at 20% on every theme. On a

@@ -82,6 +82,41 @@ func textOnFor(c Color) Color {
 	return RGB(0, 0, 0)
 }
 
+// controlEdgeFor is the edge color of an off checkbox, radio or
+// switch. The shared hairline border is kept faint on purpose: around
+// a panel or a field, the fill already shows the shape. An off
+// checkbox has no fill of its own, so its edge is all that shows
+// there is a control, and the hairline sat near 1.2:1 on light
+// presets. The edge keeps the border's hue and moves on lightness
+// until it reads at 3:1 on the page and on a panel (WCAG 1.4.11). An
+// unset surface is left out, as for the text roles.
+//
+// The dark presets give the border as white at a low alpha, so it
+// lays the same tint over any surface. Moving its lightness cannot
+// help there: the alpha caps the contrast. The alpha is raised first,
+// which keeps the tint; lightness moves only if a full alpha is still
+// short.
+func controlEdgeFor(border, bg, panel Color) Color {
+	return edgeReadable(border, contrastNonText, bg, panel)
+}
+
+// radioRingActiveFor is the ring of an off radio under the pointer or
+// pressed. Radio paints its states on the ring, and the hover and
+// click fills sit near 1.05:1 on the page, so the ring vanished as the
+// pointer reached it. It takes the edge to body-text contrast instead:
+// the ring darkens (or, on dark themes, brightens) under the pointer.
+func radioRingActiveFor(edge, bg, panel Color) Color {
+	return edgeReadable(edge, contrastText, bg, panel)
+}
+
+// edgeReadable is c brought to minRatio on the page surfaces: alpha
+// first, then lightness. See controlEdgeFor.
+func edgeReadable(c Color, minRatio float64, bg, panel Color) Color {
+	s, n := contrastSurfaceColors(onPage, bg, panel, Color{})
+	edge := readableAlpha(c, minRatio, s[:n]...)
+	return readableOn(edge, minRatio, s[:n]...)
+}
+
 // radioUnselect is the off-state fill of a radio. With a border the
 // well takes the panel color, like Checkbox. With no border it takes
 // the active color, so the radio stays visible on a panel.
@@ -158,6 +193,8 @@ func (t Theme) WithColors(o ColorOverrides) Theme {
 		oldTextOnAccent, textOnAccent)
 	borderFocus := track(oldBorderFocus, o.ColorBorderFocus, oldSel, sel)
 	separator := track(oldSeparator, o.ColorSeparator, oldBorder, border)
+	controlEdge := controlEdgeFor(border, bg, panel)
+	radioRingActive := radioRingActiveFor(controlEdge, bg, panel)
 
 	// Semantic colors live on the toast and badge styles; the danger
 	// button derives its ramp from the error color.
@@ -295,10 +332,10 @@ func (t Theme) WithColors(o ColorOverrides) Theme {
 	t.inputStyle.colorSpellError = colorError
 
 	t.radioStyle.Colors.Base = panel
-	t.radioStyle.Colors.Hover = hover
+	t.radioStyle.Colors.Hover = radioRingActive
 	t.radioStyle.Colors.Focus = sel
-	t.radioStyle.Colors.Click = active
-	t.radioStyle.Colors.Border = border
+	t.radioStyle.Colors.Click = radioRingActive
+	t.radioStyle.Colors.Border = controlEdge
 	t.radioStyle.Colors.BorderFocus = borderFocus
 	t.radioStyle.ColorSelect = sel
 	t.radioStyle.colorUnselect = radioUnselect(
@@ -309,17 +346,17 @@ func (t Theme) WithColors(o ColorOverrides) Theme {
 	t.switchStyle.Colors.Hover = hover
 	t.switchStyle.Colors.Click = interior
 	t.switchStyle.Colors.Focus = interior
-	t.switchStyle.Colors.Border = border
+	t.switchStyle.Colors.Border = controlEdge
 	t.switchStyle.Colors.BorderFocus = borderFocus
 	t.switchStyle.ColorSelect = sel
-	t.switchStyle.colorUnselect = active
+	t.switchStyle.colorUnselect = controlEdge
 
 	t.toggleStyle.Colors.Base = panel
 	t.toggleStyle.Colors.Hover = hover
 	t.toggleStyle.Colors.Click = interior
 	t.toggleStyle.Colors.Focus = interior
 	t.toggleStyle.ColorSelect = interior
-	t.toggleStyle.Colors.Border = border
+	t.toggleStyle.Colors.Border = controlEdge
 	t.toggleStyle.Colors.BorderFocus = borderFocus
 
 	t.selectStyle.Colors.Base = interior
