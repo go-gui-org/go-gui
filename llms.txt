@@ -1,0 +1,99 @@
+# Go-Gui
+
+> Go-Gui is a GUI framework for Go. You write the UI, the state and the app in
+> Go only, with no browser, JavaScript, HTML or CSS. It renders with the GPU:
+> Metal on macOS, OpenGL without cgo on Linux and Windows, WebGL/WASM in the
+> browser. Import path: `github.com/go-gui-org/go-gui/gui`.
+
+Go-Gui is immediate-mode. A view function runs again each frame and returns a
+tree of `gui.View`. There is no virtual DOM and no diffing. App state is one
+typed slot per window: `gui.State[App](w)`. This call panics when `App` is not
+the type given to `WindowCfg.State`.
+
+Rules that code for Go-Gui must obey. The code compiles when you break them, but
+one behavior is wrong:
+
+- Every widget takes a `Cfg` struct with usable zero values, for example
+  `gui.Button(gui.ButtonCfg{...})`. Callbacks are `func(ctx gui.EventCtx)`.
+- Nothing marks an event as handled for you. A callback that acts on an event
+  calls `ctx.Consume()`.
+- To focus a widget, it must be `Focusable` and have an `ID`. Input controls are
+  focusable by default. To opt out, set `FocusDisabled: true`. Do not set
+  `Focusable: false`.
+- An empty `ID` gets a generated ID (such as `~input3`). Set an explicit `ID`
+  when code names the widget (`SetFocus`, `FindByID`, `Test*`). Never write a
+  `~` ID by hand.
+- `SetFocus`, `FindByID` and `Test*` take the effective ID: the leaf joined with
+  `:` to the IDs of its ID-bearing ancestors. Build it with `gui.ScopeID` or
+  `gui.ScopeIDN`. Read it back with `w.ResolveID`.
+- Build `Color`, `Padding`, `Sizing`, `Spacing`, `Radius` and `Border` with
+  their constructors and roles (`gui.RGB`, `gui.Hex`, `gui.PadAll`,
+  `gui.FillFill`, `gui.SpacingMedium`, `gui.RadiusMedium`, `gui.BorderThin`),
+  not struct literals. `Color{}` means "not set".
+- Use `Opt[T]` (`gui.Some`, `gui.SomeF`) only on fields where zero is a real
+  value. Use a plain `Color` on a Cfg, not `Opt[Color]`.
+- Read text styles and colors from theme roles (`gui.CurrentTheme()`,
+  `w.Theme()`). Do not write font sizes or dimming alpha values at the call
+  site.
+- Set accessibility text with `A11YLabel` and `A11YDescription`.
+- `AmendLayout` runs under the window lock. Do not call `SetFocus` or `SetView`
+  from it. Use `ctx.Window.QueueCommand`.
+- In `OnClick` and `OnHover`, `e.MouseX` and `e.MouseY` are local to the shape.
+- Run with `GOGUI_DEBUG=1` to find duplicate IDs, focusable shapes without an
+  ID, and handlers that do not consume. In tests, use `gui.NewTestWindow` and
+  `w.TestFindings(mask)`.
+
+## Start here
+
+- [README](https://github.com/go-gui-org/go-gui/blob/main/README.md): what
+  Go-Gui is, a minimal app, and the list of features
+- [Get started example](https://github.com/go-gui-org/go-gui/blob/main/examples/get_started/main.go):
+  the smallest app with state, one button and one counter
+- [Developer experience cheat sheet](https://github.com/go-gui-org/go-gui/blob/main/docs/dx-cheat-sheet.md):
+  the places where the obvious reading of the API is wrong (focus, IDs, `Opt`,
+  events, layers, virtual lists, settings, secrets, debugging)
+- [API reference](https://pkg.go.dev/github.com/go-gui-org/go-gui/gui): every
+  exported type and function in package `gui`
+
+## Guides
+
+- [Architecture](https://github.com/go-gui-org/go-gui/blob/main/docs/architecture.md):
+  the frame pipeline, layout sizing, event dispatch and backends
+- [Style guide](https://github.com/go-gui-org/go-gui/blob/main/docs/style-guide.md):
+  which theme role to use for text, color and spacing
+- [Typography](https://github.com/go-gui-org/go-gui/blob/main/docs/typography.md):
+  the text style scale
+- [Theme tokens](https://github.com/go-gui-org/go-gui/blob/main/docs/theme-tokens.md):
+  the `ThemeCfg` fields, in groups
+- [Adding a widget](https://github.com/go-gui-org/go-gui/blob/main/docs/cookbook-add-widget.md):
+  how to write a custom widget with focus, keyboard and accessibility
+- [Wiki](https://github.com/go-gui-org/go-gui/wiki): debugging, theming and
+  testing guides
+
+## Examples
+
+- [All examples](https://github.com/go-gui-org/go-gui/tree/main/examples): one
+  directory per feature, each with `main.go`, `main_test.go` and `README.md`
+- [Showcase](https://github.com/go-gui-org/go-gui/tree/main/examples/showcase):
+  every widget, with built-in documentation;
+  [run it in the browser](https://go-gui-org.github.io/showcase/)
+- [Todo](https://github.com/go-gui-org/go-gui/tree/main/examples/todo): a small
+  app with list state
+- [Web demo](https://github.com/go-gui-org/go-gui/tree/main/examples/web_demo):
+  the WASM build
+
+## Optional
+
+- [Deployment](https://github.com/go-gui-org/go-gui/blob/main/docs/deployment.md):
+  how to package an app for each platform
+- [Profiling](https://github.com/go-gui-org/go-gui/blob/main/docs/profiling.md):
+  how to measure frame time and allocations
+- [Changelog](https://github.com/go-gui-org/go-gui/blob/main/CHANGELOG.md):
+  changes in each release
+- [go-glyph](https://github.com/go-gui-org/go-glyph): the text shaping and
+  rendering engine
+- [go-charts](https://github.com/go-gui-org/go-charts),
+  [go-edit](https://github.com/go-gui-org/go-edit),
+  [go-term](https://github.com/go-gui-org/go-term),
+  [go-map](https://github.com/go-gui-org/go-map): chart, code editor, terminal
+  and map widgets
