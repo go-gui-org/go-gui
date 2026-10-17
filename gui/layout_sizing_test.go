@@ -1587,3 +1587,31 @@ func TestLayoutFillOutOfFlowMainAxis(t *testing.T) {
 		}
 	}
 }
+
+func TestRemainingMainFusedMatchesSplit(t *testing.T) {
+	newRow := func() *Layout {
+		return &Layout{
+			Shape: &Shape{shapeType: shapeRectangle, Width: 200, Height: 100, Spacing: 8, Padding: NewPadding(5, 5, 5, 5)},
+			Children: []Layout{
+				{Shape: &Shape{shapeType: shapeRectangle, Width: 40, Height: 20}},
+				{Shape: &Shape{shapeType: shapeRectangle, Width: 30, Height: 10, Float: true}},
+				{Shape: &Shape{shapeType: shapeRectangle, Width: 50, Height: 30}},
+			},
+		}
+	}
+	row := newRow()
+	// In-flow: 40 + 50 + one 8 fence-post; padding 10.
+	if got, want := row.remainingMainWidth(), float32(200-10-90-8); got != want {
+		t.Errorf("remainingMainWidth = %v, want %v", got, want)
+	}
+	col := newRow()
+	// In-flow heights: 20 + 30 + 8; padding 10.
+	if got, want := col.remainingMainHeight(), float32(100-10-50-8); got != want {
+		t.Errorf("remainingMainHeight = %v, want %v", got, want)
+	}
+	// Empty row: content box only, no fence-post.
+	empty := &Layout{Shape: &Shape{shapeType: shapeRectangle, Width: 100, Height: 50, Spacing: 8}}
+	if got, want := empty.remainingMainWidth(), float32(100); got != want {
+		t.Errorf("empty remainingMainWidth = %v, want %v", got, want)
+	}
+}

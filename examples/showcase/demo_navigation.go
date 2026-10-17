@@ -75,6 +75,8 @@ func demoTabControl(w *gui.Window) gui.View {
 
 func demoMenus(w *gui.Window) gui.View {
 	app := appState(w)
+	th := gui.CurrentTheme()
+	fieldPad := th.PaddingField
 
 	return gui.Menubar(w, gui.MenubarCfg{
 		ID: "menubar-demo",
@@ -175,11 +177,11 @@ func demoMenus(w *gui.Window) gui.View {
 							MaxWidth:         100,
 							Sizing:           gui.FixedFill,
 							Placeholder:      "Search",
-							Padding:          gui.NewPadding(gui.CurrentTheme().PaddingField.Top, gui.CurrentTheme().PaddingField.Right, gui.CurrentTheme().PaddingField.Bottom, gui.CurrentTheme().PaddingField.Left),
+							Padding:          gui.NewPadding(fieldPad.Top, fieldPad.Right, fieldPad.Bottom, fieldPad.Left),
 							Radius:           gui.NoRadius,
 							SizeBorder:       gui.NoBorder,
-							TextStyle:        gui.CurrentTheme().TextStyleDef,
-							PlaceholderStyle: gui.CurrentTheme().TextStyleDef,
+							TextStyle:        th.TextStyleDef,
+							PlaceholderStyle: th.TextStyleDef,
 							OnTextChanged: func(s string, ctx gui.EventCtx) {
 								appState(ctx.Window).MenuSearchText = s
 							},

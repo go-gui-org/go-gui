@@ -144,17 +144,7 @@ func (layout *Layout) spacing() float32 {
 // sum loop in layoutFillWidthsImplDepth with the count loop in
 // spacing, halving child visits on wide rows.
 func (layout *Layout) remainingMainWidth() float32 {
-	remaining := layout.Shape.Width - layout.Shape.paddingWidth()
-	count := 0
-	for i := range layout.Children {
-		c := &layout.Children[i]
-		if skipLayoutChild(c.Shape) {
-			continue
-		}
-		remaining -= c.Shape.Width
-		count++
-	}
-	return remaining - float32(max(0, count-1))*layout.Shape.Spacing
+	return layout.remainingMain(true)
 }
 
 // remainingMainHeight subtracts in-flow child heights and fence-post
@@ -162,14 +152,30 @@ func (layout *Layout) remainingMainWidth() float32 {
 // sum loop in layoutFillHeightsImplDepth with the count loop in
 // spacing.
 func (layout *Layout) remainingMainHeight() float32 {
-	remaining := layout.Shape.Height - layout.Shape.paddingHeight()
+	return layout.remainingMain(false)
+}
+
+// remainingMain is the shared core behind the width/height helpers:
+// one child scan fuses the extent sum with the in-flow count that
+// spacing needs for its fence-post term.
+func (layout *Layout) remainingMain(horizontal bool) float32 {
+	var remaining float32
+	if horizontal {
+		remaining = layout.Shape.Width - layout.Shape.paddingWidth()
+	} else {
+		remaining = layout.Shape.Height - layout.Shape.paddingHeight()
+	}
 	count := 0
 	for i := range layout.Children {
 		c := &layout.Children[i]
 		if skipLayoutChild(c.Shape) {
 			continue
 		}
-		remaining -= c.Shape.Height
+		if horizontal {
+			remaining -= c.Shape.Width
+		} else {
+			remaining -= c.Shape.Height
+		}
 		count++
 	}
 	return remaining - float32(max(0, count-1))*layout.Shape.Spacing

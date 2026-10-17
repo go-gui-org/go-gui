@@ -134,8 +134,10 @@ func dataGridPagerSpacer() gg.View {
 
 func dataGridPagerRowsStatus(cfg *DataGridCfg, rowsText string) gg.View {
 	return gg.Row(gg.ContainerCfg{
-		Sizing:  gg.FitFill,
-		Padding: gg.NewPadding(0, gg.CurrentTheme().SpacingSmall, 0, 0),
+		Sizing: gg.FitFill,
+		// Role, not a Theme copy: SpacingSmall.Or resolves against
+		// the frame theme with no copy (see Spacing.Or).
+		Padding: gg.NewPadding(0, gg.SpacingSmall.Or(6), 0, 0),
 		VAlign:  gg.VAlignMiddle,
 		Content: []gg.View{
 			gg.Text(gg.TextCfg{
