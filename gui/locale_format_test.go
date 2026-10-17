@@ -1,6 +1,9 @@
 package gui
 
 import (
+	"math"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 )
@@ -244,3 +247,178 @@ func TestLocaleTDoesNotAllocate(t *testing.T) {
 		t.Errorf("allocs = %v, want 0", got)
 	}
 }
+
+func TestLocaleFormatNumber(t *testing.T) {
+	saved := CurrentLocale()
+	t.Cleanup(func() { SetLocale(saved) })
+
+	indian := LocaleEnUS
+	indian.Number.GroupSizes = []int{3, 2}
+	// A multi-byte group separator and minus sign must survive intact.
+	thin := LocaleEnUS
+	thin.Number.GroupSep = '\u202f' // 3 bytes in UTF-8
+	thin.Number.MinusSign = '−'
+	// A hand-built Locale with zero runes falls back to en-US symbols,
+	// the same as NumericInput, instead of writing NUL bytes.
+	zero := Locale{}
+	// A group separator equal to the decimal separator would make the
+	// output ambiguous, so grouping is dropped.
+	clash := LocaleEnUS
+	clash.Number.GroupSep = '.'
+	badSizes := LocaleEnUS
+	badSizes.Number.GroupSizes = []int{0, -2}
+
+	tests := []struct {
+		name     string
+		loc      Locale
+		v        float64
+		decimals int
+		want     string
+	}{
+		{"en", LocaleEnUS, 1234567.891, 2, "1,234,567.89"},
+		{"de", LocaleDeDE, 1234567.891, 2, "1.234.567,89"},
+		{"fr nbsp", LocaleFrFR, 1234.5, 1, "1 234,5"},
+		{"no decimals rounds", LocaleEnUS, 1234.6, 0, "1,235"},
+		// An exact binary tie rounds to even, as strconv and
+		// NumericInput do, so a label and an input agree.
+		{"tie rounds to even", LocaleEnUS, 2.5, 0, "2"},
+		{"tie rounds to even up", LocaleEnUS, 3.5, 0, "4"},
+		{"short int", LocaleEnUS, 999, 2, "999.00"},
+		{"zero", LocaleEnUS, 0, 2, "0.00"},
+		{"negative", LocaleEnUS, -1234.5, 2, "-1,234.50"},
+		{"negative rounds to zero", LocaleEnUS, -0.001, 2, "0.00"},
+		{"negative zero", LocaleEnUS, math.Copysign(0, -1), 0, "0"},
+		{"indian grouping", indian, 12345678, 0, "1,23,45,678"},
+		{"multi-byte runes", thin, -1234567, 0, "−1\u202f234\u202f567"},
+		{"zero runes", zero, -1234.5, 1, "-1,234.5"},
+		{"sep clash", clash, 1234.5, 1, "1234.5"},
+		{"negative decimals", LocaleEnUS, 12.6, -1, "13"},
+		{"decimals clamp", LocaleEnUS, 1, 25, "1." + strings.Repeat("0", 20)},
+		// The largest finite value overflows the stack buffers; the
+		// result must still be exact and grouped.
+		{"max float", LocaleEnUS, math.MaxFloat64, 20, maxFloatGrouped + "." + strings.Repeat("0", 20)},
+		{"bad sizes fall back to 3", badSizes, 1234567, 0, "1,234,567"},
+		{"NaN", LocaleEnUS, math.NaN(), 2, "NaN"},
+		{"+Inf", LocaleEnUS, math.Inf(1), 2, "+Inf"},
+		{"-Inf", LocaleEnUS, math.Inf(-1), 2, "-Inf"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			SetLocale(tt.loc)
+			if got := LocaleFormatNumber(tt.v, tt.decimals); got != tt.want {
+				t.Fatalf("LocaleFormatNumber(%v, %d) = %q, want %q",
+					tt.v, tt.decimals, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestLocaleFormatCurrency(t *testing.T) {
+	saved := CurrentLocale()
+	t.Cleanup(func() { SetLocale(saved) })
+
+	noDecimals := LocaleEnUS
+	noDecimals.Currency.Decimals = 0
+	noSymbol := LocaleEnUS
+	noSymbol.Currency.Symbol = ""
+	noSymbol.Currency.Spacing = true
+	spacedPrefix := LocaleEnUS
+	spacedPrefix.Currency.Spacing = true
+	unspacedSuffix := LocaleDeDE
+	unspacedSuffix.Currency.Spacing = false
+	badPosition := LocaleEnUS
+	badPosition.Currency.Position = NumericAffixPosition(9)
+
+	tests := []struct {
+		name string
+		loc  Locale
+		v    float64
+		want string
+	}{
+		{"en prefix", LocaleEnUS, 1234.5, "$1,234.50"},
+		{"en negative", LocaleEnUS, -1234.5, "-$1,234.50"},
+		{"de suffix spaced", LocaleDeDE, 1234.5, "1.234,50 €"},
+		{"de negative", LocaleDeDE, -1234.5, "-1.234,50 €"},
+		{"ar multi-rune symbol", LocaleArSA, 1234.5, "1,234.50 ر.س"},
+		{"prefix spaced", spacedPrefix, 5, "$ 5.00"},
+		{"zero decimals", noDecimals, 1234.6, "$1,235"},
+		{"empty symbol", noSymbol, 5, "5.00"},
+		{"bad position is prefix", badPosition, 5, "$5.00"},
+		{"suffix unspaced", unspacedSuffix, 5, "5,00€"},
+		{"NaN", LocaleEnUS, math.NaN(), "NaN"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			SetLocale(tt.loc)
+			if got := LocaleFormatCurrency(tt.v); got != tt.want {
+				t.Fatalf("LocaleFormatCurrency(%v) = %q, want %q",
+					tt.v, got, tt.want)
+			}
+		})
+	}
+}
+
+// Views call these per label per frame. The result string is the only
+// allocation: the active locale is read without a deep copy and the
+// digits are formatted on the stack.
+func TestLocaleFormatNumberCurrencyAllocs(t *testing.T) {
+	saved := CurrentLocale()
+	t.Cleanup(func() { SetLocale(saved) })
+	SetLocale(LocaleDeDE)
+	if got := testing.AllocsPerRun(100, func() {
+		_ = LocaleFormatNumber(-1234567.891, 2)
+	}); got != 1 {
+		t.Errorf("LocaleFormatNumber allocs = %v, want 1", got)
+	}
+	if got := testing.AllocsPerRun(100, func() {
+		_ = LocaleFormatCurrency(-1234567.891)
+	}); got != 1 {
+		t.Errorf("LocaleFormatCurrency allocs = %v, want 1", got)
+	}
+	// Groups of 1 with a 3-byte separator put more separator bytes
+	// than digits. The builder is sized from the real break count,
+	// so it still grows once.
+	ones := LocaleDeDE
+	ones.Number.GroupSizes = []int{1}
+	ones.Number.GroupSep = '\u2009' // 3 bytes in UTF-8
+	SetLocale(ones)
+	if got := testing.AllocsPerRun(100, func() {
+		_ = LocaleFormatCurrency(-1234567891234.5)
+	}); got != 1 {
+		t.Errorf("LocaleFormatCurrency [1] groups allocs = %v, want 1", got)
+	}
+}
+
+// The data grid formats row, page and match counts each frame. The
+// digits go through a stack buffer, so the result is the only
+// allocation.
+func TestFormatGroupedIntAllocs(t *testing.T) {
+	if got := testing.AllocsPerRun(100, func() {
+		_ = formatGroupedInt(-1234567, LocaleEnUS)
+	}); got != 1 {
+		t.Errorf("allocs = %v, want 1", got)
+	}
+	ones := LocaleEnUS
+	ones.Number.GroupSizes = []int{1}
+	ones.Number.GroupSep = '\u2009' // 3 bytes in UTF-8
+	if got := testing.AllocsPerRun(100, func() {
+		_ = formatGroupedInt(-1234567891234, ones)
+	}); got != 1 {
+		t.Errorf("[1] groups allocs = %v, want 1", got)
+	}
+}
+
+// maxFloatGrouped is math.MaxFloat64's integer digits in en-US
+// grouping, built from strconv so the test does not restate 309
+// digits by hand.
+var maxFloatGrouped = func() string {
+	digits := strconv.FormatFloat(math.MaxFloat64, 'f', 0, 64)
+	var sb strings.Builder
+	for i, d := range digits {
+		if i > 0 && (len(digits)-i)%3 == 0 {
+			sb.WriteByte(',')
+		}
+		sb.WriteRune(d)
+	}
+	return sb.String()
+}()

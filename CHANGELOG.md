@@ -8,6 +8,21 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- **`LocaleFormatNumber` and `LocaleFormatCurrency` format values with the
+  active locale (#1087).** `Locale` holds number and currency rules, but until
+  now only `NumericInput` and the data grid's row and page labels applied them,
+  so an app that showed a price in a `Text` had to copy gui code.
+  `LocaleFormatNumber(v, decimals)` uses the locale's decimal separator, digit
+  grouping (`GroupSizes`, last size repeats) and minus sign.
+  `LocaleFormatCurrency(v)` adds the currency symbol by `Position` and
+  `Spacing`, with `Currency.Decimals` digits: `$1,234.50` in en-US, `1.234,50 €`
+  in de-DE. A value that rounds to zero has no minus sign, and an exact tie
+  rounds to even, the same as `NumericInput`. Both read the locale without a
+  copy and allocate only the result, so a view can call them every frame. The
+  data grid's row, page and match labels now allocate one string less each.
+
 ### Fixed
 
 - **The vertical scrollbar moves to the left under RTL (#1080).** In a

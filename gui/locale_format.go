@@ -3,6 +3,7 @@ package gui
 import (
 	"errors"
 	"fmt"
+	"math"
 	"slices"
 	"strconv"
 	"strings"
@@ -193,20 +194,33 @@ func LocaleMatchesFmt(count int, total string) string {
 // ([3,2] groups 12345678 as 1,23,45,678); an empty size list
 // groups by 3. The sign uses the locale's minus sign.
 func formatGroupedInt(v int, loc Locale) string {
+	// An int has at most 19 digits and a sign, so both buffers
+	// below always suffice and stay on the stack.
+	var buf [20]byte
+	digits := strconv.AppendInt(buf[:0], int64(v), 10)
 	neg := v < 0
-	digits := strconv.Itoa(v)
 	if neg {
 		digits = digits[1:]
 	}
-	sizes := loc.Number.GroupSizes
-	// Walk right to left to find where each separator goes, then
-	// write left to right. Writing forward keeps a multi-byte
-	// separator's UTF-8 bytes in order; reversing a byte buffer
-	// would scramble them. An int has at most 19 digits, so 20
-	// break slots always suffice and stay on the stack.
 	var breaksBuf [20]int
-	breaks := breaksBuf[:0]
-	pos := len(digits)
+	breaks := groupBreaks(breaksBuf[:0], len(digits), loc.Number.GroupSizes)
+	var sb strings.Builder
+	sb.Grow(len(digits) + (len(breaks)+1)*utf8.UTFMax)
+	if neg {
+		sb.WriteRune(loc.Number.MinusSign)
+	}
+	writeGroupedDigits(&sb, digits, loc.Number.GroupSep, breaks)
+	return sb.String()
+}
+
+// groupBreaks appends to dst the offsets in an n-digit integer
+// where a group separator goes, rightmost first. Sizes apply
+// right to left with the last repeating; a missing or
+// non-positive size groups by 3. Callers count the breaks before
+// they size a strings.Builder, so the builder grows once even
+// for sizes smaller than 3.
+func groupBreaks(dst []int, n int, sizes []int) []int {
+	pos := n
 	sizeIdx := 0
 	for {
 		size := 3
@@ -215,25 +229,146 @@ func formatGroupedInt(v int, loc Locale) string {
 		}
 		pos -= size
 		if pos <= 0 {
-			break
+			return dst
 		}
-		breaks = append(breaks, pos)
+		dst = append(dst, pos)
 		if sizeIdx < len(sizes)-1 {
 			sizeIdx++
 		}
 	}
-	var sb strings.Builder
-	sb.Grow(len(digits) + (len(breaks)+1)*utf8.UTFMax)
-	if neg {
-		sb.WriteRune(loc.Number.MinusSign)
+}
+
+// writeGroupedDigits writes the integer digits with sep at each
+// offset in breaks (from groupBreaks). It writes left to right,
+// which keeps a multi-byte separator's UTF-8 bytes in order;
+// reversing a byte buffer would scramble them. A zero sep writes
+// the digits with no grouping.
+func writeGroupedDigits(sb *strings.Builder, digits []byte, sep rune, breaks []int) {
+	if sep == 0 {
+		sb.Write(digits)
+		return
 	}
 	prev := 0
 	for _, brk := range slices.Backward(breaks) {
-		sb.WriteString(digits[prev:brk])
-		sb.WriteRune(loc.Number.GroupSep)
+		sb.Write(digits[prev:brk])
+		sb.WriteRune(sep)
 		prev = brk
 	}
-	sb.WriteString(digits[prev:])
+	sb.Write(digits[prev:])
+}
+
+// localeNumberDecimalsMax caps the fraction digits. It matches the
+// 0-20 range LocaleParse accepts for currency decimals.
+const localeNumberDecimalsMax = 20
+
+// LocaleFormatNumber formats v with the active locale's decimal
+// separator, digit grouping and minus sign. It rounds to decimals
+// fraction digits, clamped to 0-20. An exact tie such as 2.5
+// rounds to even, the same as NumericInput. A value that rounds
+// to zero has no minus sign. NaN and ±Inf come back as "NaN",
+// "+Inf" and "-Inf", with no grouping. It reads the active locale
+// without a deep copy, so view code can call it every frame.
+// exportaudit:keep — documented public API (widget_locale.md).
+func LocaleFormatNumber(v float64, decimals int) string {
+	// A zero CurrencyFormat has no symbol: the number alone.
+	return localeFormatNumber(v, decimals, activeLocaleShared().Number, CurrencyFormat{})
+}
+
+// LocaleFormatCurrency formats v as an amount in the active
+// locale's currency: Currency.Decimals fraction digits, the
+// number rules of LocaleFormatNumber, and Currency.Symbol before
+// or after the number by Currency.Position. Currency.Spacing puts
+// a space between the symbol and the number. The minus sign goes
+// first ("-$5.00", "-5,00 €"). An empty Symbol formats the number
+// alone.
+// exportaudit:keep — documented public API (widget_locale.md).
+func LocaleFormatCurrency(v float64) string {
+	loc := activeLocaleShared()
+	return localeFormatNumber(v, loc.Currency.Decimals, loc.Number, loc.Currency)
+}
+
+// localeFormatNumber is the shared body of LocaleFormatNumber and
+// LocaleFormatCurrency. It reads only c's Symbol, Position and
+// Spacing; an empty Symbol formats the number alone.
+func localeFormatNumber(v float64, decimals int, nf NumberFormat, c CurrencyFormat) string {
+	if math.IsNaN(v) || math.IsInf(v, 0) {
+		return strconv.FormatFloat(v, 'f', -1, 64)
+	}
+	decimals = min(max(decimals, 0), localeNumberDecimalsMax)
+
+	// Zero runes come from a hand-built Locale. Fall back to the
+	// en-US symbols, the same as NumericInput, so the output never
+	// holds NUL bytes. A group separator equal to the decimal
+	// separator would make the text ambiguous, so grouping is off.
+	decimalSep := nf.DecimalSep
+	if decimalSep == 0 {
+		decimalSep = '.'
+	}
+	groupSep := nf.GroupSep
+	if groupSep == 0 {
+		groupSep = ','
+	}
+	if groupSep == decimalSep {
+		groupSep = 0
+	}
+	minus := nf.MinusSign
+	if minus == 0 {
+		minus = '-'
+	}
+
+	// Format the magnitude on the stack. 64 bytes hold any value
+	// below about 1e40 with 20 decimals; a larger one spills to
+	// the heap.
+	var buf [64]byte
+	digits := strconv.AppendFloat(buf[:0], math.Abs(v), 'f', decimals, 64)
+	intDigits, fracDigits := digits, digits[:0]
+	if dot := slices.Index(digits, '.'); dot >= 0 {
+		intDigits, fracDigits = digits[:dot], digits[dot+1:]
+	}
+	// A value that rounds to zero (-0.001 at 2 decimals, or -0)
+	// prints without a sign: "-0.00" reads as a real negative.
+	neg := v < 0 && slices.ContainsFunc(digits, func(b byte) bool {
+		return b >= '1' && b <= '9'
+	})
+
+	// 32 break slots cover any int-sized integer part; a longer one
+	// (above about 1e32) spills to the heap, which is rare.
+	var breaksBuf [32]int
+	var breaks []int
+	if groupSep != 0 {
+		breaks = groupBreaks(breaksBuf[:0], len(intDigits), nf.GroupSizes)
+	}
+
+	affix := c.Symbol
+	space := c.Spacing && affix != ""
+	var sb strings.Builder
+	// Separators, the minus sign and the decimal separator are each
+	// at most utf8.UTFMax bytes; +1 is the affix space.
+	sb.Grow(len(digits) + (len(breaks)+2)*utf8.UTFMax + len(affix) + 1)
+	if neg {
+		sb.WriteRune(minus)
+	}
+	// Any position other than AffixSuffix is a prefix. A bad value
+	// from a hand-built Locale then still shows the symbol, in the
+	// zero-value place, instead of dropping it.
+	suffix := c.Position == AffixSuffix
+	if affix != "" && !suffix {
+		sb.WriteString(affix)
+		if space {
+			sb.WriteByte(' ')
+		}
+	}
+	writeGroupedDigits(&sb, intDigits, groupSep, breaks)
+	if len(fracDigits) > 0 {
+		sb.WriteRune(decimalSep)
+		sb.Write(fracDigits)
+	}
+	if affix != "" && suffix {
+		if space {
+			sb.WriteByte(' ')
+		}
+		sb.WriteString(affix)
+	}
 	return sb.String()
 }
 

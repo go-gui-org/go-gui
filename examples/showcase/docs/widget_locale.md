@@ -123,6 +123,21 @@ if err == nil {
 | StrDelete | "Delete" | Delete action       |
 | StrSearch | "Search" | Search action       |
 
+## Format Numbers and Currency
+
+`LocaleFormatNumber(v, decimals)` and `LocaleFormatCurrency(v)` format a value
+with the active locale. Use them for text in a `Text`, a table cell or a label.
+They read the locale without a copy, so a view can call them every frame.
+
+| Call                                 | en-US          | de-DE          |
+| ------------------------------------ | -------------- | -------------- |
+| `LocaleFormatNumber(1234567.891, 2)` | `1,234,567.89` | `1.234.567,89` |
+| `LocaleFormatNumber(-0.001, 2)`      | `0.00`         | `0,00`         |
+| `LocaleFormatCurrency(-1234.5)`      | `-$1,234.50`   | `-1.234,50 €`  |
+
+Currency uses `Currency.Decimals`, `Symbol`, `Position` and `Spacing`. NaN and
+±Inf come back as `NaN`, `+Inf` and `-Inf`.
+
 ## What Changes
 
 - Date picker day/month names and first-day-of-week
@@ -133,17 +148,19 @@ if err == nil {
 
 ## API
 
-| Function                    | Description                         |
-| --------------------------- | ----------------------------------- |
-| SetLocale(l)                | Set active global locale            |
-| CurrentLocale()             | Get active locale                   |
-| w.SetLocale(l)              | Set locale and refresh window       |
-| w.SetLocaleID(id)           | Set locale by ID and refresh        |
-| LocaleAutoDetect()          | Detect OS locale, set best match    |
-| LocaleRegister(l)           | Add locale to registry              |
-| LocaleGet(id)               | Look up locale by ID                |
-| LocaleRegisteredNames()     | List all registered locale IDs      |
-| LocaleLoad(path)            | Load locale from JSON file          |
-| LocaleParse(json)           | Parse locale from JSON string       |
-| LocaleFormatDate(t, format) | Format date with locale month names |
-| LocaleT(key)                | Look up translation key             |
+| Function                        | Description                          |
+| ------------------------------- | ------------------------------------ |
+| SetLocale(l)                    | Set active global locale             |
+| CurrentLocale()                 | Get active locale                    |
+| w.SetLocale(l)                  | Set locale and refresh window        |
+| w.SetLocaleID(id)               | Set locale by ID and refresh         |
+| LocaleAutoDetect()              | Detect OS locale, set best match     |
+| LocaleRegister(l)               | Add locale to registry               |
+| LocaleGet(id)                   | Look up locale by ID                 |
+| LocaleRegisteredNames()         | List all registered locale IDs       |
+| LocaleLoad(path)                | Load locale from JSON file           |
+| LocaleParse(json)               | Parse locale from JSON string        |
+| LocaleFormatDate(t, format)     | Format date with locale month names  |
+| LocaleFormatNumber(v, decimals) | Format number with locale separators |
+| LocaleFormatCurrency(v)         | Format amount with locale currency   |
+| LocaleT(key)                    | Look up translation key              |
