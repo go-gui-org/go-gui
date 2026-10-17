@@ -284,3 +284,51 @@ func TestMdRenderListItemMarkerFitsWideGlyphs(t *testing.T) {
 		t.Errorf("list item broke a layout invariant: %v", found)
 	}
 }
+
+// The document copy button floats over the top-right corner. A first
+// block that runs the full width would put its first line under the
+// button, so the first block must stop short of the button's left edge.
+func TestMarkdownDocCopyButtonDoesNotOverlapFirstBlock(t *testing.T) {
+	w := NewWindow(WindowCfg{State: new(int), Width: 400, Height: 400})
+	long := "Form container with built-in runtime validation, submit and " +
+		"reset semantics, per-field state tracking, configurable triggers."
+	root := Column(ContainerCfg{
+		Sizing:     FixedFit,
+		Width:      300,
+		Padding:    NoPadding,
+		SizeBorder: NoBorder,
+		Content: []View{w.Markdown(MarkdownCfg{
+			ID:      "md",
+			Source:  long,
+			Padding: NoPadding,
+		})},
+	})
+	layout := generateViewLayout(root, w)
+	// Look the shapes up before arranging: arrange moves floats out of
+	// the tree into their own layers, but the Shape pointers stay valid.
+	btn := findLayoutByID(&layout, "md:copy-doc:copy")
+	if btn == nil {
+		t.Fatal("copy button not found")
+	}
+	doc := findLayoutByID(&layout, "md")
+	if doc == nil || len(doc.Children) == 0 {
+		t.Fatal("markdown document not found")
+	}
+	// The first block is the only child of the row that reserves room
+	// for the button; the block's own edge is what must stay clear.
+	reserve := doc.Children[0]
+	if len(reserve.Children) != 1 {
+		t.Fatalf("first child has %d children, want the one wrapped block",
+			len(reserve.Children))
+	}
+	btnShape, first := btn.Shape, reserve.Children[0].Shape
+	layoutArrange(&layout, w)
+
+	if btnShape.Width <= 0 {
+		t.Fatalf("copy button width = %v, want > 0", btnShape.Width)
+	}
+	if right := first.X + first.Width; right > btnShape.X {
+		t.Errorf("first block right edge %v overlaps copy button at x=%v",
+			right, btnShape.X)
+	}
+}

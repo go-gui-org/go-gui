@@ -412,6 +412,21 @@ func (mv *markdownView) GenerateLayout(w *Window) Layout {
 		sizing = FillFit
 	}
 
+	// The document copy button floats over the top-right corner, on
+	// top of the first block. A first block that runs the full width
+	// (a long paragraph, a code block) would have its first line drawn
+	// under the button, so pull that block's right edge in by the
+	// width the button covers. Later blocks start below the button and
+	// keep the full width.
+	if len(content) > 0 {
+		content[0] = Row(ContainerCfg{
+			Sizing:     FillFit,
+			SizeBorder: NoBorder,
+			Padding:    NewPadding(0, mdCopyButtonReserve(), 0, 0),
+			Content:    []View{content[0]},
+		})
+	}
+
 	// Document-level copy button. Scoped to the document: a constant
 	// here gave every Markdown widget in a window the same copy button.
 	docAnimID := ScopeID(cfg.ID, "copy-doc")

@@ -44,6 +44,12 @@ and this project adheres to
 
 ### Fixed
 
+- **The Markdown copy button no longer covers the first line of text.** The
+  document copy button floats over the top-right corner. A first paragraph or
+  code block that used the full width ran under the icon, so a word was hidden.
+  The first block now stops short of the button. Later blocks keep the full
+  width.
+
 - **Select keyboard scroll tracks the measured row height.** The scroll offset
   for keyboard navigation estimated the dropdown row from the nominal text size,
   while the laid-out row uses the measured font height, so under a custom text

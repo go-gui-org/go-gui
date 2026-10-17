@@ -14,10 +14,17 @@ func markdownLayoutForSource(t *testing.T, source string) Layout {
 	t.Helper()
 
 	w := &Window{}
-	return generateViewLayout(w.Markdown(MarkdownCfg{
+	layout := generateViewLayout(w.Markdown(MarkdownCfg{
 		Source: source,
 		Style:  DefaultMarkdownStyle(),
 	}), w)
+	// The first block always sits inside a row that keeps it clear of
+	// the document copy button (see Markdown). Unwrap it so tests can
+	// address every block by its index in the document.
+	if len(layout.Children) > 0 && len(layout.Children[0].Children) == 1 {
+		layout.Children[0] = layout.Children[0].Children[0]
+	}
+	return layout
 }
 
 // --- Styled output ---

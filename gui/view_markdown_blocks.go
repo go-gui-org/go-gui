@@ -138,6 +138,22 @@ func renderMdMermaid(
 	return codeFallback
 }
 
+// mdCopyButtonInset is how far the floating copy button sits in from
+// the top-right corner it is tied to. mdCopyButtonPadX is its side
+// padding around the icon.
+const (
+	mdCopyButtonInset float32 = 4
+	mdCopyButtonPadX  float32 = 4
+)
+
+// mdCopyButtonReserve is the width the floating copy button covers,
+// counted from the right edge it is tied to, plus a gap so text does
+// not touch it. The icon glyph is about as wide as its font size.
+func mdCopyButtonReserve() float32 {
+	return mdCopyButtonInset + 2*mdCopyButtonPadX +
+		guiTheme.TextStyleIconXSmall.Size + gapTight
+}
+
 // mdCopyButton builds a floating copy-to-clipboard button
 // with a 2-second check-mark animation.
 func mdCopyButton(
@@ -172,12 +188,12 @@ func mdCopyButton(
 		Float:        true,
 		FloatAnchor:  FloatTopRight,
 		FloatTieOff:  FloatTopRight,
-		FloatOffsetX: -4,
-		FloatOffsetY: 4,
+		FloatOffsetX: -mdCopyButtonInset,
+		FloatOffsetY: mdCopyButtonInset,
 		Radius:       RadiusSmall,
 		Color:        ColorTransparent,
 		SizeBorder:   NoBorder,
-		Padding:      NewPadding(2, 4, 2, 4), // ergonomics-audit:spacing — icon-sized floating button
+		Padding:      NewPadding(2, mdCopyButtonPadX, 2, mdCopyButtonPadX), // ergonomics-audit:spacing — icon-sized floating button
 		Content:      btnContent,
 		OnClick:      onClick,
 	})
