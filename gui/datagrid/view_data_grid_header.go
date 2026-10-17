@@ -372,7 +372,7 @@ func dataGridFilterCell(cfg *DataGridCfg, col GridColumnCfg, width float32) gg.V
 				// would push the fill-sized input over the next
 				// column (issue #640).
 				NoMinWidthFloor: true,
-				Padding:         gg.NoPadding,
+				Padding:         gg.NewPadding(0, cfg.PaddingCell.Right, 0, cfg.PaddingCell.Left), // text lines up with the cells below
 				SizeBorder:      gg.NoBorder,
 				Radius:          gg.NoRadius,
 				Color:           cfg.ColorFilter,

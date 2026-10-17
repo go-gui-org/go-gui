@@ -44,6 +44,11 @@ and this project adheres to
 
 ### Fixed
 
+- **Data grid filter text lines up with the column's values.** The filter input
+  had no side inset, so its placeholder and typed text sat on the left grid
+  line, 5px left of the values below it. The input now takes the cells' side
+  inset. It still fills the cell, so its fill meets the grid lines.
+
 - **Data grid cells draw clean grid lines.** Header, filter and data cells left
   their corner radius unset, so each took the theme's control radius. The cell
   borders overlap into shared grid lines, and the rounded corners cut a notch at

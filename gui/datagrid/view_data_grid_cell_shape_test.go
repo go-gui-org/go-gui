@@ -52,3 +52,31 @@ func TestDataGridCellsAreSquare(t *testing.T) {
 		t.Fatal("found no bordered grid cells")
 	}
 }
+
+// Filter text starts where the column's values start. The filter input
+// fills its cell edge to edge (so its fill meets the grid lines), and
+// with no inset of its own the placeholder sat flush on the left grid
+// line, 5px left of the values below it.
+func TestDataGridFilterTextLinesUpWithCells(t *testing.T) {
+	cfg := DataGridCfg{
+		ID:            "g1",
+		Columns:       []GridColumnCfg{{ID: "c1", Title: "One", Filterable: true}},
+		ShowFilterRow: true,
+		Rows:          []GridRow{{ID: "r1", Cells: map[string]string{"c1": "a"}}},
+	}
+	w := gg.NewTestWindow(t, gg.WindowCfg{})
+	t.Cleanup(w.Close)
+	root := w.TestRender(func(win *gg.Window) gg.View { return New(win, cfg) })
+
+	input, ok := root.FindByID("g1:filter:c1")
+	if !ok {
+		t.Fatal("filter input not found")
+	}
+	cell, ok := root.FindByID("g1:cell:r1:c1")
+	if !ok {
+		t.Fatal("data cell not found")
+	}
+	if got, want := input.Shape.Padding.Left, cell.Shape.Padding.Left; got != want {
+		t.Errorf("filter text inset = %v, want the cell's %v", got, want)
+	}
+}
