@@ -22,7 +22,7 @@ LINT_BIN = $(LINT_DIR)/golangci-lint
 LINT_ARGS ?=
 
 .PHONY: build-linux build-windows build-macos build-wasm build-ios build-android build-examples \
-	package-linux package-windows package-macos release clean test test-race vet lint lint-bin lint-cross lint-windows lint-js cross-compile coverage-gate test-race-cover prepush check bench bench-gate deps-doc deps-doc-check security gosec govulncheck large-files deadcode generate-check tidy-check workflow-audit cov-report license-check ergonomics-audit ergo-ids ergonomics-audit-fix ergonomics-audit-fix-dry fmt-md fmt-md-check wayland-selftest
+	package-linux package-windows package-macos release clean test test-race vet lint lint-bin lint-cross lint-windows lint-js cross-compile coverage-gate test-race-cover prepush check bench bench-gate deps-doc deps-doc-check security gosec govulncheck large-files deadcode generate-check tidy-check workflow-audit cov-report license-check ergonomics-audit ergo-ids ergo-pointeramend ergo-style ergonomics-audit-fix ergonomics-audit-fix-dry fmt-md fmt-md-check wayland-selftest
 
 # Desktop builds are cgo-free since the purego GL bindings (#155): the
 # backend/gl uses X11/xgb + purego EGL on Linux and Win32 syscalls on
@@ -362,7 +362,7 @@ theme-surface-check:
 
 # Run non-duplicated validation steps for CI gate.
 # test and lint run as separate CI jobs with OS matrices.
-check: vet deps-doc-check large-files generate-check tidy-check fmt-md-check changelog-check changelog-entry-check theme-surface-check ergo-ids ergo-pointeramend
+check: vet deps-doc-check large-files generate-check tidy-check fmt-md-check changelog-check changelog-entry-check theme-surface-check ergo-ids ergo-pointeramend ergo-style
 
 # Run all validation steps: test, vet, lint, and gate checks.
 check-all: test lint check
@@ -513,6 +513,21 @@ ergo-ids:
 # pointerAmend" step. Gui-only AST scan, under 1s like ergo-ids.
 ergo-pointeramend:
 	go run ./tools/ergonomics-audit/ -mode pointeramend .
+
+# The other pass/fail modes of ergonomics-audit, for `check`: raw
+# literals, zero-meaningful Cfg fields, theme reads, A11Y forwarding,
+# visual and spacing literals, dead Cfg fields. Mirror of CI's
+# "Ergo-audit style" step. Before #1082 only ids and pointeramend
+# gated, so 5 spacing literals reached main and broke
+# `make ergonomics-audit`. All seven run in about 2s.
+ergo-style:
+	go run ./tools/ergonomics-audit/ -mode opt .
+	go run ./tools/ergonomics-audit/ -mode literals .
+	go run ./tools/ergonomics-audit/ -mode theme .
+	go run ./tools/ergonomics-audit/ -mode a11y .
+	go run ./tools/ergonomics-audit/ -mode visual .
+	go run ./tools/ergonomics-audit/ -mode spacing .
+	go run ./tools/ergonomics-audit/ -mode deadcfg .
 
 # Insert a generated ID into every broken literal in this repo's tests
 # and examples. Scoped away from gui/ deliberately: go-gui's own widget

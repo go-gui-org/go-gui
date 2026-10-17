@@ -12,7 +12,7 @@ go run ./examples/get_started/  # run the example app
 make prepush                    # full gate (race, cross-lint, cross-compile, coverage, export audit)
                                 # .githooks/pre-push runs prepush
 make check-all                  # test + lint + check, one step after another
-make check                      # fast gate (vet, deps-doc, large-files, generate/tidy/fmt-md/changelog checks, widget-ID audit)
+make check                      # fast gate (vet, deps-doc, large-files, generate/tidy/fmt-md/changelog checks, ergonomics-audit gates)
 make test / lint / vet          # individually
 make fmt-md                     # Prettier over tracked .md (.prettierrc holds the flags)
 make ergonomics-audit           # focus/callbacks/opt/ids/literals/theme/a11y/visual/deadcfg gates

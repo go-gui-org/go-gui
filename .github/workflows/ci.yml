@@ -187,6 +187,13 @@ jobs:
       - name: Ergo-audit pointerAmend
         run: go run ./tools/ergonomics-audit/ -mode pointeramend .
 
+      # Gates on the other pass/fail modes: raw literals, zero-meaningful
+      # Cfg fields, theme reads, A11Y forwarding, visual and spacing
+      # literals, dead Cfg fields. Without this step, 5 spacing literals
+      # reached main and broke `make ergonomics-audit` (#1082).
+      - name: Ergo-audit style
+        run: make ergo-style
+
   # Guards the CGo-free desktop build. The whole module must keep
   # cross-compiling with no C toolchain on the host; a new cgo import
   # anywhere reds this job. gui/audio's default Linux output is the
