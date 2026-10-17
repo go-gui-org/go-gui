@@ -161,7 +161,7 @@ func demoGradient(_ *gui.Window) gui.View {
 						Content: []gui.View{
 							gui.Text(gui.TextCfg{
 								Text:      "Horizontal",
-								TextStyle: gui.TextStyle{Color: gui.RGB(255, 255, 255), Size: 14},
+								TextStyle: gui.TextStyle{Color: gui.White, Size: 14},
 							}),
 						},
 					}),
@@ -182,7 +182,7 @@ func demoGradient(_ *gui.Window) gui.View {
 						Content: []gui.View{
 							gui.Text(gui.TextCfg{
 								Text:      "Vertical",
-								TextStyle: gui.TextStyle{Color: gui.RGB(255, 255, 255), Size: 14},
+								TextStyle: gui.TextStyle{Color: gui.White, Size: 14},
 							}),
 						},
 					}),
@@ -204,7 +204,7 @@ func demoGradient(_ *gui.Window) gui.View {
 						Content: []gui.View{
 							gui.Text(gui.TextCfg{
 								Text:      "Diagonal",
-								TextStyle: gui.TextStyle{Color: gui.RGB(255, 255, 255), Size: 14},
+								TextStyle: gui.TextStyle{Color: gui.White, Size: 14},
 							}),
 						},
 					}),
@@ -233,7 +233,7 @@ func demoGradient(_ *gui.Window) gui.View {
 						Content: []gui.View{
 							gui.Text(gui.TextCfg{
 								Text:      "Radial",
-								TextStyle: gui.TextStyle{Color: gui.RGB(255, 255, 255), Size: 14},
+								TextStyle: gui.TextStyle{Color: gui.White, Size: 14},
 							}),
 						},
 					}),
@@ -255,7 +255,7 @@ func demoGradient(_ *gui.Window) gui.View {
 						Content: []gui.View{
 							gui.Text(gui.TextCfg{
 								Text:      "Radial Multi",
-								TextStyle: gui.TextStyle{Color: gui.RGB(255, 255, 255), Size: 14},
+								TextStyle: gui.TextStyle{Color: gui.White, Size: 14},
 							}),
 						},
 					}),

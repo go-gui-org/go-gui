@@ -260,9 +260,10 @@ theme-matched color for the shape's state) and keep one appearance with
 other slots derive from it in `ThemeMaker` and a theme states them only to
 override:
 
-- `ColorAccentHover` — `L+0.12` in sRGB HSL (absolute, not relative — a relative
-  step collapses on a dark accent).
-- `ColorAccentPressed` — `L-0.12`.
+- `ColorAccentHover` — `L+0.10` in OKLCH (absolute, not relative — a relative
+  step collapses on a dark accent). `C`/`H` carry through, chroma halving to
+  stay in sRGB gamut.
+- `ColorAccentPressed` — `L-0.10`.
 - `ColorAccentSubtle` — the accent at alpha 40 (dark polarity) / 30 (light), the
   polarity detected as `textRolesFor` does it. **This is the selection wash.**
   Selected and keyboard-highlighted rows in `ListBox`, `Table`, `DataGrid`,

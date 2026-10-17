@@ -34,7 +34,7 @@ func demoThemeGen(w *gui.Window) gui.View {
 			Color:    color,
 			Disabled: pickText,
 			Padding:  gui.NewPadding(gui.PadXSmall, gui.PadMedium, gui.PadXSmall, gui.PadMedium),
-			Radius:   gui.RadiusLarge,
+			Radius:   gui.RadiusMedium,
 			Content:  []gui.View{gui.Text(gui.TextCfg{Text: strategyLabel(sv), TextStyle: textStyle})},
 			OnClick: func(ctx gui.EventCtx) {
 				appState(ctx.Window).ThemeGenStrategy = sv
