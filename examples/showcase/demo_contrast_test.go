@@ -75,3 +75,19 @@ func wcagContrast(a, b gui.Color) float64 {
 	}
 	return (la + 0.05) / (lb + 0.05)
 }
+
+// TestMultiWindowStatusReadable: the "child window is open" line used
+// the raw success fill as text color. The theme's success text role is
+// the one held to 4.5:1 on the page.
+func TestMultiWindowStatusReadable(t *testing.T) {
+	for _, theme := range []gui.Theme{gui.ThemeDark, gui.ThemeLight} {
+		w := gui.NewWindow(gui.WindowCfg{State: newShowcaseApp()})
+		l := gui.GenerateViewLayout(multiWindowStatus(theme, true), w)
+		c := overflowLabelColor(&l, theme)
+		for _, bg := range []gui.Color{theme.ColorBackground, theme.ColorPanel} {
+			if r := wcagContrast(c, bg); r < 4.5 {
+				t.Errorf("%s: status %v on %v contrast %.2f, want >= 4.5", theme.Name, c, bg, r)
+			}
+		}
+	}
+}

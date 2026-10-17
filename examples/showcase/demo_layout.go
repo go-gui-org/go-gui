@@ -651,7 +651,9 @@ func multiWindowStatus(t gui.Theme, active bool) gui.View {
 	if active {
 		text = "Child window is open"
 		color = t.TextStyleBodySmall.Bold()
-		color.Color = t.Cfg.ColorSuccess
+		// The success text role, not the success fill: the fill is
+		// picked for badges and reads at about 3:1 as text on light.
+		color.Color = t.TextStyleSuccess.Color
 	}
 	return gui.Text(gui.TextCfg{Text: text, TextStyle: color})
 }
