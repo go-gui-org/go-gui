@@ -50,3 +50,22 @@ func TestRadioRingHoldsUnderPointer(t *testing.T) {
 		}
 	}
 }
+
+// TestSliderThumbEdgeContrast: the slider thumb is a panel-colored
+// disc, so on a light page its edge is all that shows where the value
+// sits. It is held to 3:1 like the off checkbox. The hover cue lands
+// on the track border and must not fade it below that.
+func TestSliderThumbEdgeContrast(t *testing.T) {
+	for _, th := range statusPresets() {
+		page := []Color{th.ColorBackground, th.ColorPanel}
+		rest, on := worstContrast(th.sliderStyle.Colors.Border, page...)
+		if rest < contrastNonText {
+			t.Errorf("%s slider edge: %v on %v contrast %.2f, want >= %.1f",
+				th.Name, th.sliderStyle.Colors.Border, on, rest, contrastNonText)
+		}
+		if got, _ := worstContrast(th.sliderStyle.Colors.Hover, page...); got < rest {
+			t.Errorf("%s slider hover edge contrast %.2f, below resting edge %.2f",
+				th.Name, got, rest)
+		}
+	}
+}

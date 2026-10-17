@@ -253,12 +253,19 @@ func TestThemeBoldTypeface(t *testing.T) {
 func TestWithColorsSlider(t *testing.T) {
 	t.Parallel()
 	theme := ThemeMaker(baseDarkCfg())
-	hover := RGB(99, 99, 99)
+	// The slider's edge and its hover cue derive from the border
+	// (see controlEdgeFor), so a border override moves both.
+	border := RGB(200, 60, 60)
 	updated := theme.WithColors(ColorOverrides{
-		ColorHover: hover,
+		ColorBorder: border,
 	})
-	if updated.sliderStyle.Colors.Hover != hover {
-		t.Error("slider hover not propagated")
+	bg, panel := updated.ColorBackground, updated.ColorPanel
+	edge := controlEdgeFor(border, bg, panel)
+	if updated.sliderStyle.Colors.Border != edge {
+		t.Errorf("slider border = %v, want %v", updated.sliderStyle.Colors.Border, edge)
+	}
+	if want := controlEdgeActiveFor(edge, bg, panel); updated.sliderStyle.Colors.Hover != want {
+		t.Errorf("slider hover = %v, want %v", updated.sliderStyle.Colors.Hover, want)
 	}
 }
 

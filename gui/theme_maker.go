@@ -140,9 +140,9 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 		errorSubtle = subtleFor(colorError, ts.Color, cfg.ColorBackground)
 	}
 
-	// Off checkbox, radio and switch: see controlEdgeFor.
+	// Off checkbox, radio, switch and the slider: see controlEdgeFor.
 	controlEdge := controlEdgeFor(cfg.ColorBorder, cfg.ColorBackground, cfg.ColorPanel)
-	radioRingActive := radioRingActiveFor(controlEdge, cfg.ColorBackground, cfg.ColorPanel)
+	edgeActive := controlEdgeActiveFor(controlEdge, cfg.ColorBackground, cfg.ColorPanel)
 
 	borderFocus := cfg.ColorBorderFocus
 	// Unset means "not specified" (Color carries its own set flag),
@@ -288,8 +288,8 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			Size: cfg.SizeRadio,
 			Colors: ColorSet{
 				Base:        cfg.ColorPanel,
-				Hover:       radioRingActive,
-				Click:       radioRingActive,
+				Hover:       edgeActive,
+				Click:       edgeActive,
 				Focus:       colorSelect,
 				Border:      controlEdge,
 				BorderFocus: borderFocus,
@@ -509,10 +509,10 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			ThumbSize: cfg.SizeSliderThumb,
 			Colors: ColorSet{
 				Base:        cfg.ColorInterior,
-				Hover:       cfg.ColorHover,
+				Hover:       edgeActive,
 				Click:       cfg.ColorActive,
 				Focus:       colorSelect,
-				Border:      cfg.ColorBorder,
+				Border:      controlEdge,
 				BorderFocus: borderFocus,
 			},
 			colorThumb: cfg.ColorPanel,

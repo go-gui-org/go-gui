@@ -44,6 +44,13 @@ and this project adheres to
 
 ### Fixed
 
+- **The slider thumb is visible on light themes.** The thumb is a disc in the
+  panel color, and its edge used the hairline border, so on a light page the
+  value's position showed only as the end of the colored fill. The thumb and
+  track now take the same 3:1 edge as an off checkbox. Hover used to repaint the
+  track edge in the hover fill color, which faded it out under the pointer; it
+  now makes the edge stronger.
+
 - **Unchecked checkboxes, radios and switches are visible on every theme.** An
   off control drew its edge in the shared hairline border color, which measured
   1.1 to 1.4 against the page on the light presets, so an unchecked box nearly

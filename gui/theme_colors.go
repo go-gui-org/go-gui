@@ -83,7 +83,7 @@ func textOnFor(c Color) Color {
 }
 
 // controlEdgeFor is the edge color of an off checkbox, radio or
-// switch. The shared hairline border is kept faint on purpose: around
+// switch, and of the slider's track and thumb. The shared hairline border is kept faint on purpose: around
 // a panel or a field, the fill already shows the shape. An off
 // checkbox has no fill of its own, so its edge is all that shows
 // there is a control, and the hairline sat near 1.2:1 on light
@@ -100,12 +100,13 @@ func controlEdgeFor(border, bg, panel Color) Color {
 	return edgeReadable(border, contrastNonText, bg, panel)
 }
 
-// radioRingActiveFor is the ring of an off radio under the pointer or
-// pressed. Radio paints its states on the ring, and the hover and
-// click fills sit near 1.05:1 on the page, so the ring vanished as the
-// pointer reached it. It takes the edge to body-text contrast instead:
-// the ring darkens (or, on dark themes, brightens) under the pointer.
-func radioRingActiveFor(edge, bg, panel Color) Color {
+// controlEdgeActiveFor is the edge under the pointer, for the controls
+// that paint hover on their edge: the radio ring (hover and press) and
+// the slider track. The hover and click fills sit near 1.05:1 on the
+// page, so as an edge they made the control vanish as the pointer
+// reached it. This takes the edge to body-text contrast instead: it
+// darkens (or, on dark themes, brightens) under the pointer.
+func controlEdgeActiveFor(edge, bg, panel Color) Color {
 	return edgeReadable(edge, contrastText, bg, panel)
 }
 
@@ -194,7 +195,7 @@ func (t Theme) WithColors(o ColorOverrides) Theme {
 	borderFocus := track(oldBorderFocus, o.ColorBorderFocus, oldSel, sel)
 	separator := track(oldSeparator, o.ColorSeparator, oldBorder, border)
 	controlEdge := controlEdgeFor(border, bg, panel)
-	radioRingActive := radioRingActiveFor(controlEdge, bg, panel)
+	edgeActive := controlEdgeActiveFor(controlEdge, bg, panel)
 
 	// Semantic colors live on the toast and badge styles; the danger
 	// button derives its ramp from the error color.
@@ -332,9 +333,9 @@ func (t Theme) WithColors(o ColorOverrides) Theme {
 	t.inputStyle.colorSpellError = colorError
 
 	t.radioStyle.Colors.Base = panel
-	t.radioStyle.Colors.Hover = radioRingActive
+	t.radioStyle.Colors.Hover = edgeActive
 	t.radioStyle.Colors.Focus = sel
-	t.radioStyle.Colors.Click = radioRingActive
+	t.radioStyle.Colors.Click = edgeActive
 	t.radioStyle.Colors.Border = controlEdge
 	t.radioStyle.Colors.BorderFocus = borderFocus
 	t.radioStyle.ColorSelect = sel
@@ -447,8 +448,8 @@ func (t Theme) WithColors(o ColorOverrides) Theme {
 	t.sliderStyle.colorThumb = panel
 	t.sliderStyle.colorLeft = sel
 	t.sliderStyle.Colors.Focus = sel
-	t.sliderStyle.Colors.Hover = hover
-	t.sliderStyle.Colors.Border = border
+	t.sliderStyle.Colors.Hover = edgeActive
+	t.sliderStyle.Colors.Border = controlEdge
 	t.sliderStyle.Colors.BorderFocus = borderFocus
 
 	// Field-fill track, accent pill: the same roles as
