@@ -1,5 +1,14 @@
 package gui
 
+// treeRowPadding is the inset shared by all four tree row builders
+// (plain, loading, drag, ghost content). One helper keeps the depth
+// indent math from drifting between builders. The tight 2/5 insets are
+// deliberate row density, not the PadXSmall/PadSmall control tokens:
+// ergonomics-audit:spacing — dense-row inset with depth indent.
+func treeRowPadding(depth int, indent float32) Padding {
+	return NewPadding(2, 5, 2, float32(depth)*indent+5)
+}
+
 func treeCollectFlatRows(
 	nodes []TreeNodeCfg,
 	expanded map[string]bool,
@@ -233,11 +242,8 @@ func treeRowView(
 ) View {
 	if row.IsLoading {
 		return Row(ContainerCfg{
-			Padding: NewPadding(
-				2, 5, 2,
-				float32(row.Depth)*cfg.Indent+5,
-			),
-			Sizing: FillFit,
+			Padding: treeRowPadding(row.Depth, cfg.Indent),
+			Sizing:  FillFit,
 			Content: []View{
 				Text(TextCfg{
 					Text:      row.Text,
@@ -263,14 +269,11 @@ func treeRowView(
 		A11YState: a11yState,
 		Color:     rowColor,
 		Radius:    RadiusPx(cfg.Radius.Or(defaultTreeStyle.Radius)),
-		Padding: NewPadding(
-			2, 5, 2,
-			float32(row.Depth)*cfg.Indent+5,
-		),
-		Sizing:  FillFit,
-		Spacing: NoSpacing,
-		Sound:   treeRowSound(&cfg, row),
-		Content: treeRowContentViews(w, row, iconWidth),
+		Padding:   treeRowPadding(row.Depth, cfg.Indent),
+		Sizing:    FillFit,
+		Spacing:   NoSpacing,
+		Sound:     treeRowSound(&cfg, row),
+		Content:   treeRowContentViews(w, row, iconWidth),
 		// The shared handler reads the row back through click
 		// (treeClick.rowClick).
 		OnClick:  rowOnClick,
@@ -316,12 +319,9 @@ func treeDragRowView(
 		A11YState: a11yState,
 		Color:     rowColor,
 		Radius:    RadiusPx(cfg.Radius.Or(defaultTreeStyle.Radius)),
-		Padding: NewPadding(
-			2, 5, 2,
-			float32(row.Depth)*cfg.Indent+5,
-		),
-		Sizing:  FillFit,
-		Spacing: NoSpacing,
+		Padding:   treeRowPadding(row.Depth, cfg.Indent),
+		Sizing:    FillFit,
+		Spacing:   NoSpacing,
 		// Same cue as the plain row: the drag this click also starts
 		// has no activation moment to sound at (issue #467). The drop
 		// cue is the same sound, carried on click.
@@ -352,12 +352,9 @@ func treeRowContent(
 		rowColor = cfg.Colors.Focus
 	}
 	return Row(ContainerCfg{
-		Color:  rowColor,
-		Radius: RadiusPx(cfg.Radius.Or(defaultTreeStyle.Radius)),
-		Padding: NewPadding(
-			2, 5, 2,
-			float32(row.Depth)*cfg.Indent+5,
-		),
+		Color:   rowColor,
+		Radius:  RadiusPx(cfg.Radius.Or(defaultTreeStyle.Radius)),
+		Padding: treeRowPadding(row.Depth, cfg.Indent),
 		Sizing:  FillFit,
 		Spacing: NoSpacing,
 		Content: treeRowContentViews(w, row, iconWidth),
