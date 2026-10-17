@@ -159,6 +159,28 @@ func passwordMask(text string) string {
 	return strings.Repeat("•", n)
 }
 
+// inputDragViewportEdges returns the content-box origin and size of
+// the scrollable field p that a drag auto-scroll band is measured
+// against. The X origin mirrors clipContentBoxIn: under RTL the
+// layout mirrors padding, so the viewport starts after
+// Padding.Right, not Padding.Left. Both origins include SizeBorder,
+// which the content box includes (see clipContentBoxIn).
+func inputDragViewportEdges(p *Shape) (
+	viewLeft, viewTop, viewW, viewH float32,
+) {
+	viewTop = p.Y + p.PaddingTop()
+	viewH = p.Height - p.paddingHeight()
+	var padX float32
+	if effectiveTextDir(p) == TextDirRTL {
+		padX = p.Padding.Right + p.SizeBorder
+	} else {
+		padX = p.PaddingLeft()
+	}
+	viewLeft = p.X + padX
+	viewW = p.Width - p.paddingWidth()
+	return viewLeft, viewTop, viewW, viewH
+}
+
 // inputDragState holds state for drag-to-select in an input.
 // Replaces ~10 closure-captured locals with explicit fields;
 // wordSelect is set iff the drag started from a double-click.

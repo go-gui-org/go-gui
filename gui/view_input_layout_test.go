@@ -422,3 +422,61 @@ func TestInputDragStateScrollCallback(t *testing.T) {
 		t.Fatalf("scrollY changed without room to scroll: %v → %v", before, got)
 	}
 }
+
+func TestInputDragViewportEdgesRTL(t *testing.T) {
+	// Issue #1086: under RTL the drag-scroll band must start after
+	// Padding.Right (like clipContentBoxIn), not Padding.Left. A
+	// scroll container that reserves room for its vertical bar with
+	// Padding.Right has exactly this asymmetry.
+	mkShape := func(dir TextDirection) *Shape {
+		return &Shape{
+			X: 10, Y: 20, Width: 200, Height: 100,
+			Padding:    NewPadding(5, 20, 5, 4),
+			SizeBorder: 2,
+			TextDir:    dir,
+		}
+	}
+
+	// LTR control: starts after Padding.Left plus the border.
+	ltr := mkShape(TextDirLTR)
+	ltrLeft, ltrTop, _, _ := inputDragViewportEdges(ltr)
+	if want := float32(10 + 4 + 2); ltrLeft != want {
+		t.Fatalf("LTR viewLeft = %v, want %v", ltrLeft, want)
+	}
+	if want := float32(20 + 5 + 2); ltrTop != want {
+		t.Fatalf("LTR viewTop = %v, want %v", ltrTop, want)
+	}
+
+	// RTL: starts after Padding.Right plus the border.
+	rtl := mkShape(TextDirRTL)
+	viewLeft, viewTop, viewW, viewH := inputDragViewportEdges(rtl)
+	if want := float32(10 + 20 + 2); viewLeft != want {
+		t.Fatalf("RTL viewLeft = %v, want %v (content box X)", viewLeft, want)
+	}
+	if want := float32(20 + 5 + 2); viewTop != want {
+		t.Fatalf("RTL viewTop = %v, want %v", viewTop, want)
+	}
+	if want := float32(200 - (4 + 20 + 2*2)); viewW != want {
+		t.Fatalf("RTL viewW = %v, want %v", viewW, want)
+	}
+	if want := float32(100 - (5 + 5 + 2*2)); viewH != want {
+		t.Fatalf("RTL viewH = %v, want %v", viewH, want)
+	}
+
+	// The band must agree with the content box the render clip
+	// derives: same X/Y origin, same size.
+	bound := drawClip{X: -1000, Y: -1000, Width: 5000, Height: 5000}
+	clip := clipContentBoxIn(rtl, bound)
+	if clip.X != viewLeft {
+		t.Errorf("viewLeft = %v, clip content X = %v: must match", viewLeft, clip.X)
+	}
+	if clip.Y != viewTop {
+		t.Errorf("viewTop = %v, clip content Y = %v: must match", viewTop, clip.Y)
+	}
+	if clip.Width != viewW {
+		t.Errorf("viewW = %v, clip content width = %v: must match", viewW, clip.Width)
+	}
+	if clip.Height != viewH {
+		t.Errorf("viewH = %v, clip content height = %v: must match", viewH, clip.Height)
+	}
+}

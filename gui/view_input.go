@@ -670,8 +670,8 @@ func inputOnClick(leafID, leafScrollID string, canFocus bool) func(EventCtx) {
 			// Default 0: unscrolled input before first scroll event.
 			ds.scrollY0 = sy.GetOr(scrollID, 0)
 			p := ctx.Layout.Parent.Shape
-			ds.viewTop = p.Y + p.Padding.Top
-			viewH := p.Height - p.paddingHeight()
+			viewLeft, viewTop, viewW, viewH := inputDragViewportEdges(p)
+			ds.viewTop = viewTop
 			ds.viewBot = ds.viewTop + viewH
 			ds.maxScrollNeg = f32Min(0,
 				viewH-ctx.Layout.Shape.Height)
@@ -680,8 +680,7 @@ func inputOnClick(leafID, leafScrollID string, canFocus bool) func(EventCtx) {
 			// follow writes against (see inputScrollContentW).
 			sx := ctx.Window.scrollX()
 			ds.scrollX0 = sx.GetOr(scrollID, 0)
-			ds.viewLeft = p.X + p.Padding.Left
-			viewW := p.Width - p.paddingWidth()
+			ds.viewLeft = viewLeft
 			ds.viewRight = ds.viewLeft + viewW
 			ds.maxScrollNegX = f32Min(0, viewW-inputScrollContentW(
 				ctx.Layout.Parent, ly.Shape))
