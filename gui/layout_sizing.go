@@ -474,20 +474,10 @@ func layoutFillWidthsImplDepth(layout *Layout, fb *fillBuffers, depth int) {
 	if overMaxDepth(depth) {
 		return
 	}
-	remainingWidth := layout.Shape.Width - layout.Shape.paddingWidth()
 
 	switch layout.Shape.Axis {
 	case axisLeftToRight:
-		for i := range layout.Children {
-			// Must drop the same children layout.spacing() drops on the
-			// next line, or an out-of-flow child eats budget that no
-			// fence post accounts for and Fill siblings shrink.
-			if skipLayoutChild(layout.Children[i].Shape) {
-				continue
-			}
-			remainingWidth -= layout.Children[i].Shape.Width
-		}
-		remainingWidth -= layout.spacing()
+		remainingWidth := layout.remainingMainWidth()
 
 		if remainingWidth > f32Tolerance {
 			distributeSpace(layout, remainingWidth, distributeGrow, distributeHorizontal, fb)
@@ -538,19 +528,10 @@ func layoutFillHeightsImplDepth(layout *Layout, fb *fillBuffers, depth int) {
 	if overMaxDepth(depth) {
 		return
 	}
-	remainingHeight := layout.Shape.Height - layout.Shape.paddingHeight()
 
 	switch layout.Shape.Axis {
 	case axisTopToBottom:
-		for i := range layout.Children {
-			// See layoutFillWidthsImpl: this must match the child set
-			// layout.spacing() uses on the next line.
-			if skipLayoutChild(layout.Children[i].Shape) {
-				continue
-			}
-			remainingHeight -= layout.Children[i].Shape.Height
-		}
-		remainingHeight -= layout.spacing()
+		remainingHeight := layout.remainingMainHeight()
 
 		if remainingHeight > f32Tolerance {
 			distributeSpace(layout, remainingHeight, distributeGrow, distributeVertical, fb)

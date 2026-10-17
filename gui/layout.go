@@ -139,6 +139,42 @@ func (layout *Layout) spacing() float32 {
 	return float32(max(0, count-1)) * layout.Shape.Spacing
 }
 
+// remainingMainWidth subtracts in-flow child widths and fence-post
+// spacing from the content width in a single child scan. It fuses the
+// sum loop in layoutFillWidthsImplDepth with the count loop in
+// spacing, halving child visits on wide rows.
+func (layout *Layout) remainingMainWidth() float32 {
+	remaining := layout.Shape.Width - layout.Shape.paddingWidth()
+	count := 0
+	for i := range layout.Children {
+		c := &layout.Children[i]
+		if skipLayoutChild(c.Shape) {
+			continue
+		}
+		remaining -= c.Shape.Width
+		count++
+	}
+	return remaining - float32(max(0, count-1))*layout.Shape.Spacing
+}
+
+// remainingMainHeight subtracts in-flow child heights and fence-post
+// spacing from the content height in a single child scan. It fuses the
+// sum loop in layoutFillHeightsImplDepth with the count loop in
+// spacing.
+func (layout *Layout) remainingMainHeight() float32 {
+	remaining := layout.Shape.Height - layout.Shape.paddingHeight()
+	count := 0
+	for i := range layout.Children {
+		c := &layout.Children[i]
+		if skipLayoutChild(c.Shape) {
+			continue
+		}
+		remaining -= c.Shape.Height
+		count++
+	}
+	return remaining - float32(max(0, count-1))*layout.Shape.Spacing
+}
+
 // contentWidth returns total content width. Uses the fill-pass cache
 // when available to avoid redundant child-tree summation.
 func contentWidth(layout *Layout) float32 {
