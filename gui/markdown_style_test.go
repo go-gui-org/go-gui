@@ -541,3 +541,61 @@ func TestMarkdownCodeFillIsWash(t *testing.T) {
 		}
 	}
 }
+
+// TestMarkdownSyntaxColorsReadable: every syntax-highlight color clears
+// AA on the code fill it sits on, in every preset. The fill is the code
+// wash over the page.
+func TestMarkdownSyntaxColorsReadable(t *testing.T) {
+	const wantAA = 4.5
+	restore := CurrentTheme()
+	defer applyTheme(&restore)
+
+	for _, name := range ThemeRegisteredNames() {
+		theme, ok := ThemeGet(name)
+		if !ok {
+			t.Fatalf("theme %q registered but not retrievable", name)
+		}
+		applyTheme(&theme)
+		style := DefaultMarkdownStyle()
+		for _, page := range []Color{theme.ColorBackground, theme.ColorPanel} {
+			bg := style.CodeBlockBG.Over(page)
+			for _, c := range []struct {
+				role  string
+				color Color
+			}{
+				{"keyword", style.codeKeywordColor},
+				{"string", style.codeStringColor},
+				{"number", style.codeNumberColor},
+				{"type", style.codeTypeColor},
+				{"function", style.codeFunctionColor},
+				{"builtin", style.codeBuiltinColor},
+				{"operator", style.codeOperatorColor},
+			} {
+				fg := c.color.Over(bg)
+				if got := contrastRatio(fg, bg); got < wantAA {
+					t.Errorf("%s: %s %v on code fill %v is contrast %.2f, want >= %.1f",
+						name, c.role, c.color, bg, got, wantAA)
+				}
+			}
+		}
+	}
+}
+
+// The derived syntax palette is cached per theme id: the same theme
+// hits, and a theme switch rebuilds it rather than serving the old
+// theme's colors.
+func TestMarkdownCodePaletteCachedPerTheme(t *testing.T) {
+	dark, light := ThemeDark, ThemeLight
+	a := markdownCodePaletteFor(&dark)
+	if b := markdownCodePaletteFor(&dark); b != a {
+		t.Error("same theme id rebuilt the palette")
+	}
+	l := markdownCodePaletteFor(&light)
+	if l == a || l.themeID != light.id {
+		t.Fatalf("theme switch served the cached palette (id %d, want %d)",
+			l.themeID, light.id)
+	}
+	if l.wash == a.wash {
+		t.Errorf("light wash %v equals dark wash", l.wash)
+	}
+}

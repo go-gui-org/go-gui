@@ -44,6 +44,13 @@ and this project adheres to
 
 ### Fixed
 
+- **Markdown syntax colors are readable on every theme.** Keywords, strings,
+  numbers, types and function names used fixed mid-tone colors that measured
+  2.5 to 4.4 against the code fill, below the 4.5:1 that body text needs, on
+  both light and dark presets. Each color now keeps its hue and moves on
+  lightness until it reads at 4.5:1 over the code fill. The colors are derived
+  once per theme, so `DefaultMarkdownStyle` costs no more per frame than before.
+
 - **Markdown code on light themes is a light wash, not a gray slab.** Fenced
   blocks and inline code painted one black fill at 20% on every theme. On a
   light page that gave a mid-gray block (contrast 1.58 against the page), and on
