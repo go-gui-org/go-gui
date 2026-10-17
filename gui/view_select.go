@@ -671,7 +671,14 @@ func selectNextSelectable(cfg *SelectCfg, start, dir int) int {
 }
 
 func selectScrollTo(cfg *SelectCfg, scrollID string, idx int, w *Window) {
+	// Mirror the dropdown row's vertical insets (inner PadVH(2, 0)):
+	// the laid-out row is text height + 4. Measure when possible so
+	// keyboard scroll tracks the laid-out rows under custom sizes;
+	// fall back to the nominal size with no measurer (tests).
 	rowH := cfg.TextStyle.Size + 4
+	if w != nil && w.textMeasurer != nil {
+		rowH = w.textMeasurer.FontHeight(cfg.TextStyle) + 4
+	}
 	// Called from the key handler, after generation: read the window's
 	// theme rather than the frame-scoped style mirror.
 	listH := selectDropdownMaxH - 2*cfg.SizeBorder.Or(

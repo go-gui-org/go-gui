@@ -711,3 +711,33 @@ func TestSelectHoverMovesHighlightInSameFrame(t *testing.T) {
 		t.Fatalf("move inside the hovered option: %d generations, want 0", n)
 	}
 }
+
+// Keyboard scroll must track the laid-out row height, not the nominal
+// text size: with a measurer the row is FontHeight + the dropdown's
+// vertical insets (inner 2+2), otherwise Size + 4.
+func TestSelectScrollToUsesMeasuredRowHeight(t *testing.T) {
+	newCfg := func() *SelectCfg {
+		return &SelectCfg{
+			TextStyle:  TextStyle{Size: 14},
+			SizeBorder: BorderPx(2),
+		}
+	}
+	// listH = 200 - 2*2 = 196. idx 10 with measured rowH 24
+	// (fontHeight 20 + 4): bottom = 264, scroll = -(264-196).
+	w := &Window{}
+	w.textMeasurer = &stubTextMeasurer{fontHeight: 20}
+	selectScrollTo(newCfg(), "sel-scroll-measured", 10, w)
+	got, _ := w.scrollY().Get("sel-scroll-measured")
+	if want := float32(-68); got != want {
+		t.Errorf("measured scrollY = %v, want %v", got, want)
+	}
+
+	// No measurer: nominal rowH 18 (14 + 4): bottom = 198,
+	// scroll = -(198-196).
+	plain := &Window{}
+	selectScrollTo(newCfg(), "sel-scroll-nominal", 10, plain)
+	got, _ = plain.scrollY().Get("sel-scroll-nominal")
+	if want := float32(-2); got != want {
+		t.Errorf("nominal scrollY = %v, want %v", got, want)
+	}
+}
