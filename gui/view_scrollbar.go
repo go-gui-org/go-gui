@@ -250,9 +250,18 @@ func scrollbarAmendLayout(
 	gapEdge := cfg.GapEdge.Get(0)
 	gapEnd := cfg.GapEnd.Get(0)
 	parent := layout.Parent
+	// RTL mirrors padding (layoutChildStartPos), so the room a container
+	// keeps for the vertical bar with Padding.Right is on the left there.
+	// Both bars follow it: the vertical bar moves to the left edge, and
+	// the horizontal bar starts after that gutter instead of under it.
+	rtl := effectiveTextDir(parent.Shape) == TextDirRTL
 
 	if cfg.Orientation == scrollbarHorizontal {
-		layout.Shape.X = parent.Shape.X + parent.Shape.Padding.Left
+		padStart := parent.Shape.Padding.Left
+		if rtl {
+			padStart = parent.Shape.Padding.Right
+		}
+		layout.Shape.X = parent.Shape.X + padStart
 		layout.Shape.Y = parent.Shape.Y + parent.Shape.Height - cfg.Size
 		layout.Shape.Width = parent.Shape.Width - parent.Shape.Padding.Width()
 		layout.Shape.Height = cfg.Size
@@ -299,15 +308,14 @@ func scrollbarAmendLayout(
 			layout.Children[thumbAt].Shape.Color = ColorTransparent
 		}
 	} else {
-		// The bar sits on the end edge: the right in LTR, the left in
-		// RTL. RTL mirrors padding (layoutChildStartPos), so the room a
-		// container keeps for the bar with Padding.Right is on the left
-		// there; a bar left on the right covered the content instead.
-		rtl := effectiveTextDir(parent.Shape) == TextDirRTL
+		// The bar sits on the end edge, inset by GapEdge: the right in
+		// LTR, the left in RTL. A bar left on the right under RTL
+		// covered the content. Set once, before the no-content return,
+		// so an empty bar keeps the same inset.
 		if rtl {
-			layout.Shape.X = parent.Shape.X
+			layout.Shape.X = parent.Shape.X + gapEdge
 		} else {
-			layout.Shape.X = parent.Shape.X + parent.Shape.Width - cfg.Size
+			layout.Shape.X = parent.Shape.X + parent.Shape.Width - cfg.Size - gapEdge
 		}
 		layout.Shape.Y = parent.Shape.Y + parent.Shape.Padding.Top
 		layout.Shape.Width = cfg.Size
@@ -328,12 +336,6 @@ func scrollbarAmendLayout(
 			scrollOffset = -v
 		}
 
-		// GapEdge insets the bar from the edge it sits on.
-		if rtl {
-			layout.Shape.X += gapEdge
-		} else {
-			layout.Shape.X -= gapEdge
-		}
 		layout.Shape.Y += gapEnd
 		layout.Shape.Height -= gapEnd + gapEnd
 
@@ -531,7 +533,14 @@ func offsetFromMouseX(layout *Layout, mouseX float32, scrollID string, w *Window
 	if viewW <= 0 || !f32IsFinite(viewW) {
 		return
 	}
-	percent := (mouseX - (sb.Shape.X + sb.Shape.PaddingLeft())) / viewW
+	// The viewport starts after the left padding, which is Padding.Right
+	// under RTL (clipContentBoxIn). Measuring from Padding.Left there put
+	// every press off by the width of the vertical bar's gutter.
+	start := sb.Shape.PaddingLeft()
+	if effectiveTextDir(sb.Shape) == TextDirRTL {
+		start = sb.Shape.Padding.Right + sb.Shape.SizeBorder
+	}
+	percent := (mouseX - (sb.Shape.X + start)) / viewW
 	if !f32IsFinite(percent) {
 		return
 	}
