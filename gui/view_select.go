@@ -543,8 +543,9 @@ func selectSubHeaderView(cfg *SelectCfg, label string) View {
 					}),
 				},
 			}),
+			// A divider, so the theme's separator color: the text color
+			// drew a full-contrast line across the dropdown.
 			Separator(SeparatorCfg{
-				Color: cfg.SubheadingStyle.Color,
 				Inset: NewPadding(0, PadMedium, 0, PadMedium),
 			}),
 		},

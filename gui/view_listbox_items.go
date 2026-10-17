@@ -404,9 +404,9 @@ func listBoxItemContent(dat ListBoxOption, cfg ListBoxCfg) View {
 					Text:      dat.Name,
 					TextStyle: cfg.SubheadingStyle,
 				}),
-				Separator(SeparatorCfg{
-					Color: cfg.SubheadingStyle.Color,
-				}),
+				// A divider, so the theme's separator color: the text color
+				// drew a full-contrast line across the list.
+				Separator(SeparatorCfg{}),
 			},
 		})
 	}

@@ -528,9 +528,9 @@ func listCoreSubheadingView(item listCoreItem, cfg listCoreCfg) View {
 				Text:      item.Label,
 				TextStyle: cfg.subheadingStyle,
 			}),
-			Separator(SeparatorCfg{
-				Color: cfg.subheadingStyle.Color,
-			}),
+			// A divider, so the theme's separator color: the text color
+			// drew a full-contrast line across the list.
+			Separator(SeparatorCfg{}),
 		},
 	})
 }

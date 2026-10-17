@@ -368,7 +368,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			SizeBorder:        cfg.SizeBorder,
 			Radius:            cfg.RadiusMedium,
 			textStyleNormal:   ts,
-			subheadingStyle:   ts,
+			subheadingStyle:   textSecondary, // hierarchy by color, body weight (style guide)
 			PlaceholderStyle:  textPlaceholder,
 		},
 		listBoxStyle: ListBoxStyle{
@@ -384,7 +384,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 			SizeBorder:      cfg.SizeBorder,
 			Radius:          cfg.Radius,
 			textStyleNormal: ts,
-			subheadingStyle: ts,
+			subheadingStyle: textSecondary, // hierarchy by color, body weight (style guide)
 		},
 		treeStyle: TreeStyle{
 			Colors: ColorSet{

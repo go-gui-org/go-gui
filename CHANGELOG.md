@@ -44,6 +44,14 @@ and this project adheres to
 
 ### Fixed
 
+- **List box and select subheadings read as group labels.** A subheading used
+  the same text style as the rows under it, so nothing set it apart, and the
+  rule under it was drawn in the full text color: a heavy line across the list.
+  The default subheading now takes the secondary text role, as the style guide
+  records for list subheadings, and the rule takes the theme's separator color.
+  `ListBoxCfg.SubheadingStyle` and `SelectCfg.SubheadingStyle` set by the app
+  still win; the rule no longer follows their color.
+
 - **Data grid filter text lines up with the column's values.** The filter input
   had no side inset, so its placeholder and typed text sat on the left grid
   line, 5px left of the values below it. The input now takes the cells' side

@@ -220,6 +220,10 @@ func (t Theme) WithColors(o ColorOverrides) Theme {
 		t.selectStyle.PlaceholderStyle, oldPlaceholder, newPlaceholder)
 	t.comboboxStyle.PlaceholderStyle = trackStyle(
 		t.comboboxStyle.PlaceholderStyle, oldPlaceholder, newPlaceholder)
+	t.selectStyle.subheadingStyle = trackStyle(
+		t.selectStyle.subheadingStyle, oldSecondary, newSecondary)
+	t.listBoxStyle.subheadingStyle = trackStyle(
+		t.listBoxStyle.subheadingStyle, oldSecondary, newSecondary)
 	t.progressBarStyle.TextStyle = trackStyle(
 		t.progressBarStyle.TextStyle, oldSecondary, newSecondary)
 	t.commandPaletteStyle.detailStyle = trackStyle(
