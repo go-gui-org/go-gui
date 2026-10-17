@@ -431,14 +431,13 @@ func TestInputDateFormatRejectsTimeToken(t *testing.T) {
 	InputDate(InputDateCfg{ID: "id-fmt-time", DateFormat: "DD.MM.YYYY HH:mm"})
 }
 
-// The calendar glyph keeps its arranged position: it sits nested in
-// a wrapper row, out of the button amend's direct text children, so
-// the amend leaves it alone. A color emoji's ink metrics do not say
-// where backends draw it, so any optical correction mis-centres it
-// next to the digit-centred date text (issue #346). bandTestWindow
-// separates the bands by construction (cap offset 2), so a corrected
-// icon would move and this fails.
-func TestInputDateCalendarIconUncorrected(t *testing.T) {
+// The calendar glyph is a direct text child of its button, in the icon
+// role. Issue #346 nested a 📅 emoji in a wrapper row to keep it out of
+// the button amend, because an emoji's ink metrics do not say where
+// backends draw it. The icon font's glyph has real ink, and the amend
+// centres a glyph-role run on its own ink (opticalCenterChildren), so
+// the wrapper went with the emoji.
+func TestInputDateCalendarIconIsGlyphRun(t *testing.T) {
 	w := &Window{}
 	v := InputDate(InputDateCfg{
 		ID:   "id-icon-plain",
@@ -449,26 +448,13 @@ func TestInputDateCalendarIconUncorrected(t *testing.T) {
 	if btn == nil {
 		t.Fatal("calendar button not found")
 	}
-	buttonAmendLayout(EventCtx{btn, nil, bandTestWindow()})
-	icon := findTextByContent(btn, "\U0001F4C5")
-	if icon == nil {
-		t.Fatal("calendar icon not found")
+	if len(btn.Children) != 1 || btn.Children[0].Shape.TC == nil ||
+		btn.Children[0].Shape.TC.Text != IconCalendar {
+		t.Fatal("calendar glyph is not the button's direct text child")
 	}
-	if icon.Y != 0 {
-		t.Errorf("calendar icon moved by %v, want 0 (uncorrected)", icon.Y)
+	if !textStyleOrDefault(btn.Children[0].Shape).glyphRole {
+		t.Error("calendar glyph is not in the icon (glyph) role")
 	}
-}
-
-func findTextByContent(l *Layout, text string) *Shape {
-	if l.Shape != nil && l.Shape.TC != nil && l.Shape.TC.Text == text {
-		return l.Shape
-	}
-	for i := range l.Children {
-		if found := findTextByContent(&l.Children[i], text); found != nil {
-			return found
-		}
-	}
-	return nil
 }
 
 // FocusDisabled takes the calendar button out of the tab order too.
@@ -483,5 +469,42 @@ func TestInputDateFocusDisabledCalendarNotFocusable(t *testing.T) {
 	})
 	if got := autoFocusables(ly); len(got) != 0 {
 		t.Fatalf("FocusDisabled InputDate has tab stop %q", got[0].idKey())
+	}
+}
+
+// TestInputDateCalendarButtonUsesIconFont: the calendar button drew a
+// color emoji, the only one among the toolkit's monochrome control
+// icons, so it ignored the theme's text color. It takes the icon
+// font's calendar glyph in the icon role at the field's text size and
+// color.
+func TestInputDateCalendarButtonUsesIconFont(t *testing.T) {
+	w := &Window{}
+	v := InputDate(InputDateCfg{
+		ID:   "id1",
+		Date: time.Date(2025, 3, 15, 0, 0, 0, 0, time.Local),
+	})
+	layout := generateViewLayout(v, w)
+	var glyph *Shape
+	var walk func(l *Layout)
+	walk = func(l *Layout) {
+		if l.Shape.TC != nil && l.Shape.TC.Text == IconCalendar {
+			glyph = l.Shape
+		}
+		for i := range l.Children {
+			walk(&l.Children[i])
+		}
+	}
+	walk(&layout)
+	if glyph == nil {
+		t.Fatal("no IconCalendar glyph in the InputDate layout")
+	}
+	style := textStyleOrDefault(glyph)
+	field := defaultDatePickerStyle.TextStyle
+	if style.Family != guiTheme.TextStyleIconMedium.Family || !style.glyphRole {
+		t.Errorf("calendar glyph family %q glyphRole %v, want icon role", style.Family, style.glyphRole)
+	}
+	if style.Size != field.Size || style.Color != field.Color {
+		t.Errorf("calendar glyph size %v color %v, want field's %v %v",
+			style.Size, style.Color, field.Size, field.Color)
 	}
 }

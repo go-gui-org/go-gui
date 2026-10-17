@@ -178,20 +178,13 @@ func (idv *inputDateView) GenerateLayout(w *Window) Layout {
 					FocusDisabled: cfg.FocusDisabled,
 					Padding:       NoPadding,
 					SizeBorder:    NoBorder,
-					Content: []View{Row(ContainerCfg{
-						// Scaffolding, not a box: it keeps the
-						// calendar glyph out of the button
-						// amend's direct text children, so the
-						// glyph keeps its arranged position. A
-						// color emoji's ink metrics do not say
-						// where backends draw it, so any optical
-						// correction mis-centres it (issue #346).
-						Padding:    NoPadding,
-						SizeBorder: NoBorder,
-						Content: []View{Text(TextCfg{
-							Text:      "\U0001F4C5",
-							TextStyle: cfg.TextStyle,
-						})},
+					// The icon font's calendar, not the 📅 emoji: a color
+					// emoji ignores the theme's text color and was the only
+					// one among the control icons. In the icon role, the
+					// button centres it on its own ink like any glyph.
+					Content: []View{Text(TextCfg{
+						Text:      IconCalendar,
+						TextStyle: inputDateIconStyle(cfg.TextStyle),
 					})},
 					OnClick: func(ctx EventCtx) {
 						inputDateToggle(cfgID, ctx.Window)
@@ -455,4 +448,13 @@ func applyInputDateDefaults(cfg *InputDateCfg) {
 		cfg.PlaceholderStyle = withRoleAlpha(
 			d.TextStyle, guiTheme.TextStylePlaceholder)
 	}
+}
+
+// inputDateIconStyle is the icon role at the field's text size and
+// color, so the glyph matches the date beside it.
+func inputDateIconStyle(field TextStyle) TextStyle {
+	icon := guiTheme.TextStyleIconMedium
+	icon.Size = field.Size
+	icon.Color = field.Color
+	return icon
 }

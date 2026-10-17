@@ -44,6 +44,12 @@ and this project adheres to
 
 ### Fixed
 
+- **The `InputDate` calendar button uses the icon font.** The button drew the 📅
+  color emoji, the only color emoji among the control icons. It ignored the
+  theme's text color and looked out of place on both light and dark themes. It
+  now draws the icon font's calendar glyph in the field's text size and color,
+  centred on its own ink like the other control icons.
+
 - **The slider thumb is visible on light themes.** The thumb is a disc in the
   panel color, and its edge used the hairline border, so on a light page the
   value's position showed only as the end of the colored fill. The thumb and
