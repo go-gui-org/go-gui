@@ -156,6 +156,53 @@ func TestInspectorInjectWireframe(t *testing.T) {
 	}
 }
 
+func TestInspectorInjectWireframeRTLAsymmetricPadding(t *testing.T) {
+	requireInspector(t)
+	w := newTestWindow()
+	w.layout = Layout{
+		Shape: &Shape{},
+		Children: []Layout{{
+			Shape: &Shape{
+				X:          10,
+				Y:          20,
+				Width:      100,
+				Height:     50,
+				TextDir:    TextDirRTL,
+				Padding:    NewPadding(3, 12, 5, 4),
+				SizeBorder: 2,
+			},
+		}},
+	}
+	StateMap[string, string](w, nsInspector, capInspector).
+		Set("selected", "0")
+
+	inspectorInjectWireframe(w)
+
+	if len(w.renderers) != 2 {
+		t.Fatalf("len(renderers) = %d, want 2", len(w.renderers))
+	}
+	inner := w.renderers[1]
+	// RTL mirrors the start side like clipContentBoxIn: X uses
+	// Padding.Right + SizeBorder, Y uses Padding.Top + SizeBorder,
+	// and the size subtracts the border on both axes.
+	if inner.X != 24 || inner.Y != 25 {
+		t.Fatalf("inner rect pos = (%.0f, %.0f), want (24, 25)", inner.X, inner.Y)
+	}
+	if inner.W != 80 || inner.H != 38 {
+		t.Fatalf("inner rect size = (%.0f, %.0f), want (80, 38)", inner.W, inner.H)
+	}
+	// The wireframe must match the layout content box origin.
+	shape := w.layout.Children[0].Shape
+	shape.shapeClip = shapeBounds(shape)
+	content := clipContentBox(shape)
+	if inner.X != content.X || inner.Y != content.Y ||
+		inner.W != content.Width || inner.H != content.Height {
+		t.Fatalf("wireframe = (%.0f,%.0f,%.0f,%.0f), content box = (%.0f,%.0f,%.0f,%.0f)",
+			inner.X, inner.Y, inner.W, inner.H,
+			content.X, content.Y, content.Width, content.Height)
+	}
+}
+
 func TestInspectorInjectWireframeDeepPath(t *testing.T) {
 	requireInspector(t)
 	w := newTestWindow()

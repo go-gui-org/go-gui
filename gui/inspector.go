@@ -208,15 +208,21 @@ func inspectorInjectWireframe(w *Window) {
 		Thickness: 2,
 	}, w)
 
-	if shape.Padding.isNone() {
+	if shape.Padding.isNone() && shape.SizeBorder == 0 {
 		return
+	}
+	var padX float32
+	if effectiveTextDir(shape) == TextDirRTL {
+		padX = shape.Padding.Right + shape.SizeBorder
+	} else {
+		padX = shape.PaddingLeft()
 	}
 	emitRenderer(RenderCmd{
 		Kind:      RenderStrokeRect,
-		X:         shape.X + shape.Padding.Left,
-		Y:         shape.Y + shape.Padding.Top,
-		W:         f32Max(0, shape.Width-shape.Padding.Left-shape.Padding.Right),
-		H:         f32Max(0, shape.Height-shape.Padding.Top-shape.Padding.Bottom),
+		X:         shape.X + padX,
+		Y:         shape.Y + shape.PaddingTop(),
+		W:         f32Max(0, shape.Width-shape.paddingWidth()),
+		H:         f32Max(0, shape.Height-shape.paddingHeight()),
 		Color:     insp.colorPadding,
 		Thickness: 1,
 	}, w)
