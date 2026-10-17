@@ -392,13 +392,13 @@ func (v sliderLookView) GenerateLayout(w *Window) Layout {
 		ID:        cfg.ID,
 		Focusable: !cfg.FocusDisabled,
 		A11YRole:  AccessRoleSlider,
-		a11Y: &accessInfo{
+		a11Y: w.allocAccessInfo(accessInfo{
 			Label:       a11yLabel(cfg.A11YLabel, cfg.ID),
 			Description: cfg.A11YDescription,
 			ValueNum:    cfg.Value,
 			ValueMin:    cfg.Min,
 			ValueMax:    cfg.Max,
-		},
+		}),
 		Width:      v.width,
 		Height:     v.height,
 		Disabled:   cfg.Disabled,

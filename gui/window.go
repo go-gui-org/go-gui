@@ -618,6 +618,17 @@ func (w *Window) allocTransform(src shapeTransform) *shapeTransform {
 	return w.scratch.viewXforms.alloc(src)
 }
 
+// allocAccessInfo returns a pooled copy of src, like allocEffects. The
+// shape that points at it comes from the same view-phase arena, so both
+// stay valid for the same frame.
+func (w *Window) allocAccessInfo(src accessInfo) *accessInfo {
+	if w == nil {
+		cp := src
+		return &cp
+	}
+	return w.scratch.viewA11Y.alloc(src)
+}
+
 // SetTitleFn sets the function used to update the OS window title.
 // Called by the backend at init.
 func (w *Window) SetTitleFn(fn func(string)) {

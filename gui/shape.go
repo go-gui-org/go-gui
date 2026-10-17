@@ -753,14 +753,6 @@ func (s *Shape) paddingHeight() float32 {
 	return s.Padding.Height() + (s.SizeBorder * 2)
 }
 
-// makeA11YInfo returns an AccessInfo if label or desc is set.
-func makeA11YInfo(label, desc string) *accessInfo {
-	if label == "" && desc == "" {
-		return nil
-	}
-	return &accessInfo{Label: label, Description: desc}
-}
-
 // a11yLabel returns label if set, otherwise falls back to text.
 //
 // The fallback is a widget's ID, and an ID may be a scoped path

@@ -263,7 +263,7 @@ func (tv *treeView) GenerateLayout(w *Window) Layout {
 		// a11y comes from the explicit field: makeContainerA11Y honors
 		// it over the A11YCfg literal, and a11yInfo carries the
 		// caller's description with the label.
-		a11Y:       cfg.a11yInfo(cfg.ID),
+		a11Y:       cfg.a11yInfo(w, cfg.ID),
 		Focusable:  !cfg.FocusDisabled,
 		Scrollable: true,
 		OnKeyDown: func(ctx EventCtx) {

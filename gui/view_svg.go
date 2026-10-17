@@ -166,7 +166,7 @@ func (sv *svgView) GenerateLayout(w *Window) Layout {
 			shapeType: shapeSVG,
 			ID:        c.ID,
 			A11YRole:  AccessRoleImage,
-			a11Y:      c.a11yInfo(c.ID),
+			a11Y:      c.a11yInfo(w, c.ID),
 			Resource:  svgSrc,
 			Width:     width,
 			Height:    height,

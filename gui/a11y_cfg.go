@@ -28,6 +28,15 @@ type A11YCfg struct {
 // The fallback is an ID path; a11yLabel strips its scope. Pass "" for
 // fallback where the widget has nothing of its own to derive a name
 // from; a11yLabel then returns A11YLabel unchanged.
-func (a A11YCfg) a11yInfo(fallback string) *accessInfo {
-	return makeA11YInfo(a11yLabel(a.A11YLabel, fallback), a.A11YDescription)
+//
+// The info comes from w's view-phase arena, not the heap: it is built
+// every frame for every labelled widget, and it lives exactly as long
+// as the pooled shape that points at it. A nil w (tests) gets a heap
+// copy.
+func (a A11YCfg) a11yInfo(w *Window, fallback string) *accessInfo {
+	label := a11yLabel(a.A11YLabel, fallback)
+	if label == "" && a.A11YDescription == "" {
+		return nil
+	}
+	return w.allocAccessInfo(accessInfo{Label: label, Description: a.A11YDescription})
 }

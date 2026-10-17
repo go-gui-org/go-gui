@@ -125,7 +125,7 @@ func (dv *drawCanvasView) GenerateLayout(w *Window) Layout {
 			// so the emit paths can treat 0 as transparent.
 			Opacity:      1.0,
 			A11YRole:     a11yRole,
-			a11Y:         c.a11yInfo(""),
+			a11Y:         c.a11yInfo(w, ""),
 			Width:        c.Width,
 			Height:       c.Height,
 			MinWidth:     c.MinWidth,

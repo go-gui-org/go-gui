@@ -946,25 +946,6 @@ func TestMouseIsLockedChecksCallbacks(t *testing.T) {
 
 // --- A11Y helper tests ---
 
-func TestMakeA11YInfoNil(t *testing.T) {
-	if makeA11YInfo("", "") != nil {
-		t.Error("empty strings should return nil")
-	}
-}
-
-func TestMakeA11YInfoSet(t *testing.T) {
-	info := makeA11YInfo("label", "desc")
-	if info == nil {
-		t.Fatal("should not be nil")
-	}
-	if info.Label != "label" {
-		t.Error("label mismatch")
-	}
-	if info.Description != "desc" {
-		t.Error("description mismatch")
-	}
-}
-
 func TestA11YLabelFallback(t *testing.T) {
 	if a11yLabel("explicit", "text") != "explicit" {
 		t.Error("should use explicit label")
@@ -974,15 +955,15 @@ func TestA11YLabelFallback(t *testing.T) {
 	}
 }
 
-// A11YCfg.a11yInfo is the makeA11YInfo(a11yLabel(...)) pairing every
-// widget cfg uses to build its shape's accessInfo.
+// A11YCfg.a11yInfo is what every widget cfg uses to build its shape's
+// accessInfo. A nil window takes the heap fallback.
 func TestA11YCfgA11YInfo(t *testing.T) {
-	if info := (A11YCfg{}).a11yInfo(""); info != nil {
+	if info := (A11YCfg{}).a11yInfo(nil, ""); info != nil {
 		t.Error("empty cfg and fallback should yield nil info")
 	}
 
 	info := (A11YCfg{A11YLabel: "explicit", A11YDescription: "desc"}).
-		a11yInfo("fallback")
+		a11yInfo(nil, "fallback")
 	if info == nil {
 		t.Fatal("explicit label should not be nil")
 	}
@@ -991,12 +972,12 @@ func TestA11YCfgA11YInfo(t *testing.T) {
 			info.Label, info.Description)
 	}
 
-	if info := (A11YCfg{}).a11yInfo("fallback"); info == nil ||
+	if info := (A11YCfg{}).a11yInfo(nil, "fallback"); info == nil ||
 		info.Label != "fallback" {
 		t.Error("empty label should fall back to fallback text")
 	}
 
-	if info := (A11YCfg{}).a11yInfo("settings:name"); info == nil ||
+	if info := (A11YCfg{}).a11yInfo(nil, "settings:name"); info == nil ||
 		info.Label != "name" {
 		t.Error("scoped fallback should be stripped to its last segment")
 	}

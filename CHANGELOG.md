@@ -42,6 +42,16 @@ and this project adheres to
   button. The button now has a tooltip that names what it changes and points at
   the page, and an accessible label that names the current locale.
 
+### Changed
+
+- **A widget with an accessible name no longer allocates its accessibility data
+  on each frame.** A container, image, SVG, canvas, rich text, tree, slider or
+  thinking orb with an `A11YLabel`, an `A11YDescription` or an `A11YValue` got a
+  new heap object for this data on every frame. Now the data comes from the same
+  frame pool as the shape that holds it. A tree row and a list box row each
+  allocate one object less per frame: a 200-row tree goes from 1022 to 822
+  allocations per frame, and a list box from 212 to 147.
+
 ### Fixed
 
 - **The `InputDate` calendar button uses the icon font.** The button drew the 📅

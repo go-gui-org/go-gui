@@ -186,10 +186,10 @@ func (v *thinkingOrbView) GenerateLayout(w *Window) Layout {
 		role = AccessRoleNone
 		state = AccessStateNone
 	} else {
-		access = &accessInfo{
+		access = w.allocAccessInfo(accessInfo{
 			Label:       a11yProseLabel(cfg.A11YLabel, cfg.Design.A11YLabel()),
 			Description: cfg.A11YDescription,
-		}
+		})
 	}
 
 	amendDesign := cfg.Design
@@ -470,13 +470,13 @@ func (v *thinkingOrbLabelView) GenerateLayout(w *Window) Layout {
 		ID:        cfg.ID,
 		A11YRole:  AccessRoleImage,
 		A11YState: AccessStateBusy | AccessStateLive,
-		a11Y: &accessInfo{
+		a11Y: w.allocAccessInfo(accessInfo{
 			// The inner orb has no node of its own, so empty Text
 			// falls back to the design name, as a bare orb reads.
 			Label: a11yProseLabel(cfg.A11YLabel,
 				cmp.Or(cfg.Text, cfg.Design.A11YLabel())),
 			Description: cfg.A11YDescription,
-		},
+		}),
 		Sizing:     cfg.Sizing.Or(FitFit),
 		Padding:    cfg.Padding.Or(NoPadding),
 		SizeBorder: NoBorder,

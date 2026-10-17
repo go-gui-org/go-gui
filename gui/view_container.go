@@ -540,19 +540,19 @@ func makeContainerEvents(c *ContainerCfg) (eventHandlers, bool) {
 	}, true
 }
 
-func makeContainerA11Y(c *ContainerCfg) *accessInfo {
+func makeContainerA11Y(c *ContainerCfg, w *Window) *accessInfo {
 	if c.a11Y != nil {
 		return c.a11Y
 	}
-	info := c.a11yInfo("")
+	info := c.a11yInfo(w, "")
 	if !c.A11YValue.IsSet() {
 		return info
 	}
 	// a11yInfo returns nil when there is no label or description, and a
-	// fresh pointer otherwise, so filling in the value never touches a
+	// fresh arena slot otherwise, so filling in the value never touches a
 	// shared accessInfo.
 	if info == nil {
-		info = &accessInfo{}
+		info = w.allocAccessInfo(accessInfo{})
 	}
 	info.ValueNum = c.A11YValue.Now
 	info.ValueMin = c.A11YValue.Min
@@ -639,7 +639,7 @@ func buildContainerShape(cfg *ContainerCfg, w *Window) Shape {
 		Opacity:              cfg.Opacity.Get(1.0),
 		A11YRole:             deriveContainerA11YRole(cfg),
 		A11YState:            cfg.A11YState,
-		a11Y:                 makeContainerA11Y(cfg),
+		a11Y:                 makeContainerA11Y(cfg, w),
 	}
 	if fx, ok := makeContainerEffects(cfg); ok {
 		shape.fx = w.allocEffects(fx)
