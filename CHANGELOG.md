@@ -10,13 +10,14 @@ and this project adheres to
 
 ### Added
 
-- **`llms.txt` at the repository root gives AI coding tools a map of Go-Gui.**
-  The file follows the llms.txt format. It states the API rules that compile
-  when broken but give wrong behavior: `Cfg` structs, `ctx.Consume()`, focus and
-  IDs, constructors for colors and sizes, theme roles and `GOGUI_DEBUG`. It also
-  links to the README, the cheat sheet, the guides, the examples and the API
-  reference. An assistant that reads it writes app code that follows these rules
-  on the first try, and does not copy patterns from other GUI toolkits.
+- **`llms.txt` at the repository root gives AI coding tools a map of Go-Gui
+  (#1092).** The file follows the llms.txt format. It states the API rules that
+  compile when broken but give wrong behavior: `Cfg` structs, `ctx.Consume()`,
+  focus and IDs, constructors for colors and sizes, theme roles and
+  `GOGUI_DEBUG`. It also links to the README, the cheat sheet, the guides, the
+  examples and the API reference. An assistant that reads it writes app code
+  that follows these rules on the first try, and does not copy patterns from
+  other GUI toolkits.
 
 - **`LocaleFormatNumber` and `LocaleFormatCurrency` format values with the
   active locale (#1087).** `Locale` holds number and currency rules, but until
