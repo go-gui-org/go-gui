@@ -120,7 +120,7 @@ func demoDialog(w *gui.Window) gui.View {
 					gui.Button(gui.ButtonCfg{
 						ID: "btn-open-file",
 						Content: []gui.View{
-							gui.Text(gui.TextCfg{Text: gui.IconFolder, TextStyle: t.TextStyleBody}),
+							gui.Text(gui.TextCfg{Text: gui.IconFolder, TextStyle: t.TextStyleIconMedium}),
 							gui.Text(gui.TextCfg{Text: "Open", TextStyle: t.TextStyleBody}),
 						},
 						OnClick: func(ctx gui.EventCtx) {
@@ -142,7 +142,7 @@ func demoDialog(w *gui.Window) gui.View {
 					gui.Button(gui.ButtonCfg{
 						ID: "btn-save-file",
 						Content: []gui.View{
-							gui.Text(gui.TextCfg{Text: gui.IconDownload, TextStyle: t.TextStyleBody}),
+							gui.Text(gui.TextCfg{Text: gui.IconDownload, TextStyle: t.TextStyleIconMedium}),
 							gui.Text(gui.TextCfg{Text: "Save", TextStyle: t.TextStyleBody}),
 						},
 						OnClick: func(ctx gui.EventCtx) {
@@ -164,7 +164,7 @@ func demoDialog(w *gui.Window) gui.View {
 					gui.Button(gui.ButtonCfg{
 						ID: "btn-folder",
 						Content: []gui.View{
-							gui.Text(gui.TextCfg{Text: gui.IconFolder, TextStyle: t.TextStyleBody}),
+							gui.Text(gui.TextCfg{Text: gui.IconFolder, TextStyle: t.TextStyleIconMedium}),
 							gui.Text(gui.TextCfg{Text: "Folder", TextStyle: t.TextStyleBody}),
 						},
 						OnClick: func(ctx gui.EventCtx) {
@@ -201,7 +201,7 @@ func demoDialog(w *gui.Window) gui.View {
 					gui.Button(gui.ButtonCfg{
 						ID: "btn-inwindow-open",
 						Content: []gui.View{
-							gui.Text(gui.TextCfg{Text: gui.IconFolder, TextStyle: t.TextStyleBody}),
+							gui.Text(gui.TextCfg{Text: gui.IconFolder, TextStyle: t.TextStyleIconMedium}),
 							gui.Text(gui.TextCfg{Text: "Open", TextStyle: t.TextStyleBody}),
 						},
 						OnClick: func(ctx gui.EventCtx) {
@@ -220,7 +220,7 @@ func demoDialog(w *gui.Window) gui.View {
 					gui.Button(gui.ButtonCfg{
 						ID: "btn-inwindow-save",
 						Content: []gui.View{
-							gui.Text(gui.TextCfg{Text: gui.IconDownload, TextStyle: t.TextStyleBody}),
+							gui.Text(gui.TextCfg{Text: gui.IconDownload, TextStyle: t.TextStyleIconMedium}),
 							gui.Text(gui.TextCfg{Text: "Save", TextStyle: t.TextStyleBody}),
 						},
 						OnClick: func(ctx gui.EventCtx) {
@@ -238,7 +238,7 @@ func demoDialog(w *gui.Window) gui.View {
 					gui.Button(gui.ButtonCfg{
 						ID: "btn-inwindow-folder",
 						Content: []gui.View{
-							gui.Text(gui.TextCfg{Text: gui.IconFolder, TextStyle: t.TextStyleBody}),
+							gui.Text(gui.TextCfg{Text: gui.IconFolder, TextStyle: t.TextStyleIconMedium}),
 							gui.Text(gui.TextCfg{Text: "Folder", TextStyle: t.TextStyleBody}),
 						},
 						OnClick: func(ctx gui.EventCtx) {
@@ -286,7 +286,7 @@ func demoNotification(w *gui.Window) gui.View {
 			gui.Button(gui.ButtonCfg{
 				ID: "btn-notify",
 				Content: []gui.View{
-					gui.Text(gui.TextCfg{Text: gui.IconBell, TextStyle: t.TextStyleBody}),
+					gui.Text(gui.TextCfg{Text: gui.IconBell, TextStyle: t.TextStyleIconMedium}),
 					gui.Text(gui.TextCfg{Text: "Send Notification", TextStyle: t.TextStyleBody}),
 				},
 				OnClick: func(ctx gui.EventCtx) {

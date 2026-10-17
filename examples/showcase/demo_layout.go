@@ -669,7 +669,7 @@ func demoPrinting(w *gui.Window) gui.View {
 					gui.Button(gui.ButtonCfg{
 						ID: "btn-export-pdf",
 						Content: []gui.View{
-							gui.Text(gui.TextCfg{Text: gui.IconExport, TextStyle: t.TextStyleBody}),
+							gui.Text(gui.TextCfg{Text: gui.IconExport, TextStyle: t.TextStyleIconMedium}),
 							gui.Text(gui.TextCfg{Text: "Export PDF", TextStyle: t.TextStyleBody}),
 						},
 						OnClick: func(ctx gui.EventCtx) {
@@ -690,7 +690,7 @@ func demoPrinting(w *gui.Window) gui.View {
 					gui.Button(gui.ButtonCfg{
 						ID: "btn-print",
 						Content: []gui.View{
-							gui.Text(gui.TextCfg{Text: gui.IconPrint, TextStyle: t.TextStyleBody}),
+							gui.Text(gui.TextCfg{Text: gui.IconPrint, TextStyle: t.TextStyleIconMedium}),
 							gui.Text(gui.TextCfg{Text: "Print", TextStyle: t.TextStyleBody}),
 						},
 						OnClick: func(ctx gui.EventCtx) {
