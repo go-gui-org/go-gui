@@ -25,7 +25,9 @@ func demoThemeGen(w *gui.Window) gui.View {
 		color := t.ColorInterior
 		textStyle := t.TextStyleBody
 		if selected {
-			color = t.ColorActive
+			// ColorTextOnAccent is matched to the accent fill; on
+			// ColorActive it was white on light gray.
+			color = t.ColorAccent
 			textStyle.Color = t.ColorTextOnAccent
 		}
 		sv := strategy

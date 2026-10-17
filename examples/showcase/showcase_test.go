@@ -893,3 +893,32 @@ func TestDemoBoxSizedCentersLabel(t *testing.T) {
 			got, metric+off, box.Shape.Height, text.Shape.Height)
 	}
 }
+
+// TestThemeGenSelectedStrategyUsesAccent: the selected palette button
+// draws its label in ColorTextOnAccent, which is matched to the accent
+// fill. On ColorActive (a light gray on light themes) the white label
+// all but vanished.
+func TestThemeGenSelectedStrategyUsesAccent(t *testing.T) {
+	w := gui.NewWindow(gui.WindowCfg{State: newShowcaseApp()})
+	layout := gui.GenerateViewLayout(demoThemeGen(w), w)
+	theme := gui.CurrentTheme()
+
+	var found *gui.Shape
+	var walk func(l *gui.Layout)
+	walk = func(l *gui.Layout) {
+		if strings.HasSuffix(l.Shape.ID, "strat-mono") {
+			found = l.Shape
+			return
+		}
+		for i := range l.Children {
+			walk(&l.Children[i])
+		}
+	}
+	walk(&layout)
+	if found == nil {
+		t.Fatal("strat-mono button not found")
+	}
+	if found.Color != theme.ColorAccent {
+		t.Fatalf("selected strategy fill = %v, want ColorAccent %v", found.Color, theme.ColorAccent)
+	}
+}
