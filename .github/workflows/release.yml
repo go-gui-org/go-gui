@@ -280,7 +280,7 @@ jobs:
         run: |
           awk -v tag="$TAG" '
             index($0, "## [" tag "]") == 1 { f = 1; next }
-            /^## \[/ { f = 0 }
+            /^## / { f = 0 }
             f
           ' CHANGELOG.md > release-notes.md
           if [ ! -s release-notes.md ]; then

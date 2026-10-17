@@ -15,7 +15,8 @@ code. Render with native GPU acceleration — Metal on macOS, cgo-free OpenGL on
 Linux and Windows, and WebGL/WASM in the browser.
 
 https://go-gui.com · [Documentation](https://github.com/go-gui-org/go-gui/wiki)
-· [Showcase](https://go-gui-org.github.io/showcase/)
+· [Showcase](https://go-gui-org.github.io/showcase/) · [llms.txt](llms.txt) (for
+AI coding tools)
 
 ---
 
