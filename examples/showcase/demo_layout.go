@@ -180,9 +180,12 @@ func demoWrapPanel(_ *gui.Window) gui.View {
 
 func demoOverflowPanel(w *gui.Window) gui.View {
 	t := gui.CurrentTheme()
+	// The subtle washes are made to sit under body text. The raw status
+	// colors are fills for a badge or toast accent: under the body
+	// color they read at about 2:1.
 	colors := []gui.Color{
-		t.ColorActive, t.Cfg.ColorSuccess, t.Cfg.ColorWarning, t.Cfg.ColorError,
-		t.ColorActive, t.Cfg.ColorSuccess, t.Cfg.ColorWarning, t.Cfg.ColorError,
+		t.ColorActive, t.ColorSuccessSubtle, t.ColorWarningSubtle, t.ColorErrorSubtle,
+		t.ColorActive, t.ColorSuccessSubtle, t.ColorWarningSubtle, t.ColorErrorSubtle,
 	}
 	items := make([]gui.OverflowItem, len(colors))
 	for i := range items {
