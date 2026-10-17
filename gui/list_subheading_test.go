@@ -59,3 +59,28 @@ func subheadingRuleColor(ly *Layout) Color {
 	}
 	return Color{}
 }
+
+// A recolor with WithColors moves the secondary role, so the default
+// subheading, which sits on that role, must move with it. A stale
+// subheading would keep the old page's gray on the new background.
+func TestWithColorsSubheadingFollowsSecondary(t *testing.T) {
+	theme := ThemeLight.WithColors(ColorOverrides{
+		ColorBackground: RGB(20, 24, 32),
+		ColorPanel:      RGB(30, 34, 44),
+	})
+	if theme.TextStyleSecondary.Color == ThemeLight.TextStyleSecondary.Color {
+		t.Fatal("recolor left the secondary role unchanged; test proves nothing")
+	}
+	for _, c := range []struct {
+		widget string
+		style  TextStyle
+	}{
+		{"listbox", theme.listBoxStyle.subheadingStyle},
+		{"select", theme.selectStyle.subheadingStyle},
+	} {
+		if c.style != theme.TextStyleSecondary {
+			t.Errorf("%s subheading %v, want secondary %v",
+				c.widget, c.style.Color, theme.TextStyleSecondary.Color)
+		}
+	}
+}

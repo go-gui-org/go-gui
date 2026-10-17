@@ -83,8 +83,9 @@ func textOnFor(c Color) Color {
 }
 
 // controlEdgeFor is the edge color of an off checkbox, radio or
-// switch, and of the slider's track and thumb. The shared hairline border is kept faint on purpose: around
-// a panel or a field, the fill already shows the shape. An off
+// switch, and of the slider's track and thumb. The shared hairline
+// border is kept faint on purpose: around a panel or a field, the
+// fill already shows the shape. An off
 // checkbox has no fill of its own, so its edge is all that shows
 // there is a control, and the hairline sat near 1.2:1 on light
 // presets. The edge keeps the border's hue and moves on lightness

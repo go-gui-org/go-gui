@@ -332,3 +332,22 @@ func TestMarkdownDocCopyButtonDoesNotOverlapFirstBlock(t *testing.T) {
 			right, btnShape.X)
 	}
 }
+
+// An empty document has no first block to pull in. The copy button
+// is then the only child, and it must not be wrapped as if it were a
+// block.
+func TestMarkdownEmptySourceKeepsCopyButtonUnwrapped(t *testing.T) {
+	w := NewWindow(WindowCfg{State: new(int), Width: 400, Height: 400})
+	layout := generateViewLayout(w.Markdown(MarkdownCfg{ID: "md"}), w)
+	doc := findLayoutByID(&layout, "md")
+	if doc == nil {
+		t.Fatal("markdown document not found")
+	}
+	if len(doc.Children) != 1 {
+		t.Fatalf("empty document has %d children, want the copy button only",
+			len(doc.Children))
+	}
+	if !doc.Children[0].Shape.Float {
+		t.Error("sole child is not the floating copy button")
+	}
+}
