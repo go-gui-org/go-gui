@@ -23,6 +23,16 @@ and this project adheres to
   copy and allocate only the result, so a view can call them every frame. The
   data grid's row, page and match labels now allocate one string less each.
 
+- **The showcase has a Locale page, and its locale button says what it does
+  (#1084).** The button under the catalog switches the locale, but the showcase
+  text is not translated, so a press seemed to do nothing. The new App & Window
+  › Locale page reads everything from `CurrentLocale()`: number, currency and
+  date formats, weekday and month names, the built-in dialog, action and data
+  grid strings, app strings looked up with `LocaleT`, and a `NumericInput` that
+  takes the locale's separators. Its own locale switch stays in step with the
+  button. The button now has a tooltip that names what it changes and points at
+  the page, and an accessible label that names the current locale.
+
 ### Fixed
 
 - **The vertical scrollbar moves to the left under RTL (#1080).** In a

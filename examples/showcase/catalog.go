@@ -81,7 +81,7 @@ func catalogContent(w *gui.Window, width float32) gui.View {
 				HAlign:  gui.HAlignRight,
 				VAlign:  gui.VAlignMiddle,
 				Content: []gui.View{
-					toggleLocale(app),
+					toggleLocale(w, app),
 					gui.ThemePicker(gui.ThemePickerCfg{
 						ID:          "showcase-theme",
 						Focusable:   true,
@@ -284,25 +284,57 @@ func catalogButton(entry DemoEntry, color gui.Color) gui.View {
 	})
 }
 
-func toggleLocale(app *ShowcaseApp) gui.View {
+// localeButtonID is the leaf ID of the catalog's locale button.
+const localeButtonID = "showcase-locale"
+
+// localeTooltipID is the leaf ID of the locale button's tooltip.
+// WithTooltip falls back to its text for an ID, and that text holds a
+// colon, which would make the key an absolute ID.
+const localeTooltipID = "showcase-locale-tip"
+
+// localeButtonTooltip says what the locale button changes. Without it
+// a press looks like it did nothing: the showcase's own text is not
+// translated, so the change shows only on a page that formats numbers,
+// dates or widget strings.
+const localeButtonTooltip = "Switch the locale: number and date formats, " +
+	"widget strings and text direction. The showcase text is not " +
+	"translated. See App & Window > Locale."
+
+// localeButtonA11YLabel names the action and the locale the button is
+// on now. The visible text is a two-letter code, which a screen reader
+// reads as letters.
+func localeButtonA11YLabel(idx int) string {
+	id := "en-US"
+	if idx >= 0 && idx < len(showcaseLocaleIDs) {
+		id = showcaseLocaleIDs[idx]
+	}
+	return "Switch locale, now " + id
+}
+
+func toggleLocale(w *gui.Window, app *ShowcaseApp) gui.View {
 	label := localeLabel(app.LocaleIndex)
-	return gui.Button(gui.ButtonCfg{
-		ID:      "showcase-locale",
-		Color:   gui.ColorTransparent,
-		Colors:  gui.ColorSet{Border: gui.ColorTransparent, BorderFocus: gui.CurrentTheme().ColorActive},
-		Padding: gui.PaddingSmall,
+	return gui.WithTooltip(w, gui.WithTooltipCfg{
+		ID:   localeTooltipID,
+		Text: localeButtonTooltip,
 		Content: []gui.View{
-			gui.Text(gui.TextCfg{
-				Text:      label,
-				TextStyle: gui.CurrentTheme().TextStyleBody.Bold(),
+			gui.Button(gui.ButtonCfg{
+				ID:      localeButtonID,
+				A11YCfg: gui.A11YCfg{A11YLabel: localeButtonA11YLabel(app.LocaleIndex)},
+				Color:   gui.ColorTransparent,
+				Colors:  gui.ColorSet{Border: gui.ColorTransparent, BorderFocus: gui.CurrentTheme().ColorActive},
+				Padding: gui.PaddingSmall,
+				Content: []gui.View{
+					gui.Text(gui.TextCfg{
+						Text:      label,
+						TextStyle: gui.CurrentTheme().TextStyleBody.Bold(),
+					}),
+				},
+				OnClick: func(ctx gui.EventCtx) {
+					next := (appState(ctx.Window).LocaleIndex + 1) % localeCount()
+					setShowcaseLocale(ctx.Window, next)
+					ctx.Consume()
+				},
 			}),
-		},
-		OnClick: func(ctx gui.EventCtx) {
-			showcaseApp := appState(ctx.Window)
-			showcaseApp.LocaleIndex = (showcaseApp.LocaleIndex + 1) % localeCount()
-			if locale, ok := showcaseLocaleAt(showcaseApp.LocaleIndex); ok {
-				ctx.Window.SetLocale(locale)
-			}
 		},
 	})
 }

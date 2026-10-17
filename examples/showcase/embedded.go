@@ -52,6 +52,26 @@ func showcaseLocaleAt(idx int) (gui.Locale, bool) {
 	return locale, ok
 }
 
+// setShowcaseLocale makes showcase locale idx the active one. The
+// catalog button and the Locale page switch both call it, so the two
+// controls never disagree. An index outside the list changes nothing.
+func setShowcaseLocale(w *gui.Window, idx int) {
+	locale, ok := showcaseLocaleAt(idx)
+	if !ok {
+		return
+	}
+	app := appState(w)
+	app.LocaleIndex = idx
+	w.SetLocale(locale)
+	// NumericInput shows its Text as given. Text typed in the old
+	// locale would read wrong in the new one ("1,5" is 15 in en-US),
+	// so the Locale page's input takes the committed value, formatted
+	// the new way.
+	if v, ok := app.LocaleNumValue.Value(); ok {
+		app.LocaleNumText = gui.LocaleFormatNumber(v, localeNumDecimals)
+	}
+}
+
 func localeLabel(idx int) string {
 	if idx < 0 || idx >= len(showcaseLocaleLabels) {
 		return "EN"
@@ -180,6 +200,7 @@ var relatedExampleMap = map[string][]string{
 	"sidebar":             {"examples/showcase/demo_layout.go"},
 	"dock_layout":         {"examples/showcase/demo_dock_layout.go", "examples/dock_layout/main.go"},
 	"multi_window":        {"examples/showcase/demo_layout.go", "examples/multi_window/main.go"},
+	"locale":              {"examples/showcase/demo_locale.go"},
 	"window_opacity":      {"examples/showcase/demo_window_opacity.go", "examples/transparent/main.go"},
 	"command_button":      {"examples/showcase/demo_feedback.go", "examples/command_demo/main.go"},
 	"theme_picker":        {"examples/showcase/demo_feedback.go"},

@@ -51,6 +51,21 @@ if err == nil {
 }
 ```
 
+## App Translations
+
+Built-in strings come from the locale. An app's own strings do not: put them in
+a `translations` block in the locale file and look each one up with `LocaleT`.
+
+```json
+"translations": {
+  "Hello": "Hallo",
+  "Cart": "Warenkorb"
+}
+```
+
+`LocaleT(key)` returns the key itself when the active locale has no entry. Use
+the English text as the key, and an en-US app needs no block at all.
+
 ## Built-in Locales
 
 | ID    | Language             | Text Dir |

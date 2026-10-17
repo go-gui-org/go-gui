@@ -299,6 +299,7 @@ var componentDemos = map[string]func(*gui.Window) gui.View{
 	"theme_picker":        demoThemePicker,
 	"multi_window":        demoMultiWindow,
 	"window_opacity":      demoWindowOpacity,
+	"locale":              demoLocale,
 	"spinner":             demoMathSpinner,
 	"svg_spinner":         demoSvgSpinner,
 	"thinking_orb":        demoThinkingOrb,

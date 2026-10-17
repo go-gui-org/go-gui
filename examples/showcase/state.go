@@ -79,6 +79,7 @@ type ShowcaseApp struct {
 
 	NumericENText       string
 	NumericDEText       string
+	LocaleNumText       string
 	NumericCurrencyText string
 	NumericPercentText  string
 	NumericPlainText    string
@@ -147,7 +148,8 @@ type ShowcaseApp struct {
 	NumericPercentValue  gui.Opt[float64]
 	NumericPlainValue    gui.Opt[float64]
 
-	LocaleIndex int
+	LocaleIndex    int
+	LocaleNumValue gui.Opt[float64]
 
 	ButtonClicks int
 
@@ -314,6 +316,8 @@ func newShowcaseApp() *ShowcaseApp {
 		NumericENValue:        gui.Some(1234.5),
 		NumericDEText:         "1.234,50",
 		NumericDEValue:        gui.Some(1234.5),
+		LocaleNumText:         "1,234,567.50",
+		LocaleNumValue:        gui.Some(1234567.5),
 		NumericCurrencyText:   "$1,234.50",
 		NumericCurrencyValue:  gui.Some(1234.5),
 		NumericPercentText:    "12.50%",
@@ -446,6 +450,7 @@ var demoEntries = []DemoEntry{
 	{ID: "input", Label: "Input", Group: groupEntry, Summary: "Single-line, password, and multiline text input.", Tags: []string{"text", "textarea", "password"}},
 	{ID: "input_date", Label: "Input Date", Group: groupEntry, Summary: "Text input with date picker dropdown.", Tags: []string{"date", "input", "calendar"}},
 	{ID: "input_group", Label: "Input Group", Group: groupEntry, Summary: "Join inputs, selects, buttons and text addons into one control.", Tags: []string{"addon", "prefix", "suffix", "group", "form"}},
+	{ID: "locale", Label: "Locale", Group: groupApp, Summary: "What the locale changes: number and date formats, widget strings, translations, text direction.", Tags: []string{"locale", "i18n", "l10n", "translation", "rtl", "number", "date", "currency"}},
 	{ID: "numeric_input", Label: "Numeric Input", Group: groupEntry, Summary: "Locale-aware number input with step controls.", Tags: []string{"number", "decimal", "locale", "spinner"}},
 	{ID: "forms", Label: "Forms", Group: groupEntry, Summary: "Form runtime with sync and async validation states recreated in example code.", Tags: []string{"form", "validation", "async", "touched", "dirty"}},
 
