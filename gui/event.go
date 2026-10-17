@@ -98,6 +98,7 @@ const (
 type Modifier uint32
 
 // Modifier values.
+// exportaudit:keep — one member of a public enum; the set ships whole.
 const (
 	ModNone  Modifier = 0
 	ModShift Modifier = 1
