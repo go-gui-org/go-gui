@@ -26,14 +26,14 @@ func demoThemeGen(w *gui.Window) gui.View {
 		textStyle := t.TextStyleBody
 		if selected {
 			color = t.ColorActive
-			textStyle.Color = gui.White
+			textStyle.Color = t.ColorTextOnAccent
 		}
 		sv := strategy
 		strategyViews[i] = gui.Button(gui.ButtonCfg{
 			ID:       "strat-" + sv,
 			Color:    color,
 			Disabled: pickText,
-			Padding:  gui.NewPadding(gui.PadXSmall, gui.PadMedium, gui.PadXSmall, gui.PadMedium),
+			Padding:  t.PaddingButton,
 			Radius:   gui.RadiusMedium,
 			Content:  []gui.View{gui.Text(gui.TextCfg{Text: strategyLabel(sv), TextStyle: textStyle})},
 			OnClick: func(ctx gui.EventCtx) {
