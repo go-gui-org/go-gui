@@ -4,8 +4,6 @@ import (
 	"encoding/csv"
 	"maps"
 	"strings"
-
-	"github.com/go-gui-org/go-glyph"
 )
 
 // TableBorderStyle controls which borders are drawn in a table.
@@ -376,11 +374,11 @@ func TR(cols []TableCellCfg) TableRowCfg {
 	return TableRowCfg{Cells: cols}
 }
 
-// TH creates a header cell with bold text.
+// tH creates a header cell. It sets no TextStyle, so the cell takes the
+// table's TextStyleHead like any header cell without a style of its
+// own. A style here would win over TextStyleHead.
 func tH(value string) TableCellCfg {
-	ts := DefaultTextStyle
-	ts.Typeface = glyph.TypefaceBold
-	return TableCellCfg{Value: value, HeadCell: true, TextStyle: &ts}
+	return TableCellCfg{Value: value, HeadCell: true}
 }
 
 // TD creates a data cell.

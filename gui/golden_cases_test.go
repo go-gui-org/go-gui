@@ -430,6 +430,21 @@ func goldenCases() []goldenCase {
 			},
 		},
 		{
+			// The same table from RawData. Its header takes
+			// TextStyleHead like the case above, so both record the
+			// same commands.
+			name: "table_raw_data",
+			build: func(_ *Window) View {
+				return Table(TableCfg{
+					ID: "tbl",
+					RawData: [][]string{
+						{"Name", "Size"},
+						{"alpha", "12"},
+					},
+				})
+			},
+		},
+		{
 			// Carries a disabled tab, which is one of the two
 			// themed textStyleDisabled sites (audit §1).
 			name: "tab_control",

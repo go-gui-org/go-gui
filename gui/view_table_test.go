@@ -737,3 +737,30 @@ func TestTableSizingDefault(t *testing.T) {
 		})
 	}
 }
+
+// A header built from RawData takes the table's TextStyleHead, as a
+// header cell with no style of its own does. tH used to stamp the
+// default style in bold on every header cell, which won over
+// TextStyleHead, so neither the theme's head style nor the app's
+// reached a RawData table.
+func TestTableRawDataHeaderUsesTextStyleHead(t *testing.T) {
+	w := &Window{}
+	w.textMeasurer = &tableTestMeasurer{}
+	head := DefaultTextStyle
+	head.Color = RGB(200, 10, 10)
+	v := w.Table(TableCfg{
+		ID:            "raw-head",
+		TextStyleHead: head,
+		RawData:       [][]string{{"Name"}, {"Ada"}},
+	})
+	layout := generateViewLayout(v, w)
+	found, ok := layout.FindLayout(func(l Layout) bool {
+		return l.Shape.TC != nil && l.Shape.TC.Text == "Name"
+	})
+	if !ok {
+		t.Fatal("header text shape not found")
+	}
+	if got := found.Shape.TC.TextStyle.Color; got != head.Color {
+		t.Errorf("header color = %+v, want TextStyleHead %+v", got, head.Color)
+	}
+}

@@ -63,6 +63,14 @@ and this project adheres to
 
 ### Fixed
 
+- **A table built from `RawData` styles its header with `TextStyleHead`.** The
+  header row of a `RawData`, `TableCfgFromData` or CSV table got the default
+  text style in bold, which won over the table's `TextStyleHead`. So neither the
+  theme's header style nor an app's own reached these tables, while a table
+  built from `TableCellCfg` cells used it. The header now takes `TextStyleHead`
+  like any header cell without a style of its own. Each header cell also stops
+  allocating a style on every frame.
+
 - **The `InputDate` calendar button uses the icon font.** The button drew the 📅
   color emoji, the only color emoji among the control icons. It ignored the
   theme's text color and looked out of place on both light and dark themes. It
