@@ -24,6 +24,11 @@ type pipeline struct {
 	uTM     int32 // texture matrix / params; -1 if unused
 	uTM2    int32 // gradient stops 4-7, fragment stage; -1 if unused
 	uTex    int32 // sampler uniform; -1 if unused
+	// uBuiltin is a custom shader's built-in block (_gg_builtins in
+	// gui.BuildGLSLFragment); -1 in the fixed pipelines, and in a
+	// custom one whose body reads no built-in, as the linker drops
+	// an unused uniform.
+	uBuiltin int32
 }
 
 // pipelineSet holds all compiled pipelines.
@@ -120,6 +125,8 @@ func buildPipeline(vsSrc, fsSrc string) (pipeline, error) {
 		uTM:     gogl.GetUniformLocation(prog, glStr("tm\x00")),
 		uTM2:    gogl.GetUniformLocation(prog, glStr("tm2\x00")),
 		uTex:    uniformLoc(prog, "tex\x00", "tex_smp\x00"),
+		uBuiltin: gogl.GetUniformLocation(prog,
+			glStr("_gg_builtins\x00")),
 	}, nil
 }
 

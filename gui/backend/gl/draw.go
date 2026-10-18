@@ -502,6 +502,10 @@ func (b *Backend) drawCustomShader(r *gui.RenderCmd) {
 		tm[i] = r.Shader.Params[i]
 	}
 	gogl.UniformMatrix4fv(p.uTM, 1, false, &tm[0])
+	if p.uBuiltin >= 0 {
+		builtins := r.ShaderBuiltinsAt(s)
+		gogl.UniformMatrix4fv(p.uBuiltin, 1, false, &builtins[0])
+	}
 
 	b.drawQuad(r.X*s, r.Y*s, r.W*s, r.H*s,
 		r.Color, r.Radius*s, 0)
