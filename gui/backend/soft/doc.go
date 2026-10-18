@@ -26,7 +26,10 @@
 // and not only for shapes.
 //
 // RenderCustomShader is unsupported by design: it is GLSL, and there is
-// no CPU equivalent to compile. SVG clip-mask geometry is skipped, as it
+// no CPU equivalent to compile. A shader container therefore renders
+// nothing here, in screenshots and in golden tests alike: its children
+// draw, its shader fill does not, so a new golden of a shader view
+// silently lacks that content. SVG clip-mask geometry is skipped, as it
 // is in every other backend. See
 // docs/specs/headless-software-rendering.md.
 package soft

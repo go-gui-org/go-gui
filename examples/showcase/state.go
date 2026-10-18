@@ -47,8 +47,7 @@ type ShowcaseApp struct {
 	InputDate  time.Time
 	RollerDate time.Time
 
-	ShaderStartTime time.Time
-	DataSource      datagrid.DataGridDataSource
+	DataSource datagrid.DataGridDataSource
 
 	TableSelected     map[int]bool
 	TreeLazyNodes     map[string][]gui.TreeNodeCfg
@@ -300,7 +299,6 @@ func appState(w *gui.Window) *ShowcaseApp {
 
 func newShowcaseApp() *ShowcaseApp {
 	return &ShowcaseApp{
-		ShaderStartTime:       time.Now(),
 		SelectedGroup:         groupAll,
 		WindowOpacity:         1,
 		PathTrimProgress:      1,

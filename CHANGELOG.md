@@ -36,6 +36,8 @@ and this project adheres to
   drawn, and each frame rebuilds only the render commands, where `iTime` is
   filled in. Frames stop in the first frame that draws no `Animate` shader, so
   an idle window stays idle. Headless windows start no frames.
+  `examples/custom_shader` and the showcase's shader page now use `iTime` and
+  `Animate`, with no clock or animation of their own.
 
 - **`llms.txt` at the repository root gives AI coding tools a map of Go-Gui
   (#1092).** The file follows the llms.txt format. It states the API rules that

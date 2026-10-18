@@ -168,6 +168,26 @@ var snippetEntries = []snippetEntry{
 		},
 	},
 	{
+		sourceFile: "../custom_shader/main.go",
+		beginMark:  "// doc:snippet-begin custom-shader-rainbow",
+		endMark:    "// doc:snippet-end custom-shader-rainbow",
+		anchor:     "Animate: true,",
+		heading:    "## Animated Shader",
+		guides: []string{
+			"docs/widget_shader.md",
+		},
+	},
+	{
+		sourceFile: "../custom_shader/main.go",
+		beginMark:  "// doc:snippet-begin custom-shader-rainbow",
+		endMark:    "// doc:snippet-end custom-shader-rainbow",
+		anchor:     "cos(iTime + st.xyx",
+		heading:    "## How it works",
+		guides: []string{
+			"../custom_shader/README.md",
+		},
+	},
+	{
 		sourceFile: "../get_started/main.go",
 		anchor:     "func mainView(",
 		heading:    "## It's just Go",

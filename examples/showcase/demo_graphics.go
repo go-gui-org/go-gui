@@ -3,7 +3,6 @@ package main
 import (
 	"sort"
 	"strings"
-	"time"
 
 	"github.com/go-gui-org/go-gui/gui"
 )
@@ -1068,23 +1067,10 @@ func demoBlur(_ *gui.Window) gui.View {
 	})
 }
 
-func demoShader(w *gui.Window) gui.View {
-	// Keep frame loop hot so shader params animate continuously.
-	// QueueCommand defers to next frame to avoid locking w.mu
-	// (view functions run under that lock).
-	w.QueueCommand(func(w *gui.Window) {
-		if !w.HasAnimation("shader_tick") {
-			w.AnimationAdd(&gui.Animate{
-				AnimID:   "shader_tick",
-				Repeat:   true,
-				Callback: func(_ *gui.Animate, _ *gui.Window) {},
-			})
-		}
-	})
-
+func demoShader(_ *gui.Window) gui.View {
+	// Animate keeps the frames coming while the shaders are drawn and
+	// stops them when the page is left; iTime is the shaders' clock.
 	t := gui.CurrentTheme()
-	app := appState(w)
-	elapsed := float32(time.Since(app.ShaderStartTime).Milliseconds()) / 1000.0
 
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
@@ -1092,7 +1078,7 @@ func demoShader(w *gui.Window) gui.View {
 		Padding: gui.NoPadding,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
-				Text:      "Custom fragment shaders (Metal + GLSL). Params[0] is animated time.",
+				Text:      "Custom fragment shaders (Metal + GLSL), animated with iTime and Shader.Animate.",
 				TextStyle: t.TextStyleBody,
 			}),
 			gui.Row(gui.ContainerCfg{
@@ -1109,18 +1095,16 @@ func demoShader(w *gui.Window) gui.View {
 						VAlign: gui.VAlignMiddle,
 						Shader: &gui.Shader{
 							Metal: `
-								float t = in.p0.x;
 								float2 st = in.uv * 0.5 + 0.5;
-								float3 c = 0.5 + 0.5 * cos(t + st.xyx + float3(0,2,4));
+								float3 c = 0.5 + 0.5 * cos(iTime + st.xyx + float3(0,2,4));
 								float4 frag_color = float4(c, 1.0);
 							`,
 							GLSL: `
-								float t = p0.x;
 								vec2 st = uv * 0.5 + 0.5;
-								vec3 c = 0.5 + 0.5 * cos(t + st.xyx + vec3(0,2,4));
+								vec3 c = 0.5 + 0.5 * cos(iTime + st.xyx + vec3(0,2,4));
 								vec4 frag_color = vec4(c, 1.0);
 							`,
-							Params: []float32{elapsed},
+							Animate: true,
 						},
 						Content: []gui.View{gui.Text(gui.TextCfg{Text: "Rainbow", TextStyle: t.TextStyleBodyLarge})},
 					}),
@@ -1133,11 +1117,10 @@ func demoShader(w *gui.Window) gui.View {
 						VAlign: gui.VAlignMiddle,
 						Shader: &gui.Shader{
 							Metal: `
-								float t = in.p0.x;
 								float2 st = in.uv * 3.0;
-								float v = sin(st.x + t) + sin(st.y + t)
-									+ sin(st.x + st.y + t)
-									+ sin(length(st) + 1.5 * t);
+								float v = sin(st.x + iTime) + sin(st.y + iTime)
+									+ sin(st.x + st.y + iTime)
+									+ sin(length(st) + 1.5 * iTime);
 								v = v * 0.25 + 0.5;
 								float3 c = float3(
 									sin(v * 3.14159),
@@ -1147,11 +1130,10 @@ func demoShader(w *gui.Window) gui.View {
 								float4 frag_color = float4(c, 1.0);
 							`,
 							GLSL: `
-								float t = p0.x;
 								vec2 st = uv * 3.0;
-								float v = sin(st.x + t) + sin(st.y + t)
-									+ sin(st.x + st.y + t)
-									+ sin(length(st) + 1.5 * t);
+								float v = sin(st.x + iTime) + sin(st.y + iTime)
+									+ sin(st.x + st.y + iTime)
+									+ sin(length(st) + 1.5 * iTime);
 								v = v * 0.25 + 0.5;
 								vec3 c = vec3(
 									sin(v * 3.14159),
@@ -1160,7 +1142,7 @@ func demoShader(w *gui.Window) gui.View {
 								c = c * 0.5 + 0.5;
 								vec4 frag_color = vec4(c, 1.0);
 							`,
-							Params: []float32{elapsed},
+							Animate: true,
 						},
 						Content: []gui.View{gui.Text(gui.TextCfg{Text: "Plasma", TextStyle: t.TextStyleBodyLarge})},
 					}),

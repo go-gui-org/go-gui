@@ -10,7 +10,6 @@ func TestMainViewNoPanic(t *testing.T) {
 	t.Parallel()
 	gui.SetTheme(gui.ThemeDark)
 	w := gui.NewWindow(gui.WindowCfg{
-		State:  &App{},
 		Width:  600,
 		Height: 400,
 	})

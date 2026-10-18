@@ -15,6 +15,15 @@ import (
 // source as-is. Provide both bodies for cross-platform builds;
 // a backend compiles only its own and ignores the other.
 //
+// A body reads Shadertoy's built-in inputs under their Shadertoy
+// names, types and units: iResolution (the container's size in
+// physical pixels), iTime, iTimeDelta and iFrame, while uv spans
+// -1..1 across the container with y growing down. iMouse is declared
+// but reads zero, Shadertoy's value for a canvas never clicked. A body
+// runs in its own block, so a local of the same name as a built-in or
+// as a wrapper variable hides it. Set Animate for a shader that
+// changes over time.
+//
 // Params carries up to 16 custom floats to p0..p3. Longer slices
 // are silently truncated to the first 16; NaN or Inf entries
 // fail render validation and drop the draw.

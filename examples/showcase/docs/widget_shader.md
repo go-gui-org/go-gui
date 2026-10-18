@@ -1,6 +1,7 @@
 Apply custom fragment shaders (Metal + GLSL) to any container. Write only the
-color-computation body — the framework wraps it with struct definitions, SDF
-round-rect clipping, and pipeline caching via `BuildGLSLFragment`.
+color-computation body — the framework wraps it with struct definitions,
+Shadertoy's built-in inputs, SDF round-rect clipping, and pipeline caching via
+`BuildGLSLFragment`.
 
 ## Static Shader
 
@@ -24,33 +25,66 @@ gui.Column(gui.ContainerCfg{
 
 ## Animated Shader
 
-Pass time or other values via Params. Each float maps to p0.x, p0.y, p0.z, p0.w,
-p1.x, ... (up to 16 floats).
+Read `iTime` and set `Animate`. The window then draws a new frame each display
+refresh while the container is on screen. Each frame rebuilds only the render
+commands: no view function runs and nothing is re-arranged. Frames stop in the
+first frame that draws no `Animate` shader. This is from
+`examples/custom_shader`:
 
 ```go
-elapsed := float32(time.Since(startTime).Milliseconds()) / 1000.0
+// rainbowTile is an animated shader. iTime counts seconds from the
+// first frame that drew a shader. Animate keeps frames coming while
+// the tile is on screen, and each frame rebuilds only the render
+// commands: no view function runs and nothing is re-arranged.
+func rainbowTile() gui.View {
+	return gui.Column(gui.ContainerCfg{
+		Width:  180,
+		Height: 180,
+		Sizing: gui.FixedFixed,
+		Radius: gui.RadiusPx(16), // ergonomics-audit:spacing — decorative radius, not a control corner
+		HAlign: gui.HAlignCenter,
+		VAlign: gui.VAlignMiddle,
+		Shader: &gui.Shader{
+			Metal: `
+				float2 st = in.uv * 0.5 + 0.5;
+				float3 c = 0.5 + 0.5 * cos(iTime + st.xyx + float3(0,2,4));
+				float4 frag_color = float4(c, 1.0);
+			`,
+			GLSL: `
+				vec2 st = uv * 0.5 + 0.5;
+				vec3 c = 0.5 + 0.5 * cos(iTime + st.xyx + vec3(0,2,4));
+				vec4 frag_color = vec4(c, 1.0);
+			`,
+			Animate: true,
+		},
+		Content: []gui.View{gui.Text(gui.TextCfg{Text: "Rainbow"})},
+	})
+}
 
-gui.Column(gui.ContainerCfg{
-    Width: 200, Height: 200,
-    Sizing: gui.FixedFixed,
-    Radius: gui.RadiusPx(16),
-    Shader: &gui.Shader{
-        Metal: `
-            float t = in.p0.x;
-            float2 st = in.uv * 0.5 + 0.5;
-            float3 c = 0.5 + 0.5 * cos(t + st.xyx + float3(0,2,4));
-            float4 frag_color = float4(c, 1.0);
-        `,
-        GLSL: `
-            float t = p0.x;
-            vec2 st = uv * 0.5 + 0.5;
-            vec3 c = 0.5 + 0.5 * cos(t + st.xyx + vec3(0,2,4));
-            vec4 frag_color = vec4(c, 1.0);
-        `,
-        Params: []float32{elapsed},
-    },
-})
 ```
+
+## Built-in inputs
+
+| Name          | Type          | Value                                            |
+| ------------- | ------------- | ------------------------------------------------ |
+| `iResolution` | `vec3/float3` | Container size in physical pixels; `z` is 1      |
+| `iTime`       | `float`       | Seconds since the first frame that drew a shader |
+| `iTimeDelta`  | `float`       | Seconds since the previous frame, at most 0.25   |
+| `iFrame`      | `int`         | Frames since the first frame that drew a shader  |
+| `iMouse`      | `vec4/float4` | Always zero: the mouse is not tracked            |
+
+The names, types and units are Shadertoy's, so copied code reads them unchanged.
+Sizes are physical pixels. `iMouse` reads zero, Shadertoy's value for a canvas
+never clicked, so a shader that reads it compiles and draws as if never clicked.
+Time and frame advance once per displayed frame, and read zero in headless
+captures. A body that declares its own `iTime` hides the built-in and still
+compiles.
+
+## Passing your own values
+
+`Params` carries up to 16 floats of your own. Each float maps to p0.x, p0.y,
+p0.z, p0.w, p1.x, ... Params are set in the view function, so a change reaches
+the shader with the next view rebuild.
 
 ## Shader Properties
 
@@ -59,8 +93,11 @@ gui.Column(gui.ContainerCfg{
 | Metal    | string    | MSL fragment body                                       |
 | GLSL     | string    | GLSL fragment body (desktop GL 3.3 / WebGL2-compatible) |
 | Params   | []float32 | Up to 16 custom floats                                  |
+| Animate  | bool      | Redraw every frame while the shader is drawn            |
 
 ## Available Inputs
+
+Besides the built-ins above:
 
 | Metal        | GLSL         | Type        | Description           |
 | ------------ | ------------ | ----------- | --------------------- |
@@ -74,6 +111,20 @@ gui.Column(gui.ContainerCfg{
 Declare a local `float4 frag_color` (Metal) or `vec4 frag_color` (GLSL). The
 framework applies SDF clipping automatically.
 
+## Porting from Shadertoy
+
+- Replace `mainImage(out vec4 fragColor, in vec2 fragCoord)` with a body that
+  declares `frag_color`. Rebuild `fragCoord` from `uv`, which spans -1..1 with y
+  growing down:
+  `vec2 fragCoord = vec2(uv.x * 0.5 + 0.5, 0.5 - uv.y * 0.5) * iResolution.xy;`
+- Write the Metal body as well: `vec2` becomes `float2`, `mat4` becomes
+  `float4x4`, `mod` becomes `fmod`, `atan(y, x)` becomes `atan2(y, x)`, and `uv`
+  becomes `in.uv`.
+- A body is the inside of one function, so it cannot declare helper functions.
+  Inline them.
+- `iChannel0..3`, `iDate` and `iSampleRate` are not provided.
+- Set `Animate` if the shader changes over time.
+
 ## Notes
 
 - Must provide both Metal and GLSL bodies for cross-platform. A shader with
@@ -86,7 +137,8 @@ framework applies SDF clipping automatically.
   the cache key). A body that fails to compile compiles once, not once per
   frame, and then follows the fallback contract below.
 - Shader fill takes priority over Gradient and solid Color
-- Add a repeating animation to keep the frame loop hot
+- Set `Animate` to keep the frame loop running; an app adds no animation of its
+  own.
 
 ## Failure contract
 
