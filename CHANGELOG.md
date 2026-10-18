@@ -45,31 +45,31 @@ and this project adheres to
 ### Changed
 
 - **A widget with an accessible name no longer allocates its accessibility data
-  on each frame.** A container, image, SVG, canvas, rich text, tree, slider or
-  thinking orb with an `A11YLabel`, an `A11YDescription` or an `A11YValue` got a
-  new heap object for this data on every frame. Now the data comes from the same
-  frame pool as the shape that holds it. A tree row and a list box row each
-  allocate one object less per frame: a 200-row tree goes from 1022 to 822
-  allocations per frame, and a list box from 212 to 147.
+  on each frame (#1097).** A container, image, SVG, canvas, rich text, tree,
+  slider or thinking orb with an `A11YLabel`, an `A11YDescription` or an
+  `A11YValue` got a new heap object for this data on every frame. Now the data
+  comes from the same frame pool as the shape that holds it. A tree row and a
+  list box row each allocate one object less per frame: a 200-row tree goes from
+  1022 to 822 allocations per frame, and a list box from 212 to 147.
 
-- **A `Text` takes 44% less memory per frame.** Each `Text` is built anew every
-  frame, and its view carried a text configuration and an accessible name that
-  are also rebuilt every frame. Both now come from the frame pool with the shape
-  that uses them, so a `Text` drops from 576 to 320 bytes. A 200-row tree builds
-  29% fewer bytes per frame (666 KB to 474 KB), and a list box 22% fewer, so the
-  garbage collector runs less often. The same `Text` placed twice in one view
-  now gives each copy its own configuration. A container with a `Title` no
-  longer allocates on each frame; it allocated four objects before.
+- **A `Text` takes 44% less memory per frame (#1097).** Each `Text` is built
+  anew every frame, and its view carried a text configuration and an accessible
+  name that are also rebuilt every frame. Both now come from the frame pool with
+  the shape that uses them, so a `Text` drops from 576 to 320 bytes. A 200-row
+  tree builds 29% fewer bytes per frame (666 KB to 474 KB), and a list box 22%
+  fewer, so the garbage collector runs less often. The same `Text` placed twice
+  in one view now gives each copy its own configuration. A container with a
+  `Title` no longer allocates on each frame; it allocated four objects before.
 
 ### Fixed
 
-- **A table built from `RawData` styles its header with `TextStyleHead`.** The
-  header row of a `RawData`, `TableCfgFromData` or CSV table got the default
-  text style in bold, which won over the table's `TextStyleHead`. So neither the
-  theme's header style nor an app's own reached these tables, while a table
-  built from `TableCellCfg` cells used it. The header now takes `TextStyleHead`
-  like any header cell without a style of its own. Each header cell also stops
-  allocating a style on every frame.
+- **A table built from `RawData` styles its header with `TextStyleHead`
+  (#1097).** The header row of a `RawData`, `TableCfgFromData` or CSV table got
+  the default text style in bold, which won over the table's `TextStyleHead`. So
+  neither the theme's header style nor an app's own reached these tables, while
+  a table built from `TableCellCfg` cells used it. The header now takes
+  `TextStyleHead` like any header cell without a style of its own. Each header
+  cell also stops allocating a style on every frame.
 
 - **The `InputDate` calendar button uses the icon font.** The button drew the 📅
   color emoji, the only color emoji among the control icons. It ignored the
