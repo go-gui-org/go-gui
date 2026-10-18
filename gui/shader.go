@@ -60,7 +60,24 @@ in vec4 p3;
 
 out vec4 _frag_out;
 
+// Built-in inputs (#573): Shadertoy's names and units, unpacked from
+// RenderCmd.ShaderBuiltinsAt (slots in gui/shader_builtins.go). Globals
+// rather than locals of main, so a body that declares its own iTime
+// shadows this one instead of failing to compile.
+uniform mat4 _gg_builtins;
+vec3  iResolution;
+float iTime;
+float iTimeDelta;
+int   iFrame;
+vec4  iMouse;
+
 void main() {
+    iResolution = _gg_builtins[0].xyz;
+    iTime       = _gg_builtins[0].w;
+    iMouse      = _gg_builtins[1];
+    iTimeDelta  = _gg_builtins[2].x;
+    iFrame      = int(_gg_builtins[2].y);
+
     float radius = floor(params / 4096.0) / 4.0;
 
     vec2 uv_to_px = 1.0 / (vec2(fwidth(uv.x), fwidth(uv.y)) + 1e-6);

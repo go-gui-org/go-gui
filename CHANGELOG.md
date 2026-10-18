@@ -20,7 +20,10 @@ and this project adheres to
   Time and frame advance once per displayed frame and read zero in headless
   captures. `iTimeDelta` is capped at 0.25 s, so the first frame after a pause
   does not jump. `iMouse` is not tracked: it reads zero, Shadertoy's value for a
-  canvas never clicked.
+  canvas never clicked. The GLSL wrapper (`BuildGLSLFragment`,
+  `BuildGLSLESFragment`) declares the five names as globals, so a GLSL body can
+  use them as written; a body that declares its own `iTime` hides the built-in
+  and still compiles.
 
 - **`llms.txt` at the repository root gives AI coding tools a map of Go-Gui
   (#1092).** The file follows the llms.txt format. It states the API rules that

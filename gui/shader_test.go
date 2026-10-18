@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -13,6 +14,44 @@ func TestBuildGLSLFragment(t *testing.T) {
 	}
 	if !strings.Contains(result, "#version 330") {
 		t.Error("missing GLSL version")
+	}
+}
+
+// The GLSL wrapper unpacks each built-in from the slot
+// packShaderBuiltins writes it to. Column c of the mat4 holds slots
+// 4c..4c+3, so _gg_builtins[c].x is slot 4c and .w is 4c+3.
+func TestGLSLWrapperBuiltinSlots(t *testing.T) {
+	src := BuildGLSLFragment("vec4 frag_color = vec4(1.0);")
+	if !strings.Contains(src, "uniform mat4 _gg_builtins;") {
+		t.Fatal("wrapper does not declare uniform mat4 _gg_builtins")
+	}
+	for _, tc := range []struct {
+		name  string
+		slot  int // first slot
+		width int // components read
+	}{
+		{"iResolution", shaderBuiltinResX, 3},
+		{"iTime", shaderBuiltinTime, 1},
+		{"iMouse", shaderBuiltinMouse, 4},
+		{"iTimeDelta", shaderBuiltinTimeDelta, 1},
+		{"iFrame", shaderBuiltinFrame, 1},
+	} {
+		re := regexp.MustCompile(`\b` + tc.name +
+			`\s*=\s*(?:int\()?_gg_builtins\[(\d)\](?:\.([xyzw]+))?`)
+		m := re.FindStringSubmatch(src)
+		if m == nil {
+			t.Errorf("%s: no assignment from _gg_builtins", tc.name)
+			continue
+		}
+		col := int(m[1][0] - '0')
+		first, width := 0, 4 // a bare column reads all four
+		if m[2] != "" {
+			first, width = strings.IndexByte("xyzw", m[2][0]), len(m[2])
+		}
+		if got := col*4 + first; got != tc.slot || width != tc.width {
+			t.Errorf("%s reads slot %d width %d, want slot %d width %d",
+				tc.name, got, width, tc.slot, tc.width)
+		}
 	}
 }
 
