@@ -26,6 +26,7 @@ package gui
 
 import (
 	"flag"
+	"os"
 	"testing"
 )
 
@@ -124,10 +125,38 @@ func wrapGoldenRoot(build func(*Window) View) func(*Window) View {
 	}
 }
 
-func TestGolden(t *testing.T) {
+// bridgeGoldenUpdateFlag sets GOGUI_UPDATE_GOLDEN when -update is
+// given. TestMain calls it once, after flag.Parse, so every golden in
+// this package re-records with -update: TestGolden, and also the
+// single-theme callers of checkGoldenFile and checkGoldenText (theme
+// surface, fade, patch, toast anchor). Before #1103 only TestGolden
+// set it, and -update did nothing for the others.
+func bridgeGoldenUpdateFlag() {
 	if *updateGolden {
-		t.Setenv("GOGUI_UPDATE_GOLDEN", "1")
+		_ = os.Setenv("GOGUI_UPDATE_GOLDEN", "1")
 	}
+}
+
+func TestBridgeGoldenUpdateFlag(t *testing.T) {
+	// t.Setenv puts the old value back when the test ends, also the
+	// value bridgeGoldenUpdateFlag writes.
+	t.Setenv("GOGUI_UPDATE_GOLDEN", "")
+	saved := *updateGolden
+	t.Cleanup(func() { *updateGolden = saved })
+
+	*updateGolden = false
+	bridgeGoldenUpdateFlag()
+	if goldenUpdate() {
+		t.Fatal("goldenUpdate() = true without -update")
+	}
+	*updateGolden = true
+	bridgeGoldenUpdateFlag()
+	if !goldenUpdate() {
+		t.Fatal("goldenUpdate() = false with -update")
+	}
+}
+
+func TestGolden(t *testing.T) {
 	for _, c := range goldenCases() {
 		t.Run(c.name, func(t *testing.T) {
 			w := NewTestWindow(t, WindowCfg{

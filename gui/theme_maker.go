@@ -433,7 +433,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 		toastStyle: ToastStyle{
 			Shadow:       cfg.ShadowPopover,
 			maxVisible:   5,
-			Anchor:       ToastBottomRight,
+			Anchor:       resolveToastAnchor(cfg.ToastAnchor),
 			Width:        260,
 			margin:       16,
 			Spacing:      cfg.SpacingMedium,

@@ -63,6 +63,15 @@ and this project adheres to
 
 ### Fixed
 
+- **Apps can set where toasts stack again, with `ThemeCfg.ToastAnchor`
+  (#1103).** #702 made the anchor settable (#698), but #735 made the toast style
+  private, so toasts were always in the bottom-right corner. Set
+  `cfg.ToastAnchor = gui.Some(gui.ToastTopLeft)` and build the theme with
+  `ThemeMaker(cfg)`. The anchor is part of the `Cfg`, so `WithPadding`,
+  `WithBorders` and `AdjustFontSize` keep it. Unset or out of range gives
+  `ToastBottomRight`, the old default. The showcase Toast page has an Anchor
+  choice that moves the toasts to each corner. Reported in #1101 by @bahyqn.
+
 - **A mouse lock now ends only on the release of the button that took it
   (#1099).** The lock's `MouseUp` got every release. A right or middle click
   during a left drag ended the drag while left was still down: a slider,

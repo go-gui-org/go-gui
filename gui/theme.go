@@ -601,6 +601,14 @@ type ThemeCfg struct {
 	// exportaudit:keep — caller-facing config (issue #372)
 	FocusRing *BoxShadow
 
+	// --- Placement: overlays ---
+	// ToastAnchor sets the window corner where toasts stack. Unset or
+	// out of range gives ToastBottomRight. It is an Opt because the
+	// zero value, ToastTopLeft, is a real choice (#698, #1103).
+	//
+	// exportaudit:keep — caller-facing config (#1103).
+	ToastAnchor Opt[ToastAnchor]
+
 	// --- Window chrome and flags ---
 	TitlebarDark bool
 	// exportaudit:keep — documented public API (showcase docs)

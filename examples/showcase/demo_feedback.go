@@ -378,31 +378,99 @@ func demoSkeleton(_ *gui.Window) gui.View {
 	})
 }
 
-func demoToast(_ *gui.Window) gui.View {
+// toastAnchorOptions maps each radio value in the toast demo to its
+// anchor. The order is the order on screen.
+var toastAnchorOptions = []struct {
+	label, value string
+	anchor       gui.ToastAnchor
+}{
+	{"Top left", "top-left", gui.ToastTopLeft},
+	{"Top right", "top-right", gui.ToastTopRight},
+	{"Bottom left", "bottom-left", gui.ToastBottomLeft},
+	{"Bottom right", "bottom-right", gui.ToastBottomRight},
+}
+
+// withToastAnchor returns t built again with anchor a. The anchor is
+// part of ThemeCfg (#1103), so the theme is built from its Cfg; the
+// rest of the theme stays the same.
+func withToastAnchor(t gui.Theme, a gui.ToastAnchor) gui.Theme {
+	cfg := t.Cfg
+	cfg.ToastAnchor = gui.Some(a)
+	return gui.ThemeMaker(cfg)
+}
+
+// toastAnchorValue returns the radio value for the anchor of t. The
+// theme is the only record of the anchor, so a theme change elsewhere
+// in the showcase shows here at once. Unset is bottom right, the gui
+// default.
+func toastAnchorValue(t gui.Theme) string {
+	a := t.Cfg.ToastAnchor.Get(gui.ToastBottomRight)
+	for _, o := range toastAnchorOptions {
+		if o.anchor == a {
+			return o.value
+		}
+	}
+	return "bottom-right"
+}
+
+func demoToast(w *gui.Window) gui.View {
 	t := gui.CurrentTheme()
-	return gui.Row(gui.ContainerCfg{
+	options := make([]gui.RadioOption, 0, len(toastAnchorOptions))
+	for _, o := range toastAnchorOptions {
+		options = append(options, gui.NewRadioOption(o.label, o.value))
+	}
+	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
 		Spacing: gui.SpacingMedium,
 		Padding: gui.NoPadding,
 		Content: []gui.View{
-			gui.Button(gui.ButtonCfg{
-				ID: "btn-toast",
+			gui.Row(gui.ContainerCfg{
+				Sizing:  gui.FillFit,
+				Spacing: gui.SpacingMedium,
+				Padding: gui.NoPadding,
 				Content: []gui.View{
-					gui.Text(gui.TextCfg{Text: "Show Toast", TextStyle: t.TextStyleBody}),
-				},
-				OnClick: func(ctx gui.EventCtx) {
-					ctx.Window.Toast(gui.ToastCfg{Title: "showcase", Body: "Hello from showcase!"})
+					gui.Button(gui.ButtonCfg{
+						ID: "btn-toast",
+						Content: []gui.View{
+							gui.Text(gui.TextCfg{Text: "Show Toast", TextStyle: t.TextStyleBody}),
+						},
+						OnClick: func(ctx gui.EventCtx) {
+							ctx.Window.Toast(gui.ToastCfg{Title: "showcase", Body: "Hello from showcase!"})
+						},
+					}),
+					gui.Button(gui.ButtonCfg{
+						ID: "btn-toast-dismiss",
+						Content: []gui.View{
+							gui.Text(gui.TextCfg{Text: "Dismiss All", TextStyle: t.TextStyleBody}),
+						},
+						OnClick: func(ctx gui.EventCtx) {
+							ctx.Window.ToastDismissAll()
+						},
+					}),
 				},
 			}),
-			gui.Button(gui.ButtonCfg{
-				ID: "btn-toast-dismiss",
-				Content: []gui.View{
-					gui.Text(gui.TextCfg{Text: "Dismiss All", TextStyle: t.TextStyleBody}),
-				},
-				OnClick: func(ctx gui.EventCtx) {
-					ctx.Window.ToastDismissAll()
-				},
+			gui.RadioButtonGroupRow(gui.RadioButtonGroupCfg{
+				ID:       "toast-anchor",
+				Title:    "Anchor",
+				TitleBG:  t.ColorBackground,
+				Value:    toastAnchorValue(w.Theme()),
+				Options:  options,
+				OnSelect: selectToastAnchor,
 			}),
 		},
 	})
+}
+
+// selectToastAnchor moves the toasts to the chosen corner and shows
+// one there, so the change is visible at once.
+func selectToastAnchor(value string, ctx gui.EventCtx) {
+	for _, o := range toastAnchorOptions {
+		if o.value != value {
+			continue
+		}
+		ctx.Window.SetTheme(withToastAnchor(ctx.Window.Theme(), o.anchor))
+		ctx.Window.Toast(gui.ToastCfg{Title: o.label, Body: "New toasts stack in this corner."})
+		ctx.Consume()
+		return
+	}
 }

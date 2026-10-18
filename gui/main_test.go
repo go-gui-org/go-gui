@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"flag"
 	"os"
 	"testing"
 )
@@ -20,5 +21,9 @@ func TestMain(m *testing.M) {
 	// the same thing on a macOS dev box as on Linux CI (#969). Tests of
 	// the macOS bindings switch with setKeyBindingForTest.
 	keyBinding.Store(uint32(KeyBindingControl))
+	// Parse here so -update is known before any test runs. m.Run
+	// parses again, which is safe.
+	flag.Parse()
+	bridgeGoldenUpdateFlag()
 	os.Exit(RunTestsCheckingLeaks(m))
 }

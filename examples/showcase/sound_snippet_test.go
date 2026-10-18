@@ -108,6 +108,16 @@ var snippetEntries = []snippetEntry{
 		},
 	},
 	{
+		sourceFile: "../../gui/toast_anchor_example_test.go",
+		beginMark:  "// doc:snippet-begin toast-anchor",
+		endMark:    "// doc:snippet-end toast-anchor",
+		anchor:     "cfg.ToastAnchor = gui.Some(gui.ToastTopLeft)",
+		heading:    "## Toast position",
+		guides: []string{
+			"../../docs/dx-cheat-sheet.md",
+		},
+	},
+	{
 		sourceFile: "../path_trim/main.go",
 		beginMark:  "// doc:snippet-begin path-trim-draw",
 		endMark:    "// doc:snippet-end path-trim-draw",

@@ -66,6 +66,18 @@ const (
 	ToastBottomRight
 )
 
+// resolveToastAnchor turns ThemeCfg.ToastAnchor into the anchor the
+// toast style uses. Unset gives ToastBottomRight. An out-of-range value
+// (a cast from an int) also gives ToastBottomRight, so view_toast.go
+// never sees an anchor that it has no case for.
+func resolveToastAnchor(o Opt[ToastAnchor]) ToastAnchor {
+	a := o.Get(ToastBottomRight)
+	if a > ToastBottomRight {
+		return ToastBottomRight
+	}
+	return a
+}
+
 // ToastStyle defines toast notification visual properties.
 // exportaudit:keep — reachable from an exported signature
 type ToastStyle struct {

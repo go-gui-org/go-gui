@@ -496,6 +496,22 @@ Nothing is marked handled for you. A callback that acts on an event calls
 in `AmendLayout` and `OnScroll`, and both `EventCtx` methods are nil-safe. See
 `docs/specs/eventctx-callback-refactor.md`.
 
+## Toast position
+
+Toasts stack in the bottom-right corner by default. To move them, set
+`ThemeCfg.ToastAnchor` and build the theme again (#1103):
+
+```go
+func useTopLeftToasts() {
+	cfg := gui.ThemeDark.Cfg
+	cfg.ToastAnchor = gui.Some(gui.ToastTopLeft)
+	gui.SetTheme(gui.ThemeMaker(cfg))
+}
+```
+
+The field is an `Opt` because the zero value, `ToastTopLeft`, is a real choice.
+An unset or out-of-range value gives `ToastBottomRight`.
+
 ## Widget sound
 
 Silent unless the app opts in twice: `theme.Sounds = gui.SoundsDefault()` names

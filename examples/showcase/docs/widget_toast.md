@@ -25,6 +25,14 @@ w.Toast(gui.ToastCfg{
 })
 ```
 
+## Position
+
+Toasts stack in the bottom-right corner by default. The corner is part of the
+theme: set `ThemeCfg.ToastAnchor` to `ToastTopLeft`, `ToastTopRight`,
+`ToastBottomLeft` or `ToastBottomRight`, then build the theme with `ThemeMaker`.
+The Anchor choice in this demo does that. The developer cheat sheet has the
+code, in "Toast position".
+
 ## API
 
 | Method              | Description                   |
