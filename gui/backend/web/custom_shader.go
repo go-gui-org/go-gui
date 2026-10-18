@@ -25,9 +25,10 @@ type customShaderRenderer struct {
 	canvasW  int
 	canvasH  int
 
-	mvpBuf    js.Value
-	tmBuf     js.Value
-	vertexBuf js.Value
+	mvpBuf     js.Value
+	tmBuf      js.Value
+	builtinBuf js.Value
+	vertexBuf  js.Value
 
 	programs texcache.Cache[uint64, *customShaderProgram]
 }
@@ -37,6 +38,10 @@ type customShaderProgram struct {
 	uMVP    js.Value
 	uTM     js.Value
 	uTex    js.Value
+	// uBuiltin is the built-in block (_gg_builtins in
+	// gui.BuildGLSLESFragment). WebGL returns null, not -1, for a
+	// uniform the linker dropped because the body reads no built-in.
+	uBuiltin js.Value
 }
 
 // onRestored runs after the WebGL context comes back, restored or
@@ -61,11 +66,12 @@ func newCustomShaderRenderer(
 	}
 
 	r := &customShaderRenderer{
-		canvas:    canvas,
-		gl:        gl,
-		mvpBuf:    js.Global().Get("Float32Array").New(16),
-		tmBuf:     js.Global().Get("Float32Array").New(16),
-		vertexBuf: js.Global().Get("Float32Array").New(4 * 9),
+		canvas:     canvas,
+		gl:         gl,
+		mvpBuf:     js.Global().Get("Float32Array").New(16),
+		tmBuf:      js.Global().Get("Float32Array").New(16),
+		builtinBuf: js.Global().Get("Float32Array").New(16),
+		vertexBuf:  js.Global().Get("Float32Array").New(4 * 9),
 	}
 	r.resetProgramCache()
 	r.registerContextCallbacks(callbacks, onRestored)
@@ -139,6 +145,13 @@ func (r *customShaderRenderer) draw(
 		r.tmBuf.SetIndex(i, v)
 	}
 	gl.Call("uniformMatrix4fv", p.uTM, false, r.tmBuf)
+
+	if !p.uBuiltin.IsNull() {
+		for i, v := range cmd.ShaderBuiltinsAt(dpiScale) {
+			r.builtinBuf.SetIndex(i, v)
+		}
+		gl.Call("uniformMatrix4fv", p.uBuiltin, false, r.builtinBuf)
+	}
 
 	gl.Call("activeTexture", gl.Get("TEXTURE0"))
 	gl.Call("bindTexture", gl.Get("TEXTURE_2D"), r.whiteTex)
@@ -225,6 +238,8 @@ func (r *customShaderRenderer) buildProgram(
 		uMVP:    gl.Call("getUniformLocation", program, "mvp"),
 		uTM:     gl.Call("getUniformLocation", program, "tm"),
 		uTex:    gl.Call("getUniformLocation", program, "tex"),
+		uBuiltin: gl.Call("getUniformLocation", program,
+			"_gg_builtins"),
 	}, nil
 }
 
