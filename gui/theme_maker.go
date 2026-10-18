@@ -792,3 +792,7 @@ func ThemeMaker(cfg ThemeCfg) Theme {
 
 	return theme
 }
+
+func SetThemeToastAnchor(theme *Theme, anchor ToastAnchor) {
+	theme.toastStyle.Anchor = anchor
+}
