@@ -171,15 +171,19 @@ func MapModifiers(state uint16) gui.Modifier {
 }
 
 // MapButton maps an X11 button detail (1=left, 2=middle, 3=right) to a
-// gui.MouseButton. Returns MouseLeft for unknown buttons.
+// gui.MouseButton. Returns MouseInvalid for other buttons (8 and 9 are
+// back and forward): as MouseLeft, their press set the left button held
+// with no release to clear it, since only buttons 1-3 send one (#1098).
 func MapButton(detail byte) gui.MouseButton {
 	switch detail {
+	case 1:
+		return gui.MouseLeft
 	case 2:
 		return gui.MouseMiddle
 	case 3:
 		return gui.MouseRight
 	default:
-		return gui.MouseLeft
+		return gui.MouseInvalid
 	}
 }
 

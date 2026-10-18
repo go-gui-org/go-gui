@@ -312,6 +312,99 @@ func TestInteractionStatePressed(t *testing.T) {
 	}
 }
 
+// Issue #1098: a second button pressed and released during a left
+// press must not end the left press. The window once kept one held
+// button, so the right press overwrote it and the right release
+// cleared it and the press target while left was still down.
+func TestInteractionStateSecondButtonKeepsLeftPress(t *testing.T) {
+	w := newInteractionWindow(t, interactionOpts{})
+	x, y := hoverOver(t, w, "panel:a")
+
+	pressAt(w, MouseLeft, x, y)
+	pressAt(w, MouseRight, x, y)
+	if got := w.heldMouseButton(); got != MouseLeft {
+		t.Fatalf("held button with left and right down = %d, want left", got)
+	}
+	releaseAt(w, MouseRight, x, y)
+	if got := w.heldMouseButton(); got != MouseLeft {
+		t.Fatalf("held button after right release = %d, want left", got)
+	}
+	if !w.IsPressed("panel:a") {
+		t.Fatal("right release ended the left press")
+	}
+
+	releaseAt(w, MouseLeft, x, y)
+	if got := w.heldMouseButton(); got != MouseInvalid {
+		t.Fatalf("held button after both released = %d, want none", got)
+	}
+	if w.IsPressed("panel:a") {
+		t.Fatal("still pressed after left release")
+	}
+}
+
+// MouseInvalid has no bit, so marking it pressed or released leaves a
+// held left press alone, and capture loss still clears every held
+// button (#1098). EventFn drops MouseInvalid before it gets here
+// (TestUnknownMouseButtonIsDropped), so the helpers are called
+// directly: synthMouse and dragPanOnMouseUp reach them without EventFn.
+func TestInteractionStateInvalidButtonAndCancel(t *testing.T) {
+	w := newInteractionWindow(t, interactionOpts{})
+	x, y := hoverOver(t, w, "panel:a")
+
+	pressAt(w, MouseLeft, x, y)
+	w.pressMouseButton(MouseInvalid)
+	w.releaseMouseButton(MouseInvalid)
+	if got := w.heldMouseButton(); got != MouseLeft {
+		t.Fatalf("held button after extra button = %d, want left", got)
+	}
+	if !w.IsPressed("panel:a") {
+		t.Fatal("extra button release ended the left press")
+	}
+
+	pressAt(w, MouseRight, x, y)
+	w.MouseCancel()
+	if got := w.heldMouseButton(); got != MouseInvalid {
+		t.Fatalf("held button after cancel = %d, want none", got)
+	}
+	if w.IsPressed("panel:a") {
+		t.Fatal("still pressed after cancel")
+	}
+}
+
+// A press or release of a button gui has no name for is dropped at
+// EventFn: it fires no OnClick, takes no focus, and does not end a
+// mouse lock held by a left drag (#1098).
+func TestUnknownMouseButtonIsDropped(t *testing.T) {
+	clicks := 0
+	w := NewTestWindow(t, WindowCfg{})
+	w.TestRender(func(*Window) View {
+		return Column(ContainerCfg{Sizing: FillFill, Content: []View{
+			Button(ButtonCfg{ID: "b", Label: "Go", OnClick: func(ctx EventCtx) {
+				clicks++
+				ctx.Consume()
+			}}),
+		}})
+	})
+	x, y := hoverOver(t, w, "b")
+
+	pressAt(w, MouseInvalid, x, y)
+	releaseAt(w, MouseInvalid, x, y)
+	if clicks != 0 {
+		t.Fatalf("unknown button fired OnClick %d times", clicks)
+	}
+	if w.IsFocus("b") {
+		t.Fatal("unknown button press took focus")
+	}
+
+	ups := 0
+	w.MouseLock(MouseLockCfg{MouseUp: func(EventCtx) { ups++ }})
+	releaseAt(w, MouseInvalid, x, y)
+	if ups != 0 || !w.mouseIsLocked() {
+		t.Fatalf("unknown button release reached the lock: ups=%d", ups)
+	}
+	w.MouseUnlock()
+}
+
 // 2.8: a press persists while the pointer moves off, with no lock.
 func TestInteractionStatePressPersistsOffShape(t *testing.T) {
 	w := newInteractionWindow(t, interactionOpts{})

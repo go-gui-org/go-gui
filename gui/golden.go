@@ -164,8 +164,8 @@ func (w *Window) TestGolden(tb GoldenTB, cfg GoldenCfg) {
 	defer w.setVirtualNow(nil)
 	prevTheme := w.Theme()
 	defer w.pinTheme(prevTheme)
-	prevHeld := w.viewState.mouseButtonHeld
-	defer func() { w.viewState.mouseButtonHeld = prevHeld }()
+	prevHeld := w.viewState.mouseButtonsHeld
+	defer func() { w.viewState.mouseButtonsHeld = prevHeld }()
 	prevKeyPress := w.viewState.keyPressTargetID
 	defer func() { w.viewState.keyPressTargetID = prevKeyPress }()
 	prevMouseX, prevMouseY := w.viewState.mousePosX, w.viewState.mousePosY
@@ -210,7 +210,7 @@ func goldenFrame(
 		w.pointerAt(cfg.HoverX, cfg.HoverY)
 	}
 	if cfg.MousePressed {
-		w.viewState.mouseButtonHeld = MouseLeft
+		w.pressMouseButton(MouseLeft)
 	}
 	// Through FrameFn rather than TestRender so the golden covers
 	// what the app actually runs — including installTheme, which is

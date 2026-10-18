@@ -249,6 +249,12 @@ type platformState struct {
 	// WM_CAPTURECHANGED can tell our own ReleaseCapture from a
 	// revocation. See the wmCaptureChanged case in events_win32.go.
 	capturing bool
+	// buttonsDown has one bit per mouse button held over this window.
+	// Capture is taken on the first press and given up only when the
+	// last button is released: a right release during a left drag must
+	// keep capture, or the left release outside the window never
+	// arrives and the press stays held in gui (#1098).
+	buttonsDown uint8
 	// trackingLeave is true while a TrackMouseEvent(TME_LEAVE) request
 	// is pending. WM_MOUSELEAVE consumes it.
 	trackingLeave bool

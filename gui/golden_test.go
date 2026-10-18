@@ -102,7 +102,7 @@ type goldenCase struct {
 	// A bool rather than a MouseButton because MouseLeft is 0
 	// (gui/event.go:64): a MouseButton field would mark every case that
 	// did not mention it as pressed. NewWindow dodges the same trap by
-	// seeding mouseButtonHeld to MouseInvalid (gui/window_cfg.go:169).
+	// keeping held buttons as a bitmask (mouseButtonsHeld).
 	mousePressed bool
 
 	// hoverInert says the pointer is expected to land on nothing, which

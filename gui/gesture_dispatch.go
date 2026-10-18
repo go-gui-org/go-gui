@@ -229,7 +229,7 @@ func synthMouse(
 	}
 	switch typ {
 	case EventMouseDown:
-		w.viewState.mouseButtonHeld = btn
+		w.pressMouseButton(btn)
 		w.pointerAt(x, y)
 		w.recordPressTarget(&w.scratch.gestureEvent)
 		// Touch tap on non-focusable space blurs, the same rule
@@ -239,8 +239,7 @@ func synthMouse(
 		w.pointerAt(x, y)
 		mouseMoveHandler(layout, &w.scratch.gestureEvent, w)
 	case EventMouseUp:
-		w.viewState.mouseButtonHeld = MouseInvalid
-		w.viewState.pressTargetID = ""
+		w.releaseMouseButton(btn)
 		mouseUpHandler(layout, &w.scratch.gestureEvent, w)
 	}
 }

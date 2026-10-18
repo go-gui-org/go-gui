@@ -168,7 +168,7 @@ func layoutHoverDepth(layout *Layout, w *Window, depth int) bool {
 		MouseX:      w.viewState.mousePosX,
 		MouseY:      w.viewState.mousePosY,
 		Type:        EventMouseMove,
-		MouseButton: w.viewState.mouseButtonHeld,
+		MouseButton: w.heldMouseButton(),
 	}
 	shape.events.OnHover(EventCtx{layout, &w.scratch.hoverEvent, w})
 	return true

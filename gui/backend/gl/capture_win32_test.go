@@ -108,3 +108,42 @@ func TestMouseButtonTracksCaptureOwnership(t *testing.T) {
 			c.cancels)
 	}
 }
+
+// A second button released during a drag must keep capture: given up
+// early, the first button's release outside the window never arrives
+// and gui keeps the press held (#1098).
+func TestMouseButtonKeepsCaptureUntilLastRelease(t *testing.T) {
+	b, c := newCaptureTestBackend(t)
+
+	b.mouseButton(gui.EventMouseDown, gui.MouseLeft, 0, true)
+	b.mouseButton(gui.EventMouseDown, gui.MouseRight, 0, true)
+	b.mouseButton(gui.EventMouseUp, gui.MouseRight, 0, false)
+	if !b.plat.capturing {
+		t.Fatal("right release gave up capture while left is down")
+	}
+	b.mouseButton(gui.EventMouseUp, gui.MouseLeft, 0, false)
+	if b.plat.capturing {
+		t.Error("last release did not give up capture")
+	}
+	b.handleMessage(wmCaptureChanged, 0, 0)
+	if c.cancels != 0 {
+		t.Errorf("release-driven WM_CAPTURECHANGED cancelled: cancels = %d",
+			c.cancels)
+	}
+}
+
+// A revoked capture drops the held buttons, so the next press takes
+// capture again instead of finding a stale bit.
+func TestCaptureRevokedClearsHeldButtons(t *testing.T) {
+	b, _ := newCaptureTestBackend(t)
+
+	b.mouseButton(gui.EventMouseDown, gui.MouseLeft, 0, true)
+	b.handleMessage(wmCaptureChanged, 0, 0)
+	if b.plat.buttonsDown != 0 {
+		t.Fatalf("buttonsDown = %b after revocation, want 0", b.plat.buttonsDown)
+	}
+	b.mouseButton(gui.EventMouseDown, gui.MouseLeft, 0, true)
+	if !b.plat.capturing {
+		t.Error("press after revocation did not take capture")
+	}
+}

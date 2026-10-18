@@ -518,8 +518,7 @@ func (w *Window) MouseCancel() {
 	// Capture loss means no mouse-up will ever arrive, so the held
 	// button must be cleared here or the next hover pass would keep
 	// reporting a button nobody is holding.
-	w.viewState.mouseButtonHeld = MouseInvalid
-	w.viewState.pressTargetID = ""
+	w.clearHeldMouseButtons()
 	if !w.mouseIsLocked() {
 		return
 	}
