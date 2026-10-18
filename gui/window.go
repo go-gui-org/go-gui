@@ -391,7 +391,11 @@ type MouseLockCfg struct {
 	MouseDown func(EventCtx)
 	mouseDown func(EventCtx)
 	MouseMove func(EventCtx)
-	MouseUp   func(EventCtx)
+	// MouseUp gets the release of the button whose press took the
+	// lock. While that button is down, other buttons' releases do not
+	// reach it, and their presses reach no widget (#1099). A lock
+	// taken with no button down gets every release.
+	MouseUp func(EventCtx)
 
 	// Cancel unwinds a drag that ended without a button release —
 	// the platform revoked mouse capture (a system modal, a lock
@@ -478,6 +482,21 @@ func (cfg MouseLockCfg) lockedMouseDown() func(EventCtx) {
 // handlers in MouseLockCfg.
 func (w *Window) MouseLock(cfg MouseLockCfg) {
 	w.viewState.mouseLock = cfg
+	// The lock belongs to the press that took it (#1099): the press
+	// being dispatched, so a right press that starts a drag with left
+	// down owns it. A lock taken later, past a drag threshold, takes
+	// the lowest held button: left wins, as in heldMouseButton. With
+	// no button held it has no owner. A lock replaced from a locked
+	// callback keeps its owner, as it keeps its frame below. A replayed
+	// press (a drag-scroll tap) owns its lock even though its button is
+	// already up: that owner is stale, so its release still gets in.
+	if !w.viewState.lockCallback || w.viewState.mouseLockOwner == 0 {
+		owner := w.viewState.pressDispatching
+		if owner == 0 {
+			owner = mouseButtonBit(w.heldMouseButton())
+		}
+		w.viewState.mouseLockOwner = owner
+	}
 	// A lock taken while a press is dispatched inside view transforms
 	// gets its events in the frame the press was in: the inverse maps
 	// the walk applied, outer one first.
@@ -503,6 +522,7 @@ func (w *Window) MouseLock(cfg MouseLockCfg) {
 func (w *Window) MouseUnlock() {
 	w.viewState.mouseLock = MouseLockCfg{}
 	w.viewState.mouseLockXfOn = false
+	w.viewState.mouseLockOwner = 0
 }
 
 // MouseCancel aborts an in-flight drag: it unlocks the mouse and

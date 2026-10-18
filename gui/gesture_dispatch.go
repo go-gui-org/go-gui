@@ -231,6 +231,10 @@ func synthMouse(
 	case EventMouseDown:
 		w.pressMouseButton(btn)
 		w.pointerAt(x, y)
+		if w.lockDropsPress(&w.scratch.gestureEvent) {
+			return
+		}
+		defer w.beginPressDispatch(btn)()
 		w.recordPressTarget(&w.scratch.gestureEvent)
 		// Touch tap on non-focusable space blurs, the same rule
 		// handleMouseDownEvent applies to backend presses.
