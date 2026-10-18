@@ -1,7 +1,6 @@
 package gui
 
 import (
-	"runtime"
 	"strings"
 	"testing"
 )
@@ -40,18 +39,24 @@ func TestShaderHashNil(t *testing.T) {
 	}
 }
 
-func TestShaderHashUsesPlatformSource(t *testing.T) {
-	base := &Shader{Metal: "m", GLSL: "g"}
-	h := ShaderHash(base)
-	// A difference confined to the unused platform's body
-	// shares the cache entry by design.
-	unused := &Shader{Metal: "m", GLSL: "g"}
-	if runtime.GOOS == "darwin" {
-		unused.GLSL = "other"
-	} else {
-		unused.Metal = "other"
+func TestShaderHashCoversBothBodies(t *testing.T) {
+	h := ShaderHash(&Shader{Metal: "m", GLSL: "g"})
+	// A difference in either body changes the key on every
+	// platform. iOS reports GOOS "ios", compiles Metal, and
+	// used to key on the GLSL body.
+	if ShaderHash(&Shader{Metal: "other", GLSL: "g"}) == h {
+		t.Error("Metal body should change the hash")
 	}
-	if ShaderHash(unused) != h {
-		t.Error("unused platform body should not change the hash")
+	if ShaderHash(&Shader{Metal: "m", GLSL: "other"}) == h {
+		t.Error("GLSL body should change the hash")
+	}
+}
+
+func TestShaderHashSeparatesBodies(t *testing.T) {
+	// Without a separator both hash the concatenation "abc".
+	a := ShaderHash(&Shader{Metal: "ab", GLSL: "c"})
+	b := ShaderHash(&Shader{Metal: "a", GLSL: "bc"})
+	if a == b {
+		t.Error("moving text across the body boundary should change the hash")
 	}
 }

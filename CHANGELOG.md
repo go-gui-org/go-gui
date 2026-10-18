@@ -63,6 +63,14 @@ and this project adheres to
 
 ### Fixed
 
+- **`ShaderHash` keys on both shader bodies (#573).** The custom-shader cache
+  key hashed only the Metal body on macOS and only the GLSL body everywhere
+  else. iOS reports `GOOS` `ios`, so its Metal backend keyed on the GLSL body:
+  two shaders with the same GLSL and different Metal shared one compiled
+  pipeline, and every Metal-only shader shared the key of an empty string. The
+  key now hashes the Metal body, a separator and the GLSL body, so a change to
+  either body gives a new key on every backend.
+
 - **Apps can set where toasts stack again, with `ThemeCfg.ToastAnchor`
   (#1103).** #702 made the anchor settable (#698), but #735 made the toast style
   private, so toasts were always in the bottom-right corner. Set

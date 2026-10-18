@@ -1,7 +1,6 @@
 package gui
 
 import (
-	"runtime"
 	"strings"
 )
 
@@ -92,18 +91,17 @@ void main() {
 }
 
 // ShaderHash computes a cache key from the shader source.
-// Uses Metal source on macOS, GLSL otherwise, so shaders that
-// differ only in the unused platform's body share a cache entry
-// there by design. Params are uniforms, not source, and are not
+// Both bodies are hashed, with a NUL separator between them, so
+// two shaders that differ in either body get distinct keys on
+// every platform. Params are uniforms, not source, and are not
 // part of the key. A nil shader hashes to 0.
 func ShaderHash(s *Shader) uint64 {
 	if s == nil {
 		return 0
 	}
-	if runtime.GOOS == "darwin" {
-		return hashString(s.Metal)
-	}
-	return hashString(s.GLSL)
+	h := Fnv64Str(Fnv64Offset, s.Metal)
+	h = Fnv64Byte(h, 0)
+	return Fnv64Str(h, s.GLSL)
 }
 
 // hashString computes a 64-bit FNV-1a hash.
