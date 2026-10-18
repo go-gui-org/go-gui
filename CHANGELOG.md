@@ -28,6 +28,15 @@ and this project adheres to
   body. Every GPU backend uploads the block on every custom-shader draw: desktop
   GL (Linux, Windows), WebGL2, Android, macOS and iOS.
 
+- **`Shader.Animate` keeps an animated shader moving without a view rebuild
+  (#573).** An animated shader used to need a repeating `Animate` with an empty
+  callback, which rebuilt the view and the layout on every frame, and an app had
+  to remove it again when the shader left the screen. With
+  `Shader.Animate: true` the window keeps frames coming while such a shader is
+  drawn, and each frame rebuilds only the render commands, where `iTime` is
+  filled in. Frames stop in the first frame that draws no `Animate` shader, so
+  an idle window stays idle. Headless windows start no frames.
+
 - **`llms.txt` at the repository root gives AI coding tools a map of Go-Gui
   (#1092).** The file follows the llms.txt format. It states the API rules that
   compile when broken but give wrong behavior: `Cfg` structs, `ctx.Consume()`,

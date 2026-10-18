@@ -501,7 +501,9 @@ func (w *Window) buildRenderers(bgColor Color, clip drawClip) {
 	// alone cannot say whether a widget draws a caret (issue #403).
 	// One walk serves both gates.
 	w.syncIMECaretState()
+	w.shaderAnimateDrawn = false
 	renderLayout(&w.layout, bgColor, clip, w)
+	w.syncShaderAnimation()
 	if inspectorSupported && w.inspectorEnabled {
 		inspectorInjectWireframe(w)
 	}

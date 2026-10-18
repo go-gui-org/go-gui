@@ -22,6 +22,12 @@ type Shader struct {
 	Metal  string    // MSL fragment body
 	GLSL   string    // GLSL fragment body. Keep syntax compatible with desktop GL 3.3 and WebGL2 GLSL ES 3.00.
 	Params []float32 // up to 16 custom floats
+	// Animate keeps frames coming while a container with this shader
+	// is drawn, so iTime advances without app code. Each
+	// frame rebuilds only the render commands: no view function runs
+	// and nothing is re-arranged. Frames stop once no Animate shader
+	// is drawn. Leave it false for a shader that does not change.
+	Animate bool
 }
 
 // BuildGLSLFragment wraps a user-supplied GLSL body with the

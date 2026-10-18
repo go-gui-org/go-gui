@@ -245,3 +245,196 @@ func TestShaderBuiltinsMouseStaysZero(t *testing.T) {
 		t.Errorf("iMouse during a drag = %v, want zero", got)
 	}
 }
+
+// --- Shader.Animate ---------------------------------------------------
+
+// animatedBox is a shader container whose shader sets Animate.
+func animatedBox(id string, animate bool) View {
+	return Column(ContainerCfg{
+		ID: id, Width: sbW, Height: sbH, Sizing: FixedFixed,
+		Shader: &Shader{Metal: "m", GLSL: "g", Animate: animate},
+	})
+}
+
+func TestShaderAnimationTicksRenderOnly(t *testing.T) {
+	var a shaderAnimation
+	if a.RefreshKind() != AnimationRefreshRenderOnly {
+		t.Errorf("RefreshKind = %v, want AnimationRefreshRenderOnly", a.RefreshKind())
+	}
+	if !a.Update(nil, 0.016, nil) || a.IsStopped() {
+		t.Error("the shader animation should ask for a frame on every tick and never stop")
+	}
+}
+
+// The animation runs while an Animate shader is drawn and stops in the
+// first frame that draws none.
+func TestShaderAnimateStartsAndStops(t *testing.T) {
+	show := true
+	w := shaderWindow(t, shaderRoot(func() []View {
+		if show {
+			return []View{animatedBox("sh", true)}
+		}
+		return []View{Text(TextCfg{Text: "no shader"})}
+	}))
+	if !w.HasAnimation(shaderAnimationID) {
+		t.Fatal("drawing an Animate shader should start the shader animation")
+	}
+	show = false
+	shaderFrameStep(w)
+	if w.HasAnimation(shaderAnimationID) {
+		t.Error("a frame without an Animate shader should stop the shader animation")
+	}
+	show = true
+	shaderFrameStep(w)
+	if !w.HasAnimation(shaderAnimationID) {
+		t.Error("an Animate shader drawn again should restart the animation")
+	}
+}
+
+func TestShaderAnimateOffByDefault(t *testing.T) {
+	w := shaderWindow(t, shaderRoot(func() []View {
+		return []View{animatedBox("sh", false)}
+	}))
+	if w.HasAnimation(shaderAnimationID) {
+		t.Error("a shader without Animate should not start the shader animation")
+	}
+}
+
+// A command rejected by the render guard is not a drawn shader. It
+// must not start the shader clock or a render-only loop that can never
+// produce a custom-shader draw.
+func TestShaderAnimateRejectedStartsNothing(t *testing.T) {
+	tests := []struct {
+		name   string
+		width  float32
+		shader *Shader
+	}{
+		{
+			name:  "empty bodies",
+			width: sbW,
+			shader: &Shader{
+				Animate: true,
+			},
+		},
+		{
+			name:  "zero width",
+			width: 0,
+			shader: &Shader{
+				Metal: "m", GLSL: "g", Animate: true,
+			},
+		},
+		{
+			name:  "non-finite params",
+			width: sbW,
+			shader: &Shader{
+				Metal: "m", GLSL: "g", Animate: true,
+				Params: []float32{float32(math.NaN())},
+			},
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			w := shaderWindow(t, shaderRoot(func() []View {
+				return []View{Column(ContainerCfg{
+					ID: "sh", Width: tc.width, Height: sbH,
+					Sizing: FixedFixed, Shader: tc.shader,
+				})}
+			}))
+			if w.HasAnimation(shaderAnimationID) {
+				t.Error("a rejected Animate shader started the animation")
+			}
+			if w.shaderBuiltinState.started {
+				t.Error("a rejected shader started the shader clock")
+			}
+			for _, r := range w.renderers {
+				if r.Kind == RenderCustomShader {
+					t.Error("render guard kept the rejected shader command")
+				}
+			}
+		})
+	}
+}
+
+// If a previously valid animated shader becomes invalid, the rejected
+// draw must retire the animation in that same frame rather than leave
+// an idle window rendering forever.
+func TestShaderAnimateRejectedStopsRunningAnimation(t *testing.T) {
+	valid := true
+	w := shaderWindow(t, shaderRoot(func() []View {
+		shader := &Shader{Animate: true}
+		if valid {
+			shader.Metal, shader.GLSL = "m", "g"
+		}
+		return []View{Column(ContainerCfg{
+			ID: "sh", Width: sbW, Height: sbH,
+			Sizing: FixedFixed, Shader: shader,
+		})}
+	}))
+	if !w.HasAnimation(shaderAnimationID) {
+		t.Fatal("the valid Animate shader did not start the animation")
+	}
+
+	valid = false
+	shaderFrameStep(w)
+	if w.HasAnimation(shaderAnimationID) {
+		t.Error("a rejected shader left the animation running")
+	}
+	for _, r := range w.renderers {
+		if r.Kind == RenderCustomShader {
+			t.Error("render guard kept the rejected shader command")
+		}
+	}
+}
+
+// A headless window reads shader time as zero; frames would show
+// nothing new, so none are started.
+func TestShaderAnimateHeadlessStartsNothing(t *testing.T) {
+	w := NewTestWindow(t, WindowCfg{Width: 400, Height: 300})
+	w.SetHeadlessRender(true)
+	w.SetView(shaderRoot(func() []View { return []View{animatedBox("sh", true)} }))
+	shaderFrameStep(w)
+	if w.HasAnimation(shaderAnimationID) {
+		t.Error("a headless window should not start the shader animation")
+	}
+}
+
+// Removing the animation by ID from outside does not leave a drawn
+// Animate shader frozen: the next frame registers it again.
+func TestShaderAnimateRestoredAfterRemove(t *testing.T) {
+	w := shaderWindow(t, shaderRoot(func() []View {
+		return []View{animatedBox("sh", true)}
+	}))
+	w.AnimationRemove(shaderAnimationID)
+	shaderFrameStep(w)
+	if !w.HasAnimation(shaderAnimationID) {
+		t.Error("the shader animation should be registered again")
+	}
+}
+
+// What the animation asks for each tick, a render-only refresh,
+// advances the built-ins without running the view function: animated
+// shaders cost no view rebuild and no layout pass (issue #573, D3).
+func TestShaderAnimateFramesSkipTheView(t *testing.T) {
+	views := 0
+	w := shaderWindow(t, func(*Window) View {
+		views++
+		return Column(ContainerCfg{
+			Sizing: FillFill, Padding: PaddingNone,
+			Content: []View{animatedBox("sh", true)},
+		})
+	})
+	frameOf := func() float32 {
+		return mustShape(t, w, "sh").fx.shaderBuiltins[shaderBuiltinFrame]
+	}
+	start, viewsBefore := frameOf(), views
+	for range 3 {
+		commandMarkRenderOnlyRefresh(w)
+		w.FrameFn()
+	}
+	if views != viewsBefore {
+		t.Errorf("view function ran %d more times, want 0", views-viewsBefore)
+	}
+	if got := frameOf(); got != start+3 {
+		t.Errorf("iFrame = %v after 3 render-only frames, want %v", got, start+3)
+	}
+}

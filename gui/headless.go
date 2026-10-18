@@ -10,7 +10,9 @@ package gui
 
 // SetHeadlessRender marks this window as rendering headlessly, which
 // suppresses visuals whose appearance depends on wall-clock time — today
-// the blinking text caret. Set it before the frame that is captured, so
+// the blinking text caret and the custom-shader clock (iTime,
+// iTimeDelta and iFrame read zero, and Shader.Animate starts no
+// frames). Set it before the frame that is captured, so
 // repeated captures of the same window state produce the same pixels.
 //
 // gui/backend/soft sets this for every window it renders; call it directly

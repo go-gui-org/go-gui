@@ -282,8 +282,10 @@ func renderContainer(shape *Shape, _ Color, clip drawClip, w *Window) {
 	// gets one (issue #589).
 	switch {
 	case hasFX && fx.Shader != nil:
-		w.packShaderShape(shape)
-		emitRenderer(RenderCmd{
+		// Append first, then populate the pointed-to built-in block. If
+		// validation rejects the command, the shader was not drawn and
+		// must neither start its clock nor keep the frame loop running.
+		if emitRendererIfValid(RenderCmd{
 			Kind:   RenderCustomShader,
 			X:      shape.X,
 			Y:      shape.Y,
@@ -298,7 +300,9 @@ func renderContainer(shape *Shape, _ Color, clip drawClip, w *Window) {
 				1.0, fillDims(shape)),
 			Shader:         fx.Shader,
 			shaderBuiltins: &fx.shaderBuiltins,
-		}, w)
+		}, w) {
+			w.packShaderShape(shape)
+		}
 	case hasFX && fx.Gradient != nil:
 		emitRenderer(RenderCmd{
 			Kind:   RenderGradient,

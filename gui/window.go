@@ -242,6 +242,11 @@ type Window struct {
 	// frame), advanced once per frame that draws a shader. See
 	// shader_builtins.go.
 	shaderBuiltinState shaderFrameState
+	// shaderAnimateDrawn reports that the render pass in progress drew
+	// a Shader.Animate shader; shaderAnimationOn that the window's
+	// shader animation is registered. See syncShaderAnimation.
+	shaderAnimateDrawn bool
+	shaderAnimationOn  bool
 
 	// View-pass counter — incremented per full layout generation
 	// (updateLocked). A text animation stamps it on its state so the

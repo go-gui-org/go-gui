@@ -82,6 +82,9 @@ func (w *Window) shaderFrame() *shaderFrameState {
 // packShaderShape writes the built-in block for the shader shape into
 // shape.fx.shaderBuiltins.
 func (w *Window) packShaderShape(shape *Shape) {
+	if shape.fx.Shader.Animate {
+		w.shaderAnimateDrawn = true
+	}
 	f := w.shaderFrame()
 	packShaderBuiltins(&shape.fx.shaderBuiltins, f,
 		shape.Width, shape.Height, w.headlessRender)
@@ -102,6 +105,55 @@ func packShaderBuiltins(dst *[16]float32, f *shaderFrameState,
 		dst[shaderBuiltinTimeDelta] = f.delta
 		dst[shaderBuiltinFrame] = float32(f.frame)
 	}
+}
+
+// shaderAnimationID names the window's animation for Shader.Animate.
+const shaderAnimationID = "gui.shader.animate"
+
+// shaderAnimation keeps frames coming while a Shader.Animate shader
+// is drawn. Every tick asks for a render-only refresh: the built-ins
+// are packed while the render commands are built, so nothing earlier
+// in the frame needs to run. It never stops itself;
+// syncShaderAnimation removes it.
+type shaderAnimation struct{}
+
+func (shaderAnimation) ID() string { return shaderAnimationID }
+
+func (shaderAnimation) RefreshKind() AnimationRefreshKind {
+	return AnimationRefreshRenderOnly
+}
+
+func (shaderAnimation) IsStopped() bool { return false }
+
+func (shaderAnimation) SetStart(time.Time) {}
+
+func (shaderAnimation) Update(*Window, float32, *AnimationCommands) bool {
+	return true
+}
+
+// syncShaderAnimation runs after each render pass. It registers the
+// shader animation when the pass drew a Shader.Animate shader and
+// removes it when the pass drew none, so frames stop with the last
+// such shader. A headless window, whose shaders read time as zero,
+// never starts it. Runs under w.mu and takes animMu, the order
+// applyBlinkCursor uses; a window that never animates a shader skips
+// the lock.
+func (w *Window) syncShaderAnimation() {
+	want := w.shaderAnimateDrawn && !w.headlessRender
+	if !want && !w.shaderAnimationOn {
+		return
+	}
+	w.animMu.Lock()
+	defer w.animMu.Unlock()
+	_, present := w.animations[shaderAnimationID]
+	switch {
+	case want && !present:
+		// Also restores an animation removed by ID from outside.
+		w.animationAddLocked(shaderAnimation{})
+	case !want && present:
+		delete(w.animations, shaderAnimationID)
+	}
+	w.shaderAnimationOn = want
 }
 
 // ShaderBuiltinsAt returns the built-in uniform block of a
