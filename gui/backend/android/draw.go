@@ -558,6 +558,8 @@ func (b *Backend) drawCustomShader(r *gui.RenderCmd) {
 		tm[i] = r.Shader.Params[i]
 	}
 	C.glesSetTM((*C.float)(&tm[0]))
+	builtins := r.ShaderBuiltinsAt(s)
+	C.glesSetBuiltins((*C.float)(&builtins[0]))
 
 	verts := gpu.BuildQuad(r.X*s, r.Y*s, r.W*s, r.H*s,
 		r.Color, r.Radius*s, 0)

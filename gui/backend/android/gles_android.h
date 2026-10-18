@@ -34,6 +34,7 @@ void glesSetPipeline(int id);
 void glesSetMVP(const float* m);
 void glesSetTM(const float* m);
 void glesSetTM2(const float* m);
+void glesSetBuiltins(const float* m);
 
 // Scissor
 void glesSetScissor(int x, int y, int w, int h, int viewH);

@@ -783,6 +783,9 @@ void glesSetPipeline(int id) {
 #define MAX_CUSTOM_PIPELINES 32
 static GLint _customMVPLocs[MAX_CUSTOM_PIPELINES];
 static GLint _customTMLocs[MAX_CUSTOM_PIPELINES];
+// _gg_builtins of each custom program (gui.BuildGLSLESFragment), -1 when its
+// body reads no built-in and the linker dropped the uniform.
+static GLint _customBuiltinLocs[MAX_CUSTOM_PIPELINES];
 
 // customPipelineIndex returns the bound custom pipeline index, or -1 when a
 // built-in pipeline or nothing is bound.
@@ -793,8 +796,8 @@ static int customPipelineIndex(void) {
 }
 
 // setMat4Uniform writes m to the bound program's uniform. builtinLocs is indexed by
-// PIPE_*, customLocs by custom pipeline index. A NULL customLocs means custom
-// programs do not declare this uniform, so the write is skipped for them.
+// PIPE_*, customLocs by custom pipeline index. A NULL table means that kind of
+// program does not declare this uniform, so the write is skipped for it.
 static void setMat4Uniform(const GLint* builtinLocs, const GLint* customLocs,
                            const float* m) {
     if (!m) return; // A NULL matrix would crash inside the driver.
@@ -803,7 +806,7 @@ static void setMat4Uniform(const GLint* builtinLocs, const GLint* customLocs,
     if (custom >= 0) {
         // Without this branch a custom shader kept a zero mvp and drew nothing.
         if (customLocs) loc = customLocs[custom];
-    } else if (_curPipeline >= 0 && _curPipeline < PIPE_COUNT) {
+    } else if (builtinLocs && _curPipeline >= 0 && _curPipeline < PIPE_COUNT) {
         loc = builtinLocs[_curPipeline];
     }
     if (loc >= 0) {
@@ -823,6 +826,11 @@ void glesSetTM(const float* m) {
 void glesSetTM2(const float* m) {
     // Custom programs declare no tm2 uniform.
     setMat4Uniform(_tm2Locs, NULL, m);
+}
+
+void glesSetBuiltins(const float* m) {
+    // The custom-shader built-in block (#573); only custom programs declare it.
+    setMat4Uniform(NULL, _customBuiltinLocs, m);
 }
 
 void glesSetScissor(int x, int y, int w, int h, int viewH) {
@@ -951,8 +959,8 @@ void glesSetImageFilter(int nearest) {
 
 // ─── Custom Shader Pipelines ─────────────────────────────────
 
-// MAX_CUSTOM_PIPELINES, _customMVPLocs and _customTMLocs are declared above
-// glesSetMVP.
+// MAX_CUSTOM_PIPELINES, _customMVPLocs, _customTMLocs and _customBuiltinLocs
+// are declared above glesSetMVP.
 static GLuint _customPrograms[MAX_CUSTOM_PIPELINES];
 static int _freeCustomIDs[MAX_CUSTOM_PIPELINES];
 static int _freeCustomCount = 0;
@@ -978,6 +986,8 @@ int glesBuildCustomPipeline(const char* fragSrc) {
         glGetUniformLocation(prog, "mvp");
     _customTMLocs[idx] =
         glGetUniformLocation(prog, "tm");
+    _customBuiltinLocs[idx] =
+        glGetUniformLocation(prog, "_gg_builtins");
     return idx;
 }
 

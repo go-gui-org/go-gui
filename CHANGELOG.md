@@ -23,8 +23,8 @@ and this project adheres to
   canvas never clicked. The GLSL wrapper (`BuildGLSLFragment`,
   `BuildGLSLESFragment`) declares the five names as globals, so a GLSL body can
   use them as written; a body that declares its own `iTime` hides the built-in
-  and still compiles. The desktop GL (Linux, Windows) and WebGL2 backends upload
-  the block on every custom-shader draw.
+  and still compiles. The desktop GL (Linux, Windows), WebGL2 and Android
+  backends upload the block on every custom-shader draw.
 
 - **`llms.txt` at the repository root gives AI coding tools a map of Go-Gui
   (#1092).** The file follows the llms.txt format. It states the API rules that

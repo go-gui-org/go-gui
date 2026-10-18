@@ -44,11 +44,18 @@ int main(void) {
     reset();
     glesSetTM2(m);
     expect(harnessUniformWrites == 0, "custom glesSetTM2 writes nothing");
+    // The shader built-ins (#573) live only in custom programs.
+    reset();
+    glesSetBuiltins(m);
+    expect(harnessUniformWrites == 1 &&
+               harnessLastUniformLoc == HARNESS_LOC_BUILTINS,
+           "custom glesSetBuiltins writes _gg_builtins");
 
     reset();
     glesSetMVP(NULL);
     glesSetTM(NULL);
     glesSetTM2(NULL);
+    glesSetBuiltins(NULL);
     expect(harnessUniformWrites == 0, "NULL matrix writes nothing");
 
     // An out-of-range or unbuilt index keeps the current binding.
@@ -80,6 +87,12 @@ int main(void) {
     // the stencil program kept a zero matrix and the clip mask was never drawn.
     float verts[36] = {0};
     expect(glesInit() == 0, "glesInit");
+    // No built-in program declares the shader built-ins; the setter must
+    // skip them rather than index a table they do not have.
+    glesSetPipeline(0);
+    reset();
+    glesSetBuiltins(m);
+    expect(harnessUniformWrites == 0, "built-in pipeline glesSetBuiltins writes nothing");
     reset();
     glesBeginStencilClip(verts, 1, m);
     expect(harnessUniformWrites == 1 && harnessLastUniformLoc == HARNESS_LOC_MVP,

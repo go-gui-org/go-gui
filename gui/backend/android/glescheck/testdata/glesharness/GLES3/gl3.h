@@ -76,6 +76,7 @@ extern GLint harnessLastUniformLoc;
 // setter wrote to.
 #define HARNESS_LOC_MVP 7
 #define HARNESS_LOC_TM 9
+#define HARNESS_LOC_BUILTINS 11
 
 static inline void glUniformMatrix4fv(GLint loc, GLsizei n, GLboolean t,
                                       const GLfloat* m) {
@@ -88,6 +89,7 @@ static inline GLint glGetUniformLocation(GLuint p, const GLchar* name) {
     (void)p;
     if (strcmp(name, "mvp") == 0) return HARNESS_LOC_MVP;
     if (strcmp(name, "tm") == 0) return HARNESS_LOC_TM;
+    if (strcmp(name, "_gg_builtins") == 0) return HARNESS_LOC_BUILTINS;
     return -1;
 }
 
