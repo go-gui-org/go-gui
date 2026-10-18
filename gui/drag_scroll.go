@@ -14,8 +14,8 @@ package gui
 // never scrolls twice.
 
 // dragPanState tracks one in-progress drag-to-scroll press. Zero
-// value is idle. One slot is enough: a window holds one pressed
-// button at a time (mouseButtonHeld), and a second finger cancels
+// value is idle. One slot is enough: a pan starts only from a left
+// press, which holds one press target, and a second finger cancels
 // the single-touch gesture before it could start another.
 type dragPanState struct {
 	scrollID string
@@ -241,12 +241,18 @@ func dragPanOnMouseUp(ctx EventCtx) {
 	if w == nil {
 		return
 	}
+	// The lock's MouseUp sees every release. The pan belongs to the
+	// left press, so a right or middle release must not end it, or
+	// drop the left button still held (#1098).
+	if e != nil && e.MouseButton != MouseLeft {
+		return
+	}
 	st := w.viewState.dragPan
 	// Read before the unlock clears it: the release came mapped.
 	framed := w.viewState.mouseLockXfOn
 	w.viewState.dragPan = dragPanState{}
-	w.viewState.mouseButtonHeld = MouseInvalid
-	w.viewState.pressTargetID = ""
+	// Left alone: a right button still down stays held (#1098).
+	w.releaseMouseButton(MouseLeft)
 	w.MouseUnlock()
 	if !st.active || e == nil {
 		w.InvalidateLayout()

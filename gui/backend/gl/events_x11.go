@@ -159,6 +159,14 @@ func (b *Backend) handleXEvent(ev xgb.Event) {
 		case 7:
 			b.emitScroll(-x11ScrollLines, 0, e.EventX, e.EventY, e.State)
 		default:
+			btn := x11key.MapButton(byte(e.Detail))
+			// Back, forward and other extra buttons send no release
+			// (that case passes 1-3 only), so they are not presses:
+			// recording one would hand button 8 to a later window drag,
+			// and gui drops MouseInvalid anyway (#1098).
+			if btn == gui.MouseInvalid {
+				break
+			}
 			// Remember the press for a later StartWindowDrag /
 			// StartWindowResize, which reports it to the WM.
 			b.plat.pressRootX = e.RootX
@@ -170,7 +178,7 @@ func (b *Backend) handleXEvent(ev xgb.Event) {
 				Type:        gui.EventMouseDown,
 				MouseX:      x,
 				MouseY:      y,
-				MouseButton: x11key.MapButton(byte(e.Detail)),
+				MouseButton: btn,
 				Modifiers:   x11key.MapModifiers(e.State),
 			})
 		}

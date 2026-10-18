@@ -208,6 +208,8 @@ func (b *Backend) handleMessage(msg, wparam, lparam uintptr) (uintptr, bool) {
 		// reaching here with it still set means the loss was involuntary.
 		if b.plat.capturing {
 			b.plat.capturing = false
+			// No button-up will arrive for the buttons still down.
+			b.plat.buttonsDown = 0
 			w.MouseCancel()
 		}
 		return 0, true
@@ -381,15 +383,22 @@ func (b *Backend) handleMessage(msg, wparam, lparam uintptr) (uintptr, bool) {
 func (b *Backend) mouseButton(t gui.EventType, btn gui.MouseButton,
 	lparam uintptr, down bool) (uintptr, bool) {
 
+	bit := uint8(1) << btn // btn is MouseLeft, MouseRight or MouseMiddle
 	if down {
-		b.plat.capturing = true
-		pSetCapture.Call(b.plat.hwnd)
-	} else if b.plat.capturing {
-		// Clear first: ReleaseCapture sends WM_CAPTURECHANGED back
-		// through this wndproc before it returns, and that handler
-		// must read a deliberate release, not a revoked one.
-		b.plat.capturing = false
-		pReleaseCapture.Call()
+		if b.plat.buttonsDown == 0 {
+			b.plat.capturing = true
+			pSetCapture.Call(b.plat.hwnd)
+		}
+		b.plat.buttonsDown |= bit
+	} else {
+		b.plat.buttonsDown &^= bit
+		if b.plat.buttonsDown == 0 && b.plat.capturing {
+			// Clear first: ReleaseCapture sends WM_CAPTURECHANGED back
+			// through this wndproc before it returns, and that handler
+			// must read a deliberate release, not a revoked one.
+			b.plat.capturing = false
+			pReleaseCapture.Call()
+		}
 	}
 	x, y := b.logicalXY(loWordS(lparam), hiWordS(lparam))
 	b.emit(gui.Event{

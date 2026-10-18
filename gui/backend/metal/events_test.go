@@ -85,8 +85,8 @@ func TestMapMetalMouseButton(t *testing.T) {
 		{0, gui.MouseLeft},
 		{1, gui.MouseRight},
 		{2, gui.MouseMiddle},
-		{3, gui.MouseLeft},  // unknown → default left
-		{99, gui.MouseLeft}, // unknown → default left
+		{3, gui.MouseInvalid},  // side button, not left (#1098)
+		{99, gui.MouseInvalid}, // unknown
 	}
 	for _, tt := range tests {
 		got := mapMetalMouseButton(tt.btn)

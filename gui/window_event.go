@@ -18,6 +18,13 @@ func (w *Window) EventFn(e *Event) {
 	if !w.eventAllowed(e) {
 		return
 	}
+	// A button gui has no name for (back, forward) is neither a press
+	// nor the release of one: as MouseInvalid it would still fire an
+	// any-button OnClick, take focus, or end a left drag's lock (#1098).
+	if (e.Type == EventMouseDown || e.Type == EventMouseUp) &&
+		e.MouseButton == MouseInvalid {
+		return
+	}
 
 	if w.inspectorKeyHook(e) {
 		return
@@ -189,7 +196,7 @@ func (w *Window) handleKeyUpEvent(layout *Layout, e *Event) {
 }
 
 func (w *Window) handleMouseDownEvent(layout *Layout, e *Event) {
-	w.viewState.mouseButtonHeld = e.MouseButton
+	w.pressMouseButton(e.MouseButton)
 	w.recordPressTarget(e)
 	w.setMouseCursor(CursorArrow)
 	if inspectorSupported && w.inspectorEnabled {
@@ -306,8 +313,7 @@ func (w *Window) handleMouseMoveEvent(layout *Layout, e *Event) {
 }
 
 func (w *Window) handleMouseUpEvent(layout *Layout, e *Event) {
-	w.viewState.mouseButtonHeld = MouseInvalid
-	w.viewState.pressTargetID = ""
+	w.releaseMouseButton(e.MouseButton)
 	mouseUpHandler(layout, e, w)
 }
 

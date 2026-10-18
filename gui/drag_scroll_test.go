@@ -130,6 +130,45 @@ func TestDragScrollPanMovesOffset(t *testing.T) {
 	}
 }
 
+// Issue #1098: the lock's MouseUp sees every release, so a right
+// release during a left pan must not end the pan or drop the held
+// left button. Through the window handlers, so the held-button set
+// is in play; the test layout is hand-built, so not through EventFn.
+func TestDragScrollSecondButtonKeepsPan(t *testing.T) {
+	w := dragScrollTestWindow(t, scrollBoth, OnClickChild{})
+	at := func(typ EventType, btn MouseButton) *Event {
+		return &Event{Type: typ, MouseButton: btn, MouseX: 60, MouseY: 60}
+	}
+	w.handleMouseDownEvent(&w.layout, at(EventMouseDown, MouseLeft))
+	if !w.viewState.dragPan.active {
+		t.Fatal("left press did not start a pan")
+	}
+	w.handleMouseDownEvent(&w.layout, at(EventMouseDown, MouseRight))
+	w.handleMouseUpEvent(&w.layout, at(EventMouseUp, MouseRight))
+	if !w.viewState.dragPan.active || !w.mouseIsLocked() {
+		t.Fatal("right release ended the left pan")
+	}
+	if got := w.heldMouseButton(); got != MouseLeft {
+		t.Fatalf("held button after right release = %d, want left", got)
+	}
+	w.handleMouseUpEvent(&w.layout, at(EventMouseUp, MouseLeft))
+	if w.viewState.dragPan.active || w.mouseIsLocked() {
+		t.Error("left release did not end the pan")
+	}
+
+	// The reverse order: a left release ends the pan but must leave a
+	// right button still down held.
+	w.handleMouseDownEvent(&w.layout, at(EventMouseDown, MouseLeft))
+	w.handleMouseDownEvent(&w.layout, at(EventMouseDown, MouseRight))
+	w.handleMouseUpEvent(&w.layout, at(EventMouseUp, MouseLeft))
+	if w.viewState.dragPan.active || w.mouseIsLocked() {
+		t.Error("left release did not end the pan with right held")
+	}
+	if got := w.heldMouseButton(); got != MouseRight {
+		t.Fatalf("held button after left release = %d, want right", got)
+	}
+}
+
 func TestDragScrollBelowThresholdStays(t *testing.T) {
 	w := dragScrollTestWindow(t, scrollBoth, OnClickChild{})
 	dragScrollDown(w, 60, 60)

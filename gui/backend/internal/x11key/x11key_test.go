@@ -52,6 +52,10 @@ func TestMapButton(t *testing.T) {
 	if MapButton(1) != gui.MouseLeft || MapButton(2) != gui.MouseMiddle || MapButton(3) != gui.MouseRight {
 		t.Error("button mapping wrong")
 	}
+	// Back and forward must not read as left (#1098).
+	if MapButton(8) != gui.MouseInvalid || MapButton(9) != gui.MouseInvalid {
+		t.Error("side buttons map to a real button")
+	}
 }
 
 func TestKeysymToRune(t *testing.T) {

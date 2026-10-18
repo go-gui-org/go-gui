@@ -1,6 +1,9 @@
 package gui
 
-import "slices"
+import (
+	"math/bits"
+	"slices"
+)
 
 // window_interaction_state.go — hover and press state a view reads
 // while it is built (issue #587, docs/specs/build-time-interaction-state.md).
@@ -118,8 +121,51 @@ func (w *Window) recordHoverTarget(layers []Layout) {
 	w.InvalidateLayout()
 }
 
+// mouseButtonBit returns the bit btn takes in mouseButtonsHeld, or 0
+// for a value with no bit (MouseInvalid), which then never reads as
+// held.
+func mouseButtonBit(btn MouseButton) uint16 {
+	if btn >= 16 {
+		return 0
+	}
+	return 1 << btn
+}
+
+// pressMouseButton marks btn as held. Other held buttons stay held.
+func (w *Window) pressMouseButton(btn MouseButton) {
+	w.viewState.mouseButtonsHeld |= mouseButtonBit(btn)
+}
+
+// releaseMouseButton clears btn alone. The press target belongs to
+// the left button (recordPressTarget), so only a left release ends
+// it: a right click during a left drag keeps IsPressed true (#1098).
+func (w *Window) releaseMouseButton(btn MouseButton) {
+	w.viewState.mouseButtonsHeld &^= mouseButtonBit(btn)
+	if btn == MouseLeft {
+		w.viewState.pressTargetID = ""
+	}
+}
+
+// clearHeldMouseButtons drops every held button and the press
+// target, for paths where no release will arrive (capture loss).
+func (w *Window) clearHeldMouseButtons() {
+	w.viewState.mouseButtonsHeld = 0
+	w.viewState.pressTargetID = ""
+}
+
+// heldMouseButton is the one button EventCtx.MouseButton reports
+// while buttons are down: the lowest held one, so left wins over
+// right and middle. MouseInvalid when none is held.
+func (w *Window) heldMouseButton() MouseButton {
+	held := w.viewState.mouseButtonsHeld
+	if held == 0 {
+		return MouseInvalid
+	}
+	return MouseButton(bits.TrailingZeros16(held))
+}
+
 // recordPressTarget stores the shape a left press lands on. Called
-// where mouseButtonHeld is set, for backend presses and touch-synthesized
+// where pressMouseButton is called, for backend presses and touch-synthesized
 // ones alike, and hit-tests the last arranged frame the event was
 // aimed at. A press while the mouse is locked belongs to the drag.
 func (w *Window) recordPressTarget(e *Event) {

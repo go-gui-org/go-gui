@@ -63,6 +63,21 @@ and this project adheres to
 
 ### Fixed
 
+- **A second mouse button no longer ends a left press (#1098).** The window kept
+  one held button. A right press during a left drag replaced it, and the right
+  release cleared it and the press target while left was still down. So
+  `IsPressed` went false and `EventCtx.MouseButton` read no button in the middle
+  of the drag. The window now keeps the set of held buttons. A release clears
+  only its own button, and only a left release ends the press target. While more
+  than one button is down, `EventCtx.MouseButton` reports the lowest one, so
+  left wins. On Windows, mouse capture now lasts until the last button is
+  released, so a left release outside the window still arrives after a right
+  click. Back, forward and other extra buttons are now ignored. On X11 they
+  arrived as a left press with no release, so the window kept left held. On
+  macOS they arrived as middle, so their release ended a real middle press. On
+  every platform a press of one could take focus or fire an `OnClick` that
+  accepts any button.
+
 - **A table built from `RawData` styles its header with `TextStyleHead`
   (#1097).** The header row of a `RawData`, `TableCfgFromData` or CSV table got
   the default text style in bold, which won over the table's `TextStyleHead`. So

@@ -161,15 +161,19 @@ func mapMetalEvent() (gui.Event, bool) {
 }
 
 // mapMetalMouseButton maps NSEvent button number to gui.MouseButton.
-// NSEvent: 0=left, 1=right, 2=middle.
+// NSEvent: 0=left, 1=right, 2=middle. Other buttons (back, forward)
+// map to MouseInvalid: as MouseLeft, their release ended a left press
+// still held (#1098).
 func mapMetalMouseButton(btn int) gui.MouseButton {
 	switch btn {
+	case 0:
+		return gui.MouseLeft
 	case 1:
 		return gui.MouseRight
 	case 2:
 		return gui.MouseMiddle
 	default:
-		return gui.MouseLeft
+		return gui.MouseInvalid
 	}
 }
 

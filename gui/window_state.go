@@ -214,10 +214,15 @@ type ViewState struct {
 	// from an empty scope because no tree is being generated. The two
 	// produce the same answer, which is why the second went unnoticed
 	// in four widgets; see issue #520.
-	genDepth                 int
-	mousePosX                float32
-	mousePosY                float32
-	mouseButtonHeld          MouseButton
+	genDepth  int
+	mousePosX float32
+	mousePosY float32
+	// mouseButtonsHeld has one bit per mouse button that is down, set
+	// on press and cleared on that button's release. A set, not one
+	// button: a second button pressed during a drag must not replace
+	// the first, and its release must not end the first (#1098).
+	// The zero value is "no button", so no seed is needed.
+	mouseButtonsHeld         uint16
 	mouseCursor              MouseCursor
 	inputCursorOn            atomic.Bool
 	menuKeyNav               bool

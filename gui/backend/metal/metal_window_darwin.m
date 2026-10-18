@@ -1059,7 +1059,9 @@ static void storeEvent(NSEvent *event, uint32_t wid) {
             switch (type) {
                 case NSEventTypeLeftMouseDown:  _evMouseButton = 0; break;
                 case NSEventTypeRightMouseDown: _evMouseButton = 1; break;
-                default:                        _evMouseButton = 2; break;
+                // Other buttons pass their number: 2 is middle, and Go maps
+                // 3 and up (back, forward) to MouseInvalid (#1098).
+                default: _evMouseButton = (int)[event buttonNumber]; break;
             }
             break;
 
@@ -1073,7 +1075,7 @@ static void storeEvent(NSEvent *event, uint32_t wid) {
             switch (type) {
                 case NSEventTypeLeftMouseUp:  _evMouseButton = 0; break;
                 case NSEventTypeRightMouseUp: _evMouseButton = 1; break;
-                default:                      _evMouseButton = 2; break;
+                default: _evMouseButton = (int)[event buttonNumber]; break;
             }
             break;
 

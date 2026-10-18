@@ -161,3 +161,19 @@ func TestPointerRealExit(t *testing.T) {
 		}
 	}
 }
+
+// Back and forward (buttons 8 and 9) send a press and no release. The
+// press must not be recorded for a later StartWindowDrag, which would
+// report button 8 to the WM as the button that started it (#1098).
+func TestExtraButtonPressNotRecorded(t *testing.T) {
+	b := newOcclusionTestBackend(t, 7)
+	b.handleXEvent(xproto.ButtonPressEvent{Detail: 8, EventX: 10, EventY: 10})
+	if b.plat.havePress {
+		t.Fatalf("button 8 press recorded (pressButton=%d)", b.plat.pressButton)
+	}
+	b.handleXEvent(xproto.ButtonPressEvent{Detail: 1, EventX: 10, EventY: 10})
+	if !b.plat.havePress || b.plat.pressButton != 1 {
+		t.Fatalf("left press: havePress=%v pressButton=%d, want true 1",
+			b.plat.havePress, b.plat.pressButton)
+	}
+}
