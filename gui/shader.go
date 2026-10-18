@@ -97,13 +97,19 @@ void main() {
     d = d / max(grad_len, 0.001);
     float sdf_alpha = 1.0 - smoothstep(-0.59, 0.59, d);
 
+    // The body runs in a nested block, as in msl.BuildCustom, so its
+    // locals may reuse the names above (d, q, pos, radius, ...).
+    vec4 _gg_color;
+    {
     // --- user body ---
     `)
 	b.WriteString(body)
 	b.WriteString(`
     // --- end user body ---
+    _gg_color = frag_color;
+    }
 
-    _frag_out = vec4(frag_color.rgb, frag_color.a * sdf_alpha);
+    _frag_out = vec4(_gg_color.rgb, _gg_color.a * sdf_alpha);
 
     if (_frag_out.a < 0.0) {
         _frag_out += texture(tex, uv);

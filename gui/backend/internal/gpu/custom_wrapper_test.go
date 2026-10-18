@@ -43,6 +43,9 @@ func TestCustomGLSLWrappersAgree(t *testing.T) {
 		"in vec4 p1;",
 		"in vec4 p2;",
 		"in vec4 p3;",
+		// The body runs in a nested block, so its frag_color is
+		// copied out before the block closes.
+		"_gg_color = frag_color;\n    }",
 	} {
 		if !strings.Contains(desktop, want) {
 			t.Errorf("desktop wrapper missing %q", want)
@@ -93,6 +96,11 @@ func TestCustomGLSLWrapperCompiles(t *testing.T) {
 		"own iTime": "float iTime = p0.x;\n" +
 			"vec2 iResolution = vec2(1.0);\n" +
 			"vec4 frag_color = vec4(cos(iTime), iResolution, 1.0);",
+		// The wrapper's own locals are common names; a body that
+		// reuses them must compile, as it does on Metal.
+		"wrapper names": "float d = 1.0; vec2 q = uv; float radius = 2.0;\n" +
+			"vec2 pos = uv; float sdf_alpha = 0.5;\n" +
+			"vec4 frag_color = vec4(d * sdf_alpha, q.x, radius, pos.y);",
 	}
 	dir := t.TempDir()
 	for name, body := range bodies {

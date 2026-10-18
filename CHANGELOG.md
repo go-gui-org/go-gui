@@ -90,6 +90,13 @@ and this project adheres to
 
 ### Fixed
 
+- **A GLSL shader body may reuse the wrapper's variable names (#573).** The GLSL
+  wrapper spliced the body into `main` beside its own locals (`d`, `q`, `pos`,
+  `radius`, `sdf_alpha` and others), so a body that declared one of these common
+  names failed to compile, and the container drew nothing on desktop GL, WebGL2
+  and Android. The Metal wrapper already runs the body in a nested block. The
+  GLSL wrapper now does the same, so the same body compiles on every backend.
+
 - **`ShaderHash` keys on both shader bodies (#573).** The custom-shader cache
   key hashed only the Metal body on macOS and only the GLSL body everywhere
   else. iOS reports `GOOS` `ios`, so its Metal backend keyed on the GLSL body:

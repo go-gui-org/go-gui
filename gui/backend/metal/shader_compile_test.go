@@ -24,6 +24,9 @@ func TestCustomWrapperCompiles(t *testing.T) {
 		"own iTime": "float iTime = in.p0.x;\n" +
 			"float2 iResolution = float2(1.0);\n" +
 			"float4 frag_color = float4(cos(iTime), iResolution, 1.0);",
+		"wrapper names": "float d = 1.0; float2 q = in.uv; float radius = 2.0;\n" +
+			"float2 pos = in.uv; float sdf_alpha = 0.5;\n" +
+			"float4 frag_color = float4(d * sdf_alpha, q.x, radius, pos.y);",
 	}
 	for name, body := range bodies {
 		switch rc := testCompileMSL(msl.BuildCustom(body)); rc {
