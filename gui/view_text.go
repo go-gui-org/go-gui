@@ -76,20 +76,19 @@ type TextCfg struct {
 }
 
 // textView implements View for text rendering.
+//
+// The factory builds it before any window exists, so it is a heap
+// object paid once per Text per frame: keep it small. The shape's text
+// config and accessible name are rebuilt every frame and come from the
+// view-phase arena with the shape, not from fields here.
+// TestTextViewSize pins the size class.
 type textView struct {
 	cfg TextCfg
-	tc  shapeTextConfig
 
 	// anim is the render-time frame of TextCfg.Anim. It lives on the
 	// view so the shape can point at it for the frame: the view
-	// outlives generation and render, which a local would not. Keep
-	// it small: every Text carries it.
+	// outlives generation and render, which a local would not.
 	anim textAnimRender
-
-	// a11y is the shape's accessible name and description. Like tc and
-	// anim, it lives on the view so the shape can point at it without a
-	// separate heap allocation per Text per frame.
-	a11y accessInfo
 }
 
 // textEventHandlers is a shared handler set for focused text
@@ -125,7 +124,9 @@ func (tv *textView) GenerateLayout(w *Window) Layout {
 	}
 	ts := &c.TextStyle
 
-	tv.tc = shapeTextConfig{
+	// From the arena, not the view: the same View placed twice in one
+	// frame gets one config per shape.
+	tc := w.allocTextConfig(shapeTextConfig{
 		Text:              c.Text,
 		TextStyle:         ts,
 		textIsPassword:    c.IsPassword,
@@ -136,16 +137,15 @@ func (tv *textView) GenerateLayout(w *Window) Layout {
 		textKeyboard:      c.keyboard,
 		overflowScrollX:   c.scrollOverflowX,
 		wrapSizingDefault: c.wrapSizingDefault,
-	}
+	})
 
 	// The accessible name comes from the display prose, so a colon in
-	// it is part of the name, not an ID scope. Stored on the view; nil
-	// when there is no name or description, which means no a11y node.
+	// it is part of the name, not an ID scope. Nil when there is no
+	// name or description, which means no a11y node.
 	var a11y *accessInfo
 	if label := a11yProseLabel(c.A11YLabel, c.Text); label != "" ||
 		c.A11YDescription != "" {
-		tv.a11y = accessInfo{Label: label, Description: c.A11YDescription}
-		a11y = &tv.a11y
+		a11y = w.allocAccessInfo(accessInfo{Label: label, Description: c.A11YDescription})
 	}
 
 	layout := Layout{
@@ -163,7 +163,7 @@ func (tv *textView) GenerateLayout(w *Window) Layout {
 			Sizing:     c.Sizing,
 			Hero:       c.Hero,
 			Opacity:    c.Opacity.Get(1.0),
-			TC:         &tv.tc,
+			TC:         tc,
 		}),
 	}
 
@@ -209,7 +209,7 @@ func (tv *textView) GenerateLayout(w *Window) Layout {
 
 	// The motion is recorded here and turned into a transform at
 	// render time, about the arranged box's center.
-	applyTextAnimTransform(tv, animFrame)
+	applyTextAnimTransform(tv, layout.Shape, animFrame)
 
 	if c.Focusable {
 		layout.Shape.events = textEventHandlers

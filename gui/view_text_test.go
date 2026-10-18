@@ -84,10 +84,14 @@ func TestTextA11YInfoNoAlloc(t *testing.T) {
 	empty := TextCfg{Text: ""}
 	prose := TextCfg{Text: "Save changes", A11YCfg: A11YCfg{A11YDescription: "Writes the file"}}
 
+	// Reset the view-phase arenas each run, as a frame does: the name
+	// comes from one, and an arena never reset grows on every call.
 	base := testing.AllocsPerRun(50, func() {
+		w.scratch.resetViewPools()
 		_ = Text(empty).GenerateLayout(w)
 	})
 	got := testing.AllocsPerRun(50, func() {
+		w.scratch.resetViewPools()
 		_ = Text(prose).GenerateLayout(w)
 	})
 	if got > base {

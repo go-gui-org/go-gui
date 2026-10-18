@@ -265,6 +265,8 @@ type scratchPools struct {
 	viewEffects  scratchObjPool[shapeEffects]
 	viewXforms   scratchObjPool[shapeTransform]
 	viewA11Y     scratchObjPool[accessInfo]
+	viewTextCfgs scratchObjPool[shapeTextConfig]
+	viewTextSty  scratchObjPool[TextStyle]
 
 	// Render-phase pools: reuse heap objects whose addresses are
 	// stored in RenderCmd pointer fields (avoids per-frame escapes).
@@ -341,6 +343,8 @@ func newScratchPools() scratchPools {
 		viewEffects:            scratchObjPool[shapeEffects]{retainMax: 4096, shrinkTo: 256},
 		viewXforms:             scratchObjPool[shapeTransform]{retainMax: 1024, shrinkTo: 64},
 		viewA11Y:               scratchObjPool[accessInfo]{retainMax: 4096, shrinkTo: 256},
+		viewTextCfgs:           scratchObjPool[shapeTextConfig]{retainMax: 4096, shrinkTo: 256},
+		viewTextSty:            scratchObjPool[TextStyle]{retainMax: 256, shrinkTo: 32},
 		renderTextStyles:       scratchObjPool[TextStyle]{retainMax: 4096, shrinkTo: 256},
 		renderGlyphLayouts:     scratchObjPool[glyph.Layout]{retainMax: 1024, shrinkTo: 64},
 		renderAffineTransforms: scratchObjPool[glyph.AffineTransform]{retainMax: 256, shrinkTo: 16},
@@ -369,6 +373,8 @@ func (p *scratchPools) resetViewPools() {
 	p.viewEffects.reset()
 	p.viewXforms.reset()
 	p.viewA11Y.reset()
+	p.viewTextCfgs.reset()
+	p.viewTextSty.reset()
 	if cap(p.layoutChildrenArena) > layoutChildrenRetainMax {
 		p.layoutChildrenArena = make([]Layout, 0, layoutChildrenShrinkTo)
 	} else {

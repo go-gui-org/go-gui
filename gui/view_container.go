@@ -378,6 +378,12 @@ func (cv *containerView) GenerateLayout(w *Window) Layout {
 		// so only a button without one skips moves inside it (#973).
 		layout.Shape.events.hoverStatic = cv.userOnHover == nil
 	}
+	if cfg.Title != "" && w != nil {
+		// Reserve the eraser, the label and the content in one arena
+		// slice. Growing Children from nil for the two title shapes
+		// allocated twice per frame.
+		layout.Children = w.scratch.takeLayoutChildren(2 + len(cv.content))
+	}
 	addGroupBoxTitle(cfg.Title, cfg.TitleBG, cfg.ColorBorder,
 		cfg.Disabled, w, &layout)
 	// Content children append after the group-box eraser + label, which
@@ -472,10 +478,13 @@ func addGroupBoxTitle(title string, titleBG, colorBorder Color,
 		Color:     textColor,
 		Opacity:   1.0,
 		Float:     true,
-		TC: &shapeTextConfig{
+		// Both from the view-phase arena: a literal here and &ts each
+		// moved to the heap, two allocations per titled container per
+		// frame.
+		TC: w.allocTextConfig(shapeTextConfig{
 			Text:      title,
-			TextStyle: &ts,
-		},
+			TextStyle: w.allocTextStyle(ts),
+		}),
 	}
 	layout.Children = append(layout.Children, Layout{
 		Shape: w.allocShape(textShape),

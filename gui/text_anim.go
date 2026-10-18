@@ -363,7 +363,7 @@ func applyTextAnim(tv *textView, w *Window, sh *Shape) TextAnimFrame {
 		anim.shimmerOn = true
 	}
 	if anim.revealOn || anim.shimmerOn {
-		tv.tc.anim = anim
+		sh.TC.anim = anim
 	}
 	return frame
 }
@@ -462,7 +462,7 @@ func revealLayoutGlyphs(l glyph.Layout, end int, w *Window) glyph.Layout {
 // Nothing is recorded for the identity. Motion pushes the text off the
 // fast RenderText path and onto the glyph-layout path (see
 // plainTextNeedsGlyphLayout), so a fade or a pulse must not pay for it.
-func applyTextAnimTransform(tv *textView, f TextAnimFrame) {
+func applyTextAnimTransform(tv *textView, sh *Shape, f TextAnimFrame) {
 	scale := f.Scale
 	if scale == 0 {
 		scale = 1
@@ -479,7 +479,7 @@ func applyTextAnimTransform(tv *textView, f TextAnimFrame) {
 	a := &tv.anim
 	a.scale, a.rot, a.dx, a.dy = scale, f.Rotation, f.OffsetX, f.OffsetY
 	a.xformOn = true
-	tv.tc.anim = a
+	sh.TC.anim = a
 }
 
 // textAnimTransform builds scale-and-rotate about (cx, cy) followed by

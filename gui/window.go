@@ -629,6 +629,29 @@ func (w *Window) allocAccessInfo(src accessInfo) *accessInfo {
 	return w.scratch.viewA11Y.alloc(src)
 }
 
+// allocTextConfig returns a pooled copy of src, like allocAccessInfo. A
+// text shape's config is rebuilt every frame and carries no cache past
+// it, so it lives in the view-phase arena with the shape rather than on
+// the view, which is a heap object paid once per Text.
+func (w *Window) allocTextConfig(src shapeTextConfig) *shapeTextConfig {
+	if w == nil {
+		cp := src
+		return &cp
+	}
+	return w.scratch.viewTextCfgs.alloc(src)
+}
+
+// allocTextStyle returns a pooled copy of src for a text shape built
+// during generation that has no view to hold its style, such as a
+// group-box title.
+func (w *Window) allocTextStyle(src TextStyle) *TextStyle {
+	if w == nil {
+		cp := src
+		return &cp
+	}
+	return w.scratch.viewTextSty.alloc(src)
+}
+
 // SetTitleFn sets the function used to update the OS window title.
 // Called by the backend at init.
 func (w *Window) SetTitleFn(fn func(string)) {
