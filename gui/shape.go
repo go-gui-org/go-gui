@@ -605,6 +605,11 @@ type shapeEffects struct {
 	Shader         *Shader
 	ColorFilter    *ColorFilter
 	BlurRadius     float32
+
+	// shaderBuiltins backs RenderCmd.shaderBuiltins for this shape's
+	// shader. It is rewritten on every render pass, so a render-only
+	// animation reuses it instead of allocating per pass.
+	shaderBuiltins [16]float32
 }
 
 // BoxShadow defines drop shadow properties.

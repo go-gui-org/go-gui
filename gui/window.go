@@ -238,6 +238,11 @@ type Window struct {
 	// are still aliased by a command emitted in this same list.
 	renderPass uint64
 
+	// Window-wide half of the custom-shader built-in uniforms (time and
+	// frame), advanced once per frame that draws a shader. See
+	// shader_builtins.go.
+	shaderBuiltinState shaderFrameState
+
 	// View-pass counter — incremented per full layout generation
 	// (updateLocked). A text animation stamps it on its state so the
 	// entries of texts that left the tree can be told apart and pruned.

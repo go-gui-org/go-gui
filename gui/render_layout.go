@@ -282,6 +282,7 @@ func renderContainer(shape *Shape, _ Color, clip drawClip, w *Window) {
 	// gets one (issue #589).
 	switch {
 	case hasFX && fx.Shader != nil:
+		w.packShaderShape(shape)
 		emitRenderer(RenderCmd{
 			Kind:   RenderCustomShader,
 			X:      shape.X,
@@ -295,7 +296,8 @@ func renderContainer(shape *Shape, _ Color, clip drawClip, w *Window) {
 			// because their colors are separate fields.
 			Color: dimColor(shape.Color,
 				1.0, fillDims(shape)),
-			Shader: fx.Shader,
+			Shader:         fx.Shader,
+			shaderBuiltins: &fx.shaderBuiltins,
 		}, w)
 	case hasFX && fx.Gradient != nil:
 		emitRenderer(RenderCmd{

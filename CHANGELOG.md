@@ -10,6 +10,18 @@ and this project adheres to
 
 ### Added
 
+- **Custom shaders get Shadertoy's built-in inputs for size, time and frame
+  (#573).** Each `RenderCustomShader` command now carries a built-in block,
+  filled in while the frame's commands are built: `iResolution`, `iTime`,
+  `iTimeDelta` and `iFrame`. Units follow Shadertoy, so a copied shader reads
+  them unchanged: sizes are physical pixels. A backend reads the block with
+  `RenderCmd.ShaderBuiltinsAt(scale)`, which converts sizes with the scale of
+  the frame being drawn, so the first frame on a HiDPI display is right as well.
+  Time and frame advance once per displayed frame and read zero in headless
+  captures. `iTimeDelta` is capped at 0.25 s, so the first frame after a pause
+  does not jump. `iMouse` is not tracked: it reads zero, Shadertoy's value for a
+  canvas never clicked.
+
 - **`llms.txt` at the repository root gives AI coding tools a map of Go-Gui
   (#1092).** The file follows the llms.txt format. It states the API rules that
   compile when broken but give wrong behavior: `Cfg` structs, `ctx.Consume()`,

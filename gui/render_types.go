@@ -58,6 +58,11 @@ type RenderCmd struct {
 	// and H carry the view's box in its own frame.
 	Homography *[9]float32
 
+	// shaderBuiltins is a RenderCustomShader's built-in uniform block
+	// in logical pixels; backends read it through ShaderBuiltinsAt. It
+	// points into the shape, so it is valid until the next render pass.
+	shaderBuiltins *[16]float32
+
 	// Pointer fields.
 	Shader       *Shader
 	Gradient     *GradientDef
