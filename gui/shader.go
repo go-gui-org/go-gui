@@ -35,7 +35,10 @@ type Shader struct {
 	// is drawn, so iTime advances without app code. Each
 	// frame rebuilds only the render commands: no view function runs
 	// and nothing is re-arranged. Frames stop once no Animate shader
-	// is drawn. Leave it false for a shader that does not change.
+	// is drawn. For a user who asked for reduced motion the shader
+	// holds still instead, as in a headless capture: iTime, iTimeDelta
+	// and iFrame read zero and no frames are started. Leave it false
+	// for a shader that does not change.
 	Animate bool
 }
 

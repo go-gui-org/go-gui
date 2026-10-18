@@ -91,6 +91,35 @@ func TestShaderBuiltinsHeadlessZeroesClock(t *testing.T) {
 	}
 }
 
+// For a user who asked for reduced motion the shader clock holds
+// still, as in a headless capture: iTime, iTimeDelta and iFrame read
+// zero on every frame, while the resolution is still filled in.
+func TestShaderBuiltinsReducedMotionHoldsClock(t *testing.T) {
+	for _, reduced := range []bool{false, true} {
+		w := NewTestWindow(t, WindowCfg{Width: 400, Height: 300})
+		w.nativePlatform = reducedMotionPlatform{pref: reduced}
+		w.SetView(shaderRoot(func() []View { return []View{shaderBox("sh")} }))
+		for range 3 {
+			shaderFrameStep(w)
+		}
+		b := mustShape(t, w, "sh").fx.shaderBuiltins
+		if b[shaderBuiltinResX] != sbW {
+			t.Errorf("reduced=%v: iResolution.x = %v, want %v",
+				reduced, b[shaderBuiltinResX], sbW)
+		}
+		frame, held := b[shaderBuiltinFrame], b[shaderBuiltinTime] == 0 &&
+			b[shaderBuiltinTimeDelta] == 0 && b[shaderBuiltinFrame] == 0
+		if reduced && !held {
+			t.Errorf("reduced motion: time/delta/frame = %v/%v/%v, want 0/0/0",
+				b[shaderBuiltinTime], b[shaderBuiltinTimeDelta], frame)
+		}
+		// Control: without the preference the clock runs.
+		if !reduced && frame != 2 {
+			t.Errorf("no preference: iFrame = %v after 3 frames, want 2", frame)
+		}
+	}
+}
+
 // ShaderBuiltinsAt scales the resolution and leaves time and frame
 // alone.
 func TestShaderBuiltinsAtScales(t *testing.T) {
@@ -398,6 +427,34 @@ func TestShaderAnimateHeadlessStartsNothing(t *testing.T) {
 	}
 }
 
+// For a user who asked for reduced motion an Animate shader starts no
+// frames, as in a headless window.
+func TestShaderAnimateReducedMotionStartsNothing(t *testing.T) {
+	w := NewTestWindow(t, WindowCfg{Width: 400, Height: 300})
+	w.nativePlatform = reducedMotionPlatform{pref: true}
+	w.SetView(shaderRoot(func() []View { return []View{animatedBox("sh", true)} }))
+	shaderFrameStep(w)
+	if w.HasAnimation(shaderAnimationID) {
+		t.Error("reduced motion should not start the shader animation")
+	}
+}
+
+// Turning on reduced motion while an Animate shader runs stops its
+// frames in the next frame.
+func TestShaderAnimateReducedMotionStopsRunning(t *testing.T) {
+	w := shaderWindow(t, shaderRoot(func() []View {
+		return []View{animatedBox("sh", true)}
+	}))
+	if !w.HasAnimation(shaderAnimationID) {
+		t.Fatal("the Animate shader did not start the animation")
+	}
+	w.nativePlatform = reducedMotionPlatform{pref: true}
+	shaderFrameStep(w)
+	if w.HasAnimation(shaderAnimationID) {
+		t.Error("turning on reduced motion should stop the shader animation")
+	}
+}
+
 // Removing the animation by ID from outside does not leave a drawn
 // Animate shader frozen: the next frame registers it again.
 func TestShaderAnimateRestoredAfterRemove(t *testing.T) {
@@ -438,3 +495,13 @@ func TestShaderAnimateFramesSkipTheView(t *testing.T) {
 		t.Errorf("iFrame = %v after 3 render-only frames, want %v", got, start+3)
 	}
 }
+
+// reducedMotionPlatform reports the reduced-motion preference. It
+// embeds noopNativePlatform because a rendering window also calls the
+// platform's other methods, such as A11yDestroy on cleanup.
+type reducedMotionPlatform struct {
+	noopNativePlatform
+	pref bool
+}
+
+func (p reducedMotionPlatform) PrefersReducedMotion() bool { return p.pref }

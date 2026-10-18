@@ -87,20 +87,30 @@ func (w *Window) packShaderShape(shape *Shape) {
 	}
 	f := w.shaderFrame()
 	packShaderBuiltins(&shape.fx.shaderBuiltins, f,
-		shape.Width, shape.Height, w.headlessRender)
+		shape.Width, shape.Height, w.shaderClockHeld())
+}
+
+// shaderClockHeld reports whether shaders read a still clock: in a
+// headless capture, which must be reproducible, and for a user who
+// asked for reduced motion, as the thinking orb holds still for both.
+// A held clock zeroes iTime, iTimeDelta and iFrame, and starts no
+// Shader.Animate frames. Stopping the frames alone is not enough:
+// other repaints (hover, typing) would still step iTime forward.
+func (w *Window) shaderClockHeld() bool {
+	return w.headlessRender || w.prefersReducedMotion()
 }
 
 // packShaderBuiltins writes the built-in block for one shader shape
 // of width x height logical pixels into dst, in logical pixels; see
-// RenderCmd.ShaderBuiltinsAt for the conversion. headless zeroes the
-// clock-driven slots so a captured frame is reproducible.
+// RenderCmd.ShaderBuiltinsAt for the conversion. still zeroes the
+// clock-driven slots (shaderClockHeld).
 func packShaderBuiltins(dst *[16]float32, f *shaderFrameState,
-	width, height float32, headless bool) {
+	width, height float32, still bool) {
 	*dst = [16]float32{}
 	dst[shaderBuiltinResX] = width
 	dst[shaderBuiltinResY] = height
 	dst[shaderBuiltinResZ] = 1
-	if !headless {
+	if !still {
 		dst[shaderBuiltinTime] = f.time
 		dst[shaderBuiltinTimeDelta] = f.delta
 		dst[shaderBuiltinFrame] = float32(f.frame)
@@ -134,12 +144,12 @@ func (shaderAnimation) Update(*Window, float32, *AnimationCommands) bool {
 // syncShaderAnimation runs after each render pass. It registers the
 // shader animation when the pass drew a Shader.Animate shader and
 // removes it when the pass drew none, so frames stop with the last
-// such shader. A headless window, whose shaders read time as zero,
-// never starts it. Runs under w.mu and takes animMu, the order
-// applyBlinkCursor uses; a window that never animates a shader skips
-// the lock.
+// such shader. A held clock (headless, or reduced motion; see
+// shaderClockHeld) never starts it, and stops a running one. Runs
+// under w.mu and takes animMu, the order applyBlinkCursor uses; a
+// window that never animates a shader skips the lock.
 func (w *Window) syncShaderAnimation() {
-	want := w.shaderAnimateDrawn && !w.headlessRender
+	want := w.shaderAnimateDrawn && !w.shaderClockHeld()
 	if !want && !w.shaderAnimationOn {
 		return
 	}

@@ -28,8 +28,9 @@ gui.Column(gui.ContainerCfg{
 Read `iTime` and set `Animate`. The window then draws a new frame each display
 refresh while the container is on screen. Each frame rebuilds only the render
 commands: no view function runs and nothing is re-arranged. Frames stop in the
-first frame that draws no `Animate` shader. This is from
-`examples/custom_shader`:
+first frame that draws no `Animate` shader. For a user who asked for reduced
+motion the shader holds still instead, as in a headless capture: its clock reads
+zero and no frames start. This is from `examples/custom_shader`:
 
 ```go
 // rainbowTile is an animated shader. iTime counts seconds from the
@@ -77,8 +78,8 @@ The names, types and units are Shadertoy's, so copied code reads them unchanged.
 Sizes are physical pixels. `iMouse` reads zero, Shadertoy's value for a canvas
 never clicked, so a shader that reads it compiles and draws as if never clicked.
 Time and frame advance once per displayed frame, and read zero in headless
-captures. A body that declares its own `iTime` hides the built-in and still
-compiles.
+captures and for a user who asked for reduced motion. A body that declares its
+own `iTime` hides the built-in and still compiles.
 
 ## Passing your own values
 

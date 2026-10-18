@@ -64,7 +64,10 @@ target, and only the last pass is presented. `iTimeDelta` is capped at 0.25 s,
 so the first frame after a pause (a hidden window, or no shader drawn for a
 while) does not step a delta-driven animation by the whole pause; `iTime` is not
 capped. A headless window (`SetHeadlessRender`) reads time, delta and frame as
-zero, so captures are reproducible.
+zero, so captures are reproducible. So does a window whose user asked for
+reduced motion (`prefersReducedMotion`, which also holds the thinking orb
+still), so the shader holds still. Stopping the frames alone would not do: other
+repaints (hover, typing) would still step `iTime` forward.
 
 ### Shader.Animate
 
@@ -73,7 +76,8 @@ owns one render-only animation (`shaderAnimation`). `buildRenderers` clears a
 flag before the pass, the shader emission sets it, and `syncShaderAnimation`
 registers or removes the animation after the pass. Frames stop in the first
 frame that draws no `Animate` shader. The lock order, `w.mu` then `animMu`, is
-the caret blink's. A headless window never starts it.
+the caret blink's. A held clock (headless, or reduced motion; `shaderClockHeld`)
+never starts it, and stops a running one.
 
 ### Wrappers and backends
 

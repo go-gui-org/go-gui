@@ -18,15 +18,16 @@ and this project adheres to
   `RenderCmd.ShaderBuiltinsAt(scale)`, which converts sizes with the scale of
   the frame being drawn, so the first frame on a HiDPI display is right as well.
   Time and frame advance once per displayed frame and read zero in headless
-  captures. `iTimeDelta` is capped at 0.25 s, so the first frame after a pause
-  does not jump. `iMouse` is not tracked: it reads zero, Shadertoy's value for a
-  canvas never clicked. The GLSL wrapper (`BuildGLSLFragment`,
-  `BuildGLSLESFragment`) declares the five names as globals, so a GLSL body can
-  use them as written; a body that declares its own `iTime` hides the built-in
-  and still compiles. The Metal wrapper, shared by macOS and iOS, declares them
-  as locals and runs the body in a nested block, so the same holds for an MSL
-  body. Every GPU backend uploads the block on every custom-shader draw: desktop
-  GL (Linux, Windows), WebGL2, Android, macOS and iOS.
+  captures and for a user who asked for reduced motion. `iTimeDelta` is capped
+  at 0.25 s, so the first frame after a pause does not jump. `iMouse` is not
+  tracked: it reads zero, Shadertoy's value for a canvas never clicked. The GLSL
+  wrapper (`BuildGLSLFragment`, `BuildGLSLESFragment`) declares the five names
+  as globals, so a GLSL body can use them as written; a body that declares its
+  own `iTime` hides the built-in and still compiles. The Metal wrapper, shared
+  by macOS and iOS, declares them as locals and runs the body in a nested block,
+  so the same holds for an MSL body. Every GPU backend uploads the block on
+  every custom-shader draw: desktop GL (Linux, Windows), WebGL2, Android, macOS
+  and iOS.
 
 - **`Shader.Animate` keeps an animated shader moving without a view rebuild
   (#573).** An animated shader used to need a repeating `Animate` with an empty
@@ -35,9 +36,10 @@ and this project adheres to
   `Shader.Animate: true` the window keeps frames coming while such a shader is
   drawn, and each frame rebuilds only the render commands, where `iTime` is
   filled in. Frames stop in the first frame that draws no `Animate` shader, so
-  an idle window stays idle. Headless windows start no frames.
-  `examples/custom_shader` and the showcase's shader page now use `iTime` and
-  `Animate`, with no clock or animation of their own.
+  an idle window stays idle. For a user who asked for reduced motion the shader
+  holds still, as in a headless capture: its clock reads zero and no frames
+  start. `examples/custom_shader` and the showcase's shader page now use `iTime`
+  and `Animate`, with no clock or animation of their own.
 
 - **`llms.txt` at the repository root gives AI coding tools a map of Go-Gui
   (#1092).** The file follows the llms.txt format. It states the API rules that
