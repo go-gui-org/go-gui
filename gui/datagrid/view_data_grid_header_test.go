@@ -791,3 +791,54 @@ func TestPagerArrowsRTL(t *testing.T) {
 		t.Errorf("RTL: prev=%q next=%q", prev, next)
 	}
 }
+
+// Issue #1099: a right click during a header resize drag must not end
+// it. The lock belongs to the left press, so only the left release
+// ends the resize.
+func TestResizeDragIgnoresRightClick(t *testing.T) {
+	cfg := DataGridCfg{
+		ID:              "g1",
+		TextStyleHeader: gg.DefaultTextStyle,
+		TextStyle:       gg.DefaultTextStyle,
+		PaddingHeader:   gg.NewPadding(2, 4, 2, 4),
+		SizeBorder:      gg.NoBorder,
+		Columns: []GridColumnCfg{{
+			ID: "c1", Title: "Col1", Resizable: true,
+			Width: gg.SomeF(120),
+		}},
+	}
+	w := gg.NewTestWindow(t, gg.WindowCfg{})
+	defer w.Close()
+	w.TestRender(func(win *gg.Window) gg.View { return New(w, cfg) })
+	w.SetFocus("g1:header:c1")
+	root := w.TestRender(nil)
+	ly, ok := root.FindByID("g1:resize:c1")
+	if !ok {
+		t.Fatal("no resize handle in tree after focusing the column")
+	}
+	x, y := ly.Shape.X+ly.Shape.Width/2, ly.Shape.Y+ly.Shape.Height/2
+	w.FrameFn()
+
+	send := func(typ gg.EventType, btn gg.MouseButton) {
+		w.EventFn(&gg.Event{Type: typ, MouseButton: btn, MouseX: x, MouseY: y})
+		w.TestRender(nil)
+	}
+	active := func() bool {
+		rs := gg.StateMap[string, dataGridResizeState](w, nsDgResize, capModerate)
+		return rs.GetOr("g1", dataGridResizeState{}).Active
+	}
+
+	send(gg.EventMouseDown, gg.MouseLeft)
+	if !active() {
+		t.Fatal("left press did not start a resize")
+	}
+	send(gg.EventMouseDown, gg.MouseRight)
+	send(gg.EventMouseUp, gg.MouseRight)
+	if !active() {
+		t.Fatal("right click ended the resize")
+	}
+	send(gg.EventMouseUp, gg.MouseLeft)
+	if active() {
+		t.Fatal("left release did not end the resize")
+	}
+}

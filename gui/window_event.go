@@ -197,6 +197,12 @@ func (w *Window) handleKeyUpEvent(layout *Layout, e *Event) {
 
 func (w *Window) handleMouseDownEvent(layout *Layout, e *Event) {
 	w.pressMouseButton(e.MouseButton)
+	// Another button's press during a drag is held, so its release is
+	// matched, but it reaches no widget and dismisses nothing (#1099).
+	if w.lockDropsPress(e) {
+		return
+	}
+	defer w.beginPressDispatch(e.MouseButton)()
 	w.recordPressTarget(e)
 	w.setMouseCursor(CursorArrow)
 	if inspectorSupported && w.inspectorEnabled {

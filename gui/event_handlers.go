@@ -495,6 +495,12 @@ func mouseUpHandler(layout *Layout, e *Event, w *Window) {
 	if layout == nil {
 		return
 	}
+	// Another button's release during a drag ends nothing, and the
+	// release of a press the lock dropped reaches no one (#1099).
+	if w.takeDroppedRelease(e.MouseButton) ||
+		w.lockDropsButton(e.MouseButton) {
+		return
+	}
 	if w.viewState.mouseLock.MouseUp != nil {
 		w.callLocked(w.viewState.mouseLock.MouseUp, EventCtx{layout, e, w})
 		return

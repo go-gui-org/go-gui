@@ -136,6 +136,18 @@ func (w *Window) pressMouseButton(btn MouseButton) {
 	w.viewState.mouseButtonsHeld |= mouseButtonBit(btn)
 }
 
+// beginPressDispatch marks btn's press as the one being dispatched,
+// so a lock taken by it is owned by btn (#1099). The returned func
+// ends the mark.
+func (w *Window) beginPressDispatch(btn MouseButton) func() {
+	w.viewState.pressDispatching = mouseButtonBit(btn)
+	return w.endPressDispatch
+}
+
+func (w *Window) endPressDispatch() {
+	w.viewState.pressDispatching = 0
+}
+
 // releaseMouseButton clears btn alone. The press target belongs to
 // the left button (recordPressTarget), so only a left release ends
 // it: a right click during a left drag keeps IsPressed true (#1098).
@@ -150,6 +162,7 @@ func (w *Window) releaseMouseButton(btn MouseButton) {
 // target, for paths where no release will arrive (capture loss).
 func (w *Window) clearHeldMouseButtons() {
 	w.viewState.mouseButtonsHeld = 0
+	w.viewState.droppedPresses = 0
 	w.viewState.pressTargetID = ""
 }
 
@@ -356,4 +369,55 @@ func fixupPopupMaps(w *Window) {
 			}
 		}
 	}
+}
+
+// mouseLockOwnerButton is the button that owns the mouse lock, or
+// MouseInvalid when the lock has no owner (#1099).
+func (w *Window) mouseLockOwnerButton() MouseButton {
+	owner := w.viewState.mouseLockOwner
+	if owner == 0 {
+		return MouseInvalid
+	}
+	return MouseButton(bits.TrailingZeros16(owner))
+}
+
+// lockDropsButton reports whether an event of btn belongs to no one
+// while the mouse is locked: the lock has an owner, btn is another
+// button, and the owner is still held. Such a press or release must
+// neither end the drag nor reach the widgets under it (#1099). Once
+// the owner is up the lock is stale, and any button reaches it again
+// so it can still end.
+func (w *Window) lockDropsButton(btn MouseButton) bool {
+	owner := w.viewState.mouseLockOwner
+	return owner != 0 && mouseButtonBit(btn) != owner &&
+		w.viewState.mouseButtonsHeld&owner != 0 && w.mouseIsLocked()
+}
+
+// lockDropsPress reports whether a press is dropped by the lock: one
+// of another button during a drag, when the lock takes no presses
+// itself. A lock with a MouseDown callback asked for every press.
+// It records the drop, so the release of that button is dropped too,
+// even when it comes after the lock ended. A press that is not
+// dropped clears the record, so a lost release cannot eat a later one.
+func (w *Window) lockDropsPress(e *Event) bool {
+	bit := mouseButtonBit(e.MouseButton)
+	if w.viewState.mouseLock.lockedMouseDown() == nil &&
+		w.lockDropsButton(e.MouseButton) {
+		w.viewState.droppedPresses |= bit
+		return true
+	}
+	w.viewState.droppedPresses &^= bit
+	return false
+}
+
+// takeDroppedRelease reports whether this release belongs to a press
+// the lock dropped, and clears that record. No widget saw the press,
+// so no widget gets the release.
+func (w *Window) takeDroppedRelease(btn MouseButton) bool {
+	bit := mouseButtonBit(btn)
+	if w.viewState.droppedPresses&bit == 0 {
+		return false
+	}
+	w.viewState.droppedPresses &^= bit
+	return true
 }

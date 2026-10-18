@@ -169,6 +169,36 @@ func TestDragScrollSecondButtonKeepsPan(t *testing.T) {
 	}
 }
 
+// A tap replays the left press after left is up. A lock a child takes
+// in that replay belongs to left, not to a right button still down, so
+// the left release that follows reaches it and ends it (#1099).
+func TestDragScrollTapLockEndsWithRightHeld(t *testing.T) {
+	clicks := 0
+	w := dragScrollTestWindow(t, scrollBoth, OnClickChild{onClick: &clicks})
+	ups := 0
+	w.layout.Children[0].Children[1].Shape.events = w.allocEventHandlers(
+		eventHandlers{OnMouseDown: func(ctx EventCtx) {
+			ctx.Window.MouseLock(MouseLockCfg{MouseUp: func(lctx EventCtx) {
+				ups++
+				lctx.Window.MouseUnlock()
+			}})
+			ctx.Consume()
+		}},
+	)
+	at := func(typ EventType, btn MouseButton, x, y float32) *Event {
+		return &Event{Type: typ, MouseButton: btn, MouseX: x, MouseY: y}
+	}
+	// Right goes down outside the viewport, so nothing takes it.
+	w.handleMouseDownEvent(&w.layout, at(EventMouseDown, MouseRight, 500, 500))
+	// The node child sits at window-absolute (20,20)-(80,40).
+	w.handleMouseDownEvent(&w.layout, at(EventMouseDown, MouseLeft, 40, 30))
+	w.handleMouseUpEvent(&w.layout, at(EventMouseUp, MouseLeft, 40, 30))
+	if ups != 1 || w.mouseIsLocked() {
+		t.Fatalf("left release did not end the replayed lock: ups=%d locked=%v",
+			ups, w.mouseIsLocked())
+	}
+}
+
 func TestDragScrollBelowThresholdStays(t *testing.T) {
 	w := dragScrollTestWindow(t, scrollBoth, OnClickChild{})
 	dragScrollDown(w, 60, 60)

@@ -163,6 +163,22 @@ type ViewState struct {
 	markdownCache *BoundedMap[markdownCacheKey, markdownCacheEntry]
 	diagramCache  *BoundedDiagramCache
 
+	// mouseLockOwner is the bit (mouseButtonBit) of the button whose
+	// press took the lock, or 0 when no button was held. Only that
+	// button's release reaches the lock, and only while it is held
+	// do other buttons' presses and releases get dropped (#1099). A
+	// bit, not a MouseButton, so the zero value means no owner:
+	// MouseButton's zero is MouseLeft.
+	mouseLockOwner uint16
+	// pressDispatching is the bit of the button whose press is being
+	// dispatched, or 0 outside a press dispatch. A lock taken there
+	// belongs to that press, even with another button already down.
+	pressDispatching uint16
+	// droppedPresses holds the bits of buttons whose press the lock
+	// dropped. Their release is dropped too, even after the lock
+	// ends: no widget saw the press (#1099).
+	droppedPresses uint16
+
 	// RTF layout cache — avoids re-shaping unchanged content.
 	// rtfLayoutPass is the last view pass the cache saw; a new pass
 	// drops the pieces no recent pass used (rtfLayoutCacheSync).

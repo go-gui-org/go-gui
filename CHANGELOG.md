@@ -63,6 +63,21 @@ and this project adheres to
 
 ### Fixed
 
+- **A mouse lock now ends only on the release of the button that took it
+  (#1099).** The lock's `MouseUp` got every release. A right or middle click
+  during a left drag ended the drag while left was still down: a slider,
+  scrollbar, splitter, dock or reorder drag, a text selection, a color drag or a
+  data grid column resize stopped, and a pointer move with left still down did
+  nothing. `MouseLock` now records the button of the press that took it. While
+  that button is down, another button's release does not reach the lock's
+  `MouseUp`, and neither its press nor its release reaches the widgets under the
+  drag, even when the release comes after the drag ends. So it cannot fire an
+  `OnClick` or close a popup. A lock with a `MouseDown` callback still gets
+  every press. A lock taken with no button down, or one whose button is already
+  up, gets every release as before, so it can still end. Code that calls
+  `MouseLock` needs no change, and the button check in each `MouseUp` is no
+  longer needed.
+
 - **A second mouse button no longer ends a left press (#1098).** The window kept
   one held button. A right press during a left drag replaced it, and the right
   release cleared it and the press target while left was still down. So

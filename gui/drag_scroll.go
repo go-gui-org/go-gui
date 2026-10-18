@@ -241,12 +241,8 @@ func dragPanOnMouseUp(ctx EventCtx) {
 	if w == nil {
 		return
 	}
-	// The lock's MouseUp sees every release. The pan belongs to the
-	// left press, so a right or middle release must not end it, or
-	// drop the left button still held (#1098).
-	if e != nil && e.MouseButton != MouseLeft {
-		return
-	}
+	// Only the left release gets here: the pan's lock belongs to the
+	// left press, and the window drops other releases (#1099).
 	st := w.viewState.dragPan
 	// Read before the unlock clears it: the release came mapped.
 	framed := w.viewState.mouseLockXfOn
@@ -285,8 +281,12 @@ func dragPanOnMouseUp(ctx EventCtx) {
 	// The original press put off its blur and keyboard decisions
 	// while the pan claim was open. Make them now, on the replayed
 	// press, where the widget under the tap has answered: a keypad
-	// key keeps focus, empty space blurs (issue #770).
+	// key keeps focus, empty space blurs (issue #770). A lock taken in
+	// the replay belongs to left, not to another button still down,
+	// so the release below reaches it (#1099).
+	endPress := w.beginPressDispatch(MouseLeft)
 	w.pressWalk(root, &down)
+	endPress()
 	if framed {
 		e.MouseX, e.MouseY = w.viewState.lockRawX, w.viewState.lockRawY
 	}
