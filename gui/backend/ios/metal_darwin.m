@@ -642,6 +642,15 @@ void metalSetGradientTM2(const float* m) {
     [_enc setFragmentBytes:m length:64 atIndex:0];
 }
 
+// metalSetCustomBuiltins hands a custom shader its built-in block
+// (#573; _gg_builtins in msl.BuildCustom). Fragment index 0, free in
+// the custom pipeline as it is in the gradient one. Every custom draw
+// must call it: fs_main reads the buffer whatever the body uses.
+void metalSetCustomBuiltins(const float* m) {
+    if (!_enc || !m) return;
+    [_enc setFragmentBytes:m length:64 atIndex:0];
+}
+
 void metalSetScissor(int x, int y, int w, int h, int viewH) {
     if (!_enc) return;
     // Clamp to viewport.

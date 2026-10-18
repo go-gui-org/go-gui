@@ -10,7 +10,10 @@ package msl
 // NOTE: The custom VS uses standalone buffer(1)/buffer(2)
 // bindings instead of the Uniforms struct at buffer(0) used by
 // built-in shaders. The C layer (metalSetCustomPipeline) sets up
-// matching bindings for custom pipelines.
+// matching bindings for custom pipelines. The FS reads the
+// built-in block from fragment buffer(0), which every custom draw
+// must bind (metalSetCustomBuiltins): an unbound buffer the
+// function reads is undefined behavior.
 func BuildCustom(body string) string {
 	return `#include <metal_stdlib>
 using namespace metal;
@@ -52,8 +55,20 @@ vertex VertexOut vs_main(
 fragment float4 fs_main(
     VertexOut in [[stage_in]],
     texture2d<float> tex [[texture(0)]],
-    sampler smp [[sampler(0)]]
+    sampler smp [[sampler(0)]],
+    constant float4x4 &_gg_builtins [[buffer(0)]]
 ) {
+    // Built-in inputs (#573): Shadertoy's names and units, unpacked
+    // from RenderCmd.ShaderBuiltinsAt (slots in gui/shader_builtins.go).
+    // MSL has no per-draw globals, so they are locals of this outer
+    // block and the body runs in a nested one: a body that declares
+    // its own iTime shadows this one instead of failing to compile.
+    float3 iResolution = _gg_builtins[0].xyz;
+    float  iTime       = _gg_builtins[0].w;
+    float4 iMouse      = _gg_builtins[1];
+    float  iTimeDelta  = _gg_builtins[2].x;
+    int    iFrame      = int(_gg_builtins[2].y);
+
     float radius = floor(in.params / 4096.0) / 4.0;
 
     float2 width_inv = float2(fwidth(in.uv.x), fwidth(in.uv.y));
@@ -68,16 +83,20 @@ fragment float4 fs_main(
     d = d / max(grad_len, 0.001);
     float sdf_alpha = 1.0 - smoothstep(-0.59, 0.59, d);
 
+    float4 _gg_color;
+    {
     // --- user body ---
     ` + body + `
     // --- end user body ---
-
-    frag_color = float4(frag_color.rgb, frag_color.a * sdf_alpha);
-
-    if (frag_color.a < 0.0) {
-        frag_color += tex.sample(smp, in.uv);
+    _gg_color = frag_color;
     }
-    return frag_color;
+
+    _gg_color = float4(_gg_color.rgb, _gg_color.a * sdf_alpha);
+
+    if (_gg_color.a < 0.0) {
+        _gg_color += tex.sample(smp, in.uv);
+    }
+    return _gg_color;
 }
 `
 }

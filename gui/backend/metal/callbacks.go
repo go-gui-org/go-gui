@@ -173,7 +173,13 @@ func testDelegateSet() bool {
 // 1 = no Metal device. Lives here because cgo is not permitted in
 // _test.go files. See TestBuiltinShadersCompile.
 func testCompileShaders() int {
-	cMSL := C.CString(msl.Source)
+	return testCompileMSL(msl.Source)
+}
+
+// testCompileMSL compiles src through the same probe; return codes
+// as testCompileShaders. See TestCustomWrapperCompiles.
+func testCompileMSL(src string) int {
+	cMSL := C.CString(src)
 	defer C.free(unsafe.Pointer(cMSL))
 	return int(C.metalCompileShadersProbe(cMSL))
 }

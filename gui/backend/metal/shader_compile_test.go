@@ -2,7 +2,40 @@
 
 package metal
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/go-gui-org/go-gui/gui/backend/internal/msl"
+)
+
+// TestCustomWrapperCompiles compiles msl.BuildCustom around bodies
+// that read the built-in inputs (#573), at the same pinned language
+// version as the built-in library: stricter than the custom pipeline,
+// which compiles with options:nil. A body that declares its own iTime
+// must shadow the wrapper's, as in GLSL.
+func TestCustomWrapperCompiles(t *testing.T) {
+	bodies := map[string]string{
+		"params": "float4 frag_color = float4(in.p0.x, in.uv.x, " +
+			"in.color.r, 1.0);",
+		"builtins": "float2 st = in.position.xy / iResolution.xy;\n" +
+			"float m = iMouse.z > 0.0 ? iMouse.w : 0.0;\n" +
+			"float f = float(iFrame % 2) * iTimeDelta;\n" +
+			"float4 frag_color = float4(st, cos(iTime) + m + f, 1.0);",
+		"own iTime": "float iTime = in.p0.x;\n" +
+			"float2 iResolution = float2(1.0);\n" +
+			"float4 frag_color = float4(cos(iTime), iResolution, 1.0);",
+	}
+	for name, body := range bodies {
+		switch rc := testCompileMSL(msl.BuildCustom(body)); rc {
+		case 0:
+		case 1:
+			t.Skip("no Metal device (headless or virtualized runner)")
+		default:
+			t.Errorf("%s body: wrapped MSL failed to compile (rc=%d); "+
+				"see the logged MTLLibraryError above", name, rc)
+		}
+	}
+}
 
 // TestBuiltinShadersCompile compiles the built-in MSL library against
 // the pinned language version (MSL 3.0 / macOS 13 Ventura) that

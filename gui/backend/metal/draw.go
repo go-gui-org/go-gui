@@ -601,6 +601,8 @@ func (b *windowState) drawCustomShader(r *gui.RenderCmd) {
 		tm[i] = r.Shader.Params[i]
 	}
 	b.setTM(tm)
+	builtins := r.ShaderBuiltinsAt(s)
+	C.metalSetCustomBuiltins(b.ctx, (*C.float)(&builtins[0]))
 
 	verts := gpu.BuildQuad(r.X*s, r.Y*s, r.W*s, r.H*s,
 		r.Color, r.Radius*s, 0)

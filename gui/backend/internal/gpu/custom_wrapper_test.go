@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -127,9 +128,76 @@ func TestCustomMSLWrapperAgrees(t *testing.T) {
 		"frag_color",
 		"float4 p0;",
 		"float4 p3;",
+		"constant float4x4 &_gg_builtins [[buffer(0)]]",
+		// The body runs in a nested block, so its frag_color is
+		// copied out before the block closes.
+		"_gg_color = frag_color;\n    }",
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("msl.BuildCustom output missing %q", want)
+		}
+	}
+}
+
+// reBuiltinUnpack matches a wrapper line that unpacks a built-in from
+// _gg_builtins, in either language: name, column, and swizzle (empty
+// for a whole column).
+var reBuiltinUnpack = regexp.MustCompile(
+	`\b(iResolution|iTime|iTimeDelta|iFrame|iMouse)\s*=\s*` +
+		`(?:int\()?_gg_builtins\[(\d)\](?:\.([xyzw]+))?`)
+
+// builtinUnpacks maps each built-in name in src to "column.swizzle".
+func builtinUnpacks(src string) map[string]string {
+	got := map[string]string{}
+	for _, m := range reBuiltinUnpack.FindAllStringSubmatch(src, -1) {
+		got[m[1]] = m[2] + "." + m[3]
+	}
+	return got
+}
+
+// TestCustomWrappersUnpackBuiltinsAlike holds the MSL wrapper to the
+// GLSL one: each built-in comes from the same column and components.
+// gui's TestGLSLWrapperBuiltinSlots holds the GLSL side to the slot
+// constants the block is packed with, so this pins MSL to them too.
+func TestCustomWrappersUnpackBuiltinsAlike(t *testing.T) {
+	t.Parallel()
+	glsl := builtinUnpacks(gui.BuildGLSLFragment(customTestBodyGLSL))
+	mslU := builtinUnpacks(msl.BuildCustom(customTestBodyMSL))
+	if len(glsl) != 5 {
+		t.Fatalf("GLSL wrapper unpacks %d built-ins, want 5: %v", len(glsl), glsl)
+	}
+	for name, want := range glsl {
+		if got, ok := mslU[name]; !ok || got != want {
+			t.Errorf("%s: MSL reads _gg_builtins[%s], GLSL reads [%s]",
+				name, got, want)
+		}
+	}
+	if len(mslU) != len(glsl) {
+		t.Errorf("MSL unpacks %v, GLSL unpacks %v", mslU, glsl)
+	}
+}
+
+// TestCustomShaderBackendsUploadBuiltins pins every GPU backend's
+// custom-shader draw to an upload of the built-in block. On Metal and
+// iOS a missed upload is not just stale values: fs_main reads fragment
+// buffer(0) whatever the body uses, and an unbound buffer is undefined
+// behavior.
+func TestCustomShaderBackendsUploadBuiltins(t *testing.T) {
+	t.Parallel()
+	checks := map[string]string{
+		"../../gl/draw.go":           "ShaderBuiltinsAt(",
+		"../../web/custom_shader.go": "ShaderBuiltinsAt(",
+		"../../android/draw.go":      "C.glesSetBuiltins(",
+		"../../metal/draw.go":        "C.metalSetCustomBuiltins(",
+		"../../ios/draw.go":          "C.metalSetCustomBuiltins(",
+	}
+	for path, want := range checks {
+		data, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatalf("read %s: %v", path, err)
+		}
+		if !strings.Contains(string(data), want) {
+			t.Errorf("%s: missing built-in upload %q", path, want)
 		}
 	}
 }
