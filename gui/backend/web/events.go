@@ -123,70 +123,12 @@ func (b *Backend) registerEvents(w *gui.Window) {
 		return nil
 	})
 
+	// The key and beforeinput handlers take the window as emit, so a
+	// test can drive them without one. The method value is bound once.
+	emit := w.EventFn
+
 	reg(doc, "keydown", func(_ js.Value, args []js.Value) any {
-		e := args[0]
-
-		// While a composition is live the input method owns the
-		// keyboard — arrows move between clauses, Enter commits,
-		// Escape reverts — and the browser still fires keydown for
-		// those keys (key == "Process", isComposing == true). Let
-		// them through and the field's own caret moves out from
-		// under the preedit, or Enter submits mid-composition.
-		// Truthy, not Bool: Bool panics on a browser that predates
-		// the property and leaves it undefined.
-		if e.Get("isComposing").Truthy() {
-			return nil
-		}
-
-		code := e.Get("code").String()
-		key := e.Get("key").String()
-		mods := mapModifiers(e)
-
-		kc := mapKeyCode(code)
-		isIME := isIMEInput(e.Get("target"))
-		// Prevent browser defaults for navigation keys. Enter is scoped
-		// to our hidden input: cancelling it keeps the following
-		// beforeinput from submitting the same edit a second time without
-		// interfering with an embedding page's own controls.
-		if shouldPreventDefault(code) ||
-			(kc == gui.KeyEnter && isIME) {
-			e.Call("preventDefault")
-		}
-
-		// Key event.
-		*evt = gui.Event{
-			Type:      gui.EventKeyDown,
-			KeyCode:   kc,
-			Modifiers: mods,
-			KeyRepeat: e.Get("repeat").Bool(),
-		}
-		w.EventFn(evt)
-
-		// Generate char event for printable single-rune keys.
-		// Multi-byte single-rune input (e.g. emoji via keyboard
-		// shortcut) is excluded here; IME-based emoji is handled
-		// by the compositionend listener.
-		if len(key) > 0 && !e.Get("ctrlKey").Bool() &&
-			!e.Get("metaKey").Bool() {
-			r, sz := utf8.DecodeRuneInString(key)
-			if r != utf8.RuneError && sz == len(key) &&
-				r >= 32 && r != 127 {
-				*evt = gui.Event{
-					Type:      gui.EventChar,
-					CharCode:  uint32(r),
-					IMEText:   key,
-					Modifiers: mods,
-				}
-				w.EventFn(evt)
-				// The key is typed now. Stop the browser typing it
-				// into the hidden input as well: that would fire a
-				// beforeinput, and the beforeinput listener types it
-				// a second time.
-				if isIMEInput(e.Get("target")) {
-					e.Call("preventDefault")
-				}
-			}
-		}
+		handleKeyDown(emit, evt, args[0])
 		return nil
 	})
 
@@ -198,39 +140,7 @@ func (b *Backend) registerEvents(w *gui.Window) {
 	// too, so the hidden input stays empty and the keyboard cannot
 	// autocorrect text that only it can see.
 	reg(doc, "beforeinput", func(_ js.Value, args []js.Value) any {
-		e := args[0]
-		// Composition text arrives through the composition events.
-		if !isIMEInput(e.Get("target")) || e.Get("isComposing").Truthy() {
-			return nil
-		}
-		kind := classifyBeforeInput(jsString(e.Get("inputType")))
-		switch kind {
-		case beforeInputText:
-			e.Call("preventDefault")
-			text := imeSanitizeText(beforeInputData(e))
-			if len(text) == 0 {
-				return nil
-			}
-			r, _ := utf8.DecodeRuneInString(text)
-			*evt = gui.Event{
-				Type:     gui.EventChar,
-				CharCode: uint32(r),
-				IMEText:  text,
-			}
-			w.EventFn(evt)
-		case beforeInputBackspace:
-			e.Call("preventDefault")
-			*evt = gui.Event{Type: gui.EventKeyDown, KeyCode: gui.KeyBackspace}
-			w.EventFn(evt)
-		case beforeInputDelete:
-			e.Call("preventDefault")
-			*evt = gui.Event{Type: gui.EventKeyDown, KeyCode: gui.KeyDelete}
-			w.EventFn(evt)
-		case beforeInputEnter:
-			e.Call("preventDefault")
-			*evt = gui.Event{Type: gui.EventKeyDown, KeyCode: gui.KeyEnter}
-			w.EventFn(evt)
-		}
+		handleBeforeInput(emit, evt, args[0])
 		return nil
 	})
 
@@ -247,13 +157,7 @@ func (b *Backend) registerEvents(w *gui.Window) {
 	})
 
 	reg(doc, "keyup", func(_ js.Value, args []js.Value) any {
-		e := args[0]
-		*evt = gui.Event{
-			Type:      gui.EventKeyUp,
-			KeyCode:   mapKeyCode(e.Get("code").String()),
-			Modifiers: mapModifiers(e),
-		}
-		w.EventFn(evt)
+		handleKeyUp(emit, evt, args[0])
 		return nil
 	})
 
@@ -379,6 +283,126 @@ func (b *Backend) registerEvents(w *gui.Window) {
 	reg(canvas, "touchmove", touchHandler(gui.EventTouchesMoved))
 	reg(canvas, "touchend", touchHandler(gui.EventTouchesEnded))
 	reg(canvas, "touchcancel", touchHandler(gui.EventTouchesCancelled))
+}
+
+// handleKeyDown sends a keydown as a key-down, and a printable key as a
+// char too. It is the keydown listener of registerEvents.
+func handleKeyDown(emit func(*gui.Event), evt *gui.Event, e js.Value) {
+	// While a composition is live the input method owns the
+	// keyboard — arrows move between clauses, Enter commits,
+	// Escape reverts — and the browser still fires keydown for
+	// those keys (key == "Process", isComposing == true). Let
+	// them through and the field's own caret moves out from
+	// under the preedit, or Enter submits mid-composition.
+	// Truthy, not Bool: Bool panics on a browser that predates
+	// the property and leaves it undefined.
+	if e.Get("isComposing").Truthy() {
+		return
+	}
+
+	code := e.Get("code").String()
+	key := e.Get("key").String()
+	keyCode := jsInt(e.Get("keyCode"))
+	mods := mapModifiers(e)
+
+	name := domKeyName(code, key, keyCode)
+	kc := mapKeyCode(name)
+	isIME := isIMEInput(e.Get("target"))
+	if preventKeyDefault(name, kc, isIME) {
+		e.Call("preventDefault")
+	}
+
+	// Key event.
+	*evt = gui.Event{
+		Type:      gui.EventKeyDown,
+		KeyCode:   kc,
+		Modifiers: mods,
+		KeyRepeat: e.Get("repeat").Bool(),
+	}
+	emit(evt)
+
+	// Generate char event for printable single-rune keys.
+	// Multi-byte single-rune input (e.g. emoji via keyboard
+	// shortcut) is excluded here; IME-based emoji is handled
+	// by the compositionend listener. A keydown the input method
+	// owns (keyCode 229) types nothing here: Android Chrome ignores
+	// its preventDefault, so the beforeinput that follows types it.
+	if len(key) > 0 && !e.Get("ctrlKey").Bool() &&
+		!e.Get("metaKey").Bool() &&
+		!isIMEProcessKey(keyCode, key) {
+		r, sz := utf8.DecodeRuneInString(key)
+		if r != utf8.RuneError && sz == len(key) &&
+			r >= 32 && r != 127 {
+			*evt = gui.Event{
+				Type:      gui.EventChar,
+				CharCode:  uint32(r),
+				IMEText:   key,
+				Modifiers: mods,
+			}
+			emit(evt)
+			// The key is typed now. Stop the browser typing it
+			// into the hidden input as well: that would fire a
+			// beforeinput, and the beforeinput listener types it
+			// a second time.
+			if isIME {
+				e.Call("preventDefault")
+			}
+		}
+	}
+}
+
+// handleKeyUp sends a keyup as a key-up. It is the keyup listener of
+// registerEvents.
+func handleKeyUp(emit func(*gui.Event), evt *gui.Event, e js.Value) {
+	*evt = gui.Event{
+		Type: gui.EventKeyUp,
+		KeyCode: mapKeyCode(domKeyName(e.Get("code").String(),
+			e.Get("key").String(), jsInt(e.Get("keyCode")))),
+		Modifiers: mapModifiers(e),
+	}
+	emit(evt)
+}
+
+// handleBeforeInput types or deletes what a beforeinput on the hidden
+// input asks for, and cancels it so the hidden input stays empty. It is
+// the beforeinput listener of registerEvents.
+func handleBeforeInput(emit func(*gui.Event), evt *gui.Event, e js.Value) {
+	// Composition text arrives through the composition events.
+	if !isIMEInput(e.Get("target")) || e.Get("isComposing").Truthy() {
+		return
+	}
+	switch classifyBeforeInput(jsString(e.Get("inputType"))) {
+	case beforeInputText:
+		e.Call("preventDefault")
+		dispatchText(emit, evt, imeSanitizeText(beforeInputData(e)))
+	case beforeInputBackspace:
+		e.Call("preventDefault")
+		*evt = gui.Event{Type: gui.EventKeyDown, KeyCode: gui.KeyBackspace}
+		emit(evt)
+	case beforeInputDelete:
+		e.Call("preventDefault")
+		*evt = gui.Event{Type: gui.EventKeyDown, KeyCode: gui.KeyDelete}
+		emit(evt)
+	case beforeInputEnter:
+		e.Call("preventDefault")
+		*evt = gui.Event{Type: gui.EventKeyDown, KeyCode: gui.KeyEnter}
+		emit(evt)
+	}
+}
+
+// dispatchText sends text as one EventChar. CharCode carries the first
+// rune and IMEText the whole string. Empty text sends nothing.
+func dispatchText(emit func(*gui.Event), evt *gui.Event, text string) {
+	if len(text) == 0 {
+		return
+	}
+	r, _ := utf8.DecodeRuneInString(text)
+	*evt = gui.Event{
+		Type:     gui.EventChar,
+		CharCode: uint32(r),
+		IMEText:  text,
+	}
+	emit(evt)
 }
 
 // jsString reads a JS string property without coercion: a missing
@@ -529,6 +553,9 @@ const (
 // keydown, but do report the requested line break here.
 func classifyBeforeInput(inputType string) beforeInputKind {
 	switch inputType {
+	// A replacement (autocorrect, a picked suggestion) is typed as plain
+	// text. It can replace nothing: the hidden input is empty whenever a
+	// beforeinput fires, and getTargetRanges is empty for an <input>.
 	case "insertText", "insertReplacementText":
 		return beforeInputText
 	case "deleteContentBackward":
@@ -552,6 +579,56 @@ func beforeInputData(e js.Value) string {
 		return jsString(dt.Call("getData", "text/plain"))
 	}
 	return ""
+}
+
+// jsInt reads a JS number as an int, or 0 when the value is missing or
+// not a number. Value.Int panics on a non-number.
+func jsInt(v js.Value) int {
+	if v.Type() != js.TypeNumber {
+		return 0
+	}
+	return v.Int()
+}
+
+// domKeyName returns the name a keydown or keyup maps from: its code,
+// or its key when the code is empty. A soft keyboard's edit keys
+// (Android Chrome through KEYCODE_DEL, iOS Safari) carry key
+// "Backspace" or "Enter" with no code; without the fallback they map to
+// KeyInvalid and are lost, because the hidden input is empty and no
+// beforeinput follows. The named key values match the code names in
+// keyCodes; a printable key ("a") matches none and is typed by the char
+// path instead.
+//
+// An input method's keydown (isIMEProcessKey) never falls back, and
+// maps to nothing. Android Chrome ignores its preventDefault, so the
+// beforeinput that follows (insertLineBreak, deleteContentBackward)
+// makes the edit; mapping its key as well would send it twice, which
+// for Enter is a second submit.
+func domKeyName(code, key string, keyCode int) string {
+	if code != "" || isIMEProcessKey(keyCode, key) {
+		return code
+	}
+	return key
+}
+
+// isIMEProcessKey reports whether a keydown belongs to the input method:
+// keyCode 229, or key "Process" or "Unidentified". Android Chrome ignores
+// preventDefault on such a keydown, so a char typed from it would be
+// typed again by the beforeinput that follows.
+func isIMEProcessKey(keyCode int, key string) bool {
+	return keyCode == 229 || key == "Process" || key == "Unidentified"
+}
+
+// preventKeyDefault reports whether a keydown cancels the browser
+// default. Navigation keys and Backspace always do. Enter and Delete do
+// only on the hidden input: there, cancelling stops the beforeinput that
+// would make the same edit a second time, and an embedding page's own
+// controls keep their behavior.
+func preventKeyDefault(name string, kc gui.KeyCode, imeTarget bool) bool {
+	if shouldPreventDefault(name) {
+		return true
+	}
+	return imeTarget && (kc == gui.KeyEnter || kc == gui.KeyDelete)
 }
 
 func shouldPreventDefault(code string) bool {

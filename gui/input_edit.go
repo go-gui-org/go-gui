@@ -174,7 +174,10 @@ func editDelete(text string, is inputState, forward bool) (string, inputState, b
 // to the selection without deleting the selection itself, matching Android's
 // InputConnection deletion contract. A UTF-16 request that lands inside a
 // surrogate pair rounds outward to the rune boundary: Go strings cannot hold
-// the unpaired surrogate Android's Java buffer could otherwise create.
+// the unpaired surrogate Android's Java buffer could otherwise create. It
+// does not round to a grapheme cluster, as Backspace does: the input method
+// asks for part of a cluster on purpose (Backspace on "कि" takes only the
+// vowel sign), and taking more would leave its view of the text out of step.
 func editDeleteSurrounding(
 	text string, is inputState, forward bool, count int, inCodePoints bool,
 ) (string, inputState, bool) {

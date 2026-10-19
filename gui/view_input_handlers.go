@@ -359,12 +359,6 @@ func inputKeyUndoRedo(
 	return text, false, true
 }
 
-// inputKeyBackspaceOrDelete removes a grapheme, or refuses to.
-//
-// rejectCue sounds only for a masked field: the delete landed on a mask
-// literal, which is a refusal the user should hear. An unmasked field
-// that cannot delete is at the start or end of its text — an edge, not
-// a rejection — and stays silent (issue #468).
 // inputKeyDeleteEvent applies a Backspace or Delete key-down. An input
 // method's deletion (Event.IMEDeleteCount) removes the range it names; a
 // masked field, whose slots the mask decides, takes it as one key press.
@@ -381,6 +375,12 @@ func inputKeyDeleteEvent(
 		text, id, forward, mask, layout, w, rejectCue)
 }
 
+// inputKeyBackspaceOrDelete removes a grapheme, or refuses to.
+//
+// rejectCue sounds only for a masked field: the delete landed on a mask
+// literal, which is a refusal the user should hear. An unmasked field
+// that cannot delete is at the start or end of its text — an edge, not
+// a rejection — and stays silent (issue #468).
 func inputKeyBackspaceOrDelete(
 	text string, id string, forward bool,
 	mask *CompiledInputMask, layout *Layout, w *Window,

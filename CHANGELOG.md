@@ -78,9 +78,11 @@ and this project adheres to
   many units an input method asked to delete before or after the selection,
   which stays, in UTF-16 code units or in code points. The Android backend sets
   them for `deleteSurroundingText`. `Input` honours them, so one emoji goes as
-  one character. A masked `Input` and a handler that ignores them delete one
-  character, as for a key press; a custom text widget can read the count to
-  delete as asked.
+  one character. The count is exact, even inside a character made of several
+  code points, because the input method asks for part of one on purpose
+  (Backspace on Devanagari "कि" takes only the vowel sign). A masked `Input` and
+  a handler that ignores them delete one character, as for a key press; a custom
+  text widget can read the count to delete as asked.
 
 ### Changed
 
@@ -112,7 +114,12 @@ and this project adheres to
   `insertReplacementText` from `beforeinput`, and maps `deleteContentBackward`
   and `deleteContentForward` to Backspace and Delete, and a line break to Enter.
   A key a `keydown` already typed is not typed twice, and the hidden input stays
-  empty, so the keyboard cannot autocorrect text the field does not hold.
+  empty, so the keyboard cannot autocorrect text the field does not hold. A
+  `keydown` with keyCode 229 types nothing itself, because Android Chrome
+  ignores its `preventDefault` and the `beforeinput` that follows types the key.
+  A soft keyboard's Backspace or Enter `keydown` with an empty `code` now maps
+  from its `key`, and Delete on the hidden input cancels its default, as Enter
+  does, so its `beforeinput` does not delete a second character.
 
 - **Backspace and Enter on the Android soft keyboard reach the field (#1107).**
   Gboard sends both as key events, because the host view reports none of the

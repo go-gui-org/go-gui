@@ -85,10 +85,12 @@ func imeCommit(text string) {
 }
 
 // imeCommitKey maps a commit that is a single edit key to that key.
-// The Kotlin host sends Backspace as "\b" and forward delete as
-// "\x7f" (deleteSurroundingText, KEYCODE_DEL, KEYCODE_FORWARD_DEL), and
-// Enter as "\n" (KEYCODE_ENTER). A soft keyboard that knows nothing of
-// the field's text sends those keys instead of deleting text.
+// The Kotlin host's sendKeyEvent sends Backspace as "\b" and forward
+// delete as "\x7f" (KEYCODE_DEL, KEYCODE_FORWARD_DEL), and Enter as
+// "\n" (KEYCODE_ENTER). A soft keyboard that knows nothing of the
+// field's text sends those keys instead of deleting text. A
+// deleteSurroundingText request does not come here: the host passes it
+// to IMEDeleteSurrounding, which carries the count.
 func imeCommitKey(text string) (gui.KeyCode, bool) {
 	switch text {
 	case "\b":

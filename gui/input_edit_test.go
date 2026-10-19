@@ -103,6 +103,9 @@ func TestEditDeleteSurrounding(t *testing.T) {
 		{"code points", "abcde", inputState{CursorPos: 4}, false, 3, true, "ae", 1, 0, 0},
 		{"preserve selection", "abcdef", inputState{CursorPos: 4, selectBeg: 2, selectEnd: 4}, false, 2, true, "cdef", 2, 0, 2},
 		{"delete after selection", "abcdef", inputState{CursorPos: 2, selectBeg: 2, selectEnd: 4}, true, 2, true, "abcd", 2, 2, 4},
+		// The count is exact, even inside a grapheme cluster: a Devanagari
+		// IME's Backspace on "कि" (क + vowel sign ि) takes only the sign.
+		{"inside cluster", "aकि", inputState{CursorPos: 3}, false, 1, true, "aक", 2, 0, 0},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
