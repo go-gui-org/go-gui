@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Context
 import android.opengl.GLSurfaceView
 import android.text.InputType
+import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.accessibility.AccessibilityNodeProvider
 import android.view.inputmethod.BaseInputConnection
@@ -142,6 +143,23 @@ class GoGuiGLSurfaceView(context: Context) : GLSurfaceView(context) {
         outAttrs.imeOptions = EditorInfo.IME_FLAG_NO_FULLSCREEN or
             EditorInfo.IME_FLAG_NO_EXTRACT_UI
         return object : BaseInputConnection(this, false) {
+            // The view sees none of the field's text, so the keyboard
+            // sends Backspace and Enter as key events instead of
+            // editing. They travel as commits Go maps to key-downs.
+            override fun sendKeyEvent(event: KeyEvent): Boolean {
+                val text = when (event.keyCode) {
+                    KeyEvent.KEYCODE_DEL -> "\b"
+                    KeyEvent.KEYCODE_FORWARD_DEL -> "\u007F"
+                    KeyEvent.KEYCODE_ENTER,
+                    KeyEvent.KEYCODE_NUMPAD_ENTER -> "\n"
+                    else -> return super.sendKeyEvent(event)
+                }
+                if (event.action == KeyEvent.ACTION_DOWN) {
+                    queueEvent { Androidapp.imeCommit(text) }
+                }
+                return true
+            }
+
             override fun commitText(
                 text: CharSequence,
                 newCursorPosition: Int
@@ -171,20 +189,43 @@ class GoGuiGLSurfaceView(context: Context) : GLSurfaceView(context) {
                 return true
             }
 
-            override fun deleteSurroundingText(
+            // The connection has no copy of the field text, so Go applies
+            // the requested range at the real field selection. Passing the
+            // unit is essential: one emoji is two UTF-16 code units but one
+            // Unicode code point.
+            private fun deleteSurrounding(
                 beforeLength: Int,
-                afterLength: Int
+                afterLength: Int,
+                inCodePoints: Boolean
             ): Boolean {
-                // Backspace for characters before cursor.
-                for (i in 0 until beforeLength) {
-                    queueEvent { Androidapp.imeCommit("\b") }
-                }
-                // Delete for characters after cursor.
-                for (i in 0 until afterLength) {
-                    queueEvent { Androidapp.imeCommit("\u007F") }
+                if (beforeLength > 0 || afterLength > 0) {
+                    queueEvent {
+                        Androidapp.imeDeleteSurrounding(
+                            beforeLength.toLong(),
+                            afterLength.toLong(),
+                            inCodePoints
+                        )
+                    }
                 }
                 return true
             }
+
+            override fun deleteSurroundingText(
+                beforeLength: Int,
+                afterLength: Int
+            ): Boolean = deleteSurrounding(
+                beforeLength, afterLength, false
+            )
+
+            // API 24+ keyboards may express the same edit in Unicode code
+            // points. The view still owns no editable buffer, so the base
+            // implementation cannot apply it to the go-gui field.
+            override fun deleteSurroundingTextInCodePoints(
+                beforeLength: Int,
+                afterLength: Int
+            ): Boolean = deleteSurrounding(
+                beforeLength, afterLength, true
+            )
         }
     }
 }

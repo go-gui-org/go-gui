@@ -138,6 +138,12 @@ func IMEComposition(text string, cursor, selLen int64) {
 // IMECommit is called from Kotlin when text is committed.
 func IMECommit(text string) { android.IMECommit(text) }
 
+// IMEDeleteSurrounding is called from Kotlin for an InputConnection
+// range deletion. Lengths are UTF-16 code units unless inCodePoints.
+func IMEDeleteSurrounding(before, after int64, inCodePoints bool) {
+	android.IMEDeleteSurrounding(before, after, inCodePoints)
+}
+
 // AppearanceChanged is called from Kotlin with the uiMode night flag
 // (issue #752): once at startup with the current mode and again on
 // every onConfigurationChanged.

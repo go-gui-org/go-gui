@@ -473,6 +473,12 @@ func IMECommit(text string) {
 	imeCommit(text)
 }
 
+// IMEDeleteSurrounding is called from Kotlin for an InputConnection range
+// deletion. Lengths are UTF-16 code units unless inCodePoints is true.
+func IMEDeleteSurrounding(before, after int64, inCodePoints bool) {
+	imeDeleteSurrounding(before, after, inCodePoints)
+}
+
 // --- Notification bridge ---
 
 var (

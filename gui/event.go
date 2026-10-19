@@ -340,6 +340,14 @@ type TouchPoint struct {
 // IMEStart is where the clause begins, which a backend must not assume
 // is the insertion point. IMELength == 0 means no clause is selected,
 // and IMEStart is then whatever the platform calls the cursor.
+//
+// IMEDeleteCount, on a KeyBackspace or KeyDelete key-down, is a deletion
+// an input method asked for (Android deleteSurroundingText): that many
+// units before (Backspace) or after (Delete) the selection, which itself
+// stays. The units are UTF-16 code units, or code points when
+// IMEDeleteInCodePoints is set; one emoji is two of the first and one of
+// the second. 0 means an ordinary key press, which deletes the selection
+// or one character. A handler that ignores the count deletes one.
 type Event struct {
 	IMEText        string
 	FilePath       string
@@ -369,6 +377,7 @@ type Event struct {
 	CharCode        uint32
 	IMEStart        int32
 	IMELength       int32
+	IMEDeleteCount  int32
 	GestureDX       float32 // pan/swipe delta from previous
 	GestureDY       float32
 	VelocityX       float32 // px/s at gesture end
@@ -384,6 +393,8 @@ type Event struct {
 	GesturePhase    GesturePhase
 	KeyRepeat       bool
 	IsHandled       bool
+	// IMEDeleteInCodePoints sets the unit of IMEDeleteCount.
+	IMEDeleteInCodePoints bool
 	// dragPanReplay marks a tap replay synthesized by the
 	// drag-to-scroll release path (issue #783). The replay runs
 	// the press through normal dispatch, but the DragScroll

@@ -189,6 +189,22 @@ func inputDelete(text string, focusID string, forwardDelete bool, w *Window) (st
 	return next, ok
 }
 
+// inputDeleteSurrounding removes an Android InputConnection range and stores
+// the resulting caret/selection state.
+func inputDeleteSurrounding(
+	text, focusID string, forward bool, count int32,
+	inCodePoints bool, w *Window,
+) (string, bool) {
+	next, is, ok := editDeleteSurrounding(
+		text, inputStateOrDefault(focusID, w), forward,
+		int(count), inCodePoints,
+	)
+	if ok {
+		inputStoreState(focusID, w, is)
+	}
+	return next, ok
+}
+
 // inputCopy returns the selected text. Returns ("", false) if
 // no selection or password mode.
 func inputCopy(text string, focusID string, isPassword bool, w *Window) (string, bool) {

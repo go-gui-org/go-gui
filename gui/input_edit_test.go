@@ -85,6 +85,40 @@ func TestEditDelete(t *testing.T) {
 	}
 }
 
+func TestEditDeleteSurrounding(t *testing.T) {
+	cases := []struct {
+		name         string
+		text         string
+		is           inputState
+		forward      bool
+		count        int
+		inCodePoints bool
+		want         string
+		wantPos      int
+		wantBeg      uint32
+		wantEnd      uint32
+	}{
+		{"utf16 emoji backward", "A😀", inputState{CursorPos: 2}, false, 2, false, "A", 1, 0, 0},
+		{"utf16 emoji forward", "😀A", inputState{CursorPos: 0}, true, 2, false, "A", 0, 0, 0},
+		{"code points", "abcde", inputState{CursorPos: 4}, false, 3, true, "ae", 1, 0, 0},
+		{"preserve selection", "abcdef", inputState{CursorPos: 4, selectBeg: 2, selectEnd: 4}, false, 2, true, "cdef", 2, 0, 2},
+		{"delete after selection", "abcdef", inputState{CursorPos: 2, selectBeg: 2, selectEnd: 4}, true, 2, true, "abcd", 2, 2, 4},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got, is, ok := editDeleteSurrounding(
+				tc.text, tc.is, tc.forward, tc.count, tc.inCodePoints,
+			)
+			if !ok || got != tc.want || is.CursorPos != tc.wantPos ||
+				is.selectBeg != tc.wantBeg || is.selectEnd != tc.wantEnd {
+				t.Fatalf("got (%q, pos %d, selection %d..%d, %v), want (%q, pos %d, selection %d..%d, true)",
+					got, is.CursorPos, is.selectBeg, is.selectEnd, ok,
+					tc.want, tc.wantPos, tc.wantBeg, tc.wantEnd)
+			}
+		})
+	}
+}
+
 func TestEditUndoCoalescing(t *testing.T) {
 	// A typing run is one undo step; a selection edit starts a new one.
 	text, is := "", inputState{}

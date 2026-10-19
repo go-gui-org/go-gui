@@ -217,12 +217,12 @@ func makeInputOnKeyDown(hcfg *inputHandlerCfg) func(EventCtx) {
 		case KeyZ:
 			text, textChanged, handled = inputKeyUndoRedo(
 				text, id, ctx.Event, ctx.Window)
-		case KeyBackspace:
-			text, textChanged = inputKeyBackspaceOrDelete(
-				text, id, false, mask, ctx.Layout, ctx.Window, hcfg.cues.reject)
-		case KeyDelete:
-			text, textChanged = inputKeyBackspaceOrDelete(
-				text, id, true, mask, ctx.Layout, ctx.Window, hcfg.cues.reject)
+		case KeyBackspace, KeyDelete:
+			// tk.key, not the event's key: a binding mode maps Ctrl+D
+			// to Delete on macOS.
+			text, textChanged = inputKeyDeleteEvent(
+				text, id, tk.key == KeyDelete, ctx.Event, mask,
+				ctx.Layout, ctx.Window, hcfg.cues.reject)
 		default:
 			handled = false
 		}
@@ -365,6 +365,22 @@ func inputKeyUndoRedo(
 // literal, which is a refusal the user should hear. An unmasked field
 // that cannot delete is at the start or end of its text — an edge, not
 // a rejection — and stays silent (issue #468).
+// inputKeyDeleteEvent applies a Backspace or Delete key-down. An input
+// method's deletion (Event.IMEDeleteCount) removes the range it names; a
+// masked field, whose slots the mask decides, takes it as one key press.
+func inputKeyDeleteEvent(
+	text string, id string, forward bool, e *Event,
+	mask *CompiledInputMask, layout *Layout, w *Window,
+	rejectCue SoundCue,
+) (string, bool) {
+	if e.IMEDeleteCount > 0 && mask == nil {
+		return inputDeleteSurrounding(text, id, forward,
+			e.IMEDeleteCount, e.IMEDeleteInCodePoints, w)
+	}
+	return inputKeyBackspaceOrDelete(
+		text, id, forward, mask, layout, w, rejectCue)
+}
+
 func inputKeyBackspaceOrDelete(
 	text string, id string, forward bool,
 	mask *CompiledInputMask, layout *Layout, w *Window,

@@ -3,6 +3,7 @@
 package android
 
 import (
+	"math"
 	"strings"
 	"unicode/utf8"
 
@@ -67,6 +68,13 @@ func imeCommit(text string) {
 	if len(text) == 0 {
 		return
 	}
+	// An edit key the host sends as a commit types no text: the field
+	// drops control characters and acts on the key-down instead.
+	if kc, ok := imeCommitKey(text); ok {
+		evt := gui.Event{Type: gui.EventKeyDown, KeyCode: kc}
+		androidWindow.EventFn(&evt)
+		return
+	}
 	r, _ := utf8.DecodeRuneInString(text)
 	evt := gui.Event{
 		Type:     gui.EventChar,
@@ -74,6 +82,61 @@ func imeCommit(text string) {
 		IMEText:  text,
 	}
 	androidWindow.EventFn(&evt)
+}
+
+// imeCommitKey maps a commit that is a single edit key to that key.
+// The Kotlin host sends Backspace as "\b" and forward delete as
+// "\x7f" (deleteSurroundingText, KEYCODE_DEL, KEYCODE_FORWARD_DEL), and
+// Enter as "\n" (KEYCODE_ENTER). A soft keyboard that knows nothing of
+// the field's text sends those keys instead of deleting text.
+func imeCommitKey(text string) (gui.KeyCode, bool) {
+	switch text {
+	case "\b":
+		return gui.KeyBackspace, true
+	case "\x7f":
+		return gui.KeyDelete, true
+	case "\n", "\r":
+		return gui.KeyEnter, true
+	}
+	return gui.KeyInvalid, false
+}
+
+// imeDeleteSurrounding dispatches the InputConnection's requested range as
+// a Backspace for the text before the selection and a Delete for the text
+// after it, each carrying its count and unit (Event.IMEDeleteCount).
+func imeDeleteSurrounding(before, after int64, inCodePoints bool) {
+	if androidWindow == nil {
+		return
+	}
+	evts, n := imeDeleteEvents(before, after, inCodePoints)
+	for i := range n {
+		androidWindow.EventFn(&evts[i])
+	}
+}
+
+// imeDeleteEvents builds the key-downs for a deleteSurroundingText
+// request: up to one Backspace and one Delete, none for an empty
+// direction. The lengths cross JNI as Java ints widened to int64, so a
+// negative one is dropped and a huge one is capped.
+func imeDeleteEvents(before, after int64, inCodePoints bool) ([2]gui.Event, int) {
+	var evts [2]gui.Event
+	n := 0
+	for _, d := range [2]struct {
+		key   gui.KeyCode
+		count int64
+	}{{gui.KeyBackspace, before}, {gui.KeyDelete, after}} {
+		if d.count <= 0 {
+			continue
+		}
+		evts[n] = gui.Event{
+			Type:                  gui.EventKeyDown,
+			KeyCode:               d.key,
+			IMEDeleteCount:        int32(min(d.count, math.MaxInt32)),
+			IMEDeleteInCodePoints: inCodePoints,
+		}
+		n++
+	}
+	return evts, n
 }
 
 // touchEvent dispatches a raw touch event to the window's event

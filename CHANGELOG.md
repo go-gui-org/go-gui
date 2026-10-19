@@ -73,6 +73,15 @@ and this project adheres to
   button. The button now has a tooltip that names what it changes and points at
   the page, and an accessible label that names the current locale.
 
+- **`Event.IMEDeleteCount` and `Event.IMEDeleteInCodePoints` carry an input
+  method's deletion (#1107).** On a Backspace or Delete key-down they say how
+  many units an input method asked to delete before or after the selection,
+  which stays, in UTF-16 code units or in code points. The Android backend sets
+  them for `deleteSurroundingText`. `Input` honours them, so one emoji goes as
+  one character. A masked `Input` and a handler that ignores them delete one
+  character, as for a key press; a custom text widget can read the count to
+  delete as asked.
+
 ### Changed
 
 - **A widget with an accessible name no longer allocates its accessibility data
@@ -93,6 +102,32 @@ and this project adheres to
   `Title` no longer allocates on each frame; it allocated four objects before.
 
 ### Fixed
+
+- **Typing on a phone's soft keyboard reaches web text fields (#1107).** Android
+  Chrome reports soft-keyboard keys as `keydown` with key `Unidentified`
+  (keyCode 229) and delivers the text only as `beforeinput` on the hidden input,
+  which the web backend did not read. Letters, digits, spaces and picked
+  suggestions were lost, so a field in a WASM app such as the showcase stayed
+  empty on a phone. The backend now types `insertText` and
+  `insertReplacementText` from `beforeinput`, and maps `deleteContentBackward`
+  and `deleteContentForward` to Backspace and Delete, and a line break to Enter.
+  A key a `keydown` already typed is not typed twice, and the hidden input stays
+  empty, so the keyboard cannot autocorrect text the field does not hold.
+
+- **Backspace and Enter on the Android soft keyboard reach the field (#1107).**
+  Gboard sends both as key events, because the host view reports none of the
+  field's text, and the bridge dropped them. The Android backend now turns a
+  `"\b"`, `"\x7f"` or `"\n"` commit into a Backspace, Delete or Enter key-down,
+  and the demo host sends `KEYCODE_DEL`, `KEYCODE_FORWARD_DEL` and
+  `KEYCODE_ENTER` that way. A keyboard's `deleteSurroundingText` and
+  `deleteSurroundingTextInCodePoints` were dropped too: each removed character
+  arrived as a `"\b"` character, which a field ignores, and a count in UTF-16
+  units would have taken an emoji's neighbour with it. The host now passes the
+  range and its unit to `android.IMEDeleteSurrounding`, which sends it as
+  Backspace and Delete key-downs carrying the count (see
+  `Event.IMEDeleteCount`). A host built from the demo picks this up by copying
+  its `sendKeyEvent`, its two `deleteSurroundingText` overrides and the
+  `IMEDeleteSurrounding` bridge function.
 
 - **A GLSL shader body may reuse the wrapper's variable names (#573).** The GLSL
   wrapper spliced the body into `main` beside its own locals (`d`, `q`, `pos`,

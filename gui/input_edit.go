@@ -170,6 +170,81 @@ func editDelete(text string, is inputState, forward bool) (string, inputState, b
 	return string(runes), editCommit(is, text, cursorPos, inputOpDelete), true
 }
 
+// editDeleteSurrounding removes count code points or UTF-16 code units next
+// to the selection without deleting the selection itself, matching Android's
+// InputConnection deletion contract. A UTF-16 request that lands inside a
+// surrogate pair rounds outward to the rune boundary: Go strings cannot hold
+// the unpaired surrogate Android's Java buffer could otherwise create.
+func editDeleteSurrounding(
+	text string, is inputState, forward bool, count int, inCodePoints bool,
+) (string, inputState, bool) {
+	if count <= 0 {
+		return text, is, false
+	}
+	runes := []rune(text)
+	cursorPos := min(is.CursorPos, len(runes))
+	if cursorPos < 0 {
+		cursorPos = len(runes)
+	}
+
+	beg, end := cursorPos, cursorPos
+	hasSelection := is.selectBeg != is.selectEnd
+	if hasSelection {
+		sb, se := u32Sort(is.selectBeg, is.selectEnd)
+		if int(sb) > len(runes) || int(se) > len(runes) {
+			return text, is, false
+		}
+		beg, end = int(sb), int(se)
+	}
+
+	delBeg, delEnd := beg, end
+	units := func(r rune) int {
+		if inCodePoints || r <= 0xFFFF {
+			return 1
+		}
+		return 2
+	}
+	remaining := count
+	if forward {
+		delBeg = end
+		delEnd = end
+		for delEnd < len(runes) && remaining > 0 {
+			remaining -= units(runes[delEnd])
+			delEnd++
+		}
+	} else {
+		delBeg = beg
+		delEnd = beg
+		for delBeg > 0 && remaining > 0 {
+			delBeg--
+			remaining -= units(runes[delBeg])
+		}
+	}
+	if delBeg == delEnd {
+		return text, is, false
+	}
+
+	result := make([]rune, 0, len(runes)-(delEnd-delBeg))
+	result = append(result, runes[:delBeg]...)
+	result = append(result, runes[delEnd:]...)
+	adjust := func(pos int) int {
+		switch {
+		case pos <= delBeg:
+			return pos
+		case pos >= delEnd:
+			return pos - (delEnd - delBeg)
+		default:
+			return delBeg
+		}
+	}
+	next := editCommit(is, text, adjust(cursorPos), inputOpDelete)
+	if hasSelection {
+		next.selectBeg = uint32(adjust(int(is.selectBeg)))
+		next.selectEnd = uint32(adjust(int(is.selectEnd)))
+	}
+	return string(result), next, true
+}
+
 // editSelectedText returns the selected text. It returns ("", false) with
 // no selection, a selection outside the text, or a password field. The
 // clipboard write stays with the caller: the core has no platform.
