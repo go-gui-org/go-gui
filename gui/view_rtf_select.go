@@ -247,6 +247,9 @@ func rtfSelectOnClick(ctx EventCtx) {
 			return
 		}
 		sy.Set(scrollID, newScroll)
+		// A drag-select autoscroll is a direct write: it ends any
+		// ease or fling, which would fight it every frame (#1110).
+		scrollSmoothCancel(w, scrollID, scrollAxisY)
 		rp := computeRunePos(lastMouseX, lastMouseY, w, f)
 		updateDrag(rp, w, f)
 	}

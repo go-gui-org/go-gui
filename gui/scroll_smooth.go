@@ -6,12 +6,14 @@ import (
 )
 
 // Discrete mouse-wheel scrolling eases toward a target offset instead
-// of jumping instantly. This is a cheap exponential lerp — not a
-// spring or momentum simulation. Each 16 ms of time moves the displayed
-// offset a fixed fraction of the remaining distance, so it decelerates
-// naturally and settles in ~100ms. A tick moves by the time it covers
-// (scrollSmoothStep), so the ease takes the same time at any tick rate. Trackpad/precise scrolling already
-// carries OS momentum and is NOT routed here (see scrollVertical).
+// of jumping instantly, and a touch fling glides on the same animation
+// (scroll_momentum.go). Both are an exponential ease, not a spring: each
+// tick moves the displayed offset a fraction of the remaining distance,
+// set by a time constant (scrollEaseStep), so it decelerates naturally
+// and takes the same time at any tick rate. A wheel ease settles in
+// ~100 ms; a fling (tau 0.4 s) glides for about two seconds.
+// Trackpad/precise scrolling already carries OS momentum and is NOT
+// routed here (see scrollAxisBy).
 const (
 	scrollSmoothAnimationID = "___scroll_smooth___"
 	// scrollSmoothFactor is the fraction of remaining distance moved
@@ -38,10 +40,11 @@ type scrollSmoothEntry struct {
 	target  float32
 	current float32
 	// tau is a fling's decay time constant in seconds (scroll_momentum.go);
-	// 0 is the wheel ease. A fling aims at an unclamped target and stops
-	// at lo or 0, the scroll bounds it was armed with.
+	// 0 is the wheel ease. A fling aims at an unclamped target; the apply
+	// pass stops it on the scroll edge, read fresh from the layout
+	// (scrollFlingEdge), so the tick, which cannot read the layout, keeps
+	// no bound that could go stale.
 	tau     float32
-	lo      float32
 	active  bool
 	settled bool // reached target this tick; retire next tick
 	dirty   bool // current changed but not yet applied to the map
@@ -83,23 +86,29 @@ func (s *scrollSmoothAnimation) IsStopped() bool { return s.stopped }
 // SetStart implements Animation.
 func (s *scrollSmoothAnimation) SetStart(t time.Time) { s.start = t }
 
-// scrollSmoothStep is the fraction of the remaining distance to move in
-// a tick of dt seconds. The loop ticks at the display rate (#1018), so dt
-// changes. Compounding scrollSmoothFactor over dt/16ms keeps the ease
-// the same in time: four 4 ms ticks move as far as one 16 ms tick. A dt
-// that is not positive and finite takes the nominal 16 ms step.
-func scrollSmoothStep(dt float32) float32 {
+// scrollSmoothTau is the wheel ease's time constant: moving
+// scrollSmoothFactor of the distance per 16 ms is an exponential ease
+// with tau = -16 ms / ln(1 - factor), about 55.6 ms.
+var scrollSmoothTau = float32(
+	-animationCycle.Seconds() / math.Log(1-float64(scrollSmoothFactor)))
+
+// scrollEaseStep is the fraction of the remaining distance an
+// exponential ease with time constant tau covers in a tick of dt
+// seconds. The loop ticks at the display rate (#1018), so dt changes;
+// the exponential keeps the ease the same in time: four 4 ms ticks move
+// as far as one 16 ms tick. A dt that is not positive and finite takes
+// the nominal 16 ms step.
+func scrollEaseStep(dt, tau float32) float32 {
 	if !f32IsFinite(dt) || dt <= 0 {
-		return scrollSmoothFactor
+		dt = float32(animationCycle.Seconds())
 	}
-	periods := float64(dt) / animationCycle.Seconds()
-	return float32(1 - math.Pow(1-float64(scrollSmoothFactor), periods))
+	return float32(1 - math.Exp(-float64(dt)/float64(tau)))
 }
 
 // Update implements Animation. Runs on the animation goroutine while
 // w.animMu is held (see animationLoop).
 func (s *scrollSmoothAnimation) Update(_ *Window, dt float32, ac *AnimationCommands) bool {
-	step := scrollSmoothStep(dt)
+	step := scrollEaseStep(dt, scrollSmoothTau)
 	anyActive := false
 	anyDirty := false
 	for i := range s.entries {
@@ -126,17 +135,9 @@ func (s *scrollSmoothAnimation) Update(_ *Window, dt float32, ac *AnimationComma
 			e.current = e.target
 			e.settled = true
 		} else if e.tau > 0 {
-			e.current += diff * scrollMomentumStep(dt, e.tau)
+			e.current += diff * scrollEaseStep(dt, e.tau)
 		} else {
 			e.current += diff * step
-		}
-		if e.tau > 0 {
-			// A fling stops at the edge it reaches, at full speed.
-			if e.current <= e.lo {
-				e.current, e.settled = e.lo, true
-			} else if e.current >= 0 {
-				e.current, e.settled = 0, true
-			}
 		}
 		e.dirty = true
 		anyActive = true
@@ -261,7 +262,6 @@ func scrollSmoothArm(w *Window, id string, axis scrollAxis, displayed, maxOffset
 		base = e.current
 		displayed = e.current
 	}
-	e.tau = 0
 	target := amount
 	if relative {
 		target = base + amount
@@ -275,6 +275,10 @@ func scrollSmoothArm(w *Window, id string, axis scrollAxis, displayed, maxOffset
 	if newTarget == base {
 		return false // already at/heading to this offset
 	}
+	// Only now does the entry become a wheel ease: a rejected request
+	// must leave a fling a fling, or it would ease on toward the
+	// fling's unclamped target with no edge stop (#1110).
+	e.tau = 0
 	if !e.active {
 		e.current = displayed
 	}
@@ -315,11 +319,14 @@ func scrollSmoothCancel(w *Window, id string, axis scrollAxis) {
 	}
 }
 
-// scrollSmoothShiftY moves any in-flight vertical ease for id by dy,
-// preserving its absolute target. Used by scroll anchoring when it
-// rewrites the displayed offset mid-ease, so the animation continues
-// from the corrected position instead of stomping the correction on
-// its next tick. Main goroutine only.
+// scrollSmoothShiftY moves any in-flight vertical ease for id by dy.
+// Used by scroll anchoring and re-measuring when they rewrite the
+// displayed offset mid-ease, so the animation continues from the
+// corrected position instead of stomping the correction on its next
+// tick. A wheel ease keeps its absolute target. A fling moves its target
+// with the content, so it glides on in the same direction instead of
+// reversing; its bound is re-read on the next apply. Main goroutine
+// only.
 func scrollSmoothShiftY(w *Window, id string, dy float32) {
 	w.animMu.Lock()
 	defer w.animMu.Unlock()
@@ -328,6 +335,9 @@ func scrollSmoothShiftY(w *Window, id string, dy float32) {
 	}
 	if e := w.scrollSmooth.findEntry(id, scrollAxisY); e != nil && e.active {
 		e.current += dy
+		if e.tau > 0 {
+			e.target += dy
+		}
 		e.dirty = true
 		if !f32IsFinite(e.current) {
 			e.active = false
@@ -364,6 +374,9 @@ func commandApplyScrollSmooth(w *Window) {
 	quiesced := true
 	for i := range ss.entries {
 		e := &ss.entries[i]
+		if e.tau > 0 && (e.active || e.dirty) {
+			scrollFlingEdge(w, e)
+		}
 		// Keyed on dirty, not active: a settled entry retires on
 		// the tick after its final value is computed, and a slow
 		// flush must still apply that value instead of ending the

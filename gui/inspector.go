@@ -259,6 +259,8 @@ func inspectorApplyScrollTo(panelHeight float32, w *Window) {
 	newScroll := -(targetY - rowHeight*2)
 	newScroll = min(newScroll, 0)
 	w.scrollY().Set(inspectorScrollPanel, newScroll)
+	// A direct write ends any ease or fling on the panel (#1110).
+	scrollSmoothCancel(w, inspectorScrollPanel, scrollAxisY)
 }
 
 func inspectorFlatRowIndex(

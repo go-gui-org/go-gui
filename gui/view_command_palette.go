@@ -292,7 +292,11 @@ func commandPaletteShow(id string, w *Window) {
 	sq.Set(id, "")
 	sh := StateMap[string, int](w, nsCmdPaletteHighlight, capModerate)
 	sh.Set(id, 0)
-	w.scrollY().Set(ScopeID(id, "scroll"), 0)
+	scrollID := ScopeID(id, "scroll")
+	w.scrollY().Set(scrollID, 0)
+	// A fresh palette starts at the top: an ease or fling still
+	// running from its last showing must not carry it away (#1110).
+	scrollSmoothCancel(w, scrollID, scrollAxisY)
 	w.SetFocus(ScopeID(id, "input"))
 	w.InvalidateLayout()
 }

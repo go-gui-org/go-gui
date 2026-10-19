@@ -268,9 +268,11 @@ func scrollMirrorsX(shape *Shape) bool {
 
 // scrollHorizontal scrolls a scrollable layout horizontally by delta
 // lines of text, which the theme's ScrollMultiplier turns into pixels.
-// Returns true if the offset moved. Instant: used by the keyboard. The
-// discrete mouse-wheel path eases via scrollSmoothBy instead, and pixel
-// input (a touch pan, a trackpad) goes to scrollHorizontalPixels.
+// Returns true if the offset moved. Instant: used by the keyboard and by
+// precise (trackpad) scrolling, which arrives as fractional lines
+// (scrollAxisBy). The discrete mouse-wheel path eases via scrollSmoothBy
+// instead, and a touch pan, which reports pixels, goes to
+// scrollHorizontalPixels.
 func scrollHorizontal(layout *Layout, delta float32, w *Window) bool {
 	// Post-generation read: this window's theme, not the frame cache.
 	return scrollHorizontalPixels(
@@ -279,8 +281,8 @@ func scrollHorizontal(layout *Layout, delta float32, w *Window) bool {
 
 // scrollHorizontalPixels scrolls a scrollable layout horizontally by
 // delta pixels of content displacement, with no multiplier, so the
-// content moves as far as the finger or trackpad that moved it.
-// Returns true if the offset moved.
+// content moves as far as the finger that moved it. Returns true if the
+// offset moved.
 func scrollHorizontalPixels(layout *Layout, delta float32, w *Window) bool {
 	id := layout.Shape.idKey()
 	if !layout.Shape.Scrollable || id == "" ||
@@ -323,9 +325,11 @@ func scrollHorizontalPixels(layout *Layout, delta float32, w *Window) bool {
 
 // scrollVertical scrolls a scrollable layout vertically by delta lines
 // of text, which the theme's ScrollMultiplier turns into pixels.
-// Returns true if the offset moved. Instant: used by the keyboard. The
-// discrete mouse-wheel path eases via scrollSmoothBy instead, and pixel
-// input (a touch pan, a trackpad) goes to scrollVerticalPixels.
+// Returns true if the offset moved. Instant: used by the keyboard and by
+// precise (trackpad) scrolling, which arrives as fractional lines
+// (scrollAxisBy). The discrete mouse-wheel path eases via scrollSmoothBy
+// instead, and a touch pan, which reports pixels, goes to
+// scrollVerticalPixels.
 func scrollVertical(layout *Layout, delta float32, w *Window) bool {
 	// Post-generation read: this window's theme, not the frame cache.
 	return scrollVerticalPixels(
@@ -334,8 +338,8 @@ func scrollVertical(layout *Layout, delta float32, w *Window) bool {
 
 // scrollVerticalPixels scrolls a scrollable layout vertically by delta
 // pixels of content displacement, with no multiplier, so the content
-// moves as far as the finger or trackpad that moved it. Returns true if
-// the offset moved.
+// moves as far as the finger that moved it. Returns true if the offset
+// moved.
 func scrollVerticalPixels(layout *Layout, delta float32, w *Window) bool {
 	id := layout.Shape.idKey()
 	if !layout.Shape.Scrollable || id == "" ||

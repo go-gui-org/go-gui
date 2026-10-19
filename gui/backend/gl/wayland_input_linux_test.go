@@ -81,6 +81,15 @@ func TestWlAxisAcc(t *testing.T) {
 		t.Errorf("mixed = %v,%v,%v; want %v,%v,true", sx, sy, precise, -3*k, -15*k)
 	}
 
+	// A seat before v5 sends a wheel as continuous values only: one
+	// click (10 units) is a wheel's lines, eased, not 0.75 precise
+	// lines (#1110).
+	a.legacy = true
+	a.addValue(v, 10)
+	if _, sy, precise, _ = a.take(); precise || !near(sy, float64(-x11ScrollLines)) {
+		t.Errorf("legacy wheel = %v,%v; want %v,false", sy, precise, -x11ScrollLines)
+	}
+
 	// An unknown axis and NaN are ignored.
 	a.addValue(7, 1)
 	a.addValue120(7, 120)

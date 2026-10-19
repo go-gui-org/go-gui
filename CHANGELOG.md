@@ -177,7 +177,9 @@ and this project adheres to
   touchpad moves 1.5 px per point on both. An app that reads `ScrollY` of a
   precise Wayland event directly gets these lines, about 13 times smaller than
   before. `Event.ScrollX` / `ScrollY` now document the unit: lines everywhere,
-  fractional for a trackpad.
+  fractional for a trackpad. A seat before `wl_pointer` v5 sends a wheel as
+  continuous values only, like a touchpad; its notch now scrolls three lines,
+  eased, as on the other backends, where it scrolled ten.
 
 - **A GLSL shader body may reuse the wrapper's variable names (#573).** The GLSL
   wrapper spliced the body into `main` beside its own locals (`d`, `q`, `pos`,

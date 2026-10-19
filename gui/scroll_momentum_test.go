@@ -76,7 +76,10 @@ func TestPanLiftFlings(t *testing.T) {
 	w := panWindow()
 	last := panTo(w, 190, 0, 179, 169, 159, 149, 139)
 	atLift := offsetY(w)
-	vel := w.viewState.gesture.velocityY
+	_, vel, ok := w.viewState.gesture.panReleaseVelocity()
+	if !ok {
+		t.Fatal("no release velocity after five moves")
+	}
 	w.viewState.gesture.nowFn = fixedClock(last)
 	w.handleTouch(&w.layout, touchEvent(EventTouchesEnded, 1, 100, 139))
 
@@ -145,23 +148,15 @@ func TestFlingStopsAtEdge(t *testing.T) {
 	if !scrollMomentumStart(w, "1", scrollAxisY, -3000) {
 		t.Fatal("fling toward the end did not start")
 	}
-	deferred := make([]queuedCommand, 0, 2)
-	ac := newAnimationCommands(&deferred)
-	w.scrollSmooth.Update(w, 0.016, &ac)
-	e := w.scrollSmooth.findEntry("1", scrollAxisY)
 	// One 16 ms tick at ~3000 px/s covers far more than 5 px: the edge
-	// is reached in the first tick, not approached.
-	if e.current != maxOffset || !e.settled {
-		t.Fatalf("after one tick current = %v settled %v, want the edge %v",
-			e.current, e.settled, maxOffset)
-	}
-	for i := range deferred { // the main-goroutine apply
-		if deferred[i].windowFn != nil {
-			deferred[i].windowFn(w)
-		}
-	}
+	// is reached in the first frame, not approached, and the applied
+	// offset never passes it.
+	driveScrollSmooth(w, 1)
 	if got := offsetY(w); got != maxOffset {
-		t.Fatalf("applied offset = %v, want the edge %v", got, maxOffset)
+		t.Fatalf("offset after one frame = %v, want the edge %v", got, maxOffset)
+	}
+	if flingArmed(w) {
+		t.Fatal("fling still running on the edge")
 	}
 	// Resting on an edge, a fling into it does nothing.
 	driveScrollSmooth(w, 10)
@@ -208,22 +203,26 @@ func TestWheelTakesOverFling(t *testing.T) {
 	}
 }
 
-// TestScrollMomentumStep checks the decay covers 1-1/e of the distance
-// in tau, at any tick rate.
-func TestScrollMomentumStep(t *testing.T) {
-	got := scrollMomentumStep(scrollMomentumTau, scrollMomentumTau)
+// TestScrollEaseStep checks the shared ease: tau's step covers 1-1/e of
+// the distance, the step is the same in time at any tick rate, and the
+// wheel's time constant keeps its 25% per 16 ms.
+func TestScrollEaseStep(t *testing.T) {
+	got := scrollEaseStep(scrollMomentumTau, scrollMomentumTau)
 	if want := float32(1 - 1/math.E); math.Abs(float64(got-want)) > 1e-6 {
 		t.Fatalf("step over tau = %v, want %v", got, want)
 	}
 	// Four 4 ms ticks cover what one 16 ms tick does.
-	one := scrollMomentumStep(0.016, scrollMomentumTau)
-	s := scrollMomentumStep(0.004, scrollMomentumTau)
+	one := scrollEaseStep(0.016, scrollMomentumTau)
+	s := scrollEaseStep(0.004, scrollMomentumTau)
 	four := 1 - (1-s)*(1-s)*(1-s)*(1-s)
 	if math.Abs(float64(one-four)) > 1e-6 {
 		t.Fatalf("16 ms step %v, four 4 ms steps %v", one, four)
 	}
-	if got := scrollMomentumStep(float32(math.NaN()), scrollMomentumTau); !(got > 0 && got < 1) {
-		t.Fatalf("NaN dt step = %v, want the nominal 16 ms step", got)
+	if got := scrollEaseStep(float32(math.NaN()), scrollMomentumTau); math.Abs(float64(got-one)) > 1e-6 {
+		t.Fatalf("NaN dt step = %v, want the nominal 16 ms step %v", got, one)
+	}
+	if got := scrollEaseStep(0.016, scrollSmoothTau); math.Abs(float64(got-scrollSmoothFactor)) > 1e-6 {
+		t.Fatalf("wheel step per 16 ms = %v, want %v", got, scrollSmoothFactor)
 	}
 }
 
@@ -236,10 +235,11 @@ func flingArmed(w *Window) bool {
 	return e != nil && e.active && e.tau > 0
 }
 
-// TestSlowDragDoesNotFling checks the catch-up at pan recognition is
-// not timed as one frame. A finger that crawled 11 px in a second, then
-// moved 1 px, moves at ~12 px/s; counting the 12 px catch-up as one
-// 16 ms frame read it as 150 px/s and flung 60 px.
+// TestSlowDragDoesNotFling checks the catch-up at pan recognition does
+// not count as speed. A finger that crawled 11 px in a second, then moved
+// 1 px, moves at ~12 px/s; the pan's smoothed velocity reads the 12 px
+// catch-up as one frame (150 px/s), which flung 60 px. The release
+// velocity reads the finger's real positions.
 func TestSlowDragDoesNotFling(t *testing.T) {
 	w := panWindow()
 	gs := &w.viewState.gesture
@@ -252,9 +252,9 @@ func TestSlowDragDoesNotFling(t *testing.T) {
 	if got := offsetY(w); got != -12 {
 		t.Fatalf("offset = %v, want -12", got)
 	}
-	if v := f32Abs(gs.velocityY); v >= scrollMomentumMinVelocity {
-		t.Fatalf("velocity of a crawling finger = %v px/s, want under %v",
-			v, scrollMomentumMinVelocity)
+	if _, vy, _ := gs.panReleaseVelocity(); f32Abs(vy) >= scrollMomentumMinVelocity {
+		t.Fatalf("release velocity of a crawling finger = %v px/s, want under %v",
+			vy, scrollMomentumMinVelocity)
 	}
 	w.handleTouch(&w.layout, touchEvent(EventTouchesEnded, 1, 100, 138))
 	if flingArmed(w) {
@@ -295,5 +295,155 @@ func TestHandoffDoesNotFlingOldPan(t *testing.T) {
 	w.handleTouch(&w.layout, touchEvent(EventTouchesEnded, 2, 100, 380))
 	if flingArmed(w) {
 		t.Fatal("B's lift flung the list A had scrolled")
+	}
+}
+
+// TestFlickReleaseVelocity checks a short fast flick reads at its speed:
+// three 32 px moves 16 ms apart are 2000 px/s. The pan's smoothed
+// velocity, seeded at 0, read about half that and glided half as far.
+func TestFlickReleaseVelocity(t *testing.T) {
+	w := panWindow()
+	panTo(w, 190, 0, 158, 126, 94)
+	_, vy, ok := w.viewState.gesture.panReleaseVelocity()
+	if !ok || math.Abs(float64(vy+2000)) > 1 {
+		t.Fatalf("release velocity = %v, %v; want -2000 px/s", vy, ok)
+	}
+}
+
+// TestReleaseVelocityWindow checks only the last 100 ms count: a slow
+// start does not dilute a fast end.
+func TestReleaseVelocityWindow(t *testing.T) {
+	var gs gestureState
+	gs.panSampleReset(0, 0, 0)
+	gs.panSampleAdd(500_000_000, 0, 10) // a slow half second
+	gs.panSampleAdd(516_000_000, 0, 42) // then 2000 px/s
+	gs.panSampleAdd(532_000_000, 0, 74)
+	gs.panSampleAdd(548_000_000, 0, 106)
+	if _, vy, _ := gs.panReleaseVelocity(); math.Abs(float64(vy-2000)) > 1 {
+		t.Fatalf("release velocity = %v, want 2000 px/s", vy)
+	}
+	gs.panSampleReset(0, 0, 0)
+	if _, _, ok := gs.panReleaseVelocity(); ok {
+		t.Fatal("one sample gave a velocity")
+	}
+}
+
+// TestRejectedWheelKeepsFling checks a wheel request the smoother turns
+// down leaves a fling a fling. Making it a wheel ease first sent it on
+// toward the fling's unclamped target with no edge stop.
+func TestRejectedWheelKeepsFling(t *testing.T) {
+	w := panWindow()
+	w.scrollY().Set("1", -700)
+	if !scrollMomentumStart(w, "1", scrollAxisY, -3000) {
+		t.Fatal("setup: no fling")
+	}
+	ly, _ := findScrollLayout(w, "1")
+	maxOffset := scrollMaxOffsetY(ly)
+	e := w.scrollSmooth.findEntry("1", scrollAxisY)
+	// A zero step lands on the current offset: rejected.
+	if scrollSmoothArm(w, "1", scrollAxisY, offsetY(w), maxOffset, 0, true) {
+		t.Fatal("a no-op wheel request was accepted")
+	}
+	if e.tau != scrollMomentumTau {
+		t.Fatalf("rejected request turned the fling into a wheel ease (tau %v)", e.tau)
+	}
+	driveScrollSmooth(w, 1000)
+	if got := offsetY(w); got < maxOffset || got > 0 {
+		t.Fatalf("offset %v left the range [%v, 0]", got, maxOffset)
+	}
+}
+
+// TestFlingShiftKeepsDirection checks a scroll-anchor shift mid-fling
+// moves the glide with the content. Shifting only the displayed offset
+// left the target behind, and the glide turned back toward it.
+func TestFlingShiftKeepsDirection(t *testing.T) {
+	w := panWindow()
+	w.scrollY().Set("1", -100)
+	scrollMomentumStart(w, "1", scrollAxisY, -1000) // aims at -500
+	driveScrollSmooth(w, 2)
+	// Rows above measured taller: the content moved 500 px down.
+	scrollSmoothShiftY(w, "1", -500)
+	w.scrollY().Set("1", offsetY(w)-500)
+	prev := offsetY(w)
+	for range 200 {
+		driveScrollSmooth(w, 1)
+		got := offsetY(w)
+		if got > prev {
+			t.Fatalf("glide reversed after the shift: %v then %v", prev, got)
+		}
+		prev = got
+	}
+}
+
+// TestFlingFollowsGrowingContent checks a fling glides on into rows a
+// list appended, instead of stopping on the end it saw at the lift.
+func TestFlingFollowsGrowingContent(t *testing.T) {
+	w := panWindow()
+	w.scrollY().Set("1", -600) // 200 px from the end (-800)
+	scrollMomentumStart(w, "1", scrollAxisY, -3000)
+	driveScrollSmooth(w, 1)
+	// The list appends rows: the end moves to -2800.
+	w.layout.Children[0].Children[0].Shape.Height = 3000
+	driveScrollSmooth(w, 1000)
+	if got := offsetY(w); got >= -800 {
+		t.Fatalf("fling stopped at %v, on the old end (-800)", got)
+	}
+}
+
+// TestFlingStopsOnShrunkContent checks a fling stops on the new end of
+// content that shrank under it, instead of writing offsets past it.
+func TestFlingStopsOnShrunkContent(t *testing.T) {
+	w := panWindow()
+	w.scrollY().Set("1", -300)
+	scrollMomentumStart(w, "1", scrollAxisY, -1000)
+	driveScrollSmooth(w, 1)
+	// Rows are removed: the end moves up to -100.
+	w.layout.Children[0].Children[0].Shape.Height = 300
+	driveScrollSmooth(w, 1)
+	if got := offsetY(w); got != -100 {
+		t.Fatalf("offset after the shrink = %v, want the new end -100", got)
+	}
+	if flingArmed(w) {
+		t.Fatal("fling kept running past the new end")
+	}
+}
+
+// TestPaletteShowStopsFling checks a direct offset write ends a running
+// fling instead of being overwritten on the next tick: the command
+// palette opens at the top.
+func TestPaletteShowStopsFling(t *testing.T) {
+	w := panWindow()
+	id := ScopeID("pal", "scroll")
+	w.animMu.Lock()
+	w.scrollSmooth = &scrollSmoothAnimation{}
+	e := w.scrollSmooth.entryFor(id, scrollAxisY)
+	e.active, e.tau, e.current, e.target = true, scrollMomentumTau, -50, -400
+	w.animMu.Unlock()
+	commandPaletteShow("pal", w)
+	if e := w.scrollSmooth.findEntry(id, scrollAxisY); e.active {
+		t.Fatal("opening the palette left its fling running")
+	}
+	driveScrollSmooth(w, 10)
+	if got := w.scrollY().GetOr(id, 1); got != 0 {
+		t.Fatalf("palette offset = %v, want 0", got)
+	}
+}
+
+// TestFlingCrossesOldEndAfterGrowth checks the boundary timing of a list
+// that grows as a fling reaches its old end: the rows are appended, then
+// the next tick crosses the old end before any apply has read the new
+// one. Clamping in the tick against the end seen at the lift settled
+// the fling there and retired it.
+func TestFlingCrossesOldEndAfterGrowth(t *testing.T) {
+	w := panWindow()
+	w.scrollY().Set("1", -795) // 5 px from the end (-800)
+	if !scrollMomentumStart(w, "1", scrollAxisY, -3000) {
+		t.Fatal("setup: no fling")
+	}
+	// Rows are appended before the first tick: the end moves to -2800.
+	w.layout.Children[0].Children[0].Shape.Height = 3000
+	driveScrollSmooth(w, 1000)
+	if got := offsetY(w); got >= -800 {
+		t.Fatalf("fling stopped at %v, on the old end (-800)", got)
 	}
 }

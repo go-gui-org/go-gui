@@ -60,6 +60,11 @@ type gestureState struct {
 	panScrollID string
 	panScrollV  bool
 	panScrollH  bool
+	// panSamples holds the single finger's recent positions, newest
+	// at panSampleN-1, for the fling's release velocity
+	// (panReleaseVelocity).
+	panSamples [panSampleCap]panSample
+	panSampleN int
 
 	// Long-press arm-time snapshots (avoid closure allocation).
 	longPressSX, longPressSY float32
@@ -159,6 +164,7 @@ func handleTouchBegan(
 		// the last fling.
 		scrollMomentumStop(w)
 		t := gs.touches[0]
+		gs.panSampleReset(gs.now(), t.x, t.y)
 		gs.beganTime = gs.now()
 		gs.prevTime = gs.beganTime
 		gs.startX = t.x
@@ -219,6 +225,7 @@ func handleTouchMoved(
 
 	if gs.numTouches == 1 {
 		t := gs.touches[0]
+		gs.panSampleAdd(gs.now(), t.x, t.y)
 		if !gs.recognized {
 			dx := t.x - gs.startX
 			dy := t.y - gs.startY
@@ -228,11 +235,7 @@ func handleTouchMoved(
 				cancelLongPress(w)
 				gs.recognized = true
 				gs.gestureType = GesturePan
-				// The first pan move catches up from the press, so the
-				// content stays under the finger. Time that catch-up
-				// from the press too: from now, a crawl past the
-				// threshold read as one fast frame and flung (#1110).
-				gs.prevTime = gs.beganTime
+				gs.prevTime = gs.now()
 				gs.prevX = gs.startX
 				gs.prevY = gs.startY
 				emitGesture(gs, GesturePan, gesturePhaseBegan,
@@ -485,12 +488,10 @@ func transitionAfterLift(
 		// container until it moves one.
 		t := gs.touches[0]
 		gs.clearPanScroll()
+		gs.panSampleReset(gs.now(), t.x, t.y)
 		gs.gestureType = GesturePan
 		gs.pinchBegan = false
 		gs.rotateBegan = false
-		// Position and time as one pair, so the first velocity
-		// sample is not timed from before the pinch.
-		gs.prevTime = gs.now()
 		gs.prevX = t.x
 		gs.prevY = t.y
 		gs.startX = t.x
@@ -537,6 +538,7 @@ func reseedRemainingFinger(
 	gs.velocityY = 0
 	// The lifted finger's scroll container is not this one's to fling.
 	gs.clearPanScroll()
+	gs.panSampleReset(gs.beganTime, t.x, t.y)
 	gs.recognized = false
 	gs.gestureType = gestureNone
 	// The earlier press already released its mouse half;

@@ -209,6 +209,9 @@ func listHeightEnsureVariable(
 	}
 
 	if off, restored := listHeightRestoreAnchor(m, anchor); restored {
+		// Re-anchoring is a correction, not a new scroll: shift any
+		// ease or fling with it so its next tick does not undo it.
+		scrollSmoothShiftY(w, scrollID, off-sy.GetOr(scrollID, 0))
 		sy.Set(scrollID, off)
 	}
 	return m
@@ -231,6 +234,8 @@ func (w *Window) InvalidateListHeights(effectiveID string) {
 	anchor := listHeightCaptureAnchor(m, sy.GetOr(effectiveID, 0))
 	m.ResetToEstimate(m.estimate)
 	if off, restored := listHeightRestoreAnchor(m, anchor); restored {
+		// A correction: shift any ease or fling with it.
+		scrollSmoothShiftY(w, effectiveID, off-sy.GetOr(effectiveID, 0))
 		sy.Set(effectiveID, off)
 	}
 	w.InvalidateLayout()

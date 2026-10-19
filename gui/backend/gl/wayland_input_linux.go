@@ -321,8 +321,10 @@ func (s *wlSeat) pointerButton(serial, _ uint32, button, state uint32) {
 func (s *wlSeat) pointerAxis(_, axis uint32, value wl.Fixed) {
 	s.axis.addValue(axis, value.Float())
 	// Before wl_pointer v5 there is no frame event to group axis events,
-	// so each one is a scroll of its own.
+	// so each one is a scroll of its own; nor are there wheel clicks or
+	// an axis source (see wlAxisAcc.legacy).
 	if s.pointer.Version() < 5 {
+		s.axis.legacy = true
 		s.pointerFrame()
 	}
 }
@@ -353,7 +355,14 @@ type wlAxisAcc struct {
 	value120 [2]int32   // wheel clicks × 120
 	has      [2]bool    // the axis moved this frame
 	wheel    [2]bool    // the axis had wheel clicks
+	// legacy marks a seat before wl_pointer v5, which sends a wheel as
+	// continuous values only, like a touchpad (#1110).
+	legacy bool
 }
+
+// wlLegacyUnitsPerClick is the continuous axis value a pre-v5 seat
+// sends per wheel click.
+const wlLegacyUnitsPerClick = 10
 
 func (a *wlAxisAcc) addValue(axis uint32, v float64) {
 	if axis > 1 || v != v { // unknown axis, NaN
@@ -396,6 +405,14 @@ func (a *wlAxisAcc) take() (sx, sy float32, precise, ok bool) {
 	if wheel {
 		const perClick = x11ScrollLines / 120
 		return -float32(a.value120[1]) * perClick, -float32(a.value120[0]) * perClick, false, true
+	}
+	if a.legacy {
+		// No clicks and no axis source: a wheel and a touchpad look
+		// alike. Read it as a wheel, the likelier device on a seat this
+		// old; the touchpad conversion below would scroll a notch 0.75
+		// lines (#1110).
+		const perUnit = x11ScrollLines / wlLegacyUnitsPerClick
+		return -float32(a.value[1]) * perUnit, -float32(a.value[0]) * perUnit, false, true
 	}
 	return -float32(a.value[1]) * wlPreciseLinesPerPoint,
 		-float32(a.value[0]) * wlPreciseLinesPerPoint, true, true

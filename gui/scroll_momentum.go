@@ -1,7 +1,5 @@
 package gui
 
-import "math"
-
 // Momentum (fling) scrolling for touch (#1110). A pan that lifts while
 // the finger is still moving keeps the content gliding and slowing, as
 // native scroll views do, instead of stopping it dead.
@@ -26,16 +24,57 @@ const (
 	// scrollMomentumMaxVelocity caps a fling, in px/s, so a jittery
 	// last sample cannot throw the content across a long list.
 	scrollMomentumMaxVelocity = float32(8000)
+	// panVelocityWindow is how far back, in nanoseconds, the release
+	// velocity looks: the finger's displacement over its last 100 ms.
+	panVelocityWindow = int64(100_000_000)
+	// panSampleCap holds 100 ms of samples at 120 Hz with room for
+	// bursts.
+	panSampleCap = 16
 )
 
-// scrollMomentumStep is the fraction of the remaining distance a fling
-// covers in a tick of dt seconds. A dt that is not positive and finite
-// takes the nominal 16 ms.
-func scrollMomentumStep(dt, tau float32) float32 {
-	if !f32IsFinite(dt) || dt <= 0 {
-		dt = float32(animationCycle.Seconds())
+// panSample is one position of the single finger.
+type panSample struct {
+	t    int64 // monotonic nanos
+	x, y float32
+}
+
+// panSampleReset starts the samples over at a finger's position.
+func (gs *gestureState) panSampleReset(t int64, x, y float32) {
+	gs.panSampleN = 0
+	gs.panSampleAdd(t, x, y)
+}
+
+// panSampleAdd records a finger position.
+func (gs *gestureState) panSampleAdd(t int64, x, y float32) {
+	gs.panSamples[gs.panSampleN%panSampleCap] = panSample{t: t, x: x, y: y}
+	gs.panSampleN++
+}
+
+// panReleaseVelocity is the finger's velocity at the lift, in px/s: its
+// displacement over the last panVelocityWindow of samples. It reads real
+// positions, not the pan's catch-up at the threshold, and does not lag
+// the way the pan's smoothed velocity does, so a short fast flick reads
+// at its speed and a crawl past the threshold reads as a crawl (#1110).
+// ok is false without two samples in the window.
+func (gs *gestureState) panReleaseVelocity() (vx, vy float32, ok bool) {
+	n := min(gs.panSampleN, panSampleCap)
+	if n < 2 {
+		return 0, 0, false
 	}
-	return float32(1 - math.Exp(-float64(dt)/float64(tau)))
+	newest := gs.panSamples[(gs.panSampleN-1)%panSampleCap]
+	oldest := newest
+	for i := 2; i <= n; i++ {
+		s := gs.panSamples[(gs.panSampleN-i)%panSampleCap]
+		if newest.t-s.t > panVelocityWindow {
+			break
+		}
+		oldest = s
+	}
+	dt := float32(newest.t-oldest.t) / 1e9
+	if !(dt > 0) {
+		return 0, 0, false
+	}
+	return (newest.x - oldest.x) / dt, (newest.y - oldest.y) / dt, true
 }
 
 // panScrolled records the container a touch pan just moved and on which
@@ -65,11 +104,15 @@ func startPanMomentum(gs *gestureState, w *Window, fresh bool) {
 	if !fresh || gs.panScrollID == "" {
 		return
 	}
+	vx, vy, ok := gs.panReleaseVelocity()
+	if !ok {
+		return
+	}
 	if gs.panScrollV {
-		scrollMomentumStart(w, gs.panScrollID, scrollAxisY, gs.velocityY)
+		scrollMomentumStart(w, gs.panScrollID, scrollAxisY, vy)
 	}
 	if gs.panScrollH {
-		scrollMomentumStart(w, gs.panScrollID, scrollAxisX, gs.velocityX)
+		scrollMomentumStart(w, gs.panScrollID, scrollAxisX, vx)
 	}
 }
 
@@ -110,12 +153,46 @@ func scrollMomentumStart(w *Window, id string, axis scrollAxis, velocity float32
 	e.current = displayed
 	e.target = displayed + velocity*scrollMomentumTau
 	e.tau = scrollMomentumTau
-	e.lo = lo
 	e.active = true
 	e.settled = false
 	ss.stopped = false
 	w.animationAddLocked(ss)
 	return true
+}
+
+// scrollFlingEdge stops a fling on the scroll edge it reached. The
+// edge is read from the current layout every frame, so a glide follows
+// content that grew or shrank under it: it glides on into rows a list
+// appended, and stops on the new end of content that shrank instead of
+// writing offsets past it. The tick does not clamp: it runs on the
+// animation goroutine, cannot read the layout, and a bound it kept from
+// the lift went stale as the content changed. A fling therefore stops on
+// the edge at full speed, at most one tick past it in the entry, never
+// in an applied offset. Runs in the apply pass on the main goroutine
+// with w.animMu held. A scrollable that is gone is left alone.
+func scrollFlingEdge(w *Window, e *scrollSmoothEntry) {
+	ly, ok := findScrollLayout(w, e.id)
+	if !ok {
+		return
+	}
+	lo := scrollMaxOffsetY(ly)
+	if e.axis == scrollAxisX {
+		lo = scrollMaxOffsetX(ly)
+	}
+	if !f32IsFinite(lo) {
+		return
+	}
+	switch {
+	case e.current <= lo:
+		e.current = lo
+	case e.current >= 0:
+		e.current = 0
+	default:
+		return
+	}
+	e.dirty = true
+	e.active = false
+	e.settled = false
 }
 
 // scrollMomentumStop ends every running fling where its content is now,
