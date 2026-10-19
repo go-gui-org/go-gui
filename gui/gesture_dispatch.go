@@ -187,13 +187,17 @@ func gestureHandlerDepth(
 	// runs through the same mouse-lock path as a mouse drag
 	// (issue #783), and scrolling here too would move twice for
 	// one finger.
+	// The pan delta is pixels of finger travel, and the content follows
+	// the finger: no multiplier (#1110).
 	if e.GestureType == GesturePan &&
 		e.GesturePhase == GesturePhaseChanged &&
 		layout.Shape.Scrollable && !layout.Shape.DragScroll {
-		movedV := scrollVertical(layout, e.GestureDY, w)
-		movedH := scrollHorizontal(layout, e.GestureDX, w)
+		movedV := scrollVerticalPixels(layout, e.GestureDY, w)
+		movedH := scrollHorizontalPixels(layout, e.GestureDX, w)
 		if movedV || movedH {
 			e.IsHandled = true
+			// The lift flings the container this pan last moved.
+			panScrolled(&w.viewState.gesture, layout, movedV, movedH)
 		}
 	}
 }

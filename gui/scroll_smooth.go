@@ -37,6 +37,11 @@ type scrollSmoothEntry struct {
 	axis    scrollAxis
 	target  float32
 	current float32
+	// tau is a fling's decay time constant in seconds (scroll_momentum.go);
+	// 0 is the wheel ease. A fling aims at an unclamped target and stops
+	// at lo or 0, the scroll bounds it was armed with.
+	tau     float32
+	lo      float32
 	active  bool
 	settled bool // reached target this tick; retire next tick
 	dirty   bool // current changed but not yet applied to the map
@@ -120,8 +125,18 @@ func (s *scrollSmoothAnimation) Update(_ *Window, dt float32, ac *AnimationComma
 		if f32Abs(diff) < scrollSmoothSnap {
 			e.current = e.target
 			e.settled = true
+		} else if e.tau > 0 {
+			e.current += diff * scrollMomentumStep(dt, e.tau)
 		} else {
 			e.current += diff * step
+		}
+		if e.tau > 0 {
+			// A fling stops at the edge it reaches, at full speed.
+			if e.current <= e.lo {
+				e.current, e.settled = e.lo, true
+			} else if e.current >= 0 {
+				e.current, e.settled = 0, true
+			}
 		}
 		e.dirty = true
 		anyActive = true
@@ -238,9 +253,15 @@ func scrollSmoothArm(w *Window, id string, axis scrollAxis, displayed, maxOffset
 	e := ss.entryFor(id, axis)
 
 	base := displayed
-	if e.active {
+	if e.active && e.tau == 0 {
 		base = e.target
+	} else if e.active {
+		// A wheel or programmatic ease during a fling takes over from
+		// where the fling is, not from the far point it aimed at.
+		base = e.current
+		displayed = e.current
 	}
+	e.tau = 0
 	target := amount
 	if relative {
 		target = base + amount

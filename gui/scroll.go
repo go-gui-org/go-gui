@@ -266,11 +266,22 @@ func scrollMirrorsX(shape *Shape) bool {
 		effectiveTextDir(shape) == TextDirRTL
 }
 
-// scrollHorizontal adjusts the horizontal scroll offset of a
-// scrollable layout. Returns true if offset was adjusted. Instant:
-// used by the precise/trackpad and keyboard paths. The discrete
-// mouse-wheel path eases via scrollSmoothBy instead.
+// scrollHorizontal scrolls a scrollable layout horizontally by delta
+// lines of text, which the theme's ScrollMultiplier turns into pixels.
+// Returns true if the offset moved. Instant: used by the keyboard. The
+// discrete mouse-wheel path eases via scrollSmoothBy instead, and pixel
+// input (a touch pan, a trackpad) goes to scrollHorizontalPixels.
 func scrollHorizontal(layout *Layout, delta float32, w *Window) bool {
+	// Post-generation read: this window's theme, not the frame cache.
+	return scrollHorizontalPixels(
+		layout, delta*w.themeRef().ScrollMultiplier, w)
+}
+
+// scrollHorizontalPixels scrolls a scrollable layout horizontally by
+// delta pixels of content displacement, with no multiplier, so the
+// content moves as far as the finger or trackpad that moved it.
+// Returns true if the offset moved.
+func scrollHorizontalPixels(layout *Layout, delta float32, w *Window) bool {
 	id := layout.Shape.idKey()
 	if !layout.Shape.Scrollable || id == "" ||
 		layout.Shape.ScrollMode == ScrollVerticalOnly {
@@ -297,9 +308,7 @@ func scrollHorizontal(layout *Layout, delta float32, w *Window) bool {
 	if !f32IsFinite(old) {
 		old = 0
 	}
-	// Post-generation read: this window's theme, not the frame cache.
-	clamped := f32Clamp(
-		old+delta*w.themeRef().ScrollMultiplier, maxOffset, 0)
+	clamped := f32Clamp(old+delta, maxOffset, 0)
 	if !f32IsFinite(clamped) {
 		return false
 	}
@@ -312,11 +321,22 @@ func scrollHorizontal(layout *Layout, delta float32, w *Window) bool {
 	return true
 }
 
-// scrollVertical adjusts the vertical scroll offset of a
-// scrollable layout. Returns true if offset was adjusted. Instant:
-// used by the precise/trackpad and keyboard paths. The discrete
-// mouse-wheel path eases via scrollSmoothBy instead.
+// scrollVertical scrolls a scrollable layout vertically by delta lines
+// of text, which the theme's ScrollMultiplier turns into pixels.
+// Returns true if the offset moved. Instant: used by the keyboard. The
+// discrete mouse-wheel path eases via scrollSmoothBy instead, and pixel
+// input (a touch pan, a trackpad) goes to scrollVerticalPixels.
 func scrollVertical(layout *Layout, delta float32, w *Window) bool {
+	// Post-generation read: this window's theme, not the frame cache.
+	return scrollVerticalPixels(
+		layout, delta*w.themeRef().ScrollMultiplier, w)
+}
+
+// scrollVerticalPixels scrolls a scrollable layout vertically by delta
+// pixels of content displacement, with no multiplier, so the content
+// moves as far as the finger or trackpad that moved it. Returns true if
+// the offset moved.
+func scrollVerticalPixels(layout *Layout, delta float32, w *Window) bool {
 	id := layout.Shape.idKey()
 	if !layout.Shape.Scrollable || id == "" ||
 		layout.Shape.ScrollMode == ScrollHorizontalOnly {
@@ -338,9 +358,7 @@ func scrollVertical(layout *Layout, delta float32, w *Window) bool {
 	if !f32IsFinite(old) {
 		old = 0
 	}
-	// Post-generation read: this window's theme, not the frame cache.
-	clamped := f32Clamp(
-		old+delta*w.themeRef().ScrollMultiplier, maxOffset, 0)
+	clamped := f32Clamp(old+delta, maxOffset, 0)
 	if !f32IsFinite(clamped) {
 		return false
 	}

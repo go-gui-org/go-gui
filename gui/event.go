@@ -362,15 +362,19 @@ type Event struct {
 	MouseY         float32
 	MouseDX        float32
 	MouseDY        float32
-	// ScrollX and ScrollY carry scroll distance in one of two units,
-	// selected by ScrollPrecise. For a discrete mouse wheel
-	// (ScrollPrecise false) the unit is LINES OF TEXT: every backend
+	// ScrollX and ScrollY carry scroll distance in LINES OF TEXT, which
+	// a scroll container turns into pixels with Theme.ScrollMultiplier.
+	// For a discrete mouse wheel (ScrollPrecise false) every backend
 	// converts its native notch representation to the platform's
-	// lines-per-notch, so one notch reports ~3 on all of them. For a
-	// precise/trackpad delta (ScrollPrecise true) the unit is points of
-	// finger travel, pre-scaled by the backend. Consumers that care about
-	// the distinction — a terminal grid scrolling whole rows, say — must
-	// branch on ScrollPrecise rather than assuming one unit.
+	// lines-per-notch, so one notch reports ~3 on all of them. A
+	// precise/trackpad delta (ScrollPrecise true) is fractional lines: a
+	// backend that gets points of finger travel converts them at 0.075
+	// lines per point (macOS, Wayland), so under the default multiplier
+	// a trackpad moves 1.5 px per point. Consumers that care about the
+	// difference — a terminal grid scrolling whole rows, say — branch on
+	// ScrollPrecise: a wheel arrives in whole notches, a trackpad in
+	// small steps. A touch pan is not a scroll event; it moves the
+	// content by the finger's distance (#1110).
 	ScrollX         float32
 	ScrollY         float32
 	Modifiers       Modifier

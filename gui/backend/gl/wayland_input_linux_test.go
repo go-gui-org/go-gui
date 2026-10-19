@@ -3,6 +3,7 @@
 package gl
 
 import (
+	"math"
 	"os"
 	"os/exec"
 	"strings"
@@ -62,11 +63,13 @@ func TestWlAxisAcc(t *testing.T) {
 		t.Errorf("half click = %v,%v; want %v,false", sy, precise, x11ScrollLines/2)
 	}
 
-	// A touchpad: both axes, no clicks, points of travel.
+	// A touchpad: both axes, no clicks, points of travel, reported as
+	// fractional lines like macOS (#1110).
+	const k = wlPreciseLinesPerPoint
 	a.addValue(v, 4)
 	a.addValue(h, -2.5)
-	if sx, sy, precise, _ = a.take(); !precise || sx != 2.5 || sy != -4 {
-		t.Errorf("touchpad = %v,%v,%v; want 2.5,-4,true", sx, sy, precise)
+	if sx, sy, precise, _ = a.take(); !precise || !near(sx, 2.5*k) || !near(sy, -4*k) {
+		t.Errorf("touchpad = %v,%v,%v; want %v,%v,true", sx, sy, precise, 2.5*k, -4*k)
 	}
 
 	// Mixed: a clicking vertical axis with a continuous horizontal one
@@ -74,8 +77,8 @@ func TestWlAxisAcc(t *testing.T) {
 	a.addValue(v, 15)
 	a.addValue120(v, 120)
 	a.addValue(h, 3)
-	if sx, sy, precise, _ = a.take(); !precise || sx != -3 || sy != -15 {
-		t.Errorf("mixed = %v,%v,%v; want -3,-15,true", sx, sy, precise)
+	if sx, sy, precise, _ = a.take(); !precise || !near(sx, -3*k) || !near(sy, -15*k) {
+		t.Errorf("mixed = %v,%v,%v; want %v,%v,true", sx, sy, precise, -3*k, -15*k)
 	}
 
 	// An unknown axis and NaN are ignored.
@@ -85,6 +88,11 @@ func TestWlAxisAcc(t *testing.T) {
 	if _, _, _, ok = a.take(); ok {
 		t.Error("unknown axis or NaN scrolled")
 	}
+}
+
+// near compares a float32 scroll value with an exact one.
+func near(got float32, want float64) bool {
+	return math.Abs(float64(got)-want) < 1e-6
 }
 
 func nan32() float64 {

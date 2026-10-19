@@ -10,6 +10,15 @@ and this project adheres to
 
 ### Added
 
+- **A touch flick keeps the content gliding (#1110).** A scroll container panned
+  with a finger used to stop dead when the finger lifted. A pan that lifts while
+  the finger still moves now flings: the content starts at the finger's speed,
+  slows exponentially (time constant 0.4 s) and stops, or stops on the scroll
+  edge it reaches. A touch on gliding content catches it there, and a wheel
+  notch or a key takes over from where it is. This applies to the touch-pan
+  fallback of every `Scrollable` container on Android, iOS, the web backend on
+  phones and Wayland touchscreens.
+
 - **Custom shaders get Shadertoy's built-in inputs for size, time and frame
   (#573).** Each `RenderCustomShader` command now carries a built-in block,
   filled in while the frame's commands are built: `iResolution`, `iTime`,
@@ -135,6 +144,23 @@ and this project adheres to
   `Event.IMEDeleteCount`). A host built from the demo picks this up by copying
   its `sendKeyEvent`, its two `deleteSurroundingText` overrides and the
   `IMEDeleteSurrounding` bridge function.
+
+- **A touch pan scrolls as far as the finger moves (#1110).** It scrolled 20 px
+  per pixel of finger travel, because the pan's pixel delta went through
+  `Theme.ScrollMultiplier`, which turns wheel lines into pixels. A small finger
+  movement threw the content a long way on Android, iOS, phones running the web
+  backend and Wayland touchscreens. The content now stays under the finger.
+  `DragScroll` containers already moved 1:1 and are unchanged, and so are the
+  mouse wheel and the keyboard on every platform.
+
+- **Wayland touchpads scroll like macOS trackpads (#1110).** They scrolled about
+  20 px per point of finger travel: the backend reported raw points as a precise
+  scroll, which the gui side multiplied by `ScrollMultiplier`. Wayland now
+  converts points to fractional lines at the factor macOS uses (0.075), so a
+  touchpad moves 1.5 px per point on both. An app that reads `ScrollY` of a
+  precise Wayland event directly gets these lines, about 13 times smaller than
+  before. `Event.ScrollX` / `ScrollY` now document the unit: lines everywhere,
+  fractional for a trackpad.
 
 - **A GLSL shader body may reuse the wrapper's variable names (#573).** The GLSL
   wrapper spliced the body into `main` beside its own locals (`d`, `q`, `pos`,

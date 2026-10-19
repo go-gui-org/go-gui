@@ -371,11 +371,19 @@ func (a *wlAxisAcc) addValue120(axis uint32, v int32) {
 	a.wheel[axis] = true
 }
 
+// wlPreciseLinesPerPoint converts touchpad points to the fractional
+// lines gui.Event carries for a precise scroll. It is the factor the
+// macOS backend applies to AppKit's precise deltas (kPreciseScrollScale
+// in metal_window_darwin.m), so a touchpad moves the same 1.5 px per
+// point of finger travel under the default ScrollMultiplier on both.
+// Raw points made Wayland touchpads scroll 20x the finger (#1110).
+const wlPreciseLinesPerPoint = 0.075
+
 // take returns the frame's scroll in gui units and clears it. A wheel
 // reports lines (x11ScrollLines per click, as on X11); a touchpad reports
-// points of finger travel, precise. Wayland's positive axis scrolls down
-// or right, the opposite of gui's, hence the sign. ok is false when
-// nothing scrolled.
+// fractional lines (wlPreciseLinesPerPoint), precise. Wayland's positive
+// axis scrolls down or right, the opposite of gui's, hence the sign. ok
+// is false when nothing scrolled.
 func (a *wlAxisAcc) take() (sx, sy float32, precise, ok bool) {
 	defer func() { *a = wlAxisAcc{} }()
 	if !a.has[0] && !a.has[1] {
@@ -389,7 +397,8 @@ func (a *wlAxisAcc) take() (sx, sy float32, precise, ok bool) {
 		const perClick = x11ScrollLines / 120
 		return -float32(a.value120[1]) * perClick, -float32(a.value120[0]) * perClick, false, true
 	}
-	return -float32(a.value[1]), -float32(a.value[0]), true, true
+	return -float32(a.value[1]) * wlPreciseLinesPerPoint,
+		-float32(a.value[0]) * wlPreciseLinesPerPoint, true, true
 }
 
 // --- keyboard ---

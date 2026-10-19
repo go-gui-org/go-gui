@@ -54,6 +54,12 @@ type gestureState struct {
 	prevX, prevY   float32
 	velocityX      float32
 	velocityY      float32
+	// panScrollID is the container the pan last scrolled, and
+	// panScrollV/H the axes it moved; the lift flings it
+	// (scroll_momentum.go).
+	panScrollID string
+	panScrollV  bool
+	panScrollH  bool
 
 	// Long-press arm-time snapshots (avoid closure allocation).
 	longPressSX, longPressSY float32
@@ -149,7 +155,9 @@ func handleTouchBegan(
 	}
 
 	if gs.numTouches == 1 {
-		// First finger down.
+		// First finger down. It catches content still gliding from
+		// the last fling.
+		scrollMomentumStop(w)
 		t := gs.touches[0]
 		gs.beganTime = gs.now()
 		gs.prevTime = gs.beganTime
@@ -220,7 +228,11 @@ func handleTouchMoved(
 				cancelLongPress(w)
 				gs.recognized = true
 				gs.gestureType = GesturePan
-				gs.prevTime = gs.now()
+				// The first pan move catches up from the press, so the
+				// content stays under the finger. Time that catch-up
+				// from the press too: from now, a crawl past the
+				// threshold read as one fast frame and flung (#1110).
+				gs.prevTime = gs.beganTime
 				gs.prevX = gs.startX
 				gs.prevY = gs.startY
 				emitGesture(gs, GesturePan, gesturePhaseBegan,
@@ -384,8 +396,11 @@ func endAllTouches(
 		vel := float32(math.Sqrt(float64(
 			gs.velocityX*gs.velocityX +
 				gs.velocityY*gs.velocityY)))
-		if vel > gestureSwipeVelocity &&
-			now-gs.prevTime < int64(gestureSwipeStale) {
+		// A finger held still before the lift has a stale velocity:
+		// neither a swipe nor a fling.
+		fresh := now-gs.prevTime < int64(gestureSwipeStale)
+		startPanMomentum(gs, w, fresh)
+		if vel > gestureSwipeVelocity && fresh {
 			emitGestureSwipe(gs, layout, w)
 		} else {
 			emitGesture(gs, GesturePan, gesturePhaseEnded,
@@ -466,11 +481,16 @@ func transitionAfterLift(
 			emitRotate(gs, gesturePhaseEnded, tcx, tcy,
 				layout, w)
 		}
-		// Transition to single-touch pan.
+		// Transition to single-touch pan. It owns no scroll
+		// container until it moves one.
 		t := gs.touches[0]
+		gs.clearPanScroll()
 		gs.gestureType = GesturePan
 		gs.pinchBegan = false
 		gs.rotateBegan = false
+		// Position and time as one pair, so the first velocity
+		// sample is not timed from before the pinch.
+		gs.prevTime = gs.now()
 		gs.prevX = t.x
 		gs.prevY = t.y
 		gs.startX = t.x
@@ -515,6 +535,8 @@ func reseedRemainingFinger(
 	gs.singleTouchID = t.id
 	gs.velocityX = 0
 	gs.velocityY = 0
+	// The lifted finger's scroll container is not this one's to fling.
+	gs.clearPanScroll()
 	gs.recognized = false
 	gs.gestureType = gestureNone
 	// The earlier press already released its mouse half;

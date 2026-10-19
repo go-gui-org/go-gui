@@ -49,7 +49,10 @@ Padding ladder, form density, and the gap ladder.
 Scroll behavior and per-control geometry.
 
 - `ScrollMultiplier`, `ScrollDeltaLine`, `ScrollDeltaPage` — scroll distance
-  scaling.
+  scaling. `ScrollMultiplier` is pixels per line of scroll: a wheel notch is
+  about three lines, a trackpad reports fractional lines, and the arrow and page
+  keys move `ScrollDeltaLine` and `ScrollDeltaPage` lines. A touch pan ignores
+  it and follows the finger (`docs/specs/scroll-units.md`).
 - `SizeSwitchWidth`, `SizeSwitchHeight` — switch geometry.
 - `SizeRadio` — radio geometry.
 - `SizeScrollbar`, `SizeScrollbarMin` — scrollbar thickness and minimum length.
