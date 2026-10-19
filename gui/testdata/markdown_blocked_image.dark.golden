@@ -1,0 +1,6 @@
+# go-gui-golden v1
+Text xy=30.00,32.10 wh=0.00,0.00 color=#e6e8eba0 text="\uf1a9" size=11.00
+Text xy=50.60,30.00 wh=0.00,0.00 color=#e6e8eba0 text="tracking pixel" size=14.00
+Text xy=30.00,65.70 wh=0.00,0.00 color=#e6e8eba0 text="\uf1a9" size=11.00
+Text xy=50.60,63.60 wh=0.00,0.00 color=#e6e8eba0 text="local file" size=14.00
+Text xy=290.40,21.97 wh=0.00,0.00 color=#808080ff text="\uf1b1" size=11.00

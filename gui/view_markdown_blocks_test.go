@@ -9,7 +9,9 @@ package gui
 // TestRenderMdMathErrorsWrap.
 
 import (
+	"context"
 	"os"
+	"slices"
 	"testing"
 
 	"github.com/go-gui-org/go-glyph"
@@ -53,7 +55,10 @@ func TestMdRenderImage(t *testing.T) {
 		ImageSrc:    path,
 		ImageWidth:  123,
 		ImageHeight: 45,
-	}, MarkdownCfg{Style: DefaultMarkdownStyle()}), &Window{})
+	}, MarkdownCfg{
+		Style:            DefaultMarkdownStyle(),
+		AllowLocalImages: true,
+	}), &Window{})
 
 	shape := layout.Shape
 	if shape == nil {
@@ -349,5 +354,155 @@ func TestMarkdownEmptySourceKeepsCopyButtonUnwrapped(t *testing.T) {
 	}
 	if !doc.Children[0].Shape.Float {
 		t.Error("sole child is not the floating copy button")
+	}
+}
+
+// mdLayoutHasImage reports whether any shape in the tree is an image.
+// A blocked markdown image must not produce one: an image shape is
+// what makes the backend open the file.
+func mdLayoutHasImage(l Layout) bool {
+	if l.Shape != nil && l.Shape.shapeType == shapeImage {
+		return true
+	}
+	return slices.ContainsFunc(l.Children, mdLayoutHasImage)
+}
+
+// TestMdRenderImageRemoteBlockedByDefault is the #1105 regression: an
+// http(s) image in markdown must not start a download unless the app
+// opts in. A fetch leaks the reader's IP address and the open time.
+func TestMdRenderImageRemoteBlockedByDefault(t *testing.T) {
+	src := "https://example.test/" + t.Name() + ".png"
+	w := &Window{}
+	layout := generateViewLayout(mdRenderImage(markdownBlock{
+		IsImage:  true,
+		ImageSrc: src,
+		ImageAlt: "pixel",
+	}, MarkdownCfg{Style: DefaultMarkdownStyle()}), w)
+
+	if mdLayoutHasImage(layout) {
+		t.Error("blocked remote image produced an image shape")
+	}
+	dl := StateMapRead[string, int64](w, nsActiveDownloads)
+	if dl != nil && dl.Contains(src) {
+		t.Fatal("blocked remote image scheduled a download")
+	}
+}
+
+// TestMdRenderImageRemoteAllowed checks the opt-in: with
+// AllowRemoteImages the download is scheduled as before.
+func TestMdRenderImageRemoteAllowed(t *testing.T) {
+	src := "https://example.test/" + t.Name() + ".png"
+	w := &Window{}
+	// A cancelled context makes the scheduled download goroutine
+	// return at once, so the test does no network I/O.
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	w.ctx = ctx
+	_ = generateViewLayout(mdRenderImage(markdownBlock{
+		IsImage:  true,
+		ImageSrc: src,
+	}, MarkdownCfg{
+		Style:             DefaultMarkdownStyle(),
+		AllowRemoteImages: true,
+	}), w)
+
+	dl := StateMapRead[string, int64](w, nsActiveDownloads)
+	if dl == nil || !dl.Contains(src) {
+		t.Fatal("allowed remote image did not schedule a download")
+	}
+}
+
+// TestMdRenderImageLocalBlockedByDefault is the #1105 regression for
+// paths: a non-URL src names a file on disk, and markdown must not
+// make the app open it unless the app opts in. The file exists, so
+// only the policy can keep the image shape out.
+func TestMdRenderImageLocalBlockedByDefault(t *testing.T) {
+	f, err := os.CreateTemp(t.TempDir(), "md_local_*.png")
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := f.Name()
+	_ = f.Close()
+
+	layout := generateViewLayout(mdRenderImage(markdownBlock{
+		IsImage:  true,
+		ImageSrc: path,
+	}, MarkdownCfg{Style: DefaultMarkdownStyle()}), &Window{})
+
+	if mdLayoutHasImage(layout) {
+		t.Error("blocked local image produced an image shape")
+	}
+}
+
+// TestMdImageAllowedSchemeCase is the #1105 regression for scheme case:
+// the parser and the web backend accept "HTTPS://", so with only
+// AllowLocalImages on, an upper-case remote src must still be blocked.
+func TestMdImageAllowedSchemeCase(t *testing.T) {
+	localOnly := MarkdownCfg{AllowLocalImages: true}
+	for _, src := range []string{
+		"HTTPS://example.test/p.png",
+		"Http://example.test/p.png",
+	} {
+		if mdImageAllowed(src, localOnly) {
+			t.Errorf("%q allowed with only AllowLocalImages", src)
+		}
+		if !mdImageAllowed(src, MarkdownCfg{AllowRemoteImages: true}) {
+			t.Errorf("%q blocked with AllowRemoteImages", src)
+		}
+	}
+}
+
+// TestMdImageAllowedNoIOSources: data URLs, mem: sources and an empty
+// src do no I/O, so they pass with both policy flags off (#1105).
+func TestMdImageAllowedNoIOSources(t *testing.T) {
+	for _, src := range []string{
+		"",
+		"data:image/png;base64,iVBORw0KGgo=",
+		memImagePrefix + "key",
+	} {
+		if !mdImageAllowed(src, MarkdownCfg{}) {
+			t.Errorf("%q blocked with default MarkdownCfg", src)
+		}
+	}
+}
+
+// TestMdBlockedImageEmptyAlt: an image with no alt text still shows a
+// label, so the reader sees that something was left out.
+func TestMdBlockedImageEmptyAlt(t *testing.T) {
+	w := &Window{}
+	layout := generateViewLayout(mdBlockedImage(markdownBlock{
+		IsImage:  true,
+		ImageSrc: "https://example.test/p.png",
+	}), w)
+	if len(layout.Children) != 2 {
+		t.Fatalf("children = %d, want 2", len(layout.Children))
+	}
+	if got := layout.Children[1].Shape.TC.Text; got != "image" {
+		t.Errorf("alt text = %q, want %q", got, "image")
+	}
+}
+
+// TestMdRenderImageUpperSchemeDownloads is the #1105 regression for an
+// upper-case scheme with AllowRemoteImages on. Image matches the
+// scheme case-sensitively, so before the fix it took "HTTPS://..." for
+// a path on disk and ran os.Stat on it, which AllowLocalImages (off)
+// forbids. The src must go to the downloader with the scheme lowered.
+func TestMdRenderImageUpperSchemeDownloads(t *testing.T) {
+	rest := "://example.test/" + t.Name() + ".png"
+	w := &Window{}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	w.ctx = ctx
+	_ = generateViewLayout(mdRenderImage(markdownBlock{
+		IsImage:  true,
+		ImageSrc: "HTTPS" + rest,
+	}, MarkdownCfg{
+		Style:             DefaultMarkdownStyle(),
+		AllowRemoteImages: true,
+	}), w)
+
+	dl := StateMapRead[string, int64](w, nsActiveDownloads)
+	if dl == nil || !dl.Contains("https"+rest) {
+		t.Fatal("upper-case scheme src was not sent to the downloader")
 	}
 }
