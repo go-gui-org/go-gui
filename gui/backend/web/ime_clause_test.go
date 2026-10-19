@@ -76,3 +76,49 @@ func TestJSStringNoCoercion(t *testing.T) {
 		})
 	}
 }
+
+func TestClassifyBeforeInput(t *testing.T) {
+	cases := []struct {
+		inputType string
+		want      beforeInputKind
+	}{
+		{"insertText", beforeInputText},
+		{"insertReplacementText", beforeInputText},
+		{"deleteContentBackward", beforeInputBackspace},
+		{"deleteContentForward", beforeInputDelete},
+		{"insertLineBreak", beforeInputEnter},
+		{"insertParagraph", beforeInputEnter},
+		// Composition has its own events.
+		{"insertCompositionText", beforeInputIgnore},
+		{"", beforeInputIgnore},
+	}
+	for _, tc := range cases {
+		if got := classifyBeforeInput(tc.inputType); got != tc.want {
+			t.Errorf("classifyBeforeInput(%q) = %d, want %d",
+				tc.inputType, got, tc.want)
+		}
+	}
+}
+
+func TestBeforeInputData(t *testing.T) {
+	obj := js.Global().Get("Object")
+	e := obj.New()
+	e.Set("data", "a")
+	if got := beforeInputData(e); got != "a" {
+		t.Errorf("data: got %q, want %q", got, "a")
+	}
+	// A replacement carries its text in dataTransfer, data is null.
+	e = obj.New()
+	e.Set("data", js.Null())
+	dt := obj.New()
+	dt.Set("getData", js.FuncOf(func(_ js.Value, _ []js.Value) any {
+		return "Diana"
+	}))
+	e.Set("dataTransfer", dt)
+	if got := beforeInputData(e); got != "Diana" {
+		t.Errorf("dataTransfer: got %q, want %q", got, "Diana")
+	}
+	if got := beforeInputData(obj.New()); got != "" {
+		t.Errorf("empty event: got %q, want empty", got)
+	}
+}

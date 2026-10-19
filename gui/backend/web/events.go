@@ -142,13 +142,18 @@ func (b *Backend) registerEvents(w *gui.Window) {
 		key := e.Get("key").String()
 		mods := mapModifiers(e)
 
-		// Prevent browser defaults for navigation keys.
-		if shouldPreventDefault(code) {
+		kc := mapKeyCode(code)
+		isIME := isIMEInput(e.Get("target"))
+		// Prevent browser defaults for navigation keys. Enter is scoped
+		// to our hidden input: cancelling it keeps the following
+		// beforeinput from submitting the same edit a second time without
+		// interfering with an embedding page's own controls.
+		if shouldPreventDefault(code) ||
+			(kc == gui.KeyEnter && isIME) {
 			e.Call("preventDefault")
 		}
 
 		// Key event.
-		kc := mapKeyCode(code)
 		*evt = gui.Event{
 			Type:      gui.EventKeyDown,
 			KeyCode:   kc,
@@ -173,7 +178,70 @@ func (b *Backend) registerEvents(w *gui.Window) {
 					Modifiers: mods,
 				}
 				w.EventFn(evt)
+				// The key is typed now. Stop the browser typing it
+				// into the hidden input as well: that would fire a
+				// beforeinput, and the beforeinput listener types it
+				// a second time.
+				if isIMEInput(e.Get("target")) {
+					e.Call("preventDefault")
+				}
 			}
+		}
+		return nil
+	})
+
+	// A soft keyboard (Gboard in Android Chrome, among others) sends
+	// keydown with key "Unidentified" (keyCode 229), which types
+	// nothing above. Its text reaches the hidden input only as
+	// beforeinput. Text that a keydown typed never gets here: that
+	// keydown cancelled the default. Each handled event is cancelled
+	// too, so the hidden input stays empty and the keyboard cannot
+	// autocorrect text that only it can see.
+	reg(doc, "beforeinput", func(_ js.Value, args []js.Value) any {
+		e := args[0]
+		// Composition text arrives through the composition events.
+		if !isIMEInput(e.Get("target")) || e.Get("isComposing").Truthy() {
+			return nil
+		}
+		kind := classifyBeforeInput(jsString(e.Get("inputType")))
+		switch kind {
+		case beforeInputText:
+			e.Call("preventDefault")
+			text := imeSanitizeText(beforeInputData(e))
+			if len(text) == 0 {
+				return nil
+			}
+			r, _ := utf8.DecodeRuneInString(text)
+			*evt = gui.Event{
+				Type:     gui.EventChar,
+				CharCode: uint32(r),
+				IMEText:  text,
+			}
+			w.EventFn(evt)
+		case beforeInputBackspace:
+			e.Call("preventDefault")
+			*evt = gui.Event{Type: gui.EventKeyDown, KeyCode: gui.KeyBackspace}
+			w.EventFn(evt)
+		case beforeInputDelete:
+			e.Call("preventDefault")
+			*evt = gui.Event{Type: gui.EventKeyDown, KeyCode: gui.KeyDelete}
+			w.EventFn(evt)
+		case beforeInputEnter:
+			e.Call("preventDefault")
+			*evt = gui.Event{Type: gui.EventKeyDown, KeyCode: gui.KeyEnter}
+			w.EventFn(evt)
+		}
+		return nil
+	})
+
+	// Clear what an uncancellable edit left in the hidden input, for
+	// the reason above. A live composition keeps its text: clearing it
+	// would end the composition.
+	reg(doc, "input", func(_ js.Value, args []js.Value) any {
+		e := args[0]
+		if t := e.Get("target"); isIMEInput(t) &&
+			!e.Get("isComposing").Truthy() {
+			t.Set("value", "")
 		}
 		return nil
 	})
@@ -208,6 +276,11 @@ func (b *Backend) registerEvents(w *gui.Window) {
 	reg(js.Global(), "compositionend",
 		func(_ js.Value, args []js.Value) any {
 			e := args[0]
+			// The composed text stays in the hidden input, and the
+			// input event that follows still reports isComposing.
+			if t := e.Get("target"); isIMEInput(t) {
+				defer t.Set("value", "")
+			}
 			text := imeSanitizeText(jsString(e.Get("data")))
 			if len(text) == 0 {
 				// Cancelled composition (Escape). Report the end
@@ -438,6 +511,47 @@ func mapModifiers(e js.Value) gui.Modifier {
 		}
 	}
 	return m
+}
+
+// beforeInputKind is what a beforeinput on the hidden input asks for.
+type beforeInputKind uint8
+
+const (
+	beforeInputIgnore beforeInputKind = iota
+	beforeInputText
+	beforeInputBackspace
+	beforeInputDelete
+	beforeInputEnter
+)
+
+// classifyBeforeInput maps an InputEvent.inputType to the edit it
+// makes. Android soft keyboards do not reliably identify Enter in a
+// keydown, but do report the requested line break here.
+func classifyBeforeInput(inputType string) beforeInputKind {
+	switch inputType {
+	case "insertText", "insertReplacementText":
+		return beforeInputText
+	case "deleteContentBackward":
+		return beforeInputBackspace
+	case "deleteContentForward":
+		return beforeInputDelete
+	case "insertLineBreak", "insertParagraph":
+		return beforeInputEnter
+	}
+	return beforeInputIgnore
+}
+
+// beforeInputData returns the text a beforeinput inserts. A
+// replacement (autocorrect, a picked suggestion) carries it in
+// dataTransfer rather than data.
+func beforeInputData(e js.Value) string {
+	if s := jsString(e.Get("data")); s != "" {
+		return s
+	}
+	if dt := e.Get("dataTransfer"); dt.Truthy() {
+		return jsString(dt.Call("getData", "text/plain"))
+	}
+	return ""
 }
 
 func shouldPreventDefault(code string) bool {

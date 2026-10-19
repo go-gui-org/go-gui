@@ -541,12 +541,24 @@ func (n *nativePlatform) A11yAnnounce(text string) {
 
 // --- IME ---
 
+// imeInputAttr marks the hidden input IMEStart creates, so the
+// document-level listeners in events.go can tell its events from those
+// of a host page's own inputs.
+const imeInputAttr = "data-gogui-ime"
+
+// isIMEInput reports whether target is the hidden IME input.
+func isIMEInput(target js.Value) bool {
+	return target.Truthy() && target.Get("hasAttribute").Truthy() &&
+		target.Call("hasAttribute", imeInputAttr).Bool()
+}
+
 func (n *nativePlatform) IMEStart() {
 	if n.imeInput.Truthy() {
 		return
 	}
 	input := n.doc.Call("createElement", "input")
 	input.Set("type", "text")
+	input.Call("setAttribute", imeInputAttr, "")
 	st := input.Get("style")
 	st.Set("position", "absolute")
 	st.Set("opacity", "0")
