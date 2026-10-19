@@ -21,7 +21,7 @@
     { "id": "decor", "type": "backend", "label": "Decorations", "sublabel": "xdg / libdecor", "pos": [670, 110], "size": [130, 60] },
     { "id": "desktop", "type": "external", "label": "Desktop Integration", "sublabel": "clipboard cursor IME", "pos": [880, 110], "size": [130, 60] },
     { "id": "wlbinding", "type": "backend", "label": "internal/wl", "sublabel": "purego libwayland", "pos": [250, 440], "size": [130, 60] },
-    { "id": "fallback", "type": "backend", "label": "X11 Fallback", "sublabel": "GOGUI_WAYLAND=1", "pos": [40, 440], "size": [130, 60] }
+    { "id": "fallback", "type": "backend", "label": "X11 Fallback", "sublabel": "GOGUI_WAYLAND=0", "pos": [40, 440], "size": [130, 60] }
   ],
   "boundaries": [
     { "kind": "region", "label": "go-gui process: cgo-free, purego at runtime", "wraps": ["app", "wlbackend", "glrender", "egl", "seat", "xkb", "decor", "wlbinding", "fallback"] }

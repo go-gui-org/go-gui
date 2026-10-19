@@ -1,5 +1,5 @@
 // Package wl binds the Wayland client library (libwayland-client) through
-// purego, so the experimental Wayland backend stays cgo-free (#919).
+// purego, so the Wayland backend stays cgo-free (#919).
 //
 // Why libwayland and not a pure-Go wire protocol: EGL needs a real
 // libwayland wl_display* and wl_surface* to render into a Wayland window

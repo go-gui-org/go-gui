@@ -1,4 +1,4 @@
-// Package decor binds libdecor through purego, for the experimental Wayland
+// Package decor binds libdecor through purego, for the native Wayland
 // backend (#919). libdecor draws a window frame (title bar, borders,
 // buttons) on compositors that leave that to the client, GNOME's mutter
 // above all. It is optional: Load fails on a system without it, and the

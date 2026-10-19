@@ -1,4 +1,4 @@
-# Headless Wayland test image for the experimental Wayland backend (#919).
+# Headless Wayland test image for the native Wayland backend (#919).
 #
 # It holds three compositors that can run with no GPU and no screen, so the
 # backend can be built and run on a Mac (colima) or a CI runner:

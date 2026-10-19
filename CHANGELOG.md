@@ -95,6 +95,17 @@ and this project adheres to
 
 ### Changed
 
+- **BREAKING: Linux apps use the native Wayland backend on a Wayland desktop
+  (#1113).** The Wayland backend is no longer experimental. Before, an app ran
+  through XWayland unless `GOGUI_WAYLAND=1` was set. Now an app on amd64 or
+  arm64 opens native Wayland windows when `WAYLAND_DISPLAY` is set, as GTK, Qt
+  and SDL do. This gives sharp text at fractional scales, and the GPU on devices
+  with no X11 EGL platform. If Wayland setup fails (no libwayland, no
+  compositor), the app logs one warning and uses X11, as before. To keep X11,
+  set `GOGUI_WAYLAND=0`. `GOGUI_WAYLAND=1` still tries Wayland when
+  `WAYLAND_DISPLAY` is unset. An X11 session with no `WAYLAND_DISPLAY` does not
+  change.
+
 - **BREAKING: Markdown no longer loads images unless the app allows it
   (#1105).** Markdown is often untrusted: chat messages, fetched READMEs, user
   notes. Before, an http(s) image was downloaded when the document rendered, so

@@ -1,12 +1,11 @@
 # Native Wayland backend
 
-Status: experimental. Issue #919. Phases 2 (test harness), 3 (protocol
-bindings), 4 (window), 5 (input) and 6 (desktop parity) of 9 have landed, phase
-7 (hardware pass) is done but for HiDPI on Muffin, and phase 8 ships it. With
-`GOGUI_WAYLAND=1` an app opens a native Wayland window with a frame, renders at
-fractional scales, takes pointer, keyboard, scroll, touch and input method
-input, shares the clipboard and primary selection with other apps, sets cursors,
-and moves and resizes.
+Status: **shipped**, the default on a Wayland session (#1113). Issue #919.
+Phases 2 to 6 and 8 of 9 have landed; phase 7 (hardware pass) is done but for
+HiDPI on Muffin. With `WAYLAND_DISPLAY` set an app opens a native Wayland window
+with a frame, renders at fractional scales, takes pointer, keyboard, scroll,
+touch and input method input, shares the clipboard and primary selection with
+other apps, sets cursors, and moves and resizes.
 
 ## Problem
 
@@ -17,10 +16,13 @@ adopt on Linux, and devices with no X11 EGL platform cannot use their GPU
 
 ## Decisions
 
-### The backend is experimental and behind an env var
+### Wayland is the default on a Wayland session
 
-`GOGUI_WAYLAND=1` selects the Wayland backend. With no value, go-gui uses X11 as
-before. If Wayland setup fails, go-gui falls back to X11. Both backends are
+When `WAYLAND_DISPLAY` is set, go-gui uses the Wayland backend.
+`GOGUI_WAYLAND=0` keeps X11, and `GOGUI_WAYLAND=1` tries Wayland even with no
+`WAYLAND_DISPLAY`. Without `WAYLAND_DISPLAY`, libwayland connects to
+`wayland-0`, which can be a stray socket in an X11 session, so the default does
+not try. If Wayland setup fails, go-gui falls back to X11. Both backends are
 compiled in. purego opens the Wayland libraries only at run time, so the Wayland
 code adds no link dependency.
 
@@ -262,7 +264,7 @@ machine:
 | 5   | Input: pointer, keyboard through xkbcommon, scroll, touch                               | done    |
 | 6   | Decorations, clipboard, fractional scale, cursor-shape, text-input-v3                   | done    |
 | 7   | Hardware pass on Linux Mint (Intel/AMD): Cinnamon Wayland, nested sway/weston/KWin      | partial |
-| 8   | Ship as experimental                                                                    | started |
+| 8   | Ship: experimental behind `GOGUI_WAYLAND=1`, then the default                           | done    |
 | 9   | OpenGL ES renderer path for GLES-only devices (separate issue)                          | pending |
 
 Phase 8 notes:

@@ -108,9 +108,27 @@ func RunApp(app *gui.App, initialWindows ...*gui.Window) {
 	}
 }
 
-// waylandRequested reports whether the user asked for the experimental
-// Wayland backend (#919). Any other value, or none, keeps X11.
-func waylandRequested() bool { return os.Getenv("GOGUI_WAYLAND") == "1" }
+// waylandRequested reports whether to try the native Wayland backend
+// (#919). Wayland is the default on a Wayland session (#1113), which WAYLAND_DISPLAY
+// marks, as GTK, Qt and SDL also read it. GOGUI_WAYLAND=0 keeps X11, and
+// GOGUI_WAYLAND=1 tries Wayland even with no WAYLAND_DISPLAY. Any other value
+// is the same as none. Without WAYLAND_DISPLAY, libwayland would connect to
+// "wayland-0", which can be a stray socket in an X11 session, so the default
+// does not try.
+func waylandRequested() bool {
+	switch os.Getenv("GOGUI_WAYLAND") {
+	case "0":
+		return false
+	case "1":
+		return true
+	}
+	return os.Getenv("WAYLAND_DISPLAY") != ""
+}
+
+// waylandForced reports whether the user set GOGUI_WAYLAND=1. Only then is a
+// Wayland backend that cannot be used on this CPU worth a warning: on the
+// default path, X11 is the expected result there.
+func waylandForced() bool { return os.Getenv("GOGUI_WAYLAND") == "1" }
 
 // taggedEvent carries an X event alongside the backend it belongs to so
 // a single channel can multiplex several windows' event pumps.

@@ -11,7 +11,7 @@ import (
 
 // The Wayland bindings read event arguments as 8-byte little-endian slots,
 // so they build for amd64 and arm64 only (gui/backend/internal/wl). On
-// other CPUs GOGUI_WAYLAND=1 warns once and X11 is used.
+// other CPUs X11 is used, and GOGUI_WAYLAND=1 warns once.
 
 // wlWindow is never created here; the type keeps platformState's field.
 type wlWindow struct{}
@@ -19,7 +19,7 @@ type wlWindow struct{}
 var wlUnsupportedOnce sync.Once
 
 func tryWayland(*gui.Window) (*Backend, bool) {
-	if waylandRequested() {
+	if waylandForced() {
 		wlUnsupportedOnce.Do(func() {
 			log.Printf("gl: GOGUI_WAYLAND=1 is not supported on this CPU, using X11")
 		})

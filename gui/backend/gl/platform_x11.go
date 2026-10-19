@@ -44,7 +44,7 @@ const (
 // EGL context. Pure Go via xgb + purego — no cgo.
 // exportaudit:keep — lowercase new shadows the Go builtin
 func New(w *gui.Window) (*Backend, error) {
-	// GOGUI_WAYLAND=1 tries the experimental Wayland backend first (#919).
+	// On a Wayland session, the Wayland backend is tried first (#919).
 	if b, ok := tryWayland(w); ok {
 		return b, nil
 	}

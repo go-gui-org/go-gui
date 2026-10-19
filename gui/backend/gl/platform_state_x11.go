@@ -16,7 +16,7 @@ import (
 
 // platformState holds the X11 windowing + EGL state for the GL backend.
 type platformState struct {
-	// wl is non-nil for a window on the experimental Wayland backend
+	// wl is non-nil for a window on the native Wayland backend
 	// (wayland_linux.go). The X11 fields then stay zero.
 	wl *wlWindow
 

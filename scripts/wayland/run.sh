@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Runs a command under a headless Wayland compositor in Docker (#919).
 #
-# The experimental Wayland backend is developed mostly on macOS, where there
+# The native Wayland backend is developed mostly on macOS, where there
 # is no Wayland. This script builds the gogui-wayland image (Dockerfile next
 # to it) on first use, mounts the repo at /src, and runs the command there
 # under sway, weston or mutter, with Mesa llvmpipe for GL.
@@ -53,5 +53,5 @@ exec docker run --rm $tty \
   -v "$root:/src" -w /src \
   -e COMPOSITOR="$comp" -e RUN_SECS="$secs" -e SHOT="$shot" -e AFTER="$after" \
   -e SHOW_COMPOSITOR_LOG="${SHOW_COMPOSITOR_LOG:-}" \
-  -e GOGUI_WAYLAND="${GOGUI_WAYLAND:-1}" -e GOGUI_DEBUG="${GOGUI_DEBUG:-}" \
+  -e GOGUI_WAYLAND="${GOGUI_WAYLAND:-}" -e GOGUI_DEBUG="${GOGUI_DEBUG:-}" \
   "$tag" bash /src/scripts/wayland/in-container.sh "$@"

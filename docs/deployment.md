@@ -57,9 +57,10 @@ manager at runtime — without one the window renders black, which `gui.Debug`
 reports. Either depend on one in the package or document it for the user. See
 `docs/specs/transparent-windows.md`.
 
-On a Wayland desktop the app runs through XWayland unless `GOGUI_WAYLAND=1` is
-set, which selects the experimental native Wayland backend (amd64 and arm64). It
-opens these libraries at run time, so the binary does not link them:
+On a Wayland desktop (`WAYLAND_DISPLAY` set) the app uses the native Wayland
+backend on amd64 and arm64. `GOGUI_WAYLAND=0` makes it run through XWayland
+instead, and other CPUs always do. The backend opens these libraries at run
+time, so the binary does not link them:
 
 | Library                        | Debian / Ubuntu package   | Without it                                 |
 | ------------------------------ | ------------------------- | ------------------------------------------ |

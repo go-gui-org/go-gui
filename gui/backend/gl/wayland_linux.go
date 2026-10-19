@@ -20,7 +20,7 @@ import (
 	"github.com/go-gui-org/go-gui/gui/backend/internal/xkb"
 )
 
-// The experimental native Wayland backend (#919, docs/specs/wayland-backend.md).
+// The native Wayland backend (#919, docs/specs/wayland-backend.md).
 //
 // A Wayland window is an ordinary Backend whose platformState has a non-nil
 // wl field. Everything that only reads EGL handles, the drawable size and the

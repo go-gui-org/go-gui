@@ -4,7 +4,9 @@ package gl
 
 import (
 	"encoding/binary"
+	"errors"
 	"os"
+	"strings"
 	"testing"
 	"time"
 	"unsafe"
@@ -349,6 +351,36 @@ func TestWaylandRunAppFallbackStaysX11(t *testing.T) {
 	_ = runAppE(gui.NewApp(), waylandTestWindow(gui.WindowCfg{}))
 	if tries != 0 {
 		t.Errorf("the X11 RunApp loop tried Wayland %d times after declining it", tries)
+	}
+}
+
+// TestWaylandRunAppFirstWindowFallsBack: the display opens, but the first
+// window cannot (EGL with no Wayland support, say). RunApp must then fall
+// back to X11, as New does, not fail: Wayland is the default on a Wayland
+// session (#1113), so XWayland must still catch this. No X server is
+// needed: the X11 open fails with its own error, which proves RunApp got
+// there.
+func TestWaylandRunAppFirstWindowFallsBack(t *testing.T) {
+	requireWayland(t)
+	t.Setenv("GOGUI_WAYLAND", "1")
+	t.Setenv("DISPLAY", "")
+	tries := 0
+	old := newWaylandBackendFunc
+	newWaylandBackendFunc = func(*gui.Window) (*Backend, error) {
+		tries++
+		return nil, errors.New("test: no Wayland window")
+	}
+	defer func() { newWaylandBackendFunc = old }()
+
+	err := runAppE(gui.NewApp(), waylandTestWindow(gui.WindowCfg{}))
+	if tries != 1 {
+		t.Fatalf("Wayland window tries = %d, want 1", tries)
+	}
+	if err == nil || strings.Contains(err.Error(), "test: no Wayland window") {
+		t.Fatalf("runAppE = %v; want the X11 open's error after a fall back", err)
+	}
+	if wlShared != nil {
+		t.Error("the fall back left the Wayland display open")
 	}
 }
 

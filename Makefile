@@ -367,7 +367,7 @@ check: vet deps-doc-check large-files generate-check tidy-check fmt-md-check cha
 # Run all validation steps: test, vet, lint, and gate checks.
 check-all: test lint check
 
-# Check the headless Wayland harness for the experimental Wayland backend
+# Check the headless Wayland harness for the native Wayland backend
 # (#919): sway, weston and mutter in Docker. Needs a running Docker daemon,
 # so it is not part of check or prepush. See scripts/wayland/README.md.
 wayland-selftest:

@@ -20,7 +20,7 @@ var newWaylandBackendFunc = newWaylandBackend
 // warnWaylandFallback says once why the Wayland backend was not used.
 func warnWaylandFallback(err error) {
 	wlFallbackOnce.Do(func() {
-		log.Printf("gl: GOGUI_WAYLAND=1 but Wayland setup failed, using X11: %v", err)
+		log.Printf("gl: Wayland setup failed, using X11 (GOGUI_WAYLAND=0 skips Wayland): %v", err)
 	})
 }
 
@@ -53,7 +53,8 @@ func (b *Backend) runWayland(w *gui.Window) {
 }
 
 // runAppWayland is RunApp on Wayland. handled is false when the display
-// could not be opened; RunApp then falls back to X11.
+// could not be opened, or the first window could not be; RunApp then falls
+// back to X11.
 func runAppWayland(app *gui.App, initial []*gui.Window) (handled bool, err error) {
 	d, err := acquireWaylandDisplay()
 	if err != nil {
@@ -65,8 +66,21 @@ func runAppWayland(app *gui.App, initial []*gui.Window) (handled bool, err error
 	defer d.release()
 	app.SetWakeMainFn(d.conn.Wake)
 	l := wlLoop{d: d, app: app, wins: map[uint32]*Backend{}}
-	for _, w := range initial {
+	for i, w := range initial {
 		if err := l.open(w); err != nil {
+			if i == 0 {
+				// The display opened but no window can (EGL with no
+				// Wayland support, no xdg_wm_base): fall back as New
+				// does, since Wayland is the default on a Wayland session
+				// (#1113). Nothing is open yet and no OnInit has run, so
+				// X11 starts clean. The wake fn must not outlive the
+				// connection the deferred release closes.
+				app.SetWakeMainFn(nil)
+				warnWaylandFallback(err)
+				return false, nil
+			}
+			// A later window: the earlier ones ran OnInit, so a fall
+			// back would run it twice.
 			l.closeAll()
 			return true, fmt.Errorf("gl: create window: %w", err)
 		}
@@ -85,7 +99,7 @@ type wlLoop struct {
 
 // open creates a window and registers it with the app.
 func (l *wlLoop) open(w *gui.Window) error {
-	b, err := newWaylandBackend(w)
+	b, err := newWaylandBackendFunc(w)
 	if err != nil {
 		return err
 	}

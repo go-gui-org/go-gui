@@ -1,7 +1,7 @@
 # Headless Wayland harness
 
 Builds and runs go-gui under a real Wayland compositor without a Linux desktop.
-It is used to develop the experimental Wayland backend (#919) on macOS. It needs
+It is used to develop the native Wayland backend (#919) on macOS. It needs
 Docker (on macOS, colima works).
 
 ## Files
@@ -100,5 +100,5 @@ scripts/wayland/run.sh -- eglinfo -B -p wayland
 - 125 if the compositor did not start.
 
 Set `SHOW_COMPOSITOR_LOG=1` to print the compositor log when the client fails.
-`run.sh` passes `GOGUI_WAYLAND` (default `1`) and `GOGUI_DEBUG` into the
-container.
+`run.sh` passes `GOGUI_WAYLAND` (default unset, so Wayland) and `GOGUI_DEBUG`
+into the container.
