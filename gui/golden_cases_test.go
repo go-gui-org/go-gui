@@ -1699,6 +1699,14 @@ func goldenCases() []goldenCase {
 			name:  "markdown_callout",
 			build: buildMarkdownCallout,
 		},
+		{
+			// A remote and a local image under the default policy
+			// (#1105). Both are blocked, so each records the picture
+			// icon and its alt text and no image command: the
+			// recording proves a blocked image reaches no backend.
+			name:  "markdown_blocked_image",
+			build: buildMarkdownBlockedImage,
+		},
 
 		// Interaction-state cases (#690). Every recording above this
 		// point leaves the pointer at the origin, so layoutHover fires
@@ -2220,6 +2228,16 @@ func buildMarkdownBlocks(w *Window) View {
 		ID:        "md",
 		Focusable: true,
 		Source:    goldenMarkdownSource,
+	})
+}
+
+// buildMarkdownBlockedImage renders one remote and one local image
+// with the zero MarkdownCfg image policy, which blocks both (#1105).
+func buildMarkdownBlockedImage(w *Window) View {
+	return w.Markdown(MarkdownCfg{
+		ID: "md",
+		Source: "![tracking pixel](https://example.test/p.png)\n\n" +
+			"![local file](notes/diagram.png)\n",
 	})
 }
 

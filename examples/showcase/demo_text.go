@@ -433,6 +433,9 @@ func demoMarkdown(w *gui.Window) gui.View {
 		Padding:     gui.NoPadding,
 		Source:      embeddedText("docs/markdown_demo.md"),
 		RenderBlock: renderMarkdownCallout,
+		// The demo document is embedded in the binary, so it is
+		// trusted: let its gopher image download (#1105).
+		AllowRemoteImages: true,
 	})
 }
 

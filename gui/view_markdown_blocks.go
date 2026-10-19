@@ -4,6 +4,7 @@ package gui
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/go-gui-org/go-gui/gui/markdown"
@@ -364,11 +365,82 @@ func mdRenderBlockquote(
 }
 
 func mdRenderImage(block markdownBlock, cfg MarkdownCfg) View {
+	if !mdImageAllowed(block.ImageSrc, cfg) {
+		return mdWrapQuote(block, mdBlockedImage(block), cfg)
+	}
 	return mdWrapQuote(block, Image(ImageCfg{
-		Src:    block.ImageSrc,
+		Src:    mdLowerHTTPScheme(block.ImageSrc),
 		Width:  block.ImageWidth,
 		Height: block.ImageHeight,
 	}), cfg)
+}
+
+// mdImageAllowed applies the MarkdownCfg image policy (#1105). Data
+// URLs and mem: sources do no I/O, so they always pass. An http(s)
+// src needs AllowRemoteImages; anything else is a path on disk and
+// needs AllowLocalImages. An empty src (the parser drops unsafe
+// ones) passes, so Image shows its usual missing-source text.
+func mdImageAllowed(src string, cfg MarkdownCfg) bool {
+	switch {
+	case src == "", isDataURL(src), isMemImage(src):
+		return true
+	case mdIsHTTPURL(src):
+		return cfg.AllowRemoteImages
+	default:
+		return cfg.AllowLocalImages
+	}
+}
+
+// mdIsHTTPURL is isHTTPURL without regard to case. The markdown parser
+// and the web backend both accept "HTTPS://", so a case-sensitive test
+// would file such a src under local paths, and AllowLocalImages alone
+// would then let the browser fetch it (#1105).
+func mdIsHTTPURL(src string) bool {
+	return mdHasPrefixFold(src, "http://") ||
+		mdHasPrefixFold(src, "https://")
+}
+
+// mdLowerHTTPScheme lowers an http(s) scheme written in another case.
+// Image matches the scheme case-sensitively (isHTTPURL), so it would
+// take "HTTPS://host/x.png" for a path on disk and stat it, though the
+// policy passed it as remote (#1105). Only a mixed-case src allocates.
+func mdLowerHTTPScheme(src string) string {
+	if !mdIsHTTPURL(src) || isHTTPURL(src) {
+		return src
+	}
+	i := strings.IndexByte(src, ':')
+	return strings.ToLower(src[:i]) + src[i:]
+}
+
+// mdHasPrefixFold is strings.HasPrefix under ASCII case folding,
+// without the allocation strings.ToLower would make.
+func mdHasPrefixFold(s, prefix string) bool {
+	return len(s) >= len(prefix) &&
+		strings.EqualFold(s[:len(prefix)], prefix)
+}
+
+// mdBlockedImage stands in for an image the policy refused: a picture
+// icon and the alt text, in the theme's secondary text role. It does
+// not touch the src, so it starts no download and opens no file.
+func mdBlockedImage(block markdownBlock) View {
+	iconStyle := guiTheme.TextStyleIconXSmall
+	iconStyle.Color = guiTheme.TextStyleSecondary.Color
+	alt := block.ImageAlt
+	if alt == "" {
+		alt = "image"
+	}
+	return Row(ContainerCfg{
+		Padding:    NoPadding,
+		SizeBorder: NoBorder,
+		VAlign:     VAlignMiddle,
+		Content: []View{
+			Text(TextCfg{Text: IconPicture, TextStyle: iconStyle}),
+			Text(TextCfg{
+				Text:      alt,
+				TextStyle: guiTheme.TextStyleSecondary,
+			}),
+		},
+	})
 }
 
 // mdRenderHeading returns 1 or 2 views: an optional H1 spacer

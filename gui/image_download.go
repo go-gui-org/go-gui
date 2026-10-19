@@ -157,7 +157,9 @@ func defaultImageFetcher(
 		return nil, err
 	}
 	req.Header.Set("User-Agent", "go-gui/"+Version)
-	return http.DefaultClient.Do(req)
+	// imageHTTPClient refuses link-local addresses on every hop
+	// (image_fetch_guard.go, #1105).
+	return imageHTTPClient.Do(req)
 }
 
 // ResolveImageSrc returns a local filesystem path for src. Rules:

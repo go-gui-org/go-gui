@@ -238,6 +238,17 @@ type MarkdownCfg struct {
 	// exportaudit:keep — caller-facing config (issue #372)
 	DisableExternalAPIs bool
 
+	// AllowRemoteImages downloads http(s) images. Off by default:
+	// markdown is often untrusted, and a fetch tells the host the
+	// reader's IP and open time. Blocked images show alt text (#1105).
+	// exportaudit:keep — caller-facing config (issue #1105)
+	AllowRemoteImages bool
+	// AllowLocalImages reads image paths from disk (still limited by
+	// WindowCfg.AllowedImageRoots). Off by default. Data URLs and
+	// UseImage sources do no I/O and always show (#1105).
+	// exportaudit:keep — caller-facing config (issue #1105)
+	AllowLocalImages bool
+
 	// MathFetcher replaces the default CodeCogs renderer.
 	// When nil, uses the default CodeCogs endpoint. Ignored
 	// when DisableExternalAPIs is true.

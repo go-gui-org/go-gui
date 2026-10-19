@@ -31,7 +31,8 @@ w.Markdown(gui.MarkdownCfg{
 - Tables with column alignment
 - Fenced code blocks with syntax highlighting
 - Blockquotes, horizontal rules
-- Links and images
+- Links and images (images load only when `AllowRemoteImages` or
+  `AllowLocalImages` is set)
 - Mermaid diagrams (` ```mermaid `)
 - LaTeX math (requires `SetMarkdownExternalAPIsEnabled(true)`)
 
@@ -46,6 +47,8 @@ w.Markdown(gui.MarkdownCfg{
 | MinWidth            | float32       | Minimum view width                                        |
 | MermaidWidth        | int           | Max mermaid diagram width (0 = 600)                       |
 | DisableExternalAPIs | bool          | Disable CodeCogs/Kroki APIs                               |
+| AllowRemoteImages   | bool          | Download http(s) images (off: alt text shown instead)     |
+| AllowLocalImages    | bool          | Read image paths from disk (off: alt text shown instead)  |
 | Disabled            | bool          | Disable interaction                                       |
 | Invisible           | bool          | Hide without removing from layout                         |
 | Clip                | bool          | Clip content to bounds                                    |

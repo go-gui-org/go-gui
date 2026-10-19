@@ -86,6 +86,23 @@ and this project adheres to
 
 ### Changed
 
+- **BREAKING: Markdown no longer loads images unless the app allows it
+  (#1105).** Markdown is often untrusted: chat messages, fetched READMEs, user
+  notes. Before, an http(s) image was downloaded when the document rendered, so
+  a tracking pixel told its host the reader's IP address and when the document
+  was opened. An image path was read from disk. Now both are off by default. A
+  blocked image shows a picture icon and its alt text, and does no I/O. Data
+  URLs and `UseImage` sources do no I/O and still show. Migration: for a trusted
+  document, set `MarkdownCfg.AllowRemoteImages` to load http(s) images, and
+  `MarkdownCfg.AllowLocalImages` to load image paths.
+  `WindowCfg.AllowedImageRoots` still limits the paths. Separately, the default
+  image fetcher now refuses to connect to link-local, multicast and unspecified
+  addresses, on the first request and on every redirect. This stops an image URL
+  from reaching a cloud metadata service (`169.254.169.254`). Loopback and
+  private LAN addresses are still allowed. Through an HTTP proxy, only URLs that
+  name an IP address are checked, because the proxy looks up host names. A
+  custom `WindowCfg.ImageFetcher` is not changed.
+
 - **A widget with an accessible name no longer allocates its accessibility data
   on each frame (#1097).** A container, image, SVG, canvas, rich text, tree,
   slider or thinking orb with an `A11YLabel`, an `A11YDescription` or an
