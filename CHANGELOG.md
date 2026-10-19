@@ -8,6 +8,8 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [v0.91.0] - 2026-10-19
+
 ### Added
 
 - **A touch flick keeps the content gliding (#1110).** A scroll container panned
