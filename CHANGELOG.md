@@ -42,6 +42,17 @@ and this project adheres to
 
 ### Fixed
 
+- **iOS Safari opens the soft keyboard when a text field is tapped (#1126).**
+  The web backend focused its hidden input from the next frame
+  (`requestAnimationFrame`), after the touch handler had returned. iOS opens a
+  keyboard only for a focus made while it handles the touch, so a tapped field
+  showed a blinking caret but no keyboard came up. A press that focuses an
+  editable field now starts the input method and shows the keyboard inside the
+  press itself: at the touch-down, or at the lift where a scrollable holds the
+  press until it knows the touch is a tap. A press that leaves the field, or
+  that focuses a widget the next frame builds, is still settled in the frame.
+  Other platforms get the same calls one frame sooner.
+
 - **macOS: Apple Events reach a running app (#1106).** The event loop polled
   with a fixed list of event types. AppKit dispatches Apple Events only when the
   poll asks for every type, so a document opened while the app ran, a Dock

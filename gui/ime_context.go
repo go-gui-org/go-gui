@@ -193,6 +193,29 @@ func (w *Window) applyIMEEditContext(edit *Shape) {
 	}
 }
 
+// syncIMEEditContextOnPress starts the input method for a field that a
+// press has just focused, inside the press dispatch instead of in the
+// next frame. iOS Safari opens the soft keyboard only for a focus() made
+// while it handles the touch. The web frame runs later, from
+// requestAnimationFrame, so the hidden input it focused took focus
+// without a keyboard.
+//
+// Only a start or a switch to another field runs here. The frame pass
+// still settles a press that leaves the field, and one that focuses a
+// widget the arranged tree does not hold yet. The frame then sees the
+// same field and pushes nothing again (#156).
+func (w *Window) syncIMEEditContextOnPress(focusBefore string) {
+	focusID := w.FocusID()
+	if focusID == "" || focusID == focusBefore {
+		return
+	}
+	_, edit := findEditTargets(&w.layout, w, 0)
+	if edit == nil {
+		return
+	}
+	w.applyIMEEditContext(edit)
+}
+
 // syncBlinkCursor starts or stops the caret-blink animation as the
 // focused widget gains or loses a framework caret (issue #403).
 //
