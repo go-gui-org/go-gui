@@ -391,3 +391,284 @@ func TestTouchTapOnTrackJumps(t *testing.T) {
 		t.Fatal("mouse still locked after the lift")
 	}
 }
+
+// dragStripPage runs the frame pipeline over a page "page" that scrolls
+// vertically, holding at the top a DragScroll strip "strip" 100 px high.
+// A horizontal strip holds 20 cards 100 px wide and scrolls sideways
+// only; a vertical one holds 20 rows and scrolls up and down only.
+func dragStripPage(t *testing.T, horizontal bool) *Window {
+	t.Helper()
+	w := NewWindow(WindowCfg{State: new(int), Width: 300, Height: 400})
+	w.viewGenerator = func(*Window) View {
+		items := make([]View, 0, 20)
+		for i := range 20 {
+			items = append(items, Button(ButtonCfg{
+				ID: fmt.Sprintf("c%d", i), Label: "card", Sizing: FixedFill, Width: 100,
+			}))
+		}
+		strip := ContainerCfg{
+			ID: "strip", Scrollable: true, DragScroll: true,
+			Sizing: FillFixed, Height: 100, Content: items,
+		}
+		var top View
+		if horizontal {
+			strip.ScrollMode = ScrollHorizontalOnly
+			top = Row(strip)
+		} else {
+			strip.ScrollMode = ScrollVerticalOnly
+			for i := range items {
+				items[i] = Button(ButtonCfg{
+					ID: fmt.Sprintf("c%d", i), Label: "item", Sizing: FillFit,
+				})
+			}
+			top = Column(strip)
+		}
+		rows := []View{top}
+		for i := range 40 {
+			rows = append(rows, Button(ButtonCfg{
+				ID: fmt.Sprintf("b%d", i), Sizing: FillFit, Label: "row",
+			}))
+		}
+		return Column(ContainerCfg{ID: "page", Scrollable: true, Sizing: FillFill, Content: rows})
+	}
+	w.markLayoutRefresh(refreshTest)
+	w.FrameFn()
+	return w
+}
+
+// stripSwipe touches the strip's center, moves the finger by each step
+// of (dxs[i], dys[i]) from there, and lifts it.
+func stripSwipe(t *testing.T, w *Window, dxs, dys []float32) {
+	t.Helper()
+	x, y := rowCenter(t, w, "strip")
+	touchAt(w, EventTouchesBegan, 0, x, y)
+	if !w.viewState.dragPan.active {
+		t.Fatal("strip did not take its press at touch-down")
+	}
+	for i := range dxs {
+		touchAt(w, EventTouchesMoved, int64(i+1)*16_000_000, x+dxs[i], y+dys[i])
+	}
+	last := len(dxs) - 1
+	touchAt(w, EventTouchesEnded, 300_000_000, x+dxs[last], y+dys[last])
+}
+
+// TestTouchPanAroundDragScrollScrolls checks a vertical swipe that starts
+// on a horizontal DragScroll strip scrolls the page around it. The strip
+// takes the mouse lock at touch-down, and the pan fallback stood down for
+// every lock, so the page did not move.
+func TestTouchPanAroundDragScrollScrolls(t *testing.T) {
+	w := dragStripPage(t, true)
+	stripSwipe(t, w, []float32{0, 0, 0}, []float32{-12, -30, -60})
+	if v, _ := w.scrollY().Get("page"); v >= 0 {
+		t.Fatalf("page offset = %v, want the page scrolled by a swipe on the strip", v)
+	}
+}
+
+// TestTouchSidewaysSwipeOnStripHoldsPage checks a sideways swipe on a
+// horizontal strip moves the strip and not the page, though the finger
+// drifts up as it goes: the strip owns the pan's axis.
+func TestTouchSidewaysSwipeOnStripHoldsPage(t *testing.T) {
+	w := dragStripPage(t, true)
+	stripSwipe(t, w, []float32{-12, -40, -80}, []float32{-3, -8, -15})
+	if v, _ := w.scrollX().Get(w.ResolveID("strip")[0]); v >= 0 {
+		t.Fatalf("strip offset = %v, want it scrolled", v)
+	}
+	if v, _ := w.scrollY().Get("page"); v != 0 {
+		t.Fatalf("page offset = %v, want 0 for a sideways swipe", v)
+	}
+}
+
+// TestTouchSameAxisDragScrollMovesOnce checks a vertical swipe on a
+// vertical DragScroll strip in a vertical page moves the strip alone.
+// Both moved, so the content went twice as far as the finger.
+func TestTouchSameAxisDragScrollMovesOnce(t *testing.T) {
+	w := dragStripPage(t, false)
+	stripSwipe(t, w, []float32{0, 0, 0}, []float32{-12, -30, -60})
+	if v, _ := w.scrollY().Get(w.ResolveID("strip")[0]); v >= 0 {
+		t.Fatalf("strip offset = %v, want it scrolled", v)
+	}
+	if v, _ := w.scrollY().Get("page"); v != 0 {
+		t.Fatalf("page offset = %v, want 0: the strip owns the axis", v)
+	}
+}
+
+// TestTouchOverlayControlTakesPress checks a control in an overlay over a
+// list gets its press at touch-down. The scan fell through the overlay
+// to the list, held the press, and a vertical drag dropped it, so a
+// vertical slider in the overlay did not move.
+func TestTouchOverlayControlTakesPress(t *testing.T) {
+	var value float32 = 50
+	w := NewWindow(WindowCfg{State: new(int), Width: 300, Height: 400})
+	w.viewGenerator = func(*Window) View {
+		rows := make([]View, 0, 40)
+		for i := range 40 {
+			rows = append(rows, Button(ButtonCfg{
+				ID: fmt.Sprintf("b%d", i), Sizing: FillFit, Label: "row",
+			}))
+		}
+		return Stack(ContainerCfg{
+			Sizing: FillFill,
+			Content: []View{
+				Column(ContainerCfg{ID: "list", Scrollable: true, Sizing: FillFill, Content: rows}),
+				Column(ContainerCfg{
+					Sizing: FixedFixed, Width: 80, Height: 300,
+					Content: []View{Slider(SliderCfg{
+						ID: "sl", Vertical: true, Height: 260, Value: value, Min: 0, Max: 100,
+						OnChange: func(v float32, ctx EventCtx) {
+							value = v
+							ctx.Consume()
+						},
+					})},
+				}),
+			},
+		})
+	}
+	w.markLayoutRefresh(refreshTest)
+	w.FrameFn()
+	x, y := rowCenter(t, w, "sl")
+	touchAt(w, EventTouchesBegan, 0, x, y)
+	if w.viewState.gesture.pressHeld {
+		t.Fatal("press held for a slider in an overlay, want it sent at touch-down")
+	}
+	for i, dy := range []float32{12, 30, 60} {
+		touchAt(w, EventTouchesMoved, int64(i+1)*16_000_000, x, y+dy)
+	}
+	touchAt(w, EventTouchesEnded, 300_000_000, x, y+60)
+	if value == 50 {
+		t.Fatal("slider value = 50, want it moved by the drag")
+	}
+}
+
+// A shape in an overlay whose OnClick fires only for the right button does
+// not take a touch press, which is a left press: the press walk passes it
+// to the list under it, so the list still holds the press back.
+func TestTouchRightClickOverlayPassesPress(t *testing.T) {
+	w := NewWindow(WindowCfg{State: new(int), Width: 300, Height: 400})
+	w.viewGenerator = func(*Window) View {
+		rows := make([]View, 0, 40)
+		for i := range 40 {
+			rows = append(rows, Button(ButtonCfg{
+				ID: fmt.Sprintf("b%d", i), Sizing: FillFit, Label: "row",
+			}))
+		}
+		return Stack(ContainerCfg{
+			Sizing: FillFill,
+			Content: []View{
+				Column(ContainerCfg{ID: "list", Scrollable: true, Sizing: FillFill, Content: rows}),
+				Column(ContainerCfg{
+					ID: "menu", Sizing: FixedFixed, Width: 80, Height: 300,
+					OnAnyClick:  func(EventCtx) {},
+					clickButton: clickRightOnly,
+				}),
+			},
+		})
+	}
+	w.markLayoutRefresh(refreshTest)
+	w.FrameFn()
+	x, y := rowCenter(t, w, "menu")
+	touchAt(w, EventTouchesBegan, 0, x, y)
+	if !w.viewState.gesture.pressHeld {
+		t.Fatal("press sent at touch-down, want it held for the list under a right-click-only overlay")
+	}
+}
+
+// TestTouchTapCatchingFlingDoesNotClick checks a tap that stops a fling
+// only stops it: the row under the finger is not clicked, as on iOS and
+// Android.
+func TestTouchTapCatchingFlingDoesNotClick(t *testing.T) {
+	clicks := map[string]int{}
+	w := touchPressWindow(t, 40, clicks)
+	if !scrollMomentumStart(w, "list", scrollAxisY, -3000) {
+		t.Fatal("fling did not start")
+	}
+	x, y := rowCenter(t, w, "b2")
+	touchAt(w, EventTouchesBegan, 0, x, y)
+	touchAt(w, EventTouchesEnded, 50_000_000, x, y)
+	if len(clicks) != 0 {
+		t.Fatalf("clicks = %v, want none for a tap that caught a fling", clicks)
+	}
+	// The next tap, with nothing gliding, clicks as usual.
+	touchAt(w, EventTouchesBegan, 400_000_000, x, y)
+	touchAt(w, EventTouchesEnded, 450_000_000, x, y)
+	if clicks["b2"] != 1 {
+		t.Fatalf("clicks = %v, want b2 clicked by the tap after the catch", clicks)
+	}
+}
+
+// TestTouchDiagonalPanScrolls checks a diagonal swipe on a vertical list
+// is a scroll, not a sideways pan: the finger moves a bit more sideways
+// than down, and no row is pressed.
+func TestTouchDiagonalPanScrolls(t *testing.T) {
+	clicks := map[string]int{}
+	w := touchPressWindow(t, 40, clicks)
+	x, y := rowCenter(t, w, "b4")
+	touchAt(w, EventTouchesBegan, 0, x, y)
+	for i, d := range []float32{-9, -24, -48} {
+		touchAt(w, EventTouchesMoved, int64(i+1)*16_000_000, x-d*1.2, y+d)
+	}
+	touchAt(w, EventTouchesEnded, 300_000_000, x+58, y-48)
+	if len(clicks) != 0 {
+		t.Fatalf("clicks = %v, want none for a diagonal scroll", clicks)
+	}
+	if v, _ := w.scrollY().Get("list"); v >= 0 {
+		t.Fatalf("list offset = %v, want it scrolled", v)
+	}
+}
+
+// TestTouchTapBesideFlingClicks checks a tap stops a fling without a click
+// only on the content that was gliding: a fling in one list does not
+// swallow a tap on a row of another.
+func TestTouchTapBesideFlingClicks(t *testing.T) {
+	clicks := map[string]int{}
+	w := NewWindow(WindowCfg{State: new(int), Width: 400, Height: 400})
+	list := func(id string) View {
+		rows := make([]View, 0, 40)
+		for i := range 40 {
+			row := fmt.Sprintf("%s%d", id, i)
+			rows = append(rows, Button(ButtonCfg{
+				ID: row, Sizing: FillFit, Label: row,
+				OnClick: func(ctx EventCtx) {
+					clicks[row]++
+					ctx.Consume()
+				},
+			}))
+		}
+		return Column(ContainerCfg{ID: id, Scrollable: true, Sizing: FillFill, Content: rows})
+	}
+	w.viewGenerator = func(*Window) View {
+		return Row(ContainerCfg{Sizing: FillFill, Content: []View{list("left"), list("right")}})
+	}
+	w.markLayoutRefresh(refreshTest)
+	w.FrameFn()
+	if !scrollMomentumStart(w, "left", scrollAxisY, -3000) {
+		t.Fatal("fling did not start")
+	}
+	x, y := rowCenter(t, w, "right2")
+	touchAt(w, EventTouchesBegan, 0, x, y)
+	touchAt(w, EventTouchesEnded, 50_000_000, x, y)
+	if clicks["right2"] != 1 {
+		t.Fatalf("clicks = %v, want right2 clicked: the fling was in the other list", clicks)
+	}
+}
+
+// TestTouchSecondFingerReleasesDragPan checks a second finger ends a
+// DragScroll pan: its mouse release drops the drag lock, so the pan that
+// follows a pinch never runs under a DragScroll lock.
+func TestTouchSecondFingerReleasesDragPan(t *testing.T) {
+	w := dragStripPage(t, true)
+	x, y := rowCenter(t, w, "strip")
+	touchAt(w, EventTouchesBegan, 0, x, y)
+	if !w.viewState.dragPan.active {
+		t.Fatal("strip did not take the press")
+	}
+	w.handleTouch(&w.layout, &Event{
+		Type: EventTouchesBegan, NumTouches: 2,
+		Touches: [8]TouchPoint{
+			{Identifier: 1, PosX: x, PosY: y},
+			{Identifier: 2, PosX: x + 40, PosY: y, Changed: true},
+		},
+	})
+	if w.viewState.dragPan.active || w.mouseIsLocked() {
+		t.Fatal("drag lock still held after a second finger")
+	}
+}

@@ -408,29 +408,43 @@ func mouseDownHandlerDepth(
 		return
 	}
 	if layout.Shape.PointInShape(e.MouseX, e.MouseY) {
-		if layout.Shape.canTakeFocus() &&
-			e.MouseButton != MouseRight {
+		if pressFocuses(layout.Shape, e.MouseButton) {
 			w.SetFocus(layout.Shape.idKey())
 			e.IsHandled = true
 		}
-		var onMouseDown shapeCallback
-		if layout.Shape.hasEvents() {
-			onMouseDown = layout.Shape.events.OnMouseDown
-		}
 		// evMouseDown names the event for the unconsumed-event debug
 		// check; the callback itself consumes explicitly.
-		executeMouseCallback(layout, e, w, onMouseDown, evMouseDown)
-		var onClick shapeCallback
-		if layout.Shape.hasEvents() {
-			events := layout.Shape.events
-			if events.clickButton.accepts(e.MouseButton) {
-				onClick = events.OnClick
-			}
-		}
+		executeMouseCallback(layout, e, w, pressOnMouseDown(layout.Shape), evMouseDown)
 		// evClick additionally plays the shape's click cue before
 		// the callback, independently of whether it consumes.
-		executeMouseCallback(layout, e, w, onClick, evClick)
+		executeMouseCallback(layout, e, w, pressOnClick(layout.Shape, e.MouseButton), evClick)
 	}
+}
+
+// The press walk above and the touch press scan (touchPressScanAt) must
+// agree on what a shape does with a press, so both read these three.
+
+// pressFocuses reports whether a press of btn on sh focuses it. A right
+// press does not: it opens a context menu, not the control.
+func pressFocuses(sh *Shape, btn MouseButton) bool {
+	return sh.canTakeFocus() && btn != MouseRight
+}
+
+// pressOnMouseDown returns the OnMouseDown a press on sh runs, or nil.
+func pressOnMouseDown(sh *Shape) shapeCallback {
+	if !sh.hasEvents() {
+		return nil
+	}
+	return sh.events.OnMouseDown
+}
+
+// pressOnClick returns the OnClick a press of btn on sh runs, or nil when
+// sh has none or its button filter refuses btn.
+func pressOnClick(sh *Shape, btn MouseButton) shapeCallback {
+	if !sh.hasEvents() || !sh.events.clickButton.accepts(btn) {
+		return nil
+	}
+	return sh.events.OnClick
 }
 
 // mouseMoveHandler handles mouse movement events.

@@ -170,8 +170,7 @@ func (c evClass) wouldReach(anc *Layout, e *Event, w *Window) bool {
 		// The button filter is part of the dispatch condition
 		// (mouseDownHandler), so an ancestor listening for right-click
 		// only is not reached by a left-click.
-		if ev.OnClick == nil ||
-			!ev.clickButton.accepts(e.MouseButton) {
+		if pressOnClick(s, e.MouseButton) == nil {
 			return false
 		}
 		return s.PointInShape(e.MouseX, e.MouseY)

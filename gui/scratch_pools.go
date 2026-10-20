@@ -279,6 +279,9 @@ type scratchPools struct {
 	// (avoids per-shape/per-gesture heap allocation of Event).
 	hoverEvent   Event
 	gestureEvent Event
+	// flungIDs holds the containers a touch-down stopped mid-fling
+	// (scrollMomentumStop), reused across touches.
+	flungIDs []string
 
 	// modalRoute is the root dialogRoute hands out when layers sit above
 	// a modal dialog (the inspector panel). Its Children re-slice

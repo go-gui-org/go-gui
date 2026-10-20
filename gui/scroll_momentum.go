@@ -197,15 +197,18 @@ func scrollFlingEdge(w *Window, e *scrollSmoothEntry) {
 
 // scrollMomentumStop ends every running fling where its content is now,
 // for a new touch: the finger that lands on gliding content catches it.
-// The wheel eases keep running. Main goroutine only.
-func scrollMomentumStop(w *Window) {
+// The wheel eases keep running. Appends the containers whose fling it
+// stopped to caught and returns it, so a tap on one of them only stops it
+// (touch_press.go). Main goroutine only.
+func scrollMomentumStop(w *Window, caught []string) []string {
 	w.animMu.Lock()
 	defer w.animMu.Unlock()
 	if w.scrollSmooth == nil {
-		return
+		return caught
 	}
 	for i := range w.scrollSmooth.entries {
 		if e := &w.scrollSmooth.entries[i]; e.active && e.tau > 0 {
+			caught = append(caught, e.id)
 			// The last applied value stays; a computed but unapplied
 			// one is a few pixels on, past where the finger caught it.
 			e.active = false
@@ -213,4 +216,5 @@ func scrollMomentumStop(w *Window) {
 			e.dirty = false
 		}
 	}
+	return caught
 }

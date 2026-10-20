@@ -44,6 +44,16 @@ type touchPressScan struct {
 	bar ScrollbarOrientation
 	// now reports a part that takes its press at touch-down.
 	now bool
+	// took reports a shape on the path that takes the press (a focusable
+	// control, or one with a press or click handler). The press walk
+	// stops there and never reaches the siblings under it, so the scan
+	// stops too.
+	took bool
+	// flung are the containers the touch stopped mid-fling (input), and
+	// caught reports one of them is on the path: a tap there only stops
+	// the fling.
+	flung  []string
+	caught bool
 }
 
 // decided reports whether a path named a rule for the press.
@@ -52,18 +62,20 @@ func (s *touchPressScan) decided() bool {
 }
 
 // touchPressDown presses for the finger that went down at x, y: now,
-// or held back when it lands in a scrollable that can scroll.
-func touchPressDown(gs *gestureState, layout *Layout, w *Window, x, y float32) {
+// or held back when it lands in a scrollable that can scroll. flung are
+// the containers this touch stopped mid-fling.
+func touchPressDown(gs *gestureState, layout *Layout, w *Window, x, y float32, flung []string) {
 	gs.touchPressDrop()
-	var s touchPressScan
+	s := touchPressScan{flung: flung}
 	if !w.mouseIsLocked() {
 		touchPressScanAt(layout, x, y, 0, &s)
 	}
 	if !s.now && (s.v || s.h || s.bar != scrollbarNone) {
 		gs.pressHeld = true
-		gs.pressHeldV = s.v
-		gs.pressHeldH = s.h
-		gs.pressHeldBar = s.bar
+		// The IDs are scratch, reused by the next touch: keep only the
+		// answer.
+		s.flung = nil
+		gs.pressScan = s
 		// The finger is the pointer now, as the press would have
 		// made it: the next synthesized move takes its delta from
 		// here, not from where a mouse last was.
@@ -87,9 +99,7 @@ func touchPressSend(gs *gestureState, layout *Layout, w *Window) {
 // touchPressDrop forgets a held press: nothing receives it.
 func (gs *gestureState) touchPressDrop() {
 	gs.pressHeld = false
-	gs.pressHeldV = false
-	gs.pressHeldH = false
-	gs.pressHeldBar = scrollbarNone
+	gs.pressScan = touchPressScan{}
 }
 
 // touchPressOnPan settles a held press when the pan is recognized: a
@@ -97,20 +107,29 @@ func (gs *gestureState) touchPressDrop() {
 // sends it. On a scrollbar the bar decides: a pan along it sends the
 // press, a pan across drops it. dx, dy is the finger's travel from the
 // press.
+//
+// A pan goes across a scrollable only when it runs clearly across its
+// axis, touchPressCrossRatio times farther than along it. A finger
+// rarely moves straight: a diagonal swipe on a vertical list that runs
+// a bit more sideways than down is a scroll, and with a plain
+// |dy| >= |dx| test it pressed the row first (#1116). On a scrollable
+// that scrolls both ways every pan is a scroll.
 func touchPressOnPan(gs *gestureState, layout *Layout, w *Window, dx, dy float32) {
 	if !gs.pressHeld {
 		return
 	}
-	vertical := f32Abs(dy) >= f32Abs(dx)
-	if gs.pressHeldBar != scrollbarNone {
-		if vertical == (gs.pressHeldBar == scrollbarVertical) {
+	ax, ay := f32Abs(dx), f32Abs(dy)
+	if bar := gs.pressScan.bar; bar != scrollbarNone {
+		// A bar is thin: the dominant axis decides, with no bias.
+		if (ay >= ax) == (bar == scrollbarVertical) {
 			touchPressSend(gs, layout, w)
 		} else {
 			gs.touchPressDrop()
 		}
 		return
 	}
-	if (vertical && gs.pressHeldV) || (!vertical && gs.pressHeldH) {
+	if (gs.pressScan.v && ax <= touchPressCrossRatio*ay) ||
+		(gs.pressScan.h && ay <= touchPressCrossRatio*ax) {
 		gs.touchPressDrop()
 		return
 	}
@@ -121,8 +140,9 @@ func touchPressOnPan(gs *gestureState, layout *Layout, w *Window, dx, dy float32
 // press walk does, and records what they hold in s. Reports whether the
 // subtree holds the point. The press walk falls through a child that
 // does not take the press to the siblings under it, so a path that names
-// no rule (an overlay with no scrollable, say) does not end the scan:
-// the list under it still holds the press back.
+// no rule and takes no press (an empty overlay, say) does not end the
+// scan: the list under it still holds the press back. A path that takes
+// the press (a slider in an overlay) ends it, as it ends the press walk.
 func touchPressScanAt(layout *Layout, x, y float32, depth int, s *touchPressScan) bool {
 	if overMaxDepth(depth) {
 		return false
@@ -145,7 +165,10 @@ func touchPressScanAt(layout *Layout, x, y float32, depth int, s *touchPressScan
 		}
 		if touchPressScanAt(&layout.Children[i], cx, cy, depth+1, s) {
 			hit = true
-			if s.decided() {
+			// A child that takes the press hides the siblings under it
+			// from the press walk: a slider in an overlay over a list
+			// gets the press, so the list must not hold it back.
+			if s.decided() || s.took {
 				break
 			}
 		}
@@ -154,6 +177,16 @@ func touchPressScanAt(layout *Layout, x, y float32, depth int, s *touchPressScan
 		return false
 	}
 	touchPressNote(layout, s)
+	// The press walk runs a shape's own focus and handlers only when the
+	// point is in the shape itself, not in a child that reaches past it.
+	// A handler that does not consume is counted as taking the press:
+	// the scan cannot know at touch-down what the callback will do. A touch
+	// press is a left press; the press walk's own checks decide, so a
+	// right-click-only OnClick does not count.
+	if sh.PointInShape(x, y) && (pressFocuses(sh, MouseLeft) ||
+		pressOnMouseDown(sh) != nil || pressOnClick(sh, MouseLeft) != nil) {
+		s.took = true
+	}
 	return true
 }
 
@@ -167,6 +200,9 @@ func touchPressNote(layout *Layout, s *touchPressScan) {
 	}
 	if !sh.Scrollable || sh.Disabled {
 		return
+	}
+	if len(s.flung) > 0 && slices.Contains(s.flung, sh.idKey()) {
+		s.caught = true
 	}
 	if sh.DragScroll {
 		s.now = true
