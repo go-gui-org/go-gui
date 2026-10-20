@@ -30,6 +30,15 @@ jobs:
         # leg when #886 is resolved. The preempt key must differ from
         # "on": an include that only adds a new key would merge into the
         # existing windows job and not make a second one.
+        #
+        # Update: this leg crashed too (run 37206317093), so preemption is
+        # not required. The leg now also sets clobberfree=1: the runtime
+        # fills freed memory with 0xdeadbeef. Signature 4 (an
+        # access violation that runs a sync.OnceFunc closure whose code
+        # pointer holds rodata) shows a live heap object was overwritten.
+        # A 0xdeadbeef value in the next crash means the GC freed a live
+        # object (a runtime bug to report upstream). Any other value means
+        # a write went past the end of a nearby object.
         include:
           - os: windows-latest
             preempt: 'off'
@@ -50,7 +59,7 @@ jobs:
         # CI with #235); race coverage stays on Linux/macOS.
         shell: bash
         env:
-          GODEBUG: ${{ matrix.preempt == 'off' && 'asyncpreemptoff=1' || '' }}
+          GODEBUG: ${{ matrix.preempt == 'off' && 'asyncpreemptoff=1,clobberfree=1' || '' }}
         run: |
           if [ "$RUNNER_OS" = "Windows" ]; then
             # #886: the suite sometimes kills the Go runtime on Windows
