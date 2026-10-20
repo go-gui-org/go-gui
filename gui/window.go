@@ -591,7 +591,7 @@ func (w *Window) FrameCount() uint64 {
 // SetWakeMainFn sets the function called to wake the main event
 // loop from WaitEventTimeout. The backend sets this at init time.
 func (w *Window) SetWakeMainFn(fn func()) {
-	w.wakeMainFn = fn
+	w.wakeMainFn.Store(&fn)
 }
 
 // TextWidth measures the rendered width of text for the supplied style.

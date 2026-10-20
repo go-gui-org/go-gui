@@ -129,6 +129,10 @@ Go-Gui is also an ecosystem of composable libraries. **go-glyph** handles text,
   checking, and full accessibility support
 - **Native application integration** — file dialogs, menus, notifications,
   printing, PDF, system tray, frameless windows, and other platform services
+- **Single instance and open-with** — `gui/instance` keeps one running copy per
+  user and hands a second launch's files and URLs to it. `App.OnOpen` also gets
+  files opened from Finder and custom-scheme links on macOS
+  ([`examples/single_instance/`](examples/single_instance/))
 - **Developer tools** — time-travel debugging, headless testing, headless
   rendering, layout inspection, and pixel-level regression testing
 

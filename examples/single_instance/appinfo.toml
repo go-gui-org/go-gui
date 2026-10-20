@@ -1,0 +1,7 @@
+# The ID names the single-instance election: every launch with this ID
+# joins the same one.
+id      = "org.go-gui.single-instance"
+name    = "Single Instance Demo"
+version = "1.0.0"
+build   = "1"
+icon    = "../../gui/default_icon.png" # relative to this file

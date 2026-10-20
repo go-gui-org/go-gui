@@ -90,6 +90,13 @@ extern void goMetalWindowOccluded(unsigned int windowID, int occluded);
 // Called when files are dropped on the window.
 extern void goMetalFileDrop(unsigned int windowID, char *path);
 
+// Called when the OS asks the app to open files or URLs: a document
+// opened from Finder (Apple Event odoc) or a registered URL scheme
+// (GURL), delivered through -application:openURLs:. items[i] is a
+// file path when isFile[i] is non-zero, else the URL's absolute
+// string. The buffers live only for the call.
+extern void goMetalOpenURLs(char **items, int *isFile, int n);
+
 // Called from the frame-pump timer while a nested AppKit runloop is
 // running (see metalStartFramePump). Go renders one frame per window.
 extern void goMetalPumpFrames(void);

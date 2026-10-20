@@ -362,7 +362,7 @@ func TestRenderTextNoWrapOmitsWidth(t *testing.T) {
 func TestQueueCommandWakesMain(t *testing.T) {
 	w := &Window{}
 	woken := false
-	w.wakeMainFn = func() { woken = true }
+	w.SetWakeMainFn(func() { woken = true })
 	w.QueueCommand(func(_ *Window) {})
 	if !woken {
 		t.Error("QueueCommand should call wakeMain")
@@ -444,7 +444,7 @@ func TestRefreshRequestsWakeMain(t *testing.T) {
 			w.clearLayoutRefresh()
 			w.clearRenderRefresh()
 			wakes := 0
-			w.wakeMainFn = func() { wakes++ }
+			w.SetWakeMainFn(func() { wakes++ })
 			tt.call(w)
 			if wakes != 1 {
 				t.Errorf("wakeMain called %d times, want 1", wakes)

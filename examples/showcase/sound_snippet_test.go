@@ -88,6 +88,16 @@ var snippetEntries = []snippetEntry{
 		},
 	},
 	{
+		sourceFile: "../single_instance/main.go",
+		beginMark:  "// doc:snippet-begin single-instance",
+		endMark:    "// doc:snippet-end single-instance",
+		anchor:     "lock.Attach(app)",
+		heading:    "## The code",
+		guides: []string{
+			"../single_instance/README.md",
+		},
+	},
+	{
 		sourceFile: "../settings/main.go",
 		beginMark:  "// doc:snippet-begin settings-store",
 		endMark:    "// doc:snippet-end settings-store",

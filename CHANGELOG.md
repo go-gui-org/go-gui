@@ -8,7 +8,29 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- **Single-instance mode and open events (#1106).** `instance.Acquire(id)` in
+  the new `gui/instance` package elects one primary process per app ID and user.
+  A later launch sends its arguments to the primary and gets `primary=false`, so
+  it can exit. `Lock.Attach(app)` turns this launch's arguments and every
+  forwarded launch into a `gui.OpenEvent` (files and URLs) for the new
+  `App.OnOpen`, which runs on the main thread and rebuilds the view after. On
+  macOS, files opened from Finder or the Dock and links in a scheme the bundle
+  registers reach `App.OnOpen` too, at launch and while the app runs.
+  `App.DispatchOpen` and `gui.ParseOpenArgs` are exported for apps that feed
+  their own events. The election uses `flock` on Unix and a named mutex on
+  Windows. The kernel frees it when the primary dies, also on `kill -9`.
+  Single-window `backend.Run` has no `App`, so it gets no open events; use
+  `backend.RunApp`. See `examples/single_instance/`.
+
 ### Fixed
+
+- **macOS: Apple Events reach a running app (#1106).** The event loop polled
+  with a fixed list of event types. AppKit dispatches Apple Events only when the
+  poll asks for every type, so a document opened while the app ran, a Dock
+  reopen and other Apple Events were lost. The loop now polls with
+  `NSEventMaskAny`, as `[NSApp run]` does.
 
 - **A Wayland window without a frame provider falls back to X11 (#1121).**
   v0.91.0 made Wayland the default. GNOME draws no window frames, so go-gui

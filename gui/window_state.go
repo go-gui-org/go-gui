@@ -117,8 +117,10 @@ type windowBackend struct {
 	// setTitleFn updates the OS window title. Set by backend; nil-safe.
 	setTitleFn func(string)
 	// wakeMainFn wakes the main thread from WaitEventTimeout.
-	// Set by backend; nil-safe.
-	wakeMainFn func()
+	// Set by backend; nil-safe. Atomic: other goroutines (QueueCommand,
+	// a forwarded launch through App.DispatchOpen) read it, and an open
+	// event can arrive while the backend is still setting it (#1106).
+	wakeMainFn atomic.Pointer[func()]
 }
 
 // windowToast holds toast notification state.

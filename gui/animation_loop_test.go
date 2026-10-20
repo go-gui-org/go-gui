@@ -131,7 +131,7 @@ func TestWakeMainNilSafe(t *testing.T) {
 func TestWakeMainCallsFn(t *testing.T) {
 	w := &Window{}
 	called := false
-	w.wakeMainFn = func() { called = true }
+	w.SetWakeMainFn(func() { called = true })
 	w.wakeMain()
 	if !called {
 		t.Error("wakeMain should call wakeMainFn")

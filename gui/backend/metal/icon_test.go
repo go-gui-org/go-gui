@@ -75,6 +75,27 @@ func runMainThreadTests() {
 		panic("metalAppInit: Windows menu not registered")
 	}
 
+	// 3b. The delegate must route open requests (odoc / GURL) to the
+	//    App RunApp registered: file URLs as paths, others verbatim.
+	{
+		app := gui.NewApp()
+		var got []gui.OpenEvent
+		app.OnOpen = func(_ *gui.App, ev gui.OpenEvent) { got = append(got, ev) }
+		w := gui.NewWindow(gui.WindowCfg{State: new(int)})
+		app.Register(1, w)
+		openApp.Store(app)
+		if !testDelegateOpenURLs() {
+			panic("GoGuiAppDelegate: application:openURLs: not implemented")
+		}
+		openApp.Store(nil)
+		w.FrameFn()
+		if len(got) != 1 ||
+			len(got[0].Files) != 1 || got[0].Files[0] != "/tmp/go gui.txt" ||
+			len(got[0].URLs) != 1 || got[0].URLs[0] != "gogui-test://open?x=1" {
+			panic(fmt.Sprintf("application:openURLs: delivered %+v", got))
+		}
+	}
+
 	// 4. Delegate methods must set quit event AND _quitRequested —
 	//    regression for menu-click quit and system termination.
 	//    _quitRequested is how metalPollEvent surfaces the quit when

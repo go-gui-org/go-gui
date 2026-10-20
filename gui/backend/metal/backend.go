@@ -209,6 +209,12 @@ func RunApp(app *gui.App, initialWindows ...*gui.Window) {
 func runAppE(app *gui.App, initialWindows ...*gui.Window) error {
 	runtime.LockOSThread()
 
+	// Before metalAppInit: a launch with documents delivers them in
+	// the first [NSApp run] (metalAppFinishLaunch), which must find
+	// the App already set.
+	openApp.Store(app)
+	defer openApp.CompareAndSwap(app, nil)
+
 	// Activate the app before creating any windows so
 	// windows are visible on macOS for CLI-launched binaries.
 	C.metalAppInit()

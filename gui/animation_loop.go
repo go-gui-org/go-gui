@@ -450,8 +450,10 @@ func DispatchWindowOccluded(w *Window, occluded bool) {
 // wakeMain calls the backend's wake function to unblock the
 // main event loop from WaitEventTimeout. Nil-safe.
 func (w *Window) wakeMain() {
-	if fn := w.wakeMainFn; fn != nil {
-		fn()
+	// The pointer is nil before the backend sets it; the func is nil
+	// after SetWakeMainFn(nil).
+	if fn := w.wakeMainFn.Load(); fn != nil && *fn != nil {
+		(*fn)()
 	}
 }
 

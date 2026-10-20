@@ -14,6 +14,11 @@ import (
 // never blocks; requests past this are dropped with a warning.
 const pendingCap = 16
 
+// openBufferCap bounds open events waiting for a main-window frame.
+// A launch brings a handful; the cap stops a flood of forwarded
+// launches from growing the buffer without limit.
+const openBufferCap = 64
+
 // dropLogInterval throttles the buffer-full warning so a burst
 // of OpenWindow calls logs once, not once per dropped request.
 const dropLogInterval = int64(time.Second)
@@ -60,6 +65,21 @@ type App struct {
 	// lastDropLog is the UnixNano of the last buffer-full warning.
 	dropped     atomic.Uint64
 	lastDropLog atomic.Int64
+
+	// OnOpen receives files and URLs that the OS or a second launch
+	// asks this app to open (see OpenEvent, DispatchOpen and
+	// gui/instance). Set it before RunApp. It runs on the main thread,
+	// through the main window's command queue. Nil drops the events.
+	OnOpen func(*App, OpenEvent)
+	// openBuf holds open events that no main-window frame has taken
+	// yet: before a main window exists (a launch-time Apple Event, a
+	// forward during startup) and between DispatchOpen and the next
+	// frame. Guarded by mu; emptied by drainOpen. Bounded by
+	// openBufferCap.
+	openBuf []OpenEvent
+	// lastOpenDropLog throttles the buffer-full warning, as
+	// lastDropLog does for OpenWindow.
+	lastOpenDropLog atomic.Int64
 }
 
 // NewApp creates an App with an empty window registry.
@@ -94,14 +114,20 @@ func (a *App) Register(id uint32, w *Window) {
 	}
 	a.windows[id] = w
 	a.order = append(a.order, id)
+	queuedOpen := false
 	if len(a.order) == 1 {
 		a.mainID = id
+		// Launch-time open events waited for a main window.
+		queuedOpen = a.queueOpenDrainLocked(w)
 	}
 	// Config is immutable after NewWindow, so this read is safe.
 	needDebug := w.Config.DebugTimeTravel
 	a.mu.Unlock()
 	w.app.Store(a)
 	w.platformID.Store(id)
+	if queuedOpen {
+		w.wakeMain()
+	}
 	if needDebug {
 		// Auto-spawn the scrubber for the newly registered
 		// window. Runs outside a.mu: OpenWindow takes wakeMu
@@ -143,6 +169,11 @@ func (a *App) Unregister(id uint32) bool {
 		a.mainID = 0
 		if len(a.order) > 0 {
 			a.mainID = a.order[0]
+			// The closed window's drain command died with it. Open
+			// events still in openBuf go to the new main window. No
+			// wake: backends call Unregister on the main thread, whose
+			// loop runs the next frame anyway.
+			a.queueOpenDrainLocked(a.windows[a.mainID])
 		}
 	}
 	switch a.ExitMode {
@@ -231,6 +262,89 @@ func (a *App) OpenWindow(cfg WindowCfg) {
 	a.wakeMu.RUnlock()
 	if fn != nil {
 		fn()
+	}
+}
+
+// DispatchOpen delivers an open request to OnOpen on the main thread.
+// Backends call it for OS open requests (macOS Apple Events), and
+// instance.Lock.Attach calls it for forwarded launches; an app may
+// call it too, for example with ParseOpenArgs(os.Args[1:]). The event
+// waits (up to openBufferCap) for the next frame of the main window, or
+// for a main window to register. An empty event is ignored. Safe to
+// call from any goroutine.
+func (a *App) DispatchOpen(ev OpenEvent) {
+	if a == nil || ev.empty() {
+		return
+	}
+	a.mu.Lock()
+	full := len(a.openBuf) >= openBufferCap
+	var mainW *Window
+	if !full {
+		// Events stay in openBuf, not in a window's command queue,
+		// until a main-window frame drains them: a main window that
+		// closes before its next frame does not take them along.
+		a.openBuf = append(a.openBuf, ev)
+		mainW = a.windows[a.mainID]
+		if !a.queueOpenDrainLocked(mainW) {
+			mainW = nil
+		}
+	}
+	a.mu.Unlock()
+	if full {
+		a.logOpenDrop()
+	}
+	if mainW != nil {
+		mainW.wakeMain()
+	}
+}
+
+// queueOpenDrainLocked queues a drainOpen on w when w is not nil and
+// openBuf holds events, without waking the main loop. Caller holds a.mu
+// and wakes w after unlock. Reports whether it queued. One drain per
+// event is queued; a drain that finds openBuf empty does nothing.
+func (a *App) queueOpenDrainLocked(w *Window) bool {
+	if w == nil || len(a.openBuf) == 0 {
+		return false
+	}
+	w.queueCommand(queuedCommand{
+		kind:     queuedCommandWindowFn,
+		windowFn: a.drainOpen,
+	})
+	return true
+}
+
+// drainOpen runs on the frame thread. It takes every buffered open
+// event, in arrival order, and hands each to OnOpen. OnOpen is read
+// here, so an app may set it at any time before the first event; a nil
+// OnOpen drops the events. OnOpen runs outside a.mu, so it may call
+// App methods.
+func (a *App) drainOpen(w *Window) {
+	a.mu.Lock()
+	evs := a.openBuf
+	a.openBuf = nil
+	a.mu.Unlock()
+	fn := a.OnOpen
+	if fn == nil || len(evs) == 0 {
+		return
+	}
+	for _, ev := range evs {
+		fn(a, ev)
+	}
+	// A queued command sets no refresh flag, and OnOpen nearly always
+	// changes what the view shows. Runs on the frame thread, so no wake
+	// is needed: FrameFn checks the flag right after the flush.
+	w.markLayoutRefresh(refreshCommand)
+}
+
+// logOpenDrop warns that an open event was dropped, at most once per
+// dropLogInterval.
+func (a *App) logOpenDrop() {
+	now := time.Now().UnixNano()
+	last := a.lastOpenDropLog.Load()
+	if now-last > dropLogInterval &&
+		a.lastOpenDropLog.CompareAndSwap(last, now) {
+		log.Printf("gui: App.DispatchOpen: %d events already wait "+
+			"for a main-window frame, event dropped", openBufferCap)
 	}
 }
 

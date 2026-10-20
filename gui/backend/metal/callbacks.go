@@ -12,6 +12,7 @@ package metal
 int metalTestActivationPolicyIsRegular(void);
 void metalTestSizeLimits(GoGuiNSWindow w, int *minW, int *minH, int *maxW, int *maxH);
 int metalTestDelegateIsSet(void);
+int metalTestDelegateOpenURLs(void);
 int metalTestMainMenuExists(void);
 int metalTestMenuQuitWired(void);
 int metalTestWindowDelegateExists(void *windowHandle);
@@ -48,6 +49,7 @@ int metalTestLayerPresentsWithTransaction(void *windowHandle);
 */
 import "C"
 import (
+	"log"
 	"sync"
 	"sync/atomic"
 	"unsafe"
@@ -166,6 +168,12 @@ func testSizeLimits(win C.GoGuiNSWindow) (minW, minH, maxW, maxH int) {
 
 func testDelegateSet() bool {
 	return C.metalTestDelegateIsSet() != 0
+}
+
+// testDelegateOpenURLs drives -application:openURLs: on the real
+// delegate. See runMainThreadTests.
+func testDelegateOpenURLs() bool {
+	return C.metalTestDelegateOpenURLs() != 0
 }
 
 // testCompileShaders compiles the built-in MSL library standalone at
@@ -483,6 +491,49 @@ func goMetalFileDrop(wid C.uint, cpath *C.char) {
 	// NSEvent — wake the idle loop so the drop's repaint happens
 	// promptly (issue #405).
 	C.metalPostEmptyEvent()
+}
+
+// openApp is the App that receives OS open requests. RunApp sets it
+// for its run; it is nil under single-window Run, which has no App to
+// deliver to.
+var openApp atomic.Pointer[gui.App]
+
+//export goMetalOpenURLs
+func goMetalOpenURLs(items **C.char, isFile *C.int, n C.int) {
+	if n <= 0 {
+		return
+	}
+	cItems := unsafe.Slice(items, int(n))
+	cFile := unsafe.Slice(isFile, int(n))
+	paths := make([]string, len(cItems))
+	files := make([]bool, len(cItems))
+	for i := range cItems {
+		paths[i] = C.GoString(cItems[i])
+		files[i] = cFile[i] != 0
+	}
+	deliverOpen(openApp.Load(), paths, files)
+}
+
+// deliverOpen sorts what AppKit sent into an OpenEvent and hands it
+// to app. Split from the cgo export so tests can drive it.
+func deliverOpen(app *gui.App, items []string, isFile []bool) {
+	var ev gui.OpenEvent
+	for i, s := range items {
+		if isFile[i] {
+			ev.Files = append(ev.Files, s)
+		} else {
+			ev.URLs = append(ev.URLs, s)
+		}
+	}
+	if app == nil {
+		if gui.DebugEnabled() {
+			log.Printf("metal: open request dropped (%d files, %d URLs): "+
+				"open events need gui.App and backend.RunApp, not Run",
+				len(ev.Files), len(ev.URLs))
+		}
+		return
+	}
+	app.DispatchOpen(ev)
 }
 
 // testNullBackends returns a windowState and a glyph backend over a

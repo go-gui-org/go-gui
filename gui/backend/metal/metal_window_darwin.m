@@ -33,30 +33,15 @@ static const float kPreciseScrollScale = 0.075f;
 // gesture. Was 10.0 before that (~200px/notch), which felt far too fast.
 static const float kWheelScrollScale = 3.0f;
 
-// Event mask covering all event types the app needs to receive.
-// MouseEntered/Exited are required by AppKit's internal tracking-
-// area system — filtering them out prevents traffic-light button
-// hover effects and cursor-rect transitions from firing.
-// Periodic is needed for tracking-loop timers (window resize).
-static const NSEventMask ALL_EVENTS =
-    NSEventMaskLeftMouseDown | NSEventMaskLeftMouseUp |
-    NSEventMaskRightMouseDown | NSEventMaskRightMouseUp |
-    NSEventMaskOtherMouseDown | NSEventMaskOtherMouseUp |
-    NSEventMaskMouseMoved |
-    NSEventMaskLeftMouseDragged | NSEventMaskRightMouseDragged |
-    NSEventMaskOtherMouseDragged |
-    NSEventMaskMouseEntered | NSEventMaskMouseExited |
-    NSEventMaskScrollWheel |
-    NSEventMaskKeyDown | NSEventMaskKeyUp |
-    NSEventMaskFlagsChanged |
-    NSEventMaskAppKitDefined | NSEventMaskSystemDefined |
-    NSEventMaskApplicationDefined |
-    NSEventMaskPeriodic |
-    NSEventMaskGesture |
-    NSEventMaskMagnify | NSEventMaskRotate | NSEventMaskSwipe |
-    NSEventMaskBeginGesture | NSEventMaskEndGesture |
-    NSEventMaskCursorUpdate |
-    NSEventMaskTabletPoint | NSEventMaskTabletProximity;
+// Event mask for both polls in metalPollEventImpl. It must be
+// NSEventMaskAny, the mask [NSApp run] uses: AppKit dispatches Apple
+// Events from nextEventMatchingMask: only under that mask. With an
+// explicit list (even one naming every NSEventMask bit) a document
+// opened from Finder while the app runs never reaches
+// -application:openURLs: (issue #1106; checked with a 40-line native
+// loop). Types storeEvent does not know take its default branch and
+// still go to sendEvent:, as they would under [NSApp run].
+static const NSEventMask ALL_EVENTS = NSEventMaskAny;
 
 // ─── Static event state (read by Go via accessors) ─────────────
 
@@ -1014,6 +999,8 @@ __attribute__((weak)) void goMetalWindowFocusChanged(unsigned int wid,
 __attribute__((weak)) void goMetalWindowOccluded(unsigned int wid,
                                                  int occluded) {}
 __attribute__((weak)) void goMetalFileDrop(unsigned int wid, char *path) {}
+__attribute__((weak)) void goMetalOpenURLs(char **items, int *isFile,
+                                           int n) {}
 __attribute__((weak)) void goMetalPumpFrames(void) {}
 
 // ─── Event polling ─────────────────────────────────────────────
@@ -1498,6 +1485,42 @@ static GUIWindow *metalFocusedGUIWindow(void) {
     goMetalWindowFocusChanged(gw.windowID, 1);
 }
 
+// Files opened from Finder or the Dock, `open -a`, and links in a URL
+// scheme the bundle registers (CFBundleURLTypes). Since macOS 10.13
+// AppKit sends both the odoc and the GURL Apple Event here once the
+// delegate implements this method. A launch with documents delivers
+// them during the [NSApp run] of metalAppFinishLaunch, before the Go
+// loop starts; gui.App buffers them until OnOpen can run.
+- (void)application:(NSApplication *)application
+           openURLs:(NSArray<NSURL *> *)urls {
+    int n = (int)[urls count];
+    if (n == 0) return;
+    char **items = calloc((size_t)n, sizeof(char *));
+    int *isFile = calloc((size_t)n, sizeof(int));
+    if (!items || !isFile) {
+        free(items);
+        free(isFile);
+        return;
+    }
+    int k = 0;
+    for (NSURL *u in urls) {
+        BOOL file = [u isFileURL];
+        NSString *str = file ? [u path] : [u absoluteString];
+        const char *utf8 = [str UTF8String];
+        if (!utf8) continue;
+        // UTF8String's buffer is autoreleased; copy it so it stays
+        // valid for the whole call whatever the pool does.
+        items[k] = strdup(utf8);
+        if (!items[k]) continue;
+        isFile[k] = file ? 1 : 0;
+        k++;
+    }
+    if (k > 0) goMetalOpenURLs(items, isFile, k);
+    for (int i = 0; i < k; i++) free(items[i]);
+    free(items);
+    free(isFile);
+}
+
 // Stops the bootstrap [NSApp run] started by metalAppFinishLaunch so
 // the custom event loop can take over.  -stop: only takes effect after
 // the next event is dequeued, so post a dummy event to force a return.
@@ -1793,6 +1816,18 @@ int metalTestActivationPolicyIsRegular(void) {
 
 int metalTestDelegateIsSet(void) {
     return [NSApp delegate] != nil ? 1 : 0;
+}
+
+// Sends the delegate one file URL and one custom-scheme URL, as AppKit
+// does for odoc and GURL. Returns 0 when the delegate lacks the method.
+int metalTestDelegateOpenURLs(void) {
+    id d = [NSApp delegate];
+    if (![d respondsToSelector:@selector(application:openURLs:)]) return 0;
+    [d application:NSApp openURLs:@[
+        [NSURL fileURLWithPath:@"/tmp/go gui.txt"],
+        [NSURL URLWithString:@"gogui-test://open?x=1"],
+    ]];
+    return 1;
 }
 
 int metalTestMainMenuExists(void) {
