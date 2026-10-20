@@ -92,7 +92,10 @@ and `destroy` frees Wayland objects.
   the current size. The integer buffer scale comes from
   `wl_surface.preferred_buffer_scale` (wl_surface v6). The whole surface is
   marked opaque unless `WindowCfg.Transparent` is set, so the alpha channel of
-  the EGL config does not show.
+  the EGL config does not show. The opaque region is only a hint, so an opaque
+  window also clears its alpha to 1 after each frame (`finishFrameAlpha`). The
+  blend function blends alpha too, and left translucent edges below 1, which
+  showed dark (#1121).
 - **Size and scale, fractional.** With `wp_fractional_scale_v1` and
   `wp_viewporter` (sway, mutter, KWin), the scale comes in 120ths: the buffer is
   the logical size times the scale, rounded, at buffer scale 1, and the viewport
@@ -148,14 +151,19 @@ and `destroy` frees Wayland objects.
 
 The backend uses xdg-decoration when the compositor offers it (KDE, wlroots).
 Otherwise it uses libdecor when it is installed (GNOME, Cinnamon, weston). If
-libdecor is missing, the window has no frame, and a warning is printed once.
+libdecor or its plugin is missing, the first window falls back to X11, where
+XWayland gives it a frame (#1121). The window has no frame, with a warning
+printed once, only when the fallback cannot happen: `GOGUI_WAYLAND=1` forces
+Wayland, `DISPLAY` is unset so there is no X server, or a window is already open
+on Wayland. A later window cannot move the app to X11.
 
 libdecor without a plugin is the same case in practice: `libdecor_new` succeeds,
 and a built-in fallback draws nothing. A desktop can have libdecor without a
 plugin. Linux Mint 22 ships `libdecor-0-0` but not `libdecor-0-plugin-1-gtk`.
 libdecor has no API to ask whether it found a plugin, so `decor.HasPlugin` looks
 where libdecor looks (`$LIBDECOR_PLUGIN_DIR`, else `libdecor/plugins-1` beside
-the loaded library) and the backend warns once, naming the package. The window
+the loaded library). With no plugin found, the first window falls back to X11 as
+above. Otherwise the backend warns once, naming the package, and the window
 still goes through libdecor, so a wrong guess costs only the warning.
 
 - libdecor is bound through purego in `internal/decor`, like libxkbcommon. It
@@ -288,6 +296,12 @@ Phase 8 notes:
 - **go-gui draws its own window frame in the backend.** It does not look native,
   and it moves frame drawing into the backend. It can be reconsidered if
   libdecor turns out to be missing on too many systems.
+- **A frameless window when libdecor or its plugin is missing** (v0.91.0). It
+  was a regression from v0.90.0 for every GNOME user without
+  `libdecor-0-plugin-1-gtk`: no title bar, no move, no close button (#1121). The
+  first window now falls back to X11 instead.
+- **X11 as the default again** to fix #1121. It gives up native Wayland on KDE,
+  wlroots, and GNOME systems that have the plugin.
 - **A platform interface with an X11 and a Wayland implementation.** Cleaner on
   paper, but over 130 direct `b.plat` field uses in the X11 files would move
   behind methods, and X11 would be rewritten to add Wayland. The pointer field

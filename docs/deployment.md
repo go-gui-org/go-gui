@@ -62,12 +62,12 @@ backend on amd64 and arm64. `GOGUI_WAYLAND=0` makes it run through XWayland
 instead, and other CPUs always do. The backend opens these libraries at run
 time, so the binary does not link them:
 
-| Library                        | Debian / Ubuntu package   | Without it                                 |
-| ------------------------------ | ------------------------- | ------------------------------------------ |
-| `libwayland-client.so.0`       | `libwayland-client0`      | warning, falls back to X11                 |
-| `libwayland-egl.so.1`          | `libwayland-egl1`         | warning, falls back to X11                 |
-| `libxkbcommon.so.0`            | `libxkbcommon0`           | warning, falls back to X11                 |
-| `libdecor-0.so.0` and a plugin | `libdecor-0-plugin-1-gtk` | no window frame on GNOME, Cinnamon, weston |
+| Library                        | Debian / Ubuntu package   | Without it                                   |
+| ------------------------------ | ------------------------- | -------------------------------------------- |
+| `libwayland-client.so.0`       | `libwayland-client0`      | warning, falls back to X11                   |
+| `libwayland-egl.so.1`          | `libwayland-egl1`         | warning, falls back to X11                   |
+| `libxkbcommon.so.0`            | `libxkbcommon0`           | warning, falls back to X11                   |
+| `libdecor-0.so.0` and a plugin | `libdecor-0-plugin-1-gtk` | falls back to X11 on GNOME, Cinnamon, weston |
 
 KDE and wlroots compositors (sway) draw the frame themselves and need no
 libdecor. See `docs/specs/wayland-backend.md`.

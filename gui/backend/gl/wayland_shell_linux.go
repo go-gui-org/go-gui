@@ -3,8 +3,12 @@
 package gl
 
 import (
+	"errors"
 	"log"
+	"os"
 	"sync"
+
+	"github.com/jezek/xgb"
 
 	"github.com/go-gui-org/go-gui/gui"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/decor"
@@ -24,14 +28,46 @@ import (
 //     plugin (GTK on GNOME). Configure events then come through libdecor.
 //     libdecor with no plugin installed falls back to drawing nothing, and
 //     says so only on stderr; a warning names the missing package once.
-//  3. Neither: a plain xdg_toplevel with no frame. A warning says so once.
-//     DecorationNone takes this path on purpose, with no warning.
+//  3. Neither: the first window fails with errWaylandNoFrame, so New and
+//     RunApp fall back to X11, where XWayland draws the frame (#1121). With
+//     GOGUI_WAYLAND=1, with no X server answering on DISPLAY, or for a later
+//     window, it gets a plain xdg_toplevel with no frame instead, and a
+//     warning says so once. DecorationNone takes the frameless path on
+//     purpose, with no warning.
 //
 // Move and resize work in all three; with no frame only an app that calls
 // StartWindowDrag (a custom title bar) can be moved.
 
 // wlNoFrameOnce warns once that windows have no frame.
 var wlNoFrameOnce sync.Once
+
+// errWaylandNoFrame is makeToplevel's answer when a window would get no
+// frame and X11 can give it one. The caller falls back to X11.
+var errWaylandNoFrame = errors.New("wayland: the compositor draws no window frames and " +
+	"libdecor or its plugin is missing (install libdecor-0-plugin-1-gtk for a frame on " +
+	"Wayland; GOGUI_WAYLAND=1 keeps Wayland with no frame)")
+
+// wlNoFrameFallback reports whether a window that would get no frame falls
+// back to X11. Only the first window can: once a window is open on Wayland,
+// the app stays there. GOGUI_WAYLAND=1 (forced) keeps Wayland, and with no
+// DISPLAY there is no X server to fall back to.
+func wlNoFrameFallback(first, forced bool, display string) bool {
+	return first && !forced && display != ""
+}
+
+// x11Reachable reports whether an X server answers on DISPLAY. A set DISPLAY
+// can be stale (inherited by a session with no XWayland); falling back then
+// would fail in newX11, and the app would not start at all, where a window
+// with no frame still works. It connects once, only for a window that would
+// otherwise get no frame. A variable so tests can stand in for the X server.
+var x11Reachable = func() bool {
+	conn, err := xgb.NewConn()
+	if err != nil {
+		return false
+	}
+	conn.Close()
+	return true
+}
 
 // makeToplevel gives ww.surface its xdg_toplevel role, a frame by the rules
 // above, its title, app id and size limits, and makes the first commit,
@@ -40,11 +76,18 @@ func (ww *wlWindow) makeToplevel(cfg gui.WindowCfg) error {
 	d := ww.d
 	frame := cfg.Decorations != gui.DecorationNone
 	if frame && !d.decoMgr.Valid() {
-		if ctx := d.libdecor(); ctx != nil {
+		// HasPlugin reads the loaded libdecor's path, so libdecor first.
+		ctx := d.libdecor()
+		plugin := ctx != nil && decor.HasPlugin()
+		if !plugin && wlNoFrameFallback(len(d.wins) == 0, waylandForced(), os.Getenv("DISPLAY")) &&
+			x11Reachable() {
+			return errWaylandNoFrame
+		}
+		if ctx != nil {
 			// Still go through libdecor with no plugin: its fallback
 			// handles configure like a plain toplevel, and a wrong guess
 			// about the plugin directory then costs only the warning.
-			if !decor.HasPlugin() {
+			if !plugin {
 				wlNoFrameOnce.Do(func() {
 					log.Printf("gl: wayland: the compositor draws no window frames and libdecor " +
 						"has no decoration plugin; windows have no frame " +

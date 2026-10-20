@@ -3,6 +3,7 @@
 package gl
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/go-gui-org/go-gui/gui"
@@ -140,4 +141,79 @@ func TestWaylandNoLibdecor(t *testing.T) {
 		t.Fatalf("libdecor %v, toplevel %v, deco %v", ww.frame != nil, ww.toplevel.Valid(), ww.deco.Valid())
 	}
 	settleWindow(t, b)
+}
+
+// TestWlNoFrameFallback: a window that would get no frame falls back to X11
+// only when it is the first window, Wayland was not forced, and an X server
+// is there to fall back to (#1121).
+func TestWlNoFrameFallback(t *testing.T) {
+	cases := []struct {
+		first, forced bool
+		display       string
+		want          bool
+	}{
+		{true, false, ":0", true},
+		{true, true, ":0", false},   // GOGUI_WAYLAND=1 keeps Wayland
+		{true, false, "", false},    // no X server to fall back to
+		{false, false, ":0", false}, // a later window cannot move to X11
+	}
+	for _, c := range cases {
+		if got := wlNoFrameFallback(c.first, c.forced, c.display); got != c.want {
+			t.Errorf("wlNoFrameFallback(%v, %v, %q) = %v, want %v",
+				c.first, c.forced, c.display, got, c.want)
+		}
+	}
+}
+
+// TestWaylandNoFrameFallsBack: on a compositor with no server-side frames
+// and no libdecor, the first window fails with errWaylandNoFrame, so New
+// and RunApp use X11 (XWayland) and the window keeps a frame (#1121).
+// GOGUI_WAYLAND=1 still opens the frameless window.
+func TestWaylandNoFrameFallsBack(t *testing.T) {
+	requireWayland(t)
+	// Hold the display open, and hide its frame providers from the windows.
+	d, err := acquireWaylandDisplay()
+	if err != nil {
+		t.Fatal(err)
+	}
+	mgr, ctx, tried := d.decoMgr, d.decor, d.decorTried
+	d.decoMgr, d.decor, d.decorTried = wl.ZxdgDecorationManagerV1{}, nil, true
+	defer func() {
+		d.decoMgr, d.decor, d.decorTried = mgr, ctx, tried
+		d.release()
+	}()
+	t.Setenv("DISPLAY", ":99")
+	t.Setenv("GOGUI_WAYLAND", "")
+	reachable := x11Reachable
+	defer func() { x11Reachable = reachable }()
+
+	// DISPLAY set but no X server answers: falling back would start
+	// nothing, so the window opens with no frame.
+	x11Reachable = func() bool { return false }
+	stale, err := newWaylandBackend(waylandTestWindow(gui.WindowCfg{}))
+	if err != nil {
+		t.Fatalf("stale DISPLAY: %v, want a frameless window", err)
+	}
+	stale.Destroy()
+
+	x11Reachable = func() bool { return true }
+	if b, err := newWaylandBackend(waylandTestWindow(gui.WindowCfg{})); !errors.Is(err, errWaylandNoFrame) {
+		if b != nil {
+			b.Destroy()
+		}
+		t.Fatalf("frameless first window: err %v, want errWaylandNoFrame", err)
+	}
+	if len(d.wins) != 0 {
+		t.Fatalf("the failed window stayed registered: %d windows", len(d.wins))
+	}
+
+	t.Setenv("GOGUI_WAYLAND", "1")
+	b, err := newWaylandBackend(waylandTestWindow(gui.WindowCfg{}))
+	if err != nil {
+		t.Fatalf("GOGUI_WAYLAND=1: %v", err)
+	}
+	defer b.Destroy()
+	if ww := b.plat.wl; ww.frame != nil || !ww.toplevel.Valid() {
+		t.Fatalf("GOGUI_WAYLAND=1: libdecor %v, toplevel %v", ww.frame != nil, ww.toplevel.Valid())
+	}
 }

@@ -10,6 +10,15 @@ and this project adheres to
 
 ### Fixed
 
+- **A Wayland window without a frame provider falls back to X11 (#1121).**
+  v0.91.0 made Wayland the default. GNOME draws no window frames, so go-gui
+  needs libdecor and its GTK plugin there. Without them the window had no title
+  bar, no close button and could not be moved. Now the first window falls back
+  to X11, and XWayland draws its frame, as in v0.90.0. A warning names
+  `libdecor-0-plugin-1-gtk`, which gives native Wayland with a frame.
+  `GOGUI_WAYLAND=1` keeps the frameless Wayland window. KDE and wlroots
+  compositors draw the frame themselves and are not affected.
+
 - **Wayland windows no longer show dark edges on borders, text and switches
   (#1121).** The blend function also blended the alpha channel, so a translucent
   draw over an opaque pixel left the pixel's alpha below 1. On X11 the window
