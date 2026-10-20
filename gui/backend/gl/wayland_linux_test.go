@@ -189,6 +189,57 @@ func TestWaylandWindow(t *testing.T) {
 	}
 }
 
+// TestWaylandOpaqueAlpha: a frame with a translucent fill must leave the
+// window's alpha at 1 in an opaque window. The Wayland buffer carries the
+// alpha channel, so a pixel below 1 lets the desktop show through
+// anti-aliased edges and translucent borders, and a screenshot shows them
+// dark (#1121). It runs the frame through drawFrame, the body of
+// renderFrame, so the test also fails if the frame stops calling
+// finishFrameAlpha.
+func TestWaylandOpaqueAlpha(t *testing.T) {
+	b := newWaylandTestBackend(t, gui.WindowCfg{Width: 320, Height: 200, Title: "wl alpha"})
+	defer b.Destroy()
+	w := b.plat.w
+	w.SetView(func(_ *gui.Window) gui.View {
+		return gui.Column(gui.ContainerCfg{
+			Sizing: gui.FillFill,
+			Color:  gui.RGBA(0, 0, 0, 128),
+		})
+	})
+	w.FrameFn()
+	b.drawFrame(w)
+
+	gogl.BindFramebuffer(gogl.FRAMEBUFFER, 0)
+	var px [4]byte
+	gogl.ReadPixels(b.physW/2, b.physH/2, 1, 1, gogl.RGBA, gogl.UNSIGNED_BYTE, unsafe.Pointer(&px[0]))
+	if px[3] != 255 {
+		t.Errorf("alpha after a translucent fill = %d, want 255 (pixel %v)", px[3], px)
+	}
+	if e := gogl.GetError(); e != 0 {
+		t.Errorf("GL error 0x%x", e)
+	}
+}
+
+// TestWaylandTransparentKeepsAlpha: a Transparent window shows the desktop
+// through its alpha channel on purpose, so the frame must not reset it.
+func TestWaylandTransparentKeepsAlpha(t *testing.T) {
+	b := newWaylandTestBackend(t, gui.WindowCfg{Width: 320, Height: 200, Transparent: true})
+	defer b.Destroy()
+	if b.opaqueAlpha {
+		t.Fatal("a Transparent window has opaqueAlpha set")
+	}
+	b.plat.makeCurrent()
+	gogl.BindFramebuffer(gogl.FRAMEBUFFER, 0)
+	gogl.ClearColor(0, 0, 0, 0)
+	gogl.Clear(gogl.COLOR_BUFFER_BIT)
+	b.finishFrameAlpha()
+	var px [4]byte
+	gogl.ReadPixels(b.physW/2, b.physH/2, 1, 1, gogl.RGBA, gogl.UNSIGNED_BYTE, unsafe.Pointer(&px[0]))
+	if px[3] != 0 {
+		t.Errorf("alpha in a Transparent window = %d, want 0", px[3])
+	}
+}
+
 // TestWaylandFrameThrottle: a rendered frame asks for a frame callback and
 // the compositor answers it, which is what paces the run loop.
 func TestWaylandFrameThrottle(t *testing.T) {

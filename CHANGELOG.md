@@ -10,6 +10,15 @@ and this project adheres to
 
 ### Fixed
 
+- **Wayland windows no longer show dark edges on borders, text and switches
+  (#1121).** The blend function also blended the alpha channel, so a translucent
+  draw over an opaque pixel left the pixel's alpha below 1. On X11 the window
+  has no alpha channel and this did not show. A Wayland buffer carries the alpha
+  to the compositor, so anti-aliased edges, text and translucent borders let the
+  desktop, or black in a screenshot, show through. An opaque Wayland window now
+  sets its alpha to 1 at the end of each frame. A `Transparent` window is
+  unchanged.
+
 - **Scrolling a list by touch no longer clicks the row under the finger
   (#1116).** A touch-down sent the mouse press at once, and a press fires
   `OnClick`, so a scroll that started on a row picked the row; in the showcase
