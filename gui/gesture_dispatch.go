@@ -189,9 +189,13 @@ func gestureHandlerDepth(
 	// one finger.
 	// The pan delta is pixels of finger travel, and the content follows
 	// the finger: no multiplier (#1110).
+	// A press that holds the mouse lock (a scrollbar thumb, a slider)
+	// owns the finger's moves, so the content does not pan under it
+	// as well.
 	if e.GestureType == GesturePan &&
 		e.GesturePhase == GesturePhaseChanged &&
-		layout.Shape.Scrollable && !layout.Shape.DragScroll {
+		layout.Shape.Scrollable && !layout.Shape.DragScroll &&
+		!w.mouseIsLocked() {
 		movedV := scrollVerticalPixels(layout, e.GestureDY, w)
 		movedH := scrollHorizontalPixels(layout, e.GestureDX, w)
 		if movedV || movedH {
@@ -244,6 +248,12 @@ func synthMouse(
 		// handleMouseDownEvent applies to backend presses.
 		w.pressWalk(layout, &w.scratch.gestureEvent)
 	case EventMouseMove:
+		// The move's delta, as a backend move carries it: a thumb
+		// drag reads it, and without it a finger dragged no thumb.
+		if w.viewState.pointerInWindow {
+			w.scratch.gestureEvent.MouseDX = x - w.viewState.pointerX
+			w.scratch.gestureEvent.MouseDY = y - w.viewState.pointerY
+		}
 		w.pointerAt(x, y)
 		mouseMoveHandler(layout, &w.scratch.gestureEvent, w)
 	case EventMouseUp:

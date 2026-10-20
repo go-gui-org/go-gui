@@ -8,6 +8,28 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Fixed
+
+- **Scrolling a list by touch no longer clicks the row under the finger
+  (#1116).** A touch-down sent the mouse press at once, and a press fires
+  `OnClick`, so a scroll that started on a row picked the row; in the showcase
+  catalog on a phone it also closed the drawer. Inside a scrollable that can
+  scroll, the press now waits for the finger: a lift before the 10 px pan
+  threshold is a tap and clicks, at the lift; a pan the scrollable can follow
+  drops the press; a pan along the other axis, or a long press, sends it. On a
+  scrollbar the bar's axis decides: a pan along it drags the thumb, a pan across
+  it scrolls the content, and a tap still jumps the track. Outside a scrollable,
+  in content that fits and in a `DragScroll` container the press goes out at
+  touch-down, as before. Mouse input is unchanged. This applies on Android, iOS
+  and the web backend on phones.
+
+- **The scrollbar thumb follows a finger (#1116).** A touch drag on the thumb
+  did not move it: mouse moves synthesized from touch carried no `MouseDX/DY`.
+  Past the pan threshold the content panned with the finger instead, so pulling
+  the thumb down scrolled up. Touch moves now carry their delta, and a pan no
+  longer scrolls the content while a press holds the mouse lock, as a thumb or
+  slider drag does.
+
 ## [v0.91.0] - 2026-10-19
 
 ### Added

@@ -83,6 +83,14 @@ type gestureState struct {
 	gestureType GestureType
 
 	mouseEmitted bool
+	// pressHeld is a touch press held back until the finger shows
+	// a tap or a scroll; pressHeldV/H the axes the scrollable under
+	// it can scroll, pressHeldBar the scrollbar it landed on
+	// (touch_press.go).
+	pressHeld    bool
+	pressHeldV   bool
+	pressHeldH   bool
+	pressHeldBar ScrollbarOrientation
 	recognized   bool
 	// pinchBegan mirrors rotateBegan: pinch and rotate are
 	// independent sub-states of one multi-touch, tracked
@@ -180,12 +188,12 @@ func handleTouchBegan(
 		// Arm long-press timer.
 		armLongPress(gs, layout, w)
 
-		// Synthesize mouse down.
-		synthMouse(EventMouseDown, t.x, t.y, MouseLeft, layout, w)
-		gs.mouseEmitted = true
+		// Synthesize mouse down, or hold it back in a scrollable.
+		touchPressDown(gs, layout, w, t.x, t.y)
 	} else {
 		// Second+ finger: cancel single-touch gesture.
 		cancelLongPress(w)
+		gs.touchPressDrop()
 		if gs.mouseEmitted {
 			t := gs.touches[0]
 			synthMouse(EventMouseUp, t.x, t.y, MouseLeft, layout, w)
@@ -238,6 +246,7 @@ func handleTouchMoved(
 				gs.prevTime = gs.now()
 				gs.prevX = gs.startX
 				gs.prevY = gs.startY
+				touchPressOnPan(gs, layout, w, dx, dy)
 				emitGesture(gs, GesturePan, gesturePhaseBegan,
 					t.x, t.y, layout, w)
 				return
@@ -423,6 +432,8 @@ func endAllTouches(
 		emitGesture(gs, GestureLongPress, gesturePhaseEnded,
 			gs.startX, gs.startY, layout, w)
 	} else if !gs.recognized {
+		// A tap: the press held back goes out now, ahead of it.
+		touchPressSend(gs, layout, w)
 		endMaybeTap(gs, layout, w)
 	}
 
@@ -545,9 +556,7 @@ func reseedRemainingFinger(
 	// this finger is physically down, so press anew for
 	// click compat and re-arm the long-press timer.
 	armLongPress(gs, layout, w)
-	synthMouse(EventMouseDown, t.x, t.y, MouseLeft,
-		layout, w)
-	gs.mouseEmitted = true
+	touchPressDown(gs, layout, w, t.x, t.y)
 }
 
 func handleTouchCancelled(
@@ -610,6 +619,8 @@ func gestureLongPressFired(_ *Animate, w *Window) {
 	if dx*dx+dy*dy > gesturePanDist*gesturePanDist {
 		return
 	}
+	// The press held back comes first, as a press at touch-down did.
+	touchPressSend(gst, dialogRoute(w), w)
 	gst.recognized = true
 	gst.gestureType = GestureLongPress
 	emitGesture(gst, GestureLongPress, gesturePhaseBegan,

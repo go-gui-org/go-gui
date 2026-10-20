@@ -33,6 +33,12 @@ Pan gestures automatically scroll containers with `Scrollable: true`. Available
 on `ContainerCfg` and `DrawCanvasCfg`. Use Chrome DevTools touch emulation or a
 touchscreen to test.
 
+Inside a scrollable that can scroll, the synthesized mouse press waits until the
+finger shows a tap or a scroll, so scrolling a list never clicks the row the
+finger started on. A tap sends the press at the lift; a pan the scrollable can
+follow drops it; a pan along the other axis or a long press sends it. Elsewhere
+the press goes out at touch-down.
+
 Gestures come only from touch input: the web, iOS, and Android backends. The
 desktop backends (macOS, Linux, Windows) send no gesture events. There, a
 trackpad press is a mouse click and a two-finger drag is a scroll. The demo pans
