@@ -482,7 +482,7 @@ func newWaylandBackend(w *gui.Window) (*Backend, error) {
 		return nil, err
 	}
 	cfg := w.Config
-	b := &Backend{}
+	b := &Backend{opaqueAlpha: !cfg.Transparent}
 	ww := &wlWindow{d: d, b: b, scale120: 120, throttle: !cfg.VSyncOff,
 		transparent: cfg.Transparent}
 	b.plat.wl = ww

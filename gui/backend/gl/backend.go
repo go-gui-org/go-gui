@@ -69,6 +69,11 @@ type Backend struct {
 	physW    int32
 	physH    int32
 
+	// opaqueAlpha makes finishFrameAlpha set the window's alpha to 1 after
+	// each frame. Set for an opaque Wayland window, whose buffer carries
+	// the alpha channel to the compositor (#1121).
+	opaqueAlpha bool
+
 	// Previous logical mouse position, for MouseDX/DY deltas.
 	lastMouseX    float32
 	lastMouseY    float32
@@ -218,6 +223,13 @@ func (b *Backend) destroyGLResources() {
 // renderFrame clears the screen, draws the current layout, and swaps
 // buffers. Makes this window's GL context current first.
 func (b *Backend) renderFrame(w *gui.Window) {
+	b.drawFrame(w)
+	b.plat.swap()
+}
+
+// drawFrame is renderFrame up to the swap. Tests call it to read back the
+// window, whose contents are undefined after a swap.
+func (b *Backend) drawFrame(w *gui.Window) {
 	b.plat.makeCurrent()
 	bg := w.FrameBackground()
 	gogl.ClearColor(
@@ -238,7 +250,28 @@ func (b *Backend) renderFrame(w *gui.Window) {
 
 	b.textSys.Commit()
 	b.endMainPass(0)
-	b.plat.swap()
+	b.finishFrameAlpha()
+}
+
+// finishFrameAlpha sets the alpha of every pixel in the window to 1 when
+// opaqueAlpha is set. The blend function SRC_ALPHA, ONE_MINUS_SRC_ALPHA also
+// applies to the alpha channel, so a translucent draw over an opaque pixel
+// leaves alpha a² + (1-a), below 1. On X11 the window visual has no alpha, so
+// the value is dropped. A Wayland buffer keeps it: the compositor or a
+// screenshot then shows the desktop, or black, through anti-aliased edges,
+// text and translucent borders (#1121). The clear writes only the alpha
+// channel and allocates nothing.
+func (b *Backend) finishFrameAlpha() {
+	if !b.opaqueAlpha {
+		return
+	}
+	gogl.BindFramebuffer(gogl.FRAMEBUFFER, 0)
+	gogl.Disable(gogl.SCISSOR_TEST)
+	b.scissorOn = false
+	gogl.ColorMask(false, false, false, true)
+	gogl.ClearColor(0, 0, 0, 1)
+	gogl.Clear(gogl.COLOR_BUFFER_BIT)
+	gogl.ColorMask(true, true, true, true)
 }
 
 // handleResize refreshes the drawable size and DPI scale from the
