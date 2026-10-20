@@ -51,6 +51,10 @@ func helperMain() int {
 // Unix points the lock directory at a fresh private one.
 func testID(t *testing.T) string {
 	t.Helper()
+	if runtime.GOOS == "js" {
+		// The web build has no election: every process is primary.
+		t.Skip("no single-instance election on js")
+	}
 	if runtime.GOOS != "windows" {
 		// os.MkdirTemp(""): t.TempDir is too long for a macOS socket
 		// path once the test name is in it.

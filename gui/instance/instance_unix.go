@@ -34,6 +34,9 @@ func (p *platformLock) acquire(name string, args []string) (bool, error) {
 	}
 	// O_NOFOLLOW: a symlink planted at the lock path must not make
 	// this process create or lock some other file.
+	//
+	// #nosec G304 — the path is the checked private lock directory plus
+	// a name hashed from the app ID; no caller input reaches it.
 	f, err := os.OpenFile(filepath.Join(dir, name+".lock"),
 		os.O_RDWR|os.O_CREATE|syscall.O_NOFOLLOW|syscall.O_CLOEXEC, 0o600)
 	if err != nil {
