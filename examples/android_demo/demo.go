@@ -56,6 +56,10 @@ func Init() {
 // gui.SaveSettings keeps the app's settings. Call it before Start.
 func SetFilesDir(dir string) { android.SetFilesDir(dir) }
 
+// SetCacheDir passes Context.getCacheDir() to the backend for temp files.
+// Call it before Start.
+func SetCacheDir(dir string) { android.SetCacheDir(dir) }
+
 // SecretStore is implemented by the Kotlin host. Its structural method set
 // is accepted by android.SetSecretStore without exposing backend types in the
 // gomobile-bound API.

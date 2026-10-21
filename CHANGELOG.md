@@ -19,14 +19,16 @@ and this project adheres to
   written with `os.CreateTemp` failed too: app fonts added as bytes, the diagram
   cache, PDF printing, the showcase's images. `TMPDIR` is now the app's cache
   directory on every Android version: the backend takes it from libc where
-  Android set it, and below Android 13 uses the `cache` directory beside the
-  files directory the host passes to `SetFilesDir`, the one Android already
-  makes and names in `java.io.tmpdir`. Android trims that directory itself when
+  Android set it, and below Android 13 uses the directory the host passes from
+  `Context.getCacheDir()` to `SetCacheDir`. Android trims that directory when
   storage runs low, so the remote image cache persists across launches, and all
-  processes of one app share it. A host built from `examples/android_demo`
-  already calls `SetFilesDir` before `Start` and needs no change. The remote
-  image cache now resolves its directory on first use instead of at package
-  init, so it follows the same `TMPDIR`.
+  processes of one app share it. A host calls
+  `android.SetCacheDir(cacheDir.absolutePath)` before `Start`, as
+  `examples/android_demo` now does; without it, temp files still fail below
+  Android 13. Android fonts loaded from bytes use stable cache files rather than
+  leaking new temporary files on every launch. The remote image cache now
+  resolves its directory on first use instead of at package init, so it follows
+  the same `TMPDIR`.
 
 - **Touch: a long press, then a drag, reorders a list on a scrolling page
   (#1134).** Since #1116, a touch on a reorderable `ListBox` or `Tree` row on a

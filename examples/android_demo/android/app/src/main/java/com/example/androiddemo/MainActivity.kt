@@ -25,6 +25,7 @@ class MainActivity : Activity() {
         Androidapp.init()
         // Where gui.SaveSettings keeps the app's settings (go-gui #848).
         Androidapp.setFilesDir(filesDir.absolutePath)
+        Androidapp.setCacheDir(cacheDir.absolutePath)
         Androidapp.setSecretStore(AndroidSecretStore(applicationContext))
         glSurfaceView = GoGuiGLSurfaceView(this)
         setContentView(glSurfaceView)

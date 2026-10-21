@@ -12,6 +12,7 @@ package android
 import "C"
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"log"
 	"os"
@@ -44,6 +45,21 @@ const (
 
 const maxCustomPipelines = 32
 
+type cacheFontRegistrar struct{ *glyph.TextSystem }
+
+// AddFontBytes keeps one cache file per font content instead of one
+// temporary file per process launch. Android may kill the process
+// without calling TextSystem.Free, so unique files would accumulate.
+func (r cacheFontRegistrar) AddFontBytes(data []byte) error {
+	sum := sha256.Sum256(data)
+	name := fmt.Sprintf("go_gui_appfont_%x.ttf", sum[:])
+	path, err := tempfont.WriteFixed(name, data)
+	if err != nil {
+		return err
+	}
+	return r.AddFontFile(path)
+}
+
 // Package-level singleton (Android has exactly one window).
 var (
 	androidBackend *Backend
@@ -68,11 +84,10 @@ func (glesBridge) Resize(physW, physH int32) {
 type Backend struct {
 	framestate.FrameState
 
-	textSys      *glyph.TextSystem
-	textures     texcache.Cache[string, glesTexture]
-	glyphBack    *glesGlyphBackend
-	customCache  texcache.Cache[uint64, C.int]
-	iconFontPath string
+	textSys     *glyph.TextSystem
+	textures    texcache.Cache[string, glesTexture]
+	glyphBack   *glesGlyphBackend
+	customCache texcache.Cache[uint64, C.int]
 	// lost is set by SurfaceCreated when the GL resources died with
 	// their EGL context (rebuildLostContext).
 	lost ctxloss.Rebuilder
@@ -99,15 +114,15 @@ var settingsStore settingsdir.Store
 // Context.getFilesDir().absolutePath in Kotlin, where gui.SaveSettings
 // keeps the app's settings (issue #848). Call it before Start. Until it
 // is called, LoadSettings and SaveSettings return an error.
-//
-// Below Android 13 it also gives the backend its temp directory, the
-// app's cache directory beside dir, which Android 13 and later name in
-// TMPDIR themselves: below 13 Android sets no TMPDIR, and without one
-// the icon font and every other temp file fail to load.
 func SetFilesDir(dir string) {
 	settingsStore.SetDir(dir)
-	setTempDir(dir)
 }
+
+// SetCacheDir gives the backend Context.getCacheDir().absolutePath.
+// Call it before Start. Below Android 13 Android does not export TMPDIR,
+// so without this call the icon font and every other temp file fail to
+// load. On newer versions the explicit directory is a harmless fallback.
+func SetCacheDir(dir string) { setTempDir(dir) }
 
 // Start initializes the backend. If already initialized, it resizes
 // (idempotent for onSurfaceChanged). A host calls Start from every
@@ -314,17 +329,15 @@ func initBackend(w, h int32, scale float32) {
 
 	// Load embedded icon font.
 	if data := gui.IconFontData; len(data) > 0 {
-		tmp, err := tempfont.Write("go_gui_feathericon", data)
+		tmp, err := tempfont.WriteFixed("go_gui_feathericon.ttf", data)
 		if err != nil {
 			log.Printf("android: write icon font: %v", err)
 		} else if err = textSys.AddFontFile(tmp); err != nil {
 			log.Printf("android: load icon font: %v", err)
 			_ = os.Remove(tmp)
-		} else {
-			b.iconFontPath = tmp
 		}
 	}
-	gui.LoadAppFonts(textSys, "android")
+	gui.LoadAppFonts(cacheFontRegistrar{textSys}, "android")
 
 	// Set injected interfaces on gui Window.
 	androidWindow.SetTextMeasurer(
@@ -387,10 +400,6 @@ func (b *Backend) Destroy() {
 	}
 	if b.textSys != nil {
 		b.textSys.Free()
-	}
-	if b.iconFontPath != "" {
-		_ = os.Remove(b.iconFontPath)
-		b.iconFontPath = ""
 	}
 	C.glesDestroy()
 }

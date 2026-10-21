@@ -28,13 +28,12 @@ func init() {
 	tempdir.Adopt(C.GoString(C.libcTMPDIR()))
 }
 
-// setTempDir gives Go a writable TMPDIR once the host has passed its
-// files directory: the one libc has by now, or else the app's cache
-// directory beside filesDir, the same directory, below API 33, where
-// Android sets no TMPDIR at all.
-func setTempDir(filesDir string) {
+// setTempDir gives Go a writable TMPDIR once the host has passed
+// Context.getCacheDir(): the one libc has by now, or the explicit
+// directory below API 33, where Android sets no TMPDIR at all.
+func setTempDir(cacheDir string) {
 	tempdir.Adopt(C.GoString(C.libcTMPDIR()))
-	if err := tempdir.FromFilesDir(filesDir); err != nil {
-		log.Printf("android: temp directory beside %q: %v", filesDir, err)
+	if err := tempdir.Set(cacheDir); err != nil {
+		log.Printf("android: temp directory %q: %v", cacheDir, err)
 	}
 }
