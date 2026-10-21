@@ -9,13 +9,24 @@ import (
 // layout where a touch press waits for the finger (touch_press.go).
 func longPressDragPage(t *testing.T, list View) (*Window, []*Layout) {
 	t.Helper()
+	return longPressDragWindow(t, list, true)
+}
+
+// longPressDragWindow renders list on a page that scrolls when scrolls is
+// set. On a page that does not, a touch press goes out at touch-down.
+func longPressDragWindow(t *testing.T, list View, scrolls bool) (*Window, []*Layout) {
+	t.Helper()
 	w := NewTestWindow(t, WindowCfg{Width: 400, Height: 600})
 	w.TestRender(func(*Window) View {
+		filler := float32(0)
+		if scrolls {
+			filler = 2000
+		}
 		return Column(ContainerCfg{
-			ID: "page", Scrollable: true, Sizing: FillFill, Padding: PaddingNone,
+			ID: "page", Scrollable: scrolls, Sizing: FillFill, Padding: PaddingNone,
 			Content: []View{
 				list,
-				Rectangle(RectangleCfg{Sizing: FillFixed, Height: 2000}),
+				Rectangle(RectangleCfg{Sizing: FillFixed, Height: filler}),
 			},
 		})
 	})
@@ -27,11 +38,10 @@ func longPressDragPage(t *testing.T, list View) (*Window, []*Layout) {
 	return w, rows
 }
 
-// touchDragAt sends one single-finger touch event at time t (nanos),
-// then settles the frame.
+// touchDragAt is touchAt, then a settled frame: a drag reads the rows
+// the last move laid out.
 func touchDragAt(w *Window, typ EventType, t int64, x, y float32) {
-	w.viewState.gesture.nowFn = fixedClock(t)
-	w.EventFn(touchEvent(typ, 1, x, y))
+	touchAt(w, typ, t, x, y)
 	w.settle()
 }
 
@@ -159,11 +169,192 @@ func TestTouchLongPressWithoutDragMovesNothing(t *testing.T) {
 	for i, dy := range []float32{-20, -40, -60} {
 		touchAt(w, EventTouchesMoved, 600_000_000+int64(i+1)*16_000_000, x, y+dy)
 	}
+	// No move reached the window: the pointer is still where the press
+	// put it.
+	if w.viewState.pointerY != y {
+		t.Fatalf("pointer y = %v, want %v: a move reached the widget",
+			w.viewState.pointerY, y)
+	}
 	touchAt(w, EventTouchesEnded, 800_000_000, x, y-60)
 	if v, _ := w.scrollY().Get("list"); v != 0 {
 		t.Fatalf("list offset = %v, want 0 after a long press", v)
 	}
 	if clicks["b3"] != 1 {
 		t.Fatalf("clicks = %v, want b3 once (the long press)", clicks)
+	}
+}
+
+// On a page that does not scroll, a reorderable row's press goes out at
+// touch-down and its drag takes the lock then. A finger that rests past
+// the long press before it drags must still reorder the row.
+func TestTouchLongPressDragReordersWithoutScroll(t *testing.T) {
+	var moved, before string
+	w, rows := longPressDragWindow(t, ListBox(ListBoxCfg{
+		ID: "lb", Data: listBoxTestData(4), Reorderable: true,
+		OnReorder: func(m, b string, _ EventCtx) { moved, before = m, b },
+	}), false)
+	longPressDrag(t, w, rows[0], rows[2])
+	if moved != "id-0" || before != "id-3" {
+		t.Fatalf("OnReorder(%q, %q), want (\"id-0\", \"id-3\")", moved, before)
+	}
+}
+
+// A lock this touch's press took at touch-down gets the finger's moves
+// after a long press: an app's own drag, held and then dragged, drives
+// its drag, as a reorder row does.
+func TestTouchLongPressMovesReachTouchDownLock(t *testing.T) {
+	clicks := map[string]int{}
+	w := touchPressWindow(t, 4, clicks)
+	x, y := rowCenter(t, w, "outside")
+	touchAt(w, EventTouchesBegan, 0, x, y)
+	// Stands in for an app drag that locks the mouse on its press, which
+	// went out at touch-down: "outside" is not in a scrollable.
+	moves := 0
+	w.MouseLock(MouseLockCfg{MouseMove: func(EventCtx) { moves++ }})
+	w.viewState.gesture.nowFn = fixedClock(600_000_000)
+	gestureLongPressFired(nil, w)
+	for i, dy := range []float32{-20, -40, -60} {
+		touchAt(w, EventTouchesMoved, 600_000_000+int64(i+1)*16_000_000, x, y+dy)
+	}
+	if moves != 3 {
+		t.Fatalf("touch-down lock got %d moves after the long press, want 3", moves)
+	}
+}
+
+// A lock already held when the finger lands is another drag's: it gets
+// none of this finger's moves after a long press.
+func TestTouchLongPressMovesSkipForeignLock(t *testing.T) {
+	clicks := map[string]int{}
+	w := touchPressWindow(t, 4, clicks)
+	x, y := rowCenter(t, w, "outside")
+	moves := 0
+	w.MouseLock(MouseLockCfg{MouseMove: func(EventCtx) { moves++ }})
+	touchAt(w, EventTouchesBegan, 0, x, y)
+	w.viewState.gesture.nowFn = fixedClock(600_000_000)
+	gestureLongPressFired(nil, w)
+	for i, dy := range []float32{-20, -40, -60} {
+		touchAt(w, EventTouchesMoved, 600_000_000+int64(i+1)*16_000_000, x, y+dy)
+	}
+	if moves != 0 {
+		t.Fatalf("foreign lock got %d moves after the long press, want 0", moves)
+	}
+}
+
+// A lock already held when the finger lands belongs to another drag. An
+// abort of this touch must not cancel it: it gets the release, as before.
+func TestTouchAbortSparesForeignLock(t *testing.T) {
+	for _, tc := range touchAborts {
+		t.Run(tc.name, func(t *testing.T) {
+			clicks := map[string]int{}
+			w := touchPressWindow(t, 4, clicks)
+			x, y := rowCenter(t, w, "outside")
+			cancelled, ups := 0, 0
+			w.MouseLock(MouseLockCfg{
+				MouseUp: func(EventCtx) { ups++ },
+				Cancel:  func(*Window) { cancelled++ },
+			})
+			touchAt(w, EventTouchesBegan, 0, x, y)
+			tc.abort(w, x, y)
+			if cancelled != 0 {
+				t.Fatalf("Cancel ran %d times on a lock this touch did not take", cancelled)
+			}
+			if ups != 1 {
+				t.Fatalf("MouseUp ran %d times, want 1", ups)
+			}
+		})
+	}
+}
+
+// touchAborts are the two ways a touch ends without a lift: the platform
+// cancels it, or a second finger takes it over.
+var touchAborts = []struct {
+	name  string
+	abort func(w *Window, x, y float32)
+}{
+	{"cancelled", func(w *Window, x, y float32) {
+		touchAt(w, EventTouchesCancelled, 100_000_000, x, y)
+	}},
+	{"second finger", func(w *Window, x, y float32) {
+		w.viewState.gesture.nowFn = fixedClock(100_000_000)
+		e := twoTouchEvent(EventTouchesBegan, 1, x, y, 2, x+80, y)
+		e.Touches[0].Changed = false
+		w.handleTouch(&w.layout, e)
+	}},
+}
+
+// A dock drag the touch's press started is cancelled on an abort, not
+// dropped: a drop would dock the panel where the finger happened to be.
+// The lift is run too, so the contrast, not only the silence, is
+// asserted.
+func TestTouchAbortDoesNotDockPanel(t *testing.T) {
+	setup := func(t *testing.T, dropped *bool) *Window {
+		w := NewTestWindow(t, WindowCfg{Width: 400, Height: 400})
+		w.layout = Layout{Shape: &Shape{ID: "dock"}}
+		touchAt(w, EventTouchesBegan, 0, 50, 50)
+		// The press takes the lock after touch-down, as a tab's would.
+		root := DockPanelGroup("g1", []string{"p1", "p2"}, "p1")
+		dockDragStart("dock", "p1", "g1", root,
+			func(*DockNode, EventCtx) { *dropped = true },
+			SoundNone,
+			&Layout{Shape: &Shape{ID: "tab"}}, &Event{}, w)
+		state := dockDragGet(w, "dock")
+		state.active = true
+		state.hoverZone = dockDropRight
+		state.hoverGroupID = "g1"
+		dockDragSet(w, "dock", state)
+		return w
+	}
+
+	liftDropped := false
+	wLift := setup(t, &liftDropped)
+	touchAt(wLift, EventTouchesEnded, 100_000_000, 50, 50)
+	if !liftDropped {
+		t.Fatal("setup does not drop on a lift; the abort cases prove nothing")
+	}
+
+	for _, tc := range touchAborts {
+		t.Run(tc.name, func(t *testing.T) {
+			dropped := false
+			w := setup(t, &dropped)
+			tc.abort(w, 50, 50)
+			if dropped {
+				t.Fatal("an aborted touch docked the panel")
+			}
+			if w.mouseIsLocked() {
+				t.Fatal("the mouse is still locked after the abort")
+			}
+			if dockDragGet(w, "dock").active {
+				t.Fatal("drag state left active; the drop-zone overlay would persist")
+			}
+		})
+	}
+}
+
+// A splitter handle pressed by a touch runs its Cancel hook on an abort:
+// the lock goes and the handle drops its pressed color.
+func TestTouchAbortReleasesSplitterHandle(t *testing.T) {
+	for _, tc := range touchAborts {
+		t.Run(tc.name, func(t *testing.T) {
+			a, b := splitterTwoPanes()
+			h := newSplitterHarness(t, SplitterCfg{ID: "sp", First: a, Second: b})
+			_, handle, _ := h.parts(t, "sp")
+			x, y := center(handle)
+			touchDragAt(h.w, EventTouchesBegan, 0, x, y)
+			_, handle, _ = h.parts(t, "sp")
+			if handle.Shape.Color != defaultSplitterStyle.ColorsHandle.Click {
+				t.Fatalf("handle color after touch = %v, want active %v",
+					handle.Shape.Color, defaultSplitterStyle.ColorsHandle.Click)
+			}
+			tc.abort(h.w, x, y)
+			h.w.settle()
+			if h.w.mouseIsLocked() {
+				t.Fatal("the mouse is still locked after the abort")
+			}
+			_, handle, _ = h.parts(t, "sp")
+			if handle.Shape.Color != defaultSplitterStyle.ColorsHandle.Base {
+				t.Fatalf("handle color after abort = %v, want base %v",
+					handle.Shape.Color, defaultSplitterStyle.ColorsHandle.Base)
+			}
+		})
 	}
 }

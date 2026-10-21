@@ -71,6 +71,13 @@ raises it too, so an unguarded handler cancels after every normal mouse-up.
 `ReleaseCapture` — that call reenters the wndproc synchronously, so a flag
 cleared afterwards still reads as an involuntary loss.
 
+The touch gesture recognizer calls `MouseCancel` too (#1134): when the platform
+cancels a touch, or a second finger lands, the finger never lifts, so a release
+would commit a drop it did not make. It cancels only a lock that this touch's
+press took. A lock already held when the finger landed belongs to another drag
+and gets the release, as before. So a `Cancel` hook runs on every pinch that
+starts during a touch drag, not only on a rare capture loss.
+
 ## Wired hooks
 
 | Site                         | Cancel does                                                                      |

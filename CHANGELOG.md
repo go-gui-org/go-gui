@@ -20,7 +20,11 @@ and this project adheres to
   touch drag that the platform cancels, or that a second finger takes over, is
   now cancelled through the lock's `Cancel` hook instead of released, so it no
   longer drops a reordered row, a docked panel or any other drag where the
-  finger happened to be.
+  finger happened to be. The moves after a long press drive any drag this
+  touch's press started, so a row held and then dragged on a list that does not
+  scroll reorders too, and a held text selection grows as the finger moves. A
+  drag already held when the finger landed is another drag's: it gets none of
+  the moves, and an abort of this touch does not cancel it.
 
 ## [v0.92.0] - 2026-10-21
 
