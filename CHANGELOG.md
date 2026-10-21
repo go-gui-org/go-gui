@@ -26,6 +26,22 @@ and this project adheres to
   `Start` and needs no change. The remote image cache now resolves its directory
   on first use instead of at package init, so it follows the same `TMPDIR`.
 
+- **Touch: a long press, then a drag, reorders a list on a scrolling page
+  (#1134).** Since #1116, a touch on a reorderable `ListBox` or `Tree` row on a
+  page that scrolls vertically waited to see a tap or a scroll, and a vertical
+  drag counted as a scroll: the row could not be reordered by touch. A long
+  press armed the drag, but its moves were dropped. Now the moves after a long
+  press go to the drag, so holding a row for half a second and then dragging
+  reorders it, as on iOS and Android. A quick swipe still scrolls the page. A
+  touch drag that the platform cancels, or that a second finger takes over, is
+  now cancelled through the lock's `Cancel` hook instead of released, so it no
+  longer drops a reordered row, a docked panel or any other drag where the
+  finger happened to be. The moves after a long press drive any drag this
+  touch's press started, so a row held and then dragged on a list that does not
+  scroll reorders too, and a held text selection grows as the finger moves. A
+  drag already held when the finger landed is another drag's: it gets none of
+  the moves, and an abort of this touch does not cancel it.
+
 ## [v0.92.0] - 2026-10-21
 
 ### Added

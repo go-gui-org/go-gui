@@ -66,8 +66,9 @@ func (s *touchPressScan) decided() bool {
 // the containers this touch stopped mid-fling.
 func touchPressDown(gs *gestureState, layout *Layout, w *Window, x, y float32, flung []string) {
 	gs.touchPressDrop()
+	gs.foreignLock = w.mouseIsLocked()
 	s := touchPressScan{flung: flung}
-	if !w.mouseIsLocked() {
+	if !gs.foreignLock {
 		touchPressScanAt(layout, x, y, 0, &s)
 	}
 	if !s.now && (s.v || s.h || s.bar != scrollbarNone) {

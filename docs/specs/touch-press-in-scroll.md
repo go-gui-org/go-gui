@@ -98,8 +98,9 @@ The scrollbar works for touch:
   press.
 - A finger that rests 500 ms before it moves becomes a long press, and a long
   press never turns into a pan, so that touch scrolls nothing until the lift.
-  This predates the held press (the recognizer ignores moves after a long press)
-  and is left to its own issue (#1117).
+  Its moves reach a mouse lock that this touch's press took, such as a reorder
+  drag or a slider (#1134); with no such lock they go nowhere. This predates the
+  held press and is left to its own issue (#1117).
 - A vertical pan over a child that scrolls only horizontally (a wide Markdown
   table) barely scrolls the page: the pan fallback stops at the first scrollable
   that moves on either axis, and the child takes the finger's sideways drift.
