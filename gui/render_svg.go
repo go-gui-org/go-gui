@@ -497,5 +497,6 @@ func dimmedSvgTextStyle(
 	style.StrokeColor = dimColor(style.StrokeColor,
 		shape.Opacity, shape.Disabled)
 	return w.scratch.renderTextStyles.alloc(style),
-		dimmedTextGradient(gradient, shape.Opacity, shape.Disabled)
+		dimmedTextGradient(gradient, shape.Opacity, shape.Disabled,
+			&w.scratch)
 }

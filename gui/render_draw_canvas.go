@@ -249,7 +249,7 @@ func renderDrawCanvas(shape *Shape, clip drawClip, w *Window) {
 			TextWidth:    textWidth,
 			TextStylePtr: w.scratch.renderTextStyles.alloc(style),
 			TextGradient: dimmedTextGradient(style.Gradient,
-				shape.Opacity, shape.Disabled),
+				shape.Opacity, shape.Disabled, &w.scratch),
 		}
 		if hasAffine {
 			cmd.LayoutTransform = w.scratch.renderAffineTransforms.alloc(

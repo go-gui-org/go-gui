@@ -109,6 +109,16 @@ func goldenCases() []goldenCase {
 				})
 			},
 		},
+		// A numeric content transition from "41" to "42" at the start,
+		// the middle and the end of its roll (#1021). The "4" holds
+		// still in all three; the "1" leaves upward while the "2"
+		// arrives from below, inside a clip of the line box. Column x
+		// comes from the nil-measurer width estimate here;
+		// TestContentTransitionNumericAlignsFromRight pins the columns
+		// with a stub measurer.
+		goldenContentTransitionCase("content_transition_numeric_0", 0),
+		goldenContentTransitionCase("content_transition_numeric_50", 0.5),
+		goldenContentTransitionCase("content_transition_numeric_100", 1),
 		{
 			// The dock had no golden coverage at all (issue #389). One
 			// two-group split pins the tab strip, the separator, and the
@@ -2697,5 +2707,22 @@ func goldenFileBrowser(cfg fileBrowserCfg) func(*Window) View {
 			w.fileBrowser.pathText = "/proj"
 		}
 		return fileBrowserView(w)
+	}
+}
+
+// goldenContentTransitionCase records "41" rolling to "42" at progress
+// v. See seedContentTransition.
+func goldenContentTransitionCase(name string, v float32) goldenCase {
+	return goldenCase{
+		name: name,
+		build: func(w *Window) View {
+			return seedContentTransition(w, "41", TextCfg{
+				ID:   "count",
+				Text: "42",
+				Transition: ContentTransition{
+					Kind: ContentTransitionNumeric,
+				},
+			}, v)
+		},
 	}
 }

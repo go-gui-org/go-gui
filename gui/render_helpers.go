@@ -63,14 +63,28 @@ func dimmedGradient(
 // live in the glyph module's color type, so this mirrors
 // dimmedGradient across the module boundary — the conversion is a
 // field-wise alpha copy, no cross-module change.
+//
+// The copy and its stops come from the render-phase pools of sp, so a
+// faded text allocates nothing per frame; they are valid until the
+// next resetRenderPools, as the commands that point at them are. A nil
+// sp, for a caller with no window, puts them on the heap.
 func dimmedTextGradient(
 	cfg *glyph.GradientConfig, opacity float32, disabled bool,
+	sp *scratchPools,
 ) *glyph.GradientConfig {
 	if cfg == nil || (!disabled && !(opacity < 1.0)) {
 		return cfg
 	}
-	out := *cfg
-	stops := make([]glyph.GradientStop, len(cfg.Stops))
+	var out *glyph.GradientConfig
+	var stops []glyph.GradientStop
+	if sp != nil {
+		out = sp.renderTextGradients.alloc(*cfg)
+		stops = sp.takeTextGradientStops(len(cfg.Stops))
+	} else {
+		cp := *cfg
+		out = &cp
+		stops = make([]glyph.GradientStop, len(cfg.Stops))
+	}
 	for i, s := range cfg.Stops {
 		a := s.Color.A
 		if opacity < 1.0 {
@@ -83,7 +97,7 @@ func dimmedTextGradient(
 		stops[i] = s
 	}
 	out.Stops = stops
-	return &out
+	return out
 }
 
 // dimmedVColors returns vcols unchanged when neither opacity nor

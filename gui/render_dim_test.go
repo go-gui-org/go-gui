@@ -69,13 +69,13 @@ func TestDimmedTextGradientScalesGlyphAlpha(t *testing.T) {
 	cfg := &glyph.GradientConfig{Stops: []glyph.GradientStop{
 		{Color: glyph.Color{R: 255, A: 200}},
 	}}
-	if dimmedTextGradient(nil, 0.5, true) != nil {
+	if dimmedTextGradient(nil, 0.5, true, nil) != nil {
 		t.Fatal("nil text gradient must stay nil")
 	}
-	if got := dimmedTextGradient(cfg, 1.0, false); got != cfg {
+	if got := dimmedTextGradient(cfg, 1.0, false, nil); got != cfg {
 		t.Fatal("enabled text gradient must keep its pointer")
 	}
-	got := dimmedTextGradient(cfg, 0.5, true)
+	got := dimmedTextGradient(cfg, 0.5, true, nil)
 	if got.Stops[0].Color.A != 50 {
 		t.Fatalf("got alpha %d, want 50", got.Stops[0].Color.A)
 	}

@@ -117,6 +117,10 @@ Go-Gui is also an ecosystem of composable libraries. **go-glyph** handles text,
   shadows, blur effects, canvas paths that draw themselves in
   ([`examples/path_trim/`](examples/path_trim/)), and sharp-edged pixel art with
   nearest-neighbor image sampling ([`examples/pixel_art/`](examples/pixel_art/))
+- **Content transitions** — a `Text` animates a change of its value: a counter
+  rolls only the digits that change, a label fades to its new words, an icon
+  shrinks away while the next grows in
+  ([`examples/content_transition/`](examples/content_transition/))
 - **Layered layout** — `Stack` puts children one over the other: controls over a
   background image or canvas, a badge on an avatar, a game HUD
   ([`examples/stack/`](examples/stack/))

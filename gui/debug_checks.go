@@ -116,6 +116,12 @@ const (
 	// debugCheckAutoIDReserved fires from the frame audit when an app
 	// ID starts with the prefix reserved for generated leaves.
 	debugCheckAutoIDReserved
+	// debugCheckContentTransitionNoID fires from applyContentTransition
+	// when a TextCfg asks for a content transition but carries no ID.
+	// Its own check, not debugCheckTextAnimNoID: warn-once keys on the
+	// check and the text, so a shared check let an ID-less text with
+	// both Anim and Transition report only one of them.
+	debugCheckContentTransitionNoID
 )
 
 // checkCategory maps an internal check to the public category that
@@ -127,6 +133,7 @@ func checkCategory(check debugCheck) DebugCategory {
 		return DebugDuplicates
 	case debugCheckFocusNoID, debugCheckScrollNoID,
 		debugCheckMouseLeaveNoID, debugCheckTextAnimNoID,
+		debugCheckContentTransitionNoID,
 		debugCheckInteractiveIDMismatch, debugCheckInteractiveKeyboard:
 		return DebugMissingIDs
 	case debugCheckUnconsumed:

@@ -214,6 +214,10 @@ type scratchPools struct {
 	// svgVColArena, and safe to realloc for the same reason.
 	textItemArena  []glyph.Item
 	textGlyphArena []glyph.Glyph
+	// textGradStopArena holds the stops of the gradients in
+	// renderTextGradients. Reset with svgVColArena, and safe to realloc
+	// for the same reason.
+	textGradStopArena []glyph.GradientStop
 
 	// layoutChildrenArena is a grow-only, frame-scoped arena for the
 	// []Layout child slices built by generateViewLayout. Each node
@@ -274,6 +278,9 @@ type scratchPools struct {
 	renderGlyphLayouts     scratchObjPool[glyph.Layout]
 	renderAffineTransforms scratchObjPool[glyph.AffineTransform]
 	renderTextShimmers     scratchObjPool[textAnimShimmer]
+	// renderTextGradients holds the copies dimmedTextGradient makes of
+	// a text gradient for a faded or disabled frame.
+	renderTextGradients scratchObjPool[glyph.GradientConfig]
 
 	// Reusable events for layoutHover and gesture callbacks
 	// (avoids per-shape/per-gesture heap allocation of Event).
@@ -440,6 +447,7 @@ func (p *scratchPools) resetRenderPools() {
 	p.renderGlyphLayouts.reset()
 	p.renderAffineTransforms.reset()
 	p.renderTextShimmers.reset()
+	p.renderTextGradients.reset()
 	if cap(p.svgVColArena) > svgVColRetainMax {
 		p.svgVColArena = make([]Color, 0, svgVColShrinkTo)
 	} else {
@@ -457,11 +465,19 @@ func (p *scratchPools) resetRenderPools() {
 	} else {
 		p.textGlyphArena = p.textGlyphArena[:0]
 	}
+	if cap(p.textGradStopArena) > textGradStopRetainMax {
+		p.textGradStopArena = nil
+	} else {
+		p.textGradStopArena = p.textGradStopArena[:0]
+	}
 }
 
 const (
 	textItemRetainMax  = 256
 	textGlyphRetainMax = 1 << 13
+	// textGradStopRetainMax holds a few hundred faded gradient texts
+	// of a handful of stops each.
+	textGradStopRetainMax = 1 << 10
 	// maxTextArenaReservation matches glyph's own scratch bound: a
 	// layout from the public API holds at most that many glyphs, so a
 	// larger request is a host-built layout and gets its own slice.
@@ -473,6 +489,13 @@ const (
 // every slot.
 func (p *scratchPools) takeTextItems(n int) []glyph.Item {
 	return takeArena(&p.textItemArena, n, maxTextArenaReservation, true)
+}
+
+// takeTextGradientStops reserves n glyph.GradientStops from the
+// render-phase arena, full length, under the same contract as
+// takeTextItems.
+func (p *scratchPools) takeTextGradientStops(n int) []glyph.GradientStop {
+	return takeArena(&p.textGradStopArena, n, maxTextArenaReservation, true)
 }
 
 // takeTextGlyphs reserves n glyph.Glyphs from the render-phase arena,

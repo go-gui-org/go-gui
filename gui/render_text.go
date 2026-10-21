@@ -134,6 +134,18 @@ func renderText(shape *Shape, clip drawClip, w *Window) {
 		}
 	}
 
+	// A content transition draws the old and the new text itself, from
+	// the progress its driver wrote into the run. Render-only frames
+	// reach here with the shape of the last layout, so this is where the
+	// text moves.
+	// One condition here: renderText sits at the cyclomatic limit, so
+	// the nil, focus and selection tests live in
+	// renderContentTransition.
+	if renderContentTransition(shape, tc.ctrans, clip,
+		c, renderStyle, w) {
+		return
+	}
+
 	var preLayout glyph.Layout
 	hasPreLayout := false
 	needLayout := tc.textSelBeg != tc.textSelEnd ||
@@ -158,7 +170,8 @@ func renderText(shape *Shape, clip drawClip, w *Window) {
 	if g := tc.anim.gradient(tc.TextStyle.Color, w); g != nil {
 		gradient = g
 	}
-	textGradient := dimmedTextGradient(gradient, shape.Opacity, gradDim)
+	textGradient := dimmedTextGradient(gradient, shape.Opacity, gradDim,
+		&w.scratch)
 
 	// A typewriter paints only its revealed prefix. The layout is of
 	// the full text, so the painted part sits exactly where it will

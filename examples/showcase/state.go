@@ -157,6 +157,14 @@ type ShowcaseApp struct {
 	// animation: progress is keyed by effective ID.
 	TextAnimReplay int
 
+	// ContentTransitionCount, ContentTransitionStatus and
+	// ContentTransitionLiked are the values the rows of
+	// demoContentTransition change. A change of the text is what plays
+	// a transition.
+	ContentTransitionCount  int
+	ContentTransitionStatus int
+	ContentTransitionLiked  bool
+
 	CmdButtonCount    int
 	TableSortBy       int
 	GesturePadVersion uint64
@@ -483,6 +491,7 @@ var demoEntries = []DemoEntry{
 	{ID: "text", Label: "Text", Group: groupText, Summary: "Typography, gradients, outlines, and curved text.", Tags: []string{"font", "type", "styles", "gradient", "outline", "stroke", "curve"}},
 	{ID: "typography", Label: "Typography", Group: groupText, Summary: "Type scale, roles, and modifiers.", Tags: []string{"font", "type", "scale", "roles", "style"}},
 	{ID: "text_anim", Label: "Text Animation", Group: groupMotion, Summary: "Canned text animations from TextCfg.Anim, plus the Custom hook.", Tags: []string{"animation", "fade", "slide", "pulse", "shimmer", "typewriter", "shake", "motion"}},
+	{ID: "content_transition", Label: "Content Transition", Group: groupMotion, Summary: "Animate a change of a text's value: roll digits, fade, or replace an icon.", Tags: []string{"animation", "transition", "counter", "roll", "numeric", "fade", "icon", "motion"}},
 	{ID: "icons", Label: "Icons", Group: groupText, Summary: "Icon font catalog and glyph references.", Tags: []string{"icon", "font", "glyph"}},
 
 	{ID: "table", Label: "Table", Group: groupData, Summary: "Declarative and sortable table data.", Tags: []string{"rows", "columns", "csv"}},

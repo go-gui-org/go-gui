@@ -52,6 +52,11 @@ type TextCfg struct {
 	// gui.Debug reports.
 	Anim TextAnimCfg
 
+	// Transition animates a change of Text: a roll of the digits that
+	// change, a fade, or a shrink and grow for an icon. The zero value
+	// replaces the text at once. It needs a non-empty ID, as Anim does.
+	Transition ContentTransition
+
 	// readOnly is set by input widgets (view_input.go) to suppress
 	// IME preedit on a read-only field that stays Focusable.
 	// Unexported: not a meaningful knob for standalone Text callers.
@@ -171,6 +176,7 @@ func (tv *textView) GenerateLayout(w *Window) Layout {
 	// full string, so measuring below, and the layout passes after it,
 	// size and wrap the whole text while a typewriter reveals it.
 	animFrame := applyTextAnim(tv, w, layout.Shape)
+	applyContentTransition(tv, w, tc)
 
 	// Measure what is painted, not what is stored: a password renders
 	// as bullets, whose advance differs from the raw text's. Measuring
@@ -256,6 +262,13 @@ func Text(cfg TextCfg) View {
 	}
 	if cfg.TextStyle.Size == 0 {
 		cfg.TextStyle.Size = sizeTextMedium
+	}
+	if cfg.Transition.Kind == ContentTransitionNumeric &&
+		cfg.TextStyle.Features == nil {
+		// Tabular figures keep every digit one width, so a rolling
+		// number does not change width as its digits change. A caller's
+		// own features win.
+		cfg.TextStyle.Features = contentTransitionTnum
 	}
 	cfg.Sizing = sizing
 	return &textView{cfg: cfg}

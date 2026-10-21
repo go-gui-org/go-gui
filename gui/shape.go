@@ -473,6 +473,11 @@ type shapeTextConfig struct {
 	// and motion. Nil for a text with nothing to apply. See
 	// textAnimRender.
 	anim *textAnimRender
+	// ctrans is the content transition slot of a TextCfg with a
+	// Transition and an ID. Nil for any other text. renderText reads
+	// the progress of its run live, so render-only frames move the
+	// text. See contentTransitionSlot.
+	ctrans *contentTransitionSlot
 	// rtf holds the rich-text fields. Only an RTF shape sets it; a plain
 	// text leaves it nil, so a plain textView does not carry ~176 bytes
 	// it never uses. See shapeRichText.

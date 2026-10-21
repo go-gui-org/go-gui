@@ -245,6 +245,7 @@ var componentDemos = map[string]func(*gui.Window) gui.View{
 	"text":                demoText,
 	"typography":          demoTypography,
 	"text_anim":           demoTextAnim,
+	"content_transition":  demoContentTransition,
 	"rtf":                 demoRtf,
 	"table":               demoTable,
 	"data_grid":           demoDataGrid,

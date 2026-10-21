@@ -1,0 +1,5 @@
+# go-gui-golden v1
+Clip xy=15.00,15.00 wh=16.80,19.60
+Text xy=15.00,15.00 wh=0.00,0.00 color=#e6e8ebff text="4" size=14.00
+Text xy=23.40,15.00 wh=0.00,0.00 color=#e6e8ebff text="1" size=14.00
+Clip xy=0.00,0.00 wh=320.00,240.00

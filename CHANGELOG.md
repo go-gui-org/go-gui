@@ -10,6 +10,22 @@ and this project adheres to
 
 ### Added
 
+- **Content transitions on `Text` (#1021).** The new `TextCfg.Transition`
+  animates a change of `Text`. `ContentTransitionNumeric` rolls only the
+  characters that change, compared by grapheme from the right, so "41" to "42"
+  rolls the "1" and leaves the "4" still, and "99" to "100" rolls three columns.
+  A larger number comes up from below and a smaller one comes down from above;
+  `Down` forces down. Each rolling character is clipped to the line, and the
+  text asks for tabular figures, so where the font has them its width does not
+  change with the digits. `ContentTransitionFade` fades the old text out and the
+  new text in. `ContentTransitionReplace` shrinks an old icon away while the new
+  one grows in. Under reduced motion, and for wrapped or multiline text, every
+  kind fades. A focused text, or one with a selection, shows the new text at
+  once, so its caret and selection stay. Every frame is render-only: no view
+  function and no layout runs while the text moves. The text needs an `ID`, as
+  `TextCfg.Anim` does. See `examples/content_transition/` and the showcase's
+  Content Transition page.
+
 - **Single-instance mode and open events (#1106).** `instance.Acquire(id)` in
   the new `gui/instance` package elects one primary process per app ID and user.
   A later launch sends its arguments to the primary and gets `primary=false`, so

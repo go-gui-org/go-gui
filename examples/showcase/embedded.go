@@ -181,6 +181,7 @@ var relatedExampleMap = map[string][]string{
 	"draw_canvas":         {"examples/showcase/demo_graphics.go", "examples/showcase/demo_path_trim.go", "examples/draw_canvas/main.go", "examples/path_trim/main.go"},
 	"transform":           {"examples/showcase/demo_transform.go", "examples/transforms/main.go"},
 	"animations":          {"examples/showcase/demo_animations.go", "examples/animations/main.go"},
+	"content_transition":  {"examples/showcase/demo_content_transition.go", "examples/content_transition/main.go"},
 	"color_picker":        {"examples/showcase/demo_input.go", "examples/color_picker/main.go"},
 	"theme_gen":           {"examples/showcase/demo_theme.go", "examples/showcase/main.go"},
 	"markdown":            {"examples/showcase/demo_text.go", "examples/markdown/main.go", "examples/markdown/markdown_source.md"},

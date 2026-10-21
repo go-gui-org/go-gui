@@ -241,6 +241,7 @@ const (
 	nsSpellCheck          = "gui.spell_check"
 	nsSkeleton            = "gui.skeleton"
 	nsTextAnim            = "gui.text_anim"
+	nsContentTransition   = "gui.content_transition"
 	nsMathSpinner         = "gui.math_spinner"
 	nsThinkingOrb         = "gui.thinking_orb"
 	nsAnimIDs             = "gui.anim_ids"
