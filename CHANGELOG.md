@@ -8,6 +8,20 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Fixed
+
+- **Touch: a long press, then a drag, reorders a list on a scrolling page
+  (#1134).** Since #1116, a touch on a reorderable `ListBox` or `Tree` row on a
+  page that scrolls vertically waited to see a tap or a scroll, and a vertical
+  drag counted as a scroll: the row could not be reordered by touch. A long
+  press armed the drag, but its moves were dropped. Now the moves after a long
+  press go to the drag, so holding a row for half a second and then dragging
+  reorders it, as on iOS and Android. A quick swipe still scrolls the page. A
+  touch drag that the platform cancels, or that a second finger takes over, is
+  now cancelled through the lock's `Cancel` hook instead of released, so it no
+  longer drops a reordered row, a docked panel or any other drag where the
+  finger happened to be.
+
 ## [v0.92.0] - 2026-10-21
 
 ### Added
