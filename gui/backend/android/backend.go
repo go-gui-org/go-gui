@@ -95,7 +95,14 @@ var settingsStore settingsdir.Store
 // Context.getFilesDir().absolutePath in Kotlin, where gui.SaveSettings
 // keeps the app's settings (issue #848). Call it before Start. Until it
 // is called, LoadSettings and SaveSettings return an error.
-func SetFilesDir(dir string) { settingsStore.SetDir(dir) }
+//
+// Below Android 13 it also gives the backend its temp directory, one of
+// this process's own under dir/go-gui-tmp: Android sets no TMPDIR there,
+// and without one the icon font and every other temp file fail to load.
+func SetFilesDir(dir string) {
+	settingsStore.SetDir(dir)
+	setTempDir(dir)
+}
 
 // Start initializes the backend. If already initialized,
 // handles resize (idempotent for onSurfaceChanged).

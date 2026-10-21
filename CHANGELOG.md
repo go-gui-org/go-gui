@@ -8,6 +8,24 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Fixed
+
+- **Android: temp files land in the app's own directory, so icons and other
+  temp-file assets load (#1140).** Go's `os.TempDir()` fell back to
+  `/data/local/tmp`, which an app cannot write: a Go shared library reads its
+  environment once when it loads and never sees the `TMPDIR` Android sets later
+  through libc (from Android 13), and before Android 13 Android sets none. The
+  icon font failed to load, so every icon showed as a box, and anything else
+  written with `os.CreateTemp` failed too: app fonts added as bytes, the diagram
+  cache, PDF printing, the showcase's images. The backend now takes `TMPDIR`
+  from libc when Android set it, and otherwise uses a directory of the process's
+  own under `go-gui-tmp` in the files directory the host passes to
+  `SetFilesDir`. Each process locks its directory while it lives and removes
+  those of processes that have died; nothing outside `go-gui-tmp` is touched. A
+  host built from `examples/android_demo` already calls `SetFilesDir` before
+  `Start` and needs no change. The remote image cache now resolves its directory
+  on first use instead of at package init, so it follows the same `TMPDIR`.
+
 ## [v0.92.0] - 2026-10-21
 
 ### Added

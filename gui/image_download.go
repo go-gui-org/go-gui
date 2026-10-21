@@ -54,10 +54,13 @@ var (
 	imageDownloadSem   chan struct{}
 )
 
-// imageCacheDir paths the remote image cache directory. Kept as a
-// var rather than a const because it depends on runtime os.TempDir().
-var imageCacheDir = filepath.Join(
-	os.TempDir(), "gui_cache", "images")
+// imageCacheDir is the remote image cache directory. It is resolved on
+// first use, not at package init: os.TempDir() reads TMPDIR, which a
+// backend may only set after this package is initialized (Android hands
+// the app's temp directory over at runtime).
+var imageCacheDir = sync.OnceValue(func() string {
+	return filepath.Join(os.TempDir(), "gui_cache", "images")
+})
 
 // imageCacheExts lists the extensions findCachedImage probes.
 // Package-level to avoid a per-call slice alloc on miss. It
@@ -74,14 +77,14 @@ var (
 
 func ensureImageCacheDir() error {
 	imageCacheDirOnce.Do(func() {
-		imageCacheDirErr = os.MkdirAll(imageCacheDir, 0o750)
+		imageCacheDirErr = os.MkdirAll(imageCacheDir(), 0o750)
 		if imageCacheDirErr != nil {
 			return
 		}
 		// Sweep temp files orphaned by crashed downloads. A
 		// partial never carries a probe extension so none is
 		// servable, but without this each crash leaks one file.
-		entries, err := os.ReadDir(imageCacheDir)
+		entries, err := os.ReadDir(imageCacheDir())
 		if err != nil {
 			return
 		}
@@ -89,7 +92,7 @@ func ensureImageCacheDir() error {
 			if !e.IsDir() &&
 				strings.HasPrefix(e.Name(), ".dl-") {
 				_ = os.Remove(
-					filepath.Join(imageCacheDir, e.Name()))
+					filepath.Join(imageCacheDir(), e.Name()))
 			}
 		}
 	})
@@ -229,7 +232,7 @@ func resolveImageSrcWithFetcher(
 		return ""
 	}
 	basePath := filepath.Join(
-		imageCacheDir,
+		imageCacheDir(),
 		strconv.FormatUint(hashString(src), 16))
 	if p := findCachedImage(basePath); p != "" {
 		resolved.Set(src, p)
