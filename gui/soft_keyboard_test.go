@@ -20,6 +20,9 @@ type softKeyboardSpy struct {
 	// imeStarts and imeStops count input-method cycles, so a test
 	// can check that a keyboard change leaves the IME alone (#156).
 	imeStarts, imeStops int
+	// onIMEStop, when set, runs inside IMEStop. A test uses it to send
+	// the event a backend can emit from that call (#1127).
+	onIMEStop func()
 }
 
 func (p *softKeyboardSpy) ShowSoftKeyboard(kind KeyboardKind, secure bool) {
@@ -29,7 +32,12 @@ func (p *softKeyboardSpy) ShowSoftKeyboard(kind KeyboardKind, secure bool) {
 func (p *softKeyboardSpy) HideSoftKeyboard() { p.hides++ }
 
 func (p *softKeyboardSpy) IMEStart() { p.imeStarts++ }
-func (p *softKeyboardSpy) IMEStop()  { p.imeStops++ }
+func (p *softKeyboardSpy) IMEStop() {
+	p.imeStops++
+	if p.onIMEStop != nil {
+		p.onIMEStop()
+	}
+}
 
 // newSoftKeyboardWindow builds a real window whose view is content in
 // a FillFill column, with a spy platform attached. Tests drive it
@@ -181,6 +189,196 @@ func TestSoftKeyboardReshownOnTapOfFocusedField(t *testing.T) {
 	frame(w)
 	if len(spy.shows) != 1 {
 		t.Fatalf("shows after focusing tap = %d, want 1", len(spy.shows))
+	}
+}
+
+// A press that focuses a field starts the input method and shows the
+// keyboard inside the press dispatch, not in the next frame: iOS Safari
+// opens the keyboard only for a focus() made while it handles the
+// touch. The frame after the press pushes nothing again.
+func TestSoftKeyboardShownInFocusingPress(t *testing.T) {
+	w, spy := newSoftKeyboardWindow(t, Input(InputCfg{ID: "f"}))
+	frame(w)
+	pressCenter(t, w, "f")
+	if spy.imeStarts != 1 || len(spy.shows) != 1 {
+		t.Fatalf("in the press: imeStarts=%d shows=%d, want 1 and 1",
+			spy.imeStarts, len(spy.shows))
+	}
+	frame(w)
+	if spy.imeStarts != 1 || len(spy.shows) != 1 {
+		t.Fatalf("after the frame: imeStarts=%d shows=%d, want 1 and 1",
+			spy.imeStarts, len(spy.shows))
+	}
+}
+
+// A touch tap shows the keyboard in the touch event that presses: the
+// touch-down on a page that cannot scroll, the lift on one that can,
+// where the press waits for the finger (touch_press.go). The frame that
+// runs between the two must not focus the input first.
+func TestSoftKeyboardShownInTouchThatPresses(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		spacer    float32
+		atTouchUp bool
+	}{
+		{"static page", 10, false},
+		{"scrolling page", 2000, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			w, spy := newSoftKeyboardWindow(t, Column(ContainerCfg{
+				ID: "page", Scrollable: true, Sizing: FillFill,
+				Content: []View{
+					Input(InputCfg{ID: "f", Sizing: FillFit}),
+					Rectangle(RectangleCfg{Sizing: FillFixed, Height: tc.spacer}),
+				},
+			}))
+			frame(w)
+			x, y := centerOf(t, w, "page:f")
+			w.viewState.gesture.nowFn = fixedClock(0)
+			w.EventFn(touchEvent(EventTouchesBegan, 1, x, y))
+			wantDown := 1
+			if tc.atTouchUp {
+				wantDown = 0
+			}
+			if len(spy.shows) != wantDown {
+				t.Fatalf("shows in touch-down = %d, want %d", len(spy.shows), wantDown)
+			}
+			frame(w)
+			if len(spy.shows) != wantDown {
+				t.Fatalf("shows after the frame before the lift = %d, want %d",
+					len(spy.shows), wantDown)
+			}
+			w.viewState.gesture.nowFn = fixedClock(60_000_000)
+			w.EventFn(touchEvent(EventTouchesEnded, 1, x, y))
+			if spy.imeStarts != 1 || len(spy.shows) != 1 {
+				t.Fatalf("after the lift: imeStarts=%d shows=%d, want 1 and 1",
+					spy.imeStarts, len(spy.shows))
+			}
+			frame(w)
+			if spy.imeStarts != 1 || len(spy.shows) != 1 {
+				t.Fatalf("after the frame: imeStarts=%d shows=%d, want 1 and 1",
+					spy.imeStarts, len(spy.shows))
+			}
+		})
+	}
+}
+
+// A press that moves focus to another field switches the input method
+// inside the press dispatch, with the new field's keyboard.
+func TestSoftKeyboardPressSwitchesFieldInDispatch(t *testing.T) {
+	w, spy := newSoftKeyboardWindow(t,
+		Input(InputCfg{ID: "a"}),
+		Input(InputCfg{ID: "b", Keyboard: KeyboardURL}),
+	)
+	w.SetFocus("a")
+	frame(w)
+	pressCenter(t, w, "b")
+	if spy.imeStops != 1 || spy.imeStarts != 2 || len(spy.shows) != 2 {
+		t.Fatalf("in the press: stops=%d starts=%d shows=%d, want 1, 2, 2",
+			spy.imeStops, spy.imeStarts, len(spy.shows))
+	}
+	if got := spy.shows[1].kind; got != KeyboardURL {
+		t.Fatalf("second show kind = %v, want KeyboardURL", got)
+	}
+	frame(w)
+	if spy.imeStops != 1 || spy.imeStarts != 2 || len(spy.shows) != 2 {
+		t.Fatalf("after the frame: stops=%d starts=%d shows=%d, want 1, 2, 2",
+			spy.imeStops, spy.imeStarts, len(spy.shows))
+	}
+}
+
+// A backend reuses one Event for every dispatch, and its IMEStop can
+// send an event of its own: Win32 IMM sends WM_IME_* from
+// ImmAssociateContextEx, web fires compositionend when the hidden input
+// is removed. A press that switches fields calls IMEStop inside the
+// press dispatch, so that nested EventFn writes the Event the press is
+// still reading. The press must see its own event after the switch.
+func TestSoftKeyboardPressSwitchSurvivesReentrantIMEStop(t *testing.T) {
+	w, spy := newSoftKeyboardWindow(t,
+		Input(InputCfg{ID: "a"}),
+		Input(InputCfg{ID: "b"}),
+	)
+	w.SetFocus("a")
+	frame(w)
+	ly := findLayoutByID(&w.layout, "b")
+	if ly == nil {
+		t.Fatal("no shape for b")
+	}
+	c := ly.Shape.shapeClip
+	press := Event{
+		Type: EventMouseDown, MouseButton: MouseLeft,
+		MouseX: c.X + c.Width/2, MouseY: c.Y + c.Height/2,
+	}
+	e := press
+	spy.onIMEStop = func() {
+		// The backend's shared event, rewritten for the commit.
+		e = Event{Type: EventChar, CharCode: 'x', IMEText: "x"}
+		w.EventFn(&e)
+	}
+	w.EventFn(&e)
+	if spy.imeStops != 1 {
+		t.Fatalf("imeStops = %d, want 1", spy.imeStops)
+	}
+	if e.Type != press.Type || e.MouseButton != press.MouseButton ||
+		e.MouseX != press.MouseX || e.MouseY != press.MouseY {
+		t.Fatalf("press after the switch: type=%v button=%v at (%v,%v), "+
+			"want type=%v button=%v at (%v,%v)", e.Type, e.MouseButton,
+			e.MouseX, e.MouseY, press.Type, press.MouseButton,
+			press.MouseX, press.MouseY)
+	}
+	if got := w.FocusID(); got != "b" {
+		t.Fatalf("focus = %q, want b", got)
+	}
+}
+
+// A press that leaves the field is still the frame's to settle: the
+// press dispatch only starts or switches the input method.
+func TestSoftKeyboardPressLeavingFieldWaitsForFrame(t *testing.T) {
+	w, spy := newSoftKeyboardWindow(t,
+		Input(InputCfg{ID: "f"}),
+		Button(ButtonCfg{ID: "b", Content: []View{Text(TextCfg{Text: "b"})}}),
+	)
+	w.SetFocus("f")
+	frame(w)
+	pressCenter(t, w, "b")
+	if spy.imeStops != 0 || spy.hides != 0 {
+		t.Fatalf("in the press: stops=%d hides=%d, want 0 and 0", spy.imeStops, spy.hides)
+	}
+	frame(w)
+	if spy.imeStops != 1 || spy.hides != 1 {
+		t.Fatalf("after the frame: stops=%d hides=%d, want 1 and 1", spy.imeStops, spy.hides)
+	}
+}
+
+// A press whose callback focuses a field the arranged tree does not hold
+// yet leaves the start to the frame that builds the field.
+func TestSoftKeyboardPressFocusingUnbuiltFieldWaitsForFrame(t *testing.T) {
+	shown := false
+	w, spy := newSoftKeyboardWindow(t)
+	w.viewGenerator = func(*Window) View {
+		content := []View{Button(ButtonCfg{
+			ID: "open", Content: []View{Text(TextCfg{Text: "open"})},
+			OnClick: func(ctx EventCtx) {
+				shown = true
+				ctx.Window.SetFocus("late")
+				ctx.Consume()
+			},
+		})}
+		if shown {
+			content = append(content, Input(InputCfg{ID: "late"}))
+		}
+		return Column(ContainerCfg{Sizing: FillFill, Content: content})
+	}
+	frame(w)
+	pressCenter(t, w, "open")
+	if spy.imeStarts != 0 || len(spy.shows) != 0 {
+		t.Fatalf("in the press: imeStarts=%d shows=%d, want 0 and 0",
+			spy.imeStarts, len(spy.shows))
+	}
+	frame(w)
+	if spy.imeStarts != 1 || len(spy.shows) != 1 {
+		t.Fatalf("after the frame: imeStarts=%d shows=%d, want 1 and 1",
+			spy.imeStarts, len(spy.shows))
 	}
 }
 
