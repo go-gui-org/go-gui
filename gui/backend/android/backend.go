@@ -96,9 +96,10 @@ var settingsStore settingsdir.Store
 // keeps the app's settings (issue #848). Call it before Start. Until it
 // is called, LoadSettings and SaveSettings return an error.
 //
-// Below Android 13 it also gives the backend its temp directory, one of
-// this process's own under dir/go-gui-tmp: Android sets no TMPDIR there,
-// and without one the icon font and every other temp file fail to load.
+// Below Android 13 it also gives the backend its temp directory, the
+// app's cache directory beside dir, which Android 13 and later name in
+// TMPDIR themselves: below 13 Android sets no TMPDIR, and without one
+// the icon font and every other temp file fail to load.
 func SetFilesDir(dir string) {
 	settingsStore.SetDir(dir)
 	setTempDir(dir)

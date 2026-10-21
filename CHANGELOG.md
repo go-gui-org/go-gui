@@ -17,14 +17,16 @@ and this project adheres to
   through libc (from Android 13), and before Android 13 Android sets none. The
   icon font failed to load, so every icon showed as a box, and anything else
   written with `os.CreateTemp` failed too: app fonts added as bytes, the diagram
-  cache, PDF printing, the showcase's images. The backend now takes `TMPDIR`
-  from libc when Android set it, and otherwise uses a directory of the process's
-  own under `go-gui-tmp` in the files directory the host passes to
-  `SetFilesDir`. Each process locks its directory while it lives and removes
-  those of processes that have died; nothing outside `go-gui-tmp` is touched. A
-  host built from `examples/android_demo` already calls `SetFilesDir` before
-  `Start` and needs no change. The remote image cache now resolves its directory
-  on first use instead of at package init, so it follows the same `TMPDIR`.
+  cache, PDF printing, the showcase's images. `TMPDIR` is now the app's cache
+  directory on every Android version: the backend takes it from libc where
+  Android set it, and below Android 13 uses the `cache` directory beside the
+  files directory the host passes to `SetFilesDir`, the one Android already
+  makes and names in `java.io.tmpdir`. Android trims that directory itself when
+  storage runs low, so the remote image cache persists across launches, and all
+  processes of one app share it. A host built from `examples/android_demo`
+  already calls `SetFilesDir` before `Start` and needs no change. The remote
+  image cache now resolves its directory on first use instead of at package
+  init, so it follows the same `TMPDIR`.
 
 ## [v0.92.0] - 2026-10-21
 
