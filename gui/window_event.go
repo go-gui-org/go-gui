@@ -250,7 +250,7 @@ func (w *Window) pressWalk(layout *Layout, e *Event) {
 	focusBefore := w.FocusID()
 	mouseDownHandler(layout, false, e, w)
 	w.blurUnclaimedPress(layout, e, claimed)
-	w.syncIMEEditContextOnPress(focusBefore)
+	w.syncIMEEditContextOnPress(focusBefore, e)
 	w.reshowSoftKeyboardOnPress(layout, e, focusBefore)
 }
 

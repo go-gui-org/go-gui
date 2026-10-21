@@ -20,6 +20,9 @@ type softKeyboardSpy struct {
 	// imeStarts and imeStops count input-method cycles, so a test
 	// can check that a keyboard change leaves the IME alone (#156).
 	imeStarts, imeStops int
+	// onIMEStop, when set, runs inside IMEStop. A test uses it to send
+	// the event a backend can emit from that call (#1127).
+	onIMEStop func()
 }
 
 func (p *softKeyboardSpy) ShowSoftKeyboard(kind KeyboardKind, secure bool) {
@@ -29,7 +32,12 @@ func (p *softKeyboardSpy) ShowSoftKeyboard(kind KeyboardKind, secure bool) {
 func (p *softKeyboardSpy) HideSoftKeyboard() { p.hides++ }
 
 func (p *softKeyboardSpy) IMEStart() { p.imeStarts++ }
-func (p *softKeyboardSpy) IMEStop()  { p.imeStops++ }
+func (p *softKeyboardSpy) IMEStop() {
+	p.imeStops++
+	if p.onIMEStop != nil {
+		p.onIMEStop()
+	}
+}
 
 // newSoftKeyboardWindow builds a real window whose view is content in
 // a FillFill column, with a spy platform attached. Tests drive it
@@ -276,6 +284,50 @@ func TestSoftKeyboardPressSwitchesFieldInDispatch(t *testing.T) {
 	if spy.imeStops != 1 || spy.imeStarts != 2 || len(spy.shows) != 2 {
 		t.Fatalf("after the frame: stops=%d starts=%d shows=%d, want 1, 2, 2",
 			spy.imeStops, spy.imeStarts, len(spy.shows))
+	}
+}
+
+// A backend reuses one Event for every dispatch, and its IMEStop can
+// send an event of its own: Win32 IMM sends WM_IME_* from
+// ImmAssociateContextEx, web fires compositionend when the hidden input
+// is removed. A press that switches fields calls IMEStop inside the
+// press dispatch, so that nested EventFn writes the Event the press is
+// still reading. The press must see its own event after the switch.
+func TestSoftKeyboardPressSwitchSurvivesReentrantIMEStop(t *testing.T) {
+	w, spy := newSoftKeyboardWindow(t,
+		Input(InputCfg{ID: "a"}),
+		Input(InputCfg{ID: "b"}),
+	)
+	w.SetFocus("a")
+	frame(w)
+	ly := findLayoutByID(&w.layout, "b")
+	if ly == nil {
+		t.Fatal("no shape for b")
+	}
+	c := ly.Shape.shapeClip
+	press := Event{
+		Type: EventMouseDown, MouseButton: MouseLeft,
+		MouseX: c.X + c.Width/2, MouseY: c.Y + c.Height/2,
+	}
+	e := press
+	spy.onIMEStop = func() {
+		// The backend's shared event, rewritten for the commit.
+		e = Event{Type: EventChar, CharCode: 'x', IMEText: "x"}
+		w.EventFn(&e)
+	}
+	w.EventFn(&e)
+	if spy.imeStops != 1 {
+		t.Fatalf("imeStops = %d, want 1", spy.imeStops)
+	}
+	if e.Type != press.Type || e.MouseButton != press.MouseButton ||
+		e.MouseX != press.MouseX || e.MouseY != press.MouseY {
+		t.Fatalf("press after the switch: type=%v button=%v at (%v,%v), "+
+			"want type=%v button=%v at (%v,%v)", e.Type, e.MouseButton,
+			e.MouseX, e.MouseY, press.Type, press.MouseButton,
+			press.MouseX, press.MouseY)
+	}
+	if got := w.FocusID(); got != "b" {
+		t.Fatalf("focus = %q, want b", got)
 	}
 }
 

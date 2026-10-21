@@ -204,16 +204,30 @@ func (w *Window) applyIMEEditContext(edit *Shape) {
 // still settles a press that leaves the field, and one that focuses a
 // widget the arranged tree does not hold yet. The frame then sees the
 // same field and pushes nothing again (#156).
-func (w *Window) syncIMEEditContextOnPress(focusBefore string) {
-	focusID := w.FocusID()
-	if focusID == "" || focusID == focusBefore {
+//
+// e is the press being dispatched. A backend fills one shared Event for
+// every dispatch, and the IMEStop of a switch can emit an event of its
+// own into it before returning: Win32 IMM sends WM_IME_* messages from
+// ImmAssociateContextEx, and web fires compositionend when the hidden
+// input is removed. That nested EventFn overwrites the press, which the
+// caller still reads (reshowSoftKeyboardOnPress, handleMouseDownEvent's
+// IsHandled check). Before #1127 IMEStop ran only from the frame pass,
+// where no event is in flight. The copy is restored after the calls, so
+// the press reads its own event again. It is a stack copy, taken only
+// on a transition.
+func (w *Window) syncIMEEditContextOnPress(focusBefore string, e *Event) {
+	// findEditTargets returns no edit shape when nothing is focused,
+	// so this compare is the only guard the press needs.
+	if w.FocusID() == focusBefore {
 		return
 	}
 	_, edit := findEditTargets(&w.layout, w, 0)
 	if edit == nil {
 		return
 	}
+	press := *e
 	w.applyIMEEditContext(edit)
+	*e = press
 }
 
 // syncBlinkCursor starts or stops the caret-blink animation as the
