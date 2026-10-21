@@ -8,7 +8,6 @@ package android
 import "C"
 
 import (
-	"image"
 	"unsafe"
 
 	"github.com/go-gui-org/go-glyph"
@@ -47,28 +46,13 @@ func (gb *glesGlyphBackend) destroy() {
 // recreateTextures makes a new, empty GL texture for every atlas
 // texture after the EGL context they lived in was lost, under the same
 // TextureID, so the atlas keeps its records. The old C IDs are not
-// deleted: glesAbandon has already forgotten them. markAtlasDirty then
-// sends the atlas's pixels again.
+// deleted: glesAbandon has already forgotten them. ctxloss.ReuploadAtlas
+// then sends the atlas's pixels again.
 func (gb *glesGlyphBackend) recreateTextures() {
 	for id, t := range gb.textures {
 		t.cID = int32(C.glesCreateTexture(C.int(t.w), C.int(t.h),
 			nil, C.int(0)))
 		gb.textures[id] = t
-	}
-}
-
-// markAtlasDirty marks every atlas page for a whole-page upload. The
-// atlas keeps each page's pixels on the CPU, so the next frame refills
-// the textures recreateTextures made.
-func markAtlasDirty(ts *glyph.TextSystem) {
-	if ts == nil || ts.Renderer() == nil || ts.Renderer().Atlas() == nil {
-		return
-	}
-	pages := ts.Renderer().Atlas().Pages
-	for i := range pages {
-		pages[i].Dirty = true
-		// An empty rect with Dirty set is the whole page.
-		pages[i].DirtyRect = image.Rectangle{}
 	}
 }
 

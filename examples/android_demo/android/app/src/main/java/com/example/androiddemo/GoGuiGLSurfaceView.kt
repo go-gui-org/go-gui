@@ -26,7 +26,7 @@ class GoGuiGLSurfaceView(context: Context) : GLSurfaceView(context) {
         // Keep the GL context while the app is in the background, so a
         // resume does not have to rebuild every texture and shader.
         // Android may still drop it; the backend then rebuilds them
-        // itself when Start runs in the new context.
+        // when GoGuiRenderer.onSurfaceCreated reports the new context.
         preserveEGLContextOnPause = true
         setRenderer(GoGuiRenderer(density, context as Activity, this))
         renderMode = RENDERMODE_CONTINUOUSLY

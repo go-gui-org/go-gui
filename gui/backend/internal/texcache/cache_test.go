@@ -93,7 +93,7 @@ func TestDiscardAllCallsNoDestroy(t *testing.T) {
 	c := New[string, int](2, func(v int) { destroyed = append(destroyed, v) })
 	c.Set("a", 1)
 	c.Set("b", 2)
-	c.DiscardAll()
+	c.DiscardAll(nil)
 	if len(destroyed) != 0 {
 		t.Fatalf("DiscardAll destroyed %v", destroyed)
 	}
@@ -105,6 +105,32 @@ func TestDiscardAllCallsNoDestroy(t *testing.T) {
 	c.Set("e", 5)
 	if len(destroyed) != 1 || destroyed[0] != 3 {
 		t.Fatalf("eviction after DiscardAll destroyed %v, want [3]", destroyed)
+	}
+}
+
+// DiscardAll with keep leaves the kept entries in LRU order and drops
+// the rest without destroy, so a kept entry is still the next to evict.
+func TestDiscardAllKeepsSelected(t *testing.T) {
+	var destroyed []int
+	c := New[string, int](3, func(v int) { destroyed = append(destroyed, v) })
+	c.Set("a", -1)
+	c.Set("b", 2)
+	c.Set("c", -3)
+	c.DiscardAll(func(v int) bool { return v < 0 })
+	if len(destroyed) != 0 {
+		t.Fatalf("DiscardAll destroyed %v", destroyed)
+	}
+	if c.Len() != 2 {
+		t.Fatalf("Len = %d, want 2", c.Len())
+	}
+	if _, ok := c.Get("b"); ok {
+		t.Fatal("b was not discarded")
+	}
+	// "a" is still the oldest: two inserts fill the cache and evict it.
+	c.Set("d", 4)
+	c.Set("e", 5)
+	if len(destroyed) != 1 || destroyed[0] != -1 {
+		t.Fatalf("eviction destroyed %v, want [-1]", destroyed)
 	}
 }
 
