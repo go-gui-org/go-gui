@@ -1014,6 +1014,36 @@ void glesSetCustomPipeline(int idx) {
     _curPipeline = -2 - idx;
 }
 
+// ─── Context Loss ────────────────────────────────────────────
+
+// glesAbandon forgets every GL object this file holds without deleting any.
+// Call it when the EGL context they lived in is gone: Android destroys it while
+// the app is in the background. Their names mean nothing in the new context, or
+// name an object the new context has made since, so a glDelete* here could free
+// a live one. It makes no GL call. glesInit then builds a fresh set.
+void glesAbandon(void) {
+    memset(_programs, 0, sizeof _programs);
+    _quadVAO = _quadVBO = _quadIBO = 0;
+    _svgVAO = _svgVBO = 0;
+    _glyphVAO = _glyphVBO = 0;
+
+    memset(_textures, 0, sizeof _textures);
+    _nextTexID = 1;
+    _freeTexCount = 0;
+
+    _filterFBO = 0;
+    _filterTexA = _filterTexB = 0;
+    _filterStencilRB = 0;
+    _filterW = _filterH = 0;
+    _filterQuadVAO = _filterQuadVBO = 0;
+
+    memset(_customPrograms, 0, sizeof _customPrograms);
+    _nextCustomID = 0;
+    _freeCustomCount = 0;
+
+    _curPipeline = -1;
+}
+
 // ─── Filter System ────────────────────────────────────────────
 
 static void ensureFilterTextures(int w, int h) {

@@ -22,6 +22,7 @@ import (
 	"github.com/go-gui-org/go-glyph"
 
 	"github.com/go-gui-org/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/ctxloss"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/framestate"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/imgpath"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/settingsdir"
@@ -72,6 +73,9 @@ type Backend struct {
 	glyphBack    *glesGlyphBackend
 	customCache  texcache.Cache[uint64, C.int]
 	iconFontPath string
+	// lost is set by SurfaceCreated when the GL resources died with
+	// their EGL context (rebuildLostContext).
+	lost ctxloss.Rebuilder
 
 	maxImageBytes  int64
 	maxImagePixels int64
@@ -110,12 +114,90 @@ func Start(w, h int, scale float32) {
 	}
 }
 
+// SurfaceCreated tells the backend that the GL thread has a new EGL
+// context. Call it from GLSurfaceView.Renderer.onSurfaceCreated, on the
+// GL thread. Android calls onSurfaceCreated for each new context, and
+// only then: GLSurfaceView destroys its context while the app is in the
+// background, unless it keeps it (setPreserveEGLContextOnPause), which
+// Android does not promise. Every program, buffer and texture name from
+// the old context is then dead, and the backend rebuilds them here.
+//
+// The first call, before Start, does nothing: Start builds the
+// resources. A host that does not call SurfaceCreated draws only the
+// clear color after a context loss.
+func SurfaceCreated() {
+	if androidBackend == nil {
+		return
+	}
+	androidBackend.lost.MarkLost()
+	androidBackend.rebuildLostContext()
+}
+
+// rebuildLostContext rebuilds the GL resources in the current context
+// after SurfaceCreated reported a new one. When glesInit fails, it logs
+// once, deletes what glesInit built, and Render tries again next frame.
+//
+// Nothing from the old context is deleted: an old name means nothing in
+// the new context, or names an object the new context has made since.
+// The caches are emptied and refill on first use; cached load and
+// compile failures stay, as they hold no GL name. The window, its view
+// and app state, and the text system with its fonts and cached layouts
+// are kept; the atlas pages are uploaded again from their CPU copy.
+// OnInit does not run again.
+func (b *Backend) rebuildLostContext() {
+	err := b.lost.Run(ctxloss.Steps{
+		Forget: func() {
+			// A texture entry with id 0 is a cached load failure.
+			b.textures.DiscardAll(func(t glesTexture) bool { return t.id == 0 })
+			// A negative idx is a cached compile failure.
+			b.customCache.DiscardAll(func(idx C.int) bool { return idx < 0 })
+			C.glesAbandon()
+		},
+		Init: func() error {
+			if rc := C.glesInit(); rc != 0 {
+				return fmt.Errorf("glesInit failed: %d", rc)
+			}
+			return nil
+		},
+		// The names glesInit made are in the current context, so
+		// deleting them is safe.
+		Undo: func() { C.glesDestroy() },
+		Refill: func() {
+			if b.glyphBack != nil {
+				b.glyphBack.recreateTextures()
+			}
+			if b.textSys != nil && b.textSys.Renderer() != nil {
+				ctxloss.ReuploadAtlas(b.textSys.Renderer().Atlas())
+			}
+			b.InvalidatePipelineState()
+		},
+	})
+	if err != nil {
+		log.Printf("android: rebuild after EGL context loss: %v", err)
+	}
+}
+
 // Render runs one frame: layout + draw + present.
 func Render() {
 	if androidBackend == nil || androidWindow == nil {
 		return
 	}
 	androidWindow.FrameFn()
+	if androidBackend.lost.Pending() {
+		// A rebuild in SurfaceCreated failed: try again, and draw
+		// only the background until it works, as every GL name is dead.
+		androidBackend.rebuildLostContext()
+		if androidBackend.lost.Pending() {
+			// GLSurfaceView swaps after onDrawFrame either way, so the
+			// buffer must still be cleared, or it shows undefined
+			// contents. glesBeginFrame uses no program or buffer.
+			r, g, bl, a := androidBackend.FrameBg(androidWindow)
+			C.glesBeginFrame(
+				C.float(r), C.float(g), C.float(bl), C.float(a),
+			)
+			return
+		}
+	}
 	androidBackend.renderFrame(androidWindow)
 }
 

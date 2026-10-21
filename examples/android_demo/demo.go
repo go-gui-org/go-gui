@@ -74,6 +74,12 @@ func Start(width, height int, scale float32) {
 	android.Start(width, height, scale)
 }
 
+// SurfaceCreated reports a new EGL context, so the backend rebuilds the
+// GL resources lost with the old one. Call it from onSurfaceCreated.
+func SurfaceCreated() {
+	android.SurfaceCreated()
+}
+
 // Render runs one frame.
 func Render() {
 	android.Render()

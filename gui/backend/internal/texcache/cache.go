@@ -104,6 +104,32 @@ func (c *Cache[K, V]) DestroyAll() {
 			c.destroy(me.val)
 		}
 	}
-	c.data = make(map[K]mapEntry[V], c.maxSize)
-	c.order.Init()
+	c.DiscardAll(nil)
+}
+
+// DiscardAll removes entries without calling destroy. Use it when the
+// values are already gone with the context that held them (a lost GL
+// context): destroying them would delete names that may now belong to
+// live objects.
+//
+// keep, when non-nil, names the entries to leave in place, in their LRU
+// order. A backend keeps the entries that hold no GPU object, such as a
+// cached load failure, so a context loss does not retry them. A nil keep
+// empties the cache.
+func (c *Cache[K, V]) DiscardAll(keep func(V) bool) {
+	if keep == nil {
+		c.data = make(map[K]mapEntry[V], c.maxSize)
+		c.order.Init()
+		return
+	}
+	for e := c.order.Front(); e != nil; {
+		// Take next before Remove: Remove clears e's links.
+		next := e.Next()
+		key := e.Value.(K)
+		if !keep(c.data[key].val) {
+			c.order.Remove(e)
+			delete(c.data, key)
+		}
+		e = next
+	}
 }

@@ -22,7 +22,11 @@ class GoGuiRenderer(
     private val mainHandler = Handler(Looper.getMainLooper())
 
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
-        // Nothing — initialization happens in onSurfaceChanged.
+        // Android calls this for each new EGL context. After the first,
+        // the old context's GL resources are gone: the backend rebuilds
+        // them. The first call does nothing; onSurfaceChanged then
+        // initializes the backend.
+        Androidapp.surfaceCreated()
     }
 
     override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {

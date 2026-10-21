@@ -43,6 +43,19 @@ func (gb *glesGlyphBackend) destroy() {
 	gb.textures = nil
 }
 
+// recreateTextures makes a new, empty GL texture for every atlas
+// texture after the EGL context they lived in was lost, under the same
+// TextureID, so the atlas keeps its records. The old C IDs are not
+// deleted: glesAbandon has already forgotten them. ctxloss.ReuploadAtlas
+// then sends the atlas's pixels again.
+func (gb *glesGlyphBackend) recreateTextures() {
+	for id, t := range gb.textures {
+		t.cID = int32(C.glesCreateTexture(C.int(t.w), C.int(t.h),
+			nil, C.int(0)))
+		gb.textures[id] = t
+	}
+}
+
 func (gb *glesGlyphBackend) NewTexture(
 	width, height int) glyph.TextureID {
 	gb.nextID++

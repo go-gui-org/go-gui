@@ -8,6 +8,7 @@
 
 int harnessUniformWrites;
 GLint harnessLastUniformLoc;
+int harnessDeleteCalls;
 
 static int fails;
 
@@ -101,6 +102,30 @@ int main(void) {
     glesEndStencilClip(verts, 1, m);
     expect(harnessUniformWrites == 1 && harnessLastUniformLoc == HARNESS_LOC_MVP,
            "glesEndStencilClip writes mvp");
+
+    // Context loss: the names below belong to a context that is gone.
+    // glesAbandon forgets them without deleting one, since in the new context a
+    // name can belong to a live object, and the rebuild starts every allocator
+    // over.
+    int t1 = glesCreateTexture(4, 4, NULL, 0);
+    int t2 = glesCreateTexture(4, 4, NULL, 0);
+    int c1 = glesBuildCustomPipeline("frag");
+    int c2 = glesBuildCustomPipeline("frag");
+    expect(t1 >= 1 && t2 > t1 && c1 >= 0 && c2 > c1,
+           "textures and custom pipelines before the loss");
+    harnessDeleteCalls = 0;
+    glesAbandon();
+    expect(harnessDeleteCalls == 0, "glesAbandon deletes nothing");
+    expect(glesInit() == 0, "glesInit after glesAbandon");
+    expect(glesCreateTexture(4, 4, NULL, 0) == 1,
+           "texture IDs start over after glesAbandon");
+    expect(glesBuildCustomPipeline("frag") == 0 &&
+               glesBuildCustomPipeline("frag") == 1,
+           "custom pipeline indices start over after glesAbandon");
+    expect(harnessDeleteCalls == 0, "the rebuild deletes nothing");
+    // The counter does see a delete, so the zeros above mean something.
+    glesDeleteTexture(1);
+    expect(harnessDeleteCalls == 1, "glesDeleteTexture is counted");
 
     return fails != 0;
 }

@@ -23,6 +23,11 @@ class GoGuiGLSurfaceView(context: Context) : GLSurfaceView(context) {
         setEGLContextClientVersion(3)
         // 8-bit stencil required for ClipContents.
         setEGLConfigChooser(8, 8, 8, 8, 0, 8)
+        // Keep the GL context while the app is in the background, so a
+        // resume does not have to rebuild every texture and shader.
+        // Android may still drop it; the backend then rebuilds them
+        // when GoGuiRenderer.onSurfaceCreated reports the new context.
+        preserveEGLContextOnPause = true
         setRenderer(GoGuiRenderer(density, context as Activity, this))
         renderMode = RENDERMODE_CONTINUOUSLY
         isFocusable = true
