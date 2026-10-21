@@ -251,15 +251,7 @@ func Resize(w, h int, scale float32) {
 	if androidBackend == nil {
 		return
 	}
-	androidBackend.handleResize(int32(w), int32(h), scale)
-	if androidWindow != nil {
-		evt := gui.Event{
-			Type:         gui.EventResized,
-			WindowWidth:  w,
-			WindowHeight: h,
-		}
-		androidWindow.EventFn(&evt)
-	}
+	androidBackend.ResizeWindow(androidWindow, w, h, scale)
 }
 
 // CleanUp releases all backend resources.
@@ -376,10 +368,6 @@ func (b *Backend) renderFrame(w *gui.Window) {
 	b.FlushText(b.textSys)
 
 	C.glesEndFrame()
-}
-
-func (b *Backend) handleResize(w, h int32, scale float32) {
-	b.HandleResize(w, h, scale)
 }
 
 // Destroy releases all backend resources.
