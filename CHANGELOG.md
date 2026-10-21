@@ -8,6 +8,8 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [v0.92.0] - 2026-10-21
+
 ### Added
 
 - **Content transitions on `Text` (#1021).** The new `TextCfg.Transition`
