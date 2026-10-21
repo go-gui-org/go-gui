@@ -407,17 +407,16 @@ type MouseLockCfg struct {
 	// taken with no button down gets every release.
 	MouseUp func(EventCtx)
 
-	// Cancel unwinds a drag that ended without a button release —
-	// the platform revoked mouse capture (a system modal, a lock
-	// screen, another process grabbing capture) so no MouseUp will
-	// ever arrive. Synthesising one is wrong: MouseUp *commits* a
-	// dock drop or a reorder, and a cancellation must not.
+	// Cancel unwinds a drag that ended without a button release, so
+	// no MouseUp will ever arrive: the platform revoked mouse capture
+	// (a system modal, a lock screen, another process), or a touch
+	// was cancelled or taken by a second finger (#1134). A MouseUp is
+	// wrong: it *commits* a dock drop or a reorder; a cancel must not.
 	//
-	// It takes *Window, not EventCtx, precisely because there is no
-	// event to carry — the other callbacks all read ctx.Event.
-	// Optional: MouseCancel unlocks either way, so only a widget
-	// with state beyond the lock itself (a pending drop, a pressed
-	// flag, a drag-scroll animation) needs one.
+	// It takes *Window, not EventCtx: there is no event to carry, and
+	// the others read ctx.Event. Optional: MouseCancel unlocks either
+	// way, so only a widget with state beyond the lock (a pending
+	// drop, a pressed flag, a drag-scroll animation) needs one.
 	Cancel func(*Window)
 
 	CursorPos int
