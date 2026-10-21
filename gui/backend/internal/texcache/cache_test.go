@@ -86,6 +86,28 @@ func TestDestroyAllAllowsReuse(t *testing.T) {
 	}
 }
 
+// DiscardAll empties the cache without destroy: the values died with
+// their GL context. A later eviction must not reach them either.
+func TestDiscardAllCallsNoDestroy(t *testing.T) {
+	var destroyed []int
+	c := New[string, int](2, func(v int) { destroyed = append(destroyed, v) })
+	c.Set("a", 1)
+	c.Set("b", 2)
+	c.DiscardAll()
+	if len(destroyed) != 0 {
+		t.Fatalf("DiscardAll destroyed %v", destroyed)
+	}
+	if c.Len() != 0 {
+		t.Fatalf("Len = %d after DiscardAll", c.Len())
+	}
+	c.Set("c", 3)
+	c.Set("d", 4)
+	c.Set("e", 5)
+	if len(destroyed) != 1 || destroyed[0] != 3 {
+		t.Fatalf("eviction after DiscardAll destroyed %v, want [3]", destroyed)
+	}
+}
+
 func TestUint64Key(t *testing.T) {
 	c := New[uint64, string](2, nil)
 	c.Set(42, "hello")

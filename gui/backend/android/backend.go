@@ -7,7 +7,15 @@ package android
 
 /*
 #cgo LDFLAGS: -lGLESv3 -lEGL -landroid -llog
+#include <stdint.h>
+#include <EGL/egl.h>
 #include "gles_android.h"
+
+// currentEGLContext is the EGL context current on the calling (GL)
+// thread, or 0 when there is none.
+static uintptr_t currentEGLContext(void) {
+	return (uintptr_t)eglGetCurrentContext();
+}
 */
 import "C"
 
@@ -72,6 +80,9 @@ type Backend struct {
 	glyphBack    *glesGlyphBackend
 	customCache  texcache.Cache[uint64, C.int]
 	iconFontPath string
+	// eglContext is the EGL context the GL resources were made in
+	// (recoverLostContext).
+	eglContext uintptr
 
 	maxImageBytes  int64
 	maxImagePixels int64
@@ -97,8 +108,9 @@ var settingsStore settingsdir.Store
 // is called, LoadSettings and SaveSettings return an error.
 func SetFilesDir(dir string) { settingsStore.SetDir(dir) }
 
-// Start initializes the backend. If already initialized,
-// handles resize (idempotent for onSurfaceChanged).
+// Start initializes the backend. If already initialized, it rebuilds
+// the GL resources when the EGL context changed (recoverLostContext),
+// then handles resize (idempotent for onSurfaceChanged).
 func Start(w, h int, scale float32) {
 	if androidWindow == nil {
 		androidWindow = gui.NewWindow(gui.WindowCfg{})
@@ -106,8 +118,46 @@ func Start(w, h int, scale float32) {
 	if androidBackend == nil {
 		initBackend(int32(w), int32(h), scale)
 	} else {
+		androidBackend.recoverLostContext()
 		androidBackend.handleResize(int32(w), int32(h), scale)
 	}
+}
+
+// recoverLostContext rebuilds the GL resources when the EGL context they
+// lived in is gone. GLSurfaceView destroys its context when the app goes
+// to the background; a host can ask it to keep the context
+// (setPreserveEGLContextOnPause), but Android does not promise to. The
+// next onSurfaceChanged then calls Start in a new context, and every
+// program, buffer and texture name from the old one is dead.
+//
+// Comparing the current context with the one the resources were made in
+// covers GLSurfaceView's normal recreation. An EGLContext is an opaque
+// handle, so this is not a guarantee for every possible loss.
+//
+// Nothing is deleted: an old name means nothing in the new context, or
+// names an object the new context has made since. The caches are emptied
+// and refill on first use. The window, its view and app state, and the
+// text system with its fonts and cached layouts are kept; the atlas pages
+// are uploaded again from their CPU copy. OnInit does not run again.
+func (b *Backend) recoverLostContext() {
+	ctx := uintptr(C.currentEGLContext())
+	if ctx == 0 || ctx == b.eglContext {
+		return
+	}
+	// Forget every old name first, deleting none.
+	b.textures.DiscardAll()
+	b.customCache.DiscardAll()
+	C.glesAbandon()
+	// Then build the new context's resources.
+	if rc := C.glesInit(); rc != 0 {
+		panic(fmt.Sprintf("android: glesInit after context loss failed: %d", rc))
+	}
+	if b.glyphBack != nil {
+		b.glyphBack.recreateTextures()
+	}
+	markAtlasDirty(b.textSys)
+	b.InvalidatePipelineState()
+	b.eglContext = ctx
 }
 
 // Render runs one frame: layout + draw + present.
@@ -214,6 +264,7 @@ func initBackend(w, h int32, scale float32) {
 		),
 		maxImageBytes:  cfg.MaxImageBytes,
 		maxImagePixels: cfg.MaxImagePixels,
+		eglContext:     uintptr(C.currentEGLContext()),
 	}
 	b.AllowedImageRoots = imgpath.NormalizeRoots(
 		cfg.AllowedImageRoots)

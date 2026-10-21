@@ -71,6 +71,10 @@ typedef ptrdiff_t GLsizeiptr;
 // Observed state, defined in harness.c.
 extern int harnessUniformWrites;
 extern GLint harnessLastUniformLoc;
+// Every glDelete* call except glDeleteShader, so a test can prove a path deletes
+// no object it was handed. buildProgram deletes its own shaders once they are
+// linked; those are new objects, not stale names.
+extern int harnessDeleteCalls;
 
 // Uniform locations the harness hands out, so a test can tell which uniform a
 // setter wrote to.
@@ -122,13 +126,13 @@ static inline void glClear(GLbitfield a) { (void)a; }
 static inline void glClearColor(GLfloat a, GLfloat b, GLfloat c, GLfloat d) { (void)a; (void)b; (void)c; (void)d; }
 static inline void glColorMask(GLboolean a, GLboolean b, GLboolean c, GLboolean d) { (void)a; (void)b; (void)c; (void)d; }
 static inline void glCompileShader(GLuint a) { (void)a; }
-static inline void glDeleteBuffers(GLsizei a, const GLuint* b) { (void)a; (void)b; }
-static inline void glDeleteFramebuffers(GLsizei a, const GLuint* b) { (void)a; (void)b; }
-static inline void glDeleteProgram(GLuint a) { (void)a; }
-static inline void glDeleteRenderbuffers(GLsizei a, const GLuint* b) { (void)a; (void)b; }
+static inline void glDeleteBuffers(GLsizei a, const GLuint* b) { (void)a; (void)b; harnessDeleteCalls++; }
+static inline void glDeleteFramebuffers(GLsizei a, const GLuint* b) { (void)a; (void)b; harnessDeleteCalls++; }
+static inline void glDeleteProgram(GLuint a) { (void)a; harnessDeleteCalls++; }
+static inline void glDeleteRenderbuffers(GLsizei a, const GLuint* b) { (void)a; (void)b; harnessDeleteCalls++; }
 static inline void glDeleteShader(GLuint a) { (void)a; }
-static inline void glDeleteTextures(GLsizei a, const GLuint* b) { (void)a; (void)b; }
-static inline void glDeleteVertexArrays(GLsizei a, const GLuint* b) { (void)a; (void)b; }
+static inline void glDeleteTextures(GLsizei a, const GLuint* b) { (void)a; (void)b; harnessDeleteCalls++; }
+static inline void glDeleteVertexArrays(GLsizei a, const GLuint* b) { (void)a; (void)b; harnessDeleteCalls++; }
 static inline void glDisable(GLenum a) { (void)a; }
 static inline void glDrawArrays(GLenum a, GLint b, GLsizei c) { (void)a; (void)b; (void)c; }
 static inline void glDrawElements(GLenum a, GLsizei b, GLenum c, const void* d) { (void)a; (void)b; (void)c; (void)d; }

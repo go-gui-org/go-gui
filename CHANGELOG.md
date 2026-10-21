@@ -25,6 +25,17 @@ and this project adheres to
   scroll reorders too, and a held text selection grows as the finger moves. A
   drag already held when the finger landed is another drag's: it gets none of
   the moves, and an abort of this touch does not cancel it.
+- **Android: an app returning from the background is drawn again, not left black
+  (#1136).** `GLSurfaceView` destroys its GL context while the app is in the
+  background, and the next `Start` ran in a new context with the old programs,
+  buffers and textures, so only the background color appeared. The backend now
+  notices the new context and rebuilds its GL resources without deleting the
+  dead ones: images and custom shaders are uploaded again on first use, and the
+  glyph atlas is re-sent from its CPU copy. The window, its view and app state,
+  and the loaded fonts stay as they were. A host needs no change for this. A
+  host built from `examples/android_demo` should also set
+  `preserveEGLContextOnPause = true` on its `GLSurfaceView`, as the demo now
+  does: Android then usually keeps the context, and a resume rebuilds nothing.
 
 ## [v0.92.0] - 2026-10-21
 

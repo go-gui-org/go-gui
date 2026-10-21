@@ -107,3 +107,12 @@ func (c *Cache[K, V]) DestroyAll() {
 	c.data = make(map[K]mapEntry[V], c.maxSize)
 	c.order.Init()
 }
+
+// DiscardAll resets the cache to empty without calling destroy. Use it
+// when the values are already gone with the context that held them (a
+// lost GL context): destroying them would delete names that may now
+// belong to live objects.
+func (c *Cache[K, V]) DiscardAll() {
+	c.data = make(map[K]mapEntry[V], c.maxSize)
+	c.order.Init()
+}
