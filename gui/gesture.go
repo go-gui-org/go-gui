@@ -94,9 +94,14 @@ type gestureState struct {
 	// a tap or a scroll; pressScan what the paths under it hold: the
 	// axes the scrollable can scroll, the scrollbar it landed on
 	// (touch_press.go).
-	pressHeld  bool
-	pressScan  touchPressScan
-	recognized bool
+	pressHeld bool
+	pressScan touchPressScan
+	// foreignLock reports the mouse was already locked when this touch
+	// pressed: the lock is another drag's, so an abort of this touch
+	// must not cancel it (touchMouseAbort), and the finger's moves
+	// after a long press do not drive it (longPressDragMove).
+	foreignLock bool
+	recognized  bool
 	// pinchBegan mirrors rotateBegan: pinch and rotate are
 	// independent sub-states of one multi-touch, tracked
 	// separately so both get their Began and Ended.
@@ -201,7 +206,7 @@ func handleTouchBegan(
 		gs.touchPressDrop()
 		if gs.mouseEmitted {
 			t := gs.touches[0]
-			synthMouse(EventMouseUp, t.x, t.y, MouseLeft, layout, w)
+			touchMouseAbort(gs, layout, w, t.x, t.y)
 			gs.mouseEmitted = false
 		}
 		gs.recognized = true
@@ -296,6 +301,7 @@ func handleTouchMoved(
 			synthMouse(EventMouseMove, t.x, t.y, MouseLeft,
 				layout, w)
 		}
+		longPressDragMove(gs, layout, w, t.x, t.y)
 		return
 	}
 
@@ -603,13 +609,43 @@ func handleTouchCancelled(
 		}
 	}
 	if gs.mouseEmitted {
-		synthMouse(EventMouseUp, cx, cy,
-			MouseLeft, layout, w)
+		touchMouseAbort(gs, layout, w, cx, cy)
 	}
 	gs.reset()
 }
 
+// touchMouseAbort ends the mouse half of a touch that did not lift: a
+// cancelled touch, or one a second finger took over. A drag holding
+// the mouse lock is cancelled, not released: a release commits it (a
+// reorder or a dock drop) though the finger never let go. Without a
+// lock the press is released, as a lift would. So is a lock that was
+// held before this touch pressed: it is another drag's, and this touch
+// did not start it.
+func touchMouseAbort(gs *gestureState, layout *Layout, w *Window, x, y float32) {
+	if w.mouseIsLocked() && !gs.foreignLock {
+		w.MouseCancel()
+		return
+	}
+	synthMouse(EventMouseUp, x, y, MouseLeft, layout, w)
+}
+
 // --- Long press ---
+
+// longPressDragMove sends a finger's move after a long press as a
+// mouse move, when this touch's press took the mouse. The long press
+// sends the press a scrollable held back (touch_press.go); a
+// reorderable row arming its drag takes the mouse, and without the
+// finger's moves the drag never moves. A press that went out at
+// touch-down (a row on a list that cannot scroll, a text selection)
+// may have taken it too: a finger held, then dragged, drives that drag
+// as well, as on iOS. A lock held before the finger landed is another
+// drag's (foreignLock) and gets no moves.
+func longPressDragMove(gs *gestureState, layout *Layout, w *Window, x, y float32) {
+	if gs.recognized && gs.gestureType == GestureLongPress &&
+		!gs.foreignLock && w.mouseIsLocked() {
+		synthMouse(EventMouseMove, x, y, MouseLeft, layout, w)
+	}
+}
 
 func armLongPress(gs *gestureState, _ *Layout, w *Window) {
 	gs.longPressSX = gs.startX
