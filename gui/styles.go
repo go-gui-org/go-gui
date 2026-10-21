@@ -2,19 +2,19 @@ package gui
 
 import "github.com/go-gui-org/go-glyph"
 
-// Theme default colors (dark theme). The neutral ramp is a cool tint
-// at hue ~215 (visual-refresh §4.1): a border can be a transparent
-// white wash without turning the surface beneath it a different color
-// than the page, so separation comes from fills, not strokes.
+// Theme default colors (dark theme). Near-neutral gray with a whisper
+// of cool (blue leads by two steps — visual-refresh §4): enough tint
+// that a transparent white border wash lays no hue shift, too little
+// to read as blue. Separation comes from fills, not strokes.
 var (
-	colorBackgroundDark = RGB(23, 25, 28) // #17191C
-	colorPanelDark      = RGB(30, 33, 37) // #1E2125
-	colorInteriorDark   = RGB(38, 42, 47) // #262A2F
-	colorHoverDark      = RGB(47, 52, 58) // #2F343A
-	colorFocusDark      = RGB(56, 62, 69) // #383E45
-	colorActiveDark     = RGB(66, 73, 81) // #424951
-	colorBorderDark     = RGBA(255, 255, 255, 28)
-	colorSeparatorDark  = RGBA(255, 255, 255, 60)
+	colorBackgroundDark = RGB(29, 29, 31) // #1D1D1F
+	colorPanelDark      = RGB(39, 39, 41) // #272729
+	colorInteriorDark   = RGB(51, 51, 53) // #333335
+	colorHoverDark      = RGB(64, 64, 66) // #404042
+	colorFocusDark      = RGB(77, 77, 79) // #4D4D4F
+	colorActiveDark     = RGB(93, 93, 95) // #5D5D5F
+	colorBorderDark     = RGBA(255, 255, 255, 44)
+	colorSeparatorDark  = RGBA(255, 255, 255, 84)
 	colorSelectDark     = RGB(65, 105, 225)
 	// colorAccentDark is the single accent decision; the rest of the
 	// ramp derives from it in ThemeMaker (visual-refresh §4.3).

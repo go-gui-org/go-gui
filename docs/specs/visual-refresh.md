@@ -225,23 +225,23 @@ move.
 
 ## 4. Color
 
-One hue family across both polarities: a cool neutral at hue ~215 with low
-saturation. Not "tinted gray for its own sake" — the tint is what lets a border
-be a transparent white/black wash without turning the surface beneath it a
-different color than the page.
+One hue family across both polarities: a near-neutral with a whisper of cool
+(blue leads by a couple of steps). Not "tinted gray for its own sake" — the tint
+is what lets a border be a transparent white/black wash without turning the
+surface beneath it a different color than the page.
 
 ### 4.1 Dark (default)
 
 | Role                  | Value                     |
 | --------------------- | ------------------------- |
-| `ColorBackground`     | `#17191C`                 |
-| `ColorPanel`          | `#1E2125`                 |
-| `ColorInterior`       | `#262A2F`                 |
-| `ColorHover`          | `#2F343A`                 |
-| `ColorFocus`          | `#383E45`                 |
-| `ColorActive`         | `#424951`                 |
-| `ColorBorder`         | `RGBA(255, 255, 255, 28)` |
-| `ColorSeparator`      | `RGBA(255, 255, 255, 20)` |
+| `ColorBackground`     | `#1D1D1F`                 |
+| `ColorPanel`          | `#272729`                 |
+| `ColorInterior`       | `#333335`                 |
+| `ColorHover`          | `#404042`                 |
+| `ColorFocus`          | `#4D4D4F`                 |
+| `ColorActive`         | `#5D5D5F`                 |
+| `ColorBorder`         | `RGBA(255, 255, 255, 44)` |
+| `ColorSeparator`      | `RGBA(255, 255, 255, 84)` |
 | text (`TextStyleDef`) | `#E6E8EB`                 |
 
 Background-to-interior is now 15 steps of lightness against a border that is a

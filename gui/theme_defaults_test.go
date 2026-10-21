@@ -9,6 +9,7 @@ func TestPresetThemesDefined(t *testing.T) {
 	}{
 		{"dark", ThemeDark},
 		{"light", ThemeLight},
+		{"graphite", themeGraphite},
 		{"macos", themeMacOS},
 		{"macos-dark", themeMacOSDark},
 		{"gnome", themeGnome},
@@ -95,7 +96,7 @@ func TestPresetThemesRegistered(t *testing.T) {
 			len(names))
 	}
 	expected := []string{
-		"dark", "light",
+		"dark", "light", "graphite",
 		"macos", "macos-dark",
 		"gnome", "gnome-dark",
 		"windows", "windows-dark",
