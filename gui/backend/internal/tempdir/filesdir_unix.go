@@ -96,6 +96,7 @@ func UnderFilesDir(filesDir string, logf func(format string, args ...any)) error
 // openLock opens a lock file, creating it if needed. os.OpenFile adds
 // O_CLOEXEC on Unix; O_NOFOLLOW refuses a symlink planted at the path.
 func openLock(path string) (*os.File, error) {
+	// #nosec G304 — a fixed lock name under go-gui-tmp in the host's files dir; O_NOFOLLOW
 	return os.OpenFile(path,
 		os.O_RDWR|os.O_CREATE|syscall.O_NOFOLLOW, 0o600)
 }
@@ -130,6 +131,7 @@ func sweep(root, own string, logf func(format string, args ...any)) {
 // take belongs to a live process. A lock it can take is held while the
 // directory is removed.
 func reap(dir string) error {
+	// #nosec G304 — live.lock in a proc- directory under go-gui-tmp; O_NOFOLLOW
 	f, err := os.OpenFile(filepath.Join(dir, liveLockName),
 		os.O_RDWR|syscall.O_NOFOLLOW, 0)
 	if errors.Is(err, fs.ErrNotExist) {
