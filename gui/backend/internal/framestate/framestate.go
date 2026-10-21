@@ -138,6 +138,24 @@ func (fs *FrameState) HandleResize(w, h int32, scale float32) {
 	fs.UpdateProjection()
 }
 
+// ResizeWindow resizes the surface with HandleResize, then tells win
+// the new logical size with an EventResized. A backend calls it for
+// every size change after start: HandleResize alone resizes only the
+// GPU side, and the window keeps laying out at its old size (#1138).
+// A nil win resizes only the GPU side.
+func (fs *FrameState) ResizeWindow(win *gui.Window, w, h int, scale float32) {
+	fs.HandleResize(int32(w), int32(h), scale)
+	if win == nil {
+		return
+	}
+	evt := gui.Event{
+		Type:         gui.EventResized,
+		WindowWidth:  w,
+		WindowHeight: h,
+	}
+	win.EventFn(&evt)
+}
+
 // FrameBg resolves the frame clear color: the window's configured
 // background, falling back to the window's theme background when
 // unset. Returns normalized 0..1 components ready for the C

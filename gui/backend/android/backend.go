@@ -101,8 +101,11 @@ var settingsStore settingsdir.Store
 // is called, LoadSettings and SaveSettings return an error.
 func SetFilesDir(dir string) { settingsStore.SetDir(dir) }
 
-// Start initializes the backend. If already initialized,
-// handles resize (idempotent for onSurfaceChanged).
+// Start initializes the backend. If already initialized, it resizes
+// (idempotent for onSurfaceChanged). A host calls Start from every
+// onSurfaceChanged, so a rotation or a split-screen change arrives here,
+// not at Resize: the window must hear the new size too, or it keeps
+// laying out at the size it started with.
 func Start(w, h int, scale float32) {
 	if androidWindow == nil {
 		androidWindow = gui.NewWindow(gui.WindowCfg{})
@@ -110,7 +113,7 @@ func Start(w, h int, scale float32) {
 	if androidBackend == nil {
 		initBackend(int32(w), int32(h), scale)
 	} else {
-		androidBackend.handleResize(int32(w), int32(h), scale)
+		Resize(w, h, scale)
 	}
 }
 
@@ -248,15 +251,7 @@ func Resize(w, h int, scale float32) {
 	if androidBackend == nil {
 		return
 	}
-	androidBackend.handleResize(int32(w), int32(h), scale)
-	if androidWindow != nil {
-		evt := gui.Event{
-			Type:         gui.EventResized,
-			WindowWidth:  w,
-			WindowHeight: h,
-		}
-		androidWindow.EventFn(&evt)
-	}
+	androidBackend.ResizeWindow(androidWindow, w, h, scale)
 }
 
 // CleanUp releases all backend resources.
@@ -373,10 +368,6 @@ func (b *Backend) renderFrame(w *gui.Window) {
 	b.FlushText(b.textSys)
 
 	C.glesEndFrame()
-}
-
-func (b *Backend) handleResize(w, h int32, scale float32) {
-	b.HandleResize(w, h, scale)
 }
 
 // Destroy releases all backend resources.

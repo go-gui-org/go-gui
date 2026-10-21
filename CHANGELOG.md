@@ -40,6 +40,13 @@ and this project adheres to
   does. A host built from that demo should also set
   `preserveEGLContextOnPause = true` on its `GLSurfaceView`: Android then
   usually keeps the context, and a resume rebuilds nothing.
+- **Android: rotating the device lays the window out at the new size (#1138).**
+  A host calls `Start` from every `onSurfaceChanged`, and on a running backend
+  `Start` only resized the GL viewport. The window was never told, so after a
+  rotation, a split-screen change or a fold it kept laying out at the size it
+  started with: in landscape the content stayed portrait-wide with the rest of
+  the screen empty. `Start` now sends the window the new size, as `Resize`
+  already did. A host needs no change.
 
 ## [v0.92.0] - 2026-10-21
 
