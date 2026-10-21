@@ -3,6 +3,6 @@ Clip xy=30.00,30.00 wh=90.00,70.00
 Clip xy=30.00,105.00 wh=90.00,7.00
 Clip xy=30.00,30.00 wh=90.00,70.00
 Clip xy=18.00,30.00 wh=7.00,70.00
-Rect xy=18.00,31.00 wh=7.00,16.00 color=#424951ff radius=4.00 fill
+Rect xy=18.00,31.00 wh=7.00,16.00 color=#5d5d5fff radius=4.00 fill
 Clip xy=30.00,30.00 wh=90.00,70.00
 Clip xy=0.00,0.00 wh=320.00,240.00
