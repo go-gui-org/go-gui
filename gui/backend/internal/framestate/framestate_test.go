@@ -337,3 +337,39 @@ func TestFlushText(t *testing.T) {
 		t.Error("TextQueued still set after flush")
 	}
 }
+
+// TestResizeWindowTellsWindow pins #1138: a resize after start must
+// reach the window, not only the GPU. Before the fix the Android
+// backend resized the viewport on each onSurfaceChanged but never sent
+// EventResized, so a rotated window kept laying out at its first size.
+func TestResizeWindowTellsWindow(t *testing.T) {
+	fs, br := newTestFS()
+	win := gui.NewWindow(gui.WindowCfg{})
+
+	fs.ResizeWindow(win, 400, 800, 2)
+	if w, h := win.WindowSize(); w != 400 || h != 800 {
+		t.Fatalf("window size = %dx%d, want 400x800", w, h)
+	}
+
+	// A rotation: the same surface, now landscape.
+	fs.ResizeWindow(win, 800, 400, 2)
+	if w, h := win.WindowSize(); w != 800 || h != 400 {
+		t.Errorf("window size after rotation = %dx%d, want 800x400", w, h)
+	}
+	if fs.PhysW != 1600 || fs.PhysH != 800 {
+		t.Errorf("phys = %dx%d, want 1600x800", fs.PhysW, fs.PhysH)
+	}
+	if len(br.resizes) != 2 {
+		t.Errorf("bridge resizes = %v, want 2", br.resizes)
+	}
+}
+
+// TestResizeWindowNilWindow checks that a resize before the window
+// exists still resizes the GPU and does not panic.
+func TestResizeWindowNilWindow(t *testing.T) {
+	fs, br := newTestFS()
+	fs.ResizeWindow(nil, 400, 300, 1)
+	if len(br.resizes) != 1 {
+		t.Errorf("bridge resizes = %v, want 1", br.resizes)
+	}
+}

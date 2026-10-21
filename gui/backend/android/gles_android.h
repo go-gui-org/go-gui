@@ -23,6 +23,9 @@ enum {
 // Lifecycle
 int  glesInit(void);
 void glesDestroy(void);
+// glesAbandon forgets all GL objects without deleting them, after the EGL
+// context they lived in was lost. Follow it with glesInit.
+void glesAbandon(void);
 void glesResize(int w, int h);
 
 // Frame

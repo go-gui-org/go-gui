@@ -50,14 +50,28 @@ make install
 
 ```
 demo.go (Go, gomobile bind)
-  → android.SetWindow / Start / Render
+  → android.SetWindow / SurfaceCreated / Start / Render
     → gles_android.c (GLES3 via NDK)
 
 Kotlin host:
   MainActivity → GoGuiGLSurfaceView (EGL3 + stencil)
+    → GoGuiRenderer.onSurfaceCreated → SurfaceCreated()
+    → GoGuiRenderer.onSurfaceChanged → Start()
     → GoGuiRenderer.onDrawFrame → Render()
     → touch events → TouchBegan/Moved/Ended
 ```
+
+## GL context loss
+
+`GLSurfaceView` can destroy its EGL context while the app is in the background.
+The GL programs, buffers and textures go with it. Android then calls
+`onSurfaceCreated` for the new context. The host calls `SurfaceCreated` there,
+and the backend rebuilds its GL resources in the new context. The window, the
+view and the app state stay as they were. A host that does not call
+`SurfaceCreated` shows only the background color after a resume.
+
+`GoGuiGLSurfaceView` also sets `preserveEGLContextOnPause = true`. Android then
+usually keeps the context, and a resume rebuilds nothing.
 
 ## Secret storage bridge
 
