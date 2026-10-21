@@ -58,8 +58,10 @@ and this project adheres to
   none of the keyboard fields, and the backend read them with `js.Value.Bool`,
   which panics on a missing value. The panic stopped the Go program. Every event
   listener now reads a missing field as its zero value: key, mouse, wheel and
-  touch events, so an event that a page script or an extension builds with
-  `new Event()` cannot stop the app either.
+  touch events and the dark-mode `change` event, so an event that a page script
+  or an extension builds with `new Event()` cannot stop the app either. A mouse
+  press or release with no button is dropped, not read as a left click at the
+  top-left corner, and a touch list entry that is not a touch is skipped.
 
 - **macOS: Apple Events reach a running app (#1106).** The event loop polled
   with a fixed list of event types. AppKit dispatches Apple Events only when the

@@ -44,27 +44,13 @@ func (b *Backend) registerEvents(w *gui.Window) {
 	evt := new(gui.Event)
 
 	reg(canvas, "mousedown", func(_ js.Value, args []js.Value) any {
-		e := args[0]
-		*evt = gui.Event{
-			Type:        gui.EventMouseDown,
-			MouseX:      float32(jsFloat(e.Get("offsetX"))),
-			MouseY:      float32(jsFloat(e.Get("offsetY"))),
-			MouseButton: mapMouseButton(jsInt(e.Get("button"))),
-			Modifiers:   mapModifiers(e),
-		}
+		*evt = mouseButtonEvent(gui.EventMouseDown, args[0])
 		w.EventFn(evt)
 		return nil
 	})
 
 	reg(canvas, "mouseup", func(_ js.Value, args []js.Value) any {
-		e := args[0]
-		*evt = gui.Event{
-			Type:        gui.EventMouseUp,
-			MouseX:      float32(jsFloat(e.Get("offsetX"))),
-			MouseY:      float32(jsFloat(e.Get("offsetY"))),
-			MouseButton: mapMouseButton(jsInt(e.Get("button"))),
-			Modifiers:   mapModifiers(e),
-		}
+		*evt = mouseButtonEvent(gui.EventMouseUp, args[0])
 		w.EventFn(evt)
 		return nil
 	})
@@ -493,6 +479,24 @@ func utf16RuneIndex(s string, n int) int32 {
 	return count
 }
 
+// mouseButtonEvent maps a DOM mousedown or mouseup to typ. A missing
+// button is MouseInvalid, not the 0 jsInt gives: 0 is the left button,
+// so a bare new Event("mousedown") would press the widget at (0,0).
+// The window drops a MouseInvalid press or release.
+func mouseButtonEvent(typ gui.EventType, e js.Value) gui.Event {
+	button := gui.MouseInvalid
+	if b := e.Get("button"); b.Type() == js.TypeNumber {
+		button = mapMouseButton(b.Int())
+	}
+	return gui.Event{
+		Type:        typ,
+		MouseX:      float32(jsFloat(e.Get("offsetX"))),
+		MouseY:      float32(jsFloat(e.Get("offsetY"))),
+		MouseButton: button,
+		Modifiers:   mapModifiers(e),
+	}
+}
+
 func mapMouseButton(b int) gui.MouseButton {
 	switch b {
 	case 0:
@@ -738,32 +742,37 @@ func mapTouchEvent(
 	// event, so it must not allocate on the heap. The arrays live
 	// on the stack and touchEventFromLists copies them out.
 	var allPts, changedPts [8]gui.TouchPoint
-	all := e.Get("touches")
-	changed := e.Get("changedTouches")
-	an := min(jsLength(all), len(allPts))
-	for i := range an {
-		t := all.Index(i)
-		allPts[i] = gui.TouchPoint{
-			Identifier: uint64(jsInt(t.Get("identifier"))),
-			PosX:       float32(jsFloat(t.Get("clientX")) - left),
-			PosY:       float32(jsFloat(t.Get("clientY")) - top),
-			ToolType:   gui.TouchToolFinger,
-		}
-	}
-	cn := min(jsLength(changed), len(changedPts))
-	for i := range cn {
-		t := changed.Index(i)
-		changedPts[i] = gui.TouchPoint{
-			Identifier: uint64(jsInt(t.Get("identifier"))),
-			PosX:       float32(jsFloat(t.Get("clientX")) - left),
-			PosY:       float32(jsFloat(t.Get("clientY")) - top),
-			ToolType:   gui.TouchToolFinger,
-		}
-	}
+	an := readTouchList(e.Get("touches"), left, top, &allPts)
+	cn := readTouchList(e.Get("changedTouches"), left, top, &changedPts)
 	// Which list the event carries is decided in one place,
 	// touchEventFromLists: Ended and Cancelled carry the lifted
 	// fingers (changed), the rest carry the fingers still down.
 	*evt = touchEventFromLists(typ, allPts[:an], changedPts[:cn])
+}
+
+// readTouchList copies the touches of a DOM TouchList into pts and
+// returns how many it copied. An entry that is not an object is
+// skipped: a list a script builds can hold a hole or a null, and
+// Value.Get on it panics.
+func readTouchList(list js.Value, left, top float64, pts *[8]gui.TouchPoint) int {
+	n := 0
+	for i := range jsLength(list) {
+		if n == len(pts) {
+			break
+		}
+		t := list.Index(i)
+		if t.Type() != js.TypeObject {
+			continue
+		}
+		pts[n] = gui.TouchPoint{
+			Identifier: uint64(jsInt(t.Get("identifier"))),
+			PosX:       float32(jsFloat(t.Get("clientX")) - left),
+			PosY:       float32(jsFloat(t.Get("clientY")) - top),
+			ToolType:   gui.TouchToolFinger,
+		}
+		n++
+	}
+	return n
 }
 
 // visualViewportInset returns the height hidden below the visual

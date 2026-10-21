@@ -2,7 +2,11 @@
 
 package web
 
-import "syscall/js"
+import (
+	"syscall/js"
+
+	"github.com/go-gui-org/go-gui/gui"
+)
 
 // Readers for fields of DOM events, beside jsInt and jsString in
 // events.go. Split out to hold the large-files gate.
@@ -32,4 +36,14 @@ func jsLength(v js.Value) int {
 		return 0
 	}
 	return jsInt(v.Get("length"))
+}
+
+// appearanceFromEvent reads the appearance from the arguments of a
+// prefers-color-scheme change listener. jsBool, because an event built
+// with new Event("change") has no matches field and Value.Bool panics.
+func appearanceFromEvent(args []js.Value) gui.Appearance {
+	if len(args) > 0 && jsBool(args[0].Get("matches")) {
+		return gui.AppearanceDark
+	}
+	return gui.AppearanceLight
 }
