@@ -44,27 +44,13 @@ func (b *Backend) registerEvents(w *gui.Window) {
 	evt := new(gui.Event)
 
 	reg(canvas, "mousedown", func(_ js.Value, args []js.Value) any {
-		e := args[0]
-		*evt = gui.Event{
-			Type:        gui.EventMouseDown,
-			MouseX:      float32(e.Get("offsetX").Float()),
-			MouseY:      float32(e.Get("offsetY").Float()),
-			MouseButton: mapMouseButton(e.Get("button").Int()),
-			Modifiers:   mapModifiers(e),
-		}
+		*evt = mouseButtonEvent(gui.EventMouseDown, args[0])
 		w.EventFn(evt)
 		return nil
 	})
 
 	reg(canvas, "mouseup", func(_ js.Value, args []js.Value) any {
-		e := args[0]
-		*evt = gui.Event{
-			Type:        gui.EventMouseUp,
-			MouseX:      float32(e.Get("offsetX").Float()),
-			MouseY:      float32(e.Get("offsetY").Float()),
-			MouseButton: mapMouseButton(e.Get("button").Int()),
-			Modifiers:   mapModifiers(e),
-		}
+		*evt = mouseButtonEvent(gui.EventMouseUp, args[0])
 		w.EventFn(evt)
 		return nil
 	})
@@ -73,10 +59,10 @@ func (b *Backend) registerEvents(w *gui.Window) {
 		e := args[0]
 		*evt = gui.Event{
 			Type:      gui.EventMouseMove,
-			MouseX:    float32(e.Get("offsetX").Float()),
-			MouseY:    float32(e.Get("offsetY").Float()),
-			MouseDX:   float32(e.Get("movementX").Float()),
-			MouseDY:   float32(e.Get("movementY").Float()),
+			MouseX:    float32(jsFloat(e.Get("offsetX"))),
+			MouseY:    float32(jsFloat(e.Get("offsetY"))),
+			MouseDX:   float32(jsFloat(e.Get("movementX"))),
+			MouseDY:   float32(jsFloat(e.Get("movementY"))),
 			Modifiers: mapModifiers(e),
 		}
 		w.EventFn(evt)
@@ -86,9 +72,9 @@ func (b *Backend) registerEvents(w *gui.Window) {
 	reg(canvas, "wheel", func(_ js.Value, args []js.Value) any {
 		e := args[0]
 		e.Call("preventDefault")
-		dx := e.Get("deltaX").Float()
-		dy := e.Get("deltaY").Float()
-		switch e.Get("deltaMode").Int() {
+		dx := jsFloat(e.Get("deltaX"))
+		dy := jsFloat(e.Get("deltaY"))
+		switch jsInt(e.Get("deltaMode")) {
 		case 0: // DOM_DELTA_PIXEL
 			dx /= wheelPixelDivisor
 			dy /= wheelPixelDivisor
@@ -103,8 +89,8 @@ func (b *Backend) registerEvents(w *gui.Window) {
 			Type:      gui.EventMouseScroll,
 			ScrollX:   -float32(dx),
 			ScrollY:   -float32(dy),
-			MouseX:    float32(e.Get("offsetX").Float()),
-			MouseY:    float32(e.Get("offsetY").Float()),
+			MouseX:    float32(jsFloat(e.Get("offsetX"))),
+			MouseY:    float32(jsFloat(e.Get("offsetY"))),
 			Modifiers: mapModifiers(e),
 		}
 		w.EventFn(evt)
@@ -300,8 +286,8 @@ func handleKeyDown(emit func(*gui.Event), evt *gui.Event, e js.Value) {
 		return
 	}
 
-	code := e.Get("code").String()
-	key := e.Get("key").String()
+	code := jsString(e.Get("code"))
+	key := jsString(e.Get("key"))
 	keyCode := jsInt(e.Get("keyCode"))
 	mods := mapModifiers(e)
 
@@ -317,7 +303,7 @@ func handleKeyDown(emit func(*gui.Event), evt *gui.Event, e js.Value) {
 		Type:      gui.EventKeyDown,
 		KeyCode:   kc,
 		Modifiers: mods,
-		KeyRepeat: e.Get("repeat").Bool(),
+		KeyRepeat: jsBool(e.Get("repeat")),
 	}
 	emit(evt)
 
@@ -327,8 +313,8 @@ func handleKeyDown(emit func(*gui.Event), evt *gui.Event, e js.Value) {
 	// by the compositionend listener. A keydown the input method
 	// owns (keyCode 229) types nothing here: Android Chrome ignores
 	// its preventDefault, so the beforeinput that follows types it.
-	if len(key) > 0 && !e.Get("ctrlKey").Bool() &&
-		!e.Get("metaKey").Bool() &&
+	if len(key) > 0 && !jsBool(e.Get("ctrlKey")) &&
+		!jsBool(e.Get("metaKey")) &&
 		!isIMEProcessKey(keyCode, key) {
 		r, sz := utf8.DecodeRuneInString(key)
 		if r != utf8.RuneError && sz == len(key) &&
@@ -356,8 +342,8 @@ func handleKeyDown(emit func(*gui.Event), evt *gui.Event, e js.Value) {
 func handleKeyUp(emit func(*gui.Event), evt *gui.Event, e js.Value) {
 	*evt = gui.Event{
 		Type: gui.EventKeyUp,
-		KeyCode: mapKeyCode(domKeyName(e.Get("code").String(),
-			e.Get("key").String(), jsInt(e.Get("keyCode")))),
+		KeyCode: mapKeyCode(domKeyName(jsString(e.Get("code")),
+			jsString(e.Get("key")), jsInt(e.Get("keyCode")))),
 		Modifiers: mapModifiers(e),
 	}
 	emit(evt)
@@ -493,6 +479,24 @@ func utf16RuneIndex(s string, n int) int32 {
 	return count
 }
 
+// mouseButtonEvent maps a DOM mousedown or mouseup to typ. A missing
+// button is MouseInvalid, not the 0 jsInt gives: 0 is the left button,
+// so a bare new Event("mousedown") would press the widget at (0,0).
+// The window drops a MouseInvalid press or release.
+func mouseButtonEvent(typ gui.EventType, e js.Value) gui.Event {
+	button := gui.MouseInvalid
+	if b := e.Get("button"); b.Type() == js.TypeNumber {
+		button = mapMouseButton(b.Int())
+	}
+	return gui.Event{
+		Type:        typ,
+		MouseX:      float32(jsFloat(e.Get("offsetX"))),
+		MouseY:      float32(jsFloat(e.Get("offsetY"))),
+		MouseButton: button,
+		Modifiers:   mapModifiers(e),
+	}
+}
+
 func mapMouseButton(b int) gui.MouseButton {
 	switch b {
 	case 0:
@@ -508,16 +512,16 @@ func mapMouseButton(b int) gui.MouseButton {
 
 func mapModifiers(e js.Value) gui.Modifier {
 	var m gui.Modifier
-	if e.Get("shiftKey").Bool() {
+	if jsBool(e.Get("shiftKey")) {
 		m |= gui.ModShift
 	}
-	if e.Get("ctrlKey").Bool() {
+	if jsBool(e.Get("ctrlKey")) {
 		m |= gui.ModCtrl
 	}
-	if e.Get("altKey").Bool() {
+	if jsBool(e.Get("altKey")) {
 		m |= gui.ModAlt
 	}
-	if e.Get("metaKey").Bool() {
+	if jsBool(e.Get("metaKey")) {
 		m |= gui.ModSuper
 	}
 	// JS MouseEvent.buttons bitmask: 1=LMB, 2=RMB, 4=MMB.
@@ -738,32 +742,37 @@ func mapTouchEvent(
 	// event, so it must not allocate on the heap. The arrays live
 	// on the stack and touchEventFromLists copies them out.
 	var allPts, changedPts [8]gui.TouchPoint
-	all := e.Get("touches")
-	changed := e.Get("changedTouches")
-	an := min(all.Length(), len(allPts))
-	for i := range an {
-		t := all.Index(i)
-		allPts[i] = gui.TouchPoint{
-			Identifier: uint64(t.Get("identifier").Int()),
-			PosX:       float32(t.Get("clientX").Float() - left),
-			PosY:       float32(t.Get("clientY").Float() - top),
-			ToolType:   gui.TouchToolFinger,
-		}
-	}
-	cn := min(changed.Length(), len(changedPts))
-	for i := range cn {
-		t := changed.Index(i)
-		changedPts[i] = gui.TouchPoint{
-			Identifier: uint64(t.Get("identifier").Int()),
-			PosX:       float32(t.Get("clientX").Float() - left),
-			PosY:       float32(t.Get("clientY").Float() - top),
-			ToolType:   gui.TouchToolFinger,
-		}
-	}
+	an := readTouchList(e.Get("touches"), left, top, &allPts)
+	cn := readTouchList(e.Get("changedTouches"), left, top, &changedPts)
 	// Which list the event carries is decided in one place,
 	// touchEventFromLists: Ended and Cancelled carry the lifted
 	// fingers (changed), the rest carry the fingers still down.
 	*evt = touchEventFromLists(typ, allPts[:an], changedPts[:cn])
+}
+
+// readTouchList copies the touches of a DOM TouchList into pts and
+// returns how many it copied. An entry that is not an object is
+// skipped: a list a script builds can hold a hole or a null, and
+// Value.Get on it panics.
+func readTouchList(list js.Value, left, top float64, pts *[8]gui.TouchPoint) int {
+	n := 0
+	for i := range jsLength(list) {
+		if n == len(pts) {
+			break
+		}
+		t := list.Index(i)
+		if t.Type() != js.TypeObject {
+			continue
+		}
+		pts[n] = gui.TouchPoint{
+			Identifier: uint64(jsInt(t.Get("identifier"))),
+			PosX:       float32(jsFloat(t.Get("clientX")) - left),
+			PosY:       float32(jsFloat(t.Get("clientY")) - top),
+			ToolType:   gui.TouchToolFinger,
+		}
+		n++
+	}
+	return n
 }
 
 // visualViewportInset returns the height hidden below the visual

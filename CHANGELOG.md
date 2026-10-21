@@ -52,6 +52,16 @@ and this project adheres to
   press until it knows the touch is a tap. A press that leaves the field, or
   that focuses a widget the next frame builds, is still settled in the frame.
   Other platforms get the same calls one frame sooner.
+- **Web: a saved password no longer stops the app (#1128).** Picking a saved
+  password from Chrome's autofill froze the page: no tap, scroll or key reached
+  the app again. Autofill sends plain `keydown` and `keyup` events that carry
+  none of the keyboard fields, and the backend read them with `js.Value.Bool`,
+  which panics on a missing value. The panic stopped the Go program. Every event
+  listener now reads a missing field as its zero value: key, mouse, wheel and
+  touch events and the dark-mode `change` event, so an event that a page script
+  or an extension builds with `new Event()` cannot stop the app either. A mouse
+  press or release with no button is dropped, not read as a left click at the
+  top-left corner, and a touch list entry that is not a touch is skipped.
 
 - **macOS: Apple Events reach a running app (#1106).** The event loop polled
   with a fixed list of event types. AppKit dispatches Apple Events only when the

@@ -703,11 +703,7 @@ func (n *nativePlatform) SetSystemAppearanceCallback(cb func(gui.Appearance)) {
 		return
 	}
 	listener := js.FuncOf(func(_ js.Value, args []js.Value) any {
-		a := gui.AppearanceLight
-		if len(args) > 0 && args[0].Get("matches").Bool() {
-			a = gui.AppearanceDark
-		}
-		cb(a)
+		cb(appearanceFromEvent(args))
 		return nil
 	})
 	mq.Call("addEventListener", "change", listener)
