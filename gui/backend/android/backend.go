@@ -101,8 +101,11 @@ var settingsStore settingsdir.Store
 // is called, LoadSettings and SaveSettings return an error.
 func SetFilesDir(dir string) { settingsStore.SetDir(dir) }
 
-// Start initializes the backend. If already initialized,
-// handles resize (idempotent for onSurfaceChanged).
+// Start initializes the backend. If already initialized, it resizes
+// (idempotent for onSurfaceChanged). A host calls Start from every
+// onSurfaceChanged, so a rotation or a split-screen change arrives here,
+// not at Resize: the window must hear the new size too, or it keeps
+// laying out at the size it started with.
 func Start(w, h int, scale float32) {
 	if androidWindow == nil {
 		androidWindow = gui.NewWindow(gui.WindowCfg{})
@@ -110,7 +113,7 @@ func Start(w, h int, scale float32) {
 	if androidBackend == nil {
 		initBackend(int32(w), int32(h), scale)
 	} else {
-		androidBackend.handleResize(int32(w), int32(h), scale)
+		Resize(w, h, scale)
 	}
 }
 
