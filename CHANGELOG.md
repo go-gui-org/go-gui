@@ -10,6 +10,26 @@ and this project adheres to
 
 ### Fixed
 
+- **Android: temp files land in the app's own directory, so icons and other
+  temp-file assets load (#1140).** Go's `os.TempDir()` fell back to
+  `/data/local/tmp`, which an app cannot write: a Go shared library reads its
+  environment once when it loads and never sees the `TMPDIR` Android sets later
+  through libc (from Android 13), and before Android 13 Android sets none. The
+  icon font failed to load, so every icon showed as a box, and anything else
+  written with `os.CreateTemp` failed too: app fonts added as bytes, the diagram
+  cache, PDF printing, the showcase's images. `TMPDIR` is now the app's cache
+  directory on every Android version: the backend takes it from libc where
+  Android set it, and below Android 13 uses the directory the host passes from
+  `Context.getCacheDir()` to `SetCacheDir`. Android trims that directory when
+  storage runs low, so the remote image cache persists across launches, and all
+  processes of one app share it. A host calls
+  `android.SetCacheDir(cacheDir.absolutePath)` before `Start`, as
+  `examples/android_demo` now does; without it, temp files still fail below
+  Android 13. Android fonts loaded from bytes use stable cache files rather than
+  leaking new temporary files on every launch. The remote image cache now
+  resolves its directory on first use instead of at package init, so it follows
+  the same `TMPDIR`.
+
 - **Touch: a long press, then a drag, reorders a list on a scrolling page
   (#1134).** Since #1116, a touch on a reorderable `ListBox` or `Tree` row on a
   page that scrolls vertically waited to see a tap or a scroll, and a vertical
