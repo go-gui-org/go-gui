@@ -705,7 +705,10 @@ func gestureLongPressFired(_ *Animate, w *Window) {
 // took is a drag the finger drives (longPressDragMove), and one held
 // before the finger landed is another drag's, which a pan must not
 // release. The long press is cancelled, not ended: it did not complete.
-// Its press, sent when it fired, is released at the touch point.
+// Its press, sent when it fired, is released where the finger is now,
+// not where it pressed: the finger left that widget to scroll, and a
+// release on it would read as a lift there. The second-finger takeover
+// and the touch cancel release at the current point too.
 func longPressYield(gs *gestureState, layout *Layout, w *Window, x, y float32) {
 	if !gs.recognized || gs.gestureType != GestureLongPress ||
 		gs.longPressTaken || w.mouseIsLocked() {
@@ -719,7 +722,7 @@ func longPressYield(gs *gestureState, layout *Layout, w *Window, x, y float32) {
 	emitGesture(gs, GestureLongPress, gesturePhaseCancelled,
 		gs.startX, gs.startY, layout, w)
 	if gs.mouseEmitted {
-		touchMouseAbort(gs, layout, w, gs.startX, gs.startY)
+		touchMouseAbort(gs, layout, w, x, y)
 		gs.mouseEmitted = false
 	}
 	gs.recognized = false

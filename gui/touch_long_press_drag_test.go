@@ -2,6 +2,7 @@ package gui
 
 import (
 	"fmt"
+	"math"
 	"slices"
 	"testing"
 )
@@ -426,5 +427,122 @@ func TestTouchAbortReleasesSplitterHandle(t *testing.T) {
 					handle.Shape.Color, defaultSplitterStyle.ColorsHandle.Base)
 			}
 		})
+	}
+}
+
+// A long press that lets the finger go to a pan releases its press where
+// the finger is, not where it pressed: the finger left that widget to
+// scroll, and a release there reads as a lift on it. The second-finger
+// takeover and the touch cancel release at the current point as well.
+func TestTouchLongPressYieldReleasesAtFinger(t *testing.T) {
+	var ups []string
+	w := NewWindow(WindowCfg{State: new(int), Width: 300, Height: 400})
+	w.viewGenerator = func(*Window) View {
+		rows := make([]View, 0, 40)
+		for i := range 40 {
+			id := fmt.Sprintf("r%d", i)
+			rows = append(rows, Row(ContainerCfg{
+				ID: id, Sizing: FillFixed, Height: 30,
+				OnMouseUp: func(ctx EventCtx) {
+					ups = append(ups, id)
+					ctx.Consume()
+				},
+			}))
+		}
+		return Column(ContainerCfg{
+			ID: "list", Scrollable: true, Sizing: FillFill, Content: rows,
+		})
+	}
+	w.markLayoutRefresh(refreshTest)
+	w.FrameFn()
+	x, y := rowCenter(t, w, "r5")
+	_, toY := rowCenter(t, w, "r2")
+	touchAt(w, EventTouchesBegan, 0, x, y)
+	w.viewState.gesture.nowFn = fixedClock(600_000_000)
+	gestureLongPressFired(nil, w)
+	// One move to r2: the yield runs on it, before the pan scrolls the
+	// list, so the finger is over r2 when the press is released.
+	touchAt(w, EventTouchesMoved, 616_000_000, x, toY)
+	if !slices.Equal(ups, []string{"r2"}) {
+		t.Fatalf("mouse-ups = %v, want [r2]: the release goes where the finger is", ups)
+	}
+	touchAt(w, EventTouchesEnded, 800_000_000, x, toY)
+	if len(ups) != 1 {
+		t.Fatalf("mouse-ups = %v, want one: the lift must not release again", ups)
+	}
+}
+
+// A non-finite move after a long press neither yields the long press nor
+// starts a pan: updateTrackedTouch drops the point before longPressYield
+// reads it. Without that filter the yield test (NaN <= d is false) would
+// cancel the long press while the pan test (NaN > d is false) started no
+// pan, and the touch would end as neither. The lift ends the long press.
+func TestTouchLongPressNonFiniteMoveKeepsLongPress(t *testing.T) {
+	var phases []GesturePhase
+	w := longPressGestureWindow(t, false, &phases)
+	x, y := rowCenter(t, w, "b3")
+	touchAt(w, EventTouchesBegan, 0, x, y)
+	w.viewState.gesture.nowFn = fixedClock(600_000_000)
+	gestureLongPressFired(nil, w)
+	nan := float32(math.NaN())
+	touchAt(w, EventTouchesMoved, 616_000_000, nan, nan)
+	touchAt(w, EventTouchesEnded, 800_000_000, x, y)
+	want := []GesturePhase{GesturePhaseBegan, GesturePhaseEnded}
+	if !slices.Equal(phases, want) {
+		t.Fatalf("long-press phases = %v, want %v", phases, want)
+	}
+}
+
+// On a page that does not scroll the press goes out at touch-down. A
+// long press there that then drags still lets the finger go: the yield
+// releases the press once, the drag starts a pan, and the lift sends no
+// second release.
+func TestTouchLongPressYieldWithoutScrollable(t *testing.T) {
+	var ups int
+	var pans []GesturePhase
+	w := NewWindow(WindowCfg{State: new(int), Width: 300, Height: 400})
+	w.viewGenerator = func(*Window) View {
+		rows := make([]View, 0, 5)
+		for i := range 5 {
+			rows = append(rows, Row(ContainerCfg{
+				ID: fmt.Sprintf("r%d", i), Sizing: FillFixed, Height: 30,
+				OnMouseUp: func(ctx EventCtx) {
+					ups++
+					ctx.Consume()
+				},
+			}))
+		}
+		return Column(ContainerCfg{
+			ID: "page", Sizing: FillFill, Content: rows,
+			OnGesture: func(ctx EventCtx) {
+				if ctx.Event.GestureType == GesturePan {
+					pans = append(pans, ctx.Event.GesturePhase)
+				}
+			},
+		})
+	}
+	w.markLayoutRefresh(refreshTest)
+	w.FrameFn()
+	x, y := rowCenter(t, w, "r3")
+	touchAt(w, EventTouchesBegan, 0, x, y)
+	if !w.viewState.gesture.mouseEmitted {
+		t.Fatal("press held back on a page that does not scroll")
+	}
+	w.viewState.gesture.nowFn = fixedClock(600_000_000)
+	gestureLongPressFired(nil, w)
+	// Onto r1's center, not a fixed distance: the column's spacing puts
+	// gaps between rows, and a release in a gap reaches no row.
+	_, toY := rowCenter(t, w, "r1")
+	touchAt(w, EventTouchesMoved, 616_000_000, x, toY)
+	if w.viewState.mouseButtonsHeld != 0 {
+		t.Fatal("press still held after the long press let the finger go")
+	}
+	touchAt(w, EventTouchesMoved, 632_000_000, x, toY-10)
+	touchAt(w, EventTouchesEnded, 800_000_000, x, toY-10)
+	if ups != 1 {
+		t.Fatalf("mouse-ups = %d, want 1", ups)
+	}
+	if len(pans) == 0 || pans[0] != GesturePhaseBegan {
+		t.Fatalf("pan phases = %v, want a pan that began", pans)
 	}
 }
