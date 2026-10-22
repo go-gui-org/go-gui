@@ -54,7 +54,9 @@ func demoGesture(w *gui.Window) gui.View {
 				},
 				OnGesture: func(ctx gui.EventCtx) {
 					a := appState(ctx.Window)
-					gestureOnGesture(a, ctx.Event)
+					if gestureOnGesture(a, ctx.Event) {
+						ctx.Consume()
+					}
 				},
 				// Desktop stand-in for a pan: a two-finger trackpad drag
 				// arrives as scroll, not as a gesture. Consume it so the
@@ -83,7 +85,12 @@ func gestureOnScroll(app *ShowcaseApp, e *gui.Event) {
 	app.GesturePadVersion++
 }
 
-func gestureOnGesture(app *ShowcaseApp, e *gui.Event) {
+// gestureOnGesture applies e to the pad and reports whether the pad
+// takes it. A long press is taken: an untaken long press lets the finger
+// go once it drags past the pan distance (the long press is cancelled and
+// a pan starts), and the pad wants the finger held for as long as it
+// marks the press.
+func gestureOnGesture(app *ShowcaseApp, e *gui.Event) (taken bool) {
 	switch e.GestureType {
 	case gui.GestureTap:
 		app.GesturePadMarkers = append(app.GesturePadMarkers,
@@ -100,6 +107,12 @@ func gestureOnGesture(app *ShowcaseApp, e *gui.Event) {
 		app.GesturePadLabel = "Double tap — reset"
 
 	case gui.GestureLongPress:
+		taken = true
+		// Ended and Cancelled carry the press point again: one marker
+		// per long press, from its Began.
+		if e.GesturePhase != gui.GesturePhaseBegan {
+			return taken
+		}
 		app.GesturePadMarkers = append(app.GesturePadMarkers,
 			GestureMarker{
 				X: e.CentroidX, Y: e.CentroidY,
@@ -140,6 +153,7 @@ func gestureOnGesture(app *ShowcaseApp, e *gui.Event) {
 		app.GesturePadLabel = fmt.Sprintf("Rotate  %.1f\u00b0", deg)
 	}
 	app.GesturePadVersion++
+	return taken
 }
 
 func gestureOnDraw(app *ShowcaseApp) func(*gui.DrawContext) {

@@ -101,7 +101,11 @@ type gestureState struct {
 	// must not cancel it (touchMouseAbort), and the finger's moves
 	// after a long press do not drive it (longPressDragMove).
 	foreignLock bool
-	recognized  bool
+	// longPressTaken reports an OnGesture handler consumed the long
+	// press: it keeps the finger, and a move past the pan distance
+	// does not end it (longPressYield).
+	longPressTaken bool
+	recognized     bool
 	// pinchBegan mirrors rotateBegan: pinch and rotate are
 	// independent sub-states of one multi-touch, tracked
 	// separately so both get their Began and Ended.
@@ -244,6 +248,7 @@ func handleTouchMoved(
 	if gs.numTouches == 1 {
 		t := gs.touches[0]
 		gs.panSampleAdd(gs.now(), t.x, t.y)
+		longPressYield(gs, layout, w, t.x, t.y)
 		if !gs.recognized {
 			dx := t.x - gs.startX
 			dy := t.y - gs.startY
@@ -254,8 +259,19 @@ func handleTouchMoved(
 				gs.recognized = true
 				gs.gestureType = GesturePan
 				gs.prevTime = gs.now()
-				gs.prevX = gs.startX
-				gs.prevY = gs.startY
+				// The pan starts where the finger crossed the
+				// threshold, not at the press: its first step drops
+				// the threshold distance, so a slow drag does not
+				// jump the content by it (#1117), as on Android and
+				// as DragScroll already did. A fuzzed travel that
+				// overflows starts at the press.
+				d := float32(math.Sqrt(float64(dist)))
+				gs.prevX = gs.startX + dx/d*gesturePanDist
+				gs.prevY = gs.startY + dy/d*gesturePanDist
+				if !f32IsFinite(gs.prevX) || !f32IsFinite(gs.prevY) {
+					gs.prevX = gs.startX
+					gs.prevY = gs.startY
+				}
 				gs.panVertical = f32Abs(dy) >= f32Abs(dx)
 				touchPressOnPan(gs, layout, w, dx, dy)
 				emitGesture(gs, GesturePan, gesturePhaseBegan,
@@ -678,6 +694,39 @@ func gestureLongPressFired(_ *Animate, w *Window) {
 	gst.gestureType = GestureLongPress
 	emitGesture(gst, GestureLongPress, gesturePhaseBegan,
 		gst.longPressSX, gst.longPressSY, dialogRoute(w), w)
+	gst.longPressTaken = w.scratch.gestureEvent.IsHandled
+}
+
+// longPressYield ends a long press that holds nothing once the finger
+// moves past the pan distance, so the move starts a pan (#1117). A
+// finger that rested before it dragged otherwise scrolled nothing until
+// the lift. A long press an OnGesture handler consumed keeps the finger,
+// and so does one while the mouse is locked: a lock this touch's press
+// took is a drag the finger drives (longPressDragMove), and one held
+// before the finger landed is another drag's, which a pan must not
+// release. The long press is cancelled, not ended: it did not complete.
+// Its press, sent when it fired, is released where the finger is now,
+// not where it pressed: the finger left that widget to scroll, and a
+// release on it would read as a lift there. The second-finger takeover
+// and the touch cancel release at the current point too.
+func longPressYield(gs *gestureState, layout *Layout, w *Window, x, y float32) {
+	if !gs.recognized || gs.gestureType != GestureLongPress ||
+		gs.longPressTaken || w.mouseIsLocked() {
+		return
+	}
+	dx := x - gs.startX
+	dy := y - gs.startY
+	if dx*dx+dy*dy <= gesturePanDist*gesturePanDist {
+		return
+	}
+	emitGesture(gs, GestureLongPress, gesturePhaseCancelled,
+		gs.startX, gs.startY, layout, w)
+	if gs.mouseEmitted {
+		touchMouseAbort(gs, layout, w, x, y)
+		gs.mouseEmitted = false
+	}
+	gs.recognized = false
+	gs.gestureType = gestureNone
 }
 
 func cancelLongPress(w *Window) {

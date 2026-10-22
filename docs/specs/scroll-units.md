@@ -33,9 +33,13 @@ used it.
   distance through `scrollVerticalPixels` / `scrollHorizontalPixels`, the
   multiplier-free core that `scrollVertical` / `scrollHorizontal` now wrap.
   `DragScroll` containers (`drag-scroll.md`) already moved 1:1.
-- The first move after the pan threshold (10 px) catches up the distance to it,
-  so the content sits under the finger. Android drops that distance instead; the
-  gesture's own deltas are unchanged, so `OnGesture` handlers see what they did.
+- The pan starts where the finger crossed the threshold (10 px), not at the
+  press: the threshold distance is dropped, so the content stays that far behind
+  the finger, as on Android and in `DragScroll`. Until #1117 the first move
+  after the threshold caught up the distance, so the content sat under the
+  finger, but a slow drag (one that rested past the long press, which now pans)
+  saw the content jump 10 px. The drop is in the gesture's own deltas
+  (`GestureDX/DY`), so `OnGesture` handlers and the scroll fallback move alike.
 
 **Momentum.** A pan that lifts while the finger is still moving (last move
 within `gestureSwipeStale`) flings the container it last scrolled, on each axis
@@ -44,7 +48,7 @@ it moved (`gui/scroll_momentum.go`):
 - The release velocity `v` is the finger's displacement over its last 100 ms of
   positions (`panReleaseVelocity`), like Android's velocity tracker. It is not
   the pan's smoothed velocity (`Event.VelocityX/Y`, unchanged): that one starts
-  at 0 and lags, so a short flick read about half its speed, and it counts the
+  at 0 and lags, so a short flick read about half its speed, and it counted the
   threshold catch-up as one frame, so a slow crawl past the threshold read as
   fast.
 - The glide is an exponential decay of `v` with time constant 0.4 s: it starts
@@ -81,6 +85,13 @@ it moved (`gui/scroll_momentum.go`):
   source must remember it.
 - **Only the touch pan bypasses the multiplier, Wayland left alone.** Fixes
   phones and leaves Linux touchpads at 20x.
+- **Easing the threshold catch-up over a few frames (#1117).** The content would
+  still lurch, more softly, and a fling or lift during the catch-up needs its
+  own rules. Dropping the distance is how Android and `DragScroll` already
+  start.
+- **Dropping the threshold only for the scroll, not for `GestureDX/DY`.** An
+  `OnGesture` pan (the showcase gesture pad) would still jump, and the drop
+  would need state passed from the recognizer into the scroll fallback.
 - **A spring or physics fling (Android `OverScroller`).** More code for a glide
   the exponential decay already gives, and a second animation beside the
   smoother.

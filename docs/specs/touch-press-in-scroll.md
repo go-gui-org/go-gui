@@ -32,7 +32,12 @@ back until the finger shows a tap or a scroll (`gui/touch_press.go`):
    the touch point, then the moves. A horizontal slider in a vertical list still
    drags.
 4. A long press (500 ms) sends the press before the long-press gesture, as a
-   press at touch-down always came first.
+   press at touch-down always came first. A finger that then drags past the pan
+   distance lets the long press go (#1117): the long press gets
+   `GesturePhaseCancelled`, its press is released where the finger is, and the
+   move starts a pan. The long press keeps the finger when its press took the
+   mouse lock (a reorder drag, a slider, a text selection) or when an
+   `OnGesture` handler consumed its `Began` (`longPressYield`).
 5. A second finger drops it: a pinch is not a click.
 6. A tap that lands on content still gliding from a fling only stops the fling,
    as on iOS and Android: the press is dropped, and the row under the finger is
@@ -89,6 +94,20 @@ The scrollbar works for touch:
   cancelled when the finger scrolls. Here the press is the click: a finger that
   rests and then scrolls would pick the row again.
 
+- **End a long press that lets the finger go with `GesturePhaseEnded` (#1117).**
+  `Ended` says the long press completed, and a handler that acts on it would act
+  on a touch that became a scroll. `Cancelled` is what a second finger and a
+  touch cancel already send.
+- **Any `OnGesture` handler on the route keeps the finger (#1117).** It needs no
+  app change, but every app with a gesture handler keeps the frozen scroll, and
+  a passive handler (a logger, a marker) would block scrolling. It also adds a
+  second meaning of "handled" beside `ctx.Consume()`, which is the rule for
+  every other event.
+- **Release the long press's press at the press point (#1117).** The finger left
+  that widget to scroll, and its `OnMouseUp` would read the release as a lift on
+  it. The second-finger takeover and the touch cancel release at the current
+  point.
+
 ## Not covered
 
 - A quick tap shows no pressed color: the press and the release arrive together
@@ -96,11 +115,6 @@ The scrollbar works for touch:
 - A tap clicks at the lift, typically 50–100 ms later than at touch-down.
 - A vertical slider in a vertical list pans the list; it drags after a long
   press.
-- A finger that rests 500 ms before it moves becomes a long press, and a long
-  press never turns into a pan, so that touch scrolls nothing until the lift.
-  Its moves reach a mouse lock that this touch's press took, such as a reorder
-  drag or a slider (#1134); with no such lock they go nowhere. This predates the
-  held press and is left to its own issue (#1117).
 - A vertical pan over a child that scrolls only horizontally (a wide Markdown
   table) barely scrolls the page: the pan fallback stops at the first scrollable
   that moves on either axis, and the child takes the finger's sideways drift.
