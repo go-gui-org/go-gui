@@ -205,9 +205,12 @@ const strokeJoinInherit = gui.SvgStrokeJoin(3)
 
 // presAttrCascadeNames lists the SVG presentation attributes that
 // participate as cascade declarations (paint, stroke, opacity,
-// fill-rule, font, text-anchor). transform / clip-path / filter are
-// handled outside the decl loop because they compose or carry url()
-// references rather than being last-write-wins values.
+// fill-rule, font, text-anchor). Geometry (cx, cy, r, rx, ry, x, y,
+// width, height, x1, y1, x2, y2) doubles as CSS properties per SVG2,
+// so it cascades too — author rules and inline style override the
+// attributes. transform / clip-path / filter are handled outside
+// the decl loop because they compose or carry url() references
+// rather than being last-write-wins values.
 var presAttrCascadeNames = []string{
 	"fill", "stroke",
 	"stroke-width", "stroke-linecap", "stroke-linejoin",
@@ -219,6 +222,9 @@ var presAttrCascadeNames = []string{
 	"transform-origin",
 	"display", "visibility",
 	"clip-path", "filter",
+	"cx", "cy", "r", "rx", "ry",
+	"x", "y", "width", "height",
+	"x1", "y1", "x2", "y2",
 }
 
 // isSentinelColor reports whether c is a colorInherit/colorCurrent

@@ -18,7 +18,7 @@ func parsePathWithStyle(elem string, inherited computedStyle) (vectorPath, bool)
 }
 
 func parseRectWithStyle(elem string, inherited computedStyle) (vectorPath, bool) {
-	path, ok := parseRectElement(elem)
+	path, ok := parseRectElementResolved(elem, inherited)
 	if !ok {
 		return vectorPath{}, false
 	}
@@ -28,7 +28,7 @@ func parseRectWithStyle(elem string, inherited computedStyle) (vectorPath, bool)
 }
 
 func parseCircleWithStyle(elem string, inherited computedStyle) (vectorPath, bool) {
-	path, ok := parseCircleElement(elem)
+	path, ok := parseCircleElementResolved(elem, inherited)
 	if !ok {
 		return vectorPath{}, false
 	}
@@ -38,7 +38,7 @@ func parseCircleWithStyle(elem string, inherited computedStyle) (vectorPath, boo
 }
 
 func parseEllipseWithStyle(elem string, inherited computedStyle) (vectorPath, bool) {
-	path, ok := parseEllipseElement(elem)
+	path, ok := parseEllipseElementResolved(elem, inherited)
 	if !ok {
 		return vectorPath{}, false
 	}
@@ -58,13 +58,38 @@ func parsePolygonWithStyle(elem string, inherited computedStyle, closed bool) (v
 }
 
 func parseLineWithStyle(elem string, inherited computedStyle) (vectorPath, bool) {
-	path, ok := parseLineElement(elem)
+	path, ok := parseLineElementResolved(elem, inherited)
 	if !ok {
 		return vectorPath{}, false
 	}
 	path.fillRule = resolveFillRule(elem, inherited)
 	applyComputedStyle(&path, inherited)
 	return path, true
+}
+
+// geomFloat returns the effective value of an optional geometry
+// property: the cascade-resolved CSS value when the cascade wrote
+// the property, else the presentation attribute (or fallback).
+func geomFloat(set bool, v float32, elem, name string, fallback float32) float32 {
+	if set {
+		return v
+	}
+	return attrFloat(elem, name, fallback)
+}
+
+// geomRequired returns the effective value of a required geometry
+// property (r, width, height): the cascade-resolved CSS value when
+// set, else the presentation attribute. ok is false when neither
+// provides one, which disables rendering.
+func geomRequired(set bool, v float32, elem, name string) (float32, bool) {
+	if set {
+		return v, true
+	}
+	s, ok := findAttr(elem, name)
+	if !ok {
+		return 0, false
+	}
+	return parseF32(s), true
 }
 
 // parsePathElement parses a <path> element.
@@ -194,6 +219,35 @@ func parseRectElement(elem string) (vectorPath, bool) {
 	// both zero draws square corners.
 	rx = max(rx, 0)
 	ry = max(ry, 0)
+	return rectPath(elem, x, y, rw, rh, rx, ry), true
+}
+
+// parseRectElementResolved converts <rect> to path using
+// cascade-resolved geometry: author CSS rules and inline style (with
+// var()/calc() already substituted) override the presentation
+// attributes per SVG2.
+func parseRectElementResolved(elem string, gs computedStyle) (vectorPath, bool) {
+	x := geomFloat(gs.geomXSet, gs.geomX, elem, "x", 0)
+	y := geomFloat(gs.geomYSet, gs.geomY, elem, "y", 0)
+	rw, wok := geomRequired(gs.geomWSet, gs.geomW, elem, "width")
+	rh, hok := geomRequired(gs.geomHSet, gs.geomH, elem, "height")
+	if !wok || !hok {
+		return vectorPath{}, false
+	}
+	// A negative size is an error that disables rendering. Zero is
+	// degenerate but preserved: the tessellator drops it when static
+	// and keeps it as an animated placeholder when an <animate>
+	// child drives the size (phase 8).
+	if rw < 0 || rh < 0 {
+		return vectorPath{}, false
+	}
+	rx := max(geomFloat(gs.geomRXSet, gs.geomRX, elem, "rx", 0), 0)
+	ry := max(geomFloat(gs.geomRYSet, gs.geomRY, elem, "ry", 0), 0)
+	return rectPath(elem, x, y, rw, rh, rx, ry), true
+}
+
+// rectPath builds the vectorPath for resolved rect geometry.
+func rectPath(elem string, x, y, rw, rh, rx, ry float32) vectorPath {
 	fill, _ := findAttrOrStyle(elem, "fill")
 	s := parseElementStyle(elem)
 	fillColor := svgFillColor(fill)
@@ -227,7 +281,7 @@ func parseRectElement(elem string) (vectorPath, bool) {
 	if gid, found := parseFillURL(fill); found {
 		vp.FillGradientID = gid
 	}
-	return vp, true
+	return vp
 }
 
 // parseCircleElement converts <circle> to path.
@@ -244,6 +298,30 @@ func parseCircleElement(elem string) (vectorPath, bool) {
 	if r < 0 {
 		return vectorPath{}, false
 	}
+	return circlePath(elem, cx, cy, r), true
+}
+
+// parseCircleElementResolved converts <circle> to path using
+// cascade-resolved geometry: author CSS rules and inline style (with
+// var()/calc() already substituted) override the presentation
+// attributes per SVG2.
+func parseCircleElementResolved(elem string, gs computedStyle) (vectorPath, bool) {
+	cx := geomFloat(gs.geomCXSet, gs.geomCX, elem, "cx", 0)
+	cy := geomFloat(gs.geomCYSet, gs.geomCY, elem, "cy", 0)
+	r, rok := geomRequired(gs.geomRSet, gs.geomR, elem, "r")
+	if !rok {
+		return vectorPath{}, false
+	}
+	// A negative radius is an error that disables rendering. Zero is
+	// degenerate but preserved for the animated placeholder path.
+	if r < 0 {
+		return vectorPath{}, false
+	}
+	return circlePath(elem, cx, cy, r), true
+}
+
+// circlePath builds the vectorPath for resolved circle geometry.
+func circlePath(elem string, cx, cy, r float32) vectorPath {
 	fill, _ := findAttrOrStyle(elem, "fill")
 	s := parseElementStyle(elem)
 	vp := ellipseToPath(cx, cy, r, r, fill, s)
@@ -254,7 +332,7 @@ func parseCircleElement(elem string) (vectorPath, bool) {
 		R:    r,
 	}
 	vp.bbox = bboxFromEllipse(cx, cy, r, r)
-	return vp, true
+	return vp
 }
 
 // parseEllipseElement converts <ellipse> to path.
@@ -276,6 +354,47 @@ func parseEllipseElement(elem string) (vectorPath, bool) {
 	if !ryok {
 		ry = rx
 	}
+	return ellipsePath(elem, cx, cy, rx, ry), true
+}
+
+// parseEllipseElementResolved converts <ellipse> to path using
+// cascade-resolved geometry: author CSS rules and inline style (with
+// var()/calc() already substituted) override the presentation
+// attributes per SVG2. A negative CSS radius reads as auto, matching
+// the presentation-attribute rule.
+func parseEllipseElementResolved(elem string, gs computedStyle) (vectorPath, bool) {
+	cx := geomFloat(gs.geomCXSet, gs.geomCX, elem, "cx", 0)
+	cy := geomFloat(gs.geomCYSet, gs.geomCY, elem, "cy", 0)
+	rx, rxok := attrRadius(elem, "rx")
+	if gs.geomRXSet {
+		if gs.geomRX < 0 {
+			rxok = false
+		} else {
+			rx, rxok = gs.geomRX, true
+		}
+	}
+	ry, ryok := attrRadius(elem, "ry")
+	if gs.geomRYSet {
+		if gs.geomRY < 0 {
+			ryok = false
+		} else {
+			ry, ryok = gs.geomRY, true
+		}
+	}
+	if !rxok && !ryok {
+		return vectorPath{}, false
+	}
+	if !rxok {
+		rx = ry
+	}
+	if !ryok {
+		ry = rx
+	}
+	return ellipsePath(elem, cx, cy, rx, ry), true
+}
+
+// ellipsePath builds the vectorPath for resolved ellipse geometry.
+func ellipsePath(elem string, cx, cy, rx, ry float32) vectorPath {
 	fill, _ := findAttrOrStyle(elem, "fill")
 	s := parseElementStyle(elem)
 	vp := ellipseToPath(cx, cy, rx, ry, fill, s)
@@ -287,7 +406,7 @@ func parseEllipseElement(elem string) (vectorPath, bool) {
 		RY:   ry,
 	}
 	vp.bbox = bboxFromEllipse(cx, cy, rx, ry)
-	return vp, true
+	return vp
 }
 
 func ellipseToPath(cx, cy, rx, ry float32, fill string, s elementStyle) vectorPath {
@@ -368,6 +487,28 @@ func parseLineElement(elem string) (vectorPath, bool) {
 		return vectorPath{}, false
 	}
 
+	return linePath(elem, x1, y1, x2, y2), true
+}
+
+// parseLineElementResolved converts <line> to path using
+// cascade-resolved geometry: author CSS rules and inline style (with
+// var()/calc() already substituted) override the presentation
+// attributes per SVG2.
+func parseLineElementResolved(elem string, gs computedStyle) (vectorPath, bool) {
+	x1 := geomFloat(gs.geomX1Set, gs.geomX1, elem, "x1", 0)
+	y1 := geomFloat(gs.geomY1Set, gs.geomY1, elem, "y1", 0)
+	x2 := geomFloat(gs.geomX2Set, gs.geomX2, elem, "x2", 0)
+	y2 := geomFloat(gs.geomY2Set, gs.geomY2, elem, "y2", 0)
+
+	if x1 == x2 && y1 == y2 {
+		return vectorPath{}, false
+	}
+
+	return linePath(elem, x1, y1, x2, y2), true
+}
+
+// linePath builds the vectorPath for resolved line geometry.
+func linePath(elem string, x1, y1, x2, y2 float32) vectorPath {
 	s := parseElementStyle(elem)
 	return vectorPath{
 		Segments:         segmentsForLine(x1, y1, x2, y2),
@@ -390,7 +531,7 @@ func parseLineElement(elem string) (vectorPath, bool) {
 			Y2:   y2,
 		},
 		bbox: bboxFromLine(x1, y1, x2, y2),
-	}, true
+	}
 }
 
 func attrFloat(elem, name string, fallback float32) float32 {

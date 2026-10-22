@@ -301,6 +301,23 @@ type computedStyle struct {
 	// suppresses paint; descendants can re-show via "visibility:
 	// visible" on themselves. (Phase F T2.)
 	visibility visibilityMode
+
+	// Geometry holds the SVG2 geometry properties (cx, cy, r, rx,
+	// ry, x, y, width, height, x1, y1, x2, y2), which double as CSS
+	// properties. Values here are the cascade winners after
+	// var()/calc() resolution in computeStyle. Not inherited: each
+	// element's cascade repopulates its own from its presentation
+	// attributes, matched author rules, and inline style. A set flag
+	// distinguishes "declared 0" from unset so shape parsers can
+	// fall back to the presentation attribute (legacy tolerant
+	// parsing) when the cascade wrote nothing.
+	geomCX, geomCY, geomR, geomRX, geomRY      float32
+	geomX, geomY, geomW, geomH                 float32
+	geomX1, geomY1, geomX2, geomY2             float32
+	geomCXSet, geomCYSet, geomRSet             bool
+	geomRXSet, geomRYSet                       bool
+	geomXSet, geomYSet, geomWSet, geomHSet     bool
+	geomX1Set, geomY1Set, geomX2Set, geomY2Set bool
 }
 
 // DisplayMode encodes the subset of CSS `display` values the SVG

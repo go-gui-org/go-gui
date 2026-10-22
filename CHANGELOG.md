@@ -59,6 +59,17 @@ and this project adheres to
 
 ### Fixed
 
+- **SVG: geometry from CSS (`r`, `cx`, `cy`, ...) renders, so the showcase
+  `var() + calc()` sample is no longer blank (#1145).** A circle whose radius
+  came only from a stylesheet (`.v { r: calc(var(--r) - 4); }`) parsed to zero
+  paths: the cascade dropped the unknown property and the shape parsers read
+  only the `r` attribute. The SVG2 geometry properties now ride the normal
+  cascade (presentation attribute < author rule < inline style, with
+  `var()`/`calc()` resolved), and the circle/rect/ellipse/line parsers use the
+  cascade winner. A bogus rule value is ignored instead of clobbering the
+  attribute, a negative `r` still disables rendering, and geometry never
+  inherits from the parent.
+
 - **Touch: a slow drag no longer jumps the content where it starts (#1117).** A
   pan is recognized after 10 px of travel, and its first move caught up those 10
   px in one step, so the content sat under the finger. A fast swipe hid it; a

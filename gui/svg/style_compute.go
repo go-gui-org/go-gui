@@ -91,6 +91,19 @@ func computeStyle(
 	// logic in parseSvgContent / appendShape filters elements whose
 	// own cascade resolves to display:none.
 	out.Display = displayInline
+	// Geometry properties are not inherited per SVG2; each element
+	// repopulates its own from the cascade fold below. Reset here
+	// so a parent's cx/r/width cannot leak into a child.
+	out.geomCX, out.geomCY, out.geomR = 0, 0, 0
+	out.geomRX, out.geomRY = 0, 0
+	out.geomX, out.geomY, out.geomW, out.geomH = 0, 0, 0, 0
+	out.geomX1, out.geomY1, out.geomX2, out.geomY2 = 0, 0, 0, 0
+	out.geomCXSet, out.geomCYSet, out.geomRSet = false, false, false
+	out.geomRXSet, out.geomRYSet = false, false
+	out.geomXSet, out.geomYSet = false, false
+	out.geomWSet, out.geomHSet = false, false
+	out.geomX1Set, out.geomY1Set = false, false
+	out.geomX2Set, out.geomY2Set = false, false
 
 	// clip-path / filter participate in the cascade so CSS rules and
 	// inline style="" can set them, not only the bare attribute. Seed
