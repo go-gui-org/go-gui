@@ -3,6 +3,7 @@
 package web
 
 import (
+	"math"
 	"syscall/js"
 	"testing"
 
@@ -16,14 +17,22 @@ import (
 func bareEvent() js.Value {
 	obj := js.Global().Get("Object")
 	target := obj.New()
-	target.Set("hasAttribute", js.FuncOf(func(_ js.Value, args []js.Value) any {
-		return args[0].String() == imeInputAttr
-	}))
+	target.Set("hasAttribute", bareHasAttribute)
 	e := obj.New()
 	e.Set("target", target)
-	e.Set("preventDefault", js.FuncOf(func(_ js.Value, _ []js.Value) any { return nil }))
+	e.Set("preventDefault", barePreventDefault)
 	return e
 }
+
+// The methods every bareEvent shares. Built once for the test binary
+// rather than once per call: a js.FuncOf holds a slot in the wasm
+// callback table until it is released, and these are never released.
+var (
+	bareHasAttribute = js.FuncOf(func(_ js.Value, args []js.Value) any {
+		return args[0].String() == imeInputAttr
+	})
+	barePreventDefault = js.FuncOf(func(_ js.Value, _ []js.Value) any { return nil })
+)
 
 // A listener reads a missing field as its zero value. A panic there
 // would stop the whole program and leave the page dead to input.
@@ -95,6 +104,55 @@ func TestAppearanceFromBareEvent(t *testing.T) {
 	e.Set("matches", true)
 	if got := appearanceFromEvent([]js.Value{e}); got != gui.AppearanceDark {
 		t.Fatalf("matches=true: %v, want AppearanceDark", got)
+	}
+}
+
+// A script can dispatch a mouse event whose offsetX is NaN or ±Inf
+// (Object.defineProperty). Such a value would reach hit tests and
+// scroll offsets; jsFloat reads it as 0 (#1131).
+func TestJSFloatNonFiniteIsZero(t *testing.T) {
+	inf := math.Inf(1)
+	// 1e300 is finite in float64 but becomes +Inf in the float32 cast
+	// to MouseX.
+	for _, v := range []float64{math.NaN(), inf, -inf, 1e300, -1e300} {
+		e := bareEvent()
+		e.Set("offsetX", v)
+		e.Set("button", 0)
+		if got := mouseButtonEvent(gui.EventMouseDown, e).MouseX; got != 0 {
+			t.Fatalf("offsetX %v mapped to MouseX %v, want 0", v, got)
+		}
+	}
+	if got := jsFloat(js.ValueOf(2.5)); got != 2.5 {
+		t.Fatalf("jsFloat(2.5) = %v, want 2.5", got)
+	}
+}
+
+// Value.Int is int(v.Float()): a NaN, ±Inf or huge keyCode, deltaMode
+// or identifier would arrive as a saturated int, not 0 (#1131).
+func TestJSIntNonFiniteIsZero(t *testing.T) {
+	inf := math.Inf(1)
+	for _, v := range []float64{math.NaN(), inf, -inf, 1e300} {
+		if got := jsInt(js.ValueOf(v)); got != 0 {
+			t.Fatalf("jsInt(%v) = %v, want 0", v, got)
+		}
+	}
+	if got := jsInt(js.ValueOf(13)); got != 13 {
+		t.Fatalf("jsInt(13) = %v, want 13", got)
+	}
+}
+
+// A script can give a fake touch list a huge length and no entries.
+// readTouchList skips holes without counting them, so it would scan
+// the whole length and hang the page (#1131). Wasm has one thread, so
+// a hang here shows as the go test timeout, not a t.Fatal.
+func TestTouchListHugeLengthReturns(t *testing.T) {
+	for _, n := range []float64{math.Inf(1), 1e9} {
+		list := js.Global().Get("Object").New()
+		list.Set("length", n)
+		var pts [8]gui.TouchPoint
+		if got := readTouchList(list, 0, 0, &pts); got != 0 {
+			t.Fatalf("length %v: read %d touches, want 0", n, got)
+		}
 	}
 }
 

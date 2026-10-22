@@ -30,6 +30,14 @@ and this project adheres to
   resolves its directory on first use instead of at package init, so it follows
   the same `TMPDIR`.
 
+- **Web: a NaN, infinite or out-of-range event field reads as 0, and a fake
+  touch list cannot hang the page (#1131).** A script can dispatch an event
+  whose `offsetX` or `deltaY` is NaN, ±Inf or too large for a `float32`. The web
+  backend passed the value on to `Event.MouseX` or `ScrollY`, and from there
+  into hit tests and scroll offsets. It now reads such a value as 0, as it
+  already did for a missing field. Integer fields (`keyCode`, `deltaMode`, a
+  touch `identifier`) do the same. A touch list that claims a huge `length` made
+  the backend scan it without end; it now looks at no more than 64 entries.
 - **Touch: a long press, then a drag, reorders a list on a scrolling page
   (#1134).** Since #1116, a touch on a reorderable `ListBox` or `Tree` row on a
   page that scrolls vertically waited to see a tap or a scroll, and a vertical

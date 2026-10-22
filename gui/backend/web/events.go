@@ -391,17 +391,6 @@ func dispatchText(emit func(*gui.Event), evt *gui.Event, text string) {
 	emit(evt)
 }
 
-// jsString reads a JS string property without coercion: a missing
-// value (null or undefined) yields "" rather than the literals
-// "null" or "undefined" that Value.String would produce, which would
-// otherwise arrive as a bogus one-word composition.
-func jsString(v js.Value) string {
-	if v.Type() != js.TypeString {
-		return ""
-	}
-	return v.String()
-}
-
 // maxIMETextRunes bounds a composition or commit string from the
 // browser, which arrives with no length promised. Mirrors
 // maxIMEPreeditRunes in gui/ime.go; a phrase is far past any real
@@ -585,15 +574,6 @@ func beforeInputData(e js.Value) string {
 	return ""
 }
 
-// jsInt reads a JS number as an int, or 0 when the value is missing or
-// not a number. Value.Int panics on a non-number.
-func jsInt(v js.Value) int {
-	if v.Type() != js.TypeNumber {
-		return 0
-	}
-	return v.Int()
-}
-
 // domKeyName returns the name a keydown or keyup maps from: its code,
 // or its key when the code is empty. A soft keyboard's edit keys
 // (Android Chrome through KEYCODE_DEL, iOS Safari) carry key
@@ -750,13 +730,19 @@ func mapTouchEvent(
 	*evt = touchEventFromLists(typ, allPts[:an], changedPts[:cn])
 }
 
+// maxTouchListScan bounds how many entries readTouchList looks at. A
+// real TouchList has one entry per finger; a list a script builds can
+// claim a length of 1e9 with no entries, and the holes, which do not
+// count toward pts, would make the scan hang the page (#1131).
+const maxTouchListScan = 64
+
 // readTouchList copies the touches of a DOM TouchList into pts and
 // returns how many it copied. An entry that is not an object is
 // skipped: a list a script builds can hold a hole or a null, and
 // Value.Get on it panics.
 func readTouchList(list js.Value, left, top float64, pts *[8]gui.TouchPoint) int {
 	n := 0
-	for i := range jsLength(list) {
+	for i := range min(jsLength(list), maxTouchListScan) {
 		if n == len(pts) {
 			break
 		}
