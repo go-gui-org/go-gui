@@ -1,7 +1,7 @@
 # Custom shader backgrounds: built-in inputs
 
-Issue #573. Status: **partially implemented** (Part A, the built-in inputs; Part
-B, the GLSL-to-Go translator `cmd/shaderport`, is open).
+Issue #573. Status: **implemented** (Part A, the built-in inputs; Part B, the
+GLSL-to-Go translator `cmd/shaderport`).
 
 ## Problem
 
@@ -128,16 +128,71 @@ state moves every shader on any click, and keying on tree position or on the
 | ---- | --------------------------------------------------------------- | ----------- |
 | —    | Shader-only container emits (#574); `ShaderHash` on both bodies | implemented |
 | A    | Built-in inputs on every GPU backend; `Shader.Animate`          | implemented |
-| B    | `cmd/shaderport`: Shadertoy GLSL to a `*gui.Shader`; guide      | open        |
+| B    | `cmd/shaderport`: Shadertoy GLSL to a `*gui.Shader`; guide      | implemented |
 
 Out of scope, each its own issue if wanted: `iMouse`, a `gui/shaders` library,
 and texture input (`iChannel0`).
 
+## Part B: `cmd/shaderport`
+
+### Program-scope declarations
+
 A body is the inside of one function, so it cannot declare helper functions,
-which most Shadertoy shaders do. Part B has to lift them out of the body; the
-built-ins are globals in GLSL partly so that lifted helpers can read them.
+which most Shadertoy shaders do. `Shader.GLSLDecls` and `Shader.MetalDecls` hold
+program-scope declarations. The wrappers put them before `main` / `fs_main`
+(`gui.BuildGLSLFragmentDecls`, `gui.BuildGLSLESFragmentDecls`,
+`msl.BuildCustomDecls`). In GLSL they come after the built-in globals, so a
+helper reads `iTime` directly. In MSL the built-ins are locals of `fs_main`, so
+the translator passes each one a helper reads as a parameter.
+
+shaderport moves `mainImage` itself into the decls. Each body is then one call,
+and an early `return` in `mainImage` works.
+
+| Design                                         | Exported surface | Fails how                                                |
+| ---------------------------------------------- | ---------------- | -------------------------------------------------------- |
+| **`GLSLDecls` / `MetalDecls` fields (picked)** | 2 fields, 3 fns  | Compile error on that backend, logged once and cached    |
+| Translator inlines every helper into the body  | none             | Out params, early returns and macros: wrong output       |
+| Full-program `Source` fields                   | 2 fields         | Bypasses the rounded-corner clip and the output contract |
+
+### The translator
+
+`internal/shaderport` is a token rewriter, not a compiler: it keeps layout,
+comments and macros, so the output reads as a reviewable diff. It needs no type
+checker. GLSL ES 3.00 has no implicit conversions, and probing the Metal
+compiler showed that MSL accepts GLSL's mixed vector and scalar calls
+(`mix(vec3, vec3, float)`, `max(vec3, float)`, matrix constructors from scalars)
+and non-trivial program-scope constants (`acos(-1.0)`). The rewrite table and
+the rejected constructs are in `docs/shader-porting.md`.
+
+The tests compile every fixture both ways: MSL through the Metal probe
+(`TestShaderportCompiles`), GLSL through `glslangValidator` as 3.30 and ES 3.00
+(`TestPortGLSLCompiles`). That caught one rule the probe of MSL alone missed:
+desktop GLSL 3.30 rejects a `\` line continuation, which ES 3.00 accepts, so the
+GLSL output joins continued `#define` lines.
+
+### The hash cache
+
+Backends key the compiled pipeline on `ShaderHash`, which walks every byte of
+all four strings, on every draw of every frame. A ported shader is several KB
+per language: 32 KB of source hashes in about 30 µs. `gui.ShaderHashCache`, one
+per backend window, memoizes the hash per `*Shader` and revalidates it by each
+string's data pointer and length. A hit costs about 4 ns and allocates nothing.
+Go strings are immutable and the entry holds the pointers, so equal pointer and
+length mean equal bytes.
 
 ## Rejected Approaches
+
+- **Inlining helpers into the body** (no new `Shader` fields). Out parameters,
+  early returns and macros make it a compiler pass, and its failure mode is
+  wrong output rather than an error.
+- **A full-program shader mode.** It lets an app drop the rounded-corner clip
+  and the output contract, for no gain over decls.
+- **Program-scope built-ins in MSL.** A program-scope MSL variable must be
+  `constant` and initialized at compile time; it cannot change per draw.
+- **Memoizing the hash in `Shader` fields.** One package-level shader drawn by
+  two windows on two goroutines races on the fields, and an `atomic.Pointer`
+  makes `Shader` uncopyable (vet copylocks). The cache lives in each backend
+  window.
 
 - **Runtime GLSL-to-MSL translation.** It moves a compile-time failure into the
   frame loop: a translator bug ships as a blank container on macOS while Linux

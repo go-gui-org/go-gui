@@ -216,10 +216,11 @@ func TestCustomShaderBackendsUploadBuiltins(t *testing.T) {
 func TestCustomWrappersAreShared(t *testing.T) {
 	t.Parallel()
 	checks := map[string]string{
-		"../../metal/draw.go":        "msl.BuildCustom(",
-		"../../ios/draw.go":          "msl.BuildCustom(",
-		"../../android/draw.go":      "gui.BuildGLSLESFragment(",
-		"../../web/custom_shader.go": "gui.BuildGLSLESFragment(",
+		"../../metal/draw.go":        "msl.BuildCustomDecls(",
+		"../../ios/draw.go":          "msl.BuildCustomDecls(",
+		"../../android/draw.go":      "gui.BuildGLSLESFragmentDecls(",
+		"../../web/custom_shader.go": "gui.BuildGLSLESFragmentDecls(",
+		"../../gl/pipeline.go":       "gui.BuildGLSLFragmentDecls(",
 	}
 	for path, want := range checks {
 		data, err := os.ReadFile(path)

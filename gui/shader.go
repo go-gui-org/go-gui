@@ -31,6 +31,16 @@ type Shader struct {
 	Metal  string    // MSL fragment body
 	GLSL   string    // GLSL fragment body. Keep syntax compatible with desktop GL 3.3 and WebGL2 GLSL ES 3.00.
 	Params []float32 // up to 16 custom floats
+	// MetalDecls and GLSLDecls hold program-scope declarations:
+	// helper functions, structs and constants that a body calls but
+	// cannot define, because a body runs inside main. Each is
+	// spliced before main, after the wrapper's own declarations.
+	// In GLSL a helper can read the built-ins (iTime, ...), which
+	// are globals there. In MSL they are locals of the fragment
+	// function, so a helper must take them as parameters.
+	// cmd/shaderport fills both from a Shadertoy shader.
+	MetalDecls string
+	GLSLDecls  string
 	// Animate keeps frames coming while a container with this shader
 	// is drawn, so iTime advances without app code. Each
 	// frame rebuilds only the render commands: no view function runs
@@ -45,7 +55,13 @@ type Shader struct {
 // BuildGLSLFragment wraps a user-supplied GLSL body with the
 // standard preamble and epilogue for desktop GL 3.3.
 func BuildGLSLFragment(body string) string {
-	return buildGLSLCustomFragment("#version 330", body)
+	return buildGLSLCustomFragment("#version 330", "", body)
+}
+
+// BuildGLSLFragmentDecls is BuildGLSLFragment with program-scope
+// declarations (Shader.GLSLDecls) spliced before main.
+func BuildGLSLFragmentDecls(decls, body string) string {
+	return buildGLSLCustomFragment("#version 330", decls, body)
 }
 
 // BuildGLSLESFragment wraps a user-supplied GLSL body exactly
@@ -55,15 +71,23 @@ func BuildGLSLFragment(body string) string {
 // Android backends share this instead of carrying their own copy
 // of the wrapper.
 func BuildGLSLESFragment(body string) string {
+	return BuildGLSLESFragmentDecls("", body)
+}
+
+// BuildGLSLESFragmentDecls is BuildGLSLESFragment with
+// program-scope declarations (Shader.GLSLDecls) spliced before main.
+func BuildGLSLESFragmentDecls(decls, body string) string {
 	return buildGLSLCustomFragment("#version 300 es\n"+
 		"precision highp float;\n"+
-		"precision highp int;", body)
+		"precision highp int;", decls, body)
 }
 
 // buildGLSLCustomFragment is the single copy of the custom-shader
 // GLSL wrapper. The body must declare a local vec4 frag_color;
-// the wrapper adds the SDF round-rect clipping around it.
-func buildGLSLCustomFragment(header, body string) string {
+// the wrapper adds the SDF round-rect clipping around it. decls
+// goes at program scope, after the built-in globals so a helper
+// can read them, and before main.
+func buildGLSLCustomFragment(header, decls, body string) string {
 	var b strings.Builder
 	b.WriteString(header)
 	b.WriteString(`
@@ -88,6 +112,9 @@ float iTime;
 float iTimeDelta;
 int   iFrame;
 vec4  iMouse;
+`)
+	b.WriteString(decls)
+	b.WriteString(`
 
 void main() {
     iResolution = _gg_builtins[0].xyz;
@@ -132,17 +159,21 @@ void main() {
 }
 
 // ShaderHash computes a cache key from the shader source.
-// Both bodies are hashed, with a NUL separator between them, so
-// two shaders that differ in either body get distinct keys on
-// every platform. Params are uniforms, not source, and are not
-// part of the key. A nil shader hashes to 0.
+// Both bodies and both decls are hashed, with a NUL separator
+// between fields, so two shaders that differ in any of them get
+// distinct keys on every platform. Params are uniforms, not
+// source, and are not part of the key. A nil shader hashes to 0.
 func ShaderHash(s *Shader) uint64 {
 	if s == nil {
 		return 0
 	}
 	h := Fnv64Str(Fnv64Offset, s.Metal)
 	h = Fnv64Byte(h, 0)
-	return Fnv64Str(h, s.GLSL)
+	h = Fnv64Str(h, s.GLSL)
+	h = Fnv64Byte(h, 0)
+	h = Fnv64Str(h, s.MetalDecls)
+	h = Fnv64Byte(h, 0)
+	return Fnv64Str(h, s.GLSLDecls)
 }
 
 // hashString computes a 64-bit FNV-1a hash.

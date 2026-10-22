@@ -72,6 +72,7 @@ type Backend struct {
 	textures     texcache.Cache[string, metalTexture]
 	glyphBack    *metalGlyphBackend
 	customCache  texcache.Cache[uint64, C.int]
+	shaderHashes gui.ShaderHashCache // memoizes ShaderHash per draw
 	iconFontPath string
 
 	maxImageBytes  int64

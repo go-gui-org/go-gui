@@ -5,6 +5,8 @@
 // of its own.
 package main
 
+//go:generate go run ../../cmd/shaderport -name ringsShader -o rings_shader.go rings.frag
+
 import (
 	"flag"
 	"log"
@@ -23,7 +25,7 @@ func main() {
 
 	w := gui.NewWindow(gui.WindowCfg{
 		Title:  "Custom Shader Demo",
-		Width:  600,
+		Width:  700,
 		Height: 400,
 		OnInit: func(w *gui.Window) {
 			w.SetView(mainView)
@@ -49,7 +51,7 @@ func mainView(_ *gui.Window) gui.View {
 			gui.Text(gui.TextCfg{Text: "Custom Fragment Shader Demo"}),
 			gui.Row(gui.ContainerCfg{
 				Spacing: gui.SpacingLarge,
-				Content: []gui.View{rainbowTile(), plasmaTile()},
+				Content: []gui.View{rainbowTile(), plasmaTile(), ringsTile()},
 			}),
 		},
 	})
@@ -129,3 +131,23 @@ func plasmaTile() gui.View {
 		Content: []gui.View{gui.Text(gui.TextCfg{Text: "Plasma"})},
 	})
 }
+
+// doc:snippet-begin shaderport-tile
+
+// ringsTile draws a Shadertoy shader ported by cmd/shaderport.
+// rings.frag is the source; go generate writes ringsShader, with
+// Animate already set because the shader reads iTime.
+func ringsTile() gui.View {
+	return gui.Column(gui.ContainerCfg{
+		Width:   180,
+		Height:  180,
+		Sizing:  gui.FixedFixed,
+		Radius:  gui.RadiusPx(16), // ergonomics-audit:spacing — decorative radius, not a control corner
+		HAlign:  gui.HAlignCenter,
+		VAlign:  gui.VAlignMiddle,
+		Shader:  ringsShader,
+		Content: []gui.View{gui.Text(gui.TextCfg{Text: "Rings"})},
+	})
+}
+
+// doc:snippet-end shaderport-tile

@@ -1,0 +1,54 @@
+// Ported by shaderport from frame.frag.
+// Review it before use: see docs/shader-porting.md for what the
+// translation covers.
+
+package shaders
+
+import "github.com/go-gui-org/go-gui/gui"
+
+// ported draws the ported shader. Set it as a container's Shader.
+var ported = &gui.Shader{
+	Metal: `
+float4 frag_color = float4(0.0);
+mainImage(frag_color, float2((in.uv.x * 0.5 + 0.5) * iResolution.x, (0.5 - in.uv.y * 0.5) * iResolution.y), iResolution, iTimeDelta, iFrame);
+frag_color.a = 1.0;
+`,
+	MetalDecls: `
+// The frame built-ins, read only from a helper.
+
+
+
+float3 flicker(float iTimeDelta, int iFrame)
+{
+    float on = float(iFrame % 2);
+    return float3(on * clamp(iTimeDelta * 60.0, 0.0, 1.0));
+}
+
+void mainImage(thread float4& fragColor, float2 fragCoord, float3 iResolution, float iTimeDelta, int iFrame)
+{
+    fragColor = float4(flicker(iTimeDelta,iFrame) * fragCoord.x / iResolution.x, 1.0);
+}
+`,
+	GLSL: `
+vec4 frag_color = vec4(0.0);
+mainImage(frag_color, vec2((uv.x * 0.5 + 0.5) * iResolution.x, (0.5 - uv.y * 0.5) * iResolution.y));
+frag_color.a = 1.0;
+`,
+	GLSLDecls: `
+// The frame built-ins, read only from a helper.
+
+
+
+vec3 flicker()
+{
+    float on = float(iFrame % 2);
+    return vec3(on * clamp(iTimeDelta * 60.0, 0.0, 1.0));
+}
+
+void mainImage(out vec4 fragColor, in vec2 fragCoord)
+{
+    fragColor = vec4(flicker() * fragCoord.x / iResolution.x, 1.0);
+}
+`,
+	Animate: true,
+}

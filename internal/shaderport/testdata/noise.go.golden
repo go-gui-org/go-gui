@@ -1,0 +1,118 @@
+// Ported by shaderport from noise.frag.
+// Review it before use: see docs/shader-porting.md for what the
+// translation covers.
+
+package shaders
+
+import "github.com/go-gui-org/go-gui/gui"
+
+// ported draws the ported shader. Set it as a container's Shader.
+var ported = &gui.Shader{
+	Metal: `
+float4 frag_color = float4(0.0);
+mainImage(frag_color, float2((in.uv.x * 0.5 + 0.5) * iResolution.x, (0.5 - in.uv.y * 0.5) * iResolution.y), iResolution, iTime);
+frag_color.a = 1.0;
+`,
+	MetalDecls: `
+// Value noise and fbm: prototypes, a const matrix, floor/fract/mix and
+// a uint hash with bit operations.
+float fbm(float2 p);
+
+constant float2x2 m2 = float2x2(0.8, 0.6, -0.6, 0.8);
+
+uint ihash(uint x)
+{
+    x ^= x >> 16u;
+    x *= 0x7feb352du;
+    x ^= x >> 15u;
+    return x;
+}
+
+float hash(float2 p)
+{
+    uint2 q = uint2(int2(floor(p)) + 1000);
+    return float(ihash(q.x + ihash(q.y))) / 4294967295.0;
+}
+
+float noise(float2 p)
+{
+    float2 i = floor(p);
+    float2 f = fract(p);
+    float2 u = f * f * (3.0 - 2.0 * f);
+    return mix(mix(hash(i), hash(i + float2(1, 0)), u.x),
+               mix(hash(i + float2(0, 1)), hash(i + float2(1, 1)), u.x), u.y);
+}
+
+float fbm(float2 p)
+{
+    float a = 0.5, s = 0.0;
+    for (int i = 0; i < 5; i++) {
+        s += a * noise(p);
+        p = m2 * p * 2.0;
+        a *= 0.5;
+    }
+    return s;
+}
+
+void mainImage(thread float4& fragColor, float2 fragCoord, float3 iResolution, float iTime)
+{
+    float2 p = fragCoord / iResolution.y * 4.0;
+    float n = fbm(p + float2(iTime * 0.2, 0.0));
+    fragColor = float4(float3(n), 1.0);
+}
+`,
+	GLSL: `
+vec4 frag_color = vec4(0.0);
+mainImage(frag_color, vec2((uv.x * 0.5 + 0.5) * iResolution.x, (0.5 - uv.y * 0.5) * iResolution.y));
+frag_color.a = 1.0;
+`,
+	GLSLDecls: `
+// Value noise and fbm: prototypes, a const matrix, floor/fract/mix and
+// a uint hash with bit operations.
+float fbm(vec2 p);
+
+const mat2 m2 = mat2(0.8, 0.6, -0.6, 0.8);
+
+uint ihash(uint x)
+{
+    x ^= x >> 16u;
+    x *= 0x7feb352du;
+    x ^= x >> 15u;
+    return x;
+}
+
+float hash(vec2 p)
+{
+    uvec2 q = uvec2(ivec2(floor(p)) + 1000);
+    return float(ihash(q.x + ihash(q.y))) / 4294967295.0;
+}
+
+float noise(vec2 p)
+{
+    vec2 i = floor(p);
+    vec2 f = fract(p);
+    vec2 u = f * f * (3.0 - 2.0 * f);
+    return mix(mix(hash(i), hash(i + vec2(1, 0)), u.x),
+               mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), u.x), u.y);
+}
+
+float fbm(vec2 p)
+{
+    float a = 0.5, s = 0.0;
+    for (int i = 0; i < 5; i++) {
+        s += a * noise(p);
+        p = m2 * p * 2.0;
+        a *= 0.5;
+    }
+    return s;
+}
+
+void mainImage(out vec4 fragColor, in vec2 fragCoord)
+{
+    vec2 p = fragCoord / iResolution.y * 4.0;
+    float n = fbm(p + vec2(iTime * 0.2, 0.0));
+    fragColor = vec4(vec3(n), 1.0);
+}
+`,
+	Animate: true,
+}

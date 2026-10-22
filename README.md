@@ -117,6 +117,11 @@ Go-Gui is also an ecosystem of composable libraries. **go-glyph** handles text,
   shadows, blur effects, canvas paths that draw themselves in
   ([`examples/path_trim/`](examples/path_trim/)), and sharp-edged pixel art with
   nearest-neighbor image sampling ([`examples/pixel_art/`](examples/pixel_art/))
+- **Custom shaders** — a fragment shader paints any container, with Shadertoy's
+  `iTime` and `iResolution` built in. `cmd/shaderport` converts a Shadertoy
+  shader into one Go value that runs on Metal, OpenGL, WebGL2 and Android
+  ([`examples/custom_shader/`](examples/custom_shader/),
+  [`docs/shader-porting.md`](docs/shader-porting.md))
 - **Content transitions** — a `Text` animates a change of its value: a counter
   rolls only the digits that change, a label fades to its new words, an icon
   shrinks away while the next grows in

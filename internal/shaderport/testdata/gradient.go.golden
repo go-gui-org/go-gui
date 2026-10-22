@@ -1,0 +1,40 @@
+// Ported by shaderport from gradient.frag.
+// Review it before use: see docs/shader-porting.md for what the
+// translation covers.
+
+package shaders
+
+import "github.com/go-gui-org/go-gui/gui"
+
+// ported draws the ported shader. Set it as a container's Shader.
+var ported = &gui.Shader{
+	Metal: `
+float4 frag_color = float4(0.0);
+mainImage(frag_color, float2((in.uv.x * 0.5 + 0.5) * iResolution.x, (0.5 - in.uv.y * 0.5) * iResolution.y), iResolution, iTime);
+frag_color.a = 1.0;
+`,
+	MetalDecls: `
+// Smallest Shadertoy shape: a time-shifted cosine palette.
+void mainImage(thread float4& fragColor, float2 fragCoord, float3 iResolution, float iTime)
+{
+    float2 st = fragCoord / iResolution.xy;
+    float3 col = 0.5 + 0.5 * cos(iTime + st.xyx + float3(0, 2, 4));
+    fragColor = float4(col, 1.0);
+}
+`,
+	GLSL: `
+vec4 frag_color = vec4(0.0);
+mainImage(frag_color, vec2((uv.x * 0.5 + 0.5) * iResolution.x, (0.5 - uv.y * 0.5) * iResolution.y));
+frag_color.a = 1.0;
+`,
+	GLSLDecls: `
+// Smallest Shadertoy shape: a time-shifted cosine palette.
+void mainImage(out vec4 fragColor, in vec2 fragCoord)
+{
+    vec2 st = fragCoord / iResolution.xy;
+    vec3 col = 0.5 + 0.5 * cos(iTime + st.xyx + vec3(0, 2, 4));
+    fragColor = vec4(col, 1.0);
+}
+`,
+	Animate: true,
+}

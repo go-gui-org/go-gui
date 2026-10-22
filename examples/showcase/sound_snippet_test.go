@@ -198,6 +198,26 @@ var snippetEntries = []snippetEntry{
 		},
 	},
 	{
+		sourceFile: "../custom_shader/main.go",
+		beginMark:  "// doc:snippet-begin shaderport-tile",
+		endMark:    "// doc:snippet-end shaderport-tile",
+		anchor:     "Shader:  ringsShader,",
+		heading:    "## Use the generated shader",
+		guides: []string{
+			"../../docs/shader-porting.md",
+		},
+	},
+	{
+		sourceFile: "../custom_shader/main.go",
+		beginMark:  "// doc:snippet-begin shaderport-tile",
+		endMark:    "// doc:snippet-end shaderport-tile",
+		anchor:     "Shader:  ringsShader,",
+		heading:    "## Ported from Shadertoy",
+		guides: []string{
+			"../custom_shader/README.md",
+		},
+	},
+	{
 		sourceFile: "../get_started/main.go",
 		anchor:     "func mainView(",
 		heading:    "## It's just Go",

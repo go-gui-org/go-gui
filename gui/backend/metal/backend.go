@@ -492,6 +492,7 @@ type windowState struct {
 	filterLayer       int
 	filterColorMatrix *[16]float32
 	customCache       texcache.Cache[uint64, C.int]
+	shaderHashes      gui.ShaderHashCache // memoizes ShaderHash per draw
 	iconFontPath      string
 
 	allowedImageRoots []string

@@ -18,10 +18,11 @@ go run ./examples/custom_shader/
 
 ## What it demonstrates
 
-Two containers painted by fragment shaders, a rainbow and a plasma that move
-over time. The shaders read Shadertoy's built-in `iTime` and set
-`Shader.Animate`. The app keeps no clock and registers no animation, and each
-frame rebuilds only the render commands, not the view or the layout.
+Three containers painted by fragment shaders that move over time: a rainbow, a
+plasma, and rings ported from a Shadertoy shader. The shaders read Shadertoy's
+built-in `iTime` and set `Shader.Animate`. The app keeps no clock and registers
+no animation, and each frame rebuilds only the render commands, not the view or
+the layout.
 
 Requires a GPU. The headless `soft` backend has no shader compiler, so a
 screenshot shows the containers without their shader fill.
@@ -68,3 +69,29 @@ on Shadertoy.
 
 See `docs/specs/custom-shader-backgrounds.md` for the full list of built-in
 inputs.
+
+## Ported from Shadertoy
+
+`rings.frag` is a Shadertoy shader. `cmd/shaderport` converts it into
+`rings_shader.go`, which holds both bodies. The `go:generate` line in `main.go`
+runs the tool, so run `go generate` after you edit `rings.frag`:
+
+```go
+// ringsTile draws a Shadertoy shader ported by cmd/shaderport.
+// rings.frag is the source; go generate writes ringsShader, with
+// Animate already set because the shader reads iTime.
+func ringsTile() gui.View {
+	return gui.Column(gui.ContainerCfg{
+		Width:   180,
+		Height:  180,
+		Sizing:  gui.FixedFixed,
+		Radius:  gui.RadiusPx(16), // ergonomics-audit:spacing — decorative radius, not a control corner
+		HAlign:  gui.HAlignCenter,
+		VAlign:  gui.VAlignMiddle,
+		Shader:  ringsShader,
+		Content: []gui.View{gui.Text(gui.TextCfg{Text: "Rings"})},
+	})
+}
+```
+
+`docs/shader-porting.md` lists what the tool supports and what it rejects.

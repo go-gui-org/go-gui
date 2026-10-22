@@ -84,10 +84,11 @@ func (glesBridge) Resize(physW, physH int32) {
 type Backend struct {
 	framestate.FrameState
 
-	textSys     *glyph.TextSystem
-	textures    texcache.Cache[string, glesTexture]
-	glyphBack   *glesGlyphBackend
-	customCache texcache.Cache[uint64, C.int]
+	textSys      *glyph.TextSystem
+	textures     texcache.Cache[string, glesTexture]
+	glyphBack    *glesGlyphBackend
+	customCache  texcache.Cache[uint64, C.int]
+	shaderHashes gui.ShaderHashCache // memoizes ShaderHash per draw
 	// lost is set by SurfaceCreated when the GL resources died with
 	// their EGL context (rebuildLostContext).
 	lost ctxloss.Rebuilder
