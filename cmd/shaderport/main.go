@@ -67,6 +67,7 @@ func run(args []string, stdin io.Reader, stdout io.Writer) error {
 		_, err = stdout.Write(code)
 		return err
 	}
+	// #nosec G306 — standard 0644 for generated Go source
 	return os.WriteFile(*out, code, 0o644)
 }
 
