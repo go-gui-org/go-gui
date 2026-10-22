@@ -60,7 +60,7 @@ and this project adheres to
 ### Fixed
 
 - **SVG: geometry from CSS (`r`, `cx`, `cy`, ...) renders, so the showcase
-  `var() + calc()` sample is no longer blank.** A circle whose radius came only
+  `var() + calc()` sample is no longer blank (#1145).** A circle whose radius came only
   from a stylesheet (`.v { r: calc(var(--r) - 4); }`) parsed to zero paths: the
   cascade dropped the unknown property and the shape parsers read only the `r`
   attribute. The SVG2 geometry properties now ride the normal cascade
