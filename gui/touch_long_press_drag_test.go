@@ -2,6 +2,7 @@ package gui
 
 import (
 	"fmt"
+	"slices"
 	"testing"
 )
 
@@ -154,9 +155,11 @@ func TestTouchLongPressDragAbortDoesNotReorder(t *testing.T) {
 	}
 }
 
-// A long press whose press takes no mouse lock keeps the finger as
-// before: its moves neither scroll the list nor reach the widget.
-func TestTouchLongPressWithoutDragMovesNothing(t *testing.T) {
+// A long press whose press takes no mouse lock lets the finger go: a
+// finger that rested on a row and then drags scrolls the list (#1117).
+// The row's press went out when the long press fired, and the pan
+// releases it.
+func TestTouchLongPressThenPanScrolls(t *testing.T) {
 	clicks := map[string]int{}
 	w := touchPressWindow(t, 40, clicks)
 	x, y := rowCenter(t, w, "b3")
@@ -169,18 +172,85 @@ func TestTouchLongPressWithoutDragMovesNothing(t *testing.T) {
 	for i, dy := range []float32{-20, -40, -60} {
 		touchAt(w, EventTouchesMoved, 600_000_000+int64(i+1)*16_000_000, x, y+dy)
 	}
-	// No move reached the window: the pointer is still where the press
-	// put it.
-	if w.viewState.pointerY != y {
-		t.Fatalf("pointer y = %v, want %v: a move reached the widget",
-			w.viewState.pointerY, y)
+	if v, _ := w.scrollY().Get("list"); v >= 0 {
+		t.Fatalf("list offset = %v, want it scrolled while the finger is down", v)
+	}
+	if w.viewState.mouseButtonsHeld != 0 {
+		t.Fatal("the long press's press is still held after the pan took over")
 	}
 	touchAt(w, EventTouchesEnded, 800_000_000, x, y-60)
-	if v, _ := w.scrollY().Get("list"); v != 0 {
-		t.Fatalf("list offset = %v, want 0 after a long press", v)
-	}
 	if clicks["b3"] != 1 {
 		t.Fatalf("clicks = %v, want b3 once (the long press)", clicks)
+	}
+}
+
+// longPressGestureWindow runs the frame pipeline over a scrollable list
+// "list" of rows whose OnGesture records each long-press phase in
+// phases, and consumes the long press when take is set.
+func longPressGestureWindow(t *testing.T, take bool, phases *[]GesturePhase) *Window {
+	t.Helper()
+	w := NewWindow(WindowCfg{State: new(int), Width: 300, Height: 400})
+	w.viewGenerator = func(*Window) View {
+		rows := make([]View, 0, 40)
+		for i := range 40 {
+			rows = append(rows, Button(ButtonCfg{
+				ID: fmt.Sprintf("b%d", i), Sizing: FillFit, Label: "row",
+			}))
+		}
+		return Column(ContainerCfg{
+			ID: "list", Scrollable: true, Sizing: FillFill, Content: rows,
+			OnGesture: func(ctx EventCtx) {
+				if ctx.Event.GestureType != GestureLongPress {
+					return
+				}
+				*phases = append(*phases, ctx.Event.GesturePhase)
+				if take {
+					ctx.Consume()
+				}
+			},
+		})
+	}
+	w.markLayoutRefresh(refreshTest)
+	w.FrameFn()
+	return w
+}
+
+// A long press that lets the finger go to a pan is cancelled, not ended.
+// One an OnGesture handler consumed keeps the finger: the drag scrolls
+// nothing and the lift ends it. A wobble under the pan distance after
+// the long press keeps it either way.
+func TestTouchLongPressYieldsUnlessTaken(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		take     bool
+		travel   float32
+		phases   []GesturePhase
+		scrolled bool
+	}{
+		{"untaken drag", false, -60, []GesturePhase{GesturePhaseBegan, GesturePhaseCancelled}, true},
+		{"untaken wobble", false, -6, []GesturePhase{GesturePhaseBegan, GesturePhaseEnded}, false},
+		{"taken drag", true, -60, []GesturePhase{GesturePhaseBegan, GesturePhaseEnded}, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var phases []GesturePhase
+			w := longPressGestureWindow(t, tc.take, &phases)
+			x, y := rowCenter(t, w, "b3")
+			touchAt(w, EventTouchesBegan, 0, x, y)
+			w.viewState.gesture.nowFn = fixedClock(600_000_000)
+			gestureLongPressFired(nil, w)
+			for i := 1; i <= 3; i++ {
+				touchAt(w, EventTouchesMoved, 600_000_000+int64(i)*16_000_000,
+					x, y+tc.travel*float32(i)/3)
+			}
+			touchAt(w, EventTouchesEnded, 800_000_000, x, y+tc.travel)
+			if !slices.Equal(phases, tc.phases) {
+				t.Fatalf("long-press phases = %v, want %v", phases, tc.phases)
+			}
+			v, _ := w.scrollY().Get("list")
+			if scrolled := v < 0; scrolled != tc.scrolled {
+				t.Fatalf("list offset = %v, scrolled = %v, want %v", v, scrolled, tc.scrolled)
+			}
+		})
 	}
 }
 

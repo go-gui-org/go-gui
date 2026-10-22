@@ -42,6 +42,31 @@ and this project adheres to
 
 ### Fixed
 
+- **Touch: a finger that rests before it drags scrolls (#1117).** A touch held
+  still for 500 ms became a long press, and from then on its moves were ignored:
+  the page did not scroll until the finger lifted. A reader who placed a finger
+  carefully, for example aiming at the thin scrollbar and missing it by a few
+  pixels, saw the page freeze. Now a long press that nothing holds lets the
+  finger go: a move past the pan distance cancels the long press
+  (`GesturePhaseCancelled`, not `Ended`), releases the press it sent, and
+  scrolls. A long press still keeps the finger when its press took the mouse
+  lock (a reorderable row, a text selection, a scrollbar thumb, which the finger
+  then drags) or when an `OnGesture` handler consumed it. An app that acts on
+  `GestureLongPress` and wants the finger held calls `ctx.Consume()` in that
+  handler.
+
+- **Touch: a slow drag no longer jumps the content where it starts (#1117).** A
+  pan is recognized after 10 px of travel, and its first move caught up those 10
+  px in one step, so the content sat under the finger. A fast swipe hid it; a
+  slow drag, such as one that rested first, showed a 10 px jump. The pan now
+  starts where the finger crossed the threshold and drops the distance, as
+  Android does and `DragScroll` containers already did: the content stays 10 px
+  behind the finger. The pan's `GestureDX` / `GestureDY` drop it too, so an
+  `OnGesture` handler that sums them lags the finger by the same 10 px, and a
+  short, slow flick reads a little slower in `VelocityX` / `VelocityY` and is
+  less often a `GestureSwipe`. The fling after a lift reads the finger's real
+  positions and is unchanged.
+
 - **Android: temp files land in the app's own directory, so icons and other
   temp-file assets load (#1140).** Go's `os.TempDir()` fell back to
   `/data/local/tmp`, which an app cannot write: a Go shared library reads its

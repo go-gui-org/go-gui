@@ -18,7 +18,10 @@ import "slices"
 //     out at the touch point, then the moves (a horizontal slider in a
 //     vertical list still drags).
 //  4. A long press sends the press before the gesture, as a press
-//     sent at touch-down always came first.
+//     sent at touch-down always came first. A finger that then drags
+//     past the pan distance pans and the press is released, unless the
+//     press took the mouse lock or a handler consumed the long press
+//     (longPressYield, gesture.go).
 //  5. A second finger drops it: a pinch is not a click.
 //
 // A press on a scrollbar waits too, but its axis is the bar's: a pan

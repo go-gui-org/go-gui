@@ -39,9 +39,10 @@ func offsetY(w *Window) float32 {
 
 // TestPanScrollFollowsFinger checks the content moves exactly as far as
 // the finger, whatever ScrollMultiplier says (#1110). The pan is
-// recognized past 10 px; its first move catches up the distance to
-// there, so the content stays under the finger, and each move after
-// that scrolls by its own distance.
+// recognized past 10 px and starts where the finger crossed it: the
+// threshold distance is dropped, so a slow drag does not jump the
+// content by it (#1117), and each move after that scrolls by its own
+// distance.
 func TestPanScrollFollowsFinger(t *testing.T) {
 	w := panWindow()
 	// 150 → 139 crosses the threshold; nothing scrolls yet.
@@ -56,17 +57,42 @@ func TestPanScrollFollowsFinger(t *testing.T) {
 		gs.nowFn = fixedClock(tt)
 		w.handleTouch(&w.layout, touchEvent(EventTouchesMoved, 1, 100, y))
 	}
-	// The first move catches up to the finger: 150 → 138 is 12 px.
+	// The first move scrolls the travel past the threshold: 150 → 138 is
+	// 12 px, less the 10 px threshold.
 	move(138)
-	if got := offsetY(w); got != -12 {
-		t.Fatalf("offset after the first move = %v, want -12 (the finger's travel)", got)
+	if got := offsetY(w); got != -2 {
+		t.Fatalf("offset after the first move = %v, want -2 (the travel past the threshold)", got)
 	}
 	// Then 1:1: nine 1 px moves add nine pixels, not 9 x 20.
 	for y := float32(137); y >= 129; y-- {
 		move(y)
 	}
-	if got := offsetY(w); got != -21 {
-		t.Fatalf("offset after 21 px of finger = %v, want -21", got)
+	if got := offsetY(w); got != -11 {
+		t.Fatalf("offset after 21 px of finger = %v, want -11", got)
+	}
+}
+
+// TestSlowPanDoesNotJump checks a finger crawling 1 px per frame does not
+// jump the content where it crosses the threshold: the pan drops the
+// threshold distance instead of catching it up in one step (#1117). The
+// move that crosses only starts the pan, so its pixel past the threshold
+// goes out with the next one: no step is over 2 px (it was 12).
+func TestSlowPanDoesNotJump(t *testing.T) {
+	w := panWindow()
+	gs := &w.viewState.gesture
+	w.handleTouch(&w.layout, touchEvent(EventTouchesBegan, 1, 100, 150))
+	prev := offsetY(w)
+	for i := 1; i <= 30; i++ {
+		gs.nowFn = fixedClock(int64(i) * 16_000_000)
+		w.handleTouch(&w.layout, touchEvent(EventTouchesMoved, 1, 100, 150-float32(i)))
+		got := offsetY(w)
+		if step := prev - got; step > 2 {
+			t.Fatalf("move %d scrolled %v px for 1 px of finger", i, step)
+		}
+		prev = got
+	}
+	if prev != -20 {
+		t.Fatalf("offset after 30 px of finger = %v, want -20 (30 less the threshold)", prev)
 	}
 }
 
@@ -235,10 +261,10 @@ func flingArmed(w *Window) bool {
 	return e != nil && e.active && e.tau > 0
 }
 
-// TestSlowDragDoesNotFling checks the catch-up at pan recognition does
-// not count as speed. A finger that crawled 11 px in a second, then moved
-// 1 px, moves at ~12 px/s; the pan's smoothed velocity reads the 12 px
-// catch-up as one frame (150 px/s), which flung 60 px. The release
+// TestSlowDragDoesNotFling checks the travel at pan recognition does not
+// count as speed. A finger that crawled 11 px in a second, then moved
+// 1 px, moves at ~12 px/s; the pan's smoothed velocity read the 12 px it
+// caught up as one frame (150 px/s), which flung 60 px. The release
 // velocity reads the finger's real positions.
 func TestSlowDragDoesNotFling(t *testing.T) {
 	w := panWindow()
@@ -248,9 +274,9 @@ func TestSlowDragDoesNotFling(t *testing.T) {
 	w.handleTouch(&w.layout, touchEvent(EventTouchesMoved, 1, 100, 139))
 	gs.nowFn = fixedClock(1_016_000_000)
 	w.handleTouch(&w.layout, touchEvent(EventTouchesMoved, 1, 100, 138))
-	// The catch-up still scrolls: the content stays under the finger.
-	if got := offsetY(w); got != -12 {
-		t.Fatalf("offset = %v, want -12", got)
+	// The travel past the threshold scrolls; the threshold does not.
+	if got := offsetY(w); got != -2 {
+		t.Fatalf("offset = %v, want -2", got)
 	}
 	if _, vy, _ := gs.panReleaseVelocity(); f32Abs(vy) >= scrollMomentumMinVelocity {
 		t.Fatalf("release velocity of a crawling finger = %v px/s, want under %v",
