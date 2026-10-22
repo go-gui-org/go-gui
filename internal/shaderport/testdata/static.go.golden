@@ -1,0 +1,37 @@
+// Ported by shaderport from static.frag.
+// Review it before use: see docs/shader-porting.md for what the
+// translation covers.
+
+package shaders
+
+import "github.com/go-gui-org/go-gui/gui"
+
+// ported draws the ported shader. Set it as a container's Shader.
+var ported = &gui.Shader{
+	Metal: `
+float4 frag_color = float4(0.0);
+mainImage(frag_color, float2((in.uv.x * 0.5 + 0.5) * iResolution.x, (0.5 - in.uv.y * 0.5) * iResolution.y), iResolution);
+frag_color.a = 1.0;
+`,
+	MetalDecls: `
+// No time input: the port leaves Animate off.
+void mainImage(thread float4& O, float2 U, float3 iResolution)
+{
+    float2 q = U / iResolution.xy;
+    O = float4(q, 1.0 - q.x, 1.0);
+}
+`,
+	GLSL: `
+vec4 frag_color = vec4(0.0);
+mainImage(frag_color, vec2((uv.x * 0.5 + 0.5) * iResolution.x, (0.5 - uv.y * 0.5) * iResolution.y));
+frag_color.a = 1.0;
+`,
+	GLSLDecls: `
+// No time input: the port leaves Animate off.
+void mainImage(out vec4 O, vec2 U)
+{
+    vec2 q = U / iResolution.xy;
+    O = vec4(q, 1.0 - q.x, 1.0);
+}
+`,
+}

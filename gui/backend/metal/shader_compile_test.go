@@ -3,9 +3,12 @@
 package metal
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/go-gui-org/go-gui/gui/backend/internal/msl"
+	"github.com/go-gui-org/go-gui/internal/shaderport"
 )
 
 // TestCustomWrapperCompiles compiles msl.BuildCustom around bodies
@@ -40,6 +43,45 @@ func TestCustomWrapperCompiles(t *testing.T) {
 	}
 }
 
+// TestCustomWrapperDeclsCompile compiles msl.BuildCustomDecls with
+// program-scope helpers, the shape cmd/shaderport emits: a template
+// helper, a struct, a program-scope constant, and a function that
+// takes a built-in as a parameter and writes a thread reference
+// (#573).
+func TestCustomWrapperDeclsCompile(t *testing.T) {
+	decls := `
+template <typename T, typename U>
+T _gg_mod(T x, U y) { return x - y * floor(x / y); }
+
+constant float PI = 3.14159265;
+
+struct Hit { float d; float3 col; };
+
+Hit scene(float2 p, float iTime) {
+    return Hit{length(p) - 0.5, float3(0.5 + 0.5 * cos(iTime))};
+}
+
+void mainImage(thread float4& O, float2 fragCoord, float3 iResolution,
+               float iTime) {
+    float2 p = (2.0 * fragCoord - iResolution.xy) / iResolution.y;
+    Hit h = scene(_gg_mod(p, float2(PI)), iTime);
+    if (h.d > 0.0) { O = float4(0.0); return; }
+    O = float4(h.col, 1.0);
+}
+`
+	body := "float4 frag_color;\n" +
+		"mainImage(frag_color, float2((in.uv.x * 0.5 + 0.5) * iResolution.x, " +
+		"(0.5 - in.uv.y * 0.5) * iResolution.y), iResolution, iTime);"
+	switch rc := testCompileMSL(msl.BuildCustomDecls(decls, body)); rc {
+	case 0:
+	case 1:
+		t.Skip("no Metal device (headless or virtualized runner)")
+	default:
+		t.Errorf("wrapped MSL with decls failed to compile (rc=%d); "+
+			"see the logged MTLLibraryError above", rc)
+	}
+}
+
 // TestBuiltinShadersCompile compiles the built-in MSL library against
 // the pinned language version (MSL 3.0 / macOS 13 Ventura) that
 // metalCtxCreate uses.
@@ -68,5 +110,33 @@ func TestBuiltinShadersCompile(t *testing.T) {
 			"MTLLibraryError above. A shader construct newer than "+
 			"the pin in mslCompileOptions() will break older macOS "+
 			"at runtime — fix the shader, do not raise the pin", rc)
+	}
+}
+
+// TestShaderportCompiles ports every fixture in the shaderport corpus
+// and compiles its MSL output as the Metal backend would (#573). The
+// GLSL side is checked by TestPortGLSLCompiles in internal/shaderport.
+func TestShaderportCompiles(t *testing.T) {
+	files, err := filepath.Glob("../../../internal/shaderport/testdata/*.frag")
+	if err != nil || len(files) == 0 {
+		t.Fatalf("no shaderport fixtures: %v", err)
+	}
+	for _, f := range files {
+		src, err := os.ReadFile(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		r, err := shaderport.Port(string(src))
+		if err != nil {
+			t.Fatalf("%s: Port: %v", f, err)
+		}
+		switch rc := testCompileMSL(msl.BuildCustomDecls(r.MetalDecls, r.Metal)); rc {
+		case 0:
+		case 1:
+			t.Skip("no Metal device (headless or virtualized runner)")
+		default:
+			t.Errorf("%s: ported MSL failed to compile (rc=%d); "+
+				"see the logged MTLLibraryError above", filepath.Base(f), rc)
+		}
 	}
 }

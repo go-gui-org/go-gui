@@ -135,3 +135,8 @@ deep-dive/
 # web_svg_bench results recorded by serve.go.
 /examples/web_svg_bench/results.jsonl
 /examples/web_svg_bench/shots/
+
+# Local npm install (claude-agent-acp), not part of the repo.
+/node_modules/
+/package.json
+/package-lock.json

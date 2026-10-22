@@ -1,0 +1,79 @@
+// Ported by shaderport from macros.frag.
+// Review it before use: see docs/shader-porting.md for what the
+// translation covers.
+
+package shaders
+
+import "github.com/go-gui-org/go-gui/gui"
+
+// ported draws the ported shader. Set it as a container's Shader.
+var ported = &gui.Shader{
+	Metal: `
+float4 frag_color = float4(0.0);
+mainImage(frag_color, float2((in.uv.x * 0.5 + 0.5) * iResolution.x, (0.5 - in.uv.y * 0.5) * iResolution.y), iResolution, iTime);
+frag_color.a = 1.0;
+`,
+	MetalDecls: `
+// Macros: function-like, multi-line, conditional, and macros that
+// read built-ins or call a function that does. Names that clash with
+// MSL: a user saturate and rotate, and a local named kernel.
+#define R iResolution.xy
+#define T (iTime * 0.5)
+#define ROT(a) float2x2(cos(a), -sin(a), \
+                    sin(a),  cos(a))
+#define WAVE(p) wave(p, iTime)
+
+#ifdef GL_ES
+#define QUALITY 1
+#else
+#define QUALITY 2
+#endif
+
+float saturate_(float x) { return clamp(x, 0.0, 1.0); }
+
+float2 rotate_(float2 p, float a) { return ROT(a) * p; }
+
+float wave(float2 p, float iTime) { return sin(p.x * 10.0 + T) * 0.5 + 0.5; }
+
+void mainImage(thread float4& fragColor, float2 fragCoord, float3 iResolution, float iTime)
+{
+    float2 p = rotate_((fragCoord - 0.5 * R) / R.y, T);
+    float kernel_ = saturate_(WAVE(p) * float(QUALITY));
+    fragColor = float4(float3(kernel_), 1.0);
+}
+`,
+	GLSL: `
+vec4 frag_color = vec4(0.0);
+mainImage(frag_color, vec2((uv.x * 0.5 + 0.5) * iResolution.x, (0.5 - uv.y * 0.5) * iResolution.y));
+frag_color.a = 1.0;
+`,
+	GLSLDecls: `
+// Macros: function-like, multi-line, conditional, and macros that
+// read built-ins or call a function that does. Names that clash with
+// MSL: a user saturate and rotate, and a local named kernel.
+#define R iResolution.xy
+#define T (iTime * 0.5)
+#define ROT(a) mat2(cos(a), -sin(a),                      sin(a),  cos(a))
+#define WAVE(p) wave(p)
+
+#ifdef GL_ES
+#define QUALITY 1
+#else
+#define QUALITY 2
+#endif
+
+float saturate(float x) { return clamp(x, 0.0, 1.0); }
+
+vec2 rotate(vec2 p, float a) { return ROT(a) * p; }
+
+float wave(vec2 p) { return sin(p.x * 10.0 + T) * 0.5 + 0.5; }
+
+void mainImage(out vec4 fragColor, in vec2 fragCoord)
+{
+    vec2 p = rotate((fragCoord - 0.5 * R) / R.y, T);
+    float kernel = saturate(WAVE(p) * float(QUALITY));
+    fragColor = vec4(vec3(kernel), 1.0);
+}
+`,
+	Animate: true,
+}

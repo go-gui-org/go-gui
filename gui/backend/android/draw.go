@@ -528,7 +528,7 @@ func (b *Backend) drawCustomShader(r *gui.RenderCmd) {
 		return
 	}
 
-	h := gui.ShaderHash(r.Shader)
+	h := b.shaderHashes.Hash(r.Shader)
 	idx, ok := b.customCache.Get(h)
 	if ok && idx < 0 {
 		return // cached compile failure: do not recompile every frame
@@ -537,7 +537,7 @@ func (b *Backend) drawCustomShader(r *gui.RenderCmd) {
 		if b.customCache.Len() >= maxCustomPipelines {
 			b.customCache.EvictOldest()
 		}
-		glslES := gui.BuildGLSLESFragment(r.Shader.GLSL)
+		glslES := gui.BuildGLSLESFragmentDecls(r.Shader.GLSLDecls, r.Shader.GLSL)
 		cstr := C.CString(glslES)
 		idx = C.int(C.glesBuildCustomPipeline(cstr))
 		C.free(unsafe.Pointer(cstr))

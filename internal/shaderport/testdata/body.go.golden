@@ -1,0 +1,32 @@
+// Ported by shaderport from body.frag.
+// Review it before use: see docs/shader-porting.md for what the
+// translation covers.
+
+package shaders
+
+import "github.com/go-gui-org/go-gui/gui"
+
+// ported draws the ported shader. Set it as a container's Shader.
+var ported = &gui.Shader{
+	Metal: `
+// A go-gui body, not a Shadertoy shader: it declares frag_color and
+// reads the wrapper's uv and p0 directly.
+float2 st = in.uv * 0.5 + 0.5;
+float stripes = step(0.5, _gg_mod(st.x * 8.0 + iTime, 1.0));
+float4 frag_color = float4(float3(stripes) * in.p0.x, 1.0);
+`,
+	MetalDecls: `
+// GLSL mod: x - y * floor(x / y). MSL fmod truncates instead,
+// which differs for a negative x.
+template <typename T, typename U>
+T _gg_mod(T x, U y) { return x - y * floor(x / y); }
+`,
+	GLSL: `
+// A go-gui body, not a Shadertoy shader: it declares frag_color and
+// reads the wrapper's uv and p0 directly.
+vec2 st = uv * 0.5 + 0.5;
+float stripes = step(0.5, mod(st.x * 8.0 + iTime, 1.0));
+vec4 frag_color = vec4(vec3(stripes) * p0.x, 1.0);
+`,
+	Animate: true,
+}

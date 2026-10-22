@@ -8,6 +8,38 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- **`cmd/shaderport` ports a Shadertoy shader to a `*gui.Shader` (#573).** Run
+  `shaderport -name myShader -o my_shader.go my.frag` on a shader with
+  `mainImage(out vec4, in vec2)`. The tool writes a Go file whose `*gui.Shader`
+  has both bodies: GLSL for OpenGL, WebGL2 and Android, and MSL for macOS and
+  iOS. Before, a copied shader was GLSL only and drew nothing on Metal. The tool
+  is a token rewriter, so the output keeps your comments and macros and reads as
+  a diff to review. It handles helper functions, structs, `const` globals,
+  macros, `out` parameters, and the GLSL names that MSL spells differently. It
+  translates `mod` with GLSL's floor rule, because MSL `fmod` truncates. It sets
+  `Animate` when the shader reads `iTime`, `iTimeDelta` or `iFrame`. A construct
+  it cannot translate (`iMouse`, `iChannel*`, `texture()`, a mutable global)
+  stops it with the line and column, and it writes no file.
+  `examples/custom_shader` adds a ported tile, and `docs/shader-porting.md`
+  lists what the tool supports and rejects.
+
+- **`Shader.GLSLDecls` and `Shader.MetalDecls` hold program-scope declarations
+  (#573).** A body runs inside the fragment function, so it cannot define a
+  helper function or a struct. The two new fields go before that function, on
+  every backend. A GLSL helper can read the built-in inputs, which are globals
+  there. In MSL they are locals of the fragment function, so a helper takes them
+  as parameters. `gui.BuildGLSLFragmentDecls` and `gui.BuildGLSLESFragmentDecls`
+  wrap a body together with its decls. `ShaderHash` now covers all four strings.
+
+- **`gui.ShaderHashCache` memoizes `ShaderHash` per `*Shader` (#573).** Each
+  backend calls `ShaderHash` on every custom-shader draw of every frame, and it
+  reads every byte of the source. For a ported shader of 32 KB that took about
+  30 µs per draw. Every GPU backend now keeps one cache per window: a hit takes
+  about 4 ns and allocates nothing. The cache compares each string's data
+  pointer and length, so a field set to new text gets a new hash.
+
 ### Fixed
 
 - **Android: temp files land in the app's own directory, so icons and other

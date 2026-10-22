@@ -571,7 +571,7 @@ func (b *windowState) drawCustomShader(r *gui.RenderCmd) {
 		return
 	}
 
-	h := gui.ShaderHash(r.Shader)
+	h := b.shaderHashes.Hash(r.Shader)
 	idx, ok := b.customCache.Get(h)
 	if ok && idx < 0 {
 		return // cached compile failure: do not recompile every frame
@@ -580,7 +580,7 @@ func (b *windowState) drawCustomShader(r *gui.RenderCmd) {
 		if b.customCache.Len() >= maxCustomPipelines {
 			b.customCache.EvictOldest()
 		}
-		src := msl.BuildCustom(r.Shader.Metal)
+		src := msl.BuildCustomDecls(r.Shader.MetalDecls, r.Shader.Metal)
 		cmsl := C.CString(src)
 		idx = C.int(C.metalBuildCustomPipeline(b.ctx, cmsl))
 		C.free(unsafe.Pointer(cmsl))

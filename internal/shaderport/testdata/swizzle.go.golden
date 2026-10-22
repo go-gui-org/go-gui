@@ -1,0 +1,94 @@
+// Ported by shaderport from swizzle.frag.
+// Review it before use: see docs/shader-porting.md for what the
+// translation covers.
+
+package shaders
+
+import "github.com/go-gui-org/go-gui/gui"
+
+// ported draws the ported shader. Set it as a container's Shader.
+var ported = &gui.Shader{
+	Metal: `
+float4 frag_color = float4(0.0);
+mainImage(frag_color, float2((in.uv.x * 0.5 + 0.5) * iResolution.x, (0.5 - in.uv.y * 0.5) * iResolution.y), iResolution);
+frag_color.a = 1.0;
+`,
+	MetalDecls: `
+// GLSL mod: x - y * floor(x / y). MSL fmod truncates instead,
+// which differs for a negative x.
+template <typename T, typename U>
+T _gg_mod(T x, U y) { return x - y * floor(x / y); }
+
+// Idioms the MSL output must rewrite: stpq swizzles, struct fields
+// named like swizzles, inout, component-wise comparisons, two-argument
+// atan, mod of a negative value, derivatives, inversesqrt, roundEven,
+// and array constructors.
+struct Seg { float s; float t; };
+
+constant float weights[3] = {0.25, 0.5, 0.25};
+
+void bump(thread float2& p, float k) { p += float2(k); }
+
+float blur(float a, float b, float c)
+{
+    float v[3] = {a, b, c};
+    float s = 0.0;
+    for (int i = 0; i < 3; i++) s += v[i] * weights[i];
+    return s;
+}
+
+void mainImage(thread float4& fragColor, float2 fragCoord, float3 iResolution)
+{
+    float2 p = fragCoord / iResolution.xy - 0.5;
+    bump(p, 0.01);
+    Seg seg = Seg{p.x, p.y};
+    float ang = atan2(p.y, p.x);
+    float m = _gg_mod(-ang, 1.0);
+    bool2 lt = (p < float2(0.0));
+    float side = any((!(lt))) ? 1.0 : 0.0;
+    float w = fwidth(p.x) + abs(dfdx(p.y)) + abs(dfdy(p.x));
+    float r = rsqrt(dot(p, p) + 1.0) + rint(seg.s);
+    float4 c = float4(m, side, blur(w, r, seg.t), 1.0);
+    fragColor = float4(c.xyz, c.w);
+}
+`,
+	GLSL: `
+vec4 frag_color = vec4(0.0);
+mainImage(frag_color, vec2((uv.x * 0.5 + 0.5) * iResolution.x, (0.5 - uv.y * 0.5) * iResolution.y));
+frag_color.a = 1.0;
+`,
+	GLSLDecls: `
+// Idioms the MSL output must rewrite: stpq swizzles, struct fields
+// named like swizzles, inout, component-wise comparisons, two-argument
+// atan, mod of a negative value, derivatives, inversesqrt, roundEven,
+// and array constructors.
+struct Seg { float s; float t; };
+
+const float weights[3] = float[3](0.25, 0.5, 0.25);
+
+void bump(inout vec2 p, float k) { p += vec2(k); }
+
+float blur(float a, float b, float c)
+{
+    float v[3] = float[](a, b, c);
+    float s = 0.0;
+    for (int i = 0; i < 3; i++) s += v[i] * weights[i];
+    return s;
+}
+
+void mainImage(out vec4 fragColor, in vec2 fragCoord)
+{
+    vec2 p = fragCoord / iResolution.xy - 0.5;
+    bump(p, 0.01);
+    Seg seg = Seg(p.s, p.t);
+    float ang = atan(p.y, p.x);
+    float m = mod(-ang, 1.0);
+    bvec2 lt = lessThan(p, vec2(0.0));
+    float side = any(not(lt)) ? 1.0 : 0.0;
+    float w = fwidth(p.x) + abs(dFdx(p.y)) + abs(dFdy(p.x));
+    float r = inversesqrt(dot(p, p) + 1.0) + roundEven(seg.s);
+    vec4 c = vec4(m, side, blur(w, r, seg.t), 1.0);
+    fragColor = vec4(c.stp, c.q);
+}
+`,
+}

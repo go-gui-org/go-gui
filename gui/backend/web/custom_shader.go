@@ -30,7 +30,8 @@ type customShaderRenderer struct {
 	builtinBuf js.Value
 	vertexBuf  js.Value
 
-	programs texcache.Cache[uint64, *customShaderProgram]
+	programs     texcache.Cache[uint64, *customShaderProgram]
+	shaderHashes gui.ShaderHashCache // memoizes ShaderHash per draw
 }
 
 type customShaderProgram struct {
@@ -186,14 +187,14 @@ func (r *customShaderRenderer) draw(
 func (r *customShaderRenderer) getProgram(
 	s *gui.Shader,
 ) (*customShaderProgram, bool) {
-	h := gui.ShaderHash(s)
+	h := r.shaderHashes.Hash(s)
 	if p, ok := r.programs.Get(h); ok {
 		return p, p != nil
 	}
 
 	p, err := r.buildProgram(
 		webGL2VertexSource(),
-		gui.BuildGLSLESFragment(s.GLSL),
+		gui.BuildGLSLESFragmentDecls(s.GLSLDecls, s.GLSL),
 	)
 	if err != nil {
 		log.Printf("web: custom shader compile: %v", err)

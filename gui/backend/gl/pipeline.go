@@ -33,17 +33,18 @@ type pipeline struct {
 
 // pipelineSet holds all compiled pipelines.
 type pipelineSet struct {
-	customCache texcache.Cache[uint64, pipeline]
-	solid       pipeline
-	shadow      pipeline
-	blur        pipeline
-	gradient    pipeline
-	imageClip   pipeline
-	filterBlurH pipeline
-	filterBlurV pipeline
-	filterColor pipeline
-	filterTex   pipeline
-	stencil     pipeline
+	customCache  texcache.Cache[uint64, pipeline]
+	shaderHashes gui.ShaderHashCache // memoizes ShaderHash per draw
+	solid        pipeline
+	shadow       pipeline
+	blur         pipeline
+	gradient     pipeline
+	imageClip    pipeline
+	filterBlurH  pipeline
+	filterBlurV  pipeline
+	filterColor  pipeline
+	filterTex    pipeline
+	stencil      pipeline
 }
 
 func (b *Backend) initPipelines() error {
@@ -192,14 +193,14 @@ var errCustomShaderCompile = errors.New("custom shader compile failed (cached)")
 // getOrBuildCustomPipeline returns a cached custom shader pipeline
 // or compiles a new one. The cache evicts the LRU entry when full.
 func (b *Backend) getOrBuildCustomPipeline(s *gui.Shader) (pipeline, error) {
-	h := gui.ShaderHash(s)
+	h := b.pipelines.shaderHashes.Hash(s)
 	if p, ok := b.pipelines.customCache.Get(h); ok {
 		if p.program == 0 {
 			return pipeline{}, errCustomShaderCompile
 		}
 		return p, nil
 	}
-	fsSrc := gui.BuildGLSLFragment(s.GLSL)
+	fsSrc := gui.BuildGLSLFragmentDecls(s.GLSLDecls, s.GLSL)
 	p, err := buildPipeline(shader.VsCustomGLSL, fsSrc)
 	if err != nil {
 		b.pipelines.customCache.Set(h, pipeline{})

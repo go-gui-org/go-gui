@@ -15,6 +15,14 @@ package msl
 // must bind (metalSetCustomBuiltins): an unbound buffer the
 // function reads is undefined behavior.
 func BuildCustom(body string) string {
+	return BuildCustomDecls("", body)
+}
+
+// BuildCustomDecls is BuildCustom with program-scope declarations
+// (gui.Shader.MetalDecls) spliced before the fragment function.
+// The built-ins (iTime, ...) are locals of fs_main, so a helper in
+// decls cannot read them: it takes what it needs as parameters.
+func BuildCustomDecls(decls, body string) string {
 	return `#include <metal_stdlib>
 using namespace metal;
 
@@ -51,6 +59,8 @@ vertex VertexOut vs_main(
     out.p3       = tm[3];
     return out;
 }
+
+` + decls + `
 
 fragment float4 fs_main(
     VertexOut in [[stage_in]],
