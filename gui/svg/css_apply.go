@@ -100,6 +100,9 @@ func applyCSSProp(name, value string, out *computedStyle) {
 	if applyCSSPaintProp(name, v, out) {
 		return
 	}
+	if applyCSSGeometryProp(name, v, out) {
+		return
+	}
 	applyCSSLayoutProp(name, v, out)
 }
 
@@ -141,6 +144,68 @@ func applyCSSPaintProp(name, v string, out *computedStyle) bool {
 		return false
 	}
 	return true
+}
+
+// applyCSSGeometryProp handles the SVG2 geometry properties (cx,
+// cy, r, rx, ry, x, y, width, height, x1, y1, x2, y2), which double
+// as CSS properties. Returns true when name matched. The value
+// arrives after var()/calc() resolution; an optional "px" suffix is
+// accepted (calc() emits px, attributes use user units). Anything
+// else unparseable is ignored per CSS "invalid → ignore" so a bogus
+// rule never clobbers a valid presentation attribute.
+func applyCSSGeometryProp(name, v string, out *computedStyle) bool {
+	n, ok := parseGeometryLength(v)
+	if !ok {
+		// Still claim known names: an invalid geometry value must
+		// not fall through to another handler, just be dropped.
+		switch name {
+		case "cx", "cy", "r", "rx", "ry",
+			"x", "y", "width", "height",
+			"x1", "y1", "x2", "y2":
+			return true
+		}
+		return false
+	}
+	switch name {
+	case "cx":
+		out.geomCX, out.geomCXSet = n, true
+	case "cy":
+		out.geomCY, out.geomCYSet = n, true
+	case "r":
+		out.geomR, out.geomRSet = n, true
+	case "rx":
+		out.geomRX, out.geomRXSet = n, true
+	case "ry":
+		out.geomRY, out.geomRYSet = n, true
+	case "x":
+		out.geomX, out.geomXSet = n, true
+	case "y":
+		out.geomY, out.geomYSet = n, true
+	case "width":
+		out.geomW, out.geomWSet = n, true
+	case "height":
+		out.geomH, out.geomHSet = n, true
+	case "x1":
+		out.geomX1, out.geomX1Set = n, true
+	case "y1":
+		out.geomY1, out.geomY1Set = n, true
+	case "x2":
+		out.geomX2, out.geomX2Set = n, true
+	case "y2":
+		out.geomY2, out.geomY2Set = n, true
+	default:
+		return false
+	}
+	return true
+}
+
+// parseGeometryLength parses a resolved geometry value: a number
+// with an optional "px" suffix. Rejects empty, non-numeric, and
+// non-finite input so only usable values enter the cascade.
+func parseGeometryLength(v string) (float32, bool) {
+	t := strings.TrimSpace(v)
+	t = strings.TrimSuffix(t, "px")
+	return parseFloatStrict(t)
 }
 
 // applyCSSLayoutProp handles font/text, display/visibility, transform
