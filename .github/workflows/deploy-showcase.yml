@@ -32,20 +32,17 @@ jobs:
 
       - name: Prepare deploy directory
         run: |
-          # Clone website repo to get root files (CNAME, index.html, etc.)
+          # Clone the website repo so its files carry over into the deploy.
           git clone --depth 1 \
             https://x-access-token:${{ secrets.WEBSITE_DEPLOY_TOKEN }}@github.com/go-gui-org/go-gui-org.github.io.git \
             /tmp/website
-          # Merge: root files + showcase build
+          # force_orphan below replaces the whole site. Copy the whole website tree
+          # (all files, not a list) so nothing added to the site is lost. A fixed list
+          # deleted every file not on it (robots.txt, sitemap.xml, then images).
+          # The old showcase/ is skipped because the new build replaces it.
+          mkdir -p deploy
+          rsync -a --exclude .git --exclude showcase /tmp/website/ deploy/
           mkdir -p deploy/showcase
-          cp /tmp/website/CNAME /tmp/website/index.html /tmp/website/.nojekyll deploy/ 2>/dev/null || true
-          cp /tmp/website/.gitattributes deploy/ 2>/dev/null || true
-          cp /tmp/website/CLAUDE.md deploy/ 2>/dev/null || true
-          cp /tmp/website/status.html deploy/ 2>/dev/null || true
-          # force_orphan below replaces the whole site, so every root file the site
-          # serves must be listed here. robots.txt and sitemap.xml were missing and
-          # got deleted on each deploy.
-          cp /tmp/website/robots.txt /tmp/website/sitemap.xml deploy/ 2>/dev/null || true
           cp -a examples/showcase/*.js examples/showcase/*.wasm examples/showcase/*.html deploy/showcase/ 2>/dev/null || true
           ls -la deploy/ deploy/showcase/
 
@@ -57,4 +54,7 @@ jobs:
           publish_branch: main
           publish_dir: ./deploy
           force_orphan: true
-          exclude_assets: '.gitignore,Makefile,*.go,docs/,assets/,locales/'
+          # Do not exclude directory names such as docs/ or assets/ here. The deploy
+          # now holds the whole website tree, so those patterns would delete site
+          # directories that use the same names.
+          exclude_assets: '.github,.gitignore,Makefile,*.go'
