@@ -12,6 +12,7 @@ import (
 	"image/png"
 	"io"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -267,8 +268,30 @@ func fetchMermaidAsync(
 }
 
 // defaultMermaidFetcher renders Mermaid diagrams via the
-// Kroki API.
-func defaultMermaidFetcher(ctx context.Context, source string) ([]byte, error) {
+// public Kroki API.
+var defaultMermaidFetcher = KrokiMermaidFetcher("https://kroki.io")
+
+// KrokiMermaidFetcher returns a MermaidFetcher that renders
+// through the Kroki server at baseURL, for example a
+// self-hosted "http://localhost:8000". A trailing slash on
+// baseURL is ignored. The fetcher keeps the limits of the
+// default one: the source and response size caps, the
+// non-200 error, and the shared diagram HTTP client. A
+// malformed baseURL gives a fetch error, which the markdown
+// view shows in place of the diagram.
+// exportaudit:keep — caller-facing config (issue #1147)
+func KrokiMermaidFetcher(baseURL string) MermaidFetcher {
+	// Build the endpoint once, so each fetch does not
+	// concatenate it again.
+	endpoint := strings.TrimRight(baseURL, "/") + "/mermaid/png"
+	return func(ctx context.Context, source string) ([]byte, error) {
+		return fetchKrokiMermaid(ctx, endpoint, source)
+	}
+}
+
+// fetchKrokiMermaid POSTs source to a Kroki mermaid PNG
+// endpoint and returns the image bytes.
+func fetchKrokiMermaid(ctx context.Context, endpoint, source string) ([]byte, error) {
 	// Defense-in-depth: caller guards this, but clamp here so
 	// a direct call can't pass an unbounded payload.
 	if len(source) > markdown.MaxMermaidSourceLen {
@@ -282,8 +305,7 @@ func defaultMermaidFetcher(ctx context.Context, source string) ([]byte, error) {
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost,
-		"https://kroki.io/mermaid/png",
-		bytes.NewReader(payload))
+		endpoint, bytes.NewReader(payload))
 	if err != nil {
 		return nil, err
 	}

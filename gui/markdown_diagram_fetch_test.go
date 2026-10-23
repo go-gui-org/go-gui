@@ -458,6 +458,62 @@ func TestDefaultMermaidFetcherHTTPError(t *testing.T) {
 	}
 }
 
+// TestKrokiMermaidFetcherUsesBaseURL asserts a self-hosted base URL
+// replaces kroki.io, and that a trailing slash on it does not produce
+// a "//mermaid" path.
+func TestKrokiMermaidFetcherUsesBaseURL(t *testing.T) {
+	body := testPNGBytes(t, 30, 20)
+	urls := withStubHTTPClient(t, 200, body)
+
+	fetch := KrokiMermaidFetcher("http://localhost:8000/")
+	got, err := fetch(context.Background(), "graph TD\n  A-->B")
+	if err != nil {
+		t.Fatalf("fetch: %v", err)
+	}
+	if !bytes.Equal(got, body) {
+		t.Error("fetcher did not return the response body")
+	}
+	if len(*urls) != 1 {
+		t.Fatalf("requests = %d, want 1", len(*urls))
+	}
+	if want := "http://localhost:8000/mermaid/png"; (*urls)[0] != want {
+		t.Errorf("request URL = %q, want %q", (*urls)[0], want)
+	}
+}
+
+// TestKrokiMermaidFetcherKeepsLimits asserts a custom base URL keeps
+// the guards of the default fetcher: the source size limit and the
+// non-200 error.
+func TestKrokiMermaidFetcherKeepsLimits(t *testing.T) {
+	urls := withStubHTTPClient(t, 503, []byte("down"))
+	fetch := KrokiMermaidFetcher("http://localhost:8000")
+
+	long := strings.Repeat("x", markdown.MaxMermaidSourceLen+1)
+	if _, err := fetch(context.Background(), long); err == nil ||
+		!strings.Contains(err.Error(), "too large") {
+		t.Errorf("oversized source: err = %v, want too large", err)
+	}
+	if len(*urls) != 0 {
+		t.Errorf("oversized source sent %d requests, want 0", len(*urls))
+	}
+
+	if _, err := fetch(context.Background(), "graph TD"); err == nil ||
+		!strings.Contains(err.Error(), "HTTP 503") ||
+		!strings.Contains(err.Error(), "down") {
+		t.Errorf("HTTP 503: err = %v, want status and response preview", err)
+	}
+}
+
+// TestKrokiMermaidFetcherBadURL asserts a malformed base URL gives an
+// ordinary error (shown inline as a diagram error), not a panic.
+func TestKrokiMermaidFetcherBadURL(t *testing.T) {
+	withStubHTTPClient(t, 200, nil)
+	fetch := KrokiMermaidFetcher("://no-scheme")
+	if _, err := fetch(context.Background(), "graph TD"); err == nil {
+		t.Error("expected error for malformed base URL")
+	}
+}
+
 // TestDefaultMathFetcherHTTP asserts the URL construction: the DPI
 // clamp (10 → 24), the white-foreground color command (luminance > 128
 // requests \color{white}), and the body passthrough.
