@@ -498,8 +498,9 @@ func TestKrokiMermaidFetcherKeepsLimits(t *testing.T) {
 	}
 
 	if _, err := fetch(context.Background(), "graph TD"); err == nil ||
-		!strings.Contains(err.Error(), "HTTP 503") {
-		t.Errorf("HTTP 503: err = %v, want it to mention HTTP 503", err)
+		!strings.Contains(err.Error(), "HTTP 503") ||
+		!strings.Contains(err.Error(), "down") {
+		t.Errorf("HTTP 503: err = %v, want status and response preview", err)
 	}
 }
 
