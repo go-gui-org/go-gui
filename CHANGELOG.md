@@ -10,6 +10,16 @@ and this project adheres to
 
 ### Added
 
+- **`KrokiMermaidFetcher(baseURL)` renders Mermaid diagrams through a
+  self-hosted Kroki server (#1147).** Set
+  `MarkdownCfg.MermaidFetcher: gui.KrokiMermaidFetcher("http://localhost:8000")`.
+  Before, the Kroki address was fixed to the public `https://kroki.io`. When
+  that service was slow or down, diagrams did not render. To use another server,
+  an app had to write its own fetcher and copy the size limits and error
+  handling. The new fetcher keeps all of them and uses the shared diagram HTTP
+  client. A self-hosted server also keeps diagram source on your own network.
+  The default is unchanged.
+
 - **`cmd/shaderport` ports a Shadertoy shader to a `*gui.Shader` (#573).** Run
   `shaderport -name myShader -o my_shader.go my.frag` on a shader with
   `mainImage(out vec4, in vec2)`. The tool writes a Go file whose `*gui.Shader`

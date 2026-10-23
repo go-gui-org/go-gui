@@ -256,8 +256,9 @@ type MarkdownCfg struct {
 	MathFetcher MathFetcher
 
 	// MermaidFetcher replaces the default Kroki renderer.
-	// When nil, uses the default Kroki endpoint. Ignored
-	// when DisableExternalAPIs is true.
+	// When nil, uses the default Kroki endpoint. Use
+	// KrokiMermaidFetcher to point at a self-hosted Kroki.
+	// Ignored when DisableExternalAPIs is true.
 	// exportaudit:keep — caller-facing config (issue #372)
 	MermaidFetcher MermaidFetcher
 
