@@ -8,14 +8,15 @@ import (
 func TestDialAngleMapsPeriodToOneTurn(t *testing.T) {
 	p := planets[earthIndex]
 	start := dialAngle(0)
-	end := dialAngle(p.PeriodS)
-	delta := end - start
+	// dialAngle wraps each lap, so a full period lands back on the
+	// start angle rather than one turn past it.
+	end := dialAngle(float64(p.PeriodS))
 	want := 2 * float32(math.Pi)
-	if d := delta - want; d < -1e-4 || d > 1e-4 {
-		t.Fatalf("full Earth period delta %v want %v", delta, want)
+	if d := end - start; d < -1e-4 || d > 1e-4 {
+		t.Fatalf("full Earth period: angle %v want back at %v", end, start)
 	}
 	// Half period should be half turn.
-	half := dialAngle(p.PeriodS * 0.5)
+	half := dialAngle(float64(p.PeriodS) * 0.5)
 	hd := half - start
 	if diff := hd - want*0.5; diff < -1e-4 || diff > 1e-4 {
 		t.Fatalf("half period delta %v want %v", hd, want*0.5)
@@ -113,7 +114,7 @@ func TestAxisDirUnitAndOrientation(t *testing.T) {
 func TestDialAngleLargeTimeNormalized(t *testing.T) {
 	// After many orbits, marker normalization must stay in [0,2pi)
 	// and remain consistent — the old loop was O(cycles).
-	for _, tm := range []float32{1e3, 1e4, 1e5, 1e6} {
+	for _, tm := range []float64{1e3, 1e4, 1e5, 1e6} {
 		a := newApp()
 		a.CanvasW, a.CanvasH = 800, 600
 		a.Time = tm

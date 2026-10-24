@@ -27,8 +27,16 @@ orbits and opens a fact sheet with six stat cards and a fun fact. The sun is a
 body like any other here: it hit-tests, it has its own fact sheet, and it takes
 the first navigation dot. Navigation dots along the bottom jump straight to any
 body, and the left and right arrow keys step through them with wraparound.
-Scroll, pinch, or the `+` and `−` controls zoom in and out. Escape, or a click
-on empty space, returns to the full system.
+Scroll, pinch, or the `+` and `−` controls zoom in and out. Escape, the `×` on
+the fact sheet, or a click on empty space returns to the full system. Hover a
+navigation dot to see the name of its body.
+
+Space pauses the orbits and Up and Down double or halve their speed, from 0.25x
+to 16x. The camera keeps moving while the orbits are paused. M mutes the
+background track. The same controls are buttons at the top right, beside the
+current speed. Space works only when no button has keyboard focus, because a
+focused button takes Space as a click. In a window narrower than 792 px, the
+fact sheet shrinks to fit and shows its six cards in two rows.
 
 ## Run
 
@@ -42,7 +50,15 @@ go run ./examples/solar_system/
   canvas, with `Version` bumped every tick to invalidate the tessellation cache.
   Without that bump, the canvas renders frame one forever.
 - **Continuous animation** via `Animate` with `Repeat`. It drives a single
-  `tick` that advances time, the camera, and hover in one place.
+  `tick` that advances time, the camera, and hover in one place. Each tick
+  measures the wall-clock time since the previous one, so the orrery keeps its
+  pace when frames drop. The step is capped at 100 ms, so a stall does not make
+  the planets jump.
+- **A clock that runs for days.** `App.Time` grows without bound, so it is
+  `float64`. As a `float32`, one step of the clock was larger than a whole tick
+  after about a day, and the motion stuttered. Every angle that reads the clock
+  goes through `turns`, which takes the fractional turn in `float64`. Only that
+  bounded value goes into the `float32` math.
 - **A camera whose target moves.** A selected planet continues to orbit. The
   code re-reads the camera's goal every tick rather than capturing it at click
   time. Interrupting a transition restarts the tween from wherever the camera

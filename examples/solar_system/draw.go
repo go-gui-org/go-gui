@@ -223,7 +223,9 @@ func drawStars(a *App, dc *gui.DrawContext) {
 
 	for i := range min(len(a.Stars), starCount) {
 		s := &a.Stars[i]
-		b := s.Base + s.Amp*sin32(a.Time*s.Speed+s.Phase)
+		// s.Speed is radians per second; wrap in turns before float32.
+		tw := 2 * math.Pi * turns(a.Time*float64(s.Speed)/(2*math.Pi))
+		b := s.Base + s.Amp*sin32(tw+s.Phase)
 		c := colorStar.WithOpacity(clamp32(b, starAlphaFloor, 1))
 
 		x0, y0 := s.X*dc.Width, s.Y*dc.Height
@@ -346,7 +348,7 @@ func drawSun(a *App, dc *gui.DrawContext) {
 	cx, cy := a.SunX, a.SunY
 	r := max(a.SunR, 1.5)
 
-	pulse := 1 + 0.06*sin32(2*math.Pi*glowPulseHz*a.Time)
+	pulse := 1 + 0.06*sin32(2*math.Pi*turns(a.Time*glowPulseHz))
 	outer := r * glowExtent * pulse
 
 	// Hovering brightens the halo rather than adding a ring of its own:
@@ -531,9 +533,11 @@ func drawGranulation(dc *gui.DrawContext, m *bodyMesh, cx, cy, r float32) {
 // stacked translucency for the merge to flatten. Quads within a tier
 // stop double-blending at their shared edge, which is what the seam
 // note on appendTri is about.
-func drawCorona(dc *gui.DrawContext, m *bodyMesh, cx, cy, r, now float32) {
+func drawCorona(dc *gui.DrawContext, m *bodyMesh, cx, cy, r float32, now float64) {
 	m.tris, m.cols = m.tris[:0], m.cols[:0]
-	drift := now * coronaDriftHz * float32(coronaSteps)
+	// edgeAt wraps every coronaSteps, so one drift cycle is exactly one
+	// lap of the noise ring. Wrapping in turns keeps it float32-safe.
+	drift := turns(now*coronaDriftHz) * float32(coronaSteps)
 
 	// The noise the boundaries ride on is a function of the angle and
 	// the drift, not of the tier: coronaPoint used to re-sample it
@@ -805,7 +809,7 @@ type surface struct {
 // put a heap allocation on the frame path: this runs per planet per
 // tick, and nine escaping values a frame is the whole session's worth
 // of garbage that drawBody's scratch reuse exists to avoid.
-func initSurface(s *surface, i int, t float32) bool {
+func initSurface(s *surface, i int, t float64) bool {
 	p := &planets[i]
 	if p.RotS == 0 || planetTextures[i] == nil {
 		return false
@@ -821,7 +825,7 @@ func initSurface(s *surface, i int, t float32) bool {
 		e2x: 0, e2y: sinE, e2z: cosE,
 		// Phase doubles as the starting meridian so the eight bodies
 		// do not all begin with the same face toward the sun.
-		spin: t/p.RotS + p.Phase*(1/(2*math.Pi)),
+		spin: turns(t/float64(p.RotS)) + p.Phase*(1/(2*math.Pi)),
 	}
 	return true
 }
@@ -1583,7 +1587,12 @@ func drawRings(a *App, dc *gui.DrawContext, p *Planet, cx, cy, r float32,
 // cursor or target a sub-region of a canvas, so the bubble is drawn
 // here and clamped to the canvas so it never runs off an edge.
 func drawTooltip(a *App, dc *gui.DrawContext) {
-	b := bodyAt(a.Hovered)
+	// A hovered nav dot takes precedence over a body under the cursor.
+	sel := a.Hovered
+	if a.DotHover != -1 {
+		sel = a.DotHover
+	}
+	b := bodyAt(sel)
 	if !a.MouseIn || b == nil {
 		return
 	}

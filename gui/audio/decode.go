@@ -54,7 +54,13 @@ func decodeReader(ext string, rc io.ReadSeekCloser) (beep.StreamSeekCloser, beep
 }
 
 // decodeBytes decodes in-memory audio data.  Detects format by magic
-// bytes and delegates to the appropriate decoder. The MP3 sync-word
+// bytes and delegates to the appropriate decoder.
+//
+// Every decoder gets a seekable reader. The decoders enable seeking
+// only when their reader can seek, and Music.Play and FadeIn seek to 0
+// before they start. With a plain reader, FLAC and OGG refused the
+// seek and the track stayed silent, and go-mp3 divided by zero and
+// panicked. The MP3 sync-word
 // check (0xFF 0xE0) can also match non-MP3 data starting with those
 // bytes; such input routes to the MP3 decoder, which then returns a
 // decode error rather than "unrecognized format".
@@ -68,13 +74,13 @@ func decodeBytes(data []byte) (beep.StreamSeekCloser, beep.Format, error) {
 	case string(data[:4]) == "RIFF":
 		return wav.Decode(newReadSeekCloser(data))
 	case data[0] == 0xFF && len(data) > 1 && data[1]&0xE0 == 0xE0:
-		return mp3.Decode(newReadCloser(data))
+		return mp3.Decode(newReadSeekCloser(data))
 	case len(data) >= 3 && string(data[:3]) == "ID3":
-		return mp3.Decode(newReadCloser(data))
+		return mp3.Decode(newReadSeekCloser(data))
 	case string(data[:4]) == "OggS":
-		return vorbis.Decode(newReadCloser(data))
+		return vorbis.Decode(newReadSeekCloser(data))
 	case string(data[:4]) == "fLaC":
-		return flac.Decode(newReadCloser(data))
+		return flac.Decode(newReadSeekCloser(data))
 	default:
 		return nil, beep.Format{}, fmt.Errorf(
 			"audio: unrecognized audio format (magic: % x)", data[:min(4, len(data))])
@@ -89,28 +95,6 @@ type readSeekCloser struct {
 
 func newReadSeekCloser(data []byte) *readSeekCloser {
 	return &readSeekCloser{r: bytes.NewReader(data)}
-}
-
-// readCloser wraps a [bytes.Reader] into [io.ReadCloser].
-type readCloser struct {
-	r      *bytes.Reader
-	closed bool
-}
-
-func newReadCloser(data []byte) *readCloser {
-	return &readCloser{r: bytes.NewReader(data)}
-}
-
-func (r *readCloser) Read(p []byte) (int, error) {
-	if r.closed {
-		return 0, errors.New("audio: reader closed")
-	}
-	return r.r.Read(p)
-}
-
-func (r *readCloser) Close() error {
-	r.closed = true
-	return nil
 }
 
 func (r *readSeekCloser) Read(p []byte) (int, error) {

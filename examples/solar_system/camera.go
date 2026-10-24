@@ -38,13 +38,13 @@ const (
 //
 // The ellipse is centered at (-a*e, 0) so the sun sits on the focus at
 // the world origin, which is what makes eccentricity visible at all.
-func orbitPos(p *Planet, t float32) (x, y float32) {
+func orbitPos(p *Planet, t float64) (x, y float32) {
 	return ellipsePos(p.OrbitA, p.Ecc, p.Phase, p.PeriodS, t)
 }
 
 // ellipsePos is orbitPos with the orbit terms supplied directly, so
 // the asteroid belt can share it without a Planet table entry.
-func ellipsePos(a, ecc, phase, periodS, t float32) (x, y float32) {
+func ellipsePos(a, ecc, phase, periodS float32, t float64) (x, y float32) {
 	if periodS <= 0 {
 		periodS = 1
 	}
@@ -53,9 +53,22 @@ func ellipsePos(a, ecc, phase, periodS, t float32) (x, y float32) {
 	} else if ecc >= 1 {
 		ecc = 0.99
 	}
-	theta := phase + 2*math.Pi*t/periodS
+	theta := phase + 2*math.Pi*turns(t/float64(periodS))
 	b := a * sqrt32(1-ecc*ecc)
 	return a*cos32(theta) - a*ecc, b * sin32(theta)
+}
+
+// turns returns the fractional part of x, in [0, 1), as a float32.
+//
+// Every clock-driven angle goes through here. App.Time grows without
+// bound, and the angle math is float32. Past a day of wall clock the
+// float32 step at App.Time is larger than half a tick, so t/period
+// done in float32 moves in uneven jumps and the orrery stutters. The
+// division and the floor run in float64, where the step stays far
+// below a tick for centuries. Only the bounded remainder drops to
+// float32.
+func turns(x float64) float32 {
+	return float32(x - math.Floor(x))
 }
 
 // orbitPeriod is the PeriodS a body at world radius a would have

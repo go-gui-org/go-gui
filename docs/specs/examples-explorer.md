@@ -147,7 +147,8 @@ Scan order (first hit wins, to preserve `solar_system`'s existing files):
 
 1. `screenshot.png`
 2. `preview.png`
-3. `screenshot1.png` (legacy — `solar_system` currently has 2)
+3. `screenshot1.png` (legacy; `solar_system` dropped its copies, so no example
+   ships one now)
 4. `icon.png` / `*.png` fallback — only for legacy examples, not for new ones
 
 Explorer maps `screenshot.png` to `gui.ImageCfg{ Src: absPath }`. Missing file

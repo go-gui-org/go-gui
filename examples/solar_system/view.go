@@ -24,6 +24,8 @@ func mainView(w *gui.Window) gui.View {
 	a.TipStyle = theme.TextStyleBodySmall.Bold()
 	a.LabelStyle = theme.TextStyleSecondary
 
+	winW, _ := w.WindowSize()
+
 	return gui.Column(gui.ContainerCfg{
 		Sizing:     gui.FillFill,
 		Padding:    gui.NoPadding,
@@ -32,8 +34,8 @@ func mainView(w *gui.Window) gui.View {
 		Color:      colorSpace,
 		Content: []gui.View{
 			solarCanvas(a),
-			zoomControls(theme),
-			infoPanel(a, theme),
+			controls(a, theme),
+			infoPanel(a, theme, winW),
 		},
 	})
 }
@@ -72,11 +74,15 @@ func solarCanvas(a *App) gui.View {
 			a.MouseX, a.MouseY = ctx.Event.MouseX, ctx.Event.MouseY
 			a.MouseIn = true
 			a.Hovered = a.hitTest(a.MouseX, a.MouseY)
+			// A dot under the pointer sets it back in this frame's
+			// layout pass; see App.DotHover.
+			a.DotHover = -1
 		},
 
 		OnMouseLeave: func(gui.EventCtx) {
 			a.MouseIn = false
 			a.Hovered = -1
+			a.DotHover = -1
 		},
 
 		// A click on a body selects it; a click on empty space returns

@@ -22,7 +22,7 @@ func TestOrbitPeriodReproducesTable(t *testing.T) {
 
 func TestEllipsePosMatchesOrbitPos(t *testing.T) {
 	for i, p := range planets {
-		for _, when := range []float32{0, 1.2, 11.4, 55} {
+		for _, when := range []float64{0, 1.2, 11.4, 55} {
 			x1, y1 := orbitPos(&p, when)
 			x2, y2 := ellipsePos(p.OrbitA, p.Ecc, p.Phase, p.PeriodS, when)
 			if dx := x1 - x2; dx < -1e-4 || dx > 1e-4 {
@@ -72,7 +72,8 @@ func TestOrbitPeriodDegenerateInputs(t *testing.T) {
 func TestEllipsePosDegenerateInputs(t *testing.T) {
 	// Zero/negative period and out-of-range ecc must not produce NaN/Inf.
 	cases := []struct {
-		a, ecc, phase, periodS, t float32
+		a, ecc, phase, periodS float32
+		t                      float64
 	}{
 		{250, 0.1, 0, 0, 10},
 		{250, 0.1, 0, -5, 10},

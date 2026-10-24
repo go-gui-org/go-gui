@@ -75,7 +75,7 @@ func TestPrimitiveCountsPerFrame(t *testing.T) {
 		a.CanvasW, a.CanvasH = 1100, 760
 		a.Selected = tc.sel
 		for range 120 { // let the tween settle
-			tick(a)
+			tick(a, wallTickSecs)
 		}
 		c := countFrame(a)
 		t.Logf("%-18s sunR=%6.1f  %v", tc.name, a.SunR, c.n)
@@ -88,7 +88,7 @@ func TestBatchCountPerFrame(t *testing.T) {
 		a.CanvasW, a.CanvasH = 1100, 760
 		a.Selected = sel
 		for range 120 {
-			tick(a)
+			tick(a, wallTickSecs)
 		}
 		dc := gui.NewDrawContext(a.CanvasW, a.CanvasH, nil)
 		drawSystem(a, dc)
@@ -105,12 +105,12 @@ func benchFrame(b *testing.B, sel int) {
 	a.CanvasW, a.CanvasH = 1100, 760
 	a.Selected = sel
 	for range 120 {
-		tick(a)
+		tick(a, wallTickSecs)
 	}
 	b.ReportAllocs()
 	b.ResetTimer()
 	for b.Loop() {
-		tick(a)
+		tick(a, wallTickSecs)
 		dc := gui.NewDrawContext(a.CanvasW, a.CanvasH, nil)
 		drawSystem(a, dc)
 	}
@@ -124,7 +124,7 @@ func BenchmarkTickOnly(b *testing.B) {
 	a.CanvasW, a.CanvasH = 1100, 760
 	b.ReportAllocs()
 	for b.Loop() {
-		tick(a)
+		tick(a, wallTickSecs)
 	}
 }
 
@@ -139,7 +139,7 @@ func benchWholeFrame(b *testing.B, sel int) {
 	a.CanvasW, a.CanvasH = windowW, windowH
 	a.Selected = sel
 	for range 120 {
-		tick(a)
+		tick(a, wallTickSecs)
 	}
 	w := gui.NewWindow(gui.WindowCfg{
 		State:  a,
@@ -151,7 +151,7 @@ func benchWholeFrame(b *testing.B, sel int) {
 	b.ReportAllocs()
 	b.ResetTimer()
 	for b.Loop() {
-		tick(a)
+		tick(a, wallTickSecs)
 		w.TestRender(nil)
 	}
 }
@@ -169,7 +169,7 @@ func benchWholeFrameRenderOnly(b *testing.B, sel int) {
 	a.CanvasW, a.CanvasH = windowW, windowH
 	a.Selected = sel
 	for range 120 {
-		tick(a)
+		tick(a, wallTickSecs)
 	}
 	w := gui.NewWindow(gui.WindowCfg{
 		State:  a,
@@ -181,7 +181,7 @@ func benchWholeFrameRenderOnly(b *testing.B, sel int) {
 	b.ReportAllocs()
 	b.ResetTimer()
 	for b.Loop() {
-		tick(a)
+		tick(a, wallTickSecs)
 		// What the animation loop queues for this refresh kind.
 		w.InvalidateRender()
 		w.FrameFn()
@@ -215,7 +215,7 @@ func TestRenderOnlyTickRedrawsCanvas(t *testing.T) {
 	// Far enough for the planets to have moved measurably, but still
 	// only render-only frames.
 	for range 30 {
-		tick(a)
+		tick(a, wallTickSecs)
 		w.InvalidateRender()
 		w.FrameFn()
 	}

@@ -91,7 +91,7 @@ func TestOrbitPosStaysOnEllipse(t *testing.T) {
 	p := &planets[0] // Mercury, the most eccentric here
 	var near, far float32 = 1e9, 0
 	for i := range 720 {
-		x, y := orbitPos(p, float32(i)*p.PeriodS/720)
+		x, y := orbitPos(p, float64(float32(i)*p.PeriodS/720))
 		d := sqrt32(x*x + y*y)
 		near = min(near, d)
 		far = max(far, d)
@@ -184,14 +184,14 @@ func TestSelectionWrapsBothWays(t *testing.T) {
 func TestSunIsSelectable(t *testing.T) {
 	t.Parallel()
 	a := newTestApp()
-	tick(a)
+	tick(a, wallTickSecs)
 
 	if got := a.hitTest(a.SunX, a.SunY); got != selSun {
 		t.Fatalf("hitTest at the sun = %d, want %d", got, selSun)
 	}
 	selectBody(a, nil, selSun)
 	for range tweenTicks + 4 {
-		tick(a)
+		tick(a, wallTickSecs)
 	}
 	// The sun sits at the world origin, so a settled camera is there
 	// too apart from the info-panel lift.
@@ -251,7 +251,7 @@ func TestCameraTweenReachesTarget(t *testing.T) {
 	selectBody(a, nil, 4) // Jupiter
 
 	for range tweenTicks + 4 {
-		tick(a)
+		tick(a, wallTickSecs)
 	}
 	if a.TweenT != 1 {
 		t.Fatalf("TweenT = %v, want 1", a.TweenT)
@@ -273,7 +273,7 @@ func TestCameraFollowsOrbitingPlanet(t *testing.T) {
 	selectBody(a, nil, 0) // Mercury, the fastest
 
 	for range 2*tweenTicks + 200 {
-		tick(a)
+		tick(a, wallTickSecs)
 	}
 	wx, _ := orbitPos(&planets[0], a.Time)
 	if !closeEnough(a.CamX, wx, 0.5) {
@@ -293,7 +293,7 @@ func TestInterruptedTransitionIsContinuous(t *testing.T) {
 	a := newTestApp()
 	selectBody(a, nil, 7)
 	for range 10 {
-		tick(a)
+		tick(a, wallTickSecs)
 	}
 	midX, midZoom := a.CamX, a.CamZoom
 
@@ -302,7 +302,7 @@ func TestInterruptedTransitionIsContinuous(t *testing.T) {
 		t.Errorf("transition origin (%.3f,%.3f), want current camera "+
 			"(%.3f,%.3f)", a.FromX, a.FromZoom, midX, midZoom)
 	}
-	tick(a)
+	tick(a, wallTickSecs)
 	// One tick in, the camera has barely moved from the interruption
 	// point — no jump.
 	if !closeEnough(a.CamZoom, midZoom, absF(midZoom)*0.25+0.05) {
@@ -362,7 +362,7 @@ func TestStarfieldIsOneBatch(t *testing.T) {
 	t.Parallel()
 	a := newApp()
 	for step := range 200 {
-		a.Time = float32(step) * 0.05
+		a.Time = float64(step) * 0.05
 		dc := gui.NewDrawContext(400, 300, nil)
 		drawStars(a, dc)
 
@@ -456,7 +456,7 @@ func TestShadingFacesTheSun(t *testing.T) {
 	// is right, because the sun is genuinely above.
 	for range 240 {
 		for range 30 {
-			tick(a)
+			tick(a, wallTickSecs)
 		}
 		check(t, a)
 	}
@@ -465,7 +465,7 @@ func TestShadingFacesTheSun(t *testing.T) {
 	selectBody(b, nil, 4)
 	for range 240 {
 		for range 30 {
-			tick(b)
+			tick(b, wallTickSecs)
 		}
 		check(t, b)
 	}
@@ -478,7 +478,7 @@ func TestShadingFacesTheSun(t *testing.T) {
 func TestWorldCacheMatchesOrbitPos(t *testing.T) {
 	t.Parallel()
 	a := newTestApp()
-	for _, tm := range []float32{0, 3.7, 91} {
+	for _, tm := range []float64{0, 3.7, 91} {
 		a.Time = tm
 		a.recompute()
 		for i := range planets {
@@ -538,7 +538,7 @@ func TestLitFractionTracksOrbit(t *testing.T) {
 
 	const samples = 360
 	for i := range samples {
-		a.Time = p.PeriodS * float32(i) / samples
+		a.Time = float64(p.PeriodS * float32(i) / samples)
 		_, wy := orbitPos(p, a.Time)
 		k := a.litFraction(idx)
 
@@ -586,7 +586,7 @@ func TestLitFractionHalfAtQuarters(t *testing.T) {
 	for i := range planets {
 		p := &planets[i]
 		for s := range 2000 {
-			a.Time = p.PeriodS * float32(s) / 2000
+			a.Time = float64(p.PeriodS * float32(s) / 2000)
 			_, wy := orbitPos(p, a.Time)
 			if absF(wy) > p.OrbitA*0.002 {
 				continue // not near a quarter point
@@ -621,7 +621,7 @@ func TestLightBasisOrthonormal(t *testing.T) {
 	a := newTestApp()
 	for i := range planets {
 		for s := range 90 {
-			a.Time = planets[i].PeriodS * float32(s) / 90
+			a.Time = float64(planets[i].PeriodS * float32(s) / 90)
 			b := newLightBasis(a.lightVec(i))
 
 			unit := func(name string, x, y, z float32) {
@@ -660,7 +660,7 @@ func TestShadePointsStayInsideDisc(t *testing.T) {
 	a := newTestApp()
 	const r = 64
 	for i := range planets {
-		a.Time = planets[i].PeriodS * 0.37
+		a.Time = float64(planets[i].PeriodS * 0.37)
 		b := newLightBasis(a.lightVec(i))
 		for j := range 41 {
 			c := -1 + 2*float32(j)/40
@@ -884,7 +884,7 @@ func TestDrawSystemGeometryIsFinite(t *testing.T) {
 			// Settle any transition the setup started, so the frame
 			// under test is the one the case names.
 			for range tweenTicks {
-				tick(a)
+				tick(a, wallTickSecs)
 			}
 			assertFinite(t, drawInto(a), tc.name)
 		})
@@ -924,7 +924,7 @@ func TestDrawBodyDegenerateLight(t *testing.T) {
 	planets[0].Ecc = 0
 
 	a := newTestApp()
-	tick(a)
+	tick(a, wallTickSecs)
 	assertFinite(t, drawInto(a), "planet on the sun")
 }
 
