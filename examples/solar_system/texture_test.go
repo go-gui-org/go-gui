@@ -12,7 +12,7 @@ import (
 // testSurface is initSurface in the shape the tests want. The
 // production call site keeps the value on its own stack to stay off
 // the frame path's allocation budget; a test does not care.
-func testSurface(i int, t float32) *surface {
+func testSurface(i int, t float64) *surface {
 	var s surface
 	if !initSurface(&s, i, t) {
 		return nil
@@ -349,7 +349,7 @@ func TestTextureAtIsContinuousInTurn(t *testing.T) {
 func TestUVCoordsStayInRange(t *testing.T) {
 	for i := range planets {
 		for step := range 90 {
-			s := testSurface(i, float32(step)*0.7)
+			s := testSurface(i, float64(step)*0.7)
 			b := newLightBasis(0.6, 0.2, -0.77)
 			proj := s.project(b)
 			for pi := range 12 {
@@ -401,7 +401,7 @@ func TestSpinAdvancesLongitude(t *testing.T) {
 		var prev float32
 		var total float32
 		for step := range 24 {
-			s := testSurface(i, float32(step)*abs32(planets[i].RotS)/24)
+			s := testSurface(i, float64(float32(step)*abs32(planets[i].RotS)/24))
 			turn := subViewerTurn(s, 0, 0, 1)
 			if step > 0 {
 				d := turn - prev

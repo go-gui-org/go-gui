@@ -10,12 +10,11 @@
 package main
 
 import (
-	"math/rand/v2"
-	"time"
-
 	"flag"
 	"log"
+	"math/rand/v2"
 	"os"
+	"time"
 
 	"github.com/go-gui-org/go-gui/gui"
 	"github.com/go-gui-org/go-gui/gui/backend"
@@ -29,19 +28,38 @@ const (
 	tickAnim  = "solar_tick"
 	tickDelay = 16 * time.Millisecond
 
-	// tickSecs is how much *simulated* time one tick advances, and it
-	// is deliberately not tickDelay. The animation still fires every
-	// 16 ms of wall clock, but advances 3.04 ms of simulation, so
+	// tickSecs is how much *simulated* time one nominal tick advances,
+	// and it is deliberately not tickDelay. The animation fires about
+	// every 16 ms of wall clock, but advances 3.04 ms of simulation, so
 	// Earth's 11.4 s period maps to 60 s wall clock — one Earth year
-	// per minute. Orbits, spins and star twinkle slow together because
-	// they are functions of App.Time; camera tween stays on wall time
-	// so zoom/pan do not get sluggish with the orrery.
+	// per minute at 1x speed. Orbits, spins and star twinkle slow
+	// together because they are functions of App.Time; camera tween
+	// stays on wall time so zoom/pan do not get sluggish with the
+	// orrery.
 	tickSecs = float32(0.00304)
 
-	// wallTickSecs is the wall-clock delta advanceCamera steps by. Keep
-	// it separate from tickSecs so slowing the orrery does not slow the
-	// camera.
+	// wallTickSecs is the nominal wall-clock gap between ticks. It is
+	// the step for the first tick, before there is a previous tick to
+	// measure from. simPerWall is the simulated seconds per wall
+	// second at 1x, derived from the pair so the two cannot drift.
 	wallTickSecs = float32(0.016)
+	simPerWall   = tickSecs / wallTickSecs
+
+	// maxWallStep caps one tick's wall-clock step. A stalled frame or a
+	// laptop wake would otherwise jump every planet forward by the
+	// whole gap in one frame. Under the cap, a slow frame advances by
+	// the real time it took, so the orrery keeps wall-clock pace when
+	// frames drop instead of slowing with them.
+	maxWallStep = float32(0.1)
+
+	// speedMin and speedMax bound the orrery speed multiplier that the
+	// Up and Down keys step by speedStep. The camera ignores it.
+	//
+	// All three are written as floats on purpose: an untyped integer 2
+	// makes 1/speedStep integer division, which is 0.
+	speedMin  = 0.25
+	speedMax  = 16.0
+	speedStep = 2.0
 
 	canvasID = "solar_canvas"
 
@@ -72,8 +90,25 @@ type Star struct {
 
 // App is the window's single state slot.
 type App struct {
-	Time    float32 // seconds since start
-	Version uint64  // bumped per tick; invalidates the DrawCanvas cache
+	// Time is simulated seconds since start. It is float64 because it
+	// grows without bound: as float32 its step passes half a tick after
+	// about a day and the motion stutters. Consumers reduce it with
+	// turns before any float32 math.
+	Time    float64
+	Version uint64 // bumped per tick; invalidates the DrawCanvas cache
+
+	// Speed multiplies how fast simulated time runs. Paused freezes it.
+	// Neither touches the camera, which runs on wall time.
+	Speed  float32
+	Paused bool
+
+	// Muted is the ambience toggle. It is App state, not only an audio
+	// call, so the button label reads it back.
+	Muted bool
+
+	// lastTick is the wall time of the previous tick, zero before the
+	// first. wallStep measures each step from it.
+	lastTick time.Time
 
 	Stars []Star
 
@@ -113,6 +148,16 @@ type App struct {
 	// -1 for the full-system view / nothing under the cursor.
 	Selected int
 	Hovered  int
+
+	// DotHover is the nav dot under the pointer, in the same encoding,
+	// or -1. drawTooltip names that body. A frame runs events, then
+	// layout, then render: the canvas's OnMouseMove clears DotHover
+	// (the canvas sees every move, dots included, because a dot has no
+	// OnMouseMove to claim it), the dot's OnHover sets it again in the
+	// layout pass while the pointer is still on it, and OnDraw reads
+	// the result. So a pointer leaving a dot clears it with no leave
+	// event, which a Button does not have.
+	DotHover int
 
 	// Cursor position in canvas-content space, from OnMouseMove.
 	MouseX, MouseY float32
@@ -164,6 +209,8 @@ func newApp() *App {
 	a := &App{
 		Selected: -1,
 		Hovered:  -1,
+		DotHover: -1,
+		Speed:    1,
 		UserZoom: 1,
 		CamZoom:  1,
 		Stars:    makeStars(),
@@ -198,14 +245,34 @@ func main() {
 	flag.Parse()
 
 	gui.SetTheme(gui.ThemeDark)
+	w := newWindow()
 
-	w := gui.NewWindow(gui.WindowCfg{
+	if *screenshot != "" {
+		if err := soft.RenderToPNG(w, 2, *screenshot); err != nil {
+			log.Fatalf("screenshot: %v", err)
+		}
+		os.Exit(0)
+	}
+	// Audio starts here, on the interactive path only. In OnInit it
+	// also ran for -screenshot, because RenderToPNG runs OnInit: the
+	// track started, then os.Exit cut it off, and headless CI logged
+	// an audio error for an image render.
+	startAmbience()
+	backend.Run(w)
+}
+
+// ambienceStarts counts startAmbience calls, so a test can prove that
+// building and rendering the window starts no audio.
+var ambienceStarts int
+
+// newWindow builds the window. It starts no audio; main does that.
+func newWindow() *gui.Window {
+	return gui.NewWindow(gui.WindowCfg{
 		State:  newApp(),
 		Title:  "Solar System",
 		Width:  windowW,
 		Height: windowH,
 		OnInit: func(w *gui.Window) {
-			startAmbience()
 			w.SetView(mainView)
 			w.AnimationAdd(&gui.Animate{
 				AnimID: tickAnim,
@@ -220,32 +287,50 @@ func main() {
 				// when it does move the selection.
 				Refresh: gui.AnimationRefreshRenderOnly,
 				Callback: func(_ *gui.Animate, w *gui.Window) {
-					tick(state(w))
+					a := state(w)
+					tick(a, a.wallStep(time.Now()))
 				},
 			})
 		},
 		OnEvent: handleEvent,
 	})
-
-	if *screenshot != "" {
-		if err := soft.RenderToPNG(w, 2, *screenshot); err != nil {
-			log.Fatalf("screenshot: %v", err)
-		}
-		os.Exit(0)
-	}
-	backend.Run(w)
 }
 
-// tick advances the simulation one frame. Version++ is mandatory:
-// renderDrawCanvas only re-runs OnDraw when Version, size, or backing
-// scale changed, so without it the canvas would freeze on frame one.
-func tick(a *App) {
-	a.Time += tickSecs
-	a.advanceCamera(wallTickSecs)
+// wallStep returns the wall-clock seconds since the previous tick,
+// clamped to [0, maxWallStep], and records now as the previous tick.
+// The first call has nothing to measure from and returns the nominal
+// wallTickSecs.
+//
+// Measuring is the point. A fixed step per callback ties the orrery's
+// pace to the frame rate: a frame that takes 50 ms would still advance
+// only 16 ms, so the planets slow down whenever the machine is busy.
+func (a *App) wallStep(now time.Time) float32 {
+	prev := a.lastTick
+	a.lastTick = now
+	if prev.IsZero() {
+		return wallTickSecs
+	}
+	return clamp32(float32(now.Sub(prev).Seconds()), 0, maxWallStep)
+}
+
+// tick advances the simulation by wallDt seconds of wall clock.
+// Version++ is mandatory: renderDrawCanvas only re-runs OnDraw when
+// Version, size, or backing scale changed, so without it the canvas
+// would freeze on frame one.
+func tick(a *App, wallDt float32) {
+	if !a.Paused {
+		a.Time += float64(wallDt * simPerWall * a.Speed)
+	}
+	a.advanceCamera(wallDt)
 	a.recompute()
-	if a.MouseIn {
+	switch {
+	case a.DotHover != -1:
+		// The pointer is on a nav dot; a planet behind it is not the
+		// thing being pointed at.
+		a.Hovered = -1
+	case a.MouseIn:
 		a.Hovered = a.hitTest(a.MouseX, a.MouseY)
-	} else {
+	default:
 		a.Hovered = -1
 	}
 	a.Version++
@@ -303,6 +388,36 @@ func stepSelection(a *App, w *gui.Window, delta int) {
 	selectBody(a, w, rank-1)
 }
 
+// togglePause freezes or resumes simulated time. The camera keeps
+// running, so a paused orrery can still be zoomed and panned.
+func togglePause(a *App, w *gui.Window) {
+	a.Paused = !a.Paused
+	refreshView(w)
+}
+
+// stepSpeed multiplies the orrery speed by factor, clamped to
+// [speedMin, speedMax].
+func stepSpeed(a *App, w *gui.Window, factor float32) {
+	a.Speed = clamp32(a.Speed*factor, speedMin, speedMax)
+	refreshView(w)
+}
+
+// toggleMute silences or restores the ambience track.
+func toggleMute(a *App, w *gui.Window) {
+	a.Muted = !a.Muted
+	setAmbienceMuted(a.Muted)
+	refreshView(w)
+}
+
+// refreshView asks for a view pass. The tick refreshes renderers only,
+// so state the controls show (pause, speed, mute) needs this to reach
+// the screen. w is nil in tests that drive App directly.
+func refreshView(w *gui.Window) {
+	if w != nil {
+		w.InvalidateLayout()
+	}
+}
+
 // handleEvent takes the window-level keys, which must work without the
 // canvas holding focus.
 func handleEvent(e *gui.Event, w *gui.Window) {
@@ -327,6 +442,19 @@ func handleEvent(e *gui.Event, w *gui.Window) {
 		e.IsHandled = true
 	case gui.KeyMinus, gui.KeyKPSubtract:
 		a.applyUserZoom(1 / keyZoomStep)
+		e.IsHandled = true
+	case gui.KeySpace:
+		// Only reaches here when no focused button took Space first.
+		togglePause(a, w)
+		e.IsHandled = true
+	case gui.KeyDown:
+		stepSpeed(a, w, 1/speedStep)
+		e.IsHandled = true
+	case gui.KeyUp:
+		stepSpeed(a, w, speedStep)
+		e.IsHandled = true
+	case gui.KeyM:
+		toggleMute(a, w)
 		e.IsHandled = true
 	}
 }

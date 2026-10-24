@@ -75,9 +75,9 @@ func init() {
 
 // dialAngle is the heliocentric longitude the calendar reads as "now".
 // It tracks Earth's orbital angle directly.
-func dialAngle(t float32) float32 {
+func dialAngle(t float64) float32 {
 	p := &planets[earthIndex]
-	return p.Phase + 2*float32(math.Pi)*t/p.PeriodS
+	return p.Phase + 2*float32(math.Pi)*turns(t/float64(p.PeriodS))
 }
 
 // dialColors.
@@ -100,7 +100,6 @@ func drawDial(a *App, dc *gui.DrawContext) {
 	if rx > 4*max(dc.Width, dc.Height) {
 		return
 	}
-	// Also cull if ring is too small to see? No, rails still visible.
 	cx, cy := a.worldToScreen(0, 0)
 
 	// Three rails, same squash as orbits.
@@ -128,17 +127,17 @@ func drawDial(a *App, dc *gui.DrawContext) {
 	appendDialSegs(m, a, dialMonthTicks, colorDialMonth, 1.05)
 
 	// Month labels — stroke font, curving along the ring.
-	emPx := dialEmWorld * z // rough: world em * zoom, but foreshortened at top/bottom; conservative gate uses max.
-	// More precise legibility: minimum of horizontal and vertical scale. Use emWorld*z*diskTilt as worst case?
-	// Skip only when definitely illegible.
-	if emPx >= dialLabelMinPx {
+	// Gate on the unsquashed em size. The label build inflates each
+	// label against the squash at its angle, so every label lands near
+	// this size on screen and one number is enough for all twelve.
+	if emPx := dialEmWorld * z; emPx >= dialLabelMinPx {
 		appendDialSegs(m, a, dialLabelSegs, colorDialText, dialStrokeW)
 	}
 
 	// Date marker — small filled triangle at dialAngle, pointing inward.
 	theta := dialAngle(a.Time)
-	// Normalize to [0, 2pi) without per-cycle looping — a.Time
-	// grows without bound and a loop would be O(cycles) per frame.
+	// Normalize to [0, 2pi). dialAngle is already bounded, but Earth's
+	// phase offset can carry it past 2pi.
 	theta = float32(math.Mod(float64(theta), 2*math.Pi))
 	if theta < 0 {
 		theta += 2 * float32(math.Pi)
@@ -146,8 +145,9 @@ func drawDial(a *App, dc *gui.DrawContext) {
 	markerR := dialOuter
 	// Tip slightly inside outer rail, base slightly outside.
 	tipWx, tipWy := dialPolar(markerR-6, theta)
-	// Base corners offset in angle. Angular width so marker spans ~6° at that radius ~ small.
-	angW := float32(0.024) // radians on each side
+	// Base corners sit angW either side of the date, about 2.75° wide
+	// in total.
+	angW := float32(0.024)
 	baseR := markerR + 10
 	bx1, by1 := dialPolar(baseR, theta-angW)
 	bx2, by2 := dialPolar(baseR, theta+angW)
@@ -155,8 +155,6 @@ func drawDial(a *App, dc *gui.DrawContext) {
 	sx1, sy1 := a.worldToScreen(bx1, by1)
 	sx2, sy2 := a.worldToScreen(bx2, by2)
 	m.appendTri(sx0, sy0, colorDialMarker, sx1, sy1, colorDialMarker, sx2, sy2, colorDialMarker)
-	// Also a small dot at outer rail for visibility.
-	// (appendTri already consumed; this is the marker geometry.)
 
 	dc.FillTrianglesColors(m.tris, m.cols)
 }

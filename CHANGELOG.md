@@ -10,6 +10,18 @@ and this project adheres to
 
 ### Added
 
+- **`examples/solar_system` gets pause, speed and mute controls, a close button,
+  nav-dot names and a phone-width layout.** Space pauses the orbits, Up and Down
+  double and halve their speed (0.25x to 16x), and M mutes the ambience track.
+  Buttons for mute and pause, and a speed readout, sit beside the zoom buttons.
+  The camera keeps running while the orbits are paused. The fact sheet has a ×
+  button, because a touch screen has no Escape key. Hovering a nav dot names its
+  body with the canvas tooltip. Below 792 px wide, the fact sheet shrinks to the
+  window and puts its six cards in two rows of three. Before, it ran off the
+  edge of a narrow window. The embedded track is now FLAC (3.05 MB, was a 4.08
+  MB WAV), lossless so the loop stays seamless, and low-passed at 3.5 kHz to cut
+  the 8-bit source's hiss by 13 dB.
+
 - **`KrokiMermaidFetcher(baseURL)` renders Mermaid diagrams through a
   self-hosted Kroki server (#1147).** Set
   `MarkdownCfg.MermaidFetcher: gui.KrokiMermaidFetcher("http://localhost:8000")`.
@@ -68,6 +80,24 @@ and this project adheres to
   keep the finger, as the showcase gesture pad now does.
 
 ### Fixed
+
+- **`audio.LoadMusicBytes`: embedded MP3, OGG and FLAC tracks play.** `Play` and
+  `FadeIn` seek the track to its start, but in-memory MP3, OGG and FLAC data
+  reached the decoder through a reader that could not seek. FLAC and OGG
+  returned `seek music: ... not enabled` and stayed silent. MP3 panicked with a
+  divide by zero inside go-mp3. Only WAV worked. All four formats now get a
+  seekable reader. `LoadMusic` from a file path was not affected.
+
+- **`examples/solar_system`: motion stays smooth on long runs, keeps pace when
+  frames drop, and `-screenshot` plays no audio.** The simulation clock was
+  `float32`. After about a day, one float32 step was larger than a tick: Earth
+  froze on some ticks and jumped on others. The clock is now `float64`, and
+  every orbit, spin and twinkle angle is reduced to a fraction of a turn before
+  float32 math. Each tick also advanced a fixed 16 ms, so a slow frame slowed
+  the orrery. A tick now measures the real time since the last one, capped at
+  100 ms so a laptop wake does not jump the planets. And `-screenshot` started
+  the ambience track, because `soft.RenderToPNG` runs `OnInit`. The track now
+  starts in `main`, on the interactive path only.
 
 - **SVG: geometry from CSS (`r`, `cx`, `cy`, ...) renders, so the showcase
   `var() + calc()` sample is no longer blank (#1145).** A circle whose radius
