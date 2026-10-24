@@ -115,11 +115,12 @@ and this project adheres to
   pointer over a disabled item, a separator or the edge of a `ContextMenu`,
   `OverflowPanel`, submenu or Input menu also hovered what was below the menu,
   so a button under it showed its hover color. The menu panel now takes the
-  hover. Enter or Space on a menu item now keeps a focus the item's action set,
-  as a click already did. Before, the menu cleared focus after the action. While
-  a modal dialog is open, the layers above it (the Input menu, the inspector)
-  now take hover too; before, only the dialog's own shapes did. Found while
-  testing #1151.
+  hover. Enter, Space or a click on a menu item now keeps a focus that either
+  action set, the item's `MenuItemCfg.Action` or the menu's `MenubarCfg.Action`.
+  Before, Enter and Space always cleared focus after the action, and a click
+  kept only a focus set by `MenubarCfg.Action`. While a modal dialog is open,
+  the layers above it (the Input menu, the inspector) now take hover too;
+  before, only the dialog's own shapes did. Found while testing #1151.
 
 - **A widget shows its pressed color only for a press that began on it.**
   `Button`, `Input`, `InputNumeric`, `Radio`, `Switch`, `Toggle`, `ExpandPanel`

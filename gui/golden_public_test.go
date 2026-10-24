@@ -158,3 +158,18 @@ func TestGoldenVersionMismatchNamesVersions(t *testing.T) {
 		t.Errorf("fatals = %q, want both format versions", mtb.fatals)
 	}
 }
+
+// A MousePressed case records a press target for its frame, and the
+// window gets its own back afterwards: a later frame on the same window
+// must not draw the widget pressed with no button held.
+func TestGoldenMousePressedRestoresPressTarget(t *testing.T) {
+	mtb := &goldenCaptureTB{}
+	w := goldenButtonWindow(t, "Save")
+	x, y := hitPoint(t, w, "save")
+	w.TestGolden(mtb, GoldenCfg{Dir: t.TempDir(), Name: "case",
+		HoverX: x, HoverY: y, MousePressed: true})
+	if w.viewState.pressTargetID != "" {
+		t.Errorf("pressTargetID = %q, want restored empty",
+			w.viewState.pressTargetID)
+	}
+}

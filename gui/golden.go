@@ -167,6 +167,9 @@ func (w *Window) TestGolden(tb GoldenTB, cfg GoldenCfg) {
 	prevHeld := w.viewState.mouseButtonsHeld
 	defer func() { w.viewState.mouseButtonsHeld = prevHeld }()
 	prevKeyPress := w.viewState.keyPressTargetID
+	// A MousePressed case records a press target (goldenFrame).
+	prevPressTarget := w.viewState.pressTargetID
+	defer func() { w.viewState.pressTargetID = prevPressTarget }()
 	defer func() { w.viewState.keyPressTargetID = prevKeyPress }()
 	prevMouseX, prevMouseY := w.viewState.mousePosX, w.viewState.mousePosY
 	prevPointerX, prevPointerY := w.viewState.pointerX, w.viewState.pointerY

@@ -280,10 +280,10 @@ func menuItemRelease(menuID string, menuAction func(string, EventCtx),
 // leaf. The mouse path (menuItemClick, menuItemRelease) shares it.
 func menuItemRun(menuID string, menuAction func(string, EventCtx),
 	itemCfg MenuItemCfg, ctx EventCtx) {
+	focusBeforeAction := ctx.Window.FocusID()
 	if itemCfg.Action != nil {
 		itemCfg.Action(&itemCfg, EventCtx{nil, ctx.Event, ctx.Window})
 	}
-	focusBeforeAction := ctx.Window.FocusID()
 	if menuAction != nil {
 		menuAction(itemCfg.ID, EventCtx{nil, ctx.Event, ctx.Window})
 	}

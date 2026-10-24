@@ -108,10 +108,10 @@ func menuOnKeyDown(cfg MenubarCfg,
 		// ignores consumption, matching the mouse path (issue #468).
 		playSoundCue(resolveSoundCue(guiTheme.Sounds.Click,
 			cfg.Sound, cfg.SoundDisabled), w)
+		focusBeforeAction := w.FocusID()
 		if item.Action != nil {
 			item.Action(&item, EventCtx{nil, e, w})
 		}
-		focusBeforeAction := w.FocusID()
 		if cfg.Action != nil {
 			cfg.Action(sel, EventCtx{nil, e, w})
 		}
