@@ -220,16 +220,15 @@ func buttonOnHover(ctx EventCtx) {
 	ctx.Window.setMouseCursor(CursorPointingHand)
 	// This pass sees everything the amend pass saw plus the pointer, so
 	// it re-picks both channels outright rather than patching the fill
-	// the amend pass left. Either press counts: a held mouse button
-	// here, a held Space from the amend pass's half of the state.
+	// the amend pass left. Either press counts: a mouse press that began
+	// on this button here, a held Space from the amend pass's half of the state.
 	ctx.Layout.Shape.Color, ctx.Layout.Shape.ColorBorder =
 		ctx.Layout.Shape.bc.colors.pick(stateFlags{
 			disabled: ctx.Layout.Shape.Disabled,
 			selected: ctx.Layout.Shape.bc.selected,
-			pressed: ctx.Event.MouseButton == MouseLeft ||
-				ctx.Window.isKeyPressed(ctx.Layout.Shape.idKey()),
-			focused: ctx.Window.IsFocus(ctx.Layout.Shape.idKey()),
-			hovered: true,
+			pressed:  ctx.Window.IsPressed(ctx.Layout.Shape.idKey()),
+			focused:  ctx.Window.IsFocus(ctx.Layout.Shape.idKey()),
+			hovered:  true,
 		})
 	if ctx.Layout.Shape.bc.OnHover != nil {
 		ctx.Layout.Shape.bc.OnHover(EventCtx{ctx.Layout, ctx.Event, ctx.Window})

@@ -21,3 +21,7 @@ Right-click menus with action handling. Demonstrates nested menu items and
 selection state.
 
 See `main.go` for the implementation.
+
+An `Input` has a built-in Cut, Copy, Paste and Select All menu. To give a field
+this kind of menu instead, set `InputCfg.ContextMenuDisabled` and wrap the field
+in a `ContextMenu`.

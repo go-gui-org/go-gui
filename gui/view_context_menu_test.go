@@ -508,3 +508,67 @@ func TestContextMenuKeyboardLeftClosesSubmenu(t *testing.T) {
 		t.Errorf("expected 'more', got %q", sel)
 	}
 }
+
+// The bug found while testing #1151: an item picked over another
+// widget left that widget looking pressed until the button came up. The
+// item ran on the press and closed the menu, and the button under it
+// then read the held button as its own press. Now the item runs on the
+// release, and only the shape the press went down on looks pressed.
+func TestContextMenuItemOverButtonRunsOnRelease(t *testing.T) {
+	hover := RGBA(40, 200, 40, 255)
+	click := RGBA(200, 40, 40, 255)
+	picked, clicks := "", 0
+	w := NewTestWindow(t, WindowCfg{})
+	w.TestRender(func(w *Window) View {
+		return Column(ContainerCfg{
+			Sizing:  FillFill,
+			Spacing: NoSpacing,
+			Content: []View{
+				ContextMenu(w, ContextMenuCfg{
+					ID:     "cm",
+					Items:  []MenuItemCfg{{ID: "a", Text: "A"}},
+					Action: func(id string, _ EventCtx) { picked = id },
+					Content: []View{Rectangle(RectangleCfg{
+						Sizing: FixedFixed, Width: 200, Height: 20,
+					})},
+				}),
+				Button(ButtonCfg{
+					ID: "b", Width: 200, Height: 200,
+					FocusDisabled: true,
+					OnClick:       func(EventCtx) { clicks++ },
+					Colors: ColorSet{
+						Base:  RGBA(10, 10, 10, 255),
+						Hover: hover,
+						Click: click,
+					},
+				}),
+			},
+		})
+	})
+
+	// Open at the bottom edge of the rectangle, so the popup hangs over
+	// the button.
+	cm := mustShape(t, w, "cm")
+	pressAt(w, MouseRight, cm.X+10, cm.Y+cm.Height-1)
+	releaseAt(w, MouseRight, cm.X+10, cm.Y+cm.Height-1)
+	item := ScopeID("cm", "popup", "a")
+	x, y := hitPoint(t, w, item)
+	if b := mustShape(t, w, "b"); y < b.Y {
+		t.Fatalf("item at y=%v is not over the button (y=%v)", y, b.Y)
+	}
+
+	pressAt(w, MouseLeft, x, y)
+	if picked != "" {
+		t.Fatalf("item ran on the press: picked = %q", picked)
+	}
+	releaseAt(w, MouseLeft, x, y)
+	if picked != "a" {
+		t.Fatalf("after release: picked = %q, want a", picked)
+	}
+	if clicks != 0 {
+		t.Errorf("button clicked %d times, want 0", clicks)
+	}
+	if c := mustShape(t, w, "b").Color; c == click {
+		t.Errorf("button shows the pressed color after the menu closed")
+	}
+}

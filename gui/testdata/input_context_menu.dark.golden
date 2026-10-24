@@ -1,0 +1,16 @@
+# go-gui-golden v1
+Shadow xy=15.00,15.00 wh=160.00,31.60 color=#4d82f03f radius=6.00 blur=2.00 offset=0.00,0.00
+Rect xy=15.00,15.00 wh=160.00,31.60 color=#333335ff radius=6.00 fill
+StrokeRect xy=15.00,15.00 wh=160.00,31.60 color=#4d82f0ff radius=6.00 thickness=1.00
+Clip xy=26.00,21.00 wh=138.00,19.60
+Text xy=26.00,21.00 wh=0.00,0.00 color=#e6e8ebff text="hello world" size=14.00
+Clip xy=0.00,0.00 wh=320.00,240.00
+Shadow xy=40.00,30.00 wh=110.00,129.40 color=#0000008c radius=6.00 blur=12.00 offset=0.00,0.00
+Rect xy=40.00,30.00 wh=110.00,129.40 color=#333335ff radius=6.00 fill
+StrokeRect xy=40.00,30.00 wh=110.00,129.40 color=#ffffff2c radius=6.00 thickness=1.00
+Rect xy=47.00,37.00 wh=96.00,25.60 color=#4d82f0ff radius=4.00 fill
+Text xy=53.00,41.24 wh=84.00,0.00 color=#ffffffff text="Cut" size=14.00
+Text xy=53.00,68.84 wh=84.00,0.00 color=#e6e8ebff text="Copy" size=14.00
+Text xy=53.00,96.44 wh=84.00,0.00 color=#e6e8eb80 text="Paste" size=14.00
+Rect xy=47.00,121.80 wh=96.00,1.00 color=#ffffff2c fill
+Text xy=53.00,131.04 wh=84.00,0.00 color=#e6e8ebff text="Select All" size=14.00

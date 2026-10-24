@@ -207,8 +207,8 @@ func (v *numericInputView) GenerateLayout(w *Window) Layout {
 			ctx.Layout.Shape.Color, ctx.Layout.Shape.ColorBorder =
 				colors.pick(stateFlags{
 					disabled: ctx.Layout.Shape.Disabled,
-					pressed:  ctx.Event.MouseButton == MouseLeft,
-					focused:  ctx.Window.IsFocus(fieldID),
+					pressed:  ctx.Window.isMousePressed(ctx.Layout.Shape.idKey()),
+					focused:  ctx.Window.IsFocus(fieldID) || inputMenuHolds(ctx.Window, fieldID),
 					hovered:  true,
 				})
 		},
@@ -240,7 +240,8 @@ func numericControlAmend(
 		// wrapper is not focusable. Amend sees no pointer, so hovered
 		// stays false and the hover pass re-picks with pointer state.
 		shape.Color, shape.ColorBorder = colors.pick(stateFlags{
-			focused: fieldID != "" && ctx.Window.IsFocus(fieldID),
+			focused: fieldID != "" && (ctx.Window.IsFocus(fieldID) ||
+				inputMenuHolds(ctx.Window, fieldID)),
 		})
 	}
 }

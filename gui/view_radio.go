@@ -197,10 +197,9 @@ func Radio(cfg RadioCfg) View {
 			}
 			ring, _ := ringColors.pick(stateFlags{
 				disabled: ctx.Layout.Shape.Disabled,
-				pressed: ctx.Event.MouseButton == MouseLeft ||
-					ctx.Window.isKeyPressed(ctx.Layout.Shape.idKey()),
-				focused: ctx.Window.IsFocus(ctx.Layout.Shape.idKey()),
-				hovered: true,
+				pressed:  ctx.Window.IsPressed(ctx.Layout.Shape.idKey()),
+				focused:  ctx.Window.IsFocus(ctx.Layout.Shape.idKey()),
+				hovered:  true,
 			})
 			ctx.Layout.Children[0].Shape.ColorBorder = ring
 		},

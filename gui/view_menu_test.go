@@ -179,3 +179,42 @@ func TestIsMenuIDInTree(t *testing.T) {
 		t.Error("should not find c in tree")
 	}
 }
+
+// An item's own Action that moves focus keeps it, on the mouse path and
+// on Enter. The snapshot was taken after Action ran, so only a focus
+// change from the menu's Action survived; the item's was cleared.
+func TestMenuItemActionKeepsFocusItSet(t *testing.T) {
+	w := NewTestWindow(t, WindowCfg{})
+	w.TestRender(func(w *Window) View {
+		return Column(ContainerCfg{
+			Sizing: FillFill,
+			Content: []View{
+				Menubar(w, MenubarCfg{
+					ID: "mb",
+					Items: []MenuItemCfg{{
+						ID: "a", Text: "A",
+						Action: func(_ *MenuItemCfg, ctx EventCtx) {
+							ctx.Window.SetFocus("field")
+						},
+					}},
+				}),
+				Input(InputCfg{ID: "field"}),
+			},
+		})
+	})
+	x, y := hitPoint(t, w, ScopeID("mb", "a"))
+	pressAt(w, MouseLeft, x, y)
+	releaseAt(w, MouseLeft, x, y)
+	if !w.IsFocus("field") {
+		t.Errorf("mouse: focus = %q, want field", w.FocusID())
+	}
+
+	w.SetFocus("mb")
+	StateMap[string, string](w, nsMenu, capModerate).Set("mb", "a")
+	w.settle()
+	w.EventFn(&Event{Type: EventKeyDown, KeyCode: KeyEnter})
+	w.settle()
+	if !w.IsFocus("field") {
+		t.Errorf("Enter: focus = %q, want field", w.FocusID())
+	}
+}

@@ -191,14 +191,12 @@ func expandPanel(cfg ExpandPanelCfg, headID string) View {
 					ctx.Window.SetMouseCursorPointingHand()
 					// This pass sees everything the amend pass saw plus
 					// the pointer, so it re-picks both channels outright.
-					// Either press counts: a held mouse button here, a
+					// Either press counts: a mouse press begun here, a
 					// held Space from the amend pass's half of the state.
 					ctx.Layout.Shape.Color, ctx.Layout.Shape.ColorBorder =
 						headerColors.pick(stateFlags{
 							disabled: ctx.Layout.Shape.Disabled,
-							pressed: ctx.Event.MouseButton == MouseLeft ||
-								ctx.Window.isKeyPressed(
-									ctx.Layout.Shape.idKey()),
+							pressed:  ctx.Window.IsPressed(ctx.Layout.Shape.idKey()),
 							focused: ctx.Window.IsFocus(
 								ctx.Layout.Shape.idKey()),
 							hovered: true,

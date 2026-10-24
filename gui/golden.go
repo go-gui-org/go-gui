@@ -167,6 +167,9 @@ func (w *Window) TestGolden(tb GoldenTB, cfg GoldenCfg) {
 	prevHeld := w.viewState.mouseButtonsHeld
 	defer func() { w.viewState.mouseButtonsHeld = prevHeld }()
 	prevKeyPress := w.viewState.keyPressTargetID
+	// A MousePressed case records a press target (goldenFrame).
+	prevPressTarget := w.viewState.pressTargetID
+	defer func() { w.viewState.pressTargetID = prevPressTarget }()
 	defer func() { w.viewState.keyPressTargetID = prevKeyPress }()
 	prevMouseX, prevMouseY := w.viewState.mousePosX, w.viewState.mousePosY
 	prevPointerX, prevPointerY := w.viewState.pointerX, w.viewState.pointerY
@@ -217,6 +220,16 @@ func goldenFrame(
 	// what makes the theme argument mean anything, and the second
 	// pass a deferred callback's state change needs.
 	w.SetTheme(theme)
+	if cfg.MousePressed {
+		// The pressed look follows the shape the press went down on
+		// (Window.IsPressed), not the held button. Record it the way a
+		// real press does: hit test an arranged frame at the pointer.
+		w.markLayoutRefresh(refreshTest)
+		w.FrameFn()
+		w.recordPressTarget(&Event{
+			MouseButton: MouseLeft, MouseX: cfg.HoverX, MouseY: cfg.HoverY,
+		})
+	}
 	w.markLayoutRefresh(refreshTest)
 	w.FrameFn()
 

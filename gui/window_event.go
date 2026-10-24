@@ -224,8 +224,9 @@ func (w *Window) handleMouseDownEvent(layout *Layout, e *Event) {
 	// Dismiss open popups on any mouse down. Cleared
 	// before dispatch so handlers can re-open. Focus
 	// is only cleared when a popup was actually open
-	// to avoid interfering with normal focus flow.
-	if dismissPopups(w) {
+	// to avoid interfering with normal focus flow. A
+	// press inside the focused menu dismisses nothing.
+	if !w.pressInFocusedMenu(e) && dismissPopups(w) {
 		w.ClearFocus()
 	}
 	// Inspector-handled presses never run the walk, so dev-tool clicks
@@ -322,6 +323,37 @@ func (w *Window) handleMouseMoveEvent(layout *Layout, e *Event) {
 func (w *Window) handleMouseUpEvent(layout *Layout, e *Event) {
 	w.releaseMouseButton(e.MouseButton)
 	mouseUpHandler(layout, e, w)
+	w.endReleaseDispatch()
+}
+
+// releasedFromPressOn reports whether the left release being
+// dispatched ends a press that went down on the shape with this
+// effective ID, or on one of its ID-bearing descendants.
+func (w *Window) releasedFromPressOn(effectiveID string) bool {
+	return targetWithin(w.viewState.releasedPressTargetID, effectiveID)
+}
+
+// pressInFocusedMenu reports whether a press lands inside the menu or
+// menu bar that holds focus. Such a press does not dismiss the open
+// popups: a menu item runs on the release (menuItemClick), so the menu
+// must still be there for it.
+func (w *Window) pressInFocusedMenu(e *Event) bool {
+	focus := w.FocusID()
+	if focus == "" {
+		return false
+	}
+	ly, ok := w.layout.findByID(focus)
+	if !ok || ly.Shape == nil ||
+		(ly.Shape.A11YRole != AccessRoleMenu &&
+			ly.Shape.A11YRole != AccessRoleMenuBar) {
+		return false
+	}
+	// Item IDs are scoped under the menu's, and a press on a disabled
+	// item, a separator or a submenu's padding resolves to the panel or
+	// the item that owns it, so every press inside the menu is within
+	// focus.
+	return targetWithin(
+		interactionTargetAt(w.layout.Children, e.MouseX, e.MouseY, w), focus)
 }
 
 func (w *Window) handleMouseScrollEvent(layout *Layout, e *Event) {
@@ -365,7 +397,11 @@ func dismissPopups(w *Window) bool {
 	a := clearStateMap[string, contextMenuState](w, nsContextMenu)
 	b := clearStateMap[string, rtfLinkMenuState](w, nsRtfLinkMenu)
 	c := clearStateMap[string, string](w, nsMenu)
-	return a || b || c
+	// owner stays: the arrange pass reads it to settle focus
+	// (inputMenuOverlay).
+	d := w.viewState.inputMenu.open
+	w.viewState.inputMenu.open = false
+	return a || b || c || d
 }
 
 // dismissFieldPopups closes open select and combobox dropdowns. It

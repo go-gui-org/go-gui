@@ -10,6 +10,18 @@ and this project adheres to
 
 ### Added
 
+- **A right press on an `Input` opens a Cut, Copy, Paste and Select All menu
+  (#1151).** Before, a right press in a text field did nothing. Copy and Cut act
+  on the current selection, which the press keeps. Cut and Paste are off in a
+  `ReadOnly` field, Copy and Cut are off in a password field, and Paste is off
+  when the clipboard is empty. A paste from the menu goes through the field's
+  mask and `PreTextChange`, the same as Ctrl+V. The field keeps its focus look
+  while the menu is open, and it does not fire `OnBlur` or a blur
+  `OnTextCommit`. Escape closes the menu and gives focus back to the field. The
+  menu also works in an `Input` inside a dialog. To use your own menu, set
+  `InputCfg.ContextMenuDisabled` and wrap the field in a `ContextMenu`. A
+  `FocusDisabled` field gets no menu.
+
 - **`examples/solar_system` gets pause, speed and mute controls, a close button,
   nav-dot names and a phone-width layout.** Space pauses the orbits, Up and Down
   double and halve their speed (0.25x to 16x), and M mutes the ambience track.
@@ -64,6 +76,24 @@ and this project adheres to
 
 ### Changed
 
+- **BREAKING: an `Input` inside a `ContextMenu` must now set
+  `ContextMenuDisabled` to keep the app's menu (#1151).** A right press on an
+  `Input` now opens the built-in Cut, Copy, Paste and Select All menu and
+  consumes the press, so a `ContextMenu` wrapped around the field no longer gets
+  it. To keep your own menu, set `InputCfg.ContextMenuDisabled: true` on the
+  field.
+
+- **A menu item now runs when the mouse button comes up, not when it goes
+  down.** This applies to every menu: `ContextMenu`, `OverflowPanel`, `Menubar`
+  dropdowns, submenus and the Input menu. The item runs only when the press and
+  the release are both on it, so a press dragged from another item, or the
+  release of the right press that opened the menu, runs nothing. A press inside
+  an open menu no longer closes it: a press on a disabled item, a separator or
+  the menu padding leaves the menu open, as in a native menu. An item with a
+  submenu still opens the submenu on the press. A right click on an item no
+  longer runs it. A test that sends only a mouse down to a menu item must now
+  send the release too; `Window.TestClick` already sends both.
+
 - **Touch: a long press that no handler consumed lets the finger go when it
   drags, so a finger that rests before it drags scrolls (#1117).** A touch held
   still for 500 ms became a long press, and from then on its moves were ignored:
@@ -80,6 +110,26 @@ and this project adheres to
   keep the finger, as the showcase gesture pad now does.
 
 ### Fixed
+
+- **An open menu no longer passes hover to the widgets under it.** Before, the
+  pointer over a disabled item, a separator or the edge of a `ContextMenu`,
+  `OverflowPanel`, submenu or Input menu also hovered what was below the menu,
+  so a button under it showed its hover color. The menu panel now takes the
+  hover. Enter, Space or a click on a menu item now keeps a focus that either
+  action set, the item's `MenuItemCfg.Action` or the menu's `MenubarCfg.Action`.
+  Before, Enter and Space always cleared focus after the action, and a click
+  kept only a focus set by `MenubarCfg.Action`. While a modal dialog is open,
+  the layers above it (the Input menu, the inspector) now take hover too;
+  before, only the dialog's own shapes did. Found while testing #1151.
+
+- **A widget shows its pressed color only for a press that began on it.**
+  `Button`, `Input`, `InputNumeric`, `Radio`, `Switch`, `Toggle`, `ExpandPanel`
+  and `Breadcrumb` read the held left button to draw their pressed color, so a
+  press that began on another shape and dragged over them made them look
+  pressed. A menu item picked over a button left that button pressed until the
+  release. They now use the shape the press went down on, the same rule
+  `Window.IsPressed` uses. `GoldenCfg.MousePressed` now records its press on the
+  shape under `HoverX`, `HoverY`. Found while testing #1151.
 
 - **An open `Combobox` dropdown now closes when focus leaves the field
   (#1150).** Before, a press on an `Input` or another focusable widget moved

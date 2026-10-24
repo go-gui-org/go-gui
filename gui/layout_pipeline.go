@@ -154,7 +154,7 @@ func layoutHoverDepth(layout *Layout, w *Window, depth int) bool {
 		w.viewState.mousePosY) {
 		return false
 	}
-	if w.dialogCfg.visible &&
+	if w.dialogCfg.visible && !w.viewState.hoverAboveDialog &&
 		!layoutInDialogLayout(layout) {
 		return false
 	}

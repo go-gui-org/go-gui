@@ -641,3 +641,30 @@ func TestDragScrollPressOnEmptySpaceBlurs(t *testing.T) {
 		}
 	}
 }
+
+// A tap on a menu item inside a DragScroll container runs the item. The
+// release reaches the pan's lock (dragPanOnMouseUp) from inside the
+// window's own release, which already moved the press target aside; the
+// pan's second releaseMouseButton must not wipe it before the tap
+// replay's release reaches the item (menuItemRelease).
+func TestDragScrollTapRunsMenuItem(t *testing.T) {
+	picked := ""
+	w := NewTestWindow(t, WindowCfg{})
+	w.TestRender(func(w *Window) View {
+		return Column(ContainerCfg{
+			ID: "view", Sizing: FillFill,
+			Scrollable: true, DragScroll: true,
+			Content: []View{Menubar(w, MenubarCfg{
+				ID:     "mb",
+				Items:  []MenuItemCfg{{ID: "a", Text: "A"}},
+				Action: func(id string, _ EventCtx) { picked = id },
+			})},
+		})
+	})
+	x, y := hitPoint(t, w, ScopeID("view", "mb", "a"))
+	pressAt(w, MouseLeft, x, y)
+	releaseAt(w, MouseLeft, x, y)
+	if picked != "a" {
+		t.Errorf("picked = %q, want a", picked)
+	}
+}

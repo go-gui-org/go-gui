@@ -72,6 +72,17 @@ func layoutArrange(layout *Layout, w *Window) []Layout {
 		}
 	}
 
+	// The Input context menu goes above the dialog: an Input inside a
+	// dialog opens it too, and dialogRoute routes events to the layers
+	// above the dialog. retainDialogFocus below treats its focus as
+	// part of the dialog.
+	if v := inputMenuOverlay(w); v != nil {
+		injectFloatingLayer(v, w, &floatingLayouts)
+		if n := len(floatingLayouts); n > 0 {
+			liftOverlayFloats(floatingLayouts[n-1], w, &floatingLayouts)
+		}
+	}
+
 	// Inject the inspector last, above the dialog, so a dev tool is never
 	// covered by the app it inspects (#811). dialogRoute routes events to
 	// the dialog layer and every layer above it, so the panel stays
@@ -122,11 +133,22 @@ func layoutArrange(layout *Layout, w *Window) []Layout {
 	// the pointer blocks lower layers, and the split is deliberate:
 	// OnHover is dispatch, IsHovered is visible state (#587,
 	// TestInteractionStateFloatBlocksButOnHoverFires).
+	//
+	// Under a modal dialog only the dialog's shapes take hover
+	// (layoutHoverDepth). The layers above the dialog take it too: they
+	// get the dialog's events, and the Input menu must hold the hover off
+	// the dialog below it.
+	dialogIdx := -1
+	if w.dialogCfg.visible {
+		dialogIdx = dialogLayerIndex(layouts)
+	}
 	for i := range slices.Backward(layouts) {
+		w.viewState.hoverAboveDialog = dialogIdx >= 0 && i > dialogIdx
 		if layoutHover(&layouts[i], w) {
 			break
 		}
 	}
+	w.viewState.hoverAboveDialog = false
 	// Mouse-leave processing: all layers, all shapes.
 	for i := range layouts {
 		layoutMouseLeave(&layouts[i], w)

@@ -51,11 +51,22 @@ func menu(w *Window, cfg MenubarCfg) View {
 		FloatOffsetX:  cfg.FloatOffsetX,
 		FloatOffsetY:  cfg.FloatOffsetY,
 		Focusable:     true,
-		OnKeyDown:     makeMenuOnKeyDown(cfg),
-		AmendLayout:   makeMenuAmendLayout(cfg.ID),
-		Content:       menuBuild(cfg, 1, cfg.Items, w),
+		// The panel owns the pointer over it; see menuPanelOnHover.
+		hoverStatic: true,
+		OnHover:     menuPanelOnHover,
+		OnKeyDown:   makeMenuOnKeyDown(cfg),
+		AmendLayout: makeMenuAmendLayout(cfg.ID),
+		Content:     menuBuild(cfg, 1, cfg.Items, w),
 	})
 }
+
+// menuPanelOnHover is the hover handler of a menu panel. It does
+// nothing, and that is its job: layoutHover stops only at a shape that
+// handles OnHover, and a disabled item, a separator or the panel's
+// padding handles none. Without it the pointer over an open menu also
+// hovered the widgets under the menu. A package func, so the panel
+// allocates no closure for it.
+func menuPanelOnHover(EventCtx) {}
 
 // makeMenuOnKeyDown returns the keyboard handler for a
 // standalone vertical menu.
@@ -97,14 +108,20 @@ func menuOnKeyDown(cfg MenubarCfg,
 		// ignores consumption, matching the mouse path (issue #468).
 		playSoundCue(resolveSoundCue(guiTheme.Sounds.Click,
 			cfg.Sound, cfg.SoundDisabled), w)
+		focusBeforeAction := w.FocusID()
 		if item.Action != nil {
 			item.Action(&item, EventCtx{nil, e, w})
 		}
 		if cfg.Action != nil {
 			cfg.Action(sel, EventCtx{nil, e, w})
 		}
+		// Same rule as the mouse path (menuItemClick): an action that
+		// moved focus, such as the Input menu giving it back to its
+		// field, keeps that focus.
 		if len(item.Submenu) == 0 {
-			w.ClearFocus()
+			if w.FocusID() == focusBeforeAction {
+				w.ClearFocus()
+			}
 			sm.Delete(cfg.ID)
 		}
 		e.IsHandled = true
@@ -239,6 +256,8 @@ func menuBuild(cfg MenubarCfg, level int, items []MenuItemCfg, w *Window) []View
 				FloatAutoFlip: true,
 				FloatAnchor:   anchor,
 				FloatTieOff:   tieOff,
+				hoverStatic:   true,
+				OnHover:       menuPanelOnHover,
 				Content:       subViews,
 			})
 			views = append(views, menuItem(cfg, configured, submenu))
