@@ -328,8 +328,9 @@ func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 		VAlign:      VAlignMiddle,
 		// The field has no hover pass, so the focus fill it paints is
 		// exactly pick({focused}) plus the ring.
-		AmendLayout: focusRingAmend(colors.Focus, colors.BorderFocus),
-		Sound:       fieldSound,
+		AmendLayout: comboboxAmendLayout(id, isOpen,
+			focusRingAmend(colors.Focus, colors.BorderFocus)),
+		Sound: fieldSound,
 		OnKeyDown: makeComboboxOnKeyDown(id, onSelect, id, filteredIDs,
 			dropdownScrollID, rowH, listH),
 		OnChar: makeComboboxOnChar(id),
@@ -369,6 +370,45 @@ func comboboxClose(id string, w *Window) {
 	sh := StateMap[string, int](w, nsComboboxHighlight, capModerate)
 	sh.Set(id, 0)
 	w.InvalidateLayout()
+}
+
+// comboboxAmendLayout wraps the field's focus-ring amend with the
+// blur dismiss: an open dropdown closes once the field no longer holds
+// focus (issue #1150). Focus leaves when the user presses another
+// focusable widget, tabs away, or presses empty space (the window's
+// blur-on-unclaimed-press). A press on the dropdown's scrollbar is
+// consumed there, so it keeps focus on the field. A press on a row
+// picks the row on press, which closes the dropdown anyway.
+//
+// The check is skipped for a FocusDisabled field: it never holds
+// focus, so the check would close the dropdown the frame after it
+// opened.
+//
+// A closed field gets ring back unwrapped, so the wrapper costs one
+// closure allocation only on frames where the dropdown is open.
+//
+// Runs under the frame lock. comboboxClose only writes StateMap
+// entries and sets the atomic refresh flag, so it is safe here; the
+// close shows on the next frame, which InvalidateLayout requests.
+func comboboxAmendLayout(id string, isOpen bool, ring func(EventCtx)) func(EventCtx) {
+	if !isOpen {
+		return ring
+	}
+	return func(ctx EventCtx) {
+		if ring != nil {
+			ring(ctx)
+		}
+		if ctx.Layout == nil || ctx.Window == nil {
+			return
+		}
+		shape := ctx.Layout.Shape
+		if shape == nil || !shape.Focusable {
+			return
+		}
+		if !ctx.Window.IsFocus(id) {
+			comboboxClose(id, ctx.Window)
+		}
+	}
 }
 
 func makeComboboxOnChar(cfgID string) func(EventCtx) {

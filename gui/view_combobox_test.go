@@ -1,6 +1,9 @@
 package gui
 
-import "testing"
+import (
+	"strconv"
+	"testing"
+)
 
 func TestComboboxClosedLayout(t *testing.T) {
 	w := &Window{}
@@ -476,5 +479,144 @@ func TestComboboxLongValueKeepsArrowInside(t *testing.T) {
 			t.Errorf("child %d spills past field: x=%f w=%f right=%f",
 				i, c.Shape.X, c.Shape.Width, right)
 		}
+	}
+}
+
+// comboboxBlurView is a form with an input and a combobox, the shape
+// of the report in issue #1150. The input sits above the combobox so
+// the dropdown, which floats below the field, cannot cover the point
+// TestClick presses.
+func comboboxBlurView(w *Window) View {
+	return Column(ContainerCfg{
+		Sizing: FillFill,
+		Content: []View{
+			Input(InputCfg{ID: "name"}),
+			Combobox(ComboboxCfg{
+				ID:    "cb",
+				Items: []string{"alpha", "beta", "gamma"},
+			}),
+		},
+	})
+}
+
+// A press on another focusable widget moves focus off the combobox;
+// the dropdown must close with it rather than float over the form
+// (issue #1150).
+func TestComboboxClosesWhenFocusMoves(t *testing.T) {
+	w := NewTestWindow(t, WindowCfg{})
+	w.TestRender(comboboxBlurView)
+
+	if err := w.TestClick("cb"); err != nil {
+		t.Fatalf("TestClick(cb): %v", err)
+	}
+	if !StateReadOr(w, nsCombobox, "cb", false) {
+		t.Fatal("click on the field should open the dropdown")
+	}
+
+	if err := w.TestClick("name"); err != nil {
+		t.Fatalf("TestClick(name): %v", err)
+	}
+	if !w.IsFocus("name") {
+		t.Fatalf("focus = %q, want name", w.FocusID())
+	}
+	if StateReadOr(w, nsCombobox, "cb", false) {
+		t.Error("dropdown still open after focus moved to the input")
+	}
+	if _, ok := w.TestRender(nil).findByID(ScopeID("cb", "dropdown")); ok {
+		t.Error("dropdown still in the layout after focus moved")
+	}
+}
+
+// A FocusDisabled field never holds focus, so the blur dismiss must
+// skip it, or the dropdown would close the frame after it opened. A
+// focusable field without focus closes.
+func TestComboboxAmendLayoutSkipsUnfocusable(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		focusable bool
+		wantOpen  bool
+	}{
+		{"focus-disabled stays open", false, true},
+		{"focusable without focus closes", true, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			w := &Window{}
+			comboboxOpen("cb", "", w)
+			ly := &Layout{Shape: &Shape{ID: "cb", Focusable: tc.focusable}}
+			comboboxAmendLayout("cb", true, nil)(EventCtx{ly, nil, w})
+			if got := StateReadOr(w, nsCombobox, "cb", false); got != tc.wantOpen {
+				t.Errorf("open = %v, want %v", got, tc.wantOpen)
+			}
+		})
+	}
+}
+
+// A press on the dropdown's scrollbar must not count as focus leaving
+// the field: the scrollbar consumes the press, so the window keeps
+// focus where it is and the dropdown stays open (issue #1150).
+func TestComboboxScrollbarPressKeepsOpen(t *testing.T) {
+	w := NewTestWindow(t, WindowCfg{})
+	items := make([]string, 40)
+	for i := range items {
+		items[i] = "item" + strconv.Itoa(i)
+	}
+	w.TestRender(func(w *Window) View {
+		return Column(ContainerCfg{
+			Sizing: FillFill,
+			Content: []View{Combobox(ComboboxCfg{
+				ID:    "cb",
+				Items: items,
+			})},
+		})
+	})
+	if err := w.TestClick("cb"); err != nil {
+		t.Fatalf("TestClick(cb): %v", err)
+	}
+	dd, ok := w.TestRender(nil).findByID(ScopeID("cb", "dropdown"))
+	if !ok {
+		t.Fatal("dropdown not in the layout after open")
+	}
+	var bar *Layout
+	for i := range dd.Children {
+		c := &dd.Children[i]
+		if c.Shape.OverDraw && c.Shape.Width > 0 && c.Shape.Height > 0 {
+			bar = c
+			break
+		}
+	}
+	if bar == nil {
+		t.Fatal("dropdown has no scrollbar to press")
+	}
+	down := Event{
+		Type: EventMouseDown, MouseButton: MouseLeft,
+		MouseX: bar.Shape.X + bar.Shape.Width/2,
+		MouseY: bar.Shape.Y + bar.Shape.Height/2,
+	}
+	w.EventFn(&down)
+	w.settle()
+	if !down.IsHandled {
+		t.Fatal("scrollbar did not handle the press; test aimed wrong")
+	}
+	if !w.IsFocus("cb") {
+		t.Errorf("focus = %q, want cb", w.FocusID())
+	}
+	if !StateReadOr(w, nsCombobox, "cb", false) {
+		t.Error("dropdown closed on a scrollbar press")
+	}
+}
+
+// A closed field takes the focus-ring amend as is, with no wrapper,
+// and an open one survives an amend call with no layout or shape.
+func TestComboboxAmendLayoutClosedAndNil(t *testing.T) {
+	if got := comboboxAmendLayout("cb", false, nil); got != nil {
+		t.Error("closed field with no ring should get a nil amend")
+	}
+	w := &Window{}
+	comboboxOpen("cb", "", w)
+	amend := comboboxAmendLayout("cb", true, nil)
+	amend(EventCtx{nil, nil, w})
+	amend(EventCtx{&Layout{}, nil, w})
+	if !StateReadOr(w, nsCombobox, "cb", false) {
+		t.Error("amend with no layout or shape closed the dropdown")
 	}
 }

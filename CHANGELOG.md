@@ -81,6 +81,12 @@ and this project adheres to
 
 ### Fixed
 
+- **An open `Combobox` dropdown now closes when focus leaves the field
+  (#1150).** Before, a press on an `Input` or another focusable widget moved
+  focus there but left the dropdown open over the form. The dropdown now also
+  closes on a press in empty space, which clears focus. A press on the dropdown
+  scrollbar keeps it open, and a press on a row still picks that row.
+
 - **`audio.LoadMusicBytes`: embedded MP3, OGG and FLAC tracks play.** `Play` and
   `FadeIn` seek the track to its start, but in-memory MP3, OGG and FLAC data
   reached the decoder through a reader that could not seek. FLAC and OGG
