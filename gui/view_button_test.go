@@ -247,6 +247,43 @@ func TestButtonHoverRightButtonStaysHoverColor(t *testing.T) {
 	releaseAt(w, MouseRight, x, y)
 }
 
+// A held left button is not a press of every widget the pointer crosses.
+// A press that began somewhere else, then dragged over the button, must
+// leave it in the hover color: the press belongs to the shape it landed
+// on (Window.IsPressed). Before, the hover pass read only the held
+// button, so a menu item picked over a button left the button looking
+// pressed until the release.
+func TestButtonHoverForeignPressStaysHoverColor(t *testing.T) {
+	hover := RGBA(40, 200, 40, 255)
+	click := RGBA(200, 40, 40, 255)
+	w := NewTestWindow(t, WindowCfg{})
+	w.TestRender(func(win *Window) View {
+		return Column(ContainerCfg{
+			Sizing: FillFill,
+			Content: []View{Button(ButtonCfg{
+				ID: "b", Width: 100, Height: 40,
+				FocusDisabled: true,
+				OnClick:       func(EventCtx) {},
+				Colors: ColorSet{
+					Base:  RGBA(10, 10, 10, 255),
+					Hover: hover,
+					Click: click,
+				},
+			})},
+		})
+	})
+
+	x, y := hitPoint(t, w, "b")
+	// Below the button, on the bare column.
+	pressAt(w, MouseLeft, x, y+200)
+	w.EventFn(&Event{Type: EventMouseMove, MouseX: x, MouseY: y})
+	w.settle()
+	if c := mustShape(t, w, "b").Color; c != hover {
+		t.Fatalf("foreign press: color = %+v, want %+v", c, hover)
+	}
+	releaseAt(w, MouseLeft, x, y)
+}
+
 // Variant fills come from the installed theme's derived styles; the
 // zero-value variant is today's button (visual-refresh §6).
 func TestButtonVariantFills(t *testing.T) {

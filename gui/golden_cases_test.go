@@ -1477,6 +1477,27 @@ func goldenCases() []goldenCase {
 			},
 		},
 		{
+			// The built-in Input context menu, open over a field with a
+			// selection and an empty clipboard: Paste records disabled
+			// (#1151). The state is seeded rather than driven by a right
+			// press, so the case pins the menu's look and nothing else.
+			name:    "input_context_menu",
+			focusID: inputMenuFocusID,
+			build: func(w *Window) View {
+				w.viewState.inputMenu = inputMenuState{
+					hcfg:         &inputHandlerCfg{},
+					owner:        "name",
+					x:            40,
+					y:            30,
+					canCut:       true,
+					canCopy:      true,
+					canSelectAll: true,
+					open:         true,
+				}
+				return Input(InputCfg{ID: "name", Text: "hello world"})
+			},
+		},
+		{
 			// A variable-height virtualized list, scrolled into the
 			// middle so both spacers and the row window are recorded.
 			// This is the pixel-level guard on the spacer arithmetic:

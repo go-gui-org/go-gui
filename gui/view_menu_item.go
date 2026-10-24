@@ -197,21 +197,29 @@ func menuItem(menubarCfg MenubarCfg, itemCfg MenuItemCfg, extra ...View) View {
 			guiTheme.Sounds.Click, menubarCfg.Sound, menubarCfg.SoundDisabled)
 	}
 
+	// Only a leaf runs on the release; an item with a submenu runs on
+	// the press and needs no release handler.
+	var onMouseUp func(EventCtx)
+	if len(itemCfg.Submenu) == 0 && !itemCfg.Separator && !itemCfg.disabled {
+		onMouseUp = menuItemRelease(menubarCfg.ID, menubarCfg.Action, itemCfg)
+	}
+
 	itemContent := make([]View, 0, 1+len(extra))
 	itemContent = append(itemContent, content)
 	itemContent = append(itemContent, extra...)
 
 	return Column(ContainerCfg{
-		ID:       itemCfg.ID,
-		A11YRole: AccessRoleMenuItem,
-		A11YCfg:  A11YCfg{A11YLabel: a11yProseLabel("", itemCfg.Text)},
-		Color:    itemColor,
-		Sizing:   itemCfg.sizing,
-		Padding:  itemCfg.Padding,
-		Radius:   RadiusPx(itemCfg.radius),
-		Disabled: itemCfg.disabled,
-		Sound:    itemSound,
-		OnClick:  menuItemClick(menubarCfg.ID, menubarCfg.Action, itemCfg),
+		ID:        itemCfg.ID,
+		A11YRole:  AccessRoleMenuItem,
+		A11YCfg:   A11YCfg{A11YLabel: a11yProseLabel("", itemCfg.Text)},
+		Color:     itemColor,
+		Sizing:    itemCfg.sizing,
+		Padding:   itemCfg.Padding,
+		Radius:    RadiusPx(itemCfg.radius),
+		Disabled:  itemCfg.disabled,
+		Sound:     itemSound,
+		OnClick:   menuItemClick(menubarCfg.ID, menubarCfg.Action, itemCfg),
+		OnMouseUp: onMouseUp,
 		// Records the item, never the position (#973).
 		hoverStatic: true,
 		OnHover:     onHover,
@@ -239,24 +247,57 @@ func menuItemClick(menuID string, menuAction func(string, EventCtx),
 			ctx.Window, nsMenu, capModerate)
 		sm.Set(menuID, itemCfg.ID)
 
-		if itemCfg.Action != nil {
-			itemCfg.Action(&itemCfg, EventCtx{nil, ctx.Event, ctx.Window})
-		}
-		focusBeforeAction := ctx.Window.FocusID()
-		if menuAction != nil {
-			menuAction(itemCfg.ID, EventCtx{nil, ctx.Event, ctx.Window})
-		}
-
-		// Close menu if leaf item (no submenu). Only reset focus to
-		// zero if neither action callback changed it — an action that
-		// restores a previous focus should win.
+		// A leaf only takes the highlight here and runs on the release
+		// (menuItemRelease), as in a native menu. Run on the press, it
+		// closed the menu with the button still down, and the widget
+		// under the menu then took the held button for its own press.
+		// An item with a submenu opens it on the press.
 		if len(itemCfg.Submenu) == 0 {
-			if ctx.Window.FocusID() == focusBeforeAction {
-				ctx.Window.ClearFocus()
-			}
-			sm.Delete(menuID)
+			ctx.Consume()
+			return
 		}
-
-		ctx.Consume()
+		menuItemRun(menuID, menuAction, itemCfg, ctx)
 	}
+}
+
+// menuItemRelease returns the OnMouseUp handler for a leaf menu item.
+// It runs the item only when the left press went down on this same
+// item: not for a press dragged in from another item, and not for the
+// release of the right press that opened a context menu under the
+// pointer. Same capture rule as menuItemClick.
+func menuItemRelease(menuID string, menuAction func(string, EventCtx),
+	itemCfg MenuItemCfg) func(EventCtx) {
+	return func(ctx EventCtx) {
+		if !isSelectableMenuID(itemCfg.ID) ||
+			!ctx.Window.releasedFromPressOn(ctx.Layout.Shape.idKey()) {
+			return
+		}
+		menuItemRun(menuID, menuAction, itemCfg, ctx)
+	}
+}
+
+// menuItemRun runs a menu item's actions and closes the menu for a
+// leaf. The mouse path (menuItemClick, menuItemRelease) shares it.
+func menuItemRun(menuID string, menuAction func(string, EventCtx),
+	itemCfg MenuItemCfg, ctx EventCtx) {
+	if itemCfg.Action != nil {
+		itemCfg.Action(&itemCfg, EventCtx{nil, ctx.Event, ctx.Window})
+	}
+	focusBeforeAction := ctx.Window.FocusID()
+	if menuAction != nil {
+		menuAction(itemCfg.ID, EventCtx{nil, ctx.Event, ctx.Window})
+	}
+
+	// Close menu if leaf item (no submenu). Only reset focus to
+	// zero if neither action callback changed it — an action that
+	// restores a previous focus should win.
+	if len(itemCfg.Submenu) == 0 {
+		if ctx.Window.FocusID() == focusBeforeAction {
+			ctx.Window.ClearFocus()
+		}
+		StateMap[string, string](
+			ctx.Window, nsMenu, capModerate).Delete(menuID)
+	}
+
+	ctx.Consume()
 }

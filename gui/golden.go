@@ -217,6 +217,16 @@ func goldenFrame(
 	// what makes the theme argument mean anything, and the second
 	// pass a deferred callback's state change needs.
 	w.SetTheme(theme)
+	if cfg.MousePressed {
+		// The pressed look follows the shape the press went down on
+		// (Window.IsPressed), not the held button. Record it the way a
+		// real press does: hit test an arranged frame at the pointer.
+		w.markLayoutRefresh(refreshTest)
+		w.FrameFn()
+		w.recordPressTarget(&Event{
+			MouseButton: MouseLeft, MouseX: cfg.HoverX, MouseY: cfg.HoverY,
+		})
+	}
 	w.markLayoutRefresh(refreshTest)
 	w.FrameFn()
 

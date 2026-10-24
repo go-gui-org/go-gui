@@ -32,13 +32,13 @@ func TestInputOnKeyUpNilEventDeclines(t *testing.T) {
 
 func TestInputOnClickNilEventDeclines(t *testing.T) {
 	w := newTestWindow()
-	inputOnClick("leaf", "scroll", true)(nilEventCtx(w))
+	inputOnClick("leaf", "scroll", true, nil)(nilEventCtx(w))
 }
 
 func TestInputOnClickNilLayoutDeclines(t *testing.T) {
 	w := newTestWindow()
 	e := &Event{Type: EventMouseDown, MouseButton: MouseLeft}
-	inputOnClick("leaf", "scroll", true)(EventCtx{nil, e, w})
+	inputOnClick("leaf", "scroll", true, nil)(EventCtx{nil, e, w})
 }
 
 func TestComboboxOnCharNilEventDeclines(t *testing.T) {

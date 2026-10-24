@@ -68,8 +68,17 @@ func (w *Window) IsHovered(effectiveID string) bool {
 // Main-thread only, like [Window.IsFocus]: no lock is taken.
 // exportaudit:keep — public seam for views with their own GenerateLayout
 func (w *Window) IsPressed(effectiveID string) bool {
-	return targetWithin(w.viewState.pressTargetID, effectiveID) ||
-		w.isKeyPressed(effectiveID)
+	return w.isMousePressed(effectiveID) || w.isKeyPressed(effectiveID)
+}
+
+// isMousePressed reports whether the held left button went down on the
+// widget with this effective ID, or on one of its ID-bearing
+// descendants. A hover pass reads this, not the held button: a press
+// that began on another shape (a menu item that closed under the
+// pointer, a drag from empty space) is not a press of what the pointer
+// crosses now.
+func (w *Window) isMousePressed(effectiveID string) bool {
+	return targetWithin(w.viewState.pressTargetID, effectiveID)
 }
 
 // isKeyPressed reports whether a held Space key presses the widget with
@@ -151,11 +160,33 @@ func (w *Window) endPressDispatch() {
 // releaseMouseButton clears btn alone. The press target belongs to
 // the left button (recordPressTarget), so only a left release ends
 // it: a right click during a left drag keeps IsPressed true (#1098).
+//
+// The target a left release ends moves to releasedPressTargetID, where
+// the release's OnMouseUp handlers read it (releasedFromPressOn). Every
+// release path passes here (a backend release, a touch lift, a
+// drag-scroll tap), so all of them keep it; each clears it with
+// endReleaseDispatch once its handlers have run.
 func (w *Window) releaseMouseButton(btn MouseButton) {
-	w.viewState.mouseButtonsHeld &^= mouseButtonBit(btn)
+	bit := mouseButtonBit(btn)
+	if w.viewState.mouseButtonsHeld&bit == 0 {
+		// The same release again: dragPanOnMouseUp runs inside the
+		// window's own release, which already moved the target aside.
+		// Writing it again would wipe it before the tap replay's
+		// release reaches the item.
+		return
+	}
+	w.viewState.mouseButtonsHeld &^= bit
+	w.viewState.releasedPressTargetID = ""
 	if btn == MouseLeft {
+		w.viewState.releasedPressTargetID = w.viewState.pressTargetID
 		w.viewState.pressTargetID = ""
 	}
+}
+
+// endReleaseDispatch drops the target releaseMouseButton kept, once the
+// release's handlers have run.
+func (w *Window) endReleaseDispatch() {
+	w.viewState.releasedPressTargetID = ""
 }
 
 // clearHeldMouseButtons drops every held button and the press
@@ -164,6 +195,7 @@ func (w *Window) clearHeldMouseButtons() {
 	w.viewState.mouseButtonsHeld = 0
 	w.viewState.droppedPresses = 0
 	w.viewState.pressTargetID = ""
+	w.viewState.releasedPressTargetID = ""
 }
 
 // heldMouseButton is the one button EventCtx.MouseButton reports

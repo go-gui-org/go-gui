@@ -90,6 +90,8 @@ func TestRadioClickHoverChangesBorder(t *testing.T) {
 	v := Radio(RadioCfg{ID: "widget_test_test_radio_click_hover_changes_border", OnClick: noop, Label: "X"})
 	layout := generateViewLayout(v, w)
 	clickColor := defaultRadioStyle.Colors.Click
+	// The pressed look follows the press target, not the held button.
+	w.viewState.pressTargetID = "widget_test_test_radio_click_hover_changes_border"
 	e := &Event{MouseButton: MouseLeft}
 	layout.Shape.events.OnHover(EventCtx{&layout, e, w})
 	got := layout.Children[0].Shape.ColorBorder
@@ -227,6 +229,9 @@ func TestToggleClickHoverChangesColor(t *testing.T) {
 	v := Toggle(ToggleCfg{ID: "widget_test_test_toggle_click_hover_changes_color", OnClick: noop})
 	layout := generateViewLayout(v, w)
 	clickColor := defaultToggleStyle.Colors.Click
+	// The press landed on this widget: the pressed look follows the
+	// press target, not the held button.
+	w.viewState.pressTargetID = "widget_test_test_toggle_click_hover_changes_color"
 	e := &Event{MouseButton: MouseLeft}
 	layout.Shape.events.OnHover(EventCtx{&layout, e, w})
 	got := layout.Children[0].Shape.Color
@@ -375,6 +380,9 @@ func TestSwitchClickHoverChangesColor(t *testing.T) {
 	v := Switch(SwitchCfg{ID: "widget_test_test_switch_click_hover_changes_color", OnClick: noop})
 	layout := generateViewLayout(v, w)
 	clickColor := defaultSwitchStyle.Colors.Click
+	// The press landed on this widget: the pressed look follows the
+	// press target, not the held button.
+	w.viewState.pressTargetID = "widget_test_test_switch_click_hover_changes_color"
 	e := &Event{MouseButton: MouseLeft}
 	layout.Shape.events.OnHover(EventCtx{&layout, e, w})
 	got := layout.Children[0].Shape.Color

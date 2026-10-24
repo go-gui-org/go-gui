@@ -311,10 +311,11 @@ func makeBcOnHover(cs ColorSet, selected bool) func(EventCtx) {
 		}
 		ctx.Window.SetMouseCursorPointingHand()
 		// One precedence rule, not two assignments: pressed
-		// (held mouse button) wins over hovered (issue #720).
+		// (a mouse press that began on this crumb) wins over
+		// hovered (issue #720).
 		fill, _ := cs.pick(stateFlags{
 			selected: selected,
-			pressed:  ctx.Event.MouseButton == MouseLeft,
+			pressed:  ctx.Window.isMousePressed(ctx.Layout.Shape.idKey()),
 			hovered:  true,
 		})
 		ctx.Layout.Shape.Color = fill

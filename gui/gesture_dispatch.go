@@ -266,5 +266,6 @@ func synthMouse(
 	case EventMouseUp:
 		w.releaseMouseButton(btn)
 		mouseUpHandler(layout, &w.scratch.gestureEvent, w)
+		w.endReleaseDispatch()
 	}
 }

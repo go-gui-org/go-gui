@@ -187,6 +187,9 @@ type ViewState struct {
 	rtfLayoutCache map[uint64]rtfLayoutEntry
 	rtfLayoutPass  uint64
 	tooltip        tooltipState
+	// inputMenu is the Input context menu, at most one per window
+	// (input_context_menu.go).
+	inputMenu inputMenuState
 
 	// Markdown caches (lazy-init: nil until first use). Keyed on
 	// Theme.id, not Theme.Name: a derived or scoped theme can carry the
@@ -266,6 +269,12 @@ type ViewState struct {
 	// nothing. See docs/specs/build-time-interaction-state.md (#587).
 	hoverTargetID string
 	pressTargetID string
+	// releasedPressTargetID is pressTargetID kept for the length of
+	// the left release's dispatch, which clears pressTargetID first
+	// (releaseMouseButton). An OnMouseUp handler reads it through
+	// releasedFromPressOn to act only on a release whose press went
+	// down on it (a menu item).
+	releasedPressTargetID string
 	// keyPressTargetID is the effective ID of the focused ClickOnSpace
 	// shape a Space key down pressed, held until the key up clicks it
 	// or a focus change, window blur or Escape cancels it. Kept apart
@@ -293,6 +302,11 @@ type ViewState struct {
 	inArrange        bool
 	arrangeSetCursor bool
 	arrangedCursor   MouseCursor
+	// hoverAboveDialog is true while layoutArrange's hover pass walks a
+	// layer above the modal dialog (the Input menu, the inspector).
+	// Those layers get events (dialogRoute), so they get hover too,
+	// though no shape in them has the dialog as an ancestor.
+	hoverAboveDialog bool
 }
 
 // State returns a typed pointer to the user-supplied state.
