@@ -182,11 +182,17 @@ func reviewGate(in hookInput, project string, stderr io.Writer) int {
 // .go file as a new-file diff.
 func reviewDiff(project string) string {
 	var b strings.Builder
-	b.WriteString(gitOutput(project, "diff", "HEAD", "--", "*.go"))
+	b.WriteString(gitDiff(project, "HEAD", "--", "*.go"))
 	for _, f := range lines(gitOutput(project, "ls-files", "--others", "--exclude-standard", "--", "*.go")) {
 		// --no-index exits 1 when the files differ, which they always do
 		// here; gitOutput keeps stdout either way.
-		b.WriteString(gitOutput(project, "diff", "--no-index", "--", "/dev/null", f))
+		b.WriteString(gitDiff(project, "--no-index", "--", "/dev/null", f))
 	}
 	return strings.TrimRight(b.String(), "\n")
+}
+
+// gitDiff runs git diff with the a/ b/ path prefixes pinned. Without them, a
+// user's diff.mnemonicPrefix or diff.noprefix setting changes the headers.
+func gitDiff(project string, args ...string) string {
+	return gitOutput(project, append([]string{"diff", "--src-prefix=a/", "--dst-prefix=b/"}, args...)...)
 }
