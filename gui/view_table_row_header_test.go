@@ -416,3 +416,41 @@ func TestTableKeyShiftSpaceAndEscape(t *testing.T) {
 			e.IsHandled, got)
 	}
 }
+
+// A header click consumes the press, so the table container never sees
+// the press that would focus it. The handlers focus it themselves, or
+// the table's keys (Ctrl+A, Shift+Space, Escape) stay dead after a click.
+func TestTableRowHeaderClickFocusesTable(t *testing.T) {
+	for _, row := range []int{0, 1} { // corner, then a data row
+		w := &Window{}
+		layout := generateViewLayout(w.Table(TableCfg{
+			ID:          "rh-focus",
+			Focusable:   true,
+			RowHeader:   true,
+			MultiSelect: true,
+			Data:        rowHeaderTestData(),
+			OnSelect:    func(map[int]bool, int, EventCtx) {},
+		}), w)
+		rows := tableRows(&layout)
+		clickRowHeader(t, &rows[row], w, ModLMB)
+		if got, want := w.FocusID(), w.EffID("rh-focus"); got != want {
+			t.Errorf("row %d: focus = %q, want %q", row, got, want)
+		}
+	}
+}
+
+// A table that is not focusable has nothing to focus.
+func TestTableRowHeaderClickNoFocusWhenNotFocusable(t *testing.T) {
+	w := &Window{}
+	layout := generateViewLayout(w.Table(TableCfg{
+		ID:        "rh-nofocus",
+		RowHeader: true,
+		Data:      rowHeaderTestData(),
+		OnSelect:  func(map[int]bool, int, EventCtx) {},
+	}), w)
+	rows := tableRows(&layout)
+	clickRowHeader(t, &rows[1], w, ModLMB)
+	if got := w.FocusID(); got != "" {
+		t.Errorf("focus = %q, want none", got)
+	}
+}

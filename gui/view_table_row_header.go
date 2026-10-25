@@ -32,9 +32,13 @@ const (
 type tableRowHeader struct {
 	// data is cfg.Data, kept for the corner (select all) and for range
 	// selection, which skip header rows.
-	data  []TableRowCfg
-	key   string // table effective ID; keys the anchor and current row
-	width float32
+	data []TableRowCfg
+	key  string // table effective ID; keys the anchor and current row
+	// focusID is the ID a click focuses, or "" for a table that does not
+	// join the tab order. The header cell consumes the press, so the
+	// table below it never sees the press that would focus it.
+	focusID string
+	width   float32
 	// current is the cfg.Data index that shows the marker, or -1 for
 	// none.
 	current int
@@ -64,12 +68,25 @@ func tableRowHeaderOf(cfg *TableCfg, activeRowIdx int, w *Window) tableRowHeader
 			current = StateReadOr(w, nsTableFocus, cfg.ID, -1)
 		}
 	}
-	return tableRowHeader{
+	rh := tableRowHeader{
 		data:    cfg.Data,
 		key:     cfg.ID,
 		width:   width,
 		current: current,
 		on:      true,
+	}
+	if cfg.Focusable {
+		rh.focusID = cfg.ID
+	}
+	return rh
+}
+
+// focus gives the table keyboard focus after a header click consumed
+// the press. Event dispatch holds no frame lock, so SetFocus is safe
+// here, as in the segmented control.
+func (rh tableRowHeader) focus(w *Window) {
+	if rh.focusID != "" && w != nil {
+		w.SetFocus(rh.focusID)
 	}
 }
 
@@ -169,6 +186,7 @@ func tableRowHeaderCell(
 			ri := rowIdx
 			onClick = func(ctx EventCtx) {
 				onSelect(tableSelectAll(data), ri, ctx)
+				rh.focus(ctx.Window)
 				ctx.Consume()
 			}
 		}
@@ -245,6 +263,7 @@ func tableRowHeaderOnClick(
 			rowOnClick(ctx)
 		}
 		onSelect(next, ri, ctx)
+		rh.focus(w)
 		ctx.Consume()
 	}
 }
