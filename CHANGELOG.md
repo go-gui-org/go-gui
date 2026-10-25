@@ -111,6 +111,14 @@ and this project adheres to
 
 ### Fixed
 
+- **A macOS app built with `CGO_ENABLED=0` fails to link instead of panicking at
+  launch (#1159).** The macOS backend needs cgo. Before, a darwin build with cgo
+  off linked, and the app panicked at start with "no native backend available".
+  Now the link fails and the error names the cause:
+  `relocation target .../gui/backend.macOS_requires_cgo__set_CGO_ENABLED_1 not defined`.
+  Set `CGO_ENABLED=1` to build for macOS. `go vet` and lint with cgo off still
+  pass, and builds for other platforms do not change.
+
 - **Touch: a vertical pan over a horizontally scrolling child scrolls the page
   (#1118).** Before, a page barely moved while the finger was over a child that
   scrolls only sideways, such as a wide Markdown table: the table took each
