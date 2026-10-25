@@ -384,15 +384,6 @@ func buildMarkdownTableData(
 	return rows
 }
 
-// Markdown creates a markdown view. Method on *Window to
-// access viewState for caching.
-func (w *Window) Markdown(cfg MarkdownCfg) View {
-	if cfg.Invisible {
-		return invisibleContainerView()
-	}
-	return &markdownView{cfg: cfg}
-}
-
 // markdownView is the widget node for a Markdown document. It is a
 // struct view (like the splitter, issue #264) because the document has
 // several identities that must agree: the container claims cfg.ID, and
@@ -402,7 +393,8 @@ func (w *Window) Markdown(cfg MarkdownCfg) View {
 // resolution happens here, in GenerateLayout, where w.EffID can see
 // the enclosing panel.
 type markdownView struct {
-	cfg MarkdownCfg
+	cfg  MarkdownCfg
+	html bool // Source is HTML (Window.HTML)
 }
 
 func (mv *markdownView) GenerateLayout(w *Window) Layout {
@@ -455,7 +447,7 @@ func (mv *markdownView) GenerateLayout(w *Window) Layout {
 	// carries the highlighter's type; the entry carries the
 	// highlighter, so two of one type with different token tables
 	// compare apart.
-	key := newMarkdownCacheKey(cfg.Source, &cfg.Style)
+	key := mv.cacheKey(cfg)
 	themeID := guiTheme.id
 	if w.viewState.markdownCache == nil ||
 		w.viewState.markdownTheme != themeID {
@@ -468,7 +460,7 @@ func (mv *markdownView) GenerateLayout(w *Window) Layout {
 	if !ok || !sameMarkdownHighlighter(
 		entry.highlighter, cfg.Style.CodeHighlighter,
 	) {
-		blocks = markdownToBlocks(cfg.Source, cfg.Style)
+		blocks = mv.parse(cfg)
 		w.viewState.markdownCache.Set(key, markdownCacheEntry{
 			highlighter: cfg.Style.CodeHighlighter,
 			blocks:      blocks,

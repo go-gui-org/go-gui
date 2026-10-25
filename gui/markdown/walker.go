@@ -227,6 +227,12 @@ func (w *mdWalker) walkCodeBlock(cb *ast.CodeBlock) {
 }
 
 func (w *mdWalker) emitCodeBlock(code, langHint string) {
+	w.blocks = append(w.blocks, newCodeBlock(code, langHint))
+}
+
+// newCodeBlock tokenizes code for highlighting and wraps it in a code
+// block. ParseHTML builds its <pre> blocks with it too.
+func newCodeBlock(code, langHint string) Block {
 	lang := langFromHint(langHint)
 	tokens := tokenizeCode(code, lang,
 		maxCodeBlockHighlightBytes)
@@ -243,11 +249,11 @@ func (w *mdWalker) emitCodeBlock(code, langHint string) {
 			}
 		}
 	}
-	w.blocks = append(w.blocks, Block{
+	return Block{
 		IsCode:       true,
 		CodeLanguage: langHint,
 		Runs:         runs,
-	})
+	}
 }
 
 // collectLines extracts text from a block node's Lines().

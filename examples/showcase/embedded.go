@@ -184,6 +184,7 @@ var relatedExampleMap = map[string][]string{
 	"content_transition":  {"examples/showcase/demo_content_transition.go", "examples/content_transition/main.go"},
 	"color_picker":        {"examples/showcase/demo_input.go", "examples/color_picker/main.go"},
 	"theme_gen":           {"examples/showcase/demo_theme.go", "examples/showcase/main.go"},
+	"html":                {"examples/showcase/demo_html.go", "examples/html_preview/main.go"},
 	"markdown":            {"examples/showcase/demo_text.go", "examples/markdown/main.go", "examples/markdown/markdown_source.md"},
 	"tab_control":         {"examples/showcase/demo_navigation.go"},
 	"command_palette":     {"examples/showcase/demo_navigation.go"},

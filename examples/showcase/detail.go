@@ -272,6 +272,7 @@ var componentDemos = map[string]func(*gui.Window) gui.View{
 	"animations":          demoAnimations,
 	"color_picker":        demoColorPicker,
 	"theme_gen":           demoThemeGen,
+	"html":                demoHTML,
 	"markdown":            demoMarkdown,
 	"tab_control":         demoTabControl,
 	"command_palette":     demoCommandPalette,
