@@ -21,8 +21,8 @@ Gate failures that are environment state, not code:
 - `Error: parallel golangci-lint is running` — an interrupted `make prepush`
   left a lock. Re-run before reading the diff. `make prepush` outlives a
   foreground tool timeout, so run it in the background.
-- `export data version N is greater than maximum supported` from the
-  `.claude/hooks/` scripts — they call `golangci-lint` from `PATH`, not the
+- `export data version N is greater than maximum supported` from the Claude Code
+  hooks (`tools/claudehook`) — they call `golangci-lint` from `PATH`, not the
   pinned `.bin/` copy. Install the version in `tools/lint/go.mod`. Rebuilding
   the old version with a newer Go does not fix it.
 - `make deps-doc` warns on a new indirect dependency until it is added to
