@@ -14,6 +14,15 @@ func layoutPipeline(layout *Layout, w *Window) {
 	// it is generated. Resolving here instead would see a float as its
 	// own root and strip the scope its ancestors gave it.
 
+	// A float runs this pipeline after the main tree (layoutArrange), so
+	// its anchor's width is final here. Raising MinWidth before the
+	// width pass, not widening in AmendLayout, lets the fill pass below
+	// stretch the float's Fill children to the new width too (#1155).
+	if s := layout.Shape; s.floatMinAnchorWidth &&
+		layout.Parent != nil && layout.Parent.Shape != nil {
+		s.MinWidth = f32Max(s.MinWidth, layout.Parent.Shape.Width)
+	}
+
 	// Width passes.
 	layoutWidths(layout)
 	w.scratch.beginFillPass()

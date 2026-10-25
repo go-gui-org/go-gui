@@ -2022,7 +2022,8 @@ func goldenCases() []goldenCase {
 			build: goldenTransformCard(RotateY(40).Perspective(400)),
 		},
 	}
-	return append(cases, goldenFlipPanelCases()...)
+	cases = append(cases, goldenFlipPanelCases()...)
+	return append(cases, goldenDropdownCases()...)
 }
 
 // goldenFlipPanelCases pins FlipPanel (#1020) at five points of a turn
