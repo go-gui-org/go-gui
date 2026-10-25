@@ -13,14 +13,21 @@ func tableBuildRow(
 	cellBorder float32, selected map[int]bool,
 	multiSelect bool,
 	onSelect func(map[int]bool, int, EventCtx),
-	activeRowIdx int, activeKey string,
+	activeRowIdx int, activeKey string, rh tableRowHeader,
 ) View {
 	r := cfg.Data[rowIdx]
 	isSelected := selected[rowIdx]
 	// The keyboard-active row is the Focus state: arrow-key
 	// movement stays visible through the theme's focus fill.
 	isActive := rowIdx == activeRowIdx && activeRowIdx >= 0
-	cells := make([]View, 0, len(r.Cells))
+	cells := make([]View, 0, len(r.Cells)+1)
+
+	// The row header leads the row but is not one of its cells, so
+	// colIdx below still indexes columnWidths and ColumnAlignments.
+	if rh.on {
+		cells = append(cells, tableRowHeaderCell(cfg, rowIdx, rh,
+			cellBorder, selected, multiSelect, onSelect))
+	}
 
 	for colIdx, cell := range r.Cells {
 		cellTextStyle := cfg.TextStyle
@@ -144,7 +151,7 @@ func tableBuildRows(
 	cfg *TableCfg, columnWidths []float32, cellBorder float32,
 	selected map[int]bool, multiSelect bool,
 	onSelect func(map[int]bool, int, EventCtx),
-	activeRowIdx int, navKey string,
+	activeRowIdx int, navKey string, rh tableRowHeader,
 	first, last, lastRowIdx, dataStart int,
 	rowHeight float32, virtualize bool,
 ) []View {
@@ -170,7 +177,7 @@ func tableBuildRows(
 		rows = append(rows, tableBuildRow(
 			cfg, rowIdx, columnWidths, cellBorder,
 			selected, multiSelect, onSelect,
-			activeRowIdx, navKey))
+			activeRowIdx, navKey, rh))
 
 		// Horizontal separator.
 		sepHeight := cfg.SizeBorder
@@ -219,13 +226,14 @@ func tableFreezeLayout(
 	scrollID string,
 	activeRowIdx int,
 	activeKey string,
+	rh tableRowHeader,
 	fw tableFocusState,
 ) View {
 	// Header zone: row 0 + optional separator.
 	headerViews := []View{
 		tableBuildRow(cfg, 0, columnWidths, cellBorder,
 			selected, multiSelect, onSelect,
-			activeRowIdx, activeKey),
+			activeRowIdx, activeKey, rh),
 	}
 
 	sepHeight := cfg.SizeBorder

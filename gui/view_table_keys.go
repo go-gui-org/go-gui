@@ -37,6 +37,7 @@ func tableFocusWiring(
 	}
 	data := cfg.Data
 	activeKey := cfg.ID
+	rowHeader := cfg.RowHeader
 	// Resolved here, at generation time, and captured by value: the
 	// handler below gets a nil ctx.Layout on the activate path, so
 	// there is no Shape for dispatch to read a cue off (issue #468).
@@ -46,6 +47,12 @@ func tableFocusWiring(
 		focusable: true,
 		ring:      focusRingAmend(Color{}, cfg.Colors.BorderFocus),
 		onKeyDown: func(ctx EventCtx) {
+			// Select all, Shift+Space and Escape first: tableOnKeyDown
+			// would take Space as a toggle and pass Ctrl+A on.
+			if tableSelectionKeys(data, selected, multiSelect, rowHeader,
+				onSelect, activeKey, ctx.Event, ctx.Window) {
+				return
+			}
 			tableOnKeyDown(data, selected, multiSelect, onSelect,
 				activeKey, scrollID, rowH, listH, bodyRowOffset,
 				cues, ctx.Event, ctx.Window)

@@ -10,6 +10,22 @@ and this project adheres to
 
 ### Added
 
+- **`Table` gets an optional row header column and a select-all corner, like the
+  WinForms `DataGridView` (#1156).** Set `TableCfg.RowHeader` to put a narrow
+  selector cell in front of every row. A click on it selects that row. Under
+  `MultiSelect`, Ctrl+click (Cmd+click on macOS) toggles the row and Shift+click
+  selects a range. On the header row the cell is the corner: a click there
+  selects every data row. The row that was clicked or moved to last shows a ▶
+  marker. The cell is not part of `Data`, so column widths, alignments, and your
+  sort and copy code do not see it. Selection still goes through `Selected` and
+  `OnSelect`, and it keys on row index, so it stays stable while virtualization
+  scrolls rows out of view. `RowHeaderWidth` sets the width (default 24). A
+  focusable table with a row header also takes Shift+Space (select only the
+  current row) and Escape (clear the selection; with nothing selected, Escape
+  travels on). Any focusable `MultiSelect` table now takes Ctrl+A (Cmd+A on
+  macOS) to select every data row. The showcase table demo has a "Row header"
+  toggle.
+
 - **A right press on an `Input` opens a Cut, Copy, Paste and Select All menu
   (#1151).** Before, a right press in a text field did nothing. Copy and Cut act
   on the current selection, which the press keeps. Cut and Paste are off in a

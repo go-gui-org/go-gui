@@ -39,6 +39,7 @@ func demoTable(w *gui.Window) gui.View {
 	cfg.TextStyleHead = gui.CurrentTheme().TextStyleBodySmall.Bold()
 	cfg.MultiSelect = app.TableMultiSelect
 	cfg.FreezeHeader = app.TableFreezeHeader
+	cfg.RowHeader = app.TableRowHeader
 	cfg.Selected = app.TableSelected
 	cfg.OnSelect = func(sel map[int]bool, _ int, ctx gui.EventCtx) {
 		appState(ctx.Window).TableSelected = sel
@@ -134,6 +135,14 @@ func demoTable(w *gui.Window) gui.View {
 								Selected: app.TableFreezeHeader,
 								OnClick: func(ctx gui.EventCtx) {
 									appState(ctx.Window).TableFreezeHeader = !app.TableFreezeHeader
+								},
+							}),
+							gui.Toggle(gui.ToggleCfg{
+								ID:       "showcase_table_row_header",
+								Label:    "Row header",
+								Selected: app.TableRowHeader,
+								OnClick: func(ctx gui.EventCtx) {
+									appState(ctx.Window).TableRowHeader = !app.TableRowHeader
 								},
 							}),
 						},

@@ -288,6 +288,7 @@ type ShowcaseApp struct {
 	AudioReady        bool
 	TableMultiSelect  bool
 	TableFreezeHeader bool
+	TableRowHeader    bool
 	ThemeGenPickText  bool
 }
 
