@@ -36,6 +36,16 @@ type snippetEntry struct {
 
 var snippetEntries = []snippetEntry{
 	{
+		sourceFile: "../html_preview/main.go",
+		beginMark:  "// doc:snippet-begin html-preview",
+		endMark:    "// doc:snippet-end html-preview",
+		anchor:     "return w.HTML(gui.MarkdownCfg{",
+		heading:    "## How it works",
+		guides: []string{
+			"../html_preview/README.md",
+		},
+	},
+	{
 		sourceFile: "sound_player.go",
 		beginMark:  "// doc:snippet-begin player",
 		endMark:    "// doc:snippet-end player",

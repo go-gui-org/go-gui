@@ -35,6 +35,10 @@ type markdownCacheKey struct {
 	source      uint64
 	style       uint64
 	highlighter reflect.Type
+	// html marks a source parsed by ParseHTML (Window.HTML). One
+	// string read as HTML and as Markdown gives different blocks, so
+	// the two must not share an entry (#1158).
+	html bool
 }
 
 // newMarkdownCacheKey builds the key for one source under one style.

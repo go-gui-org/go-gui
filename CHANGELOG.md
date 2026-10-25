@@ -10,6 +10,22 @@ and this project adheres to
 
 ### Added
 
+- **`Window.HTML` renders a small, safe subset of HTML (#1158).** Use it to
+  preview HTML that something else shows, such as a promo snippet an admin
+  writes for a mobile app. It takes the same `MarkdownCfg` as `Window.Markdown`
+  and draws through the same renderer, so styles, selection, links and the image
+  policy work the same. Supported: `p`, `div`, `br`, `hr`, `h1`–`h6`,
+  `b`/`strong`, `i`/`em`, `u`, `s`/`del`, `mark`, `sup`, `sub`, `code`, `pre`,
+  `blockquote`, `ul`/`ol`/`li`, `a href` and `img src alt width height`. Other
+  tags are dropped and their text kept. `script`, `style` and similar elements
+  are dropped with their content. Links and image sources pass the same safety
+  checks as Markdown, and remote images stay blocked unless `AllowRemoteImages`
+  is set. The text goes straight into the document, so `*`, `_`, `#` and `|`
+  stay literal; converting HTML to Markdown text in the app changed their
+  meaning. There is no CSS and no script: this is not a browser. The parser is
+  `markdown.ParseHTML`. See `examples/html_preview/` and the HTML page in the
+  showcase.
+
 - **`Table` gets an optional row header column and a select-all corner, like the
   WinForms `DataGridView` (#1156).** Set `TableCfg.RowHeader` to put a narrow
   selector cell in front of every row. A click on it selects that row. Under
