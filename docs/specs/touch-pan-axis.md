@@ -73,3 +73,11 @@ the axes the `DragScroll` owns.
   the rest of that move outward. The next move goes to the ancestor.
 - The lock does not change after recognition. A pan that starts vertical and
   turns sideways keeps scrolling vertically until the lift, as on iOS.
+- A `DragScroll` container still follows the finger's drift on its own axes. It
+  moves through its own mouse-lock drag (`dragPanOnMouseMove`,
+  `gui/drag_scroll.go`), which applies both deltas filtered only by
+  `ScrollMode`, so the lock does not reach it: a vertical swipe that drifts 10
+  px sideways on a horizontal `DragScroll` carousel scrolls the page and slides
+  the carousel 10 px. This predates #1118. A fix needs its own design, because
+  the same path serves mouse drags, where following the cursor on both axes is
+  arguably right.
