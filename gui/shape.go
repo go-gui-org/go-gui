@@ -174,6 +174,11 @@ type Shape struct {
 	// to keep the element within the window bounds.
 	floatAutoFlip bool
 
+	// floatMinAnchorWidth makes a float at least as wide as its anchor:
+	// layoutPipeline raises MinWidth to the anchor's width before the
+	// width pass, so a dropdown list matches its field (#1155).
+	floatMinAnchorWidth bool
+
 	// Focusable opts the widget into the keyboard-focus system.
 	// It receives focus via click or Tab, and its per-widget input
 	// state (cursor, selection, undo/redo) is keyed by ID. Requires

@@ -111,6 +111,14 @@ and this project adheres to
 
 ### Fixed
 
+- **The open list of a Select or Combobox is at least as wide as the field
+  (#1155).** Before, a Select list was only as wide as its longest option, so a
+  `FillFit` field in a wide column opened a narrow list. A Combobox list took
+  the field's width, but its rows kept their own width, so the hover color
+  stopped short of the edge, and an option wider than the field was cut off. Now
+  both lists are as wide as the field, or wider when an option needs more space.
+  The rows fill the list. `MaxWidth` is still the upper limit.
+
 - **A macOS app built with `CGO_ENABLED=0` fails to link instead of panicking at
   launch (#1159).** The macOS backend needs cgo. Before, a darwin build with cgo
   off linked, and the app panicked at start with "no native backend available".

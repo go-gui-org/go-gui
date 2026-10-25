@@ -49,6 +49,9 @@ type ContainerCfg struct {
 	// (window_idle_move.go, #973). Set only for a built-in hover whose
 	// callback reads no position and calls no app code.
 	hoverStatic bool
+	// floatMinAnchorWidth makes a Float container at least as wide as
+	// its anchor. See Shape.floatMinAnchorWidth.
+	floatMinAnchorWidth bool
 	// pointerAmend marks an AmendLayout that reads the pointer position
 	// (WithTooltip's enter and leave test). A move into or out of the
 	// shape then rebuilds, so the hook sees it.
@@ -632,6 +635,7 @@ func buildContainerShape(cfg *ContainerCfg, w *Window) Shape {
 		Disabled:             cfg.Disabled,
 		Float:                cfg.Float,
 		floatAutoFlip:        cfg.FloatAutoFlip,
+		floatMinAnchorWidth:  cfg.floatMinAnchorWidth,
 		FloatAnchor:          cfg.FloatAnchor,
 		FloatTieOff:          cfg.FloatTieOff,
 		FloatOffsetX:         cfg.FloatOffsetX,

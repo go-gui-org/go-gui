@@ -10,6 +10,13 @@ type comboboxItemsCache struct {
 	scored      []listCoreScored
 	views       []View
 	optionsHash uint64
+	// widest is the widest item label in items, measured with
+	// widestStyle when the options hashed to widestHash. See
+	// comboboxWidestLabel.
+	widestStyle TextStyle
+	widestHash  uint64
+	widest      float32
+	widestSet   bool
 }
 
 type comboboxViewKey struct {
@@ -248,24 +255,47 @@ func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 			cache.views = dropdownContent
 			cache.viewKey = viewKey
 		}
+		// The dropdown builds only the rows in view (virtualization
+		// above), so a width taken from its content would follow the
+		// visible rows and jump as the list scrolls past a long item.
+		// Floor it at the widest label of the whole list instead,
+		// measured once per options and style change (#1155).
+		if !cache.widestSet || cache.widestHash != optionsHash ||
+			cache.widestStyle != cfg.TextStyle {
+			cache.widest = comboboxWidestLabel(cache.items, cfg.TextStyle, w)
+			cache.widestStyle = cfg.TextStyle
+			cache.widestHash = optionsHash
+			cache.widestSet = true
+		}
+		// Row padding and dropdown padding are both pad (coreCfg
+		// PaddingItem and the Column's Padding below).
+		dropdownMinW := cache.widest + 2*pad.Width() + 2*sizeBorder
 		content = append(content, Column(ContainerCfg{
 			// Composed from the resolved ID, not a relative leaf: an
 			// auto-ID combobox opens no scope (#881), so "dropdown"
 			// alone would collide between two ID-less comboboxes and
 			// miss the scroll key above.
-			ID:           dropdownScrollID,
-			Shadow:       dn.Shadow,
-			SizeBorder:   BorderPx(sizeBorder),
-			Radius:       RadiusPx(radius),
-			ColorBorder:  cfg.Colors.Border,
-			Color:        cfg.Colors.Base,
-			MinHeight:    50,
-			MaxHeight:    cfg.MaxDropdownHeight,
-			Float:        true,
-			FloatAnchor:  FloatBottomLeft,
-			FloatTieOff:  FloatTopLeft,
-			FloatOffsetY: -sizeBorder,
-			FloatZIndex:  cfg.FloatZIndex,
+			ID:          dropdownScrollID,
+			Shadow:      dn.Shadow,
+			SizeBorder:  BorderPx(sizeBorder),
+			Radius:      RadiusPx(radius),
+			ColorBorder: cfg.Colors.Border,
+			Color:       cfg.Colors.Base,
+			MinHeight:   50,
+			MinWidth:    dropdownMinW,
+			MaxWidth:    cfg.MaxWidth, // the field's cap, as on Select
+			MaxHeight:   cfg.MaxDropdownHeight,
+			Float:       true,
+			// At least as wide as the field, and wider for a long item
+			// (#1155). This replaced an AmendLayout that set Width to the
+			// field's: it ran after the fill pass, so the Fill rows kept
+			// their content width and the hover wash stopped short, and
+			// it cut a wider item to the field's width.
+			floatMinAnchorWidth: true,
+			FloatAnchor:         FloatBottomLeft,
+			FloatTieOff:         FloatTopLeft,
+			FloatOffsetY:        -sizeBorder,
+			FloatZIndex:         cfg.FloatZIndex,
 			// MaxHeight alone does not hold the rows in: a list
 			// taller than the cap would paint its overflow over
 			// whatever is under the dropdown. The scroll viewport
@@ -276,22 +306,6 @@ func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 			Padding:    cfg.Padding,
 			Spacing:    NoSpacing,
 			Content:    dropdownContent,
-			AmendLayout: func(ctx EventCtx) {
-				if ctx.Layout.Parent == nil {
-					return
-				}
-				ctx.Layout.Shape.Width = ctx.Layout.Parent.Shape.Width
-				// Re-run OverDraw children's AmendLayout so scrollbars
-				// reposition to the updated width.
-				for i := range ctx.Layout.Children {
-					c := &ctx.Layout.Children[i]
-					if c.Shape.OverDraw &&
-						c.Shape.hasEvents() &&
-						c.Shape.events.AmendLayout != nil {
-						c.Shape.events.AmendLayout(EventCtx{c, nil, ctx.Window})
-					}
-				}
-			},
 		}))
 	}
 
@@ -618,4 +632,19 @@ func comboboxLabelOf(value string, items []listCoreItem) string {
 		}
 	}
 	return value
+}
+
+// comboboxWidestLabel returns the width of the widest label in items.
+// The open dropdown uses it as its width floor, so the list does not
+// change width when it scrolls or filters (#1155). Subheadings are
+// measured in the row style too: their own style is not set for a
+// Combobox (listCoreCfg.subheadingStyle stays zero).
+func comboboxWidestLabel(
+	items []listCoreItem, style TextStyle, w *Window,
+) float32 {
+	var widest float32
+	for i := range items {
+		widest = f32Max(widest, w.TextWidth(items[i].Label, style))
+	}
+	return widest
 }
