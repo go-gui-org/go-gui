@@ -8,6 +8,8 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [v0.93.0] - 2026-10-25
+
 ### Added
 
 - **`Window.HTML` renders a small, safe subset of HTML (#1158).** Use it to
