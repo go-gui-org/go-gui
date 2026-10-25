@@ -231,3 +231,44 @@ func TestTouchPanTakenAxisHiddenFromAncestors(t *testing.T) {
 		t.Fatalf("handler read dy %v, want the vertical travel no scrollable inside took", sumY)
 	}
 }
+
+// TestTouchPanLeftoverSkipsLowerLayers checks the axis a scrollable did
+// not take goes to its ancestors only, never to a layer under it: a
+// diagonal pan on a vertical list floating over a sideways table
+// scrolls the list and leaves the table alone, as the first move to
+// scroll anything used to stop the walk.
+func TestTouchPanLeftoverSkipsLowerLayers(t *testing.T) {
+	w := &Window{}
+	w.animations = make(map[string]Animation)
+	clip := drawClip{X: 0, Y: 0, Width: 400, Height: 200}
+	w.layout = Layout{
+		Shape: &Shape{
+			Width: 400, Height: 400,
+			shapeClip: drawClip{X: 0, Y: 0, Width: 400, Height: 400},
+		},
+		Children: []Layout{
+			{
+				Shape: &Shape{
+					Scrollable: true, ScrollMode: ScrollHorizontalOnly, ID: "under",
+					Width: 400, Height: 200, Axis: axisLeftToRight, shapeClip: clip,
+				},
+				Children: []Layout{{Shape: &Shape{shapeType: shapeRectangle, Width: 1000, Height: 200}}},
+			},
+			{
+				Shape: &Shape{
+					Scrollable: true, ScrollMode: ScrollVerticalOnly, ID: "over",
+					Width: 400, Height: 200, Axis: axisTopToBottom, shapeClip: clip,
+				},
+				Children: []Layout{{Shape: &Shape{shapeType: shapeRectangle, Width: 400, Height: 1000}}},
+			},
+		},
+	}
+	w.viewState.gesture.nowFn = fixedClock(0)
+	panAxisSwipe(w, 200, 150, -6, -6, 12)
+	if v, _ := w.scrollY().Get("over"); v >= 0 {
+		t.Fatalf("list offset = %v, want the pan to scroll the list on top", v)
+	}
+	if v, _ := w.scrollX().Get("under"); v != 0 {
+		t.Fatalf("table offset = %v, want the layer under the list left alone", v)
+	}
+}

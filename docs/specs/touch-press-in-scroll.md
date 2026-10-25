@@ -115,9 +115,3 @@ The scrollbar works for touch:
 - A tap clicks at the lift, typically 50–100 ms later than at touch-down.
 - A vertical slider in a vertical list pans the list; it drags after a long
   press.
-- A vertical pan over a child that scrolls only horizontally (a wide Markdown
-  table) barely scrolled the page: the pan fallback stopped at the first
-  scrollable that moved on either axis, and the child took the finger's sideways
-  drift. Fixed by the axis lock and per-axis routing (#1118,
-  `touch-pan-axis.md`). This also predates the held press and is left to its own
-  issue (#1118).

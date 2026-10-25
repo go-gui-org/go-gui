@@ -32,9 +32,11 @@ Two rules, as on iOS and Android (`gui/touch_pan_axis.go`):
 
 An axis a scrollable moved is zeroed on the pan event, so the scrollables around
 it, and their `OnGesture` handlers, see only what is left. The walk stops when
-nothing is left. An axis counts as taken only when an offset actually moved, so
-a pan over a container already at its limit still reaches its ancestors, as
-before.
+nothing is left. The leftover goes up through the ancestors of the scrollable
+that moved, never to the siblings under it: a diagonal pan on a dropdown float
+over a sideways table scrolls the dropdown and leaves the table alone. An axis
+counts as taken only when an offset actually moved, so a pan over a container
+already at its limit still reaches its ancestors, as before.
 
 The lift flings one container per axis: the last one the pan moved on that axis.
 A diagonal flick over the table flings the table sideways and the page

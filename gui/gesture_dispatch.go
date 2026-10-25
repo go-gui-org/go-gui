@@ -169,6 +169,12 @@ func gestureHandlerDepth(
 			e.CentroidX, e.CentroidY = ox, oy
 			return
 		}
+		// A pan that scrolled one axis in that child walks on for the
+		// other through its ancestors only: the siblings under it (a
+		// table beneath a dropdown float) do not see the leftover.
+		if e.panMoved {
+			break
+		}
 	}
 	e.CentroidX, e.CentroidY = ox, oy
 	if layout.Shape == nil {
