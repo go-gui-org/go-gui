@@ -289,6 +289,73 @@ one key event in go-gui, and a count of the heap allocations per frame from the
 start with a second backend behind a `!cgo` tag: two macOS backends would have
 to be kept in step.
 
+**Spike (2026-10-25, #1160): the alloc gate passes. The trigger is user
+adoption.** Some users reject go-gui because the macOS backend uses cgo. Their
+test is `CGO_ENABLED=0 go build` on darwin. The spike code is not merged. It is
+on branch `spike/1160-purego-macos`, in `spike/puregomac/`.
+
+What the spike did, with `CGO_ENABLED=0` on darwin/arm64 (`otool -L` shows no
+AppKit or Metal link; the frameworks load at run time through `purego.Dlopen`):
+
+1. It opened an `NSWindow`. The content view is an `NSView` subclass made with
+   `objc.RegisterClass`. The view hosts a plain `CAMetalLayer`.
+2. It cleared the layer with Metal each frame: `nextDrawable`, one render pass,
+   `setViewport:`, `presentDrawable:`, `commit`.
+3. A key-down went through `sendEvent:` into a Go `keyDown:` method. That method
+   made a `gui.Event` with the `macKeyCodeTable` and `mapMetalModifiers` code
+   from `gui/backend/metal/events.go`. Shift+S (key code 1, not 0, so a lost
+   argument cannot pass) gave `KeyS` and `ModShift`.
+4. It counted heap allocations (`runtime.ReadMemStats`, 600 frames after a
+   warm-up) for three ways to send a message.
+
+| Send style                                  | allocs/send | ns/send | allocs/frame |
+| ------------------------------------------- | ----------- | ------- | ------------ |
+| `objc.ID.Send` (variadic `...any`)          | 5–8         | 168     | 63           |
+| `purego.RegisterFunc` (typed func)          | 4–6         | 149     | 49           |
+| `purego.SyscallN`, arguments listed in call | 1           | 51      | —            |
+| `purego.SyscallN`, package-level `argBuf`   | 0           | 46      | **0**        |
+| cgo baseline (one `objc_msgSend` through C) | 0           | 22.5    | —            |
+
+The darwin/amd64 build, run under Rosetta, gave the same allocation counts. A
+key-down costs 1 allocation per event. That is not per frame.
+
+What the numbers mean:
+
+- **Typed `RegisterFunc` pointers do not pass the gate.** The issue expected
+  them on the hot path. purego builds their calls with reflection, so every call
+  allocates. The metal backend's gate (`TestDrawPathsDoNotAllocate`) wants 0 per
+  draw.
+- **`SyscallN` with a package-level argument array passes.** `SyscallN` is
+  `go:uintptrescapes`, so the slice of a listed-argument call goes to the heap.
+  A slice of a package-level array does not. One array is safe because AppKit
+  and Metal run on the main thread only. `SyscallN` copies the arguments before
+  the call, so a Go callback that sends again does not damage them. The cost: a
+  pointer argument reaches `SyscallN` as a `uintptr`, so nothing keeps what it
+  points to alive or in place. It must point to a global, or to a field of an
+  object that is surely on the heap, such as a backend scratch field (the metal
+  backend already keeps its per-draw arrays there). A local, even one made with
+  `new`, stays on the stack when only its `uintptr` leaves the function, and the
+  stack can move when it grows.
+- **`SyscallN` takes integers and pointers only.** On arm64 a struct over 16
+  bytes that is not a homogeneous float aggregate (`MTLViewport`,
+  `MTLScissorRect`) goes as a pointer. On amd64 it goes on the stack: four zero
+  words fill the last argument registers, then the struct words follow.
+  `TestLargeStructSend` proves both ways with a `CGAffineTransform` round trip.
+  A float aggregate (`MTLClearColor`, `NSRect`) needs `RegisterFunc`. Send it
+  only when the value changes, not per frame.
+- **Each draw costs more time.** Today one cgo call per draw sends about two
+  ObjC messages inside C (`metalDrawQuad`: `setVertexBytes:`,
+  `drawIndexedPrimitives:`), about 25 ns. Through `SyscallN` it is about 92 ns.
+  At 20,000 glyph quads a frame that adds about 1.3 ms. Batching quads into one
+  vertex buffer would remove most of this.
+
+Not tested by the spike: `NSTextInputClient` (IME) callbacks that return
+`NSRange` or `NSRect` to AppKit, accessibility, menus and dialogs.
+
+The port itself is not yet decided. Next step, if it goes ahead: port service by
+service, with `SyscallN` and the argument array on every per-frame path. Start
+with the plain-C services (keyring, locale), then `metal_darwin.m`.
+
 ### Out of scope
 
 wgpu-native, GLFW/SDL2, WGSL shaders, goffi.

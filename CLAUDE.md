@@ -230,7 +230,11 @@ go-glyph main, not the `go.mod` pin).
   syscall).
 - **Current CGo state:** `CGO_ENABLED=0 go build ./...` is green on Linux and
   Windows for the whole module. macOS (5.9k lines ObjC) stays cgo **by
-  decision** (2026-08-12); do not re-open without a trigger.
+  decision** (2026-08-12). The #1160 spike (2026-10-25) passed the alloc gate
+  for a purego port, but **the port is not yet decided**; do not start it
+  without that decision. The gate passed only with `purego.SyscallN` and a
+  package-level argument array; `objc.ID.Send` and `purego.RegisterFunc`
+  allocate on every call.
 
 Full history and rationale in `docs/specs/cgo-free-backend-feasibility.md`.
 
