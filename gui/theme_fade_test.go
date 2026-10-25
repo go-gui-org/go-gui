@@ -388,6 +388,7 @@ func freezeThemeFade(w *Window) {
 // FrameFn's flushCommands and the frame renders at 0.9, not 0.5.
 func TestThemeFadeFreezeDropsQueuedTicks(t *testing.T) {
 	w := NewWindow(WindowCfg{State: new(int), Width: 200, Height: 100})
+	t.Cleanup(w.WindowCleanup)
 	w.viewGenerator = func(*Window) View {
 		return Column(ContainerCfg{Sizing: FillFill})
 	}
@@ -432,6 +433,7 @@ func TestGoldenThemeFade(t *testing.T) {
 			w := NewWindow(WindowCfg{
 				State: new(int), Width: goldenWidth, Height: goldenHeight,
 			})
+			t.Cleanup(w.WindowCleanup)
 			w.viewGenerator = func(*Window) View {
 				return Column(ContainerCfg{
 					Sizing: FillFill,
