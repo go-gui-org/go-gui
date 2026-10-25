@@ -40,18 +40,13 @@ type dragPanState struct {
 // dragPanOuterDeltas trims a touch pan's deltas for a scrollable around
 // an active DragScroll pan. The DragScroll moves through its mouse lock,
 // so the scrollable around it moves only on an axis the DragScroll does
-// not own: one finger never moves two containers on one axis. A pan
-// along an owned axis moves no outer scrollable at all, so a sideways
-// swipe on a carousel does not drift the page with the finger's wobble.
+// not own: one finger never moves two containers on one axis. A
+// sideways swipe on a carousel does not drift the page with the
+// finger's wobble because the pan locks to its axis first
+// (panScrollDeltas); a free pan moves the page on the other axis
+// (#1118).
 func dragPanOuterDeltas(w *Window, dx, dy float32) (float32, float32) {
 	st := &w.viewState.dragPan
-	if w.viewState.gesture.panVertical {
-		if st.ownV {
-			return 0, 0
-		}
-	} else if st.ownH {
-		return 0, 0
-	}
 	if st.ownV {
 		dy = 0
 	}

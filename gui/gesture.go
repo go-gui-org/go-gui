@@ -64,9 +64,9 @@ type gestureState struct {
 	// (scroll_momentum.go).
 	panScrollIDV string
 	panScrollIDH string
-	// panVertical is the pan's axis at recognition: true when the finger
-	// had moved at least as far up or down as sideways.
-	panVertical bool
+	// panScrollTV and panScrollTH are when the pan last moved them, so
+	// the lift flings only a container still under the moving finger.
+	panScrollTV, panScrollTH int64
 	// panAxis is the axes the pan scrolls, locked at recognition
 	// (panAxisLock).
 	panAxis panAxis
@@ -275,7 +275,6 @@ func handleTouchMoved(
 					gs.prevX = gs.startX
 					gs.prevY = gs.startY
 				}
-				gs.panVertical = f32Abs(dy) >= f32Abs(dx)
 				gs.panAxis = panAxisLock(dx, dy)
 				touchPressOnPan(gs, layout, w, dx, dy)
 				emitGesture(gs, GesturePan, gesturePhaseBegan,

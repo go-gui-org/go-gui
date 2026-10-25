@@ -54,24 +54,49 @@ func panAxisLock(dx, dy float32) panAxis {
 // left. An axis counts as taken only when an offset actually moved, so a
 // pan over a container already at its limit still reaches ancestors.
 func panScrollFallback(layout *Layout, e *Event, w *Window) {
+	gs := &w.viewState.gesture
 	dx, dy := panScrollDeltas(e, w)
 	movedV := dy != 0 && scrollVerticalPixels(layout, dy, w)
 	movedH := dx != 0 && scrollHorizontalPixels(layout, dx, w)
 	if !movedV && !movedH {
+		// A locked pan's move with nothing on its axis moves no offset,
+		// but it is still the move of the container carrying the pan:
+		// it walks on through the ancestors only, not into the layers
+		// under that container.
+		if panHoldsLockedMove(gs, layout, dx, dy) {
+			e.panMoved = true
+		}
 		return
 	}
 	e.panMoved = true
+	// What is left for the scrollables around this one: the deltas
+	// on the axes it did not move. Masking the deltas already read
+	// matches a second panScrollDeltas call, as the lock and
+	// dragPanOuterDeltas trim each axis on its own.
 	if movedV {
-		e.GestureDY = 0
+		e.GestureDY, dy = 0, 0
 	}
 	if movedH {
-		e.GestureDX = 0
+		e.GestureDX, dx = 0, 0
 	}
 	// The lift flings the container this pan last moved on each axis.
-	panScrolled(&w.viewState.gesture, layout, movedV, movedH)
-	if rx, ry := panScrollDeltas(e, w); rx == 0 && ry == 0 {
+	panScrolled(gs, layout, movedV, movedH)
+	if dx == 0 && dy == 0 {
 		e.IsHandled = true
 	}
+}
+
+// panHoldsLockedMove reports a move of a locked pan with no part on the
+// locked axis, over the container the pan last moved on that axis.
+// dx, dy are the move's deltas after panScrollDeltas.
+func panHoldsLockedMove(gs *gestureState, layout *Layout, dx, dy float32) bool {
+	switch gs.panAxis {
+	case panAxisVertical:
+		return dy == 0 && gs.panScrollIDV != "" && gs.panScrollIDV == layout.Shape.idKey()
+	case panAxisHorizontal:
+		return dx == 0 && gs.panScrollIDH != "" && gs.panScrollIDH == layout.Shape.idKey()
+	}
+	return false
 }
 
 // panScrollDeltas is the part of a pan move a scrollable may take: the

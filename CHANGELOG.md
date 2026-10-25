@@ -121,7 +121,11 @@ and this project adheres to
   on it, so a diagonal pan over the table scrolls the table sideways and the
   page vertically, and the lift flings each container on its own axis. The lock
   applies to scrolling only: an `OnGesture` handler still reads the finger's raw
-  deltas, less any axis a scrollable inside it took.
+  deltas, less any axis a scrollable inside it took. Note for apps: an
+  ancestor's `OnGesture` now runs on a pan move that an inner scrollable took
+  only one axis of, with that axis zeroed. Before, the inner scroll stopped the
+  walk. A handler that must stay quiet while an inner scrollable moves (a
+  swipe-to-dismiss) checks for a zero delta on its axis.
 
 - **An open menu no longer passes hover to the widgets under it.** Before, the
   pointer over a disabled item, a separator or the edge of a `ContextMenu`,

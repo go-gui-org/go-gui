@@ -38,9 +38,20 @@ over a sideways table scrolls the dropdown and leaves the table alone. An axis
 counts as taken only when an offset actually moved, so a pan over a container
 already at its limit still reaches its ancestors, as before.
 
-The lift flings one container per axis: the last one the pan moved on that axis.
-A diagonal flick over the table flings the table sideways and the page
-vertically. A vertical flick flings only the page.
+A move of a locked pan with nothing on the locked axis moves no offset. It still
+belongs to the container that carries the pan: it goes up through that
+container's ancestors and not to the layers under it.
+
+An ancestor's `OnGesture` handler now runs on a pan move that a scrollable
+inside it took only one axis of, with that axis zeroed. Before, the first offset
+that moved stopped the walk. A handler that must stay quiet while an inner
+scrollable moves checks for a zero delta on its axis.
+
+The lift flings one container per axis: the last one the pan moved on that axis,
+if it moved in the window the release velocity reads (`panVelocityWindow`). A
+diagonal flick over the table flings the table sideways and the page vertically.
+A vertical flick flings only the page. A diagonal pan that crosses the table and
+goes on over the page flings only the page.
 
 The lock applies to scrolling only. An `OnGesture` handler still reads the
 finger's raw `GestureDX` and `GestureDY`, less any axis a scrollable inside it
@@ -49,7 +60,8 @@ took, so a canvas that pans in two dimensions keeps both.
 A pan with no recognition step scrolls both axes: the finger left after a pinch
 or a rotate. A `DragScroll` pan keeps its own rule (`dragPanOuterDeltas`,
 `drag-scroll.md`). The scrollables around it see the locked deltas, trimmed for
-the axes the `DragScroll` owns.
+the axes the `DragScroll` owns. A free pan over a `DragScroll` moves the
+scrollables around it on the axes the `DragScroll` does not own.
 
 ## Rejected Approaches
 

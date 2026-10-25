@@ -85,11 +85,12 @@ func (gs *gestureState) panReleaseVelocity() (vx, vy float32, ok bool) {
 // it moved on that axis.
 func panScrolled(gs *gestureState, layout *Layout, v, h bool) {
 	id := layout.Shape.idKey()
+	now := gs.now()
 	if v {
-		gs.panScrollIDV = id
+		gs.panScrollIDV, gs.panScrollTV = id, now
 	}
 	if h {
-		gs.panScrollIDH = id
+		gs.panScrollIDH, gs.panScrollTH = id, now
 	}
 }
 
@@ -110,10 +111,17 @@ func startPanMomentum(gs *gestureState, w *Window, fresh bool) {
 	if !ok {
 		return
 	}
-	if gs.panScrollIDV != "" {
+	// The release velocity reads the last panVelocityWindow of the
+	// finger. A container the pan last moved before that window is one
+	// the finger left (a diagonal pan that crossed a sideways table and
+	// went on over the page), so the lift does not fling it. The window
+	// ends at the newest sample, not at the lift: a finger that rests
+	// before it lifts adds no sample (fresh allows the rest).
+	newest := gs.panSamples[(gs.panSampleN-1)%panSampleCap].t
+	if gs.panScrollIDV != "" && newest-gs.panScrollTV <= panVelocityWindow {
 		scrollMomentumStart(w, gs.panScrollIDV, scrollAxisY, vy)
 	}
-	if gs.panScrollIDH != "" {
+	if gs.panScrollIDH != "" && newest-gs.panScrollTH <= panVelocityWindow {
 		scrollMomentumStart(w, gs.panScrollIDH, scrollAxisX, vx)
 	}
 }

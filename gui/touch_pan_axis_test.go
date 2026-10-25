@@ -345,3 +345,118 @@ func TestTouchLockedPanOnStripScrollsPage(t *testing.T) {
 		t.Fatalf("page x offset = %v, want 0", v)
 	}
 }
+
+// TestTouchFreePanFlingsOnlyContainersStillUnderFinger checks the lift
+// of a diagonal pan flings only the containers it moved in the last
+// panVelocityWindow. The pan moves the row sideways, leaves the row and
+// pans the page for longer than the window: the lift flings the page,
+// not the row the finger left.
+func TestTouchFreePanFlingsOnlyContainersStillUnderFinger(t *testing.T) {
+	w := panAxisPage(t, nil)
+	// Scroll the page so the finger can pan down off the row.
+	w.scrollY().Set("page", -100)
+	w.markLayoutRefresh(refreshTest)
+	w.FrameFn()
+	x, y := panAxisStart(t, w)
+	// 7 moves cross the 40 px to the row's bottom edge, 8 more pan the
+	// page for 128 ms.
+	last := panAxisSwipe(w, x, y, -6, 6, 15)
+	_, rowX := panAxisOffsets(w)
+	if rowX >= 0 {
+		t.Fatalf("setup: row x offset = %v, want the pan to scroll the row", rowX)
+	}
+	touchAt(w, EventTouchesEnded, last, x-90, y+90)
+	if !panAxisFling(w, "page", scrollAxisY) {
+		t.Fatal("no vertical fling on the page")
+	}
+	if panAxisFling(w, panAxisRowID, scrollAxisX) {
+		t.Fatal("the lift flung the row the finger left")
+	}
+}
+
+// panAxisLayers is a window with a full-size layer "under" whose
+// OnGesture counts the pan moves it sees, and over it a scrollable
+// "over" that scrolls sideways only.
+func panAxisLayers(seen *int) *Window {
+	w := &Window{}
+	w.animations = make(map[string]Animation)
+	clip := drawClip{X: 0, Y: 0, Width: 400, Height: 400}
+	w.layout = Layout{
+		Shape: &Shape{Width: 400, Height: 400, shapeClip: clip},
+		Children: []Layout{
+			{Shape: &Shape{
+				Width: 400, Height: 400, shapeClip: clip,
+				events: &eventHandlers{OnGesture: func(ctx EventCtx) {
+					if ctx.Event.GesturePhase == GesturePhaseChanged {
+						*seen++
+					}
+				}},
+			}},
+			{
+				Shape: &Shape{
+					Scrollable: true, ScrollMode: ScrollHorizontalOnly, ID: "over",
+					Width: 400, Height: 400, Axis: axisLeftToRight, shapeClip: clip,
+				},
+				Children: []Layout{{Shape: &Shape{shapeType: shapeRectangle, Width: 1000, Height: 400}}},
+			},
+		},
+	}
+	w.viewState.gesture.nowFn = fixedClock(0)
+	return w
+}
+
+// TestTouchLockedPanZeroMoveStaysOffLowerLayers checks a move of a
+// horizontal-locked pan with no sideways part stays with the container
+// that carries the pan: the layer under it does not get the move's
+// vertical drift.
+func TestTouchLockedPanZeroMoveStaysOffLowerLayers(t *testing.T) {
+	var seen int
+	w := panAxisLayers(&seen)
+	last := panAxisSwipe(w, 300, 200, -10, 0, 4)
+	if v, _ := w.scrollX().Get("over"); v >= 0 {
+		t.Fatalf("setup: over x offset = %v, want the pan to scroll it", v)
+	}
+	if w.viewState.gesture.panAxis != panAxisHorizontal {
+		t.Fatalf("setup: pan axis = %v, want horizontal", w.viewState.gesture.panAxis)
+	}
+	seen = 0
+	touchAt(w, EventTouchesMoved, last+16_000_000, 260, 203)
+	if seen != 0 {
+		t.Fatalf("the layer under the pan saw %d moves, want 0", seen)
+	}
+}
+
+// TestDragPanOuterDeltasFreePan checks a free pan around a DragScroll
+// pan gives the outer scrollable every axis the DragScroll does not
+// own, whatever axis the finger first moved along. After a pinch the
+// pan has no recognition step, so an earlier pan's axis must not trim
+// it.
+func TestDragPanOuterDeltasFreePan(t *testing.T) {
+	w := &Window{}
+	w.viewState.dragPan.active = true
+	w.viewState.gesture.panAxis = panAxisFree
+	w.viewState.dragPan.ownH = true
+	if dx, dy := dragPanOuterDeltas(w, 3, 5); dx != 0 || dy != 5 {
+		t.Fatalf("own H: deltas = %v, %v, want 0, 5", dx, dy)
+	}
+	w.viewState.dragPan.ownH, w.viewState.dragPan.ownV = false, true
+	if dx, dy := dragPanOuterDeltas(w, 3, 5); dx != 3 || dy != 0 {
+		t.Fatalf("own V: deltas = %v, %v, want 3, 0", dx, dy)
+	}
+}
+
+// TestTouchFreePanRestBeforeLiftStillFlings checks a short rest before
+// the lift does not age a container out of its fling. The last move of
+// a diagonal pan has no sideways part, and the finger rests 90 ms: the
+// release velocity still reads the sideways travel, so the row flings.
+func TestTouchFreePanRestBeforeLiftStillFlings(t *testing.T) {
+	w := panAxisPage(t, nil)
+	x, y := panAxisStart(t, w)
+	last := panAxisSwipe(w, x, y, -6, -6, 6)
+	last += 16_000_000
+	touchAt(w, EventTouchesMoved, last, x-36, y-42)
+	touchAt(w, EventTouchesEnded, last+90_000_000, x-36, y-42)
+	if !panAxisFling(w, panAxisRowID, scrollAxisX) {
+		t.Fatal("no sideways fling on the row")
+	}
+}

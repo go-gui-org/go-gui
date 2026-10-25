@@ -75,8 +75,9 @@ The scrollbar works for touch:
   scrollbar thumb, a slider): the press owns the finger's moves, and the content
   no longer pans under it as well. A `DragScroll` lock is the exception: it
   moves only its own container, so a scrollable around it still pans on an axis
-  the `DragScroll` does not scroll. A pan along an axis the `DragScroll` scrolls
-  moves no outer scrollable, so one finger never moves two containers.
+  the `DragScroll` does not scroll. A pan locked to an axis the `DragScroll`
+  scrolls moves no outer scrollable, so one finger never moves two containers
+  (`touch-pan-axis.md`).
 
 ## Rejected Approaches
 
