@@ -129,40 +129,63 @@ func TestDropdownKeepsContentWidth(t *testing.T) {
 	}
 }
 
-// TestSelectDropdownCappedByMaxWidth: MaxWidth still bounds the list
-// when its options are wider than the cap; the anchor-width floor does
-// not push past it (#1155).
-func TestSelectDropdownCappedByMaxWidth(t *testing.T) {
+// TestDropdownCappedByMaxWidth: MaxWidth still bounds the list when
+// its options are wider than the cap; neither the anchor-width floor
+// nor the Combobox widest-label floor pushes past it (#1155).
+func TestDropdownCappedByMaxWidth(t *testing.T) {
 	const capW = 200
-	w := &Window{windowWidth: 800, windowHeight: 600}
-	w.textMeasurer = &stubTextMeasurer{charWidth: 8, fontHeight: 16}
-	StateMap[string, bool](w, nsSelect, capModerate).Set("sel", true)
-	root := Column(ContainerCfg{
-		Sizing:     FixedFit,
-		Width:      640,
-		Padding:    NoPadding,
-		SizeBorder: NoBorder,
-		Content: []View{Select(SelectCfg{
-			ID:       "sel",
-			Items:    []string{"A", "an option label much wider than the cap"},
-			Sizing:   FillFit,
-			MaxWidth: capW,
-			OnSelect: func([]string, EventCtx) {},
-		})},
-	})
-	layout := generateViewLayout(root, w)
-	layers := layoutArrange(&layout, w)
-	dropID := ScopeID("sel", "dropdown")
-	for i := range layers {
-		if layers[i].Shape.idKey() != dropID {
-			continue
-		}
-		if got := layers[i].Shape.Width; got > capW {
-			t.Errorf("dropdown width = %v, want at most MaxWidth %v", got, capW)
-		}
-		return
+	items := []string{"A", "an option label much wider than the cap"}
+	cases := []struct {
+		name, id string
+		open     func(w *Window)
+		view     View
+	}{
+		{
+			name: "select", id: "sel",
+			open: func(w *Window) {
+				StateMap[string, bool](w, nsSelect, capModerate).Set("sel", true)
+			},
+			view: Select(SelectCfg{
+				ID: "sel", Items: items, Sizing: FillFit, MaxWidth: capW,
+				OnSelect: func([]string, EventCtx) {},
+			}),
+		},
+		{
+			name: "combobox", id: "cb",
+			open: func(w *Window) { comboboxOpen("cb", "", w) },
+			view: Combobox(ComboboxCfg{
+				ID: "cb", Items: items, Sizing: FillFit, MaxWidth: capW,
+				OnSelect: func(string, EventCtx) {},
+			}),
+		},
 	}
-	t.Fatal("dropdown layer not found")
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			w := &Window{windowWidth: 800, windowHeight: 600}
+			w.textMeasurer = &stubTextMeasurer{charWidth: 8, fontHeight: 16}
+			c.open(w)
+			layout := generateViewLayout(Column(ContainerCfg{
+				Sizing:     FixedFit,
+				Width:      640,
+				Padding:    NoPadding,
+				SizeBorder: NoBorder,
+				Content:    []View{c.view},
+			}), w)
+			layers := layoutArrange(&layout, w)
+			dropID := ScopeID(c.id, "dropdown")
+			for i := range layers {
+				if layers[i].Shape.idKey() != dropID {
+					continue
+				}
+				if got := layers[i].Shape.Width; got > capW {
+					t.Errorf("dropdown width = %v, want at most MaxWidth %v",
+						got, capW)
+				}
+				return
+			}
+			t.Fatal("dropdown layer not found")
+		})
+	}
 }
 
 // TestComboboxDropdownWidthStableOnScroll: the Combobox builds only

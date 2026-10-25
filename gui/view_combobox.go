@@ -283,6 +283,7 @@ func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 			Color:       cfg.Colors.Base,
 			MinHeight:   50,
 			MinWidth:    dropdownMinW,
+			MaxWidth:    cfg.MaxWidth, // the field's cap, as on Select
 			MaxHeight:   cfg.MaxDropdownHeight,
 			Float:       true,
 			// At least as wide as the field, and wider for a long item
