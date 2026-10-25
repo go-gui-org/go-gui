@@ -1,3 +1,8 @@
+---
+name: Bug report
+about: Report a problem with Go-Gui
+---
+
 > **Note:** Thank you for your report. I am away until **November 14th, 2026**.
 
 **What happened**
