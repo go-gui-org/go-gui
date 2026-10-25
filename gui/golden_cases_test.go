@@ -455,6 +455,31 @@ func goldenCases() []goldenCase {
 			},
 		},
 		{
+			// Row header column (issue #1156): the corner on the
+			// header row, the current-row marker on row 1, and the
+			// selection wash under it. Cell borders show that the
+			// header cell lines up with the data cells.
+			name: "table_row_header",
+			build: func(w *Window) View {
+				StateMap[string, int](w, nsTableFocus, capModerate).
+					Set("tbl", 1)
+				return Table(TableCfg{
+					ID:          "tbl",
+					RowHeader:   true,
+					MultiSelect: true,
+					BorderStyle: TableBorderAll,
+					SizeBorder:  1,
+					Selected:    map[int]bool{1: true},
+					OnSelect:    func(map[int]bool, int, EventCtx) {},
+					RawData: [][]string{
+						{"Name", "Size"},
+						{"alpha", "12"},
+						{"beta", "7"},
+					},
+				})
+			},
+		},
+		{
 			// Carries a disabled tab, which is one of the two
 			// themed textStyleDisabled sites (audit §1).
 			name: "tab_control",

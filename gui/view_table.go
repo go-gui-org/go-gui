@@ -109,6 +109,24 @@ type TableCfg struct {
 	// exportaudit:keep — caller-facing config (issue #468)
 	SoundDisabled bool
 
+	// RowHeader adds a narrow selector cell in front of every row, as
+	// in a WinForms DataGridView. A click on it selects the row; Ctrl
+	// (Cmd on macOS) toggles the row and Shift selects a range under
+	// MultiSelect. On a header row (every cell HeadCell) the cell is
+	// the corner, and a click there selects every data row under
+	// MultiSelect. The row that was clicked or moved to last shows a
+	// marker. A focusable row header table also answers Shift+Space
+	// (select the current row) and Escape (clear the selection). The
+	// cell is not part of Data, so column widths and alignments do not
+	// count it. Selection goes through Selected and OnSelect.
+	// exportaudit:keep — caller-facing config (issue #1156)
+	RowHeader bool
+
+	// RowHeaderWidth is the row header cell width. Zero takes a
+	// default that fits the marker glyph.
+	// exportaudit:keep — caller-facing config (issue #1156)
+	RowHeaderWidth float32
+
 	// Sizing
 	Sizing       Sizing
 	BorderStyle  TableBorderStyle
@@ -244,13 +262,14 @@ func tableView(cfg TableCfg, w *Window) View {
 	// the highlight for a table that never joins the tab order.
 	activeRowIdx := tableActiveRow(&cfg, w)
 	// Row clicks sync the keyboard position so arrow keys continue
-	// from where the mouse went — but only a focusable table ever
-	// reads it back, so leave the key empty and skip the per-click
-	// write for the others.
+	// from where the mouse went — but only a focusable table, or a row
+	// header that marks the current row, ever reads it back, so leave
+	// the key empty and skip the per-click write for the others.
 	navKey := cfg.ID
-	if !cfg.Focusable {
+	if !cfg.Focusable && !cfg.RowHeader {
 		navKey = ""
 	}
+	rh := tableRowHeaderOf(&cfg, activeRowIdx, w)
 
 	if len(cfg.Data) == 0 {
 		return tableEmptyView(&cfg)
@@ -313,7 +332,7 @@ func tableView(cfg TableCfg, w *Window) View {
 
 	rows := tableBuildRows(&cfg, columnWidths, cellBorder,
 		selected, multiSelect, onSelect,
-		activeRowIdx, navKey, first, last, lastRowIdx, dataStart,
+		activeRowIdx, navKey, rh, first, last, lastRowIdx, dataStart,
 		rowHeight, virtualize)
 
 	// Keyboard focus wiring for the outer container, shared by the
@@ -324,7 +343,7 @@ func tableView(cfg TableCfg, w *Window) View {
 	if freeze {
 		return tableFreezeLayout(&cfg, columnWidths, cellBorder,
 			rowSpacing, selected, multiSelect,
-			onSelect, rows, scrollID, activeRowIdx, navKey, fw)
+			onSelect, rows, scrollID, activeRowIdx, navKey, rh, fw)
 	}
 
 	outerCfg := ContainerCfg{
