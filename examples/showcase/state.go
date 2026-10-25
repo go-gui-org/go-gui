@@ -69,6 +69,7 @@ type ShowcaseApp struct {
 	InputPhone     string
 	InputExpiry    string
 	InputMultiline string
+	HTMLSource     string
 	RadioValue     string
 	SegmentValue   string
 	SegmentView    string
@@ -313,6 +314,7 @@ func newShowcaseApp() *ShowcaseApp {
 		PathTrimProgress:      1,
 		SelectedComponent:     "welcome",
 		StackOrder:            [3]int{0, 1, 2},
+		HTMLSource:            htmlDemoSource,
 		InputMultiline:        "Now is the time for all good men to come to the aid of their country",
 		RadioValue:            "go",
 		SegmentValue:          "week",
@@ -487,6 +489,7 @@ var demoEntries = []DemoEntry{
 	{ID: "transform", Label: "Transforms", Group: groupDrawing, Summary: "Move, turn, scale and skew containers with visual transforms.", Tags: []string{"transform", "rotate", "scale", "translate", "skew", "perspective", "flip", "hover", "3d"}},
 	{ID: "theme_gen", Label: "Theme", Group: groupApp, Summary: "Generate a theme from a seed color, tint level, and palette strategy.", Tags: []string{"theme", "color", "palette", "generator"}},
 
+	{ID: "html", Label: "HTML", Group: groupText, Summary: "Preview a safe HTML subset with the markdown renderer.", Tags: []string{"html", "preview", "rich", "text"}},
 	{ID: "markdown", Label: "Markdown", Group: groupText, Summary: "Render markdown into styled rich content.", Tags: []string{"docs", "text", "rich"}},
 	{ID: "rtf", Label: "Rich Text Format", Group: groupText, Summary: "Mixed styles, links, and inline rich runs.", Tags: []string{"rich text", "link", "style"}},
 	{ID: "text", Label: "Text", Group: groupText, Summary: "Typography, gradients, outlines, and curved text.", Tags: []string{"font", "type", "styles", "gradient", "outline", "stroke", "curve"}},

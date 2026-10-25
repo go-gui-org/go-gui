@@ -129,6 +129,10 @@ Go-Gui is also an ecosystem of composable libraries. **go-glyph** handles text,
 - **Layered layout** — `Stack` puts children one over the other: controls over a
   background image or canvas, a badge on an avatar, a game HUD
   ([`examples/stack/`](examples/stack/))
+- **HTML subset preview** — `Window.HTML` draws a small, safe subset of HTML
+  (headings, paragraphs, lists, links, images, bold and italic) with the
+  Markdown renderer. It is not a browser: no CSS and no script
+  ([`examples/html_preview/`](examples/html_preview/))
 - **View transforms** — move, scale, rotate, skew or flip any container in 3D
   with `ContainerCfg.Transform`. Clicks and typing follow the drawn view.
   `FlipPanel` is a card that turns over to show its back face

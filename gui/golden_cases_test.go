@@ -2048,7 +2048,8 @@ func goldenCases() []goldenCase {
 		},
 	}
 	cases = append(cases, goldenFlipPanelCases()...)
-	return append(cases, goldenDropdownCases()...)
+	cases = append(cases, goldenDropdownCases()...)
+	return append(cases, goldenHTMLCases()...)
 }
 
 // goldenFlipPanelCases pins FlipPanel (#1020) at five points of a turn

@@ -1,0 +1,12 @@
+# go-gui-golden v1
+RTF xy=30.00,30.00 wh=0.00,0.00 text="" +glyphlayout glyphs=0 items=0
+RTF xy=30.00,44.00 wh=0.00,0.00 text="" +glyphlayout glyphs=0 items=0
+Text xy=30.00,58.00 wh=0.00,0.00 color=#e6e8eba0 text="• " size=14.00
+RTF xy=60.80,58.00 wh=0.00,0.00 text="" +glyphlayout glyphs=0 items=0
+Text xy=30.00,84.60 wh=0.00,0.00 color=#e6e8eba0 text="• " size=14.00
+RTF xy=60.80,84.60 wh=0.00,0.00 text="" +glyphlayout glyphs=0 items=0
+Rect xy=30.00,118.20 wh=3.00,0.00 color=#ffffff2c fill
+Rect xy=47.00,118.20 wh=243.00,0.00 color=#80808014 radius=6.00 fill
+RTF xy=47.00,118.20 wh=0.00,0.00 text="" +glyphlayout glyphs=0 items=0
+Rect xy=30.00,153.20 wh=260.00,1.00 color=#ffffff2c fill
+Text xy=290.40,21.97 wh=0.00,0.00 color=#808080ff text="\uf1b1" size=11.00
