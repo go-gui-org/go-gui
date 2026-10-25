@@ -111,6 +111,18 @@ and this project adheres to
 
 ### Fixed
 
+- **Touch: a vertical pan over a horizontally scrolling child scrolls the page
+  (#1118).** Before, a page barely moved while the finger was over a child that
+  scrolls only sideways, such as a wide Markdown table: the table took each
+  move's sideways drift, and the vertical part never reached the page. A pan now
+  locks to one axis when it starts more than twice as far along it as across, as
+  on iOS and Android, and scrolls only on that axis until the lift. A diagonal
+  start scrolls both axes. Each axis goes to the innermost scrollable that moves
+  on it, so a diagonal pan over the table scrolls the table sideways and the
+  page vertically, and the lift flings each container on its own axis. The lock
+  applies to scrolling only: an `OnGesture` handler still reads the finger's raw
+  deltas, less any axis a scrollable inside it took.
+
 - **An open menu no longer passes hover to the widgets under it.** Before, the
   pointer over a disabled item, a separator or the edge of a `ContextMenu`,
   `OverflowPanel`, submenu or Input menu also hovered what was below the menu,

@@ -116,6 +116,8 @@ The scrollbar works for touch:
 - A vertical slider in a vertical list pans the list; it drags after a long
   press.
 - A vertical pan over a child that scrolls only horizontally (a wide Markdown
-  table) barely scrolls the page: the pan fallback stops at the first scrollable
-  that moves on either axis, and the child takes the finger's sideways drift.
-  This also predates the held press and is left to its own issue (#1118).
+  table) barely scrolled the page: the pan fallback stopped at the first
+  scrollable that moved on either axis, and the child took the finger's sideways
+  drift. Fixed by the axis lock and per-axis routing (#1118,
+  `touch-pan-axis.md`). This also predates the held press and is left to its own
+  issue (#1118).

@@ -405,6 +405,9 @@ type Event struct {
 	// container must not claim its own replay, so the
 	// pre-order intercept skips events carrying this mark.
 	dragPanReplay bool
+	// panMoved reports the touch-pan fallback scrolled a container on
+	// one of the move's axes (panScrollFallback).
+	panMoved bool
 	// ScrollPrecise is true for high-res / trackpad scroll deltas
 	// (already carrying OS momentum). False for discrete mouse-wheel
 	// notches, which the gui side eases via scrollSmoothAnimation.

@@ -136,6 +136,11 @@ func gestureHandler(layout *Layout, e *Event, w *Window) {
 		return
 	}
 	gestureHandlerDepth(layout, e, w, 0)
+	// A pan that scrolled one axis walks on for the other; it was
+	// handled all the same.
+	if e.panMoved {
+		e.IsHandled = true
+	}
 }
 
 func gestureHandlerDepth(
@@ -180,9 +185,8 @@ func gestureHandlerDepth(
 			return
 		}
 	}
-	// Pan fallback: auto-scroll containers. Handled only when
-	// an offset actually moved, so a pan over a container
-	// already at its limit still reaches ancestors.
+	// Pan fallback: auto-scroll containers, each axis to the innermost
+	// one that moves on it (panScrollFallback, touch_pan_axis.go).
 	// DragScroll containers are skipped: their single-finger pan
 	// runs through the same mouse-lock path as a mouse drag
 	// (issue #783), and scrolling here too would move twice for
@@ -199,17 +203,7 @@ func gestureHandlerDepth(
 		e.GesturePhase == GesturePhaseChanged &&
 		layout.Shape.Scrollable && !layout.Shape.DragScroll &&
 		(!w.mouseIsLocked() || w.viewState.dragPan.active) {
-		dx, dy := e.GestureDX, e.GestureDY
-		if w.viewState.dragPan.active {
-			dx, dy = dragPanOuterDeltas(w, dx, dy)
-		}
-		movedV := scrollVerticalPixels(layout, dy, w)
-		movedH := scrollHorizontalPixels(layout, dx, w)
-		if movedV || movedH {
-			e.IsHandled = true
-			// The lift flings the container this pan last moved.
-			panScrolled(&w.viewState.gesture, layout, movedV, movedH)
-		}
+		panScrollFallback(layout, e, w)
 	}
 }
 

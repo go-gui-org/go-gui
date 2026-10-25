@@ -77,42 +77,44 @@ func (gs *gestureState) panReleaseVelocity() (vx, vy float32, ok bool) {
 	return (newest.x - oldest.x) / dt, (newest.y - oldest.y) / dt, true
 }
 
-// panScrolled records the container a touch pan just moved and on which
-// axes, so the lift can fling it. A pan that moves on into another
-// container (an inner one at its limit) flings the last one it moved.
+// panScrolled records the container a touch pan just moved on each axis,
+// so the lift can fling it there. Each axis keeps its own container: a
+// diagonal pan over a sideways table in a page flings the table sideways
+// and the page vertically (#1118). A pan that moves on into another
+// container on an axis (an inner one at its limit) flings the last one
+// it moved on that axis.
 func panScrolled(gs *gestureState, layout *Layout, v, h bool) {
 	id := layout.Shape.idKey()
-	if id != gs.panScrollID {
-		gs.panScrollID = id
-		gs.panScrollV, gs.panScrollH = false, false
+	if v {
+		gs.panScrollIDV = id
 	}
-	gs.panScrollV = gs.panScrollV || v
-	gs.panScrollH = gs.panScrollH || h
+	if h {
+		gs.panScrollIDH = id
+	}
 }
 
-// clearPanScroll forgets the container the pan scrolled, when another
+// clearPanScroll forgets the containers the pan scrolled, when another
 // finger takes over: only the finger that moved a container flings it.
 func (gs *gestureState) clearPanScroll() {
-	gs.panScrollID = ""
-	gs.panScrollV, gs.panScrollH = false, false
+	gs.panScrollIDV, gs.panScrollIDH = "", ""
 }
 
-// startPanMomentum flings the container the ending pan moved, on each
-// axis it moved, when the finger was still moving at the lift. Main
+// startPanMomentum flings the containers the ending pan moved, each on
+// the axis it moved, when the finger was still moving at the lift. Main
 // goroutine only.
 func startPanMomentum(gs *gestureState, w *Window, fresh bool) {
-	if !fresh || gs.panScrollID == "" {
+	if !fresh || (gs.panScrollIDV == "" && gs.panScrollIDH == "") {
 		return
 	}
 	vx, vy, ok := gs.panReleaseVelocity()
 	if !ok {
 		return
 	}
-	if gs.panScrollV {
-		scrollMomentumStart(w, gs.panScrollID, scrollAxisY, vy)
+	if gs.panScrollIDV != "" {
+		scrollMomentumStart(w, gs.panScrollIDV, scrollAxisY, vy)
 	}
-	if gs.panScrollH {
-		scrollMomentumStart(w, gs.panScrollID, scrollAxisX, vx)
+	if gs.panScrollIDH != "" {
+		scrollMomentumStart(w, gs.panScrollIDH, scrollAxisX, vx)
 	}
 }
 
