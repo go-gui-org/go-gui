@@ -6,11 +6,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/go-edit-check.sh\" pre"
-          },
-          {
-            "type": "command",
-            "command": "f=$(jq -r '.tool_input.file_path'); case \"$f\" in *.go) gofmt -w \"$f\"; n=$(wc -l < \"$f\"); [ \"$n\" -gt 800 ] && echo \"WARNING: $f is $n lines (limit 800)\" >&2 && exit 2; esac; exit 0"
+            "command": "go",
+            "args": ["-C", "${CLAUDE_PROJECT_DIR}", "run", "./tools/claudehook", "pre"]
           }
         ]
       }
@@ -21,7 +18,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/go-edit-check.sh\" post",
+            "command": "go",
+            "args": ["-C", "${CLAUDE_PROJECT_DIR}", "run", "./tools/claudehook", "post"],
             "timeout": 180
           }
         ]
@@ -32,12 +30,14 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/stop-gate.sh\"",
+            "command": "go",
+            "args": ["-C", "${CLAUDE_PROJECT_DIR}", "run", "./tools/claudehook", "stop"],
             "timeout": 300
           },
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/review-gate.sh\"",
+            "command": "go",
+            "args": ["-C", "${CLAUDE_PROJECT_DIR}", "run", "./tools/claudehook", "review"],
             "timeout": 600
           }
         ]
