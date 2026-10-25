@@ -33,6 +33,11 @@ var auditModes = []string{"ids", "opt", "literals", "theme", "a11y", "visual", "
 //
 // Scope: packages holding a .go file that differs from HEAD, including
 // untracked files. A clean tree passes at once.
+//
+// It returns 2 to block a failing gate, otherwise 0. After maxBlocks recorded
+// consecutive blocks in a session, it allows the stop despite failures.
+// Pass stamps and session block counters are stored in the Git directory;
+// errors reading or updating them are ignored.
 func stopGate(in hookInput, project string, stderr io.Writer) int {
 	// A headless reviewer started by the review gate loads project
 	// settings too; it edits nothing, so gating its stop only burns time.

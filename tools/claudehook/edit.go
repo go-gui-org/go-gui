@@ -16,7 +16,8 @@ const maxGoFileLines = 800
 
 // preEdit is the PreToolUse hook for Edit and Write. It blocks direct go.sum
 // edits, then gofmts a Go file and blocks the edit when the file is over
-// maxGoFileLines.
+// maxGoFileLines. It returns 2 to block, otherwise 0. Formatting errors are
+// ignored; a file that cannot be read passes the size check.
 func preEdit(in hookInput, stderr io.Writer) int {
 	file := in.ToolInput.FilePath
 	if file == "" {
@@ -43,6 +44,7 @@ func preEdit(in hookInput, stderr io.Writer) int {
 }
 
 // countLines counts newlines the way wc -l does.
+// It returns 0 and the read error if path cannot be read.
 func countLines(path string) (int, error) {
 	b, err := os.ReadFile(path) // #nosec G304 -- the file being edited, named by the hook input
 	if err != nil {
@@ -55,6 +57,8 @@ func countLines(path string) (int, error) {
 // tests on the edited Go file's package. Only that package, not dir/... —
 // recursing from gui/ pulls in every subpackage and makes each edit wait on
 // the whole tree.
+// It skips packages with no host Go files and returns 0 for skipped files or
+// successful checks, or 2 if lint or tests fail or cannot start.
 func postEdit(in hookInput, project string, stderr io.Writer) int {
 	file := in.ToolInput.FilePath
 	if file == "" || filepath.Ext(file) != ".go" {
@@ -93,7 +97,9 @@ func postEdit(in hookInput, project string, stderr io.Writer) int {
 // a ./-relative pattern from that root, with forward slashes. The root is
 // the nearest directory with a go.mod, so a file in a nested module such as
 // tools/lint, or in a git worktree outside the project, is checked in its
-// own module. ok is false when no go.mod is found.
+// own module. Relative file paths are resolved from project. ok is false
+// when no go.mod is found or the relative package path cannot be resolved
+// within the module root.
 func packageOf(file, project string) (root, pkg string, ok bool) {
 	abs := file
 	if !filepath.IsAbs(abs) {
@@ -112,6 +118,7 @@ func packageOf(file, project string) (root, pkg string, ok bool) {
 }
 
 // moduleRoot walks up from dir to the nearest directory holding go.mod.
+// It returns "", false if none is found, ignoring file metadata errors.
 func moduleRoot(dir string) (string, bool) {
 	for {
 		if fi, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil && !fi.IsDir() {

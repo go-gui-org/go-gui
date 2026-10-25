@@ -72,9 +72,10 @@ var (
 // the model makes after a block are then checked by the stop gate, not
 // reviewed again.
 //
-// Exit 2 blocks the stop and feeds the findings back. A reviewer that fails
-// to run (network, auth, timeout) never blocks: infrastructure is not a
-// finding.
+// It returns 2 to block the stop and feed findings back, otherwise 0.
+// Reviewer failures and output without a recognized verdict do not block.
+// Diffs over maxDiffLines are stamped as reviewed and skipped; stamp errors
+// are ignored.
 func reviewGate(in hookInput, project string, stderr io.Writer) int {
 	// The child `claude -p` loads project settings, so it would run this
 	// hook again.

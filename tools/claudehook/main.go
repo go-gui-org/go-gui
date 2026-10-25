@@ -52,6 +52,9 @@ type hookInput struct {
 	} `json:"tool_input"`
 }
 
+// main runs the mode named by the first argument using hook input from stdin.
+// Input read and JSON decoding errors are ignored; an unknown or missing mode
+// exits with code 1.
 func main() {
 	mode := ""
 	if len(os.Args) > 1 {
@@ -114,7 +117,8 @@ func report(mode string, code int, msg string, stdout, stderr io.Writer) int {
 }
 
 // projectDir is CLAUDE_PROJECT_DIR, or the working directory when it is
-// unset (a manual run from the repo root).
+// unset (a manual run from the repo root). If the working directory cannot
+// be determined, it returns ".".
 func projectDir() string {
 	if d := os.Getenv("CLAUDE_PROJECT_DIR"); d != "" {
 		return d
@@ -157,7 +161,8 @@ func runCmd(dir string, env []string, name string, args ...string) (out string, 
 	return fmt.Sprintf("%s: %v", name, err), false
 }
 
-// gitOutput runs git in dir and returns stdout only. A failing git yields "".
+// gitOutput runs git in dir and returns stdout only, even on a non-zero exit.
+// Errors are ignored; if git cannot start, it returns "".
 func gitOutput(dir string, args ...string) string {
 	cmd := exec.Command("git", args...) // #nosec G204 -- fixed binary, no shell; args are git flags and pathspecs
 	cmd.Dir = dir
@@ -206,8 +211,8 @@ func dropNoise(s string) string {
 // hasFiles reports whether pkg (run from dir) has Go files, source or test,
 // for the build target env selects. go list -e reports an all-excluded
 // package with empty lists instead of failing. Only stdout counts: stderr
-// ("go: downloading ...", errors) is not a file count, and a go list that
-// fails or cannot start prints none.
+// ("go: downloading ...", errors) is not a file count. Command errors are
+// ignored; empty output or "0000" yields false.
 func hasFiles(dir, pkg string, env ...string) bool {
 	cmd := exec.Command("go", "list", "-e", "-f", // #nosec G204 -- fixed binary, no shell; pkg is a repo package path
 		"{{len .GoFiles}}{{len .CgoFiles}}{{len .TestGoFiles}}{{len .XTestGoFiles}}", pkg)
