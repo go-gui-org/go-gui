@@ -272,3 +272,76 @@ func TestTouchPanLeftoverSkipsLowerLayers(t *testing.T) {
 		t.Fatalf("table offset = %v, want the layer under the list left alone", v)
 	}
 }
+
+// TestTouchPanAfterPinchScrollsBothAxes checks the finger left after a
+// pinch pans free: a first pan locked vertical, so the transition must
+// drop that lock, or the diagonal pan after the pinch would scroll only
+// vertically.
+func TestTouchPanAfterPinchScrollsBothAxes(t *testing.T) {
+	w := &Window{}
+	w.animations = make(map[string]Animation)
+	w.layout = Layout{
+		Shape: &Shape{
+			Width: 400, Height: 400,
+			shapeClip: drawClip{X: 0, Y: 0, Width: 400, Height: 400},
+		},
+		Children: []Layout{{
+			Shape: &Shape{
+				Scrollable: true, ID: "grid", Width: 400, Height: 400,
+				Axis:      axisTopToBottom,
+				shapeClip: drawClip{X: 0, Y: 0, Width: 400, Height: 400},
+			},
+			Children: []Layout{{Shape: &Shape{shapeType: shapeRectangle, Width: 1000, Height: 1000}}},
+		}},
+	}
+	gs := &w.viewState.gesture
+	at := func(tm int64, e *Event) {
+		gs.nowFn = fixedClock(tm)
+		w.handleTouch(&w.layout, e)
+	}
+	// Finger 1 pans up: the pan locks vertical.
+	at(0, touchEvent(EventTouchesBegan, 1, 200, 300))
+	at(16_000_000, touchEvent(EventTouchesMoved, 1, 200, 280))
+	if gs.panAxis != panAxisVertical {
+		t.Fatalf("setup: pan axis = %v, want vertical", gs.panAxis)
+	}
+	// Finger 2 lands and spreads: a pinch. Then it lifts.
+	at(32_000_000, twoTouchEvent(EventTouchesBegan, 1, 200, 280, 2, 200, 100))
+	at(48_000_000, twoTouchEvent(EventTouchesMoved, 1, 200, 280, 2, 200, 60))
+	if !gs.pinchBegan {
+		t.Fatal("setup: no pinch")
+	}
+	at(64_000_000, &Event{
+		Type: EventTouchesEnded, NumTouches: 1,
+		Touches: [8]TouchPoint{{Identifier: 2, PosX: 200, PosY: 60,
+			ToolType: TouchToolFinger, Changed: true}},
+	})
+	y0, _ := w.scrollY().Get("grid")
+	// Finger 1 pans diagonally.
+	for i := 1; i <= 8; i++ {
+		at(64_000_000+int64(i)*16_000_000,
+			touchEvent(EventTouchesMoved, 1, 200-6*float32(i), 280-6*float32(i)))
+	}
+	if x, _ := w.scrollX().Get("grid"); x > -40 {
+		t.Fatalf("grid x offset = %v, want the pan after the pinch to scroll sideways", x)
+	}
+	if y, _ := w.scrollY().Get("grid"); y > y0-40 {
+		t.Fatalf("grid y offset = %v (was %v), want the pan after the pinch to scroll vertically", y, y0)
+	}
+}
+
+// TestTouchLockedPanOnStripScrollsPage checks a vertical swipe that drifts
+// sideways on a horizontal DragScroll strip scrolls the page by the
+// finger's vertical travel. The lock and the strip's own axis
+// (dragPanOuterDeltas) agree: the page gets the vertical part only.
+func TestTouchLockedPanOnStripScrollsPage(t *testing.T) {
+	w := dragStripPage(t, true)
+	stripSwipe(t, w, []float32{-2, -5, -10}, []float32{-12, -30, -60})
+	// 60 px of finger, less the threshold distance.
+	if v, _ := w.scrollY().Get("page"); v > -48 || v < -52 {
+		t.Fatalf("page offset = %v, want about -50", v)
+	}
+	if v, _ := w.scrollX().Get("page"); v != 0 {
+		t.Fatalf("page x offset = %v, want 0", v)
+	}
+}
