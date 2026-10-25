@@ -8,6 +8,7 @@ import (
 	"github.com/go-gui-org/go-glyph"
 
 	"github.com/go-gui-org/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/surfacecache"
 )
 
 // renderer replays a []gui.RenderCmd stream into a buffer. It is the CPU
@@ -33,6 +34,9 @@ type renderer struct {
 
 	// images caches decoded sources by the RenderCmd.Resource string.
 	images map[string]*image.NRGBA
+	// surfaces holds one image per PixelSurface drawn, refreshed when
+	// the surface publishes a new frame.
+	surfaces surfacecache.Cache[*image.NRGBA]
 
 	allowedImageRoots []string
 	maxImageBytes     int64
@@ -69,6 +73,11 @@ type renderer struct {
 // text kinds: that pass exists to rasterize glyphs into the atlas, and its
 // quads are discarded against a nil glyph target.
 func (r *renderer) drawAll(cmds []gui.RenderCmd) {
+	// The warm pass only rasterizes glyphs; the draw pass that follows
+	// prunes once for the frame.
+	if !r.warm {
+		r.surfaces.Prune(cmds)
+	}
 	for i := range cmds {
 		cmd := &cmds[i]
 		if r.warm {

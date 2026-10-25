@@ -165,7 +165,13 @@ func (r *renderer) drawImage(cmd *gui.RenderCmd) {
 	if cmd.Opacity <= 0 {
 		return
 	}
-	src, ok := r.resolveImage(cmd.Resource)
+	var src *image.NRGBA
+	var ok bool
+	if cmd.Surface != nil {
+		src, ok = r.surfaces.Resolve(cmd.Surface, uploadSurfaceImage)
+	} else {
+		src, ok = r.resolveImage(cmd.Resource)
+	}
 	if !ok {
 		return
 	}

@@ -27,6 +27,7 @@ import (
 	"github.com/go-gui-org/go-gui/gui/backend/internal/framestate"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/imgpath"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/settingsdir"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/surfacecache"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/tempfont"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/texcache"
 	"github.com/go-gui-org/go-gui/gui/svg"
@@ -86,6 +87,7 @@ type Backend struct {
 
 	textSys      *glyph.TextSystem
 	textures     texcache.Cache[string, glesTexture]
+	surfaces     surfacecache.Cache[glesTexture]
 	glyphBack    *glesGlyphBackend
 	customCache  texcache.Cache[uint64, C.int]
 	shaderHashes gui.ShaderHashCache // memoizes ShaderHash per draw
@@ -176,6 +178,8 @@ func (b *Backend) rebuildLostContext() {
 		Forget: func() {
 			// A texture entry with id 0 is a cached load failure.
 			b.textures.DiscardAll(func(t glesTexture) bool { return t.id == 0 })
+			// Surfaces upload again from their CPU copy on the next draw.
+			b.surfaces.Forget()
 			// A negative idx is a cached compile failure.
 			b.customCache.DiscardAll(func(idx C.int) bool { return idx < 0 })
 			C.glesAbandon()
@@ -316,6 +320,7 @@ func initBackend(w, h int32, scale float32) {
 		maxImageBytes:  cfg.MaxImageBytes,
 		maxImagePixels: cfg.MaxImagePixels,
 	}
+	b.surfaces.SetRelease(b.deleteSurfaceTexture)
 	b.AllowedImageRoots = imgpath.NormalizeRoots(
 		cfg.AllowedImageRoots)
 	b.HandleResize(int32(w), int32(h), scale)
@@ -395,6 +400,7 @@ func (b *Backend) renderFrame(w *gui.Window) {
 // Destroy releases all backend resources.
 func (b *Backend) Destroy() {
 	b.textures.DestroyAll()
+	b.surfaces.Clear()
 	b.customCache.DestroyAll()
 	if b.glyphBack != nil {
 		b.glyphBack.destroy()

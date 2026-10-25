@@ -575,6 +575,9 @@ func writeVertexColors(b *strings.Builder, c *RenderCmd) {
 // serializeCmd only to keep that switch under the gocyclo limit.
 func writeImageFields(b *strings.Builder, c *RenderCmd) {
 	fmt.Fprintf(b, " res=%q", c.Resource)
+	if c.Surface != nil {
+		b.WriteString(" surface")
+	}
 	if c.ClipRadius != 0 {
 		b.WriteString(" cradius=" + f2(c.ClipRadius))
 	}

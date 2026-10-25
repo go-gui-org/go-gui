@@ -22,6 +22,7 @@ import (
 	"github.com/go-gui-org/go-gui/gui"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/gpu"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/imgpath"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/surfacecache"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/tempfont"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/texcache"
 	"github.com/go-gui-org/go-gui/gui/svg"
@@ -36,6 +37,7 @@ type Backend struct {
 	pipelines pipelineSet
 
 	textures          texcache.Cache[string, glTexture]
+	surfaces          surfacecache.Cache[glTexture]
 	imagePathCache    texcache.Cache[string, string]
 	textSys           *glyph.TextSystem
 	filterColorMatrix *[16]float32
@@ -138,6 +140,7 @@ func (b *Backend) initCaches(cfg gui.WindowCfg) {
 // interfaces onto the window. b.physW, b.physH, and b.dpiScale must
 // be set before calling. The GL context must already be current.
 func (b *Backend) initGLResources(w *gui.Window) error {
+	b.surfaces.SetRelease(b.deleteSurfaceTexture)
 	gogl.Enable(gogl.BLEND)
 	gogl.BlendFunc(gogl.SRC_ALPHA, gogl.ONE_MINUS_SRC_ALPHA)
 	gogl.Disable(gogl.DEPTH_TEST)
@@ -190,6 +193,7 @@ func (b *Backend) initGLResources(w *gui.Window) error {
 func (b *Backend) destroyGLResources() {
 	b.plat.makeCurrent()
 	b.textures.DestroyAll()
+	b.surfaces.Clear()
 	b.destroyPipelines()
 	if b.quadVAO != 0 {
 		gogl.DeleteVertexArrays(1, &b.quadVAO)

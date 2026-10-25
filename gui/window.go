@@ -247,6 +247,7 @@ type Window struct {
 	// shader animation is registered. See syncShaderAnimation.
 	shaderAnimateDrawn bool
 	shaderAnimationOn  bool
+	pixelSurfaces      surfaceSubscriptions // see syncPixelSurfaces
 
 	// View-pass counter — incremented per full layout generation
 	// (updateLocked). A text animation stamps it on its state so the

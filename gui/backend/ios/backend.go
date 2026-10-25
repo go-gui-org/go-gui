@@ -26,6 +26,7 @@ import (
 	"github.com/go-gui-org/go-gui/gui/backend/internal/framestate"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/imgpath"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/msl"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/surfacecache"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/tempfont"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/texcache"
 	"github.com/go-gui-org/go-gui/gui/svg"
@@ -70,6 +71,7 @@ type Backend struct {
 
 	textSys      *glyph.TextSystem
 	textures     texcache.Cache[string, metalTexture]
+	surfaces     surfacecache.Cache[metalTexture]
 	glyphBack    *metalGlyphBackend
 	customCache  texcache.Cache[uint64, C.int]
 	shaderHashes gui.ShaderHashCache // memoizes ShaderHash per draw
@@ -137,6 +139,7 @@ func initBackend(layerPtr unsafe.Pointer,
 		maxImageBytes:  cfg.MaxImageBytes,
 		maxImagePixels: cfg.MaxImagePixels,
 	}
+	b.surfaces.SetRelease(b.deleteSurfaceTexture)
 	b.AllowedImageRoots = imgpath.NormalizeRoots(
 		cfg.AllowedImageRoots)
 	b.HandleResize(int32(w), int32(h), scale)
@@ -224,6 +227,7 @@ func (b *Backend) handleResize(w, h int32, scale float32) {
 // Destroy releases all backend resources.
 func (b *Backend) Destroy() {
 	b.textures.DestroyAll()
+	b.surfaces.Clear()
 	b.customCache.DestroyAll()
 	if b.glyphBack != nil {
 		b.glyphBack.destroy()

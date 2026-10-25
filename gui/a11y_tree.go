@@ -430,6 +430,7 @@ func a11yFindLayoutWalk(layout *Layout, target int, counter *int, depth int) *La
 func (w *Window) WindowCleanup() {
 	w.cleanupOnce.Do(func() {
 		w.destroyed.Store(true)
+		w.detachPixelSurfaces()
 		if w.cancelCtx != nil {
 			w.cancelCtx()
 		}
