@@ -1,7 +1,7 @@
 package main
 
 import (
-	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -112,7 +112,7 @@ func stopGate(in hookInput, project string, stderr io.Writer) int {
 
 	blocks := 0
 	if in.StopHookActive {
-		if b, err := os.ReadFile(counter); err == nil {
+		if b, err := os.ReadFile(counter); err == nil { // #nosec G304 -- block counter under .git, path built by this tool
 			blocks, _ = strconv.Atoi(strings.TrimSpace(string(b)))
 		}
 	}
@@ -169,10 +169,10 @@ func isTestdata(f string) bool {
 // stopFingerprint hashes the tracked Go diff plus the contents of untracked
 // Go files.
 func stopFingerprint(project string) string {
-	h := sha1.New()
+	h := sha256.New()
 	_, _ = io.WriteString(h, gitOutput(project, "diff", "HEAD", "--", "*.go"))
 	for _, f := range lines(gitOutput(project, "ls-files", "--others", "--exclude-standard", "--", "*.go")) {
-		if b, err := os.ReadFile(filepath.Join(project, f)); err == nil {
+		if b, err := os.ReadFile(filepath.Join(project, f)); err == nil { // #nosec G304 -- untracked repo file listed by git
 			_, _ = h.Write(b)
 		}
 	}

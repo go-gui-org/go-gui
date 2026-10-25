@@ -1,7 +1,7 @@
 package main
 
 import (
-	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -102,7 +102,7 @@ func reviewGate(in hookInput, project string, stderr io.Writer) int {
 	// turn that only talks must not pay for a review of code already
 	// reviewed.
 	stamp := filepath.Join(gitdir, "claude-review-gate.reviewed")
-	sum := sha1.Sum([]byte(diff))
+	sum := sha256.Sum256([]byte(diff))
 	fingerprint := hex.EncodeToString(sum[:])
 	if stampMatches(stamp, fingerprint) {
 		return 0
@@ -118,6 +118,7 @@ func reviewGate(in hookInput, project string, stderr io.Writer) int {
 
 	// The diff goes on stdin, not on the command line: Windows caps a
 	// command line at 32767 characters, well under a 2500-line diff.
+	// #nosec G204 -- fixed binary, no shell; the model name comes from the developer's GOGUI_REVIEW_MODEL
 	cmd := exec.Command("claude", "-p",
 		"--model", model,
 		"--setting-sources", "project",

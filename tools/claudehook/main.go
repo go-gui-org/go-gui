@@ -139,7 +139,7 @@ const lintInstallHint = "golangci-lint is not on PATH. Install the pinned versio
 // no output of its own, so the reason is returned instead: a missing
 // golangci-lint gets lintInstallHint, anything else the start error.
 func runCmd(dir string, env []string, name string, args ...string) (out string, ok bool) {
-	cmd := exec.Command(name, args...)
+	cmd := exec.Command(name, args...) // #nosec G204 -- no shell; callers pass fixed binaries and repo package paths
 	cmd.Dir = dir
 	if len(env) > 0 {
 		cmd.Env = append(os.Environ(), env...)
@@ -159,7 +159,7 @@ func runCmd(dir string, env []string, name string, args ...string) (out string, 
 
 // gitOutput runs git in dir and returns stdout only. A failing git yields "".
 func gitOutput(dir string, args ...string) string {
-	cmd := exec.Command("git", args...)
+	cmd := exec.Command("git", args...) // #nosec G204 -- fixed binary, no shell; args are git flags and pathspecs
 	cmd.Dir = dir
 	b, _ := cmd.Output()
 	return string(b)
@@ -209,7 +209,7 @@ func dropNoise(s string) string {
 // ("go: downloading ...", errors) is not a file count, and a go list that
 // fails or cannot start prints none.
 func hasFiles(dir, pkg string, env ...string) bool {
-	cmd := exec.Command("go", "list", "-e", "-f",
+	cmd := exec.Command("go", "list", "-e", "-f", // #nosec G204 -- fixed binary, no shell; pkg is a repo package path
 		"{{len .GoFiles}}{{len .CgoFiles}}{{len .TestGoFiles}}{{len .XTestGoFiles}}", pkg)
 	cmd.Dir = dir
 	if len(env) > 0 {
@@ -252,9 +252,9 @@ func newFindingLogger() *findingLogger {
 		args := []string{source, kind, file, msg}
 		var cmd *exec.Cmd
 		if runtime.GOOS == "windows" {
-			cmd = exec.Command("bash", append([]string{script}, args...)...)
+			cmd = exec.Command("bash", append([]string{script}, args...)...) // #nosec G204 -- the user's own ~/.claude finding logger, no shell
 		} else {
-			cmd = exec.Command(script, args...)
+			cmd = exec.Command(script, args...) // #nosec G204 -- the user's own ~/.claude finding logger, no shell
 		}
 		cmd.Stdout = io.Discard
 		cmd.Stderr = io.Discard
@@ -273,7 +273,7 @@ func (l *findingLogger) log(source, kind, file, msg string) {
 // writeStamp records fingerprint in path, ignoring errors as the scripts'
 // `echo >file` did.
 func writeStamp(path, fingerprint string) {
-	_ = os.WriteFile(path, []byte(fingerprint+"\n"), 0o644)
+	_ = os.WriteFile(path, []byte(fingerprint+"\n"), 0o600)
 }
 
 // stampMatches reports whether path holds fingerprint. An empty fingerprint
@@ -282,7 +282,7 @@ func stampMatches(path, fingerprint string) bool {
 	if fingerprint == "" {
 		return false
 	}
-	b, err := os.ReadFile(path)
+	b, err := os.ReadFile(path) // #nosec G304 -- stamp file under .git, path built by this tool
 	if err != nil {
 		return false
 	}

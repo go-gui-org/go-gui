@@ -30,7 +30,7 @@ func preEdit(in hookInput, stderr io.Writer) int {
 		return 0
 	}
 	// A Write that creates the file finds nothing to format or count.
-	_ = exec.Command("gofmt", "-w", file).Run()
+	_ = exec.Command("gofmt", "-w", file).Run() // #nosec G204 -- fixed binary, no shell; file is the path Claude Code is editing
 	n, err := countLines(file)
 	if err != nil {
 		return 0
@@ -44,7 +44,7 @@ func preEdit(in hookInput, stderr io.Writer) int {
 
 // countLines counts newlines the way wc -l does.
 func countLines(path string) (int, error) {
-	b, err := os.ReadFile(path)
+	b, err := os.ReadFile(path) // #nosec G304 -- the file being edited, named by the hook input
 	if err != nil {
 		return 0, err
 	}
