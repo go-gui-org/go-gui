@@ -24,7 +24,8 @@ const (
 	gestureVelocitySmooth  float32 = 0.2 // EMA factor
 	// touchPressCrossRatio is how many times farther a pan must run across
 	// a scrollable's axis than along it to go to the widget under the
-	// finger instead of scrolling (touch_press.go).
+	// finger instead of scrolling (touch_press.go), and to lock to one
+	// axis (panAxisLock).
 	touchPressCrossRatio float32 = 2
 
 	gestureLongPressAnimID = "__gesture_long_press__"
@@ -58,15 +59,17 @@ type gestureState struct {
 	prevX, prevY   float32
 	velocityX      float32
 	velocityY      float32
-	// panScrollID is the container the pan last scrolled, and
-	// panScrollV/H the axes it moved; the lift flings it
+	// panScrollIDV and panScrollIDH are the containers the pan last
+	// scrolled on each axis; the lift flings each on its axis
 	// (scroll_momentum.go).
-	panScrollID string
-	panScrollV  bool
-	panScrollH  bool
-	// panVertical is the pan's axis at recognition: true when the finger
-	// had moved at least as far up or down as sideways.
-	panVertical bool
+	panScrollIDV string
+	panScrollIDH string
+	// panScrollTV and panScrollTH are when the pan last moved them, so
+	// the lift flings only a container still under the moving finger.
+	panScrollTV, panScrollTH int64
+	// panAxis is the axes the pan scrolls, locked at recognition
+	// (panAxisLock).
+	panAxis panAxis
 	// panSamples holds the single finger's recent positions, newest
 	// at panSampleN-1, for the fling's release velocity
 	// (panReleaseVelocity).
@@ -272,7 +275,7 @@ func handleTouchMoved(
 					gs.prevX = gs.startX
 					gs.prevY = gs.startY
 				}
-				gs.panVertical = f32Abs(dy) >= f32Abs(dx)
+				gs.panAxis = panAxisLock(dx, dy)
 				touchPressOnPan(gs, layout, w, dx, dy)
 				emitGesture(gs, GesturePan, gesturePhaseBegan,
 					t.x, t.y, layout, w)
@@ -539,6 +542,8 @@ func transitionAfterLift(
 		gs.clearPanScroll()
 		gs.panSampleReset(gs.now(), t.x, t.y)
 		gs.gestureType = GesturePan
+		// No recognition step to lock an axis: the pan scrolls both.
+		gs.panAxis = panAxisFree
 		gs.pinchBegan = false
 		gs.rotateBegan = false
 		gs.prevX = t.x
