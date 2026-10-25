@@ -16,13 +16,17 @@ func (b *windowState) deleteSurfaceTexture(tex metalTexture) {
 }
 
 // uploadSurfaceTexture puts a surface frame into tex, reusing its storage at
-// a fixed size and recreating it on a resize.
+// a fixed size and recreating it on a resize. The texture is streamed: an
+// earlier frame may still be sampling it on the GPU, so the update waits for
+// that frame first (metalUpdateStreamTexture).
 func (b *windowState) uploadSurfaceTexture(tex metalTexture, w, h int, pix []byte) metalTexture {
 	if tex.id == 0 || tex.w != int32(w) || tex.h != int32(h) {
 		b.deleteSurfaceTexture(tex)
-		return createMetalTexture(b.ctx, int32(w), int32(h), pix)
+		tex = createMetalTexture(b.ctx, int32(w), int32(h), pix)
+		C.metalStreamTexture(b.ctx, C.int(tex.id))
+		return tex
 	}
-	C.metalUpdateTexture(b.ctx, C.int(tex.id), 0, 0,
+	C.metalUpdateStreamTexture(b.ctx, C.int(tex.id),
 		C.int(w), C.int(h), unsafe.Pointer(&pix[0]))
 	return tex
 }

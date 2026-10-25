@@ -49,6 +49,19 @@ every frame.
   The backend binds its release function once at setup (`SetRelease`): a method
   value passed and stored on every frame would be allocated on every frame,
   surfaces or not.
+- **Metal ordering.** OpenGL drivers order `glTexSubImage2D` against draws
+  already submitted; Metal's `replaceRegion` does not: it copies at once, even
+  while a committed frame still samples the texture. Surface textures are
+  therefore _streamed_ (`metalStreamTexture`): binding one records the frame's
+  command buffer, and the next upload (`metalUpdateStreamTexture`) first waits
+  for that buffer if it was already submitted. Only the render thread waits, for
+  at most the frame still running; `Update` never waits on the GPU, and a
+  producer that outpaces the GPU only replaces the frame that will be uploaded
+  next. Every streamed upload goes through one helper per Metal backend
+  (`waitTextureIdle`), which phase 2's planes reuse. The video spike's NV12 path
+  needed the same wait. The glyph atlas keeps plain `metalUpdateTexture`: its
+  uploads leave the pixels of glyphs already in use unchanged, so an in-flight
+  frame cannot see a difference.
 - **Bounds.** 64 MiB of pixels per surface and 8192 pixels per edge.
 - **Size.** The field lives in `shapeEffects`, not `Shape`, so `Shape` stays in
   its 320-byte size class (`TestShapeFitsSizeClass`). `RenderCmd` gains one

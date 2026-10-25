@@ -42,6 +42,12 @@ struct MetalContext {
     int nextTexID;
     int freeTexIDs[MAX_TEX];
     int freeTexCount;
+    // Streamed textures are rewritten while earlier frames may still
+    // sample them (gui.PixelSurface). texLastUse holds the command
+    // buffer of the last frame that bound each one; see
+    // waitTextureIdle.
+    BOOL texStreamed[MAX_TEX];
+    id<MTLCommandBuffer> texLastUse[MAX_TEX];
     // Triangle buffers
     id<MTLBuffer> triBufs[TRI_BUF_RING][TRI_BUF_MAX_PER_FRAME];
     int triBufCursor[TRI_BUF_RING];
@@ -718,6 +724,8 @@ void metalCtxDestroy(MetalCtx ctx_) {
     }
     for (int i = 0; i < MAX_TEX; i++) {
         ctx->textures[i] = nil;
+        ctx->texStreamed[i] = NO;
+        ctx->texLastUse[i] = nil;
     }
     ctx->nextTexID = 1;
     ctx->freeTexCount = 0;
@@ -1004,11 +1012,48 @@ void metalUpdateTexture(MetalCtx ctx_,
           bytesPerRow:w * 4];
 }
 
+// noteTextureUse records that the frame being encoded samples texture
+// id, when the texture is streamed.
+static void noteTextureUse(MetalContext* ctx, int id) {
+    if (ctx->texStreamed[id]) ctx->texLastUse[id] = ctx->cmdBuf;
+}
+
+// waitTextureIdle blocks until no submitted frame still samples
+// texture id. replaceRegion copies at once and does not synchronize
+// with GPU work already committed, so overwriting a texture an earlier
+// frame still reads would change what that frame shows. A use by the
+// frame being encoded needs no wait: nothing is submitted yet, so the
+// write lands before the GPU runs it. Every upload into a streamed
+// texture goes through here.
+static void waitTextureIdle(MetalContext* ctx, int tex) {
+    // The parameter is not named id: that would hide the id type below.
+    id<MTLCommandBuffer> last = ctx->texLastUse[tex];
+    if (!last || last == ctx->cmdBuf) return;
+    [last waitUntilCompleted];
+    ctx->texLastUse[tex] = nil;
+}
+
+void metalStreamTexture(MetalCtx ctx_, int id) {
+    MetalContext* ctx = MC(ctx_);
+    if (!ctx || id <= 0 || id >= MAX_TEX || !ctx->textures[id]) return;
+    ctx->texStreamed[id] = YES;
+}
+
+void metalUpdateStreamTexture(MetalCtx ctx_, int id, int w, int h,
+                              const void* data) {
+    MetalContext* ctx = MC(ctx_);
+    if (!ctx || id <= 0 || id >= MAX_TEX || !ctx->textures[id]) return;
+    waitTextureIdle(ctx, id);
+    metalUpdateTexture(ctx_, id, 0, 0, w, h, data);
+}
+
 void metalDeleteTexture(MetalCtx ctx_, int id) {
     MetalContext* ctx = MC(ctx_);
     if (id <= 0 || id >= MAX_TEX) return;
     if (!ctx->textures[id]) return;
     ctx->textures[id] = nil;
+    ctx->texStreamed[id] = NO;
+    ctx->texLastUse[id] = nil;
     if (ctx->freeTexCount < MAX_TEX) {
         ctx->freeTexIDs[ctx->freeTexCount++] = id;
     }
@@ -1020,6 +1065,7 @@ void metalBindTexture(MetalCtx ctx_, int id) {
     if (id > 0 && id < MAX_TEX && ctx->textures[id]) {
         [ctx->enc setFragmentTexture:ctx->textures[id]
                              atIndex:0];
+        noteTextureUse(ctx, id);
     }
 }
 
