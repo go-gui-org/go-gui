@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -17,6 +18,16 @@ import (
 func TestDarwinNoCgoLinkFails(t *testing.T) {
 	if testing.Short() {
 		t.Skip("cross-compiles an app; skipped with -short")
+	}
+	// A js/wasm test binary cannot start a process, so it cannot run go.
+	// The same holds for the mobile test runners. The native hosts cover
+	// the check.
+	switch runtime.GOOS {
+	case "js", "wasip1", "ios", "android":
+		t.Skipf("cannot run go on %s", runtime.GOOS)
+	}
+	if _, err := exec.LookPath("go"); err != nil {
+		t.Skip("go tool not on PATH")
 	}
 	out := filepath.Join(t.TempDir(), "app")
 	cmd := exec.Command("go", "build", "-o", out, "./testdata/nocgodarwin")
