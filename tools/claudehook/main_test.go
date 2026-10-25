@@ -274,6 +274,10 @@ func TestChangedGoFilesAndPackages(t *testing.T) {
 
 func TestReviewDiffIncludesUntrackedFiles(t *testing.T) {
 	repo := gitRepo(t)
+	// A user's git config can change the a/ b/ path prefixes (w/ and 2/ under
+	// mnemonicPrefix). A repo-local setting stands in for that global one, so
+	// the test fails on every machine if reviewDiff stops pinning the prefixes.
+	git(t, repo, "config", "diff.mnemonicPrefix", "true")
 	writeFile(t, filepath.Join(repo, "a.go"), "package a\n")
 	git(t, repo, "add", ".")
 	git(t, repo, "commit", "-q", "-m", "init")
@@ -284,7 +288,7 @@ func TestReviewDiffIncludesUntrackedFiles(t *testing.T) {
 	writeFile(t, filepath.Join(repo, "a.go"), "package a\n\nvar X int\n")
 	writeFile(t, filepath.Join(repo, "b.go"), "package a\n\nvar Y int\n")
 	got := reviewDiff(repo)
-	for _, want := range []string{"+var X int", "+++ b/b.go", "+var Y int"} {
+	for _, want := range []string{"--- a/a.go", "+++ b/a.go", "+var X int", "+++ b/b.go", "+var Y int"} {
 		if !strings.Contains(got, want) {
 			t.Errorf("reviewDiff missing %q:\n%s", want, got)
 		}
