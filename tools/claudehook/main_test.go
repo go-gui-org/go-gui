@@ -49,6 +49,39 @@ func TestReportTurnsBlockIntoJSONDecision(t *testing.T) {
 	}
 }
 
+func TestRunCmdExplainsACommandThatCannotStart(t *testing.T) {
+	t.Setenv("PATH", t.TempDir()) // nothing on PATH
+	out, ok := runCmd(t.TempDir(), nil, "golangci-lint", "run")
+	if ok || out != lintInstallHint {
+		t.Errorf("missing golangci-lint: (%q, %v), want the install hint", out, ok)
+	}
+	out, ok = runCmd(t.TempDir(), nil, "zz-no-such-tool")
+	if ok || !strings.HasPrefix(out, "zz-no-such-tool: ") {
+		t.Errorf("missing tool: (%q, %v), want the start error", out, ok)
+	}
+}
+
+func TestHasFiles(t *testing.T) {
+	if _, err := exec.LookPath("go"); err != nil {
+		t.Skip("go not on PATH")
+	}
+	root := t.TempDir()
+	writeFile(t, filepath.Join(root, "go.mod"), "module example.com/r\n\ngo 1.24\n")
+	writeFile(t, filepath.Join(root, "a", "a.go"), "package a\n")
+	writeFile(t, filepath.Join(root, "x", "x.go"), "//go:build ignore\n\npackage x\n")
+
+	if !hasFiles(root, "./a") {
+		t.Error("hasFiles(./a) = false, want true")
+	}
+	if hasFiles(root, "./x") {
+		t.Error("hasFiles(./x) = true for an all-excluded package, want false")
+	}
+	t.Setenv("PATH", t.TempDir()) // go cannot start
+	if hasFiles(root, "./a") {
+		t.Error("hasFiles with go missing = true, want false")
+	}
+}
+
 func TestLinesDropsTrailingNewlineAndCR(t *testing.T) {
 	got := lines("a\r\nb\n\n")
 	if want := []string{"a", "b"}; !slices.Equal(got, want) {

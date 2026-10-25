@@ -31,6 +31,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -125,9 +126,18 @@ func projectDir() string {
 	return d
 }
 
+// lintInstallHint tells how to install the pinned linter when it is not on
+// PATH. The hooks call golangci-lint from PATH, not the .bin/ copy make lint
+// builds.
+const lintInstallHint = "golangci-lint is not on PATH. Install the pinned version " +
+	"(tools/lint/go.mod) from the repo root:\n" +
+	"  go -C tools/lint install github.com/golangci/golangci-lint/v2/cmd/golangci-lint"
+
 // runCmd runs name in dir with extra environment entries appended, and
 // returns its combined stdout and stderr. ok is false when the command
-// could not start or exited non-zero.
+// could not start or exited non-zero. A command that could not start has
+// no output of its own, so the reason is returned instead: a missing
+// golangci-lint gets lintInstallHint, anything else the start error.
 func runCmd(dir string, env []string, name string, args ...string) (out string, ok bool) {
 	cmd := exec.Command(name, args...)
 	cmd.Dir = dir
@@ -135,7 +145,16 @@ func runCmd(dir string, env []string, name string, args ...string) (out string, 
 		cmd.Env = append(os.Environ(), env...)
 	}
 	b, err := cmd.CombinedOutput()
-	return string(b), err == nil
+	if err == nil {
+		return string(b), true
+	}
+	if _, exited := errors.AsType[*exec.ExitError](err); exited {
+		return string(b), false
+	}
+	if name == "golangci-lint" && errors.Is(err, exec.ErrNotFound) {
+		return lintInstallHint, false
+	}
+	return fmt.Sprintf("%s: %v", name, err), false
 }
 
 // gitOutput runs git in dir and returns stdout only. A failing git yields "".
@@ -186,11 +205,18 @@ func dropNoise(s string) string {
 
 // hasFiles reports whether pkg (run from dir) has Go files, source or test,
 // for the build target env selects. go list -e reports an all-excluded
-// package with empty lists instead of failing.
+// package with empty lists instead of failing. Only stdout counts: stderr
+// ("go: downloading ...", errors) is not a file count, and a go list that
+// fails or cannot start prints none.
 func hasFiles(dir, pkg string, env ...string) bool {
-	out, _ := runCmd(dir, env, "go", "list", "-e", "-f",
+	cmd := exec.Command("go", "list", "-e", "-f",
 		"{{len .GoFiles}}{{len .CgoFiles}}{{len .TestGoFiles}}{{len .XTestGoFiles}}", pkg)
-	n := strings.TrimSpace(out)
+	cmd.Dir = dir
+	if len(env) > 0 {
+		cmd.Env = append(os.Environ(), env...)
+	}
+	out, _ := cmd.Output()
+	n := strings.TrimSpace(string(out))
 	return n != "" && n != "0000"
 }
 
