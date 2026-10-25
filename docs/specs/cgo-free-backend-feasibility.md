@@ -289,10 +289,12 @@ one key event in go-gui, and a count of the heap allocations per frame from the
 start with a second backend behind a `!cgo` tag: two macOS backends would have
 to be kept in step.
 
-**Spike (2026-10-25, #1160): the alloc gate passes. The trigger is user
-adoption.** Some users reject go-gui because the macOS backend uses cgo. Their
-test is `CGO_ENABLED=0 go build` on darwin. The spike code is not merged. It is
-on branch `spike/1160-purego-macos`, in `spike/puregomac/`.
+**Spike (2026-10-25, #1160): `purego.SyscallN` with a package-level argument
+array sends with 0 allocations, and the spike's frame loop runs at 0 allocations
+per frame. The trigger is user adoption.** Some users reject go-gui because the
+macOS backend uses cgo. Their test is `CGO_ENABLED=0 go build` on darwin. The
+spike code is not merged. It is on branch `spike/1160-purego-macos`, in
+`spike/puregomac/`.
 
 What the spike did, with `CGO_ENABLED=0` on darwin/arm64 (`otool -L` shows no
 AppKit or Metal link; the frameworks load at run time through `purego.Dlopen`):
@@ -325,17 +327,20 @@ What the numbers mean:
   them on the hot path. purego builds their calls with reflection, so every call
   allocates. The metal backend's gate (`TestDrawPathsDoNotAllocate`) wants 0 per
   draw.
-- **`SyscallN` with a package-level argument array passes.** `SyscallN` is
-  `go:uintptrescapes`, so the slice of a listed-argument call goes to the heap.
-  A slice of a package-level array does not. One array is safe because AppKit
-  and Metal run on the main thread only. `SyscallN` copies the arguments before
-  the call, so a Go callback that sends again does not damage them. The cost: a
-  pointer argument reaches `SyscallN` as a `uintptr`, so nothing keeps what it
-  points to alive or in place. It must point to a global, or to a field of an
-  object that is surely on the heap, such as a backend scratch field (the metal
-  backend already keeps its per-draw arrays there). A local, even one made with
-  `new`, stays on the stack when only its `uintptr` leaves the function, and the
-  stack can move when it grows.
+- **`SyscallN` with a package-level argument array makes no allocation.** The
+  spike measured single sends and its own frame loop (clear, viewport, present).
+  It did not port or run the draw paths that `TestDrawPathsDoNotAllocate`
+  covers; a port must pass that test itself. `SyscallN` is `go:uintptrescapes`,
+  so the slice of a listed-argument call goes to the heap. A slice of a
+  package-level array does not. One array is safe because AppKit and Metal run
+  on the main thread only. `SyscallN` copies the arguments before the call, so a
+  Go callback that sends again does not damage them. The cost: a pointer
+  argument reaches `SyscallN` as a `uintptr`, so nothing keeps what it points to
+  alive or in place. It must point to a global, or to a field of an object that
+  is surely on the heap, such as a backend scratch field (the metal backend
+  already keeps its per-draw arrays there). A local, even one made with `new`,
+  stays on the stack when only its `uintptr` leaves the function, and the stack
+  can move when it grows.
 - **`SyscallN` takes integers and pointers only.** On arm64 a struct over 16
   bytes that is not a homogeneous float aggregate (`MTLViewport`,
   `MTLScissorRect`) goes as a pointer. On amd64 it goes on the stack: four zero
