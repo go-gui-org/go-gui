@@ -371,6 +371,53 @@ func BenchmarkThemeFadeInstall(b *testing.B) {
 	}
 }
 
+// freezeThemeFade stops the real-clock tween that SetTheme started, so
+// a test can pin the fade at a value of its own (#1163). It stops the
+// animation loop and waits for it to exit: after that no tick can be
+// queued. Then it runs the ticks already queued, so FrameFn's
+// flushCommands cannot overwrite a value the test pins next. The fade
+// itself stays active; only the clock that drives it is gone.
+func freezeThemeFade(w *Window) {
+	w.stopAnimationLoop()
+	w.flushCommands()
+}
+
+// TestThemeFadeFreezeDropsQueuedTicks is the regression test for
+// #1163. A tween tick queued before the test pins the midpoint must
+// not reach the frame. Without freezeThemeFade the queued 0.9 runs in
+// FrameFn's flushCommands and the frame renders at 0.9, not 0.5.
+func TestThemeFadeFreezeDropsQueuedTicks(t *testing.T) {
+	w := NewWindow(WindowCfg{State: new(int), Width: 200, Height: 100})
+	t.Cleanup(w.WindowCleanup)
+	w.viewGenerator = func(*Window) View {
+		return Column(ContainerCfg{Sizing: FillFill})
+	}
+	w.SetTheme(ThemeDark)
+	w.SetThemeTransition(200 * time.Millisecond)
+	w.markLayoutRefresh(refreshTest)
+	w.FrameFn()
+
+	w.SetTheme(ThemeLight)
+	gen := w.themeFade.gen
+	// A tick the loop queued before the test pinned the value, the
+	// way animationTick delivers a TweenAnimation's OnValue.
+	w.queueValueCommand(func(v float32, win *Window) {
+		win.themeFadeStep(gen, v)
+	}, 0.9)
+
+	freezeThemeFade(w)
+	w.themeFadeStep(gen, 0.5)
+	w.markLayoutRefresh(refreshTest)
+	w.FrameFn()
+
+	if got := w.themeFade.t; got != 0.5 {
+		t.Fatalf("fade t = %v after FrameFn, want 0.5", got)
+	}
+	if !w.themeFade.active {
+		t.Fatal("freezeThemeFade ended the fade; it must stay active")
+	}
+}
+
 // TestGoldenThemeFade records the midpoint of a fade in both
 // directions, through the real frame pipeline.
 func TestGoldenThemeFade(t *testing.T) {
@@ -386,6 +433,7 @@ func TestGoldenThemeFade(t *testing.T) {
 			w := NewWindow(WindowCfg{
 				State: new(int), Width: goldenWidth, Height: goldenHeight,
 			})
+			t.Cleanup(w.WindowCleanup)
 			w.viewGenerator = func(*Window) View {
 				return Column(ContainerCfg{
 					Sizing: FillFill,
@@ -403,6 +451,9 @@ func TestGoldenThemeFade(t *testing.T) {
 			w.FrameFn()
 
 			w.SetTheme(d.to)
+			// Pin the midpoint only after the real tween can no longer
+			// step it (#1163).
+			freezeThemeFade(w)
 			w.themeFadeStep(w.themeFade.gen, 0.5)
 			w.markLayoutRefresh(refreshTest)
 			w.FrameFn()
