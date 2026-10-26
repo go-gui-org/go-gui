@@ -238,3 +238,142 @@ func BenchmarkPixelSurfaceUpdate(b *testing.B) {
 		})
 	}
 }
+
+func testPlaneSurface(t testing.TB) *PixelSurface {
+	t.Helper()
+	surface, err := NewPixelSurface(PixelSurfaceCfg{Planes: []PixelPlaneCfg{
+		{Format: PixelFormatR8, Width: 4, Height: 2},
+		{Format: PixelFormatRG8, Width: 2, Height: 1},
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(surface.Close)
+	return surface
+}
+
+func TestPixelSurfacePlanesPublishTogether(t *testing.T) {
+	surface := testPlaneSurface(t)
+	luma := []byte{1, 2, 3, 4, 99, 5, 6, 7, 8} // stride 5: one padding byte
+	chroma := []byte{10, 11, 12, 13}
+	if err := surface.UpdatePlanes(PixelPlane{Pix: luma, Stride: 5}, PixelPlane{Pix: chroma, Stride: 4}); err != nil {
+		t.Fatal(err)
+	}
+	var version uint64
+	if !surface.ReadPlanes(0, func(planes []SurfacePlane, v uint64) {
+		version = v
+		if len(planes) != 2 ||
+			planes[0].Format != PixelFormatR8 || planes[0].Width != 4 || planes[0].Height != 2 ||
+			!bytes.Equal(planes[0].Pix, []byte{1, 2, 3, 4, 5, 6, 7, 8}) ||
+			planes[1].Format != PixelFormatRG8 || planes[1].Width != 2 || planes[1].Height != 1 ||
+			!bytes.Equal(planes[1].Pix, chroma) {
+			t.Errorf("planes = %+v", planes)
+		}
+	}) {
+		t.Fatal("open surface unavailable")
+	}
+	// A short second plane must leave both planes and the version as
+	// they were: the frame is published whole or not at all.
+	if err := surface.UpdatePlanes(PixelPlane{Pix: make([]byte, 8), Stride: 4}, PixelPlane{Pix: chroma[:3], Stride: 4}); err == nil {
+		t.Error("accepted a short plane")
+	}
+	surface.ReadPlanes(version, func([]SurfacePlane, uint64) {
+		t.Error("rejected update changed the frame")
+	})
+	if err := surface.UpdatePlanes(PixelPlane{Pix: luma, Stride: 5}); err == nil {
+		t.Error("accepted one source for two planes")
+	}
+	if surface.Update(luma, 5) == nil || surface.Resize(8, 4) == nil {
+		t.Error("single-plane Update or Resize accepted on a two-plane surface")
+	}
+	if surface.ReadPixels(0, nil) {
+		t.Error("an Image could draw a two-plane surface")
+	}
+}
+
+func TestPixelSurfacePlaneConfigErrors(t *testing.T) {
+	r8 := PixelPlaneCfg{Format: PixelFormatR8, Width: 2, Height: 2}
+	for name, cfg := range map[string]PixelSurfaceCfg{
+		"size and planes": {Width: 2, Height: 2, Planes: []PixelPlaneCfg{r8}},
+		"five planes":     {Planes: []PixelPlaneCfg{r8, r8, r8, r8, r8}},
+		"unknown format":  {Planes: []PixelPlaneCfg{{Format: PixelFormat(9), Width: 2, Height: 2}}},
+		"zero plane":      {Planes: []PixelPlaneCfg{{Format: PixelFormatR8}}},
+		"over 64 MiB": {Planes: []PixelPlaneCfg{
+			{Format: PixelFormatRGBA8, Width: 8192, Height: 2048},
+			{Format: PixelFormatR8, Width: 1, Height: 1},
+		}},
+	} {
+		if _, err := NewPixelSurface(cfg); err == nil {
+			t.Errorf("%s: accepted", name)
+		}
+	}
+}
+
+func TestPixelSurfaceSingleR8Plane(t *testing.T) {
+	surface, err := NewPixelSurface(PixelSurfaceCfg{Planes: []PixelPlaneCfg{{Format: PixelFormatR8, Width: 3, Height: 1}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer surface.Close()
+	// Update and Resize work on any single plane, with its own bytes per
+	// pixel.
+	if err = surface.Update([]byte{7, 8, 9}, 3); err != nil {
+		t.Fatal(err)
+	}
+	if err = surface.Resize(2, 2); err != nil {
+		t.Fatal(err)
+	}
+	surface.ReadPlanes(0, func(planes []SurfacePlane, _ uint64) {
+		if planes[0].Format != PixelFormatR8 || len(planes[0].Pix) != 4 {
+			t.Errorf("resized plane = %+v", planes[0])
+		}
+	})
+	if surface.ReadPixels(0, nil) {
+		t.Error("an Image could draw an R8 surface")
+	}
+}
+
+func TestPixelSurfacePlanesNeverTear(t *testing.T) {
+	surface := testPlaneSurface(t)
+	var workers sync.WaitGroup
+	workers.Add(2)
+	go func() {
+		defer workers.Done()
+		luma, chroma := make([]byte, 8), make([]byte, 4)
+		for i := range 300 {
+			for j := range luma {
+				luma[j] = byte(i)
+			}
+			for j := range chroma {
+				chroma[j] = byte(i)
+			}
+			if err := surface.UpdatePlanes(PixelPlane{Pix: luma, Stride: 4}, PixelPlane{Pix: chroma, Stride: 4}); err != nil {
+				t.Error(err)
+			}
+		}
+	}()
+	go func() {
+		defer workers.Done()
+		for range 300 {
+			surface.ReadPlanes(0, func(planes []SurfacePlane, _ uint64) {
+				if planes[0].Pix[0] != planes[1].Pix[0] {
+					t.Error("planes from two different frames")
+				}
+			})
+		}
+	}()
+	workers.Wait()
+}
+
+func TestPixelSurfaceUpdatePlanesAllocations(t *testing.T) {
+	surface := testPlaneSurface(t)
+	luma, chroma := make([]byte, 8), make([]byte, 4)
+	allocs := testing.AllocsPerRun(100, func() {
+		if err := surface.UpdatePlanes(PixelPlane{Pix: luma, Stride: 4}, PixelPlane{Pix: chroma, Stride: 4}); err != nil {
+			panic(err)
+		}
+	})
+	if allocs != 0 {
+		t.Errorf("UpdatePlanes allocated %.1f objects", allocs)
+	}
+}

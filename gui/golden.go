@@ -631,6 +631,10 @@ func serializeCmd(c RenderCmd) string {
 		}
 	case RenderImage:
 		writeImageFields(&b, &c)
+	case RenderCustomShader:
+		if c.DrawnSurface() != nil {
+			b.WriteString(" surface")
+		}
 	case RenderSvg:
 		fmt.Fprintf(&b, " tris=%d", len(c.Triangles))
 		writeVertexColors(&b, &c)

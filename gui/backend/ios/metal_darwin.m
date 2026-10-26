@@ -35,6 +35,9 @@ static int _freeTexCount = 0;
 // last frame that bound each one; see waitTextureIdle.
 static BOOL _texStreamed[MAX_TEX];
 static id<MTLCommandBuffer> _texLastUse[MAX_TEX];
+// _transparentTex is the 1x1 transparent texture a custom shader's
+// channel reads when its surface has no plane for it.
+static id<MTLTexture> _transparentTex;
 
 // Reusable large-triangle upload buffers (triple-buffered per frame
 // to avoid per-draw allocations and CPU/GPU write hazards).
@@ -555,6 +558,7 @@ void metalDestroy(void) {
         _texStreamed[i] = NO;
         _texLastUse[i] = nil;
     }
+    _transparentTex = nil;
     _nextTexID = 1;
     _freeTexCount = 0;
     for (int f = 0; f < TRI_BUF_RING; f++) {
@@ -805,10 +809,71 @@ void metalStreamTexture(int id) {
     _texStreamed[id] = YES;
 }
 
-void metalUpdateStreamTexture(int id, int w, int h, const void* data) {
-    if (id <= 0 || id >= MAX_TEX || !_textures[id]) return;
-    waitTextureIdle(id);
-    metalUpdateTexture(id, 0, 0, w, h, data);
+void metalUpdateStreamTexture(int tex, int w, int h, int bytesPerPixel,
+                              const void* data) {
+    if (tex <= 0 || tex >= MAX_TEX || !_textures[tex] || !data) return;
+    if (w <= 0 || h <= 0 || bytesPerPixel <= 0) return;
+    waitTextureIdle(tex);
+    [_textures[tex] replaceRegion:MTLRegionMake2D(0, 0, w, h)
+                      mipmapLevel:0
+                        withBytes:data
+                      bytesPerRow:w * bytesPerPixel];
+}
+
+// planeFormat maps a gui.PixelFormat (0 RGBA8, 1 R8, 2 RG8) to Metal.
+static MTLPixelFormat planeFormat(int format) {
+    switch (format) {
+    case 1: return MTLPixelFormatR8Unorm;
+    case 2: return MTLPixelFormatRG8Unorm;
+    default: return MTLPixelFormatRGBA8Unorm;
+    }
+}
+
+int metalCreatePlaneTexture(int format, int w, int h, int bytesPerPixel,
+                            const void* pixels) {
+    if (w <= 0 || h <= 0 || bytesPerPixel <= 0 || !pixels) return 0;
+    int tid = 0;
+    if (_freeTexCount > 0) {
+        tid = _freeTexIDs[--_freeTexCount];
+    } else {
+        if (_nextTexID >= MAX_TEX) return 0;
+        tid = _nextTexID++;
+    }
+    id<MTLTexture> tex = makeTexture(w, h, planeFormat(format));
+    if (!tex) {
+        if (_freeTexCount < MAX_TEX) {
+            _freeTexIDs[_freeTexCount++] = tid;
+        }
+        return 0;
+    }
+    [tex replaceRegion:MTLRegionMake2D(0, 0, w, h)
+           mipmapLevel:0
+             withBytes:pixels
+           bytesPerRow:w * bytesPerPixel];
+    _textures[tid] = tex;
+    _texStreamed[tid] = YES;
+    return tid;
+}
+
+// metalBindChannel binds texture tex at texture(channel+1) for a custom
+// shader's iChannel, or the transparent texture when tex is 0, and
+// records the use so the next streamed upload waits for this frame.
+void metalBindChannel(int channel, int tex) {
+    if (!_enc || channel < 0 || channel > 3) return;
+    if (!_transparentTex) {
+        static const unsigned char clear[4] = {0, 0, 0, 0};
+        _transparentTex = makeTexture(1, 1, MTLPixelFormatRGBA8Unorm);
+        [_transparentTex replaceRegion:MTLRegionMake2D(0, 0, 1, 1)
+                           mipmapLevel:0
+                             withBytes:clear
+                           bytesPerRow:4];
+    }
+    id<MTLTexture> t = _transparentTex;
+    if (tex > 0 && tex < MAX_TEX && _textures[tex]) {
+        t = _textures[tex];
+        noteTextureUse(tex);
+    }
+    [_enc setFragmentTexture:t atIndex:channel + 1];
 }
 
 void metalDeleteTexture(int id) {

@@ -116,20 +116,20 @@ these names. A function that has the name of an MSL library function, such as
 
 ## What the tool rejects
 
-| Construct                                      | Reason                                          |
-| ---------------------------------------------- | ----------------------------------------------- |
-| `iMouse`                                       | go-gui does not send the pointer to shaders yet |
-| `iChannel0`-`iChannel3`, `texture()`, samplers | go-gui binds no textures to a custom shader     |
-| `iDate`, `iSampleRate`, `iFrameRate`           | go-gui does not supply them                     |
-| A global variable that is not `const`          | MSL has no mutable program-scope variables      |
-| `uniform`, `in` and `out` globals              | Use the built-in inputs or `Shader.Params`      |
-| `gl_FragCoord`, `gl_FragColor`, `void main()`  | Use `mainImage` and its parameters              |
-| `inverse`, `outerProduct`, `matrixCompMult`    | MSL has no built-in function for them           |
-| `floatBitsToInt` and the other bit casts       | Not in the subset yet                           |
-| `^^`                                           | Write `a != b`                                  |
-| `T[N] name` array declarations                 | Write `T name[N]`                               |
-| An `out` or `inout` array parameter            | Not in the subset                               |
-| `#include`                                     | Shadertoy has no includes                       |
+| Construct                                      | Reason                                                                                                    |
+| ---------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `iMouse`                                       | go-gui does not send the pointer to shaders yet                                                           |
+| `iChannel0`-`iChannel3`, `texture()`, samplers | The tool does not translate texture reads; a hand-written shader reads a surface through `Shader.Surface` |
+| `iDate`, `iSampleRate`, `iFrameRate`           | go-gui does not supply them                                                                               |
+| A global variable that is not `const`          | MSL has no mutable program-scope variables                                                                |
+| `uniform`, `in` and `out` globals              | Use the built-in inputs or `Shader.Params`                                                                |
+| `gl_FragCoord`, `gl_FragColor`, `void main()`  | Use `mainImage` and its parameters                                                                        |
+| `inverse`, `outerProduct`, `matrixCompMult`    | MSL has no built-in function for them                                                                     |
+| `floatBitsToInt` and the other bit casts       | Not in the subset yet                                                                                     |
+| `^^`                                           | Write `a != b`                                                                                            |
+| `T[N] name` array declarations                 | Write `T name[N]`                                                                                         |
+| An `out` or `inout` array parameter            | Not in the subset                                                                                         |
+| `#include`                                     | Shadertoy has no includes                                                                                 |
 
 A shader with a mutable global usually sets the global in `mainImage` and reads
 it in helpers. Make it a local variable of `mainImage`. Then add it as a

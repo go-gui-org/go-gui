@@ -35,6 +35,7 @@ import (
 func hotCalls() map[string]func() {
 	return map[string]func(){
 		"glActiveTexture":   func() { ActiveTexture(TEXTURE0) },
+		"glPixelStorei":     func() { PixelStorei(UNPACK_ALIGNMENT, 1) },
 		"glBindBuffer":      func() { BindBuffer(ARRAY_BUFFER, 1) },
 		"glBindFramebuffer": func() { BindFramebuffer(FRAMEBUFFER, 1) },
 		"glBindTexture":     func() { BindTexture(TEXTURE_2D, 1) },

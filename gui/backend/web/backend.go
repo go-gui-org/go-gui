@@ -242,6 +242,7 @@ func newBackend(w *gui.Window) (*Backend, error) {
 		hasRoundRect: hasRR,
 	}
 	b.shaders = newCustomShaderRenderer(doc, &b.callbacks, b.requestRedraw)
+	gui.SetWindowRendersShaders(w, b.shaders != nil)
 	b.tris.fill = newTriPathFn()
 	b.initSvgMode()
 	b.watchRedrawSources(doc, canvas)

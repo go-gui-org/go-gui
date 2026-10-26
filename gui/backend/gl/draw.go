@@ -20,6 +20,7 @@ import (
 // renderersDraw iterates render commands and draws them.
 func (b *Backend) renderersDraw(w *gui.Window) {
 	b.surfaces.Prune(w.Renderers())
+	b.channels.PruneShaders(w.Renderers())
 	// A truncated command list must not leak backend state into the
 	// next frame: a bound filter FBO, a rotated MVP, or an enabled
 	// stencil test all persist on the GL context. A balanced stream
@@ -502,6 +503,12 @@ func (b *Backend) drawCustomShader(r *gui.RenderCmd) {
 
 	s := b.dpiScale
 	b.usePipeline(&p)
+	// Keyed off Shader.Surface, which also chose the channel program, so
+	// that program is never drawn with its channel textures unbound.
+	if r.Shader.Surface != nil {
+		ch, ok := b.channels.ResolvePlanes(r.Shader.Surface, b.uploadChannels)
+		b.bindChannels(ch, ok)
+	}
 
 	// Pack params into tm matrix (up to 16 floats → 4 columns).
 	var tm [16]float32

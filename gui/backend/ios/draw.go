@@ -24,6 +24,7 @@ import (
 // renderersDraw iterates render commands and draws them.
 func (b *Backend) renderersDraw(w *gui.Window) {
 	b.surfaces.Prune(w.Renderers())
+	b.channels.PruneShaders(w.Renderers())
 	cmds := w.Renderers()
 	for i := range cmds {
 		r := &cmds[i]
@@ -546,6 +547,9 @@ func (b *Backend) drawCustomShader(r *gui.RenderCmd) {
 			b.customCache.EvictOldest()
 		}
 		src := msl.BuildCustomDecls(r.Shader.MetalDecls, r.Shader.Metal)
+		if r.Shader.Surface != nil {
+			src = msl.BuildCustomChannels(r.Shader.MetalDecls, r.Shader.Metal)
+		}
 		cmsl := C.CString(src)
 		idx = C.int(C.metalBuildCustomPipeline(cmsl))
 		C.free(unsafe.Pointer(cmsl))
@@ -560,6 +564,12 @@ func (b *Backend) drawCustomShader(r *gui.RenderCmd) {
 	s := b.DPIScale
 	C.metalSetCustomPipeline(idx)
 	C.metalSetMVP((*C.float)(&b.MVP[0]))
+	// Keyed off Shader.Surface, which also chose the channel program, so
+	// that program is never drawn with its channel textures unbound.
+	if r.Shader.Surface != nil {
+		ch, ok := b.channels.ResolvePlanes(r.Shader.Surface, b.uploadChannels)
+		b.bindChannels(ch, ok)
+	}
 
 	var tm [16]float32
 	for i := range min(len(r.Shader.Params), 16) {

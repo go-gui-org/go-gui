@@ -201,10 +201,16 @@ func (b *Backend) getOrBuildCustomPipeline(s *gui.Shader) (pipeline, error) {
 		return p, nil
 	}
 	fsSrc := gui.BuildGLSLFragmentDecls(s.GLSLDecls, s.GLSL)
+	if s.Surface != nil {
+		fsSrc = gui.BuildGLSLFragmentChannels(s.GLSLDecls, s.GLSL)
+	}
 	p, err := buildPipeline(shader.VsCustomGLSL, fsSrc)
 	if err != nil {
 		b.pipelines.customCache.Set(h, pipeline{})
 		return pipeline{}, err
+	}
+	if s.Surface != nil {
+		setChannelUnits(p)
 	}
 	b.pipelines.customCache.Set(h, p)
 	return p, nil

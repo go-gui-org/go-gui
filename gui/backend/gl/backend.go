@@ -36,8 +36,12 @@ type Backend struct {
 
 	pipelines pipelineSet
 
-	textures          texcache.Cache[string, glTexture]
-	surfaces          surfacecache.Cache[glTexture]
+	textures texcache.Cache[string, glTexture]
+	surfaces surfacecache.Cache[glTexture]
+	// channels holds the planes custom shaders read (gui.Shader.Surface);
+	// transparentTex stands in for a channel with no plane.
+	channels          surfacecache.Cache[glChannels]
+	transparentTex    glTexture
 	imagePathCache    texcache.Cache[string, string]
 	textSys           *glyph.TextSystem
 	filterColorMatrix *[16]float32
@@ -141,6 +145,7 @@ func (b *Backend) initCaches(cfg gui.WindowCfg) {
 // be set before calling. The GL context must already be current.
 func (b *Backend) initGLResources(w *gui.Window) error {
 	b.surfaces.SetRelease(b.deleteSurfaceTexture)
+	b.channels.SetRelease(b.deleteChannels)
 	gogl.Enable(gogl.BLEND)
 	gogl.BlendFunc(gogl.SRC_ALPHA, gogl.ONE_MINUS_SRC_ALPHA)
 	gogl.Disable(gogl.DEPTH_TEST)
@@ -180,6 +185,8 @@ func (b *Backend) initGLResources(w *gui.Window) error {
 	w.SetTextMeasurer(&textMeasurer{textSys: textSys})
 	w.SetSvgParser(svg.New())
 	w.SetNativePlatform(&nativePlatform{b: b})
+	b.transparentTex = createTexture(1, 1, []byte{0, 0, 0, 0})
+	gui.SetWindowRendersShaders(w, true)
 	return nil
 }
 
@@ -194,6 +201,9 @@ func (b *Backend) destroyGLResources() {
 	b.plat.makeCurrent()
 	b.textures.DestroyAll()
 	b.surfaces.Clear()
+	b.channels.Clear()
+	b.deleteSurfaceTexture(b.transparentTex)
+	b.transparentTex = glTexture{}
 	b.destroyPipelines()
 	if b.quadVAO != 0 {
 		gogl.DeleteVertexArrays(1, &b.quadVAO)

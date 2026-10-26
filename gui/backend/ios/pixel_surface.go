@@ -27,6 +27,6 @@ func (b *Backend) uploadSurfaceTexture(tex metalTexture, w, h int, pix []byte) m
 		return tex
 	}
 	C.metalUpdateStreamTexture(C.int(tex.id),
-		C.int(w), C.int(h), unsafe.Pointer(&pix[0]))
+		C.int(w), C.int(h), 4, unsafe.Pointer(&pix[0]))
 	return tex
 }

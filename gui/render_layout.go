@@ -302,6 +302,9 @@ func renderContainer(shape *Shape, _ Color, clip drawClip, w *Window) {
 			shaderBuiltins: &fx.shaderBuiltins,
 		}, w) {
 			w.packShaderShape(shape)
+			if fx.Shader.Surface != nil {
+				w.pixelSurfaces.drew = true
+			}
 		}
 	case hasFX && fx.Gradient != nil:
 		emitRenderer(RenderCmd{

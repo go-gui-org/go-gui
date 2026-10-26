@@ -47,6 +47,10 @@ static GLuint _textures[MAX_TEX];
 static int _nextTexID = 1;
 static int _freeTexIDs[MAX_TEX];
 static int _freeTexCount = 0;
+// _transparentTex is the 1x1 transparent texture a custom shader's
+// channel reads when its surface has no plane for it. Created on first
+// use, so a context loss only has to forget it.
+static GLuint _transparentTex;
 
 // Filter FBO state.
 static GLuint _filterFBO;
@@ -739,6 +743,7 @@ void glesDestroy(void) {
     }
     _nextTexID = 1;
     _freeTexCount = 0;
+    if (_transparentTex) { glDeleteTextures(1, &_transparentTex); _transparentTex = 0; }
 
     if (_filterTexA) { glDeleteTextures(1, &_filterTexA); _filterTexA = 0; }
     if (_filterTexB) { glDeleteTextures(1, &_filterTexB); _filterTexB = 0; }
@@ -947,6 +952,79 @@ void glesBindTexture(int id) {
     }
 }
 
+// ─── Shader channels (gui.Shader.Surface) ─────────────────────
+// format matches gui.PixelFormat: 0 RGBA8, 1 R8, 2 RG8.
+
+static void planeFormat(int format, GLint* internal, GLenum* fmt) {
+    switch (format) {
+    case 1: *internal = GL_R8;  *fmt = GL_RED; break;
+    case 2: *internal = GL_RG8; *fmt = GL_RG;  break;
+    default: *internal = GL_RGBA8; *fmt = GL_RGBA; break;
+    }
+}
+
+// glesCreatePlaneTexture creates a texture for one plane, sampled
+// linearly and clamped to the edge like every texture here.
+int glesCreatePlaneTexture(int format, int w, int h, const void* pixels) {
+    int tid = 0;
+    if (_freeTexCount > 0) {
+        tid = _freeTexIDs[--_freeTexCount];
+    } else {
+        if (_nextTexID >= MAX_TEX) return 0;
+        tid = _nextTexID++;
+    }
+    GLint internal; GLenum fmt;
+    planeFormat(format, &internal, &fmt);
+    GLuint tex;
+    glGenTextures(1, &tex);
+    glBindTexture(GL_TEXTURE_2D, tex);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    // R8 and RG8 rows need not be 4-byte aligned.
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    glTexImage2D(GL_TEXTURE_2D, 0, internal, w, h, 0, fmt,
+                 GL_UNSIGNED_BYTE, pixels);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+    _textures[tid] = tex;
+    return tid;
+}
+
+void glesUpdatePlaneTexture(int id, int format, int w, int h,
+                            const void* data) {
+    if (id <= 0 || id >= MAX_TEX || !_textures[id] || !data) return;
+    GLint internal; GLenum fmt;
+    planeFormat(format, &internal, &fmt);
+    glBindTexture(GL_TEXTURE_2D, _textures[id]);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, fmt,
+                    GL_UNSIGNED_BYTE, data);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+}
+
+// glesBindChannel binds texture id to unit channel+1, or the transparent
+// texture when id is 0. Unit 0 is left active, as the other draws expect.
+void glesBindChannel(int channel, int id) {
+    if (channel < 0 || channel > 3) return;
+    if (!_transparentTex) {
+        static const unsigned char clear[4] = {0, 0, 0, 0};
+        glGenTextures(1, &_transparentTex);
+        glBindTexture(GL_TEXTURE_2D, _transparentTex);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 1, 1, 0, GL_RGBA,
+                     GL_UNSIGNED_BYTE, clear);
+    }
+    GLuint tex = _transparentTex;
+    if (id > 0 && id < MAX_TEX && _textures[id]) tex = _textures[id];
+    glActiveTexture(GL_TEXTURE1 + channel);
+    glBindTexture(GL_TEXTURE_2D, tex);
+    glActiveTexture(GL_TEXTURE0);
+}
+
 // glesSetImageFilter sets the bound texture's min and mag filter:
 // nearest when nearest is 1, linear otherwise. The filter lives on
 // the texture, which every draw of the same source shares, so a draw
@@ -1014,6 +1092,19 @@ void glesSetCustomPipeline(int idx) {
     _curPipeline = -2 - idx;
 }
 
+// glesSetChannelUnits points a custom program's iChannel samplers at
+// units 1..4. A sampler's unit is program state: once per build.
+void glesSetChannelUnits(int idx) {
+    if (idx < 0 || idx >= MAX_CUSTOM_PIPELINES || !_customPrograms[idx]) return;
+    static const char* names[4] = {"iChannel0", "iChannel1", "iChannel2", "iChannel3"};
+    glUseProgram(_customPrograms[idx]);
+    for (int i = 0; i < 4; i++) {
+        GLint loc = glGetUniformLocation(_customPrograms[idx], names[i]);
+        if (loc >= 0) glUniform1i(loc, i + 1);
+    }
+    _curPipeline = -1;
+}
+
 // ─── Context Loss ────────────────────────────────────────────
 
 // glesAbandon forgets every GL object this file holds without deleting any.
@@ -1030,6 +1121,7 @@ void glesAbandon(void) {
     memset(_textures, 0, sizeof _textures);
     _nextTexID = 1;
     _freeTexCount = 0;
+    _transparentTex = 0;
 
     _filterFBO = 0;
     _filterTexA = _filterTexB = 0;

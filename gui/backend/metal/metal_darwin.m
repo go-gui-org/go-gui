@@ -48,6 +48,9 @@ struct MetalContext {
     // waitTextureIdle.
     BOOL texStreamed[MAX_TEX];
     id<MTLCommandBuffer> texLastUse[MAX_TEX];
+    // transparentTex is the 1x1 transparent texture a custom shader's
+    // channel reads when its surface has no plane for it.
+    id<MTLTexture> transparentTex;
     // Triangle buffers
     id<MTLBuffer> triBufs[TRI_BUF_RING][TRI_BUF_MAX_PER_FRAME];
     int triBufCursor[TRI_BUF_RING];
@@ -727,6 +730,7 @@ void metalCtxDestroy(MetalCtx ctx_) {
         ctx->texStreamed[i] = NO;
         ctx->texLastUse[i] = nil;
     }
+    ctx->transparentTex = nil;
     ctx->nextTexID = 1;
     ctx->freeTexCount = 0;
     for (int f = 0; f < TRI_BUF_RING; f++) {
@@ -1039,12 +1043,74 @@ void metalStreamTexture(MetalCtx ctx_, int id) {
     ctx->texStreamed[id] = YES;
 }
 
-void metalUpdateStreamTexture(MetalCtx ctx_, int id, int w, int h,
-                              const void* data) {
+void metalUpdateStreamTexture(MetalCtx ctx_, int tex, int w, int h,
+                              int bytesPerPixel, const void* data) {
     MetalContext* ctx = MC(ctx_);
-    if (!ctx || id <= 0 || id >= MAX_TEX || !ctx->textures[id]) return;
-    waitTextureIdle(ctx, id);
-    metalUpdateTexture(ctx_, id, 0, 0, w, h, data);
+    if (!ctx || tex <= 0 || tex >= MAX_TEX || !ctx->textures[tex] || !data) return;
+    if (w <= 0 || h <= 0 || bytesPerPixel <= 0) return;
+    waitTextureIdle(ctx, tex);
+    [ctx->textures[tex] replaceRegion:MTLRegionMake2D(0, 0, w, h)
+                          mipmapLevel:0
+                            withBytes:data
+                          bytesPerRow:w * bytesPerPixel];
+}
+
+// planeFormat maps a gui.PixelFormat (0 RGBA8, 1 R8, 2 RG8) to Metal.
+static MTLPixelFormat planeFormat(int format) {
+    switch (format) {
+    case 1: return MTLPixelFormatR8Unorm;
+    case 2: return MTLPixelFormatRG8Unorm;
+    default: return MTLPixelFormatRGBA8Unorm;
+    }
+}
+
+int metalCreatePlaneTexture(MetalCtx ctx_, int format, int w, int h,
+                            int bytesPerPixel, const void* pixels) {
+    MetalContext* ctx = MC(ctx_);
+    if (!ctx || w <= 0 || h <= 0 || bytesPerPixel <= 0 || !pixels) return 0;
+    int tid = 0;
+    if (ctx->freeTexCount > 0) {
+        tid = ctx->freeTexIDs[--ctx->freeTexCount];
+    } else {
+        if (ctx->nextTexID >= MAX_TEX) return 0;
+        tid = ctx->nextTexID++;
+    }
+    id<MTLTexture> tex = makeTexture(ctx->device, w, h, planeFormat(format));
+    if (!tex) {
+        if (ctx->freeTexCount < MAX_TEX) {
+            ctx->freeTexIDs[ctx->freeTexCount++] = tid;
+        }
+        return 0;
+    }
+    [tex replaceRegion:MTLRegionMake2D(0, 0, w, h)
+           mipmapLevel:0
+             withBytes:pixels
+           bytesPerRow:w * bytesPerPixel];
+    ctx->textures[tid] = tex;
+    ctx->texStreamed[tid] = YES;
+    return tid;
+}
+
+// metalBindChannel binds texture tex at texture(channel+1) for a custom
+// shader's iChannel, or the transparent texture when tex is 0, and
+// records the use so the next streamed upload waits for this frame.
+void metalBindChannel(MetalCtx ctx_, int channel, int tex) {
+    MetalContext* ctx = MC(ctx_);
+    if (!ctx || !ctx->enc || channel < 0 || channel > 3) return;
+    if (!ctx->transparentTex) {
+        static const unsigned char clear[4] = {0, 0, 0, 0};
+        ctx->transparentTex = makeTexture(ctx->device, 1, 1, MTLPixelFormatRGBA8Unorm);
+        [ctx->transparentTex replaceRegion:MTLRegionMake2D(0, 0, 1, 1)
+                               mipmapLevel:0
+                                 withBytes:clear
+                               bytesPerRow:4];
+    }
+    id<MTLTexture> t = ctx->transparentTex;
+    if (tex > 0 && tex < MAX_TEX && ctx->textures[tex]) {
+        t = ctx->textures[tex];
+        noteTextureUse(ctx, tex);
+    }
+    [ctx->enc setFragmentTexture:t atIndex:channel + 1];
 }
 
 void metalDeleteTexture(MetalCtx ctx_, int id) {

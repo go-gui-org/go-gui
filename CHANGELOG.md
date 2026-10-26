@@ -10,6 +10,22 @@ and this project adheres to
 
 ### Added
 
+- **Custom shaders can read textures: `Shader.Surface` binds a `PixelSurface`'s
+  planes as `iChannel0`-`iChannel3` (#1168).** A surface can now hold up to four
+  planes in `R8`, `RG8` or `RGBA8`, each with its own size
+  (`PixelSurfaceCfg.Planes`), and `UpdatePlanes` publishes all of them as one
+  frame, so a shader never sees one plane's new pixels with another's old ones.
+  A shader with a `Surface` reads plane _i_ as `iChannel`_i_, Shadertoy style,
+  with `iChannelResolution`; sampling is linear and clamps to the edge. This is
+  what video needs: NV12 frames go to the GPU as an R8 and an RG8 plane and the
+  shader converts them, with no YUV code in go-gui. A new frame redraws without
+  rebuilding layout or `Shader.Animate`. Shaders without a `Surface` compile
+  exactly as before. `Window.RendersShaders` reports whether the backend runs
+  shaders (not the soft renderer or PDF), so a library can fall back to an RGBA8
+  `Image`. On Metal an upload into a surface texture waits for an earlier frame
+  still sampling it, as `replaceRegion` does not. See
+  [`examples/shader_channels/`](examples/shader_channels/).
+
 - **`PixelSurface`: an image the app can update every frame (#1168).** Create
   one with `NewPixelSurface`, pass it as `ImageCfg.Surface`, and call `Update`
   with RGBA8 pixels from any goroutine. `Update` copies the pixels, so the

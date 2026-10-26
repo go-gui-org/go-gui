@@ -38,6 +38,11 @@ const (
 	RENDERBUFFER         = 0x8D41
 	RGBA                 = 0x1908
 	RGBA8                = 0x8058
+	RED                  = 0x1903
+	RG                   = 0x8227
+	R8                   = 0x8229
+	RG8                  = 0x822B
+	UNPACK_ALIGNMENT     = 0x0CF5
 	SCISSOR_TEST         = 0x0C11
 	SRC_ALPHA            = 0x0302
 	STATIC_DRAW          = 0x88E4

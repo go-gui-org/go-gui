@@ -67,6 +67,12 @@ typedef ptrdiff_t GLsizeiptr;
 #define GL_NEAREST 0x2600
 #define GL_RGBA 0x1908
 #define GL_RGBA8 0x8058
+#define GL_TEXTURE1 0x84C1
+#define GL_RED 0x1903
+#define GL_RG 0x8227
+#define GL_R8 0x8229
+#define GL_RG8 0x822B
+#define GL_UNPACK_ALIGNMENT 0x0CF5
 
 // Observed state, defined in harness.c.
 extern int harnessUniformWrites;
@@ -75,12 +81,23 @@ extern GLint harnessLastUniformLoc;
 // no object it was handed. buildProgram deletes its own shaders once they are
 // linked; those are new objects, not stale names.
 extern int harnessDeleteCalls;
+// Shader channels (gui.Shader.Surface): the unit and texture last bound,
+// the last glUniform1i write, the unpack alignment, and how many texture
+// names were generated.
+extern GLenum harnessActiveUnit;
+extern GLuint harnessBoundTex;
+extern int harnessUniform1iWrites;
+extern GLint harnessLastUniform1iLoc, harnessLastUniform1iVal;
+extern GLint harnessUnpackAlignment;
+extern int harnessGenTextureCalls;
 
 // Uniform locations the harness hands out, so a test can tell which uniform a
 // setter wrote to.
 #define HARNESS_LOC_MVP 7
 #define HARNESS_LOC_TM 9
 #define HARNESS_LOC_BUILTINS 11
+// iChannel0..3 get locations 20..23.
+#define HARNESS_LOC_CHANNEL0 20
 
 static inline void glUniformMatrix4fv(GLint loc, GLsizei n, GLboolean t,
                                       const GLfloat* m) {
@@ -94,6 +111,9 @@ static inline GLint glGetUniformLocation(GLuint p, const GLchar* name) {
     if (strcmp(name, "mvp") == 0) return HARNESS_LOC_MVP;
     if (strcmp(name, "tm") == 0) return HARNESS_LOC_TM;
     if (strcmp(name, "_gg_builtins") == 0) return HARNESS_LOC_BUILTINS;
+    if (strncmp(name, "iChannel", 8) == 0 && name[8] >= '0' && name[8] <= '3' &&
+        name[9] == 0)
+        return HARNESS_LOC_CHANNEL0 + (name[8] - '0');
     return -1;
 }
 
@@ -109,16 +129,16 @@ static inline void harnessGen(GLsizei n, GLuint* out) {
 static inline void glGenBuffers(GLsizei n, GLuint* o) { harnessGen(n, o); }
 static inline void glGenFramebuffers(GLsizei n, GLuint* o) { harnessGen(n, o); }
 static inline void glGenRenderbuffers(GLsizei n, GLuint* o) { harnessGen(n, o); }
-static inline void glGenTextures(GLsizei n, GLuint* o) { harnessGen(n, o); }
+static inline void glGenTextures(GLsizei n, GLuint* o) { harnessGenTextureCalls++; harnessGen(n, o); }
 static inline void glGenVertexArrays(GLsizei n, GLuint* o) { harnessGen(n, o); }
 
 // Everything else does nothing.
-static inline void glActiveTexture(GLenum a) { (void)a; }
+static inline void glActiveTexture(GLenum a) { harnessActiveUnit = a; }
 static inline void glAttachShader(GLuint a, GLuint b) { (void)a; (void)b; }
 static inline void glBindBuffer(GLenum a, GLuint b) { (void)a; (void)b; }
 static inline void glBindFramebuffer(GLenum a, GLuint b) { (void)a; (void)b; }
 static inline void glBindRenderbuffer(GLenum a, GLuint b) { (void)a; (void)b; }
-static inline void glBindTexture(GLenum a, GLuint b) { (void)a; (void)b; }
+static inline void glBindTexture(GLenum a, GLuint b) { (void)a; harnessBoundTex = b; }
 static inline void glBindVertexArray(GLuint a) { (void)a; }
 static inline void glBlendFunc(GLenum a, GLenum b) { (void)a; (void)b; }
 static inline void glBufferData(GLenum a, GLsizeiptr b, const void* c, GLenum d) { (void)a; (void)b; (void)c; (void)d; }
@@ -152,7 +172,14 @@ static inline void glStencilOp(GLenum a, GLenum b, GLenum c) { (void)a; (void)b;
 static inline void glTexImage2D(GLenum a, GLint b, GLint c, GLsizei d, GLsizei e, GLint f, GLenum g, GLenum h, const void* i) { (void)a; (void)b; (void)c; (void)d; (void)e; (void)f; (void)g; (void)h; (void)i; }
 static inline void glTexParameteri(GLenum a, GLenum b, GLint c) { (void)a; (void)b; (void)c; }
 static inline void glTexSubImage2D(GLenum a, GLint b, GLint c, GLint d, GLsizei e, GLsizei f, GLenum g, GLenum h, const void* i) { (void)a; (void)b; (void)c; (void)d; (void)e; (void)f; (void)g; (void)h; (void)i; }
-static inline void glUniform1i(GLint a, GLint b) { (void)a; (void)b; }
+static inline void glUniform1i(GLint a, GLint b) {
+    harnessUniform1iWrites++;
+    harnessLastUniform1iLoc = a;
+    harnessLastUniform1iVal = b;
+}
+static inline void glPixelStorei(GLenum a, GLint b) {
+    if (a == GL_UNPACK_ALIGNMENT) harnessUnpackAlignment = b;
+}
 static inline void glUseProgram(GLuint a) { (void)a; }
 static inline void glVertexAttribPointer(GLuint a, GLint b, GLenum c, GLboolean d, GLsizei e, const void* f) { (void)a; (void)b; (void)c; (void)d; (void)e; (void)f; }
 static inline void glViewport(GLint a, GLint b, GLsizei c, GLsizei d) { (void)a; (void)b; (void)c; (void)d; }

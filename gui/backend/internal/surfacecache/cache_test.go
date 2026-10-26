@@ -156,3 +156,119 @@ func TestPruneOnEmptyCacheAllocatesNothing(t *testing.T) {
 		t.Errorf("empty prune allocated %g objects", allocs)
 	}
 }
+
+func newPlaneSurface(t *testing.T) *gui.PixelSurface {
+	t.Helper()
+	surface, err := gui.NewPixelSurface(gui.PixelSurfaceCfg{Planes: []gui.PixelPlaneCfg{
+		{Format: gui.PixelFormatR8, Width: 2, Height: 2},
+		{Format: gui.PixelFormatRG8, Width: 1, Height: 1},
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(surface.Close)
+	return surface
+}
+
+// planeUploads counts plane uploads the way a backend's shader path would.
+type planeUploads struct {
+	surfaces Cache[int]
+	uploads  int
+	planes   int
+}
+
+func (p *planeUploads) upload(existing int, planes []gui.SurfacePlane) int {
+	p.uploads++
+	p.planes = len(planes)
+	return existing + 1
+}
+
+func TestResolvePlanesUploadsEachFrameOnce(t *testing.T) {
+	surface := newPlaneSurface(t)
+	p := &planeUploads{}
+	p.surfaces.ResolvePlanes(surface, p.upload)
+	p.surfaces.ResolvePlanes(surface, p.upload)
+	if p.uploads != 1 || p.planes != 2 {
+		t.Fatalf("uploads = %d with %d planes; want 1 with 2", p.uploads, p.planes)
+	}
+	if err := surface.UpdatePlanes(gui.PixelPlane{Pix: make([]byte, 4), Stride: 2}, gui.PixelPlane{Pix: make([]byte, 2), Stride: 2}); err != nil {
+		t.Fatal(err)
+	}
+	p.surfaces.ResolvePlanes(surface, p.upload)
+	if p.uploads != 2 {
+		t.Fatalf("new frame: uploads = %d, want 2", p.uploads)
+	}
+}
+
+func TestPruneCountsOnlyItsKindOfCommand(t *testing.T) {
+	// One RGBA8 surface in both caches: an image draws it through
+	// Resolve, a shader through ResolvePlanes. Each cache must count only
+	// its own kind of command for that same surface.
+	surface := newSurface(t)
+	image, shader := newFakeBackend(), newFakeBackend()
+	upload := func(existing int, _ []gui.SurfacePlane) int { return existing + 1 }
+	image.surfaces.Resolve(surface, image.upload)
+	shader.surfaces.ResolvePlanes(surface, upload)
+	if image.surfaces.Len() != 1 || shader.surfaces.Len() != 1 {
+		t.Fatal("setup: each cache should hold the surface")
+	}
+	// A frame that draws the surface only through a shader keeps the
+	// shader resource and releases the image one, and the reverse.
+	shaderFrame := []gui.RenderCmd{{Kind: gui.RenderCustomShader, Shader: &gui.Shader{Surface: surface}}}
+	shader.surfaces.PruneShaders(shaderFrame)
+	image.surfaces.Prune(shaderFrame)
+	if shader.surfaces.Len() != 1 || shader.frees != 0 {
+		t.Error("shader cache released a surface its shader still reads")
+	}
+	if image.surfaces.Len() != 0 || image.frees != 1 {
+		t.Error("image cache kept a surface no image draws")
+	}
+	shader.surfaces.PruneShaders([]gui.RenderCmd{{Kind: gui.RenderImage, Surface: surface}})
+	if shader.surfaces.Len() != 0 || shader.frees != 1 {
+		t.Error("shader cache kept a surface only an image draws")
+	}
+}
+
+func TestWarmShaderFrameAllocations(t *testing.T) {
+	surface := newPlaneSurface(t)
+	p := &planeUploads{}
+	p.surfaces.SetRelease(func(int) {})
+	commands := []gui.RenderCmd{{Kind: gui.RenderCustomShader, Shader: &gui.Shader{Surface: surface}}}
+	luma, chroma := make([]byte, 4), make([]byte, 2)
+	p.surfaces.ResolvePlanes(surface, p.upload)
+	allocs := testing.AllocsPerRun(100, func() {
+		if err := surface.UpdatePlanes(gui.PixelPlane{Pix: luma, Stride: 2}, gui.PixelPlane{Pix: chroma, Stride: 2}); err != nil {
+			panic(err)
+		}
+		p.surfaces.PruneShaders(commands)
+		p.surfaces.ResolvePlanes(surface, p.upload)
+	})
+	if allocs != 0 {
+		t.Errorf("warm shader frame allocated %g objects", allocs)
+	}
+}
+
+func TestRefusedSurfacesAllocateNothing(t *testing.T) {
+	// An Image given a surface it cannot draw (here two planes), or a
+	// shader whose surface is closed, stays on screen frame after frame:
+	// resolving it must not allocate each time.
+	planes := newPlaneSurface(t)
+	closed := newSurface(t)
+	closed.Close()
+	b := newFakeBackend()
+	p := &planeUploads{}
+	allocs := testing.AllocsPerRun(100, func() {
+		if _, ok := b.surfaces.Resolve(planes, b.upload); ok {
+			panic("a two-plane surface resolved on the image path")
+		}
+		if _, ok := p.surfaces.ResolvePlanes(closed, p.upload); ok {
+			panic("a closed surface resolved")
+		}
+	})
+	if allocs != 0 {
+		t.Errorf("refused surfaces allocated %g objects per frame", allocs)
+	}
+	if b.surfaces.Len() != 0 || p.surfaces.Len() != 0 {
+		t.Error("a refused surface was cached")
+	}
+}

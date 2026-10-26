@@ -72,6 +72,7 @@ type Backend struct {
 	textSys      *glyph.TextSystem
 	textures     texcache.Cache[string, metalTexture]
 	surfaces     surfacecache.Cache[metalTexture]
+	channels     surfacecache.Cache[metalChannels]
 	glyphBack    *metalGlyphBackend
 	customCache  texcache.Cache[uint64, C.int]
 	shaderHashes gui.ShaderHashCache // memoizes ShaderHash per draw
@@ -140,6 +141,8 @@ func initBackend(layerPtr unsafe.Pointer,
 		maxImagePixels: cfg.MaxImagePixels,
 	}
 	b.surfaces.SetRelease(b.deleteSurfaceTexture)
+	b.channels.SetRelease(b.deleteChannels)
+	gui.SetWindowRendersShaders(iosWindow, true)
 	b.AllowedImageRoots = imgpath.NormalizeRoots(
 		cfg.AllowedImageRoots)
 	b.HandleResize(int32(w), int32(h), scale)
@@ -228,6 +231,7 @@ func (b *Backend) handleResize(w, h int32, scale float32) {
 func (b *Backend) Destroy() {
 	b.textures.DestroyAll()
 	b.surfaces.Clear()
+	b.channels.Clear()
 	b.customCache.DestroyAll()
 	if b.glyphBack != nil {
 		b.glyphBack.destroy()
