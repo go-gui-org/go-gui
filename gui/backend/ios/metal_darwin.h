@@ -56,6 +56,11 @@ void metalUpdateTexture(int id, int x, int y, int w, int h,
                         const void* data);
 void metalDeleteTexture(int id);
 void metalBindTexture(int id);
+// A streamed texture is rewritten every frame (gui.PixelSurface).
+// metalUpdateStreamTexture first waits until no submitted frame still
+// samples it, which a plain metalUpdateTexture does not.
+void metalStreamTexture(int id);
+void metalUpdateStreamTexture(int id, int w, int h, const void* data);
 void metalSetImageFilter(int nearest);
 
 // Custom shader pipelines

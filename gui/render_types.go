@@ -82,6 +82,10 @@ type RenderCmd struct {
 	FontName string // Text font family
 	Resource string // Image file path
 
+	// Surface is the mutable source of a RenderImage, overriding
+	// Resource. Backends upload a new frame on their own thread.
+	Surface *PixelSurface
+
 	// Slice data (Svg).
 	Triangles    []float32
 	VertexColors []Color

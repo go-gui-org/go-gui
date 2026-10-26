@@ -16,6 +16,11 @@ type ImageCfg struct {
 	ID          string
 	Src         string
 
+	// Surface shows mutable owned pixels instead of Src, for video
+	// frames and other images that change every frame. A non-nil Surface
+	// takes precedence, including after it closes (no file is loaded).
+	Surface *PixelSurface
+
 	// Accessibility
 	A11YCfg
 
@@ -68,7 +73,7 @@ func Image(cfg ImageCfg) View {
 func (iv *imageView) GenerateLayout(w *Window) Layout {
 	c := &iv.cfg
 	imagePath := c.Src
-	if isHTTPURL(c.Src) {
+	if c.Surface == nil && isHTTPURL(c.Src) {
 		imagePath = resolveImageSrc(w, c.Src)
 		if imagePath == "" {
 			return downloadingPlaceholder(c, w)
@@ -96,7 +101,7 @@ func (iv *imageView) GenerateLayout(w *Window) Layout {
 	// Data URLs are passed directly to the backend renderer
 	// (used by WASM for embedded image assets). mem: sources name a
 	// buffer in the in-memory registry, so there is no path to stat.
-	if !isDataURL(c.Src) && !isMemImage(c.Src) {
+	if c.Surface == nil && !isDataURL(c.Src) && !isMemImage(c.Src) {
 		if err := validateImagePath(imagePath); err != nil {
 			warnImageOnce(w, c.Src, err)
 			return errorTextLayout(c.Src, w)
@@ -150,6 +155,9 @@ func (iv *imageView) GenerateLayout(w *Window) Layout {
 			// RenderCmd.
 			imageFilter: c.Filter,
 		}),
+	}
+	if c.Surface != nil {
+		layout.Shape.fx = w.allocEffects(shapeEffects{imageSurface: c.Surface})
 	}
 	applyFixedSizingConstraints(layout.Shape)
 	return layout

@@ -504,6 +504,7 @@ func (w *Window) buildRenderers(bgColor Color, clip drawClip) {
 	w.shaderAnimateDrawn = false
 	renderLayout(&w.layout, bgColor, clip, w)
 	w.syncShaderAnimation()
+	w.syncPixelSurfaces()
 	if inspectorSupported && w.inspectorEnabled {
 		inspectorInjectWireframe(w)
 	}

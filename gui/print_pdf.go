@@ -268,7 +268,7 @@ func pdfRenderCircle(ctx *pdfCtx, cmd RenderCmd) {
 
 func pdfRenderImage(ctx *pdfCtx, cmd RenderCmd) {
 	path := cmd.Resource
-	if path == "" {
+	if path == "" && cmd.Surface == nil {
 		return
 	}
 	// Texel opacity matches the screen backends; the bg fill
@@ -280,7 +280,9 @@ func pdfRenderImage(ctx *pdfCtx, cmd RenderCmd) {
 		ctx.pdf.SetAlpha(float64(f32Clamp(cmd.Opacity, 0, 1)), "Normal")
 		alphaSet = true
 	}
-	if isMemImage(path) {
+	if cmd.Surface != nil {
+		pdfRenderSurface(ctx, cmd)
+	} else if isMemImage(path) {
 		pdfRenderMemImage(ctx, cmd)
 	} else {
 		pdfRenderFileImage(ctx, cmd, path)

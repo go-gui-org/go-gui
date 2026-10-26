@@ -30,6 +30,11 @@ static id<MTLTexture> _textures[MAX_TEX];
 static int _nextTexID = 1;
 static int _freeTexIDs[MAX_TEX];
 static int _freeTexCount = 0;
+// Streamed textures are rewritten while earlier frames may still sample
+// them (gui.PixelSurface). _texLastUse holds the command buffer of the
+// last frame that bound each one; see waitTextureIdle.
+static BOOL _texStreamed[MAX_TEX];
+static id<MTLCommandBuffer> _texLastUse[MAX_TEX];
 
 // Reusable large-triangle upload buffers (triple-buffered per frame
 // to avoid per-draw allocations and CPU/GPU write hazards).
@@ -547,6 +552,8 @@ void metalSetCustomPipeline(int idx) {
 void metalDestroy(void) {
     for (int i = 0; i < MAX_TEX; i++) {
         _textures[i] = nil;
+        _texStreamed[i] = NO;
+        _texLastUse[i] = nil;
     }
     _nextTexID = 1;
     _freeTexCount = 0;
@@ -772,10 +779,44 @@ void metalUpdateTexture(int id, int x, int y, int w, int h,
                      bytesPerRow:w * 4];
 }
 
+// noteTextureUse records that the frame being encoded samples texture
+// id, when the texture is streamed.
+static void noteTextureUse(int id) {
+    if (_texStreamed[id]) _texLastUse[id] = _cmdBuf;
+}
+
+// waitTextureIdle blocks until no submitted frame still samples
+// texture id. replaceRegion copies at once and does not synchronize
+// with GPU work already committed, so overwriting a texture an earlier
+// frame still reads would change what that frame shows. A use by the
+// frame being encoded needs no wait: nothing is submitted yet, so the
+// write lands before the GPU runs it. Every upload into a streamed
+// texture goes through here.
+static void waitTextureIdle(int tex) {
+    // The parameter is not named id: that would hide the id type below.
+    id<MTLCommandBuffer> last = _texLastUse[tex];
+    if (!last || last == _cmdBuf) return;
+    [last waitUntilCompleted];
+    _texLastUse[tex] = nil;
+}
+
+void metalStreamTexture(int id) {
+    if (id <= 0 || id >= MAX_TEX || !_textures[id]) return;
+    _texStreamed[id] = YES;
+}
+
+void metalUpdateStreamTexture(int id, int w, int h, const void* data) {
+    if (id <= 0 || id >= MAX_TEX || !_textures[id]) return;
+    waitTextureIdle(id);
+    metalUpdateTexture(id, 0, 0, w, h, data);
+}
+
 void metalDeleteTexture(int id) {
     if (id <= 0 || id >= MAX_TEX) return;
     if (!_textures[id]) return;
     _textures[id] = nil;
+    _texStreamed[id] = NO;
+    _texLastUse[id] = nil;
     if (_freeTexCount < MAX_TEX) {
         _freeTexIDs[_freeTexCount++] = id;
     }
@@ -785,6 +826,7 @@ void metalBindTexture(int id) {
     if (!_enc) return;
     if (id > 0 && id < MAX_TEX && _textures[id]) {
         [_enc setFragmentTexture:_textures[id] atIndex:0];
+        noteTextureUse(id);
     }
 }
 

@@ -24,6 +24,7 @@ import (
 
 // renderersDraw iterates render commands and draws them.
 func (b *windowState) renderersDraw(w *gui.Window) {
+	b.surfaces.Prune(w.Renderers())
 	// A truncated command list must not leak a rotated MVP into the
 	// next frame. Filter/stencil targets are per-frame encoder state
 	// owned by metalBeginFrame/metalEndFrame; only the Go-side MVP
@@ -295,7 +296,13 @@ func (b *windowState) drawGradientBorder(r *gui.RenderCmd) {
 }
 
 func (b *windowState) drawImage(r *gui.RenderCmd) {
-	tex, ok := b.resolveImageTexture(r.Resource)
+	var tex metalTexture
+	var ok bool
+	if r.Surface != nil {
+		tex, ok = b.surfaces.Resolve(r.Surface, b.uploadSurfaceTexture)
+	} else {
+		tex, ok = b.resolveImageTexture(r.Resource)
+	}
 	if !ok || tex.id == 0 {
 		return
 	}

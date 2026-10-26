@@ -1733,6 +1733,13 @@ func goldenCases() []goldenCase {
 			build: buildImageFilter,
 		},
 		{
+			// ImageCfg.Surface (issue #1168): a surface image draws as a
+			// RenderImage that carries the surface instead of a file, with
+			// the same filter and opacity handling as any image.
+			name:  "pixel_surface",
+			build: buildPixelSurface,
+		},
+		{
 			// The markdown block loop (issue #484). The render switch
 			// in markdownBuildContent carries cross-block state --
 			// pending list items, the blockquote closing spacer, and
@@ -2337,6 +2344,32 @@ func buildImageFilter(_ *Window) View {
 			Image(ImageCfg{
 				Src: src, Width: 32, Height: 32,
 				Filter: ImageFilterNearest,
+			}),
+		},
+	})
+}
+
+// goldenPixelSurface is one 2x1 surface shared by every frame of the
+// pixel_surface case; a surface is app-owned and outlives view rebuilds.
+var goldenPixelSurface = func() *PixelSurface {
+	s, err := NewPixelSurface(PixelSurfaceCfg{Width: 2, Height: 1})
+	if err != nil {
+		panic(err)
+	}
+	return s
+}()
+
+// buildPixelSurface draws the same surface twice: the zero Filter, then
+// nearest at half opacity.
+func buildPixelSurface(_ *Window) View {
+	return Row(ContainerCfg{
+		ID: "pixel_surface",
+		Content: []View{
+			Image(ImageCfg{Surface: goldenPixelSurface, Width: 32, Height: 32}),
+			Image(ImageCfg{
+				Surface: goldenPixelSurface, Width: 32, Height: 32,
+				Filter: ImageFilterNearest, Opacity: Some(float32(0.5)),
+				A11YCfg: A11YCfg{A11YLabel: "Streaming frame"},
 			}),
 		},
 	})

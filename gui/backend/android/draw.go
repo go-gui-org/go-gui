@@ -22,6 +22,7 @@ import (
 
 // renderersDraw iterates render commands and draws them.
 func (b *Backend) renderersDraw(w *gui.Window) {
+	b.surfaces.Prune(w.Renderers())
 	cmds := w.Renderers()
 	for i := range cmds {
 		r := &cmds[i]
@@ -257,7 +258,13 @@ func (b *Backend) drawGradientBorder(r *gui.RenderCmd) {
 }
 
 func (b *Backend) drawImage(r *gui.RenderCmd) {
-	tex, ok := b.resolveImageTexture(r.Resource)
+	var tex glesTexture
+	var ok bool
+	if r.Surface != nil {
+		tex, ok = b.surfaces.Resolve(r.Surface, b.uploadSurfaceTexture)
+	} else {
+		tex, ok = b.resolveImageTexture(r.Resource)
+	}
 	if !ok || tex.id == 0 {
 		return
 	}

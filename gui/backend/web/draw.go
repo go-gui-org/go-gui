@@ -51,6 +51,7 @@ func (b *Backend) renderersDraw(w *gui.Window) {
 
 // drawCmds draws one frame's render commands.
 func (b *Backend) drawCmds(cmds []gui.RenderCmd) {
+	b.surfaces.Prune(cmds)
 	if b.svgMode == svgModeWebGL {
 		b.prepassSvgGL(cmds)
 		defer b.settleSvgGL()
@@ -508,7 +509,15 @@ func (b *Backend) drawGradientBorder(r *gui.RenderCmd) {
 }
 
 func (b *Backend) drawImage(r *gui.RenderCmd) {
-	img, ok := b.resolveImageSource(r.Resource)
+	var img js.Value
+	var ok bool
+	if r.Surface != nil {
+		var frame surfaceCanvas
+		frame, ok = b.surfaces.Resolve(r.Surface, uploadSurfaceCanvas)
+		img = frame.canvas
+	} else {
+		img, ok = b.resolveImageSource(r.Resource)
+	}
 	if !ok {
 		return
 	}

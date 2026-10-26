@@ -122,6 +122,10 @@ Go-Gui is also an ecosystem of composable libraries. **go-glyph** handles text,
   shader into one Go value that runs on Metal, OpenGL, WebGL2 and Android
   ([`examples/custom_shader/`](examples/custom_shader/),
   [`docs/shader-porting.md`](docs/shader-porting.md))
+- **Live pixel surfaces** — `PixelSurface` is an image the app updates every
+  frame from any goroutine, for video frames, camera feeds or emulator screens.
+  A new frame redraws without rebuilding layout, on every backend
+  ([`examples/pixel_surface/`](examples/pixel_surface/))
 - **Content transitions** — a `Text` animates a change of its value: a counter
   rolls only the digits that change, a label fades to its new words, an icon
   shrinks away while the next grows in

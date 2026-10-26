@@ -17,6 +17,7 @@ import (
 	"github.com/go-gui-org/go-gui/gui"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/devscale"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/homography"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/surfacecache"
 	"github.com/go-gui-org/go-gui/gui/svg"
 )
 
@@ -42,6 +43,7 @@ type Backend struct {
 
 	normBuf      []gui.GradientStop
 	imgCache     map[string]js.Value
+	surfaces     surfacecache.Cache[surfaceCanvas]
 	failedImages map[string]struct{}
 	clipStack    []clipRegion
 	// brackets are the open rotation and filter brackets, and
@@ -282,6 +284,7 @@ func newBackend(w *gui.Window) (*Backend, error) {
 
 func (b *Backend) run(w *gui.Window) {
 	defer w.WindowCleanup()
+	defer b.surfaces.Clear()
 
 	// requestAnimationFrame runs at the display rate, and the browser
 	// composites the canvas no faster, so VSyncOff cannot be honored.

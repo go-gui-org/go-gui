@@ -27,6 +27,11 @@ func renderImage(shape *Shape, clip drawClip, w *Window) {
 	defer func() { shape.Color = origColor }()
 	renderContainer(shape, ColorTransparent, clip, w)
 
+	var surface *PixelSurface
+	if shape.fx != nil && shape.fx.imageSurface != nil {
+		surface = shape.fx.imageSurface
+		w.pixelSurfaces.drew = true
+	}
 	emitRenderer(RenderCmd{
 		Kind:       RenderImage,
 		X:          shape.X,
@@ -35,6 +40,7 @@ func renderImage(shape *Shape, clip drawClip, w *Window) {
 		H:          shape.Height,
 		Color:      bgColor,
 		Resource:   shape.Resource,
+		Surface:    surface,
 		ClipRadius: w.clipRadius,
 		Opacity:    imageAlpha(shape.Opacity, shape.Disabled),
 		// known() maps a value no backend knows to linear, as

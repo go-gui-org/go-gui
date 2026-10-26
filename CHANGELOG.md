@@ -8,6 +8,21 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- **`PixelSurface`: an image the app can update every frame (#1168).** Create
+  one with `NewPixelSurface`, pass it as `ImageCfg.Surface`, and call `Update`
+  with RGBA8 pixels from any goroutine. `Update` copies the pixels, so the
+  producer can reuse its buffer, and keeps only the newest frame. Every window
+  that draws the surface redraws without rebuilding its layout, and each
+  renderer uploads only when there is a new frame, reusing its texture at a
+  fixed size. This is what a video player, camera preview or emulator screen
+  needs; until now an image could only change by registering a new one. All
+  backends draw it (OpenGL, Metal, WebGL/Canvas2D, Android, iOS, software) and
+  PDF export embeds the current frame. `Resize` changes the size and `Close`
+  stops it and releases the textures. Images without a `Surface` are unchanged.
+  [`examples/pixel_surface/`](examples/pixel_surface/) animates one at 60 Hz.
+
 ## [v0.93.0] - 2026-10-25
 
 ### Added
