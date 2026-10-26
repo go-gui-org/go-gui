@@ -155,6 +155,49 @@ func focusRingAmendRing(
 	}
 }
 
+// dropdownBlurAmend wraps a dropdown field's focus-ring amend with the
+// blur dismiss: an open dropdown closes once the field no longer holds
+// focus (Combobox #1150, Select #1181). Focus leaves when the user
+// presses another focusable widget, tabs away, or presses empty space
+// (the window's blur-on-unclaimed-press). A press on the dropdown's
+// scrollbar is consumed there, so it keeps focus on the field. A press
+// on a row is consumed too: a single pick closes the dropdown itself,
+// a multi-select pick leaves it open on purpose.
+//
+// The check is skipped for a FocusDisabled field: it never holds
+// focus, so the check would close the dropdown the frame after it
+// opened.
+//
+// A closed field gets ring back unwrapped, so the wrapper costs one
+// closure allocation only on frames where the dropdown is open.
+//
+// Runs under the frame lock. closeFn must only write StateMap entries
+// and request a layout (InvalidateLayout sets an atomic flag), so it is
+// safe here; the close shows on the next frame.
+func dropdownBlurAmend(
+	id string, isOpen bool, ring func(EventCtx),
+	closeFn func(id string, w *Window),
+) func(EventCtx) {
+	if !isOpen {
+		return ring
+	}
+	return func(ctx EventCtx) {
+		if ring != nil {
+			ring(ctx)
+		}
+		if ctx.Layout == nil || ctx.Window == nil {
+			return
+		}
+		shape := ctx.Layout.Shape
+		if shape == nil || !shape.Focusable {
+			return
+		}
+		if !ctx.Window.IsFocus(id) {
+			closeFn(id, ctx.Window)
+		}
+	}
+}
+
 // applyFocusRingShadow hangs the theme's focus ring on a shape that
 // currently holds focus.
 //
