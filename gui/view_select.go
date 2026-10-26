@@ -378,6 +378,11 @@ func (sv *selectView) GenerateLayout(w *Window) Layout {
 		Sound:     fieldSound,
 		OnKeyDown: makeSelectOnKeyDown(&sv.cfg, id, dropdownScrollID),
 		OnClick: func(ctx EventCtx) {
+			// Consumed, or a FocusDisabled field, which takes no focus
+			// to mark the press handled, has its open undone by the
+			// window's unhandled-press cleanup in the same press, and
+			// the press blurs the focused widget (#1183).
+			ctx.Consume()
 			ss := StateMap[string, bool](
 				ctx.Window, nsSelect, capModerate)
 			// Default false: absent entry means "not selected", toggle correct.

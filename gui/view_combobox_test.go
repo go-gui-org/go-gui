@@ -620,3 +620,95 @@ func TestComboboxAmendLayoutClosedAndNil(t *testing.T) {
 		t.Error("amend with no layout or shape closed the dropdown")
 	}
 }
+
+// comboboxTextShape finds the text shape that reads text, so a test
+// can press the dropdown row that shows it.
+func comboboxTextShape(layout *Layout, text string) *Shape {
+	if s := layout.Shape; s != nil && s.TC != nil && s.TC.Text == text {
+		return s
+	}
+	for i := range layout.Children {
+		if s := comboboxTextShape(&layout.Children[i], text); s != nil {
+			return s
+		}
+	}
+	return nil
+}
+
+// A click opens a combobox and a row press picks, and focus ends where
+// it should: on the field for a focusable combobox, on the widget that
+// held it for a FocusDisabled one (#1183). "first" comes before "text"
+// so a focus that fell back to the first tab stop cannot pass.
+func TestComboboxOpenAndPickKeepFocus(t *testing.T) {
+	for _, tc := range []struct {
+		name          string
+		focusDisabled bool
+		wantFocus     string
+	}{
+		{"focusable", false, "cb"},
+		{"focus-disabled", true, "text"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			w := NewTestWindow(t, WindowCfg{})
+			picked := ""
+			w.TestRender(func(*Window) View {
+				return Column(ContainerCfg{
+					Sizing: FillFill,
+					Content: []View{
+						Input(InputCfg{ID: "first"}),
+						Input(InputCfg{ID: "text"}),
+						Combobox(ComboboxCfg{
+							ID:            "cb",
+							Items:         []string{"alpha", "beta"},
+							FocusDisabled: tc.focusDisabled,
+							OnSelect:      func(s string, _ EventCtx) { picked = s },
+						}),
+					},
+				})
+			})
+			if err := w.TestClick("text"); err != nil {
+				t.Fatalf("TestClick(text): %v", err)
+			}
+			if err := w.TestClick("cb"); err != nil {
+				t.Fatalf("TestClick(cb): %v", err)
+			}
+			if !StateReadOr(w, nsCombobox, "cb", false) {
+				t.Fatal("click did not open the combobox")
+			}
+			dd, ok := w.TestRender(nil).findByID(ScopeID("cb", "dropdown"))
+			if !ok {
+				t.Fatal("dropdown not in the layout after the click")
+			}
+			if !w.IsFocus(tc.wantFocus) {
+				t.Errorf("focus = %q after opening, want %s",
+					w.FocusID(), tc.wantFocus)
+			}
+
+			s := comboboxTextShape(dd, "beta")
+			if s == nil {
+				t.Fatal("no beta row in the dropdown")
+			}
+			x, y := s.X+s.Width/2, s.Y+s.Height/2
+			down := Event{
+				Type: EventMouseDown, MouseButton: MouseLeft, MouseX: x, MouseY: y,
+			}
+			w.EventFn(&down)
+			up := Event{
+				Type: EventMouseUp, MouseButton: MouseLeft, MouseX: x, MouseY: y,
+			}
+			w.EventFn(&up)
+			w.settle()
+
+			if picked != "beta" {
+				t.Errorf("picked = %q, want beta", picked)
+			}
+			if StateReadOr(w, nsCombobox, "cb", false) {
+				t.Error("dropdown still open after the pick")
+			}
+			if !w.IsFocus(tc.wantFocus) {
+				t.Errorf("focus = %q after the pick, want %s",
+					w.FocusID(), tc.wantFocus)
+			}
+		})
+	}
+}
