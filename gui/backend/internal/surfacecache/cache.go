@@ -62,19 +62,33 @@ func (c *Cache[T]) free(e *entry[T]) {
 	}
 }
 
-// Prune releases the resources of surfaces this frame does not draw or
-// whose producer closed them. Call it before drawing, on the thread that
-// owns the native resources.
+// Prune releases the resources of surfaces this frame's image commands do
+// not draw or whose producer closed them. Call it before drawing, on the
+// thread that owns the native resources.
 func (c *Cache[T]) Prune(cmds []gui.RenderCmd) {
+	c.prune(cmds, false)
+}
+
+// PruneShaders is Prune for a cache of shader texture inputs: it keeps the
+// surfaces this frame's shader commands read (Shader.Surface).
+func (c *Cache[T]) PruneShaders(cmds []gui.RenderCmd) {
+	c.prune(cmds, true)
+}
+
+// prune keeps the surfaces drawn by image commands, or by shader commands
+// when shaders is set. Each cache holds one kind of resource, so it counts
+// only its own kind of command.
+func (c *Cache[T]) prune(cmds []gui.RenderCmd, shaders bool) {
 	if c.entries.Len() == 0 {
 		return
 	}
 	c.frame++
 	for i := range cmds {
-		if cmds[i].Kind != gui.RenderImage || cmds[i].Surface == nil {
+		surface := cmds[i].DrawnSurface()
+		if surface == nil || (cmds[i].Kind == gui.RenderCustomShader) != shaders {
 			continue
 		}
-		if e, ok := c.entries.Get(cmds[i].Surface); ok {
+		if e, ok := c.entries.Get(surface); ok {
 			e.frame = c.frame
 		}
 	}
@@ -99,6 +113,13 @@ func (c *Cache[T]) keepDrawn(e *entry[T]) bool {
 func (c *Cache[T]) Resolve(surface *gui.PixelSurface, upload func(T, int, int, []byte) T) (T, bool) {
 	e, cached := c.entries.Get(surface)
 	if !cached {
+		// A surface this path cannot draw (closed, or not one RGBA8
+		// plane) gets no entry: allocating one every frame it stays on
+		// screen would be garbage.
+		if !surface.ReadPixels(0, nil) {
+			var zero T
+			return zero, false
+		}
 		e = &entry[T]{surface: surface, frame: c.frame}
 	}
 	ok := surface.ReadPixels(e.version, func(w, h int, pix []byte, version uint64) {
@@ -134,4 +155,28 @@ func (c *Cache[T]) releaseAll(e *entry[T]) bool {
 // Len reports the number of cached surfaces.
 func (c *Cache[T]) Len() int {
 	return c.entries.Len()
+}
+
+// ResolvePlanes is Resolve for a shader's texture inputs: upload receives
+// every plane of a new frame at once, so the planes it uploads always come
+// from the same frame.
+func (c *Cache[T]) ResolvePlanes(surface *gui.PixelSurface, upload func(T, []gui.SurfacePlane) T) (T, bool) {
+	e, cached := c.entries.Get(surface)
+	if !cached {
+		// A closed surface gets no entry, as in Resolve.
+		if !surface.ReadPlanes(0, nil) {
+			var zero T
+			return zero, false
+		}
+		e = &entry[T]{surface: surface, frame: c.frame}
+	}
+	ok := surface.ReadPlanes(e.version, func(planes []gui.SurfacePlane, version uint64) {
+		e.resource = upload(e.resource, planes)
+		e.version = version
+	})
+	if ok && !cached {
+		c.init()
+		c.entries.Set(surface, e)
+	}
+	return e.resource, ok
 }

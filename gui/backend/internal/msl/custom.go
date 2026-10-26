@@ -23,6 +23,27 @@ func BuildCustom(body string) string {
 // The built-ins (iTime, ...) are locals of fs_main, so a helper in
 // decls cannot read them: it takes what it needs as parameters.
 func BuildCustomDecls(decls, body string) string {
+	return buildCustom(decls, body, false)
+}
+
+// BuildCustomChannels is BuildCustomDecls for a shader with a Surface
+// (gui.Shader.Surface): fs_main also takes the texture inputs iChannel0..3
+// at texture(1)..texture(4), and the body can read iChannelSampler and
+// iChannelResolution. Like the built-ins they are locals of fs_main, so a
+// helper in decls takes them as parameters.
+func BuildCustomChannels(decls, body string) string {
+	return buildCustom(decls, body, true)
+}
+
+// buildCustom is the single copy of the MSL wrapper. Without channels the
+// source is exactly what it was before they existed.
+func buildCustom(decls, body string, channels bool) string {
+	opt := func(s string) string {
+		if channels {
+			return s
+		}
+		return ""
+	}
 	return `#include <metal_stdlib>
 using namespace metal;
 
@@ -66,7 +87,7 @@ fragment float4 fs_main(
     VertexOut in [[stage_in]],
     texture2d<float> tex [[texture(0)]],
     sampler smp [[sampler(0)]],
-    constant float4x4 &_gg_builtins [[buffer(0)]]
+` + opt(mslChannelParams) + `    constant float4x4 &_gg_builtins [[buffer(0)]]
 ) {
     // Built-in inputs (#573): Shadertoy's names and units, unpacked
     // from RenderCmd.ShaderBuiltinsAt (slots in gui/shader_builtins.go).
@@ -78,7 +99,7 @@ fragment float4 fs_main(
     float4 iMouse      = _gg_builtins[1];
     float  iTimeDelta  = _gg_builtins[2].x;
     int    iFrame      = int(_gg_builtins[2].y);
-
+` + opt(mslChannelInit) + `
     float radius = floor(in.params / 4096.0) / 4.0;
 
     float2 width_inv = float2(fwidth(in.uv.x), fwidth(in.uv.y));
@@ -110,3 +131,22 @@ fragment float4 fs_main(
 }
 `
 }
+
+// mslChannelParams are the texture inputs of gui.Shader.Surface. The
+// backend binds plane i at texture(i+1), or a 1x1 transparent texture.
+const mslChannelParams = `    texture2d<float> iChannel0 [[texture(1)]],
+    texture2d<float> iChannel1 [[texture(2)]],
+    texture2d<float> iChannel2 [[texture(3)]],
+    texture2d<float> iChannel3 [[texture(4)]],
+`
+
+// mslChannelInit declares the channel sampler and fills
+// iChannelResolution from the bound textures.
+const mslChannelInit = `    constexpr sampler iChannelSampler(filter::linear, address::clamp_to_edge);
+    float3 iChannelResolution[4] = {
+        float3(float(iChannel0.get_width()), float(iChannel0.get_height()), 1.0),
+        float3(float(iChannel1.get_width()), float(iChannel1.get_height()), 1.0),
+        float3(float(iChannel2.get_width()), float(iChannel2.get_height()), 1.0),
+        float3(float(iChannel3.get_width()), float(iChannel3.get_height()), 1.0),
+    };
+`

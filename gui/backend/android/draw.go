@@ -23,6 +23,7 @@ import (
 // renderersDraw iterates render commands and draws them.
 func (b *Backend) renderersDraw(w *gui.Window) {
 	b.surfaces.Prune(w.Renderers())
+	b.channels.PruneShaders(w.Renderers())
 	cmds := w.Renderers()
 	for i := range cmds {
 		r := &cmds[i]
@@ -545,6 +546,9 @@ func (b *Backend) drawCustomShader(r *gui.RenderCmd) {
 			b.customCache.EvictOldest()
 		}
 		glslES := gui.BuildGLSLESFragmentDecls(r.Shader.GLSLDecls, r.Shader.GLSL)
+		if r.Shader.Surface != nil {
+			glslES = gui.BuildGLSLESFragmentChannels(r.Shader.GLSLDecls, r.Shader.GLSL)
+		}
 		cstr := C.CString(glslES)
 		idx = C.int(C.glesBuildCustomPipeline(cstr))
 		C.free(unsafe.Pointer(cstr))
@@ -554,11 +558,20 @@ func (b *Backend) drawCustomShader(r *gui.RenderCmd) {
 		if idx < 0 {
 			return
 		}
+		if r.Shader.Surface != nil {
+			C.glesSetChannelUnits(idx)
+		}
 	}
 
 	s := b.DPIScale
 	C.glesSetCustomPipeline(idx)
 	C.glesSetMVP((*C.float)(&b.MVP[0]))
+	// Keyed off Shader.Surface, which also chose the channel program, so
+	// that program is never drawn with its channel textures unbound.
+	if r.Shader.Surface != nil {
+		ch, ok := b.channels.ResolvePlanes(r.Shader.Surface, b.uploadChannels)
+		b.bindChannels(ch, ok)
+	}
 
 	var tm [16]float32
 	for i := range min(len(r.Shader.Params), 16) {

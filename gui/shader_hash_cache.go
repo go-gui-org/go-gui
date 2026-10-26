@@ -30,7 +30,9 @@ type ShaderHashCache struct {
 type shaderHashEntry struct {
 	src  [4]*byte
 	lens [4]int
-	hash uint64
+	// channels is Shader.Surface != nil, which changes the wrapper.
+	channels bool
+	hash     uint64
 }
 
 // Hash returns ShaderHash(s), computed once per *Shader while its
@@ -44,9 +46,10 @@ func (c *ShaderHashCache) Hash(s *Shader) uint64 {
 			unsafe.StringData(s.Metal), unsafe.StringData(s.GLSL),
 			unsafe.StringData(s.MetalDecls), unsafe.StringData(s.GLSLDecls),
 		},
-		lens: [4]int{len(s.Metal), len(s.GLSL), len(s.MetalDecls), len(s.GLSLDecls)},
+		lens:     [4]int{len(s.Metal), len(s.GLSL), len(s.MetalDecls), len(s.GLSLDecls)},
+		channels: s.Surface != nil,
 	}
-	if e, ok := c.entries[s]; ok && e.src == key.src && e.lens == key.lens {
+	if e, ok := c.entries[s]; ok && e.src == key.src && e.lens == key.lens && e.channels == key.channels {
 		return e.hash
 	}
 	if c.entries == nil {

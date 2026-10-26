@@ -24,7 +24,7 @@ import (
 
 // renderersDraw iterates render commands and draws them.
 func (b *windowState) renderersDraw(w *gui.Window) {
-	b.surfaces.Prune(w.Renderers())
+	b.surfaces.prune(w.Renderers())
 	// A truncated command list must not leak a rotated MVP into the
 	// next frame. Filter/stencil targets are per-frame encoder state
 	// owned by metalBeginFrame/metalEndFrame; only the Go-side MVP
@@ -299,7 +299,7 @@ func (b *windowState) drawImage(r *gui.RenderCmd) {
 	var tex metalTexture
 	var ok bool
 	if r.Surface != nil {
-		tex, ok = b.surfaces.Resolve(r.Surface, b.uploadSurfaceTexture)
+		tex, ok = b.surfaces.images.Resolve(r.Surface, b.uploadSurfaceTexture)
 	} else {
 		tex, ok = b.resolveImageTexture(r.Resource)
 	}
@@ -588,6 +588,9 @@ func (b *windowState) drawCustomShader(r *gui.RenderCmd) {
 			b.customCache.EvictOldest()
 		}
 		src := msl.BuildCustomDecls(r.Shader.MetalDecls, r.Shader.Metal)
+		if r.Shader.Surface != nil {
+			src = msl.BuildCustomChannels(r.Shader.MetalDecls, r.Shader.Metal)
+		}
 		cmsl := C.CString(src)
 		idx = C.int(C.metalBuildCustomPipeline(b.ctx, cmsl))
 		C.free(unsafe.Pointer(cmsl))
@@ -602,6 +605,12 @@ func (b *windowState) drawCustomShader(r *gui.RenderCmd) {
 	s := b.dpiScale
 	C.metalSetCustomPipeline(b.ctx, idx)
 	C.metalSetMVP(b.ctx, (*C.float)(&b.mvp[0]))
+	// Keyed off Shader.Surface, which also chose the channel program, so
+	// that program is never drawn with its channel textures unbound.
+	if r.Shader.Surface != nil {
+		ch, ok := b.surfaces.channels.ResolvePlanes(r.Shader.Surface, b.uploadChannels)
+		b.bindChannels(ch, ok)
+	}
 
 	var tm [16]float32
 	for i := range min(len(r.Shader.Params), 16) {

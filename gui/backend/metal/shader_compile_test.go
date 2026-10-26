@@ -140,3 +140,38 @@ func TestShaderportCompiles(t *testing.T) {
 		}
 	}
 }
+
+// TestCustomWrapperChannelsCompile compiles msl.BuildCustomChannels, the
+// wrapper of a shader with a Surface (#1168), around bodies that sample
+// the channels with iChannelSampler and read iChannelResolution. The iOS
+// backend uses the same wrapper, so this covers its MSL too. Binding and
+// drawing are checked by hand on a Mac (examples/shader_channels): no
+// runner here draws through Metal.
+func TestCustomWrapperChannelsCompile(t *testing.T) {
+	bodies := map[string]string{
+		"all channels": "float2 p = in.uv * 0.5 + 0.5;\n" +
+			"float4 a = iChannel0.sample(iChannelSampler, p);\n" +
+			"float4 b = iChannel1.sample(iChannelSampler, p);\n" +
+			"float4 c = iChannel2.sample(iChannelSampler, p) + iChannel3.sample(iChannelSampler, p);\n" +
+			"float4 frag_color = float4(a.r, b.rg, 1.0 - c.a);",
+		"resolution": "float4 frag_color = float4(iChannelResolution[0].xy / 255.0, " +
+			"iChannelResolution[3].z, 1.0);",
+		"nv12": "float2 p = in.uv * 0.5 + 0.5;\n" +
+			"float y = (iChannel0.sample(iChannelSampler, p).r - 16.0 / 255.0) * (255.0 / 219.0);\n" +
+			"float2 c = (iChannel1.sample(iChannelSampler, p).rg - 128.0 / 255.0) * (255.0 / 224.0);\n" +
+			"float3 rgb = float3(y + 1.5748 * c.y, y - 0.1873 * c.x - 0.4681 * c.y, y + 1.8556 * c.x);\n" +
+			"float4 frag_color = float4(clamp(rgb, 0.0, 1.0), 1.0);",
+		"with builtins": "float4 frag_color = iChannel0.sample(iChannelSampler, " +
+			"in.position.xy / iResolution.xy) * cos(iTime);",
+	}
+	for name, body := range bodies {
+		switch rc := testCompileMSL(msl.BuildCustomChannels("", body)); rc {
+		case 0:
+		case 1:
+			t.Skip("no Metal device (headless or virtualized runner)")
+		default:
+			t.Errorf("%s body: wrapped channel MSL failed to compile (rc=%d); "+
+				"see the logged MTLLibraryError above", name, rc)
+		}
+	}
+}

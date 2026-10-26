@@ -1,7 +1,8 @@
 # Pixel surfaces and shader texture inputs
 
-Issue #1168. Status: **phase 1 landed** (`PixelSurface` on the image path).
-Phase 2 (planes and `Shader` texture inputs) pending.
+Issue #1168. Status: **phases 1 and 2 landed** (`PixelSurface` on the image
+path; planes and `Shader` texture inputs). Zero-copy import is a later, separate
+issue.
 
 Context: go-gui-org/go-video#1, where the video player moved into its own
 repository. go-gui keeps only generic, video-agnostic hooks; everything YUV
@@ -17,10 +18,10 @@ every frame.
 
 ## Phasing
 
-| Phase | Deliverable                                                                                                  | Status  |
-| ----- | ------------------------------------------------------------------------------------------------------------ | ------- |
-| 1     | `PixelSurface` (RGBA8) as `ImageCfg.Surface` on all six backends and PDF, `examples/pixel_surface`           | Landed  |
-| 2     | Planes (`R8`, `RG8`, `RGBA8`) published together, `Shader.Surface` → `iChannel0..3`, `Window.RendersShaders` | Pending |
+| Phase | Deliverable                                                                                                  | Status |
+| ----- | ------------------------------------------------------------------------------------------------------------ | ------ |
+| 1     | `PixelSurface` (RGBA8) as `ImageCfg.Surface` on all six backends and PDF, `examples/pixel_surface`           | Landed |
+| 2     | Planes (`R8`, `RG8`, `RGBA8`) published together, `Shader.Surface` → `iChannel0..3`, `Window.RendersShaders` | Landed |
 
 ## Phase 1: `PixelSurface`
 
@@ -73,18 +74,57 @@ cache tests for per-consumer versions, prune, context loss and zero-allocation
 warm frames; a real-GL pixel test in `tools/glrendertest`; a soft-renderer pixel
 test; a golden in both themes; a PDF export test.
 
-## Phase 2: planes and shader texture inputs (pending)
+## Phase 2: planes and shader texture inputs
 
-Decided in #1168:
+- **Planes.** `PixelSurfaceCfg.Planes` gives a surface 1–4 planes (`R8`, `RG8`,
+  `RGBA8`), each with its own size; without it a surface is one `RGBA8` plane,
+  as in phase 1. `UpdatePlanes` checks every source before copying any, copies
+  all planes and bumps one version, so a renderer never pairs one plane's new
+  pixels with another's old ones. It allocates nothing at a fixed size. `Update`
+  and `Resize` stay single-plane. `ReadPlanes` lends the planes to a renderer
+  under the surface lock; `ReadPixels`, the image path, serves only a single
+  `RGBA8` plane, so an `Image` of any other surface draws nothing.
+- **Shader inputs.** `Shader.Surface` binds plane _i_ as `iChannel`_i_. Only a
+  shader with a `Surface` gets the channel declarations
+  (`BuildGLSLFragmentChannels`, `BuildGLSLESFragmentChannels`,
+  `msl.BuildCustomChannels`); every other shader compiles byte-identical source
+  to before, checked against `main` when this landed. `ShaderHash` and its
+  per-window memo tell the two wrapper variants apart. `iChannelResolution` is
+  filled in the wrapper from the bound textures (`textureSize`,
+  `get_width`/`get_height`), so it needs no uniform: the built-in block has only
+  six free slots. GLSL binds plane _i_ to texture unit _i_+1 (unit 0 is the
+  wrapper's `tex`); MSL takes the planes as `fs_main` parameters at
+  `texture(1)`..`texture(4)` with a `constexpr` linear, clamp-to-edge
+  `iChannelSampler`. A channel with no plane, or every channel of a closed
+  surface, reads a 1×1 transparent texture.
+- **Redraw and caches.** A shader command's surface is its `Shader.Surface`, an
+  image command's its `RenderCmd.Surface`: one source per kind, read through
+  `RenderCmd.DrawnSurface`. Window subscriptions, cache pruning and the
+  backends' channel binding all read it, so they cannot disagree, and a new
+  frame redraws a shader without layout or `Animate`. Each backend keeps a
+  second `surfacecache` for plane textures, pruned by shader commands
+  (`PruneShaders`) while the image cache is pruned by image commands, and
+  resolved with `ResolvePlanes`.
+- **Backends.** GL, WebGL2 (in the shader renderer's own context), Android GLES
+  (C bridge), Metal and iOS create `R8`/`RG8`/`RGBA8` textures and upload with
+  an unpack alignment of 1, since single-channel rows are not 4-byte aligned.
+  Metal plane textures are streamed like phase 1's, through the same
+  `waitTextureIdle`, so video's planes take the one Metal synchronization path.
+- **`Window.RendersShaders`.** Each GPU backend reports it once its shader path
+  is ready (`SetWindowRendersShaders`); the web backend only with WebGL2. Soft,
+  headless test windows and PDF export report false.
 
-- A `PixelSurface` holds 1–4 planes (`R8`, `RG8`, `RGBA8`), each with its own
-  size, published together under one version.
-- `Shader.Surface` binds a surface: plane _i_ → `iChannel`_i_, with
-  `iChannelResolution[i]` set to the plane size. Unused channels get a 1×1
-  transparent texture. Sampling is linear, clamp to edge, top-left origin.
-- `Window.RendersShaders()` lets a library choose between the shader path and an
-  `RGBA8` image fallback (soft backend, PDF, WebGL2 missing) without asking the
-  user.
+Verification: plane tests (atomic publication, rejected input leaves the frame
+unchanged, no torn planes under `-race`, zero-allocation `UpdatePlanes`);
+wrapper tests that strip the channel parts and get the plain source back; a byte
+comparison of the plain wrappers against `main`; hash and memo tests; cache
+tests for plane resolve, pruning by kind and zero-allocation warm frames;
+real-GL readback of both planes, `iChannelResolution` and the closed-surface
+fallback in `tools/glrendertest`; C checks of the Android channel functions in
+the GLES harness; a Metal test that compiles the channel wrapper (shared with
+iOS); a golden; `examples/shader_channels` on a GPU and in Chrome (WebGL2).
+Metal and iOS binding and drawing have no automated check, since no runner draws
+through Metal: they are checked by hand on a Mac with the example.
 
 ## Rejected approaches
 

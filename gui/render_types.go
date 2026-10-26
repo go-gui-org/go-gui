@@ -83,7 +83,9 @@ type RenderCmd struct {
 	Resource string // Image file path
 
 	// Surface is the mutable source of a RenderImage, overriding
-	// Resource. Backends upload a new frame on their own thread.
+	// Resource. Backends upload a new frame on their own thread. A
+	// RenderCustomShader reads its surface from Shader.Surface; see
+	// DrawnSurface.
 	Surface *PixelSurface
 
 	// Slice data (Svg).

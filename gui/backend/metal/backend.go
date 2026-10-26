@@ -29,7 +29,6 @@ import (
 	"github.com/go-gui-org/go-gui/gui/backend/internal/gpu"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/imgpath"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/msl"
-	"github.com/go-gui-org/go-gui/gui/backend/internal/surfacecache"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/tempfont"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/texcache"
 	"github.com/go-gui-org/go-gui/gui/svg"
@@ -488,7 +487,7 @@ type windowState struct {
 	sampledBuf    []gui.GradientStop
 
 	textures          texcache.Cache[string, metalTexture]
-	surfaces          surfacecache.Cache[metalTexture]
+	surfaces          metalSurfaces
 	glyphBack         *metalGlyphBackend
 	filterBlur        float32
 	filterLayer       int
@@ -507,6 +506,7 @@ type windowState struct {
 
 func (ws *windowState) setAttachedWindow(w *gui.Window) {
 	ws.attachedWindow = w
+	gui.SetWindowRendersShaders(w, true)
 	id := uint32(C.metalWindowGetID(ws.window))
 	registerWindow(id, ws)
 }
@@ -620,7 +620,7 @@ func createWindowState(w *gui.Window) (*windowState, error) {
 		maxImagePixels: cfg.MaxImagePixels,
 		appIconPNG:     iconPNG,
 	}
-	ws.surfaces.SetRelease(ws.deleteSurfaceTexture)
+	ws.surfaces.setup(ws)
 	ws.allowedImageRoots = imgpath.NormalizeRoots(
 		cfg.AllowedImageRoots)
 	ws.updateProjection()
@@ -680,7 +680,7 @@ func (ws *windowState) destroy() {
 		unregisterWindow(uint32(C.metalWindowGetID(ws.window)))
 	}
 	ws.textures.DestroyAll()
-	ws.surfaces.Clear()
+	ws.surfaces.clear()
 	ws.customCache.DestroyAll()
 	if ws.glyphBack != nil {
 		ws.glyphBack.destroy()

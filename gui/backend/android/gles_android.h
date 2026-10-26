@@ -57,6 +57,12 @@ void glesUpdateTexture(int id, int x, int y, int w, int h,
                        const void* data);
 void glesDeleteTexture(int id);
 void glesBindTexture(int id);
+// Shader channels (gui.Shader.Surface); format matches gui.PixelFormat.
+int  glesCreatePlaneTexture(int format, int w, int h, const void* pixels);
+void glesUpdatePlaneTexture(int id, int format, int w, int h,
+                            const void* data);
+void glesBindChannel(int channel, int id);
+void glesSetChannelUnits(int idx);
 void glesSetImageFilter(int nearest);
 
 // Custom shader pipelines

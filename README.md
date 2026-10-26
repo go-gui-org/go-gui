@@ -121,7 +121,9 @@ Go-Gui is also an ecosystem of composable libraries. **go-glyph** handles text,
   `iTime` and `iResolution` built in. `cmd/shaderport` converts a Shadertoy
   shader into one Go value that runs on Metal, OpenGL, WebGL2 and Android
   ([`examples/custom_shader/`](examples/custom_shader/),
-  [`docs/shader-porting.md`](docs/shader-porting.md))
+  [`docs/shader-porting.md`](docs/shader-porting.md)). A shader can also read
+  the planes of a `PixelSurface` as textures, for video and other streamed
+  images ([`examples/shader_channels/`](examples/shader_channels/))
 - **Live pixel surfaces** — `PixelSurface` is an image the app updates every
   frame from any goroutine, for video frames, camera feeds or emulator screens.
   A new frame redraws without rebuilding layout, on every backend

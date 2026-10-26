@@ -1740,6 +1740,12 @@ func goldenCases() []goldenCase {
 			build: buildPixelSurface,
 		},
 		{
+			// Shader.Surface (issue #1168): the shader command carries the
+			// surface whose planes the backend binds as iChannel0..3.
+			name:  "shader_surface",
+			build: buildShaderSurface,
+		},
+		{
 			// The markdown block loop (issue #484). The render switch
 			// in markdownBuildContent carries cross-block state --
 			// pending list items, the blockquote closing spacer, and
@@ -2371,6 +2377,32 @@ func buildPixelSurface(_ *Window) View {
 				Filter: ImageFilterNearest, Opacity: Some(float32(0.5)),
 				A11YCfg: A11YCfg{A11YLabel: "Streaming frame"},
 			}),
+		},
+	})
+}
+
+// goldenPlaneSurface is one R8 + RG8 surface shared by every frame of the
+// shader_surface case.
+var goldenPlaneSurface = func() *PixelSurface {
+	s, err := NewPixelSurface(PixelSurfaceCfg{Planes: []PixelPlaneCfg{
+		{Format: PixelFormatR8, Width: 4, Height: 2},
+		{Format: PixelFormatRG8, Width: 2, Height: 1},
+	}})
+	if err != nil {
+		panic(err)
+	}
+	return s
+}()
+
+// buildShaderSurface draws one shader container that reads a surface.
+func buildShaderSurface(_ *Window) View {
+	return Column(ContainerCfg{
+		ID: "shader_surface", Width: 64, Height: 32, Sizing: FixedFixed,
+		Padding: PaddingNone, SizeBorder: NoBorder,
+		Shader: &Shader{
+			Metal:   "float4 frag_color = iChannel0.sample(iChannelSampler, in.uv * 0.5 + 0.5);",
+			GLSL:    "vec4 frag_color = texture(iChannel0, uv * 0.5 + 0.5);",
+			Surface: goldenPlaneSurface,
 		},
 	})
 }

@@ -50,18 +50,42 @@ type Shader struct {
 	// and iFrame read zero and no frames are started. Leave it false
 	// for a shader that does not change.
 	Animate bool
+	// Surface feeds the shader textures (issue #1168): plane i of the
+	// surface is iChannel i, a sampler2D in GLSL (read it with
+	// texture(iChannel0, p)) and a texture2d<float> in MSL (read it with
+	// iChannel0.sample(iChannelSampler, p)). iChannelResolution[i] holds
+	// plane i's size in pixels, Shadertoy style, with z = 1. Sampling is
+	// linear and clamps to the edge; p = uv * 0.5 + 0.5 puts (0,0) at the
+	// plane's top-left pixel. A channel the surface has no plane for, or
+	// any channel while the surface is closed, reads as a 1x1 transparent
+	// texture. A new frame from the surface redraws the container
+	// without Animate. Leave it nil for a shader that reads no texture:
+	// only a shader with a Surface declares the iChannel names, so
+	// existing shaders compile unchanged.
+	//
+	// The soft backend and PDF export run no shaders: nothing is drawn
+	// in place of the shader fill, while the container's shadow, border
+	// and children still draw (the web backend without WebGL2 draws the
+	// fill color). Window.RendersShaders reports which case applies.
+	Surface *PixelSurface
 }
 
 // BuildGLSLFragment wraps a user-supplied GLSL body with the
 // standard preamble and epilogue for desktop GL 3.3.
 func BuildGLSLFragment(body string) string {
-	return buildGLSLCustomFragment("#version 330", "", body)
+	return buildGLSLCustomFragment("#version 330", "", body, false)
 }
 
 // BuildGLSLFragmentDecls is BuildGLSLFragment with program-scope
 // declarations (Shader.GLSLDecls) spliced before main.
 func BuildGLSLFragmentDecls(decls, body string) string {
-	return buildGLSLCustomFragment("#version 330", decls, body)
+	return buildGLSLCustomFragment("#version 330", decls, body, false)
+}
+
+// BuildGLSLFragmentChannels is BuildGLSLFragmentDecls for a shader with
+// a Surface: it also declares iChannel0..3 and iChannelResolution.
+func BuildGLSLFragmentChannels(decls, body string) string {
+	return buildGLSLCustomFragment("#version 330", decls, body, true)
 }
 
 // BuildGLSLESFragment wraps a user-supplied GLSL body exactly
@@ -77,17 +101,28 @@ func BuildGLSLESFragment(body string) string {
 // BuildGLSLESFragmentDecls is BuildGLSLESFragment with
 // program-scope declarations (Shader.GLSLDecls) spliced before main.
 func BuildGLSLESFragmentDecls(decls, body string) string {
-	return buildGLSLCustomFragment("#version 300 es\n"+
-		"precision highp float;\n"+
-		"precision highp int;", decls, body)
+	return buildGLSLCustomFragment(glslESHeader, decls, body, false)
 }
+
+// BuildGLSLESFragmentChannels is BuildGLSLESFragmentDecls for a shader
+// with a Surface: it also declares iChannel0..3 and iChannelResolution.
+func BuildGLSLESFragmentChannels(decls, body string) string {
+	return buildGLSLCustomFragment(glslESHeader, decls, body, true)
+}
+
+// glslESHeader opens a WebGL2 / GLES 3.0 fragment shader.
+const glslESHeader = "#version 300 es\n" +
+	"precision highp float;\n" +
+	"precision highp int;"
 
 // buildGLSLCustomFragment is the single copy of the custom-shader
 // GLSL wrapper. The body must declare a local vec4 frag_color;
 // the wrapper adds the SDF round-rect clipping around it. decls
 // goes at program scope, after the built-in globals so a helper
-// can read them, and before main.
-func buildGLSLCustomFragment(header, decls, body string) string {
+// can read them, and before main. channels adds the texture inputs of
+// Shader.Surface; without it the source is exactly what it was before
+// they existed.
+func buildGLSLCustomFragment(header, decls, body string, channels bool) string {
 	var b strings.Builder
 	b.WriteString(header)
 	b.WriteString(`
@@ -113,6 +148,9 @@ float iTimeDelta;
 int   iFrame;
 vec4  iMouse;
 `)
+	if channels {
+		b.WriteString(glslChannelDecls)
+	}
 	b.WriteString(decls)
 	b.WriteString(`
 
@@ -122,7 +160,11 @@ void main() {
     iMouse      = _gg_builtins[1];
     iTimeDelta  = _gg_builtins[2].x;
     iFrame      = int(_gg_builtins[2].y);
-
+`)
+	if channels {
+		b.WriteString(glslChannelInit)
+	}
+	b.WriteString(`
     float radius = floor(params / 4096.0) / 4.0;
 
     vec2 uv_to_px = 1.0 / (vec2(fwidth(uv.x), fwidth(uv.y)) + 1e-6);
@@ -163,6 +205,12 @@ void main() {
 // between fields, so two shaders that differ in any of them get
 // distinct keys on every platform. Params are uniforms, not
 // source, and are not part of the key. A nil shader hashes to 0.
+// A shader with a Surface builds a different wrapper (with the
+// iChannel inputs), so it hashes differently from the same source
+// without one; which surface does not matter. The flag is mixed into
+// the finished hash rather than hashed as one more byte: FNV-1a is
+// byte-serial, so a byte after GLSLDecls could be reproduced by
+// decls ending in that byte.
 func ShaderHash(s *Shader) uint64 {
 	if s == nil {
 		return 0
@@ -173,10 +221,62 @@ func ShaderHash(s *Shader) uint64 {
 	h = Fnv64Byte(h, 0)
 	h = Fnv64Str(h, s.MetalDecls)
 	h = Fnv64Byte(h, 0)
-	return Fnv64Str(h, s.GLSLDecls)
+	h = Fnv64Str(h, s.GLSLDecls)
+	if s.Surface != nil {
+		h ^= shaderChannelsSalt
+	}
+	return h
 }
+
+// shaderChannelsSalt marks the hash of a shader with a Surface. Any
+// fixed nonzero value works; this one is the 64-bit golden ratio.
+const shaderChannelsSalt = 0x9e3779b97f4a7c15
 
 // hashString computes a 64-bit FNV-1a hash.
 func hashString(s string) uint64 {
 	return Fnv64Str(Fnv64Offset, s)
+}
+
+// glslChannelDecls declares the texture inputs of Shader.Surface at
+// program scope, so a helper in GLSLDecls can read them too. The backend
+// binds plane i to texture unit i+1 (unit 0 is tex).
+const glslChannelDecls = `
+// Texture inputs (#1168): plane i of Shader.Surface, or a 1x1
+// transparent texture.
+uniform sampler2D iChannel0;
+uniform sampler2D iChannel1;
+uniform sampler2D iChannel2;
+uniform sampler2D iChannel3;
+vec3 iChannelResolution[4];
+`
+
+// glslChannelInit fills iChannelResolution from the bound textures, so
+// the sizes need no uniform of their own.
+const glslChannelInit = `    iChannelResolution[0] = vec3(vec2(textureSize(iChannel0, 0)), 1.0);
+    iChannelResolution[1] = vec3(vec2(textureSize(iChannel1, 0)), 1.0);
+    iChannelResolution[2] = vec3(vec2(textureSize(iChannel2, 0)), 1.0);
+    iChannelResolution[3] = vec3(vec2(textureSize(iChannel3, 0)), 1.0);
+`
+
+// RendersShaders reports whether the backend drawing w runs custom
+// shaders (ContainerCfg.Shader): true on OpenGL, Metal, Android and iOS,
+// and on the web when WebGL2 is available. It is false for the software
+// renderer and headless tests, and a PDF export never runs shaders.
+// Where it is false a shader is not drawn (soft and PDF draw nothing for
+// it; the web backend without WebGL2 draws the fill), so a library
+// that draws through a shader, such as a video view reading
+// Shader.Surface, can show an RGBA8 Image instead. A lock-free read, safe
+// from any goroutine.
+func (w *Window) RendersShaders() bool {
+	return w != nil && w.rendersShaders.Load()
+}
+
+// SetWindowRendersShaders records whether the backend drawing w runs
+// custom shaders; see Window.RendersShaders. Intended for backend use:
+// call it once the backend can compile and draw a shader. Safe for a nil
+// window (no-op).
+func SetWindowRendersShaders(w *Window, ok bool) {
+	if w != nil {
+		w.rendersShaders.Store(ok)
+	}
 }

@@ -88,6 +88,7 @@ type Backend struct {
 	textSys      *glyph.TextSystem
 	textures     texcache.Cache[string, glesTexture]
 	surfaces     surfacecache.Cache[glesTexture]
+	channels     surfacecache.Cache[glesChannels]
 	glyphBack    *glesGlyphBackend
 	customCache  texcache.Cache[uint64, C.int]
 	shaderHashes gui.ShaderHashCache // memoizes ShaderHash per draw
@@ -180,6 +181,7 @@ func (b *Backend) rebuildLostContext() {
 			b.textures.DiscardAll(func(t glesTexture) bool { return t.id == 0 })
 			// Surfaces upload again from their CPU copy on the next draw.
 			b.surfaces.Forget()
+			b.channels.Forget()
 			// A negative idx is a cached compile failure.
 			b.customCache.DiscardAll(func(idx C.int) bool { return idx < 0 })
 			C.glesAbandon()
@@ -321,6 +323,8 @@ func initBackend(w, h int32, scale float32) {
 		maxImagePixels: cfg.MaxImagePixels,
 	}
 	b.surfaces.SetRelease(b.deleteSurfaceTexture)
+	b.channels.SetRelease(b.deleteChannels)
+	gui.SetWindowRendersShaders(androidWindow, true)
 	b.AllowedImageRoots = imgpath.NormalizeRoots(
 		cfg.AllowedImageRoots)
 	b.HandleResize(int32(w), int32(h), scale)
@@ -401,6 +405,7 @@ func (b *Backend) renderFrame(w *gui.Window) {
 func (b *Backend) Destroy() {
 	b.textures.DestroyAll()
 	b.surfaces.Clear()
+	b.channels.Clear()
 	b.customCache.DestroyAll()
 	if b.glyphBack != nil {
 		b.glyphBack.destroy()

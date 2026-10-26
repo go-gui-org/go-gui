@@ -77,6 +77,7 @@ func bindings() []binding {
 func rawBindings() []rawBinding {
 	return []rawBinding{
 		{&addrActiveTexture, "glActiveTexture"},
+		{&addrPixelStorei, "glPixelStorei"},
 		{&addrBindBuffer, "glBindBuffer"},
 		{&addrBindFramebuffer, "glBindFramebuffer"},
 		{&addrBindTexture, "glBindTexture"},

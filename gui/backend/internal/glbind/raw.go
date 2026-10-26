@@ -36,6 +36,7 @@ package glbind
 // rawBindings(). Zero until then, exactly as the pfn vars are nil until then.
 var (
 	addrActiveTexture           uintptr
+	addrPixelStorei             uintptr
 	addrBindBuffer              uintptr
 	addrBindFramebuffer         uintptr
 	addrBindTexture             uintptr
@@ -76,6 +77,8 @@ func b2u(b bool) uintptr {
 // viewport, say) arrive intact.
 
 func ActiveTexture(texture uint32) { sysN(addrActiveTexture, uintptr(texture)) }
+
+func PixelStorei(name uint32, value int32) { sysN(addrPixelStorei, uintptr(name), uintptr(value)) }
 
 func BindBuffer(target uint32, buffer uint32) {
 	sysN(addrBindBuffer, uintptr(target), uintptr(buffer))

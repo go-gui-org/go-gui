@@ -9,6 +9,12 @@
 int harnessUniformWrites;
 GLint harnessLastUniformLoc;
 int harnessDeleteCalls;
+GLenum harnessActiveUnit;
+GLuint harnessBoundTex;
+int harnessUniform1iWrites;
+GLint harnessLastUniform1iLoc, harnessLastUniform1iVal;
+GLint harnessUnpackAlignment = 4;
+int harnessGenTextureCalls;
 
 static int fails;
 
@@ -126,6 +132,61 @@ int main(void) {
     // The counter does see a delete, so the zeros above mean something.
     glesDeleteTexture(1);
     expect(harnessDeleteCalls == 1, "glesDeleteTexture is counted");
+
+    // Shader channels (gui.Shader.Surface).
+    // A channel program's samplers point at units 1..4, one write each.
+    int ch = glesBuildCustomPipeline("frag");
+    harnessUniform1iWrites = 0;
+    glesSetChannelUnits(ch);
+    expect(harnessUniform1iWrites == 4 &&
+               harnessLastUniform1iLoc == HARNESS_LOC_CHANNEL0 + 3 &&
+               harnessLastUniform1iVal == 4,
+           "glesSetChannelUnits points iChannel0..3 at units 1..4");
+    harnessUniform1iWrites = 0;
+    glesSetChannelUnits(-1);
+    glesSetChannelUnits(31);
+    expect(harnessUniform1iWrites == 0, "glesSetChannelUnits ignores a bad index");
+    // It binds the program to write the units, so draw.go must bind the
+    // pipeline again afterwards; setting the matrices before that is a no-op.
+    glesSetCustomPipeline(ch);
+    reset();
+    glesSetMVP(m);
+    expect(harnessUniformWrites == 1 && harnessLastUniformLoc == HARNESS_LOC_MVP,
+           "custom glesSetMVP after glesSetChannelUnits writes mvp");
+
+    // Plane textures upload with an unpack alignment of 1 and restore 4.
+    unsigned char plane[3] = {1, 2, 3};
+    int pt = glesCreatePlaneTexture(1, 3, 1, plane);
+    expect(pt >= 1, "glesCreatePlaneTexture returns an ID");
+    expect(harnessUnpackAlignment == 4, "glesCreatePlaneTexture restores the unpack alignment");
+    glesUpdatePlaneTexture(pt, 1, 3, 1, plane);
+    expect(harnessUnpackAlignment == 4, "glesUpdatePlaneTexture restores the unpack alignment");
+
+    // A channel binds its plane, or the transparent texture for ID 0, and
+    // leaves unit 0 active for the draws that follow.
+    int gens = harnessGenTextureCalls;
+    harnessBoundTex = 0;
+    glesBindChannel(1, 0);
+    expect(harnessBoundTex != 0, "glesBindChannel(0) binds the transparent texture");
+    expect(harnessActiveUnit == GL_TEXTURE0, "glesBindChannel leaves unit 0 active");
+    glesBindChannel(2, 0);
+    glesBindChannel(0, pt);
+    expect(harnessGenTextureCalls == gens + 1,
+           "the transparent texture is created once");
+    harnessActiveUnit = 0;
+    glesBindChannel(4, pt);
+    glesBindChannel(-1, pt);
+    expect(harnessActiveUnit == 0, "glesBindChannel ignores a channel out of range");
+
+    // Context loss forgets the transparent texture without deleting it, and
+    // the next bind creates a new one in the new context.
+    harnessDeleteCalls = 0;
+    glesAbandon();
+    expect(harnessDeleteCalls == 0, "glesAbandon deletes no channel texture");
+    gens = harnessGenTextureCalls;
+    glesBindChannel(0, 0);
+    expect(harnessGenTextureCalls == gens + 1,
+           "the transparent texture is created again after glesAbandon");
 
     return fails != 0;
 }

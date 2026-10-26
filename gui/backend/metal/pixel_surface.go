@@ -7,7 +7,12 @@ package metal
 */
 import "C"
 
-import "unsafe"
+import (
+	"unsafe"
+
+	"github.com/go-gui-org/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/surfacecache"
+)
 
 func (b *windowState) deleteSurfaceTexture(tex metalTexture) {
 	if tex.id != 0 {
@@ -27,6 +32,32 @@ func (b *windowState) uploadSurfaceTexture(tex metalTexture, w, h int, pix []byt
 		return tex
 	}
 	C.metalUpdateStreamTexture(b.ctx, C.int(tex.id),
-		C.int(w), C.int(h), unsafe.Pointer(&pix[0]))
+		C.int(w), C.int(h), 4, unsafe.Pointer(&pix[0]))
 	return tex
+}
+
+// metalSurfaces holds a window's textures for gui.PixelSurface: one per
+// surface an image draws, and the plane textures custom shaders read
+// (gui.Shader.Surface). Each cache counts only its own kind of command.
+type metalSurfaces struct {
+	images   surfacecache.Cache[metalTexture]
+	channels surfacecache.Cache[metalChannels]
+}
+
+// setup binds the functions that release the textures.
+func (s *metalSurfaces) setup(b *windowState) {
+	s.images.SetRelease(b.deleteSurfaceTexture)
+	s.channels.SetRelease(b.deleteChannels)
+}
+
+// prune releases the textures of surfaces this frame no longer draws.
+func (s *metalSurfaces) prune(cmds []gui.RenderCmd) {
+	s.images.Prune(cmds)
+	s.channels.PruneShaders(cmds)
+}
+
+// clear releases every texture, at teardown.
+func (s *metalSurfaces) clear() {
+	s.images.Clear()
+	s.channels.Clear()
 }

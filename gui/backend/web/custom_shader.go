@@ -10,6 +10,7 @@ import (
 
 	"github.com/go-gui-org/go-gui/gui"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/gpu"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/surfacecache"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/texcache"
 )
 
@@ -32,6 +33,11 @@ type customShaderRenderer struct {
 
 	programs     texcache.Cache[uint64, *customShaderProgram]
 	shaderHashes gui.ShaderHashCache // memoizes ShaderHash per draw
+
+	// channels holds the planes custom shaders read (gui.Shader.Surface);
+	// transparentTex stands in for a channel with no plane.
+	channels       surfacecache.Cache[webChannels]
+	transparentTex js.Value
 }
 
 type customShaderProgram struct {
@@ -74,6 +80,7 @@ func newCustomShaderRenderer(
 		builtinBuf: js.Global().Get("Float32Array").New(16),
 		vertexBuf:  js.Global().Get("Float32Array").New(4 * 9),
 	}
+	r.channels.SetRelease(r.deleteChannels)
 	r.resetProgramCache()
 	r.registerContextCallbacks(callbacks, onRestored)
 	if !r.initResources() {
@@ -154,6 +161,13 @@ func (r *customShaderRenderer) draw(
 		gl.Call("uniformMatrix4fv", p.uBuiltin, false, r.builtinBuf)
 	}
 
+	// Keyed off Shader.Surface, which also chose the channel program, so
+	// that program is never drawn with its channel textures unbound.
+	if cmd.Shader.Surface != nil {
+		ch, ok := r.channels.ResolvePlanes(cmd.Shader.Surface, r.uploadChannels)
+		r.bindChannels(ch, ok)
+	}
+
 	gl.Call("activeTexture", gl.Get("TEXTURE0"))
 	gl.Call("bindTexture", gl.Get("TEXTURE_2D"), r.whiteTex)
 	gl.Call("uniform1i", p.uTex, 0)
@@ -192,14 +206,18 @@ func (r *customShaderRenderer) getProgram(
 		return p, p != nil
 	}
 
-	p, err := r.buildProgram(
-		webGL2VertexSource(),
-		gui.BuildGLSLESFragmentDecls(s.GLSLDecls, s.GLSL),
-	)
+	fsSrc := gui.BuildGLSLESFragmentDecls(s.GLSLDecls, s.GLSL)
+	if s.Surface != nil {
+		fsSrc = gui.BuildGLSLESFragmentChannels(s.GLSLDecls, s.GLSL)
+	}
+	p, err := r.buildProgram(webGL2VertexSource(), fsSrc)
 	if err != nil {
 		log.Printf("web: custom shader compile: %v", err)
 		r.programs.Set(h, nil)
 		return nil, false
+	}
+	if s.Surface != nil {
+		r.setChannelUnits(p.program)
 	}
 	r.programs.Set(h, p)
 	return p, true
@@ -312,6 +330,19 @@ func (r *customShaderRenderer) initResources() bool {
 		gl.Get("TEXTURE_2D"), 0, gl.Get("RGBA"),
 		1, 1, 0, gl.Get("RGBA"), gl.Get("UNSIGNED_BYTE"), white)
 
+	r.transparentTex = gl.Call("createTexture")
+	gl.Call("bindTexture", gl.Get("TEXTURE_2D"), r.transparentTex)
+	// Without these the texture has no complete mip chain and samples
+	// as opaque black instead of transparent.
+	gl.Call("texParameteri", gl.Get("TEXTURE_2D"), gl.Get("TEXTURE_MIN_FILTER"), gl.Get("LINEAR"))
+	gl.Call("texParameteri", gl.Get("TEXTURE_2D"), gl.Get("TEXTURE_MAG_FILTER"), gl.Get("LINEAR"))
+	gl.Call("texParameteri", gl.Get("TEXTURE_2D"), gl.Get("TEXTURE_WRAP_S"), gl.Get("CLAMP_TO_EDGE"))
+	gl.Call("texParameteri", gl.Get("TEXTURE_2D"), gl.Get("TEXTURE_WRAP_T"), gl.Get("CLAMP_TO_EDGE"))
+	gl.Call("texImage2D",
+		gl.Get("TEXTURE_2D"), 0, gl.Get("RGBA"),
+		1, 1, 0, gl.Get("RGBA"), gl.Get("UNSIGNED_BYTE"),
+		js.Global().Get("Uint8Array").New(4))
+
 	gl.Call("bindTexture", gl.Get("TEXTURE_2D"), js.Null())
 	gl.Call("bindBuffer", gl.Get("ARRAY_BUFFER"), js.Null())
 	gl.Call("bindBuffer", gl.Get("ELEMENT_ARRAY_BUFFER"), js.Null())
@@ -361,6 +392,10 @@ func (r *customShaderRenderer) handleContextLost() {
 	r.vbo = js.Null()
 	r.ibo = js.Null()
 	r.whiteTex = js.Null()
+	// The plane textures went with the context; the next draw uploads
+	// again from each surface's CPU copy.
+	r.channels.Forget()
+	r.transparentTex = js.Null()
 	r.resetProgramCache()
 }
 

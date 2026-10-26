@@ -69,8 +69,13 @@ void metalBindTexture(MetalCtx ctx, int id);
 // metalUpdateStreamTexture first waits until no submitted frame still
 // samples it, which a plain metalUpdateTexture does not.
 void metalStreamTexture(MetalCtx ctx, int id);
-void metalUpdateStreamTexture(MetalCtx ctx, int id, int w, int h,
-                              const void* data);
+void metalUpdateStreamTexture(MetalCtx ctx, int tex, int w, int h,
+                              int bytesPerPixel, const void* data);
+// Shader channels (gui.Shader.Surface); format matches gui.PixelFormat.
+// Plane textures are streamed.
+int  metalCreatePlaneTexture(MetalCtx ctx, int format, int w, int h,
+                             int bytesPerPixel, const void* pixels);
+void metalBindChannel(MetalCtx ctx, int channel, int tex);
 void metalSetImageFilter(MetalCtx ctx, int nearest);
 
 // Custom shader pipelines

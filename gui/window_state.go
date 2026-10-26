@@ -83,6 +83,9 @@ type windowBackend struct {
 	textMeasurer   TextMeasurer
 	svgParser      SvgParser
 	nativePlatform NativePlatform
+	// rendersShaders is set by a backend that runs custom shaders;
+	// see RendersShaders.
+	rendersShaders atomic.Bool
 	// soundPlayer renders widget sound cues. Unlike the three above
 	// the backend installs none: the app opts in with
 	// SetSoundPlayer, so the default is silence (issue #446).
