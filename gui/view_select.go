@@ -371,10 +371,12 @@ func (sv *selectView) GenerateLayout(w *Window) Layout {
 		// carries its own nudge. Nothing here is a direct text child,
 		// so the field itself only draws the focus ring.
 		// The field has no hover pass, so the focus fill it paints is
-		// exactly pick({focused}) plus the ring.
-		AmendLayout: selectFocusAmend(colors, cfg.noFocusRing),
-		Sound:       fieldSound,
-		OnKeyDown:   makeSelectOnKeyDown(&sv.cfg, id, dropdownScrollID),
+		// exactly pick({focused}) plus the ring. An open dropdown
+		// closes when focus leaves the field (#1181).
+		AmendLayout: dropdownBlurAmend(id, isOpen,
+			selectFocusAmend(colors, cfg.noFocusRing), selectClose),
+		Sound:     fieldSound,
+		OnKeyDown: makeSelectOnKeyDown(&sv.cfg, id, dropdownScrollID),
 		OnClick: func(ctx EventCtx) {
 			ss := StateMap[string, bool](
 				ctx.Window, nsSelect, capModerate)
@@ -386,6 +388,13 @@ func (sv *selectView) GenerateLayout(w *Window) Layout {
 				sh := StateMap[string, int](
 					ctx.Window, nsSelectHL, capModerate)
 				sh.Set(id, selectInitialHighlight(cfg))
+				// Open with focus, as Combobox does. An accessibility
+				// press runs OnClick without the press walk's focus
+				// take, and the blur dismiss would close an unfocused
+				// list the next frame (#1181).
+				if !cfg.FocusDisabled {
+					ctx.Window.SetFocus(id)
+				}
 			}
 		},
 	}
@@ -394,6 +403,12 @@ func (sv *selectView) GenerateLayout(w *Window) Layout {
 		cfg:     ccfg,
 		content: content,
 	}, w)
+}
+
+// selectClose closes the dropdown of the select keyed by id.
+func selectClose(id string, w *Window) {
+	StateMap[string, bool](w, nsSelect, capModerate).Delete(id)
+	w.InvalidateLayout()
 }
 
 // selectLabelAmend centres the closed-field label on the face's cap

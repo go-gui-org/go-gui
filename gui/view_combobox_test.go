@@ -543,7 +543,7 @@ func TestComboboxAmendLayoutSkipsUnfocusable(t *testing.T) {
 			w := &Window{}
 			comboboxOpen("cb", "", w)
 			ly := &Layout{Shape: &Shape{ID: "cb", Focusable: tc.focusable}}
-			comboboxAmendLayout("cb", true, nil)(EventCtx{ly, nil, w})
+			dropdownBlurAmend("cb", true, nil, comboboxClose)(EventCtx{ly, nil, w})
 			if got := StateReadOr(w, nsCombobox, "cb", false); got != tc.wantOpen {
 				t.Errorf("open = %v, want %v", got, tc.wantOpen)
 			}
@@ -608,12 +608,12 @@ func TestComboboxScrollbarPressKeepsOpen(t *testing.T) {
 // A closed field takes the focus-ring amend as is, with no wrapper,
 // and an open one survives an amend call with no layout or shape.
 func TestComboboxAmendLayoutClosedAndNil(t *testing.T) {
-	if got := comboboxAmendLayout("cb", false, nil); got != nil {
+	if got := dropdownBlurAmend("cb", false, nil, comboboxClose); got != nil {
 		t.Error("closed field with no ring should get a nil amend")
 	}
 	w := &Window{}
 	comboboxOpen("cb", "", w)
-	amend := comboboxAmendLayout("cb", true, nil)
+	amend := dropdownBlurAmend("cb", true, nil, comboboxClose)
 	amend(EventCtx{nil, nil, w})
 	amend(EventCtx{&Layout{}, nil, w})
 	if !StateReadOr(w, nsCombobox, "cb", false) {

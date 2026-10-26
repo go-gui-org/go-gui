@@ -39,6 +39,17 @@ and this project adheres to
   stops it and releases the textures. Images without a `Surface` are unchanged.
   [`examples/pixel_surface/`](examples/pixel_surface/) animates one at 60 Hz.
 
+### Fixed
+
+- **An open `Select` dropdown now closes when focus leaves the field (#1181).**
+  Before, a press on an `Input` or another focusable widget moved focus there
+  but left the list open over the form, and a `SetFocus` from app code did the
+  same. This is the check `Combobox` got in #1150; both widgets now share it. A
+  press on the dropdown scrollbar keeps the list open, a pick in a multi-select
+  still leaves it open, and a `FocusDisabled` select skips the check. Opening
+  the list now also focuses the field, as `Combobox` does, so a screen reader's
+  press opens a list that stays open.
+
 ## [v0.93.0] - 2026-10-25
 
 ### Added

@@ -670,7 +670,9 @@ func TestSelectHoverMovesHighlightInSameFrame(t *testing.T) {
 	})
 	w := NewTestWindow(t, WindowCfg{})
 	w.TestRender(view)
-	// Open after SetView, which clears per-view state.
+	// Open after SetView, which clears per-view state. Focused, as a
+	// real open is: an unfocused field closes its dropdown (#1181).
+	w.SetFocus("s")
 	StateMap[string, bool](w, nsSelect, capModerate).Set("s", true)
 	w.TestRender(nil)
 
@@ -739,5 +741,158 @@ func TestSelectScrollToUsesMeasuredRowHeight(t *testing.T) {
 	got, _ = plain.scrollY().Get("sel-scroll-nominal")
 	if want := float32(-2); got != want {
 		t.Errorf("nominal scrollY = %v, want %v", got, want)
+	}
+}
+
+// selectBlurView is a form with an input and a select, the shape of the
+// report in issue #1181. The input sits above the select so the
+// dropdown, which floats below the field, cannot cover the point
+// TestClick presses.
+func selectBlurView(cfg SelectCfg) func(*Window) View {
+	return func(*Window) View {
+		return Column(ContainerCfg{
+			Sizing: FillFill,
+			Content: []View{
+				Input(InputCfg{ID: "name"}),
+				Select(cfg),
+			},
+		})
+	}
+}
+
+// A press on another focusable widget moves focus off the select; the
+// dropdown must close with it rather than float over the form (issue
+// #1181).
+func TestSelectClosesWhenFocusMoves(t *testing.T) {
+	w := NewTestWindow(t, WindowCfg{})
+	w.TestRender(selectBlurView(SelectCfg{
+		ID:    "sel",
+		Items: []string{"alpha", "beta", "gamma"},
+	}))
+
+	if err := w.TestClick("sel"); err != nil {
+		t.Fatalf("TestClick(sel): %v", err)
+	}
+	if !StateReadOr(w, nsSelect, "sel", false) {
+		t.Fatal("click on the field should open the dropdown")
+	}
+
+	if err := w.TestClick("name"); err != nil {
+		t.Fatalf("TestClick(name): %v", err)
+	}
+	if !w.IsFocus("name") {
+		t.Fatalf("focus = %q, want name", w.FocusID())
+	}
+	if StateReadOr(w, nsSelect, "sel", false) {
+		t.Error("dropdown still open after focus moved to the input")
+	}
+	if _, ok := w.TestRender(nil).findByID(ScopeID("sel", "dropdown")); ok {
+		t.Error("dropdown still in the layout after focus moved")
+	}
+}
+
+// A multi-select pick leaves the dropdown open on purpose. The option
+// row consumes the press, so focus stays on the field and the blur
+// dismiss must not close the list (issue #1181).
+func TestSelectMultiplePickKeepsOpen(t *testing.T) {
+	w := NewTestWindow(t, WindowCfg{})
+	var picked []string
+	w.TestRender(selectBlurView(SelectCfg{
+		ID:             "sel",
+		Items:          []string{"alpha", "beta", "gamma"},
+		SelectMultiple: true,
+		OnSelect:       func(s []string, _ EventCtx) { picked = s },
+	}))
+	if err := w.TestClick("sel"); err != nil {
+		t.Fatalf("TestClick(sel): %v", err)
+	}
+	rows := selectOptionRows(w.TestRender(nil), nil)
+	if len(rows) != 3 {
+		t.Fatalf("%d option rows, want 3", len(rows))
+	}
+	s := rows[1].Shape
+	x, y := s.X+s.Width/2, s.Y+s.Height/2
+	down := Event{
+		Type: EventMouseDown, MouseButton: MouseLeft, MouseX: x, MouseY: y,
+	}
+	w.EventFn(&down)
+	up := Event{
+		Type: EventMouseUp, MouseButton: MouseLeft, MouseX: x, MouseY: y,
+	}
+	w.EventFn(&up)
+	w.settle()
+
+	if len(picked) != 1 || picked[0] != "beta" {
+		t.Fatalf("picked = %v, want [beta]; test aimed wrong", picked)
+	}
+	if !w.IsFocus("sel") {
+		t.Errorf("focus = %q, want sel", w.FocusID())
+	}
+	if !StateReadOr(w, nsSelect, "sel", false) {
+		t.Error("multi-select dropdown closed on an option pick")
+	}
+	if _, ok := w.TestRender(nil).findByID(ScopeID("sel", "dropdown")); !ok {
+		t.Error("dropdown left the layout after an option pick")
+	}
+}
+
+// A FocusDisabled field never holds focus, so the blur dismiss must
+// skip it, or the dropdown would close the frame after it opened. A
+// focusable field without focus closes.
+func TestSelectBlurAmendSkipsUnfocusable(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		focusable bool
+		wantOpen  bool
+	}{
+		{"focus-disabled stays open", false, true},
+		{"focusable without focus closes", true, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			w := &Window{}
+			StateMap[string, bool](w, nsSelect, capModerate).Set("sel", true)
+			ly := &Layout{Shape: &Shape{ID: "sel", Focusable: tc.focusable}}
+			dropdownBlurAmend("sel", true, nil, selectClose)(EventCtx{ly, nil, w})
+			if got := StateReadOr(w, nsSelect, "sel", false); got != tc.wantOpen {
+				t.Errorf("open = %v, want %v", got, tc.wantOpen)
+			}
+		})
+	}
+}
+
+// An accessibility press (VoiceOver, Narrator, AT-SPI) runs the field's
+// OnClick without the mouse press walk, so nothing else moves focus to
+// the field. The open must take focus itself, or the blur dismiss closes
+// the list the next frame (#1181).
+func TestSelectA11yPressOpensWithFocus(t *testing.T) {
+	w := NewTestWindow(t, WindowCfg{})
+	w.TestRender(selectBlurView(SelectCfg{
+		ID:    "sel",
+		Items: []string{"alpha", "beta"},
+	}))
+	w.SetFocus("name")
+	w.TestRender(nil)
+
+	w.a11y.nodes = w.a11y.nodes[:0]
+	var live []liveNode
+	a11yCollect(&w.layout, -1, &w.a11y.nodes, "", &live)
+	idx := -1
+	for i, n := range w.a11y.nodes {
+		if n.Role == AccessRoleComboBox {
+			idx = i
+		}
+	}
+	if idx < 0 {
+		t.Fatal("no combobox node for the select")
+	}
+	a11yActionCallback(w, A11yActionPress, idx)
+	w.TestRender(nil)
+	w.TestRender(nil)
+
+	if !w.IsFocus("sel") {
+		t.Errorf("focus = %q, want sel", w.FocusID())
+	}
+	if !StateReadOr(w, nsSelect, "sel", false) {
+		t.Error("dropdown closed after an accessibility press opened it")
 	}
 }
