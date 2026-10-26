@@ -193,6 +193,11 @@ func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 		},
 		PaddingItem: cfg.Padding.Or(PaddingNone),
 		OnItemClick: func(itemID string, _ int, ctx EventCtx) {
+			// Consumed, as Select's option rows are: an unhandled row
+			// press blurs the widget that holds focus, the field
+			// itself or, for FocusDisabled, the one the user is
+			// typing in (#1183).
+			ctx.Consume()
 			if onSelect != nil {
 				onSelect(itemID, EventCtx{nil, ctx.Event, ctx.Window})
 			}
@@ -321,6 +326,13 @@ func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 	fieldSound := resolveSoundCue(
 		fieldThemeCue, cfg.Sound, cfg.SoundDisabled)
 
+	// A FocusDisabled field opens without taking focus: SetFocus does
+	// not check focusability, and the fixup that follows moves focus to
+	// the first tab stop, not back where it was (#1183).
+	openFocusID := id
+	if cfg.FocusDisabled {
+		openFocusID = ""
+	}
 	ccfg := ContainerCfg{
 		ID:        cfg.ID,
 		Focusable: !cfg.FocusDisabled,
@@ -349,10 +361,12 @@ func (cv *comboboxView) GenerateLayout(w *Window) Layout {
 			dropdownScrollID, rowH, listH),
 		OnChar: makeComboboxOnChar(id),
 		OnClick: func(ctx EventCtx) {
+			// Consumed for a FocusDisabled field, as in Select (#1183).
+			ctx.Consume()
 			if isOpen {
 				comboboxClose(id, ctx.Window)
 			} else {
-				comboboxOpen(id, id, ctx.Window)
+				comboboxOpen(id, openFocusID, ctx.Window)
 			}
 		},
 	}

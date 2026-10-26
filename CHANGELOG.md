@@ -50,6 +50,17 @@ and this project adheres to
   the list now also focuses the field, as `Combobox` does, so a screen reader's
   press opens a list that stays open.
 
+- **A `FocusDisabled` `Select` or `Combobox` now opens on a click (#1183).**
+  Before, the click did nothing: the field takes no focus, so the press counted
+  as unhandled and the window closed the dropdown again in the same press. A
+  `Select` click also took focus away from the widget that held it. The field
+  now consumes the press, so the dropdown opens, an option can be picked with
+  the pointer, and focus stays where it was, as `FocusDisabled` promises. A
+  `FocusDisabled` `Combobox` no longer moves focus to the first tab stop when it
+  opens. Picking a `Combobox` row with the pointer now keeps focus where it was,
+  as `Select` already did: on the field, or for `FocusDisabled` on the widget
+  that held it. Before, the pick cleared focus.
+
 ## [v0.93.0] - 2026-10-25
 
 ### Added

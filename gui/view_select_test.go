@@ -896,3 +896,65 @@ func TestSelectA11yPressOpensWithFocus(t *testing.T) {
 		t.Error("dropdown closed after an accessibility press opened it")
 	}
 }
+
+// A FocusDisabled select opens on a click and picks with the pointer
+// while focus stays on the widget that held it (#1183). Its field takes
+// no focus, so it must consume the press itself, or the window's
+// unhandled-press cleanup undoes the open and blurs the input.
+func TestSelectFocusDisabledOpensAndKeepsFocus(t *testing.T) {
+	w := NewTestWindow(t, WindowCfg{})
+	var picked []string
+	w.TestRender(func(*Window) View {
+		return Column(ContainerCfg{
+			Sizing: FillFill,
+			Content: []View{
+				Input(InputCfg{ID: "text"}),
+				Select(SelectCfg{
+					ID:            "sel",
+					Items:         []string{"alpha", "beta"},
+					FocusDisabled: true,
+					OnSelect:      func(s []string, _ EventCtx) { picked = s },
+				}),
+			},
+		})
+	})
+	if err := w.TestClick("text"); err != nil {
+		t.Fatalf("TestClick(text): %v", err)
+	}
+	if err := w.TestClick("sel"); err != nil {
+		t.Fatalf("TestClick(sel): %v", err)
+	}
+	w.TestRender(nil)
+	if !StateReadOr(w, nsSelect, "sel", false) {
+		t.Fatal("click on a FocusDisabled select did not open it")
+	}
+	if !w.IsFocus("text") {
+		t.Fatalf("focus = %q after opening, want text", w.FocusID())
+	}
+
+	rows := selectOptionRows(&w.layout, nil)
+	if len(rows) != 2 {
+		t.Fatalf("%d option rows, want 2", len(rows))
+	}
+	s := rows[1].Shape
+	x, y := s.X+s.Width/2, s.Y+s.Height/2
+	down := Event{
+		Type: EventMouseDown, MouseButton: MouseLeft, MouseX: x, MouseY: y,
+	}
+	w.EventFn(&down)
+	up := Event{
+		Type: EventMouseUp, MouseButton: MouseLeft, MouseX: x, MouseY: y,
+	}
+	w.EventFn(&up)
+	w.settle()
+
+	if len(picked) != 1 || picked[0] != "beta" {
+		t.Errorf("picked = %v, want [beta]", picked)
+	}
+	if StateReadOr(w, nsSelect, "sel", false) {
+		t.Error("dropdown still open after a single pick")
+	}
+	if !w.IsFocus("text") {
+		t.Errorf("focus = %q after the pick, want text", w.FocusID())
+	}
+}
