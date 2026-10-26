@@ -30,9 +30,9 @@ func channelSurface(t *testing.T) *gui.PixelSurface {
 	return surface
 }
 
-// near reports whether got matches want within one step per channel, the
+// nearPixel reports whether got matches want within one step per channel, the
 // rounding of an 8-bit value through a float and back.
-func near(got, want [4]byte) bool {
+func nearPixel(got, want [4]byte) bool {
 	for i := range got {
 		d := int(got[i]) - int(want[i])
 		if d < -1 || d > 1 {
@@ -59,7 +59,7 @@ func TestShaderChannelsReadback(t *testing.T) {
 	got := draw(`vec2 p = uv * 0.5 + 0.5;
 vec4 frag_color = vec4(texture(iChannel0, p).r, texture(iChannel1, p).rg,
     1.0 - texture(iChannel2, p).a);`)
-	if want := [4]byte{128, 64, 192, 255}; !near(got, want) {
+	if want := [4]byte{128, 64, 192, 255}; !nearPixel(got, want) {
 		t.Errorf("channel readback = %v, want %v", got, want)
 	}
 
@@ -67,7 +67,7 @@ vec4 frag_color = vec4(texture(iChannel0, p).r, texture(iChannel1, p).rg,
 	// stand-in is 1x1.
 	got = draw(`vec4 frag_color = vec4(iChannelResolution[0].x / 255.0,
     iChannelResolution[1].x / 255.0, iChannelResolution[2].x / 255.0, 1.0);`)
-	if want := [4]byte{2, 1, 1, 255}; !near(got, want) {
+	if want := [4]byte{2, 1, 1, 255}; !nearPixel(got, want) {
 		t.Errorf("iChannelResolution readback = %v, want %v", got, want)
 	}
 
@@ -76,7 +76,7 @@ vec4 frag_color = vec4(texture(iChannel0, p).r, texture(iChannel1, p).rg,
 	b.channels.PruneShaders(nil)
 	got = draw(`vec2 p = uv * 0.5 + 0.5;
 vec4 frag_color = vec4(texture(iChannel0, p).r, texture(iChannel1, p).g, 0.0, 1.0);`)
-	if want := [4]byte{0, 0, 0, 255}; !near(got, want) {
+	if want := [4]byte{0, 0, 0, 255}; !nearPixel(got, want) {
 		t.Errorf("closed surface readback = %v, want %v", got, want)
 	}
 }

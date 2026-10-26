@@ -13,6 +13,8 @@ const (
 	// PixelFormatRGBA8 is straight-alpha RGBA, 4 bytes per pixel
 	// (image.NRGBA). It is the zero value and the only format an Image
 	// can draw.
+	// exportaudit:keep — the zero value, named for callers that set it
+	// explicitly rather than relying on it
 	PixelFormatRGBA8 PixelFormat = iota
 	// PixelFormatR8 is one channel, 1 byte per pixel. A shader reads it
 	// as .r.
