@@ -55,10 +55,10 @@ func selectRange(w *Window, id string, beg, end int) {
 	inputStoreState(id, w, is)
 }
 
-// With the menu on, the inner row takes every button (OnAnyClick), so a
+// With the menu on, the field takes every button (OnAnyClick), so a
 // right press reaches inputOnClick. It must not run the left-click path
 // there: no caret move, no collapsed selection, no drag lock. Before
-// #1151 the row's OnClick took the left button only, so this held by
+// #1151 the handler's OnClick took the left button only, so this held by
 // construction; the guard is for the new route.
 func TestInputRightClickKeepsSelection(t *testing.T) {
 	text := "hello world"

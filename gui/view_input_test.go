@@ -131,12 +131,12 @@ func TestInputClickPlaceholderResetsCursorToStart(t *testing.T) {
 	if len(layout.Children) == 0 {
 		t.Fatal("no children")
 	}
-	inner := &layout.Children[0]
-	if inner.Shape.events == nil || inner.Shape.events.OnClick == nil {
+	// The handler is on the field itself (issue #1186).
+	if layout.Shape.events == nil || layout.Shape.events.OnClick == nil {
 		t.Fatal("missing click handler")
 	}
-	e := &Event{MouseX: inner.Shape.X, MouseY: inner.Shape.Y}
-	inner.Shape.events.OnClick(EventCtx{inner, e, w})
+	e := &Event{MouseX: layout.Shape.X, MouseY: layout.Shape.Y}
+	layout.Shape.events.OnClick(EventCtx{&layout, e, w})
 	is := getInputState(w, "f14")
 	if is.CursorPos != 0 {
 		t.Fatalf("cursor=%d, want 0", is.CursorPos)

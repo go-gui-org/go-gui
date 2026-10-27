@@ -43,11 +43,9 @@ func (c EventCtx) handled() bool {
 //
 // This is not "resolve my own ID", and there is no argument-free form of it.
 // The leaf names a shape at or above the handler, and the handler's own shape
-// frequently carries no ID at all: Input attaches its click handler to an
-// ID-less inner row and resolves the leaf of the outer container, and a
-// scrollbar resolves the leaf of the scrollable ancestor it drives. Reading an
-// identity off ctx.Layout would answer "" in both cases, so the argument is
-// load-bearing (issue #526).
+// frequently carries no ID at all: a scrollbar resolves the leaf of the
+// scrollable ancestor it drives. Reading an identity off ctx.Layout would
+// answer "" there, so the argument is load-bearing (issue #526).
 //
 // A widget factory that builds its tree eagerly — Input, for one — has
 // no Window when it captures cfg.ID, so it cannot call

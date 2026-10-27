@@ -328,14 +328,6 @@ func Input(cfg InputCfg) View {
 		VAlign:     vAlign,
 		Content:    txtContent,
 	}
-	// OnClick takes the left button only, so a right press travels on to
-	// an app's own ContextMenu. The menu needs focus for its selection.
-	onClick := inputOnClick(cfg.ID, scrollID, !cfg.FocusDisabled, hcfg)
-	if cfg.ContextMenuDisabled || cfg.FocusDisabled {
-		innerCfg.OnClick = onClick
-	} else {
-		innerCfg.OnAnyClick = onClick
-	}
 	// Multiline is excluded on top of the caller's opt-in: it aligns to
 	// the top, so there is no centring to correct, and its lines after
 	// the first are positioned by the text layout rather than by this
@@ -351,7 +343,7 @@ func Input(cfg InputCfg) View {
 	}
 
 	cfg.A11YLabel = a11yProseLabel(cfg.A11YLabel, cfg.Label)
-	field := Column(ContainerCfg{
+	fieldCfg := ContainerCfg{
 		ID:        cfg.ID,
 		Focusable: !cfg.FocusDisabled,
 		A11YRole:  a11yRole,
@@ -408,7 +400,25 @@ func Input(cfg InputCfg) View {
 		AmendLayout: inputAmendLayout(hcfg, colors, spellChk,
 			onBlur, cfg.onMouseScroll, cfg.noFocusRing),
 		Content: []View{inner},
-	})
+	}
+	// The press handlers go on the field, not on the inner row. The field
+	// is the viewport: it never moves with a scroll and always covers the
+	// area the I-beam cursor above promises. The inner row is content:
+	// in a Scrollable multiline field it is only as tall as the text and
+	// slides with the horizontal offset, so a press below the last line
+	// or on a sideways-scrolled field met no handler (issue #1186).
+	// Scrollbars are later children of the field, so they still take
+	// their own presses first.
+	//
+	// OnClick takes the left button only, so a right press travels on to
+	// an app's own ContextMenu. The menu needs focus for its selection.
+	onClick := inputOnClick(cfg.ID, scrollID, !cfg.FocusDisabled, hcfg)
+	if cfg.ContextMenuDisabled || cfg.FocusDisabled {
+		fieldCfg.OnClick = onClick
+	} else {
+		fieldCfg.OnAnyClick = onClick
+	}
+	field := Column(fieldCfg)
 	return labelledField(cfg.Label, cfg.TextStyle, HAlignLeft, cfg.Sizing, field)
 }
 

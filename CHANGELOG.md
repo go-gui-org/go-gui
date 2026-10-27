@@ -41,6 +41,20 @@ and this project adheres to
 
 ### Fixed
 
+- **A press anywhere in an `Input` now places the caret and opens its context
+  menu (#1186).** In a `Scrollable` multiline `Input`, only the lines holding
+  text took a press: a left click below the last line placed no caret, and a
+  right click there opened no Cut/Copy/Paste menu. A field scrolled sideways
+  past a long word took no press at all, not even on the visible text. The
+  handler sat on the inner row that holds the text, which is only as tall as the
+  text and moves with the scroll. It now sits on the field, which is where the
+  I-beam cursor already shows. So a press in the padding of any `Input` places
+  the caret too, at the nearest character, as in a native text field; before, it
+  only focused the field. Scrolling is unchanged, and a press on a scrollbar
+  still goes to the scrollbar, a right press included. A screen reader's
+  activate action (VoiceOver press, AT-SPI press, TalkBack double tap) now
+  focuses the field and leaves the caret where it was; before, it did nothing.
+
 - **An open `Select` dropdown now closes when focus leaves the field (#1181).**
   Before, a press on an `Input` or another focusable widget moved focus there
   but left the list open over the form, and a `SetFocus` from app code did the
