@@ -50,20 +50,20 @@ type inputMenuState struct {
 	open                                    bool
 }
 
-// inputMenuOnRightClick opens the menu for a right press on a field's
-// inner row (inputOnClick). Caret and selection stay where they are, so
-// Copy and Cut act on what the user selected.
+// inputMenuOnRightClick opens the menu for a right press on a field
+// (inputOnClick). Caret and selection stay where they are, so Copy and
+// Cut act on what the user selected.
 func inputMenuOnRightClick(
 	ctx EventCtx, leafID, leafScrollID string, hcfg *inputHandlerCfg,
 ) {
-	// The row's parent is the field, which claims the ID. Its text is
-	// read there, placeholder excluded.
+	// ctx.Layout is the field, which claims the ID. Its text is read
+	// there, placeholder excluded.
 	owner := ctx.EffID(leafID)
-	if owner == "" || ctx.Layout.Parent == nil {
+	if owner == "" {
 		return
 	}
-	text := inputTextFromLayout(ctx.Layout.Parent)
-	// MouseX/Y are local to this row; the menu is placed in window
+	text := inputTextFromLayout(ctx.Layout)
+	// MouseX/Y are local to the field; the menu is placed in window
 	// coordinates.
 	x := ctx.Layout.Shape.X + ctx.Event.MouseX
 	y := ctx.Layout.Shape.Y + ctx.Event.MouseY

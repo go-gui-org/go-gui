@@ -346,7 +346,7 @@ func a11yActionCallback(w *Window, action, index int) {
 	switch action {
 	case A11yActionPress:
 		if ev.OnClick != nil {
-			e := &Event{Type: EventMouseDown}
+			e := &Event{Type: EventMouseDown, a11yPress: true}
 			playShapeSound(l, w)
 			ev.OnClick(EventCtx{l, e, w})
 			ran = true

@@ -405,6 +405,12 @@ type Event struct {
 	// container must not claim its own replay, so the
 	// pre-order intercept skips events carrying this mark.
 	dragPanReplay bool
+	// a11yPress marks the press an assistive technology's activate
+	// action synthesizes (a11yActionCallback). No pointer is involved:
+	// MouseButton reads MouseLeft only because that is its zero value,
+	// and MouseX/MouseY are 0, not where anyone pointed. A handler that
+	// places something at the pointer or takes a mouse lock checks this.
+	a11yPress bool
 	// panMoved reports the touch-pan fallback scrolled a container on
 	// one of the move's axes (panScrollFallback).
 	panMoved bool
