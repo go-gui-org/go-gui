@@ -98,6 +98,7 @@ token definitions).
 | OnBlur              | func(EventCtx)                                | Focus lost                       |
 | PreTextChange       | func(current, proposed string) (string, bool) | Validate/transform before change |
 | PostCommitNormalize | func(text string, InputCommitReason) string   | Normalize text on commit         |
+| OnPasteRejected     | func(text string, EventCtx)                   | A paste is refused (whole text)  |
 
 ## Accessibility
 

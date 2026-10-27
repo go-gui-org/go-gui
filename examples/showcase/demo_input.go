@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/go-gui-org/go-gui/gui"
 )
@@ -79,9 +80,24 @@ func demoInput(w *gui.Window) gui.View {
 				Height:      90,
 				SpellCheck:  app.InputSpellCheck,
 				OnTextChanged: func(s string, ctx gui.EventCtx) {
-					appState(ctx.Window).InputMultiline = s
+					st := appState(ctx.Window)
+					st.InputMultiline = s
+					st.InputPasteNotice = ""
+				},
+				// A paste that would take the field past its rune
+				// budget is refused whole; tell the user why.
+				OnPasteRejected: func(text string, ctx gui.EventCtx) {
+					appState(ctx.Window).InputPasteNotice = fmt.Sprintf(
+						"Paste refused: %d characters do not fit in this field.",
+						utf8.RuneCountInString(text))
 				},
 			})),
+			gui.Text(gui.TextCfg{
+				Text:      app.InputPasteNotice,
+				TextStyle: t.TextStyleError,
+				Mode:      gui.TextModeWrap,
+				Invisible: app.InputPasteNotice == "",
+			}),
 		},
 	})
 }

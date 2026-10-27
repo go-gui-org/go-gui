@@ -22,6 +22,13 @@ func inputTextChange(hcfg inputHandlerCfg, layout *Layout, text, ins string, id 
 			inputStoreState(id, w, editCommit(is, text, res.CursorPos, op))
 			return res.Text, true
 		}
+		if res.accepted {
+			// A digit typed over the same digit: the text stays, the
+			// caret moves on, and nothing was refused.
+			inputStoreState(id, w, editCaretOnly(is, res.CursorPos))
+			resetBlinkCursorVisible(w)
+			return text, false
+		}
 	} else if hcfg.preTextChange != nil {
 		proposed := inputProposedText(text, ins, id, w)
 		if adjusted, ok := hcfg.preTextChange(text, proposed); ok {
@@ -207,7 +214,7 @@ func makeInputOnKeyDown(hcfg *inputHandlerCfg) func(EventCtx) {
 			if isShortcut(ctx.Event.Modifiers) {
 				text, textChanged = inputKeyPaste(
 					text, ctx.Window.GetClipboard(), id,
-					mask, *hcfg, ctx.Window)
+					mask, *hcfg, ctx.Layout, ctx.Window)
 			} else {
 				handled = false
 			}
@@ -263,7 +270,7 @@ func inputKeyBound(
 		return nt, changed, true
 	case KeyY:
 		nt, changed := inputKeyPaste(
-			text, w.killBuffer, id, hcfg.CompiledMask, *hcfg, w)
+			text, w.killBuffer, id, hcfg.CompiledMask, *hcfg, layout, w)
 		return nt, changed, true
 	}
 	return text, false, false
