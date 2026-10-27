@@ -69,10 +69,13 @@ type ShowcaseApp struct {
 	InputPhone     string
 	InputExpiry    string
 	InputMultiline string
-	HTMLSource     string
-	RadioValue     string
-	SegmentValue   string
-	SegmentView    string
+	// InputPasteNotice explains the last paste the multiline field
+	// refused; the next text change clears it.
+	InputPasteNotice string
+	HTMLSource       string
+	RadioValue       string
+	SegmentValue     string
+	SegmentView      string
 
 	ComboboxValue      string
 	SvgSpinnerCategory string

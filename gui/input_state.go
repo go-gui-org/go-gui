@@ -163,6 +163,27 @@ func truncateToMaxRunes(s string) string {
 	return s[:runeToByteIndex(s, inputMaxInsertRunes)]
 }
 
+// inputPasteFits reports whether inserting clip at the caret, or over
+// the selection, keeps text within inputMaxInsertRunes runes. A paste
+// that does not fit is refused whole rather than cut (#1187).
+func inputPasteFits(text, clip string, is inputState) bool {
+	if len(text)+len(clip) <= inputMaxInsertRunes {
+		return true // byte length bounds rune count from above
+	}
+	// truncateToMaxRunes stops counting at the budget, so an oversize
+	// clipboard is refused without scanning all of it.
+	if len(truncateToMaxRunes(clip)) < len(clip) {
+		return false
+	}
+	textRunes := utf8RuneCount(text)
+	n := textRunes + utf8RuneCount(clip)
+	if is.selectBeg != is.selectEnd {
+		beg, end := u32Sort(is.selectBeg, is.selectEnd)
+		n -= min(int(end), textRunes) - min(int(beg), textRunes)
+	}
+	return n <= inputMaxInsertRunes
+}
+
 // capCallbackText bounds text an app callback returns (PreTextChange
 // adjusted, PostCommitNormalize output). The callback is trusted code
 // but not size-checked code: without a bound one runaway return pins

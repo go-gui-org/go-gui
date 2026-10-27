@@ -206,18 +206,24 @@ func inputKeyVertical(
 
 // inputKeyPaste handles Ctrl+V / Cmd+V with mask, PreTextChange,
 // and plain-text branches. Returns updated text and whether it
-// changed.
+// changed. layout is the input's own layout, handed to
+// OnPasteRejected.
 func inputKeyPaste(
 	text, clip string, id string,
 	mask *CompiledInputMask,
-	hcfg inputHandlerCfg, w *Window,
+	hcfg inputHandlerCfg, layout *Layout, w *Window,
 ) (string, bool) {
 	if len(clip) == 0 {
 		return text, false
 	}
-	// Bound before any []rune conversion downstream: clipboard
-	// content is platform-sized, not app-sized.
-	clip = truncateToMaxRunes(clip)
+	// Refuse a paste that would leave the field over budget whole,
+	// before any []rune conversion downstream: clipboard content is
+	// platform-sized, not app-sized. Inserting a prefix instead cut
+	// structured text (JSON, CSV) mid-document with no sign (#1187).
+	if !inputPasteFits(text, clip, inputStateOrDefault(id, w)) {
+		hcfg.rejectPaste(clip, layout, w)
+		return text, false
+	}
 	if mask != nil {
 		cis := inputStateOrDefault(id, w)
 		res := inputMaskInsert(text,
@@ -229,15 +235,24 @@ func inputKeyPaste(
 			inputStoreState(id, w, editCommit(cis, text, res.CursorPos, inputOpNone))
 			return res.Text, true
 		}
+		if res.accepted {
+			// Accepted, but the same digits as before: not a refusal.
+			// A paste is never part of a typing run, even one that
+			// changed nothing, so the next keystroke starts a new step.
+			next := editCaretOnly(cis, res.CursorPos)
+			next.lastEditOp = inputOpNone
+			inputStoreState(id, w, next)
+			return text, false
+		}
 		// The mask has no room for the pasted text (issue #468).
-		playSoundCue(hcfg.cues.reject, w)
+		hcfg.rejectPaste(clip, layout, w)
 		return text, false
 	}
 	if hcfg.preTextChange != nil {
 		proposed := inputProposedText(text, clip, id, w)
 		adjusted, ok := hcfg.preTextChange(text, proposed)
 		if !ok {
-			playSoundCue(hcfg.cues.reject, w)
+			hcfg.rejectPaste(clip, layout, w)
 			return text, false
 		}
 		if adjusted == proposed {

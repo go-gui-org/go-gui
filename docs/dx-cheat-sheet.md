@@ -50,6 +50,14 @@ gui.Input(gui.InputCfg{ID: "pin", Keyboard: gui.KeyboardNone}) // app keypad
   send `EventChar` through `ctx.Window.QueueCommand` + `w.EventFn`. See
   `examples/pin_pad`.
 
+## Paste limit
+
+An `Input` holds at most 65,536 runes. A paste that would take it past that is
+refused whole: the field stays unchanged and the reject cue sounds. The cue is
+silent without a sound player, so set `OnPasteRejected` to tell the user. It
+receives the whole paste, which the app can measure, keep, or show in a view
+built for large text.
+
 ## ID scoping
 
 `Shape.ID` is a leaf. The real identity is the effective ID: the leaf joined

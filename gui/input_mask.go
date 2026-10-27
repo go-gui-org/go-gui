@@ -44,6 +44,10 @@ type MaskEditResult struct {
 	Text      string
 	CursorPos int
 	Changed   bool
+	// accepted reports that an insert placed at least one rune. It can
+	// be true with Changed false: a digit typed or pasted over the same
+	// digit leaves the text as it was, but the edit was not refused.
+	accepted bool
 }
 
 type maskEntryKind uint8
@@ -377,6 +381,7 @@ func inputMaskInsert(formatted string, cursorPos int, selectBeg, selectEnd uint3
 		Text:      newText,
 		CursorPos: newCursor,
 		Changed:   newText != formatted,
+		accepted:  insertSlot > start,
 	}
 }
 

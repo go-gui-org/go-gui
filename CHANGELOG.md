@@ -39,7 +39,38 @@ and this project adheres to
   stops it and releases the textures. Images without a `Surface` are unchanged.
   [`examples/pixel_surface/`](examples/pixel_surface/) animates one at 60 Hz.
 
+- **`InputCfg.OnPasteRejected` reports a paste the field refused (#1187).** It
+  is called with the whole paste, before any cap, when Ctrl+V, the context
+  menu's Paste or the macOS Ctrl+Y yank leaves the field unchanged: the text
+  would exceed the field's 65,536-rune budget, the `Mask` has no room for it, or
+  `PreTextChange` refused it. Until now only the reject cue marked a refusal,
+  and that is silent unless the app installs a sound player. The app can now say
+  why ("Paste too large: 92,359 characters"), keep the text, or open it in a
+  view that can hold it. `ctx.Layout` is the input's own layout and `ctx.Event`
+  is nil, as in `OnTextChanged`.
+
 ### Fixed
+
+- **A paste too large for an `Input` is refused whole instead of cut short
+  (#1187).** A paste that would take the field past 65,536 runes inserted only
+  the first 65,536, with no sign anything was dropped, so pasted JSON, CSV or
+  logs ended mid-document. Two smaller pastes that together crossed the budget
+  were kept until the next keystroke cut the text silently. The field now stays
+  unchanged, sounds the reject cue and calls `OnPasteRejected`. The budget
+  counts the text after the paste, so replacing a selection frees room. Typed
+  text and IME commits are unchanged. Two cases that used to keep part of a
+  paste now refuse it: a `Mask` field handed more than 65,536 runes, which took
+  its first matching characters, and a field whose app-set text is already over
+  the budget, which now takes a paste only over a selection.
+
+- **Typing or pasting the same digit over itself in a masked `Input` no longer
+  counts as refused (#1187).** In a full field such as `111`, typing `1` at the
+  start sounded the reject cue and left the caret where it was, so typing over a
+  filled mask stalled on every digit that matched the one already there. Pasting
+  `123` over a selected `123` did the same and now would also have called
+  `OnPasteRejected`. The mask accepted the input; only the text came out the
+  same. The caret now moves on and the selection clears, as for any accepted
+  edit, with no undo step, since the text did not change.
 
 - **A press anywhere in an `Input` now places the caret and opens its context
   menu (#1186).** In a `Scrollable` multiline `Input`, only the lines holding

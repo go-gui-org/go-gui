@@ -32,6 +32,17 @@ func editCommit(is inputState, oldText string, pos int, op uint8) inputState {
 	}
 }
 
+// editCaretOnly returns the state after an insert that was accepted but
+// left the text as it was: a masked digit over the same digit. The caret
+// moves to pos and the selection clears, as for any insert, but the undo
+// and redo stacks stay as they are, since there is no text to restore.
+func editCaretOnly(is inputState, pos int) inputState {
+	is.CursorPos = pos
+	is.selectBeg, is.selectEnd = 0, 0
+	is.cursorOffset = -1
+	return is
+}
+
 // editProposedText returns the text that inserting ins at the caret (or
 // over the selection) would give, without a state change.
 func editProposedText(text, ins string, is inputState) string {

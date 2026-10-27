@@ -253,9 +253,9 @@ func inputMenuAction(st inputMenuState, id string, w *Window) {
 		}
 		// Read again: the clipboard may have changed while the menu
 		// was open. inputKeyPaste applies the mask, PreTextChange and
-		// the rune cap, as Ctrl+V does.
+		// the rune budget, as Ctrl+V does.
 		next, changed = inputKeyPaste(
-			text, w.GetClipboard(), st.owner, h.CompiledMask, *h, w)
+			text, w.GetClipboard(), st.owner, h.CompiledMask, *h, ly, w)
 	case inputMenuSelectAll:
 		if !st.canSelectAll {
 			return

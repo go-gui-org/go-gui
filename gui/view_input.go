@@ -54,6 +54,17 @@ type InputCfg struct {
 	// exportaudit:keep — caller-facing config (issue #372)
 	PostCommitNormalize func(text string, reason InputCommitReason) string
 
+	// OnPasteRejected is called when a paste (Ctrl+V, the context
+	// menu, or the macOS Ctrl+Y yank) leaves the field unchanged: the
+	// result would exceed 65,536 runes (inputMaxInsertRunes), the Mask
+	// has no room for it, or PreTextChange refused it. The rune budget
+	// is checked first, so PreTextChange never sees an oversize paste.
+	// text is the whole paste, before any cap, so the app can report
+	// its size or keep it. The field's reject cue sounds either way.
+	// ctx.Event is nil.
+	// exportaudit:keep — caller-facing config (issue #1187)
+	OnPasteRejected func(text string, ctx EventCtx)
+
 	ID          string `gui:"auto"`
 	Text        string
 	Placeholder string
@@ -251,6 +262,7 @@ func Input(cfg InputCfg) View {
 		OnKeyUp:             cfg.OnKeyUp,
 		preTextChange:       cfg.PreTextChange,
 		postCommitNormalize: cfg.PostCommitNormalize,
+		onPasteRejected:     cfg.OnPasteRejected,
 		cues: resolveSoundCues(
 			guiTheme.Sounds.Click, cfg.Sound, cfg.SoundDisabled),
 	}
@@ -459,6 +471,7 @@ type inputHandlerCfg struct {
 	OnKeyUp             func(EventCtx)
 	preTextChange       func(current, proposed string) (string, bool)
 	postCommitNormalize func(text string, reason InputCommitReason) string
+	onPasteRejected     func(text string, ctx EventCtx)
 	// cues are resolved at generation time and travel by value:
 	// act sounds an Enter commit, reject sounds a refused keystroke.
 	// Neither path reaches event dispatch, so neither can read a cue
@@ -493,6 +506,16 @@ func (h *inputHandlerCfg) fireTextChanged(
 		return
 	}
 	h.OnTextChanged(text, EventCtx{layout, nil, w})
+}
+
+// rejectPaste sounds the reject cue and reports a paste that left the
+// field unchanged. text is the paste as offered, before any cap;
+// layout is the input's own layout.
+func (h *inputHandlerCfg) rejectPaste(text string, layout *Layout, w *Window) {
+	playSoundCue(h.cues.reject, w)
+	if h.onPasteRejected != nil {
+		h.onPasteRejected(text, EventCtx{layout, nil, w})
+	}
 }
 
 // fireTextChangedDeferred is fireTextChanged for the one caller that

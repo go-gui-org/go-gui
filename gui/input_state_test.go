@@ -34,7 +34,7 @@ func TestMaskedEditsResetPreferredColumn(t *testing.T) {
 	}
 	setInputState(w, "m-paste", inputState{CursorPos: 0})
 	if _, changed := inputKeyPaste("", "12", "m-paste", &compiled,
-		inputHandlerCfg{}, w); !changed {
+		inputHandlerCfg{}, nil, w); !changed {
 		t.Fatal("masked paste did not change text")
 	}
 	if got := getInputState(w, "m-paste").cursorOffset; got != -1 {

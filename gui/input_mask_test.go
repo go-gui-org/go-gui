@@ -288,3 +288,60 @@ func TestSlotEntryOutOfRangeIsSkipped(t *testing.T) {
 		}
 	}
 }
+
+// accepted separates "placed a rune" from "changed the text": a digit
+// over the same digit is accepted with the text unchanged (#1187).
+func TestInputMaskInsertAccepted(t *testing.T) {
+	compiled, err := compileInputMask("999", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tests := []struct {
+		name         string
+		text, ins    string
+		cursor       int
+		beg, end     uint32
+		wantAccepted bool
+		wantChanged  bool
+	}{
+		{"same digits over full selection", "123", "123", 3, 0, 3, true, false},
+		{"same digit at caret, field full", "111", "1", 0, 0, 0, true, false},
+		{"new digit at caret, field full", "111", "2", 0, 0, 0, true, true},
+		{"letter, no slot matches", "12", "x", 2, 0, 0, false, false},
+		{"caret at end of full field", "123", "4", 3, 0, 0, false, false},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			res := inputMaskInsert(tc.text, tc.cursor, tc.beg, tc.end, tc.ins, &compiled)
+			if res.accepted != tc.wantAccepted || res.Changed != tc.wantChanged {
+				t.Errorf("accepted=%v changed=%v, want accepted=%v changed=%v",
+					res.accepted, res.Changed, tc.wantAccepted, tc.wantChanged)
+			}
+		})
+	}
+}
+
+// Typing a digit over the same digit in a full masked field moves the
+// caret on, as any accepted keystroke does, instead of sounding the
+// reject cue and leaving the caret in place. The text is unchanged, so
+// no undo step is recorded (#1187).
+func TestSoundInputMaskSameDigitAdvancesCaret(t *testing.T) {
+	restoreTheme(t)
+	w, spy := soundWindow(t, inputSoundView(func(c *InputCfg) {
+		c.Mask = "999"
+		c.Text = "111"
+	}))
+	w.SetFocus("fld")
+	setInputState(w, "fld", inputState{CursorPos: 0})
+	if err := w.TestType("fld", "1"); err != nil {
+		t.Fatalf("TestType: %v", err)
+	}
+	wantCues(t, spy)
+	is := getInputState(w, "fld")
+	if is.CursorPos != 1 {
+		t.Errorf("CursorPos = %d, want 1", is.CursorPos)
+	}
+	if is.Undo != nil && !is.Undo.isEmpty() {
+		t.Error("undo step recorded for an edit that changed no text")
+	}
+}
