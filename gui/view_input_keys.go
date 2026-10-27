@@ -237,7 +237,11 @@ func inputKeyPaste(
 		}
 		if res.accepted {
 			// Accepted, but the same digits as before: not a refusal.
-			inputStoreState(id, w, editCaretOnly(cis, res.CursorPos))
+			// A paste is never part of a typing run, even one that
+			// changed nothing, so the next keystroke starts a new step.
+			next := editCaretOnly(cis, res.CursorPos)
+			next.lastEditOp = inputOpNone
+			inputStoreState(id, w, next)
 			return text, false
 		}
 		// The mask has no room for the pasted text (issue #468).

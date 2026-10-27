@@ -177,6 +177,11 @@ func TestSoundInputMaskSamePasteNotRejected(t *testing.T) {
 			inputState{CursorPos: 3, selectBeg: 0, selectEnd: 3}, 3},
 		{"same digit at caret, field full", "111", "1",
 			inputState{CursorPos: 0}, 1},
+		// A mask keeps what fits and drops the rest without a cue,
+		// as "4567" over "123" gives "456"; the same holds when what
+		// fits equals what was there.
+		{"same digits plus overflow", "123", "1234",
+			inputState{CursorPos: 3, selectBeg: 0, selectEnd: 3}, 3},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -203,5 +208,34 @@ func TestSoundInputMaskSamePasteNotRejected(t *testing.T) {
 					is.CursorPos, is.selectBeg, is.selectEnd, tc.wantCursor)
 			}
 		})
+	}
+}
+
+// A paste is never part of a typing run, even one the mask accepts
+// without changing the text. Type "12", select all, paste "12", type
+// "3": undo must step back to "12", not past the paste to "".
+func TestInputMaskSamePasteBreaksTypingRun(t *testing.T) {
+	text := ""
+	w := inputMenuTestWindow(t, InputCfg{ID: "name", Mask: "999"}, &text)
+	w.SetClipboardGetFn(func() string { return "12" })
+	if err := w.TestType("name", "12"); err != nil {
+		t.Fatalf("TestType: %v", err)
+	}
+	for _, k := range []KeyCode{KeyA, KeyV} {
+		if err := w.TestKey("name", k, ModCtrl); err != nil {
+			t.Fatalf("TestKey: %v", err)
+		}
+	}
+	if err := w.TestType("name", "3"); err != nil {
+		t.Fatalf("TestType: %v", err)
+	}
+	if text != "123" {
+		t.Fatalf("text = %q, want 123", text)
+	}
+	if err := w.TestKey("name", KeyZ, ModCtrl); err != nil {
+		t.Fatalf("TestKey: %v", err)
+	}
+	if text != "12" {
+		t.Errorf("after undo text = %q, want 12", text)
 	}
 }
