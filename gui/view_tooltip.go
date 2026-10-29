@@ -17,6 +17,36 @@ type tooltipState struct {
 	floatWidth, floatHeight    float32
 }
 
+// setRun records the hovered run r, in the frame of the RTF block ly:
+// its bounds and the box its float popup hangs from.
+func (ts *tooltipState) setRun(ly *Layout, r drawClip) {
+	// Readers test the window pointer against the bounds, so they are
+	// kept in the window: the box of the run's corners mapped out
+	// through any view transforms.
+	local := drawClip{
+		X:      ly.Shape.X + r.X,
+		Y:      ly.Shape.Y + r.Y,
+		Width:  r.Width,
+		Height: r.Height,
+	}
+	drawn, mapped := xfBoxToWindowOK(ly, local)
+	if !mapped {
+		drawn = local
+	}
+	ts.bounds = drawn
+	// The popup's anchor hangs in the window, outside any transform, so
+	// it takes the run's box as drawn: the bounds, with their origin
+	// mapped back into the block's frame, where float offsets are
+	// given. A box that did not map is still in the block's frame, and
+	// the run's own box stands in.
+	ts.floatOffsetX, ts.floatOffsetY = r.X, r.Y
+	ts.floatWidth, ts.floatHeight = r.Width, r.Height
+	if x, y, ok := xfWindowToLocal(ly, drawn.X, drawn.Y, false); mapped && ok {
+		ts.floatOffsetX, ts.floatOffsetY = x-ly.Shape.X, y-ly.Shape.Y
+		ts.floatWidth, ts.floatHeight = drawn.Width, drawn.Height
+	}
+}
+
 // clearText resets RTF-sourced tooltip state. No-op when
 // text is empty so WithTooltip-managed state is preserved.
 func (ts *tooltipState) clearText() {

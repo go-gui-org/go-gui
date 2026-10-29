@@ -358,20 +358,9 @@ func rtfMouseMove(ctx EventCtx) {
 					ctx.Consume()
 					return
 				}
-				r := rtfRunRect(run)
 				ts.hoverID = tipID
 				ts.text = found.Tooltip
-				// Readers test the window pointer against the bounds,
-				// so they are kept in the window: the box of the run's
-				// corners mapped out through any view transforms.
-				ts.bounds = xfBoxToWindow(ctx.Layout, drawClip{
-					X:      ctx.Layout.Shape.X + r.X,
-					Y:      ctx.Layout.Shape.Y + r.Y,
-					Width:  r.Width,
-					Height: r.Height,
-				})
-				ts.floatOffsetX, ts.floatOffsetY = r.X, r.Y
-				ts.floatWidth, ts.floatHeight = r.Width, r.Height
+				ts.setRun(ctx.Layout, rtfRunRect(run))
 				ts.blockKey = rtfRunsKey(
 					ctx.Layout.Shape.TC.rtf.rTFRuns)
 				ts.hoverStart = time.Now()

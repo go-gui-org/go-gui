@@ -364,53 +364,130 @@ func TestRtfLinkMenuPlacement(t *testing.T) {
 	}
 }
 
+// rtfTipRuns is an abbreviation run first, where the test measurer
+// can hover it, then lines that make the block tall.
+func rtfTipRuns(lines int) RichText {
+	return RichText{Runs: []RichTextRun{
+		{Text: "abbr", Tooltip: "tip", Style: TextStyle{Size: 14}},
+		{Text: strings.Repeat("\nline", lines), Style: TextStyle{Size: 14}},
+	}}
+}
+
+// rtfTipHover hovers the drawn abbreviation in the RTF id, as the
+// pointer would, and shows its tooltip the way the hover delay does. It
+// returns the run's box as drawn and the tooltip.
+func rtfTipHover(t *testing.T, w *Window, id string) (drawClip, *Shape) {
+	t.Helper()
+	ly, ok := w.layout.FindByID(id)
+	if !ok {
+		t.Fatalf("no RTF %q", id)
+	}
+	var run drawClip
+	for _, it := range ly.Shape.TC.rtf.rTFLayout.Items {
+		if it.StartIndex == 0 {
+			run = rtfRunRect(it)
+		}
+	}
+	box := xfBoxToWindow(ly, drawClip{
+		X: ly.Shape.X + run.X, Y: ly.Shape.Y + run.Y,
+		Width: run.Width, Height: run.Height,
+	})
+	w.EventFn(&Event{Type: EventMouseMove,
+		MouseX: box.X + box.Width/2, MouseY: box.Y + box.Height/2})
+	w.settle()
+	ts := &w.viewState.tooltip
+	if ts.hoverID != "tip" {
+		t.Fatalf("hover missed the run: hoverID = %q", ts.hoverID)
+	}
+	// The run's box as drawn is what the popup hangs from.
+	if !f32AreClose(ts.floatWidth, box.Width) || !f32AreClose(ts.floatHeight, box.Height) {
+		t.Errorf("anchor %vx%v, want the drawn run %vx%v",
+			ts.floatWidth, ts.floatHeight, box.Width, box.Height)
+	}
+	rtfTooltipAnimation(ts.hoverID).Callback(nil, w)
+	w.TestRender(nil)
+	return box, mustShape(t, w, ts.popupID)
+}
+
 // The RTF tooltip sits 3px above the hovered run, centered on it. It
-// hangs from the run's box, so with no room above it flips to 3px below
-// the run. Hung from the block's corner instead, it flipped to the
-// block's bottom edge: in a block taller than the tooltip's distance
-// from the window's top it opened far below the word.
+// hangs from the run's box as drawn, so with no room above it flips to
+// 3px below the run. Hung from the block's corner instead, it flipped to
+// the block's bottom edge, far below the word; and under a view
+// transform the box is the drawn one, scaled or turned, not the run's
+// layout size.
 func TestRtfTooltipPlacement(t *testing.T) {
+	// Scale and turn pivot on the card's center, so the transformed
+	// cases take a one-line block: the drawn word stays at the top.
 	for _, c := range []struct {
 		name  string
-		run   drawClip
+		top   float32 // space above the RTF
+		lines int     // lines below the abbreviation
+		xf    Transform
 		above bool
 	}{
-		{"room above", drawClip{X: 20, Y: 200, Width: 40, Height: 16}, true},
-		{"top of a tall block", drawClip{X: 20, Y: 10, Width: 40, Height: 16}, false},
+		{"room above", 300, 20, Transform{}, true},
+		{"top of a tall block", 0, 20, Transform{}, false},
+		{"scaled at the top", 0, 0, Scale(2), false},
+		{"turned at the top", 0, 0, Rotate(90), false},
+		{"scaled with room above", 300, 0, Scale(2), true},
 	} {
 		t.Run(c.name, func(t *testing.T) {
-			h := newRtfSelectHarness(t, RichText{Runs: []RichTextRun{
-				{Text: strings.Repeat("line\n", 20), Style: TextStyle{Size: 14}},
-			}})
-			block := h.shape(t).Shape
-			if block.Height < 400 || block.Y+block.Height >= 800 {
-				t.Fatalf("block y=%v height %v, the case needs a tall one ending in the window",
-					block.Y, block.Height)
-			}
-			r := c.run
-			h.w.viewState.tooltip = tooltipState{
-				id: "tip", popupID: "tip", hoverID: "tip", text: "tip",
-				blockKey:     rtfRunsKey(block.TC.rtf.rTFRuns),
-				floatOffsetX: r.X, floatOffsetY: r.Y,
-				floatWidth: r.Width, floatHeight: r.Height,
-			}
-			h.w.TestRender(nil)
-			p := mustShape(t, h.w, "tip")
-			expectPopupInWindow(t, h.w, p)
-			wordTop := block.Y + r.Y
+			w := NewTestWindow(t, WindowCfg{Width: 800, Height: 800})
+			w.textMeasurer = rtfSelTestMeasurer{}
+			w.TestRender(func(*Window) View {
+				return cmPlaceColumn(cmPlaceGap(FillFixed, c.top), Column(ContainerCfg{
+					ID: "card", Padding: NoPadding, SizeBorder: NoBorder,
+					Transform: c.xf,
+					Content:   []View{RTF(RTFCfg{ID: "rtf", RichText: rtfTipRuns(c.lines)})},
+				}))
+			})
+			box, p := rtfTipHover(t, w, ScopeID("card", "rtf"))
+			expectPopupInWindow(t, w, p)
 			if c.above {
-				if !f32AreClose(p.Y+p.Height, wordTop-3) {
+				if !f32AreClose(p.Y+p.Height, box.Y-3) {
 					t.Errorf("tooltip y=%v..%v, want its bottom 3px above the word at %v",
-						p.Y, p.Y+p.Height, wordTop)
+						p.Y, p.Y+p.Height, box.Y)
 				}
-			} else if !f32AreClose(p.Y, wordTop+r.Height+3) {
+			} else if !f32AreClose(p.Y, box.Y+box.Height+3) {
 				t.Errorf("tooltip y=%v, want it 3px below the word at %v..%v",
-					p.Y, wordTop, wordTop+r.Height)
+					p.Y, box.Y, box.Y+box.Height)
 			}
-			if mid := block.X + r.X + r.Width/2; !f32AreClose(p.X+p.Width/2, mid) {
+			if mid := box.X + box.Width/2; !f32AreClose(p.X+p.Width/2, mid) {
 				t.Errorf("tooltip centered at x=%v, want the word's center %v",
 					p.X+p.Width/2, mid)
 			}
 		})
+	}
+}
+
+// The tooltip's anchor covers its word and its layer can sit above an
+// open menu that covers the word too. The anchor is inert, so a press
+// on the menu item over the word still picks the item.
+func TestRtfTooltipAnchorTakesNoPress(t *testing.T) {
+	picked := ""
+	w := NewTestWindow(t, WindowCfg{Width: 800, Height: 800})
+	w.textMeasurer = rtfSelTestMeasurer{}
+	w.TestRender(func(*Window) View {
+		return cmPlaceColumn(
+			ContextMenu(nil, ContextMenuCfg{
+				ID: "cm", Sizing: FillFixed, Height: 30, Items: cmPlaceItems(),
+				Action: func(id string, _ EventCtx) { picked = id },
+			}),
+			RTF(RTFCfg{ID: "rtf", RichText: rtfTipRuns(0)}),
+		)
+	})
+	word := mustShape(t, w, "rtf")
+	// Open the menu above-left of the word, so its items cover it.
+	cmOpenAt(t, w, ScopeID("cm", "popup"), word.X+5, 5)
+	box, _ := rtfTipHover(t, w, "rtf")
+	x, y := box.X+box.Width/2, box.Y+box.Height/2
+	target := interactionTargetAt(w.layout.Children, x, y, w)
+	if !strings.HasPrefix(target, ScopeID("cm", "popup")+":") {
+		t.Fatalf("target under the word = %q, want a menu item", target)
+	}
+	pressAt(w, MouseLeft, x, y)
+	releaseAt(w, MouseLeft, x, y)
+	if want := strings.TrimPrefix(target, ScopeID("cm", "popup")+":"); picked != want {
+		t.Errorf("picked = %q, want %q", picked, want)
 	}
 }

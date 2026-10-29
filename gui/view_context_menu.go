@@ -234,8 +234,13 @@ func contextMenuPopup(w *Window, cfg ContextMenuCfg, mx, my float32) View {
 // opens below-right of it, above it with no room below, left of it with
 // no room to the right. A sized r is a box to keep clear: the RTF
 // tooltip sits above its word and flips to below it.
+//
+// The box is inert: it takes no pointer. Its layer can sit above
+// another popup, such as an open menu over the hovered word, and would
+// otherwise take that popup's presses.
 func floatAnchorBox(r drawClip, popup View) View {
 	return Column(ContainerCfg{
+		inert:        true,
 		Float:        true,
 		FloatAnchor:  FloatTopLeft,
 		FloatTieOff:  FloatTopLeft,
