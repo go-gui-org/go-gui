@@ -236,7 +236,7 @@ func mainView(w *gui.Window) gui.View {
 
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFill,
-		Padding: gui.PadAll(16),
+		Padding: th.PaddingLarge,
 		Spacing: gui.SpacingMedium,
 		Content: []gui.View{
 			gui.Column(gui.ContainerCfg{
