@@ -103,12 +103,13 @@ and this project adheres to
   on a Russian layout. On Wayland and X11 the code now follows the rules of
   `docs/specs/keyboard-layouts.md`: named and keypad keys by their symbol (the
   numpad navigates with NumLock off), ASCII letters and digits, the digit Shift
-  types on AZERTY, a Latin layout's letter (or the US one at that position) on
-  non-Latin layouts, and every printable ASCII character. AltGr is reported as
-  `ModAltGr`, so AltGr+8 typing `[` no longer fires a `Key8` shortcut, and an
-  AltGr chord no longer acts as the plain key for focus traversal (Tab) or
-  keyboard scrolling. A key's release reports the code of its press. On the
-  default US layout nothing that worked changes; a test pins this.
+  types on AZERTY, on non-Latin layouts the letter of the first configured Latin
+  layout (else the US one at that position), and every printable ASCII
+  character. AltGr is reported as `ModAltGr`, so AltGr+8 typing `[` no longer
+  fires a `Key8` shortcut, and an AltGr chord no longer acts as the plain key
+  for focus traversal (Tab) or keyboard scrolling. A key's release reports the
+  code of its press. On the default US layout nothing that worked changes; a
+  test pins this.
 
 - **On X11, AltGr, NumLock, Caps Lock and non-Latin layouts type the right text
   (#1188).** The X11 backend chose a key's symbol from Shift alone, so on a

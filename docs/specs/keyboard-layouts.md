@@ -96,8 +96,16 @@ else; "shifted" adds Shift.
 4. **Shifted ASCII digit** → that digit. This is the AZERTY row.
 5. **Non-Latin layout** (the active layout's A–D keys type no ASCII letter):
    - the unmodified letter or digit of the first configured Latin layout on the
-     same physical key, else
+     same physical key, before or after the active one, else
    - the US letter or digit at that physical position.
+
+   On a non-Latin layout, letter shortcuts follow the first configured Latin
+   layout; changing that order may change their logical shortcut identities.
+   That is intended configuration semantics (D6): `KeyCode` is a layout-aware
+   identity, so a Dvorak or Colemak user keeps their letters on Russian or
+   Greek. Order matters only with two different Latin layouts plus a non-Latin
+   one, and then the first Latin layout stands for the primary shortcut layout.
+
 6. **Unmodified printable ASCII** → its key code (§ 3).
 7. **Dead keys** by their spacing ASCII character: `dead_grave` → `` ` ``,
    `dead_circumflex` → `^`, `dead_tilde` → `~`. Others → `KeyInvalid`.
@@ -252,14 +260,14 @@ default mode would also count Ctrl and Alt on keys that have a Ctrl+Alt level
 Confirmed by the maintainer on 2026-10-28, on condition that US is not made
 worse (see § US regression guard).
 
-| #   | Decision                                 | Taken                                     | Alternative                                   |
-| --- | ---------------------------------------- | ----------------------------------------- | --------------------------------------------- |
-| D1  | Names of the two new `Event` fields      | `TypedKey`, `TypedModifiers`              | `ShortcutKey`, `ConsumedModifiers` (raw mask) |
-| D2  | 21 ASCII key constants (§ 3)             | add them now                              | later; `#`, `+`, `<`, `^` stay `KeyInvalid`   |
-| D3  | AltGr as `ModAltGr` in `Modifiers` (§ 4) | yes                                       | keep it out; only suppress the exact pass     |
-| D4  | NumLock-off keypad keys                  | navigation codes (`KeyHome`)              | always `KeyKP7` (GLFW, physical)              |
-| D5  | Dead keys (rule 7)                       | spacing ASCII character                   | `KeyInvalid` as today                         |
-| D6  | Non-Latin fallback order (rule 5)        | configured Latin layout, then US position | US position only (SDL)                        |
+| #   | Decision                                 | Taken                                  | Alternative                                   |
+| --- | ---------------------------------------- | -------------------------------------- | --------------------------------------------- |
+| D1  | Names of the two new `Event` fields      | `TypedKey`, `TypedModifiers`           | `ShortcutKey`, `ConsumedModifiers` (raw mask) |
+| D2  | 21 ASCII key constants (§ 3)             | add them now                           | later; `#`, `+`, `<`, `^` stay `KeyInvalid`   |
+| D3  | AltGr as `ModAltGr` in `Modifiers` (§ 4) | yes                                    | keep it out; only suppress the exact pass     |
+| D4  | NumLock-off keypad keys                  | navigation codes (`KeyHome`)           | always `KeyKP7` (GLFW, physical)              |
+| D5  | Dead keys (rule 7)                       | spacing ASCII character                | `KeyInvalid` as today                         |
+| D6  | Non-Latin fallback order (rule 5)        | first configured Latin layout, then US | US position only (SDL), a preference setting  |
 
 ### US regression guard
 
@@ -335,10 +343,14 @@ Shift+AE01 keeps Shift: the typed key equals `KeyCode` (§ 1).
 | `ru`                 | Shift+AE07 | `Key7`     | ?    | `KeyQuestion` | `{KeyQuestion}` |
 | `ru`                 | LSGT       | `KeySlash` | /    | `KeySlash`    | `{KeySlash}`    |
 | `us,ru` (ru)         | Ctrl+AB03  | `KeyC`     | —    | `KeyC`        | `{KeyC, Ctrl}`  |
+| `ru,us` (ru)         | Ctrl+AB03  | `KeyC`     | —    | `KeyC`        | `{KeyC, Ctrl}`  |
 | `us(dvorak),ru` (ru) | Ctrl+AB03  | `KeyJ`     | —    | `KeyJ`        | `{KeyJ, Ctrl}`  |
 
 The last row is where D6 matters: the configured Latin layout (Dvorak) wins over
-the US position.
+the US position. `ru,us` shows the Latin layout may come after the active one.
+D6 was confirmed again on 2026-10-29 against a fixed US-position fallback, which
+would be order-independent but would move Dvorak and Colemak users' letter
+shortcuts on Russian or Greek; a preference API was judged disproportionate.
 
 ### Others
 

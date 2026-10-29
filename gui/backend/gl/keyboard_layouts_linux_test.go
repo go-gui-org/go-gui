@@ -404,6 +404,23 @@ func TestKeyboardGoldenPl(t *testing.T) {
 	})
 }
 
+// ru,us and ru,us(dvorak) with Russian active: the first configured Latin
+// layout may come after the active one (D6). Dvorak's J there proves the
+// later layout is read, not the US position.
+func TestKeyboardGoldenRuThenLatin(t *testing.T) {
+	t.Run("ru,us", func(t *testing.T) {
+		runGolden(t, "ru,us", "", 0, []goldenRow{
+			{kbKeys("LCTL", "AB03"), kbNumLockOff, gui.KeyC, gui.ModCtrl, 0, 0, 0},
+			{kbKeys("AB03"), kbNumLockOff, gui.KeyC, gui.ModNone, 'с', 0, 0},
+		})
+	})
+	t.Run("ru,us(dvorak)", func(t *testing.T) {
+		runGolden(t, "ru,us", ",dvorak", 0, []goldenRow{
+			{kbKeys("LCTL", "AB03"), kbNumLockOff, gui.KeyJ, gui.ModCtrl, 0, 0, 0},
+		})
+	})
+}
+
 // Dvorak,ru with Russian active: Dvorak wins over the US position (D6).
 func TestKeyboardGoldenDvorakRu(t *testing.T) {
 	runGolden(t, "us,ru", "dvorak,", 1, []goldenRow{
