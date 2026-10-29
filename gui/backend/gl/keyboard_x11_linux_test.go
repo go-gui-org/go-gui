@@ -1,0 +1,326 @@
+//go:build linux && !js && !android && (amd64 || arm64)
+
+package gl
+
+import (
+	"testing"
+
+	"github.com/jezek/xgb/xproto"
+
+	"github.com/go-gui-org/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/x11key"
+	"github.com/go-gui-org/go-gui/gui/backend/internal/xkb"
+)
+
+// The X11 path of docs/specs/keyboard-layouts.md (#1188), checked without
+// an X server: each test builds the core keymap Xorg publishes for a
+// layout, from libxkbcommon's compile of the same layout, and presses keys
+// through platformState.readPress.
+
+// X11 core state bits (X.h) and where Xorg puts NumLock and ISO level 3:
+// the modifier map of an xkeyboard-config keymap binds Num_Lock to Mod2 and
+// ISO_Level3_Shift to Mod5 (checked against Xorg 21 with xgb).
+const (
+	x11Shift   = xproto.KeyButMaskShift
+	x11Lock    = xproto.KeyButMaskLock
+	x11Control = xproto.KeyButMaskControl
+	x11Mod1    = xproto.KeyButMaskMod1
+	x11Mod2    = xproto.KeyButMaskMod2
+	x11Mod3    = xproto.KeyButMaskMod3 // ISO level 5
+	x11Mod4    = xproto.KeyButMaskMod4
+	x11Mod5    = xproto.KeyButMaskMod5
+	x11MinKC   = 8
+	x11MaxKC   = 255
+)
+
+// coreKeymapFor is the platform state an X11 window has for km: the core
+// keymap Xorg derives from it and the modifier bits of NumLock and level 3.
+// Per key the columns are the first group's two levels, the second group's
+// two (a copy of the first's on a key with one group), then the first
+// group's further levels and the second's, as Xorg publishes them.
+func coreKeymapFor(km *xkb.Keymap) *platformState {
+	rows := make([][]uint32, x11MaxKC-x11MinKC+1)
+	width := 4
+	at := func(s []uint32, i int) uint32 {
+		if i < len(s) {
+			return s[i]
+		}
+		return 0
+	}
+	for code := x11MinKC; code <= x11MaxKC; code++ {
+		lv := km.Levels(uint32(code))
+		if len(lv) == 0 {
+			continue
+		}
+		g1, g2 := lv[0], lv[0]
+		if len(lv) > 1 {
+			g2 = lv[1]
+		}
+		row := []uint32{at(g1, 0), at(g1, 1), at(g2, 0), at(g2, 1)}
+		if len(g1) > 2 {
+			row = append(row, g1[2:]...)
+		}
+		if len(g2) > 2 {
+			row = append(row, g2[2:]...)
+		}
+		rows[code-x11MinKC] = row
+		width = max(width, len(row))
+	}
+	syms := make([]xproto.Keysym, len(rows)*width)
+	for i, row := range rows {
+		for j, s := range row {
+			syms[i*width+j] = xproto.Keysym(s)
+		}
+	}
+	p := &platformState{
+		keymap: &xproto.GetKeyboardMappingReply{
+			KeysymsPerKeycode: byte(width),
+			Keysyms:           syms,
+		},
+		minKeycode:  x11MinKC,
+		numLockMask: x11Mod2,
+		level3Mask:  x11Mod5,
+	}
+	for g := range p.latinGroups {
+		p.latinGroups[g] = p.groupIsLatin(g)
+	}
+	return p
+}
+
+// coreRepresentable reports whether the core keymap describes a key as
+// XKB does, given its levels per layout. Such keys differ on X11 by design
+// (spec § 6); it is false when
+//   - a level up to the fourth is explicitly NoSymbol: the core keymap's
+//     empty column means "absent", but a key types nothing on an XKB
+//     NoSymbol level;
+//   - a one-level key holds a cased letter: XKB ignores Shift there, the
+//     core protocol's rule (#948) gives the capital;
+//   - a keypad keysym is on a key other than the plain keypad shape (two
+//     levels, both keypad keysyms): keypad types the core keymap has no
+//     notion of, where XKB (with its preserved modifiers) and the
+//     protocol's NumLock rule disagree.
+func coreRepresentable(levels [][]uint32) bool {
+	if len(levels) == 0 {
+		return true
+	}
+	g := levels[0]
+	keypad := 0
+	for i := 0; i < len(g) && i < 4; i++ {
+		if g[i] == 0 {
+			return false
+		}
+		if isKeypadKeysym(g[i]) {
+			keypad++
+		}
+	}
+	if len(g) == 1 {
+		return shiftedKeysym(g[0]) == g[0]
+	}
+	return keypad == 0 || keypad == 2 && len(g) == 2
+}
+
+// x11ModBit is the state bit holding key name down sets.
+func x11ModBit(km *xkb.Keymap, name string) uint16 {
+	switch name {
+	case "LFSH", "RTSH":
+		return x11Shift
+	case "LCTL", "RCTL":
+		return x11Control
+	case "LALT":
+		return x11Mod1
+	case "LWIN", "RWIN":
+		return x11Mod4
+	case "RALT":
+		if km.BaseSym(km.KeyByName("RALT")) == symISOLevel3Shift {
+			return x11Mod5
+		}
+		return x11Mod1
+	}
+	return 0
+}
+
+// x11Press presses keys[len-1] with the others held, as the X11 path sees
+// it, and returns the key down it reports and the character it types.
+func x11Press(t *testing.T, p *platformState, km *xkb.Keymap, keys []string, state uint16) (gui.Event, rune) {
+	t.Helper()
+	for _, n := range keys[:len(keys)-1] {
+		state |= x11ModBit(km, n)
+	}
+	code := km.KeyByName(keys[len(keys)-1])
+	if code == 0 {
+		t.Fatalf("keymap has no key <%s>", keys[len(keys)-1])
+	}
+	return x11PressCode(p, code, state)
+}
+
+// x11PressCode is x11Press for a keycode and a full state.
+func x11PressCode(p *platformState, code uint32, state uint16) (gui.Event, rune) {
+	pk, sym := p.readPress(xproto.Keycode(code), state)
+	r := keyPressCharWide(&p.compose, sym, state, wideKeysymToRune)
+	p.compose.reset()
+	mods := x11key.MapModifiers(state)
+	return gui.Event{
+		Type: gui.EventKeyDown, KeyCode: pk.code, Modifiers: mods,
+		TypedKey: pk.typed, TypedModifiers: mods &^ pk.consumed,
+	}, r
+}
+
+func runGoldenX11(t *testing.T, layout, variant string, layoutIdx uint32, rows []goldenRow) {
+	km, err := xkb.NewKeymapFromNames("evdev", "pc105", layout, variant, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer km.Destroy()
+	p := coreKeymapFor(km)
+	base := uint16(layoutIdx) << 13 // the group, as an XKB-aware server reports it
+	for _, row := range rows {
+		state := base
+		if row.numLock {
+			state |= x11Mod2
+		}
+		down, char := x11Press(t, p, km, row.keys, state)
+		checkGoldenRow(t, goldenRowName(row), row, down, char)
+	}
+}
+
+// TestKeyboardX11CapsLock: Caps Lock types capitals on X11, Latin and
+// Cyrillic, and does not change the key a press reports.
+func TestKeyboardX11CapsLock(t *testing.T) {
+	requireXKB(t)
+	cases := []struct {
+		layout string
+		key    string
+		state  uint16
+		want   rune
+		code   gui.KeyCode
+	}{
+		{"us", "AC01", x11Lock, 'A', gui.KeyA},
+		{"us", "AC01", x11Lock | x11Shift, 'A', gui.KeyA}, // the protocol: Shift+Lock is still a capital
+		{"us", "AE01", x11Lock, '1', gui.Key1},
+		{"de", "AC11", x11Lock, 'Ä', gui.KeyInvalid},
+		{"ru", "AB03", x11Lock, 'С', gui.KeyC},
+	}
+	for _, c := range cases {
+		km, err := xkb.NewKeymapFromNames("evdev", "pc105", c.layout, "", "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		p := coreKeymapFor(km)
+		down, char := x11Press(t, p, km, []string{c.key}, c.state)
+		if char != c.want || down.KeyCode != c.code {
+			t.Errorf("%s %s state %#x: char %q KeyCode %d, want %q %d",
+				c.layout, c.key, c.state, char, down.KeyCode, c.want, c.code)
+		}
+		km.Destroy()
+	}
+}
+
+// TestKeyboardX11USRegression is the US regression guard on the X11 path:
+// every key that had a KeyCode keeps it, with the same Modifiers, and the
+// typed pass reaches only constants #1188 added.
+func TestKeyboardX11USRegression(t *testing.T) {
+	requireXKB(t)
+	km, err := xkb.NewKeymapFromNames("evdev", "pc105", "us", "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer km.Destroy()
+	p := coreKeymapFor(km)
+	held := []struct {
+		state uint16
+		mods  gui.Modifier
+	}{
+		{0, gui.ModNone},
+		{x11Shift, gui.ModShift},
+		{x11Control, gui.ModCtrl},
+		{x11Control | x11Shift, gui.ModCtrlShift},
+		{x11Mod1, gui.ModAlt},
+		{x11Mod4, gui.ModSuper},
+	}
+	for _, hd := range held {
+		if m := x11key.MapModifiers(hd.state); m != hd.mods {
+			t.Errorf("state %#x: Modifiers %#x, want %#x", hd.state, m, hd.mods)
+		}
+	}
+	checked := 0
+	for code := uint32(x11MinKC + 1); code <= x11MaxKC; code++ {
+		want := legacyUSKeyCode(km.BaseSym(code))
+		if want == gui.KeyInvalid {
+			continue
+		}
+		for _, hd := range held {
+			pk, _ := p.readPress(xproto.Keycode(code), hd.state)
+			checked++
+			if pk.code != want {
+				t.Errorf("key %d state %#x: KeyCode %d, want %d", code, hd.state, pk.code, want)
+			}
+			if pk.typed != pk.code && !newASCIIKeys[pk.typed] {
+				t.Errorf("key %d state %#x: TypedKey %d existed before #1188", code, hd.state, pk.typed)
+			}
+		}
+	}
+	if checked < 300 {
+		t.Fatalf("checked only %d presses", checked)
+	}
+}
+
+// TestKeyboardX11WithoutXKBTable: without libxkbcommon the X11 path types
+// with x11key's table alone; € and the numpad's characters must still
+// arrive (#1188).
+func TestKeyboardX11WithoutXKBTable(t *testing.T) {
+	requireXKB(t) // to build the core keymap, not to type
+	km, err := xkb.NewKeymapFromNames("evdev", "pc105", "de", "nodeadkeys", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer km.Destroy()
+	p := coreKeymapFor(km)
+	cases := []struct {
+		keys  []string
+		state uint16
+		want  rune
+	}{
+		{[]string{"RALT", "AD03"}, 0, '€'},
+		{[]string{"KP7"}, x11Mod2, '7'},
+		{[]string{"KP0"}, x11Mod2, '0'},
+		{[]string{"KPDL"}, x11Mod2, ','},
+		{[]string{"KPMU"}, 0, '*'},
+		{[]string{"KPAD"}, 0, '+'},
+		{[]string{"KPSU"}, 0, '-'},
+		{[]string{"KPDV"}, 0, '/'},
+		{[]string{"KP7"}, 0, 0}, // NumLock off: Home
+		{[]string{"KPEN"}, 0, 0},
+	}
+	for _, c := range cases {
+		state := c.state
+		for _, n := range c.keys[:len(c.keys)-1] {
+			state |= x11ModBit(km, n)
+		}
+		_, sym := p.readPress(xproto.Keycode(km.KeyByName(c.keys[len(c.keys)-1])), state)
+		r := keyPressCharWide(&p.compose, sym, state, x11key.KeysymToRune)
+		p.compose.reset()
+		if r != c.want {
+			t.Errorf("%v state %#x: char %q, want %q", c.keys, state, r, c.want)
+		}
+	}
+}
+
+// TestKeysymTablesAgree: every keysym x11key's table types, it types as
+// libxkbcommon does, so the X11 path types the same with or without it.
+func TestKeysymTablesAgree(t *testing.T) {
+	requireXKB(t)
+	mapped := 0
+	for sym := range uint32(0x10000) {
+		r := x11key.KeysymToRune(sym)
+		if r == 0 {
+			continue
+		}
+		mapped++
+		if want := xkb.KeysymToRune(sym); r != want {
+			t.Errorf("keysym %#x: x11key types %q, libxkbcommon %q", sym, r, want)
+		}
+	}
+	if mapped < 200 {
+		t.Fatalf("x11key maps only %d keysyms", mapped)
+	}
+}

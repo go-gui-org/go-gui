@@ -26,6 +26,18 @@ func (s Shortcut) matches(e *Event) bool {
 		e.KeyCode == s.Key && e.Modifiers == s.Modifiers
 }
 
+// matchesTyped returns true if the key the event typed matches this
+// shortcut: the key with Shift, AltGr and NumLock applied, against the
+// modifiers that translation did not use up. Ctrl+Shift+7 on a German
+// layout types "/" with Ctrl left, so it matches Ctrl+/. Nil-safe.
+func (s Shortcut) matchesTyped(e *Event) bool {
+	if e == nil {
+		return false
+	}
+	return s.Key != KeyInvalid && e.TypedKey != KeyInvalid &&
+		e.TypedKey == s.Key && e.TypedModifiers == s.Modifiers
+}
+
 // String returns a human-readable shortcut label.
 // Uses macOS glyphs on darwin, text labels elsewhere.
 func (s Shortcut) String() string {
@@ -65,6 +77,9 @@ func shortcutStringOther(m Modifier, buf []byte) []byte {
 	if m.Has(ModAlt) {
 		buf = append(buf, "Alt+"...)
 	}
+	if m.Has(ModAltGr) {
+		buf = append(buf, "AltGr+"...)
+	}
 	if m.Has(ModShift) {
 		buf = append(buf, "Shift+"...)
 	}
@@ -103,6 +118,32 @@ var keyNameMap = map[KeyCode]string{
 	KeyApostrophe:   "'",
 	KeySemicolon:    ";",
 	KeyGraveAccent:  "`",
+	KeyExclamation:  "!",
+	KeyQuotation:    "\"",
+	KeyNumberSign:   "#",
+	KeyDollar:       "$",
+	KeyPercent:      "%",
+	KeyAmpersand:    "&",
+	KeyLeftParen:    "(",
+	KeyRightParen:   ")",
+	KeyAsterisk:     "*",
+	KeyPlus:         "+",
+	KeyColon:        ":",
+	KeyLess:         "<",
+	KeyGreater:      ">",
+	KeyQuestion:     "?",
+	KeyAt:           "@",
+	KeyCircumflex:   "^",
+	KeyUnderscore:   "_",
+	KeyLeftBrace:    "{",
+	KeyBar:          "|",
+	KeyRightBrace:   "}",
+	KeyTilde:        "~",
+	KeyNumLock:      "NumLock",
+	KeyScrollLock:   "ScrollLock",
+	KeyPrintScreen:  "PrtSc",
+	KeyPause:        "Pause",
+	KeyMenu:         "Menu",
 }
 
 // keyName returns a display name for a key code.
@@ -299,6 +340,10 @@ func (w *Window) CommandPaletteItems() []CommandPaletteItem {
 // commandDispatch scans commands matching the event's
 // key+modifiers. If globalOnly is true, only Global=true
 // commands are checked; if false, only Global=false.
+// A first pass matches KeyCode and Modifiers exactly; only if
+// no command ran does a second pass match TypedKey and
+// TypedModifiers, so a press that fits two commands runs the
+// exact one (docs/specs/keyboard-layouts.md § 5).
 // Returns true if a command was executed. Nil events never
 // match. Commands with nil Execute never consume the event,
 // so an action-less binding cannot swallow a keypress.
@@ -314,26 +359,32 @@ func (w *Window) commandDispatch(
 	if len(snapshot) == 0 {
 		return false
 	}
-	for i := range snapshot {
-		cmd := &snapshot[i]
-		if cmd.Global != globalOnly {
-			continue
+	for pass := range 2 {
+		if pass == 1 && e.TypedKey == KeyInvalid {
+			break
 		}
-		if !cmd.Shortcut.IsSet() {
-			continue
+		for i := range snapshot {
+			cmd := &snapshot[i]
+			if cmd.Global != globalOnly {
+				continue
+			}
+			if !cmd.Shortcut.IsSet() {
+				continue
+			}
+			if pass == 0 && !cmd.Shortcut.matches(e) ||
+				pass == 1 && !cmd.Shortcut.matchesTyped(e) {
+				continue
+			}
+			if !cmd.canExecute(w) {
+				continue
+			}
+			if cmd.Execute == nil {
+				continue
+			}
+			cmd.Execute(e, w)
+			e.IsHandled = true
+			return true
 		}
-		if !cmd.Shortcut.matches(e) {
-			continue
-		}
-		if !cmd.canExecute(w) {
-			continue
-		}
-		if cmd.Execute == nil {
-			continue
-		}
-		cmd.Execute(e, w)
-		e.IsHandled = true
-		return true
 	}
 	return false
 }

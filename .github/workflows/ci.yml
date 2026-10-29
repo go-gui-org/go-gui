@@ -53,6 +53,15 @@ jobs:
           # that ships on the runner.
           install-linux-deps: 'false'
 
+      # The keyboard-layout tests (#1188) compile real layouts with
+      # libxkbcommon and xkeyboard-config at run time. GOGUI_REQUIRE_XKB
+      # below makes them fail instead of skip if either is missing.
+      - name: Install libxkbcommon and xkeyboard-config
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libxkbcommon0 xkb-data
+
       - name: Test
         # -race needs cgo, and mingw is not on PATH on Windows runners.
         # Windows runs the suite un-raced (the suite only reached Windows
@@ -60,6 +69,7 @@ jobs:
         shell: bash
         env:
           GODEBUG: ${{ matrix.preempt == 'off' && 'asyncpreemptoff=1,clobberfree=1' || '' }}
+          GOGUI_REQUIRE_XKB: ${{ runner.os == 'Linux' && '1' || '' }}
         run: |
           if [ "$RUNNER_OS" = "Windows" ]; then
             # #886: the suite sometimes kills the Go runtime on Windows

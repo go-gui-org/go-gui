@@ -136,7 +136,7 @@ func TestWlKeyChar(t *testing.T) {
 		{"shift inside a sequence is transparent", 0xffe1, xkb.MaskShift, 0},
 		{"miss falls through to xkb", 0x6c1, 0, 'а'},
 	} {
-		if got := wlKeyChar(&c, k.sym, k.state, cyrillic); got != k.want {
+		if got := keyPressCharWide(&c, k.sym, k.state, cyrillic); got != k.want {
 			t.Errorf("%s: got %q, want %q", k.name, got, k.want)
 		}
 	}

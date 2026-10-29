@@ -168,6 +168,7 @@ func newX11(w *gui.Window) (*Backend, error) {
 	b.plat.atomClipProp = internAtom(conn, "_GOGUI_CLIPBOARD")
 	b.plat.minKeycode = setup.MinKeycode
 	b.plat.keymap = loadKeymap(conn, setup)
+	b.plat.loadKeyboardInfo(conn)
 
 	loadCursors(&b.plat)
 	xproto.MapWindow(conn, win)

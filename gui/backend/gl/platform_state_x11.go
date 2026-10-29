@@ -46,6 +46,14 @@ type platformState struct {
 	atomOpacity xproto.Atom
 	keymap      *xproto.GetKeyboardMappingReply
 	minKeycode  xproto.Keycode
+	// numLockMask and level3Mask are the state bits of the modifiers
+	// that hold Num_Lock and ISO_Level3_Shift; latinGroups tells which of
+	// the core keymap's two groups types Latin letters (keys_x11.go).
+	numLockMask, level3Mask uint16
+	latinGroups             [2]bool
+	// pressed holds what each held key reported on its press, by X11
+	// keycode, so its release repeats it (#1188).
+	pressed [256]pressedKey
 
 	// Selections. X11 has two independent text buffers: CLIPBOARD (explicit
 	// copy/paste) and PRIMARY (filled by selecting text, pasted with the

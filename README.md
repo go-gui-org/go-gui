@@ -153,7 +153,9 @@ Go-Gui is also an ecosystem of composable libraries. **go-glyph** handles text,
   files opened from Finder and custom-scheme links on macOS
   ([`examples/single_instance/`](examples/single_instance/))
 - **Developer tools** — time-travel debugging, headless testing, headless
-  rendering, layout inspection, and pixel-level regression testing
+  rendering, layout inspection, and pixel-level regression testing. A key
+  inspector shows what every key press reports on your keyboard layout
+  ([`examples/key_inspector/`](examples/key_inspector/))
 
 ![gallery](assets/gallery.png)
 
