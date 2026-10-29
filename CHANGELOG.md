@@ -125,12 +125,12 @@ and this project adheres to
   whichever modifier the keyboard mapping puts it, and a key an IBus input
   method forwards is reported as the same key typed directly. go-gui now enables
   the XKB extension on X11, as GTK and Qt do: without it Xorg reported a second
-  layout as a held AltGr. Key symbols come from the server's XKB map, so a
-  third and fourth layout configured together type their own characters too.
-  Where only XKB's key types say how a key behaves (a layout's own level order,
-  as on some keypads and on `cm(azerty)`'s digit row, ISO level 5, a layout's
-  own Caps Lock type), the X11 result can differ from Wayland; the spec lists
-  these.
+  layout as a held AltGr. Key symbols come from the server's XKB map, so a third
+  and fourth layout configured together type their own characters too. Where
+  only XKB's key types say how a key behaves (a layout's own level order, as on
+  some keypads and on `cm(azerty)`'s digit row, ISO level 5, a layout's own Caps
+  Lock type, as Turkish declares for i/İ), the X11 result can differ from
+  Wayland; the spec lists these.
 
 - **A paste too large for an `Input` is refused whole instead of cut short
   (#1187).** A paste that would take the field past 65,536 runes inserted only

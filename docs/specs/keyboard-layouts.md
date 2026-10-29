@@ -163,27 +163,27 @@ default mode would also count Ctrl and Alt on keys that have a Ctrl+Alt level
 - **X11:** reads key symbols through xgb, with no new library
   (`gui/backend/gl/keys_x11.go`, `xkbmap_x11.go`). Measured on Xorg 21:
   - The active layout reaches a client that has not called `XkbUseExtension`
-    only as a modifier: the compat map's `group 2 = AltGr` turns groups 2-4
-    into Mod5, the bit AltGr also sets, so every key after a layout switch read
-    as AltGr held (found on the maintainer's Debian Xorg session). The backend
+    only as a modifier: the compat map's `group 2 = AltGr` turns groups 2-4 into
+    Mod5, the bit AltGr also sets, so every key after a layout switch read as
+    AltGr held (found on the maintainer's Debian Xorg session). The backend
     therefore calls `XkbUseExtension`, as Xlib does for GTK and Qt; key events
-    then carry the group in bits 13-14 and Mod5 only for AltGr. (`xdotool`
-    locks the group of the key it sends and restores it afterwards; tests that
-    switch layouts inject with `xte`.)
+    then carry the group in bits 13-14 and Mod5 only for AltGr. (`xdotool` locks
+    the group of the key it sends and restores it afterwards; tests that switch
+    layouts inject with `xte`.)
   - Key symbols come from `XkbGetMap` with the KeySyms part only: per key its
     groups × width array and its out-of-range group rule (wrap, clamp,
     redirect), so every group and level is exact. The reply is validated whole
     (length, keycode range, at most four groups, `nSyms` = groups × width, the
     total); one that fails leaves the core keymap in use, never a partial map.
-    The core keymap is the fallback without the extension. It cannot be read
-    for more: Xorg publishes per key the first group's two levels, the second
+    The core keymap is the fallback without the extension. It cannot be read for
+    more: Xorg publishes per key the first group's two levels, the second
     group's two, then the first group's further levels and after them the
     second's, then groups 3 and 4, without saying how many levels each has; so
     it gives two groups and level 3 for the first only.
   - Key types are not read. On a key with one group the width is its type's
-    level count, so an explicitly empty level types nothing, as in XKB; on a
-    key with more groups the width is the widest group's, and a level is taken
-    to exist where it lists a symbol.
+    level count, so an explicitly empty level types nothing, as in XKB; on a key
+    with more groups the width is the widest group's, and a level is taken to
+    exist where it lists a symbol.
   - The modifier map names the modifiers of `Num_Lock` (Mod2) and
     `ISO_Level3_Shift` (Mod5, through a virtual key, not RALT); they are read
     from it, not assumed, and `ModAltGr` follows the level-3 bit it names.
@@ -192,46 +192,53 @@ default mode would also count Ctrl and Alt on keys that have a Ctrl+Alt level
     `XkbNewKeyboardNotify` and `XkbMapNotify`, which an XKB-aware client gets
     instead of the core `MappingNotify` (still handled without the extension).
   - A key the input method forwards (IBus `ForwardKeyEvent`) reports what the
-    same press reports without one, when its keycode types the keysym
-    forwarded; a keysym the engine made up keeps its own `KeyCode`.
+    same press reports without one, when its keycode types the keysym forwarded;
+    a keysym the engine made up keeps its own `KeyCode`.
 
   Where the core protocol and XKB disagree, the path follows XKB, which every
-  Xlib and GTK application on the same desktop uses: on a keypad key (either
-  of its first two levels a keypad keysym) Shift counts for nothing and only
+  Xlib and GTK application on the same desktop uses: on a keypad key (either of
+  its first two levels a keypad keysym) Shift counts for nothing and only
   NumLock picks the keysym (the protocol would let Shift+keypad 7 type 7), and
   the used-up modifiers are counted as libxkbcommon's GTK mode counts them. Caps
-  Lock acts as XKB's automatic key types make it act: on a pair of levels that
-  holds a lowercase letter and its capital (1 and 2, or 3 and 4) it inverts
-  Shift, so Shift+Caps Lock types the lowercase letter (the protocol would type
-  the capital); on any other pair it capitalizes the keysym typed, the XKB
-  "Caps Lock transformation" (AltGr+S types Đ on `al`). Case comes from
-  libxkbcommon's `xkb_keysym_to_upper` when it is loaded. Characters
-  come from libxkbcommon's `xkb_keysym_to_utf32` when it is loaded, else from
-  `x11key.KeysymToRune`: Latin-1, the keypad's printable keys, `EuroSign`
-  (`€`) and direct-Unicode keysyms, each typed as libxkbcommon types it (a
-  test compares the two tables). Without libxkbcommon, text in a script with
-  legacy keysyms (Cyrillic, Greek, Hebrew) still types nothing on X11; its
-  shortcuts work.
+  Lock acts as the key types XKB picks by itself make it act. A key is
+  alphabetic when level 1 is a lowercase and level 2 an uppercase letter by
+  libxkbcommon's case table, not necessarily each other's (ſ and ẞ on de's
+  AltGr+S), and on levels 3 and 4 too when they are such a pair as well
+  (FOUR_LEVEL_ALPHABETIC); there Caps Lock inverts Shift, so Shift+Caps Lock
+  types the lowercase letter (the protocol would type the capital). Anywhere
+  else it capitalizes the keysym typed, the XKB "Caps Lock transformation"
+  (AltGr+S types Đ on `al`). Case comes from libxkbcommon's
+  `xkb_keysym_to_upper` and `_to_lower` when it is loaded. Unicode's cases would
+  be wrong both ways: Georgian puts a Latin capital beside a Mkhedruli letter
+  (`ge`: პ/P, not alphabetic), and the same i/İ pair is alphabetic on `tr`
+  (declared) but not on `az` (picked by XKB). Characters come from
+  libxkbcommon's `xkb_keysym_to_utf32` when it is loaded, else from
+  `x11key.KeysymToRune`: Latin-1, the keypad's printable keys, `EuroSign` (`€`)
+  and direct-Unicode keysyms, each typed as libxkbcommon types it (a test
+  compares the two tables). Without libxkbcommon, text in a script with legacy
+  keysyms (Cyrillic, Greek, Hebrew) still types nothing on X11; its shortcuts
+  work.
 
   What only key types say stays beyond the X11 path; the sweep counts these
   presses and compares everything else:
-  - a type that orders its levels its own way: cm(azerty)'s digit row (Shift
-    on level 4), the four-level keypad types of fr(bepo), dz, ml(fr-oss) (Shift
-    picks the digit), Pause and Print (level 2 with Ctrl or Alt, not Shift),
-    and which modifiers Shift+AltGr uses up on a four-level keypad key (fr(oss_latin9)
-    and ir(pes_keypad) disagree); about 8,600 presses;
+  - a type that orders its levels its own way: cm(azerty)'s digit row (Shift on
+    level 4), the four-level keypad types of fr(bepo), dz, ml(fr-oss) (Shift
+    picks the digit), Pause and Print (level 2 with Ctrl or Alt, not Shift), and
+    which modifiers Shift+AltGr uses up on a four-level keypad key
+    (fr(oss_latin9) and ir(pes_keypad) disagree); about 8,600 presses;
   - Caps Lock on a key whose layout names a type that gives Lock a meaning of
-    its own: Shift+Caps Lock capitals on us(mac) and fr(ergol), Caps Lock on
-    the digit row of fr(bepo) and us(chr), `ẞ` on level 5 for Caps Lock+ß on
-    de, Lock used up by FOUR_LEVEL_PLUS_LOCK on fr(dvorak); about 1,500
-    presses;
+    its own: Shift+Caps Lock capitals on us(mac) and fr(ergol), Caps Lock on the
+    digit row of fr(bepo) and us(chr), `ẞ` on level 5 for Caps Lock+ß on de,
+    Lock used up by FOUR_LEVEL_PLUS_LOCK on fr(dvorak), Turkish i/İ and ı/I
+    (`tr` declares them alphabetic, so Caps Lock types İ and I; X11 types I and
+    ı); about 1,100 presses;
   - ISO level 5 (Mod3: de(T3), neo).
 
   On the core keymap fallback, besides: an explicitly empty level up to the
   fourth reads as absent (AltGr on a key whose levels 3 and 4 are both empty
   types the base symbol, ara), a one-level key with a cased letter types the
-  capital with Shift as the protocol says (#948), and groups 3 and 4 read as
-  the second.
+  capital with Shift as the protocol says (#948), and groups 3 and 4 read as the
+  second.
 
   Reading key types too (`XkbGetMap` with the KeyTypes part) would close the
   first two items: level selection, used-up modifiers and empty levels from the
@@ -256,7 +263,9 @@ worse (see § US regression guard).
 
 ### US regression guard
 
-On the default `us` layout nothing that works today may change:
+With the `us` layout active nothing that works today may change, whether it is
+configured alone or as the first, second, third or fourth layout beside others
+(`us`, `us,de`, `de,us`, `ru,us`, `de,ru,us`, `de,ru,fr,us`):
 
 - Every key with a `KeyCode` today keeps it, with the same `Modifiers`, for
   every combination of Shift, Ctrl, Alt and Super. Keys that are `KeyInvalid`
@@ -344,6 +353,10 @@ the US position.
 | `jp`                     | AE13 and AB11    | `KeyBackslash` | \\   | `KeyBackslash`   | two keys, one code: the layout's own |
 | `jp`                     | AD11             | `KeyAt`        | @    | `KeyAt`          |                                      |
 | `ru`, `jp`, `us(dvorak)` | RALT             | `KeyRightAlt`  | —    | `KeyRightAlt`    | `Alt_R`, so `ModAlt`, not `ModAltGr` |
+| `us,de,ru,fr`, fr active | AE01             | `Key1`         | &    | `KeyAmpersand`   | the fourth group: X11 reads XKB map  |
+| `gr`                     | AB03             | `KeyC`         | ψ    | `KeyC`           |                                      |
+| `pl`                     | AltGr+AC01       | `KeyA`         | ą    | `KeyA`           | ą has no KeyCode                     |
+| `tr`, Caps Lock          | AC11             | `KeyI`         | İ    | `KeyI`           | declared type; X11: I (no key types) |
 
 ## Verification
 
@@ -352,7 +365,8 @@ the US position.
    from layout names at test time; nothing from xkeyboard-config is checked in.
 2. **US regression test:** every key of `us` × {none, Shift, Ctrl, Ctrl+Shift,
    Alt, Super} against today's `KeyCode`/`Modifiers`, as § US regression guard
-   states.
+   states, with US active in each group position of § US regression guard, on
+   Wayland and through the X11 XKB map (the core keymap on `us` alone).
 3. **All-layout sweep:** for every layout and variant in `evdev.xml`, every key,
    with none/Shift/AltGr/Shift+AltGr, each with Caps Lock off and on:
    - `EventChar` equals libxkbcommon's character, on both paths;
@@ -418,11 +432,11 @@ Firefox are under copyleft licenses and must not be ported.
   XFCE and MATE machines often lack it.
 - **A full XKB-extension client in Go:** re-implements libxkbcommon-x11. The X11
   path sends three XKB requests only (`UseExtension`, `SelectEvents`, `GetMap`
-  with KeySyms), the smallest set that reports the group and reads every
-  group's symbols.
+  with KeySyms), the smallest set that reports the group and reads every group's
+  symbols.
 - **Finding groups 3 and 4 in the core keymap** (counting its empty columns):
-  the core mapping does not say how many levels each group has, so no reading
-  of it finds where group 3 starts.
+  the core mapping does not say how many levels each group has, so no reading of
+  it finds where group 3 starts.
 - **Compiling `_XKB_RULES_NAMES` with libxkbcommon on X11:** rebuilds the
   configuration the server was given, not the keymap it holds; wrong after an
   `xkbcomp` upload or an `xmodmap` edit, and still needs a fallback without

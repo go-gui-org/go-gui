@@ -16,3 +16,9 @@ func wideKeysymToRune(sym uint32) rune {
 func wideKeysymToUpper(sym uint32) uint32 {
 	return shiftedKeysym(sym)
 }
+
+// wideKeysymToLower is the lowercase of a letter keysym, by lowerKeysym's
+// Latin-1 and Unicode conversion.
+func wideKeysymToLower(sym uint32) uint32 {
+	return lowerKeysym(sym)
+}

@@ -39,6 +39,7 @@ var (
 	fnKeymapKeyByName       uintptr
 	fnKeysymToUTF32         uintptr
 	fnKeysymToUpper         uintptr
+	fnKeysymToLower         uintptr
 
 	loadOnce sync.Once
 	loadErr  error
@@ -101,6 +102,7 @@ func load() error {
 		{&fnKeymapKeyByName, "xkb_keymap_key_by_name"},
 		{&fnKeysymToUTF32, "xkb_keysym_to_utf32"},
 		{&fnKeysymToUpper, "xkb_keysym_to_upper"},
+		{&fnKeysymToLower, "xkb_keysym_to_lower"},
 	} {
 		addr, symErr := purego.Dlsym(lib, s.name)
 		if symErr != nil || addr == 0 {
@@ -485,3 +487,13 @@ func KeysymToUpper(sym uint32) uint32 {
 // cptr turns an address libxkbcommon handed over (C memory) back into a
 // pointer, without vet reading it as a Go pointer kept in a uintptr.
 func cptr(u uintptr) unsafe.Pointer { return *(*unsafe.Pointer)(unsafe.Pointer(&u)) }
+
+// KeysymToLower is KeysymToUpper's counterpart: the lowercase of a letter
+// keysym by libxkbcommon's case table, sym itself otherwise.
+func KeysymToLower(sym uint32) uint32 {
+	if fnKeysymToLower == 0 {
+		return sym
+	}
+	r, _, _ := purego.SyscallN(fnKeysymToLower, uintptr(sym))
+	return uint32(r)
+}

@@ -121,7 +121,7 @@ func coreRepresentable(levels [][]uint32) bool {
 }
 
 // x11ModBit is the state bit holding key name down sets.
-func x11ModBit(km *xkb.Keymap, name string) uint16 {
+func x11ModBit(km *xkb.Keymap, name string, group int) uint16 {
 	switch name {
 	case "LFSH", "RTSH":
 		return x11Shift
@@ -132,7 +132,9 @@ func x11ModBit(km *xkb.Keymap, name string) uint16 {
 	case "LWIN", "RWIN":
 		return x11Mod4
 	case "RALT":
-		if km.BaseSym(km.KeyByName("RALT")) == symISOLevel3Shift {
+		// What the key does in the active group: Alt_R on us, level 3 on de.
+		lv := km.Levels(km.KeyByName("RALT"))
+		if g := lv[min(group, len(lv)-1)]; len(g) > 0 && g[0] == symISOLevel3Shift {
 			return x11Mod5
 		}
 		return x11Mod1
@@ -145,7 +147,7 @@ func x11ModBit(km *xkb.Keymap, name string) uint16 {
 func x11Press(t *testing.T, p *platformState, km *xkb.Keymap, keys []string, state uint16) (gui.Event, rune) {
 	t.Helper()
 	for _, n := range keys[:len(keys)-1] {
-		state |= x11ModBit(km, n)
+		state |= x11ModBit(km, n, int(state>>13)&3)
 	}
 	code := km.KeyByName(keys[len(keys)-1])
 	if code == 0 {
@@ -261,16 +263,32 @@ func TestKeyboardX11CapsLock(t *testing.T) {
 }
 
 // TestKeyboardX11USRegression is the US regression guard on the X11 path:
-// every key that had a KeyCode keeps it, with the same Modifiers, and the
-// typed pass reaches only constants #1188 added.
+// with the US layout active, in any group position (usPositions), every
+// key that had a KeyCode on us alone keeps it, with the same Modifiers,
+// and the typed pass reaches only constants #1188 added. Through the XKB
+// map on every position, through the core keymap on us alone.
 func TestKeyboardX11USRegression(t *testing.T) {
 	requireXKB(t)
-	km, err := xkb.NewKeymapFromNames("evdev", "pc105", "us", "", "")
+	us, err := xkb.NewKeymapFromNames("evdev", "pc105", "us", "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer km.Destroy()
-	p := coreKeymapFor(km)
+	defer us.Destroy()
+	t.Run("core/us", func(t *testing.T) { usRegressionX11(t, us, coreKeymapFor(us), 0) })
+	for _, pos := range usPositions {
+		t.Run("xkb/"+pos.layouts, func(t *testing.T) {
+			km, kerr := xkb.NewKeymapFromNames("evdev", "pc105", pos.layouts, "", "")
+			if kerr != nil {
+				t.Fatal(kerr)
+			}
+			defer km.Destroy()
+			usRegressionX11(t, us, xkbPlatformFor(km), pos.group)
+		})
+	}
+}
+
+func usRegressionX11(t *testing.T, us *xkb.Keymap, p *platformState, group uint32) {
+	km := us
 	held := []struct {
 		state uint16
 		mods  gui.Modifier
@@ -294,8 +312,12 @@ func TestKeyboardX11USRegression(t *testing.T) {
 			continue
 		}
 		for _, hd := range held {
-			pk, _ := p.readPress(xproto.Keycode(code), hd.state)
+			state := hd.state | uint16(group)<<13 // the group, as XKB reports it
+			pk, _ := p.readPress(xproto.Keycode(code), state)
 			checked++
+			if m := p.modifiers(state); m != hd.mods {
+				t.Errorf("key %d state %#x: Modifiers %#x, want %#x", code, state, m, hd.mods)
+			}
 			if pk.code != want {
 				t.Errorf("key %d state %#x: KeyCode %d, want %d", code, hd.state, pk.code, want)
 			}
@@ -339,7 +361,7 @@ func TestKeyboardX11WithoutXKBTable(t *testing.T) {
 	for _, c := range cases {
 		state := c.state
 		for _, n := range c.keys[:len(c.keys)-1] {
-			state |= x11ModBit(km, n)
+			state |= x11ModBit(km, n, int(state>>13)&3)
 		}
 		_, sym := p.readPress(xproto.Keycode(km.KeyByName(c.keys[len(c.keys)-1])), state)
 		r := keyPressCharWide(&p.compose, sym, state, x11key.KeysymToRune)
@@ -430,5 +452,66 @@ func TestKeyboardX11IMEForwardedKey(t *testing.T) {
 			got[0].TypedModifiers != gui.ModShift {
 			t.Errorf("forwarded %+v: %+v", ev, got[0])
 		}
+	}
+}
+
+// TestKeyboardCapsLockTurkish: Turkish i/İ and ı/I under Caps Lock. tr
+// declares both keys alphabetic, so Caps Lock picks level 2 (İ, I); az has
+// the same pairs with types XKB picks itself, which are not alphabetic.
+// Only the key types tell the two apart, and the X11 path reads none: its
+// subtests are skipped until it does (docs/specs/keyboard-layouts.md).
+func TestKeyboardCapsLockTurkish(t *testing.T) {
+	requireXKB(t)
+	cases := []struct {
+		keys []string
+		caps bool
+		want rune
+	}{
+		{[]string{"AC11"}, false, 'i'},
+		{[]string{"AC11"}, true, 'İ'},
+		{[]string{"LFSH", "AC11"}, true, 'i'},
+		{[]string{"RALT", "AC11"}, true, '\''}, // levels 3-4 not a letter pair
+		{[]string{"AD08"}, false, 'ı'},
+		{[]string{"AD08"}, true, 'I'},
+		{[]string{"LFSH", "AD08"}, true, 'ı'},
+		{[]string{"RALT", "AD08"}, true, 'Î'}, // FOUR_LEVEL_ALPHABETIC
+		{[]string{"LFSH", "RALT", "AD08"}, true, 'î'},
+	}
+	t.Run("wayland", func(t *testing.T) {
+		h := newKbHarness(t, "tr", "")
+		for _, c := range cases {
+			if c.caps {
+				h.tapLock("CAPS")
+			}
+			r := h.press(c.keys...)
+			if c.caps {
+				h.tapLock("CAPS")
+			}
+			if r.char != c.want {
+				t.Errorf("%v caps %v: char %q, want %q", c.keys, c.caps, r.char, c.want)
+			}
+		}
+	})
+	km, err := xkb.NewKeymapFromNames("evdev", "pc105", "tr", "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer km.Destroy()
+	for name, platformFor := range map[string]func(*xkb.Keymap) *platformState{
+		"x11-core": coreKeymapFor, "x11-xkb": xkbPlatformFor,
+	} {
+		t.Run(name, func(t *testing.T) {
+			t.Skip("Turkish Caps Lock needs XKB key types, which the X11 path does not read")
+			p := platformFor(km)
+			for _, c := range cases {
+				var state uint16
+				if c.caps {
+					state = x11Lock
+				}
+				if _, char := x11Press(t, p, km, c.keys, state); char != c.want {
+					t.Errorf("%v caps %v: char %q, want %q", c.keys, c.caps, char, c.want)
+				}
+			}
+		})
 	}
 }

@@ -4,6 +4,7 @@ package gl
 
 import (
 	"strconv"
+	"unicode"
 
 	"github.com/jezek/xgb"
 	"github.com/jezek/xgb/xproto"
@@ -311,11 +312,7 @@ func (p *platformState) readPress(code xproto.Keycode, state uint16) (pressedKey
 		consumed |= gui.ModAltGr
 	}
 	if state&xproto.KeyButMaskLock != 0 {
-		lo, up := in.Plain, in.Shifted
-		if level3 {
-			lo, up = l3, l4
-		}
-		typed = capsLockKeysym(typed, lo, up, shift)
+		typed = capsLockKeysym(typed, [4]uint32{in.Plain, in.Shifted, l3, l4}, shift, level3)
 	}
 
 	pk := pressedKey{code: kc, typed: kc, held: true}
@@ -325,19 +322,60 @@ func (p *platformState) readPress(code xproto.Keycode, state uint16) (pressedKey
 	return pk, typed
 }
 
-// capsLockKeysym applies Caps Lock to sym, the keysym a press of the level
-// pair lo, up types with shift. It follows XKB, as Xlib and GTK on the
-// same desktop do, not the core protocol (#1188). On a pair of a lowercase
-// letter and its capital (an alphabetic key type) Caps Lock inverts Shift,
-// so Shift+Caps Lock types the lowercase letter. On any other pair it
-// capitalizes the keysym typed, as XKB's Caps Lock transformation does
-// when the key type leaves Lock unused: AltGr+S types Đ on Albanian.
-func capsLockKeysym(sym, lo, up uint32, shift bool) uint32 {
-	if c := wideKeysymToUpper(lo); c != lo && c == up {
-		if shift {
-			return lo
-		}
-		return up
+// capsLockKeysym applies Caps Lock to sym, the keysym a press of a key
+// with levels lv (1 to 4) types with shift and level3. It follows the key
+// types XKB picks by itself, as Xlib and GTK on the same desktop do, not
+// the core protocol (#1188). A key whose level 1 is a lowercase and level
+// 2 an uppercase letter is alphabetic, on levels 3 and 4 too when they are
+// such a pair as well (ALPHABETIC, FOUR_LEVEL_ALPHABETIC); there Caps Lock
+// inverts Shift, so Shift+Caps Lock types the lowercase letter. The pair
+// need not be one letter's two cases: Turkish i and İ are. Anywhere else
+// Caps Lock capitalizes the keysym typed, XKB's Caps Lock transformation:
+// AltGr+S types Đ on Albanian.
+func capsLockKeysym(sym uint32, lv [4]uint32, shift, level3 bool) uint32 {
+	alpha, pair := isCasePair(lv[0], lv[1]), 0
+	if level3 {
+		alpha, pair = alpha && isCasePair(lv[2], lv[3]), 2
 	}
-	return wideKeysymToUpper(sym)
+	switch {
+	case !alpha:
+		return wideKeysymToUpper(sym)
+	case shift:
+		return lv[pair]
+	}
+	return lv[pair+1]
+}
+
+// isCasePair tells whether levels lo and up make a key alphabetic, by
+// XKB's own rule for the types it picks: lo is a lowercase and up an
+// uppercase letter in libxkbcommon's case table, not necessarily each
+// other's (de: ſ and ẞ on AltGr), and not by Unicode alone (ge: პ/P is
+// not). A layout that declares a key alphabetic against that rule, as
+// Turkish does for i/İ and ı/I, needs the key types, which the X11 path
+// does not read: the same pairs on az, typed alike, are not alphabetic.
+func isCasePair(lo, up uint32) bool {
+	return wideKeysymToUpper(lo) != lo && wideKeysymToLower(up) != up
+}
+
+// lowerKeysym is the lowercase of a Latin-1 or Unicode keysym, sym itself
+// otherwise: shiftedKeysym's counterpart, without libxkbcommon.
+func lowerKeysym(sym uint32) uint32 {
+	const unicodeKeysym = 0x01000000
+	var r rune
+	switch {
+	case sym < 0x100:
+		r = rune(sym)
+	case sym&0xff000000 == unicodeKeysym:
+		r = rune(sym & 0x00ffffff)
+	default:
+		return sym
+	}
+	switch l := unicode.ToLower(r); {
+	case l == r:
+		return sym
+	case l < 0x100:
+		return uint32(l)
+	default:
+		return unicodeKeysym | uint32(l)
+	}
 }

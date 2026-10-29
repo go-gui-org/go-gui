@@ -191,8 +191,13 @@ func runGolden(t *testing.T, layout, variant string, layoutIdx uint32, rows []go
 	requireXKB(t)
 	t.Run("wayland", func(t *testing.T) { runGoldenWayland(t, layout, variant, layoutIdx, rows) })
 	t.Run("x11-xkb", func(t *testing.T) { runGoldenX11(t, layout, variant, layoutIdx, rows, xkbPlatformFor) })
-	if layoutIdx < 2 { // the core keymap holds two groups
-		t.Run("x11-core", func(t *testing.T) { runGoldenX11(t, layout, variant, layoutIdx, rows, coreKeymapFor) })
+	// The core keymap holds two groups, and levels 3 and 4 of the first only.
+	if layoutIdx < 2 {
+		core := rows
+		if layoutIdx > 0 {
+			core = slices.DeleteFunc(slices.Clone(rows), func(r goldenRow) bool { return slices.Contains(r.keys, "RALT") })
+		}
+		t.Run("x11-core", func(t *testing.T) { runGoldenX11(t, layout, variant, layoutIdx, core, coreKeymapFor) })
 	}
 }
 
@@ -346,6 +351,56 @@ func TestKeyboardGoldenDeRuFr(t *testing.T) {
 			{kbKeys("RALT", "AE10"), kbNumLockOff, gui.Key0, gui.ModAltGr, '@', gui.KeyAt, gui.ModNone},
 			{kbKeys("AD01"), kbNumLockOff, gui.KeyA, gui.ModNone, 'a', 0, 0},
 		})
+	})
+}
+
+// us,de,ru,fr: four live groups, each active in turn. Russian takes the
+// first Latin layout's keys (D6), here US.
+func TestKeyboardGoldenFourGroups(t *testing.T) {
+	for _, g := range []struct {
+		name string
+		idx  uint32
+		rows []goldenRow
+	}{
+		{"us", 0, []goldenRow{
+			{kbKeys("AD06"), kbNumLockOff, gui.KeyY, gui.ModNone, 'y', 0, 0},
+			{kbKeys("LFSH", "AE07"), kbNumLockOff, gui.Key7, gui.ModShift, '&', gui.KeyAmpersand, gui.ModNone},
+		}},
+		{"de", 1, []goldenRow{
+			{kbKeys("AD06"), kbNumLockOff, gui.KeyZ, gui.ModNone, 'z', 0, 0},
+			{kbKeys("LFSH", "AE07"), kbNumLockOff, gui.Key7, gui.ModShift, '/', gui.KeySlash, gui.ModNone},
+			{kbKeys("RALT", "AD01"), kbNumLockOff, gui.KeyQ, gui.ModAltGr, '@', gui.KeyAt, gui.ModNone},
+		}},
+		{"ru", 2, []goldenRow{
+			{kbKeys("AD06"), kbNumLockOff, gui.KeyY, gui.ModNone, 'н', 0, 0},
+			{kbKeys("LCTL", "AB03"), kbNumLockOff, gui.KeyC, gui.ModCtrl, 0, 0, 0},
+		}},
+		{"fr", 3, []goldenRow{
+			{kbKeys("AE01"), kbNumLockOff, gui.Key1, gui.ModNone, '&', gui.KeyAmpersand, gui.ModNone},
+			{kbKeys("AD01"), kbNumLockOff, gui.KeyA, gui.ModNone, 'a', 0, 0},
+		}},
+	} {
+		t.Run(g.name, func(t *testing.T) { runGolden(t, "us,de,ru,fr", "", g.idx, g.rows) })
+	}
+}
+
+// gr: a second non-Latin script. Shortcuts take the US position.
+func TestKeyboardGoldenGr(t *testing.T) {
+	runGolden(t, "gr", "", 0, []goldenRow{
+		{kbKeys("AB03"), kbNumLockOff, gui.KeyC, gui.ModNone, 'ψ', 0, 0},
+		{kbKeys("LCTL", "AB03"), kbNumLockOff, gui.KeyC, gui.ModCtrl, 0, 0, 0},
+		{kbKeys("LFSH", "AB03"), kbNumLockOff, gui.KeyC, gui.ModShift, 'Ψ', 0, 0},
+	})
+}
+
+// pl: AltGr types the national letters on Latin keys, which keep their
+// KeyCode; the letter itself has none, so the typed key is the same.
+func TestKeyboardGoldenPl(t *testing.T) {
+	runGolden(t, "pl", "", 0, []goldenRow{
+		{kbKeys("RALT", "AC01"), kbNumLockOff, gui.KeyA, gui.ModAltGr, 'ą', 0, 0},
+		{kbKeys("LFSH", "RALT", "AC01"), kbNumLockOff, gui.KeyA, gui.ModShift | gui.ModAltGr, 'Ą', 0, 0},
+		{kbKeys("RALT", "AB01"), kbNumLockOff, gui.KeyZ, gui.ModAltGr, 'ż', 0, 0},
+		{kbKeys("LCTL", "AC01"), kbNumLockOff, gui.KeyA, gui.ModCtrl, 0, 0, 0},
 	})
 }
 
@@ -628,12 +683,35 @@ var newASCIIKeys = map[gui.KeyCode]bool{
 	gui.KeyBar: true, gui.KeyRightBrace: true, gui.KeyTilde: true,
 }
 
-// TestKeyboardUSRegression is the spec's US regression guard: on the
-// default us layout every key that had a KeyCode keeps it, with the same
-// Modifiers, under every combination of Shift, Ctrl, Alt and Super.
+// usPositions are keymaps with the US layout active in each group position
+// and in both orders next to another layout (#1188): the US regression
+// guard holds on each, not only on us alone.
+var usPositions = []struct {
+	layouts string
+	group   uint32
+}{
+	{"us", 0}, {"us,de", 0}, {"de,us", 1}, {"ru,us", 1}, {"de,ru,us", 2}, {"de,ru,fr,us", 3},
+}
+
+// TestKeyboardUSRegression is the spec's US regression guard: with the US
+// layout active, in any group position, every key that had a KeyCode on us
+// alone keeps it, with the same Modifiers, under every combination of
+// Shift, Ctrl, Alt and Super.
 func TestKeyboardUSRegression(t *testing.T) {
 	requireXKB(t)
-	h := newKbHarness(t, "us", "")
+	us, err := xkb.NewKeymapFromNames("evdev", "pc105", "us", "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer us.Destroy()
+	for _, pos := range usPositions {
+		t.Run(pos.layouts, func(t *testing.T) { usRegressionWayland(t, us, pos.layouts, pos.group) })
+	}
+}
+
+func usRegressionWayland(t *testing.T, us *xkb.Keymap, layouts string, group uint32) {
+	h := newKbHarness(t, layouts, "")
+	h.setLayout(group)
 	held := []struct {
 		keys []string
 		mods gui.Modifier
@@ -653,7 +731,7 @@ func TestKeyboardUSRegression(t *testing.T) {
 		if skip[code] {
 			continue
 		}
-		want := legacyUSKeyCode(h.seat.keymap.BaseSym(code))
+		want := legacyUSKeyCode(us.BaseSym(code))
 		if want == gui.KeyInvalid || want == gui.KeyTab || want == gui.KeyF12 {
 			continue
 		}

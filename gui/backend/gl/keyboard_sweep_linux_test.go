@@ -261,23 +261,35 @@ func sweepLayout(t *testing.T, f *sweepFailures, layout, variant string) {
 // lockTypeIsAutomatic tells whether Caps Lock acts on a key of the first
 // layout, given its levels, as the key type xkeyboard-config picks by
 // itself would: noLock is the level without Lock, withLock and sym the
-// level and keysym libxkbcommon gives with it. On a pair of a lowercase
-// letter and its capital (levels 1 and 2, or 3 and 4) Lock inverts Shift;
-// on any other pair it keeps the level and capitalizes the keysym. A
-// layout may name a type of its own that gives Lock another meaning
-// (Shift+Lock capitals on us(mac), Lock on the digit row of fr(bepo),
-// level 5 for ẞ on de, Lock used up on fr(dvorak)'s FOUR_LEVEL_PLUS_LOCK);
-// the core keymap carries no key types, so the X11 path cannot follow it.
+// level and keysym libxkbcommon gives with it. A key whose level 1 is a
+// lowercase and level 2 an uppercase letter by libxkbcommon's case table
+// is alphabetic, on levels 3 and 4 too when they are such a pair as well;
+// there Lock inverts Shift.
+// Anywhere else it keeps the level and capitalizes the keysym. A layout
+// may name a type of its own that gives Lock another meaning (Shift+Lock
+// capitals on us(mac), Lock on the digit row of fr(bepo), level 5 for ẞ on
+// de, Lock used up on fr(dvorak)'s FOUR_LEVEL_PLUS_LOCK, i/İ and ı/I
+// declared alphabetic on tr but not on az); the X11 path
+// reads no key types, so it cannot follow it.
 func lockTypeIsAutomatic(levels [][]uint32, noLock, withLock, sym uint32) bool {
 	if len(levels) == 0 {
 		return true
 	}
 	lv := levels[0]
-	lo := noLock &^ 1
-	if int(lo)+1 >= len(lv) || int(withLock) >= len(lv) {
-		return int(withLock) < len(lv) && withLock == noLock && sym == xkb.KeysymToUpper(lv[withLock])
+	if int(withLock) >= len(lv) {
+		return false
 	}
-	if up := xkb.KeysymToUpper(lv[lo]); up != lv[lo] && up == lv[lo+1] {
+	casePair := func(i uint32) bool {
+		if int(i)+1 >= len(lv) {
+			return false
+		}
+		return xkb.KeysymToUpper(lv[i]) != lv[i] && xkb.KeysymToLower(lv[i+1]) != lv[i+1]
+	}
+	alpha := casePair(0)
+	if noLock >= 2 {
+		alpha = alpha && casePair(2)
+	}
+	if alpha {
 		return withLock == noLock^1 && sym == lv[withLock]
 	}
 	return withLock == noLock && sym == xkb.KeysymToUpper(lv[withLock])

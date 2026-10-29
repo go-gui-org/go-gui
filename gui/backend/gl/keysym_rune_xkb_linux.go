@@ -28,3 +28,12 @@ func wideKeysymToUpper(sym uint32) uint32 {
 	}
 	return shiftedKeysym(sym)
 }
+
+// wideKeysymToLower is wideKeysymToUpper's counterpart: libxkbcommon's
+// lowercase when it is installed, else lowerKeysym's.
+func wideKeysymToLower(sym uint32) uint32 {
+	if xkb.Load() == nil {
+		return xkb.KeysymToLower(sym)
+	}
+	return lowerKeysym(sym)
+}
