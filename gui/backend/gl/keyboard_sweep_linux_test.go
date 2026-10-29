@@ -33,12 +33,17 @@ type sweepFailures struct {
 	count    map[string]int
 	examples map[string][]string
 	// x11Skipped counts presses on keys the core keymap cannot describe,
-	// where X11 is not compared with Wayland (coreRepresentable).
-	x11Skipped int
+	// where its X11 path is not compared with Wayland (coreRepresentable);
+	// level5Skipped those with ISO level 5, compared on neither X11 path.
+	x11Skipped, level5Skipped int
 	// capsTypeSkipped counts Caps Lock presses on keys whose XKB key type
 	// gives Lock a meaning of its own (lockTypeIsAutomatic), which the core
 	// keymap does not carry.
 	capsTypeSkipped int
+	// keyTypeSkipped counts presses on keys whose XKB key type picks
+	// another level than the standard types do (standardLevel); its XKB
+	// map path is not compared there: the map carries no key types.
+	keyTypeSkipped int
 }
 
 func (f *sweepFailures) add(rule, format string, args ...any) {
@@ -114,9 +119,11 @@ func TestKeyboardAllLayouts(t *testing.T) {
 			})
 		}
 	}
-	t.Logf("swept %d layouts and variants; X11 not compared on %d presses of keys the core keymap cannot describe"+
-		" and %d Caps Lock presses on keys whose XKB type gives Lock its own level",
-		layouts, f.x11Skipped, f.capsTypeSkipped)
+	t.Logf("swept %d layouts and variants; X11 not compared on %d level-5 presses and %d Caps Lock presses"+
+		" on keys whose XKB type gives Lock its own level; its XKB map path not on %d presses of keys"+
+		" whose type picks a level of its own, its core keymap path not on %d of keys that keymap"+
+		" cannot describe",
+		layouts, f.level5Skipped, f.capsTypeSkipped, f.keyTypeSkipped, f.x11Skipped)
 	for rule, n := range f.count {
 		t.Errorf("%s: %d violations, e.g.\n  %s", rule, n, strings.Join(f.examples[rule], "\n  "))
 	}
@@ -130,6 +137,7 @@ func sweepLayout(t *testing.T, f *sweepFailures, layout, variant string) {
 	}
 	lfsh := h.code("LFSH")
 	core := coreKeymapFor(h.seat.keymap)
+	xkbMap := xkbPlatformFor(h.seat.keymap)
 	level3 := uint32(0)
 	if c := h.server.KeyByName("RALT"); c != 0 && h.seat.keymap.BaseSym(c) == symLevel3Shift {
 		level3 = c
@@ -207,26 +215,44 @@ func sweepLayout(t *testing.T, f *sweepFailures, layout, variant string) {
 			if got := r.down.Modifiers.Has(gui.ModAltGr); got != level3On {
 				f.add("ModAltGr only with level 3", "%s: ModAltGr %v", where, got)
 			}
-			// The X11 path, on the core keymap Xorg derives from this
-			// layout, reports what the Wayland path does, on every key the
-			// core keymap can describe (coreRepresentable).
-			// Level 5 (Mod3, de(T3), neo) is beyond the X11 path too.
-			if !coreRepresentable(h.seat.keymap.Levels(code)) || (d|l|lk)&x11Mod3 != 0 {
-				f.x11Skipped++
+			// The X11 path reports what the Wayland path does: through the
+			// XKB map a server with this layout sends, on every key; through
+			// the core keymap Xorg derives from it, on every key that keymap
+			// can describe (coreRepresentable). Level 5 (Mod3, de(T3), neo)
+			// and a layout's own Caps Lock key type are beyond both.
+			if (d|l|lk)&x11Mod3 != 0 {
+				f.level5Skipped++
 				continue
 			}
 			if capsOn && !lockTypeIsAutomatic(h.seat.keymap.Levels(code), levels[i-len(combos)], level, sym) {
 				f.capsTypeSkipped++
 				continue
 			}
-			// libxkbcommon's real modifiers are the X11 core state bits.
-			x, xc := x11PressCode(core, code, uint16(d|l|lk)&0xff)
-			if x.KeyCode != r.down.KeyCode || x.TypedKey != r.down.TypedKey ||
-				x.Modifiers != r.down.Modifiers || x.TypedModifiers != r.down.TypedModifiers || xc != r.char {
-				f.add("x11 agrees with wayland",
-					"%s: x11 KeyCode %d TypedKey %d mods %#x/%#x char %q; wayland %d %d %#x/%#x %q",
-					where, x.KeyCode, x.TypedKey, x.Modifiers, x.TypedModifiers, xc,
-					r.down.KeyCode, r.down.TypedKey, r.down.Modifiers, r.down.TypedModifiers, r.char)
+			compare := func(rule string, p *platformState) {
+				// libxkbcommon's real modifiers are the X11 core state bits.
+				x, xc := x11PressCode(p, code, uint16(d|l|lk)&0xff)
+				if x.KeyCode != r.down.KeyCode || x.TypedKey != r.down.TypedKey ||
+					x.Modifiers != r.down.Modifiers || x.TypedModifiers != r.down.TypedModifiers || xc != r.char {
+					f.add(rule,
+						"%s: x11 KeyCode %d TypedKey %d mods %#x/%#x char %q; wayland %d %d %#x/%#x %q",
+						where, x.KeyCode, x.TypedKey, x.Modifiers, x.TypedModifiers, xc,
+						r.down.KeyCode, r.down.TypedKey, r.down.Modifiers, r.down.TypedModifiers, r.char)
+				}
+			}
+			lv := h.seat.keymap.Levels(code)
+			noLock := level
+			if capsOn {
+				noLock = levels[i-len(combos)]
+			}
+			if len(lv) == 1 && !standardType(lv[0], noLock, slices.Contains(held, lfsh), level3On) {
+				f.keyTypeSkipped++
+			} else {
+				compare("x11 (xkb map) agrees with wayland", xkbMap)
+			}
+			if coreRepresentable(h.seat.keymap.Levels(code)) {
+				compare("x11 (core keymap) agrees with wayland", core)
+			} else {
+				f.x11Skipped++
 			}
 		}
 	}
@@ -255,4 +281,38 @@ func lockTypeIsAutomatic(levels [][]uint32, noLock, withLock, sym uint32) bool {
 		return withLock == noLock^1 && sym == lv[withLock]
 	}
 	return withLock == noLock && sym == xkb.KeysymToUpper(lv[withLock])
+}
+
+// standardType tells whether libxkbcommon's level on a one-group key with
+// levels lv types what standardLevel's does. Shift with level 3 on a keypad
+// key never counts: the four-level keypad types disagree on whether that
+// uses Shift up (fr(oss_latin9) yes, ir(pes_keypad) no).
+func standardType(lv []uint32, level uint32, shift, level3 bool) bool {
+	if shift && level3 && len(lv) > 2 && slices.ContainsFunc(lv, isKeypadKeysym) {
+		return false
+	}
+	std := standardLevel(lv, shift, level3)
+	return int(level) < len(lv) && lv[level] == lv[std]
+}
+
+// standardLevel is the level, from 0, xkeyboard-config's standard key types
+// pick on a one-group key with levels lv, NumLock off: Shift the second,
+// level 3 the third, both the fourth, each only where the key has it; a
+// keypad key ignores Shift. A layout may name a type that orders its
+// levels otherwise (cm(azerty)'s digit row, the four-level keypad types of
+// fr(bepo)); only the key types say so, and the X11 XKB map path reads
+// none.
+func standardLevel(lv []uint32, shift, level3 bool) uint32 {
+	n := len(lv)
+	if n > 1 && (isKeypadKeysym(lv[0]) || isKeypadKeysym(lv[1])) {
+		shift = false
+	}
+	var l int
+	if level3 && n > 2 {
+		l = 2
+	}
+	if shift && l+1 < n {
+		l++
+	}
+	return uint32(l)
 }

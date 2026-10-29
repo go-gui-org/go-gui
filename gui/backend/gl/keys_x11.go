@@ -12,17 +12,19 @@ import (
 	"github.com/go-gui-org/go-gui/gui/backend/internal/x11key"
 )
 
-// Key presses on the X11 core keymap (#1188, docs/specs/keyboard-layouts.md).
+// Key presses on X11 (#1188, docs/specs/keyboard-layouts.md).
 //
-// go-gui reads the core keymap, not XKB, so it applies the core protocol's
-// rules itself: the group, NumLock on keypad keysyms, Shift, Caps Lock.
-// Xorg publishes each key's columns as the first group's two levels, the
-// second group's two levels, then the first group's further levels (3, 4,
-// ...) and after them the second group's. ISO level 3 (AltGr) selects
-// levels 3 and 4. Where the second group's start depends on how many
-// levels the key has in the first, which the core keymap does not say, so
-// level 3 is read for the first group only. Which modifier bits NumLock and
-// level 3 sit on comes from the modifier mapping, not a fixed Mod2 and Mod5.
+// go-gui reads key symbols, not XKB's key types or state machine, so it
+// applies the level rules itself: the group, NumLock on keypad keysyms,
+// Shift, level 3, Caps Lock. The symbols come from the server's XKB map
+// (xkbmap_x11.go), every group exact, when the server has the extension;
+// else from the core keymap. Xorg publishes its columns as the first
+// group's two levels, the second group's two levels, then the first group's
+// further levels (3, 4, ...) and after them the second's; how many the
+// first has it does not say, so the core keymap gives two groups and level
+// 3 for the first only. ISO level 3 (AltGr) selects levels 3 and 4. Which
+// modifier bits NumLock and level 3 sit on comes from the modifier mapping,
+// not a fixed Mod2 and Mod5.
 
 // pressedKey is what a key press reports: its KeyCode, the key it typed
 // and the modifiers that used up (docs/specs/keyboard-layouts.md § 1).
@@ -58,19 +60,19 @@ var latinProbeCodes = [...]xproto.Keycode{38, 56, 54, 40}
 // (#1188). After it, key events carry the group in state bits 13-14, which
 // readPress reads, and Mod5 only while level 3 is held. The server then
 // sends an XKB-aware client no core MappingNotify, so it selects XKB's
-// own keymap events instead (xkbNotifyEvent). Without the extension the
-// core behavior stays.
-func useXKBExtension(conn *xgb.Conn) {
+// own keymap events instead (xkbNotifyEvent). It returns the extension's
+// major opcode, or 0 without it; the core behavior then stays.
+func useXKBExtension(conn *xgb.Conn) byte {
 	q, err := xproto.QueryExtension(conn, uint16(len("XKEYBOARD")), "XKEYBOARD").Reply()
 	if err != nil || q == nil || !q.Present {
-		return
+		return 0
 	}
 	// xgb has no XKB package; requests are raw, little-endian as xgb
 	// speaks. UseExtension (minor 0): length 2 words, wanted version 1.0.
 	cookie := conn.NewCookie(true, true)
 	conn.NewRequest([]byte{q.MajorOpcode, 0, 2, 0, 1, 0, 0, 0}, cookie)
 	if reply, rerr := cookie.Reply(); rerr != nil || len(reply) < 2 || reply[1] == 0 {
-		return
+		return 0
 	}
 	// Every XKB event has the extension's first event code; byte 1 says
 	// which. Registered as xgb's extension packages register theirs
@@ -91,6 +93,7 @@ func useXKBExtension(conn *xgb.Conn) {
 		0xff, 0, // affectMap: every map component
 		0xff, 0, // map
 	}, conn.NewCookie(false, false))
+	return q.MajorOpcode
 }
 
 // XKB event kinds (XKBproto.h) the backend selects.
@@ -105,10 +108,18 @@ type xkbNotifyEvent struct{ kind byte }
 func (e xkbNotifyEvent) Bytes() []byte  { return nil }
 func (e xkbNotifyEvent) String() string { return "XkbNotify{" + strconv.Itoa(int(e.kind)) + "}" }
 
-// loadKeyboardInfo reads which modifier bits hold NumLock and ISO level 3,
-// and which core groups type Latin letters. It runs after the keymap is
-// read, and drops the press records, which may name keys of the old map.
+// loadKeyboardInfo reads the XKB key symbols, which modifier bits hold
+// NumLock and ISO level 3, and which groups type Latin letters. It runs
+// after the core keymap is read, and drops the press records, which may
+// name keys of the old map. A GetMap reply that fails validation leaves
+// the core keymap in use, never a partial map.
 func (p *platformState) loadKeyboardInfo(conn *xgb.Conn) {
+	p.xkbMap = nil
+	if p.xkbOpcode != 0 {
+		if m, err := loadXKBKeySyms(conn, p.xkbOpcode); err == nil {
+			p.xkbMap = m
+		}
+	}
 	p.numLockMask, p.level3Mask = 0, 0
 	if mm, err := xproto.GetModifierMapping(conn).Reply(); err == nil && mm != nil {
 		per := int(mm.KeycodesPerModifier)
@@ -126,8 +137,12 @@ func (p *platformState) loadKeyboardInfo(conn *xgb.Conn) {
 			}
 		}
 	}
+	groups := 2 // the core keymap's
+	if p.xkbMap != nil {
+		groups = p.xkbMap.maxGroups
+	}
 	for g := range p.latinGroups {
-		p.latinGroups[g] = p.groupIsLatin(g)
+		p.latinGroups[g] = g < groups && p.groupIsLatin(g)
 	}
 	p.pressed = [len(p.pressed)]pressedKey{}
 }
@@ -156,25 +171,55 @@ func (p *platformState) modifiers(state uint16) gui.Modifier {
 
 func (p *platformState) groupIsLatin(g int) bool {
 	for _, code := range latinProbeCodes {
-		if s := p.keysym(code, g*coreColumnsPerGroup); s >= 'a' && s <= 'z' || s >= 'A' && s <= 'Z' {
+		if s := p.groupSym(code, g, 0); s >= 'a' && s <= 'z' || s >= 'A' && s <= 'Z' {
 			return true
 		}
 	}
 	return false
 }
 
-// group is the core group a press reads: the second when the server
-// reports a group in bits 13-14 of the state and the key lists anything
-// there. The core keymap holds two groups; a third or fourth reads as the
-// second.
+// group is the group of code a press reads, from the keyboard's group in
+// bits 13-14 of the state. The XKB map applies the key's own rule for a
+// group it lacks (wrap, clamp, redirect). The core keymap holds two
+// groups: any but the first reads the second, if the key lists anything
+// there (the protocol's rule: an empty second group is the first).
 func (p *platformState) group(code xproto.Keycode, state uint16) int {
-	if (state>>13)&3 == 0 {
+	group := int(state>>13) & 3
+	if m := p.xkbMap; m != nil {
+		return max(m.keyGroup(code, group), 0)
+	}
+	if group == 0 || p.keysym(code, 2) == 0 && p.keysym(code, 3) == 0 {
 		return 0
 	}
-	if p.keysym(code, 2) == 0 && p.keysym(code, 3) == 0 {
-		return 0 // the protocol's rule: an empty second group is the first
-	}
 	return 1
+}
+
+// exactLevels is how many levels code has when the XKB map says so
+// exactly: on a key with one group its width is that group's type's level
+// count. 0 when unknown: groups of a key share the widest one's width,
+// padded with NoSymbol, and the core keymap gives no count at all.
+func (p *platformState) exactLevels(code xproto.Keycode) int {
+	if m := p.xkbMap; m != nil && m.groups(code) == 1 {
+		return int(m.keys[code].width)
+	}
+	return 0
+}
+
+// groupSym is the keysym on level (from 0) of code's group g (from 0),
+// g wrapped into the key's groups by its own rule. The XKB map knows
+// every group and level; the core keymap two groups, and levels 3 and 4
+// of the first only.
+func (p *platformState) groupSym(code xproto.Keycode, g, level int) uint32 {
+	if m := p.xkbMap; m != nil {
+		return m.sym(code, m.keyGroup(code, g), level)
+	}
+	switch {
+	case g > 1 || level > 3 || g == 1 && level > 1:
+		return 0
+	case level < 2:
+		return p.keysym(code, g*coreColumnsPerGroup+level)
+	}
+	return p.keysym(code, coreLevel3Column+level-2)
 }
 
 func isKeypadKeysym(sym uint32) bool {
@@ -193,29 +238,48 @@ func isKeypadKeysym(sym uint32) bool {
 // counts them, as on Wayland.
 func (p *platformState) readPress(code xproto.Keycode, state uint16) (pressedKey, uint32) {
 	g := p.group(code, state)
-	l1, l2 := p.keysym(code, g*coreColumnsPerGroup), p.keysym(code, g*coreColumnsPerGroup+1)
+	n := p.exactLevels(code)
+	l1, l2 := p.groupSym(code, g, 0), p.groupSym(code, g, 1)
+	if n == 1 || n == 0 && l2 == 0 && p.xkbMap != nil {
+		l2 = l1 // a level the key's type lacks: Shift keeps level 1
+	}
 	in := x11key.KeyInput{Plain: l1, Shifted: l2, Evdev: uint32(code) - 8}
 	keypad := isKeypadKeysym(l2)
 	if keypad && p.numLockMask != 0 && state&p.numLockMask != 0 {
 		in.Plain, in.Shifted = l2, l1
 	}
 	if !p.latinGroups[g] {
+		// As on Wayland: the first group of the first Latin layout.
 		in.NonLatin = true
-		if o := 1 - g; p.latinGroups[o] {
-			in.Latin = p.keysym(code, o*coreColumnsPerGroup)
+		for lg, latin := range p.latinGroups {
+			if latin {
+				in.Latin = p.groupSym(code, lg, 0)
+				break
+			}
 		}
 	}
 	kc := x11key.KeyCode(in)
 
 	// Shift and level 3 count only on keys they can change: Shift not on a
-	// keypad key, level 3 not on a key that lists no level 3 or 4. A key
-	// that lists one of them types nothing on the other if it is empty.
-	shift := state&xproto.KeyButMaskShift != 0 && !keypad
+	// keypad key (either of its first two levels a keypad keysym: XKB's
+	// keypad types leave Shift out, as on the *_latin9 keypad operators
+	// whose level 2 is ·), level 3 not on a key whose type has none. Where the
+	// level count is known (exactLevels) that decides, and an empty level 3
+	// or 4 types nothing; else a key that lists no level 3 or 4 has none,
+	// and one that lists either types nothing on the other if it is empty.
+	shift := state&xproto.KeyButMaskShift != 0 && !keypad && !isKeypadKeysym(l1)
 	var l3, l4 uint32
-	level3 := g == 0 && p.level3Mask != 0 && state&p.level3Mask != 0
+	level3 := p.level3Mask != 0 && state&p.level3Mask != 0
 	if level3 {
-		l3, l4 = p.keysym(code, coreLevel3Column), p.keysym(code, coreLevel3Column+1)
-		level3 = l3 != 0 || l4 != 0
+		l3, l4 = p.groupSym(code, g, 2), p.groupSym(code, g, 3)
+		switch {
+		case n == 3:
+			l4 = l3 // no level 4: Shift keeps level 3
+		case n > 0:
+			level3 = n > 2
+		default:
+			level3 = l3 != 0 || l4 != 0
+		}
 	}
 	pick := func(s, lv3 bool) uint32 {
 		switch {

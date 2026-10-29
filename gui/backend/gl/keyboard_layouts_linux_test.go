@@ -190,7 +190,10 @@ func runGolden(t *testing.T, layout, variant string, layoutIdx uint32, rows []go
 	t.Helper()
 	requireXKB(t)
 	t.Run("wayland", func(t *testing.T) { runGoldenWayland(t, layout, variant, layoutIdx, rows) })
-	t.Run("x11", func(t *testing.T) { runGoldenX11(t, layout, variant, layoutIdx, rows) })
+	t.Run("x11-xkb", func(t *testing.T) { runGoldenX11(t, layout, variant, layoutIdx, rows, xkbPlatformFor) })
+	if layoutIdx < 2 { // the core keymap holds two groups
+		t.Run("x11-core", func(t *testing.T) { runGoldenX11(t, layout, variant, layoutIdx, rows, coreKeymapFor) })
+	}
 }
 
 // checkGoldenRow compares what a press reported with its row.
@@ -323,6 +326,26 @@ func TestKeyboardGoldenUsRu(t *testing.T) {
 	runGolden(t, "us,ru", "", 1, []goldenRow{
 		{kbKeys("LCTL", "AB03"), kbNumLockOff, gui.KeyC, gui.ModCtrl, 0, 0, 0},
 		{kbKeys("AB03"), kbNumLockOff, gui.KeyC, gui.ModNone, 'с', 0, 0},
+	})
+}
+
+// de,ru,fr: the second and the third layout active. On X11 a third layout
+// is readable only from the XKB map (the core keymap holds two groups).
+func TestKeyboardGoldenDeRuFr(t *testing.T) {
+	t.Run("ru", func(t *testing.T) {
+		runGolden(t, "de,ru,fr", "", 1, []goldenRow{
+			{kbKeys("AB03"), kbNumLockOff, gui.KeyC, gui.ModNone, 'с', 0, 0},
+			{kbKeys("LCTL", "AB03"), kbNumLockOff, gui.KeyC, gui.ModCtrl, 0, 0, 0},
+		})
+	})
+	t.Run("fr", func(t *testing.T) {
+		runGolden(t, "de,ru,fr", "", 2, []goldenRow{
+			{kbKeys("AB03"), kbNumLockOff, gui.KeyC, gui.ModNone, 'c', 0, 0},
+			{kbKeys("AE01"), kbNumLockOff, gui.Key1, gui.ModNone, '&', gui.KeyAmpersand, gui.ModNone},
+			{kbKeys("LFSH", "AE01"), kbNumLockOff, gui.Key1, gui.ModShift, '1', 0, 0},
+			{kbKeys("RALT", "AE10"), kbNumLockOff, gui.Key0, gui.ModAltGr, '@', gui.KeyAt, gui.ModNone},
+			{kbKeys("AD01"), kbNumLockOff, gui.KeyA, gui.ModNone, 'a', 0, 0},
+		})
 	})
 }
 

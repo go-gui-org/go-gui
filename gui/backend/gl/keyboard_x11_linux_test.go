@@ -166,13 +166,50 @@ func x11PressCode(p *platformState, code uint32, state uint16) (gui.Event, rune)
 	}, r
 }
 
-func runGoldenX11(t *testing.T, layout, variant string, layoutIdx uint32, rows []goldenRow) {
+// xkbReplyFor encodes the GetMap reply (KeySyms part) a server with km
+// sends: per key its layouts × its widest layout's levels, padded with
+// NoSymbol. libxkbcommon does not say a key's out-of-range rule; every key
+// wraps, its default.
+func xkbReplyFor(km *xkb.Keymap) []byte {
+	keys := make([]testXKBKey, 0, x11MaxKC-x11MinKC+1)
+	for code := x11MinKC; code <= x11MaxKC; code++ {
+		lv := km.Levels(uint32(code))
+		k := testXKBKey{groupInfo: byte(len(lv))}
+		for _, g := range lv {
+			k.width = max(k.width, byte(len(g)))
+		}
+		for _, g := range lv {
+			k.syms = append(k.syms, g...)
+			k.syms = append(k.syms, make([]uint32, int(k.width)-len(g))...)
+		}
+		keys = append(keys, k)
+	}
+	return testXKBReply(x11MinKC, keys)
+}
+
+// xkbPlatformFor is coreKeymapFor with the XKB map a server with km sends,
+// read through the parser the backend uses.
+func xkbPlatformFor(km *xkb.Keymap) *platformState {
+	p := coreKeymapFor(km)
+	m, err := parseXKBKeySyms(xkbReplyFor(km))
+	if err != nil {
+		panic(err)
+	}
+	p.xkbMap = m
+	for g := range p.latinGroups {
+		p.latinGroups[g] = g < m.maxGroups && p.groupIsLatin(g)
+	}
+	return p
+}
+
+func runGoldenX11(t *testing.T, layout, variant string, layoutIdx uint32, rows []goldenRow,
+	platformFor func(*xkb.Keymap) *platformState) {
 	km, err := xkb.NewKeymapFromNames("evdev", "pc105", layout, variant, "")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer km.Destroy()
-	p := coreKeymapFor(km)
+	p := platformFor(km)
 	base := uint16(layoutIdx) << 13 // the group, as an XKB-aware server reports it
 	for _, row := range rows {
 		state := base
