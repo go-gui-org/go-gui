@@ -72,6 +72,13 @@ time, so the binary does not link them:
 KDE and wlroots compositors (sway) draw the frame themselves and need no
 libdecor. See `docs/specs/wayland-backend.md`.
 
+On X11 libxkbcommon is optional. Keys, shortcuts and switching between keyboard
+layouts work without it; with it, the X11 backend also types letters of scripts
+with legacy keysyms (Cyrillic, Greek, Hebrew) and capitalizes them under Caps
+Lock as Wayland does. Every desktop that runs GTK or Qt has it installed.
+`examples/key_inspector` shows what each key press reports on a machine; see
+`docs/specs/keyboard-layouts.md`.
+
 ## Step 2: write the app manifest
 
 Keep the app's identity in one file, `appinfo.toml`, beside `main.go`. Then the

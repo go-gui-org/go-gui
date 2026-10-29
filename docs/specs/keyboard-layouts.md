@@ -1,7 +1,7 @@
 # Keys and shortcuts on every keyboard layout
 
-Issue: #1188. Status: **planned**. Linux (X11 and Wayland) first; Windows, macOS
-and web follow as separate issues.
+Issue: #1188. Status: **implemented**. Linux (X11 and Wayland) first; Windows,
+macOS and web follow as separate issues.
 
 ## Problem
 
@@ -406,15 +406,21 @@ nothing, and the full sweep takes ~100 s there instead of ~10 s.
 
 ## Phasing
 
-| Phase | Content                                                                 | Status  |
-| ----- | ----------------------------------------------------------------------- | ------- |
-| 1     | This spec; decisions D1–D6                                              | done    |
-| 2     | Test harness: libxkbcommon bindings for tests, golden tables, sweep     | done    |
-| 3     | `KeyCode` rules (§ 2), new constants (§ 3), `ModAltGr`; Wayland         | done    |
-| 4     | `TypedKey`/`TypedModifiers`, two-pass matching; Wayland                 | done    |
-| 5     | X11 core path: NumLock, level 3, groups, consumed, characters           | done    |
-| 6     | Docs: `docs/deployment.md`, CHANGELOG, a keyboard note in the guides    | pending |
-| 7     | Hardware: reporter (KDE, Wayland), Debian laptop (X11 layout switching) | pending |
+| Phase | Content                                                                 | Status                               |
+| ----- | ----------------------------------------------------------------------- | ------------------------------------ |
+| 1     | This spec; decisions D1–D6                                              | done                                 |
+| 2     | Test harness: libxkbcommon bindings for tests, golden tables, sweep     | done                                 |
+| 3     | `KeyCode` rules (§ 2), new constants (§ 3), `ModAltGr`; Wayland         | done                                 |
+| 4     | `TypedKey`/`TypedModifiers`, two-pass matching; Wayland                 | done                                 |
+| 5     | X11: XKB extension and map, NumLock, level 3, groups, Caps, characters  | done                                 |
+| 6     | Docs: `docs/deployment.md`, CHANGELOG, a keyboard note in the guides    | done                                 |
+| 7     | Hardware: reporter (KDE, Wayland), Debian laptop (X11 layout switching) | Debian laptop done; reporter pending |
+
+Phase 7 on the Debian laptop (2026-10-29): `examples/key_inspector` with German,
+French and Russian, switched while it ran, in a GNOME on Xorg session (X11 path,
+XKB map, three groups) and a GNOME Wayland session, all rows of the test plan as
+expected. The keyboard notes are in `docs/deployment.md` and the showcase guide
+`examples/showcase/docs/commands.md`.
 
 ## Sources consulted
 
