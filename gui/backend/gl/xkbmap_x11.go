@@ -116,11 +116,13 @@ func parseXKBKeySyms(r []byte) (*xkbKeySyms, error) {
 	if len(r) < xkbGetMapReplyHd || r[0] != 1 {
 		return nil, fmt.Errorf("%w: %d bytes", errXKBMap, len(r))
 	}
-	n := 32 + 4*int(le.Uint32(r[4:]))
-	if n > len(r) {
-		return nil, fmt.Errorf("%w: length %d, have %d bytes", errXKBMap, n, len(r))
+	// The word count is checked as sent, before it becomes an int: on 32-bit
+	// Linux 4×count can overflow one.
+	words := le.Uint32(r[4:])
+	if words > uint32(len(r)-32)/4 || 32+4*int(words) < xkbGetMapReplyHd {
+		return nil, fmt.Errorf("%w: length %d words, have %d bytes", errXKBMap, words, len(r))
 	}
-	r = r[:n]
+	r = r[:32+4*int(words)]
 	minKC, maxKC := int(r[10]), int(r[11])
 	present := le.Uint16(r[12:])
 	first, nKeys, total := int(r[17]), int(r[20]), int(le.Uint16(r[18:]))
@@ -128,7 +130,9 @@ func parseXKBKeySyms(r []byte) (*xkbKeySyms, error) {
 	if present != xkbKeySymsMask {
 		return nil, fmt.Errorf("%w: parts %#x", errXKBMap, present)
 	}
-	if minKC < 8 || minKC > maxKC || first < minKC || first+nKeys-1 > maxKC {
+	// A full KeySyms reply covers every key; none would replace the core
+	// keymap with an empty map.
+	if nKeys == 0 || minKC < 8 || minKC > maxKC || first < minKC || first+nKeys-1 > maxKC {
 		return nil, fmt.Errorf("%w: keys %d+%d outside %d-%d", errXKBMap, first, nKeys, minKC, maxKC)
 	}
 	m := &xkbKeySyms{syms: make([]uint32, 0, total)}

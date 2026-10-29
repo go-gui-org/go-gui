@@ -83,6 +83,9 @@ func TestXKBKeySymsRejects(t *testing.T) {
 	for name, mutate := range map[string]func([]byte) []byte{
 		"short":            func(r []byte) []byte { return r[:20] },
 		"length past end":  func(r []byte) []byte { le.PutUint32(r[4:], 100); return r },
+		"huge length":      func(r []byte) []byte { le.PutUint32(r[4:], 0xfffffff0); return r }, // wraps to n = -32 on 32-bit
+		"below header":     func(r []byte) []byte { le.PutUint32(r[4:], 1); return r },
+		"no keys":          func(r []byte) []byte { r[20] = 0; le.PutUint16(r[18:], 0); return r },
 		"not a reply":      func(r []byte) []byte { r[0] = 0; return r },
 		"key types too":    func(r []byte) []byte { le.PutUint16(r[12:], xkbKeySymsMask|1); return r },
 		"first below min":  func(r []byte) []byte { r[17] = 7; return r },
