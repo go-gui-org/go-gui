@@ -240,48 +240,14 @@ func isKeypadKeysym(sym uint32) bool {
 func (p *platformState) readPress(code xproto.Keycode, state uint16) (pressedKey, uint32) {
 	g := p.group(code, state)
 	n := p.exactLevels(code)
-	l1, l2 := p.groupSym(code, g, 0), p.groupSym(code, g, 1)
-	if n == 1 || n == 0 && l2 == 0 && p.xkbMap != nil {
-		l2 = l1 // a level the key's type lacks: Shift keeps level 1
-	}
-	in := x11key.KeyInput{Plain: l1, Shifted: l2, Evdev: uint32(code) - 8}
-	keypad := isKeypadKeysym(l2)
-	if keypad && p.numLockMask != 0 && state&p.numLockMask != 0 {
-		in.Plain, in.Shifted = l2, l1
-	}
-	if !p.latinGroups[g] {
-		// As on Wayland: the first group of the first Latin layout.
-		in.NonLatin = true
-		for lg, latin := range p.latinGroups {
-			if latin {
-				in.Latin = p.groupSym(code, lg, 0)
-				break
-			}
-		}
-	}
+	in, keypad := p.keyInput(code, g, n, state)
 	kc := x11key.KeyCode(in)
 
-	// Shift and level 3 count only on keys they can change: Shift not on a
-	// keypad key (either of its first two levels a keypad keysym: XKB's
-	// keypad types leave Shift out, as on the *_latin9 keypad operators
-	// whose level 2 is ·), level 3 not on a key whose type has none. Where the
-	// level count is known (exactLevels) that decides, and an empty level 3
-	// or 4 types nothing; else a key that lists no level 3 or 4 has none,
-	// and one that lists either types nothing on the other if it is empty.
-	shift := state&xproto.KeyButMaskShift != 0 && !keypad && !isKeypadKeysym(l1)
-	var l3, l4 uint32
-	level3 := p.level3Mask != 0 && state&p.level3Mask != 0
-	if level3 {
-		l3, l4 = p.groupSym(code, g, 2), p.groupSym(code, g, 3)
-		switch {
-		case n == 3:
-			l4 = l3 // no level 4: Shift keeps level 3
-		case n > 0:
-			level3 = n > 2
-		default:
-			level3 = l3 != 0 || l4 != 0
-		}
-	}
+	// Shift counts only on a key it can change: not on a keypad key (either
+	// of its first two levels a keypad keysym: XKB's keypad types leave
+	// Shift out, as on the *_latin9 keypad operators whose level 2 is ·).
+	shift := state&xproto.KeyButMaskShift != 0 && !keypad && !isKeypadKeysym(in.Plain)
+	l3, l4, level3 := p.level3Syms(code, g, n, state)
 	pick := func(s, lv3 bool) uint32 {
 		switch {
 		case lv3 && s:
@@ -294,23 +260,7 @@ func (p *platformState) readPress(code xproto.Keycode, state uint16) (pressedKey
 		return in.Plain
 	}
 	typed := pick(shift, level3)
-	// Used up: every active modifier when together they change the
-	// keysym, and each one that changes it alone.
-	var consumed gui.Modifier
-	if typed != in.Plain {
-		if shift {
-			consumed |= gui.ModShift
-		}
-		if level3 {
-			consumed |= gui.ModAltGr
-		}
-	}
-	if shift && pick(true, false) != in.Plain {
-		consumed |= gui.ModShift
-	}
-	if level3 && pick(false, true) != in.Plain {
-		consumed |= gui.ModAltGr
-	}
+	consumed := usedUp(pick, in.Plain, typed, shift, level3)
 	if state&xproto.KeyButMaskLock != 0 {
 		typed = capsLockKeysym(typed, [4]uint32{in.Plain, in.Shifted, l3, l4}, shift, level3)
 	}
@@ -320,6 +270,75 @@ func (p *platformState) readPress(code xproto.Keycode, state uint16) (pressedKey
 		pk.typed, pk.consumed = t, consumed
 	}
 	return pk, typed
+}
+
+// keyInput is what KeyCode reads from a press of code in group g with n
+// known levels (exactLevels): its first two levels with NumLock applied,
+// and on a non-Latin group, as on Wayland, the first Latin group's
+// letter. keypad tells whether level 2 is a keypad keysym.
+func (p *platformState) keyInput(code xproto.Keycode, g, n int, state uint16) (x11key.KeyInput, bool) {
+	l1, l2 := p.groupSym(code, g, 0), p.groupSym(code, g, 1)
+	if n == 1 || n == 0 && l2 == 0 && p.xkbMap != nil {
+		l2 = l1 // a level the key's type lacks: Shift keeps level 1
+	}
+	in := x11key.KeyInput{Plain: l1, Shifted: l2, Evdev: uint32(code) - 8}
+	keypad := isKeypadKeysym(l2)
+	if keypad && p.numLockMask != 0 && state&p.numLockMask != 0 {
+		in.Plain, in.Shifted = l2, l1
+	}
+	if !p.latinGroups[g] {
+		in.NonLatin = true
+		for lg, latin := range p.latinGroups {
+			if latin {
+				in.Latin = p.groupSym(code, lg, 0)
+				break
+			}
+		}
+	}
+	return in, keypad
+}
+
+// level3Syms is code's levels 3 and 4 in group g, and whether level 3
+// applies to a press with state: not on a key whose type has none. Where
+// the level count n is known (exactLevels) that decides, and an empty
+// level 3 or 4 types nothing; else a key that lists no level 3 or 4 has
+// none, and one that lists either types nothing on the other if it is
+// empty.
+func (p *platformState) level3Syms(code xproto.Keycode, g, n int, state uint16) (l3, l4 uint32, on bool) {
+	if p.level3Mask == 0 || state&p.level3Mask == 0 {
+		return 0, 0, false
+	}
+	l3, l4 = p.groupSym(code, g, 2), p.groupSym(code, g, 3)
+	switch {
+	case n == 3:
+		return l3, l3, true // no level 4: Shift keeps level 3
+	case n > 0:
+		return l3, l4, n > 2
+	}
+	return l3, l4, l3 != 0 || l4 != 0
+}
+
+// usedUp is the modifiers a press used up, as libxkbcommon's GTK mode
+// counts them: every active one when together they change the keysym from
+// plain, and each one that changes it alone. pick is the keysym with
+// Shift and level 3 as given.
+func usedUp(pick func(shift, level3 bool) uint32, plain, typed uint32, shift, level3 bool) gui.Modifier {
+	var consumed gui.Modifier
+	if typed != plain {
+		if shift {
+			consumed |= gui.ModShift
+		}
+		if level3 {
+			consumed |= gui.ModAltGr
+		}
+	}
+	if shift && pick(true, false) != plain {
+		consumed |= gui.ModShift
+	}
+	if level3 && pick(false, true) != plain {
+		consumed |= gui.ModAltGr
+	}
+	return consumed
 }
 
 // capsLockKeysym applies Caps Lock to sym, the keysym a press of a key
