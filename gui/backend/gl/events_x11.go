@@ -298,9 +298,18 @@ func (b *Backend) handleXEvent(ev xgb.Event) {
 		}
 
 	case xproto.MappingNotifyEvent:
-		// Every client gets it, unasked, when the keyboard or modifier
-		// mapping changes; the keymap read at start is stale (#1188).
+		// Every core client gets it, unasked, when the keyboard or
+		// modifier mapping changes; the keymap read at start is stale
+		// (#1188). Sent only while the server has no XKB extension.
 		if e.Request == xproto.MappingKeyboard || e.Request == xproto.MappingModifier {
+			b.plat.reloadKeyboard(b.plat.conn)
+		}
+
+	case xkbNotifyEvent:
+		// The same with XKB, which useXKBExtension turns on: a new keymap
+		// (setxkbmap, the desktop's layout settings) or an edited one
+		// (xmodmap).
+		if e.kind == xkbNewKeyboardNotify || e.kind == xkbMapNotify {
 			b.plat.reloadKeyboard(b.plat.conn)
 		}
 

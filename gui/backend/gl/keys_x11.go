@@ -3,6 +3,8 @@
 package gl
 
 import (
+	"strconv"
+
 	"github.com/jezek/xgb"
 	"github.com/jezek/xgb/xproto"
 
@@ -47,6 +49,61 @@ const (
 // latinProbeCodes are the X11 keycodes (evdev + 8) of the keys US labels A,
 // B, C and D. A group that types an ASCII letter on one of them is Latin.
 var latinProbeCodes = [...]xproto.Keycode{38, 56, 54, 40}
+
+// useXKBExtension tells the server this client knows XKB (XkbUseExtension
+// 1.0), as Xlib does for every GTK and Qt application. To a client that
+// does not, the server reports the active layout as a modifier: groups 2
+// to 4 arrive as the bit the keymap's compat map names, Mod5 (AltGr's) on
+// a stock keymap, so after a layout switch every key read as AltGr held
+// (#1188). After it, key events carry the group in state bits 13-14, which
+// readPress reads, and Mod5 only while level 3 is held. The server then
+// sends an XKB-aware client no core MappingNotify, so it selects XKB's
+// own keymap events instead (xkbNotifyEvent). Without the extension the
+// core behavior stays.
+func useXKBExtension(conn *xgb.Conn) {
+	q, err := xproto.QueryExtension(conn, uint16(len("XKEYBOARD")), "XKEYBOARD").Reply()
+	if err != nil || q == nil || !q.Present {
+		return
+	}
+	// xgb has no XKB package; requests are raw, little-endian as xgb
+	// speaks. UseExtension (minor 0): length 2 words, wanted version 1.0.
+	cookie := conn.NewCookie(true, true)
+	conn.NewRequest([]byte{q.MajorOpcode, 0, 2, 0, 1, 0, 0, 0}, cookie)
+	if reply, rerr := cookie.Reply(); rerr != nil || len(reply) < 2 || reply[1] == 0 {
+		return
+	}
+	// Every XKB event has the extension's first event code; byte 1 says
+	// which. Registered as xgb's extension packages register theirs
+	// (randr.Init does the same after connecting).
+	xgb.NewEventFuncs[int(q.FirstEvent)] = func(buf []byte) xgb.Event {
+		return xkbNotifyEvent{kind: buf[1]}
+	}
+	// SelectEvents (minor 1) on the core keyboard (0x100): NewKeyboard and
+	// Map notify, all of each, every map part, as libX11's XkbSelectEvents
+	// sends it. Length 4 words.
+	const events = 1<<xkbNewKeyboardNotify | 1<<xkbMapNotify
+	conn.NewRequest([]byte{
+		q.MajorOpcode, 1, 4, 0,
+		0x00, 0x01, // deviceSpec: the core keyboard
+		events, 0, // affectWhich
+		0, 0, // clear
+		events, 0, // selectAll
+		0xff, 0, // affectMap: every map component
+		0xff, 0, // map
+	}, conn.NewCookie(false, false))
+}
+
+// XKB event kinds (XKBproto.h) the backend selects.
+const (
+	xkbNewKeyboardNotify = 0
+	xkbMapNotify         = 1
+)
+
+// xkbNotifyEvent is an XKB event; only its kind is read.
+type xkbNotifyEvent struct{ kind byte }
+
+func (e xkbNotifyEvent) Bytes() []byte  { return nil }
+func (e xkbNotifyEvent) String() string { return "XkbNotify{" + strconv.Itoa(int(e.kind)) + "}" }
 
 // loadKeyboardInfo reads which modifier bits hold NumLock and ISO level 3,
 // and which core groups type Latin letters. It runs after the keymap is

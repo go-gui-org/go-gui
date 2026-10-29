@@ -127,8 +127,9 @@ and this project adheres to
   keymap cannot describe a key as XKB does (a level explicitly left empty, an
   unusual keypad type, ISO level 5, a layout's own Caps Lock key type), the X11
   result follows the core keymap and can differ from Wayland; the spec lists
-  these. Switching between two layouts configured together on X11 is not tested
-  yet.
+  these. go-gui now enables the XKB extension on X11, as GTK and Qt do: without
+  it Xorg reported a second layout as a held AltGr. A third or fourth layout
+  configured together still types the second's characters on X11.
 
 - **A paste too large for an `Input` is refused whole instead of cut short
   (#1187).** A paste that would take the field past 65,536 runes inserted only

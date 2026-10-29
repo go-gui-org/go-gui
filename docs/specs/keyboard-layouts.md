@@ -175,10 +175,18 @@ default mode would also count Ctrl and Alt on keys that have a Ctrl+Alt level
   - A key the input method forwards (IBus `ForwardKeyEvent`) reports what the
     same press reports without one, when its keycode types the keysym
     forwarded; a keysym the engine made up keeps its own `KeyCode`.
-  - A core client sees no group in the key event state, with or without
-    `XkbUseExtension`, under `xdotool` injection. The path reads the group from
-    bits 13-14 when present; whether a real X11 desktop reports it is the
-    hardware test of phase 7.
+  - The active layout reaches a client that has not called `XkbUseExtension`
+    only as a modifier: the compat map's `group 2 = AltGr` turns groups 2-4
+    into Mod5, the bit AltGr also sets, so every key after a layout switch read
+    as AltGr held (found on the maintainer's Debian Xorg session). The backend
+    therefore calls `XkbUseExtension`, as Xlib does for GTK and Qt; key events
+    then carry the group in bits 13-14 and Mod5 only for AltGr. An XKB-aware
+    client gets no core `MappingNotify`, so it selects `XkbNewKeyboardNotify`
+    and `XkbMapNotify` instead. (`xdotool` locks the group of the key it sends
+    and restores it afterwards; tests that switch layouts inject with `xte`.)
+  - Xorg's core keymap lists a third and fourth group after the first two
+    groups' further levels, whose count it does not say. A third or fourth
+    layout reads the second's keysyms; how to read them is open.
 
   Where the core protocol and XKB disagree, the path follows XKB, which every
   Xlib and GTK application on the same desktop uses: on a keypad key only
