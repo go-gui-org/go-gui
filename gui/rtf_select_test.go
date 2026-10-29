@@ -465,7 +465,17 @@ func TestRtfLinkMenuView_Structure(t *testing.T) {
 	v := rtfLinkMenuView(w, rtfLinkMenuState{
 		Link: "https://example.com", X: 40, Y: 60, Open: true,
 	})
-	layout := generateViewLayout(v, w)
+	anchor := generateViewLayout(v, w)
+	// The menu hangs from a zero-size anchor at the click point, so its
+	// auto-flip mirrors around the point (#1193).
+	if a := anchor.Shape; a == nil || !a.Float ||
+		a.FloatOffsetX != 40 || a.FloatOffsetY != 60 {
+		t.Fatalf("anchor = %+v, want a float at the click point (40,60)", a)
+	}
+	if len(anchor.Children) != 1 {
+		t.Fatalf("anchor has %d children, want the menu", len(anchor.Children))
+	}
+	layout := anchor.Children[0]
 	if layout.Shape == nil {
 		t.Fatal("no menu shape")
 	}

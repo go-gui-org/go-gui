@@ -4,15 +4,17 @@ import "time"
 
 // tooltipState tracks active tooltip bounds and ID.
 type tooltipState struct {
-	hoverStart   time.Time // when hover began
-	id           string
-	popupID      string   // cached popup ID string
-	hoverID      string   // trigger currently hovered
-	text         string   // RTF tooltip content
-	blockKey     uint64   // FNV hash of owning RichText
-	bounds       drawClip // absolute run bounds (mouse check)
-	floatOffsetX float32  // run-relative X for float popup
-	floatOffsetY float32  // run-relative Y for float popup
+	hoverStart time.Time // when hover began
+	id         string
+	popupID    string   // cached popup ID string
+	hoverID    string   // trigger currently hovered
+	text       string   // RTF tooltip content
+	blockKey   uint64   // FNV hash of owning RichText
+	bounds     drawClip // absolute run bounds (mouse check)
+	// The run's box, relative to the RTF block, that the float popup
+	// hangs from: its offset from the block and its size.
+	floatOffsetX, floatOffsetY float32
+	floatWidth, floatHeight    float32
 }
 
 // clearText resets RTF-sourced tooltip state. No-op when
@@ -29,6 +31,8 @@ func (ts *tooltipState) clearText() {
 	ts.bounds = drawClip{}
 	ts.floatOffsetX = 0
 	ts.floatOffsetY = 0
+	ts.floatWidth = 0
+	ts.floatHeight = 0
 	ts.blockKey = 0
 }
 
