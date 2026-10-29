@@ -48,6 +48,10 @@ func TestEventLineAndBindAs(t *testing.T) {
 	if got, want := bindAs(gui.Event{}), "no KeyCode: this key cannot be bound"; got != want {
 		t.Errorf("bindAs = %q, want %q", got, want)
 	}
+	shift := gui.Event{Type: gui.EventKeyDown, KeyCode: gui.KeyLeftShift, TypedKey: gui.KeyLeftShift}
+	if got, want := bindAs(shift), "LeftShift: a modifier, held with another key"; got != want {
+		t.Errorf("bindAs = %q, want %q", got, want)
+	}
 	if got := keyName(gui.KeyRightAlt); got != `"RightAlt"` {
 		t.Errorf("keyName(KeyRightAlt) = %s", got)
 	}

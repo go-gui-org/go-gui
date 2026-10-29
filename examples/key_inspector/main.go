@@ -83,6 +83,9 @@ func onEvent(e *gui.Event, w *gui.Window) {
 	app := gui.State[App](w)
 	line := eventLine(e)
 	log.Print(line)
+	if e.Type == gui.EventKeyDown {
+		log.Print("      bind as: " + bindAs(*e)) // the title line
+	}
 	app.Lines = append([]string{line}, app.Lines...)
 	if len(app.Lines) > maxLines {
 		app.Lines = app.Lines[:maxLines]
@@ -171,6 +174,9 @@ func charText(e *gui.Event) string {
 func bindAs(e gui.Event) string {
 	if e.KeyCode == gui.KeyInvalid && e.TypedKey == gui.KeyInvalid {
 		return "no KeyCode: this key cannot be bound"
+	}
+	if name, ok := modifierKeyNames[e.KeyCode]; ok {
+		return name + ": a modifier, held with another key"
 	}
 	exact := gui.Shortcut{Key: e.KeyCode, Modifiers: e.Modifiers & keyboardMods}
 	typed := gui.Shortcut{Key: e.TypedKey, Modifiers: e.TypedModifiers & keyboardMods}

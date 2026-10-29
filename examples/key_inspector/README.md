@@ -18,7 +18,8 @@ go run ./examples/key_inspector/
 
 Press keys and key combinations. The top shows the last key down; the list below
 shows every key down, key up and typed character, newest first. Each line is
-also printed to the terminal, so you can copy it into a bug report.
+also printed to the terminal, each key down with the title line's binding,
+so you can copy it into a bug report.
 
 F12 opens the built-in inspector and does not reach the list.
 
