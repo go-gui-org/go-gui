@@ -126,7 +126,7 @@ func (b *Backend) handleXEvent(ev xgb.Event) {
 			return
 		}
 		b.plat.pressed[e.Detail] = pk
-		mods := x11key.MapModifiers(e.State)
+		mods := b.plat.modifiers(e.State)
 		b.emit(gui.Event{
 			Type:           gui.EventKeyDown,
 			KeyCode:        pk.code,
@@ -155,7 +155,7 @@ func (b *Backend) handleXEvent(ev xgb.Event) {
 				uint32(e.State),
 			)
 		}
-		mods := x11key.MapModifiers(e.State)
+		mods := b.plat.modifiers(e.State)
 		b.emit(gui.Event{
 			Type:           gui.EventKeyUp,
 			KeyCode:        pk.code,
@@ -195,7 +195,7 @@ func (b *Backend) handleXEvent(ev xgb.Event) {
 				MouseX:      x,
 				MouseY:      y,
 				MouseButton: btn,
-				Modifiers:   x11key.MapModifiers(e.State),
+				Modifiers:   b.plat.modifiers(e.State),
 			})
 		}
 
@@ -207,7 +207,7 @@ func (b *Backend) handleXEvent(ev xgb.Event) {
 				MouseX:      x,
 				MouseY:      y,
 				MouseButton: x11key.MapButton(byte(e.Detail)),
-				Modifiers:   x11key.MapModifiers(e.State),
+				Modifiers:   b.plat.modifiers(e.State),
 			})
 		}
 
@@ -220,7 +220,7 @@ func (b *Backend) handleXEvent(ev xgb.Event) {
 			MouseY:    y,
 			MouseDX:   dx,
 			MouseDY:   dy,
-			Modifiers: x11key.MapModifiers(e.State),
+			Modifiers: b.plat.modifiers(e.State),
 		})
 
 	case xproto.LeaveNotifyEvent:
@@ -297,6 +297,13 @@ func (b *Backend) handleXEvent(ev xgb.Event) {
 			b.emit(gui.Event{Type: gui.EventUnfocused})
 		}
 
+	case xproto.MappingNotifyEvent:
+		// Every client gets it, unasked, when the keyboard or modifier
+		// mapping changes; the keymap read at start is stale (#1188).
+		if e.Request == xproto.MappingKeyboard || e.Request == xproto.MappingModifier {
+			b.plat.reloadKeyboard(b.plat.conn)
+		}
+
 	case xproto.SelectionRequestEvent:
 		b.plat.serveSelectionRequest(e)
 
@@ -348,7 +355,7 @@ func (b *Backend) emitScroll(sx, sy float32, px, py int16, state uint16) {
 		ScrollY:   sy,
 		MouseX:    x,
 		MouseY:    y,
-		Modifiers: x11key.MapModifiers(state),
+		Modifiers: b.plat.modifiers(state),
 	})
 }
 
@@ -388,7 +395,7 @@ func (b *Backend) emitChar(r rune, state uint16) {
 		Type:      gui.EventChar,
 		CharCode:  uint32(r),
 		IMEText:   string(r),
-		Modifiers: x11key.MapModifiers(state),
+		Modifiers: b.plat.modifiers(state),
 	})
 }
 
@@ -427,7 +434,7 @@ func (b *Backend) drainIME() {
 		return
 	}
 	b.plat.imeBuf = b.plat.ime.Drain(b.plat.imeBuf[:0])
-	b.plat.imeEvts = imeEvents(b.plat.imeBuf, b.plat.imeEvts[:0])
+	b.plat.imeEvts = imeEvents(&b.plat, b.plat.imeBuf, b.plat.imeEvts[:0])
 	for i := range b.plat.imeEvts {
 		b.emit(b.plat.imeEvts[i])
 	}
@@ -493,8 +500,9 @@ func imeScaled(v int32, s float32) int32 {
 
 // imeEvents converts input-method results to gui events, appending to
 // dst. Kept separate from dispatch so the mapping is testable without
-// an X connection or a running input method.
-func imeEvents(in []ibus.Event, dst []gui.Event) []gui.Event {
+// an X connection or a running input method. p is the window's keymap
+// for forwarded keys; nil reads them from the keysym alone.
+func imeEvents(p *platformState, in []ibus.Event, dst []gui.Event) []gui.Event {
 	for i := range in {
 		ev := &in[i]
 		switch ev.Kind {
@@ -528,11 +536,25 @@ func imeEvents(in []ibus.Event, dst []gui.Event) []gui.Event {
 
 		case ibus.KindForwardKey:
 			state := uint16(ev.State & 0xffff)
-			dst = append(dst, gui.Event{
+			mods := x11key.MapModifiers(state)
+			if p != nil {
+				mods = p.modifiers(state)
+			}
+			down := gui.Event{
 				Type:      gui.EventKeyDown,
 				KeyCode:   x11key.MapKeySym(ev.Keyval),
-				Modifiers: x11key.MapModifiers(state),
-			})
+				Modifiers: mods,
+			}
+			down.TypedKey, down.TypedModifiers = down.KeyCode, mods
+			// A key the keymap types as forwarded reports what the same
+			// press reports without an input method; a keysym the engine
+			// made up has only its own KeyCode (#1188).
+			if code := ev.Keycode + x11KeycodeOffset; p != nil && ev.Keycode != 0 && code <= 0xff {
+				if pk, sym := p.readPress(xproto.Keycode(code), state); sym == ev.Keyval {
+					down.KeyCode, down.TypedKey, down.TypedModifiers = pk.code, pk.typed, mods&^pk.consumed
+				}
+			}
+			dst = append(dst, down)
 			// A shortcut chord is a key down only, as in keyPressChar.
 			if r := x11key.KeysymToRune(ev.Keyval); r >= 0x20 && r != 0x7f &&
 				!shortcutChord(state) {
@@ -540,7 +562,7 @@ func imeEvents(in []ibus.Event, dst []gui.Event) []gui.Event {
 					Type:      gui.EventChar,
 					CharCode:  uint32(r),
 					IMEText:   string(r),
-					Modifiers: x11key.MapModifiers(state),
+					Modifiers: mods,
 				})
 			}
 		}

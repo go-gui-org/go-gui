@@ -116,12 +116,19 @@ and this project adheres to
   `|`, `~`, `€` could not be typed at all), numpad digits typed nothing with
   NumLock on, Caps Lock typed lowercase letters, and Cyrillic, Greek and other
   non-Latin letters typed nothing. It now applies the AltGr level, the NumLock
-  rule for keypad keys, Caps Lock, and libxkbcommon's character table when
-  libxkbcommon is installed, as the Wayland backend does. Without libxkbcommon,
-  `€` and the numpad's characters type too; only non-Latin text needs it. Where the X11 core keymap cannot describe a key as XKB does (a
-  level explicitly left empty, an unusual keypad type, ISO level 5), the X11
+  rule for keypad keys, Caps Lock as XKB does (Shift+Caps Lock types the
+  lowercase letter), and libxkbcommon's character table when libxkbcommon is
+  installed, as the Wayland backend does. Without libxkbcommon, `€` and the
+  numpad's characters type too; only non-Latin text needs it. A layout changed
+  while the window is open (setxkbmap, the desktop settings) applies to the next
+  key press; the keyboard was read only at start. AltGr is recognized on
+  whichever modifier the keyboard mapping puts it, and a key an IBus input
+  method forwards is reported as the same key typed directly. Where the X11 core
+  keymap cannot describe a key as XKB does (a level explicitly left empty, an
+  unusual keypad type, ISO level 5, a layout's own Caps Lock key type), the X11
   result follows the core keymap and can differ from Wayland; the spec lists
-  these. Switching between layouts on X11 is not tested yet.
+  these. Switching between two layouts configured together on X11 is not tested
+  yet.
 
 - **A paste too large for an `Input` is refused whole instead of cut short
   (#1187).** A paste that would take the field past 65,536 runes inserted only

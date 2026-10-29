@@ -3,8 +3,6 @@
 package gl
 
 import (
-	"unicode"
-
 	"github.com/jezek/xgb"
 	"github.com/jezek/xgb/xproto"
 
@@ -75,6 +73,28 @@ func (p *platformState) loadKeyboardInfo(conn *xgb.Conn) {
 		p.latinGroups[g] = p.groupIsLatin(g)
 	}
 	p.pressed = [len(p.pressed)]pressedKey{}
+}
+
+// reloadKeyboard reads the keymap and the keyboard information again,
+// after a MappingNotify: setxkbmap or the desktop settings changed the
+// layouts or the modifier mapping while the window was open.
+func (p *platformState) reloadKeyboard(conn *xgb.Conn) {
+	if km := loadKeymap(conn, xproto.Setup(conn)); km != nil {
+		p.keymap = km
+	}
+	p.loadKeyboardInfo(conn)
+	p.compose.reset() // a dead key of the old layout must not combine
+}
+
+// modifiers is x11key.MapModifiers with ModAltGr read from the bit ISO
+// level 3 sits on in the modifier mapping, as readPress reads it:
+// xkeyboard-config puts it on Mod5, a custom mapping may not.
+func (p *platformState) modifiers(state uint16) gui.Modifier {
+	m := x11key.MapModifiers(state &^ xproto.KeyButMaskMod5)
+	if state&p.level3Mask != 0 {
+		m |= gui.ModAltGr
+	}
+	return m
 }
 
 func (p *platformState) groupIsLatin(g int) bool {
@@ -170,7 +190,11 @@ func (p *platformState) readPress(code xproto.Keycode, state uint16) (pressedKey
 		consumed |= gui.ModAltGr
 	}
 	if state&xproto.KeyButMaskLock != 0 {
-		typed = capsLockKeysym(typed, l1, l2)
+		lo, up := in.Plain, in.Shifted
+		if level3 {
+			lo, up = l3, l4
+		}
+		typed = capsLockKeysym(typed, lo, up, shift)
 	}
 
 	pk := pressedKey{code: kc, typed: kc, held: true}
@@ -180,19 +204,19 @@ func (p *platformState) readPress(code xproto.Keycode, state uint16) (pressedKey
 	return pk, typed
 }
 
-// capsLockKeysym applies Caps Lock to the keysym a press types: a lowercase
-// letter becomes its capital (X11 protocol § 5). Latin-1 and Unicode
-// keysyms convert directly; a legacy keysym (Cyrillic, Greek) takes the
-// key's shifted keysym when that is its capital.
-func capsLockKeysym(sym, l1, l2 uint32) uint32 {
-	if up := shiftedKeysym(sym); up != sym {
+// capsLockKeysym applies Caps Lock to sym, the keysym a press of the level
+// pair lo, up types with shift. It follows XKB, as Xlib and GTK on the
+// same desktop do, not the core protocol (#1188). On a pair of a lowercase
+// letter and its capital (an alphabetic key type) Caps Lock inverts Shift,
+// so Shift+Caps Lock types the lowercase letter. On any other pair it
+// capitalizes the keysym typed, as XKB's Caps Lock transformation does
+// when the key type leaves Lock unused: AltGr+S types Đ on Albanian.
+func capsLockKeysym(sym, lo, up uint32, shift bool) uint32 {
+	if c := wideKeysymToUpper(lo); c != lo && c == up {
+		if shift {
+			return lo
+		}
 		return up
 	}
-	if sym == l1 && l2 != 0 {
-		r1, r2 := wideKeysymToRune(l1), wideKeysymToRune(l2)
-		if unicode.IsLower(r1) && unicode.ToUpper(r1) == r2 {
-			return l2
-		}
-	}
-	return sym
+	return wideKeysymToUpper(sym)
 }

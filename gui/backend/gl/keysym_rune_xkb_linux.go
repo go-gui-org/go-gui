@@ -18,3 +18,13 @@ func wideKeysymToRune(sym uint32) rune {
 	}
 	return x11key.KeysymToRune(sym)
 }
+
+// wideKeysymToUpper is the capital of a letter keysym: libxkbcommon's, as
+// its Caps Lock rules use, when it is installed; else shiftedKeysym's
+// Latin-1 and Unicode conversion.
+func wideKeysymToUpper(sym uint32) uint32 {
+	if xkb.Load() == nil {
+		return xkb.KeysymToUpper(sym)
+	}
+	return shiftedKeysym(sym)
+}

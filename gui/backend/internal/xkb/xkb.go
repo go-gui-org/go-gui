@@ -31,12 +31,14 @@ var (
 	fnStateUpdateMask       uintptr
 	fnStateKeyGetOneSym     uintptr
 	fnStateKeyGetLayout     uintptr
+	fnStateKeyGetLevel      uintptr
 	fnStateKeyGetConsumed   uintptr
 	fnStateSerializeMods    uintptr
 	fnStateSerializeLayout  uintptr
 	fnStateUpdateKey        uintptr
 	fnKeymapKeyByName       uintptr
 	fnKeysymToUTF32         uintptr
+	fnKeysymToUpper         uintptr
 
 	loadOnce sync.Once
 	loadErr  error
@@ -91,12 +93,14 @@ func load() error {
 		{&fnStateUpdateMask, "xkb_state_update_mask"},
 		{&fnStateKeyGetOneSym, "xkb_state_key_get_one_sym"},
 		{&fnStateKeyGetLayout, "xkb_state_key_get_layout"},
+		{&fnStateKeyGetLevel, "xkb_state_key_get_level"},
 		{&fnStateKeyGetConsumed, "xkb_state_key_get_consumed_mods2"},
 		{&fnStateSerializeMods, "xkb_state_serialize_mods"},
 		{&fnStateSerializeLayout, "xkb_state_serialize_layout"},
 		{&fnStateUpdateKey, "xkb_state_update_key"},
 		{&fnKeymapKeyByName, "xkb_keymap_key_by_name"},
 		{&fnKeysymToUTF32, "xkb_keysym_to_utf32"},
+		{&fnKeysymToUpper, "xkb_keysym_to_upper"},
 	} {
 		addr, symErr := purego.Dlsym(lib, s.name)
 		if symErr != nil || addr == 0 {
@@ -369,6 +373,14 @@ func (k *Keymap) Sym(key uint32) uint32 {
 	return uint32(r)
 }
 
+// Level is the shift level, from 0, a press of key reads in the current
+// state and layout.
+func (k *Keymap) Level(key uint32) uint32 {
+	layout, _, _ := purego.SyscallN(fnStateKeyGetLayout, k.state, uintptr(key))
+	r, _, _ := purego.SyscallN(fnStateKeyGetLevel, k.state, uintptr(key), layout)
+	return uint32(r)
+}
+
 // BaseSym is the keysym on key's first shift level in the current layout,
 // the one X11 reports for column 0. It names the key independent of Shift,
 // so Shift+a and a are both KeyA.
@@ -457,6 +469,17 @@ func KeysymToRune(sym uint32) rune {
 	}
 	r, _, _ := purego.SyscallN(fnKeysymToUTF32, uintptr(sym))
 	return rune(uint32(r))
+}
+
+// KeysymToUpper is the capital of a letter keysym by libxkbcommon's case
+// table, the one its Caps Lock rules use; sym itself for anything else,
+// or when libxkbcommon is not loaded.
+func KeysymToUpper(sym uint32) uint32 {
+	if fnKeysymToUpper == 0 {
+		return sym
+	}
+	r, _, _ := purego.SyscallN(fnKeysymToUpper, uintptr(sym))
+	return uint32(r)
 }
 
 // cptr turns an address libxkbcommon handed over (C memory) back into a

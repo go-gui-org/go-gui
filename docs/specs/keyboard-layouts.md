@@ -169,7 +169,12 @@ default mode would also count Ctrl and Alt on keys that have a Ctrl+Alt level
     core keymap does not say, so level 3 is read for the first group only.
   - The modifier map names the modifiers of `Num_Lock` (Mod2) and
     `ISO_Level3_Shift` (Mod5, through a virtual key, not RALT); they are read
-    from it, not assumed.
+    from it, not assumed, and `ModAltGr` follows the level-3 bit it names.
+  - A `MappingNotify` (setxkbmap, a layout added in the desktop settings) reads
+    the keymap and the modifier map again and drops the press records.
+  - A key the input method forwards (IBus `ForwardKeyEvent`) reports what the
+    same press reports without one, when its keycode types the keysym
+    forwarded; a keysym the engine made up keeps its own `KeyCode`.
   - A core client sees no group in the key event state, with or without
     `XkbUseExtension`, under `xdotool` injection. The path reads the group from
     bits 13-14 when present; whether a real X11 desktop reports it is the
@@ -179,8 +184,12 @@ default mode would also count Ctrl and Alt on keys that have a Ctrl+Alt level
   Xlib and GTK application on the same desktop uses: on a keypad key only
   NumLock picks the keysym (the protocol would let Shift+keypad 7 type 7), and
   the used-up modifiers are counted as libxkbcommon's GTK mode counts them. Caps
-  Lock capitalizes as the protocol says, Latin-1 and Unicode keysyms directly
-  and legacy ones (Cyrillic, Greek) through the key's shifted keysym. Characters
+  Lock acts as XKB's automatic key types make it act: on a pair of levels that
+  holds a lowercase letter and its capital (1 and 2, or 3 and 4) it inverts
+  Shift, so Shift+Caps Lock types the lowercase letter (the protocol would type
+  the capital); on any other pair it capitalizes the keysym typed, the XKB
+  "Caps Lock transformation" (AltGr+S types Đ on `al`). Case comes from
+  libxkbcommon's `xkb_keysym_to_upper` when it is loaded. Characters
   come from libxkbcommon's `xkb_keysym_to_utf32` when it is loaded, else from
   `x11key.KeysymToRune`: Latin-1, the keypad's printable keys, `EuroSign`
   (`€`) and direct-Unicode keysyms, each typed as libxkbcommon types it (a
@@ -199,7 +208,14 @@ default mode would also count Ctrl and Alt on keys that have a Ctrl+Alt level
     with Shift, XKB does not (in(tamilnet_TAB));
   - keypad types other than the plain two-level one (be(oss_latin9),
     ir(pes_keypad), ml(fr-oss));
-  - ISO level 5 (Mod3: de(T3), neo).
+  - ISO level 5 (Mod3: de(T3), neo);
+  - Caps Lock on a key whose layout names a key type that gives Lock a meaning
+    of its own: Shift+Caps Lock capitals on us(mac) and fr(ergol), Caps Lock on
+    the digit row of fr(bepo) and us(chr), `ẞ` on level 5 for Caps Lock+ß on
+    de, Lock used up by FOUR_LEVEL_PLUS_LOCK on fr(dvorak). The core keymap
+    carries no key types. The sweep skips a Caps Lock press only where
+    libxkbcommon's level or keysym differs from the automatic type's, about
+    1,100 of the Caps Lock presses.
 
   libxkbcommon-x11 is not used: Debian installs it only with Qt. Compiling the
   server's layout from `_XKB_RULES_NAMES` with libxkbcommon is the way to close
@@ -319,7 +335,7 @@ the US position.
    Alt, Super} against today's `KeyCode`/`Modifiers`, as § US regression guard
    states.
 3. **All-layout sweep:** for every layout and variant in `evdev.xml`, every key,
-   with none/Shift/AltGr/Shift+AltGr and NumLock on/off:
+   with none/Shift/AltGr/Shift+AltGr, each with Caps Lock off and on:
    - `EventChar` equals libxkbcommon's character, on both paths;
    - every key that types something or has a name gets a `KeyCode`, or is listed
      as an exception;
@@ -334,7 +350,8 @@ the US position.
 5. **Backend check:** the Docker Xorg harness (Xorg with the dummy driver, keys
    injected by keycode with `xdotool`) runs the reporter's probe built from the
    branch: the de(nodeadkeys) and ru presses of the golden tables give the same
-   results on real Xorg.
+   results on real Xorg, and a `setxkbmap` switch while the window is open (us,
+   de, ru) takes effect on the next press.
 6. **Hardware:** the reporter (KDE, Wayland) and a Debian laptop.
 
 CI installs `libxkbcommon0` and `xkb-data`. `GOGUI_REQUIRE_XKB=1` turns the

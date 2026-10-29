@@ -35,6 +35,10 @@ type sweepFailures struct {
 	// x11Skipped counts presses on keys the core keymap cannot describe,
 	// where X11 is not compared with Wayland (coreRepresentable).
 	x11Skipped int
+	// capsTypeSkipped counts Caps Lock presses on keys whose XKB key type
+	// gives Lock a meaning of its own (lockTypeIsAutomatic), which the core
+	// keymap does not carry.
+	capsTypeSkipped int
 }
 
 func (f *sweepFailures) add(rule, format string, args ...any) {
@@ -47,6 +51,7 @@ func (f *sweepFailures) add(rule, format string, args ...any) {
 // Keysym ranges and values the sweep needs (keysymdef.h).
 const (
 	symLevel3Shift = 0xfe03
+	symCapsLockKey = 0xffe5
 	symKPBegin     = 0xff9d
 	symKPFirst     = 0xff80 // keypad keysyms, X11 protocol § 5
 	symKPLast      = 0xffbd
@@ -56,7 +61,8 @@ const (
 
 // TestKeyboardAllLayouts is the spec's all-layout sweep. For every layout
 // and variant xkeyboard-config lists, every key, plain, with Shift, with
-// level 3 and with both, it checks the invariants of § Verification.
+// level 3 and with both, each with and without Caps Lock, it checks the
+// invariants of § Verification.
 func TestKeyboardAllLayouts(t *testing.T) {
 	if testing.Short() {
 		t.Skip("all-layout sweep is slow")
@@ -108,8 +114,9 @@ func TestKeyboardAllLayouts(t *testing.T) {
 			})
 		}
 	}
-	t.Logf("swept %d layouts and variants; X11 not compared on %d presses of keys the core keymap cannot describe",
-		layouts, f.x11Skipped)
+	t.Logf("swept %d layouts and variants; X11 not compared on %d presses of keys the core keymap cannot describe"+
+		" and %d Caps Lock presses on keys whose XKB type gives Lock its own level",
+		layouts, f.x11Skipped, f.capsTypeSkipped)
 	for rule, n := range f.count {
 		t.Errorf("%s: %d violations, e.g.\n  %s", rule, n, strings.Join(f.examples[rule], "\n  "))
 	}
@@ -131,6 +138,11 @@ func sweepLayout(t *testing.T, f *sweepFailures, layout, variant string) {
 	if level3 != 0 {
 		combos = append(combos, []uint32{level3}, []uint32{lfsh, level3})
 	}
+	// Each combination again with Caps Lock on, where CAPS is Caps Lock.
+	caps := h.server.KeyByName("CAPS")
+	if caps != 0 && h.seat.keymap.BaseSym(caps) != symCapsLockKey {
+		caps = 0
+	}
 	skip := map[uint32]bool{}
 	for _, n := range []string{"CAPS", "NMLK", "LFSH", "RTSH", "RALT", "LCTL", "RCTL", "LALT", "LWIN", "RWIN"} {
 		if c := h.server.KeyByName(n); c != 0 {
@@ -142,14 +154,26 @@ func sweepLayout(t *testing.T, f *sweepFailures, layout, variant string) {
 		if base == 0 || skip[code] {
 			continue
 		}
-		for _, held := range combos {
+		levels := make([]uint32, len(combos)) // each combination's level without Caps Lock
+		for i := range 2 * len(combos) {
+			held, capsOn := combos[i%len(combos)], i >= len(combos)
+			if capsOn {
+				if caps == 0 {
+					break
+				}
+				h.keyCode(caps, true) // setLayout below unlocks it again
+				h.keyCode(caps, false)
+			}
 			for _, c := range held {
 				h.keyCode(c, true)
 			}
 			// What the press types and whether level 3 is active, from
 			// libxkbcommon: real modifier Mod5 is bit 7 in every keymap.
 			// Shift+RALT is not level 3 on every layout (de(T3)).
-			sym := h.server.Sym(code)
+			sym, level := h.server.Sym(code), h.server.Level(code)
+			if !capsOn {
+				levels[i] = level
+			}
 			d, l, lk, _ := h.server.Serialize()
 			level3On := (d|l|lk)&xkb.MaskMod5 != 0
 			for _, c := range slices.Backward(held) {
@@ -160,7 +184,7 @@ func sweepLayout(t *testing.T, f *sweepFailures, layout, variant string) {
 			// cm, cn(tib)). The key after it then rightly types on level 3
 			// with ModAltGr; clear such state so each press starts fresh.
 			h.setLayout(0)
-			where := fmt.Sprintf("%s key %d held %v", name, code, held)
+			where := fmt.Sprintf("%s key %d held %v caps %v", name, code, held, capsOn)
 			if !r.gotDown {
 				continue // the window took it (Tab, F12)
 			}
@@ -191,6 +215,10 @@ func sweepLayout(t *testing.T, f *sweepFailures, layout, variant string) {
 				f.x11Skipped++
 				continue
 			}
+			if capsOn && !lockTypeIsAutomatic(h.seat.keymap.Levels(code), levels[i-len(combos)], level, sym) {
+				f.capsTypeSkipped++
+				continue
+			}
 			// libxkbcommon's real modifiers are the X11 core state bits.
 			x, xc := x11PressCode(core, code, uint16(d|l|lk)&0xff)
 			if x.KeyCode != r.down.KeyCode || x.TypedKey != r.down.TypedKey ||
@@ -202,4 +230,29 @@ func sweepLayout(t *testing.T, f *sweepFailures, layout, variant string) {
 			}
 		}
 	}
+}
+
+// lockTypeIsAutomatic tells whether Caps Lock acts on a key of the first
+// layout, given its levels, as the key type xkeyboard-config picks by
+// itself would: noLock is the level without Lock, withLock and sym the
+// level and keysym libxkbcommon gives with it. On a pair of a lowercase
+// letter and its capital (levels 1 and 2, or 3 and 4) Lock inverts Shift;
+// on any other pair it keeps the level and capitalizes the keysym. A
+// layout may name a type of its own that gives Lock another meaning
+// (Shift+Lock capitals on us(mac), Lock on the digit row of fr(bepo),
+// level 5 for ẞ on de, Lock used up on fr(dvorak)'s FOUR_LEVEL_PLUS_LOCK);
+// the core keymap carries no key types, so the X11 path cannot follow it.
+func lockTypeIsAutomatic(levels [][]uint32, noLock, withLock, sym uint32) bool {
+	if len(levels) == 0 {
+		return true
+	}
+	lv := levels[0]
+	lo := noLock &^ 1
+	if int(lo)+1 >= len(lv) || int(withLock) >= len(lv) {
+		return int(withLock) < len(lv) && withLock == noLock && sym == xkb.KeysymToUpper(lv[withLock])
+	}
+	if up := xkb.KeysymToUpper(lv[lo]); up != lv[lo] && up == lv[lo+1] {
+		return withLock == noLock^1 && sym == lv[withLock]
+	}
+	return withLock == noLock && sym == xkb.KeysymToUpper(lv[withLock])
 }

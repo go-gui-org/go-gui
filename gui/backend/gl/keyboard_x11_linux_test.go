@@ -8,6 +8,7 @@ import (
 	"github.com/jezek/xgb/xproto"
 
 	"github.com/go-gui-org/go-gui/gui"
+	"github.com/go-gui-org/go-gui/gui/backend/ibus"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/x11key"
 	"github.com/go-gui-org/go-gui/gui/backend/internal/xkb"
 )
@@ -158,7 +159,7 @@ func x11PressCode(p *platformState, code uint32, state uint16) (gui.Event, rune)
 	pk, sym := p.readPress(xproto.Keycode(code), state)
 	r := keyPressCharWide(&p.compose, sym, state, wideKeysymToRune)
 	p.compose.reset()
-	mods := x11key.MapModifiers(state)
+	mods := p.modifiers(state)
 	return gui.Event{
 		Type: gui.EventKeyDown, KeyCode: pk.code, Modifiers: mods,
 		TypedKey: pk.typed, TypedModifiers: mods &^ pk.consumed,
@@ -184,7 +185,9 @@ func runGoldenX11(t *testing.T, layout, variant string, layoutIdx uint32, rows [
 }
 
 // TestKeyboardX11CapsLock: Caps Lock types capitals on X11, Latin and
-// Cyrillic, and does not change the key a press reports.
+// Cyrillic, as XKB does: Shift+Caps Lock types the lowercase letter, and
+// a level-3 letter is capitalized. It does not change the key a press
+// reports.
 func TestKeyboardX11CapsLock(t *testing.T) {
 	requireXKB(t)
 	cases := []struct {
@@ -195,10 +198,15 @@ func TestKeyboardX11CapsLock(t *testing.T) {
 		code   gui.KeyCode
 	}{
 		{"us", "AC01", x11Lock, 'A', gui.KeyA},
-		{"us", "AC01", x11Lock | x11Shift, 'A', gui.KeyA}, // the protocol: Shift+Lock is still a capital
+		{"us", "AC01", x11Lock | x11Shift, 'a', gui.KeyA}, // XKB, not the protocol's 'A'
 		{"us", "AE01", x11Lock, '1', gui.Key1},
+		{"us", "AE01", x11Lock | x11Shift, '!', gui.Key1},
 		{"de", "AC11", x11Lock, 'Ä', gui.KeyInvalid},
+		{"de", "AC11", x11Lock | x11Shift, 'ä', gui.KeyInvalid},
 		{"ru", "AB03", x11Lock, 'С', gui.KeyC},
+		{"ru", "AB03", x11Lock | x11Shift, 'с', gui.KeyC},
+		{"al", "AC02", x11Lock | x11Mod5, 'Đ', gui.KeyS}, // AltGr+S: a legacy keysym, capitalized
+		{"de", "AD03", x11Lock | x11Mod5, '€', gui.KeyE},
 	}
 	for _, c := range cases {
 		km, err := xkb.NewKeymapFromNames("evdev", "pc105", c.layout, "", "")
@@ -322,5 +330,56 @@ func TestKeysymTablesAgree(t *testing.T) {
 	}
 	if mapped < 200 {
 		t.Fatalf("x11key maps only %d keysyms", mapped)
+	}
+}
+
+// TestKeyboardX11Level3Bit: ModAltGr follows the bit the modifier mapping
+// puts ISO level 3 on. xkeyboard-config uses Mod5; with a custom mapping
+// on Mod3, AltGr+Q must still be AltGr, or a Q shortcut would win.
+func TestKeyboardX11Level3Bit(t *testing.T) {
+	requireXKB(t)
+	km, err := xkb.NewKeymapFromNames("evdev", "pc105", "de", "nodeadkeys", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer km.Destroy()
+	p := coreKeymapFor(km)
+	p.level3Mask = x11Mod3
+	down, char := x11PressCode(p, km.KeyByName("AD01"), x11Mod3)
+	if char != '@' || down.KeyCode != gui.KeyQ || down.Modifiers != gui.ModAltGr ||
+		down.TypedKey != gui.KeyAt || down.TypedModifiers != gui.ModNone {
+		t.Errorf("AltGr+Q on Mod3: %+v char %q", down, char)
+	}
+	if m := p.modifiers(x11Mod5); m.Has(gui.ModAltGr) {
+		t.Errorf("Mod5 is not level 3 here, Modifiers %#x", m)
+	}
+}
+
+// TestKeyboardX11IMEForwardedKey: a key the input method forwards reports
+// what the same press reports without one.
+func TestKeyboardX11IMEForwardedKey(t *testing.T) {
+	requireXKB(t)
+	km, err := xkb.NewKeymapFromNames("evdev", "pc105", "de", "nodeadkeys", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer km.Destroy()
+	p := coreKeymapFor(km)
+	shift7 := ibus.Event{Kind: ibus.KindForwardKey, Keyval: '/', Keycode: km.KeyByName("AE07") - 8, State: x11Shift}
+	got := imeEvents(p, []ibus.Event{shift7}, nil)
+	if len(got) != 2 || got[0].KeyCode != gui.Key7 || got[0].Modifiers != gui.ModShift ||
+		got[0].TypedKey != gui.KeySlash || got[0].TypedModifiers != gui.ModNone || got[1].CharCode != '/' {
+		t.Fatalf("forwarded Shift+7: %+v", got)
+	}
+	// A keysym the keymap does not type there, or no keycode: its own key.
+	for _, ev := range []ibus.Event{
+		{Kind: ibus.KindForwardKey, Keyval: '/', State: x11Shift},
+		{Kind: ibus.KindForwardKey, Keyval: '/', Keycode: km.KeyByName("AE08") - 8, State: x11Shift},
+	} {
+		got = imeEvents(p, []ibus.Event{ev}, nil)
+		if got[0].KeyCode != gui.KeySlash || got[0].TypedKey != gui.KeySlash ||
+			got[0].TypedModifiers != gui.ModShift {
+			t.Errorf("forwarded %+v: %+v", ev, got[0])
+		}
 	}
 }
