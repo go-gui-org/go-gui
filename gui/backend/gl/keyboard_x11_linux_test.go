@@ -371,6 +371,18 @@ func TestKeyboardX11IMEForwardedKey(t *testing.T) {
 		got[0].TypedKey != gui.KeySlash || got[0].TypedModifiers != gui.ModNone || got[1].CharCode != '/' {
 		t.Fatalf("forwarded Shift+7: %+v", got)
 	}
+	// A forwarded Cyrillic key types its letter and keeps its Latin key,
+	// as the same press does directly.
+	ru, err := xkb.NewKeymapFromNames("evdev", "pc105", "ru", "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer ru.Destroy()
+	es := ibus.Event{Kind: ibus.KindForwardKey, Keyval: ru.BaseSym(ru.KeyByName("AB03")), Keycode: ru.KeyByName("AB03") - 8}
+	got = imeEvents(coreKeymapFor(ru), []ibus.Event{es}, nil)
+	if len(got) != 2 || got[0].KeyCode != gui.KeyC || got[1].CharCode != 'с' {
+		t.Fatalf("forwarded Cyrillic es: %+v", got)
+	}
 	// A keysym the keymap does not type there, or no keycode: its own key.
 	for _, ev := range []ibus.Event{
 		{Kind: ibus.KindForwardKey, Keyval: '/', State: x11Shift},

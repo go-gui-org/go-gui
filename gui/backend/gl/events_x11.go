@@ -556,7 +556,7 @@ func imeEvents(p *platformState, in []ibus.Event, dst []gui.Event) []gui.Event {
 			}
 			dst = append(dst, down)
 			// A shortcut chord is a key down only, as in keyPressChar.
-			if r := x11key.KeysymToRune(ev.Keyval); r >= 0x20 && r != 0x7f &&
+			if r := wideKeysymToRune(ev.Keyval); r >= 0x20 && r != 0x7f &&
 				!shortcutChord(state) {
 				dst = append(dst, gui.Event{
 					Type:      gui.EventChar,
