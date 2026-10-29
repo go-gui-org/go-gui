@@ -272,10 +272,11 @@ func contextMenuPopupLayout(t *testing.T, w *Window,
 	v := ContextMenu(w, cfg)
 	layout := generateViewLayout(v, w)
 
-	// Find the floating popup child.
+	// Find the floating popup: it hangs from a zero-size anchor at the
+	// click point (#1193).
 	for _, child := range layout.Children {
-		if child.Shape != nil && child.Shape.Float {
-			return child
+		if child.Shape != nil && child.Shape.Float && len(child.Children) == 1 {
+			return child.Children[0]
 		}
 	}
 	t.Fatal("no floating popup found")

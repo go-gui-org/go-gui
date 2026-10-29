@@ -358,20 +358,9 @@ func rtfMouseMove(ctx EventCtx) {
 					ctx.Consume()
 					return
 				}
-				r := rtfRunRect(run)
 				ts.hoverID = tipID
 				ts.text = found.Tooltip
-				// Readers test the window pointer against the bounds,
-				// so they are kept in the window: the box of the run's
-				// corners mapped out through any view transforms.
-				ts.bounds = xfBoxToWindow(ctx.Layout, drawClip{
-					X:      ctx.Layout.Shape.X + r.X,
-					Y:      ctx.Layout.Shape.Y + r.Y,
-					Width:  r.Width,
-					Height: r.Height,
-				})
-				ts.floatOffsetX = r.X + r.Width/2
-				ts.floatOffsetY = r.Y - 3
+				ts.setRun(ctx.Layout, rtfRunRect(run))
 				ts.blockKey = rtfRunsKey(
 					ctx.Layout.Shape.TC.rtf.rTFRuns)
 				ts.hoverStart = time.Now()
@@ -518,17 +507,22 @@ func rtfMathStateKey(
 // abbreviation expansion wraps instead of spanning the window.
 const rtfTooltipMaxWidth = 300
 
-// rtfTooltipView builds a floating tooltip popup positioned
-// relative to the owning RTF shape via the float system.
+// rtfTooltipView builds a floating tooltip popup 3px above the hovered
+// run, centered on it. It hangs from the run's box, so with no room
+// above it flips to 3px below the run rather than to the block's bottom
+// edge (#1193).
 func rtfTooltipView(ts *tooltipState) View {
 	d := &defaultTooltipStyle
-	return Column(ContainerCfg{
+	return floatAnchorBox(drawClip{
+		X: ts.floatOffsetX, Y: ts.floatOffsetY,
+		Width: ts.floatWidth, Height: ts.floatHeight,
+	}, Column(ContainerCfg{
 		ID:            ts.popupID,
 		Float:         true,
 		FloatAutoFlip: true,
+		FloatAnchor:   FloatTopCenter,
 		FloatTieOff:   FloatBottomCenter,
-		FloatOffsetX:  ts.floatOffsetX,
-		FloatOffsetY:  ts.floatOffsetY,
+		FloatOffsetY:  -3,
 		Color:         d.Colors.Base,
 		ColorBorder:   d.Colors.Border,
 		SizeBorder:    BorderPx(d.SizeBorder),
@@ -542,7 +536,7 @@ func rtfTooltipView(ts *tooltipState) View {
 				Mode:      TextModeWrap,
 			}),
 		},
-	})
+	}))
 }
 
 func rtfOnClick(ctx EventCtx) {
@@ -758,7 +752,7 @@ func rtfLinkMenuDismiss(w *Window) {
 func rtfLinkMenuView(w *Window, st rtfLinkMenuState) View {
 	link := st.Link
 	markdownID := st.MarkdownID
-	return menu(w, MenubarCfg{
+	return floatAnchorBox(drawClip{X: st.X, Y: st.Y}, menu(w, MenubarCfg{
 		ID: rtfLinkMenuFocusID,
 		Items: []MenuItemCfg{
 			{ID: "open_link", Text: "Open Link"},
@@ -779,7 +773,5 @@ func rtfLinkMenuView(w *Window, st rtfLinkMenuState) View {
 		FloatAutoFlip: true,
 		FloatAnchor:   FloatTopLeft,
 		FloatTieOff:   FloatTopLeft,
-		FloatOffsetX:  st.X,
-		FloatOffsetY:  st.Y,
-	})
+	}))
 }

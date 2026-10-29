@@ -1,7 +1,7 @@
 package gui
 
-// goldenDropdownCases records open dropdowns. Kept out of
-// golden_cases_test.go, which is past the file-size limit.
+// goldenDropdownCases records open dropdowns and popup menus. Kept out
+// of golden_cases_test.go, which is past the file-size limit.
 func goldenDropdownCases() []goldenCase {
 	return []goldenCase{
 		{
@@ -30,6 +30,27 @@ func goldenDropdownCases() []goldenCase {
 					Value:  "alpha",
 					Sizing: FillFit,
 				}))
+			},
+		},
+		{
+			// The context menu open at a click point with room below and
+			// right. The popup hangs from a zero-size anchor at the point
+			// (#1193), which draws nothing: with no flip the recording is
+			// the same as the popup offset from the area's corner. The
+			// state is seeded rather than driven by a right press.
+			name:    "context_menu_open",
+			focusID: ScopeID("cm", "popup"),
+			build: func(w *Window) View {
+				StateMap[string, contextMenuState](w, nsContextMenu, capFew).
+					Set("cm", contextMenuState{Open: true, X: 40, Y: 30})
+				return ContextMenu(w, ContextMenuCfg{
+					ID:     "cm",
+					Sizing: FillFill,
+					Items: []MenuItemCfg{
+						MenuItemText("open", "Open"),
+						MenuItemText("save", "Save"),
+					},
+				})
 			},
 		},
 	}

@@ -4,15 +4,47 @@ import "time"
 
 // tooltipState tracks active tooltip bounds and ID.
 type tooltipState struct {
-	hoverStart   time.Time // when hover began
-	id           string
-	popupID      string   // cached popup ID string
-	hoverID      string   // trigger currently hovered
-	text         string   // RTF tooltip content
-	blockKey     uint64   // FNV hash of owning RichText
-	bounds       drawClip // absolute run bounds (mouse check)
-	floatOffsetX float32  // run-relative X for float popup
-	floatOffsetY float32  // run-relative Y for float popup
+	hoverStart time.Time // when hover began
+	id         string
+	popupID    string   // cached popup ID string
+	hoverID    string   // trigger currently hovered
+	text       string   // RTF tooltip content
+	blockKey   uint64   // FNV hash of owning RichText
+	bounds     drawClip // absolute run bounds (mouse check)
+	// The run's box, relative to the RTF block, that the float popup
+	// hangs from: its offset from the block and its size.
+	floatOffsetX, floatOffsetY float32
+	floatWidth, floatHeight    float32
+}
+
+// setRun records the hovered run r, in the frame of the RTF block ly:
+// its bounds and the box its float popup hangs from.
+func (ts *tooltipState) setRun(ly *Layout, r drawClip) {
+	// Readers test the window pointer against the bounds, so they are
+	// kept in the window: the box of the run's corners mapped out
+	// through any view transforms.
+	local := drawClip{
+		X:      ly.Shape.X + r.X,
+		Y:      ly.Shape.Y + r.Y,
+		Width:  r.Width,
+		Height: r.Height,
+	}
+	drawn, mapped := xfBoxToWindowOK(ly, local)
+	if !mapped {
+		drawn = local
+	}
+	ts.bounds = drawn
+	// The popup's anchor hangs in the window, outside any transform, so
+	// it takes the run's box as drawn: the bounds, with their origin
+	// mapped back into the block's frame, where float offsets are
+	// given. A box that did not map is still in the block's frame, and
+	// the run's own box stands in.
+	ts.floatOffsetX, ts.floatOffsetY = r.X, r.Y
+	ts.floatWidth, ts.floatHeight = r.Width, r.Height
+	if x, y, ok := xfWindowToLocal(ly, drawn.X, drawn.Y, false); mapped && ok {
+		ts.floatOffsetX, ts.floatOffsetY = x-ly.Shape.X, y-ly.Shape.Y
+		ts.floatWidth, ts.floatHeight = drawn.Width, drawn.Height
+	}
 }
 
 // clearText resets RTF-sourced tooltip state. No-op when
@@ -29,6 +61,8 @@ func (ts *tooltipState) clearText() {
 	ts.bounds = drawClip{}
 	ts.floatOffsetX = 0
 	ts.floatOffsetY = 0
+	ts.floatWidth = 0
+	ts.floatHeight = 0
 	ts.blockKey = 0
 }
 

@@ -51,6 +51,21 @@ and this project adheres to
 
 ### Fixed
 
+- **A `ContextMenu` opened near the bottom or right edge of the window opens
+  next to the cursor (#1193).** Right-clicking near the bottom of a tall menu
+  area, such as a table filling the window, opened the menu at the top of the
+  window. The flip that keeps a popup in the window treated the click position
+  as a gap from the area's top edge and mirrored it to the area's bottom edge,
+  which for a tall area is far above the cursor. The popup now hangs from the
+  click point and flips around it: with no room below it opens above the cursor,
+  with no room to the right it opens to the left. The same fix applies to the
+  link menu on a right-clicked link in `RTF` and `Markdown`, which had the same
+  fault in long documents. Where the menu fits below and to the right of the
+  cursor, it opens exactly where it did before. The tooltip on an `RTF` or
+  `Markdown` run had the same fault: hovered near the top of the window, it
+  flipped to the bottom of the text block, far from the word. It now opens 3px
+  below the word when there is no room above it.
+
 - **A paste too large for an `Input` is refused whole instead of cut short
   (#1187).** A paste that would take the field past 65,536 runes inserted only
   the first 65,536, with no sign anything was dropped, so pasted JSON, CSV or

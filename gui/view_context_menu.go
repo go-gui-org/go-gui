@@ -199,7 +199,7 @@ func contextMenuPopup(w *Window, cfg ContextMenuCfg, mx, my float32) View {
 		}
 	}
 
-	return menu(w, MenubarCfg{
+	return floatAnchorBox(drawClip{X: mx, Y: my}, menu(w, MenubarCfg{
 		ID:                ScopeID(cfg.ID, "popup"),
 		Items:             cfg.Items,
 		Action:            action,
@@ -220,9 +220,39 @@ func contextMenuPopup(w *Window, cfg ContextMenuCfg, mx, my float32) View {
 		FloatAutoFlip:     true,
 		FloatAnchor:       FloatTopLeft,
 		FloatTieOff:       FloatTopLeft,
-		FloatOffsetX:      mx,
-		FloatOffsetY:      my,
 		FloatZIndex:       cfg.FloatZIndex,
+	}))
+}
+
+// floatAnchorBox hangs popup from an invisible float box at r, in the
+// parent's frame, so the popup's auto-flip turns around that box rather
+// than around the whole parent. A popup offset from the parent's corner
+// flips to the parent's far edge, treating its offset as a gap, and over
+// a tall parent lands nowhere near the point it was opened at (#1193).
+//
+// A zero-size r is a point: a menu tied at FloatTopLeft with no offset
+// opens below-right of it, above it with no room below, left of it with
+// no room to the right. A sized r is a box to keep clear: the RTF
+// tooltip sits above its word and flips to below it.
+//
+// The box is inert: it takes no pointer. Its layer can sit above
+// another popup, such as an open menu over the hovered word, and would
+// otherwise take that popup's presses.
+func floatAnchorBox(r drawClip, popup View) View {
+	return Column(ContainerCfg{
+		inert:        true,
+		Float:        true,
+		FloatAnchor:  FloatTopLeft,
+		FloatTieOff:  FloatTopLeft,
+		FloatOffsetX: r.X,
+		FloatOffsetY: r.Y,
+		Sizing:       FixedFixed,
+		Width:        r.Width,
+		Height:       r.Height,
+		Padding:      NoPadding,
+		SizeBorder:   NoBorder,
+		Spacing:      NoSpacing,
+		Content:      []View{popup},
 	})
 }
 
