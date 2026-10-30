@@ -5,6 +5,7 @@ package gl
 import (
 	"errors"
 	"os"
+	"slices"
 	"strings"
 	"testing"
 
@@ -128,9 +129,10 @@ func TestWaylandLibdecorFrame(t *testing.T) {
 }
 
 // TestWaylandTitlebarDark switches a libdecor frame between light and
-// dark (#1192): the GTK setting flips, the frame keeps its size, and the
-// window commits to show the repaint. Only the GTK plugin can switch, so
-// sway (whose frames are its own) skips.
+// dark (#1192): the GTK setting flips, the frame is committed one pixel
+// taller and then at its size (the GTK plugin redraws on nothing less),
+// and the window commits to show the repaint. Only the GTK plugin can
+// switch, so sway (whose frames are its own) skips.
 func TestWaylandTitlebarDark(t *testing.T) {
 	b := newWaylandTestBackend(t, gui.WindowCfg{Title: "variant"})
 	t.Cleanup(b.Destroy)
@@ -150,12 +152,19 @@ func TestWaylandTitlebarDark(t *testing.T) {
 	}
 	settleWindow(t, b)
 	w, h := ww.frame.ContentSize()
+	var commits [][2]int32
+	decor.CommitFunc = func(cw, ch int32) { commits = append(commits, [2]int32{cw, ch}) }
+	t.Cleanup(func() { decor.CommitFunc = nil })
+	repaint := [][2]int32{{w, h + 1}, {w, h}}
 	np := &nativePlatform{b: b}
 	for _, dark := range []bool{!start, start} {
-		ww.dirty = false
+		ww.dirty, commits = false, nil
 		np.TitlebarDark(dark)
 		if got, _ := ww.d.decor.DarkVariant(); got != dark {
 			t.Fatalf("TitlebarDark(%v): GTK setting %v", dark, got)
+		}
+		if !slices.Equal(commits, repaint) {
+			t.Fatalf("TitlebarDark(%v): frame commits %v, want %v", dark, commits, repaint)
 		}
 		if !ww.dirty {
 			t.Fatalf("TitlebarDark(%v): the window does not commit the repaint", dark)
@@ -166,10 +175,10 @@ func TestWaylandTitlebarDark(t *testing.T) {
 		settleWindow(t, b)
 	}
 
-	ww.dirty = false
+	ww.dirty, commits = false, nil
 	np.TitlebarDark(start)
-	if ww.dirty {
-		t.Fatal("TitlebarDark repainted for a variant already set")
+	if ww.dirty || len(commits) != 0 {
+		t.Fatalf("TitlebarDark repainted for a variant already set: commits %v", commits)
 	}
 
 	// From another goroutine the call waits for the loop's thread.
@@ -179,12 +188,15 @@ func TestWaylandTitlebarDark(t *testing.T) {
 		close(done)
 	}()
 	<-done
-	if got, _ := ww.d.decor.DarkVariant(); got != start {
+	if got, _ := ww.d.decor.DarkVariant(); got != start || len(commits) != 0 {
 		t.Fatal("TitlebarDark ran GTK off the loop's thread")
 	}
 	ww.d.runPosted()
 	if got, _ := ww.d.decor.DarkVariant(); got != !start {
 		t.Fatal("the posted TitlebarDark did not run")
+	}
+	if !slices.Equal(commits, repaint) {
+		t.Fatalf("posted TitlebarDark: frame commits %v, want %v", commits, repaint)
 	}
 	np.TitlebarDark(start)
 	settleWindow(t, b)

@@ -165,6 +165,10 @@ func guard() {
 // backend logs them.
 var ErrorFunc = func(code int, msg string) {}
 
+// CommitFunc sees the content size of every Frame.Commit when set. It is
+// nil outside tests, which check through it what Repaint commits.
+var CommitFunc func(w, h int32)
+
 func onError(_ uintptr, code uintptr, msg uintptr) {
 	defer guard()
 	ErrorFunc(int(int32(code)), goString(msg))
@@ -323,6 +327,9 @@ func (f *Frame) Map() {
 // Commit applies a content size: in reply to a configuration (c non-nil),
 // or on the client's own resize of a floating window (c nil).
 func (f *Frame) Commit(w, h int32, c *Configuration) {
+	if CommitFunc != nil {
+		CommitFunc(w, h)
+	}
 	st, _, _ := purego.SyscallN(fnStateNew, uintptr(w), uintptr(h))
 	if st == 0 {
 		return
