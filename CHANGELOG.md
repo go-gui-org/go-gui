@@ -79,6 +79,17 @@ and this project adheres to
 
 ### Fixed
 
+- **A Wayland window with a libdecor frame no longer quits on its own (#1194).**
+  On a compositor that leaves the frame to the client (GNOME, weston), the event
+  loop sometimes ended after logging `gl: wayland: libdecor_dispatch: -4`, with
+  no user action, and the app quit. libdecor's dispatch ends in a `poll()`,
+  which a signal fails with `EINTR`, and the Go runtime sends `SIGURG` to
+  preempt goroutines, so a busy app gets one now and then. The backend took the
+  interrupted poll for a dead connection. It now counts as a dispatch that found
+  nothing, and the loop's next pass picks up the events. Other libdecor errors
+  still end the loop. The `GODEBUG=asyncpreemptoff=1` workaround is no longer
+  needed.
+
 - **A `ContextMenu` opened near the bottom or right edge of the window opens
   next to the cursor (#1193).** Right-clicking near the bottom of a tall menu
   area, such as a table filling the window, opened the menu at the top of the
