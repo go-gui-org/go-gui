@@ -105,6 +105,9 @@ const (
 	ModCtrl  Modifier = 2
 	ModAlt   Modifier = 4
 	ModSuper Modifier = 8
+	// ModAltGr is set while ISO level 3 is active: AltGr on layouts
+	// that type extra characters with it. It is not Ctrl+Alt.
+	ModAltGr Modifier = 0x10
 	ModLMB   Modifier = 0x100
 	ModRMB   Modifier = 0x200
 	ModMMB   Modifier = 0x400
@@ -137,11 +140,22 @@ func (m Modifier) HasAny(mods ...Modifier) bool {
 // KeyCode identifies a keyboard key.
 type KeyCode uint16
 
-// KeyCode values.
+// KeyCode values. A printable ASCII key's value is its character code.
+// exportaudit:keep — one member of a public enum; the set ships whole.
 const (
 	KeyInvalid      KeyCode = 0
 	KeySpace        KeyCode = 32
+	KeyExclamation  KeyCode = 33
+	KeyQuotation    KeyCode = 34
+	KeyNumberSign   KeyCode = 35
+	KeyDollar       KeyCode = 36
+	KeyPercent      KeyCode = 37
+	KeyAmpersand    KeyCode = 38
 	KeyApostrophe   KeyCode = 39
+	KeyLeftParen    KeyCode = 40
+	KeyRightParen   KeyCode = 41
+	KeyAsterisk     KeyCode = 42
+	KeyPlus         KeyCode = 43
 	KeyComma        KeyCode = 44
 	KeyMinus        KeyCode = 45
 	KeyPeriod       KeyCode = 46
@@ -156,8 +170,13 @@ const (
 	Key7            KeyCode = 55
 	Key8            KeyCode = 56
 	Key9            KeyCode = 57
+	KeyColon        KeyCode = 58
 	KeySemicolon    KeyCode = 59
+	KeyLess         KeyCode = 60
 	KeyEqual        KeyCode = 61
+	KeyGreater      KeyCode = 62
+	KeyQuestion     KeyCode = 63
+	KeyAt           KeyCode = 64
 	KeyA            KeyCode = 65
 	KeyB            KeyCode = 66
 	KeyC            KeyCode = 67
@@ -187,7 +206,13 @@ const (
 	KeyLeftBracket  KeyCode = 91
 	KeyBackslash    KeyCode = 92
 	KeyRightBracket KeyCode = 93
+	KeyCircumflex   KeyCode = 94
+	KeyUnderscore   KeyCode = 95
 	KeyGraveAccent  KeyCode = 96
+	KeyLeftBrace    KeyCode = 123
+	KeyBar          KeyCode = 124
+	KeyRightBrace   KeyCode = 125
+	KeyTilde        KeyCode = 126
 	KeyWorld1       KeyCode = 161
 	KeyWorld2       KeyCode = 162
 	KeyEscape       KeyCode = 256
@@ -205,10 +230,10 @@ const (
 	KeyHome         KeyCode = 268
 	KeyEnd          KeyCode = 269
 	KeyCapsLock     KeyCode = 280
-	keyScrollLock   KeyCode = 281
+	KeyScrollLock   KeyCode = 281
 	KeyNumLock      KeyCode = 282
-	keyPrintScreen  KeyCode = 283
-	keyPause        KeyCode = 284
+	KeyPrintScreen  KeyCode = 283
+	KeyPause        KeyCode = 284
 	KeyF1           KeyCode = 290
 	KeyF2           KeyCode = 291
 	KeyF3           KeyCode = 292
@@ -229,10 +254,10 @@ const (
 	KeyF18          KeyCode = 307
 	KeyF19          KeyCode = 308
 	KeyF20          KeyCode = 309
-	keyF21          KeyCode = 310
-	keyF22          KeyCode = 311
-	keyF23          KeyCode = 312
-	keyF24          KeyCode = 313
+	KeyF21          KeyCode = 310
+	KeyF22          KeyCode = 311
+	KeyF23          KeyCode = 312
+	KeyF24          KeyCode = 313
 	KeyF25          KeyCode = 314
 	KeyKP0          KeyCode = 320
 	KeyKP1          KeyCode = 321
@@ -375,9 +400,13 @@ type Event struct {
 	// ScrollPrecise: a wheel arrives in whole notches, a trackpad in
 	// small steps. A touch pan is not a scroll event; it moves the
 	// content by the finger's distance (#1110).
-	ScrollX         float32
-	ScrollY         float32
-	Modifiers       Modifier
+	ScrollX   float32
+	ScrollY   float32
+	Modifiers Modifier
+	// TypedModifiers, on a key down or up, is Modifiers without those the
+	// key's translation used up: Shift for Shift+7 typing "/" on a German
+	// layout. It goes with TypedKey; see docs/specs/keyboard-layouts.md.
+	TypedModifiers  Modifier
 	CharCode        uint32
 	IMEStart        int32
 	IMELength       int32
@@ -391,12 +420,19 @@ type Event struct {
 	CentroidX       float32 // center of active touches
 	CentroidY       float32
 	KeyCode         KeyCode
-	MouseButton     MouseButton
-	Type            EventType
-	GestureType     GestureType
-	GesturePhase    GesturePhase
-	KeyRepeat       bool
-	IsHandled       bool
+	// TypedKey, on a key down or up, is the key the press produced with
+	// Shift, AltGr and NumLock applied: KeySlash for Shift+7 on a German
+	// layout, while KeyCode stays Key7. It equals KeyCode when the press
+	// produced the same key (Shift+A is KeyA) or one with no KeyCode.
+	// A shortcut matches it with TypedModifiers when no shortcut matches
+	// KeyCode with Modifiers. KeyInvalid on backends that do not set it.
+	TypedKey     KeyCode
+	MouseButton  MouseButton
+	Type         EventType
+	GestureType  GestureType
+	GesturePhase GesturePhase
+	KeyRepeat    bool
+	IsHandled    bool
 	// IMEDeleteInCodePoints sets the unit of IMEDeleteCount.
 	IMEDeleteInCodePoints bool
 	// dragPanReplay marks a tap replay synthesized by the

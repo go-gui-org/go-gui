@@ -33,7 +33,9 @@ func (b *Backend) logicalXY(px, py int32) (float32, float32) {
 	return float32(px) / s, float32(py) / s
 }
 
-// keysym looks up the keysym for a keycode at the given shift column.
+// keysym looks up the keysym for a keycode at the given column. Columns
+// come in pairs, unshifted and shifted: 0-1 for the first group, 2-3 for
+// the second, then the groups' levels 3 and 4 (keys_x11.go).
 //
 // An empty (NoSymbol) shifted column falls back to the unshifted one,
 // as the core protocol specifies: servers list arrows, Home/End and
@@ -60,9 +62,12 @@ func (p *platformState) keysym(code xproto.Keycode, col int) uint32 {
 	if idx := base + col; col < per && idx < len(p.keymap.Keysyms) {
 		sym = uint32(p.keymap.Keysyms[idx])
 	}
-	if sym == 0 && col == 1 {
+	// The rule is the core protocol's, so it covers its columns, a group's
+	// shifted one (1, 3), and not the XKB levels after them: an empty level
+	// 4 there is a key with no symbol, not one to derive.
+	if i := base + col - 1; sym == 0 && (col == 1 || col == 3) && col-1 < per && i < len(p.keymap.Keysyms) {
 		// Empty shifted column: derive it from the unshifted one.
-		sym = shiftedKeysym(uint32(p.keymap.Keysyms[base]))
+		sym = shiftedKeysym(uint32(p.keymap.Keysyms[i]))
 	}
 	return sym
 }
@@ -112,40 +117,51 @@ func (b *Backend) handleXEvent(ev xgb.Event) {
 	w := b.plat.w
 	switch e := ev.(type) {
 	case xproto.KeyPressEvent:
-		col := keysymColumn(e.State)
+		pk, sym := b.plat.readPress(e.Detail, e.State)
 		// A key the input method claims belongs entirely to it: while a
 		// composition is live the engine owns the arrows, Return and
 		// Backspace too, so neither the key event nor the character may
 		// also reach the widget.
-		if b.imeProcessKey(b.plat.keysym(e.Detail, col), e.Detail, e.State) {
+		if b.imeProcessKey(sym, e.Detail, e.State) {
 			return
 		}
+		b.plat.pressed[e.Detail] = pk
+		mods := b.plat.modifiers(e.State)
 		b.emit(gui.Event{
-			Type:      gui.EventKeyDown,
-			KeyCode:   x11key.MapKeySym(b.plat.keysym(e.Detail, 0)),
-			Modifiers: x11key.MapModifiers(e.State),
+			Type:           gui.EventKeyDown,
+			KeyCode:        pk.code,
+			Modifiers:      mods,
+			TypedKey:       pk.typed,
+			TypedModifiers: mods &^ pk.consumed,
 		})
-		if r := keyPressChar(&b.plat.compose, b.plat.keysym(e.Detail, col), e.State); r != 0 {
+		if r := keyPressCharWide(&b.plat.compose, sym, e.State, wideKeysymToRune); r != 0 {
 			b.emitChar(r, e.State)
 		}
 
 	case xproto.KeyReleaseEvent:
+		pk, sym := b.plat.readPress(e.Detail, e.State)
+		if rec := b.plat.pressed[e.Detail]; rec.held {
+			pk = rec // the keys its press reported (#1188)
+			b.plat.pressed[e.Detail] = pressedKey{}
+		}
 		// Releases are forwarded but never suppress the key-up: engines
 		// use them for modifier-only toggles (Shift to switch kana, say)
-		// and nothing else depends on the result. The keysym uses the
-		// same shift column as the press so the engine sees matching
-		// press/release pairs.
+		// and nothing else depends on the result. The keysym is read as
+		// for the press so the engine sees matching press/release pairs.
 		if b.plat.ime != nil {
 			b.plat.ime.ProcessKeyRelease(
-				b.plat.keysym(e.Detail, keysymColumn(e.State)),
+				sym,
 				uint32(e.Detail)-x11KeycodeOffset,
 				uint32(e.State),
 			)
 		}
+		mods := b.plat.modifiers(e.State)
 		b.emit(gui.Event{
-			Type:      gui.EventKeyUp,
-			KeyCode:   x11key.MapKeySym(b.plat.keysym(e.Detail, 0)),
-			Modifiers: x11key.MapModifiers(e.State),
+			Type:           gui.EventKeyUp,
+			KeyCode:        pk.code,
+			Modifiers:      mods,
+			TypedKey:       pk.typed,
+			TypedModifiers: mods &^ pk.consumed,
 		})
 
 	case xproto.ButtonPressEvent:
@@ -179,7 +195,7 @@ func (b *Backend) handleXEvent(ev xgb.Event) {
 				MouseX:      x,
 				MouseY:      y,
 				MouseButton: btn,
-				Modifiers:   x11key.MapModifiers(e.State),
+				Modifiers:   b.plat.modifiers(e.State),
 			})
 		}
 
@@ -191,7 +207,7 @@ func (b *Backend) handleXEvent(ev xgb.Event) {
 				MouseX:      x,
 				MouseY:      y,
 				MouseButton: x11key.MapButton(byte(e.Detail)),
-				Modifiers:   x11key.MapModifiers(e.State),
+				Modifiers:   b.plat.modifiers(e.State),
 			})
 		}
 
@@ -204,7 +220,7 @@ func (b *Backend) handleXEvent(ev xgb.Event) {
 			MouseY:    y,
 			MouseDX:   dx,
 			MouseDY:   dy,
-			Modifiers: x11key.MapModifiers(e.State),
+			Modifiers: b.plat.modifiers(e.State),
 		})
 
 	case xproto.LeaveNotifyEvent:
@@ -275,7 +291,26 @@ func (b *Backend) handleXEvent(ev xgb.Event) {
 			// An open dead-key / Multi_key sequence must not survive a
 			// focus change; X11 cancels in-flight composition there.
 			b.plat.compose.reset()
+			// A key held across the change may be released unseen; its
+			// press must not be reported for a later release (#1188).
+			b.plat.pressed = [len(b.plat.pressed)]pressedKey{}
 			b.emit(gui.Event{Type: gui.EventUnfocused})
+		}
+
+	case xproto.MappingNotifyEvent:
+		// Every core client gets it, unasked, when the keyboard or
+		// modifier mapping changes; the keymap read at start is stale
+		// (#1188). Sent only while the server has no XKB extension.
+		if e.Request == xproto.MappingKeyboard || e.Request == xproto.MappingModifier {
+			b.plat.reloadKeyboard(b.plat.conn)
+		}
+
+	case xkbNotifyEvent:
+		// The same with XKB, which useXKBExtension turns on: a new keymap
+		// (setxkbmap, the desktop's layout settings) or an edited one
+		// (xmodmap).
+		if e.kind == xkbNewKeyboardNotify || e.kind == xkbMapNotify {
+			b.plat.reloadKeyboard(b.plat.conn)
 		}
 
 	case xproto.SelectionRequestEvent:
@@ -329,7 +364,7 @@ func (b *Backend) emitScroll(sx, sy float32, px, py int16, state uint16) {
 		ScrollY:   sy,
 		MouseX:    x,
 		MouseY:    y,
-		Modifiers: x11key.MapModifiers(state),
+		Modifiers: b.plat.modifiers(state),
 	})
 }
 
@@ -369,7 +404,7 @@ func (b *Backend) emitChar(r rune, state uint16) {
 		Type:      gui.EventChar,
 		CharCode:  uint32(r),
 		IMEText:   string(r),
-		Modifiers: x11key.MapModifiers(state),
+		Modifiers: b.plat.modifiers(state),
 	})
 }
 
@@ -381,15 +416,6 @@ func (b *Backend) emitChar(r rune, state uint16) {
 
 // x11KeycodeOffset converts an X11 keycode to the evdev code IBus wants.
 const x11KeycodeOffset = 8
-
-// keysymColumn returns the shift column for the given modifier state:
-// column 0 is the unshifted keysym, column 1 the shifted one.
-func keysymColumn(state uint16) int {
-	if state&xproto.KeyButMaskShift != 0 {
-		return 1
-	}
-	return 0
-}
 
 // imeProcessKey offers a key press to the input method and reports
 // whether it was consumed.
@@ -417,7 +443,7 @@ func (b *Backend) drainIME() {
 		return
 	}
 	b.plat.imeBuf = b.plat.ime.Drain(b.plat.imeBuf[:0])
-	b.plat.imeEvts = imeEvents(b.plat.imeBuf, b.plat.imeEvts[:0])
+	b.plat.imeEvts = imeEvents(&b.plat, b.plat.imeBuf, b.plat.imeEvts[:0])
 	for i := range b.plat.imeEvts {
 		b.emit(b.plat.imeEvts[i])
 	}
@@ -483,8 +509,9 @@ func imeScaled(v int32, s float32) int32 {
 
 // imeEvents converts input-method results to gui events, appending to
 // dst. Kept separate from dispatch so the mapping is testable without
-// an X connection or a running input method.
-func imeEvents(in []ibus.Event, dst []gui.Event) []gui.Event {
+// an X connection or a running input method. p is the window's keymap
+// for forwarded keys; nil reads them from the keysym alone.
+func imeEvents(p *platformState, in []ibus.Event, dst []gui.Event) []gui.Event {
 	for i := range in {
 		ev := &in[i]
 		switch ev.Kind {
@@ -518,19 +545,33 @@ func imeEvents(in []ibus.Event, dst []gui.Event) []gui.Event {
 
 		case ibus.KindForwardKey:
 			state := uint16(ev.State & 0xffff)
-			dst = append(dst, gui.Event{
+			mods := x11key.MapModifiers(state)
+			if p != nil {
+				mods = p.modifiers(state)
+			}
+			down := gui.Event{
 				Type:      gui.EventKeyDown,
 				KeyCode:   x11key.MapKeySym(ev.Keyval),
-				Modifiers: x11key.MapModifiers(state),
-			})
+				Modifiers: mods,
+			}
+			down.TypedKey, down.TypedModifiers = down.KeyCode, mods
+			// A key the keymap types as forwarded reports what the same
+			// press reports without an input method; a keysym the engine
+			// made up has only its own KeyCode (#1188).
+			if code := ev.Keycode + x11KeycodeOffset; p != nil && ev.Keycode != 0 && code <= 0xff {
+				if pk, sym := p.readPress(xproto.Keycode(code), state); sym == ev.Keyval {
+					down.KeyCode, down.TypedKey, down.TypedModifiers = pk.code, pk.typed, mods&^pk.consumed
+				}
+			}
+			dst = append(dst, down)
 			// A shortcut chord is a key down only, as in keyPressChar.
-			if r := x11key.KeysymToRune(ev.Keyval); r >= 0x20 && r != 0x7f &&
+			if r := wideKeysymToRune(ev.Keyval); r >= 0x20 && r != 0x7f &&
 				!shortcutChord(state) {
 				dst = append(dst, gui.Event{
 					Type:      gui.EventChar,
 					CharCode:  uint32(r),
 					IMEText:   string(r),
-					Modifiers: x11key.MapModifiers(state),
+					Modifiers: mods,
 				})
 			}
 		}

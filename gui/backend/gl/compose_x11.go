@@ -144,3 +144,22 @@ func lookupPair(a, b uint32) (rune, bool) {
 	r, ok := multiKeyTable[[2]uint32{a, b}]
 	return r, ok
 }
+
+// keyPressCharWide is keyPressChar with a wider character table. The compose
+// machine falls back to x11key.KeysymToRune, which knows Latin-1, keypad,
+// Euro and Unicode keysyms only, so a Cyrillic or Greek layout would
+// type nothing. When the machine produced nothing and holds no sequence,
+// toRune (libxkbcommon's table, which knows every script) has the last
+// word.
+// Control characters (Return, Tab, Escape) are keys, not text.
+func keyPressCharWide(c *compose, sym uint32, state uint16, toRune func(uint32) rune) rune {
+	if r := keyPressChar(c, sym, state); r != 0 || c.n > 0 || shortcutChord(state) ||
+		isComposeKey(sym) || isModifierKey(sym) {
+		return r
+	}
+	r := toRune(sym)
+	if r < 0x20 || r == 0x7f {
+		return 0
+	}
+	return r
+}

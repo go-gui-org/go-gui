@@ -65,6 +65,109 @@ func TestShortcutMatches(t *testing.T) {
 	}
 }
 
+// The typed key matches with the modifiers its translation left; an event
+// without one (a backend that does not set it) never matches that way.
+func TestShortcutMatchesTyped(t *testing.T) {
+	ctrlSlash := Shortcut{Key: KeySlash, Modifiers: ModCtrl}
+	// Ctrl+Shift+7 on a German layout.
+	de := &Event{
+		KeyCode: Key7, Modifiers: ModCtrl | ModShift,
+		TypedKey: KeySlash, TypedModifiers: ModCtrl,
+	}
+	if ctrlSlash.matches(de) {
+		t.Error("exact match on Key7 should miss Ctrl+/")
+	}
+	if !ctrlSlash.matchesTyped(de) {
+		t.Error("typed match should hit Ctrl+/")
+	}
+	if (Shortcut{Key: KeySlash, Modifiers: ModCtrlShift}).matchesTyped(de) {
+		t.Error("used-up Shift must not be required again")
+	}
+	if ctrlSlash.matchesTyped(&Event{KeyCode: KeySlash, Modifiers: ModCtrl}) {
+		t.Error("an event without TypedKey must not match typed")
+	}
+	if ctrlSlash.matchesTyped(nil) {
+		t.Error("nil event must not match")
+	}
+}
+
+// commandFired registers one command per shortcut and returns the ID of
+// the one a dispatch of e runs, or "".
+func commandFired(t *testing.T, e *Event, shortcuts map[string]Shortcut) string {
+	t.Helper()
+	w := NewWindow(WindowCfg{State: new(int)})
+	fired := ""
+	for id, s := range shortcuts {
+		if err := w.RegisterCommand(Command{
+			ID: id, Shortcut: s, Global: true,
+			Execute: func(_ *Event, _ *Window) { fired = id },
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	w.commandDispatch(e, true)
+	return fired
+}
+
+// The spec's "Fires" columns (docs/specs/keyboard-layouts.md): an exact
+// match wins over a typed one; the typed one runs when nothing matches
+// exactly; AltGr is part of the exact modifiers.
+func TestCommandDispatchTypedPass(t *testing.T) {
+	deShift7 := &Event{
+		KeyCode: Key7, Modifiers: ModShift,
+		TypedKey: KeySlash, TypedModifiers: ModNone,
+	}
+	if got := commandFired(t, deShift7, map[string]Shortcut{
+		"shift7": {Key: Key7, Modifiers: ModShift},
+		"slash":  {Key: KeySlash},
+	}); got != "shift7" {
+		t.Errorf("de Shift+7 with both bound ran %q, want the exact shift7", got)
+	}
+	if got := commandFired(t, deShift7, map[string]Shortcut{
+		"slash": {Key: KeySlash},
+	}); got != "slash" {
+		t.Errorf("de Shift+7 ran %q, want slash", got)
+	}
+	deAltGr8 := &Event{
+		KeyCode: Key8, Modifiers: ModAltGr,
+		TypedKey: KeyLeftBracket, TypedModifiers: ModNone,
+	}
+	if got := commandFired(t, deAltGr8, map[string]Shortcut{
+		"eight": {Key: Key8},
+	}); got != "" {
+		t.Errorf("de AltGr+8 ran %q; typing [ must not fire Key8", got)
+	}
+	if got := commandFired(t, deAltGr8, map[string]Shortcut{
+		"eight":   {Key: Key8},
+		"bracket": {Key: KeyLeftBracket},
+	}); got != "bracket" {
+		t.Errorf("de AltGr+8 ran %q, want bracket", got)
+	}
+	// Ctrl+Shift+A is not Ctrl+A: the backend sets TypedKey = KeyCode and
+	// TypedModifiers = Modifiers when the key typed is the same key.
+	ctrlShiftA := &Event{
+		KeyCode: KeyA, Modifiers: ModCtrlShift,
+		TypedKey: KeyA, TypedModifiers: ModCtrlShift,
+	}
+	if got := commandFired(t, ctrlShiftA, map[string]Shortcut{
+		"selectAll": {Key: KeyA, Modifiers: ModCtrl},
+	}); got != "" {
+		t.Errorf("Ctrl+Shift+A ran %q", got)
+	}
+}
+
+func TestShortcutStringAltGr(t *testing.T) {
+	if runtime.GOOS == "darwin" {
+		t.Skip("macOS labels have no AltGr")
+	}
+	if got := (Shortcut{Key: KeyQ, Modifiers: ModAltGr}).String(); got != "AltGr+Q" {
+		t.Errorf("String() = %q, want AltGr+Q", got)
+	}
+	if got := (Shortcut{Key: KeyNumberSign, Modifiers: ModCtrl}).String(); got != "Ctrl+#" {
+		t.Errorf("String() = %q, want Ctrl+#", got)
+	}
+}
+
 func TestRegisterCommand(t *testing.T) {
 	w := NewWindow(WindowCfg{State: new(int)})
 	w.RegisterCommand(Command{ID: "test", Label: "Test"})

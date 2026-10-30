@@ -10,6 +10,34 @@ and this project adheres to
 
 ### Added
 
+- **Key codes for every printable ASCII character, and `ModAltGr` (#1188).** The
+  keys that had no `KeyCode` constant now have one, valued at their character
+  code like the existing ones: `KeyExclamation`, `KeyQuotation`,
+  `KeyNumberSign`, `KeyDollar`, `KeyPercent`, `KeyAmpersand`, `KeyLeftParen`,
+  `KeyRightParen`, `KeyAsterisk`, `KeyPlus`, `KeyColon`, `KeyLess`,
+  `KeyGreater`, `KeyQuestion`, `KeyAt`, `KeyCircumflex`, `KeyUnderscore`,
+  `KeyLeftBrace`, `KeyBar`, `KeyRightBrace` and `KeyTilde`. `KeyScrollLock`,
+  `KeyPrintScreen`, `KeyPause` and `KeyF21`–`KeyF24` are exported. `ModAltGr`
+  names ISO level 3 (AltGr), which is not Ctrl+Alt; `Shortcut.String` shows it
+  as `AltGr+`. Linux sends them (see Fixed); other platforms do not yet.
+
+- **Shortcuts match the key a press typed: `Event.TypedKey` and
+  `Event.TypedModifiers` (#1188).** A key down now also carries the key the
+  press produced with Shift, AltGr and NumLock applied, and the modifiers that
+  translation did not use up. On a German layout Shift+7 types `/`: `KeyCode`
+  stays `Key7` with Shift, `TypedKey` is `KeySlash` with no modifiers. Command
+  dispatch tries an exact `KeyCode`/`Modifiers` match first and, only when no
+  command matches, `TypedKey`/`TypedModifiers`. So `Shortcut{Key: KeySlash}`
+  fires on German Shift+7, `Ctrl+/` on Ctrl+Shift+7, `KeyLeftBracket` on AltGr+8
+  and `Ctrl++` on US Ctrl+Shift+=, while a command bound to the exact keys still
+  wins. Ctrl+Shift+A stays Ctrl+Shift+A: a press that types the same key keeps
+  all its modifiers. On the default US layout every existing shortcut behaves as
+  before. The Linux backends (Wayland and X11) set the fields; on Windows, macOS
+  and web they are zero and matching is exact, as before.
+  [`examples/key_inspector/`](examples/key_inspector/) shows, for every key
+  press, its `KeyCode`, `TypedKey`, modifiers and character, and the shortcut to
+  bind it with; its terminal output is what a keyboard bug report needs.
+
 - **Custom shaders can read textures: `Shader.Surface` binds a `PixelSurface`'s
   planes as `iChannel0`-`iChannel3` (#1168).** A surface can now hold up to four
   planes in `R8`, `RG8` or `RGBA8`, each with its own size
@@ -65,6 +93,45 @@ and this project adheres to
   `Markdown` run had the same fault: hovered near the top of the window, it
   flipped to the bottom of the text block, far from the word. It now opens 3px
   below the word when there is no room above it.
+
+- **Keys on non-US keyboard layouts get a `KeyCode` on Linux (#1188).** A key's
+  `KeyCode` came from its first-level symbol through a US-only table, so on
+  German, French, Russian and most other layouts many keys reported
+  `KeyInvalid`: `#`, `+`, `<`, `^`, the numpad, NumLock, Menu, the AZERTY number
+  row, and every letter on a Cyrillic layout. Shortcuts on those keys never
+  fired, numpad arrows did nothing in a text field, and Ctrl+C/V/X/Z did nothing
+  on a Russian layout. On Wayland and X11 the code now follows the rules of
+  `docs/specs/keyboard-layouts.md`: named and keypad keys by their symbol (the
+  numpad navigates with NumLock off), ASCII letters and digits, the digit Shift
+  types on AZERTY, on non-Latin layouts the letter of the first configured Latin
+  layout (else the US one at that position), and every printable ASCII
+  character. AltGr is reported as `ModAltGr`, so AltGr+8 typing `[` no longer
+  fires a `Key8` shortcut, and an AltGr chord no longer acts as the plain key
+  for focus traversal (Tab) or keyboard scrolling. A key's release reports the
+  code of its press. On the default US layout nothing that worked changes; a
+  test pins this.
+
+- **On X11, AltGr, NumLock, Caps Lock and non-Latin layouts type the right text
+  (#1188).** The X11 backend chose a key's symbol from Shift alone, so on a
+  German layout AltGr+Q typed `q` instead of `@` (and `[`, `]`, `{`, `}`, `\`,
+  `|`, `~`, `€` could not be typed at all), numpad digits typed nothing with
+  NumLock on, Caps Lock typed lowercase letters, and Cyrillic, Greek and other
+  non-Latin letters typed nothing. It now applies the AltGr level, the NumLock
+  rule for keypad keys, Caps Lock as XKB does (Shift+Caps Lock types the
+  lowercase letter), and libxkbcommon's character table when libxkbcommon is
+  installed, as the Wayland backend does. Without libxkbcommon, `€` and the
+  numpad's characters type too; only non-Latin text needs it. A layout changed
+  while the window is open (setxkbmap, the desktop settings) applies to the next
+  key press; the keyboard was read only at start. AltGr is recognized on
+  whichever modifier the keyboard mapping puts it, and a key an IBus input
+  method forwards is reported as the same key typed directly. go-gui now enables
+  the XKB extension on X11, as GTK and Qt do: without it Xorg reported a second
+  layout as a held AltGr. Key symbols come from the server's XKB map, so a third
+  and fourth layout configured together type their own characters too. Where
+  only XKB's key types say how a key behaves (a layout's own level order, as on
+  some keypads and on `cm(azerty)`'s digit row, ISO level 5, a layout's own Caps
+  Lock type, as Turkish declares for i/İ), the X11 result can differ from
+  Wayland; the spec lists these.
 
 - **A paste too large for an `Input` is refused whole instead of cut short
   (#1187).** A paste that would take the field past 65,536 runes inserted only

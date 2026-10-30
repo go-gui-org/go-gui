@@ -52,7 +52,7 @@ func overMaxDepth(depth int) bool {
 // turn while any button is down equals neither case, so scrolling during
 // a drag worked on macOS and silently did nothing on Windows and the
 // web. Mask first, then match.
-const modKeyboard = ModShift | ModCtrl | ModAlt | ModSuper
+const modKeyboard = ModShift | ModCtrl | ModAlt | ModSuper | ModAltGr
 
 // A nil root is tolerated at every entry point below and nowhere else.
 // Production callers always pass an address — &w.layout, or a z-layer

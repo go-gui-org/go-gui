@@ -46,6 +46,19 @@ type platformState struct {
 	atomOpacity xproto.Atom
 	keymap      *xproto.GetKeyboardMappingReply
 	minKeycode  xproto.Keycode
+	// xkbOpcode is the XKB extension's major opcode once the backend uses
+	// it, else 0; xkbMap is the server's XKB key symbols, nil when the
+	// extension or its GetMap reply is unavailable (xkbmap_x11.go).
+	xkbOpcode byte
+	xkbMap    *xkbKeySyms
+	// numLockMask and level3Mask are the state bits of the modifiers
+	// that hold Num_Lock and ISO_Level3_Shift; latinGroups tells which of
+	// the keyboard's groups types Latin letters (keys_x11.go).
+	numLockMask, level3Mask uint16
+	latinGroups             [xkbMaxGroups]bool
+	// pressed holds what each held key reported on its press, by X11
+	// keycode, so its release repeats it (#1188).
+	pressed [256]pressedKey
 
 	// Selections. X11 has two independent text buffers: CLIPBOARD (explicit
 	// copy/paste) and PRIMARY (filled by selecting text, pasted with the

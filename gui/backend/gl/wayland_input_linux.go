@@ -85,6 +85,9 @@ type wlSeat struct {
 	kbFocus *Backend
 	mods    uint16
 	repeat  wlRepeat
+	// pressed holds the KeyCode each held key reported on its press, by
+	// XKB keycode (evdev KEY_MAX 0x2ff + 8), so its release repeats it.
+	pressed [0x308]pressedKey
 
 	// Serials of the input events requests must name. enterSerial is
 	// the pointer enter, which wl_pointer.set_cursor and the cursor
@@ -202,6 +205,7 @@ func (s *wlSeat) clearKeyboard() {
 	}
 	s.kbFocus, s.mods = nil, 0
 	s.repeat.stop()
+	s.forgetPressed()
 	s.keymap.Destroy()
 	s.keymap = nil
 }
@@ -427,6 +431,7 @@ const wlMaxKeymapSize = 8 << 20
 func (s *wlSeat) keyboardKeymap(format uint32, fd int, size uint32) {
 	// The fd is ours whatever happens next.
 	defer func() { _ = unix.Close(fd) }()
+	s.forgetPressed()
 	s.keymap.Destroy()
 	s.keymap = nil
 	if format != wl.KeyboardKeymapFormatXkbV1 || size == 0 || size > wlMaxKeymapSize {
@@ -470,6 +475,7 @@ func (s *wlSeat) keyboardLeave(uint32, wl.Surface) {
 	}
 	s.kbFocus = nil
 	s.repeat.stop()
+	s.forgetPressed()
 }
 
 func (s *wlSeat) keyboardModifiers(_, depressed, latched, locked, group uint32) {
@@ -496,44 +502,46 @@ func (s *wlSeat) keyboardKey(serial, _ uint32, key, state uint32) {
 	if s.repeat.key == code {
 		s.repeat.stop()
 	}
+	pk := s.readPress(code)
+	if code < uint32(len(s.pressed)) && s.pressed[code].held {
+		pk = s.pressed[code]
+		s.pressed[code] = pressedKey{}
+	}
+	mods := x11key.MapModifiers(s.mods | s.buttons)
 	s.kbFocus.emit(gui.Event{
-		Type:      gui.EventKeyUp,
-		KeyCode:   x11key.MapKeySym(s.keymap.BaseSym(code)),
-		Modifiers: x11key.MapModifiers(s.mods | s.buttons),
+		Type:           gui.EventKeyUp,
+		KeyCode:        pk.code,
+		Modifiers:      mods,
+		TypedKey:       pk.typed,
+		TypedModifiers: mods &^ pk.consumed,
 	})
 }
 
 // keyPress emits the key down, and the character if the key types one.
+// A repeat and the release report the keys of the first press, even if
+// NumLock or the layout changed while the key was held.
 func (s *wlSeat) keyPress(code uint32, repeat bool) {
 	b := s.kbFocus
 	state := s.mods | s.buttons
+	pk := s.readPress(code)
+	if code < uint32(len(s.pressed)) {
+		if repeat && s.pressed[code].held {
+			pk = s.pressed[code]
+		}
+		s.pressed[code] = pk
+	}
+	mods := x11key.MapModifiers(state)
 	b.emit(gui.Event{
-		Type:      gui.EventKeyDown,
-		KeyCode:   x11key.MapKeySym(s.keymap.BaseSym(code)),
-		Modifiers: x11key.MapModifiers(state),
-		KeyRepeat: repeat,
+		Type:           gui.EventKeyDown,
+		KeyCode:        pk.code,
+		Modifiers:      mods,
+		TypedKey:       pk.typed,
+		TypedModifiers: mods &^ pk.consumed,
+		KeyRepeat:      repeat,
 	})
-	if r := wlKeyChar(&b.plat.compose, s.keymap.Sym(code), state, xkb.KeysymToRune); r != 0 {
+	if r := keyPressCharWide(&b.plat.compose, s.keymap.Sym(code), state, xkb.KeysymToRune); r != 0 {
 		b.emitChar(r, state)
 	}
-}
-
-// wlKeyChar is keyPressChar with a wider character table. The X11 compose
-// machine falls back to x11key.KeysymToRune, which knows Latin-1 and
-// Unicode keysyms only, so a Cyrillic or Greek layout would type nothing.
-// When the machine produced nothing and holds no sequence, toRune
-// (libxkbcommon's table, which knows every script) has the last word.
-// Control characters (Return, Tab, Escape) are keys, not text.
-func wlKeyChar(c *compose, sym uint32, state uint16, toRune func(uint32) rune) rune {
-	if r := keyPressChar(c, sym, state); r != 0 || c.n > 0 || shortcutChord(state) ||
-		isComposeKey(sym) || isModifierKey(sym) {
-		return r
-	}
-	r := toRune(sym)
-	if r < 0x20 || r == 0x7f {
-		return 0
-	}
-	return r
 }
 
 // tickRepeat emits the key repeats that are due and reports how long until

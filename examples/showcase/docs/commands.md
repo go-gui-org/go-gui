@@ -34,6 +34,11 @@ Bitmask flags for keyboard modifiers. Combine with `|`.
 | `ModCtrl`  | 2     |
 | `ModAlt`   | 4     |
 | `ModSuper` | 8     |
+| `ModAltGr` | 16    |
+
+`ModAltGr` is AltGr (ISO level 3), which layouts such as German and French use
+to type `@ [ ] { } € ~`. It is not `ModAlt`: AltGr+8 typing `[` does not fire an
+`Alt+8` or `8` shortcut.
 
 Pre-combined convenience constants:
 
@@ -131,6 +136,33 @@ This means:
 - Global commands always take priority.
 - Focused widgets can intercept keys before non-global commands.
 - Non-global commands act as a catch-all for unhandled keys.
+
+## Keyboard Layouts
+
+A key event carries two keys, and a shortcut matches either:
+
+- `KeyCode` with `Modifiers`: the key the layout labels the key with. On a
+  German keyboard Shift+7 is `Key7` with `ModShift`.
+- `TypedKey` with `TypedModifiers`: the key the press typed, with the modifiers
+  that did not go into typing it. Shift+7 on German types `/`, so `TypedKey` is
+  `KeySlash` with no modifiers.
+
+Each command stage (global, then non-global) first looks for a shortcut matching
+`KeyCode`, then one matching `TypedKey`. So `Shortcut{Key: gui.KeySlash}` fires
+on US `/` and on German Shift+7, and
+`Shortcut{Key: gui.Key7, Modifiers: gui.ModShift}` still fires there too. Bind
+the character a user thinks of (`/`, `+`, `@`, `#`); the constants for every
+printable ASCII character are in the table below.
+
+`KeyCode` follows the layout, not the physical position: Z is `KeyZ` on German,
+where it sits where US has Y. On a non-Latin layout (Russian, Greek) letter keys
+take the letter of the first configured Latin layout, else the US one, so Ctrl+C
+copies there too. With two different Latin layouts and a non-Latin one, that
+order decides which letters shortcuts get.
+
+National letters (`ä`, `ß`, `é`) have no `KeyCode` and cannot be bound; they
+still type. `examples/key_inspector` shows what each press reports, and
+`docs/specs/keyboard-layouts.md` has the rules.
 
 ## Widget Integration
 
@@ -322,14 +354,16 @@ func registerCommands(w *gui.Window) {
 
 The `keyName()` function provides display names for all supported keys:
 
-| Category    | Keys                                                                                                                                                              |
-| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Letters     | `KeyA` – `KeyZ` → `"A"` – `"Z"`                                                                                                                                   |
-| Numbers     | `Key0` – `Key9` → `"0"` – `"9"`                                                                                                                                   |
-| Function    | `KeyF1` – `KeyF25` → `"F1"` – `"F25"`                                                                                                                             |
-| Keypad      | `KeyKP0` – `KeyKP9` → `"KP0"` – `"KP9"`                                                                                                                           |
-| Navigation  | `KeyUp`, `KeyDown`, `KeyLeft`, `KeyRight`                                                                                                                         |
-| Page        | `KeyHome`, `KeyEnd`, `KeyPageUp`, `KeyPageDown`                                                                                                                   |
-| Editing     | `KeyBackspace`, `KeyDelete`, `KeyInsert`, `KeyTab`                                                                                                                |
-| Special     | `KeySpace`, `KeyEnter`, `KeyEscape`                                                                                                                               |
-| Punctuation | `KeyMinus`, `KeyEqual`, `KeyComma`, `KeyPeriod`, `KeySlash`, `KeyBackslash`,`KeyLeftBracket`, `KeyRightBracket`, `KeyApostrophe`, `KeySemicolon`,`KeyGraveAccent` |
+| Category    | Keys                                                                                                                                                                                                                                                                                                                                                                                               |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Letters     | `KeyA` – `KeyZ` → `"A"` – `"Z"`                                                                                                                                                                                                                                                                                                                                                                    |
+| Numbers     | `Key0` – `Key9` → `"0"` – `"9"`                                                                                                                                                                                                                                                                                                                                                                    |
+| Function    | `KeyF1` – `KeyF25` → `"F1"` – `"F25"`                                                                                                                                                                                                                                                                                                                                                              |
+| Keypad      | `KeyKP0` – `KeyKP9` → `"KP0"` – `"KP9"`                                                                                                                                                                                                                                                                                                                                                            |
+| Navigation  | `KeyUp`, `KeyDown`, `KeyLeft`, `KeyRight`                                                                                                                                                                                                                                                                                                                                                          |
+| Page        | `KeyHome`, `KeyEnd`, `KeyPageUp`, `KeyPageDown`                                                                                                                                                                                                                                                                                                                                                    |
+| Editing     | `KeyBackspace`, `KeyDelete`, `KeyInsert`, `KeyTab`                                                                                                                                                                                                                                                                                                                                                 |
+| Special     | `KeySpace`, `KeyEnter`, `KeyEscape`                                                                                                                                                                                                                                                                                                                                                                |
+| Punctuation | `KeyMinus`, `KeyEqual`, `KeyComma`, `KeyPeriod`, `KeySlash`, `KeyBackslash`,`KeyLeftBracket`, `KeyRightBracket`, `KeyApostrophe`, `KeySemicolon`,`KeyGraveAccent`                                                                                                                                                                                                                                  |
+| Symbols     | `KeyExclamation` `!`, `KeyQuotation` `"`, `KeyNumberSign` `#`, `KeyDollar` `$`, `KeyPercent` `%`, `KeyAmpersand` `&`, `KeyLeftParen` `(`, `KeyRightParen` `)`, `KeyAsterisk` `*`, `KeyPlus` `+`, `KeyColon` `:`, `KeyLess` `<`, `KeyGreater` `>`, `KeyQuestion` `?`, `KeyAt` `@`, `KeyCircumflex` `^`, `KeyUnderscore` `_`, `KeyLeftBrace` `{`, `KeyBar` `\|`, `KeyRightBrace` `}`, `KeyTilde` `~` |
+| System      | `KeyNumLock`, `KeyScrollLock`, `KeyPrintScreen` → `"PrtSc"`, `KeyPause`, `KeyMenu`                                                                                                                                                                                                                                                                                                                 |

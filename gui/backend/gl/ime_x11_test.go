@@ -14,7 +14,7 @@ import (
 )
 
 func TestIMEEventsPreedit(t *testing.T) {
-	got := imeEvents([]ibus.Event{
+	got := imeEvents(nil, []ibus.Event{
 		{Kind: ibus.KindPreedit, Text: "にほん", Cursor: 2, SelLen: 1},
 	}, nil)
 
@@ -31,7 +31,7 @@ func TestIMEEventsPreedit(t *testing.T) {
 // An empty preedit is how a composition ends; it must still produce an
 // event, otherwise the widget keeps rendering stale text.
 func TestIMEEventsEmptyPreedit(t *testing.T) {
-	got := imeEvents([]ibus.Event{{Kind: ibus.KindPreedit}}, nil)
+	got := imeEvents(nil, []ibus.Event{{Kind: ibus.KindPreedit}}, nil)
 	if len(got) != 1 || got[0].Type != gui.EventIMEComposition ||
 		got[0].IMEText != "" {
 		t.Fatalf("got %+v", got)
@@ -39,7 +39,7 @@ func TestIMEEventsEmptyPreedit(t *testing.T) {
 }
 
 func TestIMEEventsCommit(t *testing.T) {
-	got := imeEvents([]ibus.Event{
+	got := imeEvents(nil, []ibus.Event{
 		{Kind: ibus.KindCommit, Text: "日本"},
 	}, nil)
 
@@ -60,7 +60,7 @@ func TestIMEEventsCommit(t *testing.T) {
 }
 
 func TestIMEEventsCommitDropsReplacementChar(t *testing.T) {
-	got := imeEvents([]ibus.Event{
+	got := imeEvents(nil, []ibus.Event{
 		{Kind: ibus.KindCommit, Text: "a�b"},
 	}, nil)
 	if len(got) != 1 || got[0].CharCode != 'a' ||
@@ -73,7 +73,7 @@ func TestIMEEventsCommitDropsReplacementChar(t *testing.T) {
 // failures, emits nothing: the Win32 backend drops it the same way.
 func TestIMEEventsCommitEmptyEmitsNothing(t *testing.T) {
 	for _, text := range []string{"", "�"} {
-		got := imeEvents([]ibus.Event{
+		got := imeEvents(nil, []ibus.Event{
 			{Kind: ibus.KindCommit, Text: text},
 		}, nil)
 		if len(got) != 0 {
@@ -86,7 +86,7 @@ func TestIMEEventsCommitEmptyEmitsNothing(t *testing.T) {
 // commit: the text is capped like the Win32 composition read.
 func TestIMEEventsCommitTruncated(t *testing.T) {
 	big := strings.Repeat("あ", maxIMECommitRunes+10)
-	got := imeEvents([]ibus.Event{
+	got := imeEvents(nil, []ibus.Event{
 		{Kind: ibus.KindCommit, Text: big},
 	}, nil)
 	if len(got) != 1 {
@@ -101,7 +101,7 @@ func TestIMEEventsCommitTruncated(t *testing.T) {
 // come out exactly like an unconsumed key press: key down plus, for a
 // printable keysym, a character.
 func TestIMEEventsForwardKey(t *testing.T) {
-	got := imeEvents([]ibus.Event{
+	got := imeEvents(nil, []ibus.Event{
 		{Kind: ibus.KindForwardKey, Keyval: 'a', Keycode: 38},
 	}, nil)
 	if len(got) != 2 {
@@ -119,7 +119,7 @@ func TestIMEEventsForwardKey(t *testing.T) {
 // key down only: a character with it would insert the letter after the
 // KeyDown handler copied, pasted or selected all (#896).
 func TestIMEEventsForwardKeyShortcutChord(t *testing.T) {
-	got := imeEvents([]ibus.Event{
+	got := imeEvents(nil, []ibus.Event{
 		{Kind: ibus.KindForwardKey, Keyval: 'c', Keycode: 54, State: xproto.ModMaskControl},
 	}, nil)
 	if len(got) != 1 || got[0].Type != gui.EventKeyDown {
@@ -133,7 +133,7 @@ func TestIMEEventsForwardKeyShortcutChord(t *testing.T) {
 // Ctrl+Alt is AltGr emulation on some layouts, so a forwarded Ctrl+Alt
 // key still types: the shortcut gate must not swallow it.
 func TestIMEEventsForwardKeyCtrlAltTypes(t *testing.T) {
-	got := imeEvents([]ibus.Event{
+	got := imeEvents(nil, []ibus.Event{
 		{Kind: ibus.KindForwardKey, Keyval: 'q', Keycode: 24, State: xproto.ModMaskControl | xproto.ModMask1},
 	}, nil)
 	if len(got) != 2 || got[1].Type != gui.EventChar || got[1].CharCode != 'q' {
@@ -172,7 +172,7 @@ func TestShortcutChord(t *testing.T) {
 // Non-printable keysyms yield a key down only.
 func TestIMEEventsForwardKeyNonPrintable(t *testing.T) {
 	const xkReturn = 0xff0d
-	got := imeEvents([]ibus.Event{
+	got := imeEvents(nil, []ibus.Event{
 		{Kind: ibus.KindForwardKey, Keyval: xkReturn},
 	}, nil)
 	if len(got) != 1 || got[0].Type != gui.EventKeyDown {
@@ -184,7 +184,7 @@ func TestIMEEventsForwardKeyNonPrintable(t *testing.T) {
 // than assume an empty destination.
 func TestIMEEventsAppends(t *testing.T) {
 	dst := []gui.Event{{Type: gui.EventResized}}
-	dst = imeEvents([]ibus.Event{{Kind: ibus.KindCommit, Text: "x"}}, dst)
+	dst = imeEvents(nil, []ibus.Event{{Kind: ibus.KindCommit, Text: "x"}}, dst)
 	if len(dst) != 2 || dst[0].Type != gui.EventResized ||
 		dst[1].CharCode != 'x' {
 		t.Fatalf("got %+v", dst)
@@ -192,7 +192,7 @@ func TestIMEEventsAppends(t *testing.T) {
 }
 
 func TestIMEEventsEmptyInput(t *testing.T) {
-	if got := imeEvents(nil, nil); len(got) != 0 {
+	if got := imeEvents(nil, nil, nil); len(got) != 0 {
 		t.Fatalf("got %+v", got)
 	}
 }
@@ -255,7 +255,7 @@ func TestIMENilClientStartStopNoPanic(t *testing.T) {
 // like a commit. An empty preedit still emits — it ends the
 // composition — so only the text is cleaned, not the event dropped.
 func TestIMEEventsPreeditSanitized(t *testing.T) {
-	got := imeEvents([]ibus.Event{
+	got := imeEvents(nil, []ibus.Event{
 		{Kind: ibus.KindPreedit, Text: "a�b", Cursor: 1, SelLen: 1},
 	}, nil)
 	if len(got) != 1 || got[0].IMEText != "ab" {
@@ -263,7 +263,7 @@ func TestIMEEventsPreeditSanitized(t *testing.T) {
 	}
 
 	big := strings.Repeat("あ", maxIMECommitRunes+10)
-	got = imeEvents([]ibus.Event{
+	got = imeEvents(nil, []ibus.Event{
 		{Kind: ibus.KindPreedit, Text: big},
 	}, nil)
 	if len(got) != 1 {
