@@ -48,8 +48,8 @@ func (w *Window) OnSystemAppearance(cb func(Appearance)) {
 // FollowSystemAppearance pins light or dark as this window's theme
 // from the current OS setting and re-pins on every OS change, until
 // an explicit SetTheme ends following. Each apply also calls
-// TitlebarDark, which no backend implements yet, so the titlebar
-// does not follow today.
+// TitlebarDark, so the titlebar follows where a backend implements
+// it (Wayland with libdecor's GTK plugin, as on GNOME).
 //
 // Frame-thread only, like SetTheme: call from main before Run or
 // from an event handler. With no OS setting (nil platform, unknown

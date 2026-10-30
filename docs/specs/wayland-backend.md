@@ -175,6 +175,26 @@ still goes through libdecor, so a wrong guess costs only the warning.
   normal frame, as on X11.
 - The loop calls `libdecor_dispatch(0)` each pass, so the GTK plugin's own work
   runs.
+- `TitlebarDark` switches the GTK plugin's frames between light and dark
+  (#1192). The plugin draws with GTK 3, which takes the variant from the
+  GtkSettings property `gtk-application-prefer-dark-theme`. The plugin sets that
+  once at start-up from the desktop's color-scheme (libdecor 0.2.3 and later;
+  0.2.2 never sets it), then never reads it again. The backend finds the GTK the
+  plugin loaded (`dlopen` with `RTLD_NOLOAD`) and sets the property through
+  GObject. It does so only when libdecor kept its GTK plugin (`libdecor-gtk.so`
+  in `/proc/self/maps` after `libdecor_new`, since libdecor unloads every plugin
+  it does not use). GTK being loaded proves nothing: the app may use GTK itself,
+  and with the cairo plugin or none, setting the property would restyle the
+  app's own GTK windows and leave the frames alone. The property is per process,
+  so the last call sets the variant for every window's frame, and for any GTK 3
+  widgets the app shows itself. The plugin redraws only on a commit whose size
+  or state changed, so each frame is committed one pixel taller and then at its
+  size again. Both commits wait for the surface's next commit, so the compositor
+  never sees the taller one. Toggling a capability would force a redraw too, but
+  it resets the window's size limits (`notify_on_capability_change`). Toggling
+  the title would also work, but the compositor would briefly see the wrong
+  title. The cairo plugin's colours are fixed, so with it `TitlebarDark` does
+  nothing.
 
 ### Desktop integration
 

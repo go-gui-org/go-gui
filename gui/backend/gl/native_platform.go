@@ -82,7 +82,9 @@ func (n *nativePlatform) BookmarkStopAccess(_ []byte)                  {}
 
 // --- Appearance ---
 
-func (n *nativePlatform) TitlebarDark(_ bool) {}
+// TitlebarDark is platform-specific: decoration_x11.go (Linux, where
+// the Wayland backend implements it), decoration_win32.go and
+// platform_other.go.
 
 func (n *nativePlatform) SetWindowVibrancy(_ gui.VibrancyMaterial) {}
 

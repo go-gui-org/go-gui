@@ -10,6 +10,22 @@ and this project adheres to
 
 ### Added
 
+- **`TitlebarDark` switches the window frame on Wayland under GNOME (#1192).**
+  On a compositor that leaves the frame to the app (GNOME, weston), go-gui draws
+  it through libdecor, whose GTK plugin takes its light or dark variant from a
+  GTK setting that the plugin sets at most once, at start-up.
+  `Window.TitlebarDark` now sets that variant and repaints the frame at once. It
+  was a no-op on every backend before. `FollowSystemAppearance` already calls
+  it, so a following window's frame now switches with the desktop setting. An
+  app that pins its theme with `SetTheme` calls
+  `TitlebarDark(theme.TitlebarDark)` to match. Before, a dark app on libdecor
+  0.2.2 (Debian 13, Ubuntu 24.04) sat under a light frame, and on later versions
+  the frame kept its start-up variant after the desktop switched. The variant is
+  one per process, so the last call sets it for every window. The cairo plugin's
+  colours are fixed, and X11, Windows and macOS frames do not change yet.
+  [`examples/system_appearance/`](examples/system_appearance/) follows the
+  desktop and pins a light or dark theme with the frame to match.
+
 - **Key codes for every printable ASCII character, and `ModAltGr` (#1188).** The
   keys that had no `KeyCode` constant now have one, valued at their character
   code like the existing ones: `KeyExclamation`, `KeyQuotation`,

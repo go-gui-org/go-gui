@@ -276,3 +276,7 @@ func (n *nativePlatform) StartWindowResize(edge gui.WindowEdge) {
 	pReleaseCapture.Call()
 	pSendMessageW.Call(n.b.plat.hwnd, wmSysCommand, scSize|dir, 0)
 }
+
+// TitlebarDark is not implemented on Windows yet: the frame keeps the
+// system's variant.
+func (n *nativePlatform) TitlebarDark(_ bool) {}

@@ -34,6 +34,43 @@ func TestPluginDir(t *testing.T) {
 	}
 }
 
+// The GTK plugin counts only by its own file name: GTK loaded on its own
+// (by the app, or left behind by a failed plugin) is not the plugin (#1192).
+func TestMapsHaveGTKPlugin(t *testing.T) {
+	const gtkLib = "7f00-7f01 r-xp 0 0:0 1 /usr/lib/x86_64-linux-gnu/libgtk-3.so.0.2417.32\n"
+	const plugin = "7f02-7f03 r-xp 0 0:0 2 /usr/lib/x86_64-linux-gnu/libdecor/plugins-1/libdecor-gtk.so\n"
+	for _, c := range []struct {
+		name, maps string
+		want       bool
+	}{
+		{"plugin loaded", mapsUbuntu + gtkLib + plugin, true},
+		{"replaced on disk", "7f02-7f03 r-xp 0 0:0 2 /usr/lib/libdecor/plugins-1/libdecor-gtk.so (deleted)\n", true},
+		{"only GTK", mapsUbuntu + gtkLib, false},
+		{"cairo plugin", mapsUbuntu + "7f04-7f05 r-xp 0 0:0 3 /usr/lib/libdecor/plugins-1/libdecor-cairo.so\n", false},
+		{"lookalike", "7f02-7f03 r-xp 0 0:0 2 /opt/libdecor-gtk.so.bak\n", false},
+		{"empty", "", false},
+	} {
+		if got := mapsHaveGTKPlugin(c.maps); got != c.want {
+			t.Errorf("%s: mapsHaveGTKPlugin = %v, want %v", c.name, got, c.want)
+		}
+	}
+}
+
+// A Context whose frames the GTK plugin does not draw never looks for GTK:
+// GTK the app loaded itself must keep its settings (#1192).
+func TestNoGTKPluginLeavesGTKAlone(t *testing.T) {
+	c := &Context{}
+	if c.SetDarkVariant(true) {
+		t.Fatal("SetDarkVariant changed GTK with no GTK plugin")
+	}
+	if _, ok := c.DarkVariant(); ok {
+		t.Fatal("DarkVariant read GTK with no GTK plugin")
+	}
+	if gtkTried {
+		t.Fatal("looked for GTK with no GTK plugin")
+	}
+}
+
 func TestDirHasPlugin(t *testing.T) {
 	dir := t.TempDir()
 	if dirHasPlugin(filepath.Join(dir, "missing")) {
