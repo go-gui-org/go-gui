@@ -3,8 +3,15 @@
 package decor
 
 import (
+	"os"
+	"runtime"
+	"sync"
+	"syscall"
 	"testing"
 	"unsafe"
+
+	"github.com/go-gui-org/go-gui/gui/backend/internal/wl"
+	"golang.org/x/sys/unix"
 )
 
 type fakeHandler struct {
@@ -87,6 +94,82 @@ func TestLoad(t *testing.T) {
 	for i := 4; i < len(frameIface); i++ {
 		if frameIface[i] != 0 {
 			t.Fatalf("reserved slot %d is not NULL", i)
+		}
+	}
+}
+
+func TestDispatchErr(t *testing.T) {
+	for _, c := range []struct {
+		r    int32
+		fail bool
+	}{
+		{0, false},
+		{3, false},                     // events dispatched
+		{-int32(syscall.EINTR), false}, // poll interrupted (#1194)
+		{-int32(syscall.EPIPE), true},  // flush to a closed socket
+		{-int32(syscall.EPROTO), true}, // protocol error
+		{-1, true},                     // a dispatch_pending failure in the count
+	} {
+		if err := dispatchErr(c.r); (err != nil) != c.fail {
+			t.Errorf("dispatchErr(%d) = %v, want failure %v", c.r, err, c.fail)
+		}
+	}
+}
+
+// TestDispatchInterrupted is #1194: every plugin's dispatch ends in a
+// poll(), which a signal fails with EINTR. Go sends SIGURG to preempt
+// goroutines, so a busy app gets one now and then. It needs a compositor:
+// it skips without one, unless GOGUI_REQUIRE_WAYLAND=1
+// (scripts/wayland/test.sh).
+func TestDispatchInterrupted(t *testing.T) {
+	if os.Getenv("WAYLAND_DISPLAY") == "" {
+		if os.Getenv("GOGUI_REQUIRE_WAYLAND") == "1" {
+			t.Fatal("GOGUI_REQUIRE_WAYLAND=1 but WAYLAND_DISPLAY is unset")
+		}
+		t.Skip("no WAYLAND_DISPLAY")
+	}
+	if err := Load(); err != nil {
+		t.Skip(err)
+	}
+	// The signals go to the thread that calls Dispatch.
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+	conn, err := wl.Connect("")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer conn.Close()
+	c, err := New(conn.Display.Ptr())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer c.Unref()
+
+	pid, tid := unix.Getpid(), unix.Gettid()
+	stop := make(chan struct{})
+	var wg sync.WaitGroup
+	wg.Go(func() {
+		for {
+			select {
+			case <-stop:
+				return
+			default:
+				_ = unix.Tgkill(pid, tid, unix.SIGURG)
+			}
+		}
+	})
+	defer func() {
+		close(stop)
+		wg.Wait()
+	}()
+	// The backend's loop calls Dispatch(0). There the poll does not wait,
+	// and a signal fails it only if it lands during the kernel's one
+	// check, so a test of that would be a race. Dispatch(50) is on
+	// purpose: the poll waits on an idle connection, and the signals
+	// interrupt every call.
+	for i := range 100 {
+		if err = c.Dispatch(50); err != nil {
+			t.Fatalf("Dispatch #%d: %v", i, err)
 		}
 	}
 }

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"runtime"
 	"sync"
+	"syscall"
 	"unsafe"
 
 	"github.com/ebitengine/purego"
@@ -223,10 +224,20 @@ func (c *Context) Unref() {
 func (c *Context) Dispatch(timeoutMs int) error {
 	r, _, _ := purego.SyscallN(fnDispatch, c.ptr, uintptr(int32(timeoutMs)))
 	Rethrow()
-	if int32(r) < 0 {
-		return fmt.Errorf("libdecor_dispatch: %d", int32(r))
+	return dispatchErr(int32(r))
+}
+
+// dispatchErr reads libdecor_dispatch's result: an event count, or
+// -errno. Every plugin's dispatch ends in a poll(), which a signal fails
+// with EINTR, and Go sends SIGURG to preempt goroutines, to this thread
+// too. That only ends the wait early, so it is no error (#1194). EAGAIN
+// never comes back: the plugins drop it from their flush, and Linux
+// poll() does not return it.
+func dispatchErr(r int32) error {
+	if r >= 0 || r == -int32(syscall.EINTR) {
+		return nil
 	}
-	return nil
+	return fmt.Errorf("libdecor_dispatch: %d", r)
 }
 
 // Frame is a decorated toplevel.
