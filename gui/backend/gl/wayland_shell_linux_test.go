@@ -4,6 +4,8 @@ package gl
 
 import (
 	"errors"
+	"os"
+	"strings"
 	"testing"
 
 	"github.com/go-gui-org/go-gui/gui"
@@ -123,6 +125,69 @@ func TestWaylandLibdecorFrame(t *testing.T) {
 	if err := d.conn.Roundtrip(); err != nil {
 		t.Fatal(err)
 	}
+}
+
+// TestWaylandTitlebarDark switches a libdecor frame between light and
+// dark (#1192): the GTK setting flips, the frame keeps its size, and the
+// window commits to show the repaint. Only the GTK plugin can switch, so
+// sway (whose frames are its own) skips.
+func TestWaylandTitlebarDark(t *testing.T) {
+	b := newWaylandTestBackend(t, gui.WindowCfg{Title: "variant"})
+	t.Cleanup(b.Destroy)
+	ww := b.plat.wl
+	if ww.frame == nil {
+		t.Skip("the compositor draws the frame")
+	}
+	start, ok := ww.d.decor.DarkVariant()
+	if !ok {
+		// A skip must not hide a broken plugin check: look for the
+		// plugin the plain way.
+		if maps, err := os.ReadFile("/proc/self/maps"); err == nil &&
+			strings.Contains(string(maps), "/libdecor-gtk.so") {
+			t.Fatal("libdecor's GTK plugin is loaded, but the context does not see it")
+		}
+		t.Skip("no GTK plugin draws the frame")
+	}
+	settleWindow(t, b)
+	w, h := ww.frame.ContentSize()
+	np := &nativePlatform{b: b}
+	for _, dark := range []bool{!start, start} {
+		ww.dirty = false
+		np.TitlebarDark(dark)
+		if got, _ := ww.d.decor.DarkVariant(); got != dark {
+			t.Fatalf("TitlebarDark(%v): GTK setting %v", dark, got)
+		}
+		if !ww.dirty {
+			t.Fatalf("TitlebarDark(%v): the window does not commit the repaint", dark)
+		}
+		if gw, gh := ww.frame.ContentSize(); gw != w || gh != h {
+			t.Fatalf("TitlebarDark(%v): content %dx%d after the repaint, want %dx%d", dark, gw, gh, w, h)
+		}
+		settleWindow(t, b)
+	}
+
+	ww.dirty = false
+	np.TitlebarDark(start)
+	if ww.dirty {
+		t.Fatal("TitlebarDark repainted for a variant already set")
+	}
+
+	// From another goroutine the call waits for the loop's thread.
+	done := make(chan struct{})
+	go func() {
+		np.TitlebarDark(!start)
+		close(done)
+	}()
+	<-done
+	if got, _ := ww.d.decor.DarkVariant(); got != start {
+		t.Fatal("TitlebarDark ran GTK off the loop's thread")
+	}
+	ww.d.runPosted()
+	if got, _ := ww.d.decor.DarkVariant(); got != !start {
+		t.Fatal("the posted TitlebarDark did not run")
+	}
+	np.TitlebarDark(start)
+	settleWindow(t, b)
 }
 
 // TestWaylandNoLibdecor checks the frameless fallback: libdecor missing on

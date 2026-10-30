@@ -27,6 +27,8 @@ var (
 	fnFrameMove              uintptr
 	fnFrameResize            uintptr
 	fnFrameCommit            uintptr
+	fnFrameContentWidth      uintptr
+	fnFrameContentHeight     uintptr
 	fnFrameMap               uintptr
 	fnStateNew               uintptr
 	fnStateFree              uintptr
@@ -86,6 +88,8 @@ func load() error {
 		{&fnFrameMove, "libdecor_frame_move"},
 		{&fnFrameResize, "libdecor_frame_resize"},
 		{&fnFrameCommit, "libdecor_frame_commit"},
+		{&fnFrameContentWidth, "libdecor_frame_get_content_width"},
+		{&fnFrameContentHeight, "libdecor_frame_get_content_height"},
 		{&fnFrameMap, "libdecor_frame_map"},
 		{&fnStateNew, "libdecor_state_new"},
 		{&fnStateFree, "libdecor_state_free"},
@@ -192,7 +196,10 @@ func onCommit(_, user uintptr) {
 func onDismissPopup(_, _, _ uintptr) {}
 
 // Context is a libdecor instance on one Wayland connection.
-type Context struct{ ptr uintptr }
+type Context struct {
+	ptr uintptr
+	gtk bool // the GTK plugin draws the frames (gtk.go)
+}
 
 // New makes a libdecor instance on display, a wl_display*. It loads the
 // best plugin it finds (GTK, or cairo), which may connect to the
@@ -206,7 +213,7 @@ func New(display uintptr) (*Context, error) {
 	if r == 0 {
 		return nil, errors.New("libdecor_new failed")
 	}
-	return &Context{ptr: r}, nil
+	return &Context{ptr: r, gtk: gtkPluginLoaded()}, nil
 }
 
 // Unref frees the instance. Every frame must be gone first.
@@ -327,6 +334,30 @@ func (f *Frame) Commit(w, h int32, c *Configuration) {
 	purego.SyscallN(fnFrameCommit, f.ptr, st, cfg)
 	purego.SyscallN(fnStateFree, st)
 	Rethrow()
+}
+
+// ContentSize is the content size libdecor last committed; 0 before the
+// first configure.
+func (f *Frame) ContentSize() (w, h int32) {
+	cw, _, _ := purego.SyscallN(fnFrameContentWidth, f.ptr)
+	ch, _, _ := purego.SyscallN(fnFrameContentHeight, f.ptr)
+	return int32(cw), int32(ch)
+}
+
+// Repaint redraws the frame in the current settings, to show a new
+// SetDarkVariant. The GTK plugin redraws only on a commit whose size or
+// state differs from the last one, and a title or capability change has
+// side effects (a capability one resets the size limits), so Repaint
+// commits the content one pixel taller, then at its size again. Both wait
+// for the surface's next commit, which the caller makes, so the
+// compositor sees only the second.
+func (f *Frame) Repaint() {
+	w, h := f.ContentSize()
+	if w <= 0 || h <= 0 {
+		return // not configured yet: the first configure draws the frame
+	}
+	f.Commit(w, h+1, nil)
+	f.Commit(w, h, nil)
 }
 
 // Configuration is a configure event. Valid only inside

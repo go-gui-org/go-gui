@@ -236,6 +236,40 @@ func (e wlFrameEvents) Close() { gui.DispatchCloseRequest(e.ww.b.plat.w) }
 // which the next frame makes.
 func (e wlFrameEvents) Commit() { e.ww.dirty = true }
 
+// titlebarDark is TitlebarDark on Wayland (#1192). Any goroutine: GTK
+// runs on the loop's thread, so another goroutine's call is posted there.
+func (ww *wlWindow) titlebarDark(dark bool) {
+	d := ww.d
+	if !wlOnMainThread(ww.b) {
+		// The display, not the window: it may be gone by the time
+		// this runs. While a window is being made, its thread is not
+		// recorded yet, so a call from SetNativePlatform comes here
+		// too, and runs before the window's first frame.
+		d.post(func() { d.setTitlebarDark(dark) })
+		return
+	}
+	d.setTitlebarDark(dark)
+}
+
+// setTitlebarDark switches libdecor's frames between light and dark. The
+// GTK plugin holds the variant in a process-wide setting, so the change
+// applies to every window's frame, not only the caller's, and each frame
+// is repainted to show it. The surface commit of the window's next frame
+// shows the repaint. A frame drawn by the compositor (xdg-decoration),
+// by libdecor's cairo plugin, or no frame at all: nothing changes. Main
+// thread.
+func (d *wlDisplay) setTitlebarDark(dark bool) {
+	if d.decor == nil || !d.decor.SetDarkVariant(dark) {
+		return
+	}
+	for _, b := range d.wins {
+		if ww := b.plat.wl; ww.frame != nil {
+			ww.frame.Repaint()
+			ww.dirty = true
+		}
+	}
+}
+
 // libdecor returns the display's libdecor instance, made on first use, or
 // nil when libdecor is missing or failed. It is tried once.
 func (d *wlDisplay) libdecor() *decor.Context {

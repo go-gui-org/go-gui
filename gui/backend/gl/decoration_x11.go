@@ -75,6 +75,16 @@ func (n *nativePlatform) StartWindowResize(edge gui.WindowEdge) {
 	n.b.plat.startMoveResize(uint32(edge))
 }
 
+// TitlebarDark asks for a dark or light window frame. On Wayland the
+// backend draws the frame through libdecor, and its GTK plugin can switch
+// (wlWindow.titlebarDark). On X11 the window manager draws the frame and
+// this does nothing yet.
+func (n *nativePlatform) TitlebarDark(dark bool) {
+	if n.b != nil && n.b.plat.wl != nil {
+		n.b.plat.wl.titlebarDark(dark)
+	}
+}
+
 // ShowWindow maps a hidden window and raises it above its siblings
 // (issue #779). MapWindow alone can leave the window under its old
 // position in the stacking order, so a ConfigureWindow raise follows.

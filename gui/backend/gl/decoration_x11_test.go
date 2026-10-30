@@ -59,6 +59,14 @@ func TestStartMoveResizeNoConnection(t *testing.T) {
 	p.startMoveResize(netMoveResizeMove)
 }
 
+// TitlebarDark is a no-op on X11 and with no window: it must reach
+// neither the Wayland path nor a nil backend.
+func TestTitlebarDarkNoWayland(t *testing.T) {
+	t.Parallel()
+	(&nativePlatform{}).TitlebarDark(true)
+	(&nativePlatform{b: &Backend{}}).TitlebarDark(true)
+}
+
 // setWindowDecorations must not touch the connection for a decorated
 // window — a nil conn here would panic if it did.
 func TestSetWindowDecorationsSkipsDefault(t *testing.T) {

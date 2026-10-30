@@ -21,8 +21,9 @@ Two layers, shipped together (recommendation B on primitive A from #752):
   desktop), and the app keeps its own theme.
 - **B, policy layer:** `FollowSystemAppearance(light, dark Theme)` queries once,
   pins the matching theme, and re-pins on every OS change. Each apply calls
-  `TitlebarDark`, but every backend implements it as a no-op, so the titlebar
-  does not follow yet.
+  `TitlebarDark`. Only the GL backend on Wayland implements it, for a frame
+  drawn by libdecor's GTK plugin (#1192), so only there does the titlebar
+  follow.
 
 An explicit `SetTheme` ends following until `FollowSystemAppearance` is called
 again. `StopFollowSystemAppearance` ends it without changing the theme.

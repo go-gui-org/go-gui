@@ -30,6 +30,9 @@ func (n *nativePlatform) StartWindowResize(_ gui.WindowEdge) {}
 func (n *nativePlatform) ShowWindow() {}
 func (n *nativePlatform) HideWindow() {}
 
+// No window frame here to switch to dark.
+func (n *nativePlatform) TitlebarDark(_ bool) {}
+
 // New creates a GL backend.  This is a stub for unsupported platforms.
 // exportaudit:keep — lowercase new shadows the Go builtin
 func New(w *gui.Window) (*Backend, error) { return nil, nil }
