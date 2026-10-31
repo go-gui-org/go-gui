@@ -14,7 +14,7 @@
     "long_date": "D. MMMM YYYY",
     "month_year": "MMMM YYYY",
     "first_day_of_week": 1,
-    "use_24h": false
+    "use_24h": true
   },
   "currency": {
     "symbol": "€",
