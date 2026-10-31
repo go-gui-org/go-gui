@@ -8,6 +8,8 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [v0.94.0] - 2026-10-31
+
 ### Added
 
 - **`TitlebarDark` switches the window frame on Wayland under GNOME (#1192).**
