@@ -83,7 +83,7 @@
     "Pia",
     "Sob"
   ],
-  "weekdays_long": [
+  "weekdays_full": [
     "Nedeľa",
     "Pondelok",
     "Utorok",
@@ -106,7 +106,7 @@
     "Nov",
     "Dec"
   ],
-  "months_long": [
+  "months_full": [
     "Január",
     "Február",
     "Marec",
