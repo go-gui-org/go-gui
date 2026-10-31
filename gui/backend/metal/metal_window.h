@@ -186,6 +186,11 @@ void metalWindowSetTransparent(GoGuiNSWindow w, int enable);
 // alpha: 1 fully opaque, 0 invisible.
 void metalWindowSetAlpha(GoGuiNSWindow w, float alpha);
 
+// Pin the window's appearance (Window.TitlebarDark): dark non-zero for
+// DarkAqua, zero for Aqua. The frame, the title, the window buttons and
+// a vibrancy backdrop follow it. NSApp's appearance is left alone.
+void metalWindowSetAppearanceDark(GoGuiNSWindow w, int dark);
+
 // ─── Clipboard ─────────────────────────────────────────────────
 
 // Get the clipboard text. Returns NULL if empty or not a string.

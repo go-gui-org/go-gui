@@ -146,7 +146,14 @@ func (n *nativePlatform) HideSoftKeyboard()                           {}
 
 // --- Appearance ---
 
-func (n *nativePlatform) TitlebarDark(_ bool) {}
+// TitlebarDark pins this window's appearance to dark or light (#1207).
+func (n *nativePlatform) TitlebarDark(dark bool) {
+	d := 0
+	if dark {
+		d = 1
+	}
+	C.metalWindowSetAppearanceDark(n.window, C.int(d))
+}
 
 func (n *nativePlatform) SetWindowVibrancy(m gui.VibrancyMaterial) {
 	C.metalWindowSetVibrancy(n.window, C.int(m))

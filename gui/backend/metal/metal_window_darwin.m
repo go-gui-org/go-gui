@@ -946,6 +946,20 @@ void metalWindowSetAlpha(GoGuiNSWindow w, float alpha) {
     gw->nsWindow.alphaValue = alpha;
 }
 
+// Per window, not NSApp.appearance: SystemAppearance and its watcher
+// read NSApp.effectiveAppearance, which an app-wide pin would replace
+// with the app's own choice. Light is Aqua, not nil, so a light pin
+// holds on a dark desktop. A window never pinned keeps nil and follows
+// the system.
+void metalWindowSetAppearanceDark(GoGuiNSWindow w, int dark) {
+    if (!w) return;
+    GoGuiWindow *gw = (GoGuiWindow *)w;
+    NSAppearanceName name =
+        dark ? NSAppearanceNameDarkAqua : NSAppearanceNameAqua;
+    if ([gw->nsWindow.appearance.name isEqualToString:name]) return;
+    gw->nsWindow.appearance = [NSAppearance appearanceNamed:name];
+}
+
 void metalWindowSetVibrancy(GoGuiNSWindow w, int material) {
     if (!w) return;
     GoGuiWindow *gw = (GoGuiWindow *)w;
@@ -1996,6 +2010,18 @@ int metalTestContentViewIsFirstResponder(void *windowHandle) {
     GoGuiWindow *gw = (GoGuiWindow *)windowHandle;
     if (!gw->nsWindow) return 0;
     return [gw->nsWindow firstResponder] == gw->nsWindow.contentView ? 1 : 0;
+}
+
+// Report the appearance pinned on the window: -1 none (follows the
+// system), 0 Aqua, 1 DarkAqua, 2 anything else.
+int metalTestWindowAppearance(void *windowHandle) {
+    if (!windowHandle) return 2;
+    GoGuiWindow *gw = (GoGuiWindow *)windowHandle;
+    NSAppearance *a = gw->nsWindow.appearance;
+    if (a == nil) return -1;
+    if ([a.name isEqualToString:NSAppearanceNameAqua]) return 0;
+    if ([a.name isEqualToString:NSAppearanceNameDarkAqua]) return 1;
+    return 2;
 }
 
 // Drive the preedit decision an Option+printable key produces and
