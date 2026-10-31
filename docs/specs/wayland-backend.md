@@ -175,6 +175,21 @@ still goes through libdecor, so a wrong guess costs only the warning.
   normal frame, as on X11.
 - The loop calls `libdecor_dispatch(0)` each pass, so the GTK plugin's own work
   runs.
+- libdecor draws the frame in synchronized subsurfaces, which show only with a
+  commit of the window's surface. When it redraws on its own (pointer and touch
+  events over the frame, a new title, an output or scale change), it asks the
+  app to commit (`commit` in `libdecor_frame_interface`). The window commits the
+  surface with the buffer it has, rendering nothing (#1203). Two cases wait for
+  a rendered frame instead: before the first frame, when there is no buffer yet,
+  and while a frame is already due (`dirty`). A due frame may follow a resize or
+  scale change whose viewport, buffer scale and opaque region are staged on the
+  surface; they must apply with the buffer at the new size, not the old one.
+  libdecor never asks while it handles the app's own `libdecor_frame_commit`
+  (the configure and the `TitlebarDark` repaint), in either plugin, in 0.2.2,
+  0.2.5 and main. Both paths mark the window dirty before the frame commit
+  anyway, so a request there would wait for the rendered frame that follows. On
+  GNOME, hovering over the titlebar now only commits; it rendered a frame per
+  highlight change before.
 - `TitlebarDark` switches the GTK plugin's frames between light and dark
   (#1192). The plugin draws with GTK 3, which takes the variant from the
   GtkSettings property `gtk-application-prefer-dark-theme`. The plugin sets that
@@ -326,6 +341,15 @@ Phase 8 notes:
   paper, but over 130 direct `b.plat` field uses in the X11 files would move
   behind methods, and X11 would be rewritten to add Wayland. The pointer field
   keeps X11 untouched.
+- **A rendered frame for every libdecor commit request**, as SDL3 does (it sends
+  `SDL_EVENT_WINDOW_EXPOSED`). It costs a full redraw and buffer swap per hover
+  change over the titlebar, for a commit the buffer already in place satisfies.
+  It was go-gui's behaviour before #1203.
+- **A bare commit for every libdecor commit request**, as GLFW and libdecor's
+  demo do. A request can come while a resize or scale change is staged on the
+  surface. The bare commit would apply the new viewport or buffer scale to the
+  old buffer: a stretched frame, or a protocol error when the old buffer's size
+  is not a multiple of the new scale.
 - **Blocking vsync in `eglSwapBuffers` (swap interval 1).** Mesa then waits for
   the frame callback inside the swap, and a hidden window blocks the loop, and
   with it every other window, forever.

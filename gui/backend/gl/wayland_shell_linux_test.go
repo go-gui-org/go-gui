@@ -155,11 +155,26 @@ func TestWaylandTitlebarDark(t *testing.T) {
 	var commits [][2]int32
 	decor.CommitFunc = func(cw, ch int32) { commits = append(commits, [2]int32{cw, ch}) }
 	t.Cleanup(func() { decor.CommitFunc = nil })
+	// A bare commit during the repaint would show the one-pixel-taller
+	// geometry over the old buffer. Watched only around the repaint:
+	// between repaints libdecor may redraw on its own, and a bare commit
+	// is right then.
+	t.Cleanup(func() { frameCommitFunc = nil })
+	noBare := func(repaint func()) {
+		t.Helper()
+		frameCommitFunc = func(bare bool) {
+			if bare {
+				t.Error("TitlebarDark's repaint committed the surface bare")
+			}
+		}
+		repaint()
+		frameCommitFunc = nil
+	}
 	repaint := [][2]int32{{w, h + 1}, {w, h}}
 	np := &nativePlatform{b: b}
 	for _, dark := range []bool{!start, start} {
 		ww.dirty, commits = false, nil
-		np.TitlebarDark(dark)
+		noBare(func() { np.TitlebarDark(dark) })
 		if got, _ := ww.d.decor.DarkVariant(); got != dark {
 			t.Fatalf("TitlebarDark(%v): GTK setting %v", dark, got)
 		}
@@ -176,7 +191,7 @@ func TestWaylandTitlebarDark(t *testing.T) {
 	}
 
 	ww.dirty, commits = false, nil
-	np.TitlebarDark(start)
+	noBare(func() { np.TitlebarDark(start) })
 	if ww.dirty || len(commits) != 0 {
 		t.Fatalf("TitlebarDark repainted for a variant already set: commits %v", commits)
 	}
@@ -191,15 +206,82 @@ func TestWaylandTitlebarDark(t *testing.T) {
 	if got, _ := ww.d.decor.DarkVariant(); got != start || len(commits) != 0 {
 		t.Fatal("TitlebarDark ran GTK off the loop's thread")
 	}
-	ww.d.runPosted()
+	noBare(ww.d.runPosted)
 	if got, _ := ww.d.decor.DarkVariant(); got != !start {
 		t.Fatal("the posted TitlebarDark did not run")
 	}
 	if !slices.Equal(commits, repaint) {
 		t.Fatalf("posted TitlebarDark: frame commits %v, want %v", commits, repaint)
 	}
-	np.TitlebarDark(start)
+	noBare(func() { np.TitlebarDark(start) })
 	settleWindow(t, b)
+}
+
+// TestWaylandFrameCommitBare: libdecor redrawing the frame on its own, here
+// for a new title, asks for a commit of the window's surface. Once the
+// window has shown a frame, it commits the buffer it has instead of
+// rendering one. Before that there is no buffer, and the commit waits for
+// the first frame. While a resize is staged on the surface, the commit
+// waits for the frame at the new size. Only a frame libdecor draws asks;
+// sway's are its own.
+func TestWaylandFrameCommitBare(t *testing.T) {
+	b := newWaylandTestBackend(t, gui.WindowCfg{Title: "commit"})
+	t.Cleanup(b.Destroy)
+	ww := b.plat.wl
+	if ww.frame == nil {
+		t.Skip("the compositor draws the frame")
+	}
+	var answers []bool
+	frameCommitFunc = func(bare bool) { answers = append(answers, bare) }
+	t.Cleanup(func() { frameCommitFunc = nil })
+	retitle := func(title string) {
+		t.Helper()
+		answers = nil
+		ww.setTitle(title)
+		ww.flushTitle()
+		if len(answers) == 0 {
+			t.Fatalf("title %q: libdecor asked for no commit", title)
+		}
+	}
+
+	b.plat.presented, ww.dirty = false, false
+	retitle("before the first frame")
+	if slices.Contains(answers, true) || !ww.dirty {
+		t.Fatalf("before the first frame: answers %v, dirty %v; want a rendered frame", answers, ww.dirty)
+	}
+
+	settleWindow(t, b)
+	retitle("after the first frame")
+	if slices.Contains(answers, false) || ww.dirty {
+		t.Fatalf("after the first frame: answers %v, dirty %v; want a bare commit", answers, ww.dirty)
+	}
+
+	// A bare commit would put the staged viewport or buffer scale on the
+	// old buffer. resize's callers mark the window dirty, as here.
+	ww.resize(ww.logW+40, ww.logH, ww.scale120)
+	ww.dirty = true
+	retitle("with a resize pending")
+	if slices.Contains(answers, true) || !ww.dirty {
+		t.Fatalf("with a resize pending: answers %v, dirty %v; want the pending frame", answers, ww.dirty)
+	}
+	settleWindow(t, b)
+
+	// libdecor makes no commit request while it handles the frame commit
+	// a configure makes, but one there must wait for the frame at the new
+	// size too. The request is injected from inside Frame.Commit.
+	answers = nil
+	decor.CommitFunc = func(int32, int32) { wlFrameEvents{ww}.Commit() }
+	t.Cleanup(func() { decor.CommitFunc = nil })
+	cw, ch := ww.frame.ContentSize()
+	ww.commitFrame(cw, ch, nil)
+	decor.CommitFunc = nil
+	if len(answers) != 1 || answers[0] || !ww.dirty {
+		t.Fatalf("during a configure's frame commit: answers %v, dirty %v; want the pending frame", answers, ww.dirty)
+	}
+	settleWindow(t, b)
+	if err := ww.d.conn.Roundtrip(); err != nil {
+		t.Fatal(err)
+	}
 }
 
 // TestWaylandNoLibdecor checks the frameless fallback: libdecor missing on

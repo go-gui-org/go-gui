@@ -217,8 +217,16 @@ func (e wlFrameEvents) Configure(c decor.Configuration) {
 	if st, ok := c.WindowState(); ok {
 		ww.decorStates(st)
 	}
-	ww.frame.Commit(w, h, &c)
+	ww.commitFrame(w, h, &c)
 	ww.applyPending(w, h)
+}
+
+// commitFrame commits the libdecor frame at w×h. Dirty first: a commit
+// request libdecor made during the frame commit then waits for the frame
+// at the new size (wlFrameEvents.Commit).
+func (ww *wlWindow) commitFrame(w, h int32, c *decor.Configuration) {
+	ww.dirty = true
+	ww.frame.Commit(w, h, c)
 }
 
 // decorStates records a libdecor window state (decor.State* bits) as the
@@ -232,9 +240,35 @@ func (ww *wlWindow) decorStates(st uint32) {
 
 func (e wlFrameEvents) Close() { gui.DispatchCloseRequest(e.ww.b.plat.w) }
 
-// Commit: the frame changed, and shows only with a commit of the surface,
-// which the next frame makes.
-func (e wlFrameEvents) Commit() { e.ww.dirty = true }
+// Commit: libdecor redrew the frame on its own, for a pointer or touch
+// event, a new title or an output change. The frame lives in
+// synchronized subsurfaces, which show only with a commit of the
+// window's surface. The content did not change, so the surface is
+// committed with the buffer it has; a rendered frame would cost a full
+// redraw for the same result. Before the first frame there is no buffer
+// to show, and the first frame commits. While a rendered frame is
+// pending (dirty), that frame commits: a resize or scale change staged
+// on the surface (viewport, buffer scale, opaque region) must apply with
+// the buffer at the new size, not the old one. libdecor does not ask
+// while it handles go-gui's own Frame.Commit (Configure, Repaint), and
+// both mark the window dirty first, so a request there would wait too.
+func (e wlFrameEvents) Commit() {
+	ww := e.ww
+	bare := ww.b.plat.presented && !ww.dirty
+	if frameCommitFunc != nil {
+		frameCommitFunc(bare)
+	}
+	if !bare {
+		ww.dirty = true
+		return
+	}
+	ww.surface.Commit()
+}
+
+// frameCommitFunc sees each answer to libdecor's commit request: bare is
+// true when the surface was committed with the buffer it has. A test
+// observer; nil in production.
+var frameCommitFunc func(bare bool)
 
 // titlebarDark is TitlebarDark on Wayland (#1192). Any goroutine: GTK
 // runs on the loop's thread, so another goroutine's call is posted there.
@@ -264,8 +298,8 @@ func (d *wlDisplay) setTitlebarDark(dark bool) {
 	}
 	for _, b := range d.wins {
 		if ww := b.plat.wl; ww.frame != nil {
+			ww.dirty = true // before Repaint, as in Configure
 			ww.frame.Repaint()
-			ww.dirty = true
 		}
 	}
 }

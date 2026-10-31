@@ -31,6 +31,17 @@ and this project adheres to
   from light to dark as the window opens. While a window follows the system
   appearance and the OS reports a setting, that setting wins on attach.
 
+### Changed
+
+- **Hovering the libdecor titlebar no longer redraws the window on Wayland
+  (#1203).** On GNOME and other compositors where go-gui draws the frame through
+  libdecor, the frame shows only with a commit of the window's surface. Each
+  time libdecor redrew it on its own (a button highlight as the pointer crossed
+  the titlebar, a new title, an output change), go-gui rendered and swapped a
+  whole frame of unchanged content to make that commit. The window now commits
+  the buffer it already shows. A frame already due, such as one after a resize
+  or a scale change, still makes the commit, and so does the first frame.
+
 ## [v0.94.0] - 2026-10-31
 
 ### Added

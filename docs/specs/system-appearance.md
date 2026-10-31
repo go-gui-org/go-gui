@@ -98,6 +98,22 @@ libdecor 0.2.2), where a log shows nothing resetting the GTK setting afterwards.
 Under mutter in the harness, which takes no screenshots, the log shows the same
 sequence.
 
+### Titlebar on X11
+
+On X11 the window manager draws the frame, and `TitlebarDark` does nothing: the
+frame keeps the window manager's variant. GTK asks for a dark frame with the
+`_GTK_THEME_VARIANT` property on the window, and mutter followed it up to
+GNOME 43. Since GNOME 44 the X11 frames come from `mutter-x11-frames`, which
+ignores it, in an X11 session and under Xwayland alike
+([mutter#2792](https://gitlab.gnome.org/GNOME/mutter/-/issues/2792), open since
+2023). Set by hand with
+`xprop -f _GTK_THEME_VARIANT 8u -set _GTK_THEME_VARIANT dark` on a go-gui window
+under GNOME 48 (Debian 13, Xwayland), the frame stays light. Mutter closed a
+merge request adding color-scheme support to those frames unmerged
+([mutter!2541](https://gitlab.gnome.org/GNOME/mutter/-/merge_requests/2541)) and
+in 2026 merged "window: Stop exposing gtk-theme-variant"
+([mutter!5062](https://gitlab.gnome.org/GNOME/mutter/-/merge_requests/5062)).
+
 ## Verification status
 
 Built and tested on macOS (gui suite, metal build, ObjC syntax against the iOS
@@ -152,3 +168,11 @@ test reads it back from a real window. Windows 10 is unverified.
 - **A `WindowCfg` field for the start-up titlebar.** New API, read by every
   backend, for what the `TitlebarDark` replay gives with none: two ways to set
   the same thing.
+- **Setting `_GTK_THEME_VARIANT` from `TitlebarDark` on X11.** It would help
+  only GNOME 43 and older in an X11 session, and window managers that read the
+  hint (which ones is unverified). Current GNOME ignores it, and neither of
+  those setups was at hand to verify it on.
+- **A titlebar go-gui draws itself on X11** (a frameless window plus a gui
+  titlebar). It would follow the theme under every window manager, but it means
+  move, resize, snapping, buttons and shadows of its own: a feature of its own,
+  not a follow-up.

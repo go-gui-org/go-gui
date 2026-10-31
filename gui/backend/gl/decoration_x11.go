@@ -78,7 +78,8 @@ func (n *nativePlatform) StartWindowResize(edge gui.WindowEdge) {
 // TitlebarDark asks for a dark or light window frame. On Wayland the
 // backend draws the frame through libdecor, and its GTK plugin can switch
 // (wlWindow.titlebarDark). On X11 the window manager draws the frame and
-// this does nothing yet.
+// this does nothing: GNOME's frames ignore the _GTK_THEME_VARIANT hint
+// since mutter 44 (docs/specs/system-appearance.md).
 func (n *nativePlatform) TitlebarDark(dark bool) {
 	if n.b != nil && n.b.plat.wl != nil {
 		n.b.plat.wl.titlebarDark(dark)
