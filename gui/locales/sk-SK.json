@@ -66,31 +66,31 @@
     "yes": "Áno"
   },
   "weekdays_short": [
+    "Ne",
     "Po",
     "Ut",
     "St",
     "Št",
     "Pi",
-    "So",
-    "Ne"
+    "So"
   ],
   "weekdays_med": [
+    "Ned",
     "Pon",
     "Uto",
     "Str",
     "Štv",
     "Pia",
-    "Sob",
-    "Ned"
+    "Sob"
   ],
   "weekdays_long": [
+    "Nedeľa",
     "Pondelok",
     "Utorok",
     "Streda",
     "Štvrtok",
     "Piatok",
-    "Sobota",
-    "Nedeľa"
+    "Sobota"
   ],
   "months_short": [
     "Jan",
