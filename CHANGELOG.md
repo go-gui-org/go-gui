@@ -11,7 +11,7 @@ and this project adheres to
 ### Added
 
 - **Slovak (`sk-SK`) locale (#1209).** Adds Slovak number, date, time, currency
-  and UI string formatting to the built-in locale registry.
+  and user-facing UI string formatting to the built-in locale registry.
 
 - **`TitlebarDark` switches the window frame on macOS (#1207).** A window
   followed the macOS light/dark setting whatever theme the app pinned, so a dark
