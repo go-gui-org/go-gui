@@ -15,10 +15,21 @@ type flipTest struct {
 	cfg     FlipPanelCfg
 }
 
+// noAnimationLoop keeps w's animation loop from ever running. The first
+// frame that flips a panel adds a spring, and AnimationAdd starts the
+// loop, which would tick the spring alongside the tests that step it by
+// hand: a data race, and motion between their checks. Started and
+// stopped here, the loop stays down: its start runs once per window.
+func noAnimationLoop(w *Window) *Window {
+	w.ensureAnimationLoop()
+	w.stopAnimationLoop()
+	return w
+}
+
 func newFlipTest(t *testing.T, cfg FlipPanelCfg) *flipTest {
 	t.Helper()
 	ft := &flipTest{cfg: cfg, flipped: cfg.Flipped}
-	ft.w = NewTestWindow(t, WindowCfg{State: new(int)})
+	ft.w = noAnimationLoop(NewTestWindow(t, WindowCfg{State: new(int)}))
 	ft.w.TestRender(ft.view)
 	return ft
 }
@@ -338,7 +349,7 @@ func TestFlipPanelHiddenFaceOutOfA11yTree(t *testing.T) {
 func TestFlipPanelHiddenFaceTakesNoPointer(t *testing.T) {
 	for _, reduced := range []bool{false, true} {
 		pressed := ""
-		w := NewTestWindow(t, WindowCfg{State: new(int)})
+		w := noAnimationLoop(NewTestWindow(t, WindowCfg{State: new(int)}))
 		if reduced {
 			w.nativePlatform = flipReducedMotionPlatform{}
 		}
@@ -380,7 +391,7 @@ func TestFlipPanelHiddenFaceTakesNoPointer(t *testing.T) {
 // with a layout tween, and neither face carries a turn.
 func TestFlipPanelReducedMotionFades(t *testing.T) {
 	ft := &flipTest{}
-	ft.w = NewTestWindow(t, WindowCfg{State: new(int)})
+	ft.w = noAnimationLoop(NewTestWindow(t, WindowCfg{State: new(int)}))
 	ft.w.nativePlatform = flipReducedMotionPlatform{}
 	ft.w.TestRender(ft.view)
 	back, front := ft.faces(t)
@@ -468,7 +479,7 @@ func TestFlipPanelHiddenFaceDropsFocus(t *testing.T) {
 		frontPresses := 0
 		flipped := false
 		flips := 0
-		w := NewTestWindow(t, WindowCfg{State: new(int)})
+		w := noAnimationLoop(NewTestWindow(t, WindowCfg{State: new(int)}))
 		face := func(id string, onClick func(EventCtx)) View {
 			return Column(ContainerCfg{
 				Sizing: FixedFixed, Width: 120, Height: 80,
@@ -523,7 +534,7 @@ func TestFlipPanelHiddenFaceDropsFocus(t *testing.T) {
 func TestFlipPanelHiddenFaceNoTooltipNoHit(t *testing.T) {
 	for _, reduced := range []bool{false, true} {
 		for _, flipped := range []bool{false, true} {
-			w := NewTestWindow(t, WindowCfg{State: new(int)})
+			w := noAnimationLoop(NewTestWindow(t, WindowCfg{State: new(int)}))
 			if reduced {
 				w.nativePlatform = flipReducedMotionPlatform{}
 			}
