@@ -251,10 +251,19 @@ func TestWaylandFrameCommitBare(t *testing.T) {
 	}
 
 	settleWindow(t, b)
+	// A frame callback asked for now fires only once the surface is
+	// committed, so it shows that the bare answer reached the compositor.
+	committed := false
+	cb := ww.surface.Frame()
+	cb.SetDispatcher(wl.CallbackHandlers{Done: func(uint32) {
+		cb.DestroyProxy()
+		committed = true
+	}}.Dispatcher())
 	retitle("after the first frame")
 	if slices.Contains(answers, false) || ww.dirty {
 		t.Fatalf("after the first frame: answers %v, dirty %v; want a bare commit", answers, ww.dirty)
 	}
+	waitFor(t, ww.d, "the bare commit of the surface", func() bool { return committed })
 
 	// A bare commit would put the staged viewport or buffer scale on the
 	// old buffer. resize's callers mark the window dirty, as here.
