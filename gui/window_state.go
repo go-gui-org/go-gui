@@ -83,6 +83,11 @@ type windowBackend struct {
 	textMeasurer   TextMeasurer
 	svgParser      SvgParser
 	nativePlatform NativePlatform
+	// titlebarDark is the variant last asked of TitlebarDark, and
+	// titlebarDarkSet whether one was. SetNativePlatform replays it, so
+	// a call made before the backend attaches is not lost.
+	titlebarDark    bool
+	titlebarDarkSet bool
 	// rendersShaders is set by a backend that runs custom shaders;
 	// see RendersShaders.
 	rendersShaders atomic.Bool

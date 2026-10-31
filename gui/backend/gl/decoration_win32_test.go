@@ -4,6 +4,8 @@ package gl
 
 import (
 	"math"
+	"runtime"
+	"slices"
 	"testing"
 	"unsafe"
 
@@ -251,5 +253,128 @@ func TestClientExtentClamps(t *testing.T) {
 	// int32 conversion.
 	if got := clientExtent(800, float32(math.NaN())); got != 1 {
 		t.Errorf("clientExtent(800, NaN) = %d, want 1", got)
+	}
+}
+
+var pDwmGetWindowAttribute = dwmapi.NewProc("DwmGetWindowAttribute")
+
+// newCaptionWindow creates a hidden window of go-gui's class with no GL
+// context, which is all a DWM attribute needs. It skips where no window
+// can be created. The test stays on the window's thread: SetWindowPos
+// sends messages there and waits, and DestroyWindow works only there.
+// Cleanups run last first, so the window goes before the unlock.
+func newCaptionWindow(t *testing.T) *nativePlatform {
+	t.Helper()
+	runtime.LockOSThread()
+	t.Cleanup(runtime.UnlockOSThread)
+	hInst, _, _ := pGetModuleHandleW.Call(0)
+	registerClass(hInst)
+	hwnd, _, err := pCreateWindowExW.Call(0,
+		uintptr(unsafe.Pointer(className)), 0, wsOverlappedWindow,
+		cwUseDefault, cwUseDefault, 200, 100, 0, 0, hInst, 0)
+	if hwnd == 0 {
+		t.Skipf("no window: %v", err)
+	}
+	t.Cleanup(func() { pDestroyWindow.Call(hwnd) })
+	b := &Backend{}
+	b.plat.hwnd = hwnd
+	return &nativePlatform{b: b}
+}
+
+// stubDwmSetBool replaces the attribute setter for one test. accept
+// decides what DWM takes; the returned slice records every attribute
+// asked for.
+func stubDwmSetBool(t *testing.T, accept func(attr uintptr) bool) *[]uintptr {
+	t.Helper()
+	var asked []uintptr
+	old := dwmSetBool
+	dwmSetBool = func(_, attr uintptr, _ bool) bool {
+		asked = append(asked, attr)
+		return accept(attr)
+	}
+	t.Cleanup(func() { dwmSetBool = old })
+	return &asked
+}
+
+// The variant must reach DWM, read back from the window itself.
+func TestTitlebarDarkSetsDWMAttribute(t *testing.T) {
+	n := newCaptionWindow(t)
+	// A host without desktop composition (a service session) takes
+	// neither attribute. Setting the default light variant directly
+	// finds out without touching what TitlebarDark records.
+	if !setImmersiveDarkMode(n.b.plat.hwnd, false) {
+		t.Skip("DWM takes neither attribute here")
+	}
+	read := func() int32 {
+		var v int32 = -1
+		hr, _, _ := pDwmGetWindowAttribute.Call(n.b.plat.hwnd,
+			dwmwaUseImmersiveDarkMode, uintptr(unsafe.Pointer(&v)),
+			unsafe.Sizeof(v))
+		if hr != 0 {
+			t.Skipf("DWM cannot read the attribute back: %#x", hr)
+		}
+		return v
+	}
+	n.TitlebarDark(true)
+	if got := read(); got != 1 {
+		t.Errorf("after TitlebarDark(true): attribute = %d, want 1", got)
+	}
+	n.TitlebarDark(false)
+	if got := read(); got != 0 {
+		t.Errorf("after TitlebarDark(false): attribute = %d, want 0", got)
+	}
+}
+
+// Windows 10 before 20H1 rejects 20 and knows the attribute as 19.
+// When neither is known, the window keeps the light caption and the
+// next call tries again.
+func TestTitlebarDarkFallsBackToPre20H1Attribute(t *testing.T) {
+	n := newCaptionWindow(t)
+	asked := stubDwmSetBool(t, func(attr uintptr) bool {
+		return attr == dwmwaUseImmersiveDarkModeOld
+	})
+	n.TitlebarDark(true)
+	want := []uintptr{dwmwaUseImmersiveDarkMode, dwmwaUseImmersiveDarkModeOld}
+	if !slices.Equal(*asked, want) {
+		t.Errorf("attributes asked = %v, want %v", *asked, want)
+	}
+	if !n.b.plat.titlebarDark {
+		t.Error("19 accepted, but the window does not record dark")
+	}
+
+	n2 := newCaptionWindow(t)
+	*asked = nil
+	dwmSetBool = func(_, attr uintptr, _ bool) bool {
+		*asked = append(*asked, attr)
+		return false
+	}
+	n2.TitlebarDark(true)
+	if n2.b.plat.titlebarDark {
+		t.Error("both attributes rejected, but the window records dark")
+	}
+	n2.TitlebarDark(true)
+	if len(*asked) != 4 {
+		t.Errorf("attributes asked = %v, want 20 and 19 on each call", *asked)
+	}
+}
+
+// Asking for the variant the window already has costs no DWM call and no
+// repaint: FollowSystemAppearance applies the setting again on attach
+// and on every flip.
+func TestTitlebarDarkSkipsUnchanged(t *testing.T) {
+	n := newCaptionWindow(t)
+	asked := stubDwmSetBool(t, func(uintptr) bool { return true })
+	n.TitlebarDark(false) // Windows starts every window light
+	n.TitlebarDark(true)
+	n.TitlebarDark(true)
+	if len(*asked) != 1 {
+		t.Errorf("attributes asked = %v, want one call for the one change",
+			*asked)
+	}
+	// No backend, or no window yet: nothing to set.
+	(&nativePlatform{}).TitlebarDark(true)
+	(&nativePlatform{b: &Backend{}}).TitlebarDark(true)
+	if len(*asked) != 1 {
+		t.Errorf("attributes asked = %v after calls with no window", *asked)
 	}
 }

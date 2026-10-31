@@ -5,6 +5,7 @@ import (
 	"flag"
 	"log"
 	"os"
+	"runtime"
 
 	"github.com/go-gui-org/go-gui/gui"
 	"github.com/go-gui-org/go-gui/gui/backend"
@@ -26,14 +27,35 @@ type App struct {
 	// does with no backend or on a desktop go-gui cannot read.
 	Desktop    gui.Appearance
 	HasDesktop bool
+	// AccentNote shows the Windows note on the accent color.
+	AccentNote bool
 }
 
+// accentNote explains the one case where the frame seems not to follow.
+// With the accent color on title bars, Windows paints the active
+// window's titlebar in that color whichever variant is set.
+const accentNote = `On Windows, with "Show accent color on title bars" turned on, ` +
+	`the active window's titlebar keeps the accent color. ` +
+	`Click another window to see it switch.`
+
+// windowHeight fits the theme choice. accentNoteHeight is the room the
+// note takes below it: its wrapped lines and their padding.
+const (
+	windowHeight     = 220
+	accentNoteHeight = 50
+)
+
 func windowCfg() gui.WindowCfg {
+	app := &App{Mode: modeSystem, AccentNote: runtime.GOOS == "windows"}
+	height := windowHeight
+	if app.AccentNote {
+		height += accentNoteHeight
+	}
 	return gui.WindowCfg{
 		Title:  "System Appearance",
-		State:  &App{Mode: modeSystem},
+		State:  app,
 		Width:  460,
-		Height: 220,
+		Height: height,
 		OnInit: func(w *gui.Window) {
 			// The hook runs on every desktop change, following or not,
 			// and with the current setting whenever a following
@@ -73,6 +95,33 @@ func pin(w *gui.Window, t gui.Theme) {
 
 func mainView(w *gui.Window) gui.View {
 	app := gui.State[App](w)
+	body := themeView(app)
+	if !app.AccentNote {
+		return body
+	}
+	return gui.Column(gui.ContainerCfg{
+		Sizing:     gui.FillFill,
+		SizeBorder: gui.NoBorder,
+		Padding:    gui.PaddingNone,
+		Content: []gui.View{
+			body,
+			gui.Column(gui.ContainerCfg{
+				Sizing:     gui.FillFit,
+				SizeBorder: gui.NoBorder,
+				Padding:    gui.PaddingMedium,
+				Content: []gui.View{gui.Text(gui.TextCfg{
+					ID:        "accent-note",
+					Text:      accentNote,
+					TextStyle: gui.CurrentTheme().TextStyleSecondary,
+					Mode:      gui.TextModeWrap,
+				})},
+			}),
+		},
+	})
+}
+
+// themeView is the desktop setting and the theme choice.
+func themeView(app *App) gui.View {
 	return gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFill,
 		HAlign:  gui.HAlignCenter,
@@ -121,6 +170,9 @@ func desktopText(app *App) string {
 // backend and so no desktop setting; it shows a dark desktop followed.
 func screenshotCfg() gui.WindowCfg {
 	cfg := windowCfg()
+	// No Windows note, so the image is the same on every platform.
+	cfg.State = &App{Mode: modeSystem}
+	cfg.Height = windowHeight
 	cfg.OnInit = func(w *gui.Window) {
 		app := gui.State[App](w)
 		app.Desktop, app.HasDesktop = gui.AppearanceDark, true

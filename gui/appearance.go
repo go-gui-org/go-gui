@@ -49,12 +49,19 @@ func (w *Window) OnSystemAppearance(cb func(Appearance)) {
 // from the current OS setting and re-pins on every OS change, until
 // an explicit SetTheme ends following. Each apply also calls
 // TitlebarDark, so the titlebar follows where a backend implements
-// it (Wayland with libdecor's GTK plugin, as on GNOME).
+// it (Windows, and Wayland with libdecor's GTK plugin, as on GNOME).
 //
 // Frame-thread only, like SetTheme: call from main before Run or
 // from an event handler. With no OS setting (nil platform, unknown
 // desktop) the window keeps its theme but stays following, so a
 // later SetNativePlatform applies the setting on attach.
+//
+// On Windows, calling it before Run gives a dark titlebar from the
+// first frame: the setting is applied when the backend attaches,
+// before the window shows. WindowCfg.OnInit runs after the window
+// shows, so a call from there makes Windows animate the titlebar
+// from light to dark at start-up. TitlebarDark before Run works the
+// same way for an app that pins its theme.
 // exportaudit:keep — documented app API (issue #752); siblings adopt post-release
 func (w *Window) FollowSystemAppearance(light, dark Theme) {
 	w.appearanceMu.Lock()

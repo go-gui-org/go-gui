@@ -149,8 +149,8 @@ Go-Gui is also an ecosystem of composable libraries. **go-glyph** handles text,
 - **Native application integration** — file dialogs, menus, notifications,
   printing, PDF, system tray, frameless windows, and other platform services
 - **Light and dark** — `Window.FollowSystemAppearance` switches the theme with
-  the desktop's light/dark setting. On GNOME under Wayland the window frame
-  switches with it
+  the desktop's light/dark setting. On Windows, and on GNOME under Wayland, the
+  window frame switches with it
   ([`examples/system_appearance/`](examples/system_appearance/))
 - **Single instance and open-with** — `gui/instance` keeps one running copy per
   user and hands a second launch's files and URLs to it. `App.OnOpen` also gets

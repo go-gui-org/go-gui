@@ -11,6 +11,8 @@ import (
 var (
 	pMonitorFromWindow = user32.NewProc("MonitorFromWindow")
 	pGetMonitorInfoW   = user32.NewProc("GetMonitorInfoW")
+
+	pDwmSetWindowAttribute = dwmapi.NewProc("DwmSetWindowAttribute")
 )
 
 const (
@@ -43,6 +45,19 @@ const (
 	wmszBottomRight = 8
 
 	monitorDefaultToNearest = 0x0002
+
+	// DWMWA_USE_IMMERSIVE_DARK_MODE. Windows 10 before 20H1 (1809 to
+	// 1909) knows the attribute as 19.
+	dwmwaUseImmersiveDarkMode    = 20
+	dwmwaUseImmersiveDarkModeOld = 19
+
+	// SetWindowPos flags for a frame repaint that leaves position, size,
+	// stacking and focus alone.
+	swpNoSize            = 0x0001
+	swpNoMove            = 0x0002
+	swpFrameChanged      = 0x0020
+	titlebarRepaintFlags = swpNoMove | swpNoSize | swpNoZOrder |
+		swpNoActivate | swpFrameChanged
 )
 
 // monitorInfo mirrors MONITORINFO.
@@ -277,6 +292,45 @@ func (n *nativePlatform) StartWindowResize(edge gui.WindowEdge) {
 	pSendMessageW.Call(n.b.plat.hwnd, wmSysCommand, scSize|dir, 0)
 }
 
-// TitlebarDark is not implemented on Windows yet: the frame keeps the
-// system's variant.
-func (n *nativePlatform) TitlebarDark(_ bool) {}
+// TitlebarDark switches the caption DWM draws for this window between
+// its dark and light variants. Windows draws every window's caption
+// light until the app opts in, whatever the system setting, so a window
+// that never calls this stays light.
+func (n *nativePlatform) TitlebarDark(dark bool) {
+	if n.b == nil || n.b.plat.hwnd == 0 || n.b.plat.titlebarDark == dark {
+		return
+	}
+	if !setImmersiveDarkMode(n.b.plat.hwnd, dark) {
+		return
+	}
+	n.b.plat.titlebarDark = dark
+	// Windows 11 repaints the caption at once. Windows 10 keeps the old
+	// one until the frame repaints for another reason, such as a focus
+	// change or a resize; a frame change repaints it now. It sends no
+	// WM_SIZE, so no frame runs inside the caller's.
+	pSetWindowPos.Call(n.b.plat.hwnd, 0, 0, 0, 0, 0, titlebarRepaintFlags)
+}
+
+// setImmersiveDarkMode sets DWMWA_USE_IMMERSIVE_DARK_MODE, trying the
+// attribute's pre-20H1 number when Windows rejects the current one. It
+// reports false when Windows knows neither (Windows 10 before 1809).
+func setImmersiveDarkMode(hwnd uintptr, dark bool) bool {
+	if pDwmSetWindowAttribute.Find() != nil {
+		return false
+	}
+	return dwmSetBool(hwnd, dwmwaUseImmersiveDarkMode, dark) ||
+		dwmSetBool(hwnd, dwmwaUseImmersiveDarkModeOld, dark)
+}
+
+// dwmSetBool sets a BOOL window attribute and reports whether DWM took
+// it. A var so tests can stand in for a Windows build that rejects an
+// attribute.
+var dwmSetBool = func(hwnd, attr uintptr, v bool) bool {
+	var b int32
+	if v {
+		b = 1
+	}
+	hr, _, _ := pDwmSetWindowAttribute.Call(hwnd, attr,
+		uintptr(unsafe.Pointer(&b)), unsafe.Sizeof(b))
+	return hr == 0
+}
