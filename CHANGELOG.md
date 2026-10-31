@@ -10,6 +10,17 @@ and this project adheres to
 
 ### Added
 
+- **`TitlebarDark` switches the window frame on macOS (#1207).** A window
+  followed the macOS light/dark setting whatever theme the app pinned, so a dark
+  go-gui app on a light desktop sat in a light frame. `Window.TitlebarDark` now
+  pins that window's appearance: the frame, the title, the window buttons and a
+  vibrancy backdrop switch with it. Dialogs and the menu bar keep the system's
+  setting. `FollowSystemAppearance` already calls it, and an app that pins its
+  theme with `SetTheme` calls `TitlebarDark(theme.TitlebarDark)` to match. A
+  window whose app never calls `TitlebarDark` follows the system, as before.
+  With `SetWindowVibrancy`, macOS draws a dark window's title bar clear, as it
+  already did on a dark desktop.
+
 - **`TitlebarDark` switches the window caption on Windows (#1201).** Windows
   draws every window's caption light until the app opts in, whatever the system
   setting, so a dark go-gui app sat under a light caption. `Window.TitlebarDark`

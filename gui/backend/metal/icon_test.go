@@ -227,6 +227,41 @@ func runMainThreadTests() {
 		panic("SystemAppearance: macOS reported no setting")
 	}
 
+	// 8d. TitlebarDark must pin the NSWindow's appearance, and only
+	//     once asked: a window never pinned follows the system. Light
+	//     must pin Aqua, not clear the pin, or a dark desktop would
+	//     keep the frame dark (#1207).
+	if got := testWindowAppearance(b.window); got != -1 {
+		panic(fmt.Sprintf("appearance before TitlebarDark = %d, want -1 (none)", got))
+	}
+	for _, dark := range []bool{true, false, true} {
+		w.TitlebarDark(dark)
+		want := 0
+		if dark {
+			want = 1
+		}
+		if got := testWindowAppearance(b.window); got != want {
+			panic(fmt.Sprintf("TitlebarDark(%v): appearance = %d, want %d",
+				dark, got, want))
+		}
+	}
+
+	// 8e. A TitlebarDark made before New must reach the NSWindow when
+	//     the backend attaches. This reads the window once New has
+	//     returned, after it was ordered front, so it cannot tell which
+	//     appearance the first frame on screen had. That is checked by
+	//     hand (docs/specs/system-appearance.md).
+	dw := gui.NewWindow(gui.WindowCfg{State: new(int), Width: 200, Height: 200})
+	dw.TitlebarDark(true)
+	db, err := New(dw)
+	if err != nil {
+		panic("metal.New with TitlebarDark: " + err.Error())
+	}
+	if got := testWindowAppearance(db.window); got != 1 {
+		panic(fmt.Sprintf("TitlebarDark before New: appearance = %d, want 1", got))
+	}
+	db.Destroy()
+
 	b.Destroy()
 
 	// 9. Destroy must unregister the window. Regression test for

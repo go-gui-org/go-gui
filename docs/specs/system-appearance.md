@@ -21,9 +21,10 @@ Two layers, shipped together (recommendation B on primitive A from #752):
   desktop), and the app keeps its own theme.
 - **B, policy layer:** `FollowSystemAppearance(light, dark Theme)` queries once,
   pins the matching theme, and re-pins on every OS change. Each apply calls
-  `TitlebarDark`. Only the GL backend implements it: on Windows (#1201, see
-  below), and on Wayland for a frame drawn by libdecor's GTK plugin (#1192). So
-  only there does the titlebar follow.
+  `TitlebarDark`. The Metal backend implements it on macOS (#1207, see below),
+  and the GL backend on Windows (#1201, see below) and on Wayland for a frame
+  drawn by libdecor's GTK plugin (#1192). So only there does the titlebar
+  follow.
 
 An explicit `SetTheme` ends following until `FollowSystemAppearance` is called
 again. `StopFollowSystemAppearance` ends it without changing the theme.
@@ -98,6 +99,42 @@ libdecor 0.2.2), where a log shows nothing resetting the GTK setting afterwards.
 Under mutter in the harness, which takes no screenshots, the log shows the same
 sequence.
 
+### Titlebar on macOS
+
+`TitlebarDark` sets `NSWindow.appearance` on that window (#1207): `DarkAqua` for
+dark, `Aqua` for light. AppKit draws the frame, the title, the window buttons
+and a vibrancy backdrop (`SetWindowVibrancy`) in that appearance. The HUD
+material is dark either way. The pin is per window, as on Windows. App-modal
+dialogs (`runModal`) and the menu bar take the app's appearance, so they keep
+the system's. A window whose app never calls `TitlebarDark` has no appearance of
+its own and follows the system, as before.
+
+Light pins `Aqua` instead of clearing the window's appearance. A cleared one
+follows the system, so a light theme on a dark desktop would keep a dark frame.
+A following window is pinned to the system's value on each apply. After an OS
+change, its frame waits for the watcher's queued apply and switches with the
+theme.
+
+On macOS the frame thread is the main thread, so the call reaches AppKit at
+once, like `SetWindowOpacity`. A call that repeats the window's appearance
+changes nothing. `metalWindowCreate` orders the window in before
+`SetNativePlatform` replays a stored `TitlebarDark`. Both that replay and
+`OnInit` run before the event loop's first pass. In between, the first
+`metalAppFinishLaunch` runs `[NSApp run]` once inside `metalWindowCreate`, with
+the window already on screen. An app launched as a bundle waits there for Launch
+Services' open event. A probe pinned dark on a light desktop and held `OnInit`
+for 2 s before the loop. Started from Terminal and as an `.app` launched with
+`open`, it showed a dark frame throughout the hold, whether it called
+`TitlebarDark` before `Run` or from `OnInit`. At normal speed no run flashed
+light.
+
+With vibrancy the window's background is clear, and the backdrop covers only the
+content area. Over that clear background AppKit draws a dark frame's title bar
+clear, so the desktop shows through it unblurred, and a light one as usual. A
+dark desktop does the same without `TitlebarDark`: `examples/vibrancy` on
+`main`, which never calls it, shows the clear title bar there. It belongs to
+vibrancy, not to the pin.
+
 ### Titlebar on X11
 
 On X11 the window manager draws the frame, and `TitlebarDark` does nothing: the
@@ -128,6 +165,15 @@ capture: with the desktop light, pinning dark and light switches the inactive
 caption between dark and light at once, and DWM reads the attribute back. A unit
 test reads it back from a real window. Windows 10 is unverified.
 
+The macOS titlebar (#1207) was checked on an M1 Mac mini. The real-window test
+in the Metal backend's main-thread tests reads the appearance back before the
+first call, after each call, and for a call made before `New`. No CI job sets
+`GO_GUI_MAIN_THREAD_TESTS`, so it runs only on a Mac by hand.
+`examples/system_appearance` follows the desktop both ways, and a pinned theme
+keeps its frame when the desktop changes. Under a dark pin on a light desktop,
+the vibrancy backdrop is dark, and a native message box and the app's menus stay
+light.
+
 ## Rejected Approaches
 
 - **C, sentinel theme.** The installed theme id is the hot-path key
@@ -149,6 +195,20 @@ test reads it back from a real window. Windows 10 is unverified.
   Windows 11 only, and they take a color, not a variant, so `TitlebarDark` would
   need a new color API. Could return as its own feature (a caption in the
   theme's exact color).
+- **`NSApp.appearance` for the macOS titlebar.** `SystemAppearance` and its
+  watcher read `NSApp.effectiveAppearance`. An app-wide pin replaces that with
+  the app's own choice, so a following window would never see the system change
+  again. It would also switch every window and the app's dialogs at once.
+- **Light as a cleared appearance (`nil`) on macOS.** A cleared appearance
+  follows the system, so a light pin on a dark desktop would keep the frame
+  dark.
+- **An appearance on the macOS titlebar view alone.** That view is private to
+  AppKit, reached through the superview of `standardWindowButton`, and its
+  hierarchy changes between releases. The vibrancy backdrop would also stay out
+  of step with the theme.
+- **A macOS titlebar painted in the theme's color**
+  (`titlebarAppearsTransparent` and a background color). It takes a color, not a
+  variant: the same reason as `DWMWA_CAPTION_COLOR` on Windows.
 - **Windows titlebar through undocumented `uxtheme.dll` ordinals**
   (`SetPreferredAppMode`, `AllowDarkModeForWindow`). Unsupported and changed
   between builds. Their extra effect, dark Win32 menus and scrollbars, is of no

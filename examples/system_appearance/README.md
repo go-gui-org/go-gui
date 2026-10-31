@@ -16,10 +16,11 @@
 go run ./examples/system_appearance/
 ```
 
-Switch the desktop between light and dark while the app runs (on GNOME: Settings
-→ Appearance; on Windows: Settings → Personalization → Colors). With "Follow
-desktop" selected, the theme switches with it. Pick Light or Dark to pin a
-theme, and "Follow desktop" to follow again.
+Switch the desktop between light and dark while the app runs (on macOS: System
+Settings → Appearance; on GNOME: Settings → Appearance; on Windows: Settings →
+Personalization → Colors). With "Follow desktop" selected, the theme switches
+with it. Pick Light or Dark to pin a theme, and "Follow desktop" to follow
+again.
 
 ## What it demonstrates
 
@@ -36,9 +37,12 @@ theme, and "Follow desktop" to follow again.
 
 ## Where the frame follows
 
-`TitlebarDark` switches the frame on Windows (10 version 1809 or later) and on
-Linux under Wayland when libdecor's GTK plugin draws it, as on GNOME.
+`TitlebarDark` switches the frame on macOS, on Windows (10 version 1809 or
+later) and on Linux under Wayland when libdecor's GTK plugin draws it, as on
+GNOME.
 
+- On macOS it pins that window's appearance, so a pinned theme keeps its frame
+  when the desktop changes. Dialogs and the menu bar follow the desktop.
 - On Windows it switches that window's caption. With "Show accent color on title
   bars" turned on, the active caption keeps the accent color; switch to another
   window to see the variant. The app shows a note on this at the bottom of the

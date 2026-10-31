@@ -43,6 +43,7 @@ int metalTestIMEClientConformance(void *windowHandle);
 int metalTestIMEKeySuppressedWhileComposing(void *windowHandle);
 int metalTestIMEDeadKeyDeliveredWithoutTextContext(void *windowHandle);
 int metalTestContentViewIsFirstResponder(void *windowHandle);
+int metalTestWindowAppearance(void *windowHandle);
 void metalTestStartLiveResize(void *windowHandle);
 void metalTestEndLiveResize(void *windowHandle);
 int metalTestLayerPresentsWithTransaction(void *windowHandle);
@@ -241,6 +242,12 @@ func testIMEDeadKeyDeliveredWithoutTextContext(handle C.GoGuiNSWindow) bool {
 func testContentViewIsFirstResponder(handle C.GoGuiNSWindow) bool {
 	return C.metalTestContentViewIsFirstResponder(
 		unsafe.Pointer(handle)) != 0
+}
+
+// testWindowAppearance reports the appearance pinned on the window:
+// -1 none (follows the system), 0 Aqua, 1 DarkAqua, 2 anything else.
+func testWindowAppearance(handle C.GoGuiNSWindow) int {
+	return int(C.metalTestWindowAppearance(unsafe.Pointer(handle)))
 }
 
 func testWindowID(handle C.GoGuiNSWindow) uint32 {

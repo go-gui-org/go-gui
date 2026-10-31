@@ -435,16 +435,10 @@ touch support can follow.
 
 ### Dark mode / appearance
 
-`TitlebarDark(bool)` in `native_platform.go` is currently a no-op under Metal.
-The native backend can implement it via `NSAppearance`:
-
-```objc
-if (dark) {
-    nsWindow.appearance = [NSAppearance appearanceNamed:NSAppearanceNameDarkAqua];
-} else {
-    nsWindow.appearance = nil; // system default
-}
-```
+`TitlebarDark(bool)` sets the window's `NSAppearance`: `DarkAqua` for dark,
+`Aqua` for light (#1207). Light is not `nil`: a cleared appearance follows the
+system, so a light pin on a dark desktop would keep the frame dark. Details and
+rejected approaches are in `system-appearance.md`.
 
 ### Fullscreen
 
