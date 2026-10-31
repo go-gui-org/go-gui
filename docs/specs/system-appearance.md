@@ -21,9 +21,9 @@ Two layers, shipped together (recommendation B on primitive A from #752):
   desktop), and the app keeps its own theme.
 - **B, policy layer:** `FollowSystemAppearance(light, dark Theme)` queries once,
   pins the matching theme, and re-pins on every OS change. Each apply calls
-  `TitlebarDark`. Only the GL backend on Wayland implements it, for a frame
-  drawn by libdecor's GTK plugin (#1192), so only there does the titlebar
-  follow.
+  `TitlebarDark`. Only the GL backend implements it: on Windows (#1201, see
+  below), and on Wayland for a frame drawn by libdecor's GTK plugin (#1192). So
+  only there does the titlebar follow.
 
 An explicit `SetTheme` ends following until `FollowSystemAppearance` is called
 again. `StopFollowSystemAppearance` ends it without changing the theme.
@@ -36,8 +36,8 @@ user hook run on the frame thread.
 
 Subscription is demand-driven: a backend runs its watcher only while a window is
 following or hooked. `SetNativePlatform` replays a pending subscription
-(follow/hook are reachable before the backend attaches), and `WindowCleanup`
-unregisters.
+(follow/hook are reachable before the backend attaches), and a stored
+`TitlebarDark` (#1201). `WindowCleanup` unregisters.
 
 | Platform | Query                                 | Change event                         |
 | -------- | ------------------------------------- | ------------------------------------ |
@@ -56,6 +56,48 @@ Queries before the first push report no setting.
 A theme change applied by following fades when the window has a transition set
 (`SetThemeTransition`, issue #753, `docs/specs/theme-fade.md`).
 
+### Titlebar on Windows
+
+Windows draws every window's caption light, whatever the system setting, until
+the app opts in. `TitlebarDark` sets `DWMWA_USE_IMMERSIVE_DARK_MODE` on the
+window (#1201). Windows 10 before 20H1 (1809 to 1909) knows the attribute as 19
+instead of 20, so a rejected 20 is retried as 19. Before 1809 neither exists and
+the caption stays light. The setting is per window, unlike libdecor's
+per-process variant.
+
+After a change, `SetWindowPos` with `SWP_FRAMECHANGED` (no move, size, stacking
+or activation) repaints the frame. Windows 11 repaints at once without it.
+Windows 10 is reported to keep the old caption until a focus change or a resize.
+The call sends `WM_NCCALCSIZE` and `WM_NCPAINT` but no `WM_SIZE`, so no frame
+runs inside the caller's. The window remembers the last variant set, so the
+repeat calls from `FollowSystemAppearance` cost nothing.
+
+With "Show accent color on title bars" on, Windows paints the active caption in
+the accent color whichever variant is set. Only the inactive caption shows it.
+
+The backend shows the window in `New`, before `Run` calls `OnInit`. A
+`FollowSystemAppearance` from `OnInit` on a dark desktop therefore lands on a
+window already on screen, and Windows animates the caption from light to dark.
+Sampled off the screen, the caption reads up to 157 and fades to 32 over about
+130 ms. A `FollowSystemAppearance` before `Run` is applied by
+`SetNativePlatform` inside `New`, before `ShowWindow`, and the caption never
+reads above 32. The docs say so, and each app picks the order: only the app
+knows whether its `OnInit` is slow.
+
+`Window` stores the last `TitlebarDark` and `SetNativePlatform` replays it, like
+`SetWindowOpacity`, so an app that pins a dark theme gets the same by calling
+`TitlebarDark` before `Run`. Measured the same way, it never reads above 32; the
+same calls from `OnInit` fade from 128. A following window that applies an OS
+setting on attach takes its titlebar from that instead: one push, and the
+setting wins. A window whose app never called `TitlebarDark` gets no push. On
+Wayland the window's thread is not recorded yet during `SetNativePlatform`, so
+`wlWindow.titlebarDark` posts the call to the loop. It runs once the window is
+registered for frame repaints and before its first frame. The frame shows dark
+from the start under weston in the Docker harness and on GNOME (Debian 13,
+libdecor 0.2.2), where a log shows nothing resetting the GTK setting afterwards.
+Under mutter in the harness, which takes no screenshots, the log shows the same
+sequence.
+
 ## Verification status
 
 Built and tested on macOS (gui suite, metal build, ObjC syntax against the iOS
@@ -64,6 +106,11 @@ SDK, iOS backend type-check with the Makefile's `build-ios` flags). The Windows
 (Kotlin push) paths are unverified on hardware, like `window-opacity.md` at
 inception. The `gsettings` parser and the Windows flip-suppression have unit
 tests that run everywhere.
+
+The Windows titlebar (#1201) was checked on Windows 11 build 26300 by screen
+capture: with the desktop light, pinning dark and light switches the inactive
+caption between dark and light at once, and DWM reads the attribute back. A unit
+test reads it back from a real window. Windows 10 is unverified.
 
 ## Rejected Approaches
 
@@ -82,3 +129,26 @@ tests that run everywhere.
   siblings ask.
 - **D-Bus for Linux.** `gsettings` covers GNOME-family with no new dependency.
   KDE and bare window managers report no setting (accepted gap).
+- **Windows titlebar from `DWMWA_CAPTION_COLOR` and `DWMWA_TEXT_COLOR`.**
+  Windows 11 only, and they take a color, not a variant, so `TitlebarDark` would
+  need a new color API. Could return as its own feature (a caption in the
+  theme's exact color).
+- **Windows titlebar through undocumented `uxtheme.dll` ordinals**
+  (`SetPreferredAppMode`, `AllowDarkModeForWindow`). Unsupported and changed
+  between builds. Their extra effect, dark Win32 menus and scrollbars, is of no
+  use to go-gui, which draws its own.
+- **Dark caption at window creation from the system setting.** Changes every
+  app's caption on upgrade and gives a light-themed app a dark caption.
+  `FollowSystemAppearance` already covers the following app.
+- **Other Windows 10 repaints.** A faked `WM_NCACTIVATE` toggles activation
+  state, hiding and showing the window flickers, and no repaint leaves Windows
+  10 showing the old caption.
+- **Hiding the start-up caption animation in the backend.** Cloaking the window
+  (`DWMWA_CLOAK`) from `ShowWindow` until `OnInit` has run, or calling
+  `ShowWindow` after `OnInit`, would remove it for every app. Both keep a window
+  with a slow `OnInit` off screen, and showing after `OnInit` also undoes an
+  `OnInit` that hides the window (a tray app) unless tracked. Each app chooses
+  instead, by where it calls `FollowSystemAppearance` or `TitlebarDark`.
+- **A `WindowCfg` field for the start-up titlebar.** New API, read by every
+  backend, for what the `TitlebarDark` replay gives with none: two ways to set
+  the same thing.

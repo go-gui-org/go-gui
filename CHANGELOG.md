@@ -8,6 +8,29 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- **`TitlebarDark` switches the window caption on Windows (#1201).** Windows
+  draws every window's caption light until the app opts in, whatever the system
+  setting, so a dark go-gui app sat under a light caption. `Window.TitlebarDark`
+  now sets the dark or light caption for that window and repaints it at once.
+  `FollowSystemAppearance` already calls it, so a following window's caption now
+  switches with the desktop setting; an app that pins its theme with `SetTheme`
+  calls `TitlebarDark(theme.TitlebarDark)` to match. Unlike on Wayland, the
+  setting is per window. It needs Windows 10 version 1809 or later. With "Show
+  accent color on title bars" turned on, the active caption keeps the accent
+  color and only the inactive one shows the variant. A window whose app never
+  calls `TitlebarDark` keeps the light caption.
+
+- **`TitlebarDark` before `Run` is applied when the backend attaches (#1201).**
+  It was dropped, as no platform was attached yet. The window now stores the
+  last variant asked for and applies it on attach, like `SetWindowOpacity`. On
+  Windows that is before the window shows, so calling `FollowSystemAppearance`
+  or `TitlebarDark` before `Run` gives the right caption from the first frame.
+  From `OnInit`, which runs once the window shows, Windows animates the caption
+  from light to dark as the window opens. While a window follows the system
+  appearance and the OS reports a setting, that setting wins on attach.
+
 ## [v0.94.0] - 2026-10-31
 
 ### Added

@@ -193,10 +193,18 @@ func (w *Window) SetNativePlatform(np NativePlatform) {
 	w.appearanceMu.RLock()
 	following := w.appearanceFollowing
 	w.appearanceMu.RUnlock()
+	applied := false
 	if following {
 		if a, ok := w.SystemAppearance(); ok {
 			w.applySystemAppearance(a)
+			applied = true
 		}
+	}
+	// Replay a TitlebarDark made before the backend attached, like
+	// windowOpacity. A following window that just applied the OS
+	// setting got its titlebar from that instead.
+	if !applied && w.titlebarDarkSet && np != nil {
+		np.TitlebarDark(w.titlebarDark)
 	}
 }
 

@@ -227,6 +227,9 @@ type platformState struct {
 	// guard. Kept here rather than reached through w, which is nil
 	// until Run.
 	transparent bool
+	// titlebarDark is the caption variant last set by TitlebarDark.
+	// Windows starts every window light, so the zero value is right.
+	titlebarDark bool
 	// minTrack and maxTrack are the outer-frame resize bounds in
 	// physical pixels, precomputed at create time so the
 	// WM_GETMINMAXINFO handler does no conversion per message. A zero
