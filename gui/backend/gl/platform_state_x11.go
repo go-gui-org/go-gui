@@ -28,6 +28,8 @@ type platformState struct {
 	eglConfig  uintptr
 	eglSurface uintptr
 	eglContext uintptr
+	// presented: swap ran, so the window's surface has a buffer.
+	presented bool
 
 	// lockedTid is the OS thread New locked its goroutine to, handed to
 	// Destroy so it can release that lock (#827). Zero once released, or
@@ -134,7 +136,11 @@ func (p *platformState) makeCurrent() {
 	eglMakeCurrent(p.eglDpy, p.eglSurface, p.eglSurface, p.eglContext)
 }
 
-func (p *platformState) swap() { eglSwapBuffers(p.eglDpy, p.eglSurface) }
+func (p *platformState) swap() {
+	if eglSwapBuffers(p.eglDpy, p.eglSurface) != 0 {
+		p.presented = true
+	}
+}
 
 func (p *platformState) drawableSize() (int32, int32) { return p.physW, p.physH }
 
