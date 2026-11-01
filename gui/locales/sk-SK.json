@@ -2,7 +2,7 @@
   "id": "sk-SK",
   "number": {
     "decimal_sep": ",",
-    "group_sep": " ",
+    "group_sep": "\u00a0",
     "group_sizes": [
       3
     ],
