@@ -45,20 +45,16 @@ func inputScrollCursorIntoView(
 
 	is := StateReadOr(w, nsInput,
 		layout.Shape.idKey(), inputState{})
-	runeLen := utf8RuneCount(text)
-	pos := is.CursorPos
-	pos = min(pos, runeLen)
-	// The glyph layout above was built from the masked text for a
-	// password field (inputGlyphLayoutResolved masks internally), so the
-	// byte index has to be taken against that same string. A bullet and
-	// the rune it hides are different byte lengths, so indexing the raw
-	// text lands the caret in the wrong place.
-	idxText := text
+	pos := max(0, min(is.CursorPos, len(text)))
+	// The block above was built from the masked text for a password
+	// field (inputGlyphLayoutResolved masks internally), so the offset
+	// has to be taken against that same string. A bullet and the rune it
+	// hides are different byte lengths, so indexing the raw text lands
+	// the caret in the wrong place.
+	byteIdx := pos
 	if txtShape.TC.textIsPassword {
-		idxText = maskPassword(text)
-		pos = min(pos, utf8RuneCount(idxText))
+		byteIdx = displayOffset(text, maskPassword(text), pos)
 	}
-	byteIdx := runeToByteIndex(idxText, pos)
 
 	cp, ok := gl.cursorPosTrailing(byteIdx, is.cursorTrailing)
 	if !ok {
@@ -170,10 +166,7 @@ func textScrollCursorIntoView(layout *Layout, w *Window) {
 
 	is := StateReadOr(
 		w, nsInput, shape.idKey(), inputState{})
-	runeLen := utf8RuneCount(text)
-	pos := is.CursorPos
-	pos = min(pos, runeLen)
-	byteIdx := runeToByteIndex(text, pos)
+	byteIdx := max(0, min(is.CursorPos, len(text)))
 
 	cp, ok := gl.cursorPosTrailing(byteIdx, is.cursorTrailing)
 	if !ok {

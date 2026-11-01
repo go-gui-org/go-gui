@@ -107,17 +107,15 @@ func inputDeleteGrapheme(
 	if is.selectBeg != is.selectEnd {
 		return fallback()
 	}
-	pos := min(is.CursorPos, utf8RuneCount(text))
-	byteIdx := runeToByteIndex(text, pos)
-	newText, newByte, ok := gl.deleteGrapheme(byteIdx, forward)
+	pos := max(0, min(is.CursorPos, len(text)))
+	newText, newPos, ok := gl.deleteGrapheme(pos, forward)
 	if !ok {
 		return fallback()
 	}
 	if newText == text {
 		return text, false
 	}
-	newPos := byteToRuneIndex(newText, newByte)
-	inputStoreState(focusID, w, editCommit(is, text, newPos, inputOpDelete))
+	inputStoreState(focusID, w, editCommit(is, text, newText, newPos, inputOpDelete))
 	return newText, true
 }
 
@@ -165,7 +163,11 @@ func inputDragViewportEdges(p *Shape) (
 // inputDragState holds state for drag-to-select in an input.
 // Replaces ~10 closure-captured locals with explicit fields;
 // wordSelect is set iff the drag started from a double-click.
+// displayText is the text as drawn — a password's bullets — which the
+// block and the hit test speak in; text is the field's text, whose
+// offsets the state holds.
 type inputDragState struct {
+	text                   string
 	displayText            string
 	wordSelect             bool // drag extends by whole words
 	gl                     *textBlock
@@ -185,7 +187,9 @@ type inputDragState struct {
 	maxScrollNegX       float32
 }
 
-func (d *inputDragState) computeRunePos(
+// computePos returns the byte offset in the field's text under the
+// pointer.
+func (d *inputDragState) computePos(
 	mx, my float32, w *Window,
 ) int {
 	scrollDelta, scrollDeltaX := float32(0), float32(0)
@@ -206,8 +210,7 @@ func (d *inputDragState) computeRunePos(
 	// textDragEdgeX.
 	top, bot := d.gl.band()
 	relX := textDragEdgeX(mx-(d.txtOffX+scrollDeltaX), relY, top, bot)
-	byteIdx := d.gl.closestOffset(relX, relY)
-	return byteToRuneIndex(d.displayText, byteIdx)
+	return textOffset(d.text, d.displayText, d.gl.closestOffset(relX, relY))
 }
 
 func (d *inputDragState) updateSelection(rp int, w *Window) {
@@ -215,7 +218,12 @@ func (d *inputDragState) updateSelection(rp int, w *Window) {
 	// Default InputState{}: zero value seeds initial drag-selection state.
 	is := imap.GetOr(d.focusID, inputState{})
 	if d.wordSelect {
-		wb, we := wordBoundsAt(d.displayText, rp)
+		// Words of the text as drawn: in a password field the bullets are
+		// one word, which gives nothing away.
+		dp := displayOffset(d.text, d.displayText, rp)
+		wb, we := wordBoundsAt(d.displayText, dp)
+		wb = textOffset(d.text, d.displayText, wb)
+		we = textOffset(d.text, d.displayText, we)
 		if rp < int(d.anchorPos) {
 			is.selectBeg = d.anchorEnd
 			is.selectEnd = uint32(wb)
@@ -264,7 +272,7 @@ func (d *inputDragState) scrollCallback(
 	if !movedY && !movedX {
 		return
 	}
-	rp := d.computeRunePos(d.lastMouseX, d.lastMouseY, w)
+	rp := d.computePos(d.lastMouseX, d.lastMouseY, w)
 	d.updateSelection(rp, w)
 }
 
@@ -315,7 +323,7 @@ func startInputDrag(d *inputDragState, w *Window) {
 			}
 			d.lastMouseX = ctx.Event.MouseX
 			d.lastMouseY = ctx.Event.MouseY
-			rp := d.computeRunePos(ctx.Event.MouseX, ctx.Event.MouseY, ctx.Window)
+			rp := d.computePos(ctx.Event.MouseX, ctx.Event.MouseY, ctx.Window)
 			d.updateSelection(rp, ctx.Window)
 			if d.scrollID != "" {
 				outside := ctx.Event.MouseY < d.viewTop ||

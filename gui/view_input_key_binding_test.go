@@ -152,6 +152,25 @@ func TestInputCommandKillYank(t *testing.T) {
 	}
 }
 
+// TestInputCommandKillYankMultibyte: the kill range is in bytes, so
+// what Ctrl+K cuts from non-ASCII text is exactly what Ctrl+Y puts back.
+func TestInputCommandKillYankMultibyte(t *testing.T) {
+	setKeyBindingForTest(t, KeyBindingCommand)
+	text := "héllo 日本\nwörld"
+	ctx := newInputTestMultiline(text, "kb9m", len("hé"))
+	ctx.fireKeyDown(KeyK, ModCtrl)
+	if want := "hé\nwörld"; ctx.lastText != want {
+		t.Fatalf("Ctrl+K: got %q, want %q", ctx.lastText, want)
+	}
+	if want := "llo 日本"; ctx.w.killBuffer != want {
+		t.Fatalf("kill buffer = %q, want %q", ctx.w.killBuffer, want)
+	}
+	ctx.fireKeyDown(KeyY, ModCtrl)
+	if ctx.lastText != text {
+		t.Fatalf("Ctrl+Y: got %q, want %q", ctx.lastText, text)
+	}
+}
+
 // TestInputCommandKillUndoNoSelection: Ctrl+K sets its range as a
 // selection only to drive the delete. Undo must bring the text back
 // with the caret where it was, not with the killed range highlighted.

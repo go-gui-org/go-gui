@@ -105,7 +105,9 @@ func inputOnClick(
 		if ly.Shape.TC.textIsPassword {
 			displayText = maskPassword(text)
 		}
-		runePos := byteToRuneIndex(displayText, byteIdx)
+		// The block speaks in offsets of the text as drawn; the state
+		// holds offsets of the field's text.
+		pos := textOffset(text, displayText, byteIdx)
 		imap := StateMap[string, inputState](
 			ctx.Window, nsInput, capMany,
 		)
@@ -120,14 +122,18 @@ func inputOnClick(
 		is.LastClickTime = now
 
 		if doubleClick {
-			beg, end := wordBoundsAt(displayText, runePos)
+			// Words of the text as drawn: a password's bullets are one
+			// word, which gives nothing away.
+			beg, end := wordBoundsAt(displayText, byteIdx)
+			beg = textOffset(text, displayText, beg)
+			end = textOffset(text, displayText, end)
 			is.CursorPos = end
 			is.selectBeg = uint32(beg)
 			is.selectEnd = uint32(end)
 		} else {
-			is.CursorPos = runePos
-			is.selectBeg = uint32(runePos)
-			is.selectEnd = uint32(runePos)
+			is.CursorPos = pos
+			is.selectBeg = uint32(pos)
+			is.selectEnd = uint32(pos)
 		}
 		is.cursorOffset = -1
 		imap.Set(focusID, is)
@@ -149,6 +155,7 @@ func inputOnClick(
 			anchorPos:   is.selectBeg,
 			anchorEnd:   is.selectEnd,
 			gl:          gl,
+			text:        text,
 			displayText: displayText,
 			wordSelect:  doubleClick,
 			txtOffX:     ly.Shape.X,

@@ -238,7 +238,7 @@ func textKeyParagraphEdge(
 	if end {
 		newPos = cursorEndOfParagraph(text, pos)
 	}
-	updateCursorAndSelection(imap, id, is, newPos, false, utf8RuneCount(text))
+	updateCursorAndSelection(imap, id, is, newPos, false, len(text))
 }
 
 // textKeyDocEdge moves the caret to the start (up) or end of the
@@ -248,10 +248,9 @@ func textKeyDocEdge(
 	imap *BoundedMap[string, inputState], id string, is inputState,
 	text string, up, isShift bool,
 ) {
-	runeLen := utf8RuneCount(text)
-	newPos := runeLen
+	newPos := len(text)
 	if up {
 		newPos = 0
 	}
-	updateCursorAndSelection(imap, id, is, newPos, isShift, runeLen)
+	updateCursorAndSelection(imap, id, is, newPos, isShift, len(text))
 }

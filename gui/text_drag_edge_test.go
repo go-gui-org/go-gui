@@ -182,19 +182,19 @@ func TestInputDragStateDragEdge(t *testing.T) {
 		LogAttrByIndex: map[int]int{0: 0, 1: 1, 2: 2, 3: 3, 4: 4},
 	}
 	w := newTestWindow()
-	d := &inputDragState{displayText: text,
+	d := &inputDragState{text: text, displayText: text,
 		gl: newTextBlockFromLayout(text, &gl, 100, DefaultTextStyle, TextModeWrap, w)}
 
 	// Above the text at column 1: the whole first line, so rune 0.
-	if got := d.computeRunePos(15, -5, w); got != 0 {
+	if got := d.computePos(15, -5, w); got != 0 {
 		t.Errorf("above = %d, want 0", got)
 	}
 	// Below the text at column 0: the whole last line, so rune 4.
-	if got := d.computeRunePos(5, 30, w); got != 4 {
+	if got := d.computePos(5, 30, w); got != 4 {
 		t.Errorf("below = %d, want 4", got)
 	}
 	// Still over the text: the column decides, unchanged.
-	if got := d.computeRunePos(15, 4, w); got != 1 {
+	if got := d.computePos(15, 4, w); got != 1 {
 		t.Errorf("inside = %d, want 1", got)
 	}
 }

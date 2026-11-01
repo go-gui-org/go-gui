@@ -7,9 +7,9 @@ func cursorHome() int {
 	return 0
 }
 
-// cursorEnd returns the rune count (end of text).
+// cursorEnd returns the byte offset of the end of text.
 func cursorEnd(text string) int {
-	return utf8RuneCount(text)
+	return len(text)
 }
 
 // runeToByteIndex converts a rune index to a byte index.
@@ -36,41 +36,16 @@ func byteToRuneIndex(text string, byteIdx int) int {
 	return utf8.RuneCountInString(text[:byteIdx])
 }
 
-// cursorStartOfParagraph finds the start of the current
-// paragraph by searching backward for newline.
+// cursorStartOfParagraph returns the byte offset after the '\n' before
+// pos: the start of the paragraph holding pos.
 func cursorStartOfParagraph(text string, pos int) int {
-	if pos < 0 {
-		return 0
-	}
-	byteIdx := runeToByteIndex(text, pos)
-	i := byteIdx - 1
-	if i >= len(text) {
-		i = len(text) - 1
-	}
-	for i >= 0 {
-		if text[i] == '\n' {
-			return byteToRuneIndex(text, i+1)
-		}
-		i--
-	}
-	return 0
+	return lineStartBefore(text, pos)
 }
 
-// cursorEndOfParagraph finds the end of the current paragraph
-// by searching forward for newline.
+// cursorEndOfParagraph returns the byte offset of the '\n' at or after
+// pos, or the text end: the end of the paragraph holding pos.
 func cursorEndOfParagraph(text string, pos int) int {
-	// Clamp to the text start, then search: a negative position sits
-	// in the first paragraph, so the answer is that paragraph's end.
-	if pos < 0 {
-		pos = 0
-	}
-	byteIdx := runeToByteIndex(text, pos)
-	for i := byteIdx; i < len(text); i++ {
-		if text[i] == '\n' {
-			return byteToRuneIndex(text, i)
-		}
-	}
-	return utf8RuneCount(text)
+	return lineEndAfter(text, pos)
 }
 
 // utf8RuneCount returns the number of runes in s.

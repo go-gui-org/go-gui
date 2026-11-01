@@ -50,6 +50,25 @@ type MaskEditResult struct {
 	accepted bool
 }
 
+// maskRuneArgs converts the caret and selection of is — byte offsets
+// into text — to the rune indices the mask engine works in. A masked
+// field is short, so the conversion is cheap, and the engine's rune
+// slots stay as they are.
+func maskRuneArgs(text string, is inputState) (cursor int, selBeg, selEnd uint32) {
+	cursor = byteToRuneIndex(text, is.CursorPos)
+	if is.CursorPos < 0 {
+		cursor = -1
+	}
+	return cursor, uint32(byteToRuneIndex(text, int(is.selectBeg))),
+		uint32(byteToRuneIndex(text, int(is.selectEnd)))
+}
+
+// maskByteCaret converts a mask result's rune caret to a byte offset
+// into its text.
+func maskByteCaret(res MaskEditResult) int {
+	return runeToByteIndex(res.Text, res.CursorPos)
+}
+
 type maskEntryKind uint8
 
 const (

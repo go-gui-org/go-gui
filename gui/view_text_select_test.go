@@ -316,12 +316,12 @@ func TestTextDragCancelCollapsedSelectionHarmless(t *testing.T) {
 // TestTextKeyVerticalSnapsToGrapheme is the regression test for
 // vertical motion in a selectable multiline Text parking the caret
 // inside a grapheme cluster. Without a shaped layout (glOK false) the
-// fallback walks byte columns, and a column that lands between a base
-// rune and its combining mark must snap back to a cluster boundary —
-// the same guarantee inputKeyVertical already gave an Input.
+// fallback carries a rune column to the next line, and a column that
+// lands between a base rune and its combining mark must snap to a
+// cluster boundary — the same guarantee inputKeyVertical gives an Input.
 func TestTextKeyVerticalSnapsToGrapheme(t *testing.T) {
-	// Line 0 "ab"; line 1 "e" + U+0301 (one cluster, two runes) + "cd".
-	// Moving down from rune column 1 targets rune 4, the combining
+	// Line 0 "ab"; line 1 "e" + U+0301 (one cluster, three bytes) + "cd".
+	// Moving down from column 1 targets byte 4, before the combining
 	// mark — inside the cluster.
 	text := "ab\ne\u0301cd"
 	imap := NewBoundedMap[string, inputState](8)
@@ -329,8 +329,7 @@ func TestTextKeyVerticalSnapsToGrapheme(t *testing.T) {
 	imap.Set("t", is)
 
 	raw := moveCursorDown(text, 1)
-	stops := graphemeStops(text)
-	if closestGraphemeStop(stops, raw) == raw {
+	if nearestGraphemeBoundary(text, raw) == raw {
 		t.Fatalf("test text no longer exercises the snap: "+
 			"moveCursorDown gave %d, already a stop", raw)
 	}
@@ -340,8 +339,7 @@ func TestTextKeyVerticalSnapsToGrapheme(t *testing.T) {
 		t.Fatal("multiline vertical motion must report handled")
 	}
 	got, _ := imap.Get("t")
-	if closestGraphemeStop(stops, got.CursorPos) != got.CursorPos {
-		t.Errorf("cursor = %d, not a grapheme stop (stops %v)",
-			got.CursorPos, stops)
+	if nearestGraphemeBoundary(text, got.CursorPos) != got.CursorPos {
+		t.Errorf("cursor = %d, not a grapheme boundary", got.CursorPos)
 	}
 }

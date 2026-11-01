@@ -1,6 +1,30 @@
 package gui
 
-import "strings"
+import (
+	"strings"
+	"unicode/utf8"
+)
+
+// displayOffset maps a byte offset in text to the same caret position in
+// display, the text as drawn: text itself for most fields, a password's
+// bullets otherwise. The two share rune positions, not byte offsets.
+func displayOffset(text, display string, off int) int {
+	if display == text {
+		return off
+	}
+	off = max(0, min(off, len(text)))
+	return advanceRunes(display, utf8.RuneCountInString(text[:off]))
+}
+
+// textOffset maps a byte offset in display, the text as drawn, back to
+// the field's text.
+func textOffset(text, display string, off int) int {
+	if display == text {
+		return off
+	}
+	off = max(0, min(off, len(display)))
+	return advanceRunes(text, utf8.RuneCountInString(display[:off]))
+}
 
 // maskPassword returns a masked version of text, preserving
 // newlines when present.

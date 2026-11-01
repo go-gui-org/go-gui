@@ -101,19 +101,18 @@ func textOnClick(ctx EventCtx) {
 	relX := ctx.Event.MouseX
 	relY := ctx.Event.MouseY
 
-	var runePos int
+	var pos int
 	if glOK {
-		byteIdx := gl.closestOffset(relX, relY)
-		runePos = byteToRuneIndex(text, byteIdx)
+		pos = gl.closestOffset(relX, relY)
 	} else {
-		// Fallback for tests (no glyph backend).
+		// Fallback for tests (no glyph backend): a column of fixed-width
+		// runes, mapped to the byte offset after that many runes.
 		charWidth := style.Size * 0.6
 		if charWidth <= 0 {
 			charWidth = 14 * 0.6
 		}
-		runePos = int(relX / charWidth)
-		runeLen := utf8RuneCount(text)
-		runePos = intClamp(runePos, 0, runeLen)
+		pos = runeToByteIndex(text,
+			intClamp(int(relX/charWidth), 0, utf8RuneCount(text)))
 	}
 
 	focusID := shape.idKey()
@@ -132,20 +131,17 @@ func textOnClick(ctx EventCtx) {
 	if doubleClick {
 		var beg, end int
 		if glOK {
-			byteIdx := runeToByteIndex(text, runePos)
-			bBeg, bEnd := gl.wordAt(byteIdx)
-			beg = byteToRuneIndex(text, bBeg)
-			end = byteToRuneIndex(text, bEnd)
+			beg, end = gl.wordAt(pos)
 		} else {
-			beg, end = wordBoundsAt(text, runePos)
+			beg, end = wordBoundsAt(text, pos)
 		}
 		is.CursorPos = end
 		is.selectBeg = uint32(beg)
 		is.selectEnd = uint32(end)
 	} else {
-		is.CursorPos = runePos
-		is.selectBeg = uint32(runePos)
-		is.selectEnd = uint32(runePos)
+		is.CursorPos = pos
+		is.selectBeg = uint32(pos)
+		is.selectEnd = uint32(pos)
 	}
 	is.cursorOffset = -1
 	imap.Set(focusID, is)
@@ -191,7 +187,7 @@ func textOnClick(ctx EventCtx) {
 		}
 	}
 
-	computeRunePos := func(mx, my float32,
+	computePos := func(mx, my float32,
 		w *Window,
 	) int {
 		if dragGLOK {
@@ -205,17 +201,14 @@ func textOnClick(ctx EventCtx) {
 			ry := my - (dragShapeY + scrollDelta)
 			rx := textDragEdgeX(mx-dragShapeX, ry,
 				dragTop, dragBot)
-			bi := dragGL.closestOffset(rx, ry)
-			return byteToRuneIndex(text, bi)
+			return dragGL.closestOffset(rx, ry)
 		}
 		cw := style.Size * 0.6
 		if cw <= 0 {
 			cw = 14 * 0.6
 		}
-		rp := int((mx - dragShapeX) / cw)
-		rl := utf8RuneCount(text)
-		rp = intClamp(rp, 0, rl)
-		return rp
+		return runeToByteIndex(text,
+			intClamp(int((mx-dragShapeX)/cw), 0, utf8RuneCount(text)))
 	}
 
 	updateDragSelection := func(rp int, w *Window) {
@@ -227,10 +220,7 @@ func textOnClick(ctx EventCtx) {
 		if doubleClick {
 			var wb, we int
 			if dragGLOK {
-				bi := runeToByteIndex(text, rp)
-				bBeg, bEnd := dragGL.wordAt(bi)
-				wb = byteToRuneIndex(text, bBeg)
-				we = byteToRuneIndex(text, bEnd)
+				wb, we = dragGL.wordAt(rp)
 			} else {
 				wb, we = wordBoundsAt(text, rp)
 			}
@@ -275,7 +265,7 @@ func textOnClick(ctx EventCtx) {
 		// A drag-select autoscroll is a direct write: it ends any
 		// ease or fling, which would fight it every frame (#1110).
 		scrollSmoothCancel(w, scrollID, scrollAxisY)
-		rp := computeRunePos(
+		rp := computePos(
 			lastMouseX, lastMouseY, w)
 		updateDragSelection(rp, w)
 	}
@@ -284,7 +274,7 @@ func textOnClick(ctx EventCtx) {
 		MouseMove: func(ctx EventCtx) {
 			lastMouseX = ctx.Event.MouseX
 			lastMouseY = ctx.Event.MouseY
-			rp := computeRunePos(
+			rp := computePos(
 				ctx.Event.MouseX, ctx.Event.MouseY, ctx.Window)
 			updateDragSelection(rp, ctx.Window)
 			if scrollID != "" {
@@ -346,9 +336,7 @@ func textOnKeyDown(ctx EventCtx) {
 	savedTrailing := is.cursorTrailing
 	is.cursorOffset = -1
 	is.cursorTrailing = false
-	runeLen := utf8RuneCount(text)
-	pos := is.CursorPos
-	pos = min(pos, runeLen)
+	pos := max(0, min(is.CursorPos, len(text)))
 	// The key binding mode decides what the modifiers mean (#969).
 	tk := resolveTextKey(ctx.Event)
 	isShift, isWordMod := tk.isShift, tk.isWord
@@ -421,20 +409,17 @@ func textKeyVertical(
 	}
 	var newPos int
 	if glOK {
-		bi := runeToByteIndex(text, pos)
 		px := savedOffset
 		if px < 0 {
-			if cp, ok := gl.cursorPos(bi); ok {
+			if cp, ok := gl.cursorPos(pos); ok {
 				px = cp.X
 			}
 		}
 		is.cursorOffset = px
 		if up {
-			newPos = byteToRuneIndex(text,
-				gl.moveUp(bi, px))
+			newPos = gl.moveUp(pos, px)
 		} else {
-			newPos = byteToRuneIndex(text,
-				gl.moveDown(bi, px))
+			newPos = gl.moveDown(pos, px)
 		}
 	} else {
 		if up {
@@ -445,9 +430,9 @@ func textKeyVertical(
 		// The column is counted in runes; snap the result to the
 		// nearest cluster boundary so vertical motion cannot park
 		// the caret inside a multi-rune grapheme (inputKeyVertical).
-		newPos = closestGraphemeStop(graphemeStops(text), newPos)
+		newPos = nearestGraphemeBoundary(text, newPos)
 	}
-	updateCursorAndSelection(imap, id, is, newPos, isShift, utf8RuneCount(text))
+	updateCursorAndSelection(imap, id, is, newPos, isShift, len(text))
 	return true
 }
 

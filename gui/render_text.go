@@ -1,10 +1,6 @@
 package gui
 
-import (
-	"strings"
-
-	"github.com/go-gui-org/go-glyph"
-)
+import "github.com/go-gui-org/go-glyph"
 
 // Text rendering functions. Extracted from render_layout.go to keep
 // both files under 800 lines.
@@ -85,30 +81,28 @@ func renderText(shape *Shape, clip drawClip, w *Window) {
 	imeComposing := !tc.textReadOnly &&
 		focused && w.IMEComposing()
 	compText := ""
-	compRuneLen := 0
 	compInsertPos := 0
 	if imeComposing {
 		compText = w.IMECompText()
-		compRunes := []rune(compText)
-		compRuneLen = len(compRunes)
 		is := StateReadOr(w, nsInput, shape.focusKey(),
 			inputState{})
-		runes := []rune(text)
+		base := text
 		if tc.textIsPlaceholder {
 			// The placeholder is a hint, not content: a composition
 			// replaces it outright. Inserting into it would push the
 			// hint out to the right of the preedit.
-			runes = nil
+			base = ""
 		}
-		// Clamped both ways: the slices below panic on a cursor
-		// outside the text, and the preedit is drawn every frame.
-		compInsertPos = min(max(is.CursorPos, 0), len(runes))
-		var sb strings.Builder
-		sb.Grow(len(text) + len(compText))
-		sb.WriteString(string(runes[:compInsertPos]))
-		sb.WriteString(compText)
-		sb.WriteString(string(runes[compInsertPos:]))
-		text = sb.String()
+		// The caret is an offset of the field's text; the preedit is
+		// spliced into the text as drawn. Clamped both ways: the slices
+		// below panic on a cursor outside the text, and the preedit is
+		// drawn every frame.
+		compInsertPos = displayOffset(tc.Text, base,
+			min(max(is.CursorPos, 0), len(tc.Text)))
+		if tc.textIsPlaceholder {
+			compInsertPos = 0
+		}
+		text = base[:compInsertPos] + compText + base[compInsertPos:]
 	}
 
 	baseX := shape.X + shape.PaddingLeft()
@@ -230,8 +224,8 @@ func renderText(shape *Shape, clip drawClip, w *Window) {
 
 	// IME preedit underline.
 	if imeComposing && hasBlk {
-		renderIMEPreeditUnderline(shape, text, baseX, baseY,
-			compInsertPos, compRuneLen,
+		renderIMEPreeditUnderline(shape, baseX, baseY,
+			compInsertPos, compText,
 			w.IMECompCursor(), w.IMECompSelLen(),
 			blk, style, w)
 	}
@@ -310,11 +304,9 @@ func renderInputCursor(shape *Shape, text string, baseX, baseY float32,
 		text = ""
 	}
 	is := StateReadOr(w, nsInput, shape.focusKey(), inputState{})
-	runeLen := utf8RuneCount(text)
-	pos := min(is.CursorPos, runeLen)
+	byteIdx := drawnOffset(shape.TC, text, is.CursorPos)
 
 	style := textStyleOrDefault(shape)
-	byteIdx := runeToByteIndex(text, pos)
 	cursorW := inputCaretW
 
 	if !hasBlk {
@@ -347,7 +339,7 @@ func renderInputCursor(shape *Shape, text string, baseX, baseY float32,
 
 	// Fallback for nil textMeasurer (tests).
 	fh := fontHeight(style, w)
-	cx := textWidthFallback(text, pos, shape.TC, style, w, true)
+	cx := textWidthFallback(text, byteIdx, shape.TC, style, w, true)
 	emitCaretCmd(RenderCmd{
 		Kind:  RenderRect,
 		X:     baseX + cx,
@@ -412,6 +404,18 @@ func commandToggleCaretBlink(w *Window) {
 	w.renderersDirty = true
 }
 
+// drawnOffset maps a caret or selection offset of a shape's text to the
+// text as drawn, clamped to it. They differ only for a password, whose
+// bullets are wider in bytes than most of the runes they hide; every
+// other drawn text is the text the offsets were taken in — the shape's
+// own, or a rich text's flat text.
+func drawnOffset(tc *shapeTextConfig, drawn string, off int) int {
+	if tc != nil && tc.textIsPassword && !tc.textIsPlaceholder {
+		return displayOffset(tc.Text, drawn, off)
+	}
+	return max(0, min(off, len(drawn)))
+}
+
 // renderInputSelection emits highlight rectangles for the selected
 // text range. Uses glyph layout for precise boundaries.
 func renderInputSelection(shape *Shape, text string, baseX, baseY float32,
@@ -421,15 +425,14 @@ func renderInputSelection(shape *Shape, text string, baseX, baseY float32,
 		return
 	}
 	beg, end := u32Sort(tc.textSelBeg, tc.textSelEnd)
-	runeLen := utf8RuneCount(text)
-	if int(beg) > runeLen || int(end) > runeLen {
+	if int(beg) > len(text) || int(end) > len(text) {
 		return
 	}
 
 	style := textStyleOrDefault(shape)
 	selColor := RGBA(51, 153, 255, 100)
-	startByte := runeToByteIndex(text, int(beg))
-	endByte := runeToByteIndex(text, int(end))
+	startByte := drawnOffset(tc, text, int(beg))
+	endByte := drawnOffset(tc, text, int(end))
 
 	if !hasBlk {
 		blk, hasBlk = inputGlyphLayoutResolved(text, shape, style, w, tc.textIsPassword)
@@ -453,8 +456,8 @@ func renderInputSelection(shape *Shape, text string, baseX, baseY float32,
 
 	// Fallback for nil textMeasurer (tests).
 	fh := fontHeight(style, w)
-	x0 := textWidthFallback(text, int(beg), tc, style, w, true)
-	x1 := textWidthFallback(text, int(end), tc, style, w, true)
+	x0 := textWidthFallback(text, startByte, tc, style, w, true)
+	x1 := textWidthFallback(text, endByte, tc, style, w, true)
 	emitRenderer(RenderCmd{
 		Kind:  RenderRect,
 		X:     baseX + x0,
@@ -471,14 +474,14 @@ func renderInputSelection(shape *Shape, text string, baseX, baseY float32,
 // selected clause. Reports the cursor rect to the platform for
 // candidate window positioning.
 func renderIMEPreeditUnderline(
-	shape *Shape, compositeText string,
-	baseX, baseY float32,
-	insertPos, compRuneLen, compCursor, compSelLen int,
+	shape *Shape, baseX, baseY float32,
+	insertPos int, compText string, compCursor, compSelLen int,
 	blk *textBlock, style TextStyle, w *Window,
 ) {
-	startByte := runeToByteIndex(compositeText, insertPos)
-	endByte := runeToByteIndex(compositeText,
-		insertPos+compRuneLen)
+	// insertPos is a byte offset into the drawn text; the input method
+	// reports its caret and clause in runes of the preedit.
+	startByte := insertPos
+	endByte := insertPos + len(compText)
 
 	c := style.Color
 	if shape.Opacity < 1.0 {
@@ -504,10 +507,8 @@ func renderIMEPreeditUnderline(
 
 	// Thick underline for the selected clause.
 	if compSelLen > 0 {
-		selStart := insertPos + compCursor
-		selEnd := min(selStart+compSelLen, insertPos+compRuneLen)
-		sb := runeToByteIndex(compositeText, selStart)
-		eb := runeToByteIndex(compositeText, selEnd)
+		sb := insertPos + runeToByteIndex(compText, compCursor)
+		eb := insertPos + runeToByteIndex(compText, compCursor+compSelLen)
 		selRects := blk.selectionRects(sb, eb, -f32Inf, f32Inf)
 		for _, r := range selRects {
 			emitRenderer(RenderCmd{
@@ -526,8 +527,7 @@ func renderIMEPreeditUnderline(
 	// Anchored to the caret rather than the preedit start, so a
 	// mid-preedit cursor on a wrapped line puts the candidate on
 	// the line being edited.
-	caretByte := runeToByteIndex(compositeText,
-		min(insertPos+compCursor, insertPos+compRuneLen))
+	caretByte := insertPos + runeToByteIndex(compText, compCursor)
 	if cp, ok := blk.cursorPos(caretByte); ok {
 		imeSetRectDrawn(drawClip{X: baseX + cp.X, Y: baseY + cp.Y,
 			Width: inputCaretW, Height: cp.Height}, w)
@@ -588,14 +588,13 @@ func fontHeight(style TextStyle, w *Window) float32 {
 	return 16
 }
 
-// textWidthFallback approximates text width for tests (no glyph).
-// textAlreadyMasked skips password masking: renderText's fallback
-// sites pass text masked at the top of the frame, and masking bullets
-// again is a wasted allocation for an identical string.
-func textWidthFallback(text string, runePos int, tc *shapeTextConfig, style TextStyle, w *Window, textAlreadyMasked bool) float32 {
-	runeLen := utf8RuneCount(text)
-	runePos = min(runePos, runeLen)
-	prefix := text[:runeToByteIndex(text, runePos)]
+// textWidthFallback approximates the width of text up to byte offset
+// pos for tests (no glyph). textAlreadyMasked skips password masking:
+// renderText's fallback sites pass text masked at the top of the frame,
+// and masking bullets again is a wasted allocation for an identical
+// string.
+func textWidthFallback(text string, pos int, tc *shapeTextConfig, style TextStyle, w *Window, textAlreadyMasked bool) float32 {
+	prefix := text[:max(0, min(pos, len(text)))]
 	if tc != nil && tc.textIsPassword && !textAlreadyMasked {
 		prefix = maskPassword(prefix)
 	}

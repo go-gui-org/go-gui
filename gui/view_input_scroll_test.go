@@ -456,6 +456,7 @@ func TestInputDragAutoScrollHorizontal(t *testing.T) {
 		},
 	}
 	d := &inputDragState{
+		text:        text,
 		displayText: text,
 		gl:          newTextBlockFromLayout(text, &gl, 0, DefaultTextStyle, TextModeSingleLine, w),
 		focusID:     "f",
