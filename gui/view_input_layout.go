@@ -3,8 +3,6 @@ package gui
 import (
 	"strings"
 	"time"
-
-	"github.com/go-gui-org/go-glyph"
 )
 
 // inputTextFromLayout extracts the current text from the input's
@@ -61,83 +59,66 @@ func inputSetTextInLayout(layout *Layout, text string) {
 }
 
 // inputGlyphLayoutFor navigates to the inner text shape of an
-// input layout and returns a glyph Layout for cursor navigation.
-func inputGlyphLayoutFor(layout *Layout, w *Window) (glyph.Layout, bool) {
+// input layout and returns its chunked layout for cursor navigation.
+func inputGlyphLayoutFor(layout *Layout, w *Window) (*textBlock, bool) {
 	return inputGlyphLayoutWithText(
 		inputTextFromLayout(layout), layout, w,
 	)
 }
 
-// inputGlyphLayoutWithText returns a glyph Layout using
+// inputGlyphLayoutWithText returns the chunked layout using
 // pre-extracted text, avoiding redundant layout traversal.
 func inputGlyphLayoutWithText(
 	text string, layout *Layout, w *Window,
-) (glyph.Layout, bool) {
+) (*textBlock, bool) {
 	if w.textMeasurer == nil {
-		return glyph.Layout{}, false
+		return nil, false
 	}
 	txt := inputTextShapeFromLayout(layout)
 	if txt == nil {
-		return glyph.Layout{}, false
+		return nil, false
 	}
 	style := textStyleOrDefault(txt)
 	return inputGlyphLayout(text, txt, style, w)
 }
 
-// trailingLineStart returns the start of the previous visual line
-// when byteIdx is at a soft-wrap boundary and CursorTrailing is set.
-// Falls back to fallback if no boundary match is found.
-func trailingLineStart(lines []glyph.Line, byteIdx, fallback int) int {
-	for i, line := range lines {
-		if i > 0 && byteIdx == line.StartIndex {
-			return lines[i-1].StartIndex
-		}
-	}
-	return fallback
-}
-
-// trailingLineEnd returns the end of the previous visual line
-// when byteIdx is at a soft-wrap boundary and CursorTrailing is set.
-// Falls back to fallback if no boundary match is found.
-func trailingLineEnd(lines []glyph.Line, byteIdx, fallback int) int {
-	for i, line := range lines {
-		if i > 0 && byteIdx == line.StartIndex {
-			return lines[i-1].StartIndex + lines[i-1].Length
-		}
-	}
-	return fallback
-}
-
-// inputDeleteGrapheme deletes a grapheme cluster at cursor using
-// glyph when available, falling back to rune-based inputDelete.
+// inputDeleteGrapheme deletes a grapheme cluster at cursor with the
+// shaped layout's cluster boundaries when available, falling back to
+// the string-based inputDelete: with no measurer, over a selection, at a
+// chunk seam, and in a password field, whose layout is of the bullets
+// and not of the text.
 func inputDeleteGrapheme(
 	text string, focusID string, forward bool,
 	layout *Layout, w *Window,
 ) (string, bool) {
-	gl, glOK := inputGlyphLayoutFor(layout, w)
-	if !glOK {
+	fallback := func() (string, bool) {
 		newText, _ := inputDelete(text, focusID, forward, w)
 		return newText, newText != text
+	}
+	txt := inputTextShapeFromLayout(layout)
+	if txt != nil && txt.TC.textIsPassword {
+		return fallback()
+	}
+	gl, glOK := inputGlyphLayoutFor(layout, w)
+	if !glOK {
+		return fallback()
 	}
 	is := inputStateOrDefault(focusID, w)
 	if is.selectBeg != is.selectEnd {
-		newText, _ := inputDelete(text, focusID, forward, w)
-		return newText, newText != text
+		return fallback()
 	}
 	pos := min(is.CursorPos, utf8RuneCount(text))
 	byteIdx := runeToByteIndex(text, pos)
-	var res glyph.MutationResult
-	if forward {
-		res = glyph.DeleteForward(text, gl, byteIdx)
-	} else {
-		res = glyph.DeleteBackward(text, gl, byteIdx)
+	newText, newByte, ok := gl.deleteGrapheme(byteIdx, forward)
+	if !ok {
+		return fallback()
 	}
-	if res.NewText == text {
+	if newText == text {
 		return text, false
 	}
-	newPos := byteToRuneIndex(res.NewText, res.CursorPos)
+	newPos := byteToRuneIndex(newText, newByte)
 	inputStoreState(focusID, w, editCommit(is, text, newPos, inputOpDelete))
-	return res.NewText, true
+	return newText, true
 }
 
 // passwordMask replaces each rune with a bullet character.
@@ -187,7 +168,7 @@ func inputDragViewportEdges(p *Shape) (
 type inputDragState struct {
 	displayText            string
 	wordSelect             bool // drag extends by whole words
-	gl                     glyph.Layout
+	gl                     *textBlock
 	anchorPos, anchorEnd   uint32
 	txtOffX, txtOffY       float32
 	focusID                string
@@ -217,12 +198,15 @@ func (d *inputDragState) computeRunePos(
 		scrollDeltaX = sNowX - d.scrollX0
 	}
 	relY := my - (d.txtOffY + scrollDelta)
+	if d.gl == nil {
+		return 0
+	}
 	// A drag carried above or below the text selects to the line's
 	// edge rather than stopping at the pointer's column; see
 	// textDragEdgeX.
-	top, bot := glyphTextBand(&d.gl)
+	top, bot := d.gl.band()
 	relX := textDragEdgeX(mx-(d.txtOffX+scrollDeltaX), relY, top, bot)
-	byteIdx := d.gl.GetClosestOffset(relX, relY)
+	byteIdx := d.gl.closestOffset(relX, relY)
 	return byteToRuneIndex(d.displayText, byteIdx)
 }
 

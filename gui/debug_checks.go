@@ -79,7 +79,7 @@ const (
 	// asks for an animation but carries no ID; the animation and its
 	// progress are keyed by identity, so there is nothing to key on.
 	debugCheckTextAnimNoID
-	// debugCheckGlyphLayoutFallback fires from plainTextLayoutResolved
+	// debugCheckGlyphLayoutFallback fires from plainTextBlock
 	// when the shaper refuses a text, so the frame falls back to
 	// approximate metrics with degraded caret, selection and delete
 	// precision.

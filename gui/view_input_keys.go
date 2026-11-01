@@ -1,22 +1,18 @@
 package gui
 
-import (
-	"strings"
-
-	"github.com/go-gui-org/go-glyph"
-)
+import "strings"
 
 func inputKeyLeft(
 	imap *BoundedMap[string, inputState], id string, is inputState,
 	text string, pos int, isShift, isWordMod bool,
-	gl glyph.Layout, glOK bool,
+	gl *textBlock, glOK bool,
 ) {
 	if isWordMod {
 		var newPos int
 		if glOK {
 			byteIdx := runeToByteIndex(text, pos)
 			newPos = byteToRuneIndex(text,
-				gl.MoveCursorWordLeft(byteIdx))
+				gl.moveWordLeft(byteIdx))
 		} else {
 			newPos = moveCursorWordLeft(text, pos)
 		}
@@ -31,7 +27,7 @@ func inputKeyLeft(
 		if glOK {
 			byteIdx := runeToByteIndex(text, pos)
 			newPos = byteToRuneIndex(text,
-				gl.MoveCursorLeft(byteIdx))
+				gl.moveLeft(byteIdx))
 		} else {
 			// No glyph layout: snap to the previous UAX #29 grapheme
 			// boundary so the caret never rests mid-cluster.
@@ -45,14 +41,14 @@ func inputKeyLeft(
 func inputKeyRight(
 	imap *BoundedMap[string, inputState], id string, is inputState,
 	text string, pos int, isShift, isWordMod bool,
-	gl glyph.Layout, glOK bool,
+	gl *textBlock, glOK bool,
 ) {
 	if isWordMod {
 		var newPos int
 		if glOK {
 			byteIdx := runeToByteIndex(text, pos)
 			newPos = byteToRuneIndex(text,
-				gl.MoveCursorWordRight(byteIdx))
+				gl.moveWordRight(byteIdx))
 		} else {
 			newPos = moveCursorWordRight(text, pos)
 		}
@@ -67,7 +63,7 @@ func inputKeyRight(
 		if glOK {
 			byteIdx := runeToByteIndex(text, pos)
 			newPos = byteToRuneIndex(text,
-				gl.MoveCursorRight(byteIdx))
+				gl.moveRight(byteIdx))
 		} else {
 			// No glyph layout: snap to the next UAX #29 grapheme
 			// boundary so the caret never rests mid-cluster.
@@ -85,15 +81,14 @@ func inputKeyRight(
 func inputKeyHome(
 	imap *BoundedMap[string, inputState], id string, is inputState,
 	text string, pos int, isShift, savedTrailing, cycle bool,
-	gl glyph.Layout, glOK bool,
+	gl *textBlock, glOK bool,
 ) {
 	var newPos int
 	if glOK {
 		byteIdx := runeToByteIndex(text, pos)
-		startByte := gl.MoveCursorLineStart(byteIdx)
+		startByte := gl.moveLineStart(byteIdx)
 		if savedTrailing {
-			startByte = trailingLineStart(
-				gl.Lines, byteIdx, startByte)
+			startByte = gl.trailingLineStart(byteIdx, startByte)
 		}
 		lineStart := byteToRuneIndex(text, startByte)
 		if pos != lineStart || !cycle {
@@ -122,16 +117,15 @@ func inputKeyHome(
 func inputKeyEnd(
 	imap *BoundedMap[string, inputState], id string, is inputState,
 	text string, pos int, isShift, savedTrailing, cycle bool,
-	gl glyph.Layout, glOK bool,
+	gl *textBlock, glOK bool,
 ) {
 	var newPos int
 	trailing := false
 	if glOK {
 		byteIdx := runeToByteIndex(text, pos)
-		endByte := gl.MoveCursorLineEnd(byteIdx)
+		endByte := gl.moveLineEnd(byteIdx)
 		if savedTrailing {
-			endByte = trailingLineEnd(
-				gl.Lines, byteIdx, endByte)
+			endByte = gl.trailingLineEnd(byteIdx, endByte)
 		}
 		lineEnd := byteToRuneIndex(text, endByte)
 		if pos != lineEnd || !cycle {
@@ -166,7 +160,7 @@ func inputKeyVertical(
 	imap *BoundedMap[string, inputState], id string, is inputState,
 	text string, pos int, isShift bool,
 	savedOffset float32, up bool, mode inputMode,
-	gl glyph.Layout, glOK bool,
+	gl *textBlock, glOK bool,
 ) bool {
 	if mode != InputMultiline {
 		return false
@@ -176,17 +170,17 @@ func inputKeyVertical(
 		byteIdx := runeToByteIndex(text, pos)
 		preferredX := savedOffset
 		if preferredX < 0 {
-			if cp, ok := gl.GetCursorPos(byteIdx); ok {
+			if cp, ok := gl.cursorPos(byteIdx); ok {
 				preferredX = cp.X
 			}
 		}
 		is.cursorOffset = preferredX
 		if up {
 			newPos = byteToRuneIndex(text,
-				gl.MoveCursorUp(byteIdx, preferredX))
+				gl.moveUp(byteIdx, preferredX))
 		} else {
 			newPos = byteToRuneIndex(text,
-				gl.MoveCursorDown(byteIdx, preferredX))
+				gl.moveDown(byteIdx, preferredX))
 		}
 	} else {
 		if up {

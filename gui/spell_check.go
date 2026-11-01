@@ -1,10 +1,6 @@
 package gui
 
-import (
-	"time"
-
-	"github.com/go-gui-org/go-glyph"
-)
+import "time"
 
 // spellCheckState caches spell check results for an input.
 type spellCheckState struct {
@@ -97,7 +93,7 @@ func spellCheckHasRanges(focusID string, w *Window) bool {
 func renderSpellCheckUnderlines(
 	shape *Shape, text string,
 	baseX, baseY float32,
-	gl glyph.Layout,
+	blk *textBlock,
 	w *Window,
 ) {
 	// Keyed by the owning widget: an input's inner text shape carries
@@ -121,13 +117,14 @@ func renderSpellCheckUnderlines(
 
 	color := defaultInputStyle.colorSpellError
 	underlineH := max(float32(1.5), shape.TC.TextStyle.Size/10)
+	yMin, yMax := textBlockVisibleBand(baseY, w)
 
 	for _, r := range state.Ranges {
 		endByte := r.StartByte + r.LenBytes
 		if endByte > len(text) {
 			continue
 		}
-		rects := gl.GetSelectionRects(r.StartByte, endByte)
+		rects := blk.selectionRects(r.StartByte, endByte, yMin, yMax)
 		for _, rect := range rects {
 			emitRenderer(RenderCmd{
 				Kind:  RenderRect,

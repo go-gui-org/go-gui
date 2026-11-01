@@ -103,7 +103,7 @@ func textOnClick(ctx EventCtx) {
 
 	var runePos int
 	if glOK {
-		byteIdx := gl.GetClosestOffset(relX, relY)
+		byteIdx := gl.closestOffset(relX, relY)
 		runePos = byteToRuneIndex(text, byteIdx)
 	} else {
 		// Fallback for tests (no glyph backend).
@@ -133,7 +133,7 @@ func textOnClick(ctx EventCtx) {
 		var beg, end int
 		if glOK {
 			byteIdx := runeToByteIndex(text, runePos)
-			bBeg, bEnd := gl.GetWordAtIndex(byteIdx)
+			bBeg, bEnd := gl.wordAt(byteIdx)
 			beg = byteToRuneIndex(text, bBeg)
 			end = byteToRuneIndex(text, bEnd)
 		} else {
@@ -160,7 +160,10 @@ func textOnClick(ctx EventCtx) {
 	// The drag extends to a line's edge once it leaves the text band;
 	// see textDragEdgeX. Constant for the drag, so read it once here
 	// rather than on every mouse-move.
-	dragTop, dragBot := glyphTextBand(&dragGL)
+	var dragTop, dragBot float32
+	if dragGLOK {
+		dragTop, dragBot = dragGL.band()
+	}
 	dragFocusID := focusID
 	dragShapeX := shape.X
 	dragShapeY := shape.Y
@@ -202,7 +205,7 @@ func textOnClick(ctx EventCtx) {
 			ry := my - (dragShapeY + scrollDelta)
 			rx := textDragEdgeX(mx-dragShapeX, ry,
 				dragTop, dragBot)
-			bi := dragGL.GetClosestOffset(rx, ry)
+			bi := dragGL.closestOffset(rx, ry)
 			return byteToRuneIndex(text, bi)
 		}
 		cw := style.Size * 0.6
@@ -225,7 +228,7 @@ func textOnClick(ctx EventCtx) {
 			var wb, we int
 			if dragGLOK {
 				bi := runeToByteIndex(text, rp)
-				bBeg, bEnd := dragGL.GetWordAtIndex(bi)
+				bBeg, bEnd := dragGL.wordAt(bi)
 				wb = byteToRuneIndex(text, bBeg)
 				we = byteToRuneIndex(text, bEnd)
 			} else {
@@ -411,7 +414,7 @@ func textKeyVertical(
 	imap *BoundedMap[string, inputState], id string, is inputState,
 	text string, pos int, isShift bool,
 	savedOffset float32, up bool, mode textMode,
-	gl glyph.Layout, glOK bool,
+	gl *textBlock, glOK bool,
 ) bool {
 	if mode == TextModeSingleLine {
 		return false
@@ -421,17 +424,17 @@ func textKeyVertical(
 		bi := runeToByteIndex(text, pos)
 		px := savedOffset
 		if px < 0 {
-			if cp, ok := gl.GetCursorPos(bi); ok {
+			if cp, ok := gl.cursorPos(bi); ok {
 				px = cp.X
 			}
 		}
 		is.cursorOffset = px
 		if up {
 			newPos = byteToRuneIndex(text,
-				gl.MoveCursorUp(bi, px))
+				gl.moveUp(bi, px))
 		} else {
 			newPos = byteToRuneIndex(text,
-				gl.MoveCursorDown(bi, px))
+				gl.moveDown(bi, px))
 		}
 	} else {
 		if up {

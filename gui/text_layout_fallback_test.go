@@ -49,12 +49,12 @@ func TestGlyphLayoutFallbackFinding(t *testing.T) {
 
 func TestGlyphLayoutFallbackWarnOnce(t *testing.T) {
 	buf := captureDebugMask(t, DebugGlyphLayoutFallback)
-	w := &Window{}
+	w := newTestWindow()
 	w.textMeasurer = &failMeasurer{&stubTextMeasurer{}}
 	shape := &Shape{ID: "once", TC: &shapeTextConfig{Text: "hello"}}
 	style := DefaultTextStyle
-	plainTextLayoutResolved("hello", shape, style, w)
-	plainTextLayoutResolved("hello world", shape, style, w)
+	plainTextBlock("hello", shape, style, w)
+	plainTextBlock("hello world", shape, style, w)
 	if n := strings.Count(buf.String(), "approximate metrics"); n != 1 {
 		t.Fatalf("warn-once: want 1 finding, got %d (%q)",
 			n, buf.String())
@@ -64,10 +64,10 @@ func TestGlyphLayoutFallbackWarnOnce(t *testing.T) {
 func TestGlyphLayoutFallbackCategoryGate(t *testing.T) {
 	buf := captureDebug(t)
 	DebugCategories(DebugMissingIDs)
-	w := &Window{}
+	w := newTestWindow()
 	w.textMeasurer = &failMeasurer{&stubTextMeasurer{}}
 	shape := &Shape{ID: "gated", TC: &shapeTextConfig{Text: "hello"}}
-	plainTextLayoutResolved("hello", shape, DefaultTextStyle, w)
+	plainTextBlock("hello", shape, DefaultTextStyle, w)
 	if got := buf.String(); got != "" {
 		t.Fatalf("category off must be silent, got %q", got)
 	}

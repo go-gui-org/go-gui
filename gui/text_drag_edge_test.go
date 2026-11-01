@@ -182,7 +182,8 @@ func TestInputDragStateDragEdge(t *testing.T) {
 		LogAttrByIndex: map[int]int{0: 0, 1: 1, 2: 2, 3: 3, 4: 4},
 	}
 	w := newTestWindow()
-	d := &inputDragState{displayText: text, gl: gl}
+	d := &inputDragState{displayText: text,
+		gl: newTextBlockFromLayout(text, &gl, 100, DefaultTextStyle, TextModeWrap, w)}
 
 	// Above the text at column 1: the whole first line, so rune 0.
 	if got := d.computeRunePos(15, -5, w); got != 0 {

@@ -18,27 +18,6 @@ func fireOnScroll(ly *Layout, w *Window) {
 	}
 }
 
-// adjustCursorTrailing adjusts cursor position to the end of
-// the previous line when CursorTrailing is set and the byte
-// index matches the start of a later line.
-func adjustCursorTrailing(
-	cp *glyph.CursorPosition, lines []glyph.Line,
-	byteIdx int, trailing bool,
-) {
-	if !trailing {
-		return
-	}
-	for i, line := range lines {
-		if i > 0 && byteIdx == line.StartIndex {
-			prev := lines[i-1]
-			cp.X = prev.Rect.X + prev.Rect.Width
-			cp.Y = prev.Rect.Y
-			cp.Height = prev.Rect.Height
-			return
-		}
-	}
-}
-
 // inputCaretW is the painted width of the text caret. Shared with
 // renderInputCursor so the horizontal follow below scrolls the whole
 // caret into view, not just the edge the glyph layout reports.
@@ -81,11 +60,10 @@ func inputScrollCursorIntoView(
 	}
 	byteIdx := runeToByteIndex(idxText, pos)
 
-	cp, ok := gl.GetCursorPos(byteIdx)
+	cp, ok := gl.cursorPosTrailing(byteIdx, is.cursorTrailing)
 	if !ok {
 		return
 	}
-	adjustCursorTrailing(&cp, gl.Lines, byteIdx, is.cursorTrailing)
 
 	inputScrollCursorIntoViewX(id, layout, txtShape, cp, w)
 
@@ -197,11 +175,10 @@ func textScrollCursorIntoView(layout *Layout, w *Window) {
 	pos = min(pos, runeLen)
 	byteIdx := runeToByteIndex(text, pos)
 
-	cp, ok := gl.GetCursorPos(byteIdx)
+	cp, ok := gl.cursorPosTrailing(byteIdx, is.cursorTrailing)
 	if !ok {
 		return
 	}
-	adjustCursorTrailing(&cp, gl.Lines, byteIdx, is.cursorTrailing)
 
 	// Default 0: unscrolled position when no offset recorded yet.
 	sy := w.scrollY()

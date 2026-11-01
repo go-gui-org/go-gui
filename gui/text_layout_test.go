@@ -104,12 +104,17 @@ func TestPlainTextLayoutWidthArgNonLeft(t *testing.T) {
 	}
 }
 
-func TestPlainTextLayoutResolvedNilWindow(t *testing.T) {
+func TestPlainTextBlockNilWindow(t *testing.T) {
 	s := &Shape{TC: &shapeTextConfig{}}
-	_, ok := plainTextLayoutResolved("test", s, TextStyle{}, nil)
+	_, ok := plainTextBlock("test", s, TextStyle{}, nil)
 	if ok {
 		t.Error("nil window should return false")
 	}
+}
+
+// boxHeightOf is the box height go-gui sizes a shape of one layout with.
+func boxHeightOf(l glyph.Layout, style TextStyle, w *Window) float32 {
+	return newTextBlockFromLayout(l.Text, &l, 0, style, TextModeWrap, w).boxHeight()
 }
 
 // plainTextHeightNoMeasurer is what keeps headless wrapped text from
@@ -169,7 +174,7 @@ func TestPlainTextBoxHeight(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			got := plainTextBoxHeight(tc.l, style, w)
+			got := boxHeightOf(tc.l, style, w)
 			if tc.want != tc.want { // NaN
 				if got == got {
 					t.Errorf("got %v, want NaN", got)
@@ -186,7 +191,7 @@ func TestPlainTextBoxHeight(t *testing.T) {
 	// so glyph's number stands even though the formula would say 44.
 	wTight := &Window{}
 	wTight.textMeasurer = &stubTextMeasurer{fontHeight: 24}
-	if got := plainTextBoxHeight(glyph.Layout{
+	if got := boxHeightOf(glyph.Layout{
 		Height: 40, Lines: lines(2),
 	}, style, wTight); got != 40 {
 		t.Errorf("tight line box = %v, want 40", got)
@@ -273,7 +278,7 @@ func TestPlainTextBoxHeightLineSpacing(t *testing.T) {
 		},
 	}
 	// The last line's top (30) plus the face height (18).
-	if got := plainTextBoxHeight(l, TextStyle{Size: 16}, w); got != 48 {
+	if got := boxHeightOf(l, TextStyle{Size: 16}, w); got != 48 {
 		t.Errorf("height = %v, want 48", got)
 	}
 }
@@ -289,7 +294,7 @@ func TestPlainTextBoxHeightNonFiniteFontHeight(t *testing.T) {
 		Height: 23,
 		Lines:  []glyph.Line{{Rect: glyph.Rect{Height: 23}}},
 	}
-	if got := plainTextBoxHeight(l, TextStyle{Size: 16}, w); got != 23 {
+	if got := boxHeightOf(l, TextStyle{Size: 16}, w); got != 23 {
 		t.Errorf("height = %v, want 23", got)
 	}
 }
@@ -324,7 +329,7 @@ func TestPlainTextLayoutCacheIgnoresPaint(t *testing.T) {
 		t.Errorf("painted alpha = %d, want the faded 127", a)
 	}
 	sh := mustShape(t, w, "faded")
-	if a := sh.TC.textLayout.Items[0].Color.A; a != 255 {
+	if a := shapedBlockLayout(t, sh.TC).Items[0].Color.A; a != 255 {
 		t.Errorf("cached alpha = %d, want the shaped 255", a)
 	}
 }
@@ -355,7 +360,7 @@ func TestPlainTextLayoutFailureNoAllocWhenDebugOff(t *testing.T) {
 			TextMode: TextModeWrap},
 	}
 	allocs := testing.AllocsPerRun(50, func() {
-		_, _ = plainTextLayoutResolved("hello", sh, style, w)
+		_, _ = plainTextBlock("hello", sh, style, w)
 	})
 	if allocs != 0 {
 		t.Errorf("allocs = %v, want 0", allocs)

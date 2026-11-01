@@ -19,7 +19,7 @@ func fallbackLineHeight(style TextStyle) float32 {
 //
 // Without this the shape keeps the single-line estimate assigned in
 // view_text.go no matter how much text it holds, because the real
-// wrap path (plainTextLayoutResolved) needs a measurer and bails.
+// wrap path (plainTextBlock) needs a measurer and bails.
 // Wrapped text then reports one line, a scroll container around it
 // never overflows, and TestScroll comes back ErrTestUnhandled for a
 // reason that has nothing to do with the widget under test.
@@ -84,6 +84,10 @@ func plainTextNeedsGlyphLayout(
 		return false
 	}
 	return tc.TextMode != TextModeSingleLine ||
+		// Past one chunk the text is drawn chunk by chunk: a single
+		// RenderText command would hand the backend a string the
+		// shaper refuses (#1190).
+		len(tc.Text) > textChunkBytes ||
 		style.Align != TextAlignLeft ||
 		style.LineSpacing != 0 ||
 		style.BgColor.A > 0 ||
@@ -114,117 +118,80 @@ func plainTextLayoutWidthArg(
 	return 0
 }
 
-func plainTextLayoutResolved(
-	text string,
-	shape *Shape,
-	style TextStyle,
-	w *Window,
-) (glyph.Layout, bool) {
+// plainTextBlock returns the chunked layout of a text shape's text at
+// the shape's width: the block the frame already resolved for the
+// shape, else the one cached under the shape's identity (an input's
+// owner, a Text's ID, or for a large anonymous text the string's own
+// memory), brought up to date, else a new one. A short anonymous label
+// gets a block for the frame, which shapes it once as before.
+func plainTextBlock(
+	text string, shape *Shape, style TextStyle, w *Window,
+) (*textBlock, bool) {
 	if w == nil || w.textMeasurer == nil ||
 		shape == nil || shape.TC == nil {
-		return glyph.Layout{}, false
+		return nil, false
 	}
 	tc := shape.TC
 	widthArg := plainTextLayoutWidthArg(shape, tc, style)
-	if tc.textLayoutValid &&
-		f32AreClose(tc.textLayoutWidth, widthArg) &&
-		tc.textLayoutText == text &&
-		textLayoutStyleEqual(tc.textLayoutStyle, style) &&
-		tc.textLayoutMode == tc.TextMode &&
-		tc.textLayout != nil {
-		l := *tc.textLayout
-		// A hit on geometry with different paint colours is the render
-		// pass of a faded, pulsing or disabled text: renderText adjusts
-		// Color, BgColor and StrokeColor after the layout pass shaped
-		// with the plain ones. The glyphs are the same, so recolour a
-		// copy of the items instead of shaping the text again.
-		if !textPaintEqual(tc.textLayoutStyle, style) {
-			l.Items = recolorLayoutItems(l.Items, style, w)
+	b := tc.block
+	switch {
+	case b != nil:
+		b.update(text, widthArg, style, tc.TextMode, w)
+	default:
+		key := shape.focusKey()
+		if key == "" && len(text) > textChunkBytes {
+			key = textBlockAnonKey(text)
 		}
-		return l, true
-	}
-	shaped, err := w.textMeasurer.LayoutText(text, style, widthArg)
-	if err != nil {
-		// The shaper refused the text — past its byte budget, for
-		// example — so the frame falls back to approximate metrics.
-		// Report once per identity: without this the caret,
-		// selection and grapheme delete silently lose precision,
-		// and nothing else in the frame says why.
-		//
-		// Gated here as well as inside debugWarn: a refused text is
-		// refused again every frame, and the variadic args would
-		// allocate each time even with the check turned off.
-		if DebugCategory(debugMask.Load())&DebugGlyphLayoutFallback != 0 {
-			w.debugWarn(debugCheckGlyphLayoutFallback, shape.idKey(),
-				"glyph layout failed for %q (%d bytes): %v; "+
-					"using approximate metrics with degraded caret, "+
-					"selection and delete precision",
-				shape.idKey(), len(text), err)
+		if key == "" {
+			b = newTextBlock(text, widthArg, style, tc.TextMode, w)
+			break
 		}
-		return glyph.Layout{}, false
+		m := StateMap[string, *textBlock](w, nsTextBlock, capTextBlocks)
+		var ok bool
+		if b, ok = m.Get(key); ok && b != nil {
+			b.update(text, widthArg, style, tc.TextMode, w)
+		} else {
+			b = newTextBlock(text, widthArg, style, tc.TextMode, w)
+			m.Set(key, b)
+		}
 	}
-	// Copied into its own variable here, on the success path only:
-	// taking the address of the call's result moved it to the heap on
-	// every call, a refused text included.
-	layout := shaped
-	tc.textLayout = &layout
-	tc.textLayoutWidth = widthArg
-	tc.textLayoutText = text
-	tc.textLayoutStyle = style
-	tc.textLayoutMode = tc.TextMode
-	tc.textLayoutValid = true
-	return layout, true
+	tc.block = b
+	if b.failErr != nil {
+		textBlockWarnRefused(shape, b, w)
+	}
+	return b, true
 }
 
-// plainTextBoxHeight converts glyph's layout height into the box
-// go-gui sizes text with.
-//
-// glyph reports Height as n whole line boxes, and a line box is the
-// baseline-to-baseline advance: ascent + descent + leading, floored at
-// 1.15em (go-glyph linespacing.go). Rendering, though, puts the first
-// baseline at FontAscent below the shape top and advances by that same
-// line height, so the leading below the *last* baseline is space
-// nothing ever paints into. Kept in the shape, it is padding only at
-// the bottom: a centred or padded row then reads visibly top-biased —
-// 2.4px at size 16, which is what a ListBox row showed.
-//
-// Dropping the trailing leading makes a one-line shape exactly
-// FontHeight, the same box the single-line path in view_text.go
-// assigns, so the two paths agree and the optical-centring model in
-// text_optical.go ("a text shape is sized to FontHeight") holds for
-// multi-line text too. Inter-line spacing is untouched: only the tail
-// goes.
-func plainTextBoxHeight(
-	l glyph.Layout, style TextStyle, w *Window,
-) float32 {
-	lines := len(l.Lines)
-	if lines == 0 || l.Height <= 0 || !f32IsFinite(l.Height) {
-		return l.Height
+// textBlockWarnRefused reports a chunk the shaper refused, once per
+// identity: the caret, selection and grapheme delete lose precision in
+// that chunk, and nothing else in the frame says why. Gated here as
+// well as inside debugWarn: a refused chunk is refused again every
+// frame, and the variadic args would allocate each time even with the
+// check turned off.
+func textBlockWarnRefused(shape *Shape, b *textBlock, w *Window) {
+	if DebugCategory(debugMask.Load())&DebugGlyphLayoutFallback == 0 {
+		return
 	}
-	fh := fontHeight(style, w)
-	// A non-finite face height (a corrupt measurer) must not poison
-	// the box: the shape would move to NaN and never paint again.
-	if !f32IsFinite(fh) {
-		return l.Height
+	w.debugWarn(debugCheckGlyphLayoutFallback, shape.idKey(),
+		"glyph layout failed for %q (%d bytes): %v; "+
+			"using approximate metrics with degraded caret, "+
+			"selection and delete precision",
+		shape.idKey(), b.failBytes, b.failErr)
+}
+
+// textWidthEstimate approximates the advance of a text the shaper
+// would refuse to measure whole (over glyph.MaxTextLength), from the
+// average advance of a sample. The sizing pass replaces it with the
+// chunked layout's width.
+func textWidthEstimate(text string, style TextStyle, w *Window) float32 {
+	avg := style.Size * 0.5
+	if w != nil && w.textMeasurer != nil {
+		if wd := w.textMeasurer.TextWidth(textBlockSample, style); wd > 0 &&
+			f32IsFinite(wd) {
+			avg = wd / float32(len(textBlockSample))
+		}
 	}
-	// The trailing leading is the last line's own box minus the face
-	// height. Read it from the last line, not from an average: glyph
-	// adds LineSpacing after every line but the last, and a fallback
-	// face can make one line taller than the rest, so Height/lines is
-	// not the last line's height. An average made the box short by
-	// (n-1)*LineSpacing/n, and the last line's descenders hung out of
-	// it. A layout without line rects (a host-built one) falls back
-	// to the average, which is exact when the lines are even.
-	lastH := l.Lines[lines-1].Rect.Height
-	if lastH <= 0 || !f32IsFinite(lastH) {
-		lastH = l.Height / float32(lines)
-	}
-	// Guard a face whose line box is tighter than ascent+descent:
-	// growing the shape here would be a regression.
-	if fh >= lastH {
-		return l.Height
-	}
-	return l.Height - (lastH - fh)
+	return float32(utf8RuneCount(text)) * avg
 }
 
 // textLayoutStyleEqual reports whether two styles shape to the same

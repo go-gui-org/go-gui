@@ -251,6 +251,15 @@ both `EventCtx` methods are nil-safe.
 
 - `(*Layout).spacing()` counts only visible children (`ShapeType != ShapeNone`,
   `!Float`, `!OverDraw`) — fence-post gap calc.
+- **A text shape's layout is a `textBlock`** (`gui/text_block.go`): chunks of
+  whole paragraphs within `textChunkBytes`, shaped on demand and persisted per
+  identity in `nsTextBlock`. Every caret, hit-test, selection and key path
+  queries the block (`text_block_query.go`) in whole-text byte offsets; never
+  shape a text shape's text with `LayoutText` directly, and never hold a
+  `glyph.Layout` of it across frames. Resolve it with `plainTextBlock`
+  (`inputGlyphLayout` for an input, which masks a password). A rich-text layout
+  the caller shaped wraps as a one-chunk block with `newTextBlockFromLayout`.
+  `docs/specs/large-text-input.md`.
 - Shape text fields live in `Shape.TC` (`*shapeTextConfig`), not on `Shape`.
 - `ContainerCfg.Title`/`TitleBG` render a group-box label in the top border
   (floating eraser + text, like an HTML fieldset). `TitleBG` must match the

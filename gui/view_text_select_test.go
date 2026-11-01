@@ -1,10 +1,6 @@
 package gui
 
-import (
-	"testing"
-
-	"github.com/go-gui-org/go-glyph"
-)
+import "testing"
 
 func TestTextSelectAllAndCopy(t *testing.T) {
 	w := newTestWindow()
@@ -340,7 +336,7 @@ func TestTextKeyVerticalSnapsToGrapheme(t *testing.T) {
 	}
 
 	if !textKeyVertical(imap, "t", is, text, 1, false, -1, false,
-		TextModeMultiline, glyph.Layout{}, false) {
+		TextModeMultiline, nil, false) {
 		t.Fatal("multiline vertical motion must report handled")
 	}
 	got, _ := imap.Get("t")
