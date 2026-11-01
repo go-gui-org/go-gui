@@ -100,3 +100,41 @@ func TestRenderLargeTextRebuildIsCheap(t *testing.T) {
 		t.Errorf("a rebuilt frame of a 100 KB text took %v", per)
 	}
 }
+
+// TestPasteIssueResponseLandsAndDraws is #1187 end to end on the real
+// shaper: the issue's 92,359-byte API response pasted into a multiline
+// Input lands whole, where it used to be cut at 65,536 runes, and draws,
+// where anything past 10,240 bytes used to draw nothing.
+func TestPasteIssueResponseLandsAndDraws(t *testing.T) {
+	text := ""
+	win := newWin(t, 500, 300, func(*gui.Window) gui.View {
+		return gui.Column(gui.ContainerCfg{Sizing: gui.FillFill, SizeBorder: gui.NoBorder, Content: []gui.View{
+			gui.Input(gui.InputCfg{
+				ID: "resp", Text: text, Mode: gui.InputMultiline, Scrollable: true,
+				Sizing: gui.FillFixed, Height: 240,
+				TextStyle:     gui.TextStyle{Size: 16, Color: gui.RGB(255, 255, 255)},
+				OnTextChanged: func(s string, _ gui.EventCtx) { text = s },
+			}),
+		}})
+	})
+	if _, err := RenderToImage(win, 1); err != nil {
+		t.Fatalf("first render: %v", err)
+	}
+	response := oneLongLine[:92_359]
+	win.SetClipboardGetFn(func() string { return response })
+	if err := win.TestKey("resp", gui.KeyV, gui.ModCtrl); err != nil {
+		t.Fatalf("TestKey: %v", err)
+	}
+	if text != response {
+		t.Fatalf("pasted text has %d bytes, want the whole %d", len(text), len(response))
+	}
+	img, err := RenderToImage(win, 1)
+	if err != nil {
+		t.Fatalf("render after paste: %v", err)
+	}
+	if lit := countLitPixels(img); lit == 0 {
+		t.Fatal("the pasted response draws nothing")
+	} else {
+		t.Logf("lit pixels: %d", lit)
+	}
+}

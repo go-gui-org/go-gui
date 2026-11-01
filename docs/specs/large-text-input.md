@@ -1,8 +1,8 @@
 # Spec: large text in `Input` and `Text`
 
 Issues #1190 and #1187. Status: **implemented** — chunked layout (this spec's
-design A) landed with #1190, the byte-indexed edit core with delta undo with
-#1187; the `InputCfg.MaxLength` budget follows in the same series.
+design A) with #1190; the byte-indexed edit core with delta undo, and the
+`InputCfg.MaxLength` budget, with #1187.
 
 ## Problem
 
@@ -36,7 +36,11 @@ of chunks, each one glyph layout within the budget `textChunkBytes` (2048).
   stays within the budget. An empty paragraph is its own chunk with no layout
   and one synthetic line box, so a text ending in `\n` keeps its caret line
   (go-glyph gives it an empty last line too). A paragraph over the budget is one
-  _open_ chunk that is cut when first shaped.
+  _open_ chunk that is cut when first shaped. The budget, 2,048 bytes, keeps a
+  chunk under the 4,096 clusters go-glyph retains its layout scratch for
+  (`maxLayoutScratch`): every chunk reuses the shaper's buffers, where a 4 KB
+  ASCII chunk would reallocate them on every shape. Measured on the pure-Go
+  shaper, a 2 KB layout allocates 0.4 MB and a 4 KB one 1.6 MB.
 - **Seams.** In wrap mode a cut is reflowed: the budgeted text plus one more
   budget is shaped once, the last line start within the limit becomes the next
   piece's start, and the piece ends where the line before ends. Greedy wrapping
@@ -103,6 +107,23 @@ leaves the text unchanged records no step.
 `TestEditUndoRedoRandom` drives random edits, undoes every step back to the
 start and redoes every step to the end.
 
+### Budget
+
+`InputCfg.MaxLength` is the field's budget in runes, the unit `OnPasteRejected`
+already reported; 0 takes `inputMaxRunesDefault`, 1,048,576. The budget bounds
+what one edit costs, a copy of the text, not what can be shown. Every path text
+grows by checks it before the edit with `inputEditFits`: typing and IME commits
+(`inputTextChange`), and paste from Ctrl+V, the context menu and the macOS yank
+(`inputKeyPaste`). An edit that does not grow the text always fits, so a field
+holding app-set text past its budget takes deletes and replacements no longer
+than the selection. App-set text is never cut; the debug category
+`DebugGlyphLayoutFallback` reports such a field once. `PreTextChange` and
+`PostCommitNormalize` output is capped at the budget, as it was at the old one.
+
+Two costs scale with the whole text and are bounded instead: the inner text
+shape's accessible name carries the first 65,536 runes, and a field past 64 KiB
+is not handed to the platform spell checker.
+
 ## Rejected Approaches
 
 - **Raise `glyph.MaxTextLength`.** A single 64 KB layout would cost ~35 ms and
@@ -135,6 +156,14 @@ start and redoes every step to the end.
 - **Full-text undo copies with a smaller depth.** Fewer copies of a large field
   are still copies of a large field, and a depth small enough to bound the
   memory is too small to be useful.
+- **An unlimited budget (`MaxLength: -1`).** Every edit copies the text, so an
+  unbounded field is an unbounded cost per keystroke; a large positive value is
+  available to an app that wants one.
+- **Cutting app-set text to the budget.** That is the silent truncation #1187
+  reported, moved from paste to `Text`. The app owns the string it sets.
+- **Spell checking only the visible lines.** It needs the platform's ranges
+  remapped across chunk offsets on every scroll; a size bound is simpler, and a
+  field that large is rarely prose a user is proofreading.
 
 ## Known limits
 

@@ -6,8 +6,8 @@ import (
 )
 
 // Issue #1187: a paste that would leave an Input over its rune budget
-// is refused whole, not cut to a prefix, and OnPasteRejected hands the
-// app the paste as offered.
+// (MaxLength) is refused whole, not cut to a prefix, and OnPasteRejected
+// hands the app the paste as offered.
 
 // pasteRejectSpy records OnPasteRejected calls.
 type pasteRejectSpy struct {
@@ -26,6 +26,7 @@ func TestInputPasteOverBudgetRejectedWhole(t *testing.T) {
 	w := inputMenuTestWindow(t, InputCfg{
 		ID:              "name",
 		Mode:            InputMultiline,
+		MaxLength:       65_536, // the budget the issue hit
 		OnPasteRejected: spy.record,
 	}, &text)
 	clip := strings.Repeat("a", 92_359) // the issue's JSON size
@@ -60,48 +61,79 @@ func TestInputPasteAtBudgetLands(t *testing.T) {
 	var spy pasteRejectSpy
 	w := inputMenuTestWindow(t, InputCfg{
 		ID:              "name",
+		MaxLength:       1000,
 		OnPasteRejected: spy.record,
 	}, &text)
-	clip := strings.Repeat("x", inputMaxInsertRunes)
+	clip := strings.Repeat("x", 1000)
 	w.SetClipboardGetFn(func() string { return clip })
 	if err := w.TestKey("name", KeyV, ModCtrl); err != nil {
 		t.Fatalf("TestKey: %v", err)
 	}
 	if text != clip {
-		t.Errorf("text has %d bytes, want the whole %d-rune paste",
-			len(text), inputMaxInsertRunes)
+		t.Errorf("text has %d bytes, want the whole 1000-rune paste", len(text))
 	}
 	if len(spy.texts) != 0 {
 		t.Errorf("OnPasteRejected calls = %d, want 0", len(spy.texts))
 	}
 }
 
-// The budget covers the field after the paste, not the paste alone:
-// accepting a fitting paste into a nearly full field would leave text
-// that generation then truncates.
-func TestInputPasteFits(t *testing.T) {
-	full := strings.Repeat("a", inputMaxInsertRunes)
-	almost := strings.Repeat("a", inputMaxInsertRunes-1)
+// The issue's paste — a 92,359-byte API response — fits the default
+// budget and lands whole.
+func TestInputPasteIssueSizeLandsByDefault(t *testing.T) {
+	text := ""
+	var spy pasteRejectSpy
+	w := inputMenuTestWindow(t, InputCfg{
+		ID:              "name",
+		Mode:            InputMultiline,
+		OnPasteRejected: spy.record,
+	}, &text)
+	clip := strings.Repeat("a", 92_359)
+	w.SetClipboardGetFn(func() string { return clip })
+	if err := w.TestKey("name", KeyV, ModCtrl); err != nil {
+		t.Fatalf("TestKey: %v", err)
+	}
+	if text != clip {
+		t.Errorf("text has %d bytes, want the whole paste (%d)", len(text), len(clip))
+	}
+	if len(spy.texts) != 0 {
+		t.Errorf("OnPasteRejected calls = %d, want 0", len(spy.texts))
+	}
+}
+
+// The budget covers the field after the edit, not the insert alone, and
+// an edit that does not grow the text always fits: a field holding
+// app-set text past its budget still takes deletes and replacements.
+func TestInputEditFits(t *testing.T) {
+	const budget = 10
+	full := strings.Repeat("a", budget)
+	almost := strings.Repeat("a", budget-1)
+	over := strings.Repeat("a", budget+5)
 	tests := []struct {
 		name string
 		text string
-		clip string
+		ins  string
 		is   inputState
 		want bool
 	}{
-		{"empty field, clip at budget", "", strings.Repeat("x", inputMaxInsertRunes), inputState{}, true},
-		{"empty field, clip over budget", "", strings.Repeat("x", inputMaxInsertRunes+1), inputState{}, false},
-		{"one rune of room, one rune", almost, "b", inputState{}, true},
-		{"one rune of room, two runes", almost, "bc", inputState{}, false},
+		{"empty field, insert at budget", "", strings.Repeat("x", budget), inputState{}, true},
+		{"empty field, insert over budget", "", strings.Repeat("x", budget+1), inputState{}, false},
+		{"one rune of room, one rune", almost, "b", inputState{CursorPos: budget - 1}, true},
+		{"one rune of room, two runes", almost, "bc", inputState{CursorPos: budget - 1}, false},
 		{"selection frees room", full, "bcdef", inputState{selectBeg: 0, selectEnd: 5}, true},
 		{"selection frees too little", full, "bcdefg", inputState{selectBeg: 5, selectEnd: 0}, false},
-		{"multi-byte runes at budget", "", strings.Repeat("🎉", inputMaxInsertRunes), inputState{}, true},
-		{"multi-byte runes over budget", "", strings.Repeat("🎉", inputMaxInsertRunes+1), inputState{}, false},
+		{"multi-byte runes at budget", "", strings.Repeat("\U0001F389", budget), inputState{}, true},
+		{"multi-byte runes over budget", "", strings.Repeat("\U0001F389", budget+1), inputState{}, false},
+		{"over budget, typing refused", over, "b", inputState{CursorPos: 3}, false},
+		{"over budget, shorter replacement fits", over, "b", inputState{selectBeg: 0, selectEnd: 2}, true},
+		{"over budget, same-length replacement fits", over, "bc", inputState{selectBeg: 0, selectEnd: 2}, true},
+		{"over budget, longer replacement refused", over, "bcd", inputState{selectBeg: 0, selectEnd: 2}, false},
+		// Six bytes, two runes: the rune count decides, not the bytes.
+		{"multi-byte insert in runes", almost, "\u00e9", inputState{CursorPos: budget - 1}, true},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			if got := inputPasteFits(tc.text, tc.clip, tc.is); got != tc.want {
-				t.Errorf("inputPasteFits = %v, want %v", got, tc.want)
+			if got := inputEditFits(tc.text, tc.ins, tc.is, budget); got != tc.want {
+				t.Errorf("inputEditFits = %v, want %v", got, tc.want)
 			}
 		})
 	}
@@ -153,9 +185,11 @@ func TestInputContextMenuPasteRejectReported(t *testing.T) {
 
 func TestSoundInputPasteOverBudgetErrors(t *testing.T) {
 	restoreTheme(t)
-	w, spy := soundWindow(t, inputSoundView(func(*InputCfg) {}))
+	w, spy := soundWindow(t, inputSoundView(func(c *InputCfg) {
+		c.MaxLength = 10
+	}))
 	w.SetClipboardGetFn(func() string {
-		return strings.Repeat("a", inputMaxInsertRunes+1)
+		return strings.Repeat("a", 11)
 	})
 	if err := w.TestKey("fld", KeyV, ModCtrl); err != nil {
 		t.Fatalf("TestKey: %v", err)

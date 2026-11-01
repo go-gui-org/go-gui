@@ -692,19 +692,17 @@ func TestInputProposedTextReplacesSelection(t *testing.T) {
 	}
 }
 
-func TestInputProposedTextClampsHugeInsert(t *testing.T) {
+// The proposed text is the whole edit: the budget is checked before a
+// proposal is made (inputEditFits), so a proposal is never cut.
+func TestInputProposedTextKeepsWholeInsert(t *testing.T) {
 	w := newTestWindow()
 	id := "f-prop-big"
 	setInputState(w, id, inputState{CursorPos: 0})
 
-	big := make([]rune, inputMaxInsertRunes+1000)
-	for i := range big {
-		big[i] = 'x'
-	}
-	got := inputProposedText("", string(big), id, w)
-	if utf8RuneCount(got) != inputMaxInsertRunes {
-		t.Fatalf("proposed rune count = %d, want %d (clamped)",
-			utf8RuneCount(got), inputMaxInsertRunes)
+	big := strings.Repeat("x", 70_000)
+	if got := inputProposedText("", big, id, w); got != big {
+		t.Fatalf("proposed text has %d runes, want the whole %d",
+			utf8RuneCount(got), len(big))
 	}
 }
 
@@ -724,37 +722,38 @@ func TestInputSetTextAndCursorAtEnd(t *testing.T) {
 	}
 }
 
-func TestTruncateToMaxRunes(t *testing.T) {
-	if got := truncateToMaxRunes(""); got != "" {
+func TestTruncateRunes(t *testing.T) {
+	const budget = 1000
+	if got := truncateRunes("", budget); got != "" {
 		t.Errorf("empty = %q, want empty", got)
 	}
-	if got := truncateToMaxRunes("hello"); got != "hello" {
+	if got := truncateRunes("hello", budget); got != "hello" {
 		t.Errorf("short = %q, want unchanged", got)
 	}
-	exact := strings.Repeat("x", inputMaxInsertRunes)
-	if got := truncateToMaxRunes(exact); got != exact {
+	exact := strings.Repeat("x", budget)
+	if got := truncateRunes(exact, budget); got != exact {
 		t.Error("exact-budget input must pass through untouched")
 	}
-	over := strings.Repeat("y", inputMaxInsertRunes+1)
-	if got := truncateToMaxRunes(over); utf8RuneCount(got) != inputMaxInsertRunes {
+	over := strings.Repeat("y", budget+1)
+	if got := truncateRunes(over, budget); utf8RuneCount(got) != budget {
 		t.Errorf("over-budget runes = %d, want %d",
-			utf8RuneCount(got), inputMaxInsertRunes)
+			utf8RuneCount(got), budget)
 	}
-	multi := strings.Repeat("é", inputMaxInsertRunes+10)
-	got := truncateToMaxRunes(multi)
-	if utf8RuneCount(got) != inputMaxInsertRunes || !utf8.ValidString(got) {
+	multi := strings.Repeat("\u00e9", budget+10)
+	got := truncateRunes(multi, budget)
+	if utf8RuneCount(got) != budget || !utf8.ValidString(got) {
 		t.Error("multibyte truncation must keep the budget on a rune boundary")
 	}
-	big := strings.Repeat("z", inputMaxInsertRunes*4)
-	if got := truncateToMaxRunes(big); utf8RuneCount(got) != inputMaxInsertRunes {
+	big := strings.Repeat("z", budget*4)
+	if got := truncateRunes(big, budget); utf8RuneCount(got) != budget {
 		t.Errorf("large runes = %d, want %d",
-			utf8RuneCount(got), inputMaxInsertRunes)
+			utf8RuneCount(got), budget)
 	}
-	invalid := strings.Repeat("a", inputMaxInsertRunes) + "\xff\xfe"
-	got = truncateToMaxRunes(invalid)
-	if utf8RuneCount(got) != inputMaxInsertRunes {
+	invalid := strings.Repeat("a", budget) + "\xff\xfe"
+	got = truncateRunes(invalid, budget)
+	if utf8RuneCount(got) != budget {
 		t.Errorf("invalid-tail runes = %d, want %d (bad bytes cap cleanly)",
-			utf8RuneCount(got), inputMaxInsertRunes)
+			utf8RuneCount(got), budget)
 	}
 }
 
@@ -835,24 +834,26 @@ func TestMoveCursorUpDownMultibyte(t *testing.T) {
 	}
 }
 
-func TestTextViewTruncatesOverlongProgrammaticText(t *testing.T) {
+// App-set text past the field's budget is the app's: it shows in full,
+// never cut, and the debug finding says why the field will not grow.
+func TestInputAppTextOverBudgetShownWhole(t *testing.T) {
 	buf := captureDebugMask(t, DebugGlyphLayoutFallback)
 	w := caretTestWindow(400, 60)
-	big := strings.Repeat("a", inputMaxInsertRunes+100)
-	_, field := arrangeInput(t, w, InputCfg{ID: "big", Text: big})
-	if got := utf8RuneCount(inputTextFromLayout(field)); got != inputMaxInsertRunes {
-		t.Errorf("input text runes = %d, want %d (clamped)",
-			got, inputMaxInsertRunes)
+	big := strings.Repeat("a", 150)
+	_, field := arrangeInput(t, w, InputCfg{ID: "big", Text: big, MaxLength: 100})
+	if got := inputTextFromLayout(field); got != big {
+		t.Errorf("input text has %d runes, want the whole %d",
+			utf8RuneCount(got), len(big))
 	}
-	if buf.Len() == 0 {
-		t.Error("expected a truncation finding under DebugGlyphLayoutFallback")
+	if !strings.Contains(buf.String(), "past its MaxLength of 100") {
+		t.Errorf("finding = %q, want the over-budget report", buf.String())
 	}
 }
 
 func TestStandaloneTextStaysUnbounded(t *testing.T) {
 	buf := captureDebugMask(t, DebugGlyphLayoutFallback)
 	w := newTestWindow()
-	big := strings.Repeat("a", inputMaxInsertRunes+100)
+	big := strings.Repeat("a", 70_000)
 	root := generateViewLayout(Column(ContainerCfg{
 		Content: []View{Text(TextCfg{ID: "big", Text: big})},
 	}), w)
@@ -860,9 +861,9 @@ func TestStandaloneTextStaysUnbounded(t *testing.T) {
 	if ly == nil {
 		t.Fatal("no layout with ID \"big\" after generate")
 	}
-	if got := utf8RuneCount(ly.Shape.TC.Text); got != inputMaxInsertRunes+100 {
-		t.Errorf("display text runes = %d, want untouched %d",
-			got, inputMaxInsertRunes+100)
+	if got := ly.Shape.TC.Text; got != big {
+		t.Errorf("display text has %d runes, want the whole %d",
+			utf8RuneCount(got), len(big))
 	}
 	if buf.Len() != 0 {
 		t.Errorf("display text must stay silent, got %q", buf.String())

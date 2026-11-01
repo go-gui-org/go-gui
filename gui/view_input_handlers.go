@@ -6,6 +6,12 @@ package gui
 // under the 800-line gate (tools/largefiles).
 
 func inputTextChange(hcfg inputHandlerCfg, layout *Layout, text, ins string, id string, w *Window) (string, bool) {
+	if !inputEditFits(text, ins, inputStateOrDefault(id, w), hcfg.budget()) {
+		// The field is at its budget (MaxLength): a typed character or
+		// an IME commit is refused whole, like a mask with no slot.
+		playSoundCue(hcfg.cues.reject, w)
+		return text, false
+	}
 	mask := hcfg.CompiledMask
 	if mask != nil {
 		is := inputStateOrDefault(id, w)
@@ -36,7 +42,7 @@ func inputTextChange(hcfg inputHandlerCfg, layout *Layout, text, ins string, id 
 			if adjusted == proposed {
 				text = inputInsert(text, ins, id, w)
 			} else {
-				adjusted = capCallbackText(adjusted)
+				adjusted = capCallbackText(adjusted, hcfg.budget())
 				inputSetTextAndCursorAtEnd(
 					text, adjusted, id, w)
 				text = adjusted
