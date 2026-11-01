@@ -83,11 +83,19 @@ func plainTextNeedsGlyphLayout(
 	if shape == nil || tc == nil {
 		return false
 	}
+	// Past one chunk the text is drawn chunk by chunk: a single
+	// RenderText command would hand the backend a string the shaper
+	// refuses (#1190).
+	return plainTextStyleNeedsGlyphLayout(tc, style) ||
+		len(tc.Text) > textChunkBytes
+}
+
+// plainTextStyleNeedsGlyphLayout reports whether a text shape needs a
+// glyph layout for its mode or style, whatever its length. A single-line
+// text that needs one only for its length keeps the one-line box
+// GenerateLayout gives it (layoutPlainText).
+func plainTextStyleNeedsGlyphLayout(tc *ShapeTextConfig, style TextStyle) bool {
 	return tc.TextMode != TextModeSingleLine ||
-		// Past one chunk the text is drawn chunk by chunk: a single
-		// RenderText command would hand the backend a string the
-		// shaper refuses (#1190).
-		len(tc.Text) > textChunkBytes ||
 		style.Align != TextAlignLeft ||
 		style.LineSpacing != 0 ||
 		style.BgColor.A > 0 ||
