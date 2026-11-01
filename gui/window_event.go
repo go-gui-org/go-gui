@@ -254,7 +254,7 @@ func (w *Window) handleMouseDownEvent(layout *Layout, e *Event) {
 // and the drag-scroll tap replay all press through it, so all three
 // follow one rule.
 func (w *Window) pressWalk(layout *Layout, e *Event) {
-	inputDatePressOutside(w, e)
+	inputDatePressOutside(w, e.MouseX, e.MouseY)
 	claimed := w.viewState.focusSetCount
 	focusBefore := w.FocusID()
 	mouseDownHandler(layout, false, e, w)

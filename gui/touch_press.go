@@ -72,6 +72,9 @@ func touchPressDown(gs *gestureState, layout *Layout, w *Window, x, y float32, f
 	gs.foreignLock = w.mouseIsLocked()
 	s := touchPressScan{flung: flung}
 	if !gs.foreignLock {
+		// Before the press can be held: a held press that turns into a
+		// scroll never reaches pressWalk (#1212).
+		inputDatePressOutside(w, x, y)
 		touchPressScanAt(layout, x, y, 0, &s)
 	}
 	if !s.now && (s.v || s.h || s.bar != scrollbarNone) {

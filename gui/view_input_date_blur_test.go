@@ -579,3 +579,79 @@ func TestInputDateClosesOnFocusDisabledButtonPress(t *testing.T) {
 		t.Errorf("focus = %q, want %s", w.FocusID(), want)
 	}
 }
+
+// With the roller up, focus can sit on its done button, which has no
+// Escape of its own. The first Escape closes only the roller, and
+// focus goes to the picker rather than stay on the done button, which
+// leaves with the roller (#1212).
+func TestInputDateEscapeOnDoneClosesRollerFirst(t *testing.T) {
+	w := NewTestWindow(t, WindowCfg{})
+	w.TestRender(inputDateBlurView)
+
+	openInputDate(t, w, "from")
+	picker := ScopeID("from", "picker")
+	if err := w.TestClick(ScopeID(picker, "month")); err != nil {
+		t.Fatalf("TestClick(month): %v", err)
+	}
+	done := ScopeID(picker, "done")
+	if err := w.TestKey(done, KeyEscape, ModNone); err != nil {
+		t.Fatalf("TestKey(%s): %v", done, err)
+	}
+	s, _ := StateMap[string, datePickerState](
+		w, nsDatePicker, capModerate).Get(picker)
+	if s.ShowYearMonthPicker {
+		t.Error("Escape on done left the roller up")
+	}
+	if !StateReadOr(w, nsInputDate, "from", false) {
+		t.Fatal("first Escape closed the calendar, want only the roller")
+	}
+	if !w.IsFocus(picker) {
+		t.Errorf("focus = %q, want %s", w.FocusID(), picker)
+	}
+}
+
+// A touch that starts outside the field on a scrollable and turns into
+// a scroll never sends a press: the scrollable holds it, then drops it.
+// The calendar closes at touch-down all the same (#1212).
+func TestInputDateClosesOnTouchPanOutside(t *testing.T) {
+	w := NewTestWindow(t, WindowCfg{Width: 800, Height: 400})
+	rows := make([]View, 40)
+	for i := range rows {
+		rows[i] = Button(ButtonCfg{
+			ID: ScopeIDN("row", "", i), Label: "row", Sizing: FillFit,
+		})
+	}
+	w.TestRender(func(_ *Window) View {
+		return Row(ContainerCfg{
+			Sizing: FillFill,
+			Content: []View{
+				Column(ContainerCfg{
+					ID: "list", Scrollable: true,
+					Sizing: FixedFixed, Width: 200, Height: 300,
+					Content: rows,
+				}),
+				Rectangle(RectangleCfg{Sizing: FixedFit, Width: 300}),
+				InputDate(InputDateCfg{ID: "from", Width: 200}),
+			},
+		})
+	})
+	openInputDate(t, w, "from")
+
+	ly, ok := w.layout.FindByID("list")
+	if !ok {
+		t.Fatal("no list in the layout")
+	}
+	x := ly.Shape.X + ly.Shape.Width/2
+	y := ly.Shape.Y + ly.Shape.Height/2
+	touchAt(w, EventTouchesBegan, 0, x, y)
+	for i, dy := range []float32{-12, -30, -60} {
+		touchAt(w, EventTouchesMoved, int64(i+1)*16_000_000, x, y+dy)
+	}
+	touchAt(w, EventTouchesEnded, 300_000_000, x, y-60)
+	if v, _ := w.scrollY().Get("list"); v >= 0 {
+		t.Fatalf("list offset = %v, want it scrolled", v)
+	}
+	if StateReadOr(w, nsInputDate, "from", false) {
+		t.Error("calendar still open after a touch scroll outside the field")
+	}
+}

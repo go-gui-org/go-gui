@@ -457,6 +457,15 @@ func inputDateEscape(w *Window, e *Event) {
 	if openID == "" {
 		return
 	}
+	// With the roller up, focus can sit on its done button, which has
+	// no Escape of its own: the first Escape closes only the roller,
+	// as it does from the picker, and focus goes to the picker rather
+	// than stay on the done button that leaves with it.
+	if pickerID := ScopeID(openID, "picker"); datePickerRollerOpen(pickerID, w) {
+		datePickerRollerDismiss(pickerID, w)
+		e.IsHandled = true
+		return
+	}
 	inputDateClose(openID, w)
 	inputDateFocusButton(openID, w)
 	e.IsHandled = true
@@ -544,14 +553,15 @@ func inputDateSettleFocus(w *Window) {
 // beside any field (#1212). The hit test maps a press in the floating
 // calendar back to its field, as it does for hover and press state.
 // Runs before the press walk, so a press that opens another calendar
-// still opens it. Event path only: settling focus takes the window
-// lock through SetFocus.
-func inputDatePressOutside(w *Window, e *Event) {
+// still opens it, and at touch-down, before a scrollable can hold the
+// press and drop it on a pan. x and y are window coordinates. Event
+// path only: settling focus takes the window lock through SetFocus.
+func inputDatePressOutside(w *Window, x, y float32) {
 	sm := StateMapRead[string, bool](w, nsInputDate)
 	if sm == nil || sm.Len() == 0 {
 		return
 	}
-	target := interactionTargetAt(w.layout.Children, e.MouseX, e.MouseY, w)
+	target := interactionTargetAt(w.layout.Children, x, y, w)
 	openID := ""
 	sm.Range(func(id string, isOpen bool) bool {
 		if isOpen && !targetWithin(target, id) {
