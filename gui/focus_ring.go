@@ -156,8 +156,11 @@ func focusRingAmendRing(
 }
 
 // dropdownBlurAmend wraps a dropdown field's focus-ring amend with the
-// blur dismiss: an open dropdown closes once the field no longer holds
-// focus (Combobox #1150, Select #1181). Focus leaves when the user
+// blur dismiss: an open dropdown closes once focus is no longer on the
+// field or inside it (Combobox #1150, Select #1181, InputDate #1212).
+// Inside counts because InputDate's focus normally sits on a child —
+// its text field, calendar button or picker — whose IDs are scoped by
+// the field's. Focus leaves when the user
 // presses another focusable widget, tabs away, or presses empty space
 // (the window's blur-on-unclaimed-press). A press on the dropdown's
 // scrollbar is consumed there, so it keeps focus on the field. A press
@@ -192,7 +195,7 @@ func dropdownBlurAmend(
 		if shape == nil || !shape.Focusable {
 			return
 		}
-		if !ctx.Window.IsFocus(id) {
+		if !targetWithin(ctx.Window.FocusID(), id) {
 			closeFn(id, ctx.Window)
 		}
 	}

@@ -188,6 +188,19 @@ func (idv *inputDateView) GenerateLayout(w *Window) Layout {
 					})},
 					OnClick: func(ctx EventCtx) {
 						inputDateToggle(cfgID, ctx.Window)
+						// Open with focus, as Select does. An
+						// accessibility press runs OnClick without the
+						// press walk's focus take, and the blur dismiss
+						// would close an unfocused calendar the next
+						// frame (#1212).
+						if !cfg.FocusDisabled &&
+							StateReadOr(ctx.Window, nsInputDate, cfgID, false) {
+							ctx.Window.SetFocus(ScopeID(cfgID, "calendar"))
+						}
+						// Consumed for a FocusDisabled field, whose
+						// button does not mark the press handled by
+						// taking focus (as in Select, #1183).
+						ctx.Consume()
 					},
 				}),
 			},
@@ -228,7 +241,12 @@ func (idv *inputDateView) GenerateLayout(w *Window) Layout {
 			},
 			Content: []View{
 				DatePicker(DatePickerCfg{
-					ID:                   ScopeID(cfgID, "picker"),
+					ID: ScopeID(cfgID, "picker"),
+					// The opt-out covers the calendar too: a picker
+					// that took focus would hold it inside a field
+					// that skips the blur dismiss, so the calendar
+					// would stay open once focus left it (#1212).
+					FocusDisabled:        cfg.FocusDisabled,
 					Dates:                dates,
 					AllowedWeekdays:      cfg.AllowedWeekdays,
 					AllowedMonths:        cfg.AllowedMonths,
@@ -250,6 +268,11 @@ func (idv *inputDateView) GenerateLayout(w *Window) Layout {
 					ShowAdjacentMonths:   cfg.ShowAdjacentMonths,
 					OnSelect: func(dates []time.Time, ctx EventCtx) {
 						inputDateClose(cfgID, ctx.Window)
+						// A FocusDisabled field leaves focus with the
+						// widget that holds it, as Select does (#1183).
+						if !cfg.FocusDisabled {
+							inputDateFocusAfterPick(cfgID, ctx)
+						}
 						if cfg.OnSelect != nil {
 							cfg.OnSelect(dates, EventCtx{nil, ctx.Event, ctx.Window})
 						}
@@ -281,7 +304,11 @@ func (idv *inputDateView) GenerateLayout(w *Window) Layout {
 		Disabled:    cfg.Disabled,
 		Invisible:   cfg.Invisible,
 		Content:     content,
-		AmendLayout: focusRingAmend(Color{}, cfg.Colors.BorderFocus),
+		// An open calendar closes once focus leaves the field, so a
+		// second date field's calendar does not open over this one
+		// (#1212). The backdrop covers only the field, not the window.
+		AmendLayout: dropdownBlurAmend(cfgID, isOpen,
+			focusRingAmend(Color{}, cfg.Colors.BorderFocus), inputDateClose),
 	})
 	return generateViewLayout(col, w)
 }
@@ -367,14 +394,187 @@ func inputDateToggle(id string, w *Window) {
 	sm := StateMap[string, bool](w, nsInputDate, capModerate)
 	// Default false: absent entry means picker is closed.
 	cur := sm.GetOr(id, false)
-	sm.Set(id, !cur)
+	// One calendar open at a time, as Select keeps one list open. A
+	// FocusDisabled field skips the blur dismiss, so its calendar
+	// would otherwise stay open under the next one (#1212).
+	inputDateSettleFocus(w)
+	sm.Clear()
+	if !cur {
+		sm.Set(id, true)
+		inputDateRollerReset(id, w)
+	}
 	w.InvalidateLayout()
 }
 
+// inputDateRollerReset puts the picker's month and year roller away,
+// so a calendar always opens on its day grid. The picker keeps its
+// state across a close, and a close from outside the picker (blur, an
+// unhandled press, another calendar opening) never runs the roller's
+// own dismiss, so a roller left up would come back with the calendar
+// (#1212). Reset at the one open path rather than at the many close
+// paths. The viewed month stays: that is navigation, not a popup.
+func inputDateRollerReset(id string, w *Window) {
+	pickerID := ScopeID(id, "picker")
+	sm := StateMapRead[string, datePickerState](w, nsDatePicker)
+	if sm == nil {
+		return
+	}
+	if s, ok := sm.Get(pickerID); ok && s.ShowYearMonthPicker {
+		s.ShowYearMonthPicker = false
+		sm.Set(pickerID, s)
+	}
+}
+
 func inputDateClose(id string, w *Window) {
-	sm := StateMap[string, bool](w, nsInputDate, capModerate)
-	sm.Set(id, false)
+	// Deleted, not set false, as selectClose does: an absent entry
+	// reads as closed, and an empty map lets fixupPopupMaps skip its
+	// per-frame walk.
+	StateMap[string, bool](w, nsInputDate, capModerate).Delete(id)
 	w.InvalidateLayout()
+}
+
+// inputDateEscape closes the open calendar that holds focus, on an
+// Escape no widget handled, and puts focus back on its calendar
+// button. Keys go only to the focused shape, and inside an open
+// calendar focus can sit on the calendar button, the picker or any of
+// its day, header and roller buttons, so a handler on each would be
+// needed otherwise (#1212). The text field's own Escape and the
+// roller's run first and handle the key.
+func inputDateEscape(w *Window, e *Event) {
+	sm := StateMapRead[string, bool](w, nsInputDate)
+	if sm == nil || sm.Len() == 0 {
+		return
+	}
+	focus := w.FocusID()
+	openID := ""
+	sm.Range(func(id string, isOpen bool) bool {
+		if isOpen && targetWithin(focus, id) {
+			openID = id
+			return false
+		}
+		return true
+	})
+	if openID == "" {
+		return
+	}
+	// With the roller up, focus can sit on its done button, which has
+	// no Escape of its own: the first Escape closes only the roller,
+	// as it does from the picker, and focus goes to the picker rather
+	// than stay on the done button that leaves with it.
+	if pickerID := ScopeID(openID, "picker"); datePickerRollerOpen(pickerID, w) {
+		datePickerRollerDismiss(pickerID, w)
+		e.IsHandled = true
+		return
+	}
+	inputDateClose(openID, w)
+	inputDateFocusButton(openID, w)
+	e.IsHandled = true
+}
+
+// inputDateFocusAfterPick settles focus once a pick closes the
+// calendar. The picked day held focus and goes away with the calendar;
+// left there, the window's focus repair would move focus to the first
+// tab stop in the window (#1212). A pointer pick clears focus. Any
+// other pick returns it to the calendar button, so the user keeps their
+// place in the form: Enter on the grid (key down), Space on a day
+// button (its click fires on key up) and a screen reader's press,
+// which arrives as a mouse down marked a11yPress.
+func inputDateFocusAfterPick(id string, ctx EventCtx) {
+	if inputDatePointerEvent(ctx.Event) {
+		ctx.Window.ClearFocus()
+		return
+	}
+	inputDateFocusButton(id, ctx.Window)
+}
+
+// inputDatePointerEvent reports whether e is a mouse or touch press. A
+// screen reader's press arrives as a mouse down marked a11yPress and
+// counts as a keyboard action, as do a key down (Enter) and a key up
+// (a button's Space click fires on release).
+func inputDatePointerEvent(e *Event) bool {
+	if e == nil || e.a11yPress {
+		return false
+	}
+	switch e.Type {
+	case EventMouseDown, EventMouseUp,
+		EventTouchesBegan, EventTouchesEnded:
+		return true
+	}
+	return false
+}
+
+// inputDateFocusButton moves focus to the field's calendar button. A
+// FocusDisabled field's picker still takes focus, but its calendar
+// button does not: there, focus is cleared rather than left on an ID
+// no focusable shape claims.
+func inputDateFocusButton(id string, w *Window) {
+	btnID := ScopeID(id, "calendar")
+	if ly, ok := w.layout.findByID(btnID); ok && ly.Shape.canTakeFocus() {
+		w.SetFocus(btnID)
+		return
+	}
+	w.ClearFocus()
+}
+
+// inputDateSettleFocus settles focus before every open calendar
+// closes: on the window's blur (dismissFieldPopups), and when another
+// calendar opens (inputDateToggle) from a FocusDisabled field's button,
+// which takes no focus of its own. Focus inside an open calendar's
+// picker would be left on a shape that leaves the tree, and the
+// window's focus repair would move it to the first tab stop in the
+// window; it goes back to the calendar button instead (#1212). Focus
+// on the text field or the button stays where it is. Event path only:
+// it takes the window lock through SetFocus.
+func inputDateSettleFocus(w *Window) {
+	sm := StateMapRead[string, bool](w, nsInputDate)
+	if sm == nil || sm.Len() == 0 {
+		return
+	}
+	focus := w.FocusID()
+	openID := ""
+	sm.Range(func(id string, isOpen bool) bool {
+		if isOpen && targetWithin(focus, ScopeID(id, "picker")) {
+			openID = id
+			return false
+		}
+		return true
+	})
+	if openID != "" {
+		inputDateFocusButton(openID, w)
+	}
+}
+
+// inputDatePressOutside closes the open calendar when a press lands
+// outside its field. The blur dismiss covers a press that moves focus
+// out, and the unhandled-press cleanup a press nothing takes. A press
+// that another widget handles without moving focus out of the field
+// falls between them: an Input pressed beside a FocusDisabled field,
+// whose calendar never holds focus, or a FocusDisabled button pressed
+// beside any field (#1212). The hit test maps a press in the floating
+// calendar back to its field, as it does for hover and press state.
+// Runs before the press walk, so a press that opens another calendar
+// still opens it, and at touch-down, before a scrollable can hold the
+// press and drop it on a pan. x and y are window coordinates. Event
+// path only: settling focus takes the window lock through SetFocus.
+func inputDatePressOutside(w *Window, x, y float32) {
+	sm := StateMapRead[string, bool](w, nsInputDate)
+	if sm == nil || sm.Len() == 0 {
+		return
+	}
+	target := interactionTargetAt(w.layout.Children, x, y, w)
+	openID := ""
+	sm.Range(func(id string, isOpen bool) bool {
+		if isOpen && !targetWithin(target, id) {
+			openID = id
+			return false
+		}
+		return true
+	})
+	if openID == "" {
+		return
+	}
+	inputDateSettleFocus(w)
+	inputDateClose(openID, w)
 }
 
 // inputDateFormat resolves the one format the field shows, masks and

@@ -149,6 +149,7 @@ func (w *Window) handleUnfocusedEvent() {
 	// the lock, so IsPressed cannot stick on (#691).
 	w.MouseCancel()
 	dismissPopups(w)
+	inputDateSettleFocus(w)
 	dismissFieldPopups(w)
 }
 
@@ -162,6 +163,10 @@ func (w *Window) handleKeyDownEvent(layout *Layout, e *Event) {
 	w.commandDispatch(e, true)
 	if !e.IsHandled {
 		keydownHandler(layout, e, w)
+	}
+	if !e.IsHandled && e.KeyCode == KeyEscape &&
+		e.Modifiers&modKeyboard == ModNone {
+		inputDateEscape(w, e)
 	}
 	if !e.IsHandled && e.KeyCode == KeyTab {
 		// Match on the keyboard bits only, like scroll dispatch:
@@ -239,6 +244,8 @@ func (w *Window) handleMouseDownEvent(layout *Layout, e *Event) {
 		ss.Clear()
 		cs := StateMap[string, bool](w, nsCombobox, capModerate)
 		cs.Clear()
+		ds := StateMap[string, bool](w, nsInputDate, capModerate)
+		ds.Clear()
 	}
 }
 
@@ -247,6 +254,7 @@ func (w *Window) handleMouseDownEvent(layout *Layout, e *Event) {
 // and the drag-scroll tap replay all press through it, so all three
 // follow one rule.
 func (w *Window) pressWalk(layout *Layout, e *Event) {
+	inputDatePressOutside(w, e.MouseX, e.MouseY)
 	claimed := w.viewState.focusSetCount
 	focusBefore := w.FocusID()
 	mouseDownHandler(layout, false, e, w)
@@ -404,14 +412,16 @@ func dismissPopups(w *Window) bool {
 	return a || b || c || d
 }
 
-// dismissFieldPopups closes open select and combobox dropdowns. It
-// stays separate from dismissPopups on purpose: the mouse-down path
+// dismissFieldPopups closes open select and combobox dropdowns and
+// date field calendars. It stays separate from dismissPopups on
+// purpose: the mouse-down path
 // clears these only when nothing handled the press (so a click on
 // the field itself still toggles), while window-unfocus and a modal
 // dialog close them unconditionally — there is no toggle to protect.
 func dismissFieldPopups(w *Window) {
 	clearStateMap[string, bool](w, nsSelect)
 	clearStateMap[string, bool](w, nsCombobox)
+	clearStateMap[string, bool](w, nsInputDate)
 }
 
 // clearStateMap clears a state map if it exists and is non-empty.
