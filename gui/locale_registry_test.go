@@ -12,6 +12,7 @@ func TestLocaleRegistryInit(t *testing.T) {
 	want := []string{
 		"ar-SA", "de-DE", "en-US", "es-ES", "fr-FR",
 		"he-IL", "ja-JP", "ko-KR", "pt-BR", "zh-CN",
+		"sk-SK",
 	}
 	for _, id := range want {
 		if !slices.Contains(names, id) {
@@ -82,6 +83,7 @@ func TestLocalePresetFields(t *testing.T) {
 		{"zh-CN", TextDirLTR, '.', "CNY"},
 		{"ko-KR", TextDirLTR, '.', "KRW"},
 		{"he-IL", TextDirRTL, '.', "ILS"},
+		{"sk-SK", TextDirLTR, ',', "EUR"},
 	}
 	for _, tt := range tests {
 		l, ok := LocaleGet(tt.id)

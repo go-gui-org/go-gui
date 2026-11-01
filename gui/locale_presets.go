@@ -23,6 +23,7 @@ var (
 	LocaleZhCN Locale
 	LocaleKoKR Locale
 	LocaleHeIL Locale
+	LocaleSkSK Locale
 )
 
 func init() {
@@ -35,6 +36,7 @@ func init() {
 	LocaleZhCN = mustLoadLocale("locales/zh-CN.json")
 	LocaleKoKR = mustLoadLocale("locales/ko-KR.json")
 	LocaleHeIL = mustLoadLocale("locales/he-IL.json")
+	LocaleSkSK = mustLoadLocale("locales/sk-SK.json")
 }
 
 func mustLoadLocale(path string) Locale {
