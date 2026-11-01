@@ -70,9 +70,25 @@ func TestRenderTextOverGlyphBudgetDraws(t *testing.T) {
 	}
 }
 
+// shapeCounter wraps the window's measurer and counts the layouts it is
+// asked to shape.
+type shapeCounter struct {
+	gui.TextMeasurer
+	layouts int
+}
+
+func (c *shapeCounter) LayoutText(
+	text string, style gui.TextStyle, wrapWidth float32,
+) (glyph.Layout, error) {
+	c.layouts++
+	return c.TextMeasurer.LayoutText(text, style, wrapWidth)
+}
+
 // TestRenderLargeTextRebuildIsCheap is the spike's exit criterion: once
 // the block is shaped, a rebuild of a 100 KB wrapped text re-shapes
 // nothing, so a frame costs what its visible lines cost to rasterize.
+// The claim is asserted as a count of shaper calls; the timing is only
+// logged, since it depends on the machine and on -race.
 func TestRenderLargeTextRebuildIsCheap(t *testing.T) {
 	text := strings.Repeat("the quick brown fox jumps over the lazy dog ", 2300) // ~100 KB, one paragraph
 	win := newWin(t, 600, 400, func(*gui.Window) gui.View {
@@ -86,18 +102,27 @@ func TestRenderLargeTextRebuildIsCheap(t *testing.T) {
 		t.Fatalf("first render: %v", err)
 	}
 	warm := time.Since(first)
+	tm, ok := win.TextMeasurer().(*textMeasurer)
+	if !ok {
+		t.Fatal("RenderToImage installed no soft text measurer")
+	}
+	// Layout metrics come from the window's measurer and drawing from
+	// tm, so the counter sees every layout the frame asks to shape.
+	counter := &shapeCounter{TextMeasurer: tm}
+	win.SetTextMeasurer(counter)
 	const frames = 10
 	start := time.Now()
 	for range frames {
 		win.InvalidateLayout()
-		if _, err := RenderToImage(win, 1); err != nil {
+		if _, err := renderFrame(win, tm, 1); err != nil {
 			t.Fatalf("render: %v", err)
 		}
 	}
-	per := time.Since(start) / frames
-	t.Logf("first frame %v, then %v per rebuilt frame", warm, per)
-	if per > 50*time.Millisecond {
-		t.Errorf("a rebuilt frame of a 100 KB text took %v", per)
+	t.Logf("first frame %v, then %v per rebuilt frame",
+		warm, time.Since(start)/frames)
+	if counter.layouts != 0 {
+		t.Errorf("%d rebuilt frames shaped %d layouts, want none",
+			frames, counter.layouts)
 	}
 }
 
