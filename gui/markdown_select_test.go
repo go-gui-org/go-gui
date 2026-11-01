@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/go-gui-org/go-glyph"
@@ -106,7 +107,8 @@ func TestMarkdownBlockAmendSel_SelectionSpansEntireBlock(t *testing.T) {
 		rtf: &shapeRichText{
 			markdownID:         mdID,
 			markdownBlockStart: 5,
-			markdownRuneLen:    8, // block covers [5, 13)
+			markdownRuneLen:    8,
+			rTFFlatText:        strings.Repeat("x", 8), // block covers [5, 13)
 		},
 	}
 	markdownBlockAmendSel(&Layout{Shape: &Shape{TC: tc}}, w)
@@ -127,6 +129,7 @@ func TestMarkdownBlockAmendSel_PartialOverlapStart(t *testing.T) {
 			markdownID:         mdID,
 			markdownBlockStart: 10, // block covers [10, 20)
 			markdownRuneLen:    10,
+			rTFFlatText:        strings.Repeat("x", 10),
 		},
 	}
 	markdownBlockAmendSel(&Layout{Shape: &Shape{TC: tc}}, w)
@@ -147,6 +150,7 @@ func TestMarkdownBlockAmendSel_PartialOverlapEnd(t *testing.T) {
 			markdownID:         mdID,
 			markdownBlockStart: 10, // block covers [10, 20)
 			markdownRuneLen:    10,
+			rTFFlatText:        strings.Repeat("x", 10),
 		},
 	}
 	markdownBlockAmendSel(&Layout{Shape: &Shape{TC: tc}}, w)
@@ -167,6 +171,7 @@ func TestMarkdownBlockAmendSel_InvertedSelection_SortsCorrectly(t *testing.T) {
 			markdownID:         mdID,
 			markdownBlockStart: 0,
 			markdownRuneLen:    20,
+			rTFFlatText:        strings.Repeat("x", 20),
 		},
 	}
 	markdownBlockAmendSel(&Layout{Shape: &Shape{TC: tc}}, w)

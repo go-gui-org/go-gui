@@ -50,13 +50,13 @@ func TestIMEDeleteSurroundingInput(t *testing.T) {
 	}{
 		// One emoji is two UTF-16 units: a per-unit Backspace would
 		// also take the "A".
-		{"utf16 emoji", "A😀", 2, 2, 0, false, "A"},
-		{"code points", "ab😀cd", 3, 2, 1, true, "ad"},
+		{"utf16 emoji", "A😀", 5, 2, 0, false, "A"},
+		{"code points", "ab😀cd", 6, 2, 1, true, "ad"},
 		{"both directions", "abcdef", 3, 2, 2, true, "af"},
 		// A count past the text start stops at the start.
 		{"clamped", "abc", 2, 10, 0, true, "c"},
 		// A UTF-16 count inside a surrogate pair takes the whole rune.
-		{"half emoji", "😀b", 1, 1, 0, false, "b"},
+		{"half emoji", "😀b", 4, 1, 0, false, "b"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

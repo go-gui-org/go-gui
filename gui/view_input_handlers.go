@@ -9,7 +9,8 @@ func inputTextChange(hcfg inputHandlerCfg, layout *Layout, text, ins string, id 
 	mask := hcfg.CompiledMask
 	if mask != nil {
 		is := inputStateOrDefault(id, w)
-		res := inputMaskInsert(text, is.CursorPos, is.selectBeg, is.selectEnd, ins, mask)
+		cursor, selBeg, selEnd := maskRuneArgs(text, is)
+		res := inputMaskInsert(text, cursor, selBeg, selEnd, ins, mask)
 		if res.Changed {
 			// IME commits are multi-rune; they break the run the way
 			// inputInsert does for a paste. Only the ">1 rune"
@@ -19,13 +20,13 @@ func inputTextChange(hcfg inputHandlerCfg, layout *Layout, text, ins string, id 
 			if isMultiRuneInsert(ins) {
 				op = inputOpNone
 			}
-			inputStoreState(id, w, editCommit(is, text, res.CursorPos, op))
+			inputStoreState(id, w, editCommit(is, text, res.Text, maskByteCaret(res), op))
 			return res.Text, true
 		}
 		if res.accepted {
 			// A digit typed over the same digit: the text stays, the
 			// caret moves on, and nothing was refused.
-			inputStoreState(id, w, editCaretOnly(is, res.CursorPos))
+			inputStoreState(id, w, editCaretOnly(is, maskByteCaret(res)))
 			resetBlinkCursorVisible(w)
 			return text, false
 		}
@@ -153,9 +154,7 @@ func makeInputOnKeyDown(hcfg *inputHandlerCfg) func(EventCtx) {
 		is.cursorOffset = -1
 		is.cursorTrailing = false
 		text := inputTextFromLayout(ctx.Layout)
-		runeLen := utf8RuneCount(text)
-		pos := is.CursorPos
-		pos = min(pos, runeLen)
+		pos := max(0, min(is.CursorPos, len(text)))
 		// The key binding mode decides what the modifiers mean: Cmd or
 		// Ctrl for shortcuts, Option or Ctrl for word moves, and on
 		// macOS the Cocoa Emacs keys (#969).

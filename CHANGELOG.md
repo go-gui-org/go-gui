@@ -173,6 +173,16 @@ and this project adheres to
   the buffer it already shows. A frame already due, such as one after a resize
   or a scale change, still makes the commit, and so does the first frame.
 
+- **`Input` undo keeps the edits, not copies of the text (#1187).** Each undo
+  step held a full copy of the field, up to fifty of them, and every keystroke
+  converted the whole text to runes and back. A step now holds only the bytes an
+  edit replaced, and an edit splices the text once: a keystroke in a 1 MiB field
+  allocates one copy of it instead of a rune slice and a memento. Two behaviours
+  follow. When the app replaces the field's text, Ctrl+Z drops the history
+  instead of bringing back an old copy over the app's text. An edit that leaves
+  the text as it was, such as a `PreTextChange` that hands back the current
+  text, no longer adds a step that undoes nothing.
+
 ### Fixed
 
 - **Popups and tooltips are drawn over the knobs, tracks and swatches of the

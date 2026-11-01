@@ -600,33 +600,6 @@ func TestTextBlockDeleteGrapheme(t *testing.T) {
 	}
 }
 
-func TestPrevNextGraphemeBoundary(t *testing.T) {
-	text := "ab́c🇩🇪d" // a, b+combining acute, c, flag, d
-	stops := []int{0, 1, 4, 5, 13, 14}
-	for i := 0; i <= len(text); i++ {
-		wantPrev := 0
-		for _, s := range stops {
-			if s <= i {
-				wantPrev = s
-			}
-		}
-		if got := prevGraphemeBoundary(text, i); got != wantPrev {
-			t.Errorf("prevGraphemeBoundary(%d) = %d, want %d", i, got, wantPrev)
-		}
-	}
-	// The forward search is asked from a caret stop, as the callers do;
-	// mid-cluster it cannot know where the cluster began.
-	for k, s := range stops {
-		wantNext := len(text)
-		if k+1 < len(stops) {
-			wantNext = stops[k+1]
-		}
-		if got := nextGraphemeBoundary(text, s); got != wantNext {
-			t.Errorf("nextGraphemeBoundary(%d) = %d, want %d", s, got, wantNext)
-		}
-	}
-}
-
 func BenchmarkTextBlockKeystroke(b *testing.B) {
 	w := NewTestWindow(b, WindowCfg{Width: 400, Height: 400})
 	defer w.WindowCleanup()

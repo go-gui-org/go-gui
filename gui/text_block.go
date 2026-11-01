@@ -9,7 +9,6 @@ import (
 	"unsafe"
 
 	"github.com/go-gui-org/go-glyph"
-	"github.com/rivo/uniseg"
 )
 
 // Chunked text layout (issues #1187, #1190).
@@ -62,8 +61,6 @@ const (
 	// the first frame. Above it the unseen chunks are estimated and
 	// measured as they come into view.
 	textBlockEagerBytes = 64 << 10
-	// textGraphemeWindow bounds the bytes a boundary search segments.
-	textGraphemeWindow = 64
 	// textBlockSample is the prose the estimate's average advance is
 	// measured on.
 	textBlockSample = "the quick brown fox jumps over the lazy dog 0123456789"
@@ -496,53 +493,6 @@ func textSplitPoint(text string, start, end, limit int) int {
 		}
 	}
 	return end
-}
-
-// prevGraphemeBoundary returns the last grapheme-cluster boundary at or
-// before byte offset i. It segments only a window before i, from a rune
-// start, which is exact for every cluster shorter than the window.
-func prevGraphemeBoundary(text string, i int) int {
-	if i <= 0 {
-		return 0
-	}
-	if i >= len(text) {
-		return len(text)
-	}
-	j := max(0, i-textGraphemeWindow)
-	for j > 0 && !utf8.RuneStart(text[j]) {
-		j--
-	}
-	last := j
-	rest := text[j:]
-	state := -1
-	off := j
-	for len(rest) > 0 {
-		var tail string
-		_, tail, _, state = uniseg.FirstGraphemeClusterInString(rest, state)
-		off += len(rest) - len(tail)
-		if off > i {
-			break
-		}
-		last = off
-		rest = tail
-	}
-	return last
-}
-
-// nextGraphemeBoundary returns the first grapheme-cluster boundary after
-// byte offset i, or len(text).
-func nextGraphemeBoundary(text string, i int) int {
-	if i >= len(text) {
-		return len(text)
-	}
-	if i < 0 {
-		i = 0
-	}
-	cluster, _, _, _ := uniseg.FirstGraphemeClusterInString(text[i:], -1)
-	if len(cluster) == 0 {
-		return len(text)
-	}
-	return i + len(cluster)
 }
 
 // patch re-chunks the paragraphs an edit touched and shifts the rest.

@@ -53,6 +53,24 @@ func (s *boundedStack[T]) Pop() (T, bool) {
 	return elem, true
 }
 
+// peek returns the top element without removing it. Returns (zero,
+// false) if empty.
+func (s *boundedStack[T]) peek() (T, bool) {
+	if s.size == 0 {
+		var zero T
+		return zero, false
+	}
+	return s.buf[(s.head+s.size-1)%s.maxSize], true
+}
+
+// replaceTop overwrites the top element; a no-op on an empty stack.
+func (s *boundedStack[T]) replaceTop(elem T) {
+	if s.size == 0 {
+		return
+	}
+	s.buf[(s.head+s.size-1)%s.maxSize] = elem
+}
+
 // Len returns number of elements.
 func (s *boundedStack[T]) Len() int {
 	return s.size

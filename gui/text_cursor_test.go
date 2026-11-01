@@ -4,16 +4,17 @@ import "testing"
 
 // --- cursor_end ---
 
+// cursorEnd is a byte offset: the text's length in bytes.
 func TestCursorEnd3Byte(t *testing.T) {
-	assertEqual(t, cursorEnd("€€€"), 3)
+	assertEqual(t, cursorEnd("€€€"), 9)
 }
 
 func TestCursorEnd4Byte(t *testing.T) {
-	assertEqual(t, cursorEnd("𝐀𝐁𝐂"), 3)
+	assertEqual(t, cursorEnd("𝐀𝐁𝐂"), 12)
 }
 
 func TestCursorEndEmojiOnly(t *testing.T) {
-	assertEqual(t, cursorEnd("😀😀"), 2)
+	assertEqual(t, cursorEnd("😀😀"), 8)
 }
 
 func TestCursorEndEmpty(t *testing.T) {
@@ -21,12 +22,12 @@ func TestCursorEndEmpty(t *testing.T) {
 }
 
 func TestCursorEndCombiningChar(t *testing.T) {
-	// e + combining acute = 2 runes
-	assertEqual(t, cursorEnd("e\u0301"), 2)
+	// e (1 byte) + combining acute (2 bytes)
+	assertEqual(t, cursorEnd("e\u0301"), 3)
 }
 
 func TestCursorEndSingle4Byte(t *testing.T) {
-	assertEqual(t, cursorEnd("😀"), 1)
+	assertEqual(t, cursorEnd("😀"), 4)
 }
 
 // --- paragraph navigation ---

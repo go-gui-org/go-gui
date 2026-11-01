@@ -79,7 +79,7 @@ func (snap rtfDragFrame) resolve(
 			// standing now. A caller that then moves the scroll
 			// before mapping a pointer — dragScrollCB — resolves the
 			// frame first, so the difference it introduces is exactly
-			// what computeRunePos corrects for.
+			// what computePos corrects for.
 			// Default 0: unscrolled before any scroll event.
 			f.scrollAnchor = w.scrollY().GetOr(scrollID, 0)
 		}
@@ -116,8 +116,7 @@ func rtfSelectOnClick(ctx EventCtx) {
 	// included — the shape's post-scroll position is subtracted). The
 	// drag path below handles its own translation because MouseLock
 	// callbacks receive window coordinates.
-	byteIdx := gl.GetClosestOffset(ctx.Event.MouseX, ctx.Event.MouseY)
-	runePos := byteToRuneIndex(flatText, byteIdx)
+	pos := gl.GetClosestOffset(ctx.Event.MouseX, ctx.Event.MouseY)
 
 	focusID := shape.idKey()
 	imap := StateMap[string, inputState](ctx.Window, nsInput, capMany)
@@ -130,16 +129,14 @@ func rtfSelectOnClick(ctx EventCtx) {
 	is.LastClickTime = now
 
 	if doubleClick {
-		bBeg, bEnd := gl.GetWordAtIndex(byteIdx)
-		beg := byteToRuneIndex(flatText, bBeg)
-		end := byteToRuneIndex(flatText, bEnd)
+		beg, end := gl.GetWordAtIndex(pos)
 		is.CursorPos = end
 		is.selectBeg = uint32(beg)
 		is.selectEnd = uint32(end)
 	} else {
-		is.CursorPos = runePos
-		is.selectBeg = uint32(runePos)
-		is.selectEnd = uint32(runePos)
+		is.CursorPos = pos
+		is.selectBeg = uint32(pos)
+		is.selectEnd = uint32(pos)
 	}
 	is.cursorOffset = -1
 	imap.Set(focusID, is)
@@ -185,7 +182,7 @@ func rtfSelectOnClick(ctx EventCtx) {
 		}
 	}
 
-	computeRunePos := func(
+	computePos := func(
 		mx, my float32, w *Window, f rtfDragFrame,
 	) int {
 		scrollDelta := float32(0)
@@ -197,8 +194,7 @@ func rtfSelectOnClick(ctx EventCtx) {
 		}
 		ry := my - (f.shY + scrollDelta)
 		rx := textDragEdgeX(mx-f.shX, ry, f.top, f.bot)
-		bi := f.gl.GetClosestOffset(rx, ry)
-		return byteToRuneIndex(f.flat, bi)
+		return f.gl.GetClosestOffset(rx, ry)
 	}
 
 	updateDrag := func(rp int, w *Window, f rtfDragFrame) {
@@ -206,10 +202,7 @@ func rtfSelectOnClick(ctx EventCtx) {
 		// Default InputState{}: zero value seeds initial drag-edit state.
 		dis := dim.GetOr(focusID, inputState{})
 		if doubleClick {
-			bi := runeToByteIndex(f.flat, rp)
-			bBeg, bEnd := f.gl.GetWordAtIndex(bi)
-			wb := byteToRuneIndex(f.flat, bBeg)
-			we := byteToRuneIndex(f.flat, bEnd)
+			wb, we := f.gl.GetWordAtIndex(rp)
 			if rp < int(anchorPos) {
 				dis.selectBeg = anchorEnd
 				dis.selectEnd = uint32(wb)
@@ -250,7 +243,7 @@ func rtfSelectOnClick(ctx EventCtx) {
 		// A drag-select autoscroll is a direct write: it ends any
 		// ease or fling, which would fight it every frame (#1110).
 		scrollSmoothCancel(w, scrollID, scrollAxisY)
-		rp := computeRunePos(lastMouseX, lastMouseY, w, f)
+		rp := computePos(lastMouseX, lastMouseY, w, f)
 		updateDrag(rp, w, f)
 	}
 
@@ -260,7 +253,7 @@ func rtfSelectOnClick(ctx EventCtx) {
 			lastMouseY = ctx.Event.MouseY
 			f := snap.resolve(
 				ctx.Window, ctx.Layout, focusID, scrollID)
-			rp := computeRunePos(
+			rp := computePos(
 				ctx.Event.MouseX, ctx.Event.MouseY, ctx.Window, f)
 			updateDrag(rp, ctx.Window, f)
 			if scrollID != "" {
@@ -319,8 +312,7 @@ func rtfSelectOnKeyDown(ctx EventCtx) {
 	savedTrailing := is.cursorTrailing
 	is.cursorOffset = -1
 	is.cursorTrailing = false
-	runeLen := utf8RuneCount(flatText)
-	pos := min(is.CursorPos, runeLen)
+	pos := max(0, min(is.CursorPos, len(flatText)))
 	// The key binding mode decides what the modifiers mean (#969).
 	tk := resolveTextKey(ctx.Event)
 	isShift, isWordMod := tk.isShift, tk.isWord

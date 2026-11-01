@@ -809,12 +809,13 @@ func TestTextWidthFallbackPasswordMask(t *testing.T) {
 	// one bullet per rune, so masking bullets changes nothing), so
 	// only the allocation distinguishes the two paths — assert that,
 	// not the width, or the flag can be deleted with the test green.
+	// The offset is a byte offset of the text as drawn: three bullets.
 	masked := maskPassword("abc")
-	if got = textWidthFallback(masked, 3, tc, style, w, true); !f32AreClose(got, want) {
+	if got = textWidthFallback(masked, len(masked), tc, style, w, true); !f32AreClose(got, want) {
 		t.Errorf("pre-masked textWidthFallback = %f, want %f", got, want)
 	}
 	if n := testing.AllocsPerRun(100, func() {
-		sinkWidth = textWidthFallback(masked, 3, tc, style, w, true)
+		sinkWidth = textWidthFallback(masked, len(masked), tc, style, w, true)
 	}); n != 0 {
 		t.Errorf("pre-masked allocs = %v, want 0 (no second mask)", n)
 	}

@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"strings"
 	"unicode/utf8"
 
 	"github.com/go-gui-org/go-glyph"
@@ -8,13 +9,20 @@ import (
 
 const inputMaxInsertRunes = 65_536
 
-// InputState manages cursor, selection, and undo/redo for
-// an input field. Stored in StateRegistry keyed by ID.
+// inputState manages the caret, selection and undo history of an input
+// field. Stored in the StateRegistry keyed by the field's effective ID.
+//
+// Offsets are byte offsets into the field's text — the unit every glyph
+// layout query takes, so a key event converts nothing and a field of any
+// size pays nothing per keystroke for its length. A caret rests on
+// grapheme-cluster boundaries, which are rune boundaries.
 type inputState struct {
-	Undo           *boundedStack[inputMemento]
-	Redo           *boundedStack[inputMemento]
-	CursorPos      int
-	LastClickTime  int64
+	Undo          *boundedStack[inputMemento]
+	Redo          *boundedStack[inputMemento]
+	CursorPos     int // byte offset
+	LastClickTime int64
+	// selectBeg and selectEnd are byte offsets; equal means no
+	// selection. selectBeg is the anchor, so it may exceed selectEnd.
 	selectBeg      uint32
 	selectEnd      uint32
 	cursorOffset   float32
@@ -22,13 +30,95 @@ type inputState struct {
 	lastEditOp     uint8 // kind of edit the current undo run holds (issue #328)
 }
 
-// InputMemento stores a snapshot for undo/redo.
+// inputMemento is one undo step: the edit as the bytes it replaced at a
+// byte offset, and the caret and selection before it. Undo puts removed
+// back where inserted now sits; redo is the inverse. A step holds its
+// own bytes rather than a copy of the whole text, so the history of a
+// large field costs what was edited, not fifty copies of the field
+// (#1187).
 type inputMemento struct {
-	Text         string
+	removed      string
+	inserted     string
+	off          int
 	CursorPos    int
 	selectBeg    uint32
 	selectEnd    uint32
 	cursorOffset float32
+}
+
+// applies reports whether the memento's inserted bytes still sit at its
+// offset in text. An app that replaced the field's text under it leaves
+// a history that no longer applies, which undo then drops rather than
+// splicing stale bytes into the new text.
+func (m inputMemento) applies(text string) bool {
+	end := m.off + len(m.inserted)
+	return m.off >= 0 && end <= len(text) && text[m.off:end] == m.inserted
+}
+
+// apply undoes the memento's edit on text.
+func (m inputMemento) apply(text string) string {
+	return text[:m.off] + m.removed + text[m.off+len(m.inserted):]
+}
+
+// inverse is the step that redoes what m undoes, keeping the caret and
+// selection in is for the redo to restore.
+func (m inputMemento) inverse(is inputState) inputMemento {
+	return inputMemento{
+		off:          m.off,
+		removed:      m.inserted,
+		inserted:     m.removed,
+		CursorPos:    is.CursorPos,
+		selectBeg:    is.selectBeg,
+		selectEnd:    is.selectEnd,
+		cursorOffset: is.cursorOffset,
+	}
+}
+
+// merged returns the step that covers m's edit followed by a second edit
+// that took oldText (the text after m) to newText by replacing removed at
+// off with inserted. The span is the union of the two edits; before and
+// after it, newText still reads as the text before m did. m must apply
+// to oldText.
+func (m inputMemento) merged(
+	oldText, newText string, off int, removed, inserted string,
+) inputMemento {
+	a := min(m.off, off)
+	bOld := max(m.off+len(m.inserted), off+len(removed))
+	bNew := bOld + len(inserted) - len(removed)
+	// The pre-run bytes of [a, bOld): the bytes before m's span, what m
+	// removed, and the bytes after its span, all as oldText has them.
+	pre := oldText[a:m.off] + m.removed + oldText[m.off+len(m.inserted):bOld]
+	return inputMemento{
+		off:          a,
+		removed:      pre,
+		inserted:     mementoSpan(newText[a:bNew], len(newText)),
+		CursorPos:    m.CursorPos,
+		selectBeg:    m.selectBeg,
+		selectEnd:    m.selectEnd,
+		cursorOffset: m.cursorOffset,
+	}
+}
+
+// mementoSpan returns span for a memento to keep. A substring pins the
+// whole text it was cut from for as long as the memento lives, so a span
+// that is a small part of its text is copied; a span that is most of the
+// text keeps the slice, which then pins at most four times its own size.
+func mementoSpan(span string, textLen int) string {
+	if len(span) == 0 {
+		return ""
+	}
+	if len(span)*4 < textLen {
+		return strings.Clone(span)
+	}
+	return span
+}
+
+// textDelta locates the edit that took old to new as the bytes outside
+// their common prefix and suffix.
+func textDelta(old, new string) (off int, removed, inserted string) {
+	p := commonPrefixLen(old, new)
+	s := commonSuffixLen(old, new, p)
+	return p, old[p : len(old)-s], new[p : len(new)-s]
 }
 
 // InputMode selects single-line or multiline behavior.
@@ -74,30 +164,42 @@ func inputStateOrDefault(focusID string, w *Window) inputState {
 	return StateReadOr(w, nsInput, focusID, inputState{})
 }
 
-func inputMementoFromState(text string, is inputState) inputMemento {
-	return inputMemento{
-		Text:         text,
-		CursorPos:    is.CursorPos,
-		selectBeg:    is.selectBeg,
-		selectEnd:    is.selectEnd,
-		cursorOffset: is.cursorOffset,
+// inputPushUndo records the edit that took oldText to newText — removed
+// replaced by inserted at off — for undo, coalescing it into the previous
+// step when both are the same kind (insert or delete) and no selection
+// was involved, so a typing run undoes as one step instead of one per
+// character (issue #328). The merged step then spans both edits. removed
+// and inserted are the strings the memento keeps (see mementoSpan); the
+// caller stores the op it passed as the new lastEditOp.
+func inputPushUndo(
+	is inputState, oldText, newText string, off int,
+	removed, inserted string, op uint8,
+) *boundedStack[inputMemento] {
+	if removed == "" && inserted == "" {
+		// The edit left the text as it was — a PreTextChange that handed
+		// back the current text, say. A step for it would make a Ctrl+Z
+		// that changes nothing.
+		return is.Undo
 	}
-}
-
-// inputPushUndo records a text edit for undo, coalescing it with the
-// previous edit when both are the same kind (insert or delete) and no
-// selection was involved, so a typing run undoes as one step instead
-// of one per character (issue #328). The pre-run state stays at the
-// top of the stack for the whole run; the caller stores the op it
-// passed as the new lastEditOp.
-func inputPushUndo(is inputState, text string, op uint8) *boundedStack[inputMemento] {
 	stack := is.Undo
 	if stack == nil {
 		stack = newBoundedStack[inputMemento](undoMaxSize)
 	}
-	if op == inputOpNone || op != is.lastEditOp || is.selectBeg != is.selectEnd {
-		stack.Push(inputMementoFromState(text, is))
+	if op != inputOpNone && op == is.lastEditOp && is.selectBeg == is.selectEnd {
+		if top, ok := stack.peek(); ok && top.applies(oldText) {
+			stack.replaceTop(top.merged(oldText, newText, off, removed, inserted))
+			return stack
+		}
 	}
+	stack.Push(inputMemento{
+		off:          off,
+		removed:      removed,
+		inserted:     inserted,
+		CursorPos:    is.CursorPos,
+		selectBeg:    is.selectBeg,
+		selectEnd:    is.selectEnd,
+		cursorOffset: is.cursorOffset,
+	})
 	return stack
 }
 
@@ -175,11 +277,14 @@ func inputPasteFits(text, clip string, is inputState) bool {
 	if len(truncateToMaxRunes(clip)) < len(clip) {
 		return false
 	}
-	textRunes := utf8RuneCount(text)
-	n := textRunes + utf8RuneCount(clip)
+	n := utf8RuneCount(text) + utf8RuneCount(clip)
 	if is.selectBeg != is.selectEnd {
 		beg, end := u32Sort(is.selectBeg, is.selectEnd)
-		n -= min(int(end), textRunes) - min(int(beg), textRunes)
+		b := min(int(beg), len(text))
+		e := min(int(end), len(text))
+		if b < e {
+			n -= utf8RuneCount(text[b:e])
+		}
 	}
 	return n <= inputMaxInsertRunes
 }
@@ -269,7 +374,7 @@ func inputSelectAll(text string, focusID string, w *Window) {
 
 // updateCursorAndSelection moves cursor to newPos, extending
 // or resetting selection based on shift modifier. Positions outside
-// [0, runeLen] (corrupt state, never produced by the cursor
+// [0, textLen] (corrupt state, never produced by the cursor
 // functions) clamp into range rather than wrapping through the
 // uint32 selection casts below.
 func updateCursorAndSelection(
@@ -278,10 +383,10 @@ func updateCursorAndSelection(
 	is inputState,
 	newPos int,
 	isShift bool,
-	runeLen int,
+	textLen int,
 ) {
-	newPos = max(0, min(newPos, runeLen))
-	anchor := max(0, min(is.CursorPos, runeLen))
+	newPos = max(0, min(newPos, textLen))
+	anchor := max(0, min(is.CursorPos, textLen))
 	if isShift {
 		if is.selectBeg == is.selectEnd {
 			// Start new selection from current cursor.
@@ -315,30 +420,24 @@ func updateCursorAndSelection(
 // grapheme-cluster data, so an emoji ZWJ sequence splits at the ZWJ where
 // the Layout path keeps it whole. Accepted; the affected path is a
 // double-click on an emoji sequence in an input.
-//
-// All three take the text and a rune index, converting at the go-glyph
-// boundary, which is cheaper than the []rune conversion these used to do
-// on every Ctrl+arrow keypress.
 
-// moveCursorWordLeft returns the rune index of the word start before pos.
+// moveCursorWordLeft returns the byte offset of the word start before pos.
 func moveCursorWordLeft(text string, pos int) int {
 	if pos <= 0 {
 		return 0
 	}
-	return byteToRuneIndex(text,
-		glyph.WordStartLeft(text, runeToByteIndex(text, pos)))
+	return glyph.WordStartLeft(text, pos)
 }
 
-// moveCursorWordRight returns the rune index of the word start after pos.
+// moveCursorWordRight returns the byte offset of the word start after pos.
 // Note this lands on the next word's *start*, not past the trailing
 // whitespace of the current one — the two agree for space-separated text
 // and differ once punctuation forms words of its own.
 func moveCursorWordRight(text string, pos int) int {
-	return byteToRuneIndex(text,
-		glyph.WordStartRight(text, runeToByteIndex(text, pos)))
+	return glyph.WordStartRight(text, pos)
 }
 
-// wordBoundsAt returns the start and end rune indices of the word
+// wordBoundsAt returns the start and end byte offsets of the word
 // surrounding pos. A punctuation run is a word of its own; if pos is on
 // whitespace, the whitespace run is selected, which is what double-click
 // does on macOS. The exception is whitespace-only text, which has no words
@@ -348,97 +447,81 @@ func wordBoundsAt(text string, pos int) (int, int) {
 	if text == "" {
 		return 0, 0
 	}
-	beg, end := glyph.WordBoundsInString(text, runeToByteIndex(text, pos))
-	return byteToRuneIndex(text, beg), byteToRuneIndex(text, end)
+	return glyph.WordBoundsInString(text, pos)
 }
 
-// Line scanning below walks bytes: '\n' never appears inside a
-// multibyte sequence, so finding line boundaries needs no []rune
-// conversion and allocates nothing.
-//
-// The column, however, is counted in RUNES. A byte column carried
-// onto a line whose runes have different widths lands mid-rune, and
-// byteToRuneIndex counts each partial byte as a RuneError — so the
-// answer drifts by up to three and lands on some unrelated valid
-// grapheme stop, which closestGraphemeStop then leaves alone. That
-// made Up fail to leave a line at all when the line above held a
-// 4-byte rune, and made Down return an index past the end of the
-// text. Counting the column in runes is what makes the round trip
-// exact; it costs a scan of one line and still allocates nothing.
+// Line motion below walks bytes: '\n' never appears inside a multibyte
+// sequence, so finding line boundaries needs no decoding. The column
+// carried to the other line is counted in RUNES: a byte column onto a
+// line whose runes have different widths would land mid-rune.
+
+// lineStartBefore returns the byte offset after the '\n' before pos, or
+// 0 on the first line.
+func lineStartBefore(text string, pos int) int {
+	for i := min(pos, len(text)) - 1; i >= 0; i-- {
+		if text[i] == '\n' {
+			return i + 1
+		}
+	}
+	return 0
+}
+
+// lineEndAfter returns the byte offset of the '\n' at or after pos, or
+// len(text) on the last line.
+func lineEndAfter(text string, pos int) int {
+	for i := max(pos, 0); i < len(text); i++ {
+		if text[i] == '\n' {
+			return i
+		}
+	}
+	return len(text)
+}
+
+// advanceRunes returns the byte offset after n runes of s, or len(s)
+// when s is shorter.
+func advanceRunes(s string, n int) int {
+	i := 0
+	for n > 0 && i < len(s) {
+		_, size := utf8.DecodeRuneInString(s[i:])
+		i += size
+		n--
+	}
+	return i
+}
 
 // moveCursorUp moves cursor up one line in multiline text.
 func moveCursorUp(text string, pos int) int {
-	bytePos := runeToByteIndex(text, pos)
-	// Find start of current line.
-	lineStart := bytePos
-	for lineStart > 0 && text[lineStart-1] != '\n' {
-		lineStart--
-	}
+	pos = max(0, min(pos, len(text)))
+	lineStart := lineStartBefore(text, pos)
 	if lineStart == 0 {
 		return 0 // Already on first line.
 	}
-	col := utf8.RuneCountInString(text[lineStart:bytePos])
-	// Find start of previous line.
-	prevLineEnd := lineStart - 1
-	prevLineStart := prevLineEnd
-	for prevLineStart > 0 && text[prevLineStart-1] != '\n' {
-		prevLineStart--
-	}
-	prevLen := utf8.RuneCountInString(text[prevLineStart:prevLineEnd])
-	// Rune index of prevLineStart, walking back from pos: the column
-	// runs, then the '\n', then the whole previous line.
-	prevStartRune := pos - col - 1 - prevLen
-	return prevStartRune + min(col, prevLen)
+	col := utf8.RuneCountInString(text[lineStart:pos])
+	prevEnd := lineStart - 1
+	prevStart := lineStartBefore(text, prevEnd)
+	return prevStart + advanceRunes(text[prevStart:prevEnd], col)
 }
 
 // moveCursorDown moves cursor down one line in multiline text.
 func moveCursorDown(text string, pos int) int {
-	n := len(text)
-	bytePos := runeToByteIndex(text, pos)
-	// Find start of current line.
-	lineStart := bytePos
-	for lineStart > 0 && text[lineStart-1] != '\n' {
-		lineStart--
+	pos = max(0, min(pos, len(text)))
+	lineStart := lineStartBefore(text, pos)
+	lineEnd := lineEndAfter(text, pos)
+	if lineEnd >= len(text) {
+		return len(text) // Already on last line.
 	}
-	col := utf8.RuneCountInString(text[lineStart:bytePos])
-	// Find end of current line (next \n).
-	lineEnd := bytePos
-	for lineEnd < n && text[lineEnd] != '\n' {
-		lineEnd++
-	}
-	if lineEnd >= n {
-		return utf8RuneCount(text) // Already on last line.
-	}
-	// Next line starts after \n.
-	nextLineStart := lineEnd + 1
-	nextLineEnd := nextLineStart
-	for nextLineEnd < n && text[nextLineEnd] != '\n' {
-		nextLineEnd++
-	}
-	nextLen := utf8.RuneCountInString(text[nextLineStart:nextLineEnd])
-	// Rune index of nextLineStart, walking forward from pos: the rest
-	// of this line, then the '\n'.
-	nextStartRune := pos + utf8.RuneCountInString(text[bytePos:lineEnd]) + 1
-	return nextStartRune + min(col, nextLen)
+	col := utf8.RuneCountInString(text[lineStart:pos])
+	nextStart := lineEnd + 1
+	nextEnd := lineEndAfter(text, nextStart)
+	return nextStart + advanceRunes(text[nextStart:nextEnd], col)
 }
 
 // moveCursorLineStart returns the start of the current line.
 func moveCursorLineStart(text string, pos int) int {
-	bytePos := runeToByteIndex(text, pos)
-	lineStart := bytePos
-	for lineStart > 0 && text[lineStart-1] != '\n' {
-		lineStart--
-	}
-	return pos - utf8.RuneCountInString(text[lineStart:bytePos])
+	return lineStartBefore(text, pos)
 }
 
 // moveCursorLineEnd returns the end of the current line.
 func moveCursorLineEnd(text string, pos int) int {
-	n := len(text)
-	bytePos := runeToByteIndex(text, pos)
-	lineEnd := bytePos
-	for lineEnd < n && text[lineEnd] != '\n' {
-		lineEnd++
-	}
-	return pos + utf8.RuneCountInString(text[bytePos:lineEnd])
+	return lineEndAfter(text, pos)
 }
