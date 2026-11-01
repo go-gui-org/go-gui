@@ -50,13 +50,17 @@ gui.Input(gui.InputCfg{ID: "pin", Keyboard: gui.KeyboardNone}) // app keypad
   send `EventChar` through `ctx.Window.QueueCommand` + `w.EventFn`. See
   `examples/pin_pad`.
 
-## Paste limit
+## Text budget
 
-An `Input` holds at most 65,536 runes. A paste that would take it past that is
-refused whole: the field stays unchanged and the reject cue sounds. The cue is
-silent without a sound player, so set `OnPasteRejected` to tell the user. It
-receives the whole paste, which the app can measure, keep, or show in a view
-built for large text.
+An `Input` holds at most `MaxLength` runes, 1,048,576 when it is unset. An edit
+that would take the field past that is refused whole: the field stays unchanged
+and the reject cue sounds. The cue is silent without a sound player, so set
+`OnPasteRejected` to tell the user about a refused paste. It receives the whole
+paste, which the app can measure, keep, or show elsewhere.
+
+Text the app sets is never cut. Past the budget it shows in full, and the field
+takes only edits that do not grow it: deletes, and replacements no longer than
+the selection. `GOGUI_DEBUG=1` reports such a field once.
 
 ## ID scoping
 

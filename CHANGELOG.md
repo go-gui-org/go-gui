@@ -10,6 +10,14 @@ and this project adheres to
 
 ### Added
 
+- **`InputCfg.MaxLength` sets an `Input`'s rune budget (#1187).** An edit that
+  would take the text past it is refused whole: a typed character or an IME
+  commit sounds the reject cue, and a paste also reaches `OnPasteRejected`. 0
+  takes the default, now 1,048,576 runes. A field built for a short note can set
+  a small budget and say so when a paste is refused; a field for an API response
+  or a log can leave it unset. Text the app sets past the budget is shown in
+  full, and the field takes only edits that do not grow it.
+
 - **Slovak (`sk-SK`) locale (#1209).** Adds Slovak number, date, time, currency
   and user-facing UI string formatting to the built-in locale registry.
 
@@ -46,6 +54,16 @@ and this project adheres to
   appearance and the OS reports a setting, that setting wins on attach.
 
 ### Changed
+
+- **An `Input` holds 1,048,576 runes by default, and app-set text is no longer
+  cut (#1187).** The budget was 65,536 runes, below a typical API response, and
+  text an app set past it was cut silently when the view was built, so the next
+  keystroke committed the cut text. Large text now costs little (chunked layout,
+  byte-indexed edits, delta undo), so the default is sixteen times larger, and
+  app-set text past any budget shows whole. `PreTextChange` and
+  `PostCommitNormalize` output is capped at the field's `MaxLength`. A field
+  larger than 64 KiB gets no platform spell checking (macOS), and its accessible
+  name carries the first 65,536 runes.
 
 - **Hovering the libdecor titlebar no longer redraws the window on Wayland
   (#1203).** On GNOME and other compositors where go-gui draws the frame through

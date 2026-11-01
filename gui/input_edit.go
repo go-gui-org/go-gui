@@ -88,7 +88,6 @@ func editProposedText(text, ins string, is inputState) string {
 	if len(ins) == 0 {
 		return text
 	}
-	ins = truncateToMaxRunes(ins)
 	beg, end, ok := editSpan(text, is)
 	if !ok {
 		return text
@@ -98,12 +97,12 @@ func editProposedText(text, ins string, is inputState) string {
 
 // editInsert inserts ins at the caret, or replaces the selection with it.
 // A negative caret appends. It returns false, and the text unchanged, for an
-// empty insert or a selection outside the text.
+// empty insert or a selection outside the text. The field's budget is the
+// caller's to check (inputEditFits): the core splices what it is given.
 func editInsert(text, ins string, is inputState) (string, inputState, bool) {
 	if len(ins) == 0 {
 		return text, is, false
 	}
-	ins = truncateToMaxRunes(ins)
 	beg, end, ok := editSpan(text, is)
 	if !ok {
 		return text, is, false

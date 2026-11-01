@@ -42,23 +42,23 @@ type InputCfg struct {
 	// proposed), or ("", false) to reject. Undo/redo bypass this
 	// callback by design — if security invariants (max length,
 	// forbidden chars) must be enforced unconditionally, use
-	// OnTextChanged instead. Adjusted text is capped at
-	// inputMaxInsertRunes runes.
+	// OnTextChanged instead. Adjusted text is capped at MaxLength
+	// runes.
 	// exportaudit:keep — caller-facing config (issue #372)
 	PreTextChange func(current, proposed string) (string, bool)
 
 	// PostCommitNormalize transforms the final text before
 	// OnTextCommit fires. Use for trimming whitespace,
 	// normalizing case, or formatting. Returned text is capped at
-	// inputMaxInsertRunes runes.
+	// MaxLength runes.
 	// exportaudit:keep — caller-facing config (issue #372)
 	PostCommitNormalize func(text string, reason InputCommitReason) string
 
 	// OnPasteRejected is called when a paste (Ctrl+V, the context
 	// menu, or the macOS Ctrl+Y yank) leaves the field unchanged: the
-	// result would exceed 65,536 runes (inputMaxInsertRunes), the Mask
-	// has no room for it, or PreTextChange refused it. The rune budget
-	// is checked first, so PreTextChange never sees an oversize paste.
+	// result would exceed MaxLength runes, the Mask has no room for
+	// it, or PreTextChange refused it. The rune budget is checked
+	// first, so PreTextChange never sees an oversize paste.
 	// text is the whole paste, before any cap, so the app can report
 	// its size or keep it. The field's reject cue sounds either way.
 	// ctx.Event is nil.
@@ -68,6 +68,16 @@ type InputCfg struct {
 	ID          string `gui:"auto"`
 	Text        string
 	Placeholder string
+
+	// MaxLength caps the field's text in runes; 0 takes the default,
+	// 1,048,576 runes. An edit that would take the text past it is
+	// refused whole: a typed character or an IME commit sounds the
+	// reject cue, and a paste also calls OnPasteRejected. Text the app
+	// sets is never cut: past the budget it shows in full, and the
+	// field takes only edits that do not grow it. The budget is what
+	// one edit costs, a copy of the text, not a display limit.
+	// exportaudit:keep — caller-facing config (issue #1187)
+	MaxLength int
 
 	// Mask restricts input to a pattern (e.g. date, phone, SSN).
 	// Use with MaskPreset for built-in masks or MaskTokens for
@@ -263,6 +273,7 @@ func Input(cfg InputCfg) View {
 		preTextChange:       cfg.PreTextChange,
 		postCommitNormalize: cfg.PostCommitNormalize,
 		onPasteRejected:     cfg.OnPasteRejected,
+		maxRunes:            cfg.MaxLength,
 		cues: resolveSoundCues(
 			guiTheme.Sounds.Click, cfg.Sound, cfg.SoundDisabled),
 	}
@@ -472,6 +483,8 @@ type inputHandlerCfg struct {
 	preTextChange       func(current, proposed string) (string, bool)
 	postCommitNormalize func(text string, reason InputCommitReason) string
 	onPasteRejected     func(text string, ctx EventCtx)
+	// maxRunes is InputCfg.MaxLength as given; budget resolves it.
+	maxRunes int
 	// cues are resolved at generation time and travel by value:
 	// act sounds an Enter commit, reject sounds a refused keystroke.
 	// Neither path reaches event dispatch, so neither can read a cue
@@ -485,6 +498,11 @@ type inputHandlerCfg struct {
 	ReadOnly   bool
 	Mode       inputMode
 	MaskPreset InputMaskPreset
+}
+
+// budget returns the field's rune budget: MaxLength, or the default.
+func (h *inputHandlerCfg) budget() int {
+	return inputBudget(h.maxRunes)
 }
 
 // fireTextChanged notifies the caller that the text changed. Every
@@ -549,7 +567,27 @@ func (h *inputHandlerCfg) normalizeOnCommit(
 	if h.ReadOnly || h.postCommitNormalize == nil {
 		return text
 	}
-	return capCallbackText(h.postCommitNormalize(text, reason))
+	return capCallbackText(h.postCommitNormalize(text, reason), h.budget())
+}
+
+// inputWarnOverBudget reports, once per field, app-set text past the
+// field's budget. It shows in full, but the field refuses every edit
+// that would grow it, which to a user reads as a keyboard that stopped
+// working.
+func inputWarnOverBudget(h *inputHandlerCfg, layout *Layout, w *Window) {
+	text := inputTextFromLayout(layout)
+	maxRunes := h.budget()
+	if len(text) <= maxRunes {
+		return // byte length bounds rune count from above
+	}
+	n := utf8RuneCount(text)
+	if n <= maxRunes {
+		return
+	}
+	w.debugWarn(debugCheckTextOverBudget, layout.Shape.idKey(),
+		"input %q holds %d runes, past its MaxLength of %d; "+
+			"edits that would grow it are refused",
+		layout.Shape.idKey(), n, maxRunes)
 }
 
 // compiledMask returns a non-nil *CompiledInputMask if the
@@ -620,6 +658,11 @@ func inputAmendLayout(
 			ctx.Layout.Shape.events.OnMouseScroll = onMouseScroll
 		}
 		inputApplyScrollX(*hcfg, ctx.Layout, ctx.Window)
+		// Gated here, not only inside debugWarn: the check counts the
+		// text's runes, and the field is amended every frame.
+		if DebugCategory(debugMask.Load())&DebugGlyphLayoutFallback != 0 {
+			inputWarnOverBudget(hcfg, ctx.Layout, ctx.Window)
+		}
 		if !ctx.Layout.Shape.Focusable || ctx.Layout.Shape.ID == "" {
 			return
 		}

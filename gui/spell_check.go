@@ -10,6 +10,11 @@ type spellCheckState struct {
 
 const spellCheckDelay = 300 * time.Millisecond
 
+// spellCheckMaxBytes bounds the text a field hands the platform spell
+// checker. Each change re-checks the whole text, which past this size
+// costs more than the underlines are worth; a larger field has none.
+const spellCheckMaxBytes = 64 << 10
+
 func spellCheckAnimID(focusID string) string {
 	return ScopeID("spell-check", focusID)
 }
@@ -19,6 +24,10 @@ func spellCheckAnimID(focusID string) string {
 // from AmendLayout (under w.mu).
 func spellCheckTrigger(focusID string, text string, w *Window) {
 	if w.nativePlatform == nil {
+		return
+	}
+	if len(text) > spellCheckMaxBytes {
+		spellCheckClear(focusID, w)
 		return
 	}
 	sm := StateMap[string, spellCheckState](

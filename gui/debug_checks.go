@@ -84,10 +84,10 @@ const (
 	// approximate metrics with degraded caret, selection and delete
 	// precision.
 	debugCheckGlyphLayoutFallback
-	// debugCheckTextTruncated fires from textView.GenerateLayout when
-	// app-supplied input text exceeds the rune budget and is
-	// truncated to it, so the frame never shapes unbounded content.
-	debugCheckTextTruncated
+	// debugCheckTextOverBudget fires from inputAmendLayout when an
+	// input's app-set text is past its MaxLength: it shows in full, but
+	// every edit that would grow it is refused.
+	debugCheckTextOverBudget
 	// debugCheckLayoutInvariant fires from layoutPipeline when the
 	// arranged tree breaks one of the sizing rules in
 	// docs/specs/layout-sizing-rules.md — a child outside a
@@ -158,7 +158,7 @@ func checkCategory(check debugCheck) DebugCategory {
 		return DebugStampDrift
 	case debugCheckUnknownFocus:
 		return DebugUnknownFocus
-	case debugCheckGlyphLayoutFallback, debugCheckTextTruncated:
+	case debugCheckGlyphLayoutFallback, debugCheckTextOverBudget:
 		return DebugGlyphLayoutFallback
 	case debugCheckLayoutInvariant:
 		return DebugLayoutInvariants

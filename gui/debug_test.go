@@ -285,7 +285,7 @@ func TestCheckCategoryMapping(t *testing.T) {
 		{debugCheckStampDrift, DebugStampDrift},
 		{debugCheckUnknownFocus, DebugUnknownFocus},
 		{debugCheckGlyphLayoutFallback, DebugGlyphLayoutFallback},
-		{debugCheckTextTruncated, DebugGlyphLayoutFallback},
+		{debugCheckTextOverBudget, DebugGlyphLayoutFallback},
 		{debugCheckLayoutInvariant, DebugLayoutInvariants},
 		{debugCheckFixedSizing, DebugSizing},
 		{debugCheckLowContrast, DebugLowContrast},

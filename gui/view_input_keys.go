@@ -201,7 +201,7 @@ func inputKeyPaste(
 	// before any []rune conversion downstream: clipboard content is
 	// platform-sized, not app-sized. Inserting a prefix instead cut
 	// structured text (JSON, CSV) mid-document with no sign (#1187).
-	if !inputPasteFits(text, clip, inputStateOrDefault(id, w)) {
+	if !inputEditFits(text, clip, inputStateOrDefault(id, w), hcfg.budget()) {
 		hcfg.rejectPaste(clip, layout, w)
 		return text, false
 	}
@@ -237,7 +237,7 @@ func inputKeyPaste(
 		if adjusted == proposed {
 			return inputInsert(text, clip, id, w), true
 		}
-		adjusted = capCallbackText(adjusted)
+		adjusted = capCallbackText(adjusted, hcfg.budget())
 		inputSetTextAndCursorAtEnd(text, adjusted, id, w)
 		return adjusted, true
 	}

@@ -62,6 +62,7 @@ token definitions).
 | ----------- | --------------- | ------------------------------------- |
 | Text        | string          | Current text value                    |
 | Placeholder | string          | Hint text shown when empty            |
+| MaxLength   | int             | Rune budget; 0 means 1,048,576        |
 | IsPassword  | bool            | Mask characters for password entry    |
 | Keyboard    | KeyboardKind    | Soft-keyboard layout on touch devices |
 | Mode        | InputMode       | InputSingleLine or InputMultiline     |
@@ -99,6 +100,11 @@ token definitions).
 | PreTextChange       | func(current, proposed string) (string, bool) | Validate/transform before change |
 | PostCommitNormalize | func(text string, InputCommitReason) string   | Normalize text on commit         |
 | OnPasteRejected     | func(text string, EventCtx)                   | A paste is refused (whole text)  |
+
+An edit that would take the text past `MaxLength` is refused whole, and a
+refused paste reaches `OnPasteRejected`. Text the app sets past the budget shows
+in full; the field then takes only edits that do not grow it. Large text costs
+little: only the lines in view are laid out.
 
 ## Accessibility
 

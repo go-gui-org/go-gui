@@ -7,7 +7,25 @@ import (
 	"github.com/go-gui-org/go-glyph"
 )
 
-const inputMaxInsertRunes = 65_536
+// inputMaxRunesDefault is the rune budget of a field that leaves
+// InputCfg.MaxLength unset (#1187): 1,048,576 runes, a few megabytes of
+// text. An edit that would take the field past its budget is refused
+// whole. The bound exists because every edit copies the text once.
+const inputMaxRunesDefault = 1 << 20
+
+// inputA11YLabelRunes bounds the accessible name an input's text gives
+// its inner text shape. A screen reader is handed a prefix of a large
+// field, not megabytes on every tree sync.
+const inputA11YLabelRunes = 65_536
+
+// inputBudget resolves InputCfg.MaxLength: a positive value is the
+// budget, anything else the default.
+func inputBudget(maxLength int) int {
+	if maxLength > 0 {
+		return maxLength
+	}
+	return inputMaxRunesDefault
+}
 
 // inputState manages the caret, selection and undo history of an input
 // field. Stored in the StateRegistry keyed by the field's effective ID.
@@ -252,50 +270,51 @@ func isMultiRuneInsert(s string) bool {
 	return false
 }
 
-// truncateToMaxRunes caps s at inputMaxInsertRunes runes without
-// converting the whole string to []rune first. Callers pass
-// unbounded input (clipboard, app callbacks); the conversion alone
-// would allocate for all of it before any cap applies.
-func truncateToMaxRunes(s string) string {
-	if len(s) <= inputMaxInsertRunes {
+// truncateRunes caps s at maxRunes runes without converting the whole
+// string to []rune first: it counts only as far as the cap.
+func truncateRunes(s string, maxRunes int) string {
+	if len(s) <= maxRunes {
 		return s // byte length bounds rune count from above
 	}
 	// runeToByteIndex stops at len(s), so a string with fewer runes
-	// than the budget slices to itself.
-	return s[:runeToByteIndex(s, inputMaxInsertRunes)]
+	// than the cap slices to itself.
+	return s[:runeToByteIndex(s, maxRunes)]
 }
 
-// inputPasteFits reports whether inserting clip at the caret, or over
-// the selection, keeps text within inputMaxInsertRunes runes. A paste
-// that does not fit is refused whole rather than cut (#1187).
-func inputPasteFits(text, clip string, is inputState) bool {
-	if len(text)+len(clip) <= inputMaxInsertRunes {
+// inputEditFits reports whether inserting ins at the caret, or over the
+// selection, keeps text within maxRunes runes. An edit that does not fit
+// is refused whole rather than cut (#1187). An edit that does not grow
+// the text always fits, so a field holding app-set text past its budget
+// still takes deletes and replacements by text no longer than the
+// selection.
+func inputEditFits(text, ins string, is inputState, maxRunes int) bool {
+	beg, end, ok := editSpan(text, is)
+	if !ok {
+		return true // the edit core refuses it; nothing grows
+	}
+	if len(text)-(end-beg)+len(ins) <= maxRunes {
 		return true // byte length bounds rune count from above
 	}
-	// truncateToMaxRunes stops counting at the budget, so an oversize
+	removed := utf8RuneCount(text[beg:end])
+	// Count the insert only as far as could ever fit, so an oversize
 	// clipboard is refused without scanning all of it.
-	if len(truncateToMaxRunes(clip)) < len(clip) {
+	limit := maxRunes + removed
+	if len(truncateRunes(ins, limit)) < len(ins) {
 		return false
 	}
-	n := utf8RuneCount(text) + utf8RuneCount(clip)
-	if is.selectBeg != is.selectEnd {
-		beg, end := u32Sort(is.selectBeg, is.selectEnd)
-		b := min(int(beg), len(text))
-		e := min(int(end), len(text))
-		if b < e {
-			n -= utf8RuneCount(text[b:e])
-		}
+	added := utf8RuneCount(ins)
+	if added <= removed {
+		return true
 	}
-	return n <= inputMaxInsertRunes
+	return utf8RuneCount(text)-removed+added <= maxRunes
 }
 
 // capCallbackText bounds text an app callback returns (PreTextChange
-// adjusted, PostCommitNormalize output). The callback is trusted code
-// but not size-checked code: without a bound one runaway return pins
-// unbounded memory in per-window state. inputMaxInsertRunes is the
-// same budget keystroke inserts get.
-func capCallbackText(s string) string {
-	return truncateToMaxRunes(s)
+// adjusted, PostCommitNormalize output) at the field's budget. The
+// callback is trusted code but not size-checked code: without a bound
+// one runaway return pins unbounded memory in per-window state.
+func capCallbackText(s string, maxRunes int) string {
+	return truncateRunes(s, maxRunes)
 }
 
 // inputSetTextAndCursorAtEnd pushes undo and places cursor at end
