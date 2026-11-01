@@ -63,7 +63,9 @@
     "submit": "Potvrdiť",
     "value": "Hodnota",
     "vertical_scrollbar": "Vertikálny posuvník",
-    "yes": "Áno"
+    "yes": "Áno",
+    "lightness": "Svetlosť",
+    "source_changed": "Zdroj sa zmenil"
   },
   "weekdays_short": [
     "Ne",
