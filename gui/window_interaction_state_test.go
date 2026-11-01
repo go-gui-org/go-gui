@@ -593,3 +593,41 @@ func TestLiftedFromTarget(t *testing.T) {
 		t.Fatalf("cycle: got %q, want \"\"", got)
 	}
 }
+
+// fixupPopupMaps runs every layout frame. With entries for live fields
+// it must not allocate. Keys did once a map held three entries, past
+// the size the compiler keeps on the stack; Combobox keeps a closed
+// entry per field it ever opened, so its map gets there.
+func TestFixupPopupMapsOpenNoAlloc(t *testing.T) {
+	w := NewTestWindow(t, WindowCfg{})
+	w.TestRender(inputDateBlurView)
+	for _, ns := range []string{nsSelect, nsCombobox, nsInputDate} {
+		sm := StateMap[string, bool](w, ns, capModerate)
+		for _, id := range []string{"name", "from", "to"} {
+			sm.Set(id, true)
+		}
+	}
+
+	if n := testing.AllocsPerRun(100, func() { fixupPopupMaps(w) }); n != 0 {
+		t.Errorf("allocs per frame = %v, want 0", n)
+	}
+}
+
+// A field that left the tree loses its popup entry; a live field
+// keeps it. Several dead fields in one map all go in one call.
+func TestFixupPopupMapsDropsDeadFields(t *testing.T) {
+	w := NewTestWindow(t, WindowCfg{})
+	w.TestRender(inputDateBlurView)
+	sm := StateMap[string, bool](w, nsInputDate, capModerate)
+	sm.Set("gone1", true)
+	sm.Set("from", true)
+	sm.Set("gone2", true)
+
+	fixupPopupMaps(w)
+	if sm.Contains("gone1") || sm.Contains("gone2") {
+		t.Error("dead field kept its popup entry")
+	}
+	if !sm.Contains("from") {
+		t.Error("live field lost its popup entry")
+	}
+}

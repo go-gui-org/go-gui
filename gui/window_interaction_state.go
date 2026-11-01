@@ -388,17 +388,31 @@ func (w *Window) fixupInteractionLocked() {
 // fixupPopupMaps closes popups whose field left the tree or went
 // disabled. Whole-map clearing is wrong here: one dead field must
 // not close its siblings' popups.
+//
+// Runs every layout frame. A Range walk finds a dead field without the
+// slice Keys allocates, so a frame with a popup open allocates nothing.
+// Range forbids Delete inside the walk, so each dead field is deleted
+// after its own walk; dead fields are rare, and a frame without one
+// walks once.
 func fixupPopupMaps(w *Window) {
-	for _, ns := range []string{nsSelect, nsCombobox} {
+	for _, ns := range []string{nsSelect, nsCombobox, nsInputDate} {
 		sm := StateMapRead[string, bool](w, ns)
 		if sm == nil || sm.Len() == 0 {
 			continue
 		}
-		for _, id := range sm.Keys() {
-			ly, ok := w.layout.findByID(id)
-			if !ok || ly.Shape.Disabled {
-				sm.Delete(id)
+		for {
+			dead := ""
+			sm.Range(func(id string, _ bool) bool {
+				if ly, ok := w.layout.findByID(id); !ok || ly.Shape.Disabled {
+					dead = id
+					return false
+				}
+				return true
+			})
+			if dead == "" {
+				break
 			}
+			sm.Delete(dead)
 		}
 	}
 }

@@ -202,7 +202,7 @@ func (dv *datePickerView) GenerateLayout(w *Window) Layout {
 		Content:     content,
 		AmendLayout: focusRingAmend(Color{}, cfg.Colors.BorderFocus),
 		OnClick: func(ctx EventCtx) {
-			if !cfg.Disabled {
+			if !cfg.Disabled && !cfg.FocusDisabled {
 				ctx.Window.SetFocus(cfg.ID)
 			}
 		},
@@ -264,7 +264,12 @@ func datePickerControls(
 		activeLocaleShared().Date.MonthYear,
 	)
 
+	// A FocusDisabled picker takes no focus: the handlers below skip
+	// their SetFocus on an empty focusID (#1212).
 	focusID := cfg.ID
+	if cfg.FocusDisabled {
+		focusID = ""
+	}
 	onToggle := func(ctx EventCtx) {
 		sm := StateMap[string, datePickerState](ctx.Window, nsDatePicker, capModerate)
 		s, ok := sm.Get(cfgID)
@@ -300,9 +305,10 @@ func datePickerControls(
 		Button(ButtonCfg{
 			// Namespaced by the picker's ID so two date pickers in
 			// one window keep separate focus and state identities.
-			ID:      ScopeID(cfgID, "month"),
-			Variant: ButtonGhost,
-			OnClick: onToggle,
+			ID:            ScopeID(cfgID, "month"),
+			FocusDisabled: cfg.FocusDisabled,
+			Variant:       ButtonGhost,
+			OnClick:       onToggle,
 			Content: []View{Text(TextCfg{
 				Text: monthLabel, TextStyle: cfg.TextStyle,
 			})},
@@ -318,10 +324,11 @@ func datePickerControls(
 		header = append(header, Button(ButtonCfg{
 			// Namespaced by the picker's ID, next to the
 			// roller it dismisses.
-			ID:      ScopeID(cfgID, "done"),
-			Variant: ButtonGhost,
+			ID:            ScopeID(cfgID, "done"),
+			FocusDisabled: cfg.FocusDisabled,
+			Variant:       ButtonGhost,
 			OnClick: func(ctx EventCtx) {
-				datePickerRollerDismiss(cfgID, ctx.Window)
+				datePickerRollerDismissFor(cfg, ctx.Window)
 				ctx.Consume()
 			},
 			Content: []View{Text(TextCfg{
@@ -332,18 +339,20 @@ func datePickerControls(
 	} else {
 		header = append(header,
 			Button(ButtonCfg{
-				ID:      ScopeID(cfgID, "prev"),
-				Variant: ButtonGhost,
-				OnClick: onPrev,
+				ID:            ScopeID(cfgID, "prev"),
+				FocusDisabled: cfg.FocusDisabled,
+				Variant:       ButtonGhost,
+				OnClick:       onPrev,
 				Content: []View{Text(TextCfg{
 					Text:      IconArrowLeft,
 					TextStyle: CurrentTheme().TextStyleIconMedium,
 				})},
 			}),
 			Button(ButtonCfg{
-				ID:      ScopeID(cfgID, "next"),
-				Variant: ButtonGhost,
-				OnClick: onNext,
+				ID:            ScopeID(cfgID, "next"),
+				FocusDisabled: cfg.FocusDisabled,
+				Variant:       ButtonGhost,
+				OnClick:       onNext,
 				Content: []View{Text(TextCfg{
 					Text:      IconArrowRight,
 					TextStyle: CurrentTheme().TextStyleIconMedium,

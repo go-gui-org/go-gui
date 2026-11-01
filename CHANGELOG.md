@@ -145,6 +145,43 @@ and this project adheres to
 
 ### Fixed
 
+- **An open `InputDate` calendar now closes when focus leaves the field
+  (#1212).** Before, it closed only on a picked date, a second click on the
+  calendar button, or Esc. Opening a second date field's calendar left the first
+  one open under it, and a press on an `Input` or on empty space left it open
+  over the form. The click-outside backdrop covers only the field, so it never
+  saw those presses. The calendar now closes like an open `Select` or `Combobox`
+  list (#1181, #1150). Focus on the field's own parts (its text field, the
+  calendar button, the picker's buttons) keeps it open, and a `FocusDisabled`
+  field skips the check. A press outside the field closes the calendar too, even
+  when the press moves no focus out of it: a press on an `Input` beside a
+  `FocusDisabled` field, or on a `FocusDisabled` button beside any field.
+  Opening the calendar now also focuses its button, so a screen reader's press
+  opens a calendar that stays open. A press on the calendar button of a
+  `FocusDisabled` field now also counts as handled.
+
+  Only one calendar is open at a time: opening one closes any other. A
+  `FocusDisabled` field never takes focus, so the focus check alone could not
+  close the calendar it opens over. A press that no widget handles, the window
+  losing focus, a modal dialog opening, or the field leaving the view or going
+  disabled closes it, as for a `Select` list. Esc now closes it wherever focus
+  sits in the field and puts focus back on the calendar button. Before, only the
+  text field reacted to Esc, and a click on the calendar button or in the picker
+  left focus elsewhere. With the month and year roller showing, the first Esc
+  closes only the roller. Picking a date with the pointer clears focus. Before,
+  focus fell to the first focusable widget in the window, because the picked day
+  button went away with the calendar. A keyboard or screen-reader pick returns
+  focus to the calendar button. A calendar closed while its month and year
+  roller is up reopens on the day grid. A `FocusDisabled` field's calendar takes
+  no focus either, and a pick there leaves focus where it was, as in a
+  `FocusDisabled` `Select`.
+
+- **A `FocusDisabled` `DatePicker` takes no focus anywhere (#1212).** Only the
+  grid opted out. Its month, arrow, done and day buttons still took focus and
+  were tab stops, and a press on an arrow or the month focused the grid, which
+  cannot hold it, so focus jumped to the first focusable widget in the window.
+  Now the whole picker opts out, and its presses leave focus where it was.
+
 - **A Wayland window with a libdecor frame no longer quits on its own (#1194).**
   On a compositor that leaves the frame to the client (GNOME, weston), the event
   loop sometimes ended after logging `gl: wayland: libdecor_dispatch: -4`, with

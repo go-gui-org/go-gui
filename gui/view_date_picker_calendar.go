@@ -47,7 +47,7 @@ func datePickerBody(
 			ctx.Layout.Shape.Height = ctx.Layout.Parent.Shape.Height
 		},
 		OnClick: func(ctx EventCtx) {
-			datePickerRollerDismiss(cfgID, ctx.Window)
+			datePickerRollerDismissFor(cfg, ctx.Window)
 			ctx.Consume()
 		},
 	}))
@@ -225,6 +225,10 @@ func datePickerMonth(
 				cfg.Sound, cfg.SoundDisabled)
 			cells = append(cells, Button(ButtonCfg{
 				ID: ScopeIDN(cfg.ID, "day", d),
+				// A FocusDisabled picker opts out as a whole: a day
+				// that took focus would hold it inside a control that
+				// declined it (#1212).
+				FocusDisabled: cfg.FocusDisabled,
 				// Picking a day is choosing one of a month's worth,
 				// so the selection role rather than Button's own
 				// click default. SoundDisabled goes through too: a
@@ -260,7 +264,7 @@ func datePickerMonth(
 					// is inert: a press that reaches a day dismisses
 					// instead of selecting, on every dispatch path.
 					if s.ShowYearMonthPicker {
-						datePickerRollerDismiss(cfgID, ctx.Window)
+						datePickerRollerDismissFor(cfg, ctx.Window)
 						ctx.Consume()
 						return
 					}
@@ -334,7 +338,8 @@ func datePickerAdjacentCell(
 		cfg.Sound, cfg.SoundDisabled)
 
 	return Button(ButtonCfg{
-		ID: ScopeIDN(ScopeID(cfg.ID, "day", idSuffix), "", adjDay),
+		ID:            ScopeIDN(ScopeID(cfg.ID, "day", idSuffix), "", adjDay),
+		FocusDisabled: cfg.FocusDisabled,
 		// Digits, like the in-month cells beside it, and it has to sit
 		// level with them.
 		opticalDigitLabel: true,
@@ -362,7 +367,7 @@ func datePickerAdjacentCell(
 			// grid is inert, so dismiss instead of navigating and
 			// selecting.
 			if datePickerRollerOpen(cfgID, ctx.Window) {
-				datePickerRollerDismiss(cfgID, ctx.Window)
+				datePickerRollerDismissFor(cfg, ctx.Window)
 				ctx.Consume()
 				return
 			}
@@ -432,17 +437,36 @@ func datePickerRollerOpen(cfgID string, w *Window) bool {
 // datePickerRollerDismiss closes the month/year roller, returning
 // focus to the picker so keyboard navigation continues there.
 func datePickerRollerDismiss(cfgID string, w *Window) {
+	if datePickerRollerHide(cfgID, w) && cfgID != "" {
+		w.SetFocus(cfgID)
+	}
+}
+
+// datePickerRollerDismissFor dismisses the roller of the picker cfg
+// describes. A FocusDisabled picker takes no focus, so the roller only
+// hides: focusing the picker would park focus on a shape that cannot
+// hold it, and the window's focus repair would move it to the first
+// tab stop (#1212).
+func datePickerRollerDismissFor(cfg *DatePickerCfg, w *Window) {
+	if cfg.FocusDisabled {
+		datePickerRollerHide(cfg.ID, w)
+		return
+	}
+	datePickerRollerDismiss(cfg.ID, w)
+}
+
+// datePickerRollerHide closes the year/month roller without touching
+// focus. It reports whether the picker had state to change.
+func datePickerRollerHide(cfgID string, w *Window) bool {
 	sm := StateMap[string, datePickerState](w, nsDatePicker, capModerate)
 	s, ok := sm.Get(cfgID)
 	if !ok {
-		return
+		return false
 	}
 	s.ShowYearMonthPicker = false
 	sm.Set(cfgID, s)
-	if cfgID != "" {
-		w.SetFocus(cfgID)
-	}
 	w.InvalidateLayout()
+	return true
 }
 
 // datePickerRollerKeyDown handles keyboard for the embedded
