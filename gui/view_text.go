@@ -1,5 +1,7 @@
 package gui
 
+import "github.com/go-gui-org/go-glyph"
+
 // TextCfg configures a text view. Use for labels, headings, or
 // multiline text blocks. Set Focusable to enable text selection
 // and clipboard copy.
@@ -188,7 +190,14 @@ func (tv *textView) GenerateLayout(w *Window) Layout {
 	if c.IsPassword {
 		measured = maskPassword(measured)
 	}
-	layout.Shape.Width = w.TextWidth(measured, *ts)
+	if len(measured) > glyph.MaxTextLength {
+		// The shaper refuses to measure this much at once, and would
+		// hash all of it to say so. The sizing pass takes the exact
+		// width from the chunked layout (layoutPlainText).
+		layout.Shape.Width = textWidthEstimate(measured, *ts, w)
+	} else {
+		layout.Shape.Width = w.TextWidth(measured, *ts)
+	}
 	if w.textMeasurer != nil {
 		layout.Shape.Height = w.textMeasurer.FontHeight(*ts)
 	} else {

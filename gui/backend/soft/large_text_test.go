@@ -1,0 +1,102 @@
+//go:build !wasm
+
+package soft
+
+import (
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/go-gui-org/go-glyph"
+	"github.com/go-gui-org/go-gui/gui"
+)
+
+// Issue #1190: a Text or Input whose text is longer than go-glyph's
+// per-layout budget (MaxTextLength, 10,240 bytes) drew nothing. The text
+// is now shaped in chunks, so every case the issue tabulated paints.
+
+var (
+	// overBudget is the issue's repro text: 257 lines of 39 x's, cut one
+	// byte past the budget.
+	overBudget = strings.Repeat(strings.Repeat("x", 39)+"\n", 257)[:glyph.MaxTextLength+1]
+	// oneLongLine is a minified-JSON-like response with no line break,
+	// the shape of the paste the issue came from.
+	oneLongLine = strings.Repeat(`{"id":17,"ok":true,"name":"response"},`, 2500)
+)
+
+func TestRenderTextOverGlyphBudgetDraws(t *testing.T) {
+	white := gui.TextStyle{Size: 16, Color: gui.RGB(255, 255, 255)}
+	cases := []struct {
+		name string
+		view func(*gui.Window) gui.View
+	}{
+		{"text multiline", func(*gui.Window) gui.View {
+			return gui.Column(gui.ContainerCfg{Sizing: gui.FillFill, SizeBorder: gui.NoBorder, Content: []gui.View{
+				gui.Text(gui.TextCfg{Text: overBudget, Mode: gui.TextModeMultiline, TextStyle: white}),
+			}})
+		}},
+		{"text wrap one long line", func(*gui.Window) gui.View {
+			return gui.Column(gui.ContainerCfg{Sizing: gui.FillFill, SizeBorder: gui.NoBorder, Content: []gui.View{
+				gui.Text(gui.TextCfg{Text: oneLongLine, Mode: gui.TextModeWrap, TextStyle: white}),
+			}})
+		}},
+		{"input single line", func(*gui.Window) gui.View {
+			return gui.Column(gui.ContainerCfg{Sizing: gui.FillFill, SizeBorder: gui.NoBorder, Content: []gui.View{
+				gui.Input(gui.InputCfg{ID: "f", Text: strings.Repeat("x", glyph.MaxTextLength+1), TextStyle: white}),
+			}})
+		}},
+		{"input multiline scrollable", func(*gui.Window) gui.View {
+			return gui.Column(gui.ContainerCfg{Sizing: gui.FillFill, SizeBorder: gui.NoBorder, Content: []gui.View{
+				gui.Input(gui.InputCfg{
+					ID: "f", Text: overBudget, Mode: gui.InputMultiline, Scrollable: true,
+					Sizing: gui.FillFixed, Height: 200, TextStyle: white,
+				}),
+			}})
+		}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			win := newWin(t, 400, 300, tc.view)
+			img, err := RenderToImage(win, 1)
+			if err != nil {
+				t.Fatalf("RenderToImage: %v", err)
+			}
+			lit := countLitPixels(img)
+			if lit == 0 {
+				t.Fatal("no text pixels rendered")
+			}
+			t.Logf("lit pixels: %d", lit)
+		})
+	}
+}
+
+// TestRenderLargeTextRebuildIsCheap is the spike's exit criterion: once
+// the block is shaped, a rebuild of a 100 KB wrapped text re-shapes
+// nothing, so a frame costs what its visible lines cost to rasterize.
+func TestRenderLargeTextRebuildIsCheap(t *testing.T) {
+	text := strings.Repeat("the quick brown fox jumps over the lazy dog ", 2300) // ~100 KB, one paragraph
+	win := newWin(t, 600, 400, func(*gui.Window) gui.View {
+		return gui.Column(gui.ContainerCfg{Sizing: gui.FillFill, SizeBorder: gui.NoBorder, Scrollable: true, ID: "scroll", Content: []gui.View{
+			gui.Text(gui.TextCfg{ID: "big", Text: text, Mode: gui.TextModeWrap,
+				TextStyle: gui.TextStyle{Size: 16, Color: gui.RGB(255, 255, 255)}}),
+		}})
+	})
+	first := time.Now()
+	if _, err := RenderToImage(win, 1); err != nil {
+		t.Fatalf("first render: %v", err)
+	}
+	warm := time.Since(first)
+	const frames = 10
+	start := time.Now()
+	for range frames {
+		win.InvalidateLayout()
+		if _, err := RenderToImage(win, 1); err != nil {
+			t.Fatalf("render: %v", err)
+		}
+	}
+	per := time.Since(start) / frames
+	t.Logf("first frame %v, then %v per rebuilt frame", warm, per)
+	if per > 50*time.Millisecond {
+		t.Errorf("a rebuilt frame of a 100 KB text took %v", per)
+	}
+}

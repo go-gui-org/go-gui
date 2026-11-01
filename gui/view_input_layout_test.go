@@ -13,15 +13,12 @@ func inputLayoutWithText(t *testing.T, text string, gl *glyph.Layout) *Layout {
 	t.Helper()
 	style := DefaultTextStyle
 	tc := &ShapeTextConfig{
-		Text:            text,
-		TextStyle:       &style,
-		TextMode:        TextModeSingleLine,
-		textLayout:      gl,
-		textLayoutText:  text,
-		textLayoutStyle: style,
-		textLayoutMode:  TextModeSingleLine,
-		textLayoutValid: gl != nil,
-		textLayoutWidth: 0,
+		Text:      text,
+		TextStyle: &style,
+		TextMode:  TextModeSingleLine,
+	}
+	if gl != nil {
+		tc.block = newTextBlockFromLayout(text, gl, 0, style, TextModeSingleLine, nil)
 	}
 	txt := &Shape{TC: tc}
 	return &Layout{Children: []Layout{{
@@ -85,46 +82,53 @@ func TestInputGlyphLayoutWithText(t *testing.T) {
 	gl := &glyph.Layout{Height: 20}
 	l := inputLayoutWithText(t, "hello", gl)
 	got, ok := inputGlyphLayoutWithText("hello", l, w)
-	if !ok || got.Height != 20 {
-		t.Fatalf("cached layout = (%v, %v), want height 20, ok", got.Height, ok)
+	if !ok || got.height != 20 {
+		t.Fatalf("cached layout = (%v, %v), want height 20, ok", got.height, ok)
 	}
 }
 
+// trailingBlock wraps a layout of the given soft-wrapped lines as a
+// block, for the trailing-caret queries.
+func trailingBlock(text string, lines []glyph.Line) *textBlock {
+	return newTextBlockFromLayout(text, &glyph.Layout{Lines: lines}, 100,
+		DefaultTextStyle, TextModeWrap, nil)
+}
+
 func TestTrailingLineStart(t *testing.T) {
-	lines := []glyph.Line{
+	b := trailingBlock("aaaaabbbbccc", []glyph.Line{
 		{StartIndex: 0, Length: 5},
 		{StartIndex: 5, Length: 4},
 		{StartIndex: 9, Length: 3},
-	}
+	})
 	// At the boundary of line 2 → start of line 1.
-	if got := trailingLineStart(lines, 5, -1); got != 0 {
+	if got := b.trailingLineStart(5, -1); got != 0 {
 		t.Fatalf("trailingLineStart(5) = %d, want 0", got)
 	}
 	// At the boundary of line 3 → start of line 2.
-	if got := trailingLineStart(lines, 9, -1); got != 5 {
+	if got := b.trailingLineStart(9, -1); got != 5 {
 		t.Fatalf("trailingLineStart(9) = %d, want 5", got)
 	}
 	// Not a boundary → fallback.
-	if got := trailingLineStart(lines, 7, 42); got != 42 {
+	if got := b.trailingLineStart(7, 42); got != 42 {
 		t.Fatalf("trailingLineStart(7) = %d, want fallback 42", got)
 	}
 	// Cursor at line 1 start is not a wrap boundary.
-	if got := trailingLineStart(lines, 0, -1); got != -1 {
+	if got := b.trailingLineStart(0, -1); got != -1 {
 		t.Fatalf("trailingLineStart(0) = %d, want fallback -1", got)
 	}
 }
 
 func TestTrailingLineEnd(t *testing.T) {
-	lines := []glyph.Line{
+	b := trailingBlock("aaaaabbbb", []glyph.Line{
 		{StartIndex: 0, Length: 5},
 		{StartIndex: 5, Length: 4},
-	}
+	})
 	// End of the previous visual line = start + length.
-	if got := trailingLineEnd(lines, 5, -1); got != 5 {
+	if got := b.trailingLineEnd(5, -1); got != 5 {
 		t.Fatalf("trailingLineEnd(5) = %d, want 5", got)
 	}
 	// Not a boundary → fallback.
-	if got := trailingLineEnd(lines, 3, 99); got != 99 {
+	if got := b.trailingLineEnd(3, 99); got != 99 {
 		t.Fatalf("trailingLineEnd(3) = %d, want fallback 99", got)
 	}
 }
@@ -292,7 +296,8 @@ func TestInputDragStateComputeRunePos(t *testing.T) {
 	w := newTestWindow()
 
 	// No scroll: y=0 lands on the first line.
-	d0 := &inputDragState{displayText: text, gl: *gl}
+	d0 := &inputDragState{displayText: text,
+		gl: newTextBlockFromLayout(text, gl, 100, DefaultTextStyle, TextModeWrap, w)}
 	if got := d0.computeRunePos(5, 5, w); got != 0 {
 		t.Fatalf("computeRunePos(5,5) = %d, want 0", got)
 	}
@@ -301,7 +306,7 @@ func TestInputDragStateComputeRunePos(t *testing.T) {
 	// the start of the second line.
 	w.scrollY().Set("inp", -10)
 	d1 := &inputDragState{
-		displayText: text, gl: *gl,
+		displayText: text, gl: newTextBlockFromLayout(text, gl, 100, DefaultTextStyle, TextModeWrap, w),
 		scrollID: "inp", scrollY0: 0,
 	}
 	if got := d1.computeRunePos(5, 0, w); got != 2 {
@@ -373,7 +378,7 @@ func TestInputDragStateScrollCallback(t *testing.T) {
 	// and re-selects from the recomputed rune position.
 	d := &inputDragState{
 		displayText:  text,
-		gl:           *gl,
+		gl:           newTextBlockFromLayout(text, gl, 100, DefaultTextStyle, TextModeWrap, w),
 		focusID:      focusID,
 		lastMouseX:   15,
 		lastMouseY:   5,
@@ -406,7 +411,7 @@ func TestInputDragStateScrollCallback(t *testing.T) {
 	// the clamped target equals the current scroll, so nothing moves.
 	d2 := &inputDragState{
 		displayText:  text,
-		gl:           *gl,
+		gl:           newTextBlockFromLayout(text, gl, 100, DefaultTextStyle, TextModeWrap, w),
 		focusID:      focusID,
 		lastMouseX:   15,
 		lastMouseY:   200,

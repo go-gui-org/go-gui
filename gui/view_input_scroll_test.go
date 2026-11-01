@@ -381,19 +381,22 @@ func TestInputMultilineWrapWidthUnchangedByInkOverflow(t *testing.T) {
 	_, field := arrangeInput(t, w, multilineCfg("in", text))
 
 	txt := inputTextShape(t, field)
-	widthArg := txt.TC.textLayoutWidth
+	if txt.TC.block == nil {
+		t.Fatal("input text has no block")
+	}
+	widthArg := txt.TC.block.widthArg
 	if !floatNear(widthArg, txt.Width, 0.01) {
 		t.Errorf("cached wrap width %v != shape width %v",
 			widthArg, txt.Width)
 	}
 	style := textStyleOrDefault(txt)
-	if _, ok := plainTextLayoutResolved(text, txt, style, w); !ok {
+	if _, ok := plainTextBlock(text, txt, style, w); !ok {
 		t.Fatal("second layout resolve failed")
 	}
-	if !floatNear(txt.TC.textLayoutWidth, widthArg, 0.01) {
+	if !floatNear(txt.TC.block.widthArg, widthArg, 0.01) {
 		t.Errorf("wrap width moved to %v after a re-resolve, want %v: "+
 			"the text would re-wrap every frame",
-			txt.TC.textLayoutWidth, widthArg)
+			txt.TC.block.widthArg, widthArg)
 	}
 }
 
@@ -454,7 +457,7 @@ func TestInputDragAutoScrollHorizontal(t *testing.T) {
 	}
 	d := &inputDragState{
 		displayText: text,
-		gl:          gl,
+		gl:          newTextBlockFromLayout(text, &gl, 0, DefaultTextStyle, TextModeSingleLine, w),
 		focusID:     "f",
 		scrollID:    "inp",
 		lastMouseX:  150, // past viewRight

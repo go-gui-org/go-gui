@@ -100,7 +100,7 @@ func inputOnClick(
 		// (padding, below the last line) resolves to the closest offset.
 		relX := ctx.Event.MouseX - (ly.Shape.X - field.Shape.X)
 		relY := ctx.Event.MouseY - (ly.Shape.Y - field.Shape.Y)
-		byteIdx := gl.GetClosestOffset(relX, relY)
+		byteIdx := gl.closestOffset(relX, relY)
 		displayText := text
 		if ly.Shape.TC.textIsPassword {
 			displayText = maskPassword(text)

@@ -588,7 +588,13 @@ func (f *contentTransitionFrame) fade() {
 // reports false when the shaper refuses either text.
 func (f *contentTransitionFrame) fadeLayouts() bool {
 	run := f.run
-	toLayout, ok := inputGlyphLayoutResolved(run.to, f.shape, f.style, f.w, true)
+	toBlk, ok := inputGlyphLayoutResolved(run.to, f.shape, f.style, f.w, true)
+	if !ok {
+		return false
+	}
+	// A text past one chunk has no single layout to fade; the plain
+	// path draws it.
+	toLayout, ok := toBlk.single()
 	if !ok {
 		return false
 	}

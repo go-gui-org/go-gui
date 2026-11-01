@@ -307,7 +307,10 @@ func rtfSelectOnKeyDown(ctx EventCtx) {
 	}
 	id := shape.idKey()
 	flatText := shape.TC.rtf.rTFFlatText
-	gl := *shape.TC.rtf.rTFLayout
+	// The shared key paths query a block; this one wraps the shaped
+	// rich-text layout and is never asked to shape.
+	gl := newTextBlockFromLayout(flatText, shape.TC.rtf.rTFLayout, 0,
+		textStyleOrDefault(shape), shape.TC.TextMode, ctx.Window)
 
 	imap := StateMap[string, inputState](ctx.Window, nsInput, capMany)
 	// Default InputState{}: zero value seeds initial keyboard-nav state.

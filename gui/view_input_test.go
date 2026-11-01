@@ -658,12 +658,9 @@ func seedInputGlyphLayout(t *testing.T, ctx *inputTestCtx, text string, cursors 
 		t.Fatal("inner child is not a text shape")
 	}
 	style := textStyleOrDefault(shape)
-	shape.TC.textLayout = glyphCursorLayout(text, cursors)
-	shape.TC.textLayoutWidth = plainTextLayoutWidthArg(shape, shape.TC, style)
-	shape.TC.textLayoutText = text
-	shape.TC.textLayoutStyle = style
-	shape.TC.textLayoutMode = shape.TC.TextMode
-	shape.TC.textLayoutValid = true
+	shape.TC.block = newTextBlockFromLayout(text, glyphCursorLayout(text, cursors),
+		plainTextLayoutWidthArg(shape, shape.TC, style), style,
+		shape.TC.TextMode, ctx.w)
 }
 
 func TestInputArrowLeftGraphemeGlyphPath(t *testing.T) {
@@ -923,7 +920,7 @@ func TestInputCursorRenderedWhenFocused(t *testing.T) {
 		},
 	}
 	w.renderers = w.renderers[:0]
-	renderInputCursor(shape, "hello", 0, 0, glyph.Layout{}, false, w)
+	renderInputCursor(shape, "hello", 0, 0, nil, false, w)
 	found := false
 	for _, r := range w.renderers {
 		if r.Kind == RenderRect && r.Fill && r.W < 2 {
@@ -948,7 +945,7 @@ func TestInputCursorNotRenderedWhenUnfocused(t *testing.T) {
 		},
 	}
 	w.renderers = w.renderers[:0]
-	renderInputCursor(shape, "hello", 0, 0, glyph.Layout{}, false, w)
+	renderInputCursor(shape, "hello", 0, 0, nil, false, w)
 	if len(w.renderers) != 0 {
 		t.Fatal("cursor should not render when unfocused")
 	}
@@ -968,7 +965,7 @@ func TestInputCursorTransparentWhenBlinkOff(t *testing.T) {
 		},
 	}
 	w.renderers = w.renderers[:0]
-	renderInputCursor(shape, "hello", 0, 0, glyph.Layout{}, false, w)
+	renderInputCursor(shape, "hello", 0, 0, nil, false, w)
 	if len(w.renderers) != 1 {
 		t.Fatal("cursor should emit one transparent rect when blink off")
 	}
@@ -1001,7 +998,7 @@ func TestInputCursorRenderedViaFocusOwner(t *testing.T) {
 		},
 	}
 	w.renderers = w.renderers[:0]
-	renderInputCursor(shape, "hello", 0, 0, glyph.Layout{}, false, w)
+	renderInputCursor(shape, "hello", 0, 0, nil, false, w)
 	found := false
 	for _, r := range w.renderers {
 		if r.Kind == RenderRect && r.Fill && r.W < 2 {
@@ -1030,7 +1027,7 @@ func TestInputCursorNotRenderedWhenFocusOwnerUnfocused(t *testing.T) {
 		},
 	}
 	w.renderers = w.renderers[:0]
-	renderInputCursor(shape, "hello", 0, 0, glyph.Layout{}, false, w)
+	renderInputCursor(shape, "hello", 0, 0, nil, false, w)
 	if len(w.renderers) != 0 {
 		t.Fatal("cursor should not render for an unfocused owner")
 	}
@@ -1053,7 +1050,7 @@ func TestInputCursorNotRenderedForPlainText(t *testing.T) {
 		},
 	}
 	w.renderers = w.renderers[:0]
-	renderInputCursor(shape, "hello", 0, 0, glyph.Layout{}, false, w)
+	renderInputCursor(shape, "hello", 0, 0, nil, false, w)
 	if len(w.renderers) != 0 {
 		t.Fatal("cursor should not render for non-focusable text")
 	}
@@ -1077,7 +1074,7 @@ func TestInputCursorUsesColumnZeroForPlaceholder(t *testing.T) {
 		},
 	}
 	w.renderers = w.renderers[:0]
-	renderInputCursor(shape, "Add your task", 0, 0, glyph.Layout{}, false, w)
+	renderInputCursor(shape, "Add your task", 0, 0, nil, false, w)
 	for _, r := range w.renderers {
 		if r.Kind == RenderRect && r.Fill && r.W < 2 {
 			if r.X != 0 {
@@ -1106,7 +1103,7 @@ func TestInputSelectionRendered(t *testing.T) {
 		},
 	}
 	w.renderers = w.renderers[:0]
-	renderInputSelection(shape, "hello", 0, 0, glyph.Layout{}, false, w)
+	renderInputSelection(shape, "hello", 0, 0, nil, false, w)
 	found := false
 	for _, r := range w.renderers {
 		if r.Kind == RenderRect && r.Fill && r.Color.A > 0 {
@@ -1131,7 +1128,7 @@ func TestInputSelectionNotRenderedWhenNoSelection(t *testing.T) {
 		},
 	}
 	w.renderers = w.renderers[:0]
-	renderInputSelection(shape, "hello", 0, 0, glyph.Layout{}, false, w)
+	renderInputSelection(shape, "hello", 0, 0, nil, false, w)
 	if len(w.renderers) != 0 {
 		t.Fatal("selection should not render with no selection")
 	}
@@ -1154,7 +1151,7 @@ func TestInputSelectionMultiline(t *testing.T) {
 		},
 	}
 	w.renderers = w.renderers[:0]
-	renderInputSelection(shape, text, 0, 0, glyph.Layout{}, false, w)
+	renderInputSelection(shape, text, 0, 0, nil, false, w)
 	count := 0
 	for _, r := range w.renderers {
 		if r.Kind == RenderRect && r.Fill {

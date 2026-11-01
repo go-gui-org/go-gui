@@ -372,6 +372,17 @@ and this project adheres to
   the minesweeper reset button, the snake start button and the 2048 "Try again"
   button. The calculator's title bar had no height.
 
+- **`Text` and `Input` draw text longer than 10,240 bytes (#1190).** go-glyph
+  shapes one layout at a time and refuses text past its 10,240-byte budget, and
+  a text shape shaped its whole text as one layout, so a longer `Text` or
+  `Input` kept its box and scrollbar but drew no glyph. Text is now laid out in
+  chunks of whole paragraphs, a paragraph longer than the budget is cut at the
+  line breaks a whole-paragraph layout also has, and only the chunks in view are
+  drawn. The chunks persist per widget across frames: an edit re-shapes the
+  chunk it touched and a rebuild re-shapes nothing, where every rebuild and
+  every keystroke used to re-shape the whole field.
+  `docs/specs/large-text-input.md` records the design and the alternatives.
+
 ## [v0.94.0] - 2026-10-31
 
 ### Added

@@ -171,7 +171,7 @@ func TestTextAnimTypewriterMasksGlyphs(t *testing.T) {
 	}
 	// The cached layout must keep every glyph: the mask is a copy.
 	sh := mustShape(t, w, "tw")
-	for i, g := range sh.TC.textLayout.Glyphs {
+	for i, g := range shapedBlockLayout(t, sh.TC).Glyphs {
 		if g.Index&glyph.PangoGlyphUnknownFlag != 0 {
 			t.Fatalf("cached glyph %d was masked", i)
 		}

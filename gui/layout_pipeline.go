@@ -697,22 +697,37 @@ func layoutPlainText(
 	if tc.TextStyle == nil {
 		return false
 	}
-	l, ok := plainTextLayoutResolved(tc.Text, shape, style, w)
+	// Sized on what is painted: a password shows bullets, whose advance
+	// differs from the raw text's (see textView.GenerateLayout).
+	text := tc.Text
+	if tc.textIsPassword {
+		text = maskPassword(text)
+	}
+	blk, ok := plainTextBlock(text, shape, style, w)
 	if !ok {
 		return false
 	}
-	shape.Height = plainTextBoxHeight(l, style, w)
+	shape.Height = blk.boxHeight()
 	if tc.TextMode == TextModeMultiline &&
-		shape.Sizing.Width != SizingFixed && l.Width > 0 {
-		shape.Width = l.Width
+		shape.Sizing.Width != SizingFixed && blk.width > 0 {
+		shape.Width = blk.width
 	}
-	shrank := shrinkWrapToInk(shape, tc, style, l, parentHAlign)
+	if tc.TextMode == TextModeSingleLine && len(text) > textChunkBytes &&
+		blk.width > 0 {
+		// GenerateLayout could only estimate this width (the shaper
+		// refuses the whole string); the chunks have it exact.
+		shape.MinWidth = blk.width
+		if shape.Sizing.Width != SizingFill {
+			shape.Width = f32Max(shape.Width, blk.width)
+		}
+	}
+	shrank := shrinkWrapToInk(shape, tc, style, blk, parentHAlign)
 	// A wrapped run with no break opportunity is wider than the width it
 	// was wrapped to. Record the excess rather than growing the shape:
 	// the shape's width IS the wrap width, so growing it would re-wrap
 	// the text and undo the overflow that is being measured.
-	if tc.overflowScrollX && f32IsFinite(l.Width) &&
-		l.Width > shape.Width+f32Tolerance &&
+	if tc.overflowScrollX && f32IsFinite(blk.width) &&
+		blk.width > shape.Width+f32Tolerance &&
 		(tc.TextMode == TextModeWrap ||
 			tc.TextMode == TextModeWrapKeepSpaces) {
 		// Plus the caret: it is painted ink too, and the extent recorded
@@ -721,7 +736,7 @@ func layoutPlainText(
 		// caret's own width back off and the caret at the end of the run
 		// is never quite reachable. Only Input's text sets
 		// overflowScrollX, so no other shape pays for the caret.
-		shape.inkOverflowW = l.Width + inputCaretW
+		shape.inkOverflowW = blk.width + inputCaretW
 	}
 	return shrank
 }
@@ -744,7 +759,7 @@ func shrinkWrapToInk(
 	shape *Shape,
 	tc *ShapeTextConfig,
 	style TextStyle,
-	l glyph.Layout,
+	blk *textBlock,
 	parentHAlign HorizontalAlign,
 ) bool {
 	switch {
@@ -775,17 +790,17 @@ func shrinkWrapToInk(
 		// glyph centred the lines against the wrap width already.
 		// Moving the box now would double the offset.
 		return false
-	case !f32IsFinite(l.Width) || l.Width <= 0 ||
-		l.Width >= shape.Width-f32Tolerance:
+	case !f32IsFinite(blk.width) || blk.width <= 0 ||
+		blk.width >= shape.Width-f32Tolerance:
 		return false
 	}
-	shape.Width = l.Width
-	// Keep the shaped layout current for the new width. The cache key is
-	// the width handed to the shaper, and re-wrapping at the longest line
-	// yields the same breaks — every line already fits it, and a word
-	// that did not fit the wider box does not fit this one — so the
-	// render pass can reuse what this pass shaped instead of shaping the
-	// same text a second time.
-	tc.textLayoutWidth = shape.Width
+	shape.Width = blk.width
+	// Keep the shaped chunks current for the new width. The block is
+	// keyed on the width handed to the shaper, and re-wrapping at the
+	// longest line yields the same breaks — every line already fits it,
+	// and a word that did not fit the wider box does not fit this one —
+	// so the render pass can reuse what this pass shaped instead of
+	// shaping the same text a second time.
+	blk.adoptWidth(shape.Width)
 	return true
 }
