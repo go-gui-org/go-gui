@@ -707,7 +707,13 @@ func layoutPlainText(
 	if !ok {
 		return false
 	}
-	shape.Height = blk.boxHeight()
+	// A single-line text that takes the chunked path only for its length
+	// keeps its one-line box, as it did when it was drawn as one
+	// RenderText: line breaks pasted into a single-line field must not
+	// grow the field. The rows past the first are clipped, as before.
+	if plainTextStyleNeedsGlyphLayout(tc, style) {
+		shape.Height = blk.boxHeight()
+	}
 	if tc.TextMode == TextModeMultiline &&
 		shape.Sizing.Width != sizingFixed && blk.width > 0 {
 		shape.Width = blk.width

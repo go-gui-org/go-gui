@@ -163,3 +163,37 @@ func TestPasteIssueResponseLandsAndDraws(t *testing.T) {
 		t.Logf("lit pixels: %d", lit)
 	}
 }
+
+// TestSingleLineInputKeepsOneLineHeight: a single-line Input keeps one
+// line's height whatever it holds. Text past one chunk takes the chunked
+// layout, which stacks lines; a paste with line breaks into a
+// single-line field made the field grow by every line it held.
+func TestSingleLineInputKeepsOneLineHeight(t *testing.T) {
+	heightWith := func(text string) float32 {
+		win := newWin(t, 600, 200, func(*gui.Window) gui.View {
+			return gui.Column(gui.ContainerCfg{Sizing: gui.FillFill, SizeBorder: gui.NoBorder, Content: []gui.View{
+				gui.Input(gui.InputCfg{ID: "f", Text: text, Sizing: gui.FillFit}),
+			}})
+		})
+		if _, err := RenderToImage(win, 1); err != nil {
+			t.Fatal(err)
+		}
+		ly, ok := win.TestRender(nil).FindByID("f")
+		if !ok {
+			t.Fatal("no field")
+		}
+		return ly.Shape.Height
+	}
+	lines := strings.Repeat("a line of pasted text\n", 200) // 4,400 bytes
+	want := heightWith("short")
+	for name, text := range map[string]string{
+		"one chunk of lines":    lines[:2000],
+		"several chunks":        lines,
+		"past the shaper's cap": strings.Repeat(lines, 3),
+		"one long line":         strings.Repeat("x", 5000),
+	} {
+		if got := heightWith(text); got != want {
+			t.Errorf("%s: field height %.1f, want the one-line %.1f", name, got, want)
+		}
+	}
+}
