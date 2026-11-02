@@ -44,11 +44,16 @@ func editCommitDelta(
 	is inputState, oldText, newText string, pos int, op uint8,
 	off int, removed, inserted string,
 ) inputState {
+	// An app that replaced the text since the last edit leaves steps
+	// that describe a text that is gone: historyHolds clears them, and
+	// this edit starts the history afresh in the same stack.
+	historyHolds(oldText, is)
 	return inputState{
 		CursorPos:    pos,
 		cursorOffset: -1,
 		Undo:         inputPushUndo(is, oldText, newText, off, removed, inserted, op),
 		lastEditOp:   op,
+		undoText:     newText,
 	}
 }
 
@@ -284,6 +289,9 @@ func editUndo(text string, is inputState) (string, inputState, bool) {
 	if is.Undo == nil || is.Undo.isEmpty() {
 		return text, is, false
 	}
+	if !historyHolds(text, is) {
+		return text, is, false
+	}
 	memento, ok := is.Undo.Pop()
 	if !ok {
 		return text, is, false
@@ -300,7 +308,8 @@ func editUndo(text string, is inputState) (string, inputState, bool) {
 		redo = newBoundedStack[inputMemento](undoMaxSize)
 	}
 	redo.Push(memento.inverse(is))
-	return memento.apply(text), inputStateFromMemento(memento, is.Undo, redo), true
+	undone := memento.apply(text)
+	return undone, inputStateFromMemento(memento, is.Undo, redo, undone), true
 }
 
 // editRedo reapplies the top redo step and pushes its inverse, with the
@@ -309,6 +318,9 @@ func editUndo(text string, is inputState) (string, inputState, bool) {
 // applies.
 func editRedo(text string, is inputState) (string, inputState, bool) {
 	if is.Redo == nil || is.Redo.isEmpty() {
+		return text, is, false
+	}
+	if !historyHolds(text, is) {
 		return text, is, false
 	}
 	memento, ok := is.Redo.Pop()
@@ -327,7 +339,8 @@ func editRedo(text string, is inputState) (string, inputState, bool) {
 		undo = newBoundedStack[inputMemento](undoMaxSize)
 	}
 	undo.Push(memento.inverse(is))
-	return memento.apply(text), inputStateFromMemento(memento, undo, is.Redo), true
+	redone := memento.apply(text)
+	return redone, inputStateFromMemento(memento, undo, is.Redo, redone), true
 }
 
 // editSelectAll selects the whole text and puts the caret at its end. The

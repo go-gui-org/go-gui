@@ -18,14 +18,14 @@ func TestInputEditAllocBudget(t *testing.T) {
 		edit func(w *Window)
 		max  float64
 	}{
-		{"insert", inputState{CursorPos: 5, Undo: undo},
+		{"insert", inputState{CursorPos: 5, Undo: undo, undoText: text},
 			func(w *Window) { _ = inputInsert(text, "x", "f", w) }, 1},
 		{"insert over selection",
-			inputState{CursorPos: 5, selectBeg: 0, selectEnd: 5, Undo: undo},
+			inputState{CursorPos: 5, selectBeg: 0, selectEnd: 5, Undo: undo, undoText: text},
 			func(w *Window) { _ = inputInsert(text, "x", "f", w) }, 1},
-		{"backspace", inputState{CursorPos: 5, Undo: undo},
+		{"backspace", inputState{CursorPos: 5, Undo: undo, undoText: text},
 			func(w *Window) { _, _ = inputDelete(text, "f", false, w) }, 2},
-		{"forward delete", inputState{CursorPos: 5, Undo: undo},
+		{"forward delete", inputState{CursorPos: 5, Undo: undo, undoText: text},
 			func(w *Window) { _, _ = inputDelete(text, "f", true, w) }, 2},
 	}
 	for _, tc := range cases {

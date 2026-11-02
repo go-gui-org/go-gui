@@ -167,11 +167,11 @@ func TestEditUndoAfterAppReplacedText(t *testing.T) {
 	}
 
 	// A replacement that still holds the step's bytes at its offset is
-	// not detectable and does not need to be: the step applies.
+	// still the app's text, not the field's: the history drops as well.
 	text, is = "abc", inputState{CursorPos: 3}
 	_, is, _ = editInsert(text, "d", is)
-	if got, _, ok = editUndo("xbcd", is); !ok || got != "xbc" {
-		t.Fatalf("undo over a compatible text = (%q, %v), want (\"xbc\", true)", got, ok)
+	if got, _, ok = editUndo("xbcd", is); ok || got != "xbcd" {
+		t.Fatalf("undo over a compatible text = (%q, %v), want (\"xbcd\", false)", got, ok)
 	}
 }
 
@@ -243,4 +243,71 @@ func byteSizeName(n int) string {
 		return "1MiB"
 	}
 	return "10KB"
+}
+
+// An app that replaced the text under the history leaves nothing to
+// undo: a step holds only the bytes it changed, so it would splice them
+// into the app's text. A delete's step inserted nothing, so the bytes it
+// would check are present in any text; only the text identity tells.
+func TestEditUndoAfterAppReplacementDropsHistory(t *testing.T) {
+	cases := []struct {
+		name          string
+		before, after string
+		pos           int
+		op            uint8
+	}{
+		{"delete", "abc", "ab", 2, inputOpDelete},
+		{"insert", "ab", "abc", 3, inputOpInsert},
+	}
+	for _, tc := range cases {
+		// The stacks are shared by pointer: each check gets its own.
+		fresh := func() inputState {
+			return editCommit(inputState{CursorPos: len(tc.before)},
+				tc.before, tc.after, tc.pos, tc.op)
+		}
+		const app = "new value"
+		got, next, ok := editUndo(app, fresh())
+		if ok || got != app {
+			t.Errorf("%s: undo over the app's text gave %q, %v; want %q untouched",
+				tc.name, got, ok, app)
+		}
+		if next.Undo != nil && !next.Undo.isEmpty() {
+			t.Errorf("%s: history kept after the app replaced the text", tc.name)
+		}
+		// Redo meets the same rule.
+		undone, uis, ok := editUndo(tc.after, fresh())
+		if !ok || undone != tc.before {
+			t.Fatalf("%s: plain undo gave %q, %v", tc.name, undone, ok)
+		}
+		got, _, ok = editRedo(app, uis)
+		if ok || got != app {
+			t.Errorf("%s: redo over the app's text gave %q, %v", tc.name, got, ok)
+		}
+	}
+}
+
+// The reported case end to end: delete a character, the app sets a new
+// value, Ctrl+Z. The app's value stays.
+func TestInputUndoKeepsTextTheAppSet(t *testing.T) {
+	w := NewTestWindow(t, WindowCfg{Width: 300, Height: 100})
+	t.Cleanup(w.WindowCleanup)
+	text := "abc"
+	w.TestRender(func(*Window) View {
+		return Column(ContainerCfg{Sizing: FillFill, Content: []View{
+			Input(InputCfg{ID: "f", Text: text, Sizing: FillFit,
+				OnTextChanged: func(s string, _ EventCtx) { text = s }}),
+		}})
+	})
+	w.SetFocus("f")
+	_ = w.TestKey("f", KeyEnd, ModNone)
+	_ = w.TestKey("f", KeyBackspace, ModNone)
+	if text != "ab" {
+		t.Fatalf("after backspace text = %q, want \"ab\"", text)
+	}
+	text = "new value"
+	w.TestRender(nil)
+	_ = w.TestKey("f", KeyZ, ModCtrl)
+	if text != "new value" {
+		t.Fatalf("undo over the app's value gave %q", text)
+	}
 }
