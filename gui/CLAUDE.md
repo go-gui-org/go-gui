@@ -196,11 +196,18 @@ theme's container border and silently adds height.
 
 ## Layout hooks and the frame lock
 
-`AmendLayout` runs after sizing to reposition overlays (color picker circles,
-splitter handles) or manage hover, in absolute coords. Moving a parent there
-does **not** move children — use the float system
+`AmendLayout` runs after sizing to reposition overlays (color picker circles) or
+manage hover, in absolute coords. Moving a parent there does **not** move
+children — use the float system
 (`FloatAnchor`/`FloatTieOff`/`FloatOffsetX`/`FloatOffsetY`) to position elements
 that have children.
+
+**A container that sizes its own children (Splitter, DockLayout) is a
+`layoutSizer`, never an `AmendLayout` that re-runs layout.** `setLayoutSizer`
+(`gui/layout_pipeline.go`) registers it; its `sizeChildren` runs after the
+sizing passes and before positioning. By the time `AmendLayout` runs, the scroll
+clamp, scroll anchors and index scrolls have already stored state from the
+unsized subtree, and a later re-layout cannot restore it (#1214).
 
 **`AmendLayout` runs under the frame lock (`w.mu`), so no callback reached from
 it can call a window-mutating API.** `SetFocus`, `ClearFocus`, `SetView`,

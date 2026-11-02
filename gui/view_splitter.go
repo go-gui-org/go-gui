@@ -312,7 +312,7 @@ func (sv *splitterView) GenerateLayout(w *Window) Layout {
 	// the same string.
 	id := w.EffID(cfg.ID)
 
-	return generateViewLayout(Canvas(ContainerCfg{
+	layout := generateViewLayout(Canvas(ContainerCfg{
 		ID:        cfg.ID,
 		Focusable: cfg.Focusable,
 		A11YRole:  AccessRoleSplitter,
@@ -320,8 +320,11 @@ func (sv *splitterView) GenerateLayout(w *Window) Layout {
 			A11YLabel:       a11yLabel(cfg.A11YLabel, cfg.ID),
 			A11YDescription: cfg.A11YDescription,
 		},
-		Sizing:    cfg.Sizing,
-		Padding:   NoPadding,
+		Sizing:  cfg.Sizing,
+		Padding: NoPadding,
+		// Physical left, so positioning adds no alignment shift to the
+		// panes that sizeChildren places (see splitterChildOrigin).
+		HAlign:    HAlignLeft,
 		Clip:      true,
 		Disabled:  cfg.Disabled,
 		Invisible: cfg.Invisible,
@@ -337,6 +340,8 @@ func (sv *splitterView) GenerateLayout(w *Window) Layout {
 			splitterPane(ScopeID(id, "pane", "second"), cfg.Second.Content),
 		},
 	}), w)
+	setLayoutSizer(&layout, core, w)
+	return layout
 }
 
 func splitterPane(id string, content []View) View {
@@ -393,33 +398,6 @@ func splitterAmendLayout(core *splitterCore, layout *Layout, w *Window) {
 		core.focusID = core.id
 	}
 
-	mainSz := splitterMainSize(layout, core.orientation)
-	computed := splitterCompute(core, mainSz)
-
-	if core.orientation == SplitterHorizontal {
-		x := layout.Shape.X
-		y := layout.Shape.Y
-		h := layout.Shape.Height
-		splitterLayoutChild(&layout.Children[0], x, y,
-			computed.firstMain, h, w)
-		splitterLayoutChild(&layout.Children[1],
-			x+computed.firstMain, y, computed.handleMain, h, w)
-		splitterLayoutChild(&layout.Children[2],
-			x+computed.firstMain+computed.handleMain, y,
-			computed.secondMain, h, w)
-	} else {
-		x := layout.Shape.X
-		y := layout.Shape.Y
-		wid := layout.Shape.Width
-		splitterLayoutChild(&layout.Children[0], x, y,
-			wid, computed.firstMain, w)
-		splitterLayoutChild(&layout.Children[1], x,
-			y+computed.firstMain, wid, computed.handleMain, w)
-		splitterLayoutChild(&layout.Children[2], x,
-			y+computed.firstMain+computed.handleMain,
-			wid, computed.secondMain, w)
-	}
-
 	// The handle's active (button-held) color is painted here, in the
 	// last pass that can write the shape's color before the render:
 	// layoutHover bails while the mouse is locked (a splitter drag runs
@@ -447,22 +425,60 @@ func splitterAmendLayout(core *splitterCore, layout *Layout, w *Window) {
 	}
 }
 
-func splitterLayoutChild(
+// sizeChildren gives the two panes and the handle the sizes
+// splitterCompute decides and sizes what is inside each. It runs as the
+// splitter's layoutSizer, once the splitter's own size is final.
+func (core *splitterCore) sizeChildren(layout *Layout, w *Window) {
+	if len(layout.Children) < 3 {
+		return
+	}
+	computed := splitterCompute(core,
+		splitterMainSize(layout, core.orientation))
+	ox, oy := splitterChildOrigin(layout)
+	if core.orientation == SplitterHorizontal {
+		h := layout.Shape.Height
+		splitterSizeChild(&layout.Children[0], ox, oy,
+			computed.firstMain, h, w)
+		splitterSizeChild(&layout.Children[1],
+			ox+computed.firstMain, oy, computed.handleMain, h, w)
+		splitterSizeChild(&layout.Children[2],
+			ox+computed.firstMain+computed.handleMain, oy,
+			computed.secondMain, h, w)
+	} else {
+		wid := layout.Shape.Width
+		splitterSizeChild(&layout.Children[0], ox, oy,
+			wid, computed.firstMain, w)
+		splitterSizeChild(&layout.Children[1], ox,
+			oy+computed.firstMain, wid, computed.handleMain, w)
+		splitterSizeChild(&layout.Children[2], ox,
+			oy+computed.firstMain+computed.handleMain,
+			wid, computed.secondMain, w)
+	}
+}
+
+// splitterChildOrigin is the X/Y, relative to a sizer's Canvas, that
+// lands a child on the Canvas's own top-left corner. layoutPositions
+// starts a Canvas's children at its content box, so the inset is
+// taken back out: the panes cover the whole box, border included.
+// Both Canvases set NoPadding, which makes the RTL start the same,
+// and HAlignLeft, which adds no alignment shift.
+func splitterChildOrigin(layout *Layout) (x, y float32) {
+	return -layout.Shape.PaddingLeft(), -layout.Shape.PaddingTop()
+}
+
+// splitterSizeChild pins child at x, y (relative to its Canvas) and to
+// width x height, and sizes its subtree.
+func splitterSizeChild(
 	child *Layout,
 	x, y, width, height float32,
 	w *Window,
 ) {
-	splitterResetPositions(child, true, axisNone, 0, 0)
 	child.Shape.Sizing = FixedFixed
 	splitterPinShapeSize(child.Shape, width, height)
-	child.Shape.X = 0
-	child.Shape.Y = 0
+	child.Shape.X = x
+	child.Shape.Y = y
 
-	layoutWidths(child)
-	layoutFillWidths(child, &w.scratch)
-	layoutWrapText(child, w)
-	layoutHeights(child)
-	layoutFillHeights(child, &w.scratch)
+	layoutSizes(child, w)
 
 	// Re-apply the pin after the fit passes. The fit passes recompute
 	// the pane's size from its content's minimums, which grows a
@@ -475,15 +491,11 @@ func splitterLayoutChild(
 	// (ratio/min/max), never from content, which is clipped (Clip: true)
 	// when larger.
 	splitterPinShapeSize(child.Shape, width, height)
-
-	layoutAdjustScrollOffsets(child, w)
-	layoutPositions(child, x, y, w)
-	layoutAmend(child, w)
 }
 
 // splitterPinShapeSize pins a shape to the exact size splitterCompute
 // decided. Applied once before the fit passes (so the fixed sizing is
-// seeded) and re-applied after them; see splitterLayoutChild for why.
+// seeded) and re-applied after them; see splitterSizeChild for why.
 func splitterPinShapeSize(shape *Shape, width, height float32) {
 	shape.Width = f32Max(0, width)
 	shape.Height = f32Max(0, height)
@@ -491,26 +503,6 @@ func splitterPinShapeSize(shape *Shape, width, height float32) {
 	shape.MaxWidth = shape.Width
 	shape.MinHeight = shape.Height
 	shape.MaxHeight = shape.Height
-}
-
-func splitterResetPositions(layout *Layout, isRoot bool,
-	parentAxis Axis, parentOldX, parentOldY float32) {
-	oldX := layout.Shape.X
-	oldY := layout.Shape.Y
-	if isRoot {
-		layout.Shape.X = 0
-		layout.Shape.Y = 0
-	} else if parentAxis == axisNone {
-		layout.Shape.X = oldX - parentOldX
-		layout.Shape.Y = oldY - parentOldY
-	} else {
-		layout.Shape.X = 0
-		layout.Shape.Y = 0
-	}
-	for i := range layout.Children {
-		splitterResetPositions(&layout.Children[i], false,
-			layout.Shape.Axis, oldX, oldY)
-	}
 }
 
 // --- Pure computation helpers ---

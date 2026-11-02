@@ -29,6 +29,7 @@ frame rebuilds the entire UI from the view function.
 │  │ layoutArrange()                                               │  │
 │  │  ├─ resolve Sizing (Fit/Fixed/Fill per axis)                  │  │
 │  │  ├─ layoutFillWidths / layoutFillHeights                      │  │
+│  │  ├─ layoutSizeChildren (Splitter/DockLayout size their panes) │  │
 │  │  ├─ spacing() — visible-children-only gap calc                │  │
 │  │  └─ AmendLayout hooks (overlay repositioning)                 │  │
 │  └───────────────────────────────────┬───────────────────────────┘  │

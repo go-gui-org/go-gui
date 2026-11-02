@@ -88,50 +88,65 @@ func newDockLayoutCore(cfg *DockLayoutCfg) *dockLayoutCore {
 // panel rearrangement.
 func DockLayout(cfg DockLayoutCfg) View {
 	applyDockLayoutDefaults(&cfg)
-	return ViewFunc(func(w *Window) View {
-		// One resolved identity for every key below; see (*Window).EffID.
-		// cfg is captured by this per-frame closure, so re-resolving it
-		// each frame is fine: the join is idempotent.
-		cfg.ID = w.EffID(cfg.ID)
-		core := newDockLayoutCore(&cfg)
-		drag := dockDragGet(w, cfg.ID)
+	return &dockLayoutView{cfg: cfg}
+}
 
-		content := make([]View, 0, 3)
-		content = append(content, dockNodeView(core, cfg.Root, &cfg, drag))
-		content = append(content, dockDragZoneOverlayView(cfg.ColorZonePreview))
+// dockLayoutView implements View for the dock. It is a struct view
+// rather than a ViewFunc because GenerateLayout must hold the generated
+// Canvas to make the dock its layoutSizer (#1214).
+type dockLayoutView struct {
+	cfg DockLayoutCfg
+}
 
-		if drag.active {
-			ghostLabel := dockFindPanelLabel(cfg.Panels, drag.panelID)
-			if len(ghostLabel) > 0 {
-				content = append(content, dockDragGhostView(drag, ghostLabel))
-			}
+func (dv *dockLayoutView) GenerateLayout(w *Window) Layout {
+	cfg := &dv.cfg
+	// One resolved identity for every key below; see (*Window).EffID.
+	// A view kept across frames resolves it again each frame, which is
+	// fine: the join is idempotent.
+	cfg.ID = w.EffID(cfg.ID)
+	core := newDockLayoutCore(cfg)
+	drag := dockDragGet(w, cfg.ID)
+
+	content := make([]View, 0, 3)
+	content = append(content, dockNodeView(core, cfg.Root, cfg, drag))
+	content = append(content, dockDragZoneOverlayView(cfg.ColorZonePreview))
+
+	if drag.active {
+		ghostLabel := dockFindPanelLabel(cfg.Panels, drag.panelID)
+		if len(ghostLabel) > 0 {
+			content = append(content, dockDragGhostView(drag, ghostLabel))
 		}
+	}
 
-		dockID := core.id
-		colorZone := core.colorZonePreview
+	dockID := core.id
+	colorZone := core.colorZonePreview
 
-		return Canvas(ContainerCfg{
-			ID:       cfg.ID,
-			A11YRole: AccessRoleGroup,
-			Sizing:   cfg.Sizing,
-			Padding:  NoPadding,
-			Spacing:  NoSpacing,
-			Clip:     true,
-			AmendLayout: func(ctx EventCtx) {
-				dockLayoutAmend(dockID, colorZone, ctx.Layout, ctx.Window)
-			},
-			OnKeyDown: func(ctx EventCtx) {
-				if ctx.Event.KeyCode == KeyEscape {
-					state := dockDragGet(ctx.Window, dockID)
-					if state.active {
-						dockDragCancel(dockID, ctx.Window)
-						ctx.Consume()
-					}
+	layout := generateViewLayout(Canvas(ContainerCfg{
+		ID:       cfg.ID,
+		A11YRole: AccessRoleGroup,
+		Sizing:   cfg.Sizing,
+		Padding:  NoPadding,
+		Spacing:  NoSpacing,
+		// Physical left, so positioning adds no alignment shift to the
+		// tree view sizeChildren places (see splitterChildOrigin).
+		HAlign: HAlignLeft,
+		Clip:   true,
+		AmendLayout: func(ctx EventCtx) {
+			dockLayoutAmend(dockID, colorZone, ctx.Layout, ctx.Window)
+		},
+		OnKeyDown: func(ctx EventCtx) {
+			if ctx.Event.KeyCode == KeyEscape {
+				state := dockDragGet(ctx.Window, dockID)
+				if state.active {
+					dockDragCancel(dockID, ctx.Window)
+					ctx.Consume()
 				}
-			},
-			Content: content,
-		})
-	})
+			}
+		},
+		Content: content,
+	}), w)
+	setLayoutSizer(&layout, core, w)
+	return layout
 }
 
 func applyDockLayoutDefaults(cfg *DockLayoutCfg) {
@@ -160,8 +175,19 @@ func applyDockLayoutDefaults(cfg *DockLayoutCfg) {
 	}
 }
 
-// dockLayoutAmend positions the tree view to fill the dock
-// container, and positions the zone overlay.
+// sizeChildren sizes the tree view, the first child, to fill the dock
+// area. It runs as the dock's layoutSizer, once the dock's own size is
+// final.
+func (core *dockLayoutCore) sizeChildren(layout *Layout, w *Window) {
+	if len(layout.Children) < 1 {
+		return
+	}
+	ox, oy := splitterChildOrigin(layout)
+	splitterSizeChild(&layout.Children[0], ox, oy,
+		layout.Shape.Width, layout.Shape.Height, w)
+}
+
+// dockLayoutAmend positions the zone overlay.
 func dockLayoutAmend(
 	dockID string, colorZone Color,
 	layout *Layout, w *Window,
@@ -169,11 +195,6 @@ func dockLayoutAmend(
 	if len(layout.Children) < 1 {
 		return
 	}
-	// First child is the tree view — fill the entire dock area.
-	splitterLayoutChild(
-		&layout.Children[0],
-		layout.Shape.X, layout.Shape.Y,
-		layout.Shape.Width, layout.Shape.Height, w)
 	// Zone overlay is positioned by dockDragAmendOverlay (found by id).
 	dockDragAmendOverlay(dockID, colorZone, layout, w)
 }

@@ -40,6 +40,10 @@ type eventHandlers struct {
 	hover         HoverStyle // ContainerCfg.Hover, painted before OnHover
 	pointerAmend  bool       // ContainerCfg.pointerAmend
 
+	// sizer sizes and places the children after the sizing passes. Set
+	// by setLayoutSizer; see layoutSizer.
+	sizer layoutSizer
+
 	// acceptsTextInput is ContainerCfg.AcceptsTextInput: the shape is
 	// an editable text area with no TextChunk, so the IME gate
 	// (shapeIsIMEEditTarget) cannot see that from TC. It lives here,
