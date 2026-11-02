@@ -675,3 +675,53 @@ func TestTextBlockRebuildClearsDroppedChunks(t *testing.T) {
 		}
 	}
 }
+
+// A block holds its whole text and up to textBlockLiveLayouts layouts.
+// A text that leaves the tree drops its block within two view passes,
+// rather than staying until capTextBlocks other identities push it out;
+// a text that stays keeps its block.
+func TestTextBlockCacheDropsTextsThatLeft(t *testing.T) {
+	w := newBlockTestWindow(t)
+	big := strings.Repeat("abcd efgh ijkl\n", 400)
+	show := true
+	view := func(*Window) View {
+		content := []View{Text(TextCfg{ID: "small", Text: "x y", Mode: TextModeWrap})}
+		if show {
+			content = append(content,
+				Text(TextCfg{ID: "big", Text: big, Mode: TextModeWrap}))
+		}
+		return Column(ContainerCfg{Sizing: FillFill, Content: content})
+	}
+	holding := func() (bigBlocks int, small *textBlock) {
+		m := StateMapRead[string, *textBlock](w, nsTextBlock)
+		if m == nil {
+			return 0, nil
+		}
+		m.Range(func(_ string, b *textBlock) bool {
+			switch b.text {
+			case big:
+				bigBlocks++
+			case "x y":
+				small = b
+			}
+			return true
+		})
+		return bigBlocks, small
+	}
+	w.TestRender(view)
+	n, small := holding()
+	if n != 1 || small == nil {
+		t.Fatalf("cache holds %d blocks of the big text and small %v", n, small != nil)
+	}
+	show = false
+	for range 3 {
+		w.TestRender(nil)
+	}
+	n, again := holding()
+	if n != 0 {
+		t.Errorf("a text that left the tree still holds %d cached blocks", n)
+	}
+	if again != small {
+		t.Error("a text that stayed lost its block")
+	}
+}

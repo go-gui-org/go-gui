@@ -53,7 +53,10 @@ of chunks, each one glyph layout within the budget `textChunkBytes` (2048).
   once for exact geometry; above that the unseen chunks are estimated from an
   average advance and measured as they come into view. At most 48 shaped chunks
   (`textBlockLiveLayouts`) stay live; the rest keep their geometry and are
-  shaped again when needed.
+  shaped again when needed. A chunk is shaped from a copy of its bytes:
+  `glyph.Layout` keeps the text it shaped, and a slice of the block's text
+  would keep that whole text alive, one old generation per chunk an edit did
+  not touch.
 - **Scroll anchoring.** Measuring an estimated chunk moves every line below it
   by the estimate's error. `layoutAnchorTextBlocks`
   (`gui/text_block_anchor.go`), run after the position pass, measures the chunks
@@ -70,7 +73,10 @@ of chunks, each one glyph layout within the budget `textChunkBytes` (2048).
   `plainTextBlock`, which brings it up to date: an edit is located as the bytes
   outside the common prefix and suffix of the old and new text, the paragraphs
   it touched are re-chunked, the chunks after it shift, and nothing else is
-  shaped. A width, mode or shaping-style change rebuilds the block.
+  shaped. A width, mode or shaping-style change rebuilds the block. A block that
+  no layout resolved in the last two view passes is dropped
+  (`sweepTextBlocks`): the cache is bounded by count, and a large text that left
+  the tree would otherwise stay until 256 other identities pushed it out.
 - **Queries.** `text_block_query.go` answers the layout queries the widgets used
   on a whole-text layout — caret position, hit test, selection rects, caret and
   word moves, line start and end, vertical moves, grapheme delete — in

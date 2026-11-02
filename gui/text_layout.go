@@ -162,12 +162,39 @@ func plainTextBlock(
 			b = newTextBlock(text, widthArg, style, tc.TextMode, w)
 			m.Set(key, b)
 		}
+		b.seen = w.viewPass
 	}
 	tc.block = b
 	if b.failErr != nil {
 		textBlockWarnRefused(shape, b, w)
 	}
 	return b, true
+}
+
+// sweepTextBlocks drops the cached blocks that no layout resolved in this
+// view pass or the one before: texts that left the tree. A block holds
+// its whole text and up to textBlockLiveLayouts layouts, and the cache is
+// bounded by count, so a large text that left would otherwise stay until
+// capTextBlocks other identities pushed it out. Same rule as
+// pruneContentTransitionStates. Called once per view pass, after layout.
+func sweepTextBlocks(w *Window) {
+	m := StateMapRead[string, *textBlock](w, nsTextBlock)
+	if m == nil || m.Len() == 0 {
+		return
+	}
+	// Walk the entries in place: Range takes a closure, which would
+	// escape and allocate on every pass.
+	stale := w.scratch.textBlockStale[:0]
+	for k, b := range m.data {
+		if b == nil || b.seen+1 < w.viewPass {
+			stale = append(stale, k)
+		}
+	}
+	for _, k := range stale {
+		m.Delete(k)
+	}
+	clear(stale)
+	w.scratch.textBlockStale = stale[:0]
 }
 
 // textBlockWarnRefused reports a chunk the shaper refused, once per

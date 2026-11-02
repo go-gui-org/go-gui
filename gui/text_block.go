@@ -123,6 +123,7 @@ type textBlock struct {
 	avgAdv float32
 	live   int
 	tick   uint32
+	seen   uint64 // view pass that last resolved it from the cache
 	// dirty is the first chunk whose position settle must recompute, or
 	// -1 when every position is current.
 	dirty int
