@@ -126,6 +126,15 @@ cannot grow to enclose Fit content. This is a defect when the parent neither
 clips nor scrolls. A Fill width on the child lets the scroll body or the clip
 absorb the excess (issue #642).
 
+**A Canvas measures its children like any container** (#1216). It does not
+arrange them; each keeps its own `X`/`Y`. A Fit child below a Canvas, at any
+depth, sizes to its content, and a Fit Canvas encloses its children at their
+offsets. A Fill child is not stretched — a Canvas hands out no space — so it
+takes its content's size too; give a child that should cover the Canvas an
+explicit Fixed size. The exception is a Canvas that sizes its own children after
+the sizing passes (`layoutSizer`: `Splitter`, `DockLayout`): the measuring
+passes skip its children, which would otherwise be measured twice per frame.
+
 ### Fill distribution
 
 **Fill siblings equalize.** The algorithm is water-filling on the extremum

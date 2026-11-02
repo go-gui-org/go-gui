@@ -201,12 +201,21 @@ func FuzzLayoutSizingMinMax(f *testing.F) {
 			windowHeight: 768,
 		}
 
+		// The random bounds can contradict the content: a Max below the
+		// children's size wins (Max wins a conflict with Min), and a Min
+		// can outgrow the root. Only a clipping parent may be smaller than
+		// its content (invariant 1, docs/specs/layout-sizing-rules.md), so
+		// the root and every bounded node clip. The tree's nodes are
+		// axis-less, so until the measuring passes recursed into those
+		// (#1216) nothing below the root was sized, and the contradiction
+		// never showed.
 		layout := Layout{
 			Shape: w.allocShape(Shape{
 				shapeType: shapeRectangle,
 				Sizing:    FillFill,
 				Width:     1024,
 				Height:    768,
+				Clip:      true,
 			}),
 		}
 		if d > 0 && n > 0 {
@@ -216,6 +225,7 @@ func FuzzLayoutSizingMinMax(f *testing.F) {
 					Shape: w.allocShape(Shape{
 						shapeType: shapeRectangle,
 						Sizing:    FitFit,
+						Clip:      true,
 						MinWidth:  minW,
 						MaxWidth:  maxW,
 						MinHeight: minH,

@@ -753,7 +753,9 @@ func Wrap(cfg ContainerCfg) View {
 	return container(cfg)
 }
 
-// Canvas does not arrange or layout its content.
+// Canvas places each child at its own X/Y and does not arrange them. Each
+// child is still sized: a Fit child takes its content's size, and a Fill
+// child is not stretched to the Canvas, so it takes its content's size too.
 func Canvas(cfg ContainerCfg) View {
 	return container(cfg)
 }
