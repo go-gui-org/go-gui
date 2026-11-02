@@ -140,11 +140,11 @@ func TestLayoutWidthsAxisNoneHonorsMax(t *testing.T) {
 	}
 }
 
-// The axisNone branch must not grow into the children's job: children
-// of an axis-less container keep the sizes they arrived with (they are
-// positioned by the container's AmendLayout, e.g. the splitter), so the
-// pass recurses nowhere.
-func TestLayoutWidthsAxisNoneLeavesChildrenAlone(t *testing.T) {
+// The axisNone branch measures each child as any container does (#1216)
+// but never fits one to itself: a Canvas does not arrange, so its 400
+// pin leaves each child at the size it resolves to on its own. A Canvas
+// with a layoutSizer skips its children: TestCanvasWithSizerChildrenNotMeasured.
+func TestLayoutWidthsAxisNoneDoesNotFitChildren(t *testing.T) {
 	root := &Layout{
 		Shape: &Shape{
 			Axis:     axisNone,
@@ -158,8 +158,8 @@ func TestLayoutWidthsAxisNoneLeavesChildrenAlone(t *testing.T) {
 	}
 	layoutWidths(root)
 	if root.Children[0].Shape.Width != 30 || root.Children[1].Shape.Width != 20 {
-		t.Error("axisNone fit pass must not re-size children (they keep " +
-			"their arrival sizes)")
+		t.Error("axisNone pass must not fit children to the Canvas's " +
+			"own size")
 	}
 }
 

@@ -42,7 +42,7 @@ func main() {
 		State:     &App{Game: NewGame(gridWidth, gridHeight, nil)},
 		Title:     "Snake",
 		Width:     560,
-		Height:    640,
+		Height:    740,
 		FixedSize: true,
 		OnInit: func(w *gui.Window) {
 			w.SetView(mainView)
@@ -283,8 +283,9 @@ func landingBackdrop(ww, wh float32, _ int) gui.View {
 		{458, 22, 40, gui.RGB(255, 110, 61), gui.IconRocket},
 		{62, 150, 24, gui.RGB(255, 110, 61), gui.IconStar},
 		{480, 180, 24, gui.RGB(131, 255, 123), gui.IconStarO},
-		{74, 526, 28, gui.RGB(72, 198, 255), gui.IconGamepad},
-		{462, 526, 28, gui.RGB(255, 110, 61), gui.IconKeyboard},
+		// The bottom pair keeps its distance from the window's lower edge.
+		{74, wh - 114, 28, gui.RGB(72, 198, 255), gui.IconGamepad},
+		{462, wh - 114, 28, gui.RGB(255, 110, 61), gui.IconKeyboard},
 	}
 	theme := gui.CurrentTheme()
 	for _, icon := range icons {

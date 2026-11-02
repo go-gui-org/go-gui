@@ -344,19 +344,28 @@ func layoutWidthsDepth(layout *Layout, depth int) {
 		// X is parent-relative here, because layoutPositions adds the
 		// offsets later.
 		//
+		// Each child is measured first, as a row or column measures its
+		// own: a Fit child has no size until this pass gives it one
+		// (#1216).
+		//
 		// Fixed and Fill widths only honor explicit min/max pins. The
 		// Fill root pin from updateLayoutLocked (Min = Max = window
 		// size) is the case that matters (issue #262): a FillFill root
 		// like a Splitter (Canvas) used to resolve to 0x0 because the
 		// pin was set and never read. Fixed sizing pins via
 		// applyFixedSizingConstraints (Min = Max = Width), where the
-		// clamp is a no-op; children keep today's sizing semantics.
+		// clamp is a no-op.
 		// Invariant: the fill impls must stay size-neutral for axisNone
 		// — today they only recurse and cache contentW — or the pin
 		// would be overwritten after this pass (plan item: "making the
 		// fill passes distribute children of axisNone roots" is out of
 		// scope and must not drift in as a size writer).
-		if layout.Shape.Sizing.Width == sizingFit {
+		if axisNoneMeasuresChildren(layout.Shape) {
+			for i := range layout.Children {
+				layoutWidthsDepth(&layout.Children[i], depth+1)
+			}
+		}
+		if axisNoneFitsContent(layout, distributeHorizontal) {
 			fitAxisNoneWidth(layout, padding)
 		}
 		layout.Shape.MinWidth = effectiveMinSize(layout.Shape.MinWidth, layout.Shape.MaxWidth)
@@ -450,12 +459,43 @@ func layoutHeightsDepth(layout *Layout, depth int) {
 		// pin from updateLayoutLocked, issue #262). Same fill-impl
 		// size-neutral invariant as layoutWidths: the height fill impl
 		// must not gain an axisNone size writer.
-		if layout.Shape.Sizing.Height == sizingFit {
+		if axisNoneMeasuresChildren(layout.Shape) {
+			for i := range layout.Children {
+				layoutHeightsDepth(&layout.Children[i], depth+1)
+			}
+		}
+		if axisNoneFitsContent(layout, distributeVertical) {
 			fitAxisNoneHeight(layout, padding)
 		}
 		layout.Shape.MinHeight = effectiveMinSize(layout.Shape.MinHeight, layout.Shape.MaxHeight)
 		layout.Shape.Height = clampSize(layout.Shape.Height, layout.Shape.MinHeight, layout.Shape.MaxHeight)
 	}
+}
+
+// axisNoneMeasuresChildren reports whether the measuring passes recurse
+// into an axisNone container's children. Every Canvas measures its
+// children except a layoutSizer (Splitter, DockLayout), which sizes them
+// itself after these passes: measured here, they would be measured
+// twice per frame and the first result thrown away.
+func axisNoneMeasuresChildren(s *Shape) bool {
+	return s.events == nil || s.events.sizer == nil
+}
+
+// axisNoneFitsContent reports whether an axisNone container takes its
+// size on axis from its children. A Fit axis always does. A Fill axis
+// does only when its parent is axis-less too: a Canvas hands out no
+// space, so a Fill Canvas inside one would otherwise stay 0 and clip
+// away everything in it (#1216). A Fill Canvas that a row, a column or
+// the window sizes keeps the space it is given, as before.
+func axisNoneFitsContent(layout *Layout, axis distributeAxis) bool {
+	switch getSizing(layout.Shape, axis) {
+	case sizingFit:
+		return true
+	case sizingFill:
+		p := layout.Parent
+		return p != nil && p.Shape != nil && p.Shape.Axis == axisNone
+	}
+	return false
 }
 
 // spacingSmall matches the V framework's spacing_small constant.

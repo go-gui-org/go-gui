@@ -74,6 +74,18 @@ and this project adheres to
   `Root` no longer covers itself with the translucent drop-zone overlay. The new
   `examples/splitter_scroll` compares a pane with a plain `Row`.
 
+- **A Fit container inside a `Canvas` sizes to its content (#1216).** The passes
+  that size a Fit container from its children did not reach below a `Canvas`, so
+  a Fit container there, at any depth, came out 0×0: its background and border
+  did not draw, a button in it had no frame, and nothing in it could be clicked.
+  Its text still drew, which hid the cause. Fit containers below a `Canvas` now
+  size as they do in a `Row` or `Column`, and a Fit `Canvas` encloses them. A
+  Fill child of a `Canvas`, which was also 0×0, now takes its content's size,
+  including a Fill `Canvas` nested in a `Canvas`; a `Canvas` still does not
+  stretch it. Three buttons in the examples could not be clicked because of it:
+  the minesweeper reset button, the snake start button and the 2048 "Try again"
+  button. The calculator's title bar had no height.
+
 ## [v0.94.0] - 2026-10-31
 
 ### Added
