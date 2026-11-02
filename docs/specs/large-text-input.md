@@ -54,6 +54,16 @@ of chunks, each one glyph layout within the budget `textChunkBytes` (2048).
   average advance and measured as they come into view. At most 48 shaped chunks
   (`textBlockLiveLayouts`) stay live; the rest keep their geometry and are
   shaped again when needed.
+- **Scroll anchoring.** Measuring an estimated chunk moves every line below it
+  by the estimate's error. `layoutAnchorTextBlocks`
+  (`gui/text_block_anchor.go`), run after the position pass, measures the chunks
+  the scroll view shows before the frame draws them, grows the boxes that fit
+  the text by the difference, and moves the scroll offset by the height that
+  appeared above the first chunk that was already on screen. The lines in view
+  stay put; only the scrollbar thumb moves. An edit shapes the re-packed chunks
+  that hold text before it, so the paragraphs above the caret keep their
+  measured heights even when the grown paragraph leaves its chunk; a large paste
+  after them stays estimated, so a 100 KB paste costs a few milliseconds.
 - **Persistence.** The block lives in `nsTextBlock` under the shape's identity
   (an input's owner, a `Text`'s ID, or for a large anonymous `Text` the string's
   own memory, content-checked on every hit). The frame resolves it through
@@ -146,7 +156,14 @@ is not handed to the platform spell checker.
   paragraph seams are exact and free; a forced seam inside a paragraph can split
   a bidi run, which only a paragraph longer than the budget with no newline in
   it ever pays for.
-- **Laying out everything up front.** 1 MB is ~0.4 s and ~150 MB of layouts.
+- **Laying out everything up front.** 1 MB is ~0.4 s and ~150 MB of layouts, and
+  the cost comes back on every width change: 68 ms for 90 KB, 0.6 to 0.8 s for
+  0.4 to 1 MB, against about 5 ms with estimates.
+- **Shaping around the caret before scrolling it into view.** It made the
+  caret's position exact, but measured chunks above the view outside the layout
+  pass, where nothing compensates: the lines on screen moved by the estimate's
+  error, a whole view height in `TestTextAnchorCaretWalkScrollsByRows`. Measure
+  in the anchor pass, which corrects the offset in the same frame.
 - **Keeping the layout cache on `shapeTextConfig`.** The arena is per frame, so
   every rebuild re-shaped the whole text: today's cost class.
 - **Rune offsets with a rune-to-byte table.** It keeps the old unit at the cost
@@ -168,7 +185,13 @@ is not handed to the platform spell checker.
 ## Known limits
 
 - The scroll extent of a text over 64 KB is estimated until its chunks have been
-  seen; it settles as the user scrolls.
+  seen; it settles as the user scrolls, and the scrollbar thumb moves when it
+  does.
+- The anchor pass moves the offset only when every box between the text and its
+  scroll view is a fit-height column that takes the height change in full: a
+  `MaxHeight` it would pass, or a `MinHeight` it sits at or would fall below,
+  stops it. Otherwise it still measures the chunks in view, and the boxes catch
+  up on the next frame.
 - A paragraph longer than the budget in no-wrap mode is drawn as pieces side by
   side, cut after a space when one is near; kerning across the seam is lost.
 - At a character-level wrap of a run with no break opportunity the chunk

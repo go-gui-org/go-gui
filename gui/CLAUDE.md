@@ -259,7 +259,9 @@ both `EventCtx` methods are nil-safe.
   `glyph.Layout` of it across frames. Resolve it with `plainTextBlock`
   (`inputGlyphLayout` for an input, which masks a password). A rich-text layout
   the caller shaped wraps as a one-chunk block with `newTextBlockFromLayout`.
-  `docs/specs/large-text-input.md`.
+  Measuring an estimated chunk above the view moves the lines on screen; only
+  `layoutAnchorTextBlocks` compensates, so do not shape ahead from an event
+  handler. `docs/specs/large-text-input.md`.
 - Shape text fields live in `Shape.TC` (`*shapeTextConfig`), not on `Shape`.
 - `ContainerCfg.Title`/`TitleBG` render a group-box label in the top border
   (floating eraser + text, like an HTML fieldset). `TitleBG` must match the
