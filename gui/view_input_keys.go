@@ -201,7 +201,9 @@ func inputKeyPaste(
 	// before any []rune conversion downstream: clipboard content is
 	// platform-sized, not app-sized. Inserting a prefix instead cut
 	// structured text (JSON, CSV) mid-document with no sign (#1187).
-	if !inputEditFits(text, clip, inputStateOrDefault(id, w), hcfg.budget()) {
+	// A mask is budgeted on its result instead: it can overwrite as it
+	// inserts, and it reads the clipboard only until its slots are full.
+	if mask == nil && !inputEditFits(text, clip, inputStateOrDefault(id, w), hcfg.budget()) {
 		hcfg.rejectPaste(clip, layout, w)
 		return text, false
 	}
@@ -209,6 +211,10 @@ func inputKeyPaste(
 		cis := inputStateOrDefault(id, w)
 		cursor, selBeg, selEnd := maskRuneArgs(text, cis)
 		res := inputMaskInsert(text, cursor, selBeg, selEnd, clip, mask)
+		if res.Changed && !inputResultFits(text, res.Text, hcfg.budget()) {
+			hcfg.rejectPaste(clip, layout, w)
+			return text, false
+		}
 		if res.Changed {
 			// A paste is never part of a typing run.
 			inputStoreState(id, w, editCommit(cis, text, res.Text, maskByteCaret(res), inputOpNone))

@@ -333,6 +333,17 @@ func inputEditFits(text, ins string, is inputState, maxRunes int) bool {
 	return utf8RuneCount(text)-removed+added <= maxRunes
 }
 
+// inputResultFits is inputEditFits for an edit whose result the caller
+// already has: a mask's, which can overwrite as it inserts. The rule is
+// the same: a result no longer than text, in runes, always fits.
+func inputResultFits(text, result string, maxRunes int) bool {
+	if len(result) <= maxRunes {
+		return true // byte length bounds rune count from above
+	}
+	n := utf8RuneCount(result)
+	return n <= maxRunes || n <= utf8RuneCount(text)
+}
+
 // capCallbackText bounds text an app callback returns (PreTextChange
 // adjusted, PostCommitNormalize output) at the field's budget. The
 // callback is trusted code but not size-checked code: without a bound
