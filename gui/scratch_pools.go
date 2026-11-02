@@ -271,6 +271,9 @@ type scratchPools struct {
 	viewA11Y     scratchObjPool[accessInfo]
 	viewTextCfgs scratchObjPool[shapeTextConfig]
 	viewTextSty  scratchObjPool[TextStyle]
+	// viewSizers counts the containers generated with a layoutSizer;
+	// at 0 layoutSizeChildren skips its walk.
+	viewSizers int
 
 	// Render-phase pools: reuse heap objects whose addresses are
 	// stored in RenderCmd pointer fields (avoids per-frame escapes).
@@ -385,6 +388,7 @@ func (p *scratchPools) resetViewPools() {
 	p.viewA11Y.reset()
 	p.viewTextCfgs.reset()
 	p.viewTextSty.reset()
+	p.viewSizers = 0
 	if cap(p.layoutChildrenArena) > layoutChildrenRetainMax {
 		p.layoutChildrenArena = make([]Layout, 0, layoutChildrenShrinkTo)
 	} else {

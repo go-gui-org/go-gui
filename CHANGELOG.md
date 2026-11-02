@@ -56,6 +56,24 @@ and this project adheres to
   the buffer it already shows. A frame already due, such as one after a resize
   or a scale change, still makes the commit, and so does the first frame.
 
+### Fixed
+
+- **A scrollable in a `Splitter` or `DockLayout` pane scrolls to its end
+  (#1214).** A pane got its size only after the frame had clamped the scroll
+  offsets and applied the scroll requests, so a scrollable inside it was
+  measured at size zero first. When its rows were containers rather than plain
+  text, that early measure gave a scroll range too short for the content. The
+  wheel, `ScrollVerticalTo` and `ScrollVerticalToPct` then stopped short of the
+  end, and the last rows could not be scrolled into view. In a nested splitter
+  or a `DockLayout` the list did not scroll at all. The same early pass also
+  dropped `ScrollAnchor` corrections and left `ScrollToEnd` and the other index
+  scrolls short on a `ListBox`. Panes are now sized before anything is
+  positioned or scrolled, so a scrollable in a pane has the same scroll range as
+  one outside a splitter. Panes are also laid out once per frame instead of
+  twice, which saves an allocation per `DockLayout`. A `DockLayout` with no
+  `Root` no longer covers itself with the translucent drop-zone overlay. The new
+  `examples/splitter_scroll` compares a pane with a plain `Row`.
+
 ## [v0.94.0] - 2026-10-31
 
 ### Added

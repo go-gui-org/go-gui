@@ -23,18 +23,11 @@ func layoutPipeline(layout *Layout, w *Window) {
 		s.MinWidth = f32Max(s.MinWidth, layout.Parent.Shape.Width)
 	}
 
-	// Width passes.
-	layoutWidths(layout)
-	w.scratch.beginFillPass()
-	layoutFillWidths(layout, &w.scratch)
-	layoutWrapContainers(layout, w)
-	layoutOverflow(layout, w)
-	layoutWrapText(layout, w)
-
-	// Height passes.
-	layoutHeights(layout)
-	layoutFillHeights(layout, &w.scratch)
-	layoutRotationSwap(layout)
+	layoutSizes(layout, w)
+	// A container that sizes its own children (Splitter, DockLayout)
+	// does it here: its own size is final, and nothing below it has
+	// been positioned, clamped or scrolled yet (#1214).
+	layoutSizeChildren(layout, w)
 
 	// Position passes.
 	layoutAdjustScrollOffsets(layout, w)
@@ -64,6 +57,76 @@ func layoutPipeline(layout *Layout, w *Window) {
 	// escaping. Same reason debugCheckStamp hooks resolveFocusOwners.
 	if w.debugLayoutInvariantsChecked() {
 		w.debugCheckLayoutInvariants(layout)
+	}
+}
+
+// layoutSizes runs the width and height passes on one tree. The
+// pipeline runs it on the whole tree and a layoutSizer on each child it
+// pins, so the two run the same passes.
+func layoutSizes(layout *Layout, w *Window) {
+	// Width passes.
+	layoutWidths(layout)
+	w.scratch.beginFillPass()
+	layoutFillWidths(layout, &w.scratch)
+	layoutWrapContainers(layout, w)
+	layoutOverflow(layout, w)
+	layoutWrapText(layout, w)
+
+	// Height passes.
+	layoutHeights(layout)
+	layoutFillHeights(layout, &w.scratch)
+	layoutRotationSwap(layout)
+}
+
+// layoutSizer is a container that sizes its children itself instead of
+// leaving them to the fill passes: a Splitter's panes take their sizes
+// from its ratio. The sizing passes stop at such a container (a Canvas
+// measures no children), so its subtree has no sizes until sizeChildren
+// gives them.
+//
+// sizeChildren pins each child's size and its X/Y relative to the
+// container, then runs layoutSizes on it. It runs after the sizing
+// passes and before every pass that positions the tree or reads its
+// sizes into window state — the scroll clamp, scroll anchors and index
+// scrolls. Run any later and those passes act on the unsized subtree,
+// and what they store outlives the sizes given afterwards (#1214).
+type layoutSizer interface {
+	sizeChildren(layout *Layout, w *Window)
+}
+
+// setLayoutSizer makes s the sizer of a generated container. The
+// container must have event handlers to hold it (both sizers have an
+// AmendLayout); an invisible one has none, and nothing to size. It is
+// set on the generated shape rather than through a ContainerCfg field,
+// which would grow every container's view into the next size class.
+func setLayoutSizer(layout *Layout, s layoutSizer, w *Window) {
+	if layout.Shape == nil || layout.Shape.events == nil {
+		return
+	}
+	layout.Shape.events.sizer = s
+	w.scratch.viewSizers++
+}
+
+// layoutSizeChildren gives each layoutSizer in the tree its turn,
+// parents first, so a sizer nested inside another's child has its own
+// size before it sizes its children. A frame that generated no sizer
+// skips the walk.
+func layoutSizeChildren(layout *Layout, w *Window) {
+	if w.scratch.viewSizers == 0 {
+		return
+	}
+	layoutSizeChildrenDepth(layout, w, 0)
+}
+
+func layoutSizeChildrenDepth(layout *Layout, w *Window, depth int) {
+	if overMaxDepth(depth) {
+		return
+	}
+	if ev := layout.Shape.events; ev != nil && ev.sizer != nil {
+		ev.sizer.sizeChildren(layout, w)
+	}
+	for i := range layout.Children {
+		layoutSizeChildrenDepth(&layout.Children[i], w, depth+1)
 	}
 }
 

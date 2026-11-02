@@ -392,6 +392,23 @@ func TestNewDockLayoutCore(t *testing.T) {
 	}
 }
 
+// With no Root there is no tree view, so the zone overlay is the
+// dock's first child. sizeChildren must leave it alone: pinned to the
+// dock's size, the translucent overlay covered the whole empty dock.
+func TestDockLayoutNilRootLeavesOverlayUnsized(t *testing.T) {
+	w := NewTestWindow(t, WindowCfg{Width: 400, Height: 300})
+	l := w.TestRender(func(*Window) View {
+		return DockLayout(DockLayoutCfg{ID: "dock"})
+	})
+	overlay, ok := l.FindByID(ScopeID("dock", "dock_zone_overlay"))
+	if !ok {
+		t.Fatal("zone overlay not found")
+	}
+	if s := overlay.Shape; s.Width != 0 || s.Height != 0 {
+		t.Errorf("overlay is %gx%g, want 0x0", s.Width, s.Height)
+	}
+}
+
 // --- dockLayoutAmend ---
 
 func TestDockLayoutAmendNoChildren(t *testing.T) {
