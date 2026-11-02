@@ -54,9 +54,9 @@ of chunks, each one glyph layout within the budget `textChunkBytes` (2048).
   average advance and measured as they come into view. At most 48 shaped chunks
   (`textBlockLiveLayouts`) stay live; the rest keep their geometry and are
   shaped again when needed. A chunk is shaped from a copy of its bytes:
-  `glyph.Layout` keeps the text it shaped, and a slice of the block's text
-  would keep that whole text alive, one old generation per chunk an edit did
-  not touch.
+  `glyph.Layout` keeps the text it shaped, and a slice of the block's text would
+  keep that whole text alive, one old generation per chunk an edit did not
+  touch.
 - **Scroll anchoring.** Measuring an estimated chunk moves every line below it
   by the estimate's error. `layoutAnchorTextBlocks`
   (`gui/text_block_anchor.go`), run after the position pass, measures the chunks
@@ -74,9 +74,9 @@ of chunks, each one glyph layout within the budget `textChunkBytes` (2048).
   outside the common prefix and suffix of the old and new text, the paragraphs
   it touched are re-chunked, the chunks after it shift, and nothing else is
   shaped. A width, mode or shaping-style change rebuilds the block. A block that
-  no layout resolved in the last two view passes is dropped
-  (`sweepTextBlocks`): the cache is bounded by count, and a large text that left
-  the tree would otherwise stay until 256 other identities pushed it out.
+  no layout resolved in the last two view passes is dropped (`sweepTextBlocks`):
+  the cache is bounded by count, and a large text that left the tree would
+  otherwise stay until 256 other identities pushed it out.
 - **Queries.** `text_block_query.go` answers the layout queries the widgets used
   on a whole-text layout — caret position, hit test, selection rects, caret and
   word moves, line start and end, vertical moves, grapheme delete — in
@@ -86,7 +86,11 @@ of chunks, each one glyph layout within the budget `textChunkBytes` (2048).
 - **Drawing.** `renderTextBlock` emits one glyph-layout draw per chunk that
   reaches into the clip. A single-line text over the budget takes the layout
   path too, since one `RenderText` command would hand the backend a string the
-  shaper refuses.
+  shaper refuses. glyph applies a draw's transform about the draw's origin, so
+  under a rotation, a transform or an animation's motion every chunk keeps the
+  block's origin and moves inside the transform: the block turns as one. The
+  clip test then uses each chunk's transformed box. A content transition's fade
+  draws texts past one chunk the same way, each at its alpha.
 
 The exit criterion of the spike holds: after the first frame (23 ms for a 100 KB
 text), a rebuilt frame of that text costs 1.9 ms
@@ -200,6 +204,10 @@ is not handed to the platform spell checker.
   up on the next frame.
 - A paragraph longer than the budget in no-wrap mode is drawn as pieces side by
   side, cut after a space when one is near; kerning across the seam is lost.
+- A gradient fill or a shimmer spans each chunk's box, not the whole text's, so
+  past one chunk it starts over in every chunk. glyph measures a gradient on the
+  layout it draws (`layoutGradientExtents`) and takes no larger frame; spanning
+  the block needs that in go-glyph.
 - At a character-level wrap of a run with no break opportunity the chunk
   boundary is the break the shaper would also make, and the caret at that offset
   sits on the later line, where glyph's single layout puts it on the earlier

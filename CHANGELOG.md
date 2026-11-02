@@ -411,8 +411,9 @@ and this project adheres to
   every keystroke used to re-shape the whole field. Above 64 KB the chunks not
   yet shown start with estimated heights; when one scrolls into view, the scroll
   offset absorbs the measured difference, so the lines on screen and the caret
-  stay where they were. `docs/specs/large-text-input.md` records the design and
-  the alternatives.
+  stay where they were. A rotated or transformed long text turns as one block,
+  and a content transition's fade draws long texts chunk by chunk too.
+  `docs/specs/large-text-input.md` records the design and the alternatives.
 
 ## [v0.94.0] - 2026-10-31
 
