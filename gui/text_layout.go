@@ -142,26 +142,63 @@ func plainTextBlock(
 	tc := shape.TC
 	widthArg := plainTextLayoutWidthArg(shape, tc, style)
 	b := tc.block
-	switch {
-	case b != nil:
-		b.update(text, widthArg, style, tc.TextMode, w)
-	default:
-		key := shape.focusKey()
+	key := ""
+	var blocks *BoundedMap[string, *textBlock]
+	if b == nil {
+		key = shape.focusKey()
 		if key == "" && len(text) > textChunkBytes {
 			key = textBlockAnonKey(text)
 		}
-		if key == "" {
-			b = newTextBlock(text, widthArg, style, tc.TextMode, w)
-			break
+		if key != "" {
+			blocks = StateMap[string, *textBlock](w, nsTextBlock, capTextBlocks)
+			b, _ = blocks.Get(key)
 		}
-		m := StateMap[string, *textBlock](w, nsTextBlock, capTextBlocks)
-		var ok bool
-		if b, ok = m.Get(key); ok && b != nil {
-			b.update(text, widthArg, style, tc.TextMode, w)
+	}
+
+	sourceText := text
+	singleLineInput := shape.focusOwner != "" &&
+		tc.TextMode == TextModeSingleLine
+	p, s := -1, -1
+	sourceLineBreaks := 0
+	if singleLineInput {
+		if b != nil && b.sourceTextSet && b.sourceText == sourceText {
+			text = b.text
+			sourceLineBreaks = b.sourceLineBreaks
+		} else if b != nil && b.sourceTextSet {
+			p = commonPrefixLen(b.sourceText, sourceText)
+			s = commonSuffixLen(b.sourceText, sourceText, p)
+			oldEnd := len(b.sourceText) - s
+			newEnd := len(sourceText) - s
+			sourceLineBreaks = b.sourceLineBreaks -
+				inputLineBreakCount(b.sourceText[p:oldEnd]) +
+				inputLineBreakCount(sourceText[p:newEnd])
+			if sourceLineBreaks == 0 {
+				text = sourceText
+			} else {
+				text = b.text[:p] +
+					singleLineInputDisplayText(sourceText[p:newEnd]) +
+					b.text[oldEnd:]
+			}
 		} else {
-			b = newTextBlock(text, widthArg, style, tc.TextMode, w)
-			m.Set(key, b)
+			text = singleLineInputDisplayText(sourceText)
+			sourceLineBreaks = inputLineBreakCount(sourceText)
 		}
+	}
+	if b != nil {
+		b.updateKnownDelta(text, widthArg, style, tc.TextMode, w, p, s)
+	} else {
+		b = newTextBlock(text, widthArg, style, tc.TextMode, w)
+		if blocks != nil {
+			blocks.Set(key, b)
+		}
+	}
+	b.sourceText, b.sourceTextSet, b.sourceLineBreaks = "", false, 0
+	if singleLineInput {
+		b.sourceText = sourceText
+		b.sourceTextSet = true
+		b.sourceLineBreaks = sourceLineBreaks
+	}
+	if key != "" {
 		b.seen = w.viewPass
 	}
 	tc.block = b

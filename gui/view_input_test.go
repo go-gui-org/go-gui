@@ -1104,7 +1104,8 @@ func TestInputSelectionRendered(t *testing.T) {
 		},
 	}
 	w.renderers = w.renderers[:0]
-	renderInputSelection(shape, "hello", 0, 0, nil, false, w)
+	renderInputSelection(shape, "hello", 0, 0, nil, false,
+		makeClip(0, 0, 800, 600), w)
 	found := false
 	for _, r := range w.renderers {
 		if r.Kind == RenderRect && r.Fill && r.Color.A > 0 {
@@ -1129,7 +1130,8 @@ func TestInputSelectionNotRenderedWhenNoSelection(t *testing.T) {
 		},
 	}
 	w.renderers = w.renderers[:0]
-	renderInputSelection(shape, "hello", 0, 0, nil, false, w)
+	renderInputSelection(shape, "hello", 0, 0, nil, false,
+		makeClip(0, 0, 800, 600), w)
 	if len(w.renderers) != 0 {
 		t.Fatal("selection should not render with no selection")
 	}
@@ -1152,7 +1154,8 @@ func TestInputSelectionMultiline(t *testing.T) {
 		},
 	}
 	w.renderers = w.renderers[:0]
-	renderInputSelection(shape, text, 0, 0, nil, false, w)
+	renderInputSelection(shape, text, 0, 0, nil, false,
+		makeClip(0, 0, 800, 600), w)
 	count := 0
 	for _, r := range w.renderers {
 		if r.Kind == RenderRect && r.Fill {

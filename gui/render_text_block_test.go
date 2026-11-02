@@ -119,6 +119,41 @@ func TestRenderTextBlockCullsTransformedChunks(t *testing.T) {
 	}
 }
 
+// A full selection in a long single-line field used to shape every piece:
+// the selection query was bounded vertically, but every piece shares that
+// one visible row. The input clip must also bound the horizontal work.
+func TestRenderInputSelectionCullsHorizontalChunks(t *testing.T) {
+	withChunkBytes(t, 12)
+	withEagerBytes(t, 0)
+	w := newBlockTestWindow(t)
+	text := strings.Repeat("abcd ", 100)
+	blk := newTextBlock(text, 0, blockTestStyle, TextModeSingleLine, w)
+	style := blockTestStyle
+	shape := &Shape{TC: &ShapeTextConfig{
+		Text: text, TextStyle: &style,
+		textSelBeg: 0, textSelEnd: uint32(len(text)),
+	}}
+
+	renderInputSelection(shape, text, 0, 0, blk, true,
+		makeClip(0, 0, 30, 30), w)
+
+	if len(w.renderers) == 0 {
+		t.Fatal("visible selection emitted no rectangle")
+	}
+	measured := 0
+	for i := range blk.chunks {
+		if blk.chunks[i].measured {
+			measured++
+		}
+	}
+	if measured != 1 {
+		t.Fatalf("selection shaped %d chunks, want only the visible first chunk", measured)
+	}
+	if len(blk.chunks) < 2 || !blk.chunks[1].open {
+		t.Fatalf("off-screen remainder was not left open: %v", blockRanges(blk))
+	}
+}
+
 // A fade of texts past one chunk draws both chunk by chunk, at their
 // alphas. The plain path's single RenderText of a whole string hands the
 // backend more than glyph.MaxTextLength bytes, which it draws as nothing:

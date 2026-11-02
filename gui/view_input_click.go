@@ -101,10 +101,7 @@ func inputOnClick(
 		relX := ctx.Event.MouseX - (ly.Shape.X - field.Shape.X)
 		relY := ctx.Event.MouseY - (ly.Shape.Y - field.Shape.Y)
 		byteIdx := gl.closestOffset(relX, relY)
-		displayText := text
-		if ly.Shape.TC.textIsPassword {
-			displayText = maskPassword(text)
-		}
+		displayText := gl.text
 		// The block speaks in offsets of the text as drawn; the state
 		// holds offsets of the field's text.
 		pos := textOffset(text, displayText, byteIdx)

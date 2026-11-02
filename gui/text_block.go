@@ -105,10 +105,21 @@ func (c *textChunk) needsLayout() bool {
 type textBlock struct {
 	// w is the window whose measurer shapes the chunks. A block lives in
 	// that window's state, so the queries need no window handed in.
-	w      *Window
-	style  TextStyle
-	text   string
-	chunks []textChunk
+	w     *Window
+	style TextStyle
+	text  string
+	// sourceText is the field text from which text was derived when an
+	// Input needs a different display string. A single-line Input keeps
+	// pasted line breaks in its value but shapes spaces in their place.
+	// Holding the source header lets later layout/render queries reuse the
+	// transformed text instead of allocating another full-size string.
+	// sourceTextSet distinguishes an unchanged source that needed no
+	// transform from a block that was not resolved for an Input. Without
+	// it, a no-newline megabyte was scanned again at every resolve.
+	sourceText       string
+	sourceTextSet    bool
+	sourceLineBreaks int
+	chunks           []textChunk
 	// widthArg has plainTextLayoutWidthArg's meaning: > 0 wraps at that
 	// width, < 0 aligns within -widthArg without wrapping, 0 is natural.
 	widthArg float32
@@ -183,6 +194,17 @@ func (b *textBlock) sameShaping(
 func (b *textBlock) update(
 	text string, widthArg float32, style TextStyle, mode TextMode, w *Window,
 ) {
+	b.updateKnownDelta(text, widthArg, style, mode, w, -1, -1)
+}
+
+// updateKnownDelta is update with an optional already-located edit. p and s
+// are the common prefix and suffix byte lengths, or negative when the block
+// must locate them. A single-line Input computes them while updating its
+// display text, so repeating both whole-string scans here is pure cost.
+func (b *textBlock) updateKnownDelta(
+	text string, widthArg float32, style TextStyle, mode TextMode, w *Window,
+	p, s int,
+) {
 	if !b.sameShaping(widthArg, style, mode) {
 		b.reset(text, widthArg, style, mode, w)
 		return
@@ -190,7 +212,11 @@ func (b *textBlock) update(
 	if text == b.text {
 		return
 	}
-	b.patch(text, w)
+	if p < 0 || s < 0 {
+		b.patch(text, w)
+		return
+	}
+	b.patchKnownDelta(text, w, p, s)
 }
 
 func (b *textBlock) reset(
@@ -527,6 +553,13 @@ func (b *textBlock) patch(text string, w *Window) {
 	old := b.text
 	p := commonPrefixLen(old, text)
 	s := commonSuffixLen(old, text, p)
+	b.patchKnownDelta(text, w, p, s)
+}
+
+func (b *textBlock) patchKnownDelta(
+	text string, w *Window, p, s int,
+) {
+	old := b.text
 	oldEnd := len(old) - s
 	a := b.chunkAt(p)
 	// In wrap mode an edit in a piece can change where the piece before

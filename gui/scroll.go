@@ -51,10 +51,7 @@ func inputScrollCursorIntoView(
 	// has to be taken against that same string. A bullet and the rune it
 	// hides are different byte lengths, so indexing the raw text lands
 	// the caret in the wrong place.
-	byteIdx := pos
-	if txtShape.TC.textIsPassword {
-		byteIdx = displayOffset(text, maskPassword(text), pos)
-	}
+	byteIdx := displayOffset(text, gl.text, pos)
 
 	cp, ok := gl.cursorPosTrailing(byteIdx, is.cursorTrailing)
 	if !ok {

@@ -44,11 +44,7 @@ func renderText(shape *Shape, clip drawClip, w *Window) {
 	// paints past its shape's right edge (see Shape.inkOverflowW), and
 	// once the field is scrolled the box can sit entirely left of the
 	// clip while the visible part of the text does not.
-	bounds := shapeBounds(shape)
-	if f32IsFinite(shape.inkOverflowW) &&
-		shape.inkOverflowW > bounds.Width {
-		bounds.Width = shape.inkOverflowW
-	}
+	bounds := textRenderBounds(shape, tc)
 	if !rectsOverlap(bounds, clip) {
 		return
 	}
@@ -149,6 +145,7 @@ func renderText(shape *Shape, clip drawClip, w *Window) {
 	if needLayout || renderWithLayout {
 		blk, hasBlk = inputGlyphLayoutResolved(text, shape, renderStyle, w, true)
 	}
+	text = textRenderDisplay(text, shape, blk, hasBlk)
 
 	// A gradient fill carries no color of its own, so it needs the
 	// same treatment c got above — except under the disabled role,
@@ -215,7 +212,7 @@ func renderText(shape *Shape, clip drawClip, w *Window) {
 	// Selection highlight (drawn after text so BgColor does not
 	// obscure it; semi-transparent overlay remains readable).
 	if !imeComposing {
-		renderInputSelection(shape, text, baseX, baseY, blk, hasBlk, w)
+		renderInputSelection(shape, text, baseX, baseY, blk, hasBlk, clip, w)
 	}
 
 	// Cursor (drawn after text).
@@ -228,26 +225,56 @@ func renderText(shape *Shape, clip drawClip, w *Window) {
 		renderIMEPreeditUnderline(shape, baseX, baseY,
 			compInsertPos, compText,
 			w.IMECompCursor(), w.IMECompSelLen(),
-			blk, style, w)
+			blk, style, clip, w)
 	}
 
 	// Spell check underlines.
 	if !imeComposing && hasBlk {
-		renderSpellCheckUnderlines(shape, text, baseX, baseY, blk, w)
+		renderSpellCheckUnderlines(shape, text, baseX, baseY, blk, clip, w)
 	}
 }
 
-// textBlockVisibleBand returns the block-coordinate y range the window
-// shows for a text drawn with its top at baseY, so a selection or
-// underline over a long text shapes only the chunks on screen. A window
-// of no height (a bare test window) bounds nothing.
-func textBlockVisibleBand(baseY float32, w *Window) (yMin, yMax float32) {
-	yMin = -baseY
-	yMax = f32Inf
-	if w != nil && w.windowHeight > 0 {
-		yMax = float32(w.windowHeight) - baseY
+// textRenderBounds includes ink that can reach past a text shape's arranged
+// box. A Fill-width single-line input keeps that box at the viewport width
+// and records the full run as MinWidth. Once caret following shifts it left,
+// later chunks still reach into the clip and need the chunk-level cull.
+func textRenderBounds(shape *Shape, tc *ShapeTextConfig) drawClip {
+	bounds := shapeBounds(shape)
+	if tc.TextMode == TextModeSingleLine &&
+		f32IsFinite(shape.MinWidth) && shape.MinWidth > bounds.Width {
+		bounds.Width = shape.MinWidth
 	}
-	return yMin, yMax
+	if f32IsFinite(shape.inkOverflowW) &&
+		shape.inkOverflowW > bounds.Width {
+		bounds.Width = shape.inkOverflowW
+	}
+	return bounds
+}
+
+// textRenderDisplay returns the exact string the frame shapes and paints.
+// A block already owns it; only a short, unfocused single-line input can take
+// the direct RenderText path without resolving one.
+func textRenderDisplay(
+	text string, shape *Shape, blk *textBlock, hasBlk bool,
+) string {
+	if hasBlk {
+		return blk.text
+	}
+	if shape.focusOwner != "" && shape.TC.TextMode == TextModeSingleLine {
+		return singleLineInputDisplayText(text)
+	}
+	return text
+}
+
+// textBlockVisibleBox maps the renderer's current clip into a text block's
+// coordinates. Using the current clip, rather than just the window height,
+// also bounds work inside an Input or a nested scroll view.
+func textBlockVisibleBox(
+	baseX, baseY float32, clip drawClip,
+) (xMin, xMax, yMin, yMax float32) {
+	xMin, yMin = clip.X-baseX, clip.Y-baseY
+	xMax, yMax = xMin+clip.Width, yMin+clip.Height
+	return xMin, xMax, yMin, yMax
 }
 
 // textLayoutTransform returns the transform a text shape's glyph layout
@@ -436,7 +463,7 @@ func drawnOffset(tc *ShapeTextConfig, drawn string, off int) int {
 // renderInputSelection emits highlight rectangles for the selected
 // text range. Uses glyph layout for precise boundaries.
 func renderInputSelection(shape *Shape, text string, baseX, baseY float32,
-	blk *textBlock, hasBlk bool, w *Window) {
+	blk *textBlock, hasBlk bool, clip drawClip, w *Window) {
 	tc := shape.TC
 	if tc == nil || tc.textSelBeg == tc.textSelEnd {
 		return
@@ -455,8 +482,9 @@ func renderInputSelection(shape *Shape, text string, baseX, baseY float32,
 		blk, hasBlk = inputGlyphLayoutResolved(text, shape, style, w, tc.textIsPassword)
 	}
 	if hasBlk {
-		yMin, yMax := textBlockVisibleBand(baseY, w)
-		rects := blk.selectionRects(startByte, endByte, yMin, yMax)
+		xMin, xMax, yMin, yMax := textBlockVisibleBox(baseX, baseY, clip)
+		rects := blk.selectionRectsVisible(startByte, endByte,
+			xMin, xMax, yMin, yMax)
 		for _, r := range rects {
 			emitRenderer(RenderCmd{
 				Kind:  RenderRect,
@@ -493,7 +521,7 @@ func renderInputSelection(shape *Shape, text string, baseX, baseY float32,
 func renderIMEPreeditUnderline(
 	shape *Shape, baseX, baseY float32,
 	insertPos int, compText string, compCursor, compSelLen int,
-	blk *textBlock, style TextStyle, w *Window,
+	blk *textBlock, style TextStyle, clip drawClip, w *Window,
 ) {
 	// insertPos is a byte offset into the drawn text; the input method
 	// reports its caret and clause in runes of the preedit.
@@ -507,9 +535,11 @@ func renderIMEPreeditUnderline(
 
 	thinH := max(float32(1), style.Size/14)
 	thickH := max(float32(2), style.Size/7)
+	xMin, xMax, yMin, yMax := textBlockVisibleBox(baseX, baseY, clip)
 
 	// Thin underline for the entire preedit region.
-	rects := blk.selectionRects(startByte, endByte, -f32Inf, f32Inf)
+	rects := blk.selectionRectsVisible(startByte, endByte,
+		xMin, xMax, yMin, yMax)
 	for _, r := range rects {
 		emitRenderer(RenderCmd{
 			Kind:  RenderRect,
@@ -526,7 +556,8 @@ func renderIMEPreeditUnderline(
 	if compSelLen > 0 {
 		sb := insertPos + runeToByteIndex(compText, compCursor)
 		eb := insertPos + runeToByteIndex(compText, compCursor+compSelLen)
-		selRects := blk.selectionRects(sb, eb, -f32Inf, f32Inf)
+		selRects := blk.selectionRectsVisible(sb, eb,
+			xMin, xMax, yMin, yMax)
 		for _, r := range selRects {
 			emitRenderer(RenderCmd{
 				Kind:  RenderRect,
@@ -647,7 +678,7 @@ func renderRtf(shape *Shape, clip drawClip, w *Window) {
 		// rich-text layout and is never asked to shape.
 		blk := newTextBlockFromLayout(flat, shape.TC.rtf.rTFLayout, 0,
 			textStyleOrDefault(shape), shape.TC.TextMode, w)
-		renderInputSelection(shape, flat, baseX, baseY, blk, true, w)
+		renderInputSelection(shape, flat, baseX, baseY, blk, true, clip, w)
 	}
 
 	// Emit RenderImage for inline math objects.

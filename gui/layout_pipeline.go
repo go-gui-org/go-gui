@@ -715,10 +715,11 @@ func layoutPlainText(
 	if !ok {
 		return false
 	}
+	text = blk.text
 	// A single-line text that takes the chunked path only for its length
 	// keeps its one-line box, as it did when it was drawn as one
-	// RenderText: line breaks pasted into a single-line field must not
-	// grow the field. The rows past the first are clipped, as before.
+	// RenderText. An Input's display block has already replaced CR/LF
+	// with spaces, so pasted separators neither grow it nor hide rows.
 	if plainTextStyleNeedsGlyphLayout(tc, style) {
 		shape.Height = blk.boxHeight()
 	}

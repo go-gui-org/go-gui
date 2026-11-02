@@ -21,8 +21,7 @@ func (b *textBlock) cursorPos(idx int) (glyph.CursorPosition, bool) {
 	if len(b.chunks) == 0 || idx < 0 || idx > len(b.text) {
 		return glyph.CursorPosition{}, false
 	}
-	i := b.chunkAt(idx)
-	b.ensure(i, b.w)
+	i := b.shapedChunkAt(idx)
 	b.settle()
 	c := &b.chunks[i]
 	cp := b.chunkCursorPos(c, idx-c.start)
@@ -79,8 +78,7 @@ func (b *textBlock) lineBefore(idx int) (start, end int, r glyph.Rect, ok bool) 
 	if len(b.chunks) == 0 || idx < 0 || idx > len(b.text) {
 		return 0, 0, glyph.Rect{}, false
 	}
-	i := b.chunkAt(idx)
-	b.ensure(i, b.w)
+	i := b.shapedChunkAt(idx)
 	b.settle()
 	c := &b.chunks[i]
 	local := idx - c.start
@@ -187,9 +185,7 @@ func (b *textBlock) closestOffset(x, y float32) int {
 	if len(b.chunks) == 0 {
 		return 0
 	}
-	b.settle()
-	i := b.chunkAtPoint(x, y)
-	b.ensure(i, b.w)
+	i := b.shapedChunkAtPoint(x, y)
 	b.settle()
 	c := &b.chunks[i]
 	if c.layout == nil {
@@ -204,6 +200,16 @@ func (b *textBlock) closestOffset(x, y float32) int {
 func (b *textBlock) selectionRects(
 	beg, end int, yMin, yMax float32,
 ) []glyph.Rect {
+	return b.selectionRectsVisible(beg, end, -f32Inf, f32Inf, yMin, yMax)
+}
+
+// selectionRectsVisible returns the rectangles covering [beg, end) whose
+// chunks reach into the visible block-coordinate box. The renderer clips the
+// rectangles themselves; culling here prevents a selection over a long
+// single-line value from shaping every off-screen horizontal chunk.
+func (b *textBlock) selectionRectsVisible(
+	beg, end int, xMin, xMax, yMin, yMax float32,
+) []glyph.Rect {
 	if beg >= end || len(b.chunks) == 0 {
 		return nil
 	}
@@ -214,13 +220,17 @@ func (b *textBlock) selectionRects(
 		if c.start >= end {
 			break
 		}
-		if c.start == c.end || c.y > yMax || c.y+c.height < yMin {
+		if !chunkInSelectionBox(c, xMin, xMax, yMin, yMax) {
 			continue
 		}
 		b.ensure(i, b.w)
 		b.settle()
 		c = &b.chunks[i]
-		if c.layout == nil {
+		// An open chunk's estimate covers its unsplit remainder. Once
+		// shaping cuts off the first piece, that piece may be outside the
+		// box that made the estimate look visible, so test it again.
+		if c.layout == nil ||
+			!chunkInSelectionBox(c, xMin, xMax, yMin, yMax) {
 			continue
 		}
 		lb := max(beg, c.start) - c.start
@@ -241,6 +251,14 @@ func (b *textBlock) selectionRects(
 	return out
 }
 
+func chunkInSelectionBox(
+	c *textChunk, xMin, xMax, yMin, yMax float32,
+) bool {
+	return c.start < c.end &&
+		c.x <= xMax && c.x+c.width >= xMin &&
+		c.y <= yMax && c.y+c.height >= yMin
+}
+
 // shapedChunkAt returns the index of the chunk owning idx once that
 // chunk is shaped. Shaping an open chunk cuts it, so the owner is
 // resolved again until it is a chunk that needs no shaping.
@@ -250,8 +268,41 @@ func (b *textBlock) shapedChunkAt(idx int) int {
 		if !b.chunks[i].needsLayout() || b.w == nil || b.w.textMeasurer == nil {
 			return i
 		}
+		// A no-wrap open chunk can be cut without shaping: unlike a wrapped
+		// seam, its split does not depend on line breaking. Walk the metadata
+		// toward a distant caret first and leave the intervening pieces at
+		// their estimated widths. Their cumulative X is used both to place
+		// the destination chunk and to scroll that caret into view, so it
+		// cancels at the viewport; only the destination needs exact cursor
+		// geometry. This keeps End on a megabyte line from shaping hundreds
+		// of off-screen chunks merely to discover their seams.
+		if b.chunks[i].open && !b.wraps() {
+			b.splitOpen(i, b.w)
+			if b.chunkAt(idx) != i {
+				continue
+			}
+		}
 		b.ensure(i, b.w)
 		if !b.chunks[i].needsLayout() && b.chunkAt(idx) == i {
+			return i
+		}
+	}
+}
+
+// shapedChunkAtPoint returns the chunk under (x, y) once that chunk is
+// shaped. An open chunk provisionally covers the unsplit remainder of a
+// long paragraph; shaping it can put the point in the remainder instead,
+// so the point is resolved again until it lands in a real piece.
+func (b *textBlock) shapedChunkAtPoint(x, y float32) int {
+	for {
+		b.settle()
+		i := b.chunkAtPoint(x, y)
+		if !b.chunks[i].needsLayout() || b.w == nil || b.w.textMeasurer == nil {
+			return i
+		}
+		b.ensure(i, b.w)
+		b.settle()
+		if !b.chunks[i].needsLayout() && b.chunkAtPoint(x, y) == i {
 			return i
 		}
 	}
@@ -368,10 +419,9 @@ func (b *textBlock) moveWordLeft(idx int) int {
 		return 0
 	}
 	idx = min(idx, len(b.text))
-	i := b.chunkAt(idx)
+	i := b.shapedChunkAt(idx)
 	c := &b.chunks[i]
 	if idx > c.start {
-		c = b.ensure(i, b.w)
 		if c.layout != nil {
 			// glyph answers 0 both for a word starting the chunk and for
 			// no word start at all; only a word at 0 that no earlier
@@ -426,8 +476,8 @@ func (b *textBlock) moveWordRight(idx int) int {
 		return len(b.text)
 	}
 	idx = max(idx, 0)
-	i := b.chunkAt(idx)
-	c := b.ensure(i, b.w)
+	i := b.shapedChunkAt(idx)
+	c := &b.chunks[i]
 	local := idx - c.start
 	n := c.end - c.start
 	if c.layout != nil && local < n {
@@ -454,11 +504,11 @@ func (b *textBlock) moveLineStart(idx int) int {
 		return 0
 	}
 	idx = min(idx, len(b.text))
-	i := b.chunkAt(idx)
+	i := b.shapedChunkAt(idx)
 	if first, last := b.rowBounds(i); first != last {
 		return b.chunks[first].start
 	}
-	c := b.ensure(i, b.w)
+	c := &b.chunks[i]
 	if c.layout == nil {
 		return b.paragraphStart(idx)
 	}
@@ -471,11 +521,11 @@ func (b *textBlock) moveLineEnd(idx int) int {
 		return 0
 	}
 	idx = max(0, min(idx, len(b.text)))
-	i := b.chunkAt(idx)
+	i := b.shapedChunkAt(idx)
 	if first, last := b.rowBounds(i); first != last {
 		return b.chunks[last].end
 	}
-	c := b.ensure(i, b.w)
+	c := &b.chunks[i]
 	if c.layout == nil {
 		return b.paragraphEnd(idx)
 	}
@@ -524,8 +574,7 @@ func (b *textBlock) moveVertical(idx int, prefX float32, up bool) int {
 			prefX = cp.X
 		}
 	}
-	i := b.chunkAt(idx)
-	b.ensure(i, b.w)
+	i := b.shapedChunkAt(idx)
 	b.settle()
 	c := &b.chunks[i]
 	local := idx - c.start
@@ -609,8 +658,8 @@ func (b *textBlock) wordAt(idx int) (int, int) {
 		return 0, 0
 	}
 	idx = max(0, min(idx, len(b.text)))
-	i := b.chunkAt(idx)
-	c := b.ensure(i, b.w)
+	i := b.shapedChunkAt(idx)
+	c := &b.chunks[i]
 	local := idx - c.start
 	n := c.end - c.start
 	// A run that may reach past the chunk — the gap at its end, a word
@@ -638,8 +687,8 @@ func (b *textBlock) deleteGrapheme(idx int, forward bool) (string, int, bool) {
 	if len(b.chunks) == 0 || idx < 0 || idx > len(b.text) {
 		return "", 0, false
 	}
-	i := b.chunkAt(idx)
-	c := b.ensure(i, b.w)
+	i := b.shapedChunkAt(idx)
+	c := &b.chunks[i]
 	if c.layout == nil {
 		return "", 0, false
 	}

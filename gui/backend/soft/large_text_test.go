@@ -164,6 +164,109 @@ func TestPasteIssueResponseLandsAndDraws(t *testing.T) {
 	}
 }
 
+// TestInputCutPasteAcrossThreeChunks pins the complete widget path at a
+// layout seam. Each 1,536-byte paragraph fits the production 2,048-byte
+// chunk budget, while no two fit together, so the initial value is exactly
+// three shaped chunks. Selection and editing still speak whole-text byte
+// offsets: select-all, cut and paste must neither lose nor duplicate a byte.
+func TestInputCutPasteAcrossThreeChunks(t *testing.T) {
+	const paragraphBytes = 1536
+	seed := strings.Repeat("a", paragraphBytes) + "\n" +
+		strings.Repeat("b", paragraphBytes) + "\n" +
+		strings.Repeat("c", paragraphBytes)
+	text := seed
+	var changes []string
+	var clipboard string
+	win := newWin(t, 900, 1100, func(*gui.Window) gui.View {
+		return gui.Input(gui.InputCfg{
+			ID: "f", Text: text, Mode: gui.InputMultiline, Scrollable: true,
+			Sizing: gui.FillFixed, Height: 1040,
+			TextStyle: gui.TextStyle{Size: 16, Color: gui.RGB(255, 255, 255)},
+			OnTextChanged: func(s string, _ gui.EventCtx) {
+				text = s
+				changes = append(changes, s)
+			},
+		})
+	})
+	win.SetClipboardFn(func(s string) { clipboard = s })
+	win.SetClipboardGetFn(func() string { return clipboard })
+	if _, err := RenderToImage(win, 1); err != nil {
+		t.Fatalf("first render: %v", err)
+	}
+
+	// Rendering one command for each paragraph proves this test reached the
+	// intended three production-sized chunks rather than only a large string.
+	chunks := 0
+	for _, cmd := range win.Renderers() {
+		if cmd.Kind == gui.RenderLayout || cmd.Kind == gui.RenderLayoutTransformed {
+			chunks++
+		}
+	}
+	if chunks != 3 {
+		t.Fatalf("initial value rendered %d layout chunks, want 3", chunks)
+	}
+
+	if err := win.TestKey("f", gui.KeyA, gui.ModCtrl); err != nil {
+		t.Fatalf("select all: %v", err)
+	}
+	if err := win.TestKey("f", gui.KeyX, gui.ModCtrl); err != nil {
+		t.Fatalf("cut: %v", err)
+	}
+	if clipboard != seed {
+		t.Fatalf("cut copied %d bytes, want all %d", len(clipboard), len(seed))
+	}
+	if text != "" {
+		t.Fatalf("cut left %d bytes, want empty", len(text))
+	}
+	if err := win.TestKey("f", gui.KeyV, gui.ModCtrl); err != nil {
+		t.Fatalf("paste: %v", err)
+	}
+	if text != seed {
+		t.Fatalf("paste restored %d bytes, want the original %d", len(text), len(seed))
+	}
+	if len(changes) != 2 || changes[0] != "" || changes[1] != seed {
+		t.Fatalf("OnTextChanged values = %d entries, want cut then exact paste", len(changes))
+	}
+
+	// Pasting collapses the selection and leaves the caret after the insert.
+	// A following character must append, not replace any restored chunk.
+	if err := win.TestType("f", "!"); err != nil {
+		t.Fatalf("type after paste: %v", err)
+	}
+	if text != seed+"!" {
+		t.Fatalf("type after paste produced %d bytes, want %d-byte append",
+			len(text), len(seed)+1)
+	}
+	img, err := RenderToImage(win, 1)
+	if err != nil {
+		t.Fatalf("render restored value: %v", err)
+	}
+	if lit := countLitPixels(img); lit == 0 {
+		t.Fatal("restored three-chunk value draws nothing")
+	}
+
+	// Input remains controlled: replacing InputCfg.Text through application
+	// state is the public setter and must not fire the user-edit callback.
+	text = "externally set value"
+	win.InvalidateLayout()
+	if _, err := RenderToImage(win, 1); err != nil {
+		t.Fatalf("render externally set value: %v", err)
+	}
+	if len(changes) != 3 {
+		t.Fatalf("external Text update fired OnTextChanged: %d calls, want 3", len(changes))
+	}
+	renderedExternal := false
+	for _, cmd := range win.Renderers() {
+		if strings.Contains(cmd.Text, text) {
+			renderedExternal = true
+			break
+		}
+	}
+	if !renderedExternal {
+		t.Fatal("externally set InputCfg.Text was not rendered")
+	}
+}
+
 // TestSingleLineInputKeepsOneLineHeight: a single-line Input keeps one
 // line's height whatever it holds. Text past one chunk takes the chunked
 // layout, which stacks lines; a paste with line breaks into a
@@ -195,5 +298,92 @@ func TestSingleLineInputKeepsOneLineHeight(t *testing.T) {
 		if got := heightWith(text); got != want {
 			t.Errorf("%s: field height %.1f, want the one-line %.1f", name, got, want)
 		}
+	}
+}
+
+// A long mixed-direction value exercises real bidi cursor geometry past the
+// chunk budget. End must scroll the logical tail into the field; an early
+// shape-box cull used to drop both the visible tail and its caret once the
+// Fill-width text leaf had moved left.
+func TestSingleLineLargeMixedDirectionCaretStaysVisible(t *testing.T) {
+	text := strings.Repeat("latin \u05d0\u05d1\u05d2 text ", 7000) + "VISIBLE-TAIL"
+	win := newWin(t, 400, 100, func(*gui.Window) gui.View {
+		return gui.Column(gui.ContainerCfg{
+			Sizing: gui.FillFill, SizeBorder: gui.NoBorder,
+			Content: []gui.View{gui.Input(gui.InputCfg{
+				ID: "f", Text: text, Sizing: gui.FillFit,
+				TextStyle: gui.TextStyle{Size: 16, Color: gui.RGB(255, 255, 255)},
+			})},
+		})
+	})
+	if _, err := RenderToImage(win, 1); err != nil {
+		t.Fatalf("first render: %v", err)
+	}
+	if err := win.TestKey("f", gui.KeyEnd, gui.ModNone); err != nil {
+		t.Fatalf("End: %v", err)
+	}
+	if _, err := RenderToImage(win, 1); err != nil {
+		t.Fatalf("render at end: %v", err)
+	}
+
+	tailDrawn := false
+	caretVisible := false
+	for _, cmd := range win.Renderers() {
+		if (cmd.Kind == gui.RenderLayout ||
+			cmd.Kind == gui.RenderLayoutTransformed) &&
+			strings.Contains(cmd.Text, "VISIBLE-TAIL") {
+			tailDrawn = true
+		}
+		if cmd.Kind == gui.RenderRect && cmd.W > 1 && cmd.W < 2 &&
+			cmd.H > 5 && cmd.X >= 0 && cmd.X+cmd.W <= 400 {
+			caretVisible = true
+		}
+	}
+	if !tailDrawn {
+		t.Error("the mixed-direction logical tail is not drawn in the field")
+	}
+	if !caretVisible {
+		t.Error("the caret at the mixed-direction logical end is not visible")
+	}
+}
+
+// Arrow motion through bidi runs is visual rather than monotonic in logical
+// byte offsets. Caret following must use each shaped visual X and keep it in
+// the viewport while the direction changes and after word moves cross a
+// chunk seam.
+func TestSingleLineMixedDirectionArrowCaretStaysVisible(t *testing.T) {
+	text := strings.Repeat("abc \u05d0\u05d1\u05d2 def \u05d3\u05d4\u05d5 ", 500)
+	win := newWin(t, 400, 100, func(*gui.Window) gui.View {
+		return gui.Input(gui.InputCfg{
+			ID: "f", Text: text, Sizing: gui.FillFit,
+			TextStyle: gui.TextStyle{Size: 16, Color: gui.RGB(255, 255, 255)},
+		})
+	})
+	if _, err := RenderToImage(win, 1); err != nil {
+		t.Fatalf("first render: %v", err)
+	}
+
+	assertCaretVisible := func(step int) {
+		t.Helper()
+		for _, cmd := range win.Renderers() {
+			if cmd.Kind == gui.RenderRect && cmd.W > 1 && cmd.W < 2 &&
+				cmd.H > 5 && cmd.X >= 0 && cmd.X+cmd.W <= 400 {
+				return
+			}
+		}
+		t.Fatalf("step %d: no caret inside the input viewport", step)
+	}
+
+	for step := 1; step <= 160; step++ {
+		if err := win.TestKey("f", gui.KeyRight, gui.ModNone); err != nil {
+			t.Fatalf("Right at step %d: %v", step, err)
+		}
+		assertCaretVisible(step)
+	}
+	for step := 161; step <= 420; step++ {
+		if err := win.TestKey("f", gui.KeyRight, gui.ModCtrl); err != nil {
+			t.Fatalf("Ctrl+Right at step %d: %v", step, err)
+		}
+		assertCaretVisible(step)
 	}
 }

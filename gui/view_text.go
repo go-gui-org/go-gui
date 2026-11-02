@@ -174,6 +174,13 @@ func (tv *textView) GenerateLayout(w *Window) Layout {
 	if c.IsPassword {
 		measured = maskPassword(measured)
 	}
+	if c.focusOwner != "" && c.Mode == TextModeSingleLine &&
+		len(measured) <= glyph.MaxTextLength {
+		// Above the shaper limit the estimate depends only on length, which
+		// CR/LF-to-space preserves. Avoid allocating a second large string;
+		// plainTextBlock creates and then caches the display text once.
+		measured = singleLineInputDisplayText(measured)
+	}
 	if len(measured) > glyph.MaxTextLength {
 		// The shaper refuses to measure this much at once, and would
 		// hash all of it to say so. The sizing pass takes the exact

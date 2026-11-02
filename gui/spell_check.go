@@ -103,6 +103,7 @@ func renderSpellCheckUnderlines(
 	shape *Shape, text string,
 	baseX, baseY float32,
 	blk *textBlock,
+	clip drawClip,
 	w *Window,
 ) {
 	// Keyed by the owning widget: an input's inner text shape carries
@@ -126,14 +127,15 @@ func renderSpellCheckUnderlines(
 
 	color := defaultInputStyle.colorSpellError
 	underlineH := max(float32(1.5), shape.TC.TextStyle.Size/10)
-	yMin, yMax := textBlockVisibleBand(baseY, w)
+	xMin, xMax, yMin, yMax := textBlockVisibleBox(baseX, baseY, clip)
 
 	for _, r := range state.Ranges {
 		endByte := r.StartByte + r.LenBytes
 		if endByte > len(text) {
 			continue
 		}
-		rects := blk.selectionRects(r.StartByte, endByte, yMin, yMax)
+		rects := blk.selectionRectsVisible(r.StartByte, endByte,
+			xMin, xMax, yMin, yMax)
 		for _, rect := range rects {
 			emitRenderer(RenderCmd{
 				Kind:  RenderRect,

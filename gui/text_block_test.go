@@ -42,6 +42,18 @@ func (blockStubMeasurer) LayoutText(
 	return stubLayout(text, wrapWidth), nil
 }
 
+type countingBlockMeasurer struct {
+	blockStubMeasurer
+	layouts int
+}
+
+func (m *countingBlockMeasurer) LayoutText(
+	text string, style TextStyle, wrapWidth float32,
+) (glyph.Layout, error) {
+	m.layouts++
+	return m.blockStubMeasurer.LayoutText(text, style, wrapWidth)
+}
+
 type stubLine struct{ start, end int }
 
 func stubLayout(text string, wrapW float32) glyph.Layout {
@@ -304,6 +316,133 @@ func TestTextBlockMatchesWholeLayout(t *testing.T) {
 				compareBlockToWhole(t, b, &whole, text, w)
 			})
 		}
+	}
+}
+
+// A text above the eager budget can hold a long paragraph as one open
+// chunk. Every query must keep resolving after shaping cuts that chunk:
+// the requested offset or point usually belongs to the newly inserted
+// remainder, not to the first piece just shaped.
+func TestTextBlockLazyLongParagraphQueries(t *testing.T) {
+	withChunkBytes(t, 12)
+	withEagerBytes(t, 0)
+	w := newBlockTestWindow(t)
+	text := strings.Repeat("ab ", 100) + "end"
+
+	for _, wrapW := range []float32{0, 100} {
+		mode := TextModeMultiline
+		if wrapW > 0 {
+			mode = TextModeWrap
+		}
+		whole := stubLayout(text, wrapW)
+		fresh := func(t *testing.T) *textBlock {
+			t.Helper()
+			b := newTextBlock(text, wrapW, blockTestStyle, mode, w)
+			if len(b.chunks) != 1 || !b.chunks[0].open || b.chunks[0].measured {
+				t.Fatalf("initial chunks = %v, want one unmeasured open chunk",
+					blockRanges(b))
+			}
+			return b
+		}
+
+		t.Run(fmt.Sprintf("wrap=%v/cursor", wrapW), func(t *testing.T) {
+			got, ok := fresh(t).cursorPos(len(text))
+			want, wantOK := whole.GetCursorPos(len(text))
+			if got != want || ok != wantOK {
+				t.Fatalf("cursor at end = %+v/%v, want %+v/%v",
+					got, ok, want, wantOK)
+			}
+		})
+
+		t.Run(fmt.Sprintf("wrap=%v/offset-queries", wrapW), func(t *testing.T) {
+			idx := len(text) - 1
+			checks := []struct {
+				name string
+				got  func(*textBlock) int
+				want int
+			}{
+				{"word-left", func(b *textBlock) int { return b.moveWordLeft(len(text)) }, whole.MoveCursorWordLeft(len(text))},
+				{"word-right", func(b *textBlock) int { return b.moveWordRight(idx) }, whole.MoveCursorWordRight(idx)},
+				{"line-start", func(b *textBlock) int { return b.moveLineStart(idx) }, whole.MoveCursorLineStart(idx)},
+				{"line-end", func(b *textBlock) int { return b.moveLineEnd(idx) }, whole.MoveCursorLineEnd(idx)},
+				{"up", func(b *textBlock) int { return b.moveUp(len(text), -1) }, whole.MoveCursorUp(len(text), -1)},
+			}
+			for _, check := range checks {
+				if got := check.got(fresh(t)); got != check.want {
+					t.Errorf("%s = %d, want %d", check.name, got, check.want)
+				}
+			}
+
+			gs, ge := fresh(t).wordAt(idx)
+			ws, we := whole.GetWordAtIndex(idx)
+			if gs != ws || ge != we {
+				t.Errorf("wordAt(%d) = [%d,%d), want [%d,%d)",
+					idx, gs, ge, ws, we)
+			}
+
+			wantDelete := glyph.DeleteBackward(text, whole, idx)
+			gotText, gotPos, ok := fresh(t).deleteGrapheme(idx, false)
+			if !ok || gotText != wantDelete.NewText || gotPos != wantDelete.CursorPos {
+				t.Errorf("delete backward = %q/%d/%v, want %q/%d/true",
+					gotText, gotPos, ok, wantDelete.NewText, wantDelete.CursorPos)
+			}
+		})
+
+		t.Run(fmt.Sprintf("wrap=%v/point", wrapW), func(t *testing.T) {
+			last := whole.Lines[len(whole.Lines)-1].Rect
+			x := last.X + last.Width - stubCW/4
+			y := last.Y + last.Height/2
+			if got, want := fresh(t).closestOffset(x, y), whole.GetClosestOffset(x, y); got != want {
+				t.Errorf("closestOffset(%v,%v) = %d, want %d", x, y, got, want)
+			}
+		})
+
+		if len(whole.Lines) > 1 {
+			t.Run(fmt.Sprintf("wrap=%v/line-before", wrapW), func(t *testing.T) {
+				idx := whole.Lines[len(whole.Lines)-1].StartIndex
+				gotStart, gotEnd, gotRect, ok := fresh(t).lineBefore(idx)
+				prev := whole.Lines[len(whole.Lines)-2]
+				wantStart := prev.StartIndex
+				wantEnd := prev.StartIndex + prev.Length
+				if !ok || gotStart != wantStart || gotEnd != wantEnd || gotRect != prev.Rect {
+					t.Errorf("lineBefore(%d) = %d,%d,%+v/%v, want %d,%d,%+v/true",
+						idx, gotStart, gotEnd, gotRect, ok,
+						wantStart, wantEnd, prev.Rect)
+				}
+			})
+		}
+	}
+}
+
+// A far offset in one unwrapped paragraph needs only its destination
+// layout. The intervening pieces use estimated widths until they become
+// visible; shaping all of them made End linear in full-layout allocations.
+func TestTextBlockLazyNoWrapFarCursorShapesOnlyDestination(t *testing.T) {
+	withChunkBytes(t, 12)
+	withEagerBytes(t, 0)
+	w := newBlockTestWindow(t)
+	m := &countingBlockMeasurer{}
+	w.textMeasurer = m
+	text := strings.Repeat("ab ", 100) + "end"
+	b := newTextBlock(text, 0, blockTestStyle, TextModeMultiline, w)
+	// One tiny layout probes line height while estimating the initial open
+	// chunk. The far cursor should add exactly its destination layout.
+	if m.layouts != 1 {
+		t.Fatalf("setup shaped %d layouts, want 1 metric probe", m.layouts)
+	}
+	got, ok := b.cursorPos(len(text))
+	whole := stubLayout(text, 0)
+	want, wantOK := whole.GetCursorPos(len(text))
+	if got != want || ok != wantOK {
+		t.Fatalf("cursor at end = %+v/%v, want %+v/%v",
+			got, ok, want, wantOK)
+	}
+	if m.layouts != 2 {
+		t.Fatalf("far cursor shaped %d layouts, want metric probe + destination",
+			m.layouts)
+	}
+	if len(b.chunks) < 2 {
+		t.Fatalf("far cursor did not split the open paragraph: %v", blockRanges(b))
 	}
 }
 
