@@ -201,6 +201,9 @@ func (b *textBlock) reset(
 	b.probed = false
 	b.fontH = fontHeight(style, w)
 	b.spacing = style.LineSpacing
+	// The slice is reused: clear it to its capacity first, or the slots
+	// past the new length keep the old chunks' layouts alive.
+	clear(b.chunks[:cap(b.chunks)])
 	b.chunks = appendTextChunks(b.chunks[:0], text, 0, len(text), false)
 	b.dirty = 0
 	if len(text) <= textBlockEagerBytes {
@@ -342,8 +345,12 @@ func (b *textBlock) ensure(i int, w *Window) *textChunk {
 		b.splitOpen(i, w)
 		c = &b.chunks[i]
 	}
+	// The layout keeps the text it shaped (glyph.Layout.Text). A slice
+	// of b.text would keep all of b.text alive, and a chunk an edit
+	// does not touch keeps its layout across edits: each would pin the
+	// generation of the text it was shaped in. A copy pins one chunk.
 	l, err := w.textMeasurer.LayoutText(
-		b.text[c.start:c.end], b.style, b.widthArg)
+		strings.Clone(b.text[c.start:c.end]), b.style, b.widthArg)
 	if err != nil {
 		// Shown as nothing, sized by the estimate: the same outcome the
 		// whole text had, now confined to one chunk. plainTextBlock

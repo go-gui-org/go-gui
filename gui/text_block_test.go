@@ -7,6 +7,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"unsafe"
 
 	"github.com/go-gui-org/go-glyph"
 )
@@ -115,6 +116,7 @@ func stubLayout(text string, wrapW float32) glyph.Layout {
 		l.Width = f32Max(l.Width, lw)
 	}
 	l.Height = float32(len(lines)) * stubLH
+	l.Text = text // glyph keeps the text it shaped, and so pins it
 	l.LogAttrByIndex, l.LogAttrs = stubLogAttrs(text)
 	// The consumed space keeps its word attribute but is not a caret
 	// stop, so the caret skips from the line end to the next line start.
@@ -618,5 +620,58 @@ func BenchmarkTextBlockKeystroke(b *testing.B) {
 		}
 		blk.update(next, 600, blockTestStyle, TextModeWrap, w)
 		blk.cursorPos(mid)
+	}
+}
+
+// A chunk's layout keeps the text it was shaped from (glyph.Layout.Text).
+// Shaped from a slice of the block's text, it would keep that whole text
+// alive: after edits, every chunk an edit did not touch would pin the
+// generation it was shaped in, up to one full copy per live layout.
+func TestTextBlockLayoutsDoNotPinTheText(t *testing.T) {
+	withChunkBytes(t, 64)
+	w := newBlockTestWindow(t)
+	text := strings.Repeat("abcd efgh ijkl\n", 40)
+	b := newTextBlock(text, 600, blockTestStyle, TextModeWrap, w)
+	edited := text[:30] + "X" + text[30:]
+	b.update(edited, 600, blockTestStyle, TextModeWrap, w)
+	blockEnsureAll(b, w)
+	shaped := 0
+	for _, txt := range []string{text, edited} {
+		lo := uintptr(unsafe.Pointer(unsafe.StringData(txt)))
+		hi := lo + uintptr(len(txt))
+		for i := range b.chunks {
+			l := b.chunks[i].layout
+			if l == nil || l.Text == "" {
+				continue
+			}
+			shaped++
+			p := uintptr(unsafe.Pointer(unsafe.StringData(l.Text)))
+			if p >= lo && p < hi {
+				t.Errorf("chunk %d's layout points into a text the block held", i)
+			}
+		}
+	}
+	if shaped == 0 {
+		t.Fatal("no chunk shaped")
+	}
+}
+
+// A rebuild reuses the chunk slice; the slots past its new length must
+// not keep the layouts of the chunks they held.
+func TestTextBlockRebuildClearsDroppedChunks(t *testing.T) {
+	withChunkBytes(t, 64)
+	w := newBlockTestWindow(t)
+	text := strings.Repeat("abcd efgh ijkl\n", 40)
+	b := newTextBlock(text, 600, blockTestStyle, TextModeWrap, w)
+	blockEnsureAll(b, w)
+	n := len(b.chunks)
+	b.update("short", 300, blockTestStyle, TextModeWrap, w) // width: rebuild
+	if len(b.chunks) >= n {
+		t.Fatalf("rebuild kept %d of %d chunks", len(b.chunks), n)
+	}
+	for i, c := range b.chunks[len(b.chunks):cap(b.chunks)] {
+		if c.layout != nil {
+			t.Errorf("dropped slot %d still holds a layout", len(b.chunks)+i)
+		}
 	}
 }
