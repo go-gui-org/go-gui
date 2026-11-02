@@ -150,7 +150,7 @@ func TestEditUndoCoalescing(t *testing.T) {
 		t.Fatal("undo on empty stack reported ok")
 	}
 	text, is, _ = editRedo(text, is)
-	text, _, _ = editRedo(text, is)
+	text, is, _ = editRedo(text, is)
 	if text != "z" {
 		t.Fatalf("redo twice = %q, want \"z\"", text)
 	}

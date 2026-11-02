@@ -196,10 +196,10 @@ and this project adheres to
   converted the whole text to runes and back. A step now holds only the bytes an
   edit replaced, and an edit splices the text once: a keystroke in a 1 MiB field
   allocates one copy of it instead of a rune slice and a memento. Two behaviours
-  follow. When the app replaces the field's text, Ctrl+Z drops the history
-  instead of bringing back an old copy over the app's text. An edit that leaves
-  the text as it was, such as a `PreTextChange` that hands back the current
-  text, no longer adds a step that undoes nothing.
+  follow. When the app or `PostCommitNormalize` replaces the field's text,
+  Ctrl+Z drops the history instead of bringing back an old copy over the new
+  text. An edit that leaves the text as it was, such as a `PreTextChange` that
+  hands back the current text, no longer adds a step that undoes nothing.
 
 ### Fixed
 

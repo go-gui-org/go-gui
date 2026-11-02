@@ -46,6 +46,12 @@ type inputState struct {
 	cursorOffset   float32
 	cursorTrailing bool  // prefer end-of-previous-line at wrap boundaries
 	lastEditOp     uint8 // kind of edit the current undo run holds (issue #328)
+	// undoText is the text the history ends at: the text after the last
+	// edit, undo or redo. A different text is one the app set, or
+	// PostCommitNormalize made, which no step describes, so undo and
+	// redo drop the history instead. The app hands back the string the
+	// field produced, so the check stops at the shared pointer.
+	undoText string
 }
 
 // inputMemento is one undo step: the edit as the bytes it replaced at a
@@ -65,9 +71,9 @@ type inputMemento struct {
 }
 
 // applies reports whether the memento's inserted bytes still sit at its
-// offset in text. An app that replaced the field's text under it leaves
-// a history that no longer applies, which undo then drops rather than
-// splicing stale bytes into the new text.
+// offset in text, as a step must to be undone. It does not tell an app's
+// text from the field's: a delete inserted nothing, which is in any
+// text. inputState.undoText does.
 func (m inputMemento) applies(text string) bool {
 	end := m.off + len(m.inserted)
 	return m.off >= 0 && end <= len(text) && text[m.off:end] == m.inserted
@@ -221,7 +227,9 @@ func inputPushUndo(
 	return stack
 }
 
-func inputStateFromMemento(m inputMemento, undo, redo *boundedStack[inputMemento]) inputState {
+func inputStateFromMemento(
+	m inputMemento, undo, redo *boundedStack[inputMemento], text string,
+) inputState {
 	// Only the text-visible fields restore. lastEditOp resets to
 	// inputOpNone so the next edit starts a fresh undo step, and
 	// LastClickTime and cursorTrailing drop as transient.
@@ -232,7 +240,23 @@ func inputStateFromMemento(m inputMemento, undo, redo *boundedStack[inputMemento
 		cursorOffset: m.cursorOffset,
 		Undo:         undo,
 		Redo:         redo,
+		undoText:     text,
 	}
+}
+
+// historyHolds reports whether the undo history still describes text:
+// the text it ends at is text. On false it clears both stacks.
+func historyHolds(text string, is inputState) bool {
+	if text == is.undoText {
+		return true
+	}
+	if is.Undo != nil {
+		is.Undo.Clear()
+	}
+	if is.Redo != nil {
+		is.Redo.Clear()
+	}
+	return false
 }
 
 // inputStoreState writes is as the input state for focusID.
