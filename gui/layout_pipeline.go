@@ -34,6 +34,7 @@ func layoutPipeline(layout *Layout, w *Window) {
 	fx, fy := floatAttachLayout(layout, w.windowRect())
 	layoutPositions(layout, fx, fy, w)
 	layoutApplyScrollAnchors(layout, w)
+	layoutAnchorTextBlocks(w)
 	layoutApplyVirtualScrolls(layout, w)
 	// A float's Parent still points at the container it was lifted
 	// from, so a float inside a disabled container starts disabled.
@@ -338,6 +339,7 @@ func layoutWrapText(layout *Layout, w *Window) {
 	if layout == nil || w == nil {
 		return
 	}
+	resetTextAnchors(w)
 	layoutWrapTextWalk(layout, w)
 }
 
@@ -396,6 +398,12 @@ func layoutWrapTextWalkDepth(layout *Layout, w *Window, depth int) {
 		}
 		if shape.inkOverflowW > 0 {
 			propagateInkOverflow(layout)
+		}
+		// A single-line text keeps a one-line box whatever its chunks
+		// measure (layoutPlainText), so it has nothing to anchor.
+		if tc.block != nil && plainTextStyleNeedsGlyphLayout(tc, style) &&
+			tc.block.hasEstimates() {
+			queueTextAnchor(layout, w)
 		}
 	}
 }

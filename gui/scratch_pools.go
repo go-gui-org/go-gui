@@ -249,6 +249,10 @@ type scratchPools struct {
 	// backing array and corrupt the live tree.
 	layerLayouts scratchSlice[Layout]
 
+	// textAnchors queues, for one pipeline pass, the text shapes whose
+	// chunked layout still holds estimated heights (text_block_anchor.go).
+	textAnchors []*Layout
+
 	svgAnimTriangles scratchSlice[TessellatedPath]
 	svgAnimContribs  scratchSlice[animContrib]
 

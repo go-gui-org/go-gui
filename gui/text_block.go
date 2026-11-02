@@ -51,16 +51,18 @@ import (
 // short texts against a whole-text layout of the same shaper.
 var textChunkBytes = 2048
 
+// textBlockEagerBytes is the text size up to which a new block shapes
+// every chunk once when built, so its extent is exact from the first
+// frame. Above it the unseen chunks are estimated and measured as they
+// come into view, with the scroll view anchored meanwhile
+// (text_block_anchor.go). A var so tests can force estimates.
+var textBlockEagerBytes = 64 << 10
+
 const (
 	// textBlockLiveLayouts bounds the shaped chunks a block keeps. The
 	// chunks beyond it keep their measured geometry and are shaped again
 	// when a query or the renderer reaches them.
 	textBlockLiveLayouts = 48
-	// textBlockEagerBytes is the text size up to which a new block
-	// shapes every chunk once when built, so its extent is exact from
-	// the first frame. Above it the unseen chunks are estimated and
-	// measured as they come into view.
-	textBlockEagerBytes = 64 << 10
 	// textBlockSample is the prose the estimate's average advance is
 	// measured on.
 	textBlockSample = "the quick brown fox jumps over the lazy dog 0123456789"
@@ -504,6 +506,15 @@ func textSplitPoint(text string, start, end, limit int) int {
 // because a piece's lines depend only on the text before its seam; the
 // edited piece and every later piece of that paragraph merge into one
 // open chunk and are cut again when shaped.
+//
+// The re-chunked chunks that hold text before the edit are shaped at
+// once rather than estimated. That text was on screen: an estimate there
+// would be measured by the frame that draws it, after the caret's scroll
+// position was chosen, and move the caret and every line below it by the
+// estimate's error. They are one or two chunks, however large the edit.
+// Inserted text after them stays estimated and is measured as it comes
+// into view, with the scroll view anchored (text_block_anchor.go), so a
+// large paste does not shape all of itself in the keystroke.
 func (b *textBlock) patch(text string, w *Window) {
 	old := b.text
 	p := commonPrefixLen(old, text)
@@ -558,6 +569,37 @@ func (b *textBlock) patch(text string, w *Window) {
 	}
 	b.chunks = slices.Replace(b.chunks, a, z+1, fresh...)
 	b.markDirty(a)
+	// Shaping an open chunk cuts it and inserts its remainder after it,
+	// so the bound is an offset: the chunk holding the edit's start.
+	for i := a; i < len(b.chunks) && b.chunks[i].start <= p; i++ {
+		b.ensure(i, w)
+	}
+	b.settle()
+}
+
+// ensureRange shapes every chunk that reaches into [y0, y1], in block
+// coordinates. Shaping replaces an estimated height with the measured
+// one and moves every chunk below, so the range is walked again until a
+// pass shapes nothing.
+func (b *textBlock) ensureRange(y0, y1 float32) {
+	for range 4 {
+		b.settle()
+		shaped := false
+		for i := 0; i < len(b.chunks); i++ {
+			c := &b.chunks[i]
+			if c.y > y1 {
+				break
+			}
+			if c.y+c.height < y0 || !c.needsLayout() {
+				continue
+			}
+			b.ensure(i, b.w)
+			shaped = true
+		}
+		if !shaped {
+			break
+		}
+	}
 	b.settle()
 }
 

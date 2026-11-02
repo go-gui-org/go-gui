@@ -408,8 +408,11 @@ and this project adheres to
   line breaks a whole-paragraph layout also has, and only the chunks in view are
   drawn. The chunks persist per widget across frames: an edit re-shapes the
   chunk it touched and a rebuild re-shapes nothing, where every rebuild and
-  every keystroke used to re-shape the whole field.
-  `docs/specs/large-text-input.md` records the design and the alternatives.
+  every keystroke used to re-shape the whole field. Above 64 KB the chunks not
+  yet shown start with estimated heights; when one scrolls into view, the scroll
+  offset absorbs the measured difference, so the lines on screen and the caret
+  stay where they were. `docs/specs/large-text-input.md` records the design and
+  the alternatives.
 
 ## [v0.94.0] - 2026-10-31
 
