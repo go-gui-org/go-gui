@@ -174,8 +174,9 @@ func renderText(shape *Shape, clip drawClip, w *Window) {
 	if renderWithLayout && hasBlk {
 		// Drawn chunk by chunk from the block the sizing pass shaped,
 		// so a text past the shaper's budget still paints (#1190).
+		xf, xfOn := textLayoutTransform(shape, renderStyle)
 		renderTextBlock(shape, baseX, baseY, blk, renderStyle,
-			textGradient, reveal, clip, w)
+			textGradient, reveal, xf, xfOn, clip, w)
 	} else {
 		// No glyph layout (no measurer, or the shaper refused the
 		// text): the reveal falls back to painting the prefix. Only
@@ -249,42 +250,58 @@ func textBlockVisibleBand(baseY float32, w *Window) (yMin, yMax float32) {
 	return yMin, yMax
 }
 
-// emitTextLayoutCmd emits the glyph-layout draw of a text shape: the
-// path for wrapped, aligned, decorated, transformed or animated text.
-// reveal paints only a typewriter's revealed prefix.
-func emitTextLayoutCmd(
-	shape *Shape, text string, baseX, baseY float32,
-	layout glyph.Layout, style TextStyle,
-	gradient *glyph.GradientConfig, reveal bool, w *Window,
-) {
+// textLayoutTransform returns the transform a text shape's glyph layout
+// draws through, about the text's origin, and whether there is one: the
+// style's rotation or transform, after the animation's motion when it
+// moves. The animation moves the text in its own frame, then the style's
+// rotation applies to the result; replacing the style's transform
+// dropped a caller's rotation on every frame the animation moved.
+func textLayoutTransform(
+	shape *Shape, style TextStyle,
+) (glyph.AffineTransform, bool) {
 	var anim *textAnimRender
 	if shape.TC != nil {
 		anim = shape.TC.anim
 	}
-	if reveal && anim != nil {
-		layout = revealLayoutGlyphs(layout, anim.revealEnd, w)
+	animT, animMoves := anim.transform(shape)
+	if !style.hasTextTransform() && !animMoves {
+		return glyph.AffineTransform{}, false
 	}
+	transform := style.effectiveTextTransform()
+	if animMoves {
+		transform = transform.Multiply(animT)
+	}
+	return transform, true
+}
+
+// emitTextLayoutCmd emits the glyph-layout draw of one chunk of a text
+// block: the path for wrapped, aligned, decorated, transformed or
+// animated text. The chunk sits at (dx, dy) in a block drawn at (baseX,
+// baseY). glyph applies a draw's transform about the draw's origin, so
+// under xf the draw keeps the block's origin and moves the chunk inside
+// the transform: the block turns as one, where a chunk drawn at its own
+// origin would turn about its own corner.
+func emitTextLayoutCmd(
+	text string, baseX, baseY, dx, dy float32,
+	layout glyph.Layout, style TextStyle, gradient *glyph.GradientConfig,
+	xf glyph.AffineTransform, xfOn bool, w *Window,
+) {
 	cmd := RenderCmd{
 		Kind:         RenderLayout,
-		X:            baseX,
-		Y:            baseY,
+		X:            baseX + dx,
+		Y:            baseY + dy,
 		Text:         text,
 		LayoutPtr:    w.scratch.renderGlyphLayouts.alloc(layout),
 		TextStylePtr: w.scratch.renderTextStyles.alloc(style),
 		TextGradient: gradient,
 	}
-	animT, animMoves := anim.transform(shape)
-	if style.hasTextTransform() || animMoves {
-		// The animation moves the text in its own frame, then the
-		// style's rotation or transform applies to the result.
-		// Replacing the style's transform dropped a caller's rotation
-		// on every frame the animation moved.
-		transform := style.effectiveTextTransform()
-		if animMoves {
-			transform = transform.Multiply(animT)
+	if xfOn {
+		if dx != 0 || dy != 0 {
+			xf = xf.Multiply(glyph.AffineTranslation(dx, dy))
 		}
 		cmd.Kind = RenderLayoutTransformed
-		cmd.LayoutTransform = w.scratch.renderAffineTransforms.alloc(transform)
+		cmd.X, cmd.Y = baseX, baseY
+		cmd.LayoutTransform = w.scratch.renderAffineTransforms.alloc(xf)
 	}
 	emitRenderer(cmd, w)
 }

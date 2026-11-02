@@ -138,7 +138,11 @@ type contentTransitionRun struct {
 	// align as they did.
 	fromLayout *glyph.Layout
 	toLayout   *glyph.Layout
-	progress   float32
+	// fromBlock is the old text laid out in chunks, for a fade where
+	// either text is past one chunk and so has no single layout. Built
+	// like fromLayout, on the first frame that draws it.
+	fromBlock *textBlock
+	progress  float32
 	// fromDX is the old box's left edge, from the left of the current
 	// content box, and fromShapeW the old shape's width. Both are set
 	// on the first frame that draws the run, from what the slot
@@ -522,10 +526,10 @@ func renderContentTransition(
 		f.roll(clip)
 	case ContentTransitionReplace:
 		if !f.scale() {
-			f.fade()
+			f.fade(clip)
 		}
 	default:
-		f.fade()
+		f.fade(clip)
 	}
 	return true
 }
@@ -565,11 +569,11 @@ func (f *contentTransitionFrame) oldContentW() float32 {
 // where renderText uses one, so that each line wraps and aligns as it
 // will when the fade ends, and as a plain text draw elsewhere. The old
 // text is drawn in the box it was drawn in.
-func (f *contentTransitionFrame) fade() {
+func (f *contentTransitionFrame) fade(clip drawClip) {
 	run := f.run
 	tc := f.shape.TC
 	if f.w.textMeasurer != nil &&
-		plainTextNeedsGlyphLayout(f.shape, tc, f.style) && f.fadeLayouts() {
+		plainTextNeedsGlyphLayout(f.shape, tc, f.style) && f.fadeLayouts(clip) {
 		return
 	}
 	// The plain path draws at the box's left edge, and wraps at the
@@ -586,25 +590,23 @@ func (f *contentTransitionFrame) fade() {
 // shape's own cached layout. The old text is shaped once for the run,
 // with the width argument the plain path gave it in the old box. It
 // reports false when the shaper refuses either text.
-func (f *contentTransitionFrame) fadeLayouts() bool {
+func (f *contentTransitionFrame) fadeLayouts(clip drawClip) bool {
 	run := f.run
 	toBlk, ok := inputGlyphLayoutResolved(run.to, f.shape, f.style, f.w, true)
 	if !ok {
 		return false
 	}
-	// A text past one chunk has no single layout to fade; the plain
-	// path draws it.
+	// A text past one chunk has no single layout to fade, and the plain
+	// path would hand the backend all of it as one string, which the
+	// shaper refuses past its budget (#1190): fade chunk by chunk.
 	toLayout, ok := toBlk.single()
-	if !ok {
-		return false
+	if !ok || len(run.from) > textChunkBytes {
+		f.fadeBlocks(toBlk, clip)
+		return true
 	}
 	if run.fromLayout == nil {
-		// A copy of the shape, for its width only: the width argument
-		// depends on the mode, the alignment and the width.
-		old := *f.shape
-		old.Width = run.fromShapeW
 		l, err := f.w.textMeasurer.LayoutText(run.from, f.style,
-			plainTextLayoutWidthArg(&old, f.shape.TC, f.style))
+			f.oldWidthArg())
 		if err != nil {
 			return false
 		}
@@ -613,6 +615,46 @@ func (f *contentTransitionFrame) fadeLayouts() bool {
 	f.emitLayout(*run.fromLayout, run.from, f.baseX+run.fromDX, 1-f.p)
 	f.emitLayout(toLayout, run.to, f.baseX, f.p)
 	return true
+}
+
+// oldWidthArg is the width argument the plain path gave the old text in
+// the old box. A copy of the shape, for its width only: the argument
+// depends on the mode, the alignment and the width.
+func (f *contentTransitionFrame) oldWidthArg() float32 {
+	old := *f.shape
+	old.Width = f.run.fromShapeW
+	return plainTextLayoutWidthArg(&old, f.shape.TC, f.style)
+}
+
+// fadeBlocks fades texts that do not both fit one chunk: each is drawn
+// as renderTextBlock draws a text, chunk by chunk within clip, at its
+// alpha. The new text uses the shape's own block; the old one gets a
+// block for the run, laid out as the fade lays it out in the old box.
+// Like emitLayout, it turns through the style's transform and not the
+// animation's motion, which waits until the transition ends.
+func (f *contentTransitionFrame) fadeBlocks(toBlk *textBlock, clip drawClip) {
+	run := f.run
+	if run.fromBlock == nil {
+		run.fromBlock = newTextBlock(run.from, f.oldWidthArg(), f.style,
+			f.shape.TC.TextMode, f.w)
+	}
+	f.emitBlock(run.fromBlock, f.baseX+run.fromDX, 1-f.p, clip)
+	f.emitBlock(toBlk, f.baseX, f.p, clip)
+}
+
+// emitBlock draws blk's chunks in view at (x, baseY) at alpha.
+func (f *contentTransitionFrame) emitBlock(
+	blk *textBlock, x, alpha float32, clip drawClip,
+) {
+	c := f.c.WithOpacity(alpha)
+	if c.A == 0 {
+		return
+	}
+	style := f.style
+	style.Color = c
+	renderTextBlock(f.shape, x, f.baseY, blk, style, f.gradient(alpha),
+		false, style.effectiveTextTransform(), style.hasTextTransform(),
+		clip, f.w)
 }
 
 // roll draws a numeric roll. A column that did not change is drawn in
