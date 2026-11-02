@@ -57,32 +57,66 @@ func assertCanvasCard(t *testing.T, win *Window, l *Layout, wantW, wantH float32
 	}
 }
 
-func TestCanvasFitChildIsMeasured(t *testing.T) {
+// Every kind of child a Canvas can hold puts the card at its measured
+// size with a clickable button: the card directly, beside nil views,
+// and wrapped in a Column or a nested Canvas of each Sizing. A Fill
+// wrapper gets no space from the Canvas, so it takes its content size.
+// The nested Fill Canvas was the last 0x0 case: its parent hands out no
+// space, and the axisNone branch fitted only a Fit axis to content.
+func TestCanvasChildKindsAreMeasured(t *testing.T) {
 	wantW, wantH := canvasFitCardSize(t)
-	var clicks int
-	win := NewTestWindow(t, WindowCfg{Width: 400, Height: 300})
-	l := win.TestRender(func(*Window) View {
-		return Canvas(ContainerCfg{Sizing: FillFill,
-			Content: []View{canvasFitCard(20, 20, &clicks)}})
-	})
-	assertCanvasCard(t, win, l, wantW, wantH, &clicks)
+	column := func(cfg ContainerCfg) func(View) View {
+		return func(card View) View {
+			cfg.X, cfg.Y, cfg.Content = 20, 20, []View{card}
+			return Column(cfg)
+		}
+	}
+	canvas := func(sizing Sizing) func(View) View {
+		return func(card View) View {
+			return Canvas(ContainerCfg{X: 20, Y: 20, Sizing: sizing, Content: []View{card}})
+		}
+	}
+	cases := []struct {
+		name string
+		kid  func(card View) View
+	}{
+		{"card", func(card View) View { return card }},
+		{"nil siblings", func(card View) View { return card }},
+		{"Fixed Column", column(ContainerCfg{Width: 260, Height: 160, Sizing: FixedFixed})},
+		{"Fit Column", column(ContainerCfg{Sizing: FitFit})},
+		{"Fill Column", column(ContainerCfg{Sizing: FillFill})},
+		{"Fit Canvas", canvas(FitFit)},
+		{"Fill Canvas", canvas(FillFill)},
+		{"Fill/Fit Canvas", canvas(FillFit)},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			var clicks int
+			win := NewTestWindow(t, WindowCfg{Width: 400, Height: 300})
+			l := win.TestRender(func(*Window) View {
+				content := []View{c.kid(canvasFitCard(0, 0, &clicks))}
+				if c.name == "nil siblings" {
+					content = []View{nil, content[0], nil}
+				}
+				return Canvas(ContainerCfg{Sizing: FillFill, Content: content})
+			})
+			assertCanvasCard(t, win, l, wantW, wantH, &clicks)
+		})
+	}
 }
 
-// The gap was not limited to direct children: a Fixed box in a Canvas
-// got its explicit size, and a Fit container inside it was 0x0 again.
-func TestCanvasFitChildInFixedBoxIsMeasured(t *testing.T) {
-	wantW, wantH := canvasFitCardSize(t)
-	var clicks int
+// A Canvas with no children collapses to 0, as any container does.
+func TestCanvasEmptyCollapses(t *testing.T) {
 	win := NewTestWindow(t, WindowCfg{Width: 400, Height: 300})
 	l := win.TestRender(func(*Window) View {
-		return Canvas(ContainerCfg{Sizing: FillFill, Content: []View{
-			Column(ContainerCfg{
-				X: 20, Y: 20, Width: 260, Height: 160, Sizing: FixedFixed,
-				Content: []View{canvasFitCard(0, 0, &clicks)},
-			}),
+		return Column(ContainerCfg{Sizing: FillFill, Content: []View{
+			Canvas(ContainerCfg{ID: "cv", Sizing: FitFit}),
 		}})
 	})
-	assertCanvasCard(t, win, l, wantW, wantH, &clicks)
+	cv, _ := l.FindByID("cv")
+	if cv.Shape.Width != 0 || cv.Shape.Height != 0 {
+		t.Errorf("empty Fit Canvas = %gx%g, want 0x0", cv.Shape.Width, cv.Shape.Height)
+	}
 }
 
 // A Fit Canvas encloses its children at their own X/Y, so it reads

@@ -365,7 +365,7 @@ func layoutWidthsDepth(layout *Layout, depth int) {
 				layoutWidthsDepth(&layout.Children[i], depth+1)
 			}
 		}
-		if layout.Shape.Sizing.Width == sizingFit {
+		if axisNoneFitsContent(layout, distributeHorizontal) {
 			fitAxisNoneWidth(layout, padding)
 		}
 		layout.Shape.MinWidth = effectiveMinSize(layout.Shape.MinWidth, layout.Shape.MaxWidth)
@@ -464,7 +464,7 @@ func layoutHeightsDepth(layout *Layout, depth int) {
 				layoutHeightsDepth(&layout.Children[i], depth+1)
 			}
 		}
-		if layout.Shape.Sizing.Height == sizingFit {
+		if axisNoneFitsContent(layout, distributeVertical) {
 			fitAxisNoneHeight(layout, padding)
 		}
 		layout.Shape.MinHeight = effectiveMinSize(layout.Shape.MinHeight, layout.Shape.MaxHeight)
@@ -479,6 +479,23 @@ func layoutHeightsDepth(layout *Layout, depth int) {
 // twice per frame and the first result thrown away.
 func axisNoneMeasuresChildren(s *Shape) bool {
 	return s.events == nil || s.events.sizer == nil
+}
+
+// axisNoneFitsContent reports whether an axisNone container takes its
+// size on axis from its children. A Fit axis always does. A Fill axis
+// does only when its parent is axis-less too: a Canvas hands out no
+// space, so a Fill Canvas inside one would otherwise stay 0 and clip
+// away everything in it (#1216). A Fill Canvas that a row, a column or
+// the window sizes keeps the space it is given, as before.
+func axisNoneFitsContent(layout *Layout, axis distributeAxis) bool {
+	switch getSizing(layout.Shape, axis) {
+	case sizingFit:
+		return true
+	case sizingFill:
+		p := layout.Parent
+		return p != nil && p.Shape != nil && p.Shape.Axis == axisNone
+	}
+	return false
 }
 
 // spacingSmall matches the V framework's spacing_small constant.

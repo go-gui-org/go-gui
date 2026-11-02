@@ -80,10 +80,11 @@ and this project adheres to
   did not draw, a button in it had no frame, and nothing in it could be clicked.
   Its text still drew, which hid the cause. Fit containers below a `Canvas` now
   size as they do in a `Row` or `Column`, and a Fit `Canvas` encloses them. A
-  Fill child of a `Canvas`, which was also 0×0, now takes its content's size; a
-  `Canvas` still does not stretch it. Three buttons in the examples could not be
-  clicked because of it: the minesweeper reset button, the snake start button
-  and the 2048 "Try again" button. The calculator's title bar had no height.
+  Fill child of a `Canvas`, which was also 0×0, now takes its content's size,
+  including a Fill `Canvas` nested in a `Canvas`; a `Canvas` still does not
+  stretch it. Three buttons in the examples could not be clicked because of it:
+  the minesweeper reset button, the snake start button and the 2048 "Try again"
+  button. The calculator's title bar had no height.
 
 ## [v0.94.0] - 2026-10-31
 

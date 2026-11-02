@@ -220,6 +220,24 @@ normalize-driven `OnTextChanged` get a **nil `ctx.Layout`**. The Enter commit
 path dispatches from `EventFn` with no lock held.
 (`docs/specs/frame-lock-callback-deferral.md`)
 
+## Container children
+
+**A change to how a container sizes, places or walks its children is not done
+until it is tested against every kind of child:**
+
+- no children, and nil children — generation skips a nil `View`, so the child
+  that should sit at an index may be missing and the next one takes its place;
+- a child of each Sizing — Fit, Fixed, Fill — on each axis;
+- the container nested inside itself (a Canvas in a Canvas, a Splitter in a
+  Splitter).
+
+Code that reaches a child by index (`Children[0]`) states what happens when the
+child it expects is not there. Review caught one of each the first time: #1215's
+`DockLayout` with no `Root` pinned the drop-zone overlay to the dock's size, and
+#1217 left a Fill Canvas inside a Canvas at 0×0.
+`TestCanvasChildKindsAreMeasured` (`gui/layout_canvas_fit_test.go`) is the table
+to copy.
+
 ## Event consumption
 
 **Nothing is marked handled for you. A callback that acts on an event calls
