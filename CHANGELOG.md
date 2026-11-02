@@ -70,7 +70,8 @@ and this project adheres to
   scrolls short on a `ListBox`. Panes are now sized before anything is
   positioned or scrolled, so a scrollable in a pane has the same scroll range as
   one outside a splitter. Panes are also laid out once per frame instead of
-  twice, which saves an allocation per `DockLayout`. The new
+  twice, which saves an allocation per `DockLayout`. A `DockLayout` with no
+  `Root` no longer covers itself with the translucent drop-zone overlay. The new
   `examples/splitter_scroll` compares a pane with a plain `Row`.
 
 ## [v0.94.0] - 2026-10-31

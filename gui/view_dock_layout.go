@@ -177,9 +177,10 @@ func applyDockLayoutDefaults(cfg *DockLayoutCfg) {
 
 // sizeChildren sizes the tree view, the first child, to fill the dock
 // area. It runs as the dock's layoutSizer, once the dock's own size is
-// final.
+// final. With no Root there is no tree view, and the first child is the
+// zone overlay, which must keep its own size.
 func (core *dockLayoutCore) sizeChildren(layout *Layout, w *Window) {
-	if len(layout.Children) < 1 {
+	if core.root == nil || len(layout.Children) < 1 {
 		return
 	}
 	ox, oy := splitterChildOrigin(layout)
