@@ -252,6 +252,8 @@ type scratchPools struct {
 	// textAnchors queues, for one pipeline pass, the text shapes whose
 	// chunked layout still holds estimated heights (text_block_anchor.go).
 	textAnchors []*Layout
+	// textBlockStale collects the keys sweepTextBlocks drops.
+	textBlockStale []string
 
 	svgAnimTriangles scratchSlice[TessellatedPath]
 	svgAnimContribs  scratchSlice[animContrib]
