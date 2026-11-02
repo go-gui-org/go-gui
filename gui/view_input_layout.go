@@ -95,12 +95,15 @@ func inputDeleteGrapheme(
 		newText, _ := inputDelete(text, focusID, forward, w)
 		return newText, newText != text
 	}
-	txt := inputTextShapeFromLayout(layout)
-	if txt != nil && txt.TC.textIsPassword {
-		return fallback()
-	}
 	gl, glOK := inputGlyphLayoutFor(layout, w)
 	if !glOK {
+		return fallback()
+	}
+	// A password or a single-line value containing line breaks is
+	// shaped from a display string rather than the stored value. The
+	// layout is still valid for boundaries, but splicing its text would
+	// replace the caller's value with bullets or display spaces.
+	if gl.text != text {
 		return fallback()
 	}
 	is := inputStateOrDefault(focusID, w)

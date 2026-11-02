@@ -5,6 +5,33 @@ import (
 	"unicode/utf8"
 )
 
+// singleLineInputDisplayText keeps the field's value byte-for-byte while
+// presenting CR and LF as spaces. A single-line editor has no visible second
+// row; shaping a pasted line break as one moved the caret onto a clipped row.
+// Replacing the one-byte separators preserves every caret/selection offset,
+// including around mixed-direction text.
+func singleLineInputDisplayText(text string) string {
+	i := strings.IndexAny(text, "\r\n")
+	if i < 0 {
+		return text
+	}
+	var b strings.Builder
+	b.Grow(len(text))
+	b.WriteString(text[:i])
+	for j := i; j < len(text); j++ {
+		if text[j] == '\r' || text[j] == '\n' {
+			b.WriteByte(' ')
+		} else {
+			b.WriteByte(text[j])
+		}
+	}
+	return b.String()
+}
+
+func inputLineBreakCount(text string) int {
+	return strings.Count(text, "\r") + strings.Count(text, "\n")
+}
+
 // displayOffset maps a byte offset in text to the same caret position in
 // display, the text as drawn: text itself for most fields, a password's
 // bullets otherwise. The two share rune positions, not byte offsets.

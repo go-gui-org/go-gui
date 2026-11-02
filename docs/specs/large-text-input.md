@@ -36,8 +36,9 @@ of chunks, each one glyph layout within the budget `textChunkBytes` (2048).
   stays within the budget. An empty paragraph is its own chunk with no layout
   and one synthetic line box, so a text ending in `\n` keeps its caret line
   (go-glyph gives it an empty last line too). A paragraph over the budget is one
-  _open_ chunk that is cut when first shaped. The budget, 2,048 bytes, keeps a
-  chunk under the 4,096 clusters go-glyph retains its layout scratch for
+  _open_ chunk that is cut when first reached. A wrapped seam is found by
+  shaping; a no-wrap seam is a metadata-only cut. The budget, 2,048 bytes, keeps
+  a chunk under the 4,096 clusters go-glyph retains its layout scratch for
   (`maxLayoutScratch`): every chunk reuses the shaper's buffers, where a 4 KB
   ASCII chunk would reallocate them on every shape. Measured on the pure-Go
   shaper, a 2 KB layout allocates 0.4 MB and a 4 KB one 1.6 MB.
@@ -77,12 +78,25 @@ of chunks, each one glyph layout within the budget `textChunkBytes` (2048).
   no layout resolved in the last two view passes is dropped (`sweepTextBlocks`):
   the cache is bounded by count, and a large text that left the tree would
   otherwise stay until 256 other identities pushed it out.
+- **Single-line source/display cache.** A single-line input retains its exact
+  source value, but shapes CR and LF as one-byte spaces so a pasted separator
+  cannot move the caret onto a clipped second row. The block caches both forms
+  and the separator count. An edit finds its common prefix and suffix once,
+  transforms only the changed span, updates that count, and hands the same delta
+  to the chunk patcher; unchanged megabyte values are not rescanned.
 - **Queries.** `text_block_query.go` answers the layout queries the widgets used
   on a whole-text layout — caret position, hit test, selection rects, caret and
   word moves, line start and end, vertical moves, grapheme delete — in
   whole-text byte offsets and block coordinates, crossing seams where the single
-  layout had none. `TestTextBlockMatchesWholeLayout` checks every query against
-  a whole-text layout of the same stub shaper at a 12-byte budget.
+  layout had none. Selection, IME and spelling rectangles shape only chunks in
+  the two-dimensional clip. A far cursor in one unwrapped paragraph splits the
+  metadata toward its offset without shaping the intervening pieces: their
+  estimated cumulative X is present in both the destination position and the
+  horizontal scroll offset, so it cancels at the viewport. Only the destination
+  chunk needs exact cursor geometry. `TestTextBlockMatchesWholeLayout` checks
+  every query against a whole-text layout of the same stub shaper at a 12-byte
+  budget; `TestTextBlockLazyNoWrapFarCursorShapesOnlyDestination` pins the
+  one-layout far-cursor bound.
 - **Drawing.** `renderTextBlock` emits one glyph-layout draw per chunk that
   reaches into the clip. A single-line text over the budget takes the layout
   path too, since one `RenderText` command would hand the backend a string the
@@ -94,9 +108,32 @@ of chunks, each one glyph layout within the budget `textChunkBytes` (2048).
 
 The exit criterion of the spike holds: after the first frame (23 ms for a 100 KB
 text), a rebuilt frame of that text costs 1.9 ms
-(`TestRenderLargeTextRebuildIsCheap`, soft backend). A keypress in a 10 KB
-single-line field stays within the allocation gate
-(`TestInputKeypressAllocBudget`).
+(`TestRenderLargeTextRebuildIsCheap`, soft backend). Milestone-3 measurements on
+Windows, an i7-1270P and the soft backend give these steady whole-widget costs
+(30 edits/actions per sample; timing remains advisory):
+
+| Operation           |                   100 KB |                1 MiB |
+| ------------------- | -----------------------: | -------------------: |
+| edit at start       |     0.96–1.05 ms, 382 KB | 2.34–2.49 ms, 874 KB |
+| edit at end         | 0.74–0.85 ms, 276–278 KB | 0.95–0.98 ms, 534 KB |
+| Home/End            |     0.15–0.20 ms, 5.2 KB | 0.83–0.94 ms, 5.2 KB |
+| select-all/collapse |     0.15–0.22 ms, 5.2 KB | 0.77–0.86 ms, 5.2 KB |
+
+The first `End` on a fresh 1 MiB no-wrap value formerly shaped 511 chunks:
+396–402 ms, 170–173 MB transient allocation and about 15.6 MB retained after GC.
+Metadata-only traversal shapes one destination chunk: 6.4–7.1 ms, 0.4–0.9 MB
+transient and about 0.36 MB retained. The corresponding 100 KB jump fell from 48
+shapes and about 39 ms to one shape and 0.65–1.26 ms. go-glyph's existing
+`NoHitTesting` layout mode reduced the old pass to about 54 MB but still took
+about 287 ms, so the useful fix belongs in go-gui and no go-glyph branch is
+needed.
+
+`BenchmarkInputLargeEdit` and `BenchmarkInputLargeNavigate` preserve the full
+matrix. `TestInputLargeEditAllocBudget` caps a steady 1 MiB edit at 1.3 MB
+(857,392-byte baseline), and `TestInputLargeNavigateAllocBudget` caps Home/End
+and select-all/collapse at 32 KB each (5,216/5,248-byte baselines). The legacy
+10 KB allocation-count gate remains for comparison and is skipped under the race
+detector, whose process-wide bookkeeping makes `AllocsPerRun` unstable.
 
 ### Edit core
 
@@ -204,6 +241,9 @@ is not handed to the platform spell checker.
   up on the next frame.
 - A paragraph longer than the budget in no-wrap mode is drawn as pieces side by
   side, cut after a space when one is near; kerning across the seam is lost.
+- Off-screen no-wrap pieces keep estimated widths until reached. A far caret and
+  its horizontal scroll share those estimates, so the visible destination is
+  stable; the total intrinsic width settles as pieces become visible.
 - A gradient fill or a shimmer spans each chunk's box, not the whole text's, so
   past one chunk it starts over in every chunk. glyph measures a gradient on the
   layout it draws (`layoutGradientExtents`) and takes no larger frame; spanning

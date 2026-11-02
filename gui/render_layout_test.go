@@ -623,7 +623,7 @@ func TestRenderInputSelectionEqualBegEndSkips(t *testing.T) {
 	}
 
 	renderInputSelection(shape, "hello", 0, 0,
-		nil, false, w)
+		nil, false, makeClip(0, 0, 800, 600), w)
 
 	if len(w.renderers) != 0 {
 		t.Error("no selection highlight for equal beg/end")
@@ -643,7 +643,7 @@ func TestRenderInputSelectionFallbackEmitsRect(t *testing.T) {
 	}
 
 	renderInputSelection(shape, "hello", 10, 20,
-		nil, false, w)
+		nil, false, makeClip(0, 0, 800, 600), w)
 
 	if len(w.renderers) != 1 {
 		t.Fatalf("got %d renderers, want 1 selection rect",
