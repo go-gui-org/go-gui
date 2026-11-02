@@ -345,3 +345,49 @@ func TestSoundInputMaskSameDigitAdvancesCaret(t *testing.T) {
 		t.Error("undo step recorded for an edit that changed no text")
 	}
 }
+
+// MaxLength bounds what a masked field ends up holding, not what an
+// unmasked insert would have: a digit typed or pasted into a full
+// "99/99" field shifts the others along and keeps five runes.
+func TestInputMaskEditWithinMaxLength(t *testing.T) {
+	for _, via := range []string{"typed", "pasted"} {
+		w := NewTestWindow(t, WindowCfg{Width: 300, Height: 100})
+		t.Cleanup(w.WindowCleanup)
+		text := "12/34"
+		w.TestRender(func(*Window) View {
+			return Column(ContainerCfg{Sizing: FillFill, Content: []View{
+				Input(InputCfg{ID: "f", Text: text, Mask: "99/99", MaxLength: 5,
+					Sizing:        FillFit,
+					OnTextChanged: func(s string, _ EventCtx) { text = s }}),
+			}})
+		})
+		w.SetFocus("f")
+		_ = w.TestKey("f", KeyHome, ModNone)
+		if via == "typed" {
+			_ = w.TestType("f", "9")
+		} else {
+			w.SetClipboardGetFn(func() string { return "9" })
+			_ = w.TestKey("f", KeyV, ModCtrl)
+		}
+		if text != "91/23" {
+			t.Errorf("%s 9 at the start of 12/34 gave %q, want \"91/23\"", via, text)
+		}
+	}
+	// A masked edit that grows the text past MaxLength is still refused.
+	w := NewTestWindow(t, WindowCfg{Width: 300, Height: 100})
+	t.Cleanup(w.WindowCleanup)
+	text := "1"
+	w.TestRender(func(*Window) View {
+		return Column(ContainerCfg{Sizing: FillFill, Content: []View{
+			Input(InputCfg{ID: "f", Text: text, Mask: "99/99", MaxLength: 1,
+				Sizing:        FillFit,
+				OnTextChanged: func(s string, _ EventCtx) { text = s }}),
+		}})
+	})
+	w.SetFocus("f")
+	_ = w.TestKey("f", KeyEnd, ModNone)
+	_ = w.TestType("f", "2")
+	if text != "1" {
+		t.Errorf("a masked edit past MaxLength 1 gave %q, want \"1\"", text)
+	}
+}

@@ -6,17 +6,23 @@ package gui
 // under the 800-line gate (tools/largefiles).
 
 func inputTextChange(hcfg inputHandlerCfg, layout *Layout, text, ins string, id string, w *Window) (string, bool) {
-	if !inputEditFits(text, ins, inputStateOrDefault(id, w), hcfg.budget()) {
+	mask := hcfg.CompiledMask
+	// A mask can overwrite as it inserts, so its edit is budgeted on
+	// the result below, not on the insert.
+	if mask == nil && !inputEditFits(text, ins, inputStateOrDefault(id, w), hcfg.budget()) {
 		// The field is at its budget (MaxLength): a typed character or
 		// an IME commit is refused whole, like a mask with no slot.
 		playSoundCue(hcfg.cues.reject, w)
 		return text, false
 	}
-	mask := hcfg.CompiledMask
 	if mask != nil {
 		is := inputStateOrDefault(id, w)
 		cursor, selBeg, selEnd := maskRuneArgs(text, is)
 		res := inputMaskInsert(text, cursor, selBeg, selEnd, ins, mask)
+		if res.Changed && !inputResultFits(text, res.Text, hcfg.budget()) {
+			playSoundCue(hcfg.cues.reject, w)
+			return text, false
+		}
 		if res.Changed {
 			// IME commits are multi-rune; they break the run the way
 			// inputInsert does for a paste. Only the ">1 rune"
