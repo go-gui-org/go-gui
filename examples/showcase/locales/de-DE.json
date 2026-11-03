@@ -40,6 +40,7 @@
     "loading_diagram": "Diagramm laden...",
     "saving": "Speichern...",
     "save_failed": "Speichern fehlgeschlagen",
+    "source_changed": "Quelle geändert",
     "load_error": "Ladefehler",
     "error": "Fehler",
     "clean": "Sauber",
@@ -62,7 +63,8 @@
     "alpha": "Alpha",
     "hue": "Farbton",
     "sat": "Sätt",
-    "value": "Wert"
+    "value": "Wert",
+    "lightness": "Helligkeit"
   },
   "weekdays_short": ["S", "M", "D", "M", "D", "F", "S"],
   "weekdays_med":   ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"],

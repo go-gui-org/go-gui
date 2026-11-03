@@ -1,6 +1,9 @@
 package main
 
 import (
+	"encoding/json"
+	"io/fs"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -28,6 +31,57 @@ func localePageWindow(t *testing.T) *gui.Window {
 	w.TestRender(mainView)
 	w.TestRender(nil)
 	return w
+}
+
+// The showcase locale files replace the registered presets while
+// the example runs, so each must translate every widget string the
+// preset does. Each value is prefixed with a marker, so a field
+// still holding its en-US default names the missing key, and a
+// blank value is caught behind the marker.
+func TestShowcaseLocalesTranslateEveryString(t *testing.T) {
+	const marker = "marker:"
+	names, globErr := fs.Glob(showcaseFS, "locales/*.json")
+	if globErr != nil || len(names) == 0 {
+		t.Fatalf("no showcase locales: %v", globErr)
+	}
+	for _, name := range names {
+		data, err := showcaseFS.ReadFile(name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var doc map[string]any
+		if err = json.Unmarshal(data, &doc); err != nil {
+			t.Fatalf("%s: %v", name, err)
+		}
+		strs, _ := doc["strings"].(map[string]any)
+		for k, val := range strs {
+			s, _ := val.(string)
+			strs[k] = marker + s
+		}
+		marked, err := json.Marshal(doc)
+		if err != nil {
+			t.Fatal(err)
+		}
+		locale, err := gui.LocaleParse(string(marked))
+		if err != nil {
+			t.Fatalf("%s: %v", name, err)
+		}
+		v := reflect.ValueOf(locale)
+		for i := range v.NumField() {
+			f := v.Type().Field(i)
+			if !strings.HasPrefix(f.Name, "Str") || f.Type.Kind() != reflect.String {
+				continue
+			}
+			got := v.Field(i).String()
+			s, ok := strings.CutPrefix(got, marker)
+			if !ok {
+				t.Errorf("%s: no string for %s, falls back to %q",
+					name, f.Name, got)
+			} else if strings.TrimSpace(s) == "" {
+				t.Errorf("%s: blank string %q for %s", name, s, f.Name)
+			}
+		}
+	}
 }
 
 // The page lays out clean in every locale the showcase cycles,
