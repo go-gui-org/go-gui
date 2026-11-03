@@ -242,6 +242,69 @@ func BenchmarkInputLargeNavigate(b *testing.B) {
 	}
 }
 
+// BenchmarkInputLargePaste measures the one-shot path reported in #1190:
+// clipboard insertion, controlled-value rebuild, caret placement and the
+// scroll-into-view query. Minified JSON is one logical paragraph but still
+// has UAX #14 wrap opportunities at some punctuation; the line-broken case
+// distinguishes long-paragraph traversal from the immutable string copy.
+func BenchmarkInputLargePaste(b *testing.B) {
+	const jsonUnit = `{"id":17,"ok":true,"name":"response"},`
+	repeatBytes := func(unit string, n int) string {
+		return strings.Repeat(unit, (n+len(unit)-1)/len(unit))[:n]
+	}
+	cases := []struct {
+		name string
+		text string
+	}{
+		{"json_74KB", repeatBytes(jsonUnit, 74_000)},
+		{"json_1MiB", repeatBytes(jsonUnit, 1<<20)},
+		{"lines_1MiB", repeatBytes(strings.Repeat("x", 240)+"\n", 1<<20)},
+	}
+	for _, tc := range cases {
+		b.Run(tc.name, func(b *testing.B) {
+			w := gui.NewTestWindow(b, gui.WindowCfg{Width: 820, Height: 600})
+			tm, err := prepare(w, 1)
+			if err != nil {
+				b.Fatal(err)
+			}
+			b.Cleanup(func() { tm.textSys.Free() })
+			w.SetTextMeasurer(tm)
+			text := ""
+			w.SetView(func(*gui.Window) gui.View {
+				return gui.Input(gui.InputCfg{
+					ID: "f", Text: text, Mode: gui.InputMultiline,
+					Scrollable: true, Sizing: gui.FillFixed, Height: 220,
+					MaxLength:     2 << 20,
+					OnTextChanged: func(s string, _ gui.EventCtx) { text = s },
+				})
+			})
+			w.SetClipboardGetFn(func() string { return tc.text })
+			w.Update()
+			w.SetFocus("f")
+			w.Update()
+			b.ReportAllocs()
+			b.ReportMetric(float64(len(tc.text)), "paste-B")
+			b.ResetTimer()
+			for b.Loop() {
+				if err := w.TestKey("f", gui.KeyV, gui.ModCtrl); err != nil {
+					b.Fatal(err)
+				}
+				if text != tc.text {
+					b.Fatalf("paste stored %d bytes, want %d", len(text), len(tc.text))
+				}
+				b.StopTimer()
+				if err := w.TestKey("f", gui.KeyA, gui.ModCtrl); err != nil {
+					b.Fatal(err)
+				}
+				if err := w.TestKey("f", gui.KeyBackspace, gui.ModNone); err != nil {
+					b.Fatal(err)
+				}
+				b.StartTimer()
+			}
+		})
+	}
+}
+
 // The keypress cost includes a whole-buffer immutable string copy, so the
 // budget is pinned near the old shaper limit: a 10KB field must not get
 // heap-hungrier without the bench above showing it first.

@@ -54,6 +54,25 @@ func (m *countingBlockMeasurer) LayoutText(
 	return m.blockStubMeasurer.LayoutText(text, style, wrapWidth)
 }
 
+type probeCountingBlockMeasurer struct {
+	blockStubMeasurer
+	full, probes int
+}
+
+func (m *probeCountingBlockMeasurer) LayoutText(
+	text string, style TextStyle, wrapWidth float32,
+) (glyph.Layout, error) {
+	m.full++
+	return m.blockStubMeasurer.LayoutText(text, style, wrapWidth)
+}
+
+func (m *probeCountingBlockMeasurer) LayoutTextNoHitTesting(
+	text string, style TextStyle, wrapWidth float32,
+) (glyph.Layout, error) {
+	m.probes++
+	return m.blockStubMeasurer.LayoutText(text, style, wrapWidth)
+}
+
 type stubLine struct{ start, end int }
 
 func stubLayout(text string, wrapW float32) glyph.Layout {
@@ -443,6 +462,41 @@ func TestTextBlockLazyNoWrapFarCursorShapesOnlyDestination(t *testing.T) {
 	}
 	if len(b.chunks) < 2 {
 		t.Fatalf("far cursor did not split the open paragraph: %v", blockRanges(b))
+	}
+}
+
+// A far caret in a wrapped paragraph must discover every preceding soft-wrap
+// seam, but those probes already provide exact prefix geometry. Only the
+// destination needs a retained, hit-testable layout; reshaping every prefix
+// was the dominant cost of a megabyte one-paragraph paste.
+func TestTextBlockLazyWrapFarCursorShapesOnlyDestinationFully(t *testing.T) {
+	withChunkBytes(t, 12)
+	withEagerBytes(t, 0)
+	w := newBlockTestWindow(t)
+	m := &probeCountingBlockMeasurer{}
+	w.textMeasurer = m
+	text := strings.Repeat("ab ", 100) + "end"
+	b := newTextBlock(text, 100, blockTestStyle, TextModeWrap, w)
+	if m.full != 1 || m.probes != 0 {
+		t.Fatalf("setup layouts = %d full, %d probes; want 1, 0",
+			m.full, m.probes)
+	}
+	got, ok := b.cursorPos(len(text))
+	whole := stubLayout(text, 100)
+	want, wantOK := whole.GetCursorPos(len(text))
+	if got != want || ok != wantOK {
+		t.Fatalf("cursor at end = %+v/%v, want %+v/%v",
+			got, ok, want, wantOK)
+	}
+	if m.full != 2 {
+		t.Fatalf("far cursor shaped %d full layouts, want metric + destination",
+			m.full)
+	}
+	if m.probes < 2 {
+		t.Fatalf("far cursor used %d seam probes, want multiple", m.probes)
+	}
+	if b.live != 1 {
+		t.Fatalf("far cursor retained %d layouts, want destination only", b.live)
 	}
 }
 

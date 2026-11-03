@@ -303,7 +303,20 @@ func (tm *textMeasurer) TextInkBounds(
 func (tm *textMeasurer) LayoutText(
 	text string, style gui.TextStyle, wrapWidth float32,
 ) (glyph.Layout, error) {
+	return tm.layoutText(text, style, wrapWidth, false)
+}
+
+func (tm *textMeasurer) LayoutTextNoHitTesting(
+	text string, style gui.TextStyle, wrapWidth float32,
+) (glyph.Layout, error) {
+	return tm.layoutText(text, style, wrapWidth, true)
+}
+
+func (tm *textMeasurer) layoutText(
+	text string, style gui.TextStyle, wrapWidth float32, noHitTesting bool,
+) (glyph.Layout, error) {
 	cfg := guiStyleToGlyphConfig(style)
+	cfg.NoHitTesting = noHitTesting
 	if wrapWidth > 0 {
 		cfg.Block.Width = wrapWidth
 		cfg.Block.Wrap = glyph.WrapWord
