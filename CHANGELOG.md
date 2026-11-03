@@ -58,6 +58,15 @@ and this project adheres to
 
 ### Fixed
 
+- **Built-in locales translate the Lightness label and the source-changed status
+  (#1210).** The `ar-SA`, `de-DE`, `es-ES`, `fr-FR`, `he-IL`, `ja-JP`, `ko-KR`,
+  `pt-BR` and `zh-CN` bundles lacked the `lightness` and `source_changed` keys,
+  so an HSL color field and its lightness slider, and the DataGrid CRUD status
+  after a source change, showed English in those locales. The bundles and the
+  Showcase copies now carry both, and a test fails when a bundled locale omits
+  or blanks any widget string, or an en-US default is blank. Custom bundles
+  still fall back to en-US for an omitted key.
+
 - **A scrollable in a `Splitter` or `DockLayout` pane scrolls to its end
   (#1214).** A pane got its size only after the frame had clamped the scroll
   offsets and applied the scroll requests, so a scrollable inside it was

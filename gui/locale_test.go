@@ -1,6 +1,10 @@
 package gui
 
-import "testing"
+import (
+	"reflect"
+	"strings"
+	"testing"
+)
 
 func TestLocaleDefaults(t *testing.T) {
 	l := localeDefaults()
@@ -92,6 +96,72 @@ func TestLocalePresets(t *testing.T) {
 	if LocaleDeDE.Date.FirstDayOfWeek != 1 {
 		t.Fatalf("de-DE FirstDayOfWeek = %d, want 1",
 			LocaleDeDE.Date.FirstDayOfWeek)
+	}
+}
+
+// Every bundled locale translates every widget string. A key a
+// bundle omits falls back to en-US silently, so a Str field added
+// without a key in each bundle fails here. Each value is prefixed
+// with a marker, so a field still holding its en-US default names
+// the missing key, and a blank value is caught behind the marker.
+func TestLocaleBundlesTranslateEveryString(t *testing.T) {
+	const marker = "marker:"
+	entries, dirErr := localeFS.ReadDir("locales")
+	if dirErr != nil {
+		t.Fatal(dirErr)
+	}
+	for _, e := range entries {
+		data, err := localeFS.ReadFile("locales/" + e.Name())
+		if err != nil {
+			t.Fatal(err)
+		}
+		b, err := decodeBundle(data)
+		if err != nil {
+			t.Fatalf("%s: %v", e.Name(), err)
+		}
+		for k, s := range b.Strings {
+			b.Strings[k] = marker + s
+		}
+		l, err := b.toLocale()
+		if err != nil {
+			t.Fatalf("%s: %v", e.Name(), err)
+		}
+		eachLocaleStr(l, func(name, got string) {
+			s, ok := strings.CutPrefix(got, marker)
+			if !ok {
+				t.Errorf("%s: no string for %s, falls back to %q",
+					e.Name(), name, got)
+			} else if strings.TrimSpace(s) == "" {
+				t.Errorf("%s: blank string %q for %s", e.Name(), s, name)
+			}
+		})
+	}
+}
+
+// Every en-US default is set: it is what a custom bundle shows for
+// a key it omits, so a blank default leaves a widget unlabeled.
+func TestLocaleDefaultsHaveEveryString(t *testing.T) {
+	n := 0
+	eachLocaleStr(localeDefaults(), func(name, s string) {
+		n++
+		if strings.TrimSpace(s) == "" {
+			t.Errorf("en-US: blank string %q for %s", s, name)
+		}
+	})
+	if n == 0 {
+		t.Fatal("no Str fields on Locale")
+	}
+}
+
+// eachLocaleStr calls fn with the name and value of every Str field
+// on l: the widget strings a bundle translates.
+func eachLocaleStr(l Locale, fn func(name, s string)) {
+	v := reflect.ValueOf(l)
+	for i := range v.NumField() {
+		f := v.Type().Field(i)
+		if strings.HasPrefix(f.Name, "Str") && f.Type.Kind() == reflect.String {
+			fn(f.Name, v.Field(i).String())
+		}
 	}
 }
 
