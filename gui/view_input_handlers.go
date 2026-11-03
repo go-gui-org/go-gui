@@ -46,7 +46,7 @@ func inputTextChange(hcfg inputHandlerCfg, layout *Layout, text, ins string, id 
 		proposed := inputProposedText(text, ins, id, w)
 		if adjusted, ok := hcfg.preTextChange(text, proposed); ok {
 			if adjusted == proposed {
-				text = inputInsert(text, ins, id, w)
+				text = inputInsertProposed(text, ins, proposed, id, w)
 			} else {
 				adjusted = capCallbackText(adjusted, hcfg.budget())
 				inputSetTextAndCursorAtEnd(

@@ -131,15 +131,15 @@ decision. Removing overlapping seam work, hit-test data from seam probes and a
 second full shape of each off-screen prefix gives these Windows soft-backend
 measurements at an 820 px field width (one iteration per fresh paste):
 
-| Paste                    | Before                  | After                  |
-| ------------------------ | -----------------------: | ---------------------: |
-| 74 KB minified JSON      | 107–116 ms, ~77 MB       | 27–31 ms, ~6 MB        |
-| 1 MiB minified JSON      | 1.53–1.59 s, ~1.1 GB     | 0.39–0.43 s, ~65 MB    |
-| 1 MiB line-broken text   | 3.3–4.8 ms, ~1.6 MB      | 3.7–5.2 ms, ~1.6 MB    |
+| Paste                  |               Before |               After |
+| ---------------------- | -------------------: | ------------------: |
+| 74 KB minified JSON    |   107–116 ms, ~77 MB |     27–31 ms, ~6 MB |
+| 1 MiB minified JSON    | 1.53–1.59 s, ~1.1 GB | 0.39–0.43 s, ~65 MB |
+| 1 MiB line-broken text |  3.3–4.8 ms, ~1.6 MB | 3.7–5.2 ms, ~1.6 MB |
 
 `BenchmarkInputLargePaste` preserves that workload. The result remains exact:
-the optimization skips disposable hit-testing and redundant prefix shaping,
-not wrap decisions or destination caret shaping.
+the optimization skips disposable hit-testing and redundant prefix shaping, not
+wrap decisions or destination caret shaping.
 
 The first `End` on a fresh 1 MiB no-wrap value formerly shaped 511 chunks:
 396–402 ms, 170–173 MB transient allocation and about 15.6 MB retained after GC.
@@ -198,6 +198,11 @@ holding app-set text past its budget takes deletes and replacements no longer
 than the selection. App-set text is never cut; the debug category
 `DebugGlyphLayoutFallback` reports such a field once. `PreTextChange` and
 `PostCommitNormalize` output is capped at the budget, as it was at the old one.
+`PreTextChange` necessarily receives a materialized proposed value. When it
+accepts that value unchanged, the input commits the same immutable string
+instead of materializing an identical result a second time. The allocation
+regression `TestInputLargeAcceptedPreTextChangeAllocBudget` keeps that path at
+the ordinary edit's allocation cost.
 
 Two costs scale with the whole text and are bounded instead: the inner text
 shape's accessible name carries the first 65,536 runes, and a field past 64 KiB

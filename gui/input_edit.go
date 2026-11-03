@@ -100,6 +100,23 @@ func editProposedText(text, ins string, is inputState) string {
 	return text[:beg] + ins + text[end:]
 }
 
+// editCommitInsert records an insertion whose span and resulting text the
+// caller already knows. Keeping this separate lets PreTextChange commit the
+// proposal it just validated instead of allocating the same complete string
+// again.
+func editCommitInsert(
+	is inputState, text, newText, ins string, beg, end int,
+) inputState {
+	op := inputOpInsert
+	if isMultiRuneInsert(ins) {
+		// Multi-rune inserts (paste, IME commits) are one undo step
+		// even after a typing run, so they break the run.
+		op = inputOpNone
+	}
+	return editCommitDelta(is, text, newText, beg+len(ins), op,
+		beg, mementoSpan(text[beg:end], len(text)), ins)
+}
+
 // editInsert inserts ins at the caret, or replaces the selection with it.
 // A negative caret appends. It returns false, and the text unchanged, for an
 // empty insert or a selection outside the text. The field's budget is the
@@ -113,15 +130,34 @@ func editInsert(text, ins string, is inputState) (string, inputState, bool) {
 		return text, is, false
 	}
 	newText := text[:beg] + ins + text[end:]
-	op := inputOpInsert
-	if isMultiRuneInsert(ins) {
-		// Multi-rune inserts (paste, IME commits) are one undo step
-		// even after a typing run, so they break the run.
-		op = inputOpNone
+	return newText, editCommitInsert(is, text, newText, ins, beg, end), true
+}
+
+// editInsertProposed commits proposed without rebuilding it when it is the
+// exact insertion ins makes in the current state. PreTextChange runs app code
+// between proposing and accepting; if that code indirectly changed the caret
+// or selection, the proposal no longer describes the current edit. In that
+// rare case, fall back to editInsert and preserve the previous behavior.
+func editInsertProposed(
+	text, ins, proposed string, is inputState,
+) (string, inputState, bool) {
+	if len(ins) == 0 {
+		return text, is, false
 	}
-	next := editCommitDelta(is, text, newText, beg+len(ins), op,
-		beg, mementoSpan(text[beg:end], len(text)), ins)
-	return newText, next, true
+	beg, end, ok := editSpan(text, is)
+	if !ok {
+		return text, is, false
+	}
+	insertEnd := beg + len(ins)
+	wantLen := len(text) - (end - beg) + len(ins)
+	if len(proposed) != wantLen ||
+		proposed[:beg] != text[:beg] ||
+		proposed[beg:insertEnd] != ins ||
+		proposed[insertEnd:] != text[end:] {
+		return editInsert(text, ins, is)
+	}
+	return proposed,
+		editCommitInsert(is, text, proposed, ins, beg, end), true
 }
 
 // editSetTextCursorAtEnd returns the state after the text was replaced with

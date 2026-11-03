@@ -94,6 +94,13 @@ func BenchmarkInputKeypress(b *testing.B) {
 func editPairWindow(
 	tb testing.TB, seed string, atEnd bool,
 ) (*gui.Window, *gui.Event, *gui.Event, *string) {
+	return editPairWindowPreTextChange(tb, seed, atEnd, nil)
+}
+
+func editPairWindowPreTextChange(
+	tb testing.TB, seed string, atEnd bool,
+	preTextChange func(string, string) (string, bool),
+) (*gui.Window, *gui.Event, *gui.Event, *string) {
 	tb.Helper()
 	w := gui.NewTestWindow(tb, gui.WindowCfg{Width: 800, Height: 600})
 	tm, err := prepare(w, 1)
@@ -107,6 +114,7 @@ func editPairWindow(
 		return gui.Input(gui.InputCfg{
 			ID: "f", Text: text, Sizing: gui.FillFit,
 			MaxLength:     2 << 20,
+			PreTextChange: preTextChange,
 			OnTextChanged: func(s string, _ gui.EventCtx) { text = s },
 		})
 	})
@@ -380,6 +388,57 @@ func TestInputLargeEditAllocBudget(t *testing.T) {
 			best, maxBytesPerEdit)
 	}
 	t.Logf("best 1 MiB edit allocation: %d bytes", best)
+}
+
+// An accepting PreTextChange needs the complete proposed value for app code,
+// but committing that same proposal must not materialize the value a second
+// time. Compare it with the ordinary path so runtime and renderer allocations
+// cancel out; one accidental extra 1 MiB copy adds about 512 KiB to each
+// alternating insert/backspace sample.
+func TestInputLargeAcceptedPreTextChangeAllocBudget(t *testing.T) {
+	if inputRaceEnabled {
+		t.Skip("process-wide allocation counters are unstable under race instrumentation")
+	}
+	const editsPerSample = 10
+	seed := strings.Repeat("a", 1<<20)
+	measure := func(pre func(string, string) (string, bool)) uint64 {
+		w, insert, backspace, text := editPairWindowPreTextChange(
+			t, seed, false, pre)
+		run := func() {
+			for i := range editsPerSample {
+				e := *insert
+				if i%2 != 0 {
+					e = *backspace
+				}
+				w.EventFn(&e)
+				w.Update()
+			}
+			if *text != seed {
+				t.Fatalf("edit sample left %d bytes, want %d", len(*text), len(seed))
+			}
+		}
+		run()
+		best := ^uint64(0)
+		for range 5 {
+			var before, after runtime.MemStats
+			runtime.ReadMemStats(&before)
+			run()
+			runtime.ReadMemStats(&after)
+			best = min(best, (after.TotalAlloc-before.TotalAlloc)/editsPerSample)
+		}
+		return best
+	}
+	plain := measure(nil)
+	accepted := measure(func(_, proposed string) (string, bool) {
+		return proposed, true
+	})
+	const tolerance = 256 << 10
+	if accepted > plain+tolerance {
+		t.Fatalf("accepted PreTextChange allocated %d bytes/edit; plain path %d, want no second value copy",
+			accepted, plain)
+	}
+	t.Logf("best 1 MiB allocation: plain %d, accepting PreTextChange %d bytes/edit",
+		plain, accepted)
 }
 
 // Moving and selecting may inspect a distant chunk, but neither operation
