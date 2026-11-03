@@ -43,7 +43,8 @@ type InputCfg struct {
 	// callback by design — if security invariants (max length,
 	// forbidden chars) must be enforced unconditionally, use
 	// OnTextChanged instead. Adjusted text is capped at MaxLength
-	// runes.
+	// runes. Returning proposed unchanged commits that already
+	// materialized string without constructing it a second time.
 	// exportaudit:keep — caller-facing config (issue #372)
 	PreTextChange func(current, proposed string) (string, bool)
 

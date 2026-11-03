@@ -10,7 +10,9 @@ import (
 // inputMaxRunesDefault is the rune budget of a field that leaves
 // InputCfg.MaxLength unset (#1187): 1,048,576 runes, a few megabytes of
 // text. An edit that would take the field past its budget is refused
-// whole. The bound exists because every edit copies the text once.
+// whole. The bound exists because an insertion or replacement materializes
+// one immutable result the size of the text; an accepted unchanged
+// PreTextChange proposal is that result and is not materialized again.
 const inputMaxRunesDefault = 1 << 20
 
 // inputA11YLabelRunes bounds the accessible name an input's text gives
@@ -274,6 +276,20 @@ func inputProposedText(text, insertText string, focusID string, w *Window) strin
 // Returns resulting text. See editInsert.
 func inputInsert(text string, insertText string, focusID string, w *Window) string {
 	next, is, ok := editInsert(text, insertText, inputStateOrDefault(focusID, w))
+	if ok {
+		inputStoreState(focusID, w, is)
+	}
+	return next
+}
+
+// inputInsertProposed commits text that PreTextChange already accepted.
+// Reusing proposed avoids a second complete-string allocation; see
+// editInsertProposed for the state-change fallback.
+func inputInsertProposed(
+	text, insertText, proposed, focusID string, w *Window,
+) string {
+	next, is, ok := editInsertProposed(
+		text, insertText, proposed, inputStateOrDefault(focusID, w))
 	if ok {
 		inputStoreState(focusID, w, is)
 	}

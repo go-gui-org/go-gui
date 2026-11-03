@@ -706,6 +706,60 @@ func TestInputProposedTextKeepsWholeInsert(t *testing.T) {
 	}
 }
 
+func TestAcceptedPreTextChangeProposalKeepsSelectionUndo(t *testing.T) {
+	w := newTestWindow()
+	id := "f-pre-accept"
+	text := "aéXYZz"
+	setInputState(w, id, inputState{
+		CursorPos: 5, selectBeg: 1, selectEnd: 5,
+	})
+	hcfg := inputHandlerCfg{
+		preTextChange: func(_, proposed string) (string, bool) {
+			return proposed, true
+		},
+	}
+	got, changed := inputTextChange(hcfg, nil, text, "界", id, w)
+	if !changed || got != "a界Zz" {
+		t.Fatalf("change = (%q, %v), want (a界Zz, true)", got, changed)
+	}
+	is := inputStateOrDefault(id, w)
+	if is.CursorPos != 4 || is.selectBeg != 0 || is.selectEnd != 0 {
+		t.Fatalf("state = pos %d selection %d..%d, want pos 4 no selection",
+			is.CursorPos, is.selectBeg, is.selectEnd)
+	}
+	if undone := inputUndo(got, id, w); undone != text {
+		t.Fatalf("undo = %q, want %q", undone, text)
+	}
+	restored := inputStateOrDefault(id, w)
+	if restored.selectBeg != 1 || restored.selectEnd != 5 {
+		t.Fatalf("undo selection = %d..%d, want 1..5",
+			restored.selectBeg, restored.selectEnd)
+	}
+}
+
+func TestAcceptedPreTextChangePasteKeepsSeparateUndoStep(t *testing.T) {
+	w := newTestWindow()
+	id := "f-pre-paste"
+	text, changed := inputTextChange(
+		inputHandlerCfg{}, nil, "", "a", id, w)
+	if !changed || text != "a" {
+		t.Fatalf("initial type = (%q, %v), want (a, true)", text, changed)
+	}
+	hcfg := inputHandlerCfg{
+		preTextChange: func(_, proposed string) (string, bool) {
+			return proposed, true
+		},
+	}
+	got, changed := inputKeyPaste(text, "bc", id, nil, hcfg, nil, w)
+	if !changed || got != "abc" {
+		t.Fatalf("paste = (%q, %v), want (abc, true)", got, changed)
+	}
+	// A multi-rune paste is its own undo step, even after a typing run.
+	if undone := inputUndo(got, id, w); undone != "a" {
+		t.Fatalf("undo paste = %q, want a", undone)
+	}
+}
+
 func TestInputSetTextAndCursorAtEnd(t *testing.T) {
 	w := newTestWindow()
 	id := "f-setend"

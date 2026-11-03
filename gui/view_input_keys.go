@@ -241,7 +241,7 @@ func inputKeyPaste(
 			return text, false
 		}
 		if adjusted == proposed {
-			return inputInsert(text, clip, id, w), true
+			return inputInsertProposed(text, clip, proposed, id, w), true
 		}
 		adjusted = capCallbackText(adjusted, hcfg.budget())
 		inputSetTextAndCursorAtEnd(text, adjusted, id, w)

@@ -52,6 +52,36 @@ func TestEditInsert(t *testing.T) {
 	}
 }
 
+func TestEditInsertProposed(t *testing.T) {
+	t.Run("selection and byte offsets", func(t *testing.T) {
+		text, ins := "aéXYZz", "界"
+		is := inputState{CursorPos: 5, selectBeg: 1, selectEnd: 5}
+		proposed := editProposedText(text, ins, is)
+		got, next, ok := editInsertProposed(text, ins, proposed, is)
+		if !ok || got != "a界Zz" || next.CursorPos != 4 {
+			t.Fatalf("got (%q, pos %d, %v), want (a界Zz, pos 4, true)",
+				got, next.CursorPos, ok)
+		}
+		undone, restored, ok := editUndo(got, next)
+		if !ok || undone != text ||
+			restored.selectBeg != 1 || restored.selectEnd != 5 {
+			t.Fatalf("undo = (%q, selection %d..%d, %v), want original edit state",
+				undone, restored.selectBeg, restored.selectEnd, ok)
+		}
+	})
+
+	t.Run("stale proposal falls back to current caret", func(t *testing.T) {
+		text, ins := "abc", "X"
+		stale := editProposedText(text, ins, inputState{CursorPos: 1})
+		got, next, ok := editInsertProposed(
+			text, ins, stale, inputState{CursorPos: 2})
+		if !ok || got != "abXc" || next.CursorPos != 3 {
+			t.Fatalf("got (%q, pos %d, %v), want (abXc, pos 3, true)",
+				got, next.CursorPos, ok)
+		}
+	})
+}
+
 func TestEditDelete(t *testing.T) {
 	cases := []struct {
 		name    string
