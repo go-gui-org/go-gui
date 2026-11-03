@@ -42,13 +42,15 @@ of chunks, each one glyph layout within the budget `textChunkBytes` (2048).
   (`maxLayoutScratch`): every chunk reuses the shaper's buffers, where a 4 KB
   ASCII chunk would reallocate them on every shape. Measured on the pure-Go
   shaper, a 2 KB layout allocates 0.4 MB and a 4 KB one 1.6 MB.
-- **Seams.** In wrap mode a cut is reflowed: the budgeted text plus one more
-  budget is shaped once, the last line start within the limit becomes the next
-  piece's start, and the piece ends where the line before ends. Greedy wrapping
-  is prefix-stable, so the lines before the seam are the whole paragraph's
-  lines, and no short line appears. The space the wrapper consumed at the break
-  belongs to no chunk, as a `\n` does. In no-wrap mode the pieces of a paragraph
-  sit side by side on one row.
+- **Seams.** In wrap mode a budget-sized prefix is shaped and every complete
+  line except its possibly input-forced final line becomes the measured piece;
+  greedy wrapping is prefix-stable, so those lines are the whole paragraph's
+  lines and no short line appears. go-glyph-backed native measurers omit the
+  probe's hit-test data, which a seam does not read. If the normal probe finds
+  no complete line, an unusually long visual line gets one retry at the old
+  two-budget ceiling before the grapheme-safe hard-cut fallback. The space the
+  wrapper consumed at a break belongs to no chunk, as a `\n` does. In no-wrap
+  mode the pieces of a paragraph sit side by side on one row.
 - **Shaping on demand, bounded.** A chunk is shaped when a query or the renderer
   reaches it. A new block up to 64 KB (`textBlockEagerBytes`) shapes every chunk
   once for exact geometry; above that the unseen chunks are estimated from an
@@ -93,10 +95,14 @@ of chunks, each one glyph layout within the budget `textChunkBytes` (2048).
   metadata toward its offset without shaping the intervening pieces: their
   estimated cumulative X is present in both the destination position and the
   horizontal scroll offset, so it cancels at the viewport. Only the destination
-  chunk needs exact cursor geometry. `TestTextBlockMatchesWholeLayout` checks
+  chunk needs exact cursor geometry. A far cursor in a wrapped paragraph must
+  still discover the preceding soft-wrap seams, but each lean probe records the
+  exact geometry of all complete prefix lines; when the target moved into the
+  remainder those prefixes are not shaped again with hit testing. Only the
+  destination retains a full layout. `TestTextBlockMatchesWholeLayout` checks
   every query against a whole-text layout of the same stub shaper at a 12-byte
-  budget; `TestTextBlockLazyNoWrapFarCursorShapesOnlyDestination` pins the
-  one-layout far-cursor bound.
+  budget; the lazy far-cursor tests pin the one-full-layout bounds for wrapped
+  and unwrapped paragraphs.
 - **Drawing.** `renderTextBlock` emits one glyph-layout draw per chunk that
   reaches into the clip. A single-line text over the budget takes the layout
   path too, since one `RenderText` command would hand the backend a string the
@@ -118,6 +124,22 @@ Windows, an i7-1270P and the soft backend give these steady whole-widget costs
 | edit at end         | 0.74–0.85 ms, 276–278 KB | 0.95–0.98 ms, 534 KB |
 | Home/End            |     0.15–0.20 ms, 5.2 KB | 0.83–0.94 ms, 5.2 KB |
 | select-all/collapse |     0.15–0.22 ms, 5.2 KB | 0.77–0.86 ms, 5.2 KB |
+
+The one-shot wrapped paste path from issue #1190 is necessarily linear in a
+one-paragraph value: placing its final caret requires every preceding soft-wrap
+decision. Removing overlapping seam work, hit-test data from seam probes and a
+second full shape of each off-screen prefix gives these Windows soft-backend
+measurements at an 820 px field width (one iteration per fresh paste):
+
+| Paste                    | Before                  | After                  |
+| ------------------------ | -----------------------: | ---------------------: |
+| 74 KB minified JSON      | 107–116 ms, ~77 MB       | 27–31 ms, ~6 MB        |
+| 1 MiB minified JSON      | 1.53–1.59 s, ~1.1 GB     | 0.39–0.43 s, ~65 MB    |
+| 1 MiB line-broken text   | 3.3–4.8 ms, ~1.6 MB      | 3.7–5.2 ms, ~1.6 MB    |
+
+`BenchmarkInputLargePaste` preserves that workload. The result remains exact:
+the optimization skips disposable hit-testing and redundant prefix shaping,
+not wrap decisions or destination caret shaping.
 
 The first `End` on a fresh 1 MiB no-wrap value formerly shaped 511 chunks:
 396–402 ms, 170–173 MB transient allocation and about 15.6 MB retained after GC.

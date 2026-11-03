@@ -5,7 +5,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"unicode/utf8"
 	"unsafe"
 
 	"github.com/go-gui-org/go-glyph"
@@ -46,9 +45,12 @@ import (
 // synthetic line box: go-glyph gives a text ending in '\n' an empty last
 // line, and so does the block.
 
-// textChunkBytes bounds the text one glyph layout is asked to shape. It
-// is a var so tests can shrink it and exercise multi-chunk blocks on
-// short texts against a whole-text layout of the same shaper.
+// textChunkBytes bounds the text one glyph layout is asked to shape. Wrapped
+// seam probes use the whole budget and keep every complete line except the
+// probe's possibly input-forced final line; their hard-cut fallback uses half
+// the budget so an equally large look-ahead remains. It is a var so tests can
+// shrink it and exercise multi-chunk blocks on short texts against a
+// whole-text layout of the same shaper.
 var textChunkBytes = 2048
 
 // textBlockEagerBytes is the text size up to which a new block shapes
@@ -443,92 +445,6 @@ func (b *textBlock) evict(keep int) {
 		b.chunks[victim].layout = nil
 		b.live--
 	}
-}
-
-// splitOpen cuts open chunk i within the budget and inserts the rest of
-// its paragraph after it as the next piece.
-//
-// In wrap mode the seam is a line break the whole paragraph also has:
-// the text up to a budget past the limit is shaped once, and the last
-// line start within the limit becomes the next piece's start, with the
-// piece ending where the line before it ends. The byte between, when
-// there is one, is the space the wrapper consumed; it belongs to no
-// chunk. Shaping past the limit is what makes the break real — a
-// break chosen at the end of a probe is where the probe ran out, not
-// where the paragraph wraps. In no-wrap mode the pieces share a row, so
-// the cut keeps every byte and falls after a space when one is near.
-func (b *textBlock) splitOpen(i int, w *Window) {
-	c := &b.chunks[i]
-	c.open = false
-	limit := c.start + textChunkBytes
-	if c.end <= limit {
-		return
-	}
-	pieceEnd, rest := 0, 0
-	if b.wraps() {
-		probeEnd := c.end
-		if limit+textChunkBytes < c.end {
-			probeEnd = prevGraphemeBoundary(b.text, limit+textChunkBytes)
-		}
-		l, err := w.textMeasurer.LayoutText(
-			b.text[c.start:probeEnd], b.style, b.widthArg)
-		if err == nil {
-			// The last line start within the limit; failing that, the
-			// first one past it, which keeps a line longer than the
-			// budget whole as long as the probe reaches its end. Both
-			// stay within two budgets, well under the shaper's cap.
-			pick := -1
-			for k := 1; k < len(l.Lines); k++ {
-				if c.start+l.Lines[k].StartIndex <= limit || pick < 0 {
-					pick = k
-				}
-			}
-			if pick > 0 {
-				prev := l.Lines[pick-1]
-				pieceEnd = c.start + prev.StartIndex + prev.Length
-				rest = c.start + l.Lines[pick].StartIndex
-			}
-		}
-	}
-	if rest <= c.start || rest >= c.end {
-		// No break (a run with no opportunity, or a shaper refusal): a
-		// hard cut at a grapheme boundary.
-		cut := textSplitPoint(b.text, c.start, c.end, limit)
-		pieceEnd, rest = cut, cut
-	}
-	end := c.end
-	c.end = pieceEnd
-	next := textChunk{
-		start: rest, end: end, piece: true,
-		open: end-rest > textChunkBytes,
-	}
-	b.estimate(&next, w)
-	b.chunks = slices.Insert(b.chunks, i+1, next)
-	b.estimate(&b.chunks[i], w)
-	b.markDirty(i)
-}
-
-func isBlankByte(c byte) bool { return c == ' ' || c == '\t' }
-
-// textSplitPoint picks where to cut text[start:end] so the first part
-// ends by limit: after the last space in the budget's second half, else
-// at the grapheme boundary at or before limit.
-func textSplitPoint(text string, start, end, limit int) int {
-	lo := max(start+1, limit-textChunkBytes/2)
-	for j := limit; j > lo; j-- {
-		if isBlankByte(text[j-1]) {
-			return j
-		}
-	}
-	if g := prevGraphemeBoundary(text, limit); g > start {
-		return g
-	}
-	for j := limit; j > start; j-- {
-		if utf8.RuneStart(text[j]) {
-			return j
-		}
-	}
-	return end
 }
 
 // patch re-chunks the paragraphs an edit touched and shifts the rest.

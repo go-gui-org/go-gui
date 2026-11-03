@@ -269,16 +269,14 @@ func (b *textBlock) shapedChunkAt(idx int) int {
 			return i
 		}
 		// A no-wrap open chunk can be cut without shaping: unlike a wrapped
-		// seam, its split does not depend on line breaking. Walk the metadata
-		// toward a distant caret first and leave the intervening pieces at
-		// their estimated widths. Their cumulative X is used both to place
-		// the destination chunk and to scroll that caret into view, so it
-		// cancels at the viewport; only the destination needs exact cursor
-		// geometry. This keeps End on a megabyte line from shaping hundreds
-		// of off-screen chunks merely to discover their seams.
-		if b.chunks[i].open && !b.wraps() {
+		// seam, its split does not depend on line breaking. A wrapped split's
+		// probe records exact geometry for the complete prefix lines. In both
+		// cases, when the target moved into the remainder, avoid immediately
+		// shaping the prefix again merely to walk toward a distant caret.
+		if b.chunks[i].open {
 			b.splitOpen(i, b.w)
-			if b.chunkAt(idx) != i {
+			if b.chunkAt(idx) != i &&
+				(!b.wraps() || b.chunks[i].measured) {
 				continue
 			}
 		}
