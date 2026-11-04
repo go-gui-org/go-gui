@@ -85,8 +85,8 @@ type textChunk struct {
 	// used is the block tick of the last query that touched the chunk;
 	// the least recently used shaped chunk is evicted first.
 	used uint32
-	// measured reports that width and height come from a layout (or
-	// from the empty-paragraph rule), not from the estimate.
+	// measured reports that width and height are final: from a layout,
+	// the empty-paragraph rule, or the estimate of a refused chunk.
 	measured bool
 	// piece marks a chunk that continues the previous chunk's paragraph
 	// with no '\n' between them.
@@ -243,6 +243,7 @@ func (b *textBlock) reset(
 	b.w = w
 	b.live = 0
 	b.probed = false
+	b.failErr, b.failBytes = nil, 0
 	b.fontH = fontHeight(style, w)
 	b.spacing = style.LineSpacing
 	// The slice is reused: clear it to its capacity first, or the slots
@@ -405,6 +406,7 @@ func (b *textBlock) ensure(i int, w *Window) *textChunk {
 		// whole text had, now confined to one chunk. plainTextBlock
 		// reports it (DebugGlyphLayoutFallback).
 		c.failed = true
+		b.estimate(c, w) // a new block shapes before it estimates
 		c.measured = true
 		b.failErr = err
 		b.failBytes = c.end - c.start
@@ -552,6 +554,21 @@ func (b *textBlock) patchKnownDelta(
 		b.ensure(i, w)
 	}
 	b.settle()
+	b.clearStaleRefusal()
+}
+
+// clearStaleRefusal drops failErr when an edit replaced the last refused
+// chunk. It scans only while there is a refusal to report.
+func (b *textBlock) clearStaleRefusal() {
+	if b.failErr == nil {
+		return
+	}
+	for i := range b.chunks {
+		if b.chunks[i].failed {
+			return
+		}
+	}
+	b.failErr, b.failBytes = nil, 0
 }
 
 // ensureRange shapes every chunk that reaches into [y0, y1], in block
