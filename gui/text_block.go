@@ -474,10 +474,12 @@ func (b *textBlock) evict(keep int) {
 // of the old and new text, so a programmatic replacement is handled the
 // same way as a keystroke. Chunks before the edit keep their layouts;
 // so do the chunks after it, moved by the length difference. Within a
-// long paragraph the pieces before the edited one keep theirs too,
-// because a piece's lines depend only on the text before its seam; the
-// edited piece and every later piece of that paragraph merge into one
-// open chunk and are cut again when shaped.
+// long paragraph the pieces before the edit's region keep theirs too.
+// In wrap mode that region starts one piece early, because an edit can
+// change where the previous piece breaks (below); without wrapping it
+// starts at the edited piece. The region's pieces and every later piece
+// of that paragraph merge into one open chunk and are cut again when
+// shaped.
 //
 // The re-chunked chunks that hold text before the edit are shaped at
 // once rather than estimated. That text was on screen: an estimate there

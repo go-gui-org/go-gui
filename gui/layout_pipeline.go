@@ -680,8 +680,9 @@ func layoutPlainText(
 	}
 	if tc.TextMode == TextModeSingleLine && len(text) > textChunkBytes &&
 		blk.width > 0 {
-		// GenerateLayout could only estimate this width (the shaper
-		// refuses the whole string); the chunks have it exact.
+		// GenerateLayout may have only estimated this width (past the
+		// shaper's limit, or an Input past one chunk); the chunks' width
+		// replaces it, exact once they are measured.
 		shape.MinWidth = blk.width
 		if shape.Sizing.Width != sizingFill {
 			shape.Width = f32Max(shape.Width, blk.width)

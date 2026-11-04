@@ -209,13 +209,13 @@ const (
 	// exportaudit:keep — dev-diagnostic API for app authors
 	DebugUnknownLookup
 
-	// DebugGlyphLayoutFallback reports a text shape the glyph shaper
-	// refused — past its byte budget, for example — so the frame fell
-	// back to approximate metrics. Caret placement, selection
-	// rectangles and grapheme-aware delete all lose precision past
-	// that point, silently without this finding: nothing errors, the
-	// text still renders, only the boundaries drift. It also reports a
-	// gradient or shimmer left out of a text too long for one layout.
+	// DebugGlyphLayoutFallback reports a chunk of text the glyph shaper
+	// refused — bad UTF-8 or a NUL byte, for example. That chunk draws
+	// nothing, and caret placement, selection rectangles and
+	// grapheme-aware delete lose precision in it, silently without this
+	// finding: nothing errors. It also reports a gradient or shimmer
+	// left out of a text too long for one layout, and an Input holding
+	// more than its MaxLength.
 	// exportaudit:keep — dev-diagnostic API for app authors
 	DebugGlyphLayoutFallback
 

@@ -249,7 +249,7 @@ func TestTextBlockChunksParagraphs(t *testing.T) {
 	if got := blockRanges(b); !slices.Equal(got, want) {
 		t.Fatalf("chunks = %v, want %v", got, want)
 	}
-	// Five rows of 20: "aaaa bbbb", "", "cccc", "dddd eeee", "ffff gggg", "hhhh".
+	// Six rows of 20: "aaaa bbbb", "", "cccc", "dddd eeee", "ffff gggg", "hhhh".
 	if b.height != 6*stubLH {
 		t.Errorf("height = %v, want %v", b.height, 6*stubLH)
 	}

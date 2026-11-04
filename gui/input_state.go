@@ -33,9 +33,9 @@ func inputBudget(maxLength int) int {
 // field. Stored in the StateRegistry keyed by the field's effective ID.
 //
 // Offsets are byte offsets into the field's text — the unit every glyph
-// layout query takes, so a key event converts nothing and a field of any
-// size pays nothing per keystroke for its length. A caret rests on
-// grapheme-cluster boundaries, which are rune boundaries.
+// layout query takes, so a key event converts nothing: offset arithmetic
+// costs the same in a field of any size. A caret rests on grapheme-cluster
+// boundaries, which are rune boundaries.
 type inputState struct {
 	Undo          *BoundedStack[inputMemento]
 	Redo          *BoundedStack[inputMemento]

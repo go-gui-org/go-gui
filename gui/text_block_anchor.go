@@ -205,7 +205,7 @@ func textAnchorRoom(s *Shape, dh float32) bool {
 	return true
 }
 
-// hasEstimates reports whether any chunk's height is still an estimate.
+// hasEstimates reports whether any chunk still awaits measuring.
 func (b *textBlock) hasEstimates() bool {
 	for i := range b.chunks {
 		if !b.chunks[i].measured {

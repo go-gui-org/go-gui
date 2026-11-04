@@ -342,9 +342,8 @@ func TestInputKeypressAllocBudget(t *testing.T) {
 	// Discard the first sweep: font and atlas warmth is one-time,
 	// the gate is on the steady-state keypress.
 	testing.AllocsPerRun(10, keypress)
-	// AllocsPerRun reads process-wide malloc counters. A 50-keypress
-	// sample takes seconds under -race, long enough for the caret loop,
-	// font-cache warm and unrelated test goroutines to pollute every run.
+	// AllocsPerRun reads process-wide malloc counters, which the caret
+	// loop, font-cache warm and unrelated test goroutines can pollute.
 	// Keep the lowest of short samples: a real per-keypress allocation
 	// appears in all of them, while background noise does not.
 	const limit = 370

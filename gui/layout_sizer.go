@@ -2,9 +2,9 @@ package gui
 
 // layoutSizer is a container that sizes its children itself instead of
 // leaving them to the fill passes: a Splitter's panes take their sizes
-// from its ratio. The sizing passes stop at such a container (a Canvas
-// measures no children), so its subtree has no sizes until sizeChildren
-// gives them.
+// from its ratio. The sizing passes stop at such a container
+// (axisNoneMeasuresChildren), so its subtree has no sizes until
+// sizeChildren gives them.
 //
 // sizeChildren pins each child's size and its X/Y relative to the
 // container, then runs layoutSizes on it. It runs after the sizing

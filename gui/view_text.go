@@ -174,10 +174,10 @@ func (tv *textView) GenerateLayout(w *Window) Layout {
 	if c.IsPassword {
 		measured = maskPassword(measured)
 	}
-	// The shaper refuses to measure past its budget, and would hash all
-	// of the text to say so. An Input past one chunk estimates too: its
-	// text changes on every key, and a measure would shape all of it to
-	// learn a width the sizing pass replaces from the chunks
+	// The shaper refuses to measure past its budget. An Input past one
+	// chunk estimates too: its text changes on every key, and a measure
+	// would shape all of it to learn a width the sizing pass replaces
+	// from the chunks
 	// (layoutPlainText). It keys on the stored text, the test that sends
 	// a text to that pass, not on a password's longer bullets. A plain
 	// Text keeps its exact width, which a fit-sized wrap depends on.

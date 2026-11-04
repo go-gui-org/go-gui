@@ -62,7 +62,9 @@ func (f *contentTransitionFrame) fade(clip drawClip) {
 // fadeLayouts draws a fade from glyph layouts. The new text uses the
 // shape's own cached layout. The old text is shaped once for the run,
 // with the width argument the plain path gave it in the old box. It
-// reports false when the shaper refuses either text.
+// reports false when there is no block, or when the shaper refuses the
+// old text of a single-layout fade; a refused chunk of a block draws
+// nothing and the fade still reports true.
 func (f *contentTransitionFrame) fadeLayouts(clip drawClip) bool {
 	run := f.run
 	toBlk, ok := inputGlyphLayoutResolved(run.to, f.shape, f.style, f.w, true)

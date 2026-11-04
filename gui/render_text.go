@@ -252,8 +252,9 @@ func textRenderBounds(shape *Shape, tc *shapeTextConfig) drawClip {
 }
 
 // textRenderDisplay returns the exact string the frame shapes and paints.
-// A block already owns it; only a short, unfocused single-line input can take
-// the direct RenderText path without resolving one.
+// A block already owns it; only a short single-line input with no caret
+// showing, selection, composition or spelling ranges can take the direct
+// RenderText path without resolving one.
 func textRenderDisplay(
 	text string, shape *Shape, blk *textBlock, hasBlk bool,
 ) string {

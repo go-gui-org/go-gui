@@ -169,7 +169,9 @@ query takes, so a key event converts nothing (`gui/input_state.go`,
 `gui/input_edit.go`). An insert or delete is one splice of the text with no
 `[]rune` round trip. Grapheme boundaries without a layout come from
 `prevGraphemeBoundary` and `nextGraphemeBoundary` (`gui/grapheme.go`), which
-segment a 64-byte window around the offset, not the whole text.
+segment a 64-byte window around the offset, not the whole text. A window that
+opens inside a run of flags moves onto a pair, because a flag's letters pair off
+from the start of their run.
 
 An undo step (`inputMemento`) is the bytes an edit replaced at an offset —
 `removed`, `inserted`, `off` — with the caret and selection before it. Undo puts
@@ -198,16 +200,17 @@ already reported; 0 takes `inputMaxRunesDefault`, 1,048,576. The budget bounds
 what one edit costs, a copy of the text, not what can be shown. Every path text
 grows by checks it before the edit with `inputEditFits`: typing and IME commits
 (`inputTextChange`), and paste from Ctrl+V, the context menu and the macOS yank
-(`inputKeyPaste`). An edit that does not grow the text always fits, so a field
-holding app-set text past its budget takes deletes and replacements no longer
-than the selection. App-set text is never cut; the debug category
-`DebugGlyphLayoutFallback` reports such a field once. `PreTextChange` and
-`PostCommitNormalize` output is capped at the budget, as it was at the old one.
-`PreTextChange` necessarily receives a materialized proposed value. When it
-accepts that value unchanged, the input commits the same immutable string
-instead of materializing an identical result a second time. The allocation
-regression `TestInputLargeAcceptedPreTextChangeAllocBudget` keeps that path at
-the ordinary edit's allocation cost.
+(`inputKeyPaste`). A masked field checks the result with `inputResultFits`
+instead, because a mask can overwrite as it inserts. An edit that does not grow
+the text always fits, so a field holding app-set text past its budget takes
+deletes and replacements no longer than the selection. App-set text is never
+cut; the debug category `DebugGlyphLayoutFallback` reports such a field once.
+`PreTextChange` and `PostCommitNormalize` output is capped at the budget, as it
+was at the old one. `PreTextChange` necessarily receives a materialized proposed
+value. When it accepts that value unchanged, the input commits the same
+immutable string instead of materializing an identical result a second time. The
+allocation regression `TestInputLargeAcceptedPreTextChangeAllocBudget` keeps
+that path at the ordinary edit's allocation cost.
 
 Two costs scale with the whole text and are bounded instead: the inner text
 shape's accessible name carries the first 65,536 runes, and a field past 64 KiB
@@ -296,8 +299,8 @@ is not handed to the platform spell checker.
 - Off-screen no-wrap pieces keep estimated widths until reached. A far caret and
   its horizontal scroll share those estimates, so the visible destination is
   stable; the total intrinsic width settles as pieces become visible.
-- A gradient text is shaped whole, so a keystroke at 10 KB costs 8.6 ms, against
-  4.5 ms for the same text without a gradient and 17 ms before the chunks. A
+- A gradient text is shaped whole, so a keystroke at 10 KB costs 4.9 ms, against
+  0.9 ms for the same text without a gradient and 17 ms before the chunks. A
   text past 10,240 bytes draws in its plain colour, without its gradient or
   shimmer, and typing across that limit switches the gradient off and on. Below
   the limit a shimmer stays in chunks, so on unwrapped text it can start over at

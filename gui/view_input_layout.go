@@ -100,9 +100,10 @@ func inputDeleteGrapheme(
 		return fallback()
 	}
 	// A password or a single-line value containing line breaks is
-	// shaped from a display string rather than the stored value. The
-	// layout is still valid for boundaries, but splicing its text would
-	// replace the caller's value with bullets or display spaces.
+	// shaped from a display string rather than the stored value.
+	// deleteGrapheme splices the block's own text, which would replace
+	// the caller's value with bullets or display spaces, so both take
+	// the string path.
 	if gl.text != text {
 		return fallback()
 	}
@@ -184,7 +185,7 @@ type inputDragState struct {
 	maxScrollNeg           float32
 	// Horizontal mirror of the four fields above. The offset can move
 	// mid-drag on either axis, so both are captured at drag start and
-	// re-read as a delta in computeRunePos.
+	// re-read as a delta in computePos.
 	scrollX0            float32
 	viewLeft, viewRight float32
 	maxScrollNegX       float32
