@@ -14,6 +14,10 @@ func layoutPipeline(layout *Layout, w *Window) {
 	// it is generated. Resolving here instead would see a float as its
 	// own root and strip the scope its ancestors gave it.
 
+	// Every layoutSizes below queues texts for the anchor pass, one run
+	// per layoutSizer pane, so the queue is emptied once, here.
+	resetTextAnchors(w)
+
 	// A float runs this pipeline after the main tree (layoutArrange), so
 	// its anchor's width is final here. Raising MinWidth before the
 	// width pass, not widening in AmendLayout, lets the fill pass below
@@ -287,7 +291,6 @@ func layoutWrapText(layout *Layout, w *Window) {
 	if layout == nil || w == nil {
 		return
 	}
-	resetTextAnchors(w)
 	layoutWrapTextWalk(layout, w)
 }
 

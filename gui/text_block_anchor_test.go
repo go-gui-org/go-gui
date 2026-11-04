@@ -75,27 +75,85 @@ func TestTextAnchorWheelUpKeepsTextInPlace(t *testing.T) {
 }
 
 func wheelUpKeepsTextInPlace(t *testing.T, text string) {
+	wheelUpKeepsTextInPlaceIn(t, text, func(sc View) View { return sc })
+}
+
+// A layoutSizer lays its panes out one at a time, each with the passes that
+// queue a text for anchoring, so the texts of one pane must survive the
+// next pane's turn, and so must a text outside the sizer. The pass over the
+// whole tree also queues a pane's text, and the visit that finds it already
+// measured must not correct the scroll a second time.
+func TestTextAnchorAcrossLayoutSizers(t *testing.T) {
+	withChunkBytes(t, 256)
+	withEagerBytes(t, 0)
+	other := func() View { return Text(TextCfg{Text: "other"}) }
+	dock := DockSplit("root", DockSplitHorizontal, 0.5,
+		DockPanelGroup("g1", []string{"a"}, "a"),
+		DockPanelGroup("g2", []string{"b"}, "b"))
+	hosts := []struct {
+		name string
+		host func(sc View) View
+	}{
+		{"first splitter pane", func(sc View) View {
+			return Splitter(SplitterCfg{ID: "sp", Sizing: FillFill,
+				First:  SplitterPaneCfg{Content: []View{sc}},
+				Second: SplitterPaneCfg{Content: []View{other()}}})
+		}},
+		{"second splitter pane", func(sc View) View {
+			return Splitter(SplitterCfg{ID: "sp", Sizing: FillFill,
+				First:  SplitterPaneCfg{Content: []View{other()}},
+				Second: SplitterPaneCfg{Content: []View{sc}}})
+		}},
+		{"beside a splitter", func(sc View) View {
+			return Row(ContainerCfg{Sizing: FillFill, Content: []View{
+				sc,
+				Splitter(SplitterCfg{ID: "sp", Sizing: FillFill,
+					First:  SplitterPaneCfg{Content: []View{other()}},
+					Second: SplitterPaneCfg{Content: []View{other()}}}),
+			}})
+		}},
+		{"first dock panel", func(sc View) View {
+			return DockLayout(DockLayoutCfg{ID: "dock", Root: dock,
+				Panels: []DockPanelDef{
+					{ID: "a", Label: "A", Content: []View{sc}},
+					{ID: "b", Label: "B", Content: []View{other()}},
+				}})
+		}},
+	}
+	for _, h := range hosts {
+		t.Run(h.name, func(t *testing.T) {
+			wheelUpKeepsTextInPlaceIn(t, anchorTestText(200), h.host)
+		})
+	}
+}
+
+func wheelUpKeepsTextInPlaceIn(t *testing.T, text string, host func(sc View) View) {
 	w := newBlockTestWindow(t)
 	w.TestRender(func(*Window) View {
-		return Column(ContainerCfg{ID: "sc", Scrollable: true,
+		return host(Column(ContainerCfg{ID: "sc", Scrollable: true,
 			Sizing: FixedFixed, Width: 300, Height: 200, SizeBorder: NoBorder,
 			Content: []View{
 				Text(TextCfg{ID: "big", Text: text, Mode: TextModeWrap}),
 				Text(TextCfg{ID: "below", Text: "below"}),
-			}})
+			}}))
 	})
-	w.ScrollVerticalToPct("sc", 1)
+	ids := w.ResolveID("sc")
+	if len(ids) != 1 {
+		t.Fatalf("scroll view ids = %v", ids)
+	}
+	sc := ids[0]
+	w.ScrollVerticalToPct(sc, 1)
 	w.TestRender(nil)
 
 	const step = 2 // wheel units; 20 px each
 	corrected := 0
 	for range 2000 {
 		before := chunkScreenYs(w)
-		_, off0, _ := w.TestScrollOffset("sc")
-		if err := w.TestScroll("sc", 0, step); err != nil {
+		_, off0, _ := w.TestScrollOffset(sc)
+		if err := w.TestScroll(sc, 0, step); err != nil {
 			t.Fatal(err)
 		}
-		_, off1, _ := w.TestScrollOffset("sc")
+		_, off1, _ := w.TestScrollOffset(sc)
 		if off1 >= 0 {
 			break // reached the top: the clamp shortens the step
 		}
@@ -122,8 +180,8 @@ func wheelUpKeepsTextInPlace(t *testing.T, text string) {
 				step*20, off0, off1)
 		}
 		ly := w.TestRender(nil)
-		big, ok1 := ly.FindByID(ScopeID("sc", "big"))
-		below, ok2 := ly.FindByID(ScopeID("sc", "below"))
+		big, ok1 := ly.FindByID(ScopeID(sc, "big"))
+		below, ok2 := ly.FindByID(ScopeID(sc, "below"))
 		if !ok1 || !ok2 {
 			t.Fatal("text shapes not found")
 		}
