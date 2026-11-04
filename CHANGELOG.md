@@ -415,7 +415,10 @@ and this project adheres to
   and a content transition's fade draws long texts chunk by chunk too. A
   gradient text stays continuous up to 10,240 bytes, as before, and past that
   draws in its plain colour; so does a shimmer. Rebuilding a gradient, transform
-  or font features each frame no longer re-shapes the text.
+  or font features each frame no longer re-shapes the text. Typing in an `Input`
+  past one chunk no longer shapes the whole text to measure it, which at 10 KB
+  was most of what a key cost. A box that fits a long multi-line text is now as
+  wide as its longest line, not as all of its lines laid end to end.
   `docs/specs/large-text-input.md` records the design and the alternatives.
 
 ## [v0.94.0] - 2026-10-31

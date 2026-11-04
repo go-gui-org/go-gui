@@ -269,10 +269,25 @@ func textBlockWarnGradientDropped(shape *Shape, b *textBlock, w *Window) {
 		shape.idKey(), len(b.text), glyph.MaxTextLength)
 }
 
-// textWidthEstimate approximates the advance of a text the shaper
-// would refuse to measure whole (over glyph.MaxTextLength), from the
-// average advance of a sample. The sizing pass replaces it with the
-// chunked layout's width.
+// longestLine returns the longest hard line of text, in bytes.
+func longestLine(text string) string {
+	longest := ""
+	for {
+		line, rest, more := strings.Cut(text, "\n")
+		if len(line) > len(longest) {
+			longest = line
+		}
+		if !more {
+			return longest
+		}
+		text = rest
+	}
+}
+
+// textWidthEstimate approximates the advance of a text that is not
+// measured whole (see textView.GenerateLayout), from the average advance
+// of a sample. The sizing pass replaces it with the chunked layout's
+// width.
 func textWidthEstimate(text string, style TextStyle, w *Window) float32 {
 	avg := style.Size * 0.5
 	if w != nil && w.textMeasurer != nil {
