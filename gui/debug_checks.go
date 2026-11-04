@@ -88,6 +88,10 @@ const (
 	// input's app-set text is past its MaxLength: it shows in full, but
 	// every edit that would grow it is refused.
 	debugCheckTextOverBudget
+	// debugCheckTextGradientDropped fires from plainTextBlock when a
+	// gradient or shimmer text is past what one glyph layout can hold:
+	// it draws in its plain colour.
+	debugCheckTextGradientDropped
 	// debugCheckLayoutInvariant fires from layoutPipeline when the
 	// arranged tree breaks one of the sizing rules in
 	// docs/specs/layout-sizing-rules.md — a child outside a
@@ -158,7 +162,8 @@ func checkCategory(check debugCheck) DebugCategory {
 		return DebugStampDrift
 	case debugCheckUnknownFocus:
 		return DebugUnknownFocus
-	case debugCheckGlyphLayoutFallback, debugCheckTextOverBudget:
+	case debugCheckGlyphLayoutFallback, debugCheckTextOverBudget,
+		debugCheckTextGradientDropped:
 		return DebugGlyphLayoutFallback
 	case debugCheckLayoutInvariant:
 		return DebugLayoutInvariants

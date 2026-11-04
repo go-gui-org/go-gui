@@ -214,7 +214,8 @@ const (
 	// back to approximate metrics. Caret placement, selection
 	// rectangles and grapheme-aware delete all lose precision past
 	// that point, silently without this finding: nothing errors, the
-	// text still renders, only the boundaries drift.
+	// text still renders, only the boundaries drift. It also reports a
+	// gradient or shimmer left out of a text too long for one layout.
 	// exportaudit:keep — dev-diagnostic API for app authors
 	DebugGlyphLayoutFallback
 

@@ -82,6 +82,9 @@ gui.Text(gui.TextCfg{
 | StrokeColor     | Color                 | Text outline color             |
 | RotationRadians | float32               | Text rotation                  |
 
+A `Gradient`, or a `TextAnimShimmer` animation, applies up to 10,240 bytes of
+text. A longer text draws in its `Color`.
+
 ## Accessibility
 
 | Property | Type    | Description                          |

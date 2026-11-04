@@ -56,7 +56,8 @@ const (
 	// it had got to.
 	TextAnimTypewriter
 	// TextAnimShimmer sweeps a highlight across the glyphs, like the
-	// skeleton placeholder. Loop.
+	// skeleton placeholder. Loop. A text longer than 10,240 bytes draws
+	// in its plain colour instead.
 	TextAnimShimmer
 
 	textAnimKindCount

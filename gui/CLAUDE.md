@@ -258,10 +258,12 @@ both `EventCtx` methods are nil-safe.
   shape a text shape's text with `LayoutText` directly, and never hold a
   `glyph.Layout` of it across frames. Resolve it with `plainTextBlock`
   (`inputGlyphLayout` for an input, which masks a password). A rich-text layout
-  the caller shaped wraps as a one-chunk block with `newTextBlockFromLayout`.
-  Measuring an estimated chunk above the view moves the lines on screen; only
-  `layoutAnchorTextBlocks` compensates, so do not shape ahead from an event
-  handler. `docs/specs/large-text-input.md`.
+  the caller shaped wraps as a one-chunk block with `newTextBlockFromLayout`. A
+  gradient text is one chunk up to `glyph.MaxTextLength` and draws plain past
+  it, because glyph spans a gradient over one layout. Measuring an estimated
+  chunk above the view moves the lines on screen; only `layoutAnchorTextBlocks`
+  compensates, so do not shape ahead from an event handler.
+  `docs/specs/large-text-input.md`.
 - Shape text fields live in `Shape.TC` (`*shapeTextConfig`), not on `Shape`.
 - `ContainerCfg.Title`/`TitleBG` render a group-box label in the top border
   (floating eraser + text, like an HTML fieldset). `TitleBG` must match the
