@@ -66,7 +66,9 @@ of chunks, each one glyph layout within the budget `textChunkBytes` (2048).
   the scroll view shows before the frame draws them, grows the boxes that fit
   the text by the difference, and moves the scroll offset by the height that
   appeared above the first chunk that was already on screen. The lines in view
-  stay put; only the scrollbar thumb moves. An edit shapes the re-packed chunks
+  stay put; only the scrollbar thumb moves. A wheel notch eases over several
+  frames, so its target moves with the offset (`scrollSmoothShiftY`), or the
+  ease would travel the correction on screen too. An edit shapes the re-packed chunks
   that hold text before it, so the paragraphs above the caret keep their
   measured heights even when the grown paragraph leaves its chunk; a large paste
   after them stays estimated, so a 100 KB paste costs a few milliseconds.

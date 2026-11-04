@@ -44,10 +44,13 @@ type scrollSmoothEntry struct {
 	// pass stops it on the scroll edge, read fresh from the layout
 	// (scrollFlingEdge), so the tick, which cannot read the layout, keeps
 	// no bound that could go stale.
-	tau     float32
-	active  bool
-	settled bool // reached target this tick; retire next tick
-	dirty   bool // current changed but not yet applied to the map
+	tau float32
+	// relative marks an ease armed by a distance (a wheel notch), not to
+	// an offset: its target moves with the content (scrollSmoothShiftY).
+	relative bool
+	active   bool
+	settled  bool // reached target this tick; retire next tick
+	dirty    bool // current changed but not yet applied to the map
 }
 
 // scrollApply is a lock-free snapshot of an entry for the apply pass.
@@ -279,6 +282,7 @@ func scrollSmoothArm(w *Window, id string, axis scrollAxis, displayed, maxOffset
 	// must leave a fling a fling, or it would ease on toward the
 	// fling's unclamped target with no edge stop (#1110).
 	e.tau = 0
+	e.relative = relative
 	if !e.active {
 		e.current = displayed
 	}
@@ -323,10 +327,11 @@ func scrollSmoothCancel(w *Window, id string, axis scrollAxis) {
 // Used by scroll anchoring and re-measuring when they rewrite the
 // displayed offset mid-ease, so the animation continues from the
 // corrected position instead of stomping the correction on its next
-// tick. A wheel ease keeps its absolute target. A fling moves its target
-// with the content, so it glides on in the same direction instead of
-// reversing; its bound is re-read on the next apply. Main goroutine
-// only.
+// tick. An ease to an offset keeps its target: that offset is a place. A
+// wheel notch is a distance, so its target moves with the content, or the
+// ease would travel the correction on screen as well. A fling moves its
+// target too, so it glides on in the same direction instead of reversing;
+// its bound is re-read on the next apply. Main goroutine only.
 func scrollSmoothShiftY(w *Window, id string, dy float32) {
 	w.animMu.Lock()
 	defer w.animMu.Unlock()
@@ -335,8 +340,11 @@ func scrollSmoothShiftY(w *Window, id string, dy float32) {
 	}
 	if e := w.scrollSmooth.findEntry(id, scrollAxisY); e != nil && e.active {
 		e.current += dy
-		if e.tau > 0 {
+		switch {
+		case e.tau > 0:
 			e.target += dy
+		case e.relative:
+			e.target = min(e.target+dy, 0)
 		}
 		e.dirty = true
 		if !f32IsFinite(e.current) {

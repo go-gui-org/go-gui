@@ -123,6 +123,14 @@ and this project adheres to
   the minesweeper reset button, the snake start button and the 2048 "Try again"
   button. The calculator's title bar had no height.
 
+- **A wheel notch moves one notch when a correction lands mid-ease (#1190).** A
+  discrete mouse wheel eases toward its target over several frames. When a scroll
+  anchor, measured list rows or long text moved the offset during that ease, the
+  target stayed where it was, so the ease travelled the correction on screen as
+  well and one notch jumped much further than the next. The target now moves with
+  the content. An ease to an offset, such as `ScrollAnchorReveal`, keeps its
+  target.
+
 - **`Text` and `Input` draw text longer than 10,240 bytes (#1190).** go-glyph
   shapes one layout at a time and refuses text past its 10,240-byte budget, and
   a text shape shaped its whole text as one layout, so a longer `Text` or
