@@ -127,7 +127,7 @@ func TestInputEditFits(t *testing.T) {
 		{"over budget, shorter replacement fits", over, "b", inputState{selectBeg: 0, selectEnd: 2}, true},
 		{"over budget, same-length replacement fits", over, "bc", inputState{selectBeg: 0, selectEnd: 2}, true},
 		{"over budget, longer replacement refused", over, "bcd", inputState{selectBeg: 0, selectEnd: 2}, false},
-		// Six bytes, two runes: the rune count decides, not the bytes.
+		// Two bytes, one rune: the rune count decides, not the bytes.
 		{"multi-byte insert in runes", almost, "\u00e9", inputState{CursorPos: budget - 1}, true},
 	}
 	for _, tc := range tests {

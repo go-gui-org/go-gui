@@ -192,10 +192,11 @@ func editDelete(text string, is inputState, forward bool) (string, inputState, b
 		if (c == 0 && !forward) || (c == len(text) && forward) {
 			return text, is, false
 		}
-		// No glyph layout behind this path (nil textMeasurer), so
-		// cluster boundaries are recomputed with UAX #29 — the same
-		// segmentation shaping produces — keeping Backspace/Delete
-		// whole-cluster in the fallback as well.
+		// No shaped clusters behind this path (see inputDeleteGrapheme:
+		// no measurer, a password field, a chunk seam), so cluster
+		// boundaries are recomputed with UAX #29 — the same segmentation
+		// shaping produces — keeping Backspace/Delete whole-cluster in
+		// the fallback as well.
 		if forward {
 			delBeg, delEnd = c, nextGraphemeBoundary(text, c)
 		} else {

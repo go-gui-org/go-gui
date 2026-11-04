@@ -104,7 +104,7 @@ token definitions).
 An edit that would take the text past `MaxLength` is refused whole, and a
 refused paste reaches `OnPasteRejected`. Text the app sets past the budget shows
 in full; the field then takes only edits that do not grow it. Large text costs
-little: only the lines in view are laid out.
+little: only the lines near the view stay laid out.
 
 ## Accessibility
 

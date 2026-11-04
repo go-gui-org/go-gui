@@ -71,9 +71,9 @@ func (b *textBlock) cursorPosTrailing(
 
 // lineBefore reports the line that ends where the line holding idx
 // begins, when idx starts a line other than the first: its offsets and
-// its rect in block coordinates. A paragraph start is not such a line
-// start — the '\n' before it ends the earlier line — so only soft wraps
-// and wrap-mode piece seams answer.
+// its rect in block coordinates. A paragraph start at a chunk's first
+// byte does not answer; one inside a packed chunk does, which is harmless
+// because a trailing caret only sits at a soft wrap.
 func (b *textBlock) lineBefore(idx int) (start, end int, r glyph.Rect, ok bool) {
 	if len(b.chunks) == 0 || idx < 0 || idx > len(b.text) {
 		return 0, 0, glyph.Rect{}, false

@@ -242,8 +242,8 @@ func sweepTextBlocks(w *Window) {
 // textBlockWarnRefused reports a chunk the shaper refused, once per
 // identity: the caret, selection and grapheme delete lose precision in
 // that chunk, and nothing else in the frame says why. Gated here as
-// well as inside debugWarn: a refused chunk is refused again every
-// frame, and the variadic args would allocate each time even with the
+// well as inside debugWarn: this runs every frame while the block holds
+// a refusal, and the variadic args would allocate each time even with the
 // check turned off.
 func textBlockWarnRefused(shape *Shape, b *textBlock, w *Window) {
 	if DebugCategory(debugMask.Load())&DebugGlyphLayoutFallback == 0 {

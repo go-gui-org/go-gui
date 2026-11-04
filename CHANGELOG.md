@@ -179,8 +179,8 @@ and this project adheres to
   byte-indexed edits, delta undo), so the default is sixteen times larger, and
   app-set text past any budget shows whole. `PreTextChange` and
   `PostCommitNormalize` output is capped at the field's `MaxLength`. A field
-  larger than 64 KiB gets no platform spell checking (macOS), and its accessible
-  name carries the first 65,536 runes.
+  larger than 64 KiB gets no platform spell checking, and its accessible name
+  carries the first 65,536 runes.
 
 - **Hovering the libdecor titlebar no longer redraws the window on Wayland
   (#1203).** On GNOME and other compositors where go-gui draws the frame through
@@ -417,9 +417,9 @@ and this project adheres to
   draws in its plain colour; so does a shimmer. Rebuilding a gradient, transform
   or font features each frame no longer re-shapes the text. Typing in an `Input`
   past one chunk no longer shapes the whole text to measure it, which at 10 KB
-  was most of what a key cost. A box that fits a long multi-line text is now as
-  wide as its longest line, not as all of its lines laid end to end.
-  `docs/specs/large-text-input.md` records the design and the alternatives.
+  was most of what a key cost. A box that fits a long multi-line text is as wide
+  as its longest line. `docs/specs/large-text-input.md` records the design and
+  the alternatives.
 
 ## [v0.94.0] - 2026-10-31
 

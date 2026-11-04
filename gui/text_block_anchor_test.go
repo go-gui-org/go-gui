@@ -471,7 +471,8 @@ func TestTextAnchorCaretWalkScrollsByRows(t *testing.T) {
 }
 
 // The anchor's scroll view is the nearest vertical scroller inside the
-// text's own layer, reached through fit-height columns only.
+// text's own layer; the text's height follows it only through fit-height
+// columns.
 func TestTextScrollViewWalk(t *testing.T) {
 	type box struct {
 		float, scroll bool

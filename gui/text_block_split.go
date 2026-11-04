@@ -118,8 +118,8 @@ func (b *textBlock) adoptProbeGeometry(c *textChunk, lines []glyph.Line) {
 func isBlankByte(c byte) bool { return c == ' ' || c == '\t' }
 
 // textSplitPoint picks where to cut text[start:end] so the first part
-// ends by limit: after the last space in the budget's second half, else
-// at the grapheme boundary at or before limit.
+// ends by limit: after the last space in the half budget before limit,
+// else at the grapheme boundary at or before limit.
 func textSplitPoint(text string, start, end, limit int) int {
 	lo := max(start+1, limit-textChunkBytes/2)
 	for j := limit; j > lo; j-- {

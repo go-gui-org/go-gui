@@ -347,10 +347,8 @@ func TestSingleLineLargeMixedDirectionCaretStaysVisible(t *testing.T) {
 	}
 }
 
-// Arrow motion through bidi runs is visual rather than monotonic in logical
-// byte offsets. Caret following must use each shaped visual X and keep it in
-// the viewport while the direction changes and after word moves cross a
-// chunk seam.
+// Caret following must use each shaped visual X and keep the caret in the
+// viewport as it moves through mixed-direction runs inside one chunk.
 func TestSingleLineMixedDirectionArrowCaretStaysVisible(t *testing.T) {
 	text := strings.Repeat("abc \u05d0\u05d1\u05d2 def \u05d3\u05d4\u05d5 ", 500)
 	win := newWin(t, 400, 100, func(*gui.Window) gui.View {
