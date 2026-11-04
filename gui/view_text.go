@@ -174,19 +174,27 @@ func (tv *textView) GenerateLayout(w *Window) Layout {
 	if c.IsPassword {
 		measured = maskPassword(measured)
 	}
-	if c.focusOwner != "" && c.Mode == TextModeSingleLine &&
-		len(measured) <= glyph.MaxTextLength {
-		// Above the shaper limit the estimate depends only on length, which
-		// CR/LF-to-space preserves. Avoid allocating a second large string;
-		// plainTextBlock creates and then caches the display text once.
-		measured = singleLineInputDisplayText(measured)
-	}
-	if len(measured) > glyph.MaxTextLength {
-		// The shaper refuses to measure this much at once, and would
-		// hash all of it to say so. The sizing pass takes the exact
-		// width from the chunked layout (layoutPlainText).
+	// The shaper refuses to measure past its budget, and would hash all
+	// of the text to say so. An Input past one chunk estimates too: its
+	// text changes on every key, and a measure would shape all of it to
+	// learn a width the sizing pass replaces from the chunks
+	// (layoutPlainText). It keys on the stored text, the test that sends
+	// a text to that pass, not on a password's longer bullets. A plain
+	// Text keeps its exact width, which a fit-sized wrap depends on.
+	estimate := len(measured) > glyph.MaxTextLength ||
+		(c.focusOwner != "" && len(c.Text) > textChunkBytes)
+	switch {
+	case estimate:
+		// The estimate depends only on length, so an Input skips its
+		// CR/LF-to-space display string, which plainTextBlock creates
+		// and caches once.
+		if c.Mode != TextModeSingleLine {
+			measured = longestLine(measured)
+		}
 		layout.Shape.Width = textWidthEstimate(measured, *ts, w)
-	} else {
+	case c.focusOwner != "" && c.Mode == TextModeSingleLine:
+		layout.Shape.Width = w.TextWidth(singleLineInputDisplayText(measured), *ts)
+	default:
 		layout.Shape.Width = w.TextWidth(measured, *ts)
 	}
 	if w.textMeasurer != nil {

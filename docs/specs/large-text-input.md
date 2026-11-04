@@ -103,6 +103,10 @@ of chunks, each one glyph layout within the budget `textChunkBytes` (2048).
   every query against a whole-text layout of the same stub shaper at a 12-byte
   budget; the lazy far-cursor tests pin the one-full-layout bounds for wrapped
   and unwrapped paragraphs.
+- **Sizing.** An `Input` past one chunk estimates its width from the longest
+  line and takes the exact one from the chunks in the sizing pass. A whole-text
+  measure would shape all of it on every key, and glyph would keep that layout
+  for five seconds; at 10 KB it was 77% of what a key allocated.
 - **Drawing.** `renderTextBlock` emits one glyph-layout draw per chunk that
   reaches into the clip. A single-line text over the budget takes the layout
   path too, since one `RenderText` command would hand the backend a string the
@@ -223,6 +227,9 @@ is not handed to the platform spell checker.
   line turns the gradient off on a short title.
 - **Rewriting a gradient's stops per chunk in go-gui.** It depends on how glyph
   sizes a gradient, and a diagonal one has no per-chunk form.
+- **Estimating the width of every long text.** Only an `Input` retypes on each
+  key. A plain `Text` is measured once per text, and a fit-sized wrap reads that
+  width, so an estimate there would move its line breaks.
 - **A gradient frame in go-glyph, for now.** Telling glyph the block's size
   would keep typing cheap and the gradient past the limit, but it needs a
   go-glyph release, and above 64 KB the block's size is an estimate, so colours

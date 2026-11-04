@@ -102,6 +102,17 @@ func editPairWindowPreTextChange(
 	preTextChange func(string, string) (string, bool),
 ) (*gui.Window, *gui.Event, *gui.Event, *string) {
 	tb.Helper()
+	return editPairWindowCfg(tb, seed, atEnd, gui.InputCfg{
+		PreTextChange: preTextChange,
+	})
+}
+
+// editPairWindowCfg builds the window from cfg, for a field set up beyond
+// the defaults: cfg gives the mode and the callbacks that are not the text.
+func editPairWindowCfg(
+	tb testing.TB, seed string, atEnd bool, cfg gui.InputCfg,
+) (*gui.Window, *gui.Event, *gui.Event, *string) {
+	tb.Helper()
 	w := gui.NewTestWindow(tb, gui.WindowCfg{Width: 800, Height: 600})
 	tm, err := prepare(w, 1)
 	if err != nil {
@@ -111,12 +122,11 @@ func editPairWindowPreTextChange(
 	w.SetTextMeasurer(tm)
 	text := seed
 	w.SetView(func(*gui.Window) gui.View {
-		return gui.Input(gui.InputCfg{
-			ID: "f", Text: text, Sizing: gui.FillFit,
-			MaxLength:     2 << 20,
-			PreTextChange: preTextChange,
-			OnTextChanged: func(s string, _ gui.EventCtx) { text = s },
-		})
+		c := cfg
+		c.ID, c.Text, c.Sizing = "f", text, gui.FillFit
+		c.MaxLength = 2 << 20
+		c.OnTextChanged = func(s string, _ gui.EventCtx) { text = s }
+		return gui.Input(c)
 	})
 	w.Update()
 	w.SetFocus("f")
@@ -347,6 +357,62 @@ func TestInputKeypressAllocBudget(t *testing.T) {
 	}
 	if best > limit {
 		t.Fatalf("keypress allocs = %v, want <= %d", best, limit)
+	}
+}
+
+// Typing in a text the shaper could still take whole must not shape it
+// whole. The keypress gate above re-seeds its text each round, so it never
+// sees a changed text, and the large-edit gate below is past the size where
+// a whole-text measure can happen: this one covers the sizes in between.
+// Bytes, as in the large-edit gate: one whole-text shape is few allocations
+// but megabytes.
+func TestInputTypingAllocBudget(t *testing.T) {
+	if inputRaceEnabled {
+		t.Skip("allocation counters are unstable under race instrumentation")
+	}
+	line := strings.Repeat("x", 39) + "\n"
+	cases := []struct {
+		name string
+		seed string
+		mode gui.InputCfg
+	}{
+		{"single line", strings.Repeat("a", 10_000), gui.InputCfg{}},
+		{"multiline", strings.Repeat(line, 250), gui.InputCfg{Mode: gui.InputMultiline}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			const editsPerSample = 10
+			w, insert, _, text := editPairWindowCfg(t, tc.seed, false, tc.mode)
+			// Forward only, as a person types: every key must make a new
+			// text. Insert and backspace would repeat two texts, and the
+			// cache in glyph would hide a whole-text shape.
+			typed := 0
+			run := func() {
+				for range editsPerSample {
+					e := *insert
+					w.EventFn(&e)
+					w.Update()
+					typed++
+				}
+				if len(*text) != len(tc.seed)+typed {
+					t.Fatalf("typing left %d bytes, want %d", len(*text), len(tc.seed)+typed)
+				}
+			}
+			run() // warm long-lived shaper and rendering scratch
+			best := ^uint64(0)
+			for range 5 {
+				var before, after runtime.MemStats
+				runtime.ReadMemStats(&before)
+				run()
+				runtime.ReadMemStats(&after)
+				best = min(best, (after.TotalAlloc-before.TotalAlloc)/editsPerSample)
+			}
+			const maxBytesPerKey = 900_000
+			if best > maxBytesPerKey {
+				t.Fatalf("a key allocated %d bytes, want <= %d", best, maxBytesPerKey)
+			}
+			t.Logf("best key allocation: %d bytes", best)
+		})
 	}
 }
 
