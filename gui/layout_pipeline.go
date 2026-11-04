@@ -302,8 +302,13 @@ func layoutWrapTextWalkDepth(layout *Layout, w *Window, depth int) {
 	if overMaxDepth(depth) {
 		return
 	}
-	for i := range layout.Children {
-		layoutWrapTextWalkDepth(&layout.Children[i], w, depth+1)
+	// A layoutSizer's subtree has no widths until sizeChildren gives them,
+	// and that pass wraps it. Wrapping it here as well would rebuild each
+	// text's block at two widths every frame, so nothing stayed measured.
+	if axisNoneMeasuresChildren(layout.Shape) {
+		for i := range layout.Children {
+			layoutWrapTextWalkDepth(&layout.Children[i], w, depth+1)
+		}
 	}
 	shape := layout.Shape
 	tc := shape.TC
