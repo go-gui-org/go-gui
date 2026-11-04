@@ -27,9 +27,7 @@ func queueTextAnchor(layout *Layout, w *Window) {
 // resetTextAnchors empties the queue. layoutPipeline calls it first, not
 // the wrap pass, which runs once per layoutSizer pane: the queue holds the
 // texts of the whole tree being laid out, and nothing older even when a
-// caller ran the wrap pass without the anchor pass after it. A pane's text
-// is queued twice, by the whole tree's wrap pass and its pane's; the second
-// visit finds its chunks measured and changes nothing.
+// caller ran the wrap pass without the anchor pass after it.
 func resetTextAnchors(w *Window) {
 	clear(w.scratch.textAnchors)
 	w.scratch.textAnchors = w.scratch.textAnchors[:0]

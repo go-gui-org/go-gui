@@ -75,14 +75,15 @@ func TestTextAnchorWheelUpKeepsTextInPlace(t *testing.T) {
 }
 
 func wheelUpKeepsTextInPlace(t *testing.T, text string) {
-	wheelUpKeepsTextInPlaceIn(t, text, func(sc View) View { return sc })
+	wheelUpKeepsTextInPlaceIn(t, text, FixedFixed, func(sc View) View { return sc })
 }
 
 // A layoutSizer lays its panes out one at a time, each with the passes that
 // queue a text for anchoring, so the texts of one pane must survive the
-// next pane's turn, and so must a text outside the sizer. The pass over the
-// whole tree also queues a pane's text, and the visit that finds it already
-// measured must not correct the scroll a second time.
+// next pane's turn, and so must a text outside the sizer. A pane's width is
+// its sizer's to give: a fill-sized view has none before that, and a pass
+// that wrapped its text then would rebuild the block at two widths every
+// frame, which leaves nothing measured to anchor on.
 func TestTextAnchorAcrossLayoutSizers(t *testing.T) {
 	withChunkBytes(t, 256)
 	withEagerBytes(t, 0)
@@ -90,21 +91,32 @@ func TestTextAnchorAcrossLayoutSizers(t *testing.T) {
 	dock := DockSplit("root", DockSplitHorizontal, 0.5,
 		DockPanelGroup("g1", []string{"a"}, "a"),
 		DockPanelGroup("g2", []string{"b"}, "b"))
+	first := func(sc View) View {
+		return Splitter(SplitterCfg{ID: "sp", Sizing: FillFill,
+			First:  SplitterPaneCfg{Content: []View{sc}},
+			Second: SplitterPaneCfg{Content: []View{other()}}})
+	}
+	second := func(sc View) View {
+		return Splitter(SplitterCfg{ID: "sp", Sizing: FillFill,
+			First:  SplitterPaneCfg{Content: []View{other()}},
+			Second: SplitterPaneCfg{Content: []View{sc}}})
+	}
+	docked := func(sc View) View {
+		return DockLayout(DockLayoutCfg{ID: "dock", Root: dock,
+			Panels: []DockPanelDef{
+				{ID: "a", Label: "A", Content: []View{sc}},
+				{ID: "b", Label: "B", Content: []View{other()}},
+			}})
+	}
 	hosts := []struct {
-		name string
-		host func(sc View) View
+		name   string
+		sizing Sizing
+		host   func(sc View) View
 	}{
-		{"first splitter pane", func(sc View) View {
-			return Splitter(SplitterCfg{ID: "sp", Sizing: FillFill,
-				First:  SplitterPaneCfg{Content: []View{sc}},
-				Second: SplitterPaneCfg{Content: []View{other()}}})
-		}},
-		{"second splitter pane", func(sc View) View {
-			return Splitter(SplitterCfg{ID: "sp", Sizing: FillFill,
-				First:  SplitterPaneCfg{Content: []View{other()}},
-				Second: SplitterPaneCfg{Content: []View{sc}}})
-		}},
-		{"beside a splitter", func(sc View) View {
+		{"first splitter pane", FixedFixed, first},
+		{"second splitter pane", FixedFixed, second},
+		{"first dock panel", FixedFixed, docked},
+		{"beside a splitter", FixedFixed, func(sc View) View {
 			return Row(ContainerCfg{Sizing: FillFill, Content: []View{
 				sc,
 				Splitter(SplitterCfg{ID: "sp", Sizing: FillFill,
@@ -112,26 +124,24 @@ func TestTextAnchorAcrossLayoutSizers(t *testing.T) {
 					Second: SplitterPaneCfg{Content: []View{other()}}}),
 			}})
 		}},
-		{"first dock panel", func(sc View) View {
-			return DockLayout(DockLayoutCfg{ID: "dock", Root: dock,
-				Panels: []DockPanelDef{
-					{ID: "a", Label: "A", Content: []View{sc}},
-					{ID: "b", Label: "B", Content: []View{other()}},
-				}})
-		}},
+		{"fill-sized in the first pane", FillFill, first},
+		{"fill-sized in the second pane", FillFill, second},
+		{"fill-sized in a dock panel", FillFill, docked},
 	}
 	for _, h := range hosts {
 		t.Run(h.name, func(t *testing.T) {
-			wheelUpKeepsTextInPlaceIn(t, anchorTestText(200), h.host)
+			wheelUpKeepsTextInPlaceIn(t, anchorTestText(200), h.sizing, h.host)
 		})
 	}
 }
 
-func wheelUpKeepsTextInPlaceIn(t *testing.T, text string, host func(sc View) View) {
+func wheelUpKeepsTextInPlaceIn(
+	t *testing.T, text string, sizing Sizing, host func(sc View) View,
+) {
 	w := newBlockTestWindow(t)
 	w.TestRender(func(*Window) View {
 		return host(Column(ContainerCfg{ID: "sc", Scrollable: true,
-			Sizing: FixedFixed, Width: 300, Height: 200, SizeBorder: NoBorder,
+			Sizing: sizing, Width: 300, Height: 200, SizeBorder: NoBorder,
 			Content: []View{
 				Text(TextCfg{ID: "big", Text: text, Mode: TextModeWrap}),
 				Text(TextCfg{ID: "below", Text: "below"}),
