@@ -387,3 +387,49 @@ func TestSingleLineMixedDirectionArrowCaretStaysVisible(t *testing.T) {
 		assertCaretVisible(step)
 	}
 }
+
+// A gradient text is one layout up to the shaper's budget and plain past
+// it, in the real shaper as in the stub: both draw, and one layout takes
+// the room the chunks of the same text take.
+func TestGradientTextAroundGlyphBudget(t *testing.T) {
+	gradient := &glyph.GradientConfig{
+		Direction: glyph.GradientVertical,
+		Stops: []glyph.GradientStop{
+			{Color: glyph.Color{R: 255, A: 255}, Position: 0},
+			{Color: glyph.Color{B: 255, A: 255}, Position: 1},
+		},
+	}
+	white := gui.RGB(255, 255, 255)
+	render := func(text string, g *glyph.GradientConfig) (int, float32) {
+		t.Helper()
+		win := newWin(t, 600, 400, func(*gui.Window) gui.View {
+			return gui.Column(gui.ContainerCfg{
+				Sizing: gui.FillFill, SizeBorder: gui.NoBorder,
+				Content: []gui.View{gui.Text(gui.TextCfg{
+					ID: "t", Text: text, Mode: gui.TextModeWrap,
+					TextStyle: gui.TextStyle{Size: 16, Color: white, Gradient: g},
+				})},
+			})
+		})
+		img, err := RenderToImage(win, 1)
+		if err != nil {
+			t.Fatal(err)
+		}
+		sh, ok := win.TestRender(nil).FindByID("t")
+		if !ok {
+			t.Fatal("text not found")
+		}
+		return countLitPixels(img), sh.Shape.Height
+	}
+	para := "The quick brown fox jumps over the lazy dog.\n\n"
+	long := strings.Repeat(para, glyph.MaxTextLength/len(para)+2)
+	for _, n := range []int{5000, glyph.MaxTextLength, glyph.MaxTextLength + 1} {
+		lit, h := render(long[:n], gradient)
+		if lit == 0 {
+			t.Errorf("%d bytes with a gradient drew nothing", n)
+		}
+		if _, plainH := render(long[:n], nil); h != plainH {
+			t.Errorf("%d bytes: height %v with a gradient, %v without", n, h, plainH)
+		}
+	}
+}

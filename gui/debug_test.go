@@ -286,6 +286,7 @@ func TestCheckCategoryMapping(t *testing.T) {
 		{debugCheckUnknownFocus, DebugUnknownFocus},
 		{debugCheckGlyphLayoutFallback, DebugGlyphLayoutFallback},
 		{debugCheckTextOverBudget, DebugGlyphLayoutFallback},
+		{debugCheckTextGradientDropped, DebugGlyphLayoutFallback},
 		{debugCheckLayoutInvariant, DebugLayoutInvariants},
 		{debugCheckFixedSizing, DebugSizing},
 		{debugCheckLowContrast, DebugLowContrast},

@@ -110,7 +110,8 @@ of chunks, each one glyph layout within the budget `textChunkBytes` (2048).
   under a rotation, a transform or an animation's motion every chunk keeps the
   block's origin and moves inside the transform: the block turns as one. The
   clip test then uses each chunk's transformed box. A content transition's fade
-  draws texts past one chunk the same way, each at its alpha.
+  draws texts past one chunk the same way, each at its alpha. A gradient text is
+  one chunk up to `glyph.MaxTextLength` and plain past it (Known limits).
 
 The exit criterion of the spike holds: after the first frame (23 ms for a 100 KB
 text), a rebuilt frame of that text costs 1.9 ms
@@ -210,6 +211,23 @@ is not handed to the platform spell checker.
 
 ## Rejected Approaches
 
+- **Drawing a gradient per chunk.** glyph measures a gradient on the layout it
+  draws (`layoutGradientExtents`), so each chunk ran the whole gradient: bands
+  in a vertical or diagonal one, even on a short text, since a blank line is a
+  chunk of its own. A gradient text stays one layout instead
+  (`textBlockOneLayout`), up to `glyph.MaxTextLength`.
+- **Gradient on the first chunk only.** The colour stops part way down, at a
+  place the text decides, and scrolling shows none. It reads as a bug.
+- **A gradient only while the text is one chunk.** The same code, one limit
+  lower, if the limit is in bytes; by chunk count, a trailing newline or a blank
+  line turns the gradient off on a short title.
+- **Rewriting a gradient's stops per chunk in go-gui.** It depends on how glyph
+  sizes a gradient, and a diagonal one has no per-chunk form.
+- **A gradient frame in go-glyph, for now.** Telling glyph the block's size
+  would keep typing cheap and the gradient past the limit, but it needs a
+  go-glyph release, and above 64 KB the block's size is an estimate, so colours
+  would shift while scrolling. Gradients on long text are too rare to pay for it
+  yet. It remains the way to lift the limit.
 - **Raise `glyph.MaxTextLength`.** A single 64 KB layout would cost ~35 ms and
   ~40 MB per rebuild, and the renderer's draw scratch is sized for layouts up to
   the cap; the field would be unusable exactly where it claimed to work.
@@ -271,10 +289,12 @@ is not handed to the platform spell checker.
 - Off-screen no-wrap pieces keep estimated widths until reached. A far caret and
   its horizontal scroll share those estimates, so the visible destination is
   stable; the total intrinsic width settles as pieces become visible.
-- A gradient fill or a shimmer spans each chunk's box, not the whole text's, so
-  past one chunk it starts over in every chunk. glyph measures a gradient on the
-  layout it draws (`layoutGradientExtents`) and takes no larger frame; spanning
-  the block needs that in go-glyph.
+- A gradient text is shaped whole, so a keystroke at 10 KB costs 8.6 ms, against
+  4.5 ms for the same text without a gradient and 17 ms before the chunks. A
+  text past 10,240 bytes draws in its plain colour, without its gradient or
+  shimmer, and typing across that limit switches the gradient off and on. Below
+  the limit a shimmer stays in chunks, so on unwrapped text it can start over at
+  a piece.
 - At a character-level wrap of a run with no break opportunity the chunk
   boundary is the break the shaper would also make, and the caret at that offset
   sits on the later line, where glyph's single layout puts it on the earlier

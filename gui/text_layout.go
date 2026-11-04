@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"slices"
 	"strings"
 
 	"github.com/go-gui-org/go-glyph"
@@ -205,6 +206,10 @@ func plainTextBlock(
 	if b.failErr != nil {
 		textBlockWarnRefused(shape, b, w)
 	}
+	if len(b.text) > glyph.MaxTextLength &&
+		(style.Gradient != nil || (tc.anim != nil && tc.anim.shimmerOn)) {
+		textBlockWarnGradientDropped(shape, b, w)
+	}
 	return b, true
 }
 
@@ -251,6 +256,19 @@ func textBlockWarnRefused(shape *Shape, b *textBlock, w *Window) {
 		shape.idKey(), b.failBytes, b.failErr)
 }
 
+// textBlockWarnGradientDropped reports a gradient or shimmer that
+// renderTextBlock leaves out, once per identity. Gated here as well as
+// inside debugWarn, for the same reason as textBlockWarnRefused.
+func textBlockWarnGradientDropped(shape *Shape, b *textBlock, w *Window) {
+	if DebugCategory(debugMask.Load())&DebugGlyphLayoutFallback == 0 {
+		return
+	}
+	w.debugWarn(debugCheckTextGradientDropped, shape.idKey(),
+		"text %q is %d bytes, past the %d one glyph layout can hold, so "+
+			"it draws in its plain colour without its gradient or shimmer",
+		shape.idKey(), len(b.text), glyph.MaxTextLength)
+}
+
 // textWidthEstimate approximates the advance of a text the shaper
 // would refuse to measure whole (over glyph.MaxTextLength), from the
 // average advance of a sample. The sizing pass replaces it with the
@@ -267,19 +285,42 @@ func textWidthEstimate(text string, style TextStyle, w *Window) float32 {
 }
 
 // textLayoutStyleEqual reports whether two styles shape to the same
-// glyph layout. It is == with the paint colours left out: they change
-// the colour stamped on each item but no glyph position. Whether a
-// background or a stroke is present does change the layout (the item
-// carries HasBgColor and HasStroke), so presence still counts.
+// glyph layout. It is == with what only the draw reads left out: the
+// paint colours change the colour stamped on each item but no glyph
+// position, and a gradient, a rotation and a transform apply at the
+// draw. A view that builds its gradient each frame would otherwise
+// re-shape the text on every rebuild. Whether a background or a stroke
+// is present does change the layout (the item carries HasBgColor and
+// HasStroke), and a gradient's presence decides the chunks
+// (textBlockOneLayout), so presence still counts. Font features do
+// shape, and are compared by value for the same reason.
 func textLayoutStyleEqual(a, b TextStyle) bool {
 	if (a.BgColor.A > 0) != (b.BgColor.A > 0) ||
-		(a.StrokeColor.A > 0) != (b.StrokeColor.A > 0) {
+		(a.StrokeColor.A > 0) != (b.StrokeColor.A > 0) ||
+		(a.Gradient != nil) != (b.Gradient != nil) ||
+		!fontFeaturesEqual(a.Features, b.Features) {
 		return false
 	}
 	a.Color, b.Color = Color{}, Color{}
 	a.BgColor, b.BgColor = Color{}, Color{}
 	a.StrokeColor, b.StrokeColor = Color{}, Color{}
+	a.Gradient, b.Gradient = nil, nil
+	a.AffineTransform, b.AffineTransform = nil, nil
+	a.RotationRadians, b.RotationRadians = 0, 0
+	a.Features, b.Features = nil, nil
 	return a == b
+}
+
+// fontFeaturesEqual reports whether two feature sets shape alike.
+func fontFeaturesEqual(a, b *glyph.FontFeatures) bool {
+	if a == b {
+		return true
+	}
+	if a == nil || b == nil {
+		return false
+	}
+	return slices.Equal(a.OpenTypeFeatures, b.OpenTypeFeatures) &&
+		slices.Equal(a.VariationAxes, b.VariationAxes)
 }
 
 // textPaintEqual reports whether two styles paint in the same colours.

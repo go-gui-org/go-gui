@@ -141,6 +141,7 @@ type textBlock struct {
 	// -1 when every position is current.
 	dirty int
 	mode  TextMode
+	whole bool // one chunk for a gradient (textBlockOneLayout)
 	// probed reports that lineH and avgAdv were measured. They are read
 	// only for an empty paragraph or an estimate, so a short text that
 	// shapes whole never pays for them.
@@ -152,6 +153,16 @@ type textBlock struct {
 }
 
 func (b *textBlock) wraps() bool { return b.widthArg > 0 }
+
+// textBlockOneLayout reports whether text in style stays one chunk. glyph
+// spans a gradient over the layout it draws, so a gradient text in chunks
+// would start over in every chunk, even a short one with a blank line in
+// it. It stays whole as far as one layout can hold it; past that
+// renderTextBlock draws it plain. An edit then shapes the whole text.
+func textBlockOneLayout(text string, style TextStyle) bool {
+	return style.Gradient != nil && text != "" &&
+		len(text) <= glyph.MaxTextLength
+}
 
 // newTextBlock builds the block for text. w may have no measurer, in
 // which case every chunk keeps its estimate.
@@ -214,6 +225,10 @@ func (b *textBlock) updateKnownDelta(
 	if text == b.text {
 		return
 	}
+	if b.whole || textBlockOneLayout(text, style) {
+		b.reset(text, widthArg, style, mode, w)
+		return
+	}
 	if p < 0 || s < 0 {
 		b.patch(text, w)
 		return
@@ -233,7 +248,12 @@ func (b *textBlock) reset(
 	// The slice is reused: clear it to its capacity first, or the slots
 	// past the new length keep the old chunks' layouts alive.
 	clear(b.chunks[:cap(b.chunks)])
-	b.chunks = appendTextChunks(b.chunks[:0], text, 0, len(text), false)
+	b.whole = textBlockOneLayout(text, style)
+	if b.whole {
+		b.chunks = append(b.chunks[:0], textChunk{start: 0, end: len(text)})
+	} else {
+		b.chunks = appendTextChunks(b.chunks[:0], text, 0, len(text), false)
+	}
 	b.dirty = 0
 	if len(text) <= textBlockEagerBytes {
 		b.measureAll(w)

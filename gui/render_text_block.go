@@ -10,14 +10,20 @@ import "github.com/go-gui-org/go-glyph"
 // unshaped. A typewriter reveal paints the chunks up to its end, the
 // last of them cut at the revealed byte.
 //
-// A gradient still spans each chunk's own box, not the block's: glyph
-// measures it on the layout it draws, and has no way to be told a
-// larger frame.
+// glyph measures a gradient on the layout it draws and can be told no
+// larger frame. A gradient text stays one layout up to what a layout can
+// hold (textBlockOneLayout), so past that the block draws in its plain
+// colour. The limit is the one main drew nothing past, and it covers a
+// shimmer too, which stays in chunks below it: a shimmer can end while
+// the text stays, and it runs across the lines, which wrap alike.
 func renderTextBlock(
 	shape *Shape, baseX, baseY float32, blk *textBlock, style TextStyle,
 	gradient *glyph.GradientConfig, reveal bool,
 	xf glyph.AffineTransform, xfOn bool, clip drawClip, w *Window,
 ) {
+	if len(blk.text) > glyph.MaxTextLength {
+		gradient, style.Gradient = nil, nil
+	}
 	var anim *textAnimRender
 	if shape.TC != nil {
 		anim = shape.TC.anim
