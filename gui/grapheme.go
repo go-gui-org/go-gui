@@ -22,6 +22,38 @@ import (
 // offset. A cluster longer than it (a run of combining marks) is cut.
 const graphemeWindow = 64
 
+// Regional indicators are the letters of a flag: two of them, paired off
+// from the start of their run.
+const (
+	regionalIndicatorFirst = '\U0001F1E6'
+	regionalIndicatorLast  = '\U0001F1FF'
+	regionalIndicatorBytes = 4
+)
+
+func isRegionalIndicator(r rune) bool {
+	return r >= regionalIndicatorFirst && r <= regionalIndicatorLast
+}
+
+// regionalPairStart returns j, a rune start, or the start of the flag it
+// falls inside. Which flag a letter belongs to depends on how many letters
+// precede it, so a search that opened on a second letter would shift every
+// pair after it. The letters are counted, not segmented, and only in a run
+// that reaches j.
+func regionalPairStart(text string, j int) int {
+	if r, _ := utf8.DecodeRuneInString(text[j:]); !isRegionalIndicator(r) {
+		return j
+	}
+	before := 0
+	for k := j; k > 0; k -= regionalIndicatorBytes {
+		r, _ := utf8.DecodeLastRuneInString(text[:k])
+		if !isRegionalIndicator(r) {
+			break
+		}
+		before++
+	}
+	return j - before%2*regionalIndicatorBytes
+}
+
 // prevGraphemeBoundary returns the last grapheme-cluster boundary at or
 // before byte offset i. It segments only a window before i, from a rune
 // start, which is exact for every cluster shorter than the window.
@@ -36,6 +68,7 @@ func prevGraphemeBoundary(text string, i int) int {
 	for j > 0 && !utf8.RuneStart(text[j]) {
 		j--
 	}
+	j = regionalPairStart(text, j)
 	last := j
 	rest := text[j:]
 	state := -1

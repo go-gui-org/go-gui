@@ -96,6 +96,42 @@ func TestNearestGraphemeBoundary(t *testing.T) {
 	}
 }
 
+// A flag is a pair of regional indicators, and the pair a letter belongs
+// to depends on every letter before it, however far back the run starts.
+// The answer must match a walk from the start of the text at any length.
+func TestPrevGraphemeBoundaryFlagRun(t *testing.T) {
+	const letter = "\U0001F1E9"
+	for _, prefix := range []string{"", "x", letter} {
+		for n := 1; n <= 40; n++ {
+			text := prefix + strings.Repeat(letter+"\U0001F1EA", n) + "y"
+			stops := graphemeBoundaries(text)
+			for i := 0; i <= len(text); i++ {
+				want := 0
+				for _, s := range stops {
+					if s <= i {
+						want = s
+					}
+				}
+				if got := prevGraphemeBoundary(text, i); got != want {
+					t.Fatalf("%q + %d flags, offset %d: got %d, want %d",
+						prefix, n, i, got, want)
+				}
+			}
+		}
+	}
+}
+
+// Backspace on the string path, which a password field and a chunk seam
+// take, removes a whole flag at the end of a run longer than the window.
+func TestEditDeleteRemovesWholeFlagInLongRun(t *testing.T) {
+	text := strings.Repeat("\U0001F1E9\U0001F1EA", 20)
+	got, _, ok := editDelete(text, inputState{CursorPos: len(text)}, false)
+	if !ok || got != text[:len(text)-8] {
+		t.Fatalf("backspace left %d of %d bytes, want %d",
+			len(got), len(text), len(text)-8)
+	}
+}
+
 // A run of combining marks longer than the search window is cut at the
 // window: the caret may then rest inside the run, but the search never
 // scans text before the window, so a step costs the same in any field.
