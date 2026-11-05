@@ -1036,7 +1036,9 @@ void metalWindowSetFullscreen(GoGuiNSWindow w, int fullscreen) {
 
 void metalWindowResize(GoGuiNSWindow w, int width, int height) {
     metalWindowLater(w, ^(GUIWindow *win) {
-        if (win.isMiniaturized || [win goguiIsFullscreen]) return;
+        if (win.isMiniaturized || [win goguiIsFullscreen] || [win goguiIsZoomed]) {
+            return;
+        }
         NSRect content = [win contentRectForFrameRect:win.frame];
         // AppKit's origin is the bottom-left corner, so keeping the
         // window's top where it is moves the origin.
@@ -1055,7 +1057,9 @@ static CGFloat metalDesktopHeight(void) {
 
 void metalWindowMove(GoGuiNSWindow w, int x, int y) {
     metalWindowLater(w, ^(GUIWindow *win) {
-        if (win.isMiniaturized || [win goguiIsFullscreen]) return;
+        if (win.isMiniaturized || [win goguiIsFullscreen] || [win goguiIsZoomed]) {
+            return;
+        }
         NSRect frame = win.frame;
         NSRect content = [win contentRectForFrameRect:frame];
         CGFloat titlebar = NSMaxY(frame) - NSMaxY(content);
