@@ -148,6 +148,10 @@ Go-Gui is also an ecosystem of composable libraries. **go-glyph** handles text,
   checking, and full accessibility support
 - **Native application integration** — file dialogs, menus, notifications,
   printing, PDF, system tray, frameless windows, and other platform services
+- **Window control** — `Window.Minimize`, `Maximize`, `Restore`,
+  `SetFullscreen`, `SetWindowSize` and `SetPosition` drive the OS window on
+  Windows, macOS and Linux, and the getters follow changes the user makes
+  through the OS ([`examples/window_state/`](examples/window_state/))
 - **Light and dark** — `Window.FollowSystemAppearance` switches the theme with
   the desktop's light/dark setting. On Windows, and on GNOME under Wayland, the
   window frame switches with it

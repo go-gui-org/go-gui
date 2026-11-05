@@ -22,7 +22,7 @@ const x11EventMask = xproto.EventMaskKeyPress | xproto.EventMaskKeyRelease |
 	xproto.EventMaskButtonPress | xproto.EventMaskButtonRelease |
 	xproto.EventMaskPointerMotion | xproto.EventMaskExposure |
 	xproto.EventMaskStructureNotify | xproto.EventMaskFocusChange |
-	xproto.EventMaskLeaveWindow
+	xproto.EventMaskLeaveWindow | xproto.EventMaskPropertyChange
 
 // X11 cursor-font glyph indices (from cursorfont.h). Each shape is two
 // consecutive glyphs: the image and its mask.
@@ -152,6 +152,7 @@ func newX11(w *gui.Window) (*Backend, error) {
 	// properties.
 	b.plat.atomUTF8 = internAtom(conn, "UTF8_STRING")
 	b.plat.atomNetWMName = internAtom(conn, "_NET_WM_NAME")
+	b.plat.internStateAtoms()
 	setWindowTitle(conn, win, &b.plat, title)
 	// Hints are in physical pixels, matching the CreateWindow call.
 	b.plat.limits = gui.WindowSizeLimits(cfg)
@@ -336,6 +337,12 @@ func setSizeHints(conn *xgb.Conn, win xproto.Window, limits gui.SizeLimits) {
 	if limits.None() {
 		return
 	}
+	writeSizeHints(conn, win, limits)
+}
+
+// writeSizeHints is setSizeHints for a window that may hold a property
+// to replace, so empty limits are written too.
+func writeSizeHints(conn *xgb.Conn, win xproto.Window, limits gui.SizeLimits) {
 	words := sizeHintWordsFor(limits)
 
 	buf := make([]byte, 0, sizeHintWords*4)

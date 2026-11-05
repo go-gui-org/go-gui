@@ -47,6 +47,9 @@ const (
 	refreshCommand
 	// refreshTest: a test hook forced the rebuild.
 	refreshTest
+	// refreshWindowState: the OS maximized, restored or fullscreened the
+	// window, so a view reading the getters is stale.
+	refreshWindowState
 )
 
 // Render-only reasons: the next frame rebuilds render commands only.
@@ -83,6 +86,7 @@ var refreshReasonNames = [...]struct {
 	{refreshDeferred, "deferred"},
 	{refreshCommand, "command"},
 	{refreshTest, "test"},
+	{refreshWindowState, "window-state"},
 	{refreshRender, "render"},
 	{refreshRenderAnimation, "render-animation"},
 	{refreshRenderSvg, "svg"},

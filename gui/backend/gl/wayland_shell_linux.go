@@ -3,6 +3,7 @@
 package gl
 
 import (
+	"encoding/binary"
 	"errors"
 	"log"
 	"os"
@@ -125,6 +126,7 @@ func (ww *wlWindow) makeToplevel(cfg gui.WindowCfg) error {
 	// Limits are in logical pixels, the unit xdg_toplevel uses. A zero
 	// axis means "no limit" in both requests.
 	limits := gui.WindowSizeLimits(cfg)
+	ww.place.maxW, ww.place.maxH = int32(limits.MaxW), int32(limits.MaxH)
 	if limits.MinW > 0 || limits.MinH > 0 {
 		ww.toplevel.SetMinSize(int32(limits.MinW), int32(limits.MinH))
 	}
@@ -144,6 +146,19 @@ func (ww *wlWindow) toplevelConfigure(width, height int32, states []byte) {
 	// suspended is xdg_toplevel v6. A compositor before v6 never sends it,
 	// so there the window always counts as shown, as before (issue #953).
 	ww.pendSuspended = statesHave(states, wl.XdgToplevelStateSuspended)
+	ww.place.pendMaximized = statesHave(states, wl.XdgToplevelStateMaximized)
+	ww.place.pendFullscreen = statesHave(states, wl.XdgToplevelStateFullscreen)
+}
+
+// statesHave reports whether an xdg_toplevel states array, a packed list
+// of native-endian uint32 values, contains state.
+func statesHave(states []byte, state uint32) bool {
+	for i := 0; i+4 <= len(states); i += 4 {
+		if binary.LittleEndian.Uint32(states[i:]) == state {
+			return true
+		}
+	}
+	return false
 }
 
 // makeDecorFrame is makeToplevel through libdecor.
@@ -159,6 +174,7 @@ func (ww *wlWindow) makeDecorFrame(ctx *decor.Context, cfg gui.WindowCfg) error 
 	}
 	// Content sizes: the frame is added around them.
 	limits := gui.WindowSizeLimits(cfg)
+	ww.place.maxW, ww.place.maxH = int32(limits.MaxW), int32(limits.MaxH)
 	if limits.MinW > 0 || limits.MinH > 0 {
 		f.SetMinContentSize(int32(limits.MinW), int32(limits.MinH))
 	}
@@ -213,10 +229,11 @@ type wlFrameEvents struct{ ww *wlWindow }
 func (e wlFrameEvents) Configure(c decor.Configuration) {
 	ww := e.ww
 	w, h, _ := c.ContentSize() // 0 when the client picks
-	w, h = configureSize(w, h, ww.logW, ww.logH)
 	if st, ok := c.WindowState(); ok {
 		ww.decorStates(st)
 	}
+	ww.liftCeiling(ww.place.pendFullscreen)
+	w, h = ww.configuredSize(w, h)
 	ww.commitFrame(w, h, &c)
 	ww.applyPending(w, h)
 }
@@ -236,6 +253,8 @@ func (ww *wlWindow) commitFrame(w, h int32, c *decor.Configuration) {
 func (ww *wlWindow) decorStates(st uint32) {
 	ww.pendActive = st&decor.StateActive != 0
 	ww.pendSuspended = st&decor.StateSuspended != 0
+	ww.place.pendMaximized = st&decor.StateMaximized != 0
+	ww.place.pendFullscreen = st&decor.StateFullscreen != 0
 }
 
 func (e wlFrameEvents) Close() { gui.DispatchCloseRequest(e.ww.b.plat.w) }

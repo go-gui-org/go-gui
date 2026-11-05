@@ -378,7 +378,8 @@ func (w *Window) handleFileDroppedEvent(layout *Layout, e *Event) {
 }
 
 // eventAllowed returns true when an unfocused window should still
-// process this event (right-click, focus, scroll, touch, file drop).
+// process this event (right-click, focus, scroll, touch, file drop,
+// resize).
 func (w *Window) eventAllowed(e *Event) bool {
 	if w.focused {
 		return true
@@ -393,6 +394,10 @@ func (w *Window) eventAllowed(e *Event) bool {
 		e.Type == EventTouchesEnded ||
 		e.Type == EventTouchesCancelled ||
 		e.Type == EventFileDropped ||
+		// Not input: a window resized in the background has to learn
+		// its size. macOS drops key status during a fullscreen
+		// transition, so that size arrives here too.
+		e.Type == EventResized ||
 		// The soft keyboard closes as the app loses focus; a
 		// dropped report would leave a stale inset behind.
 		e.Type == EventSoftKeyboard ||

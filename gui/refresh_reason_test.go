@@ -48,7 +48,7 @@ func TestRefreshReasonEveryBitNamed(t *testing.T) {
 		names[n.name] = true
 		named |= n.bit
 	}
-	if want := refreshTest<<1 - 1; named&refreshLayoutMask != want {
+	if want := refreshWindowState<<1 - 1; named&refreshLayoutMask != want {
 		t.Errorf("layout bits named %#x, want %#x", uint32(named&refreshLayoutMask), uint32(want))
 	}
 	if want := (refreshRenderSvg<<1 - 1) &^ refreshLayoutMask; named&refreshRenderMask != want {

@@ -72,6 +72,19 @@ func WindowSizeLimits(cfg WindowCfg) SizeLimits {
 // wrapped value.
 const maxWindowExtent = 1<<15 - 1
 
+// clamp holds a logical size within the limits, leaving an unset bound
+// alone. The floor wins, as in WindowSizeLimits.
+func (l SizeLimits) clamp(width, height int) (int, int) {
+	if l.MaxW != 0 {
+		width = min(width, l.MaxW)
+	}
+	if l.MaxH != 0 {
+		height = min(height, l.MaxH)
+	}
+	return min(max(width, l.MinW), maxWindowExtent),
+		min(max(height, l.MinH), maxWindowExtent)
+}
+
 // clampUnset folds a negative size to zero ("unset") and holds a
 // nonsense-large one down to what the platforms can express.
 func clampUnset(v int) int {

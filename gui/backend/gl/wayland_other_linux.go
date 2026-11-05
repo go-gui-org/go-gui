@@ -38,6 +38,11 @@ func (p *platformState) destroyWayland() {}
 
 // The X11 entry points branch to these when p.wl is set, which never
 // happens here.
+func (*wlWindow) minimize()                   {}
+func (*wlWindow) maximize()                   {}
+func (*wlWindow) restore()                    {}
+func (*wlWindow) setFullscreen(bool)          {}
+func (*wlWindow) resizeTo(_, _ int32)         {}
 func (*wlWindow) moveResize(uint32)           {}
 func (*wlWindow) titlebarDark(bool)           {}
 func (*wlWindow) imeStart()                   {}

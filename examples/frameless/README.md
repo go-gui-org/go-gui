@@ -33,5 +33,8 @@ used to provide:
 - The corner grip calls `Window.StartWindowResize(gui.EdgeBottomRight)`. macOS
   needs no grip, because a borderless window still resizes from any edge, so the
   call is a no-op there.
+- The header buttons call `Window.Minimize`, `Window.Maximize` and
+  `Window.Restore`. The label reads `Window.IsMaximized`, so it stays right when
+  the user maximizes through the OS.
 
 See `main.go` for the implementation.

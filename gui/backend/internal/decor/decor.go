@@ -30,6 +30,11 @@ var (
 	fnFrameContentWidth      uintptr
 	fnFrameContentHeight     uintptr
 	fnFrameMap               uintptr
+	fnFrameSetMaximized      uintptr
+	fnFrameUnsetMaximized    uintptr
+	fnFrameSetFullscreen     uintptr
+	fnFrameUnsetFullscreen   uintptr
+	fnFrameSetMinimized      uintptr
 	fnStateNew               uintptr
 	fnStateFree              uintptr
 	fnConfigContentSize      uintptr
@@ -44,8 +49,10 @@ var (
 // xdg_toplevel v6) marks one the compositor shows nowhere: minimized, on
 // another workspace, or behind a locked screen.
 const (
-	StateActive    = 1 << 0
-	StateSuspended = 1 << 7
+	StateActive     = 1 << 0
+	StateMaximized  = 1 << 1
+	StateFullscreen = 1 << 2
+	StateSuspended  = 1 << 7
 )
 
 // Resize edges (enum libdecor_resize_edge). Not the xdg_toplevel values.
@@ -91,6 +98,11 @@ func load() error {
 		{&fnFrameContentWidth, "libdecor_frame_get_content_width"},
 		{&fnFrameContentHeight, "libdecor_frame_get_content_height"},
 		{&fnFrameMap, "libdecor_frame_map"},
+		{&fnFrameSetMaximized, "libdecor_frame_set_maximized"},
+		{&fnFrameUnsetMaximized, "libdecor_frame_unset_maximized"},
+		{&fnFrameSetFullscreen, "libdecor_frame_set_fullscreen"},
+		{&fnFrameUnsetFullscreen, "libdecor_frame_unset_fullscreen"},
+		{&fnFrameSetMinimized, "libdecor_frame_set_minimized"},
 		{&fnStateNew, "libdecor_state_new"},
 		{&fnStateFree, "libdecor_state_free"},
 		{&fnConfigContentSize, "libdecor_configuration_get_content_size"},
@@ -323,6 +335,21 @@ func (f *Frame) Map() {
 	purego.SyscallN(fnFrameMap, f.ptr)
 	Rethrow()
 }
+
+// SetMaximized asks the compositor to maximize the window.
+func (f *Frame) SetMaximized() { purego.SyscallN(fnFrameSetMaximized, f.ptr) }
+
+// UnsetMaximized asks the compositor to undo a maximize.
+func (f *Frame) UnsetMaximized() { purego.SyscallN(fnFrameUnsetMaximized, f.ptr) }
+
+// SetFullscreen asks for fullscreen on the output the compositor picks.
+func (f *Frame) SetFullscreen() { purego.SyscallN(fnFrameSetFullscreen, f.ptr, 0) }
+
+// UnsetFullscreen asks the compositor to leave fullscreen.
+func (f *Frame) UnsetFullscreen() { purego.SyscallN(fnFrameUnsetFullscreen, f.ptr) }
+
+// SetMinimized asks the compositor to minimize the window.
+func (f *Frame) SetMinimized() { purego.SyscallN(fnFrameSetMinimized, f.ptr) }
 
 // Commit applies a content size: in reply to a configuration (c non-nil),
 // or on the client's own resize of a floating window (c nil).

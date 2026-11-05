@@ -3,7 +3,6 @@
 package gl
 
 import (
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"runtime"
@@ -366,6 +365,7 @@ type wlWindow struct {
 	pendW, pendH  int32
 	pendActive    bool
 	pendSuspended bool
+	place         wlPlacement // maximized, fullscreen (wayland_state_linux.go)
 
 	// logW, logH are the window size in logical pixels; scale120 is the
 	// scale in 120ths (fractional-scale-v1's unit, so 180 is 1.5). The
@@ -450,17 +450,6 @@ func configureSize(pendW, pendH, curW, curH int32) (int32, int32) {
 		pendH = curH
 	}
 	return min(max(pendW, 1), wlMaxWindowSize), min(max(pendH, 1), wlMaxWindowSize)
-}
-
-// statesHave reports whether an xdg_toplevel states array, a packed list
-// of native-endian uint32 values, contains state.
-func statesHave(states []byte, state uint32) bool {
-	for i := 0; i+4 <= len(states); i += 4 {
-		if binary.LittleEndian.Uint32(states[i:]) == state {
-			return true
-		}
-	}
-	return false
 }
 
 // newWaylandBackend creates a window on the shared Wayland display. It
@@ -596,7 +585,8 @@ func (ww *wlWindow) id() uint32 { return ww.surface.ID() }
 // renders the one frame per wlFrameTimeout a hidden window used to get.
 func (ww *wlWindow) applyConfigure(serial uint32) {
 	ww.xdgSurface.AckConfigure(serial)
-	ww.applyPending(configureSize(ww.pendW, ww.pendH, ww.logW, ww.logH))
+	ww.liftCeiling(ww.place.pendFullscreen)
+	ww.applyPending(ww.configuredSize(ww.pendW, ww.pendH))
 }
 
 // applyPending is the part of a configure both paths share, after their
@@ -606,6 +596,7 @@ func (ww *wlWindow) applyConfigure(serial uint32) {
 // tests can drive it without a live xdg_surface.
 func (ww *wlWindow) applyPending(w, h int32) {
 	ww.configured = true
+	ww.syncPlacement(w, h)
 	ww.resize(w, h, ww.scale120)
 	ww.syncFocus()
 	ww.syncOccluded()

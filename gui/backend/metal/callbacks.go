@@ -481,6 +481,15 @@ func goMetalWindowOccluded(wid C.uint, occluded C.int) {
 	gui.DispatchWindowOccluded(ws.attachedWindow, occluded != 0)
 }
 
+//export goMetalWindowState
+func goMetalWindowState(wid C.uint, zoomed, fullscreen C.int) {
+	ws := lookupWindow(uint32(wid))
+	if ws == nil || ws.attachedWindow == nil {
+		return
+	}
+	gui.DispatchWindowState(ws.attachedWindow, zoomed != 0, fullscreen != 0)
+}
+
 //export goMetalFileDrop
 func goMetalFileDrop(wid C.uint, cpath *C.char) {
 	// cpath is [NSString UTF8String] — internal autoreleased

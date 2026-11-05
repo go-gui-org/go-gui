@@ -300,10 +300,8 @@ type Window struct {
 	platformID atomic.Uint32
 	closeReq   atomic.Bool
 
-	// hidden is true after Hide until Show. Atomic: IsVisible reads
-	// lock-free from any goroutine while Hide/Show write on the
-	// frame thread. The zero value reads as visible.
-	hidden atomic.Bool
+	// windowPlacement holds hidden, maximized and fullscreen.
+	windowPlacement
 	// destroyed latches in WindowCleanup. Hide/Show check it so a
 	// Show after the backend tore the OS window down is a no-op
 	// instead of a call into a dead handle (issue #779).

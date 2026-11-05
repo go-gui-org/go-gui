@@ -50,6 +50,7 @@ var (
 	pLoadCursorW         = user32.NewProc("LoadCursorW")
 	pSetCursor           = user32.NewProc("SetCursor")
 	pGetClientRect       = user32.NewProc("GetClientRect")
+	pClientToScreen      = user32.NewProc("ClientToScreen")
 	pSetWindowTextW      = user32.NewProc("SetWindowTextW")
 	pSetWindowPos        = user32.NewProc("SetWindowPos")
 	pScreenToClient      = user32.NewProc("ScreenToClient")
@@ -230,6 +231,12 @@ type platformState struct {
 	// titlebarDark is the caption variant last set by TitlebarDark.
 	// Windows starts every window light, so the zero value is right.
 	titlebarDark bool
+	// fullscreen is true from the moment SetWindowFullscreen(true) runs
+	// until it is undone. savedStyle and savedPlacement hold what
+	// leaving restores.
+	fullscreen     bool
+	savedStyle     uintptr
+	savedPlacement windowPlacement
 	// minTrack and maxTrack are the outer-frame resize bounds in
 	// physical pixels, precomputed at create time so the
 	// WM_GETMINMAXINFO handler does no conversion per message. A zero
@@ -580,12 +587,17 @@ func (n *nativePlatform) SetWindowOpacity(opacity float32) {
 }
 
 // ShowWindow unhides a hidden window, restoring it when minimized,
-// and brings it to the foreground (issue #779).
+// and brings it to the foreground (issue #779). SW_RESTORE only for a
+// minimized window: on a maximized one it would drop the maximize.
 func (n *nativePlatform) ShowWindow() {
 	if n.b == nil || n.b.plat.hwnd == 0 {
 		return
 	}
-	pShowWindow.Call(n.b.plat.hwnd, swRestore)
+	cmd := uintptr(swShow)
+	if isIconic(n.b.plat.hwnd) {
+		cmd = swRestore
+	}
+	pShowWindow.Call(n.b.plat.hwnd, cmd)
 	pSetForegroundWindow.Call(n.b.plat.hwnd)
 }
 

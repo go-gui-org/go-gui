@@ -263,6 +263,7 @@ func (b *Backend) handleXEvent(ev xgb.Event) {
 		// window check guards against a child's unmap, should one ever
 		// select SubstructureNotify.
 		if e.Window == b.plat.window {
+			b.plat.unmapped = true
 			gui.DispatchWindowOccluded(w, true)
 		}
 
@@ -272,7 +273,13 @@ func (b *Backend) handleXEvent(ev xgb.Event) {
 		// The first map at startup finds the window already shown and is
 		// a no-op.
 		if e.Window == b.plat.window {
+			b.plat.unmapped = false
 			gui.DispatchWindowOccluded(w, false)
+		}
+
+	case xproto.PropertyNotifyEvent:
+		if e.Window == b.plat.window && e.Atom == b.plat.stateAtoms.state {
+			b.syncWindowState()
 		}
 
 	case xproto.ClientMessageEvent:

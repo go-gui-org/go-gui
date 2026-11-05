@@ -86,6 +86,26 @@ type nativeWindowVisibility interface {
 	HideWindow()
 }
 
+// NativeWindowState changes how the OS window sits on screen (issues
+// #1171, #1220). A method must not deliver events before it returns:
+// gui calls them from event handlers, so a backend whose OS answers a
+// resize inline posts the request and applies it from its message pump
+// (docs/specs/window-state.md). Sizes are logical content pixels.
+// Positions are OS desktop units for the content area's top-left
+// corner. No-op where there is no window manager to ask. A backend
+// reports the result through DispatchWindowState.
+type nativeWindowState interface {
+	MinimizeWindow()
+	MaximizeWindow()
+	RestoreWindow()
+	SetWindowFullscreen(fullscreen bool)
+	ResizeWindow(width, height int)
+	MoveWindow(x, y int)
+	// WindowPosition returns the content area's position; ok is false
+	// where the OS does not say.
+	WindowPosition() (x, y int, ok bool)
+}
+
 // NativeSound plays OS-level alert sounds.
 type nativeSound interface {
 	// Beep plays the user's configured system alert sound, honoring
@@ -126,6 +146,7 @@ type NativePlatform interface {
 	nativeMenubar
 	nativeSystemTray
 	nativeWindowVisibility
+	nativeWindowState
 	nativeSound
 	nativeAppearance
 	OpenURI(uri string) error
@@ -206,6 +227,7 @@ func (w *Window) SetNativePlatform(np NativePlatform) {
 	if !applied && w.titlebarDarkSet && np != nil {
 		np.TitlebarDark(w.titlebarDark)
 	}
+	w.replayPlacement()
 }
 
 // NativePlatformBackend returns the native platform backend (nil in tests).

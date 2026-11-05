@@ -10,6 +10,21 @@ and this project adheres to
 
 ### Added
 
+- **Window state and placement: minimize, maximize, restore, fullscreen, resize,
+  move (#1171, #1220).** An app could not change its own window, so a frameless
+  title bar could not offer minimize and maximize buttons, and a media player
+  could not go fullscreen. `Window.Minimize`, `Maximize`, `Restore`,
+  `SetFullscreen`, `SetWindowSize`, `SetPosition` and `Position` now do this on
+  Windows, macOS, X11 and Wayland. `IsMaximized` and `IsFullscreen` report what
+  the OS confirmed, including a change the user made through the OS, and a view
+  reading them redraws when the state changes. Fullscreen ignores `MaxWidth` and
+  `MaxHeight`, works on a `FixedSize` window, and returns a maximized window to
+  maximized. Called before `backend.Run`, these apply as the window opens.
+  `Position` is in OS desktop units. Wayland cannot place a window or bring back
+  a minimized one, so `SetPosition` is a no-op there, `Position` reports no
+  position, and `Restore` only undoes a maximize. Web, iOS and Android no-op for
+  now; their fullscreen is a follow-up.
+
 - **Slovak (`sk-SK`) locale (#1209).** Adds Slovak number, date, time, currency
   and user-facing UI string formatting to the built-in locale registry.
 
@@ -57,6 +72,17 @@ and this project adheres to
   or a scale change, still makes the commit, and so does the first frame.
 
 ### Fixed
+
+- **A window resized while unfocused learns its new size (#1220).** gui dropped
+  `EventResized` on an unfocused window along with the input events, so a window
+  resized in the background kept its old size until the next resize: a tiling
+  window manager moving a background window, or an app calling
+  `Window.SetWindowSize` from a tray. Layout then used the stale size.
+
+- **`Window.Show` no longer un-maximizes a window on Windows (#1220).** `Show`
+  restored the window whatever its state, so a tray "Show Window" on a maximized
+  window dropped it back to its normal size. It now restores only a minimized
+  window, and otherwise raises it as it is.
 
 - **Built-in locales translate the Lightness label and the source-changed status
   (#1210).** The `ar-SA`, `de-DE`, `es-ES`, `fr-FR`, `he-IL`, `ja-JP`, `ko-KR`,

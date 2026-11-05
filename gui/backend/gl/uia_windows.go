@@ -51,7 +51,6 @@ var (
 	pSafeArrayCreateVector = oleaut32.NewProc("SafeArrayCreateVector")
 	pSafeArrayPutElement   = oleaut32.NewProc("SafeArrayPutElement")
 
-	pClientToScreen = user32.NewProc("ClientToScreen")
 	pNotifyWinEvent = user32.NewProc("NotifyWinEvent")
 )
 
