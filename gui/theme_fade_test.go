@@ -106,10 +106,13 @@ func TestThemeFadeBlendEndsAndUnset(t *testing.T) {
 }
 
 // fadeTestWindow returns a window that already showed one frame of
-// ThemeDark, so a later SetTheme is a switch and not the first pin.
+// ThemeDark, so a later SetTheme is a switch and not the first pin. Its
+// animation loop stays down: these tests step the fade by hand, and a
+// tick the loop queued would run in the next FrameFn and overwrite the
+// step (#1163). Mid-fade checks then read the colors of a tick near 0.
 func fadeTestWindow(t *testing.T, d time.Duration) *Window {
 	t.Helper()
-	w := NewWindow(WindowCfg{State: new(int), Width: 200, Height: 100})
+	w := noAnimationLoop(NewWindow(WindowCfg{State: new(int), Width: 200, Height: 100}))
 	t.Cleanup(w.WindowCleanup)
 	w.viewGenerator = func(*Window) View {
 		return Column(ContainerCfg{Sizing: FillFill})
