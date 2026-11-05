@@ -329,13 +329,16 @@ policy from code that drifts.
   (`FixedSize` pins both), and `Decorations` (frameless needs an app drag handle
   via `StartWindowDrag`/`StartWindowResize`). Opacity is the runtime setter
   `SetWindowOpacity` / `WindowOpacity`, refused on a transparent Windows window.
-- **Where to change:** `gui/window_cfg.go` for config, `gui/window_opacity.go`
-  and `gui/window_decoration.go` for runtime, one `NativePlatform` method per
-  capability, implemented per backend.
+  State and placement are runtime calls too: `Minimize`, `Maximize`, `Restore`,
+  `SetFullscreen`, `SetWindowSize`, `SetPosition`. Their native methods must not
+  deliver events before they return, because gui calls them from event handlers.
+- **Where to change:** `gui/window_cfg.go` for config, `gui/window_opacity.go`,
+  `gui/window_decoration.go` and `gui/window_placement.go` for runtime, one
+  `NativePlatform` method per capability, implemented per backend.
 - **Catches:** `gui.Debug` (category `DebugWindowDegraded`) reports a refused
   feature. Specs: `docs/specs/transparent-windows.md`,
   `docs/specs/window-opacity.md`, `docs/specs/window-size-limits.md`,
-  `docs/specs/frameless-windows.md`.
+  `docs/specs/frameless-windows.md`, `docs/specs/window-state.md`.
 
 ### Widget Cfg invariants
 

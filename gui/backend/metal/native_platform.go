@@ -184,6 +184,45 @@ func (n *nativePlatform) HideWindow() {
 	C.metalWindowHide(n.window)
 }
 
+// MinimizeWindow sends the window to the Dock.
+func (n *nativePlatform) MinimizeWindow() { C.metalWindowMinimize(n.window) }
+
+// MaximizeWindow zooms the window.
+func (n *nativePlatform) MaximizeWindow() { C.metalWindowMaximize(n.window) }
+
+// RestoreWindow undoes a minimize, then a zoom.
+func (n *nativePlatform) RestoreWindow() { C.metalWindowRestore(n.window) }
+
+// SetWindowFullscreen enters or leaves a fullscreen Space. It animates;
+// the state arrives through goMetalWindowState when that ends.
+func (n *nativePlatform) SetWindowFullscreen(fullscreen bool) {
+	f := 0
+	if fullscreen {
+		f = 1
+	}
+	C.metalWindowSetFullscreen(n.window, C.int(f))
+}
+
+// ResizeWindow sets the content area, in points.
+func (n *nativePlatform) ResizeWindow(width, height int) {
+	C.metalWindowResize(n.window, C.int(width), C.int(height))
+}
+
+// MoveWindow puts the content area's corner at x, y.
+func (n *nativePlatform) MoveWindow(x, y int) {
+	C.metalWindowMove(n.window, C.int(x), C.int(y))
+}
+
+// WindowPosition returns the content area's corner in y-down points. A
+// minimized window reports no position.
+func (n *nativePlatform) WindowPosition() (x, y int, ok bool) {
+	var cx, cy C.int
+	if C.metalWindowGetPosition(n.window, &cx, &cy) == 0 {
+		return 0, 0, false
+	}
+	return int(cx), int(cy), true
+}
+
 // --- Spell check ---
 
 func (n *nativePlatform) SpellCheck(text string) []gui.SpellRange {

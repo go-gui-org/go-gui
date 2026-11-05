@@ -123,24 +123,13 @@ func (p *platformState) startMoveResize(direction uint32) {
 		return
 	}
 	xproto.UngrabPointer(p.conn, xproto.TimeCurrentTime)
-	data := xproto.ClientMessageDataUnionData32New([]uint32{
+	p.sendWMMessage(atom, []uint32{
 		uint32(int32(p.pressRootX)),
 		uint32(int32(p.pressRootY)),
 		direction,
 		uint32(p.pressButton),
 		netMoveResizeSourceApp,
 	})
-	ev := xproto.ClientMessageEvent{
-		Format: 32,
-		Window: p.window,
-		Type:   atom,
-		Data:   data,
-	}
-	// Routed through the root window: the request is for the window
-	// manager, not for us.
-	xproto.SendEvent(p.conn, false, p.root,
-		xproto.EventMaskSubstructureRedirect|xproto.EventMaskSubstructureNotify,
-		string(ev.Bytes()))
 	// The gesture is now the WM's, so the next press has to re-arm it.
 	p.havePress = false
 }

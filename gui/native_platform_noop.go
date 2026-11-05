@@ -79,5 +79,12 @@ func (noopNativePlatform) UpdateSystemTray(_ int, _ SystemTrayCfg) {}
 func (noopNativePlatform) RemoveSystemTray(_ int)                  {}
 func (noopNativePlatform) ShowWindow()                             {}
 func (noopNativePlatform) HideWindow()                             {}
+func (noopNativePlatform) MinimizeWindow()                         {}
+func (noopNativePlatform) MaximizeWindow()                         {}
+func (noopNativePlatform) RestoreWindow()                          {}
+func (noopNativePlatform) SetWindowFullscreen(_ bool)              {}
+func (noopNativePlatform) ResizeWindow(_, _ int)                   {}
+func (noopNativePlatform) MoveWindow(_, _ int)                     {}
+func (noopNativePlatform) WindowPosition() (int, int, bool)        { return 0, 0, false }
 func (noopNativePlatform) Beep()                                   {}
 func (noopNativePlatform) BeepAvailable() bool                     { return false }

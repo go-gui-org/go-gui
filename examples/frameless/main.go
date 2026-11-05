@@ -3,7 +3,9 @@
 // app supplies its own: the header strip calls Window.StartWindowDrag to
 // move the window, and the bottom-right grip calls
 // Window.StartWindowResize. Both hand the gesture to the OS, so window
-// snapping and edge tiling keep working.
+// snapping and edge tiling keep working. The header buttons stand in for
+// the missing window controls through Window.Minimize, Maximize and
+// Restore.
 package main
 
 import (
@@ -54,7 +56,7 @@ func main() {
 	w := gui.NewWindow(gui.WindowCfg{
 		State:       &App{Decoration: decoration},
 		Title:       "frameless",
-		Width:       440,
+		Width:       520,
 		Height:      280,
 		Decorations: decoration,
 		OnInit: func(w *gui.Window) {
@@ -77,7 +79,7 @@ func mainView(w *gui.Window) gui.View {
 		Sizing:     gui.FillFill,
 		SizeBorder: gui.NoBorder,
 		Content: []gui.View{
-			header(framelessScope, gui.State[App](w).Decoration),
+			header(framelessScope, w),
 			body(framelessScope, w),
 			grip(framelessScope),
 		},
@@ -87,8 +89,9 @@ func mainView(w *gui.Window) gui.View {
 // header is the drag strip that stands in for the missing title bar.
 // The press starts a native move; the app never sees the matching
 // release, so there is no drag state of its own to keep.
-func header(owner string, decoration gui.WindowDecoration) gui.View {
+func header(owner string, w *gui.Window) gui.View {
 	theme := gui.CurrentTheme()
+	decoration := gui.State[App](w).Decoration
 	left := theme.SpacingMedium
 	if decoration == gui.DecorationHiddenTitlebar {
 		left = trafficLightInset
@@ -117,6 +120,16 @@ func header(owner string, decoration gui.WindowDecoration) gui.View {
 				SizeBorder: gui.NoBorder,
 			}),
 			gui.Button(gui.ButtonCfg{
+				ID:      gui.ScopeID(owner, "minimize"),
+				A11YCfg: gui.A11YCfg{A11YLabel: "Minimize window"},
+				Content: []gui.View{gui.Text(gui.TextCfg{Text: "Minimize"})},
+				OnClick: func(ctx gui.EventCtx) {
+					ctx.Window.Minimize()
+					ctx.Consume()
+				},
+			}),
+			maximizeButton(owner, w),
+			gui.Button(gui.ButtonCfg{
 				ID:      gui.ScopeID(owner, "close"),
 				A11YCfg: gui.A11YCfg{A11YLabel: "Close window"},
 				Content: []gui.View{gui.Text(gui.TextCfg{Text: "Close"})},
@@ -125,6 +138,28 @@ func header(owner string, decoration gui.WindowDecoration) gui.View {
 					ctx.Consume()
 				},
 			}),
+		},
+	})
+}
+
+// maximizeButton reads the state from the window, so it stays right when
+// the user maximizes through the OS: by snapping, or with a shortcut.
+func maximizeButton(owner string, w *gui.Window) gui.View {
+	label := "Maximize"
+	if w.IsMaximized() {
+		label = "Restore"
+	}
+	return gui.Button(gui.ButtonCfg{
+		ID:      gui.ScopeID(owner, "maximize"),
+		A11YCfg: gui.A11YCfg{A11YLabel: label + " window"},
+		Content: []gui.View{gui.Text(gui.TextCfg{Text: label})},
+		OnClick: func(ctx gui.EventCtx) {
+			if ctx.Window.IsMaximized() {
+				ctx.Window.Restore()
+			} else {
+				ctx.Window.Maximize()
+			}
+			ctx.Consume()
 		},
 	})
 }

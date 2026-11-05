@@ -269,6 +269,7 @@ func (b *Backend) handleMessage(msg, wparam, lparam uintptr) (uintptr, bool) {
 		// Restored or maximized. Before the FrameFn below, so that frame
 		// is the full refresh the show asks for.
 		gui.DispatchWindowOccluded(w, false)
+		b.syncWindowState()
 		// Refresh physical size + DPI, then derive the logical size
 		// from the authoritative client rect rather than lParam's
 		// 16-bit words (which sign-extend past 32767).
@@ -351,7 +352,16 @@ func (b *Backend) handleMessage(msg, wparam, lparam uintptr) (uintptr, bool) {
 		}
 		return 0, false
 
+	case wmWindowOp:
+		b.windowOp(wparam, lparam)
+		return 0, true
+
 	case wmGetMinMaxInfo:
+		// A fullscreen window fills its monitor: neither concern below
+		// applies to it.
+		if b.plat.fullscreen {
+			return 0, false
+		}
 		// Two independent concerns write different MINMAXINFO fields:
 		// the frameless clamp fixes the maximize rect, the size limits
 		// fix the track sizes. Both may apply to the same window, so

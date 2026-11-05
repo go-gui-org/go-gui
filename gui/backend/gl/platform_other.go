@@ -30,6 +30,15 @@ func (n *nativePlatform) StartWindowResize(_ gui.WindowEdge) {}
 func (n *nativePlatform) ShowWindow() {}
 func (n *nativePlatform) HideWindow() {}
 
+// No window system here to place a window in.
+func (n *nativePlatform) MinimizeWindow()                  {}
+func (n *nativePlatform) MaximizeWindow()                  {}
+func (n *nativePlatform) RestoreWindow()                   {}
+func (n *nativePlatform) SetWindowFullscreen(_ bool)       {}
+func (n *nativePlatform) ResizeWindow(_, _ int)            {}
+func (n *nativePlatform) MoveWindow(_, _ int)              {}
+func (n *nativePlatform) WindowPosition() (int, int, bool) { return 0, 0, false }
+
 // No window frame here to switch to dark.
 func (n *nativePlatform) TitlebarDark(_ bool) {}
 

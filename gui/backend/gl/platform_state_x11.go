@@ -111,6 +111,16 @@ type platformState struct {
 	// without re-reading the window config.
 	limits gui.SizeLimits
 
+	// stateAtoms are the _NET_WM_STATE atoms. fullscreen is the state
+	// the max-size hint was last written for, and maximized and
+	// stateHidden what _NET_WM_STATE last said. unmapped is true between
+	// UnmapNotify and MapNotify.
+	stateAtoms  x11StateAtoms
+	fullscreen  bool
+	maximized   bool
+	stateHidden bool
+	unmapped    bool
+
 	// Input method. ime is nil when none is reachable, in which case
 	// key presses keep going straight through the keysym path. imeBuf
 	// is reused by drainIME to keep the handoff allocation-free.

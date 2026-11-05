@@ -7,6 +7,7 @@
 #import <Metal/Metal.h>
 
 #import <QuartzCore/CAMetalLayer.h>
+#include <float.h>
 #include <string.h>
 #include <stdlib.h>
 #include <math.h>
@@ -523,6 +524,27 @@ static uint32_t _nextWindowID = 1;
 @interface GUIWindow : NSWindow <NSWindowDelegate, NSDraggingDestination>
 @property (nonatomic, assign) uint32_t  windowID;
 @property (nonatomic, assign) BOOL      closed;
+// Fullscreen bookkeeping (#1171), prefixed to stay clear of NSWindow's
+// private names. fsWanted is the state to end
+// up in; a request during the animation waits in it. fsTransitioning
+// holds off state reports until the animation ends. fsZoomedBefore is
+// the answer for IsMaximized while fullscreen. fsLifted says the max size
+// and style below were changed for the transition and need restoring.
+@property (nonatomic, assign) BOOL      fsWanted;
+@property (nonatomic, assign) BOOL      fsTransitioning;
+@property (nonatomic, assign) BOOL      fsZoomedBefore;
+@property (nonatomic, assign) BOOL      fsLifted;
+@property (nonatomic, assign) NSSize    fsSavedMaxSize;
+@property (nonatomic, assign) NSWindowStyleMask fsSavedStyle;
+// fsNormalFrame is the frame Restore returns a zoomed window to.
+@property (nonatomic, assign) NSRect    fsNormalFrame;
+// fsHidden is the app's Hide, which isVisible cannot tell from minimized.
+@property (nonatomic, assign) BOOL      fsHidden;
+- (BOOL)goguiIsFullscreen;
+- (BOOL)goguiIsZoomed;
+- (void)reportWindowState;
+- (void)recordNormalFrameWhenSettled;
+- (void)moveToWantedFullscreen;
 @end
 
 @implementation GUIWindow
@@ -599,6 +621,133 @@ static uint32_t _nextWindowID = 1;
     goMetalWindowResized(_windowID,
                          (int)bounds.size.width,
                          (int)bounds.size.height);
+    if (!self.fsTransitioning) {
+        [self reportWindowState];
+    }
+    [self recordNormalFrameWhenSettled];
+}
+
+- (void)windowDidMove:(NSNotification *)notification {
+    [self recordNormalFrameWhenSettled];
+}
+
+// ─── Window state (#1171, #1220) ───────────────────────────────
+
+// Restore cannot lean on zoom:. It only undoes a zoom AppKit saw, and
+// the system's Fill tiles the window without one, so zoom: finds no
+// frame to return to and nudges the window smaller. fsNormalFrame is
+// that frame, kept here for every way of being zoomed.
+- (void)recordNormalFrame {
+    if (self.fsTransitioning || self.isMiniaturized ||
+        [self goguiIsFullscreen] || [self goguiIsZoomed]) {
+        return;
+    }
+    self.fsNormalFrame = self.frame;
+}
+
+// Fill and zoom animate, and a frame in flight is not one to return to,
+// so a frame counts once it has stopped changing.
+- (void)recordNormalFrameWhenSettled {
+    [NSObject cancelPreviousPerformRequestsWithTarget:self
+                                             selector:@selector(recordNormalFrame)
+                                               object:nil];
+    [self performSelector:@selector(recordNormalFrame)
+               withObject:nil
+               afterDelay:0.4];
+}
+
+// Called before any zoom:, so an app that zooms right after a resize
+// does not depend on the delay above.
+- (BOOL)windowShouldZoom:(NSWindow *)window toFrame:(NSRect)newFrame {
+    [self recordNormalFrame];
+    return YES;
+}
+
+- (BOOL)goguiIsFullscreen {
+    return (self.styleMask & NSWindowStyleMaskFullScreen) != 0;
+}
+
+// isZoomed only compares the frame with the standard frame, which the
+// content limits cap, so a FixedSize window always reads as zoomed. Its
+// answer also changes when the limits do.
+- (BOOL)goguiIsZoomed {
+    return (self.styleMask & NSWindowStyleMaskResizable) != 0 && self.isZoomed;
+}
+
+- (void)reportWindowState {
+    BOOL full = [self goguiIsFullscreen];
+    BOOL zoomed = full ? self.fsZoomedBefore : [self goguiIsZoomed];
+    goMetalWindowState(_windowID, zoomed ? 1 : 0, full ? 1 : 0);
+}
+
+// A window with a content ceiling or no Resizable bit cannot fill the
+// screen, so both are raised for the time it is fullscreen.
+- (void)liftFullscreenLimits {
+    if (self.fsLifted) return;
+    // Before the ceiling goes, which would change the standard frame.
+    self.fsZoomedBefore = [self goguiIsZoomed];
+    self.fsLifted = YES;
+    self.fsSavedMaxSize = self.contentMaxSize;
+    self.fsSavedStyle = self.styleMask;
+    self.contentMaxSize = NSMakeSize(FLT_MAX, FLT_MAX);
+    self.styleMask |= NSWindowStyleMaskResizable;
+    self.collectionBehavior |= NSWindowCollectionBehaviorFullScreenPrimary;
+}
+
+- (void)restoreFullscreenLimits {
+    if (!self.fsLifted) return;
+    self.fsLifted = NO;
+    self.contentMaxSize = self.fsSavedMaxSize;
+    self.styleMask = (self.styleMask & ~NSWindowStyleMaskResizable) |
+                     (self.fsSavedStyle & NSWindowStyleMaskResizable);
+}
+
+- (void)moveToWantedFullscreen {
+    if (self.fsTransitioning || self.fsWanted == [self goguiIsFullscreen]) {
+        return;
+    }
+    if (self.fsWanted) {
+        [self liftFullscreenLimits];
+    }
+    [self toggleFullScreen:nil];
+}
+
+- (void)windowWillEnterFullScreen:(NSNotification *)notification {
+    self.fsTransitioning = YES;
+    self.fsWanted = YES;
+    // The green button comes here without lifting anything.
+    if (!self.fsLifted) self.fsZoomedBefore = [self goguiIsZoomed];
+}
+
+- (void)windowDidEnterFullScreen:(NSNotification *)notification {
+    self.fsTransitioning = NO;
+    [self reportWindowState];
+    [self moveToWantedFullscreen];
+}
+
+- (void)windowDidFailToEnterFullScreen:(NSWindow *)window {
+    self.fsTransitioning = NO;
+    self.fsWanted = NO;
+    [self restoreFullscreenLimits];
+    [self reportWindowState];
+}
+
+- (void)windowWillExitFullScreen:(NSNotification *)notification {
+    self.fsTransitioning = YES;
+    self.fsWanted = NO;
+}
+
+- (void)windowDidExitFullScreen:(NSNotification *)notification {
+    self.fsTransitioning = NO;
+    [self restoreFullscreenLimits];
+    [self reportWindowState];
+    [self moveToWantedFullscreen];
+}
+
+- (void)windowDidFailToExitFullScreen:(NSWindow *)window {
+    self.fsTransitioning = NO;
+    self.fsWanted = YES;
+    [self reportWindowState];
 }
 
 - (void)windowDidChangeBackingProperties:(NSNotification *)notification {
@@ -622,6 +771,9 @@ static uint32_t _nextWindowID = 1;
 }
 
 - (void)windowDidBecomeKey:(NSNotification *)notification {
+    // The first frame moves nothing, and Fill may be the first thing
+    // that happens to a new window.
+    if (NSIsEmptyRect(self.fsNormalFrame)) [self recordNormalFrame];
     goMetalWindowFocusChanged(_windowID, 1);
 }
 
@@ -705,7 +857,9 @@ GoGuiNSWindow metalWindowCreate(const char *title, int width, int height,
     // the edges -- that is why macOS needs no client-drawn grip.
     NSWindowStyleMask style;
     if (decorations == GOGUI_DECORATION_NONE) {
-        style = NSWindowStyleMaskBorderless;
+        // Miniaturizable draws nothing here. Without it a borderless
+        // window ignores Window.Minimize.
+        style = NSWindowStyleMaskBorderless | NSWindowStyleMaskMiniaturizable;
     } else {
         style = NSWindowStyleMaskTitled
               | NSWindowStyleMaskClosable
@@ -790,6 +944,10 @@ GoGuiNSWindow metalWindowCreate(const char *title, int width, int height,
 void metalWindowDestroy(GoGuiNSWindow w) {
     if (!w) return;
     GoGuiWindow *gw = (GoGuiWindow *)w;
+    // A state change still on the main queue must find the window gone,
+    // and the settle timer must not outlive it.
+    gw->nsWindow.closed = YES;
+    [NSObject cancelPreviousPerformRequestsWithTarget:gw->nsWindow];
     gw->nsWindow.delegate = nil;
     [gw->nsWindow unregisterDraggedTypes];
     [gw->nsWindow close];
@@ -801,14 +959,123 @@ void metalWindowDestroy(GoGuiNSWindow w) {
 void metalWindowHide(GoGuiNSWindow w) {
     if (!w) return;
     GoGuiWindow *gw = (GoGuiWindow *)w;
+    gw->nsWindow.fsHidden = YES;
     [gw->nsWindow orderOut:nil];
 }
 
 void metalWindowShow(GoGuiNSWindow w) {
     if (!w) return;
     GoGuiWindow *gw = (GoGuiWindow *)w;
+    gw->nsWindow.fsHidden = NO;
     [gw->nsWindow makeKeyAndOrderFront:nil];
     [NSApp activateIgnoringOtherApps:YES];
+}
+
+// ─── State and placement (#1171, #1220) ────────────────────────
+
+// Each change runs on the main queue, which the run loop serves inside
+// metalPollEvent. AppKit answers these calls with windowDidResize:
+// inline, which reaches EventFn; gui makes them from event handlers, and
+// a nested EventFn would overwrite the event in flight.
+static void metalWindowLater(GoGuiNSWindow w, void (^change)(GUIWindow *)) {
+    if (!w) return;
+    GUIWindow *win = ((GoGuiWindow *)w)->nsWindow;
+    dispatch_async(dispatch_get_main_queue(), ^{
+        if (!win.closed) change(win);
+    });
+}
+
+// A state change queued just before Hide runs after it, and must not
+// bring the window back. Resize and move show nothing, so they do not
+// come through here.
+static void metalWindowStateLater(GoGuiNSWindow w,
+                                  void (^change)(GUIWindow *)) {
+    metalWindowLater(w, ^(GUIWindow *win) {
+        if (!win.fsHidden) change(win);
+    });
+}
+
+void metalWindowMinimize(GoGuiNSWindow w) {
+    metalWindowStateLater(w, ^(GUIWindow *win) {
+        [win miniaturize:nil];
+    });
+}
+
+void metalWindowMaximize(GoGuiNSWindow w) {
+    metalWindowStateLater(w, ^(GUIWindow *win) {
+        if (![win goguiIsZoomed] && ![win goguiIsFullscreen]) [win zoom:nil];
+    });
+}
+
+void metalWindowRestore(GoGuiNSWindow w) {
+    metalWindowStateLater(w, ^(GUIWindow *win) {
+        if (win.isMiniaturized) {
+            [win deminiaturize:nil];
+        } else if ([win goguiIsZoomed] && ![win goguiIsFullscreen]) {
+            if (NSIsEmptyRect(win.fsNormalFrame)) {
+                [win zoom:nil];
+            } else {
+                [win setFrame:win.fsNormalFrame display:YES animate:YES];
+            }
+        }
+    });
+}
+
+void metalWindowSetFullscreen(GoGuiNSWindow w, int fullscreen) {
+    metalWindowStateLater(w, ^(GUIWindow *win) {
+        BOOL on = fullscreen != 0;
+        // Only a real change brings a minimized window back. Asking a
+        // minimized window to stay out of fullscreen must not show it.
+        if (on != [win goguiIsFullscreen] && win.isMiniaturized) {
+            [win deminiaturize:nil];
+        }
+        win.fsWanted = on;
+        [win moveToWantedFullscreen];
+    });
+}
+
+void metalWindowResize(GoGuiNSWindow w, int width, int height) {
+    metalWindowLater(w, ^(GUIWindow *win) {
+        if (win.isMiniaturized || [win goguiIsFullscreen] || [win goguiIsZoomed]) {
+            return;
+        }
+        NSRect content = [win contentRectForFrameRect:win.frame];
+        // AppKit's origin is the bottom-left corner, so keeping the
+        // window's top where it is moves the origin.
+        content.origin.y += content.size.height - height;
+        content.size = NSMakeSize(width, height);
+        [win setFrame:[win frameRectForContentRect:content] display:YES];
+    });
+}
+
+// The height of the primary screen, the one AppKit's desktop coordinates
+// are measured from. It turns AppKit's y-up points into the y-down
+// desktop coordinates Window.Position reports.
+static CGFloat metalDesktopHeight(void) {
+    return NSScreen.screens.firstObject.frame.size.height;
+}
+
+void metalWindowMove(GoGuiNSWindow w, int x, int y) {
+    metalWindowLater(w, ^(GUIWindow *win) {
+        if (win.isMiniaturized || [win goguiIsFullscreen] || [win goguiIsZoomed]) {
+            return;
+        }
+        NSRect frame = win.frame;
+        NSRect content = [win contentRectForFrameRect:frame];
+        CGFloat titlebar = NSMaxY(frame) - NSMaxY(content);
+        [win setFrameTopLeftPoint:NSMakePoint(
+            x, metalDesktopHeight() - y + titlebar)];
+    });
+}
+
+int metalWindowGetPosition(GoGuiNSWindow w, int *x, int *y) {
+    if (!w) return 0;
+    GUIWindow *win = ((GoGuiWindow *)w)->nsWindow;
+    if (win.isMiniaturized) return 0;
+    NSRect content = [win contentRectForFrameRect:win.frame];
+    *x = (int)content.origin.x;
+    *y = (int)(metalDesktopHeight() - NSMaxY(content));
+    return 1;
 }
 
 // ─── Properties ────────────────────────────────────────────────
@@ -1010,6 +1277,8 @@ __attribute__((weak)) void goMetalWindowResized(unsigned int wid,
 __attribute__((weak)) void goMetalWindowShouldClose(unsigned int wid) {}
 __attribute__((weak)) void goMetalWindowFocusChanged(unsigned int wid,
                                                      int focused) {}
+__attribute__((weak)) void goMetalWindowState(unsigned int wid,
+                                              int zoomed, int fullscreen) {}
 __attribute__((weak)) void goMetalWindowOccluded(unsigned int wid,
                                                  int occluded) {}
 __attribute__((weak)) void goMetalFileDrop(unsigned int wid, char *path) {}

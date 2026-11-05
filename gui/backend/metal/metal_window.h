@@ -48,6 +48,19 @@ void metalWindowHide(GoGuiNSWindow w);
 // a tray "Show Window" item brings the app forward.
 void metalWindowShow(GoGuiNSWindow w);
 
+// State and placement (#1171, #1220). Each change runs later on the main
+// queue, never inside the caller: see metalWindowLater. Sizes are points
+// of the content area. Positions are the content area's top-left corner
+// in y-down points from the top of the primary screen.
+void metalWindowMinimize(GoGuiNSWindow w);
+void metalWindowMaximize(GoGuiNSWindow w);
+void metalWindowRestore(GoGuiNSWindow w);
+void metalWindowSetFullscreen(GoGuiNSWindow w, int fullscreen);
+void metalWindowResize(GoGuiNSWindow w, int width, int height);
+void metalWindowMove(GoGuiNSWindow w, int x, int y);
+// Returns 0 for a minimized window, which has no place on screen.
+int metalWindowGetPosition(GoGuiNSWindow w, int *x, int *y);
+
 // ─── Properties ────────────────────────────────────────────────
 
 // Set the window title.
@@ -86,6 +99,10 @@ extern void goMetalWindowFocusChanged(unsigned int windowID,
 // Called when the window becomes occluded (minimized or fully covered)
 // or visible again.
 extern void goMetalWindowOccluded(unsigned int windowID, int occluded);
+
+// Called when the window's zoomed or fullscreen state may have changed.
+extern void goMetalWindowState(unsigned int windowID, int zoomed,
+                               int fullscreen);
 
 // Called when files are dropped on the window.
 extern void goMetalFileDrop(unsigned int windowID, char *path);

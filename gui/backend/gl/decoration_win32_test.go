@@ -256,6 +256,8 @@ func TestClientExtentClamps(t *testing.T) {
 	}
 }
 
+const wsVisible = 0x10000000
+
 var pDwmGetWindowAttribute = dwmapi.NewProc("DwmGetWindowAttribute")
 
 // newCaptionWindow creates a hidden window of go-gui's class with no GL
