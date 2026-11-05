@@ -39,7 +39,8 @@ const (
 	placeFlags = swpNoZOrder | swpNoActivate
 )
 
-// Window-state ops, the wParam of wmWindowOp.
+// Window-state ops, the wParam of wmWindowOp. The state changes come
+// first: windowOp drops them on a hidden window.
 const (
 	windowOpMinimize = iota
 	windowOpMaximize
@@ -118,8 +119,14 @@ func (n *nativePlatform) WindowPosition() (x, y int, ok bool) {
 	return int(p.x), int(p.y), true
 }
 
-// windowOp runs one posted request.
+// windowOp runs one posted request. gui refuses a state change on a
+// hidden window, but one posted just before Hide arrives after it, and
+// ShowWindow would show the window behind the app's back. Resize and
+// move show nothing, so they still apply.
 func (b *Backend) windowOp(op, arg uintptr) {
+	if op <= windowOpFullscreen && !b.plat.w.IsVisible() {
+		return
+	}
 	hwnd := b.plat.hwnd
 	switch op {
 	case windowOpMinimize:

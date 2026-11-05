@@ -274,6 +274,34 @@ func TestPlacementRefusedWhileFullscreen(t *testing.T) {
 	b.windowOp(windowOpFullscreen, 0)
 }
 
+// A state change posted just before Hide reaches the pump after it, and
+// must not show the window again. Resize and move show nothing.
+func TestWindowOpsDroppedAfterHide(t *testing.T) {
+	for _, op := range []uintptr{
+		windowOpMinimize, windowOpMaximize, windowOpRestore, windowOpFullscreen,
+	} {
+		b := newPlacedWindow(t)
+		hwnd := b.plat.hwnd
+		b.plat.w.Hide()
+
+		b.windowOp(op, 1)
+
+		if windowStyle(hwnd)&wsVisible != 0 {
+			t.Errorf("op %d showed a hidden window", op)
+		}
+		if b.plat.fullscreen {
+			t.Errorf("op %d took a hidden window fullscreen", op)
+		}
+	}
+
+	b := newPlacedWindow(t)
+	b.plat.w.Hide()
+	b.windowOp(windowOpResize, packPair(301, 203))
+	if cw, ch := clientSize(b.plat.hwnd); cw != 301 || ch != 203 {
+		t.Errorf("hidden window client = %d×%d, want 301×203", cw, ch)
+	}
+}
+
 // Show must not undo a maximize: a tray "Show Window" on a maximized
 // window only raises it.
 func TestShowWindowKeepsMaximize(t *testing.T) {

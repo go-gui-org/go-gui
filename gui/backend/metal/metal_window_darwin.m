@@ -538,6 +538,8 @@ static uint32_t _nextWindowID = 1;
 @property (nonatomic, assign) NSWindowStyleMask fsSavedStyle;
 // fsNormalFrame is the frame Restore returns a zoomed window to.
 @property (nonatomic, assign) NSRect    fsNormalFrame;
+// fsHidden is the app's Hide, which isVisible cannot tell from minimized.
+@property (nonatomic, assign) BOOL      fsHidden;
 - (BOOL)goguiIsFullscreen;
 - (BOOL)goguiIsZoomed;
 - (void)reportWindowState;
@@ -957,12 +959,14 @@ void metalWindowDestroy(GoGuiNSWindow w) {
 void metalWindowHide(GoGuiNSWindow w) {
     if (!w) return;
     GoGuiWindow *gw = (GoGuiWindow *)w;
+    gw->nsWindow.fsHidden = YES;
     [gw->nsWindow orderOut:nil];
 }
 
 void metalWindowShow(GoGuiNSWindow w) {
     if (!w) return;
     GoGuiWindow *gw = (GoGuiWindow *)w;
+    gw->nsWindow.fsHidden = NO;
     [gw->nsWindow makeKeyAndOrderFront:nil];
     [NSApp activateIgnoringOtherApps:YES];
 }
@@ -981,20 +985,30 @@ static void metalWindowLater(GoGuiNSWindow w, void (^change)(GUIWindow *)) {
     });
 }
 
-void metalWindowMinimize(GoGuiNSWindow w) {
+// A state change queued just before Hide runs after it, and must not
+// bring the window back. Resize and move show nothing, so they do not
+// come through here.
+static void metalWindowStateLater(GoGuiNSWindow w,
+                                  void (^change)(GUIWindow *)) {
     metalWindowLater(w, ^(GUIWindow *win) {
+        if (!win.fsHidden) change(win);
+    });
+}
+
+void metalWindowMinimize(GoGuiNSWindow w) {
+    metalWindowStateLater(w, ^(GUIWindow *win) {
         [win miniaturize:nil];
     });
 }
 
 void metalWindowMaximize(GoGuiNSWindow w) {
-    metalWindowLater(w, ^(GUIWindow *win) {
+    metalWindowStateLater(w, ^(GUIWindow *win) {
         if (![win goguiIsZoomed] && ![win goguiIsFullscreen]) [win zoom:nil];
     });
 }
 
 void metalWindowRestore(GoGuiNSWindow w) {
-    metalWindowLater(w, ^(GUIWindow *win) {
+    metalWindowStateLater(w, ^(GUIWindow *win) {
         if (win.isMiniaturized) {
             [win deminiaturize:nil];
         } else if ([win goguiIsZoomed] && ![win goguiIsFullscreen]) {
@@ -1008,7 +1022,7 @@ void metalWindowRestore(GoGuiNSWindow w) {
 }
 
 void metalWindowSetFullscreen(GoGuiNSWindow w, int fullscreen) {
-    metalWindowLater(w, ^(GUIWindow *win) {
+    metalWindowStateLater(w, ^(GUIWindow *win) {
         BOOL on = fullscreen != 0;
         // Only a real change brings a minimized window back. Asking a
         // minimized window to stay out of fullscreen must not show it.

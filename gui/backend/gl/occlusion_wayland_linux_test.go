@@ -79,7 +79,7 @@ func TestWlNoSuspendedStaysVisible(t *testing.T) {
 	w.SetWakeMainFn(func() { wakes++ })
 
 	ww.toplevelConfigure(0, 0, wlStates(wl.XdgToplevelStateActivated,
-		wl.XdgToplevelStateMaximized))
+		wl.XdgToplevelStateResizing))
 	ww.applyPending(1, 1)
 	if wakes != 0 {
 		t.Errorf("configure without suspended woke main %d times, want 0", wakes)

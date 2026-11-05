@@ -1,7 +1,8 @@
 # Spec: window state and placement
 
-Issue #1220, #1171. Status: **implemented** on desktop (unreleased). Web and
-mobile fullscreen stay open in #1171; see Phasing.
+Issue #1220. Status: **implemented** on desktop (unreleased). This also covers
+the desktop half of #1171, where web and mobile fullscreen stay open; see
+Phasing.
 
 ## Problem
 
@@ -34,6 +35,11 @@ State comes back through one call,
 ### Contracts
 
 - **Thread.** As `Hide` and `Show`: UI thread or `Window.QueueCommand`.
+- **A queued state change must check again.** gui refuses one on a hidden
+  window, but `Maximize` followed by `Hide` in one handler reaches the pump
+  after the hide. Windows and macOS drop it there, or it would show the window.
+  X11 needs no check, because its requests reach the window manager in call
+  order.
 - **Native calls must not deliver events synchronously.** A native method posts
   the request and the backend applies it from its message pump. These calls are
   made from `OnClick`. On Win32 and macOS the OS answers a resize inline, and
