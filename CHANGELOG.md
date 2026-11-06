@@ -73,6 +73,12 @@ and this project adheres to
 
 ### Fixed
 
+- **iOS apps launch when built with the iOS 27 SDK (#1225).** UIKit now refuses
+  to start an app without the scene life cycle, so every go-gui iOS app built
+  with that SDK died at launch with no Go panic. The backend now creates its
+  window in a `UIWindowSceneDelegate`, so apps need no `Info.plist` change.
+  Scenes date from iOS 13, so the iOS 15 floor does not move.
+
 - **A window resized while unfocused learns its new size (#1220).** gui dropped
   `EventResized` on an unfocused window along with the input events, so a window
   resized in the background kept its old size until the next resize: a tiling
