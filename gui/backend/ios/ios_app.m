@@ -330,13 +330,13 @@ void iosKeyboardQueueApply(void) {
 
         [[NSNotificationCenter defaultCenter]
             addObserver:self
-            selector:@selector(appWillResignActive:)
-            name:UIApplicationWillResignActiveNotification
+            selector:@selector(sceneWillDeactivate:)
+            name:UISceneWillDeactivateNotification
             object:nil];
         [[NSNotificationCenter defaultCenter]
             addObserver:self
-            selector:@selector(appDidBecomeActive:)
-            name:UIApplicationDidBecomeActiveNotification
+            selector:@selector(sceneDidActivate:)
+            name:UISceneDidActivateNotification
             object:nil];
         [[NSNotificationCenter defaultCenter]
             addObserver:self
@@ -481,11 +481,11 @@ void iosKeyboardQueueApply(void) {
     }
 }
 
-- (void)appWillResignActive:(NSNotification *)n {
+- (void)sceneWillDeactivate:(NSNotification *)n {
     self.displayLink.paused = YES;
 }
 
-- (void)appDidBecomeActive:(NSNotification *)n {
+- (void)sceneDidActivate:(NSNotification *)n {
     self.displayLink.paused = NO;
 }
 
@@ -517,25 +517,54 @@ int iosAppearanceDark(void) {
 
 @end
 
+// ─── GoGuiSceneDelegate ──────────────────────────────────────
+// The iOS 27 SDK refuses to launch an app without the scene life cycle
+// (TN3187), so the window belongs to the scene.
+
+@interface GoGuiSceneDelegate : UIResponder <UIWindowSceneDelegate>
+@property (nonatomic, strong) UIWindow *window;
+@end
+
+@implementation GoGuiSceneDelegate
+
+- (void)scene:(UIScene *)scene
+    willConnectToSession:(UISceneSession *)session
+                 options:(UISceneConnectionOptions *)options {
+    if (![scene isKindOfClass:[UIWindowScene class]]) return;
+    self.window = [[UIWindow alloc]
+        initWithWindowScene:(UIWindowScene *)scene];
+    self.window.rootViewController =
+        [[GoGuiViewController alloc] init];
+    [self.window makeKeyAndVisible];
+}
+
+@end
+
 // ─── GoGuiAppDelegate ────────────────────────────────────────
 
 @interface GoGuiAppDelegate : UIResponder <UIApplicationDelegate>
-@property (nonatomic, strong) UIWindow *window;
 @end
 
 @implementation GoGuiAppDelegate
 
 - (BOOL)application:(UIApplication *)application
     didFinishLaunchingWithOptions:(NSDictionary *)opts {
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-    self.window = [[UIWindow alloc]
-        initWithFrame:[UIScreen mainScreen].bounds];
-#pragma clang diagnostic pop
-    self.window.rootViewController =
-        [[GoGuiViewController alloc] init];
-    [self.window makeKeyAndVisible];
     return YES;
+}
+
+// Only the app's own scene gets the go-gui window. The other role a
+// phone or iPad offers is an external display: without a delegate there,
+// the system keeps mirroring, and a second GoGuiViewController would
+// start the backend twice.
+- (UISceneConfiguration *)application:(UIApplication *)application
+    configurationForConnectingSceneSession:(UISceneSession *)session
+                                   options:(UISceneConnectionOptions *)options {
+    UISceneConfiguration *config = [[UISceneConfiguration alloc]
+        initWithName:@"Default" sessionRole:session.role];
+    if ([session.role isEqualToString:UIWindowSceneSessionRoleApplication]) {
+        config.delegateClass = [GoGuiSceneDelegate class];
+    }
+    return config;
 }
 
 @end
