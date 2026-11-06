@@ -555,12 +555,13 @@ int iosAppearanceDark(void) {
 // Only the app's own scene gets the go-gui window. The other role a
 // phone or iPad offers is an external display: without a delegate there,
 // the system keeps mirroring, and a second GoGuiViewController would
-// start the backend twice.
+// start the backend twice. No configuration name: a name sends UIKit
+// looking for it in Info.plist, and apps carry no scene manifest.
 - (UISceneConfiguration *)application:(UIApplication *)application
     configurationForConnectingSceneSession:(UISceneSession *)session
                                    options:(UISceneConnectionOptions *)options {
     UISceneConfiguration *config = [[UISceneConfiguration alloc]
-        initWithName:@"Default" sessionRole:session.role];
+        initWithName:nil sessionRole:session.role];
     if ([session.role isEqualToString:UIWindowSceneSessionRoleApplication]) {
         config.delegateClass = [GoGuiSceneDelegate class];
     }
