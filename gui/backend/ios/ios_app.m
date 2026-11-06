@@ -520,6 +520,13 @@ int iosAppearanceDark(void) {
 // ─── GoGuiSceneDelegate ──────────────────────────────────────
 // The iOS 27 SDK refuses to launch an app without the scene life cycle
 // (TN3187), so the window belongs to the scene.
+//
+// The controller outlives it. iOS can disconnect a scene in the
+// background and connect a new one while the process lives on, and the
+// controller owns the view, the Metal layer and the display link: a new
+// one would start the backend a second time.
+
+static GoGuiViewController *gRootController;
 
 @interface GoGuiSceneDelegate : UIResponder <UIWindowSceneDelegate>
 @property (nonatomic, strong) UIWindow *window;
@@ -533,9 +540,16 @@ int iosAppearanceDark(void) {
     if (![scene isKindOfClass:[UIWindowScene class]]) return;
     self.window = [[UIWindow alloc]
         initWithWindowScene:(UIWindowScene *)scene];
-    self.window.rootViewController =
-        [[GoGuiViewController alloc] init];
+    if (gRootController == nil) {
+        gRootController = [[GoGuiViewController alloc] init];
+    }
+    self.window.rootViewController = gRootController;
     [self.window makeKeyAndVisible];
+}
+
+- (void)sceneDidDisconnect:(UIScene *)scene {
+    self.window.rootViewController = nil;
+    self.window = nil;
 }
 
 @end
