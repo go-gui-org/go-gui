@@ -128,6 +128,12 @@ func PendingIMEKeyboardSecure() bool { return android.PendingIMEKeyboardSecure()
 // the soft keyboard covers, 0 when it is down.
 func SoftKeyboardInset(h float32) { android.SoftKeyboardInset(h) }
 
+// SafeAreaInsets is called from Kotlin with the logical-pixel space the
+// system bars and the display cutout cover along each edge of the view.
+func SafeAreaInsets(top, right, bottom, left float32) {
+	android.SafeAreaInsets(top, right, bottom, left)
+}
+
 // PendingIMERectX returns the IME cursor rect X.
 func PendingIMERectX() int32 { return android.PendingIMERectX() }
 
@@ -292,10 +298,15 @@ func PendingA11yAnnouncement() string { return android.PendingA11yAnnouncement()
 func view(w *gui.Window) gui.View {
 	theme := gui.CurrentTheme()
 	app := gui.State[App](w)
+	// The framework moves no layout for the camera cutout or the
+	// system bars. This demo opts in and keeps its content clear of
+	// them.
+	pad, safe := theme.PaddingLarge, w.SafeAreaPadding()
 
 	return gui.Column(gui.ContainerCfg{
-		Sizing:     gui.FillFill,
-		Padding:    theme.PaddingLarge,
+		Sizing: gui.FillFill,
+		Padding: gui.NewPadding(pad.Top+safe.Top, pad.Right+safe.Right,
+			pad.Bottom+safe.Bottom, pad.Left+safe.Left),
 		SizeBorder: gui.NoBorder,
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{

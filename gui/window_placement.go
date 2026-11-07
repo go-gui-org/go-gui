@@ -21,6 +21,10 @@ type windowPlacement struct {
 	// hidden is for IsVisible.
 	maximized  atomic.Bool
 	fullscreen atomic.Bool
+	// safeArea is the space the OS keeps along each edge, as the
+	// backend last reported it through DispatchSafeArea; nil until a
+	// report. Atomic because backends report from their own thread.
+	safeArea atomic.Pointer[Padding]
 	// pendingPlacement holds placement calls made before the backend
 	// attached. Frame thread only.
 	pendingPlacement placementRequest

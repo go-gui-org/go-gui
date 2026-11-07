@@ -46,14 +46,19 @@ func init() {
 
 func view(w *gui.Window) gui.View {
 	app := gui.State[App](w)
+	// The framework moves no layout for the notch, the home bar or the
+	// soft keyboard. This demo opts in: it pads by the safe area and by
+	// the keyboard height. The safe area's bottom already gives way to
+	// the keyboard, so the two add up without counting the home bar
+	// twice.
+	safe := w.SafeAreaPadding()
 
 	return gui.Column(gui.ContainerCfg{
 		Sizing: gui.FillFill,
 		HAlign: gui.HAlignCenter,
 		VAlign: gui.VAlignMiddle,
-		// The framework moves no layout for the soft keyboard. Padding
-		// the bottom by its height keeps the fields above it.
-		Padding: gui.NewPadding(16, 16, 16+w.SoftKeyboardInset(), 16),
+		Padding: gui.NewPadding(16+safe.Top, 16+safe.Right,
+			16+safe.Bottom+w.SoftKeyboardInset(), 16+safe.Left),
 		Content: []gui.View{
 			// Theme intentionally unpinned: the demo follows the host
 			// default (web_demo pins dark for its look).

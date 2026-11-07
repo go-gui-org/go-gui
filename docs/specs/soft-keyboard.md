@@ -24,7 +24,9 @@ adds no second show/hide path.
   request for the focused field. Both do nothing without an edit target.
 - `Window.SoftKeyboardInset` reports the covered height from
   `EventSoftKeyboard`, clamped to `[0, window height]`. The framework moves no
-  layout for it.
+  layout for it. `Window.SafeAreaPadding` shrinks its bottom edge by this inset,
+  so the home bar under the keyboard is not counted twice
+  (`docs/specs/safe-area.md`).
 - A press that a non-focusable widget consumes keeps focus
   (`blurUnclaimedPress`). Inside a `DragScroll` container the pan claim holds
   every press, so the blur and keyboard decisions wait: a pan blurs when it
@@ -37,12 +39,12 @@ adds no second show/hide path.
 
 ## Platforms
 
-| Platform | Kind                                                         | Inset                                           |
-| -------- | ------------------------------------------------------------ | ----------------------------------------------- |
-| Android  | `EditorInfo.inputType` via `PendingIMEKeyboardKind`; restart | `WindowInsets.Type.ime()`, API 30+; 0 below     |
-| Web      | hidden input `inputmode` and `type=password`                 | `visualViewport` resize: `innerHeight` − bottom |
-| iOS      | `UIKeyInput` traits `keyboardType`, `secureTextEntry`        | `UIKeyboardWillChangeFrame`, docked only        |
-| Desktop  | no-op                                                        | none                                            |
+| Platform | Kind                                                         | Inset                                                     |
+| -------- | ------------------------------------------------------------ | --------------------------------------------------------- |
+| Android  | `EditorInfo.inputType` via `PendingIMEKeyboardKind`; restart | `WindowInsets.Type.ime()` over the view, API 30+; 0 below |
+| Web      | hidden input `inputmode` and `type=password`                 | `visualViewport` resize: `innerHeight` − bottom           |
+| iOS      | `UIKeyInput` traits `keyboardType`, `secureTextEntry`        | `UIKeyboardWillChangeFrame`, docked only                  |
+| Desktop  | no-op                                                        | none                                                      |
 
 The Android host sets `windowSoftInputMode="adjustNothing"`, so the GL surface
 keeps its size and the app decides what to move.

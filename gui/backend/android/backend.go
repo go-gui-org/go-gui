@@ -137,6 +137,7 @@ func Start(w, h int, scale float32) {
 	if androidWindow == nil {
 		androidWindow = gui.NewWindow(gui.WindowCfg{})
 	}
+	replaySafeArea()
 	if androidBackend == nil {
 		initBackend(int32(w), int32(h), scale)
 	} else {
@@ -493,9 +494,10 @@ func PendingIMEKeyboardSecure() bool {
 }
 
 // SoftKeyboardInset is called from Kotlin with the height, in logical
-// pixels, that the soft keyboard covers at the bottom of the view
-// (WindowInsets ime bottom minus the navigation bar), 0 when it is
-// down. Call it on the GL thread (queueEvent), like TouchInput. The
+// pixels, that the soft keyboard covers at the bottom of the view, 0
+// when it is down. Measure it against where the view ends, not by
+// subtracting the navigation bar: on Android 15 the view reaches under
+// the bar. Call it on the GL thread (queueEvent), like TouchInput. The
 // gui side clamps the value.
 func SoftKeyboardInset(h float32) {
 	if androidWindow == nil {
@@ -503,6 +505,41 @@ func SoftKeyboardInset(h float32) {
 	}
 	evt := gui.Event{Type: gui.EventSoftKeyboard, SoftKeyboardInset: h}
 	androidWindow.EventFn(&evt)
+}
+
+// SafeAreaInsets is called from Kotlin with the space, in logical
+// pixels, that the system bars and the display cutout cover along each
+// edge of the view, without the soft keyboard (issue #1171). It feeds
+// Window.SafeAreaPadding. A host that never calls it leaves the safe
+// area at zero. Call it on the GL thread (queueEvent), like
+// SoftKeyboardInset. The gui side clamps the values and ignores a
+// repeat.
+//
+// A report that arrives before the window exists is kept and applied
+// by the next Start, which runs on the GL thread too: the host sends a
+// value only when it changes, so a dropped first report would never
+// come back.
+func SafeAreaInsets(top, right, bottom, left float32) {
+	lastSafeArea = [4]float32{top, right, bottom, left}
+	haveSafeArea = true
+	replaySafeArea()
+}
+
+// lastSafeArea is the host's last SafeAreaInsets report, in the order
+// top, right, bottom, left. GL thread only.
+var (
+	lastSafeArea [4]float32
+	haveSafeArea bool
+)
+
+// replaySafeArea hands the last report to the current window, if both
+// exist. GL thread only.
+func replaySafeArea() {
+	if !haveSafeArea || androidWindow == nil {
+		return
+	}
+	a := lastSafeArea
+	gui.DispatchSafeArea(androidWindow, a[0], a[1], a[2], a[3])
 }
 
 // setPendingIMEAction sets the IME action for Kotlin to pick up.
