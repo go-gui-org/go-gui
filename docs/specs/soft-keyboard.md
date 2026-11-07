@@ -39,12 +39,12 @@ adds no second show/hide path.
 
 ## Platforms
 
-| Platform | Kind                                                         | Inset                                           |
-| -------- | ------------------------------------------------------------ | ----------------------------------------------- |
-| Android  | `EditorInfo.inputType` via `PendingIMEKeyboardKind`; restart | `WindowInsets.Type.ime()`, API 30+; 0 below     |
-| Web      | hidden input `inputmode` and `type=password`                 | `visualViewport` resize: `innerHeight` − bottom |
-| iOS      | `UIKeyInput` traits `keyboardType`, `secureTextEntry`        | `UIKeyboardWillChangeFrame`, docked only        |
-| Desktop  | no-op                                                        | none                                            |
+| Platform | Kind                                                         | Inset                                                     |
+| -------- | ------------------------------------------------------------ | --------------------------------------------------------- |
+| Android  | `EditorInfo.inputType` via `PendingIMEKeyboardKind`; restart | `WindowInsets.Type.ime()` over the view, API 30+; 0 below |
+| Web      | hidden input `inputmode` and `type=password`                 | `visualViewport` resize: `innerHeight` − bottom           |
+| iOS      | `UIKeyInput` traits `keyboardType`, `secureTextEntry`        | `UIKeyboardWillChangeFrame`, docked only                  |
+| Desktop  | no-op                                                        | none                                                      |
 
 The Android host sets `windowSoftInputMode="adjustNothing"`, so the GL surface
 keeps its size and the app decides what to move.

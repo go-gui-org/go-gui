@@ -32,9 +32,12 @@ and this project adheres to
   it. It is opt-in: nothing in the framework lays itself out by it, so existing
   apps draw as before. While the soft keyboard is up, the bottom edge shrinks by
   `SoftKeyboardInset`, because the keyboard already covers the home bar: an app
-  that pads for both counts it once. iOS reports it now, and `examples/ios_demo`
-  uses it. Android and web report zero until their backends supply it; desktop
-  is always zero. Backends report through `gui.DispatchSafeArea`.
+  that pads for both counts it once. iOS, Android and web report it; desktop is
+  always zero. On web it is non-zero only when the page's viewport meta has
+  `viewport-fit=cover`. An Android app adds the `SafeAreaInsets` bridge call and
+  the inset listener from `examples/android_demo` to its host; without them the
+  safe area stays zero. `examples/ios_demo` and `examples/android_demo` use it.
+  Backends report through `gui.DispatchSafeArea`.
 
 - **Slovak (`sk-SK`) locale (#1209).** Adds Slovak number, date, time, currency
   and user-facing UI string formatting to the built-in locale registry.
@@ -83,6 +86,14 @@ and this project adheres to
   or a scale change, still makes the commit, and so does the first frame.
 
 ### Fixed
+
+- **Android: the soft keyboard height no longer comes out short on Android 15
+  (#1171).** The demo host subtracted the navigation bar from the keyboard, but
+  from Android 15 the view reaches under that bar, so the reported height was 24
+  dp short on a Pixel 7 and a field padded by it ended up under the keyboard.
+  The host now measures the keyboard against where the view really ends. An app
+  host copied from `examples/android_demo` needs the same change in its inset
+  listener.
 
 - **iOS apps launch when built with the iOS 27 SDK (#1225).** UIKit now refuses
   to start an app without the scene life cycle, so every go-gui iOS app built

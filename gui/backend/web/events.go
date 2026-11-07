@@ -193,6 +193,13 @@ func (b *Backend) registerEvents(w *gui.Window) {
 			return nil
 		})
 
+	// The safe area moves on rotation (a resize) and on fullscreen.
+	safeArea := newSafeAreaWatcher(b, w, doc)
+	reg(doc, "fullscreenchange", func(_ js.Value, _ []js.Value) any {
+		safeArea.read()
+		return nil
+	})
+
 	reg(js.Global(), "resize", func(_ js.Value, _ []js.Value) any {
 		ww := js.Global().Get("innerWidth").Int()
 		wh := js.Global().Get("innerHeight").Int()
@@ -203,6 +210,7 @@ func (b *Backend) registerEvents(w *gui.Window) {
 			WindowHeight: wh,
 		}
 		w.EventFn(evt)
+		safeArea.read()
 		return nil
 	})
 

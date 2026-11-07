@@ -46,6 +46,10 @@ gui.Input(gui.InputCfg{ID: "pin", Keyboard: gui.KeyboardNone}) // app keypad
 - `w.HideSoftKeyboard()` keeps focus; `w.ClearFocus()` leaves the field.
 - The framework does not move layout for the keyboard. Read
   `w.SoftKeyboardInset()` in the View function if content must stay above it.
+- Nor for a notch, a status bar or a home bar. Pad by `w.SafeAreaPadding()` to
+  keep content clear of them. Its bottom edge already gives way to the keyboard,
+  so padding by both counts the home bar once. On web it is non-zero only when
+  the page's viewport meta has `viewport-fit=cover`.
 - An app keypad uses `FocusDisabled` buttons (a press on them keeps focus) that
   send `EventChar` through `ctx.Window.QueueCommand` + `w.EventFn`. See
   `examples/pin_pad`.

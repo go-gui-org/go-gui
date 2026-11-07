@@ -33,21 +33,94 @@ class GoGuiGLSurfaceView(context: Context) : GLSurfaceView(context) {
         isFocusable = true
         isFocusableInTouchMode = true
         importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_YES
-        // Report how much of the view the soft keyboard covers
-        // (issue #770). The activity uses adjustNothing, so the
-        // surface keeps its size and the app decides what to move.
-        // IME insets need API 30; below that the inset stays 0,
-        // which gui documents as "cannot report".
+        // Report the safe area (issue #1171) and how much of the view
+        // the soft keyboard covers (issue #770). The activity uses
+        // adjustNothing, so the surface keeps its size and the app
+        // decides what to move. Insets change on rotation and when bars
+        // show or hide; the view's place in the window changes on
+        // layout, so both report.
+        setOnApplyWindowInsetsListener { _, insets ->
+            reportInsets()
+            insets
+        }
+        addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+            reportInsets()
+        }
+    }
+
+    private var lastSafeArea = FloatArray(4) { -1f }
+    private var lastKeyboard = -1f
+
+    /** Sends the safe area and the keyboard height to Go, in logical
+     *  pixels, measured against where this view sits in the window.
+     *  The window's insets are relative to the window's edges, and
+     *  the view may not reach them: below Android 15 it can sit
+     *  between the system bars, from Android 15 it reaches under
+     *  them. An inset counts only where it overlaps the view, so the
+     *  navigation bar is not subtracted from the keyboard by guess.
+     *  IME insets need API 30; below that the keyboard height stays
+     *  0, which gui documents as "cannot report". */
+    private fun reportInsets() {
+        val insets = rootWindowInsets ?: return
+        val root = rootView
+        val loc = IntArray(2)
+        getLocationInWindow(loc)
+        val gapLeft = loc[0]
+        val gapTop = loc[1]
+        val gapRight = root.width - (loc[0] + width)
+        val gapBottom = root.height - (loc[1] + height)
+
+        var left: Int
+        var top: Int
+        var right: Int
+        var bottom: Int
+        var ime = 0
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            setOnApplyWindowInsetsListener { _, insets ->
-                val ime = insets.getInsets(WindowInsets.Type.ime()).bottom
-                val nav = insets.getInsets(
-                    WindowInsets.Type.navigationBars()
-                ).bottom
-                val h = maxOf(0, ime - nav) / density
-                queueEvent { Androidapp.softKeyboardInset(h) }
-                insets
+            // Hidden bars report 0 here; the cutout stays.
+            val s = insets.getInsets(
+                WindowInsets.Type.systemBars() or
+                    WindowInsets.Type.displayCutout()
+            )
+            left = s.left
+            top = s.top
+            right = s.right
+            bottom = s.bottom
+            ime = insets.getInsets(WindowInsets.Type.ime()).bottom
+        } else {
+            @Suppress("DEPRECATION")
+            left = insets.systemWindowInsetLeft
+            @Suppress("DEPRECATION")
+            top = insets.systemWindowInsetTop
+            @Suppress("DEPRECATION")
+            right = insets.systemWindowInsetRight
+            @Suppress("DEPRECATION")
+            bottom = insets.systemWindowInsetBottom
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                insets.displayCutout?.let {
+                    left = maxOf(left, it.safeInsetLeft)
+                    top = maxOf(top, it.safeInsetTop)
+                    right = maxOf(right, it.safeInsetRight)
+                    bottom = maxOf(bottom, it.safeInsetBottom)
+                }
             }
+        }
+
+        val safe = floatArrayOf(
+            maxOf(0, top - gapTop) / density,
+            maxOf(0, right - gapRight) / density,
+            maxOf(0, bottom - gapBottom) / density,
+            maxOf(0, left - gapLeft) / density,
+        )
+        val keyboard = maxOf(0, ime - gapBottom) / density
+        if (!safe.contentEquals(lastSafeArea)) {
+            lastSafeArea = safe
+            queueEvent {
+                Androidapp.safeAreaInsets(safe[0], safe[1], safe[2], safe[3])
+            }
+        }
+        if (keyboard != lastKeyboard) {
+            lastKeyboard = keyboard
+            queueEvent { Androidapp.softKeyboardInset(keyboard) }
         }
     }
 

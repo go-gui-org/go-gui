@@ -109,6 +109,21 @@ until gomobile copies it into the returned Go slice. If the Keystore key is lost
 while ciphertext remains, load reports an authentication error. Saving replaces
 the unreadable entry with one encrypted under the new key; deleting removes it.
 
+## Safe area and soft keyboard
+
+`GoGuiGLSurfaceView.reportInsets` sends two values to Go whenever the window
+insets or the view's place in the window change:
+
+- `SafeAreaInsets(top, right, bottom, left)`: the system bars and the display
+  cutout, for `Window.SafeAreaPadding`. The demo pads its content by it.
+- `SoftKeyboardInset(h)`: the keyboard height, for `Window.SoftKeyboardInset`.
+  API 30 and later only; below that it stays 0.
+
+Both are measured against where the view sits in the window, not against the
+screen edge. From Android 15 the view reaches under the system bars; below it
+the view can sit between them. An app's host needs `SafeAreaInsets` in its Go
+bridge and this listener. Without them the safe area stays zero.
+
 ## Troubleshooting
 
 - **gomobile not found**: Make sure that `$GOPATH/bin` is in `$PATH`
