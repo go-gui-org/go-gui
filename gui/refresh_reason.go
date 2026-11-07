@@ -50,6 +50,9 @@ const (
 	// refreshWindowState: the OS maximized, restored or fullscreened the
 	// window, so a view reading the getters is stale.
 	refreshWindowState
+	// refreshSafeArea: the OS changed the safe area, so a view padding
+	// by SafeAreaPadding is stale.
+	refreshSafeArea
 )
 
 // Render-only reasons: the next frame rebuilds render commands only.
@@ -87,6 +90,7 @@ var refreshReasonNames = [...]struct {
 	{refreshCommand, "command"},
 	{refreshTest, "test"},
 	{refreshWindowState, "window-state"},
+	{refreshSafeArea, "safe-area"},
 	{refreshRender, "render"},
 	{refreshRenderAnimation, "render-animation"},
 	{refreshRenderSvg, "svg"},

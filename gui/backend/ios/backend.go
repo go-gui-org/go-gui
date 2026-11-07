@@ -279,6 +279,15 @@ func goIOSResize(w, h C.int, scale C.float) {
 	}
 }
 
+// goIOSSafeArea receives the view's safeAreaInsets, in points, which
+// are logical pixels. The gui side clamps them and ignores a repeat.
+//
+//export goIOSSafeArea
+func goIOSSafeArea(top, right, bottom, left C.float) {
+	gui.DispatchSafeArea(iosWindow, float32(top), float32(right),
+		float32(bottom), float32(left))
+}
+
 //export goIOSTouchEvent
 func goIOSTouchEvent(phase C.int, identifier C.uintptr_t,
 	x, y C.float) {

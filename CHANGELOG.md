@@ -25,6 +25,17 @@ and this project adheres to
   position, and `Restore` only undoes a maximize. Web, iOS and Android no-op for
   now; their fullscreen is a follow-up.
 
+- **Safe area: `Window.SafeAreaPadding` (#1171).** On a phone the notch, the
+  status bar and the home bar cover the edges of the window, and an app had no
+  way to know how far. `Window.SafeAreaPadding` returns that space along each
+  edge as a `Padding`, so `Padding: w.SafeAreaPadding()` keeps content clear of
+  it. It is opt-in: nothing in the framework lays itself out by it, so existing
+  apps draw as before. While the soft keyboard is up, the bottom edge shrinks by
+  `SoftKeyboardInset`, because the keyboard already covers the home bar: an app
+  that pads for both counts it once. iOS reports it now, and `examples/ios_demo`
+  uses it. Android and web report zero until their backends supply it; desktop
+  is always zero. Backends report through `gui.DispatchSafeArea`.
+
 - **Slovak (`sk-SK`) locale (#1209).** Adds Slovak number, date, time, currency
   and user-facing UI string formatting to the built-in locale registry.
 

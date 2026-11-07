@@ -61,4 +61,7 @@ extern int goIOSKey(int usage, int flags, int down, int repeat,
 // Soft keyboard height over the bottom of the view, in points.
 extern void goIOSSoftKeyboardInset(float h);
 
+// The view's safe area insets, in points (issue #1171).
+extern void goIOSSafeArea(float top, float right, float bottom, float left);
+
 #endif

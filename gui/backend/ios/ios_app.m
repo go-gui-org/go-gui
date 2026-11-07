@@ -355,6 +355,26 @@ void iosKeyboardQueueApply(void) {
                     (int)bounds.size.height,
                     (float)scale);
     }
+    [self reportSafeArea];
+}
+
+// ─── Safe area (issue #1171) ─────────────────────────────────
+// Reported after every layout and on every change UIKit announces. Go
+// ignores a repeat. On a notched iPhone hiding the status bar changes
+// nothing here, and no callback fires.
+
+- (void)viewSafeAreaInsetsDidChange {
+    [super viewSafeAreaInsetsDidChange];
+    [self reportSafeArea];
+}
+
+- (void)reportSafeArea {
+    if (!self.started) {
+        return;
+    }
+    UIEdgeInsets i = self.view.safeAreaInsets;
+    goIOSSafeArea((float)i.top, (float)i.right,
+                  (float)i.bottom, (float)i.left);
 }
 
 - (void)render:(CADisplayLink *)link {

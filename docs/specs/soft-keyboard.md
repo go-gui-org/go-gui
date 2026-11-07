@@ -24,7 +24,9 @@ adds no second show/hide path.
   request for the focused field. Both do nothing without an edit target.
 - `Window.SoftKeyboardInset` reports the covered height from
   `EventSoftKeyboard`, clamped to `[0, window height]`. The framework moves no
-  layout for it.
+  layout for it. `Window.SafeAreaPadding` shrinks its bottom edge by this inset,
+  so the home bar under the keyboard is not counted twice
+  (`docs/specs/safe-area.md`).
 - A press that a non-focusable widget consumes keeps focus
   (`blurUnclaimedPress`). Inside a `DragScroll` container the pan claim holds
   every press, so the blur and keyboard decisions wait: a pan blurs when it
