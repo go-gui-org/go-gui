@@ -21,6 +21,10 @@ import (
 // in place has no way to tell the backends their uploaded texture is stale,
 // because the backend texture caches key on the same string.
 //
+// RegisterEncodedImage entries are pinned. They are typically registered
+// once, at startup, with no generator to rebuild them each frame, so the
+// budget neither counts nor evicts them; only DropImage removes them.
+//
 // SECURITY: a mem: buffer bypasses WindowCfg.AllowedImageRoots,
 // MaxImageBytes and MaxImagePixels. Those bound *untrusted* input — a file
 // path or a URL an attacker might steer. An in-process pixel buffer is
@@ -49,11 +53,12 @@ const maxMemImageDim = 4096
 // here is what lets a generator hand the same string back every frame
 // without allocating (see memImageSrc).
 type memImage struct {
-	src  string
-	pix  []byte
-	elem *list.Element // position in the LRU order; value is the key
-	w    int
-	h    int
+	src    string
+	pix    []byte
+	elem   *list.Element // position in the LRU order; value is the key
+	w      int
+	h      int
+	pinned bool // outside the budget; only DropImage removes it
 }
 
 // memImageRegistry is a byte-budgeted LRU. It is process-global rather than
@@ -65,7 +70,7 @@ type memImage struct {
 type memImageRegistry struct {
 	data   map[string]*memImage
 	order  list.List // front = least recently used
-	bytes  int
+	bytes  int       // pixel bytes of unpinned entries
 	budget int
 	mu     sync.Mutex
 }
@@ -76,7 +81,10 @@ var memImages = memImageRegistry{budget: defaultMemImageBudget}
 // Passing a key that is already registered with the same dimensions is a
 // no-op that refreshes the entry's recency, so callers may call it
 // unconditionally each frame; use HasImage to skip generating the buffer at
-// all.
+// all. Call it while building each frame rather than keeping the returned
+// Src: once the budget evicts the key, a kept Src resolves to nothing until
+// the key is registered again. For an image that is registered once and
+// kept, such as a PNG from go:embed, use [RegisterEncodedImage] instead.
 //
 // The registry takes ownership of pix. Callers must not mutate it
 // afterwards: backends cache an uploaded texture under the same key and
@@ -88,6 +96,12 @@ var memImages = memImageRegistry{budget: defaultMemImageBudget}
 // exportaudit:keep — the registry is app-facing: it exists so callers
 // can draw imagery gradients cannot express.
 func UseImage(key string, w, h int, pix []byte) string {
+	return useImage(key, w, h, pix, false)
+}
+
+// useImage is UseImage with a pin flag. A pinned entry is outside the budget;
+// registering a key that is already present at the same size pins it.
+func useImage(key string, w, h int, pix []byte, pin bool) string {
 	if key == "" || w <= 0 || h <= 0 || len(pix) != w*h*4 {
 		return ""
 	}
@@ -107,6 +121,9 @@ func UseImage(key string, w, h int, pix []byte) string {
 		// Same key, same size: keep the uploaded texture valid by
 		// leaving the stored buffer alone. Only recency changes.
 		if mi.w == w && mi.h == h {
+			if pin {
+				memImages.pinLocked(mi)
+			}
 			memImages.order.MoveToBack(mi.elem)
 			return mi.src
 		}
@@ -119,11 +136,27 @@ func UseImage(key string, w, h int, pix []byte) string {
 	src := memImagePrefix + key
 	elem := memImages.order.PushBack(key)
 	memImages.data[key] = &memImage{
-		src: src, pix: pix, elem: elem, w: w, h: h,
+		src: src, pix: pix, elem: elem, w: w, h: h, pinned: pin,
 	}
-	memImages.bytes += len(pix)
+	if !pin {
+		memImages.bytes += len(pix)
+	}
 	memImages.evictLocked()
 	return src
+}
+
+// pinImage pins an already registered key and returns its Src. It lets a
+// repeat RegisterEncodedImage skip the decode: a key names immutable content.
+func pinImage(key string) (string, bool) {
+	memImages.mu.Lock()
+	defer memImages.mu.Unlock()
+	mi, ok := memImages.data[key]
+	if !ok {
+		return "", false
+	}
+	memImages.pinLocked(mi)
+	memImages.order.MoveToBack(mi.elem)
+	return mi.src, true
 }
 
 // memImageSrc returns the registered Src string for a key held as bytes,
@@ -162,6 +195,10 @@ func HasImage(key string) bool {
 // budget evicts stale variants — but an app that registers one large buffer
 // for a screen it has left can reclaim the bytes immediately.
 //
+// For an image from [RegisterEncodedImage] it is the only release: the budget
+// never evicts those, so an app that registers images over time (for example
+// from the network) drops each one it no longer shows.
+//
 // exportaudit:keep — app-facing reclaim for the registry.
 func DropImage(key string) {
 	memImages.mu.Lock()
@@ -171,7 +208,8 @@ func DropImage(key string) {
 
 // SetMemImageBudget caps the registry's total pixel bytes, evicting the
 // least recently used entries until the new budget is met. A non-positive
-// budget restores the default.
+// budget restores the default. Images registered by RegisterEncodedImage
+// neither count toward the budget nor are evicted by it.
 //
 // exportaudit:keep — app-facing tuning for the registry.
 func SetMemImageBudget(bytes int) {
@@ -223,16 +261,38 @@ func (r *memImageRegistry) removeLocked(key string) {
 	}
 	r.order.Remove(mi.elem)
 	delete(r.data, key)
-	r.bytes -= len(mi.pix)
+	if !mi.pinned {
+		r.bytes -= len(mi.pix)
+	}
+}
+
+// pinLocked moves mi out of the budget. Caller holds mu.
+func (r *memImageRegistry) pinLocked(mi *memImage) {
+	if !mi.pinned {
+		mi.pinned = true
+		r.bytes -= len(mi.pix)
+	}
 }
 
 // evictLocked drops least-recently-used entries until the registry fits its
 // budget. The most recent entry is never evicted: a single buffer larger
 // than the whole budget is still the one the caller is about to draw.
-// Caller holds mu.
+// Pinned entries are skipped, and "most recent" means the newest unpinned
+// entry: a pinned one adds nothing to the budget, so registering or drawing
+// it must not cost a generated buffer its place. Caller holds mu.
 func (r *memImageRegistry) evictLocked() {
-	for r.bytes > r.budget && r.order.Len() > 1 {
-		front := r.order.Front()
-		r.removeLocked(front.Value.(string))
+	if r.bytes <= r.budget {
+		return
+	}
+	newest := r.order.Back()
+	for newest != nil && r.data[newest.Value.(string)].pinned {
+		newest = newest.Prev()
+	}
+	for e := r.order.Front(); e != nil && e != newest && r.bytes > r.budget; {
+		next := e.Next()
+		if key := e.Value.(string); !r.data[key].pinned {
+			r.removeLocked(key)
+		}
+		e = next
 	}
 }

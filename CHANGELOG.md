@@ -10,6 +10,20 @@ and this project adheres to
 
 ### Added
 
+- **PNG, JPEG and GIF bytes can be registered directly as images (#1228).**
+  `RegisterEncodedImage` decodes bytes from `go:embed`, a network response or
+  another in-memory source and returns a `Src` for `ImageCfg` and
+  `DrawContext.Image`. It uses the same immutable, content-keyed registry as
+  `UseImage`, without requiring a temporary file. The image stays registered
+  until `DropImage`, outside the registry's memory budget, so a `Src` saved at
+  startup keeps drawing however many other images are registered; a repeat call
+  for the same key returns without decoding again. A GIF decodes to its first
+  frame, and GIF support no longer depends on PDF export importing its decoder.
+  The showcase Image guide now sets every image source side by side, with what
+  each asks of the app, and corrects its format list: BMP and WebP decode only
+  when the app imports their decoder. `examples/embedded_image` shows one scene
+  embedded as PNG, JPEG and GIF.
+
 - **Window state and placement: minimize, maximize, restore, fullscreen, resize,
   move (#1171, #1220).** An app could not change its own window, so a frameless
   title bar could not offer minimize and maximize buttons, and a media player
@@ -94,6 +108,13 @@ and this project adheres to
   The host now measures the keyboard against where the view really ends. An app
   host copied from `examples/android_demo` needs the same change in its inset
   listener.
+
+- **A GIF whose first frame covers only part of its canvas draws at full size
+  (#1228).** A GIF image file used only its first frame's own rectangle, so a
+  frame placed at an offset or smaller than the canvas was stretched over the
+  whole image. The frame now sits at its offset on the full canvas, and the
+  uncovered area is transparent, as in a browser. `RegisterEncodedImage` decodes
+  GIFs the same way.
 
 - **iOS apps launch when built with the iOS 27 SDK (#1225).** UIKit now refuses
   to start an app without the scene life cycle, so every go-gui iOS app built
