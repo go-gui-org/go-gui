@@ -42,12 +42,16 @@ home indicator, a gesture bar.
 The backend cannot call Java, so the host reports. `GoGuiGLSurfaceView` in
 `examples/android_demo` reads `rootWindowInsets` on every insets dispatch and
 every layout change: system bars plus the display cutout on API 30+,
-`systemWindowInset*` plus the cutout's `safeInset*` below. Each edge counts only
-where it overlaps the view, measured from the view's place in the window. Below
-Android 15 the view may sit between the bars, from Android 15 (targetSdk 35) it
-reaches under them, and fullscreen moves its edges. The same measurement fixes
-the keyboard height, which used to subtract the navigation bar by guess and came
-out 24 dp short on a Pixel 7 with Android 15+.
+`systemWindowInset*` plus the cutout's `safeInset*` below. Below API 30 the
+bottom system window inset can include the keyboard (a window that resizes for
+it while the view stays full size), so it is capped by the stable bottom inset,
+which never does, as AndroidX does for `navigationBars()`. Each edge counts only
+where it overlaps the view, measured from the view's place in the window, and
+never more than the view's own height or width. Below Android 15 the view may
+sit between the bars, from Android 15 (targetSdk 35) it reaches under them, and
+fullscreen moves its edges. The same measurement fixes the keyboard height,
+which used to subtract the navigation bar by guess and came out 24 dp short on a
+Pixel 7 with Android 15+.
 
 Each app re-exports bridge calls from its own Go package, so an app needs
 `SafeAreaInsets` in its Go bridge and the listener in its host. A host without
@@ -81,6 +85,18 @@ landscape, B0 with the keyboard up. The #1171 spike found T20 on a home-button
 iPhone and T59 on the iPhone 16 Plus. Hiding the status bar changes nothing on a
 notched iPhone and fires no callback. A foldable's hinge is not part of the safe
 area; iOS reports it separately.
+
+## Not covered
+
+- **Rounded screen corners.** System bars and the cutout do not describe them,
+  so content in a corner can still be clipped on a phone with round corners.
+  Android reports corners from API 31 (`getRoundedCorner`); iOS already folds
+  them into `safeAreaInsets` (B20 in landscape).
+- **Round displays** (`WindowInsets.isRound`, watches). Go-Gui does not target
+  them.
+- **OEM notches before Android 9.** The cutout API starts at API 28. Some
+  manufacturers shipped notches on Android 8.1 and earlier with their own APIs,
+  so API 24 to 27 covers the system bars only.
 
 ## Rejected Approaches
 

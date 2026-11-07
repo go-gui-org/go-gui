@@ -58,6 +58,8 @@ class GoGuiGLSurfaceView(context: Context) : GLSurfaceView(context) {
      *  between the system bars, from Android 15 it reaches under
      *  them. An inset counts only where it overlaps the view, so the
      *  navigation bar is not subtracted from the keyboard by guess.
+     *  Rounded screen corners and round displays are not covered:
+     *  system bars and the cutout do not describe them.
      *  IME insets need API 30; below that the keyboard height stays
      *  0, which gui documents as "cannot report". */
     private fun reportInsets() {
@@ -93,8 +95,14 @@ class GoGuiGLSurfaceView(context: Context) : GLSurfaceView(context) {
             top = insets.systemWindowInsetTop
             @Suppress("DEPRECATION")
             right = insets.systemWindowInsetRight
+            // The system window inset can include the keyboard, when
+            // the window resizes for it while this view stays full
+            // size. The stable inset never does, so it caps the bottom,
+            // as AndroidX does for its navigationBars() below API 30.
             @Suppress("DEPRECATION")
-            bottom = insets.systemWindowInsetBottom
+            bottom = minOf(
+                insets.systemWindowInsetBottom, insets.stableInsetBottom
+            )
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 insets.displayCutout?.let {
                     left = maxOf(left, it.safeInsetLeft)
@@ -105,13 +113,17 @@ class GoGuiGLSurfaceView(context: Context) : GLSurfaceView(context) {
             }
         }
 
+        // The part of an inset inside the view: never negative, never
+        // more than the view itself.
+        fun overlap(inset: Int, gap: Int, size: Int) =
+            (inset - gap).coerceIn(0, maxOf(0, size)) / density
         val safe = floatArrayOf(
-            maxOf(0, top - gapTop) / density,
-            maxOf(0, right - gapRight) / density,
-            maxOf(0, bottom - gapBottom) / density,
-            maxOf(0, left - gapLeft) / density,
+            overlap(top, gapTop, height),
+            overlap(right, gapRight, width),
+            overlap(bottom, gapBottom, height),
+            overlap(left, gapLeft, width),
         )
-        val keyboard = maxOf(0, ime - gapBottom) / density
+        val keyboard = overlap(ime, gapBottom, height)
         if (!safe.contentEquals(lastSafeArea)) {
             lastSafeArea = safe
             queueEvent {
