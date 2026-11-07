@@ -138,10 +138,13 @@ func useImage(key string, w, h int, pix []byte, pin bool) string {
 	memImages.data[key] = &memImage{
 		src: src, pix: pix, elem: elem, w: w, h: h, pinned: pin,
 	}
+	// A pinned entry adds no budgeted bytes, so it cannot take the
+	// registry over its budget; skipping evictLocked also spares a scan
+	// past the pinned entries under mu on every pinned insert.
 	if !pin {
 		memImages.bytes += len(pix)
+		memImages.evictLocked()
 	}
-	memImages.evictLocked()
 	return src
 }
 

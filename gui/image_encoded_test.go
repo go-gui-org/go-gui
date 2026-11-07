@@ -3,6 +3,7 @@ package gui
 import (
 	"bytes"
 	"image"
+	"image/color"
 	"image/gif"
 	"image/jpeg"
 	"image/png"
@@ -37,12 +38,41 @@ func encodeTestImage(t *testing.T, format string, width, height int) []byte {
 	return data.Bytes()
 }
 
+// wantEncodedPixels is the NRGBA the registry must hold for data. PNG is
+// lossless, so it is encodeTestImage's source. JPEG and GIF encoding
+// changes colors, so it is the standard decoder's own result for the same
+// bytes: the registry must keep exactly what the decoder produced.
+func wantEncodedPixels(t *testing.T, format string, data []byte, width, height int) []byte {
+	t.Helper()
+	want := make([]byte, 0, width*height*4)
+	if format == "png" {
+		for y := range height {
+			for x := range width {
+				want = append(want, byte(20+x*30), byte(40+y*40), 120, 255)
+			}
+		}
+		return want
+	}
+	decoded, _, err := image.Decode(bytes.NewReader(data))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for y := range height {
+		for x := range width {
+			c := color.NRGBAModel.Convert(decoded.At(x, y)).(color.NRGBA)
+			want = append(want, c.R, c.G, c.B, c.A)
+		}
+	}
+	return want
+}
+
 func TestRegisterEncodedImageFormats(t *testing.T) {
 	resetMemImages(t)
 	for _, format := range []string{"png", "jpeg", "gif"} {
 		t.Run(format, func(t *testing.T) {
 			key := "encoded/" + format
-			src, err := RegisterEncodedImage(key, encodeTestImage(t, format, 2, 3))
+			data := encodeTestImage(t, format, 2, 3)
+			src, err := RegisterEncodedImage(key, data)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -52,6 +82,9 @@ func TestRegisterEncodedImageFormats(t *testing.T) {
 			width, height, pix, ok := LookupImage(src)
 			if !ok || width != 2 || height != 3 || len(pix) != 2*3*4 {
 				t.Fatalf("registered image = %dx%d len=%d ok=%t", width, height, len(pix), ok)
+			}
+			if want := wantEncodedPixels(t, format, data, 2, 3); !bytes.Equal(pix, want) {
+				t.Fatalf("registered pixels = %v, want %v", pix, want)
 			}
 		})
 	}

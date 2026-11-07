@@ -38,7 +38,8 @@ type Limits struct {
 }
 
 // DecodeNRGBA validates image limits, decodes the file, and returns the
-// pixels as *image.NRGBA. The file is seeked to 0 before decoding.
+// pixels as a zero-origin, tightly packed *image.NRGBA. The file is
+// seeked to 0 before decoding.
 func DecodeNRGBA(
 	path string, f *os.File,
 	maxBytes, maxPixels int64,
@@ -71,14 +72,13 @@ func DecodeNRGBABytes(
 	); dimensionsErr != nil {
 		return nil, fmt.Errorf("decode image: validate: %w", dimensionsErr)
 	}
-	nrgba, err := decodeNRGBA(name, reader, limits, cfg)
-	if err != nil {
-		return nil, err
-	}
-	return tightlyPacked(nrgba), nil
+	return decodeNRGBA(name, reader, limits, cfg)
 }
 
-// decodeNRGBA decodes input, whose header reported cfg.
+// decodeNRGBA decodes input, whose header reported cfg, to a zero-origin,
+// tightly packed NRGBA. The backends upload Pix as rows of exactly
+// 4·width bytes, and a decoder the app imports may return an NRGBA with
+// wider rows or an offset origin.
 func decodeNRGBA(
 	name string, input io.ReadSeeker, limits Limits, cfg image.Config,
 ) (*image.NRGBA, error) {
@@ -97,11 +97,11 @@ func decodeNRGBA(
 		return nil, dimensionsErr
 	}
 	if existing, ok := src.(*image.NRGBA); ok {
-		return existing, nil
+		return tightlyPacked(existing), nil
 	}
 	nrgba := image.NewNRGBA(bounds)
 	draw.Draw(nrgba, bounds, src, bounds.Min, draw.Src)
-	return nrgba, nil
+	return tightlyPacked(nrgba), nil
 }
 
 // onCanvas puts a decoded frame that covers only part of its image's
