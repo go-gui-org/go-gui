@@ -10,6 +10,9 @@ import (
 // about 35 px, so the GPU samples a minified texture, as Qt's does.
 const iconSize = 128
 
+// iconKey names the icon in go-gui's in-memory image registry.
+const iconKey = "qcpainterbench/icon"
+
 // iconImage registers the icon in go-gui's in-memory image registry and returns
 // its Src string.
 //
@@ -20,7 +23,6 @@ const iconSize = 128
 func iconImage() string {
 	// Registering a key again with the same size is a no-op, so a second scene
 	// (tests build several) gets the same Src back.
-	const key = "qcpainterbench/icon"
 	pix := make([]byte, iconSize*iconSize*4)
 	const c = iconSize / 2.0
 	const outer = c - 2 // disc radius, leaving room for the soft edge
@@ -42,5 +44,5 @@ func iconImage() string {
 			pix[i+3] = uint8(255 * a)
 		}
 	}
-	return gui.UseImage(key, iconSize, iconSize, pix)
+	return gui.UseImage(iconKey, iconSize, iconSize, pix)
 }

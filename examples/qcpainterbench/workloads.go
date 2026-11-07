@@ -101,8 +101,12 @@ type scene struct {
 // loop. tests is a mask of test bits. t is the animation time in seconds.
 func (s *scene) paint(dc *gui.DrawContext, w, h, t float32, tests, count int) {
 	if s.iconSrc == "" {
-		s.iconSrc = iconImage()
 		s.style = gui.CurrentTheme().TextStyleBodySmall
+	}
+	// The registry's budget may evict the icon; a kept Src would then draw
+	// nothing, so register it again when it is gone.
+	if s.iconSrc == "" || !gui.HasImage(iconKey) {
+		s.iconSrc = iconImage()
 	}
 	sz := min(w, h)
 	for range count {
