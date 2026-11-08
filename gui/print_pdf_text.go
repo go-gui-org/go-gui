@@ -221,17 +221,19 @@ func pdfFontStyle(ts *TextStyle) string {
 
 // pdfHeavyFamily reports whether a lower-case family name names a heavy
 // face, such as "Arial Black" or a Pango "Heavy" weight. The built-in PDF
-// fonts have only regular and bold, so bold is the closest. Whole words
-// only: "Blackadder ITC" is a script face, not a heavy one.
+// fonts have only regular and bold, so bold is the closest. As glyph
+// reads style keywords, only the last word counts (after a slant word),
+// and never the name's only word: "Black And White Picture", "Blackadder
+// ITC" and a family called "Black" are regular faces.
 func pdfHeavyFamily(lower string) bool {
-	for _, word := range strings.FieldsFunc(lower, func(r rune) bool {
+	words := strings.FieldsFunc(lower, func(r rune) bool {
 		return !unicode.IsLetter(r)
-	}) {
-		if word == "black" || word == "heavy" {
-			return true
-		}
+	})
+	end := len(words)
+	for end > 1 && (words[end-1] == "italic" || words[end-1] == "oblique") {
+		end--
 	}
-	return false
+	return end > 1 && (words[end-1] == "black" || words[end-1] == "heavy")
 }
 
 // pdfFontName maps a gui font family name to a built-in PDF font.
