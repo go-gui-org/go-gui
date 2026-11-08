@@ -472,11 +472,13 @@ func pdfRenderLayout(ctx *pdfCtx, cmd RenderCmd) {
 	if cmd.LayoutPtr == nil {
 		return
 	}
-	// RenderLayout/Transformed use TextStylePtr for
-	// font family/style; RenderRTF uses plain Helvetica.
+	// RenderLayout/Transformed use TextStylePtr for font family and
+	// style. Rich text mixes styles, so each RenderRTF run uses its
+	// own (below).
 	family := "Helvetica"
 	fontStyle := ""
-	if cmd.Kind != RenderRTF && cmd.TextStylePtr != nil {
+	cmdStyle := cmd.Kind != RenderRTF && cmd.TextStylePtr != nil
+	if cmdStyle {
 		family = pdfFontName(cmd.TextStylePtr.Family)
 		fontStyle = pdfFontStyle(cmd.TextStylePtr)
 	}
@@ -509,11 +511,20 @@ func pdfRenderLayout(ctx *pdfCtx, cmd RenderCmd) {
 		if itemAlpha {
 			ctx.pdf.SetAlpha(float64(item.Color.A)/255.0, "Normal")
 		}
+		// A run carries its own font: a code span in a markdown
+		// paragraph is monospace, and drawing it in Helvetica made
+		// the width fit below blow narrow tokens up to giant glyphs.
+		itemFamily, itemStyle := family, fontStyle
+		if !cmdStyle && item.Style.FontName != "" {
+			ts := TextStyle{Family: item.Style.FontName,
+				Typeface: item.Style.Typeface}
+			itemFamily, itemStyle = pdfFontName(ts.Family), pdfFontStyle(&ts)
+		}
 		// Derive font size from ascent (≈75% of em for
 		// standard PDF fonts).
 		srcSize := item.Ascent / 0.75
 		size := srcSize * float64(ctx.scale) / float64(ptToMM)
-		ctx.pdf.SetFont(family, fontStyle, size)
+		ctx.pdf.SetFont(itemFamily, itemStyle, size)
 
 		// Scale font so PDF text width matches the
 		// glyph-computed item width. Built-in PDF
@@ -523,7 +534,7 @@ func pdfRenderLayout(ctx *pdfCtx, cmd RenderCmd) {
 		pdfW := ctx.pdf.GetStringWidth(text)
 		if pdfW > 0 && wantW > 0 {
 			size *= wantW / pdfW
-			ctx.pdf.SetFont(family, fontStyle, size)
+			ctx.pdf.SetFont(itemFamily, itemStyle, size)
 		}
 
 		ix := ctx.px(cmd.X + float32(item.X))

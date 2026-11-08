@@ -222,7 +222,11 @@ func pdfFontName(name string) string {
 	switch {
 	case strings.Contains(lower, "mono"),
 		strings.Contains(lower, "courier"),
-		strings.Contains(lower, "consol"):
+		strings.Contains(lower, "consol"),
+		// The macOS monospace families: Menlo is the default
+		// MonoFontFamily there (theme_defaults_darwin.go).
+		strings.Contains(lower, "menlo"),
+		strings.Contains(lower, "monaco"):
 		return "Courier"
 	case strings.Contains(lower, "serif") &&
 		!strings.Contains(lower, "sans"):

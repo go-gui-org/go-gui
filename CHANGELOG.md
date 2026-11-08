@@ -127,6 +127,14 @@ and this project adheres to
   set earlier came back on later text. Rounded rectangles are now drawn without
   opening a graphics state.
 
+- **PDF export prints rich text in each run's own font (#1231).** Markdown and
+  other rich text printed every run in Helvetica, fitted to the run's width on
+  screen. A code run is monospace, so narrow tokens such as `if` or `(` came out
+  several times too large and overlapped the lines around them. Each run now
+  prints in its own family and weight, so code prints in Courier and bold text
+  in bold. Menlo and Monaco, the macOS monospace families, now count as
+  monospace too.
+
 - **Android: the soft keyboard height no longer comes out short on Android 15
   (#1171).** The demo host subtracted the navigation bar from the keyboard, but
   from Android 15 the view reaches under that bar, so the reported height was 24
