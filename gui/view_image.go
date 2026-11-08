@@ -14,7 +14,15 @@ type ImageCfg struct {
 	clickButton clickFilter // left-click filter; avoids a wrapper closure
 	OnHover     func(EventCtx)
 	ID          string
-	Src         string
+
+	// Src names the image: a file path (native backends; the browser has no
+	// file system), an http(s) URL (downloaded in the background), a "data:"
+	// URL (web backend only; other backends treat it as a path), or a "mem:"
+	// source returned by RegisterEncodedImage or UseImage. A path ending in
+	// .svg is drawn as an Svg. Files decode as PNG, JPEG or GIF, or any
+	// format whose decoder the app imports; a URL download accepts PNG, JPEG
+	// and SVG only.
+	Src string
 
 	// Surface shows mutable owned pixels instead of Src, for video
 	// frames and other images that change every frame. A non-nil Surface

@@ -138,6 +138,26 @@ var snippetEntries = []snippetEntry{
 		},
 	},
 	{
+		sourceFile: "../../gui/image_encoded_example_test.go",
+		beginMark:  "// doc:snippet-begin encoded-image",
+		endMark:    "// doc:snippet-end encoded-image",
+		anchor:     `gui.RegisterEncodedImage("myapp/logo-v1", logoPNG)`,
+		heading:    "## Encoded Bytes and `go:embed`",
+		guides: []string{
+			"docs/widget_image.md",
+		},
+	},
+	{
+		sourceFile: "../embedded_image/main.go",
+		beginMark:  "// doc:snippet-begin embedded-image-register",
+		endMark:    "// doc:snippet-end embedded-image-register",
+		anchor:     "gui.RegisterEncodedImage(e.key, e.data)",
+		heading:    "## How it works",
+		guides: []string{
+			"../embedded_image/README.md",
+		},
+	},
+	{
 		sourceFile: "../path_trim/main.go",
 		beginMark:  "// doc:snippet-begin path-trim-draw",
 		endMark:    "// doc:snippet-end path-trim-draw",

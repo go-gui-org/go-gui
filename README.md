@@ -128,6 +128,9 @@ Go-Gui is also an ecosystem of composable libraries. **go-glyph** handles text,
   frame from any goroutine, for video frames, camera feeds or emulator screens.
   A new frame redraws without rebuilding layout, on every backend
   ([`examples/pixel_surface/`](examples/pixel_surface/))
+- **Embedded raster images** — `RegisterEncodedImage` decodes PNG, JPEG or GIF
+  bytes from `go:embed` (or any other source) into an image `Src`, without a
+  temporary file ([`examples/embedded_image/`](examples/embedded_image/))
 - **Content transitions** — a `Text` animates a change of its value: a counter
   rolls only the digits that change, a label fades to its new words, an icon
   shrinks away while the next grows in

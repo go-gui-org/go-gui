@@ -6,23 +6,21 @@ import (
 	"errors"
 	"fmt"
 	"image"
-	"image/draw"
-	_ "image/jpeg" // Register JPEG decoder.
-	_ "image/png"  // Register PNG decoder.
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/go-gui-org/go-gui/gui/backend/internal/imgpath"
+	"github.com/go-gui-org/go-gui/gui/internal/imgdecode"
 )
 
 const (
 	// DefaultMaxImageBytes is the default maximum encoded image
 	// size accepted by DecodeNRGBA.
-	DefaultMaxImageBytes = int64(16 * 1024 * 1024)
+	DefaultMaxImageBytes = imgdecode.DefaultMaxImageBytes
 	// DefaultMaxImagePixels is the default maximum decoded pixel
 	// count accepted by DecodeNRGBA.
-	DefaultMaxImagePixels = int64(40_000_000)
+	DefaultMaxImagePixels = imgdecode.DefaultMaxImagePixels
 )
 
 // ResolveValidatedPath cleans, absolutizes, and resolves symlinks
@@ -92,61 +90,5 @@ func DecodeNRGBA(
 	path string, f *os.File,
 	maxBytes, maxPixels int64,
 ) (*image.NRGBA, error) {
-	if err := validateFile(path, f, maxBytes, maxPixels); err != nil {
-		return nil, fmt.Errorf("decode image: validate: %w", err)
-	}
-	if _, err := f.Seek(0, 0); err != nil {
-		return nil, fmt.Errorf("decode image: seek: %w", err)
-	}
-	src, _, err := image.Decode(f)
-	if err != nil {
-		return nil, fmt.Errorf("decode image: %w", err)
-	}
-	if maxPixels <= 0 {
-		maxPixels = DefaultMaxImagePixels
-	}
-	bounds := src.Bounds()
-	w, h := int64(bounds.Dx()), int64(bounds.Dy())
-	if w <= 0 || h <= 0 {
-		return nil, fmt.Errorf("invalid image dimensions: %s", path)
-	}
-	if w*h > maxPixels {
-		return nil, fmt.Errorf("image dimensions too large: %s", path)
-	}
-	if existing, ok := src.(*image.NRGBA); ok {
-		return existing, nil
-	}
-	nrgba := image.NewNRGBA(bounds)
-	draw.Draw(nrgba, bounds, src, bounds.Min, draw.Src)
-	return nrgba, nil
-}
-
-func validateFile(
-	path string, f *os.File,
-	maxBytes, maxPixels int64,
-) error {
-	if maxBytes <= 0 {
-		maxBytes = DefaultMaxImageBytes
-	}
-	info, err := f.Stat()
-	if err != nil {
-		return fmt.Errorf("validate image %s: stat: %w", path, err)
-	}
-	if info.Size() > maxBytes {
-		return fmt.Errorf("image file too large: %s", path)
-	}
-	if maxPixels <= 0 {
-		maxPixels = DefaultMaxImagePixels
-	}
-	cfg, _, err := image.DecodeConfig(f)
-	if err != nil {
-		return fmt.Errorf("validate image %s: decode config: %w", path, err)
-	}
-	if cfg.Width <= 0 || cfg.Height <= 0 {
-		return fmt.Errorf("invalid image dimensions: %s", path)
-	}
-	if int64(cfg.Width)*int64(cfg.Height) > maxPixels {
-		return fmt.Errorf("image dimensions too large: %s", path)
-	}
-	return nil
+	return imgdecode.DecodeNRGBA(path, f, maxBytes, maxPixels)
 }
