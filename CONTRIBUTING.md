@@ -1,5 +1,7 @@
 # Contributing to Go-Gui
 
+> Absolutely no negativity will be tolerated. constructive criticism is always welcome. Be kind and be thoughtful or be blocked.
+
 ## Build and Test
 
 Run the full local validation gate before pushing a branch:
