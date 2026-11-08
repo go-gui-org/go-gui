@@ -8,7 +8,6 @@ import (
 )
 
 // InputMaskPreset defines common mask patterns.
-// exportaudit:keep — reachable from an exported signature
 type InputMaskPreset uint8
 
 // InputMaskPreset constants.
@@ -27,7 +26,6 @@ const (
 )
 
 // MaskTokenDef defines one token symbol in a mask pattern.
-// exportaudit:keep — reachable from an exported signature
 type MaskTokenDef struct {
 	// Matcher reports whether r may occupy this slot. It must be
 	// non-nil: compileInputMask rejects a token without one, because
@@ -39,8 +37,7 @@ type MaskTokenDef struct {
 }
 
 // MaskEditResult stores the output of a mask edit operation.
-// exportaudit:keep — reachable from an exported signature
-type MaskEditResult struct {
+type maskEditResult struct {
 	Text      string
 	CursorPos int
 	Changed   bool
@@ -66,8 +63,7 @@ type compiledMaskEntry struct {
 }
 
 // CompiledInputMask stores parsed mask entries and lookup indexes.
-// exportaudit:keep — reachable from an exported signature
-type CompiledInputMask struct {
+type compiledInputMask struct {
 	pattern string
 	entries []compiledMaskEntry
 	// lastSlot is the entry index of the final slot, or -1 when
@@ -112,12 +108,12 @@ const compiledMaskCacheMax = 256
 
 var compiledMaskCache = struct {
 	sync.RWMutex
-	m map[string]*CompiledInputMask
-}{m: make(map[string]*CompiledInputMask)}
+	m map[string]*compiledInputMask
+}{m: make(map[string]*compiledInputMask)}
 
 // cachedCompiledMask returns the shared instance for pattern, or nil
 // when no custom tokens apply and the pattern is not cached yet.
-func cachedCompiledMask(pattern string) *CompiledInputMask {
+func cachedCompiledMask(pattern string) *compiledInputMask {
 	compiledMaskCache.RLock()
 	c := compiledMaskCache.m[pattern]
 	compiledMaskCache.RUnlock()
@@ -131,7 +127,7 @@ func cachedCompiledMask(pattern string) *CompiledInputMask {
 // recompiles every frame forever — the exact per-frame garbage this
 // cache exists to remove. Dropping the whole set costs one recompile
 // per live pattern and cannot pin a live field behind 256 dead ones.
-func storeCompiledMaskCache(pattern string, c *CompiledInputMask) {
+func storeCompiledMaskCache(pattern string, c *compiledInputMask) {
 	compiledMaskCache.Lock()
 	defer compiledMaskCache.Unlock()
 	if _, ok := compiledMaskCache.m[pattern]; ok {
@@ -163,9 +159,9 @@ func inputMaskFromPreset(preset InputMaskPreset) string {
 
 // CompileInputMask parses a mask pattern and resolves token
 // definitions.
-func compileInputMask(mask string, custom []MaskTokenDef) (CompiledInputMask, error) {
+func compileInputMask(mask string, custom []MaskTokenDef) (compiledInputMask, error) {
 	if len(mask) == 0 {
-		return CompiledInputMask{}, errors.New("mask pattern is empty")
+		return compiledInputMask{}, errors.New("mask pattern is empty")
 	}
 
 	tokenMap := make(map[rune]MaskTokenDef)
@@ -174,7 +170,7 @@ func compileInputMask(mask string, custom []MaskTokenDef) (CompiledInputMask, er
 	}
 	for _, def := range custom {
 		if def.Matcher == nil {
-			return CompiledInputMask{}, errors.New(
+			return compiledInputMask{}, errors.New(
 				"mask token missing matcher")
 		}
 		tokenMap[def.Symbol] = def
@@ -232,7 +228,7 @@ func compileInputMask(mask string, custom []MaskTokenDef) (CompiledInputMask, er
 		lastSlot = slotIndexes[len(slotIndexes)-1]
 	}
 
-	return CompiledInputMask{
+	return compiledInputMask{
 		pattern:          mask,
 		entries:          entries,
 		lastSlot:         lastSlot,
@@ -240,11 +236,11 @@ func compileInputMask(mask string, custom []MaskTokenDef) (CompiledInputMask, er
 	}, nil
 }
 
-func (m *CompiledInputMask) slotCount() int {
+func (m *compiledInputMask) slotCount() int {
 	return len(m.slotEntryIndexes)
 }
 
-func (m *CompiledInputMask) slotEntry(slotIndex int) compiledMaskEntry {
+func (m *compiledInputMask) slotEntry(slotIndex int) compiledMaskEntry {
 	// Defensive: every caller pre-checks slotCount, but an index
 	// from a stale cursor must degrade to a skipped literal, not
 	// a panic. The zero entry's nil matcher reads as "no slot".
@@ -254,7 +250,7 @@ func (m *CompiledInputMask) slotEntry(slotIndex int) compiledMaskEntry {
 	return m.entries[m.slotEntryIndexes[slotIndex]]
 }
 
-func (m *CompiledInputMask) rawFromFormattedRunes(formatted []rune) []rune {
+func (m *compiledInputMask) rawFromFormattedRunes(formatted []rune) []rune {
 	raw := make([]rune, 0, m.slotCount())
 	limit := min(len(formatted), len(m.entries))
 	for i := range limit {
@@ -269,7 +265,7 @@ func (m *CompiledInputMask) rawFromFormattedRunes(formatted []rune) []rune {
 	return raw
 }
 
-func (m *CompiledInputMask) formatRaw(raw []rune) string {
+func (m *compiledInputMask) formatRaw(raw []rune) string {
 	if len(raw) == 0 || len(m.entries) == 0 {
 		return ""
 	}
@@ -296,7 +292,7 @@ func (m *CompiledInputMask) formatRaw(raw []rune) string {
 	return string(out)
 }
 
-func (m *CompiledInputMask) formattedToRawIndex(formattedLen, formattedIndex, rawLen int) int {
+func (m *compiledInputMask) formattedToRawIndex(formattedLen, formattedIndex, rawLen int) int {
 	idx := max(0, min(formattedLen, formattedIndex))
 	limit := min(idx, len(m.entries))
 	rawIndex := 0
@@ -308,7 +304,7 @@ func (m *CompiledInputMask) formattedToRawIndex(formattedLen, formattedIndex, ra
 	return max(0, min(rawLen, rawIndex))
 }
 
-func (m *CompiledInputMask) selectionRawRange(formattedLen, cursorPos int, selectBeg, selectEnd uint32, rawLen int) (int, int) {
+func (m *compiledInputMask) selectionRawRange(formattedLen, cursorPos int, selectBeg, selectEnd uint32, rawLen int) (int, int) {
 	if selectBeg != selectEnd {
 		beg, end := u32Sort(selectBeg, selectEnd)
 		return m.formattedToRawIndex(formattedLen, int(beg), rawLen),
@@ -318,7 +314,7 @@ func (m *CompiledInputMask) selectionRawRange(formattedLen, cursorPos int, selec
 	return idx, idx
 }
 
-func (m *CompiledInputMask) rebuildRaw(prefix, suffix []rune) []rune {
+func (m *compiledInputMask) rebuildRaw(prefix, suffix []rune) []rune {
 	out := make([]rune, 0, m.slotCount())
 	for _, ch := range prefix {
 		if len(out) >= m.slotCount() {
@@ -341,7 +337,7 @@ func (m *CompiledInputMask) rebuildRaw(prefix, suffix []rune) []rune {
 	return out
 }
 
-func (m *CompiledInputMask) cursorFromRawIndex(raw []rune, rawIndex int) int {
+func (m *compiledInputMask) cursorFromRawIndex(raw []rune, rawIndex int) int {
 	idx := max(0, min(len(raw), rawIndex))
 	if idx == 0 {
 		return 0
@@ -350,9 +346,9 @@ func (m *CompiledInputMask) cursorFromRawIndex(raw []rune, rawIndex int) int {
 }
 
 // InputMaskInsert inserts input into a masked formatted string.
-func inputMaskInsert(formatted string, cursorPos int, selectBeg, selectEnd uint32, input string, compiled *CompiledInputMask) MaskEditResult {
+func inputMaskInsert(formatted string, cursorPos int, selectBeg, selectEnd uint32, input string, compiled *compiledInputMask) maskEditResult {
 	if compiled == nil || compiled.slotCount() == 0 {
-		return MaskEditResult{Text: formatted, CursorPos: cursorPos}
+		return maskEditResult{Text: formatted, CursorPos: cursorPos}
 	}
 
 	formattedRunes := []rune(formatted)
@@ -378,7 +374,7 @@ func inputMaskInsert(formatted string, cursorPos int, selectBeg, selectEnd uint3
 	newRaw := compiled.rebuildRaw(prefix, raw[end:])
 	newText := compiled.formatRaw(newRaw)
 	newCursor := compiled.cursorFromRawIndex(newRaw, insertSlot)
-	return MaskEditResult{
+	return maskEditResult{
 		Text:      newText,
 		CursorPos: newCursor,
 		Changed:   newText != formatted,
@@ -386,9 +382,9 @@ func inputMaskInsert(formatted string, cursorPos int, selectBeg, selectEnd uint3
 	}
 }
 
-func inputMaskRemove(formatted string, cursorPos int, selectBeg, selectEnd uint32, removeBackward bool, compiled *CompiledInputMask) MaskEditResult {
+func inputMaskRemove(formatted string, cursorPos int, selectBeg, selectEnd uint32, removeBackward bool, compiled *compiledInputMask) maskEditResult {
 	if compiled == nil || compiled.slotCount() == 0 {
-		return MaskEditResult{Text: formatted, CursorPos: cursorPos}
+		return maskEditResult{Text: formatted, CursorPos: cursorPos}
 	}
 
 	formattedRunes := []rune(formatted)
@@ -399,13 +395,13 @@ func inputMaskRemove(formatted string, cursorPos int, selectBeg, selectEnd uint3
 	if start == end {
 		if removeBackward {
 			if start == 0 {
-				return MaskEditResult{Text: formatted, CursorPos: cursorPos}
+				return maskEditResult{Text: formatted, CursorPos: cursorPos}
 			}
 			start--
 			end = start + 1
 		} else {
 			if start >= len(raw) {
-				return MaskEditResult{Text: formatted, CursorPos: cursorPos}
+				return maskEditResult{Text: formatted, CursorPos: cursorPos}
 			}
 			end = start + 1
 		}
@@ -414,7 +410,7 @@ func inputMaskRemove(formatted string, cursorPos int, selectBeg, selectEnd uint3
 	newRaw := compiled.rebuildRaw(raw[:start], raw[end:])
 	newText := compiled.formatRaw(newRaw)
 	newCursor := compiled.cursorFromRawIndex(newRaw, start)
-	return MaskEditResult{
+	return maskEditResult{
 		Text:      newText,
 		CursorPos: newCursor,
 		Changed:   newText != formatted,
@@ -422,12 +418,12 @@ func inputMaskRemove(formatted string, cursorPos int, selectBeg, selectEnd uint3
 }
 
 // InputMaskBackspace removes one editable slot left of cursor.
-func inputMaskBackspace(formatted string, cursorPos int, selectBeg, selectEnd uint32, compiled *CompiledInputMask) MaskEditResult {
+func inputMaskBackspace(formatted string, cursorPos int, selectBeg, selectEnd uint32, compiled *compiledInputMask) maskEditResult {
 	return inputMaskRemove(formatted, cursorPos, selectBeg, selectEnd, true, compiled)
 }
 
 // InputMaskDelete removes one editable slot at/after cursor.
-func inputMaskDelete(formatted string, cursorPos int, selectBeg, selectEnd uint32, compiled *CompiledInputMask) MaskEditResult {
+func inputMaskDelete(formatted string, cursorPos int, selectBeg, selectEnd uint32, compiled *compiledInputMask) maskEditResult {
 	return inputMaskRemove(formatted, cursorPos, selectBeg, selectEnd, false, compiled)
 }
 

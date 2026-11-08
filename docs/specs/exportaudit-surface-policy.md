@@ -29,7 +29,9 @@ references it:
 `make export-audit` exits non-zero. The symbol is internal-only and must be
 unexported or carry a `// exportaudit:keep` marker explaining why. The accepted
 reasons: json reflection, stdlib interface conformance, name collision,
-signature reachability, documented API.
+documented API. Signature reachability is not a marker reason: the `reach` class
+computes it, and the 96 markers that once asserted it were deleted in #1235
+after #735 had made 25 of them false.
 
 The consumer scan is authoritative. Without the sibling repos, an export used
 only there misclassifies as none/self. The in-repo run alone can only report (it

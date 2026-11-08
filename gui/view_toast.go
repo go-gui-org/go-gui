@@ -152,7 +152,7 @@ func toastContainerView(w *Window) View {
 }
 
 // toastItemView builds a single toast notification view.
-func toastItemView(toast *toastNotification, style ToastStyle) View {
+func toastItemView(toast *toastNotification, style toastStyle) View {
 	frac := toast.animFrac
 	id := toast.id
 

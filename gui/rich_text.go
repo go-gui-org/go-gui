@@ -102,7 +102,7 @@ const (
 // shared by shaping, flat-text building and run lookup so all three
 // agree on each run's shaped length.
 func rtfMathObject(
-	run *RichTextRun, cache *BoundedDiagramCache,
+	run *RichTextRun, cache *boundedDiagramCache,
 ) (objW, objH float32, ok bool) {
 	if run == nil || run.MathID == "" || cache == nil {
 		return 0, 0, false
@@ -135,7 +135,7 @@ func rtfMathObject(
 // rtfMathReady reports whether a math run shapes as an inline
 // object placeholder rather than its LaTeX fallback.
 func rtfMathReady(
-	run *RichTextRun, cache *BoundedDiagramCache,
+	run *RichTextRun, cache *boundedDiagramCache,
 ) bool {
 	_, _, ok := rtfMathObject(run, cache)
 	return ok
@@ -145,7 +145,7 @@ func rtfMathReady(
 // glyph layout: the object placeholder for ready math, the raw LaTeX
 // fallback otherwise, plain text for non-math runs.
 func rtfShapedRunText(
-	run *RichTextRun, cache *BoundedDiagramCache,
+	run *RichTextRun, cache *boundedDiagramCache,
 ) string {
 	if run.MathID != "" {
 		if rtfMathReady(run, cache) {
@@ -169,7 +169,7 @@ func (rt RichText) toGlyphRichText() glyph.RichText {
 // math object (in order), used by renderRtf to bypass
 // the unreliable Pango ObjectID round-trip.
 func (rt RichText) toGlyphRichTextWithMath(
-	cache *BoundedDiagramCache,
+	cache *boundedDiagramCache,
 ) (glyph.RichText, []int64) {
 	runs := make([]glyph.StyleRun, 0, len(rt.Runs))
 	var mathHashes []int64

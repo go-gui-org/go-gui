@@ -36,7 +36,6 @@ type GridOrmColumnSpec struct {
 }
 
 // GridOrmQuerySpec is the validated query sent to ORM callbacks.
-// exportaudit:keep — reachable from an exported signature
 type GridOrmQuerySpec struct {
 	QuickFilter string
 	Cursor      string
@@ -72,7 +71,6 @@ type GridOrmDeleteManyFn func(rowIDs []string, signal *gg.GridAbortSignal) ([]st
 
 // GridOrmDataSource wraps user-provided ORM callbacks with
 // column validation, query normalization, and abort handling.
-// exportaudit:keep — reachable from an exported signature
 type GridOrmDataSource struct {
 	columnMap      map[string]GridOrmColumnSpec
 	FetchFn        GridOrmFetchFn
@@ -483,7 +481,6 @@ func gridOrmValidateMutationColumns(
 }
 
 // GridOrmSQLBuilder holds SQL fragments built from a query spec.
-// exportaudit:keep — reachable from an exported signature
 type GridOrmSQLBuilder struct {
 	WhereSQL  string
 	OrderSQL  string

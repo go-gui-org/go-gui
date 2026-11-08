@@ -109,7 +109,7 @@ func TestRichTextToGlyphConversion(t *testing.T) {
 func TestMathRunEmitsInlineObject(t *testing.T) {
 	cache := newBoundedDiagramCache(10)
 	hash := diagramCacheHash("x^2")
-	cache.Set(hash, DiagramCacheEntry{
+	cache.Set(hash, diagramCacheEntry{
 		State:  diagramReady,
 		Width:  120,
 		Height: 40,
@@ -156,7 +156,7 @@ func TestMathRunEmitsInlineObject(t *testing.T) {
 func TestMathRunFallbackWhenLoading(t *testing.T) {
 	cache := newBoundedDiagramCache(10)
 	hash := diagramCacheHash("y^2")
-	cache.Set(hash, DiagramCacheEntry{
+	cache.Set(hash, diagramCacheEntry{
 		State: diagramLoading,
 	})
 	rt := RichText{
@@ -198,7 +198,7 @@ func TestMathRunFallbackNilCache(t *testing.T) {
 // agreement with rtfFlatTextFromRuns.
 func TestMathRunZeroSizeFallsBack(t *testing.T) {
 	cache := newBoundedDiagramCache(10)
-	cache.Set(diagramCacheHash("m"), DiagramCacheEntry{
+	cache.Set(diagramCacheHash("m"), diagramCacheEntry{
 		State:  diagramReady,
 		Width:  120,
 		Height: 40,
@@ -242,7 +242,7 @@ func TestRichTextPlain(t *testing.T) {
 // LaTeX source rather than shape an infinite object.
 func TestMathRunScaleOverflowFallsBack(t *testing.T) {
 	cache := newBoundedDiagramCache(4)
-	cache.Set(diagramCacheHash("m"), DiagramCacheEntry{
+	cache.Set(diagramCacheHash("m"), diagramCacheEntry{
 		State: diagramReady, Width: 80, Height: 24,
 		dPI: 1e-40, // denormal: 72/dPI overflows the scale
 	})
@@ -274,7 +274,7 @@ func TestMathRunScaleOverflowFallsBack(t *testing.T) {
 // unusable as an infinite one.
 func TestMathRunScaleUnderflowFallsBack(t *testing.T) {
 	cache := newBoundedDiagramCache(4)
-	cache.Set(diagramCacheHash("m"), DiagramCacheEntry{
+	cache.Set(diagramCacheHash("m"), diagramCacheEntry{
 		State: diagramReady, Width: 1e-30, Height: 1e-30,
 		dPI: 3e38,
 	})

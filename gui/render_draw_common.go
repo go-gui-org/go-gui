@@ -161,7 +161,6 @@ func DrawTextTransformed(
 
 // GradientBorderRect is one edge rect with its sampled color for a
 // gradient border. Shared across all backends.
-// exportaudit:keep — reachable from an exported signature
 type GradientBorderRect struct {
 	X, Y, W, H float32
 	Color      Color

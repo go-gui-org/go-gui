@@ -7,7 +7,7 @@ import (
 
 // --- tokenizeCode ---
 
-func tokenize(code string, lang CodeLanguage) []codeToken {
+func tokenize(code string, lang codeLanguage) []codeToken {
 	return tokenizeCode(code, lang, maxCodeBlockHighlightBytes)
 }
 
@@ -591,7 +591,7 @@ func TestTokenizeMergesAdjacentSameKind(t *testing.T) {
 // --- Reassembly for all languages ---
 
 func TestTokenizeReassemblyAllLangs(t *testing.T) {
-	samples := map[CodeLanguage]string{
+	samples := map[codeLanguage]string{
 		langGo:         "func main() { fmt.Println(\"hi\") }",
 		langPython:     "def foo():\n    print('hello')\n",
 		langJavaScript: "const f = () => { return 42; };",
@@ -659,7 +659,7 @@ func TestNormalizeLanguageHint(t *testing.T) {
 
 func TestIsKeywordPerLanguage(t *testing.T) {
 	tests := []struct {
-		lang CodeLanguage
+		lang codeLanguage
 		word string
 		want bool
 	}{

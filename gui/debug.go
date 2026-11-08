@@ -49,7 +49,6 @@ var debugOut io.Writer = os.Stderr
 
 // DebugCategory names one class of dev-mode finding. Categories gate
 // the checks independently; see [DebugCategories].
-// exportaudit:keep — reachable from an exported signature
 type DebugCategory uint32
 
 const (

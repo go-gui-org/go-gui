@@ -81,7 +81,6 @@ func goldenInstant() time.Time {
 // *testing.T, *testing.B and *testing.F satisfy it. An interface
 // rather than testing.TB keeps package testing out of the library's
 // import graph, the same reason NewTestWindow takes a Cleanuper.
-// exportaudit:keep — reachable from an exported signature
 type GoldenTB interface {
 	Helper()
 	Logf(format string, args ...any)

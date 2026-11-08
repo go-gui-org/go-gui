@@ -4,8 +4,7 @@ package gui
 // entries are dropped (FIFO eviction). A maxSize below 1 keeps
 // nothing: Push drops the element. Not thread-safe; main-goroutine
 // only, like StateMap.
-// exportaudit:keep — reachable from an exported signature
-type BoundedStack[T any] struct {
+type boundedStack[T any] struct {
 	buf     []T
 	head    int
 	size    int
@@ -13,8 +12,8 @@ type BoundedStack[T any] struct {
 }
 
 // NewBoundedStack creates a BoundedStack with the given max size.
-func newBoundedStack[T any](maxSize int) *BoundedStack[T] {
-	s := &BoundedStack[T]{maxSize: maxSize}
+func newBoundedStack[T any](maxSize int) *boundedStack[T] {
+	s := &boundedStack[T]{maxSize: maxSize}
 	if maxSize > 0 {
 		s.buf = make([]T, maxSize)
 	}
@@ -22,7 +21,7 @@ func newBoundedStack[T any](maxSize int) *BoundedStack[T] {
 }
 
 // Push adds element to stack. Drops oldest if at capacity.
-func (s *BoundedStack[T]) Push(elem T) {
+func (s *boundedStack[T]) Push(elem T) {
 	if s.maxSize < 1 {
 		return
 	}
@@ -38,7 +37,7 @@ func (s *BoundedStack[T]) Push(elem T) {
 }
 
 // Pop removes and returns top element. Returns (zero, false) if empty.
-func (s *BoundedStack[T]) Pop() (T, bool) {
+func (s *boundedStack[T]) Pop() (T, bool) {
 	if s.size == 0 {
 		var zero T
 		return zero, false
@@ -55,17 +54,17 @@ func (s *BoundedStack[T]) Pop() (T, bool) {
 }
 
 // Len returns number of elements.
-func (s *BoundedStack[T]) Len() int {
+func (s *boundedStack[T]) Len() int {
 	return s.size
 }
 
 // IsEmpty returns true if stack has no elements.
-func (s *BoundedStack[T]) isEmpty() bool {
+func (s *boundedStack[T]) isEmpty() bool {
 	return s.size == 0
 }
 
 // Clear removes all elements.
-func (s *BoundedStack[T]) Clear() {
+func (s *boundedStack[T]) Clear() {
 	clear(s.buf)
 	s.size = 0
 	s.head = 0

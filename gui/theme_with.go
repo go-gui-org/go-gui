@@ -23,7 +23,7 @@ func (t Theme) withContainerStyle(s containerStyle) Theme {
 }
 
 // withInputStyle returns a Theme carrying the given input style.
-func (t Theme) withInputStyle(s InputStyle) Theme {
+func (t Theme) withInputStyle(s inputStyle) Theme {
 	t.inputStyle = s
 	t.id = nextThemeID()
 	return t

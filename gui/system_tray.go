@@ -9,5 +9,4 @@ type SystemTrayCfg struct {
 }
 
 // SystemTrayHandle identifies an active system tray entry.
-// exportaudit:keep — reachable from an exported signature
 type SystemTrayHandle struct{ id int }

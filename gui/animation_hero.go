@@ -13,7 +13,6 @@ const heroTransitionID = "__hero_transition__"
 
 // HeroTransition animates elements between views. Only one
 // HeroTransition can be active at a time (fixed internal ID).
-// exportaudit:keep — reachable from an exported signature
 type HeroTransition struct {
 	// outgoing holds the hero geometry of the frame the transition was
 	// registered on — the "before" side of the morph. AnimationAdd

@@ -362,7 +362,7 @@ func TestRenderMdMathErrorsWrap(t *testing.T) {
 
 	w := &Window{}
 	w.viewState.diagramCache = newBoundedDiagramCache(50)
-	w.viewState.diagramCache.Set(hash, DiagramCacheEntry{
+	w.viewState.diagramCache.Set(hash, diagramCacheEntry{
 		State: diagramError,
 		Error: errText,
 	})

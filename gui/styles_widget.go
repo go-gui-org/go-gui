@@ -1,8 +1,7 @@
 package gui
 
 // InputStyle defines input field visual properties.
-// exportaudit:keep — reachable from an exported signature
-type InputStyle struct {
+type inputStyle struct {
 	textStyleNormal  TextStyle
 	PlaceholderStyle TextStyle
 	Shadow           *BoxShadow
@@ -14,7 +13,6 @@ type InputStyle struct {
 }
 
 // ScrollbarStyle defines scrollbar visual properties.
-// exportaudit:keep — reachable from an exported signature
 type ScrollbarStyle struct {
 	Size            float32
 	minThumbSize    float32
@@ -27,15 +25,13 @@ type ScrollbarStyle struct {
 }
 
 // SeparatorStyle defines divider rule visual properties.
-// exportaudit:keep — reachable from an exported signature
-type SeparatorStyle struct {
+type separatorStyle struct {
 	Colors ColorSet
 	Size   float32
 }
 
 // RadioStyle defines radio button visual properties.
-// exportaudit:keep — reachable from an exported signature
-type RadioStyle struct {
+type radioStyle struct {
 	textStyleNormal TextStyle
 	textStyleLabel  TextStyle
 	Padding         Padding
@@ -49,8 +45,7 @@ type RadioStyle struct {
 }
 
 // SwitchStyle defines switch toggle visual properties.
-// exportaudit:keep — reachable from an exported signature
-type SwitchStyle struct {
+type switchStyle struct {
 	textStyleNormal TextStyle
 	textStyleLabel  TextStyle
 	Shadow          *BoxShadow
@@ -65,8 +60,7 @@ type SwitchStyle struct {
 }
 
 // ToggleStyle defines toggle button visual properties.
-// exportaudit:keep — reachable from an exported signature
-type ToggleStyle struct {
+type toggleStyle struct {
 	textStyleNormal TextStyle
 	textStyleLabel  TextStyle
 	Padding         Padding
@@ -81,8 +75,7 @@ type ToggleStyle struct {
 }
 
 // SelectStyle defines select dropdown visual properties.
-// exportaudit:keep — reachable from an exported signature
-type SelectStyle struct {
+type selectStyle struct {
 	textStyleNormal  TextStyle
 	subheadingStyle  TextStyle
 	PlaceholderStyle TextStyle
@@ -107,17 +100,17 @@ type SelectStyle struct {
 // ThemeMaker is the only source of these values — never add an
 // initializer here.
 var (
-	defaultInputStyle InputStyle
+	defaultInputStyle inputStyle
 
 	DefaultScrollbarStyle ScrollbarStyle
 
-	defaultRadioStyle RadioStyle
+	defaultRadioStyle radioStyle
 
-	defaultSwitchStyle SwitchStyle
+	defaultSwitchStyle switchStyle
 
-	defaultToggleStyle ToggleStyle
+	defaultToggleStyle toggleStyle
 
-	defaultSelectStyle SelectStyle
+	defaultSelectStyle selectStyle
 
-	defaultSeparatorStyle SeparatorStyle
+	defaultSeparatorStyle separatorStyle
 )

@@ -304,7 +304,7 @@ func queueDiagramError(
 			return
 		}
 		w.viewState.diagramCache.Set(hash,
-			DiagramCacheEntry{
+			diagramCacheEntry{
 				State:     diagramError,
 				Error:     errMsg,
 				RequestID: requestID,

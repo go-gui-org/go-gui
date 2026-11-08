@@ -72,23 +72,23 @@ func isolateThemeShadows(cfg *ThemeCfg) {
 // Go views are populated (Button, Container, Rectangle, Text,
 // Input, Scrollbar, Radio, Switch, Toggle, Select, ListBox, Tree).
 type Theme struct {
-	breadcrumbStyle  BreadcrumbStyle
-	tabControlStyle  TabControlStyle
+	breadcrumbStyle  breadcrumbStyle
+	tabControlStyle  tabControlStyle
 	segmentedStyle   segmentedControlStyle
 	dataGridStyle    DataGridStyle
-	selectStyle      SelectStyle
-	menubarStyle     MenubarStyle
-	toastStyle       ToastStyle
-	inputStyle       InputStyle
+	selectStyle      selectStyle
+	menubarStyle     menubarStyle
+	toastStyle       toastStyle
+	inputStyle       inputStyle
 	dialogStyle      DialogStyle
-	comboboxStyle    ComboboxStyle
-	toggleStyle      ToggleStyle
-	listBoxStyle     ListBoxStyle
-	switchStyle      SwitchStyle
-	datePickerStyle  DatePickerStyle
-	progressBarStyle ProgressBarStyle
-	radioStyle       RadioStyle
-	tooltipStyle     TooltipStyle
+	comboboxStyle    comboboxStyle
+	toggleStyle      toggleStyle
+	listBoxStyle     listBoxStyle
+	switchStyle      switchStyle
+	datePickerStyle  datePickerStyle
+	progressBarStyle progressBarStyle
+	radioStyle       radioStyle
+	tooltipStyle     tooltipStyle
 	colorPickerStyle ColorPickerStyle
 	TextStyleDef     TextStyle
 
@@ -196,19 +196,19 @@ type Theme struct {
 	buttonStyleGhost    buttonStyle
 	buttonStyleDanger   buttonStyle
 	containerStyle      containerStyle
-	rectangleStyle      RectangleStyle
-	treeStyle           TreeStyle
-	commandPaletteStyle CommandPaletteStyle
-	badgeStyle          BadgeStyle
+	rectangleStyle      rectangleStyle
+	treeStyle           treeStyle
+	commandPaletteStyle commandPaletteStyle
+	badgeStyle          badgeStyle
 	Name                string
-	tableStyle          TableStyle
+	tableStyle          tableStyle
 	Cfg                 ThemeCfg
-	sliderStyle         SliderStyle
-	splitterStyle       SplitterStyle
-	expandPanelStyle    ExpandPanelStyle
+	sliderStyle         sliderStyle
+	splitterStyle       splitterStyle
+	expandPanelStyle    expandPanelStyle
 	ScrollbarStyle      ScrollbarStyle
-	skeletonStyle       SkeletonStyle
-	separatorStyle      SeparatorStyle
+	skeletonStyle       skeletonStyle
+	separatorStyle      separatorStyle
 
 	// Layout constants.
 	PaddingSmall  Padding
@@ -281,7 +281,7 @@ type Theme struct {
 	ScrollDeltaLine float32
 	// exportaudit:keep — caller-facing config (issue #372)
 	ScrollDeltaPage float32
-	inspectorStyle  InspectorStyle
+	inspectorStyle  inspectorStyle
 
 	// Sounds maps interaction roles onto cues. The zero set is silent
 	// and is the intended default, so ThemeDark and ThemeLight make no

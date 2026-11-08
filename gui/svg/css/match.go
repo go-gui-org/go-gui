@@ -140,7 +140,7 @@ func (cs complexSelector) Matches(
 type MatchedDecl struct {
 	Decl
 	Origin Origin
-	spec   Specificity
+	spec   specificity
 	Source int
 }
 
@@ -157,7 +157,7 @@ func Match(
 	var out []MatchedDecl
 	for ri := range rules {
 		r := &rules[ri]
-		var spec Specificity
+		var spec specificity
 		matched := false
 		for _, sel := range r.selectors {
 			if !sel.Matches(el, ancestors, siblings) {

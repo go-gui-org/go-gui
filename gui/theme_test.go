@@ -94,7 +94,7 @@ func TestSetTheme(t *testing.T) {
 
 	theme := Theme{
 		buttonStyle: buttonStyle{Colors: ColorSet{Base: Red}},
-		treeStyle:   TreeStyle{Colors: ColorSet{Hover: Blue}},
+		treeStyle:   treeStyle{Colors: ColorSet{Hover: Blue}},
 	}
 	SetTheme(theme)
 	if defaultButtonStyle.Colors.Base != Red {

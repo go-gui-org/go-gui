@@ -371,7 +371,7 @@ func inputKeyUndoRedo(
 // masked field, whose slots the mask decides, takes it as one key press.
 func inputKeyDeleteEvent(
 	text string, id string, forward bool, e *Event,
-	mask *CompiledInputMask, layout *Layout, w *Window,
+	mask *compiledInputMask, layout *Layout, w *Window,
 	rejectCue SoundCue,
 ) (string, bool) {
 	if e.IMEDeleteCount > 0 && mask == nil {
@@ -390,7 +390,7 @@ func inputKeyDeleteEvent(
 // a rejection — and stays silent (issue #468).
 func inputKeyBackspaceOrDelete(
 	text string, id string, forward bool,
-	mask *CompiledInputMask, layout *Layout, w *Window,
+	mask *compiledInputMask, layout *Layout, w *Window,
 	rejectCue SoundCue,
 ) (string, bool) {
 	if newText, ok := inputHandleDelete(

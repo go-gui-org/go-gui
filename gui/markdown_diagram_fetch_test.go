@@ -86,7 +86,7 @@ func TestDiagramCacheShouldApplyResult(t *testing.T) {
 
 	// Entry present but already ready: a late duplicate must not
 	// overwrite the stored diagram.
-	cache.Set(1, DiagramCacheEntry{
+	cache.Set(1, diagramCacheEntry{
 		State:     diagramReady,
 		RequestID: 1,
 		Width:     10,
@@ -97,7 +97,7 @@ func TestDiagramCacheShouldApplyResult(t *testing.T) {
 
 	// Loading but from a different request: the document re-rendered
 	// and re-issued, so this result is stale.
-	cache.Set(2, DiagramCacheEntry{
+	cache.Set(2, diagramCacheEntry{
 		State:     diagramLoading,
 		RequestID: 7,
 	})
@@ -124,7 +124,7 @@ func TestFetchMermaidAsyncStoresReadyEntry(t *testing.T) {
 	body := testPNGBytes(t, 60, 40)
 	hash := diagramCacheHash("graph TD\n  A-->B")
 	reqID := nextDiagramRequestID(w)
-	w.viewState.diagramCache.Set(hash, DiagramCacheEntry{
+	w.viewState.diagramCache.Set(hash, diagramCacheEntry{
 		State:     diagramLoading,
 		RequestID: reqID,
 	})
@@ -196,7 +196,7 @@ func TestFetchMermaidAsyncFetcherErrorQueuesError(t *testing.T) {
 
 	hash := diagramCacheHash("graph TD\n  A-->B")
 	reqID := nextDiagramRequestID(w)
-	w.viewState.diagramCache.Set(hash, DiagramCacheEntry{
+	w.viewState.diagramCache.Set(hash, diagramCacheEntry{
 		State:     diagramLoading,
 		RequestID: reqID,
 	})
@@ -231,7 +231,7 @@ func TestFetchMermaidAsyncSourceTooLarge(t *testing.T) {
 
 	hash := diagramCacheHash("x")
 	reqID := nextDiagramRequestID(w)
-	w.viewState.diagramCache.Set(hash, DiagramCacheEntry{
+	w.viewState.diagramCache.Set(hash, diagramCacheEntry{
 		State:     diagramLoading,
 		RequestID: reqID,
 	})
@@ -265,7 +265,7 @@ func TestFinishDiagramFetchBadPNGQueuesError(t *testing.T) {
 
 	hash := diagramCacheHash("math1")
 	reqID := nextDiagramRequestID(w)
-	w.viewState.diagramCache.Set(hash, DiagramCacheEntry{
+	w.viewState.diagramCache.Set(hash, diagramCacheEntry{
 		State:     diagramLoading,
 		RequestID: reqID,
 	})
@@ -292,7 +292,7 @@ func TestStaleDiagramResultDropped(t *testing.T) {
 	body := testPNGBytes(t, 10, 10)
 	hash := diagramCacheHash("stale")
 	oldReq := nextDiagramRequestID(w)
-	w.viewState.diagramCache.Set(hash, DiagramCacheEntry{
+	w.viewState.diagramCache.Set(hash, diagramCacheEntry{
 		State:     diagramLoading,
 		RequestID: oldReq,
 	})
@@ -312,7 +312,7 @@ func TestStaleDiagramResultDropped(t *testing.T) {
 	// The document re-rendered and issued a new request for the same
 	// diagram before the old one completed.
 	newReq := nextDiagramRequestID(w)
-	w.viewState.diagramCache.Set(hash, DiagramCacheEntry{
+	w.viewState.diagramCache.Set(hash, diagramCacheEntry{
 		State:     diagramLoading,
 		RequestID: newReq,
 	})
@@ -340,7 +340,7 @@ func TestStaleDiagramErrorDropped(t *testing.T) {
 
 	hash := diagramCacheHash("stale-err")
 	oldReq := nextDiagramRequestID(w)
-	w.viewState.diagramCache.Set(hash, DiagramCacheEntry{
+	w.viewState.diagramCache.Set(hash, diagramCacheEntry{
 		State:     diagramLoading,
 		RequestID: oldReq,
 	})
@@ -358,7 +358,7 @@ func TestStaleDiagramErrorDropped(t *testing.T) {
 	}
 
 	newReq := nextDiagramRequestID(w)
-	w.viewState.diagramCache.Set(hash, DiagramCacheEntry{
+	w.viewState.diagramCache.Set(hash, diagramCacheEntry{
 		State:     diagramLoading,
 		RequestID: newReq,
 	})

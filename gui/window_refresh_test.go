@@ -189,7 +189,7 @@ func TestBlinkTickPresentsWithoutRebuild(t *testing.T) {
 	// goroutine on b.start, a plain struct field (race detector,
 	// macOS CI).
 	w.animMu.Lock()
-	b := w.animations[blinkCursorAnimationID].(*BlinkCursorAnimation)
+	b := w.animations[blinkCursorAnimationID].(*blinkCursorAnimation)
 	b.start = time.Now().Add(-time.Second)
 	deferred := make([]queuedCommand, 0, 4)
 	ac := newAnimationCommands(&deferred)

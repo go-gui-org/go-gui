@@ -10,7 +10,6 @@ const (
 )
 
 // DockDropZone identifies where a panel will be inserted on drop.
-// exportaudit:keep — reachable from an exported signature
 type DockDropZone uint8
 
 // DockDropZone constants.

@@ -1,8 +1,7 @@
 package gui
 
 // ProgressBarStyle defines progress bar visual properties.
-// exportaudit:keep — reachable from an exported signature
-type ProgressBarStyle struct {
+type progressBarStyle struct {
 	TextStyle      TextStyle
 	Padding        Padding
 	textPadding    Padding
@@ -16,8 +15,7 @@ type ProgressBarStyle struct {
 }
 
 // SliderStyle defines slider visual properties.
-// exportaudit:keep — reachable from an exported signature
-type SliderStyle struct {
+type sliderStyle struct {
 	Size       float32
 	ThumbSize  float32
 	Colors     ColorSet
@@ -29,8 +27,7 @@ type SliderStyle struct {
 }
 
 // TabControlStyle defines tab control visual properties.
-// exportaudit:keep — reachable from an exported signature
-type TabControlStyle struct {
+type tabControlStyle struct {
 	TextStyle          TextStyle
 	textStyleSelected  TextStyle
 	textStyleDisabled  TextStyle
@@ -93,8 +90,7 @@ type segmentedControlStyle struct {
 }
 
 // BreadcrumbStyle defines breadcrumb visual properties.
-// exportaudit:keep — reachable from an exported signature
-type BreadcrumbStyle struct {
+type breadcrumbStyle struct {
 	TextStyle          TextStyle
 	textStyleSelected  TextStyle
 	textStyleDisabled  TextStyle
@@ -121,8 +117,7 @@ type BreadcrumbStyle struct {
 }
 
 // SplitterStyle defines splitter visual properties.
-// exportaudit:keep — reachable from an exported signature
-type SplitterStyle struct {
+type splitterStyle struct {
 	HandleSize    float32
 	dragStep      float32
 	dragStepLarge float32
@@ -139,8 +134,7 @@ type SplitterStyle struct {
 }
 
 // TableStyle defines table visual properties.
-// exportaudit:keep — reachable from an exported signature
-type TableStyle struct {
+type tableStyle struct {
 	TextStyle          TextStyle
 	TextStyleHead      TextStyle
 	cellPadding        Padding
@@ -153,8 +147,7 @@ type TableStyle struct {
 }
 
 // ComboboxStyle defines combobox visual properties.
-// exportaudit:keep — reachable from an exported signature
-type ComboboxStyle struct {
+type comboboxStyle struct {
 	TextStyle        TextStyle
 	PlaceholderStyle TextStyle
 	// Shadow lifts the open dropdown off the content behind it.
@@ -174,8 +167,7 @@ type ComboboxStyle struct {
 }
 
 // CommandPaletteStyle defines command palette visual properties.
-// exportaudit:keep — reachable from an exported signature
-type CommandPaletteStyle struct {
+type commandPaletteStyle struct {
 	TextStyle   TextStyle
 	detailStyle TextStyle
 	// Shadow lifts the palette off the backdrop. Modal tier, not
@@ -194,8 +186,7 @@ type CommandPaletteStyle struct {
 }
 
 // MenubarStyle defines menubar visual properties.
-// exportaudit:keep — reachable from an exported signature
-type MenubarStyle struct {
+type menubarStyle struct {
 	TextStyle         TextStyle
 	textStyleSubtitle TextStyle
 	// Shadow lifts an open menu surface — a popup menu or a submenu —
@@ -224,8 +215,7 @@ type MenubarStyle struct {
 }
 
 // DatePickerStyle defines date picker visual properties.
-// exportaudit:keep — reachable from an exported signature
-type DatePickerStyle struct {
+type datePickerStyle struct {
 	TextStyle    TextStyle
 	Shadow       *BoxShadow
 	Padding      Padding
@@ -245,7 +235,6 @@ type DatePickerStyle struct {
 }
 
 // ColorPickerStyle defines color picker visual properties.
-// exportaudit:keep — reachable from an exported signature
 type ColorPickerStyle struct {
 	TextStyle     TextStyle
 	SizeBorder    float32
@@ -257,8 +246,7 @@ type ColorPickerStyle struct {
 }
 
 // SkeletonStyle defines skeleton loader visual properties.
-// exportaudit:keep — reachable from an exported signature
-type SkeletonStyle struct {
+type skeletonStyle struct {
 	Colors         ColorSet
 	ColorHighlight Color
 	Radius         float32
@@ -268,29 +256,29 @@ type SkeletonStyle struct {
 // ThemeMaker is the only source of these values — never add an
 // initializer here.
 var (
-	defaultProgressBarStyle ProgressBarStyle
+	defaultProgressBarStyle progressBarStyle
 
-	defaultSliderStyle SliderStyle
+	defaultSliderStyle sliderStyle
 
-	defaultTabControlStyle TabControlStyle
+	defaultTabControlStyle tabControlStyle
 
 	defaultSegmentedControlStyle segmentedControlStyle
 
-	defaultBreadcrumbStyle BreadcrumbStyle
+	defaultBreadcrumbStyle breadcrumbStyle
 
-	defaultSplitterStyle SplitterStyle
+	defaultSplitterStyle splitterStyle
 
-	defaultTableStyle TableStyle
+	defaultTableStyle tableStyle
 
-	defaultComboboxStyle ComboboxStyle
+	defaultComboboxStyle comboboxStyle
 
-	defaultCommandPaletteStyle CommandPaletteStyle
+	defaultCommandPaletteStyle commandPaletteStyle
 
-	defaultDatePickerStyle DatePickerStyle
+	defaultDatePickerStyle datePickerStyle
 
 	defaultColorPickerStyle ColorPickerStyle
 
-	defaultSkeletonStyle SkeletonStyle
+	defaultSkeletonStyle skeletonStyle
 
-	defaultMenubarStyle MenubarStyle
+	defaultMenubarStyle menubarStyle
 )

@@ -1165,7 +1165,7 @@ func TestLangFromHint(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		hint string
-		want CodeLanguage
+		want codeLanguage
 	}{
 		{"go", langGo},
 		{"golang", langGo},

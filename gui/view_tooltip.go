@@ -67,7 +67,6 @@ func (ts *tooltipState) clearText() {
 }
 
 // TooltipCfg configures a tooltip popup.
-// exportaudit:keep — reachable from an exported signature
 type TooltipCfg struct {
 	TextStyle   TextStyle
 	ID          string

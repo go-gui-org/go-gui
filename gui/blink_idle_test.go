@@ -45,7 +45,7 @@ func ageBlinkActivity(t *testing.T, w *Window, d time.Duration) {
 	t.Helper()
 	w.animMu.Lock()
 	defer w.animMu.Unlock()
-	b, ok := w.animations[blinkCursorAnimationID].(*BlinkCursorAnimation)
+	b, ok := w.animations[blinkCursorAnimationID].(*blinkCursorAnimation)
 	if !ok {
 		t.Fatal("blink animation missing")
 	}

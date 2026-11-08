@@ -3,8 +3,7 @@ package gui
 import "time"
 
 // ListBoxStyle defines list box visual properties.
-// exportaudit:keep — reachable from an exported signature
-type ListBoxStyle struct {
+type listBoxStyle struct {
 	textStyleNormal TextStyle
 	subheadingStyle TextStyle
 	Padding         Padding
@@ -19,8 +18,7 @@ type ListBoxStyle struct {
 }
 
 // TreeStyle defines tree view visual properties.
-// exportaudit:keep — reachable from an exported signature
-type TreeStyle struct {
+type treeStyle struct {
 	TextStyle     TextStyle
 	textStyleIcon TextStyle
 	Padding       Padding
@@ -32,7 +30,6 @@ type TreeStyle struct {
 }
 
 // DialogStyle defines dialog visual properties.
-// exportaudit:keep — reachable from an exported signature
 type DialogStyle struct {
 	titleTextStyle TextStyle
 	TextStyle      TextStyle
@@ -79,8 +76,7 @@ func resolveToastAnchor(o Opt[ToastAnchor]) ToastAnchor {
 }
 
 // ToastStyle defines toast notification visual properties.
-// exportaudit:keep — reachable from an exported signature
-type ToastStyle struct {
+type toastStyle struct {
 	TextStyle    TextStyle
 	TitleStyle   TextStyle
 	Shadow       *BoxShadow
@@ -101,8 +97,7 @@ type ToastStyle struct {
 }
 
 // TooltipStyle defines tooltip visual properties.
-// exportaudit:keep — reachable from an exported signature
-type TooltipStyle struct {
+type tooltipStyle struct {
 	TextStyle  TextStyle
 	Shadow     *BoxShadow
 	Delay      time.Duration
@@ -113,8 +108,7 @@ type TooltipStyle struct {
 }
 
 // BadgeStyle defines badge visual properties.
-// exportaudit:keep — reachable from an exported signature
-type BadgeStyle struct {
+type badgeStyle struct {
 	TextStyle    TextStyle
 	Padding      Padding
 	dotSize      float32
@@ -126,8 +120,7 @@ type BadgeStyle struct {
 }
 
 // ExpandPanelStyle defines expand panel visual properties.
-// exportaudit:keep — reachable from an exported signature
-type ExpandPanelStyle struct {
+type expandPanelStyle struct {
 	// Colors.BorderFocus is the header's ring while the panel holds
 	// focus.
 	Colors       ColorSet
@@ -141,17 +134,17 @@ type ExpandPanelStyle struct {
 // ThemeMaker is the only source of these values — never add an
 // initializer here.
 var (
-	defaultListBoxStyle ListBoxStyle
+	defaultListBoxStyle listBoxStyle
 
-	defaultTreeStyle TreeStyle
+	defaultTreeStyle treeStyle
 
 	DefaultDialogStyle DialogStyle
 
-	defaultToastStyle ToastStyle
+	defaultToastStyle toastStyle
 
-	defaultTooltipStyle TooltipStyle
+	defaultTooltipStyle tooltipStyle
 
-	defaultBadgeStyle BadgeStyle
+	defaultBadgeStyle badgeStyle
 
-	defaultExpandPanelStyle ExpandPanelStyle
+	defaultExpandPanelStyle expandPanelStyle
 )

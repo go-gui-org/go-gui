@@ -83,12 +83,11 @@ const (
 
 // CodeLanguage identifies a programming language for
 // syntax highlighting.
-// exportaudit:keep — reachable from an exported signature
-type CodeLanguage uint8
+type codeLanguage uint8
 
 // CodeLanguage constants.
 const (
-	langGeneric CodeLanguage = iota
+	langGeneric codeLanguage = iota
 	langV
 	langJavaScript
 	langTypeScript

@@ -54,7 +54,7 @@ type RTFCfg struct {
 // which is why the diagram cache rides along. Also returns the rune
 // count in one pass so callers do not rescan the built string.
 func rtfFlatTextFromRuns(
-	rt *RichText, cache *BoundedDiagramCache,
+	rt *RichText, cache *boundedDiagramCache,
 ) (string, int) {
 	if rt == nil || len(rt.Runs) == 0 {
 		return "", 0
@@ -86,7 +86,7 @@ func rtfFlatTextFromRuns(
 // rtfRuneCountFromRuns counts runes across all runs in the shaped
 // domain (see rtfFlatTextFromRuns), without allocating a
 // concatenated string.
-func rtfRuneCountFromRuns(rt *RichText, cache *BoundedDiagramCache) int {
+func rtfRuneCountFromRuns(rt *RichText, cache *boundedDiagramCache) int {
 	if rt == nil {
 		return 0
 	}
@@ -315,7 +315,7 @@ func rtfHitTest(run glyph.Item, mx, my float32) bool {
 }
 
 func rtfFindRunAtIndex(
-	l *Layout, startIndex int, cache *BoundedDiagramCache,
+	l *Layout, startIndex int, cache *boundedDiagramCache,
 ) RichTextRun {
 	if l == nil || l.Shape == nil || l.Shape.TC == nil ||
 		l.Shape.TC.rtf == nil || l.Shape.TC.rtf.rTFRuns == nil {
@@ -480,7 +480,7 @@ func rtfStyleKey(s glyph.TextStyle) uint64 {
 // InlineObject placeholder produce different glyph runs and
 // dimensions.
 func rtfMathStateKey(
-	rt *RichText, cache *BoundedDiagramCache,
+	rt *RichText, cache *boundedDiagramCache,
 ) uint64 {
 	h := Fnv64Offset
 	if rt == nil || cache == nil {

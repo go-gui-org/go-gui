@@ -120,7 +120,7 @@ type Window struct {
 	history *snapshotRing
 
 	// View state.
-	viewState ViewState
+	viewState viewState
 
 	// Config is the WindowCfg passed to NewWindow. Read-only after init.
 	// Backends read Title, Width, Height, and other properties from this.

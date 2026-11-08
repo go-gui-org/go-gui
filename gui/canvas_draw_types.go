@@ -58,7 +58,6 @@ type drawCanvasCache struct {
 //
 // Lifetime matches DrawCanvasTriBatch: Def.Stops belongs to the
 // canvas's cache entry and is recycled by the next redraw.
-// exportaudit:keep — reachable from an exported signature
 type DrawCanvasGradientEntry struct {
 	Def        GradientDef
 	X, Y, W, H float32
@@ -180,7 +179,6 @@ func (b DrawCanvasTriBatch) TransformAffine() (
 // columns stand perpendicular — every Translate/ScaleBy/Rotate chain
 // except a non-uniform scale sandwiched between two rotations — and
 // draws un-sheared otherwise.
-// exportaudit:keep — reachable from an exported signature
 type DrawCanvasImageEntry struct {
 	fetcher                    ImageFetcher
 	Src                        string
@@ -212,7 +210,6 @@ type DrawCanvasImageEntry struct {
 // retain — the contract is the stricter of the two so a recorder that
 // satisfies it is correct either way, rather than correct until the
 // first Translate.
-// exportaudit:keep — reachable from an exported signature
 type DrawRecorder interface {
 	Line(x0, y0, x1, y1 float32, color Color, width float32)
 	Polyline(points []float32, color Color, width float32)
@@ -243,7 +240,7 @@ type DrawRecorder interface {
 // does not implement this still receives the fill, as the equivalent
 // flat primitive shaded with the gradient's midpoint color, so an
 // export path never silently drops a gradient fill.
-// exportaudit:keep — reachable from an exported signature
+// exportaudit:keep — optional DrawRecorder capability, reached by type assertion
 type DrawGradientRecorder interface {
 	FillTrianglesGradient(tris []float32, g *CanvasGradient)
 }
@@ -260,7 +257,7 @@ type DrawGradientRecorder interface {
 // A recorder that does not implement this still receives the fill, one
 // flat polygon per triangle shaded with that triangle's mean color, so
 // an export path never silently drops a shaded mesh.
-// exportaudit:keep — reachable from an exported signature
+// exportaudit:keep — optional DrawRecorder capability, reached by type assertion
 type DrawVertexColorRecorder interface {
 	FillTrianglesColors(tris []float32, colors []Color)
 }
@@ -280,7 +277,7 @@ type DrawVertexColorRecorder interface {
 // gradient-capable recorder as tessellated triangles plus the
 // gradient; without one it degrades to the flat path at the ramp's
 // midpoint.
-// exportaudit:keep — reachable from an exported signature
+// exportaudit:keep — optional DrawRecorder capability, reached by type assertion
 type DrawPathRecorder interface {
 	FillPath(p *CanvasPath, color Color, rule FillRule)
 	StrokePath(p *CanvasPath, color Color, width float32,

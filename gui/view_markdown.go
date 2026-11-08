@@ -301,7 +301,7 @@ func SetMarkdownExternalAPIsEnabled(enabled bool) {
 	markdownExternalAPIsEnabled = enabled
 }
 
-func ensureDiagramCache(w *Window) *BoundedDiagramCache {
+func ensureDiagramCache(w *Window) *boundedDiagramCache {
 	if w.viewState.diagramCache == nil {
 		w.viewState.diagramCache =
 			newBoundedDiagramCache(50)
@@ -560,7 +560,7 @@ func markdownTriggerMathFetches(
 			}
 			reqID := nextDiagramRequestID(w)
 			inlineCache.Set(mhash,
-				DiagramCacheEntry{
+				diagramCacheEntry{
 					State:     diagramLoading,
 					RequestID: reqID,
 				})

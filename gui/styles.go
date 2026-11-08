@@ -335,8 +335,7 @@ type containerStyle struct {
 }
 
 // RectangleStyle defines rectangle visual properties.
-// exportaudit:keep — reachable from an exported signature
-type RectangleStyle struct {
+type rectangleStyle struct {
 	Shadow         *BoxShadow
 	Gradient       *GradientDef
 	BorderGradient *GradientDef
@@ -374,7 +373,6 @@ var (
 )
 
 // DataGridStyle defines data grid visual properties.
-// exportaudit:keep — reachable from an exported signature
 type DataGridStyle struct {
 	TextStyle       TextStyle
 	TextStyleHeader TextStyle
@@ -389,8 +387,7 @@ type DataGridStyle struct {
 	// Hover tints the sort, reorder, pin, pager and CRUD buttons.
 	// The grid reads no other slot; Click, Focus and the borders
 	// stay unset (issue #720).
-	ColorsHeader ColorSet
-	// exportaudit:keep — reachable from an exported signature
+	ColorsHeader     ColorSet
 	ColorFilter      Color
 	ColorQuickFilter Color
 	// ColorsRow themes the body rows: Hover is the row hover fill,
@@ -407,8 +404,7 @@ type DataGridStyle struct {
 }
 
 // InspectorStyle defines the look and feel of the GUI inspector.
-// exportaudit:keep — reachable from an exported signature
-type InspectorStyle struct {
+type inspectorStyle struct {
 	ColorPanel     Color
 	colorTextHelp  Color
 	colorTextProp  Color
@@ -419,7 +415,7 @@ type InspectorStyle struct {
 // defaultInspectorStyle provides the default inspector color palette.
 // Like DefaultTextStyle it is a ThemeMaker input (ThemeMaker copies it
 // into every theme's inspectorStyle), so it keeps a real literal.
-var defaultInspectorStyle = InspectorStyle{
+var defaultInspectorStyle = inspectorStyle{
 	ColorPanel:     RGBA(64, 64, 64, 245),
 	colorTextHelp:  RGBA(225, 225, 225, 130),
 	colorTextProp:  RGBA(220, 160, 60, 255),

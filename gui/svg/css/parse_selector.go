@@ -205,7 +205,7 @@ func parseComplexSelector(toks []tdcss.Token) (complexSelector, bool) {
 	if len(parts) == 0 {
 		return complexSelector{}, false
 	}
-	var spec Specificity
+	var spec specificity
 	for _, p := range parts {
 		spec = spec.Add(p.compound.spec)
 	}

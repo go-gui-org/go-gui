@@ -11,7 +11,6 @@ import (
 // panel groups (one or more panels shown as tabs).
 
 // DockSplitDir controls how two panes are arranged in a split.
-// exportaudit:keep — reachable from an exported signature
 type DockSplitDir uint8
 
 // DockSplitDir constants.

@@ -225,7 +225,7 @@ Most widgets have a default style struct in `styles_widget.go`:
 ```go
 // In styles_widget.go
 
-type ToggleStyle struct {
+type toggleStyle struct {
     // Colors holds the six per-state colors: Base, Hover, Click,
     // Focus, Border and BorderFocus. Extra colors a single widget
     // needs, like ColorSelect, stay as their own fields.
@@ -239,8 +239,15 @@ type ToggleStyle struct {
     TextStyleLabel   TextStyle
 }
 
-var DefaultToggleStyle = ToggleStyle{...}
+var defaultToggleStyle = toggleStyle{...}
 ```
+
+The style struct is unexported on purpose. Apps style a widget through the theme
+roles and `Theme.With`, never by naming the struct, and no exported function or
+field hands one out, so nothing outside `gui` can hold a value of it (#735,
+#1235). Its fields keep their capitalized names anyway: on a type no other
+package can reach, field case carries no API meaning, and the theme tests read
+these structs by reflection.
 
 And in the theme's `init()` or `buildTheme()` function, populate the light/dark
 variants. The factory's `applyDefaults` function provides any field the user did
