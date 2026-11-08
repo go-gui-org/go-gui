@@ -198,10 +198,11 @@ func pdfFontStyle(ts *TextStyle) string {
 		if !bold && strings.Contains(lower, "bold") {
 			bold = true
 		}
-		if !bold && pdfHeavyFamily(lower) {
+		if !bold && pdfHeavyWeight(lower) {
 			bold = true
 		}
-		if !italic && strings.Contains(lower, "italic") {
+		if !italic && (strings.Contains(lower, "italic") ||
+			strings.Contains(lower, "oblique")) {
 			italic = true
 		}
 	}
@@ -228,25 +229,23 @@ var pdfStyleWords = map[string]bool{
 	"condensed": true, "expanded": true, "regular": true,
 }
 
-// pdfHeavyFamily reports whether a lower-case family name names a heavy
-// face: a Pango "Heavy" keyword ("Inter Heavy Condensed") or a family
-// that ends in "Black" ("Arial Black Italic"). The built-in PDF fonts
-// have only regular and bold, so bold is the closest. It reads the name
-// as glyph does: the trailing style keywords, never the name's only
-// word, then the family left. "Black And White Picture", "Blackadder
-// ITC" and a family called "Black" are regular faces.
-func pdfHeavyFamily(lower string) bool {
+// pdfHeavyWeight reports whether a lower-case font name carries Pango's
+// "Heavy" weight among its trailing style keywords ("Inter Heavy
+// Condensed"), read as glyph reads them: never the name's only word. The
+// built-in PDF fonts have only regular and bold, so bold is the closest.
+// A family that merely ends in "Black" is left regular: "Arial Black" is
+// a heavy face but "Pitch Black" is not, glyph treats neither word as a
+// weight, and only the font's own weight data could tell them apart.
+func pdfHeavyWeight(lower string) bool {
 	words := strings.FieldsFunc(lower, func(r rune) bool {
 		return !unicode.IsLetter(r)
 	})
-	end := len(words)
-	for end > 1 && pdfStyleWords[words[end-1]] {
+	for end := len(words); end > 1 && pdfStyleWords[words[end-1]]; end-- {
 		if words[end-1] == "heavy" {
 			return true
 		}
-		end--
 	}
-	return end > 1 && words[end-1] == "black"
+	return false
 }
 
 // pdfFontName maps a gui font family name to a built-in PDF font.

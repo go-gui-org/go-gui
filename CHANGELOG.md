@@ -133,8 +133,8 @@ and this project adheres to
   several times too large and overlapped the lines around them. Each run now
   prints in its own family and weight, so code prints in Courier and bold text
   in bold. Menlo and Monaco, the macOS monospace families, now count as
-  monospace too, and a heavy family such as Arial Black prints bold in all PDF
-  text.
+  monospace too. In all PDF text, a font name with Pango's `Heavy` weight
+  (`Inter Heavy`) now prints bold, and `Oblique` prints slanted like `Italic`.
 
 - **PDF export no longer writes `Inf` for huge geometry (#1231).** A coordinate,
   size, radius, line width or font size was scaled to the page in float32, so a

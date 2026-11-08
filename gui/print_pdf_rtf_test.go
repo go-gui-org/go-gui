@@ -6,6 +6,7 @@ import (
 	"os"
 	"regexp"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/go-gui-org/go-glyph"
@@ -61,8 +62,8 @@ func pdfShownFonts(t *testing.T, path string) map[string]string {
 }
 
 // Each rich-text run prints in the PDF font closest to its own: family,
-// weight from the typeface or a heavy family name, slant. A plain layout
-// takes its font from the command's TextStyle.
+// weight from the typeface or a Pango weight keyword, slant. A plain
+// layout takes its font from the command's TextStyle.
 func TestRenderToPDF_RunFonts(t *testing.T) {
 	j := testPrintJob(t)
 	run := func(text string, start int, font string, face glyph.Typeface) glyph.Item {
@@ -73,17 +74,27 @@ func TestRenderToPDF_RunFonts(t *testing.T) {
 			Color: glyph.Color{A: 255},
 		}
 	}
-	const text = "code plain strong emph heavy"
+	var text strings.Builder
+	var items []glyph.Item
+	for _, r := range []struct {
+		text, font string
+		face       glyph.Typeface
+	}{
+		{"code", "Consolas", glyph.TypefaceRegular},
+		{"plain", "Segoe UI", glyph.TypefaceRegular},
+		{"strong", "Segoe UI", glyph.TypefaceBold},
+		{"emph", "Segoe UI", glyph.TypefaceItalic},
+		{"both", "Segoe UI", glyph.TypefaceBoldItalic},
+		{"heavy", "Inter Heavy", glyph.TypefaceRegular},
+		{"slant", "Inter Heavy Oblique", glyph.TypefaceRegular},
+	} {
+		items = append(items, run(r.text, text.Len(), r.font, r.face))
+		text.WriteString(r.text + " ")
+	}
 	rich := &glyph.Layout{
-		Text: text,
-		Items: []glyph.Item{
-			run("code", 0, "Consolas", glyph.TypefaceRegular),
-			run("plain", 5, "Segoe UI", glyph.TypefaceRegular),
-			run("strong", 11, "Segoe UI", glyph.TypefaceBold),
-			run("emph", 18, "Segoe UI", glyph.TypefaceItalic),
-			run("heavy", 23, "Arial Black", glyph.TypefaceRegular),
-		},
-		Width:  300,
+		Text:   text.String(),
+		Items:  items,
+		Width:  400,
 		Height: 30,
 	}
 	menlo := &glyph.Layout{
@@ -106,7 +117,9 @@ func TestRenderToPDF_RunFonts(t *testing.T) {
 		"plain":  "Helvetica",
 		"strong": "Helvetica-Bold",
 		"emph":   "Helvetica-Oblique",
+		"both":   "Helvetica-BoldOblique",
 		"heavy":  "Helvetica-Bold",
+		"slant":  "Helvetica-BoldOblique",
 		"menlo":  "Courier",
 	} {
 		if got := shown[run]; got != want {
@@ -115,23 +128,23 @@ func TestRenderToPDF_RunFonts(t *testing.T) {
 	}
 }
 
-// A heavy weight is read as glyph reads font names: a "Heavy" among the
-// trailing style keywords, or a family ending in "Black" once they are
-// stripped; never a name's only word. "Black And White Picture" and
-// "Blackadder ITC" are regular faces.
-func TestPDFFontStyleHeavyFamilies(t *testing.T) {
+// Weight and slant are read from a font name as glyph reads them: a
+// "Heavy" among the trailing style keywords, never a name's only word,
+// and "Italic" or "Oblique". A family that merely ends in "Black" stays
+// regular: the name alone cannot tell "Arial Black" from "Pitch Black".
+func TestPDFFontStyleWeightsAndSlants(t *testing.T) {
 	for family, want := range map[string]string{
-		"Arial Black":              "B",
-		"Arial Black 12":           "B",
-		"Arial Black Italic":       "BI",
+		"Inter Heavy":              "B",
 		"Inter-Heavy":              "B",
+		"Inter Heavy 12":           "B",
 		"Inter Heavy Italic":       "BI",
+		"Inter Heavy Oblique":      "BI",
 		"Custom Heavy Condensed":   "B",
-		"Custom Black Condensed":   "B",
-		"Blackadder ITC":           "",
-		"Black And White Picture":  "",
-		"Black":                    "",
+		"Sans Oblique":             "I",
 		"Heavy":                    "",
+		"Arial Black":              "",
+		"Pitch Black":              "",
+		"Black And White Picture":  "",
 		"Segoe UI":                 "",
 		"Segoe UI Light Condensed": "",
 	} {
@@ -139,6 +152,11 @@ func TestPDFFontStyleHeavyFamilies(t *testing.T) {
 		if got := pdfFontStyle(&ts); got != want {
 			t.Errorf("%s -> %q, want %q", family, got, want)
 		}
+	}
+	// The typeface adds to what the name says.
+	ts := TextStyle{Family: "Inter Heavy", Typeface: glyph.TypefaceItalic}
+	if got := pdfFontStyle(&ts); got != "BI" {
+		t.Errorf("Inter Heavy with an italic typeface -> %q, want \"BI\"", got)
 	}
 }
 
