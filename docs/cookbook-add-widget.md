@@ -109,7 +109,7 @@ func Toggle(cfg ToggleCfg) View {
     }
     applyToggleDefaults(&cfg)
 
-    d := &DefaultToggleStyle
+    d := &defaultToggleStyle
     sizeBorder := cfg.SizeBorder.Or(d.SizeBorder)
     radius := cfg.Radius.Or(d.Radius)
 
@@ -256,7 +256,7 @@ field as the `Base` shorthand:
 
 ```go
 func applyToggleDefaults(cfg *ToggleCfg) {
-    d := &DefaultToggleStyle
+    d := &defaultToggleStyle
     cfg.Colors = cfg.Colors.resolved(cfg.Color, d.Colors)
     if cfg.TextSelect == "" {
         cfg.TextSelect = "✓"

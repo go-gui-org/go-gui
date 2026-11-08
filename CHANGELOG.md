@@ -90,7 +90,7 @@ and this project adheres to
 
 ### Changed
 
-- **BREAKING: 32 orphaned types are no longer exported (#1235).** Nothing public
+- **BREAKING: 34 orphaned types are no longer exported (#1235).** Nothing public
   produced or accepted them, so no program could do anything with a value: the
   25 per-widget style structs `BadgeStyle`, `BreadcrumbStyle`, `ComboboxStyle`,
   `CommandPaletteStyle`, `DatePickerStyle`, `ExpandPanelStyle`, `InputStyle`,
