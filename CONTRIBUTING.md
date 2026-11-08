@@ -1,6 +1,8 @@
 # Contributing to Go-Gui
 
-> Negativity will not be tolerated. Constructive criticism is always welcome. Be kind and be thoughtful or be blocked.
+> Negativity will not be tolerated.
+> Constructive criticism is always welcome. 
+> Be kind and be thoughtful or be blocked.
 
 ## Build and Test
 
