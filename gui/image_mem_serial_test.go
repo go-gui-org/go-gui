@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"runtime"
 	"sync"
 	"testing"
 )
@@ -179,6 +180,11 @@ func (c *fakeTextureCache) draw(src string) (MemImage, bool) {
 // on: a serial always comes with the same pixels and dimensions, and once
 // registration stops one sweep leaves only textures that match the
 // registry.
+//
+// Both sides yield every round. On js/wasm goroutines share one thread
+// and a loop that never blocks is never preempted, so a reader that only
+// polled would starve the writers and hang; with async preemption off the
+// writers could finish before the reader ran at all.
 func TestImageSerialConcurrentSweep(t *testing.T) {
 	resetMemImages(t)
 	defer SetMemImageBudget(0)
@@ -189,6 +195,9 @@ func TestImageSerialConcurrentSweep(t *testing.T) {
 	for i, k := range keys {
 		srcs[i] = memImagePrefix + k
 	}
+	memImages.mu.Lock()
+	firstSerial := memImages.lastSerial
+	memImages.mu.Unlock()
 
 	const writers, rounds = 4, 400
 	var wg sync.WaitGroup
@@ -204,6 +213,7 @@ func TestImageSerialConcurrentSweep(t *testing.T) {
 				default:
 					DropImage(key)
 				}
+				runtime.Gosched()
 			}
 		})
 	}
@@ -236,6 +246,7 @@ func TestImageSerialConcurrentSweep(t *testing.T) {
 			running = false
 		default:
 			check()
+			runtime.Gosched()
 		}
 	}
 	check()
@@ -247,9 +258,16 @@ func TestImageSerialConcurrentSweep(t *testing.T) {
 				src, serial, now, ok)
 		}
 	}
-	if len(bySerial) < len(keys) {
-		t.Fatalf("saw only %d registrations; the test did not exercise re-registration",
-			len(bySerial))
+	// Count what the writers registered, not what the reader happened to
+	// see: how often the two interleave is up to the scheduler. One
+	// writer alone registers each key at two sizes in turn, so any run
+	// makes more registrations than there are keys.
+	memImages.mu.Lock()
+	made := memImages.lastSerial - firstSerial
+	memImages.mu.Unlock()
+	if made <= uint64(len(keys)) {
+		t.Fatalf("the writers made %d registrations for %d keys; the test did not "+
+			"exercise re-registration", made, len(keys))
 	}
-	t.Logf("%d registrations observed", len(bySerial))
+	t.Logf("%d registrations made, %d observed by the renderer", made, len(bySerial))
 }
