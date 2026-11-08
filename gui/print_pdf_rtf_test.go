@@ -115,19 +115,25 @@ func TestRenderToPDF_RunFonts(t *testing.T) {
 	}
 }
 
-// A heavy weight is the last word of a family name (after a slant
-// word), never its only word: "Black And White Picture" and "Blackadder
-// ITC" are regular faces.
+// A heavy weight is read as glyph reads font names: a "Heavy" among the
+// trailing style keywords, or a family ending in "Black" once they are
+// stripped; never a name's only word. "Black And White Picture" and
+// "Blackadder ITC" are regular faces.
 func TestPDFFontStyleHeavyFamilies(t *testing.T) {
 	for family, want := range map[string]string{
-		"Arial Black":             "B",
-		"Arial Black 12":          "B",
-		"Inter-Heavy":             "B",
-		"Inter Heavy Italic":      "BI",
-		"Blackadder ITC":          "",
-		"Black And White Picture": "",
-		"Black":                   "",
-		"Segoe UI":                "",
+		"Arial Black":              "B",
+		"Arial Black 12":           "B",
+		"Arial Black Italic":       "BI",
+		"Inter-Heavy":              "B",
+		"Inter Heavy Italic":       "BI",
+		"Custom Heavy Condensed":   "B",
+		"Custom Black Condensed":   "B",
+		"Blackadder ITC":           "",
+		"Black And White Picture":  "",
+		"Black":                    "",
+		"Heavy":                    "",
+		"Segoe UI":                 "",
+		"Segoe UI Light Condensed": "",
 	} {
 		ts := TextStyle{Family: family}
 		if got := pdfFontStyle(&ts); got != want {

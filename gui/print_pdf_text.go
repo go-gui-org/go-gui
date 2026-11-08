@@ -219,21 +219,34 @@ func pdfFontStyle(ts *TextStyle) string {
 	return s
 }
 
+// pdfStyleWords are the Pango style keywords glyph strips from the end of
+// a font name (go-glyph fontname.go, fontStyleWords).
+var pdfStyleWords = map[string]bool{
+	"bold": true, "italic": true, "oblique": true,
+	"light": true, "medium": true, "semibold": true,
+	"heavy": true, "ultrabold": true, "ultralight": true,
+	"condensed": true, "expanded": true, "regular": true,
+}
+
 // pdfHeavyFamily reports whether a lower-case family name names a heavy
-// face, such as "Arial Black" or a Pango "Heavy" weight. The built-in PDF
-// fonts have only regular and bold, so bold is the closest. As glyph
-// reads style keywords, only the last word counts (after a slant word),
-// and never the name's only word: "Black And White Picture", "Blackadder
+// face: a Pango "Heavy" keyword ("Inter Heavy Condensed") or a family
+// that ends in "Black" ("Arial Black Italic"). The built-in PDF fonts
+// have only regular and bold, so bold is the closest. It reads the name
+// as glyph does: the trailing style keywords, never the name's only
+// word, then the family left. "Black And White Picture", "Blackadder
 // ITC" and a family called "Black" are regular faces.
 func pdfHeavyFamily(lower string) bool {
 	words := strings.FieldsFunc(lower, func(r rune) bool {
 		return !unicode.IsLetter(r)
 	})
 	end := len(words)
-	for end > 1 && (words[end-1] == "italic" || words[end-1] == "oblique") {
+	for end > 1 && pdfStyleWords[words[end-1]] {
+		if words[end-1] == "heavy" {
+			return true
+		}
 		end--
 	}
-	return end > 1 && (words[end-1] == "black" || words[end-1] == "heavy")
+	return end > 1 && words[end-1] == "black"
 }
 
 // pdfFontName maps a gui font family name to a built-in PDF font.
