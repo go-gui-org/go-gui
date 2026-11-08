@@ -32,7 +32,7 @@ func pdfRenderText(ctx *pdfCtx, cmd RenderCmd) {
 	alphaSet := setAlpha(ctx.pdf, tc)
 	family := pdfFontName(cmd.FontName)
 	style := pdfFontStyle(cmd.TextStylePtr)
-	size := float64(cmd.FontSize * ctx.scale / ptToMM)
+	size := ctx.sc(cmd.FontSize) / float64(ptToMM)
 	ctx.pdf.SetFont(family, style, size)
 
 	// Scale font so PDF text width matches source.
@@ -55,7 +55,7 @@ func pdfRenderText(ctx *pdfCtx, cmd RenderCmd) {
 	if fa == 0 {
 		fa = cmd.FontSize * 0.75
 	}
-	ascent := float64(fa * ctx.scale)
+	ascent := ctx.sc(fa)
 	lineH := size * ptToMM64() * 1.2
 	lines := strings.Split(text, "\n")
 	// Affine canvas text: apply the same transform the
@@ -123,7 +123,7 @@ func pdfRenderTextPath(ctx *pdfCtx, cmd RenderCmd) {
 	alphaSet := setAlpha(ctx.pdf, ts.Color)
 	family := pdfFontName(ts.Family)
 	style := pdfFontStyle(ts)
-	size := float64(ts.Size * ctx.scale / ptToMM)
+	size := ctx.sc(ts.Size) / float64(ptToMM)
 	ctx.pdf.SetFont(family, style, size)
 
 	// Measure per-character advances with fpdf.
@@ -136,7 +136,7 @@ func pdfRenderTextPath(ctx *pdfCtx, cmd RenderCmd) {
 	}
 
 	// Apply text-anchor offset.
-	offset := float64(tp.Offset * ctx.scale)
+	offset := ctx.sc(tp.Offset)
 	switch tp.Anchor {
 	case SvgTextAnchorMiddle:
 		offset -= totalAdv / 2
@@ -147,7 +147,7 @@ func pdfRenderTextPath(ctx *pdfCtx, cmd RenderCmd) {
 	// Method=stretch: scale advances to fill path.
 	advScale := 1.0
 	if tp.method == svgTextPathMethodStretch && totalAdv > 0 {
-		remaining := float64(tp.totalLen*ctx.scale) - offset
+		remaining := ctx.sc(tp.totalLen) - offset
 		if remaining > 0 {
 			advScale = remaining / totalAdv
 		}
@@ -198,7 +198,11 @@ func pdfFontStyle(ts *TextStyle) string {
 		if !bold && strings.Contains(lower, "bold") {
 			bold = true
 		}
-		if !italic && strings.Contains(lower, "italic") {
+		if !bold && pdfHeavyWeight(lower) {
+			bold = true
+		}
+		if !italic && (strings.Contains(lower, "italic") ||
+			strings.Contains(lower, "oblique")) {
 			italic = true
 		}
 	}
@@ -216,13 +220,45 @@ func pdfFontStyle(ts *TextStyle) string {
 	return s
 }
 
+// pdfStyleWords are the Pango style keywords glyph strips from the end of
+// a font name (go-glyph fontname.go, fontStyleWords).
+var pdfStyleWords = map[string]bool{
+	"bold": true, "italic": true, "oblique": true,
+	"light": true, "medium": true, "semibold": true,
+	"heavy": true, "ultrabold": true, "ultralight": true,
+	"condensed": true, "expanded": true, "regular": true,
+}
+
+// pdfHeavyWeight reports whether a lower-case font name carries Pango's
+// "Heavy" weight among its trailing style keywords ("Inter Heavy
+// Condensed"), read as glyph reads them: never the name's only word. The
+// built-in PDF fonts have only regular and bold, so bold is the closest.
+// A family that merely ends in "Black" is left regular: "Arial Black" is
+// a heavy face but "Pitch Black" is not, glyph treats neither word as a
+// weight, and only the font's own weight data could tell them apart.
+func pdfHeavyWeight(lower string) bool {
+	words := strings.FieldsFunc(lower, func(r rune) bool {
+		return !unicode.IsLetter(r)
+	})
+	for end := len(words); end > 1 && pdfStyleWords[words[end-1]]; end-- {
+		if words[end-1] == "heavy" {
+			return true
+		}
+	}
+	return false
+}
+
 // pdfFontName maps a gui font family name to a built-in PDF font.
 func pdfFontName(name string) string {
 	lower := strings.ToLower(name)
 	switch {
 	case strings.Contains(lower, "mono"),
 		strings.Contains(lower, "courier"),
-		strings.Contains(lower, "consol"):
+		strings.Contains(lower, "consol"),
+		// The macOS monospace families: Menlo is the default
+		// MonoFontFamily there (theme_defaults_darwin.go).
+		strings.Contains(lower, "menlo"),
+		strings.Contains(lower, "monaco"):
 		return "Courier"
 	case strings.Contains(lower, "serif") &&
 		!strings.Contains(lower, "sans"):

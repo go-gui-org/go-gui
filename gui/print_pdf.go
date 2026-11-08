@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"image"
+	"math"
 	"os"
 	"path/filepath"
 	"strings"
@@ -30,10 +31,15 @@ type pdfCtx struct {
 	oy    float64 // margin offset Y (mm)
 }
 
-func (c *pdfCtx) px(x float32) float64 { return float64(x*c.scale) + c.ox }
-func (c *pdfCtx) py(y float32) float64 { return float64(y*c.scale) + c.oy }
-func (c *pdfCtx) pw(w float32) float64 { return float64(w * c.scale) }
-func (c *pdfCtx) ph(h float32) float64 { return float64(h * c.scale) }
+// sc scales a logical-pixel length to millimetres. It multiplies in
+// float64: a float32 product overflowed to +Inf for a huge but finite
+// value under a scale above 1, and fpdf wrote that Inf into the page.
+func (c *pdfCtx) sc(v float32) float64 { return float64(v) * float64(c.scale) }
+
+func (c *pdfCtx) px(x float32) float64 { return c.sc(x) + c.ox }
+func (c *pdfCtx) py(y float32) float64 { return c.sc(y) + c.oy }
+func (c *pdfCtx) pw(w float32) float64 { return c.sc(w) }
+func (c *pdfCtx) ph(h float32) float64 { return c.sc(h) }
 
 // renderToPDF renders a slice of RenderCmd to a PDF file at
 // job.OutputPath. sourceW and sourceH are the source viewport
@@ -203,9 +209,9 @@ func pdfRenderRect(ctx *pdfCtx, cmd RenderCmd) {
 	ctx.pdf.SetFillColor(int(r), int(g), int(b))
 	alphaSet := setAlpha(ctx.pdf, cmd.Color)
 	if cmd.Radius > 0 {
-		ctx.pdf.RoundedRect(ctx.px(cmd.X), ctx.py(cmd.Y),
+		pdfRoundedRect(ctx.pdf, ctx.px(cmd.X), ctx.py(cmd.Y),
 			ctx.pw(cmd.W), ctx.ph(cmd.H),
-			float64(cmd.Radius*ctx.scale), "1234", "F")
+			ctx.sc(cmd.Radius), "F")
 	} else {
 		ctx.pdf.Rect(ctx.px(cmd.X), ctx.py(cmd.Y),
 			ctx.pw(cmd.W), ctx.ph(cmd.H), "F")
@@ -215,16 +221,44 @@ func pdfRenderRect(ctx *pdfCtx, cmd RenderCmd) {
 	}
 }
 
+// pdfRoundedRect draws a rounded rectangle with fpdf's path calls, in
+// fpdf user units. fpdf's own RoundedRect opens a graphics state ("q")
+// that it never ends: it shares its path with ClipRoundedRect, whose
+// ClipEnd ends it. Each stray q then took a Q that pdfGState meant for a
+// clip, so clips piled up and an alpha set before it came back. The path
+// calls open no graphics state.
+func pdfRoundedRect(pdf *fpdf.Fpdf, x, y, w, h, r float64, style string) {
+	r = min(r, w/2, h/2)
+	if !(r > 0) {
+		pdf.Rect(x, y, w, h, style)
+		return
+	}
+	// A cubic Bézier with its control points at 4/3·(√2−1) of the
+	// radius from the ends is the usual quarter-circle approximation.
+	c := r * (4.0 / 3.0) * (math.Sqrt2 - 1)
+	pdf.MoveTo(x+r, y)
+	pdf.LineTo(x+w-r, y)
+	pdf.CurveBezierCubicTo(x+w-r+c, y, x+w, y+r-c, x+w, y+r)
+	pdf.LineTo(x+w, y+h-r)
+	pdf.CurveBezierCubicTo(x+w, y+h-r+c, x+w-r+c, y+h, x+w-r, y+h)
+	pdf.LineTo(x+r, y+h)
+	pdf.CurveBezierCubicTo(x+r-c, y+h, x, y+h-r+c, x, y+h-r)
+	pdf.LineTo(x, y+r)
+	pdf.CurveBezierCubicTo(x, y+r-c, x+r-c, y, x+r, y)
+	pdf.ClosePath()
+	pdf.DrawPath(style)
+}
+
 func pdfRenderStrokeRect(ctx *pdfCtx, cmd RenderCmd) {
 	r, g, b := cmd.Color.R, cmd.Color.G, cmd.Color.B
 	ctx.pdf.SetDrawColor(int(r), int(g), int(b))
 	alphaSet := setAlpha(ctx.pdf, cmd.Color)
 	lw := max(cmd.Thickness, 1)
-	ctx.pdf.SetLineWidth(float64(lw * ctx.scale))
+	ctx.pdf.SetLineWidth(ctx.sc(lw))
 	if cmd.Radius > 0 {
-		ctx.pdf.RoundedRect(ctx.px(cmd.X), ctx.py(cmd.Y),
+		pdfRoundedRect(ctx.pdf, ctx.px(cmd.X), ctx.py(cmd.Y),
 			ctx.pw(cmd.W), ctx.ph(cmd.H),
-			float64(cmd.Radius*ctx.scale), "1234", "D")
+			ctx.sc(cmd.Radius), "D")
 	} else {
 		ctx.pdf.Rect(ctx.px(cmd.X), ctx.py(cmd.Y),
 			ctx.pw(cmd.W), ctx.ph(cmd.H), "D")
@@ -239,7 +273,7 @@ func pdfRenderLine(ctx *pdfCtx, cmd RenderCmd) {
 	ctx.pdf.SetDrawColor(int(r), int(g), int(b))
 	alphaSet := setAlpha(ctx.pdf, cmd.Color)
 	lw := max(cmd.Thickness, 1)
-	ctx.pdf.SetLineWidth(float64(lw * ctx.scale))
+	ctx.pdf.SetLineWidth(ctx.sc(lw))
 	ctx.pdf.Line(ctx.px(cmd.X), ctx.py(cmd.Y),
 		ctx.px(cmd.OffsetX), ctx.py(cmd.OffsetY))
 	if alphaSet {
@@ -379,11 +413,11 @@ func pdfRenderGradientBorder(ctx *pdfCtx, cmd RenderCmd) {
 	ctx.pdf.SetDrawColor(int(c.R), int(c.G), int(c.B))
 	alphaSet := setAlpha(ctx.pdf, RGBA(c.R, c.G, c.B, c.A))
 	lw := max(cmd.Thickness, 1)
-	ctx.pdf.SetLineWidth(float64(lw * ctx.scale))
+	ctx.pdf.SetLineWidth(ctx.sc(lw))
 	if cmd.Radius > 0 {
-		ctx.pdf.RoundedRect(ctx.px(cmd.X), ctx.py(cmd.Y),
+		pdfRoundedRect(ctx.pdf, ctx.px(cmd.X), ctx.py(cmd.Y),
 			ctx.pw(cmd.W), ctx.ph(cmd.H),
-			float64(cmd.Radius*ctx.scale), "1234", "D")
+			ctx.sc(cmd.Radius), "D")
 	} else {
 		ctx.pdf.Rect(ctx.px(cmd.X), ctx.py(cmd.Y),
 			ctx.pw(cmd.W), ctx.ph(cmd.H), "D")
@@ -443,11 +477,13 @@ func pdfRenderLayout(ctx *pdfCtx, cmd RenderCmd) {
 	if cmd.LayoutPtr == nil {
 		return
 	}
-	// RenderLayout/Transformed use TextStylePtr for
-	// font family/style; RenderRTF uses plain Helvetica.
+	// RenderLayout/Transformed use TextStylePtr for font family and
+	// style. Rich text mixes styles, so each RenderRTF run uses its
+	// own (below).
 	family := "Helvetica"
 	fontStyle := ""
-	if cmd.Kind != RenderRTF && cmd.TextStylePtr != nil {
+	cmdStyle := cmd.Kind != RenderRTF && cmd.TextStylePtr != nil
+	if cmdStyle {
 		family = pdfFontName(cmd.TextStylePtr.Family)
 		fontStyle = pdfFontStyle(cmd.TextStylePtr)
 	}
@@ -480,11 +516,20 @@ func pdfRenderLayout(ctx *pdfCtx, cmd RenderCmd) {
 		if itemAlpha {
 			ctx.pdf.SetAlpha(float64(item.Color.A)/255.0, "Normal")
 		}
+		// A run carries its own font: a code span in a markdown
+		// paragraph is monospace, and drawing it in Helvetica made
+		// the width fit below blow narrow tokens up to giant glyphs.
+		itemFamily, itemStyle := family, fontStyle
+		if !cmdStyle && item.Style.FontName != "" {
+			ts := TextStyle{Family: item.Style.FontName,
+				Typeface: item.Style.Typeface}
+			itemFamily, itemStyle = pdfFontName(ts.Family), pdfFontStyle(&ts)
+		}
 		// Derive font size from ascent (≈75% of em for
 		// standard PDF fonts).
 		srcSize := item.Ascent / 0.75
 		size := srcSize * float64(ctx.scale) / float64(ptToMM)
-		ctx.pdf.SetFont(family, fontStyle, size)
+		ctx.pdf.SetFont(itemFamily, itemStyle, size)
 
 		// Scale font so PDF text width matches the
 		// glyph-computed item width. Built-in PDF
@@ -494,7 +539,7 @@ func pdfRenderLayout(ctx *pdfCtx, cmd RenderCmd) {
 		pdfW := ctx.pdf.GetStringWidth(text)
 		if pdfW > 0 && wantW > 0 {
 			size *= wantW / pdfW
-			ctx.pdf.SetFont(family, fontStyle, size)
+			ctx.pdf.SetFont(itemFamily, itemStyle, size)
 		}
 
 		ix := ctx.px(cmd.X + float32(item.X))

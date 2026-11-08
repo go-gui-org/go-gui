@@ -2,7 +2,11 @@ package gui
 
 import (
 	"bytes"
+	"compress/zlib"
+	"io"
 	"math"
+	"os"
+	"strings"
 	"testing"
 
 	"github.com/go-pdf/fpdf"
@@ -264,6 +268,96 @@ func TestRenderToPDF_TransformBracket(t *testing.T) {
 		t.Fatal(err)
 	}
 	assertPDFExists(t, j.OutputPath)
+}
+
+// pdfPageContent returns the first page's content stream, inflated.
+// fpdf writes the pages before their fonts and images, so it is the
+// document's first stream.
+func pdfPageContent(t *testing.T, path string) string {
+	t.Helper()
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, rest, found := bytes.Cut(data, []byte("stream\n"))
+	if !found {
+		t.Fatal("PDF has no stream")
+	}
+	raw, _, found := bytes.Cut(rest, []byte("endstream"))
+	if !found {
+		t.Fatal("PDF stream is not terminated")
+	}
+	zr, err := zlib.NewReader(bytes.NewReader(raw))
+	if err != nil {
+		t.Fatal(err)
+	}
+	content, err := io.ReadAll(zr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(content)
+}
+
+// pdfGState ends its own q's with Q whenever a clip or transform
+// changes. That ends the right ones only while every draw call closes
+// each q it opens: one left open takes the Q meant for a clip, so the
+// clip stays and the alpha set before the stray q comes back. fpdf's
+// RoundedRect left one open per call, which clipped the showcase's
+// whole detail panel out of an export. This draws every kind the PDF
+// renderer draws between two clips and requires the page to balance.
+func TestRenderToPDF_DrawCallsBalanceGraphicsState(t *testing.T) {
+	j := testPrintJob(t)
+	resetMemImages(t)
+	src := UseImage("pdf/balance", 2, 2, pixels(2, 2, 0x7f))
+	grad := &GradientDef{
+		Direction: GradientToRight,
+		Stops: []GradientStop{
+			{Color: RGBA(255, 0, 0, 255), Pos: 0},
+			{Color: RGBA(0, 0, 255, 255), Pos: 1},
+		},
+	}
+	cmds := []RenderCmd{
+		{Kind: RenderClip, X: 0, Y: 0, W: 300, H: 600},
+		{Kind: RenderRect, X: 10, Y: 10, W: 50, H: 30, Color: RGB(40, 40, 40)},
+		{Kind: RenderRect, X: 10, Y: 50, W: 50, H: 30, Color: RGBA(40, 40, 40, 128), Radius: 6},
+		{Kind: RenderStrokeRect, X: 10, Y: 90, W: 50, H: 30, Color: RGB(90, 90, 90), Thickness: 1},
+		{Kind: RenderStrokeRect, X: 10, Y: 130, W: 50, H: 30, Color: RGBA(90, 90, 90, 128),
+			Thickness: 1, Radius: 6},
+		{Kind: RenderCircle, X: 10, Y: 170, W: 30, H: 30, Color: RGB(128, 0, 128), Fill: true},
+		{Kind: RenderLine, X: 10, Y: 210, OffsetX: 50, Color: RGB(0, 0, 0), Thickness: 1},
+		{Kind: RenderText, X: 10, Y: 220, Color: RGBA(0, 0, 0, 160), Text: "Side",
+			FontName: "sans", FontSize: 12},
+		{Kind: RenderGradient, X: 10, Y: 250, W: 50, H: 30, Gradient: grad},
+		{Kind: RenderGradientBorder, X: 10, Y: 290, W: 50, H: 30, Thickness: 2, Radius: 4,
+			Gradient: grad},
+		{Kind: RenderImage, X: 10, Y: 330, W: 20, H: 20, Resource: src, Opacity: 1},
+		{Kind: RenderClip, X: 300, Y: 0, W: 500, H: 600},
+		{Kind: RenderText, X: 310, Y: 20, Color: RGB(230, 232, 235), Text: "Panel",
+			FontName: "sans", FontSize: 14},
+	}
+	if err := renderToPDF(cmds, j, 800, 600); err != nil {
+		t.Fatal(err)
+	}
+	content := pdfPageContent(t, j.OutputPath)
+	if !strings.Contains(content, "(Panel) Tj") {
+		t.Fatal("the first stream is not the page content")
+	}
+	depth := 0
+	for tok := range strings.FieldsSeq(content) {
+		switch tok {
+		case "q":
+			depth++
+		case "Q":
+			depth--
+			if depth < 0 {
+				t.Fatal("a Q ends a graphics state that was never opened")
+			}
+		}
+	}
+	if depth != 0 {
+		t.Fatalf("page leaves %d graphics state(s) open: a draw call opened a q it did not end",
+			depth)
+	}
 }
 
 // pdfGState ends and reopens its q's on every clip and transform

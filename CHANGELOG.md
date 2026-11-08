@@ -119,6 +119,29 @@ and this project adheres to
   payload fields, enum members and methods on reachable types pass the gate on
   their own and only orphans fail (`docs/specs/exportaudit-surface-policy.md`).
 
+- **PDF export no longer loses parts of the window after a rounded rectangle
+  (#1231).** Each rounded rectangle left a graphics state open in the PDF, so
+  the next clip change ended that state instead of the clip it meant to end.
+  Clips piled up and cut later content out of the page: the showcase's whole
+  detail panel exported blank, its text present but invisible, and an opacity
+  set earlier came back on later text. Rounded rectangles are now drawn without
+  opening a graphics state.
+
+- **PDF export prints rich text in each run's own font (#1231).** Markdown and
+  other rich text printed every run in Helvetica, fitted to the run's width on
+  screen. A code run is monospace, so narrow tokens such as `if` or `(` came out
+  several times too large and overlapped the lines around them. Each run now
+  prints in its own family and weight, so code prints in Courier and bold text
+  in bold. Menlo and Monaco, the macOS monospace families, now count as
+  monospace too. In all PDF text, a font name with Pango's `Heavy` weight
+  (`Inter Heavy`) now prints bold, and `Oblique` prints slanted like `Italic`.
+
+- **PDF export no longer writes `Inf` for huge geometry (#1231).** A coordinate,
+  size, radius, line width or font size was scaled to the page in float32, so a
+  huge but finite value could overflow to infinity when the page scale is above
+  1, and the PDF then held `Inf`, which readers reject. The scaling now runs in
+  float64.
+
 - **Android: the soft keyboard height no longer comes out short on Android 15
   (#1171).** The demo host subtracted the navigation bar from the keyboard, but
   from Android 15 the view reaches under that bar, so the reported height was 24
