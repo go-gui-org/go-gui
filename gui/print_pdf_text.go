@@ -32,7 +32,7 @@ func pdfRenderText(ctx *pdfCtx, cmd RenderCmd) {
 	alphaSet := setAlpha(ctx.pdf, tc)
 	family := pdfFontName(cmd.FontName)
 	style := pdfFontStyle(cmd.TextStylePtr)
-	size := float64(cmd.FontSize * ctx.scale / ptToMM)
+	size := ctx.sc(cmd.FontSize) / float64(ptToMM)
 	ctx.pdf.SetFont(family, style, size)
 
 	// Scale font so PDF text width matches source.
@@ -55,7 +55,7 @@ func pdfRenderText(ctx *pdfCtx, cmd RenderCmd) {
 	if fa == 0 {
 		fa = cmd.FontSize * 0.75
 	}
-	ascent := float64(fa * ctx.scale)
+	ascent := ctx.sc(fa)
 	lineH := size * ptToMM64() * 1.2
 	lines := strings.Split(text, "\n")
 	// Affine canvas text: apply the same transform the
@@ -123,7 +123,7 @@ func pdfRenderTextPath(ctx *pdfCtx, cmd RenderCmd) {
 	alphaSet := setAlpha(ctx.pdf, ts.Color)
 	family := pdfFontName(ts.Family)
 	style := pdfFontStyle(ts)
-	size := float64(ts.Size * ctx.scale / ptToMM)
+	size := ctx.sc(ts.Size) / float64(ptToMM)
 	ctx.pdf.SetFont(family, style, size)
 
 	// Measure per-character advances with fpdf.
@@ -136,7 +136,7 @@ func pdfRenderTextPath(ctx *pdfCtx, cmd RenderCmd) {
 	}
 
 	// Apply text-anchor offset.
-	offset := float64(tp.Offset * ctx.scale)
+	offset := ctx.sc(tp.Offset)
 	switch tp.Anchor {
 	case SvgTextAnchorMiddle:
 		offset -= totalAdv / 2
@@ -147,7 +147,7 @@ func pdfRenderTextPath(ctx *pdfCtx, cmd RenderCmd) {
 	// Method=stretch: scale advances to fill path.
 	advScale := 1.0
 	if tp.method == svgTextPathMethodStretch && totalAdv > 0 {
-		remaining := float64(tp.totalLen*ctx.scale) - offset
+		remaining := ctx.sc(tp.totalLen) - offset
 		if remaining > 0 {
 			advScale = remaining / totalAdv
 		}
@@ -198,6 +198,9 @@ func pdfFontStyle(ts *TextStyle) string {
 		if !bold && strings.Contains(lower, "bold") {
 			bold = true
 		}
+		if !bold && pdfHeavyFamily(lower) {
+			bold = true
+		}
 		if !italic && strings.Contains(lower, "italic") {
 			italic = true
 		}
@@ -214,6 +217,21 @@ func pdfFontStyle(ts *TextStyle) string {
 		s += "U"
 	}
 	return s
+}
+
+// pdfHeavyFamily reports whether a lower-case family name names a heavy
+// face, such as "Arial Black" or a Pango "Heavy" weight. The built-in PDF
+// fonts have only regular and bold, so bold is the closest. Whole words
+// only: "Blackadder ITC" is a script face, not a heavy one.
+func pdfHeavyFamily(lower string) bool {
+	for _, word := range strings.FieldsFunc(lower, func(r rune) bool {
+		return !unicode.IsLetter(r)
+	}) {
+		if word == "black" || word == "heavy" {
+			return true
+		}
+	}
+	return false
 }
 
 // pdfFontName maps a gui font family name to a built-in PDF font.

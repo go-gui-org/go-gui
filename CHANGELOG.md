@@ -133,7 +133,14 @@ and this project adheres to
   several times too large and overlapped the lines around them. Each run now
   prints in its own family and weight, so code prints in Courier and bold text
   in bold. Menlo and Monaco, the macOS monospace families, now count as
-  monospace too.
+  monospace too, and a heavy family such as Arial Black prints bold in all PDF
+  text.
+
+- **PDF export no longer writes `Inf` for huge geometry (#1231).** A coordinate,
+  size, radius, line width or font size was scaled to the page in float32, so a
+  huge but finite value could overflow to infinity when the page scale is above
+  1, and the PDF then held `Inf`, which readers reject. The scaling now runs in
+  float64.
 
 - **Android: the soft keyboard height no longer comes out short on Android 15
   (#1171).** The demo host subtracted the navigation bar from the keyboard, but

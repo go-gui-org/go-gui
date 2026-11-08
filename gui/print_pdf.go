@@ -31,10 +31,15 @@ type pdfCtx struct {
 	oy    float64 // margin offset Y (mm)
 }
 
-func (c *pdfCtx) px(x float32) float64 { return float64(x*c.scale) + c.ox }
-func (c *pdfCtx) py(y float32) float64 { return float64(y*c.scale) + c.oy }
-func (c *pdfCtx) pw(w float32) float64 { return float64(w * c.scale) }
-func (c *pdfCtx) ph(h float32) float64 { return float64(h * c.scale) }
+// sc scales a logical-pixel length to millimetres. It multiplies in
+// float64: a float32 product overflowed to +Inf for a huge but finite
+// value under a scale above 1, and fpdf wrote that Inf into the page.
+func (c *pdfCtx) sc(v float32) float64 { return float64(v) * float64(c.scale) }
+
+func (c *pdfCtx) px(x float32) float64 { return c.sc(x) + c.ox }
+func (c *pdfCtx) py(y float32) float64 { return c.sc(y) + c.oy }
+func (c *pdfCtx) pw(w float32) float64 { return c.sc(w) }
+func (c *pdfCtx) ph(h float32) float64 { return c.sc(h) }
 
 // renderToPDF renders a slice of RenderCmd to a PDF file at
 // job.OutputPath. sourceW and sourceH are the source viewport
@@ -206,7 +211,7 @@ func pdfRenderRect(ctx *pdfCtx, cmd RenderCmd) {
 	if cmd.Radius > 0 {
 		pdfRoundedRect(ctx.pdf, ctx.px(cmd.X), ctx.py(cmd.Y),
 			ctx.pw(cmd.W), ctx.ph(cmd.H),
-			float64(cmd.Radius*ctx.scale), "F")
+			ctx.sc(cmd.Radius), "F")
 	} else {
 		ctx.pdf.Rect(ctx.px(cmd.X), ctx.py(cmd.Y),
 			ctx.pw(cmd.W), ctx.ph(cmd.H), "F")
@@ -249,11 +254,11 @@ func pdfRenderStrokeRect(ctx *pdfCtx, cmd RenderCmd) {
 	ctx.pdf.SetDrawColor(int(r), int(g), int(b))
 	alphaSet := setAlpha(ctx.pdf, cmd.Color)
 	lw := max(cmd.Thickness, 1)
-	ctx.pdf.SetLineWidth(float64(lw * ctx.scale))
+	ctx.pdf.SetLineWidth(ctx.sc(lw))
 	if cmd.Radius > 0 {
 		pdfRoundedRect(ctx.pdf, ctx.px(cmd.X), ctx.py(cmd.Y),
 			ctx.pw(cmd.W), ctx.ph(cmd.H),
-			float64(cmd.Radius*ctx.scale), "D")
+			ctx.sc(cmd.Radius), "D")
 	} else {
 		ctx.pdf.Rect(ctx.px(cmd.X), ctx.py(cmd.Y),
 			ctx.pw(cmd.W), ctx.ph(cmd.H), "D")
@@ -268,7 +273,7 @@ func pdfRenderLine(ctx *pdfCtx, cmd RenderCmd) {
 	ctx.pdf.SetDrawColor(int(r), int(g), int(b))
 	alphaSet := setAlpha(ctx.pdf, cmd.Color)
 	lw := max(cmd.Thickness, 1)
-	ctx.pdf.SetLineWidth(float64(lw * ctx.scale))
+	ctx.pdf.SetLineWidth(ctx.sc(lw))
 	ctx.pdf.Line(ctx.px(cmd.X), ctx.py(cmd.Y),
 		ctx.px(cmd.OffsetX), ctx.py(cmd.OffsetY))
 	if alphaSet {
@@ -408,11 +413,11 @@ func pdfRenderGradientBorder(ctx *pdfCtx, cmd RenderCmd) {
 	ctx.pdf.SetDrawColor(int(c.R), int(c.G), int(c.B))
 	alphaSet := setAlpha(ctx.pdf, RGBA(c.R, c.G, c.B, c.A))
 	lw := max(cmd.Thickness, 1)
-	ctx.pdf.SetLineWidth(float64(lw * ctx.scale))
+	ctx.pdf.SetLineWidth(ctx.sc(lw))
 	if cmd.Radius > 0 {
 		pdfRoundedRect(ctx.pdf, ctx.px(cmd.X), ctx.py(cmd.Y),
 			ctx.pw(cmd.W), ctx.ph(cmd.H),
-			float64(cmd.Radius*ctx.scale), "D")
+			ctx.sc(cmd.Radius), "D")
 	} else {
 		ctx.pdf.Rect(ctx.px(cmd.X), ctx.py(cmd.Y),
 			ctx.pw(cmd.W), ctx.ph(cmd.H), "D")
