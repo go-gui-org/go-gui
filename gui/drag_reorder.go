@@ -598,9 +598,9 @@ func dragReorderAutoScroll(
 		if delta != 0 {
 			switch axis {
 			case dragReorderVertical:
-				w.scrollVerticalBy(scrollID, delta)
+				w.ScrollVerticalBy(scrollID, delta)
 			case dragReorderHorizontal:
-				w.scrollHorizontalBy(scrollID, delta)
+				w.ScrollHorizontalBy(scrollID, delta)
 			}
 			return true
 		}
@@ -610,9 +610,9 @@ func dragReorderAutoScroll(
 		if delta != 0 {
 			switch axis {
 			case dragReorderVertical:
-				w.scrollVerticalBy(scrollID, delta)
+				w.ScrollVerticalBy(scrollID, delta)
 			case dragReorderHorizontal:
-				w.scrollHorizontalBy(scrollID, delta)
+				w.ScrollHorizontalBy(scrollID, delta)
 			}
 			return true
 		}

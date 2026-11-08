@@ -49,7 +49,7 @@ func TestMaxAnimationRefreshKindPrefersLayout(t *testing.T) {
 }
 
 func TestMaxAnimationRefreshKindPrefersRenderOnlyOverNone(t *testing.T) {
-	kind := maxAnimationRefreshKind(animationRefreshNone, AnimationRefreshRenderOnly)
+	kind := maxAnimationRefreshKind(AnimationRefreshNone, AnimationRefreshRenderOnly)
 	if kind != AnimationRefreshRenderOnly {
 		t.Errorf("got %d, want render_only", kind)
 	}
@@ -57,7 +57,7 @@ func TestMaxAnimationRefreshKindPrefersRenderOnlyOverNone(t *testing.T) {
 
 func TestBlinkCursorAnimationRefreshKindIsNone(t *testing.T) {
 	a := newBlinkCursorAnimation()
-	if a.RefreshKind() != animationRefreshNone {
+	if a.RefreshKind() != AnimationRefreshNone {
 		t.Errorf("got %d, want none", a.RefreshKind())
 	}
 }

@@ -23,7 +23,7 @@ func TestPrintPageSize(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			w, h := printPageSize(tt.paper, tt.orientation)
+			w, h := PrintPageSize(tt.paper, tt.orientation)
 			if w != tt.wantW || h != tt.wantH {
 				t.Errorf("got %gx%g, want %gx%g",
 					w, h, tt.wantW, tt.wantH)
@@ -34,7 +34,7 @@ func TestPrintPageSize(t *testing.T) {
 
 func TestDefaultPrintMargins(t *testing.T) {
 	t.Parallel()
-	m := defaultPrintMargins()
+	m := DefaultPrintMargins()
 	if m.Top != 36 || m.Right != 36 || m.Bottom != 36 || m.Left != 36 {
 		t.Errorf("defaults: %+v", m)
 	}
@@ -66,7 +66,7 @@ func TestValidatePrintMargins(t *testing.T) {
 	t.Run("ok", func(t *testing.T) {
 		t.Parallel()
 		if err := validatePrintMargins(595, 842,
-			defaultPrintMargins()); err != nil {
+			DefaultPrintMargins()); err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
 	})
@@ -212,13 +212,13 @@ func TestNormalizePrintPageRanges(t *testing.T) {
 	t.Parallel()
 	t.Run("empty", func(t *testing.T) {
 		t.Parallel()
-		if result := normalizePrintPageRanges(nil); result != nil {
+		if result := NormalizePrintPageRanges(nil); result != nil {
 			t.Errorf("expected nil, got %v", result)
 		}
 	})
 	t.Run("single", func(t *testing.T) {
 		t.Parallel()
-		result := normalizePrintPageRanges(
+		result := NormalizePrintPageRanges(
 			[]PrintPageRange{{From: 1, To: 5}})
 		if len(result) != 1 ||
 			result[0].From != 1 || result[0].To != 5 {
@@ -227,7 +227,7 @@ func TestNormalizePrintPageRanges(t *testing.T) {
 	})
 	t.Run("merge_adjacent", func(t *testing.T) {
 		t.Parallel()
-		result := normalizePrintPageRanges(
+		result := NormalizePrintPageRanges(
 			[]PrintPageRange{{From: 1, To: 3}, {From: 4, To: 6}})
 		if len(result) != 1 ||
 			result[0].From != 1 || result[0].To != 6 {
@@ -236,7 +236,7 @@ func TestNormalizePrintPageRanges(t *testing.T) {
 	})
 	t.Run("merge_overlap", func(t *testing.T) {
 		t.Parallel()
-		result := normalizePrintPageRanges(
+		result := NormalizePrintPageRanges(
 			[]PrintPageRange{{From: 1, To: 5}, {From: 3, To: 8}})
 		if len(result) != 1 ||
 			result[0].From != 1 || result[0].To != 8 {
@@ -245,7 +245,7 @@ func TestNormalizePrintPageRanges(t *testing.T) {
 	})
 	t.Run("disjoint", func(t *testing.T) {
 		t.Parallel()
-		result := normalizePrintPageRanges(
+		result := NormalizePrintPageRanges(
 			[]PrintPageRange{{From: 1, To: 3}, {From: 10, To: 12}})
 		if len(result) != 2 {
 			t.Errorf("expected 2 ranges, got %v", result)
@@ -253,7 +253,7 @@ func TestNormalizePrintPageRanges(t *testing.T) {
 	})
 	t.Run("sort", func(t *testing.T) {
 		t.Parallel()
-		result := normalizePrintPageRanges(
+		result := NormalizePrintPageRanges(
 			[]PrintPageRange{{From: 10, To: 12}, {From: 1, To: 3}})
 		if len(result) != 2 ||
 			result[0].From != 1 || result[1].From != 10 {
@@ -413,7 +413,7 @@ func TestNewPrintJob(t *testing.T) {
 	if job.Orientation != PrintPortrait {
 		t.Errorf("Orientation: got %d, want %d", job.Orientation, PrintPortrait)
 	}
-	if job.Margins != defaultPrintMargins() {
+	if job.Margins != DefaultPrintMargins() {
 		t.Errorf("Margins: got %+v", job.Margins)
 	}
 	if job.Copies != 1 {

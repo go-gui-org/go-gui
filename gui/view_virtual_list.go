@@ -219,8 +219,8 @@ func (lv *virtualListView) GenerateLayout(w *Window) Layout {
 	// of that would be the worse inconsistency.
 	content := virtualListChildren(cfg, m, w, first, last, lead, trail)
 	if !cfg.Invisible {
-		content = appendScrollbar(content, nil, scrollbarHorizontal, cfg.ID)
-		content = appendScrollbar(content, nil, scrollbarVertical, cfg.ID)
+		content = appendScrollbar(content, nil, ScrollbarHorizontal, cfg.ID)
+		content = appendScrollbar(content, nil, ScrollbarVertical, cfg.ID)
 	}
 
 	// The parent shape must exist before the children generate: their

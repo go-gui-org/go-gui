@@ -145,7 +145,7 @@ func TestThemeMakerBorderFocusFallsBackToSelect(t *testing.T) {
 		"TabControl":  theme.tabControlStyle.ColorsTab.BorderFocus,
 	}
 	for name, got := range consumers {
-		if !got.eq(cfg.ColorSelect) {
+		if !got.Eq(cfg.ColorSelect) {
 			t.Errorf("%s.ColorBorderFocus = %v, want ColorSelect %v",
 				name, got, cfg.ColorSelect)
 		}
@@ -158,11 +158,11 @@ func TestThemeMakerBorderFocusExplicitWins(t *testing.T) {
 	cfg.ColorBorderFocus = RGBA(200, 100, 50, 255)
 
 	theme := ThemeMaker(cfg)
-	if !theme.buttonStyle.Colors.BorderFocus.eq(cfg.ColorBorderFocus) {
+	if !theme.buttonStyle.Colors.BorderFocus.Eq(cfg.ColorBorderFocus) {
 		t.Errorf("ButtonStyle.ColorBorderFocus = %v, want %v",
 			theme.buttonStyle.Colors.BorderFocus, cfg.ColorBorderFocus)
 	}
-	if !theme.sliderStyle.Colors.BorderFocus.eq(cfg.ColorBorderFocus) {
+	if !theme.sliderStyle.Colors.BorderFocus.Eq(cfg.ColorBorderFocus) {
 		t.Errorf("SliderStyle.ColorBorderFocus = %v, want %v",
 			theme.sliderStyle.Colors.BorderFocus, cfg.ColorBorderFocus)
 	}
@@ -209,7 +209,7 @@ func TestThemeMakerSeparatorExplicitWins(t *testing.T) {
 	cfg.SizeSeparator = 4
 
 	theme := ThemeMaker(cfg)
-	if !theme.separatorStyle.Colors.Base.eq(cfg.ColorSeparator) {
+	if !theme.separatorStyle.Colors.Base.Eq(cfg.ColorSeparator) {
 		t.Errorf("separatorStyle.Color = %v, want %v",
 			theme.separatorStyle.Colors.Base, cfg.ColorSeparator)
 	}
@@ -266,7 +266,7 @@ func TestThemeMakerPlaceholderColor(t *testing.T) {
 		"ComboboxStyle": theme.comboboxStyle.PlaceholderStyle,
 	}
 	for name, got := range placeholders {
-		if !got.Color.eq(want) {
+		if !got.Color.Eq(want) {
 			t.Errorf("%s.PlaceholderStyle.Color = %v, want %v", name, got.Color, want)
 		}
 		if got.Size != cfg.TextStyleDef.Size {
@@ -296,7 +296,7 @@ func TestThemeMakerPostLiteralOverwrites(t *testing.T) {
 		t.Errorf("BadgeStyle.TextStyle = %+v, want Caption.Bold with White color %+v",
 			theme.badgeStyle.TextStyle, wantBadge)
 	}
-	if !theme.badgeStyle.TextStyle.Color.eq(White) {
+	if !theme.badgeStyle.TextStyle.Color.Eq(White) {
 		t.Errorf("BadgeStyle.TextStyle.Color = %v, want White",
 			theme.badgeStyle.TextStyle.Color)
 	}
@@ -592,12 +592,12 @@ func TestThemeMakerColorTextOnSelect(t *testing.T) {
 			}
 
 			theme := ThemeMaker(cfg)
-			if !theme.ColorTextOnSelect.eq(tt.want) {
+			if !theme.ColorTextOnSelect.Eq(tt.want) {
 				t.Errorf("Theme.ColorTextOnSelect = %v, want %v",
 					theme.ColorTextOnSelect, tt.want)
 			}
 			for name, got := range colorTextOnSelectByStyle(theme) {
-				if !got.eq(tt.want) {
+				if !got.Eq(tt.want) {
 					t.Errorf("%s.ColorTextOnSelect = %v, want %v",
 						name, got, tt.want)
 				}
@@ -657,7 +657,7 @@ func TestThemeMakerZeroCfg(t *testing.T) {
 	}
 	// The accent fallback chain bottoms out at the legacy select, so
 	// even a zero Cfg gets a working accent ramp and borderFocus.
-	if !theme.buttonStyle.Colors.BorderFocus.eq(colorSelectDark) {
+	if !theme.buttonStyle.Colors.BorderFocus.Eq(colorSelectDark) {
 		t.Errorf("ButtonStyle.ColorBorderFocus = %v, want legacy select %v",
 			theme.buttonStyle.Colors.BorderFocus, colorSelectDark)
 	}

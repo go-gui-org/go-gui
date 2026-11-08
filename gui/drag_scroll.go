@@ -180,7 +180,7 @@ func dragPanScrollbarAt(layout *Layout, x, y float32, depth int) bool {
 	if !s.PointInShape(x, y) {
 		return false
 	}
-	if s.scrollbarOrientation != scrollbarNone {
+	if s.scrollbarOrientation != ScrollbarNone {
 		return true
 	}
 	x, y = rotateCoordsInverse(s, x, y)
@@ -246,11 +246,11 @@ func dragPanOnMouseMove(ctx EventCtx) {
 	// mirror and no scroll multiplier — a 1:1 drag, not a wheel.
 	if dx != 0 && f32IsFinite(dx) &&
 		ly.Shape.ScrollMode != ScrollVerticalOnly {
-		w.scrollHorizontalBy(st.scrollID, dx)
+		w.ScrollHorizontalBy(st.scrollID, dx)
 	}
 	if dy != 0 && f32IsFinite(dy) &&
 		ly.Shape.ScrollMode != ScrollHorizontalOnly {
-		w.scrollVerticalBy(st.scrollID, dy)
+		w.ScrollVerticalBy(st.scrollID, dy)
 	}
 	w.viewState.dragPan = st
 	w.InvalidateLayout()

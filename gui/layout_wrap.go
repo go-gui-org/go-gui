@@ -31,7 +31,7 @@ const maxFitConstraintDepth = 8
 // come back in path (depth of them) so the caller can re-fit and re-cache
 // exactly those.
 func constrainFitContainerWidth(layout *Layout) (changed bool, path [maxFitConstraintDepth]*Layout, depth int) {
-	if layout.Parent == nil || layout.Shape.Sizing.Width != sizingFit {
+	if layout.Parent == nil || layout.Shape.Sizing.Width != SizingFit {
 		return false, path, 0
 	}
 	// debts accumulates what the nodes on the path consume: each node's
@@ -44,7 +44,7 @@ func constrainFitContainerWidth(layout *Layout) (changed bool, path [maxFitConst
 		}
 		path[depth] = n
 		depth++
-		if n.Shape.Sizing.Width == sizingFit && n.Shape.Axis != axisNone {
+		if n.Shape.Sizing.Width == SizingFit && n.Shape.Axis != axisNone {
 			debts += n.Shape.paddingWidth()
 			if n.Shape.Axis == axisLeftToRight {
 				debts += siblingsConsumeWidth(n, child)

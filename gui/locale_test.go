@@ -56,7 +56,7 @@ func TestEffectiveTextDir(t *testing.T) {
 	defer func() { SetLocale(old) }()
 
 	SetLocale(LocaleArSA)
-	s := &Shape{TextDir: textDirAuto}
+	s := &Shape{TextDir: TextDirAuto}
 	if effectiveTextDir(s) != TextDirRTL {
 		t.Fatal("auto should fall back to RTL locale")
 	}
@@ -285,7 +285,7 @@ func TestLocaleConcurrentAccess(t *testing.T) {
 func TestActiveTextDirAutoResolvesLTR(t *testing.T) {
 	saved := CurrentLocale()
 	t.Cleanup(func() { SetLocale(saved) })
-	SetLocale(Locale{TextDir: textDirAuto})
+	SetLocale(Locale{TextDir: TextDirAuto})
 	if got := effectiveTextDir(&Shape{}); got != TextDirLTR {
 		t.Fatalf("effectiveTextDir = %d, want LTR", got)
 	}

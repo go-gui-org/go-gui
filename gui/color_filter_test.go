@@ -3,7 +3,7 @@ package gui
 import "testing"
 
 func TestColorFilterIdentity(t *testing.T) {
-	m := ColorFilterIdentity().matrix
+	m := ColorFilterIdentity().Matrix
 	want := [16]float32{
 		1, 0, 0, 0,
 		0, 1, 0, 0,
@@ -16,8 +16,8 @@ func TestColorFilterIdentity(t *testing.T) {
 }
 
 func TestColorFilterSaturateIdentity(t *testing.T) {
-	m := ColorFilterSaturate(1.0).matrix
-	want := ColorFilterIdentity().matrix
+	m := ColorFilterSaturate(1.0).Matrix
+	want := ColorFilterIdentity().Matrix
 	for i := range 16 {
 		if diff := m[i] - want[i]; diff > 1e-6 || diff < -1e-6 {
 			t.Fatalf("saturate(1.0)[%d]=%f, want %f", i, m[i], want[i])
@@ -26,8 +26,8 @@ func TestColorFilterSaturateIdentity(t *testing.T) {
 }
 
 func TestColorFilterSaturateZeroIsGrayscale(t *testing.T) {
-	m := ColorFilterSaturate(0.0).matrix
-	want := ColorFilterGrayscale().matrix
+	m := ColorFilterSaturate(0.0).Matrix
+	want := ColorFilterGrayscale().Matrix
 	for i := range 16 {
 		if diff := m[i] - want[i]; diff > 1e-6 || diff < -1e-6 {
 			t.Fatalf("saturate(0)[%d]=%f, want %f", i, m[i], want[i])
@@ -36,7 +36,7 @@ func TestColorFilterSaturateZeroIsGrayscale(t *testing.T) {
 }
 
 func TestColorFilterGrayscaleLuminanceSum(t *testing.T) {
-	m := ColorFilterGrayscale().matrix
+	m := ColorFilterGrayscale().Matrix
 	// Each output channel = lr*R + lg*G + lb*B. In column-major,
 	// row 0: m[0] + m[4] + m[8] should sum to 1.
 	sum := m[0] + m[4] + m[8]
@@ -46,8 +46,8 @@ func TestColorFilterGrayscaleLuminanceSum(t *testing.T) {
 }
 
 func TestColorFilterHueRotate360(t *testing.T) {
-	m := ColorFilterHueRotate(360).matrix
-	want := ColorFilterIdentity().matrix
+	m := ColorFilterHueRotate(360).Matrix
+	want := ColorFilterIdentity().Matrix
 	for i := range 16 {
 		if diff := m[i] - want[i]; diff > 1e-5 || diff < -1e-5 {
 			t.Fatalf("hue(360)[%d]=%f, want %f", i, m[i], want[i])
@@ -56,8 +56,8 @@ func TestColorFilterHueRotate360(t *testing.T) {
 }
 
 func TestColorFilterContrastIdentity(t *testing.T) {
-	m := ColorFilterContrast(1.0).matrix
-	want := ColorFilterIdentity().matrix
+	m := ColorFilterContrast(1.0).Matrix
+	want := ColorFilterIdentity().Matrix
 	for i := range 16 {
 		if diff := m[i] - want[i]; diff > 1e-6 || diff < -1e-6 {
 			t.Fatalf("contrast(1.0)[%d]=%f, want %f", i, m[i], want[i])
@@ -66,8 +66,8 @@ func TestColorFilterContrastIdentity(t *testing.T) {
 }
 
 func TestColorFilterBrightnessIdentity(t *testing.T) {
-	m := ColorFilterBrightness(1.0).matrix
-	want := ColorFilterIdentity().matrix
+	m := ColorFilterBrightness(1.0).Matrix
+	want := ColorFilterIdentity().Matrix
 	if m != want {
 		t.Errorf("brightness(1.0): got %v", m)
 	}
@@ -93,7 +93,7 @@ func clamp01(v float32) float32 {
 }
 
 func TestColorFilterInvertWhite(t *testing.T) {
-	m := ColorFilterInvert().matrix
+	m := ColorFilterInvert().Matrix
 	r, g, b, a := applyMatrix(m, 1, 1, 1, 1)
 	r, g, b = clamp01(r), clamp01(g), clamp01(b)
 	if r != 0 || g != 0 || b != 0 || a != 1 {
@@ -102,7 +102,7 @@ func TestColorFilterInvertWhite(t *testing.T) {
 }
 
 func TestColorFilterInvertBlack(t *testing.T) {
-	m := ColorFilterInvert().matrix
+	m := ColorFilterInvert().Matrix
 	r, g, b, a := applyMatrix(m, 0, 0, 0, 1)
 	r, g, b = clamp01(r), clamp01(g), clamp01(b)
 	if r != 1 || g != 1 || b != 1 || a != 1 {
@@ -112,7 +112,7 @@ func TestColorFilterInvertBlack(t *testing.T) {
 
 func TestColorFilterContrastMidpoint(t *testing.T) {
 	// Contrast(2.0) at 0.5: 2*(0.5-0.5)+0.5 = 0.5
-	m := ColorFilterContrast(2.0).matrix
+	m := ColorFilterContrast(2.0).Matrix
 	r, _, _, _ := applyMatrix(m, 0.5, 0.5, 0.5, 1)
 	if diff := r - 0.5; diff > 1e-6 || diff < -1e-6 {
 		t.Errorf("contrast(2) at 0.5: got %f, want 0.5", r)
@@ -120,7 +120,7 @@ func TestColorFilterContrastMidpoint(t *testing.T) {
 }
 
 func TestColorFilterSepiaPreservesAlpha(t *testing.T) {
-	m := ColorFilterSepia().matrix
+	m := ColorFilterSepia().Matrix
 	_, _, _, a := applyMatrix(m, 0.5, 0.5, 0.5, 0.8)
 	if diff := a - 0.8; diff > 1e-6 || diff < -1e-6 {
 		t.Errorf("sepia alpha: got %f, want 0.8", a)
@@ -128,7 +128,7 @@ func TestColorFilterSepiaPreservesAlpha(t *testing.T) {
 }
 
 func TestColorFilterHueRotate180(t *testing.T) {
-	m := ColorFilterHueRotate(180).matrix
+	m := ColorFilterHueRotate(180).Matrix
 	// Pure red (1,0,0,1) rotated 180° around (1,1,1) axis
 	// should shift toward cyan-ish.
 	r, g, b, _ := applyMatrix(m, 1, 0, 0, 1)
@@ -148,18 +148,18 @@ func TestColorFilterComposeIdentity(t *testing.T) {
 	// Composing with identity should yield the original.
 	gs := ColorFilterGrayscale()
 	id := ColorFilterIdentity()
-	composed := colorFilterCompose(gs, id)
+	composed := ColorFilterCompose(gs, id)
 	for i := range 16 {
-		if diff := composed.matrix[i] - gs.matrix[i]; diff > 1e-6 || diff < -1e-6 {
+		if diff := composed.Matrix[i] - gs.Matrix[i]; diff > 1e-6 || diff < -1e-6 {
 			t.Fatalf("compose(gs, id)[%d]=%f, want %f",
-				i, composed.matrix[i], gs.matrix[i])
+				i, composed.Matrix[i], gs.Matrix[i])
 		}
 	}
-	composed2 := colorFilterCompose(id, gs)
+	composed2 := ColorFilterCompose(id, gs)
 	for i := range 16 {
-		if diff := composed2.matrix[i] - gs.matrix[i]; diff > 1e-6 || diff < -1e-6 {
+		if diff := composed2.Matrix[i] - gs.Matrix[i]; diff > 1e-6 || diff < -1e-6 {
 			t.Fatalf("compose(id, gs)[%d]=%f, want %f",
-				i, composed2.matrix[i], gs.matrix[i])
+				i, composed2.Matrix[i], gs.Matrix[i])
 		}
 	}
 }
@@ -167,12 +167,12 @@ func TestColorFilterComposeIdentity(t *testing.T) {
 func TestColorFilterComposeInvertInvert(t *testing.T) {
 	// Invert composed with invert should approximate identity.
 	inv := ColorFilterInvert()
-	composed := colorFilterCompose(inv, inv)
+	composed := ColorFilterCompose(inv, inv)
 	id := ColorFilterIdentity()
 	for i := range 16 {
-		if diff := composed.matrix[i] - id.matrix[i]; diff > 1e-5 || diff < -1e-5 {
+		if diff := composed.Matrix[i] - id.Matrix[i]; diff > 1e-5 || diff < -1e-5 {
 			t.Fatalf("compose(inv, inv)[%d]=%f, want %f",
-				i, composed.matrix[i], id.matrix[i])
+				i, composed.Matrix[i], id.Matrix[i])
 		}
 	}
 }
@@ -189,17 +189,17 @@ func TestColorFilterNilMatrix(t *testing.T) {
 // must not leak into the next call or into compose inputs.
 func TestColorFilterSingletonsAreCopies(t *testing.T) {
 	a := ColorFilterGrayscale()
-	a.matrix[0] = -999
-	if b := ColorFilterGrayscale(); b.matrix[0] == -999 {
+	a.Matrix[0] = -999
+	if b := ColorFilterGrayscale(); b.Matrix[0] == -999 {
 		t.Error("Grayscale() aliases the singleton")
 	}
 	gs := ColorFilterGrayscale()
-	composed := colorFilterCompose(gs, nil)
-	composed.matrix[0] = -999
-	if fresh := ColorFilterGrayscale(); fresh.matrix[0] == -999 {
+	composed := ColorFilterCompose(gs, nil)
+	composed.Matrix[0] = -999
+	if fresh := ColorFilterGrayscale(); fresh.Matrix[0] == -999 {
 		t.Error("compose(nil-side) aliases its input")
 	}
-	if colorFilterCompose(nil, nil) != nil {
+	if ColorFilterCompose(nil, nil) != nil {
 		t.Error("compose(nil, nil) should be nil")
 	}
 }
@@ -242,7 +242,7 @@ func TestRenderFilterBracketWithColorFilter(t *testing.T) {
 	if beginMatrix == nil {
 		t.Fatal("ColorMatrix not set on RenderFilterBegin")
 	}
-	if *beginMatrix != cf.matrix {
+	if *beginMatrix != cf.Matrix {
 		t.Errorf("matrix mismatch: got %v", *beginMatrix)
 	}
 }

@@ -17,7 +17,7 @@ type Shape struct {
 
 	// Optional sub-structs (nil when unused)
 	events  *eventHandlers     // event handlers
-	TC      *shapeTextConfig   // text/RTF fields
+	TC      *ShapeTextConfig   // text/RTF fields
 	fx      *shapeEffects      // visual effects
 	a11Y    *accessInfo        // accessibility metadata
 	bc      *shapeButtonColors // button hover/focus colors
@@ -137,19 +137,19 @@ type Shape struct {
 	Axis                 Axis
 	shapeType            shapeType
 	HAlign               HorizontalAlign
-	VAlign               verticalAlign
-	ScrollMode           scrollMode
+	VAlign               VerticalAlign
+	ScrollMode           ScrollMode
 	scrollbarOrientation ScrollbarOrientation
 	TextDir              TextDirection
 
 	// FloatAnchor is the attachment point on the floating element.
 	// Combined with FloatTieOff to position the element relative
 	// to its parent. See FloatAttach constants.
-	FloatAnchor floatAttach
+	FloatAnchor FloatAttach
 
 	// FloatTieOff is the attachment point on the parent that the
 	// floating element anchors to. See FloatAttach constants.
-	FloatTieOff floatAttach
+	FloatTieOff FloatAttach
 
 	// Clip scissor-clips children to this element's bounds.
 	Clip bool
@@ -328,20 +328,20 @@ type TextDirection uint8
 // The zero value is the unset default: an unset TextDir inherits the
 // direction from its parent or the global locale.
 const (
-	textDirAuto TextDirection = iota // inherit from parent/global
+	TextDirAuto TextDirection = iota // inherit from parent/global
 	TextDirLTR
 	TextDirRTL
 )
 
 // ScrollMode allows scrolling in one or both directions.
-type scrollMode uint8
+type ScrollMode uint8
 
 // ScrollMode constants.
 //
 // The zero value scrolls both axes, so a container that never names a
 // mode scrolls in both directions when it becomes Scrollable.
 const (
-	scrollBoth scrollMode = iota
+	ScrollBoth ScrollMode = iota
 	ScrollVerticalOnly
 	ScrollHorizontalOnly
 )
@@ -356,17 +356,17 @@ type ScrollbarOrientation uint8
 // orientation is set by the container that builds its own scrollbars,
 // never by the caller.
 const (
-	scrollbarNone ScrollbarOrientation = iota
-	scrollbarVertical
-	scrollbarHorizontal
+	ScrollbarNone ScrollbarOrientation = iota
+	ScrollbarVertical
+	ScrollbarHorizontal
 )
 
 // FloatAttach defines anchor points for floating elements.
-type floatAttach uint8
+type FloatAttach uint8
 
 // FloatAttach constants.
 const (
-	FloatTopLeft floatAttach = iota
+	FloatTopLeft FloatAttach = iota
 	FloatTopCenter
 	FloatTopRight
 	// exportaudit:keep — one member of a public set; the set ships whole
@@ -473,7 +473,7 @@ type drawClip struct {
 }
 
 // ShapeTextConfig holds text/RTF-specific fields for a Shape.
-type shapeTextConfig struct {
+type ShapeTextConfig struct {
 	// anim is the paint-only frame of a TextCfg.Anim: reveal, shimmer
 	// and motion. Nil for a text with nothing to apply. See
 	// textAnimRender.
@@ -499,7 +499,7 @@ type shapeTextConfig struct {
 	wrapCacheWidth    float32
 	wrapCacheHeight   float32
 	textLayoutWidth   float32
-	TextMode          textMode
+	TextMode          TextMode
 	textIsPassword    bool
 	textIsPlaceholder bool
 	// TextReadOnly suppresses IME preedit rendering for read-only
@@ -509,7 +509,7 @@ type shapeTextConfig struct {
 	textKeyboard    KeyboardKind // soft-keyboard kind asked for while focused (#770)
 	wrapCacheValid  bool
 	textLayoutValid bool
-	textLayoutMode  textMode
+	textLayoutMode  TextMode
 	// overflowScrollX opts this shape into ink-overflow accounting:
 	// layoutPlainText records how far an unbreakable run reaches past
 	// the wrap width in Shape.inkOverflowW so an ancestor scroll
@@ -541,15 +541,15 @@ type shapeRichText struct {
 // rtfShapeText allocates an RTF shape's shapeTextConfig and its
 // shapeRichText together, so the split costs no extra allocation.
 type rtfShapeText struct {
-	tc  shapeTextConfig
+	tc  ShapeTextConfig
 	rtf shapeRichText
 }
 
 // newRTFShapeText returns an RTF shape's text config with rich linked
 // in, both from one allocation.
-func newRTFShapeText(mode textMode, rich shapeRichText) *shapeTextConfig {
+func newRTFShapeText(mode TextMode, rich shapeRichText) *ShapeTextConfig {
 	both := &rtfShapeText{
-		tc:  shapeTextConfig{TextMode: mode},
+		tc:  ShapeTextConfig{TextMode: mode},
 		rtf: rich,
 	}
 	both.tc.rtf = &both.rtf
@@ -562,11 +562,11 @@ func (s *Shape) hasRtfLayout() bool {
 }
 
 // TextMode controls how a text view renders text.
-type textMode uint8
+type TextMode uint8
 
 // TextMode constants.
 const (
-	TextModeSingleLine textMode = iota
+	TextModeSingleLine TextMode = iota
 	TextModeMultiline
 	// TextModeWrap wraps at word boundaries. It defaults Sizing to
 	// FillFit, because wrapping needs a width to wrap to; the box then
@@ -619,11 +619,11 @@ type BoxShadow struct {
 }
 
 // GradientType specifies the gradient algorithm.
-type gradientType uint8
+type GradientType uint8
 
 // GradientType constants.
 const (
-	GradientLinear gradientType = iota
+	GradientLinear GradientType = iota
 	GradientRadial
 )
 
@@ -653,7 +653,7 @@ type GradientStop struct {
 type GradientDef struct {
 	Stops     []GradientStop
 	angle     float32 // explicit angle in degrees
-	Type      gradientType
+	Type      GradientType
 	Direction GradientDirection
 	hasAngle  bool // true when Angle overrides Direction
 }

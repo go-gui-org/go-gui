@@ -140,7 +140,7 @@ func (c Color) Over(b Color) Color {
 }
 
 // Eq checks if two colors are equal in every channel.
-func (c Color) eq(c2 Color) bool {
+func (c Color) Eq(c2 Color) bool {
 	return c.R == c2.R && c.G == c2.G && c.B == c2.B && c.A == c2.A
 }
 
@@ -155,18 +155,18 @@ func (c Color) RGBA8() int {
 }
 
 // BGRA8 converts to an int in BGRA8 order.
-func (c Color) bGRA8() int {
+func (c Color) BGRA8() int {
 	return int(uint32(c.B)<<24 | uint32(c.G)<<16 | uint32(c.R)<<8 | uint32(c.A))
 }
 
 // ABGR8 converts to an int in ABGR8 order.
-func (c Color) aBGR8() int {
+func (c Color) ABGR8() int {
 	return int(uint32(c.A)<<24 | uint32(c.B)<<16 | uint32(c.G)<<8 | uint32(c.R))
 }
 
 // ToCSSString returns CSS-compatible "rgba(r,g,b,a)" with alpha in
 // 0–1, e.g. "rgba(10,20,30,0.50)".
-func (c Color) toCSSString() string {
+func (c Color) ToCSSString() string {
 	return fmt.Sprintf("rgba(%d,%d,%d,%.2f)",
 		c.R, c.G, c.B, float64(c.A)/255)
 }
@@ -212,7 +212,7 @@ func ColorLookup(s string) (Color, bool) {
 		return Color{}, false
 	}
 	if len(t) > 0 && t[0] == '#' {
-		return colorFromHexString(t)
+		return ColorFromHexString(t)
 	}
 	if c, ok := stringColors[strings.ToLower(t)]; ok {
 		return c, true

@@ -64,8 +64,8 @@ type MenubarCfg struct {
 	// shorthand for Colors.Base and wins over it.
 	Colors      ColorSet
 	Sizing      Sizing
-	FloatAnchor floatAttach
-	FloatTieOff floatAttach
+	FloatAnchor FloatAttach
+	FloatTieOff FloatAttach
 	Disabled    bool
 	Invisible   bool
 	Float       bool

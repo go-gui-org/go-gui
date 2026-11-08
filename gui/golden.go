@@ -377,7 +377,7 @@ func goldenDiff(want, got string) string {
 // renderKindNames maps the render kinds a golden can contain to a
 // stable label. A kind missing here serializes as its number, which
 // is still diffable — add the name when a case starts emitting it.
-var renderKindNames = map[renderKind]string{
+var renderKindNames = map[RenderKind]string{
 	RenderNone:              "None",
 	RenderClip:              "Clip",
 	RenderRect:              "Rect",
@@ -408,7 +408,7 @@ var renderKindNames = map[renderKind]string{
 	RenderTransformEnd:      "TransformEnd",
 }
 
-func renderKindName(k renderKind) string {
+func renderKindName(k RenderKind) string {
 	if n, ok := renderKindNames[k]; ok {
 		return n
 	}

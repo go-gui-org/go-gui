@@ -35,15 +35,15 @@ func (chromaHighlighter) Tokenize(lang, src string) []Token {
 		return nil
 	}
 	if len(src) > maxTokenizeBytes {
-		return []Token{{Kind: kindPlain, Text: src}}
+		return []Token{{Kind: KindPlain, Text: src}}
 	}
 	lx := lookupLexer(lang)
 	if lx == nil {
-		return []Token{{Kind: kindPlain, Text: src}}
+		return []Token{{Kind: KindPlain, Text: src}}
 	}
 	it, err := lx.Tokenise(nil, src)
 	if err != nil || it == nil {
-		return []Token{{Kind: kindPlain, Text: src}}
+		return []Token{{Kind: KindPlain, Text: src}}
 	}
 	// Pull via the iterator function to avoid Tokens()'s
 	// intermediate slice allocation.
@@ -61,7 +61,7 @@ func (chromaHighlighter) Tokenize(lang, src string) []Token {
 		}
 	}
 	if len(out) == 0 {
-		return []Token{{Kind: kindPlain, Text: src}}
+		return []Token{{Kind: KindPlain, Text: src}}
 	}
 	return out
 }
@@ -98,5 +98,5 @@ func mapKind(t chroma.TokenType) Kind {
 	case t.InCategory(chroma.Punctuation):
 		return KindPunctuation
 	}
-	return kindPlain
+	return KindPlain
 }

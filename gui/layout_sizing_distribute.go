@@ -36,7 +36,7 @@ func collectDistributionCandidates(layout *Layout, axis distributeAxis, fb *fill
 		if skipLayoutChild(layout.Children[i].Shape) {
 			continue
 		}
-		if getSizing(layout.Children[i].Shape, axis) == sizingFill {
+		if getSizing(layout.Children[i].Shape, axis) == SizingFill {
 			fb.candidates = append(fb.candidates, i)
 		}
 	}
@@ -268,7 +268,7 @@ func fillOutOfFlowMain(layout *Layout, axis distributeAxis) {
 	content := f32Max(0, getSize(layout.Shape, axis)-getPadding(layout.Shape, axis))
 	for i := range layout.Children {
 		c := layout.Children[i].Shape
-		if c == nil || !c.outOfFlow || !c.fillOutOfFlow || getSizing(c, axis) != sizingFill {
+		if c == nil || !c.outOfFlow || !c.fillOutOfFlow || getSizing(c, axis) != SizingFill {
 			continue
 		}
 		setSize(c, axis, content)

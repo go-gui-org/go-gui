@@ -554,7 +554,7 @@ func htmlImageDim(s string) float32 {
 // paragraph. Empty text makes no block.
 func (p *htmlParser) flush() {
 	if p.pre > 0 {
-		code := runsToText(p.runs)
+		code := RunsToText(p.runs)
 		p.runs = p.runs[:0]
 		p.atSpace = true
 		if strings.TrimSpace(code) != "" {
@@ -589,7 +589,7 @@ func (p *htmlParser) flush() {
 		l.prefix = strings.Repeat(" ", utf8.RuneCountInString(l.prefix))
 	case p.heading > 0:
 		b.HeaderLevel = p.heading
-		b.AnchorSlug = headingSlug(runsToText(runs))
+		b.AnchorSlug = HeadingSlug(RunsToText(runs))
 	}
 	p.emit(b)
 }

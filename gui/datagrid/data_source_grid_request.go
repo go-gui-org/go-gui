@@ -29,22 +29,22 @@ func dataGridSourceStartRequest(cfg DataGridCfg, caps GridDataCapabilities, kind
 	var page GridPageRequest
 	switch kind {
 	case GridPaginationCursor:
-		page = gridCursorPageReq{
+		page = GridCursorPageReq{
 			Cursor: state.CurrentCursor,
-			limit:  limit,
+			Limit:  limit,
 		}
 	default:
-		page = gridOffsetPageReq{
+		page = GridOffsetPageReq{
 			StartIndex: state.OffsetStart,
-			endIndex:   state.OffsetStart + limit,
+			EndIndex:   state.OffsetStart + limit,
 		}
 	}
 	req := GridDataRequest{
-		gridID: cfg.ID,
+		GridID: cfg.ID,
 		// Deep-copy: cfg.Query is app-owned and stays live under
 		// further keystrokes while the fetch runs.
 		Query:     cfg.Query.Clone(),
-		page:      page,
+		Page:      page,
 		Signal:    controller.Signal,
 		RequestID: nextRequestID,
 	}
@@ -104,9 +104,9 @@ func dataGridSourceApplySuccess(gridID string, requestID uint64, result GridData
 	state.RowsSignature = dataGridRowsSignature(result.Rows, nil)
 	state.RowsDirty = true
 	state.Rows = result.Rows
-	state.nextCursor = result.nextCursor
-	state.prevCursor = result.prevCursor
-	state.hasMore = result.hasMore
+	state.nextCursor = result.NextCursor
+	state.prevCursor = result.PrevCursor
+	state.hasMore = result.HasMore
 	if result.ReceivedCount > 0 {
 		state.ReceivedCount = result.ReceivedCount
 	} else {
@@ -115,7 +115,7 @@ func dataGridSourceApplySuccess(gridID string, requestID uint64, result GridData
 	if result.RowCount >= 0 {
 		rc := result.RowCount
 		state.RowCount = &rc
-	} else if !caps.rowCountKnown {
+	} else if !caps.RowCountKnown {
 		state.RowCount = nil
 	}
 	state.ActiveAbort = nil

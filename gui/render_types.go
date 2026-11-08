@@ -5,11 +5,11 @@ import "github.com/go-gui-org/go-glyph"
 // RenderKind identifies the type of drawing command stored in a
 // RenderCmd. The renderer pipeline emits a flat []RenderCmd slice;
 // the dispatch loop switches on Kind to draw each command.
-type renderKind uint8
+type RenderKind uint8
 
 // RenderKind values.
 const (
-	RenderNone renderKind = iota
+	RenderNone RenderKind = iota
 	RenderClip
 	RenderRect
 	RenderStrokeRect
@@ -143,7 +143,7 @@ type RenderCmd struct {
 
 	// Visual properties.
 	Color Color
-	Kind  renderKind
+	Kind  RenderKind
 
 	StencilDepth uint8 // StencilBegin/End
 	// ImageFilter is the texel sampling for an Image. The zero value

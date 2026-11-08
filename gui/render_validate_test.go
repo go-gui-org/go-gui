@@ -275,7 +275,7 @@ func TestRendererValidFilterBegin(t *testing.T) {
 }
 
 func TestRendererValidNoPayloadKinds(t *testing.T) {
-	for _, k := range []renderKind{RenderNone, RenderFilterEnd,
+	for _, k := range []RenderKind{RenderNone, RenderFilterEnd,
 		RenderRotateEnd, RenderLayoutPlaced} {
 		if !rendererValidForDraw(RenderCmd{Kind: k}) {
 			t.Errorf("kind %d should pass", k)
@@ -323,7 +323,7 @@ func TestRendererValidStencilEnd(t *testing.T) {
 }
 
 func TestRendererValidUnknown(t *testing.T) {
-	r := RenderCmd{Kind: renderKind(255)}
+	r := RenderCmd{Kind: RenderKind(255)}
 	if !rendererValidForDraw(r) {
 		t.Error("unknown kind should pass (default case returns true)")
 	}

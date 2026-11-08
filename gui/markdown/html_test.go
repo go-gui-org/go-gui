@@ -7,7 +7,7 @@ import (
 
 // htmlText joins the text of every run in a block, for assertions
 // that care about what the reader sees, not how runs are split.
-func htmlText(b Block) string { return runsToText(b.Runs) }
+func htmlText(b Block) string { return RunsToText(b.Runs) }
 
 func TestParseHTMLParagraphs(t *testing.T) {
 	blocks := ParseHTML("<p>one</p><p>two</p>bare text<div>three</div>")
@@ -111,7 +111,7 @@ func TestParseHTMLInlineFormats(t *testing.T) {
 				if !tt.check(r) {
 					t.Errorf("%s: run %+v lacks the format", tt.src, r)
 				}
-			} else if r.Format != formatPlain || r.Underline ||
+			} else if r.Format != FormatPlain || r.Underline ||
 				r.Strikethrough || r.Highlight || r.Superscript || r.Subscript {
 				t.Errorf("%s: format leaked onto %q: %+v", tt.src, r.Text, r)
 			}
@@ -135,7 +135,7 @@ func TestParseHTMLMarkdownCharsStayLiteral(t *testing.T) {
 		t.Errorf("text = %q, want %q", got, want)
 	}
 	for _, r := range blocks[0].Runs {
-		if r.Format != formatPlain || r.Highlight {
+		if r.Format != FormatPlain || r.Highlight {
 			t.Errorf("markdown syntax formatted a run: %+v", r)
 		}
 	}
@@ -377,7 +377,7 @@ func TestParseHTMLMisnestedInlineTags(t *testing.T) {
 				t.Errorf("x = %+v", r)
 			}
 		case "yz":
-			if r.Format != formatPlain {
+			if r.Format != FormatPlain {
 				t.Errorf("yz = %+v", r)
 			}
 		}
@@ -417,7 +417,7 @@ func TestParseHTMLInlineDepthCapped(t *testing.T) {
 	if len(runs) != 2 || runs[0].Text != "x" || runs[1].Text != "y" {
 		t.Fatalf("runs = %+v, want x then y", runs)
 	}
-	if runs[0].Format != FormatBold || runs[1].Format != formatPlain {
+	if runs[0].Format != FormatBold || runs[1].Format != FormatPlain {
 		t.Errorf("formats = %v, %v; want bold, plain", runs[0].Format, runs[1].Format)
 	}
 }

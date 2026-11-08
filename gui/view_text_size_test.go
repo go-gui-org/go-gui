@@ -15,7 +15,7 @@ func TestTextViewFitsSizeClass(t *testing.T) {
 	}
 }
 
-var rtfShapeTextSink *shapeTextConfig
+var rtfShapeTextSink *ShapeTextConfig
 
 // An RTF shape's text config and its rich-text fields come from one
 // allocation, so moving the fields behind a pointer costs RTF nothing.

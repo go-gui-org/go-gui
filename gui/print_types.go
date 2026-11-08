@@ -54,7 +54,8 @@ type PrintMargins struct {
 }
 
 // DefaultPrintMargins returns 36-point margins (0.5 inch).
-func defaultPrintMargins() PrintMargins {
+// exportaudit:keep — documented API (showcase docs/widget_printing.md)
+func DefaultPrintMargins() PrintMargins {
 	return PrintMargins{Top: 36, Right: 36, Bottom: 36, Left: 36}
 }
 
@@ -191,7 +192,7 @@ func NewPrintJob() PrintJob {
 	return PrintJob{
 		Paper:       PaperA4,
 		Orientation: PrintPortrait,
-		Margins:     defaultPrintMargins(),
+		Margins:     DefaultPrintMargins(),
 		Copies:      1,
 	}
 }
@@ -259,7 +260,8 @@ func printExportOKResult(path string) PrintExportResult {
 
 // PrintPageSize returns (width, height) in points for the given
 // paper size and orientation.
-func printPageSize(paper PaperSize, orientation PrintOrientation) (float32, float32) {
+// exportaudit:keep — documented API (showcase docs/widget_printing.md)
+func PrintPageSize(paper PaperSize, orientation PrintOrientation) (float32, float32) {
 	var w, h float32
 	switch paper {
 	case PaperLetter:
@@ -346,7 +348,7 @@ func validatePrintJob(job PrintJob) error {
 	if err := validatePrintEnums(job); err != nil {
 		return err
 	}
-	pw, ph := printPageSize(job.Paper, job.Orientation)
+	pw, ph := PrintPageSize(job.Paper, job.Orientation)
 	if err := validatePrintMargins(pw, ph, job.Margins); err != nil {
 		return err
 	}
@@ -458,7 +460,8 @@ func validatePrintToken(token string) error {
 }
 
 // NormalizePrintPageRanges sorts and merges overlapping ranges.
-func normalizePrintPageRanges(ranges []PrintPageRange) []PrintPageRange {
+// exportaudit:keep — documented API (showcase docs/widget_printing.md)
+func NormalizePrintPageRanges(ranges []PrintPageRange) []PrintPageRange {
 	if len(ranges) == 0 {
 		return nil
 	}

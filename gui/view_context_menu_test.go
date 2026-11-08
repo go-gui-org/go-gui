@@ -78,10 +78,10 @@ func TestContextMenuSelectedItemTextColor(t *testing.T) {
 		Items:             []MenuItemCfg{{ID: "a", Text: "A"}, {ID: "b", Text: "B"}},
 		ColorTextOnSelect: White,
 	})
-	if got := textColorOf(t, w, v, "A"); !got.eq(White) {
+	if got := textColorOf(t, w, v, "A"); !got.Eq(White) {
 		t.Errorf("selected item color = %v, want %v", got, White)
 	}
-	if got := textColorOf(t, w, v, "B"); !got.eq(DefaultTextStyle.Color) {
+	if got := textColorOf(t, w, v, "B"); !got.Eq(DefaultTextStyle.Color) {
 		t.Errorf("plain item color = %v, want body %v",
 			got, DefaultTextStyle.Color)
 	}

@@ -65,7 +65,7 @@ func TestVirtualListBuildsOnlyTheVisibleRange(t *testing.T) {
 		t.Fatalf("children = %d, want rows plus a trailing spacer", n)
 	}
 	last := layout.Children[len(layout.Children)-1]
-	if !last.Shape.Color.eq(ColorTransparent) {
+	if !last.Shape.Color.Eq(ColorTransparent) {
 		t.Error("trailing spacer missing")
 	}
 
@@ -505,7 +505,7 @@ func TestVirtualListCarriesScrollbars(t *testing.T) {
 	if !ok {
 		t.Fatal("feed not found")
 	}
-	bar := findScrollbar(t, feed, scrollbarVertical)
+	bar := findScrollbar(t, feed, ScrollbarVertical)
 	thumb := bar.Children[thumbIndex].Shape
 	if thumb.Color == ColorTransparent {
 		t.Fatal("vertical thumb transparent despite 5000-row overflow")
@@ -514,7 +514,7 @@ func TestVirtualListCarriesScrollbars(t *testing.T) {
 		t.Fatalf("thumb height %.1f is not a fraction of track %.1f",
 			thumb.Height, bar.Shape.Height)
 	}
-	findScrollbar(t, feed, scrollbarHorizontal)
+	findScrollbar(t, feed, ScrollbarHorizontal)
 }
 
 // A list whose rows fit hides the thumb: the bars are auto, not
@@ -538,7 +538,7 @@ func TestVirtualListScrollbarHidesWhenFitting(t *testing.T) {
 	if !ok {
 		t.Fatal("feed not found")
 	}
-	bar := findScrollbar(t, feed, scrollbarVertical)
+	bar := findScrollbar(t, feed, ScrollbarVertical)
 	if got := bar.Children[thumbIndex].Shape.Color; got != ColorTransparent {
 		t.Fatalf("thumb color = %v, want transparent: 2 rows fit", got)
 	}
@@ -572,7 +572,7 @@ func TestVirtualListScrollbarStaysOnTrackAcrossWriteBack(t *testing.T) {
 			if !ok {
 				t.Fatal("list not found")
 			}
-			bar := findScrollbar(t, list, scrollbarVertical)
+			bar := findScrollbar(t, list, ScrollbarVertical)
 			top := list.Shape.Y
 			bottom := top + list.Shape.Height
 			if bar.Shape.Y < top ||

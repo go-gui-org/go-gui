@@ -31,7 +31,7 @@ func stockBarY(t *testing.T, w *Window) *Layout {
 		t.Fatal("list not found")
 	}
 	bar := &sc.Children[len(sc.Children)-1]
-	if bar.Shape.scrollbarOrientation != scrollbarVertical {
+	if bar.Shape.scrollbarOrientation != ScrollbarVertical {
 		t.Fatalf("last child orientation %v, want vertical bar", bar.Shape.scrollbarOrientation)
 	}
 	return bar
@@ -43,7 +43,7 @@ func stockBarY(t *testing.T, w *Window) *Layout {
 // read the settings from the shape, not closures holding a copy.
 func TestScrollbarStockAllocs(t *testing.T) {
 	w := newTestWindow()
-	cfg := ScrollbarCfg{Orientation: scrollbarVertical, scrollID: "list"}
+	cfg := ScrollbarCfg{Orientation: ScrollbarVertical, scrollID: "list"}
 	got := testing.AllocsPerRun(200, func() {
 		w.scratch.resetViewPools()
 		generateViewLayout(scrollbar(cfg), w)

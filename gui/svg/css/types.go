@@ -6,12 +6,12 @@ package css
 
 // Origin tags a declaration's source layer in the cascade. Values
 // run lowest precedence to highest.
-type origin uint8
+type Origin uint8
 
 // Origin constants.
 const (
-	OriginPresAttr origin = iota
-	originRule
+	OriginPresAttr Origin = iota
+	OriginRule
 	OriginInline
 
 	// numOrigins is the count of origin tiers; cascadeLayer uses it
@@ -194,7 +194,7 @@ type ParseOptions struct {
 // Hover and Focus mirror the user-agent's element-state bits and are
 // toggled by the renderer's mouse / focus dispatcher. Zero value =
 // neutral (no element hovered or focused).
-type matchState struct {
+type MatchState struct {
 	Hover bool
 	Focus bool
 }
@@ -210,6 +210,6 @@ type ElementInfo struct {
 	ID      string
 	Classes []string
 	Index   int
-	State   matchState
+	State   MatchState
 	IsRoot  bool
 }

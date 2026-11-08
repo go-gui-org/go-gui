@@ -238,12 +238,12 @@ type ContainerCfg struct {
 	// nothing to it. To align the lines within a text box, set
 	// TextStyle.Align.
 	HAlign   HorizontalAlign // ergonomics-audit:opt-plain — zero (HAlignStart) is the natural default; no distinct unset behavior
-	VAlign   verticalAlign   // ergonomics-audit:opt-plain — zero (VAlignTop) is the natural default; no distinct unset behavior
+	VAlign   VerticalAlign   // ergonomics-audit:opt-plain — zero (VAlignTop) is the natural default; no distinct unset behavior
 	TextDir  TextDirection
 	Wrap     bool
 	Overflow bool
 
-	ScrollMode scrollMode
+	ScrollMode ScrollMode
 	Clip       bool
 	// ClipContents clips children to the container bounds. Default
 	// false; containers clip via ScrollMode/Overflow when scrollable.
@@ -268,8 +268,8 @@ type ContainerCfg struct {
 	// would cross the window edge.
 	// exportaudit:keep — caller-facing config (issue #372)
 	FloatAutoFlip bool
-	FloatAnchor   floatAttach
-	FloatTieOff   floatAttach
+	FloatAnchor   FloatAttach
+	FloatTieOff   FloatAttach
 
 	// Accessibility
 	A11YRole AccessRole
@@ -484,7 +484,7 @@ func addGroupBoxTitle(title string, titleBG, colorBorder Color,
 		// Both from the view-phase arena: a literal here and &ts each
 		// moved to the heap, two allocations per titled container per
 		// frame.
-		TC: w.allocTextConfig(shapeTextConfig{
+		TC: w.allocTextConfig(ShapeTextConfig{
 			Text:      title,
 			TextStyle: w.allocTextStyle(ts),
 		}),
@@ -710,9 +710,9 @@ func container(cfg ContainerCfg) View {
 		content = make([]View, 0, len(cfg.Content)+2)
 		content = append(content, cfg.Content...)
 		content = appendScrollbar(content, cfg.ScrollbarCfgX,
-			scrollbarHorizontal, cfg.ID)
+			ScrollbarHorizontal, cfg.ID)
 		content = appendScrollbar(content, cfg.ScrollbarCfgY,
-			scrollbarVertical, cfg.ID)
+			ScrollbarVertical, cfg.ID)
 	}
 
 	return &containerView{

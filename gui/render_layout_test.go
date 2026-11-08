@@ -116,7 +116,7 @@ func TestRenderLayoutOverDrawVertical(t *testing.T) {
 		X:         10, Y: 20,
 		Width: 50, Height: 50,
 		OverDraw:             true,
-		scrollbarOrientation: scrollbarVertical,
+		scrollbarOrientation: ScrollbarVertical,
 		shapeClip:            drawClip{X: 10, Y: 20, Width: 50, Height: 50},
 	}
 	layout := &Layout{Shape: shape}
@@ -148,7 +148,7 @@ func TestRenderLayoutOverDrawHorizontal(t *testing.T) {
 		X:         10, Y: 20,
 		Width: 50, Height: 50,
 		OverDraw:             true,
-		scrollbarOrientation: scrollbarHorizontal,
+		scrollbarOrientation: ScrollbarHorizontal,
 		shapeClip:            drawClip{X: 10, Y: 20, Width: 50, Height: 50},
 	}
 	layout := &Layout{Shape: shape}
@@ -179,7 +179,7 @@ func TestRenderLayoutOverDrawDefault(t *testing.T) {
 		X:         10, Y: 20,
 		Width: 50, Height: 50,
 		OverDraw:             true,
-		scrollbarOrientation: scrollbarNone,
+		scrollbarOrientation: ScrollbarNone,
 		shapeClip:            shapeClip,
 	}
 	layout := &Layout{Shape: shape}
@@ -370,7 +370,7 @@ func TestRenderTextEmptyFocusedEmitsCursor(t *testing.T) {
 		Focusable: true, ID: "f100",
 		Width: 100, Height: 20,
 		Opacity: 1.0,
-		TC: &shapeTextConfig{
+		TC: &ShapeTextConfig{
 			Text:      "",
 			TextStyle: &style,
 		},
@@ -398,7 +398,7 @@ func TestRenderTextEmptyUnfocusedNoOutput(t *testing.T) {
 		Focusable: true, ID: "f100",
 		Width: 100, Height: 20,
 		Opacity: 1.0,
-		TC: &shapeTextConfig{
+		TC: &ShapeTextConfig{
 			Text:      "",
 			TextStyle: &style,
 		},
@@ -421,7 +421,7 @@ func TestRenderTextOutsideClipSkips(t *testing.T) {
 		X:         500, Y: 500,
 		Width: 100, Height: 20,
 		Opacity: 1.0,
-		TC: &shapeTextConfig{
+		TC: &ShapeTextConfig{
 			Text:      "hello",
 			TextStyle: &style,
 		},
@@ -443,7 +443,7 @@ func TestRenderTextZeroAlphaSkips(t *testing.T) {
 		shapeType: shapeText,
 		Width:     100, Height: 20,
 		Opacity: 1.0,
-		TC: &shapeTextConfig{
+		TC: &ShapeTextConfig{
 			Text:      "invisible",
 			TextStyle: &style,
 		},
@@ -468,7 +468,7 @@ func TestRenderTextPlaceholderCursor(t *testing.T) {
 		Focusable: true, ID: "f200",
 		Width: 100, Height: 20,
 		Opacity: 1.0,
-		TC: &shapeTextConfig{
+		TC: &ShapeTextConfig{
 			Text:              "Enter name",
 			textIsPlaceholder: true,
 			TextStyle:         &style,
@@ -506,7 +506,7 @@ func TestRenderInputCursorNotFocusedSkips(t *testing.T) {
 	style := DefaultTextStyle
 	shape := &Shape{
 		Focusable: true, ID: "f100",
-		TC: &shapeTextConfig{TextStyle: &style},
+		TC: &ShapeTextConfig{TextStyle: &style},
 	}
 
 	renderInputCursor(shape, "hello", 0, 0, glyph.Layout{}, false, w)
@@ -523,7 +523,7 @@ func TestRenderInputCursorBlinkOffEmitsTransparent(t *testing.T) {
 	style := DefaultTextStyle
 	shape := &Shape{
 		Focusable: true, ID: "f100",
-		TC: &shapeTextConfig{TextStyle: &style},
+		TC: &ShapeTextConfig{TextStyle: &style},
 	}
 
 	renderInputCursor(shape, "hello", 0, 0, glyph.Layout{}, false, w)
@@ -552,7 +552,7 @@ func TestRenderInputCursorWindowUnfocusedEmitsTransparent(t *testing.T) {
 	style := DefaultTextStyle
 	shape := &Shape{
 		Focusable: true, ID: "f100",
-		TC: &shapeTextConfig{TextStyle: &style},
+		TC: &ShapeTextConfig{TextStyle: &style},
 	}
 
 	renderInputCursor(shape, "hello", 0, 0, glyph.Layout{}, false, w)
@@ -588,7 +588,7 @@ func TestRenderInputCursorFallbackPosition(t *testing.T) {
 	style := TextStyle{Color: RGB(0, 0, 0), Size: 14}
 	shape := &Shape{
 		Focusable: true, ID: "f100",
-		TC: &shapeTextConfig{TextStyle: &style},
+		TC: &ShapeTextConfig{TextStyle: &style},
 	}
 	setInputState(w, "f100", inputState{CursorPos: 3})
 
@@ -614,7 +614,7 @@ func TestRenderInputSelectionEqualBegEndSkips(t *testing.T) {
 	w := makeWindow()
 	style := DefaultTextStyle
 	shape := &Shape{
-		TC: &shapeTextConfig{
+		TC: &ShapeTextConfig{
 			Text:       "hello",
 			textSelBeg: 2,
 			textSelEnd: 2,
@@ -634,7 +634,7 @@ func TestRenderInputSelectionFallbackEmitsRect(t *testing.T) {
 	w := makeWindow()
 	style := TextStyle{Color: RGB(0, 0, 0), Size: 14}
 	shape := &Shape{
-		TC: &shapeTextConfig{
+		TC: &ShapeTextConfig{
 			Text:       "hello",
 			textSelBeg: 1,
 			textSelEnd: 3,
@@ -701,7 +701,7 @@ func TestRenderRtf_SelectionHighlight_Emitted(t *testing.T) {
 		shapeType: shapeRTF,
 		Width:     float32(len(text)) * 10, Height: 20,
 		Opacity: 1.0,
-		TC: &shapeTextConfig{
+		TC: &ShapeTextConfig{
 			textSelBeg: 2,
 			textSelEnd: 7,
 			TextStyle:  &style,
@@ -734,7 +734,7 @@ func TestRenderRtf_EmptyRtfFlatText_NoSelectionHighlight(t *testing.T) {
 		shapeType: shapeRTF,
 		Width:     float32(len(text)) * 10, Height: 20,
 		Opacity: 1.0,
-		TC: &shapeTextConfig{
+		TC: &ShapeTextConfig{
 			textSelBeg: 2,
 			textSelEnd: 7,
 			TextStyle:  &style,
@@ -766,7 +766,7 @@ func TestTextStyleOrDefaultNilTC(t *testing.T) {
 }
 
 func TestTextStyleOrDefaultNilTextStyle(t *testing.T) {
-	shape := &Shape{TC: &shapeTextConfig{}}
+	shape := &Shape{TC: &ShapeTextConfig{}}
 	got := textStyleOrDefault(shape)
 	if got != DefaultTextStyle {
 		t.Error("expected DefaultTextStyle for nil TextStyle")
@@ -797,7 +797,7 @@ func TestFontHeightFallbackWithSize(t *testing.T) {
 func TestTextWidthFallbackPasswordMask(t *testing.T) {
 	w := makeWindow()
 	style := TextStyle{Size: 14}
-	tc := &shapeTextConfig{textIsPassword: true}
+	tc := &ShapeTextConfig{textIsPassword: true}
 	got := textWidthFallback("abc", 3, tc, style, w, false)
 	// Password: 3 mask chars * size * 0.6
 	want := float32(3) * 14 * 0.6
@@ -866,12 +866,12 @@ func TestRenderLayoutPanicUnwindRestoresState(t *testing.T) {
 	if w.clipRadius != 0 {
 		t.Errorf("clipRadius = %v, want 0", w.clipRadius)
 	}
-	counts := map[renderKind]int{}
+	counts := map[RenderKind]int{}
 	for _, r := range w.renderers {
 		counts[r.Kind]++
 	}
 	for _, tc := range []struct {
-		begin, end renderKind
+		begin, end RenderKind
 		name       string
 	}{
 		{RenderFilterBegin, RenderFilterEnd, "filter"},

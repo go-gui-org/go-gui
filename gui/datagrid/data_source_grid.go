@@ -226,8 +226,8 @@ func dataGridSourceApplyPendingJumpSelection(cfg *DataGridCfg, state dataGridSou
 	}
 	rowID := dataGridRowID(cfg.Rows[localIdx], localIdx)
 	next := GridSelection{
-		anchorRowID:    rowID,
-		activeRowID:    rowID,
+		AnchorRowID:    rowID,
+		ActiveRowID:    rowID,
 		SelectedRowIDs: map[string]bool{rowID: true},
 	}
 	dataGridSetAnchor(cfg.ID, rowID, w)
@@ -270,18 +270,18 @@ func dataGridSourceResetPagination(state *dataGridSourceState, cursor string) {
 
 func dataGridSourceEffectivePaginationKind(preferred GridPaginationKind, caps GridDataCapabilities) GridPaginationKind {
 	if preferred == GridPaginationCursor {
-		if caps.supportsCursorPagination {
+		if caps.SupportsCursorPagination {
 			return GridPaginationCursor
 		}
-		if caps.supportsOffsetPagination {
+		if caps.SupportsOffsetPagination {
 			return GridPaginationOffset
 		}
 		return GridPaginationNone
 	}
-	if caps.supportsOffsetPagination {
+	if caps.SupportsOffsetPagination {
 		return GridPaginationOffset
 	}
-	if caps.supportsCursorPagination {
+	if caps.SupportsCursorPagination {
 		return GridPaginationCursor
 	}
 	return GridPaginationNone

@@ -31,12 +31,12 @@ func TestMarkdownChromaHighlighter(t *testing.T) {
 	var keywordColored, funcColored bool
 	for _, r := range code.Content.Runs {
 		if r.Text == "package" || r.Text == "func" {
-			if r.Style.Color == style.codeKeywordColor {
+			if r.Style.Color == style.CodeKeywordColor {
 				keywordColored = true
 			}
 		}
 		if r.Text == "main" &&
-			r.Style.Color == style.codeFunctionColor {
+			r.Style.Color == style.CodeFunctionColor {
 			funcColored = true
 		}
 	}

@@ -123,7 +123,7 @@ func (s *SpringAnimation) SpringTo(from, to float32) {
 }
 
 // Retarget changes the target while preserving position/velocity.
-func (s *SpringAnimation) retarget(to float32) {
+func (s *SpringAnimation) Retarget(to float32) {
 	s.state.target = to
 	s.state.atRest = false
 	s.stopped = false

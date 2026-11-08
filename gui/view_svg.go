@@ -84,7 +84,7 @@ func (sv *svgView) GenerateLayout(w *Window) Layout {
 	height := c.Height
 
 	if width <= 0 || height <= 0 {
-		natW, natH, err := w.getSvgDimensions(svgSrc)
+		natW, natH, err := w.GetSvgDimensions(svgSrc)
 		if err != nil {
 			log.Printf("svg: %v", err)
 			return svgErrorLayout(svgSrc, w)

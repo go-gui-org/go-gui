@@ -1086,7 +1086,7 @@ func TestRenderDrawCanvasRotatedImageBracket(t *testing.T) {
 	}
 	renderDrawCanvas(shape, makeClip(0, 0, 200, 200), w)
 
-	var kinds []renderKind
+	var kinds []RenderKind
 	var begin RenderCmd
 	var img RenderCmd
 	for _, r := range w.renderers {
@@ -1101,7 +1101,7 @@ func TestRenderDrawCanvasRotatedImageBracket(t *testing.T) {
 			kinds = append(kinds, r.Kind)
 		}
 	}
-	want := []renderKind{RenderRotateBegin, RenderImage, RenderRotateEnd}
+	want := []RenderKind{RenderRotateBegin, RenderImage, RenderRotateEnd}
 	if !slices.Equal(kinds, want) {
 		t.Fatalf("image commands = %v, want %v", kinds, want)
 	}

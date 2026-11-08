@@ -163,7 +163,7 @@ func TestHSVRoundTrip(t *testing.T) {
 	}
 	for _, c := range colors {
 		h, s, v := c.ToHSV()
-		got := colorFromHSVA(h, s, v, c.A)
+		got := ColorFromHSVA(h, s, v, c.A)
 		if got.R != c.R || got.G != c.G || got.B != c.B {
 			t.Errorf("round-trip %v: HSV(%f,%f,%f) → %v",
 				c, h, s, v, got)

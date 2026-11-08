@@ -1107,7 +1107,7 @@ func TestSplitterKeyEnterTogglesCollapse(t *testing.T) {
 		t.Fatalf("collapsed = %v, want first", h.state.Collapsed)
 	}
 	h.key(t, "sp", KeyEnter, ModNone)
-	if h.state.Collapsed != splitterCollapseNone {
+	if h.state.Collapsed != SplitterCollapseNone {
 		t.Errorf("collapsed after second Enter = %v, want none",
 			h.state.Collapsed)
 	}
@@ -1123,7 +1123,7 @@ func TestSplitterKeyArrowClearsCollapse(t *testing.T) {
 	})
 	h.key(t, "sp", KeyHome, ModNone)
 	h.key(t, "sp", KeyRight, ModNone)
-	if h.state.Collapsed != splitterCollapseNone {
+	if h.state.Collapsed != SplitterCollapseNone {
 		t.Errorf("collapsed = %v, want none after arrow", h.state.Collapsed)
 	}
 	first, _, _ := h.parts(t, "sp")
@@ -1147,7 +1147,7 @@ func TestSplitterKeySpaceTogglesCollapse(t *testing.T) {
 		t.Fatalf("collapsed = %v, want first", h.state.Collapsed)
 	}
 	h.key(t, "sp", KeySpace, ModNone)
-	if h.state.Collapsed != splitterCollapseNone {
+	if h.state.Collapsed != SplitterCollapseNone {
 		t.Errorf("collapsed after second Space = %v, want none",
 			h.state.Collapsed)
 	}
@@ -1160,7 +1160,7 @@ func TestSplitterKeySpaceIgnoresCharCode(t *testing.T) {
 	h := splitterKeyHarness(t, SplitterCfg{
 		ID: "sp", Ratio: SomeF(0.5), First: a, Second: b,
 	})
-	if err := h.w.testFocus("sp"); err != nil {
+	if err := h.w.TestFocus("sp"); err != nil {
 		t.Fatalf("focus: %v", err)
 	}
 	h.send(&Event{Type: EventKeyDown, CharCode: charSpace})
@@ -1290,7 +1290,7 @@ func TestSplitterCollapseButtonClickCollapsesAndRestores(t *testing.T) {
 	if err := h.w.TestClick("sp:button:1"); err != nil {
 		t.Fatalf("TestClick (restore): %v", err)
 	}
-	if h.state.Collapsed != splitterCollapseNone {
+	if h.state.Collapsed != SplitterCollapseNone {
 		t.Errorf("collapsed = %v, want none", h.state.Collapsed)
 	}
 	nearF(t, "restored ratio", h.state.Ratio, 0.5, 0.01)
@@ -1353,22 +1353,22 @@ func TestSplitterButtonIconAllStates(t *testing.T) {
 	both := splitterPaneCore{collapsible: true}
 	tests := []struct {
 		name      string
-		orient    splitterOrientation
+		orient    SplitterOrientation
 		collapsed SplitterCollapsed
 		target    SplitterCollapsed
 		want      string
 	}{
-		{"h/open/first", SplitterHorizontal, splitterCollapseNone,
+		{"h/open/first", SplitterHorizontal, SplitterCollapseNone,
 			SplitterCollapseFirst, "◀"},
-		{"h/open/second", SplitterHorizontal, splitterCollapseNone,
+		{"h/open/second", SplitterHorizontal, SplitterCollapseNone,
 			SplitterCollapseSecond, "▶"},
 		{"h/first-collapsed/first", SplitterHorizontal,
 			SplitterCollapseFirst, SplitterCollapseFirst, "▶"},
 		{"h/second-collapsed/second", SplitterHorizontal,
 			SplitterCollapseSecond, SplitterCollapseSecond, "◀"},
-		{"v/open/first", SplitterVertical, splitterCollapseNone,
+		{"v/open/first", SplitterVertical, SplitterCollapseNone,
 			SplitterCollapseFirst, "▲"},
-		{"v/open/second", SplitterVertical, splitterCollapseNone,
+		{"v/open/second", SplitterVertical, SplitterCollapseNone,
 			SplitterCollapseSecond, "▼"},
 		{"v/first-collapsed/first", SplitterVertical,
 			SplitterCollapseFirst, SplitterCollapseFirst, "▼"},
@@ -1521,7 +1521,7 @@ func TestSplitterEmitChangeNormalizesAndConsumes(t *testing.T) {
 	if gotRatio != 1 {
 		t.Errorf("ratio = %g, want 1", gotRatio)
 	}
-	if gotCollapsed != splitterCollapseNone {
+	if gotCollapsed != SplitterCollapseNone {
 		t.Errorf("collapsed = %v, want none", gotCollapsed)
 	}
 	if !e.IsHandled {
@@ -1534,7 +1534,7 @@ func TestSplitterEmitChangeNormalizesAndConsumes(t *testing.T) {
 func TestSplitterEmitChangeNilCallback(t *testing.T) {
 	w := NewTestWindow(t, WindowCfg{})
 	e := Event{Type: EventKeyDown}
-	splitterEmitChange(&splitterCore{}, 0.5, splitterCollapseNone, &e, w)
+	splitterEmitChange(&splitterCore{}, 0.5, SplitterCollapseNone, &e, w)
 	if !e.IsHandled {
 		t.Error("emit did not consume the event")
 	}
@@ -1577,7 +1577,7 @@ func TestSplitterExplicitBorderWinsOverStyle(t *testing.T) {
 }
 
 func TestSplitterOrientationMarshalTextUnknown(t *testing.T) {
-	if _, err := splitterOrientation(9).MarshalText(); err == nil {
+	if _, err := SplitterOrientation(9).MarshalText(); err == nil {
 		t.Error("expected error for an out-of-range orientation")
 	}
 }
@@ -1705,11 +1705,11 @@ func TestSplitterDefaultsResolveHandleAndButtonSets(t *testing.T) {
 	}
 	applySplitterDefaults(&cfg)
 
-	if !cfg.ColorsHandle.Base.eq(handleBase) {
+	if !cfg.ColorsHandle.Base.Eq(handleBase) {
 		t.Errorf("handle Base = %v, want ColorHandle %v",
 			cfg.ColorsHandle.Base, handleBase)
 	}
-	if !cfg.ColorsHandle.Click.eq(handleClick) {
+	if !cfg.ColorsHandle.Click.Eq(handleClick) {
 		t.Errorf("handle Click = %v, want %v",
 			cfg.ColorsHandle.Click, handleClick)
 	}
@@ -1717,22 +1717,22 @@ func TestSplitterDefaultsResolveHandleAndButtonSets(t *testing.T) {
 	// ColorHandle sets only the resting color and leaves Hover to the
 	// theme. That ordering is what keeps `ColorHandle: c` from
 	// silently pinning a widget's whole reaction to c (ColorSet.resolved).
-	if !cfg.ColorsHandle.Hover.eq(defaultSplitterStyle.ColorsHandle.Hover) {
+	if !cfg.ColorsHandle.Hover.Eq(defaultSplitterStyle.ColorsHandle.Hover) {
 		t.Errorf("handle Hover = %v, want theme %v",
 			cfg.ColorsHandle.Hover,
 			defaultSplitterStyle.ColorsHandle.Hover)
 	}
 	// The handle border was never spelled at all, so the theme fills it.
-	if !cfg.ColorsHandle.Border.eq(defaultSplitterStyle.ColorsHandle.Border) {
+	if !cfg.ColorsHandle.Border.Eq(defaultSplitterStyle.ColorsHandle.Border) {
 		t.Errorf("handle Border = %v, want theme %v",
 			cfg.ColorsHandle.Border,
 			defaultSplitterStyle.ColorsHandle.Border)
 	}
-	if !cfg.ColorsButton.Hover.eq(buttonHover) {
+	if !cfg.ColorsButton.Hover.Eq(buttonHover) {
 		t.Errorf("button Hover = %v, want %v",
 			cfg.ColorsButton.Hover, buttonHover)
 	}
-	if !cfg.ColorsButton.Base.eq(defaultSplitterStyle.ColorsButton.Base) {
+	if !cfg.ColorsButton.Base.Eq(defaultSplitterStyle.ColorsButton.Base) {
 		t.Errorf("button Base = %v, want theme %v",
 			cfg.ColorsButton.Base, defaultSplitterStyle.ColorsButton.Base)
 	}

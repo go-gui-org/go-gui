@@ -1,23 +1,12 @@
 package datagrid
 
 // GridSortDir specifies ascending or descending sort order.
-type gridSortDir uint8
-
-// GridSortDir is the caller-facing spelling of the sort direction.
-// Alias, not a new type: existing references keep working.
-// exportaudit:keep — caller-facing sort spelling
-type GridSortDir = gridSortDir
+type GridSortDir uint8
 
 // GridSortDir constants.
 const (
-	gridSortAsc gridSortDir = iota
+	GridSortAsc GridSortDir = iota
 	GridSortDesc
-	// GridSortAsc sorts ascending. Alias for the zero value, so
-	// callers can spell both directions explicitly. Declared
-	// after GridSortDesc: sharing the iota chain would collapse
-	// Desc onto Asc.
-	// exportaudit:keep — caller-facing sort spelling
-	GridSortAsc = gridSortAsc
 )
 
 // GridPaginationKind selects cursor- or offset-based paging.
@@ -33,40 +22,34 @@ const (
 )
 
 // GridMutationKind identifies a create, update, or delete.
-type gridMutationKind uint8
+type GridMutationKind uint8
 
 // GridMutationKind constants.
 const (
-	gridMutationCreate gridMutationKind = iota
-	gridMutationUpdate
-	gridMutationDelete
+	GridMutationCreate GridMutationKind = iota
+	GridMutationUpdate
+	GridMutationDelete
 )
 
 // GridSort describes a single sort criterion.
 type GridSort struct {
 	ColID string
-	Dir   gridSortDir
+	Dir   GridSortDir
 }
 
 // GridFilter describes a single column filter.
-type gridFilter struct {
+type GridFilter struct {
 	ColID string
 	Op    string // "contains", "equals", "starts_with", "ends_with"
 	Value string
 }
-
-// GridFilter is the caller-facing spelling of a column filter.
-// Alias: GridQueryState.Filters is rangeable today, and now also
-// constructible outside the package.
-// exportaudit:keep — caller-facing filter construction
-type GridFilter = gridFilter
 
 // GridQueryState holds the active sorts, filters, and quick
 // filter for a data grid query.
 type GridQueryState struct {
 	QuickFilter string
 	Sorts       []GridSort
-	Filters     []gridFilter
+	Filters     []GridFilter
 }
 
 // Clone deep-copies the sorts and filters so a handoff across
@@ -77,15 +60,15 @@ func (q GridQueryState) Clone() GridQueryState {
 	return GridQueryState{
 		QuickFilter: q.QuickFilter,
 		Sorts:       append([]GridSort(nil), q.Sorts...),
-		Filters:     append([]gridFilter(nil), q.Filters...),
+		Filters:     append([]GridFilter(nil), q.Filters...),
 	}
 }
 
 // GridSelection tracks the selected rows in a data grid.
 type GridSelection struct {
 	SelectedRowIDs map[string]bool
-	anchorRowID    string
-	activeRowID    string
+	AnchorRowID    string
+	ActiveRowID    string
 }
 
 // GridRow represents a single data row with an ID and
@@ -100,24 +83,27 @@ type GridCellEdit struct {
 	RowID  string
 	ColID  string
 	Value  string
-	rowIdx int
+	RowIdx int
 }
 
 // GridCursorPageReq requests a cursor-based page.
-type gridCursorPageReq struct {
+// exportaudit:keep — concrete GridPageRequest, reached by type switch (wiki Widgets-Data)
+type GridCursorPageReq struct {
 	Cursor string
-	limit  int
+	Limit  int
 }
 
-func (gridCursorPageReq) gridPageRequest() {}
+func (GridCursorPageReq) gridPageRequest() {}
 
 // GridOffsetPageReq requests an offset-based page.
-type gridOffsetPageReq struct {
+// exportaudit:keep — concrete GridPageRequest, reached by type switch (wiki Widgets-Data)
+type GridOffsetPageReq struct {
 	StartIndex int
-	endIndex   int
+	// exportaudit:keep — concrete GridPageRequest field (wiki Widgets-Data)
+	EndIndex int
 }
 
-func (gridOffsetPageReq) gridPageRequest() {}
+func (GridOffsetPageReq) gridPageRequest() {}
 
 // GridPageRequest is satisfied by GridCursorPageReq or
 // GridOffsetPageReq. External code can type-switch but cannot
@@ -128,29 +114,29 @@ type GridPageRequest interface {
 }
 
 // GridAggregateOp specifies the aggregation operation.
-type gridAggregateOp uint8
+type GridAggregateOp uint8
 
 // GridAggregateOp values.
 const (
-	gridAggregateCount gridAggregateOp = iota
-	gridAggregateSum
-	gridAggregateAvg
-	gridAggregateMin
-	gridAggregateMax
+	GridAggregateCount GridAggregateOp = iota
+	GridAggregateSum
+	GridAggregateAvg
+	GridAggregateMin
+	GridAggregateMax
 )
 
 // String returns the SQL-like name for the aggregate operation.
-func (op gridAggregateOp) String() string {
+func (op GridAggregateOp) String() string {
 	switch op {
-	case gridAggregateCount:
+	case GridAggregateCount:
 		return "count"
-	case gridAggregateSum:
+	case GridAggregateSum:
 		return "sum"
-	case gridAggregateAvg:
+	case GridAggregateAvg:
 		return "avg"
-	case gridAggregateMin:
+	case GridAggregateMin:
 		return "min"
-	case gridAggregateMax:
+	case GridAggregateMax:
 		return "max"
 	default:
 		return "unknown"

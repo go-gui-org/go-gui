@@ -85,7 +85,8 @@ func Init(opts ...Cfg) error {
 
 // Quit shuts down the audio subsystem.  All playing sounds and music
 // are halted.  Safe to call even if [Init] was never called.
-func quit() {
+// exportaudit:keep — documented API (showcase docs/widget_audio.md, wiki)
+func Quit() {
 	initMu.Lock()
 	defer initMu.Unlock()
 	if !initialized {
@@ -109,12 +110,14 @@ func MasterVolume() float64 {
 
 // SetMusicVolume sets the global music volume.
 // v is clamped to [0, 1].
-func setMusicVolume(v float64) {
+// exportaudit:keep — documented API (showcase docs/widget_audio.md, wiki)
+func SetMusicVolume(v float64) {
 	backend.SetMusicVolume(v)
 }
 
 // MusicVolume returns the current music volume (0–1).
-func musicVolume() float64 {
+// exportaudit:keep — documented API (showcase docs/widget_audio.md, wiki)
+func MusicVolume() float64 {
 	return backend.MusicVolume()
 }
 

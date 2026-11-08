@@ -72,7 +72,7 @@ var splitterScrollHosts = []struct {
 	}},
 }
 
-func splitterScrollHost(o splitterOrientation, v View) View {
+func splitterScrollHost(o SplitterOrientation, v View) View {
 	return Splitter(SplitterCfg{
 		ID: "split", Orientation: o, Sizing: FillFill,
 		First:  SplitterPaneCfg{Content: []View{Text(TextCfg{Text: "left"})}},

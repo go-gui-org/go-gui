@@ -64,7 +64,7 @@ type AnimationRefreshKind uint8
 
 // AnimationRefreshKind constants.
 const (
-	animationRefreshNone AnimationRefreshKind = iota
+	AnimationRefreshNone AnimationRefreshKind = iota
 	// AnimationRefreshRenderOnly rebuilds the render commands from the
 	// layout already in hand: no view function runs, and nothing is
 	// re-arranged. It is the right kind for an animation whose every
@@ -168,7 +168,7 @@ func (a *BlinkCursorAnimation) ID() string { return blinkCursorAnimationID }
 // RefreshKind implements Animation. None: each toggle patches the
 // caret renderer in place via commandToggleCaretBlink, so a blink
 // tick needs no refresh at all (issue #404).
-func (a *BlinkCursorAnimation) RefreshKind() AnimationRefreshKind { return animationRefreshNone }
+func (a *BlinkCursorAnimation) RefreshKind() AnimationRefreshKind { return AnimationRefreshNone }
 
 // IsStopped implements Animation.
 func (a *BlinkCursorAnimation) IsStopped() bool { return a.stopped }

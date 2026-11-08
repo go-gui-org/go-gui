@@ -28,45 +28,45 @@ type MarkdownStyle struct {
 	// exportaudit:keep — closed grid, exported for completeness (see above).
 	BoldItalic     TextStyle
 	Code           TextStyle
-	codeBlockText  TextStyle
-	tableHeadStyle TextStyle
-	tableCellStyle TextStyle
+	CodeBlockText  TextStyle
+	TableHeadStyle TextStyle
+	TableCellStyle TextStyle
 	// CodeHighlighter, when non-nil, is used to re-tokenize fenced
 	// code blocks whose info string names a supported language.
 	// When nil, the markdown parser's built-in primitive tokenizer
 	// is used. Use highlight.Default() for chroma-backed coverage.
 	CodeHighlighter  highlight.Highlighter
-	tableRowAlt      *Color
-	mathDPIDisplay   int
-	mathDPIInline    int
-	codeBlockPadding Padding
-	tableCellPadding Padding
-	blockSpacing     float32
-	nestIndent       float32
-	prefixCharWidth  float32
-	codeBlockRadius  float32
-	tableBorderSize  float32
+	TableRowAlt      *Color
+	MathDPIDisplay   int
+	MathDPIInline    int
+	CodeBlockPadding Padding
+	TableCellPadding Padding
+	BlockSpacing     float32
+	NestIndent       float32
+	PrefixCharWidth  float32
+	CodeBlockRadius  float32
+	TableBorderSize  float32
 	// exportaudit:keep — public style field; app authors override it per theme
 	CodeBlockBG       Color
-	codeKeywordColor  Color
-	codeStringColor   Color
-	codeNumberColor   Color
-	codeCommentColor  Color
-	codeOperatorColor Color
-	codeTypeColor     Color
-	codeFunctionColor Color
-	codeBuiltinColor  Color
-	hRColor           Color
-	linkColor         Color
-	blockquoteBorder  Color
-	blockquoteBG      Color
-	tableBorderColor  Color
-	highlightBG       Color
-	mermaidBG         Color
-	h1Separator       bool
-	h2Separator       bool
+	CodeKeywordColor  Color
+	CodeStringColor   Color
+	CodeNumberColor   Color
+	CodeCommentColor  Color
+	CodeOperatorColor Color
+	CodeTypeColor     Color
+	CodeFunctionColor Color
+	CodeBuiltinColor  Color
+	HRColor           Color
+	LinkColor         Color
+	BlockquoteBorder  Color
+	BlockquoteBG      Color
+	TableBorderColor  Color
+	HighlightBG       Color
+	MermaidBG         Color
+	H1Separator       bool
+	H2Separator       bool
 	TableBorderStyle  TableBorderStyle
-	hardLineBreaks    bool
+	HardLineBreaks    bool
 }
 
 // DefaultMarkdownStyle returns a MarkdownStyle using the
@@ -110,39 +110,39 @@ func DefaultMarkdownStyle() MarkdownStyle {
 		// Fenced blocks stay on the small code role: they hold long
 		// lines, and the smaller face wraps fewer of them.
 		Code:          code,
-		codeBlockText: guiTheme.TextStyleCodeSmall,
+		CodeBlockText: guiTheme.TextStyleCodeSmall,
 		// Non-text fills, exempt from the dimming roles (audit §1.2).
 		CodeBlockBG:       pal.wash,
-		codeKeywordColor:  pal.keyword,
-		codeStringColor:   pal.str,
-		codeNumberColor:   pal.number,
-		codeCommentColor:  guiTheme.TextStyleSecondary.Color,
-		codeOperatorColor: guiTheme.TextStyleBody.Color,
-		codeTypeColor:     pal.typ,
-		codeFunctionColor: pal.function,
-		codeBuiltinColor:  pal.typ,
-		hRColor:           guiTheme.ColorBorder,
-		linkColor:         guiTheme.TextStyleLink.Color,
-		blockquoteBorder:  guiTheme.ColorBorder,
-		blockquoteBG:      RGBA(128, 128, 128, 20), // ergonomics-audit:visual
+		CodeKeywordColor:  pal.keyword,
+		CodeStringColor:   pal.str,
+		CodeNumberColor:   pal.number,
+		CodeCommentColor:  guiTheme.TextStyleSecondary.Color,
+		CodeOperatorColor: guiTheme.TextStyleBody.Color,
+		CodeTypeColor:     pal.typ,
+		CodeFunctionColor: pal.function,
+		CodeBuiltinColor:  pal.typ,
+		HRColor:           guiTheme.ColorBorder,
+		LinkColor:         guiTheme.TextStyleLink.Color,
+		BlockquoteBorder:  guiTheme.ColorBorder,
+		BlockquoteBG:      RGBA(128, 128, 128, 20), // ergonomics-audit:visual
 		// Markdown blocks are paragraphs of one flowing document, not
 		// unrelated sections of a surface: Medium is the sibling gap.
 		// Large (28) reads as a hole between paragraphs at body 14.
-		blockSpacing:     guiTheme.SpacingMedium,
-		nestIndent:       16, // structural indent, not a sibling gap — off the ladder
-		prefixCharWidth:  4,
-		codeBlockPadding: PadAll(10), // ergonomics-audit:spacing — fixed style default, theme-invariant
-		codeBlockRadius:  3.5,
+		BlockSpacing:     guiTheme.SpacingMedium,
+		NestIndent:       16, // structural indent, not a sibling gap — off the ladder
+		PrefixCharWidth:  4,
+		CodeBlockPadding: PadAll(10), // ergonomics-audit:spacing — fixed style default, theme-invariant
+		CodeBlockRadius:  3.5,
 		TableBorderStyle: TableBorderHeaderOnly,
-		tableBorderColor: guiTheme.ColorBorder,
-		tableBorderSize:  1,
-		tableHeadStyle:   headBold,
-		tableCellStyle:   text,
-		tableCellPadding: NewPadding(5, 10, 5, 10), // ergonomics-audit:spacing — fixed style default, theme-invariant
-		highlightBG:      RGB(199, 142, 18),
-		mathDPIDisplay:   150,
-		mathDPIInline:    200,
-		mermaidBG:        RGBA(248, 248, 255, 255),
+		TableBorderColor: guiTheme.ColorBorder,
+		TableBorderSize:  1,
+		TableHeadStyle:   headBold,
+		TableCellStyle:   text,
+		TableCellPadding: NewPadding(5, 10, 5, 10), // ergonomics-audit:spacing — fixed style default, theme-invariant
+		HighlightBG:      RGB(199, 142, 18),
+		MathDPIDisplay:   150,
+		MathDPIInline:    200,
+		MermaidBG:        RGBA(248, 248, 255, 255),
 	}
 }
 
@@ -228,7 +228,7 @@ type MarkdownCfg struct {
 	MinWidth     float32
 	Color        Color
 	ColorBorder  Color
-	Mode         Opt[textMode]
+	Mode         Opt[TextMode]
 	Invisible    bool
 	Clip         bool
 	FocusSkip    bool
@@ -522,7 +522,7 @@ func (mv *markdownView) GenerateLayout(w *Window) Layout {
 		SizeBorder:  cfg.SizeBorder,
 		Radius:      cfg.Radius,
 		Padding:     cfg.Padding,
-		Spacing:     SpacingPx(cfg.Style.blockSpacing),
+		Spacing:     SpacingPx(cfg.Style.BlockSpacing),
 		Sizing:      sizing,
 		Content:     content,
 	}
@@ -565,7 +565,7 @@ func markdownTriggerMathFetches(
 					RequestID: reqID,
 				})
 			fetchMathAsync(w, run.MathLatex, mhash,
-				reqID, cfg.Style.mathDPIInline,
+				reqID, cfg.Style.MathDPIInline,
 				cfg.Style.Text.Color, cfg.MathFetcher)
 		}
 	}
@@ -670,7 +670,7 @@ func mdElementOf(
 // handling list accumulation and blockquote spacing.
 func markdownBuildContent(
 	blocks []markdownBlock, cfg MarkdownCfg,
-	mode textMode, w *Window,
+	mode TextMode, w *Window,
 ) []View {
 	content := make([]View, 0, len(blocks))
 	var listItems []View
@@ -704,7 +704,7 @@ func markdownBuildContent(
 			// totals three gaps. Half keeps the emphasis without a hole.
 			content = append(content, Rectangle(RectangleCfg{
 				Sizing: FillFixed,
-				Height: cfg.Style.blockSpacing / 2,
+				Height: cfg.Style.BlockSpacing / 2,
 			}))
 		}
 		prevWasBQ = block.IsBlockquote

@@ -61,7 +61,7 @@ type Format uint8
 
 // Format constants.
 const (
-	formatPlain Format = iota
+	FormatPlain Format = iota
 	FormatBold
 	FormatItalic
 	FormatBoldItalic

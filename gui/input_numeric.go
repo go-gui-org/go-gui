@@ -8,11 +8,11 @@ import (
 )
 
 // NumericInputMode determines how numeric values are displayed.
-type numericInputMode uint8
+type NumericInputMode uint8
 
 // NumericInputMode values.
 const (
-	numericNumber numericInputMode = iota
+	NumericNumber NumericInputMode = iota
 	NumericCurrency
 	NumericPercent
 )
@@ -67,14 +67,14 @@ type NumericStepCfg struct {
 }
 
 // NumericCurrencyModeCfg defines currency symbol placement.
-type numericCurrencyModeCfg struct {
+type NumericCurrencyModeCfg struct {
 	Symbol        string
 	Position      NumericAffixPosition
 	symbolSpacing bool
 }
 
 // NumericPercentModeCfg defines percent symbol placement.
-type numericPercentModeCfg struct {
+type NumericPercentModeCfg struct {
 	Symbol        string
 	Position      NumericAffixPosition
 	symbolSpacing bool
@@ -85,7 +85,7 @@ type numericPercentModeCfg struct {
 type numericModeCfg struct {
 	affix             string
 	displayMultiplier float64
-	mode              numericInputMode
+	mode              NumericInputMode
 	affixPosition     NumericAffixPosition
 	affixSpacing      bool
 }

@@ -26,8 +26,8 @@ type NumericInputCfg struct {
 
 	// Accessibility
 	A11YCfg
-	currencyCfg numericCurrencyModeCfg
-	percentCfg  numericPercentModeCfg
+	CurrencyCfg NumericCurrencyModeCfg
+	PercentCfg  NumericPercentModeCfg
 	Locale      NumericLocaleCfg
 	StepCfg     NumericStepCfg
 	Value       Opt[float64]
@@ -56,7 +56,7 @@ type NumericInputCfg struct {
 
 	// Sizing
 	Sizing Sizing
-	Mode   numericInputMode
+	Mode   NumericInputMode
 
 	// ReadOnly blocks value edits while the field stays focusable and
 	// selectable, mirroring InputCfg.ReadOnly. Typing is blocked on the
@@ -564,22 +564,22 @@ func numericModeCfgFromInput(cfg NumericInputCfg) numericModeCfg {
 	case NumericCurrency:
 		return numericModeCfg{
 			mode:              NumericCurrency,
-			affix:             cfg.currencyCfg.Symbol,
-			affixPosition:     cfg.currencyCfg.Position,
-			affixSpacing:      cfg.currencyCfg.symbolSpacing,
+			affix:             cfg.CurrencyCfg.Symbol,
+			affixPosition:     cfg.CurrencyCfg.Position,
+			affixSpacing:      cfg.CurrencyCfg.symbolSpacing,
 			displayMultiplier: 1.0,
 		}
 	case NumericPercent:
 		return numericModeCfg{
 			mode:              NumericPercent,
-			affix:             cfg.percentCfg.Symbol,
-			affixPosition:     cfg.percentCfg.Position,
-			affixSpacing:      cfg.percentCfg.symbolSpacing,
+			affix:             cfg.PercentCfg.Symbol,
+			affixPosition:     cfg.PercentCfg.Position,
+			affixSpacing:      cfg.PercentCfg.symbolSpacing,
 			displayMultiplier: 100.0,
 		}
 	default:
 		return numericModeCfg{
-			mode:              numericNumber,
+			mode:              NumericNumber,
 			displayMultiplier: 1.0,
 		}
 	}
@@ -598,14 +598,14 @@ func applyNumericInputDefaults(cfg *NumericInputCfg) {
 		cfg.PlaceholderStyle = defaultInputStyle.PlaceholderStyle
 	}
 	cfg.MinWidth = fieldMinWidth(cfg.MinWidth, cfg.Width)
-	if cfg.currencyCfg == (numericCurrencyModeCfg{}) {
-		cfg.currencyCfg = numericCurrencyModeCfg{
+	if cfg.CurrencyCfg == (NumericCurrencyModeCfg{}) {
+		cfg.CurrencyCfg = NumericCurrencyModeCfg{
 			Symbol:   "$",
 			Position: AffixPrefix,
 		}
 	}
-	if cfg.percentCfg == (numericPercentModeCfg{}) {
-		cfg.percentCfg = numericPercentModeCfg{
+	if cfg.PercentCfg == (NumericPercentModeCfg{}) {
+		cfg.PercentCfg = NumericPercentModeCfg{
 			Symbol:   "%",
 			Position: AffixSuffix,
 		}

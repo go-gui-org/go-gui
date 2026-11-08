@@ -81,8 +81,8 @@ type TooltipCfg struct {
 	OffsetY     Opt[float32]
 	Color       Color
 	ColorBorder Color
-	Anchor      Opt[floatAttach]
-	tieOff      Opt[floatAttach]
+	Anchor      Opt[FloatAttach]
+	TieOff      Opt[FloatAttach]
 }
 
 // Tooltip creates a floating tooltip view.
@@ -95,7 +95,7 @@ func Tooltip(cfg TooltipCfg) View {
 		Float:         true,
 		FloatAutoFlip: true,
 		FloatAnchor:   cfg.Anchor.Get(FloatBottomCenter),
-		FloatTieOff:   cfg.tieOff.Get(FloatTopCenter),
+		FloatTieOff:   cfg.TieOff.Get(FloatTopCenter),
 		FloatOffsetX:  cfg.OffsetX.Get(-3),
 		FloatOffsetY:  cfg.OffsetY.Get(-3),
 		FloatZIndex:   cfg.FloatZIndex,
@@ -162,8 +162,8 @@ type WithTooltipCfg struct {
 	Text    string
 	Content []View
 	Delay   time.Duration
-	Anchor  Opt[floatAttach]
-	tieOff  Opt[floatAttach]
+	Anchor  Opt[FloatAttach]
+	TieOff  Opt[FloatAttach]
 }
 
 // WithTooltip wraps content and shows a tooltip on hover after
@@ -202,7 +202,7 @@ func withTooltipBuild(w *Window, cfg WithTooltipCfg) View {
 	}
 
 	anchor := cfg.Anchor.Get(FloatBottomCenter)
-	tieOff := cfg.tieOff.Get(FloatTopCenter)
+	tieOff := cfg.TieOff.Get(FloatTopCenter)
 
 	content := make([]View, 0, len(cfg.Content)+1)
 	content = append(content, cfg.Content...)
@@ -212,7 +212,7 @@ func withTooltipBuild(w *Window, cfg WithTooltipCfg) View {
 		content = append(content, Tooltip(TooltipCfg{
 			ID:     ts.popupID,
 			Anchor: Some(anchor),
-			tieOff: Some(tieOff),
+			TieOff: Some(tieOff),
 			Content: []View{
 				Text(TextCfg{
 					Text:      cfg.Text,

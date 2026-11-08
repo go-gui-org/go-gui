@@ -39,7 +39,7 @@ func dataGridCrudRowDeleteEnabled(cfg *DataGridCfg, hasSource bool, caps GridDat
 	if !hasSource {
 		return true
 	}
-	return caps.supportsDelete
+	return caps.SupportsDelete
 }
 
 // dataGridRowsSignature computes an FNV-1a hash of all row
@@ -142,8 +142,8 @@ func dataGridCrudResolveCfg(cfg DataGridCfg, w *gg.Window) (DataGridCfg, dataGri
 
 func dataGridCrudToolbarRow(cfg *DataGridCfg, state dataGridCrudState, caps GridDataCapabilities, hasSource bool, focusID string) gg.View {
 	hasUnsaved := dataGridCrudHasUnsaved(state)
-	canCreate := boolDefault(cfg.AllowCreate, true) && (!hasSource || caps.supportsCreate)
-	canDelete := boolDefault(cfg.AllowDelete, true) && (!hasSource || caps.supportsDelete)
+	canCreate := boolDefault(cfg.AllowCreate, true) && (!hasSource || caps.SupportsCreate)
+	canDelete := boolDefault(cfg.AllowDelete, true) && (!hasSource || caps.SupportsDelete)
 	selectedCount := len(cfg.Selection.SelectedRowIDs)
 	gridID := cfg.ID
 	columns := cfg.Columns
@@ -289,8 +289,8 @@ func dataGridCrudAddRow(gridID string, columns []GridColumnCfg, onSelectionChang
 	dataGridSetEditingRow(gridID, draftID, w)
 	if onSelectionChange != nil {
 		next := GridSelection{
-			anchorRowID:    draftID,
-			activeRowID:    draftID,
+			AnchorRowID:    draftID,
+			ActiveRowID:    draftID,
 			SelectedRowIDs: map[string]bool{draftID: true},
 		}
 		onSelectionChange(next, gg.EventCtx{Layout: nil, Event: e, Window: w})
@@ -385,8 +385,8 @@ func dataGridSelectionRemoveIDs(selection GridSelection, removeIDs map[string]bo
 			selected[rowID] = true
 		}
 	}
-	active := selection.activeRowID
-	anchor := selection.anchorRowID
+	active := selection.ActiveRowID
+	anchor := selection.AnchorRowID
 	if removeIDs[active] {
 		active = ""
 	}
@@ -394,8 +394,8 @@ func dataGridSelectionRemoveIDs(selection GridSelection, removeIDs map[string]bo
 		anchor = ""
 	}
 	return GridSelection{
-		anchorRowID:    anchor,
-		activeRowID:    active,
+		AnchorRowID:    anchor,
+		ActiveRowID:    active,
 		SelectedRowIDs: selected,
 	}
 }

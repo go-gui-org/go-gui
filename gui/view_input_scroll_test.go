@@ -516,7 +516,7 @@ func TestRenderTextInkOverflowNotCulled(t *testing.T) {
 		Width: 100, Height: 20,
 		inkOverflowW: 600,
 		Opacity:      1.0,
-		TC: &shapeTextConfig{
+		TC: &ShapeTextConfig{
 			Text: "wide", TextStyle: &style,
 			TextMode: TextModeWrapKeepSpaces,
 		},

@@ -9,8 +9,8 @@ type ThemePickerCfg struct {
 	FloatOffsetX float32
 	FloatOffsetY float32
 	Sizing       Sizing
-	FloatAnchor  floatAttach
-	FloatTieOff  floatAttach
+	FloatAnchor  FloatAttach
+	FloatTieOff  FloatAttach
 
 	// Sound overrides the theme's toggle cue for this instance.
 	// SoundNone (the zero value) takes the theme's cue for that role,

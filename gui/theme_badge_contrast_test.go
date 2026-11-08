@@ -12,9 +12,9 @@ import "testing"
 // badgeVariantCases is every fill a badge can paint.
 var badgeVariantCases = []struct {
 	name    string
-	variant badgeVariant
+	variant BadgeVariant
 }{
-	{"neutral", badgeDefault},
+	{"neutral", BadgeDefault},
 	{"info", BadgeInfo},
 	{"success", BadgeSuccess},
 	{"warning", BadgeWarning},
@@ -23,7 +23,7 @@ var badgeVariantCases = []struct {
 
 // badgeLabelOn builds a badge under theme and returns the fill and the
 // label color a frame would paint.
-func badgeLabelOn(t *testing.T, variant badgeVariant) (fill, label Color) {
+func badgeLabelOn(t *testing.T, variant BadgeVariant) (fill, label Color) {
 	t.Helper()
 	view := Badge(BadgeCfg{Label: "128", Variant: variant})
 	layout := generateViewLayout(view, &Window{})
@@ -49,7 +49,7 @@ func TestBadgeLabelPairsWithFill(t *testing.T) {
 		applyTheme(&theme)
 		for _, v := range badgeVariantCases {
 			fill, label := badgeLabelOn(t, v.variant)
-			if want := textOnFor(fill); !label.eq(want) {
+			if want := textOnFor(fill); !label.Eq(want) {
 				t.Errorf("%s/%s: label %v on fill %v, want %v",
 					name, v.name, label, fill, want)
 			}
@@ -78,7 +78,7 @@ func TestBadgeNeutralLabelReadable(t *testing.T) {
 			t.Fatalf("theme %q registered but not retrievable", name)
 		}
 		applyTheme(&theme)
-		fill, label := badgeLabelOn(t, badgeDefault)
+		fill, label := badgeLabelOn(t, BadgeDefault)
 		if got := contrastRatio(label, fill); got < wantAA {
 			t.Errorf("%s: neutral badge label %v on %v is contrast "+
 				"%.2f, want >= %.2f", name, label, fill, got, wantAA)
@@ -93,7 +93,7 @@ func TestBadgeLabelPairsWithCallerFill(t *testing.T) {
 	view := Badge(BadgeCfg{Label: "9", Color: RGB(250, 250, 250)})
 	layout := generateViewLayout(view, &Window{})
 	got := layout.Children[0].Shape.TC.TextStyle.Color
-	if !got.eq(RGB(0, 0, 0)) {
+	if !got.Eq(RGB(0, 0, 0)) {
 		t.Errorf("label on a near-white caller fill = %v, want black",
 			got)
 	}
@@ -116,7 +116,7 @@ func TestBadgePartialTextStylePairsColor(t *testing.T) {
 	if got.Size != 20 {
 		t.Errorf("size = %v, want 20", got.Size)
 	}
-	if want := textOnFor(layout.Shape.Color); !got.Color.eq(want) {
+	if want := textOnFor(layout.Shape.Color); !got.Color.Eq(want) {
 		t.Errorf("label = %v on fill %v, want paired %v",
 			got.Color, layout.Shape.Color, want)
 	}
@@ -132,7 +132,7 @@ func TestBadgeLabelKeepsCallerTextStyle(t *testing.T) {
 		TextStyle: TextStyle{Size: 11, Color: want},
 	})
 	layout := generateViewLayout(view, &Window{})
-	if got := layout.Children[0].Shape.TC.TextStyle.Color; !got.eq(want) {
+	if got := layout.Children[0].Shape.TC.TextStyle.Color; !got.Eq(want) {
 		t.Errorf("caller text color = %v, want %v", got, want)
 	}
 }

@@ -1,7 +1,7 @@
 package gui
 
 // mirrorFloatAttach swaps left/right anchors for RTL mirroring.
-func mirrorFloatAttach(a floatAttach) floatAttach {
+func mirrorFloatAttach(a FloatAttach) FloatAttach {
 	switch a {
 	case FloatTopLeft:
 		return FloatTopRight
@@ -22,7 +22,7 @@ func mirrorFloatAttach(a floatAttach) floatAttach {
 
 // flipVerticalAttach swaps top/bottom anchors, preserving the
 // horizontal component (Left/Center/Right).
-func flipVerticalAttach(a floatAttach) floatAttach {
+func flipVerticalAttach(a FloatAttach) FloatAttach {
 	switch a {
 	case FloatTopLeft:
 		return FloatBottomLeft
@@ -43,7 +43,7 @@ func flipVerticalAttach(a floatAttach) floatAttach {
 
 // attachOffset returns the (dx, dy) offset for a FloatAttach
 // point given element dimensions w and h.
-func attachOffset(a floatAttach, w, h float32) (float32, float32) {
+func attachOffset(a FloatAttach, w, h float32) (float32, float32) {
 	switch a {
 	case FloatTopCenter:
 		return w / 2, 0
@@ -191,7 +191,7 @@ func floatAttachLayout(
 // Floats are placed in layout, and a render-only frame re-places them
 // from the refreshed matrices (layoutReattachFloats), so a transform
 // that TransformFn moves carries its floats with it.
-func floatAnchorPoint(layout *Layout, a floatAttach) (float32, float32) {
+func floatAnchorPoint(layout *Layout, a FloatAttach) (float32, float32) {
 	p := layout.Parent
 	ax, ay := attachOffset(a, p.Shape.Width, p.Shape.Height)
 	x, y := p.Shape.X+ax, p.Shape.Y+ay
@@ -209,7 +209,7 @@ func floatAnchorPoint(layout *Layout, a floatAttach) (float32, float32) {
 // With no transform on the path the map is the identity, as before.
 func offsetThroughTransform(
 	layout *Layout,
-	anchor floatAttach,
+	anchor FloatAttach,
 	offsetX, offsetY float32,
 	ax, ay, tx, ty float32,
 ) (float32, float32) {

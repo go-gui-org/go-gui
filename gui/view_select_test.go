@@ -47,11 +47,11 @@ func TestSelectOptionHighlightedTextColor(t *testing.T) {
 	// The highlighted row paints the subtle wash, so its check and
 	// label keep the body color — a tint needs no paired foreground
 	// (visual-refresh §4.3).
-	if !check.TextStyle.Color.eq(DefaultTextStyle.Color) {
+	if !check.TextStyle.Color.Eq(DefaultTextStyle.Color) {
 		t.Errorf("highlighted check color = %v, want body %v",
 			check.TextStyle.Color, DefaultTextStyle.Color)
 	}
-	if !label.TextStyle.Color.eq(DefaultTextStyle.Color) {
+	if !label.TextStyle.Color.Eq(DefaultTextStyle.Color) {
 		t.Errorf("highlighted label color = %v, want body %v",
 			label.TextStyle.Color, DefaultTextStyle.Color)
 	}
@@ -63,7 +63,7 @@ func TestSelectOptionHighlightedTextColor(t *testing.T) {
 	if plainLabel == nil {
 		t.Fatal("plain option text missing")
 	}
-	if !plainLabel.TextStyle.Color.eq(DefaultTextStyle.Color) {
+	if !plainLabel.TextStyle.Color.Eq(DefaultTextStyle.Color) {
 		t.Errorf("plain label color = %v, want body %v",
 			plainLabel.TextStyle.Color, DefaultTextStyle.Color)
 	}

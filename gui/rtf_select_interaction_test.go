@@ -199,7 +199,7 @@ type rtfSelectHarness struct {
 	w      *Window
 	id     string // effective RTF ID: "rtf" flat, "panel:rtf" nested
 	rt     RichText
-	mode   textMode
+	mode   TextMode
 	nested bool
 }
 

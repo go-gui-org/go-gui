@@ -383,7 +383,7 @@ func clampSvgCacheID(s string) string {
 // compose over the author's base (see CachedSvg.BaseByPath).
 func buildBaseByPath(
 	paths []cachedSvgPath,
-	filteredGroups []cachedFilteredGroup,
+	filteredGroups []CachedFilteredGroup,
 	anims []SvgAnimation,
 ) map[uint32]svgBaseXform {
 	if len(anims) == 0 {

@@ -34,7 +34,7 @@ func fallbackLineHeight(style TextStyle) float32 {
 // single-line estimate in view_text.go sizes it the same way.
 func plainTextHeightNoMeasurer(
 	shape *Shape,
-	tc *shapeTextConfig,
+	tc *ShapeTextConfig,
 	style TextStyle,
 	w *Window,
 ) float32 {
@@ -77,7 +77,7 @@ func plainTextHeightNoMeasurer(
 
 func plainTextNeedsGlyphLayout(
 	shape *Shape,
-	tc *shapeTextConfig,
+	tc *ShapeTextConfig,
 	style TextStyle,
 ) bool {
 	if shape == nil || tc == nil {
@@ -98,7 +98,7 @@ func plainTextNeedsGlyphLayout(
 
 func plainTextLayoutWidthArg(
 	shape *Shape,
-	tc *shapeTextConfig,
+	tc *ShapeTextConfig,
 	style TextStyle,
 ) float32 {
 	if shape == nil || tc == nil || shape.Width <= 0 {

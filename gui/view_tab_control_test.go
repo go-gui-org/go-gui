@@ -332,17 +332,17 @@ func TestTabControlColorsTabReachTabButton(t *testing.T) {
 		t.Fatal("tab button carries no resolved color set")
 	}
 	got := tab.Shape.bc.colors
-	if !got.Base.eq(base) {
+	if !got.Base.Eq(base) {
 		t.Errorf("Base = %v, want ColorTab %v", got.Base, base)
 	}
-	if !got.Hover.eq(hover) {
+	if !got.Hover.Eq(hover) {
 		t.Errorf("Hover = %v, want %v", got.Hover, hover)
 	}
-	if !got.Border.eq(border) {
+	if !got.Border.Eq(border) {
 		t.Errorf("Border = %v, want %v", got.Border, border)
 	}
 	// BorderFocus was never spelled, so it falls back to Border.
-	if !got.BorderFocus.eq(border) {
+	if !got.BorderFocus.Eq(border) {
 		t.Errorf("BorderFocus = %v, want Border %v", got.BorderFocus, border)
 	}
 }
@@ -369,22 +369,22 @@ func TestTabControlSelectedTabReactsAndKeepsBorders(t *testing.T) {
 	if !tab.Shape.bc.selected {
 		t.Fatal("selected tab's button is not marked selected")
 	}
-	if !tab.Shape.Color.eq(sel) {
+	if !tab.Shape.Color.Eq(sel) {
 		t.Errorf("resting fill = %v, want Selected %v", tab.Shape.Color, sel)
 	}
 	cs := tab.Shape.bc.colors
 	hover, _ := cs.pick(stateFlags{selected: true, hovered: true})
 	press, _ := cs.pick(stateFlags{selected: true, pressed: true})
-	if want := accentShift(sel, oklchRampDelta); !hover.eq(want) {
+	if want := accentShift(sel, oklchRampDelta); !hover.Eq(want) {
 		t.Errorf("selected hover = %v, want %v", hover, want)
 	}
-	if want := accentShift(sel, -oklchRampDelta); !press.eq(want) {
+	if want := accentShift(sel, -oklchRampDelta); !press.Eq(want) {
 		t.Errorf("selected press = %v, want %v", press, want)
 	}
-	if hover.eq(sel) || press.eq(sel) {
+	if hover.Eq(sel) || press.Eq(sel) {
 		t.Error("selected tab does not react to hover or press")
 	}
-	if !cs.Border.eq(border) {
+	if !cs.Border.Eq(border) {
 		t.Errorf("Border = %v, want %v", cs.Border, border)
 	}
 }
@@ -406,7 +406,7 @@ func TestTabControlDisabledTabPaintsExplicitColor(t *testing.T) {
 	if !tab.Shape.Disabled {
 		t.Fatal("disabled tab shape is not disabled")
 	}
-	if !tab.Shape.Color.eq(dis) {
+	if !tab.Shape.Color.Eq(dis) {
 		t.Errorf("disabled fill = %v, want %v", tab.Shape.Color, dis)
 	}
 	if fillDims(tab.Shape) {

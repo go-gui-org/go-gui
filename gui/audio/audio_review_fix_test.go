@@ -14,11 +14,11 @@ import (
 // 0 is the "use default" sentinel; 3 must fail before any output sink.
 func TestInitInvalidOutputChannels(t *testing.T) {
 	if initialized {
-		quit()
+		Quit()
 	}
 	err := Init(Cfg{OutputChannels: 3})
 	if err == nil {
-		quit()
+		Quit()
 		t.Fatal("expected error for output channels 3")
 	}
 	if !strings.Contains(err.Error(), "output channels") {
@@ -42,7 +42,7 @@ func TestLoadSoundRejectsHugeFileFast(t *testing.T) {
 	}
 	_ = f.Close()
 
-	if _, err := loadSound(path); err == nil {
+	if _, err := LoadSound(path); err == nil {
 		t.Fatal("expected too-large error for sparse huge file")
 	} else if !strings.Contains(err.Error(), "too large") {
 		t.Errorf("expected too-large error, got %v", err)
@@ -119,11 +119,11 @@ func TestIsPlayingPausedFalse(t *testing.T) {
 	if !IsPlaying(ch) {
 		t.Fatal("expected IsPlaying true after Play")
 	}
-	pauseChannel(ch)
+	PauseChannel(ch)
 	if IsPlaying(ch) {
 		t.Error("IsPlaying true while paused, want false")
 	}
-	resumeChannel(ch)
+	ResumeChannel(ch)
 	if !IsPlaying(ch) {
 		t.Error("IsPlaying false after resume, want true")
 	}

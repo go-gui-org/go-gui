@@ -135,8 +135,8 @@ func (w *Window) RunPrintJob(job PrintJob) PrintRunResult {
 	// on cancel or error nothing consumed it, so remove it here.
 	isTemp := job.Source.Kind == PrintSourceCurrentView
 
-	pw, ph := printPageSize(job.Paper, job.Orientation)
-	ranges := normalizePrintPageRanges(job.PageRanges)
+	pw, ph := PrintPageSize(job.Paper, job.Orientation)
+	ranges := NormalizePrintPageRanges(job.PageRanges)
 
 	result := w.nativePlatform.ShowPrintDialog(NativePrintParams{
 		Title:        job.Title,

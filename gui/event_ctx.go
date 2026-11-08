@@ -34,7 +34,7 @@ func (c EventCtx) Consume() {
 
 // Handled reports whether the event has been consumed. Reports false
 // when Event is nil.
-func (c EventCtx) handled() bool {
+func (c EventCtx) Handled() bool {
 	return c.Event != nil && c.Event.IsHandled
 }
 

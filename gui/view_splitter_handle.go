@@ -221,7 +221,7 @@ func splitterOnKeydown(core *splitterCore, e *Event, w *Window) {
 				// pane just expanded; anything else means one just
 				// collapsed (issue #468).
 				cue := core.soundCollapse
-				if nextCollapsed == splitterCollapseNone {
+				if nextCollapsed == SplitterCollapseNone {
 					cue = core.soundExpand
 				}
 				playSoundCue(cue, w)
@@ -232,7 +232,7 @@ func splitterOnKeydown(core *splitterCore, e *Event, w *Window) {
 	if handled {
 		switch e.KeyCode {
 		case KeyLeft, KeyRight, KeyUp, KeyDown:
-			nextCollapsed = splitterCollapseNone
+			nextCollapsed = SplitterCollapseNone
 		}
 	}
 
@@ -321,14 +321,14 @@ func splitterOnButtonClick(
 		return
 	}
 	validTarget := splitterEffectiveCollapsed(core, target)
-	if validTarget == splitterCollapseNone {
+	if validTarget == SplitterCollapseNone {
 		return
 	}
 	ratio := splitterCurrentRatio(core, w)
 	current := splitterEffectiveCollapsed(core, core.collapsed)
 	next := validTarget
 	if current == validTarget {
-		next = splitterCollapseNone
+		next = SplitterCollapseNone
 	}
 	splitterEmitChange(core, ratio, next, e, w)
 }

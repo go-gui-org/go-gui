@@ -110,7 +110,7 @@ func TestRaceQuitConcurrentClosesBackendOnce(t *testing.T) {
 	for range n {
 		done.Go(func() {
 			start.Wait()
-			quit()
+			Quit()
 		})
 	}
 	start.Done()
@@ -139,10 +139,10 @@ func TestMusicControlsBeforeInit(t *testing.T) {
 	}
 	HaltMusic()
 	FadeOutMusic(10)
-	pauseMusic()
-	resumeMusic()
-	rewindMusic()
-	if isMusicPlaying() || isMusicPaused() {
+	PauseMusic()
+	ResumeMusic()
+	RewindMusic()
+	if IsMusicPlaying() || IsMusicPaused() {
 		t.Error("music reports playing or paused before Init")
 	}
 	// Free must still close the decoder: a track loaded before Init is
@@ -190,17 +190,17 @@ func TestRaceMusicControlsVsAudioThread(t *testing.T) {
 
 	for i := range 200 {
 		SetMasterVolume(float64(i % 2))
-		setMusicVolume(float64((i + 1) % 2))
+		SetMusicVolume(float64((i + 1) % 2))
 		_ = MasterVolume()
-		_ = musicVolume()
+		_ = MusicVolume()
 		if err := m.Play(-1); err != nil {
 			t.Fatalf("Play: %v", err)
 		}
-		pauseMusic()
-		_ = isMusicPaused()
-		resumeMusic()
-		_ = isMusicPlaying()
-		rewindMusic()
+		PauseMusic()
+		_ = IsMusicPaused()
+		ResumeMusic()
+		_ = IsMusicPlaying()
+		RewindMusic()
 		FadeOutMusic(1)
 		if err := m.FadeIn(-1, 1); err != nil {
 			t.Fatalf("FadeIn: %v", err)
@@ -233,14 +233,14 @@ func TestSoundControlsBeforeInit(t *testing.T) {
 		t.Errorf("PlaySource before Init = %v, want %v", err, errNotInitialized)
 	}
 	HaltChannel(-1)
-	fadeOutChannel(0, 10)
-	pauseChannel(-1)
-	resumeChannel(-1)
+	FadeOutChannel(0, 10)
+	PauseChannel(-1)
+	ResumeChannel(-1)
 	if IsPlaying(0) {
 		t.Error("channel 0 reports playing before Init")
 	}
 	// Volume is per sound, not per mixer, so it works before Init.
-	s.setVolume(0.5)
+	s.SetVolume(0.5)
 	if got := s.Volume(); got != 0.5 {
 		t.Errorf("Volume before Init = %v, want 0.5", got)
 	}
@@ -284,7 +284,7 @@ func TestRaceSoundControlsVsAudioThread(t *testing.T) {
 				return
 			default:
 			}
-			s.setVolume(float64(i % 2))
+			s.SetVolume(float64(i % 2))
 			_ = s.Volume()
 		}
 	})
@@ -299,10 +299,10 @@ func TestRaceSoundControlsVsAudioThread(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Play: %v", err)
 		}
-		pauseChannel(ch)
-		resumeChannel(ch)
+		PauseChannel(ch)
+		ResumeChannel(ch)
 		_ = IsPlaying(ch)
-		fadeOutChannel(ch, 1)
+		FadeOutChannel(ch, 1)
 		if _, err := s.FadeIn(-1, -1, 1); err != nil {
 			t.Fatalf("FadeIn: %v", err)
 		}

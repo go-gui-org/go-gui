@@ -456,7 +456,7 @@ func splitterSoundView(collapsed SplitterCollapsed) func(*Window) View {
 
 func TestSoundSplitterCollapseToggles(t *testing.T) {
 	restoreTheme(t)
-	w, spy := soundWindow(t, splitterSoundView(splitterCollapseNone))
+	w, spy := soundWindow(t, splitterSoundView(SplitterCollapseNone))
 	if err := w.TestKey("spl", KeyHome, ModNone); err != nil {
 		t.Fatalf("TestKey: %v", err)
 	}

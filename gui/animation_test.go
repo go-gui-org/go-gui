@@ -230,9 +230,9 @@ func TestBlinkCursorAnimationID(t *testing.T) {
 
 func TestBlinkCursorAnimationRefreshKind(t *testing.T) {
 	b := newBlinkCursorAnimation()
-	if b.RefreshKind() != animationRefreshNone {
+	if b.RefreshKind() != AnimationRefreshNone {
 		t.Errorf("RefreshKind = %d, want %d",
-			b.RefreshKind(), animationRefreshNone)
+			b.RefreshKind(), AnimationRefreshNone)
 	}
 }
 

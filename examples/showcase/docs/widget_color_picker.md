@@ -79,3 +79,11 @@ ColorPickerStyle fields:
   true)
 
 Set the pair through the embed: `A11YCfg: gui.A11YCfg{A11YLabel: "Save"}`.
+
+## Color Helpers
+
+The hex field uses conversions an app can call too. `gui.ColorFromHexString(s)`
+parses `#RRGGBB` or `#RRGGBBAA` and reports false on invalid input;
+`c.ToHexString()` and `c.ToCSSString()` format a color back.
+`gui.ColorFromHSVA(h, s, v, a)` and `gui.HueColor(h)` build a color from HSV
+channels, and `c.Eq(other)` compares two colors.

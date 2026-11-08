@@ -5,7 +5,7 @@ built-in `InMemoryDataSource` / `GridOrmDataSource`.
 ## Usage
 
 ```go
-source := gui.NewInMemoryDataSource([]datagrid.GridRow{
+source := datagrid.NewInMemoryDataSource([]datagrid.GridRow{
     {
         ID: "1",
         Cells: map[string]string{
@@ -28,13 +28,13 @@ datagrid.New(w, datagrid.DataGridCfg{
 ## ORM Data Source
 
 ```go
-src, err := gui.NewGridOrmDataSource(gui.GridOrmDataSource{
-    Columns: []gui.GridOrmColumnSpec{
+src, err := datagrid.NewGridOrmDataSource(datagrid.GridOrmDataSource{
+    Columns: []datagrid.GridOrmColumnSpec{
         {ID: "name", DBField: "name", Sortable: true, Filterable: true},
     },
-    FetchFn: func(spec gui.GridOrmQuerySpec, sig *gui.GridAbortSignal) (gui.GridOrmPage, error) {
+    FetchFn: func(spec datagrid.GridOrmQuerySpec, sig *gui.GridAbortSignal) (datagrid.GridOrmPage, error) {
         // Query database using spec.Sorts, spec.Filters, spec.Limit, spec.Offset
-        return gui.GridOrmPage{Rows: rows, RowCount: total}, nil
+        return datagrid.GridOrmPage{Rows: rows, RowCount: total}, nil
     },
     CreateFn:  myCreateFn,
     UpdateFn:  myUpdateFn,

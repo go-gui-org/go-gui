@@ -139,7 +139,7 @@ func (v HSLA) String() string {
 }
 
 // Hex returns "#RRGGBB", or "#RRGGBBAA" when alpha is not opaque.
-func (c Color) Hex() string { return c.toHexString() }
+func (c Color) Hex() string { return c.ToHexString() }
 
 // ColorFromHex parses "#RRGGBB" or "#RRGGBBAA"; the leading "#" is
 // optional. It returns ok=false on malformed input, leaving the
@@ -149,5 +149,5 @@ func (c Color) Hex() string { return c.toHexString() }
 // exportaudit:keep — public counterpart of Color.Hex, for app code
 // reading colors from config or user input.
 func ColorFromHex(s string) (Color, bool) {
-	return colorFromHexString(s)
+	return ColorFromHexString(s)
 }

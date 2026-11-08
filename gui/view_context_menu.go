@@ -70,7 +70,7 @@ type ContextMenuCfg struct {
 	// Container passthrough (outer wrapper).
 	Sizing Sizing
 	HAlign HorizontalAlign // ergonomics-audit:opt-plain — zero (HAlignStart) is the natural default; no distinct unset behavior
-	VAlign verticalAlign   // ergonomics-audit:opt-plain — zero (VAlignTop) is the natural default; no distinct unset behavior
+	VAlign VerticalAlign   // ergonomics-audit:opt-plain — zero (VAlignTop) is the natural default; no distinct unset behavior
 }
 
 // ContextMenu creates a container that opens a floating menu

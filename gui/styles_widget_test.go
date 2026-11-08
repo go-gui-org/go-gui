@@ -8,7 +8,7 @@ import (
 
 func TestDefaultInputStyleColors(t *testing.T) {
 	s := ThemeDark.inputStyle
-	if s.Colors.Base.eq(Color{}) {
+	if s.Colors.Base.Eq(Color{}) {
 		t.Error("input color should not be zero")
 	}
 	if s.Radius != radiusMedium {
@@ -50,7 +50,7 @@ func TestDefaultWidgetStylesRadius(t *testing.T) {
 
 func TestDefaultDialogStyle(t *testing.T) {
 	s := ThemeDark.dialogStyle
-	if s.Colors.Base.eq(Color{}) {
+	if s.Colors.Base.Eq(Color{}) {
 		t.Error("dialog color should not be zero")
 	}
 	if s.Radius != radiusMedium {

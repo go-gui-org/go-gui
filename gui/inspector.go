@@ -157,7 +157,7 @@ func inspectorFloatingPanel(w *Window) View {
 	})
 }
 
-func inspectorFloatAttach(left bool) floatAttach {
+func inspectorFloatAttach(left bool) FloatAttach {
 	if left {
 		return FloatTopLeft
 	}
@@ -208,7 +208,7 @@ func inspectorInjectWireframe(w *Window) {
 		Thickness: 2,
 	}, w)
 
-	if shape.Padding.isNone() && shape.SizeBorder == 0 {
+	if shape.Padding.IsNone() && shape.SizeBorder == 0 {
 		return
 	}
 	var padX float32

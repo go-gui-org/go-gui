@@ -10,10 +10,10 @@ import (
 // row-header table usually takes, with row 0 left out of selection.
 func rowHeaderTestData() []TableRowCfg {
 	return []TableRowCfg{
-		TR([]TableCellCfg{tH("Name"), tH("Age")}),
-		TR([]TableCellCfg{tD("Alice"), tD("30")}),
-		TR([]TableCellCfg{tD("Bob"), tD("25")}),
-		TR([]TableCellCfg{tD("Cy"), tD("41")}),
+		TR([]TableCellCfg{TH("Name"), TH("Age")}),
+		TR([]TableCellCfg{TD("Alice"), TD("30")}),
+		TR([]TableCellCfg{TD("Bob"), TD("25")}),
+		TR([]TableCellCfg{TD("Cy"), TD("41")}),
 	}
 }
 
@@ -55,7 +55,7 @@ func TestTableIsHeaderRow(t *testing.T) {
 	if tableIsHeaderRow(TableRowCfg{}) {
 		t.Error("empty row: want not header")
 	}
-	mixed := TR([]TableCellCfg{tH("a"), tD("b")})
+	mixed := TR([]TableCellCfg{TH("a"), TD("b")})
 	if tableIsHeaderRow(mixed) {
 		t.Error("mixed row: want not header")
 	}

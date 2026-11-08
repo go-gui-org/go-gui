@@ -20,8 +20,8 @@ type OverflowPanelCfg struct {
 	Focusable    bool
 	FloatOffsetX float32
 	FloatOffsetY float32
-	FloatAnchor  floatAttach
-	FloatTieOff  floatAttach
+	FloatAnchor  FloatAttach
+	FloatTieOff  FloatAttach
 	Disabled     bool
 }
 

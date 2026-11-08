@@ -23,6 +23,14 @@ w.Markdown(gui.MarkdownCfg{
 })
 ```
 
+## Helpers
+
+`gui.MarkdownToRichText(source, style)` runs the same parser and returns the
+`RichText` the widget would render, for an app that wants the runs rather than
+the view. In the `markdown` package, `markdown.RunsToText(runs)` flattens a run
+list to its plain text and `markdown.HeadingSlug(text)` builds the anchor slug a
+heading gets.
+
 ## Supported Elements
 
 - Headings (H1–H6), paragraphs, line breaks

@@ -102,12 +102,12 @@ type ButtonCfg struct {
 	Colors ColorSet
 
 	HAlign Opt[HorizontalAlign]
-	VAlign Opt[verticalAlign]
+	VAlign Opt[VerticalAlign]
 
 	Sizing      Sizing
 	Float       bool
-	FloatAnchor floatAttach
-	FloatTieOff floatAttach
+	FloatAnchor FloatAttach
+	FloatTieOff FloatAttach
 	Disabled    bool
 	Invisible   bool
 	// opticalDigitLabel centres this button's label on the face's

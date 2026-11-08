@@ -494,7 +494,7 @@ func dataGridHeaderIndicator(query GridQueryState, colID string) string {
 	}
 	sort := query.Sorts[idx]
 	dir := "\u25B2" // ▲
-	if sort.Dir != gridSortAsc {
+	if sort.Dir != GridSortAsc {
 		dir = "\u25BC" // ▼
 	}
 	if len(query.Sorts) > 1 {

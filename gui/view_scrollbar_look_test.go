@@ -174,7 +174,7 @@ func TestScrollbarOnHoverLeavesHookThumbColor(t *testing.T) {
 		Shape:    &Shape{},
 		Children: []Layout{{Shape: &Shape{}}},
 	}
-	cfg := ScrollbarCfg{ColorThumb: RGB(255, 0, 0), Overflow: scrollbarOnHover,
+	cfg := ScrollbarCfg{ColorThumb: RGB(255, 0, 0), Overflow: ScrollbarOnHover,
 		Thumb: func(ScrollbarState) View { return nil }}
 	makeScrollbarOnHover(cfg, 0)(EventCtx{&layout, nil, &Window{}})
 	if layout.Children[0].Shape.Color.IsSet() {

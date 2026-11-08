@@ -93,11 +93,11 @@ func TestOverflowCountsGapAfterZeroWidthChild(t *testing.T) {
 
 // rtfTestShape builds a shape whose text config is ready for
 // layoutWrapRTF, with the content every caller varies held constant.
-func rtfTestShape(width float32) (*Shape, *shapeTextConfig) {
+func rtfTestShape(width float32) (*Shape, *ShapeTextConfig) {
 	rt := &RichText{Runs: []RichTextRun{
 		{Text: "shared", Style: TextStyle{Size: 12}},
 	}}
-	tc := &shapeTextConfig{
+	tc := &ShapeTextConfig{
 		TextMode: TextModeWrap,
 		rtf: &shapeRichText{
 			rTFRuns:      rt,

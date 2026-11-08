@@ -1112,8 +1112,8 @@ func testRamp() *GradientDef {
 }
 
 // countKinds tallies the emitted commands by kind.
-func countKinds(cmds []RenderCmd) map[renderKind]int {
-	out := map[renderKind]int{}
+func countKinds(cmds []RenderCmd) map[RenderKind]int {
+	out := map[RenderKind]int{}
 	for _, r := range cmds {
 		out[r.Kind]++
 	}
@@ -1130,7 +1130,7 @@ func TestRenderContainerBorderAfterEveryFill(t *testing.T) {
 	fills := []struct {
 		name string
 		fx   shapeEffects
-		kind renderKind
+		kind RenderKind
 	}{
 		{"shader", shapeEffects{Shader: &Shader{Metal: "m", GLSL: "g"}}, RenderCustomShader},
 		{"gradient", shapeEffects{Gradient: grad}, RenderGradient},

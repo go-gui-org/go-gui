@@ -1521,7 +1521,7 @@ func TestScrollableFitIgnoresChildMinSize(t *testing.T) {
 // An axis the ScrollMode excludes cannot reveal hidden content, so it
 // keeps its floor while the scrolling axis drops it.
 func TestScrollableScrollModeExclusionKeepsFloor(t *testing.T) {
-	mkRoot := func(mode scrollMode) *Layout {
+	mkRoot := func(mode ScrollMode) *Layout {
 		return &Layout{
 			Shape: &Shape{shapeType: shapeRectangle, Axis: axisLeftToRight,
 				Scrollable: true, ScrollMode: mode},

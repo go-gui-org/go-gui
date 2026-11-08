@@ -10,7 +10,7 @@ import (
 // (10, 10) so presses can land inside or outside it. Returns the
 // window and the viewport's child layouts for assertions.
 func dragScrollTestWindow(
-	t *testing.T, mode scrollMode, child OnClickChild,
+	t *testing.T, mode ScrollMode, child OnClickChild,
 ) *Window {
 	t.Helper()
 	contentChildren := []Layout{
@@ -112,7 +112,7 @@ func dragScrollOffsetX(w *Window) float32 {
 }
 
 func TestDragScrollPanMovesOffset(t *testing.T) {
-	w := dragScrollTestWindow(t, scrollBoth, OnClickChild{})
+	w := dragScrollTestWindow(t, ScrollBoth, OnClickChild{})
 	// Viewport spans (10,10)-(110,110); press mid-viewport.
 	dragScrollDown(w, 60, 60)
 	if !w.mouseIsLocked() {
@@ -135,7 +135,7 @@ func TestDragScrollPanMovesOffset(t *testing.T) {
 // left button. Through the window handlers, so the held-button set
 // is in play; the test layout is hand-built, so not through EventFn.
 func TestDragScrollSecondButtonKeepsPan(t *testing.T) {
-	w := dragScrollTestWindow(t, scrollBoth, OnClickChild{})
+	w := dragScrollTestWindow(t, ScrollBoth, OnClickChild{})
 	at := func(typ EventType, btn MouseButton) *Event {
 		return &Event{Type: typ, MouseButton: btn, MouseX: 60, MouseY: 60}
 	}
@@ -174,7 +174,7 @@ func TestDragScrollSecondButtonKeepsPan(t *testing.T) {
 // the left release that follows reaches it and ends it (#1099).
 func TestDragScrollTapLockEndsWithRightHeld(t *testing.T) {
 	clicks := 0
-	w := dragScrollTestWindow(t, scrollBoth, OnClickChild{onClick: &clicks})
+	w := dragScrollTestWindow(t, ScrollBoth, OnClickChild{onClick: &clicks})
 	ups := 0
 	w.layout.Children[0].Children[1].Shape.events = w.allocEventHandlers(
 		eventHandlers{OnMouseDown: func(ctx EventCtx) {
@@ -200,7 +200,7 @@ func TestDragScrollTapLockEndsWithRightHeld(t *testing.T) {
 }
 
 func TestDragScrollBelowThresholdStays(t *testing.T) {
-	w := dragScrollTestWindow(t, scrollBoth, OnClickChild{})
+	w := dragScrollTestWindow(t, ScrollBoth, OnClickChild{})
 	dragScrollDown(w, 60, 60)
 	dragScrollMove(w, 61, 62)
 	if got := dragScrollOffsetY(w); got != 0 {
@@ -214,7 +214,7 @@ func TestDragScrollBelowThresholdStays(t *testing.T) {
 
 func TestDragScrollTapReplaysChildClick(t *testing.T) {
 	clicks := 0
-	w := dragScrollTestWindow(t, scrollBoth, OnClickChild{onClick: &clicks})
+	w := dragScrollTestWindow(t, ScrollBoth, OnClickChild{onClick: &clicks})
 	// The node child sits at viewport-relative (10,10)-(70,30),
 	// which is window-absolute (20,20)-(80,40).
 	dragScrollDown(w, 40, 30)
@@ -232,7 +232,7 @@ func TestDragScrollTapReplaysChildClick(t *testing.T) {
 
 func TestDragScrollPanSuppressesChildClick(t *testing.T) {
 	clicks := 0
-	w := dragScrollTestWindow(t, scrollBoth, OnClickChild{onClick: &clicks})
+	w := dragScrollTestWindow(t, ScrollBoth, OnClickChild{onClick: &clicks})
 	// Seed mid-content: dragging down from the top would clamp
 	// at zero and move nothing.
 	w.scrollY().Set("view", -100)
@@ -251,7 +251,7 @@ func TestDragScrollPanSuppressesChildClick(t *testing.T) {
 }
 
 func TestDragScrollClampsAtContentEnd(t *testing.T) {
-	w := dragScrollTestWindow(t, scrollBoth, OnClickChild{})
+	w := dragScrollTestWindow(t, ScrollBoth, OnClickChild{})
 	dragScrollDown(w, 60, 60)
 	// Content is 300 tall in a 100 viewport: -200 is the end.
 	dragScrollMove(w, 60, -500)
@@ -279,7 +279,7 @@ func TestDragScrollHonorsScrollMode(t *testing.T) {
 
 func TestDragScrollCancelKeepsOffset(t *testing.T) {
 	clicks := 0
-	w := dragScrollTestWindow(t, scrollBoth, OnClickChild{onClick: &clicks})
+	w := dragScrollTestWindow(t, ScrollBoth, OnClickChild{onClick: &clicks})
 	// Seed mid-content: dragging down from the top would clamp
 	// at zero and move nothing.
 	w.scrollY().Set("view", -100)
@@ -304,7 +304,7 @@ func TestDragScrollCancelKeepsOffset(t *testing.T) {
 }
 
 func TestDragScrollGestureFallbackSkips(t *testing.T) {
-	w := dragScrollTestWindow(t, scrollBoth, OnClickChild{})
+	w := dragScrollTestWindow(t, ScrollBoth, OnClickChild{})
 	// A single-finger pan over the viewport reaches the gesture
 	// fallback, which must decline: the same finger already pans
 	// through the mouse-lock path, and scrolling here too would
@@ -400,7 +400,7 @@ func TestDragScrollHoverGrabOnlyOnOverflow(t *testing.T) {
 }
 
 func TestDragScrollGrabbingWhilePanning(t *testing.T) {
-	w := dragScrollTestWindow(t, scrollBoth, OnClickChild{})
+	w := dragScrollTestWindow(t, ScrollBoth, OnClickChild{})
 	dragScrollDown(w, 60, 60)
 	dragScrollMove(w, 60, 30)
 	if w.viewState.mouseCursor != CursorGrabbing {
@@ -415,7 +415,7 @@ func TestDragScrollDebugSweepTerminates(t *testing.T) {
 	// through the real walk. A DragScroll claim mid-sweep must
 	// unwind through the tap replay, never wedge the window.
 	clicks := 0
-	w := dragScrollTestWindow(t, scrollBoth, OnClickChild{onClick: &clicks})
+	w := dragScrollTestWindow(t, ScrollBoth, OnClickChild{onClick: &clicks})
 	w.TestUnconsumedEvents()
 	w.MouseCancel()
 	if w.mouseIsLocked() {
@@ -440,7 +440,7 @@ func TestDragScrollNestedInnerClaims(t *testing.T) {
 		Y:          20,
 		Width:      60,
 		Height:     60,
-		ScrollMode: scrollBoth,
+		ScrollMode: ScrollBoth,
 		shapeClip:  drawClip{X: 20, Y: 20, Width: 60, Height: 60},
 	}, Children: []Layout{innerContent}}
 	outerContent := Layout{Shape: &Shape{
@@ -463,7 +463,7 @@ func TestDragScrollNestedInnerClaims(t *testing.T) {
 			Y:          10,
 			Width:      100,
 			Height:     100,
-			ScrollMode: scrollBoth,
+			ScrollMode: ScrollBoth,
 			shapeClip:  drawClip{X: 10, Y: 10, Width: 100, Height: 100},
 		}, Children: []Layout{outerContent, inner}}},
 	}
@@ -492,7 +492,7 @@ func TestDragScrollScrollbarPassThrough(t *testing.T) {
 		Width:                10,
 		Height:               40,
 		shapeClip:            drawClip{X: 90, Y: 10, Width: 10, Height: 40},
-		scrollbarOrientation: scrollbarVertical,
+		scrollbarOrientation: ScrollbarVertical,
 	}}
 	thumb.Shape.events = w.allocEventHandlers(
 		eventHandlers{OnClick: func(ctx EventCtx) {
@@ -514,7 +514,7 @@ func TestDragScrollScrollbarPassThrough(t *testing.T) {
 			Y:          10,
 			Width:      100,
 			Height:     100,
-			ScrollMode: scrollBoth,
+			ScrollMode: ScrollBoth,
 			shapeClip:  drawClip{X: 10, Y: 10, Width: 100, Height: 100},
 		}, Children: []Layout{
 			{Shape: &Shape{
@@ -539,7 +539,7 @@ func TestDragScrollScrollbarPassThrough(t *testing.T) {
 
 func TestDragScrollStaleTreeNoReplay(t *testing.T) {
 	clicks := 0
-	w := dragScrollTestWindow(t, scrollBoth, OnClickChild{onClick: &clicks})
+	w := dragScrollTestWindow(t, ScrollBoth, OnClickChild{onClick: &clicks})
 	dragScrollDown(w, 40, 30)
 	// The view changes under the press: the container is gone.
 	w.layout.Children = nil
@@ -554,7 +554,7 @@ func TestDragScrollStaleTreeNoReplay(t *testing.T) {
 
 func TestDragScrollTapSetsFocus(t *testing.T) {
 	clicks := 0
-	w := dragScrollTestWindow(t, scrollBoth, OnClickChild{onClick: &clicks})
+	w := dragScrollTestWindow(t, ScrollBoth, OnClickChild{onClick: &clicks})
 	dragScrollDown(w, 40, 30)
 	dragScrollUp(w, 40, 30)
 	if got := w.FocusID(); got != "node" {
@@ -563,7 +563,7 @@ func TestDragScrollTapSetsFocus(t *testing.T) {
 }
 
 func TestDragScrollNonFiniteMoveIgnored(t *testing.T) {
-	w := dragScrollTestWindow(t, scrollBoth, OnClickChild{})
+	w := dragScrollTestWindow(t, ScrollBoth, OnClickChild{})
 	dragScrollDown(w, 60, 60)
 	dragScrollMove(w, float32(math.NaN()), float32(math.NaN()))
 	if got := dragScrollOffsetY(w); got != 0 {
@@ -582,7 +582,7 @@ func TestDragScrollNonFiniteMoveIgnored(t *testing.T) {
 }
 
 func TestDragScrollDisabledNoClaim(t *testing.T) {
-	w := dragScrollTestWindow(t, scrollBoth, OnClickChild{})
+	w := dragScrollTestWindow(t, ScrollBoth, OnClickChild{})
 	w.layout.Children[0].Shape.Disabled = true
 	dragScrollDown(w, 60, 60)
 	if w.mouseIsLocked() {
@@ -591,7 +591,7 @@ func TestDragScrollDisabledNoClaim(t *testing.T) {
 }
 
 func TestDragScrollRightButtonNoClaim(t *testing.T) {
-	w := dragScrollTestWindow(t, scrollBoth, OnClickChild{})
+	w := dragScrollTestWindow(t, ScrollBoth, OnClickChild{})
 	mouseDownHandler(&w.layout, false, &Event{
 		Type:        EventMouseDown,
 		MouseX:      60,
@@ -609,7 +609,7 @@ func TestDragScrollRightButtonNoClaim(t *testing.T) {
 // (issue #770).
 func TestDragScrollPressOnEmptySpaceBlurs(t *testing.T) {
 	for _, pan := range []bool{false, true} {
-		w := dragScrollTestWindow(t, scrollBoth, OnClickChild{})
+		w := dragScrollTestWindow(t, ScrollBoth, OnClickChild{})
 		w.focused = true
 		w.SetFocus("elsewhere")
 		w.EventFn(&Event{

@@ -57,7 +57,7 @@ func TestToGlyphStyleMapping(t *testing.T) {
 		StrokeWidth:   2,
 		StrokeColor:   RGBA(90, 100, 110, 120),
 	}
-	gs := ts.toGlyphStyle()
+	gs := ts.ToGlyphStyle()
 	if gs.FontName != "mono" {
 		t.Errorf("FontName: got %q", gs.FontName)
 	}
@@ -97,7 +97,7 @@ func TestToGlyphStyleGridGeometry(t *testing.T) {
 		CellHeight:         20,
 		NoBuiltinBoxGlyphs: true,
 	}
-	gs := ts.toGlyphStyle()
+	gs := ts.ToGlyphStyle()
 	if gs.CellWidth != 9.5 {
 		t.Errorf("CellWidth: got %f, want 9.5", gs.CellWidth)
 	}
@@ -111,7 +111,7 @@ func TestToGlyphStyleGridGeometry(t *testing.T) {
 
 // Zero values must stay zero so glyph keeps its derive-the-cell default.
 func TestToGlyphStyleGridGeometryUnset(t *testing.T) {
-	gs := TextStyle{Family: "mono", Size: 14}.toGlyphStyle()
+	gs := TextStyle{Family: "mono", Size: 14}.ToGlyphStyle()
 	if gs.CellWidth != 0 || gs.CellHeight != 0 || gs.NoBuiltinBoxGlyphs {
 		t.Errorf("unset grid fields leaked: %+v", gs)
 	}

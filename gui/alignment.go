@@ -29,11 +29,11 @@ const (
 )
 
 // VerticalAlign specifies vertical alignment.
-type verticalAlign uint8
+type VerticalAlign uint8
 
 // VerticalAlign constants.
 const (
-	VAlignTop verticalAlign = iota
+	VAlignTop VerticalAlign = iota
 	VAlignMiddle
 	VAlignBottom
 )

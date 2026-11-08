@@ -192,14 +192,14 @@ func TestRenderDrawCanvasInterleavesGradients(t *testing.T) {
 	}
 	renderDrawCanvas(shape, makeClip(0, 0, 300, 300), w)
 
-	var kinds []renderKind
+	var kinds []RenderKind
 	for i := range w.renderers {
 		switch w.renderers[i].Kind {
 		case RenderSvg, RenderGradient:
 			kinds = append(kinds, w.renderers[i].Kind)
 		}
 	}
-	want := []renderKind{RenderSvg, RenderGradient, RenderSvg}
+	want := []RenderKind{RenderSvg, RenderGradient, RenderSvg}
 	if len(kinds) != len(want) {
 		t.Fatalf("emitted %v, want %v", kinds, want)
 	}

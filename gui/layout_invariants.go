@@ -196,11 +196,11 @@ func checkFillSum(layout *Layout, emit layoutInvariantEmit) {
 		if axis == distributeHorizontal {
 			size = cs.Width
 			max = cs.MaxWidth
-			isFill = cs.Sizing.Width == sizingFill
+			isFill = cs.Sizing.Width == SizingFill
 		} else {
 			size = cs.Height
 			max = cs.MaxHeight
-			isFill = cs.Sizing.Height == sizingFill
+			isFill = cs.Sizing.Height == SizingFill
 		}
 		if !f32IsFinite(size) {
 			// The finite check reports it; no second finding here.

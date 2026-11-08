@@ -70,7 +70,7 @@ func TestLayoutWrapRTFLineSpacing(t *testing.T) {
 	shape := &Shape{
 		shapeType: shapeRTF,
 		Width:     100,
-		TC: &shapeTextConfig{
+		TC: &ShapeTextConfig{
 			TextMode: TextModeWrap,
 			rtf: &shapeRichText{
 				rTFBaseStyle:   glyph.TextStyle{Size: 12},
@@ -142,7 +142,7 @@ func makeRtfTooltipLayout() (*Layout, *Window) {
 			Y:         200,
 			Width:     100,
 			Height:    20,
-			TC: &shapeTextConfig{
+			TC: &ShapeTextConfig{
 				rtf: &shapeRichText{
 					rTFLayout: &glyphLayout,
 					rTFRuns:   &rt,
@@ -208,7 +208,7 @@ func TestRtfMouseMoveClearsOnNonTooltipRun(t *testing.T) {
 			Y:         0,
 			Width:     100,
 			Height:    20,
-			TC: &shapeTextConfig{
+			TC: &ShapeTextConfig{
 				rtf: &shapeRichText{
 					rTFLayout: &glyphLayout,
 					rTFRuns:   &rt,
@@ -252,7 +252,7 @@ func TestRtfMouseMoveUnderlineWithoutLinkDoesNotSetPointingHand(t *testing.T) {
 			shapeType: shapeRTF,
 			Width:     100,
 			Height:    20,
-			TC: &shapeTextConfig{
+			TC: &ShapeTextConfig{
 				rtf: &shapeRichText{
 					rTFLayout: &glyphLayout,
 					rTFRuns:   &rt,
@@ -300,7 +300,7 @@ func TestRtfMouseMoveLinkSetsPointingHand(t *testing.T) {
 			shapeType: shapeRTF,
 			Width:     100,
 			Height:    20,
-			TC: &shapeTextConfig{
+			TC: &ShapeTextConfig{
 				rtf: &shapeRichText{
 					rTFLayout: &glyphLayout,
 					rTFRuns:   &rt,
@@ -351,7 +351,7 @@ func TestRtfMouseMoveUnsafeLinkNoPointingHand(t *testing.T) {
 			shapeType: shapeRTF,
 			Width:     100,
 			Height:    20,
-			TC: &shapeTextConfig{
+			TC: &ShapeTextConfig{
 				rtf: &shapeRichText{
 					rTFLayout: &glyphLayout,
 					rTFRuns:   &rt,
@@ -428,7 +428,7 @@ func TestLayoutWrapRTFSuppressesInlineObjectGlyphs(t *testing.T) {
 	shape := &Shape{
 		shapeType: shapeRTF,
 		Width:     100,
-		TC: &shapeTextConfig{
+		TC: &ShapeTextConfig{
 			TextMode: TextModeWrap,
 			rtf: &shapeRichText{
 				rTFBaseStyle: baseStyle,
@@ -699,7 +699,7 @@ func TestLayoutWrapRTF_MathReadyInvalidatesLoadingLayout(t *testing.T) {
 		return &Shape{
 			shapeType: shapeRTF,
 			Width:     200,
-			TC: &shapeTextConfig{
+			TC: &ShapeTextConfig{
 				TextMode: TextModeWrap,
 				rtf: &shapeRichText{
 					rTFBaseStyle: baseStyle,
@@ -799,7 +799,7 @@ func TestRtfOnClickRightClickShowsMenu(t *testing.T) {
 			shapeType: shapeRTF,
 			X:         100, Y: 200,
 			Width: 100, Height: 20,
-			TC: &shapeTextConfig{
+			TC: &ShapeTextConfig{
 				rtf: &shapeRichText{
 					rTFLayout: &glyphLayout,
 					rTFRuns:   &rt,
@@ -1019,7 +1019,7 @@ func TestRtfOnClickIgnoresUnsafeLink(t *testing.T) {
 		Shape: &Shape{
 			shapeType: shapeRTF,
 			Width:     100, Height: 20,
-			TC: &shapeTextConfig{
+			TC: &ShapeTextConfig{
 				rtf: &shapeRichText{
 					rTFLayout: &glyphLayout,
 					rTFRuns:   &rt,

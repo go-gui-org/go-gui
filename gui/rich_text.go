@@ -178,7 +178,7 @@ func (rt RichText) toGlyphRichTextWithMath(
 			if objW, objH, ok := rtfMathObject(
 				&run, cache); ok {
 				hash := diagramCacheHash(run.MathID)
-				s := run.Style.toGlyphStyle()
+				s := run.Style.ToGlyphStyle()
 				s.Object = &glyph.InlineObject{
 					ID:     run.MathID,
 					Width:  objW,
@@ -196,13 +196,13 @@ func (rt RichText) toGlyphRichTextWithMath(
 			// Fallback: show raw LaTeX source.
 			runs = append(runs, glyph.StyleRun{
 				Text:  run.MathLatex,
-				Style: run.Style.toGlyphStyle(),
+				Style: run.Style.ToGlyphStyle(),
 			})
 			continue
 		}
 		runs = append(runs, glyph.StyleRun{
 			Text:  run.Text,
-			Style: run.Style.toGlyphStyle(),
+			Style: run.Style.ToGlyphStyle(),
 		})
 	}
 	return glyph.RichText{Runs: runs}, mathHashes

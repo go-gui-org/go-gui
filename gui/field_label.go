@@ -90,9 +90,9 @@ func fitHeight(s Sizing) Sizing {
 		return FitFit
 	}
 	switch s.Width {
-	case sizingFill:
+	case SizingFill:
 		return FillFit
-	case sizingFixed:
+	case SizingFixed:
 		return FixedFit
 	default:
 		return FitFit

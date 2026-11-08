@@ -32,14 +32,14 @@ func TestDurationProgressMidway(t *testing.T) {
 }
 
 func TestMaxRefreshKindUpgrade(t *testing.T) {
-	got := maxAnimationRefreshKind(animationRefreshNone, AnimationRefreshLayout)
+	got := maxAnimationRefreshKind(AnimationRefreshNone, AnimationRefreshLayout)
 	if got != AnimationRefreshLayout {
 		t.Errorf("got %d, want %d", got, AnimationRefreshLayout)
 	}
 }
 
 func TestMaxRefreshKindDowngrade(t *testing.T) {
-	got := maxAnimationRefreshKind(AnimationRefreshLayout, animationRefreshNone)
+	got := maxAnimationRefreshKind(AnimationRefreshLayout, AnimationRefreshNone)
 	if got != AnimationRefreshLayout {
 		t.Errorf("got %d, want %d", got, AnimationRefreshLayout)
 	}

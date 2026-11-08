@@ -107,7 +107,7 @@ func makeInputOnChar(hcfg *inputHandlerCfg) func(EventCtx) {
 // live. Cut/undo/redo only mutate with the shortcut modifier; without
 // it their handlers decline the key, so it must not be swallowed here.
 // On macOS the Cocoa Emacs keys Ctrl+D/H/K/Y also edit (#969).
-func inputKeyMutatesText(e *Event, mode inputMode) bool {
+func inputKeyMutatesText(e *Event, mode InputMode) bool {
 	if isCocoaEmacs(e.Modifiers) {
 		switch e.KeyCode {
 		case KeyD, KeyH, KeyK, KeyY:

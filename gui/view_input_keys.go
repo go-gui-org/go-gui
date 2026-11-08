@@ -165,7 +165,7 @@ func inputKeyEnd(
 func inputKeyVertical(
 	imap *BoundedMap[string, inputState], id string, is inputState,
 	text string, pos int, isShift bool,
-	savedOffset float32, up bool, mode inputMode,
+	savedOffset float32, up bool, mode InputMode,
 	gl glyph.Layout, glOK bool,
 ) bool {
 	if mode != InputMultiline {

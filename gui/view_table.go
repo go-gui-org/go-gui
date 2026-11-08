@@ -393,15 +393,17 @@ func TR(cols []TableCellCfg) TableRowCfg {
 	return TableRowCfg{Cells: cols}
 }
 
-// tH creates a header cell. It sets no TextStyle, so the cell takes the
+// TH creates a header cell. It sets no TextStyle, so the cell takes the
 // table's TextStyleHead like any header cell without a style of its
 // own. A style here would win over TextStyleHead.
-func tH(value string) TableCellCfg {
+// exportaudit:keep — documented API (showcase docs/widget_table.md)
+func TH(value string) TableCellCfg {
 	return TableCellCfg{Value: value, HeadCell: true}
 }
 
 // TD creates a data cell.
-func tD(value string) TableCellCfg {
+// exportaudit:keep — documented API (showcase docs/widget_table.md)
+func TD(value string) TableCellCfg {
 	return TableCellCfg{Value: value}
 }
 
@@ -413,9 +415,9 @@ func TableCfgFromData(data [][]string) TableCfg {
 		cells := make([]TableCellCfg, 0, len(r))
 		for _, cell := range r {
 			if i == 0 {
-				cells = append(cells, tH(cell))
+				cells = append(cells, TH(cell))
 			} else {
-				cells = append(cells, tD(cell))
+				cells = append(cells, TD(cell))
 			}
 		}
 		rows = append(rows, TableRowCfg{Cells: cells})
@@ -425,7 +427,8 @@ func TableCfgFromData(data [][]string) TableCfg {
 
 // TableCfgFromCSV parses CSV data into a TableCfg. First row
 // is treated as a header row.
-func tableCfgFromCSV(data string) (TableCfg, error) {
+// exportaudit:keep — documented API (showcase docs/widget_table.md)
+func TableCfgFromCSV(data string) (TableCfg, error) {
 	reader := csv.NewReader(strings.NewReader(data))
 	records, err := reader.ReadAll()
 	if err != nil {
@@ -436,17 +439,18 @@ func tableCfgFromCSV(data string) (TableCfg, error) {
 
 // TableFromCSV parses CSV data and returns a table view.
 // On parse error, returns an error table.
-func (w *Window) tableFromCSV(data string) View {
-	cfg, err := tableCfgFromCSV(data)
+func (w *Window) TableFromCSV(data string) View {
+	cfg, err := TableCfgFromCSV(data)
 	if err != nil {
-		return w.Table(tableCfgError(err.Error()))
+		return w.Table(TableCfgError(err.Error()))
 	}
 	return w.Table(cfg)
 }
 
 // TableCfgError creates a TableCfg with an error message.
-func tableCfgError(message string) TableCfg {
-	return TableCfg{Data: []TableRowCfg{TR([]TableCellCfg{tD(message)})}}
+// exportaudit:keep — documented API (showcase docs/widget_table.md)
+func TableCfgError(message string) TableCfg {
+	return TableCfg{Data: []TableRowCfg{TR([]TableCellCfg{TD(message)})}}
 }
 
 func copySelected(m map[int]bool) map[int]bool {

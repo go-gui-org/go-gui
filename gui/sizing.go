@@ -1,13 +1,13 @@
 package gui
 
 // SizingType describes the three sizing modes.
-type sizingType uint8
+type SizingType uint8
 
 // SizingType constants.
 const (
-	sizingFit   sizingType = iota // element fits to content
-	sizingFill                    // element fills to parent
-	sizingFixed                   // element unchanged
+	SizingFit   SizingType = iota // element fits to content
+	SizingFill                    // element fills to parent
+	SizingFixed                   // element unchanged
 )
 
 // Sizing describes how a shape is sized horizontally and vertically.
@@ -21,24 +21,24 @@ const (
 // Or(def) to read. The set field is only consulted at cfg resolution;
 // Shape.Sizing is consumed by field value, so it is never read there.
 type Sizing struct {
-	Width  sizingType
-	Height sizingType
+	Width  SizingType
+	Height SizingType
 	set    bool
 }
 
 // Predefined sizing combinations.
 var (
-	FitFit   = Sizing{sizingFit, sizingFit, true}
-	FitFill  = Sizing{sizingFit, sizingFill, true}
-	FitFixed = Sizing{sizingFit, sizingFixed, true}
+	FitFit   = Sizing{SizingFit, SizingFit, true}
+	FitFill  = Sizing{SizingFit, SizingFill, true}
+	FitFixed = Sizing{SizingFit, SizingFixed, true}
 
-	FixedFit   = Sizing{sizingFixed, sizingFit, true}
-	FixedFill  = Sizing{sizingFixed, sizingFill, true}
-	FixedFixed = Sizing{sizingFixed, sizingFixed, true}
+	FixedFit   = Sizing{SizingFixed, SizingFit, true}
+	FixedFill  = Sizing{SizingFixed, SizingFill, true}
+	FixedFixed = Sizing{SizingFixed, SizingFixed, true}
 
-	FillFit   = Sizing{sizingFill, sizingFit, true}
-	FillFill  = Sizing{sizingFill, sizingFill, true}
-	FillFixed = Sizing{sizingFill, sizingFixed, true}
+	FillFit   = Sizing{SizingFill, SizingFit, true}
+	FillFill  = Sizing{SizingFill, SizingFill, true}
+	FillFixed = Sizing{SizingFill, SizingFixed, true}
 )
 
 // IsSet reports whether the sizing was explicitly set (via a predefined
@@ -63,11 +63,11 @@ func (s Sizing) Or(def Sizing) Sizing {
 // warnFixedSizingConflict, which reports a conflicting stated bound
 // through the DebugSizing category (issue #635).
 func applyFixedSizingConstraints(shape *Shape) {
-	if shape.Sizing.Width == sizingFixed && shape.Width > 0 {
+	if shape.Sizing.Width == SizingFixed && shape.Width > 0 {
 		shape.MinWidth = shape.Width
 		shape.MaxWidth = shape.Width
 	}
-	if shape.Sizing.Height == sizingFixed && shape.Height > 0 {
+	if shape.Sizing.Height == SizingFixed && shape.Height > 0 {
 		shape.MinHeight = shape.Height
 		shape.MaxHeight = shape.Height
 	}
@@ -94,10 +94,10 @@ func warnFixedSizingConflict(w *Window, s *Shape) {
 	if DebugCategory(debugMask.Load())&DebugSizing == 0 {
 		return
 	}
-	widthConflict := s.Sizing.Width == sizingFixed && s.Width > 0 &&
+	widthConflict := s.Sizing.Width == SizingFixed && s.Width > 0 &&
 		((s.MinWidth > 0 && s.MinWidth != s.Width) ||
 			(s.MaxWidth > 0 && s.MaxWidth != s.Width))
-	heightConflict := s.Sizing.Height == sizingFixed && s.Height > 0 &&
+	heightConflict := s.Sizing.Height == SizingFixed && s.Height > 0 &&
 		((s.MinHeight > 0 && s.MinHeight != s.Height) ||
 			(s.MaxHeight > 0 && s.MaxHeight != s.Height))
 	if !widthConflict && !heightConflict {

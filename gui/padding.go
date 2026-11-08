@@ -111,7 +111,7 @@ func (p Padding) withSet() Padding {
 }
 
 // IsNone returns true if all sides are zero.
-func (p Padding) isNone() bool {
+func (p Padding) IsNone() bool {
 	return p.Left == 0 && p.Right == 0 && p.Top == 0 && p.Bottom == 0
 }
 

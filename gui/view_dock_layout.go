@@ -208,7 +208,7 @@ func dockNodeView(
 	if node == nil {
 		return nil
 	}
-	if node.Kind == dockNodeSplit {
+	if node.Kind == DockNodeSplit {
 		return dockSplitView(core, node, cfg, drag)
 	}
 	return dockGroupView(core, node, cfg, drag)

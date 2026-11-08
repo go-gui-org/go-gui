@@ -157,8 +157,8 @@ func TestToGlyphStyleDropsGoGuiOnlyFields(t *testing.T) {
 	decorated.AffineTransform = &affine
 	decorated.Gradient = &glyph.GradientConfig{}
 
-	if base.toGlyphStyle() != decorated.toGlyphStyle() {
+	if base.ToGlyphStyle() != decorated.ToGlyphStyle() {
 		t.Errorf("go-gui-only fields changed the glyph style:\n plain = %+v\n decorated = %+v",
-			base.toGlyphStyle(), decorated.toGlyphStyle())
+			base.ToGlyphStyle(), decorated.ToGlyphStyle())
 	}
 }

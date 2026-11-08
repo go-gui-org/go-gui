@@ -269,7 +269,7 @@ type scratchPools struct {
 	viewEffects  scratchObjPool[shapeEffects]
 	viewXforms   scratchObjPool[shapeTransform]
 	viewA11Y     scratchObjPool[accessInfo]
-	viewTextCfgs scratchObjPool[shapeTextConfig]
+	viewTextCfgs scratchObjPool[ShapeTextConfig]
 	viewTextSty  scratchObjPool[TextStyle]
 	// viewSizers counts the containers generated with a layoutSizer;
 	// at 0 layoutSizeChildren skips its walk.
@@ -356,7 +356,7 @@ func newScratchPools() scratchPools {
 		viewEffects:            scratchObjPool[shapeEffects]{retainMax: 4096, shrinkTo: 256},
 		viewXforms:             scratchObjPool[shapeTransform]{retainMax: 1024, shrinkTo: 64},
 		viewA11Y:               scratchObjPool[accessInfo]{retainMax: 4096, shrinkTo: 256},
-		viewTextCfgs:           scratchObjPool[shapeTextConfig]{retainMax: 4096, shrinkTo: 256},
+		viewTextCfgs:           scratchObjPool[ShapeTextConfig]{retainMax: 4096, shrinkTo: 256},
 		viewTextSty:            scratchObjPool[TextStyle]{retainMax: 256, shrinkTo: 32},
 		renderTextStyles:       scratchObjPool[TextStyle]{retainMax: 4096, shrinkTo: 256},
 		renderGlyphLayouts:     scratchObjPool[glyph.Layout]{retainMax: 1024, shrinkTo: 64},

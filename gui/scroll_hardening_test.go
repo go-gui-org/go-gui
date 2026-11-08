@@ -63,8 +63,8 @@ func TestScrollSettersRejectNonFinite(t *testing.T) {
 	}{
 		{"ScrollVerticalTo", func(w *Window) { w.ScrollVerticalTo("s", nan) }},
 		{"ScrollHorizontalTo", func(w *Window) { w.ScrollHorizontalTo("s", inf) }},
-		{"scrollVerticalBy", func(w *Window) { w.scrollVerticalBy("s", nan) }},
-		{"scrollHorizontalBy", func(w *Window) { w.scrollHorizontalBy("s", inf) }},
+		{"scrollVerticalBy", func(w *Window) { w.ScrollVerticalBy("s", nan) }},
+		{"scrollHorizontalBy", func(w *Window) { w.ScrollHorizontalBy("s", inf) }},
 		{"ScrollVerticalToPct", func(w *Window) { w.ScrollVerticalToPct("s", nan) }},
 		{"ScrollHorizontalToPct", func(w *Window) { w.ScrollHorizontalToPct("s", nan) }},
 		{"ScrollVerticalTo miss", func(w *Window) { w.ScrollVerticalTo("gone", nan) }},
@@ -151,7 +151,7 @@ func TestScrollbarThumbReachesTrackEnd(t *testing.T) {
 	if !ok {
 		t.Fatal("scroller not found")
 	}
-	bar := findScrollbar(t, sc, scrollbarVertical)
+	bar := findScrollbar(t, sc, ScrollbarVertical)
 	thumb := bar.Children[thumbIndex].Shape
 	thumbEnd := thumb.Y + thumb.Height
 	trackEnd := bar.Shape.Y + bar.Shape.Height
@@ -194,7 +194,7 @@ func TestScrollSettersFireOnScroll(t *testing.T) {
 	}{
 		{"ScrollVerticalToPct", func(w *Window) { w.ScrollVerticalToPct("s", 0.5) }},
 		{"ScrollHorizontalToPct", func(w *Window) { w.ScrollHorizontalToPct("s", 0.5) }},
-		{"scrollToView", func(w *Window) { w.scrollToView("target") }},
+		{"scrollToView", func(w *Window) { w.ScrollToView("target") }},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			layout, w := makeScrollLayout("s", 100, 100, 400, 400)

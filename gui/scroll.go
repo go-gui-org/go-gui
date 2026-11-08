@@ -375,9 +375,9 @@ func scrollVerticalPixels(layout *Layout, delta float32, w *Window) bool {
 	return true
 }
 
-// scrollToView scrolls the parent scroll container to make
+// ScrollToView scrolls the parent scroll container to make
 // the view with the given id visible.
-func (w *Window) scrollToView(effectiveID string) {
+func (w *Window) ScrollToView(effectiveID string) {
 	target, ok := w.layout.FindByID(effectiveID)
 	if !ok {
 		return
@@ -404,9 +404,9 @@ func (w *Window) scrollToView(effectiveID string) {
 	}
 }
 
-// scrollHorizontalBy scrolls the given scrollable by delta. effectiveID is
+// ScrollHorizontalBy scrolls the given scrollable by delta. effectiveID is
 // the scrollable's scroll key (see the Scrollable doc on each Cfg).
-func (w *Window) scrollHorizontalBy(effectiveID string, delta float32) {
+func (w *Window) ScrollHorizontalBy(effectiveID string, delta float32) {
 	// f32Clamp passes NaN through, and the pipeline adds the stored
 	// offset to every child position, so a non-finite write is dropped.
 	if !f32IsFinite(delta) {
@@ -497,9 +497,9 @@ func (w *Window) ScrollHorizontalToPct(effectiveID string, pct float32) {
 	fireOnScroll(ly, w)
 }
 
-// scrollVerticalBy scrolls the given scrollable by delta. effectiveID is
+// ScrollVerticalBy scrolls the given scrollable by delta. effectiveID is
 // the scrollable's scroll key (see the Scrollable doc on each Cfg).
-func (w *Window) scrollVerticalBy(effectiveID string, delta float32) {
+func (w *Window) ScrollVerticalBy(effectiveID string, delta float32) {
 	// See scrollHorizontalBy.
 	if !f32IsFinite(delta) {
 		return

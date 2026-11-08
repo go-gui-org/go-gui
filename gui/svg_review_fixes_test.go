@@ -122,12 +122,12 @@ func TestLoadSvg_FileCacheHitNoAllocs(t *testing.T) {
 	if _, err := w.LoadSvg(path, 10, 10); err != nil {
 		t.Fatalf("first LoadSvg: %v", err)
 	}
-	if _, _, err := w.getSvgDimensions(path); err != nil {
+	if _, _, err := w.GetSvgDimensions(path); err != nil {
 		t.Fatalf("first getSvgDimensions: %v", err)
 	}
 	allocs := testing.AllocsPerRun(100, func() {
 		_, _ = w.LoadSvg(path, 10, 10)
-		_, _, _ = w.getSvgDimensions(path)
+		_, _, _ = w.GetSvgDimensions(path)
 	})
 	if allocs != 0 {
 		t.Fatalf("cached file SVG hit allocated %v times, want 0", allocs)
@@ -228,7 +228,7 @@ func TestGetSvgDimensions_FileEditAfterRecheck(t *testing.T) {
 	w := NewWindow(WindowCfg{})
 	parser := &countingFileSvgParser{width: 10, height: 10}
 	w.SetSvgParser(parser)
-	if gw, _, err := w.getSvgDimensions(path); err != nil || gw != 10 {
+	if gw, _, err := w.GetSvgDimensions(path); err != nil || gw != 10 {
 		t.Fatalf("first dims: got (%v, %v), want 10", gw, err)
 	}
 	parser.width = 20
@@ -236,11 +236,11 @@ func TestGetSvgDimensions_FileEditAfterRecheck(t *testing.T) {
 		[]byte("<svg><rect/></svg>"), 0o644); err != nil {
 		t.Fatalf("rewrite file: %v", err)
 	}
-	if gw, _, _ := w.getSvgDimensions(path); gw != 10 {
+	if gw, _, _ := w.GetSvgDimensions(path); gw != 10 {
 		t.Fatalf("throttled dims: got %v, want cached 10", gw)
 	}
 	expireSvgFileCheck(w, path)
-	if gw, _, err := w.getSvgDimensions(path); err != nil || gw != 20 {
+	if gw, _, err := w.GetSvgDimensions(path); err != nil || gw != 20 {
 		t.Fatalf("post-edit dims: got (%v, %v), want 20", gw, err)
 	}
 }

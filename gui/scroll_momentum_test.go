@@ -445,7 +445,7 @@ func TestPaletteShowStopsFling(t *testing.T) {
 	e := w.scrollSmooth.entryFor(id, scrollAxisY)
 	e.active, e.tau, e.current, e.target = true, scrollMomentumTau, -50, -400
 	w.animMu.Unlock()
-	commandPaletteShow("pal", w)
+	CommandPaletteShow("pal", w)
 	if e := w.scrollSmooth.findEntry(id, scrollAxisY); e.active {
 		t.Fatal("opening the palette left its fling running")
 	}

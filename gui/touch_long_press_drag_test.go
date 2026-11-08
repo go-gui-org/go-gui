@@ -370,7 +370,7 @@ func TestTouchAbortDoesNotDockPanel(t *testing.T) {
 			&Layout{Shape: &Shape{ID: "tab"}}, &Event{}, w)
 		state := dockDragGet(w, "dock")
 		state.active = true
-		state.hoverZone = dockDropRight
+		state.hoverZone = DockDropRight
 		state.hoverGroupID = "g1"
 		dockDragSet(w, "dock", state)
 		return w

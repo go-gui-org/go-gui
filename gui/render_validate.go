@@ -348,7 +348,7 @@ func guardRendererOrSkip(r RenderCmd, w *Window) bool {
 // command. The mask covers kinds below 32 (see the assertion in
 // render_types.go). A kind past it still drops; it only shares no
 // warn-once slot.
-func recordRenderGuard(kind renderKind, w *Window) {
+func recordRenderGuard(kind RenderKind, w *Window) {
 	if kind < 32 {
 		w.renderGuardWarned |= uint32(1) << kind
 	}

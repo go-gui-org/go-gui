@@ -16,8 +16,8 @@ func renderMdMath(
 ) View {
 	codeFallback := Column(ContainerCfg{
 		Color:      cfg.Style.CodeBlockBG,
-		Padding:    cfg.Style.codeBlockPadding,
-		Radius:     RadiusPx(cfg.Style.codeBlockRadius),
+		Padding:    cfg.Style.CodeBlockPadding,
+		Radius:     RadiusPx(cfg.Style.CodeBlockRadius),
 		SizeBorder: NoBorder,
 		Sizing:     FillFit,
 		Content: []View{
@@ -63,7 +63,7 @@ func renderMdMath(
 				RequestID: reqID,
 			})
 		fetchMathAsync(w, block.MathLatex, diagramHash,
-			reqID, cfg.Style.mathDPIDisplay,
+			reqID, cfg.Style.MathDPIDisplay,
 			cfg.Style.Text.Color, cfg.MathFetcher)
 	}
 	return codeFallback
@@ -76,8 +76,8 @@ func renderMdMermaid(
 	source := richTextPlain(block.Content)
 	codeFallback := Column(ContainerCfg{
 		Color:      cfg.Style.CodeBlockBG,
-		Padding:    cfg.Style.codeBlockPadding,
-		Radius:     RadiusPx(cfg.Style.codeBlockRadius),
+		Padding:    cfg.Style.CodeBlockPadding,
+		Radius:     RadiusPx(cfg.Style.CodeBlockRadius),
 		SizeBorder: NoBorder,
 		Sizing:     FillFit,
 		Content: []View{
@@ -222,8 +222,8 @@ func renderMdCode(
 
 	return Column(ContainerCfg{
 		Color:      cfg.Style.CodeBlockBG,
-		Padding:    cfg.Style.codeBlockPadding,
-		Radius:     RadiusPx(cfg.Style.codeBlockRadius),
+		Padding:    cfg.Style.CodeBlockPadding,
+		Radius:     RadiusPx(cfg.Style.CodeBlockRadius),
 		SizeBorder: NoBorder,
 		Sizing:     FillFit,
 		Clip:       true,
@@ -244,7 +244,7 @@ func mdFlushListItems(
 		Sizing:     FillFit,
 		Padding:    NoPadding,
 		SizeBorder: NoBorder,
-		Spacing:    SpacingPx(cfg.Style.blockSpacing / 2),
+		Spacing:    SpacingPx(cfg.Style.BlockSpacing / 2),
 		Content:    listItems,
 	})
 }
@@ -292,12 +292,12 @@ func mdRenderTable(
 			w.Table(TableCfg{
 				ID:               ScopeIDN(cfg.ID, "table", idx),
 				BorderStyle:      cfg.Style.TableBorderStyle,
-				Colors:           ColorSet{Border: cfg.Style.tableBorderColor},
-				SizeBorder:       cfg.Style.tableBorderSize,
-				TextStyleHead:    cfg.Style.tableHeadStyle,
-				TextStyle:        cfg.Style.tableCellStyle,
-				CellPadding:      cfg.Style.tableCellPadding,
-				ColorRowAlt:      cfg.Style.tableRowAlt,
+				Colors:           ColorSet{Border: cfg.Style.TableBorderColor},
+				SizeBorder:       cfg.Style.TableBorderSize,
+				TextStyleHead:    cfg.Style.TableHeadStyle,
+				TextStyle:        cfg.Style.TableCellStyle,
+				CellPadding:      cfg.Style.TableCellPadding,
+				ColorRowAlt:      cfg.Style.TableRowAlt,
 				ColumnAlignments: block.TableData.Alignments,
 				Data:             buildMarkdownTableData(*block.TableData, cfg.Style),
 			}),
@@ -307,7 +307,7 @@ func mdRenderTable(
 
 func mdRenderHR(cfg MarkdownCfg) View {
 	return Separator(SeparatorCfg{
-		Color: cfg.Style.hRColor,
+		Color: cfg.Style.HRColor,
 	})
 }
 
@@ -329,7 +329,7 @@ func mdWrapQuote(block markdownBlock, v View, cfg MarkdownCfg) View {
 		return v
 	}
 	leftMargin := float32(
-		block.BlockquoteDepth-1) * cfg.Style.nestIndent
+		block.BlockquoteDepth-1) * cfg.Style.NestIndent
 	return Row(ContainerCfg{
 		Sizing:     FillFit,
 		Padding:    NewPadding(0, 0, 0, leftMargin),
@@ -338,10 +338,10 @@ func mdWrapQuote(block markdownBlock, v View, cfg MarkdownCfg) View {
 			Rectangle(RectangleCfg{
 				Sizing: FixedFill,
 				Width:  3,
-				Color:  cfg.Style.blockquoteBorder,
+				Color:  cfg.Style.BlockquoteBorder,
 			}),
 			Column(ContainerCfg{
-				Color:      cfg.Style.blockquoteBG,
+				Color:      cfg.Style.BlockquoteBG,
 				Sizing:     FillFit,
 				Padding:    NoPadding,
 				SizeBorder: NoBorder,
@@ -352,7 +352,7 @@ func mdWrapQuote(block markdownBlock, v View, cfg MarkdownCfg) View {
 }
 
 func mdRenderBlockquote(
-	block markdownBlock, cfg MarkdownCfg, mode textMode,
+	block markdownBlock, cfg MarkdownCfg, mode TextMode,
 	ctx *mdBlockCtx,
 ) View {
 	rtfCfg := RTFCfg{
@@ -446,7 +446,7 @@ func mdBlockedImage(block markdownBlock) View {
 // mdRenderHeading returns 1 or 2 views: an optional H1 spacer
 // plus the heading container.
 func mdRenderHeading(
-	block markdownBlock, cfg MarkdownCfg, mode textMode,
+	block markdownBlock, cfg MarkdownCfg, mode TextMode,
 	ctx *mdBlockCtx,
 ) []View {
 	var views []View
@@ -469,11 +469,11 @@ func mdRenderHeading(
 	}
 	applyMdCtx(&rtfCfg, ctx)
 	headingContent := []View{RTF(rtfCfg)}
-	if (block.HeaderLevel == 1 && cfg.Style.h1Separator) ||
-		(block.HeaderLevel == 2 && cfg.Style.h2Separator) {
+	if (block.HeaderLevel == 1 && cfg.Style.H1Separator) ||
+		(block.HeaderLevel == 2 && cfg.Style.H2Separator) {
 		headingContent = append(headingContent,
 			Separator(SeparatorCfg{
-				Color: cfg.Style.hRColor,
+				Color: cfg.Style.HRColor,
 			}))
 	}
 	views = append(views, Column(ContainerCfg{
@@ -490,7 +490,7 @@ func mdRenderHeading(
 	return views
 }
 
-func mdRenderDefTerm(block markdownBlock, mode textMode, ctx *mdBlockCtx) View {
+func mdRenderDefTerm(block markdownBlock, mode TextMode, ctx *mdBlockCtx) View {
 	rtfCfg := RTFCfg{
 		RichText:      block.Content,
 		Mode:          mode,
@@ -501,7 +501,7 @@ func mdRenderDefTerm(block markdownBlock, mode textMode, ctx *mdBlockCtx) View {
 }
 
 func mdRenderDefValue(
-	block markdownBlock, cfg MarkdownCfg, mode textMode, ctx *mdBlockCtx,
+	block markdownBlock, cfg MarkdownCfg, mode TextMode, ctx *mdBlockCtx,
 ) View {
 	rtfCfg := RTFCfg{
 		RichText:      block.Content,
@@ -511,17 +511,17 @@ func mdRenderDefValue(
 	applyMdCtx(&rtfCfg, ctx)
 	return mdWrapQuote(block, Row(ContainerCfg{
 		Sizing:  FillFit,
-		Padding: NewPadding(0, 0, 0, cfg.Style.nestIndent),
+		Padding: NewPadding(0, 0, 0, cfg.Style.NestIndent),
 		Content: []View{RTF(rtfCfg)},
 	}), cfg)
 }
 
 func mdRenderListItem(
-	block markdownBlock, cfg MarkdownCfg, mode textMode,
+	block markdownBlock, cfg MarkdownCfg, mode TextMode,
 	ctx *mdBlockCtx,
 ) View {
 	indentW := float32(block.ListIndent) *
-		cfg.Style.nestIndent
+		cfg.Style.NestIndent
 
 	var prefixW float32
 	var prefixView View
@@ -539,7 +539,7 @@ func mdRenderListItem(
 		// on the right number for the bullet and the wrong one for
 		// every other multi-byte marker.
 		prefixW = float32(utf8RuneCount(block.ListPrefix)) *
-			cfg.Style.prefixCharWidth
+			cfg.Style.PrefixCharWidth
 		if block.ListPrefix != "• " && block.ListIndent > 0 {
 			indentW += 4
 		}
@@ -616,7 +616,7 @@ func mdTaskCheckbox(checked bool, boxSize float32, cfg MarkdownCfg) View {
 		// No dedicated checkbox-border style field exists yet; HRColor
 		// is reused as the neutral, low-emphasis border color other
 		// MarkdownStyle divider/border colors already use.
-		ColorBorder: cfg.Style.hRColor,
+		ColorBorder: cfg.Style.HRColor,
 		// Fixed px, not BorderThin: the outline is the checkbox, so
 		// it must survive WithBorders(false) (#867).
 		SizeBorder:  BorderPx(sizeBorderDef),
@@ -630,7 +630,7 @@ func mdTaskCheckbox(checked bool, boxSize float32, cfg MarkdownCfg) View {
 }
 
 func mdRenderParagraph(
-	block markdownBlock, cfg MarkdownCfg, mode textMode,
+	block markdownBlock, cfg MarkdownCfg, mode TextMode,
 	ctx *mdBlockCtx,
 ) View {
 	rtfCfg := RTFCfg{

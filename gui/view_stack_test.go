@@ -111,7 +111,7 @@ func TestStackAlignsEachChild(t *testing.T) {
 	cases := []struct {
 		name   string
 		hAlign HorizontalAlign
-		vAlign verticalAlign
+		vAlign VerticalAlign
 		x, y   float32
 	}{
 		{"start-top", HAlignStart, VAlignTop, 0, 0},

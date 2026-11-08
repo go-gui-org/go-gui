@@ -288,7 +288,7 @@ func TestToggleSortSingleAscDescNone(t *testing.T) {
 
 	// First toggle: asc
 	q = dataGridToggleSort(q, "name", false, false)
-	if len(q.Sorts) != 1 || q.Sorts[0].Dir != gridSortAsc {
+	if len(q.Sorts) != 1 || q.Sorts[0].Dir != GridSortAsc {
 		t.Fatalf("expected asc, got %+v", q.Sorts)
 	}
 
@@ -357,7 +357,7 @@ func TestQuerySetFilterAdd(t *testing.T) {
 
 func TestQuerySetFilterUpdate(t *testing.T) {
 	q := GridQueryState{
-		Filters: []gridFilter{
+		Filters: []GridFilter{
 			{ColID: "name", Op: "equals", Value: "old"},
 		},
 	}
@@ -376,7 +376,7 @@ func TestQuerySetFilterUpdate(t *testing.T) {
 
 func TestQuerySetFilterRemoveEmpty(t *testing.T) {
 	q := GridQueryState{
-		Filters: []gridFilter{
+		Filters: []GridFilter{
 			{ColID: "name", Op: "contains", Value: "alice"},
 		},
 	}
@@ -522,7 +522,7 @@ func TestNextHiddenColumnsDoesNotMutateInput(t *testing.T) {
 
 func TestQueryFilterValueFound(t *testing.T) {
 	q := GridQueryState{
-		Filters: []gridFilter{
+		Filters: []GridFilter{
 			{ColID: "name", Op: "contains", Value: "alice"},
 		},
 	}

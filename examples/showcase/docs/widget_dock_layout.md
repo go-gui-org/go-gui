@@ -65,12 +65,21 @@ root := gui.DockSplit("root", gui.DockSplitHorizontal, 0.2,
 
 ## Tree Operations
 
-| Function                 | Description                         |
-| ------------------------ | ----------------------------------- |
-| DockTreeRemovePanel      | Remove panel. Collapse empty splits |
-| DockTreeAddTab           | Add panel as tab in existing group  |
-| DockTreeSelectPanel      | Set active tab in a group           |
-| DockTreeFindGroupByPanel | Find group containing a panel       |
+| Function                  | Description                                                         |
+| ------------------------- | ------------------------------------------------------------------- |
+| DockTreeRemovePanel       | Remove panel. Collapse empty splits                                 |
+| DockTreeAddTab            | Add panel as tab in existing group                                  |
+| DockTreeSelectPanel       | Set active tab in a group                                           |
+| DockTreeFindGroupByPanel  | Find group containing a panel                                       |
+| DockTreeFindGroupByID     | Find a group by its ID                                              |
+| DockTreeCollectPanelNodes | Every panel group in the tree, in order                             |
+| DockTreeMovePanel         | Move a panel onto a group; a `DockDropZone` picks tab or split side |
+| DockTreeSplitAt           | Split a group and put a panel in the new half                       |
+| DockTreeWrapRoot          | Dock a panel at a window edge (`DockDropWindow*`)                   |
+| DockNodeSanitize          | Repair a loaded tree in place (see Serialization)                   |
+
+The editors return the new root, the finders return the node they found, and
+`DockNodeSanitize` edits in place.
 
 ## Serialization
 
@@ -86,7 +95,12 @@ os.WriteFile("layout.json", data, 0644)
 root := new(gui.DockNode)
 data, _ = os.ReadFile("layout.json")
 json.Unmarshal(data, root)
+gui.DockNodeSanitize(root)
 ```
+
+`DockNodeSanitize` repairs a deserialized tree in place (clamped ratios, a valid
+`SelectedID` in every group). Call it after `json.Unmarshal` so a hand-edited or
+truncated file cannot put the layout in a state the widget cannot draw.
 
 Example output:
 

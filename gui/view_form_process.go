@@ -17,9 +17,9 @@ func formShouldValidate(
 		return true
 	case FormValidateOnBlur, FormValidateOnBlurSubmit:
 		return trigger == FormTriggerBlur ||
-			trigger == formTriggerSubmit
+			trigger == FormTriggerSubmit
 	case FormValidateOnSubmit:
-		return trigger == formTriggerSubmit
+		return trigger == FormTriggerSubmit
 	default:
 		return false
 	}
@@ -70,7 +70,7 @@ func formSnapshotFromState(
 		fields[fid] = formToPublicFieldState(field)
 	}
 	return FormSnapshot{
-		formID: formID,
+		FormID: formID,
 		Values: values,
 		Fields: fields,
 	}
@@ -80,7 +80,7 @@ func formFieldSnapshot(
 	formID, fieldID string, field *formFieldRuntime,
 ) FormFieldSnapshot {
 	return FormFieldSnapshot{
-		formID:  formID,
+		FormID:  formID,
 		FieldID: fieldID,
 		Value:   field.value,
 		Touched: field.touched,
@@ -111,7 +111,7 @@ func formComputeSummary(
 		Pending:      pendingCount > 0,
 		InvalidCount: invalidCount,
 		PendingCount: pendingCount,
-		issues:       issues,
+		Issues:       issues,
 	}
 }
 
@@ -129,7 +129,7 @@ func formComputePending(
 	}
 	slices.Sort(ids)
 	return FormPendingState{
-		formID:       formID,
+		FormID:       formID,
 		FieldIDs:     ids,
 		PendingCount: len(ids),
 	}
@@ -207,7 +207,7 @@ func formProcessRequests(
 		stateChanged = true
 		if onReset != nil {
 			onReset(FormResetEvent{
-				formID: formID,
+				FormID: formID,
 				Values: values,
 			}, EventCtx{nil, nil, w})
 		}
@@ -240,7 +240,7 @@ func formProcessRequests(
 			SyncValidators:     field.syncVals,
 			AsyncValidators:    field.asyncVals,
 			ValidateOnOverride: field.validateOn,
-		}, formTriggerSubmit)
+		}, FormTriggerSubmit)
 	}
 
 	summary := formComputeSummary(state)
@@ -257,7 +257,7 @@ func formProcessRequests(
 	}
 	if !blockedInvalid && !blockedPending && onSubmit != nil {
 		onSubmit(FormSubmitEvent{
-			formID:  formID,
+			FormID:  formID,
 			Values:  formSnapshotFromState(formID, state).Values,
 			Valid:   summary.Valid,
 			Pending: summary.Pending,
@@ -380,7 +380,7 @@ func formOnFieldEventForForm(
 ) {
 	state := formRuntime(w, formID)
 	field := formEnsureField(state, cfg)
-	if trigger == FormTriggerBlur || trigger == formTriggerSubmit {
+	if trigger == FormTriggerBlur || trigger == FormTriggerSubmit {
 		field.touched = true
 	}
 
@@ -523,7 +523,7 @@ func (w *Window) FormPendingState(
 ) FormPendingState {
 	state := formRuntimeRead(w, formID)
 	if state == nil {
-		return FormPendingState{formID: formID}
+		return FormPendingState{FormID: formID}
 	}
 	return formComputePending(formID, state)
 }

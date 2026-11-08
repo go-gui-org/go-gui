@@ -10,7 +10,7 @@ import (
 )
 
 func TestPlainTextNeedsGlyphLayoutNils(t *testing.T) {
-	if plainTextNeedsGlyphLayout(nil, &shapeTextConfig{}, TextStyle{}) {
+	if plainTextNeedsGlyphLayout(nil, &ShapeTextConfig{}, TextStyle{}) {
 		t.Error("nil shape should return false")
 	}
 	if plainTextNeedsGlyphLayout(&Shape{}, nil, TextStyle{}) {
@@ -20,7 +20,7 @@ func TestPlainTextNeedsGlyphLayoutNils(t *testing.T) {
 
 func TestPlainTextNeedsGlyphLayoutDefault(t *testing.T) {
 	s := &Shape{}
-	tc := &shapeTextConfig{TextMode: TextModeSingleLine}
+	tc := &ShapeTextConfig{TextMode: TextModeSingleLine}
 	style := TextStyle{Align: TextAlignLeft}
 	if plainTextNeedsGlyphLayout(s, tc, style) {
 		t.Error("default single-line left-aligned should return false")
@@ -29,7 +29,7 @@ func TestPlainTextNeedsGlyphLayoutDefault(t *testing.T) {
 
 func TestPlainTextNeedsGlyphLayoutWrap(t *testing.T) {
 	s := &Shape{}
-	tc := &shapeTextConfig{TextMode: TextModeWrap}
+	tc := &ShapeTextConfig{TextMode: TextModeWrap}
 	if !plainTextNeedsGlyphLayout(s, tc, TextStyle{}) {
 		t.Error("TextModeWrap should return true")
 	}
@@ -37,7 +37,7 @@ func TestPlainTextNeedsGlyphLayoutWrap(t *testing.T) {
 
 func TestPlainTextNeedsGlyphLayoutCenter(t *testing.T) {
 	s := &Shape{}
-	tc := &shapeTextConfig{TextMode: TextModeSingleLine}
+	tc := &ShapeTextConfig{TextMode: TextModeSingleLine}
 	style := TextStyle{Align: TextAlignCenter}
 	if !plainTextNeedsGlyphLayout(s, tc, style) {
 		t.Error("TextAlignCenter should return true")
@@ -46,7 +46,7 @@ func TestPlainTextNeedsGlyphLayoutCenter(t *testing.T) {
 
 func TestPlainTextNeedsGlyphLayoutSpacing(t *testing.T) {
 	s := &Shape{}
-	tc := &shapeTextConfig{TextMode: TextModeSingleLine}
+	tc := &ShapeTextConfig{TextMode: TextModeSingleLine}
 	style := TextStyle{LineSpacing: 1.5}
 	if !plainTextNeedsGlyphLayout(s, tc, style) {
 		t.Error("non-zero LineSpacing should return true")
@@ -55,7 +55,7 @@ func TestPlainTextNeedsGlyphLayoutSpacing(t *testing.T) {
 
 func TestPlainTextNeedsGlyphLayoutBgColor(t *testing.T) {
 	s := &Shape{}
-	tc := &shapeTextConfig{TextMode: TextModeSingleLine}
+	tc := &ShapeTextConfig{TextMode: TextModeSingleLine}
 	style := TextStyle{BgColor: RGBA(255, 0, 0, 128)}
 	if !plainTextNeedsGlyphLayout(s, tc, style) {
 		t.Error("BgColor with A>0 should return true")
@@ -64,7 +64,7 @@ func TestPlainTextNeedsGlyphLayoutBgColor(t *testing.T) {
 
 func TestPlainTextNeedsGlyphLayoutFeatures(t *testing.T) {
 	s := &Shape{}
-	tc := &shapeTextConfig{TextMode: TextModeSingleLine}
+	tc := &ShapeTextConfig{TextMode: TextModeSingleLine}
 	style := TextStyle{Features: &glyph.FontFeatures{}}
 	if !plainTextNeedsGlyphLayout(s, tc, style) {
 		t.Error("non-nil Features should return true")
@@ -72,7 +72,7 @@ func TestPlainTextNeedsGlyphLayoutFeatures(t *testing.T) {
 }
 
 func TestPlainTextLayoutWidthArgNils(t *testing.T) {
-	if plainTextLayoutWidthArg(nil, &shapeTextConfig{}, TextStyle{}) != 0 {
+	if plainTextLayoutWidthArg(nil, &ShapeTextConfig{}, TextStyle{}) != 0 {
 		t.Error("nil shape should return 0")
 	}
 	if plainTextLayoutWidthArg(&Shape{}, nil, TextStyle{}) != 0 {
@@ -80,7 +80,7 @@ func TestPlainTextLayoutWidthArgNils(t *testing.T) {
 	}
 	s := &Shape{}
 	s.Width = 0
-	if plainTextLayoutWidthArg(s, &shapeTextConfig{}, TextStyle{}) != 0 {
+	if plainTextLayoutWidthArg(s, &ShapeTextConfig{}, TextStyle{}) != 0 {
 		t.Error("zero width should return 0")
 	}
 }
@@ -88,7 +88,7 @@ func TestPlainTextLayoutWidthArgNils(t *testing.T) {
 func TestPlainTextLayoutWidthArgWrap(t *testing.T) {
 	s := &Shape{}
 	s.Width = 200
-	tc := &shapeTextConfig{TextMode: TextModeWrap}
+	tc := &ShapeTextConfig{TextMode: TextModeWrap}
 	if got := plainTextLayoutWidthArg(s, tc, TextStyle{}); got != 200 {
 		t.Errorf("got %f, want 200", got)
 	}
@@ -97,7 +97,7 @@ func TestPlainTextLayoutWidthArgWrap(t *testing.T) {
 func TestPlainTextLayoutWidthArgNonLeft(t *testing.T) {
 	s := &Shape{}
 	s.Width = 200
-	tc := &shapeTextConfig{TextMode: TextModeSingleLine}
+	tc := &ShapeTextConfig{TextMode: TextModeSingleLine}
 	style := TextStyle{Align: TextAlignCenter}
 	if got := plainTextLayoutWidthArg(s, tc, style); got != -200 {
 		t.Errorf("got %f, want -200", got)
@@ -105,7 +105,7 @@ func TestPlainTextLayoutWidthArgNonLeft(t *testing.T) {
 }
 
 func TestPlainTextLayoutResolvedNilWindow(t *testing.T) {
-	s := &Shape{TC: &shapeTextConfig{}}
+	s := &Shape{TC: &ShapeTextConfig{}}
 	_, ok := plainTextLayoutResolved("test", s, TextStyle{}, nil)
 	if ok {
 		t.Error("nil window should return false")
@@ -197,8 +197,8 @@ func TestPlainTextHeightNoMeasurer(t *testing.T) {
 	style := TextStyle{Size: 10}
 	lineH := fallbackLineHeight(style)
 
-	measure := func(text string, mode textMode, width float32) float32 {
-		tc := &shapeTextConfig{Text: text, TextMode: mode}
+	measure := func(text string, mode TextMode, width float32) float32 {
+		tc := &ShapeTextConfig{Text: text, TextMode: mode}
 		s := &Shape{Width: width, TC: tc}
 		return plainTextHeightNoMeasurer(s, tc, style, nil)
 	}
@@ -229,7 +229,7 @@ func TestPlainTextHeightNoMeasurer(t *testing.T) {
 	}
 	// LineSpacing widens every line.
 	spaced := TextStyle{Size: 10, LineSpacing: 6}
-	tc := &shapeTextConfig{Text: "a\nb", TextMode: TextModeMultiline}
+	tc := &ShapeTextConfig{Text: "a\nb", TextMode: TextModeMultiline}
 	s := &Shape{Width: 500, TC: tc}
 	want := 2 * (fallbackLineHeight(spaced) + 6)
 	if got := plainTextHeightNoMeasurer(s, tc, spaced, nil); got != want {
@@ -241,7 +241,7 @@ func TestPlainTextHeightNoMeasurer(t *testing.T) {
 // single-line estimate view_text.go assigns new text.
 func TestPlainTextHeightNoMeasurerEmpty(t *testing.T) {
 	style := TextStyle{Size: 10}
-	tc := &shapeTextConfig{Text: "", TextMode: TextModeSingleLine}
+	tc := &ShapeTextConfig{Text: "", TextMode: TextModeSingleLine}
 	s := &Shape{Width: 500, TC: tc}
 	if got, want := plainTextHeightNoMeasurer(s, tc, style, nil),
 		fallbackLineHeight(style); got != want {
@@ -351,7 +351,7 @@ func TestPlainTextLayoutFailureNoAllocWhenDebugOff(t *testing.T) {
 	style := TextStyle{Size: 16}
 	sh := &Shape{
 		ID: "t", Width: 100,
-		TC: &shapeTextConfig{Text: "hello", TextStyle: &style,
+		TC: &ShapeTextConfig{Text: "hello", TextStyle: &style,
 			TextMode: TextModeWrap},
 	}
 	allocs := testing.AllocsPerRun(50, func() {

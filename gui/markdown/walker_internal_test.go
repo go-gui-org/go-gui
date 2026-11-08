@@ -12,11 +12,11 @@ func TestMergeFormatPlainChild(t *testing.T) {
 	tests := []struct {
 		parent, child, want Format
 	}{
-		{formatPlain, formatPlain, formatPlain},
-		{formatPlain, FormatBold, FormatBold},
-		{formatPlain, FormatItalic, FormatItalic},
-		{formatPlain, FormatBoldItalic, FormatBoldItalic},
-		{formatPlain, FormatCode, FormatCode},
+		{FormatPlain, FormatPlain, FormatPlain},
+		{FormatPlain, FormatBold, FormatBold},
+		{FormatPlain, FormatItalic, FormatItalic},
+		{FormatPlain, FormatBoldItalic, FormatBoldItalic},
+		{FormatPlain, FormatCode, FormatCode},
 	}
 	for _, tc := range tests {
 		got := mergeFormat(tc.parent, tc.child)
@@ -42,7 +42,7 @@ func TestMergeFormatBoldCombinations(t *testing.T) {
 		t.Error("Bold+Bold should be Bold")
 	}
 	// Bold + Plain → Bold.
-	if mergeFormat(FormatBold, formatPlain) != FormatBold {
+	if mergeFormat(FormatBold, FormatPlain) != FormatBold {
 		t.Error("Bold+Plain should be Bold")
 	}
 }
@@ -64,7 +64,7 @@ func TestMergeFormatBoldItalicStays(t *testing.T) {
 	t.Parallel()
 	// BoldItalic + anything (except Code) → BoldItalic.
 	for _, child := range []Format{
-		formatPlain, FormatBold, FormatItalic, FormatBoldItalic,
+		FormatPlain, FormatBold, FormatItalic, FormatBoldItalic,
 	} {
 		if mergeFormat(FormatBoldItalic, child) != FormatBoldItalic {
 			t.Errorf("BoldItalic+%d should be BoldItalic", child)
@@ -76,7 +76,7 @@ func TestMergeFormatCodeWins(t *testing.T) {
 	t.Parallel()
 	// Code in either position wins.
 	for _, other := range []Format{
-		formatPlain, FormatBold, FormatItalic, FormatBoldItalic,
+		FormatPlain, FormatBold, FormatItalic, FormatBoldItalic,
 	} {
 		if mergeFormat(FormatCode, other) != FormatCode {
 			t.Errorf("Code+%d should be Code", other)
@@ -484,8 +484,8 @@ func TestReplaceAbbreviationsMultipleOccurrences(t *testing.T) {
 func TestMergeAdjacentRunsSameFormat(t *testing.T) {
 	t.Parallel()
 	runs := []Run{
-		{Text: "hello ", Format: formatPlain},
-		{Text: "world", Format: formatPlain},
+		{Text: "hello ", Format: FormatPlain},
+		{Text: "world", Format: FormatPlain},
 	}
 	result := mergeAdjacentRuns(runs)
 	if len(result) != 1 {
@@ -499,7 +499,7 @@ func TestMergeAdjacentRunsSameFormat(t *testing.T) {
 func TestMergeAdjacentRunsDifferentFormat(t *testing.T) {
 	t.Parallel()
 	runs := []Run{
-		{Text: "plain ", Format: formatPlain},
+		{Text: "plain ", Format: FormatPlain},
 		{Text: "bold", Format: FormatBold},
 	}
 	result := mergeAdjacentRuns(runs)
@@ -649,14 +649,14 @@ func TestRunsToTextBasic(t *testing.T) {
 		{Text: "hello "},
 		{Text: "world"},
 	}
-	if runsToText(runs) != "hello world" {
-		t.Errorf("RunsToText: %q", runsToText(runs))
+	if RunsToText(runs) != "hello world" {
+		t.Errorf("RunsToText: %q", RunsToText(runs))
 	}
 }
 
 func TestRunsToTextEmpty(t *testing.T) {
 	t.Parallel()
-	if runsToText(nil) != "" {
+	if RunsToText(nil) != "" {
 		t.Error("nil runs should return empty string")
 	}
 }

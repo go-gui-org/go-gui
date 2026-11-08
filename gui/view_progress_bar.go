@@ -98,7 +98,7 @@ func ProgressBar(cfg ProgressBarCfg) View {
 	// cap the track at its stated width unless the caller asked the
 	// widget itself to fill (then the bar fills with it, as before).
 	maxW := cfg.MaxWidth
-	if cfg.Vertical && cfg.Sizing.Width != sizingFill && maxW == 0 {
+	if cfg.Vertical && cfg.Sizing.Width != SizingFill && maxW == 0 {
 		maxW = w
 	}
 	track := Row(ContainerCfg{

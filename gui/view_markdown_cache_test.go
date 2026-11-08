@@ -99,7 +99,7 @@ func TestMarkdownCacheRebuildsOnStyleChange(t *testing.T) {
 
 	restyled := DefaultMarkdownStyle()
 	restyled.Text.Size = 22
-	restyled.linkColor = RGB(1, 2, 3)
+	restyled.LinkColor = RGB(1, 2, 3)
 	again := generateViewLayout(w.Markdown(MarkdownCfg{
 		ID: "md", Source: src, Style: restyled,
 	}), w)
@@ -146,7 +146,7 @@ func TestMarkdownCacheSeparatesHighlighters(t *testing.T) {
 	if len(kwRuns) == 0 || len(strRuns) == 0 {
 		t.Fatal("highlighted documents rendered no runs")
 	}
-	wantKW := kw.codeKeywordColor.String()
+	wantKW := kw.CodeKeywordColor.String()
 	foundKW := false
 	for _, r := range kwRuns {
 		if r[1] == wantKW {
@@ -156,7 +156,7 @@ func TestMarkdownCacheSeparatesHighlighters(t *testing.T) {
 	if !foundKW {
 		t.Errorf("keyword document has no %s run: %v", wantKW, kwRuns)
 	}
-	wantStr := str.codeStringColor.String()
+	wantStr := str.CodeStringColor.String()
 	foundStr := false
 	for _, r := range strRuns {
 		if r[1] == wantStr {
@@ -189,7 +189,7 @@ func mdRichMarkdownStyle() MarkdownStyle {
 		},
 	}
 	alt := RGB(1, 2, 3)
-	s.tableRowAlt = &alt
+	s.TableRowAlt = &alt
 	return s
 }
 

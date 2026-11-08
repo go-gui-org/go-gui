@@ -27,7 +27,7 @@ func TestInspectorBuildTreeNodes(t *testing.T) {
 				Spacing:   8,
 				Color:     Red,
 				Opacity:   0.5,
-				TC: &shapeTextConfig{
+				TC: &ShapeTextConfig{
 					Text: "hello world",
 				},
 				events: &eventHandlers{
@@ -505,7 +505,7 @@ func TestInspectorSelectIgnoresDummyAndEmpty(t *testing.T) {
 func TestInspectorSnapshotSanitizesPreview(t *testing.T) {
 	requireInspector(t)
 	layout := Layout{Shape: &Shape{
-		TC: &shapeTextConfig{Text: "a\nb\tc"},
+		TC: &ShapeTextConfig{Text: "a\nb\tc"},
 	}}
 	if got := inspectorSnapshotProps(&layout).TextPreview; got != "a⏎b c" {
 		t.Fatalf("TextPreview = %q, want %q", got, "a⏎b c")

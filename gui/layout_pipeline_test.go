@@ -505,7 +505,7 @@ func TestLayoutWrapPlainText(t *testing.T) {
 	shape := &Shape{
 		shapeType: shapeText,
 		Width:     100, // fits ~10 chars per line
-		TC: &shapeTextConfig{
+		TC: &ShapeTextConfig{
 			Text:      "hello world this wraps",
 			TextStyle: &style,
 			TextMode:  TextModeWrap,
@@ -632,7 +632,7 @@ func TestTooltipColumnMaxWidthConstrainsText(t *testing.T) {
 		Height:    20,
 		Sizing:    FillFit,
 		Opacity:   1,
-		TC: &shapeTextConfig{
+		TC: &ShapeTextConfig{
 			Text:      longText,
 			TextStyle: &style,
 			TextMode:  TextModeWrap,
@@ -805,7 +805,7 @@ func TestLayoutWrapRTF_RtfFlatText_SetOnCacheMiss(t *testing.T) {
 	shape := &Shape{
 		shapeType: shapeRTF,
 		Width:     200,
-		TC: &shapeTextConfig{
+		TC: &ShapeTextConfig{
 			TextMode: TextModeWrap,
 			rtf: &shapeRichText{
 				rTFRuns:      &rt,
@@ -831,7 +831,7 @@ func TestLayoutWrapRTF_RtfFlatText_NotOverwrittenOnCacheHit(t *testing.T) {
 	shape := &Shape{
 		shapeType: shapeRTF,
 		Width:     200,
-		TC: &shapeTextConfig{
+		TC: &ShapeTextConfig{
 			TextMode: TextModeWrap,
 			rtf: &shapeRichText{
 				rTFRuns:      &rt,
@@ -1033,7 +1033,7 @@ func TestWrapTextInRowKeepsFullWidth(t *testing.T) {
 // A float is placed by its anchor, not by the alignment of the
 // container it was declared in, so it keeps its box. #577
 func TestShrinkWrapToInkSkipsFloat(t *testing.T) {
-	tc := &shapeTextConfig{
+	tc := &ShapeTextConfig{
 		Text:              "wrap me",
 		TextMode:          TextModeWrap,
 		wrapSizingDefault: true,
@@ -1062,7 +1062,7 @@ func TestShrinkWrapToInkSkipsFloat(t *testing.T) {
 // a measurement of the text, so it never shrinks even when every other
 // gate would allow it. #577
 func TestShrinkWrapToInkSkipsOverflowScrollX(t *testing.T) {
-	tc := &shapeTextConfig{
+	tc := &ShapeTextConfig{
 		Text:              "wrap me",
 		TextMode:          TextModeWrap,
 		wrapSizingDefault: true,
@@ -1152,7 +1152,7 @@ func TestLayoutWrapRTFSkipsNilRichText(t *testing.T) {
 	shape := &Shape{
 		shapeType: shapeRTF,
 		Width:     200,
-		TC:        &shapeTextConfig{TextMode: TextModeWrap},
+		TC:        &ShapeTextConfig{TextMode: TextModeWrap},
 	}
 	layoutWrapRTF(shape, shape.TC, w)
 	if shape.TC.wrapCacheValid || shape.Height != 0 {
@@ -1174,7 +1174,7 @@ func TestLayoutWrapRTFSkipsNonFiniteWidth(t *testing.T) {
 	shape := &Shape{
 		shapeType: shapeRTF,
 		Width:     float32(math.NaN()),
-		TC: &shapeTextConfig{
+		TC: &ShapeTextConfig{
 			TextMode: TextModeWrap,
 			rtf: &shapeRichText{
 				rTFRuns: &rt,

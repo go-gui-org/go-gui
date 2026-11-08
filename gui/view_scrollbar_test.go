@@ -195,7 +195,7 @@ func TestScrollbarMouseMoveVertical(t *testing.T) {
 	}
 
 	e := &Event{MouseY: 50, MouseDY: 5}
-	scrollbarMouseMove(scrollbarVertical, "6", &root, e, w, 0)
+	scrollbarMouseMove(ScrollbarVertical, "6", &root, e, w, 0)
 	sy := w.scrollY()
 	v, _ := sy.Get("6")
 	// ratio=400/100=4, newOffset=5*4=20, offset=0-20=-20
@@ -225,7 +225,7 @@ func TestScrollbarMouseMoveHorizontal(t *testing.T) {
 	}
 
 	e := &Event{MouseX: 50, MouseDX: 10}
-	scrollbarMouseMove(scrollbarHorizontal, "7", &root, e, w, 0)
+	scrollbarMouseMove(ScrollbarHorizontal, "7", &root, e, w, 0)
 	sx := w.scrollX()
 	v, _ := sx.Get("7")
 	// ratio=300/100=3, newOffset=10*3=30, offset=0-30=-30
@@ -238,7 +238,7 @@ func TestThumbOnClickLocksAndUnlocks(t *testing.T) {
 	w := &Window{}
 	e := &Event{}
 	handler := makeScrollbarOnMouseDown(ScrollbarCfg{
-		Orientation: scrollbarVertical,
+		Orientation: ScrollbarVertical,
 		ID:          "1",
 		scrollID:    "1",
 	})
@@ -344,7 +344,7 @@ func TestGutterClickSetsOffsetAndLocks(t *testing.T) {
 
 	e := &Event{MouseY: 50}
 	handler := makeScrollbarGutterClick(ScrollbarCfg{
-		Orientation: scrollbarVertical,
+		Orientation: ScrollbarVertical,
 		ID:          "8",
 		scrollID:    "8",
 	})
@@ -368,7 +368,7 @@ func TestGutterClickSetsOffsetAndLocks(t *testing.T) {
 // scrollbar override and returns the resolved track X.
 func scrollbarTrackX(t *testing.T, override *ScrollbarCfg) float32 {
 	t.Helper()
-	track, _ := scrollbarTrackV(t, override, textDirAuto)
+	track, _ := scrollbarTrackV(t, override, TextDirAuto)
 	return track.Shape.X
 }
 

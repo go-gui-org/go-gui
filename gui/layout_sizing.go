@@ -47,7 +47,7 @@ func getMaxSize(shape *Shape, axis distributeAxis) float32 {
 	return shape.MaxHeight
 }
 
-func getSizing(shape *Shape, axis distributeAxis) sizingType {
+func getSizing(shape *Shape, axis distributeAxis) SizingType {
 	if axis == distributeHorizontal {
 		return shape.Sizing.Width
 	}
@@ -80,7 +80,7 @@ func mainAxisOf(ax distributeAxis) Axis {
 	return axisTopToBottom
 }
 
-func scrollExcludesAxis(mode scrollMode, axis distributeAxis) bool {
+func scrollExcludesAxis(mode ScrollMode, axis distributeAxis) bool {
 	if axis == distributeHorizontal {
 		return mode == ScrollVerticalOnly
 	}
@@ -95,7 +95,7 @@ func scrollExcludesAxis(mode scrollMode, axis distributeAxis) bool {
 // had nothing to scroll sideways (issue #584). An axis the ScrollMode
 // excludes keeps its floor, because that axis cannot reveal hidden content.
 func scrollFillResetMin(shape *Shape, axis distributeAxis) {
-	if !shape.Scrollable || getSizing(shape, axis) != sizingFill ||
+	if !shape.Scrollable || getSizing(shape, axis) != SizingFill ||
 		scrollExcludesAxis(shape.ScrollMode, axis) {
 		return
 	}
@@ -175,7 +175,7 @@ func clampMinMax(shape *Shape, axis distributeAxis) {
 // containers to fit parent's remaining space, clamps to min/max, and
 // propagates fill size to children.
 func layoutFillCrossAxis(layout *Layout, axis distributeAxis, fb *fillBuffers) {
-	if layout.Shape.Scrollable && getSizing(layout.Shape, axis) == sizingFill &&
+	if layout.Shape.Scrollable && getSizing(layout.Shape, axis) == SizingFill &&
 		!scrollExcludesAxis(layout.Shape.ScrollMode, axis) &&
 		layout.Parent != nil && layout.Parent.Shape.Axis == mainAxisOf(axis) {
 		// Use cached sibling sum from parent Shape to avoid O(n²)
@@ -229,7 +229,7 @@ func layoutFillCrossAxis(layout *Layout, axis distributeAxis, fb *fillBuffers) {
 	clampMinMax(layout.Shape, axis)
 	remaining := getSize(layout.Shape, axis) - getPadding(layout.Shape, axis)
 	for i := range layout.Children {
-		if getSizing(layout.Children[i].Shape, axis) == sizingFill {
+		if getSizing(layout.Children[i].Shape, axis) == SizingFill {
 			setSize(layout.Children[i].Shape, axis, remaining)
 			clampMinMax(layout.Children[i].Shape, axis)
 		}
@@ -254,7 +254,7 @@ func layoutWidthsDepth(layout *Layout, depth int) {
 		// therefore the hit-test and clip region — of every descendant
 		// (see issue #94). Content sizing keeps bounds enclosing the
 		// children. Childless boxes still resolve to 0, unchanged.
-		if layout.Shape.Sizing.Width == sizingFixed && layout.Shape.Width > 0 {
+		if layout.Shape.Sizing.Width == SizingFixed && layout.Shape.Width > 0 {
 			for i := range layout.Children {
 				layoutWidthsDepth(&layout.Children[i], depth+1)
 			}
@@ -304,7 +304,7 @@ func layoutWidthsDepth(layout *Layout, depth int) {
 		// Fixed cross-axis with a 0 size degrades to content sizing
 		// (see the AxisLeftToRight note above / issue #94). Captured
 		// before the loop mutates Width, so it stays stable per child.
-		fitWidth := layout.Shape.Sizing.Width != sizingFixed || layout.Shape.Width == 0
+		fitWidth := layout.Shape.Sizing.Width != SizingFixed || layout.Shape.Width == 0
 		// Padding is seeded rather than reaching the container only as
 		// part of some child's contribution below, so that skipping an
 		// out-of-flow child cannot also discard the container's own
@@ -388,7 +388,7 @@ func layoutHeightsDepth(layout *Layout, depth int) {
 		// Fixed with an explicit 0 height degrades to content sizing
 		// (see layoutWidths / issue #94): a zero-height Fixed box would
 		// otherwise collapse every descendant's clip/hit-test region.
-		if layout.Shape.Sizing.Height == sizingFixed && layout.Shape.Height > 0 {
+		if layout.Shape.Sizing.Height == SizingFixed && layout.Shape.Height > 0 {
 			for i := range layout.Children {
 				layoutHeightsDepth(&layout.Children[i], depth+1)
 			}
@@ -428,7 +428,7 @@ func layoutHeightsDepth(layout *Layout, depth int) {
 		//
 		// Fixed cross-axis with a 0 height degrades to content sizing
 		// (see issue #94). Captured before the loop mutates Height.
-		fitHeight := layout.Shape.Sizing.Height != sizingFixed || layout.Shape.Height == 0
+		fitHeight := layout.Shape.Sizing.Height != SizingFixed || layout.Shape.Height == 0
 		// See layoutWidths: seeded so skipping an out-of-flow child cannot
 		// discard the container's padding, and gated on having children so
 		// a childless container still collapses to 0.
@@ -489,9 +489,9 @@ func axisNoneMeasuresChildren(s *Shape) bool {
 // the window sizes keeps the space it is given, as before.
 func axisNoneFitsContent(layout *Layout, axis distributeAxis) bool {
 	switch getSizing(layout.Shape, axis) {
-	case sizingFit:
+	case SizingFit:
 		return true
-	case sizingFill:
+	case SizingFill:
 		p := layout.Parent
 		return p != nil && p.Shape != nil && p.Shape.Axis == axisNone
 	}

@@ -53,7 +53,7 @@ func renderToPDF(renderers []RenderCmd, job PrintJob,
 		return errors.New("output_path is required")
 	}
 
-	pageW, pageH := printPageSize(job.Paper, job.Orientation)
+	pageW, pageH := PrintPageSize(job.Paper, job.Orientation)
 	m := job.Margins
 
 	printableW := (pageW - m.Left - m.Right) * ptToMM
@@ -580,7 +580,7 @@ func renderHeaderFooter(pdf *fpdf.Fpdf, tr func(string) string,
 	if isHeader {
 		yPt = m.Top * 0.5 // center in top margin
 	} else {
-		_, pageH := printPageSize(job.Paper, job.Orientation)
+		_, pageH := PrintPageSize(job.Paper, job.Orientation)
 		yPt = pageH - m.Bottom*0.5
 	}
 	y := float64(yPt * ptToMM)

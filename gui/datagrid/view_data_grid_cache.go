@@ -138,7 +138,7 @@ func dataGridPresentationValueCols(groupCols []string, aggregates []GridAggregat
 		cols = append(cols, colID)
 	}
 	for _, agg := range aggregates {
-		if agg.Op == gridAggregateCount || agg.ColID == "" || seen[agg.ColID] {
+		if agg.Op == GridAggregateCount || agg.ColID == "" || seen[agg.ColID] {
 			continue
 		}
 		seen[agg.ColID] = true
@@ -341,7 +341,7 @@ func dataGridAggregateLabel(agg GridAggregateCfg) string {
 	if agg.Label != "" {
 		return agg.Label
 	}
-	if agg.Op == gridAggregateCount {
+	if agg.Op == GridAggregateCount {
 		return "count"
 	}
 	if agg.ColID == "" {
@@ -353,7 +353,7 @@ func dataGridAggregateLabel(agg GridAggregateCfg) string {
 // dataGridAggregateValue aggregates agg over rows[indices]. Callers
 // check that every index is in range.
 func dataGridAggregateValue(rows []GridRow, indices []int, agg GridAggregateCfg) (string, bool) {
-	if agg.Op == gridAggregateCount {
+	if agg.Op == GridAggregateCount {
 		return strconv.Itoa(len(indices)), true
 	}
 	if agg.ColID == "" {
@@ -373,21 +373,21 @@ func dataGridAggregateValue(rows []GridRow, indices []int, agg GridAggregateCfg)
 	}
 	var result float64
 	switch agg.Op {
-	case gridAggregateSum, gridAggregateAvg:
+	case GridAggregateSum, GridAggregateAvg:
 		for _, v := range values {
 			result += v
 		}
-		if agg.Op == gridAggregateAvg {
+		if agg.Op == GridAggregateAvg {
 			result /= float64(len(values))
 		}
-	case gridAggregateMin:
+	case GridAggregateMin:
 		result = values[0]
 		for _, v := range values[1:] {
 			if v < result {
 				result = v
 			}
 		}
-	case gridAggregateMax:
+	case GridAggregateMax:
 		result = values[0]
 		for _, v := range values[1:] {
 			if v > result {

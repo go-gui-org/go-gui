@@ -1,6 +1,7 @@
 // Exportaudit classifies every exported identifier in gui/ by who
 // references it: sibling repos (consumers), go-gui's own examples, the
-// external test package, other gui/ packages, or nothing at all. Its
+// external test package, other gui/ packages, the package's own exported
+// surface by type (reach, see reach.go), or nothing at all. Its
 // purpose is the v1.0 API freeze: an export referenced only from inside
 // gui/ is an internal helper wearing a public name, and becomes a
 // compatibility promise the moment a release ships. The sweep deletes or
@@ -82,12 +83,13 @@ const (
 	classSelf     class = 0
 	classSelfTest class = 1
 	classInternal class = 2
-	classTestExt  class = 3
-	classExample  class = 4
-	classConsumer class = 5
+	classReach    class = 3 // reachable by type from the package's own exported surface (reach.go)
+	classTestExt  class = 4
+	classExample  class = 5
+	classConsumer class = 6
 )
 
-var className = [...]string{"none", "self", "selftest", "internal", "testext", "example", "consumer"}
+var className = [...]string{"none", "self", "selftest", "internal", "reach", "testext", "example", "consumer"}
 
 type export struct {
 	pkgPath string
@@ -153,6 +155,10 @@ func main() {
 	}
 
 	if err := scanUsage(rootAbs, consumers, pkgs, exports); err != nil {
+		fmt.Fprintln(os.Stderr, "exportaudit:", err)
+		os.Exit(1)
+	}
+	if err := markReachable(pkgs, exports); err != nil {
 		fmt.Fprintln(os.Stderr, "exportaudit:", err)
 		os.Exit(1)
 	}

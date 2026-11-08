@@ -240,11 +240,11 @@ func dataGridHandleSelectAllShortcut(kc dataGridKeydownContext, e *gg.Event, w *
 		selected[dataGridRowID(rowData, rowIdx)] = true
 	}
 	nextSelection := GridSelection{
-		anchorRowID:    dataGridRowID(kc.rows[0], 0),
-		activeRowID:    dataGridRowID(kc.rows[len(kc.rows)-1], len(kc.rows)-1),
+		AnchorRowID:    dataGridRowID(kc.rows[0], 0),
+		ActiveRowID:    dataGridRowID(kc.rows[len(kc.rows)-1], len(kc.rows)-1),
 		SelectedRowIDs: selected,
 	}
-	dataGridSetAnchor(kc.gridID, nextSelection.anchorRowID, w)
+	dataGridSetAnchor(kc.gridID, nextSelection.AnchorRowID, w)
 	if kc.onSelectionChange != nil {
 		kc.onSelectionChange(nextSelection, gg.EventCtx{Layout: nil, Event: e, Window: w})
 	}

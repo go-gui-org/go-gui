@@ -26,7 +26,7 @@ type scrollbarLookView struct {
 
 func (v scrollbarLookView) GenerateLayout(w *Window) Layout {
 	cfg := v.cfg
-	vertical := cfg.Orientation != scrollbarHorizontal
+	vertical := cfg.Orientation != ScrollbarHorizontal
 	if cfg.ID == "" {
 		cfg.ID = "scrollbar-x"
 		if vertical {
@@ -124,7 +124,7 @@ func scrollbarAmendLayoutLook(cfg ScrollbarCfg, ctx EventCtx, thumbAt, trackAt i
 		// A hook view paints its own colors, so hide the whole subtree
 		// instead. In hover-only mode the pointer brings it back.
 		hidden := thumb.Shape.Color == ColorTransparent &&
-			(cfg.Overflow != scrollbarOnHover || !hovered)
+			(cfg.Overflow != ScrollbarOnHover || !hovered)
 		if hidden {
 			thumb.Shape.shapeType = shapeNone
 			thumb.Shape.Width, thumb.Shape.Height = 0, 0

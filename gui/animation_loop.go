@@ -367,7 +367,7 @@ func (w *Window) pulseAnimationFrame() {
 func (w *Window) animationTick(ac *AnimationCommands, stoppedIDs *[]string, dt float32) bool {
 	deferred := ac.inner
 	occluded := w.occluded.Load()
-	refreshKind := animationRefreshNone
+	refreshKind := AnimationRefreshNone
 	*deferred = (*deferred)[:0]
 	*stoppedIDs = (*stoppedIDs)[:0]
 
@@ -407,7 +407,7 @@ func (w *Window) animationTick(ac *AnimationCommands, stoppedIDs *[]string, dt f
 	if occluded {
 		// Show marks a full refresh (DispatchWindowOccluded), which covers
 		// every refresh a hidden tick would have asked for.
-		refreshKind = animationRefreshNone
+		refreshKind = AnimationRefreshNone
 	}
 	switch refreshKind {
 	case AnimationRefreshRenderOnly:

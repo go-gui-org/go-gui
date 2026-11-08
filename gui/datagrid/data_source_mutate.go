@@ -71,7 +71,7 @@ func zeroPadHex16(v uint64) string {
 	return s
 }
 
-func gridHashFilter(h uint64, f gridFilter) uint64 {
+func gridHashFilter(h uint64, f GridFilter) uint64 {
 	hash := gg.Fnv64Byte(h, 0x1e)
 	hash = gg.Fnv64Str(hash, f.ColID)
 	hash = gg.Fnv64Byte(hash, 0x1f)
@@ -88,16 +88,16 @@ type gridMutationApplyResult struct {
 }
 
 func dataGridSourceApplyMutation(
-	rows *[]GridRow, kind gridMutationKind,
+	rows *[]GridRow, kind GridMutationKind,
 	reqRows []GridRow, reqRowIDs []string,
 	edits []GridCellEdit,
 ) (gridMutationApplyResult, error) {
 	switch kind {
-	case gridMutationCreate:
+	case GridMutationCreate:
 		return dataGridSourceApplyCreate(rows, reqRows)
-	case gridMutationUpdate:
+	case GridMutationUpdate:
 		return dataGridSourceApplyUpdate(rows, reqRows, edits)
-	case gridMutationDelete:
+	case GridMutationDelete:
 		return dataGridSourceApplyDelete(rows, reqRows, reqRowIDs)
 	}
 	return gridMutationApplyResult{}, errors.New(

@@ -199,7 +199,7 @@ func (w *mdWalker) walkParagraph(node ast.Node) {
 func (w *mdWalker) walkHeading(h *ast.Heading) {
 	runs := w.collectRuns(h, inlineState{})
 	runs = trimTrailingBreaks(runs)
-	slug := headingSlug(runsToText(runs))
+	slug := HeadingSlug(RunsToText(runs))
 	w.blocks = append(w.blocks, Block{
 		HeaderLevel: h.Level,
 		AnchorSlug:  slug,

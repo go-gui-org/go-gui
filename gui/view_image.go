@@ -110,7 +110,7 @@ func (iv *imageView) GenerateLayout(w *Window) Layout {
 	// (used by WASM for embedded image assets). mem: sources name a
 	// buffer in the in-memory registry, so there is no path to stat.
 	if c.Surface == nil && !isDataURL(c.Src) && !isMemImage(c.Src) {
-		if err := validateImagePath(imagePath); err != nil {
+		if err := ValidateImagePath(imagePath); err != nil {
 			warnImageOnce(w, c.Src, err)
 			return errorTextLayout(c.Src, w)
 		}

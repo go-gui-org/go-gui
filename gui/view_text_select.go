@@ -410,7 +410,7 @@ func textOnKeyDown(ctx EventCtx) {
 func textKeyVertical(
 	imap *BoundedMap[string, inputState], id string, is inputState,
 	text string, pos int, isShift bool,
-	savedOffset float32, up bool, mode textMode,
+	savedOffset float32, up bool, mode TextMode,
 	gl glyph.Layout, glOK bool,
 ) bool {
 	if mode == TextModeSingleLine {

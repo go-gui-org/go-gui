@@ -20,7 +20,7 @@ func dataGridCommitCellEdit(gridID string, crudEnabled bool, onCellEdit func(Gri
 	}
 	dataGridCrudApplyCellEdit(gridID, crudEnabled, onCellEdit, GridCellEdit{
 		RowID:  rowID,
-		rowIdx: rowIdx,
+		RowIdx: rowIdx,
 		ColID:  colID,
 		Value:  value,
 	}, e, w)

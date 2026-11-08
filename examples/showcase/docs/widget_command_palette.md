@@ -19,12 +19,15 @@ gui.CommandPaletteToggle("cmd", w)
 
 ## API
 
-| Function                    | Description       |
-| --------------------------- | ----------------- |
-| CommandPaletteToggle(id, w) | Toggle visibility |
+| Function                       | Description                 |
+| ------------------------------ | --------------------------- |
+| CommandPaletteToggle(id, w)    | Toggle visibility           |
+| CommandPaletteShow(id, w)      | Open the palette            |
+| CommandPaletteDismiss(id, w)   | Close the palette           |
+| CommandPaletteIsVisible(id, w) | Whether the palette is open |
 
-Show, dismiss and visibility read are unexported; `Toggle` is the only public
-control.
+`id` is the palette's `ID`. A menu item or shortcut that opens the palette calls
+`Show`; `Toggle` flips whatever state it finds.
 
 ## Key Properties
 

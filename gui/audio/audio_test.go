@@ -150,7 +150,7 @@ func TestSoundFreeEmptyReceiver(t *testing.T) {
 
 func TestSoundSetVolumeNilReceiver(t *testing.T) {
 	var s *Sound
-	s.setVolume(0.5)
+	s.SetVolume(0.5)
 }
 
 func TestSoundVolumeNilReceiver(t *testing.T) {
@@ -161,7 +161,7 @@ func TestSoundVolumeNilReceiver(t *testing.T) {
 }
 
 func TestQuitBeforeInit(t *testing.T) {
-	quit()
+	Quit()
 }
 
 // ---------------------------------------------------------------------------
@@ -173,7 +173,7 @@ func TestInitQuit(t *testing.T) {
 	if err != nil {
 		t.Skipf("audio init unavailable (expected in headless): %v", err)
 	}
-	quit()
+	Quit()
 	if initialized {
 		t.Error("expected initialized=false after Quit")
 	}
@@ -184,7 +184,7 @@ func TestInitIdempotent(t *testing.T) {
 	if err != nil {
 		t.Skipf("audio init unavailable: %v", err)
 	}
-	defer quit()
+	defer Quit()
 
 	if err := Init(); err != nil {
 		t.Errorf("second Init returned error: %v", err)
@@ -200,7 +200,7 @@ func TestInitCustomCfg(t *testing.T) {
 	if err != nil {
 		t.Skipf("audio init with custom cfg unavailable: %v", err)
 	}
-	quit()
+	Quit()
 }
 
 func TestMultipleQuit(t *testing.T) {
@@ -208,8 +208,8 @@ func TestMultipleQuit(t *testing.T) {
 	if err != nil {
 		t.Skipf("audio init unavailable: %v", err)
 	}
-	quit()
-	quit()
+	Quit()
+	Quit()
 	if initialized {
 		t.Error("expected initialized=false after second Quit")
 	}
@@ -224,7 +224,7 @@ func TestMasterVolumeRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Skipf("audio init unavailable: %v", err)
 	}
-	defer quit()
+	defer Quit()
 
 	orig := MasterVolume()
 	defer SetMasterVolume(orig)
@@ -245,15 +245,15 @@ func TestMusicVolumeRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Skipf("audio init unavailable: %v", err)
 	}
-	defer quit()
+	defer Quit()
 
-	orig := musicVolume()
-	defer setMusicVolume(orig)
+	orig := MusicVolume()
+	defer SetMusicVolume(orig)
 
 	for _, v := range []float64{0, 0.25, 0.5, 0.75, 1} {
 		t.Run(fmt.Sprintf("set_%.2f", v), func(t *testing.T) {
-			setMusicVolume(v)
-			got := musicVolume()
+			SetMusicVolume(v)
+			got := MusicVolume()
 			if math.Abs(got-v) > 0.01 {
 				t.Errorf("MusicVolume after setting %v = %v", v, got)
 			}
@@ -270,7 +270,7 @@ func TestLoadMusicErrors(t *testing.T) {
 	if err != nil {
 		t.Skipf("audio init unavailable: %v", err)
 	}
-	defer quit()
+	defer Quit()
 
 	_, err = LoadMusic("")
 	if err == nil {
@@ -288,14 +288,14 @@ func TestLoadSoundErrors(t *testing.T) {
 	if err != nil {
 		t.Skipf("audio init unavailable: %v", err)
 	}
-	defer quit()
+	defer Quit()
 
-	_, err = loadSound("")
+	_, err = LoadSound("")
 	if err == nil {
 		t.Error("expected error for empty path")
 	}
 
-	_, err = loadSound("/nonexistent/file.wav")
+	_, err = LoadSound("/nonexistent/file.wav")
 	if err == nil {
 		t.Error("expected error for nonexistent file path")
 	}
@@ -306,7 +306,7 @@ func TestLoadSoundBytesErrors(t *testing.T) {
 	if err != nil {
 		t.Skipf("audio init unavailable: %v", err)
 	}
-	defer quit()
+	defer Quit()
 
 	_, err = LoadSoundBytes(nil)
 	if err == nil {
@@ -333,7 +333,7 @@ func TestLoadSoundBytesSuccess(t *testing.T) {
 	if err != nil {
 		t.Skipf("audio init unavailable: %v", err)
 	}
-	defer quit()
+	defer Quit()
 
 	s, err := LoadSoundBytes(wavSilence)
 	if err != nil {
@@ -351,7 +351,7 @@ func TestSoundVolumeRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Skipf("audio init unavailable: %v", err)
 	}
-	defer quit()
+	defer Quit()
 
 	s, err := LoadSoundBytes(wavSilence)
 	if err != nil {
@@ -360,11 +360,11 @@ func TestSoundVolumeRoundTrip(t *testing.T) {
 	defer s.Free()
 
 	orig := s.Volume()
-	defer s.setVolume(orig)
+	defer s.SetVolume(orig)
 
 	for _, v := range []float64{0, 0.25, 0.5, 0.75, 1} {
 		t.Run(fmt.Sprintf("set_%.2f", v), func(t *testing.T) {
-			s.setVolume(v)
+			s.SetVolume(v)
 			got := s.Volume()
 			if math.Abs(got-v) > 0.01 {
 				t.Errorf("Sound volume set=%v, got=%v", v, got)
@@ -378,7 +378,7 @@ func TestSoundFreeLoaded(t *testing.T) {
 	if err != nil {
 		t.Skipf("audio init unavailable: %v", err)
 	}
-	defer quit()
+	defer Quit()
 
 	s, err := LoadSoundBytes(wavSilence)
 	if err != nil {
@@ -397,7 +397,7 @@ func TestLoadMusicFromFile(t *testing.T) {
 	if err != nil {
 		t.Skipf("audio init unavailable: %v", err)
 	}
-	defer quit()
+	defer Quit()
 
 	tmp := t.TempDir()
 	path := filepath.Join(tmp, "silence.wav")
@@ -422,7 +422,7 @@ func TestLoadSoundFromFile(t *testing.T) {
 	if err != nil {
 		t.Skipf("audio init unavailable: %v", err)
 	}
-	defer quit()
+	defer Quit()
 
 	tmp := t.TempDir()
 	path := filepath.Join(tmp, "silence.wav")
@@ -430,7 +430,7 @@ func TestLoadSoundFromFile(t *testing.T) {
 		t.Skipf("cannot write temp WAV: %v", err)
 	}
 
-	s, err := loadSound(path)
+	s, err := LoadSound(path)
 	if err != nil {
 		t.Skipf("LoadSound from temp WAV failed: %v", err)
 	}
@@ -450,15 +450,15 @@ func TestMusicGlobalControls(t *testing.T) {
 	if err != nil {
 		t.Skipf("audio init unavailable: %v", err)
 	}
-	defer quit()
+	defer Quit()
 
 	HaltMusic()
 	FadeOutMusic(0)
-	pauseMusic()
-	resumeMusic()
-	rewindMusic()
-	_ = isMusicPlaying()
-	_ = isMusicPaused()
+	PauseMusic()
+	ResumeMusic()
+	RewindMusic()
+	_ = IsMusicPlaying()
+	_ = IsMusicPaused()
 }
 
 func TestSoundChannelControls(t *testing.T) {
@@ -466,12 +466,12 @@ func TestSoundChannelControls(t *testing.T) {
 	if err != nil {
 		t.Skipf("audio init unavailable: %v", err)
 	}
-	defer quit()
+	defer Quit()
 
 	HaltChannel(-1)
-	fadeOutChannel(-1, 0)
-	pauseChannel(-1)
-	resumeChannel(-1)
+	FadeOutChannel(-1, 0)
+	PauseChannel(-1)
+	ResumeChannel(-1)
 	_ = IsPlaying(-1)
 }
 
@@ -484,7 +484,7 @@ func TestSoundPlayOnce(t *testing.T) {
 	if err != nil {
 		t.Skipf("audio init unavailable: %v", err)
 	}
-	defer quit()
+	defer Quit()
 
 	s, err := LoadSoundBytes(wavSilence)
 	if err != nil {
@@ -506,7 +506,7 @@ func TestSoundFadeIn(t *testing.T) {
 	if err != nil {
 		t.Skipf("audio init unavailable: %v", err)
 	}
-	defer quit()
+	defer Quit()
 
 	s, err := LoadSoundBytes(wavSilence)
 	if err != nil {
@@ -541,7 +541,7 @@ func TestPlaySourceSmoke(t *testing.T) {
 	if err != nil {
 		t.Skipf("audio init unavailable: %v", err)
 	}
-	defer quit()
+	defer Quit()
 
 	if err := PlaySource(0, &testSource{}); err != nil {
 		t.Fatalf("PlaySource returned error: %v", err)
@@ -560,7 +560,7 @@ func TestPlaySourceErrors(t *testing.T) {
 	if err != nil {
 		t.Skipf("audio init unavailable: %v", err)
 	}
-	defer quit()
+	defer Quit()
 
 	if err := PlaySource(0, nil); err == nil {
 		t.Error("PlaySource(nil source) = nil error, want error")
@@ -594,7 +594,7 @@ func TestPlaySourceSourceEnd(t *testing.T) {
 	if err != nil {
 		t.Skipf("audio init unavailable: %v", err)
 	}
-	defer quit()
+	defer Quit()
 
 	if err := PlaySource(0, &endingSource{}); err != nil {
 		t.Fatalf("PlaySource returned error: %v", err)
@@ -619,7 +619,7 @@ func TestSampleRateDefault(t *testing.T) {
 	if err != nil {
 		t.Skipf("audio init unavailable: %v", err)
 	}
-	defer quit()
+	defer Quit()
 
 	if got := SampleRate(); got != 44100 {
 		t.Errorf("SampleRate() = %d, want default 44100", got)
@@ -631,7 +631,7 @@ func TestMusicPlay(t *testing.T) {
 	if err != nil {
 		t.Skipf("audio init unavailable: %v", err)
 	}
-	defer quit()
+	defer Quit()
 
 	tmp := t.TempDir()
 	path := filepath.Join(tmp, "silence.wav")
@@ -655,7 +655,7 @@ func TestMusicFadeOut(t *testing.T) {
 	if err != nil {
 		t.Skipf("audio init unavailable: %v", err)
 	}
-	defer quit()
+	defer Quit()
 
 	tmp := t.TempDir()
 	path := filepath.Join(tmp, "silence.wav")
@@ -720,42 +720,42 @@ func TestSoundPlayOnceNilReceiver(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestInitInvalidFreq(t *testing.T) {
-	_ = quit // ensure not initialized
+	_ = Quit // ensure not initialized
 	if initialized {
-		quit()
+		Quit()
 	}
 	err := Init(Cfg{Frequency: 100})
 	if err == nil {
-		quit()
+		Quit()
 		t.Error("expected error for frequency 100 Hz")
 	}
 	err = Init(Cfg{Frequency: 300000})
 	if err == nil {
-		quit()
+		Quit()
 		t.Error("expected error for frequency 300000 Hz")
 	}
 }
 
 func TestInitInvalidChunkSize(t *testing.T) {
 	if initialized {
-		quit()
+		Quit()
 	}
 	err := Init(Cfg{ChunkSize: 8})
 	if err == nil {
-		quit()
+		Quit()
 		t.Error("expected error for chunk size 8")
 	}
 }
 
 func TestInitInvalidMixChannels(t *testing.T) {
 	if initialized {
-		quit()
+		Quit()
 	}
 	// 0 is the "use default" sentinel (like Frequency/ChunkSize); use an
 	// out-of-range non-zero value to exercise the validation bound.
 	err := Init(Cfg{MixChannels: 300})
 	if err == nil {
-		quit()
+		Quit()
 		t.Fatal("expected error for mix channels 300")
 	}
 	// Assert on the message: without a sound server Init also fails at
@@ -774,7 +774,7 @@ func TestSoundFadeInZeroMs(t *testing.T) {
 	if err != nil {
 		t.Skipf("audio init unavailable: %v", err)
 	}
-	defer quit()
+	defer Quit()
 
 	s, err := LoadSoundBytes(wavSilence)
 	if err != nil {
@@ -796,7 +796,7 @@ func TestFadeOutMusicZeroMs(t *testing.T) {
 	if err != nil {
 		t.Skipf("audio init unavailable: %v", err)
 	}
-	defer quit()
+	defer Quit()
 
 	tmp := t.TempDir()
 	path := filepath.Join(tmp, "silence.wav")
@@ -826,7 +826,7 @@ func TestMusicFadeIn(t *testing.T) {
 	if err != nil {
 		t.Skipf("audio init unavailable: %v", err)
 	}
-	defer quit()
+	defer Quit()
 
 	tmp := t.TempDir()
 	path := filepath.Join(tmp, "silence.wav")
@@ -854,7 +854,7 @@ func TestSoundPlayLoopForever(t *testing.T) {
 	if err != nil {
 		t.Skipf("audio init unavailable: %v", err)
 	}
-	defer quit()
+	defer Quit()
 
 	s, err := LoadSoundBytes(wavSilence)
 	if err != nil {
@@ -876,7 +876,7 @@ func TestSoundPlayLoopOnce(t *testing.T) {
 	if err != nil {
 		t.Skipf("audio init unavailable: %v", err)
 	}
-	defer quit()
+	defer Quit()
 
 	s, err := LoadSoundBytes(wavSilence)
 	if err != nil {
@@ -902,7 +902,7 @@ func TestMusicPlayLoopForever(t *testing.T) {
 	if err != nil {
 		t.Skipf("audio init unavailable: %v", err)
 	}
-	defer quit()
+	defer Quit()
 
 	tmp := t.TempDir()
 	path := filepath.Join(tmp, "silence.wav")
@@ -1007,7 +1007,7 @@ func TestLoadSoundBytesResamples(t *testing.T) {
 	if err := Init(); err != nil {
 		t.Skipf("audio init unavailable: %v", err)
 	}
-	defer quit()
+	defer Quit()
 
 	snd, err := LoadSoundBytes(wavSilence)
 	if err != nil {
@@ -1035,7 +1035,7 @@ func TestSoundPlayResampled(t *testing.T) {
 	if err := Init(); err != nil {
 		t.Skipf("audio init unavailable: %v", err)
 	}
-	defer quit()
+	defer Quit()
 
 	snd, err := LoadSoundBytes(wavSilence)
 	if err != nil {
@@ -1059,7 +1059,7 @@ func TestMusicPlayResampled(t *testing.T) {
 	if err := Init(); err != nil {
 		t.Skipf("audio init unavailable: %v", err)
 	}
-	defer quit()
+	defer Quit()
 
 	path := filepath.Join(t.TempDir(), "silence.wav")
 	if err := os.WriteFile(path, wavSilence, 0644); err != nil {
@@ -1078,7 +1078,7 @@ func TestMusicPlayResampled(t *testing.T) {
 	if err := m.Play(-1); err != nil {
 		t.Fatalf("Play returned error: %v", err)
 	}
-	if !isMusicPlaying() {
+	if !IsMusicPlaying() {
 		t.Error("music not playing after Play")
 	}
 	HaltMusic()
@@ -1171,7 +1171,7 @@ func TestRewindMusicReachesDecoder(t *testing.T) {
 	if err := Init(); err != nil {
 		t.Skipf("audio init unavailable: %v", err)
 	}
-	defer quit()
+	defer Quit()
 
 	path := filepath.Join(t.TempDir(), "silence.wav")
 	if err := os.WriteFile(path, wavSilence, 0644); err != nil {
@@ -1200,7 +1200,7 @@ func TestRewindMusicReachesDecoder(t *testing.T) {
 	if bb.music.rewind.Load() == nil {
 		t.Fatal("playing music left no rewind handle; RewindMusic is a no-op")
 	}
-	rewindMusic()
+	RewindMusic()
 	if !bb.music.rewind.Load().pending.Load() {
 		t.Error("rewindMusic did not mark a pending seek")
 	}
@@ -1217,7 +1217,7 @@ func TestLoadMusicBytes(t *testing.T) {
 	if err := Init(); err != nil {
 		t.Skipf("audio init unavailable: %v", err)
 	}
-	defer quit()
+	defer Quit()
 
 	m, err := LoadMusicBytes(wavSilence)
 	if err != nil {
@@ -1232,7 +1232,7 @@ func TestLoadMusicBytes(t *testing.T) {
 	if err := m.Play(-1); err != nil {
 		t.Fatalf("Play returned error: %v", err)
 	}
-	if !isMusicPlaying() {
+	if !IsMusicPlaying() {
 		t.Error("music not playing after Play")
 	}
 	HaltMusic()
@@ -1280,7 +1280,7 @@ func TestPlaySourceOutOfRangeMessage(t *testing.T) {
 	if err := Init(); err != nil {
 		t.Skipf("audio init unavailable: %v", err)
 	}
-	defer quit()
+	defer Quit()
 
 	bb, ok := backend.(*beepBackend)
 	if !ok {

@@ -30,7 +30,7 @@ func TestMarkdownH1(t *testing.T) {
 	if blocks[0].HeaderLevel != 1 {
 		t.Fatalf("header level: got %d", blocks[0].HeaderLevel)
 	}
-	assertContains(t, runsToText(blocks[0].Runs), "Hello")
+	assertContains(t, RunsToText(blocks[0].Runs), "Hello")
 }
 
 func TestMarkdownH2(t *testing.T) {
@@ -610,7 +610,7 @@ func TestMarkdownCodeBlockContent(t *testing.T) {
 	found := false
 	for _, b := range blocks {
 		if b.IsCode {
-			text := runsToText(b.Runs)
+			text := RunsToText(b.Runs)
 			if strings.Contains(text, "hello world") {
 				found = true
 			}
@@ -627,7 +627,7 @@ func TestMarkdownCodeBlockCRLF(t *testing.T) {
 	found := false
 	for _, b := range blocks {
 		if b.IsCode {
-			text := runsToText(b.Runs)
+			text := RunsToText(b.Runs)
 			if strings.Contains(text, "\r") {
 				t.Error("code block contains \\r after CRLF normalization")
 			}
@@ -930,7 +930,7 @@ func TestMarkdownEmoji(t *testing.T) {
 	if len(blocks) == 0 {
 		t.Fatal("expected at least one block")
 	}
-	text := runsToText(blocks[0].Runs)
+	text := RunsToText(blocks[0].Runs)
 	if strings.Contains(text, ":smile:") {
 		t.Error("emoji should be converted to unicode")
 	}
@@ -939,7 +939,7 @@ func TestMarkdownEmoji(t *testing.T) {
 func TestMarkdownEmojiUnknown(t *testing.T) {
 	t.Parallel()
 	blocks := parse(":notarealemojicode:")
-	text := runsToText(blocks[0].Runs)
+	text := RunsToText(blocks[0].Runs)
 	if !strings.Contains(text, ":notarealemojicode:") {
 		t.Error("unknown emoji should remain as text")
 	}
@@ -948,7 +948,7 @@ func TestMarkdownEmojiUnknown(t *testing.T) {
 func TestMarkdownBareColon(t *testing.T) {
 	t.Parallel()
 	blocks := parse("time: 3:00")
-	text := runsToText(blocks[0].Runs)
+	text := RunsToText(blocks[0].Runs)
 	assertContains(t, text, "time: 3:00")
 }
 
@@ -968,7 +968,7 @@ func TestMarkdownParagraphBreak(t *testing.T) {
 func TestMarkdownHardLineBreak(t *testing.T) {
 	t.Parallel()
 	blocks := parse("line1  \nline2")
-	text := runsToText(blocks[0].Runs)
+	text := RunsToText(blocks[0].Runs)
 	if !strings.Contains(text, "\n") {
 		t.Error("expected hard line break")
 	}
@@ -1133,7 +1133,7 @@ func TestMarkdownPlainParagraph(t *testing.T) {
 	if len(blocks) == 0 {
 		t.Fatal("expected at least one block")
 	}
-	assertContains(t, runsToText(blocks[0].Runs), "Hello world.")
+	assertContains(t, RunsToText(blocks[0].Runs), "Hello world.")
 }
 
 func TestMarkdownMultipleBlocks(t *testing.T) {
@@ -1346,7 +1346,7 @@ func TestHeadingSlug(t *testing.T) {
 		{"a café", "a-caf"},
 	}
 	for _, tc := range tests {
-		got := headingSlug(tc.input)
+		got := HeadingSlug(tc.input)
 		if got != tc.want {
 			t.Errorf("HeadingSlug(%q): got %q, want %q",
 				tc.input, got, tc.want)

@@ -117,11 +117,13 @@ embedding them, or scale a synthesized voice's own amplitude — see
 
 | Function              | Description                                |
 | --------------------- | ------------------------------------------ |
+| LoadSound(path)       | Load a sound file (WAV, OGG, MP3, FLAC)    |
 | LoadSoundBytes(data)  | Load from byte slice (WAV, OGG, MP3, FLAC) |
 | Play(channel, loops)  | Play on channel (-1 = auto)                |
 | PlayOnce()            | Shorthand for Play(-1, 0)                  |
 | FadeIn(ch, loops, ms) | Play with fade-in                          |
 | Volume()              | Per-sound volume 0.0–1.0                   |
+| SetVolume(v)          | Set the per-sound volume                   |
 | Free()                | Release resources                          |
 
 ## Music API
@@ -132,19 +134,30 @@ embedding them, or scale a synthesized voice's own amplitude — see
 | Play(loops)       | Play (0 = once, -1 = forever)         |
 | FadeIn(loops, ms) | Play with fade-in                     |
 | Free()            | Release resources                     |
+| PauseMusic()      | Pause the playing music               |
+| ResumeMusic()     | Resume paused music                   |
+| RewindMusic()     | Seek the music back to its start      |
+| IsMusicPlaying()  | Whether music is playing              |
+| IsMusicPaused()   | Whether music is paused               |
+| SetMusicVolume(v) | Music volume 0.0–1.0                  |
+| MusicVolume()     | Read the music volume                 |
 
 ## Global Controls
 
-| Function           | Description                    |
-| ------------------ | ------------------------------ |
-| SetMasterVolume(v) | All sound channels 0.0–1.0     |
-| MasterVolume()     | Read the master volume         |
-| HaltChannel(ch)    | Stop channel (-1 = all)        |
-| IsPlaying(ch)      | Whether channel is playing     |
-| HaltMusic()        | Stop music immediately         |
-| FadeOutMusic(ms)   | Fade out music then halt       |
-| PlaySource(ch, s)  | Stream a live Source           |
-| SampleRate()       | Configured rate, 0 before Init |
+| Function               | Description                    |
+| ---------------------- | ------------------------------ |
+| SetMasterVolume(v)     | All sound channels 0.0–1.0     |
+| MasterVolume()         | Read the master volume         |
+| HaltChannel(ch)        | Stop channel (-1 = all)        |
+| PauseChannel(ch)       | Pause a channel                |
+| ResumeChannel(ch)      | Resume a paused channel        |
+| FadeOutChannel(ch, ms) | Fade a channel out then stop   |
+| IsPlaying(ch)          | Whether channel is playing     |
+| HaltMusic()            | Stop music immediately         |
+| FadeOutMusic(ms)       | Fade out music then halt       |
+| PlaySource(ch, s)      | Stream a live Source           |
+| SampleRate()           | Configured rate, 0 before Init |
+| Quit()                 | Close the audio device         |
 
 For **widget interaction sounds** — a click on a Button, a Toggle flipping — see
 [Widget Sound Feedback](widget_sound.md). That is a separate, higher-level

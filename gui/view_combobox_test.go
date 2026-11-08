@@ -63,11 +63,11 @@ func TestComboboxDropdownHighlightedTextColor(t *testing.T) {
 	// The highlighted row paints the subtle wash, so its label keeps
 	// the body color — a tint needs no paired foreground
 	// (visual-refresh §4.3).
-	if got := textColorOf(t, w, v, "B"); !got.eq(DefaultTextStyle.Color) {
+	if got := textColorOf(t, w, v, "B"); !got.Eq(DefaultTextStyle.Color) {
 		t.Errorf("highlighted row color = %v, want body %v",
 			got, DefaultTextStyle.Color)
 	}
-	if got := textColorOf(t, w, v, "A"); !got.eq(DefaultTextStyle.Color) {
+	if got := textColorOf(t, w, v, "A"); !got.Eq(DefaultTextStyle.Color) {
 		t.Errorf("plain row color = %v, want body %v",
 			got, DefaultTextStyle.Color)
 	}

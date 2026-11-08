@@ -85,7 +85,8 @@ func isMaskLetter(r rune) bool { return unicode.IsLetter(r) }
 func isMaskAlnum(r rune) bool  { return unicode.IsLetter(r) || unicode.IsNumber(r) }
 
 // InputMaskDefaultTokens returns built-in mask tokens.
-func inputMaskDefaultTokens() []MaskTokenDef {
+// exportaudit:keep — documented API (wiki Advanced, input masks)
+func InputMaskDefaultTokens() []MaskTokenDef {
 	return []MaskTokenDef{
 		{Symbol: '9', Matcher: isASCIIDigit},
 		{Symbol: 'a', Matcher: isMaskLetter},
@@ -97,7 +98,7 @@ func inputMaskDefaultTokens() []MaskTokenDef {
 // reads from. Package-level because the mask compiles on every Input
 // generation — once per field per frame — and rebuilding the table
 // each time is pure garbage. Read-only after init; never mutated.
-var defaultMaskTokens = inputMaskDefaultTokens()
+var defaultMaskTokens = InputMaskDefaultTokens()
 
 // compiledMaskCache shares compiled masks across generations. A mask
 // is read-only after compile, so one instance serves every field

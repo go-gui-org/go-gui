@@ -596,7 +596,7 @@ func fontHeight(style TextStyle, w *Window) float32 {
 // textAlreadyMasked skips password masking: renderText's fallback
 // sites pass text masked at the top of the frame, and masking bullets
 // again is a wasted allocation for an identical string.
-func textWidthFallback(text string, runePos int, tc *shapeTextConfig, style TextStyle, w *Window, textAlreadyMasked bool) float32 {
+func textWidthFallback(text string, runePos int, tc *ShapeTextConfig, style TextStyle, w *Window, textAlreadyMasked bool) float32 {
 	runeLen := utf8RuneCount(text)
 	runePos = min(runePos, runeLen)
 	prefix := text[:runeToByteIndex(text, runePos)]
